@@ -1,47 +1,54 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { StyleSheet, ActivityIndicator, View } from "react-native";
 import { useLocalSearchParams, router, Stack } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { ChevronLeft } from "lucide-react-native";
-import DishMediaMap from "@/features/dishMedia/components/DishMediaMap";
 import type { QueryDishMediaByIdsResponse } from "@shared/api/v1/res";
 import type { QueryDishMediaByIdsDto } from "@shared/api/v1/dto";
 import { useAPICall } from "@/hooks/useAPICall";
-import { useDishMediaEntriesStore, selectEntryByMediaId } from "@/stores/useDishMediaEntriesStore";
+import {
+	useDishMediaEntriesStore,
+	selectEntryByMediaId,
+	NormalizedDishMediaEntry,
+} from "@/stores/useDishMediaEntriesStore";
 import { useLocale } from "@/hooks/useLocale";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import DishMediaFeed from "@/features/dishMedia/components/DishMediaFeed";
 
 export default function ReviewPostScreen() {
 	const { id } = useLocalSearchParams<{ id?: string }>();
 	const { callBackend } = useAPICall();
 	const locale = useLocale();
+	const insets = useSafeAreaInsets();
 	const entriesKey = "ReviewPostScreen";
-
-	// #644 【設計】ストアから DishMedia を取得（存在しない場合は API フェッチ）
-	const entry = useDishMediaEntriesStore((state) => (id ? selectEntryByMediaId(id)(state) : null));
+	const [dishMediaEntry, setDishMediaEntry] = useState<NormalizedDishMediaEntry | null>(null);
 
 	useEffect(() => {
 		if (!id) return;
 
-		const { upsertDishMediaEntries, updateMediaIdsByKeyAsync, clearByKey } = useDishMediaEntriesStore.getState();
+		// #644 【設計】ストアから DishMedia を取得（存在しない場合は API フェッチ）
+		const entry = selectEntryByMediaId(id)(useDishMediaEntriesStore.getState());
+
+		const { upsertDishMediaEntries, updateMediaIdsByKey, clearByKey } = useDishMediaEntriesStore.getState();
 
 		// ストアに存在する場合はフェッチをスキップ
 		if (entry) {
-			updateMediaIdsByKeyAsync(entriesKey, Promise.resolve([id]), (_, fetchedIds) => fetchedIds);
+			updateMediaIdsByKey(entriesKey, () => [id]);
+			setDishMediaEntry(entry);
 			return;
 		}
 
 		// ストアに存在しない場合は API フェッチ
 		const fetchData = async () => {
 			const requestPayload: QueryDishMediaByIdsDto = { ids: [id] };
-			const responsePromise = callBackend<QueryDishMediaByIdsDto, QueryDishMediaByIdsResponse>("v1/dish-media", {
+			const response = await callBackend<QueryDishMediaByIdsDto, QueryDishMediaByIdsResponse>("v1/dish-media", {
 				method: "GET",
 				requestPayload,
 			});
-			const idsPromise = responsePromise.then((res) => {
-				upsertDishMediaEntries(res.items);
-				return res.items.map((item) => String(item.dish_media.id));
-			});
-			updateMediaIdsByKeyAsync(entriesKey, idsPromise, (_, fetchedIds) => fetchedIds);
+			upsertDishMediaEntries(response.items);
+			updateMediaIdsByKey(entriesKey, () => [id]);
+			const fetchedEntry = selectEntryByMediaId(id)(useDishMediaEntriesStore.getState());
+			setDishMediaEntry(fetchedEntry || null);
 		};
 
 		fetchData();
@@ -49,36 +56,26 @@ export default function ReviewPostScreen() {
 		return () => {
 			clearByKey(entriesKey);
 		};
-	}, [id, entry, callBackend]);
+	}, [id, callBackend]);
 
 	// #644 【設計】戻るボタン押下時に /review/index に遷移
 	const handleBack = () => {
-		router.replace(`/${locale}/(tabs)/review/index`);
+		router.replace(`/${locale}/(tabs)/review`);
 	};
 
 	return (
 		<>
-			{/* #644 【設計】ヘッダーに戻るボタンを配置 */}
-			<Stack.Screen
-				options={{
-					headerShown: true,
-					headerTransparent: true,
-					headerTitle: "",
-					headerLeft: () => (
-						<View style={styles.headerButton}>
-							<ChevronLeft size={28} color="#FFFFFF" onPress={handleBack} />
-						</View>
-					),
-				}}
-			/>
+			<View style={[styles.headerButton, { top: insets.top + 8 }]}>
+				<ChevronLeft size={28} color="#FFFFFF" onPress={handleBack} />
+			</View>
 			<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
 				{/* #644 【設計】データ取得中はローディング表示 */}
-				{!entry ? (
+				{!dishMediaEntry ? (
 					<View style={styles.loadingContainer}>
 						<ActivityIndicator size="large" color="#5EA2FF" />
 					</View>
 				) : (
-					<DishMediaMap entriesKey={entriesKey} idType="dish_media" />
+					<DishMediaFeed entriesKey={entriesKey} idType="dish_media" />
 				)}
 			</LinearGradient>
 		</>
@@ -93,6 +90,11 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 	},
 	headerButton: {
+		position: "absolute",
+		left: 16,
+		zIndex: 10,
+		backgroundColor: "rgba(0,0,0,0.4)",
+		borderRadius: 24,
 		marginLeft: 8,
 		padding: 8,
 	},
