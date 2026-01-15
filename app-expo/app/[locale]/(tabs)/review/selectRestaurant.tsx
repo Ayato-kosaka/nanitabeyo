@@ -19,7 +19,6 @@ import { useLogger } from "@/hooks/useLogger";
 import MapViewClass from "react-native-maps";
 import { isFoodAndDrinkPlaceForUser } from "@shared/utils/google_places_restaurant_type";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { AvatarBubbleMarkerBitmap, MarkerBitmapRendererProvider } from "@/features/mapMarkers";
 import { router, useFocusEffect } from "expo-router";
 import { SavedRestaurantsSheet, SavedRestaurantsSheetHandle } from "@/features/review/components/SavedRestaurantsSheet";
@@ -353,17 +352,7 @@ export default function SelectRestaurantScreen() {
 
 	return (
 		<MarkerBitmapRendererProvider>
-			<SafeAreaView edges={["top"]} style={styles.container}>
-				{/* #644 【設計】画面タイトル with 戻るボタン */}
-				<ReviewHeader
-					title={i18n.t("Review.selectRestaurant.title")}
-					onPressBack={() => {
-						lightImpact();
-						router.back();
-					}}
-					containerStyle={styles.headerContainer}
-				/>
-
+			<View style={styles.container}>
 				{/* Map */}
 				<MapView
 					ref={mapRef}
@@ -392,33 +381,48 @@ export default function SelectRestaurantScreen() {
 					</View>
 				)}
 
-				{/* #644 【設計】Search Bar - placeholder: "店名やエリアで検索" */}
-				<View style={styles.searchContainer}>
-					<LocationAutocomplete
-						value={searchQuery}
-						onChangeText={setSearchQuery}
-						onSelectSuggestion={handleAutocompleteSelect}
-						onClear={() => setSearchQuery("")}
-						placeholder={i18n.t("Map.placeholders.searchRestaurantsForReview")}
-						renderInputRight={
-							<TouchableOpacity style={styles.currentLocationButton} onPress={handleCurrentLocation}>
-								<Navigation size={20} color="#5EA2FF" />
-							</TouchableOpacity>
-						}
+				{/* 🔹上部 UI レイヤー（ヘッダー＋検索＋ボタン） */}
+				<View
+					style={[styles.topOverlay]}
+					pointerEvents="box-none" // 余白部分は Map をタッチ可能にする
+				>
+					{/* #644 【設計】画面タイトル with 戻るボタン */}
+					<ReviewHeader
+						title={i18n.t("Review.selectRestaurant.title")}
+						onPressBack={() => {
+							lightImpact();
+							router.back();
+						}}
 					/>
-				</View>
 
-				{/* Search This Area button under LocationAutocomplete; map remains interactive on sides */}
-				<View style={styles.searchButtonContainer}>
-					<PrimaryButton
-						onPress={() => searchSavedRestaurants(currentRegion.current)}
-						label={i18n.t("Review.selectRestaurant.searchThisArea")}
-						icon={<RotateCw size={16} color="#357AFF" />}
-						colors={["#ffffff", "#ffffff"]}
-						shadowColor={"#000000"}
-						labelStyle={{ color: "#357AFF", fontSize: 14 }}
-						loading={isLoadingSavedRestaurants}
-					/>
+					{/* #644 【設計】Search Bar - placeholder: "店名やエリアで検索" */}
+					<View style={styles.searchContainer}>
+						<LocationAutocomplete
+							value={searchQuery}
+							onChangeText={setSearchQuery}
+							onSelectSuggestion={handleAutocompleteSelect}
+							onClear={() => setSearchQuery("")}
+							placeholder={i18n.t("Map.placeholders.searchRestaurantsForReview")}
+							renderInputRight={
+								<TouchableOpacity style={styles.currentLocationButton} onPress={handleCurrentLocation}>
+									<Navigation size={20} color="#5EA2FF" />
+								</TouchableOpacity>
+							}
+						/>
+					</View>
+
+					{/* Search This Area button under LocationAutocomplete; map remains interactive on sides */}
+					<View style={styles.searchButtonContainer}>
+						<PrimaryButton
+							onPress={() => searchSavedRestaurants(currentRegion.current)}
+							label={i18n.t("Review.selectRestaurant.searchThisArea")}
+							icon={<RotateCw size={16} color="#357AFF" />}
+							colors={["#ffffff", "#ffffff"]}
+							shadowColor={"#000000"}
+							labelStyle={{ color: "#357AFF", fontSize: 14 }}
+							loading={isLoadingSavedRestaurants}
+						/>
+					</View>
 				</View>
 
 				{/* Saved Restaurants BottomSheet */}
@@ -431,7 +435,7 @@ export default function SelectRestaurantScreen() {
 					onRestaurantReviewPress={handleSavedRestaurantReviewPress}
 					onSnapToRestaurant={(restaurant) => setActiveRestaurantId(restaurant.restaurant.id)}
 				/>
-			</SafeAreaView>
+			</View>
 		</MarkerBitmapRendererProvider>
 	);
 }
@@ -439,37 +443,30 @@ export default function SelectRestaurantScreen() {
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: "#000",
-	},
-	headerContainer: {
-		position: "absolute",
-		top: 0,
-		left: 0,
-		right: 0,
 		backgroundColor: "#FFFFFF",
-		paddingVertical: 16,
-		paddingHorizontal: 16,
-		borderBottomWidth: 1,
-		borderBottomColor: "#E5E7EB",
-		zIndex: 100,
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
 	},
 	map: {
 		flex: 1,
 	},
-	searchContainer: {
+	topOverlay: {
 		position: "absolute",
-		top: 70,
-		left: 16,
-		right: 16,
-		zIndex: 10,
+		top: 0,
+		left: 0,
+		right: 0,
+		zIndex: 100,
+	},
+	searchContainer: {
+		marginTop: 8,
+		marginHorizontal: 16,
 	},
 	currentLocationButton: {
 		padding: 16,
 		borderLeftWidth: 0.5,
 		borderLeftColor: "#E5E7EB",
+	},
+	searchButtonContainer: {
+		marginTop: 8,
+		alignItems: "center",
 	},
 	loadingOverlay: {
 		position: "absolute",
@@ -481,13 +478,5 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		backgroundColor: "rgba(0, 0, 0, 0.3)",
 		zIndex: 20,
-	},
-	searchButtonContainer: {
-		position: "absolute",
-		top: 130,
-		left: 0,
-		right: 0,
-		alignItems: "center",
-		zIndex: 9,
 	},
 });

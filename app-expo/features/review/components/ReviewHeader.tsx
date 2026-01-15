@@ -2,6 +2,7 @@ import React from "react";
 import type { ReactNode } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, type StyleProp, type TextStyle, type ViewStyle } from "react-native";
 import { ChevronLeft } from "lucide-react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export type ReviewHeaderProps = {
 	/** 表示するタイトル（i18n 済み文字列） */
@@ -16,15 +17,10 @@ export type ReviewHeaderProps = {
 	titleStyle?: StyleProp<TextStyle>;
 };
 
-export function ReviewHeader({
-	title,
-	onPressBack,
-	rightContent,
-	containerStyle,
-	titleStyle,
-}: ReviewHeaderProps) {
+export function ReviewHeader({ title, onPressBack, rightContent, containerStyle, titleStyle }: ReviewHeaderProps) {
+	const insets = useSafeAreaInsets();
 	return (
-		<View style={[styles.container, containerStyle]}>
+		<View style={[{ paddingTop: insets.top + 8 }, styles.container, containerStyle]}>
 			<TouchableOpacity
 				style={styles.backButton}
 				onPress={onPressBack}
@@ -46,7 +42,7 @@ export function ReviewHeader({
 const styles = StyleSheet.create({
 	container: {
 		backgroundColor: "#FFFFFF",
-		paddingVertical: 16,
+		paddingBottom: 8,
 		paddingHorizontal: 16,
 		borderBottomWidth: 1,
 		borderBottomColor: "#E5E7EB",

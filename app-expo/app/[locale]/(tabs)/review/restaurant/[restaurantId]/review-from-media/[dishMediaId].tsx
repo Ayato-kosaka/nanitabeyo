@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { View, StyleSheet, ActivityIndicator, Text } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { ReviewForm } from "@/features/map/components/ReviewForm";
 import { useRestaurantStore, type RestaurantEntry } from "@/features/review/stores/useRestaurantStore";
 import {
@@ -107,7 +106,7 @@ export default function ReviewFromMediaScreen() {
 	// #644 【設計】ローディング表示
 	if (isLoading) {
 		return (
-			<SafeAreaView edges={["top"]} style={styles.container}>
+			<View style={styles.container}>
 				<ReviewHeader
 					title={i18n.t("Review.title")}
 					onPressBack={() => {
@@ -118,14 +117,14 @@ export default function ReviewFromMediaScreen() {
 				<View style={styles.loadingContainer}>
 					<ActivityIndicator size="large" color="#5EA2FF" />
 				</View>
-			</SafeAreaView>
+			</View>
 		);
 	}
 
 	// #644 【設計】エラー表示
 	if (error || !restaurantEntry || !dishMedia) {
 		return (
-			<SafeAreaView edges={["top"]} style={styles.container}>
+			<View style={styles.container}>
 				<ReviewHeader
 					title={i18n.t("Review.title")}
 					onPressBack={() => {
@@ -136,12 +135,12 @@ export default function ReviewFromMediaScreen() {
 				<View style={styles.errorContainer}>
 					<Text style={styles.errorText}>{i18n.t("Common.errors.notFound")}</Text>
 				</View>
-			</SafeAreaView>
+			</View>
 		);
 	}
 
 	return (
-		<SafeAreaView edges={["top", "bottom"]} style={styles.container}>
+		<View style={styles.container}>
 			<ReviewHeader
 				title={restaurantEntry.restaurant.name}
 				onPressBack={() => {
@@ -156,7 +155,7 @@ export default function ReviewFromMediaScreen() {
 				prefilledMedia={{ ...dishMedia.dish_media, dish: dishMedia.dish }}
 				onCancel={() => router.back()}
 			/>
-		</SafeAreaView>
+		</View>
 	);
 }
 
