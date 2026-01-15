@@ -38,13 +38,10 @@ export default function ReviewPostScreen() {
 				try {
 					const { upsertDishMediaEntries, updateMediaIdsByKey } = useDishMediaEntriesStore.getState();
 					const requestPayload: QueryDishMediaByIdsDto = { ids: [id] };
-					const response = await callBackend<QueryDishMediaByIdsDto, QueryDishMediaByIdsResponse>(
-						"v1/dish-media",
-						{
-							method: "GET",
-							requestPayload,
-						},
-					);
+					const response = await callBackend<QueryDishMediaByIdsDto, QueryDishMediaByIdsResponse>("v1/dish-media", {
+						method: "GET",
+						requestPayload,
+					});
 
 					if (response.items.length === 0) {
 						setError(i18n.t("Common.error"));
