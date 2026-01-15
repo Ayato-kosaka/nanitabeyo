@@ -7,9 +7,10 @@ import { useAPICall } from "@/hooks/useAPICall";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useLogger } from "@/hooks/useLogger";
-import type { GetRestaurantByIdResponse } from "@shared/api/v1/res";
+import type { GetRestaurantByIdResponse, DishMediaEntry } from "@shared/api/v1/res";
 import i18n from "@/lib/i18n";
 import { ReviewHeader } from "@/features/review/components/ReviewHeader";
+import { useLocale } from "@/hooks/useLocale";
 
 export default function ReviewScreen() {
 	const { restaurantId } = useLocalSearchParams<{ restaurantId: string }>();
@@ -17,10 +18,24 @@ export default function ReviewScreen() {
 	const { callBackend } = useAPICall();
 	const { showSnackbar } = useSnackbar();
 	const { logFrontendEvent } = useLogger();
+	const locale = useLocale();
 
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [restaurant, setRestaurant] = useState<RestaurantEntry | undefined>(undefined);
+
+	// #644 【設計】レビュー投稿成功時に /review/post/:id に遷移
+	const handleReviewSuccess = ({ dishMedia }: { dishMedia: DishMediaEntry["dish_media"] }) => {
+		// /review までスタックを掃除（なければ現在画面を /review に置き換え）
+		router.dismissTo(`/${locale}/(tabs)/review`);
+		router.push({
+			pathname: `/[locale]/(tabs)/review/post/[id]`,
+			params: {
+				locale,
+				id: dishMedia.id,
+			},
+		});
+	};
 
 	// #644 【設計】restaurant.id でレストラン詳細を取得（ストアキャッシュ優先）
 	useEffect(() => {
@@ -131,7 +146,7 @@ export default function ReviewScreen() {
 			/>
 
 			{/* #644 【設計】ReviewForm をメディア選択ありモードで表示 */}
-			<ReviewForm restaurant={restaurant.restaurant} onCancel={() => router.back()} />
+			<ReviewForm restaurant={restaurant.restaurant} onCancel={() => router.back()} onSuccess={handleReviewSuccess} />
 		</View>
 	);
 }

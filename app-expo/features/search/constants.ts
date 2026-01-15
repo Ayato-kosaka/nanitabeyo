@@ -104,4 +104,3 @@ export const PRELOAD_IMAGES = [
 	// Google アイコン画像
 	require("@/assets/images/logo_google_g_icon.png"),
 ];
-
