@@ -228,7 +228,11 @@
 		"search": "Search",
 		"map": "Map",
 		"notifications": "Notifications",
-		"profile": "Profile"
+		"profile": "Profile",
+		"review": "Review"
+	},
+	"Review": {
+		"startReview": "Start writing a review"
 	},
 	"Profile": {
 		"tabs": {

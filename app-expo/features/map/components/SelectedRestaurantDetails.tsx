@@ -2,12 +2,14 @@ import React, { useState, useCallback } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, LayoutChangeEvent, Platform } from "react-native";
 import { Camera, DollarSign, ExternalLink } from "lucide-react-native";
 import * as Linking from "expo-linking";
+import { router } from "expo-router";
 import { Card } from "@/components/Card";
 import Stars from "@/components/Stars";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { useHaptics } from "@/hooks/useHaptics";
+import { useLocale } from "@/hooks/useLocale";
 import { ReviewForm } from "@/features/map/components/ReviewForm";
 import { BidForm } from "@/features/map/components/BidForm";
 import { RestaurantReviewsTab } from "@/features/map/components/tabs/RestaurantReviewsTab";
@@ -15,7 +17,7 @@ import { RestaurantBidsTab } from "@/features/map/components/tabs/RestaurantBids
 import { Tabs } from "@/components/collapsible-tabs";
 import type { TabBarProps } from "react-native-collapsible-tab-view";
 import { useSharedValueState } from "@/hooks/useSharedValueState";
-import type { QueryRestaurantsResponse } from "@shared/api/v1/res";
+import type { QueryRestaurantsResponse, DishMediaEntry } from "@shared/api/v1/res";
 import { useLogger } from "@/hooks/useLogger";
 import { getGoogleMapsLink } from "@/lib/googlePlaces";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
@@ -51,6 +53,7 @@ export function SelectedRestaurantDetails({ restaurant, meta: restaurantMeta }: 
 	const { showSnackbar } = useSnackbar();
 	const frame = useSafeAreaFrame(); // Safe Area を除いたフレームの高さ
 	const { user } = useAuth();
+	const locale = useLocale();
 
 	// Modals
 	const {
@@ -94,6 +97,15 @@ export function SelectedRestaurantDetails({ restaurant, meta: restaurantMeta }: 
 			setIsProcessing(false);
 		}
 	};
+
+	// #644 【設計】レビュー投稿成功時にレビュー投稿画面へ遷移
+	const handleReviewSuccess = useCallback(
+		({ dishMedia }: { dishMedia: DishMediaEntry["dish_media"] }) => {
+			closeReviewModal();
+			router.replace(`/${locale}/(tabs)/review/post/${dishMedia.id}`);
+		},
+		[locale, closeReviewModal],
+	);
 
 	const handleReviewButtonPress = async () => {
 		lightImpact();
@@ -248,7 +260,9 @@ export function SelectedRestaurantDetails({ restaurant, meta: restaurantMeta }: 
 			</Tabs.Container>
 
 			{/* Review Modal */}
-			<ReviewBlurModal>{({ close }) => <ReviewForm restaurant={restaurant} onCancel={close} />}</ReviewBlurModal>
+			<ReviewBlurModal>
+				{({ close }) => <ReviewForm restaurant={restaurant} onCancel={close} onSuccess={handleReviewSuccess} />}
+			</ReviewBlurModal>
 
 			{/* Bid Modal */}
 			<BidBlurModal>

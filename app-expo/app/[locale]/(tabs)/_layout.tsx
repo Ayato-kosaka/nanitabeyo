@@ -62,6 +62,7 @@ export default function TabLayout() {
 				}}
 			/>
 			<Tabs.Screen name="posts" options={{ href: null }} />
+			<Tabs.Screen name="review" options={{ href: null }} />
 		</Tabs>
 	);
 }

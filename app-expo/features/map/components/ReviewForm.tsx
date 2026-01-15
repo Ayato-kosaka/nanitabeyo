@@ -61,6 +61,8 @@ interface ReviewFormProps {
 	onCancel: () => void;
 	/** Pre-filled media data (for no-media mode from Feed) */
 	prefilledMedia?: DishMediaEntry["dish_media"] & { dish: DishMediaEntry["dish"] };
+	/** #644 【設計】レビュー投稿成功時のコールバック */
+	onSuccess?: (params: { dishMedia: DishMediaEntry["dish_media"] }) => void;
 }
 
 const { height } = Dimensions.get("window");
@@ -81,6 +83,7 @@ export function ReviewForm({
 	initialRating = 0,
 	onCancel,
 	prefilledMedia,
+	onSuccess,
 }: ReviewFormProps) {
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
@@ -488,7 +491,14 @@ export function ReviewForm({
 			});
 
 			showSnackbar(i18n.t("Map.alerts.reviewSuccess"));
-			onCancel();
+
+			// #644 【設計】成功時、DishMedia をコールバック経由で親に渡す
+			if (onSuccess) {
+				onSuccess({ dishMedia: dish_media });
+			} else {
+				// #644 【設計】onSuccess が指定されていない場合は従来通り onCancel を呼ぶ
+				onCancel();
+			}
 		} catch (error: any) {
 			logFrontendEvent({
 				event_name: "dish_review_submission_failed",
@@ -511,6 +521,7 @@ export function ReviewForm({
 		callBackend,
 		logFrontendEvent,
 		onCancel,
+		onSuccess,
 		restaurant,
 		locale,
 		currencyCode,
@@ -519,6 +530,8 @@ export function ReviewForm({
 		mediumImpact,
 		prefilledMedia,
 		showSnackbar,
+		parsedPrice,
+		profile,
 	]);
 
 	// Legal ドキュメント表示用のハンドラ

@@ -228,7 +228,11 @@
 		"search": "खोज",
 		"map": "मानचित्र",
 		"notifications": "सूचनाएँ",
-		"profile": "प्रोफ़ाइल"
+		"profile": "प्रोफ़ाइल",
+		"review": "समीक्षा"
+	},
+	"Review": {
+		"startReview": "समीक्षा लिखना शुरू करें"
 	},
 	"Profile": {
 		"tabs": {

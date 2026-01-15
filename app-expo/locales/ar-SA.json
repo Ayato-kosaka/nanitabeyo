@@ -228,7 +228,11 @@
 		"search": "البحث",
 		"map": "الخريطة",
 		"notifications": "الإشعارات",
-		"profile": "الملف الشخصي"
+		"profile": "الملف الشخصي",
+		"review": "المراجعة"
+	},
+	"Review": {
+		"startReview": "ابدأ بكتابة مراجعة"
 	},
 	"Profile": {
 		"tabs": {

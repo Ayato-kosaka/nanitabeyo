@@ -228,7 +228,11 @@
 		"search": "Recherche",
 		"map": "Carte",
 		"notifications": "Notifications",
-		"profile": "Profil"
+		"profile": "Profil",
+		"review": "Avis"
+	},
+	"Review": {
+		"startReview": "Commencer à écrire un avis"
 	},
 	"Profile": {
 		"tabs": {

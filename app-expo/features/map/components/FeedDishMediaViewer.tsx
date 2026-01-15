@@ -1,13 +1,16 @@
 import React, { useState, useCallback, useMemo } from "react";
+import { router } from "expo-router";
 import DishMediaFeed from "@/features/dishMedia/components/DishMediaFeed";
 import { useDishMediaEntriesStore, selectIdsByKey } from "@/stores/useDishMediaEntriesStore";
 import { View, StyleSheet } from "react-native";
 import { useSafeAreaFrame } from "react-native-safe-area-context";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
+import { useLocale } from "@/hooks/useLocale";
 import { ReviewForm } from "./ReviewForm";
 import i18n from "@/lib/i18n";
 import { useAuth } from "@/contexts/AuthProvider";
+import type { DishMediaEntry } from "@shared/api/v1/res";
 
 type FeedDishMediaViewerProps = {
 	initialIndex: number;
@@ -17,6 +20,7 @@ type FeedDishMediaViewerProps = {
 export function FeedDishMediaViewer({ initialIndex, entriesKey }: FeedDishMediaViewerProps) {
 	const frame = useSafeAreaFrame(); // Safe Area を除いたフレームの高さ
 	const { user } = useAuth();
+	const locale = useLocale();
 
 	// #【設計】ReviewForm を BlurModal 経由で表示するための useBlurModal
 	const { BlurModal: ReviewFormModal, open: openReviewModal, close: closeReviewModal } = useBlurModal({});
@@ -31,6 +35,15 @@ export function FeedDishMediaViewer({ initialIndex, entriesKey }: FeedDishMediaV
 	const handleWriteReview = useCallback(() => {
 		openReviewModal();
 	}, [openReviewModal]);
+
+	// #644 【設計】レビュー投稿成功時にレビュー投稿画面へ遷移
+	const handleReviewSuccess = useCallback(
+		({ dishMedia }: { dishMedia: DishMediaEntry["dish_media"] }) => {
+			closeReviewModal();
+			router.replace(`/${locale}/(tabs)/review/post/${dishMedia.id}`);
+		},
+		[locale, closeReviewModal],
+	);
 
 	// 現在表示中のアイテムを取得
 	const { restaurant, prefilledMedia } = useMemo(() => {
@@ -62,7 +75,12 @@ export function FeedDishMediaViewer({ initialIndex, entriesKey }: FeedDishMediaV
 
 			{/* #400【設計】ReviewForm を BlurModal 経由で表示（メディアなしレビューモード） */}
 			<ReviewFormModal>
-				<ReviewForm restaurant={restaurant} onCancel={closeReviewModal} prefilledMedia={prefilledMedia} />
+				<ReviewForm
+					restaurant={restaurant}
+					onCancel={closeReviewModal}
+					onSuccess={handleReviewSuccess}
+					prefilledMedia={prefilledMedia}
+				/>
 			</ReviewFormModal>
 		</View>
 	);
