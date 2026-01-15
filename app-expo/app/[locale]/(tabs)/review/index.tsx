@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect } from "react";
-import { View, Text, StyleSheet, Image, useWindowDimensions, Dimensions } from "react-native";
+import { View, Text, StyleSheet, Dimensions } from "react-native";
+import { Image } from "expo-image";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { useAuth } from "@/contexts/AuthProvider";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
