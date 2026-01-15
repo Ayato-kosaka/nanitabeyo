@@ -29,6 +29,7 @@ import {
 	distanceOptions,
 	priceLevelOptions,
 	TUTORIAL_PAGES,
+	PRELOAD_IMAGES,
 } from "@/features/search/constants";
 import { DistanceSlider } from "@/features/search/components/DistanceSlider";
 import { PriceLevelsMultiSelect } from "@/features/search/components/PriceLevelsMultiSelect";
@@ -535,8 +536,8 @@ export default function SearchScreen() {
 			/>
 			{/* #642 【設計】オフスクリーンでチュートリアル画像を一度描画して decode */}
 			<View style={{ width: 0, height: 0, position: "absolute", overflow: "hidden" }}>
-				{TUTORIAL_PAGES.map((src, i) => (
-					<Image key={i} source={src.image} />
+				{PRELOAD_IMAGES.map((src, i) => (
+					<Image key={i} source={src} />
 				))}
 			</View>
 		</SafeAreaView>

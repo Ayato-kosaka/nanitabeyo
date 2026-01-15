@@ -10,7 +10,7 @@ export const RestaurantLoading = () => (
 		<View style={styles.loadingCard}>
 			<View style={styles.loadingIconContainer}>
 				<Image
-					source={require("@/assets/images/icon.png")}
+					source={require("@/assets/images/icon.webp")}
 					style={styles.loadingIcon}
 					contentFit="cover"
 					transition={0}

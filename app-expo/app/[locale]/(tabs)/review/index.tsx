@@ -68,7 +68,7 @@ export default function ReviewScreen() {
 			{/* ヒーローセクション */}
 			<View style={styles.heroSection}>
 				<View style={styles.heroImagePlaceholder}>
-					<Image source={require("@/features/review/assets/review-hero.png")} style={styles.heroImage} />
+					<Image source={require("@/features/review/assets/review-hero.webp")} style={styles.heroImage} />
 				</View>
 			</View>
 
