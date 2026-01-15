@@ -16,13 +16,7 @@ export type ReviewHeaderProps = {
 	titleStyle?: StyleProp<TextStyle>;
 };
 
-export function ReviewHeader({
-	title,
-	onPressBack,
-	rightContent,
-	containerStyle,
-	titleStyle,
-}: ReviewHeaderProps) {
+export function ReviewHeader({ title, onPressBack, rightContent, containerStyle, titleStyle }: ReviewHeaderProps) {
 	return (
 		<View style={[styles.container, containerStyle]}>
 			<TouchableOpacity
