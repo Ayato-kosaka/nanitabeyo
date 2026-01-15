@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { StyleSheet, ActivityIndicator, View } from "react-native";
-import { useLocalSearchParams, router, Stack } from "expo-router";
+import { useLocalSearchParams, router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { ChevronLeft } from "lucide-react-native";
 import type { QueryDishMediaByIdsResponse } from "@shared/api/v1/res";
@@ -11,14 +11,12 @@ import {
 	selectEntryByMediaId,
 	NormalizedDishMediaEntry,
 } from "@/stores/useDishMediaEntriesStore";
-import { useLocale } from "@/hooks/useLocale";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import DishMediaFeed from "@/features/dishMedia/components/DishMediaFeed";
 
 export default function ReviewPostScreen() {
 	const { id } = useLocalSearchParams<{ id?: string }>();
 	const { callBackend } = useAPICall();
-	const locale = useLocale();
 	const insets = useSafeAreaInsets();
 	const entriesKey = "ReviewPostScreen";
 	const [dishMediaEntry, setDishMediaEntry] = useState<NormalizedDishMediaEntry | null>(null);
@@ -60,7 +58,7 @@ export default function ReviewPostScreen() {
 
 	// #644 【設計】戻るボタン押下時に /review/index に遷移
 	const handleBack = () => {
-		router.replace(`/${locale}/(tabs)/review`);
+		router.back();
 	};
 
 	return (

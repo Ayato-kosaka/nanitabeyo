@@ -26,7 +26,15 @@ export default function ReviewScreen() {
 
 	// #644 【設計】レビュー投稿成功時に /review/post/:id に遷移
 	const handleReviewSuccess = ({ dishMedia }: { dishMedia: DishMediaEntry["dish_media"] }) => {
-		router.replace(`/${locale}/(tabs)/review/post/${dishMedia.id}`);
+		// /review までスタックを掃除（なければ現在画面を /review に置き換え）
+		router.dismissTo(`/${locale}/(tabs)/review`);
+		router.push({
+			pathname: `/[locale]/(tabs)/review/post/[id]`,
+			params: {
+				locale,
+				id: dishMedia.id,
+			},
+		});
 	};
 
 	// #644 【設計】restaurant.id でレストラン詳細を取得（ストアキャッシュ優先）
