@@ -42,6 +42,7 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 		} = props;
 		const sheetRef = useRef<TrueSheet>(null);
 		const carouselRef = useRef<ICarouselInstance | null>(null);
+		const isDraggingRef = useRef(false);
 
 		useImperativeHandle(ref, () => ({
 			present: async () => {
@@ -77,8 +78,14 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 				<View style={styles.savedRestaurantItemContainer}>
 					<PrimaryCard
 						item={item}
-						onPress={() => onRestaurantCardPress(item)}
-						onReview={() => onRestaurantReviewPress(item)}
+						onPress={() => {
+							if (isDraggingRef.current) return;
+							onRestaurantCardPress(item);
+						}}
+						onReview={() => {
+							if (isDraggingRef.current) return;
+							onRestaurantReviewPress(item);
+						}}
 					/>
 				</View>
 			),
@@ -141,7 +148,14 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 											parallaxAdjacentItemScale: 1,
 											parallaxScrollingOffset: ((SCREEN_WIDTH - CARD_WIDTH) * 3) / 4,
 										}}
+										onScrollStart={() => {
+											isDraggingRef.current = true;
+										}}
+										onScrollEnd={() => {
+											isDraggingRef.current = false;
+										}}
 										onSnapToItem={(index) => {
+											isDraggingRef.current = false;
 											const restaurant = savedRestaurants[index];
 											if (restaurant) onSnapToRestaurant?.(restaurant);
 										}}
