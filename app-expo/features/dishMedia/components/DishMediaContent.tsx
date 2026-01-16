@@ -22,6 +22,7 @@ import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming } from 
 import { SkeletonShimmer } from "@/components/SkeletonShimmer";
 import { useLogger } from "@/hooks/useLogger";
 import { useImageLoadWithRetry } from "@/hooks/useImageLoadWithRetry";
+import type { ShareMode } from "./ActionButtons";
 
 interface DishMediaContentProps {
 	id: string;
@@ -33,6 +34,7 @@ interface DishMediaContentProps {
 	idType: IdType;
 	onCardPress?: (entry: NormalizedDishMediaEntry) => void;
 	displayIndex?: number;
+	shareMode?: ShareMode; // #659 【設計】shareMode を追加
 }
 
 export default function DishMediaContent({
@@ -45,6 +47,7 @@ export default function DishMediaContent({
 	idType,
 	onCardPress, // #613 【設計】カード押下時のコールバック
 	displayIndex,
+	shareMode = "single", // #659 【設計】デフォルトは single
 }: DishMediaContentProps) {
 	// #530 【設計】dishMediaEntry を useState で管理し、ポーリング結果を反映できるようにする
 	const [dishMediaEntry, setDishMediaEntry] = useState<NormalizedDishMediaEntry>(() => {
@@ -314,7 +317,13 @@ export default function DishMediaContent({
 			{/* Action Buttons */}
 			<View pointerEvents="box-none" style={styles.bottomSection}>
 				<View pointerEvents="box-none" style={styles.actionRow}>
-					<ActionButtons id={id} idType={idType} onLayout={(width) => setRightActionsWidth(width)} />
+					<ActionButtons
+						id={id}
+						idType={idType}
+						entriesKey={entriesKey}
+						shareMode={shareMode}
+						onLayout={(width) => setRightActionsWidth(width)}
+					/>
 				</View>
 			</View>
 		</View>

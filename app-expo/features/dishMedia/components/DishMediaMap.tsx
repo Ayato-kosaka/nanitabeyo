@@ -24,6 +24,7 @@ import i18n from "@/lib/i18n";
 import { useActionSheet } from "@expo/react-native-action-sheet";
 import { useDishMediaActions } from "../hooks/useDishMediaActions";
 import { PrimaryButton } from "@/components/PrimaryButton";
+import type { ShareMode } from "./ActionButtons";
 
 const { width, height } = Dimensions.get("window");
 
@@ -54,6 +55,8 @@ interface DishMediaMapProps {
 	entriesKey: string;
 	// ID の種類（dish_media / dish_reviews）
 	idType: IdType;
+	// #659 【設計】共有モード（デフォルト: single）
+	shareMode?: ShareMode;
 }
 
 export default function DishMediaMap({
@@ -63,6 +66,7 @@ export default function DishMediaMap({
 	getTitle,
 	entriesKey,
 	idType,
+	shareMode = "single", // #659 【設計】デフォルトは single
 }: DishMediaMapProps) {
 	const selector = useCallback(
 		(state: DishMediaEntriesStore) => selectIdsByKey(entriesKey, idType)(state),
@@ -272,18 +276,32 @@ export default function DishMediaMap({
 							break;
 						}
 						case 1: {
-							// #613 【設計】友人に共有する
-							await shareRestaurant({
-								dishMediaId,
-								restaurant,
-							});
+							// #659 【設計】共有モードに応じた処理
+							if (shareMode === "feedFromCurrent") {
+								// #659 【設計】アクティブを先頭にした全件共有
+								const state = useDishMediaEntriesStore.getState();
+								const { ids } = selectIdsByKey(entriesKey, idType)(state);
+								const idx = ids.indexOf(dishMediaId);
+								const ordered = idx === -1 ? ids : [...ids.slice(idx), ...ids.slice(0, idx)];
+								await shareRestaurant({
+									dishMediaId,
+									restaurant,
+									idsForShare: ordered,
+								});
+							} else {
+								// #659 【設計】単体共有（従来通り）
+								await shareRestaurant({
+									dishMediaId,
+									restaurant,
+								});
+							}
 							break;
 						}
 					}
 				},
 			);
 		},
-		[showActionSheetWithOptions, openInGoogleMaps, shareRestaurant],
+		[showActionSheetWithOptions, openInGoogleMaps, shareRestaurant, shareMode, entriesKey, idType],
 	);
 
 	const renderCarouselItem = useCallback(
@@ -299,10 +317,11 @@ export default function DishMediaMap({
 					idType={idType}
 					onCardPress={handleCardPress} // #613 【設計】カード押下時のコールバックを渡す
 					displayIndex={index}
+					shareMode={shareMode} // #659 【設計】shareMode を渡す
 				/>
 			</View>
 		),
-		[currentIndex, getTitle, entriesKey, idType, handleCardPress],
+		[currentIndex, getTitle, entriesKey, idType, handleCardPress, shareMode],
 	);
 
 	// #638 【設計】現在選択中のエントリーを取得
