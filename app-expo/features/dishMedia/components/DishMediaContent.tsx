@@ -22,9 +22,7 @@ import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming } from 
 import { SkeletonShimmer } from "@/components/SkeletonShimmer";
 import { useLogger } from "@/hooks/useLogger";
 import { useImageLoadWithRetry } from "@/hooks/useImageLoadWithRetry";
-
-// #659 【設計】共有モードの型定義（DishMediaMap と同じ型を使用）
-type ShareMode = "single" | "feedFromCurrent";
+import type { ShareMode } from "./ActionButtons";
 
 interface DishMediaContentProps {
 	id: string;

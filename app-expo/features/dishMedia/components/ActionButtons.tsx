@@ -25,8 +25,8 @@ import { profileLikesEntriesKey } from "@/features/profile/tabs/LikeTab";
 import { profileSavedPostsEntriesKey } from "@/features/profile/tabs/SavedPostsTab";
 import { useDishMediaActions } from "../hooks/useDishMediaActions";
 
-// #659 【設計】共有モードの型定義
-type ShareMode = "single" | "feedFromCurrent";
+// #659 【設計】共有モードの型定義（エクスポート）
+export type ShareMode = "single" | "feedFromCurrent";
 
 interface ActionButtonsProps {
 	id: string;

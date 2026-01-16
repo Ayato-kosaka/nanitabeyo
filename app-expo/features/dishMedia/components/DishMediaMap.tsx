@@ -24,6 +24,7 @@ import i18n from "@/lib/i18n";
 import { useActionSheet } from "@expo/react-native-action-sheet";
 import { useDishMediaActions } from "../hooks/useDishMediaActions";
 import { PrimaryButton } from "@/components/PrimaryButton";
+import type { ShareMode } from "./ActionButtons";
 
 const { width, height } = Dimensions.get("window");
 
@@ -41,9 +42,6 @@ const SNAP_THRESHOLD = 0.5;
 const HANDLE_COLOR = "#FFFFFFFF";
 // #638 【設計】フローティングボタンのマージン（右端からの距離）
 const FLOATING_BUTTON_MARGIN = 8;
-
-// #659 【設計】共有モードの型定義
-type ShareMode = "single" | "feedFromCurrent";
 
 interface DishMediaMapProps {
 	initialIndex?: number;
