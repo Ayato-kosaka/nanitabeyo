@@ -368,6 +368,7 @@ export default function SelectRestaurantScreen() {
 						}}
 						onPress={() => handleSavedRestaurantMarkerPress(item)}
 						color={activeRestaurantId === item.restaurant.id ? "#5EA2FF" : "#FFF"}
+						isActive={activeRestaurantId === item.restaurant.id}
 						uri={item.restaurant.imageUrls?.sm}
 					/>
 				))}

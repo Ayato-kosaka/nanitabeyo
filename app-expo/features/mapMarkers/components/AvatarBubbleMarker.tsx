@@ -1,11 +1,10 @@
 // app-expo/features/mapMarkers/components/AvatarBubbleMarker.tsx
 
-import React, { useMemo, useState, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import { View, StyleSheet, Platform } from "react-native";
 import { Marker } from "@/components/MapView";
 import { Image } from "expo-image";
 import type { MapMarkerProps as RNMarkerProps } from "react-native-maps";
-import { normalizeColor, ACTIVE_COLOR_HEX, INACTIVE_COLOR_HEX } from "./MarkerBitmapRendererProvider";
 
 /**
  * AvatarBubbleMarker（View Marker版）
@@ -48,6 +47,7 @@ type Props = RNMarkerProps & {
 	uri?: string;
 	size?: number;
 	color?: string;
+	isActive?: boolean;
 };
 
 export function AvatarBubbleMarker({
@@ -56,11 +56,9 @@ export function AvatarBubbleMarker({
 	// iOS/Webは吹き出し想定で48
 	size = Platform.OS === "android" ? 37 : 48,
 	color = "#FFFFFF",
+	isActive = false,
 	...props
 }: Props) {
-	const normalizedColor = useMemo(() => normalizeColor(color), [color]);
-	const isActive = normalizedColor === ACTIVE_COLOR_HEX;
-
 	// iOSでのちらつき対策：ロード完了まではtrue
 	const [tracksViewChanges, setTracksViewChanges] = useState(true);
 
@@ -74,6 +72,7 @@ export function AvatarBubbleMarker({
 	return (
 		<Marker
 			{...props}
+			zIndex={isActive ? 2 : 1}
 			tracksViewChanges={tracksViewChanges}
 			// anchorは画像下寄せ（Androidは尻尾なしなので少し上気味）
 			anchor={{ x: 0.5, y: Platform.OS === "android" ? 0.5 : 0.85 }}>
@@ -85,7 +84,7 @@ export function AvatarBubbleMarker({
 						{
 							width: bubbleSize,
 							height: bubbleSize,
-							borderColor: isActive ? ACTIVE_COLOR_HEX : INACTIVE_COLOR_HEX,
+							borderColor: color,
 						},
 					]}>
 					<Image
@@ -114,7 +113,7 @@ export function AvatarBubbleMarker({
 						style={[
 							styles.tail,
 							{
-								borderTopColor: isActive ? ACTIVE_COLOR_HEX : INACTIVE_COLOR_HEX,
+								borderTopColor: color,
 							},
 						]}
 					/>

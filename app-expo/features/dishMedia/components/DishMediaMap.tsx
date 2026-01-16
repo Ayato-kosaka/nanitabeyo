@@ -349,6 +349,7 @@ export default function DishMediaMap({
 							onPress={() => handleMarkerPress(index)}
 							uri={restaurant.imageUrls?.sm}
 							color={index === currentIndex ? "rgb(52, 119, 248)" : "#FFF"}
+							isActive={index === currentIndex}
 						/>
 					))}
 				</MapView>
