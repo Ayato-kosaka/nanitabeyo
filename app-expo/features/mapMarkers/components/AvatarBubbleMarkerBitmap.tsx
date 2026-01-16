@@ -15,6 +15,10 @@ import { BubblePinBitmap } from "./BubblePinBitmap";
 /**
  * #235 AvatarBubbleMarkerBitmap
  *
+ * @deprecated このコンポーネントは非推奨です。代わりに AvatarBubbleMarker を使用してください。
+ * Bitmap Marker 方式（view-shot + FileSystem）はパフォーマンス問題（5秒以上の表示時間）があるため廃止されました。
+ * View Marker 方式の AvatarBubbleMarker を使用することで、体感 1 秒未満の表示が可能になります。
+ *
  * 🎯 目的
  * - MapView 直下には **Marker しか置かない**
  * - Android の View Marker 崩れ / 画像欠け / ちらつきを根治
