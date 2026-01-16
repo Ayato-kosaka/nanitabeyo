@@ -3,36 +3,65 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Image as RNImage, Platform, View } from "react-native";
 import type { MapMarkerProps as RNMarkerProps } from "react-native-maps";
 import { Marker } from "@/components/MapView";
-import {
-	useMarkerBitmapRenderer,
-	useMarkerBitmapState,
-	normalizeColor,
-	ACTIVE_COLOR_HEX,
-	INACTIVE_COLOR_HEX,
-} from "./MarkerBitmapRendererProvider";
+import { useSkiaMarkerBitmap } from "../hooks/useSkiaMarkerBitmap";
 import { BubblePinBitmap } from "./BubblePinBitmap";
 
 /**
- * #235 AvatarBubbleMarkerBitmap
+ * #235 AvatarBubbleMarkerBitmap（Skia版）
  *
  * 🎯 目的
  * - MapView 直下には **Marker しか置かない**
  * - Android の View Marker 崩れ / 画像欠け / ちらつきを根治
  * - iOS の「icon が更新されない / ピンが消える」問題を根治
+ * - Skia ベースで高速なマーカー画像生成（view-shot / FileSystem 廃止）
  *
  * 🧠 設計方針（重要）
  * 1. Marker children（View Marker）は原則使わない
- *    → bitmap（PNG）を icon / image として渡す
+ *    → Skia で生成した bitmap（PNG）を icon / image として渡す
  *
  * 2. bitmap 未準備でも Marker は必ず表示する
  *    → 静的な placeholder PNG を使う（View fallback は使わない）
  *
- * 3. iOS は icon 更新が不安定なため image prop を優先
+ * 3. iOS は icon 更新が不安定なため icon prop を使用
  *    → さらに icon/image 更新直後だけ tracksViewChanges を true にする
  *
- * 4. bitmap の生成状態は useSyncExternalStore で購読
- *    → React render 中の setState を完全排除
+ * 4. Web は従来の View Marker を継続使用
+ *    → Skia は iOS / Android のみ使用
  */
+
+// 色定義（正規化済み）
+const ACTIVE_COLOR_HEX = "#3477F8";
+const INACTIVE_COLOR_HEX = "#FFFFFF";
+
+/**
+ * 色を正規化（rgb(r,g,b) / #rgb / #rrggbb などを #RRGGBB に寄せる）
+ */
+const normalizeColor = (color: string): string => {
+	const c = (color ?? "").trim();
+
+	// rgb(...) → #RRGGBB
+	const rgbMatch = c.match(/rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/);
+	if (rgbMatch) {
+		const r = Number(rgbMatch[1]).toString(16).padStart(2, "0");
+		const g = Number(rgbMatch[2]).toString(16).padStart(2, "0");
+		const b = Number(rgbMatch[3]).toString(16).padStart(2, "0");
+		return `#${r}${g}${b}`.toUpperCase();
+	}
+
+	// #rgb → #RRGGBB
+	const shortHex = c.match(/^#([0-9a-fA-F]{3})$/);
+	if (shortHex) {
+		const [r, g, b] = shortHex[1].split("");
+		return `#${r}${r}${g}${g}${b}${b}`.toUpperCase();
+	}
+
+	// #rrggbb
+	const longHex = c.match(/^#([0-9a-fA-F]{6})$/);
+	if (longHex) return `#${longHex[1]}`.toUpperCase();
+
+	// 想定外はそのまま返す
+	return c.toUpperCase();
+};
 
 type Props = RNMarkerProps & {
 	uri?: string;
@@ -41,12 +70,9 @@ type Props = RNMarkerProps & {
 };
 
 // 静的プレースホルダ（bitmap未準備時の安全弁）
-// ※必ず存在するローカルアセットを使うこと
 const PLACEHOLDER_IMAGE = require("../assets/marker-placeholder.png");
 
 export function AvatarBubbleMarkerBitmap({ uri, size = 48, color = "#FFFFFF", ...props }: Props) {
-	const store = useMarkerBitmapRenderer();
-
 	// ----------------------------
 	// プレースホルダ画像 URI 生成
 	// ----------------------------
@@ -66,97 +92,6 @@ export function AvatarBubbleMarkerBitmap({ uri, size = 48, color = "#FFFFFF", ..
 	const isActive = normalizedColor === ACTIVE_COLOR_HEX;
 
 	// ----------------------------
-	// bitmap 状態購読
-	// ----------------------------
-
-	const NO_URI = "__marker__://no-uri";
-	const realKeyUri = uri ? uri : NO_URI;
-	const activeState = useMarkerBitmapState(realKeyUri, size, ACTIVE_COLOR_HEX);
-	const inactiveState = useMarkerBitmapState(realKeyUri, size, INACTIVE_COLOR_HEX);
-
-	// ----------------------------
-	// プレースホルダ状態購読
-	// ----------------------------
-
-	const activePlaceholderState = useMarkerBitmapState("", size, ACTIVE_COLOR_HEX);
-	const inactivePlaceholderState = useMarkerBitmapState("", size, INACTIVE_COLOR_HEX);
-
-	const currentState = isActive ? activeState : inactiveState;
-
-	// ----------------------------
-	// 初回マウント時の生成方針
-	// ----------------------------
-
-	useEffect(() => {
-		if (!uri || Platform.OS === "web") return;
-
-		// 🟢 初回は「非アクティブ」を低優先度で一括生成
-		// → 初期表示速度重視
-		store.requestBitmap({
-			uri,
-			size,
-			color: INACTIVE_COLOR_HEX,
-			priority: "low",
-		});
-		// inactive だけでなく active もlow でリクエストしておく
-		store.requestBitmap({
-			uri,
-			size,
-			color: ACTIVE_COLOR_HEX,
-			priority: "low",
-		});
-	}, [uri, size, store]);
-
-	// ----------------------------
-	// アクティブ化時のオンデマンド生成
-	// ----------------------------
-
-	useEffect(() => {
-		if (!uri || Platform.OS === "web") return;
-
-		if (isActive && !activeState.isReady && !activeState.isGenerating) {
-			// 🔴 アクティブ化されたものだけ高優先度で生成
-			store.requestBitmap({
-				uri,
-				size,
-				color: ACTIVE_COLOR_HEX,
-				priority: "high",
-			});
-		}
-	}, [uri, size, isActive, activeState.isReady, activeState.isGenerating, store]);
-
-	// ----------------------------
-	// icon/image 更新保証（iOS 対策）
-	// ----------------------------
-
-	/**
-	 * iOS では icon/image prop の更新が不安定なため、
-	 * - bitmap URI が変わったとき
-	 * - placeholder から bitmap に切り替わったとき
-	 * の直後だけ tracksViewChanges=true にする
-	 */
-	const [tracksViewChanges, setTracksViewChanges] = useState(false);
-	const lastIconUriRef = useRef<string | undefined>(undefined);
-	const isPlaceholder = !(currentState.isReady && currentState.iconUri);
-	const shouldTrackViewChanges = Platform.OS === "ios" ? isPlaceholder || tracksViewChanges : tracksViewChanges;
-
-	useEffect(() => {
-		if (currentState.iconUri && currentState.iconUri !== lastIconUriRef.current) {
-			lastIconUriRef.current = currentState.iconUri;
-
-			// 一時的に更新を許可
-			setTracksViewChanges(true);
-
-			// 少し待ってから false に戻す（ちらつき防止）
-			const timer = setTimeout(() => {
-				setTracksViewChanges(false);
-			}, 250);
-
-			return () => clearTimeout(timer);
-		}
-	}, [currentState.iconUri]);
-
-	// ----------------------------
 	// Web は従来方式（View Marker）
 	// ----------------------------
 
@@ -171,35 +106,60 @@ export function AvatarBubbleMarkerBitmap({ uri, size = 48, color = "#FFFFFF", ..
 	}
 
 	// ----------------------------
-	// Marker 表示ロジック（最重要）
+	// iOS / Android は Skia 版
+	// ----------------------------
+
+	const key = {
+		uri: uri ?? "", // 空文字でもOK（プレースホルダ扱い）
+		size,
+		color: isActive ? ACTIVE_COLOR_HEX : INACTIVE_COLOR_HEX,
+	};
+
+	const { source, isReady } = useSkiaMarkerBitmap(key);
+
+	// 画像ソース（優先順位: Skia生成 → placeholder）
+	const imageSource = source ?? PLACEHOLDER_SOURCE;
+
+	// ----------------------------
+	// icon/image 更新保証（iOS 対策）
 	// ----------------------------
 
 	/**
-	 * ❗️絶対ルール
-	 * - Marker を null で返さない
-	 * - bitmap 未準備でも必ず表示する
+	 * iOS では icon prop の更新が不安定なため、
+	 * - source が変わったとき
+	 * の直後だけ tracksViewChanges=true にする
 	 */
+	const [tracksViewChanges, setTracksViewChanges] = useState(false);
+	const lastIconUriRef = useRef<string | undefined>(undefined);
 
-	// 表示する画像 URI（優先順位）
-	// 1. 生成済み bitmap
-	// 2. 静的 placeholder
-	const realState = isActive ? activeState : inactiveState;
-	const placeholderState = isActive ? activePlaceholderState : inactivePlaceholderState;
-	// 表示優先順位：real → renderer placeholder → static placeholder(保険)
-	const imageSource =
-		realState.isReady && realState.iconUri
-			? { uri: realState.iconUri }
-			: placeholderState.isReady && placeholderState.iconUri
-				? { uri: placeholderState.iconUri }
-				: PLACEHOLDER_SOURCE;
+	useEffect(() => {
+		const currentUri = source?.uri;
+		if (currentUri && currentUri !== lastIconUriRef.current) {
+			lastIconUriRef.current = currentUri;
 
-	// iOS は image prop を優先（icon 更新不安定対策）
-	const markerImageProps = { icon: imageSource };
+			// 一時的に更新を許可
+			setTracksViewChanges(true);
+
+			// 少し待ってから false に戻す（ちらつき防止）
+			const timer = setTimeout(() => {
+				setTracksViewChanges(false);
+			}, 250);
+
+			return () => clearTimeout(timer);
+		}
+	}, [source?.uri]);
+
+	// iOS は icon 更新が不安定なため、生成直後は tracksViewChanges を有効にする
+	const shouldTrackViewChanges = Platform.OS === "ios" ? !isReady || tracksViewChanges : false;
+
+	// ----------------------------
+	// Marker 表示
+	// ----------------------------
 
 	return (
 		<Marker
 			{...props}
-			{...markerImageProps}
+			icon={imageSource}
 			tracksViewChanges={shouldTrackViewChanges}
 			anchor={{ x: 0.5, y: 0.85 }} // tail を考慮して下寄せ
 		/>
