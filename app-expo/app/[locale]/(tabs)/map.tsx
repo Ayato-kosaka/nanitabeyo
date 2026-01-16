@@ -285,9 +285,7 @@ export default function MapScreen() {
 			</View>
 
 			<RestaurantBlurModal contentContainerStyle={{ height: "90%" }}>
-				{selectedPlace && (
-					<SelectedRestaurantDetails restaurant={selectedPlace.restaurant} meta={selectedPlace.meta} />
-				)}
+				{selectedPlace && <SelectedRestaurantDetails restaurant={selectedPlace.restaurant} meta={selectedPlace.meta} />}
 			</RestaurantBlurModal>
 		</View>
 	);
