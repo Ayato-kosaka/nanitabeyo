@@ -282,7 +282,7 @@ export default function DishMediaMap({
 								const state = useDishMediaEntriesStore.getState();
 								const { ids } = selectIdsByKey(entriesKey, idType)(state);
 								const idx = ids.indexOf(dishMediaId);
-								const ordered = [...ids.slice(idx), ...ids.slice(0, idx)];
+								const ordered = idx === -1 ? ids : [...ids.slice(idx), ...ids.slice(0, idx)];
 								await shareRestaurant({
 									dishMediaId,
 									restaurant,

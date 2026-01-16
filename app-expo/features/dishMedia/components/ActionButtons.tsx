@@ -31,12 +31,12 @@ export type ShareMode = "single" | "feedFromCurrent";
 interface ActionButtonsProps {
 	id: string;
 	idType: IdType;
-	entriesKey?: string; // #659 【設計】entriesKey を追加（feedFromCurrent で使用）
-	shareMode?: ShareMode; // #659 【設計】shareMode を追加
+	entriesKey: string; // #659 【設計】entriesKey を追加（feedFromCurrent で使用）
+	shareMode: ShareMode; // #659 【設計】shareMode を追加
 	onLayout: (width: number) => void;
 }
 
-export function ActionButtons({ id, idType, entriesKey, shareMode = "single", onLayout }: ActionButtonsProps) {
+export function ActionButtons({ id, idType, entriesKey, shareMode, onLayout }: ActionButtonsProps) {
 	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
 	const { lightImpact } = useHaptics();
@@ -259,11 +259,16 @@ export function ActionButtons({ id, idType, entriesKey, shareMode = "single", on
 	};
 
 	const handleSharePress = useCallback(() => {
-		// #659 【設計】shareMode が feedFromCurrent かつ entriesKey がある場合は複数共有
-		if (shareMode === "feedFromCurrent" && entriesKey) {
+		// #659 【設計】shareMode が feedFromCurrent の場合は複数共有
+		if (shareMode === "feedFromCurrent") {
 			const state = useDishMediaEntriesStore.getState();
 			const { ids } = selectIdsByKey(entriesKey, idType)(state);
 			const idx = ids.indexOf(id);
+			if (idx === -1)
+				return shareRestaurant({
+					dishMediaId,
+					restaurant,
+				});
 			const ordered = [...ids.slice(idx), ...ids.slice(0, idx)];
 			return shareRestaurant({
 				dishMediaId,
