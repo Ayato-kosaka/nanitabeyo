@@ -1,34 +1,47 @@
 // app-expo/features/mapMarkers/components/AvatarBubbleMarker.tsx
 
 import React, { useMemo, useState, useCallback } from "react";
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, Platform } from "react-native";
 import { Marker } from "@/components/MapView";
 import { Image } from "expo-image";
 import type { MapMarkerProps as RNMarkerProps } from "react-native-maps";
 import { normalizeColor, ACTIVE_COLOR_HEX, INACTIVE_COLOR_HEX } from "./MarkerBitmapRendererProvider";
 
 /**
- * #235 AvatarBubbleMarker（View Marker版）
+ * AvatarBubbleMarker（View Marker版）
+ * ----------------------------------------------------------------------
+ * 🎯 本コンポーネントの目的
+ * - Bitmap Marker（view-shot + FileSystem）方式を廃止し、View Marker に統一
+ * - Map描画を高速化し、初回描画を体感1秒未満にする
+ * - iOS / Android / Web で UI 崩れを最小化
  *
- * 🎯 目的
- * - Bitmap Marker 方式（view-shot + FileSystem）を廃止し、View Marker に移行
- * - Map画面の初回表示・マーカー表示を体感 1 秒未満にする
- * - iOS / Android でマーカーの崩れ・チラつきを最小化
+ * 🔍 今回の調査でわかったこと（重要）
+ * ----------------------------------------------------------------------
+ * 1. Android の react-native-maps は Marker children を内部でビットマップ化して描画する
+ * 2. そのビットマップには「描画可能領域の最大サイズ」が存在している
+ * 3. 吹き出しの尻尾や余白で高さが増えると、その領域を超えた部分がクリップ（=扇形に欠ける）
+ * 4. padding / overflow / collapsable=false / googleRenderer=LEGACY では領域拡大できない
+ * 5. よって「領域内に収まるサイズ・形状にする」以外の解決策が存在しない
  *
- * 🧠 設計方針
- * 1. Marker children に View を直接配置（Bitmap 生成なし）
- * 2. 画像キャッシュは expo-image に任せる
- * 3. tracksViewChanges は「ローディング中だけ true」（iOS 描画バグ対策）
- * 4. Web は従来どおり View Marker で問題なし
+ * 🎨 対策方針（最終決定）
+ * ----------------------------------------------------------------------
+ * - Android は「正円のみ」「小さめサイズ」「尻尾なし」にする（=領域内に収める）
+ * - iOS / Web は従来どおり「吹き出し+尻尾」
+ * - expo-image のキャッシュ機能で画像読み込みは軽量化
+ * - tracksViewChanges=true→ロード後false でiOSのちらつきを防止
+ *
+ * 📐 最適化の結果
+ * ----------------------------------------------------------------------
+ * - Android は `size=37px` が最大の安定領域（これ以上は尻尾や枠の一部が欠損）
+ * - iOS / Web は `size=48px` + tail でもクリッピングなし
+ *
+ * 参考：
+ * Marker children を無理に大きくすると Android だけ「左・上は生きているが右・下が扇形に欠ける」
+ * → これは内部ビットマップの下限領域を超えて破棄されている挙動に一致する。
  */
 
-// #235 【パフォーマンス】iOS ちらつき対策の遅延時間（ms）
 const TRACKS_VIEW_CHANGES_DELAY_MS = 200;
-
-// #235 【設計】枠線の太さ（bubble の border-width と一致）
 const BORDER_WIDTH = 2;
-
-// #235 【設計】画像サイズのオフセット（枠分少し小さく）
 const IMAGE_SIZE_OFFSET = BORDER_WIDTH * 2;
 
 type Props = RNMarkerProps & {
@@ -37,15 +50,21 @@ type Props = RNMarkerProps & {
 	color?: string;
 };
 
-export function AvatarBubbleMarker({ uri, size = 48, color = "#FFFFFF", ...props }: Props) {
+export function AvatarBubbleMarker({
+	uri,
+	// Androidは領域制限のためsize=37が最も安定
+	// iOS/Webは吹き出し想定で48
+	size = Platform.OS === "android" ? 37 : 48,
+	color = "#FFFFFF",
+	...props
+}: Props) {
 	const normalizedColor = useMemo(() => normalizeColor(color), [color]);
 	const isActive = normalizedColor === ACTIVE_COLOR_HEX;
 
-	// #235 【パフォーマンス】画像ロード状態で tracksViewChanges を制御（iOS ちらつき対策）
+	// iOSでのちらつき対策：ロード完了まではtrue
 	const [tracksViewChanges, setTracksViewChanges] = useState(true);
 
 	const handleLoadEnd = useCallback(() => {
-		// #235 【パフォーマンス】少し余裕を持って false にする（iOS ちらつき対策）
 		setTimeout(() => setTracksViewChanges(false), TRACKS_VIEW_CHANGES_DELAY_MS);
 	}, []);
 
@@ -53,7 +72,11 @@ export function AvatarBubbleMarker({ uri, size = 48, color = "#FFFFFF", ...props
 	const imageSize = size - IMAGE_SIZE_OFFSET;
 
 	return (
-		<Marker {...props} tracksViewChanges={tracksViewChanges} anchor={{ x: 0.5, y: 0.85 }}>
+		<Marker
+			{...props}
+			tracksViewChanges={tracksViewChanges}
+			// anchorは画像下寄せ（Androidは尻尾なしなので少し上気味）
+			anchor={{ x: 0.5, y: Platform.OS === "android" ? 0.5 : 0.85 }}>
 			<View style={[styles.container, { width: bubbleSize, height: bubbleSize + 4 }]}>
 				{/* 吹き出し本体 */}
 				<View
@@ -75,20 +98,27 @@ export function AvatarBubbleMarker({ uri, size = 48, color = "#FFFFFF", ...props
 						]}
 						source={uri ? { uri } : undefined}
 						contentFit="cover"
-						// #235 【設計】expo-image の機能で丸表示 + transition
 						transition={100}
 						onLoadEnd={handleLoadEnd}
 					/>
 				</View>
-				{/* 吹き出しの尻尾 */}
-				<View
-					style={[
-						styles.tail,
-						{
-							borderTopColor: isActive ? ACTIVE_COLOR_HEX : INACTIVE_COLOR_HEX,
-						},
-					]}
-				/>
+
+				{/* ⚠️ Androidは尻尾を描画しない理由
+				 * ----------------------------------------------------------------
+				 * - 尻尾分の高さがビットマップ領域外に押し出されクリッピングされる
+				 * - 尻尾の三角形はborder系で描くため領域端に飛び出しやすい
+				 * → Androidは尻尾を消して安定描画を優先
+				 */}
+				{Platform.OS !== "android" && (
+					<View
+						style={[
+							styles.tail,
+							{
+								borderTopColor: isActive ? ACTIVE_COLOR_HEX : INACTIVE_COLOR_HEX,
+							},
+						]}
+					/>
+				)}
 			</View>
 		</Marker>
 	);
@@ -105,11 +135,12 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		justifyContent: "center",
 		backgroundColor: "#FFFFFF",
-		overflow: "hidden",
+		overflow: "hidden", // expo-imageの丸切り抜き維持
 	},
 	image: {
 		borderRadius: 9999,
 	},
+	// iOS/Web専用の吹き出し尾
 	tail: {
 		width: 0,
 		height: 0,
