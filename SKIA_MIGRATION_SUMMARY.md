@@ -9,10 +9,12 @@ This document summarizes the successful migration from `react-native-view-shot` 
 ### 1. New Skia Implementation
 
 **Files Created:**
+
 - `app-expo/features/mapMarkers/utils/markerSkiaRenderer.ts` - Core Skia rendering logic
 - `app-expo/features/mapMarkers/hooks/useSkiaMarkerBitmap.ts` - React hook for Skia markers
 
 **Key Features:**
+
 - ✅ Canvas-based rendering with circular mask + border + tail
 - ✅ Image loading from URLs with Skia.Data.fromURI
 - ✅ Base64 PNG encoding for direct use in Marker component
@@ -23,6 +25,7 @@ This document summarizes the successful migration from `react-native-view-shot` 
 ### 2. Component Updates
 
 **Modified Files:**
+
 - `app-expo/features/mapMarkers/components/AvatarBubbleMarkerBitmap.tsx`
   - Removed dependency on Provider
   - Uses `useSkiaMarkerBitmap` hook directly
@@ -44,19 +47,23 @@ This document summarizes the successful migration from `react-native-view-shot` 
 ### 3. Cleanup & Removals
 
 **Files Deleted:**
+
 - `app-expo/features/mapMarkers/hooks/useMarkerBitmap.ts` (view-shot based)
 - `app-expo/features/mapMarkers/components/MarkerBitmapRendererProvider.tsx` (Provider + offscreen rendering)
 
 **Dependencies Removed:**
+
 - `react-native-view-shot` (^4.0.3) - No longer needed
 
 **Dependencies Kept:**
+
 - `expo-file-system` - Still used by `useFileUploader` for unrelated functionality
 - `expo-crypto` - No longer used by markers, but may be used elsewhere
 
 ## Architecture Changes
 
 ### Before (view-shot based):
+
 ```
 ┌─────────────────────────────────────────┐
 │ MarkerBitmapRendererProvider            │
@@ -85,6 +92,7 @@ This document summarizes the successful migration from `react-native-view-shot` 
 ```
 
 ### After (Skia based):
+
 ```
 ┌─────────────────────────────────────────┐
 │ useSkiaMarkerBitmap                     │
@@ -115,6 +123,7 @@ This document summarizes the successful migration from `react-native-view-shot` 
 ## Performance Improvements (Expected)
 
 ### Before:
+
 - **5 markers**: ~5 seconds (based on issue description)
 - **Bottlenecks**:
   - View rendering + capture: ~500-1000ms per marker
@@ -124,6 +133,7 @@ This document summarizes the successful migration from `react-native-view-shot` 
   - Total I/O overhead: significant
 
 ### After (Expected):
+
 - **5 markers**: <1 second (target from requirements)
 - **Improvements**:
   - Skia render: ~50-200ms per marker (no View overhead)
@@ -186,11 +196,13 @@ This document summarizes the successful migration from `react-native-view-shot` 
 If critical issues are found:
 
 1. Revert commits:
+
    ```bash
    git revert 2e40689 5c5f189 38aa9fd
    ```
 
 2. Reinstall view-shot:
+
    ```bash
    pnpm add react-native-view-shot@^4.0.3
    ```
@@ -204,6 +216,7 @@ If critical issues are found:
 ## Security Considerations
 
 ✅ No new security vulnerabilities introduced:
+
 - Skia is a well-maintained library (by Shopify, based on Google's Skia)
 - No external API calls added
 - No sensitive data stored in cache
@@ -213,7 +226,7 @@ If critical issues are found:
 
 ```json
 {
-  "@shopify/react-native-skia": "^2.4.14"
+	"@shopify/react-native-skia": "^2.4.14"
 }
 ```
 

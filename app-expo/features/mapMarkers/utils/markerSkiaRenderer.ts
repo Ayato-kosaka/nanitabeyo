@@ -240,14 +240,7 @@ export async function generateMarkerBitmap(params: MarkerBitmapKey): Promise<str
 /**
  * #235 【設計】画像を cover モードで描画（中央トリミング）
  */
-function drawImageCover(
-	canvas: SkCanvas,
-	image: SkImage,
-	x: number,
-	y: number,
-	width: number,
-	height: number,
-): void {
+function drawImageCover(canvas: SkCanvas, image: SkImage, x: number, y: number, width: number, height: number): void {
 	const imgWidth = image.width();
 	const imgHeight = image.height();
 
