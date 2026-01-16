@@ -82,7 +82,6 @@ export default function ReviewScreen() {
 							<PrimaryButton
 								onPress={handleLoginPress}
 								label={i18n.t("Review.guest.loginButton")}
-								borderRadius={12}
 								style={styles.ctaButton}
 							/>
 						</>
@@ -91,7 +90,6 @@ export default function ReviewScreen() {
 						<PrimaryButton
 							onPress={handlePostReviewPress}
 							label={i18n.t("Review.authenticated.postButton")}
-							borderRadius={12}
 							style={styles.ctaButton}
 						/>
 					)}
