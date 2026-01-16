@@ -3,7 +3,6 @@ import { StyleSheet, View, Dimensions, Text } from "react-native";
 import Carousel from "react-native-reanimated-carousel";
 import MapView, { Region } from "@/components/MapView";
 import DishMediaContent from "./DishMediaContent";
-// #235 【設計】View Marker 方式に移行（Bitmap方式の廃止でパフォーマンス改善）
 import { AvatarBubbleMarker } from "@/features/mapMarkers";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
@@ -343,7 +342,6 @@ export default function DishMediaMap({
 			{/* Map View - Top 1/5 of screen */}
 			<View style={styles.mapContainer}>
 				<MapView ref={mapRef} style={styles.map} initialRegion={region}>
-					{/* #235 【設計】View Marker 方式に移行（体感 1 秒未満の表示を実現） */}
 					{restaurants.map((restaurant, index) => (
 						<AvatarBubbleMarker
 							key={`marker-${restaurant.google_place_id}`}

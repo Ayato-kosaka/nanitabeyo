@@ -13,7 +13,6 @@ import {
 	ErrorCode,
 } from "@shared/api/v1/res";
 import type { QueryRestaurantsDto, CreateRestaurantDto } from "@shared/api/v1/dto";
-// #235 【設計】View Marker 方式に移行（Bitmap方式の廃止でパフォーマンス改善）
 import { AvatarBubbleMarker } from "@/features/mapMarkers";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { useHaptics } from "@/hooks/useHaptics";
@@ -236,7 +235,6 @@ export default function MapScreen() {
 				style={styles.map}
 				onRegionChangeComplete={handleRegionChangeComplete}
 				onPoiClick={handlePoiPress}>
-				{/* #235 【設計】View Marker 方式に移行（体感 1 秒未満の表示を実現） */}
 				{restaurants.map((restaurantData: QueryRestaurantsResponse[number]) => (
 					<AvatarBubbleMarker
 						key={restaurantData.restaurant.id}
