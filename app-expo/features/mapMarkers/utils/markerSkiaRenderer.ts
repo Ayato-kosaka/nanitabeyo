@@ -15,7 +15,7 @@
  * - プラットフォーム: iOS / Android のみ（Webは従来のView Markerを継続）
  */
 
-import { Skia, PaintStyle, FilterMode, MipmapMode, type SkImage } from "@shopify/react-native-skia";
+import { Skia, PaintStyle, FilterMode, MipmapMode, type SkImage, type SkCanvas } from "@shopify/react-native-skia";
 import { PixelRatio } from "react-native";
 
 // ----------------------------
@@ -174,8 +174,7 @@ export async function generateMarkerBitmap(params: MarkerBitmapKey): Promise<str
 
 	canvas.save();
 	// #235 【設計】ClipOp.Intersect でマスク適用（Skia API: op, doAntiAlias）
-	const ClipOp = { Intersect: 1 }; // Skia ClipOp enum
-	canvas.clipPath(circlePath, ClipOp.Intersect, true);
+	canvas.clipPath(circlePath, 1, true); // 1 = ClipOp.Intersect (Skia enum value)
 
 	// 背景色（グレー）
 	const bgPaint = Skia.Paint();
@@ -242,7 +241,7 @@ export async function generateMarkerBitmap(params: MarkerBitmapKey): Promise<str
  * #235 【設計】画像を cover モードで描画（中央トリミング）
  */
 function drawImageCover(
-	canvas: any, // Skia Canvas型
+	canvas: SkCanvas,
 	image: SkImage,
 	x: number,
 	y: number,
@@ -277,7 +276,8 @@ function drawImageCover(
 	const paint = Skia.Paint();
 	paint.setAntiAlias(true);
 
-	canvas.drawImageRect(image, srcRect, dstRect, paint, FilterMode.Linear, MipmapMode.None);
+	// #235 【設計】drawImageRect の引数: image, srcRect, dstRect, paint
+	canvas.drawImageRect(image, srcRect, dstRect, paint);
 }
 
 /**
