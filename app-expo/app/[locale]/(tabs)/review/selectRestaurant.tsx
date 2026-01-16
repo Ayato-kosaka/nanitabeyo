@@ -19,7 +19,7 @@ import { useLogger } from "@/hooks/useLogger";
 import MapViewClass from "react-native-maps";
 import { isFoodAndDrinkPlaceForUser } from "@shared/utils/google_places_restaurant_type";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
-import { AvatarBubbleMarkerBitmap, MarkerBitmapRendererProvider } from "@/features/mapMarkers";
+import { AvatarBubbleMarker } from "@/features/mapMarkers";
 import { router, useFocusEffect } from "expo-router";
 import { SavedRestaurantsSheet, SavedRestaurantsSheetHandle } from "@/features/review/components/SavedRestaurantsSheet";
 import { PrimaryButton } from "@/components/PrimaryButton";
@@ -351,92 +351,90 @@ export default function SelectRestaurantScreen() {
 	}, []);
 
 	return (
-		<MarkerBitmapRendererProvider>
-			<View style={styles.container}>
-				{/* Map */}
-				<MapView
-					ref={mapRef}
-					style={styles.map}
-					onRegionChangeComplete={handleRegionChangeComplete}
-					onPoiClick={handlePoiPress}>
-					{/* #644 【設計】保存したお店のマーカー表示 */}
-					{savedRestaurants.map((item: SavedRestaurant) => (
-						<AvatarBubbleMarkerBitmap
-							key={item.restaurant.id}
-							coordinate={{
-								latitude: item.restaurant.latitude,
-								longitude: item.restaurant.longitude,
-							}}
-							onPress={() => handleSavedRestaurantMarkerPress(item)}
-							color={activeRestaurantId === item.restaurant.id ? "#5EA2FF" : "#FFF"}
-							uri={item.restaurant.imageUrls?.sm}
-						/>
-					))}
-				</MapView>
-
-				{/* POI Loading Indicator */}
-				{isLoadingRestaurantCreation && (
-					<View style={styles.loadingOverlay}>
-						<ActivityIndicator size="large" color="#5EA2FF" />
-					</View>
-				)}
-
-				{/* 🔹上部 UI レイヤー（ヘッダー＋検索＋ボタン） */}
-				<View
-					style={[styles.topOverlay]}
-					pointerEvents="box-none" // 余白部分は Map をタッチ可能にする
-				>
-					{/* #644 【設計】画面タイトル with 戻るボタン */}
-					<ReviewHeader
-						title={i18n.t("Review.selectRestaurant.title")}
-						onPressBack={() => {
-							lightImpact();
-							router.back();
+		<View style={styles.container}>
+			{/* Map */}
+			<MapView
+				ref={mapRef}
+				style={styles.map}
+				onRegionChangeComplete={handleRegionChangeComplete}
+				onPoiClick={handlePoiPress}>
+				{/* #644 【設計】保存したお店のマーカー表示 */}
+				{savedRestaurants.map((item: SavedRestaurant) => (
+					<AvatarBubbleMarker
+						key={item.restaurant.id}
+						coordinate={{
+							latitude: item.restaurant.latitude,
+							longitude: item.restaurant.longitude,
 						}}
+						onPress={() => handleSavedRestaurantMarkerPress(item)}
+						color={activeRestaurantId === item.restaurant.id ? "#5EA2FF" : "#FFF"}
+						uri={item.restaurant.imageUrls?.sm}
 					/>
+				))}
+			</MapView>
 
-					{/* #644 【設計】Search Bar - placeholder: "店名やエリアで検索" */}
-					<View style={styles.searchContainer}>
-						<LocationAutocomplete
-							value={searchQuery}
-							onChangeText={setSearchQuery}
-							onSelectSuggestion={handleAutocompleteSelect}
-							onClear={() => setSearchQuery("")}
-							placeholder={i18n.t("Map.placeholders.searchRestaurantsForReview")}
-							renderInputRight={
-								<TouchableOpacity style={styles.currentLocationButton} onPress={handleCurrentLocation}>
-									<Navigation size={20} color="#5EA2FF" />
-								</TouchableOpacity>
-							}
-						/>
-					</View>
+			{/* Loading Indicator */}
+			{isLoadingRestaurantCreation && (
+				<View style={styles.loadingOverlay}>
+					<ActivityIndicator size="large" color="#5EA2FF" />
+				</View>
+			)}
 
-					{/* Search This Area button under LocationAutocomplete; map remains interactive on sides */}
-					<View style={styles.searchButtonContainer}>
-						<PrimaryButton
-							onPress={() => searchSavedRestaurants(currentRegion.current)}
-							label={i18n.t("Review.selectRestaurant.searchThisArea")}
-							icon={<RotateCw size={16} color="#357AFF" />}
-							colors={["#ffffff", "#ffffff"]}
-							shadowColor={"#000000"}
-							labelStyle={{ color: "#357AFF", fontSize: 14 }}
-							loading={isLoadingSavedRestaurants}
-						/>
-					</View>
+			{/* 🔹上部 UI レイヤー（ヘッダー＋検索＋ボタン） */}
+			<View
+				style={[styles.topOverlay]}
+				pointerEvents="box-none" // 余白部分は Map をタッチ可能にする
+			>
+				{/* #644 【設計】画面タイトル with 戻るボタン */}
+				<ReviewHeader
+					title={i18n.t("Review.selectRestaurant.title")}
+					onPressBack={() => {
+						lightImpact();
+						router.back();
+					}}
+				/>
+
+				{/* #644 【設計】Search Bar - placeholder: "店名やエリアで検索" */}
+				<View style={styles.searchContainer}>
+					<LocationAutocomplete
+						value={searchQuery}
+						onChangeText={setSearchQuery}
+						onSelectSuggestion={handleAutocompleteSelect}
+						onClear={() => setSearchQuery("")}
+						placeholder={i18n.t("Map.placeholders.searchRestaurantsForReview")}
+						renderInputRight={
+							<TouchableOpacity style={styles.currentLocationButton} onPress={handleCurrentLocation}>
+								<Navigation size={20} color="#5EA2FF" />
+							</TouchableOpacity>
+						}
+					/>
 				</View>
 
-				{/* Saved Restaurants BottomSheet */}
-				<SavedRestaurantsSheet
-					ref={savedRestaurantsSheetRef}
-					savedRestaurants={savedRestaurants}
-					isLoadingSavedRestaurants={isLoadingSavedRestaurants}
-					activeRestaurantId={activeRestaurantId}
-					onRestaurantCardPress={handleSavedRestaurantCardPress}
-					onRestaurantReviewPress={handleSavedRestaurantReviewPress}
-					onSnapToRestaurant={(restaurant) => setActiveRestaurantId(restaurant.restaurant.id)}
-				/>
+				{/* Search This Area button under LocationAutocomplete; map remains interactive on sides */}
+				<View style={styles.searchButtonContainer}>
+					<PrimaryButton
+						onPress={() => searchSavedRestaurants(currentRegion.current)}
+						label={i18n.t("Review.selectRestaurant.searchThisArea")}
+						icon={<RotateCw size={16} color="#357AFF" />}
+						colors={["#ffffff", "#ffffff"]}
+						shadowColor={"#000000"}
+						labelStyle={{ color: "#357AFF", fontSize: 14 }}
+						loading={isLoadingSavedRestaurants}
+					/>
+				</View>
 			</View>
-		</MarkerBitmapRendererProvider>
+
+			{/* Saved Restaurants BottomSheet */}
+			<SavedRestaurantsSheet
+				ref={savedRestaurantsSheetRef}
+				savedRestaurants={savedRestaurants}
+				isLoadingSavedRestaurants={isLoadingSavedRestaurants}
+				activeRestaurantId={activeRestaurantId}
+				onRestaurantCardPress={handleSavedRestaurantCardPress}
+				onRestaurantReviewPress={handleSavedRestaurantReviewPress}
+				onSnapToRestaurant={(restaurant) => setActiveRestaurantId(restaurant.restaurant.id)}
+			/>
+		</View>
 	);
 }
 
