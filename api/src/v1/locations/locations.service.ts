@@ -78,13 +78,13 @@ export class LocationsService {
     );
 
     // #292 【設計】shortText または longText のいずれか存在すればOKとする（Google API 仕様で shortText 欠損パターンがあるため）
+    // #292 【注意】ISO-3166-2 形式では shortText が望ましい（2文字コード）。longText は補完用。
     const countryCode =
       countryComponent?.shortText || countryComponent?.longText || null;
     let subterritoryCode: string | null = null;
 
-    // ISO-3166-2 形式では shortText を優先（2文字コード）、なければ longText にフォールバック
-    const adminLevel1Code =
-      adminLevel1Component?.shortText || adminLevel1Component?.longText;
+    // ISO-3166-2 形式では shortText を優先（2文字コード）
+    const adminLevel1Code = adminLevel1Component?.shortText;
     if (countryCode && adminLevel1Code) {
       // ISO-3166-2 形式 (例: CH-GE, ES-CT) に変換
       subterritoryCode = `${countryCode}-${adminLevel1Code}`;

@@ -252,11 +252,22 @@ describe('LocationsService', () => {
     });
   });
 
-  describe('buildAddressFromComponents', () => {
-    it('should build address using shortText when available', () => {
-      // #292 【テスト】shortText 優先で住所構築
-      const addressComponents: protos.google.maps.places.v1.Place.IAddressComponent[] =
-        [
+  describe('address building with shortText/longText fallback', () => {
+    const mockQuery = {
+      placeId: 'ChIJ_example_place_id',
+      languageCode: 'ja',
+      sessionToken: 'test-session-token',
+    };
+
+    it('should build address using shortText when available', async () => {
+      // #292 【テスト】shortText 優先で住所構築（public method 経由でテスト）
+      const mockResponse: protos.google.maps.places.v1.IPlace = {
+        location: { latitude: 33.2382, longitude: 131.6126 },
+        viewport: {
+          low: { latitude: 33.2, longitude: 131.6 },
+          high: { latitude: 33.3, longitude: 131.7 },
+        },
+        addressComponents: [
           {
             shortText: 'JP',
             longText: 'Japan',
@@ -272,22 +283,28 @@ describe('LocationsService', () => {
             longText: 'Oita City',
             types: ['locality'],
           },
-        ];
+        ],
+      };
 
-      // buildAddressFromComponents is private, so we test it through getLocationDetails
-      const result = (service as any).buildAddressFromComponents(
-        addressComponents,
-      );
+      mockExternalApiService.callPlaceDetails.mockResolvedValue(mockResponse);
 
-      expect(result).toContain('country:JP');
-      expect(result).toContain('administrative_area_level_1:Oita');
-      expect(result).toContain('locality:Oita');
+      const result = await service.getLocationDetails(mockQuery);
+
+      expect(result).toBeDefined();
+      expect(result.address).toContain('country:JP');
+      expect(result.address).toContain('administrative_area_level_1:Oita');
+      expect(result.address).toContain('locality:Oita');
     });
 
-    it('should build address using longText when shortText is missing', () => {
-      // #292 【テスト】shortText がない場合は longText にフォールバック
-      const addressComponents: protos.google.maps.places.v1.Place.IAddressComponent[] =
-        [
+    it('should build address using longText when shortText is missing', async () => {
+      // #292 【テスト】shortText がない場合は longText にフォールバック（public method 経由でテスト）
+      const mockResponse: protos.google.maps.places.v1.IPlace = {
+        location: { latitude: 33.2382, longitude: 131.6126 },
+        viewport: {
+          low: { latitude: 33.2, longitude: 131.6 },
+          high: { latitude: 33.3, longitude: 131.7 },
+        },
+        addressComponents: [
           {
             longText: 'Japan',
             types: ['country'],
@@ -300,15 +317,17 @@ describe('LocationsService', () => {
             longText: 'Oita City',
             types: ['locality'],
           },
-        ];
+        ],
+      };
 
-      const result = (service as any).buildAddressFromComponents(
-        addressComponents,
-      );
+      mockExternalApiService.callPlaceDetails.mockResolvedValue(mockResponse);
 
-      expect(result).toContain('country:Japan');
-      expect(result).toContain('administrative_area_level_1:Oita Prefecture');
-      expect(result).toContain('locality:Oita City');
+      const result = await service.getLocationDetails(mockQuery);
+
+      expect(result).toBeDefined();
+      expect(result.address).toContain('country:Japan');
+      expect(result.address).toContain('administrative_area_level_1:Oita Prefecture');
+      expect(result.address).toContain('locality:Oita City');
     });
   });
 });
