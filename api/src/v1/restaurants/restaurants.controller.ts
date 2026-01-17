@@ -52,7 +52,7 @@ import { RestaurantsService } from './restaurants.service';
 @ApiTags('Restaurants')
 @Controller('v1/restaurants')
 export class RestaurantsController {
-  constructor(private readonly restaurantsService: RestaurantsService) { }
+  constructor(private readonly restaurantsService: RestaurantsService) {}
 
   /* ------------------------------------------------------------------ */
   /*                  GET /v1/restaurants/search                        */

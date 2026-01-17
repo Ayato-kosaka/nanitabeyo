@@ -230,7 +230,14 @@
 		"map": "Mapa",
 		"review": "Reseña",
 		"notifications": "Notificaciones",
-		"profile": "Perfil"
+		"profile": "Perfil",
+		"labels": {
+			"search": "Buscar",
+			"map": "Mapa",
+			"review": "Reseña",
+			"notifications": "Notificaciones",
+			"profile": "Perfil"
+		}
 	},
 	"Profile": {
 		"tabs": {

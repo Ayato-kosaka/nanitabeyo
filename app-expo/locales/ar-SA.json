@@ -230,7 +230,14 @@
 		"map": "الخريطة",
 		"review": "المراجعة",
 		"notifications": "الإشعارات",
-		"profile": "الملف الشخصي"
+		"profile": "الملف الشخصي",
+		"labels": {
+			"search": "البحث",
+			"map": "الخريطة",
+			"review": "المراجعة",
+			"notifications": "الإشعارات",
+			"profile": "الملف الشخصي"
+		}
 	},
 	"Profile": {
 		"tabs": {

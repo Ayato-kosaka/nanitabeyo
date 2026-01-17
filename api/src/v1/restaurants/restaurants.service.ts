@@ -128,7 +128,7 @@ export class RestaurantsService {
       // 既存挙動を維持：ここでは HttpException ではなく Error
       throw new Error(
         'Failed to determine restaurant language code: ' +
-        (error instanceof Error ? error.message : String(error)),
+          (error instanceof Error ? error.message : String(error)),
       );
     }
   }
@@ -184,14 +184,12 @@ export class RestaurantsService {
     const missingFields: string[] = [];
 
     if (!placeDetail.id) missingFields.push('id');
-    if (!placeDetail.displayName?.text)
-      missingFields.push('displayName.text');
+    if (!placeDetail.displayName?.text) missingFields.push('displayName.text');
     if (typeof placeDetail.location?.latitude !== 'number')
       missingFields.push('location.latitude');
     if (typeof placeDetail.location?.longitude !== 'number')
       missingFields.push('location.longitude');
-    if (!placeDetail.addressComponents)
-      missingFields.push('addressComponents');
+    if (!placeDetail.addressComponents) missingFields.push('addressComponents');
     if (!placeDetail.photos) missingFields.push('photos');
 
     if (missingFields.length > 0) {
@@ -263,7 +261,8 @@ export class RestaurantsService {
       image_url: '',
       image_path: imagePath,
       // as を利用して Prisma.JsonValue にキャスト（JSON として保持する前提）
-      address_components: placeDetail.addressComponents as unknown as Prisma.InputJsonValue,
+      address_components:
+        placeDetail.addressComponents as unknown as Prisma.InputJsonValue,
       plus_code: placeDetail.plusCode
         ? (placeDetail.plusCode as unknown as Prisma.InputJsonValue)
         : undefined,
@@ -359,9 +358,7 @@ export class RestaurantsService {
 
     // レスポンス変換は assembler に統一
     return results.map((r) => ({
-      restaurant: this.assembler.enrichRestaurantsWithImageUrls(
-        r.restaurant,
-      ),
+      restaurant: this.assembler.enrichRestaurantsWithImageUrls(r.restaurant),
       meta: r.meta,
     }));
   }
@@ -393,10 +390,8 @@ export class RestaurantsService {
 
     // 2. 新規作成フロー
     // 2-1. 対象の Google Place ID の restaurant の現地の言語コードを特定
-    const {
-      languageCode: restaurantLanguageCode,
-      placeDetailForLocalLang,
-    } = await this.resolveRestaurantLanguage(dto.googlePlaceId);
+    const { languageCode: restaurantLanguageCode, placeDetailForLocalLang } =
+      await this.resolveRestaurantLanguage(dto.googlePlaceId);
 
     // 2-2. types による飲食店判定
     this.ensureIsFoodAndDrink(placeDetailForLocalLang, dto.googlePlaceId);
