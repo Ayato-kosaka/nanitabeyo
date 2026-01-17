@@ -52,6 +52,7 @@ export default function TabLayout() {
 			<Tabs.Screen
 				name="map"
 				options={{
+					href: null,
 					title: i18n.t("Tabs.map"),
 					tabBarLabel: i18n.t("Tabs.labels.map"),
 					tabBarIcon: ({ color }) => (
