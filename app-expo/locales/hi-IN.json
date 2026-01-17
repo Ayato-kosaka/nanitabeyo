@@ -7,6 +7,7 @@
 		"close": "बंद करें",
 		"save": "सेव करें",
 		"post": "पोस्ट करें",
+		"postReview": "समीक्षा पोस्ट करें",
 		"retry": "पुनः प्रयास करें",
 		"processing": "प्रसंस्करण...",
 		"error": "एक त्रुटि हुई है। कृपया पुनः प्रयास करें।",
@@ -27,7 +28,8 @@
 		"site": "CraveCatch",
 		"errors": {
 			"network": "नेटवर्क त्रुटि हुई है। कृपया अपना कनेक्शन जांचें।",
-			"unexpected": "एक अप्रत्याशित त्रुटि हुई। कृपया बाद में पुनः प्रयास करें।"
+			"unexpected": "एक अप्रत्याशित त्रुटि हुई। कृपया बाद में पुनः प्रयास करें।",
+			"notFound": "नहीं मिला"
 		}
 	},
 	"Error": {
@@ -175,7 +177,9 @@
 		"chooseThis": "इसे चुनें!",
 		"hiddenMessage": "{{title}} को छिपा दिया गया है",
 		"imageLoadFailed": "चित्र लोड करने में विफल",
-		"tapToReload": "पुनः लोड करने के लिए टैप करें"
+		"tapToReload": "पुनः लोड करने के लिए टैप करें",
+		"headerTitle": "आपके लिए अनुशंसित व्यंजन",
+		"subCopy": "रेस्तरां खोजने के लिए पसंदीदा व्यंजन पर टैप करें"
 	},
 	"Notifications": {
 		"title": "सूचनाएँ",
@@ -227,8 +231,16 @@
 		"home": "होम",
 		"search": "खोज",
 		"map": "मानचित्र",
+		"review": "समीक्षा",
 		"notifications": "सूचनाएँ",
-		"profile": "प्रोफ़ाइल"
+		"profile": "प्रोफ़ाइल",
+		"labels": {
+			"search": "खोज",
+			"map": "मानचित्र",
+			"review": "समीक्षा",
+			"notifications": "सूचनाएँ",
+			"profile": "प्रोफ़ाइल"
+		}
 	},
 	"Profile": {
 		"tabs": {
@@ -318,6 +330,7 @@
 	"Map": {
 		"buttons": {
 			"postReview": "समीक्षा पोस्ट करें",
+			"postPhotoVideoReview": "फोटो/वीडियो पोस्ट करें",
 			"placeBid": "बोली लगाएं",
 			"bid": "बोली",
 			"searchNearby": "इस क्षेत्र में खोजें",
@@ -337,14 +350,18 @@
 		"placeholders": {
 			"searchRestaurants": "रेस्टोरेंट खोजें",
 			"enterPrice": "मूल्य दर्ज करें",
-			"enterReview": "समीक्षा दर्ज करें",
+			"enterReview": "अनुशंसा स्तर",
+			"enterReviewShort": "समृद्ध टोन्कोत्सु शोरबा अविश्वसनीय रूप से स्वादिष्ट था!",
 			"enterBidAmount": "बोली राशि दर्ज करें",
-			"enterDishCategory": "Enter dish category (e.g., Biryani, Chaat)"
+			"enterDishCategory": "Enter dish category (e.g., Biryani, Chaat)",
+			"searchRestaurantsForReview": "नाम या क्षेत्र से खोजें"
 		},
 		"labels": {
 			"endDate": "समाप्ति तिथि:",
 			"paymentProcessing": "भुगतान प्रसंस्करण...",
-			"currentBidAmount": "वर्तमान बोली राशि"
+			"currentBidAmount": "वर्तमान बोली राशि",
+			"restaurant": "रेस्टोरेंट",
+			"dishCategory": "व्यंजन श्रेणी"
 		},
 		"tabs": {
 			"reviews": "समीक्षाएँ",
@@ -531,5 +548,34 @@
 		"openInGoogleMaps": "Google Maps में खोलें",
 		"shareWithFriends": "दोस्तों के साथ साझा करें",
 		"cancel": "रद्द करें"
+	},
+	"Review": {
+		"title": "समीक्षा पोस्ट करें",
+		"hero": {
+			"title": "अनुशंसित रेस्तरां की समीक्षा लिखें\nऔर आपने जो व्यंजन खाए उन्हें पोस्ट करें"
+		},
+		"guest": {
+			"description": "समीक्षा लिखने के लिए लॉग इन करें",
+			"loginButton": "लॉग इन करें"
+		},
+		"authenticated": {
+			"postButton": "✏️ रेस्तरां की समीक्षा पोस्ट करें"
+		},
+		"selectRestaurant": {
+			"title": "रीव्यू करने के लिए रेस्टोरेंट चुनें",
+			"searchThisArea": "इस क्षेत्र में खोजें",
+			"savedRestaurantList": "सहेजे गए रेस्तरां",
+			"postPhotoVideo": "फोटो/वीडियो पोस्ट करें",
+			"fetchSavedRestaurantsError": "सहेजे गए रेस्तरां प्राप्त करने में विफल",
+			"noSavedRestaurantsInArea": "इस क्षेत्र में कोई सहेजे गए रेस्तरां नहीं मिले। कृपया क्षेत्र का विस्तार करें और फिर से खोजें।"
+		},
+		"emptyState": {
+			"noReviews": "अभी तक कोई समीक्षा नहीं।\nइस रेस्तरां की समीक्षा करने वाले पहले बनें।"
+		},
+		"everybodyPostsTitle": "समीक्षा करने के लिए व्यंजन चुनें",
+		"characterCount": "{{current}}/{{max}}",
+		"restaurantDetail": {
+			"title": "रेस्टोरेंट विवरण"
+		}
 	}
 }

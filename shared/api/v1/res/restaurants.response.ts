@@ -36,3 +36,9 @@ export type QueryRestaurantBidsResponse = SupabaseRestaurantBids[];
 
 /** GET /v1/restaurants/by-google-place-id のレスポンス型 */
 export type QueryRestaurantsByGooglePlaceIdResponse = RestaurantsEntity;
+
+/** GET /v1/restaurants/:id のレスポンス型 */
+export type GetRestaurantByIdResponse = {
+	restaurant: RestaurantsEntity;
+	meta: { reviewCount: number; averageRating: number; totalCents: number; maxEndDate: string | null };
+};

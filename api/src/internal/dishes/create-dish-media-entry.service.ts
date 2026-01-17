@@ -227,7 +227,12 @@ export class CreateDishMediaEntryService {
         // 1. レストラン登録
         const restaurant = await this.dishesRepository.createOrGetRestaurant(
           tx,
-          convertSupabaseToPrisma_Restaurants(payload.restaurants),
+          {
+            ...convertSupabaseToPrisma_Restaurants(payload.restaurants),
+            address_components: payload.restaurants
+              .address_components as Prisma.InputJsonValue,
+            plus_code: payload.restaurants.plus_code as Prisma.InputJsonValue,
+          },
           payload.restaurants.google_place_id,
         );
 

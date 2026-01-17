@@ -1,11 +1,10 @@
 // app-expo/features/mapMarkers/components/AvatarBubbleMarker.tsx
 
-import React, { useMemo, useState, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import { View, StyleSheet, Platform } from "react-native";
 import { Marker } from "@/components/MapView";
 import { Image } from "expo-image";
 import type { MapMarkerProps as RNMarkerProps } from "react-native-maps";
-import { normalizeColor, ACTIVE_COLOR_HEX, INACTIVE_COLOR_HEX } from "./MarkerBitmapRendererProvider";
 
 /**
  * AvatarBubbleMarker（View Marker版）
@@ -48,6 +47,7 @@ type Props = RNMarkerProps & {
 	uri?: string;
 	size?: number;
 	color?: string;
+	isActive?: boolean;
 };
 
 export function AvatarBubbleMarker({
@@ -56,11 +56,9 @@ export function AvatarBubbleMarker({
 	// iOS/Webは吹き出し想定で48
 	size = Platform.OS === "android" ? 37 : 48,
 	color = "#FFFFFF",
+	isActive = false,
 	...props
 }: Props) {
-	const normalizedColor = useMemo(() => normalizeColor(color), [color]);
-	const isActive = normalizedColor === ACTIVE_COLOR_HEX;
-
 	// iOSでのちらつき対策：ロード完了まではtrue
 	const [tracksViewChanges, setTracksViewChanges] = useState(true);
 
@@ -74,8 +72,14 @@ export function AvatarBubbleMarker({
 	return (
 		<Marker
 			{...props}
+			zIndex={isActive ? 2 : 1}
 			tracksViewChanges={tracksViewChanges}
-			// anchorは画像下寄せ（Androidは尻尾なしなので少し上気味）
+			// anchorは画像下寄せ。プラットフォームごとに値が異なる理由:
+			// - iOS / Web: y=0.85 にすることで「吹き出し+尻尾」の先端が実座標に重なるように配置
+			// - Android: Marker children が内部でビットマップ化され、下方向がクリップされやすいため
+			//   ・尻尾を描かない前提で、円のやや上側を原点とする必要がある
+			//   ・iOS / Web と同じ y=0.85 を使うと、クリッピングされたビットマップ基準でさらに下にずれて見える
+			// → ビットマップの描画領域制限と視覚的な位置合わせを両立するため、Android だけ y=0.5 を使用する
 			anchor={{ x: 0.5, y: Platform.OS === "android" ? 0.5 : 0.85 }}>
 			<View style={[styles.container, { width: bubbleSize, height: bubbleSize + 4 }]}>
 				{/* 吹き出し本体 */}
@@ -85,7 +89,7 @@ export function AvatarBubbleMarker({
 						{
 							width: bubbleSize,
 							height: bubbleSize,
-							borderColor: isActive ? ACTIVE_COLOR_HEX : INACTIVE_COLOR_HEX,
+							borderColor: color,
 						},
 					]}>
 					<Image
@@ -114,7 +118,7 @@ export function AvatarBubbleMarker({
 						style={[
 							styles.tail,
 							{
-								borderTopColor: isActive ? ACTIVE_COLOR_HEX : INACTIVE_COLOR_HEX,
+								borderTopColor: color,
 							},
 						]}
 					/>

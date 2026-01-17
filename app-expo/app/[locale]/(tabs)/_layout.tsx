@@ -1,27 +1,33 @@
 import { Tabs } from "expo-router";
-import { MapPinned, Bell, User, Search } from "lucide-react-native";
+import { MapPinned, Bell, User, Search, Pencil } from "lucide-react-native";
 import i18n from "@/lib/i18n";
 import { useAuth } from "@/contexts/AuthProvider";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { View } from "react-native";
 
-const ICON_SIZE = 21; // ← 24 がデフォルト。ここを好きな値に
+const ICON_SIZE = 21;
 
 export default function TabLayout() {
 	const { user } = useAuth();
 	const insets = useSafeAreaInsets();
+
 	return (
 		<Tabs
 			initialRouteName="search"
 			safeAreaInsets={{ bottom: insets.bottom, top: 0 }}
 			screenOptions={{
 				header: () => null,
+				tabBarShowLabel: true,
+				tabBarLabelStyle: {
+					fontSize: 11,
+				},
 				tabBarIconStyle: {
-					display: "flex",
-					flex: 1,
-					justifyContent: "center",
+					width: ICON_SIZE,
+					height: ICON_SIZE,
 				},
 				tabBarStyle: {
 					backgroundColor: "#fff",
+					paddingTop: 4,
 					shadowColor: "#000",
 					shadowOffset: { width: 0, height: -4 },
 					shadowOpacity: 0.15,
@@ -30,27 +36,54 @@ export default function TabLayout() {
 				},
 				tabBarActiveTintColor: "#5EA2FF",
 				tabBarInactiveTintColor: "#6B7280",
-				tabBarShowLabel: false,
 			}}>
 			<Tabs.Screen
 				name="search"
 				options={{
 					title: i18n.t("Tabs.search"),
-					tabBarIcon: ({ size, color }) => <Search size={ICON_SIZE} color={color} />,
+					tabBarLabel: i18n.t("Tabs.labels.search"),
+					tabBarIcon: ({ color }) => (
+						<View style={{ marginVertical: 4 }}>
+							<Search size={ICON_SIZE} color={color} />
+						</View>
+					),
 				}}
 			/>
 			<Tabs.Screen
 				name="map"
 				options={{
+					href: null,
 					title: i18n.t("Tabs.map"),
-					tabBarIcon: ({ size, color }) => <MapPinned size={ICON_SIZE} color={color} />,
+					tabBarLabel: i18n.t("Tabs.labels.map"),
+					tabBarIcon: ({ color }) => (
+						<View style={{ marginVertical: 4 }}>
+							<MapPinned size={ICON_SIZE} color={color} />
+						</View>
+					),
+				}}
+			/>
+			<Tabs.Screen
+				name="review"
+				options={{
+					title: i18n.t("Tabs.review"),
+					tabBarLabel: i18n.t("Tabs.labels.review"),
+					tabBarIcon: ({ color }) => (
+						<View style={{ marginVertical: 4 }}>
+							<Pencil size={ICON_SIZE} color={color} />
+						</View>
+					),
 				}}
 			/>
 			<Tabs.Screen
 				name="notifications"
 				options={{
 					title: i18n.t("Tabs.notifications"),
-					tabBarIcon: ({ size, color }) => <Bell size={ICON_SIZE} color={color} />,
+					tabBarLabel: i18n.t("Tabs.labels.notifications"),
+					tabBarIcon: ({ color }) => (
+						<View style={{ marginVertical: 4 }}>
+							<Bell size={ICON_SIZE} color={color} />
+						</View>
+					),
 					href: user?.is_anonymous ? null : undefined,
 				}}
 			/>
@@ -58,7 +91,12 @@ export default function TabLayout() {
 				name="profile"
 				options={{
 					title: i18n.t("Tabs.profile"),
-					tabBarIcon: ({ size, color }) => <User size={ICON_SIZE} color={color} />,
+					tabBarLabel: i18n.t("Tabs.labels.profile"),
+					tabBarIcon: ({ color }) => (
+						<View style={{ marginVertical: 4 }}>
+							<User size={ICON_SIZE} color={color} />
+						</View>
+					),
 				}}
 			/>
 			<Tabs.Screen name="posts" options={{ href: null }} />

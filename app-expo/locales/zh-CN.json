@@ -7,6 +7,7 @@
 		"close": "关闭",
 		"save": "保存",
 		"post": "发布",
+		"postReview": "发布评论",
 		"retry": "重试",
 		"processing": "处理中...",
 		"error": "发生错误。请重试。",
@@ -27,7 +28,8 @@
 		"site": "CraveCatch",
 		"errors": {
 			"network": "发生网络错误。请检查您的连接。",
-			"unexpected": "发生意外错误。请稍后重试。"
+			"unexpected": "发生意外错误。请稍后重试。",
+			"notFound": "未找到"
 		}
 	},
 	"Error": {
@@ -175,7 +177,9 @@
 		"chooseThis": "就选这个！",
 		"hiddenMessage": "{{title}}已被隐藏",
 		"imageLoadFailed": "图片加载失败",
-		"tapToReload": "点击重新加载"
+		"tapToReload": "点击重新加载",
+		"headerTitle": "为您推荐的菜品",
+		"subCopy": "点击您喜欢的菜品来查找餐厅"
 	},
 	"Notifications": {
 		"title": "通知",
@@ -227,8 +231,16 @@
 		"home": "首页",
 		"search": "搜索",
 		"map": "地图",
+		"review": "评论",
 		"notifications": "通知",
-		"profile": "个人资料"
+		"profile": "个人资料",
+		"labels": {
+			"search": "搜索",
+			"map": "地图",
+			"review": "评论",
+			"notifications": "通知",
+			"profile": "个人资料"
+		}
 	},
 	"Profile": {
 		"tabs": {
@@ -318,6 +330,7 @@
 	"Map": {
 		"buttons": {
 			"postReview": "发布评论",
+			"postPhotoVideoReview": "发布照片/视频",
 			"placeBid": "出价",
 			"bid": "出价",
 			"searchNearby": "在此区域搜索",
@@ -337,14 +350,18 @@
 		"placeholders": {
 			"searchRestaurants": "搜索餐厅",
 			"enterPrice": "输入价格",
-			"enterReview": "输入评论",
+			"enterReview": "推荐程度",
+			"enterReviewShort": "浓郁的豚骨汤真的超级好吃！",
 			"enterBidAmount": "输入出价金额",
-			"enterDishCategory": "输入菜品类别（例如：火锅、点心）"
+			"enterDishCategory": "输入菜品类别（例如：火锅、点心）",
+			"searchRestaurantsForReview": "按名称或区域搜索"
 		},
 		"labels": {
 			"endDate": "结束日期:",
 			"paymentProcessing": "付款处理中...",
-			"currentBidAmount": "当前出价金额"
+			"currentBidAmount": "当前出价金额",
+			"restaurant": "餐厅",
+			"dishCategory": "菜品类别"
 		},
 		"tabs": {
 			"reviews": "评论",
@@ -530,5 +547,34 @@
 		"openInGoogleMaps": "在 Google 地图中打开",
 		"shareWithFriends": "与朋友分享",
 		"cancel": "取消"
+	},
+	"Review": {
+		"title": "发布评论",
+		"hero": {
+			"title": "写推荐餐厅的点评\n并发布你吃过的菜品"
+		},
+		"guest": {
+			"description": "登录以撰写评论",
+			"loginButton": "登录"
+		},
+		"authenticated": {
+			"postButton": "✏️ 发布餐厅评论"
+		},
+		"selectRestaurant": {
+			"title": "选择要点评的餐厅",
+			"searchThisArea": "搜索此区域",
+			"savedRestaurantList": "已保存的餐厅",
+			"postPhotoVideo": "发布照片/视频",
+			"fetchSavedRestaurantsError": "获取已保存的餐厅失败",
+			"noSavedRestaurantsInArea": "在此区域未找到已保存的餐厅。请扩大区域并重新搜索。"
+		},
+		"emptyState": {
+			"noReviews": "还没有评论。\n成为第一个评论这家餐厅的人。"
+		},
+		"everybodyPostsTitle": "选择要评论的菜品",
+		"characterCount": "{{current}}/{{max}}",
+		"restaurantDetail": {
+			"title": "餐厅详情"
+		}
 	}
 }

@@ -43,22 +43,16 @@ export class DishesRepository {
    */
   async createOrGetRestaurant(
     tx: Prisma.TransactionClient,
-    restaurant: PrismaRestaurants,
+    restaurant: Prisma.restaurantsCreateInput,
     google_place_id: string,
   ) {
     this.logger.debug('createOrGetRestaurant', 'DishesRepository', restaurant);
-    // Omit auto-increment IDs so DB can assign them
     const { id: _omitId, ...createData } = restaurant;
 
     return await tx.restaurants.upsert({
       where: { google_place_id },
       update: {},
-      create: {
-        ...createData,
-        address_components:
-          createData.address_components as Prisma.InputJsonValue,
-        plus_code: createData.plus_code as Prisma.InputJsonValue,
-      },
+      create: createData,
     });
   }
 

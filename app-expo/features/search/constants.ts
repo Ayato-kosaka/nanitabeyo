@@ -90,3 +90,17 @@ export const TUTORIAL_PAGES = [
 		secondaryCtaLabelKey: "Search.tutorial.page4.secondaryCta",
 	},
 ] as const satisfies readonly TutorialPageConst[];
+
+// 先読みする画像の配列
+export const PRELOAD_IMAGES = [
+	// 検索チュートリアル画像
+	...TUTORIAL_PAGES.map((page) => page.image),
+	// アプリアイコン画像
+	require("@/assets/images/icon.webp"),
+	// レビュー機能のヒーロー画像
+	require("@/features/review/assets/review-hero.webp"),
+	// Apple アイコン画像
+	require("@/assets/images/logo_apple_icon.png"),
+	// Google アイコン画像
+	require("@/assets/images/logo_google_g_icon.png"),
+];
