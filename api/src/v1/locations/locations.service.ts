@@ -77,12 +77,17 @@ export class LocationsService {
       component.types?.includes('administrative_area_level_1'),
     );
 
-    const countryCode = countryComponent?.shortText || null;
+    // #677 【設計】shortText または longText のいずれか存在すればOKとする（Google API 仕様で shortText 欠損パターンがあるため）
+    // #677 【注意】ISO-3166-2 形式では shortText が望ましい（2文字コード）。longText は補完用。
+    const countryCode =
+      countryComponent?.shortText || countryComponent?.longText || null;
     let subterritoryCode: string | null = null;
 
-    if (countryCode && adminLevel1Component?.shortText) {
+    // ISO-3166-2 形式では shortText を優先（2文字コード）
+    const adminLevel1Code = adminLevel1Component?.shortText;
+    if (countryCode && adminLevel1Code) {
       // ISO-3166-2 形式 (例: CH-GE, ES-CT) に変換
-      subterritoryCode = `${countryCode}-${adminLevel1Component.shortText}`;
+      subterritoryCode = `${countryCode}-${adminLevel1Code}`;
     }
 
     return { countryCode, subterritoryCode };
@@ -182,17 +187,17 @@ export class LocationsService {
 
     // Build the base request payload
     const baseRequestPayload: protos.google.maps.places.v1.ISearchTextRequest =
-      {
-        textQuery: query,
-        locationBias: {
-          circle: {
-            center: { latitude: lat, longitude: lng },
-            radius: params.radius,
-          },
+    {
+      textQuery: query,
+      locationBias: {
+        circle: {
+          center: { latitude: lat, longitude: lng },
+          radius: params.radius,
         },
-        ...(params.pageSize && { pageSize: params.pageSize }),
-        ...(params.languageCode && { languageCode: params.languageCode }),
-      };
+      },
+      ...(params.pageSize && { pageSize: params.pageSize }),
+      ...(params.languageCode && { languageCode: params.languageCode }),
+    };
 
     // Helper function to perform search with given parameters
     const performSearch = async (
@@ -267,18 +272,18 @@ export class LocationsService {
     try {
       // Step 1: Normal search with all conditions
       const fullRequestPayload: protos.google.maps.places.v1.ISearchTextRequest =
-        {
-          ...baseRequestPayload,
-          ...(params.minRating && { minRating: params.minRating }),
-          // priceLevels は string 配列なので、型チェックを回避するためにキャスト
-          ...(params.priceLevels && {
-            priceLevels: params.priceLevels.map(
-              (level) =>
-                level as unknown as protos.google.maps.places.v1.PriceLevel,
-            ),
-          }),
-          rankPreference: 'DISTANCE',
-        };
+      {
+        ...baseRequestPayload,
+        ...(params.minRating && { minRating: params.minRating }),
+        // priceLevels は string 配列なので、型チェックを回避するためにキャスト
+        ...(params.priceLevels && {
+          priceLevels: params.priceLevels.map(
+            (level) =>
+              level as unknown as protos.google.maps.places.v1.PriceLevel,
+          ),
+        }),
+        rankPreference: 'DISTANCE',
+      };
 
       let response = await performSearch(fullRequestPayload, 'full_conditions');
 
@@ -294,10 +299,10 @@ export class LocationsService {
       });
 
       const relaxedRequestPayload: protos.google.maps.places.v1.ISearchTextRequest =
-        {
-          ...baseRequestPayload,
-          rankPreference: 'DISTANCE',
-        };
+      {
+        ...baseRequestPayload,
+        rankPreference: 'DISTANCE',
+      };
 
       response = await performSearch(
         relaxedRequestPayload,
@@ -320,9 +325,9 @@ export class LocationsService {
       );
 
       const minimalRequestPayload: protos.google.maps.places.v1.ISearchTextRequest =
-        {
-          ...baseRequestPayload,
-        };
+      {
+        ...baseRequestPayload,
+      };
 
       response = await performSearch(
         minimalRequestPayload,
@@ -584,7 +589,8 @@ export class LocationsService {
         !response.viewport.high.longitude ||
         !response.addressComponents ||
         response.addressComponents.some(
-          (component) => !component.shortText || !component.types,
+          (component) =>
+            (!component.shortText && !component.longText) || !component.types,
         )
       )
         throw new Error(
