@@ -166,7 +166,7 @@ describe('LocationsService', () => {
       });
 
       it('should reject when all components have neither shortText nor longText', async () => {
-        // #677 【テスト】すべてのコンポーネントに値がないケース（エラー）
+        // #677 Test case where all components have no values (error expected)
         const mockResponse: protos.google.maps.places.v1.IPlace = {
           location: { latitude: 33.2382, longitude: 131.6126 },
           viewport: {
@@ -194,7 +194,7 @@ describe('LocationsService', () => {
       });
 
       it('should accept components without types but with values', async () => {
-        // #677 【テスト】types が存在しないが値はあるケース（正常処理）
+        // #677 Test case where types field is missing but values exist (should succeed)
         const mockResponse: protos.google.maps.places.v1.IPlace = {
           location: { latitude: 33.2382, longitude: 131.6126 },
           viewport: {
@@ -209,7 +209,7 @@ describe('LocationsService', () => {
             },
             {
               longText: '要町１−１',
-              // types 欠損（実際の Google API レスポンスパターン）
+              // types field missing (actual Google API response pattern)
             },
           ],
         };
@@ -227,7 +227,7 @@ describe('LocationsService', () => {
       });
 
       it('should handle mixed components with and without types', async () => {
-        // #677 【テスト】types があるものとないものが混在するケース
+        // #677 Test case for mixed components (some with types, some without)
         const mockResponse: protos.google.maps.places.v1.IPlace = {
           location: { latitude: 33.2326422, longitude: 131.60609739999998 },
           viewport: {
@@ -238,7 +238,7 @@ describe('LocationsService', () => {
             {
               languageCode: 'ja',
               longText: '要町１−１',
-              // types 欠損
+              // types field missing
             },
             {
               languageCode: 'en',

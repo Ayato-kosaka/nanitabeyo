@@ -595,14 +595,10 @@ export class LocationsService {
       }
 
       // #677 【設計】types 欠損のコンポーネントを許容し、使用可能なコンポーネントのみに正規化
+      // Filter components that have at least one usable value (shortText or longText)
+      // Missing types field is allowed (downstream methods handle it gracefully)
       const normalizedAddressComponents = response.addressComponents.filter(
-        (component) => {
-          const hasValue = !!(component.shortText || component.longText);
-          // 値がないものは使わない
-          if (!hasValue) return false;
-          // types 欠損は許容（後続処理側で types がないものは自然に無視される）
-          return true;
-        },
+        (component) => !!(component.shortText || component.longText),
       );
 
       if (normalizedAddressComponents.length === 0) {
@@ -629,7 +625,7 @@ export class LocationsService {
         },
       };
 
-      // #677 【設計】正規化された addressComponents を使用
+      // #677 Use normalized addressComponents for downstream processing
       const addressComponents = normalizedAddressComponents;
       const address = this.buildAddressFromComponents(addressComponents);
 
