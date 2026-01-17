@@ -72,23 +72,18 @@ export function useDishMediaActions({ source }: UseDishMediaActionsProps) {
 	);
 
 	// #613 【設計】友人に共有する処理を共通化
-	// #659 【設計】idsForShare 追加: 複数メディアの共有に対応
 	const shareRestaurant = useCallback(
 		async ({
 			dishMediaId,
 			restaurant,
-			idsForShare,
 		}: {
 			dishMediaId: string;
 			restaurant: Pick<SupabaseRestaurants, "id" | "name">;
-			idsForShare?: string[]; // #659 【設計】複数共有用のID配列（オプショナル）
 		}) => {
 			lightImpact();
 
 			try {
-				// #659 【設計】idsForShare がある場合は複数ID、なければ単体
-				const idsParam = idsForShare?.length ? idsForShare.join(",") : dishMediaId;
-				const shareUrl = generateShareUrl(`/${locale}/posts?ids=${idsParam}`);
+				const shareUrl = generateShareUrl(`/${locale}/posts?ids=${dishMediaId}`);
 
 				logFrontendEvent({
 					event_name: "dish_share_attempted",
@@ -97,7 +92,6 @@ export function useDishMediaActions({ source }: UseDishMediaActionsProps) {
 						dishMediaId: dishMediaId,
 						restaurantId: restaurant.id,
 						shareUrl,
-						idsForShare, // #659 【設計】idsForShare をログに記録
 						source, // #613 【設計】呼び出し元を記録
 					},
 				});
@@ -113,7 +107,6 @@ export function useDishMediaActions({ source }: UseDishMediaActionsProps) {
 								dishMediaId: dishMediaId,
 								restaurantId: restaurant.id,
 								shareUrl,
-								idsForShare, // #659 【設計】idsForShare をログに記録
 								source, // #613 【設計】呼び出し元を記録
 							},
 						});
@@ -126,7 +119,6 @@ export function useDishMediaActions({ source }: UseDishMediaActionsProps) {
 								dishMediaId: dishMediaId,
 								restaurantId: restaurant.id,
 								shareUrl,
-								idsForShare, // #659 【設計】idsForShare をログに記録
 								error,
 								source, // #613 【設計】呼び出し元を記録
 							},
