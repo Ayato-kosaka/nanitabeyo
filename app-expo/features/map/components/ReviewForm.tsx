@@ -607,7 +607,7 @@ export function ReviewForm({
 						<View style={styles.dishCategorySelectContent}>
 							{dishCategoryName && (
 								<Text style={styles.dishCategoryValueText} numberOfLines={1} ellipsizeMode="tail">
-									{dishCategoryName || i18n.t("Map.actions.selectDishCategory")}
+									{dishCategoryName}
 								</Text>
 							)}
 							{!prefilledMedia && <ChevronRight size={20} color="#666" />}
