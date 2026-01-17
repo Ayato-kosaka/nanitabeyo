@@ -48,7 +48,7 @@ const PrimaryButtonComponent: React.FC<PrimaryButtonProps> = ({
 	onPress,
 	icon,
 	colors = ["#f05537", "#f05537"],
-	shadowColor = "#5EA2FF",
+	shadowColor = "#f05537",
 	borderRadius = 8,
 	loading = false,
 	disabled = false,
