@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, type StyleProp, type TextStyle, type ViewStyle } from "react-native";
 import { ChevronLeft } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import i18n from "@/lib/i18n";
 
 export type ReviewHeaderProps = {
 	/** 表示するタイトル（i18n 済み文字列） */
@@ -25,7 +26,7 @@ export function ReviewHeader({ title, onPressBack, rightContent, containerStyle,
 				style={styles.backButton}
 				onPress={onPressBack}
 				accessibilityRole="button"
-				accessibilityLabel="戻る"
+				accessibilityLabel={i18n.t("Common.back")}
 				hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}>
 				<ChevronLeft size={24} color="#1A1A1A" />
 			</TouchableOpacity>

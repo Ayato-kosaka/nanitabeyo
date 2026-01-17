@@ -43,6 +43,7 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 		const sheetRef = useRef<TrueSheet>(null);
 		const carouselRef = useRef<ICarouselInstance | null>(null);
 		const isDraggingRef = useRef(false);
+		const draggingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
 		useImperativeHandle(ref, () => ({
 			present: async () => {
@@ -55,6 +56,12 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 
 		useEffect(() => {
 			sheetRef.current?.present();
+			// #644 【バグ】コンポーネントアンマウント時にタイムアウトをクリーンアップ
+			return () => {
+				if (draggingTimeoutRef.current) {
+					clearTimeout(draggingTimeoutRef.current);
+				}
+			};
 		}, []);
 
 		const [detentIndex, setDetentIndex] = useState(0);
@@ -150,12 +157,27 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 										}}
 										onScrollStart={() => {
 											isDraggingRef.current = true;
+											// #644 【バグ】タイムアウトフォールバックを追加して isDraggingRef が true のまま固まるのを防ぐ
+											if (draggingTimeoutRef.current) {
+												clearTimeout(draggingTimeoutRef.current);
+											}
+											draggingTimeoutRef.current = setTimeout(() => {
+												isDraggingRef.current = false;
+											}, 500);
 										}}
 										onScrollEnd={() => {
 											isDraggingRef.current = false;
+											if (draggingTimeoutRef.current) {
+												clearTimeout(draggingTimeoutRef.current);
+												draggingTimeoutRef.current = null;
+											}
 										}}
 										onSnapToItem={(index) => {
 											isDraggingRef.current = false;
+											if (draggingTimeoutRef.current) {
+												clearTimeout(draggingTimeoutRef.current);
+												draggingTimeoutRef.current = null;
+											}
 											const restaurant = savedRestaurants[index];
 											if (restaurant) onSnapToRestaurant?.(restaurant);
 										}}
