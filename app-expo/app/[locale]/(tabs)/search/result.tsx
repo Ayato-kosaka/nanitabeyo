@@ -110,8 +110,22 @@ export default function ResultScreen() {
 			},
 		});
 
-		// #659 【機能】シェアシート表示
-		await Share.share({ message: url });
+		// #659 【機能】シェアシート表示（エラーハンドリング込み）
+		try {
+			await Share.share({ message: url });
+		} catch (error) {
+			// #659 【防御】シェア失敗時のログ記録（ユーザーキャンセルも含む）
+			logFrontendEvent({
+				event_name: "search_result_bulk_share_failed",
+				error_level: "debug",
+				payload: {
+					entriesKey,
+					currentIndex,
+					shared_ids: targetIds,
+					error: error instanceof Error ? error.message : String(error),
+				},
+			});
+		}
 	}, [entriesKey, currentIndex, lightImpact, logFrontendEvent]);
 
 	return (
