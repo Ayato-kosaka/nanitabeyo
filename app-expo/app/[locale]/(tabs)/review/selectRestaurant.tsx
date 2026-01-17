@@ -21,7 +21,7 @@ import { isFoodAndDrinkPlaceForUser } from "@shared/utils/google_places_restaura
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { AvatarBubbleMarker } from "@/features/mapMarkers";
 import { router, useFocusEffect } from "expo-router";
-import { SavedRestaurantsSheet, SavedRestaurantsSheetHandle } from "@/features/review/components/SavedRestaurantsSheet";
+import { SavedRestaurantsSheet } from "@/features/review/components/SavedRestaurantsSheet";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { useRestaurantStore } from "@/features/review/stores/useRestaurantStore";
 import { useLocale } from "@/hooks/useLocale";
@@ -178,24 +178,13 @@ export default function SelectRestaurantScreen() {
 		}
 	}, [getCurrentLocation, lightImpact, logFrontendEvent]);
 
-	// #644 【設計】保存したお店一覧の BottomSheet 用 ref
-	const savedRestaurantsSheetRef = useRef<SavedRestaurantsSheetHandle>(null);
-	const isSavedRestaurantsSheetVisibleRef = useRef(false); // #644 【設計】present/dismiss の競合防止用フラグ
 	// 画面フォーカスに連動して Sheet を開閉
+	const [isSheetVisible, setIsSheetVisible] = useState(false);
 	useFocusEffect(
 		useCallback(() => {
-			// フォーカスされたとき → Sheet を表示（重複 present を避ける）
-			if (!isSavedRestaurantsSheetVisibleRef.current) {
-				isSavedRestaurantsSheetVisibleRef.current = true;
-				void savedRestaurantsSheetRef.current?.present();
-			}
-
-			// フォーカスが外れたとき（他画面へ遷移など） → Sheet を閉じる（重複 dismiss を避ける）
+			setIsSheetVisible(true);
 			return () => {
-				if (isSavedRestaurantsSheetVisibleRef.current) {
-					isSavedRestaurantsSheetVisibleRef.current = false;
-					void savedRestaurantsSheetRef.current?.dismiss();
-				}
+				setIsSheetVisible(false);
 			};
 		}, []),
 	);
@@ -427,7 +416,7 @@ export default function SelectRestaurantScreen() {
 
 			{/* Saved Restaurants BottomSheet */}
 			<SavedRestaurantsSheet
-				ref={savedRestaurantsSheetRef}
+				visible={isSheetVisible}
 				savedRestaurants={savedRestaurants}
 				isLoadingSavedRestaurants={isLoadingSavedRestaurants}
 				activeRestaurantId={activeRestaurantId}
