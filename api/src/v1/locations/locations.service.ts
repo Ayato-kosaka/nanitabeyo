@@ -77,12 +77,17 @@ export class LocationsService {
       component.types?.includes('administrative_area_level_1'),
     );
 
-    const countryCode = countryComponent?.shortText || null;
+    // #292 【設計】shortText または longText のいずれか存在すればOKとする（Google API 仕様で shortText 欠損パターンがあるため）
+    const countryCode =
+      countryComponent?.shortText || countryComponent?.longText || null;
     let subterritoryCode: string | null = null;
 
-    if (countryCode && adminLevel1Component?.shortText) {
+    // ISO-3166-2 形式では shortText を優先（2文字コード）、なければ longText にフォールバック
+    const adminLevel1Code =
+      adminLevel1Component?.shortText || adminLevel1Component?.longText;
+    if (countryCode && adminLevel1Code) {
       // ISO-3166-2 形式 (例: CH-GE, ES-CT) に変換
-      subterritoryCode = `${countryCode}-${adminLevel1Component.shortText}`;
+      subterritoryCode = `${countryCode}-${adminLevel1Code}`;
     }
 
     return { countryCode, subterritoryCode };
@@ -584,7 +589,8 @@ export class LocationsService {
         !response.viewport.high.longitude ||
         !response.addressComponents ||
         response.addressComponents.some(
-          (component) => !component.shortText || !component.types,
+          (component) =>
+            (!component.shortText && !component.longText) || !component.types,
         )
       )
         throw new Error(
