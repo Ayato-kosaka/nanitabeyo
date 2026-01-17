@@ -177,7 +177,9 @@
 		"chooseThis": "이걸로 할래!",
 		"hiddenMessage": "{{title}} 이(가) 숨겨졌습니다",
 		"imageLoadFailed": "이미지를 불러오지 못했습니다",
-		"tapToReload": "탭하여 다시 로드"
+		"tapToReload": "탭하여 다시 로드",
+		"headerTitle": "당신을 위한 추천 요리",
+		"subCopy": "마음에 드는 요리를 탭하여 레스토랑을 찾으세요"
 	},
 	"Notifications": {
 		"title": "알림",

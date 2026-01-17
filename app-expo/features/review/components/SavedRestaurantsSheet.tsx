@@ -22,6 +22,7 @@ export type SavedRestaurantsSheetHandle = {
 };
 
 export type SavedRestaurantsSheetProps = {
+	visible: boolean;
 	savedRestaurants: QueryMeSavedRestaurantsResponse["data"];
 	isLoadingSavedRestaurants: boolean;
 	activeRestaurantId: string | null;
@@ -30,9 +31,17 @@ export type SavedRestaurantsSheetProps = {
 	onSnapToRestaurant?: (restaurant: SavedRestaurant) => void;
 };
 
+/**
+ * SavedRestaurantsSheet
+ *
+ * - 表示/非表示は `visible` props をソースオブトゥルースとして管理する
+ * - TrueSheet の present/dismiss は useEffect + setTimeout(0) で iOS のマウントタイミング問題を回避
+ * - 画面側からは `visible` props と ref からの dismiss/present で開閉を制御する
+ */
 export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, SavedRestaurantsSheetProps>(
-	(props, ref) => {
+	function SavedRestaurantsSheetInner(props, ref) {
 		const {
+			visible,
 			savedRestaurants,
 			isLoadingSavedRestaurants,
 			activeRestaurantId,
@@ -43,8 +52,9 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 		const sheetRef = useRef<TrueSheet>(null);
 		const carouselRef = useRef<ICarouselInstance | null>(null);
 		const isDraggingRef = useRef(false);
-		const draggingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+		const draggingTimeoutRef = useRef<number | null>(null);
 
+		// 親コンポーネントから present/dismiss を呼び出せるようにする
 		useImperativeHandle(ref, () => ({
 			present: async () => {
 				await sheetRef.current?.present();
@@ -55,12 +65,28 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 		}));
 
 		useEffect(() => {
-			sheetRef.current?.present();
-			// #644 【バグ】コンポーネントアンマウント時にタイムアウトをクリーンアップ
+			// visible の変化に応じて TrueSheet を開閉
+			if (!visible) {
+				sheetRef.current?.dismiss();
+				return;
+			}
+
+			// ★ iOS 対策：マウント完了後に present() する
+			const timeoutId = setTimeout(() => {
+				sheetRef.current?.present();
+			}, 0);
+
+			return () => clearTimeout(timeoutId);
+		}, [visible]);
+
+		useEffect(() => {
 			return () => {
+				// #644 コンポーネントアンマウント時にタイムアウトをクリーンアップ
 				if (draggingTimeoutRef.current) {
 					clearTimeout(draggingTimeoutRef.current);
 				}
+				// #644 コンポーネントアンマウント時に確実に閉じておく
+				sheetRef.current?.dismiss();
 			};
 		}, []);
 
@@ -106,8 +132,8 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 				grabber
 				cornerRadius={24}
 				maxHeight={560}
-				dimmed={false}
 				backgroundColor="#FFFFFF"
+				dimmed={false}
 				dismissible={false}
 				onDetentChange={handleDetentChange}>
 				<View style={styles.container}>

@@ -20,7 +20,7 @@ import MapViewClass from "react-native-maps";
 import { isFoodAndDrinkPlaceForUser } from "@shared/utils/google_places_restaurant_type";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { AvatarBubbleMarker } from "@/features/mapMarkers";
-import { router, useFocusEffect } from "expo-router";
+import { router, useFocusEffect, useNavigation } from "expo-router";
 import { SavedRestaurantsSheet, SavedRestaurantsSheetHandle } from "@/features/review/components/SavedRestaurantsSheet";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { useRestaurantStore } from "@/features/review/stores/useRestaurantStore";
@@ -40,6 +40,7 @@ export default function SelectRestaurantScreen() {
 	const { callBackend } = useAPICall();
 	const { showSnackbar } = useSnackbar();
 	const locale = useLocale();
+	const navigation = useNavigation();
 	const [searchQuery, setSearchQuery] = useState("");
 	const [isLoadingRestaurantCreation, setIsLoadingRestaurantCreation] = useState(false);
 	const { getLocationDetails, getCurrentLocation } = useLocationSearch();
@@ -178,27 +179,27 @@ export default function SelectRestaurantScreen() {
 		}
 	}, [getCurrentLocation, lightImpact, logFrontendEvent]);
 
-	// #644 【設計】保存したお店一覧の BottomSheet 用 ref
-	const savedRestaurantsSheetRef = useRef<SavedRestaurantsSheetHandle>(null);
-	const isSavedRestaurantsSheetVisibleRef = useRef(false); // #644 【設計】present/dismiss の競合防止用フラグ
 	// 画面フォーカスに連動して Sheet を開閉
+	const [isSheetVisible, setIsSheetVisible] = useState(false);
 	useFocusEffect(
 		useCallback(() => {
-			// フォーカスされたとき → Sheet を表示（重複 present を避ける）
-			if (!isSavedRestaurantsSheetVisibleRef.current) {
-				isSavedRestaurantsSheetVisibleRef.current = true;
-				void savedRestaurantsSheetRef.current?.present();
-			}
-
-			// フォーカスが外れたとき（他画面へ遷移など） → Sheet を閉じる（重複 dismiss を避ける）
+			setIsSheetVisible(true);
 			return () => {
-				if (isSavedRestaurantsSheetVisibleRef.current) {
-					isSavedRestaurantsSheetVisibleRef.current = false;
-					void savedRestaurantsSheetRef.current?.dismiss();
-				}
+				setIsSheetVisible(false);
 			};
 		}, []),
 	);
+	// #644 【設計】SavedRestaurantsSheet の ref
+	const savedRestaurantsSheetRef = useRef<SavedRestaurantsSheetHandle>(null);
+	useEffect(() => {
+		const unsubscribe = navigation.addListener("beforeRemove", () => {
+			// 戻り操作（ボタンでもスワイプでも）開始時に必ずシートを閉じる
+			savedRestaurantsSheetRef.current?.dismiss();
+			setIsSheetVisible(false);
+		});
+
+		return unsubscribe;
+	}, [navigation]);
 
 	// #644 【設計】保存したお店の状態管理
 	const [savedRestaurants, setSavedRestaurants] = useState<QueryMeSavedRestaurantsResponse["data"]>([]);
@@ -428,6 +429,7 @@ export default function SelectRestaurantScreen() {
 			{/* Saved Restaurants BottomSheet */}
 			<SavedRestaurantsSheet
 				ref={savedRestaurantsSheetRef}
+				visible={isSheetVisible}
 				savedRestaurants={savedRestaurants}
 				isLoadingSavedRestaurants={isLoadingSavedRestaurants}
 				activeRestaurantId={activeRestaurantId}

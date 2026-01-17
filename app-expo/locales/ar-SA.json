@@ -177,7 +177,9 @@
 		"chooseThis": "اختر هذا!",
 		"hiddenMessage": "تم إخفاء {{title}}",
 		"imageLoadFailed": "فشل تحميل الصورة",
-		"tapToReload": "اضغط لإعادة التحميل"
+		"tapToReload": "اضغط لإعادة التحميل",
+		"headerTitle": "الأطباق الموصى بها لك",
+		"subCopy": "انقر على طبق يعجبك للعثور على المطاعم"
 	},
 	"Notifications": {
 		"title": "الإشعارات",

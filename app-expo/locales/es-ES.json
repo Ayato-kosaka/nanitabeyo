@@ -177,7 +177,9 @@
 		"chooseThis": "¡Este!",
 		"hiddenMessage": "{{title}} se ha ocultado",
 		"imageLoadFailed": "Error al cargar la imagen",
-		"tapToReload": "Toca para recargar"
+		"tapToReload": "Toca para recargar",
+		"headerTitle": "Platos Recomendados para Ti",
+		"subCopy": "Toca un plato que te guste para encontrar restaurantes"
 	},
 	"Notifications": {
 		"title": "Notificaciones",

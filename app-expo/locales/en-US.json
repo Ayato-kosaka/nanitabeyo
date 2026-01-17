@@ -177,7 +177,9 @@
 		"chooseThis": "Choose this!",
 		"hiddenMessage": "{{title}} has been hidden",
 		"imageLoadFailed": "Failed to load image",
-		"tapToReload": "Tap to reload"
+		"tapToReload": "Tap to reload",
+		"headerTitle": "Recommended Dishes for You",
+		"subCopy": "Tap on a dish you like to find restaurants"
 	},
 	"Notifications": {
 		"title": "Notifications",
