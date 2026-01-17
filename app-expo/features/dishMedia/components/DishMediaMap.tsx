@@ -3,7 +3,7 @@ import { StyleSheet, View, Dimensions, Text } from "react-native";
 import Carousel from "react-native-reanimated-carousel";
 import MapView, { Region } from "@/components/MapView";
 import DishMediaContent from "./DishMediaContent";
-import { AvatarBubbleMarker } from "../../../components/AvatarBubbleMarker";
+import { AvatarBubbleMarker } from "@/features/mapMarkers";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import * as Crypto from "expo-crypto";

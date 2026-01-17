@@ -6,18 +6,25 @@
 	"build": {
 		"development": {
 			"developmentClient": true,
-			"distribution": "internal"
+			"distribution": "internal",
+			"ios": {
+				"image": "latest"
+			}
 		},
 		"preview": {
 			"distribution": "internal",
 			"environment": "preview",
-			"channel": "preview"
+			"channel": "preview",
+			"ios": {
+				"image": "latest"
+			}
 		},
 		"production": {
 			"autoIncrement": true,
 			"environment": "production",
 			"channel": "production",
 			"ios": {
+				"image": "latest",
 				"cocoapods": "1.15.2"
 			},
 			"cache": { "key": "fix-nullbyte-2025-08-17" }
