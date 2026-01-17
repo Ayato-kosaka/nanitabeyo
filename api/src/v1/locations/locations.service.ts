@@ -187,17 +187,17 @@ export class LocationsService {
 
     // Build the base request payload
     const baseRequestPayload: protos.google.maps.places.v1.ISearchTextRequest =
-    {
-      textQuery: query,
-      locationBias: {
-        circle: {
-          center: { latitude: lat, longitude: lng },
-          radius: params.radius,
+      {
+        textQuery: query,
+        locationBias: {
+          circle: {
+            center: { latitude: lat, longitude: lng },
+            radius: params.radius,
+          },
         },
-      },
-      ...(params.pageSize && { pageSize: params.pageSize }),
-      ...(params.languageCode && { languageCode: params.languageCode }),
-    };
+        ...(params.pageSize && { pageSize: params.pageSize }),
+        ...(params.languageCode && { languageCode: params.languageCode }),
+      };
 
     // Helper function to perform search with given parameters
     const performSearch = async (
@@ -272,18 +272,18 @@ export class LocationsService {
     try {
       // Step 1: Normal search with all conditions
       const fullRequestPayload: protos.google.maps.places.v1.ISearchTextRequest =
-      {
-        ...baseRequestPayload,
-        ...(params.minRating && { minRating: params.minRating }),
-        // priceLevels は string 配列なので、型チェックを回避するためにキャスト
-        ...(params.priceLevels && {
-          priceLevels: params.priceLevels.map(
-            (level) =>
-              level as unknown as protos.google.maps.places.v1.PriceLevel,
-          ),
-        }),
-        rankPreference: 'DISTANCE',
-      };
+        {
+          ...baseRequestPayload,
+          ...(params.minRating && { minRating: params.minRating }),
+          // priceLevels は string 配列なので、型チェックを回避するためにキャスト
+          ...(params.priceLevels && {
+            priceLevels: params.priceLevels.map(
+              (level) =>
+                level as unknown as protos.google.maps.places.v1.PriceLevel,
+            ),
+          }),
+          rankPreference: 'DISTANCE',
+        };
 
       let response = await performSearch(fullRequestPayload, 'full_conditions');
 
@@ -299,10 +299,10 @@ export class LocationsService {
       });
 
       const relaxedRequestPayload: protos.google.maps.places.v1.ISearchTextRequest =
-      {
-        ...baseRequestPayload,
-        rankPreference: 'DISTANCE',
-      };
+        {
+          ...baseRequestPayload,
+          rankPreference: 'DISTANCE',
+        };
 
       response = await performSearch(
         relaxedRequestPayload,
@@ -325,9 +325,9 @@ export class LocationsService {
       );
 
       const minimalRequestPayload: protos.google.maps.places.v1.ISearchTextRequest =
-      {
-        ...baseRequestPayload,
-      };
+        {
+          ...baseRequestPayload,
+        };
 
       response = await performSearch(
         minimalRequestPayload,
@@ -587,15 +587,29 @@ export class LocationsService {
         !response.viewport.high ||
         !response.viewport.high.latitude ||
         !response.viewport.high.longitude ||
-        !response.addressComponents ||
-        response.addressComponents.some(
-          (component) =>
-            (!component.shortText && !component.longText) || !component.types,
-        )
-      )
+        !response.addressComponents
+      ) {
         throw new Error(
           'Invalid response from Google Places API: Missing required fields',
         );
+      }
+
+      // #677 【設計】types 欠損のコンポーネントを許容し、使用可能なコンポーネントのみに正規化
+      const normalizedAddressComponents = response.addressComponents.filter(
+        (component) => {
+          const hasValue = !!(component.shortText || component.longText);
+          // 値がないものは使わない
+          if (!hasValue) return false;
+          // types 欠損は許容（後続処理側で types がないものは自然に無視される）
+          return true;
+        },
+      );
+
+      if (normalizedAddressComponents.length === 0) {
+        throw new Error(
+          'Invalid response from Google Places API: No usable address components',
+        );
+      }
 
       // location field from response
       const location = {
@@ -615,8 +629,8 @@ export class LocationsService {
         },
       };
 
-      // Extract address from addressComponents
-      const addressComponents = response.addressComponents;
+      // #677 【設計】正規化された addressComponents を使用
+      const addressComponents = normalizedAddressComponents;
       const address = this.buildAddressFromComponents(addressComponents);
 
       // Resolve local language code from addressComponents
