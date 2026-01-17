@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from "react-native";
-import { ChevronLeft, MapPin, Clock, Users, Salad, ChefHat } from "lucide-react-native";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { MapPin, Clock, Users, Salad, ChefHat } from "lucide-react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import Carousel from "react-native-reanimated-carousel";
 import { Image } from "expo-image";
@@ -13,7 +13,7 @@ import { TopicsError } from "@/features/topics/components/TopicsError";
 import { HideTopicForm } from "@/features/topics/components/HideTopicForm";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
-import { CARD_WIDTH, CARD_HEIGHT, width } from "@/features/topics/constants";
+import { CARD_WIDTH, CARD_MAX_HEIGHT, width as SCREEN_WIDTH } from "@/features/topics/constants";
 import { timeSlots, sceneOptions, moodOptions, tasteOptions } from "@/features/search/constants";
 import i18n from "@/lib/i18n";
 import { useHaptics } from "@/hooks/useHaptics";
@@ -22,6 +22,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useLogger } from "@/hooks/useLogger";
 import { makeDishMediaEntriesKey } from "@/features/dishMedia/utils/dishMediaEntriesKey";
 import { WIKIMEDIA_HEADERS } from "@/lib/wikimedia";
+import { SearchHeader } from "@/features/search/components/SearchHeader";
 
 export default function TopicsScreen() {
 	const locale = useLocale();
@@ -175,9 +176,19 @@ export default function TopicsScreen() {
 		setCurrentIndex(index);
 	}, []);
 
+	// カルーセルに使える「縦方向の空きスペース」を測る
+	const [carouselAvailableHeight, setCarouselAvailableHeight] = useState(0);
+
+	// ✅ 実際にカルーセルに渡す高さ：「空きの 90%」かつ「最大 60% まで」
+	const cardHeight = useMemo(() => {
+		if (carouselAvailableHeight <= 0) return 0;
+		const heightWithMargin = carouselAvailableHeight;
+		return Math.min(heightWithMargin, CARD_MAX_HEIGHT);
+	}, [carouselAvailableHeight]);
+
 	const renderCard = ({ item, index }: { item: Topic; index: number }) => (
 		<TouchableOpacity key={item.categoryId} activeOpacity={0.95} onPress={handleCardPress}>
-			<TopicCard item={item} onHide={handleHideCard} displayIndex={index} />
+			<TopicCard item={item} onHide={handleHideCard} displayIndex={index} cardHeight={cardHeight} />
 		</TouchableOpacity>
 	);
 
@@ -190,106 +201,102 @@ export default function TopicsScreen() {
 	}
 
 	return (
-		<View style={styles.container}>
-			<SafeAreaView style={styles.container} edges={["top"]}>
-				{/* #674 【仕様】ヘッダー（戻るボタン + タイトル） */}
-				<View style={styles.header}>
-					<TouchableOpacity style={styles.backButton} onPress={handleBack}>
-						<ChevronLeft size={24} color="#000" />
-					</TouchableOpacity>
-					<Text style={styles.headerTitle}>{i18n.t("Topics.headerTitle")}</Text>
-					<View style={{ width: 40 }} />
+		<SafeAreaView style={styles.container} edges={["top"]}>
+			{/* #674 【仕様】ヘッダー（戻るボタン + タイトル） */}
+			<SearchHeader title={i18n.t("Topics.headerTitle")} onPressBack={handleBack} />
+
+			{/* #674 【仕様】条件チップ表示 */}
+			{params && (
+				<View style={styles.chipsContainer}>
+					<View style={styles.chipRow}>
+						{/* 場所 */}
+						<View style={styles.conditionChip}>
+							<MapPin size={14} color="#f05537" />
+							<Text style={styles.conditionChipText}>{params.locationQuery}</Text>
+						</View>
+
+						{/* 時間帯 */}
+						<View style={styles.conditionChip}>
+							<Clock size={14} color="#f05537" />
+							<Text style={styles.conditionChipText}>
+								{i18n.t(timeSlots.find((s) => s.id === params.timeSlot)?.label || "")}
+							</Text>
+						</View>
+
+						{/* 誰と行くか */}
+						<View style={styles.conditionChip}>
+							<Users size={14} color="#f05537" />
+							<Text style={styles.conditionChipText}>
+								{i18n.t(sceneOptions.find((s) => s.id === params.scene)?.label || "")}
+							</Text>
+						</View>
+					</View>
+
+					<View style={styles.chipRow}>
+						{/* お腹の減り具合（mood が選択されている場合のみ） */}
+						{params.mood && (
+							<View style={styles.conditionChip}>
+								<Salad size={14} color="#f05537" />
+								<Text style={styles.conditionChipText}>
+									{i18n.t(moodOptions.find((m) => m.id === params.mood)?.label || "")}
+								</Text>
+							</View>
+						)}
+
+						{/* 味の好み（taste が選択されている場合のみ） */}
+						{params.taste && (
+							<View style={styles.conditionChip}>
+								<ChefHat size={14} color="#f05537" />
+								<Text style={styles.conditionChipText}>
+									{i18n.t(tasteOptions.find((t) => t.id === params.taste)?.label || "")}
+								</Text>
+							</View>
+						)}
+					</View>
+				</View>
+			)}
+
+			{/* #674 【仕様】サブコピー */}
+			<Text style={styles.subCopy}>{i18n.t("Topics.subCopy")}</Text>
+
+			{/* 中央のメイン領域（カルーセル＋サムネイル） */}
+			<View style={styles.main}>
+				{/* 空き高さを onLayout で測って、カルーセル高さを決定 */}
+				<View
+					style={styles.carouselOuter}
+					onLayout={(e) => {
+						setCarouselAvailableHeight(e.nativeEvent.layout.height);
+					}}>
+					{visibleTopics.length > 0 ? (
+						cardHeight > 0 && (
+							<View style={styles.carouselContainer}>
+								<Carousel
+									ref={carouselRef}
+									width={CARD_WIDTH}
+									height={cardHeight}
+									data={visibleTopics}
+									renderItem={renderCard}
+									onSnapToItem={handleSnapToItem}
+									onScrollStart={() => setIsScrolling(true)}
+									onScrollEnd={() => setIsScrolling(false)}
+									mode="parallax"
+									modeConfig={{
+										parallaxScrollingScale: 0.9,
+										parallaxScrollingOffset: 100,
+									}}
+									style={styles.carousel}
+								/>
+							</View>
+						)
+					) : (
+						<View style={styles.emptyContainer}></View>
+					)}
 				</View>
 
-				{/* #674 【仕様】条件チップ表示 */}
-				{params && (
-					<View style={styles.chipsContainer}>
-						<View style={styles.chipRow}>
-							{/* 場所 */}
-							<View style={styles.conditionChip}>
-								<MapPin size={14} color="#f05537" />
-								<Text style={styles.conditionChipText}>{params.locationQuery}</Text>
-							</View>
-
-							{/* 時間帯 */}
-							<View style={styles.conditionChip}>
-								<Clock size={14} color="#f05537" />
-								<Text style={styles.conditionChipText}>
-									{i18n.t(timeSlots.find((s) => s.id === params.timeSlot)?.label || "")}
-								</Text>
-							</View>
-
-							{/* 誰と行くか */}
-							<View style={styles.conditionChip}>
-								<Users size={14} color="#f05537" />
-								<Text style={styles.conditionChipText}>
-									{i18n.t(sceneOptions.find((s) => s.id === params.scene)?.label || "")}
-								</Text>
-							</View>
-						</View>
-
-						<View style={styles.chipRow}>
-							{/* お腹の減り具合（mood が選択されている場合のみ） */}
-							{params.mood && (
-								<View style={styles.conditionChip}>
-									<Salad size={14} color="#f05537" />
-									<Text style={styles.conditionChipText}>
-										{i18n.t(moodOptions.find((m) => m.id === params.mood)?.label || "")}
-									</Text>
-								</View>
-							)}
-
-							{/* 味の好み（taste が選択されている場合のみ） */}
-							{params.taste && (
-								<View style={styles.conditionChip}>
-									<ChefHat size={14} color="#f05537" />
-									<Text style={styles.conditionChipText}>
-										{i18n.t(tasteOptions.find((t) => t.id === params.taste)?.label || "")}
-									</Text>
-								</View>
-							)}
-						</View>
-					</View>
-				)}
-
-				{/* #674 【仕様】サブコピー */}
-				<Text style={styles.subCopy}>{i18n.t("Topics.subCopy")}</Text>
-
-				{/* Cards Carousel */}
-				{visibleTopics.length > 0 ? (
-					<View style={styles.carouselContainer}>
-						<Carousel
-							ref={carouselRef}
-							width={CARD_WIDTH}
-							height={CARD_HEIGHT}
-							data={visibleTopics}
-							renderItem={renderCard}
-							onSnapToItem={handleSnapToItem}
-							onScrollStart={() => setIsScrolling(true)}
-							onScrollEnd={() => setIsScrolling(false)}
-							mode="parallax"
-							modeConfig={{
-								parallaxScrollingScale: 0.9,
-								parallaxScrollingOffset: 100,
-							}}
-							style={styles.carousel}
-						/>
-					</View>
-				) : (
-					<View style={styles.emptyContainer}>
-						<View style={styles.emptyCard}>
-							<Text style={styles.emptyText}>{i18n.t("Topics.empty")}</Text>
-							<TouchableOpacity style={styles.retryButton} onPress={handleBack}>
-								<Text style={styles.retryButtonText}>{i18n.t("Topics.retry")}</Text>
-							</TouchableOpacity>
-						</View>
-					</View>
-				)}
-
-				{/* #674 【仕様】下部サムネイル 2×3 グリッド */}
+				{/* ✅ 下部サムネイル：absolute ではなく通常フローの一番下 */}
 				{visibleTopics.length > 0 && (
 					<View style={styles.thumbnailGrid}>
-						{visibleTopics.slice(0, 6).map((topic, index) => (
+						{visibleTopics.map((topic, index) => (
 							<TouchableOpacity
 								key={topic.categoryId}
 								style={[styles.thumbnail, currentIndex === index && styles.thumbnailActive]}
@@ -305,51 +312,27 @@ export default function TopicsScreen() {
 						))}
 					</View>
 				)}
+			</View>
 
-				{/* Hide Card Modal */}
-				<HideTopicBlurModal>
-					{({ close }) => (
-						<HideTopicForm
-							onSubmit={(hideReason) => {
-								confirmHideCard(hideReason);
-							}}
-							onCancel={close}
-						/>
-					)}
-				</HideTopicBlurModal>
-			</SafeAreaView>
-		</View>
+			<HideTopicBlurModal>
+				{({ close }) => (
+					<HideTopicForm
+						onSubmit={(hideReason) => {
+							confirmHideCard(hideReason);
+						}}
+						onCancel={close}
+					/>
+				)}
+			</HideTopicBlurModal>
+		</SafeAreaView>
 	);
 }
 
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: "#FFFFFF", // #674 【仕様】白背景に変更
-	},
-	// #674 【仕様】通常のヘッダー（SafeArea内）
-	header: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		paddingHorizontal: 16,
-		paddingVertical: 12,
 		backgroundColor: "#FFFFFF",
-		borderBottomWidth: 1,
-		borderBottomColor: "#F0F0F0",
 	},
-	backButton: {
-		padding: 8,
-		borderRadius: 8,
-	},
-	headerTitle: {
-		fontSize: 18,
-		fontWeight: "700",
-		color: "#1A1A1A",
-		flex: 1,
-		textAlign: "center",
-	},
-	// #674 【仕様】条件チップコンテナ
 	chipsContainer: {
 		paddingHorizontal: 16,
 		paddingVertical: 12,
@@ -360,11 +343,10 @@ const styles = StyleSheet.create({
 		flexWrap: "wrap",
 		gap: 8,
 	},
-	// #674 【仕様】条件チップ（ライトなスタイル）
 	conditionChip: {
 		flexDirection: "row",
 		alignItems: "center",
-		backgroundColor: "rgba(240, 85, 55, 0.12)", // #674 【仕様】アクセントカラーの薄い背景
+		backgroundColor: "rgba(240, 85, 55, 0.12)",
 		paddingHorizontal: 12,
 		paddingVertical: 6,
 		borderRadius: 24,
@@ -372,16 +354,14 @@ const styles = StyleSheet.create({
 	},
 	conditionChipText: {
 		fontSize: 13,
-		color: "#f05537", // #674 【仕様】アクセントカラー
+		color: "#f05537",
 		fontWeight: "500",
 	},
-	// #674 【仕様】サブコピー
 	subCopy: {
 		fontSize: 14,
 		color: "#6B7280",
 		textAlign: "center",
-		paddingHorizontal: 24,
-		paddingVertical: 12,
+		paddingHorizontal: 20,
 		lineHeight: 20,
 	},
 	retryButton: {
@@ -401,13 +381,21 @@ const styles = StyleSheet.create({
 		fontWeight: "600",
 		letterSpacing: 0.3,
 	},
+	// ✅ 中央コンテンツ全体（カルーセル + サムネ）
+	main: {
+		flex: 1,
+	},
+	// ✅ カルーセル用の空きスペース（ここが flex:1）
+	carouselOuter: {
+		flex: 1,
+		justifyContent: "center",
+	},
 	carouselContainer: {
 		justifyContent: "center",
 		alignItems: "center",
-		marginVertical: 16,
 	},
 	carousel: {
-		width: width,
+		width: SCREEN_WIDTH,
 	},
 	emptyContainer: {
 		flex: 1,
@@ -436,25 +424,30 @@ const styles = StyleSheet.create({
 		lineHeight: 28,
 		fontWeight: "500",
 	},
-	// #674 【仕様】下部サムネイル 2×3 グリッド
+	// 下部サムネイル（通常フローで一番下）
 	thumbnailGrid: {
+		paddingHorizontal: 16,
+		paddingVertical: 12,
 		flexDirection: "row",
 		flexWrap: "wrap",
-		paddingHorizontal: 16,
-		paddingBottom: 16,
-		gap: 8,
 		justifyContent: "center",
+		gap: 8,
 	},
 	thumbnail: {
-		width: (Dimensions.get("window").width - 64) / 3, // 画面幅から余白を引いて3等分
+		width: (SCREEN_WIDTH - 72) / 6, // 画面幅から余白を引いて3等分
 		aspectRatio: 1, // 正方形
 		borderRadius: 12,
 		overflow: "hidden",
 		borderWidth: 2,
-		borderColor: "transparent",
+		borderColor: "#E5E7EB",
+		shadowColor: "#E5E7EB",
+		shadowOffset: { width: 0, height: 2 },
+		shadowOpacity: 0.3,
+		shadowRadius: 4,
+		elevation: 4,
 	},
 	thumbnailActive: {
-		borderColor: "#f05537", // #674 【仕様】選択中はアクセントカラーの枠線
+		borderColor: "#f05537",
 		shadowColor: "#f05537",
 		shadowOffset: { width: 0, height: 2 },
 		shadowOpacity: 0.3,
