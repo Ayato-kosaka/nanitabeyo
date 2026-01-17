@@ -268,7 +268,7 @@ function PrimaryCard({
 				<PrimaryButton
 					onPress={onReview}
 					label={i18n.t("Review.selectRestaurant.postPhotoVideo")}
-					colors={["#5EA2FF", "#5EA2FF"]}
+					colors={["#F05537", "#F05537"]}
 					labelStyle={{ color: "#FFF", fontSize: 12 }}
 					style={{ alignSelf: "flex-end" }}
 				/>

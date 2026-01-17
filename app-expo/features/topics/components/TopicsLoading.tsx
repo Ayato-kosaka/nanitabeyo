@@ -17,7 +17,7 @@ export const TopicsLoading = () => (
 					cachePolicy={"memory-disk"}
 				/>
 			</View>
-			<ActivityIndicator size="large" color="#5EA2FF" style={styles.loadingSpinner} />
+			<ActivityIndicator size="large" color="#F05537" style={styles.loadingSpinner} />
 			<Text style={styles.loadingTitle}>{i18n.t("Topics.Loading.title")}</Text>
 			<Text style={styles.loadingSubtitle}>{i18n.t("Topics.Loading.subtitle")}</Text>
 		</View>

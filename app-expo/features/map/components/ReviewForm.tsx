@@ -765,7 +765,7 @@ const styles = StyleSheet.create({
 	},
 	primaryButton: {
 		flex: 1,
-		backgroundColor: "#5EA2FF",
+		backgroundColor: "#F05537",
 		paddingVertical: 14,
 		borderRadius: 12,
 		alignItems: "center",

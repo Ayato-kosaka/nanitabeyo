@@ -136,7 +136,7 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 							<PrimaryButton
 								onPress={handleReviewButtonPress}
 								label={i18n.t("Review.selectRestaurant.postPhotoVideo")}
-								icon={<Camera size={20} color="#5EA2FF" />}
+								icon={<Camera size={20} color="#F05537" />}
 								labelStyle={{ color: "#5EA2FF" }}
 								colors={["#F0F8FF", "#F0F8FF"]}
 								shadowColor="transparent"

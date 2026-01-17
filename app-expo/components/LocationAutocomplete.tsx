@@ -170,7 +170,7 @@ export function LocationAutocomplete({
 			{/* Loading indicator */}
 			{isSearching && (
 				<View style={styles.loadingContainer}>
-					<ActivityIndicator size="small" color="#5EA2FF" />
+					<ActivityIndicator size="small" color="#F05537" />
 					<Text style={styles.loadingText}>{i18n.t("Profile.loading")}</Text>
 				</View>
 			)}

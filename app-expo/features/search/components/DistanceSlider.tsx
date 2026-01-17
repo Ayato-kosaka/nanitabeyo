@@ -56,7 +56,7 @@ const styles = {
 		position: "absolute",
 		width: 28,
 		height: 28,
-		backgroundColor: "#5EA2FF",
+		backgroundColor: "#F05537",
 		borderRadius: 14,
 		top: -11,
 		borderWidth: 3,

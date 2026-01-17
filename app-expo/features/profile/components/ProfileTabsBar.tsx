@@ -50,7 +50,7 @@ export function ProfileTabsBar({ tabNames, index, onTabPress, availableTabs }: P
 	};
 
 	const renderIcon = (group: GroupName, isActive: boolean) => {
-		const color = isActive ? "#5EA2FF" : "#666";
+		const color = isActive ? "#F05537" : "#666";
 		switch (group) {
 			case "reviews":
 				return <Utensils size={20} color={color} />;
@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
 	},
 	activeTab: {
 		borderBottomWidth: 2,
-		borderBottomColor: "#5EA2FF",
+		borderBottomColor: "#F05537",
 	},
 	subTabsContainer: {
 		flexDirection: "row",
@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
 		color: "#6B7280",
 	},
 	activeSubTabText: {
-		color: "#5EA2FF",
+		color: "#F05537",
 		fontWeight: "600",
 	},
 });

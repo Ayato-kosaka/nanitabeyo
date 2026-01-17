@@ -42,6 +42,7 @@ import { DEFAULT_PRICE_LEVELS, DEFAULT_SEARCH_RADIUS } from "@/features/topics/c
 import { TutorialBottomSheet } from "@/features/search/components/TutorialBottomSheet";
 import { useSearchTutorial } from "@/features/search/hooks/useSearchTutorial";
 import { Image } from "expo-image";
+import { PrimaryButton } from "@/components/PrimaryButton";
 
 export default function SearchScreen() {
 	const locale = useLocale();
@@ -317,7 +318,7 @@ export default function SearchScreen() {
 				{/* Location Input */}
 				<Card>
 					<View style={styles.sectionHeader}>
-						<MapPin size={20} color="#5EA2FF" />
+						<MapPin size={20} color="#F05537" />
 						<Text style={styles.sectionTitle}>{i18n.t("Search.sections.location")}</Text>
 						<View style={styles.requiredBadge}>
 							<Text style={styles.requiredText}>{i18n.t("Search.required")}</Text>
@@ -332,7 +333,7 @@ export default function SearchScreen() {
 							placeholder={i18n.t("Search.placeholders.enterLocation")}
 							renderInputRight={
 								<TouchableOpacity style={styles.currentLocationButton} onPress={handleUseCurrentLocation}>
-									<Navigation size={20} color="#5EA2FF" />
+									<Navigation size={20} color="#F05537" />
 								</TouchableOpacity>
 							}
 							testID="search-location-autocomplete"
@@ -343,7 +344,7 @@ export default function SearchScreen() {
 				{/* Time of Day */}
 				<Card>
 					<View style={styles.sectionHeader}>
-						<Clock size={20} color="#5EA2FF" />
+						<Clock size={20} color="#F05537" />
 						<Text style={styles.sectionTitle}>{i18n.t("Search.sections.time")}</Text>
 						<View style={styles.requiredBadge}>
 							<Text style={styles.requiredText}>{i18n.t("Search.required")}</Text>
@@ -367,7 +368,7 @@ export default function SearchScreen() {
 				{/* Scene */}
 				<Card>
 					<View style={styles.sectionHeader}>
-						<Users size={20} color="#5EA2FF" />
+						<Users size={20} color="#F05537" />
 						<Text style={styles.sectionTitle}>{i18n.t("Search.sections.scene")}</Text>
 						<View style={styles.requiredBadge}>
 							<Text style={styles.requiredText}>{i18n.t("Search.required")}</Text>
@@ -391,7 +392,7 @@ export default function SearchScreen() {
 				{/* Mood */}
 				<Card>
 					<View style={styles.sectionHeader}>
-						<Salad size={20} color="#5EA2FF" />
+						<Salad size={20} color="#F05537" />
 						<Text style={styles.sectionTitle}>{i18n.t("Search.sections.mood")}</Text>
 					</View>
 					<View style={styles.chipGrid}>
@@ -412,7 +413,7 @@ export default function SearchScreen() {
 				{/* Advanced Filters Toggle */}
 				{!showAdvancedFilters && (
 					<TouchableOpacity style={styles.advancedToggle} onPress={handleAdvancedToggle}>
-						{showAdvancedFilters ? <ChevronUp size={20} color="#5EA2FF" /> : <Plus size={20} color="#5EA2FF" />}
+						{showAdvancedFilters ? <ChevronUp size={20} color="#F05537" /> : <Plus size={20} color="#F05537" />}
 						<Text style={styles.advancedToggleText}>
 							{showAdvancedFilters ? i18n.t("Search.advancedToggle.close") : i18n.t("Search.advancedToggle.open")}
 						</Text>
@@ -425,7 +426,7 @@ export default function SearchScreen() {
 						{/* Distance */}
 						<Card>
 							<View style={styles.sectionHeader}>
-								<Distance size={20} color="#5EA2FF" />
+								<Distance size={20} color="#F05537" />
 								<Text style={styles.sectionTitle}>{i18n.t("Search.sections.distance")}</Text>
 							</View>
 							<View style={styles.sliderSection}>
@@ -439,7 +440,7 @@ export default function SearchScreen() {
 						{/* Price Levels */}
 						<Card>
 							<View style={styles.sectionHeader}>
-								<DollarSign size={20} color="#5EA2FF" />
+								<DollarSign size={20} color="#F05537" />
 								<Text style={styles.sectionTitle}>{i18n.t("Search.sections.budget")}</Text>
 							</View>
 							<View style={styles.sliderSection}>
@@ -461,7 +462,7 @@ export default function SearchScreen() {
 						{/* Taste */}
 						<Card>
 							<View style={styles.sectionHeader}>
-								<ChefHat size={20} color="#5EA2FF" />
+								<ChefHat size={20} color="#F05537" />
 								<Text style={styles.sectionTitle}>{i18n.t("Search.sections.taste")}</Text>
 							</View>
 							<View style={styles.chipGrid}>
@@ -510,21 +511,18 @@ export default function SearchScreen() {
 			</ScrollView>
 
 			{/* Search FAB */}
-			<View pointerEvents="box-none" style={styles.searchFabContainer}>
-				<TouchableOpacity
-					style={[styles.searchFab, (!location || !timeSlot || !scene) && styles.disabledFab]}
+			<View style={styles.searchFabContainer}>
+				<PrimaryButton
+					label={i18n.t("Search.searchButton")}
 					onPress={handleSearch}
-					/* #533 【仕様】timeSlot と scene を必須化 */
-					disabled={!location || !timeSlot || !scene || isSearching}>
-					{isSearching ? (
-						<ActivityIndicator size="small" color="#FFF" />
-					) : (
-						<>
-							<Search size={24} color="#FFF" />
-							<Text style={styles.fabText}>{i18n.t("Search.searchButton")}</Text>
-						</>
-					)}
-				</TouchableOpacity>
+					colors={["#000000", "#000000"]}
+					labelStyle={{ color: "#FFFFFF" }}
+					shadowColor="transparent"
+					loading={isSearching}
+					disabled={!location || !timeSlot || !scene || isSearching}
+					icon={<Search size={20} color="#FFFFFF" />}
+					style={styles.searchFab}
+				/>
 			</View>
 
 			{/* #642 【設計】チュートリアル BottomSheet */}
@@ -627,8 +625,8 @@ const styles = StyleSheet.create({
 		elevation: 1,
 	},
 	selectedChip: {
-		backgroundColor: "#5EA2FF",
-		shadowColor: "#5EA2FF",
+		backgroundColor: "#000000",
+		shadowColor: "#000000",
 		shadowOffset: { width: 0, height: 0 },
 		shadowOpacity: 0.3,
 		shadowRadius: 24,
@@ -685,17 +683,7 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 	},
 	searchFab: {
-		backgroundColor: "#5EA2FF",
-		flexDirection: "row",
-		alignItems: "center",
-		paddingHorizontal: 32,
-		paddingVertical: 20,
-		borderRadius: 32,
-		shadowColor: "#5EA2FF",
-		shadowOffset: { width: 0, height: 0 },
-		shadowOpacity: 0.5,
-		shadowRadius: 24,
-		elevation: 12,
+		width: "100%",
 	},
 	disabledFab: {
 		backgroundColor: "#D1D5DB",
@@ -714,7 +702,7 @@ const styles = StyleSheet.create({
 	sliderValue: {
 		fontSize: 18,
 		fontWeight: "700",
-		color: "#5EA2FF",
+		color: "#F05537",
 		marginBottom: 8,
 		textAlign: "center",
 	},
@@ -733,7 +721,7 @@ const styles = StyleSheet.create({
 		position: "absolute",
 		width: 28,
 		height: 28,
-		backgroundColor: "#5EA2FF",
+		backgroundColor: "#F05537",
 		borderRadius: 14,
 		top: -11,
 		borderWidth: 3,
@@ -747,15 +735,15 @@ const styles = StyleSheet.create({
 	rangeTrack: {
 		position: "absolute",
 		height: 6,
-		backgroundColor: "#5EA2FF",
+		backgroundColor: "#F05537",
 		borderRadius: 3,
 		top: 0,
 	},
 	rangeThumbMin: {
-		backgroundColor: "#5EA2FF",
+		backgroundColor: "#F05537",
 	},
 	rangeThumbMax: {
-		backgroundColor: "#5EA2FF",
+		backgroundColor: "#F05537",
 	},
 	sliderLabels: {
 		flexDirection: "row",
@@ -777,7 +765,7 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "center",
-		backgroundColor: "#F0F8FF",
+		backgroundColor: "#FDEBE7",
 		marginHorizontal: 24,
 		marginVertical: 12,
 		paddingVertical: 16,
@@ -791,7 +779,7 @@ const styles = StyleSheet.create({
 	},
 	advancedToggleText: {
 		fontSize: 15,
-		color: "#5EA2FF",
+		color: "#F05537",
 		fontWeight: "600",
 		marginLeft: 12,
 	},

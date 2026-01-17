@@ -70,7 +70,7 @@ export default function ReviewPostScreen() {
 				{/* #644 【設計】データ取得中はローディング表示 */}
 				{!dishMediaEntry ? (
 					<View style={styles.loadingContainer}>
-						<ActivityIndicator size="large" color="#5EA2FF" />
+						<ActivityIndicator size="large" color="#F05537" />
 					</View>
 				) : (
 					<DishMediaFeed entriesKey={entriesKey} idType="dish_media" />

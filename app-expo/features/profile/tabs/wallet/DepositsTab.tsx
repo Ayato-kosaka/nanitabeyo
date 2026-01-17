@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
 	depositAmount: {
 		fontSize: 16,
 		fontWeight: "700",
-		color: "#5EA2FF",
+		color: "#F05537",
 		letterSpacing: -0.3,
 	},
 	depositDays: {
@@ -284,7 +284,7 @@ const styles = StyleSheet.create({
 	},
 	retryButton: {
 		marginTop: 16,
-		backgroundColor: "#5EA2FF",
+		backgroundColor: "#F05537",
 		paddingHorizontal: 20,
 		paddingVertical: 10,
 		borderRadius: 20,

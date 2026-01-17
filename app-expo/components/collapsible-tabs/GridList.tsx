@@ -78,19 +78,19 @@ export function GridList<T extends GridItem>({
 		if (!isLoadingMore) return null;
 		return (
 			<View style={styles.loadingFooter}>
-				<ActivityIndicator size="small" color="#5EA2FF" />
+				<ActivityIndicator size="small" color="#F05537" />
 			</View>
 		);
 	}, [isLoadingMore]);
 
 	const refreshControl = onRefresh ? (
-		<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#5EA2FF"]} tintColor="#5EA2FF" />
+		<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#F05537"]} tintColor="#F05537" />
 	) : undefined;
 
 	if (isLoading) {
 		return (
 			<View style={styles.loadingContainer}>
-				<ActivityIndicator size="large" color="#5EA2FF" />
+				<ActivityIndicator size="large" color="#F05537" />
 			</View>
 		);
 	}

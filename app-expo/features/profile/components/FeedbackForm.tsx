@@ -265,8 +265,8 @@ const styles = StyleSheet.create({
 		borderColor: "#D1D5DB",
 	},
 	radioSelected: {
-		backgroundColor: "#5EA2FF",
-		borderColor: "#5EA2FF",
+		backgroundColor: "#F05537",
+		borderColor: "#F05537",
 	},
 	radioLabel: {
 		fontSize: 16,

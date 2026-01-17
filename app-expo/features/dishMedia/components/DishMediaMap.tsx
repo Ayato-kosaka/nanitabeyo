@@ -328,7 +328,7 @@ export default function DishMediaMap({
 			{/* この位置に置かないとマップが起動しなくなる */}
 			{isLoading && (
 				<View style={styles.centerContainer}>
-					<ActivityIndicator size="large" color="#5EA2FF" />
+					<ActivityIndicator size="large" color="#F05537" />
 					<Text style={styles.loadingText}>{i18n.t("Profile.loading")}</Text>
 				</View>
 			)}

@@ -345,7 +345,7 @@ const styles = StyleSheet.create({
 	conditionChip: {
 		flexDirection: "row",
 		alignItems: "center",
-		backgroundColor: "rgba(240, 85, 55, 0.12)",
+		backgroundColor: "#FDEBE7",
 		paddingHorizontal: 12,
 		paddingVertical: 6,
 		borderRadius: 24,
@@ -364,11 +364,11 @@ const styles = StyleSheet.create({
 		lineHeight: 20,
 	},
 	retryButton: {
-		backgroundColor: "#5EA2FF",
+		backgroundColor: "#F05537",
 		paddingHorizontal: 24,
 		paddingVertical: 16,
 		borderRadius: 16,
-		shadowColor: "#5EA2FF",
+		shadowColor: "#F05537",
 		shadowOffset: { width: 0, height: 4 },
 		shadowOpacity: 0.3,
 		shadowRadius: 12,

@@ -252,7 +252,7 @@ export default function MapScreen() {
 			{/* POI Loading Indicator */}
 			{isLoadingRestaurantCreation && (
 				<View style={styles.loadingOverlay}>
-					<ActivityIndicator size="large" color="#5EA2FF" />
+					<ActivityIndicator size="large" color="#F05537" />
 				</View>
 			)}
 
@@ -266,7 +266,7 @@ export default function MapScreen() {
 					placeholder={i18n.t("Map.placeholders.searchRestaurants")}
 					renderInputRight={
 						<TouchableOpacity style={styles.currentLocationButton} onPress={handleCurrentLocation}>
-							<Navigation size={20} color="#5EA2FF" />
+							<Navigation size={20} color="#F05537" />
 						</TouchableOpacity>
 					}
 				/>

@@ -392,8 +392,8 @@ const styles = StyleSheet.create({
 		elevation: 4,
 	},
 	checkboxChecked: {
-		backgroundColor: "#5EA2FF",
-		borderColor: "#5EA2FF",
+		backgroundColor: "#F05537",
+		borderColor: "#F05537",
 	},
 	checkboxMark: {
 		color: "#FFFFFF",

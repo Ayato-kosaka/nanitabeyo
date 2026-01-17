@@ -368,7 +368,7 @@ export default function SelectRestaurantScreen() {
 							longitude: item.restaurant.longitude,
 						}}
 						onPress={() => handleSavedRestaurantMarkerPress(item)}
-						color={activeRestaurantId === item.restaurant.id ? "#5EA2FF" : "#FFF"}
+						color={activeRestaurantId === item.restaurant.id ? "#F05537" : "#FFF"}
 						isActive={activeRestaurantId === item.restaurant.id}
 						uri={item.restaurant.imageUrls?.sm}
 					/>
@@ -378,7 +378,7 @@ export default function SelectRestaurantScreen() {
 			{/* Loading Indicator */}
 			{isLoadingRestaurantCreation && (
 				<View style={styles.loadingOverlay}>
-					<ActivityIndicator size="large" color="#5EA2FF" />
+					<ActivityIndicator size="large" color="#F05537" />
 				</View>
 			)}
 
@@ -406,7 +406,7 @@ export default function SelectRestaurantScreen() {
 						placeholder={i18n.t("Map.placeholders.searchRestaurantsForReview")}
 						renderInputRight={
 							<TouchableOpacity style={styles.currentLocationButton} onPress={handleCurrentLocation}>
-								<Navigation size={20} color="#5EA2FF" />
+								<Navigation size={20} color="#F05537" />
 							</TouchableOpacity>
 						}
 					/>
