@@ -201,7 +201,7 @@ export default function TopicsScreen() {
 	}
 
 	return (
-		<SafeAreaView style={styles.container} edges={["top"]}>
+		<View style={styles.container}>
 			{/* #674 【仕様】ヘッダー（戻るボタン + タイトル） */}
 			<SearchHeader title={i18n.t("Topics.headerTitle")} onPressBack={handleBack} />
 
@@ -324,7 +324,7 @@ export default function TopicsScreen() {
 					/>
 				)}
 			</HideTopicBlurModal>
-		</SafeAreaView>
+		</View>
 	);
 }
 
