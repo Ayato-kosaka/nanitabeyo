@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { ThumbsUp, X } from "lucide-react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from "react-native";
+import { ChevronLeft, MapPin, Clock, Users, Salad, ChefHat } from "lucide-react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import Carousel from "react-native-reanimated-carousel";
+import { Image } from "expo-image";
 import { Topic, SearchParams } from "@/types/search";
 import { useTopicSearch } from "@/features/topics/hooks/useTopicSearch";
 import { useHideTopic } from "@/features/topics/hooks/useHideTopic";
@@ -11,19 +12,18 @@ import { TopicsLoading } from "@/features/topics/components/TopicsLoading";
 import { TopicsError } from "@/features/topics/components/TopicsError";
 import { HideTopicForm } from "@/features/topics/components/HideTopicForm";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
-import { LinearGradient } from "expo-linear-gradient";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
-import { PrimaryButton } from "@/components/PrimaryButton";
 import { CARD_WIDTH, CARD_HEIGHT, width } from "@/features/topics/constants";
+import { timeSlots, sceneOptions, moodOptions, tasteOptions } from "@/features/search/constants";
 import i18n from "@/lib/i18n";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useLogger } from "@/hooks/useLogger";
 import { makeDishMediaEntriesKey } from "@/features/dishMedia/utils/dishMediaEntriesKey";
+import { WIKIMEDIA_HEADERS } from "@/lib/wikimedia";
 
 export default function TopicsScreen() {
-	const insets = useSafeAreaInsets();
 	const locale = useLocale();
 	const { searchParams } = useLocalSearchParams<{ searchParams: string }>();
 	const params = useMemo(() => {
@@ -160,8 +160,25 @@ export default function TopicsScreen() {
 		setCurrentIndex(index);
 	};
 
+	// #674 【仕様】カードタップ時の処理（スクロール中は無視）
+	const handleCardPress = useCallback(() => {
+		if (isScrolling) return; // スクロール中はタップ無視
+		if (currentIndex >= visibleTopics.length) return;
+		handleViewDetails(visibleTopics[currentIndex]);
+	}, [isScrolling, currentIndex, visibleTopics, handleViewDetails]);
+
+	// #674 【仕様】サムネイルタップ時の処理
+	const handleThumbnailPress = useCallback((index: number) => {
+		if (carouselRef.current) {
+			carouselRef.current.scrollTo({ index, animated: true });
+		}
+		setCurrentIndex(index);
+	}, []);
+
 	const renderCard = ({ item, index }: { item: Topic; index: number }) => (
-		<TopicCard key={item.categoryId} item={item} onHide={handleHideCard} displayIndex={index} />
+		<TouchableOpacity key={item.categoryId} activeOpacity={0.95} onPress={handleCardPress}>
+			<TopicCard item={item} onHide={handleHideCard} displayIndex={index} />
+		</TouchableOpacity>
 	);
 
 	if (isLoading) {
@@ -173,14 +190,70 @@ export default function TopicsScreen() {
 	}
 
 	return (
-		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
+		<View style={styles.container}>
 			<SafeAreaView style={styles.container} edges={["top"]}>
-				{/* Header with Back Button */}
-				<View style={[styles.backButtonContainer, { top: insets.top, right: insets.right }]}>
+				{/* #674 【仕様】ヘッダー（戻るボタン + タイトル） */}
+				<View style={styles.header}>
 					<TouchableOpacity style={styles.backButton} onPress={handleBack}>
-						<X size={24} color="#000" />
+						<ChevronLeft size={24} color="#000" />
 					</TouchableOpacity>
+					<Text style={styles.headerTitle}>{i18n.t("Topics.headerTitle")}</Text>
+					<View style={{ width: 40 }} />
 				</View>
+
+				{/* #674 【仕様】条件チップ表示 */}
+				{params && (
+					<View style={styles.chipsContainer}>
+						<View style={styles.chipRow}>
+							{/* 場所 */}
+							<View style={styles.conditionChip}>
+								<MapPin size={14} color="#f05537" />
+								<Text style={styles.conditionChipText}>{params.locationQuery}</Text>
+							</View>
+
+							{/* 時間帯 */}
+							<View style={styles.conditionChip}>
+								<Clock size={14} color="#f05537" />
+								<Text style={styles.conditionChipText}>
+									{i18n.t(timeSlots.find((s) => s.id === params.timeSlot)?.label || "")}
+								</Text>
+							</View>
+
+							{/* 誰と行くか */}
+							<View style={styles.conditionChip}>
+								<Users size={14} color="#f05537" />
+								<Text style={styles.conditionChipText}>
+									{i18n.t(sceneOptions.find((s) => s.id === params.scene)?.label || "")}
+								</Text>
+							</View>
+						</View>
+
+						<View style={styles.chipRow}>
+							{/* お腹の減り具合（mood が選択されている場合のみ） */}
+							{params.mood && (
+								<View style={styles.conditionChip}>
+									<Salad size={14} color="#f05537" />
+									<Text style={styles.conditionChipText}>
+										{i18n.t(moodOptions.find((m) => m.id === params.mood)?.label || "")}
+									</Text>
+								</View>
+							)}
+
+							{/* 味の好み（taste が選択されている場合のみ） */}
+							{params.taste && (
+								<View style={styles.conditionChip}>
+									<ChefHat size={14} color="#f05537" />
+									<Text style={styles.conditionChipText}>
+										{i18n.t(tasteOptions.find((t) => t.id === params.taste)?.label || "")}
+									</Text>
+								</View>
+							)}
+						</View>
+					</View>
+				)}
+
+				{/* #674 【仕様】サブコピー */}
+				<Text style={styles.subCopy}>{i18n.t("Topics.subCopy")}</Text>
 
 				{/* Cards Carousel */}
 				{visibleTopics.length > 0 ? (
@@ -213,25 +286,23 @@ export default function TopicsScreen() {
 					</View>
 				)}
 
-				{/* Page Indicator */}
-				<View style={styles.pageIndicatorContainer}>
-					{visibleTopics.map((_, index) => (
-						<View
-							key={index}
-							style={[styles.pageIndicatorDot, currentIndex === index && styles.pageIndicatorDotActive]}
-						/>
-					))}
-				</View>
-
-				{/* Fixed Bottom Action Button */}
+				{/* #674 【仕様】下部サムネイル 2×3 グリッド */}
 				{visibleTopics.length > 0 && (
-					<View style={styles.bottomActionContainer}>
-						<PrimaryButton
-							label={i18n.t("Topics.chooseThis")}
-							icon={<ThumbsUp size={20} color="#FFF" />}
-							onPress={() => handleViewDetails(visibleTopics[currentIndex])}
-							disabled={isScrolling || currentIndex >= visibleTopics.length}
-						/>
+					<View style={styles.thumbnailGrid}>
+						{visibleTopics.slice(0, 6).map((topic, index) => (
+							<TouchableOpacity
+								key={topic.categoryId}
+								style={[styles.thumbnail, currentIndex === index && styles.thumbnailActive]}
+								onPress={() => handleThumbnailPress(index)}
+								activeOpacity={0.7}>
+								<Image
+									source={{ uri: topic.imageUrl, headers: WIKIMEDIA_HEADERS }}
+									style={styles.thumbnailImage}
+									contentFit="cover"
+									cachePolicy="memory"
+								/>
+							</TouchableOpacity>
+						))}
 					</View>
 				)}
 
@@ -247,33 +318,71 @@ export default function TopicsScreen() {
 					)}
 				</HideTopicBlurModal>
 			</SafeAreaView>
-		</LinearGradient>
+		</View>
 	);
 }
 
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		justifyContent: "flex-start",
+		backgroundColor: "#FFFFFF", // #674 【仕様】白背景に変更
 	},
-	backButtonContainer: {
-		position: "absolute",
-		top: 0,
-		right: 0,
+	// #674 【仕様】通常のヘッダー（SafeArea内）
+	header: {
 		flexDirection: "row",
 		alignItems: "center",
-		padding: 16,
-		zIndex: 10,
+		justifyContent: "space-between",
+		paddingHorizontal: 16,
+		paddingVertical: 12,
+		backgroundColor: "#FFFFFF",
+		borderBottomWidth: 1,
+		borderBottomColor: "#F0F0F0",
 	},
 	backButton: {
 		padding: 8,
-		borderRadius: 20,
-		backgroundColor: "#FFFFFF",
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 0 },
-		shadowOpacity: 0.2,
-		shadowRadius: 8,
-		elevation: 4,
+		borderRadius: 8,
+	},
+	headerTitle: {
+		fontSize: 18,
+		fontWeight: "700",
+		color: "#1A1A1A",
+		flex: 1,
+		textAlign: "center",
+	},
+	// #674 【仕様】条件チップコンテナ
+	chipsContainer: {
+		paddingHorizontal: 16,
+		paddingVertical: 12,
+		gap: 8,
+	},
+	chipRow: {
+		flexDirection: "row",
+		flexWrap: "wrap",
+		gap: 8,
+	},
+	// #674 【仕様】条件チップ（ライトなスタイル）
+	conditionChip: {
+		flexDirection: "row",
+		alignItems: "center",
+		backgroundColor: "rgba(240, 85, 55, 0.12)", // #674 【仕様】アクセントカラーの薄い背景
+		paddingHorizontal: 12,
+		paddingVertical: 6,
+		borderRadius: 24,
+		gap: 4,
+	},
+	conditionChipText: {
+		fontSize: 13,
+		color: "#f05537", // #674 【仕様】アクセントカラー
+		fontWeight: "500",
+	},
+	// #674 【仕様】サブコピー
+	subCopy: {
+		fontSize: 14,
+		color: "#6B7280",
+		textAlign: "center",
+		paddingHorizontal: 24,
+		paddingVertical: 12,
+		lineHeight: 20,
 	},
 	retryButton: {
 		backgroundColor: "#5EA2FF",
@@ -295,44 +404,10 @@ const styles = StyleSheet.create({
 	carouselContainer: {
 		justifyContent: "center",
 		alignItems: "center",
+		marginVertical: 16,
 	},
 	carousel: {
 		width: width,
-	},
-	pageIndicatorContainer: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 8,
-		marginTop: -20,
-		marginLeft: 20,
-	},
-	pageIndicatorDot: {
-		width: 8,
-		height: 8,
-		borderRadius: 4,
-		backgroundColor: "rgba(255, 255, 255, 0.4)",
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 1 },
-		shadowOpacity: 0.3,
-		shadowRadius: 1.5,
-		elevation: 2,
-	},
-	pageIndicatorDotActive: {
-		width: 16,
-		borderRadius: 4,
-		backgroundColor: "#5EA2FF",
-		shadowColor: "#5EA2FF",
-		shadowOffset: { width: 0, height: 2 },
-		shadowOpacity: 0.5,
-		shadowRadius: 3,
-		elevation: 3,
-	},
-	bottomActionContainer: {
-		position: "absolute",
-		bottom: 20,
-		left: 8,
-		right: 8,
-		zIndex: 10,
 	},
 	emptyContainer: {
 		flex: 1,
@@ -360,5 +435,34 @@ const styles = StyleSheet.create({
 		marginBottom: 24,
 		lineHeight: 28,
 		fontWeight: "500",
+	},
+	// #674 【仕様】下部サムネイル 2×3 グリッド
+	thumbnailGrid: {
+		flexDirection: "row",
+		flexWrap: "wrap",
+		paddingHorizontal: 16,
+		paddingBottom: 16,
+		gap: 8,
+		justifyContent: "center",
+	},
+	thumbnail: {
+		width: (Dimensions.get("window").width - 64) / 3, // 画面幅から余白を引いて3等分
+		aspectRatio: 1, // 正方形
+		borderRadius: 12,
+		overflow: "hidden",
+		borderWidth: 2,
+		borderColor: "transparent",
+	},
+	thumbnailActive: {
+		borderColor: "#f05537", // #674 【仕様】選択中はアクセントカラーの枠線
+		shadowColor: "#f05537",
+		shadowOffset: { width: 0, height: 2 },
+		shadowOpacity: 0.3,
+		shadowRadius: 4,
+		elevation: 4,
+	},
+	thumbnailImage: {
+		width: "100%",
+		height: "100%",
 	},
 });

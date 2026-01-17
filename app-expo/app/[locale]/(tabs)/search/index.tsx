@@ -167,6 +167,7 @@ export default function SearchScreen() {
 			taste,
 			distance,
 			priceLevels,
+			locationQuery, // #674 【仕様】検索画面で入力されたロケーション表示用文字列を渡す
 		};
 
 		logFrontendEvent({

@@ -177,7 +177,9 @@
 		"chooseThis": "Je choisis celui-ci !",
 		"hiddenMessage": "{{title}} a été masqué",
 		"imageLoadFailed": "Échec du chargement de l'image",
-		"tapToReload": "Appuyez pour recharger"
+		"tapToReload": "Appuyez pour recharger",
+		"headerTitle": "Plats Recommandés pour Vous",
+		"subCopy": "Appuyez sur un plat que vous aimez pour trouver des restaurants"
 	},
 	"Notifications": {
 		"title": "Notifications",

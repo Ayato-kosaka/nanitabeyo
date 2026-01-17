@@ -177,7 +177,9 @@
 		"chooseThis": "これにする！",
 		"hiddenMessage": "{{title}}を非表示にしました",
 		"imageLoadFailed": "画像を読み込めませんでした",
-		"tapToReload": "タップして再読み込み"
+		"tapToReload": "タップして再読み込み",
+		"headerTitle": "あなたにおすすめの料理",
+		"subCopy": "いいかも！と思った料理をタップしてお店を見つけよう"
 	},
 	"Notifications": {
 		"title": "通知",
