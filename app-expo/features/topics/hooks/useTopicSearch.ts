@@ -1,9 +1,8 @@
 import { useState, useCallback } from "react";
-import { Image } from "expo-image";
 import { Topic, SearchParams } from "@/types/search";
 // import { mockTopicCards } from "@/data/searchMockData";
 import { useAPICall } from "@/hooks/useAPICall";
-import { prefetchWithUserAgent, wikimediaThumbFromOriginal } from "@/lib/wikimedia";
+import { wikimediaThumbFromOriginal } from "@/lib/wikimedia";
 import type {
 	BulkImportDishesDto,
 	CreateDishCategoryVariantDto,
@@ -20,7 +19,7 @@ import type {
 import { useLocale } from "@/hooks/useLocale";
 import { getRemoteConfig } from "@/lib/remoteConfig";
 import { useLogger } from "@/hooks/useLogger";
-import { CARD_WIDTH } from "../constants";
+import { CARD_WIDTH, DEFAULT_SEARCH_RADIUS, DEFAULT_PRICE_LEVELS } from "../constants";
 
 export const useTopicSearch = () => {
 	const [topics, setTopics] = useState<Topic[]>([]);
@@ -30,7 +29,7 @@ export const useTopicSearch = () => {
 	const locale = useLocale();
 	const { logFrontendEvent } = useLogger();
 
-	// Helper function to create dishItemsPromise with image preloading (DRY principle)
+	// #633 【設計】料理メディアの取得処理（オンデマンド実行用に export）
 	const createDishItemsPromise = useCallback(
 		(
 			categoryId: Topic["categoryId"],
@@ -38,13 +37,8 @@ export const useTopicSearch = () => {
 			latitude: number,
 			longitude: number,
 			searchLocationLanguageCode: string,
-			radius: number = 500, // Default 500m
-			priceLevels: string[] = [
-				"PRICE_LEVEL_INEXPENSIVE",
-				"PRICE_LEVEL_MODERATE",
-				"PRICE_LEVEL_EXPENSIVE",
-				"PRICE_LEVEL_VERY_EXPENSIVE",
-			],
+			radius: number = DEFAULT_SEARCH_RADIUS,
+			priceLevels: string[] = [...DEFAULT_PRICE_LEVELS],
 		): Promise<DishMediaEntry[]> => {
 			return (async (): Promise<DishMediaEntry[]> => {
 				// Get restaurant number from remote config
@@ -106,32 +100,11 @@ export const useTopicSearch = () => {
 					);
 				}
 
-				// Preload dish media images
-				await Promise.allSettled(
-					dishItems.map(async (dishItem) => {
-						// #511 【設計】画像タイプの場合、mediaUrl は必ず存在する（画像は処理中でもオリジナルURLを返す）
-						// 動画の場合のみ null になりうるが、ここでは画像のみ対象なので null にはならない
-						if (dishItem.dish_media.media_type === "image" && dishItem.dish_media.mediaUrl) {
-							try {
-								await Image.prefetch(dishItem.dish_media.mediaUrl);
-							} catch (error) {
-								logFrontendEvent({
-									event_name: "image_preload_failed",
-									error_level: "warn",
-									payload: {
-										imageType: "dish_media",
-										imageUrl: dishItem.dish_media.mediaUrl,
-										error: error instanceof Error ? error.message : String(error),
-									},
-								});
-							}
-						}
-					}),
-				);
+				// #630 【設計】先読み削除（ロード中 skeleton を見せる方針に統一）
 				return dishItems.slice(0, searchResultRestaurantsNumber);
 			})();
 		},
-		[callBackend, locale, logFrontendEvent],
+		[callBackend, locale],
 	);
 
 	const searchTopics = useCallback(
@@ -154,6 +127,7 @@ export const useTopicSearch = () => {
 						timeSlot: params.timeSlot,
 						scene: params.scene,
 						mood: params.mood,
+						taste: params.taste,
 						languageTag: locale,
 						localLanguageCode: params.localLanguageCode,
 					},
@@ -168,40 +142,15 @@ export const useTopicSearch = () => {
 					}));
 
 				const createTopic = (topic: QueryDishCategoryRecommendationsResponse[number]): Topic => {
+					// #633 【設計】Topic 生成時に dishItemsPromise を発火しない（ユーザー操作後に限定）
 					return {
 						...topic,
 						isHidden: false,
-						dishItemsPromise: createDishItemsPromise(
-							topic.categoryId,
-							topic.category,
-							params.location.latitude,
-							params.location.longitude,
-							params.localLanguageCode,
-						),
 					};
 				};
 
 				// Early display: Set topics from initial response with category IDs
 				if (topicsResponseWithCategoryIds.length > 0) {
-					await Promise.allSettled(
-						topicsResponseWithCategoryIds
-							.filter((topic) => topic.imageUrl)
-							.map(async (topic) => {
-								try {
-									await prefetchWithUserAgent(topic.imageUrl!);
-								} catch (error) {
-									logFrontendEvent({
-										event_name: "image_preload_failed",
-										error_level: "warn",
-										payload: {
-											imageType: "topic_image",
-											imageUrl: topic.imageUrl,
-											error: error instanceof Error ? error.message : String(error),
-										},
-									});
-								}
-							}),
-					);
 					const initialTopics = topicsResponseWithCategoryIds.map((topic) => createTopic(topic));
 					setTopics(initialTopics);
 					// Set loading to false after early display
@@ -254,25 +203,6 @@ export const useTopicSearch = () => {
 
 					// Add additional topics to the array (append to the end)
 					if (additionalTopicsWithCategoryIds.length > 0) {
-						await Promise.allSettled(
-							additionalTopicsWithCategoryIds
-								.filter((topic) => topic.imageUrl)
-								.map(async (topic) => {
-									try {
-										await prefetchWithUserAgent(topic.imageUrl!);
-									} catch (error) {
-										logFrontendEvent({
-											event_name: "image_preload_failed",
-											error_level: "warn",
-											payload: {
-												imageType: "topic_image",
-												imageUrl: topic.imageUrl,
-												error: error instanceof Error ? error.message : String(error),
-											},
-										});
-									}
-								}),
-						);
 						const additionalTopics = additionalTopicsWithCategoryIds.map((topic) => createTopic(topic));
 						setTopics((prevTopics) => [...prevTopics, ...additionalTopics]);
 					}
@@ -298,7 +228,7 @@ export const useTopicSearch = () => {
 				setIsLoading(false);
 			}
 		},
-		[callBackend, locale, createDishItemsPromise, logFrontendEvent],
+		[callBackend, locale, createDishItemsPromise],
 	);
 
 	const hideTopic = useCallback((topicId: string, reason: string) => {

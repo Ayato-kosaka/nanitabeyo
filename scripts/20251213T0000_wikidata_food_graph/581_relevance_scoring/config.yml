@@ -54,7 +54,7 @@ features:
       - drinking
   satiety:
     keys:
-      - hearty
+      - heavy
       - normal
       - light
   taste:

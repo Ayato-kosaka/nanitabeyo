@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Image } from "expo-image";
@@ -17,6 +17,11 @@ import {
 } from "@/stores/useDishMediaEntriesStore";
 import type { MediaProcessingStatus, QueryDishMediaByIdsResponse } from "@shared/api/v1/res";
 import { useAPICall } from "@/hooks/useAPICall";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import { SkeletonShimmer } from "@/components/SkeletonShimmer";
+import { useLogger } from "@/hooks/useLogger";
+import { useImageLoadWithRetry } from "@/hooks/useImageLoadWithRetry";
 
 interface DishMediaContentProps {
 	id: string;
@@ -26,6 +31,8 @@ interface DishMediaContentProps {
 	sessionId: string;
 	entriesKey: string;
 	idType: IdType;
+	onCardPress?: (entry: NormalizedDishMediaEntry) => void;
+	displayIndex?: number;
 }
 
 export default function DishMediaContent({
@@ -36,6 +43,8 @@ export default function DishMediaContent({
 	sessionId,
 	entriesKey,
 	idType,
+	onCardPress, // #613 【設計】カード押下時のコールバック
+	displayIndex,
 }: DishMediaContentProps) {
 	// #530 【設計】dishMediaEntry を useState で管理し、ポーリング結果を反映できるようにする
 	const [dishMediaEntry, setDishMediaEntry] = useState<NormalizedDishMediaEntry>(() => {
@@ -46,6 +55,7 @@ export default function DishMediaContent({
 	});
 
 	const { callBackend } = useAPICall();
+	const { logFrontendEvent } = useLogger();
 	const insets = useSafeAreaInsets();
 	const [rightActionsWidth, setRightActionsWidth] = useState(0);
 
@@ -56,25 +66,6 @@ export default function DishMediaContent({
 		dishMedia: dishMediaEntry.dish_media,
 	});
 
-	const mediaSource = useMemo(
-		() => ({
-			uri: dishMediaEntry.dish_media.mediaUrl ?? undefined,
-			cacheKey: dishMediaEntry.dish_media.mediaUrl
-				? getCacheKeyForImage(dishMediaEntry.dish_media.mediaUrl)
-				: undefined,
-		}),
-		[dishMediaEntry.dish_media],
-	);
-
-	// #511 【設計】サムネイル画像ソースは常に用意
-	const thumbnailSource = useMemo(
-		() => ({
-			uri: dishMediaEntry.dish_media.thumbnailImageUrl,
-			cacheKey: getCacheKeyForImage(dishMediaEntry.dish_media.thumbnailImageUrl),
-		}),
-		[dishMediaEntry.dish_media],
-	);
-
 	// #530 【設計】処理ステータスをメディア共通で扱う（動画/画像共通）
 	const mediaProcessingStatus = dishMediaEntry.dish_media.media_processing_status as MediaProcessingStatus;
 	const isProcessing = mediaProcessingStatus === "processing";
@@ -82,6 +73,74 @@ export default function DishMediaContent({
 	const isVideo = dishMediaEntry.dish_media.media_type === "video";
 	const hasMediaUrl = Boolean(dishMediaEntry.dish_media.mediaUrl);
 
+	// #630 【設計】背景画像として使用する URI を統一（動画/画像で分岐）
+	const bgUri = useMemo(() => {
+		if (isVideo) {
+			// #630 動画の場合: 常に thumbnail を背景として使用
+			return dishMediaEntry.dish_media.thumbnailImageUrl;
+		} else {
+			// #630 画像の場合: mediaUrl があれば使用、なければ thumbnail
+			return dishMediaEntry.dish_media.mediaUrl ?? dishMediaEntry.dish_media.thumbnailImageUrl;
+		}
+	}, [isVideo, dishMediaEntry.dish_media.mediaUrl, dishMediaEntry.dish_media.thumbnailImageUrl]);
+
+	// #630 【設計】防御的プログラミング: bgUri が undefined の場合に警告
+	useEffect(() => {
+		if (!bgUri) {
+			console.warn("[DishMediaContent] bgUri is undefined", {
+				mediaId: dishMediaEntry.dish_media.id,
+				mediaType: dishMediaEntry.dish_media.media_type,
+				hasMediaUrl: Boolean(dishMediaEntry.dish_media.mediaUrl),
+				hasThumbnail: Boolean(dishMediaEntry.dish_media.thumbnailImageUrl),
+			});
+		}
+	}, [bgUri]); // #630 bgUri 変更時のみチェック（他の値はログ用コンテキストのみ）
+
+	// #630 【設計】背景画像のロード状態管理（薄い共通化）
+	const {
+		uri: bgUriWithBuster,
+		loadState: bgLoadState,
+		handlers: bgLoadHandlers,
+	} = useImageLoadWithRetry({
+		uri: bgUri,
+		cacheBustingKey: dishMediaEntry.dish_media.id,
+		enableAutoRetry: true,
+		onErrorCountChange: (count) => {
+			logFrontendEvent({
+				event_name: "dish_media_background_image_load_error",
+				error_level: "log",
+				payload: {
+					media_id: dishMediaEntry.dish_media.id,
+					media_type: dishMediaEntry.dish_media.media_type,
+					bg_uri: bgUri,
+					error_count: count,
+				},
+			});
+		},
+		onGiveUp: (count) => {
+			logFrontendEvent({
+				event_name: "dish_media_background_image_load_error",
+				error_level: "error",
+				payload: {
+					media_id: dishMediaEntry.dish_media.id,
+					media_type: dishMediaEntry.dish_media.media_type,
+					bg_uri: bgUri,
+					error_count: count,
+				},
+			});
+		},
+	});
+
+	// #630 【設計】背景画像ソース（ロードハンドラと連動）
+	const bgSource = useMemo(
+		() => ({
+			uri: bgUriWithBuster,
+			cacheKey: getCacheKeyForImage(bgUriWithBuster ?? bgUri),
+		}),
+		[bgUri, bgUriWithBuster],
+	);
+
+	// 【設計】メディア処理状況のポーリング
 	useEffect(() => {
 		const mediaId = dishMediaEntry.dish_media.id;
 		const shouldPoll =
@@ -127,35 +186,21 @@ export default function DishMediaContent({
 
 				const status = updated.dish_media.media_processing_status;
 				const hasUrl = Boolean(updated.dish_media.mediaUrl);
-
-				// completed + URL が取れたらポーリング終了
-				if (status === "completed" && hasUrl) {
-					return;
-				}
-
-				// failed ならここで終了（以降はエラーオーバーレイ）
-				if (status === "failed") {
-					return;
-				}
+				if ((status === "completed" && hasUrl) || status === "failed") return;
 			} catch (e) {
 				console.error(e);
 				// エラー時はポーリング終了（無限ポーリング防止）
 				return;
 			}
 
-			// まだ processing なら再ポーリング
-			if (!cancelled) {
-				timeoutId = setTimeout(poll, INTERVAL);
-			}
+			if (!cancelled) timeoutId = setTimeout(poll, INTERVAL);
 		};
 
 		poll();
 
 		return () => {
 			cancelled = true;
-			if (timeoutId !== null) {
-				clearTimeout(timeoutId);
-			}
+			if (timeoutId !== null) clearTimeout(timeoutId);
 		};
 	}, [
 		isActive,
@@ -165,21 +210,52 @@ export default function DishMediaContent({
 		dishMediaEntry.dish_media.mediaUrl,
 	]);
 
+	// #630 【UX】スケルトン表示条件（可読性向上のため派生状態として定義）
+	const shouldShowSkeleton = bgLoadState === "loading" && !isFailed && !isProcessing;
+
+	// #613 TapGesture 用の pressed state
+	const pressed = useSharedValue(0);
+	const pressStyle = useAnimatedStyle(() => ({
+		opacity: withTiming(pressed.value ? 0.95 : 1, { duration: 80 }),
+	}));
+
+	// #613 横スワイプと競合しないように maxDistance を設定
+	const tapGesture = useMemo(() => {
+		return (
+			Gesture.Tap()
+				// #611 移動したらタップ失敗になる
+				.maxDistance(10)
+				.onBegin(() => {
+					if (onCardPress) pressed.value = 1;
+				})
+				.onFinalize(() => {
+					pressed.value = 0;
+				})
+				.onEnd(() => {
+					if (!onCardPress) return;
+					// dishMediaEntry をJS側に渡して ActionSheet を開く
+					runOnJS(onCardPress)(dishMediaEntry);
+				})
+		);
+	}, [onCardPress, dishMediaEntry, pressed]);
+
 	return (
 		<View style={styles.container}>
-			{/* Background Media (Image or Video) */}
-			{isVideo ? (
-				<>
-					{/* #530 【設計】動画の場合: サムネイルを常に背景として表示 */}
+			<GestureDetector gesture={tapGesture}>
+				<Animated.View style={[StyleSheet.absoluteFill, pressStyle]}>
+					{/* #630 【設計】背景画像を統一（動画/画像共通でロード状態管理） */}
 					<Image
-						source={thumbnailSource}
+						source={bgSource}
 						cachePolicy="memory-disk"
 						transition={100}
 						style={StyleSheet.absoluteFill}
 						contentFit="cover"
+						onLoadStart={bgLoadHandlers.onLoadStart}
+						onLoad={bgLoadHandlers.onLoad}
+						onError={bgLoadHandlers.onError}
 					/>
-					{/* #530 【設計】動画URLがあり、処理完了の場合のみ VideoPlayer を表示 */}
-					{hasMediaUrl && !isProcessing && !isFailed && dishMediaEntry.dish_media.mediaUrl && (
+					{/* #630 【設計】動画の場合のみ VideoPlayer を重ねて表示 */}
+					{isVideo && hasMediaUrl && !isProcessing && !isFailed && dishMediaEntry.dish_media.mediaUrl && (
 						<VideoPlayer
 							uri={dishMediaEntry.dish_media.mediaUrl}
 							style={StyleSheet.absoluteFill}
@@ -188,18 +264,14 @@ export default function DishMediaContent({
 							onLoop={handleVideoLoop}
 						/>
 					)}
-				</>
-			) : (
-				<>
-					{/* #530 【設計】画像の場合: mediaUrl があれば表示、なければサムネイルを fallback */}
-					<Image
-						source={hasMediaUrl ? mediaSource : thumbnailSource}
-						cachePolicy="memory-disk"
-						transition={100}
-						style={StyleSheet.absoluteFill}
-						contentFit="cover"
-					/>
-				</>
+				</Animated.View>
+			</GestureDetector>
+
+			{/* #630 【UX】背景画像ロード中のスケルトン表示（processing/error より下層） */}
+			{shouldShowSkeleton && (
+				<View style={styles.skeletonOverlay} pointerEvents="none">
+					<SkeletonShimmer width="100%" height="100%" />
+				</View>
 			)}
 
 			{/* #530 【設計】処理中オーバーレイ（メディア共通） */}
@@ -342,6 +414,11 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "flex-end",
 		justifyContent: "flex-end",
+	},
+	// #630 【UX】背景画像ロード中のスケルトン表示（processing/error より下層 zIndex=2）
+	skeletonOverlay: {
+		...StyleSheet.absoluteFillObject,
+		zIndex: 2,
 	},
 	// #511 【設計】処理中オーバーレイスタイル
 	processingOverlay: {

@@ -629,7 +629,7 @@ export function getCurrencyCodeFromRestaurant(restaurant: { address_components?:
  * @param restaurant レストランデータ (google_place_id と name を含む)
  * @returns Google Maps URL と開けるかどうかのフラグ
  */
-export const getGoogleMapsLink = async (restaurant: SupabaseRestaurants) => {
+export const getGoogleMapsLink = async (restaurant: Pick<SupabaseRestaurants, "google_place_id" | "name">) => {
 	const placeId = restaurant.google_place_id;
 	const mapUrl = `https://www.google.com/maps/search/?api=1&query_place_id=${encodeURIComponent(placeId)}&query=${encodeURIComponent(restaurant.name || "")}`;
 	const canOpen = await Linking.canOpenURL(mapUrl);

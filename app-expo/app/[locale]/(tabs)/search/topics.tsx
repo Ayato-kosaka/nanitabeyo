@@ -20,6 +20,7 @@ import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLogger } from "@/hooks/useLogger";
+import { makeDishMediaEntriesKey } from "@/features/dishMedia/utils/dishMediaEntriesKey";
 
 export default function TopicsScreen() {
 	const insets = useSafeAreaInsets();
@@ -41,7 +42,7 @@ export default function TopicsScreen() {
 	const carouselRef = useRef<any>(null);
 	const { selectionChanged } = useHaptics();
 
-	const { topics, isLoading, error, searchTopics, hideTopic } = useTopicSearch();
+	const { topics, isLoading, error, searchTopics, hideTopic, createDishItemsPromise } = useTopicSearch();
 	const { showSnackbar } = useSnackbar();
 	const {
 		BlurModal: HideTopicBlurModal,
@@ -59,31 +60,67 @@ export default function TopicsScreen() {
 			showSnackbar(i18n.t("Topics.errors.invalidSearchParams"));
 			router.back();
 		}
-	}, [params, searchTopics, showSnackbar]);
+	}, [params, searchTopics, showSnackbar, router]);
 
 	const handleViewDetails = useCallback(
 		(topic: Topic) => {
-			const { upsertDishMediaEntries, updateMediaIdsByKeyAsync } = useDishMediaEntriesStore.getState();
-			const idsPromise = topic.dishItemsPromise.then((items) => {
-				upsertDishMediaEntries(items);
-				return items.map((item) => String(item.dish_media.id));
+			// #633 【Blocker】params が undefined の場合は早期 return（クラッシュ防止）
+			if (!params) {
+				showSnackbar(i18n.t("Topics.errors.invalidSearchParams"));
+				return;
+			}
+
+			// #633 【設計】SavedTopicsTab と同じパターンで entriesKey 駆動のオンデマンド取得
+			const { mediaIdsByKey, isLoadingByKey, upsertDishMediaEntries, updateMediaIdsByKeyAsync } =
+				useDishMediaEntriesStore.getState();
+
+			// #633 【設計】entriesKey を生成（検索条件から一意のキーを作成）
+			const entriesKey = makeDishMediaEntriesKey({
+				categoryId: topic.categoryId,
+				location: {
+					latitude: params.location.latitude,
+					longitude: params.location.longitude,
+				},
+				radius: params.distance,
+				priceLevels: params.priceLevels,
+				languageCode: params.localLanguageCode,
 			});
-			updateMediaIdsByKeyAsync(topic.categoryId, idsPromise, (_, fetchedIds) => fetchedIds);
+
+			// #633 【設計】未取得 & 非ロード中の場合のみ fetch（重複実行を防止）
+			if (mediaIdsByKey[entriesKey] === undefined && !isLoadingByKey[entriesKey]) {
+				const getIds = async () => {
+					const dishItems = await createDishItemsPromise(
+						topic.categoryId,
+						topic.category,
+						params.location.latitude,
+						params.location.longitude,
+						params.localLanguageCode,
+						params.distance,
+						params.priceLevels,
+					);
+					upsertDishMediaEntries(dishItems);
+					console.log("getIds dishItems:", dishItems);
+					return dishItems.map((item) => String(item.dish_media.id));
+				};
+				updateMediaIdsByKeyAsync(entriesKey, getIds(), (_, fetched) => fetched);
+			}
+
 			router.push({
 				pathname: "/[locale]/(tabs)/search/result",
 				params: {
 					locale,
-					topicId: topic.categoryId,
+					entriesKey, // #633 【設計】topicId ではなく entriesKey を渡す
 					...(params && { location: JSON.stringify(params.location) }),
 				},
 			});
+			// #633 【設計】分析基盤互換のため移行期間は topicId と entriesKey を併記
 			logFrontendEvent({
 				event_name: "topic_view_details",
 				error_level: "log",
-				payload: { topic_id: topic.categoryId },
+				payload: { topic_id: topic.categoryId, entries_key: entriesKey },
 			});
 		},
-		[locale, params],
+		[locale, params, createDishItemsPromise, logFrontendEvent, showSnackbar],
 	);
 
 	const handleBack = () => {
@@ -92,13 +129,39 @@ export default function TopicsScreen() {
 
 	const visibleTopics = topics.filter((topic) => !topic.isHidden);
 
+	// #615 visibleTopics 変化時に currentIndex を範囲内に clamp（範囲外アクセス防止）
+	useEffect(() => {
+		if (visibleTopics.length > 0 && currentIndex >= visibleTopics.length) {
+			const newIndex = Math.max(0, visibleTopics.length - 1);
+			setCurrentIndex(newIndex);
+			// Carousel の表示位置も補正
+			if (carouselRef.current) {
+				carouselRef.current.scrollTo({ index: newIndex, animated: false });
+			}
+		}
+		// @eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [visibleTopics.length]);
+
 	const handleSnapToItem = (index: number) => {
 		selectionChanged();
+		// ログ追加【仕様】topic_swiped_next ログ送信（前のインデックスと異なる場合のみ）
+		if (index !== currentIndex && index >= 0 && index < visibleTopics.length && currentIndex >= 0) {
+			logFrontendEvent({
+				event_name: "topic_swiped_next",
+				error_level: "log",
+				payload: {
+					previous_index: currentIndex,
+					new_index: index,
+					previous_topic_id: visibleTopics[currentIndex]?.categoryId ?? null,
+					new_topic_id: visibleTopics[index]?.categoryId ?? null,
+				},
+			});
+		}
 		setCurrentIndex(index);
 	};
 
-	const renderCard = ({ item }: { item: Topic }) => (
-		<TopicCard key={item.categoryId} item={item} onHide={handleHideCard} />
+	const renderCard = ({ item, index }: { item: Topic; index: number }) => (
+		<TopicCard key={item.categoryId} item={item} onHide={handleHideCard} displayIndex={index} />
 	);
 
 	if (isLoading) {
@@ -167,7 +230,7 @@ export default function TopicsScreen() {
 							label={i18n.t("Topics.chooseThis")}
 							icon={<ThumbsUp size={20} color="#FFF" />}
 							onPress={() => handleViewDetails(visibleTopics[currentIndex])}
-							disabled={isScrolling}
+							disabled={isScrolling || currentIndex >= visibleTopics.length}
 						/>
 					</View>
 				)}

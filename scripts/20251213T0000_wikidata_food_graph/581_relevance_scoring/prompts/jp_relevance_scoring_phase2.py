@@ -77,7 +77,7 @@ Check Phase 1 scores against the rubric definitions:
 
 A) timeSlot (morning / lunch / afternoon / dinner / late_night)
 B) scene (solo / date / friends / family / drinking)
-C) satiety (hearty / normal / light)
+C) satiety (heavy / normal / light)
 D) taste (sweet / spicy / healthy / junk / alcohol)
 
 Refer to the Phase 1 rubric (same definitions).

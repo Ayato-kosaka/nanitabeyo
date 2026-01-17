@@ -13,7 +13,7 @@ import {
 	ErrorCode,
 } from "@shared/api/v1/res";
 import type { QueryRestaurantsDto, CreateRestaurantDto } from "@shared/api/v1/dto";
-import { AvatarBubbleMarker } from "@/components/AvatarBubbleMarker";
+import { AvatarBubbleMarker } from "@/features/mapMarkers";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { useHaptics } from "@/hooks/useHaptics";
 import { SelectedRestaurantDetails } from "@/features/map/components/SelectedRestaurantDetails";

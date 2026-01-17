@@ -126,6 +126,33 @@
 			"nutAllergy": "ナッツアレルギー",
 			"seafoodAllergy": "魚介アレルギー",
 			"halal": "ハラール"
+		},
+		"tutorial": {
+			"page1": {
+				"title": "食べたい料理に気づけるアプリ",
+				"body1": "「今日なに食べる？」で、もう迷わない。",
+				"body2": "場所や時間に合わせて、料理とお店をセットで提案します。",
+				"cta": "つぎへ"
+			},
+			"page2": {
+				"title": "料理写真を見て\n「食べたい」に気づく",
+				"body1": "今の条件に合った料理を６つご提案。",
+				"body2": "写真を見ながら食べたいものを直感で選べます。",
+				"cta": "つぎへ"
+			},
+			"page3": {
+				"title": "写真と口コミで\n「ここ行こ」が決まる",
+				"body1": "選んだ料理に合うお店を５つご提案。",
+				"body2": "写真と口コミ、地図を見ながら、気になる一軒をサクッと選べます。",
+				"cta": "つぎへ"
+			},
+			"page4": {
+				"title": "はじめよう",
+				"body1": "近くの美味しいお店を提案するために、現在地を利用します。",
+				"body2": "いつでも設定から変更できます。",
+				"primaryCta": "現在地を利用する",
+				"secondaryCta": "あとで"
+			}
 		}
 	},
 	"Topics": {
@@ -146,7 +173,9 @@
 		"empty": "表示できる料理がありません",
 		"retry": "検索に戻る",
 		"chooseThis": "これにする！",
-		"hiddenMessage": "{{title}}を非表示にしました"
+		"hiddenMessage": "{{title}}を非表示にしました",
+		"imageLoadFailed": "画像を読み込めませんでした",
+		"tapToReload": "タップして再読み込み"
 	},
 	"Notifications": {
 		"title": "通知",
@@ -470,6 +499,9 @@
 		"title": "設定",
 		"sendFeedback": "ご意見・不具合",
 		"leaveReview": "レビューを書く",
+		"rateDialogTitle": "アプリを気に入っていただけましたか？",
+		"rateDialogMessage": "よければストアで評価をお願いします。レビュー画面を開きます。",
+		"rateDialogOk": "評価する",
 		"communityGuidelines": "コミュニティガイドライン",
 		"terms": "利用規約",
 		"privacy": "プライバシーポリシー",
@@ -492,5 +524,11 @@
 			"selected": "選択済み",
 			"dishCount": "{{count}}件の料理"
 		}
+	},
+	"ActionSheet": {
+		"title": "このお店、気になる？",
+		"openInGoogleMaps": "Google マップで開く",
+		"shareWithFriends": "友人に共有する",
+		"cancel": "キャンセル"
 	}
 }

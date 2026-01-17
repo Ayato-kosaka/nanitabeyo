@@ -27,7 +27,7 @@
 
 ### C) satiety（満腹感）
 
-- hearty / normal / light
+- heavy / normal / light
 - 料理のボリューム感を評価
 
 ### D) taste（印象タグ）

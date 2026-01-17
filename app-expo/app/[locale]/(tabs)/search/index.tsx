@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
 import {
 	MapPin,
@@ -12,6 +12,7 @@ import {
 	ChevronUp,
 	ChefHat,
 	Salad,
+	HelpCircle,
 } from "lucide-react-native";
 import { router } from "expo-router";
 import { SearchParams } from "@/types/search";
@@ -26,8 +27,8 @@ import {
 	moodOptions,
 	tasteOptions,
 	distanceOptions,
-	restrictionOptions,
 	priceLevelOptions,
+	TUTORIAL_PAGES,
 } from "@/features/search/constants";
 import { DistanceSlider } from "@/features/search/components/DistanceSlider";
 import { PriceLevelsMultiSelect } from "@/features/search/components/PriceLevelsMultiSelect";
@@ -36,6 +37,10 @@ import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { DEFAULT_PRICE_LEVELS, DEFAULT_SEARCH_RADIUS } from "@/features/topics/constants";
+import { TutorialBottomSheet } from "@/features/search/components/TutorialBottomSheet";
+import { useSearchTutorial } from "@/features/search/hooks/useSearchTutorial";
+import { Image } from "expo-image";
 
 export default function SearchScreen() {
 	const locale = useLocale();
@@ -48,13 +53,10 @@ export default function SearchScreen() {
 	const [mood, setMood] = useState<SearchParams["mood"] | undefined>(undefined);
 	const [taste, setTaste] = useState<SearchParams["taste"] | undefined>(undefined);
 	const [isSearching, setIsSearching] = useState(false);
-	const [distance, setDistance] = useState<number>(500); // Default 500m
+	const [distance, setDistance] = useState<number>(DEFAULT_SEARCH_RADIUS);
 	const [priceLevels, setPriceLevels] = useState<(typeof priceLevelOptions)[number]["value"][]>([
-		"PRICE_LEVEL_INEXPENSIVE",
-		"PRICE_LEVEL_MODERATE",
-		"PRICE_LEVEL_EXPENSIVE",
-		"PRICE_LEVEL_VERY_EXPENSIVE",
-	]); // Default all selected
+		...DEFAULT_PRICE_LEVELS,
+	]);
 	const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
 	const { getCurrentLocation, getLocationDetails } = useLocationSearch();
@@ -68,27 +70,18 @@ export default function SearchScreen() {
 			payload: { screen: "search" },
 		});
 
-		// Auto-detect current location on mount
-		getCurrentLocation()
-			.then((currentLocation) => {
-				setLocation(currentLocation);
-				setLocationQuery(i18n.t("Search.currentLocation"));
-			})
-			.catch(console.error);
-
 		// 端末時間帯に基づき timeSlot を自動設定
 		const hour = new Date().getHours();
 		const TIME_SLOTS: { until: number; slot: SearchParams["timeSlot"] }[] = [
 			{ until: 5, slot: "late_night" },
 			{ until: 10, slot: "morning" },
 			{ until: 15, slot: "lunch" },
-			{ until: 17, slot: "afternoon" },
 			{ until: 22, slot: "dinner" },
 			{ until: 24, slot: "late_night" },
 		];
 		const slot = TIME_SLOTS.find((s) => hour < s.until)!.slot;
 		setTimeSlot(slot);
-	}, []);
+	}, [logFrontendEvent]);
 
 	const handleLocationClear = () => {
 		lightImpact();
@@ -228,11 +221,90 @@ export default function SearchScreen() {
 		setShowAdvancedFilters(!showAdvancedFilters);
 	};
 
+	// ========== チュートリアル表示制御 ==========
+	const [showTutorial, setShowTutorial] = useState(false);
+	const { hasSeenTutorial, isLoading: isTutorialLoading, markTutorialAsSeen } = useSearchTutorial();
+	const isTutorialSupportedLocale = useMemo(() => ["ja-JP", "ja"].includes(locale), [locale]);
+	// チュートリアル初期処理実行済みフラグ
+	const didInitTutorialState = useRef(false);
+
+	useEffect(() => {
+		if (isTutorialLoading) return;
+		if (didInitTutorialState.current) return;
+		didInitTutorialState.current = true;
+
+		if (!isTutorialSupportedLocale) {
+			// #642 【設計】対応言語以外ではチュートリアルを表示しない
+			getCurrentLocation()
+				.then((currentLocation) => {
+					setLocation(currentLocation);
+					setLocationQuery(i18n.t("Search.currentLocation"));
+				})
+				.catch(console.error);
+			return;
+		}
+
+		if (hasSeenTutorial === false) {
+			// #642 【設計】チュートリアル未表示の場合、自動表示する（getCurrentLocation は呼ばない）
+			setShowTutorial(true);
+			logFrontendEvent({
+				event_name: "search_tutorial_auto_opened",
+				error_level: "log",
+				payload: { opened_reason: "auto" },
+			});
+		} else if (hasSeenTutorial === true) {
+			// #642 【設計】チュートリアル既表示の場合、現在地取得してセットする
+			getCurrentLocation()
+				.then((currentLocation) => {
+					setLocation(currentLocation);
+					setLocationQuery(i18n.t("Search.currentLocation"));
+				})
+				.catch(console.error);
+		}
+	}, [isTutorialLoading, hasSeenTutorial, logFrontendEvent, getCurrentLocation, isTutorialSupportedLocale]);
+
+	// #642 【設計】ヘルプアイコンからチュートリアルを手動で開く
+	const handleOpenTutorial = () => {
+		lightImpact();
+		setShowTutorial(true);
+		logFrontendEvent({
+			event_name: "search_tutorial_opened",
+			error_level: "log",
+			payload: { opened_reason: "manual" },
+		});
+	};
+
+	// #642 【設計】チュートリアル完了時の処理
+	const handleTutorialCompleted = () => {
+		markTutorialAsSeen();
+		logFrontendEvent({
+			event_name: "search_tutorial_completed",
+			error_level: "log",
+			payload: { completed: true },
+		});
+	};
+
+	// #642 【設計】チュートリアルから位置情報取得を要求
+	const handleTutorialRequestLocation = async () => {
+		await handleUseCurrentLocation();
+		logFrontendEvent({
+			event_name: "search_tutorial_location_requested",
+			error_level: "log",
+			payload: { from_tutorial: true },
+		});
+	};
+
 	return (
 		<SafeAreaView style={styles.container} edges={["top"]}>
 			{/* Header */}
 			<View style={styles.header}>
 				<Text style={styles.headerTitle}>{i18n.t("Search.headerTitle")}</Text>
+				{/* #642 【設計】ヘルプアイコンからチュートリアルを再表示 */}
+				{isTutorialSupportedLocale && (
+					<TouchableOpacity style={styles.helpButton} onPress={handleOpenTutorial}>
+						<HelpCircle size={24} color="#6B7280" />
+					</TouchableOpacity>
+				)}
 			</View>
 
 			<ScrollView
@@ -452,6 +524,21 @@ export default function SearchScreen() {
 					)}
 				</TouchableOpacity>
 			</View>
+
+			{/* #642 【設計】チュートリアル BottomSheet */}
+			<TutorialBottomSheet
+				visible={showTutorial}
+				pageConfigs={TUTORIAL_PAGES}
+				onClose={() => setShowTutorial(false)}
+				onCompleted={handleTutorialCompleted}
+				onRequestCurrentLocation={handleTutorialRequestLocation}
+			/>
+			{/* #642 【設計】オフスクリーンでチュートリアル画像を一度描画して decode */}
+			<View style={{ width: 0, height: 0, position: "absolute", overflow: "hidden" }}>
+				{TUTORIAL_PAGES.map((src, i) => (
+					<Image key={i} source={src.image} />
+				))}
+			</View>
 		</SafeAreaView>
 	);
 }
@@ -471,6 +558,12 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 24,
 		paddingTop: 20,
 		paddingBottom: 20,
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+	},
+	helpButton: {
+		padding: 8,
 	},
 	headerTitle: {
 		fontSize: 20,
