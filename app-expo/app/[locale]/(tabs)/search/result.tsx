@@ -7,9 +7,15 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useSearchResult } from "@/features/search/hooks/useSearchResult";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
-import { DishMediaEntriesStore, selectIdsByKey, useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
+import {
+	DishMediaEntriesStore,
+	selectEntryByMediaId,
+	selectIdsByKey,
+	useDishMediaEntriesStore,
+} from "@/stores/useDishMediaEntriesStore";
 import { shallow } from "zustand/shallow";
 import { RestaurantLoading } from "@/features/dishMedia/components/RestaurantLoading";
+import { useDishMediaActions } from "@/features/dishMedia/hooks/useDishMediaActions";
 
 const idType = "dish_media" as const;
 export default function ResultScreen() {
@@ -17,6 +23,7 @@ export default function ResultScreen() {
 	const { entriesKey, location } = useLocalSearchParams<{ entriesKey: string; location?: string }>();
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
+	const { shareRestaurant } = useDishMediaActions({ source: "search_result_screen" });
 
 	// #633 【防御】entriesKey が undefined の場合は戻る（クラッシュ防止）
 	useEffect(() => {
@@ -73,7 +80,7 @@ export default function ResultScreen() {
 		handleClose();
 	};
 
-	// #659 【機能】一括シェアボタン処理 - アクティブメディアを先頭に最大5件をシェア
+	// #659 【機能】一括シェアボタン処理 - アクティブメディアを先頭にシェア
 	const handleBulkShare = useCallback(async () => {
 		if (!entriesKey) return;
 
@@ -86,18 +93,14 @@ export default function ResultScreen() {
 		// #659 【防御】currentIndex の安全な取得と範囲チェック
 		const index = Number.isFinite(currentIndex) ? currentIndex : 0;
 		const safeIndex = Math.min(Math.max(index, 0), ids.length - 1);
+		const dishMediaId = ids[safeIndex];
 
-		const maxShareCount = 5;
-		const targetIds = ids.slice(safeIndex, safeIndex + maxShareCount);
-
+		// #659 【設計】アクティブメディアを先頭に並び替えたID配列を作成
+		const targetIds = [...ids.slice(safeIndex), ...ids.slice(0, safeIndex)];
 		if (targetIds.length === 0) return;
 
-		// #659 【設計】各IDをエンコードしてカンマ区切りで結合
-		const idsParam = targetIds.map((id) => encodeURIComponent(id)).join(",");
-		const url = `/posts?ids=${idsParam}`;
-
-		// #659 【UX】ハプティクスフィードバック
-		lightImpact();
+		const restaurant = selectEntryByMediaId(dishMediaId)(state)?.restaurant;
+		if (!restaurant) return;
 
 		// #659 【ログ】一括シェアイベント記録
 		logFrontendEvent({
@@ -110,22 +113,12 @@ export default function ResultScreen() {
 			},
 		});
 
-		// #659 【機能】シェアシート表示（エラーハンドリング込み）
-		try {
-			await Share.share({ message: url });
-		} catch (error) {
-			// #659 【防御】シェア失敗時のログ記録（ユーザーキャンセルも含む）
-			logFrontendEvent({
-				event_name: "search_result_bulk_share_failed",
-				error_level: "debug",
-				payload: {
-					entriesKey,
-					currentIndex,
-					shared_ids: targetIds,
-					error: error instanceof Error ? error.message : String(error),
-				},
-			});
-		}
+		// #659 【設計】shareRestaurant に idsForShare を渡して一括シェア実行
+		return shareRestaurant({
+			dishMediaId,
+			restaurant,
+			idsForShare: targetIds,
+		});
 	}, [entriesKey, currentIndex, lightImpact, logFrontendEvent]);
 
 	return (
