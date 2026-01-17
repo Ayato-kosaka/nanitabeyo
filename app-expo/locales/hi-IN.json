@@ -230,7 +230,14 @@
 		"map": "मानचित्र",
 		"review": "समीक्षा",
 		"notifications": "सूचनाएँ",
-		"profile": "प्रोफ़ाइल"
+		"profile": "प्रोफ़ाइल",
+		"labels": {
+			"search": "खोज",
+			"map": "मानचित्र",
+			"review": "समीक्षा",
+			"notifications": "सूचनाएँ",
+			"profile": "प्रोफ़ाइल"
+		}
 	},
 	"Profile": {
 		"tabs": {

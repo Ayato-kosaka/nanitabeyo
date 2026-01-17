@@ -20,6 +20,10 @@ export default function TabLayout() {
 					flex: 1,
 					justifyContent: "center",
 				},
+				tabBarShowLabel: true,
+				tabBarLabelStyle: {
+					fontSize: 11,
+				},
 				tabBarStyle: {
 					backgroundColor: "#fff",
 					shadowColor: "#000",
@@ -30,12 +34,12 @@ export default function TabLayout() {
 				},
 				tabBarActiveTintColor: "#5EA2FF",
 				tabBarInactiveTintColor: "#6B7280",
-				tabBarShowLabel: false,
 			}}>
 			<Tabs.Screen
 				name="search"
 				options={{
 					title: i18n.t("Tabs.search"),
+					tabBarLabel: i18n.t("Tabs.labels.search"),
 					tabBarIcon: ({ size, color }) => <Search size={ICON_SIZE} color={color} />,
 				}}
 			/>
@@ -43,6 +47,7 @@ export default function TabLayout() {
 				name="map"
 				options={{
 					title: i18n.t("Tabs.map"),
+					tabBarLabel: i18n.t("Tabs.labels.map"),
 					tabBarIcon: ({ size, color }) => <MapPinned size={ICON_SIZE} color={color} />,
 				}}
 			/>
@@ -50,6 +55,7 @@ export default function TabLayout() {
 				name="review"
 				options={{
 					title: i18n.t("Tabs.review"),
+					tabBarLabel: i18n.t("Tabs.labels.review"),
 					tabBarIcon: ({ size, color }) => <Pencil size={ICON_SIZE} color={color} />,
 				}}
 			/>
@@ -57,6 +63,7 @@ export default function TabLayout() {
 				name="notifications"
 				options={{
 					title: i18n.t("Tabs.notifications"),
+					tabBarLabel: i18n.t("Tabs.labels.notifications"),
 					tabBarIcon: ({ size, color }) => <Bell size={ICON_SIZE} color={color} />,
 					href: user?.is_anonymous ? null : undefined,
 				}}
@@ -65,6 +72,7 @@ export default function TabLayout() {
 				name="profile"
 				options={{
 					title: i18n.t("Tabs.profile"),
+					tabBarLabel: i18n.t("Tabs.labels.profile"),
 					tabBarIcon: ({ size, color }) => <User size={ICON_SIZE} color={color} />,
 				}}
 			/>

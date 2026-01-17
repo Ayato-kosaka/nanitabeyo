@@ -230,7 +230,14 @@
 		"map": "Carte",
 		"review": "Avis",
 		"notifications": "Notifications",
-		"profile": "Profil"
+		"profile": "Profil",
+		"labels": {
+			"search": "Recherche",
+			"map": "Carte",
+			"review": "Avis",
+			"notifications": "Notifications",
+			"profile": "Profil"
+		}
 	},
 	"Profile": {
 		"tabs": {
