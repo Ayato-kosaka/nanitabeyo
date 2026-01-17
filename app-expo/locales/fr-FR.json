@@ -7,6 +7,7 @@
 		"close": "Fermer",
 		"save": "Enregistrer",
 		"post": "Publier",
+		"postReview": "Publier un avis",
 		"retry": "Réessayer",
 		"processing": "Traitement...",
 		"error": "Une erreur s'est produite. Veuillez réessayer.",
@@ -348,8 +349,8 @@
 		"placeholders": {
 			"searchRestaurants": "Rechercher des restaurants",
 			"enterPrice": "Entrez le prix",
-			"enterReview": "Entrez votre avis",
-			"enterReviewShort": "Le bouillon de porc était incroyablement riche et délicieux!",
+			"enterReview": "Niveau de recommandation",
+			"enterReviewShort": "Le bouillon de tonkotsu était incroyablement riche et délicieux!",
 			"enterBidAmount": "Entrez le montant de l'enchère",
 			"enterDishCategory": "Entrez la catégorie de plat (ex: Crêpe, Ratatouille)",
 			"searchRestaurantsForReview": "Rechercher par nom ou zone"
@@ -358,7 +359,8 @@
 			"endDate": "Date de fin:",
 			"paymentProcessing": "Traitement du paiement...",
 			"currentBidAmount": "Montant de l'enchère actuelle",
-			"restaurant": "Restaurant"
+			"restaurant": "Restaurant",
+			"dishCategory": "Catégorie de plat"
 		},
 		"tabs": {
 			"reviews": "Avis",
@@ -547,7 +549,7 @@
 	"Review": {
 		"title": "Publier un Avis",
 		"hero": {
-			"title": "Écrivez des avis sur vos restaurants préférés\net partagez les endroits que vous avez visités"
+			"title": "Rédige des avis sur des restaurants recommandés\net publie les plats que tu as mangés"
 		},
 		"guest": {
 			"description": "Connectez-vous pour écrire des avis",
@@ -567,7 +569,7 @@
 		"emptyState": {
 			"noReviews": "Pas encore d'avis.\nSoyez le premier à évaluer ce restaurant."
 		},
-		"everybodyPostsTitle": "Avis de Tout le Monde",
+		"everybodyPostsTitle": "Choisir un plat à évaluer",
 		"characterCount": "{{current}}/{{max}}",
 		"restaurantDetail": {
 			"title": "Détails du restaurant"

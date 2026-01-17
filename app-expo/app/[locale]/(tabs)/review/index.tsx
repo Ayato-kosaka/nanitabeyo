@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect } from "react";
-import { View, Text, StyleSheet, Image, useWindowDimensions, Dimensions } from "react-native";
+import { View, Text, StyleSheet, Dimensions } from "react-native";
+import { Image } from "expo-image";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { useAuth } from "@/contexts/AuthProvider";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
@@ -11,7 +12,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useLocale } from "@/hooks/useLocale";
 
-const HERO_IMAGE_HEIGHT = 400;
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 export default function ReviewScreen() {
@@ -68,7 +68,7 @@ export default function ReviewScreen() {
 			{/* ヒーローセクション */}
 			<View style={styles.heroSection}>
 				<View style={styles.heroImagePlaceholder}>
-					<Image source={require("@/features/review/assets/review-hero.png")} style={styles.heroImage} />
+					<Image source={require("@/features/review/assets/review-hero.webp")} style={styles.heroImage} />
 				</View>
 			</View>
 
@@ -82,7 +82,6 @@ export default function ReviewScreen() {
 							<PrimaryButton
 								onPress={handleLoginPress}
 								label={i18n.t("Review.guest.loginButton")}
-								borderRadius={12}
 								style={styles.ctaButton}
 							/>
 						</>
@@ -91,7 +90,6 @@ export default function ReviewScreen() {
 						<PrimaryButton
 							onPress={handlePostReviewPress}
 							label={i18n.t("Review.authenticated.postButton")}
-							borderRadius={12}
 							style={styles.ctaButton}
 						/>
 					)}
@@ -110,8 +108,7 @@ const styles = StyleSheet.create({
 		backgroundColor: "#fbeedd", // #644 【設計】淡い黄色背景
 	},
 	titleSection: {
-		height: (SCREEN_HEIGHT - HERO_IMAGE_HEIGHT) * 0.5,
-		paddingTop: 48,
+		flex: 1,
 		paddingHorizontal: 38,
 	},
 	title: {
@@ -120,32 +117,31 @@ const styles = StyleSheet.create({
 		color: "#1A1A1A",
 		textAlign: "center",
 		lineHeight: 24,
+		paddingTop: 48,
 		marginBottom: 32,
 	},
 	heroSection: {
-		flex: 1,
-		height: HERO_IMAGE_HEIGHT,
+		flex: 2,
 		justifyContent: "center",
 		alignItems: "center",
-		paddingHorizontal: 24,
 	},
 	heroImagePlaceholder: {
-		width: HERO_IMAGE_HEIGHT,
-		height: HERO_IMAGE_HEIGHT,
+		height: "100%",
+		width: "100%",
 		justifyContent: "center",
 		alignItems: "center",
 	},
 	heroImage: {
-		height: HERO_IMAGE_HEIGHT,
-		width: HERO_IMAGE_HEIGHT,
+		width: "100%",
+		height: "100%",
 		resizeMode: "contain",
 	},
 	ctaSection: {
-		height: (SCREEN_HEIGHT - HERO_IMAGE_HEIGHT) * 0.5,
+		flex: 1,
 		paddingHorizontal: 24,
 	},
 	actionButtonContainer: {
-		marginTop: 64,
+		marginTop: 16,
 	},
 	guestDescription: {
 		fontSize: 16,

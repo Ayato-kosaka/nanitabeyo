@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { View, StyleSheet, TouchableOpacity, ActivityIndicator, Text, Dimensions } from "react-native";
-import { Navigation, ChevronLeft, RotateCw } from "lucide-react-native";
+import { View, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
+import { Navigation, RotateCw } from "lucide-react-native";
 import MapView, { Region } from "@/components/MapView";
 import type { PoiClickEvent } from "react-native-maps";
 import { useLocationSearch } from "@/hooks/useLocationSearch";
@@ -19,13 +19,13 @@ import { useLogger } from "@/hooks/useLogger";
 import MapViewClass from "react-native-maps";
 import { isFoodAndDrinkPlaceForUser } from "@shared/utils/google_places_restaurant_type";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { AvatarBubbleMarkerBitmap, MarkerBitmapRendererProvider } from "@/features/mapMarkers";
+import { AvatarBubbleMarker } from "@/features/mapMarkers";
 import { router, useFocusEffect } from "expo-router";
 import { SavedRestaurantsSheet, SavedRestaurantsSheetHandle } from "@/features/review/components/SavedRestaurantsSheet";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { useRestaurantStore } from "@/features/review/stores/useRestaurantStore";
 import { useLocale } from "@/hooks/useLocale";
+import { ReviewHeader } from "@/features/review/components/ReviewHeader";
 
 type SavedRestaurant = QueryMeSavedRestaurantsResponse["data"][number];
 
@@ -351,49 +351,49 @@ export default function SelectRestaurantScreen() {
 	}, []);
 
 	return (
-		<MarkerBitmapRendererProvider>
-			<SafeAreaView edges={["top"]} style={styles.container}>
-				{/* #644 【設計】画面タイトル with 戻るボタン */}
-				<View style={styles.headerContainer}>
-					<TouchableOpacity
-						style={styles.backButton}
-						onPress={() => {
-							lightImpact();
-							router.back();
-						}}>
-						<ChevronLeft size={24} color="#1A1A1A" />
-					</TouchableOpacity>
-					<Text style={styles.headerTitle}>{i18n.t("Review.selectRestaurant.title")}</Text>
-					<View style={styles.headerRightSpacer} />
+		<View style={styles.container}>
+			{/* Map */}
+			<MapView
+				ref={mapRef}
+				style={styles.map}
+				onRegionChangeComplete={handleRegionChangeComplete}
+				onPoiClick={handlePoiPress}>
+				{/* #644 【設計】保存したお店のマーカー表示 */}
+				{savedRestaurants.map((item: SavedRestaurant) => (
+					<AvatarBubbleMarker
+						key={item.restaurant.id}
+						coordinate={{
+							latitude: item.restaurant.latitude,
+							longitude: item.restaurant.longitude,
+						}}
+						onPress={() => handleSavedRestaurantMarkerPress(item)}
+						color={activeRestaurantId === item.restaurant.id ? "#5EA2FF" : "#FFF"}
+						isActive={activeRestaurantId === item.restaurant.id}
+						uri={item.restaurant.imageUrls?.sm}
+					/>
+				))}
+			</MapView>
+
+			{/* Loading Indicator */}
+			{isLoadingRestaurantCreation && (
+				<View style={styles.loadingOverlay}>
+					<ActivityIndicator size="large" color="#5EA2FF" />
 				</View>
+			)}
 
-				{/* Map */}
-				<MapView
-					ref={mapRef}
-					style={styles.map}
-					onRegionChangeComplete={handleRegionChangeComplete}
-					onPoiClick={handlePoiPress}>
-					{/* #644 【設計】保存したお店のマーカー表示 */}
-					{savedRestaurants.map((item: SavedRestaurant) => (
-						<AvatarBubbleMarkerBitmap
-							key={item.restaurant.id}
-							coordinate={{
-								latitude: item.restaurant.latitude,
-								longitude: item.restaurant.longitude,
-							}}
-							onPress={() => handleSavedRestaurantMarkerPress(item)}
-							color={activeRestaurantId === item.restaurant.id ? "#5EA2FF" : "#FFF"}
-							uri={item.restaurant.imageUrls?.sm}
-						/>
-					))}
-				</MapView>
-
-				{/* POI Loading Indicator */}
-				{isLoadingRestaurantCreation && (
-					<View style={styles.loadingOverlay}>
-						<ActivityIndicator size="large" color="#5EA2FF" />
-					</View>
-				)}
+			{/* 🔹上部 UI レイヤー（ヘッダー＋検索＋ボタン） */}
+			<View
+				style={[styles.topOverlay]}
+				pointerEvents="box-none" // 余白部分は Map をタッチ可能にする
+			>
+				{/* #644 【設計】画面タイトル with 戻るボタン */}
+				<ReviewHeader
+					title={i18n.t("Review.selectRestaurant.title")}
+					onPressBack={() => {
+						lightImpact();
+						router.back();
+					}}
+				/>
 
 				{/* #644 【設計】Search Bar - placeholder: "店名やエリアで検索" */}
 				<View style={styles.searchContainer}>
@@ -423,70 +423,49 @@ export default function SelectRestaurantScreen() {
 						loading={isLoadingSavedRestaurants}
 					/>
 				</View>
+			</View>
 
-				{/* Saved Restaurants BottomSheet */}
-				<SavedRestaurantsSheet
-					ref={savedRestaurantsSheetRef}
-					savedRestaurants={savedRestaurants}
-					isLoadingSavedRestaurants={isLoadingSavedRestaurants}
-					activeRestaurantId={activeRestaurantId}
-					onRestaurantCardPress={handleSavedRestaurantCardPress}
-					onRestaurantReviewPress={handleSavedRestaurantReviewPress}
-					onSnapToRestaurant={(restaurant) => setActiveRestaurantId(restaurant.restaurant.id)}
-				/>
-			</SafeAreaView>
-		</MarkerBitmapRendererProvider>
+			{/* Saved Restaurants BottomSheet */}
+			<SavedRestaurantsSheet
+				ref={savedRestaurantsSheetRef}
+				savedRestaurants={savedRestaurants}
+				isLoadingSavedRestaurants={isLoadingSavedRestaurants}
+				activeRestaurantId={activeRestaurantId}
+				onRestaurantCardPress={handleSavedRestaurantCardPress}
+				onRestaurantReviewPress={handleSavedRestaurantReviewPress}
+				onSnapToRestaurant={(restaurant) => setActiveRestaurantId(restaurant.restaurant.id)}
+			/>
+		</View>
 	);
 }
 
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: "#000",
-	},
-	headerContainer: {
-		position: "absolute",
-		top: 0,
-		left: 0,
-		right: 0,
 		backgroundColor: "#FFFFFF",
-		paddingVertical: 16,
-		paddingHorizontal: 16,
-		borderBottomWidth: 1,
-		borderBottomColor: "#E5E7EB",
-		zIndex: 100,
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-	},
-	backButton: {
-		padding: 4,
-		marginRight: 8,
-	},
-	headerTitle: {
-		fontSize: 18,
-		fontWeight: "700",
-		color: "#1A1A1A",
-		textAlign: "center",
-		flex: 1,
-	},
-	headerRightSpacer: {
-		width: 32,
 	},
 	map: {
 		flex: 1,
 	},
-	searchContainer: {
+	topOverlay: {
 		position: "absolute",
-		top: 70,
-		left: 16,
-		right: 16,
-		zIndex: 10,
+		top: 0,
+		left: 0,
+		right: 0,
+		zIndex: 100,
+	},
+	searchContainer: {
+		marginTop: 8,
+		marginHorizontal: 16,
 	},
 	currentLocationButton: {
 		padding: 16,
 		borderLeftWidth: 0.5,
 		borderLeftColor: "#E5E7EB",
+	},
+	searchButtonContainer: {
+		marginTop: 8,
+		alignItems: "center",
 	},
 	loadingOverlay: {
 		position: "absolute",
@@ -498,13 +477,5 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		backgroundColor: "rgba(0, 0, 0, 0.3)",
 		zIndex: 20,
-	},
-	searchButtonContainer: {
-		position: "absolute",
-		top: 130,
-		left: 0,
-		right: 0,
-		alignItems: "center",
-		zIndex: 9,
 	},
 });

@@ -7,6 +7,7 @@
 		"close": "Close",
 		"save": "Save",
 		"post": "Post",
+		"postReview": "Post review",
 		"retry": "Retry",
 		"processing": "Processing...",
 		"error": "An error occurred. Please try again.",
@@ -347,8 +348,8 @@
 		"placeholders": {
 			"searchRestaurants": "Search restaurants",
 			"enterPrice": "Enter price",
-			"enterReview": "Enter review",
-			"enterReviewShort": "The pork broth was incredibly rich and delicious!",
+			"enterReview": "Recommendation level",
+			"enterReviewShort": "The rich tonkotsu broth was insanely good!",
 			"enterBidAmount": "Enter bid amount",
 			"enterDishCategory": "Enter dish category (e.g., Burger, BBQ)",
 			"searchRestaurantsForReview": "Search by name or area"
@@ -357,7 +358,8 @@
 			"endDate": "End date:",
 			"paymentProcessing": "Processing payment...",
 			"currentBidAmount": "Current bid amount",
-			"restaurant": "Restaurant"
+			"restaurant": "Restaurant",
+			"dishCategory": "Dish category"
 		},
 		"tabs": {
 			"reviews": "Reviews",
@@ -547,7 +549,7 @@
 	"Review": {
 		"title": "Post a Review",
 		"hero": {
-			"title": "Write reviews for your favorite restaurants\nand share the places you've been"
+			"title": "Write reviews of recommended restaurants\nand post the dishes you ate"
 		},
 		"guest": {
 			"description": "Log in to write reviews",
@@ -567,7 +569,7 @@
 		"emptyState": {
 			"noReviews": "No reviews yet.\nBe the first to review this restaurant."
 		},
-		"everybodyPostsTitle": "Everyone's Reviews",
+		"everybodyPostsTitle": "Choose a dish to review",
 		"characterCount": "{{current}}/{{max}}",
 		"restaurantDetail": {
 			"title": "Restaurant Details"

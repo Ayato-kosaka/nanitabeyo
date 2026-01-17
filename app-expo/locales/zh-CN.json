@@ -7,6 +7,7 @@
 		"close": "关闭",
 		"save": "保存",
 		"post": "发布",
+		"postReview": "发布评论",
 		"retry": "重试",
 		"processing": "处理中...",
 		"error": "发生错误。请重试。",
@@ -347,8 +348,8 @@
 		"placeholders": {
 			"searchRestaurants": "搜索餐厅",
 			"enterPrice": "输入价格",
-			"enterReview": "输入评论",
-			"enterReviewShort": "猪骨汤超级浓郁美味！",
+			"enterReview": "推荐程度",
+			"enterReviewShort": "浓郁的豚骨汤真的超级好吃！",
 			"enterBidAmount": "输入出价金额",
 			"enterDishCategory": "输入菜品类别（例如：火锅、点心）",
 			"searchRestaurantsForReview": "按名称或区域搜索"
@@ -357,7 +358,8 @@
 			"endDate": "结束日期:",
 			"paymentProcessing": "付款处理中...",
 			"currentBidAmount": "当前出价金额",
-			"restaurant": "餐厅"
+			"restaurant": "餐厅",
+			"dishCategory": "菜品类别"
 		},
 		"tabs": {
 			"reviews": "评论",
@@ -547,7 +549,7 @@
 	"Review": {
 		"title": "发布评论",
 		"hero": {
-			"title": "为您喜欢的餐厅撰写评论\n并分享您去过的地方"
+			"title": "写推荐餐厅的点评\n并发布你吃过的菜品"
 		},
 		"guest": {
 			"description": "登录以撰写评论",
@@ -567,7 +569,7 @@
 		"emptyState": {
 			"noReviews": "还没有评论。\n成为第一个评论这家餐厅的人。"
 		},
-		"everybodyPostsTitle": "大家的评论",
+		"everybodyPostsTitle": "选择要评论的菜品",
 		"characterCount": "{{current}}/{{max}}",
 		"restaurantDetail": {
 			"title": "餐厅详情"

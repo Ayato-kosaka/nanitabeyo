@@ -113,6 +113,10 @@ const cleanupCache = async () => {
 /**
  * #235 【設計】Marker用bitmap生成・キャッシュ管理Hook
  *
+ * @deprecated このフックは非推奨です。
+ * Bitmap Marker 方式（view-shot + FileSystem）はパフォーマンス問題があるため廃止されました。
+ * 代わりに View Marker 方式の AvatarBubbleMarker コンポーネントを使用してください。
+ *
  * @param params - { uri: 画像URL, size: ピンサイズ, color: 枠色 }
  * @returns { iconUri: 生成済みPNG URI, isReady: 生成完了フラグ, viewRef: View参照, generateIfNeeded: 生成トリガー }
  */

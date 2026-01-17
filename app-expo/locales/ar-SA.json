@@ -7,6 +7,7 @@
 		"close": "إغلاق",
 		"save": "حفظ",
 		"post": "نشر",
+		"postReview": "نشر مراجعة",
 		"retry": "إعادة المحاولة",
 		"processing": "معالجة...",
 		"error": "حدث خطأ. يُرجى المحاولة مرة أخرى.",
@@ -348,8 +349,8 @@
 		"placeholders": {
 			"searchRestaurants": "البحث عن المطاعم",
 			"enterPrice": "أدخل السعر",
-			"enterReview": "أدخل مراجعتك",
-			"enterReviewShort": "الطعام كان لذيذًا جدًا ومليئًا بالنكهات!",
+			"enterReview": "مستوى التوصية",
+			"enterReviewShort": "مرق التونكوتسو كان غنيًا وشهيًا بشكل لا يصدق!",
 			"enterBidAmount": "أدخل مبلغ العرض",
 			"enterDishCategory": "أدخل فئة الطبق (مثال: كبسة، شاورما)",
 			"searchRestaurantsForReview": "البحث بالاسم أو المنطقة"
@@ -358,7 +359,8 @@
 			"endDate": "تاريخ الانتهاء:",
 			"paymentProcessing": "معالجة الدفع...",
 			"currentBidAmount": "مبلغ العرض الحالي",
-			"restaurant": "مطعم"
+			"restaurant": "مطعم",
+			"dishCategory": "فئة الطبق"
 		},
 		"tabs": {
 			"reviews": "المراجعات",
@@ -547,7 +549,7 @@
 	"Review": {
 		"title": "نشر مراجعة",
 		"hero": {
-			"title": "اكتب مراجعات لمطاعمك المفضلة\nوشارك الأماكن التي زرتها"
+			"title": "اكتب مراجعات للمطاعم الموصى بها\nوانشر الأطباق التي تناولتها"
 		},
 		"guest": {
 			"description": "سجل الدخول لكتابة المراجعات",
@@ -567,7 +569,7 @@
 		"emptyState": {
 			"noReviews": "لا توجد مراجعات بعد.\nكن أول من يراجع هذا المطعم."
 		},
-		"everybodyPostsTitle": "مراجعات الجميع",
+		"everybodyPostsTitle": "اختر طبقًا لمراجعته",
 		"characterCount": "{{current}}/{{max}}",
 		"restaurantDetail": {
 			"title": "تفاصيل المطعم"

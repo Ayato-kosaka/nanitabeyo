@@ -107,7 +107,7 @@ export function ProfileHeader({
 							// ゲストは従来通りアプリアイコンを表示
 							<Image
 								key={"guest-icon"}
-								source={require("@/assets/images/icon.png")}
+								source={require("@/assets/images/icon.webp")}
 								style={styles.avatar}
 								contentFit="cover"
 								transition={0}

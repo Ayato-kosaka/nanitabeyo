@@ -47,11 +47,12 @@ export class DishesRepository {
     google_place_id: string,
   ) {
     this.logger.debug('createOrGetRestaurant', 'DishesRepository', restaurant);
+    const { id: _omitId, ...createData } = restaurant;
 
     return await tx.restaurants.upsert({
       where: { google_place_id },
       update: {},
-      create: restaurant,
+      create: createData,
     });
   }
 

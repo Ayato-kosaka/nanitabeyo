@@ -8,6 +8,7 @@ import i18n from "@/lib/i18n";
 import { getCacheKeyForImage } from "@/lib/image";
 import type { QueryMeSavedRestaurantsResponse } from "@shared/api/v1/res";
 import { FlatList } from "react-native";
+import { SkeletonShimmer } from "@/components/SkeletonShimmer";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CARD_WIDTH = SCREEN_WIDTH * 0.92;
@@ -41,6 +42,8 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 		} = props;
 		const sheetRef = useRef<TrueSheet>(null);
 		const carouselRef = useRef<ICarouselInstance | null>(null);
+		const isDraggingRef = useRef(false);
+		const draggingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
 		useImperativeHandle(ref, () => ({
 			present: async () => {
@@ -53,6 +56,12 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 
 		useEffect(() => {
 			sheetRef.current?.present();
+			// #644 【バグ】コンポーネントアンマウント時にタイムアウトをクリーンアップ
+			return () => {
+				if (draggingTimeoutRef.current) {
+					clearTimeout(draggingTimeoutRef.current);
+				}
+			};
 		}, []);
 
 		const [detentIndex, setDetentIndex] = useState(0);
@@ -76,8 +85,14 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 				<View style={styles.savedRestaurantItemContainer}>
 					<PrimaryCard
 						item={item}
-						onPress={() => onRestaurantCardPress(item)}
-						onReview={() => onRestaurantReviewPress(item)}
+						onPress={() => {
+							if (isDraggingRef.current) return;
+							onRestaurantCardPress(item);
+						}}
+						onReview={() => {
+							if (isDraggingRef.current) return;
+							onRestaurantReviewPress(item);
+						}}
 					/>
 				</View>
 			),
@@ -96,7 +111,29 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 				dismissible={false}
 				onDetentChange={handleDetentChange}>
 				<View style={styles.container}>
-					{savedRestaurants.length > 0 ? (
+					{/* #644 【UX】ローディング中はスケルトンを表示 */}
+					{isLoadingSavedRestaurants && savedRestaurants.length === 0 ? (
+						<>
+							<Text style={styles.savedRestaurantsTitle}>{i18n.t("Review.selectRestaurant.savedRestaurantList")}</Text>
+							{detentIndex === 0 ? (
+								// カルーセル表示時のスケルトン（2-3件）
+								<View style={styles.carouselWrapper}>
+									<View style={styles.savedRestaurantItemContainer}>
+										<SkeletonCard />
+									</View>
+								</View>
+							) : (
+								// リスト表示時のスケルトン（3-5件）
+								<View style={styles.listContent}>
+									{[1, 2, 3, 4, 5].map((key) => (
+										<View key={key} style={styles.listItemContainer}>
+											<SkeletonCard />
+										</View>
+									))}
+								</View>
+							)}
+						</>
+					) : savedRestaurants.length > 0 ? (
 						<>
 							<Text style={styles.savedRestaurantsTitle}>{i18n.t("Review.selectRestaurant.savedRestaurantList")}</Text>
 
@@ -118,7 +155,29 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 											parallaxAdjacentItemScale: 1,
 											parallaxScrollingOffset: ((SCREEN_WIDTH - CARD_WIDTH) * 3) / 4,
 										}}
+										onScrollStart={() => {
+											isDraggingRef.current = true;
+											// #644 【バグ】タイムアウトフォールバックを追加して isDraggingRef が true のまま固まるのを防ぐ
+											if (draggingTimeoutRef.current) {
+												clearTimeout(draggingTimeoutRef.current);
+											}
+											draggingTimeoutRef.current = setTimeout(() => {
+												isDraggingRef.current = false;
+											}, 500);
+										}}
+										onScrollEnd={() => {
+											isDraggingRef.current = false;
+											if (draggingTimeoutRef.current) {
+												clearTimeout(draggingTimeoutRef.current);
+												draggingTimeoutRef.current = null;
+											}
+										}}
 										onSnapToItem={(index) => {
+											isDraggingRef.current = false;
+											if (draggingTimeoutRef.current) {
+												clearTimeout(draggingTimeoutRef.current);
+												draggingTimeoutRef.current = null;
+											}
 											const restaurant = savedRestaurants[index];
 											if (restaurant) onSnapToRestaurant?.(restaurant);
 										}}
@@ -148,9 +207,10 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 								</View>
 							)}
 						</>
-					) : !isLoadingSavedRestaurants ? (
+					) : (
+						// 空状態（ローディング完了後、データなし）
 						<Text style={styles.emptyStateText}>{i18n.t("Review.selectRestaurant.noSavedRestaurantsInArea")}</Text>
-					) : null}
+					)}
 				</View>
 			</TrueSheet>
 		);
@@ -188,6 +248,26 @@ function PrimaryCard({
 				/>
 			</View>
 		</TouchableOpacity>
+	);
+}
+
+// #644 【UX】ローディングスケルトンカードコンポーネント
+function SkeletonCard() {
+	return (
+		<View style={styles.savedRestaurantCard}>
+			{/* 画像エリア */}
+			<SkeletonShimmer width={100} height={CARD_HEIGHT} borderRadius={0} />
+			{/* テキスト部分 */}
+			<View style={styles.savedRestaurantInfo}>
+				{/* 店名エリア（2行分） */}
+				<View>
+					<SkeletonShimmer width="80%" height={16} borderRadius={4} style={{ marginBottom: 8 }} />
+					<SkeletonShimmer width="60%" height={16} borderRadius={4} />
+				</View>
+				{/* ボタンエリア */}
+				<SkeletonShimmer width={120} height={32} borderRadius={8} style={{ alignSelf: "flex-end" }} />
+			</View>
+		</View>
 	);
 }
 

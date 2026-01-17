@@ -7,6 +7,7 @@
 		"close": "閉じる",
 		"save": "保存",
 		"post": "投稿",
+		"postReview": "レビューを投稿する",
 		"retry": "再試行",
 		"processing": "処理中...",
 		"error": "エラーが発生しました。もう一度お試しください。",
@@ -348,8 +349,8 @@
 		"placeholders": {
 			"searchRestaurants": "レストランを検索",
 			"enterPrice": "料金を入力",
-			"enterReview": "レビューを入力",
-			"enterReviewShort": "豚骨スープが最高に濃厚で美味かった！",
+			"enterReview": "オススメ度",
+			"enterReviewShort": "豚骨スープが濃厚で最高にうまかった！",
 			"enterBidAmount": "入札額を入力",
 			"enterDishCategory": "料理カテゴリを入力 (例: カレーライス、天ぷら)",
 			"searchRestaurantsForReview": "店名やエリアで検索"
@@ -358,7 +359,8 @@
 			"endDate": "終了日:",
 			"paymentProcessing": "決済処理中...",
 			"currentBidAmount": "現在の入札額",
-			"restaurant": "お店"
+			"restaurant": "お店",
+			"dishCategory": "料理カテゴリ"
 		},
 		"tabs": {
 			"reviews": "レビュー",
@@ -547,7 +549,7 @@
 	"Review": {
 		"title": "レビューを投稿する",
 		"hero": {
-			"title": "おすすめのお店のレビューを書いて\n行ったお店を投稿しよう"
+			"title": "おすすめのお店のレビューを書いて\n食べた料理を投稿しよう"
 		},
 		"guest": {
 			"description": "ログインしてレビューを書こう",
@@ -567,7 +569,7 @@
 		"emptyState": {
 			"noReviews": "まだ投稿がありません。\nこのお店の最初のレビューを投稿しましょう。"
 		},
-		"everybodyPostsTitle": "みんなの投稿",
+		"everybodyPostsTitle": "レビューする料理を選択",
 		"characterCount": "{{current}}/{{max}}",
 		"restaurantDetail": {
 			"title": "レストラン詳細"

@@ -8,8 +8,10 @@ import {
 	Platform,
 	Pressable,
 	ActivityIndicator,
+	KeyboardAvoidingView,
+	Keyboard,
 } from "react-native";
-import { Star, ChevronRight } from "lucide-react-native";
+import { Star, ChevronRight, Utensils, CircleDollarSign, ThumbsUp } from "lucide-react-native";
 import { Card } from "@/components/Card";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
@@ -44,7 +46,6 @@ import { Image } from "expo-image";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { useProfileStore } from "@/features/profile/stores/useProfileStore";
 import { useEnsureOwnProfileLoaded } from "@/features/profile/hooks/useEnsureOwnProfileLoaded";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { mapReviewsKey } from "../constants";
 import { ScrollView } from "react-native-gesture-handler";
 
@@ -60,6 +61,8 @@ interface ReviewFormProps {
 	onCancel: () => void;
 	/** Pre-filled media data (for no-media mode from Feed) */
 	prefilledMedia?: DishMediaEntry["dish_media"] & { dish: DishMediaEntry["dish"] };
+	// #644 【設計】レビュー投稿成功時のコールバック（呼び出し元で画面遷移を制御）
+	onSuccess?: (params: { dishMedia: DishMediaEntry["dish_media"] }) => void;
 }
 
 const { height } = Dimensions.get("window");
@@ -80,6 +83,7 @@ export function ReviewForm({
 	initialRating = 0,
 	onCancel,
 	prefilledMedia,
+	onSuccess,
 }: ReviewFormProps) {
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
@@ -284,6 +288,22 @@ export function ReviewForm({
 	// 画面全体の高さ - フォーム部分の高さ - ボタン部分の高さ - 同意メッセージ - バッファ
 	const mediaHeight = useMemo(() => height - 370 - 60 - 36 - 120, []);
 	const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+	useEffect(() => {
+		const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+		const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+
+		const showSub = Keyboard.addListener(showEvent, () => {
+			setIsKeyboardVisible(true);
+		});
+		const hideSub = Keyboard.addListener(hideEvent, () => {
+			setIsKeyboardVisible(false);
+		});
+
+		return () => {
+			showSub.remove();
+			hideSub.remove();
+		};
+	}, []);
 
 	// DishCategoryModal が開かれたときの初期化処理
 	const onDishCategoryModalMount = useCallback(() => {
@@ -454,7 +474,14 @@ export function ReviewForm({
 			});
 
 			showSnackbar(i18n.t("Map.alerts.reviewSuccess"));
-			onCancel();
+
+			// #644 【設計】成功時、DishMedia をコールバック経由で親に渡す（画面遷移は呼び出し元が担当）
+			if (onSuccess) {
+				onSuccess({ dishMedia: dish_media });
+			} else {
+				// #644 【設計】onSuccess が指定されていない場合は従来通りの挙動（onCancel 呼び出し）
+				onCancel();
+			}
 		} catch (error: any) {
 			logFrontendEvent({
 				event_name: "dish_review_submission_failed",
@@ -477,6 +504,7 @@ export function ReviewForm({
 		callBackend,
 		logFrontendEvent,
 		onCancel,
+		onSuccess,
 		restaurant,
 		locale,
 		currencyCode,
@@ -521,8 +549,12 @@ export function ReviewForm({
 	}
 
 	return (
-		<>
-			<ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
+		<KeyboardAvoidingView style={styles.keyboardAvoidingView}>
+			<ScrollView
+				style={styles.container}
+				keyboardShouldPersistTaps="handled"
+				showsVerticalScrollIndicator={false}
+				contentContainerStyle={styles.scrollContent}>
 				<View style={{ height: mediaHeight, marginTop: 16 }}>
 					{mediaState.status === "loading" ? (
 						<View style={styles.loadingContainer}>
@@ -565,10 +597,18 @@ export function ReviewForm({
 						disabled={!!prefilledMedia} // #400 【設計】prefilledMedia が指定されている場合は、料理カテゴリ選択を無効化
 						accessibilityRole="button"
 						accessibilityLabel={i18n.t("Map.actions.selectDishCategory")}>
-						<Text style={styles.inputRowLabel}>{i18n.t("Map.actions.selectDishCategory")}</Text>
+						{/* #644 【UX】料理カテゴリラベルにアイコン追加 + prefilledMedia 時は「料理カテゴリ」に変更 */}
+						<View style={styles.inputRowLabelWithIcon}>
+							<Utensils size={18} color="#6B7280" />
+							<Text style={styles.inputRowLabel}>
+								{prefilledMedia ? i18n.t("Map.labels.dishCategory") : i18n.t("Map.actions.selectDishCategory")}
+							</Text>
+						</View>
 						<View style={styles.dishCategorySelectContent}>
 							{dishCategoryName && (
-								<Text style={styles.inputRowLabel}>{dishCategoryName || i18n.t("Map.actions.selectDishCategory")}</Text>
+								<Text style={styles.dishCategoryValueText} numberOfLines={1} ellipsizeMode="tail">
+									{dishCategoryName}
+								</Text>
 							)}
 							{!prefilledMedia && <ChevronRight size={20} color="#666" />}
 						</View>
@@ -581,7 +621,11 @@ export function ReviewForm({
 
 					{/* 価格入力 行 */}
 					<View style={styles.priceInputRow}>
-						<Text style={styles.inputRowLabel}>{i18n.t("Map.placeholders.enterPrice")}</Text>
+						{/* #644 【UX】価格ラベルにアイコン追加 */}
+						<View style={styles.inputRowLabelWithIcon}>
+							<CircleDollarSign size={18} color="#6B7280" />
+							<Text style={styles.inputRowLabel}>{i18n.t("Map.placeholders.enterPrice")}</Text>
+						</View>
 						{currencySymbol ? (
 							<View style={styles.priceInputContainer}>
 								<Text style={styles.currencySymbol}>{currencySymbol}</Text>
@@ -606,15 +650,27 @@ export function ReviewForm({
 
 					{/* 評価入力 行 */}
 					<View style={styles.ratingInputRow}>
-						<Text style={styles.inputRowLabel}>{i18n.t("Map.placeholders.enterReview")}</Text>
+						{/* #644 【UX】オススメ度ラベルにアイコン追加 */}
+						<View style={styles.inputRowLabelWithIcon}>
+							<ThumbsUp size={18} color="#6B7280" />
+							<Text style={styles.inputRowLabel}>{i18n.t("Map.placeholders.enterReview")}</Text>
+						</View>
 						{/* 星評価コンポーネント */}
 						<View style={styles.ratingContainer}>
 							<View style={styles.ratingInput}>
-								{[1, 2, 3, 4, 5].map((star) => (
-									<TouchableOpacity key={star} onPress={() => setRating(star)}>
-										<Star size={36} color="#FFD700" fill={star <= rating ? "#FFD700" : "transparent"} />
-									</TouchableOpacity>
-								))}
+								{[1, 2, 3, 4, 5].map((star) => {
+									// #644 【UX】未選択時の星アイコン外枠を灰色に変更
+									const isActive = star <= rating;
+									return (
+										<TouchableOpacity key={star} onPress={() => setRating(star)}>
+											<Star
+												size={36}
+												color={isActive ? "#FFD700" : "#D1D5DB"}
+												fill={isActive ? "#FFD700" : "transparent"}
+											/>
+										</TouchableOpacity>
+									);
+								})}
 							</View>
 							<Text style={styles.ratingText} accessibilityLiveRegion="polite">
 								{rating}
@@ -638,15 +694,16 @@ export function ReviewForm({
 			</ScrollView>
 
 			{/* 投稿ボタン */}
-			{/* ボタンはフォーム外に配置して、キーボード表示時にも隠れないようにする */}
-			<View style={styles.buttonContainer}>
-				<PrimaryButton
-					label={i18n.t("Common.post")}
-					onPress={handleSubmit}
-					disabled={isProcessing || !isValid}
-					style={{ marginHorizontal: 16 }}
-				/>
-			</View>
+			{!isKeyboardVisible && (
+				<View style={styles.buttonContainer}>
+					<PrimaryButton
+						label={i18n.t("Common.postReview")}
+						onPress={handleSubmit}
+						disabled={isProcessing || !isValid}
+						style={{ marginHorizontal: 16 }}
+					/>
+				</View>
+			)}
 
 			{/* DishCategoryAutocomplete Modal */}
 			<DishCategoryModal>
@@ -662,7 +719,7 @@ export function ReviewForm({
 			<LegalDocumentModal>
 				{selectedLegalDocument && <LegalDocument documentType={selectedLegalDocument} />}
 			</LegalDocumentModal>
-		</>
+		</KeyboardAvoidingView>
 	);
 }
 
@@ -740,6 +797,13 @@ const styles = StyleSheet.create({
 		flex: 1,
 		backgroundColor: "#FFFFFF",
 	},
+	// #644 【UX】KeyboardAvoidingView でキーボード表示時の位置調整
+	keyboardAvoidingView: {
+		flex: 1,
+	},
+	scrollContent: {
+		paddingBottom: 64,
+	},
 	formContainer: {
 		paddingHorizontal: 16,
 		paddingTop: 16,
@@ -771,6 +835,13 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		gap: 8,
 		marginRight: 12,
+		flexShrink: 1,
+	},
+	dishCategoryValueText: {
+		fontSize: 15,
+		color: "#000",
+		textAlign: "right",
+		maxWidth: 160,
 	},
 	priceInputRow: {
 		flexDirection: "row",
@@ -789,6 +860,13 @@ const styles = StyleSheet.create({
 	inputRowLabel: {
 		fontSize: 15,
 		color: "#000",
+		flex: 1,
+	},
+	// #644 【UX】ラベルにアイコンを追加するための横並びコンテナ
+	inputRowLabelWithIcon: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 6,
 		flex: 1,
 	},
 	ratingInputRow: {

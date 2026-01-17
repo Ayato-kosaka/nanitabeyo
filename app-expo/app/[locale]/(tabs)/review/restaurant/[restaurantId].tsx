@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { View, StyleSheet, ActivityIndicator, TouchableOpacity, Text } from "react-native";
+import { View, StyleSheet, ActivityIndicator, Text } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { ChevronLeft } from "lucide-react-native";
 import { SelectedRestaurantDetails } from "@/features/review/components/SelectedRestaurantDetails";
 import { useRestaurantStore, type RestaurantEntry } from "@/features/review/stores/useRestaurantStore";
 import { useAPICall } from "@/hooks/useAPICall";
@@ -11,6 +9,7 @@ import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useLogger } from "@/hooks/useLogger";
 import type { GetRestaurantByIdResponse } from "@shared/api/v1/res";
 import i18n from "@/lib/i18n";
+import { ReviewHeader } from "@/features/review/components/ReviewHeader";
 
 /*
  * レビュー投稿画面から遷移するレストラン詳細画面
@@ -90,46 +89,36 @@ export default function RestaurantDetailScreen() {
 	// #644 【設計】ローディング表示（キャッシュがない場合のみ）
 	if (isLoading && !restaurant) {
 		return (
-			<SafeAreaView edges={["top"]} style={styles.container}>
-				<View style={styles.headerContainer}>
-					<TouchableOpacity
-						style={styles.backButton}
-						onPress={() => {
-							lightImpact();
-							router.back();
-						}}>
-						<ChevronLeft size={24} color="#1A1A1A" />
-					</TouchableOpacity>
-					<Text style={styles.headerTitle}>{i18n.t("Review.restaurantDetail.title")}</Text>
-					<View style={styles.headerRightSpacer} />
-				</View>
+			<View style={styles.container}>
+				<ReviewHeader
+					title={i18n.t("Review.restaurantDetail.title")}
+					onPressBack={() => {
+						lightImpact();
+						router.back();
+					}}
+				/>
 				<View style={styles.loadingContainer}>
 					<ActivityIndicator size="large" color="#5EA2FF" />
 				</View>
-			</SafeAreaView>
+			</View>
 		);
 	}
 
 	// #644 【設計】エラー表示（レストランが見つからない場合など）
 	if (error && !restaurant) {
 		return (
-			<SafeAreaView edges={["top"]} style={styles.container}>
-				<View style={styles.headerContainer}>
-					<TouchableOpacity
-						style={styles.backButton}
-						onPress={() => {
-							lightImpact();
-							router.back();
-						}}>
-						<ChevronLeft size={24} color="#1A1A1A" />
-					</TouchableOpacity>
-					<Text style={styles.headerTitle}>{i18n.t("Review.restaurantDetail.title")}</Text>
-					<View style={styles.headerRightSpacer} />
-				</View>
+			<View style={styles.container}>
+				<ReviewHeader
+					title={i18n.t("Review.restaurantDetail.title")}
+					onPressBack={() => {
+						lightImpact();
+						router.back();
+					}}
+				/>
 				<View style={styles.errorContainer}>
 					<Text style={styles.errorText}>{i18n.t("Common.errors.notFound")}</Text>
 				</View>
-			</SafeAreaView>
+			</View>
 		);
 	}
 
@@ -138,22 +127,17 @@ export default function RestaurantDetailScreen() {
 	}
 
 	return (
-		<SafeAreaView edges={["top"]} style={styles.container}>
-			<View style={styles.headerContainer}>
-				<TouchableOpacity
-					style={styles.backButton}
-					onPress={() => {
-						lightImpact();
-						router.back();
-					}}>
-					<ChevronLeft size={24} color="#1A1A1A" />
-				</TouchableOpacity>
-				<Text style={styles.headerTitle}>{i18n.t("Review.restaurantDetail.title")}</Text>
-				<View style={styles.headerRightSpacer} />
-			</View>
+		<View style={styles.container}>
+			<ReviewHeader
+				title={i18n.t("Review.restaurantDetail.title")}
+				onPressBack={() => {
+					lightImpact();
+					router.back();
+				}}
+			/>
 
 			<SelectedRestaurantDetails restaurantEntry={restaurant} />
-		</SafeAreaView>
+		</View>
 	);
 }
 
@@ -161,30 +145,6 @@ const styles = StyleSheet.create({
 	container: {
 		flex: 1,
 		backgroundColor: "#FFFFFF",
-	},
-	headerContainer: {
-		backgroundColor: "#FFFFFF",
-		paddingVertical: 16,
-		paddingHorizontal: 16,
-		borderBottomWidth: 1,
-		borderBottomColor: "#E5E7EB",
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-	},
-	backButton: {
-		padding: 4,
-		marginRight: 8,
-	},
-	headerTitle: {
-		fontSize: 18,
-		fontWeight: "700",
-		color: "#1A1A1A",
-		textAlign: "center",
-		flex: 1,
-	},
-	headerRightSpacer: {
-		width: 32,
 	},
 	loadingContainer: {
 		flex: 1,
