@@ -74,7 +74,12 @@ export function AvatarBubbleMarker({
 			{...props}
 			zIndex={isActive ? 2 : 1}
 			tracksViewChanges={tracksViewChanges}
-			// anchorは画像下寄せ（Androidは尻尾なしなので少し上気味）
+			// anchorは画像下寄せ。プラットフォームごとに値が異なる理由:
+			// - iOS / Web: y=0.85 にすることで「吹き出し+尻尾」の先端が実座標に重なるように配置
+			// - Android: Marker children が内部でビットマップ化され、下方向がクリップされやすいため
+			//   ・尻尾を描かない前提で、円のやや上側を原点とする必要がある
+			//   ・iOS / Web と同じ y=0.85 を使うと、クリッピングされたビットマップ基準でさらに下にずれて見える
+			// → ビットマップの描画領域制限と視覚的な位置合わせを両立するため、Android だけ y=0.5 を使用する
 			anchor={{ x: 0.5, y: Platform.OS === "android" ? 0.5 : 0.85 }}>
 			<View style={[styles.container, { width: bubbleSize, height: bubbleSize + 4 }]}>
 				{/* 吹き出し本体 */}
