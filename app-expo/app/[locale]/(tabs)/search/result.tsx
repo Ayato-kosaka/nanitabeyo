@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Platform, Share } from "react-native";
+import { View, StyleSheet, TouchableOpacity, Platform } from "react-native";
 import { X, Share2 } from "lucide-react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import DishMediaMap from "@/features/dishMedia/components/DishMediaMap";
@@ -82,6 +82,8 @@ export default function ResultScreen() {
 
 	// #659 【機能】一括シェアボタン処理 - アクティブメディアを先頭にシェア
 	const handleBulkShare = useCallback(async () => {
+		lightImpact();
+
 		if (!entriesKey) return;
 
 		// #659 【設計】ストアをサブスクリプションせず、getState() で単発読み取り
@@ -119,7 +121,7 @@ export default function ResultScreen() {
 			restaurant,
 			idsForShare: targetIds,
 		});
-	}, [entriesKey, currentIndex, lightImpact, logFrontendEvent]);
+	}, [entriesKey, currentIndex, lightImpact, logFrontendEvent, shareRestaurant]);
 
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
