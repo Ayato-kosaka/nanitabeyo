@@ -18,7 +18,6 @@ import { timeSlots, sceneOptions, moodOptions, tasteOptions } from "@/features/s
 import i18n from "@/lib/i18n";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useLogger } from "@/hooks/useLogger";
 import { makeDishMediaEntriesKey } from "@/features/dishMedia/utils/dishMediaEntriesKey";
 import { WIKIMEDIA_HEADERS } from "@/lib/wikimedia";
@@ -179,7 +178,7 @@ export default function TopicsScreen() {
 	// カルーセルに使える「縦方向の空きスペース」を測る
 	const [carouselAvailableHeight, setCarouselAvailableHeight] = useState(0);
 
-	// ✅ 実際にカルーセルに渡す高さ：「空きの 90%」かつ「最大 60% まで」
+	// ✅ 実際にカルーセルに渡す高さ：「空きの高さ」と「CARD_MAX_HEIGHT」の小さい方
 	const cardHeight = useMemo(() => {
 		if (carouselAvailableHeight <= 0) return 0;
 		const heightWithMargin = carouselAvailableHeight;

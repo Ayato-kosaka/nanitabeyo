@@ -5,7 +5,7 @@ import { ChevronLeft } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import i18n from "@/lib/i18n";
 
-export type ReviewHeaderProps = {
+export type SearchHeaderProps = {
 	/** 表示するタイトル（i18n 済み文字列） */
 	title: string;
 	/** 戻るボタン押下時のハンドラ（画面側で router.back() や haptics を制御） */
@@ -18,7 +18,7 @@ export type ReviewHeaderProps = {
 	titleStyle?: StyleProp<TextStyle>;
 };
 
-export function SearchHeader({ title, onPressBack, rightContent, containerStyle, titleStyle }: ReviewHeaderProps) {
+export function SearchHeader({ title, onPressBack, rightContent, containerStyle, titleStyle }: SearchHeaderProps) {
 	const insets = useSafeAreaInsets();
 	return (
 		<View style={[{ paddingTop: insets.top + 8 }, styles.container, containerStyle]}>
