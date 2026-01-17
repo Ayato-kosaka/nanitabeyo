@@ -99,7 +99,7 @@
 		"timeSlots": {
 			"morning": "朝食",
 			"lunch": "ランチ",
-			"dinner": "ディナー",
+			"dinner": "夜ごはん",
 			"lateNight": "夜食"
 		},
 		"sceneOptions": {
@@ -233,7 +233,14 @@
 		"map": "マップ",
 		"review": "レビュー",
 		"notifications": "通知",
-		"profile": "プロフィール"
+		"profile": "プロフィール",
+		"labels": {
+			"search": "さがす",
+			"map": "マップ",
+			"review": "レビュー",
+			"notifications": "お知らせ",
+			"profile": "マイページ"
+		}
 	},
 	"Profile": {
 		"tabs": {

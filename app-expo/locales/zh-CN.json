@@ -233,7 +233,14 @@
 		"map": "地图",
 		"review": "评论",
 		"notifications": "通知",
-		"profile": "个人资料"
+		"profile": "个人资料",
+		"labels": {
+			"search": "搜索",
+			"map": "地图",
+			"review": "评论",
+			"notifications": "通知",
+			"profile": "个人资料"
+		}
 	},
 	"Profile": {
 		"tabs": {

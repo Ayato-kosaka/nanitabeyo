@@ -233,7 +233,14 @@
 		"map": "지도",
 		"review": "리뷰",
 		"notifications": "알림",
-		"profile": "프로필"
+		"profile": "프로필",
+		"labels": {
+			"search": "검색",
+			"map": "지도",
+			"review": "리뷰",
+			"notifications": "알림",
+			"profile": "프로필"
+		}
 	},
 	"Profile": {
 		"tabs": {

@@ -233,7 +233,14 @@
 		"map": "Map",
 		"review": "Review",
 		"notifications": "Notifications",
-		"profile": "Profile"
+		"profile": "Profile",
+		"labels": {
+			"search": "Search",
+			"map": "Map",
+			"review": "Review",
+			"notifications": "Notifications",
+			"profile": "Profile"
+		}
 	},
 	"Profile": {
 		"tabs": {

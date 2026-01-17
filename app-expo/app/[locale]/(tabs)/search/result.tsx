@@ -1,15 +1,21 @@
 import React, { useCallback, useEffect, useMemo } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from "react-native";
-import { X } from "lucide-react-native";
+import { View, StyleSheet, TouchableOpacity, Platform } from "react-native";
+import { X, Share2 } from "lucide-react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import DishMediaMap from "@/features/dishMedia/components/DishMediaMap";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSearchResult } from "@/features/search/hooks/useSearchResult";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
-import { DishMediaEntriesStore, selectIdsByKey, useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
+import {
+	DishMediaEntriesStore,
+	selectEntryByMediaId,
+	selectIdsByKey,
+	useDishMediaEntriesStore,
+} from "@/stores/useDishMediaEntriesStore";
 import { shallow } from "zustand/shallow";
 import { RestaurantLoading } from "@/features/dishMedia/components/RestaurantLoading";
+import { useDishMediaActions } from "@/features/dishMedia/hooks/useDishMediaActions";
 
 const idType = "dish_media" as const;
 export default function ResultScreen() {
@@ -17,6 +23,7 @@ export default function ResultScreen() {
 	const { entriesKey, location } = useLocalSearchParams<{ entriesKey: string; location?: string }>();
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
+	const { shareRestaurant } = useDishMediaActions({ source: "search_result_screen" });
 
 	// #633 【防御】entriesKey が undefined の場合は戻る（クラッシュ防止）
 	useEffect(() => {
@@ -73,12 +80,59 @@ export default function ResultScreen() {
 		handleClose();
 	};
 
+	// #659 【機能】一括シェアボタン処理 - アクティブメディアを先頭にシェア
+	const handleBulkShare = useCallback(async () => {
+		lightImpact();
+
+		if (!entriesKey) return;
+
+		// #659 【設計】ストアをサブスクリプションせず、getState() で単発読み取り
+		const state = useDishMediaEntriesStore.getState();
+		const { ids } = selectIdsByKey(entriesKey, idType)(state);
+
+		if (!ids || ids.length === 0) return;
+
+		// #659 【防御】currentIndex の安全な取得と範囲チェック
+		const index = Number.isFinite(currentIndex) ? currentIndex : 0;
+		const safeIndex = Math.min(Math.max(index, 0), ids.length - 1);
+		const dishMediaId = ids[safeIndex];
+
+		// #659 【設計】アクティブメディアを先頭に並び替えたID配列を作成
+		const targetIds = [...ids.slice(safeIndex), ...ids.slice(0, safeIndex)];
+		if (targetIds.length === 0) return;
+
+		const restaurant = selectEntryByMediaId(dishMediaId)(state)?.restaurant;
+		if (!restaurant) return;
+
+		// #659 【ログ】一括シェアイベント記録
+		logFrontendEvent({
+			event_name: "search_result_bulk_share",
+			error_level: "log",
+			payload: {
+				entriesKey,
+				currentIndex,
+				shared_ids: targetIds,
+			},
+		});
+
+		// #659 【設計】shareRestaurant に idsForShare を渡して一括シェア実行
+		return shareRestaurant({
+			dishMediaId,
+			restaurant,
+			idsForShare: targetIds,
+		});
+	}, [entriesKey, currentIndex, lightImpact, logFrontendEvent, shareRestaurant]);
+
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
 			{/* Header with Back Button */}
 			<View style={{ ...styles.closeButtonContainer, top: Platform.OS === "ios" ? 40 : 0 }}>
 				<TouchableOpacity style={styles.closeButton} onPress={handleCloseWithHaptic}>
 					<X size={24} color="#000" />
+				</TouchableOpacity>
+				{/* #659 【UI】一括シェアボタン - 閉じるボタンの直下に配置 */}
+				<TouchableOpacity style={styles.shareButton} onPress={handleBulkShare}>
+					<Share2 size={24} color="#000" />
 				</TouchableOpacity>
 			</View>
 
@@ -109,9 +163,9 @@ const styles = StyleSheet.create({
 	closeButtonContainer: {
 		position: "absolute",
 		right: 0,
-		flexDirection: "row",
+		flexDirection: "column", // #659 【UI】縦並びに変更（閉じるボタンとシェアボタン）
 		alignItems: "center",
-		justifyContent: "space-between",
+		justifyContent: "flex-start",
 		padding: 16,
 		zIndex: 10,
 	},
@@ -124,5 +178,17 @@ const styles = StyleSheet.create({
 		shadowOpacity: 0.3,
 		shadowRadius: 12,
 		elevation: 6,
+	},
+	// #659 【UI】一括シェアボタンスタイル - closeButton と同じデザイン
+	shareButton: {
+		padding: 8,
+		borderRadius: 24,
+		backgroundColor: "#FFFFFF",
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 0 },
+		shadowOpacity: 0.3,
+		shadowRadius: 12,
+		elevation: 6,
+		marginTop: 8, // #659 【UI】閉じるボタンとの間隔
 	},
 });
