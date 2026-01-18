@@ -50,17 +50,9 @@ export function LocationSearchForm({
 			<Text style={styles.modalTitle}>{title}</Text>
 			<View style={styles.locationSection}>
 				{/* #681 【設計】新しい API で LocationAutocomplete を使用 */}
+				{/* onSuggestionSelect で処理するため onLocationChange は省略 */}
 				<LocationAutocomplete
-					onLocationChange={() => {}}
 					onSuggestionSelect={handleSuggestionSelect}
-					initialLocation={
-						initialLocationText
-							? {
-									location: { location: { latitude: 0, longitude: 0 }, address: "", localLanguageCode: "" },
-									label: initialLocationText,
-								}
-							: undefined
-					}
 					placeholder={placeholder}
 					autofocus={true}
 					testID={testID}

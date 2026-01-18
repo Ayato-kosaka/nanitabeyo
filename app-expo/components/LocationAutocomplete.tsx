@@ -12,8 +12,9 @@ interface LocationAutocompleteProps {
 	 * 選択された LocationDetails と表示用ラベルを親に返す
 	 * - location: Place Details / 現在地の詳細（null の場合は未選択）
 	 * - label: 画面上でユーザーに見せるための文字列（例: "渋谷駅", "現在地"）
+	 * - onSuggestionSelect が指定されている場合はオプション
 	 */
-	onLocationChange: (payload: {
+	onLocationChange?: (payload: {
 		location: Omit<LocationDetailsResponse, "viewport"> | null;
 		label: string | null;
 	}) => void;
@@ -164,7 +165,7 @@ export function LocationAutocomplete({
 				setShowSuggestions(false);
 				// #681 【設計】親に location と label を返す（viewport は除外）
 				const { viewport, ...locationWithoutViewport } = locationDetails;
-				onLocationChange({
+				onLocationChange?.({
 					location: locationWithoutViewport,
 					label: suggestion.mainText,
 				});
@@ -188,7 +189,7 @@ export function LocationAutocomplete({
 		lightImpact();
 		setInputText("");
 		setSelectedLabel(null);
-		onLocationChange({ location: null, label: null });
+		onLocationChange?.({ location: null, label: null });
 		inputRef.current?.focus();
 	}, [lightImpact, onLocationChange]);
 
@@ -203,7 +204,7 @@ export function LocationAutocomplete({
 			setInputText("");
 			setShowSuggestions(false);
 			// #681 【設計】親に現在地情報を返す
-			onLocationChange({
+			onLocationChange?.({
 				location: currentLocation,
 				label: label,
 			});
