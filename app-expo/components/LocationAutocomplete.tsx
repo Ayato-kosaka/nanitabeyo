@@ -185,7 +185,7 @@ export function LocationAutocomplete({
 					keyboardType="default"
 					returnKeyType="search"
 					accessibilityLabel={i18n.t("Search.sections.location")}
-					accessibilityHint="Enter a location to search for restaurants"
+					accessibilityHint={i18n.t("Search.accessibility.locationInputHint")}
 					testID={`${testID}-input`}
 				/>
 				{/* Clear button */}
@@ -194,7 +194,7 @@ export function LocationAutocomplete({
 						style={styles.clearButton}
 						onPress={handleClear}
 						accessibilityRole="button"
-						accessibilityLabel="Clear location"
+						accessibilityLabel={i18n.t("Search.accessibility.clearLocation")}
 						testID={`${testID}-clear`}>
 						<X size={16} color="#6B7280" />
 					</TouchableOpacity>
@@ -223,10 +223,10 @@ export function LocationAutocomplete({
 								key={suggestion.place_id || index}
 								style={[styles.suggestionItem, index === suggestions.length - 1 && styles.lastSuggestionItem]}
 								onPress={() => handleSuggestionPress(suggestion)}
-								accessibilityRole="button"
-								accessibilityLabel={suggestion.text}
-								accessibilityHint="Select this location"
-								testID={`${testID}-suggestion-${index}`}>
+							accessibilityRole="button"
+							accessibilityLabel={suggestion.text}
+							accessibilityHint={i18n.t("Search.accessibility.selectLocation")}
+							testID={`${testID}-suggestion-${index}`}>
 								{isFoodAndDrinkPlaceForUser(suggestion) ? (
 									<Utensils size={16} color="#6B7280" />
 								) : (
@@ -247,7 +247,7 @@ export function LocationAutocomplete({
 			{/* No results message */}
 			{showSuggestions && !isSearching && suggestions.length === 0 && hasEnoughCharsForSearch && (
 				<View style={styles.noResultsContainer}>
-					<Text style={styles.noResultsText}>No locations found</Text>
+					<Text style={styles.noResultsText}>{i18n.t("Search.noLocationsFound")}</Text>
 				</View>
 			)}
 		</View>

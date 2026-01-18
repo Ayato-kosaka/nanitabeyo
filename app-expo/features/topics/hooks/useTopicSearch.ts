@@ -19,6 +19,7 @@ import type {
 import { useLocale } from "@/hooks/useLocale";
 import { getRemoteConfig } from "@/lib/remoteConfig";
 import { useLogger } from "@/hooks/useLogger";
+import i18n from "@/lib/i18n";
 import { CARD_WIDTH, DEFAULT_SEARCH_RADIUS, DEFAULT_PRICE_LEVELS } from "../constants";
 
 export const useTopicSearch = () => {
@@ -221,7 +222,7 @@ export const useTopicSearch = () => {
 				// 		isHidden: false,
 				// 	}));
 			} catch (err) {
-				const errorMessage = err instanceof Error ? err.message : "おすすめ検索に失敗しました";
+				const errorMessage = err instanceof Error ? err.message : i18n.t("Topics.errors.fetchFailed");
 				setError(errorMessage);
 				throw new Error(errorMessage);
 			} finally {
