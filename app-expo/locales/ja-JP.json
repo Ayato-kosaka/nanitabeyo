@@ -72,7 +72,13 @@
 		"placeholders": {
 			"enterLocation": "場所を入力してください"
 		},
+		"accessibility": {
+			"locationInputHint": "レストランを検索する場所を入力してください",
+			"clearLocation": "場所をクリア",
+			"selectLocation": "この場所を選択"
+		},
 		"loading": "検索中...",
+		"noLocationsFound": "場所が見つかりません",
 		"advancedToggle": {
 			"open": "さらにこだわる",
 			"close": "詳細検索を閉じる"
@@ -400,7 +406,10 @@
 			"dishCategorySelected": "{{category}}を選択しました",
 			"dishCategorySearching": "料理カテゴリを検索中",
 			"dishCategorySuggestionsFound": "{{count}}件の候補が見つかりました",
-			"dishCategoryNoResults": "一致する料理カテゴリが見つかりませんでした"
+			"dishCategoryNoResults": "一致する料理カテゴリが見つかりませんでした",
+			"dishCategoryInputHint": "料理カテゴリを入力して検索してください",
+			"clearDishCategory": "料理カテゴリをクリア",
+			"selectDishCategory": "この料理カテゴリを選択"
 		},
 		"errors": {
 			"dishCategoryCreateFailed": "料理カテゴリの作成に失敗しました",
@@ -523,7 +532,14 @@
 		"terms": "利用規約",
 		"privacy": "プライバシーポリシー",
 		"copyright": "著作権",
+		"legalDocument": "法的文書",
 		"logout": "ログアウト"
+	},
+	"Dialog": {
+		"a11y": {
+			"dialog": "ダイアログ",
+			"dialogWithTitle": "{{title}} ダイアログ"
+		}
 	},
 	"Tools": {
 		"DishCategoryImageOptimizer": {

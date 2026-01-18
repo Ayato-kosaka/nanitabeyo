@@ -72,7 +72,13 @@
 		"placeholders": {
 			"enterLocation": "أدخل موقعًا"
 		},
+		"accessibility": {
+			"locationInputHint": "أدخل موقعًا للبحث عن المطاعم",
+			"clearLocation": "مسح الموقع",
+			"selectLocation": "اختر هذا الموقع"
+		},
 		"loading": "جارٍ البحث...",
+		"noLocationsFound": "لم يتم العثور على مواقع",
 		"advancedToggle": {
 			"open": "خيارات إضافية",
 			"close": "إغلاق البحث المتقدم"
@@ -400,7 +406,10 @@
 			"dishCategorySelected": "تم اختيار {{category}}",
 			"dishCategorySearching": "البحث عن فئات الأطباق",
 			"dishCategorySuggestionsFound": "تم العثور على {{count}} اقتراحات",
-			"dishCategoryNoResults": "لم يتم العثور على فئات أطباق مطابقة"
+			"dishCategoryNoResults": "لم يتم العثور على فئات أطباق مطابقة",
+			"dishCategoryInputHint": "أدخل فئة الطبق للبحث",
+			"clearDishCategory": "مسح فئة الطبق",
+			"selectDishCategory": "اختر فئة الطبق هذه"
 		},
 		"errors": {
 			"dishCategoryCreateFailed": "فشل في إنشاء فئة الطبق",
@@ -523,7 +532,14 @@
 		"terms": "الشروط والأحكام",
 		"privacy": "سياسة الخصوصية",
 		"copyright": "حقوق النشر",
+		"legalDocument": "مستند قانوني",
 		"logout": "تسجيل الخروج"
+	},
+	"Dialog": {
+		"a11y": {
+			"dialog": "مربع حوار",
+			"dialogWithTitle": "مربع حوار {{title}}"
+		}
 	},
 	"Tools": {
 		"DishCategoryImageOptimizer": {
