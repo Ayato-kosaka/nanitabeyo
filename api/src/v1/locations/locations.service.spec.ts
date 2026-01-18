@@ -326,7 +326,9 @@ describe('LocationsService', () => {
 
       expect(result).toBeDefined();
       expect(result.address).toContain('country:Japan');
-      expect(result.address).toContain('administrative_area_level_1:Oita Prefecture');
+      expect(result.address).toContain(
+        'administrative_area_level_1:Oita Prefecture',
+      );
       expect(result.address).toContain('locality:Oita City');
     });
   });

@@ -1,5 +1,14 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
+import {
+	View,
+	Text,
+	StyleSheet,
+	ScrollView,
+	TouchableOpacity,
+	ActivityIndicator,
+	Dimensions,
+	Pressable,
+} from "react-native";
 import {
 	MapPin,
 	Search,
@@ -43,6 +52,20 @@ import { TutorialBottomSheet } from "@/features/search/components/TutorialBottom
 import { useSearchTutorial } from "@/features/search/hooks/useSearchTutorial";
 import { Image } from "expo-image";
 import { PrimaryButton } from "@/components/PrimaryButton";
+
+// #667 【設計】画面幅ベースでアイテムサイズを計算（4列グリッド）
+const SCREEN_WIDTH = Dimensions.get("window").width;
+const HORIZONTAL_PADDING = 16;
+const ITEM_GAP = 8;
+const NUM_COLUMNS = 4;
+const ITEM_WIDTH = (SCREEN_WIDTH - HORIZONTAL_PADDING * 2 - ITEM_GAP * (NUM_COLUMNS - 1)) / NUM_COLUMNS;
+
+// #667 【設計】ムード用の円形アイコンサイズ（小・中・大）
+const MOOD_ICON_SIZES = {
+	light: 8,
+	normal: 12,
+	heavy: 16,
+} as const;
 
 export default function SearchScreen() {
 	const locale = useLocale();
@@ -341,8 +364,8 @@ export default function SearchScreen() {
 					</View>
 				</Card>
 
-				{/* Time of Day */}
-				<Card>
+				{/* #667 【設計】Time of Day - カード無し、画像グリッド表示（4列1行） */}
+				<View style={styles.section}>
 					<View style={styles.sectionHeader}>
 						<Clock size={20} color="#F05537" />
 						<Text style={styles.sectionTitle}>{i18n.t("Search.sections.time")}</Text>
@@ -350,23 +373,30 @@ export default function SearchScreen() {
 							<Text style={styles.requiredText}>{i18n.t("Search.required")}</Text>
 						</View>
 					</View>
-					<View style={styles.chipGrid}>
+					<View style={styles.gridContainer}>
 						{timeSlots.map((slot) => (
-							<TouchableOpacity
+							<Pressable
 								key={slot.id}
-								style={[styles.chip, timeSlot === slot.id && styles.selectedChip]}
+								style={[styles.gridItem, timeSlot === slot.id && styles.selectedGridItem]}
 								onPress={() => handleTimeSlotSelect(slot.id)}>
-								<Text style={styles.chipEmoji}>{slot.icon}</Text>
-								<Text style={[styles.chipText, timeSlot === slot.id && styles.selectedChipText]}>
+								<Image
+									source={slot.image}
+									style={{ width: ITEM_WIDTH, height: ITEM_WIDTH }}
+									contentFit="cover"
+									transition={0}
+									priority="high"
+									cachePolicy="memory"
+								/>
+								<Text style={[styles.gridItemLabel, timeSlot === slot.id && styles.selectedGridItemLabel]}>
 									{i18n.t(slot.label)}
 								</Text>
-							</TouchableOpacity>
+							</Pressable>
 						))}
 					</View>
-				</Card>
+				</View>
 
-				{/* Scene */}
-				<Card>
+				{/* #667 【設計】Scene - カード無し、画像グリッド表示（4列2行） */}
+				<View style={styles.section}>
 					<View style={styles.sectionHeader}>
 						<Users size={20} color="#F05537" />
 						<Text style={styles.sectionTitle}>{i18n.t("Search.sections.scene")}</Text>
@@ -374,41 +404,54 @@ export default function SearchScreen() {
 							<Text style={styles.requiredText}>{i18n.t("Search.required")}</Text>
 						</View>
 					</View>
-					<View style={styles.chipGrid}>
+					<View style={styles.gridContainer}>
 						{sceneOptions.map((option) => (
-							<TouchableOpacity
+							<Pressable
 								key={option.id}
-								style={[styles.chip, scene === option.id && styles.selectedChip]}
+								style={[styles.gridItem, scene === option.id && styles.selectedGridItem]}
 								onPress={() => handleSceneSelect(option.id)}>
-								<Text style={styles.chipEmoji}>{option.icon}</Text>
-								<Text style={[styles.chipText, scene === option.id && styles.selectedChipText]}>
+								<Image
+									source={option.image}
+									style={{ width: ITEM_WIDTH, height: ITEM_WIDTH }}
+									contentFit="cover"
+									transition={0}
+									priority="high"
+									cachePolicy="memory"
+								/>
+								<Text style={[styles.gridItemLabel, scene === option.id && styles.selectedGridItemLabel]}>
 									{i18n.t(option.label)}
 								</Text>
-							</TouchableOpacity>
+							</Pressable>
 						))}
 					</View>
-				</Card>
+				</View>
 
-				{/* Mood */}
-				<Card>
+				{/* #667 【設計】Mood - カード無し、円形アイコン横並び（画像なし） */}
+				<View style={styles.section}>
 					<View style={styles.sectionHeader}>
 						<Salad size={20} color="#F05537" />
 						<Text style={styles.sectionTitle}>{i18n.t("Search.sections.mood")}</Text>
 					</View>
-					<View style={styles.chipGrid}>
+					<View style={styles.moodContainer}>
 						{moodOptions.map((option) => (
-							<TouchableOpacity
-								key={option.id}
-								style={[styles.chip, mood === option.id && styles.selectedChip]}
-								onPress={() => handleMoodSelect(option.id)}>
-								<Text style={styles.chipEmoji}>{option.icon}</Text>
-								<Text style={[styles.chipText, mood === option.id && styles.selectedChipText]}>
+							<Pressable key={option.id} style={styles.moodItem} onPress={() => handleMoodSelect(option.id)}>
+								<View
+									style={[
+										styles.moodCircle,
+										{
+											width: MOOD_ICON_SIZES[option.id as keyof typeof MOOD_ICON_SIZES],
+											height: MOOD_ICON_SIZES[option.id as keyof typeof MOOD_ICON_SIZES],
+										},
+										mood === option.id && styles.selectedMoodCircle,
+									]}
+								/>
+								<Text style={[styles.moodLabel, mood === option.id && styles.selectedMoodLabel]}>
 									{i18n.t(option.label)}
 								</Text>
-							</TouchableOpacity>
+							</Pressable>
 						))}
 					</View>
-				</Card>
+				</View>
 
 				{/* Advanced Filters Toggle */}
 				{!showAdvancedFilters && (
@@ -782,5 +825,70 @@ const styles = StyleSheet.create({
 		color: "#F05537",
 		fontWeight: "600",
 		marginLeft: 12,
+	},
+	// #667 【設計】カード無しセクションのスタイル
+	section: {
+		paddingHorizontal: HORIZONTAL_PADDING,
+		marginBottom: 24,
+	},
+	// #667 【設計】画像グリッドコンテナ（4列、flexWrap）
+	gridContainer: {
+		flexDirection: "row",
+		flexWrap: "wrap",
+		gap: ITEM_GAP,
+	},
+	// #667 【設計】グリッドアイテム（画像+ラベル）
+	gridItem: {
+		width: ITEM_WIDTH,
+		alignItems: "center",
+		borderRadius: 8,
+		overflow: "hidden",
+	},
+	selectedGridItem: {
+		opacity: 0.8, // #667 【設計】選択時は少し暗くして視認性向上
+	},
+	// #667 【設計】グリッドアイテムのラベル
+	gridItemLabel: {
+		marginTop: 4,
+		fontSize: 11,
+		color: "#6B7280",
+		fontWeight: "500",
+		textAlign: "center",
+	},
+	selectedGridItemLabel: {
+		color: "#F05537",
+		fontWeight: "700",
+	},
+	// #667 【設計】ムード用の横並びコンテナ
+	moodContainer: {
+		flexDirection: "row",
+		justifyContent: "space-around",
+		alignItems: "center",
+		paddingVertical: 16,
+	},
+	// #667 【設計】ムード個別アイテム（円+ラベル縦並び）
+	moodItem: {
+		flex: 1,
+		alignItems: "center",
+		gap: 8,
+	},
+	// #667 【設計】ムードの円形アイコン
+	moodCircle: {
+		backgroundColor: "#6B7280",
+		borderRadius: 100, // 完全な円
+	},
+	selectedMoodCircle: {
+		backgroundColor: "#F05537", // #667 【設計】選択時は赤色に変更
+	},
+	// #667 【設計】ムードのラベル
+	moodLabel: {
+		fontSize: 13,
+		color: "#6B7280",
+		fontWeight: "500",
+		textAlign: "center",
+	},
+	selectedMoodLabel: {
+		color: "#F05537",
+		fontWeight: "700",
 	},
 });

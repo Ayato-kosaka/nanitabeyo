@@ -3,18 +3,28 @@ import i18n from "@/lib/i18n";
 import type { TutorialPageConst } from "./components/TutorialBottomSheet";
 
 export const timeSlots = [
-	{ id: "morning", label: "Search.timeSlots.morning", icon: "🌅" },
-	{ id: "lunch", label: "Search.timeSlots.lunch", icon: "🌞" },
-	{ id: "dinner", label: "Search.timeSlots.dinner", icon: "🌙" },
-	{ id: "late_night", label: "Search.timeSlots.lateNight", icon: "🌃" },
+	{ id: "morning", label: "Search.timeSlots.morning", icon: "🌅", image: require("./assets/timeSlots/morning.webp") },
+	{ id: "lunch", label: "Search.timeSlots.lunch", icon: "🌞", image: require("./assets/timeSlots/lunch.webp") },
+	{ id: "dinner", label: "Search.timeSlots.dinner", icon: "🌙", image: require("./assets/timeSlots/dinner.webp") },
+	{
+		id: "late_night",
+		label: "Search.timeSlots.lateNight",
+		icon: "🌃",
+		image: require("./assets/timeSlots/late_night.webp"),
+	},
 ] as const;
 
 export const sceneOptions = [
-	{ id: "solo", label: "Search.sceneOptions.solo", icon: "👤" },
-	{ id: "date", label: "Search.sceneOptions.date", icon: "💕" },
-	{ id: "friends", label: "Search.sceneOptions.friends", icon: "👥" },
-	{ id: "family", label: "Search.sceneOptions.family", icon: "👪" },
-	{ id: "drinking", label: "Search.sceneOptions.drinking", icon: "🍻" },
+	{ id: "solo", label: "Search.sceneOptions.solo", icon: "👤", image: require("./assets/scenes/solo.webp") },
+	{ id: "date", label: "Search.sceneOptions.date", icon: "💕", image: require("./assets/scenes/date.webp") },
+	{ id: "friends", label: "Search.sceneOptions.friends", icon: "👥", image: require("./assets/scenes/friends.webp") },
+	{ id: "family", label: "Search.sceneOptions.family", icon: "👪", image: require("./assets/scenes/family.webp") },
+	{
+		id: "drinking",
+		label: "Search.sceneOptions.drinking",
+		icon: "🍻",
+		image: require("./assets/scenes/drinking.webp"),
+	},
 ] as const;
 
 export const moodOptions = [
