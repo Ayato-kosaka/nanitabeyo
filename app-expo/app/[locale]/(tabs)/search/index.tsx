@@ -664,7 +664,7 @@ const styles = StyleSheet.create({
 	},
 	selectedGridItem: {
 		borderColor: "#000000",
-		backgroundColor: "#EDEDED",
+		backgroundColor: "#E5E5E5",
 	},
 	gridItemImage: {
 		borderRadius: 16,
@@ -745,7 +745,7 @@ const styles = StyleSheet.create({
 	},
 	selectedChip: {
 		// 濃い灰色
-		backgroundColor: "#EDEDED",
+		backgroundColor: "#E5E5E5",
 		borderColor: "#000000",
 	},
 	chipEmoji: {
