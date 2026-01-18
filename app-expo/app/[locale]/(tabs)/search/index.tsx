@@ -330,6 +330,7 @@ export default function SearchScreen() {
 							onSelectSuggestion={handleLocationSelect}
 							onClear={handleLocationClear}
 							placeholder={i18n.t("Search.placeholders.enterLocation")}
+							autoClearOnFocus={locationQuery === i18n.t("Search.currentLocation")}
 							renderInputRight={
 								<TouchableOpacity style={styles.currentLocationButton} onPress={handleUseCurrentLocation}>
 									<Navigation size={20} color="#5EA2FF" />
