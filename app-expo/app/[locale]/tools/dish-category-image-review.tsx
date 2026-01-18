@@ -2014,7 +2014,7 @@ const styles = StyleSheet.create({
 		paddingVertical: 12,
 		backgroundColor: "#FFF",
 		borderBottomWidth: 1,
-		borderBottomColor: "#E5E7EB",
+		borderBottomColor: "#C9C9C9",
 	},
 	headerTitle: {
 		fontSize: 20,
@@ -2031,7 +2031,7 @@ const styles = StyleSheet.create({
 		paddingVertical: 12,
 		backgroundColor: "#FFF",
 		borderBottomWidth: 1,
-		borderBottomColor: "#E5E7EB",
+		borderBottomColor: "#C9C9C9",
 	},
 	descriptionToggle: {
 		flexDirection: "row",
@@ -2093,7 +2093,7 @@ const styles = StyleSheet.create({
 		borderRadius: 8,
 		overflow: "hidden",
 		borderWidth: 2,
-		borderColor: "#E5E7EB",
+		borderColor: "#C9C9C9",
 	},
 	imageCardSelected: {
 		borderColor: "#22C55E",
@@ -2125,7 +2125,7 @@ const styles = StyleSheet.create({
 		padding: 16,
 		backgroundColor: "#FFF",
 		borderTopWidth: 1,
-		borderTopColor: "#E5E7EB",
+		borderTopColor: "#C9C9C9",
 	},
 	footerStatus: {
 		fontSize: 14,
@@ -2181,7 +2181,7 @@ const styles = StyleSheet.create({
 	modalImageContainer: {
 		borderRadius: 8,
 		overflow: "hidden",
-		backgroundColor: "#E5E7EB",
+		backgroundColor: "#C9C9C9",
 	},
 	modalSectionLabel: {
 		fontSize: 14,

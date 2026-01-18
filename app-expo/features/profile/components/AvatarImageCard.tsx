@@ -70,7 +70,7 @@ export function AvatarImageCard({ avatarUrl, onSelectImage, onLayout }: AvatarIm
 					activeOpacity={0.8}>
 					{isLoading ? (
 						<View style={styles.avatarPlaceholder}>
-							<ActivityIndicator size="large" color="#007AFF" />
+							<ActivityIndicator size="large" color="#F05537" />
 						</View>
 					) : avatarUrl ? (
 						<Image
@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
 		width: 36,
 		height: 36,
 		borderRadius: 18,
-		backgroundColor: "#007AFF",
+		backgroundColor: "#F05537",
 		justifyContent: "center",
 		alignItems: "center",
 		borderWidth: 2,

@@ -72,7 +72,13 @@
 		"placeholders": {
 			"enterLocation": "स्थान दर्ज करें"
 		},
+		"accessibility": {
+			"locationInputHint": "रेस्टोरेंट खोजने के लिए स्थान दर्ज करें",
+			"clearLocation": "स्थान साफ़ करें",
+			"selectLocation": "इस स्थान को चुनें"
+		},
 		"loading": "खोज जारी...",
+		"noLocationsFound": "कोई स्थान नहीं मिला",
 		"advancedToggle": {
 			"open": "अधिक विकल्प",
 			"close": "उन्नत खोज बंद करें"
@@ -401,7 +407,10 @@
 			"dishCategorySelected": "Selected {{category}}",
 			"dishCategorySearching": "Searching for dish categories",
 			"dishCategorySuggestionsFound": "Found {{count}} suggestions",
-			"dishCategoryNoResults": "No matching dish categories found"
+			"dishCategoryNoResults": "No matching dish categories found",
+			"dishCategoryInputHint": "खोजने के लिए डिश श्रेणी दर्ज करें",
+			"clearDishCategory": "डिश श्रेणी साफ़ करें",
+			"selectDishCategory": "इस डिश श्रेणी को चुनें"
 		},
 		"errors": {
 			"dishCategoryCreateFailed": "Failed to create dish category",
@@ -524,7 +533,14 @@
 		"terms": "नियम और शर्तें",
 		"privacy": "गोपनीयता नीति",
 		"copyright": "कॉपीराइट",
+		"legalDocument": "कानूनी दस्तावेज़",
 		"logout": "लॉग आउट"
+	},
+	"Dialog": {
+		"a11y": {
+			"dialog": "डायलॉग",
+			"dialogWithTitle": "{{title}} डायलॉग"
+		}
 	},
 	"Tools": {
 		"DishCategoryImageOptimizer": {

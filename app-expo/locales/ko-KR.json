@@ -72,7 +72,13 @@
 		"placeholders": {
 			"enterLocation": "위치를 입력하세요"
 		},
+		"accessibility": {
+			"locationInputHint": "레스토랑을 검색할 위치를 입력하세요",
+			"clearLocation": "위치 지우기",
+			"selectLocation": "이 위치 선택"
+		},
 		"loading": "검색 중...",
+		"noLocationsFound": "위치를 찾을 수 없습니다",
 		"advancedToggle": {
 			"open": "더 많은 옵션",
 			"close": "상세 검색 닫기"
@@ -400,7 +406,10 @@
 			"dishCategorySelected": "{{category}}를 선택했습니다",
 			"dishCategorySearching": "요리 카테고리 검색 중",
 			"dishCategorySuggestionsFound": "{{count}}개의 제안을 찾았습니다",
-			"dishCategoryNoResults": "일치하는 요리 카테고리를 찾을 수 없습니다"
+			"dishCategoryNoResults": "일치하는 요리 카테고리를 찾을 수 없습니다",
+			"dishCategoryInputHint": "검색할 음식 카테고리를 입력하세요",
+			"clearDishCategory": "음식 카테고리 지우기",
+			"selectDishCategory": "이 음식 카테고리 선택"
 		},
 		"errors": {
 			"dishCategoryCreateFailed": "요리 카테고리 생성 실패",
@@ -523,7 +532,14 @@
 		"terms": "이용약관",
 		"privacy": "개인정보 처리방침",
 		"copyright": "저작권",
+		"legalDocument": "법적 문서",
 		"logout": "로그아웃"
+	},
+	"Dialog": {
+		"a11y": {
+			"dialog": "대화 상자",
+			"dialogWithTitle": "{{title}} 대화 상자"
+		}
 	},
 	"Tools": {
 		"DishCategoryImageOptimizer": {

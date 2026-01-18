@@ -72,7 +72,13 @@
 		"placeholders": {
 			"enterLocation": "Enter a location"
 		},
+		"accessibility": {
+			"locationInputHint": "Enter a location to search for restaurants",
+			"clearLocation": "Clear location",
+			"selectLocation": "Select this location"
+		},
 		"loading": "Searching...",
+		"noLocationsFound": "No locations found",
 		"advancedToggle": {
 			"open": "More options",
 			"close": "Close advanced search"
@@ -400,7 +406,10 @@
 			"dishCategorySelected": "Selected {{category}}",
 			"dishCategorySearching": "Searching for dish categories",
 			"dishCategorySuggestionsFound": "Found {{count}} suggestions",
-			"dishCategoryNoResults": "No matching dish categories found"
+			"dishCategoryNoResults": "No matching dish categories found",
+			"dishCategoryInputHint": "Enter a dish category to search",
+			"clearDishCategory": "Clear dish category",
+			"selectDishCategory": "Select this dish category"
 		},
 		"errors": {
 			"dishCategoryCreateFailed": "Failed to create dish category",
@@ -523,7 +532,14 @@
 		"terms": "Terms and Conditions",
 		"privacy": "Privacy Policy",
 		"copyright": "Copyright",
+		"legalDocument": "Legal Document",
 		"logout": "Logout"
+	},
+	"Dialog": {
+		"a11y": {
+			"dialog": "Dialog",
+			"dialogWithTitle": "{{title}} dialog"
+		}
 	},
 	"Tools": {
 		"DishCategoryImageOptimizer": {

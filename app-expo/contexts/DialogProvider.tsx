@@ -453,7 +453,7 @@ export const DialogProvider = ({ children }: { children: ReactNode }) => {
 		(message: string, options?: ShowDialogOptions) => {
 			// i18n は「要求時」に評価（8）
 			const defaultCancel = i18n.t("Common.cancel");
-			const okLabel = options?.okLabel ?? "OK";
+			const okLabel = options?.okLabel ?? i18n.t("Common.ok");
 			const cancelLabel = options?.cancelLabel ?? defaultCancel;
 
 			const req: DialogRequest = {
@@ -525,7 +525,7 @@ export const DialogProvider = ({ children }: { children: ReactNode }) => {
 					id: makeId(),
 					title: options.title ?? "",
 					message: options.message,
-					confirmLabel: options.confirmLabel ?? "OK",
+					confirmLabel: options.confirmLabel ?? i18n.t("Common.ok"),
 					cancelLabel: options.cancelLabel ?? defaultCancel,
 					showCancel: options.showCancel ?? true,
 
@@ -560,7 +560,7 @@ export const DialogProvider = ({ children }: { children: ReactNode }) => {
 					id: makeId(),
 					title: options.title ?? "",
 					message: options.message,
-					confirmLabel: options.confirmLabel ?? "OK",
+					confirmLabel: options.confirmLabel ?? i18n.t("Common.ok"),
 					cancelLabel: options.cancelLabel ?? defaultCancel,
 
 					dismissable: options.dismissable ?? true,
@@ -693,7 +693,7 @@ export const DialogProvider = ({ children }: { children: ReactNode }) => {
 				// ignore
 			}
 
-			const msg = cur.errorMessage ?? "エラーが発生しました。もう一度お試しください。";
+			const msg = cur.errorMessage ?? i18n.t("Common.errors.unexpected");
 			setState((prev) => ({ ...prev, confirming: false, inlineError: msg }));
 
 			// 失敗時も閉じるか（1）
@@ -764,7 +764,7 @@ export const DialogProvider = ({ children }: { children: ReactNode }) => {
 				} catch {
 					// ignore
 				}
-				const msg = cur.errorMessage ?? "エラーが発生しました。";
+				const msg = cur.errorMessage ?? i18n.t("Common.error");
 				setState((prev) => ({ ...prev, inlineError: msg }));
 			} finally {
 				setState((prev) => ({ ...prev, confirming: false }));
@@ -777,7 +777,9 @@ export const DialogProvider = ({ children }: { children: ReactNode }) => {
 	const visible = state.visible && !!cur;
 
 	/** a11y 用のラベル */
-	const a11yLabel = cur?.accessibilityLabel ?? (cur?.title ? `${cur.title} ダイアログ` : "ダイアログ");
+	const a11yLabel =
+		cur?.accessibilityLabel ??
+		(cur?.title ? i18n.t("Dialog.a11y.dialogWithTitle", { title: cur.title }) : i18n.t("Dialog.a11y.dialog"));
 
 	/**
 	 * dismissable/backHandlerEnabled は confirm中は強制 false（1,6）

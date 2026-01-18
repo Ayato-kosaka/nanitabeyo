@@ -316,7 +316,7 @@ const styles = StyleSheet.create({
 	currentLocationButton: {
 		padding: 16,
 		borderLeftWidth: 0.5,
-		borderLeftColor: "#E5E7EB",
+		borderLeftColor: "#C9C9C9",
 	},
 	loadingOverlay: {
 		position: "absolute",

@@ -72,7 +72,13 @@
 		"placeholders": {
 			"enterLocation": "Saisissez un lieu"
 		},
+		"accessibility": {
+			"locationInputHint": "Saisissez un lieu pour rechercher des restaurants",
+			"clearLocation": "Effacer le lieu",
+			"selectLocation": "Sélectionner ce lieu"
+		},
 		"loading": "Recherche...",
+		"noLocationsFound": "Aucun lieu trouvé",
 		"advancedToggle": {
 			"open": "Plus d'options",
 			"close": "Fermer la recherche avancée"
@@ -400,7 +406,10 @@
 			"dishCategorySelected": "Sélectionné {{category}}",
 			"dishCategorySearching": "Recherche de catégories de plats",
 			"dishCategorySuggestionsFound": "{{count}} suggestions trouvées",
-			"dishCategoryNoResults": "Aucune catégorie de plat correspondante trouvée"
+			"dishCategoryNoResults": "Aucune catégorie de plat correspondante trouvée",
+			"dishCategoryInputHint": "Saisissez une catégorie de plat pour rechercher",
+			"clearDishCategory": "Effacer la catégorie de plat",
+			"selectDishCategory": "Sélectionner cette catégorie de plat"
 		},
 		"errors": {
 			"dishCategoryCreateFailed": "Échec de la création de la catégorie de plat",
@@ -523,7 +532,14 @@
 		"terms": "Conditions générales",
 		"privacy": "Politique de confidentialité",
 		"copyright": "Droits d'auteur",
+		"legalDocument": "Document juridique",
 		"logout": "Se déconnecter"
+	},
+	"Dialog": {
+		"a11y": {
+			"dialog": "Dialogue",
+			"dialogWithTitle": "Dialogue : {{title}}"
+		}
 	},
 	"Tools": {
 		"DishCategoryImageOptimizer": {

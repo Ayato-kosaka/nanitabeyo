@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
 	bidHistoryAmount: {
 		fontSize: 18,
 		fontWeight: "bold",
-		color: "#007AFF",
+		color: "#F05537",
 	},
 	bidHistoryDate: {
 		fontSize: 12,
