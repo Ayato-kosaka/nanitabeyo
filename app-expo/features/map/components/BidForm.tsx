@@ -58,7 +58,7 @@ export function BidForm({ initialBidAmount = "", onSubmit, onCancel, isProcessin
 
 			{isProcessing && (
 				<View style={styles.processingContainer}>
-					<ActivityIndicator size="large" color="#007AFF" />
+					<ActivityIndicator size="large" color="#F05537" />
 					<Text style={styles.processingText}>{i18n.t("Map.labels.paymentProcessing")}</Text>
 				</View>
 			)}

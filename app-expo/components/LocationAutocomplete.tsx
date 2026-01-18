@@ -261,11 +261,8 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		borderRadius: 16,
 		backgroundColor: "#F8F9FA",
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 1 },
-		shadowOpacity: 0.05,
-		shadowRadius: 2,
-		elevation: 1,
+		borderWidth: 1,
+		borderColor: "#C9C9C9",
 	},
 	input: {
 		flex: 1,

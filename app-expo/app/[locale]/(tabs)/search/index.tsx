@@ -1,14 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import {
-	View,
-	Text,
-	StyleSheet,
-	ScrollView,
-	TouchableOpacity,
-	ActivityIndicator,
-	Dimensions,
-	Pressable,
-} from "react-native";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Pressable } from "react-native";
 import {
 	MapPin,
 	Search,
@@ -28,7 +19,6 @@ import { SearchParams } from "@/types/search";
 import type { AutocompleteLocation, LocationDetailsResponse } from "@shared/api/v1/res";
 import { useLocationSearch } from "@/hooks/useLocationSearch";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
-import { Card } from "@/components/Card";
 import { LocationAutocomplete } from "@/components/LocationAutocomplete";
 import {
 	timeSlots,
@@ -39,6 +29,7 @@ import {
 	priceLevelOptions,
 	TUTORIAL_PAGES,
 	PRELOAD_IMAGES,
+	MOOD_ICON_SIZES,
 } from "@/features/search/constants";
 import { DistanceSlider } from "@/features/search/components/DistanceSlider";
 import { PriceLevelsMultiSelect } from "@/features/search/components/PriceLevelsMultiSelect";
@@ -56,16 +47,16 @@ import { PrimaryButton } from "@/components/PrimaryButton";
 // #667 【設計】画面幅ベースでアイテムサイズを計算（4列グリッド）
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const HORIZONTAL_PADDING = 16;
-const ITEM_GAP = 8;
+const ITEM_PADDING = 3;
+const BORDER_WIDTH = 2;
+const ITEM_GAP = 2;
 const NUM_COLUMNS = 4;
-const ITEM_WIDTH = (SCREEN_WIDTH - HORIZONTAL_PADDING * 2 - ITEM_GAP * (NUM_COLUMNS - 1)) / NUM_COLUMNS;
-
-// #667 【設計】ムード用の円形アイコンサイズ（小・中・大）
-const MOOD_ICON_SIZES = {
-	light: 8,
-	normal: 12,
-	heavy: 16,
-} as const;
+const ITEM_WIDTH =
+	(SCREEN_WIDTH -
+		HORIZONTAL_PADDING * 2 -
+		ITEM_GAP * (NUM_COLUMNS - 1) -
+		(ITEM_PADDING * 2 + BORDER_WIDTH * 2) * NUM_COLUMNS) /
+	NUM_COLUMNS;
 
 export default function SearchScreen() {
 	const locale = useLocale();
@@ -339,7 +330,7 @@ export default function SearchScreen() {
 				keyboardShouldPersistTaps="always"
 				showsVerticalScrollIndicator={false}>
 				{/* Location Input */}
-				<Card>
+				<View style={styles.section}>
 					<View style={styles.sectionHeader}>
 						<MapPin size={20} color="#F05537" />
 						<Text style={styles.sectionTitle}>{i18n.t("Search.sections.location")}</Text>
@@ -357,13 +348,13 @@ export default function SearchScreen() {
 							autoClearOnFocus={locationQuery === i18n.t("Search.currentLocation")}
 							renderInputRight={
 								<TouchableOpacity style={styles.currentLocationButton} onPress={handleUseCurrentLocation}>
-									<Navigation size={20} color="#F05537" />
+									<Navigation size={20} color="#000000" />
 								</TouchableOpacity>
 							}
 							testID="search-location-autocomplete"
 						/>
 					</View>
-				</Card>
+				</View>
 
 				{/* #667 【設計】Time of Day - カード無し、画像グリッド表示（4列1行） */}
 				<View style={styles.section}>
@@ -382,7 +373,7 @@ export default function SearchScreen() {
 								onPress={() => handleTimeSlotSelect(slot.id)}>
 								<Image
 									source={slot.image}
-									style={{ width: ITEM_WIDTH, height: ITEM_WIDTH }}
+									style={[{ width: ITEM_WIDTH, height: ITEM_WIDTH }, styles.gridItemImage]}
 									contentFit="cover"
 									transition={0}
 									priority="high"
@@ -413,7 +404,7 @@ export default function SearchScreen() {
 								onPress={() => handleSceneSelect(option.id)}>
 								<Image
 									source={option.image}
-									style={{ width: ITEM_WIDTH, height: ITEM_WIDTH }}
+									style={[{ width: ITEM_WIDTH, height: ITEM_WIDTH }, styles.gridItemImage]}
 									contentFit="cover"
 									transition={0}
 									priority="high"
@@ -468,7 +459,7 @@ export default function SearchScreen() {
 				{showAdvancedFilters && (
 					<>
 						{/* Distance */}
-						<Card>
+						<View style={styles.section}>
 							<View style={styles.sectionHeader}>
 								<Distance size={20} color="#F05537" />
 								<Text style={styles.sectionTitle}>{i18n.t("Search.sections.distance")}</Text>
@@ -479,10 +470,10 @@ export default function SearchScreen() {
 								</Text>
 								<DistanceSlider distance={distance} setDistance={setDistance} />
 							</View>
-						</Card>
+						</View>
 
 						{/* Price Levels */}
-						<Card>
+						<View style={styles.section}>
 							<View style={styles.sectionHeader}>
 								<DollarSign size={20} color="#F05537" />
 								<Text style={styles.sectionTitle}>{i18n.t("Search.sections.budget")}</Text>
@@ -501,10 +492,10 @@ export default function SearchScreen() {
 									}}
 								/>
 							</View>
-						</Card>
+						</View>
 
 						{/* Taste */}
-						<Card>
+						<View style={styles.section}>
 							<View style={styles.sectionHeader}>
 								<ChefHat size={20} color="#F05537" />
 								<Text style={styles.sectionTitle}>{i18n.t("Search.sections.taste")}</Text>
@@ -522,12 +513,12 @@ export default function SearchScreen() {
 									</TouchableOpacity>
 								))}
 							</View>
-						</Card>
+						</View>
 
 						{/* Restrictions */}
 						{
 							// #541 にて廃止
-							// (<Card>
+							// (<View style={styles.section}>
 							// 	<View style={styles.sectionHeader}>
 							// 		<Text style={styles.sectionTitle}>{i18n.t("Search.sections.restrictions")}</Text>
 							// 	</View>
@@ -548,7 +539,7 @@ export default function SearchScreen() {
 							// 			</TouchableOpacity>
 							// 		))}
 							// 	</View>
-							// </Card>)
+							// </View>)
 						}
 					</>
 				)}
@@ -597,6 +588,7 @@ const styles = StyleSheet.create({
 	},
 	scrollContent: {
 		paddingBottom: 100, // moved here so it affects ScrollView content
+		gap: 12,
 	},
 	header: {
 		paddingHorizontal: 24,
@@ -607,14 +599,18 @@ const styles = StyleSheet.create({
 		justifyContent: "space-between",
 	},
 	helpButton: {
-		padding: 8,
+		paddingHorizontal: 8,
 	},
 	headerTitle: {
 		fontSize: 20,
 		fontWeight: "700",
 		color: "#1A1A1A",
-		marginBottom: 8,
 		letterSpacing: -0.5,
+	},
+	// #667 【設計】カード無しセクションのスタイル
+	section: {
+		paddingHorizontal: HORIZONTAL_PADDING,
+		marginBottom: 24,
 	},
 	sectionHeader: {
 		flexDirection: "row",
@@ -647,7 +643,89 @@ const styles = StyleSheet.create({
 	currentLocationButton: {
 		padding: 16,
 		borderLeftWidth: 0.5,
-		borderLeftColor: "#E5E7EB",
+		borderLeftColor: "#C9C9C9",
+	},
+	// #667 【設計】画像グリッドコンテナ（4列、flexWrap）
+	gridContainer: {
+		flexDirection: "row",
+		flexWrap: "wrap",
+		gap: ITEM_GAP,
+	},
+	// #667 【設計】グリッドアイテム（画像+ラベル）
+	gridItem: {
+		width: ITEM_WIDTH + 2 * ITEM_PADDING + 2 * BORDER_WIDTH,
+		maxWidth: 256,
+		alignItems: "center",
+		overflow: "hidden",
+		padding: ITEM_PADDING,
+		borderRadius: 16,
+		borderWidth: BORDER_WIDTH,
+		borderColor: "transparent",
+	},
+	selectedGridItem: {
+		borderColor: "#000000",
+		backgroundColor: "#EDEDED",
+	},
+	gridItemImage: {
+		borderRadius: 16,
+		maxWidth: 256,
+		maxHeight: 256,
+	},
+	// #667 【設計】グリッドアイテムのラベル
+	gridItemLabel: {
+		marginTop: 4,
+		fontSize: 11,
+		color: "#000000",
+		fontWeight: "600",
+		textAlign: "center",
+	},
+	selectedGridItemLabel: {},
+	// #667 【設計】ムード用の横並びコンテナ
+	moodContainer: {
+		flexDirection: "row",
+		justifyContent: "space-around",
+		alignItems: "center",
+		paddingVertical: 16,
+	},
+	// #667 【設計】ムード個別アイテム（円+ラベル縦並び）
+	moodItem: {
+		flex: 1,
+		alignItems: "center",
+		gap: 8,
+	},
+	// #667 【設計】ムードの円形アイコン
+	moodCircle: {
+		backgroundColor: "#C9C9C9",
+		borderRadius: 100, // 完全な円
+	},
+	selectedMoodCircle: {
+		backgroundColor: "#000000",
+	},
+	// #667 【設計】ムードのラベル
+	moodLabel: {
+		fontSize: 13,
+		color: "#000000",
+		fontWeight: "500",
+		textAlign: "center",
+	},
+	selectedMoodLabel: {
+		fontWeight: "600",
+	},
+	advancedToggle: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "center",
+		backgroundColor: "#FDEBE7",
+		marginHorizontal: 24,
+		paddingVertical: 16,
+		paddingHorizontal: 20,
+		borderRadius: 16,
+	},
+	advancedToggleText: {
+		fontSize: 15,
+		color: "#F05537",
+		fontWeight: "600",
+		marginLeft: 12,
 	},
 	chipGrid: {
 		flexDirection: "row",
@@ -661,20 +739,14 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 12,
 		paddingVertical: 6,
 		borderRadius: 24,
+		borderWidth: BORDER_WIDTH,
+		borderColor: "#C9C9C9",
 		marginBottom: 6,
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 0 },
-		shadowOpacity: 0.1,
-		shadowRadius: 4,
-		elevation: 1,
 	},
 	selectedChip: {
-		backgroundColor: "#000000",
-		shadowColor: "#000000",
-		shadowOffset: { width: 0, height: 0 },
-		shadowOpacity: 0.3,
-		shadowRadius: 24,
-		elevation: 8,
+		// 濃い灰色
+		backgroundColor: "#EDEDED",
+		borderColor: "#000000",
 	},
 	chipEmoji: {
 		fontSize: 14,
@@ -682,12 +754,33 @@ const styles = StyleSheet.create({
 	},
 	chipText: {
 		fontSize: 13,
-		color: "#6B7280",
-		fontWeight: "500",
-	},
-	selectedChipText: {
-		color: "#FFF",
+		color: "#000000",
 		fontWeight: "600",
+	},
+	selectedChipText: {},
+	sliderSection: {
+		alignItems: "center",
+	},
+	sliderValue: {
+		fontSize: 18,
+		fontWeight: "700",
+		color: "#000000",
+		marginBottom: 8,
+		textAlign: "center",
+	},
+	searchFabContainer: {
+		position: "absolute",
+		bottom: 0,
+		paddingBottom: 32,
+		paddingHorizontal: HORIZONTAL_PADDING,
+		width: "100%",
+		justifyContent: "center",
+		flexDirection: "row",
+		alignItems: "center",
+		backgroundColor: "#FFFFFF",
+	},
+	searchFab: {
+		width: "100%",
 	},
 	restrictionsContainer: {
 		flexDirection: "row",
@@ -715,181 +808,6 @@ const styles = StyleSheet.create({
 	},
 	selectedRestrictionChipText: {
 		color: "#FFF",
-		fontWeight: "700",
-	},
-	searchFabContainer: {
-		position: "absolute",
-		bottom: 32,
-		right: 20,
-		left: 20,
-		justifyContent: "center",
-		flexDirection: "row",
-		alignItems: "center",
-	},
-	searchFab: {
-		width: "100%",
-	},
-	disabledFab: {
-		backgroundColor: "#D1D5DB",
-		shadowOpacity: 0.1,
-	},
-	fabText: {
-		fontSize: 18,
-		fontWeight: "700",
-		color: "#FFF",
-		marginLeft: 12,
-		letterSpacing: 0.5,
-	},
-	sliderSection: {
-		alignItems: "center",
-	},
-	sliderValue: {
-		fontSize: 18,
-		fontWeight: "700",
-		color: "#F05537",
-		marginBottom: 8,
-		textAlign: "center",
-	},
-	sliderContainer: {
-		width: 300,
-		justifyContent: "center",
-	},
-	sliderTrack: {
-		height: 6,
-		backgroundColor: "#E5E7EB",
-		borderRadius: 3,
-		position: "relative",
-		marginHorizontal: 16,
-	},
-	sliderThumb: {
-		position: "absolute",
-		width: 28,
-		height: 28,
-		backgroundColor: "#F05537",
-		borderRadius: 14,
-		top: -11,
-		borderWidth: 3,
-		borderColor: "#FFFFFF",
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 4 },
-		shadowOpacity: 0.15,
-		shadowRadius: 8,
-		elevation: 6,
-	},
-	rangeTrack: {
-		position: "absolute",
-		height: 6,
-		backgroundColor: "#F05537",
-		borderRadius: 3,
-		top: 0,
-	},
-	rangeThumbMin: {
-		backgroundColor: "#F05537",
-	},
-	rangeThumbMax: {
-		backgroundColor: "#F05537",
-	},
-	sliderLabels: {
-		flexDirection: "row",
-		justifyContent: "space-between",
-		marginTop: 12,
-		paddingHorizontal: 16,
-	},
-	sliderLabelLeft: {
-		fontSize: 13,
-		color: "#6B7280",
-		fontWeight: "500",
-	},
-	sliderLabelRight: {
-		fontSize: 13,
-		color: "#6B7280",
-		fontWeight: "500",
-	},
-	advancedToggle: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "center",
-		backgroundColor: "#FDEBE7",
-		marginHorizontal: 24,
-		marginVertical: 12,
-		paddingVertical: 16,
-		paddingHorizontal: 20,
-		borderRadius: 16,
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 0 },
-		shadowOpacity: 0.1,
-		shadowRadius: 8,
-		elevation: 2,
-	},
-	advancedToggleText: {
-		fontSize: 15,
-		color: "#F05537",
-		fontWeight: "600",
-		marginLeft: 12,
-	},
-	// #667 【設計】カード無しセクションのスタイル
-	section: {
-		paddingHorizontal: HORIZONTAL_PADDING,
-		marginBottom: 24,
-	},
-	// #667 【設計】画像グリッドコンテナ（4列、flexWrap）
-	gridContainer: {
-		flexDirection: "row",
-		flexWrap: "wrap",
-		gap: ITEM_GAP,
-	},
-	// #667 【設計】グリッドアイテム（画像+ラベル）
-	gridItem: {
-		width: ITEM_WIDTH,
-		alignItems: "center",
-		borderRadius: 8,
-		overflow: "hidden",
-	},
-	selectedGridItem: {
-		opacity: 0.8, // #667 【設計】選択時は少し暗くして視認性向上
-	},
-	// #667 【設計】グリッドアイテムのラベル
-	gridItemLabel: {
-		marginTop: 4,
-		fontSize: 11,
-		color: "#6B7280",
-		fontWeight: "500",
-		textAlign: "center",
-	},
-	selectedGridItemLabel: {
-		color: "#F05537",
-		fontWeight: "700",
-	},
-	// #667 【設計】ムード用の横並びコンテナ
-	moodContainer: {
-		flexDirection: "row",
-		justifyContent: "space-around",
-		alignItems: "center",
-		paddingVertical: 16,
-	},
-	// #667 【設計】ムード個別アイテム（円+ラベル縦並び）
-	moodItem: {
-		flex: 1,
-		alignItems: "center",
-		gap: 8,
-	},
-	// #667 【設計】ムードの円形アイコン
-	moodCircle: {
-		backgroundColor: "#6B7280",
-		borderRadius: 100, // 完全な円
-	},
-	selectedMoodCircle: {
-		backgroundColor: "#F05537", // #667 【設計】選択時は赤色に変更
-	},
-	// #667 【設計】ムードのラベル
-	moodLabel: {
-		fontSize: 13,
-		color: "#6B7280",
-		fontWeight: "500",
-		textAlign: "center",
-	},
-	selectedMoodLabel: {
-		color: "#F05537",
 		fontWeight: "700",
 	},
 });

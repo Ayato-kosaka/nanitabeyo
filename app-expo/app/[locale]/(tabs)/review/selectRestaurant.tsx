@@ -406,7 +406,7 @@ export default function SelectRestaurantScreen() {
 						placeholder={i18n.t("Map.placeholders.searchRestaurantsForReview")}
 						renderInputRight={
 							<TouchableOpacity style={styles.currentLocationButton} onPress={handleCurrentLocation}>
-								<Navigation size={20} color="#F05537" />
+								<Navigation size={20} color="#357AFF" />
 							</TouchableOpacity>
 						}
 					/>
@@ -419,7 +419,7 @@ export default function SelectRestaurantScreen() {
 						label={i18n.t("Review.selectRestaurant.searchThisArea")}
 						icon={<RotateCw size={16} color="#357AFF" />}
 						colors={["#ffffff", "#ffffff"]}
-						shadowColor={"#000000"}
+						shadowColor={"transparent"}
 						labelStyle={{ color: "#357AFF", fontSize: 14 }}
 						loading={isLoadingSavedRestaurants}
 					/>
@@ -463,7 +463,7 @@ const styles = StyleSheet.create({
 	currentLocationButton: {
 		padding: 16,
 		borderLeftWidth: 0.5,
-		borderLeftColor: "#E5E7EB",
+		borderLeftColor: "#C9C9C9",
 	},
 	searchButtonContainer: {
 		marginTop: 8,

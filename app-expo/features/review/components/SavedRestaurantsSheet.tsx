@@ -269,6 +269,7 @@ function PrimaryCard({
 					onPress={onReview}
 					label={i18n.t("Review.selectRestaurant.postPhotoVideo")}
 					colors={["#F05537", "#F05537"]}
+					shadowColor={"transparent"}
 					labelStyle={{ color: "#FFF", fontSize: 12 }}
 					style={{ alignSelf: "flex-end" }}
 				/>

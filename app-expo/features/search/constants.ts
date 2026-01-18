@@ -73,6 +73,13 @@ export const restrictionOptions = [
 	{ id: "halal", label: "Search.restrictionOptions.halal", icon: "🕌" },
 ];
 
+// #667 【設計】ムード用の円形アイコンサイズ（小・中・大）
+export const MOOD_ICON_SIZES = {
+	light: 20,
+	normal: 30,
+	heavy: 40,
+} as const;
+
 export const TUTORIAL_PAGES = [
 	{
 		image: require("@/assets/images/tutorial/search-page1.webp"),
