@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
 import {
 	MapPin,
 	Search,
 	Clock,
 	Users,
-	Navigation,
 	MapPin as Distance,
 	DollarSign,
 	Plus,
@@ -16,7 +15,7 @@ import {
 } from "lucide-react-native";
 import { router } from "expo-router";
 import { SearchParams } from "@/types/search";
-import type { AutocompleteLocation, LocationDetailsResponse } from "@shared/api/v1/res";
+import type { LocationDetailsResponse } from "@shared/api/v1/res";
 import { useLocationSearch } from "@/hooks/useLocationSearch";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { Card } from "@/components/Card";
@@ -47,8 +46,9 @@ export default function SearchScreen() {
 	const locale = useLocale();
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
+	// #681 【設計】location と locationLabel state に変更（locationQuery は削除）
 	const [location, setLocation] = useState<Omit<LocationDetailsResponse, "viewport"> | null>(null);
-	const [locationQuery, setLocationQuery] = useState("");
+	const [locationLabel, setLocationLabel] = useState<string | null>(null);
 	const [timeSlot, setTimeSlot] = useState<SearchParams["timeSlot"]>("lunch");
 	const [scene, setScene] = useState<SearchParams["scene"]>("solo"); // #533 【仕様】scene 初期値を solo に変更（レコメンドAPI必須化対応）
 	const [mood, setMood] = useState<SearchParams["mood"] | undefined>(undefined);
@@ -60,7 +60,7 @@ export default function SearchScreen() {
 	]);
 	const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
-	const { getCurrentLocation, getLocationDetails } = useLocationSearch();
+	const { getCurrentLocation } = useLocationSearch();
 	const { showSnackbar } = useSnackbar();
 
 	useEffect(() => {
@@ -84,61 +84,29 @@ export default function SearchScreen() {
 		setTimeSlot(slot);
 	}, [logFrontendEvent]);
 
+	// #681 【設計】LocationAutocomplete からのコールバック（現在地 or 場所選択）
+	const handleLocationChange = useCallback(
+		(payload: { location: Omit<LocationDetailsResponse, "viewport"> | null; label: string | null }) => {
+			setLocation(payload.location);
+			setLocationLabel(payload.label);
+			logFrontendEvent({
+				event_name: "location_changed",
+				error_level: "log",
+				payload: { hasLocation: !!payload.location, label: payload.label },
+			});
+		},
+		[logFrontendEvent],
+	);
+
 	const handleLocationClear = () => {
 		lightImpact();
 		setLocation(null);
-		setLocationQuery("");
+		setLocationLabel(null);
 		logFrontendEvent({
 			event_name: "location_cleared",
 			error_level: "log",
 			payload: {},
 		});
-	};
-
-	const handleLocationSelect = async (prediction: AutocompleteLocation) => {
-		logFrontendEvent({
-			event_name: "location_selected",
-			error_level: "log",
-			payload: { placeId: prediction.place_id, mainText: prediction.mainText },
-		});
-		setLocationQuery(prediction.mainText);
-		try {
-			const locationDetails = await getLocationDetails(prediction);
-			setLocation(locationDetails);
-		} catch (error) {
-			logFrontendEvent({
-				event_name: "location_selection_failed",
-				error_level: "error",
-				payload: { placeId: prediction.place_id, error: String(error) },
-			});
-			showSnackbar(i18n.t("Search.errors.fetchLocation"));
-		}
-	};
-
-	const handleUseCurrentLocation = async () => {
-		lightImpact();
-		logFrontendEvent({
-			event_name: "current_location_requested",
-			error_level: "log",
-			payload: {},
-		});
-		try {
-			const currentLocation = await getCurrentLocation();
-			setLocation(currentLocation);
-			setLocationQuery(i18n.t("Search.currentLocation"));
-			logFrontendEvent({
-				event_name: "current_location_success",
-				error_level: "log",
-				payload: { hasLocation: !!currentLocation },
-			});
-		} catch (error) {
-			logFrontendEvent({
-				event_name: "current_location_failed",
-				error_level: "error",
-				payload: { error: String(error) },
-			});
-			showSnackbar(i18n.t("Search.errors.getCurrentLocation"));
-		}
 	};
 
 	const handleSearch = async () => {
@@ -167,7 +135,7 @@ export default function SearchScreen() {
 			taste,
 			distance,
 			priceLevels,
-			locationQuery, // #674 【仕様】検索画面で入力されたロケーション表示用文字列を渡す
+			locationQuery: locationLabel || "", // #674 【仕様】#681 【設計】locationLabel を locationQuery として渡す
 		};
 
 		logFrontendEvent({
@@ -237,10 +205,11 @@ export default function SearchScreen() {
 
 		if (!isTutorialSupportedLocale) {
 			// #642 【設計】対応言語以外ではチュートリアルを表示しない
+			// #681 【設計】getCurrentLocation して location と locationLabel をセット
 			getCurrentLocation()
 				.then((currentLocation) => {
 					setLocation(currentLocation);
-					setLocationQuery(i18n.t("Search.currentLocation"));
+					setLocationLabel(i18n.t("Search.currentLocation"));
 				})
 				.catch(console.error);
 			return;
@@ -256,10 +225,11 @@ export default function SearchScreen() {
 			});
 		} else if (hasSeenTutorial === true) {
 			// #642 【設計】チュートリアル既表示の場合、現在地取得してセットする
+			// #681 【設計】getCurrentLocation して location と locationLabel をセット
 			getCurrentLocation()
 				.then((currentLocation) => {
 					setLocation(currentLocation);
-					setLocationQuery(i18n.t("Search.currentLocation"));
+					setLocationLabel(i18n.t("Search.currentLocation"));
 				})
 				.catch(console.error);
 		}
@@ -287,13 +257,22 @@ export default function SearchScreen() {
 	};
 
 	// #642 【設計】チュートリアルから位置情報取得を要求
+	// #681 【設計】LocationAutocomplete 内部で現在地取得するため、ここでは直接 handleLocationChange を呼ぶだけでよいが、
+	// チュートリアルから呼ばれる場合は独自に getCurrentLocation を呼ぶ
 	const handleTutorialRequestLocation = async () => {
-		await handleUseCurrentLocation();
-		logFrontendEvent({
-			event_name: "search_tutorial_location_requested",
-			error_level: "log",
-			payload: { from_tutorial: true },
-		});
+		try {
+			const currentLocation = await getCurrentLocation();
+			setLocation(currentLocation);
+			setLocationLabel(i18n.t("Search.currentLocation"));
+			logFrontendEvent({
+				event_name: "search_tutorial_location_requested",
+				error_level: "log",
+				payload: { from_tutorial: true },
+			});
+		} catch (error) {
+			console.error("Failed to get current location from tutorial:", error);
+			showSnackbar(i18n.t("Search.errors.getCurrentLocation"));
+		}
 	};
 
 	return (
@@ -324,17 +303,20 @@ export default function SearchScreen() {
 						</View>
 					</View>
 					<View style={styles.locationSection}>
+						{/* #681 【設計】新しい API で LocationAutocomplete を使用 */}
 						<LocationAutocomplete
-							value={locationQuery}
-							onChangeText={setLocationQuery}
-							onSelectSuggestion={handleLocationSelect}
-							onClear={handleLocationClear}
-							placeholder={i18n.t("Search.placeholders.enterLocation")}
-							renderInputRight={
-								<TouchableOpacity style={styles.currentLocationButton} onPress={handleUseCurrentLocation}>
-									<Navigation size={20} color="#5EA2FF" />
-								</TouchableOpacity>
+							onLocationChange={handleLocationChange}
+							initialLocation={
+								location && locationLabel
+									? {
+											location,
+											label: locationLabel,
+										}
+									: undefined
 							}
+							placeholder={i18n.t("Search.placeholders.enterLocation")}
+							currentLocationLabel={i18n.t("Search.currentLocation")}
+							minSearchLength={1}
 							testID="search-location-autocomplete"
 						/>
 					</View>
@@ -601,11 +583,6 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "flex-start",
 		gap: 12,
-	},
-	currentLocationButton: {
-		padding: 16,
-		borderLeftWidth: 0.5,
-		borderLeftColor: "#E5E7EB",
 	},
 	chipGrid: {
 		flexDirection: "row",

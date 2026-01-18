@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { View, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
-import { Navigation, RotateCw } from "lucide-react-native";
+import { RotateCw } from "lucide-react-native";
 import MapView, { Region } from "@/components/MapView";
 import type { PoiClickEvent } from "react-native-maps";
 import { useLocationSearch } from "@/hooks/useLocationSearch";
@@ -10,6 +10,7 @@ import {
 	type AutocompleteLocation,
 	type CreateRestaurantResponse,
 	type QueryMeSavedRestaurantsResponse,
+	type LocationDetailsResponse,
 	ErrorCode,
 } from "@shared/api/v1/res";
 import type { CreateRestaurantDto, QuerySavedRestaurantsDto } from "@shared/api/v1/dto";
@@ -41,7 +42,6 @@ export default function SelectRestaurantScreen() {
 	const { showSnackbar } = useSnackbar();
 	const locale = useLocale();
 	const navigation = useNavigation();
-	const [searchQuery, setSearchQuery] = useState("");
 	const [isLoadingRestaurantCreation, setIsLoadingRestaurantCreation] = useState(false);
 	const { getLocationDetails, getCurrentLocation } = useLocationSearch();
 
@@ -145,7 +145,6 @@ export default function SelectRestaurantScreen() {
 					};
 					currentRegion.current = newRegion;
 					mapRef.current?.animateToRegion(newRegion, 1000);
-					setSearchQuery("");
 				} catch (error) {
 					logFrontendEvent({
 						event_name: "MapSearchError",
@@ -156,6 +155,24 @@ export default function SelectRestaurantScreen() {
 			}
 		},
 		[createAndOpenRestaurant, getLocationDetails, lightImpact, logFrontendEvent],
+	);
+
+	// #681 【設計】LocationAutocomplete からのコールバック（現在地用）
+	const handleLocationChangeForCurrentLocation = useCallback(
+		(payload: { location: Omit<LocationDetailsResponse, "viewport"> | null; label: string | null }) => {
+			if (!payload.location) return;
+
+			// 現在地の場合は地図を移動
+			const newRegion = {
+				latitude: payload.location.location.latitude,
+				longitude: payload.location.location.longitude,
+				latitudeDelta: 0.01,
+				longitudeDelta: 0.01,
+			};
+			currentRegion.current = newRegion;
+			mapRef.current?.animateToRegion(newRegion, 1000);
+		},
+		[],
 	);
 
 	const handleCurrentLocation = useCallback(async () => {
@@ -398,17 +415,13 @@ export default function SelectRestaurantScreen() {
 
 				{/* #644 【設計】Search Bar - placeholder: "店名やエリアで検索" */}
 				<View style={styles.searchContainer}>
+					{/* #681 【設計】新しい API で LocationAutocomplete を使用、カスタムハンドラで特殊処理 */}
 					<LocationAutocomplete
-						value={searchQuery}
-						onChangeText={setSearchQuery}
-						onSelectSuggestion={handleAutocompleteSelect}
-						onClear={() => setSearchQuery("")}
+						onLocationChange={handleLocationChangeForCurrentLocation}
+						onSuggestionSelect={handleAutocompleteSelect}
 						placeholder={i18n.t("Map.placeholders.searchRestaurantsForReview")}
-						renderInputRight={
-							<TouchableOpacity style={styles.currentLocationButton} onPress={handleCurrentLocation}>
-								<Navigation size={20} color="#5EA2FF" />
-							</TouchableOpacity>
-						}
+						currentLocationLabel={i18n.t("Search.currentLocation")}
+						minSearchLength={1}
 					/>
 				</View>
 
@@ -459,11 +472,6 @@ const styles = StyleSheet.create({
 	searchContainer: {
 		marginTop: 8,
 		marginHorizontal: 16,
-	},
-	currentLocationButton: {
-		padding: 16,
-		borderLeftWidth: 0.5,
-		borderLeftColor: "#E5E7EB",
 	},
 	searchButtonContainer: {
 		marginTop: 8,

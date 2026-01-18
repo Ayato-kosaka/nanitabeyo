@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useCallback } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { Card } from "@/components/Card";
 import { LocationAutocomplete } from "@/components/LocationAutocomplete";
@@ -23,6 +23,7 @@ interface LocationSearchFormProps {
 /**
  * Location search form component that manages its own internal state to prevent
  * Japanese IME composition issues. Only communicates final values back to parent.
+ * #681 【設計】LocationAutocomplete の新 API を使用するように更新
  */
 export function LocationSearchForm({
 	initialLocationText = "",
@@ -32,10 +33,8 @@ export function LocationSearchForm({
 	title = i18n.t("Search.locationModal.title"),
 	testID,
 }: LocationSearchFormProps) {
-	// Internal state - isolated from parent re-renders
-	const [locationText, setLocationText] = useState(initialLocationText);
-
-	const handleLocationSelect = useCallback(
+	// #681 【設計】onSuggestionSelect でカスタムハンドリング（AutocompleteLocation を返す）
+	const handleSuggestionSelect = useCallback(
 		(location: AutocompleteLocation) => {
 			onSubmit(location);
 		},
@@ -50,10 +49,18 @@ export function LocationSearchForm({
 		<Card>
 			<Text style={styles.modalTitle}>{title}</Text>
 			<View style={styles.locationSection}>
+				{/* #681 【設計】新しい API で LocationAutocomplete を使用 */}
 				<LocationAutocomplete
-					value={locationText}
-					onChangeText={setLocationText}
-					onSelectSuggestion={handleLocationSelect}
+					onLocationChange={() => {}}
+					onSuggestionSelect={handleSuggestionSelect}
+					initialLocation={
+						initialLocationText
+							? {
+									location: { location: { latitude: 0, longitude: 0 }, address: "", localLanguageCode: "" },
+									label: initialLocationText,
+								}
+							: undefined
+					}
 					placeholder={placeholder}
 					autofocus={true}
 					testID={testID}

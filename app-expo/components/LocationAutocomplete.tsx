@@ -3,49 +3,78 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Activi
 import { useLocationSearch } from "@/hooks/useLocationSearch";
 import { useHaptics } from "@/hooks/useHaptics";
 import i18n from "@/lib/i18n";
-import { type AutocompleteLocation } from "@shared/api/v1/res";
+import { type AutocompleteLocation, type LocationDetailsResponse } from "@shared/api/v1/res";
 import { isFoodAndDrinkPlaceForUser } from "@shared/utils/google_places_restaurant_type";
-import { MapPin, Utensils, X } from "lucide-react-native";
+import { MapPin, Utensils, X, Navigation } from "lucide-react-native";
 
 interface LocationAutocompleteProps {
-	/** Current value of the input */
-	value: string;
-	/** Called when text changes */
-	onChangeText: (text: string) => void;
-	/** Called when a suggestion is selected */
-	onSelectSuggestion: (location: AutocompleteLocation) => void;
-	/** Called when clear button is pressed */
-	onClear?: () => void;
-	/** Placeholder text for the input */
+	/**
+	 * 選択された LocationDetails と表示用ラベルを親に返す
+	 * - location: Place Details / 現在地の詳細（null の場合は未選択）
+	 * - label: 画面上でユーザーに見せるための文字列（例: "渋谷駅", "現在地"）
+	 */
+	onLocationChange: (payload: {
+		location: Omit<LocationDetailsResponse, "viewport"> | null;
+		label: string | null;
+	}) => void;
+
+	/** 初期選択済みの location があれば渡す（再表示時など） */
+	initialLocation?: {
+		location: Omit<LocationDetailsResponse, "viewport">;
+		label: string;
+	};
+
+	/** プレースホルダー */
 	placeholder?: string;
-	/** Optional right-side icon or element */
-	renderInputRight?: React.ReactNode;
-	/** Whether to auto focus the input when mounted */
+
+	/** 「現在地」ボタンで使う表示ラベル（例: i18n.t("Search.currentLocation")） */
+	currentLocationLabel?: string;
+
+	/** 検索開始の最小文字数（デフォルト: 1） */
+	minSearchLength?: number;
+
+	/** debounce の ms（デフォルト: 300） */
+	debounceMs?: number;
+
+	/** autoFocus など既存の挙動は必要に応じて踏襲 */
 	autofocus?: boolean;
-	/** Test ID for testing */
 	testID?: string;
+
+	/**
+	 * #681 【設計】サジェスト選択時のカスタムハンドラ（オプション）
+	 * - 指定された場合、自動的な location details 取得をスキップし、このコールバックを呼ぶ
+	 * - selectRestaurant.tsx などの特殊なケースで使用
+	 */
+	onSuggestionSelect?: (suggestion: AutocompleteLocation) => void | Promise<void>;
 }
 
 /**
- * Unified location autocomplete component that combines text input and suggestions.
- * Handles debouncing, API calls, keyboard navigation, and accessibility.
+ * #681 【設計】場所検索のロジック込みのスマートコンポーネント
+ * - 内部で inputText と selectedLabel を管理
+ * - フォーカス時に selectedLabel があれば自動クリア
+ * - 1文字から検索可能（minSearchLength でカスタマイズ可能）
+ * - 現在地ボタンを内蔵
  */
 export function LocationAutocomplete({
-	value,
-	onChangeText,
-	onSelectSuggestion,
-	onClear,
-	placeholder = i18n.t("Search.currentLocation"),
+	onLocationChange,
+	initialLocation,
+	placeholder = i18n.t("Search.placeholders.enterLocation"),
+	currentLocationLabel = i18n.t("Search.currentLocation"),
+	minSearchLength = 1,
+	debounceMs = 300,
 	autofocus = false,
-	renderInputRight,
 	testID = "location-autocomplete",
+	onSuggestionSelect,
 }: LocationAutocompleteProps) {
+	// #681 【設計】子側で持つ state：inputText と selectedLabel
+	const [inputText, setInputText] = useState("");
+	const [selectedLabel, setSelectedLabel] = useState<string | null>(initialLocation?.label || null);
 	const [showSuggestions, setShowSuggestions] = useState(false);
 	const [isFocused, setIsFocused] = useState(false);
 	const inputRef = useRef<TextInput>(null);
 	const debounceRef = useRef<number | null>(null);
 
-	const { suggestions, isSearching, searchLocations } = useLocationSearch();
+	const { suggestions, isSearching, searchLocations, getCurrentLocation, getLocationDetails } = useLocationSearch();
 	const { lightImpact } = useHaptics();
 
 	// Auto focus on mount if requested
@@ -58,10 +87,13 @@ export function LocationAutocomplete({
 		}
 	}, [autofocus]);
 
-	// Handle text changes with debouncing
+	// #681 【設計】TextInput の表示値は selectedLabel ?? inputText
+	const displayValue = selectedLabel ?? inputText;
+
+	// #681 【設計】Handle text changes with debouncing
 	const handleTextChange = useCallback(
 		(text: string) => {
-			onChangeText(text);
+			setInputText(text);
 
 			// Clear previous debounce timer
 			if (debounceRef.current) {
@@ -71,23 +103,30 @@ export function LocationAutocomplete({
 			// Show suggestions if there's text and input is focused
 			setShowSuggestions(text.length > 0 && isFocused);
 
-			// Debounce the API call
-			if (text.length > 2) {
+			// #681 【設計】minSearchLength 以上で検索 API を呼ぶ（デフォルト 1 文字）
+			if (text.length >= minSearchLength) {
 				debounceRef.current = setTimeout(() => {
 					searchLocations(text).catch((error) => {
 						console.warn("Location search failed:", error);
 					});
-				}, 300);
+				}, debounceMs);
 			}
 		},
-		[onChangeText, searchLocations, isFocused],
+		[searchLocations, isFocused, minSearchLength, debounceMs],
 	);
 
-	// Handle input focus
+	// #681 【設計】Handle input focus - selectedLabel があれば自動クリア
 	const handleFocus = useCallback(() => {
 		setIsFocused(true);
-		setShowSuggestions(value.length > 0);
-	}, [value.length]);
+		// #681 【設計】selectedLabel が存在する場合、フォーカス時にクリアして検索可能にする
+		if (selectedLabel) {
+			setInputText("");
+			setSelectedLabel(null);
+			setShowSuggestions(false);
+		} else {
+			setShowSuggestions(inputText.length > 0);
+		}
+	}, [selectedLabel, inputText.length]);
 
 	// Handle input blur
 	const handleBlur = useCallback(() => {
@@ -98,29 +137,82 @@ export function LocationAutocomplete({
 		}, 150);
 	}, []);
 
-	// Handle suggestion selection
+	// #681 【設計】Handle suggestion selection - Place Details を取得して親に通知
+	// または onSuggestionSelect が指定されている場合はそれを呼ぶ
 	const handleSuggestionPress = useCallback(
-		(suggestion: AutocompleteLocation) => {
+		async (suggestion: AutocompleteLocation) => {
 			lightImpact();
-			onSelectSuggestion(suggestion);
-			setShowSuggestions(false);
-			// Delay the blur to allow the parent state update to complete
-			setTimeout(() => {
-				inputRef.current?.blur();
-			}, 100);
+
+			// #681 【設計】カスタムハンドラが指定されている場合はそちらを優先
+			if (onSuggestionSelect) {
+				setSelectedLabel(suggestion.mainText);
+				setInputText(suggestion.mainText);
+				setShowSuggestions(false);
+				await onSuggestionSelect(suggestion);
+				setTimeout(() => {
+					inputRef.current?.blur();
+				}, 100);
+				return;
+			}
+
+			// デフォルトの動作: location details を取得
+			try {
+				const locationDetails = await getLocationDetails(suggestion);
+				// #681 【設計】selectedLabel に mainText をセット、inputText も合わせる
+				setSelectedLabel(suggestion.mainText);
+				setInputText(suggestion.mainText);
+				setShowSuggestions(false);
+				// #681 【設計】親に location と label を返す（viewport は除外）
+				const { viewport, ...locationWithoutViewport } = locationDetails;
+				onLocationChange({
+					location: locationWithoutViewport,
+					label: suggestion.mainText,
+				});
+				// Delay the blur to allow the parent state update to complete
+				setTimeout(() => {
+					inputRef.current?.blur();
+				}, 100);
+			} catch (error) {
+				console.error("Failed to get location details:", error);
+				// エラー時も一旦選択状態にする（親側でエラー処理）
+				setSelectedLabel(suggestion.mainText);
+				setInputText(suggestion.mainText);
+				setShowSuggestions(false);
+			}
 		},
-		[onSelectSuggestion, lightImpact],
+		[getLocationDetails, lightImpact, onLocationChange, onSuggestionSelect],
 	);
 
-	// Handle clear button press
+	// #681 【設計】Handle clear button press
 	const handleClear = useCallback(() => {
 		lightImpact();
-		onChangeText("");
-		if (onClear) {
-			onClear();
-		}
+		setInputText("");
+		setSelectedLabel(null);
+		onLocationChange({ location: null, label: null });
 		inputRef.current?.focus();
-	}, [onChangeText, onClear, lightImpact]);
+	}, [lightImpact, onLocationChange]);
+
+	// #681 【設計】現在地ボタンの処理
+	const handleUseCurrentLocation = useCallback(async () => {
+		lightImpact();
+		try {
+			const currentLocation = await getCurrentLocation();
+			// #681 【設計】selectedLabel に currentLocationLabel をセット
+			const label = currentLocationLabel || i18n.t("Search.currentLocation");
+			setSelectedLabel(label);
+			setInputText("");
+			setShowSuggestions(false);
+			// #681 【設計】親に現在地情報を返す
+			onLocationChange({
+				location: currentLocation,
+				label: label,
+			});
+			inputRef.current?.blur();
+		} catch (error) {
+			console.error("Failed to get current location:", error);
+			// エラーは親側で処理してもらう想定だが、ここでもログ出力
+		}
+	}, [getCurrentLocation, currentLocationLabel, lightImpact, onLocationChange]);
 
 	// Cleanup debounce timer on unmount
 	useEffect(() => {
@@ -138,7 +230,7 @@ export function LocationAutocomplete({
 				<TextInput
 					ref={inputRef}
 					style={[styles.input, isFocused && styles.inputFocused]}
-					value={value}
+					value={displayValue}
 					onChangeText={handleTextChange}
 					onFocus={handleFocus}
 					onBlur={handleBlur}
@@ -154,7 +246,7 @@ export function LocationAutocomplete({
 					testID={`${testID}-input`}
 				/>
 				{/* Clear button */}
-				{value.length > 0 && (
+				{displayValue.length > 0 && (
 					<TouchableOpacity
 						style={styles.clearButton}
 						onPress={handleClear}
@@ -164,7 +256,15 @@ export function LocationAutocomplete({
 						<X size={16} color="#6B7280" />
 					</TouchableOpacity>
 				)}
-				{renderInputRight && renderInputRight}
+				{/* #681 【設計】現在地ボタンを内蔵 */}
+				<TouchableOpacity
+					style={styles.currentLocationButton}
+					onPress={handleUseCurrentLocation}
+					accessibilityRole="button"
+					accessibilityLabel={currentLocationLabel}
+					testID={`${testID}-current-location`}>
+					<Navigation size={20} color="#5EA2FF" />
+				</TouchableOpacity>
 			</View>
 
 			{/* Loading indicator */}
@@ -210,7 +310,7 @@ export function LocationAutocomplete({
 			)}
 
 			{/* No results message */}
-			{showSuggestions && !isSearching && suggestions.length === 0 && value.length > 2 && (
+			{showSuggestions && !isSearching && suggestions.length === 0 && inputText.length >= minSearchLength && (
 				<View style={styles.noResultsContainer}>
 					<Text style={styles.noResultsText}>No locations found</Text>
 				</View>
@@ -243,6 +343,11 @@ const styles = StyleSheet.create({
 	clearButton: {
 		padding: 12,
 		marginRight: 4,
+	},
+	currentLocationButton: {
+		padding: 16,
+		borderLeftWidth: 0.5,
+		borderLeftColor: "#E5E7EB",
 	},
 	loadingContainer: {
 		flexDirection: "row",
