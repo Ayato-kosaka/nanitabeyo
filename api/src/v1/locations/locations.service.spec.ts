@@ -165,8 +165,8 @@ describe('LocationsService', () => {
         expect(mockLogger.error).not.toHaveBeenCalled();
       });
 
-      it('should reject components with neither shortText nor longText', async () => {
-        // #292 【テスト】shortText も longText も存在しないケース（エラー）
+      it('should reject when all components have neither shortText nor longText', async () => {
+        // #677 Test case where all components have no values (error expected)
         const mockResponse: protos.google.maps.places.v1.IPlace = {
           location: { latitude: 33.2382, longitude: 131.6126 },
           viewport: {
@@ -183,7 +183,7 @@ describe('LocationsService', () => {
         mockExternalApiService.callPlaceDetails.mockResolvedValue(mockResponse);
 
         await expect(service.getLocationDetails(mockQuery)).rejects.toThrow(
-          'Invalid response from Google Places API: Missing required fields',
+          'Invalid response from Google Places API: No usable address components',
         );
 
         expect(mockLogger.error).toHaveBeenCalledWith(
@@ -193,8 +193,8 @@ describe('LocationsService', () => {
         );
       });
 
-      it('should reject components without types', async () => {
-        // #292 【テスト】types が存在しないケース（エラー）
+      it('should accept components without types but with values', async () => {
+        // #677 Test case where types field is missing but values exist (should succeed)
         const mockResponse: protos.google.maps.places.v1.IPlace = {
           location: { latitude: 33.2382, longitude: 131.6126 },
           viewport: {
@@ -205,15 +205,76 @@ describe('LocationsService', () => {
             {
               shortText: 'JP',
               longText: 'Japan',
+              types: ['country'],
+            },
+            {
+              longText: '要町１−１',
+              // types field missing (actual Google API response pattern)
             },
           ],
         };
 
         mockExternalApiService.callPlaceDetails.mockResolvedValue(mockResponse);
 
-        await expect(service.getLocationDetails(mockQuery)).rejects.toThrow(
-          'Invalid response from Google Places API: Missing required fields',
-        );
+        const result = await service.getLocationDetails(mockQuery);
+
+        expect(result).toBeDefined();
+        expect(result.location).toEqual({
+          latitude: 33.2382,
+          longitude: 131.6126,
+        });
+        expect(mockLogger.error).not.toHaveBeenCalled();
+      });
+
+      it('should handle mixed components with and without types', async () => {
+        // #677 Test case for mixed components (some with types, some without)
+        const mockResponse: protos.google.maps.places.v1.IPlace = {
+          location: { latitude: 33.2326422, longitude: 131.60609739999998 },
+          viewport: {
+            low: { latitude: 33.2315705, longitude: 131.6051682 },
+            high: { latitude: 33.2342685, longitude: 131.6078662 },
+          },
+          addressComponents: [
+            {
+              languageCode: 'ja',
+              longText: '要町１−１',
+              // types field missing
+            },
+            {
+              languageCode: 'en',
+              longText: 'Oita',
+              shortText: 'Oita',
+              types: ['locality', 'political'],
+            },
+            {
+              languageCode: 'en',
+              longText: 'Oita',
+              shortText: 'Oita',
+              types: ['administrative_area_level_1', 'political'],
+            },
+            {
+              languageCode: 'en',
+              longText: 'Japan',
+              shortText: 'JP',
+              types: ['country', 'political'],
+            },
+          ],
+        };
+
+        mockExternalApiService.callPlaceDetails.mockResolvedValue(mockResponse);
+
+        const result = await service.getLocationDetails(mockQuery);
+
+        expect(result).toBeDefined();
+        expect(result.location).toEqual({
+          latitude: 33.2326422,
+          longitude: 131.60609739999998,
+        });
+        expect(result.address).toContain('country:JP');
+        expect(result.address).toContain('administrative_area_level_1:Oita');
+        expect(result.address).toContain('locality:Oita');
+        expect(result.localLanguageCode).toBe('ja');
+        expect(mockLogger.error).not.toHaveBeenCalled();
       });
     });
 

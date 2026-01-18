@@ -587,15 +587,25 @@ export class LocationsService {
         !response.viewport.high ||
         !response.viewport.high.latitude ||
         !response.viewport.high.longitude ||
-        !response.addressComponents ||
-        response.addressComponents.some(
-          (component) =>
-            (!component.shortText && !component.longText) || !component.types,
-        )
-      )
+        !response.addressComponents
+      ) {
         throw new Error(
           'Invalid response from Google Places API: Missing required fields',
         );
+      }
+
+      // #677 【設計】types 欠損のコンポーネントを許容し、使用可能なコンポーネントのみに正規化
+      // Filter components that have at least one usable value (shortText or longText)
+      // Missing types field is allowed (downstream methods handle it gracefully)
+      const normalizedAddressComponents = response.addressComponents.filter(
+        (component) => !!(component.shortText || component.longText),
+      );
+
+      if (normalizedAddressComponents.length === 0) {
+        throw new Error(
+          'Invalid response from Google Places API: No usable address components',
+        );
+      }
 
       // location field from response
       const location = {
@@ -615,8 +625,8 @@ export class LocationsService {
         },
       };
 
-      // Extract address from addressComponents
-      const addressComponents = response.addressComponents;
+      // #677 Use normalized addressComponents for downstream processing
+      const addressComponents = normalizedAddressComponents;
       const address = this.buildAddressFromComponents(addressComponents);
 
       // Resolve local language code from addressComponents

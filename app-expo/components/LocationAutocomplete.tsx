@@ -22,9 +22,18 @@ interface LocationAutocompleteProps {
 	renderInputRight?: React.ReactNode;
 	/** Whether to auto focus the input when mounted */
 	autofocus?: boolean;
+	/** Whether to auto clear input on focus */
+	autoClearOnFocus?: boolean;
 	/** Test ID for testing */
 	testID?: string;
 }
+
+// ===== Tunables (ベストプラクティス的にマジックナンバーを定数化) =====
+const MIN_SEARCH_LENGTH = 1;
+const DEBOUNCE_DELAY_MS = 300;
+const BLUR_SUGGESTION_HIDE_DELAY_MS = 150;
+const BLUR_AFTER_SELECT_DELAY_MS = 100;
+const AUTOFOCUS_DELAY_MS = 100;
 
 /**
  * Unified location autocomplete component that combines text input and suggestions.
@@ -36,6 +45,7 @@ export function LocationAutocomplete({
 	onSelectSuggestion,
 	onClear,
 	placeholder = i18n.t("Search.currentLocation"),
+	autoClearOnFocus = false,
 	autofocus = false,
 	renderInputRight,
 	testID = "location-autocomplete",
@@ -50,12 +60,13 @@ export function LocationAutocomplete({
 
 	// Auto focus on mount if requested
 	useEffect(() => {
-		if (autofocus) {
-			const timer = setTimeout(() => {
-				inputRef.current?.focus();
-			}, 100);
-			return () => clearTimeout(timer);
-		}
+		if (!autofocus) return;
+
+		const timer = setTimeout(() => {
+			inputRef.current?.focus();
+		}, AUTOFOCUS_DELAY_MS);
+
+		return () => clearTimeout(timer);
 	}, [autofocus]);
 
 	// Handle text changes with debouncing
@@ -63,22 +74,28 @@ export function LocationAutocomplete({
 		(text: string) => {
 			onChangeText(text);
 
+			const trimmed = text.trim();
+			const hasEnoughChars = trimmed.length >= MIN_SEARCH_LENGTH;
+
 			// Clear previous debounce timer
 			if (debounceRef.current) {
 				clearTimeout(debounceRef.current);
 			}
 
 			// Show suggestions if there's text and input is focused
-			setShowSuggestions(text.length > 0 && isFocused);
+			setShowSuggestions(trimmed.length > 0 && isFocused);
+
+			// If入力が短すぎる場合は検索をかけず、サジェストも消す
+			if (!hasEnoughChars) {
+				return;
+			}
 
 			// Debounce the API call
-			if (text.length > 2) {
-				debounceRef.current = setTimeout(() => {
-					searchLocations(text).catch((error) => {
-						console.warn("Location search failed:", error);
-					});
-				}, 300);
-			}
+			debounceRef.current = setTimeout(() => {
+				searchLocations(trimmed).catch((error) => {
+					console.warn("Location search failed:", error);
+				});
+			}, DEBOUNCE_DELAY_MS) as unknown as number;
 		},
 		[onChangeText, searchLocations, isFocused],
 	);
@@ -86,8 +103,20 @@ export function LocationAutocomplete({
 	// Handle input focus
 	const handleFocus = useCallback(() => {
 		setIsFocused(true);
-		setShowSuggestions(value.length > 0);
-	}, [value.length]);
+
+		if (autoClearOnFocus && value.length > 0) {
+			// クリアボタンと同じ順序に揃える
+			onChangeText("");
+			onClear?.();
+
+			// 自動クリアしたときは一旦サジェスト閉じる
+			setShowSuggestions(false);
+			return;
+		}
+
+		// 通常時はそのまま
+		setShowSuggestions(value.trim().length > 0);
+	}, [autoClearOnFocus, value, onChangeText, onClear]);
 
 	// Handle input blur
 	const handleBlur = useCallback(() => {
@@ -95,7 +124,7 @@ export function LocationAutocomplete({
 		setTimeout(() => {
 			setIsFocused(false);
 			setShowSuggestions(false);
-		}, 150);
+		}, BLUR_SUGGESTION_HIDE_DELAY_MS);
 	}, []);
 
 	// Handle suggestion selection
@@ -104,10 +133,11 @@ export function LocationAutocomplete({
 			lightImpact();
 			onSelectSuggestion(suggestion);
 			setShowSuggestions(false);
-			// Delay the blur to allow the parent state update to complete
+
+			// Delay blur to allow parent state update to complete
 			setTimeout(() => {
 				inputRef.current?.blur();
-			}, 100);
+			}, BLUR_AFTER_SELECT_DELAY_MS);
 		},
 		[onSelectSuggestion, lightImpact],
 	);
@@ -116,6 +146,8 @@ export function LocationAutocomplete({
 	const handleClear = useCallback(() => {
 		lightImpact();
 		onChangeText("");
+		setShowSuggestions(false);
+
 		if (onClear) {
 			onClear();
 		}
@@ -130,6 +162,9 @@ export function LocationAutocomplete({
 			}
 		};
 	}, []);
+
+	const trimmedValueLength = value.trim().length;
+	const hasEnoughCharsForSearch = trimmedValueLength >= MIN_SEARCH_LENGTH;
 
 	return (
 		<View style={styles.container}>
@@ -164,7 +199,7 @@ export function LocationAutocomplete({
 						<X size={16} color="#6B7280" />
 					</TouchableOpacity>
 				)}
-				{renderInputRight && renderInputRight}
+				{renderInputRight}
 			</View>
 
 			{/* Loading indicator */}
@@ -210,7 +245,7 @@ export function LocationAutocomplete({
 			)}
 
 			{/* No results message */}
-			{showSuggestions && !isSearching && suggestions.length === 0 && value.length > 2 && (
+			{showSuggestions && !isSearching && suggestions.length === 0 && hasEnoughCharsForSearch && (
 				<View style={styles.noResultsContainer}>
 					<Text style={styles.noResultsText}>No locations found</Text>
 				</View>
