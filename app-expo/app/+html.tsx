@@ -1,10 +1,11 @@
 // app/+html.tsx
 import { Env } from "@/constants/Env";
+import i18n from "@/lib/i18n";
 import { ScrollViewStyleReset } from "expo-router/html";
 import type { PropsWithChildren } from "react";
 
 const WEB_BASE_URL = Env.WEB_BASE_URL.replace(/\/+$/, "");
-const SITE_NAME = "なに食べよ";
+const SITE_NAME = i18n.t("Common.site");
 const THEME_COLOR = "#ffffff";
 
 export default function Root({ children }: PropsWithChildren) {
