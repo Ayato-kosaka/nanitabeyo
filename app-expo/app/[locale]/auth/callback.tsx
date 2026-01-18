@@ -134,7 +134,7 @@ export default function AuthCallbackScreen() {
 
 	return (
 		<View style={styles.container}>
-			<ActivityIndicator size="large" color="#5EA2FF" />
+			<ActivityIndicator size="large" color="#F05537" />
 			<Text style={styles.text}>{i18n.t("Common.processing")}</Text>
 
 			{/* Conflict Warning Dialog */}
@@ -190,7 +190,7 @@ const styles = StyleSheet.create({
 	},
 	primaryButton: {
 		flex: 1,
-		backgroundColor: "#5EA2FF",
+		backgroundColor: "#F05537",
 		paddingVertical: 14,
 		borderRadius: 12,
 		alignItems: "center",

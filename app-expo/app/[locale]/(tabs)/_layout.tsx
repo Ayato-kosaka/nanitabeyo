@@ -34,7 +34,7 @@ export default function TabLayout() {
 					shadowRadius: 24,
 					elevation: 12,
 				},
-				tabBarActiveTintColor: "#5EA2FF",
+				tabBarActiveTintColor: "#F05537",
 				tabBarInactiveTintColor: "#6B7280",
 			}}>
 			<Tabs.Screen

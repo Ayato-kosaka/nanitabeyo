@@ -558,7 +558,7 @@ export function ReviewForm({
 				<View style={{ height: mediaHeight, marginTop: 16 }}>
 					{mediaState.status === "loading" ? (
 						<View style={styles.loadingContainer}>
-							<ActivityIndicator size="large" color="#007AFF" />
+							<ActivityIndicator size="large" color="#F05537" />
 							<Text style={styles.loadingText}>{i18n.t("Map.media.loadingMedia")}</Text>
 						</View>
 					) : (
@@ -700,6 +700,7 @@ export function ReviewForm({
 						label={i18n.t("Common.postReview")}
 						onPress={handleSubmit}
 						disabled={isProcessing || !isValid}
+						shadowColor="transparent"
 						style={{ marginHorizontal: 16 }}
 					/>
 				</View>
@@ -765,7 +766,7 @@ const styles = StyleSheet.create({
 	},
 	primaryButton: {
 		flex: 1,
-		backgroundColor: "#5EA2FF",
+		backgroundColor: "#F05537",
 		paddingVertical: 14,
 		borderRadius: 12,
 		alignItems: "center",
@@ -938,7 +939,7 @@ const styles = StyleSheet.create({
 	buttonContainer: {
 		paddingVertical: 12,
 		borderTopWidth: 1,
-		borderTopColor: "#E5E7EB",
+		borderTopColor: "#C9C9C9",
 		backgroundColor: "#FFFFFF",
 	},
 });

@@ -136,9 +136,9 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 							<PrimaryButton
 								onPress={handleReviewButtonPress}
 								label={i18n.t("Review.selectRestaurant.postPhotoVideo")}
-								icon={<Camera size={20} color="#5EA2FF" />}
-								labelStyle={{ color: "#5EA2FF" }}
-								colors={["#F0F8FF", "#F0F8FF"]}
+								icon={<Camera size={20} color="#F05537" />}
+								labelStyle={{ color: "#F05537" }}
+								colors={["#FDEBE7", "#FDEBE7"]}
 								shadowColor="transparent"
 								borderRadius={8}
 							/>
@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
 	},
 	activeTab: {
 		borderBottomWidth: 2,
-		borderBottomColor: "#007AFF",
+		borderBottomColor: "#F05537",
 	},
 	tabText: {
 		fontSize: 16,
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
 		fontWeight: "500",
 	},
 	activeTabText: {
-		color: "#007AFF",
+		color: "#F05537",
 		fontWeight: "600",
 	},
 });

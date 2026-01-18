@@ -1,7 +1,6 @@
 import React, { useCallback, useMemo } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, LayoutChangeEvent } from "react-native";
 import { Image } from "expo-image";
-import { LinearGradient } from "expo-linear-gradient";
 import { ArrowLeft, Settings, Share, Pencil as Edit3, MessageCircle } from "lucide-react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Card } from "@/components/Card";
@@ -74,7 +73,7 @@ export function ProfileHeader({
 	}, [lightImpact, logFrontendEvent, user?.id, locale]);
 
 	return (
-		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} onLayout={onLayout} pointerEvents="box-none" style={{ zIndex: 1 }}>
+		<View onLayout={onLayout} pointerEvents="box-none" style={{ zIndex: 1 }}>
 			{/* Header Navigation */}
 			<View style={styles.header} pointerEvents="box-none">
 				{!isOwnProfile && (
@@ -160,6 +159,7 @@ export function ProfileHeader({
 								style={{ flex: 1 }}
 								onPress={onEditProfile || (() => {})}
 								label={i18n.t("Profile.buttons.editProfile")}
+								shadowColor="transparent"
 								icon={<Edit3 size={16} color="#FFFFFF" />}
 							/>
 						) : isGuest && isOwnProfile ? (
@@ -182,7 +182,7 @@ export function ProfileHeader({
 					</View>
 				</Card>
 			</View>
-		</LinearGradient>
+		</View>
 	);
 }
 
@@ -292,12 +292,12 @@ const styles = StyleSheet.create({
 	},
 	followButton: {
 		flex: 1,
-		backgroundColor: "#5EA2FF",
+		backgroundColor: "#F05537",
 		paddingVertical: 10,
 		paddingHorizontal: 16,
 		borderRadius: 16,
 		alignItems: "center",
-		shadowColor: "#5EA2FF",
+		shadowColor: "#F05537",
 		shadowOffset: { width: 0, height: 4 },
 		shadowOpacity: 0.3,
 		shadowRadius: 8,

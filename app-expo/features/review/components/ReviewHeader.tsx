@@ -46,7 +46,7 @@ const styles = StyleSheet.create({
 		paddingBottom: 8,
 		paddingHorizontal: 16,
 		borderBottomWidth: 1,
-		borderBottomColor: "#E5E7EB",
+		borderBottomColor: "#C9C9C9",
 		zIndex: 100,
 		flexDirection: "row",
 		alignItems: "center",

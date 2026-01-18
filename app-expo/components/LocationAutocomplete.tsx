@@ -205,7 +205,7 @@ export function LocationAutocomplete({
 			{/* Loading indicator */}
 			{isSearching && (
 				<View style={styles.loadingContainer}>
-					<ActivityIndicator size="small" color="#5EA2FF" />
+					<ActivityIndicator size="small" color="#F05537" />
 					<Text style={styles.loadingText}>{i18n.t("Profile.loading")}</Text>
 				</View>
 			)}
@@ -261,11 +261,8 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		borderRadius: 16,
 		backgroundColor: "#F8F9FA",
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 1 },
-		shadowOpacity: 0.05,
-		shadowRadius: 2,
-		elevation: 1,
+		borderWidth: 1,
+		borderColor: "#C9C9C9",
 	},
 	input: {
 		flex: 1,

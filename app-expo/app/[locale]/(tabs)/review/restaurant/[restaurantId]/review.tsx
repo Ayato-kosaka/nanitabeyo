@@ -107,7 +107,7 @@ export default function ReviewScreen() {
 					}}
 				/>
 				<View style={styles.loadingContainer}>
-					<ActivityIndicator size="large" color="#5EA2FF" />
+					<ActivityIndicator size="large" color="#F05537" />
 				</View>
 			</View>
 		);

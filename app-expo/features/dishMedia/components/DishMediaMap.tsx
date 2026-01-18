@@ -328,7 +328,7 @@ export default function DishMediaMap({
 			{/* この位置に置かないとマップが起動しなくなる */}
 			{isLoading && (
 				<View style={styles.centerContainer}>
-					<ActivityIndicator size="large" color="#5EA2FF" />
+					<ActivityIndicator size="large" color="#F05537" />
 					<Text style={styles.loadingText}>{i18n.t("Profile.loading")}</Text>
 				</View>
 			)}
@@ -348,7 +348,7 @@ export default function DishMediaMap({
 							coordinate={restaurant.coordinate}
 							onPress={() => handleMarkerPress(index)}
 							uri={restaurant.imageUrls?.sm}
-							color={index === currentIndex ? "rgb(52, 119, 248)" : "#FFF"}
+							color={index === currentIndex ? "#F05537" : "#FFF"}
 							isActive={index === currentIndex}
 						/>
 					))}

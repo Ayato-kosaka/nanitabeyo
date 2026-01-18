@@ -72,7 +72,7 @@ export const useLocationSearch = () => {
 
 	const searchLocations = useCallback(
 		async (query: string) => {
-			if (query.length < 2) {
+			if (query.length < 1) {
 				setSuggestions([]);
 				return;
 			}

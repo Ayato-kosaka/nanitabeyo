@@ -323,7 +323,7 @@ export default function DishCategoryImageOptimizerPage() {
 			{/* ローディング */}
 			{isLoadingCategories && (
 				<View style={styles.loadingContainer}>
-					<ActivityIndicator size="large" color="#5EA2FF" />
+					<ActivityIndicator size="large" color="#F05537" />
 					<Text style={styles.loadingText}>{i18n.t("Tools.DishCategoryImageOptimizer.loading")}</Text>
 				</View>
 			)}
@@ -415,7 +415,7 @@ const styles = StyleSheet.create({
 		paddingVertical: 12,
 		backgroundColor: "#FFF",
 		borderBottomWidth: 1,
-		borderBottomColor: "#E5E7EB",
+		borderBottomColor: "#C9C9C9",
 	},
 	headerTitle: {
 		fontSize: 20,
@@ -438,7 +438,7 @@ const styles = StyleSheet.create({
 		gap: 8,
 	},
 	categoryCard: {
-		backgroundColor: "#E5E7EB",
+		backgroundColor: "#C9C9C9",
 		borderRadius: 8,
 		overflow: "hidden",
 		position: "relative",
@@ -495,7 +495,7 @@ const styles = StyleSheet.create({
 		padding: 16,
 		backgroundColor: "#FFF",
 		borderTopWidth: 1,
-		borderTopColor: "#E5E7EB",
+		borderTopColor: "#C9C9C9",
 	},
 	modalContent: {
 		paddingHorizontal: 16,
@@ -521,7 +521,7 @@ const styles = StyleSheet.create({
 		gap: 4,
 	},
 	candidateCard: {
-		backgroundColor: "#E5E7EB",
+		backgroundColor: "#C9C9C9",
 		borderRadius: 4,
 		overflow: "hidden",
 		position: "relative",
