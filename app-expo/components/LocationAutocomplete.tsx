@@ -69,7 +69,7 @@ export function LocationAutocomplete({
 }: LocationAutocompleteProps) {
 	// #681 【設計】子側で持つ state：inputText と selectedLabel
 	const [inputText, setInputText] = useState("");
-	const [selectedLabel, setSelectedLabel] = useState<string | null>(initialLocation?.label || null);
+	const [selectedLabel, setSelectedLabel] = useState<string | null>(initialLocation?.label ?? null);
 	const [showSuggestions, setShowSuggestions] = useState(false);
 	const [isFocused, setIsFocused] = useState(false);
 	const inputRef = useRef<TextInput>(null);
