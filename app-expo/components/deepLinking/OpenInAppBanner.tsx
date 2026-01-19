@@ -15,10 +15,12 @@ export interface OpenInAppBannerProps {
  * #688 【設計】Web Deep Linking 用バナーコンポーネント
  *
  * Web 表示時にアプリ導線を提供：
- * - 「アプリで開く」ボタン（Custom Scheme でアプリ起動を試行）
- * - 「ストアからダウンロード」ボタン（iOS/Android を自動判定してストアへ）
+ * - position absolute で画面上部に半透明でオーバーレイ表示
+ * - サイト名の右に「アプリで開く」ボタンを配置
+ * - ボタン押下時：
+ *   - アプリインストール済み → アプリで開く
+ *   - 未インストール → ストアへ誘導
  *
- * PC の場合はストア導線のみ表示。
  * ネイティブアプリでは表示しない（Web のみ）。
  */
 const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({ path, params }) => {
@@ -96,53 +98,18 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({ path, params
 		}, 3000);
 	}, [buildCustomSchemeUrl]);
 
-	const handleAppStore = useCallback(() => {
-		if (Env.APP_STORE_URL) {
-			window.open(Env.APP_STORE_URL, "_blank");
-		}
-	}, []);
-
-	const handlePlayStore = useCallback(() => {
-		if (Env.PLAY_STORE_URL) {
-			window.open(Env.PLAY_STORE_URL, "_blank");
-		}
-	}, []);
-
-	// #688 【設計】iOS/Android を自動判定して適切なストアを開く
-	const handleDownloadApp = useCallback(() => {
-		const ua = navigator.userAgent;
-		const isIOS = /iPhone|iPad|iPod/i.test(ua);
-		const isAndroid = /Android/i.test(ua);
-
-		if (isIOS && Env.APP_STORE_URL) {
-			window.open(Env.APP_STORE_URL, "_blank");
-		} else if (isAndroid && Env.PLAY_STORE_URL) {
-			window.open(Env.PLAY_STORE_URL, "_blank");
-		} else {
-			// PC またはその他のデバイス：両方のストアを表示する代わりにデフォルトで App Store を開く
-			// 将来的には両方のリンクを表示するモーダルを出すなどの対応も可能
-			if (Env.APP_STORE_URL) {
-				window.open(Env.APP_STORE_URL, "_blank");
-			} else if (Env.PLAY_STORE_URL) {
-				window.open(Env.PLAY_STORE_URL, "_blank");
-			}
-		}
-	}, []);
+	// モバイルでない場合は非表示
+	if (!isMobile) {
+		return null;
+	}
 
 	return (
-		<View style={styles.container}>
+		<View style={styles.overlay}>
 			<View style={styles.banner}>
-				<Text style={styles.title}>{i18n.t("Common.site")}</Text>
-				<View style={styles.buttonsContainer}>
-					{isMobile && (
-						<Pressable style={styles.primaryButton} onPress={handleOpenInApp}>
-							<Text style={styles.primaryButtonText}>{i18n.t("DeepLinking.openInApp")}</Text>
-						</Pressable>
-					)}
-					<Pressable style={styles.secondaryButton} onPress={handleDownloadApp}>
-						<Text style={styles.secondaryButtonText}>{i18n.t("DeepLinking.downloadApp")}</Text>
-					</Pressable>
-				</View>
+				<Text style={styles.siteName}>{i18n.t("Common.site")}</Text>
+				<Pressable style={styles.openButton} onPress={handleOpenInApp}>
+					<Text style={styles.openButtonText}>{i18n.t("DeepLinking.openInApp")}</Text>
+				</Pressable>
 			</View>
 		</View>
 	);
@@ -151,60 +118,47 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({ path, params
 export const OpenInAppBanner = memo(OpenInAppBannerComponent);
 
 const styles = StyleSheet.create({
-	container: {
-		backgroundColor: "#F8F9FA",
+	// #688 【設計】position absolute で画面上部に半透明オーバーレイとして配置
+	overlay: {
+		position: "absolute" as any,
+		top: 0,
+		left: 0,
+		right: 0,
+		zIndex: 1000,
+		backgroundColor: "rgba(0, 0, 0, 0.4)", // 半透明の黒背景
+		paddingVertical: 8,
 		paddingHorizontal: 16,
-		paddingVertical: 12,
 	},
 	banner: {
-		backgroundColor: "#FFFFFF",
-		borderRadius: 12,
-		padding: 16,
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+		backgroundColor: "rgba(255, 255, 255, 0.95)", // 半透明の白背景
+		borderRadius: 8,
+		paddingVertical: 8,
+		paddingHorizontal: 12,
 		shadowColor: "#000",
 		shadowOffset: { width: 0, height: 2 },
 		shadowOpacity: 0.1,
-		shadowRadius: 8,
-		elevation: 4,
+		shadowRadius: 4,
+		elevation: 3,
 	},
-	title: {
+	siteName: {
 		fontSize: 16,
 		fontWeight: "700",
 		color: "#1A1A1A",
-		marginBottom: 12,
-		textAlign: "center",
+		flex: 1,
 	},
-	buttonsContainer: {
-		flexDirection: "row",
-		flexWrap: "wrap",
-		gap: 8,
-		justifyContent: "center",
-	},
-	primaryButton: {
+	openButton: {
 		backgroundColor: "#f05537",
-		paddingVertical: 10,
-		paddingHorizontal: 20,
-		borderRadius: 8,
-		minWidth: 120,
-		alignItems: "center",
+		paddingVertical: 8,
+		paddingHorizontal: 16,
+		borderRadius: 6,
+		marginLeft: 12,
 	},
-	primaryButtonText: {
+	openButtonText: {
 		color: "#FFFFFF",
 		fontSize: 14,
 		fontWeight: "700",
-	},
-	secondaryButton: {
-		backgroundColor: "#FFFFFF",
-		paddingVertical: 10,
-		paddingHorizontal: 16,
-		borderRadius: 8,
-		borderWidth: 1,
-		borderColor: "#E0E0E0",
-		minWidth: 100,
-		alignItems: "center",
-	},
-	secondaryButtonText: {
-		color: "#1A1A1A",
-		fontSize: 14,
-		fontWeight: "600",
 	},
 });
