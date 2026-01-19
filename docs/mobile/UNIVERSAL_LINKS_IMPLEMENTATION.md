@@ -122,19 +122,26 @@ app.useStaticAssets(join(__dirname, "..", "public"), {
 主要機能：
 
 - Platform.OS === "web" の場合のみ表示
-- モバイルブラウザ判定（User Agent）
+- モバイルブラウザ判定（Feature Detection + User Agent）
+- `position: absolute` で画面上部にオーバーレイ表示
+- 半透明背景（黒オーバーレイ + 半透明白バナー）
+- サイト名の右に「アプリで開く」ボタンを配置
 - Custom Scheme (`nanitabeyo://`) でアプリ起動試行
-- タイムアウト後にストアへ誘導
+- アプリ未インストール時は3秒後に自動でストアへ誘導
 - i18n 完全対応（8言語）
 
 ```typescript
 // 使用例（posts.tsx）
-<OpenInAppBanner
-  locale={locale}
-  path="posts"
-  params={{ ids }}
+<OpenInAppBanner 
+  path="posts" 
+  params={{ ids }} 
 />
 ```
+
+**デザイン特徴：**
+- 元のコンテンツを崩さない（position: absolute）
+- コンパクトな横並びレイアウト
+- モバイルのみ表示（PC では非表示）
 
 ### 5. i18n 翻訳追加
 
