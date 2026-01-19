@@ -62,7 +62,7 @@ interface ReviewFormProps {
 	/** Pre-filled media data (for no-media mode from Feed) */
 	prefilledMedia?: DishMediaEntry["dish_media"] & { dish: DishMediaEntry["dish"] };
 	// #644 【設計】レビュー投稿成功時のコールバック（呼び出し元で画面遷移を制御）
-	onSuccess?: (params: { dishMedia: DishMediaEntry["dish_media"] }) => void;
+	onSuccess?: (params: { dishMedia: DishMediaEntry["dish_media"]; dishReviewId: string }) => void;
 }
 
 const { height } = Dimensions.get("window");
@@ -477,7 +477,7 @@ export function ReviewForm({
 
 			// #644 【設計】成功時、DishMedia をコールバック経由で親に渡す（画面遷移は呼び出し元が担当）
 			if (onSuccess) {
-				onSuccess({ dishMedia: dish_media });
+				onSuccess({ dishMedia: dish_media, dishReviewId: String(createdDishReview.id) });
 			} else {
 				// #644 【設計】onSuccess が指定されていない場合は従来通りの挙動（onCancel 呼び出し）
 				onCancel();

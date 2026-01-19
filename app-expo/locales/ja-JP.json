@@ -365,7 +365,7 @@
 			"searchRestaurants": "レストランを検索",
 			"enterPrice": "料金を入力",
 			"enterReview": "オススメ度",
-			"enterReviewShort": "豚骨スープが濃厚で最高にうまかった！",
+			"enterReviewShort": "一言レビュー（例: 豚骨スープが濃厚で最高にうまかった！）",
 			"enterBidAmount": "入札額を入力",
 			"enterDishCategory": "料理カテゴリを入力 (例: カレーライス、天ぷら)",
 			"searchRestaurantsForReview": "店名やエリアで検索"

@@ -365,7 +365,7 @@
 			"searchRestaurants": "Rechercher des restaurants",
 			"enterPrice": "Entrez le prix",
 			"enterReview": "Niveau de recommandation",
-			"enterReviewShort": "Le bouillon de tonkotsu était incroyablement riche et délicieux!",
+			"enterReviewShort": "Avis bref (ex: Le bouillon de tonkotsu était incroyablement riche et délicieux!)",
 			"enterBidAmount": "Entrez le montant de l'enchère",
 			"enterDishCategory": "Entrez la catégorie de plat (ex: Crêpe, Ratatouille)",
 			"searchRestaurantsForReview": "Rechercher par nom ou zone"
