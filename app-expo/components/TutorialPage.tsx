@@ -27,11 +27,7 @@ export function TutorialPage({ image, title, bodyLines }: TutorialPageProps) {
 
 			{/* 本文 */}
 			<View style={styles.bodyContainer}>
-				{bodyLines.map((line, index) => (
-					<Text key={index} style={styles.bodyText}>
-						{line}
-					</Text>
-				))}
+				<Text style={styles.bodyText}>{bodyLines.join("")}</Text>
 			</View>
 		</View>
 	);
@@ -69,6 +65,5 @@ const styles = StyleSheet.create({
 		color: "#4B5563",
 		textAlign: "left",
 		lineHeight: 22,
-		marginBottom: 4,
 	},
 });
