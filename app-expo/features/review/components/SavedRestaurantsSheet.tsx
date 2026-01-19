@@ -10,9 +10,22 @@ import type { QueryMeSavedRestaurantsResponse } from "@shared/api/v1/res";
 import { FlatList } from "react-native";
 import { SkeletonShimmer } from "@/components/SkeletonShimmer";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const CARD_WIDTH = SCREEN_WIDTH * 0.92;
 const CARD_HEIGHT = 100;
+
+// カード 1 枚 + タイトル + ちょい余白分をスクリーン比から計算する
+const CARD_AREA_HEIGHT = CARD_HEIGHT + 24; // カード + margin ちょい
+const TITLE_AREA_HEIGHT = 40;
+const TOP_PADDING = 12;
+const BOTTOM_PADDING = 0;
+
+// 使いたい見た目の高さ = 上マージン + タイトル + カード + 下マージン
+const smallDetentHeight = TOP_PADDING + TITLE_AREA_HEIGHT + CARD_AREA_HEIGHT + BOTTOM_PADDING;
+
+// detent に渡すのは「割合」なので 0〜1 に正規化
+const SMALL_DETENT = Math.min(smallDetentHeight / SCREEN_HEIGHT, 0.5); // 上限を 0.5 にする etc.
+const LARGE_DETENT = 0.9;
 
 type SavedRestaurant = QueryMeSavedRestaurantsResponse["data"][number];
 
@@ -128,19 +141,24 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 		return (
 			<TrueSheet
 				ref={sheetRef}
-				detents={["auto", 0.9]}
+				detents={[SMALL_DETENT, LARGE_DETENT]}
 				grabber
 				cornerRadius={24}
 				maxHeight={560}
 				backgroundColor="#FFFFFF"
-				dimmed={false}
 				dismissible={false}
+				dimmed={false}
+				scrollable={detentIndex === 1}
+				header={
+					<View style={styles.header}>
+						<Text style={styles.savedRestaurantsTitle}>{i18n.t("Review.selectRestaurant.savedRestaurantList")}</Text>
+					</View>
+				}
 				onDetentChange={handleDetentChange}>
 				<View style={styles.container}>
 					{/* #644 【UX】ローディング中はスケルトンを表示 */}
 					{isLoadingSavedRestaurants && savedRestaurants.length === 0 ? (
 						<>
-							<Text style={styles.savedRestaurantsTitle}>{i18n.t("Review.selectRestaurant.savedRestaurantList")}</Text>
 							{detentIndex === 0 ? (
 								// カルーセル表示時のスケルトン（2-3件）
 								<View style={styles.carouselWrapper}>
@@ -161,8 +179,6 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 						</>
 					) : savedRestaurants.length > 0 ? (
 						<>
-							<Text style={styles.savedRestaurantsTitle}>{i18n.t("Review.selectRestaurant.savedRestaurantList")}</Text>
-
 							{detentIndex === 0 ? (
 								<View style={styles.carouselWrapper}>
 									<Carousel<SavedRestaurant>
@@ -283,7 +299,7 @@ function SkeletonCard() {
 	return (
 		<View style={styles.savedRestaurantCard}>
 			{/* 画像エリア */}
-			<SkeletonShimmer width={100} height={CARD_HEIGHT} borderRadius={0} />
+			<SkeletonShimmer width={100} height={CARD_HEIGHT} style={styles.savedRestaurantImage} />
 			{/* テキスト部分 */}
 			<View style={styles.savedRestaurantInfo}>
 				{/* 店名エリア（2行分） */}
@@ -303,12 +319,14 @@ const styles = StyleSheet.create({
 		paddingTop: 12,
 		paddingBottom: 20,
 	},
+	header: {
+		paddingHorizontal: 16,
+		marginVertical: 8,
+	},
 	savedRestaurantsTitle: {
 		fontSize: 14,
 		fontWeight: "600",
 		color: "#666",
-		paddingHorizontal: 16,
-		marginBottom: 8,
 	},
 	carouselWrapper: {
 		width: SCREEN_WIDTH,
@@ -341,8 +359,8 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		backgroundColor: "#FFF",
 		borderRadius: 12,
-		overflow: "hidden",
-		shadowColor: "#000",
+		height: CARD_HEIGHT,
+		shadowColor: "#000000",
 		shadowOffset: { width: 0, height: 0 },
 		shadowOpacity: 0.2,
 		shadowRadius: 8,
@@ -351,6 +369,8 @@ const styles = StyleSheet.create({
 	savedRestaurantImage: {
 		width: 100,
 		height: CARD_HEIGHT,
+		borderTopLeftRadius: 12,
+		borderBottomLeftRadius: 12,
 	},
 	savedRestaurantInfo: {
 		flex: 1,
