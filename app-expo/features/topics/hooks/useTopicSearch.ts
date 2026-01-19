@@ -27,7 +27,7 @@ export const useTopicSearch = () => {
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const { callBackend } = useAPICall();
-	const locale = useLocale();
+	const { locale } = useLocale();
 	const { logFrontendEvent } = useLogger();
 
 	// #633 【設計】料理メディアの取得処理（オンデマンド実行用に export）
@@ -180,8 +180,8 @@ export const useTopicSearch = () => {
 										...topic,
 										category:
 											createDishCategoryVariantResponse.labels &&
-											typeof createDishCategoryVariantResponse.labels === "object" &&
-											params.localLanguageCode in createDishCategoryVariantResponse.labels
+												typeof createDishCategoryVariantResponse.labels === "object" &&
+												params.localLanguageCode in createDishCategoryVariantResponse.labels
 												? (createDishCategoryVariantResponse.labels as Record<string, string>)[params.localLanguageCode]
 												: topic.category,
 										categoryId: createDishCategoryVariantResponse.id,

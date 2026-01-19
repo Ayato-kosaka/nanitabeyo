@@ -25,7 +25,7 @@ export default function ReviewFromMediaScreen() {
 	const { callBackend } = useAPICall();
 	const { showSnackbar } = useSnackbar();
 	const { logFrontendEvent } = useLogger();
-	const locale = useLocale();
+	const { locale } = useLocale();
 
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
@@ -33,14 +33,14 @@ export default function ReviewFromMediaScreen() {
 	const [dishMedia, setDishMedia] = useState<NormalizedDishMediaEntry | null>(null);
 
 	// #644 【設計】レビュー投稿成功時に /review/post/:id に遷移
-	const handleReviewSuccess = ({ dishMedia }: { dishMedia: DishMediaEntry["dish_media"] }) => {
+	const handleReviewSuccess = ({ dishReviewId }: { dishReviewId: string }) => {
 		// /review までスタックを掃除（なければ現在画面を /review に置き換え）
 		router.dismissTo(`/${locale}/(tabs)/review`);
 		router.push({
 			pathname: `/[locale]/(tabs)/review/post/[id]`,
 			params: {
 				locale,
-				id: dishMedia.id,
+				id: dishReviewId,
 			},
 		});
 	};

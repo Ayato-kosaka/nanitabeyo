@@ -44,7 +44,7 @@ const isValidBcp47Tag = (tag: string): boolean => {
 export default function RootLayout() {
 	useFrameworkReady();
 	const router = useRouter();
-	const locale = useLocale();
+	const { locale } = useLocale();
 	const scheme = "light"; // light モード 固定（ダークモード対応時に useColorScheme() とする）
 	const theme = getPaperTheme(scheme, locale);
 	const { logFrontendEvent } = useLogger();

@@ -54,7 +54,7 @@ export function ProfileHeader({
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { user } = useAuth();
-	const locale = useLocale();
+	const { locale } = useLocale();
 
 	const avatarUrl = useMemo(() => profile.avatarUrls?.md, [profile]);
 

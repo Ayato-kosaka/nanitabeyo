@@ -33,7 +33,7 @@ export default function NotificationsScreen() {
 	const notifications = useNotifications();
 	const { markAllAsRead } = useMarkNotificationsRead();
 	const { unreadCount, refresh: notificationUnreadCountRefresh } = useNotificationUnreadCount();
-	const locale = useLocale();
+	const { locale } = useLocale();
 
 	// #通知機能 【設計】画面入場時に通知を取得し、未読数をリフレッシュして全件既読にする
 	const inFlightRef = React.useRef(false);

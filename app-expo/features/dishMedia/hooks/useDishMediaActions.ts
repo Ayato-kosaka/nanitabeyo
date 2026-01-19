@@ -19,7 +19,7 @@ export function useDishMediaActions({ source }: UseDishMediaActionsProps) {
 	const { lightImpact } = useHaptics();
 	const { showSnackbar } = useSnackbar();
 	const { logFrontendEvent } = useLogger();
-	const locale = useLocale();
+	const { locale } = useLocale();
 
 	// #613 【設計】Google Maps で開く処理を共通化（緯度経度優先）
 	const openInGoogleMaps = useCallback(

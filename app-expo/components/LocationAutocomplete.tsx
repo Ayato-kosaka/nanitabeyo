@@ -224,10 +224,10 @@ export function LocationAutocomplete({
 								key={suggestion.place_id || index}
 								style={[styles.suggestionItem, index === suggestions.length - 1 && styles.lastSuggestionItem]}
 								onPress={() => handleSuggestionPress(suggestion)}
-							accessibilityRole="button"
-							accessibilityLabel={suggestion.text}
-							accessibilityHint={i18n.t("Search.accessibility.selectLocation")}
-							testID={`${testID}-suggestion-${index}`}>
+								accessibilityRole="button"
+								accessibilityLabel={suggestion.text}
+								accessibilityHint={i18n.t("Search.accessibility.selectLocation")}
+								testID={`${testID}-suggestion-${index}`}>
 								{isFoodAndDrinkPlaceForUser(suggestion) ? (
 									<Utensils size={16} color="#6B7280" />
 								) : (
@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "center",
 		borderRadius: 16,
-		backgroundColor: "#F8F9FA",
+		backgroundColor: "#FFFFFF",
 		borderWidth: 1,
 		borderColor: "#C9C9C9",
 	},

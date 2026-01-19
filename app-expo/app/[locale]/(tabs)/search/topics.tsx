@@ -24,7 +24,7 @@ import { WIKIMEDIA_HEADERS } from "@/lib/wikimedia";
 import { SearchHeader } from "@/features/search/components/SearchHeader";
 
 export default function TopicsScreen() {
-	const locale = useLocale();
+	const { locale } = useLocale();
 	const { searchParams } = useLocalSearchParams<{ searchParams: string }>();
 	const params = useMemo(() => {
 		if (searchParams) {

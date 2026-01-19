@@ -40,7 +40,7 @@ export default function SelectRestaurantScreen() {
 	const { logFrontendEvent } = useLogger();
 	const { callBackend } = useAPICall();
 	const { showSnackbar } = useSnackbar();
-	const locale = useLocale();
+	const { locale, isJapanese } = useLocale();
 	const navigation = useNavigation();
 	const [searchQuery, setSearchQuery] = useState("");
 	const [isLoadingRestaurantCreation, setIsLoadingRestaurantCreation] = useState(false);
@@ -125,38 +125,6 @@ export default function SelectRestaurantScreen() {
 			createAndOpenRestaurant(event.nativeEvent.placeId);
 		},
 		[createAndOpenRestaurant, lightImpact],
-	);
-
-	// #644 【設計】オートコンプリート選択時の処理
-	const handleAutocompleteSelect = useCallback(
-		async (prediction: AutocompleteLocation) => {
-			lightImpact();
-			if (isFoodAndDrinkPlaceForUser(prediction)) {
-				// 飲食店カテゴリの場合はレストラン作成＆詳細表示
-				createAndOpenRestaurant(prediction.place_id);
-			} else {
-				// 一般の場所の場合は地図移動のみ
-				try {
-					const { location } = await getLocationDetails(prediction);
-					const newRegion = {
-						latitude: location.latitude,
-						longitude: location.longitude,
-						latitudeDelta: 0.01,
-						longitudeDelta: 0.01,
-					};
-					currentRegion.current = newRegion;
-					mapRef.current?.animateToRegion(newRegion, 1000);
-					setSearchQuery("");
-				} catch (error) {
-					logFrontendEvent({
-						event_name: "MapSearchError",
-						error_level: "error",
-						payload: { error, prediction },
-					});
-				}
-			}
-		},
-		[createAndOpenRestaurant, getLocationDetails, lightImpact, logFrontendEvent],
 	);
 
 	const handleCurrentLocation = useCallback(async () => {
@@ -338,6 +306,23 @@ export default function SelectRestaurantScreen() {
 			payload: { screen: "review_select_restaurant" },
 		});
 
+		// 日本語設定時は日本全体を表示
+		if (isJapanese) {
+			const japanRegion: Region = {
+				// 日本のだいたいの中心
+				latitude: 36.2048,
+				longitude: 138.2529,
+				// 日本全体が入るくらいのデルタ（お好みで調整）
+				latitudeDelta: 20,
+				longitudeDelta: 20,
+			};
+
+			currentRegion.current = japanRegion;
+			mapRef.current?.animateToRegion(japanRegion, 1000);
+			searchSavedRestaurants(japanRegion);
+			return;
+		}
+
 		getCurrentLocation().then(({ location }) => {
 			const newRegion = {
 				latitude: location.latitude,
@@ -351,6 +336,40 @@ export default function SelectRestaurantScreen() {
 		});
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
+
+	// #644 【設計】オートコンプリート選択時の処理
+	const handleAutocompleteSelect = useCallback(
+		async (prediction: AutocompleteLocation) => {
+			lightImpact();
+			if (isFoodAndDrinkPlaceForUser(prediction)) {
+				// 飲食店カテゴリの場合はレストラン作成＆詳細表示
+				createAndOpenRestaurant(prediction.place_id);
+			} else {
+				// 一般の場所の場合は地図移動のみ
+				try {
+					const { location } = await getLocationDetails(prediction);
+					const newRegion = {
+						latitude: location.latitude,
+						longitude: location.longitude,
+						latitudeDelta: 0.01,
+						longitudeDelta: 0.01,
+					};
+					currentRegion.current = newRegion;
+					mapRef.current?.animateToRegion(newRegion, 1000);
+					setSearchQuery("");
+					// エリア選択時にそのエリアで保存したお店を検索
+					searchSavedRestaurants(newRegion);
+				} catch (error) {
+					logFrontendEvent({
+						event_name: "MapSearchError",
+						error_level: "error",
+						payload: { error, prediction },
+					});
+				}
+			}
+		},
+		[createAndOpenRestaurant, getLocationDetails, lightImpact, logFrontendEvent, searchSavedRestaurants],
+	);
 
 	return (
 		<View style={styles.container}>

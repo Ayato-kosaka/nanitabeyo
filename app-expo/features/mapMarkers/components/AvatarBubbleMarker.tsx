@@ -52,9 +52,8 @@ type Props = RNMarkerProps & {
 
 export function AvatarBubbleMarker({
 	uri,
-	// Androidは領域制限のためsize=37が最も安定
 	// iOS/Webは吹き出し想定で48
-	size = Platform.OS === "android" ? 37 : 48,
+	size = 48,
 	color = "#FFFFFF",
 	isActive = false,
 	...props
@@ -66,13 +65,13 @@ export function AvatarBubbleMarker({
 		setTimeout(() => setTracksViewChanges(false), TRACKS_VIEW_CHANGES_DELAY_MS);
 	}, []);
 
-	const bubbleSize = size;
-	const imageSize = size - IMAGE_SIZE_OFFSET;
+	// Androidは領域制限のためsize=37が最も安定
+	const bubbleSize = Platform.OS === "android" ? Math.min(size, 37) : size;
+	const imageSize = bubbleSize - IMAGE_SIZE_OFFSET;
 
 	return (
 		<Marker
 			{...props}
-			zIndex={isActive ? 2 : 1}
 			tracksViewChanges={tracksViewChanges}
 			// anchorは画像下寄せ。プラットフォームごとに値が異なる理由:
 			// - iOS / Web: y=0.85 にすることで「吹き出し+尻尾」の先端が実座標に重なるように配置
