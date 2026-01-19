@@ -36,6 +36,7 @@
 		"openInApp": "Open in App",
 		"appStore": "App Store",
 		"playStore": "Google Play",
+		"downloadApp": "Download App",
 		"viewInBrowser": "Continue in browser"
 	},
 	"Error": {

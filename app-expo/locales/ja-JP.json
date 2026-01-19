@@ -36,6 +36,7 @@
 		"openInApp": "アプリで開く",
 		"appStore": "App Store",
 		"playStore": "Google Play",
+		"downloadApp": "アプリをダウンロード",
 		"viewInBrowser": "ブラウザで続ける"
 	},
 	"Error": {

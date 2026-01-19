@@ -36,6 +36,7 @@
 		"openInApp": "앱에서 열기",
 		"appStore": "App Store",
 		"playStore": "Google Play",
+		"downloadApp": "앱 다운로드",
 		"viewInBrowser": "브라우저에서 계속하기"
 	},
 	"Error": {

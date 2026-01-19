@@ -2,10 +2,9 @@ import React, { memo, useCallback, useEffect, useState } from "react";
 import { View, Text, StyleSheet, Pressable, Platform, Linking } from "react-native";
 import i18n from "@/lib/i18n";
 import { Env } from "@/constants/Env";
+import { useLocale } from "@/hooks/useLocale";
 
 export interface OpenInAppBannerProps {
-	/** 現在のロケール（例: "ja-JP"） */
-	locale: string;
 	/** 現在のパス（例: "posts"） */
 	path: string;
 	/** クエリパラメータ（例: { ids: "aaa,bbb" }） */
@@ -17,18 +16,19 @@ export interface OpenInAppBannerProps {
  *
  * Web 表示時にアプリ導線を提供：
  * - 「アプリで開く」ボタン（Custom Scheme でアプリ起動を試行）
- * - 「App Store」ボタン（iOS ストアへ）
- * - 「Google Play」ボタン（Android ストアへ）
+ * - 「ストアからダウンロード」ボタン（iOS/Android を自動判定してストアへ）
  *
  * PC の場合はストア導線のみ表示。
  * ネイティブアプリでは表示しない（Web のみ）。
  */
-const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({ locale, path, params }) => {
+const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({ path, params }) => {
 	// ネイティブアプリでは非表示
 	if (Platform.OS !== "web") {
 		return null;
 	}
 
+	// #688 【設計】locale の取得は OpenInAppBanner の責務とする
+	const { locale } = useLocale();
 	const [isMobile, setIsMobile] = useState(false);
 
 	useEffect(() => {
@@ -108,6 +108,27 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({ locale, path
 		}
 	}, []);
 
+	// #688 【設計】iOS/Android を自動判定して適切なストアを開く
+	const handleDownloadApp = useCallback(() => {
+		const ua = navigator.userAgent;
+		const isIOS = /iPhone|iPad|iPod/i.test(ua);
+		const isAndroid = /Android/i.test(ua);
+
+		if (isIOS && Env.APP_STORE_URL) {
+			window.open(Env.APP_STORE_URL, "_blank");
+		} else if (isAndroid && Env.PLAY_STORE_URL) {
+			window.open(Env.PLAY_STORE_URL, "_blank");
+		} else {
+			// PC またはその他のデバイス：両方のストアを表示する代わりにデフォルトで App Store を開く
+			// 将来的には両方のリンクを表示するモーダルを出すなどの対応も可能
+			if (Env.APP_STORE_URL) {
+				window.open(Env.APP_STORE_URL, "_blank");
+			} else if (Env.PLAY_STORE_URL) {
+				window.open(Env.PLAY_STORE_URL, "_blank");
+			}
+		}
+	}, []);
+
 	return (
 		<View style={styles.container}>
 			<View style={styles.banner}>
@@ -118,11 +139,8 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({ locale, path
 							<Text style={styles.primaryButtonText}>{i18n.t("DeepLinking.openInApp")}</Text>
 						</Pressable>
 					)}
-					<Pressable style={styles.secondaryButton} onPress={handleAppStore}>
-						<Text style={styles.secondaryButtonText}>{i18n.t("DeepLinking.appStore")}</Text>
-					</Pressable>
-					<Pressable style={styles.secondaryButton} onPress={handlePlayStore}>
-						<Text style={styles.secondaryButtonText}>{i18n.t("DeepLinking.playStore")}</Text>
+					<Pressable style={styles.secondaryButton} onPress={handleDownloadApp}>
+						<Text style={styles.secondaryButtonText}>{i18n.t("DeepLinking.downloadApp")}</Text>
 					</Pressable>
 				</View>
 			</View>
