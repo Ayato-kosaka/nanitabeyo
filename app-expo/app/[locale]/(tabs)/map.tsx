@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { View, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
+import { LoadingIndicator } from "@/components/LoadingIndicator";
+import { View, StyleSheet, TouchableOpacity } from "react-native";
 import { Navigation } from "lucide-react-native";
 import MapView, { Region } from "@/components/MapView";
 import type { PoiClickEvent } from "react-native-maps";
@@ -252,7 +253,7 @@ export default function MapScreen() {
 			{/* POI Loading Indicator */}
 			{isLoadingRestaurantCreation && (
 				<View style={styles.loadingOverlay}>
-					<ActivityIndicator size="large" color="#F05537" />
+					<LoadingIndicator size="large" />
 				</View>
 			)}
 

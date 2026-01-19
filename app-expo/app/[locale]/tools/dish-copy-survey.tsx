@@ -4,6 +4,7 @@
 // 運営用ツール - 各料理画像にタイトル+タグラインを選択してもらう
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { LoadingIndicator } from "@/components/LoadingIndicator";
 import {
 	View,
 	StyleSheet,
@@ -356,7 +357,7 @@ export default function DishCopySurveyPage() {
 	if (isLoading) {
 		return (
 			<View style={[styles.container, styles.centerContent]}>
-				<ActivityIndicator size="large" color="#F05537" />
+				<LoadingIndicator size="large" />
 				<Text style={styles.loadingText}>データを読み込んでいます...</Text>
 			</View>
 		);

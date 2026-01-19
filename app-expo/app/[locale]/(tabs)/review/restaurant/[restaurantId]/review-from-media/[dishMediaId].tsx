@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { View, StyleSheet, ActivityIndicator, Text } from "react-native";
+import { LoadingIndicator } from "@/components/LoadingIndicator";
+import { View, StyleSheet, Text } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { ReviewForm } from "@/features/map/components/ReviewForm";
 import { useRestaurantStore, type RestaurantEntry } from "@/features/review/stores/useRestaurantStore";
@@ -130,7 +131,7 @@ export default function ReviewFromMediaScreen() {
 					}}
 				/>
 				<View style={styles.loadingContainer}>
-					<ActivityIndicator size="large" color="#F05537" />
+					<LoadingIndicator size="large" />
 				</View>
 			</View>
 		);
