@@ -19,11 +19,11 @@ import {
 	useDishMediaEntriesStore,
 } from "@/stores/useDishMediaEntriesStore";
 import { shallow } from "zustand/shallow";
-import { ActivityIndicator } from "react-native";
 import i18n from "@/lib/i18n";
 import { useActionSheet } from "@expo/react-native-action-sheet";
 import { useDishMediaActions } from "../hooks/useDishMediaActions";
 import { PrimaryButton } from "@/components/PrimaryButton";
+import { LoadingIndicator } from "@/components/LoadingIndicator";
 
 const { width, height } = Dimensions.get("window");
 
@@ -328,7 +328,7 @@ export default function DishMediaMap({
 			{/* この位置に置かないとマップが起動しなくなる */}
 			{isLoading && (
 				<View style={styles.centerContainer}>
-					<ActivityIndicator size="large" color="#F05537" />
+					<LoadingIndicator size="large" />
 					<Text style={styles.loadingText}>{i18n.t("Profile.loading")}</Text>
 				</View>
 			)}
