@@ -14,12 +14,12 @@ export interface OpenInAppBannerProps {
 
 /**
  * #688 【設計】Web Deep Linking 用バナーコンポーネント
- * 
+ *
  * Web 表示時にアプリ導線を提供：
  * - 「アプリで開く」ボタン（Custom Scheme でアプリ起動を試行）
  * - 「App Store」ボタン（iOS ストアへ）
  * - 「Google Play」ボタン（Android ストアへ）
- * 
+ *
  * PC の場合はストア導線のみ表示。
  * ネイティブアプリでは表示しない（Web のみ）。
  */
