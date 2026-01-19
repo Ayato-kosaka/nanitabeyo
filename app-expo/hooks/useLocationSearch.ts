@@ -24,7 +24,7 @@ export const useLocationSearch = () => {
 	const [isSearching, setIsSearching] = useState(false);
 	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
-	const locale = useLocale();
+	const { locale } = useLocale();
 
 	// Session token for Google Places API
 	const sessionTokenRef = useRef<string | null>(null);

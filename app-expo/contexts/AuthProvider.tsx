@@ -41,7 +41,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 	const { logFrontendEvent } = useLogger();
 	const [user, setUser] = useState<User | null>(null);
 	const [loading, setLoading] = useState(true);
-	const locale = useLocale();
+	const { locale } = useLocale();
 	const sessionRef = useRef<Session | null>(null);
 	const getSession = useCallback(() => sessionRef.current, []);
 

@@ -59,7 +59,7 @@ const ITEM_WIDTH =
 	NUM_COLUMNS;
 
 export default function SearchScreen() {
-	const locale = useLocale();
+	const { locale, isJapanese } = useLocale();
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const [location, setLocation] = useState<Omit<LocationDetailsResponse, "viewport"> | null>(null);
@@ -241,7 +241,6 @@ export default function SearchScreen() {
 	// ========== チュートリアル表示制御 ==========
 	const [showTutorial, setShowTutorial] = useState(false);
 	const { hasSeenTutorial, isLoading: isTutorialLoading, markTutorialAsSeen } = useSearchTutorial();
-	const isTutorialSupportedLocale = useMemo(() => ["ja-JP", "ja"].includes(locale), [locale]);
 	// チュートリアル初期処理実行済みフラグ
 	const didInitTutorialState = useRef(false);
 
@@ -250,7 +249,7 @@ export default function SearchScreen() {
 		if (didInitTutorialState.current) return;
 		didInitTutorialState.current = true;
 
-		if (!isTutorialSupportedLocale) {
+		if (!isJapanese) {
 			// #642 【設計】対応言語以外ではチュートリアルを表示しない
 			getCurrentLocation()
 				.then((currentLocation) => {
@@ -278,7 +277,7 @@ export default function SearchScreen() {
 				})
 				.catch(console.error);
 		}
-	}, [isTutorialLoading, hasSeenTutorial, logFrontendEvent, getCurrentLocation, isTutorialSupportedLocale]);
+	}, [isTutorialLoading, hasSeenTutorial, logFrontendEvent, getCurrentLocation, isJapanese]);
 
 	// #642 【設計】ヘルプアイコンからチュートリアルを手動で開く
 	const handleOpenTutorial = () => {
@@ -317,7 +316,7 @@ export default function SearchScreen() {
 			<View style={styles.header}>
 				<Text style={styles.headerTitle}>{i18n.t("Search.headerTitle")}</Text>
 				{/* #642 【設計】ヘルプアイコンからチュートリアルを再表示 */}
-				{isTutorialSupportedLocale && (
+				{isJapanese && (
 					<TouchableOpacity style={styles.helpButton} onPress={handleOpenTutorial}>
 						<HelpCircle size={24} color="#6B7280" />
 					</TouchableOpacity>

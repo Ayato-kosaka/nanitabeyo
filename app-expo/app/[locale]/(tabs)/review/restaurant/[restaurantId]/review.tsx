@@ -18,7 +18,7 @@ export default function ReviewScreen() {
 	const { callBackend } = useAPICall();
 	const { showSnackbar } = useSnackbar();
 	const { logFrontendEvent } = useLogger();
-	const locale = useLocale();
+	const { locale } = useLocale();
 
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);

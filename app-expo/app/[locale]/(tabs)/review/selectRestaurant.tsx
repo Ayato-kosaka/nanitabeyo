@@ -39,7 +39,7 @@ export default function SelectRestaurantScreen() {
 	const { logFrontendEvent } = useLogger();
 	const { callBackend } = useAPICall();
 	const { showSnackbar } = useSnackbar();
-	const locale = useLocale();
+	const { locale, isJapanese } = useLocale();
 	const navigation = useNavigation();
 	const [searchQuery, setSearchQuery] = useState("");
 	const [isLoadingRestaurantCreation, setIsLoadingRestaurantCreation] = useState(false);
@@ -336,6 +336,23 @@ export default function SelectRestaurantScreen() {
 			error_level: "log",
 			payload: { screen: "review_select_restaurant" },
 		});
+
+		// 日本語設定時は日本全体を表示
+		if (isJapanese) {
+			const japanRegion: Region = {
+				// 日本のだいたいの中心
+				latitude: 36.2048,
+				longitude: 138.2529,
+				// 日本全体が入るくらいのデルタ（お好みで調整）
+				latitudeDelta: 20,
+				longitudeDelta: 20,
+			};
+
+			currentRegion.current = japanRegion;
+			mapRef.current?.animateToRegion(japanRegion, 1000);
+			searchSavedRestaurants(japanRegion);
+			return;
+		}
 
 		getCurrentLocation().then(({ location }) => {
 			const newRegion = {
