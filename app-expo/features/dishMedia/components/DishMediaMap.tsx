@@ -362,8 +362,8 @@ export default function DishMediaMap({
 					<PrimaryButton
 						label={i18n.t("Map.buttons.openInGoogle")}
 						onPress={handleOpenInGoogleMaps}
-						labelStyle={{ color: "#5EA2FF" }}
-						colors={["#F0F8FF", "#F0F8FF"]}
+						labelStyle={{ color: "#F05537" }}
+						colors={["#FDEBE7", "#FDEBE7"]}
 						shadowColor="transparent"
 						borderRadius={8}
 					/>
