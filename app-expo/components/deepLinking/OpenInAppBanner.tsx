@@ -32,11 +32,19 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({ locale, path
 	const [isMobile, setIsMobile] = useState(false);
 
 	useEffect(() => {
-		// モバイルブラウザ判定（簡易版）
+		// #688 【設計】モバイルブラウザ判定（Feature Detection 優先、User Agent をフォールバック）
 		const checkMobile = () => {
+			// Feature Detection: タッチデバイス && ホバー不可能
+			const hasCoarsePointer = window.matchMedia("(pointer: coarse)").matches;
+			const noHover = window.matchMedia("(hover: none)").matches;
+			const featureDetection = hasCoarsePointer && noHover;
+
+			// User Agent フォールバック
 			const ua = navigator.userAgent;
-			const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
-			setIsMobile(mobile);
+			const uaDetection = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+
+			// Feature Detection を優先、未対応ブラウザでは UA を使用
+			setIsMobile(featureDetection || uaDetection);
 		};
 		checkMobile();
 	}, []);
@@ -62,23 +70,30 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({ locale, path
 
 	const handleOpenInApp = useCallback(() => {
 		const customUrl = buildCustomSchemeUrl();
-		// Custom Scheme を叩く
-		window.location.href = customUrl;
 
-		// タイムアウト判定：アプリが開かなければストアへ
+		// #688 【設計】iframe を使用してページ遷移を防ぐ（Custom Scheme 失敗時の対策）
+		const iframe = document.createElement("iframe");
+		iframe.style.display = "none";
+		iframe.src = customUrl;
+		document.body.appendChild(iframe);
+
+		// タイムアウト判定：アプリが開かなければストアへ（ユーザーアクションとして提示）
+		// 注意：visibilitychange を使用してもアプリ起動判定は完全ではないため、
+		// 長めのタイムアウト（3秒）を設定し、ユーザーが気づきやすくする
 		setTimeout(() => {
-			// アプリが起動しなかった場合、ストアへ誘導
+			document.body.removeChild(iframe);
+
 			// iOS と Android の判定
 			const ua = navigator.userAgent;
 			const isIOS = /iPhone|iPad|iPod/i.test(ua);
 			const isAndroid = /Android/i.test(ua);
 
 			if (isIOS && Env.APP_STORE_URL) {
-				window.location.href = Env.APP_STORE_URL;
+				window.open(Env.APP_STORE_URL, "_blank");
 			} else if (isAndroid && Env.PLAY_STORE_URL) {
-				window.location.href = Env.PLAY_STORE_URL;
+				window.open(Env.PLAY_STORE_URL, "_blank");
 			}
-		}, 2000);
+		}, 3000);
 	}, [buildCustomSchemeUrl]);
 
 	const handleAppStore = useCallback(() => {

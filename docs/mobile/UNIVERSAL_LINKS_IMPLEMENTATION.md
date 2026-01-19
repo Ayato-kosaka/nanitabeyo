@@ -9,11 +9,13 @@ iOS Universal Links、Android App Links、および Web Deep Linking を統合�
 ## 🎯 動作フロー
 
 ### アプリインストール済みの場合
+
 1. ユーザーが `https://app.nanitabeyo.net/ja-JP/posts?ids=xxx` をタップ
 2. OS が該当アプリを自動起動（Universal Links / App Links）
 3. アプリ内で該当画面（posts）へ直接遷移
 
 ### アプリ未インストールの場合
+
 1. ユーザーが同じ URL をタップ
 2. Web ブラウザで表示
 3. `OpenInAppBanner` コンポーネントが導線を提供：
@@ -26,6 +28,7 @@ iOS Universal Links、Android App Links、および Web Deep Linking を統合�
 ### 1. iOS Universal Links
 
 #### app.config.ts
+
 ```typescript
 ios: {
   associatedDomains: ["applinks:app.nanitabeyo.net"],
@@ -36,58 +39,59 @@ ios: {
 ```
 
 #### AASA ファイル（Apple App Site Association）
+
 - 配置場所1: `api/public/apple-app-site-association`
 - 配置場所2: `api/public/.well-known/apple-app-site-association`
-- アクセスURL: 
+- アクセスURL:
   - `https://app.nanitabeyo.net/apple-app-site-association`
   - `https://app.nanitabeyo.net/.well-known/apple-app-site-association`
 
 ```json
 {
-  "applinks": {
-    "apps": [],
-    "details": [
-      {
-        "appID": "YL4UZV4MMA.com.nanitabeyo",
-        "paths": ["/*/posts", "/*/posts/*", "/*"]
-      }
-    ]
-  }
+	"applinks": {
+		"apps": [],
+		"details": [
+			{
+				"appID": "YL4UZV4MMA.com.nanitabeyo",
+				"paths": ["/*/posts", "/*/posts/*", "/*"]
+			}
+		]
+	}
 }
 ```
 
 ### 2. Android App Links
 
 #### app.config.ts（既存設定を維持）
+
 ```typescript
 android: {
-  intentFilters: [
-    {
-      action: "VIEW",
-      autoVerify: true,
-      data: [
-        { scheme: "https", host: "app.nanitabeyo.net", pathPrefix: "/" }
-      ],
-      category: ["BROWSABLE", "DEFAULT"]
-    }
-  ]
+	intentFilters: [
+		{
+			action: "VIEW",
+			autoVerify: true,
+			data: [{ scheme: "https", host: "app.nanitabeyo.net", pathPrefix: "/" }],
+			category: ["BROWSABLE", "DEFAULT"],
+		},
+	];
 }
 ```
 
 #### assetlinks.json
+
 - 配置場所: `api/public/.well-known/assetlinks.json`
 - アクセスURL: `https://app.nanitabeyo.net/.well-known/assetlinks.json`
 
 ```json
 [
-  {
-    "relation": ["delegate_permission/common.handle_all_urls"],
-    "target": {
-      "namespace": "android_app",
-      "package_name": "com.nanitabeyo",
-      "sha256_cert_fingerprints": ["REPLACE_WITH_RELEASE_SHA256_FINGERPRINT"]
-    }
-  }
+	{
+		"relation": ["delegate_permission/common.handle_all_urls"],
+		"target": {
+			"namespace": "android_app",
+			"package_name": "com.nanitabeyo",
+			"sha256_cert_fingerprints": ["REPLACE_WITH_RELEASE_SHA256_FINGERPRINT"]
+		}
+	}
 ]
 ```
 
@@ -96,17 +100,18 @@ android: {
 ### 3. API サーバー静的ファイル配信
 
 #### api/src/main.ts
+
 ```typescript
-app.useStaticAssets(join(__dirname, '..', 'public'), {
-  prefix: '/',
-  setHeaders: (res, path) => {
-    if (path.endsWith('apple-app-site-association')) {
-      res.setHeader('Content-Type', 'application/json');
-    }
-    if (path.endsWith('assetlinks.json')) {
-      res.setHeader('Content-Type', 'application/json');
-    }
-  },
+app.useStaticAssets(join(__dirname, "..", "public"), {
+	prefix: "/",
+	setHeaders: (res, path) => {
+		if (path.endsWith("apple-app-site-association")) {
+			res.setHeader("Content-Type", "application/json");
+		}
+		if (path.endsWith("assetlinks.json")) {
+			res.setHeader("Content-Type", "application/json");
+		}
+	},
 });
 ```
 
@@ -115,6 +120,7 @@ app.useStaticAssets(join(__dirname, '..', 'public'), {
 #### app-expo/components/deepLinking/OpenInAppBanner.tsx
 
 主要機能：
+
 - Platform.OS === "web" の場合のみ表示
 - モバイルブラウザ判定（User Agent）
 - Custom Scheme (`nanitabeyo://`) でアプリ起動試行
@@ -123,16 +129,17 @@ app.useStaticAssets(join(__dirname, '..', 'public'), {
 
 ```typescript
 // 使用例（posts.tsx）
-<OpenInAppBanner 
-  locale={locale} 
-  path="posts" 
-  params={{ ids }} 
+<OpenInAppBanner
+  locale={locale}
+  path="posts"
+  params={{ ids }}
 />
 ```
 
 ### 5. i18n 翻訳追加
 
 全8言語に `DeepLinking` セクションを追加：
+
 - `ar-SA.json` (アラビア語)
 - `en-US.json` (英語)
 - `es-ES.json` (スペイン語)
@@ -143,6 +150,7 @@ app.useStaticAssets(join(__dirname, '..', 'public'), {
 - `zh-CN.json` (中国語)
 
 キー：
+
 - `DeepLinking.openInApp`: 「アプリで開く」
 - `DeepLinking.appStore`: 「App Store」
 - `DeepLinking.playStore`: 「Google Play」
@@ -153,6 +161,7 @@ app.useStaticAssets(join(__dirname, '..', 'public'), {
 ### 1. Android 証明書フィンガープリント取得
 
 #### リリースビルド用
+
 ```bash
 # EAS Build の場合
 eas credentials --platform android
@@ -164,6 +173,7 @@ keytool -list -v -keystore /path/to/release.keystore -alias release-key
 SHA256 フィンガープリントを `api/public/.well-known/assetlinks.json` に設定。
 
 #### デバッグビルド用（開発時のみ）
+
 ```bash
 keytool -list -v -keystore ~/.android/debug.keystore \
   -alias androiddebugkey -storepass android -keypass android
@@ -176,6 +186,7 @@ Apple Developer アカウントの Team ID が `YL4UZV4MMA` であることを�
 ### 3. 環境変数設定
 
 以下の環境変数が正しく設定されていることを確認：
+
 - `EXPO_PUBLIC_APP_STORE_URL`: iOS App Store URL
 - `EXPO_PUBLIC_PLAY_STORE_URL`: Google Play Store URL
 - `EXPO_PUBLIC_WEB_BASE_URL`: `https://app.nanitabeyo.net`
@@ -185,10 +196,12 @@ Apple Developer アカウントの Team ID が `YL4UZV4MMA` であることを�
 ### iOS ユニバーサルリンク検証
 
 #### 1. AASA バリデータ
+
 - [Branch.io AASA Validator](https://branch.io/resources/aasa-validator/)
 - URL: `https://app.nanitabeyo.net/apple-app-site-association`
 
 #### 2. 実機テスト
+
 ```
 1. EAS Production ビルドを iPhone にインストール
 2. Safari で https://app.nanitabeyo.net/ja-JP/posts?ids=xxx を開く
@@ -198,9 +211,11 @@ Apple Developer アカウントの Team ID が `YL4UZV4MMA` であることを�
 ### Android アプリリンク検証
 
 #### 1. Digital Asset Links Tester
+
 - [Google Digital Asset Links API](https://digitalassetlinks.googleapis.com/v1/statements:list?source.web.site=https://app.nanitabeyo.net&relation=delegate_permission/common.handle_all_urls)
 
 #### 2. adb テスト
+
 ```bash
 # インストール後
 adb shell pm verify-app-links com.nanitabeyo
@@ -214,6 +229,7 @@ adb shell am start -W -a android.intent.action.VIEW \
 ### Web バナー検証
 
 #### モバイルブラウザ
+
 ```
 1. スマートフォンのブラウザで https://app.nanitabeyo.net/ja-JP/posts?ids=xxx を開く
 2. OpenInAppBanner が表示されることを確認
@@ -222,6 +238,7 @@ adb shell am start -W -a android.intent.action.VIEW \
 ```
 
 #### PC ブラウザ
+
 ```
 1. PC のブラウザで同じ URL を開く
 2. OpenInAppBanner にストア導線のみ表示されることを確認
@@ -229,6 +246,7 @@ adb shell am start -W -a android.intent.action.VIEW \
 ```
 
 #### LINE ブラウザなど
+
 ```
 1. LINE アプリ内で URL をタップ
 2. Universal Links は機能しないため Web 表示
@@ -237,16 +255,16 @@ adb shell am start -W -a android.intent.action.VIEW \
 
 ## 📊 テストマトリクス
 
-| ケース | プラットフォーム | アプリ状態 | 期待結果 |
-|--------|----------------|----------|---------|
-| 1 | iOS Safari | インストール済み | アプリで posts 画面を開く |
-| 2 | iOS Safari | 未インストール | Web 表示 + バナー |
-| 3 | Android Chrome | インストール済み | アプリで posts 画面を開く |
-| 4 | Android Chrome | 未インストール | Web 表示 + バナー |
-| 5 | LINE ブラウザ | インストール済み | Web 表示 + バナー（Universal Links 無効） |
-| 6 | LINE ブラウザ | 未インストール | Web 表示 + バナー |
-| 7 | PC Chrome | - | Web 表示 + ストア導線のみ |
-| 8 | PC Safari | - | Web 表示 + ストア導線のみ |
+| ケース | プラットフォーム | アプリ状態       | 期待結果                                  |
+| ------ | ---------------- | ---------------- | ----------------------------------------- |
+| 1      | iOS Safari       | インストール済み | アプリで posts 画面を開く                 |
+| 2      | iOS Safari       | 未インストール   | Web 表示 + バナー                         |
+| 3      | Android Chrome   | インストール済み | アプリで posts 画面を開く                 |
+| 4      | Android Chrome   | 未インストール   | Web 表示 + バナー                         |
+| 5      | LINE ブラウザ    | インストール済み | Web 表示 + バナー（Universal Links 無効） |
+| 6      | LINE ブラウザ    | 未インストール   | Web 表示 + バナー                         |
+| 7      | PC Chrome        | -                | Web 表示 + ストア導線のみ                 |
+| 8      | PC Safari        | -                | Web 表示 + ストア導線のみ                 |
 
 ## 🚀 今後の拡張
 
@@ -260,10 +278,10 @@ import { useLocale } from "@/hooks/useLocale";
 
 // 使用例
 const locale = useLocale();
-<OpenInAppBanner 
-  locale={locale} 
-  path="restaurant/123" 
-  params={{ utm_source: "share" }} 
+<OpenInAppBanner
+  locale={locale}
+  path="restaurant/123"
+  params={{ utm_source: "share" }}
 />
 ```
 
@@ -272,6 +290,7 @@ const locale = useLocale();
 新しいパスを追加する場合：
 
 #### iOS (apple-app-site-association)
+
 ```json
 "paths": [
   "/*/posts",
@@ -281,6 +300,7 @@ const locale = useLocale();
 ```
 
 #### Android (intentFilters は既に `pathPrefix: "/"` で全パスをカバー)
+
 特に変更不要
 
 ## 🔍 トラブルシューティング
@@ -288,6 +308,7 @@ const locale = useLocale();
 ### Universal Links が動作しない
 
 1. **AASA ファイルの確認**
+
    ```bash
    curl -I https://app.nanitabeyo.net/apple-app-site-association
    # Content-Type: application/json を確認
@@ -304,11 +325,13 @@ const locale = useLocale();
 ### App Links が動作しない
 
 1. **assetlinks.json の確認**
+
    ```bash
    curl https://app.nanitabeyo.net/.well-known/assetlinks.json
    ```
 
 2. **SHA256 フィンガープリントの確認**
+
    ```bash
    # アプリの実際のフィンガープリントと一致しているか確認
    adb shell pm dump com.nanitabeyo | grep "android:sha256"
@@ -321,7 +344,6 @@ const locale = useLocale();
 
 1. **Platform.OS の確認**
    - Web ビルドで正しく動作しているか
-   
 2. **環境変数の確認**
    - `EXPO_PUBLIC_APP_STORE_URL` と `EXPO_PUBLIC_PLAY_STORE_URL` が設定されているか
 
