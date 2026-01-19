@@ -3,58 +3,57 @@ import { StyleSheet, ActivityIndicator, View } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { ChevronLeft } from "lucide-react-native";
-import type { QueryDishMediaByIdsResponse } from "@shared/api/v1/res";
-import type { QueryDishMediaByIdsDto } from "@shared/api/v1/dto";
 import { useAPICall } from "@/hooks/useAPICall";
 import {
 	useDishMediaEntriesStore,
-	selectEntryByMediaId,
 	NormalizedDishMediaEntry,
+	selectEntryByReviewId,
 } from "@/stores/useDishMediaEntriesStore";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import DishMediaFeed from "@/features/dishMedia/components/DishMediaFeed";
 
 export default function ReviewPostScreen() {
-	const { id } = useLocalSearchParams<{ id?: string }>();
+	const { id: dishReviewId } = useLocalSearchParams<{ id?: string }>();
 	const { callBackend } = useAPICall();
 	const insets = useSafeAreaInsets();
 	const entriesKey = "ReviewPostScreen";
 	const [dishMediaEntry, setDishMediaEntry] = useState<NormalizedDishMediaEntry | null>(null);
 
 	useEffect(() => {
-		if (!id) return;
+		if (!dishReviewId) return;
 
 		// #644 【設計】ストアから DishMedia を取得（存在しない場合は API フェッチ）
-		const entry = selectEntryByMediaId(id)(useDishMediaEntriesStore.getState());
+		const entry = selectEntryByReviewId(dishReviewId)(useDishMediaEntriesStore.getState());
 
-		const { upsertDishMediaEntries, updateMediaIdsByKey, clearByKey } = useDishMediaEntriesStore.getState();
+		const { updateReviewIdsByKey, clearByKey } = useDishMediaEntriesStore.getState();
 
 		// ストアに存在する場合はフェッチをスキップ
 		if (entry) {
-			updateMediaIdsByKey(entriesKey, () => [id]);
+			updateReviewIdsByKey(entriesKey, () => [dishReviewId]);
 			setDishMediaEntry(entry);
 			return;
 		}
 
+		// reviewId から取れないのでコメントアウト
 		// ストアに存在しない場合は API フェッチ
-		const fetchData = async () => {
-			const requestPayload: QueryDishMediaByIdsDto = { ids: [id] };
-			const response = await callBackend<QueryDishMediaByIdsDto, QueryDishMediaByIdsResponse>("v1/dish-media", {
-				method: "GET",
-				requestPayload,
-			});
-			upsertDishMediaEntries(response.items);
-			updateMediaIdsByKey(entriesKey, () => [id]);
-			const fetchedEntry = selectEntryByMediaId(id)(useDishMediaEntriesStore.getState());
-			setDishMediaEntry(fetchedEntry || null);
-		};
+		// const fetchData = async () => {
+		// 	const requestPayload: QueryDishMediaByIdsDto = { ids: [id] };
+		// 	const response = await callBackend<QueryDishMediaByIdsDto, QueryDishMediaByIdsResponse>("v1/dish-media", {
+		// 		method: "GET",
+		// 		requestPayload,
+		// 	});
+		// 	upsertDishMediaEntries(response.items);
+		// 	updateMediaIdsByKey(entriesKey, () => [id]);
+		// 	const fetchedEntry = selectEntryByMediaId(id)(useDishMediaEntriesStore.getState());
+		// 	setDishMediaEntry(fetchedEntry || null);
+		// };
 
-		fetchData();
+		// fetchData();
 
 		return () => {
 			clearByKey(entriesKey);
 		};
-	}, [id, callBackend]);
+	}, [dishReviewId, callBackend]);
 
 	// #644 【設計】戻るボタン押下時に /review/index に遷移
 	const handleBack = () => {
@@ -73,7 +72,7 @@ export default function ReviewPostScreen() {
 						<ActivityIndicator size="large" color="#F05537" />
 					</View>
 				) : (
-					<DishMediaFeed entriesKey={entriesKey} idType="dish_media" />
+					<DishMediaFeed entriesKey={entriesKey} idType="dish_reviews" />
 				)}
 			</LinearGradient>
 		</>
