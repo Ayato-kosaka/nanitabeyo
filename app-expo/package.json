@@ -1,7 +1,7 @@
 {
 	"name": "app-expo",
 	"main": "expo-router/entry",
-	"version": "1.4.0",
+	"version": "1.5.0",
 	"private": true,
 	"scripts": {
 		"dev": "expo start --dev-client --tunnel",
@@ -21,6 +21,7 @@
 		"@expo/react-native-action-sheet": "^4.1.1",
 		"@expo/vector-icons": "^14.1.0",
 		"@lodev09/react-native-true-sheet": "3.6.11",
+		"@lottiefiles/dotlottie-react": "^0.13.5",
 		"@lucide/lab": "^0.1.2",
 		"@react-google-maps/api": "^2.19.3",
 		"@react-native-async-storage/async-storage": "2.1.2",
@@ -67,7 +68,7 @@
 		"expo-web-browser": "~14.2.0",
 		"hls.js": "^1.6.13",
 		"i18n-js": "^4.5.1",
-		"lottie-react-native": "^7.3.5",
+		"lottie-react-native": "^7.2.2",
 		"lucide-react-native": "^0.475.0",
 		"react": "19.0.0",
 		"react-dom": "19.0.0",

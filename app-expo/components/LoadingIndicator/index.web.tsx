@@ -1,36 +1,20 @@
-// #690 【設計】Lottie ベースの共通 Loading コンポーネント - 全 ActivityIndicator を置換
+// #690 【設計】Lottie ベースの共通 Loading コンポーネント( web 専用 )
 import React from "react";
-import { Platform, StyleSheet, View, ViewStyle } from "react-native";
-import LottieView from "lottie-react-native";
-
-type LoadingIndicatorSize = "small" | "large";
-
-type LoadingIndicatorProps = {
-	/** サイズバリエーション (デフォルト: "large") */
-	size?: LoadingIndicatorSize;
-	/** 追加スタイル */
-	style?: ViewStyle | ViewStyle[];
-	/** Web 用アクセシビリティラベル（指定がなければ "Loading" をデフォルトとする） */
-	accessibilityLabel?: string;
-};
-
-// #690 【設計】サイズマップ - small: 24px, large: 48px
-const SIZE_MAP: Record<LoadingIndicatorSize, number> = {
-	small: 24,
-	large: 48,
-};
+import { Platform, StyleSheet, View } from "react-native";
+import { DotLottieReact } from "@lottiefiles/dotlottie-react";
+import { dualBallLottie, SIZE_MAP, LoadingIndicatorProps } from "./shared";
 
 /**
  * Lottie ベースの共通ローディングインジケータ
- * 
+ *
  * @example
  * // 基本的な使い方
  * <LoadingIndicator size="large" />
- * 
+ *
  * @example
  * // ボタン内などで小さいサイズを使用
  * <LoadingIndicator size="small" />
- * 
+ *
  * @example
  * // カスタムスタイルを追加
  * <LoadingIndicator size="large" style={{ marginTop: 20 }} />
@@ -38,6 +22,8 @@ const SIZE_MAP: Record<LoadingIndicatorSize, number> = {
 export const LoadingIndicator: React.FC<LoadingIndicatorProps> = React.memo(
 	({ size = "large", style, accessibilityLabel = "Loading" }) => {
 		const dimension = SIZE_MAP[size];
+
+		const dualBallData = JSON.stringify(dualBallLottie);
 
 		return (
 			<View
@@ -51,12 +37,7 @@ export const LoadingIndicator: React.FC<LoadingIndicatorProps> = React.memo(
 						}
 					: {})}
 				pointerEvents="none">
-				<LottieView
-					source={require("../assets/lottie/DualBall.json")}
-					autoPlay
-					loop
-					style={{ width: dimension, height: dimension }}
-				/>
+				<DotLottieReact data={dualBallData} autoplay loop style={{ width: dimension, height: dimension }} />
 			</View>
 		);
 	},
