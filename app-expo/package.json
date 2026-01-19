@@ -67,6 +67,7 @@
 		"expo-web-browser": "~14.2.0",
 		"hls.js": "^1.6.13",
 		"i18n-js": "^4.5.1",
+		"lottie-react-native": "^7.3.5",
 		"lucide-react-native": "^0.475.0",
 		"react": "19.0.0",
 		"react-dom": "19.0.0",
