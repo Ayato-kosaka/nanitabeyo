@@ -16,7 +16,7 @@ export default function ReviewScreen() {
 	const { user } = useAuth();
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
-	const locale = useLocale();
+	const { locale } = useLocale();
 
 	const {
 		BlurModal: LoginBlurModal,

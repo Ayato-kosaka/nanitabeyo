@@ -53,7 +53,7 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 	const { logFrontendEvent } = useLogger();
 	const { showSnackbar } = useSnackbar();
 	const router = useRouter();
-	const locale = useLocale();
+	const { locale } = useLocale();
 	const frame = useSafeAreaFrame(); // Safe Area を除いたフレームの高さ
 	const { user } = useAuth();
 

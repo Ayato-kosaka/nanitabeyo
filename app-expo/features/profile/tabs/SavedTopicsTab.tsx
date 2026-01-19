@@ -28,7 +28,7 @@ export const profileSavedTopicsEntriesKey = "profileSavedTopics";
 
 export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 	const { userId } = useLocalSearchParams();
-	const locale = useLocale();
+	const { locale } = useLocale();
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { callBackend } = useAPICall();

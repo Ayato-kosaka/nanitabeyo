@@ -35,7 +35,7 @@ export function ActionButtons({ id, idType, onLayout }: ActionButtonsProps) {
 	const { logFrontendEvent } = useLogger();
 	const { lightImpact } = useHaptics();
 	const router = useRouter();
-	const locale = useLocale();
+	const { locale } = useLocale();
 
 	const selector = useCallback(
 		(state: DishMediaEntriesStore) => {

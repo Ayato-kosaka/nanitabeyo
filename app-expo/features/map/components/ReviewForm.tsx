@@ -115,7 +115,7 @@ export function ReviewForm({
 	const [rating, setRating] = useState(initialRating);
 	const [selectedLegalDocument, setSelectedLegalDocument] = useState<"guidelines" | "copyright" | null>(null);
 
-	const locale = useLocale();
+	const { locale } = useLocale();
 
 	const currencyCode = useMemo(() => getCurrencyCodeFromRestaurant(restaurant), [restaurant]);
 	const currencySymbol = useMemo(() => resolveCurrencySymbol(currencyCode, locale), [currencyCode, locale]);

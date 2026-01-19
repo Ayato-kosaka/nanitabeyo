@@ -14,7 +14,7 @@ export const useDishCategorySearch = () => {
 	const [isSearching, setIsSearching] = useState(false);
 	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
-	const locale = useLocale();
+	const { locale } = useLocale();
 
 	// AbortController for canceling in-flight requests
 	const abortControllerRef = useRef<AbortController | null>(null);

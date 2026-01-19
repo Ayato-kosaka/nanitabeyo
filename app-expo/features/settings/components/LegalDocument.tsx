@@ -14,7 +14,7 @@ interface LegalDocumentProps {
 }
 
 export function LegalDocument({ documentType }: LegalDocumentProps) {
-	const locale = useLocale();
+	const { locale } = useLocale();
 
 	const title = useMemo(() => {
 		switch (documentType) {
