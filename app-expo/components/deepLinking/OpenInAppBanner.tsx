@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Pressable, Platform, Linking } from "react-nati
 import i18n from "@/lib/i18n";
 import { Env } from "@/constants/Env";
 import { useLocale } from "@/hooks/useLocale";
+import { Image } from "expo-image";
 
 export interface OpenInAppBannerProps {
 	/** 現在のパス（例: "posts"） */
@@ -104,14 +105,23 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({ path, params
 	}
 
 	return (
-		<View style={styles.overlay}>
+		<Pressable style={styles.overlay} onPress={handleOpenInApp}>
 			<View style={styles.banner}>
-				<Text style={styles.siteName}>{i18n.t("Common.site")}</Text>
-				<Pressable style={styles.openButton} onPress={handleOpenInApp}>
+				<View style={styles.bannerInfo}>
+					<Image
+						source={require("@/assets/images/icon.webp")}
+						style={styles.icon}
+						contentFit="cover"
+						transition={0}
+						cachePolicy={"memory-disk"}
+					/>
+					<Text style={styles.bannerName}>{i18n.t("Common.site")}</Text>
+				</View>
+				<View style={styles.openButton}>
 					<Text style={styles.openButtonText}>{i18n.t("DeepLinking.openInApp")}</Text>
-				</Pressable>
+				</View>
 			</View>
-		</View>
+		</Pressable>
 	);
 };
 
@@ -125,7 +135,6 @@ const styles = StyleSheet.create({
 		left: 0,
 		right: 0,
 		zIndex: 1000,
-		backgroundColor: "rgba(0, 0, 0, 0.4)", // 半透明の黒背景
 		paddingVertical: 8,
 		paddingHorizontal: 16,
 	},
@@ -133,7 +142,7 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "space-between",
-		backgroundColor: "rgba(255, 255, 255, 0.95)", // 半透明の白背景
+		backgroundColor: "#fbeedd",
 		borderRadius: 8,
 		paddingVertical: 8,
 		paddingHorizontal: 12,
@@ -143,7 +152,17 @@ const styles = StyleSheet.create({
 		shadowRadius: 4,
 		elevation: 3,
 	},
-	siteName: {
+	bannerInfo: {
+		flexDirection: "row",
+		alignItems: "center",
+	},
+	icon: {
+		width: 32,
+		height: 32,
+		borderRadius: 6,
+		marginRight: 8,
+	},
+	bannerName: {
 		fontSize: 16,
 		fontWeight: "700",
 		color: "#1A1A1A",
