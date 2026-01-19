@@ -9,7 +9,6 @@ import {
 	View,
 	StyleSheet,
 	ScrollView,
-	ActivityIndicator,
 	Pressable,
 	Text,
 	FlatList,

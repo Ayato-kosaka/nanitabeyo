@@ -13,7 +13,6 @@ import {
 	ScrollView,
 	TextInput,
 	useWindowDimensions,
-	ActivityIndicator,
 	TouchableOpacity,
 	Modal,
 } from "react-native";
