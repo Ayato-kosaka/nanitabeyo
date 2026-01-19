@@ -5,9 +5,26 @@ import { env } from './core/config/env';
 import { ApiExceptionFilter } from './core/filters/api-exception.filter';
 import { ClsService } from 'nestjs-cls';
 import { AppLoggerService } from './core/logger/logger.service';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { join } from 'path';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // #688 【設計】Universal Links / App Links 用の静的ファイル配信
+  app.useStaticAssets(join(__dirname, '..', 'public'), {
+    prefix: '/',
+    setHeaders: (res, path) => {
+      // apple-app-site-association は application/json で配信
+      if (path.endsWith('apple-app-site-association')) {
+        res.setHeader('Content-Type', 'application/json');
+      }
+      // assetlinks.json も application/json で配信
+      if (path.endsWith('assetlinks.json')) {
+        res.setHeader('Content-Type', 'application/json');
+      }
+    },
+  });
 
   // ★ 計測ミドルウェア（最上流）
   app.use((req: any, _res, next) => {

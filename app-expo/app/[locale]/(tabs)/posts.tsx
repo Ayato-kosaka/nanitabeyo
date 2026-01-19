@@ -7,11 +7,14 @@ import type { QueryDishMediaByIdsResponse } from "@shared/api/v1/res";
 import type { QueryDishMediaByIdsDto } from "@shared/api/v1/dto";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
+import { OpenInAppBanner } from "@/components/deepLinking/OpenInAppBanner";
+import { useLocale } from "@/hooks/useLocale";
 
 export default function PostsScreen() {
 	const { ids } = useLocalSearchParams<{ ids?: string | string[] }>();
 	const { callBackend } = useAPICall();
 	const entriesKey = "PostsScreen";
+	const locale = useLocale();
 
 	useEffect(() => {
 		const { upsertDishMediaEntries, updateMediaIdsByKeyAsync, clearByKey } = useDishMediaEntriesStore.getState();
@@ -37,6 +40,8 @@ export default function PostsScreen() {
 
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
+			{/* #688 【設計】Web Deep Linking バナー（アプリ未インストール時の導線） */}
+			<OpenInAppBanner locale={locale} path="posts" params={{ ids }} />
 			<DishMediaMap entriesKey={entriesKey} idType="dish_media" />
 		</LinearGradient>
 	);

@@ -32,6 +32,12 @@
 			"notFound": "नहीं मिला"
 		}
 	},
+	"DeepLinking": {
+		"openInApp": "ऐप में खोलें",
+		"appStore": "App Store",
+		"playStore": "Google Play",
+		"viewInBrowser": "ब्राउज़र में जारी रखें"
+	},
 	"Error": {
 		"maintenanceMessage": "हम वर्तमान में रखरखाव कर रहे हैं।",
 		"unsupportedVersion": "यह संस्करण अब समर्थित नहीं है।"

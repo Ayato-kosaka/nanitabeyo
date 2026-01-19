@@ -32,6 +32,12 @@
 			"notFound": "Non trouvé"
 		}
 	},
+	"DeepLinking": {
+		"openInApp": "Ouvrir dans l'app",
+		"appStore": "App Store",
+		"playStore": "Google Play",
+		"viewInBrowser": "Continuer dans le navigateur"
+	},
 	"Error": {
 		"maintenanceMessage": "Nous sommes actuellement en maintenance.",
 		"unsupportedVersion": "Cette version n'est plus prise en charge."

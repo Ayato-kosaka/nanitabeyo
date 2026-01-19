@@ -32,6 +32,12 @@
 			"notFound": "غير موجود"
 		}
 	},
+	"DeepLinking": {
+		"openInApp": "افتح في التطبيق",
+		"appStore": "App Store",
+		"playStore": "Google Play",
+		"viewInBrowser": "متابعة في المتصفح"
+	},
 	"Error": {
 		"maintenanceMessage": "نحن حالياً نقوم بأعمال صيانة.",
 		"unsupportedVersion": "هذا الإصدار لم يعد مدعومًا."

@@ -32,6 +32,12 @@
 			"notFound": "見つかりません"
 		}
 	},
+	"DeepLinking": {
+		"openInApp": "アプリで開く",
+		"appStore": "App Store",
+		"playStore": "Google Play",
+		"viewInBrowser": "ブラウザで続ける"
+	},
 	"Error": {
 		"maintenanceMessage": "ただいまメンテナンス中です。",
 		"unsupportedVersion": "古いバージョンのため利用できません。"

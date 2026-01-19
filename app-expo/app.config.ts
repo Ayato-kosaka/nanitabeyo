@@ -22,6 +22,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		buildNumber: "1",
 		supportsTablet: false,
 		associatedDomains: [`applinks:app.nanitabeyo.net`],
+		// #688 【設計】Universal Links のための entitlements 設定
+		entitlements: {
+			"com.apple.developer.associated-domains": ["applinks:app.nanitabeyo.net"],
+		},
 		infoPlist: {
 			ITSAppUsesNonExemptEncryption: false,
 			CFBundleURLTypes: [
