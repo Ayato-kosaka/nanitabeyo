@@ -1,6 +1,5 @@
 import React, { memo, ReactElement, useCallback } from "react";
 import {
-	ActivityIndicator,
 	ColorValue,
 	GestureResponderEvent,
 	Pressable,
@@ -13,6 +12,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useHaptics } from "@/hooks/useHaptics";
+import { LoadingIndicator } from "./LoadingIndicator";
 
 export interface PrimaryButtonProps {
 	/** 表示テキスト */
@@ -101,7 +101,7 @@ const PrimaryButtonComponent: React.FC<PrimaryButtonProps> = ({
 			android_ripple={{ color: "rgba(255,255,255,0.12)", borderless: true }}>
 			<LinearGradient colors={colors} style={[styles.gradient, { borderRadius }, contentStyle]}>
 				<>
-					{loading ? <ActivityIndicator color="#FFFFFF" /> : icon}
+					{loading ? <LoadingIndicator size="small" /> : icon}
 					<Text style={[styles.label, labelStyle]}>{label}</Text>
 				</>
 			</LinearGradient>

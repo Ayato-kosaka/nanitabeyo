@@ -1,11 +1,12 @@
 import React, { useState, useCallback, useEffect, useRef } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
 import { useLocationSearch } from "@/hooks/useLocationSearch";
 import { useHaptics } from "@/hooks/useHaptics";
 import i18n from "@/lib/i18n";
 import { type AutocompleteLocation } from "@shared/api/v1/res";
 import { isFoodAndDrinkPlaceForUser } from "@shared/utils/google_places_restaurant_type";
 import { MapPin, Utensils, X } from "lucide-react-native";
+import { LoadingIndicator } from "./LoadingIndicator";
 
 interface LocationAutocompleteProps {
 	/** Current value of the input */
@@ -205,7 +206,7 @@ export function LocationAutocomplete({
 			{/* Loading indicator */}
 			{isSearching && (
 				<View style={styles.loadingContainer}>
-					<ActivityIndicator size="small" color="#F05537" />
+					<LoadingIndicator size="small" />
 					<Text style={styles.loadingText}>{i18n.t("Profile.loading")}</Text>
 				</View>
 			)}

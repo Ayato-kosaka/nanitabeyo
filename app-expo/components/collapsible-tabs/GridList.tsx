@@ -1,6 +1,5 @@
 import React, { useCallback } from "react";
 import {
-	ActivityIndicator,
 	RefreshControl,
 	View,
 	Text,
@@ -9,6 +8,7 @@ import {
 	ListRenderItemInfo,
 } from "react-native";
 import { Tabs } from "@/components/collapsible-tabs";
+import { LoadingIndicator } from "@/components/LoadingIndicator";
 
 interface GridItem {
 	id: string | number;
@@ -78,7 +78,7 @@ export function GridList<T extends GridItem>({
 		if (!isLoadingMore) return null;
 		return (
 			<View style={styles.loadingFooter}>
-				<ActivityIndicator size="small" color="#F05537" />
+				<LoadingIndicator size="small" />
 			</View>
 		);
 	}, [isLoadingMore]);
@@ -90,7 +90,7 @@ export function GridList<T extends GridItem>({
 	if (isLoading) {
 		return (
 			<View style={styles.loadingContainer}>
-				<ActivityIndicator size="large" color="#F05537" />
+				<LoadingIndicator size="large" />
 			</View>
 		);
 	}
