@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Image } from "expo-image";
 import { Trash, Bookmark, ImageOff, RefreshCw } from "lucide-react-native";
 import { Topic } from "@/types/search";
-import { CARD_WIDTH, CARD_HEIGHT } from "@/features/topics/constants";
+import { CARD_WIDTH } from "@/features/topics/constants";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import { toggleReaction } from "@/lib/reactions";
@@ -19,10 +19,12 @@ export const TopicCard = ({
 	item,
 	onHide,
 	displayIndex,
+	cardHeight,
 }: {
 	item: Topic;
 	onHide: (id: string) => void;
 	displayIndex?: number;
+	cardHeight: number;
 }) => {
 	const [isSaved, setIsSaved] = useState(false);
 	const { lightImpact, errorNotification } = useHaptics();
@@ -157,7 +159,7 @@ export const TopicCard = ({
 	const shouldShowFailureUI = loadState === "error" && hasGivenUp;
 
 	return (
-		<View style={styles.card}>
+		<View style={[styles.card, { height: cardHeight }]}>
 			<Image
 				source={source}
 				cachePolicy="memory"
@@ -214,7 +216,6 @@ export const TopicCard = ({
 const styles = StyleSheet.create({
 	card: {
 		width: CARD_WIDTH,
-		height: CARD_HEIGHT,
 		borderRadius: 24,
 		overflow: "hidden",
 		backgroundColor: "#EEE",

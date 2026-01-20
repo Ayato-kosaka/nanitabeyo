@@ -32,7 +32,7 @@ export default function NotificationsScreen() {
 	const notifications = useNotifications();
 	const { markAllAsRead } = useMarkNotificationsRead();
 	const { unreadCount, refresh: notificationUnreadCountRefresh } = useNotificationUnreadCount();
-	const locale = useLocale();
+	const { locale } = useLocale();
 
 	// #通知機能 【設計】画面入場時に通知を取得し、未読数をリフレッシュして全件既読にする
 	const inFlightRef = React.useRef(false);
@@ -223,7 +223,7 @@ export default function NotificationsScreen() {
 					{/* 初回ロードはリストをレンダリングせずローディング表示を出す */}
 					{notifications.isLoadingInitial && notifications.items.length === 0 ? (
 						<View style={styles.loadingContainer}>
-							<ActivityIndicator size="large" color="#5EA2FF" />
+							<ActivityIndicator size="large" color="#F05537" />
 						</View>
 					) : (
 						<FlatList
@@ -244,7 +244,7 @@ export default function NotificationsScreen() {
 							ListFooterComponent={
 								notifications.isLoadingMore && notifications.items.length > 0 ? (
 									<View style={styles.loadingContainer}>
-										<ActivityIndicator size="small" color="#5EA2FF" />
+										<ActivityIndicator size="small" color="#F05537" />
 										<Text style={styles.loadingText}>{i18n.t("Notifications.loadingMore")}</Text>
 									</View>
 								) : null
@@ -279,13 +279,13 @@ const styles = StyleSheet.create({
 	unreadBadge: {
 		position: "absolute",
 		right: 16,
-		backgroundColor: "#5EA2FF",
+		backgroundColor: "#F05537",
 		borderRadius: 16,
 		paddingHorizontal: 8,
 		paddingVertical: 4,
 		minWidth: 24,
 		alignItems: "center",
-		shadowColor: "#5EA2FF",
+		shadowColor: "#F05537",
 		shadowOffset: { width: 0, height: 4 },
 		shadowOpacity: 0.3,
 		shadowRadius: 8,
@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "center",
 		borderBottomWidth: 1,
-		borderBottomColor: "#E5E7EB",
+		borderBottomColor: "#C9C9C9",
 		backgroundColor: "#FFFFFF",
 		paddingVertical: 12,
 		position: "relative",

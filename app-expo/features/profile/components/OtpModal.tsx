@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
 		backgroundColor: "#F9FAFB",
 	},
 	otpInputFilled: {
-		borderColor: "#5EA2FF",
+		borderColor: "#F05537",
 		backgroundColor: "#EFF6FF",
 	},
 	verifyButton: {
@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
 	resendText: {
 		fontSize: 16,
 		fontWeight: "600",
-		color: "#5EA2FF",
+		color: "#F05537",
 	},
 	resendTextDisabled: {
 		color: "#9CA3AF",

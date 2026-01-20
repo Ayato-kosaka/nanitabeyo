@@ -7,6 +7,7 @@
 		"close": "Cerrar",
 		"save": "Guardar",
 		"post": "Publicar",
+		"postReview": "Publicar reseña",
 		"retry": "Reintentar",
 		"processing": "Procesando...",
 		"error": "Se produjo un error. Vuelve a intentarlo.",
@@ -27,7 +28,8 @@
 		"site": "CraveCatch",
 		"errors": {
 			"network": "Se produjo un error de red. Por favor, verifica tu conexión.",
-			"unexpected": "Se produjo un error inesperado. Por favor, inténtalo más tarde."
+			"unexpected": "Se produjo un error inesperado. Por favor, inténtalo más tarde.",
+			"notFound": "No encontrado"
 		}
 	},
 	"Error": {
@@ -70,7 +72,13 @@
 		"placeholders": {
 			"enterLocation": "Ingrese un lugar"
 		},
+		"accessibility": {
+			"locationInputHint": "Introduce una ubicación para buscar restaurantes",
+			"clearLocation": "Borrar ubicación",
+			"selectLocation": "Seleccionar esta ubicación"
+		},
 		"loading": "Buscando...",
+		"noLocationsFound": "No se encontraron ubicaciones",
 		"advancedToggle": {
 			"open": "Más opciones",
 			"close": "Cerrar búsqueda avanzada"
@@ -175,7 +183,9 @@
 		"chooseThis": "¡Este!",
 		"hiddenMessage": "{{title}} se ha ocultado",
 		"imageLoadFailed": "Error al cargar la imagen",
-		"tapToReload": "Toca para recargar"
+		"tapToReload": "Toca para recargar",
+		"headerTitle": "Platos Recomendados para Ti",
+		"subCopy": "Toca un plato que te guste para encontrar restaurantes"
 	},
 	"Notifications": {
 		"title": "Notificaciones",
@@ -227,8 +237,16 @@
 		"home": "Inicio",
 		"search": "Buscar",
 		"map": "Mapa",
+		"review": "Reseña",
 		"notifications": "Notificaciones",
-		"profile": "Perfil"
+		"profile": "Perfil",
+		"labels": {
+			"search": "Buscar",
+			"map": "Mapa",
+			"review": "Reseña",
+			"notifications": "Notificaciones",
+			"profile": "Perfil"
+		}
 	},
 	"Profile": {
 		"tabs": {
@@ -319,6 +337,7 @@
 		"currentLocation": "Ubicación actual",
 		"buttons": {
 			"postReview": "Publicar Reseña",
+			"postPhotoVideoReview": "Publicar Foto/Video",
 			"placeBid": "Hacer Oferta",
 			"bid": "Ofertar",
 			"searchNearby": "Buscar en esta área",
@@ -338,14 +357,18 @@
 		"placeholders": {
 			"searchRestaurants": "Buscar restaurantes",
 			"enterPrice": "Ingresa el precio",
-			"enterReview": "Ingresa tu reseña",
+			"enterReview": "Nivel de recomendación",
+			"enterReviewShort": "Reseña corta (ej.: ¡El caldo de tonkotsu estaba súper rico y delicioso!)",
 			"enterBidAmount": "Ingresa el monto de la oferta",
-			"enterDishCategory": "Ingresa categoría del plato (ej: Paella, Tapas)"
+			"enterDishCategory": "Ingresa categoría del plato (ej: Paella, Tapas)",
+			"searchRestaurantsForReview": "Buscar por nombre o área"
 		},
 		"labels": {
 			"endDate": "Fecha de fin:",
 			"paymentProcessing": "Procesando pago...",
-			"currentBidAmount": "Monto de oferta actual"
+			"currentBidAmount": "Monto de oferta actual",
+			"restaurant": "Restaurante",
+			"dishCategory": "Categoría del plato"
 		},
 		"tabs": {
 			"reviews": "Reseñas",
@@ -383,7 +406,10 @@
 			"dishCategorySelected": "Seleccionado {{category}}",
 			"dishCategorySearching": "Buscando categorías de platos",
 			"dishCategorySuggestionsFound": "Se encontraron {{count}} sugerencias",
-			"dishCategoryNoResults": "No se encontraron categorías de platos coincidentes"
+			"dishCategoryNoResults": "No se encontraron categorías de platos coincidentes",
+			"dishCategoryInputHint": "Introduce una categoría de plato para buscar",
+			"clearDishCategory": "Borrar categoría de plato",
+			"selectDishCategory": "Seleccionar esta categoría de plato"
 		},
 		"errors": {
 			"dishCategoryCreateFailed": "Error al crear categoría de plato",
@@ -506,7 +532,14 @@
 		"terms": "Términos y condiciones",
 		"privacy": "Política de privacidad",
 		"copyright": "Derechos de autor",
+		"legalDocument": "Documento legal",
 		"logout": "Cerrar sesión"
+	},
+	"Dialog": {
+		"a11y": {
+			"dialog": "Diálogo",
+			"dialogWithTitle": "Diálogo de {{title}}"
+		}
 	},
 	"Tools": {
 		"DishCategoryImageOptimizer": {
@@ -530,5 +563,34 @@
 		"openInGoogleMaps": "Abrir en Google Maps",
 		"shareWithFriends": "Compartir con amigos",
 		"cancel": "Cancelar"
+	},
+	"Review": {
+		"title": "Publicar una Reseña",
+		"hero": {
+			"title": "Escribe reseñas de restaurantes recomendados\ny publica los platos que comiste"
+		},
+		"guest": {
+			"description": "Inicia sesión para escribir reseñas",
+			"loginButton": "Iniciar Sesión"
+		},
+		"authenticated": {
+			"postButton": "✏️ Publicar una reseña de restaurante"
+		},
+		"selectRestaurant": {
+			"title": "Selecciona el restaurante a reseñar",
+			"searchThisArea": "Buscar en esta área",
+			"savedRestaurantList": "Restaurantes Guardados",
+			"postPhotoVideo": "Publicar Foto/Video",
+			"fetchSavedRestaurantsError": "Error al obtener restaurantes guardados",
+			"noSavedRestaurantsInArea": "No se encontraron restaurantes guardados en esta área. Amplíe el área y busque nuevamente."
+		},
+		"emptyState": {
+			"noReviews": "Aún no hay reseñas.\nSé el primero en reseñar este restaurante."
+		},
+		"everybodyPostsTitle": "Elige un plato para reseñar",
+		"characterCount": "{{current}}/{{max}}",
+		"restaurantDetail": {
+			"title": "Detalles del restaurante"
+		}
 	}
 }

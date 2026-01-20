@@ -353,7 +353,7 @@ const styles = StyleSheet.create({
 	dividerLine: {
 		flex: 1,
 		height: 1,
-		backgroundColor: "#E5E7EB",
+		backgroundColor: "#C9C9C9",
 	},
 	dividerText: {
 		fontSize: 14,
@@ -392,8 +392,8 @@ const styles = StyleSheet.create({
 		elevation: 4,
 	},
 	checkboxChecked: {
-		backgroundColor: "#5EA2FF",
-		borderColor: "#5EA2FF",
+		backgroundColor: "#F05537",
+		borderColor: "#F05537",
 	},
 	checkboxMark: {
 		color: "#FFFFFF",

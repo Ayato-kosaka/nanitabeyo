@@ -192,7 +192,7 @@ export function DishCategoryAutocomplete({
 					keyboardType="default"
 					returnKeyType="search"
 					accessibilityLabel={i18n.t("Map.inputs.dishCategory")}
-					accessibilityHint="Enter a dish category to search"
+					accessibilityHint={i18n.t("Map.accessibility.dishCategoryInputHint")}
 					testID={`${testID}-input`}
 				/>
 				{/* クリアボタン */}
@@ -201,7 +201,7 @@ export function DishCategoryAutocomplete({
 						style={styles.clearButton}
 						onPress={handleClear}
 						accessibilityRole="button"
-						accessibilityLabel="Clear dish category"
+						accessibilityLabel={i18n.t("Map.accessibility.clearDishCategory")}
 						testID={`${testID}-clear`}>
 						<X size={16} color="#6B7280" />
 					</TouchableOpacity>
@@ -212,7 +212,7 @@ export function DishCategoryAutocomplete({
 			{/* ローディングインジケーター */}
 			{isSearching && (
 				<View style={styles.loadingContainer}>
-					<ActivityIndicator size="small" color="#5EA2FF" />
+					<ActivityIndicator size="small" color="#F05537" />
 					<Text style={styles.loadingText}>{i18n.t("Profile.loading")}</Text>
 				</View>
 			)}
@@ -232,7 +232,7 @@ export function DishCategoryAutocomplete({
 								onPress={() => handleSuggestionPress(suggestion)}
 								accessibilityRole="button"
 								accessibilityLabel={suggestion.label}
-								accessibilityHint="Select this dish category"
+								accessibilityHint={i18n.t("Map.accessibility.selectDishCategory")}
 								testID={`${testID}-suggestion-${index}`}>
 								<ChefHat size={16} color="#6B7280" />
 								<View style={styles.suggestionText}>

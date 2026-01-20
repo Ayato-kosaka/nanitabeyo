@@ -17,6 +17,8 @@ import { mapReviewsKey } from "../../constants";
 interface RestaurantReviewsTabProps {
 	/** レストランID（Google Place ID） */
 	restaurantId: string;
+	/** レビューアイテムをタップした時のハンドラ: index, dishMediaId を渡す */
+	onItemPress?: (index: number, dishMediaId: string) => void;
 }
 
 /**
@@ -25,7 +27,7 @@ interface RestaurantReviewsTabProps {
  * #454 【設計】useDishMediaEntriesStore の Pagination API を利用してレストランの料理メディアを取得
  * 3列のグリッドレイアウトで表示する。
  */
-export function RestaurantReviewsTab({ restaurantId }: RestaurantReviewsTabProps) {
+export function RestaurantReviewsTab({ restaurantId, onItemPress }: RestaurantReviewsTabProps) {
 	const { callBackend } = useAPICall();
 	const { lightImpact } = useHaptics();
 	const { BlurModal: DishMediaModal, open: openDishMediaModal } = useBlurModal();
@@ -72,13 +74,17 @@ export function RestaurantReviewsTab({ restaurantId }: RestaurantReviewsTabProps
 		};
 	}, [entriesKey]);
 
-	const onItemPress = useCallback(
-		(index: number) => {
-			lightImpact();
-			setSelectedDishMediaIndex(index);
-			openDishMediaModal();
+	const handleItemPress = useCallback(
+		(index: number, dishMediaId: string) => {
+			if (onItemPress) {
+				onItemPress(index, dishMediaId);
+			} else {
+				lightImpact();
+				setSelectedDishMediaIndex(index);
+				openDishMediaModal();
+			}
 		},
-		[lightImpact, openDishMediaModal],
+		[lightImpact, openDishMediaModal, onItemPress],
 	);
 
 	// グリッドアイテムのレンダリング関数
@@ -90,7 +96,7 @@ export function RestaurantReviewsTab({ restaurantId }: RestaurantReviewsTabProps
 			return (
 				<ImageCard
 					item={{ id: entry.dish_media.id, imageUrl: entry.dish_media.thumbnailImageUrl }}
-					onPress={() => onItemPress(index)}>
+					onPress={() => handleItemPress(index, entry.dish_media.id)}>
 					<View style={styles.reviewCardOverlay}>
 						<Text style={styles.reviewCardTitle}>{entry.dish.name}</Text>
 						<View style={styles.reviewCardRating}>
@@ -101,7 +107,7 @@ export function RestaurantReviewsTab({ restaurantId }: RestaurantReviewsTabProps
 				</ImageCard>
 			);
 		},
-		[onItemPress],
+		[handleItemPress],
 	);
 
 	const handleLoadMore = useCallback(() => {

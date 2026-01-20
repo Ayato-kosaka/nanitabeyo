@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Pressable } from "react-native";
 import {
 	MapPin,
 	Search,
@@ -19,7 +19,6 @@ import { SearchParams } from "@/types/search";
 import type { AutocompleteLocation, LocationDetailsResponse } from "@shared/api/v1/res";
 import { useLocationSearch } from "@/hooks/useLocationSearch";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
-import { Card } from "@/components/Card";
 import { LocationAutocomplete } from "@/components/LocationAutocomplete";
 import {
 	timeSlots,
@@ -29,6 +28,8 @@ import {
 	distanceOptions,
 	priceLevelOptions,
 	TUTORIAL_PAGES,
+	PRELOAD_IMAGES,
+	MOOD_ICON_SIZES,
 } from "@/features/search/constants";
 import { DistanceSlider } from "@/features/search/components/DistanceSlider";
 import { PriceLevelsMultiSelect } from "@/features/search/components/PriceLevelsMultiSelect";
@@ -41,9 +42,24 @@ import { DEFAULT_PRICE_LEVELS, DEFAULT_SEARCH_RADIUS } from "@/features/topics/c
 import { TutorialBottomSheet } from "@/features/search/components/TutorialBottomSheet";
 import { useSearchTutorial } from "@/features/search/hooks/useSearchTutorial";
 import { Image } from "expo-image";
+import { PrimaryButton } from "@/components/PrimaryButton";
+
+// #667 【設計】画面幅ベースでアイテムサイズを計算（4列グリッド）
+const SCREEN_WIDTH = Dimensions.get("window").width;
+const HORIZONTAL_PADDING = 16;
+const ITEM_PADDING = 3;
+const BORDER_WIDTH = 2;
+const ITEM_GAP = 2;
+const NUM_COLUMNS = 4;
+const ITEM_WIDTH =
+	(SCREEN_WIDTH -
+		HORIZONTAL_PADDING * 2 -
+		ITEM_GAP * (NUM_COLUMNS - 1) -
+		(ITEM_PADDING * 2 + BORDER_WIDTH * 2) * NUM_COLUMNS) /
+	NUM_COLUMNS;
 
 export default function SearchScreen() {
-	const locale = useLocale();
+	const { locale, isJapanese } = useLocale();
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const [location, setLocation] = useState<Omit<LocationDetailsResponse, "viewport"> | null>(null);
@@ -166,6 +182,7 @@ export default function SearchScreen() {
 			taste,
 			distance,
 			priceLevels,
+			locationQuery, // #674 【仕様】検索画面で入力されたロケーション表示用文字列を渡す
 		};
 
 		logFrontendEvent({
@@ -224,7 +241,6 @@ export default function SearchScreen() {
 	// ========== チュートリアル表示制御 ==========
 	const [showTutorial, setShowTutorial] = useState(false);
 	const { hasSeenTutorial, isLoading: isTutorialLoading, markTutorialAsSeen } = useSearchTutorial();
-	const isTutorialSupportedLocale = useMemo(() => ["ja-JP", "ja"].includes(locale), [locale]);
 	// チュートリアル初期処理実行済みフラグ
 	const didInitTutorialState = useRef(false);
 
@@ -233,7 +249,7 @@ export default function SearchScreen() {
 		if (didInitTutorialState.current) return;
 		didInitTutorialState.current = true;
 
-		if (!isTutorialSupportedLocale) {
+		if (!isJapanese) {
 			// #642 【設計】対応言語以外ではチュートリアルを表示しない
 			getCurrentLocation()
 				.then((currentLocation) => {
@@ -261,7 +277,7 @@ export default function SearchScreen() {
 				})
 				.catch(console.error);
 		}
-	}, [isTutorialLoading, hasSeenTutorial, logFrontendEvent, getCurrentLocation, isTutorialSupportedLocale]);
+	}, [isTutorialLoading, hasSeenTutorial, logFrontendEvent, getCurrentLocation, isJapanese]);
 
 	// #642 【設計】ヘルプアイコンからチュートリアルを手動で開く
 	const handleOpenTutorial = () => {
@@ -300,7 +316,7 @@ export default function SearchScreen() {
 			<View style={styles.header}>
 				<Text style={styles.headerTitle}>{i18n.t("Search.headerTitle")}</Text>
 				{/* #642 【設計】ヘルプアイコンからチュートリアルを再表示 */}
-				{isTutorialSupportedLocale && (
+				{isJapanese && (
 					<TouchableOpacity style={styles.helpButton} onPress={handleOpenTutorial}>
 						<HelpCircle size={24} color="#6B7280" />
 					</TouchableOpacity>
@@ -313,9 +329,9 @@ export default function SearchScreen() {
 				keyboardShouldPersistTaps="always"
 				showsVerticalScrollIndicator={false}>
 				{/* Location Input */}
-				<Card>
+				<View style={styles.section}>
 					<View style={styles.sectionHeader}>
-						<MapPin size={20} color="#5EA2FF" />
+						<MapPin size={20} color="#F05537" />
 						<Text style={styles.sectionTitle}>{i18n.t("Search.sections.location")}</Text>
 						<View style={styles.requiredBadge}>
 							<Text style={styles.requiredText}>{i18n.t("Search.required")}</Text>
@@ -328,89 +344,110 @@ export default function SearchScreen() {
 							onSelectSuggestion={handleLocationSelect}
 							onClear={handleLocationClear}
 							placeholder={i18n.t("Search.placeholders.enterLocation")}
+							autoClearOnFocus={locationQuery === i18n.t("Search.currentLocation")}
 							renderInputRight={
 								<TouchableOpacity style={styles.currentLocationButton} onPress={handleUseCurrentLocation}>
-									<Navigation size={20} color="#5EA2FF" />
+									<Navigation size={20} color="#000000" />
 								</TouchableOpacity>
 							}
 							testID="search-location-autocomplete"
 						/>
 					</View>
-				</Card>
+				</View>
 
-				{/* Time of Day */}
-				<Card>
+				{/* #667 【設計】Time of Day - カード無し、画像グリッド表示（4列1行） */}
+				<View style={styles.section}>
 					<View style={styles.sectionHeader}>
-						<Clock size={20} color="#5EA2FF" />
+						<Clock size={20} color="#F05537" />
 						<Text style={styles.sectionTitle}>{i18n.t("Search.sections.time")}</Text>
 						<View style={styles.requiredBadge}>
 							<Text style={styles.requiredText}>{i18n.t("Search.required")}</Text>
 						</View>
 					</View>
-					<View style={styles.chipGrid}>
+					<View style={styles.gridContainer}>
 						{timeSlots.map((slot) => (
-							<TouchableOpacity
+							<Pressable
 								key={slot.id}
-								style={[styles.chip, timeSlot === slot.id && styles.selectedChip]}
+								style={[styles.gridItem, timeSlot === slot.id && styles.selectedGridItem]}
 								onPress={() => handleTimeSlotSelect(slot.id)}>
-								<Text style={styles.chipEmoji}>{slot.icon}</Text>
-								<Text style={[styles.chipText, timeSlot === slot.id && styles.selectedChipText]}>
+								<Image
+									source={slot.image}
+									style={[{ width: ITEM_WIDTH, height: ITEM_WIDTH }, styles.gridItemImage]}
+									contentFit="cover"
+									transition={0}
+									priority="high"
+									cachePolicy="memory"
+								/>
+								<Text style={[styles.gridItemLabel, timeSlot === slot.id && styles.selectedGridItemLabel]}>
 									{i18n.t(slot.label)}
 								</Text>
-							</TouchableOpacity>
+							</Pressable>
 						))}
 					</View>
-				</Card>
+				</View>
 
-				{/* Scene */}
-				<Card>
+				{/* #667 【設計】Scene - カード無し、画像グリッド表示（4列2行） */}
+				<View style={styles.section}>
 					<View style={styles.sectionHeader}>
-						<Users size={20} color="#5EA2FF" />
+						<Users size={20} color="#F05537" />
 						<Text style={styles.sectionTitle}>{i18n.t("Search.sections.scene")}</Text>
 						<View style={styles.requiredBadge}>
 							<Text style={styles.requiredText}>{i18n.t("Search.required")}</Text>
 						</View>
 					</View>
-					<View style={styles.chipGrid}>
+					<View style={styles.gridContainer}>
 						{sceneOptions.map((option) => (
-							<TouchableOpacity
+							<Pressable
 								key={option.id}
-								style={[styles.chip, scene === option.id && styles.selectedChip]}
+								style={[styles.gridItem, scene === option.id && styles.selectedGridItem]}
 								onPress={() => handleSceneSelect(option.id)}>
-								<Text style={styles.chipEmoji}>{option.icon}</Text>
-								<Text style={[styles.chipText, scene === option.id && styles.selectedChipText]}>
+								<Image
+									source={option.image}
+									style={[{ width: ITEM_WIDTH, height: ITEM_WIDTH }, styles.gridItemImage]}
+									contentFit="cover"
+									transition={0}
+									priority="high"
+									cachePolicy="memory"
+								/>
+								<Text style={[styles.gridItemLabel, scene === option.id && styles.selectedGridItemLabel]}>
 									{i18n.t(option.label)}
 								</Text>
-							</TouchableOpacity>
+							</Pressable>
 						))}
 					</View>
-				</Card>
+				</View>
 
-				{/* Mood */}
-				<Card>
+				{/* #667 【設計】Mood - カード無し、円形アイコン横並び（画像なし） */}
+				<View style={styles.section}>
 					<View style={styles.sectionHeader}>
-						<Salad size={20} color="#5EA2FF" />
+						<Salad size={20} color="#F05537" />
 						<Text style={styles.sectionTitle}>{i18n.t("Search.sections.mood")}</Text>
 					</View>
-					<View style={styles.chipGrid}>
+					<View style={styles.moodContainer}>
 						{moodOptions.map((option) => (
-							<TouchableOpacity
-								key={option.id}
-								style={[styles.chip, mood === option.id && styles.selectedChip]}
-								onPress={() => handleMoodSelect(option.id)}>
-								<Text style={styles.chipEmoji}>{option.icon}</Text>
-								<Text style={[styles.chipText, mood === option.id && styles.selectedChipText]}>
+							<Pressable key={option.id} style={styles.moodItem} onPress={() => handleMoodSelect(option.id)}>
+								<View
+									style={[
+										styles.moodCircle,
+										{
+											width: MOOD_ICON_SIZES[option.id as keyof typeof MOOD_ICON_SIZES],
+											height: MOOD_ICON_SIZES[option.id as keyof typeof MOOD_ICON_SIZES],
+										},
+										mood === option.id && styles.selectedMoodCircle,
+									]}
+								/>
+								<Text style={[styles.moodLabel, mood === option.id && styles.selectedMoodLabel]}>
 									{i18n.t(option.label)}
 								</Text>
-							</TouchableOpacity>
+							</Pressable>
 						))}
 					</View>
-				</Card>
+				</View>
 
 				{/* Advanced Filters Toggle */}
 				{!showAdvancedFilters && (
 					<TouchableOpacity style={styles.advancedToggle} onPress={handleAdvancedToggle}>
-						{showAdvancedFilters ? <ChevronUp size={20} color="#5EA2FF" /> : <Plus size={20} color="#5EA2FF" />}
+						{showAdvancedFilters ? <ChevronUp size={20} color="#F05537" /> : <Plus size={20} color="#F05537" />}
 						<Text style={styles.advancedToggleText}>
 							{showAdvancedFilters ? i18n.t("Search.advancedToggle.close") : i18n.t("Search.advancedToggle.open")}
 						</Text>
@@ -421,9 +458,9 @@ export default function SearchScreen() {
 				{showAdvancedFilters && (
 					<>
 						{/* Distance */}
-						<Card>
+						<View style={styles.section}>
 							<View style={styles.sectionHeader}>
-								<Distance size={20} color="#5EA2FF" />
+								<Distance size={20} color="#F05537" />
 								<Text style={styles.sectionTitle}>{i18n.t("Search.sections.distance")}</Text>
 							</View>
 							<View style={styles.sliderSection}>
@@ -432,12 +469,12 @@ export default function SearchScreen() {
 								</Text>
 								<DistanceSlider distance={distance} setDistance={setDistance} />
 							</View>
-						</Card>
+						</View>
 
 						{/* Price Levels */}
-						<Card>
+						<View style={styles.section}>
 							<View style={styles.sectionHeader}>
-								<DollarSign size={20} color="#5EA2FF" />
+								<DollarSign size={20} color="#F05537" />
 								<Text style={styles.sectionTitle}>{i18n.t("Search.sections.budget")}</Text>
 							</View>
 							<View style={styles.sliderSection}>
@@ -454,12 +491,12 @@ export default function SearchScreen() {
 									}}
 								/>
 							</View>
-						</Card>
+						</View>
 
 						{/* Taste */}
-						<Card>
+						<View style={styles.section}>
 							<View style={styles.sectionHeader}>
-								<ChefHat size={20} color="#5EA2FF" />
+								<ChefHat size={20} color="#F05537" />
 								<Text style={styles.sectionTitle}>{i18n.t("Search.sections.taste")}</Text>
 							</View>
 							<View style={styles.chipGrid}>
@@ -475,12 +512,12 @@ export default function SearchScreen() {
 									</TouchableOpacity>
 								))}
 							</View>
-						</Card>
+						</View>
 
 						{/* Restrictions */}
 						{
 							// #541 にて廃止
-							// (<Card>
+							// (<View style={styles.section}>
 							// 	<View style={styles.sectionHeader}>
 							// 		<Text style={styles.sectionTitle}>{i18n.t("Search.sections.restrictions")}</Text>
 							// 	</View>
@@ -501,28 +538,25 @@ export default function SearchScreen() {
 							// 			</TouchableOpacity>
 							// 		))}
 							// 	</View>
-							// </Card>)
+							// </View>)
 						}
 					</>
 				)}
 			</ScrollView>
 
 			{/* Search FAB */}
-			<View pointerEvents="box-none" style={styles.searchFabContainer}>
-				<TouchableOpacity
-					style={[styles.searchFab, (!location || !timeSlot || !scene) && styles.disabledFab]}
+			<View style={styles.searchFabContainer}>
+				<PrimaryButton
+					label={i18n.t("Search.searchButton")}
 					onPress={handleSearch}
-					/* #533 【仕様】timeSlot と scene を必須化 */
-					disabled={!location || !timeSlot || !scene || isSearching}>
-					{isSearching ? (
-						<ActivityIndicator size="small" color="#FFF" />
-					) : (
-						<>
-							<Search size={24} color="#FFF" />
-							<Text style={styles.fabText}>{i18n.t("Search.searchButton")}</Text>
-						</>
-					)}
-				</TouchableOpacity>
+					colors={["#000000", "#000000"]}
+					labelStyle={{ color: "#FFFFFF" }}
+					shadowColor="transparent"
+					loading={isSearching}
+					disabled={!location || !timeSlot || !scene || isSearching}
+					icon={<Search size={20} color="#FFFFFF" />}
+					style={styles.searchFab}
+				/>
 			</View>
 
 			{/* #642 【設計】チュートリアル BottomSheet */}
@@ -535,8 +569,8 @@ export default function SearchScreen() {
 			/>
 			{/* #642 【設計】オフスクリーンでチュートリアル画像を一度描画して decode */}
 			<View style={{ width: 0, height: 0, position: "absolute", overflow: "hidden" }}>
-				{TUTORIAL_PAGES.map((src, i) => (
-					<Image key={i} source={src.image} />
+				{PRELOAD_IMAGES.map((src, i) => (
+					<Image key={i} source={src} />
 				))}
 			</View>
 		</SafeAreaView>
@@ -553,6 +587,7 @@ const styles = StyleSheet.create({
 	},
 	scrollContent: {
 		paddingBottom: 100, // moved here so it affects ScrollView content
+		gap: 12,
 	},
 	header: {
 		paddingHorizontal: 24,
@@ -563,14 +598,18 @@ const styles = StyleSheet.create({
 		justifyContent: "space-between",
 	},
 	helpButton: {
-		padding: 8,
+		paddingHorizontal: 8,
 	},
 	headerTitle: {
 		fontSize: 20,
 		fontWeight: "700",
 		color: "#1A1A1A",
-		marginBottom: 8,
 		letterSpacing: -0.5,
+	},
+	// #667 【設計】カード無しセクションのスタイル
+	section: {
+		paddingHorizontal: HORIZONTAL_PADDING,
+		marginBottom: 24,
 	},
 	sectionHeader: {
 		flexDirection: "row",
@@ -603,7 +642,89 @@ const styles = StyleSheet.create({
 	currentLocationButton: {
 		padding: 16,
 		borderLeftWidth: 0.5,
-		borderLeftColor: "#E5E7EB",
+		borderLeftColor: "#C9C9C9",
+	},
+	// #667 【設計】画像グリッドコンテナ（4列、flexWrap）
+	gridContainer: {
+		flexDirection: "row",
+		flexWrap: "wrap",
+		gap: ITEM_GAP,
+	},
+	// #667 【設計】グリッドアイテム（画像+ラベル）
+	gridItem: {
+		width: ITEM_WIDTH + 2 * ITEM_PADDING + 2 * BORDER_WIDTH,
+		maxWidth: 256,
+		alignItems: "center",
+		overflow: "hidden",
+		padding: ITEM_PADDING,
+		borderRadius: 16,
+		borderWidth: BORDER_WIDTH,
+		borderColor: "transparent",
+	},
+	selectedGridItem: {
+		borderColor: "#000000",
+		backgroundColor: "#E5E5E5",
+	},
+	gridItemImage: {
+		borderRadius: 16,
+		maxWidth: 256,
+		maxHeight: 256,
+	},
+	// #667 【設計】グリッドアイテムのラベル
+	gridItemLabel: {
+		marginTop: 4,
+		fontSize: 11,
+		color: "#000000",
+		fontWeight: "600",
+		textAlign: "center",
+	},
+	selectedGridItemLabel: {},
+	// #667 【設計】ムード用の横並びコンテナ
+	moodContainer: {
+		flexDirection: "row",
+		justifyContent: "space-around",
+		alignItems: "center",
+		paddingVertical: 16,
+	},
+	// #667 【設計】ムード個別アイテム（円+ラベル縦並び）
+	moodItem: {
+		flex: 1,
+		alignItems: "center",
+		gap: 8,
+	},
+	// #667 【設計】ムードの円形アイコン
+	moodCircle: {
+		backgroundColor: "#C9C9C9",
+		borderRadius: 100, // 完全な円
+	},
+	selectedMoodCircle: {
+		backgroundColor: "#000000",
+	},
+	// #667 【設計】ムードのラベル
+	moodLabel: {
+		fontSize: 13,
+		color: "#000000",
+		fontWeight: "500",
+		textAlign: "center",
+	},
+	selectedMoodLabel: {
+		fontWeight: "600",
+	},
+	advancedToggle: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "center",
+		backgroundColor: "#FDEBE7",
+		marginHorizontal: 24,
+		paddingVertical: 16,
+		paddingHorizontal: 20,
+		borderRadius: 16,
+	},
+	advancedToggleText: {
+		fontSize: 15,
+		color: "#F05537",
+		fontWeight: "600",
+		marginLeft: 12,
 	},
 	chipGrid: {
 		flexDirection: "row",
@@ -617,20 +738,14 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 12,
 		paddingVertical: 6,
 		borderRadius: 24,
+		borderWidth: BORDER_WIDTH,
+		borderColor: "#C9C9C9",
 		marginBottom: 6,
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 0 },
-		shadowOpacity: 0.1,
-		shadowRadius: 4,
-		elevation: 1,
 	},
 	selectedChip: {
-		backgroundColor: "#5EA2FF",
-		shadowColor: "#5EA2FF",
-		shadowOffset: { width: 0, height: 0 },
-		shadowOpacity: 0.3,
-		shadowRadius: 24,
-		elevation: 8,
+		// 濃い灰色
+		backgroundColor: "#E5E5E5",
+		borderColor: "#000000",
 	},
 	chipEmoji: {
 		fontSize: 14,
@@ -638,12 +753,33 @@ const styles = StyleSheet.create({
 	},
 	chipText: {
 		fontSize: 13,
-		color: "#6B7280",
-		fontWeight: "500",
-	},
-	selectedChipText: {
-		color: "#FFF",
+		color: "#000000",
 		fontWeight: "600",
+	},
+	selectedChipText: {},
+	sliderSection: {
+		alignItems: "center",
+	},
+	sliderValue: {
+		fontSize: 18,
+		fontWeight: "700",
+		color: "#000000",
+		marginBottom: 8,
+		textAlign: "center",
+	},
+	searchFabContainer: {
+		position: "absolute",
+		bottom: 0,
+		paddingBottom: 32,
+		paddingHorizontal: HORIZONTAL_PADDING,
+		width: "100%",
+		justifyContent: "center",
+		flexDirection: "row",
+		alignItems: "center",
+		backgroundColor: "#FFFFFF",
+	},
+	searchFab: {
+		width: "100%",
 	},
 	restrictionsContainer: {
 		flexDirection: "row",
@@ -672,125 +808,5 @@ const styles = StyleSheet.create({
 	selectedRestrictionChipText: {
 		color: "#FFF",
 		fontWeight: "700",
-	},
-	searchFabContainer: {
-		position: "absolute",
-		bottom: 32,
-		right: 20,
-		left: 20,
-		justifyContent: "center",
-		flexDirection: "row",
-		alignItems: "center",
-	},
-	searchFab: {
-		backgroundColor: "#5EA2FF",
-		flexDirection: "row",
-		alignItems: "center",
-		paddingHorizontal: 32,
-		paddingVertical: 20,
-		borderRadius: 32,
-		shadowColor: "#5EA2FF",
-		shadowOffset: { width: 0, height: 0 },
-		shadowOpacity: 0.5,
-		shadowRadius: 24,
-		elevation: 12,
-	},
-	disabledFab: {
-		backgroundColor: "#D1D5DB",
-		shadowOpacity: 0.1,
-	},
-	fabText: {
-		fontSize: 18,
-		fontWeight: "700",
-		color: "#FFF",
-		marginLeft: 12,
-		letterSpacing: 0.5,
-	},
-	sliderSection: {
-		alignItems: "center",
-	},
-	sliderValue: {
-		fontSize: 18,
-		fontWeight: "700",
-		color: "#5EA2FF",
-		marginBottom: 8,
-		textAlign: "center",
-	},
-	sliderContainer: {
-		width: 300,
-		justifyContent: "center",
-	},
-	sliderTrack: {
-		height: 6,
-		backgroundColor: "#E5E7EB",
-		borderRadius: 3,
-		position: "relative",
-		marginHorizontal: 16,
-	},
-	sliderThumb: {
-		position: "absolute",
-		width: 28,
-		height: 28,
-		backgroundColor: "#5EA2FF",
-		borderRadius: 14,
-		top: -11,
-		borderWidth: 3,
-		borderColor: "#FFFFFF",
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 4 },
-		shadowOpacity: 0.15,
-		shadowRadius: 8,
-		elevation: 6,
-	},
-	rangeTrack: {
-		position: "absolute",
-		height: 6,
-		backgroundColor: "#5EA2FF",
-		borderRadius: 3,
-		top: 0,
-	},
-	rangeThumbMin: {
-		backgroundColor: "#5EA2FF",
-	},
-	rangeThumbMax: {
-		backgroundColor: "#5EA2FF",
-	},
-	sliderLabels: {
-		flexDirection: "row",
-		justifyContent: "space-between",
-		marginTop: 12,
-		paddingHorizontal: 16,
-	},
-	sliderLabelLeft: {
-		fontSize: 13,
-		color: "#6B7280",
-		fontWeight: "500",
-	},
-	sliderLabelRight: {
-		fontSize: 13,
-		color: "#6B7280",
-		fontWeight: "500",
-	},
-	advancedToggle: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "center",
-		backgroundColor: "#F0F8FF",
-		marginHorizontal: 24,
-		marginVertical: 12,
-		paddingVertical: 16,
-		paddingHorizontal: 20,
-		borderRadius: 16,
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 0 },
-		shadowOpacity: 0.1,
-		shadowRadius: 8,
-		elevation: 2,
-	},
-	advancedToggleText: {
-		fontSize: 15,
-		color: "#5EA2FF",
-		fontWeight: "600",
-		marginLeft: 12,
 	},
 });

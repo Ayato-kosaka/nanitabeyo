@@ -356,7 +356,7 @@ export default function DishCopySurveyPage() {
 	if (isLoading) {
 		return (
 			<View style={[styles.container, styles.centerContent]}>
-				<ActivityIndicator size="large" color="#5EA2FF" />
+				<ActivityIndicator size="large" color="#F05537" />
 				<Text style={styles.loadingText}>データを読み込んでいます...</Text>
 			</View>
 		);
@@ -391,7 +391,7 @@ export default function DishCopySurveyPage() {
 							</Text>
 						</View>
 						<TouchableOpacity onPress={() => setShowHelp(true)} style={styles.helpButton}>
-							<HelpCircle size={28} color="#5EA2FF" />
+							<HelpCircle size={28} color="#F05537" />
 						</TouchableOpacity>
 					</View>
 
@@ -649,7 +649,7 @@ function AnswerModal({ dish, existingAnswer, onClose, onSave }: AnswerModalProps
 							style={[styles.candidateCard, isSelected && styles.candidateCardSelected]}
 							onPress={() => handleModeChange("candidate", candidate.type)}>
 							<View style={styles.candidateHeader}>
-								{isSelected ? <CheckCircle2 size={24} color="#5EA2FF" /> : <Circle size={24} color="#999" />}
+								{isSelected ? <CheckCircle2 size={24} color="#F05537" /> : <Circle size={24} color="#999" />}
 								<Text style={styles.candidateTitle}>{candidate.title}</Text>
 							</View>
 							<Text style={styles.candidateTagline}>{candidate.tagline}</Text>
@@ -663,7 +663,7 @@ function AnswerModal({ dish, existingAnswer, onClose, onSave }: AnswerModalProps
 					onPress={() => handleModeChange("custom")}>
 					<View style={styles.candidateHeader}>
 						{state.selectedMode === "custom" ? (
-							<CheckCircle2 size={24} color="#5EA2FF" />
+							<CheckCircle2 size={24} color="#F05537" />
 						) : (
 							<Circle size={24} color="#999" />
 						)}
@@ -700,7 +700,7 @@ function AnswerModal({ dish, existingAnswer, onClose, onSave }: AnswerModalProps
 							key={level}
 							style={[styles.radioItem, isSelected && styles.radioItemSelected]}
 							onPress={() => setState((prev) => ({ ...prev, appetite: level }))}>
-							{isSelected ? <CheckCircle2 size={20} color="#5EA2FF" /> : <Circle size={20} color="#999" />}
+							{isSelected ? <CheckCircle2 size={20} color="#F05537" /> : <Circle size={20} color="#999" />}
 							<Text style={styles.radioLabel}>{APPETITE_LABELS[level]}</Text>
 						</Pressable>
 					);
@@ -722,7 +722,7 @@ function AnswerModal({ dish, existingAnswer, onClose, onSave }: AnswerModalProps
 									reasons: isChecked ? prev.reasons.filter((r) => r !== key) : [...prev.reasons, key],
 								}));
 							}}>
-							{isChecked ? <CheckCircle2 size={20} color="#5EA2FF" /> : <Circle size={20} color="#999" />}
+							{isChecked ? <CheckCircle2 size={20} color="#F05537" /> : <Circle size={20} color="#999" />}
 							<Text style={styles.checkLabel}>{REASON_LABELS[key]}</Text>
 						</Pressable>
 					);
@@ -752,7 +752,7 @@ function AnswerModal({ dish, existingAnswer, onClose, onSave }: AnswerModalProps
 									rejectedReason: isSelected ? null : key,
 								}))
 							}>
-							{isSelected ? <CheckCircle2 size={20} color="#5EA2FF" /> : <Circle size={20} color="#999" />}
+							{isSelected ? <CheckCircle2 size={20} color="#F05537" /> : <Circle size={20} color="#999" />}
 							<Text style={styles.radioLabel}>{REJECTED_LABELS[key]}</Text>
 						</Pressable>
 					);
@@ -829,7 +829,7 @@ const styles = StyleSheet.create({
 	progressText: {
 		fontSize: 18,
 		fontWeight: "600",
-		color: "#5EA2FF",
+		color: "#F05537",
 	},
 	helpButton: {
 		padding: 4,
@@ -1016,7 +1016,7 @@ const styles = StyleSheet.create({
 	},
 	candidateCardSelected: {
 		backgroundColor: "#E3F2FD",
-		borderColor: "#5EA2FF",
+		borderColor: "#F05537",
 	},
 	candidateHeader: {
 		flexDirection: "row",
@@ -1066,7 +1066,7 @@ const styles = StyleSheet.create({
 	},
 	radioItemSelected: {
 		backgroundColor: "#E3F2FD",
-		borderColor: "#5EA2FF",
+		borderColor: "#F05537",
 	},
 	radioLabel: {
 		fontSize: 14,
@@ -1086,7 +1086,7 @@ const styles = StyleSheet.create({
 	},
 	checkItemSelected: {
 		backgroundColor: "#E3F2FD",
-		borderColor: "#5EA2FF",
+		borderColor: "#F05537",
 	},
 	checkLabel: {
 		fontSize: 14,

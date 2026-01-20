@@ -183,7 +183,7 @@ export default function DishMediaFeed({
 			{pageHeight > 0 ? (
 				!!isLoading ? (
 					<View style={styles.centerContainer}>
-						<ActivityIndicator size="large" color="#5EA2FF" />
+						<ActivityIndicator size="large" color="#F05537" />
 						<Text style={styles.loadingText}>{i18n.t("Profile.loading")}</Text>
 					</View>
 				) : !!error ? (

@@ -10,14 +10,14 @@ export const TopicsLoading = () => (
 		<View style={styles.loadingCard}>
 			<View style={styles.loadingIconContainer}>
 				<Image
-					source={require("@/assets/images/icon.png")}
+					source={require("@/assets/images/icon.webp")}
 					style={styles.loadingIcon}
 					contentFit="cover"
 					transition={0}
 					cachePolicy={"memory-disk"}
 				/>
 			</View>
-			<ActivityIndicator size="large" color="#5EA2FF" style={styles.loadingSpinner} />
+			<ActivityIndicator size="large" color="#F05537" style={styles.loadingSpinner} />
 			<Text style={styles.loadingTitle}>{i18n.t("Topics.Loading.title")}</Text>
 			<Text style={styles.loadingSubtitle}>{i18n.t("Topics.Loading.subtitle")}</Text>
 		</View>

@@ -48,22 +48,6 @@ export const useImageLoadWithRetry = ({
 		return cacheBustingKey ? `${uri}::${cacheBustingKey}` : uri;
 	}, [uri, cacheBustingKey]);
 
-	// uri 変更時に状態をリセット
-	useEffect(() => {
-		if (prevSourceKeyRef.current !== sourceKey) {
-			prevSourceKeyRef.current = sourceKey;
-			setLoadState("loading");
-			setErrorCount(0);
-			setIsRetrying(false);
-			setReloadToken(0);
-
-			if (timerRef.current) {
-				clearTimeout(timerRef.current);
-				timerRef.current = null;
-			}
-		}
-	}, [sourceKey]);
-
 	// 実際に <Image> に渡す URI（キャッシュバスター付き）
 	const effectiveUri = useMemo(() => {
 		if (!uri) return undefined;
@@ -145,6 +129,17 @@ export const useImageLoadWithRetry = ({
 		},
 		[clearTimer],
 	);
+
+	// uri 変更時に状態をリセット
+	useEffect(() => {
+		if (prevSourceKeyRef.current !== sourceKey) {
+			prevSourceKeyRef.current = sourceKey;
+			setErrorCount(0);
+			setIsRetrying(false);
+			setReloadToken(0);
+			clearTimer();
+		}
+	}, [sourceKey, clearTimer]);
 
 	const hasGivenUp = errorCount > maxAutoRetry;
 

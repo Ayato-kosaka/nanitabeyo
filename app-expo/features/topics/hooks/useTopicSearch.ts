@@ -19,6 +19,7 @@ import type {
 import { useLocale } from "@/hooks/useLocale";
 import { getRemoteConfig } from "@/lib/remoteConfig";
 import { useLogger } from "@/hooks/useLogger";
+import i18n from "@/lib/i18n";
 import { CARD_WIDTH, DEFAULT_SEARCH_RADIUS, DEFAULT_PRICE_LEVELS } from "../constants";
 
 export const useTopicSearch = () => {
@@ -26,7 +27,7 @@ export const useTopicSearch = () => {
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const { callBackend } = useAPICall();
-	const locale = useLocale();
+	const { locale } = useLocale();
 	const { logFrontendEvent } = useLogger();
 
 	// #633 【設計】料理メディアの取得処理（オンデマンド実行用に export）
@@ -179,8 +180,8 @@ export const useTopicSearch = () => {
 										...topic,
 										category:
 											createDishCategoryVariantResponse.labels &&
-											typeof createDishCategoryVariantResponse.labels === "object" &&
-											params.localLanguageCode in createDishCategoryVariantResponse.labels
+												typeof createDishCategoryVariantResponse.labels === "object" &&
+												params.localLanguageCode in createDishCategoryVariantResponse.labels
 												? (createDishCategoryVariantResponse.labels as Record<string, string>)[params.localLanguageCode]
 												: topic.category,
 										categoryId: createDishCategoryVariantResponse.id,
@@ -221,7 +222,7 @@ export const useTopicSearch = () => {
 				// 		isHidden: false,
 				// 	}));
 			} catch (err) {
-				const errorMessage = err instanceof Error ? err.message : "おすすめ検索に失敗しました";
+				const errorMessage = err instanceof Error ? err.message : i18n.t("Topics.errors.fetchFailed");
 				setError(errorMessage);
 				throw new Error(errorMessage);
 			} finally {

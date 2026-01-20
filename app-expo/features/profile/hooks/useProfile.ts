@@ -12,7 +12,7 @@ export function useProfile() {
 	const { logFrontendEvent } = useLogger();
 	const { uploadFile } = useFileUploader();
 	const { getSession } = useAuth();
-	const locale = useLocale();
+	const { locale } = useLocale();
 
 	/**
 	 * ユーザープロフィールを作成する（存在しなければ）

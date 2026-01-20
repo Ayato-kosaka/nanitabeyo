@@ -23,7 +23,7 @@ export function ReviewTab() {
 	const { callBackend } = useAPICall();
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
-	const locale = useLocale();
+	const { locale } = useLocale();
 
 	// #454 【設計】画面用途キー "reviews" でストアからデータ取得
 	const entriesKey = "reviews" as const;
@@ -210,8 +210,8 @@ const styles = StyleSheet.create({
 		elevation: 4,
 	},
 	checkboxChecked: {
-		backgroundColor: "#5EA2FF",
-		borderColor: "#5EA2FF",
+		backgroundColor: "#F05537",
+		borderColor: "#F05537",
 	},
 	checkboxMark: {
 		color: "#FFFFFF",
@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
 	},
 	retryButton: {
 		marginTop: 16,
-		backgroundColor: "#5EA2FF",
+		backgroundColor: "#F05537",
 		paddingHorizontal: 20,
 		paddingVertical: 10,
 		borderRadius: 20,
