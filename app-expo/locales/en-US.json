@@ -9,7 +9,6 @@
 		"post": "Post",
 		"postReview": "Post review",
 		"retry": "Retry",
-		"processing": "Processing...",
 		"error": "An error occurred. Please try again.",
 		"success": "Success",
 		"linkCopied": "Link copied to clipboard",
@@ -222,6 +221,7 @@
 		"buttons": {
 			"viewRestaurant": "View restaurant"
 		},
+		"processing": "Processing media...",
 		"errors": {
 			"mapOpenFailed": "Could not open map application",
 			"mediaUnavailable": "This media is currently unavailable."
@@ -504,6 +504,7 @@
 		"provider_twitter": "Twitter",
 		"provider_apple": "Apple",
 		"otp_title": "Enter Code",
+		"otp_resending": "Resending code...",
 		"otp_send_again": "Resend Code",
 		"otp_enter_all_digits": "Please enter all 6 digits",
 		"login_success": "Successfully logged in!",
@@ -515,6 +516,7 @@
 		"conflict_dialog_message": "This account is already linked to another user. If you switch, data created as a guest will not be transferred. Do you want to switch to the existing account?",
 		"conflict_dialog_switch": "Switch",
 		"conflict_dialog_cancel": "Cancel",
+		"callback_processing": "Completing sign-in...",
 		"consent_login_prefix": "By continuing, you agree to our ",
 		"consent_login_terms": "Terms of Service",
 		"consent_login_and": " and ",
