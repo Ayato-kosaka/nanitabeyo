@@ -1,5 +1,6 @@
 import React, { memo, ReactElement, useCallback } from "react";
 import {
+	ActivityIndicator,
 	ColorValue,
 	GestureResponderEvent,
 	Pressable,
@@ -29,6 +30,10 @@ export interface PrimaryButtonProps {
 	borderRadius?: number;
 	/** 読み込み状態でインジケータ表示 */
 	loading?: boolean;
+	/** ローディングインジケータの種類（デフォルトはカスタム） */
+	loadingIndicatorType?: "custom" | "native";
+	/** native(ActivityIndicator) の色（未指定なら label の色に寄せる） */
+	nativeLoadingColor?: ColorValue;
 	/** 無効化 */
 	disabled?: boolean;
 	/** 外側（影・角丸含む）用スタイル */
@@ -51,6 +56,8 @@ const PrimaryButtonComponent: React.FC<PrimaryButtonProps> = ({
 	shadowColor = "transparent",
 	borderRadius = 8,
 	loading = false,
+	loadingIndicatorType = "custom", // ✅ デフォルト
+	nativeLoadingColor,
 	disabled = false,
 	style,
 	contentStyle,
@@ -90,6 +97,17 @@ const PrimaryButtonComponent: React.FC<PrimaryButtonProps> = ({
 		[style, borderRadius, isDisabled],
 	);
 
+	const renderLoading = () => {
+		if (!loading) return null;
+
+		if (loadingIndicatorType === "native") {
+			const flattenedLabelStyle = StyleSheet.flatten(labelStyle) as TextStyle | undefined;
+			const defaultNativeColor = flattenedLabelStyle?.color ?? "#FFFFFF";
+			return <ActivityIndicator size={"small"} color={nativeLoadingColor ?? defaultNativeColor} />;
+		}
+		return <LoadingIndicator size="small" />;
+	};
+
 	return (
 		<Pressable
 			accessibilityRole="button"
@@ -101,7 +119,7 @@ const PrimaryButtonComponent: React.FC<PrimaryButtonProps> = ({
 			android_ripple={{ color: "rgba(255,255,255,0.12)", borderless: true }}>
 			<LinearGradient colors={colors} style={[styles.gradient, { borderRadius }, contentStyle]}>
 				<>
-					{loading ? <LoadingIndicator size="small" /> : icon}
+					{renderLoading() ?? icon}
 					<Text style={[styles.label, labelStyle]}>{label}</Text>
 				</>
 			</LinearGradient>

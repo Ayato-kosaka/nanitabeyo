@@ -467,6 +467,8 @@ export default function SelectRestaurantScreen() {
 						shadowColor={"transparent"}
 						labelStyle={{ color: "#357AFF", fontSize: 14 }}
 						loading={isLoadingSavedRestaurants}
+						loadingIndicatorType="native"
+						nativeLoadingColor={"#357AFF"}
 					/>
 				</View>
 			</View>

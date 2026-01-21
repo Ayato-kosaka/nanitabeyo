@@ -278,6 +278,8 @@ export default function MapScreen() {
 					shadowColor={"#000000"}
 					labelStyle={{ color: "#1A1A1A" }}
 					loading={isLoadingNearbyRestaurants}
+					loadingIndicatorType="native"
+					nativeLoadingColor={"#1A1A1A"}
 				/>
 			</View>
 
