@@ -632,6 +632,7 @@ export function ReviewForm({
 								<TextInput
 									style={[styles.textInput, styles.priceInput]}
 									placeholder={"0"}
+									placeholderTextColor="#A0A0A0"
 									value={price}
 									onChangeText={setPrice}
 									keyboardType="numeric"
@@ -641,6 +642,7 @@ export function ReviewForm({
 							<TextInput
 								style={[styles.textInput, styles.priceInputSmall]}
 								placeholder={"0"}
+								placeholderTextColor="#A0A0A0"
 								value={price}
 								onChangeText={setPrice}
 								keyboardType="numeric"
