@@ -9,7 +9,6 @@
 		"post": "Publier",
 		"postReview": "Publier un avis",
 		"retry": "Réessayer",
-		"processing": "Traitement...",
 		"error": "Une erreur s'est produite. Veuillez réessayer.",
 		"success": "Succès",
 		"linkCopied": "Lien copié dans le presse-papiers",
@@ -222,6 +221,7 @@
 		"buttons": {
 			"viewRestaurant": "Voir le restaurant"
 		},
+		"processing": "Traitement du média...",
 		"errors": {
 			"mapOpenFailed": "Impossible d'ouvrir l'application de carte",
 			"mediaUnavailable": "Ce contenu n'est actuellement pas disponible."
@@ -504,6 +504,7 @@
 		"provider_twitter": "Twitter",
 		"provider_apple": "Apple",
 		"otp_title": "Entrer le code",
+		"otp_resending": "Renvoi du code...",
 		"otp_send_again": "Renvoyer le code",
 		"otp_enter_all_digits": "Veuillez saisir les 6 chiffres",
 		"login_success": "Connexion réussie !",
@@ -515,6 +516,7 @@
 		"conflict_dialog_message": "Ce compte est déjà lié à un autre utilisateur. Si vous changez, les données créées en tant qu'invité ne seront pas transférées. Voulez-vous passer au compte existant?",
 		"conflict_dialog_switch": "Changer",
 		"conflict_dialog_cancel": "Annuler",
+		"callback_processing": "Finalisation de la connexion...",
 		"consent_login_prefix": "En continuant, vous acceptez nos ",
 		"consent_login_terms": "Conditions d'utilisation",
 		"consent_login_and": " et ",
