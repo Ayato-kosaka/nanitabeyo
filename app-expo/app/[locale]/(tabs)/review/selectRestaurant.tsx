@@ -304,46 +304,62 @@ export default function SelectRestaurantScreen() {
 
 	const initialRegion = useMemo<Region>(() => (isJapanese ? REGION_JP : INITIAL_REGION), [isJapanese]);
 	// 初回マウント時に現在地取得＆保存したお店検索
-	useEffect(() => {
-		// #644 【設計】レビューのレストラン選択画面表示ログ
-		logFrontendEvent({
-			event_name: "screen_view",
-			error_level: "log",
-			payload: { screen: "review_select_restaurant" },
-		});
+	useFocusEffect(
+		useCallback(() => {
+			let cancelled = false;
 
-		// 日本語設定時は日本全体を表示
-		if (isJapanese) {
-			currentRegion.current = REGION_JP;
-			mapRef.current?.animateToRegion(REGION_JP, 1000);
-			searchSavedRestaurants(REGION_JP);
-			return;
-		}
-
-		getCurrentLocation()
-			.then(({ location }) => {
-				const newRegion = {
-					latitude: location.latitude,
-					longitude: location.longitude,
-					latitudeDelta: 0.01,
-					longitudeDelta: 0.01,
-				};
-				currentRegion.current = newRegion;
-				mapRef.current?.animateToRegion(newRegion, 1000);
-				searchSavedRestaurants(newRegion);
-			})
-			.catch((error) => {
+			const init = async () => {
+				// 画面表示ログ
 				logFrontendEvent({
-					event_name: "MapInitialLocationError",
-					error_level: "error",
-					payload: { error },
+					event_name: "screen_view",
+					error_level: "log",
+					payload: { screen: "review_select_restaurant" },
 				});
-				// 現在地取得失敗時は日本全体を表示
-				currentRegion.current = REGION_JP;
-				mapRef.current?.animateToRegion(REGION_JP, 1000);
-				searchSavedRestaurants(REGION_JP);
-			});
-	}, [getCurrentLocation, isJapanese, logFrontendEvent, searchSavedRestaurants]);
+
+				try {
+					// 日本語設定時は日本全体を表示
+					if (isJapanese) {
+						currentRegion.current = REGION_JP;
+						mapRef.current?.animateToRegion(REGION_JP, 1000);
+						await searchSavedRestaurants(REGION_JP);
+						return;
+					}
+
+					const { location } = await getCurrentLocation();
+					if (cancelled) return;
+
+					const newRegion = {
+						latitude: location.latitude,
+						longitude: location.longitude,
+						latitudeDelta: 0.01,
+						longitudeDelta: 0.01,
+					};
+
+					currentRegion.current = newRegion;
+					mapRef.current?.animateToRegion(newRegion, 1000);
+					await searchSavedRestaurants(newRegion);
+				} catch (error) {
+					// 現在地取得失敗時は日本全体を表示
+					if (cancelled) return;
+
+					logFrontendEvent({
+						event_name: "MapInitialLocationError",
+						error_level: "error",
+						payload: { error },
+					});
+					currentRegion.current = REGION_JP;
+					mapRef.current?.animateToRegion(REGION_JP, 1000);
+					await searchSavedRestaurants(REGION_JP);
+				}
+			};
+
+			init();
+
+			return () => {
+				cancelled = true;
+			};
+		}, [getCurrentLocation, isJapanese, logFrontendEvent, searchSavedRestaurants]),
+	);
 
 	// #644 【設計】オートコンプリート選択時の処理
 	const handleAutocompleteSelect = useCallback(
