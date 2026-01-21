@@ -289,7 +289,7 @@ function PrimaryCard({
 				style={styles.savedRestaurantImage}
 			/>
 			<View style={styles.savedRestaurantInfo}>
-				<Text style={styles.savedRestaurantName} numberOfLines={2}>
+				<Text style={styles.savedRestaurantName} numberOfLines={1} ellipsizeMode="tail">
 					{item.restaurant.name}
 				</Text>
 				<PrimaryButton
