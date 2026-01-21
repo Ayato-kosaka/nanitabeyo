@@ -434,7 +434,7 @@ export default function SelectRestaurantScreen() {
 						placeholder={i18n.t("Map.placeholders.searchRestaurantsForReview")}
 						renderInputRight={
 							<TouchableOpacity style={styles.currentLocationButton} onPress={handleCurrentLocation}>
-								<Navigation size={20} color="#357AFF" />
+								<Navigation size={20} color="#000000" />
 							</TouchableOpacity>
 						}
 					/>
