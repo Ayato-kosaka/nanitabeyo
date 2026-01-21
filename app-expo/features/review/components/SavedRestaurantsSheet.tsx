@@ -9,6 +9,7 @@ import { getCacheKeyForImage } from "@/lib/image";
 import type { QueryMeSavedRestaurantsResponse } from "@shared/api/v1/res";
 import { FlatList } from "react-native";
 import { SkeletonShimmer } from "@/components/SkeletonShimmer";
+import { InteractionManager } from "react-native";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const CARD_WIDTH = SCREEN_WIDTH * 0.92;
@@ -84,12 +85,25 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 				return;
 			}
 
-			// ★ iOS 対策：マウント完了後に present() する
-			const timeoutId = setTimeout(() => {
-				sheetRef.current?.present();
-			}, 0);
+			let cancelled = false;
+			let raf1: number | null = null;
+			let raf2: number | null = null;
+			const task = InteractionManager.runAfterInteractions(() => {
+				// Android は初回レイアウトが 1 フレームじゃ足りないことがあるので rAF を二段にする
+				raf1 = requestAnimationFrame(() => {
+					raf2 = requestAnimationFrame(async () => {
+						if (cancelled) return;
+						await sheetRef.current?.present();
+					});
+				});
+			});
 
-			return () => clearTimeout(timeoutId);
+			return () => {
+				cancelled = true;
+				task.cancel();
+				if (raf1) cancelAnimationFrame(raf1);
+				if (raf2) cancelAnimationFrame(raf2);
+			};
 		}, [visible]);
 
 		useEffect(() => {
