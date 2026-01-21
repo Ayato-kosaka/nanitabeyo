@@ -9,7 +9,6 @@
 		"post": "投稿",
 		"postReview": "レビューを投稿する",
 		"retry": "再試行",
-		"processing": "処理中...",
 		"error": "エラーが発生しました。もう一度お試しください。",
 		"success": "成功",
 		"linkCopied": "リンクをクリップボードにコピーしました",
@@ -222,6 +221,7 @@
 		"buttons": {
 			"viewRestaurant": "店を見る"
 		},
+		"processing": "メディアを処理中...",
 		"errors": {
 			"mapOpenFailed": "地図アプリを開けませんでした",
 			"mediaUnavailable": "このメディアは現在ご利用いただけません。"
@@ -504,6 +504,7 @@
 		"provider_twitter": "Twitter",
 		"provider_apple": "Apple",
 		"otp_title": "コードを入力",
+		"otp_resending": "コードを再送信中...",
 		"otp_send_again": "コードを再送",
 		"otp_enter_all_digits": "6桁すべてを入力してください",
 		"login_success": "ログインに成功しました！",
@@ -515,6 +516,7 @@
 		"conflict_dialog_message": "対象のアカウントは既に別ユーザーに紐づいています。切り替えるとゲストで作成したデータは引き継がれません。既存アカウントに切り替えますか？",
 		"conflict_dialog_switch": "切り替える",
 		"conflict_dialog_cancel": "キャンセル",
+		"callback_processing": "ログイン処理中...",
 		"consent_login_prefix": "このまま続行すると、",
 		"consent_login_terms": "利用規約",
 		"consent_login_and": " と ",

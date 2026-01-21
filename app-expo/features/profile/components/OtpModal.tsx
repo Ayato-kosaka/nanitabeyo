@@ -207,7 +207,7 @@ export function OtpModal({ onClose, phone }: OtpModalProps) {
 					{/* Resend Button */}
 					<TouchableOpacity onPress={handleResend} disabled={isResending || isLoading} style={styles.resendButton}>
 						<Text style={[styles.resendText, (isResending || isLoading) && styles.resendTextDisabled]}>
-							{isResending ? i18n.t("Common.processing") : i18n.t("auth.otp_send_again")}
+							{isResending ? i18n.t("auth.otp_resending") : i18n.t("auth.otp_send_again")}
 						</Text>
 					</TouchableOpacity>
 				</View>
