@@ -219,12 +219,22 @@ export default function DishMediaContent({
 		opacity: withTiming(pressed.value ? 0.95 : 1, { duration: 80 }),
 	}));
 
-	// #613 横スワイプと競合しないように maxDistance を設定
+	const buttonsGesture = useMemo(
+		() =>
+			Gesture.Tap()
+				.maxDistance(9999) // 指が多少動いても成立
+				.onBegin(() => {
+					// 何もしなくてOK。成立させるのが目的。
+				}),
+		[],
+	);
 	const tapGesture = useMemo(() => {
 		return (
 			Gesture.Tap()
-				// #611 移動したらタップ失敗になる
+				// #611 横スワイプと競合しないように maxDistance を設定
 				.maxDistance(10)
+				// #694 【設計】ボタン操作中は親Tapを失敗させる（縁タップ誤発火防止）
+				.requireExternalGestureToFail(buttonsGesture)
 				.onBegin(() => {
 					if (onCardPress) pressed.value = 1;
 				})
@@ -237,7 +247,7 @@ export default function DishMediaContent({
 					runOnJS(onCardPress)(dishMediaEntry);
 				})
 		);
-	}, [onCardPress, dishMediaEntry, pressed]);
+	}, [onCardPress, dishMediaEntry, pressed, buttonsGesture]);
 
 	return (
 		<View style={styles.container}>
@@ -314,7 +324,12 @@ export default function DishMediaContent({
 			{/* Action Buttons */}
 			<View pointerEvents="box-none" style={styles.bottomSection}>
 				<View pointerEvents="box-none" style={styles.actionRow}>
-					<ActionButtons id={id} idType={idType} onLayout={(width) => setRightActionsWidth(width)} />
+					<ActionButtons
+						id={id}
+						idType={idType}
+						onLayout={(width) => setRightActionsWidth(width)}
+						buttonsGesture={buttonsGesture}
+					/>
 				</View>
 			</View>
 		</View>
