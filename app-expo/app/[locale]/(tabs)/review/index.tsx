@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from "react";
+import React, { useCallback, useEffect, useMemo } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { Image } from "expo-image";
 import { PrimaryButton } from "@/components/PrimaryButton";
@@ -12,11 +12,17 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useLocale } from "@/hooks/useLocale";
 
+const HERO_IMAGES = {
+	ja: require("@/features/review/assets/review-hero-ja.webp"),
+	en: require("@/features/review/assets/review-hero-en.webp"),
+} as const;
+
 export default function ReviewScreen() {
 	const { user } = useAuth();
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
-	const { locale } = useLocale();
+	const { locale, isJapanese } = useLocale();
+	const heroSource = useMemo(() => (isJapanese ? HERO_IMAGES.ja : HERO_IMAGES.en), [isJapanese]);
 
 	const {
 		BlurModal: LoginBlurModal,
@@ -66,7 +72,7 @@ export default function ReviewScreen() {
 			{/* ヒーローセクション */}
 			<View style={styles.heroSection}>
 				<View style={styles.heroImagePlaceholder}>
-					<Image source={require("@/features/review/assets/review-hero.webp")} style={styles.heroImage} />
+					<Image source={heroSource} style={styles.heroImage} />
 				</View>
 			</View>
 

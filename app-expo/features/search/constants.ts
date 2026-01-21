@@ -115,7 +115,7 @@ export const PRELOAD_IMAGES = [
 	// アプリアイコン画像
 	require("@/assets/images/icon.webp"),
 	// レビュー機能のヒーロー画像
-	require("@/features/review/assets/review-hero.webp"),
+	require("@/features/review/assets/review-hero-ja.webp"),
 	// Apple アイコン画像
 	require("@/assets/images/logo_apple_icon.png"),
 	// Google アイコン画像
