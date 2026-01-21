@@ -23,6 +23,7 @@ import { PrimaryButton } from "@/components/PrimaryButton";
 import MapViewClass from "react-native-maps";
 import { isFoodAndDrinkPlaceForUser } from "@shared/utils/google_places_restaurant_type";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
+import { INITIAL_REGION } from "@/features/map/constants";
 
 export default function MapScreen() {
 	const { lightImpact } = useHaptics();
@@ -45,12 +46,7 @@ export default function MapScreen() {
 	// MapView のアニメーションを制御するための ref
 	const mapRef = useRef<MapViewClass>(null);
 	// 現在の地図の表示領域
-	const currentRegion = useRef<Region>({
-		latitude: 35.6762,
-		longitude: 139.6503,
-		latitudeDelta: 0.01,
-		longitudeDelta: 0.01,
-	});
+	const currentRegion = useRef<Region>(INITIAL_REGION);
 
 	// Search nearby restaurants when region changes
 	const searchNearbyRestaurants = useCallback(
