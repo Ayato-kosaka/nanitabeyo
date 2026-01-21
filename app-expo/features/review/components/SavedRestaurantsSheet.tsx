@@ -25,7 +25,7 @@ const smallDetentHeight = TOP_PADDING + TITLE_AREA_HEIGHT + CARD_AREA_HEIGHT + B
 
 // detent に渡すのは「割合」なので 0〜1 に正規化
 const SMALL_DETENT = Math.min(smallDetentHeight / SCREEN_HEIGHT, 0.5); // 上限を 0.5 にする etc.
-const LARGE_DETENT = 0.9;
+const LARGE_DETENT = 0.7;
 
 type SavedRestaurant = QueryMeSavedRestaurantsResponse["data"][number];
 
@@ -144,7 +144,6 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 				detents={[SMALL_DETENT, LARGE_DETENT]}
 				grabber
 				cornerRadius={24}
-				maxHeight={560}
 				backgroundColor="#FFFFFF"
 				dismissible={false}
 				dimmed={false}
@@ -233,7 +232,6 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 										data={savedRestaurants}
 										keyExtractor={(item) => item.restaurant.id}
 										contentContainerStyle={styles.listContent}
-										nestedScrollEnabled // Android でのネストスクロール用
 										renderItem={({ item }) => (
 											<View style={styles.listItemContainer}>
 												<PrimaryCard
@@ -243,7 +241,6 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 												/>
 											</View>
 										)}
-										scrollEnabled
 										showsVerticalScrollIndicator={false}
 									/>
 								</View>

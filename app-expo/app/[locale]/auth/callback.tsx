@@ -136,7 +136,7 @@ export default function AuthCallbackScreen() {
 	return (
 		<View style={styles.container}>
 			<LoadingIndicator size="large" />
-			<Text style={styles.text}>{i18n.t("Common.processing")}</Text>
+			<Text style={styles.text}>{i18n.t("auth.callback_processing")}</Text>
 
 			{/* Conflict Warning Dialog */}
 			<ConflictModal>

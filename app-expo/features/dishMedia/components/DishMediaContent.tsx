@@ -279,7 +279,7 @@ export default function DishMediaContent({
 			{isProcessing && (
 				<View style={styles.processingOverlay}>
 					<LoadingIndicator size="large" />
-					<Text style={styles.processingText}>{i18n.t("Common.processing")}</Text>
+					<Text style={styles.processingText}>{i18n.t("DishMediaContent.processing")}</Text>
 				</View>
 			)}
 

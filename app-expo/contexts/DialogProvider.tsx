@@ -453,7 +453,7 @@ export const DialogProvider = ({ children }: { children: ReactNode }) => {
 		(message: string, options?: ShowDialogOptions) => {
 			// i18n は「要求時」に評価（8）
 			const defaultCancel = i18n.t("Common.cancel");
-			const okLabel = options?.okLabel ?? i18n.t("Common.ok");
+			const okLabel: string = options?.okLabel ?? i18n.t("Common.ok");
 			const cancelLabel = options?.cancelLabel ?? defaultCancel;
 
 			const req: DialogRequest = {
@@ -693,7 +693,7 @@ export const DialogProvider = ({ children }: { children: ReactNode }) => {
 				// ignore
 			}
 
-			const msg = cur.errorMessage ?? i18n.t("Common.errors.unexpected");
+			const msg: string = cur.errorMessage ?? i18n.t("Common.errors.unexpected");
 			setState((prev) => ({ ...prev, confirming: false, inlineError: msg }));
 
 			// 失敗時も閉じるか（1）
@@ -764,7 +764,7 @@ export const DialogProvider = ({ children }: { children: ReactNode }) => {
 				} catch {
 					// ignore
 				}
-				const msg = cur.errorMessage ?? i18n.t("Common.error");
+				const msg: string = cur.errorMessage ?? i18n.t("Common.error");
 				setState((prev) => ({ ...prev, inlineError: msg }));
 			} finally {
 				setState((prev) => ({ ...prev, confirming: false }));
