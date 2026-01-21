@@ -30,7 +30,7 @@ interface ActionButtonsProps {
 	id: string;
 	idType: IdType;
 	onLayout: (width: number) => void;
-	buttonsGesture?: GestureType; // #XXX 【設計】親Tapとの競合を防ぐための Native Gesture
+	buttonsGesture: GestureType; // #694 【設計】親Tapとの競合を防ぐための Native Gesture
 }
 
 export function ActionButtons({ id, idType, onLayout, buttonsGesture }: ActionButtonsProps) {
@@ -279,77 +279,72 @@ export function ActionButtons({ id, idType, onLayout, buttonsGesture }: ActionBu
 		(event: LayoutChangeEvent) => onLayout?.(event.nativeEvent.layout.width),
 		[onLayout],
 	);
-	// #XXX 【UX】アクションボタンのヒット領域を拡張（iOS 44pt/Android 48dp 相当の担保）
+	// #694 【UX】アクションボタンのヒット領域を拡張（iOS 44pt/Android 48dp 相当の担保）
 	const buttonHitSlop = { top: 12, bottom: 12, left: 12, right: 12 };
 
-	// #XXX 【設計】buttonsGesture でラップし親Tapとの競合を解消（ボタン操作中は親Tapを失敗させる）
-	const content = (
-		<View style={styles.rightActions} onLayout={handleLayout}>
-			<TouchableOpacity style={styles.actionButton} onPress={handleViewRestaurant} hitSlop={buttonHitSlop}>
-				<Image
-					source={{ uri: restaurant.imageUrls?.sm, cacheKey: getCacheKeyForImage(restaurant.imageUrls?.sm) }}
-					style={styles.restaurantAvatar}
-					onError={() => console.log("Failed to load restaurant avatar")}
-				/>
-			</TouchableOpacity>
-
-			<View style={styles.actionContainer}>
-				<TouchableOpacity style={styles.actionButton} onPress={handleLike} hitSlop={buttonHitSlop}>
-					<Heart size={28} color={isLiked ? "#FF3040" : "#FFFFFF"} fill={isLiked ? "#FF3040" : "white"} />
+	// #694 【設計】buttonsGesture でラップし親Tapとの競合を解消（ボタン操作中は親Tapを失敗させる）
+	return (
+		<GestureDetector gesture={buttonsGesture}>
+			<View style={styles.rightActions} onLayout={handleLayout}>
+				<TouchableOpacity style={styles.actionButton} onPress={handleViewRestaurant} hitSlop={buttonHitSlop}>
+					<Image
+						source={{ uri: restaurant.imageUrls?.sm, cacheKey: getCacheKeyForImage(restaurant.imageUrls?.sm) }}
+						style={styles.restaurantAvatar}
+						onError={() => console.log("Failed to load restaurant avatar")}
+					/>
 				</TouchableOpacity>
-				<Text style={styles.actionText}>{formatLikeCount(likeCount)}</Text>
-			</View>
 
-			<TouchableOpacity style={styles.actionButton} onPress={handleSave} hitSlop={buttonHitSlop}>
-				<Bookmark size={30} color={"transparent"} fill={isSaved ? "orange" : "white"} />
-			</TouchableOpacity>
+				<View style={styles.actionContainer}>
+					<TouchableOpacity style={styles.actionButton} onPress={handleLike} hitSlop={buttonHitSlop}>
+						<Heart size={28} color={isLiked ? "#FF3040" : "#FFFFFF"} fill={isLiked ? "#FF3040" : "white"} />
+					</TouchableOpacity>
+					<Text style={styles.actionText}>{formatLikeCount(likeCount)}</Text>
+				</View>
 
-			<View style={styles.actionContainer}>
-				<TouchableOpacity style={styles.actionButton} onPress={handleSharePress} hitSlop={buttonHitSlop}>
-					<Share size={28} color="#FFFFFF" />
+				<TouchableOpacity style={styles.actionButton} onPress={handleSave} hitSlop={buttonHitSlop}>
+					<Bookmark size={30} color={"transparent"} fill={isSaved ? "orange" : "white"} />
 				</TouchableOpacity>
-				<Text style={styles.actionText}>{i18n.t("DishMediaContent.actions.share")}</Text>
-			</View>
 
-			<View style={styles.actionContainer}>
-				<TouchableOpacity style={styles.actionButton} onPress={handleMapPinPress} hitSlop={buttonHitSlop}>
-					<MapPinned size={28} color="#FFFFFF" />
-				</TouchableOpacity>
-				<Text style={styles.actionText}>{i18n.t("DishMediaContent.actions.openMap")}</Text>
-			</View>
+				<View style={styles.actionContainer}>
+					<TouchableOpacity style={styles.actionButton} onPress={handleSharePress} hitSlop={buttonHitSlop}>
+						<Share size={28} color="#FFFFFF" />
+					</TouchableOpacity>
+					<Text style={styles.actionText}>{i18n.t("DishMediaContent.actions.share")}</Text>
+				</View>
 
-			{/* <TouchableOpacity
+				<View style={styles.actionContainer}>
+					<TouchableOpacity style={styles.actionButton} onPress={handleMapPinPress} hitSlop={buttonHitSlop}>
+						<MapPinned size={28} color="#FFFFFF" />
+					</TouchableOpacity>
+					<Text style={styles.actionText}>{i18n.t("DishMediaContent.actions.openMap")}</Text>
+				</View>
+
+				{/* <TouchableOpacity
                   style={styles.actionButton}
                   onPress={onOpenMenu}
                 >
                   <EllipsisVertical size={28} color="#FFFFFF" />
                 </TouchableOpacity> */}
-			{/* Menu Modal */}
-			<BlurModal contentContainerStyle={styles.modalOverlay}>
-				<View style={styles.menuContainer}>
-					{menuOptions.map((option, index) => (
-						<TouchableOpacity
-							key={index}
-							style={styles.menuItem}
-							onPress={() => {
-								option.onPress();
-								closeMenuModal();
-							}}>
-							<option.icon size={20} color="#FFFFFF" />
-							<Text style={styles.menuItemText}>{option.label}</Text>
-						</TouchableOpacity>
-					))}
-				</View>
-			</BlurModal>
-		</View>
+				{/* Menu Modal */}
+				<BlurModal contentContainerStyle={styles.modalOverlay}>
+					<View style={styles.menuContainer}>
+						{menuOptions.map((option, index) => (
+							<TouchableOpacity
+								key={index}
+								style={styles.menuItem}
+								onPress={() => {
+									option.onPress();
+									closeMenuModal();
+								}}>
+								<option.icon size={20} color="#FFFFFF" />
+								<Text style={styles.menuItemText}>{option.label}</Text>
+							</TouchableOpacity>
+						))}
+					</View>
+				</BlurModal>
+			</View>
+		</GestureDetector>
 	);
-
-	// #XXX 【設計】buttonsGesture が渡された場合のみ GestureDetector でラップ
-	if (buttonsGesture) {
-		return <GestureDetector gesture={buttonsGesture}>{content}</GestureDetector>;
-	}
-
-	return content;
 }
 
 const styles = StyleSheet.create({

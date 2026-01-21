@@ -219,17 +219,21 @@ export default function DishMediaContent({
 		opacity: withTiming(pressed.value ? 0.95 : 1, { duration: 80 }),
 	}));
 
-	// #XXX 【設計】ActionButtons 領域の Native Gesture（親Tapとの競合解消用）
-	const buttonsGesture = useMemo(() => Gesture.Native(), []);
-
-	// #613 横スワイプと競合しないように maxDistance を設定
-	// #XXX 【UX】buttonsGesture が成立している場合は親Tapを失敗させる
+	const buttonsGesture = useMemo(
+		() =>
+			Gesture.Tap()
+				.maxDistance(9999) // 指が多少動いても成立
+				.onBegin(() => {
+					// 何もしなくてOK。成立させるのが目的。
+				}),
+		[],
+	);
 	const tapGesture = useMemo(() => {
 		return (
 			Gesture.Tap()
-				// #611 移動したらタップ失敗になる
+				// #611 横スワイプと競合しないように maxDistance を設定
 				.maxDistance(10)
-				// #XXX 【設計】ボタン操作中は親Tapを失敗させる（縁タップ誤発火防止）
+				// #694 【設計】ボタン操作中は親Tapを失敗させる（縁タップ誤発火防止）
 				.requireExternalGestureToFail(buttonsGesture)
 				.onBegin(() => {
 					if (onCardPress) pressed.value = 1;
