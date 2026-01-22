@@ -23,10 +23,7 @@ import { AuthModule } from '../../core/auth/auth.module';
     AuthModule, // JWT Guard / CurrentUser デコレータ
   ],
   controllers: [ContributionTasksController],
-  providers: [
-    ContributionTasksService,
-    ContributionTasksRepository,
-  ],
+  providers: [ContributionTasksService, ContributionTasksRepository],
   exports: [
     ContributionTasksService, // 他モジュールから利用可能にする
     ContributionTasksRepository,

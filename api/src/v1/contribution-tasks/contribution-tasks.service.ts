@@ -24,9 +24,9 @@ export class ContributionTasksService {
 
   /**
    * POST /v1/contribution-tasks
-   * 
+   *
    * ユーザー協力タスクの結果を記録
-   * 
+   *
    * @param dto 協力タスクのデータ
    * @param userId 協力を行ったユーザーID（認証情報から取得）
    * @returns 作成された協力タスクの ID と作成日時
@@ -35,11 +35,15 @@ export class ContributionTasksService {
     dto: CreateContributionTaskDto,
     userId: string,
   ): Promise<CreateContributionTaskResponse> {
-    this.logger.debug('ContributionTasksService.createContributionTask', 'start', {
-      userId,
-      type: dto.type,
-      taskKey: dto.taskKey,
-    });
+    this.logger.debug(
+      'ContributionTasksService.createContributionTask',
+      'start',
+      {
+        userId,
+        type: dto.type,
+        taskKey: dto.taskKey,
+      },
+    );
 
     const result = await this.prisma.withTransaction(
       async (tx: Prisma.TransactionClient) => {
@@ -47,9 +51,13 @@ export class ContributionTasksService {
       },
     );
 
-    this.logger.debug('ContributionTasksService.createContributionTask', 'completed', {
-      id: result.id,
-    });
+    this.logger.debug(
+      'ContributionTasksService.createContributionTask',
+      'completed',
+      {
+        id: result.id,
+      },
+    );
 
     return {
       id: result.id,

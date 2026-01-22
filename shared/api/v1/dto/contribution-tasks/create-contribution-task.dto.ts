@@ -2,7 +2,7 @@ import { IsString, IsUUID, IsObject, IsOptional, MinLength } from "class-validat
 
 /**
  * POST /v1/contribution-tasks のリクエストDTO
- * 
+ *
  * ユーザー協力タスクの結果を記録する際に使用
  */
 export class CreateContributionTaskDto {

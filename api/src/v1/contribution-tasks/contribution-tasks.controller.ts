@@ -48,7 +48,8 @@ export class ContributionTasksController {
   @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
   @ApiOperation({
     summary: 'ユーザー協力タスクの結果を記録',
-    description: '企画単位でユーザーの協力・フィードバックを事実ログとして保存する',
+    description:
+      '企画単位でユーザーの協力・フィードバックを事実ログとして保存する',
   })
   @ApiResponse({
     status: 201,

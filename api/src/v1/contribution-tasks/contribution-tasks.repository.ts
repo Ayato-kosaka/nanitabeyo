@@ -25,7 +25,7 @@ export class ContributionTasksRepository {
 
   /**
    * 協力タスクを1件作成
-   * 
+   *
    * @param tx Prisma トランザクションクライアント
    * @param userId 協力を行ったユーザーID
    * @param dto 協力タスクのデータ

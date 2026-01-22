@@ -1,6 +1,6 @@
 /**
  * POST /v1/contribution-tasks のレスポンス型
- * 
+ *
  * 協力タスクの作成結果を返す
  */
 export type CreateContributionTaskResponse = {
