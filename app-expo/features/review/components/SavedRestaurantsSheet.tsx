@@ -10,6 +10,7 @@ import type { QueryMeSavedRestaurantsResponse } from "@shared/api/v1/res";
 import { FlatList } from "react-native";
 import { SkeletonShimmer } from "@/components/SkeletonShimmer";
 import { InteractionManager } from "react-native";
+import { ScrollView } from "react-native";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const CARD_WIDTH = SCREEN_WIDTH * 0.92;
@@ -241,23 +242,20 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 									/>
 								</View>
 							) : (
-								<View style={{ flex: 1 }}>
-									<FlatList
-										data={savedRestaurants}
-										keyExtractor={(item) => item.restaurant.id}
-										contentContainerStyle={styles.listContent}
-										renderItem={({ item }) => (
-											<View style={styles.listItemContainer}>
-												<PrimaryCard
-													item={item}
-													onPress={() => onRestaurantCardPress(item)}
-													onReview={() => onRestaurantReviewPress(item)}
-												/>
-											</View>
-										)}
-										showsVerticalScrollIndicator={false}
-									/>
-								</View>
+								// TrueSheet のドラッグ（パン）ジェスチャが勝ってしまって、FlatList のスクロールが途中で奪われるため、
+								// ScrollView を利用する。保存店が limit:20 なので、パフォーマンス的にも問題ないはず。
+								<ScrollView contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
+									{savedRestaurants.map((item) => (
+										<View key={item.restaurant.id} style={styles.listItemContainer}>
+											<PrimaryCard
+												item={item}
+												onPress={() => onRestaurantCardPress(item)}
+												onReview={() => onRestaurantReviewPress(item)}
+											/>
+										</View>
+									))}
+									<View style={{ height: 60 }} />
+								</ScrollView>
 							)}
 						</>
 					) : (
@@ -361,6 +359,7 @@ const styles = StyleSheet.create({
 		top: 0,
 		alignItems: "center",
 		paddingVertical: 8,
+		paddingBottom: 40,
 	},
 	listItemContainer: {
 		width: CARD_WIDTH,
