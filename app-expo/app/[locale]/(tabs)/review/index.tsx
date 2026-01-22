@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo } from "react";
-import { View, Text, StyleSheet } from "react-native";
-import { Image } from "expo-image";
+import { View, Text, StyleSheet, Image } from "react-native";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { useAuth } from "@/contexts/AuthProvider";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
@@ -89,7 +88,7 @@ export default function ReviewScreen() {
 			{/* ヒーローセクション */}
 			<View style={styles.heroSection}>
 				<View style={styles.heroImagePlaceholder}>
-					<Image source={heroSource} style={styles.heroImage} contentFit="contain" onError={handleHeroImageError} />
+					<Image source={heroSource} style={styles.heroImage} onError={handleHeroImageError} />
 				</View>
 			</View>
 
@@ -155,6 +154,7 @@ const styles = StyleSheet.create({
 	heroImage: {
 		width: "100%",
 		height: "100%",
+		resizeMode: "contain",
 	},
 	ctaSection: {
 		flex: 1,
