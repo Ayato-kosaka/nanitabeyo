@@ -133,15 +133,6 @@ export class ContributionTasksRepository {
       limit,
       cursor,
     });
-
-    // #701 【設計】WHERE条件を構築
-    const createdAtCondition: Prisma.DateTimeFilter | undefined =
-      filters.from || filters.to
-        ? {
-            ...(filters.from && { gte: filters.from }),
-            ...(filters.to && { lt: filters.to }),
-          }
-        : undefined;
     const createdAtFilter: Prisma.contribution_tasksWhereInput['created_at'] = {};
     if (filters.from) {
       createdAtFilter.gte = filters.from;
@@ -320,52 +311,52 @@ export class ContributionTasksRepository {
     this.logger.debug(
       'ContributionTasksRepository.findCompletedTargetIds',
       'start',
-      {
-        taskKey,
-        targetType,
-        type,
-        minCount,
-        limit,
-        cursor,
-      },
+      { taskKey, targetType, type, minCount, limit, cursor },
     );
 
-    // #701 【設計】GROUP BY + HAVING を使った集計クエリを構築
-    // 注意：Prismaでは直接 GROUP BY + HAVING が難しいので、rawクエリを使用
-    let cursorCondition = '';
-    const params: any[] = [taskKey, targetType];
-    let paramIndex = 3;
+    // WHERE 相当
+    const where: Prisma.ContributionTaskWhereInput = {
+      task_key: taskKey,
+      target_type: targetType,
+      ...(type !== undefined ? { type } : {}),
+    };
 
-    // type パラメータの処理
-    if (type !== undefined) {
-      params.push(type);
-      paramIndex++;
-    }
+    // HAVING 相当（minCount + cursor）
+    const having: Prisma.ContributionTaskScalarWhereWithAggregatesInput = {
+      _count: { _all: { gte: minCount } },
+    };
 
-    // カーソル条件の構築
+    // カーソル条件（MAX(created_at) と target_id の複合）
     if (cursor) {
-      const parts = cursor.split('|');
-      const lastCompletedAtStr = parts[0];
-      const targetId = parts[1];
-      const timestamp = lastCompletedAtStr ? Date.parse(lastCompletedAtStr) : NaN;
+      const [lastCompletedAtStr, targetId] = cursor.split('|');
+      const ts = lastCompletedAtStr ? Date.parse(lastCompletedAtStr) : NaN;
 
-      if (
-        parts.length === 2 &&
-        lastCompletedAtStr &&
-        targetId &&
-        !Number.isNaN(timestamp)
-      ) {
-        const lastCompletedAt = new Date(timestamp);
-        params.push(lastCompletedAt, targetId);
-        cursorCondition = `
-        AND (
-          MAX(created_at) < $${paramIndex}
-          OR (MAX(created_at) = $${paramIndex} AND target_id < $${paramIndex + 1})
-        )
-      `;
-        paramIndex += 2;
+      if (lastCompletedAtStr && targetId && !Number.isNaN(ts)) {
+        const lastCompletedAt = new Date(ts);
+
+        // SQL の:
+        // AND (
+        //   MAX(created_at) < lastCompletedAt
+        //   OR (MAX(created_at) = lastCompletedAt AND target_id < targetId)
+        // )
+        // を Prisma の having で表現
+        Object.assign(having, {
+          AND: [
+            { _count: { _all: { gte: minCount } } }, // 既存条件を明示的に維持
+            {
+              OR: [
+                { _max: { created_at: { lt: lastCompletedAt } } },
+                {
+                  AND: [
+                    { _max: { created_at: { equals: lastCompletedAt } } },
+                    { target_id: { lt: targetId } },
+                  ],
+                },
+              ],
+            },
+          ],
+        });
       } else {
-        // #9999 【バグ】不正なカーソルフォーマットの場合は条件を無視して誤動作を防ぐ
         this.logger.warn(
           'ContributionTasksRepository.findCompletedTargetIds',
           'invalid_cursor_format',
@@ -374,60 +365,26 @@ export class ContributionTasksRepository {
       }
     }
 
-    params.push(minCount);
-    const minCountParam = `$${paramIndex}`;
-    paramIndex++;
-
-    params.push(limit + 1); // 次ページ判定のため +1
-    const limitParam = `$${paramIndex}`;
-
-    const typeCondition = type !== undefined ? `AND type = $3` : '';
-
-    const query = `
-      SELECT 
-        target_id,
-        COUNT(*)::int as count,
-        MAX(created_at) as last_completed_at
-      FROM "dev".contribution_tasks
-      WHERE task_key = $1
-        AND target_type = $2
-        ${typeCondition}
-        ${cursorCondition}
-      GROUP BY target_id
-      HAVING COUNT(*) >= ${minCountParam}
-      ORDER BY last_completed_at DESC, target_id DESC
-      LIMIT ${limitParam}
-    `;
-
-    this.logger.debug(
-      'ContributionTasksRepository.findCompletedTargetIds',
-      'query',
-      {
-        query,
-        params,
-      },
-    );
-
-    const results = await tx.$queryRawUnsafe<
-      Array<{
-        target_id: string;
-        count: number;
-        last_completed_at: Date;
-      }>
-    >(query, ...params);
+    const results = await tx.contribution_tasks.groupBy({
+      by: ['target_id'],
+      where,
+      having,
+      _count: { _all: true },
+      _max: { created_at: true },
+      orderBy: [{ _max: { created_at: 'desc' } }, { target_id: 'desc' }],
+      take: limit + 1, // 次ページ判定
+    });
 
     this.logger.debug(
       'ContributionTasksRepository.findCompletedTargetIds',
       'result',
-      {
-        count: results.length,
-      },
+      { count: results.length },
     );
 
     return results.map((r) => ({
       target_id: r.target_id,
-      count: r.count,
-      last_completed_at: r.last_completed_at,
+      count: r._count._all,
+      last_completed_at: r._max.created_at!, // MAXなので通常 null になりにくいが、型上は nullable のことがある
     }));
   }
 }
