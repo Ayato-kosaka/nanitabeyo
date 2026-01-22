@@ -7,7 +7,6 @@ import { Image } from "expo-image";
 import i18n from "@/lib/i18n";
 import { getCacheKeyForImage } from "@/lib/image";
 import type { QueryMeSavedRestaurantsResponse } from "@shared/api/v1/res";
-import { FlatList } from "react-native";
 import { SkeletonShimmer } from "@/components/SkeletonShimmer";
 import { InteractionManager } from "react-native";
 import { ScrollView } from "react-native";
@@ -169,6 +168,7 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 					</View>
 				}
 				onDetentChange={handleDetentChange}>
+				{/* Android で gesture-handler が効かない対応 */}
 				<View style={styles.container}>
 					{/* #644 【UX】ローディング中はスケルトンを表示 */}
 					{isLoadingSavedRestaurants && savedRestaurants.length === 0 ? (
@@ -244,7 +244,10 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 							) : (
 								// TrueSheet のドラッグ（パン）ジェスチャが勝ってしまって、FlatList のスクロールが途中で奪われるため、
 								// ScrollView を利用する。保存店が limit:20 なので、パフォーマンス的にも問題ないはず。
-								<ScrollView contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
+								<ScrollView
+									contentContainerStyle={styles.listContent}
+									showsVerticalScrollIndicator={false}
+									nestedScrollEnabled>
 									{savedRestaurants.map((item) => (
 										<View key={item.restaurant.id} style={styles.listItemContainer}>
 											<PrimaryCard
