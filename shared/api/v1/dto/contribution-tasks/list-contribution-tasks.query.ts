@@ -44,11 +44,16 @@ export class ListContributionTasksQueryDto {
 
 	/** 取得件数（1–100、デフォルト20） */
 	@IsOptional()
-	@Transform(({ value }) => parseInt(value, 10))
+	@Transform(({ value }) => {
+		if (value === undefined || value === null || value === "") {
+			return 20;
+		}
+		return parseInt(value, 10);
+	})
 	@IsInt()
 	@Min(1)
 	@Max(100)
-	limit?: number = 20;
+	limit?: number;
 
 	/** payload/result を含めるかどうか（カンマ区切り：payload,result） */
 	@IsOptional()
