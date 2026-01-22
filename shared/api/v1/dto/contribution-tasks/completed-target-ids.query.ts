@@ -24,18 +24,34 @@ export class CompletedTargetIdsQueryDto {
 
 	/** 最小完了回数（デフォルト1） */
 	@IsOptional()
-	@Transform(({ value }) => parseInt(value, 10))
+	@Transform(({ value }) => {
+		if (value === undefined || value === null || value === "") {
+			return 1;
+		}
+		if (typeof value === "number") {
+			return value;
+		}
+		return parseInt(value, 10);
+	})
 	@IsInt()
 	@Min(1)
-	minCount?: number = 1;
+	minCount?: number;
 
 	/** 取得件数（1–1000、デフォルト200） */
 	@IsOptional()
-	@Transform(({ value }) => parseInt(value, 10))
+	@Transform(({ value }) => {
+		if (value === undefined || value === null || value === "") {
+			return 200;
+		}
+		if (typeof value === "number") {
+			return value;
+		}
+		return parseInt(value, 10);
+	})
 	@IsInt()
 	@Min(1)
 	@Max(1000)
-	limit?: number = 200;
+	limit?: number;
 
 	/** キーセットページングのカーソル（形式: {lastCompletedAt}|{targetId}） */
 	@IsOptional()
