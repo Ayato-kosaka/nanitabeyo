@@ -168,7 +168,7 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 					</View>
 				}
 				onDetentChange={handleDetentChange}>
-				<View style={[styles.container, { flex: 1 }]}>
+				<View style={[styles.container, detentIndex === 1 ? { flex: 1 } : {}]}>
 					{/* #644 【UX】ローディング中はスケルトンを表示 */}
 					{isLoadingSavedRestaurants && savedRestaurants.length === 0 ? (
 						<>
