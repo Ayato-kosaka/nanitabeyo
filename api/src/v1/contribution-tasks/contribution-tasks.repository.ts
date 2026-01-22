@@ -142,24 +142,40 @@ export class ContributionTasksRepository {
             ...(filters.to && { lt: filters.to }),
           }
         : undefined;
+    const createdAtFilter: Prisma.contribution_tasksWhereInput['created_at'] = {};
+    if (filters.from) {
+      createdAtFilter.gte = filters.from;
+    }
+    if (filters.to) {
+      createdAtFilter.lt = filters.to;
+    }
 
-    const where: Prisma.contribution_tasksWhereInput = {
+    const baseWhere: Prisma.contribution_tasksWhereInput = {
       user_id: userId,
       ...(filters.taskKey && { task_key: filters.taskKey }),
       ...(filters.type && { type: filters.type }),
       ...(filters.targetType && { target_type: filters.targetType }),
       ...(filters.targetId && { target_id: filters.targetId }),
-      ...(createdAtCondition && { created_at: createdAtCondition }),
+      ...(Object.keys(createdAtFilter).length > 0 && { created_at: createdAtFilter }),
     };
+
+    let where: Prisma.contribution_tasksWhereInput = baseWhere;
 
     // #701 【設計】カーソルページング：cursor がある場合は created_at + id で絞り込み
     if (cursor) {
       const [createdAtStr, id] = cursor.split('|');
       const createdAt = new Date(createdAtStr);
-      where.OR = [
-        { created_at: { lt: createdAt } },
-        { created_at: createdAt, id: { lt: id } },
-      ];
+      const cursorCondition: Prisma.contribution_tasksWhereInput = {
+        OR: [
+          { created_at: { lt: createdAt } },
+          { created_at: createdAt, id: { lt: id } },
+        ],
+      };
+
+      // #701 【バグ】created_at フィルタとカーソル条件を AND で結合して範囲を正しく適用
+      where = {
+        AND: [baseWhere, cursorCondition],
+      };
     }
 
     const tasks = await tx.contribution_tasks.findMany({
