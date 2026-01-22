@@ -286,13 +286,13 @@ export function ActionButtons({ id, idType, onLayout, buttonsGesture }: ActionBu
 	return (
 		<GestureDetector gesture={buttonsGesture}>
 			<View style={styles.rightActions} onLayout={handleLayout}>
-				<TouchableOpacity style={styles.actionButton} onPress={handleViewRestaurant} hitSlop={buttonHitSlop}>
+				{/* <TouchableOpacity style={styles.actionButton} onPress={handleViewRestaurant} hitSlop={buttonHitSlop}>
 					<Image
 						source={{ uri: restaurant.imageUrls?.sm, cacheKey: getCacheKeyForImage(restaurant.imageUrls?.sm) }}
 						style={styles.restaurantAvatar}
 						onError={() => console.log("Failed to load restaurant avatar")}
 					/>
-				</TouchableOpacity>
+				</TouchableOpacity> */}
 
 				<View style={styles.actionContainer}>
 					<TouchableOpacity style={styles.actionButton} onPress={handleLike} hitSlop={buttonHitSlop}>
