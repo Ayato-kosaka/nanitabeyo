@@ -39,6 +39,23 @@ export default function ReviewScreen() {
 		});
 	}, [logFrontendEvent, isJapanese]);
 
+	const handleHeroImageError = useCallback(
+		(e: any) => {
+			const { message } = e;
+			logFrontendEvent({
+				event_name: "image_load_error",
+				error_level: "error",
+				payload: {
+					image: "review_hero",
+					errorMessage: message,
+					heroSource,
+					typeof_heroSource: typeof heroSource,
+				},
+			});
+		},
+		[logFrontendEvent, heroSource],
+	);
+
 	// #644 【設計】ゲストユーザー用：ログイン導線
 	const handleLoginPress = () => {
 		lightImpact();
@@ -72,7 +89,7 @@ export default function ReviewScreen() {
 			{/* ヒーローセクション */}
 			<View style={styles.heroSection}>
 				<View style={styles.heroImagePlaceholder}>
-					<Image source={heroSource} style={styles.heroImage} contentFit="contain" />
+					<Image source={heroSource} style={styles.heroImage} contentFit="contain" onError={handleHeroImageError} />
 				</View>
 			</View>
 
