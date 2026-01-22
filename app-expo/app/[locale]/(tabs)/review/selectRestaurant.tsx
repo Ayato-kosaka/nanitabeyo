@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
-import { View, StyleSheet, TouchableOpacity } from "react-native";
+import { View, StyleSheet, TouchableOpacity, InteractionManager } from "react-native";
 import { Navigation, RotateCw } from "lucide-react-native";
 import MapView, { Region } from "@/components/MapView";
 import type { PoiClickEvent } from "react-native-maps";
@@ -151,10 +151,14 @@ export default function SelectRestaurantScreen() {
 
 	// 画面フォーカスに連動して Sheet を開閉
 	const [isSheetVisible, setIsSheetVisible] = useState(false);
+	// 画面フォーカス状態を保持する ref
+	const isFocusedRef = useRef(false);
 	useFocusEffect(
 		useCallback(() => {
+			isFocusedRef.current = true;
 			setIsSheetVisible(true);
 			return () => {
+				isFocusedRef.current = false;
 				setIsSheetVisible(false);
 			};
 		}, []),
@@ -170,6 +174,12 @@ export default function SelectRestaurantScreen() {
 
 		return unsubscribe;
 	}, [navigation]);
+
+	// シート表示を安全に行う関数
+	const safePresentSheet = useCallback(() => {
+		if (!isFocusedRef.current) return;
+		setIsSheetVisible(true);
+	}, []);
 
 	// #644 【設計】保存したお店の状態管理
 	const [savedRestaurants, setSavedRestaurants] = useState<QueryMeSavedRestaurantsResponse["data"]>([]);
@@ -188,6 +198,8 @@ export default function SelectRestaurantScreen() {
 			lightImpact();
 			setIsLoadingSavedRestaurants(true);
 
+			// 保存したお店の検索後に必ずシートを開く
+			safePresentSheet();
 			try {
 				const response = await callBackend<QuerySavedRestaurantsDto, QueryMeSavedRestaurantsResponse>(
 					"v1/users/me/saved-restaurants",
@@ -215,7 +227,7 @@ export default function SelectRestaurantScreen() {
 				setIsLoadingSavedRestaurants(false);
 			}
 		},
-		[callBackend, lightImpact, logFrontendEvent, showSnackbar],
+		[callBackend, lightImpact, logFrontendEvent, showSnackbar, safePresentSheet],
 	);
 
 	// #644 【設計】保存したお店のマーカー押下時の処理（ストア upsert → 遷移）
