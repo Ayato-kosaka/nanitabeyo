@@ -47,15 +47,15 @@ URL: `https://${CDN_PUBLIC_HOST}/tickets/703/dish_category_manual_image_supply_v
 
 ```json
 {
-  "items": [
-    {
-      "targetId": "Q164606",
-      "category": "カレー",
-      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/1/1e/Indiandishes.jpg",
-      "topicTitle": "カレー",
-      "reason": "スパイシーで美味しそうな画像を選んでください"
-    }
-  ]
+	"items": [
+		{
+			"targetId": "Q164606",
+			"category": "カレー",
+			"imageUrl": "https://upload.wikimedia.org/wikipedia/commons/1/1e/Indiandishes.jpg",
+			"topicTitle": "カレー",
+			"reason": "スパイシーで美味しそうな画像を選んでください"
+		}
+	]
 }
 ```
 
@@ -64,6 +64,7 @@ URL: `https://${CDN_PUBLIC_HOST}/tickets/703/dish_category_manual_image_supply_v
 `GET /v1/contribution-tasks/completed-target-ids`
 
 **クエリパラメータ:**
+
 - `taskKey=dish_category_manual_image_supply_v1`
 - `targetType=dish_categories`
 - `type=image_feedback`
@@ -102,27 +103,26 @@ CDN上に以下のパスでJSONファイルを配置：
 
 ```json
 {
-  "items": [
-    {
-      "targetId": "Q164606",
-      "category": "カレー",
-      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/1/1e/Indiandishes.jpg",
-      "topicTitle": "カレー",
-      "reason": "スパイシーで美味しそうな画像を選んでください"
-    },
-    {
-      "targetId": "Q13393",
-      "category": "おにぎり",
-      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/2/22/Japanese_rice_balls_%28onigiri%29.jpg",
-      "topicTitle": "おにぎり",
-      "reason": "ふっくらとした美味しそうなおにぎりの画像を選んでください"
-    }
-  ]
+	"items": [
+		{
+			"targetId": "Q164606",
+			"category": "カレー",
+			"imageUrl": "https://upload.wikimedia.org/wikipedia/commons/1/1e/Indiandishes.jpg",
+			"topicTitle": "カレー",
+			"reason": "スパイシーで美味しそうな画像を選んでください"
+		},
+		{
+			"targetId": "Q13393",
+			"category": "おにぎり",
+			"imageUrl": "https://upload.wikimedia.org/wikipedia/commons/2/22/Japanese_rice_balls_%28onigiri%29.jpg",
+			"topicTitle": "おにぎり",
+			"reason": "ふっくらとした美味しそうなおにぎりの画像を選んでください"
+		}
+	]
 }
 ```
 
 4. **手動テストシナリオ:**
-
    - [ ] 画面を開いたときにチュートリアルモーダルが表示される
    - [ ] チュートリアルを閉じられる
    - [ ] グリッドが3列で表示される
@@ -173,22 +173,22 @@ CDN上に以下のパスでJSONファイルを配置：
 
 ```json
 {
-  "type": "image_feedback",
-  "taskKey": "dish_category_manual_image_supply_v1",
-  "targetType": "dish_categories",
-  "targetId": "Q164606",
-  "payload": {
-    "category": "カレー",
-    "topicTitle": "カレー",
-    "reason": "スパイシーで美味しそうな画像を選んでください",
-    "sourceImageUrl": "https://upload.wikimedia.org/wikipedia/commons/1/1e/Indiandishes.jpg",
-    "cdn": {
-      "path": "tickets/703/dish_category_manual_image_supply_v1.latest.json"
-    }
-  },
-  "result": {
-    "originalPath": "gs://bucket/uploads/user123/original.jpg"
-  }
+	"type": "image_feedback",
+	"taskKey": "dish_category_manual_image_supply_v1",
+	"targetType": "dish_categories",
+	"targetId": "Q164606",
+	"payload": {
+		"category": "カレー",
+		"topicTitle": "カレー",
+		"reason": "スパイシーで美味しそうな画像を選んでください",
+		"sourceImageUrl": "https://upload.wikimedia.org/wikipedia/commons/1/1e/Indiandishes.jpg",
+		"cdn": {
+			"path": "tickets/703/dish_category_manual_image_supply_v1.latest.json"
+		}
+	},
+	"result": {
+		"originalPath": "gs://bucket/uploads/user123/original.jpg"
+	}
 }
 ```
 

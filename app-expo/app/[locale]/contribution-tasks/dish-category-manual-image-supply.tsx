@@ -481,12 +481,14 @@ export default function DishCategoryManualImageSupplyScreen() {
 				{items.map((item, index) => {
 					const state = itemStates[item.targetId];
 					const uploadState = state?.uploadState ?? "idle";
+					// #703 【設計】3列目のカードは右マージンなし
+					const isLastInRow = (index + 1) % GRID_COLUMNS === 0;
 
 					return (
 						<Pressable
 							key={item.targetId}
 							onPress={() => handleCardPress(item)}
-							style={[styles.card, { width: cardWidth, height: cardHeight }]}>
+							style={[styles.card, { width: cardWidth, height: cardHeight, marginRight: isLastInRow ? 0 : CARD_GAP }]}>
 							<Image source={{ uri: item.imageUrl }} style={styles.cardImage} contentFit="cover" />
 
 							{/* オーバーレイ（カテゴリ名） */}
@@ -676,13 +678,13 @@ const styles = StyleSheet.create({
 		padding: 16,
 		flexDirection: "row",
 		flexWrap: "wrap",
-		gap: 8,
 	},
 	card: {
 		borderRadius: 12,
 		overflow: "hidden",
 		backgroundColor: "#F5F5F5",
 		position: "relative",
+		marginBottom: 8,
 	},
 	cardImage: {
 		width: "100%",
@@ -713,12 +715,12 @@ const styles = StyleSheet.create({
 	badgeContent: {
 		flexDirection: "row",
 		alignItems: "center",
-		gap: 4,
 	},
 	badgeText: {
 		color: "#FFF",
 		fontSize: 10,
 		fontWeight: "600",
+		marginLeft: 4,
 	},
 	footer: {
 		flexDirection: "row",
@@ -742,7 +744,6 @@ const styles = StyleSheet.create({
 		borderRadius: 16,
 		padding: 24,
 		marginHorizontal: 20,
-		marginVertical: "auto",
 		maxWidth: 400,
 		alignSelf: "center",
 	},
@@ -766,7 +767,6 @@ const styles = StyleSheet.create({
 		backgroundColor: "#FFF",
 		borderRadius: 16,
 		marginHorizontal: 20,
-		marginVertical: "auto",
 		maxWidth: 500,
 		alignSelf: "center",
 		overflow: "hidden",
@@ -801,14 +801,15 @@ const styles = StyleSheet.create({
 	},
 	detailButtons: {
 		padding: 16,
-		gap: 12,
 	},
 	detailMainButton: {
 		paddingVertical: 14,
+		marginBottom: 12,
 	},
 	detailResetButton: {
 		paddingVertical: 10,
 		alignItems: "center",
+		marginBottom: 12,
 	},
 	detailResetButtonText: {
 		color: "#666",
