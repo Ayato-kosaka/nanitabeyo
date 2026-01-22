@@ -1,4 +1,4 @@
-import { IsString, IsUUID, IsObject, IsOptional, MinLength } from "class-validator";
+import { IsString, IsObject, IsOptional, MinLength } from "class-validator";
 
 /**
  * POST /v1/contribution-tasks のリクエストDTO
@@ -31,9 +31,9 @@ export class CreateContributionTaskDto {
 	targetType!: string;
 
 	/**
-	 * 協力対象のID（UUID）
+	 * 協力対象のID
 	 */
-	@IsUUID()
+	@IsString()
 	targetId!: string;
 
 	/**

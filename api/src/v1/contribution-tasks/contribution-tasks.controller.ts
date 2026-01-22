@@ -52,7 +52,7 @@ import { ContributionTasksService } from './contribution-tasks.service';
 export class ContributionTasksController {
   constructor(
     private readonly contributionTasksService: ContributionTasksService,
-  ) {}
+  ) { }
 
   /* ------------------------------------------------------------------ */
   /*                POST /v1/contribution-tasks (認証必須)              */

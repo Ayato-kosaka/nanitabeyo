@@ -1,4 +1,4 @@
-import { IsString, IsUUID, IsOptional, MinLength } from "class-validator";
+import { IsString, IsOptional, MinLength } from "class-validator";
 
 /**
  * GET /v1/contribution-tasks/exists クエリパラメータ
@@ -17,7 +17,7 @@ export class ExistsContributionTaskQueryDto {
 	targetType!: string;
 
 	/** 対象ID（必須） */
-	@IsUUID()
+	@IsString()
 	targetId!: string;
 
 	/** タイプ（任意：type も一致する場合のみ true） */
