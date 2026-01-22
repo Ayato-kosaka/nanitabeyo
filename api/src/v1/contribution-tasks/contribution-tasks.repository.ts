@@ -56,7 +56,7 @@ export interface FindMineFilters {
 
 @Injectable()
 export class ContributionTasksRepository {
-  constructor(private readonly logger: AppLoggerService) {}
+  constructor(private readonly logger: AppLoggerService) { }
 
   /**
    * 協力タスクを1件作成
@@ -79,7 +79,7 @@ export class ContributionTasksRepository {
       targetId: dto.targetId,
     });
 
-    // #669 【設計】payload/result が未指定の場合は空オブジェクトを設定
+    // #699 【設計】payload/result が未指定の場合は空オブジェクトを設定
     const payload = dto.payload ?? {};
     const result = dto.result ?? {};
 
