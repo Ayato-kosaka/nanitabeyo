@@ -302,67 +302,72 @@ export default function SelectRestaurantScreen() {
 		[lightImpact, logFrontendEvent, locale],
 	);
 
+	// Map ready 後に pendingRegionRef に保存された region があれば移動させる
+	const [mapReady, setMapReady] = useState(false);
+	const pendingRegionRef = useRef<Region | null>(null);
+	useEffect(() => {
+		if (!mapReady) return;
+
+		const region = pendingRegionRef.current;
+		if (!region) return;
+
+		mapRef.current?.animateToRegion(region, 1); // 1msで“delta含め確定”させる
+		pendingRegionRef.current = null;
+	}, [mapReady]);
+
 	const initialRegion = useMemo<Region>(() => (isJapanese ? REGION_JP : INITIAL_REGION), [isJapanese]);
-	// 画面フォーカス時に現在地 or 日本全体を表示＆保存したお店を検索
-	useFocusEffect(
-		useCallback(() => {
-			let cancelled = false;
+	const didInitRef = useRef(false);
+	// 初期表示時の現在地取得＆保存店検索
+	useEffect(() => {
+		if (didInitRef.current) return;
+		didInitRef.current = true;
 
-			const init = async () => {
-				// 画面表示ログ
-				logFrontendEvent({
-					event_name: "screen_view",
-					error_level: "log",
-					payload: {
-						screen: "review_select_restaurant",
-						isJapanese,
-					},
-				});
+		let cancelled = false;
 
-				try {
-					// 日本語設定時は日本全体を表示
-					if (isJapanese) {
-						currentRegion.current = REGION_JP;
-						mapRef.current?.animateToRegion(REGION_JP, 1000);
-						await searchSavedRestaurants(REGION_JP);
-						return;
-					}
+		const init = async () => {
+			logFrontendEvent({
+				event_name: "screen_view",
+				error_level: "log",
+				payload: { screen: "review_select_restaurant" },
+			});
 
-					const { location } = await getCurrentLocation();
-					if (cancelled) return;
-
-					const newRegion = {
-						latitude: location.latitude,
-						longitude: location.longitude,
-						latitudeDelta: 0.01,
-						longitudeDelta: 0.01,
-					};
-
-					currentRegion.current = newRegion;
-					mapRef.current?.animateToRegion(newRegion, 1000);
-					await searchSavedRestaurants(newRegion);
-				} catch (error) {
-					// 現在地取得失敗時は日本全体を表示
-					if (cancelled) return;
-
-					logFrontendEvent({
-						event_name: "MapInitialLocationError",
-						error_level: "error",
-						payload: { error },
-					});
+			try {
+				if (isJapanese) {
+					pendingRegionRef.current = REGION_JP;
 					currentRegion.current = REGION_JP;
 					mapRef.current?.animateToRegion(REGION_JP, 1000);
 					await searchSavedRestaurants(REGION_JP);
+					return;
 				}
-			};
 
-			init();
+				const { location } = await getCurrentLocation();
+				if (cancelled) return;
 
-			return () => {
-				cancelled = true;
-			};
-		}, [getCurrentLocation, isJapanese, logFrontendEvent, searchSavedRestaurants]),
-	);
+				const newRegion = {
+					latitude: location.latitude,
+					longitude: location.longitude,
+					latitudeDelta: 0.01,
+					longitudeDelta: 0.01,
+				};
+
+				pendingRegionRef.current = newRegion;
+				currentRegion.current = newRegion;
+				mapRef.current?.animateToRegion(newRegion, 1000);
+				await searchSavedRestaurants(newRegion);
+			} catch (error) {
+				if (cancelled) return;
+				pendingRegionRef.current = REGION_JP;
+				currentRegion.current = REGION_JP;
+				mapRef.current?.animateToRegion(REGION_JP, 1000);
+				await searchSavedRestaurants(REGION_JP);
+			}
+		};
+
+		init();
+		return () => {
+			cancelled = true;
+		};
+	}, [getCurrentLocation, isJapanese, logFrontendEvent, searchSavedRestaurants]);
 
 	// #644 【設計】オートコンプリート選択時の処理
 	const handleAutocompleteSelect = useCallback(
@@ -405,6 +410,7 @@ export default function SelectRestaurantScreen() {
 				ref={mapRef}
 				style={styles.map}
 				initialRegion={initialRegion}
+				onMapReady={() => setMapReady(true)}
 				onRegionChangeComplete={handleRegionChangeComplete}
 				onPoiClick={handlePoiPress}>
 				{/* #644 【設計】保存したお店のマーカー表示 */}
