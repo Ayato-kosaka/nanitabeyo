@@ -58,7 +58,7 @@ export class ContributionTasksController {
   /*                POST /v1/contribution-tasks (認証必須)              */
   /* ------------------------------------------------------------------ */
   @Post()
-  @UseGuards(AuthAnonGuard) // #669 【設計】認証必須（匿名ユーザーも可）
+  @UseGuards(AuthAnonGuard) // #699 【設計】認証必須（匿名ユーザーも可）
   @ApiBearerAuth()
   @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
   @ApiOperation({
@@ -82,7 +82,7 @@ export class ContributionTasksController {
     @Body() dto: CreateContributionTaskDto,
     @CurrentUser() user: RequestUser,
   ): Promise<CreateContributionTaskResponse> {
-    // #669 【設計】user_id は認証情報から設定され、bodyで上書きできない
+    // #699 【設計】user_id は認証情報から設定され、bodyで上書きできない
     return this.contributionTasksService.createContributionTask(dto, user.id);
   }
 

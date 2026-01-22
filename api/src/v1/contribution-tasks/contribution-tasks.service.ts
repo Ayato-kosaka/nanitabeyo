@@ -28,6 +28,7 @@ import {
   ContributionTasksRepository,
   FindMineFilters,
 } from './contribution-tasks.repository';
+import { PrismaContributionTasks } from '../../../../shared/converters/convert_contribution_tasks';
 
 @Injectable()
 export class ContributionTasksService {
@@ -74,10 +75,7 @@ export class ContributionTasksService {
       },
     );
 
-    return {
-      id: result.id,
-      createdAt: result.created_at.toISOString(),
-    };
+    return result;
   }
 
   /**
@@ -101,7 +99,7 @@ export class ContributionTasksService {
     const limit = query.limit ?? 20;
 
     // #701 【設計】include パラメータで payload/result を含めるか判定
-    const includeFields = query.include?.split(',') ?? [];
+    const includeFields = query.include?.split(',').map(s => s.trim()) || [];
     const includePayload = includeFields.includes('payload');
     const includeResult = includeFields.includes('result');
 
@@ -115,23 +113,19 @@ export class ContributionTasksService {
       to: query.to ? new Date(query.to) : undefined,
     };
 
-    const tasks = await this.prisma.withTransaction(
-      async (tx: Prisma.TransactionClient) => {
-        return this.repo.findMine(
-          tx,
-          userId,
-          filters,
-          limit,
-          query.cursor,
-          includePayload,
-          includeResult,
-        );
-      },
+    const tasks = await this.repo.findMine(
+      this.prisma.prisma,
+      userId,
+      filters,
+      limit,
+      query.cursor,
+      includePayload,
+      includeResult,
     );
 
     // #701 【設計】次ページ判定：limit+1 件取得しているので、limit を超えていれば次がある
-    const hasNext = tasks.length > limit;
-    const items = hasNext ? tasks.slice(0, limit) : tasks;
+    const hasNext = tasks.items.length > limit;
+    const items = hasNext ? tasks.items.slice(0, limit) : tasks.items;
 
     let nextCursor: string | null = null;
     if (hasNext && items.length > 0) {
@@ -150,10 +144,10 @@ export class ContributionTasksService {
           createdAt: task.created_at.toISOString(),
         };
         if (includePayload) {
-          item.payload = task.payload as Record<string, unknown>;
+          item.payload = (task as PrismaContributionTasks).payload as Record<string, unknown>;
         }
         if (includeResult) {
-          item.result = task.result as Record<string, unknown>;
+          item.result = (task as PrismaContributionTasks).result as Record<string, unknown>;
         }
         return item;
       }),
@@ -187,11 +181,7 @@ export class ContributionTasksService {
       userId,
     });
 
-    const task = await this.prisma.withTransaction(
-      async (tx: Prisma.TransactionClient) => {
-        return this.repo.findMineById(tx, id, userId);
-      },
-    );
+    const task = await this.repo.findMineById(this.prisma.prisma, id, userId);
 
     // #701 【設計】見つからない/権限なしは 404（情報露出防止）
     if (!task) {
@@ -235,24 +225,20 @@ export class ContributionTasksService {
       query,
     });
 
-    const task = await this.prisma.withTransaction(
-      async (tx: Prisma.TransactionClient) => {
-        return this.repo.existsMine(
-          tx,
-          userId,
-          query.taskKey,
-          query.targetType,
-          query.targetId,
-          query.type,
-        );
-      },
+    const task = await this.repo.existsMine(
+      this.prisma.prisma,
+      userId,
+      query.taskKey,
+      query.targetType,
+      query.targetId,
+      query.type,
     );
 
     const response: ExistsContributionTaskResponse = {
       exists: !!task,
       ...(task && {
         id: task.id,
-        createdAt: task.created_at.toISOString(),
+        createdAt: task.createdAt,
       }),
     };
 
@@ -281,28 +267,24 @@ export class ContributionTasksService {
     const limit = query.limit ?? 200;
     const minCount = query.minCount ?? 1;
 
-    const results = await this.prisma.withTransaction(
-      async (tx: Prisma.TransactionClient) => {
-        return this.repo.findCompletedTargetIds(
-          tx,
-          query.taskKey,
-          query.targetType,
-          query.type,
-          minCount,
-          limit,
-          query.cursor,
-        );
-      },
+    const results = await this.repo.findCompletedTargetIds(
+      this.prisma.prisma,
+      query.taskKey,
+      query.targetType,
+      query.type,
+      minCount,
+      limit,
+      query.cursor,
     );
 
     // #701 【設計】次ページ判定：limit+1 件取得しているので、limit を超えていれば次がある
-    const hasNext = results.length > limit;
-    const items = hasNext ? results.slice(0, limit) : results;
+    const hasNext = results.items.length > limit;
+    const items = hasNext ? results.items.slice(0, limit) : results.items;
 
     let nextCursor: string | null = null;
     if (hasNext && items.length > 0) {
       const lastItem = items[items.length - 1];
-      nextCursor = `${lastItem.last_completed_at.toISOString()}|${lastItem.target_id}`;
+      nextCursor = `${lastItem.lastCompletedAt}|${lastItem.targetId}`;
     }
 
     const response: CompletedTargetIdsResponse = {
@@ -310,11 +292,7 @@ export class ContributionTasksService {
       targetType: query.targetType,
       ...(query.type && { type: query.type }),
       minCount,
-      completed: items.map((item) => ({
-        targetId: item.target_id,
-        count: item.count,
-        lastCompletedAt: item.last_completed_at.toISOString(),
-      })),
+      completed: items,
       nextCursor,
     };
 

@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsUUID, IsInt, Min, Max, IsISO8601 } from "class-validator";
+import { IsOptional, IsString, IsInt, Min, Max, IsISO8601 } from "class-validator";
 import { Transform } from "class-transformer";
 
 /**
@@ -24,7 +24,7 @@ export class ListContributionTasksQueryDto {
 
 	/** 対象IDでフィルタ */
 	@IsOptional()
-	@IsUUID()
+	@IsString()
 	targetId?: string;
 
 	/** 作成日時の開始（ISO8601形式、created_at >= from） */

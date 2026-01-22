@@ -1,6 +1,6 @@
 -- ==============================================================================
 -- 20260122T0000_create_contribution_tasks.sql
--- #669
+-- #699
 -- ==============================================================================
 -- 【目的】
 -- ユーザー協力・フィードバックを汎用的に記録するテーブルを作成
@@ -69,11 +69,11 @@ CREATE INDEX IF NOT EXISTS idx_contribution_tasks_created_at
   ON contribution_tasks (created_at DESC);
 
 -- jsonb検索を見越したGIN（重ければ後回しでもOK）
-CREATE INDEX IF NOT EXISTS idx_contribution_tasks_payload_gin
-  ON contribution_tasks USING gin (payload);
+-- CREATE INDEX IF NOT EXISTS idx_contribution_tasks_payload_gin
+--   ON contribution_tasks USING gin (payload);
 
-CREATE INDEX IF NOT EXISTS idx_contribution_tasks_result_gin
-  ON contribution_tasks USING gin (result);
+-- CREATE INDEX IF NOT EXISTS idx_contribution_tasks_result_gin
+--   ON contribution_tasks USING gin (result);
 
 -- =========================
 -- テーブルコメント
