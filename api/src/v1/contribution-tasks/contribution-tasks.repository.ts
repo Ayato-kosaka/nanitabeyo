@@ -142,7 +142,8 @@ export class ContributionTasksRepository {
             ...(filters.to && { lt: filters.to }),
           }
         : undefined;
-    const createdAtFilter: Prisma.contribution_tasksWhereInput['created_at'] = {};
+    const createdAtFilter: Prisma.contribution_tasksWhereInput['created_at'] =
+      {};
     if (filters.from) {
       createdAtFilter.gte = filters.from;
     }
@@ -156,7 +157,9 @@ export class ContributionTasksRepository {
       ...(filters.type && { type: filters.type }),
       ...(filters.targetType && { target_type: filters.targetType }),
       ...(filters.targetId && { target_id: filters.targetId }),
-      ...(Object.keys(createdAtFilter).length > 0 && { created_at: createdAtFilter }),
+      ...(Object.keys(createdAtFilter).length > 0 && {
+        created_at: createdAtFilter,
+      }),
     };
 
     let where: Prisma.contribution_tasksWhereInput = baseWhere;
@@ -347,7 +350,9 @@ export class ContributionTasksRepository {
       const parts = cursor.split('|');
       const lastCompletedAtStr = parts[0];
       const targetId = parts[1];
-      const timestamp = lastCompletedAtStr ? Date.parse(lastCompletedAtStr) : NaN;
+      const timestamp = lastCompletedAtStr
+        ? Date.parse(lastCompletedAtStr)
+        : NaN;
 
       if (
         parts.length === 2 &&
