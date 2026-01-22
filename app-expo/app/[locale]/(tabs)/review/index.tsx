@@ -22,7 +22,7 @@ export default function ReviewScreen() {
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { locale, isJapanese } = useLocale();
-	const heroSource = useMemo(() => (isJapanese ? HERO_IMAGES.ja : HERO_IMAGES.en), [isJapanese]);
+	// const heroSource = useMemo(() => (isJapanese ? HERO_IMAGES.ja : HERO_IMAGES.en), [isJapanese]);
 
 	const {
 		BlurModal: LoginBlurModal,
@@ -39,22 +39,22 @@ export default function ReviewScreen() {
 		});
 	}, [logFrontendEvent, isJapanese]);
 
-	const handleHeroImageError = useCallback(
-		(e: any) => {
-			const { message } = e;
-			logFrontendEvent({
-				event_name: "image_load_error",
-				error_level: "error",
-				payload: {
-					image: "review_hero",
-					errorMessage: message,
-					heroSource,
-					typeof_heroSource: typeof heroSource,
-				},
-			});
-		},
-		[logFrontendEvent, heroSource],
-	);
+	// const handleHeroImageError = useCallback(
+	// 	(e: any) => {
+	// 		const { message } = e;
+	// 		logFrontendEvent({
+	// 			event_name: "image_load_error",
+	// 			error_level: "error",
+	// 			payload: {
+	// 				image: "review_hero",
+	// 				errorMessage: message,
+	// 				heroSource,
+	// 				typeof_heroSource: typeof heroSource,
+	// 			},
+	// 		});
+	// 	},
+	// 	[logFrontendEvent, heroSource],
+	// );
 
 	// #644 【設計】ゲストユーザー用：ログイン導線
 	const handleLoginPress = () => {
@@ -89,7 +89,11 @@ export default function ReviewScreen() {
 			{/* ヒーローセクション */}
 			<View style={styles.heroSection}>
 				<View style={styles.heroImagePlaceholder}>
-					<Image source={heroSource} style={styles.heroImage} contentFit="contain" onError={handleHeroImageError} />
+					<Image
+						source={require("@/features/review/assets/review-hero-ja.webp")}
+						style={styles.heroImage}
+						contentFit="contain"
+					/>
 				</View>
 			</View>
 
