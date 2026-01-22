@@ -10,7 +10,6 @@ import type { QueryMeSavedRestaurantsResponse } from "@shared/api/v1/res";
 import { SkeletonShimmer } from "@/components/SkeletonShimmer";
 import { InteractionManager } from "react-native";
 import { ScrollView } from "react-native";
-import { useLogger } from "@/hooks/useLogger";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const CARD_WIDTH = SCREEN_WIDTH * 0.92;
@@ -67,9 +66,7 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 		const sheetRef = useRef<TrueSheet>(null);
 		const carouselRef = useRef<ICarouselInstance | null>(null);
 		const isDraggingRef = useRef(false);
-		const { logFrontendEvent } = useLogger();
 		const draggingTimeoutRef = useRef<number | null>(null);
-		const presentedRef = useRef(false);
 
 		// 親コンポーネントから present/dismiss を呼び出せるようにする
 		useImperativeHandle(ref, () => ({
@@ -81,45 +78,22 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 			},
 		}));
 
-		const presentRetryTimeoutRef = useRef<number | null>(null);
-
 		useEffect(() => {
+			// visible の変化に応じて TrueSheet を開閉
 			if (!visible) {
-				if (presentRetryTimeoutRef.current) {
-					clearTimeout(presentRetryTimeoutRef.current);
-					presentRetryTimeoutRef.current = null;
-				}
-				presentedRef.current = false;
 				sheetRef.current?.dismiss();
 				return;
 			}
 
 			let cancelled = false;
-			presentedRef.current = false;
-
+			let raf1: number | null = null;
+			let raf2: number | null = null;
 			const task = InteractionManager.runAfterInteractions(() => {
-				requestAnimationFrame(() => {
-					requestAnimationFrame(async () => {
+				// Android は初回レイアウトが 1 フレームじゃ足りないことがあるので rAF を二段にする
+				raf1 = requestAnimationFrame(() => {
+					raf2 = requestAnimationFrame(async () => {
 						if (cancelled) return;
-
-						try {
-							await sheetRef.current?.present();
-						} catch (e) {
-							console.log("[SavedRestaurantsSheet] present error", e);
-						}
-
-						if (presentRetryTimeoutRef.current) clearTimeout(presentRetryTimeoutRef.current);
-						presentRetryTimeoutRef.current = setTimeout(async () => {
-							if (cancelled) return;
-							if (presentedRef.current) return;
-
-							console.log("[SavedRestaurantsSheet] present retry");
-							try {
-								await sheetRef.current?.present();
-							} catch (e) {
-								console.log("[SavedRestaurantsSheet] present retry error", e);
-							}
-						}, 350);
+						await sheetRef.current?.present();
 					});
 				});
 			});
@@ -127,10 +101,8 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 			return () => {
 				cancelled = true;
 				task.cancel();
-				if (presentRetryTimeoutRef.current) {
-					clearTimeout(presentRetryTimeoutRef.current);
-					presentRetryTimeoutRef.current = null;
-				}
+				if (raf1) cancelAnimationFrame(raf1);
+				if (raf2) cancelAnimationFrame(raf2);
 			};
 		}, [visible]);
 
@@ -195,38 +167,7 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 						<Text style={styles.savedRestaurantsTitle}>{i18n.t("Review.selectRestaurant.savedRestaurantList")}</Text>
 					</View>
 				}
-				onDetentChange={handleDetentChange}
-				onWillPresent={() => {
-					presentedRef.current = false;
-					logFrontendEvent({
-						event_name: "saved_restaurants_sheet_will_present",
-						error_level: "log",
-						payload: {},
-					});
-				}}
-				onDidPresent={() => {
-					presentedRef.current = true;
-					logFrontendEvent({
-						event_name: "saved_restaurants_sheet_did_present",
-						error_level: "log",
-						payload: {},
-					});
-				}}
-				onWillDismiss={() => {
-					logFrontendEvent({
-						event_name: "saved_restaurants_sheet_will_dismiss",
-						error_level: "log",
-						payload: {},
-					});
-				}}
-				onDidDismiss={() => {
-					presentedRef.current = false;
-					logFrontendEvent({
-						event_name: "saved_restaurants_sheet_did_dismiss",
-						error_level: "log",
-						payload: {},
-					});
-				}}>
+				onDetentChange={handleDetentChange}>
 				{/* Android で gesture-handler が効かない対応 */}
 				<View style={styles.container}>
 					{/* #644 【UX】ローディング中はスケルトンを表示 */}
