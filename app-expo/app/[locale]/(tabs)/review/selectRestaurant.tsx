@@ -194,8 +194,8 @@ export default function SelectRestaurantScreen() {
 					{
 						method: "GET",
 						requestPayload: {
-							lat: currentRegion.current.latitude,
-							lng: currentRegion.current.longitude,
+							lat: region.latitude,
+							lng: region.longitude,
 							radius: Math.max(region.latitudeDelta, region.longitudeDelta) * 50000,
 							limit: 20,
 						},
@@ -215,7 +215,7 @@ export default function SelectRestaurantScreen() {
 				setIsLoadingSavedRestaurants(false);
 			}
 		},
-		[callBackend, currentRegion, lightImpact, logFrontendEvent, showSnackbar],
+		[callBackend, lightImpact, logFrontendEvent, showSnackbar],
 	);
 
 	// #644 【設計】保存したお店のマーカー押下時の処理（ストア upsert → 遷移）
@@ -303,7 +303,7 @@ export default function SelectRestaurantScreen() {
 	);
 
 	const initialRegion = useMemo<Region>(() => (isJapanese ? REGION_JP : INITIAL_REGION), [isJapanese]);
-	// 初回マウント時に現在地取得＆保存したお店検索
+	// 画面フォーカス時に現在地 or 日本全体を表示＆保存したお店を検索
 	useFocusEffect(
 		useCallback(() => {
 			let cancelled = false;
@@ -313,7 +313,10 @@ export default function SelectRestaurantScreen() {
 				logFrontendEvent({
 					event_name: "screen_view",
 					error_level: "log",
-					payload: { screen: "review_select_restaurant" },
+					payload: {
+						screen: "review_select_restaurant",
+						isJapanese,
+					},
 				});
 
 				try {
