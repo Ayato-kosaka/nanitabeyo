@@ -95,18 +95,49 @@ export class ContributionTasksController {
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiOperation({
     summary: '自分の協力タスク履歴を取得',
-    description:
-      '認証ユーザー自身が過去に完了した協力タスクの一覧を取得する',
+    description: '認証ユーザー自身が過去に完了した協力タスクの一覧を取得する',
   })
-  @ApiQuery({ name: 'taskKey', required: false, description: 'タスクキーでフィルタ' })
+  @ApiQuery({
+    name: 'taskKey',
+    required: false,
+    description: 'タスクキーでフィルタ',
+  })
   @ApiQuery({ name: 'type', required: false, description: 'タイプでフィルタ' })
-  @ApiQuery({ name: 'targetType', required: false, description: '対象タイプでフィルタ' })
-  @ApiQuery({ name: 'targetId', required: false, description: '対象IDでフィルタ' })
-  @ApiQuery({ name: 'from', required: false, description: '作成日時の開始（ISO8601）' })
-  @ApiQuery({ name: 'to', required: false, description: '作成日時の終了（ISO8601）' })
-  @ApiQuery({ name: 'limit', required: false, description: '取得件数（1-100、デフォルト20）' })
-  @ApiQuery({ name: 'cursor', required: false, description: 'ページングカーソル' })
-  @ApiQuery({ name: 'include', required: false, description: 'payload,result を含める場合は "payload,result"' })
+  @ApiQuery({
+    name: 'targetType',
+    required: false,
+    description: '対象タイプでフィルタ',
+  })
+  @ApiQuery({
+    name: 'targetId',
+    required: false,
+    description: '対象IDでフィルタ',
+  })
+  @ApiQuery({
+    name: 'from',
+    required: false,
+    description: '作成日時の開始（ISO8601）',
+  })
+  @ApiQuery({
+    name: 'to',
+    required: false,
+    description: '作成日時の終了（ISO8601）',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: '取得件数（1-100、デフォルト20）',
+  })
+  @ApiQuery({
+    name: 'cursor',
+    required: false,
+    description: 'ページングカーソル',
+  })
+  @ApiQuery({
+    name: 'include',
+    required: false,
+    description: 'payload,result を含める場合は "payload,result"',
+  })
   @ApiResponse({
     status: 200,
     description: '協力タスク履歴の取得成功',
@@ -132,8 +163,7 @@ export class ContributionTasksController {
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiOperation({
     summary: '協力タスクの二重送信防止チェック',
-    description:
-      '自分が既に特定の協力タスクを完了しているか確認する',
+    description: '自分が既に特定の協力タスクを完了しているか確認する',
   })
   @ApiQuery({ name: 'taskKey', required: true, description: 'タスクキー' })
   @ApiQuery({ name: 'targetType', required: true, description: '対象タイプ' })
@@ -172,9 +202,21 @@ export class ContributionTasksController {
   @ApiQuery({ name: 'taskKey', required: true, description: 'タスクキー' })
   @ApiQuery({ name: 'targetType', required: true, description: '対象タイプ' })
   @ApiQuery({ name: 'type', required: false, description: 'タイプ（任意）' })
-  @ApiQuery({ name: 'minCount', required: false, description: '最小完了回数（デフォルト1）' })
-  @ApiQuery({ name: 'limit', required: false, description: '取得件数（1-1000、デフォルト200）' })
-  @ApiQuery({ name: 'cursor', required: false, description: 'ページングカーソル' })
+  @ApiQuery({
+    name: 'minCount',
+    required: false,
+    description: '最小完了回数（デフォルト1）',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: '取得件数（1-1000、デフォルト200）',
+  })
+  @ApiQuery({
+    name: 'cursor',
+    required: false,
+    description: 'ページングカーソル',
+  })
   @ApiResponse({
     status: 200,
     description: '完了済みtargetId一覧の取得成功',

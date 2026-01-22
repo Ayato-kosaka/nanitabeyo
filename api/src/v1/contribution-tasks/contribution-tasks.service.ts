@@ -24,7 +24,10 @@ import {
 } from '@shared/v1/res';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AppLoggerService } from '../../core/logger/logger.service';
-import { ContributionTasksRepository, FindMineFilters } from './contribution-tasks.repository';
+import {
+  ContributionTasksRepository,
+  FindMineFilters,
+} from './contribution-tasks.repository';
 
 @Injectable()
 export class ContributionTasksService {
@@ -96,7 +99,7 @@ export class ContributionTasksService {
     });
 
     const limit = query.limit ?? 20;
-    
+
     // #701 【設計】include パラメータで payload/result を含めるか判定
     const includeFields = query.include?.split(',') ?? [];
     const includePayload = includeFields.includes('payload');

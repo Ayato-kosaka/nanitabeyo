@@ -3,7 +3,7 @@ import { Transform } from "class-transformer";
 
 /**
  * GET /v1/contribution-tasks/completed-target-ids クエリパラメータ
- * 
+ *
  * 誰かが完了済みのtargetIdの集計情報を取得（個人特定情報は含まない）
  */
 export class CompletedTargetIdsQueryDto {

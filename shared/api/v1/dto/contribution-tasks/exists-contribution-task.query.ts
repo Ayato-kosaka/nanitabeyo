@@ -2,7 +2,7 @@ import { IsString, IsUUID, IsOptional, MinLength } from "class-validator";
 
 /**
  * GET /v1/contribution-tasks/exists クエリパラメータ
- * 
+ *
  * 自分が既に特定のタスクを完了しているか確認する（二重防止）
  */
 export class ExistsContributionTaskQueryDto {

@@ -113,4 +113,3 @@ export type CompletedTargetIdsResponse = {
 	/** 次ページのカーソル（ない場合はnull） */
 	nextCursor: string | null;
 };
-

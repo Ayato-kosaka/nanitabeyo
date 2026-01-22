@@ -3,7 +3,7 @@ import { Transform } from "class-transformer";
 
 /**
  * GET /v1/contribution-tasks クエリパラメータ
- * 
+ *
  * 自分の協力タスク履歴を取得する際のフィルタリング条件
  */
 export class ListContributionTasksQueryDto {
