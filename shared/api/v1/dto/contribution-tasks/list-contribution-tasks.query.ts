@@ -37,7 +37,7 @@ export class ListContributionTasksQueryDto {
 	@IsISO8601()
 	to?: string;
 
-	/** キーセットページングのカーソル（形式: {createdAt}_{id}） */
+	/** キーセットページングのカーソル（形式: {createdAt}|{id}） */
 	@IsOptional()
 	@IsString()
 	cursor?: string;

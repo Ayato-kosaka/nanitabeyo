@@ -37,7 +37,7 @@ export class CompletedTargetIdsQueryDto {
 	@Max(1000)
 	limit?: number = 200;
 
-	/** キーセットページングのカーソル（形式: {lastCompletedAt}_{targetId}） */
+	/** キーセットページングのカーソル（形式: {lastCompletedAt}|{targetId}） */
 	@IsOptional()
 	@IsString()
 	cursor?: string;
