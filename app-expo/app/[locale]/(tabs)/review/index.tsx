@@ -35,9 +35,9 @@ export default function ReviewScreen() {
 		logFrontendEvent({
 			event_name: "screen_view",
 			error_level: "log",
-			payload: { screen: "review" },
+			payload: { screen: "review", isJapanese },
 		});
-	}, [logFrontendEvent]);
+	}, [logFrontendEvent, isJapanese]);
 
 	// #644 【設計】ゲストユーザー用：ログイン導線
 	const handleLoginPress = () => {
@@ -72,7 +72,7 @@ export default function ReviewScreen() {
 			{/* ヒーローセクション */}
 			<View style={styles.heroSection}>
 				<View style={styles.heroImagePlaceholder}>
-					<Image source={heroSource} style={styles.heroImage} />
+					<Image source={heroSource} style={styles.heroImage} contentFit="contain" />
 				</View>
 			</View>
 
@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 	},
 	heroImagePlaceholder: {
-		height: "100%",
+		flex: 1,
 		width: "100%",
 		justifyContent: "center",
 		alignItems: "center",
@@ -138,7 +138,6 @@ const styles = StyleSheet.create({
 	heroImage: {
 		width: "100%",
 		height: "100%",
-		resizeMode: "contain",
 	},
 	ctaSection: {
 		flex: 1,
