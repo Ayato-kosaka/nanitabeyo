@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
-import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Image } from "expo-image";
 import VideoPlayer from "../../../components/VideoPlayer";
@@ -8,6 +8,7 @@ import { DishReviewsSection } from "./DishReviewsSection";
 import { useMediaTracking } from "../hooks/useMediaTracking";
 import { getCacheKeyForImage } from "@/lib/image";
 import i18n from "@/lib/i18n";
+import { LoadingIndicator } from "@/components/LoadingIndicator";
 import {
 	NormalizedDishMediaEntry,
 	selectEntryByMediaId,
@@ -287,7 +288,7 @@ export default function DishMediaContent({
 			{/* #530 【設計】処理中オーバーレイ（メディア共通） */}
 			{isProcessing && (
 				<View style={styles.processingOverlay}>
-					<ActivityIndicator size="large" color="#fff" />
+					<LoadingIndicator size="large" />
 					<Text style={styles.processingText}>{i18n.t("DishMediaContent.processing")}</Text>
 				</View>
 			)}

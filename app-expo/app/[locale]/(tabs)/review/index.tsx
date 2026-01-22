@@ -33,6 +33,23 @@ export default function ReviewScreen() {
 		});
 	}, [logFrontendEvent]);
 
+	// const handleHeroImageError = useCallback(
+	// 	(e: any) => {
+	// 		const { message } = e;
+	// 		logFrontendEvent({
+	// 			event_name: "image_load_error",
+	// 			error_level: "error",
+	// 			payload: {
+	// 				image: "review_hero",
+	// 				errorMessage: message,
+	// 				heroSource,
+	// 				typeof_heroSource: typeof heroSource,
+	// 			},
+	// 		});
+	// 	},
+	// 	[logFrontendEvent, heroSource],
+	// );
+
 	// #644 【設計】ゲストユーザー用：ログイン導線
 	const handleLoginPress = () => {
 		lightImpact();
@@ -66,7 +83,11 @@ export default function ReviewScreen() {
 			{/* ヒーローセクション */}
 			<View style={styles.heroSection}>
 				<View style={styles.heroImagePlaceholder}>
-					<Image source={require("@/features/review/assets/review-hero.webp")} style={styles.heroImage} />
+					<Image
+						source={require("@/features/review/assets/review-hero.webp")}
+						style={styles.heroImage}
+						contentFit="contain"
+					/>
 				</View>
 			</View>
 
@@ -124,7 +145,7 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 	},
 	heroImagePlaceholder: {
-		height: "100%",
+		flex: 1,
 		width: "100%",
 		justifyContent: "center",
 		alignItems: "center",
@@ -132,7 +153,6 @@ const styles = StyleSheet.create({
 	heroImage: {
 		width: "100%",
 		height: "100%",
-		resizeMode: "contain",
 	},
 	ctaSection: {
 		flex: 1,

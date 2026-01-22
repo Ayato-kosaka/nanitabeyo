@@ -13,10 +13,18 @@ export interface MapViewProps extends RNMapViewProps {
 export type MarkerProps = RNMarkerProps;
 export type { Region };
 
-const MapView = React.forwardRef<MapViewRN, MapViewProps>(({ language, ...props }, ref) => {
+const MapView = React.forwardRef<MapViewRN, MapViewProps>(({ language, moveOnMarkerPress = false, ...props }, ref) => {
 	// #362 MapView の POI 表示を「飲食系のみに制限」する
 	const googleMapId = Platform.OS === "ios" ? "4e9ea5ba5d0c3d10219940cd" : "4e9ea5ba5d0c3d10b89b2316";
-	return <MapViewRN ref={ref} provider={PROVIDER_GOOGLE} googleMapId={googleMapId} {...props} />;
+	return (
+		<MapViewRN
+			ref={ref}
+			provider={PROVIDER_GOOGLE}
+			googleMapId={googleMapId}
+			moveOnMarkerPress={moveOnMarkerPress}
+			{...props}
+		/>
+	);
 });
 
 export const Marker = RNMarker;

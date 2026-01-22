@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { StyleSheet, ActivityIndicator, View } from "react-native";
+import { LoadingIndicator } from "@/components/LoadingIndicator";
+import { StyleSheet, View } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { ChevronLeft } from "lucide-react-native";
@@ -69,7 +70,7 @@ export default function ReviewPostScreen() {
 				{/* #644 【設計】データ取得中はローディング表示 */}
 				{!dishMediaEntry ? (
 					<View style={styles.loadingContainer}>
-						<ActivityIndicator size="large" color="#F05537" />
+						<LoadingIndicator size="large" />
 					</View>
 				) : (
 					<DishMediaFeed entriesKey={entriesKey} idType="dish_reviews" />

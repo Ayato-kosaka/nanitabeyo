@@ -7,8 +7,9 @@ import { Image } from "expo-image";
 import i18n from "@/lib/i18n";
 import { getCacheKeyForImage } from "@/lib/image";
 import type { QueryMeSavedRestaurantsResponse } from "@shared/api/v1/res";
-import { FlatList } from "react-native";
 import { SkeletonShimmer } from "@/components/SkeletonShimmer";
+import { InteractionManager } from "react-native";
+import { ScrollView } from "react-native";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const CARD_WIDTH = SCREEN_WIDTH * 0.92;
@@ -84,12 +85,25 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 				return;
 			}
 
-			// ★ iOS 対策：マウント完了後に present() する
-			const timeoutId = setTimeout(() => {
-				sheetRef.current?.present();
-			}, 0);
+			let cancelled = false;
+			let raf1: number | null = null;
+			let raf2: number | null = null;
+			const task = InteractionManager.runAfterInteractions(() => {
+				// Android は初回レイアウトが 1 フレームじゃ足りないことがあるので rAF を二段にする
+				raf1 = requestAnimationFrame(() => {
+					raf2 = requestAnimationFrame(async () => {
+						if (cancelled) return;
+						await sheetRef.current?.present();
+					});
+				});
+			});
 
-			return () => clearTimeout(timeoutId);
+			return () => {
+				cancelled = true;
+				task.cancel();
+				if (raf1) cancelAnimationFrame(raf1);
+				if (raf2) cancelAnimationFrame(raf2);
+			};
 		}, [visible]);
 
 		useEffect(() => {
@@ -154,7 +168,7 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 					</View>
 				}
 				onDetentChange={handleDetentChange}>
-				<View style={styles.container}>
+				<View style={[styles.container, detentIndex === 1 ? { flex: 1 } : {}]}>
 					{/* #644 【UX】ローディング中はスケルトンを表示 */}
 					{isLoadingSavedRestaurants && savedRestaurants.length === 0 ? (
 						<>
@@ -227,23 +241,23 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 									/>
 								</View>
 							) : (
-								<View style={{ flex: 1 }}>
-									<FlatList
-										data={savedRestaurants}
-										keyExtractor={(item) => item.restaurant.id}
-										contentContainerStyle={styles.listContent}
-										renderItem={({ item }) => (
-											<View style={styles.listItemContainer}>
-												<PrimaryCard
-													item={item}
-													onPress={() => onRestaurantCardPress(item)}
-													onReview={() => onRestaurantReviewPress(item)}
-												/>
-											</View>
-										)}
-										showsVerticalScrollIndicator={false}
-									/>
-								</View>
+								// TrueSheet のドラッグ（パン）ジェスチャが勝ってしまって、FlatList のスクロールが途中で奪われるため、
+								// ScrollView を利用する。保存店が limit:20 なので、パフォーマンス的にも問題ないはず。
+								<ScrollView
+									contentContainerStyle={styles.listContent}
+									showsVerticalScrollIndicator={false}
+									nestedScrollEnabled>
+									{savedRestaurants.map((item) => (
+										<View key={item.restaurant.id} style={styles.listItemContainer}>
+											<PrimaryCard
+												item={item}
+												onPress={() => onRestaurantCardPress(item)}
+												onReview={() => onRestaurantReviewPress(item)}
+											/>
+										</View>
+									))}
+									<View style={{ height: 60 }} />
+								</ScrollView>
 							)}
 						</>
 					) : (
@@ -275,7 +289,7 @@ function PrimaryCard({
 				style={styles.savedRestaurantImage}
 			/>
 			<View style={styles.savedRestaurantInfo}>
-				<Text style={styles.savedRestaurantName} numberOfLines={2}>
+				<Text style={styles.savedRestaurantName} numberOfLines={1} ellipsizeMode="tail">
 					{item.restaurant.name}
 				</Text>
 				<PrimaryButton
@@ -346,6 +360,7 @@ const styles = StyleSheet.create({
 		top: 0,
 		alignItems: "center",
 		paddingVertical: 8,
+		paddingBottom: 40,
 	},
 	listItemContainer: {
 		width: CARD_WIDTH,

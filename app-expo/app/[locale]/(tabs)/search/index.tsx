@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Pressable } from "react-native";
 import {
 	MapPin,
@@ -68,7 +68,7 @@ export default function SearchScreen() {
 	const [scene, setScene] = useState<SearchParams["scene"]>("solo"); // #533 【仕様】scene 初期値を solo に変更（レコメンドAPI必須化対応）
 	const [mood, setMood] = useState<SearchParams["mood"] | undefined>(undefined);
 	const [taste, setTaste] = useState<SearchParams["taste"] | undefined>(undefined);
-	const [isSearching, setIsSearching] = useState(false);
+	const isSearchingRef = useRef(false);
 	const [distance, setDistance] = useState<number>(DEFAULT_SEARCH_RADIUS);
 	const [priceLevels, setPriceLevels] = useState<(typeof priceLevelOptions)[number]["value"][]>([
 		...DEFAULT_PRICE_LEVELS,
@@ -156,7 +156,7 @@ export default function SearchScreen() {
 		}
 	};
 
-	const handleSearch = async () => {
+	const handleSearch = useCallback(() => {
 		// #533 【仕様】location, timeSlot, scene を必須化（レコメンドAPI必須化対応）
 		if (!location) {
 			showSnackbar(i18n.t("Search.errors.noLocationSelected"));
@@ -171,8 +171,10 @@ export default function SearchScreen() {
 			return;
 		}
 
+		if (isSearchingRef.current) return; // 多重検索防止
+
 		mediumImpact();
-		setIsSearching(true);
+		isSearchingRef.current = true;
 
 		const searchParams: SearchParams = {
 			...location,
@@ -191,26 +193,32 @@ export default function SearchScreen() {
 			payload: searchParams,
 		});
 
-		try {
-			// Navigate to cards screen with search parameters
-			router.push({
-				pathname: "/[locale]/(tabs)/search/topics",
-				params: {
-					locale,
-					searchParams: JSON.stringify(searchParams),
-				},
-			});
-		} catch (error) {
-			logFrontendEvent({
-				event_name: "search_failed",
-				error_level: "error",
-				payload: { error: String(error) },
-			});
-			showSnackbar(i18n.t("Search.errors.searchFailed"));
-		} finally {
-			setIsSearching(false);
-		}
-	};
+		// Navigate to cards screen with search parameters
+		router.push({
+			pathname: "/[locale]/(tabs)/search/topics",
+			params: {
+				locale,
+				searchParams: JSON.stringify(searchParams),
+			},
+		});
+
+		setTimeout(() => {
+			isSearchingRef.current = false;
+		}, 1000);
+	}, [
+		location,
+		timeSlot,
+		scene,
+		mood,
+		taste,
+		distance,
+		priceLevels,
+		locationQuery,
+		mediumImpact,
+		logFrontendEvent,
+		showSnackbar,
+		locale,
+	]);
 	// Wrapper functions for haptic feedback
 	const handleTimeSlotSelect = (slotId: SearchParams["timeSlot"]) => {
 		lightImpact();
@@ -552,8 +560,7 @@ export default function SearchScreen() {
 					colors={["#000000", "#000000"]}
 					labelStyle={{ color: "#FFFFFF" }}
 					shadowColor="transparent"
-					loading={isSearching}
-					disabled={!location || !timeSlot || !scene || isSearching}
+					disabled={!location || !timeSlot || !scene}
 					icon={<Search size={20} color="#FFFFFF" />}
 					style={styles.searchFab}
 				/>
