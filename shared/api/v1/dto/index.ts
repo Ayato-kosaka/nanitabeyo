@@ -45,6 +45,8 @@ export { QuerySavedRestaurantsDto } from "./users/query-saved-restaurants.dto";
 
 export { CreateFeedbackDto } from "./feedback/create-feedback.dto";
 
+export { CreateContributionTaskDto } from "./contribution-tasks/create-contribution-task.dto";
+
 export { CreateFrontendLogDto } from "./logs/create-frontend-log.dto";
 
 export { QueryNotificationsDto } from "./notifications/query-notifications.dto";
