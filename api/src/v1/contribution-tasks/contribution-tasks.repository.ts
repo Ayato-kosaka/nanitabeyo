@@ -135,14 +135,21 @@ export class ContributionTasksRepository {
     });
 
     // #701 【設計】WHERE条件を構築
+    const createdAtCondition: Prisma.DateTimeFilter | undefined =
+      filters.from || filters.to
+        ? {
+            ...(filters.from && { gte: filters.from }),
+            ...(filters.to && { lt: filters.to }),
+          }
+        : undefined;
+
     const where: Prisma.contribution_tasksWhereInput = {
       user_id: userId,
       ...(filters.taskKey && { task_key: filters.taskKey }),
       ...(filters.type && { type: filters.type }),
       ...(filters.targetType && { target_type: filters.targetType }),
       ...(filters.targetId && { target_id: filters.targetId }),
-      ...(filters.from && { created_at: { gte: filters.from } }),
-      ...(filters.to && { created_at: { lt: filters.to } }),
+      ...(createdAtCondition && { created_at: createdAtCondition }),
     };
 
     // #701 【設計】カーソルページング：cursor がある場合は created_at + id で絞り込み
