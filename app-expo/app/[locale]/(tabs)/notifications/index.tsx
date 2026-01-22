@@ -1,5 +1,6 @@
 import React, { useCallback } from "react";
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, ActivityIndicator } from "react-native";
+import { LoadingIndicator } from "@/components/LoadingIndicator";
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView } from "react-native";
 import { Image } from "expo-image";
 import i18n from "@/lib/i18n";
 import { Heart, Bookmark } from "lucide-react-native";
@@ -223,7 +224,7 @@ export default function NotificationsScreen() {
 					{/* 初回ロードはリストをレンダリングせずローディング表示を出す */}
 					{notifications.isLoadingInitial && notifications.items.length === 0 ? (
 						<View style={styles.loadingContainer}>
-							<ActivityIndicator size="large" color="#F05537" />
+							<LoadingIndicator size="large" />
 						</View>
 					) : (
 						<FlatList
@@ -244,7 +245,7 @@ export default function NotificationsScreen() {
 							ListFooterComponent={
 								notifications.isLoadingMore && notifications.items.length > 0 ? (
 									<View style={styles.loadingContainer}>
-										<ActivityIndicator size="small" color="#F05537" />
+										<LoadingIndicator size="small" />
 										<Text style={styles.loadingText}>{i18n.t("Notifications.loadingMore")}</Text>
 									</View>
 								) : null

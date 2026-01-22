@@ -4,11 +4,11 @@
 // 運営用ツール - ユーザー向けアプリからの導線は不要
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { LoadingIndicator } from "@/components/LoadingIndicator";
 import {
 	View,
 	StyleSheet,
 	ScrollView,
-	ActivityIndicator,
 	Pressable,
 	Text,
 	FlatList,
@@ -323,7 +323,7 @@ export default function DishCategoryImageOptimizerPage() {
 			{/* ローディング */}
 			{isLoadingCategories && (
 				<View style={styles.loadingContainer}>
-					<ActivityIndicator size="large" color="#F05537" />
+					<LoadingIndicator size="large" />
 					<Text style={styles.loadingText}>{i18n.t("Tools.DishCategoryImageOptimizer.loading")}</Text>
 				</View>
 			)}

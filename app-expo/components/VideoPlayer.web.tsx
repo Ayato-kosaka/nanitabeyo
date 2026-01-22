@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { View, ActivityIndicator, StyleSheet } from "react-native";
+import { View, StyleSheet } from "react-native";
 import { VideoPlayerProps } from "./VideoPlayer";
 import Hls from "hls.js";
+import { LoadingIndicator } from "./LoadingIndicator";
 
 // Thresholds for loop detection logic:
 // LOOP_HEAD_S: If the current playback time is within 1 second of the start (head) of the video,
@@ -234,7 +235,7 @@ function VideoPlayer({
 		<View style={[styles.container, style]}>
 			{isLoading && (
 				<View style={styles.loadingOverlay}>
-					<ActivityIndicator size="large" color="#fff" />
+					<LoadingIndicator size="large" />
 				</View>
 			)}
 			<video

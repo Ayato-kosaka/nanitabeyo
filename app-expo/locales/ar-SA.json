@@ -9,7 +9,6 @@
 		"post": "نشر",
 		"postReview": "نشر مراجعة",
 		"retry": "إعادة المحاولة",
-		"processing": "معالجة...",
 		"error": "حدث خطأ. يُرجى المحاولة مرة أخرى.",
 		"success": "نجح",
 		"linkCopied": "تم نسخ الرابط إلى الحافظة",
@@ -222,6 +221,7 @@
 		"buttons": {
 			"viewRestaurant": "عرض المطعم"
 		},
+		"processing": "جارٍ معالجة الوسائط...",
 		"info": {
 			"walkFromShibuya": "على بُعد 13 دقيقة سيرًا من محطة شيبويا"
 		},
@@ -504,6 +504,7 @@
 		"provider_twitter": "Twitter",
 		"provider_apple": "Apple",
 		"otp_title": "أدخل الرمز",
+		"otp_resending": "جارٍ إعادة إرسال الرمز...",
 		"otp_send_again": "إعادة إرسال الرمز",
 		"otp_enter_all_digits": "يرجى إدخال الأرقام الستة كاملة",
 		"login_success": "تم تسجيل الدخول بنجاح!",
@@ -515,6 +516,7 @@
 		"conflict_dialog_message": "هذا الحساب مرتبط بالفعل بمستخدم آخر. إذا قمت بالتبديل، لن يتم نقل البيانات التي تم إنشاؤها كضيف. هل تريد التبديل إلى الحساب الموجود؟",
 		"conflict_dialog_switch": "تبديل",
 		"conflict_dialog_cancel": "إلغاء",
+		"callback_processing": "جارٍ إكمال تسجيل الدخول...",
 		"consent_login_prefix": "بالمتابعة، فإنك توافق على ",
 		"consent_login_terms": "شروط الخدمة",
 		"consent_login_and": " و",

@@ -9,7 +9,6 @@
 		"post": "Publicar",
 		"postReview": "Publicar reseña",
 		"retry": "Reintentar",
-		"processing": "Procesando...",
 		"error": "Se produjo un error. Vuelve a intentarlo.",
 		"success": "Éxito",
 		"linkCopied": "Enlace copiado al portapapeles",
@@ -222,6 +221,7 @@
 		"buttons": {
 			"viewRestaurant": "Ver restaurante"
 		},
+		"processing": "Procesando el contenido...",
 		"errors": {
 			"mapOpenFailed": "No se pudo abrir la aplicación de mapas",
 			"mediaUnavailable": "Este contenido no está disponible actualmente."
@@ -504,6 +504,7 @@
 		"provider_twitter": "Twitter",
 		"provider_apple": "Apple",
 		"otp_title": "Introducir Código",
+		"otp_resending": "Reenviando el código...",
 		"otp_send_again": "Reenviar Código",
 		"otp_enter_all_digits": "Por favor ingresa los 6 dígitos",
 		"login_success": "¡Inicio de sesión exitoso!",
@@ -515,6 +516,7 @@
 		"conflict_dialog_message": "Esta cuenta ya está vinculada a otro usuario. Si cambias, los datos creados como invitado no se transferirán. ¿Deseas cambiar a la cuenta existente?",
 		"conflict_dialog_switch": "Cambiar",
 		"conflict_dialog_cancel": "Cancelar",
+		"callback_processing": "Completando el inicio de sesión...",
 		"consent_login_prefix": "Al continuar, aceptas nuestros ",
 		"consent_login_terms": "Términos de Servicio",
 		"consent_login_and": " y ",

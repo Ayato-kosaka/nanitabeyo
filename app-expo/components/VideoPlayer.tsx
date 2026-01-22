@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState, useMemo } from "react";
-import { View, StyleSheet, ActivityIndicator, Pressable, Text } from "react-native";
+import { View, StyleSheet, Pressable, Text } from "react-native";
 import { VideoView, useVideoPlayer, VideoContentFit, VideoSource } from "expo-video";
 import { useLogger } from "@/hooks/useLogger";
 import { setAudioModeAsync } from "expo-audio";
 import { useCdnCookieStore, selectCookieHeader } from "@/stores/useCdnCookieStore";
+import { LoadingIndicator } from "./LoadingIndicator";
 
 // Threshold for detecting video loop (when currentTime returns to near start)
 export const LOOP_DETECTION_THRESHOLD_SECONDS = 1;
@@ -192,7 +193,7 @@ function VideoPlayer({
 		<View style={[styles.container, style]}>
 			{isLoading && (
 				<View style={styles.loadingOverlay}>
-					<ActivityIndicator size="large" color="#fff" />
+					<LoadingIndicator size="large" />
 				</View>
 			)}
 			{/* Pressable covers the video area and toggles playback on tap */}

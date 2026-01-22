@@ -1,5 +1,6 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
-import { View, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { LoadingIndicator } from "@/components/LoadingIndicator";
+import { View, StyleSheet, TouchableOpacity, InteractionManager } from "react-native";
 import { Navigation, RotateCw } from "lucide-react-native";
 import MapView, { Region } from "@/components/MapView";
 import type { PoiClickEvent } from "react-native-maps";
@@ -26,6 +27,7 @@ import { PrimaryButton } from "@/components/PrimaryButton";
 import { useRestaurantStore } from "@/features/review/stores/useRestaurantStore";
 import { useLocale } from "@/hooks/useLocale";
 import { ReviewHeader } from "@/features/review/components/ReviewHeader";
+import { INITIAL_REGION, REGION_JP } from "@/features/map/constants";
 
 type SavedRestaurant = QueryMeSavedRestaurantsResponse["data"][number];
 
@@ -149,10 +151,14 @@ export default function SelectRestaurantScreen() {
 
 	// 画面フォーカスに連動して Sheet を開閉
 	const [isSheetVisible, setIsSheetVisible] = useState(false);
+	// 画面フォーカス状態を保持する ref
+	const isFocusedRef = useRef(false);
 	useFocusEffect(
 		useCallback(() => {
+			isFocusedRef.current = true;
 			setIsSheetVisible(true);
 			return () => {
+				isFocusedRef.current = false;
 				setIsSheetVisible(false);
 			};
 		}, []),
@@ -169,27 +175,39 @@ export default function SelectRestaurantScreen() {
 		return unsubscribe;
 	}, [navigation]);
 
+	// シート表示を安全に行う関数
+	const safePresentSheet = useCallback(() => {
+		if (!isFocusedRef.current) return;
+		setIsSheetVisible(true);
+	}, []);
+
 	// #644 【設計】保存したお店の状態管理
 	const [savedRestaurants, setSavedRestaurants] = useState<QueryMeSavedRestaurantsResponse["data"]>([]);
-	const [isLoadingSavedRestaurants, setIsLoadingSavedRestaurants] = useState(false);
 	const [activeRestaurantId, setActiveRestaurantId] = useState<string | null>(null);
+	const [isLoadingSavedRestaurants, setIsLoadingSavedRestaurants] = useState(false);
+	const isLoadingSavedRestaurantsRef = useRef(false);
+	useEffect(() => {
+		isLoadingSavedRestaurantsRef.current = isLoadingSavedRestaurants;
+	}, [isLoadingSavedRestaurants]);
 
 	// #644 【設計】保存したお店を現在地で検索
 	const searchSavedRestaurants = useCallback(
 		async (region: Region) => {
-			if (isLoadingSavedRestaurants) return;
+			if (isLoadingSavedRestaurantsRef.current) return;
 
 			lightImpact();
 			setIsLoadingSavedRestaurants(true);
 
+			// 保存したお店の検索後に必ずシートを開く
+			safePresentSheet();
 			try {
 				const response = await callBackend<QuerySavedRestaurantsDto, QueryMeSavedRestaurantsResponse>(
 					"v1/users/me/saved-restaurants",
 					{
 						method: "GET",
 						requestPayload: {
-							lat: currentRegion.current.latitude,
-							lng: currentRegion.current.longitude,
+							lat: region.latitude,
+							lng: region.longitude,
 							radius: Math.max(region.latitudeDelta, region.longitudeDelta) * 50000,
 							limit: 20,
 						},
@@ -209,7 +227,7 @@ export default function SelectRestaurantScreen() {
 				setIsLoadingSavedRestaurants(false);
 			}
 		},
-		[callBackend, currentRegion, isLoadingSavedRestaurants, lightImpact, logFrontendEvent, showSnackbar],
+		[callBackend, lightImpact, logFrontendEvent, showSnackbar, safePresentSheet],
 	);
 
 	// #644 【設計】保存したお店のマーカー押下時の処理（ストア upsert → 遷移）
@@ -296,45 +314,72 @@ export default function SelectRestaurantScreen() {
 		[lightImpact, logFrontendEvent, locale],
 	);
 
-	// 初回マウント時に現在地取得＆保存したお店検索
+	// Map ready 後に pendingRegionRef に保存された region があれば移動させる
+	const [mapReady, setMapReady] = useState(false);
+	const pendingRegionRef = useRef<Region | null>(null);
 	useEffect(() => {
-		// #644 【設計】レビューのレストラン選択画面表示ログ
-		logFrontendEvent({
-			event_name: "screen_view",
-			error_level: "log",
-			payload: { screen: "review_select_restaurant" },
-		});
+		if (!mapReady) return;
 
-		// 日本語設定時は日本全体を表示
-		if (isJapanese) {
-			const japanRegion: Region = {
-				// 日本のだいたいの中心
-				latitude: 36.2048,
-				longitude: 138.2529,
-				// 日本全体が入るくらいのデルタ（お好みで調整）
-				latitudeDelta: 20,
-				longitudeDelta: 20,
-			};
+		const region = pendingRegionRef.current;
+		if (!region) return;
 
-			currentRegion.current = japanRegion;
-			mapRef.current?.animateToRegion(japanRegion, 1000);
-			searchSavedRestaurants(japanRegion);
-			return;
-		}
+		mapRef.current?.animateToRegion(region, 1); // 1msで“delta含め確定”させる
+		pendingRegionRef.current = null;
+	}, [mapReady]);
 
-		getCurrentLocation().then(({ location }) => {
-			const newRegion = {
-				latitude: location.latitude,
-				longitude: location.longitude,
-				latitudeDelta: 0.01,
-				longitudeDelta: 0.01,
-			};
-			currentRegion.current = newRegion;
-			mapRef.current?.animateToRegion(newRegion, 1000);
-			searchSavedRestaurants(newRegion);
-		});
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, []);
+	const initialRegion = useMemo<Region>(() => (isJapanese ? REGION_JP : INITIAL_REGION), [isJapanese]);
+	const didInitRef = useRef(false);
+	// 初期表示時の現在地取得＆保存店検索
+	useEffect(() => {
+		if (didInitRef.current) return;
+		didInitRef.current = true;
+
+		let cancelled = false;
+
+		const init = async () => {
+			logFrontendEvent({
+				event_name: "screen_view",
+				error_level: "log",
+				payload: { screen: "review_select_restaurant" },
+			});
+
+			try {
+				if (isJapanese) {
+					pendingRegionRef.current = REGION_JP;
+					currentRegion.current = REGION_JP;
+					mapRef.current?.animateToRegion(REGION_JP, 1000);
+					await searchSavedRestaurants(REGION_JP);
+					return;
+				}
+
+				const { location } = await getCurrentLocation();
+				if (cancelled) return;
+
+				const newRegion = {
+					latitude: location.latitude,
+					longitude: location.longitude,
+					latitudeDelta: 0.01,
+					longitudeDelta: 0.01,
+				};
+
+				pendingRegionRef.current = newRegion;
+				currentRegion.current = newRegion;
+				mapRef.current?.animateToRegion(newRegion, 1000);
+				await searchSavedRestaurants(newRegion);
+			} catch (error) {
+				if (cancelled) return;
+				pendingRegionRef.current = REGION_JP;
+				currentRegion.current = REGION_JP;
+				mapRef.current?.animateToRegion(REGION_JP, 1000);
+				await searchSavedRestaurants(REGION_JP);
+			}
+		};
+
+		init();
+		return () => {
+			cancelled = true;
+		};
+	}, [getCurrentLocation, isJapanese, logFrontendEvent, searchSavedRestaurants]);
 
 	// #644 【設計】オートコンプリート選択時の処理
 	const handleAutocompleteSelect = useCallback(
@@ -376,6 +421,8 @@ export default function SelectRestaurantScreen() {
 			<MapView
 				ref={mapRef}
 				style={styles.map}
+				initialRegion={initialRegion}
+				onMapReady={() => setMapReady(true)}
 				onRegionChangeComplete={handleRegionChangeComplete}
 				onPoiClick={handlePoiPress}>
 				{/* #644 【設計】保存したお店のマーカー表示 */}
@@ -397,7 +444,7 @@ export default function SelectRestaurantScreen() {
 			{/* Loading Indicator */}
 			{isLoadingRestaurantCreation && (
 				<View style={styles.loadingOverlay}>
-					<ActivityIndicator size="large" color="#F05537" />
+					<LoadingIndicator size="large" />
 				</View>
 			)}
 
@@ -425,7 +472,7 @@ export default function SelectRestaurantScreen() {
 						placeholder={i18n.t("Map.placeholders.searchRestaurantsForReview")}
 						renderInputRight={
 							<TouchableOpacity style={styles.currentLocationButton} onPress={handleCurrentLocation}>
-								<Navigation size={20} color="#357AFF" />
+								<Navigation size={20} color="#000000" />
 							</TouchableOpacity>
 						}
 					/>
@@ -441,6 +488,8 @@ export default function SelectRestaurantScreen() {
 						shadowColor={"transparent"}
 						labelStyle={{ color: "#357AFF", fontSize: 14 }}
 						loading={isLoadingSavedRestaurants}
+						loadingIndicatorType="native"
+						nativeLoadingColor={"#357AFF"}
 					/>
 				</View>
 			</View>
