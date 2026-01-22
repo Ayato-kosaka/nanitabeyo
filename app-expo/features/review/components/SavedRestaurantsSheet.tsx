@@ -168,8 +168,7 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 					</View>
 				}
 				onDetentChange={handleDetentChange}>
-				{/* Android で gesture-handler が効かない対応 */}
-				<View style={styles.container}>
+				<View style={[styles.container, { flex: 1 }]}>
 					{/* #644 【UX】ローディング中はスケルトンを表示 */}
 					{isLoadingSavedRestaurants && savedRestaurants.length === 0 ? (
 						<>
@@ -328,7 +327,6 @@ function SkeletonCard() {
 
 const styles = StyleSheet.create({
 	container: {
-		flex: 1,
 		paddingTop: 12,
 		paddingBottom: 20,
 	},
