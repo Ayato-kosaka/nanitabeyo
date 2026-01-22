@@ -30,9 +30,16 @@ export interface PrimaryButtonProps {
 	borderRadius?: number;
 	/** 読み込み状態でインジケータ表示 */
 	loading?: boolean;
-	/** ローディングインジケータの種類（デフォルトはカスタム） */
+	/**
+	 * ローディングインジケータの種類
+	 * - "custom": 既定値。オレンジ色の Lottie アニメーションを使用（通常はこちらを利用）
+	 * - "native": React Native の ActivityIndicator を使用（背景色が明るく custom が視認しづらい既存ボタン向けの後方互換用）
+	 */
 	loadingIndicatorType?: "custom" | "native";
-	/** native(ActivityIndicator) の色（未指定なら label の色に寄せる） */
+	/**
+	 * loadingIndicatorType="native" のときの ActivityIndicator の色。
+	 * 明るい背景色ボタンでインジケータが見えづらい場合のみ指定する想定。未指定なら label の色に近い色を自動採用。
+	 */
 	nativeLoadingColor?: ColorValue;
 	/** 無効化 */
 	disabled?: boolean;
