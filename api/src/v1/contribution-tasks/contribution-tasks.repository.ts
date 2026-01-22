@@ -344,16 +344,34 @@ export class ContributionTasksRepository {
 
     // カーソル条件の構築
     if (cursor) {
-      const [lastCompletedAtStr, targetId] = cursor.split('|');
-      const lastCompletedAt = new Date(lastCompletedAtStr);
-      params.push(lastCompletedAt, targetId);
-      cursorCondition = `
+      const parts = cursor.split('|');
+      const lastCompletedAtStr = parts[0];
+      const targetId = parts[1];
+      const timestamp = lastCompletedAtStr ? Date.parse(lastCompletedAtStr) : NaN;
+
+      if (
+        parts.length === 2 &&
+        lastCompletedAtStr &&
+        targetId &&
+        !Number.isNaN(timestamp)
+      ) {
+        const lastCompletedAt = new Date(timestamp);
+        params.push(lastCompletedAt, targetId);
+        cursorCondition = `
         AND (
           MAX(created_at) < $${paramIndex}
           OR (MAX(created_at) = $${paramIndex} AND target_id < $${paramIndex + 1})
         )
       `;
-      paramIndex += 2;
+        paramIndex += 2;
+      } else {
+        // #9999 【バグ】不正なカーソルフォーマットの場合は条件を無視して誤動作を防ぐ
+        this.logger.warn(
+          'ContributionTasksRepository.findCompletedTargetIds',
+          'invalid_cursor_format',
+          { cursor },
+        );
+      }
     }
 
     params.push(minCount);
