@@ -90,6 +90,7 @@ const TUTORIAL_EXAMPLE_IMAGES = [
 ];
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
+const PAGE_WIDTH = SCREEN_WIDTH - 48;
 
 /* -------------------------------------------------------------------------- */
 /*                              メインコンポーネント                             */
@@ -144,8 +145,8 @@ export default function DishCategoryManualImageSupplyScreen() {
 		setLoadError(null);
 
 		try {
-			// Step 1: CDN JSONを取得
-			const cdnUrl = `https://${Env.CDN_PUBLIC_HOST}/${CDN_JSON_PATH}`;
+			// Step 1: CDN JSONをキャッシュバイパスで取得
+			const cdnUrl = `https://${Env.CDN_PUBLIC_HOST}/${CDN_JSON_PATH}?v=${Date.now()}`;
 			const jsonResponse = await fetch(cdnUrl);
 			if (!jsonResponse.ok) {
 				throw new Error("Failed to fetch candidate JSON");
@@ -501,7 +502,7 @@ export default function DishCategoryManualImageSupplyScreen() {
 					<Pressable onPress={handleCopyPrompt} style={styles.promptBox}>
 						<Text style={styles.promptText} numberOfLines={10}>
 							{
-								"提供後の料理を撮影した写真。\n料理そのものは誇張せず、現実的で自然な見た目。\n\n大きな器・鍋・トレイ・調理器具などに、\n料理や具材がたっぷりと入っている。\n画面の上から下まで、料理が連続して見える構成。\n\n料理は整理されすぎず、自然に重なり合っている。\n空白が少なく、料理の密度が高い。\n縦長にクロップしても、常に料理が画面を占める。\n\nスマートフォンで縦向きに撮影。\n最初から縦長構図として成立している。\n\n不自然な演出や誇張は禁止。\n質感はリアルで、温かさやおいしさが伝わる写真。\n\n縦長構図（9:16）、高解像度、SNS向け。\n\n\n料理は、「おでん」"
+								"料理名: ★★★ここに料理名を入れる★★★\n\n---\n\n**実在の飲食店で、提供直後に撮影された料理写真。**\n1品のみが写っており、同じ料理が複数並ぶことはない。\n\n料理は\n**その料理が一般的な外食体験において\n「もっとも自然で違和感のない提供方法」**\n（器・盛り付け・台・設備）で提供されている。\n\n迫力のために、\n不自然な器・設備に置き換えられることはない。\n\n---\n\n### 迫力の出し方（ここが肝）\n\n料理の種類に応じて、迫力は以下のいずれかで表現される：\n\n* **設備・熱源・重量感**（焼肉・鉄板系）\n* **完成形の美しさ・質感・艶**（定食・洋食・丼）\n* **量感・立体感・構成**（盛り込み系）\n\n迫力は\n**器を変えることで作らない。**\n料理の本質的な魅力で作る。\n\n---\n\n### 構図・縦長設計（維持）\n\nスマートフォンで縦向きに撮影。\n生成比率は **3:4**、9:16トリミング前提。\n\n* 上下方向に料理の情報が集まる\n* 左右は背景として自然に消える\n* 中央50〜60％に料理が収まる\n\n---\n\n### 器・リアリティ\n\n* 皿料理は **皿で出る**\n* 鉄板料理は **鉄板で出る**\n* 例外的演出は禁止\n\n家庭感・創作感・演出感は禁止。\n**「店でこれが出てきた記憶」と一致することを最優先。**\n\n---\n\n### 禁止事項（v4）\n\n* 迫力目的での鉄板化\n* 常識から外れた提供方法\n* 料理ジャンル無視の器選択\n* AI的演出・過剰な湯気\n"
 							}
 						</Text>
 					</Pressable>
@@ -523,8 +524,7 @@ export default function DishCategoryManualImageSupplyScreen() {
 	// #703 【処理】チュートリアルページスクロール時のページ番号更新
 	const handleTutorialScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
 		const offsetX = event.nativeEvent.contentOffset.x;
-		const pageWidth = event.nativeEvent.layoutMeasurement.width;
-		const currentPage = Math.round(offsetX / pageWidth);
+		const currentPage = Math.round(offsetX / PAGE_WIDTH);
 		setTutorialPage(currentPage);
 	}, []);
 
@@ -667,8 +667,8 @@ export default function DishCategoryManualImageSupplyScreen() {
 						keyExtractor={(item) => item.key}
 						renderItem={({ item }) => <View style={[styles.tutorialPageWrapper]}>{item.component}</View>}
 						getItemLayout={(_, index) => ({
-							length: width,
-							offset: width * index,
+							length: PAGE_WIDTH,
+							offset: PAGE_WIDTH * index,
 							index,
 						})}
 					/>
@@ -896,7 +896,7 @@ const styles = StyleSheet.create({
 		overflow: "hidden",
 	},
 	tutorialPageWrapper: {
-		width: SCREEN_WIDTH - 48, // モーダルのパディング分を引く
+		width: PAGE_WIDTH,
 	},
 	tutorialPageContainer: {
 		flex: 1,
@@ -987,7 +987,7 @@ const styles = StyleSheet.create({
 		backgroundColor: "#FFF",
 		borderRadius: 16,
 		marginHorizontal: 20,
-		width: SCREEN_WIDTH - 40,
+		width: PAGE_WIDTH,
 		padding: 16,
 		alignSelf: "center",
 		alignItems: "center",
