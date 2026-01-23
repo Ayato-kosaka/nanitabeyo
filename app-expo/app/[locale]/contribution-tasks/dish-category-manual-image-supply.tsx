@@ -12,7 +12,6 @@ import {
 	Text,
 	ActivityIndicator,
 	useWindowDimensions,
-	Platform,
 	FlatList,
 	NativeScrollEvent,
 	NativeSyntheticEvent,
@@ -262,12 +261,6 @@ export default function DishCategoryManualImageSupplyScreen() {
 				payload: { targetId: item.category_id },
 			});
 
-			// アップロード中にセット
-			setItemStates((prev) => ({
-				...prev,
-				[item.category_id]: { ...prev[item.category_id], uploadState: "uploading" },
-			}));
-
 			try {
 				// 画像選択
 				const result = await selectMedia(["images"], {
@@ -276,12 +269,14 @@ export default function DishCategoryManualImageSupplyScreen() {
 
 				if (!result.success || !result.media) {
 					// キャンセルまたは失敗
-					setItemStates((prev) => ({
-						...prev,
-						[item.category_id]: { ...prev[item.category_id], uploadState: "idle" },
-					}));
 					return;
 				}
+
+				// アップロード中にセット
+				setItemStates((prev) => ({
+					...prev,
+					[item.category_id]: { ...prev[item.category_id], uploadState: "uploading" },
+				}));
 
 				// アップロード
 				const { uri, mimeType, width, height } = result.media;
@@ -602,12 +597,17 @@ export default function DishCategoryManualImageSupplyScreen() {
 					// #703 【設計】3列目のカードは右マージンなし
 					const isLastInRow = (index + 1) % GRID_COLUMNS === 0;
 
+					const imageSource =
+						uploadState === "success" && state?.uploaded?.previewUri
+							? { uri: state.uploaded.previewUri }
+							: { uri: item.imageUrl };
+
 					return (
 						<Pressable
 							key={item.category_id}
 							onPress={() => handleCardPress(item)}
 							style={[styles.card, { width: cardWidth, height: cardHeight, marginRight: isLastInRow ? 0 : CARD_GAP }]}>
-							<Image source={{ uri: item.imageUrl }} style={styles.cardImage} contentFit="cover" />
+							<Image source={imageSource} style={styles.cardImage} contentFit="cover" />
 
 							{/* オーバーレイ（カテゴリ名） */}
 							<View style={styles.cardOverlay}>
@@ -712,7 +712,7 @@ export default function DishCategoryManualImageSupplyScreen() {
 									uri: itemStates[selectedItem.category_id]?.uploaded?.previewUri ?? selectedItem.imageUrl,
 								}}
 								style={styles.detailImage}
-								contentFit="contain"
+								contentFit="cover"
 							/>
 							{/* オーバーレイ */}
 							<View style={styles.detailOverlay}>
@@ -725,19 +725,32 @@ export default function DishCategoryManualImageSupplyScreen() {
 
 						{/* ボタン */}
 						<View style={styles.detailButtons}>
+							{itemStates[selectedItem.category_id]?.uploadState === "success" ? (
+								<PrimaryButton
+									label="元に戻す"
+									onPress={() => handleResetImage(selectedItem)}
+									colors={["#FFF", "#FFF"]}
+									labelStyle={styles.detailResetButtonText}
+									style={styles.detailMainButton}
+								/>
+							) : (
+								<PrimaryButton
+									label="画像を選ぶ"
+									onPress={() => handleSelectImage(selectedItem)}
+									disabled={itemStates[selectedItem.category_id]?.uploadState === "uploading"}
+									loading={itemStates[selectedItem.category_id]?.uploadState === "uploading"}
+									style={styles.detailMainButton}
+								/>
+							)}
+
+							{/* 閉じる */}
 							<PrimaryButton
-								label="画像を選ぶ"
-								onPress={() => handleSelectImage(selectedItem)}
-								disabled={itemStates[selectedItem.category_id]?.uploadState === "uploading"}
-								loading={itemStates[selectedItem.category_id]?.uploadState === "uploading"}
+								label="閉じる"
+								onPress={() => detailModal.close()}
+								colors={["#FFF", "#FFF"]}
+								labelStyle={styles.detailResetButtonText}
 								style={styles.detailMainButton}
 							/>
-
-							{itemStates[selectedItem.category_id]?.uploadState === "success" && (
-								<Pressable onPress={() => handleResetImage(selectedItem)} style={styles.detailResetButton}>
-									<Text style={styles.detailResetButtonText}>元に戻す</Text>
-								</Pressable>
-							)}
 
 							{/* 状態メッセージ */}
 							{itemStates[selectedItem.category_id]?.uploadState === "uploading" && (
@@ -976,12 +989,14 @@ const styles = StyleSheet.create({
 		backgroundColor: "#FFF",
 		borderRadius: 16,
 		marginHorizontal: 20,
-		maxWidth: 500,
+		width: SCREEN_WIDTH - 40,
+		padding: 16,
 		alignSelf: "center",
+		alignItems: "center",
 		overflow: "hidden",
 	},
 	detailImageContainer: {
-		width: "100%",
+		width: "70%",
 		aspectRatio: 9 / 16,
 		position: "relative",
 	},
@@ -1009,6 +1024,7 @@ const styles = StyleSheet.create({
 		lineHeight: 18,
 	},
 	detailButtons: {
+		width: "100%",
 		padding: 16,
 	},
 	detailMainButton: {
