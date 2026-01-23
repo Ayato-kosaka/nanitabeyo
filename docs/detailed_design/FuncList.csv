@@ -33,3 +33,4 @@
 "","Auth","A","DataBase","DB","role_permissions","ロールに付与されている権限の対応付け（多対多）を管理するテーブル"
 "","Auth","A","DataBase","DB","user_roles","ユーザーに割り当てられたロール（多対多）の対応付けテーブル"
 "","Common","C","DataBase","DB","config","アプリの動作に関わる設定値を保持するテーブル"
+"","Dish","D","DataBase","DB","contribution_tasks","ユーザー協力・フィードバックを汎用的に記録するためのテーブル。企画（task_key）単位で、ユーザーに提示した内容（payload）と回答結果（result）を事実ログとして保存する。特定の更新処理や集計ロジックには依存しない設計。"
