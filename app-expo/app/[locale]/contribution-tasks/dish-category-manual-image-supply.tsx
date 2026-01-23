@@ -13,11 +13,15 @@ import {
 	ActivityIndicator,
 	useWindowDimensions,
 	Platform,
+	FlatList,
+	NativeScrollEvent,
+	NativeSyntheticEvent,
 } from "react-native";
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { HelpCircle, CheckCircle2, AlertTriangle, Loader2 } from "lucide-react-native";
 import { useRouter } from "expo-router";
+import * as Clipboard from "expo-clipboard";
 
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { useLogger } from "@/hooks/useLogger";
@@ -27,6 +31,8 @@ import { selectMedia } from "@/lib/mediaSelection";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { Env } from "@/constants/Env";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useSnackbar } from "@/contexts/SnackbarProvider";
+import i18n from "@/lib/i18n";
 
 /* -------------------------------------------------------------------------- */
 /*                                    型定義                                   */
@@ -76,6 +82,14 @@ const CDN_JSON_PATH = "tickets/703/dish_category_manual_image_supply_v1.latest.j
 
 const TUTORIAL_STORAGE_KEY = "dish_manual_image_supply_tutorial_shown";
 
+// #703 【設計】チュートリアル2ページ目に表示する9:16画像サンプル（4枚）
+const TUTORIAL_EXAMPLE_IMAGES = [
+	`https://${Env.CDN_PUBLIC_HOST}/tickets/703/tutorial/tutorial_9x16_1.jpg`,
+	`https://${Env.CDN_PUBLIC_HOST}/tickets/703/tutorial/tutorial_9x16_2.jpg`,
+	`https://${Env.CDN_PUBLIC_HOST}/tickets/703/tutorial/tutorial_9x16_3.jpg`,
+	`https://${Env.CDN_PUBLIC_HOST}/tickets/703/tutorial/tutorial_9x16_4.jpg`,
+];
+
 /* -------------------------------------------------------------------------- */
 /*                              メインコンポーネント                             */
 /* -------------------------------------------------------------------------- */
@@ -87,6 +101,7 @@ export default function DishCategoryManualImageSupplyScreen() {
 	const { logFrontendEvent } = useLogger();
 	const { callBackend } = useAPICall();
 	const { uploadFile } = useFileUploader();
+	const { showSnackbar } = useSnackbar();
 
 	// #703 【状態】候補アイテムリスト（除外後）
 	const [items, setItems] = useState<CandidateItem[]>([]);
@@ -99,6 +114,8 @@ export default function DishCategoryManualImageSupplyScreen() {
 	const [loadError, setLoadError] = useState<string | null>(null);
 	// #703 【状態】チュートリアルモーダル
 	const [showTutorial, setShowTutorial] = useState(false);
+	// #703 【状態】チュートリアルのページ番号（0-indexed）
+	const [tutorialPage, setTutorialPage] = useState(0);
 	// #703 【状態】サンクス画面表示
 	const [showThanks, setShowThanks] = useState(false);
 	// #703 【状態】詳細モーダルで選択中のアイテム
@@ -421,6 +438,114 @@ export default function DishCategoryManualImageSupplyScreen() {
 	/*                              レンダリング                                  */
 	/* -------------------------------------------------------------------------- */
 
+	// #703 【コンポーネント】チュートリアルページ1：使い方
+	const TutorialPage1 = () => (
+		<ScrollView style={styles.tutorialPageContainer} contentContainerStyle={styles.tutorialPageContent}>
+			<Text style={styles.tutorialPageTitle}>{i18n.t("DishCategoryManualImageSupply.tutorial.page1.title")}</Text>
+			<View style={styles.tutorialStepsContainer}>
+				<Text style={styles.tutorialStep}>• {i18n.t("DishCategoryManualImageSupply.tutorial.page1.step1")}</Text>
+				<Text style={styles.tutorialStep}>• {i18n.t("DishCategoryManualImageSupply.tutorial.page1.step2")}</Text>
+				<Text style={styles.tutorialStep}>• {i18n.t("DishCategoryManualImageSupply.tutorial.page1.step3")}</Text>
+			</View>
+		</ScrollView>
+	);
+
+	// #703 【コンポーネント】チュートリアルページ2：こんな画像が欲しい
+	const TutorialPage2 = () => (
+		<ScrollView style={styles.tutorialPageContainer} contentContainerStyle={styles.tutorialPageContent}>
+			<Text style={styles.tutorialPageTitle}>{i18n.t("DishCategoryManualImageSupply.tutorial.page2.title")}</Text>
+			<View style={styles.tutorialStepsContainer}>
+				<Text style={styles.tutorialStep}>
+					• {i18n.t("DishCategoryManualImageSupply.tutorial.page2.description1")}
+				</Text>
+				<Text style={styles.tutorialStep}>
+					• {i18n.t("DishCategoryManualImageSupply.tutorial.page2.description2")}
+				</Text>
+				<Text style={styles.tutorialStep}>
+					• {i18n.t("DishCategoryManualImageSupply.tutorial.page2.description3")}
+				</Text>
+			</View>
+			{/* #703 【表示】9:16画像の2×2グリッド */}
+			<View style={styles.tutorialImageGrid}>
+				{TUTORIAL_EXAMPLE_IMAGES.map((uri, index) => (
+					<View key={index} style={styles.tutorialImageWrapper}>
+						<Image source={{ uri }} style={styles.tutorialImage} contentFit="cover" />
+					</View>
+				))}
+			</View>
+		</ScrollView>
+	);
+
+	// #703 【コンポーネント】チュートリアルページ3：AI画像生成のやり方
+	const TutorialPage3 = () => {
+		// #703 【処理】プロンプトをコピー
+		const handleCopyPrompt = useCallback(async () => {
+			try {
+				const promptText = i18n.t("DishCategoryManualImageSupply.tutorial.page3.promptExample", {
+					dishName: "おでん",
+				});
+				await Clipboard.setStringAsync(promptText);
+				showSnackbar(i18n.t("Common.promptCopied"));
+
+				logFrontendEvent({
+					event_name: "dish_manual_image_supply_prompt_copied",
+					error_level: "log",
+					payload: {},
+				});
+			} catch (err) {
+				console.warn("Failed to copy prompt", err);
+			}
+		}, [showSnackbar, logFrontendEvent]);
+
+		return (
+			<ScrollView style={styles.tutorialPageContainer} contentContainerStyle={styles.tutorialPageContent}>
+				<Text style={styles.tutorialPageTitle}>{i18n.t("DishCategoryManualImageSupply.tutorial.page3.title")}</Text>
+				<View style={styles.tutorialStepsContainer}>
+					<Text style={styles.tutorialStep}>
+						• {i18n.t("DishCategoryManualImageSupply.tutorial.page3.description1")}
+					</Text>
+					<Text style={styles.tutorialStep}>
+						• {i18n.t("DishCategoryManualImageSupply.tutorial.page3.description2")}
+					</Text>
+				</View>
+
+				{/* #703 【表示】プロンプト例 */}
+				<View style={styles.promptSection}>
+					<Text style={styles.promptTitle}>{i18n.t("DishCategoryManualImageSupply.tutorial.page3.promptTitle")}</Text>
+					<Pressable onPress={handleCopyPrompt} style={styles.promptBox}>
+						<Text style={styles.promptText} numberOfLines={10}>
+							{i18n.t("DishCategoryManualImageSupply.tutorial.page3.promptExample", {
+								dishName: "おでん",
+							})}
+						</Text>
+					</Pressable>
+				</View>
+			</ScrollView>
+		);
+	};
+
+	// #703 【算出】チュートリアルページデータ
+	const tutorialPages = useMemo(
+		() => [
+			{ key: "page1", component: <TutorialPage1 /> },
+			{ key: "page2", component: <TutorialPage2 /> },
+			{ key: "page3", component: <TutorialPage3 /> },
+		],
+		[],
+	);
+
+	// #703 【処理】チュートリアルページスクロール時のページ番号更新
+	const handleTutorialScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+		const offsetX = event.nativeEvent.contentOffset.x;
+		const pageWidth = event.nativeEvent.layoutMeasurement.width;
+		const currentPage = Math.round(offsetX / pageWidth);
+		setTutorialPage(currentPage);
+	}, []);
+
+	/* -------------------------------------------------------------------------- */
+	/*                              レンダリング                                  */
+	/* -------------------------------------------------------------------------- */
+
 	// #703 【表示】ローディング中
 	if (isLoadingCandidates) {
 		return (
@@ -541,17 +666,42 @@ export default function DishCategoryManualImageSupplyScreen() {
 			{/* チュートリアルモーダル */}
 			<tutorialModal.BlurModal showCloseButton={true}>
 				<View style={styles.tutorialModal}>
-					<Text style={styles.tutorialTitle}>使い方</Text>
-					<Text style={styles.tutorialText}>
-						・料理カテゴリをタップ{"\n"}
-						・AIで生成した美味しそうな画像を選択{"\n"}
-						・送信ボタンで完了！{"\n"}
-						{"\n"}
-						＜プロンプト例＞{"\n"}
-						"美味しそうな◯◯の写真"
-					</Text>
+					{/* #703 【表示】ページ化されたチュートリアル（横スワイプ） */}
+					<FlatList
+						data={tutorialPages}
+						horizontal
+						pagingEnabled
+						showsHorizontalScrollIndicator={false}
+						onMomentumScrollEnd={handleTutorialScroll}
+						keyExtractor={(item) => item.key}
+						renderItem={({ item }) => (
+							<View style={[styles.tutorialPageWrapper, { width }]}>
+								{item.component}
+							</View>
+						)}
+						getItemLayout={(_, index) => ({
+							length: width,
+							offset: width * index,
+							index,
+						})}
+					/>
+
+					{/* #703 【表示】ページインジケーター（ドット3つ） */}
+					<View style={styles.pageIndicatorContainer}>
+						{tutorialPages.map((_, index) => (
+							<View
+								key={index}
+								style={[
+									styles.pageIndicatorDot,
+									index === tutorialPage && styles.pageIndicatorDotActive,
+								]}
+							/>
+						))}
+					</View>
+
+					{/* #703 【ボタン】閉じるボタン */}
 					<PrimaryButton
-						label="さっそくやってみる！"
+						label={i18n.t("DishCategoryManualImageSupply.tutorial.closeButton")}
 						onPress={async () => {
 							try {
 								await AsyncStorage.setItem(TUTORIAL_STORAGE_KEY, "true");
@@ -742,25 +892,96 @@ const styles = StyleSheet.create({
 	tutorialModal: {
 		backgroundColor: "#FFF",
 		borderRadius: 16,
-		padding: 24,
 		marginHorizontal: 20,
-		maxWidth: 400,
+		maxWidth: 600,
 		alignSelf: "center",
+		overflow: "hidden",
 	},
-	tutorialTitle: {
+	tutorialPageWrapper: {
+		// width は FlatList の renderItem で動的に設定
+	},
+	tutorialPageContainer: {
+		flex: 1,
+	},
+	tutorialPageContent: {
+		padding: 24,
+		paddingBottom: 16,
+	},
+	tutorialPageTitle: {
 		fontSize: 22,
 		fontWeight: "700",
 		color: "#333",
 		marginBottom: 16,
 		textAlign: "center",
 	},
-	tutorialText: {
+	tutorialStepsContainer: {
+		marginBottom: 20,
+	},
+	tutorialStep: {
 		fontSize: 15,
 		color: "#666",
-		lineHeight: 22,
-		marginBottom: 24,
+		lineHeight: 24,
+		marginBottom: 8,
+	},
+	tutorialImageGrid: {
+		flexDirection: "row",
+		flexWrap: "wrap",
+		justifyContent: "space-between",
+		marginTop: 8,
+	},
+	tutorialImageWrapper: {
+		width: "48%",
+		aspectRatio: 9 / 16,
+		borderRadius: 8,
+		overflow: "hidden",
+		backgroundColor: "#F5F5F5",
+		marginBottom: 8,
+	},
+	tutorialImage: {
+		width: "100%",
+		height: "100%",
+	},
+	promptSection: {
+		marginTop: 12,
+	},
+	promptTitle: {
+		fontSize: 14,
+		fontWeight: "600",
+		color: "#666",
+		marginBottom: 8,
+	},
+	promptBox: {
+		backgroundColor: "#F5F5F5",
+		borderRadius: 8,
+		padding: 12,
+		borderWidth: 1,
+		borderColor: "#E0E0E0",
+	},
+	promptText: {
+		fontSize: 13,
+		color: "#333",
+		lineHeight: 18,
+	},
+	pageIndicatorContainer: {
+		flexDirection: "row",
+		justifyContent: "center",
+		alignItems: "center",
+		paddingVertical: 12,
+		gap: 8,
+	},
+	pageIndicatorDot: {
+		width: 8,
+		height: 8,
+		borderRadius: 4,
+		backgroundColor: "#DDD",
+	},
+	pageIndicatorDotActive: {
+		backgroundColor: "#FF6B6B",
+		width: 24,
 	},
 	tutorialButton: {
+		marginHorizontal: 24,
+		marginBottom: 24,
 		paddingVertical: 14,
 	},
 	detailModal: {

@@ -12,6 +12,7 @@
 		"error": "Une erreur s'est produite. Veuillez réessayer.",
 		"success": "Succès",
 		"linkCopied": "Lien copié dans le presse-papiers",
+		"promptCopied": "Invite copiée",
 		"shareFailed": "Échec du partage du contenu",
 		"defaultTitle": "CraveCatch - Find your dish",
 		"defaultDesc": "Indique simplement à l’application ce que vous ressentez, et notre IA vous proposera des plats que vous aurez probablement envie de déguster. Parcourez ensuite de vraies photos de plats et des avis pour choisir instantanément le restaurant qui vous convient.",
@@ -29,6 +30,30 @@
 			"network": "Une erreur réseau s'est produite. Veuillez vérifier votre connexion.",
 			"unexpected": "Une erreur inattendue s'est produite. Veuillez réessayer plus tard.",
 			"notFound": "Non trouvé"
+		}
+	},
+	"DishCategoryManualImageSupply": {
+		"tutorial": {
+			"page1": {
+				"title": "Comment utiliser",
+				"step1": "Appuyez sur une catégorie de plat",
+				"step2": "Sélectionnez une image délicieuse générée par l'IA",
+				"step3": "Complétez en appuyant sur le bouton 'Soumettre les images'!"
+			},
+			"page2": {
+				"title": "Les images que nous voulons",
+				"description1": "Orientation portrait (9:16), avec le plat comme point focal",
+				"description2": "Le plat doit être grand dans le cadre, avec un arrière-plan simple",
+				"description3": "Évitez les images avec du texte ou des collages"
+			},
+			"page3": {
+				"title": "Créer avec l'IA",
+				"description1": "Essayez de créer des images avec des noms de plats dans un générateur d'images IA",
+				"description2": "Sélectionnez et soumettez les images créées sur cet écran!",
+				"promptTitle": "Exemple d'invite (appuyez pour copier)",
+				"promptExample": "Une photo d'un plat servi.\nLe plat lui-même n'est pas exagéré, réaliste et d'apparence naturelle.\n\nGrands plats, pots, plateaux ou ustensiles de cuisine,\nremplis généreusement de nourriture et d'ingrédients.\nComposition où la nourriture est visible du haut au bas du cadre.\n\nLa nourriture n'est pas trop organisée, chevauchement naturel.\nEspace vide minimal, densité alimentaire élevée.\nMême lorsqu'il est recadré au format portrait, la nourriture remplit toujours le cadre.\n\nPhotographié avec un smartphone en orientation portrait.\nLa composition fonctionne en portrait dès le départ.\n\nPas de mise en scène contre nature ou d'exagération.\nTexture réaliste qui transmet la chaleur et la déliciosité.\n\nComposition portrait (9:16), haute résolution, pour les réseaux sociaux.\n\n\nLe plat est: \"{{dishName}}\""
+			},
+			"closeButton": "Essayons maintenant!"
 		}
 	},
 	"Error": {

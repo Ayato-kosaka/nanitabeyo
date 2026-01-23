@@ -12,6 +12,7 @@
 		"error": "Se produjo un error. Vuelve a intentarlo.",
 		"success": "Éxito",
 		"linkCopied": "Enlace copiado al portapapeles",
+		"promptCopied": "Indicación copiada",
 		"shareFailed": "No se pudo compartir el contenido",
 		"defaultTitle": "CraveCatch - Find your dish",
 		"defaultDesc": "Simplemente dile a la app cómo te sientes y nuestra IA te sugerirá los platos que probablemente se te antojen. Luego, explora fotos reales de comida y reseñas para elegir al instante el restaurante que te parezca adecuado.",
@@ -29,6 +30,30 @@
 			"network": "Se produjo un error de red. Por favor, verifica tu conexión.",
 			"unexpected": "Se produjo un error inesperado. Por favor, inténtalo más tarde.",
 			"notFound": "No encontrado"
+		}
+	},
+	"DishCategoryManualImageSupply": {
+		"tutorial": {
+			"page1": {
+				"title": "Cómo usar",
+				"step1": "Pulsa una categoría de plato",
+				"step2": "Selecciona una imagen de apariencia deliciosa generada por IA",
+				"step3": "Completa presionando el botón 'Enviar imágenes'!"
+			},
+			"page2": {
+				"title": "Las imágenes que queremos",
+				"description1": "Orientación vertical (9:16), con el plato como punto focal",
+				"description2": "El plato debe ser grande en el encuadre, con fondo simple",
+				"description3": "Evita imágenes con texto o collages"
+			},
+			"page3": {
+				"title": "Crear con IA",
+				"description1": "Intenta crear imágenes con nombres de platos en un generador de imágenes de IA",
+				"description2": "Selecciona y envía las imágenes creadas en esta pantalla!",
+				"promptTitle": "Ejemplo de indicación (pulsa para copiar)",
+				"promptExample": "Una foto de un plato servido.\nEl plato en sí no es exagerado, se ve realista y natural.\n\nPlatos grandes, ollas, bandejas o utensilios de cocina,\nllenados generosamente con comida e ingredientes.\nComposición donde la comida es visible de arriba a abajo del encuadre.\n\nLa comida no está demasiado organizada, se superpone naturalmente.\nEspacio mínimo vacío, alta densidad de alimentos.\nIncluso cuando se recorta verticalmente, la comida siempre llena el encuadre.\n\nFotografiado con smartphone en orientación vertical.\nLa composición funciona verticalmente desde el principio.\n\nSin escenificación antinatural ni exageración.\nTextura realista que transmite calidez y delicia.\n\nComposición vertical (9:16), alta resolución, para redes sociales.\n\n\nEl plato es: \"{{dishName}}\""
+			},
+			"closeButton": "¡Vamos a intentarlo!"
 		}
 	},
 	"Error": {

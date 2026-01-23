@@ -12,6 +12,7 @@
 		"error": "An error occurred. Please try again.",
 		"success": "Success",
 		"linkCopied": "Link copied to clipboard",
+		"promptCopied": "Prompt copied",
 		"shareFailed": "Failed to share content",
 		"defaultTitle": "CraveCatch - Find your dish",
 		"defaultDesc": "Simply tell the app how you feel, and our AI will suggest dishes you'll likely crave. Then browse real food photos and reviews to instantly pick a restaurant that feels right.",
@@ -29,6 +30,30 @@
 			"network": "A network error occurred. Please check your connection.",
 			"unexpected": "An unexpected error occurred. Please try again later.",
 			"notFound": "Not found"
+		}
+	},
+	"DishCategoryManualImageSupply": {
+		"tutorial": {
+			"page1": {
+				"title": "How to Use",
+				"step1": "Tap a dish category",
+				"step2": "Select a delicious-looking AI-generated image",
+				"step3": "Complete by pressing 'Submit Images' button!"
+			},
+			"page2": {
+				"title": "Images We Want",
+				"description1": "Portrait orientation (9:16), with the dish as the focal point",
+				"description2": "Dish should be large in frame, with simple background",
+				"description3": "Avoid images with text or collages"
+			},
+			"page3": {
+				"title": "Create with AI",
+				"description1": "Try creating images with dish names in an AI image generator",
+				"description2": "Select and submit the created images on this screen!",
+				"promptTitle": "Example Prompt (tap to copy)",
+				"promptExample": "A photo of served dish.\nThe dish itself is not exaggerated, realistic and natural looking.\n\nLarge plates, pots, trays, or cookware,\nfilled generously with food and ingredients.\nComposition where food is visible from top to bottom of the frame.\n\nFood is not overly organized, naturally overlapping.\nMinimal empty space, high food density.\nEven when cropped to portrait, food always fills the frame.\n\nShot with smartphone in portrait orientation.\nComposition works as portrait from the start.\n\nNo unnatural staging or exaggeration.\nRealistic texture that conveys warmth and deliciousness.\n\nPortrait composition (9:16), high resolution, for social media.\n\n\nThe dish is: \"{{dishName}}\""
+			},
+			"closeButton": "Let's try it!"
 		}
 	},
 	"Error": {

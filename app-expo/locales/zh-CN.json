@@ -12,6 +12,7 @@
 		"error": "发生错误。请重试。",
 		"success": "成功",
 		"linkCopied": "链接已复制到剪贴板",
+		"promptCopied": "提示词已复制",
 		"shareFailed": "分享内容失败",
 		"defaultTitle": "CraveCatch - Find your dish",
 		"defaultDesc": "只需告诉应用你的心情，我们的 AI 就会推荐你可能想吃的菜。然后浏览真实的美食照片和评论，立即选择一个合适的餐厅。",
@@ -29,6 +30,30 @@
 			"network": "发生网络错误。请检查您的连接。",
 			"unexpected": "发生意外错误。请稍后重试。",
 			"notFound": "未找到"
+		}
+	},
+	"DishCategoryManualImageSupply": {
+		"tutorial": {
+			"page1": {
+				"title": "使用方法",
+				"step1": "点击菜品分类",
+				"step2": "选择一张由AI生成的看起来美味的图片",
+				"step3": "点击提交图片按钮完成！"
+			},
+			"page2": {
+				"title": "我们想要的图片",
+				"description1": "竖画幅(9:16)，菜品为焦点",
+				"description2": "菜品在画面中应该较大，背景应该简洁",
+				"description3": "避免包含文字或拼贴的图片"
+			},
+			"page3": {
+				"title": "使用AI创建",
+				"description1": "尝试在AI图像生成器中使用菜品名称生成图片",
+				"description2": "在此屏幕上选择生成的图片并提交！",
+				"promptTitle": "提示词示例（点击复制）",
+				"promptExample": "A photo of served dish.\nThe dish itself is not exaggerated, realistic and natural looking.\n\nLarge plates, pots, trays, or cookware,\nfilled generously with food and ingredients.\nComposition where food is visible from top to bottom of the frame.\n\nFood is not overly organized, naturally overlapping.\nMinimal empty space, high food density.\nEven when cropped to portrait, food always fills the frame.\n\nShot with smartphone in portrait orientation.\nComposition works as portrait from the start.\n\nNo unnatural staging or exaggeration.\nRealistic texture that conveys warmth and deliciousness.\n\nPortrait composition (9:16), high resolution, for social media.\n\n\nThe dish is: \"{{dishName}}\""
+			},
+			"closeButton": "让我们试试吧！"
 		}
 	},
 	"Error": {
