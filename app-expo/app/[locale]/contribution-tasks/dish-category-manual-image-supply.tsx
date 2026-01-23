@@ -4,16 +4,7 @@
 // ユーザー協力で料理カテゴリの画像を改善するための単体画面
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import {
-	View,
-	StyleSheet,
-	ScrollView,
-	Pressable,
-	Text,
-	ActivityIndicator,
-	useWindowDimensions,
-	Platform,
-} from "react-native";
+import { View, StyleSheet, ScrollView, Pressable, Text, ActivityIndicator, useWindowDimensions } from "react-native";
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { HelpCircle, CheckCircle2, AlertTriangle, Loader2 } from "lucide-react-native";
@@ -34,7 +25,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // #703 【設計】CDN JSON から取得する候補アイテムの型
 type CandidateItem = {
-	targetId: string; // dish_category_id (Wikidata QID)
+	category_id: string; // dish_category_id (Wikidata QID)
 	category: string; // 表示名
 	imageUrl: string; // 候補画像
 	topicTitle: string; // モーダル下部に表示するタイトル
@@ -42,9 +33,7 @@ type CandidateItem = {
 };
 
 // #703 【設計】CDN JSON のスキーマ
-type CandidateJson = {
-	items: CandidateItem[];
-};
+type CandidateJson = CandidateItem[];
 
 // #703 【設計】アップロード状態
 type UploadState = "idle" | "uploading" | "success" | "error";
@@ -75,6 +64,9 @@ const TYPE = "image_feedback";
 const CDN_JSON_PATH = "tickets/703/dish_category_manual_image_supply_v1.latest.json";
 
 const TUTORIAL_STORAGE_KEY = "dish_manual_image_supply_tutorial_shown";
+
+// 一度に表示するアイテム数
+const ITEMS_PER_PAGE = 30;
 
 /* -------------------------------------------------------------------------- */
 /*                              メインコンポーネント                             */
@@ -157,13 +149,15 @@ export default function DishCategoryManualImageSupplyScreen() {
 			}
 
 			// Step 3: 除外処理
-			const filteredItems = jsonData.items.filter((item) => !completedIds.includes(item.targetId));
+			const filteredItems = jsonData
+				.filter((item) => !completedIds.includes(item.category_id))
+				.slice(0, ITEMS_PER_PAGE); // 一定数に制限
 			setItems(filteredItems);
 
 			// Step 4: アイテム状態の初期化
 			const initialStates: Record<string, ItemState> = {};
 			filteredItems.forEach((item) => {
-				initialStates[item.targetId] = { uploadState: "idle" };
+				initialStates[item.category_id] = { uploadState: "idle" };
 			});
 			setItemStates(initialStates);
 		} catch (err) {
@@ -222,7 +216,7 @@ export default function DishCategoryManualImageSupplyScreen() {
 			logFrontendEvent({
 				event_name: "dish_manual_image_supply_item_opened",
 				error_level: "log",
-				payload: { targetId: item.targetId },
+				payload: { targetId: item.category_id },
 			});
 		},
 		[detailModal, logFrontendEvent],
@@ -238,13 +232,13 @@ export default function DishCategoryManualImageSupplyScreen() {
 			logFrontendEvent({
 				event_name: "dish_manual_image_supply_upload_started",
 				error_level: "log",
-				payload: { targetId: item.targetId },
+				payload: { targetId: item.category_id },
 			});
 
 			// アップロード中にセット
 			setItemStates((prev) => ({
 				...prev,
-				[item.targetId]: { ...prev[item.targetId], uploadState: "uploading" },
+				[item.category_id]: { ...prev[item.category_id], uploadState: "uploading" },
 			}));
 
 			try {
@@ -257,14 +251,14 @@ export default function DishCategoryManualImageSupplyScreen() {
 					// キャンセルまたは失敗
 					setItemStates((prev) => ({
 						...prev,
-						[item.targetId]: { ...prev[item.targetId], uploadState: "idle" },
+						[item.category_id]: { ...prev[item.category_id], uploadState: "idle" },
 					}));
 					return;
 				}
 
 				// アップロード
 				const { uri, mimeType, width, height } = result.media;
-				const fileName = `dish_category_${item.targetId}_${Date.now()}.jpg`;
+				const fileName = `dish_category_${item.category_id}_${Date.now()}.jpg`;
 				const objectPath = await uploadFile(uri, {
 					mimeType,
 					baseFileName: fileName,
@@ -273,7 +267,7 @@ export default function DishCategoryManualImageSupplyScreen() {
 				// 成功
 				setItemStates((prev) => ({
 					...prev,
-					[item.targetId]: {
+					[item.category_id]: {
 						uploadState: "success",
 						uploaded: {
 							originalPath: objectPath,
@@ -288,19 +282,19 @@ export default function DishCategoryManualImageSupplyScreen() {
 				logFrontendEvent({
 					event_name: "dish_manual_image_supply_upload_succeeded",
 					error_level: "log",
-					payload: { targetId: item.targetId, objectPath },
+					payload: { targetId: item.category_id, objectPath },
 				});
 			} catch (err) {
 				console.error("Upload failed", err);
 				setItemStates((prev) => ({
 					...prev,
-					[item.targetId]: { ...prev[item.targetId], uploadState: "error" },
+					[item.category_id]: { ...prev[item.category_id], uploadState: "error" },
 				}));
 
 				logFrontendEvent({
 					event_name: "dish_manual_image_supply_upload_failed",
 					error_level: "error",
-					payload: { targetId: item.targetId, error: err instanceof Error ? err.message : String(err) },
+					payload: { targetId: item.category_id, error: err instanceof Error ? err.message : String(err) },
 				});
 			}
 		},
@@ -314,7 +308,7 @@ export default function DishCategoryManualImageSupplyScreen() {
 	const handleResetImage = useCallback((item: CandidateItem) => {
 		setItemStates((prev) => ({
 			...prev,
-			[item.targetId]: { uploadState: "idle", uploaded: undefined },
+			[item.category_id]: { uploadState: "idle", uploaded: undefined },
 		}));
 	}, []);
 
@@ -324,7 +318,7 @@ export default function DishCategoryManualImageSupplyScreen() {
 
 	const handleSubmit = useCallback(async () => {
 		// #703 【処理】送信処理（1件ずつPOST）
-		const readyItems = items.filter((item) => itemStates[item.targetId]?.uploadState === "success");
+		const readyItems = items.filter((item) => itemStates[item.category_id]?.uploadState === "success");
 
 		if (readyItems.length === 0) return;
 
@@ -339,7 +333,7 @@ export default function DishCategoryManualImageSupplyScreen() {
 		let failCount = 0;
 
 		for (const item of readyItems) {
-			const state = itemStates[item.targetId];
+			const state = itemStates[item.category_id];
 			if (!state?.uploaded) continue;
 
 			try {
@@ -349,7 +343,7 @@ export default function DishCategoryManualImageSupplyScreen() {
 						type: TYPE,
 						taskKey: TASK_KEY,
 						targetType: TARGET_TYPE,
-						targetId: item.targetId,
+						targetId: item.category_id,
 						payload: {
 							category: item.category,
 							topicTitle: item.topicTitle,
@@ -364,7 +358,7 @@ export default function DishCategoryManualImageSupplyScreen() {
 				});
 				successCount++;
 			} catch (err) {
-				console.error("Failed to submit item", item.targetId, err);
+				console.error("Failed to submit item", item.category_id, err);
 				failCount++;
 			}
 		}
@@ -384,7 +378,7 @@ export default function DishCategoryManualImageSupplyScreen() {
 	/* -------------------------------------------------------------------------- */
 
 	const handleThanksAction = useCallback(() => {
-		const remainingItems = items.filter((item) => itemStates[item.targetId]?.uploadState !== "success");
+		const remainingItems = items.filter((item) => itemStates[item.category_id]?.uploadState !== "success");
 
 		if (remainingItems.length > 0) {
 			// まだ協力できる料理がある
@@ -407,7 +401,7 @@ export default function DishCategoryManualImageSupplyScreen() {
 
 	// #703 【算出】画像セット済み数
 	const readyCount = useMemo(() => {
-		return items.filter((item) => itemStates[item.targetId]?.uploadState === "success").length;
+		return items.filter((item) => itemStates[item.category_id]?.uploadState === "success").length;
 	}, [items, itemStates]);
 
 	// #703 【算出】グリッド列数とカードサイズ
@@ -443,7 +437,7 @@ export default function DishCategoryManualImageSupplyScreen() {
 
 	// #703 【表示】サンクス画面
 	if (showThanks) {
-		const hasMoreItems = items.filter((item) => itemStates[item.targetId]?.uploadState !== "success").length > 0;
+		const hasMoreItems = items.filter((item) => itemStates[item.category_id]?.uploadState !== "success").length > 0;
 
 		return (
 			<View style={[styles.container, styles.centered, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
@@ -468,7 +462,7 @@ export default function DishCategoryManualImageSupplyScreen() {
 				<View style={styles.headerTextContainer}>
 					<Text style={styles.headerTitle}>料理提案画像を綺麗にしよう！</Text>
 					<Text style={styles.headerSubtitle}>
-						思わず涎が出る、美味しそうな料理画像をAIで作って、貼り付けて送信してください！
+						思わずよだれが出る、美味しそうな料理画像をAIで作って、貼り付けて送信してください！
 					</Text>
 				</View>
 				<Pressable onPress={handleHelpPress} hitSlop={10} style={styles.helpButton}>
@@ -479,14 +473,14 @@ export default function DishCategoryManualImageSupplyScreen() {
 			{/* グリッド */}
 			<ScrollView style={styles.scrollView} contentContainerStyle={styles.gridContainer}>
 				{items.map((item, index) => {
-					const state = itemStates[item.targetId];
+					const state = itemStates[item.category_id];
 					const uploadState = state?.uploadState ?? "idle";
 					// #703 【設計】3列目のカードは右マージンなし
 					const isLastInRow = (index + 1) % GRID_COLUMNS === 0;
 
 					return (
 						<Pressable
-							key={item.targetId}
+							key={item.category_id}
 							onPress={() => handleCardPress(item)}
 							style={[styles.card, { width: cardWidth, height: cardHeight, marginRight: isLastInRow ? 0 : CARD_GAP }]}>
 							<Image source={{ uri: item.imageUrl }} style={styles.cardImage} contentFit="cover" />
@@ -573,7 +567,7 @@ export default function DishCategoryManualImageSupplyScreen() {
 						<View style={styles.detailImageContainer}>
 							<Image
 								source={{
-									uri: itemStates[selectedItem.targetId]?.uploaded?.previewUri ?? selectedItem.imageUrl,
+									uri: itemStates[selectedItem.category_id]?.uploaded?.previewUri ?? selectedItem.imageUrl,
 								}}
 								style={styles.detailImage}
 								contentFit="contain"
@@ -592,22 +586,22 @@ export default function DishCategoryManualImageSupplyScreen() {
 							<PrimaryButton
 								label="画像を選ぶ"
 								onPress={() => handleSelectImage(selectedItem)}
-								disabled={itemStates[selectedItem.targetId]?.uploadState === "uploading"}
-								loading={itemStates[selectedItem.targetId]?.uploadState === "uploading"}
+								disabled={itemStates[selectedItem.category_id]?.uploadState === "uploading"}
+								loading={itemStates[selectedItem.category_id]?.uploadState === "uploading"}
 								style={styles.detailMainButton}
 							/>
 
-							{itemStates[selectedItem.targetId]?.uploadState === "success" && (
+							{itemStates[selectedItem.category_id]?.uploadState === "success" && (
 								<Pressable onPress={() => handleResetImage(selectedItem)} style={styles.detailResetButton}>
 									<Text style={styles.detailResetButtonText}>元に戻す</Text>
 								</Pressable>
 							)}
 
 							{/* 状態メッセージ */}
-							{itemStates[selectedItem.targetId]?.uploadState === "uploading" && (
+							{itemStates[selectedItem.category_id]?.uploadState === "uploading" && (
 								<Text style={styles.detailStatusText}>アップロード中…ちょっと待ってね</Text>
 							)}
-							{itemStates[selectedItem.targetId]?.uploadState === "error" && (
+							{itemStates[selectedItem.category_id]?.uploadState === "error" && (
 								<Text style={styles.detailStatusError}>うまくいかなかったみたい。もう一度選んでね</Text>
 							)}
 						</View>
