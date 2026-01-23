@@ -455,8 +455,6 @@ export default function DishCategoryManualImageSupplyScreen() {
 			<Text style={styles.tutorialPageTitle}>こんな画像が欲しい</Text>
 			<View style={styles.tutorialStepsContainer}>
 				<Text style={styles.tutorialStep}>• 縦長（9:16）で、料理が主役</Text>
-				<Text style={styles.tutorialStep}>• 料理が大きく写っていて、背景はシンプル</Text>
-				<Text style={styles.tutorialStep}>• 文字入りやコラージュは避けてね</Text>
 			</View>
 			{/* #703 【表示】9:16画像の2×2グリッド */}
 			<View style={styles.tutorialImageGrid}>
