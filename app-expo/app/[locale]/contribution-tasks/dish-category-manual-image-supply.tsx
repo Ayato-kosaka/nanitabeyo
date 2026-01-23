@@ -4,11 +4,24 @@
 // ユーザー協力で料理カテゴリの画像を改善するための単体画面
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { View, StyleSheet, ScrollView, Pressable, Text, ActivityIndicator, useWindowDimensions } from "react-native";
+import {
+	View,
+	StyleSheet,
+	ScrollView,
+	Pressable,
+	Text,
+	ActivityIndicator,
+	useWindowDimensions,
+	Platform,
+	FlatList,
+	NativeScrollEvent,
+	NativeSyntheticEvent,
+} from "react-native";
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { HelpCircle, CheckCircle2, AlertTriangle, Loader2 } from "lucide-react-native";
 import { useRouter } from "expo-router";
+import * as Clipboard from "expo-clipboard";
 
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { useLogger } from "@/hooks/useLogger";
@@ -18,6 +31,8 @@ import { selectMedia } from "@/lib/mediaSelection";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { Env } from "@/constants/Env";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useSnackbar } from "@/contexts/SnackbarProvider";
+import { Dimensions } from "react-native";
 
 /* -------------------------------------------------------------------------- */
 /*                                    型定義                                   */
@@ -67,6 +82,15 @@ const TUTORIAL_STORAGE_KEY = "dish_manual_image_supply_tutorial_shown";
 
 // 一度に表示するアイテム数
 const ITEMS_PER_PAGE = 30;
+// #703 【設計】チュートリアル2ページ目に表示する9:16画像サンプル（4枚）
+const TUTORIAL_EXAMPLE_IMAGES = [
+	`https://cdn-public.nanitabeyo.net/dish_categories/image_url/Q483163/22dadd09-d4e6-4e6d-a5bb-5cea3eb1ecb3.webp`,
+	`https://i.ibb.co/hJcLYmQf/unnamed-2-1.jpg`,
+	`https://i.ibb.co/vx61LhRy/unnamed-1.jpg`,
+	`https://i.ibb.co/8g4ZN3nh/unnamed.jpg`,
+];
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 /* -------------------------------------------------------------------------- */
 /*                              メインコンポーネント                             */
@@ -79,6 +103,7 @@ export default function DishCategoryManualImageSupplyScreen() {
 	const { logFrontendEvent } = useLogger();
 	const { callBackend } = useAPICall();
 	const { uploadFile } = useFileUploader();
+	const { showSnackbar } = useSnackbar();
 
 	// #703 【状態】候補アイテムリスト（除外後）
 	const [items, setItems] = useState<CandidateItem[]>([]);
@@ -91,6 +116,8 @@ export default function DishCategoryManualImageSupplyScreen() {
 	const [loadError, setLoadError] = useState<string | null>(null);
 	// #703 【状態】チュートリアルモーダル
 	const [showTutorial, setShowTutorial] = useState(false);
+	// #703 【状態】チュートリアルのページ番号（0-indexed）
+	const [tutorialPage, setTutorialPage] = useState(0);
 	// #703 【状態】サンクス画面表示
 	const [showThanks, setShowThanks] = useState(false);
 	// #703 【状態】詳細モーダルで選択中のアイテム
@@ -415,6 +442,103 @@ export default function DishCategoryManualImageSupplyScreen() {
 	/*                              レンダリング                                  */
 	/* -------------------------------------------------------------------------- */
 
+	// #703 【コンポーネント】チュートリアルページ1：使い方
+	const TutorialPage1 = () => (
+		<View style={styles.tutorialPageContainer}>
+			<Text style={styles.tutorialPageTitle}>使い方</Text>
+			<View style={styles.tutorialStepsContainer}>
+				<Text style={styles.tutorialStep}>• 料理カテゴリをタップ</Text>
+				<Text style={styles.tutorialStep}>• AIで生成した美味しそうな画像を選択</Text>
+				<Text style={styles.tutorialStep}>• 「画像を送信する」ボタンで完了！</Text>
+			</View>
+		</View>
+	);
+
+	// #703 【コンポーネント】チュートリアルページ2：こんな画像が欲しい
+	const TutorialPage2 = () => (
+		<View style={styles.tutorialPageContainer}>
+			<Text style={styles.tutorialPageTitle}>こんな画像が欲しい</Text>
+			<View style={styles.tutorialStepsContainer}>
+				<Text style={styles.tutorialStep}>• 縦長（9:16）で、料理が主役</Text>
+				<Text style={styles.tutorialStep}>• 料理が大きく写っていて、背景はシンプル</Text>
+				<Text style={styles.tutorialStep}>• 文字入りやコラージュは避けてね</Text>
+			</View>
+			{/* #703 【表示】9:16画像の2×2グリッド */}
+			<View style={styles.tutorialImageGrid}>
+				{TUTORIAL_EXAMPLE_IMAGES.map((uri, index) => (
+					<View key={index} style={styles.tutorialImageWrapper}>
+						<Image source={{ uri }} style={styles.tutorialImage} contentFit="cover" />
+					</View>
+				))}
+			</View>
+		</View>
+	);
+
+	// #703 【コンポーネント】チュートリアルページ3：AI画像生成のやり方
+	const TutorialPage3 = () => {
+		// #703 【処理】プロンプトをコピー
+		const handleCopyPrompt = useCallback(async () => {
+			try {
+				const promptText =
+					"提供後の料理を撮影した写真。\n料理そのものは誇張せず、現実的で自然な見た目。\n\n大きな器・鍋・トレイ・調理器具などに、\n料理や具材がたっぷりと入っている。\n画面の上から下まで、料理が連続して見える構成。\n\n料理は整理されすぎず、自然に重なり合っている。\n空白が少なく、料理の密度が高い。\n縦長にクロップしても、常に料理が画面を占める。\n\nスマートフォンで縦向きに撮影。\n最初から縦長構図として成立している。\n\n不自然な演出や誇張は禁止。\n質感はリアルで、温かさやおいしさが伝わる写真。\n\n縦長構図（9:16）、高解像度、SNS向け。\n\n\n料理は、「おでん」";
+				await Clipboard.setStringAsync(promptText);
+				showSnackbar("プロンプトをコピーしました");
+
+				logFrontendEvent({
+					event_name: "dish_manual_image_supply_prompt_copied",
+					error_level: "log",
+					payload: {},
+				});
+			} catch (err) {
+				console.warn("Failed to copy prompt", err);
+			}
+		}, [showSnackbar, logFrontendEvent]);
+
+		return (
+			<View style={styles.tutorialPageContainer}>
+				<Text style={styles.tutorialPageTitle}>AIで画像を作る</Text>
+				<View style={styles.tutorialStepsContainer}>
+					<Text style={styles.tutorialStep}>• 画像生成アプリで料理名を入れて作ってみてね</Text>
+					<Text style={styles.tutorialStep}>• できた画像はこの画面で選んで送信！</Text>
+				</View>
+
+				{/* #703 【表示】プロンプト例 */}
+				<View style={styles.promptSection}>
+					<Text style={styles.promptTitle}>プロンプト例（タップでコピー）</Text>
+					<Pressable onPress={handleCopyPrompt} style={styles.promptBox}>
+						<Text style={styles.promptText} numberOfLines={10}>
+							{
+								"提供後の料理を撮影した写真。\n料理そのものは誇張せず、現実的で自然な見た目。\n\n大きな器・鍋・トレイ・調理器具などに、\n料理や具材がたっぷりと入っている。\n画面の上から下まで、料理が連続して見える構成。\n\n料理は整理されすぎず、自然に重なり合っている。\n空白が少なく、料理の密度が高い。\n縦長にクロップしても、常に料理が画面を占める。\n\nスマートフォンで縦向きに撮影。\n最初から縦長構図として成立している。\n\n不自然な演出や誇張は禁止。\n質感はリアルで、温かさやおいしさが伝わる写真。\n\n縦長構図（9:16）、高解像度、SNS向け。\n\n\n料理は、「おでん」"
+							}
+						</Text>
+					</Pressable>
+				</View>
+			</View>
+		);
+	};
+
+	// #703 【算出】チュートリアルページデータ
+	const tutorialPages = useMemo(
+		() => [
+			{ key: "page1", component: <TutorialPage1 /> },
+			{ key: "page2", component: <TutorialPage2 /> },
+			{ key: "page3", component: <TutorialPage3 /> },
+		],
+		[],
+	);
+
+	// #703 【処理】チュートリアルページスクロール時のページ番号更新
+	const handleTutorialScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+		const offsetX = event.nativeEvent.contentOffset.x;
+		const pageWidth = event.nativeEvent.layoutMeasurement.width;
+		const currentPage = Math.round(offsetX / pageWidth);
+		setTutorialPage(currentPage);
+	}, []);
+
+	/* -------------------------------------------------------------------------- */
+	/*                              レンダリング                                  */
+	/* -------------------------------------------------------------------------- */
+
 	// #703 【表示】ローディング中
 	if (isLoadingCandidates) {
 		return (
@@ -535,15 +659,33 @@ export default function DishCategoryManualImageSupplyScreen() {
 			{/* チュートリアルモーダル */}
 			<tutorialModal.BlurModal showCloseButton={true}>
 				<View style={styles.tutorialModal}>
-					<Text style={styles.tutorialTitle}>使い方</Text>
-					<Text style={styles.tutorialText}>
-						・料理カテゴリをタップ{"\n"}
-						・AIで生成した美味しそうな画像を選択{"\n"}
-						・送信ボタンで完了！{"\n"}
-						{"\n"}
-						＜プロンプト例＞{"\n"}
-						"美味しそうな◯◯の写真"
-					</Text>
+					{/* #703 【表示】ページ化されたチュートリアル（横スワイプ） */}
+					<FlatList
+						data={tutorialPages}
+						horizontal
+						pagingEnabled
+						showsHorizontalScrollIndicator={false}
+						onMomentumScrollEnd={handleTutorialScroll}
+						keyExtractor={(item) => item.key}
+						renderItem={({ item }) => <View style={[styles.tutorialPageWrapper]}>{item.component}</View>}
+						getItemLayout={(_, index) => ({
+							length: width,
+							offset: width * index,
+							index,
+						})}
+					/>
+
+					{/* #703 【表示】ページインジケーター（ドット3つ） */}
+					<View style={styles.pageIndicatorContainer}>
+						{tutorialPages.map((_, index) => (
+							<View
+								key={index}
+								style={[styles.pageIndicatorDot, index === tutorialPage && styles.pageIndicatorDotActive]}
+							/>
+						))}
+					</View>
+
+					{/* #703 【ボタン】閉じるボタン */}
 					<PrimaryButton
 						label="さっそくやってみる！"
 						onPress={async () => {
@@ -738,23 +880,96 @@ const styles = StyleSheet.create({
 		borderRadius: 16,
 		padding: 24,
 		marginHorizontal: 20,
-		maxWidth: 400,
+		width: SCREEN_WIDTH,
 		alignSelf: "center",
+		overflow: "hidden",
 	},
-	tutorialTitle: {
+	tutorialPageWrapper: {
+		width: SCREEN_WIDTH - 48, // モーダルのパディング分を引く
+	},
+	tutorialPageContainer: {
+		flex: 1,
+	},
+	tutorialPageContent: {
+		padding: 24,
+		paddingBottom: 16,
+	},
+	tutorialPageTitle: {
 		fontSize: 22,
 		fontWeight: "700",
 		color: "#333",
 		marginBottom: 16,
 		textAlign: "center",
 	},
-	tutorialText: {
+	tutorialStepsContainer: {
+		marginBottom: 20,
+	},
+	tutorialStep: {
 		fontSize: 15,
 		color: "#666",
-		lineHeight: 22,
-		marginBottom: 24,
+		lineHeight: 24,
+		marginBottom: 8,
+	},
+	tutorialImageGrid: {
+		flexDirection: "row",
+		flexWrap: "wrap",
+		justifyContent: "space-between",
+		marginTop: 8,
+		marginHorizontal: 16,
+	},
+	tutorialImageWrapper: {
+		width: "40%",
+		aspectRatio: 3 / 4,
+		borderRadius: 8,
+		overflow: "hidden",
+		backgroundColor: "#F5F5F5",
+		marginBottom: 8,
+	},
+	tutorialImage: {
+		width: "100%",
+		height: "100%",
+	},
+	promptSection: {
+		marginTop: 12,
+	},
+	promptTitle: {
+		fontSize: 14,
+		fontWeight: "600",
+		color: "#666",
+		marginBottom: 8,
+	},
+	promptBox: {
+		backgroundColor: "#F5F5F5",
+		borderRadius: 8,
+		padding: 12,
+		borderWidth: 1,
+		borderColor: "#E0E0E0",
+	},
+	promptText: {
+		fontSize: 13,
+		color: "#333",
+		lineHeight: 18,
+	},
+	pageIndicatorContainer: {
+		flexDirection: "row",
+		justifyContent: "center",
+		alignItems: "center",
+		paddingVertical: 12,
+		gap: 8,
+	},
+	pageIndicatorDot: {
+		width: 8,
+		height: 8,
+		borderRadius: 4,
+		backgroundColor: "#DDD",
+	},
+	pageIndicatorDotActive: {
+		backgroundColor: "#FF6B6B",
+		width: 24,
 	},
 	tutorialButton: {
+		marginHorizontal: 24,
+		marginBottom: 24,
 		paddingVertical: 14,
 	},
 	detailModal: {
