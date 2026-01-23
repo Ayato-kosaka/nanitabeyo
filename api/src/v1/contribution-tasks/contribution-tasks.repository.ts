@@ -14,7 +14,10 @@ import { Prisma, PrismaClient } from '../../../../shared/prisma/client';
 import { CreateContributionTaskDto } from '@shared/v1/dto';
 import { AppLoggerService } from 'src/core/logger/logger.service';
 import { PrismaContributionTasks } from '../../../../shared/converters/convert_contribution_tasks';
-import { CompletedTargetIdItem, CreateContributionTaskResponse } from '@shared/v1/res';
+import {
+  CompletedTargetIdItem,
+  CreateContributionTaskResponse,
+} from '@shared/v1/res';
 
 /**
  * Tx / PrismaClient のどちらでも受け取れるようにする（読み取り時に tx 強制しない）
@@ -27,7 +30,10 @@ export type PrismaExecutor = Prisma.TransactionClient | PrismaClient;
  * 協力タスク（payload/result を含まない）Entity
  * - リストなどで payload/result が不要なケースの基本形
  */
-export type ContributionTaskEntityBase = Pick<PrismaContributionTasks, 'id' | 'type' | 'task_key' | 'target_type' | 'target_id' | 'created_at'>;
+export type ContributionTaskEntityBase = Pick<
+  PrismaContributionTasks,
+  'id' | 'type' | 'task_key' | 'target_type' | 'target_id' | 'created_at'
+>;
 
 /**
  * リスト取得のフィルタ条件
@@ -103,7 +109,9 @@ function isValidDate(d: Date): boolean {
  * - undefined（未指定）は JSON null として保存し、意味を保持する
  * - null を DTO が明示した場合は null をそのまま保存（DTO 設計次第）
  */
-function toPrismaJsonValue(value: unknown | undefined): Prisma.InputJsonValue | Prisma.NullTypes.JsonNull {
+function toPrismaJsonValue(
+  value: unknown | undefined,
+): Prisma.InputJsonValue | Prisma.NullTypes.JsonNull {
   if (value === undefined) {
     return Prisma.JsonNull;
   }
@@ -202,7 +210,8 @@ export class ContributionTasksRepository {
     });
 
     // created_at 範囲フィルタ
-    const createdAtFilter: Prisma.contribution_tasksWhereInput['created_at'] = {};
+    const createdAtFilter: Prisma.contribution_tasksWhereInput['created_at'] =
+      {};
     if (filters.from) createdAtFilter.gte = filters.from;
     if (filters.to) createdAtFilter.lt = filters.to;
 
@@ -212,7 +221,9 @@ export class ContributionTasksRepository {
       ...(filters.type ? { type: filters.type } : {}),
       ...(filters.targetType ? { target_type: filters.targetType } : {}),
       ...(filters.targetId ? { target_id: filters.targetId } : {}),
-      ...(Object.keys(createdAtFilter).length > 0 ? { created_at: createdAtFilter } : {}),
+      ...(Object.keys(createdAtFilter).length > 0
+        ? { created_at: createdAtFilter }
+        : {}),
     };
 
     // カーソル（created_at DESC, id DESC）に合わせた条件を構築
@@ -223,14 +234,22 @@ export class ContributionTasksRepository {
 
       if (!decoded?.created_at || !decoded?.id) {
         // カーソル不正 → 安全のため無視（API 設計次第では 400 にしても良い）
-        this.logger.warn('ContributionTasksRepository.findMine', 'invalid_cursor_ignored', { cursor });
+        this.logger.warn(
+          'ContributionTasksRepository.findMine',
+          'invalid_cursor_ignored',
+          { cursor },
+        );
       } else {
         const createdAt = new Date(decoded.created_at);
         if (!isValidDate(createdAt)) {
-          this.logger.warn('ContributionTasksRepository.findMine', 'invalid_cursor_date_ignored', {
-            cursor,
-            createdAt: decoded.created_at,
-          });
+          this.logger.warn(
+            'ContributionTasksRepository.findMine',
+            'invalid_cursor_date_ignored',
+            {
+              cursor,
+              createdAt: decoded.created_at,
+            },
+          );
         } else {
           // DESC 順での「次ページ」は「より古い」(created_at が小さい) 方向
           const cursorCondition: Prisma.contribution_tasksWhereInput = {
@@ -279,9 +298,9 @@ export class ContributionTasksRepository {
     const last = sliced[sliced.length - 1];
     const nextCursor = last
       ? base64UrlEncodeJson<FindMineCursor>({
-        created_at: last.created_at,
-        id: last.id,
-      })
+          created_at: last.created_at,
+          id: last.id,
+        })
       : undefined;
 
     // includePayload/includeResult の挙動を固定化：
@@ -383,10 +402,12 @@ export class ContributionTasksRepository {
       exists: !!task,
     });
 
-    return task ? {
-      id: task.id,
-      createdAt: task.created_at.toISOString(),
-    } : null;
+    return task
+      ? {
+          id: task.id,
+          createdAt: task.created_at.toISOString(),
+        }
+      : null;
   }
 
   /**
@@ -406,14 +427,18 @@ export class ContributionTasksRepository {
     limit: number,
     cursor?: string,
   ): Promise<CursorPage<CompletedTargetIdItem>> {
-    this.logger.debug('ContributionTasksRepository.findCompletedTargetIds', 'start', {
-      taskKey,
-      targetType,
-      type,
-      minCount,
-      limit,
-      cursorProvided: !!cursor,
-    });
+    this.logger.debug(
+      'ContributionTasksRepository.findCompletedTargetIds',
+      'start',
+      {
+        taskKey,
+        targetType,
+        type,
+        minCount,
+        limit,
+        cursorProvided: !!cursor,
+      },
+    );
 
     // WHERE 相当
     const where: Prisma.contribution_tasksWhereInput = {
@@ -423,27 +448,37 @@ export class ContributionTasksRepository {
     };
 
     // HAVING 相当（最小件数）
-    const baseHaving: Prisma.contribution_tasksScalarWhereWithAggregatesInput = {
-      target_id: { _count: { gte: minCount } },
-    };
+    const baseHaving: Prisma.contribution_tasksScalarWhereWithAggregatesInput =
+      {
+        target_id: { _count: { gte: minCount } },
+      };
 
-    let having: Prisma.contribution_tasksScalarWhereWithAggregatesInput = baseHaving;
+    let having: Prisma.contribution_tasksScalarWhereWithAggregatesInput =
+      baseHaving;
 
     // カーソル条件（MAX(created_at) と target_id の複合）
     if (cursor) {
       const decoded = base64UrlDecodeJson<CompletedTargetIdsCursor>(cursor);
 
       if (!decoded?.lastCompletedAt || !decoded?.targetId) {
-        this.logger.warn('ContributionTasksRepository.findCompletedTargetIds', 'invalid_cursor_ignored', {
-          cursor,
-        });
+        this.logger.warn(
+          'ContributionTasksRepository.findCompletedTargetIds',
+          'invalid_cursor_ignored',
+          {
+            cursor,
+          },
+        );
       } else {
         const lastCompletedAt = new Date(decoded.lastCompletedAt);
         if (!isValidDate(lastCompletedAt)) {
-          this.logger.warn('ContributionTasksRepository.findCompletedTargetIds', 'invalid_cursor_date_ignored', {
-            cursor,
-            lastCompletedAt: decoded.lastCompletedAt,
-          });
+          this.logger.warn(
+            'ContributionTasksRepository.findCompletedTargetIds',
+            'invalid_cursor_date_ignored',
+            {
+              cursor,
+              lastCompletedAt: decoded.lastCompletedAt,
+            },
+          );
         } else {
           // ✅ Prisma の having では MAX(created_at) は created_at フィールド配下の _max で表現する
           having = {
@@ -493,15 +528,19 @@ export class ContributionTasksRepository {
     const last = items[items.length - 1];
     const nextCursor = last
       ? base64UrlEncodeJson<CompletedTargetIdsCursor>({
-        lastCompletedAt: last.lastCompletedAt,
-        targetId: last.targetId,
-      })
+          lastCompletedAt: last.lastCompletedAt,
+          targetId: last.targetId,
+        })
       : undefined;
 
-    this.logger.debug('ContributionTasksRepository.findCompletedTargetIds', 'result', {
-      count: items.length,
-      hasNext,
-    });
+    this.logger.debug(
+      'ContributionTasksRepository.findCompletedTargetIds',
+      'result',
+      {
+        count: items.length,
+        hasNext,
+      },
+    );
 
     return { items, hasNext, nextCursor: hasNext ? nextCursor : undefined };
   }

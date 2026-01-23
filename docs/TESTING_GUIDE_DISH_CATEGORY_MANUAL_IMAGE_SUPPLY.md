@@ -3,12 +3,14 @@
 ## Prerequisites
 
 1. **API Server Running**
+
    ```bash
    cd api
    pnpm dev
    ```
 
 2. **Expo App Running**
+
    ```bash
    cd app-expo
    pnpm start
@@ -26,12 +28,14 @@
 ### 1. Initial Load & Tutorial ✅
 
 **Steps:**
+
 1. Navigate to the screen for the first time
 2. Verify tutorial modal appears automatically
 3. Read the tutorial content
 4. Click "さっそくやってみる！" button
 
 **Expected Results:**
+
 - ✅ Tutorial modal displays with:
   - Title: "使い方"
   - Usage instructions (3 bullet points)
@@ -47,6 +51,7 @@
 ### 2. Grid Display ✅
 
 **Steps:**
+
 1. After closing tutorial, observe the main screen
 2. Check header text
 3. Check grid layout
@@ -54,6 +59,7 @@
 5. Verify card images load
 
 **Expected Results:**
+
 - ✅ Header shows:
   - Title: "料理提案画像を綺麗にしよう！"
   - Subtitle with instructions
@@ -72,11 +78,13 @@
 ### 3. Help Button ✅
 
 **Steps:**
+
 1. Tap the "?" button in top right
 2. Verify tutorial modal appears
 3. Close the modal
 
 **Expected Results:**
+
 - ✅ Tutorial modal reappears
 - ✅ Content is identical to first-time tutorial
 - ✅ Can close and return to grid
@@ -88,11 +96,13 @@
 ### 4. Card Selection & Detail Modal ✅
 
 **Steps:**
+
 1. Tap any dish category card
 2. Observe the detail modal
 3. Check all elements
 
 **Expected Results:**
+
 - ✅ BlurModal opens with:
   - Full-screen blur background
   - Card image at top (9:16 ratio, contain fit)
@@ -111,12 +121,14 @@
 ### 5. Image Selection & Upload ✅
 
 **Steps:**
+
 1. In detail modal, tap "画像を選ぶ"
 2. Select an image from device
 3. Wait for upload to complete
 4. Check badge on card after closing modal
 
 **Expected Results:**
+
 - ✅ Image picker opens
 - ✅ Selected image triggers upload immediately
 - ✅ During upload:
@@ -129,6 +141,7 @@
 - ✅ Footer counter increases: "準備できた料理：1"
 
 **Screenshots Required:**
+
 1. Uploading state (loading indicator)
 2. Success state with "OK！" badge
 3. Detail modal with selected image
@@ -138,11 +151,13 @@
 ### 6. Reset Image ✅
 
 **Steps:**
+
 1. Open detail modal for a card with image selected
 2. Tap "元に戻す"
 3. Check badge disappears
 
 **Expected Results:**
+
 - ✅ Image reverts to original
 - ✅ "元に戻す" button disappears
 - ✅ Card badge removed
@@ -155,11 +170,13 @@
 ### 7. Upload Error Handling ✅
 
 **Steps:**
+
 1. Turn off network connection
 2. Try to upload an image
 3. Observe error state
 
 **Expected Results:**
+
 - ✅ Upload fails gracefully
 - ✅ Status text: "うまくいかなかったみたい。もう一度選んでね"
 - ✅ Card badge shows "もう一度！" with ⚠️ icon
@@ -172,11 +189,13 @@
 ### 8. Multiple Uploads ✅
 
 **Steps:**
+
 1. Select and upload images for 3-4 different categories
 2. Verify each upload succeeds
 3. Check footer counter
 
 **Expected Results:**
+
 - ✅ Each card can be uploaded independently
 - ✅ All "OK！" badges display correctly
 - ✅ Footer shows correct count
@@ -189,11 +208,13 @@
 ### 9. Submit Button States ✅
 
 **Steps:**
+
 1. Initially (no images uploaded)
 2. After 1+ images uploaded
 3. During submission
 
 **Expected Results:**
+
 - ✅ **No images uploaded:**
   - Button disabled (grayed out)
   - Text: "まずは画像を選んでね"
@@ -205,6 +226,7 @@
   - Cannot click again
 
 **Screenshots Required:**
+
 1. Disabled state
 2. Enabled state with count
 
@@ -213,12 +235,14 @@
 ### 10. Submission Process ✅
 
 **Steps:**
+
 1. Upload 2-3 images
 2. Tap submit button
 3. Wait for completion
 4. Observe thank you screen
 
 **Expected Results:**
+
 - ✅ Submit button shows loading
 - ✅ Each item is POSTed sequentially to `/v1/contribution-tasks`
 - ✅ After completion, thank you screen appears with:
@@ -233,12 +257,14 @@
 ### 11. Thank You Screen - Continue Flow ✅
 
 **Steps:**
+
 1. Submit 1-2 items (leaving others)
 2. Check button text on thank you screen
 3. Tap the button
 4. Verify return to grid
 
 **Expected Results:**
+
 - ✅ Button text: "まだ協力できる料理を見る"
 - ✅ Returns to grid view
 - ✅ Submitted items are filtered out (not shown)
@@ -251,11 +277,13 @@
 ### 12. Thank You Screen - All Complete Flow ✅
 
 **Steps:**
+
 1. Submit all available items
 2. Check button text on thank you screen
 3. Tap the button
 
 **Expected Results:**
+
 - ✅ Button text: "画面を閉じる"
 - ✅ Navigates back to previous screen
 
@@ -264,11 +292,13 @@
 ### 13. Completed Items Filtering ✅
 
 **Steps:**
+
 1. Submit some items
 2. Reload the screen (restart app or navigate away and back)
 3. Verify submitted items don't reappear
 
 **Expected Results:**
+
 - ✅ API call to `/v1/contribution-tasks/completed-target-ids` succeeds
 - ✅ Grid only shows items that haven't been submitted
 - ✅ Previously submitted items are filtered out
@@ -278,11 +308,13 @@
 ### 14. CDN Load Error Handling ✅
 
 **Steps:**
+
 1. Remove test JSON from CDN (or break URL)
 2. Reload screen
 3. Check error handling
 
 **Expected Results:**
+
 - ✅ Error message: "読み込みに失敗しました"
 - ✅ "再読み込み" button appears
 - ✅ Tapping button retries CDN load
@@ -294,11 +326,13 @@
 ### 15. Persistence Check ✅
 
 **Steps:**
+
 1. Complete tutorial
 2. Close app completely
 3. Reopen app and navigate to screen
 
 **Expected Results:**
+
 - ✅ Tutorial does NOT appear again
 - ✅ Goes directly to grid view
 - ✅ Help button (?) still shows tutorial when tapped
@@ -338,6 +372,7 @@ Check console/logs for these events:
 11. ☐ Help button highlighted
 
 **Optional but Recommended:**
+
 - Different device sizes (phone, tablet)
 - Light/dark mode if applicable
 - Web view if testing on web

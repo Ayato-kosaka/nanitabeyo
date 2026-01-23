@@ -455,15 +455,9 @@ export default function DishCategoryManualImageSupplyScreen() {
 		<ScrollView style={styles.tutorialPageContainer} contentContainerStyle={styles.tutorialPageContent}>
 			<Text style={styles.tutorialPageTitle}>{i18n.t("DishCategoryManualImageSupply.tutorial.page2.title")}</Text>
 			<View style={styles.tutorialStepsContainer}>
-				<Text style={styles.tutorialStep}>
-					• {i18n.t("DishCategoryManualImageSupply.tutorial.page2.description1")}
-				</Text>
-				<Text style={styles.tutorialStep}>
-					• {i18n.t("DishCategoryManualImageSupply.tutorial.page2.description2")}
-				</Text>
-				<Text style={styles.tutorialStep}>
-					• {i18n.t("DishCategoryManualImageSupply.tutorial.page2.description3")}
-				</Text>
+				<Text style={styles.tutorialStep}>• {i18n.t("DishCategoryManualImageSupply.tutorial.page2.description1")}</Text>
+				<Text style={styles.tutorialStep}>• {i18n.t("DishCategoryManualImageSupply.tutorial.page2.description2")}</Text>
+				<Text style={styles.tutorialStep}>• {i18n.t("DishCategoryManualImageSupply.tutorial.page2.description3")}</Text>
 			</View>
 			{/* #703 【表示】9:16画像の2×2グリッド */}
 			<View style={styles.tutorialImageGrid}>
@@ -674,11 +668,7 @@ export default function DishCategoryManualImageSupplyScreen() {
 						showsHorizontalScrollIndicator={false}
 						onMomentumScrollEnd={handleTutorialScroll}
 						keyExtractor={(item) => item.key}
-						renderItem={({ item }) => (
-							<View style={[styles.tutorialPageWrapper, { width }]}>
-								{item.component}
-							</View>
-						)}
+						renderItem={({ item }) => <View style={[styles.tutorialPageWrapper, { width }]}>{item.component}</View>}
 						getItemLayout={(_, index) => ({
 							length: width,
 							offset: width * index,
@@ -691,10 +681,7 @@ export default function DishCategoryManualImageSupplyScreen() {
 						{tutorialPages.map((_, index) => (
 							<View
 								key={index}
-								style={[
-									styles.pageIndicatorDot,
-									index === tutorialPage && styles.pageIndicatorDotActive,
-								]}
+								style={[styles.pageIndicatorDot, index === tutorialPage && styles.pageIndicatorDotActive]}
 							/>
 						))}
 					</View>
