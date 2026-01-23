@@ -7,8 +7,8 @@
 		"close": "Fermer",
 		"save": "Enregistrer",
 		"post": "Publier",
+		"postReview": "Publier un avis",
 		"retry": "Réessayer",
-		"processing": "Traitement...",
 		"error": "Une erreur s'est produite. Veuillez réessayer.",
 		"success": "Succès",
 		"linkCopied": "Lien copié dans le presse-papiers",
@@ -27,7 +27,8 @@
 		"site": "CraveCatch",
 		"errors": {
 			"network": "Une erreur réseau s'est produite. Veuillez vérifier votre connexion.",
-			"unexpected": "Une erreur inattendue s'est produite. Veuillez réessayer plus tard."
+			"unexpected": "Une erreur inattendue s'est produite. Veuillez réessayer plus tard.",
+			"notFound": "Non trouvé"
 		}
 	},
 	"Error": {
@@ -70,7 +71,13 @@
 		"placeholders": {
 			"enterLocation": "Saisissez un lieu"
 		},
+		"accessibility": {
+			"locationInputHint": "Saisissez un lieu pour rechercher des restaurants",
+			"clearLocation": "Effacer le lieu",
+			"selectLocation": "Sélectionner ce lieu"
+		},
 		"loading": "Recherche...",
+		"noLocationsFound": "Aucun lieu trouvé",
 		"advancedToggle": {
 			"open": "Plus d'options",
 			"close": "Fermer la recherche avancée"
@@ -126,6 +133,33 @@
 			"nutAllergy": "Allergie aux noix",
 			"seafoodAllergy": "Allergie aux fruits de mer",
 			"halal": "Halal"
+		},
+		"tutorial": {
+			"page1": {
+				"title": "Découvrez ce que vous voulez manger",
+				"body1": "Résolvez le dilemme \"Que devrais-je manger aujourd'hui?\" en une fois.",
+				"body2": "Nous suggérons des plats et des restaurants en fonction de votre emplacement et de l'heure.",
+				"cta": "Suivant"
+			},
+			"page2": {
+				"title": "Regardez les photos et découvrez ce que vous désirez",
+				"body1": "Nous suggérons 6 plats qui correspondent à vos préférences actuelles.",
+				"body2": "Regardez les photos et choisissez intuitivement ce que vous voulez manger.",
+				"cta": "Suivant"
+			},
+			"page3": {
+				"title": "Photos et avis vous aident à décider où aller",
+				"body1": "Nous suggérons 5 restaurants qui servent le plat que vous avez choisi.",
+				"body2": "Parcourez les photos, les avis et la carte pour choisir rapidement un endroit.",
+				"cta": "Suivant"
+			},
+			"page4": {
+				"title": "Commençons",
+				"body1": "Nous utiliserons votre position actuelle pour suggérer des restaurants à proximité.",
+				"body2": "Vous pouvez le modifier à tout moment dans les paramètres.",
+				"primaryCta": "Utiliser la position actuelle",
+				"secondaryCta": "Plus tard"
+			}
 		}
 	},
 	"Topics": {
@@ -148,7 +182,9 @@
 		"chooseThis": "Je choisis celui-ci !",
 		"hiddenMessage": "{{title}} a été masqué",
 		"imageLoadFailed": "Échec du chargement de l'image",
-		"tapToReload": "Appuyez pour recharger"
+		"tapToReload": "Appuyez pour recharger",
+		"headerTitle": "Plats Recommandés pour Vous",
+		"subCopy": "Appuyez sur un plat que vous aimez pour trouver des restaurants"
 	},
 	"Notifications": {
 		"title": "Notifications",
@@ -185,6 +221,7 @@
 		"buttons": {
 			"viewRestaurant": "Voir le restaurant"
 		},
+		"processing": "Traitement du média...",
 		"errors": {
 			"mapOpenFailed": "Impossible d'ouvrir l'application de carte",
 			"mediaUnavailable": "Ce contenu n'est actuellement pas disponible."
@@ -200,8 +237,16 @@
 		"home": "Accueil",
 		"search": "Recherche",
 		"map": "Carte",
+		"review": "Avis",
 		"notifications": "Notifications",
-		"profile": "Profil"
+		"profile": "Profil",
+		"labels": {
+			"search": "Recherche",
+			"map": "Carte",
+			"review": "Avis",
+			"notifications": "Notifications",
+			"profile": "Profil"
+		}
 	},
 	"Profile": {
 		"tabs": {
@@ -292,6 +337,7 @@
 		"currentLocation": "Localisation actuelle",
 		"buttons": {
 			"postReview": "Publier un avis",
+			"postPhotoVideoReview": "Publier une Photo/Vidéo",
 			"placeBid": "Placer une enchère",
 			"bid": "Enchérir",
 			"searchNearby": "Rechercher dans cette zone",
@@ -311,14 +357,18 @@
 		"placeholders": {
 			"searchRestaurants": "Rechercher des restaurants",
 			"enterPrice": "Entrez le prix",
-			"enterReview": "Entrez votre avis",
+			"enterReview": "Niveau de recommandation",
+			"enterReviewShort": "Avis bref (ex: Le bouillon de tonkotsu était incroyablement riche et délicieux!)",
 			"enterBidAmount": "Entrez le montant de l'enchère",
-			"enterDishCategory": "Entrez la catégorie de plat (ex: Crêpe, Ratatouille)"
+			"enterDishCategory": "Entrez la catégorie de plat (ex: Crêpe, Ratatouille)",
+			"searchRestaurantsForReview": "Rechercher par nom ou zone"
 		},
 		"labels": {
 			"endDate": "Date de fin:",
 			"paymentProcessing": "Traitement du paiement...",
-			"currentBidAmount": "Montant de l'enchère actuelle"
+			"currentBidAmount": "Montant de l'enchère actuelle",
+			"restaurant": "Restaurant",
+			"dishCategory": "Catégorie de plat"
 		},
 		"tabs": {
 			"reviews": "Avis",
@@ -356,7 +406,10 @@
 			"dishCategorySelected": "Sélectionné {{category}}",
 			"dishCategorySearching": "Recherche de catégories de plats",
 			"dishCategorySuggestionsFound": "{{count}} suggestions trouvées",
-			"dishCategoryNoResults": "Aucune catégorie de plat correspondante trouvée"
+			"dishCategoryNoResults": "Aucune catégorie de plat correspondante trouvée",
+			"dishCategoryInputHint": "Saisissez une catégorie de plat pour rechercher",
+			"clearDishCategory": "Effacer la catégorie de plat",
+			"selectDishCategory": "Sélectionner cette catégorie de plat"
 		},
 		"errors": {
 			"dishCategoryCreateFailed": "Échec de la création de la catégorie de plat",
@@ -451,6 +504,7 @@
 		"provider_twitter": "Twitter",
 		"provider_apple": "Apple",
 		"otp_title": "Entrer le code",
+		"otp_resending": "Renvoi du code...",
 		"otp_send_again": "Renvoyer le code",
 		"otp_enter_all_digits": "Veuillez saisir les 6 chiffres",
 		"login_success": "Connexion réussie !",
@@ -462,6 +516,7 @@
 		"conflict_dialog_message": "Ce compte est déjà lié à un autre utilisateur. Si vous changez, les données créées en tant qu'invité ne seront pas transférées. Voulez-vous passer au compte existant?",
 		"conflict_dialog_switch": "Changer",
 		"conflict_dialog_cancel": "Annuler",
+		"callback_processing": "Finalisation de la connexion...",
 		"consent_login_prefix": "En continuant, vous acceptez nos ",
 		"consent_login_terms": "Conditions d'utilisation",
 		"consent_login_and": " et ",
@@ -479,7 +534,14 @@
 		"terms": "Conditions générales",
 		"privacy": "Politique de confidentialité",
 		"copyright": "Droits d'auteur",
+		"legalDocument": "Document juridique",
 		"logout": "Se déconnecter"
+	},
+	"Dialog": {
+		"a11y": {
+			"dialog": "Dialogue",
+			"dialogWithTitle": "Dialogue : {{title}}"
+		}
 	},
 	"Tools": {
 		"DishCategoryImageOptimizer": {
@@ -503,5 +565,34 @@
 		"openInGoogleMaps": "Ouvrir dans Google Maps",
 		"shareWithFriends": "Partager avec des amis",
 		"cancel": "Annuler"
+	},
+	"Review": {
+		"title": "Publier un Avis",
+		"hero": {
+			"title": "Rédige des avis sur des restaurants recommandés\net publie les plats que tu as mangés"
+		},
+		"guest": {
+			"description": "Connectez-vous pour écrire des avis",
+			"loginButton": "Se Connecter"
+		},
+		"authenticated": {
+			"postButton": "✏️ Publier un avis de restaurant"
+		},
+		"selectRestaurant": {
+			"title": "Sélectionner un restaurant",
+			"searchThisArea": "Rechercher à nouveau dans cette zone",
+			"savedRestaurantList": "Liste des restaurants enregistrés",
+			"postPhotoVideo": "Publier une photo/vidéo",
+			"fetchSavedRestaurantsError": "Échec de la récupération des restaurants enregistrés",
+			"noSavedRestaurantsInArea": "Aucun restaurant enregistré trouvé dans la zone affichée. Agrandissez la zone et relancez la recherche."
+		},
+		"emptyState": {
+			"noReviews": "Pas encore d'avis.\nSoyez le premier à évaluer ce restaurant."
+		},
+		"everybodyPostsTitle": "Choisir un plat à évaluer",
+		"characterCount": "{{current}}/{{max}}",
+		"restaurantDetail": {
+			"title": "Détails du restaurant"
+		}
 	}
 }

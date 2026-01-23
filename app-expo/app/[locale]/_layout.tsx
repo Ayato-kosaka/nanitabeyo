@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useFrameworkReady } from "@/hooks/useFrameworkReady";
 import { DialogProvider } from "@/contexts/DialogProvider";
 import { AuthProvider } from "@/contexts/AuthProvider";
@@ -19,6 +18,7 @@ import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import i18n, { getResolvedLocale } from "@/lib/i18n";
 import SeoHead from "../../components/seo";
+import { TrueSheetProvider } from "@lodev09/react-native-true-sheet";
 
 /**
  * 🌍 BCP 47 言語タグが妥当な形式かを検証するユーティリティ関数。
@@ -43,7 +43,7 @@ const isValidBcp47Tag = (tag: string): boolean => {
 export default function RootLayout() {
 	useFrameworkReady();
 	const router = useRouter();
-	const locale = useLocale();
+	const { locale } = useLocale();
 	const scheme = "light"; // light モード 固定（ダークモード対応時に useColorScheme() とする）
 	const theme = getPaperTheme(scheme, locale);
 	const { logFrontendEvent } = useLogger();
@@ -85,10 +85,10 @@ export default function RootLayout() {
 			<PaperProvider theme={theme}>
 				<SnackbarProvider>
 					<DialogProvider>
-						<AuthProvider>
-							<PushTokenRegistration />
-							<MetaAppEventsInitializer />
-							<GestureHandlerRootView style={{ flex: 1 }}>
+						<TrueSheetProvider>
+							<AuthProvider>
+								<PushTokenRegistration />
+								<MetaAppEventsInitializer />
 								<Portal.Host>
 									<SplashHandler>
 										<HealthCheckInitializer>
@@ -102,8 +102,8 @@ export default function RootLayout() {
 										</HealthCheckInitializer>
 									</SplashHandler>
 								</Portal.Host>
-							</GestureHandlerRootView>
-						</AuthProvider>
+							</AuthProvider>
+						</TrueSheetProvider>
 					</DialogProvider>
 				</SnackbarProvider>
 			</PaperProvider>

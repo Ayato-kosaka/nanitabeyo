@@ -23,19 +23,22 @@ import { shallow } from "zustand/shallow";
 import { profileLikesEntriesKey } from "@/features/profile/tabs/LikeTab";
 import { profileSavedPostsEntriesKey } from "@/features/profile/tabs/SavedPostsTab";
 import { useDishMediaActions } from "../hooks/useDishMediaActions";
+import { GestureDetector } from "react-native-gesture-handler";
+import type { GestureType } from "react-native-gesture-handler";
 
 interface ActionButtonsProps {
 	id: string;
 	idType: IdType;
 	onLayout: (width: number) => void;
+	buttonsGesture: GestureType; // #694 【設計】親Tapとの競合を防ぐための Native Gesture
 }
 
-export function ActionButtons({ id, idType, onLayout }: ActionButtonsProps) {
+export function ActionButtons({ id, idType, onLayout, buttonsGesture }: ActionButtonsProps) {
 	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
 	const { lightImpact } = useHaptics();
 	const router = useRouter();
-	const locale = useLocale();
+	const { locale } = useLocale();
 
 	const selector = useCallback(
 		(state: DishMediaEntriesStore) => {
@@ -276,65 +279,71 @@ export function ActionButtons({ id, idType, onLayout }: ActionButtonsProps) {
 		(event: LayoutChangeEvent) => onLayout?.(event.nativeEvent.layout.width),
 		[onLayout],
 	);
+	// #694 【UX】アクションボタンのヒット領域を拡張（iOS 44pt/Android 48dp 相当の担保）
+	const buttonHitSlop = { top: 12, bottom: 12, left: 12, right: 12 };
+
+	// #694 【設計】buttonsGesture でラップし親Tapとの競合を解消（ボタン操作中は親Tapを失敗させる）
 	return (
-		<View style={styles.rightActions} onLayout={handleLayout}>
-			{/* <TouchableOpacity style={styles.actionButton} onPress={handleViewRestaurant}>
-				<Image
-					source={{ uri: restaurant.imageUrls?.sm, cacheKey: getCacheKeyForImage(restaurant.imageUrls?.sm) }}
-					style={styles.restaurantAvatar}
-					onError={() => console.log("Failed to load restaurant avatar")}
-				/>
-			</TouchableOpacity> */}
+		<GestureDetector gesture={buttonsGesture}>
+			<View style={styles.rightActions} onLayout={handleLayout}>
+				{/* <TouchableOpacity style={styles.actionButton} onPress={handleViewRestaurant} hitSlop={buttonHitSlop}>
+					<Image
+						source={{ uri: restaurant.imageUrls?.sm, cacheKey: getCacheKeyForImage(restaurant.imageUrls?.sm) }}
+						style={styles.restaurantAvatar}
+						onError={() => console.log("Failed to load restaurant avatar")}
+					/>
+				</TouchableOpacity> */}
 
-			<View style={styles.actionContainer}>
-				<TouchableOpacity style={styles.actionButton} onPress={handleLike}>
-					<Heart size={28} color={isLiked ? "#FF3040" : "#FFFFFF"} fill={isLiked ? "#FF3040" : "white"} />
+				<View style={styles.actionContainer}>
+					<TouchableOpacity style={styles.actionButton} onPress={handleLike} hitSlop={buttonHitSlop}>
+						<Heart size={28} color={isLiked ? "#FF3040" : "#FFFFFF"} fill={isLiked ? "#FF3040" : "white"} />
+					</TouchableOpacity>
+					<Text style={styles.actionText}>{formatLikeCount(likeCount)}</Text>
+				</View>
+
+				<TouchableOpacity style={styles.actionButton} onPress={handleSave} hitSlop={buttonHitSlop}>
+					<Bookmark size={30} color={"transparent"} fill={isSaved ? "orange" : "white"} />
 				</TouchableOpacity>
-				<Text style={styles.actionText}>{formatLikeCount(likeCount)}</Text>
-			</View>
 
-			<TouchableOpacity style={styles.actionButton} onPress={handleSave}>
-				<Bookmark size={30} color={"transparent"} fill={isSaved ? "orange" : "white"} />
-			</TouchableOpacity>
+				<View style={styles.actionContainer}>
+					<TouchableOpacity style={styles.actionButton} onPress={handleSharePress} hitSlop={buttonHitSlop}>
+						<Share size={28} color="#FFFFFF" />
+					</TouchableOpacity>
+					<Text style={styles.actionText}>{i18n.t("DishMediaContent.actions.share")}</Text>
+				</View>
 
-			<View style={styles.actionContainer}>
-				<TouchableOpacity style={styles.actionButton} onPress={handleSharePress}>
-					<Share size={28} color="#FFFFFF" />
-				</TouchableOpacity>
-				<Text style={styles.actionText}>{i18n.t("DishMediaContent.actions.share")}</Text>
-			</View>
+				<View style={styles.actionContainer}>
+					<TouchableOpacity style={styles.actionButton} onPress={handleMapPinPress} hitSlop={buttonHitSlop}>
+						<MapPinned size={28} color="#FFFFFF" />
+					</TouchableOpacity>
+					<Text style={styles.actionText}>{i18n.t("DishMediaContent.actions.openMap")}</Text>
+				</View>
 
-			<View style={styles.actionContainer}>
-				<TouchableOpacity style={styles.actionButton} onPress={handleMapPinPress}>
-					<MapPinned size={28} color="#FFFFFF" />
-				</TouchableOpacity>
-				<Text style={styles.actionText}>{i18n.t("DishMediaContent.actions.openMap")}</Text>
-			</View>
-
-			{/* <TouchableOpacity
+				{/* <TouchableOpacity
                   style={styles.actionButton}
                   onPress={onOpenMenu}
                 >
                   <EllipsisVertical size={28} color="#FFFFFF" />
                 </TouchableOpacity> */}
-			{/* Menu Modal */}
-			<BlurModal contentContainerStyle={styles.modalOverlay}>
-				<View style={styles.menuContainer}>
-					{menuOptions.map((option, index) => (
-						<TouchableOpacity
-							key={index}
-							style={styles.menuItem}
-							onPress={() => {
-								option.onPress();
-								closeMenuModal();
-							}}>
-							<option.icon size={20} color="#FFFFFF" />
-							<Text style={styles.menuItemText}>{option.label}</Text>
-						</TouchableOpacity>
-					))}
-				</View>
-			</BlurModal>
-		</View>
+				{/* Menu Modal */}
+				<BlurModal contentContainerStyle={styles.modalOverlay}>
+					<View style={styles.menuContainer}>
+						{menuOptions.map((option, index) => (
+							<TouchableOpacity
+								key={index}
+								style={styles.menuItem}
+								onPress={() => {
+									option.onPress();
+									closeMenuModal();
+								}}>
+								<option.icon size={20} color="#FFFFFF" />
+								<Text style={styles.menuItemText}>{option.label}</Text>
+							</TouchableOpacity>
+						))}
+					</View>
+				</BlurModal>
+			</View>
+		</GestureDetector>
 	);
 }
 

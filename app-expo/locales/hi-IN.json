@@ -7,8 +7,8 @@
 		"close": "बंद करें",
 		"save": "सेव करें",
 		"post": "पोस्ट करें",
+		"postReview": "समीक्षा पोस्ट करें",
 		"retry": "पुनः प्रयास करें",
-		"processing": "प्रसंस्करण...",
 		"error": "एक त्रुटि हुई है। कृपया पुनः प्रयास करें।",
 		"success": "सफलता",
 		"linkCopied": "लिंक क्लिपबोर्ड पर कॉपी किया गया",
@@ -27,7 +27,8 @@
 		"site": "CraveCatch",
 		"errors": {
 			"network": "नेटवर्क त्रुटि हुई है। कृपया अपना कनेक्शन जांचें।",
-			"unexpected": "एक अप्रत्याशित त्रुटि हुई। कृपया बाद में पुनः प्रयास करें।"
+			"unexpected": "एक अप्रत्याशित त्रुटि हुई। कृपया बाद में पुनः प्रयास करें।",
+			"notFound": "नहीं मिला"
 		}
 	},
 	"Error": {
@@ -70,7 +71,13 @@
 		"placeholders": {
 			"enterLocation": "स्थान दर्ज करें"
 		},
+		"accessibility": {
+			"locationInputHint": "रेस्टोरेंट खोजने के लिए स्थान दर्ज करें",
+			"clearLocation": "स्थान साफ़ करें",
+			"selectLocation": "इस स्थान को चुनें"
+		},
 		"loading": "खोज जारी...",
+		"noLocationsFound": "कोई स्थान नहीं मिला",
 		"advancedToggle": {
 			"open": "अधिक विकल्प",
 			"close": "उन्नत खोज बंद करें"
@@ -126,6 +133,33 @@
 			"nutAllergy": "मेवे से एलर्जी",
 			"seafoodAllergy": "समुद्री भोजन से एलर्जी",
 			"halal": "हलाल"
+		},
+		"tutorial": {
+			"page1": {
+				"title": "आप क्या खाना चाहते हैं, जानें",
+				"body1": "\"आज क्या खाऊं?\" की उलझन को एक साथ हल करें।",
+				"body2": "हम आपके स्थान और समय के आधार पर व्यंजन और रेस्तरां सुझाते हैं।",
+				"cta": "अगला"
+			},
+			"page2": {
+				"title": "तस्वीरें देखें और अपनी पसंद की चीज खोजें",
+				"body1": "हम आपकी वर्तमान प्राथमिकताओं से मेल खाने वाले 6 व्यंजन सुझाते हैं।",
+				"body2": "तस्वीरें देखें और सहजता से चुनें कि आप क्या खाना चाहते हैं।",
+				"cta": "अगला"
+			},
+			"page3": {
+				"title": "तस्वीरें और समीक्षाएं आपको तय करने में मदद करती हैं",
+				"body1": "हम आपके चुने हुए व्यंजन परोसने वाले 5 रेस्तरां सुझाते हैं।",
+				"body2": "तस्वीरें, समीक्षाएं और मानचित्र देखें और जल्दी से एक जगह चुनें।",
+				"cta": "अगला"
+			},
+			"page4": {
+				"title": "चलिए शुरू करें",
+				"body1": "पास के स्वादिष्ट रेस्तरां सुझाने के लिए, हम आपकी वर्तमान स्थिति का उपयोग करेंगे।",
+				"body2": "आप इसे किसी भी समय सेटिंग्स में बदल सकते हैं।",
+				"primaryCta": "वर्तमान स्थिति का उपयोग करें",
+				"secondaryCta": "बाद में"
+			}
 		}
 	},
 	"Topics": {
@@ -148,7 +182,9 @@
 		"chooseThis": "इसे चुनें!",
 		"hiddenMessage": "{{title}} को छिपा दिया गया है",
 		"imageLoadFailed": "चित्र लोड करने में विफल",
-		"tapToReload": "पुनः लोड करने के लिए टैप करें"
+		"tapToReload": "पुनः लोड करने के लिए टैप करें",
+		"headerTitle": "आपके लिए अनुशंसित व्यंजन",
+		"subCopy": "रेस्तरां खोजने के लिए पसंदीदा व्यंजन पर टैप करें"
 	},
 	"Notifications": {
 		"title": "सूचनाएँ",
@@ -185,6 +221,7 @@
 		"buttons": {
 			"viewRestaurant": "रेस्टोरेंट देखें"
 		},
+		"processing": "मीडिया प्रोसेस किया जा रहा है...",
 		"info": {
 			"walkFromShibuya": "शिबुया स्टेशन से 13 मिनट की पैदल दूरी"
 		},
@@ -200,8 +237,16 @@
 		"home": "होम",
 		"search": "खोज",
 		"map": "मानचित्र",
+		"review": "समीक्षा",
 		"notifications": "सूचनाएँ",
-		"profile": "प्रोफ़ाइल"
+		"profile": "प्रोफ़ाइल",
+		"labels": {
+			"search": "खोज",
+			"map": "मानचित्र",
+			"review": "समीक्षा",
+			"notifications": "सूचनाएँ",
+			"profile": "प्रोफ़ाइल"
+		}
 	},
 	"Profile": {
 		"tabs": {
@@ -291,6 +336,7 @@
 	"Map": {
 		"buttons": {
 			"postReview": "समीक्षा पोस्ट करें",
+			"postPhotoVideoReview": "फोटो/वीडियो पोस्ट करें",
 			"placeBid": "बोली लगाएं",
 			"bid": "बोली",
 			"searchNearby": "इस क्षेत्र में खोजें",
@@ -310,14 +356,18 @@
 		"placeholders": {
 			"searchRestaurants": "रेस्टोरेंट खोजें",
 			"enterPrice": "मूल्य दर्ज करें",
-			"enterReview": "समीक्षा दर्ज करें",
+			"enterReview": "अनुशंसा स्तर",
+			"enterReviewShort": "संक्षिप्त समीक्षा (उदाहरण: समृद्ध टोन्कोत्सु शोरबा अविश्वसनीय रूप से स्वादिष्ट था!)",
 			"enterBidAmount": "बोली राशि दर्ज करें",
-			"enterDishCategory": "Enter dish category (e.g., Biryani, Chaat)"
+			"enterDishCategory": "Enter dish category (e.g., Biryani, Chaat)",
+			"searchRestaurantsForReview": "नाम या क्षेत्र से खोजें"
 		},
 		"labels": {
 			"endDate": "समाप्ति तिथि:",
 			"paymentProcessing": "भुगतान प्रसंस्करण...",
-			"currentBidAmount": "वर्तमान बोली राशि"
+			"currentBidAmount": "वर्तमान बोली राशि",
+			"restaurant": "रेस्टोरेंट",
+			"dishCategory": "व्यंजन श्रेणी"
 		},
 		"tabs": {
 			"reviews": "समीक्षाएँ",
@@ -357,7 +407,10 @@
 			"dishCategorySelected": "Selected {{category}}",
 			"dishCategorySearching": "Searching for dish categories",
 			"dishCategorySuggestionsFound": "Found {{count}} suggestions",
-			"dishCategoryNoResults": "No matching dish categories found"
+			"dishCategoryNoResults": "No matching dish categories found",
+			"dishCategoryInputHint": "खोजने के लिए डिश श्रेणी दर्ज करें",
+			"clearDishCategory": "डिश श्रेणी साफ़ करें",
+			"selectDishCategory": "इस डिश श्रेणी को चुनें"
 		},
 		"errors": {
 			"dishCategoryCreateFailed": "Failed to create dish category",
@@ -452,6 +505,7 @@
 		"provider_twitter": "Twitter",
 		"provider_apple": "Apple",
 		"otp_title": "कोड दर्ज करें",
+		"otp_resending": "कोड दोबारा भेजा जा रहा है...",
 		"otp_send_again": "कोड पुनः भेजें",
 		"otp_enter_all_digits": "कृपया सभी 6 अंक दर्ज करें",
 		"login_success": "सफलतापूर्वक लॉग इन हो गया!",
@@ -463,6 +517,7 @@
 		"conflict_dialog_message": "यह खाता पहले से ही किसी अन्य उपयोगकर्ता से जुड़ा हुआ है। यदि आप स्विच करते हैं, तो अतिथि के रूप में बनाया गया डेटा स्थानांतरित नहीं होगा। क्या आप मौजूदा खाते पर स्विच करना चाहते हैं?",
 		"conflict_dialog_switch": "स्विच करें",
 		"conflict_dialog_cancel": "रद्द करें",
+		"callback_processing": "साइन-इन पूरा किया जा रहा है...",
 		"consent_login_prefix": "जारी रखकर, आप हमारी ",
 		"consent_login_terms": "सेवा की शर्तें",
 		"consent_login_and": " और ",
@@ -480,7 +535,14 @@
 		"terms": "नियम और शर्तें",
 		"privacy": "गोपनीयता नीति",
 		"copyright": "कॉपीराइट",
+		"legalDocument": "कानूनी दस्तावेज़",
 		"logout": "लॉग आउट"
+	},
+	"Dialog": {
+		"a11y": {
+			"dialog": "डायलॉग",
+			"dialogWithTitle": "{{title}} डायलॉग"
+		}
 	},
 	"Tools": {
 		"DishCategoryImageOptimizer": {
@@ -504,5 +566,34 @@
 		"openInGoogleMaps": "Google Maps में खोलें",
 		"shareWithFriends": "दोस्तों के साथ साझा करें",
 		"cancel": "रद्द करें"
+	},
+	"Review": {
+		"title": "समीक्षा पोस्ट करें",
+		"hero": {
+			"title": "अनुशंसित रेस्तरां की समीक्षा लिखें\nऔर आपने जो व्यंजन खाए उन्हें पोस्ट करें"
+		},
+		"guest": {
+			"description": "समीक्षा लिखने के लिए लॉग इन करें",
+			"loginButton": "लॉग इन करें"
+		},
+		"authenticated": {
+			"postButton": "✏️ रेस्तरां की समीक्षा पोस्ट करें"
+		},
+		"selectRestaurant": {
+			"title": "रीव्यू करने के लिए रेस्टोरेंट चुनें",
+			"searchThisArea": "इस क्षेत्र में खोजें",
+			"savedRestaurantList": "सहेजे गए रेस्तरां",
+			"postPhotoVideo": "फोटो/वीडियो पोस्ट करें",
+			"fetchSavedRestaurantsError": "सहेजे गए रेस्तरां प्राप्त करने में विफल",
+			"noSavedRestaurantsInArea": "इस क्षेत्र में कोई सहेजे गए रेस्तरां नहीं मिले। कृपया क्षेत्र का विस्तार करें और फिर से खोजें।"
+		},
+		"emptyState": {
+			"noReviews": "अभी तक कोई समीक्षा नहीं।\nइस रेस्तरां की समीक्षा करने वाले पहले बनें।"
+		},
+		"everybodyPostsTitle": "समीक्षा करने के लिए व्यंजन चुनें",
+		"characterCount": "{{current}}/{{max}}",
+		"restaurantDetail": {
+			"title": "रेस्टोरेंट विवरण"
+		}
 	}
 }

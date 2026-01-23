@@ -1,0 +1,1070 @@
+// app-expo/app/[locale]/contribution-tasks/dish-category-manual-image-supply.tsx
+//
+// #703 【実装】dish category 手動画像供給画面（ポップUI）実装
+// ユーザー協力で料理カテゴリの画像を改善するための単体画面
+
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import {
+	View,
+	StyleSheet,
+	ScrollView,
+	Pressable,
+	Text,
+	ActivityIndicator,
+	useWindowDimensions,
+	FlatList,
+	NativeScrollEvent,
+	NativeSyntheticEvent,
+} from "react-native";
+import { Image } from "expo-image";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { HelpCircle, CheckCircle2, AlertTriangle, Loader2 } from "lucide-react-native";
+import { useRouter } from "expo-router";
+import * as Clipboard from "expo-clipboard";
+
+import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
+import { useLogger } from "@/hooks/useLogger";
+import { useAPICall } from "@/hooks/useAPICall";
+import { useFileUploader } from "@/hooks/useFileUploader";
+import { selectMedia } from "@/lib/mediaSelection";
+import { PrimaryButton } from "@/components/PrimaryButton";
+import { Env } from "@/constants/Env";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useSnackbar } from "@/contexts/SnackbarProvider";
+import { Dimensions } from "react-native";
+
+/* -------------------------------------------------------------------------- */
+/*                                    型定義                                   */
+/* -------------------------------------------------------------------------- */
+
+// #703 【設計】CDN JSON から取得する候補アイテムの型
+type CandidateItem = {
+	category_id: string; // dish_category_id (Wikidata QID)
+	category: string; // 表示名
+	imageUrl: string; // 候補画像
+	topicTitle: string; // モーダル下部に表示するタイトル
+	reason: string; // モーダル下部に表示する理由
+};
+
+// #703 【設計】CDN JSON のスキーマ
+type CandidateJson = CandidateItem[];
+
+// #703 【設計】アップロード状態
+type UploadState = "idle" | "uploading" | "success" | "error";
+
+// #703 【設計】アップロード済み情報
+type UploadedInfo = {
+	originalPath: string;
+	previewUri?: string;
+	mime?: string;
+	size?: number;
+	width?: number;
+	height?: number;
+};
+
+// #703 【設計】アイテムごとの状態管理
+type ItemState = {
+	uploadState: UploadState;
+	uploaded?: UploadedInfo;
+};
+
+/* -------------------------------------------------------------------------- */
+/*                              定数・固定値                                   */
+/* -------------------------------------------------------------------------- */
+
+const TASK_KEY = "dish_category_manual_image_supply_v1";
+const TARGET_TYPE = "dish_categories";
+const TYPE = "image_feedback";
+const CDN_JSON_PATH = "tickets/703/dish_category_manual_image_supply_v1.latest.json";
+
+const TUTORIAL_STORAGE_KEY = "dish_manual_image_supply_tutorial_shown";
+
+// 一度に表示するアイテム数
+const ITEMS_PER_PAGE = 30;
+// #703 【設計】チュートリアル2ページ目に表示する9:16画像サンプル（4枚）
+const TUTORIAL_EXAMPLE_IMAGES = [
+	`https://cdn-public.nanitabeyo.net/dish_categories/image_url/Q483163/22dadd09-d4e6-4e6d-a5bb-5cea3eb1ecb3.webp`,
+	`https://i.ibb.co/hJcLYmQf/unnamed-2-1.jpg`,
+	`https://i.ibb.co/vx61LhRy/unnamed-1.jpg`,
+	`https://i.ibb.co/8g4ZN3nh/unnamed.jpg`,
+];
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
+
+/* -------------------------------------------------------------------------- */
+/*                              メインコンポーネント                             */
+/* -------------------------------------------------------------------------- */
+
+export default function DishCategoryManualImageSupplyScreen() {
+	const insets = useSafeAreaInsets();
+	const { width } = useWindowDimensions();
+	const router = useRouter();
+	const { logFrontendEvent } = useLogger();
+	const { callBackend } = useAPICall();
+	const { uploadFile } = useFileUploader();
+	const { showSnackbar } = useSnackbar();
+
+	// #703 【状態】候補アイテムリスト（除外後）
+	const [items, setItems] = useState<CandidateItem[]>([]);
+	// #703 【状態】アイテムごとの状態
+	const [itemStates, setItemStates] = useState<Record<string, ItemState>>({});
+	// #703 【状態】ローディング
+	const [isLoadingCandidates, setIsLoadingCandidates] = useState(true);
+	const [isSubmitting, setIsSubmitting] = useState(false);
+	// #703 【状態】エラー
+	const [loadError, setLoadError] = useState<string | null>(null);
+	// #703 【状態】チュートリアルモーダル
+	const [showTutorial, setShowTutorial] = useState(false);
+	// #703 【状態】チュートリアルのページ番号（0-indexed）
+	const [tutorialPage, setTutorialPage] = useState(0);
+	// #703 【状態】サンクス画面表示
+	const [showThanks, setShowThanks] = useState(false);
+	// #703 【状態】詳細モーダルで選択中のアイテム
+	const [selectedItem, setSelectedItem] = useState<CandidateItem | null>(null);
+
+	/* ---- BlurModal（チュートリアル用） ---- */
+	const tutorialModal = useBlurModal({
+		intensity: 80,
+		closeOnBackdropPress: false,
+	});
+
+	/* ---- BlurModal（詳細モーダル用） ---- */
+	const detailModal = useBlurModal({
+		intensity: 70,
+		closeOnBackdropPress: false,
+	});
+
+	/* -------------------------------------------------------------------------- */
+	/*                              初期化処理                                    */
+	/* -------------------------------------------------------------------------- */
+
+	// #703 【処理】候補JSON読み込み＋除外処理
+	const loadCandidates = useCallback(async () => {
+		setIsLoadingCandidates(true);
+		setLoadError(null);
+
+		try {
+			// Step 1: CDN JSONを取得
+			const cdnUrl = `https://${Env.CDN_PUBLIC_HOST}/${CDN_JSON_PATH}`;
+			const jsonResponse = await fetch(cdnUrl);
+			if (!jsonResponse.ok) {
+				throw new Error("Failed to fetch candidate JSON");
+			}
+			const jsonData: CandidateJson = await jsonResponse.json();
+
+			// Step 2: 完了済みアイテムを取得
+			let completedIds: string[] = [];
+			try {
+				const completedData = await callBackend<any, { completed: Array<{ targetId: string }> }>(
+					"v1/contribution-tasks/completed-target-ids",
+					{
+						method: "GET",
+						requestPayload: {
+							taskKey: TASK_KEY,
+							targetType: TARGET_TYPE,
+							type: TYPE,
+							minCount: 1,
+							limit: 1000,
+						} as any,
+					},
+				);
+				completedIds = completedData.completed.map((c) => c.targetId);
+			} catch (err) {
+				// #703 【設計】completed-target-ids取得失敗時は除外なしで暫定表示
+				console.warn("Failed to fetch completed target IDs, showing all candidates", err);
+			}
+
+			// Step 3: 除外処理
+			const filteredItems = jsonData
+				.filter((item) => !completedIds.includes(item.category_id))
+				.slice(0, ITEMS_PER_PAGE); // 一定数に制限
+			setItems(filteredItems);
+
+			// Step 4: アイテム状態の初期化
+			const initialStates: Record<string, ItemState> = {};
+			filteredItems.forEach((item) => {
+				initialStates[item.category_id] = { uploadState: "idle" };
+			});
+			setItemStates(initialStates);
+		} catch (err) {
+			console.error("Failed to load candidates", err);
+			setLoadError("読み込みに失敗しました");
+		} finally {
+			setIsLoadingCandidates(false);
+		}
+	}, [callBackend]);
+
+	// #703 【処理】初回表示時のチュートリアル判定
+	useEffect(() => {
+		const checkTutorial = async () => {
+			try {
+				const shown = await AsyncStorage.getItem(TUTORIAL_STORAGE_KEY);
+				if (!shown) {
+					setShowTutorial(true);
+					tutorialModal.open();
+					logFrontendEvent({
+						event_name: "dish_manual_image_supply_tutorial_shown",
+						error_level: "log",
+						payload: {},
+					});
+				}
+			} catch (err) {
+				console.warn("Failed to check tutorial status", err);
+			}
+		};
+
+		loadCandidates();
+		checkTutorial();
+	}, []);
+
+	/* -------------------------------------------------------------------------- */
+	/*                              ヘルプボタン                                  */
+	/* -------------------------------------------------------------------------- */
+
+	const handleHelpPress = useCallback(() => {
+		setShowTutorial(true);
+		tutorialModal.open();
+		logFrontendEvent({
+			event_name: "dish_manual_image_supply_help_opened",
+			error_level: "log",
+			payload: {},
+		});
+	}, [tutorialModal, logFrontendEvent]);
+
+	/* -------------------------------------------------------------------------- */
+	/*                              グリッド表示                                  */
+	/* -------------------------------------------------------------------------- */
+
+	const handleCardPress = useCallback(
+		(item: CandidateItem) => {
+			setSelectedItem(item);
+			detailModal.open();
+			logFrontendEvent({
+				event_name: "dish_manual_image_supply_item_opened",
+				error_level: "log",
+				payload: { targetId: item.category_id },
+			});
+		},
+		[detailModal, logFrontendEvent],
+	);
+
+	/* -------------------------------------------------------------------------- */
+	/*                              画像選択・アップロード                          */
+	/* -------------------------------------------------------------------------- */
+
+	const handleSelectImage = useCallback(
+		async (item: CandidateItem) => {
+			// #703 【処理】画像選択→即アップロード
+			logFrontendEvent({
+				event_name: "dish_manual_image_supply_upload_started",
+				error_level: "log",
+				payload: { targetId: item.category_id },
+			});
+
+			try {
+				// 画像選択
+				const result = await selectMedia(["images"], {
+					allowsEditing: false,
+				});
+
+				if (!result.success || !result.media) {
+					// キャンセルまたは失敗
+					return;
+				}
+
+				// アップロード中にセット
+				setItemStates((prev) => ({
+					...prev,
+					[item.category_id]: { ...prev[item.category_id], uploadState: "uploading" },
+				}));
+
+				// アップロード
+				const { uri, mimeType, width, height } = result.media;
+				const fileName = `dish_category_${item.category_id}_${Date.now()}.jpg`;
+				const objectPath = await uploadFile(uri, {
+					mimeType,
+					baseFileName: fileName,
+				});
+
+				// 成功
+				setItemStates((prev) => ({
+					...prev,
+					[item.category_id]: {
+						uploadState: "success",
+						uploaded: {
+							originalPath: objectPath,
+							previewUri: uri,
+							mime: mimeType,
+							width,
+							height,
+						},
+					},
+				}));
+
+				logFrontendEvent({
+					event_name: "dish_manual_image_supply_upload_succeeded",
+					error_level: "log",
+					payload: { targetId: item.category_id, objectPath },
+				});
+			} catch (err) {
+				console.error("Upload failed", err);
+				setItemStates((prev) => ({
+					...prev,
+					[item.category_id]: { ...prev[item.category_id], uploadState: "error" },
+				}));
+
+				logFrontendEvent({
+					event_name: "dish_manual_image_supply_upload_failed",
+					error_level: "error",
+					payload: { targetId: item.category_id, error: err instanceof Error ? err.message : String(err) },
+				});
+			}
+		},
+		[uploadFile, logFrontendEvent],
+	);
+
+	/* -------------------------------------------------------------------------- */
+	/*                              「元に戻す」                                  */
+	/* -------------------------------------------------------------------------- */
+
+	const handleResetImage = useCallback((item: CandidateItem) => {
+		setItemStates((prev) => ({
+			...prev,
+			[item.category_id]: { uploadState: "idle", uploaded: undefined },
+		}));
+	}, []);
+
+	/* -------------------------------------------------------------------------- */
+	/*                              送信処理                                      */
+	/* -------------------------------------------------------------------------- */
+
+	const handleSubmit = useCallback(async () => {
+		// #703 【処理】送信処理（1件ずつPOST）
+		const readyItems = items.filter((item) => itemStates[item.category_id]?.uploadState === "success");
+
+		if (readyItems.length === 0) return;
+
+		setIsSubmitting(true);
+		logFrontendEvent({
+			event_name: "dish_manual_image_supply_submit_started",
+			error_level: "log",
+			payload: { count: readyItems.length },
+		});
+
+		let successCount = 0;
+		let failCount = 0;
+
+		for (const item of readyItems) {
+			const state = itemStates[item.category_id];
+			if (!state?.uploaded) continue;
+
+			try {
+				await callBackend<any, any>("v1/contribution-tasks", {
+					method: "POST",
+					requestPayload: {
+						type: TYPE,
+						taskKey: TASK_KEY,
+						targetType: TARGET_TYPE,
+						targetId: item.category_id,
+						payload: {
+							category: item.category,
+							topicTitle: item.topicTitle,
+							reason: item.reason,
+							sourceImageUrl: item.imageUrl,
+							cdn: { path: CDN_JSON_PATH },
+						},
+						result: {
+							originalPath: state.uploaded.originalPath,
+						},
+					},
+				});
+				successCount++;
+			} catch (err) {
+				console.error("Failed to submit item", item.category_id, err);
+				failCount++;
+			}
+		}
+
+		logFrontendEvent({
+			event_name: "dish_manual_image_supply_submit_result",
+			error_level: "log",
+			payload: { successCount, failCount },
+		});
+
+		setIsSubmitting(false);
+		setShowThanks(true);
+	}, [items, itemStates, callBackend, logFrontendEvent]);
+
+	/* -------------------------------------------------------------------------- */
+	/*                              サンクス画面                                  */
+	/* -------------------------------------------------------------------------- */
+
+	const handleThanksAction = useCallback(() => {
+		const remainingItems = items.filter((item) => itemStates[item.category_id]?.uploadState !== "success");
+
+		if (remainingItems.length > 0) {
+			// まだ協力できる料理がある
+			logFrontendEvent({
+				event_name: "dish_manual_image_supply_thanks_continue_clicked",
+				error_level: "log",
+				payload: {},
+			});
+			setShowThanks(false);
+			loadCandidates(); // 再読み込み
+		} else {
+			// もう無い
+			router.back();
+		}
+	}, [items, itemStates, loadCandidates, router, logFrontendEvent]);
+
+	/* -------------------------------------------------------------------------- */
+	/*                              算出値                                        */
+	/* -------------------------------------------------------------------------- */
+
+	// #703 【算出】画像セット済み数
+	const readyCount = useMemo(() => {
+		return items.filter((item) => itemStates[item.category_id]?.uploadState === "success").length;
+	}, [items, itemStates]);
+
+	// #703 【算出】グリッド列数とカードサイズ
+	const GRID_COLUMNS = 3;
+	const CARD_GAP = 8;
+	const HORIZONTAL_PADDING = 16;
+	const cardWidth = (width - HORIZONTAL_PADDING * 2 - CARD_GAP * (GRID_COLUMNS - 1)) / GRID_COLUMNS;
+	const cardHeight = (cardWidth * 16) / 9;
+
+	/* -------------------------------------------------------------------------- */
+	/*                              レンダリング                                  */
+	/* -------------------------------------------------------------------------- */
+
+	// #703 【コンポーネント】チュートリアルページ1：使い方
+	const TutorialPage1 = () => (
+		<View style={styles.tutorialPageContainer}>
+			<Text style={styles.tutorialPageTitle}>使い方</Text>
+			<View style={styles.tutorialStepsContainer}>
+				<Text style={styles.tutorialStep}>• 料理カテゴリをタップ</Text>
+				<Text style={styles.tutorialStep}>• AIで生成した美味しそうな画像を選択</Text>
+				<Text style={styles.tutorialStep}>• 「画像を送信する」ボタンで完了！</Text>
+			</View>
+		</View>
+	);
+
+	// #703 【コンポーネント】チュートリアルページ2：こんな画像が欲しい
+	const TutorialPage2 = () => (
+		<View style={styles.tutorialPageContainer}>
+			<Text style={styles.tutorialPageTitle}>こんな画像が欲しい</Text>
+			<View style={styles.tutorialStepsContainer}>
+				<Text style={styles.tutorialStep}>• 縦長（9:16）で、料理が主役</Text>
+			</View>
+			{/* #703 【表示】9:16画像の2×2グリッド */}
+			<View style={styles.tutorialImageGrid}>
+				{TUTORIAL_EXAMPLE_IMAGES.map((uri, index) => (
+					<View key={index} style={styles.tutorialImageWrapper}>
+						<Image source={{ uri }} style={styles.tutorialImage} contentFit="cover" />
+					</View>
+				))}
+			</View>
+		</View>
+	);
+
+	// #703 【コンポーネント】チュートリアルページ3：AI画像生成のやり方
+	const TutorialPage3 = () => {
+		// #703 【処理】プロンプトをコピー
+		const handleCopyPrompt = useCallback(async () => {
+			try {
+				const promptText =
+					"提供後の料理を撮影した写真。\n料理そのものは誇張せず、現実的で自然な見た目。\n\n大きな器・鍋・トレイ・調理器具などに、\n料理や具材がたっぷりと入っている。\n画面の上から下まで、料理が連続して見える構成。\n\n料理は整理されすぎず、自然に重なり合っている。\n空白が少なく、料理の密度が高い。\n縦長にクロップしても、常に料理が画面を占める。\n\nスマートフォンで縦向きに撮影。\n最初から縦長構図として成立している。\n\n不自然な演出や誇張は禁止。\n質感はリアルで、温かさやおいしさが伝わる写真。\n\n縦長構図（9:16）、高解像度、SNS向け。\n\n\n料理は、「おでん」";
+				await Clipboard.setStringAsync(promptText);
+				showSnackbar("プロンプトをコピーしました");
+
+				logFrontendEvent({
+					event_name: "dish_manual_image_supply_prompt_copied",
+					error_level: "log",
+					payload: {},
+				});
+			} catch (err) {
+				console.warn("Failed to copy prompt", err);
+			}
+		}, [showSnackbar, logFrontendEvent]);
+
+		return (
+			<View style={styles.tutorialPageContainer}>
+				<Text style={styles.tutorialPageTitle}>AIで画像を作る</Text>
+				<View style={styles.tutorialStepsContainer}>
+					<Text style={styles.tutorialStep}>• 画像生成アプリで料理名を入れて作ってみてね</Text>
+					<Text style={styles.tutorialStep}>• できた画像はこの画面で選んで送信！</Text>
+				</View>
+
+				{/* #703 【表示】プロンプト例 */}
+				<View style={styles.promptSection}>
+					<Text style={styles.promptTitle}>プロンプト例（タップでコピー）</Text>
+					<Pressable onPress={handleCopyPrompt} style={styles.promptBox}>
+						<Text style={styles.promptText} numberOfLines={10}>
+							{
+								"提供後の料理を撮影した写真。\n料理そのものは誇張せず、現実的で自然な見た目。\n\n大きな器・鍋・トレイ・調理器具などに、\n料理や具材がたっぷりと入っている。\n画面の上から下まで、料理が連続して見える構成。\n\n料理は整理されすぎず、自然に重なり合っている。\n空白が少なく、料理の密度が高い。\n縦長にクロップしても、常に料理が画面を占める。\n\nスマートフォンで縦向きに撮影。\n最初から縦長構図として成立している。\n\n不自然な演出や誇張は禁止。\n質感はリアルで、温かさやおいしさが伝わる写真。\n\n縦長構図（9:16）、高解像度、SNS向け。\n\n\n料理は、「おでん」"
+							}
+						</Text>
+					</Pressable>
+				</View>
+			</View>
+		);
+	};
+
+	// #703 【算出】チュートリアルページデータ
+	const tutorialPages = useMemo(
+		() => [
+			{ key: "page1", component: <TutorialPage1 /> },
+			{ key: "page2", component: <TutorialPage2 /> },
+			{ key: "page3", component: <TutorialPage3 /> },
+		],
+		[],
+	);
+
+	// #703 【処理】チュートリアルページスクロール時のページ番号更新
+	const handleTutorialScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+		const offsetX = event.nativeEvent.contentOffset.x;
+		const pageWidth = event.nativeEvent.layoutMeasurement.width;
+		const currentPage = Math.round(offsetX / pageWidth);
+		setTutorialPage(currentPage);
+	}, []);
+
+	/* -------------------------------------------------------------------------- */
+	/*                              レンダリング                                  */
+	/* -------------------------------------------------------------------------- */
+
+	// #703 【表示】ローディング中
+	if (isLoadingCandidates) {
+		return (
+			<View style={[styles.container, styles.centered]}>
+				<ActivityIndicator size="large" color="#FF6B6B" />
+				<Text style={styles.loadingText}>読み込み中...</Text>
+			</View>
+		);
+	}
+
+	// #703 【表示】エラー時
+	if (loadError) {
+		return (
+			<View style={[styles.container, styles.centered]}>
+				<Text style={styles.errorText}>{loadError}</Text>
+				<PrimaryButton label="再読み込み" onPress={loadCandidates} style={styles.retryButton} />
+			</View>
+		);
+	}
+
+	// #703 【表示】サンクス画面
+	if (showThanks) {
+		const hasMoreItems = items.filter((item) => itemStates[item.category_id]?.uploadState !== "success").length > 0;
+
+		return (
+			<View style={[styles.container, styles.centered, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+				<Text style={styles.thanksTitle}>ご協力ありがとうございます！</Text>
+				<Text style={styles.thanksMessage}>
+					頂いた画像を確認・リサイズ後に反映して、もっとなに食べよを使いやすくしていきます。
+				</Text>
+				<PrimaryButton
+					label={hasMoreItems ? "まだ協力できる料理を見る" : "画面を閉じる"}
+					onPress={handleThanksAction}
+					style={styles.thanksButton}
+				/>
+			</View>
+		);
+	}
+
+	// #703 【表示】メイン画面
+	return (
+		<View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+			{/* ヘッダー */}
+			<View style={styles.header}>
+				<View style={styles.headerTextContainer}>
+					<Text style={styles.headerTitle}>料理提案画像を綺麗にしよう！</Text>
+					<Text style={styles.headerSubtitle}>
+						思わずよだれが出る、美味しそうな料理画像をAIで作って、貼り付けて送信してください！
+					</Text>
+				</View>
+				<Pressable onPress={handleHelpPress} hitSlop={10} style={styles.helpButton}>
+					<HelpCircle size={32} color="#666" />
+				</Pressable>
+			</View>
+
+			{/* グリッド */}
+			<ScrollView style={styles.scrollView} contentContainerStyle={styles.gridContainer}>
+				{items.map((item, index) => {
+					const state = itemStates[item.category_id];
+					const uploadState = state?.uploadState ?? "idle";
+					// #703 【設計】3列目のカードは右マージンなし
+					const isLastInRow = (index + 1) % GRID_COLUMNS === 0;
+
+					const imageSource =
+						uploadState === "success" && state?.uploaded?.previewUri
+							? { uri: state.uploaded.previewUri }
+							: { uri: item.imageUrl };
+
+					return (
+						<Pressable
+							key={item.category_id}
+							onPress={() => handleCardPress(item)}
+							style={[styles.card, { width: cardWidth, height: cardHeight, marginRight: isLastInRow ? 0 : CARD_GAP }]}>
+							<Image source={imageSource} style={styles.cardImage} contentFit="cover" />
+
+							{/* オーバーレイ（カテゴリ名） */}
+							<View style={styles.cardOverlay}>
+								<Text style={styles.cardCategory} numberOfLines={2}>
+									{item.category}
+								</Text>
+							</View>
+
+							{/* 状態バッジ */}
+							{uploadState !== "idle" && (
+								<View style={styles.badge}>
+									{uploadState === "uploading" && (
+										<View style={styles.badgeContent}>
+											<Loader2 size={14} color="#FFF" />
+											<Text style={styles.badgeText}>準備中…</Text>
+										</View>
+									)}
+									{uploadState === "success" && (
+										<View style={styles.badgeContent}>
+											<CheckCircle2 size={14} color="#FFF" />
+											<Text style={styles.badgeText}>OK！</Text>
+										</View>
+									)}
+									{uploadState === "error" && (
+										<View style={styles.badgeContent}>
+											<AlertTriangle size={14} color="#FFF" />
+											<Text style={styles.badgeText}>もう一度！</Text>
+										</View>
+									)}
+								</View>
+							)}
+						</Pressable>
+					);
+				})}
+			</ScrollView>
+
+			{/* フッター */}
+			<View style={styles.footer}>
+				<Text style={styles.footerText}>準備できた料理：{readyCount}</Text>
+				<PrimaryButton
+					label={readyCount > 0 ? `画像を送信する（${readyCount}）` : "まずは画像を選んでね"}
+					onPress={handleSubmit}
+					disabled={readyCount === 0 || isSubmitting}
+					loading={isSubmitting}
+					style={styles.submitButton}
+				/>
+			</View>
+
+			{/* チュートリアルモーダル */}
+			<tutorialModal.BlurModal showCloseButton={true}>
+				<View style={styles.tutorialModal}>
+					{/* #703 【表示】ページ化されたチュートリアル（横スワイプ） */}
+					<FlatList
+						data={tutorialPages}
+						horizontal
+						pagingEnabled
+						showsHorizontalScrollIndicator={false}
+						onMomentumScrollEnd={handleTutorialScroll}
+						keyExtractor={(item) => item.key}
+						renderItem={({ item }) => <View style={[styles.tutorialPageWrapper]}>{item.component}</View>}
+						getItemLayout={(_, index) => ({
+							length: width,
+							offset: width * index,
+							index,
+						})}
+					/>
+
+					{/* #703 【表示】ページインジケーター（ドット3つ） */}
+					<View style={styles.pageIndicatorContainer}>
+						{tutorialPages.map((_, index) => (
+							<View
+								key={index}
+								style={[styles.pageIndicatorDot, index === tutorialPage && styles.pageIndicatorDotActive]}
+							/>
+						))}
+					</View>
+
+					{/* #703 【ボタン】閉じるボタン */}
+					<PrimaryButton
+						label="さっそくやってみる！"
+						onPress={async () => {
+							try {
+								await AsyncStorage.setItem(TUTORIAL_STORAGE_KEY, "true");
+							} catch (err) {
+								console.warn("Failed to save tutorial status", err);
+							}
+							tutorialModal.close();
+						}}
+						style={styles.tutorialButton}
+					/>
+				</View>
+			</tutorialModal.BlurModal>
+
+			{/* 詳細モーダル */}
+			{selectedItem && (
+				<detailModal.BlurModal showCloseButton={true}>
+					<View style={styles.detailModal}>
+						{/* 画像 */}
+						<View style={styles.detailImageContainer}>
+							<Image
+								source={{
+									uri: itemStates[selectedItem.category_id]?.uploaded?.previewUri ?? selectedItem.imageUrl,
+								}}
+								style={styles.detailImage}
+								contentFit="cover"
+							/>
+							{/* オーバーレイ */}
+							<View style={styles.detailOverlay}>
+								<Text style={styles.detailTopicTitle}>{selectedItem.topicTitle}</Text>
+								<Text style={styles.detailReason} numberOfLines={3}>
+									{selectedItem.reason}
+								</Text>
+							</View>
+						</View>
+
+						{/* ボタン */}
+						<View style={styles.detailButtons}>
+							{itemStates[selectedItem.category_id]?.uploadState === "success" ? (
+								<PrimaryButton
+									label="元に戻す"
+									onPress={() => handleResetImage(selectedItem)}
+									colors={["#FFF", "#FFF"]}
+									labelStyle={styles.detailResetButtonText}
+									style={styles.detailMainButton}
+								/>
+							) : (
+								<PrimaryButton
+									label="画像を選ぶ"
+									onPress={() => handleSelectImage(selectedItem)}
+									disabled={itemStates[selectedItem.category_id]?.uploadState === "uploading"}
+									loading={itemStates[selectedItem.category_id]?.uploadState === "uploading"}
+									style={styles.detailMainButton}
+								/>
+							)}
+
+							{/* 閉じる */}
+							<PrimaryButton
+								label="閉じる"
+								onPress={() => detailModal.close()}
+								colors={["#FFF", "#FFF"]}
+								labelStyle={styles.detailResetButtonText}
+								style={styles.detailMainButton}
+							/>
+
+							{/* 状態メッセージ */}
+							{itemStates[selectedItem.category_id]?.uploadState === "uploading" && (
+								<Text style={styles.detailStatusText}>アップロード中…ちょっと待ってね</Text>
+							)}
+							{itemStates[selectedItem.category_id]?.uploadState === "error" && (
+								<Text style={styles.detailStatusError}>うまくいかなかったみたい。もう一度選んでね</Text>
+							)}
+						</View>
+					</View>
+				</detailModal.BlurModal>
+			)}
+		</View>
+	);
+}
+
+/* -------------------------------------------------------------------------- */
+/*                              スタイル定義                                  */
+/* -------------------------------------------------------------------------- */
+
+const styles = StyleSheet.create({
+	container: {
+		flex: 1,
+		backgroundColor: "#FFF",
+	},
+	centered: {
+		justifyContent: "center",
+		alignItems: "center",
+		padding: 20,
+	},
+	loadingText: {
+		marginTop: 16,
+		fontSize: 16,
+		color: "#666",
+	},
+	errorText: {
+		fontSize: 16,
+		color: "#FF3B30",
+		textAlign: "center",
+		marginBottom: 16,
+	},
+	retryButton: {
+		paddingHorizontal: 24,
+		paddingVertical: 12,
+	},
+	header: {
+		flexDirection: "row",
+		alignItems: "center",
+		padding: 16,
+		borderBottomWidth: 1,
+		borderBottomColor: "#EEE",
+	},
+	headerTextContainer: {
+		flex: 1,
+	},
+	headerTitle: {
+		fontSize: 20,
+		fontWeight: "700",
+		color: "#333",
+		marginBottom: 4,
+	},
+	headerSubtitle: {
+		fontSize: 13,
+		color: "#666",
+		lineHeight: 18,
+	},
+	helpButton: {
+		marginLeft: 8,
+	},
+	scrollView: {
+		flex: 1,
+	},
+	gridContainer: {
+		padding: 16,
+		flexDirection: "row",
+		flexWrap: "wrap",
+	},
+	card: {
+		borderRadius: 12,
+		overflow: "hidden",
+		backgroundColor: "#F5F5F5",
+		position: "relative",
+		marginBottom: 8,
+	},
+	cardImage: {
+		width: "100%",
+		height: "100%",
+	},
+	cardOverlay: {
+		position: "absolute",
+		bottom: 0,
+		left: 0,
+		right: 0,
+		backgroundColor: "rgba(0,0,0,0.6)",
+		padding: 8,
+	},
+	cardCategory: {
+		color: "#FFF",
+		fontSize: 12,
+		fontWeight: "600",
+	},
+	badge: {
+		position: "absolute",
+		top: 8,
+		right: 8,
+		backgroundColor: "rgba(0,0,0,0.7)",
+		borderRadius: 12,
+		paddingHorizontal: 8,
+		paddingVertical: 4,
+	},
+	badgeContent: {
+		flexDirection: "row",
+		alignItems: "center",
+	},
+	badgeText: {
+		color: "#FFF",
+		fontSize: 10,
+		fontWeight: "600",
+		marginLeft: 4,
+	},
+	footer: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+		padding: 16,
+		borderTopWidth: 1,
+		borderTopColor: "#EEE",
+	},
+	footerText: {
+		fontSize: 14,
+		fontWeight: "600",
+		color: "#333",
+	},
+	submitButton: {
+		paddingHorizontal: 20,
+		paddingVertical: 12,
+	},
+	tutorialModal: {
+		backgroundColor: "#FFF",
+		borderRadius: 16,
+		padding: 24,
+		marginHorizontal: 20,
+		width: SCREEN_WIDTH,
+		alignSelf: "center",
+		overflow: "hidden",
+	},
+	tutorialPageWrapper: {
+		width: SCREEN_WIDTH - 48, // モーダルのパディング分を引く
+	},
+	tutorialPageContainer: {
+		flex: 1,
+	},
+	tutorialPageContent: {
+		padding: 24,
+		paddingBottom: 16,
+	},
+	tutorialPageTitle: {
+		fontSize: 22,
+		fontWeight: "700",
+		color: "#333",
+		marginBottom: 16,
+		textAlign: "center",
+	},
+	tutorialStepsContainer: {
+		marginBottom: 20,
+	},
+	tutorialStep: {
+		fontSize: 15,
+		color: "#666",
+		lineHeight: 24,
+		marginBottom: 8,
+	},
+	tutorialImageGrid: {
+		flexDirection: "row",
+		flexWrap: "wrap",
+		justifyContent: "space-between",
+		marginTop: 8,
+		marginHorizontal: 16,
+	},
+	tutorialImageWrapper: {
+		width: "40%",
+		aspectRatio: 3 / 4,
+		borderRadius: 8,
+		overflow: "hidden",
+		backgroundColor: "#F5F5F5",
+		marginBottom: 8,
+	},
+	tutorialImage: {
+		width: "100%",
+		height: "100%",
+	},
+	promptSection: {
+		marginTop: 12,
+	},
+	promptTitle: {
+		fontSize: 14,
+		fontWeight: "600",
+		color: "#666",
+		marginBottom: 8,
+	},
+	promptBox: {
+		backgroundColor: "#F5F5F5",
+		borderRadius: 8,
+		padding: 12,
+		borderWidth: 1,
+		borderColor: "#E0E0E0",
+	},
+	promptText: {
+		fontSize: 13,
+		color: "#333",
+		lineHeight: 18,
+	},
+	pageIndicatorContainer: {
+		flexDirection: "row",
+		justifyContent: "center",
+		alignItems: "center",
+		paddingVertical: 12,
+		gap: 8,
+	},
+	pageIndicatorDot: {
+		width: 8,
+		height: 8,
+		borderRadius: 4,
+		backgroundColor: "#DDD",
+	},
+	pageIndicatorDotActive: {
+		backgroundColor: "#FF6B6B",
+		width: 24,
+	},
+	tutorialButton: {
+		marginHorizontal: 24,
+		marginBottom: 24,
+		paddingVertical: 14,
+	},
+	detailModal: {
+		backgroundColor: "#FFF",
+		borderRadius: 16,
+		marginHorizontal: 20,
+		width: SCREEN_WIDTH - 40,
+		padding: 16,
+		alignSelf: "center",
+		alignItems: "center",
+		overflow: "hidden",
+	},
+	detailImageContainer: {
+		width: "70%",
+		aspectRatio: 9 / 16,
+		position: "relative",
+	},
+	detailImage: {
+		width: "100%",
+		height: "100%",
+	},
+	detailOverlay: {
+		position: "absolute",
+		bottom: 0,
+		left: 0,
+		right: 0,
+		backgroundColor: "rgba(0,0,0,0.7)",
+		padding: 16,
+	},
+	detailTopicTitle: {
+		color: "#FFF",
+		fontSize: 16,
+		fontWeight: "700",
+		marginBottom: 4,
+	},
+	detailReason: {
+		color: "#FFF",
+		fontSize: 13,
+		lineHeight: 18,
+	},
+	detailButtons: {
+		width: "100%",
+		padding: 16,
+	},
+	detailMainButton: {
+		paddingVertical: 14,
+		marginBottom: 12,
+	},
+	detailResetButton: {
+		paddingVertical: 10,
+		alignItems: "center",
+		marginBottom: 12,
+	},
+	detailResetButtonText: {
+		color: "#666",
+		fontSize: 14,
+	},
+	detailStatusText: {
+		color: "#666",
+		fontSize: 13,
+		textAlign: "center",
+	},
+	detailStatusError: {
+		color: "#FF3B30",
+		fontSize: 13,
+		textAlign: "center",
+	},
+	thanksTitle: {
+		fontSize: 24,
+		fontWeight: "700",
+		color: "#333",
+		marginBottom: 16,
+		textAlign: "center",
+	},
+	thanksMessage: {
+		fontSize: 15,
+		color: "#666",
+		lineHeight: 22,
+		textAlign: "center",
+		marginBottom: 32,
+		paddingHorizontal: 20,
+	},
+	thanksButton: {
+		paddingHorizontal: 24,
+		paddingVertical: 14,
+	},
+});

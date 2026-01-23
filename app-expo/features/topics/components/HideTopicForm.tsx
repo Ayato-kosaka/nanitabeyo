@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
 	},
 	reasonInput: {
 		borderWidth: 1,
-		borderColor: "#E5E7EB",
+		borderColor: "#C9C9C9",
 		borderRadius: 16,
 		paddingHorizontal: 16,
 		paddingVertical: 16,

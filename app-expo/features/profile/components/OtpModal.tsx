@@ -207,7 +207,7 @@ export function OtpModal({ onClose, phone }: OtpModalProps) {
 					{/* Resend Button */}
 					<TouchableOpacity onPress={handleResend} disabled={isResending || isLoading} style={styles.resendButton}>
 						<Text style={[styles.resendText, (isResending || isLoading) && styles.resendTextDisabled]}>
-							{isResending ? i18n.t("Common.processing") : i18n.t("auth.otp_send_again")}
+							{isResending ? i18n.t("auth.otp_resending") : i18n.t("auth.otp_send_again")}
 						</Text>
 					</TouchableOpacity>
 				</View>
@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
 		backgroundColor: "#F9FAFB",
 	},
 	otpInputFilled: {
-		borderColor: "#5EA2FF",
+		borderColor: "#F05537",
 		backgroundColor: "#EFF6FF",
 	},
 	verifyButton: {
@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
 	resendText: {
 		fontSize: 16,
 		fontWeight: "600",
-		color: "#5EA2FF",
+		color: "#F05537",
 	},
 	resendTextDisabled: {
 		color: "#9CA3AF",

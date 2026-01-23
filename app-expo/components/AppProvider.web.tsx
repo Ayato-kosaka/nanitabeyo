@@ -20,7 +20,7 @@ function deriveLanguageAndRegion(locale: string): { language: string; region: st
 }
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
-	const locale = useLocale();
+	const { locale } = useLocale();
 	const { language, region } = useMemo(() => deriveLanguageAndRegion(locale), [locale]);
 	return (
 		<LoadScript

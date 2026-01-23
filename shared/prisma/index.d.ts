@@ -26,6 +26,12 @@ export type backend_event_logs = $Result.DefaultSelection<Prisma.$backend_event_
  */
 export type config = $Result.DefaultSelection<Prisma.$configPayload>
 /**
+ * Model contribution_tasks
+ * This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+ * This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+ */
+export type contribution_tasks = $Result.DefaultSelection<Prisma.$contribution_tasksPayload>
+/**
  * Model dish_categories
  * This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
  * This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -292,7 +298,7 @@ export const restaurant_bid_status: typeof $Enums.restaurant_bid_status
  * ```
  *
  *
- * Read more in our [docs](https://pris.ly/d/client).
+ * Read more in our [docs](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client).
  */
 export class PrismaClient<
   ClientOptions extends Prisma.PrismaClientOptions = Prisma.PrismaClientOptions,
@@ -313,7 +319,7 @@ export class PrismaClient<
    * ```
    *
    *
-   * Read more in our [docs](https://pris.ly/d/client).
+   * Read more in our [docs](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client).
    */
 
   constructor(optionsArg ?: Prisma.Subset<ClientOptions, Prisma.PrismaClientOptions>);
@@ -336,7 +342,7 @@ export class PrismaClient<
    * const result = await prisma.$executeRaw`UPDATE User SET cool = ${true} WHERE email = ${'user@email.com'};`
    * ```
    *
-   * Read more in our [docs](https://pris.ly/d/raw-queries).
+   * Read more in our [docs](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client/raw-database-access).
    */
   $executeRaw<T = unknown>(query: TemplateStringsArray | Prisma.Sql, ...values: any[]): Prisma.PrismaPromise<number>;
 
@@ -348,7 +354,7 @@ export class PrismaClient<
    * const result = await prisma.$executeRawUnsafe('UPDATE User SET cool = $1 WHERE email = $2 ;', true, 'user@email.com')
    * ```
    *
-   * Read more in our [docs](https://pris.ly/d/raw-queries).
+   * Read more in our [docs](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client/raw-database-access).
    */
   $executeRawUnsafe<T = unknown>(query: string, ...values: any[]): Prisma.PrismaPromise<number>;
 
@@ -359,7 +365,7 @@ export class PrismaClient<
    * const result = await prisma.$queryRaw`SELECT * FROM User WHERE id = ${1} OR email = ${'user@email.com'};`
    * ```
    *
-   * Read more in our [docs](https://pris.ly/d/raw-queries).
+   * Read more in our [docs](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client/raw-database-access).
    */
   $queryRaw<T = unknown>(query: TemplateStringsArray | Prisma.Sql, ...values: any[]): Prisma.PrismaPromise<T>;
 
@@ -371,7 +377,7 @@ export class PrismaClient<
    * const result = await prisma.$queryRawUnsafe('SELECT * FROM User WHERE id = $1 OR email = $2;', 1, 'user@email.com')
    * ```
    *
-   * Read more in our [docs](https://pris.ly/d/raw-queries).
+   * Read more in our [docs](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client/raw-database-access).
    */
   $queryRawUnsafe<T = unknown>(query: string, ...values: any[]): Prisma.PrismaPromise<T>;
 
@@ -416,6 +422,16 @@ export class PrismaClient<
     * ```
     */
   get config(): Prisma.configDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.contribution_tasks`: Exposes CRUD operations for the **contribution_tasks** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Contribution_tasks
+    * const contribution_tasks = await prisma.contribution_tasks.findMany()
+    * ```
+    */
+  get contribution_tasks(): Prisma.contribution_tasksDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.dish_categories`: Exposes CRUD operations for the **dish_categories** model.
@@ -756,8 +772,8 @@ export namespace Prisma {
   export import Exact = $Public.Exact
 
   /**
-   * Prisma Client JS version: 7.2.0
-   * Query Engine version: 0c8ef2ce45c83248ab3df073180d5eda9e8be7a3
+   * Prisma Client JS version: 7.0.0
+   * Query Engine version: 0c19ccc313cf9911a90d99d2ac2eb0280c76c513
    */
   export type PrismaVersion = {
     client: string
@@ -1142,6 +1158,7 @@ export namespace Prisma {
   export const ModelName: {
     backend_event_logs: 'backend_event_logs',
     config: 'config',
+    contribution_tasks: 'contribution_tasks',
     dish_categories: 'dish_categories',
     dish_category_features: 'dish_category_features',
     dish_category_localized_text: 'dish_category_localized_text',
@@ -1186,7 +1203,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "backend_event_logs" | "config" | "dish_categories" | "dish_category_features" | "dish_category_localized_text" | "dish_category_variants" | "dish_media" | "dish_media_analysis_results" | "dish_media_impressions" | "dish_media_likes" | "dish_media_views" | "dish_reviews" | "dishes" | "external_api_logs" | "frontend_event_logs" | "notification_recipients" | "notifications" | "payouts" | "permissions" | "prompt_families" | "prompt_usages" | "prompt_variants" | "reactions" | "restaurant_bids" | "restaurants" | "role_permissions" | "roles" | "user_device_tokens" | "user_notification_cursors" | "user_roles" | "users"
+      modelProps: "backend_event_logs" | "config" | "contribution_tasks" | "dish_categories" | "dish_category_features" | "dish_category_localized_text" | "dish_category_variants" | "dish_media" | "dish_media_analysis_results" | "dish_media_impressions" | "dish_media_likes" | "dish_media_views" | "dish_reviews" | "dishes" | "external_api_logs" | "frontend_event_logs" | "notification_recipients" | "notifications" | "payouts" | "permissions" | "prompt_families" | "prompt_usages" | "prompt_variants" | "reactions" | "restaurant_bids" | "restaurants" | "role_permissions" | "roles" | "user_device_tokens" | "user_notification_cursors" | "user_roles" | "users"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1335,6 +1352,80 @@ export namespace Prisma {
           count: {
             args: Prisma.configCountArgs<ExtArgs>
             result: $Utils.Optional<ConfigCountAggregateOutputType> | number
+          }
+        }
+      }
+      contribution_tasks: {
+        payload: Prisma.$contribution_tasksPayload<ExtArgs>
+        fields: Prisma.contribution_tasksFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.contribution_tasksFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$contribution_tasksPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.contribution_tasksFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$contribution_tasksPayload>
+          }
+          findFirst: {
+            args: Prisma.contribution_tasksFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$contribution_tasksPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.contribution_tasksFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$contribution_tasksPayload>
+          }
+          findMany: {
+            args: Prisma.contribution_tasksFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$contribution_tasksPayload>[]
+          }
+          create: {
+            args: Prisma.contribution_tasksCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$contribution_tasksPayload>
+          }
+          createMany: {
+            args: Prisma.contribution_tasksCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.contribution_tasksCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$contribution_tasksPayload>[]
+          }
+          delete: {
+            args: Prisma.contribution_tasksDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$contribution_tasksPayload>
+          }
+          update: {
+            args: Prisma.contribution_tasksUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$contribution_tasksPayload>
+          }
+          deleteMany: {
+            args: Prisma.contribution_tasksDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.contribution_tasksUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.contribution_tasksUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$contribution_tasksPayload>[]
+          }
+          upsert: {
+            args: Prisma.contribution_tasksUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$contribution_tasksPayload>
+          }
+          aggregate: {
+            args: Prisma.Contribution_tasksAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateContribution_tasks>
+          }
+          groupBy: {
+            args: Prisma.contribution_tasksGroupByArgs<ExtArgs>
+            result: $Utils.Optional<Contribution_tasksGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.contribution_tasksCountArgs<ExtArgs>
+            result: $Utils.Optional<Contribution_tasksCountAggregateOutputType> | number
           }
         }
       }
@@ -3538,7 +3629,7 @@ export namespace Prisma {
      *  { emit: 'stdout', level: 'error' }
      * 
      * ```
-     * Read more in our [docs](https://pris.ly/d/logging).
+     * Read more in our [docs](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client/logging#the-log-option).
      */
     log?: (LogLevel | LogDefinition)[]
     /**
@@ -3574,26 +3665,11 @@ export namespace Prisma {
      * ```
      */
     omit?: Prisma.GlobalOmitConfig
-    /**
-     * SQL commenter plugins that add metadata to SQL queries as comments.
-     * Comments follow the sqlcommenter format: https://google.github.io/sqlcommenter/
-     * 
-     * @example
-     * ```
-     * const prisma = new PrismaClient({
-     *   adapter,
-     *   comments: [
-     *     traceContext(),
-     *     queryInsights(),
-     *   ],
-     * })
-     * ```
-     */
-    comments?: runtime.SqlCommenterPlugin[]
   }
   export type GlobalOmitConfig = {
     backend_event_logs?: backend_event_logsOmit
     config?: configOmit
+    contribution_tasks?: contribution_tasksOmit
     dish_categories?: dish_categoriesOmit
     dish_category_features?: dish_category_featuresOmit
     dish_category_localized_text?: dish_category_localized_textOmit
@@ -6160,6 +6236,1045 @@ export namespace Prisma {
      * Omit specific fields from the config
      */
     omit?: configOmit<ExtArgs> | null
+  }
+
+
+  /**
+   * Model contribution_tasks
+   */
+
+  export type AggregateContribution_tasks = {
+    _count: Contribution_tasksCountAggregateOutputType | null
+    _min: Contribution_tasksMinAggregateOutputType | null
+    _max: Contribution_tasksMaxAggregateOutputType | null
+  }
+
+  export type Contribution_tasksMinAggregateOutputType = {
+    id: string | null
+    type: string | null
+    task_key: string | null
+    target_type: string | null
+    target_id: string | null
+    user_id: string | null
+    created_at: Date | null
+  }
+
+  export type Contribution_tasksMaxAggregateOutputType = {
+    id: string | null
+    type: string | null
+    task_key: string | null
+    target_type: string | null
+    target_id: string | null
+    user_id: string | null
+    created_at: Date | null
+  }
+
+  export type Contribution_tasksCountAggregateOutputType = {
+    id: number
+    type: number
+    task_key: number
+    target_type: number
+    target_id: number
+    payload: number
+    result: number
+    user_id: number
+    created_at: number
+    _all: number
+  }
+
+
+  export type Contribution_tasksMinAggregateInputType = {
+    id?: true
+    type?: true
+    task_key?: true
+    target_type?: true
+    target_id?: true
+    user_id?: true
+    created_at?: true
+  }
+
+  export type Contribution_tasksMaxAggregateInputType = {
+    id?: true
+    type?: true
+    task_key?: true
+    target_type?: true
+    target_id?: true
+    user_id?: true
+    created_at?: true
+  }
+
+  export type Contribution_tasksCountAggregateInputType = {
+    id?: true
+    type?: true
+    task_key?: true
+    target_type?: true
+    target_id?: true
+    payload?: true
+    result?: true
+    user_id?: true
+    created_at?: true
+    _all?: true
+  }
+
+  export type Contribution_tasksAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which contribution_tasks to aggregate.
+     */
+    where?: contribution_tasksWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of contribution_tasks to fetch.
+     */
+    orderBy?: contribution_tasksOrderByWithRelationInput | contribution_tasksOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: contribution_tasksWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` contribution_tasks from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` contribution_tasks.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned contribution_tasks
+    **/
+    _count?: true | Contribution_tasksCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: Contribution_tasksMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: Contribution_tasksMaxAggregateInputType
+  }
+
+  export type GetContribution_tasksAggregateType<T extends Contribution_tasksAggregateArgs> = {
+        [P in keyof T & keyof AggregateContribution_tasks]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateContribution_tasks[P]>
+      : GetScalarType<T[P], AggregateContribution_tasks[P]>
+  }
+
+
+
+
+  export type contribution_tasksGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: contribution_tasksWhereInput
+    orderBy?: contribution_tasksOrderByWithAggregationInput | contribution_tasksOrderByWithAggregationInput[]
+    by: Contribution_tasksScalarFieldEnum[] | Contribution_tasksScalarFieldEnum
+    having?: contribution_tasksScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: Contribution_tasksCountAggregateInputType | true
+    _min?: Contribution_tasksMinAggregateInputType
+    _max?: Contribution_tasksMaxAggregateInputType
+  }
+
+  export type Contribution_tasksGroupByOutputType = {
+    id: string
+    type: string
+    task_key: string
+    target_type: string
+    target_id: string
+    payload: JsonValue
+    result: JsonValue
+    user_id: string
+    created_at: Date
+    _count: Contribution_tasksCountAggregateOutputType | null
+    _min: Contribution_tasksMinAggregateOutputType | null
+    _max: Contribution_tasksMaxAggregateOutputType | null
+  }
+
+  type GetContribution_tasksGroupByPayload<T extends contribution_tasksGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<Contribution_tasksGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof Contribution_tasksGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], Contribution_tasksGroupByOutputType[P]>
+            : GetScalarType<T[P], Contribution_tasksGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type contribution_tasksSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    type?: boolean
+    task_key?: boolean
+    target_type?: boolean
+    target_id?: boolean
+    payload?: boolean
+    result?: boolean
+    user_id?: boolean
+    created_at?: boolean
+  }, ExtArgs["result"]["contribution_tasks"]>
+
+  export type contribution_tasksSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    type?: boolean
+    task_key?: boolean
+    target_type?: boolean
+    target_id?: boolean
+    payload?: boolean
+    result?: boolean
+    user_id?: boolean
+    created_at?: boolean
+  }, ExtArgs["result"]["contribution_tasks"]>
+
+  export type contribution_tasksSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    type?: boolean
+    task_key?: boolean
+    target_type?: boolean
+    target_id?: boolean
+    payload?: boolean
+    result?: boolean
+    user_id?: boolean
+    created_at?: boolean
+  }, ExtArgs["result"]["contribution_tasks"]>
+
+  export type contribution_tasksSelectScalar = {
+    id?: boolean
+    type?: boolean
+    task_key?: boolean
+    target_type?: boolean
+    target_id?: boolean
+    payload?: boolean
+    result?: boolean
+    user_id?: boolean
+    created_at?: boolean
+  }
+
+  export type contribution_tasksOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "type" | "task_key" | "target_type" | "target_id" | "payload" | "result" | "user_id" | "created_at", ExtArgs["result"]["contribution_tasks"]>
+
+  export type $contribution_tasksPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "contribution_tasks"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      type: string
+      task_key: string
+      target_type: string
+      target_id: string
+      payload: Prisma.JsonValue
+      result: Prisma.JsonValue
+      user_id: string
+      created_at: Date
+    }, ExtArgs["result"]["contribution_tasks"]>
+    composites: {}
+  }
+
+  type contribution_tasksGetPayload<S extends boolean | null | undefined | contribution_tasksDefaultArgs> = $Result.GetResult<Prisma.$contribution_tasksPayload, S>
+
+  type contribution_tasksCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<contribution_tasksFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: Contribution_tasksCountAggregateInputType | true
+    }
+
+  export interface contribution_tasksDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['contribution_tasks'], meta: { name: 'contribution_tasks' } }
+    /**
+     * Find zero or one Contribution_tasks that matches the filter.
+     * @param {contribution_tasksFindUniqueArgs} args - Arguments to find a Contribution_tasks
+     * @example
+     * // Get one Contribution_tasks
+     * const contribution_tasks = await prisma.contribution_tasks.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends contribution_tasksFindUniqueArgs>(args: SelectSubset<T, contribution_tasksFindUniqueArgs<ExtArgs>>): Prisma__contribution_tasksClient<$Result.GetResult<Prisma.$contribution_tasksPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one Contribution_tasks that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {contribution_tasksFindUniqueOrThrowArgs} args - Arguments to find a Contribution_tasks
+     * @example
+     * // Get one Contribution_tasks
+     * const contribution_tasks = await prisma.contribution_tasks.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends contribution_tasksFindUniqueOrThrowArgs>(args: SelectSubset<T, contribution_tasksFindUniqueOrThrowArgs<ExtArgs>>): Prisma__contribution_tasksClient<$Result.GetResult<Prisma.$contribution_tasksPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Contribution_tasks that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {contribution_tasksFindFirstArgs} args - Arguments to find a Contribution_tasks
+     * @example
+     * // Get one Contribution_tasks
+     * const contribution_tasks = await prisma.contribution_tasks.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends contribution_tasksFindFirstArgs>(args?: SelectSubset<T, contribution_tasksFindFirstArgs<ExtArgs>>): Prisma__contribution_tasksClient<$Result.GetResult<Prisma.$contribution_tasksPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Contribution_tasks that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {contribution_tasksFindFirstOrThrowArgs} args - Arguments to find a Contribution_tasks
+     * @example
+     * // Get one Contribution_tasks
+     * const contribution_tasks = await prisma.contribution_tasks.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends contribution_tasksFindFirstOrThrowArgs>(args?: SelectSubset<T, contribution_tasksFindFirstOrThrowArgs<ExtArgs>>): Prisma__contribution_tasksClient<$Result.GetResult<Prisma.$contribution_tasksPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more Contribution_tasks that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {contribution_tasksFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Contribution_tasks
+     * const contribution_tasks = await prisma.contribution_tasks.findMany()
+     * 
+     * // Get first 10 Contribution_tasks
+     * const contribution_tasks = await prisma.contribution_tasks.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const contribution_tasksWithIdOnly = await prisma.contribution_tasks.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends contribution_tasksFindManyArgs>(args?: SelectSubset<T, contribution_tasksFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$contribution_tasksPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a Contribution_tasks.
+     * @param {contribution_tasksCreateArgs} args - Arguments to create a Contribution_tasks.
+     * @example
+     * // Create one Contribution_tasks
+     * const Contribution_tasks = await prisma.contribution_tasks.create({
+     *   data: {
+     *     // ... data to create a Contribution_tasks
+     *   }
+     * })
+     * 
+     */
+    create<T extends contribution_tasksCreateArgs>(args: SelectSubset<T, contribution_tasksCreateArgs<ExtArgs>>): Prisma__contribution_tasksClient<$Result.GetResult<Prisma.$contribution_tasksPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many Contribution_tasks.
+     * @param {contribution_tasksCreateManyArgs} args - Arguments to create many Contribution_tasks.
+     * @example
+     * // Create many Contribution_tasks
+     * const contribution_tasks = await prisma.contribution_tasks.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends contribution_tasksCreateManyArgs>(args?: SelectSubset<T, contribution_tasksCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Contribution_tasks and returns the data saved in the database.
+     * @param {contribution_tasksCreateManyAndReturnArgs} args - Arguments to create many Contribution_tasks.
+     * @example
+     * // Create many Contribution_tasks
+     * const contribution_tasks = await prisma.contribution_tasks.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Contribution_tasks and only return the `id`
+     * const contribution_tasksWithIdOnly = await prisma.contribution_tasks.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends contribution_tasksCreateManyAndReturnArgs>(args?: SelectSubset<T, contribution_tasksCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$contribution_tasksPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a Contribution_tasks.
+     * @param {contribution_tasksDeleteArgs} args - Arguments to delete one Contribution_tasks.
+     * @example
+     * // Delete one Contribution_tasks
+     * const Contribution_tasks = await prisma.contribution_tasks.delete({
+     *   where: {
+     *     // ... filter to delete one Contribution_tasks
+     *   }
+     * })
+     * 
+     */
+    delete<T extends contribution_tasksDeleteArgs>(args: SelectSubset<T, contribution_tasksDeleteArgs<ExtArgs>>): Prisma__contribution_tasksClient<$Result.GetResult<Prisma.$contribution_tasksPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one Contribution_tasks.
+     * @param {contribution_tasksUpdateArgs} args - Arguments to update one Contribution_tasks.
+     * @example
+     * // Update one Contribution_tasks
+     * const contribution_tasks = await prisma.contribution_tasks.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends contribution_tasksUpdateArgs>(args: SelectSubset<T, contribution_tasksUpdateArgs<ExtArgs>>): Prisma__contribution_tasksClient<$Result.GetResult<Prisma.$contribution_tasksPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more Contribution_tasks.
+     * @param {contribution_tasksDeleteManyArgs} args - Arguments to filter Contribution_tasks to delete.
+     * @example
+     * // Delete a few Contribution_tasks
+     * const { count } = await prisma.contribution_tasks.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends contribution_tasksDeleteManyArgs>(args?: SelectSubset<T, contribution_tasksDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Contribution_tasks.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {contribution_tasksUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Contribution_tasks
+     * const contribution_tasks = await prisma.contribution_tasks.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends contribution_tasksUpdateManyArgs>(args: SelectSubset<T, contribution_tasksUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Contribution_tasks and returns the data updated in the database.
+     * @param {contribution_tasksUpdateManyAndReturnArgs} args - Arguments to update many Contribution_tasks.
+     * @example
+     * // Update many Contribution_tasks
+     * const contribution_tasks = await prisma.contribution_tasks.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more Contribution_tasks and only return the `id`
+     * const contribution_tasksWithIdOnly = await prisma.contribution_tasks.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends contribution_tasksUpdateManyAndReturnArgs>(args: SelectSubset<T, contribution_tasksUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$contribution_tasksPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one Contribution_tasks.
+     * @param {contribution_tasksUpsertArgs} args - Arguments to update or create a Contribution_tasks.
+     * @example
+     * // Update or create a Contribution_tasks
+     * const contribution_tasks = await prisma.contribution_tasks.upsert({
+     *   create: {
+     *     // ... data to create a Contribution_tasks
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Contribution_tasks we want to update
+     *   }
+     * })
+     */
+    upsert<T extends contribution_tasksUpsertArgs>(args: SelectSubset<T, contribution_tasksUpsertArgs<ExtArgs>>): Prisma__contribution_tasksClient<$Result.GetResult<Prisma.$contribution_tasksPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of Contribution_tasks.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {contribution_tasksCountArgs} args - Arguments to filter Contribution_tasks to count.
+     * @example
+     * // Count the number of Contribution_tasks
+     * const count = await prisma.contribution_tasks.count({
+     *   where: {
+     *     // ... the filter for the Contribution_tasks we want to count
+     *   }
+     * })
+    **/
+    count<T extends contribution_tasksCountArgs>(
+      args?: Subset<T, contribution_tasksCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], Contribution_tasksCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Contribution_tasks.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {Contribution_tasksAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends Contribution_tasksAggregateArgs>(args: Subset<T, Contribution_tasksAggregateArgs>): Prisma.PrismaPromise<GetContribution_tasksAggregateType<T>>
+
+    /**
+     * Group by Contribution_tasks.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {contribution_tasksGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends contribution_tasksGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: contribution_tasksGroupByArgs['orderBy'] }
+        : { orderBy?: contribution_tasksGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, contribution_tasksGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetContribution_tasksGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the contribution_tasks model
+   */
+  readonly fields: contribution_tasksFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for contribution_tasks.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__contribution_tasksClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the contribution_tasks model
+   */
+  interface contribution_tasksFieldRefs {
+    readonly id: FieldRef<"contribution_tasks", 'String'>
+    readonly type: FieldRef<"contribution_tasks", 'String'>
+    readonly task_key: FieldRef<"contribution_tasks", 'String'>
+    readonly target_type: FieldRef<"contribution_tasks", 'String'>
+    readonly target_id: FieldRef<"contribution_tasks", 'String'>
+    readonly payload: FieldRef<"contribution_tasks", 'Json'>
+    readonly result: FieldRef<"contribution_tasks", 'Json'>
+    readonly user_id: FieldRef<"contribution_tasks", 'String'>
+    readonly created_at: FieldRef<"contribution_tasks", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * contribution_tasks findUnique
+   */
+  export type contribution_tasksFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the contribution_tasks
+     */
+    select?: contribution_tasksSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the contribution_tasks
+     */
+    omit?: contribution_tasksOmit<ExtArgs> | null
+    /**
+     * Filter, which contribution_tasks to fetch.
+     */
+    where: contribution_tasksWhereUniqueInput
+  }
+
+  /**
+   * contribution_tasks findUniqueOrThrow
+   */
+  export type contribution_tasksFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the contribution_tasks
+     */
+    select?: contribution_tasksSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the contribution_tasks
+     */
+    omit?: contribution_tasksOmit<ExtArgs> | null
+    /**
+     * Filter, which contribution_tasks to fetch.
+     */
+    where: contribution_tasksWhereUniqueInput
+  }
+
+  /**
+   * contribution_tasks findFirst
+   */
+  export type contribution_tasksFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the contribution_tasks
+     */
+    select?: contribution_tasksSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the contribution_tasks
+     */
+    omit?: contribution_tasksOmit<ExtArgs> | null
+    /**
+     * Filter, which contribution_tasks to fetch.
+     */
+    where?: contribution_tasksWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of contribution_tasks to fetch.
+     */
+    orderBy?: contribution_tasksOrderByWithRelationInput | contribution_tasksOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for contribution_tasks.
+     */
+    cursor?: contribution_tasksWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` contribution_tasks from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` contribution_tasks.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of contribution_tasks.
+     */
+    distinct?: Contribution_tasksScalarFieldEnum | Contribution_tasksScalarFieldEnum[]
+  }
+
+  /**
+   * contribution_tasks findFirstOrThrow
+   */
+  export type contribution_tasksFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the contribution_tasks
+     */
+    select?: contribution_tasksSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the contribution_tasks
+     */
+    omit?: contribution_tasksOmit<ExtArgs> | null
+    /**
+     * Filter, which contribution_tasks to fetch.
+     */
+    where?: contribution_tasksWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of contribution_tasks to fetch.
+     */
+    orderBy?: contribution_tasksOrderByWithRelationInput | contribution_tasksOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for contribution_tasks.
+     */
+    cursor?: contribution_tasksWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` contribution_tasks from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` contribution_tasks.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of contribution_tasks.
+     */
+    distinct?: Contribution_tasksScalarFieldEnum | Contribution_tasksScalarFieldEnum[]
+  }
+
+  /**
+   * contribution_tasks findMany
+   */
+  export type contribution_tasksFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the contribution_tasks
+     */
+    select?: contribution_tasksSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the contribution_tasks
+     */
+    omit?: contribution_tasksOmit<ExtArgs> | null
+    /**
+     * Filter, which contribution_tasks to fetch.
+     */
+    where?: contribution_tasksWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of contribution_tasks to fetch.
+     */
+    orderBy?: contribution_tasksOrderByWithRelationInput | contribution_tasksOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing contribution_tasks.
+     */
+    cursor?: contribution_tasksWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` contribution_tasks from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` contribution_tasks.
+     */
+    skip?: number
+    distinct?: Contribution_tasksScalarFieldEnum | Contribution_tasksScalarFieldEnum[]
+  }
+
+  /**
+   * contribution_tasks create
+   */
+  export type contribution_tasksCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the contribution_tasks
+     */
+    select?: contribution_tasksSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the contribution_tasks
+     */
+    omit?: contribution_tasksOmit<ExtArgs> | null
+    /**
+     * The data needed to create a contribution_tasks.
+     */
+    data: XOR<contribution_tasksCreateInput, contribution_tasksUncheckedCreateInput>
+  }
+
+  /**
+   * contribution_tasks createMany
+   */
+  export type contribution_tasksCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many contribution_tasks.
+     */
+    data: contribution_tasksCreateManyInput | contribution_tasksCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * contribution_tasks createManyAndReturn
+   */
+  export type contribution_tasksCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the contribution_tasks
+     */
+    select?: contribution_tasksSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the contribution_tasks
+     */
+    omit?: contribution_tasksOmit<ExtArgs> | null
+    /**
+     * The data used to create many contribution_tasks.
+     */
+    data: contribution_tasksCreateManyInput | contribution_tasksCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * contribution_tasks update
+   */
+  export type contribution_tasksUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the contribution_tasks
+     */
+    select?: contribution_tasksSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the contribution_tasks
+     */
+    omit?: contribution_tasksOmit<ExtArgs> | null
+    /**
+     * The data needed to update a contribution_tasks.
+     */
+    data: XOR<contribution_tasksUpdateInput, contribution_tasksUncheckedUpdateInput>
+    /**
+     * Choose, which contribution_tasks to update.
+     */
+    where: contribution_tasksWhereUniqueInput
+  }
+
+  /**
+   * contribution_tasks updateMany
+   */
+  export type contribution_tasksUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update contribution_tasks.
+     */
+    data: XOR<contribution_tasksUpdateManyMutationInput, contribution_tasksUncheckedUpdateManyInput>
+    /**
+     * Filter which contribution_tasks to update
+     */
+    where?: contribution_tasksWhereInput
+    /**
+     * Limit how many contribution_tasks to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * contribution_tasks updateManyAndReturn
+   */
+  export type contribution_tasksUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the contribution_tasks
+     */
+    select?: contribution_tasksSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the contribution_tasks
+     */
+    omit?: contribution_tasksOmit<ExtArgs> | null
+    /**
+     * The data used to update contribution_tasks.
+     */
+    data: XOR<contribution_tasksUpdateManyMutationInput, contribution_tasksUncheckedUpdateManyInput>
+    /**
+     * Filter which contribution_tasks to update
+     */
+    where?: contribution_tasksWhereInput
+    /**
+     * Limit how many contribution_tasks to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * contribution_tasks upsert
+   */
+  export type contribution_tasksUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the contribution_tasks
+     */
+    select?: contribution_tasksSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the contribution_tasks
+     */
+    omit?: contribution_tasksOmit<ExtArgs> | null
+    /**
+     * The filter to search for the contribution_tasks to update in case it exists.
+     */
+    where: contribution_tasksWhereUniqueInput
+    /**
+     * In case the contribution_tasks found by the `where` argument doesn't exist, create a new contribution_tasks with this data.
+     */
+    create: XOR<contribution_tasksCreateInput, contribution_tasksUncheckedCreateInput>
+    /**
+     * In case the contribution_tasks was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<contribution_tasksUpdateInput, contribution_tasksUncheckedUpdateInput>
+  }
+
+  /**
+   * contribution_tasks delete
+   */
+  export type contribution_tasksDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the contribution_tasks
+     */
+    select?: contribution_tasksSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the contribution_tasks
+     */
+    omit?: contribution_tasksOmit<ExtArgs> | null
+    /**
+     * Filter which contribution_tasks to delete.
+     */
+    where: contribution_tasksWhereUniqueInput
+  }
+
+  /**
+   * contribution_tasks deleteMany
+   */
+  export type contribution_tasksDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which contribution_tasks to delete
+     */
+    where?: contribution_tasksWhereInput
+    /**
+     * Limit how many contribution_tasks to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * contribution_tasks without action
+   */
+  export type contribution_tasksDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the contribution_tasks
+     */
+    select?: contribution_tasksSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the contribution_tasks
+     */
+    omit?: contribution_tasksOmit<ExtArgs> | null
   }
 
 
@@ -38595,6 +39710,21 @@ export namespace Prisma {
   export type ConfigScalarFieldEnum = (typeof ConfigScalarFieldEnum)[keyof typeof ConfigScalarFieldEnum]
 
 
+  export const Contribution_tasksScalarFieldEnum: {
+    id: 'id',
+    type: 'type',
+    task_key: 'task_key',
+    target_type: 'target_type',
+    target_id: 'target_id',
+    payload: 'payload',
+    result: 'result',
+    user_id: 'user_id',
+    created_at: 'created_at'
+  };
+
+  export type Contribution_tasksScalarFieldEnum = (typeof Contribution_tasksScalarFieldEnum)[keyof typeof Contribution_tasksScalarFieldEnum]
+
+
   export const Dish_categoriesScalarFieldEnum: {
     id: 'id',
     label_en: 'label_en',
@@ -39325,6 +40455,78 @@ export namespace Prisma {
     key?: StringWithAggregatesFilter<"config"> | string
     value?: StringWithAggregatesFilter<"config"> | string
     description?: StringNullableWithAggregatesFilter<"config"> | string | null
+  }
+
+  export type contribution_tasksWhereInput = {
+    AND?: contribution_tasksWhereInput | contribution_tasksWhereInput[]
+    OR?: contribution_tasksWhereInput[]
+    NOT?: contribution_tasksWhereInput | contribution_tasksWhereInput[]
+    id?: UuidFilter<"contribution_tasks"> | string
+    type?: StringFilter<"contribution_tasks"> | string
+    task_key?: StringFilter<"contribution_tasks"> | string
+    target_type?: StringFilter<"contribution_tasks"> | string
+    target_id?: StringFilter<"contribution_tasks"> | string
+    payload?: JsonFilter<"contribution_tasks">
+    result?: JsonFilter<"contribution_tasks">
+    user_id?: UuidFilter<"contribution_tasks"> | string
+    created_at?: DateTimeFilter<"contribution_tasks"> | Date | string
+  }
+
+  export type contribution_tasksOrderByWithRelationInput = {
+    id?: SortOrder
+    type?: SortOrder
+    task_key?: SortOrder
+    target_type?: SortOrder
+    target_id?: SortOrder
+    payload?: SortOrder
+    result?: SortOrder
+    user_id?: SortOrder
+    created_at?: SortOrder
+  }
+
+  export type contribution_tasksWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: contribution_tasksWhereInput | contribution_tasksWhereInput[]
+    OR?: contribution_tasksWhereInput[]
+    NOT?: contribution_tasksWhereInput | contribution_tasksWhereInput[]
+    type?: StringFilter<"contribution_tasks"> | string
+    task_key?: StringFilter<"contribution_tasks"> | string
+    target_type?: StringFilter<"contribution_tasks"> | string
+    target_id?: StringFilter<"contribution_tasks"> | string
+    payload?: JsonFilter<"contribution_tasks">
+    result?: JsonFilter<"contribution_tasks">
+    user_id?: UuidFilter<"contribution_tasks"> | string
+    created_at?: DateTimeFilter<"contribution_tasks"> | Date | string
+  }, "id">
+
+  export type contribution_tasksOrderByWithAggregationInput = {
+    id?: SortOrder
+    type?: SortOrder
+    task_key?: SortOrder
+    target_type?: SortOrder
+    target_id?: SortOrder
+    payload?: SortOrder
+    result?: SortOrder
+    user_id?: SortOrder
+    created_at?: SortOrder
+    _count?: contribution_tasksCountOrderByAggregateInput
+    _max?: contribution_tasksMaxOrderByAggregateInput
+    _min?: contribution_tasksMinOrderByAggregateInput
+  }
+
+  export type contribution_tasksScalarWhereWithAggregatesInput = {
+    AND?: contribution_tasksScalarWhereWithAggregatesInput | contribution_tasksScalarWhereWithAggregatesInput[]
+    OR?: contribution_tasksScalarWhereWithAggregatesInput[]
+    NOT?: contribution_tasksScalarWhereWithAggregatesInput | contribution_tasksScalarWhereWithAggregatesInput[]
+    id?: UuidWithAggregatesFilter<"contribution_tasks"> | string
+    type?: StringWithAggregatesFilter<"contribution_tasks"> | string
+    task_key?: StringWithAggregatesFilter<"contribution_tasks"> | string
+    target_type?: StringWithAggregatesFilter<"contribution_tasks"> | string
+    target_id?: StringWithAggregatesFilter<"contribution_tasks"> | string
+    payload?: JsonWithAggregatesFilter<"contribution_tasks">
+    result?: JsonWithAggregatesFilter<"contribution_tasks">
+    user_id?: UuidWithAggregatesFilter<"contribution_tasks"> | string
+    created_at?: DateTimeWithAggregatesFilter<"contribution_tasks"> | Date | string
   }
 
   export type dish_categoriesWhereInput = {
@@ -41485,6 +42687,90 @@ export namespace Prisma {
     key?: StringFieldUpdateOperationsInput | string
     value?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type contribution_tasksCreateInput = {
+    id?: string
+    type: string
+    task_key: string
+    target_type: string
+    target_id: string
+    payload?: JsonNullValueInput | InputJsonValue
+    result?: JsonNullValueInput | InputJsonValue
+    user_id: string
+    created_at?: Date | string
+  }
+
+  export type contribution_tasksUncheckedCreateInput = {
+    id?: string
+    type: string
+    task_key: string
+    target_type: string
+    target_id: string
+    payload?: JsonNullValueInput | InputJsonValue
+    result?: JsonNullValueInput | InputJsonValue
+    user_id: string
+    created_at?: Date | string
+  }
+
+  export type contribution_tasksUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
+    task_key?: StringFieldUpdateOperationsInput | string
+    target_type?: StringFieldUpdateOperationsInput | string
+    target_id?: StringFieldUpdateOperationsInput | string
+    payload?: JsonNullValueInput | InputJsonValue
+    result?: JsonNullValueInput | InputJsonValue
+    user_id?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type contribution_tasksUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
+    task_key?: StringFieldUpdateOperationsInput | string
+    target_type?: StringFieldUpdateOperationsInput | string
+    target_id?: StringFieldUpdateOperationsInput | string
+    payload?: JsonNullValueInput | InputJsonValue
+    result?: JsonNullValueInput | InputJsonValue
+    user_id?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type contribution_tasksCreateManyInput = {
+    id?: string
+    type: string
+    task_key: string
+    target_type: string
+    target_id: string
+    payload?: JsonNullValueInput | InputJsonValue
+    result?: JsonNullValueInput | InputJsonValue
+    user_id: string
+    created_at?: Date | string
+  }
+
+  export type contribution_tasksUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
+    task_key?: StringFieldUpdateOperationsInput | string
+    target_type?: StringFieldUpdateOperationsInput | string
+    target_id?: StringFieldUpdateOperationsInput | string
+    payload?: JsonNullValueInput | InputJsonValue
+    result?: JsonNullValueInput | InputJsonValue
+    user_id?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type contribution_tasksUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
+    task_key?: StringFieldUpdateOperationsInput | string
+    target_type?: StringFieldUpdateOperationsInput | string
+    target_id?: StringFieldUpdateOperationsInput | string
+    payload?: JsonNullValueInput | InputJsonValue
+    result?: JsonNullValueInput | InputJsonValue
+    user_id?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type dish_categoriesCreateInput = {
@@ -43900,6 +45186,18 @@ export namespace Prisma {
     value?: SortOrder
     description?: SortOrder
   }
+
+  export type UuidFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel>
+    in?: string[] | ListStringFieldRefInput<$PrismaModel>
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel>
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    mode?: QueryMode
+    not?: NestedUuidFilter<$PrismaModel> | string
+  }
   export type JsonFilter<$PrismaModel = never> =
     | PatchUndefined<
         Either<Required<JsonFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonFilterBase<$PrismaModel>>, 'path'>>,
@@ -43922,6 +45220,79 @@ export namespace Prisma {
     gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
     gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
     not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+  }
+
+  export type contribution_tasksCountOrderByAggregateInput = {
+    id?: SortOrder
+    type?: SortOrder
+    task_key?: SortOrder
+    target_type?: SortOrder
+    target_id?: SortOrder
+    payload?: SortOrder
+    result?: SortOrder
+    user_id?: SortOrder
+    created_at?: SortOrder
+  }
+
+  export type contribution_tasksMaxOrderByAggregateInput = {
+    id?: SortOrder
+    type?: SortOrder
+    task_key?: SortOrder
+    target_type?: SortOrder
+    target_id?: SortOrder
+    user_id?: SortOrder
+    created_at?: SortOrder
+  }
+
+  export type contribution_tasksMinOrderByAggregateInput = {
+    id?: SortOrder
+    type?: SortOrder
+    task_key?: SortOrder
+    target_type?: SortOrder
+    target_id?: SortOrder
+    user_id?: SortOrder
+    created_at?: SortOrder
+  }
+
+  export type UuidWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel>
+    in?: string[] | ListStringFieldRefInput<$PrismaModel>
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel>
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    mode?: QueryMode
+    not?: NestedUuidWithAggregatesFilter<$PrismaModel> | string
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedStringFilter<$PrismaModel>
+    _max?: NestedStringFilter<$PrismaModel>
+  }
+  export type JsonWithAggregatesFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<JsonWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonWithAggregatesFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonWithAggregatesFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedJsonFilter<$PrismaModel>
+    _max?: NestedJsonFilter<$PrismaModel>
   }
 
   export type StringNullableListFilter<$PrismaModel = never> = {
@@ -44010,32 +45381,6 @@ export namespace Prisma {
     created_at?: SortOrder
     macro_genre_qid?: SortOrder
     synced_at?: SortOrder
-  }
-  export type JsonWithAggregatesFilter<$PrismaModel = never> =
-    | PatchUndefined<
-        Either<Required<JsonWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
-        Required<JsonWithAggregatesFilterBase<$PrismaModel>>
-      >
-    | OptionalFlat<Omit<Required<JsonWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
-
-  export type JsonWithAggregatesFilterBase<$PrismaModel = never> = {
-    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    path?: string[]
-    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
-    string_contains?: string | StringFieldRefInput<$PrismaModel>
-    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
-    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
-    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedJsonFilter<$PrismaModel>
-    _max?: NestedJsonFilter<$PrismaModel>
   }
 
   export type DateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -44151,18 +45496,6 @@ export namespace Prisma {
     synced_at?: SortOrder
   }
 
-  export type UuidFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel>
-    in?: string[] | ListStringFieldRefInput<$PrismaModel>
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel>
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    mode?: QueryMode
-    not?: NestedUuidFilter<$PrismaModel> | string
-  }
-
   export type dish_category_variantsDish_category_idSurface_formCompoundUniqueInput = {
     dish_category_id: string
     surface_form: string
@@ -44190,21 +45523,6 @@ export namespace Prisma {
     surface_form?: SortOrder
     source?: SortOrder
     created_at?: SortOrder
-  }
-
-  export type UuidWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel>
-    in?: string[] | ListStringFieldRefInput<$PrismaModel>
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel>
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    mode?: QueryMode
-    not?: NestedUuidWithAggregatesFilter<$PrismaModel> | string
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedStringFilter<$PrismaModel>
-    _max?: NestedStringFilter<$PrismaModel>
   }
 
   export type IntFilter<$PrismaModel = never> = {
@@ -47142,15 +48460,29 @@ export namespace Prisma {
     _max?: NestedDateTimeFilter<$PrismaModel>
   }
 
-  export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+  export type NestedUuidFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel>
+    in?: string[] | ListStringFieldRefInput<$PrismaModel>
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel>
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    not?: NestedUuidFilter<$PrismaModel> | string
+  }
+
+  export type NestedUuidWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel>
+    in?: string[] | ListStringFieldRefInput<$PrismaModel>
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel>
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    not?: NestedUuidWithAggregatesFilter<$PrismaModel> | string
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedStringFilter<$PrismaModel>
+    _max?: NestedStringFilter<$PrismaModel>
   }
   export type NestedJsonFilter<$PrismaModel = never> =
     | PatchUndefined<
@@ -47174,6 +48506,17 @@ export namespace Prisma {
     gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
     gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
     not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+  }
+
+  export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
   }
 
   export type NestedDateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -47215,31 +48558,6 @@ export namespace Prisma {
     _sum?: NestedFloatFilter<$PrismaModel>
     _min?: NestedFloatFilter<$PrismaModel>
     _max?: NestedFloatFilter<$PrismaModel>
-  }
-
-  export type NestedUuidFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel>
-    in?: string[] | ListStringFieldRefInput<$PrismaModel>
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel>
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    not?: NestedUuidFilter<$PrismaModel> | string
-  }
-
-  export type NestedUuidWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel>
-    in?: string[] | ListStringFieldRefInput<$PrismaModel>
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel>
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    not?: NestedUuidWithAggregatesFilter<$PrismaModel> | string
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedStringFilter<$PrismaModel>
-    _max?: NestedStringFilter<$PrismaModel>
   }
 
   export type NestedIntWithAggregatesFilter<$PrismaModel = never> = {

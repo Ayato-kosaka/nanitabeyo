@@ -11,7 +11,7 @@
 // - 副作用（ログ/ハプティクス/analytics）: onViewableItemsChanged 内でのみ実行
 
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
-import { StyleSheet, FlatList, ViewToken, View, ListRenderItemInfo, ActivityIndicator } from "react-native";
+import { StyleSheet, FlatList, ViewToken, View, ListRenderItemInfo } from "react-native";
 import DishMediaContent from "./DishMediaContent";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
@@ -26,6 +26,7 @@ import {
 import { shallow } from "zustand/shallow";
 import { Text } from "react-native";
 import i18n from "@/lib/i18n";
+import { LoadingIndicator } from "@/components/LoadingIndicator";
 
 // --- ユーティリティ群（純粋関数） ------------------------------------------
 // インデックスを items.length の範囲内にクランプ
@@ -183,7 +184,7 @@ export default function DishMediaFeed({
 			{pageHeight > 0 ? (
 				!!isLoading ? (
 					<View style={styles.centerContainer}>
-						<ActivityIndicator size="large" color="#5EA2FF" />
+						<LoadingIndicator size="large" />
 						<Text style={styles.loadingText}>{i18n.t("Profile.loading")}</Text>
 					</View>
 				) : !!error ? (

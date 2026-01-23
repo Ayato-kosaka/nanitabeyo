@@ -34,7 +34,7 @@ export function SavedPostsTab({ isOwnProfile }: SavedPostsTabProps) {
 	const { callBackend } = useAPICall();
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
-	const locale = useLocale();
+	const { locale } = useLocale();
 
 	// #454 【設計】画面用途キー "profileSavedPosts" でストアからデータ取得
 	const fetchInitialByKey = useDishMediaEntriesStore((s) => s.fetchInitialByKey);
@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
 	},
 	retryButton: {
 		marginTop: 16,
-		backgroundColor: "#5EA2FF",
+		backgroundColor: "#F05537",
 		paddingHorizontal: 20,
 		paddingVertical: 10,
 		borderRadius: 20,

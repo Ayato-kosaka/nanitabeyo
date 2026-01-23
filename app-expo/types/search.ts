@@ -7,14 +7,15 @@ export type SearchParams = Omit<LocationDetailsResponse, "viewport"> & {
 	taste?: "sweet" | "spicy" | "healthy" | "junk" | "alcohol";
 	distance: number; // meters
 	priceLevels: string[]; // price levels
+	locationQuery: string; // #674 【仕様】検索画面で入力されたロケーション表示用文字列
 };
 
+// #633 【設計】Topic 型から dishItemsPromise を削除（重い処理はユーザー操作後に限定）
 export interface Topic {
 	category: string;
 	topicTitle: string;
 	reason: string;
 	categoryId: string;
 	imageUrl: string;
-	dishItemsPromise: Promise<DishMediaEntry[]>;
 	isHidden?: boolean;
 }

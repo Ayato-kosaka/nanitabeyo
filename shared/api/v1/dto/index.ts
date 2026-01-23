@@ -41,8 +41,14 @@ export { QueryMePayoutsDto } from "./users/query-me-payouts.dto";
 export { QueryMeRestaurantBidsDto } from "./users/query-me-restaurant-bids.dto";
 export { QueryMeSavedDishCategoriesDto } from "./users/query-me-saved-dish-categories.dto";
 export { QueryMeSavedDishMediaDto } from "./users/query-me-saved-dish-media.dto";
+export { QuerySavedRestaurantsDto } from "./users/query-saved-restaurants.dto";
 
 export { CreateFeedbackDto } from "./feedback/create-feedback.dto";
+
+export { CreateContributionTaskDto } from "./contribution-tasks/create-contribution-task.dto";
+export { ListContributionTasksQueryDto } from "./contribution-tasks/list-contribution-tasks.query";
+export { ExistsContributionTaskQueryDto } from "./contribution-tasks/exists-contribution-task.query";
+export { CompletedTargetIdsQueryDto } from "./contribution-tasks/completed-target-ids.query";
 
 export { CreateFrontendLogDto } from "./logs/create-frontend-log.dto";
 

@@ -44,7 +44,7 @@ export function SaveTopicTab({
 	error,
 	onRetry,
 }: SaveTopicTabProps) {
-	const locales = useLocale();
+	const { locale } = useLocale();
 	const { width: deviceWidth } = useWindowDimensions();
 
 	// Calculate card width for 2 columns with 16px padding and 8px gap
@@ -64,13 +64,13 @@ export function SaveTopicTab({
 					onPress={() => onItemPress?.(topic, index)}>
 					<View style={styles.topicCardOverlay}>
 						<Text style={styles.topicName}>
-							{(topic.labels as { [key: string]: string })[locales.split("-")[0]] ?? topic.label_en}
+							{(topic.labels as { [key: string]: string })[locale.split("-")[0]] ?? topic.label_en}
 						</Text>
 					</View>
 				</ImageCard>
 			);
 		},
-		[onItemPress, cardWidth, locales],
+		[onItemPress, cardWidth, locale],
 	);
 
 	const renderEmptyState = useCallback(() => {
@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
 	},
 	retryButton: {
 		marginTop: 16,
-		backgroundColor: "#5EA2FF",
+		backgroundColor: "#F05537",
 		paddingHorizontal: 20,
 		paddingVertical: 10,
 		borderRadius: 20,

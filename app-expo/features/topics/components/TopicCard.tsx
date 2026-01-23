@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Image } from "expo-image";
 import { Trash, Bookmark, ImageOff, RefreshCw } from "lucide-react-native";
 import { Topic } from "@/types/search";
-import { CARD_WIDTH, CARD_HEIGHT } from "@/features/topics/constants";
+import { CARD_WIDTH } from "@/features/topics/constants";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import { toggleReaction } from "@/lib/reactions";
@@ -12,41 +12,65 @@ import { useTopicsStore } from "@/stores/useTopicsStore";
 import { profileSavedTopicsEntriesKey } from "@/features/profile/tabs/SavedTopicsTab";
 import { SkeletonShimmer } from "@/components/SkeletonShimmer";
 import i18n from "@/lib/i18n";
-
-// #615 【設計】画像ロード失敗時の自動リトライ最大回数
-const MAX_AUTO_RETRY = 2;
-// #615 【設計】リトライ間隔（ミリ秒）
-const RETRY_DELAY_MS = 1000;
+import { useImageLoadWithRetry } from "@/hooks/useImageLoadWithRetry";
 
 // Display a single topic card inside the carousel
-export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) => void }) => {
+export const TopicCard = ({
+	item,
+	onHide,
+	displayIndex,
+	cardHeight,
+}: {
+	item: Topic;
+	onHide: (id: string) => void;
+	displayIndex?: number;
+	cardHeight: number;
+}) => {
 	const [isSaved, setIsSaved] = useState(false);
-	// #615 【UX】画像ロード状態管理（スケルトン表示用）
-	const [imageLoadState, setImageLoadState] = useState<"loading" | "loaded" | "retrying" | "failed">("loading");
-	// #615 画像ロード失敗回数（自動リトライ制御用）
-	const [errorCount, setErrorCount] = useState(0);
-	// #615 【設計】画像リロードトークン（キャッシュ回避用クエリパラメータ）
-	const [reloadToken, setReloadToken] = useState(0);
-	// #615 リトライタイマーの参照を保持（unmount 時のクリーンアップ用）
-	const retryTimerRef = useRef<number | null>(null);
 	const { lightImpact, errorNotification } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 
-	// #615 【設計】reloadToken を画像URLに付与してキャッシュ回避（reloadToken 変更時のみタイムスタンプ生成）
-	const imageUrlWithCacheBuster = useMemo(() => {
-		if (reloadToken === 0) {
-			return item.imageUrl;
-		}
-		const separator = item.imageUrl.includes("?") ? "&" : "?";
-		return `${item.imageUrl}${separator}t=${reloadToken}_${item.categoryId}`;
-	}, [item.imageUrl, item.categoryId, reloadToken]);
+	// #630 【設計】useImageLoadWithRetry を利用して、画像ロード状態 + 自動リトライ管理
+	const {
+		uri: imageUrl,
+		loadState,
+		isRetrying,
+		hasGivenUp,
+		handlers,
+		manualRetry,
+	} = useImageLoadWithRetry({
+		uri: item.imageUrl,
+		cacheBustingKey: item.categoryId,
+		onErrorCountChange: (count) => {
+			logFrontendEvent({
+				event_name: "topic_image_load_error",
+				error_level: "log",
+				payload: {
+					topic_id: item.categoryId,
+					error_count: count,
+					image_url: item.imageUrl,
+				},
+			});
+		},
+		onGiveUp: (count) => {
+			logFrontendEvent({
+				event_name: "topic_image_load_give_up",
+				error_level: "warn",
+				payload: {
+					topic_id: item.categoryId,
+					error_count: count,
+					image_url: item.imageUrl,
+				},
+			});
+		},
+	});
 
 	const source = useMemo(
 		() => ({
-			uri: imageUrlWithCacheBuster,
+			uri: imageUrl,
 			headers: WIKIMEDIA_HEADERS,
 		}),
-		[imageUrlWithCacheBuster],
+		[imageUrl],
 	);
 
 	const handleSave = async () => {
@@ -101,92 +125,53 @@ export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) 
 		onHide(item.categoryId);
 	};
 
-	// #615 【UX】画像ロード開始時にスケルトンを表示
-	const handleLoadStart = useCallback(() => {
-		setImageLoadState((prev) => (prev === "retrying" ? "retrying" : "loading"));
-	}, []);
+	// impression ログ送信済みフラグ（重複防止用）
+	const impressionLoggedRef = useRef(false);
 
-	// #615 【UX】画像ロード完了時にスケルトンを非表示
-	const handleLoad = useCallback(() => {
-		setImageLoadState("loaded");
-	}, []);
-
-	// #615 画像ロード失敗時、最大2回まで自動リトライ（軽いバックオフ付き）
-	const handleImageError = useCallback(() => {
-		// #615 既存のリトライタイマーをクリアして重複を防ぐ
-		if (retryTimerRef.current) {
-			clearTimeout(retryTimerRef.current);
-			retryTimerRef.current = null;
-		}
-
-		setErrorCount((prevCount) => {
-			const newCount = prevCount + 1;
-
+	// ログ追加【仕様】topic_impression ログ送信（カード表示時に1回のみ）
+	useEffect(() => {
+		if (!impressionLoggedRef.current) {
+			impressionLoggedRef.current = true;
 			logFrontendEvent({
-				event_name: "topic_image_load_error",
+				event_name: "topic_impression",
 				error_level: "log",
 				payload: {
 					topic_id: item.categoryId,
-					error_count: newCount,
-					image_url: item.imageUrl,
+					display_index: displayIndex ?? null,
 				},
 			});
-
-			if (newCount <= MAX_AUTO_RETRY) {
-				// #615 【設計】自動リトライ中はスケルトンを維持。リトライごとに待機時間を増やす（バックオフ）
-				setImageLoadState("retrying");
-				retryTimerRef.current = setTimeout(() => {
-					setReloadToken((prev) => prev + 1);
-				}, RETRY_DELAY_MS * newCount);
-			} else {
-				// 自動リトライ超過後は失敗確定
-				setImageLoadState("failed");
-			}
-
-			return newCount;
-		});
-	}, [item.categoryId, item.imageUrl, logFrontendEvent]);
-
-	// #615 unmount 時にリトライタイマーをクリーンアップ（unmounted component への state 更新を防ぐ）
-	useEffect(() => {
-		return () => {
-			if (retryTimerRef.current) {
-				clearTimeout(retryTimerRef.current);
-			}
-		};
-	}, []);
+		}
+	}, [item.categoryId, displayIndex, logFrontendEvent]);
 
 	// #615 【UX】手動リトライ（ユーザーがタップで再読み込み）
 	const handleManualRetry = useCallback(() => {
-		// #615 既存のリトライタイマーをクリアしてレースコンディションを防ぐ
-		if (retryTimerRef.current) {
-			clearTimeout(retryTimerRef.current);
-			retryTimerRef.current = null;
-		}
-		setErrorCount(0);
-		setImageLoadState("retrying");
-		setReloadToken((prev) => prev + 1);
+		manualRetry();
 		logFrontendEvent({
 			event_name: "topic_image_manual_retry",
 			error_level: "log",
 			payload: { topic_id: item.categoryId },
 		});
-	}, [item.categoryId, logFrontendEvent]);
+	}, [manualRetry, item.categoryId, logFrontendEvent]);
+
+	// #630 【UX】派生状態: スケルトン表示条件（loading または retrying 中）
+	const shouldShowSkeleton = loadState === "loading" || isRetrying;
+	// #630 【UX】派生状態: 失敗UI表示条件
+	const shouldShowFailureUI = loadState === "error" && hasGivenUp;
 
 	return (
-		<View style={styles.card}>
+		<View style={[styles.card, { height: cardHeight }]}>
 			<Image
 				source={source}
 				cachePolicy="memory"
 				transition={100}
 				style={styles.cardImage}
-				onLoadStart={handleLoadStart}
-				onLoad={handleLoad}
-				onError={handleImageError}
+				onLoadStart={handlers.onLoadStart}
+				onLoad={handlers.onLoad}
+				onError={handlers.onError}
 			/>
 
 			{/* #615 【UX】画像ロード中のスケルトン表示 */}
-			{(imageLoadState === "loading" || imageLoadState === "retrying") && (
+			{shouldShowSkeleton && (
 				<View style={styles.skeletonOverlay}>
 					<SkeletonShimmer width="100%" height="100%" borderRadius={24} />
 				</View>
@@ -195,7 +180,7 @@ export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) 
 			{/* Content Overlay */}
 			<View style={styles.cardOverlay}>
 				{/* #615 【UX】画像ロード失敗時の UI（アイコン + 再読み込み導線） */}
-				{imageLoadState === "failed" && (
+				{shouldShowFailureUI && (
 					<TouchableOpacity style={styles.failureOverlay} onPress={handleManualRetry} activeOpacity={0.8}>
 						<View style={styles.failureContent}>
 							<ImageOff size={48} color="#FFF" strokeWidth={1.5} />
@@ -231,7 +216,6 @@ export const TopicCard = ({ item, onHide }: { item: Topic; onHide: (id: string) 
 const styles = StyleSheet.create({
 	card: {
 		width: CARD_WIDTH,
-		height: CARD_HEIGHT,
 		borderRadius: 24,
 		overflow: "hidden",
 		backgroundColor: "#EEE",

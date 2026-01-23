@@ -14,7 +14,7 @@ interface LegalDocumentProps {
 }
 
 export function LegalDocument({ documentType }: LegalDocumentProps) {
-	const locale = useLocale();
+	const { locale } = useLocale();
 
 	const title = useMemo(() => {
 		switch (documentType) {
@@ -27,7 +27,7 @@ export function LegalDocument({ documentType }: LegalDocumentProps) {
 			case "copyright":
 				return i18n.t("Settings.copyright");
 			default:
-				return "Legal Document";
+				return i18n.t("Settings.legalDocument");
 		}
 	}, [documentType]);
 

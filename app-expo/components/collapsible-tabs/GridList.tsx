@@ -1,14 +1,7 @@
 import React, { useCallback } from "react";
-import {
-	ActivityIndicator,
-	RefreshControl,
-	View,
-	Text,
-	StyleSheet,
-	FlatListProps,
-	ListRenderItemInfo,
-} from "react-native";
+import { RefreshControl, View, StyleSheet, FlatListProps, ListRenderItemInfo } from "react-native";
 import { Tabs } from "@/components/collapsible-tabs";
+import { LoadingIndicator } from "@/components/LoadingIndicator";
 
 interface GridItem {
 	id: string | number;
@@ -78,19 +71,19 @@ export function GridList<T extends GridItem>({
 		if (!isLoadingMore) return null;
 		return (
 			<View style={styles.loadingFooter}>
-				<ActivityIndicator size="small" color="#5EA2FF" />
+				<LoadingIndicator size="small" />
 			</View>
 		);
 	}, [isLoadingMore]);
 
 	const refreshControl = onRefresh ? (
-		<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#5EA2FF"]} tintColor="#5EA2FF" />
+		<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#F05537"]} tintColor="#F05537" />
 	) : undefined;
 
 	if (isLoading) {
 		return (
 			<View style={styles.loadingContainer}>
-				<ActivityIndicator size="large" color="#5EA2FF" />
+				<LoadingIndicator size="large" />
 			</View>
 		);
 	}

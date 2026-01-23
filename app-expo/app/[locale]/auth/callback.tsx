@@ -14,7 +14,8 @@ Web 専用フォールバックについて
 - 成功/失敗をフロントエンドログに記録し、いずれの場合も /(tabs)/profile に遷移します。
 */
 import { useEffect, useState } from "react";
-import { View, Text, ActivityIndicator, StyleSheet, Linking, Modal, TouchableOpacity, Platform } from "react-native";
+import { LoadingIndicator } from "@/components/LoadingIndicator";
+import { View, Text, StyleSheet, Linking, Modal, TouchableOpacity, Platform } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthProvider";
@@ -134,8 +135,8 @@ export default function AuthCallbackScreen() {
 
 	return (
 		<View style={styles.container}>
-			<ActivityIndicator size="large" color="#5EA2FF" />
-			<Text style={styles.text}>{i18n.t("Common.processing")}</Text>
+			<LoadingIndicator size="large" />
+			<Text style={styles.text}>{i18n.t("auth.callback_processing")}</Text>
 
 			{/* Conflict Warning Dialog */}
 			<ConflictModal>
@@ -190,7 +191,7 @@ const styles = StyleSheet.create({
 	},
 	primaryButton: {
 		flex: 1,
-		backgroundColor: "#5EA2FF",
+		backgroundColor: "#F05537",
 		paddingVertical: 14,
 		borderRadius: 12,
 		alignItems: "center",

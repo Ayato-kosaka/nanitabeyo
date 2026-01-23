@@ -77,12 +77,17 @@ export class LocationsService {
       component.types?.includes('administrative_area_level_1'),
     );
 
-    const countryCode = countryComponent?.shortText || null;
+    // #677 【設計】shortText または longText のいずれか存在すればOKとする（Google API 仕様で shortText 欠損パターンがあるため）
+    // #677 【注意】ISO-3166-2 形式では shortText が望ましい（2文字コード）。longText は補完用。
+    const countryCode =
+      countryComponent?.shortText || countryComponent?.longText || null;
     let subterritoryCode: string | null = null;
 
-    if (countryCode && adminLevel1Component?.shortText) {
+    // ISO-3166-2 形式では shortText を優先（2文字コード）
+    const adminLevel1Code = adminLevel1Component?.shortText;
+    if (countryCode && adminLevel1Code) {
       // ISO-3166-2 形式 (例: CH-GE, ES-CT) に変換
-      subterritoryCode = `${countryCode}-${adminLevel1Component.shortText}`;
+      subterritoryCode = `${countryCode}-${adminLevel1Code}`;
     }
 
     return { countryCode, subterritoryCode };
@@ -214,6 +219,12 @@ export class LocationsService {
             'places.location',
             'places.addressComponents',
             'places.plusCode',
+            'places.photos.name', // #636 【バグ】contextualContents が返らない場合のフォールバック用
+            'places.photos.widthPx',
+            'places.photos.heightPx',
+            'places.reviews.originalText', // #636 【バグ】contextualContents が返らない場合のフォールバック用
+            'places.reviews.rating',
+            'places.reviews.authorAttribution',
             'contextualContents.photos.name',
             'contextualContents.photos.widthPx',
             'contextualContents.photos.heightPx',
@@ -576,14 +587,25 @@ export class LocationsService {
         !response.viewport.high ||
         !response.viewport.high.latitude ||
         !response.viewport.high.longitude ||
-        !response.addressComponents ||
-        response.addressComponents.some(
-          (component) => !component.shortText || !component.types,
-        )
-      )
+        !response.addressComponents
+      ) {
         throw new Error(
           'Invalid response from Google Places API: Missing required fields',
         );
+      }
+
+      // #677 【設計】types 欠損のコンポーネントを許容し、使用可能なコンポーネントのみに正規化
+      // Filter components that have at least one usable value (shortText or longText)
+      // Missing types field is allowed (downstream methods handle it gracefully)
+      const normalizedAddressComponents = response.addressComponents.filter(
+        (component) => !!(component.shortText || component.longText),
+      );
+
+      if (normalizedAddressComponents.length === 0) {
+        throw new Error(
+          'Invalid response from Google Places API: No usable address components',
+        );
+      }
 
       // location field from response
       const location = {
@@ -603,8 +625,8 @@ export class LocationsService {
         },
       };
 
-      // Extract address from addressComponents
-      const addressComponents = response.addressComponents;
+      // #677 Use normalized addressComponents for downstream processing
+      const addressComponents = normalizedAddressComponents;
       const address = this.buildAddressFromComponents(addressComponents);
 
       // Resolve local language code from addressComponents

@@ -279,8 +279,8 @@ const styles = StyleSheet.create({
 		backgroundColor: "#FFFFFF",
 	},
 	checkboxChecked: {
-		backgroundColor: "#5EA2FF",
-		borderColor: "#5EA2FF",
+		backgroundColor: "#F05537",
+		borderColor: "#F05537",
 	},
 	checkboxMark: {
 		color: "#FFFFFF",
@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
 		lineHeight: 20,
 	},
 	tosLink: {
-		color: "#5EA2FF",
+		color: "#F05537",
 		textDecorationLine: "underline",
 	},
 	createButton: {
@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
 	dividerLine: {
 		flex: 1,
 		height: 1,
-		backgroundColor: "#E5E7EB",
+		backgroundColor: "#C9C9C9",
 	},
 	dividerText: {
 		fontSize: 14,

@@ -7,8 +7,8 @@
 		"close": "Close",
 		"save": "Save",
 		"post": "Post",
+		"postReview": "Post review",
 		"retry": "Retry",
-		"processing": "Processing...",
 		"error": "An error occurred. Please try again.",
 		"success": "Success",
 		"linkCopied": "Link copied to clipboard",
@@ -27,7 +27,8 @@
 		"site": "CraveCatch",
 		"errors": {
 			"network": "A network error occurred. Please check your connection.",
-			"unexpected": "An unexpected error occurred. Please try again later."
+			"unexpected": "An unexpected error occurred. Please try again later.",
+			"notFound": "Not found"
 		}
 	},
 	"Error": {
@@ -70,7 +71,13 @@
 		"placeholders": {
 			"enterLocation": "Enter a location"
 		},
+		"accessibility": {
+			"locationInputHint": "Enter a location to search for restaurants",
+			"clearLocation": "Clear location",
+			"selectLocation": "Select this location"
+		},
 		"loading": "Searching...",
+		"noLocationsFound": "No locations found",
 		"advancedToggle": {
 			"open": "More options",
 			"close": "Close advanced search"
@@ -126,6 +133,33 @@
 			"nutAllergy": "Nut allergy",
 			"seafoodAllergy": "Seafood allergy",
 			"halal": "Halal"
+		},
+		"tutorial": {
+			"page1": {
+				"title": "Discover what you want to eat",
+				"body1": "Solve the \"What should I eat today?\" dilemma all at once.",
+				"body2": "We suggest dishes and restaurants based on your location and time.",
+				"cta": "Next"
+			},
+			"page2": {
+				"title": "See photos and discover what you crave",
+				"body1": "We suggest 6 dishes that match your current preferences.",
+				"body2": "Look at photos and intuitively choose what you want to eat.",
+				"cta": "Next"
+			},
+			"page3": {
+				"title": "Photos and reviews help you decide where to go",
+				"body1": "We suggest 5 restaurants that serve your chosen dish.",
+				"body2": "Browse photos, reviews, and the map to quickly pick a place.",
+				"cta": "Next"
+			},
+			"page4": {
+				"title": "Let's get started",
+				"body1": "We'll use your current location to suggest nearby restaurants.",
+				"body2": "You can change this anytime in settings.",
+				"primaryCta": "Use current location",
+				"secondaryCta": "Later"
+			}
 		}
 	},
 	"Topics": {
@@ -148,7 +182,9 @@
 		"chooseThis": "Choose this!",
 		"hiddenMessage": "{{title}} has been hidden",
 		"imageLoadFailed": "Failed to load image",
-		"tapToReload": "Tap to reload"
+		"tapToReload": "Tap to reload",
+		"headerTitle": "Recommended Dishes for You",
+		"subCopy": "Tap on a dish you like to find restaurants"
 	},
 	"Notifications": {
 		"title": "Notifications",
@@ -185,6 +221,7 @@
 		"buttons": {
 			"viewRestaurant": "View restaurant"
 		},
+		"processing": "Processing media...",
 		"errors": {
 			"mapOpenFailed": "Could not open map application",
 			"mediaUnavailable": "This media is currently unavailable."
@@ -200,8 +237,16 @@
 		"home": "Home",
 		"search": "Search",
 		"map": "Map",
+		"review": "Review",
 		"notifications": "Notifications",
-		"profile": "Profile"
+		"profile": "Profile",
+		"labels": {
+			"search": "Search",
+			"map": "Map",
+			"review": "Review",
+			"notifications": "Notifications",
+			"profile": "Profile"
+		}
 	},
 	"Profile": {
 		"tabs": {
@@ -291,6 +336,7 @@
 	"Map": {
 		"buttons": {
 			"postReview": "Post Review",
+			"postPhotoVideoReview": "Post Photo/Video",
 			"placeBid": "Place Bid",
 			"bid": "Bid",
 			"searchNearby": "Search in this area",
@@ -310,14 +356,18 @@
 		"placeholders": {
 			"searchRestaurants": "Search restaurants",
 			"enterPrice": "Enter price",
-			"enterReview": "Enter review",
+			"enterReview": "Recommendation level",
+			"enterReviewShort": "Short review (e.g.: The rich tonkotsu broth was insanely good!)",
 			"enterBidAmount": "Enter bid amount",
-			"enterDishCategory": "Enter dish category (e.g., Burger, BBQ)"
+			"enterDishCategory": "Enter dish category (e.g., Burger, BBQ)",
+			"searchRestaurantsForReview": "Search by name or area"
 		},
 		"labels": {
 			"endDate": "End date:",
 			"paymentProcessing": "Processing payment...",
-			"currentBidAmount": "Current bid amount"
+			"currentBidAmount": "Current bid amount",
+			"restaurant": "Restaurant",
+			"dishCategory": "Dish category"
 		},
 		"tabs": {
 			"reviews": "Reviews",
@@ -356,7 +406,10 @@
 			"dishCategorySelected": "Selected {{category}}",
 			"dishCategorySearching": "Searching for dish categories",
 			"dishCategorySuggestionsFound": "Found {{count}} suggestions",
-			"dishCategoryNoResults": "No matching dish categories found"
+			"dishCategoryNoResults": "No matching dish categories found",
+			"dishCategoryInputHint": "Enter a dish category to search",
+			"clearDishCategory": "Clear dish category",
+			"selectDishCategory": "Select this dish category"
 		},
 		"errors": {
 			"dishCategoryCreateFailed": "Failed to create dish category",
@@ -451,6 +504,7 @@
 		"provider_twitter": "Twitter",
 		"provider_apple": "Apple",
 		"otp_title": "Enter Code",
+		"otp_resending": "Resending code...",
 		"otp_send_again": "Resend Code",
 		"otp_enter_all_digits": "Please enter all 6 digits",
 		"login_success": "Successfully logged in!",
@@ -462,6 +516,7 @@
 		"conflict_dialog_message": "This account is already linked to another user. If you switch, data created as a guest will not be transferred. Do you want to switch to the existing account?",
 		"conflict_dialog_switch": "Switch",
 		"conflict_dialog_cancel": "Cancel",
+		"callback_processing": "Completing sign-in...",
 		"consent_login_prefix": "By continuing, you agree to our ",
 		"consent_login_terms": "Terms of Service",
 		"consent_login_and": " and ",
@@ -479,7 +534,14 @@
 		"terms": "Terms and Conditions",
 		"privacy": "Privacy Policy",
 		"copyright": "Copyright",
+		"legalDocument": "Legal Document",
 		"logout": "Logout"
+	},
+	"Dialog": {
+		"a11y": {
+			"dialog": "Dialog",
+			"dialogWithTitle": "{{title}} dialog"
+		}
 	},
 	"Tools": {
 		"DishCategoryImageOptimizer": {
@@ -503,5 +565,34 @@
 		"openInGoogleMaps": "Open in Google Maps",
 		"shareWithFriends": "Share with friends",
 		"cancel": "Cancel"
+	},
+	"Review": {
+		"title": "Post a Review",
+		"hero": {
+			"title": "Write reviews of recommended restaurants\nand post the dishes you ate"
+		},
+		"guest": {
+			"description": "Log in to write reviews",
+			"loginButton": "Log In"
+		},
+		"authenticated": {
+			"postButton": "✏️ Post a restaurant review"
+		},
+		"selectRestaurant": {
+			"title": "Select a restaurant to review",
+			"searchThisArea": "Search this area",
+			"savedRestaurantList": "Saved Restaurants",
+			"postPhotoVideo": "Post Photo/Video",
+			"fetchSavedRestaurantsError": "Failed to fetch saved restaurants",
+			"noSavedRestaurantsInArea": "No saved restaurants found in this area. Please expand the area and search again."
+		},
+		"emptyState": {
+			"noReviews": "No reviews yet.\nBe the first to review this restaurant."
+		},
+		"everybodyPostsTitle": "Choose a dish to review",
+		"characterCount": "{{current}}/{{max}}",
+		"restaurantDetail": {
+			"title": "Restaurant Details"
+		}
 	}
 }

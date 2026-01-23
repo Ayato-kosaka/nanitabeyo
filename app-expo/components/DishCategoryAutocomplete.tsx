@@ -8,13 +8,13 @@ import {
 	ScrollView,
 	Platform,
 	AccessibilityInfo,
-	ActivityIndicator,
 } from "react-native";
 import { useDishCategorySearch } from "@/hooks/useDishCategorySearch";
 import { useHaptics } from "@/hooks/useHaptics";
 import i18n from "@/lib/i18n";
 import type { QueryDishCategoryVariantsResponse } from "@shared/api/v1/res";
 import { ChefHat, X } from "lucide-react-native";
+import { LoadingIndicator } from "./LoadingIndicator";
 
 interface DishCategoryAutocompleteProps {
 	/** 入力値 */
@@ -192,7 +192,7 @@ export function DishCategoryAutocomplete({
 					keyboardType="default"
 					returnKeyType="search"
 					accessibilityLabel={i18n.t("Map.inputs.dishCategory")}
-					accessibilityHint="Enter a dish category to search"
+					accessibilityHint={i18n.t("Map.accessibility.dishCategoryInputHint")}
 					testID={`${testID}-input`}
 				/>
 				{/* クリアボタン */}
@@ -201,7 +201,7 @@ export function DishCategoryAutocomplete({
 						style={styles.clearButton}
 						onPress={handleClear}
 						accessibilityRole="button"
-						accessibilityLabel="Clear dish category"
+						accessibilityLabel={i18n.t("Map.accessibility.clearDishCategory")}
 						testID={`${testID}-clear`}>
 						<X size={16} color="#6B7280" />
 					</TouchableOpacity>
@@ -212,7 +212,7 @@ export function DishCategoryAutocomplete({
 			{/* ローディングインジケーター */}
 			{isSearching && (
 				<View style={styles.loadingContainer}>
-					<ActivityIndicator size="small" color="#5EA2FF" />
+					<LoadingIndicator size="small" />
 					<Text style={styles.loadingText}>{i18n.t("Profile.loading")}</Text>
 				</View>
 			)}
@@ -232,7 +232,7 @@ export function DishCategoryAutocomplete({
 								onPress={() => handleSuggestionPress(suggestion)}
 								accessibilityRole="button"
 								accessibilityLabel={suggestion.label}
-								accessibilityHint="Select this dish category"
+								accessibilityHint={i18n.t("Map.accessibility.selectDishCategory")}
 								testID={`${testID}-suggestion-${index}`}>
 								<ChefHat size={16} color="#6B7280" />
 								<View style={styles.suggestionText}>

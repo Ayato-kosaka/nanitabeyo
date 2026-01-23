@@ -7,8 +7,8 @@
 		"close": "閉じる",
 		"save": "保存",
 		"post": "投稿",
+		"postReview": "レビューを投稿する",
 		"retry": "再試行",
-		"processing": "処理中...",
 		"error": "エラーが発生しました。もう一度お試しください。",
 		"success": "成功",
 		"linkCopied": "リンクをクリップボードにコピーしました",
@@ -27,7 +27,8 @@
 		"site": "なに食べよ",
 		"errors": {
 			"network": "通信エラーが発生しました。ネットワーク接続をご確認ください。",
-			"unexpected": "予期しないエラーが発生しました。しばらくしてからお試しください。"
+			"unexpected": "予期しないエラーが発生しました。しばらくしてからお試しください。",
+			"notFound": "見つかりません"
 		}
 	},
 	"Error": {
@@ -70,7 +71,13 @@
 		"placeholders": {
 			"enterLocation": "場所を入力してください"
 		},
+		"accessibility": {
+			"locationInputHint": "レストランを検索する場所を入力してください",
+			"clearLocation": "場所をクリア",
+			"selectLocation": "この場所を選択"
+		},
 		"loading": "検索中...",
+		"noLocationsFound": "場所が見つかりません",
 		"advancedToggle": {
 			"open": "さらにこだわる",
 			"close": "詳細検索を閉じる"
@@ -97,7 +104,7 @@
 		"timeSlots": {
 			"morning": "朝食",
 			"lunch": "ランチ",
-			"dinner": "ディナー",
+			"dinner": "夜ごはん",
 			"lateNight": "夜食"
 		},
 		"sceneOptions": {
@@ -126,6 +133,33 @@
 			"nutAllergy": "ナッツアレルギー",
 			"seafoodAllergy": "魚介アレルギー",
 			"halal": "ハラール"
+		},
+		"tutorial": {
+			"page1": {
+				"title": "食べたい料理に気づけるアプリ",
+				"body1": "「今日なに食べる？」で、もう迷わない。",
+				"body2": "場所や時間に合わせて、料理とお店をセットで提案します。",
+				"cta": "つぎへ"
+			},
+			"page2": {
+				"title": "料理写真を見て\n「食べたい」に気づく",
+				"body1": "今の条件に合った料理を６つご提案。",
+				"body2": "写真を見ながら食べたいものを直感で選べます。",
+				"cta": "つぎへ"
+			},
+			"page3": {
+				"title": "写真と口コミで\n「ここ行こ」が決まる",
+				"body1": "選んだ料理に合うお店を５つご提案。",
+				"body2": "写真と口コミ、地図を見ながら、気になる一軒をサクッと選べます。",
+				"cta": "つぎへ"
+			},
+			"page4": {
+				"title": "はじめよう",
+				"body1": "近くの美味しいお店を提案するために、現在地を利用します。",
+				"body2": "いつでも設定から変更できます。",
+				"primaryCta": "現在地を利用する",
+				"secondaryCta": "あとで"
+			}
 		}
 	},
 	"Topics": {
@@ -148,12 +182,14 @@
 		"chooseThis": "これにする！",
 		"hiddenMessage": "{{title}}を非表示にしました",
 		"imageLoadFailed": "画像を読み込めませんでした",
-		"tapToReload": "タップして再読み込み"
+		"tapToReload": "タップして再読み込み",
+		"headerTitle": "あなたにおすすめの料理",
+		"subCopy": "いいかも！と思った料理をタップしてお店を見つけよう"
 	},
 	"Notifications": {
-		"title": "通知",
+		"title": "お知らせ",
 		"timeAgo": "{{time}}前",
-		"empty": "通知はまだありません",
+		"empty": "お知らせはまだありません",
 		"loadingMore": "読み込み中...",
 		"notification": {
 			"dish_media": {
@@ -185,6 +221,7 @@
 		"buttons": {
 			"viewRestaurant": "店を見る"
 		},
+		"processing": "メディアを処理中...",
 		"errors": {
 			"mapOpenFailed": "地図アプリを開けませんでした",
 			"mediaUnavailable": "このメディアは現在ご利用いただけません。"
@@ -200,8 +237,16 @@
 		"home": "ホーム",
 		"search": "検索",
 		"map": "マップ",
-		"notifications": "通知",
-		"profile": "プロフィール"
+		"review": "レビュー",
+		"notifications": "お知らせ",
+		"profile": "プロフィール",
+		"labels": {
+			"search": "さがす",
+			"map": "マップ",
+			"review": "レビュー",
+			"notifications": "お知らせ",
+			"profile": "マイページ"
+		}
 	},
 	"Profile": {
 		"tabs": {
@@ -292,6 +337,7 @@
 		"currentLocation": "現在地",
 		"buttons": {
 			"postReview": "レビュー投稿",
+			"postPhotoVideoReview": "写真・動画を投稿する",
 			"placeBid": "入札する",
 			"bid": "入札",
 			"searchNearby": "このエリアで探す",
@@ -311,14 +357,18 @@
 		"placeholders": {
 			"searchRestaurants": "レストランを検索",
 			"enterPrice": "料金を入力",
-			"enterReview": "レビューを入力",
+			"enterReview": "オススメ度",
+			"enterReviewShort": "一言レビュー（例: 豚骨スープが濃厚で最高にうまかった！）",
 			"enterBidAmount": "入札額を入力",
-			"enterDishCategory": "料理カテゴリを入力 (例: カレーライス、天ぷら)"
+			"enterDishCategory": "料理カテゴリを入力 (例: カレーライス、天ぷら)",
+			"searchRestaurantsForReview": "店名やエリアで検索"
 		},
 		"labels": {
 			"endDate": "終了日:",
 			"paymentProcessing": "決済処理中...",
-			"currentBidAmount": "現在の入札額"
+			"currentBidAmount": "現在の入札額",
+			"restaurant": "お店",
+			"dishCategory": "料理カテゴリ"
 		},
 		"tabs": {
 			"reviews": "レビュー",
@@ -356,7 +406,10 @@
 			"dishCategorySelected": "{{category}}を選択しました",
 			"dishCategorySearching": "料理カテゴリを検索中",
 			"dishCategorySuggestionsFound": "{{count}}件の候補が見つかりました",
-			"dishCategoryNoResults": "一致する料理カテゴリが見つかりませんでした"
+			"dishCategoryNoResults": "一致する料理カテゴリが見つかりませんでした",
+			"dishCategoryInputHint": "料理カテゴリを入力して検索してください",
+			"clearDishCategory": "料理カテゴリをクリア",
+			"selectDishCategory": "この料理カテゴリを選択"
 		},
 		"errors": {
 			"dishCategoryCreateFailed": "料理カテゴリの作成に失敗しました",
@@ -451,6 +504,7 @@
 		"provider_twitter": "Twitter",
 		"provider_apple": "Apple",
 		"otp_title": "コードを入力",
+		"otp_resending": "コードを再送信中...",
 		"otp_send_again": "コードを再送",
 		"otp_enter_all_digits": "6桁すべてを入力してください",
 		"login_success": "ログインに成功しました！",
@@ -462,6 +516,7 @@
 		"conflict_dialog_message": "対象のアカウントは既に別ユーザーに紐づいています。切り替えるとゲストで作成したデータは引き継がれません。既存アカウントに切り替えますか？",
 		"conflict_dialog_switch": "切り替える",
 		"conflict_dialog_cancel": "キャンセル",
+		"callback_processing": "ログイン処理中...",
 		"consent_login_prefix": "このまま続行すると、",
 		"consent_login_terms": "利用規約",
 		"consent_login_and": " と ",
@@ -479,7 +534,14 @@
 		"terms": "利用規約",
 		"privacy": "プライバシーポリシー",
 		"copyright": "著作権",
+		"legalDocument": "法的文書",
 		"logout": "ログアウト"
+	},
+	"Dialog": {
+		"a11y": {
+			"dialog": "ダイアログ",
+			"dialogWithTitle": "{{title}} ダイアログ"
+		}
 	},
 	"Tools": {
 		"DishCategoryImageOptimizer": {
@@ -503,5 +565,34 @@
 		"openInGoogleMaps": "Google マップで開く",
 		"shareWithFriends": "友人に共有する",
 		"cancel": "キャンセル"
+	},
+	"Review": {
+		"title": "レビューを投稿する",
+		"hero": {
+			"title": "おすすめのお店のレビューを書いて\n食べた料理を投稿しよう"
+		},
+		"guest": {
+			"description": "ログインしてレビューを書こう",
+			"loginButton": "ログインする"
+		},
+		"authenticated": {
+			"postButton": "✏️ お店のレビューを投稿しよう"
+		},
+		"selectRestaurant": {
+			"title": "レビューするお店を選択",
+			"searchThisArea": "このエリアで再検索",
+			"savedRestaurantList": "保存したお店リスト",
+			"postPhotoVideo": "写真・動画を投稿",
+			"fetchSavedRestaurantsError": "保存したお店の取得に失敗しました",
+			"noSavedRestaurantsInArea": "ご指定の表示領域に保存したお店が見つかりませんでした。エリアを拡大して再度検索を行ってください。"
+		},
+		"emptyState": {
+			"noReviews": "まだ投稿がありません。\nこのお店の最初のレビューを投稿しましょう。"
+		},
+		"everybodyPostsTitle": "レビューする料理を選択",
+		"characterCount": "{{current}}/{{max}}",
+		"restaurantDetail": {
+			"title": "レストラン詳細"
+		}
 	}
 }

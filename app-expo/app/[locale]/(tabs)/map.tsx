@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { View, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
+import { LoadingIndicator } from "@/components/LoadingIndicator";
+import { View, StyleSheet, TouchableOpacity } from "react-native";
 import { Navigation } from "lucide-react-native";
 import MapView, { Region } from "@/components/MapView";
 import type { PoiClickEvent } from "react-native-maps";
@@ -13,7 +14,7 @@ import {
 	ErrorCode,
 } from "@shared/api/v1/res";
 import type { QueryRestaurantsDto, CreateRestaurantDto } from "@shared/api/v1/dto";
-import { AvatarBubbleMarker } from "@/components/AvatarBubbleMarker";
+import { AvatarBubbleMarker } from "@/features/mapMarkers";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { useHaptics } from "@/hooks/useHaptics";
 import { SelectedRestaurantDetails } from "@/features/map/components/SelectedRestaurantDetails";
@@ -23,6 +24,7 @@ import { PrimaryButton } from "@/components/PrimaryButton";
 import MapViewClass from "react-native-maps";
 import { isFoodAndDrinkPlaceForUser } from "@shared/utils/google_places_restaurant_type";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
+import { INITIAL_REGION } from "@/features/map/constants";
 
 export default function MapScreen() {
 	const { lightImpact } = useHaptics();
@@ -45,12 +47,7 @@ export default function MapScreen() {
 	// MapView のアニメーションを制御するための ref
 	const mapRef = useRef<MapViewClass>(null);
 	// 現在の地図の表示領域
-	const currentRegion = useRef<Region>({
-		latitude: 35.6762,
-		longitude: 139.6503,
-		latitudeDelta: 0.01,
-		longitudeDelta: 0.01,
-	});
+	const currentRegion = useRef<Region>(INITIAL_REGION);
 
 	// Search nearby restaurants when region changes
 	const searchNearbyRestaurants = useCallback(
@@ -252,7 +249,7 @@ export default function MapScreen() {
 			{/* POI Loading Indicator */}
 			{isLoadingRestaurantCreation && (
 				<View style={styles.loadingOverlay}>
-					<ActivityIndicator size="large" color="#5EA2FF" />
+					<LoadingIndicator size="large" />
 				</View>
 			)}
 
@@ -266,7 +263,7 @@ export default function MapScreen() {
 					placeholder={i18n.t("Map.placeholders.searchRestaurants")}
 					renderInputRight={
 						<TouchableOpacity style={styles.currentLocationButton} onPress={handleCurrentLocation}>
-							<Navigation size={20} color="#5EA2FF" />
+							<Navigation size={20} color="#F05537" />
 						</TouchableOpacity>
 					}
 				/>
@@ -281,6 +278,8 @@ export default function MapScreen() {
 					shadowColor={"#000000"}
 					labelStyle={{ color: "#1A1A1A" }}
 					loading={isLoadingNearbyRestaurants}
+					loadingIndicatorType="native"
+					nativeLoadingColor={"#1A1A1A"}
 				/>
 			</View> */}
 
@@ -316,7 +315,7 @@ const styles = StyleSheet.create({
 	currentLocationButton: {
 		padding: 16,
 		borderLeftWidth: 0.5,
-		borderLeftColor: "#E5E7EB",
+		borderLeftColor: "#C9C9C9",
 	},
 	loadingOverlay: {
 		position: "absolute",

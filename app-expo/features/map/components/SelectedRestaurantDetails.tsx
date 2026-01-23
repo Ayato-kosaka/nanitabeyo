@@ -313,7 +313,7 @@ const styles = StyleSheet.create({
 	bidAmount: {
 		fontSize: 28,
 		fontWeight: "bold",
-		color: "#007AFF",
+		color: "#F05537",
 		marginBottom: 4,
 	},
 	remainingDays: {
@@ -337,7 +337,7 @@ const styles = StyleSheet.create({
 	},
 	activeTab: {
 		borderBottomWidth: 2,
-		borderBottomColor: "#007AFF",
+		borderBottomColor: "#F05537",
 	},
 	tabText: {
 		fontSize: 16,
@@ -345,7 +345,7 @@ const styles = StyleSheet.create({
 		fontWeight: "500",
 	},
 	activeTabText: {
-		color: "#007AFF",
+		color: "#F05537",
 		fontWeight: "600",
 	},
 });

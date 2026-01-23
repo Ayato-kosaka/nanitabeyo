@@ -7,8 +7,8 @@
 		"close": "إغلاق",
 		"save": "حفظ",
 		"post": "نشر",
+		"postReview": "نشر مراجعة",
 		"retry": "إعادة المحاولة",
-		"processing": "معالجة...",
 		"error": "حدث خطأ. يُرجى المحاولة مرة أخرى.",
 		"success": "نجح",
 		"linkCopied": "تم نسخ الرابط إلى الحافظة",
@@ -27,7 +27,8 @@
 		"site": "CraveCatch",
 		"errors": {
 			"network": "حدث خطأ في الشبكة. يُرجى التحقق من اتصالك.",
-			"unexpected": "حدث خطأ غير متوقع. يُرجى المحاولة مرة أخرى لاحقًا."
+			"unexpected": "حدث خطأ غير متوقع. يُرجى المحاولة مرة أخرى لاحقًا.",
+			"notFound": "غير موجود"
 		}
 	},
 	"Error": {
@@ -70,7 +71,13 @@
 		"placeholders": {
 			"enterLocation": "أدخل موقعًا"
 		},
+		"accessibility": {
+			"locationInputHint": "أدخل موقعًا للبحث عن المطاعم",
+			"clearLocation": "مسح الموقع",
+			"selectLocation": "اختر هذا الموقع"
+		},
 		"loading": "جارٍ البحث...",
+		"noLocationsFound": "لم يتم العثور على مواقع",
 		"advancedToggle": {
 			"open": "خيارات إضافية",
 			"close": "إغلاق البحث المتقدم"
@@ -126,6 +133,33 @@
 			"nutAllergy": "حساسية المكسرات",
 			"seafoodAllergy": "حساسية المأكولات البحرية",
 			"halal": "حلال"
+		},
+		"tutorial": {
+			"page1": {
+				"title": "اكتشف ما تريد أن تأكله",
+				"body1": "حل معضلة \"ماذا سآكل اليوم؟\" دفعة واحدة.",
+				"body2": "نقترح الأطباق والمطاعم بناءً على موقعك والوقت.",
+				"cta": "التالي"
+			},
+			"page2": {
+				"title": "شاهد الصور واكتشف ما تشتهيه",
+				"body1": "نقترح 6 أطباق تتوافق مع تفضيلاتك الحالية.",
+				"body2": "انظر إلى الصور واختر بشكل بديهي ما تريد أن تأكله.",
+				"cta": "التالي"
+			},
+			"page3": {
+				"title": "الصور والتعليقات تساعدك على تحديد أين تذهب",
+				"body1": "نقترح 5 مطاعم تقدم الطبق الذي اخترته.",
+				"body2": "تصفح الصور والتعليقات والخريطة لاختيار مكان بسرعة.",
+				"cta": "التالي"
+			},
+			"page4": {
+				"title": "لنبدأ",
+				"body1": "سنستخدم موقعك الحالي لاقتراح المطاعم القريبة.",
+				"body2": "يمكنك تغيير هذا في أي وقت في الإعدادات.",
+				"primaryCta": "استخدم الموقع الحالي",
+				"secondaryCta": "لاحقاً"
+			}
 		}
 	},
 	"Topics": {
@@ -148,7 +182,9 @@
 		"chooseThis": "اختر هذا!",
 		"hiddenMessage": "تم إخفاء {{title}}",
 		"imageLoadFailed": "فشل تحميل الصورة",
-		"tapToReload": "اضغط لإعادة التحميل"
+		"tapToReload": "اضغط لإعادة التحميل",
+		"headerTitle": "الأطباق الموصى بها لك",
+		"subCopy": "انقر على طبق يعجبك للعثور على المطاعم"
 	},
 	"Notifications": {
 		"title": "الإشعارات",
@@ -185,6 +221,7 @@
 		"buttons": {
 			"viewRestaurant": "عرض المطعم"
 		},
+		"processing": "جارٍ معالجة الوسائط...",
 		"info": {
 			"walkFromShibuya": "على بُعد 13 دقيقة سيرًا من محطة شيبويا"
 		},
@@ -200,8 +237,16 @@
 		"home": "الصفحة الرئيسية",
 		"search": "البحث",
 		"map": "الخريطة",
+		"review": "المراجعة",
 		"notifications": "الإشعارات",
-		"profile": "الملف الشخصي"
+		"profile": "الملف الشخصي",
+		"labels": {
+			"search": "البحث",
+			"map": "الخريطة",
+			"review": "المراجعة",
+			"notifications": "الإشعارات",
+			"profile": "الملف الشخصي"
+		}
 	},
 	"Profile": {
 		"tabs": {
@@ -292,6 +337,7 @@
 		"currentLocation": "الموقع الحالي",
 		"buttons": {
 			"postReview": "نشر مراجعة",
+			"postPhotoVideoReview": "نشر صورة/فيديو",
 			"placeBid": "تقديم عرض",
 			"bid": "عرض",
 			"searchNearby": "ابحث في هذه المنطقة",
@@ -311,14 +357,18 @@
 		"placeholders": {
 			"searchRestaurants": "البحث عن المطاعم",
 			"enterPrice": "أدخل السعر",
-			"enterReview": "أدخل مراجعتك",
+			"enterReview": "مستوى التوصية",
+			"enterReviewShort": "مراجعة قصيرة (مثال: مرق التونكوتسو كان غنيًا وشهيًا بشكل لا يصدق!)",
 			"enterBidAmount": "أدخل مبلغ العرض",
-			"enterDishCategory": "أدخل فئة الطبق (مثال: كبسة، شاورما)"
+			"enterDishCategory": "أدخل فئة الطبق (مثال: كبسة، شاورما)",
+			"searchRestaurantsForReview": "البحث بالاسم أو المنطقة"
 		},
 		"labels": {
 			"endDate": "تاريخ الانتهاء:",
 			"paymentProcessing": "معالجة الدفع...",
-			"currentBidAmount": "مبلغ العرض الحالي"
+			"currentBidAmount": "مبلغ العرض الحالي",
+			"restaurant": "مطعم",
+			"dishCategory": "فئة الطبق"
 		},
 		"tabs": {
 			"reviews": "المراجعات",
@@ -356,7 +406,10 @@
 			"dishCategorySelected": "تم اختيار {{category}}",
 			"dishCategorySearching": "البحث عن فئات الأطباق",
 			"dishCategorySuggestionsFound": "تم العثور على {{count}} اقتراحات",
-			"dishCategoryNoResults": "لم يتم العثور على فئات أطباق مطابقة"
+			"dishCategoryNoResults": "لم يتم العثور على فئات أطباق مطابقة",
+			"dishCategoryInputHint": "أدخل فئة الطبق للبحث",
+			"clearDishCategory": "مسح فئة الطبق",
+			"selectDishCategory": "اختر فئة الطبق هذه"
 		},
 		"errors": {
 			"dishCategoryCreateFailed": "فشل في إنشاء فئة الطبق",
@@ -451,6 +504,7 @@
 		"provider_twitter": "Twitter",
 		"provider_apple": "Apple",
 		"otp_title": "أدخل الرمز",
+		"otp_resending": "جارٍ إعادة إرسال الرمز...",
 		"otp_send_again": "إعادة إرسال الرمز",
 		"otp_enter_all_digits": "يرجى إدخال الأرقام الستة كاملة",
 		"login_success": "تم تسجيل الدخول بنجاح!",
@@ -462,6 +516,7 @@
 		"conflict_dialog_message": "هذا الحساب مرتبط بالفعل بمستخدم آخر. إذا قمت بالتبديل، لن يتم نقل البيانات التي تم إنشاؤها كضيف. هل تريد التبديل إلى الحساب الموجود؟",
 		"conflict_dialog_switch": "تبديل",
 		"conflict_dialog_cancel": "إلغاء",
+		"callback_processing": "جارٍ إكمال تسجيل الدخول...",
 		"consent_login_prefix": "بالمتابعة، فإنك توافق على ",
 		"consent_login_terms": "شروط الخدمة",
 		"consent_login_and": " و",
@@ -479,7 +534,14 @@
 		"terms": "الشروط والأحكام",
 		"privacy": "سياسة الخصوصية",
 		"copyright": "حقوق النشر",
+		"legalDocument": "مستند قانوني",
 		"logout": "تسجيل الخروج"
+	},
+	"Dialog": {
+		"a11y": {
+			"dialog": "مربع حوار",
+			"dialogWithTitle": "مربع حوار {{title}}"
+		}
 	},
 	"Tools": {
 		"DishCategoryImageOptimizer": {
@@ -503,5 +565,34 @@
 		"openInGoogleMaps": "فتح في خرائط Google",
 		"shareWithFriends": "مشاركة مع الأصدقاء",
 		"cancel": "إلغاء"
+	},
+	"Review": {
+		"title": "نشر مراجعة",
+		"hero": {
+			"title": "اكتب مراجعات للمطاعم الموصى بها\nوانشر الأطباق التي تناولتها"
+		},
+		"guest": {
+			"description": "سجل الدخول لكتابة المراجعات",
+			"loginButton": "تسجيل الدخول"
+		},
+		"authenticated": {
+			"postButton": "✏️ نشر مراجعة مطعم"
+		},
+		"selectRestaurant": {
+			"title": "اختر مطعمًا للمراجعة",
+			"searchThisArea": "ابحث في هذه المنطقة",
+			"savedRestaurantList": "المطاعم المحفوظة",
+			"postPhotoVideo": "نشر صورة/فيديو",
+			"fetchSavedRestaurantsError": "فشل في جلب المطاعم المحفوظة",
+			"noSavedRestaurantsInArea": "لم يتم العثور على مطاعم محفوظة في هذه المنطقة. يرجى توسيع المنطقة والبحث مرة أخرى."
+		},
+		"emptyState": {
+			"noReviews": "لا توجد مراجعات بعد.\nكن أول من يراجع هذا المطعم."
+		},
+		"everybodyPostsTitle": "اختر طبقًا لمراجعته",
+		"characterCount": "{{current}}/{{max}}",
+		"restaurantDetail": {
+			"title": "تفاصيل المطعم"
+		}
 	}
 }

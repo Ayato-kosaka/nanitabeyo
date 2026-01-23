@@ -243,6 +243,12 @@ importers:
       "@expo/vector-icons":
         specifier: ^14.1.0
         version: 14.1.0(expo-font@13.3.2(expo@53.0.24(@babel/core@7.28.5)(@expo/metro-runtime@5.0.5(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0)))(graphql@16.8.1)(react-native-webview@13.13.5(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react@19.0.0))(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)
+      "@lodev09/react-native-true-sheet":
+        specifier: 3.6.11
+        version: 3.6.11(@gorhom/bottom-sheet@5.2.8(@types/react@19.0.14)(react-native-gesture-handler@2.24.0(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react-native-reanimated@3.17.5(@babel/core@7.28.5)(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(@react-navigation/native@7.1.21(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react-native-reanimated@3.17.5(@babel/core@7.28.5)(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)
+      "@lottiefiles/dotlottie-react":
+        specifier: ^0.13.5
+        version: 0.13.5(react@19.0.0)
       "@lucide/lab":
         specifier: ^0.1.2
         version: 0.1.2
@@ -381,6 +387,9 @@ importers:
       i18n-js:
         specifier: ^4.5.1
         version: 4.5.1
+      lottie-react-native:
+        specifier: ^7.2.2
+        version: 7.2.2(@lottiefiles/dotlottie-react@0.13.5(react@19.0.0))(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)
       lucide-react-native:
         specifier: ^0.475.0
         version: 0.475.0(react-native-svg@15.11.2(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)
@@ -438,6 +447,9 @@ importers:
       react-native-url-polyfill:
         specifier: ^2.0.0
         version: 2.0.0(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))
+      react-native-view-shot:
+        specifier: ^4.0.3
+        version: 4.0.3(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)
       react-native-web:
         specifier: ^0.20.0
         version: 0.20.0(encoding@0.1.13)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
@@ -1633,6 +1645,29 @@ packages:
       { integrity: sha512-53TptLMmoRy+tTxolqcH7cz2h9wFKGR4foNAOpIhkFSNu5iOehOGwjicjememZTkyfvhHPtWt4UU0cMU+3pQFA== }
     engines: { node: ">=14.0.0" }
 
+  "@gorhom/bottom-sheet@5.2.8":
+    resolution:
+      { integrity: sha512-+N27SMpbBxXZQ/IA2nlEV6RGxL/qSFHKfdFKcygvW+HqPG5jVNb1OqehLQsGfBP+Up42i0gW5ppI+DhpB7UCzA== }
+    peerDependencies:
+      "@types/react": "*"
+      "@types/react-native": "*"
+      react: "*"
+      react-native: "*"
+      react-native-gesture-handler: ">=2.16.1"
+      react-native-reanimated: ">=3.16.0 || >=4.0.0-"
+    peerDependenciesMeta:
+      "@types/react":
+        optional: true
+      "@types/react-native":
+        optional: true
+
+  "@gorhom/portal@1.0.14":
+    resolution:
+      { integrity: sha512-MXyL4xvCjmgaORr/rtryDNFy3kU4qUbKlwtQqqsygd0xX3mhKjOLn6mQK8wfu0RkoE0pBE0nAasRoHua+/QZ7A== }
+    peerDependencies:
+      react: "*"
+      react-native: "*"
+
   "@grpc/grpc-js@1.14.1":
     resolution:
       { integrity: sha512-sPxgEWtPUR3EnRJCEtbGZG2iX8LQDUls2wUS3o27jg07KqJFMq6YDeWvMo1wfpmy3rqRdS0rivpLwhqQtEyCuQ== }
@@ -2311,6 +2346,36 @@ packages:
   "@jsdevtools/ono@7.1.3":
     resolution:
       { integrity: sha512-4JQNk+3mVzK3xh2rqd6RB4J46qUR19azEHBneZyTZM+c456qOrbbM/5xcR8huNCCcbVt7+UmizG6GuUvPvKUYg== }
+
+  "@lodev09/react-native-true-sheet@3.6.11":
+    resolution:
+      { integrity: sha512-Je7zXgKrLUUnIjj+fXASiOg4PDXUPeD510awlZU5vkDXDhfLZ4gMqeYE/I93nZPI5AC3qQXFQ4Zek3JnhzwgIw== }
+    peerDependencies:
+      "@gorhom/bottom-sheet": ">=5"
+      "@react-navigation/native": ">=7"
+      react: "*"
+      react-native: "*"
+      react-native-reanimated: ">=4"
+      react-native-worklets: "*"
+    peerDependenciesMeta:
+      "@gorhom/bottom-sheet":
+        optional: true
+      "@react-navigation/native":
+        optional: true
+      react-native-reanimated:
+        optional: true
+      react-native-worklets:
+        optional: true
+
+  "@lottiefiles/dotlottie-react@0.13.5":
+    resolution:
+      { integrity: sha512-4U5okwjRqDPkjB572hfZtLXJ/LGfCo6vDwUB2KIPEUoSgqbIlw+UrbnaqVp3GS+dRvhMD27F2JObpHpYRlpF0Q== }
+    peerDependencies:
+      react: ^17 || ^18 || ^19
+
+  "@lottiefiles/dotlottie-web@0.44.0":
+    resolution:
+      { integrity: sha512-IUWKVciDJI/BMWDWnh7j0Ngd0N8q9ySRAwm84aDqIE07qpmdZ7x1rkIpBaU1yHSNqNYHeh1Rxsl+LC3CY4f0KA== }
 
   "@lucide/lab@0.1.2":
     resolution:
@@ -4171,6 +4236,11 @@ packages:
     resolution:
       { integrity: sha512-kwDPIFCGx0NZHog36dj+tHiwP4QMzsZ3AgMViUBKI0+V5n4U0ufTCUMhnQ04diaRI8EX/QcPfql7zlhZ7j4zgg== }
 
+  base64-arraybuffer@1.0.2:
+    resolution:
+      { integrity: sha512-I3yl4r9QB5ZRY3XuJVEPfc2XhZO6YweFPI+UovAzn+8/hb3oJ6lnysaFcjVpkCPfVWFUDvoZ8kmVDP7WyRtYtQ== }
+    engines: { node: ">= 0.6.0" }
+
   base64-js@1.5.1:
     resolution:
       { integrity: sha512-AKpaYlHn8t4SVbOHCy+b5+KKgvR4vrsD8vbvrbiQJps7fKDTkjkDry6ji0rUJjC0kzbNePLwzxq8iypo41qeWA== }
@@ -4989,6 +5059,10 @@ packages:
   css-in-js-utils@3.1.0:
     resolution:
       { integrity: sha512-fJAcud6B3rRu+KHYk+Bwf+WFL2MDCJJ1XG9x137tJQ0xYxor7XziQtuGFbWNdqrvF4Tk26O3H73nfVqXt/fW1A== }
+
+  css-line-break@2.1.0:
+    resolution:
+      { integrity: sha512-FHcKFCZcAha3LwfVBhCQbW2nCNbkZXn7KVUJcsT5/P8YmfsVja0FMPJr0B903j/E69HUphKiV9iQArX8SDYA4w== }
 
   css-select@5.2.2:
     resolution:
@@ -6955,6 +7029,11 @@ packages:
     resolution:
       { integrity: sha512-H2iMtd0I4Mt5eYiapRdIDjp+XzelXQ0tFE4JS7YFwFevXXMmOp9myNrUvCg0D6ws8iqkRPBfKHgbwig1SmlLfg== }
 
+  html2canvas@1.4.1:
+    resolution:
+      { integrity: sha512-fPU6BHNpsyIhr8yyMpTLLxAbkaK8ArIBcmZIRiBLiDhjeqvXolaEmDGmELFuX9I4xDcaKKcJl+TKZLqruBbmWA== }
+    engines: { node: ">=8.0.0" }
+
   http-cache-semantics@4.2.0:
     resolution:
       { integrity: sha512-dTxcvPXqPvXBQpq5dUr6mEMJX4oIEFv6bwom3FDwKRDsuIjjJGANqhBuoAn9c1RQJIdAKav33ED65E2ys+87QQ== }
@@ -7888,6 +7967,7 @@ packages:
   json-ptr@3.1.1:
     resolution:
       { integrity: sha512-SiSJQ805W1sDUCD1+/t1/1BIrveq2Fe9HJqENxZmMCILmrPI7WhS/pePpIOx85v6/H2z1Vy7AI08GV2TzfXocg== }
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
 
   json-schema-traverse@0.4.1:
     resolution:
@@ -8236,6 +8316,20 @@ packages:
     resolution:
       { integrity: sha512-lyuxPGr/Wfhrlem2CL/UcnUc1zcqKAImBDzukY7Y5F/yQiNdko6+fRLevlw1HgMySw7f611UIY408EtxRSoK3Q== }
     hasBin: true
+
+  lottie-react-native@7.2.2:
+    resolution:
+      { integrity: sha512-pp3dnFVFZlfZzIL5qKGXju2d6RfnYhPbb8xQL9dYqvPbPy2EbnK2aFlv6jAZLYh0QjUGPEmRAgAAnsOOtT+H9Q== }
+    peerDependencies:
+      "@lottiefiles/dotlottie-react": ^0.6.5
+      react: "*"
+      react-native: ">=0.46"
+      react-native-windows: ">=0.63.x"
+    peerDependenciesMeta:
+      "@lottiefiles/dotlottie-react":
+        optional: true
+      react-native-windows:
+        optional: true
 
   lowercase-keys@3.0.0:
     resolution:
@@ -9955,6 +10049,13 @@ packages:
     peerDependencies:
       react-native: "*"
 
+  react-native-view-shot@4.0.3:
+    resolution:
+      { integrity: sha512-USNjYmED7C0me02c1DxKA0074Hw+y/nxo+xJKlffMvfUWWzL5ELh/TJA/pTnVqFurIrzthZDPtDM7aBFJuhrHQ== }
+    peerDependencies:
+      react: "*"
+      react-native: "*"
+
   react-native-web@0.20.0:
     resolution:
       { integrity: sha512-OOSgrw+aON6R3hRosCau/xVxdLzbjEcsLysYedka0ZON4ZZe6n9xgeN9ZkoejhARM36oTlUgHIQqxGutEJ9Wxg== }
@@ -11015,11 +11116,13 @@ packages:
     resolution:
       { integrity: sha512-DZ4yORTwrbTj/7MZYq2w+/ZFdI6OZ/f9SFHR+71gIVUZhOQPHzVCLpvRnPgyaMpfWxxk/4ONva3GQSyNIKRv6A== }
     engines: { node: ">=10" }
+    deprecated: Old versions of tar are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exhorbitant rates) by contacting i@izs.me
 
   tar@7.5.2:
     resolution:
       { integrity: sha512-7NyxrTE4Anh8km8iEy7o0QYPs+0JKBTj5ZaqHg6B39erLg0qYXN3BijtShwbsNSvQ+LN75+KV+C4QR/f6Gwnpg== }
     engines: { node: ">=18" }
+    deprecated: Old versions of tar are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exhorbitant rates) by contacting i@izs.me
 
   tcp-port-used@1.0.2:
     resolution:
@@ -11088,6 +11191,10 @@ packages:
   text-hex@1.0.0:
     resolution:
       { integrity: sha512-uuVGNWzgJ4yhRaNSiubPY7OjISw4sw4E5Uv0wbjp+OzcbmVU/rsT8ujgcXJhn9ypzsgr5vlzpPqP+MBBKcGvbg== }
+
+  text-segmentation@1.0.3:
+    resolution:
+      { integrity: sha512-iOiPUo/BGnZ6+54OsWxZidGCsdU8YbE4PSpdPinp7DeMtUJNJBoJ/ouUSTJjHkh1KntHaltHl/gDs2FC4i5+Nw== }
 
   thenify-all@1.6.0:
     resolution:
@@ -11638,6 +11745,10 @@ packages:
     resolution:
       { integrity: sha512-pMZTvIkT1d+TFGvDOqodOclx0QWkkgi6Tdoa8gC8ffGAAqz9pzPTZWAybbsHHoED/ztMtkv/VoYTYyShUn81hA== }
     engines: { node: ">= 0.4.0" }
+
+  utrie@1.0.2:
+    resolution:
+      { integrity: sha512-1MLa5ouZiOmQzUbjbu9VmjLzn1QLXBhwpUa7kdLUQK+KQ5KA9I1vk5U4YHe/X2Ch7PYnJfWuWT+VbuxbGwljhw== }
 
   uuid@7.0.3:
     resolution:
@@ -13529,6 +13640,25 @@ snapshots:
       - encoding
       - supports-color
 
+  "@gorhom/bottom-sheet@5.2.8(@types/react@19.0.14)(react-native-gesture-handler@2.24.0(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react-native-reanimated@3.17.5(@babel/core@7.28.5)(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)":
+    dependencies:
+      "@gorhom/portal": 1.0.14(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)
+      invariant: 2.2.4
+      react: 19.0.0
+      react-native: 0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0)
+      react-native-gesture-handler: 2.24.0(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)
+      react-native-reanimated: 3.17.5(@babel/core@7.28.5)(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)
+    optionalDependencies:
+      "@types/react": 19.0.14
+    optional: true
+
+  "@gorhom/portal@1.0.14(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)":
+    dependencies:
+      nanoid: 3.3.11
+      react: 19.0.0
+      react-native: 0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0)
+    optional: true
+
   "@grpc/grpc-js@1.14.1":
     dependencies:
       "@grpc/proto-loader": 0.8.0
@@ -14262,6 +14392,22 @@ snapshots:
   "@js-sdsl/ordered-map@4.4.2": {}
 
   "@jsdevtools/ono@7.1.3": {}
+
+  "@lodev09/react-native-true-sheet@3.6.11(@gorhom/bottom-sheet@5.2.8(@types/react@19.0.14)(react-native-gesture-handler@2.24.0(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react-native-reanimated@3.17.5(@babel/core@7.28.5)(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(@react-navigation/native@7.1.21(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react-native-reanimated@3.17.5(@babel/core@7.28.5)(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)":
+    dependencies:
+      react: 19.0.0
+      react-native: 0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0)
+    optionalDependencies:
+      "@gorhom/bottom-sheet": 5.2.8(@types/react@19.0.14)(react-native-gesture-handler@2.24.0(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react-native-reanimated@3.17.5(@babel/core@7.28.5)(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)
+      "@react-navigation/native": 7.1.21(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)
+      react-native-reanimated: 3.17.5(@babel/core@7.28.5)(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)
+
+  "@lottiefiles/dotlottie-react@0.13.5(react@19.0.0)":
+    dependencies:
+      "@lottiefiles/dotlottie-web": 0.44.0
+      react: 19.0.0
+
+  "@lottiefiles/dotlottie-web@0.44.0": {}
 
   "@lucide/lab@0.1.2": {}
 
@@ -16117,6 +16263,8 @@ snapshots:
 
   base-64@1.0.0: {}
 
+  base64-arraybuffer@1.0.2: {}
+
   base64-js@1.5.1: {}
 
   base@0.11.2:
@@ -16912,6 +17060,10 @@ snapshots:
   css-in-js-utils@3.1.0:
     dependencies:
       hyphenate-style-name: 1.1.0
+
+  css-line-break@2.1.0:
+    dependencies:
+      utrie: 1.0.2
 
   css-select@5.2.2:
     dependencies:
@@ -19029,6 +19181,11 @@ snapshots:
 
   html-escaper@2.0.2: {}
 
+  html2canvas@1.4.1:
+    dependencies:
+      css-line-break: 2.1.0
+      text-segmentation: 1.0.3
+
   http-cache-semantics@4.2.0: {}
 
   http-call@5.3.0:
@@ -20280,6 +20437,13 @@ snapshots:
   loose-envify@1.4.0:
     dependencies:
       js-tokens: 4.0.0
+
+  lottie-react-native@7.2.2(@lottiefiles/dotlottie-react@0.13.5(react@19.0.0))(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0):
+    dependencies:
+      react: 19.0.0
+      react-native: 0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0)
+    optionalDependencies:
+      "@lottiefiles/dotlottie-react": 0.13.5(react@19.0.0)
 
   lowercase-keys@3.0.0: {}
 
@@ -21831,6 +21995,12 @@ snapshots:
       react-native: 0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0)
       whatwg-url-without-unicode: 8.0.0-3
 
+  react-native-view-shot@4.0.3(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0):
+    dependencies:
+      html2canvas: 1.4.1
+      react: 19.0.0
+      react-native: 0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0)
+
   react-native-web@0.20.0(encoding@0.1.13)(react-dom@19.0.0(react@19.0.0))(react@19.0.0):
     dependencies:
       "@babel/runtime": 7.28.4
@@ -22952,6 +23122,10 @@ snapshots:
 
   text-hex@1.0.0: {}
 
+  text-segmentation@1.0.3:
+    dependencies:
+      utrie: 1.0.2
+
   thenify-all@1.6.0:
     dependencies:
       thenify: 3.3.1
@@ -23412,6 +23586,10 @@ snapshots:
       which-typed-array: 1.1.19
 
   utils-merge@1.0.1: {}
+
+  utrie@1.0.2:
+    dependencies:
+      base64-arraybuffer: 1.0.2
 
   uuid@7.0.3: {}
 

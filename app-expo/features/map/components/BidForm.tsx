@@ -1,9 +1,10 @@
 import React, { useState, useCallback } from "react";
-import { View, Text, TextInput, StyleSheet, ActivityIndicator } from "react-native";
+import { View, Text, TextInput, StyleSheet } from "react-native";
 import { Calendar } from "lucide-react-native";
 import { Card } from "@/components/Card";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
+import { LoadingIndicator } from "@/components/LoadingIndicator";
 
 interface BidFormProps {
 	/** Initial bid amount */
@@ -58,7 +59,7 @@ export function BidForm({ initialBidAmount = "", onSubmit, onCancel, isProcessin
 
 			{isProcessing && (
 				<View style={styles.processingContainer}>
-					<ActivityIndicator size="large" color="#007AFF" />
+					<LoadingIndicator size="large" />
 					<Text style={styles.processingText}>{i18n.t("Map.labels.paymentProcessing")}</Text>
 				</View>
 			)}

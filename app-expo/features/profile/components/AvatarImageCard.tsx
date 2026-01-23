@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import i18n from "@/lib/i18n";
@@ -8,6 +8,7 @@ import { MediaData, selectMedia } from "@/lib/mediaSelection";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useLogger } from "@/hooks/useLogger";
 import { useHaptics } from "@/hooks/useHaptics";
+import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { getCacheKeyForImage } from "@/lib/image";
 
 interface AvatarImageCardProps {
@@ -70,7 +71,7 @@ export function AvatarImageCard({ avatarUrl, onSelectImage, onLayout }: AvatarIm
 					activeOpacity={0.8}>
 					{isLoading ? (
 						<View style={styles.avatarPlaceholder}>
-							<ActivityIndicator size="large" color="#007AFF" />
+							<LoadingIndicator size="large" />
 						</View>
 					) : avatarUrl ? (
 						<Image
@@ -140,7 +141,7 @@ const styles = StyleSheet.create({
 		width: 36,
 		height: 36,
 		borderRadius: 18,
-		backgroundColor: "#007AFF",
+		backgroundColor: "#F05537",
 		justifyContent: "center",
 		alignItems: "center",
 		borderWidth: 2,

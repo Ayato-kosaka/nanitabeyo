@@ -54,11 +54,11 @@ const styles = StyleSheet.create({
 		fontWeight: "500",
 	},
 	retryButton: {
-		backgroundColor: "#5EA2FF",
+		backgroundColor: "#F05537",
 		paddingHorizontal: 24,
 		paddingVertical: 16,
 		borderRadius: 16,
-		shadowColor: "#5EA2FF",
+		shadowColor: "#F05537",
 		shadowOffset: { width: 0, height: 4 },
 		shadowOpacity: 0.3,
 		shadowRadius: 12,

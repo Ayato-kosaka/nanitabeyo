@@ -16,6 +16,7 @@ build/
 
 # --- Temporary Files ---
 tmp/
+test-querystring.js
 
 # --- Expo ---
 *.log
