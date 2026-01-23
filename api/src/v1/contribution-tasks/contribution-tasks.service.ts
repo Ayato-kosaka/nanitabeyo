@@ -36,7 +36,7 @@ export class ContributionTasksService {
     private readonly repo: ContributionTasksRepository,
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
-  ) { }
+  ) {}
 
   /**
    * POST /v1/contribution-tasks

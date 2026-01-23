@@ -114,7 +114,7 @@ function toPrismaJsonValue(value: unknown | undefined): Prisma.InputJsonValue | 
 
 @Injectable()
 export class ContributionTasksRepository {
-  constructor(private readonly logger: AppLoggerService) { }
+  constructor(private readonly logger: AppLoggerService) {}
 
   /**
    * 協力タスクを1件作成

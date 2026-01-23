@@ -1,4 +1,4 @@
-// app-expo/app/[locale]/tools/dish-copy-survey.tsx
+// app-expo/app/[locale]/contribution-tasks/dish-copy-survey.tsx
 //
 // #559 料理コピー調査アンケート（10枚カルーセル＋BlurModal）実装
 // 運営用ツール - 各料理画像にタイトル+タグラインを選択してもらう
