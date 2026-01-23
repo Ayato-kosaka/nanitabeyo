@@ -99,7 +99,7 @@ export class ContributionTasksService {
     const limit = query.limit ?? 20;
 
     // #701 【設計】include パラメータで payload/result を含めるか判定
-    const includeFields = query.include?.split(',').map(s => s.trim()) || [];
+    const includeFields = query.include?.split(',').map((s) => s.trim()) || [];
     const includePayload = includeFields.includes('payload');
     const includeResult = includeFields.includes('result');
 
@@ -144,10 +144,16 @@ export class ContributionTasksService {
           createdAt: task.created_at.toISOString(),
         };
         if (includePayload) {
-          item.payload = (task as PrismaContributionTasks).payload as Record<string, unknown>;
+          item.payload = (task as PrismaContributionTasks).payload as Record<
+            string,
+            unknown
+          >;
         }
         if (includeResult) {
-          item.result = (task as PrismaContributionTasks).result as Record<string, unknown>;
+          item.result = (task as PrismaContributionTasks).result as Record<
+            string,
+            unknown
+          >;
         }
         return item;
       }),
