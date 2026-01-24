@@ -45,6 +45,11 @@ export { QuerySavedRestaurantsDto } from "./users/query-saved-restaurants.dto";
 
 export { CreateFeedbackDto } from "./feedback/create-feedback.dto";
 
+export { CreateContributionTaskDto } from "./contribution-tasks/create-contribution-task.dto";
+export { ListContributionTasksQueryDto } from "./contribution-tasks/list-contribution-tasks.query";
+export { ExistsContributionTaskQueryDto } from "./contribution-tasks/exists-contribution-task.query";
+export { CompletedTargetIdsQueryDto } from "./contribution-tasks/completed-target-ids.query";
+
 export { CreateFrontendLogDto } from "./logs/create-frontend-log.dto";
 
 export { QueryNotificationsDto } from "./notifications/query-notifications.dto";

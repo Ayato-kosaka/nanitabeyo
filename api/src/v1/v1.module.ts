@@ -12,6 +12,7 @@ import { RestaurantsModule } from './restaurants/restaurants.module';
 import { UserUploadsModule } from './user-uploads/user-uploads.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { LogsModule } from './logs/logs.module';
+import { ContributionTasksModule } from './contribution-tasks/contribution-tasks.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { LogsModule } from './logs/logs.module';
     UserUploadsModule,
     NotificationsModule,
     LogsModule,
+    ContributionTasksModule,
   ],
 })
 export class V1Module {}

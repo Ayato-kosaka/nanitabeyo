@@ -30,9 +30,7 @@ export const useLocationSearch = () => {
 	const sessionTokenRef = useRef<string | null>(null);
 
 	// Cache for current location to avoid multiple requests
-	const [currentLocationCache, setCurrentLocationCache] = useState<
-		(Omit<LocationDetailsResponse, "viewport"> & { timestamp: number }) | null
-	>(null);
+	const currentLocationCache = useRef<(Omit<LocationDetailsResponse, "viewport"> & { timestamp: number }) | null>(null);
 
 	// In-flight request tracking
 	const currentLocationPromiseRef = useRef<Promise<Omit<LocationDetailsResponse, "viewport">> | null>(null);
@@ -176,15 +174,15 @@ export const useLocationSearch = () => {
 		const now = Date.now();
 
 		// Check cache first
-		if (currentLocationCache && now - currentLocationCache.timestamp < CACHE_TTL) {
+		if (currentLocationCache.current && now - currentLocationCache.current.timestamp < CACHE_TTL) {
 			logFrontendEvent({
 				event_name: "current_location_cache_hit",
 				error_level: "log",
-				payload: { cached_timestamp: currentLocationCache.timestamp },
+				payload: { cached_timestamp: currentLocationCache.current.timestamp },
 			});
 
 			// Return cached result without timestamp
-			const { timestamp, ...cachedResult } = currentLocationCache;
+			const { timestamp, ...cachedResult } = currentLocationCache.current;
 			return cachedResult;
 		}
 
@@ -235,10 +233,10 @@ export const useLocationSearch = () => {
 					};
 
 					// Cache the result
-					setCurrentLocationCache({
+					currentLocationCache.current = {
 						...result,
 						timestamp: now,
-					});
+					};
 
 					return result;
 				} catch (apiError) {
@@ -275,10 +273,10 @@ export const useLocationSearch = () => {
 					};
 
 					// Cache the fallback result
-					setCurrentLocationCache({
+					currentLocationCache.current = {
 						...fallbackResult,
 						timestamp: now,
-					});
+					};
 
 					return fallbackResult;
 				}
@@ -299,7 +297,7 @@ export const useLocationSearch = () => {
 		currentLocationPromiseRef.current = locationPromise;
 
 		return locationPromise;
-	}, [callBackend, logFrontendEvent, locale, currentLocationCache]);
+	}, [callBackend, logFrontendEvent, locale]);
 
 	return {
 		suggestions,

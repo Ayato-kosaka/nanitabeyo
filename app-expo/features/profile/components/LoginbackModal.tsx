@@ -209,6 +209,8 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 					shadowColor={"#000000"}
 					labelStyle={{ color: "#1A1A1A", fontSize: 20 }}
 					loading={isLoading}
+					loadingIndicatorType="native"
+					nativeLoadingColor={"#1A1A1A"}
 				/>
 				{/* <PrimaryButton
 					label={i18n.t("auth.provider_facebook")}
@@ -218,6 +220,8 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 					shadowColor={"#000000"}
 					labelStyle={{ color: "#1A1A1A", fontSize: 20 }}
 					loading={isLoading}
+					loadingIndicatorType="native"
+					nativeLoadingColor={"#1A1A1A"}
 				/>
 				<PrimaryButton
 					label={i18n.t("auth.provider_twitter")}
@@ -227,6 +231,8 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 					shadowColor={"#000000"}
 					labelStyle={{ color: "#1A1A1A", fontSize: 20 }}
 					loading={isLoading}
+					loadingIndicatorType="native"
+					nativeLoadingColor={"#1A1A1A"}
 				/> */}
 				<PrimaryButton
 					label={i18n.t("auth.provider_apple")}
@@ -243,6 +249,8 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 					shadowColor={"#000000"}
 					labelStyle={{ color: "#1A1A1A", fontSize: 20 }}
 					loading={isLoading}
+					loadingIndicatorType="native"
+					nativeLoadingColor={"#1A1A1A"}
 				/>
 			</View>
 			{/* </View> */}

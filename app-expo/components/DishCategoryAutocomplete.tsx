@@ -8,13 +8,13 @@ import {
 	ScrollView,
 	Platform,
 	AccessibilityInfo,
-	ActivityIndicator,
 } from "react-native";
 import { useDishCategorySearch } from "@/hooks/useDishCategorySearch";
 import { useHaptics } from "@/hooks/useHaptics";
 import i18n from "@/lib/i18n";
 import type { QueryDishCategoryVariantsResponse } from "@shared/api/v1/res";
 import { ChefHat, X } from "lucide-react-native";
+import { LoadingIndicator } from "./LoadingIndicator";
 
 interface DishCategoryAutocompleteProps {
 	/** 入力値 */
@@ -212,7 +212,7 @@ export function DishCategoryAutocomplete({
 			{/* ローディングインジケーター */}
 			{isSearching && (
 				<View style={styles.loadingContainer}>
-					<ActivityIndicator size="small" color="#F05537" />
+					<LoadingIndicator size="small" />
 					<Text style={styles.loadingText}>{i18n.t("Profile.loading")}</Text>
 				</View>
 			)}

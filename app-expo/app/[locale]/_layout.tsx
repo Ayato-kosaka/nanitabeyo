@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useFrameworkReady } from "@/hooks/useFrameworkReady";
 import { DialogProvider } from "@/contexts/DialogProvider";
 import { AuthProvider } from "@/contexts/AuthProvider";
@@ -90,21 +89,19 @@ export default function RootLayout() {
 							<AuthProvider>
 								<PushTokenRegistration />
 								<MetaAppEventsInitializer />
-								<GestureHandlerRootView style={{ flex: 1 }}>
-									<Portal.Host>
-										<SplashHandler>
-											<HealthCheckInitializer>
-												<AppProvider>
-													<Stack screenOptions={{ header: () => null }}>
-														<Stack.Screen name="(tabs)" options={{ header: () => null }} />
-														<Stack.Screen name="+not-found" />
-													</Stack>
-													<StatusBar style="light" />
-												</AppProvider>
-											</HealthCheckInitializer>
-										</SplashHandler>
-									</Portal.Host>
-								</GestureHandlerRootView>
+								<Portal.Host>
+									<SplashHandler>
+										<HealthCheckInitializer>
+											<AppProvider>
+												<Stack screenOptions={{ header: () => null }}>
+													<Stack.Screen name="(tabs)" options={{ header: () => null }} />
+													<Stack.Screen name="+not-found" />
+												</Stack>
+												<StatusBar style="light" />
+											</AppProvider>
+										</HealthCheckInitializer>
+									</SplashHandler>
+								</Portal.Host>
 							</AuthProvider>
 						</TrueSheetProvider>
 					</DialogProvider>

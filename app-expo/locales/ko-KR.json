@@ -9,7 +9,6 @@
 		"post": "게시",
 		"postReview": "리뷰 게시하기",
 		"retry": "재시도",
-		"processing": "처리 중...",
 		"error": "오류가 발생했습니다. 다시 시도해 주세요.",
 		"success": "성공",
 		"linkCopied": "링크가 클립보드에 복사되었습니다",
@@ -229,6 +228,7 @@
 		"buttons": {
 			"viewRestaurant": "가게 보기"
 		},
+		"processing": "미디어 처리 중...",
 		"info": {
 			"walkFromShibuya": "시부야역에서 도보 13분"
 		},
@@ -511,6 +511,7 @@
 		"provider_twitter": "Twitter",
 		"provider_apple": "Apple",
 		"otp_title": "코드 입력",
+		"otp_resending": "인증 코드를 다시 전송 중...",
 		"otp_send_again": "코드 재전송",
 		"otp_enter_all_digits": "6자리 모두 입력해 주세요",
 		"login_success": "성공적으로 로그인되었습니다!",
@@ -522,6 +523,7 @@
 		"conflict_dialog_message": "이 계정은 이미 다른 사용자에게 연결되어 있습니다. 전환하면 게스트로 생성된 데이터는 전송되지 않습니다. 기존 계정으로 전환하시겠습니까?",
 		"conflict_dialog_switch": "전환",
 		"conflict_dialog_cancel": "취소",
+		"callback_processing": "로그인 완료 중...",
 		"consent_login_prefix": "계속 진행하면 ",
 		"consent_login_terms": "이용약관",
 		"consent_login_and": " 및 ",

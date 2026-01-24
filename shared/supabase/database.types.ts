@@ -62,6 +62,42 @@ export type Database = {
 				};
 				Relationships: [];
 			};
+			contribution_tasks: {
+				Row: {
+					created_at: string;
+					id: string;
+					payload: Json;
+					result: Json;
+					target_id: string;
+					target_type: string;
+					task_key: string;
+					type: string;
+					user_id: string;
+				};
+				Insert: {
+					created_at?: string;
+					id?: string;
+					payload?: Json;
+					result?: Json;
+					target_id: string;
+					target_type: string;
+					task_key: string;
+					type: string;
+					user_id: string;
+				};
+				Update: {
+					created_at?: string;
+					id?: string;
+					payload?: Json;
+					result?: Json;
+					target_id?: string;
+					target_type?: string;
+					task_key?: string;
+					type?: string;
+					user_id?: string;
+				};
+				Relationships: [];
+			};
 			dish_categories: {
 				Row: {
 					created_at: string;

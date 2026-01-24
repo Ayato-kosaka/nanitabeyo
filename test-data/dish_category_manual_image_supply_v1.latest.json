@@ -1,0 +1,18 @@
+{
+	"items": [
+		{
+			"targetId": "Q164606",
+			"category": "カレー",
+			"imageUrl": "https://upload.wikimedia.org/wikipedia/commons/1/1e/Indiandishes.jpg",
+			"topicTitle": "カレー",
+			"reason": "スパイシーで美味しそうな画像を選んでください"
+		},
+		{
+			"targetId": "Q13393",
+			"category": "おにぎり",
+			"imageUrl": "https://upload.wikimedia.org/wikipedia/commons/2/22/Japanese_rice_balls_%28onigiri%29.jpg",
+			"topicTitle": "おにぎり",
+			"reason": "ふっくらとした美味しそうなおにぎりの画像を選んでください"
+		}
+	]
+}

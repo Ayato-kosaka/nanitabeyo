@@ -9,7 +9,6 @@
 		"post": "पोस्ट करें",
 		"postReview": "समीक्षा पोस्ट करें",
 		"retry": "पुनः प्रयास करें",
-		"processing": "प्रसंस्करण...",
 		"error": "एक त्रुटि हुई है। कृपया पुनः प्रयास करें।",
 		"success": "सफलता",
 		"linkCopied": "लिंक क्लिपबोर्ड पर कॉपी किया गया",
@@ -229,6 +228,7 @@
 		"buttons": {
 			"viewRestaurant": "रेस्टोरेंट देखें"
 		},
+		"processing": "मीडिया प्रोसेस किया जा रहा है...",
 		"info": {
 			"walkFromShibuya": "शिबुया स्टेशन से 13 मिनट की पैदल दूरी"
 		},
@@ -512,6 +512,7 @@
 		"provider_twitter": "Twitter",
 		"provider_apple": "Apple",
 		"otp_title": "कोड दर्ज करें",
+		"otp_resending": "कोड दोबारा भेजा जा रहा है...",
 		"otp_send_again": "कोड पुनः भेजें",
 		"otp_enter_all_digits": "कृपया सभी 6 अंक दर्ज करें",
 		"login_success": "सफलतापूर्वक लॉग इन हो गया!",
@@ -523,6 +524,7 @@
 		"conflict_dialog_message": "यह खाता पहले से ही किसी अन्य उपयोगकर्ता से जुड़ा हुआ है। यदि आप स्विच करते हैं, तो अतिथि के रूप में बनाया गया डेटा स्थानांतरित नहीं होगा। क्या आप मौजूदा खाते पर स्विच करना चाहते हैं?",
 		"conflict_dialog_switch": "स्विच करें",
 		"conflict_dialog_cancel": "रद्द करें",
+		"callback_processing": "साइन-इन पूरा किया जा रहा है...",
 		"consent_login_prefix": "जारी रखकर, आप हमारी ",
 		"consent_login_terms": "सेवा की शर्तें",
 		"consent_login_and": " और ",

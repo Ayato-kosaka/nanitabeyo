@@ -9,7 +9,6 @@
 		"post": "发布",
 		"postReview": "发布评论",
 		"retry": "重试",
-		"processing": "处理中...",
 		"error": "发生错误。请重试。",
 		"success": "成功",
 		"linkCopied": "链接已复制到剪贴板",
@@ -229,6 +228,7 @@
 		"buttons": {
 			"viewRestaurant": "查看餐厅"
 		},
+		"processing": "正在处理媒体...",
 		"errors": {
 			"mapOpenFailed": "无法打开地图应用",
 			"mediaUnavailable": "该内容当前不可用。"
@@ -511,6 +511,7 @@
 		"provider_twitter": "Twitter",
 		"provider_apple": "Apple",
 		"otp_title": "输入验证码",
+		"otp_resending": "正在重新发送验证码...",
 		"otp_send_again": "重新发送验证码",
 		"otp_enter_all_digits": "请输入全部6位数字",
 		"login_success": "登录成功！",
@@ -522,6 +523,7 @@
 		"conflict_dialog_message": "此账户已链接到另一个用户。如果您切换，作为访客创建的数据将不会被转移。您要切换到现有账户吗？",
 		"conflict_dialog_switch": "切换",
 		"conflict_dialog_cancel": "取消",
+		"callback_processing": "正在完成登录...",
 		"consent_login_prefix": "继续即表示您同意我们的",
 		"consent_login_terms": "服务条款",
 		"consent_login_and": "和",

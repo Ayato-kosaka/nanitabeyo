@@ -7,12 +7,12 @@ import {
 	TouchableOpacity,
 	Platform,
 	Pressable,
-	ActivityIndicator,
 	KeyboardAvoidingView,
 	Keyboard,
 } from "react-native";
 import { Star, ChevronRight, Utensils, CircleDollarSign, ThumbsUp } from "lucide-react-native";
 import { Card } from "@/components/Card";
+import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
 import { SupabaseRestaurants } from "@shared/converters/convert_restaurants";
@@ -558,7 +558,7 @@ export function ReviewForm({
 				<View style={{ height: mediaHeight, marginTop: 16 }}>
 					{mediaState.status === "loading" ? (
 						<View style={styles.loadingContainer}>
-							<ActivityIndicator size="large" color="#F05537" />
+							<LoadingIndicator size="large" />
 							<Text style={styles.loadingText}>{i18n.t("Map.media.loadingMedia")}</Text>
 						</View>
 					) : (
@@ -632,6 +632,7 @@ export function ReviewForm({
 								<TextInput
 									style={[styles.textInput, styles.priceInput]}
 									placeholder={"0"}
+									placeholderTextColor="#A0A0A0"
 									value={price}
 									onChangeText={setPrice}
 									keyboardType="numeric"
@@ -641,6 +642,7 @@ export function ReviewForm({
 							<TextInput
 								style={[styles.textInput, styles.priceInputSmall]}
 								placeholder={"0"}
+								placeholderTextColor="#A0A0A0"
 								value={price}
 								onChangeText={setPrice}
 								keyboardType="numeric"

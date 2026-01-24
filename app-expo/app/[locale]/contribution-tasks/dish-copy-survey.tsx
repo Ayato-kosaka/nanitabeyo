@@ -1,9 +1,10 @@
-// app-expo/app/[locale]/tools/dish-copy-survey.tsx
+// app-expo/app/[locale]/contribution-tasks/dish-copy-survey.tsx
 //
 // #559 料理コピー調査アンケート（10枚カルーセル＋BlurModal）実装
 // 運営用ツール - 各料理画像にタイトル+タグラインを選択してもらう
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { LoadingIndicator } from "@/components/LoadingIndicator";
 import {
 	View,
 	StyleSheet,
@@ -12,7 +13,6 @@ import {
 	ScrollView,
 	TextInput,
 	useWindowDimensions,
-	ActivityIndicator,
 	TouchableOpacity,
 	Modal,
 } from "react-native";
@@ -356,7 +356,7 @@ export default function DishCopySurveyPage() {
 	if (isLoading) {
 		return (
 			<View style={[styles.container, styles.centerContent]}>
-				<ActivityIndicator size="large" color="#F05537" />
+				<LoadingIndicator size="large" />
 				<Text style={styles.loadingText}>データを読み込んでいます...</Text>
 			</View>
 		);

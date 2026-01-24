@@ -1,7 +1,24 @@
 import { mockDishItems } from "@/data/searchMockData";
 import type { QueryRestaurantBidsResponse, QueryRestaurantsResponse } from "@shared/api/v1/res";
+import type { Region } from "react-native-maps";
 
 export const mapReviewsKey = (id: string) => `mapReviews-${id}`;
+
+export const INITIAL_REGION: Region = {
+	latitude: 35.6762,
+	longitude: 139.6503,
+	latitudeDelta: 0.01,
+	longitudeDelta: 0.01,
+};
+
+export const REGION_JP: Region = {
+	// 日本のだいたいの中心
+	latitude: 36.2048,
+	longitude: 138.2529,
+	// 日本全体が入るくらいのデルタ（お好みで調整）
+	latitudeDelta: 20,
+	longitudeDelta: 20,
+};
 
 // Mock data for active bids
 export const mockActiveBids: QueryRestaurantsResponse = mockDishItems.map((dish) => ({
