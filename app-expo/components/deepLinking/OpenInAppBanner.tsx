@@ -1,111 +1,204 @@
-import React, { memo, useCallback, useEffect, useState } from "react";
-import { View, Text, StyleSheet, Pressable, Platform, Linking } from "react-native";
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { Image } from "expo-image";
+
 import i18n from "@/lib/i18n";
 import { Env } from "@/constants/Env";
 import { useLocale } from "@/hooks/useLocale";
-import { Image } from "expo-image";
 
 export interface OpenInAppBannerProps {
 	/** 現在のパス（例: "posts"） */
 	path: string;
-	/** クエリパラメータ（例: { ids: "aaa,bbb" }） */
+	/** クエリパラメータ（例: { ids: "aaa,bbb" } or { ids: ["aaa","bbb"] }） */
 	params?: Record<string, string | string[] | undefined>;
+	/**
+	 * Universal Links のベースURL（例: "https://app.nanitabeyo.net"）
+	 * 既に Env にあるなら省略可
+	 */
+	universalBaseUrl?: string;
+	/**
+	 * カスタムスキーム（例: "nanitabeyo"）
+	 * ※ 最後の手段。可能な限り Universal Links を優先する。
+	 */
+	scheme?: string;
 }
 
 /**
- * #688 【設計】Web Deep Linking 用バナーコンポーネント
+ * OpenInAppBanner（全方位ベストプラクティス版）
  *
- * Web 表示時にアプリ導線を提供：
- * - position absolute で画面上部に半透明でオーバーレイ表示
- * - サイト名の右に「アプリで開く」ボタンを配置
- * - ボタン押下時：
- *   - アプリインストール済み → アプリで開く
- *   - 未インストール → ストアへ誘導
+ * 方針：
+ * 1) 可能な限り Universal Links を最優先（Safari/Chrome/多くの環境で最も安定）
+ * 2) iOS/Android の “自動ストア遷移” は避ける（ポップアップ/リダイレクト制限・UX悪化）
+ *    → 代わりに「入手」ボタンをユーザー操作で提供
+ * 3) In-App Browser（Instagram/FB等）は OS委譲が阻害されがち
+ *    → 「Safari/Chrome で開く」案内に切り替える（成功率が上がる）
+ * 4) カスタムスキームは最後の手段として用意（環境によっては抑止される）
  *
- * ネイティブアプリでは表示しない（Web のみ）。
+ * 重要：
+ * - 本コンポーネントは Web のみ表示（ネイティブは return null）
+ * - “アプリが開いたか” の検出は完全ではないため、過信しない
  */
-const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({ path, params }) => {
-	// ネイティブアプリでは非表示
-	if (Platform.OS !== "web") {
-		return null;
-	}
+const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
+	path,
+	params,
+	universalBaseUrl = Env.WEB_BASE_URL /* 例: https://app.nanitabeyo.net を想定。違うなら差し替え */,
+	scheme = "nanitabeyo",
+}) => {
+	// ネイティブアプリでは不要（Web deep linking 導線専用）
+	if (Platform.OS !== "web") return null;
 
-	// #688 【設計】locale の取得は OpenInAppBanner の責務とする
 	const { locale } = useLocale();
+
+	// SSR/Prerender 対策：window が無い環境では何もしない
+	const isBrowser = typeof window !== "undefined" && typeof document !== "undefined";
+
 	const [isMobile, setIsMobile] = useState(false);
+	const [isInAppBrowser, setIsInAppBrowser] = useState(false);
+	const [showHelp, setShowHelp] = useState(false);
+	const [didAttemptOpen, setDidAttemptOpen] = useState(false);
+
+	// “アプリ起動できたかも” を推測するためのフラグ（visibilitychange）
+	const becameHiddenRef = useRef(false);
+
+	const buildQueryString = useCallback(() => {
+		if (!params) return "";
+		const query = new URLSearchParams();
+		Object.entries(params).forEach(([key, value]) => {
+			if (value === undefined) return;
+			// 配列は comma join（既存実装互換）
+			const val = Array.isArray(value) ? value.join(",") : value;
+			query.append(key, val);
+		});
+		const qs = query.toString();
+		return qs ? `?${qs}` : "";
+	}, [params]);
+
+	const universalUrl = useMemo(() => {
+		// 例: https://app.nanitabeyo.net/ja/posts?ids=...
+		// ※ universalBaseUrl が末尾 "/" の場合も考慮
+		const base = universalBaseUrl?.replace(/\/+$/, "") || "";
+		const qs = buildQueryString();
+		return `${base}/${locale}/${path}${qs}`;
+	}, [universalBaseUrl, locale, path, buildQueryString]);
+
+	const customSchemeUrl = useMemo(() => {
+		// 例: nanitabeyo:///ja/posts?ids=...
+		const qs = buildQueryString();
+		return `${scheme}:///${locale}/${path}${qs}`;
+	}, [scheme, locale, path, buildQueryString]);
+
+	const storeUrl = useMemo(() => {
+		// “自動遷移”はしない方針なので、ボタン用にURLを返すだけ
+		// iOS/Android の判定は UA で行う（Web のみなので許容）
+		if (!isBrowser) return undefined;
+		const ua = navigator.userAgent || "";
+		const isIOS = /iPhone|iPad|iPod/i.test(ua);
+		const isAndroid = /Android/i.test(ua);
+
+		if (isIOS) return Env.APP_STORE_URL || undefined;
+		if (isAndroid) return Env.PLAY_STORE_URL || undefined;
+		return undefined;
+	}, [isBrowser]);
 
 	useEffect(() => {
-		// #688 【設計】モバイルブラウザ判定（Feature Detection 優先、User Agent をフォールバック）
+		if (!isBrowser) return;
+
+		// モバイル判定：Feature Detection 優先、UA はフォールバック
 		const checkMobile = () => {
-			// Feature Detection: タッチデバイス && ホバー不可能
-			const hasCoarsePointer = window.matchMedia("(pointer: coarse)").matches;
-			const noHover = window.matchMedia("(hover: none)").matches;
-			const featureDetection = hasCoarsePointer && noHover;
+			try {
+				const hasCoarsePointer = window.matchMedia?.("(pointer: coarse)")?.matches ?? false;
+				const noHover = window.matchMedia?.("(hover: none)")?.matches ?? false;
+				const featureDetection = hasCoarsePointer && noHover;
 
-			// User Agent フォールバック
-			const ua = navigator.userAgent;
-			const uaDetection = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+				const ua = navigator.userAgent || "";
+				const uaDetection = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
 
-			// Feature Detection を優先、未対応ブラウザでは UA を使用
-			setIsMobile(featureDetection || uaDetection);
+				setIsMobile(featureDetection || uaDetection);
+			} catch {
+				// matchMedia 未対応などの保険
+				const ua = navigator.userAgent || "";
+				setIsMobile(/Android|iPhone|iPad|iPod/i.test(ua));
+			}
 		};
+
+		// In-App Browser 判定（完全ではないが実務上はかなり効く）
+		const checkInApp = () => {
+			const ua = navigator.userAgent || "";
+			// Instagram / Facebook / Messenger / LINE / TikTok などの典型
+			const inApp =
+				/Instagram/i.test(ua) ||
+				/\bFBAN\b/i.test(ua) ||
+				/\bFBAV\b/i.test(ua) ||
+				/FB_IAB/i.test(ua) ||
+				/Line/i.test(ua) ||
+				/TikTok/i.test(ua);
+
+			setIsInAppBrowser(inApp);
+		};
+
 		checkMobile();
+		checkInApp();
+	}, [isBrowser]);
+
+	useEffect(() => {
+		if (!isBrowser) return;
+
+		const onVis = () => {
+			// アプリへ遷移できた場合、ブラウザがバックグラウンドに回ることが多い
+			if (document.visibilityState === "hidden") {
+				becameHiddenRef.current = true;
+			}
+		};
+		document.addEventListener("visibilitychange", onVis);
+		return () => document.removeEventListener("visibilitychange", onVis);
+	}, [isBrowser]);
+
+	const openUrlTopLevel = useCallback((url: string) => {
+		// ベストプラクティス：ユーザー操作の同期処理でトップレベル遷移を使う
+		// iframe / setTimeout 内 window.open は Safari 等でブロックされやすい
+		window.location.assign(url);
 	}, []);
 
-	const buildCustomSchemeUrl = useCallback(() => {
-		// nanitabeyo:// スキームで同じパスを構築
-		let url = `nanitabeyo:///${locale}/${path}`;
-		if (params) {
-			const query = new URLSearchParams();
-			Object.entries(params).forEach(([key, value]) => {
-				if (value !== undefined) {
-					const val = Array.isArray(value) ? value.join(",") : value;
-					query.append(key, val);
-				}
-			});
-			const queryString = query.toString();
-			if (queryString) {
-				url += `?${queryString}`;
-			}
-		}
-		return url;
-	}, [locale, path, params]);
-
 	const handleOpenInApp = useCallback(() => {
-		const customUrl = buildCustomSchemeUrl();
+		if (!isBrowser) return;
 
-		// #688 【設計】iframe を使用してページ遷移を防ぐ（Custom Scheme 失敗時の対策）
-		const iframe = document.createElement("iframe");
-		iframe.style.display = "none";
-		iframe.src = customUrl;
-		document.body.appendChild(iframe);
+		setDidAttemptOpen(true);
+		becameHiddenRef.current = false;
 
-		// タイムアウト判定：アプリが開かなければストアへ（ユーザーアクションとして提示）
-		// 注意：visibilitychange を使用してもアプリ起動判定は完全ではないため、
-		// 長めのタイムアウト（3秒）を設定し、ユーザーが気づきやすくする
-		setTimeout(() => {
-			document.body.removeChild(iframe);
+		// In-App Browser は OS 委譲（Universal Links）が阻害されることが多い
+		// → まずは “外部ブラウザで開く案内” を出す（成功率が上がる）
+		if (isInAppBrowser) {
+			setShowHelp(true);
+			// それでも試したいユーザーのために Universal Links は一応叩けるようにしておく
+			// （環境によっては通る）
+			openUrlTopLevel(universalUrl);
+			return;
+		}
 
-			// iOS と Android の判定
-			const ua = navigator.userAgent;
-			const isIOS = /iPhone|iPad|iPod/i.test(ua);
-			const isAndroid = /Android/i.test(ua);
+		// まず Universal Links を試す（最重要）
+		// - インストール済み：アプリが開く可能性が高い
+		// - 未インストール：Web が開くだけ（＝それでOK。自動でストアへ飛ばさない）
+		openUrlTopLevel(universalUrl);
 
-			if (isIOS && Env.APP_STORE_URL) {
-				window.open(Env.APP_STORE_URL, "_blank");
-			} else if (isAndroid && Env.PLAY_STORE_URL) {
-				window.open(Env.PLAY_STORE_URL, "_blank");
-			}
-		}, 3000);
-	}, [buildCustomSchemeUrl]);
+		// 最後の手段としてカスタムスキームも用意（環境によっては抑止される）
+		// ただし「Universal Links でWebに残った後」すぐに叩くと二重遷移になりやすいので、
+		// “ユーザーが明示的にもう一回押したいとき” に使うのが安全。
+	}, [isBrowser, isInAppBrowser, openUrlTopLevel, universalUrl]);
 
-	// モバイルでない場合は非表示
-	if (!isMobile) {
-		return null;
-	}
+	const handleTryScheme = useCallback(() => {
+		if (!isBrowser) return;
+		setDidAttemptOpen(true);
+		becameHiddenRef.current = false;
+
+		// 注意：ここは環境によって無視される（特に iOS Safari / IAB）
+		openUrlTopLevel(customSchemeUrl);
+	}, [isBrowser, openUrlTopLevel, customSchemeUrl]);
+
+	// “モバイルでない”なら出さない（PC にバナーはノイズ）
+	if (!isMobile || !isBrowser) return null;
 
 	return (
-		<Pressable style={styles.overlay} onPress={handleOpenInApp}>
+		<View style={styles.overlay} pointerEvents="box-none">
 			<View style={styles.banner}>
 				<View style={styles.bannerInfo}>
 					<Image
@@ -115,20 +208,74 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({ path, params
 						transition={0}
 						cachePolicy={"memory-disk"}
 					/>
-					<Text style={styles.bannerName}>{i18n.t("Common.site")}</Text>
+					<View style={styles.textBlock}>
+						<Text style={styles.bannerName}>{i18n.t("Common.site")}</Text>
+					</View>
 				</View>
-				<View style={styles.openButton}>
-					<Text style={styles.openButtonText}>{i18n.t("DeepLinking.openInApp")}</Text>
+
+				<View style={styles.actions}>
+					{/* メイン：Universal Link */}
+					<Pressable style={styles.openButton} onPress={handleOpenInApp}>
+						<Text style={styles.openButtonText}>
+							{i18n.t("DeepLinking.openInApp", { defaultValue: "アプリで開く" })}
+						</Text>
+					</Pressable>
+
+					{/* ストア：自動ではなく“ボタン”で提供（ポリシー/ブロック回避・UX改善） */}
+					{!!storeUrl && (
+						<Pressable
+							style={styles.storeButton}
+							// target="_blank" 相当：RNW の Pressable では a タグじゃないので window.open する
+							// ただし “クリック同期” なのでブロックされにくい
+							onPress={() => window.open(storeUrl, "_blank", "noopener,noreferrer")}>
+							<Text style={styles.storeButtonText}>{i18n.t("DeepLinking.getApp", { defaultValue: "入手" })}</Text>
+						</Pressable>
+					)}
 				</View>
 			</View>
-		</Pressable>
+
+			{/* “最後の手段” を必要なときだけ出す（乱用しない） */}
+			{didAttemptOpen && !becameHiddenRef.current && (
+				<View style={styles.fallbackRow}>
+					<Text style={styles.fallbackText}>
+						{i18n.t("DeepLinking.fallbackText", {
+							defaultValue: "開けない場合は、外部ブラウザで開くか、次の方法を試してください。",
+						})}
+					</Text>
+
+					<Pressable style={styles.schemeButton} onPress={handleTryScheme}>
+						<Text style={styles.schemeButtonText}>
+							{i18n.t("DeepLinking.tryScheme", { defaultValue: "別方式で試す" })}
+						</Text>
+					</Pressable>
+				</View>
+			)}
+
+			{/* In-App Browser 向けの補助案内（必要時だけ表示） */}
+			{showHelp && isInAppBrowser && (
+				<View style={styles.helpBox}>
+					<Text style={styles.helpTitle}>
+						{i18n.t("DeepLinking.helpTitle", { defaultValue: "アプリ内ブラウザをご利用中です" })}
+					</Text>
+					<Text style={styles.helpBody}>
+						{i18n.t("DeepLinking.helpBody", {
+							defaultValue:
+								"Instagram などのアプリ内ブラウザでは、アプリ起動（Universal Link）が制限されることがあります。\n右上の「…」→「ブラウザで開く（Safari/Chrome）」をお試しください。",
+						})}
+					</Text>
+					<Pressable style={styles.helpClose} onPress={() => setShowHelp(false)}>
+						<Text style={styles.helpCloseText}>{i18n.t("Common.close", { defaultValue: "閉じる" })}</Text>
+					</Pressable>
+				</View>
+			)}
+		</View>
 	);
 };
 
 export const OpenInAppBanner = memo(OpenInAppBannerComponent);
 
 const styles = StyleSheet.create({
-	// #688 【設計】position absolute で画面上部に半透明オーバーレイとして配置
+	// 画面上部に重ねる（ページ内容を完全に隠さないよう余白は最小）
 	overlay: {
 		position: "absolute" as any,
 		top: 0,
@@ -136,48 +283,139 @@ const styles = StyleSheet.create({
 		right: 0,
 		zIndex: 1000,
 		paddingVertical: 8,
-		paddingHorizontal: 16,
+		paddingHorizontal: 12,
 	},
 	banner: {
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "space-between",
 		backgroundColor: "#fbeedd",
-		borderRadius: 8,
-		paddingVertical: 8,
+		borderRadius: 10,
+		paddingVertical: 10,
 		paddingHorizontal: 12,
+
 		shadowColor: "#000",
 		shadowOffset: { width: 0, height: 2 },
-		shadowOpacity: 0.1,
-		shadowRadius: 4,
-		elevation: 3,
+		shadowOpacity: 0.12,
+		shadowRadius: 6,
+		elevation: 4,
 	},
 	bannerInfo: {
 		flexDirection: "row",
 		alignItems: "center",
+		flex: 1,
+		paddingRight: 10,
 	},
 	icon: {
 		width: 32,
 		height: 32,
-		borderRadius: 6,
-		marginRight: 8,
+		borderRadius: 7,
+		marginRight: 10,
+	},
+	textBlock: {
+		flex: 1,
+		minWidth: 0,
 	},
 	bannerName: {
-		fontSize: 16,
-		fontWeight: "700",
+		fontSize: 15,
+		fontWeight: "800",
 		color: "#1A1A1A",
-		flex: 1,
+	},
+	actions: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 8,
 	},
 	openButton: {
 		backgroundColor: "#f05537",
-		paddingVertical: 8,
-		paddingHorizontal: 16,
-		borderRadius: 6,
-		marginLeft: 12,
+		paddingVertical: 9,
+		paddingHorizontal: 14,
+		borderRadius: 8,
 	},
 	openButtonText: {
 		color: "#FFFFFF",
-		fontSize: 14,
-		fontWeight: "700",
+		fontSize: 13,
+		fontWeight: "800",
+	},
+	storeButton: {
+		backgroundColor: "#1A1A1A",
+		paddingVertical: 9,
+		paddingHorizontal: 12,
+		borderRadius: 8,
+	},
+	storeButtonText: {
+		color: "#FFFFFF",
+		fontSize: 13,
+		fontWeight: "800",
+	},
+
+	// “開けないときの次の手” を控えめに
+	fallbackRow: {
+		marginTop: 8,
+		backgroundColor: "rgba(255,255,255,0.92)",
+		borderRadius: 10,
+		paddingVertical: 10,
+		paddingHorizontal: 12,
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 1 },
+		shadowOpacity: 0.08,
+		shadowRadius: 4,
+		elevation: 2,
+	},
+	fallbackText: {
+		flex: 1,
+		paddingRight: 10,
+		fontSize: 12,
+		fontWeight: "600",
+		color: "#333",
+	},
+	schemeButton: {
+		backgroundColor: "#f05537",
+		paddingVertical: 8,
+		paddingHorizontal: 10,
+		borderRadius: 8,
+	},
+	schemeButtonText: {
+		color: "#fff",
+		fontSize: 12,
+		fontWeight: "800",
+	},
+
+	// In-App Browser ヘルプ
+	helpBox: {
+		marginTop: 8,
+		backgroundColor: "rgba(26,26,26,0.96)",
+		borderRadius: 12,
+		paddingVertical: 12,
+		paddingHorizontal: 12,
+	},
+	helpTitle: {
+		color: "#fff",
+		fontSize: 13,
+		fontWeight: "900",
+	},
+	helpBody: {
+		marginTop: 6,
+		color: "#fff",
+		fontSize: 12,
+		fontWeight: "600",
+		lineHeight: 16,
+	},
+	helpClose: {
+		marginTop: 10,
+		alignSelf: "flex-end",
+		paddingVertical: 8,
+		paddingHorizontal: 10,
+		borderRadius: 8,
+		backgroundColor: "rgba(255,255,255,0.16)",
+	},
+	helpCloseText: {
+		color: "#fff",
+		fontSize: 12,
+		fontWeight: "800",
 	},
 });
