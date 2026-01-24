@@ -29,6 +29,10 @@ export function useLocaleFromRoute(): string {
 	return I18N_SUPPORTED_LOCALES.includes(maybe) ? maybe : DEFAULT_LOCALE;
 }
 
+export function isJapaneseLocale(locale: string) {
+	return locale === "ja" || locale.startsWith("ja-");
+}
+
 export function stripLocaleFromPath(path: string, locale: string) {
 	// '/ja/posts/123' -> '/posts/123'（先頭だけ）
 	return path.replace(new RegExp(`^/${locale}(?=/|$)`), "") || "/";
@@ -51,11 +55,12 @@ export type SeoProps = {
 export default function SeoHead(props: SeoProps) {
 	const pathname = usePathname() || "/";
 	const locale = useLocaleFromRoute();
+	const isJa = isJapaneseLocale(locale);
 	const pathNoLocale = stripLocaleFromPath(pathname, locale);
 
 	const title = props.title || i18n.t("Common.defaultTitle");
 	const desc = props.description || i18n.t("Common.defaultDesc");
-	const img = props.image || `${WEB_BASE_URL}/og/default.png`;
+	const img = props.image || `${WEB_BASE_URL}/og/${isJa ? "ja-JP" : "en-US"}.jpg`;
 	const imgAlt = props.imageAlt || title;
 	const canonical = buildCanonical(pathNoLocale, locale);
 
