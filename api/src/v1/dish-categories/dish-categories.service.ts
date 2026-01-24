@@ -27,8 +27,8 @@ const CANDIDATE_LIMIT = 200;
 // #533 【定数】スレート構成の目標件数
 const TARGET_SLATE_SIZE = 6;
 const CORE_SIZE = 3;
-const VARIETY_SIZE = 1;
-const EXPLORE_SIZE = 2;
+const VARIETY_SIZE = 3;
+const EXPLORE_SIZE = 0;
 
 // #533 【定数】Explore選出用パーセンタイル
 const EXPLORE_LOW_PCT = 0.1; // 上位10%は除外
