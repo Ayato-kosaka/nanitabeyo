@@ -11,9 +11,10 @@
 					"/*/food/*",
 					"/*/home/*",
 					"/*/map/*",
-                                        "/*/notifications/*",
-                                        "/*/posts/*",
-                                        "/*/search/*",
+					"/*/review/*",
+					"/*/notifications/*",
+					"/*/posts/*",
+					"/*/search/*",
 					"/*"
 				]
 			}
