@@ -159,11 +159,31 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 		window.location.assign(url);
 	}, []);
 
+	const addNonce = useCallback((urlString: string) => {
+		const url = new URL(urlString);
+		// analytics/ログで除外しやすいキー名にするのがコツ
+		url.searchParams.set("_oia", "1"); // open-in-app
+		url.searchParams.set("_t", String(Date.now())); // nonce
+		return url.toString();
+	}, []);
+
+	const normalizeForCompare = useCallback((urlString: string) => {
+		try {
+			const url = new URL(urlString);
+			url.hash = ""; // hash は比較から除外
+			return url.toString().replace(/\/$/, "");
+		} catch {
+			return urlString.replace(/\/$/, "");
+		}
+	}, []);
+
 	const handleOpenInApp = useCallback(() => {
 		if (!isBrowser) return;
 
 		setDidAttemptOpen(true);
 		becameHiddenRef.current = false;
+		const current = normalizeForCompare(window.location.href);
+		const target = normalizeForCompare(universalUrl);
 
 		// In-App Browser は OS 委譲（Universal Links）が阻害されることが多い
 		// → まずは “外部ブラウザで開く案内” を出す（成功率が上がる）
@@ -171,19 +191,21 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 			setShowHelp(true);
 			// それでも試したいユーザーのために Universal Links は一応叩けるようにしておく
 			// （環境によっては通る）
-			openUrlTopLevel(universalUrl);
+			const urlToGo = current === target ? addNonce(universalUrl) : universalUrl;
+			openUrlTopLevel(urlToGo);
 			return;
 		}
 
 		// まず Universal Links を試す（最重要）
 		// - インストール済み：アプリが開く可能性が高い
 		// - 未インストール：Web が開くだけ（＝それでOK。自動でストアへ飛ばさない）
-		openUrlTopLevel(universalUrl);
+		const urlToGo = current === target ? addNonce(universalUrl) : universalUrl;
+		openUrlTopLevel(urlToGo);
 
 		// 最後の手段としてカスタムスキームも用意（環境によっては抑止される）
 		// ただし「Universal Links でWebに残った後」すぐに叩くと二重遷移になりやすいので、
 		// “ユーザーが明示的にもう一回押したいとき” に使うのが安全。
-	}, [isBrowser, isInAppBrowser, openUrlTopLevel, universalUrl]);
+	}, [isBrowser, isInAppBrowser, addNonce, normalizeForCompare, universalUrl, openUrlTopLevel]);
 
 	const handleTryScheme = useCallback(() => {
 		if (!isBrowser) return;
