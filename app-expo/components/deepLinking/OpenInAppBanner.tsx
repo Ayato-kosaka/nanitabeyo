@@ -55,7 +55,6 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 	const [isMobile, setIsMobile] = useState(false);
 	const [isInAppBrowser, setIsInAppBrowser] = useState(false);
 	const [showHelp, setShowHelp] = useState(false);
-	const [didAttemptOpen, setDidAttemptOpen] = useState(false);
 	// 【設計】help UI を閉じた後は再表示しない（セッション中のみ有効）
 	const [isHelpDismissed, setIsHelpDismissed] = useState(false);
 	// 【設計】遅延判定後に「残った」と確定してから fallback を表示
@@ -98,6 +97,24 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 		if (delayTimerRef.current) {
 			clearTimeout(delayTimerRef.current);
 			delayTimerRef.current = null;
+		}
+	}, []);
+
+	const addNonce = useCallback((urlString: string) => {
+		const url = new URL(urlString);
+		// analytics/ログで除外しやすいキー名にするのがコツ
+		url.searchParams.set("_oia", "1"); // open-in-app
+		url.searchParams.set("_t", String(Date.now())); // nonce
+		return url.toString();
+	}, []);
+
+	const normalizeForCompare = useCallback((urlString: string) => {
+		try {
+			const url = new URL(urlString);
+			url.hash = ""; // hash は比較から除外
+			return url.toString().replace(/\/$/, "");
+		} catch {
+			return urlString.replace(/\/$/, "");
 		}
 	}, []);
 
@@ -180,23 +197,6 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 	}, [isBrowser, clearDelayTimer]);
 
 
-	const addNonce = useCallback((urlString: string) => {
-		const url = new URL(urlString);
-		// analytics/ログで除外しやすいキー名にするのがコツ
-		url.searchParams.set("_oia", "1"); // open-in-app
-		url.searchParams.set("_t", String(Date.now())); // nonce
-		return url.toString();
-	}, []);
-
-	const normalizeForCompare = useCallback((urlString: string) => {
-		try {
-			const url = new URL(urlString);
-			url.hash = ""; // hash は比較から除外
-			return url.toString().replace(/\/$/, "");
-		} catch {
-			return urlString.replace(/\/$/, "");
-		}
-	}, []);
 
 	const handleOpenInApp = useCallback(() => {
 		if (!isBrowser) return;
@@ -204,7 +204,6 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 		// クリア既存のタイマー（多重クリック対策）
 		clearDelayTimer();
 
-		setDidAttemptOpen(true);
 		setShouldShowFallback(false); // リセット
 		becameHiddenRef.current = false;
 
@@ -218,13 +217,12 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 
 			// まだ visible かつ同一ページにいる場合
 			// In-App Browser: help を表示（dismiss されていなければ）
-			// 通常ブラウザ: fallback を表示
+			// IAB でも fallback を出す（help を閉じた後に「別方式で試す」導線が必要）
 			if (isInAppBrowser && !isHelpDismissed) {
 				setShowHelp(true);
-			} else {
-				// 通常ブラウザの場合は shouldShowFallback で fallback を表示
-				setShouldShowFallback(true);
 			}
+			// 通常ブラウザ/IAB 両方で fallback を表示
+			setShouldShowFallback(true);
 		}, 700);
 	}, [isBrowser, isInAppBrowser, isHelpDismissed, clearDelayTimer]);
 
@@ -253,7 +251,7 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 					<a
 						href={urlToGo}
 						style={styles.openButtonLink}
-						onClickCapture={handleOpenInApp}
+						onClick={handleOpenInApp}
 						role="button"
 						aria-label={i18n.t("DeepLinking.openInApp")}>
 						<span style={{ color: "#fff", fontSize: 13, fontWeight: 800 }}>
@@ -282,8 +280,7 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 					<a
 						href={customSchemeUrl}
 						style={styles.schemeButtonLink}
-						onClickCapture={() => {
-							setDidAttemptOpen(true);
+						onClick={() => {
 							becameHiddenRef.current = false;
 						}}
 						role="button"
