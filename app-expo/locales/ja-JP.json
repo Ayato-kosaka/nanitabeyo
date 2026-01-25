@@ -33,6 +33,11 @@
 	},
 	"DeepLinking": {
 		"openInApp": "アプリで開く",
+		"getApp": "入手",
+		"fallbackText": "開けない場合は、外部ブラウザで開くか、次の方法を試してください。",
+		"tryScheme": "別方式で試す",
+		"helpTitle": "アプリ内ブラウザをご利用中です",
+		"helpBody": "Instagram などのアプリ内ブラウザでは、アプリ起動（Universal Link）が制限されることがあります。\n右上の「…」→「ブラウザで開く（Safari/Chrome）」をお試しください。",
 		"appStore": "App Store",
 		"playStore": "Google Play",
 		"downloadApp": "アプリをダウンロード",

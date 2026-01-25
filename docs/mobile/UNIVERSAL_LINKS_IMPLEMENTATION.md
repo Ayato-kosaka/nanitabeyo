@@ -132,13 +132,14 @@ app.useStaticAssets(join(__dirname, "..", "public"), {
 
 ```typescript
 // 使用例（posts.tsx）
-<OpenInAppBanner 
-  path="posts" 
-  params={{ ids }} 
+<OpenInAppBanner
+  path="posts"
+  params={{ ids }}
 />
 ```
 
 **デザイン特徴：**
+
 - 元のコンテンツを崩さない（position: absolute）
 - コンパクトな横並びレイアウト
 - モバイルのみ表示（PC では非表示）
