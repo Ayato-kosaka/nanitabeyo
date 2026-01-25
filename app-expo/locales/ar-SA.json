@@ -33,6 +33,11 @@
 	},
 	"DeepLinking": {
 		"openInApp": "افتح في التطبيق",
+		"getApp": "احصل عليه",
+		"fallbackText": "إذا لم يفتح، حاول فتحه في متصفح خارجي أو استخدم الطريقة البديلة أدناه.",
+		"tryScheme": "جرب البديل",
+		"helpTitle": "أنت تستخدم متصفحًا داخل التطبيق",
+		"helpBody": "قد تحد المتصفحات داخل التطبيق (مثل Instagram) من إطلاق التطبيق عبر Universal Links.\nيُرجى النقر على القائمة '...' واختيار 'فتح في المتصفح (Safari/Chrome)'.",
 		"appStore": "App Store",
 		"playStore": "Google Play",
 		"downloadApp": "تنزيل التطبيق",

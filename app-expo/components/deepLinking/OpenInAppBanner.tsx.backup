@@ -190,32 +190,32 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 	const handleOpenInApp = useCallback(() => {
 		if (!isBrowser) return;
 
-		// クリア既存のタイマー（多重クリック対策）
-		if (delayTimerRef.current) {
-			clearTimeout(delayTimerRef.current);
-			delayTimerRef.current = null;
-		}
-
 		setDidAttemptOpen(true);
 		becameHiddenRef.current = false;
+		const current = normalizeForCompare(window.location.href);
+		const target = normalizeForCompare(universalUrl);
 
-		// A案：押下直後は fallback/help を表示しない
-		// 700ms 後に「まだ同一ページに残っている場合のみ」表示する
-		delayTimerRef.current = setTimeout(() => {
-			// アプリに移動できた可能性（ページが hidden になった）
-			if (becameHiddenRef.current || document.visibilityState === "hidden") {
-				return;
-			}
+		// In-App Browser は OS 委譲（Universal Links）が阻害されることが多い
+		// → まずは “外部ブラウザで開く案内” を出す（成功率が上がる）
+		if (isInAppBrowser) {
+			setShowHelp(true);
+			// それでも試したいユーザーのために Universal Links は一応叩けるようにしておく
+			// （環境によっては通る）
+			const urlToGo = current === target ? addNonce(universalUrl) : universalUrl;
+			openUrlTopLevel(urlToGo);
+			return;
+		}
 
-			// まだ visible かつ同一ページにいる場合
-			// In-App Browser: help を表示（dismiss されていなければ）
-			// 通常ブラウザ: fallback を表示
-			if (isInAppBrowser && !isHelpDismissed) {
-				setShowHelp(true);
-			}
-			// 通常ブラウザの場合は didAttemptOpen=true で fallback が自動表示される
-		}, 700);
-	}, [isBrowser, isInAppBrowser, isHelpDismissed]);
+		// まず Universal Links を試す（最重要）
+		// - インストール済み：アプリが開く可能性が高い
+		// - 未インストール：Web が開くだけ（＝それでOK。自動でストアへ飛ばさない）
+		const urlToGo = current === target ? addNonce(universalUrl) : universalUrl;
+		openUrlTopLevel(urlToGo);
+
+		// 最後の手段としてカスタムスキームも用意（環境によっては抑止される）
+		// ただし「Universal Links でWebに残った後」すぐに叩くと二重遷移になりやすいので、
+		// “ユーザーが明示的にもう一回押したいとき” に使うのが安全。
+	}, [isBrowser, isInAppBrowser, addNonce, normalizeForCompare, universalUrl, openUrlTopLevel]);
 
 	const handleTryScheme = useCallback(() => {
 		if (!isBrowser) return;
@@ -246,24 +246,12 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 				</View>
 
 				<View style={styles.actions}>
-					{/* メイン：Universal Link（<a href> でトップレベル遷移を実現） */}
-					<a
-						href={addNonce(universalUrl)}
-						style={{
-							textDecoration: "none",
-							backgroundColor: "#f05537",
-							paddingTop: 9,
-							paddingBottom: 9,
-							paddingLeft: 14,
-							paddingRight: 14,
-							borderRadius: 8,
-							display: "flex",
-							alignItems: "center",
-							justifyContent: "center",
-						}}
-						onClick={handleOpenInApp}>
-						<Text style={styles.openButtonText}>{i18n.t("DeepLinking.openInApp")}</Text>
-					</a>
+					{/* メイン：Universal Link */}
+					<Pressable style={styles.openButton} onPress={handleOpenInApp}>
+						<Text style={styles.openButtonText}>
+							{i18n.t("DeepLinking.openInApp", { defaultValue: "アプリで開く" })}
+						</Text>
+					</Pressable>
 
 					{/* ストア：自動ではなく“ボタン”で提供（ポリシー/ブロック回避・UX改善） */}
 					{!!storeUrl && (
@@ -272,7 +260,7 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 							// target="_blank" 相当：RNW の Pressable では a タグじゃないので window.open する
 							// ただし “クリック同期” なのでブロックされにくい
 							onPress={() => window.open(storeUrl, "_blank", "noopener,noreferrer")}>
-							<Text style={styles.storeButtonText}>{i18n.t("DeepLinking.getApp")}</Text>
+							<Text style={styles.storeButtonText}>{i18n.t("DeepLinking.getApp", { defaultValue: "入手" })}</Text>
 						</Pressable>
 					)}
 				</View>
@@ -281,10 +269,16 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 			{/* “最後の手段” を必要なときだけ出す（乱用しない） */}
 			{didAttemptOpen && !becameHiddenRef.current && (
 				<View style={styles.fallbackRow}>
-					<Text style={styles.fallbackText}>{i18n.t("DeepLinking.fallbackText")}</Text>
+					<Text style={styles.fallbackText}>
+						{i18n.t("DeepLinking.fallbackText", {
+							defaultValue: "開けない場合は、外部ブラウザで開くか、次の方法を試してください。",
+						})}
+					</Text>
 
 					<Pressable style={styles.schemeButton} onPress={handleTryScheme}>
-						<Text style={styles.schemeButtonText}>{i18n.t("DeepLinking.tryScheme")}</Text>
+						<Text style={styles.schemeButtonText}>
+							{i18n.t("DeepLinking.tryScheme", { defaultValue: "別方式で試す" })}
+						</Text>
 					</Pressable>
 				</View>
 			)}
@@ -292,15 +286,17 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 			{/* In-App Browser 向けの補助案内（必要時だけ表示） */}
 			{showHelp && isInAppBrowser && (
 				<View style={styles.helpBox}>
-					<Text style={styles.helpTitle}>{i18n.t("DeepLinking.helpTitle")}</Text>
-					<Text style={styles.helpBody}>{i18n.t("DeepLinking.helpBody")}</Text>
-					<Pressable
-						style={styles.helpClose}
-						onPress={() => {
-							setShowHelp(false);
-							setIsHelpDismissed(true);
-						}}>
-						<Text style={styles.helpCloseText}>{i18n.t("Common.close")}</Text>
+					<Text style={styles.helpTitle}>
+						{i18n.t("DeepLinking.helpTitle", { defaultValue: "アプリ内ブラウザをご利用中です" })}
+					</Text>
+					<Text style={styles.helpBody}>
+						{i18n.t("DeepLinking.helpBody", {
+							defaultValue:
+								"Instagram などのアプリ内ブラウザでは、アプリ起動（Universal Link）が制限されることがあります。\n右上の「…」→「ブラウザで開く（Safari/Chrome）」をお試しください。",
+						})}
+					</Text>
+					<Pressable style={styles.helpClose} onPress={() => setShowHelp(false)}>
+						<Text style={styles.helpCloseText}>{i18n.t("Common.close", { defaultValue: "閉じる" })}</Text>
 					</Pressable>
 				</View>
 			)}
