@@ -58,6 +58,8 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 	const [didAttemptOpen, setDidAttemptOpen] = useState(false);
 	// 【設計】help UI を閉じた後は再表示しない（セッション中のみ有効）
 	const [isHelpDismissed, setIsHelpDismissed] = useState(false);
+	// 【設計】遅延判定後に「残った」と確定してから fallback を表示
+	const [shouldShowFallback, setShouldShowFallback] = useState(false);
 
 	// “アプリ起動できたかも” を推測するためのフラグ（visibilitychange）
 	const becameHiddenRef = useRef(false);
@@ -98,6 +100,14 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 			delayTimerRef.current = null;
 		}
 	}, []);
+
+	// 【設計】同一URLの時だけ nonce を付与（毎回URLが変わるのを防ぐ）
+	const urlToGo = useMemo(() => {
+		if (!isBrowser) return universalUrl;
+		const current = normalizeForCompare(window.location.href);
+		const target = normalizeForCompare(universalUrl);
+		return current === target ? addNonce(universalUrl) : universalUrl;
+	}, [isBrowser, universalUrl, addNonce, normalizeForCompare]);
 
 	const storeUrl = useMemo(() => {
 		// “自動遷移”はしない方針なので、ボタン用にURLを返すだけ
@@ -169,11 +179,6 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 		};
 	}, [isBrowser, clearDelayTimer]);
 
-	const openUrlTopLevel = useCallback((url: string) => {
-		// ベストプラクティス：ユーザー操作の同期処理でトップレベル遷移を使う
-		// iframe / setTimeout 内 window.open は Safari 等でブロックされやすい
-		window.location.assign(url);
-	}, []);
 
 	const addNonce = useCallback((urlString: string) => {
 		const url = new URL(urlString);
@@ -200,6 +205,7 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 		clearDelayTimer();
 
 		setDidAttemptOpen(true);
+		setShouldShowFallback(false); // リセット
 		becameHiddenRef.current = false;
 
 		// A案：押下直後は fallback/help を表示しない
@@ -215,19 +221,13 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 			// 通常ブラウザ: fallback を表示
 			if (isInAppBrowser && !isHelpDismissed) {
 				setShowHelp(true);
+			} else {
+				// 通常ブラウザの場合は shouldShowFallback で fallback を表示
+				setShouldShowFallback(true);
 			}
-			// 通常ブラウザの場合は didAttemptOpen=true で fallback が自動表示される
 		}, 700);
 	}, [isBrowser, isInAppBrowser, isHelpDismissed, clearDelayTimer]);
 
-	const handleTryScheme = useCallback(() => {
-		if (!isBrowser) return;
-		setDidAttemptOpen(true);
-		becameHiddenRef.current = false;
-
-		// 注意：ここは環境によって無視される（特に iOS Safari / IAB）
-		openUrlTopLevel(customSchemeUrl);
-	}, [isBrowser, openUrlTopLevel, customSchemeUrl]);
 
 	// “モバイルでない”なら出さない（PC にバナーはノイズ）
 	if (!isMobile || !isBrowser) return null;
@@ -250,8 +250,15 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 
 				<View style={styles.actions}>
 					{/* メイン：Universal Link（<a href> でトップレベル遷移を実現） */}
-					<a href={addNonce(universalUrl)} style={styles.openButtonLink} onClick={handleOpenInApp}>
-						<Text style={styles.openButtonText}>{i18n.t("DeepLinking.openInApp")}</Text>
+					<a
+						href={urlToGo}
+						style={styles.openButtonLink}
+						onClickCapture={handleOpenInApp}
+						role="button"
+						aria-label={i18n.t("DeepLinking.openInApp")}>
+						<span style={{ color: "#fff", fontSize: 13, fontWeight: 800 }}>
+							{i18n.t("DeepLinking.openInApp")}
+						</span>
 					</a>
 
 					{/* ストア：自動ではなく“ボタン”で提供（ポリシー/ブロック回避・UX改善） */}
@@ -268,13 +275,23 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 			</View>
 
 			{/* “最後の手段” を必要なときだけ出す（乱用しない） */}
-			{didAttemptOpen && !becameHiddenRef.current && (
+			{shouldShowFallback && (
 				<View style={styles.fallbackRow}>
 					<Text style={styles.fallbackText}>{i18n.t("DeepLinking.fallbackText")}</Text>
 
-					<Pressable style={styles.schemeButton} onPress={handleTryScheme}>
-						<Text style={styles.schemeButtonText}>{i18n.t("DeepLinking.tryScheme")}</Text>
-					</Pressable>
+					<a
+						href={customSchemeUrl}
+						style={styles.schemeButtonLink}
+						onClickCapture={() => {
+							setDidAttemptOpen(true);
+							becameHiddenRef.current = false;
+						}}
+						role="button"
+						aria-label={i18n.t("DeepLinking.tryScheme")}>
+						<span style={{ color: "#fff", fontSize: 12, fontWeight: 800 }}>
+							{i18n.t("DeepLinking.tryScheme")}
+						</span>
+					</a>
 				</View>
 			)}
 
@@ -417,6 +434,19 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 10,
 		borderRadius: 8,
 	},
+	// 【設計】<a> タグ用のスキーム代替ボタンスタイル
+	schemeButtonLink: {
+		textDecoration: "none",
+		backgroundColor: "#f05537",
+		paddingTop: 8,
+		paddingBottom: 8,
+		paddingLeft: 10,
+		paddingRight: 10,
+		borderRadius: 8,
+		display: "flex",
+		alignItems: "center",
+		justifyContent: "center",
+	} as any,
 	schemeButtonText: {
 		color: "#fff",
 		fontSize: 12,
