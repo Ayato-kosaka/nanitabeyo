@@ -139,6 +139,27 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 		return undefined;
 	}, [isBrowser]);
 
+	// 【設計】<a> タグ用のプレーン CSS スタイル（StyleSheet 非経由で安全）
+	const openLinkStyle: React.CSSProperties = {
+		textDecoration: "none",
+		backgroundColor: "#f05537",
+		padding: "9px 14px",
+		borderRadius: 8,
+		display: "flex",
+		alignItems: "center",
+		justifyContent: "center",
+	};
+
+	const schemeLinkStyle: React.CSSProperties = {
+		textDecoration: "none",
+		backgroundColor: "#f05537",
+		padding: "8px 10px",
+		borderRadius: 8,
+		display: "flex",
+		alignItems: "center",
+		justifyContent: "center",
+	};
+
 	useEffect(() => {
 		if (!isBrowser) return;
 
@@ -204,14 +225,24 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 		// クリア既存のタイマー（多重クリック対策）
 		clearDelayTimer();
 
-		setShouldShowFallback(false); // リセット
+		// 状態をリセット（連打時の混在を防ぐ）
+		setShowHelp(false);
+		setShouldShowFallback(false);
 		becameHiddenRef.current = false;
+
+		// クリック時点の URL を保持（遷移判定用）
+		const startHref = window.location.href;
 
 		// A案：押下直後は fallback/help を表示しない
 		// 700ms 後に「まだ同一ページに残っている場合のみ」表示する
 		delayTimerRef.current = setTimeout(() => {
 			// アプリに移動できた可能性（ページが hidden になった）
 			if (becameHiddenRef.current || document.visibilityState === "hidden") {
+				return;
+			}
+
+			// URLが変わっていたら（別ページに遷移した）何も出さない
+			if (window.location.href !== startHref) {
 				return;
 			}
 
@@ -250,7 +281,7 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 					{/* メイン：Universal Link（<a href> でトップレベル遷移を実現） */}
 					<a
 						href={urlToGo}
-						style={styles.openButtonLink}
+						style={openLinkStyle}
 						onClick={handleOpenInApp}
 						role="button"
 						aria-label={i18n.t("DeepLinking.openInApp")}>
@@ -279,7 +310,7 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 
 					<a
 						href={customSchemeUrl}
-						style={styles.schemeButtonLink}
+						style={schemeLinkStyle}
 						onClick={() => {
 							becameHiddenRef.current = false;
 						}}
@@ -371,19 +402,6 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 14,
 		borderRadius: 8,
 	},
-	// 【設計】<a> タグのスタイルは React Native Web の制約によりオブジェクト形式
-	openButtonLink: {
-		textDecoration: "none",
-		backgroundColor: "#f05537",
-		paddingTop: 9,
-		paddingBottom: 9,
-		paddingLeft: 14,
-		paddingRight: 14,
-		borderRadius: 8,
-		display: "flex",
-		alignItems: "center",
-		justifyContent: "center",
-	} as any, // React Native Web の <a> タグは any が必要
 	openButtonText: {
 		color: "#FFFFFF",
 		fontSize: 13,
@@ -431,19 +449,6 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 10,
 		borderRadius: 8,
 	},
-	// 【設計】<a> タグ用のスキーム代替ボタンスタイル
-	schemeButtonLink: {
-		textDecoration: "none",
-		backgroundColor: "#f05537",
-		paddingTop: 8,
-		paddingBottom: 8,
-		paddingLeft: 10,
-		paddingRight: 10,
-		borderRadius: 8,
-		display: "flex",
-		alignItems: "center",
-		justifyContent: "center",
-	} as any,
 	schemeButtonText: {
 		color: "#fff",
 		fontSize: 12,
