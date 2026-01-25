@@ -91,6 +91,14 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 		return `${scheme}:///${locale}/${path}${qs}`;
 	}, [scheme, locale, path, buildQueryString]);
 
+	// 【設計】タイマークリーンアップ用のヘルパー関数
+	const clearDelayTimer = useCallback(() => {
+		if (delayTimerRef.current) {
+			clearTimeout(delayTimerRef.current);
+			delayTimerRef.current = null;
+		}
+	}, []);
+
 	const storeUrl = useMemo(() => {
 		// “自動遷移”はしない方針なので、ボタン用にURLを返すだけ
 		// iOS/Android の判定は UA で行う（Web のみなので許容）
@@ -157,11 +165,9 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 		return () => {
 			document.removeEventListener("visibilitychange", onVis);
 			// 【設計】コンポーネントアンマウント時にタイマーをクリーンアップ
-			if (delayTimerRef.current) {
-				clearTimeout(delayTimerRef.current);
-			}
+			clearDelayTimer();
 		};
-	}, [isBrowser]);
+	}, [isBrowser, clearDelayTimer]);
 
 	const openUrlTopLevel = useCallback((url: string) => {
 		// ベストプラクティス：ユーザー操作の同期処理でトップレベル遷移を使う
@@ -191,10 +197,7 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 		if (!isBrowser) return;
 
 		// クリア既存のタイマー（多重クリック対策）
-		if (delayTimerRef.current) {
-			clearTimeout(delayTimerRef.current);
-			delayTimerRef.current = null;
-		}
+		clearDelayTimer();
 
 		setDidAttemptOpen(true);
 		becameHiddenRef.current = false;
@@ -215,7 +218,7 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 			}
 			// 通常ブラウザの場合は didAttemptOpen=true で fallback が自動表示される
 		}, 700);
-	}, [isBrowser, isInAppBrowser, isHelpDismissed]);
+	}, [isBrowser, isInAppBrowser, isHelpDismissed, clearDelayTimer]);
 
 	const handleTryScheme = useCallback(() => {
 		if (!isBrowser) return;
@@ -247,21 +250,7 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 
 				<View style={styles.actions}>
 					{/* メイン：Universal Link（<a href> でトップレベル遷移を実現） */}
-					<a
-						href={addNonce(universalUrl)}
-						style={{
-							textDecoration: "none",
-							backgroundColor: "#f05537",
-							paddingTop: 9,
-							paddingBottom: 9,
-							paddingLeft: 14,
-							paddingRight: 14,
-							borderRadius: 8,
-							display: "flex",
-							alignItems: "center",
-							justifyContent: "center",
-						}}
-						onClick={handleOpenInApp}>
+					<a href={addNonce(universalUrl)} style={styles.openButtonLink} onClick={handleOpenInApp}>
 						<Text style={styles.openButtonText}>{i18n.t("DeepLinking.openInApp")}</Text>
 					</a>
 
@@ -368,6 +357,19 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 14,
 		borderRadius: 8,
 	},
+	// 【設計】<a> タグのスタイルは React Native Web の制約によりオブジェクト形式
+	openButtonLink: {
+		textDecoration: "none",
+		backgroundColor: "#f05537",
+		paddingTop: 9,
+		paddingBottom: 9,
+		paddingLeft: 14,
+		paddingRight: 14,
+		borderRadius: 8,
+		display: "flex",
+		alignItems: "center",
+		justifyContent: "center",
+	} as any, // React Native Web の <a> タグは any が必要
 	openButtonText: {
 		color: "#FFFFFF",
 		fontSize: 13,
