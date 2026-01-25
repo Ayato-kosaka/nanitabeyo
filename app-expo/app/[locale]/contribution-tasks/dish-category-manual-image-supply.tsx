@@ -72,10 +72,10 @@ type ItemState = {
 /*                              定数・固定値                                   */
 /* -------------------------------------------------------------------------- */
 
-const TASK_KEY = "dish_category_manual_image_supply_v1";
+const TASK_KEY = "dish_category_manual_image_supply_v2";
 const TARGET_TYPE = "dish_categories";
 const TYPE = "image_feedback";
-const CDN_JSON_PATH = "tickets/703/dish_category_manual_image_supply_v1.latest.json";
+const CDN_JSON_PATH = "tickets/703/dish_category_manual_image_supply_v2.latest.json";
 
 const TUTORIAL_STORAGE_KEY = "dish_manual_image_supply_tutorial_shown";
 
