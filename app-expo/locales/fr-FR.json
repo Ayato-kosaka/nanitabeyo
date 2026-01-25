@@ -33,6 +33,11 @@
 	},
 	"DeepLinking": {
 		"openInApp": "Ouvrir dans l'app",
+		"getApp": "Obtenir",
+		"fallbackText": "Si l'app ne s'ouvre pas, essayez de l'ouvrir dans un navigateur externe ou utilisez la méthode alternative ci-dessous.",
+		"tryScheme": "Essayer l'alternative",
+		"helpTitle": "Vous utilisez un navigateur intégré",
+		"helpBody": "Les navigateurs intégrés (comme Instagram) peuvent restreindre l'ouverture d'applications via Universal Links.\nAppuyez sur le menu '...' et sélectionnez 'Ouvrir dans le navigateur (Safari/Chrome)'.",
 		"appStore": "App Store",
 		"playStore": "Google Play",
 		"downloadApp": "Télécharger l'app",

@@ -55,10 +55,15 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 	const [isMobile, setIsMobile] = useState(false);
 	const [isInAppBrowser, setIsInAppBrowser] = useState(false);
 	const [showHelp, setShowHelp] = useState(false);
-	const [didAttemptOpen, setDidAttemptOpen] = useState(false);
+	// 【設計】help UI を閉じた後は再表示しない（セッション中のみ有効）
+	const [isHelpDismissed, setIsHelpDismissed] = useState(false);
+	// 【設計】遅延判定後に「残った」と確定してから fallback を表示
+	const [shouldShowFallback, setShouldShowFallback] = useState(false);
 
 	// “アプリ起動できたかも” を推測するためのフラグ（visibilitychange）
 	const becameHiddenRef = useRef(false);
+	// 【設計】A案：遅延後に同一ページに残っている場合のみ fallback/help を表示
+	const delayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	const buildQueryString = useCallback(() => {
 		if (!params) return "";
@@ -87,6 +92,40 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 		return `${scheme}:///${locale}/${path}${qs}`;
 	}, [scheme, locale, path, buildQueryString]);
 
+	// 【設計】タイマークリーンアップ用のヘルパー関数
+	const clearDelayTimer = useCallback(() => {
+		if (delayTimerRef.current) {
+			clearTimeout(delayTimerRef.current);
+			delayTimerRef.current = null;
+		}
+	}, []);
+
+	const addNonce = useCallback((urlString: string) => {
+		const url = new URL(urlString);
+		// analytics/ログで除外しやすいキー名にするのがコツ
+		url.searchParams.set("_oia", "1"); // open-in-app
+		url.searchParams.set("_t", String(Date.now())); // nonce
+		return url.toString();
+	}, []);
+
+	const normalizeForCompare = useCallback((urlString: string) => {
+		try {
+			const url = new URL(urlString);
+			url.hash = ""; // hash は比較から除外
+			return url.toString().replace(/\/$/, "");
+		} catch {
+			return urlString.replace(/\/$/, "");
+		}
+	}, []);
+
+	// 【設計】同一URLの時だけ nonce を付与（毎回URLが変わるのを防ぐ）
+	const urlToGo = useMemo(() => {
+		if (!isBrowser) return universalUrl;
+		const current = normalizeForCompare(window.location.href);
+		const target = normalizeForCompare(universalUrl);
+		return current === target ? addNonce(universalUrl) : universalUrl;
+	}, [isBrowser, universalUrl, addNonce, normalizeForCompare]);
+
 	const storeUrl = useMemo(() => {
 		// “自動遷移”はしない方針なので、ボタン用にURLを返すだけ
 		// iOS/Android の判定は UA で行う（Web のみなので許容）
@@ -99,6 +138,27 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 		if (isAndroid) return Env.PLAY_STORE_URL || undefined;
 		return undefined;
 	}, [isBrowser]);
+
+	// 【設計】<a> タグ用のプレーン CSS スタイル（StyleSheet 非経由で安全）
+	const openLinkStyle: React.CSSProperties = {
+		textDecoration: "none",
+		backgroundColor: "#f05537",
+		padding: "9px 14px",
+		borderRadius: 8,
+		display: "flex",
+		alignItems: "center",
+		justifyContent: "center",
+	};
+
+	const schemeLinkStyle: React.CSSProperties = {
+		textDecoration: "none",
+		backgroundColor: "#f05537",
+		padding: "8px 10px",
+		borderRadius: 8,
+		display: "flex",
+		alignItems: "center",
+		justifyContent: "center",
+	};
 
 	useEffect(() => {
 		if (!isBrowser) return;
@@ -150,71 +210,53 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 			}
 		};
 		document.addEventListener("visibilitychange", onVis);
-		return () => document.removeEventListener("visibilitychange", onVis);
-	}, [isBrowser]);
+		return () => {
+			document.removeEventListener("visibilitychange", onVis);
+			// 【設計】コンポーネントアンマウント時にタイマーをクリーンアップ
+			clearDelayTimer();
+		};
+	}, [isBrowser, clearDelayTimer]);
 
-	const openUrlTopLevel = useCallback((url: string) => {
-		// ベストプラクティス：ユーザー操作の同期処理でトップレベル遷移を使う
-		// iframe / setTimeout 内 window.open は Safari 等でブロックされやすい
-		window.location.assign(url);
-	}, []);
 
-	const addNonce = useCallback((urlString: string) => {
-		const url = new URL(urlString);
-		// analytics/ログで除外しやすいキー名にするのがコツ
-		url.searchParams.set("_oia", "1"); // open-in-app
-		url.searchParams.set("_t", String(Date.now())); // nonce
-		return url.toString();
-	}, []);
-
-	const normalizeForCompare = useCallback((urlString: string) => {
-		try {
-			const url = new URL(urlString);
-			url.hash = ""; // hash は比較から除外
-			return url.toString().replace(/\/$/, "");
-		} catch {
-			return urlString.replace(/\/$/, "");
-		}
-	}, []);
 
 	const handleOpenInApp = useCallback(() => {
 		if (!isBrowser) return;
 
-		setDidAttemptOpen(true);
-		becameHiddenRef.current = false;
-		const current = normalizeForCompare(window.location.href);
-		const target = normalizeForCompare(universalUrl);
+		// クリア既存のタイマー（多重クリック対策）
+		clearDelayTimer();
 
-		// In-App Browser は OS 委譲（Universal Links）が阻害されることが多い
-		// → まずは “外部ブラウザで開く案内” を出す（成功率が上がる）
-		if (isInAppBrowser) {
-			setShowHelp(true);
-			// それでも試したいユーザーのために Universal Links は一応叩けるようにしておく
-			// （環境によっては通る）
-			const urlToGo = current === target ? addNonce(universalUrl) : universalUrl;
-			openUrlTopLevel(urlToGo);
-			return;
-		}
-
-		// まず Universal Links を試す（最重要）
-		// - インストール済み：アプリが開く可能性が高い
-		// - 未インストール：Web が開くだけ（＝それでOK。自動でストアへ飛ばさない）
-		const urlToGo = current === target ? addNonce(universalUrl) : universalUrl;
-		openUrlTopLevel(urlToGo);
-
-		// 最後の手段としてカスタムスキームも用意（環境によっては抑止される）
-		// ただし「Universal Links でWebに残った後」すぐに叩くと二重遷移になりやすいので、
-		// “ユーザーが明示的にもう一回押したいとき” に使うのが安全。
-	}, [isBrowser, isInAppBrowser, addNonce, normalizeForCompare, universalUrl, openUrlTopLevel]);
-
-	const handleTryScheme = useCallback(() => {
-		if (!isBrowser) return;
-		setDidAttemptOpen(true);
+		// 状態をリセット（連打時の混在を防ぐ）
+		setShowHelp(false);
+		setShouldShowFallback(false);
 		becameHiddenRef.current = false;
 
-		// 注意：ここは環境によって無視される（特に iOS Safari / IAB）
-		openUrlTopLevel(customSchemeUrl);
-	}, [isBrowser, openUrlTopLevel, customSchemeUrl]);
+		// クリック時点の URL を保持（遷移判定用）
+		const startHref = window.location.href;
+
+		// A案：押下直後は fallback/help を表示しない
+		// 700ms 後に「まだ同一ページに残っている場合のみ」表示する
+		delayTimerRef.current = setTimeout(() => {
+			// アプリに移動できた可能性（ページが hidden になった）
+			if (becameHiddenRef.current || document.visibilityState === "hidden") {
+				return;
+			}
+
+			// URLが変わっていたら（別ページに遷移した）何も出さない
+			if (window.location.href !== startHref) {
+				return;
+			}
+
+			// まだ visible かつ同一ページにいる場合
+			// In-App Browser: help を表示（dismiss されていなければ）
+			// IAB でも fallback を出す（help を閉じた後に「別方式で試す」導線が必要）
+			if (isInAppBrowser && !isHelpDismissed) {
+				setShowHelp(true);
+			}
+			// 通常ブラウザ/IAB 両方で fallback を表示
+			setShouldShowFallback(true);
+		}, 700);
+	}, [isBrowser, isInAppBrowser, isHelpDismissed, clearDelayTimer]);
+
 
 	// “モバイルでない”なら出さない（PC にバナーはノイズ）
 	if (!isMobile || !isBrowser) return null;
@@ -236,12 +278,17 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 				</View>
 
 				<View style={styles.actions}>
-					{/* メイン：Universal Link */}
-					<Pressable style={styles.openButton} onPress={handleOpenInApp}>
-						<Text style={styles.openButtonText}>
-							{i18n.t("DeepLinking.openInApp", { defaultValue: "アプリで開く" })}
-						</Text>
-					</Pressable>
+					{/* メイン：Universal Link（<a href> でトップレベル遷移を実現） */}
+					<a
+						href={urlToGo}
+						style={openLinkStyle}
+						onClick={handleOpenInApp}
+						role="button"
+						aria-label={i18n.t("DeepLinking.openInApp")}>
+						<span style={{ color: "#fff", fontSize: 13, fontWeight: 800 }}>
+							{i18n.t("DeepLinking.openInApp")}
+						</span>
+					</a>
 
 					{/* ストア：自動ではなく“ボタン”で提供（ポリシー/ブロック回避・UX改善） */}
 					{!!storeUrl && (
@@ -250,43 +297,44 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 							// target="_blank" 相当：RNW の Pressable では a タグじゃないので window.open する
 							// ただし “クリック同期” なのでブロックされにくい
 							onPress={() => window.open(storeUrl, "_blank", "noopener,noreferrer")}>
-							<Text style={styles.storeButtonText}>{i18n.t("DeepLinking.getApp", { defaultValue: "入手" })}</Text>
+							<Text style={styles.storeButtonText}>{i18n.t("DeepLinking.getApp")}</Text>
 						</Pressable>
 					)}
 				</View>
 			</View>
 
 			{/* “最後の手段” を必要なときだけ出す（乱用しない） */}
-			{didAttemptOpen && !becameHiddenRef.current && (
+			{shouldShowFallback && (
 				<View style={styles.fallbackRow}>
-					<Text style={styles.fallbackText}>
-						{i18n.t("DeepLinking.fallbackText", {
-							defaultValue: "開けない場合は、外部ブラウザで開くか、次の方法を試してください。",
-						})}
-					</Text>
+					<Text style={styles.fallbackText}>{i18n.t("DeepLinking.fallbackText")}</Text>
 
-					<Pressable style={styles.schemeButton} onPress={handleTryScheme}>
-						<Text style={styles.schemeButtonText}>
-							{i18n.t("DeepLinking.tryScheme", { defaultValue: "別方式で試す" })}
-						</Text>
-					</Pressable>
+					<a
+						href={customSchemeUrl}
+						style={schemeLinkStyle}
+						onClick={() => {
+							becameHiddenRef.current = false;
+						}}
+						role="button"
+						aria-label={i18n.t("DeepLinking.tryScheme")}>
+						<span style={{ color: "#fff", fontSize: 12, fontWeight: 800 }}>
+							{i18n.t("DeepLinking.tryScheme")}
+						</span>
+					</a>
 				</View>
 			)}
 
 			{/* In-App Browser 向けの補助案内（必要時だけ表示） */}
 			{showHelp && isInAppBrowser && (
 				<View style={styles.helpBox}>
-					<Text style={styles.helpTitle}>
-						{i18n.t("DeepLinking.helpTitle", { defaultValue: "アプリ内ブラウザをご利用中です" })}
-					</Text>
-					<Text style={styles.helpBody}>
-						{i18n.t("DeepLinking.helpBody", {
-							defaultValue:
-								"Instagram などのアプリ内ブラウザでは、アプリ起動（Universal Link）が制限されることがあります。\n右上の「…」→「ブラウザで開く（Safari/Chrome）」をお試しください。",
-						})}
-					</Text>
-					<Pressable style={styles.helpClose} onPress={() => setShowHelp(false)}>
-						<Text style={styles.helpCloseText}>{i18n.t("Common.close", { defaultValue: "閉じる" })}</Text>
+					<Text style={styles.helpTitle}>{i18n.t("DeepLinking.helpTitle")}</Text>
+					<Text style={styles.helpBody}>{i18n.t("DeepLinking.helpBody")}</Text>
+					<Pressable
+						style={styles.helpClose}
+						onPress={() => {
+							setShowHelp(false);
+							setIsHelpDismissed(true);
+						}}>
+						<Text style={styles.helpCloseText}>{i18n.t("Common.close")}</Text>
 					</Pressable>
 				</View>
 			)}
