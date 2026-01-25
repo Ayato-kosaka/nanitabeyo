@@ -31,6 +31,18 @@
 			"notFound": "未找到"
 		}
 	},
+	"DeepLinking": {
+		"openInApp": "在应用中打开",
+		"getApp": "获取",
+		"fallbackText": "如果无法打开，请尝试在外部浏览器中打开或使用下面的替代方法。",
+		"tryScheme": "尝试替代方法",
+		"helpTitle": "您正在使用应用内浏览器",
+		"helpBody": "应用内浏览器（如 Instagram）可能会限制通过 Universal Links 启动应用。\n请点击 ... 菜单并选择在浏览器中打开（Safari Chrome）。",
+		"appStore": "App Store",
+		"playStore": "Google Play",
+		"downloadApp": "下载应用",
+		"viewInBrowser": "在浏览器中继续"
+	},
 	"Error": {
 		"maintenanceMessage": "当前正在维护中。",
 		"unsupportedVersion": "此版本已不再受支持."

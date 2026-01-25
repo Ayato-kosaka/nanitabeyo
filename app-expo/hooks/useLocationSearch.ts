@@ -30,9 +30,7 @@ export const useLocationSearch = () => {
 	const sessionTokenRef = useRef<string | null>(null);
 
 	// Cache for current location to avoid multiple requests
-	const currentLocationCache = useRef<
-		(Omit<LocationDetailsResponse, "viewport"> & { timestamp: number }) | null
-	>(null);
+	const currentLocationCache = useRef<(Omit<LocationDetailsResponse, "viewport"> & { timestamp: number }) | null>(null);
 
 	// In-flight request tracking
 	const currentLocationPromiseRef = useRef<Promise<Omit<LocationDetailsResponse, "viewport">> | null>(null);

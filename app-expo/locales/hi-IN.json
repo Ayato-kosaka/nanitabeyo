@@ -31,6 +31,18 @@
 			"notFound": "नहीं मिला"
 		}
 	},
+	"DeepLinking": {
+		"openInApp": "ऐप में खोलें",
+		"getApp": "प्राप्त करें",
+		"fallbackText": "यदि यह नहीं खुलता है, तो इसे बाहरी ब्राउज़र में खोलने का प्रयास करें या नीचे दिए गए वैकल्पिक तरीके का उपयोग करें।",
+		"tryScheme": "वैकल्पिक प्रयास करें",
+		"helpTitle": "आप एक इन-ऐप ब्राउज़र का उपयोग कर रहे हैं",
+		"helpBody": "इन-ऐप ब्राउज़र (जैसे Instagram) Universal Links के माध्यम से ऐप लॉन्च करने को प्रतिबंधित कर सकते हैं।\nकृपया '...' मेनू पर टैप करें और 'ब्राउज़र में खोलें (Safari/Chrome)' चुनें।",
+		"appStore": "App Store",
+		"playStore": "Google Play",
+		"downloadApp": "ऐप डाउनलोड करें",
+		"viewInBrowser": "ब्राउज़र में जारी रखें"
+	},
 	"Error": {
 		"maintenanceMessage": "हम वर्तमान में रखरखाव कर रहे हैं।",
 		"unsupportedVersion": "यह संस्करण अब समर्थित नहीं है।"

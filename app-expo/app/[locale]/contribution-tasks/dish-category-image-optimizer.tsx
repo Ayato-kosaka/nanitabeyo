@@ -1,4 +1,4 @@
-// app-expo/app/[locale]/tools/dish-category-image-optimizer.tsx
+// app-expo/app/[locale]/contribution-tasks/dish-category-image-optimizer.tsx
 //
 // #494 【フロント】dish_categories 用 画像最適化ツールページ
 // 運営用ツール - ユーザー向けアプリからの導線は不要

@@ -24,12 +24,12 @@ exports.Prisma = Prisma
 exports.$Enums = {}
 
 /**
- * Prisma Client JS version: 7.2.0
- * Query Engine version: 0c8ef2ce45c83248ab3df073180d5eda9e8be7a3
+ * Prisma Client JS version: 7.0.0
+ * Query Engine version: 0c19ccc313cf9911a90d99d2ac2eb0280c76c513
  */
 Prisma.prismaVersion = {
-  client: "7.2.0",
-  engine: "0c8ef2ce45c83248ab3df073180d5eda9e8be7a3"
+  client: "7.0.0",
+  engine: "0c19ccc313cf9911a90d99d2ac2eb0280c76c513"
 }
 
 Prisma.PrismaClientKnownRequestError = () => {
@@ -136,6 +136,18 @@ exports.Prisma.ConfigScalarFieldEnum = {
   key: 'key',
   value: 'value',
   description: 'description'
+};
+
+exports.Prisma.Contribution_tasksScalarFieldEnum = {
+  id: 'id',
+  type: 'type',
+  task_key: 'task_key',
+  target_type: 'target_type',
+  target_id: 'target_id',
+  payload: 'payload',
+  result: 'result',
+  user_id: 'user_id',
+  created_at: 'created_at'
 };
 
 exports.Prisma.Dish_categoriesScalarFieldEnum = {
@@ -502,6 +514,7 @@ exports.restaurant_bid_status = exports.$Enums.restaurant_bid_status = {
 exports.Prisma.ModelName = {
   backend_event_logs: 'backend_event_logs',
   config: 'config',
+  contribution_tasks: 'contribution_tasks',
   dish_categories: 'dish_categories',
   dish_category_features: 'dish_category_features',
   dish_category_localized_text: 'dish_category_localized_text',

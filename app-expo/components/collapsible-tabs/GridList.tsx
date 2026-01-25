@@ -1,12 +1,5 @@
 import React, { useCallback } from "react";
-import {
-	RefreshControl,
-	View,
-	Text,
-	StyleSheet,
-	FlatListProps,
-	ListRenderItemInfo,
-} from "react-native";
+import { RefreshControl, View, StyleSheet, FlatListProps, ListRenderItemInfo } from "react-native";
 import { Tabs } from "@/components/collapsible-tabs";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 

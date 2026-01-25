@@ -9,6 +9,7 @@ export * from "./restaurants.response";
 export * from "./user-uploads.response";
 export * from "./users.response";
 export * from "./feedback.response";
+export * from "./contribution-tasks.response";
 export * from "./logs.response";
 export * from "./notifications/query-notifications.res";
 export * from "./notifications/mark-all-read.res";

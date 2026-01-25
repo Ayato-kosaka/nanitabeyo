@@ -1,4 +1,4 @@
-// app-expo/app/[locale]/tools/dish-category-image-review.tsx
+// app-expo/app/[locale]/contribution-tasks/dish-category-image-review.tsx
 //
 // #516 【フロント】DishCategories 画像差分レビュー用ツールページ
 // 運営用ツール - ユーザー向けアプリからの導線は不要

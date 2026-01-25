@@ -31,6 +31,18 @@
 			"notFound": "Not found"
 		}
 	},
+	"DeepLinking": {
+		"openInApp": "Open in App",
+		"getApp": "Get",
+		"fallbackText": "If it doesn't open, try opening in an external browser or use the alternative method below.",
+		"tryScheme": "Try alternative",
+		"helpTitle": "You're using an in-app browser",
+		"helpBody": "In-app browsers (like Instagram) may restrict app launching via Universal Links.\nPlease tap the '...' menu and select 'Open in Browser (Safari/Chrome)'.",
+		"appStore": "App Store",
+		"playStore": "Google Play",
+		"downloadApp": "Download App",
+		"viewInBrowser": "Continue in browser"
+	},
 	"Error": {
 		"maintenanceMessage": "We are currently undergoing maintenance.",
 		"unsupportedVersion": "This version is no longer supported."

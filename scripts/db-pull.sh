@@ -1,9 +1,10 @@
 #!/bin/bash
 
 set -e
-# set -a
-# source api/.env
-# set +a
+
+set -a
+source api/.env
+set +a
 
 # --- safer: read only the variables we need from api/.env ---
 DB_SCHEMA=$(grep -E '^DB_SCHEMA=' api/.env | cut -d'=' -f2-)
@@ -30,10 +31,14 @@ echo "📄 Generating schema.prisma with schema: $DB_SCHEMA"
 sed "s/__SCHEMA__/${DB_SCHEMA}/g" "$TEMPLATE" > "$TARGET"
 
 echo "🔄 Running prisma db pull"
-pnpx prisma db pull --schema "$TARGET"
+pnpm -C api exec prisma db pull \
+  --schema "prisma/schema.prisma" \
+  --config "../prisma.config.ts"
 
 echo "🧬 Running prisma generate"
-pnpx prisma generate --schema "$TARGET"
+pnpm -C api exec prisma generate \
+  --schema "prisma/schema.prisma" \
+  --config "../prisma.config.ts"
 
 # もしスキーマが "public" の場合はここで終了
 if [ "$DB_SCHEMA" = "public" ]; then
