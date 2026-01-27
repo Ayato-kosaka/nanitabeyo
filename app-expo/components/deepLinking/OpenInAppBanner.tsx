@@ -24,19 +24,13 @@ export interface OpenInAppBannerProps {
 }
 
 /**
- * OpenInAppBanner（全方位ベストプラクティス版）
+ * OpenInAppBanner（Safari/Chrome(iOS)の「同一サイト起点UL抑止」まで考慮した版）
  *
  * 方針：
- * 1) 可能な限り Universal Links を最優先（Safari/Chrome/多くの環境で最も安定）
- * 2) iOS/Android の “自動ストア遷移” は避ける（ポップアップ/リダイレクト制限・UX悪化）
- *    → 代わりに「入手」ボタンをユーザー操作で提供
- * 3) In-App Browser（Instagram/FB等）は OS委譲が阻害されがち
- *    → 「Safari/Chrome で開く」案内に切り替える（成功率が上がる）
- * 4) カスタムスキームは最後の手段として用意（環境によっては抑止される）
- *
- * 重要：
- * - 本コンポーネントは Web のみ表示（ネイティブは return null）
- * - “アプリが開いたか” の検出は完全ではないため、過信しない
+ * - まず Universal Link を狙うが、Safari内で抑止されるケースがあるため
+ *   「別オリジン経由(=OIA relay)」をメイン導線にする（外部起点に寄せる）
+ * - OIA relay はサーバ側で許可ホストを固定し open redirect を防ぐ
+ * - JSで遷移をいじらない（ULはリンクタップが最強）
  */
 const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 	path,
@@ -65,34 +59,6 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 	// 【設計】A案：遅延後に同一ページに残っている場合のみ fallback/help を表示
 	const delayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-	const buildQueryString = useCallback(() => {
-		if (!params) return "";
-		const query = new URLSearchParams();
-		Object.entries(params).forEach(([key, value]) => {
-			if (value === undefined) return;
-			// 配列は comma join（既存実装互換）
-			const val = Array.isArray(value) ? value.join(",") : value;
-			query.append(key, val);
-		});
-		const qs = query.toString();
-		return qs ? `?${qs}` : "";
-	}, [params]);
-
-	const universalUrl = useMemo(() => {
-		// 例: https://app.nanitabeyo.net/ja/posts?ids=...
-		// ※ universalBaseUrl が末尾 "/" の場合も考慮
-		const base = universalBaseUrl?.replace(/\/+$/, "") || "";
-		const qs = buildQueryString();
-		return `${base}/${locale}/${path}${qs}`;
-	}, [universalBaseUrl, locale, path, buildQueryString]);
-
-	const customSchemeUrl = useMemo(() => {
-		// 例: nanitabeyo:///ja/posts?ids=...
-		const qs = buildQueryString();
-		return `${scheme}:///${locale}/${path}${qs}`;
-	}, [scheme, locale, path, buildQueryString]);
-
-	// 【設計】タイマークリーンアップ用のヘルパー関数
 	const clearDelayTimer = useCallback(() => {
 		if (delayTimerRef.current) {
 			clearTimeout(delayTimerRef.current);
@@ -100,31 +66,68 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 		}
 	}, []);
 
-	const addNonce = useCallback((urlString: string) => {
-		const url = new URL(urlString);
-		// analytics/ログで除外しやすいキー名にするのがコツ
-		url.searchParams.set("_oia", "1"); // open-in-app
-		url.searchParams.set("_t", String(Date.now())); // nonce
-		return url.toString();
-	}, []);
-
-	const normalizeForCompare = useCallback((urlString: string) => {
-		try {
-			const url = new URL(urlString);
-			url.hash = ""; // hash は比較から除外
-			return url.toString().replace(/\/$/, "");
-		} catch {
-			return urlString.replace(/\/$/, "");
+	const buildQueryString = useCallback(() => {
+		if (!params) return "";
+		const query = new URLSearchParams();
+		for (const [key, value] of Object.entries(params)) {
+			if (value === undefined) continue;
+			query.append(key, Array.isArray(value) ? value.join(",") : value);
 		}
-	}, []);
+		const qs = query.toString();
+		return qs ? `?${qs}` : "";
+	}, [params]);
 
-	// 【設計】同一URLの時だけ nonce を付与（毎回URLが変わるのを防ぐ）
-	const urlToGo = useMemo(() => {
-		if (!isBrowser) return universalUrl;
-		const current = normalizeForCompare(window.location.href);
-		const target = normalizeForCompare(universalUrl);
-		return current === target ? addNonce(universalUrl) : universalUrl;
-	}, [isBrowser, universalUrl, addNonce, normalizeForCompare]);
+	const universalUrl = useMemo(() => {
+		const base = universalBaseUrl.replace(/\/+$/, "");
+		const qs = buildQueryString();
+		return `${base}/${locale}/${path}${qs}`;
+	}, [universalBaseUrl, locale, path, buildQueryString]);
+
+	const customSchemeUrl = useMemo(() => {
+		const qs = buildQueryString();
+		return `${scheme}:///${locale}/${path}${qs}`;
+	}, [scheme, locale, path, buildQueryString]);
+
+	// クリックの多重押し時に「同一URL扱い」を避けたい場合だけ nonce を足す（控えめ）
+	const addNonceIfSame = useCallback(
+		(targetUrl: string) => {
+			if (!isBrowser) return targetUrl;
+			try {
+				const current = new URL(window.location.href);
+				const target = new URL(targetUrl);
+				current.hash = "";
+				target.hash = "";
+				const norm = (u: URL) => u.toString().replace(/\/$/, "");
+				if (norm(current) !== norm(target)) return targetUrl;
+
+				target.searchParams.set("_oia", "1");
+				target.searchParams.set("_t", String(Date.now()));
+				return target.toString();
+			} catch {
+				return targetUrl;
+			}
+		},
+		[isBrowser],
+	);
+
+	const urlToGo = useMemo(() => addNonceIfSame(universalUrl), [universalUrl, addNonceIfSame]);
+
+	/**
+	 * OIA relay（外部起点を擬似的に作る）
+	 * 例: https://api.nanitabeyo.net/oia/open?u=<encoded https://app.nanitabeyo.net/...>
+	 *
+	 * NOTE:
+	 * - パス `/oia/open` は例。NestJS側で実装するエンドポイントに合わせて変えてOK。
+	 * - サーバ側で「u の host が app.nanitabeyo.net のみ許可」などを必ず入れること。
+	 */
+	const oiaRelayUrl = useMemo(() => {
+		const base = (Env.BACKEND_BASE_URL || "").replace(/\/+$/, "");
+		if (!base) return undefined;
+		return `${base}/oia/open?u=${encodeURIComponent(urlToGo)}`;
+	}, [urlToGo]);
+
+	// 実際にユーザーに踏ませるURL（原則 relay、無ければ直UL）
+	const primaryHref = oiaRelayUrl ?? urlToGo;
 
 	const storeUrl = useMemo(() => {
 		// “自動遷移”はしない方針なので、ボタン用にURLを返すだけ
@@ -139,41 +142,18 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 		return undefined;
 	}, [isBrowser]);
 
-	// 【設計】<a> タグ用のプレーン CSS スタイル（StyleSheet 非経由で安全）
-	const openLinkStyle: React.CSSProperties = {
-		textDecoration: "none",
-		backgroundColor: "#f05537",
-		padding: "9px 14px",
-		borderRadius: 8,
-		display: "flex",
-		alignItems: "center",
-		justifyContent: "center",
-	};
-
-	const schemeLinkStyle: React.CSSProperties = {
-		textDecoration: "none",
-		backgroundColor: "#f05537",
-		padding: "8px 10px",
-		borderRadius: 8,
-		display: "flex",
-		alignItems: "center",
-		justifyContent: "center",
-	};
-
 	useEffect(() => {
 		if (!isBrowser) return;
 
 		// モバイル判定：Feature Detection 優先、UA はフォールバック
 		const checkMobile = () => {
 			try {
-				const hasCoarsePointer = window.matchMedia?.("(pointer: coarse)")?.matches ?? false;
+				const coarse = window.matchMedia?.("(pointer: coarse)")?.matches ?? false;
 				const noHover = window.matchMedia?.("(hover: none)")?.matches ?? false;
-				const featureDetection = hasCoarsePointer && noHover;
-
+				const feature = coarse && noHover;
 				const ua = navigator.userAgent || "";
-				const uaDetection = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
-
-				setIsMobile(featureDetection || uaDetection);
+				const uaDetect = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+				setIsMobile(feature || uaDetect);
 			} catch {
 				// matchMedia 未対応などの保険
 				const ua = navigator.userAgent || "";
@@ -217,7 +197,8 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 		};
 	}, [isBrowser, clearDelayTimer]);
 
-	const handleOpenInApp = useCallback(() => {
+	// 「押しても残った時だけ」fallback/help を出す（ただし遷移は a タグに任せる）
+	const onTapOpen = useCallback(() => {
 		if (!isBrowser) return;
 
 		clearDelayTimer();
@@ -227,9 +208,6 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 
 		const startHref = window.location.href;
 
-		// 先に遷移（OS委譲狙い）
-		window.location.assign(urlToGo);
-
 		delayTimerRef.current = setTimeout(() => {
 			if (becameHiddenRef.current || document.visibilityState === "hidden") return;
 			if (window.location.href !== startHref) return;
@@ -237,10 +215,29 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 			if (isInAppBrowser && !isHelpDismissed) setShowHelp(true);
 			setShouldShowFallback(true);
 		}, 700);
-	}, [isBrowser, urlToGo, isInAppBrowser, isHelpDismissed, clearDelayTimer]);
+	}, [isBrowser, isInAppBrowser, isHelpDismissed, clearDelayTimer]);
 
-	// “モバイルでない”なら出さない（PC にバナーはノイズ）
 	if (!isMobile || !isBrowser) return null;
+
+	const openLinkStyle: React.CSSProperties = {
+		textDecoration: "none",
+		backgroundColor: "#f05537",
+		padding: "9px 14px",
+		borderRadius: 8,
+		display: "flex",
+		alignItems: "center",
+		justifyContent: "center",
+	};
+
+	const schemeLinkStyle: React.CSSProperties = {
+		textDecoration: "none",
+		backgroundColor: "#f05537",
+		padding: "8px 10px",
+		borderRadius: 8,
+		display: "flex",
+		alignItems: "center",
+		justifyContent: "center",
+	};
 
 	return (
 		<View style={styles.overlay} pointerEvents="box-none">
@@ -259,12 +256,14 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 				</View>
 
 				<View style={styles.actions}>
-					{/* メイン：Universal Link（<a href> でトップレベル遷移を実現） */}
+					{/* メイン：OIA relay（外部起点に寄せてUL成功率を上げる） */}
 					<a
-						href={urlToGo}
+						href={primaryHref}
 						style={openLinkStyle}
 						target="_self"
 						rel="noopener"
+						// JSで遷移は邪魔しない。押下検知だけ行う。
+						onClick={onTapOpen}
 						role="button"
 						aria-label={i18n.t("DeepLinking.openInApp")}>
 						<span style={{ color: "#fff", fontSize: 13, fontWeight: 800 }}>{i18n.t("DeepLinking.openInApp")}</span>
@@ -341,7 +340,6 @@ const styles = StyleSheet.create({
 		borderRadius: 10,
 		paddingVertical: 10,
 		paddingHorizontal: 12,
-
 		shadowColor: "#000",
 		shadowOffset: { width: 0, height: 2 },
 		shadowOpacity: 0.12,
@@ -374,17 +372,6 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		gap: 8,
 	},
-	openButton: {
-		backgroundColor: "#f05537",
-		paddingVertical: 9,
-		paddingHorizontal: 14,
-		borderRadius: 8,
-	},
-	openButtonText: {
-		color: "#FFFFFF",
-		fontSize: 13,
-		fontWeight: "800",
-	},
 	storeButton: {
 		backgroundColor: "#1A1A1A",
 		paddingVertical: 9,
@@ -396,8 +383,6 @@ const styles = StyleSheet.create({
 		fontSize: 13,
 		fontWeight: "800",
 	},
-
-	// “開けないときの次の手” を控えめに
 	fallbackRow: {
 		marginTop: 8,
 		backgroundColor: "rgba(255,255,255,0.92)",
@@ -407,7 +392,6 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "space-between",
-
 		shadowColor: "#000",
 		shadowOffset: { width: 0, height: 1 },
 		shadowOpacity: 0.08,
@@ -421,19 +405,6 @@ const styles = StyleSheet.create({
 		fontWeight: "600",
 		color: "#333",
 	},
-	schemeButton: {
-		backgroundColor: "#f05537",
-		paddingVertical: 8,
-		paddingHorizontal: 10,
-		borderRadius: 8,
-	},
-	schemeButtonText: {
-		color: "#fff",
-		fontSize: 12,
-		fontWeight: "800",
-	},
-
-	// In-App Browser ヘルプ
 	helpBox: {
 		marginTop: 8,
 		backgroundColor: "rgba(26,26,26,0.96)",
