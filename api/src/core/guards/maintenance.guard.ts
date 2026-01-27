@@ -24,7 +24,7 @@ import { CLS_KEY_APP_VERSION } from '../cls/cls.constants';
 @Injectable()
 export class MaintenanceGuard implements CanActivate {
   /** 許可するパス（メンテナンス・バージョンチェックを行わない） */
-  private readonly allowedPaths = ['/metrics'];
+  private readonly allowedPaths = ['/metrics', '/oia/open'];
 
   constructor(
     private readonly remoteConfigService: RemoteConfigService,
