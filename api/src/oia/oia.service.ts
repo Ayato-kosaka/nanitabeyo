@@ -1,5 +1,9 @@
 // api/src/oia/oia.service.ts
-import { Injectable, BadRequestException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
 
 /**
  * OIA (Open In App) Relay Service
@@ -24,7 +28,7 @@ export class OiaService {
    * @throws BadRequestException URL が不正な場合
    * @throws ForbiddenException プロトコル/ホストが許可されていない場合
    */
-  validateTargetUrl(targetUrl: string): URL {
+  validateTargetUrl(targetUrl: string | undefined): URL {
     // #713 【セキュリティ】u パラメータ必須チェック
     if (!targetUrl || targetUrl.trim() === '') {
       throw new BadRequestException('Missing required parameter: u');

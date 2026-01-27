@@ -1,7 +1,7 @@
 // api/test/oia-open.e2e-spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
-import request from 'supertest';
+import * as request from 'supertest';
 import { AppModule } from './../src/app.module';
 
 describe('OIA Open Relay (e2e)', () => {
