@@ -114,16 +114,12 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 
 	/**
 	 * OIA relay（外部起点を擬似的に作る）
-	 * 例: https://api.nanitabeyo.net/oia/open?u=<encoded https://app.nanitabeyo.net/...>
-	 *
-	 * NOTE:
-	 * - パス `/oia/open` は例。NestJS側で実装するエンドポイントに合わせて変えてOK。
-	 * - サーバ側で「u の host が app.nanitabeyo.net のみ許可」などを必ず入れること。
+	 * 例: https://oia-relay.web/oia/open?u=<encoded https://app.nanitabeyo.net/...>
 	 */
 	const oiaRelayUrl = useMemo(() => {
-		const base = (Env.BACKEND_BASE_URL || "").replace(/\/+$/, "");
+		const base = "https://oia-relay.web.app".replace(/\/+$/, "");
 		if (!base) return undefined;
-		return `${base}/oia/open?u=${encodeURIComponent(urlToGo)}`;
+		return `${base}/oia/open/?u=${encodeURIComponent(urlToGo)}`;
 	}, [urlToGo]);
 
 	// 実際にユーザーに踏ませるURL（原則 relay、無ければ直UL）
