@@ -53,7 +53,7 @@ export class OiaService {
     }
 
     // #713 【セキュリティ】ホスト検証（allowlist）
-    if (!this.ALLOWED_HOSTS.includes(parsedUrl.host)) {
+    if (!this.ALLOWED_HOSTS.includes(parsedUrl.hostname)) {
       throw new ForbiddenException(
         `Host not allowed. Allowed hosts: ${this.ALLOWED_HOSTS.join(', ')}`,
       );

@@ -42,10 +42,6 @@ export class OiaController {
     });
 
     // #713 【仕様】302 Redirect（互換性優先）
-    res
-      .status(HttpStatus.FOUND) // 302
-      .header('Location', validatedUrl.href)
-      .header('Cache-Control', 'no-store') // #713 【仕様】キャッシュ無効化
-      .header('Referrer-Policy', 'no-referrer'); // #713 【セキュリティ】Referrer 非送信
+    return res.redirect(HttpStatus.FOUND, validatedUrl.href);
   }
 }
