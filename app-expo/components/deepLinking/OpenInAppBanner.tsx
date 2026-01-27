@@ -260,21 +260,7 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 
 				<View style={styles.actions}>
 					{/* メイン：Universal Link（<a href> でトップレベル遷移を実現） */}
-					<a
-						href={urlToGo}
-						style={openLinkStyle}
-						onClickCapture={(e) => {
-							// SPA/ルーター/JSが邪魔しないように
-							e.preventDefault();
-							e.stopPropagation();
-
-							handleOpenInApp();
-
-							// OS委譲が起きやすい「トップレベル遷移」を強制
-							window.location.assign(urlToGo);
-						}}
-						role="button"
-						aria-label={i18n.t("DeepLinking.openInApp")}>
+					<a href={urlToGo} style={openLinkStyle} role="button" aria-label={i18n.t("DeepLinking.openInApp")}>
 						<span style={{ color: "#fff", fontSize: 13, fontWeight: 800 }}>{i18n.t("DeepLinking.openInApp")}</span>
 					</a>
 
