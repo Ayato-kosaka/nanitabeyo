@@ -136,6 +136,17 @@
 					"destination": "/index.html"
 				}
 			]
+		},
+		{
+			"site": "oia-relay",
+			"public": "app-expo/relay-public",
+			"ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+			"headers": [
+				{
+					"source": "**",
+					"headers": [{ "key": "Cache-Control", "value": "no-store" }]
+				}
+			]
 		}
 	]
 }

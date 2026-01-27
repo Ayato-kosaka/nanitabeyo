@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ja">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width,initial-scale=1" />
+		<title>アプリで開く</title>
+		<meta name="robots" content="noindex,nofollow" />
+	</head>
+	<body>
+		<p>アプリで開きます…</p>
+		<p><a id="open" href="#">アプリで開く</a></p>
+		<p><a id="fallback" href="https://app.nanitabeyo.net/">Webで開く</a></p>
+
+		<script>
+			const ALLOW_ORIGIN = "https://app.nanitabeyo.net";
+
+			const url = new URL(location.href);
+			const u = url.searchParams.get("u"); // エンコードされたフルURLが入る想定
+
+			function safeTarget(raw) {
+				if (!raw) return null;
+				let decoded;
+				try {
+					decoded = decodeURIComponent(raw);
+				} catch (e) {
+					return null;
+				}
+
+				let target;
+				try {
+					target = new URL(decoded);
+				} catch (e) {
+					return null;
+				}
+
+				// オープンリダイレクト防止：行き先は app.nanitabeyo.net のみ許可
+				if (target.origin !== ALLOW_ORIGIN) return null;
+
+				return target.toString();
+			}
+
+			const target = safeTarget(u) || ALLOW_ORIGIN + "/";
+
+			document.getElementById("open").href = target;
+			document.getElementById("fallback").href = target;
+
+			// 自動遷移（環境によって抑止されることがあるので“補助”。タップ導線も残す）
+			setTimeout(() => {
+				location.href = target;
+			}, 50);
+		</script>
+	</body>
+</html>
