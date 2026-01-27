@@ -217,46 +217,27 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 		};
 	}, [isBrowser, clearDelayTimer]);
 
-
-
 	const handleOpenInApp = useCallback(() => {
 		if (!isBrowser) return;
 
-		// クリア既存のタイマー（多重クリック対策）
 		clearDelayTimer();
-
-		// 状態をリセット（連打時の混在を防ぐ）
 		setShowHelp(false);
 		setShouldShowFallback(false);
 		becameHiddenRef.current = false;
 
-		// クリック時点の URL を保持（遷移判定用）
 		const startHref = window.location.href;
 
-		// A案：押下直後は fallback/help を表示しない
-		// 700ms 後に「まだ同一ページに残っている場合のみ」表示する
+		// 先に遷移（OS委譲狙い）
+		window.location.assign(urlToGo);
+
 		delayTimerRef.current = setTimeout(() => {
-			// アプリに移動できた可能性（ページが hidden になった）
-			if (becameHiddenRef.current || document.visibilityState === "hidden") {
-				return;
-			}
+			if (becameHiddenRef.current || document.visibilityState === "hidden") return;
+			if (window.location.href !== startHref) return;
 
-			// URLが変わっていたら（別ページに遷移した）何も出さない
-			if (window.location.href !== startHref) {
-				return;
-			}
-
-			// まだ visible かつ同一ページにいる場合
-			// In-App Browser: help を表示（dismiss されていなければ）
-			// IAB でも fallback を出す（help を閉じた後に「別方式で試す」導線が必要）
-			if (isInAppBrowser && !isHelpDismissed) {
-				setShowHelp(true);
-			}
-			// 通常ブラウザ/IAB 両方で fallback を表示
+			if (isInAppBrowser && !isHelpDismissed) setShowHelp(true);
 			setShouldShowFallback(true);
 		}, 700);
-	}, [isBrowser, isInAppBrowser, isHelpDismissed, clearDelayTimer]);
-
+	}, [isBrowser, urlToGo, isInAppBrowser, isHelpDismissed, clearDelayTimer]);
 
 	// “モバイルでない”なら出さない（PC にバナーはノイズ）
 	if (!isMobile || !isBrowser) return null;
@@ -282,12 +263,19 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 					<a
 						href={urlToGo}
 						style={openLinkStyle}
-						onClick={handleOpenInApp}
+						onClickCapture={(e) => {
+							// SPA/ルーター/JSが邪魔しないように
+							e.preventDefault();
+							e.stopPropagation();
+
+							handleOpenInApp();
+
+							// OS委譲が起きやすい「トップレベル遷移」を強制
+							window.location.assign(urlToGo);
+						}}
 						role="button"
 						aria-label={i18n.t("DeepLinking.openInApp")}>
-						<span style={{ color: "#fff", fontSize: 13, fontWeight: 800 }}>
-							{i18n.t("DeepLinking.openInApp")}
-						</span>
+						<span style={{ color: "#fff", fontSize: 13, fontWeight: 800 }}>{i18n.t("DeepLinking.openInApp")}</span>
 					</a>
 
 					{/* ストア：自動ではなく“ボタン”で提供（ポリシー/ブロック回避・UX改善） */}
@@ -316,9 +304,7 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 						}}
 						role="button"
 						aria-label={i18n.t("DeepLinking.tryScheme")}>
-						<span style={{ color: "#fff", fontSize: 12, fontWeight: 800 }}>
-							{i18n.t("DeepLinking.tryScheme")}
-						</span>
+						<span style={{ color: "#fff", fontSize: 12, fontWeight: 800 }}>{i18n.t("DeepLinking.tryScheme")}</span>
 					</a>
 				</View>
 			)}
