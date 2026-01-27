@@ -260,7 +260,13 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 
 				<View style={styles.actions}>
 					{/* メイン：Universal Link（<a href> でトップレベル遷移を実現） */}
-					<a href={urlToGo} style={openLinkStyle} role="button" aria-label={i18n.t("DeepLinking.openInApp")}>
+					<a
+						href={urlToGo}
+						style={openLinkStyle}
+						target="_self"
+						rel="noopener"
+						role="button"
+						aria-label={i18n.t("DeepLinking.openInApp")}>
 						<span style={{ color: "#fff", fontSize: 13, fontWeight: 800 }}>{i18n.t("DeepLinking.openInApp")}</span>
 					</a>
 
