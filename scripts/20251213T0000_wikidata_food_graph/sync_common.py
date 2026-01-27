@@ -22,6 +22,8 @@ from typing import Dict, Optional
 from google.cloud import storage
 from io import StringIO
 import csv
+import time
+import psycopg2
 
 logger = logging.getLogger(__name__)
 
@@ -109,7 +111,14 @@ class PostgreSQLConnection:
     def connect(self):
         """PostgreSQL に接続"""
         logger.info(f"Connecting to PostgreSQL (schema: {self.schema})...")
-        self.conn = psycopg2.connect(self.database_url)
+        connect_kwargs = {
+            "connect_timeout": 10,
+            "keepalives": 1,
+            "keepalives_idle": 30,
+            "keepalives_interval": 10,
+            "keepalives_count": 5,
+        }
+        self.conn = psycopg2.connect(self.database_url, **connect_kwargs)
         self.cursor = self.conn.cursor()
         
         # スキーマを設定
@@ -143,42 +152,68 @@ def backup_table_to_gcs(
     Returns:
         バックアップファイルのGCSパス、失敗時は None
     """
-    try:
-        # タイムスタンプ付きディレクトリ
+    def _run_once() -> str:
         timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
         gcs_dir = f"{GCS_BACKUP_PREFIX}/{timestamp}"
         gcs_path = f"gs://{GCS_BUCKET}/{gcs_dir}/{table_name}.csv"
-        
+
         logger.info(f"Backing up {table_name} to {gcs_path}...")
-        
+
         if dry_run:
             logger.info(f"[DRY-RUN] Would backup {table_name} to {gcs_path}")
             return gcs_path
-        
-        # テーブルデータを取得
-        pg_conn.cursor.execute(f"SELECT * FROM {table_name}")
-        rows = pg_conn.cursor.fetchall()
-        columns = [desc[0] for desc in pg_conn.cursor.description]
-        
-        # CSV 文字列を作成
+
+        # ★共有カーソルは使わない（巻き添え防止）
+        with pg_conn.conn.cursor() as cur:
+            cur.execute(f"SELECT * FROM {table_name}")
+            rows = cur.fetchall()
+            columns = [desc[0] for desc in cur.description]
+
         csv_buffer = StringIO()
         writer = csv.writer(csv_buffer)
         writer.writerow(columns)
         writer.writerows(rows)
         csv_data = csv_buffer.getvalue()
-        
-        # GCS にアップロード
+
         storage_client = storage.Client(project=GCP_PROJECT)
         bucket = storage_client.bucket(GCS_BUCKET)
         blob = bucket.blob(f"{gcs_dir}/{table_name}.csv")
         blob.upload_from_string(csv_data, content_type='text/csv')
-        
+
         logger.info(f"✅ Backed up {len(rows)} rows to {gcs_path}")
         return gcs_path
-        
+
+    try:
+        return _run_once()
+
     except Exception as e:
-        logger.error(f"❌ Failed to backup {table_name}: {e}")
-        return None
+        msg = str(e)
+        retriable = (
+            "SSL SYSCALL error: EOF detected" in msg
+            or "server closed the connection unexpectedly" in msg
+            or "cursor already closed" in msg
+            or isinstance(e, psycopg2.OperationalError)
+            or isinstance(e, psycopg2.InterfaceError)
+        )
+
+        logger.error(f"❌ Failed to backup {table_name}: {e}", exc_info=True)
+
+        if not retriable:
+            return None
+
+        # 1回だけリトライ（新規接続）
+        logger.warning(f"🔁 Retrying backup {table_name} once with a fresh connection...")
+        try:
+            try:
+                pg_conn.close()
+            except Exception:
+                pass
+            pg_conn.connect()
+            time.sleep(0.5)
+            return _run_once()
+        except Exception as e2:
+            logger.error(f"❌ Backup retry failed for {table_name}: {e2}", exc_info=True)
+            return None
 
 
 def write_dry_run_summary(stats: SyncStats, table_name: str, output_path: str):
