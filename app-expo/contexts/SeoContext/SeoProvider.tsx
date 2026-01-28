@@ -8,7 +8,7 @@
  * #717 【設計】Head出力を1箇所に集約し、重複・残留を防止
  */
 
-import React, { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
 
 export type SeoData = {
 	title?: string;
@@ -41,6 +41,11 @@ type SeoProviderProps = {
 export function SeoProvider({ children, initialDefaults = {} }: SeoProviderProps) {
 	const [defaults, setDefaults] = useState<SeoData>(initialDefaults);
 	const [stack, setStack] = useState<SeoOverride[]>([]);
+
+	// #717 【設計】initialDefaults が変更されたら defaults を更新（locale変更時など）
+	useEffect(() => {
+		setDefaults(initialDefaults);
+	}, [initialDefaults]);
 
 	// #717 【設計】同一IDでの上書き更新を可能にする（既存を削除してから追加）
 	const push = useCallback((id: string, data: SeoData) => {

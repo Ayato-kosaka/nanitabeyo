@@ -95,7 +95,7 @@ export default function RootLayout() {
 
 		// #717 【設計】i18n の locale を必ず同期
 		i18n.locale = getResolvedLocale(locale);
-	}, [locale]);
+	}, [locale, router, logFrontendEvent, scheme]);
 
 	if (!fontsLoaded) return null;
 

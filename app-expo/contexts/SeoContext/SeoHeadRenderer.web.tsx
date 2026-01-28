@@ -16,7 +16,7 @@ import { PUBLIC_LOCALES, DEFAULT_PUBLIC_LOCALE, PublicLocale } from "@/constants
 import { Env } from "@/constants/Env";
 
 const WEB_BASE_URL = Env.WEB_BASE_URL;
-const TWITTER_SITE = "nanitabeyo";
+const TWITTER_SITE = "@nanitabeyo";
 
 /**
  * og:locale 形式に変換（ja-JP → ja_JP）

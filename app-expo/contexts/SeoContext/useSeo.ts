@@ -19,6 +19,7 @@ export function useSeo(data: SeoData) {
 	const id = useId();
 
 	// #717 【設計】フォーカス連動でpush/pop（タブ/スタック対応）
+	// #717 【バグ】data 変更時にも再登録が必要なため、依存配列に data を含める
 	useFocusEffect(() => {
 		push(id, data);
 		return () => {

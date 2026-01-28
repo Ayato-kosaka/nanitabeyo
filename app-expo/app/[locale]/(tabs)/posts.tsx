@@ -9,6 +9,7 @@ import { useAPICall } from "@/hooks/useAPICall";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { OpenInAppBanner } from "@/components/deepLinking/OpenInAppBanner";
 import { useSeo } from "@/contexts/SeoContext";
+import i18n from "@/lib/i18n";
 
 export default function PostsScreen() {
 	const { ids } = useLocalSearchParams<{ ids?: string | string[] }>();
@@ -16,9 +17,12 @@ export default function PostsScreen() {
 	const entriesKey = "PostsScreen";
 
 	// #717 【設計】useSeo で投稿画面のSEO情報を上書き（フォーカス連動で自動解除）
+	// #717 【設計】i18n を使用して多言語対応（ハードコードではなく翻訳キー使用）
 	useSeo({
-		title: "料理の投稿 | なに食べよ",
-		description: "ユーザーが投稿した料理の写真とレビューをご覧ください。",
+		title: i18n.t("Posts.title", { defaultValue: "料理の投稿 | なに食べよ" }),
+		description: i18n.t("Posts.description", {
+			defaultValue: "ユーザーが投稿した料理の写真とレビューをご覧ください。",
+		}),
 	});
 
 	useEffect(() => {
