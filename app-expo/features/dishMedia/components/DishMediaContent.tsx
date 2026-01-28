@@ -106,7 +106,8 @@ export default function DishMediaContent({
 		uri: bgUri,
 		cacheBustingKey: dishMediaEntry.dish_media.id,
 		enableAutoRetry: true,
-		onErrorCountChange: (count) => {
+		onErrorCountChange: (count, errorMessage) => {
+			// #715 【設計】error_message をログに追加
 			logFrontendEvent({
 				event_name: "dish_media_background_image_load_error",
 				error_level: "log",
@@ -115,10 +116,12 @@ export default function DishMediaContent({
 					media_type: dishMediaEntry.dish_media.media_type,
 					bg_uri: bgUri,
 					error_count: count,
+					error_message: errorMessage,
 				},
 			});
 		},
-		onGiveUp: (count) => {
+		onGiveUp: (count, errorMessage) => {
+			// #715 【設計】error_message をログに追加
 			logFrontendEvent({
 				event_name: "dish_media_background_image_load_error",
 				error_level: "error",
@@ -127,6 +130,7 @@ export default function DishMediaContent({
 					media_type: dishMediaEntry.dish_media.media_type,
 					bg_uri: bgUri,
 					error_count: count,
+					error_message: errorMessage,
 				},
 			});
 		},
@@ -264,6 +268,8 @@ export default function DishMediaContent({
 						onLoadStart={bgLoadHandlers.onLoadStart}
 						onLoad={bgLoadHandlers.onLoad}
 						onError={bgLoadHandlers.onError}
+						onDisplay={bgLoadHandlers.onDisplay} // #715 【設計】onDisplay ハンドラを追加
+						onLoadEnd={bgLoadHandlers.onLoadEnd} // #715 【設計】onLoadEnd ハンドラを追加
 					/>
 					{/* #630 【設計】動画の場合のみ VideoPlayer を重ねて表示 */}
 					{isVideo && hasMediaUrl && !isProcessing && !isFailed && dishMediaEntry.dish_media.mediaUrl && (

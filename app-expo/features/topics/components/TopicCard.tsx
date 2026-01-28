@@ -41,7 +41,8 @@ export const TopicCard = ({
 	} = useImageLoadWithRetry({
 		uri: item.imageUrl,
 		cacheBustingKey: item.categoryId,
-		onErrorCountChange: (count) => {
+		onErrorCountChange: (count, errorMessage) => {
+			// #715 【設計】error_message をログに追加
 			logFrontendEvent({
 				event_name: "topic_image_load_error",
 				error_level: "log",
@@ -49,10 +50,12 @@ export const TopicCard = ({
 					topic_id: item.categoryId,
 					error_count: count,
 					image_url: item.imageUrl,
+					error_message: errorMessage,
 				},
 			});
 		},
-		onGiveUp: (count) => {
+		onGiveUp: (count, errorMessage) => {
+			// #715 【設計】error_message をログに追加
 			logFrontendEvent({
 				event_name: "topic_image_load_give_up",
 				error_level: "warn",
@@ -60,6 +63,7 @@ export const TopicCard = ({
 					topic_id: item.categoryId,
 					error_count: count,
 					image_url: item.imageUrl,
+					error_message: errorMessage,
 				},
 			});
 		},
@@ -168,6 +172,8 @@ export const TopicCard = ({
 				onLoadStart={handlers.onLoadStart}
 				onLoad={handlers.onLoad}
 				onError={handlers.onError}
+				onDisplay={handlers.onDisplay} // #715 【設計】onDisplay ハンドラを追加
+				onLoadEnd={handlers.onLoadEnd} // #715 【設計】onLoadEnd ハンドラを追加
 			/>
 
 			{/* #615 【UX】画像ロード中のスケルトン表示 */}
