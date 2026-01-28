@@ -36,7 +36,6 @@ export const TopicCard = ({
 		loadState,
 		isRetrying,
 		hasGivenUp,
-		lastErrorMessage, // #715 【設計】エラーメッセージを取得してログに含める
 		handlers,
 		manualRetry,
 	} = useImageLoadWithRetry({
