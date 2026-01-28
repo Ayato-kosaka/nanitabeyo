@@ -13,17 +13,18 @@ interface UseImageLoadWithRetryOptions {
 	/** キャッシュバスターに混ぜるキー（categoryId や mediaId など） */
 	cacheBustingKey?: string | number;
 
-	/** エラー時（エラーカウント更新時）に呼ばれる */
-	onErrorCountChange?: (errorCount: number) => void;
-	/** 自動リトライを諦めたタイミングで呼ばれる */
-	onGiveUp?: (errorCount: number) => void;
+	/** エラー時（エラーカウント更新時）に呼ばれる。#715 errorMessage 追加（後方互換） */
+	onErrorCountChange?: (errorCount: number, errorMessage?: string) => void;
+	/** 自動リトライを諦めたタイミングで呼ばれる。#715 errorMessage 追加（後方互換） */
+	onGiveUp?: (errorCount: number, errorMessage?: string) => void;
 }
 
 /**
  * #630 expo-image 向け ロード状態 + 自動/手動リトライ + キャッシュバスター管理フック
+ * #715 onDisplay / onLoadEnd ハンドラ + エラーメッセージ詳細ログ対応
  * UI や文言には一切依存しない薄い共通化。
  * @param param0 useImageLoadWithRetry のオプション
- * @returns ロード状態、expo-image 用ハンドラ、手動リトライ関数
+ * @returns ロード状態、expo-image 用ハンドラ、手動リトライ関数、最後のエラーメッセージ
  */
 export const useImageLoadWithRetry = ({
 	uri,
@@ -38,6 +39,8 @@ export const useImageLoadWithRetry = ({
 	const [errorCount, setErrorCount] = useState(0);
 	const [isRetrying, setIsRetrying] = useState(false);
 	const [reloadToken, setReloadToken] = useState(0);
+	// #715 【設計】最後のエラーメッセージを保持（ログ連携用）
+	const [lastErrorMessage, setLastErrorMessage] = useState<string | undefined>(undefined);
 
 	const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const prevSourceKeyRef = useRef<string | undefined>(undefined);
@@ -93,28 +96,57 @@ export const useImageLoadWithRetry = ({
 		clearTimer();
 	}, [clearTimer]);
 
-	const handleError = useCallback(() => {
-		setLoadState("error");
+	// #715 【設計】onDisplay ハンドラ: 画像が表示されたら確実に loaded 扱い
+	const handleDisplay = useCallback(() => {
+		setLoadState("loaded");
+		setIsRetrying(false);
+		clearTimer();
+	}, [clearTimer]);
 
-		setErrorCount((prev) => {
-			const next = prev + 1;
-			onErrorCountChange?.(next);
+	// #715 【設計】onLoadEnd ハンドラ: 最低限 loading のまま残らないようにする
+	const handleLoadEnd = useCallback(() => {
+		setIsRetrying(false);
+		clearTimer();
+		// error 状態の場合は loaded に戻さない（安全側）
+		setLoadState((prev) => (prev === "loading" ? "loaded" : prev));
+	}, [clearTimer]);
 
-			if (enableAutoRetry && next <= maxAutoRetry) {
-				scheduleRetry(next);
-			} else if (next > maxAutoRetry) {
-				onGiveUp?.(next);
+	const handleError = useCallback(
+		// #715 【設計】event 引数を受け取り event.error を抽出
+		// expo-image の onError は ImageErrorEventData を渡すが、環境により event.error の型が異なる可能性があるため防御的に処理
+		(event?: { error?: string | Error | unknown }) => {
+			let errorMessage: string | undefined;
+			if (event?.error) {
+				// event.error が Error オブジェクトの場合は message を取得、それ以外は文字列化
+				errorMessage = event.error instanceof Error ? event.error.message : String(event.error);
 			}
+			setLastErrorMessage(errorMessage);
+			setLoadState("error");
 
-			return next;
-		});
-	}, [enableAutoRetry, maxAutoRetry, scheduleRetry, onErrorCountChange, onGiveUp]);
+			setErrorCount((prev) => {
+				const next = prev + 1;
+				// #715 【設計】errorMessage を optional 引数として渡す（後方互換）
+				onErrorCountChange?.(next, errorMessage);
+
+				if (enableAutoRetry && next <= maxAutoRetry) {
+					scheduleRetry(next);
+				} else if (next > maxAutoRetry) {
+					// #715 【設計】errorMessage を optional 引数として渡す（後方互換）
+					onGiveUp?.(next, errorMessage);
+				}
+
+				return next;
+			});
+		},
+		[enableAutoRetry, maxAutoRetry, scheduleRetry, onErrorCountChange, onGiveUp],
+	);
 
 	// 手動リトライ（UI から呼ぶ）
 	const manualRetry = useCallback(() => {
 		if (!uri) return;
 		clearTimer();
 		setErrorCount(0);
+		setLastErrorMessage(undefined); // #715 【設計】エラーメッセージもリセット
 		setIsRetrying(true);
 		setReloadToken((prev) => prev + 1);
 		setLoadState("loading");
@@ -135,8 +167,10 @@ export const useImageLoadWithRetry = ({
 		if (prevSourceKeyRef.current !== sourceKey) {
 			prevSourceKeyRef.current = sourceKey;
 			setErrorCount(0);
+			setLastErrorMessage(undefined); // #715 【設計】エラーメッセージもリセット
 			setIsRetrying(false);
 			setReloadToken(0);
+			setLoadState("loading"); // #715 【設計】新しい URI では loading 状態から開始
 			clearTimer();
 		}
 	}, [sourceKey, clearTimer]);
@@ -150,12 +184,16 @@ export const useImageLoadWithRetry = ({
 		isRetrying,
 		hasGivenUp,
 		uri: effectiveUri,
+		lastErrorMessage, // #715 【設計】エラーメッセージを公開（呼び出し元でログに使える）
 
 		// expo-image 用ハンドラ
 		handlers: {
 			onLoadStart: handleLoadStart,
 			onLoad: handleLoad,
 			onError: handleError,
+			// #715 【設計】onDisplay / onLoadEnd ハンドラを追加
+			onDisplay: handleDisplay,
+			onLoadEnd: handleLoadEnd,
 		},
 
 		// 手動リトライ
