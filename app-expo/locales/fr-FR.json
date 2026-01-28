@@ -13,8 +13,6 @@
 		"success": "Succès",
 		"linkCopied": "Lien copié dans le presse-papiers",
 		"shareFailed": "Échec du partage du contenu",
-		"defaultTitle": "CraveCatch - Find your dish",
-		"defaultDesc": "Indique simplement à l’application ce que vous ressentez, et notre IA vous proposera des plats que vous aurez probablement envie de déguster. Parcourez ensuite de vraies photos de plats et des avis pour choisir instantanément le restaurant qui vous convient.",
 		"daysRemaining": "Il reste {{count}} jours",
 		"timeAgo": {
 			"seconds": "il y a {{count}} secondes",
@@ -24,7 +22,6 @@
 			"months": "il y a {{count}} mois",
 			"years": "il y a {{count}} ans"
 		},
-		"site": "CraveCatch",
 		"errors": {
 			"network": "Une erreur réseau s'est produite. Veuillez vérifier votre connexion.",
 			"unexpected": "Une erreur inattendue s'est produite. Veuillez réessayer plus tard.",
