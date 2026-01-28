@@ -6,7 +6,7 @@
  * - hreflang: PUBLIC_LOCALES のみ出力（alias排除）
  * - og:locale/alternate: PUBLIC_LOCALES に対応
  * - twitter基本設定
- * - title/description/og:*/twitter:* は defaults + 上書きで構成
+ * - title/description/og/twitter は defaults + 上書きで構成
  */
 
 import Head from "expo-router/head";

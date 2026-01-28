@@ -12,16 +12,7 @@
 /**
  * 公開されているロケール一覧（URL prefix として使用される形式）
  */
-export const PUBLIC_LOCALES = [
-	"ja-JP",
-	"en-US",
-	"fr-FR",
-	"zh-CN",
-	"ar-SA",
-	"ko-KR",
-	"es-ES",
-	"hi-IN",
-] as const;
+export const PUBLIC_LOCALES = ["ja-JP", "en-US", "fr-FR", "zh-CN", "ar-SA", "ko-KR", "es-ES", "hi-IN"] as const;
 
 /**
  * デフォルトの公開ロケール

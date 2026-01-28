@@ -61,11 +61,7 @@ export function SeoProvider({ children, initialDefaults = {} }: SeoProviderProps
 		...(stack.length > 0 ? stack[stack.length - 1].data : {}),
 	};
 
-	return (
-		<SeoContext.Provider value={{ defaults, current, setDefaults, push, pop }}>
-			{children}
-		</SeoContext.Provider>
-	);
+	return <SeoContext.Provider value={{ defaults, current, setDefaults, push, pop }}>{children}</SeoContext.Provider>;
 }
 
 export function useSeoContext() {
