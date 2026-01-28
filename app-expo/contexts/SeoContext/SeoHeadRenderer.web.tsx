@@ -12,7 +12,7 @@
 import Head from "expo-router/head";
 import { usePathname } from "expo-router";
 import { useSeoContext } from "./SeoProvider";
-import { PUBLIC_LOCALES, DEFAULT_PUBLIC_LOCALE, PublicLocale } from "@/constants/seoLocales";
+import { PUBLIC_LOCALES, DEFAULT_PUBLIC_LOCALE, PublicLocale, resolvePublicLocale } from "@/constants/seoLocales";
 import { Env } from "@/constants/Env";
 import { useLocale } from "@/hooks/useLocale";
 
@@ -44,23 +44,12 @@ function buildCanonical(pathNoLocale: string, locale: string): string {
 	return `${WEB_BASE_URL}/${locale}${p}`.replace(/\/+$/, "");
 }
 
-/**
- * locale を PublicLocale にクランプ
- */
-function clampPublicLocale(locale: string): PublicLocale {
-	// locale が "(tabs)" みたいなケースは普通ないはずだが、防御的に
-	const normalized = locale.replace(/\(.+\)/, "");
-	return (PUBLIC_LOCALES as readonly string[]).includes(normalized)
-		? (normalized as PublicLocale)
-		: DEFAULT_PUBLIC_LOCALE;
-}
-
 export default function SeoHeadRenderer() {
 	const { current } = useSeoContext();
 
 	const pathname = usePathname() || "/";
 	const { locale: rawLocale } = useLocale();
-	const locale = clampPublicLocale(rawLocale);
+	const locale = resolvePublicLocale(rawLocale);
 
 	// #717 【設計】pathname から locale 部分を除去して canonical を生成
 	const pathNoLocale = stripLocaleFromPath(pathname, locale);
