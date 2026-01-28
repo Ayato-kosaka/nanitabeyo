@@ -11,7 +11,6 @@ import { AppProvider } from "@/components/AppProvider";
 import { HealthCheckInitializer } from "@/components/HealthCheckInitializer";
 import { PushTokenRegistration } from "@/components/PushTokenRegistration";
 import { MetaAppEventsInitializer } from "@/components/MetaAppEventsInitializer";
-import { useColorScheme } from "react-native";
 import { getPaperTheme } from "@/constants/PaperTheme";
 import { useLocaleFonts } from "@/hooks/useLocaleFonts";
 import { useLocale } from "@/hooks/useLocale";
@@ -46,7 +45,7 @@ const isValidBcp47Tag = (tag: string): boolean => {
 export default function RootLayout() {
 	useFrameworkReady();
 	const router = useRouter();
-	const { locale } = useLocale();
+	const { locale, isJapanese } = useLocale();
 	const scheme = "light"; // light モード 固定（ダークモード対応時に useColorScheme() とする）
 	const theme = getPaperTheme(scheme, locale);
 	const { logFrontendEvent } = useLogger();
@@ -55,19 +54,14 @@ export default function RootLayout() {
 
 	// #717 【設計】locale に応じた SEO defaults を生成
 	const seoDefaults: SeoData = useMemo(() => {
-		// i18n.locale が設定されてから取得する必要があるため、
-		// ここでは簡易的にハードコード（または別途i18n経由で取得）
-		const isJapanese = locale === "ja" || locale.startsWith("ja-");
 		return {
-			title: isJapanese
-				? "なに食べよ ~食べたい料理が見つかる新感覚グルメアプリ~"
-				: "Nanitabeyo - Discover Your Next Meal",
-			description: isJapanese
-				? "あなたの気分を入力すると、AIが「これ食べたいでしょ！」という料理を提案してくれます。提案された料理写真やレビューを見ながら、直感的にお店を選べます。"
-				: "Enter your mood and AI will suggest dishes you'll love. Browse photos and reviews to find your perfect restaurant.",
+			title: i18n.t("Common.defaultTitle"),
+			description: i18n.t("Common.defaultDesc"),
 			image: `${Env.WEB_BASE_URL}/og/${isJapanese ? "ja-JP" : "en-US"}.jpg`,
+			imageAlt: i18n.t("Common.defaultTitle"),
+			siteName: i18n.t("Common.site"),
 		};
-	}, [locale]);
+	}, [locale, isJapanese]);
 
 	useEffect(() => {
 		const isLocaleSupported = isValidBcp47Tag(locale);

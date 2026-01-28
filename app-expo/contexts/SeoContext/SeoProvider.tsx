@@ -11,23 +11,23 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
 
 export type SeoData = {
-	title?: string;
-	description?: string;
-	image?: string;
-	imageAlt?: string;
+	title: string;
+	description: string;
+	image: string;
+	imageAlt: string;
 	robots?: string;
+	siteName?: string;
 };
 
-type SeoOverride = {
+export type SeoOverride = {
 	id: string;
-	data: SeoData;
+	data: Partial<SeoData>;
 };
 
 type SeoContextValue = {
 	defaults: SeoData;
 	current: SeoData;
-	setDefaults: (newDefaults: SeoData) => void;
-	push: (id: string, data: SeoData) => void;
+	push: (seoOverride: SeoOverride) => void;
 	pop: (id: string) => void;
 };
 
@@ -35,10 +35,10 @@ const SeoContext = createContext<SeoContextValue | undefined>(undefined);
 
 type SeoProviderProps = {
 	children: ReactNode;
-	initialDefaults?: SeoData;
+	initialDefaults: SeoData;
 };
 
-export function SeoProvider({ children, initialDefaults = {} }: SeoProviderProps) {
+export function SeoProvider({ children, initialDefaults }: SeoProviderProps) {
 	const [defaults, setDefaults] = useState<SeoData>(initialDefaults);
 	const [stack, setStack] = useState<SeoOverride[]>([]);
 
@@ -48,10 +48,10 @@ export function SeoProvider({ children, initialDefaults = {} }: SeoProviderProps
 	}, [initialDefaults]);
 
 	// #717 【設計】同一IDでの上書き更新を可能にする（既存を削除してから追加）
-	const push = useCallback((id: string, data: SeoData) => {
+	const push = useCallback((seoOverride: SeoOverride) => {
 		setStack((prev) => {
-			const filtered = prev.filter((item) => item.id !== id);
-			return [...filtered, { id, data }];
+			const filtered = prev.filter((item) => item.id !== seoOverride.id);
+			return [...filtered, seoOverride];
 		});
 	}, []);
 
@@ -66,7 +66,7 @@ export function SeoProvider({ children, initialDefaults = {} }: SeoProviderProps
 		...(stack.length > 0 ? stack[stack.length - 1].data : {}),
 	};
 
-	return <SeoContext.Provider value={{ defaults, current, setDefaults, push, pop }}>{children}</SeoContext.Provider>;
+	return <SeoContext.Provider value={{ defaults, current, push, pop }}>{children}</SeoContext.Provider>;
 }
 
 export function useSeoContext() {

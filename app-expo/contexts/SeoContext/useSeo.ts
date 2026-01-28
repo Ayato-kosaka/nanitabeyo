@@ -10,24 +10,23 @@
  * フォーカスが外れたら上書きを解除する。
  */
 
-import { useEffect, useId } from "react";
+import { useCallback, useEffect, useId } from "react";
 import { useFocusEffect } from "@react-navigation/native";
-import { useSeoContext, SeoData } from "./SeoProvider";
+import { useSeoContext, SeoOverride } from "./SeoProvider";
 
-export function useSeo(data: SeoData) {
+export function useSeo(data: SeoOverride["data"]) {
 	const { push, pop } = useSeoContext();
 	const id = useId();
 
-	// #717 【設計】フォーカス連動でpush/pop（タブ/スタック対応）
-	// #717 【バグ】data 変更時にも再登録が必要なため、依存配列に data を含める
-	useFocusEffect(() => {
-		push(id, data);
+	// フォーカス連動でpush/pop（タブ/スタック対応）
+	useFocusEffect(useCallback(() => {
+		push({ id, data });
 		return () => {
 			pop(id);
 		};
-	});
+	}, [id, data, push, pop]));
 
-	// #717 【バグ】unmount時にもpopする（useFocusEffectが動かないケースのフォールバック）
+	// unmount時にもpopする（useFocusEffectが動かないケースのフォールバック）
 	useEffect(() => {
 		return () => {
 			pop(id);

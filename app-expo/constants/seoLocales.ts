@@ -1,7 +1,7 @@
 /**
  * SEO用の公開ロケール定義
  *
- * I18N_SUPPORTED_LOCALES には alias（en, ja, fr 等）が含まれるが、
+ * I18N_SUPPORTED_LOCALES には alias（en, en-NZ, ja, fr 等）が含まれるが、
  * SEO用途（hreflang/canonical/og:locale）では URL prefix と完全一致する
  * ロケールのみを使用する。
  *

@@ -10,10 +10,11 @@
  */
 
 import Head from "expo-router/head";
-import { usePathname, useSegments } from "expo-router";
+import { usePathname } from "expo-router";
 import { useSeoContext } from "./SeoProvider";
-import { PUBLIC_LOCALES, DEFAULT_PUBLIC_LOCALE, PublicLocale } from "@/constants/seoLocales";
+import { PUBLIC_LOCALES, DEFAULT_PUBLIC_LOCALE } from "@/constants/seoLocales";
 import { Env } from "@/constants/Env";
+import { useLocale } from "@/hooks/useLocale";
 
 const WEB_BASE_URL = Env.WEB_BASE_URL;
 const TWITTER_SITE = "@nanitabeyo";
@@ -43,37 +44,23 @@ function buildCanonical(pathNoLocale: string, locale: string): string {
 	return `${WEB_BASE_URL}/${locale}${p}`.replace(/\/+$/, "");
 }
 
-/**
- * route segments から PUBLIC_LOCALES に含まれる locale を推定
- * デフォルトは DEFAULT_PUBLIC_LOCALE
- */
-function extractLocaleFromSegments(segments: string[]): PublicLocale {
-	// segments[0] が locale に相当するはず（例: ['ja-JP', '(tabs)', 'posts']）
-	const candidate = (segments[0] || "").replace(/\(.+\)/, ""); // (tabs) などを除去
-	if (PUBLIC_LOCALES.includes(candidate as PublicLocale)) {
-		return candidate as PublicLocale;
-	}
-	return DEFAULT_PUBLIC_LOCALE;
-}
-
 export default function SeoHeadRenderer() {
 	const { current } = useSeoContext();
-	const pathname = usePathname() || "/";
-	const segments = useSegments();
 
-	// #717 【設計】locale は segments から推定し、PUBLIC_LOCALES に限定
-	const locale = extractLocaleFromSegments(segments);
+	const pathname = usePathname() || "/";
+	const { locale } = useLocale();
+
+	// #717 【設計】pathname から locale 部分を除去して canonical を生成
 	const pathNoLocale = stripLocaleFromPath(pathname, locale);
 	const canonical = buildCanonical(pathNoLocale, locale);
 
 	// #717 【設計】title/desc/image は current（defaults + 上書き）から取得
-	const title = current.title || "なに食べよ ~食べたい料理が見つかる新感覚グルメアプリ~";
-	const description =
-		current.description ||
-		"あなたの気分を入力すると、AIが「これ食べたいでしょ！」という料理を提案してくれます。提案された料理写真やレビューを見ながら、直感的にお店を選べます。";
-	const image = current.image || `${WEB_BASE_URL}/og/${locale}.jpg`;
-	const imageAlt = current.imageAlt || title;
+	const title = current.title;
+	const description = current.description;
+	const image = current.image;
+	const imageAlt = current.imageAlt;
 	const robots = current.robots;
+	const siteName = current.siteName || "なに食べよ";
 
 	// twitter:domain 用のホスト
 	const host = (() => {
@@ -100,7 +87,7 @@ export default function SeoHeadRenderer() {
 
 			{/* Open Graph */}
 			<meta property="og:type" content="website" />
-			<meta property="og:site_name" content="なに食べよ" />
+			<meta property="og:site_name" content={siteName} />
 			<meta property="og:title" content={title} />
 			<meta property="og:description" content={description} />
 			<meta property="og:url" content={canonical} />
