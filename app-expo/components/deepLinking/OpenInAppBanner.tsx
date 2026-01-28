@@ -122,21 +122,26 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 		return `${base}/oia/open/?u=${encodeURIComponent(urlToGo)}`;
 	}, [urlToGo]);
 
+	// プラットフォーム判定（UAベース）
+	const { isIOS, isAndroid } = useMemo(() => {
+		const ua = navigator.userAgent || "";
+		return {
+			isIOS: /iPhone|iPad|iPod/i.test(ua),
+			isAndroid: /Android/i.test(ua),
+		};
+	}, []);
 	// 実際にユーザーに踏ませるURL（原則 relay、無ければ直UL）
-	const primaryHref = oiaRelayUrl ?? urlToGo;
+	const primaryHref = isIOS ? (oiaRelayUrl ?? urlToGo) : urlToGo;
 
 	const storeUrl = useMemo(() => {
 		// “自動遷移”はしない方針なので、ボタン用にURLを返すだけ
 		// iOS/Android の判定は UA で行う（Web のみなので許容）
 		if (!isBrowser) return undefined;
-		const ua = navigator.userAgent || "";
-		const isIOS = /iPhone|iPad|iPod/i.test(ua);
-		const isAndroid = /Android/i.test(ua);
 
 		if (isIOS) return Env.APP_STORE_URL || undefined;
 		if (isAndroid) return Env.PLAY_STORE_URL || undefined;
 		return undefined;
-	}, [isBrowser]);
+	}, [isBrowser, isIOS, isAndroid]);
 
 	useEffect(() => {
 		if (!isBrowser) return;
