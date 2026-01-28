@@ -9,7 +9,7 @@ import { Platform } from "react-native";
  * Convert original Wikimedia Commons URL to thumbnail URL with specified width
  *
  * @param originalUrl - Original Wikimedia Commons URL (e.g., upload.wikimedia.org/.../<d1>/<d2>/<File>)
- * @param widthPx - Required width in pixels (will be clamped between 240-1280px)
+ * @param widthPx - Required width in pixels (will be clamped between 1024 and 1280)
  * @returns Thumbnail URL (e.g., upload.wikimedia.org/.../commons/thumb/<d1>/<d2>/<File>/<WIDTH>px-<File>)
  *
  * @example
@@ -28,7 +28,7 @@ export function wikimediaThumbFromOriginal(originalUrl: string, widthPx: number)
 		}
 
 		const parts = u.pathname.split("/"); // ["", "wikipedia", "commons", d1, d2, file]
-		const width = Math.min(Math.max(Math.round(widthPx), 1024), 1280); // 1024〜1280にクランプ
+		const width = Math.min(Math.max(Math.round(widthPx), 1024), 1280); // 1024〜1280px にクランプ
 
 		// 例: ["", "wikipedia", "commons", "thumb", "8", "8b", "Sushi.jpg", "400px-Sushi.jpg"]
 		const thumbIndex = parts.indexOf("thumb");
@@ -59,7 +59,12 @@ export function wikimediaThumbFromOriginal(originalUrl: string, widthPx: number)
  * Generate Wikimedia-compliant User-Agent string
  * Format: Nanitabeyo/0.1 (contact: dev@nanitabeyo.com) Platform/Version
  */
-export function generateUserAgent(): string {
+export function generateUserAgent(): string | null {
+	// web では User-Agent を明示指定できない
+	if (Platform.OS === "web") {
+		return null;
+	}
+
 	const appInfo = "Nanitabeyo/0.1 (contact: dev@nanitabeyo.com)";
 
 	let platformInfo = "";
@@ -69,9 +74,6 @@ export function generateUserAgent(): string {
 			break;
 		case "ios":
 			platformInfo = `URLSession/iOS`;
-			break;
-		case "web":
-			platformInfo = "fetch/web";
 			break;
 		default:
 			platformInfo = "unknown";
@@ -83,9 +85,11 @@ export function generateUserAgent(): string {
 /**
  * Wikimedia-compliant headers with User-Agent
  */
-export const WIKIMEDIA_HEADERS: Readonly<Record<string, string>> = Object.freeze({
-	"User-Agent": generateUserAgent(),
-});
+export const WIKIMEDIA_HEADERS: Readonly<Record<string, string>> = (() => {
+	const ua = generateUserAgent();
+	if (!ua) return Object.freeze({});
+	return Object.freeze({ "User-Agent": ua });
+})();
 
 /**
  * Prefetch image with Wikimedia-compliant User-Agent header
