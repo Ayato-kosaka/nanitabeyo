@@ -60,7 +60,7 @@ export function wikimediaThumbFromOriginal(originalUrl: string, widthPx: number)
  * Format: Nanitabeyo/0.1 (contact: dev@nanitabeyo.com) Platform/Version
  */
 export function generateUserAgent(): string | null {
-	// web では User-Agent を明示指定できない
+	// #719 web では User-Agent を明示指定できない
 	if (Platform.OS === "web") {
 		return null;
 	}
