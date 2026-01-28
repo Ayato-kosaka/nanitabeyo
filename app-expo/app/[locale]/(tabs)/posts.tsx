@@ -11,6 +11,7 @@ import { OpenInAppBanner } from "@/components/deepLinking/OpenInAppBanner";
 import { useSeo } from "@/contexts/SeoContext";
 import i18n from "@/lib/i18n";
 import { SeoOverride } from "@/contexts/SeoContext/SeoProvider";
+import { resolvePublicLocale, SITE_NAME_BY_PUBLIC_LOCALE } from "@/constants/seoLocales";
 
 export default function PostsScreen() {
 	const { ids } = useLocalSearchParams<{ ids?: string | string[] }>();
@@ -37,8 +38,8 @@ export default function PostsScreen() {
 				// SEOデータの設定
 				res.items.length > 0 &&
 					setSeoData({
-						title: i18n.t("Common.site") + " - " + res.items[0].restaurant.name,
-						description: res.items[0].dish_reviews.length > 0 ? res.items[0].dish_reviews[0].comment : undefined,
+						title: SITE_NAME_BY_PUBLIC_LOCALE[resolvePublicLocale(i18n.locale)] + " - " + res.items[0].restaurant.name,
+						...(res.items[0].dish_reviews.length > 0 ? { description: res.items[0].dish_reviews[0].comment } : {}),
 						image: res.items[0].dish_media.thumbnailImageUrl,
 						imageAlt: res.items[0].restaurant.name,
 					});

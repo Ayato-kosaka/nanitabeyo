@@ -53,15 +53,7 @@ export default function RootLayout() {
 	const fontsLoaded = useLocaleFonts(locale);
 
 	// #717 【設計】locale に応じた SEO defaults を生成
-	const seoDefaults: SeoData = useMemo(() => {
-		return {
-			title: i18n.t("Common.defaultTitle"),
-			description: i18n.t("Common.defaultDesc"),
-			image: `${Env.WEB_BASE_URL}/og/${isJapanese ? "ja-JP" : "en-US"}.jpg`,
-			imageAlt: i18n.t("Common.defaultTitle"),
-			siteName: i18n.t("Common.site"),
-		};
-	}, [locale, isJapanese]);
+	const seoDefaults: SeoData = useMemo(() => DEFAULT_SEO_BY_PUBLIC_LOCALE[resolvePublicLocale(locale)], [locale]);
 
 	useEffect(() => {
 		const isLocaleSupported = isValidBcp47Tag(locale);

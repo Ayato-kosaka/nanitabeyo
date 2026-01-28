@@ -31,6 +31,31 @@ type SeoContextValue = {
 	pop: (id: string) => void;
 };
 
+function normalizeOverride(data: Partial<SeoData>): Partial<SeoData> {
+	const out: Partial<SeoData> = {};
+
+	const putText = (key: keyof SeoData, v: unknown) => {
+		if (typeof v !== "string") return;
+		const trimmed = v.trim();
+		if (!trimmed) return; // 空文字は上書きしない
+		out[key] = trimmed;
+	};
+
+	const putOptionalText = (key: keyof SeoData, v: unknown) => {
+		if (v == null) return; // null/undefined は上書きしない
+		putText(key, v);
+	};
+
+	putOptionalText("title", data.title);
+	putOptionalText("description", data.description);
+	putOptionalText("image", data.image);
+	putOptionalText("imageAlt", data.imageAlt);
+	putOptionalText("robots", data.robots);
+	putOptionalText("siteName", data.siteName);
+
+	return out;
+}
+
 const SeoContext = createContext<SeoContextValue | undefined>(undefined);
 
 type SeoProviderProps = {
@@ -49,9 +74,11 @@ export function SeoProvider({ children, initialDefaults }: SeoProviderProps) {
 
 	// #717 【設計】同一IDでの上書き更新を可能にする（既存を削除してから追加）
 	const push = useCallback((seoOverride: SeoOverride) => {
+		const normalized = normalizeOverride(seoOverride.data);
+
 		setStack((prev) => {
 			const filtered = prev.filter((item) => item.id !== seoOverride.id);
-			return [...filtered, seoOverride];
+			return [...filtered, { ...seoOverride, data: normalized }];
 		});
 	}, []);
 
@@ -61,9 +88,10 @@ export function SeoProvider({ children, initialDefaults }: SeoProviderProps) {
 	}, []);
 
 	// #717 【設計】defaults + stackTopをマージして現在のSEO値を算出
+	const stackTop = stack.length > 0 ? stack[stack.length - 1].data : undefined;
 	const current: SeoData = {
 		...defaults,
-		...(stack.length > 0 ? stack[stack.length - 1].data : {}),
+		...(stackTop ? Object.fromEntries(Object.entries(stackTop).filter(([, v]) => v !== undefined)) : {}),
 	};
 
 	return <SeoContext.Provider value={{ defaults, current, push, pop }}>{children}</SeoContext.Provider>;
