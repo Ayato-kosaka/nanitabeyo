@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useFrameworkReady } from "@/hooks/useFrameworkReady";
@@ -17,7 +17,8 @@ import { useLocaleFonts } from "@/hooks/useLocaleFonts";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import i18n, { getResolvedLocale } from "@/lib/i18n";
-import SeoHead from "../../components/seo";
+import { SeoProvider, SeoHeadRenderer, SeoData } from "@/contexts/SeoContext";
+import { Env } from "@/constants/Env";
 import { TrueSheetProvider } from "@lodev09/react-native-true-sheet";
 
 /**
@@ -34,9 +35,11 @@ const isValidBcp47Tag = (tag: string): boolean => {
 /**
  * 🌐 言語スコープレイアウト（[local]ルーティングに対応）
  *
+ * #717 【設計】locale を確定し i18n と同期、SeoProvider で defaults を管理
  * - `useLocale()` によって取得された言語コードを i18n.locale に反映
  * - 不正な形式の場合はトップページへリダイレクト
- * - アプリ全体で BCP 47 に準拠した多言語対応を保証する
+ * - SeoProvider に locale に応じた defaults を渡す
+ * - SeoHeadRenderer を layout 内に1回だけ配置（唯一のHead出力点）
  *
  * @returns 言語判定とバリデーションを行ったレイアウト付きスタック構造
  */
@@ -49,6 +52,22 @@ export default function RootLayout() {
 	const { logFrontendEvent } = useLogger();
 
 	const fontsLoaded = useLocaleFonts(locale);
+
+	// #717 【設計】locale に応じた SEO defaults を生成
+	const seoDefaults: SeoData = useMemo(() => {
+		// i18n.locale が設定されてから取得する必要があるため、
+		// ここでは簡易的にハードコード（または別途i18n経由で取得）
+		const isJapanese = locale === "ja" || locale.startsWith("ja-");
+		return {
+			title: isJapanese
+				? "なに食べよ ~食べたい料理が見つかる新感覚グルメアプリ~"
+				: "Nanitabeyo - Discover Your Next Meal",
+			description: isJapanese
+				? "あなたの気分を入力すると、AIが「これ食べたいでしょ！」という料理を提案してくれます。提案された料理写真やレビューを見ながら、直感的にお店を選べます。"
+				: "Enter your mood and AI will suggest dishes you'll love. Browse photos and reviews to find your perfect restaurant.",
+			image: `${Env.WEB_BASE_URL}/og/${isJapanese ? "ja-JP" : "en-US"}.jpg`,
+		};
+	}, [locale]);
 
 	useEffect(() => {
 		const isLocaleSupported = isValidBcp47Tag(locale);
@@ -74,6 +93,7 @@ export default function RootLayout() {
 			return;
 		}
 
+		// #717 【設計】i18n の locale を必ず同期
 		i18n.locale = getResolvedLocale(locale);
 	}, [locale]);
 
@@ -81,32 +101,35 @@ export default function RootLayout() {
 
 	return (
 		<>
-			<SeoHead />
-			<PaperProvider theme={theme}>
-				<SnackbarProvider>
-					<DialogProvider>
-						<TrueSheetProvider>
-							<AuthProvider>
-								<PushTokenRegistration />
-								<MetaAppEventsInitializer />
-								<Portal.Host>
-									<SplashHandler>
-										<HealthCheckInitializer>
-											<AppProvider>
-												<Stack screenOptions={{ header: () => null }}>
-													<Stack.Screen name="(tabs)" options={{ header: () => null }} />
-													<Stack.Screen name="+not-found" />
-												</Stack>
-												<StatusBar style="light" />
-											</AppProvider>
-										</HealthCheckInitializer>
-									</SplashHandler>
-								</Portal.Host>
-							</AuthProvider>
-						</TrueSheetProvider>
-					</DialogProvider>
-				</SnackbarProvider>
-			</PaperProvider>
+			{/* #717 【設計】SeoProvider で defaults を管理し、SeoHeadRenderer で唯一のHead出力 */}
+			<SeoProvider initialDefaults={seoDefaults}>
+				<SeoHeadRenderer />
+				<PaperProvider theme={theme}>
+					<SnackbarProvider>
+						<DialogProvider>
+							<TrueSheetProvider>
+								<AuthProvider>
+									<PushTokenRegistration />
+									<MetaAppEventsInitializer />
+									<Portal.Host>
+										<SplashHandler>
+											<HealthCheckInitializer>
+												<AppProvider>
+													<Stack screenOptions={{ header: () => null }}>
+														<Stack.Screen name="(tabs)" options={{ header: () => null }} />
+														<Stack.Screen name="+not-found" />
+													</Stack>
+													<StatusBar style="light" />
+												</AppProvider>
+											</HealthCheckInitializer>
+										</SplashHandler>
+									</Portal.Host>
+								</AuthProvider>
+							</TrueSheetProvider>
+						</DialogProvider>
+					</SnackbarProvider>
+				</PaperProvider>
+			</SeoProvider>
 		</>
 	);
 }
