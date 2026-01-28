@@ -3,6 +3,7 @@ import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { Image } from "expo-image";
 
 import i18n from "@/lib/i18n";
+import { resolvePublicLocale, SITE_NAME_BY_PUBLIC_LOCALE } from "@/constants/seoLocales";
 import { Env } from "@/constants/Env";
 import { useLocale } from "@/hooks/useLocale";
 
@@ -247,7 +248,7 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 						cachePolicy={"memory-disk"}
 					/>
 					<View style={styles.textBlock}>
-						<Text style={styles.bannerName}>{i18n.t("Common.site")}</Text>
+						<Text style={styles.bannerName}>{SITE_NAME_BY_PUBLIC_LOCALE[resolvePublicLocale(i18n.locale)]}</Text>
 					</View>
 				</View>
 

@@ -18,7 +18,7 @@ import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import i18n, { getResolvedLocale } from "@/lib/i18n";
 import { SeoProvider, SeoHeadRenderer, SeoData } from "@/contexts/SeoContext";
-import { Env } from "@/constants/Env";
+import { DEFAULT_SEO_BY_PUBLIC_LOCALE, resolvePublicLocale } from "@/constants/seoLocales";
 import { TrueSheetProvider } from "@lodev09/react-native-true-sheet";
 
 /**
@@ -54,20 +54,7 @@ export default function RootLayout() {
 	const fontsLoaded = useLocaleFonts(locale);
 
 	// #717 【設計】locale に応じた SEO defaults を生成
-	const seoDefaults: SeoData = useMemo(() => {
-		// i18n.locale が設定されてから取得する必要があるため、
-		// ここでは簡易的にハードコード（または別途i18n経由で取得）
-		const isJapanese = locale === "ja" || locale.startsWith("ja-");
-		return {
-			title: isJapanese
-				? "なに食べよ ~食べたい料理が見つかる新感覚グルメアプリ~"
-				: "Nanitabeyo - Discover Your Next Meal",
-			description: isJapanese
-				? "あなたの気分を入力すると、AIが「これ食べたいでしょ！」という料理を提案してくれます。提案された料理写真やレビューを見ながら、直感的にお店を選べます。"
-				: "Enter your mood and AI will suggest dishes you'll love. Browse photos and reviews to find your perfect restaurant.",
-			image: `${Env.WEB_BASE_URL}/og/${isJapanese ? "ja-JP" : "en-US"}.jpg`,
-		};
-	}, [locale]);
+	const seoDefaults: SeoData = useMemo(() => DEFAULT_SEO_BY_PUBLIC_LOCALE[resolvePublicLocale(locale)], [locale]);
 
 	useEffect(() => {
 		const isLocaleSupported = isValidBcp47Tag(locale);
