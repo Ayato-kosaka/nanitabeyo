@@ -13,8 +13,6 @@
 		"success": "Success",
 		"linkCopied": "Link copied to clipboard",
 		"shareFailed": "Failed to share content",
-		"defaultTitle": "CraveCatch - Find your dish",
-		"defaultDesc": "Simply tell the app how you feel, and our AI will suggest dishes you'll likely crave. Then browse real food photos and reviews to instantly pick a restaurant that feels right.",
 		"daysRemaining": "Remaining {{count}} days",
 		"timeAgo": {
 			"seconds": "{{count}} seconds ago",
@@ -24,7 +22,6 @@
 			"months": "{{count}} months ago",
 			"years": "{{count}} years ago"
 		},
-		"site": "CraveCatch",
 		"errors": {
 			"network": "A network error occurred. Please check your connection.",
 			"unexpected": "An unexpected error occurred. Please try again later.",

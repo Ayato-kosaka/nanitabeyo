@@ -17,7 +17,7 @@ import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import i18n, { getResolvedLocale } from "@/lib/i18n";
 import { SeoProvider, SeoHeadRenderer, SeoData } from "@/contexts/SeoContext";
-import { Env } from "@/constants/Env";
+import { DEFAULT_SEO_BY_PUBLIC_LOCALE, resolvePublicLocale } from "@/constants/seoLocales";
 import { TrueSheetProvider } from "@lodev09/react-native-true-sheet";
 
 /**
