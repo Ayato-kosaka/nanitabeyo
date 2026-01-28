@@ -8,11 +8,18 @@ import type { QueryDishMediaByIdsDto } from "@shared/api/v1/dto";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { OpenInAppBanner } from "@/components/deepLinking/OpenInAppBanner";
+import { useSeo } from "@/contexts/SeoContext";
 
 export default function PostsScreen() {
 	const { ids } = useLocalSearchParams<{ ids?: string | string[] }>();
 	const { callBackend } = useAPICall();
 	const entriesKey = "PostsScreen";
+
+	// #717 【設計】useSeo で投稿画面のSEO情報を上書き（フォーカス連動で自動解除）
+	useSeo({
+		title: "料理の投稿 | なに食べよ",
+		description: "ユーザーが投稿した料理の写真とレビューをご覧ください。",
+	});
 
 	useEffect(() => {
 		const { upsertDishMediaEntries, updateMediaIdsByKeyAsync, clearByKey } = useDishMediaEntriesStore.getState();
