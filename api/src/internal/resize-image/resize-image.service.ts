@@ -271,7 +271,9 @@ export class ResizeImageService {
       fit = 'cover'; // 縦横比を守りつつ埋める、必要ならトリミング
     }
 
+    // 【バグ】EXIF Orientation を正規化して縦長画像の横回転を防止
     const resized = await sharp(buffer)
+      .rotate() // EXIF Orientation を適用して正規化
       .resize(width, height, {
         fit,
         position: 'center',
