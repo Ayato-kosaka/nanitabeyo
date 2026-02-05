@@ -45,6 +45,12 @@ const CDN_BASE_URL = Env.CDN_PUBLIC_HOST || "https://cdn-public.nanitabeyo.net";
 const CDN_JSON_PATH = "rankings/dish-ranking-summary.json";
 const CDN_JSON_URL = `${CDN_BASE_URL}/${CDN_JSON_PATH}`;
 
+// プレースホルダーテキスト（例示）
+const COMMENT_PLACEHOLDER = `例: 牛丼もっと上が良い（理由：早い/満足感）
+生姜焼き定食がランキングに無いのは違和感
+お好み焼きは昼は時間がかかるので下げたい
+この条件だと「軽い/早い」料理が上位のほうが良い`;
+
 /* -------------------------------------------------------------------------- */
 /*                              メインコンポーネント                             */
 /* -------------------------------------------------------------------------- */
@@ -61,7 +67,6 @@ export default function DishRankingSummaryScreen() {
 	const [selectedConditionKey, setSelectedConditionKey] = useState<string>("");
 	const [comment, setComment] = useState("");
 	const [isSubmitting, setIsSubmitting] = useState(false);
-	const [showConditionPicker, setShowConditionPicker] = useState(false);
 
 	/* ---- Session tracking ---- */
 	const sessionId = useMemo(() => Crypto.randomUUID(), []);
@@ -103,6 +108,10 @@ export default function DishRankingSummaryScreen() {
 
 				if (!data.conditions || !Array.isArray(data.conditions) || data.conditions.length === 0) {
 					throw new Error("条件データが不正です");
+				}
+
+				if (!data.rankings || typeof data.rankings !== "object") {
+					throw new Error("ランキングデータが不正です");
 				}
 
 				setCdnData(data);
@@ -297,21 +306,13 @@ export default function DishRankingSummaryScreen() {
 			{/* ヘッダー */}
 			<View style={styles.header}>
 				<Text style={styles.headerTitle}>料理ランキングレビュー</Text>
-				<Pressable style={styles.helpButton}>
-					<HelpCircle size={24} color="#666" />
-				</Pressable>
 				<Pressable style={styles.commentButton} onPress={handleOpenCommentModal}>
 					<Text style={styles.commentButtonText}>コメントを書く</Text>
 				</Pressable>
 			</View>
 
 			{/* 条件プルダウン */}
-			<Pressable
-				style={styles.conditionSelector}
-				onPress={() => {
-					setShowConditionPicker(true);
-					openConditionPickerModal();
-				}}>
+			<Pressable style={styles.conditionSelector} onPress={openConditionPickerModal}>
 				<Text style={styles.conditionLabel}>{selectedCondition.label}</Text>
 				<ChevronDown size={20} color="#333" />
 			</Pressable>
@@ -338,7 +339,7 @@ export default function DishRankingSummaryScreen() {
 					<Text style={styles.modalDescription}>この条件に対する総括を入力してください。</Text>
 					<TextInput
 						style={styles.commentInput}
-						placeholder="例: 牛丼もっと上が良い（理由：早い/満足感）&#10;生姜焼き定食がランキングに無いのは違和感&#10;お好み焼きは昼は時間がかかるので下げたい&#10;この条件だと「軽い/早い」料理が上位のほうが良い"
+						placeholder={COMMENT_PLACEHOLDER}
 						placeholderTextColor="#999"
 						value={comment}
 						onChangeText={setComment}
