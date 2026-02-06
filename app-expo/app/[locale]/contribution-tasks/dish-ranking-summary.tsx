@@ -1,19 +1,35 @@
 // app-expo/app/[locale]/contribution-tasks/dish-ranking-summary.tsx
 //
-// 料理ランキング総括コメント（条件プルダウン＋一覧＋BlurModal）実装
+// 料理ランキングレビュー
+// - 条件プルダウン + ランキング一覧
+// - 右下固定「総括コメント」ボタン
+// - 各料理行に MessageCircle アイコンで「料理別レビュー」導線
+// - HelpCircle（ヘッダ右）で説明モーダル
+// - submit log は event_name を統一（dish_ranking_summary_submitted）し、payload.submissionType で判別
+//
+// なるべく既存実装からの差分を小さくしつつ、ベストプラクティス寄りに整理
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { View, StyleSheet, Text, Pressable, FlatList, TextInput, ActivityIndicator, ScrollView } from "react-native";
+import {
+	View,
+	StyleSheet,
+	Text,
+	Pressable,
+	FlatList,
+	TextInput,
+	ActivityIndicator,
+	ScrollView,
+	Dimensions,
+} from "react-native";
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { HelpCircle, ChevronDown } from "lucide-react-native";
+import { HelpCircle, ChevronDown, MessageCircle } from "lucide-react-native";
 import * as Crypto from "expo-crypto";
 
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useLogger } from "@/hooks/useLogger";
 import { PrimaryButton } from "@/components/PrimaryButton";
-import { Env } from "@/constants/Env";
 
 /* -------------------------------------------------------------------------- */
 /*                                    型定義                                   */
@@ -24,32 +40,54 @@ type DishRankItem = { qid: string; label: string; image: string | null };
 
 type CdnPayload = {
 	conditions: Condition[];
-	rankings: Record<string, { items: DishRankItem[] }>;
+	rankings: Record<string, DishRankItem[]>;
 };
 
-type SubmitPayload = {
+type SubmitCommonPayload = {
 	sessionId: string;
 	startedAt: string;
 	submittedAt: string;
 	conditionKey: string;
 	conditionLabel: string;
-	comment: string;
 	rankedQids: string[];
 };
+
+type SubmitSummaryPayload = SubmitCommonPayload & {
+	submissionType: "summary";
+	comment: string;
+};
+
+type SubmitDishPayload = SubmitCommonPayload & {
+	submissionType: "dish";
+	dishQid: string;
+	dishLabel: string;
+	dishRank: number; // 1-indexed
+	comment: string;
+};
+
+type SubmitPayload = SubmitSummaryPayload | SubmitDishPayload;
 
 /* -------------------------------------------------------------------------- */
 /*                              定数・固定値                                   */
 /* -------------------------------------------------------------------------- */
 
-const CDN_BASE_URL = Env.CDN_PUBLIC_HOST || "https://cdn-public.nanitabeyo.net";
-const CDN_JSON_PATH = "rankings/dish-ranking-summary.json";
-const CDN_JSON_URL = `${CDN_BASE_URL}/${CDN_JSON_PATH}`;
+const CDN_BASE_URL = "https://storage.googleapis.com/nanitabeyo-public";
+const CDN_JSON_PATH = "tickets/730/dish-ranking-summary.json";
+// キャッシュ回避のためにクエリパラメータでタイムスタンプを付与
+const CDN_JSON_URL = `${CDN_BASE_URL}/${CDN_JSON_PATH}?t=${Date.now()}`;
 
-// プレースホルダーテキスト（例示）
-const COMMENT_PLACEHOLDER = `例: 牛丼もっと上が良い（理由：早い/満足感）
-生姜焼き定食がランキングに無いのは違和感
-お好み焼きは昼は時間がかかるので下げたい
-この条件だと「軽い/早い」料理が上位のほうが良い`;
+// submissionType ごとのプレースホルダー（例示）
+const PLACEHOLDER_SUMMARY = `例:
+・この条件だと「軽い/早い」料理が上位のほうが良い
+・生姜焼き定食がランキングに無いのは違和感`;
+
+const PLACEHOLDER_DISH = `例:
+・もっと上位が良い（理由：早い/満足感）
+・順位が高すぎる気がする（理由：重い/コスパ）
+・この条件だと食べる頻度が低いので下げたい
+・お昼にこの料理は時間がかかるので下げたい`;
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 /* -------------------------------------------------------------------------- */
 /*                              メインコンポーネント                             */
@@ -65,8 +103,22 @@ export default function DishRankingSummaryScreen() {
 	const [loadError, setLoadError] = useState<string | null>(null);
 	const [cdnData, setCdnData] = useState<CdnPayload | null>(null);
 	const [selectedConditionKey, setSelectedConditionKey] = useState<string>("");
-	const [comment, setComment] = useState("");
-	const [isSubmitting, setIsSubmitting] = useState(false);
+
+	// コメントは「条件ごと」に下書きを持つ（条件切替で入力が混ざる事故を防ぐ）
+	const [summaryCommentByCondition, setSummaryCommentByCondition] = useState<Record<string, string>>({});
+	const [dishCommentByCondition, setDishCommentByCondition] = useState<Record<string, Record<string, string>>>({});
+
+	// モーダル（総括）
+	const [isSubmittingSummary, setIsSubmittingSummary] = useState(false);
+
+	// モーダル（料理別）
+	const [isSubmittingDish, setIsSubmittingDish] = useState(false);
+	const [activeDish, setActiveDish] = useState<{
+		qid: string;
+		label: string;
+		rank: number;
+		image: string | null;
+	} | null>(null);
 
 	/* ---- Session tracking ---- */
 	const sessionId = useMemo(() => Crypto.randomUUID(), []);
@@ -74,9 +126,17 @@ export default function DishRankingSummaryScreen() {
 
 	/* ---- BlurModal ---- */
 	const {
-		BlurModal: CommentModal,
-		open: openCommentModal,
-		close: closeCommentModal,
+		BlurModal: SummaryModal,
+		open: openSummaryModal,
+		close: closeSummaryModal,
+	} = useBlurModal({
+		closeOnBackdropPress: false,
+	});
+
+	const {
+		BlurModal: DishModal,
+		open: openDishModal,
+		close: closeDishModal,
 	} = useBlurModal({
 		closeOnBackdropPress: false,
 	});
@@ -85,6 +145,14 @@ export default function DishRankingSummaryScreen() {
 		BlurModal: ConditionPickerModal,
 		open: openConditionPickerModal,
 		close: closeConditionPickerModal,
+	} = useBlurModal({
+		closeOnBackdropPress: true,
+	});
+
+	const {
+		BlurModal: HelpModal,
+		open: openHelpModal,
+		close: closeHelpModal,
 	} = useBlurModal({
 		closeOnBackdropPress: true,
 	});
@@ -109,15 +177,21 @@ export default function DishRankingSummaryScreen() {
 				if (!data.conditions || !Array.isArray(data.conditions) || data.conditions.length === 0) {
 					throw new Error("条件データが不正です");
 				}
-
 				if (!data.rankings || typeof data.rankings !== "object") {
 					throw new Error("ランキングデータが不正です");
 				}
 
 				setCdnData(data);
-				setSelectedConditionKey(data.conditions[0].key);
 
-				logFrontendEvent({
+				// 初期選択：先頭条件
+				const firstKey = data.conditions[0].key;
+				setSelectedConditionKey(firstKey);
+
+				// 初期の下書き領域も空で用意（後段の参照で undefined を減らす）
+				setSummaryCommentByCondition((prev) => ({ ...prev, [firstKey]: prev[firstKey] ?? "" }));
+				setDishCommentByCondition((prev) => ({ ...prev, [firstKey]: prev[firstKey] ?? {} }));
+
+				await logFrontendEvent({
 					event_name: "dish_ranking_summary_loaded",
 					error_level: "log",
 					payload: { conditionCount: data.conditions.length },
@@ -125,7 +199,7 @@ export default function DishRankingSummaryScreen() {
 			} catch (error: any) {
 				const errorMsg = error?.message || "Unknown error";
 				setLoadError(errorMsg);
-				logFrontendEvent({
+				await logFrontendEvent({
 					event_name: "dish_ranking_summary_load_error",
 					error_level: "error",
 					payload: { error: errorMsg },
@@ -149,23 +223,30 @@ export default function DishRankingSummaryScreen() {
 
 	const currentRankingItems = useMemo(() => {
 		if (!cdnData || !selectedConditionKey) return [];
-		const ranking = cdnData.rankings[selectedConditionKey];
-		return ranking?.items || [];
+		return cdnData.rankings[selectedConditionKey] || [];
 	}, [cdnData, selectedConditionKey]);
 
-	const rankedQids = useMemo(() => {
-		return currentRankingItems.map((item) => item.qid);
-	}, [currentRankingItems]);
+	const rankedQids = useMemo(() => currentRankingItems.map((item) => item.qid), [currentRankingItems]);
+
+	// 現条件の下書き参照（未定義を極力避ける）
+	const summaryDraft = summaryCommentByCondition[selectedConditionKey] ?? "";
+	const dishDraftMap = dishCommentByCondition[selectedConditionKey] ?? {};
 
 	/* ------------------------------------------------------------------ */
 	/*                          条件切替                                  */
 	/* ------------------------------------------------------------------ */
 
 	const handleConditionChange = useCallback(
-		(key: string) => {
+		async (key: string) => {
 			setSelectedConditionKey(key);
+
+			// 条件ごとの下書き領域を確保（存在しない場合だけ作る）
+			setSummaryCommentByCondition((prev) => ({ ...prev, [key]: prev[key] ?? "" }));
+			setDishCommentByCondition((prev) => ({ ...prev, [key]: prev[key] ?? {} }));
+
 			closeConditionPickerModal();
-			logFrontendEvent({
+
+			await logFrontendEvent({
 				event_name: "dish_ranking_summary_condition_changed",
 				error_level: "log",
 				payload: { conditionKey: key },
@@ -175,31 +256,81 @@ export default function DishRankingSummaryScreen() {
 	);
 
 	/* ------------------------------------------------------------------ */
-	/*                          コメント送信                               */
+	/*                          モーダルオープン                            */
 	/* ------------------------------------------------------------------ */
 
-	const handleSubmit = useCallback(async () => {
-		if (comment.trim().length < 1) {
-			showSnackbar("コメントを入力してください");
-			return;
-		}
+	const handleOpenSummaryModal = useCallback(async () => {
+		openSummaryModal();
+		await logFrontendEvent({
+			event_name: "dish_ranking_summary_comment_modal_opened",
+			error_level: "log",
+			payload: { conditionKey: selectedConditionKey, submissionType: "summary" },
+		});
+	}, [openSummaryModal, logFrontendEvent, selectedConditionKey]);
 
-		if (!selectedCondition) {
+	const handleOpenDishModal = useCallback(
+		async (dish: DishRankItem, rank: number) => {
+			setActiveDish({ qid: dish.qid, label: dish.label, image: dish.image, rank });
+			openDishModal();
+
+			await logFrontendEvent({
+				event_name: "dish_ranking_summary_comment_modal_opened",
+				error_level: "log",
+				payload: { conditionKey: selectedConditionKey, submissionType: "dish", dishQid: dish.qid, dishRank: rank },
+			});
+		},
+		[openDishModal, logFrontendEvent, selectedConditionKey],
+	);
+
+	const handleOpenHelp = useCallback(async () => {
+		openHelpModal();
+		await logFrontendEvent({
+			event_name: "dish_ranking_summary_help_opened",
+			error_level: "log",
+			payload: { conditionKey: selectedConditionKey },
+		});
+	}, [openHelpModal, logFrontendEvent, selectedConditionKey]);
+
+	/* ------------------------------------------------------------------ */
+	/*                          送信（共通ヘルパ）                           */
+	/* ------------------------------------------------------------------ */
+
+	const buildCommonPayload = useCallback((): SubmitCommonPayload | null => {
+		if (!selectedCondition) return null;
+		return {
+			sessionId,
+			startedAt,
+			submittedAt: new Date().toISOString(),
+			conditionKey: selectedConditionKey,
+			conditionLabel: selectedCondition.label,
+			rankedQids,
+		};
+	}, [selectedCondition, sessionId, startedAt, selectedConditionKey, rankedQids]);
+
+	/* ------------------------------------------------------------------ */
+	/*                          送信（総括）                                */
+	/* ------------------------------------------------------------------ */
+
+	const handleSubmitSummary = useCallback(async () => {
+		const common = buildCommonPayload();
+		if (!common) {
 			showSnackbar("条件が選択されていません");
 			return;
 		}
 
-		try {
-			setIsSubmitting(true);
+		const comment = (summaryCommentByCondition[selectedConditionKey] ?? "").trim();
+		if (comment.length < 1) {
+			showSnackbar("コメントを入力してください");
+			return;
+		}
 
-			const payload: SubmitPayload = {
-				sessionId,
-				startedAt,
-				submittedAt: new Date().toISOString(),
-				conditionKey: selectedConditionKey,
-				conditionLabel: selectedCondition.label,
-				comment: comment.trim(),
-				rankedQids,
+		try {
+			setIsSubmittingSummary(true);
+
+			const payload: SubmitSummaryPayload = {
+				...common,
+				submissionType: "summary",
+				comment,
 			};
 
 			await logFrontendEvent({
@@ -209,63 +340,143 @@ export default function DishRankingSummaryScreen() {
 			});
 
 			showSnackbar("送信しました");
-			closeCommentModal();
-			setComment("");
+			closeSummaryModal();
+
+			// 送信後は当該条件の下書きをクリア（好みに応じて保持でもOK）
+			setSummaryCommentByCondition((prev) => ({ ...prev, [selectedConditionKey]: "" }));
 		} catch (error: any) {
 			const errorMsg = error?.message || "Unknown error";
 			showSnackbar("送信に失敗しました。もう一度お試しください。");
-			logFrontendEvent({
+			await logFrontendEvent({
 				event_name: "dish_ranking_summary_submit_error",
 				error_level: "error",
-				payload: { error: errorMsg },
+				payload: { error: errorMsg, submissionType: "summary" },
 			});
 		} finally {
-			setIsSubmitting(false);
+			setIsSubmittingSummary(false);
 		}
 	}, [
-		comment,
-		selectedCondition,
-		sessionId,
-		startedAt,
+		buildCommonPayload,
+		summaryCommentByCondition,
 		selectedConditionKey,
-		rankedQids,
 		logFrontendEvent,
 		showSnackbar,
-		closeCommentModal,
+		closeSummaryModal,
 	]);
 
-	const handleOpenCommentModal = useCallback(() => {
-		openCommentModal();
-		logFrontendEvent({
-			event_name: "dish_ranking_summary_comment_modal_opened",
-			error_level: "log",
-			payload: { conditionKey: selectedConditionKey },
-		});
-	}, [openCommentModal, logFrontendEvent, selectedConditionKey]);
+	/* ------------------------------------------------------------------ */
+	/*                          送信（料理別）                               */
+	/* ------------------------------------------------------------------ */
+
+	const handleSubmitDish = useCallback(async () => {
+		const common = buildCommonPayload();
+		if (!common) {
+			showSnackbar("条件が選択されていません");
+			return;
+		}
+
+		if (!activeDish) {
+			showSnackbar("料理が選択されていません");
+			return;
+		}
+
+		const draft = dishCommentByCondition[selectedConditionKey]?.[activeDish.qid] ?? "";
+		const comment = draft.trim();
+		if (comment.length < 1) {
+			showSnackbar("コメントを入力してください");
+			return;
+		}
+
+		try {
+			setIsSubmittingDish(true);
+
+			const payload: SubmitDishPayload = {
+				...common,
+				submissionType: "dish",
+				dishQid: activeDish.qid,
+				dishLabel: activeDish.label,
+				dishRank: activeDish.rank,
+				comment,
+			};
+
+			await logFrontendEvent({
+				event_name: "dish_ranking_summary_submitted",
+				error_level: "log",
+				payload,
+			});
+
+			showSnackbar("送信しました");
+			closeDishModal();
+
+			// 送信後は当該料理の下書きをクリア
+			setDishCommentByCondition((prev) => ({
+				...prev,
+				[selectedConditionKey]: {
+					...(prev[selectedConditionKey] ?? {}),
+					[activeDish.qid]: "",
+				},
+			}));
+
+			setActiveDish(null);
+		} catch (error: any) {
+			const errorMsg = error?.message || "Unknown error";
+			showSnackbar("送信に失敗しました。もう一度お試しください。");
+			await logFrontendEvent({
+				event_name: "dish_ranking_summary_submit_error",
+				error_level: "error",
+				payload: { error: errorMsg, submissionType: "dish", dishQid: activeDish.qid },
+			});
+		} finally {
+			setIsSubmittingDish(false);
+		}
+	}, [
+		buildCommonPayload,
+		activeDish,
+		dishCommentByCondition,
+		selectedConditionKey,
+		logFrontendEvent,
+		showSnackbar,
+		closeDishModal,
+	]);
 
 	/* ------------------------------------------------------------------ */
 	/*                          ランキングアイテム描画                       */
 	/* ------------------------------------------------------------------ */
 
-	const renderRankingItem = useCallback(({ item, index }: { item: DishRankItem; index: number }) => {
-		const rank = index + 1;
+	const renderRankingItem = useCallback(
+		({ item, index }: { item: DishRankItem; index: number }) => {
+			const rank = index + 1;
 
-		return (
-			<View style={styles.rankItem}>
-				<View style={styles.rankNumber}>
-					<Text style={styles.rankNumberText}>{rank}</Text>
+			return (
+				<View style={styles.rankItem}>
+					<View style={styles.rankNumber}>
+						<Text style={styles.rankNumberText}>{rank}</Text>
+					</View>
+
+					{item.image ? (
+						<Image source={{ uri: item.image }} style={styles.dishImage} contentFit="cover" />
+					) : (
+						<View style={[styles.dishImage, styles.dishImagePlaceholder]} />
+					)}
+
+					<Text style={styles.dishLabel} numberOfLines={2}>
+						{item.label}
+					</Text>
+
+					{/* 料理別レビュー導線（MessageCircle） */}
+					<Pressable
+						style={styles.dishReviewButton}
+						onPress={() => handleOpenDishModal(item, rank)}
+						hitSlop={8}
+						accessibilityRole="button"
+						accessibilityLabel="この料理にコメントする">
+						<MessageCircle size={18} color="#f05537" />
+					</Pressable>
 				</View>
-				{item.image ? (
-					<Image source={{ uri: item.image }} style={styles.dishImage} contentFit="cover" />
-				) : (
-					<View style={[styles.dishImage, styles.dishImagePlaceholder]} />
-				)}
-				<Text style={styles.dishLabel} numberOfLines={2}>
-					{item.label}
-				</Text>
-			</View>
-		);
-	}, []);
+			);
+		},
+		[handleOpenDishModal],
+	);
 
 	/* ------------------------------------------------------------------ */
 	/*                          ローディング・エラー表示                     */
@@ -306,8 +517,10 @@ export default function DishRankingSummaryScreen() {
 			{/* ヘッダー */}
 			<View style={styles.header}>
 				<Text style={styles.headerTitle}>料理ランキングレビュー</Text>
-				<Pressable style={styles.commentButton} onPress={handleOpenCommentModal}>
-					<Text style={styles.commentButtonText}>コメントを書く</Text>
+
+				{/* 右側：ヘルプアイコン */}
+				<Pressable style={styles.helpButton} onPress={handleOpenHelp} hitSlop={8}>
+					<HelpCircle size={20} color="#333" />
 				</Pressable>
 			</View>
 
@@ -327,40 +540,135 @@ export default function DishRankingSummaryScreen() {
 					data={currentRankingItems}
 					keyExtractor={(item) => item.qid}
 					renderItem={renderRankingItem}
-					contentContainerStyle={styles.listContent}
+					// 右下固定ボタンに隠れないよう下に余白を追加
+					contentContainerStyle={[styles.listContent, { paddingBottom: 16 + FLOATING_BUTTON_HEIGHT + insets.bottom }]}
 					showsVerticalScrollIndicator={false}
 				/>
 			)}
 
-			{/* コメント入力モーダル */}
-			<CommentModal contentContainerStyle={styles.modalContent}>
+			{/* 右下固定：総括コメントボタン */}
+			<View pointerEvents="box-none" style={styles.floatingContainer}>
+				<Pressable
+					style={[styles.floatingButton, { marginBottom: insets.bottom + 16 }]}
+					onPress={handleOpenSummaryModal}>
+					<Text style={styles.floatingButtonText}>総括コメント</Text>
+				</Pressable>
+			</View>
+
+			{/* 総括コメント入力モーダル */}
+			<SummaryModal contentContainerStyle={styles.modalContent}>
 				<View style={styles.modalInner}>
-					<Text style={styles.modalTitle}>総括コメント入力</Text>
+					<Text style={styles.modalTitle}>総括コメント</Text>
+
+					{/* 選択中条件を表示（混乱防止） */}
+					<View style={styles.conditionChip}>
+						<Text style={styles.conditionChipText}>条件: {selectedCondition.label}</Text>
+					</View>
+
 					<Text style={styles.modalDescription}>この条件に対する総括を入力してください。</Text>
+
 					<TextInput
 						style={styles.commentInput}
-						placeholder={COMMENT_PLACEHOLDER}
+						placeholder={PLACEHOLDER_SUMMARY}
 						placeholderTextColor="#999"
-						value={comment}
-						onChangeText={setComment}
+						value={summaryDraft}
+						onChangeText={(text) =>
+							setSummaryCommentByCondition((prev) => ({
+								...prev,
+								[selectedConditionKey]: text,
+							}))
+						}
 						multiline
 						numberOfLines={8}
 						textAlignVertical="top"
 					/>
+
 					<View style={styles.modalButtons}>
-						<Pressable style={styles.cancelButton} onPress={closeCommentModal} disabled={isSubmitting}>
+						<Pressable style={styles.cancelButton} onPress={closeSummaryModal} disabled={isSubmittingSummary}>
 							<Text style={styles.cancelButtonText}>キャンセル</Text>
 						</Pressable>
 						<PrimaryButton
 							label="送信"
-							onPress={handleSubmit}
-							loading={isSubmitting}
-							disabled={comment.trim().length < 1 || isSubmitting}
+							onPress={handleSubmitSummary}
+							loading={isSubmittingSummary}
+							disabled={summaryDraft.trim().length < 1 || isSubmittingSummary}
 							style={styles.submitButton}
 						/>
 					</View>
 				</View>
-			</CommentModal>
+			</SummaryModal>
+
+			{/* 料理別コメント入力モーダル */}
+			<DishModal contentContainerStyle={styles.modalContent}>
+				<View style={styles.modalInner}>
+					<Text style={styles.modalTitle}>料理別レビュー</Text>
+
+					{/* 選択中条件を表示 */}
+					<View style={styles.conditionChip}>
+						<Text style={styles.conditionChipText}>条件: {selectedCondition.label}</Text>
+					</View>
+
+					{/* 料理情報（料理名・順位） */}
+					{activeDish ? (
+						<View style={styles.dishHeaderRow}>
+							{activeDish.image ? (
+								<Image source={{ uri: activeDish.image }} style={styles.dishHeaderImage} contentFit="cover" />
+							) : (
+								<View style={[styles.dishHeaderImage, styles.dishImagePlaceholder]} />
+							)}
+							<View style={{ flex: 1 }}>
+								<Text style={styles.dishHeaderTitle} numberOfLines={2}>
+									{activeDish.label}
+								</Text>
+								<Text style={styles.dishHeaderSub}>現在の順位: {activeDish.rank}位</Text>
+							</View>
+						</View>
+					) : (
+						<Text style={styles.modalDescription}>料理が選択されていません。</Text>
+					)}
+
+					<Text style={styles.modalDescription}>この料理の順位について、感じたことを入力してください。</Text>
+
+					<TextInput
+						style={styles.commentInput}
+						placeholder={PLACEHOLDER_DISH}
+						placeholderTextColor="#999"
+						value={activeDish ? (dishDraftMap[activeDish.qid] ?? "") : ""}
+						onChangeText={(text) => {
+							if (!activeDish) return;
+							setDishCommentByCondition((prev) => ({
+								...prev,
+								[selectedConditionKey]: {
+									...(prev[selectedConditionKey] ?? {}),
+									[activeDish.qid]: text,
+								},
+							}));
+						}}
+						multiline
+						numberOfLines={8}
+						textAlignVertical="top"
+					/>
+
+					<View style={styles.modalButtons}>
+						<Pressable
+							style={styles.cancelButton}
+							onPress={() => {
+								closeDishModal();
+								setActiveDish(null);
+							}}
+							disabled={isSubmittingDish}>
+							<Text style={styles.cancelButtonText}>キャンセル</Text>
+						</Pressable>
+						<PrimaryButton
+							label="送信"
+							onPress={handleSubmitDish}
+							loading={isSubmittingDish}
+							disabled={!activeDish || (dishDraftMap[activeDish.qid] ?? "").trim().length < 1 || isSubmittingDish}
+							style={styles.submitButton}
+						/>
+					</View>
+				</View>
+			</DishModal>
 
 			{/* 条件選択モーダル */}
 			<ConditionPickerModal contentContainerStyle={styles.pickerModalContent}>
@@ -384,6 +692,22 @@ export default function DishRankingSummaryScreen() {
 					</ScrollView>
 				</View>
 			</ConditionPickerModal>
+
+			{/* ヘルプモーダル */}
+			<HelpModal contentContainerStyle={styles.modalContent}>
+				<View style={styles.modalInner}>
+					<Text style={styles.modalTitle}>この画面について</Text>
+					<Text style={styles.helpText}>
+						・条件（例: 夜ご飯 × 一人）ごとの料理ランキングを表示します。
+						{"\n"}・右下の「総括コメント」から、ランキング全体へのコメントを送れます。
+						{"\n"}・各料理行の吹き出しアイコンから、料理単体へのレビューを送れます。
+						{"\n"}※条件のプルダウンは、実際に利用されている出現順で並べています。
+					</Text>
+					<View style={styles.modalButtons}>
+						<PrimaryButton label="閉じる" onPress={closeHelpModal} loading={false} disabled={false} />
+					</View>
+				</View>
+			</HelpModal>
 		</View>
 	);
 }
@@ -391,6 +715,9 @@ export default function DishRankingSummaryScreen() {
 /* -------------------------------------------------------------------------- */
 /*                               スタイル定義                                  */
 /* -------------------------------------------------------------------------- */
+
+// 右下固定ボタンの高さ（余白計算に使う）
+const FLOATING_BUTTON_HEIGHT = 44;
 
 const styles = StyleSheet.create({
 	container: {
@@ -420,6 +747,8 @@ const styles = StyleSheet.create({
 		color: "#666",
 		textAlign: "center",
 	},
+
+	/* ---- Header ---- */
 	header: {
 		flexDirection: "row",
 		alignItems: "center",
@@ -436,19 +765,9 @@ const styles = StyleSheet.create({
 	},
 	helpButton: {
 		padding: 8,
-		marginRight: 8,
 	},
-	commentButton: {
-		backgroundColor: "#f05537",
-		paddingHorizontal: 16,
-		paddingVertical: 8,
-		borderRadius: 8,
-	},
-	commentButtonText: {
-		color: "#fff",
-		fontSize: 14,
-		fontWeight: "bold",
-	},
+
+	/* ---- Condition selector ---- */
 	conditionSelector: {
 		flexDirection: "row",
 		alignItems: "center",
@@ -467,6 +786,8 @@ const styles = StyleSheet.create({
 		color: "#333",
 		fontWeight: "500",
 	},
+
+	/* ---- List ---- */
 	listContent: {
 		padding: 16,
 	},
@@ -509,6 +830,13 @@ const styles = StyleSheet.create({
 		fontSize: 15,
 		color: "#333",
 	},
+	dishReviewButton: {
+		padding: 8,
+		borderRadius: 999,
+		backgroundColor: "rgba(240,85,55,0.08)",
+		marginLeft: 8,
+	},
+
 	emptyContainer: {
 		flex: 1,
 		justifyContent: "center",
@@ -519,6 +847,38 @@ const styles = StyleSheet.create({
 		fontSize: 16,
 		color: "#999",
 	},
+
+	/* ---- Floating summary button ---- */
+	floatingContainer: {
+		position: "absolute",
+		left: 0,
+		right: 0,
+		bottom: 0,
+		paddingHorizontal: 16,
+		// pointerEvents は上で box-none にして、ボタンだけ押せるようにする
+	},
+	floatingButton: {
+		alignSelf: "flex-end",
+		height: FLOATING_BUTTON_HEIGHT,
+		paddingHorizontal: 16,
+		borderRadius: 999,
+		backgroundColor: "#f05537",
+		justifyContent: "center",
+		alignItems: "center",
+		// 影（iOS/Android）
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 2 },
+		shadowOpacity: 0.18,
+		shadowRadius: 4,
+		elevation: 4,
+	},
+	floatingButtonText: {
+		color: "#fff",
+		fontSize: 14,
+		fontWeight: "bold",
+	},
+
+	/* ---- Modals ---- */
 	modalContent: {
 		justifyContent: "center",
 		alignItems: "center",
@@ -526,7 +886,7 @@ const styles = StyleSheet.create({
 	},
 	modalInner: {
 		width: "100%",
-		maxWidth: 400,
+		maxWidth: 420,
 		backgroundColor: "#fff",
 		borderRadius: 16,
 		padding: 24,
@@ -547,13 +907,55 @@ const styles = StyleSheet.create({
 		color: "#666",
 		marginBottom: 16,
 	},
+
+	// 条件チップ（モーダル内）
+	conditionChip: {
+		alignSelf: "flex-start",
+		paddingHorizontal: 10,
+		paddingVertical: 6,
+		borderRadius: 999,
+		backgroundColor: "#f5f5f5",
+		borderWidth: 1,
+		borderColor: "#eee",
+		marginBottom: 12,
+	},
+	conditionChipText: {
+		fontSize: 12,
+		color: "#555",
+		fontWeight: "600",
+	},
+
+	// 料理別モーダルのヘッダ（料理情報）
+	dishHeaderRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		marginBottom: 12,
+		gap: 12,
+	},
+	dishHeaderImage: {
+		width: 52,
+		height: 52,
+		borderRadius: 10,
+		backgroundColor: "#eee",
+	},
+	dishHeaderTitle: {
+		fontSize: 16,
+		fontWeight: "700",
+		color: "#333",
+		marginBottom: 2,
+	},
+	dishHeaderSub: {
+		fontSize: 12,
+		color: "#666",
+	},
+
 	commentInput: {
 		borderWidth: 1,
 		borderColor: "#ddd",
 		borderRadius: 8,
 		padding: 12,
 		fontSize: 14,
-		minHeight: 120,
+		minHeight: 240,
 		backgroundColor: "#f9f9f9",
 		marginBottom: 16,
 	},
@@ -576,15 +978,17 @@ const styles = StyleSheet.create({
 	submitButton: {
 		flex: 1,
 	},
+
+	/* ---- Picker modal ---- */
 	pickerModalContent: {
-		justifyContent: "center",
 		alignItems: "center",
 		padding: 20,
 	},
 	pickerInner: {
 		width: "100%",
 		maxWidth: 400,
-		maxHeight: "70%",
+		// BlurModal では % で高さ指定すると画面全体の % になるため、Dimensions API から計算して指定
+		maxHeight: SCREEN_HEIGHT * 0.7,
 		backgroundColor: "#fff",
 		borderRadius: 16,
 		padding: 24,
@@ -620,5 +1024,13 @@ const styles = StyleSheet.create({
 	pickerItemTextSelected: {
 		color: "#fff",
 		fontWeight: "bold",
+	},
+
+	/* ---- Help ---- */
+	helpText: {
+		fontSize: 14,
+		color: "#444",
+		lineHeight: 20,
+		marginBottom: 16,
 	},
 });
