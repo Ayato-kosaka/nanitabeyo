@@ -19,12 +19,14 @@ export function useSeo(data: SeoOverride["data"]) {
 	const id = useId();
 
 	// フォーカス連動でpush/pop（タブ/スタック対応）
-	useFocusEffect(useCallback(() => {
-		push({ id, data });
-		return () => {
-			pop(id);
-		};
-	}, [id, data, push, pop]));
+	useFocusEffect(
+		useCallback(() => {
+			push({ id, data });
+			return () => {
+				pop(id);
+			};
+		}, [id, data, push, pop]),
+	);
 
 	// unmount時にもpopする（useFocusEffectが動かないケースのフォールバック）
 	useEffect(() => {
