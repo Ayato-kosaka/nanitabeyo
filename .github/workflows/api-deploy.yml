@@ -11,8 +11,8 @@ on:
 
 # 同じ環境への並列デプロイ競合を防ぐ
 concurrency:
-  group: api-cloudrun-${{ github.event.inputs.target }}
-  cancel-in-progress: true
+  group: api-cloudrun-deploy
+  cancel-in-progress: false
 
 permissions: # OIDC 用の最小権限
   contents: read
