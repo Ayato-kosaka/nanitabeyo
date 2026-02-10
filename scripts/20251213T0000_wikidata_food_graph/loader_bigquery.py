@@ -15,6 +15,9 @@ BigQuery へのデータロードと処理ロジック
 """
 
 import logging
+import tempfile
+import json
+from pathlib import Path
 from datetime import datetime, timezone
 from typing import List, Dict, Tuple
 from google.cloud import bigquery
@@ -122,6 +125,217 @@ class BigQueryLoader:
             raise Exception(f"Failed to load nodes: {errors}")
         
         logger.info(f"Successfully loaded {len(nodes)} nodes")
+    
+    def fetch_food_roots(self) -> List[Tuple[str, str]]:
+        """
+        #741 【設計】food_roots テーブルから root 定義を取得
+        
+        Returns:
+            [(root_qid, kind), ...] のリスト
+        """
+        logger.info("Fetching food roots from BigQuery...")
+        
+        sql = f"""
+        SELECT root_qid, kind
+        FROM `{self.dataset_ref}.food_roots`
+        ORDER BY root_qid
+        """
+        
+        query_job = self.client.query(sql)
+        results = query_job.result()
+        
+        food_roots = [(row.root_qid, row.kind) for row in results]
+        logger.info(f"Fetched {len(food_roots)} food roots: {food_roots}")
+        
+        return food_roots
+    
+    def load_food_nodes_to_staging(self, nodes: List[Dict]) -> None:
+        """
+        #741 【設計】food_nodes_raw_staging テーブルに Load Job でノードをロード
+        
+        Args:
+            nodes: ノード情報のリスト
+                   [{'item_qid': 'Q12345', 'label_ja': '寿司', ...}, ...]
+        """
+        if not nodes:
+            logger.warning("No nodes to load to staging")
+            return
+        
+        table_id = f"{self.dataset_ref}.food_nodes_raw_staging"
+        logger.info(f"Loading {len(nodes)} nodes to staging via Load Job")
+        
+        # #741 【設計】JSONL を一時ファイルに書き出し
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.jsonl', delete=False, encoding='utf-8') as f:
+            temp_path = f.name
+            for node in nodes:
+                row = {
+                    "item_qid": node["item_qid"],
+                    "label_ja": node.get("label_ja"),
+                    "label_en": node.get("label_en"),
+                    "desc_ja": node.get("desc_ja"),
+                    "desc_en": node.get("desc_en"),
+                }
+                f.write(json.dumps(row, ensure_ascii=False) + '\n')
+        
+        logger.info(f"Wrote {len(nodes)} nodes to temp JSONL: {temp_path}")
+        
+        try:
+            # #741 【設計】Load Job 設定（WRITE_TRUNCATE で staging をクリア）
+            job_config = bigquery.LoadJobConfig(
+                source_format=bigquery.SourceFormat.NEWLINE_DELIMITED_JSON,
+                write_disposition=bigquery.WriteDisposition.WRITE_TRUNCATE,
+                schema=[
+                    bigquery.SchemaField("item_qid", "STRING", mode="REQUIRED"),
+                    bigquery.SchemaField("label_ja", "STRING"),
+                    bigquery.SchemaField("label_en", "STRING"),
+                    bigquery.SchemaField("desc_ja", "STRING"),
+                    bigquery.SchemaField("desc_en", "STRING"),
+                ]
+            )
+            
+            # #741 【設計】Load Job 実行
+            with open(temp_path, 'rb') as f:
+                load_job = self.client.load_table_from_file(
+                    f,
+                    table_id,
+                    job_config=job_config
+                )
+            
+            load_job.result()  # Wait for completion
+            logger.info(f"Load Job completed: {load_job.output_rows} rows loaded to staging")
+            
+        finally:
+            # 一時ファイル削除
+            Path(temp_path).unlink(missing_ok=True)
+            logger.debug(f"Deleted temp file: {temp_path}")
+    
+    def merge_food_nodes_from_staging(self) -> Dict[str, int]:
+        """
+        #741 【設計】staging → food_nodes_raw へ MERGE（累積運用、DELETE なし）
+        
+        Returns:
+            {"inserted": N, "updated": M} の辞書
+        """
+        logger.info("Merging nodes from staging to food_nodes_raw...")
+        
+        staging_table = f"{self.dataset_ref}.food_nodes_raw_staging"
+        target_table = f"{self.dataset_ref}.food_nodes_raw"
+        
+        # #741 【設計】MERGE 前の件数チェック
+        count_before = self._count_distinct_qids(target_table)
+        logger.info(f"food_nodes_raw before MERGE: {count_before} distinct QIDs")
+        
+        # #741 【設計】MERGE SQL（staging 優先、staging に無いものは保持）
+        sql = f"""
+        MERGE `{target_table}` AS target
+        USING `{staging_table}` AS source
+        ON target.item_qid = source.item_qid
+        WHEN MATCHED THEN
+          UPDATE SET
+            label_ja = source.label_ja,
+            label_en = source.label_en,
+            desc_ja = source.desc_ja,
+            desc_en = source.desc_en
+        WHEN NOT MATCHED THEN
+          INSERT (item_qid, label_ja, label_en, desc_ja, desc_en)
+          VALUES (source.item_qid, source.label_ja, source.label_en, source.desc_ja, source.desc_en)
+        """
+        
+        affected_rows = self.execute_dml(sql)
+        logger.info(f"MERGE completed: {affected_rows} rows affected")
+        
+        # #741 【設計】MERGE 後の件数チェック
+        count_after = self._count_distinct_qids(target_table)
+        logger.info(f"food_nodes_raw after MERGE: {count_after} distinct QIDs")
+        
+        # #741 【設計】新規 QID 数を計算
+        new_qids = self._count_new_qids(staging_table, target_table)
+        
+        return {
+            "before_count": count_before,
+            "after_count": count_after,
+            "new_qids": new_qids,
+            "affected_rows": affected_rows
+        }
+    
+    def _count_distinct_qids(self, table_id: str) -> int:
+        """
+        #741 【設計】テーブルの DISTINCT item_qid 件数を取得
+        
+        Args:
+            table_id: テーブルID（完全修飾名）
+            
+        Returns:
+            DISTINCT item_qid の件数
+        """
+        sql = f"SELECT COUNT(DISTINCT item_qid) AS cnt FROM `{table_id}`"
+        query_job = self.client.query(sql)
+        result = query_job.result()
+        row = next(result)
+        return row.cnt
+    
+    def _count_new_qids(self, staging_table: str, target_table: str) -> int:
+        """
+        #741 【設計】staging にあって target に無い QID の件数を取得
+        
+        Args:
+            staging_table: staging テーブルID
+            target_table: target テーブルID
+            
+        Returns:
+            新規 QID 数
+        """
+        sql = f"""
+        SELECT COUNT(DISTINCT s.item_qid) AS cnt
+        FROM `{staging_table}` s
+        LEFT JOIN `{target_table}` t
+          ON s.item_qid = t.item_qid
+        WHERE t.item_qid IS NULL
+        """
+        query_job = self.client.query(sql)
+        result = query_job.result()
+        row = next(result)
+        return row.cnt
+    
+    def get_staging_summary(self) -> Dict[str, any]:
+        """
+        #741 【設計】staging の統計情報を取得（観測性向上）
+        
+        Returns:
+            統計情報の辞書
+        """
+        staging_table = f"{self.dataset_ref}.food_nodes_raw_staging"
+        
+        sql = f"""
+        SELECT
+          COUNT(DISTINCT item_qid) AS distinct_qids,
+          COUNT(*) AS total_rows,
+          COUNTIF(label_ja IS NULL) AS label_ja_null,
+          COUNTIF(label_en IS NULL) AS label_en_null,
+          COUNTIF(desc_ja IS NULL) AS desc_ja_null,
+          COUNTIF(desc_en IS NULL) AS desc_en_null
+        FROM `{staging_table}`
+        """
+        
+        query_job = self.client.query(sql)
+        result = query_job.result()
+        row = next(result)
+        
+        summary = {
+            "distinct_qids": row.distinct_qids,
+            "total_rows": row.total_rows,
+            "label_ja_null": row.label_ja_null,
+            "label_en_null": row.label_en_null,
+            "desc_ja_null": row.desc_ja_null,
+            "desc_en_null": row.desc_en_null,
+        }
+        
+        # #741 【設計】欠損率を計算
+        if summary["total_rows"] > 0:
+            summary["label_ja_null_rate"] = summary["label_ja_null"] / summary["total_rows"]
+            summary["label_en_null_rate"] = summary["label_en_null"] / summary["total_rows"]
+        
+        return summary
     
     def generate_food_paths(self, edges: List[Tuple[str, str]], max_depth: int = 20) -> None:
         """

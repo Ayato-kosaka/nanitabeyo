@@ -56,7 +56,8 @@ def main():
     REPO_ROOT = Path(__file__).resolve().parents[2]
     migration_files = [
         REPO_ROOT / "infra" / "big-query" / "migration" / "20251213T0000_create_wikidata_food_tables.sql",
-        REPO_ROOT / "infra" / "big-query" / "migration" / "20251215T0000_create_wikidata_food_llm_labels.sql"
+        REPO_ROOT / "infra" / "big-query" / "migration" / "20251215T0000_create_wikidata_food_llm_labels.sql",
+        REPO_ROOT / "infra" / "big-query" / "migration" / "20260210T0000_add_food_nodes_raw_staging.sql"  # #741 staging テーブル
     ]
 
     for migration_file in migration_files:    
