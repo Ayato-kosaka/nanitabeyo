@@ -19,7 +19,7 @@ import tempfile
 import json
 from pathlib import Path
 from datetime import datetime, timezone
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Any
 from google.cloud import bigquery
 from google.cloud.exceptions import NotFound
 
@@ -297,7 +297,7 @@ class BigQueryLoader:
         row = next(result)
         return row.cnt
     
-    def get_staging_summary(self) -> Dict[str, any]:
+    def get_staging_summary(self) -> Dict[str, Any]:
         """
         #741 【設計】staging の統計情報を取得（観測性向上）
         

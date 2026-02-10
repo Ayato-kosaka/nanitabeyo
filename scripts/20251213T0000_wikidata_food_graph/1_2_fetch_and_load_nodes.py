@@ -53,6 +53,9 @@ logger = logging.getLogger(__name__)
 GCP_PROJECT = "food-scroll"
 BQ_DATASET = "wikidata_food_graph"
 
+# #741 【設計】staging と Python 側の件数乖離の許容閾値（5%）
+STAGING_DISCREPANCY_THRESHOLD = 0.05
+
 # 一時ファイル保存先
 TEMP_DIR = Path("/tmp/wikidata_food_graph")
 NODES_TEMP_DIR = TEMP_DIR / "nodes"  # #545 【設計】root単位の一時ファイル保存先
@@ -213,7 +216,7 @@ def main():
         staging_count = staging_summary['distinct_qids']
         discrepancy = abs(python_count - staging_count) / python_count if python_count > 0 else 0
         
-        if discrepancy > 0.05:  # 5% 以上の乖離
+        if discrepancy > STAGING_DISCREPANCY_THRESHOLD:
             logger.warning(f"WARNING: Discrepancy between Python ({python_count}) and staging ({staging_count}): {discrepancy:.2%}")
         else:
             logger.info(f"Integrity check passed: Python ({python_count}) vs staging ({staging_count})")
