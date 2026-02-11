@@ -419,38 +419,67 @@ class WikidataClient:
 
     def fetch_food_nodes(
         self,
-        root_qids: List[str],
+        class_qids: List[str],
         limit: Optional[int] = None,
         page_size: int = 1000,
     ) -> List[Dict]:
         """
-        food_roots に含まれる root_qid のいずれかに対して
-        ?item wdt:P31/wdt:P279* ?root_qid を満たすノードを取得
-
+        #745 【設計】2 段階設計 Stage 2: P31-only でインスタンスを取得
+        
+        food_class_closure から取得したクラス QID のリストに対して、
+        ?item wdt:P31 ?class を満たすノードを取得する。
+        
+        property path (wdt:P31|wdt:P279)* を使用しないため、
+        WDQS への負荷が大幅に削減され、抽出の完全性が向上する。
+        
         大量データ対策として、カーソル方式でページングしながら取得する。
         OFFSETではなくORDER BY + FILTERを使い、WDQSへの負荷を軽減。
-
+        
         Args:
-            root_qids: ルート QID のリスト（例: ['Q746549', 'Q8495', ...]）
+            class_qids: クラス QID のリスト（food_class_closure から取得）
             limit: 取得件数の上限（開発用、None で無制限）
             page_size: 1ページあたりの取得件数（デフォルト 1000）
-
+            
         Returns:
             ノード情報のリスト
             [{'item_qid': 'Q12345', 'label_ja': '寿司', 'label_en': 'sushi', ...}, ...]
         """
-        values_clause = " ".join([f"wd:{qid}" for qid in root_qids])
-
+        # #745 【設計】監視用：代表的な QID が取得されているかチェック
+        WATCH_QIDS = {
+            "Q13233",   # アイスクリーム (ice cream)
+            "Q13276",   # ケーキ (cake)
+            "Q282",     # ワイン (wine)
+            "Q13290",   # スムージー (smoothie)
+            "Q375",     # ワッフル (waffle)
+            "Q44541",   # パンケーキ (pancake)
+            "Q20129",   # オムレツ (omelette)
+            "Q58263",   # エッグベネディクト (eggs Benedict)
+            "Q6128",    # トースト (toast)
+            "Q6663",    # ハンバーガー (hamburger)
+            "Q8486",    # コーヒー (coffee)
+            "Q9266",    # サラダ (salad)
+            "Q41415",   # 汁物料理 (soup)
+            "Q6137769", # チーズ盛り合わせ (cheese platter)
+        }
+        watch_found: Set[str] = set()
+        
+        if not class_qids:
+            logger.warning("No class QIDs provided")
+            return []
+        
+        # #745 【設計】VALUES 句用にクラス QID を準備
+        values_clause = " ".join([f"wd:{qid}" for qid in class_qids])
+        
         nodes: List[Dict] = []
         total_fetched = 0
         page = 1
         last_item_uri: Optional[str] = None  # #545 【設計】カーソル方式：前回取得した最後のitem URI
-
+        
         logger.info(
-            f"Fetching food nodes for {len(root_qids)} roots "
+            f"Fetching food nodes for {len(class_qids)} classes "
             f"(limit: {limit}, page_size: {page_size})"
         )
-
+        
         while True:
             # limit が指定されている場合は、その範囲内で page_size を切る
             if limit is not None:
@@ -460,52 +489,58 @@ class WikidataClient:
                 batch_limit = min(page_size, remaining)
             else:
                 batch_limit = page_size
-
+            
             # #545 【設計】カーソル条件を動的に生成
             cursor_filter = ""
             if last_item_uri:
                 cursor_filter = f'FILTER(STR(?item) > "{last_item_uri}")'
-
+            
+            # #745 【設計】P31-only クエリ（property path を使わない）
             query = f"""
             SELECT DISTINCT ?item ?label_ja ?label_en ?desc_ja ?desc_en
             WHERE {{
-              VALUES ?root {{ {values_clause} }}
-              ?item (wdt:P31|wdt:P279)* ?root .
-
+              VALUES ?class {{ {values_clause} }}
+              ?item wdt:P31 ?class .
+              
               OPTIONAL {{ ?item rdfs:label ?label_ja FILTER(LANG(?label_ja) = "ja") }}
               OPTIONAL {{ ?item rdfs:label ?label_en FILTER(LANG(?label_en) = "en") }}
               OPTIONAL {{ ?item schema:description ?desc_ja FILTER(LANG(?desc_ja) = "ja") }}
               OPTIONAL {{ ?item schema:description ?desc_en FILTER(LANG(?desc_en) = "en") }}
-
+              
               FILTER(STRSTARTS(STR(?item), "http://www.wikidata.org/entity/Q"))
               {cursor_filter}
             }}
             ORDER BY ?item
             LIMIT {batch_limit}
             """
-
+            
             logger.info(
                 f"Fetching page {page} "
                 f"(LIMIT {batch_limit}, cursor={last_item_uri or 'None'}, total_fetched={total_fetched})"
             )
-
+            
             results = self.execute_query(query)
-
+            
             if not results:
                 logger.info(
                     f"No more results (page {page}). "
                     f"Total fetched: {total_fetched}"
                 )
                 break
-
+            
             page_count = 0
             for result in results:
                 item_uri = result.get("item", {}).get("value", "")
                 item_qid = item_uri.split("/")[-1] if item_uri else None
-
+                
                 if not item_qid:
                     continue
-
+                
+                # #745 【設計】WATCH_QIDS の監視
+                if item_qid in WATCH_QIDS and item_qid not in watch_found:
+                    watch_found.add(item_qid)
+                    logger.info(f"🎯 WATCH_QID found: {item_qid} (page {page})")
+                
                 nodes.append({
                     "item_qid": item_qid,
                     "label_ja": result.get("label_ja", {}).get("value"),
@@ -515,16 +550,16 @@ class WikidataClient:
                 })
                 page_count += 1
                 last_item_uri = item_uri  # #545 【設計】カーソル更新
-
+            
             total_fetched += page_count
             logger.info(
                 f"Page {page} fetched {page_count} nodes "
                 f"(total_fetched={total_fetched}, last_item={last_item_uri})"
             )
-
+            
             # 次ページへ
             page += 1
-
+            
             # レスポンス件数が LIMIT 未満なら「終端まで来た」と判断して終了
             if page_count < batch_limit:
                 logger.info(
@@ -532,13 +567,138 @@ class WikidataClient:
                     f"page_count={page_count} < batch_limit={batch_limit})"
                 )
                 break
-
+            
             # Rate limit 対策
             if total_fetched % 1000 == 0:
                 time.sleep(1)
-
+        
+        # #745 【設計】WATCH_QIDS のサマリーログ
         logger.info(f"Fetched {len(nodes)} food nodes in total")
+        logger.info(f"🎯 WATCH_QIDS found: {len(watch_found)}/{len(WATCH_QIDS)}")
+        if watch_found:
+            logger.info(f"   Found: {sorted(watch_found)}")
+        missing = WATCH_QIDS - watch_found
+        if missing:
+            logger.warning(f"   Missing: {sorted(missing)}")
+        
         return nodes
+
+    
+    def fetch_class_closure(
+        self,
+        root_qid: str,
+        max_depth: Optional[int] = None,
+    ) -> List[Dict]:
+        """
+        #745 【設計】指定された root_qid に対して P279* でクラス閉包を取得
+        
+        2 段階設計の Stage 1: クラス階層（type）のみを取得する。
+        インスタンス（P31）は含まれないため、件数は少ない（数百〜数千程度）。
+        
+        Args:
+            root_qid: ルート QID（例: 'Q746549'）
+            max_depth: P279* の最大深度（None で無制限、デバッグ用）
+            
+        Returns:
+            クラス情報のリスト
+            [{'class_qid': 'Q12345', 'depth': 0}, ...]
+        """
+        logger.info(f"Fetching class closure for root {root_qid}")
+        
+        # #745 【設計】P279* のみを使用（P31 は含めない）
+        # max_depth を指定する場合は、SPARQL の property path では制御できないため、
+        # 複数クエリで段階的に取得する必要がある。
+        # ただし、デフォルトは無制限で、全クラスを一度に取得する。
+        
+        if max_depth is None:
+            # 無制限：P279* で一度に取得
+            query = f"""
+            SELECT DISTINCT ?class
+            WHERE {{
+              ?class wdt:P279* wd:{root_qid} .
+              FILTER(STRSTARTS(STR(?class), "http://www.wikidata.org/entity/Q"))
+            }}
+            """
+            
+            logger.info(f"Fetching all classes for root {root_qid} (unlimited depth)")
+            results = self.execute_query(query)
+            
+            classes = []
+            for result in results:
+                class_uri = result.get("class", {}).get("value", "")
+                class_qid = class_uri.split("/")[-1] if class_uri else None
+                
+                if not class_qid:
+                    continue
+                
+                # depth は正確に計算できないため、-1 で保存
+                # 後で BFS で計算することも可能だが、今回は省略
+                classes.append({
+                    "class_qid": class_qid,
+                    "depth": -1  # 深度不明（P279* で一括取得時）
+                })
+            
+            logger.info(f"Fetched {len(classes)} classes for root {root_qid}")
+            return classes
+        
+        else:
+            # 深度制限：BFS で段階的に取得
+            logger.info(f"Fetching classes for root {root_qid} (max_depth={max_depth})")
+            
+            classes = []
+            current_level = {root_qid}
+            seen = {root_qid}
+            
+            for depth in range(max_depth + 1):
+                if not current_level:
+                    break
+                
+                # 現在のレベルをクラスリストに追加
+                for qid in current_level:
+                    classes.append({
+                        "class_qid": qid,
+                        "depth": depth
+                    })
+                
+                # 次のレベルを取得（P279 で 1 ステップ）
+                if depth < max_depth:
+                    next_level = set()
+                    
+                    # バッチ処理（SPARQL エンドポイントの制限対策）
+                    batch_size = 100
+                    current_list = list(current_level)
+                    
+                    for i in range(0, len(current_list), batch_size):
+                        batch = current_list[i:i + batch_size]
+                        values_clause = " ".join([f"wd:{qid}" for qid in batch])
+                        
+                        query = f"""
+                        SELECT DISTINCT ?subclass
+                        WHERE {{
+                          VALUES ?superclass {{ {values_clause} }}
+                          ?subclass wdt:P279 ?superclass .
+                          FILTER(STRSTARTS(STR(?subclass), "http://www.wikidata.org/entity/Q"))
+                        }}
+                        """
+                        
+                        results = self.execute_query(query)
+                        
+                        for result in results:
+                            subclass_uri = result.get("subclass", {}).get("value", "")
+                            subclass_qid = subclass_uri.split("/")[-1] if subclass_uri else None
+                            
+                            if subclass_qid and subclass_qid not in seen:
+                                next_level.add(subclass_qid)
+                                seen.add(subclass_qid)
+                        
+                        # Rate limit 対策
+                        time.sleep(0.5)
+                    
+                    logger.info(f"  Depth {depth}: {len(current_level)} classes, next: {len(next_level)}")
+                    current_level = next_level
+            
+            logger.info(f"Fetched {len(classes)} classes for root {root_qid} (depth 0-{max_depth})")
+            return classes
     
     def fetch_parent_edges(self, qids: List[str]) -> List[Tuple[str, str]]:
         """

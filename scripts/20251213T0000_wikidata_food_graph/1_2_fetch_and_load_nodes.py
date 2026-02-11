@@ -7,17 +7,24 @@
 Wikidata から料理・飲み物のノード情報を取得し、BigQuery にロードする
 
 【処理内容】
-1. BigQuery の food_roots テーブルから root 定義を取得
-2. Wikidata から food_roots に基づいてノードを取得
-   - ?item (P31|P279)* ?root を満たすノードを対象
+#745 【設計】2 段階設計：P279* クラス閉包（事前計算）+ P31-only ノード取得
+0. BigQuery の food_roots テーブルから root 定義を取得
+1. BigQuery の food_class_closure からクラス QID を取得
+   - P279* で事前計算されたクラス階層を使用
+   - 1_1_5_fetch_and_load_classes.py の事前実行が必要
+2. Wikidata からクラス QID に対して P31-only でノードを取得
+   - property path (wdt:P31|wdt:P279)* を使用しない
+   - WDQS への負荷を削減し、抽出の完全性を向上
    - ラベル（日本語・英語）と説明を取得
-   - root単位の一時ファイル保存先 TODO: 将来的に再開処理で利用することを想定
 3. BigQuery の food_nodes_raw_staging に Load Job でロード
 4. staging から food_nodes_raw へ MERGE（累積運用）
 5. 親子エッジ（P31, P279）を取得
 6. 一時ファイルにエッジデータを保存（次のステップで使用）
 
 【使用方法】
+# 事前準備（必須）
+python3 1_1_5_fetch_and_load_classes.py
+
 # 全件取得（時間がかかる）
 python3 1_2_fetch_and_load_nodes.py
 
@@ -28,6 +35,7 @@ python3 1_2_fetch_and_load_nodes.py --limit 1000
 python3 1_2_fetch_and_load_nodes.py --keep-temp
 
 【注意】
+- 1_1_5_fetch_and_load_classes.py を事前に実行する必要がある
 - SPARQL endpoint への大量リクエストが発生するため、実行には時間がかかる
 - rate limit 対策として retry/backoff が実装されている
 """
@@ -58,7 +66,7 @@ STAGING_DISCREPANCY_THRESHOLD = 0.05
 
 # 一時ファイル保存先
 TEMP_DIR = Path("/tmp/wikidata_food_graph")
-NODES_TEMP_DIR = TEMP_DIR / "nodes"  # #545 【設計】root単位の一時ファイル保存先
+NODES_TEMP_DIR = TEMP_DIR / "nodes"  # #745 【非推奨】2段階設計では使用しない（互換性のため残す）
 EDGES_FILE = TEMP_DIR / "edges.json"
 NEW_QIDS_FILE = TEMP_DIR / "new_qids.jsonl"  # #741 【設計】今回新規に追加されるQIDのリスト
 
@@ -88,6 +96,7 @@ def main():
     
     # 一時ディレクトリ作成
     TEMP_DIR.mkdir(parents=True, exist_ok=True)
+    # #745 【設計】NODES_TEMP_DIR は 2 段階設計では不要だが、削除コード互換性のため作成しておく
     NODES_TEMP_DIR.mkdir(parents=True, exist_ok=True)
     
     # Wikidata クライアント初期化
@@ -111,70 +120,53 @@ def main():
         logger.error(f"Failed to fetch food roots: {e}")
         sys.exit(1)
     
-    # #545 【設計】1. root単位でノードを取得し、一時ファイルに保存
+    # #745 【設計】0.5. food_class_closure からクラス QID を取得
     logger.info("=" * 80)
-    logger.info("Phase 1: Fetching nodes per root")
+    logger.info("Phase 0.5: Fetching class QIDs from food_class_closure")
+    logger.info("=" * 80)
+    
+    try:
+        class_qids = bq_loader.fetch_class_qids_from_closure()
+        if not class_qids:
+            logger.error("No class QIDs found in food_class_closure")
+            logger.error("Please run 1_1_5_fetch_and_load_classes.py first")
+            sys.exit(1)
+        logger.info(f"Loaded {len(class_qids)} class QIDs from closure")
+    except Exception as e:
+        logger.error(f"Failed to fetch class QIDs: {e}")
+        logger.error("Please run 1_1_5_fetch_and_load_classes.py first")
+        sys.exit(1)
+    
+    # #745 【設計】1. クラス QID に対して P31-only でノードを取得
+    logger.info("=" * 80)
+    logger.info("Phase 1: Fetching nodes via P31-only (2-stage design)")
     logger.info("=" * 80)
     
     all_nodes: List[Dict] = []
     seen_qids: Set[str] = set()
-    total_fetched = 0
     
-    for root_index, (root_qid, root_kind) in enumerate(food_roots):
-        logger.info("-" * 80)
-        logger.info(f"Processing root: {root_qid} ({root_kind})")
-        logger.info("-" * 80)
+    try:
+        # #745 【設計】全クラスに対してまとめてノードを取得（P31-only）
+        nodes = wikidata_client.fetch_food_nodes(class_qids, limit=args.limit)
         
-        temp_file = NODES_TEMP_DIR / f"{root_qid}.jsonl"
-        
-        # #545 【設計】limit指定時は各rootに均等割り当て
-        root_limit = None
-        if args.limit:
-            remaining = args.limit - total_fetched
-            if remaining <= 0:
-                logger.info(f"Limit reached ({args.limit}), skipping remaining roots")
-                break
-            # 残りのrootで均等割り当て（簡易版）
-            remaining_roots = len(food_roots) - root_index
-            if remaining_roots <= 1:
-                # 最後の root は残りを全部
-                root_limit = remaining
-            else:
-                # シンプル均等割り（最低 1）
-                root_limit = max(1, remaining // remaining_roots)
-
-            logger.info(f"Root limit for {root_qid}: {root_limit}")
-        
-        try:
-            nodes = wikidata_client.fetch_food_nodes([root_qid], limit=root_limit)
+        if not nodes:
+            logger.warning("No nodes fetched from Wikidata")
+        else:
+            logger.info(f"Fetched {len(nodes)} nodes from Wikidata")
             
-            if not nodes:
-                logger.warning(f"No nodes fetched for root {root_qid}")
-                continue
-            
-            # #545 【設計】一時ファイルに保存（JSONL形式）
-            with open(temp_file, 'w', encoding='utf-8') as f:
-                for node in nodes:
-                    f.write(json.dumps(node, ensure_ascii=False) + '\n')
-            
-            logger.info(f"Saved {len(nodes)} nodes to {temp_file}")
-            
-            # #545 【設計】メモリ上でも保持し、item_qid単位で重複排除
+            # #545 【設計】item_qid単位で重複排除
             for node in nodes:
                 qid = node["item_qid"]
                 if qid not in seen_qids:
                     all_nodes.append(node)
                     seen_qids.add(qid)
             
-            total_fetched = len(all_nodes)
-            logger.info(f"Total unique nodes so far: {total_fetched}")
-
-        except Exception as e:
-            logger.error(f"Failed to fetch nodes for root {root_qid}: {e}")
-            logger.error("Aborting because root fetch failed")
-            sys.exit(1)
-
+            logger.info(f"Total unique nodes: {len(all_nodes)}")
     
+    except Exception as e:
+        logger.error(f"Failed to fetch nodes: {e}")
+        logger.error("Aborting because node fetch failed")
+        sys.exit(1)
     if not all_nodes:
         logger.error("No nodes fetched from any root")
         sys.exit(1)

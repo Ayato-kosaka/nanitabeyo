@@ -149,6 +149,87 @@ class BigQueryLoader:
         
         return food_roots
     
+    def fetch_class_qids_from_closure(self) -> List[str]:
+        """
+        #745 【設計】food_class_closure テーブルから全クラス QID を取得
+        
+        Returns:
+            クラス QID のリスト（重複なし）
+        """
+        logger.info("Fetching class QIDs from food_class_closure...")
+        
+        sql = f"""
+        SELECT DISTINCT class_qid
+        FROM `{self.dataset_ref}.food_class_closure`
+        ORDER BY class_qid
+        """
+        
+        query_job = self.client.query(sql)
+        results = query_job.result()
+        
+        class_qids = [row.class_qid for row in results]
+        logger.info(f"Fetched {len(class_qids)} distinct class QIDs from closure")
+        
+        return class_qids
+    
+    def load_food_class_closure(self, classes: List[Dict]) -> None:
+        """
+        #745 【設計】food_class_closure テーブルにクラス閉包をロード
+        
+        Args:
+            classes: クラス情報のリスト
+                     [{'class_qid': 'Q12345', 'root_qid': 'Q746549', 'kind': 'dish', 'depth': 0}, ...]
+        """
+        if not classes:
+            logger.warning("No classes to load")
+            return
+        
+        table_id = f"{self.dataset_ref}.food_class_closure"
+        logger.info(f"Loading {len(classes)} classes to {table_id} via Load Job")
+        
+        # #745 【設計】JSONL を一時ファイルに書き出し
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.jsonl', delete=False, encoding='utf-8') as f:
+            temp_path = f.name
+            for class_item in classes:
+                row = {
+                    "class_qid": class_item["class_qid"],
+                    "root_qid": class_item["root_qid"],
+                    "kind": class_item["kind"],
+                    "depth": class_item["depth"],
+                }
+                f.write(json.dumps(row, ensure_ascii=False) + '\n')
+        
+        logger.info(f"Wrote {len(classes)} classes to temp JSONL: {temp_path}")
+        
+        try:
+            # #745 【設計】Load Job 設定（WRITE_TRUNCATE で全削除して再ロード）
+            job_config = bigquery.LoadJobConfig(
+                source_format=bigquery.SourceFormat.NEWLINE_DELIMITED_JSON,
+                write_disposition=bigquery.WriteDisposition.WRITE_TRUNCATE,
+                schema=[
+                    bigquery.SchemaField("class_qid", "STRING", mode="REQUIRED"),
+                    bigquery.SchemaField("root_qid", "STRING", mode="REQUIRED"),
+                    bigquery.SchemaField("kind", "STRING", mode="REQUIRED"),
+                    bigquery.SchemaField("depth", "INT64", mode="REQUIRED"),
+                ]
+            )
+            
+            # #745 【設計】Load Job 実行
+            with open(temp_path, 'rb') as f:
+                load_job = self.client.load_table_from_file(
+                    f,
+                    table_id,
+                    job_config=job_config
+                )
+            
+            load_job.result()  # Wait for completion
+            logger.info(f"Load Job completed: {load_job.output_rows} rows loaded to food_class_closure")
+            
+        finally:
+            # 一時ファイル削除
+            Path(temp_path).unlink(missing_ok=True)
+            logger.debug(f"Deleted temp file: {temp_path}")
+    
     def load_food_nodes_to_staging(self, nodes: List[Dict]) -> None:
         """
         #741 【設計】food_nodes_raw_staging テーブルに Load Job でノードをロード
