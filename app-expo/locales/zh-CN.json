@@ -496,6 +496,9 @@
 			"titleLength": "标题必须在5到80个字符之间",
 			"messageLength": "消息必须在10到2000个字符之间",
 			"submitFailed": "提交反馈失败。请重试。"
+		},
+		"success": {
+			"submitted": "感谢您的反馈！"
 		}
 	},
 	"auth": {
