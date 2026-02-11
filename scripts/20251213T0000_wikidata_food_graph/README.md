@@ -26,7 +26,8 @@ BigQuery は「分析・生成の SoT（Single Source of Truth）」であり、
 
 - **段階実行（手動の標準ルート）**
   - `1_1_create_tables.py`
-  - `1_2_fetch_and_load_nodes.py`
+  - `1_1_5_fetch_and_load_classes.py` **(#745 新規：2 段階設計の Stage 1)**
+  - `1_2_fetch_and_load_nodes.py` **(#745 変更：2 段階設計の Stage 2、1_1_5 の実行が前提)**
   - `1_3_generate_paths_and_summary.py`
 
 - **Serving 反映（BigQuery → PostgreSQL 同期）**
@@ -54,7 +55,14 @@ BigQuery は「分析・生成の SoT（Single Source of Truth）」であり、
 
 ### 2.2 Core Extraction（Wikidata 取得 → raw / edges）
 
-- `1_2_fetch_and_load_nodes.py`
+- `1_1_5_fetch_and_load_classes.py` **(#745 新規)**
+  - **2 段階設計 Stage 1**: P279* クラス閉包を取得し `food_class_closure` を構築
+  - クラス階層のみを扱うため、数百〜数千程度で完了
+  - 更新頻度は低い（root 変更 / Wikidata 構造変更時のみ）
+
+- `1_2_fetch_and_load_nodes.py` **(#745 変更)**
+  - **2 段階設計 Stage 2**: `food_class_closure` から取得したクラス QID に対して P31-only でノードを取得
+  - property path `(wdt:P31|wdt:P279)*` を使用しないため、WDQS への負荷を削減
   - Wikidata から node を取得し `food_nodes_raw` を更新
   - edge をローカル一時ファイル（`/tmp/.../edges.json`）に落として後続へ渡す
 
