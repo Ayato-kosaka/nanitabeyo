@@ -297,6 +297,34 @@ class BigQueryLoader:
         row = next(result)
         return row.cnt
     
+    def iter_new_qids_in_staging(self):
+        """
+        #741 【設計】staging にあって raw に無い QID を逐次 yield するジェネレータ
+        
+        MERGE 前に「今回新規に入るQID」を抽出し、ファイル保存等に使う。
+        メモリ圧迫を避けるため generator で返す。
+        
+        Yields:
+            item_qid (str): 新規 QID
+        """
+        staging_table = f"{self.dataset_ref}.food_nodes_raw_staging"
+        target_table = f"{self.dataset_ref}.food_nodes_raw"
+        
+        sql = f"""
+        SELECT DISTINCT s.item_qid
+        FROM `{staging_table}` s
+        LEFT JOIN `{target_table}` r
+          ON r.item_qid = s.item_qid
+        WHERE r.item_qid IS NULL
+        ORDER BY s.item_qid
+        """
+        
+        query_job = self.client.query(sql)
+        result = query_job.result()
+        
+        for row in result:
+            yield row.item_qid
+    
     def get_staging_summary(self) -> Dict[str, Any]:
         """
         #741 【設計】staging の統計情報を取得（観測性向上）

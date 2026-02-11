@@ -60,6 +60,7 @@ STAGING_DISCREPANCY_THRESHOLD = 0.05
 TEMP_DIR = Path("/tmp/wikidata_food_graph")
 NODES_TEMP_DIR = TEMP_DIR / "nodes"  # #545 【設計】root単位の一時ファイル保存先
 EDGES_FILE = TEMP_DIR / "edges.json"
+NEW_QIDS_FILE = TEMP_DIR / "new_qids.jsonl"  # #741 【設計】今回新規に追加されるQIDのリスト
 
 
 def main():
@@ -225,6 +226,29 @@ def main():
         logger.error(f"Failed to validate staging: {e}")
         sys.exit(1)
     
+    # #741 【設計】Phase 2.7: 新規QIDをファイルに書き出し（MERGE前）
+    logger.info("=" * 80)
+    logger.info("Phase 2.7: Extracting new QIDs before MERGE")
+    logger.info("=" * 80)
+    
+    try:
+        new_qids_iter = bq_loader.iter_new_qids_in_staging()
+        new_qids_count = 0
+        
+        with open(NEW_QIDS_FILE, "w", encoding="utf-8") as f:
+            for qid in new_qids_iter:
+                f.write(qid + "\n")
+                new_qids_count += 1
+        
+        logger.info(f"Saved new QIDs list: {NEW_QIDS_FILE} ({new_qids_count} QIDs)")
+        
+        if new_qids_count == 0:
+            logger.warning("No new QIDs to add (all QIDs already exist in raw)")
+        
+    except Exception as e:
+        logger.error(f"Failed to extract new QIDs: {e}")
+        sys.exit(1)
+    
     # #741 【設計】3. staging → food_nodes_raw に MERGE
     logger.info("=" * 80)
     logger.info("Phase 3: Merging nodes from staging to raw")
@@ -235,8 +259,13 @@ def main():
         logger.info(f"MERGE completed:")
         logger.info(f"  - Before: {merge_result['before_count']} distinct QIDs")
         logger.info(f"  - After: {merge_result['after_count']} distinct QIDs")
-        logger.info(f"  - New QIDs: {merge_result['new_qids']}")
+        logger.info(f"  - New QIDs (from pre-MERGE extraction): {new_qids_count}")
         logger.info(f"  - Affected rows: {merge_result['affected_rows']}")
+        
+        # #741 【設計】整合チェック: 事前抽出した新規QID数とMERGE後の増加が一致するか
+        actual_increase = merge_result['after_count'] - merge_result['before_count']
+        if actual_increase != new_qids_count:
+            logger.warning(f"WARNING: New QID count mismatch: pre-MERGE extraction={new_qids_count}, actual increase={actual_increase}")
     except Exception as e:
         logger.error(f"Failed to merge nodes: {e}")
         sys.exit(1)
@@ -266,9 +295,11 @@ def main():
         for temp_file in NODES_TEMP_DIR.glob("*.jsonl"):
             temp_file.unlink()
             logger.debug(f"Deleted {temp_file}")
-        logger.info("Temporary files cleaned up")
+        logger.info("Temporary node files cleaned up")
+        logger.info(f"Kept: {EDGES_FILE}, {NEW_QIDS_FILE}")
     else:
         logger.info(f"Temporary files kept in {NODES_TEMP_DIR}")
+        logger.info(f"Also kept: {EDGES_FILE}, {NEW_QIDS_FILE}")
     
     logger.info("=" * 80)
     logger.info("✅ Step 2 completed successfully!")
@@ -277,7 +308,8 @@ def main():
     logger.info(f"Summary:")
     logger.info(f"  - Total unique nodes fetched: {len(all_nodes)}")
     logger.info(f"  - BigQuery raw table: {merge_result['after_count']} distinct QIDs")
-    logger.info(f"  - New QIDs added: {merge_result['new_qids']}")
+    logger.info(f"  - New QIDs added: {new_qids_count}")
+    logger.info(f"  - New QIDs list saved to: {NEW_QIDS_FILE}")
     logger.info(f"  - Total edges: {len(edges)}")
     logger.info(f"  - Temporary files: {'kept' if args.keep_temp else 'deleted'}")
     logger.info("")
