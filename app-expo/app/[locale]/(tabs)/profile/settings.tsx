@@ -244,7 +244,7 @@ export default function SettingsScreen() {
 			showSnackbar(i18n.t("Feedback.success.submitted"));
 			closeFeedbackModal();
 		},
-		[closeFeedbackModal, logFrontendEvent, showSnackbar],
+		[closeFeedbackModal, showSnackbar],
 	);
 
 	return (
