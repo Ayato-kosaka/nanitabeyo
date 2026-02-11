@@ -315,8 +315,9 @@ class BigQueryLoader:
         FROM `{staging_table}` s
         LEFT JOIN `{target_table}` r
           ON r.item_qid = s.item_qid
-        WHERE r.item_qid IS NULL
-        ORDER BY s.item_qid
+        WHERE NOT EXISTS (
+          SELECT 1 FROM `raw` r WHERE r.item_qid = s.item_qid
+        );
         """
         
         query_job = self.client.query(sql)
