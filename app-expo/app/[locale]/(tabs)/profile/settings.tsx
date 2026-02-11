@@ -240,10 +240,11 @@ export default function SettingsScreen() {
 	}, [lightImpact, openFeedbackModal, logFrontendEvent, user?.id]);
 
 	const handleFeedbackSubmit = useCallback(
-		(data: { type: "request" | "bug"; title: string; message: string; issueNumber: number; issueUrl: string }) => {
+		(_data: { type: "request" | "bug"; title: string; message: string; issueNumber: number; issueUrl: string }) => {
+			showSnackbar(i18n.t("Feedback.success.submitted"));
 			closeFeedbackModal();
 		},
-		[closeFeedbackModal, logFrontendEvent],
+		[closeFeedbackModal, showSnackbar],
 	);
 
 	return (
