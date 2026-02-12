@@ -206,8 +206,11 @@ class BigQueryLoader:
             
         finally:
             # 一時ファイル削除
-            Path(temp_path).unlink(missing_ok=True)
-            logger.debug(f"Deleted temp file: {temp_path}")
+            try:
+                Path(temp_path).unlink()
+                logger.debug(f"Deleted temp file: {temp_path}")
+            except FileNotFoundError:
+                logger.debug(f"Temp file already deleted: {temp_path}")
     
     def merge_food_nodes_from_staging(self) -> Dict[str, int]:
         """
@@ -313,11 +316,11 @@ class BigQueryLoader:
         sql = f"""
         SELECT DISTINCT s.item_qid
         FROM `{staging_table}` s
-        LEFT JOIN `{target_table}` r
-          ON r.item_qid = s.item_qid
         WHERE NOT EXISTS (
-          SELECT 1 FROM `raw` r WHERE r.item_qid = s.item_qid
-        );
+          SELECT 1
+          FROM `{target_table}` r
+          WHERE r.item_qid = s.item_qid
+        )
         """
         
         query_job = self.client.query(sql)

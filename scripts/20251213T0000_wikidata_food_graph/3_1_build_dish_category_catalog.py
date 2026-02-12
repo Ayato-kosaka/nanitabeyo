@@ -7,7 +7,7 @@
 blacklist 除外済み集合を対象に、dish_category_catalog を生成（再生成可能）
 
 【処理内容】
-1. food_nodes_raw から dish ノードを取得
+1. food_nodes_raw から ノードを取得
 2. dish_blacklist を除外
 3. labels/desc を付与（Wikidata 由来、food_nodes_raw から取得）
 4. image_url を付与（今回はスコープ外、NULL）

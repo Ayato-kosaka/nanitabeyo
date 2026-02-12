@@ -20,6 +20,9 @@ python3 1_1_create_tables.py
 
 【注意】
 - GCP 認証が必要（gcloud auth application-default login）
+  - gcloud を使う場合: gcloud auth application-default login
+  - サービスアカウントキー(JSON)を使う場合:
+    export GOOGLE_APPLICATION_CREDENTIALS="/path/to/key.json"
 - テーブルは IF NOT EXISTS で作成されるため、再実行可能
 """
 
