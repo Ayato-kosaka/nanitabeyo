@@ -185,8 +185,26 @@ class WikidataClient:
                     if '\ufffd' in sanitized_body:
                         logger.warning("Response contains invalid UTF-8 sequences (replaced with U+FFFD)")
                         logger.warning("This may indicate control characters in Wikidata multilang data")
-                    
-                    result_json = json_module.loads(sanitized_body)
+
+                    # まずは strict（通常）でパースを試す
+                    try:
+                        result_json = json_module.loads(sanitized_body)
+                    except json_module.JSONDecodeError as e_strict:
+                        # strict で落ちる場合、Wikidata 側の制御文字混入などで
+                        # JSON が厳密に不正なことがある。ここではリトライで治らないことが多いため、
+                        # strict=False で「復旧パース」を試みる。
+                        logger.warning(
+                            "Strict JSON parse failed (will try strict=False). "
+                            "error=%s pos=%s line=%s col=%s status=%s size=%d",
+                            str(e_strict),
+                            getattr(e_strict, "pos", None),
+                            getattr(e_strict, "lineno", None),
+                            getattr(e_strict, "colno", None),
+                            status_code,
+                            response_size,
+                        )
+                        result_json = json_module.loads(sanitized_body, strict=False)
+
                     return result_json.get("results", {}).get("bindings", [])
                 except json_module.JSONDecodeError as e:
                     logger.error(f"JSONDecodeError: {e}")
@@ -194,9 +212,10 @@ class WikidataClient:
                     logger.error(f"Error position: {e.pos}, line: {e.lineno}, col: {e.colno}")
                     # レスポンスのエラー位置周辺をログ出力
                     if hasattr(e, 'pos') and e.pos:
+                        # エラー位置の文脈は「サニタイズ後文字列」ベースで出す（行/桁が一致しやすい）
                         start = max(0, e.pos - 200)
-                        end = min(len(response_body), e.pos + 200)
-                        context = response_body[start:end].decode('utf-8', errors='replace')
+                        end = min(len(sanitized_body), e.pos + 200)
+                        context = sanitized_body[start:end]
                         logger.error(f"Context around error: ...{context}...")
                     raise
             else:
