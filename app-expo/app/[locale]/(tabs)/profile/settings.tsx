@@ -11,7 +11,7 @@ import {
 	Linking,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { ChevronRight } from "lucide-react-native";
+import { ChevronRight, X } from "lucide-react-native";
 import { Card } from "@/components/Card";
 import i18n from "@/lib/i18n";
 import { useAuth } from "@/contexts/AuthProvider";
@@ -24,6 +24,8 @@ import { useDialog } from "@/contexts/DialogProvider";
 import { Env } from "@/constants/Env";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
+import { useBlockedTopics } from "@/features/settings/hooks/useBlockedTopics";
+import { deleteReaction } from "@/lib/reactions";
 
 interface SettingsMenuItemProps {
 	label: string;
@@ -50,6 +52,8 @@ export default function SettingsScreen() {
 	const { logFrontendEvent } = useLogger();
 	const { showDialog } = useDialog();
 	const { showSnackbar } = useSnackbar();
+	// #[TICKET] 【設計】ブロック済み料理の取得
+	const { blockedTopics, refetch: refetchBlockedTopics } = useBlockedTopics();
 	const [selectedLegalDocument, setSelectedLegalDocument] = useState<
 		"guidelines" | "terms" | "privacy" | "copyright" | null
 	>(null);
@@ -247,6 +251,45 @@ export default function SettingsScreen() {
 		[closeFeedbackModal, showSnackbar],
 	);
 
+	// #[TICKET] 【設計】ブロック解除処理
+	const handleUnblockTopic = useCallback(
+		(categoryId: string, categoryName: string) => {
+			lightImpact();
+			showDialog(i18n.t("Settings.unblockDialogMessage"), {
+				title: categoryName,
+				okLabel: i18n.t("Common.ok"),
+				cancelLabel: i18n.t("Common.cancel"),
+				onConfirm: async () => {
+					try {
+						await deleteReaction({
+							target_type: "dish_categories",
+							target_id: categoryId,
+							action_type: "block",
+						});
+						showSnackbar(i18n.t("Settings.unblocked"));
+						refetchBlockedTopics();
+						logFrontendEvent({
+							event_name: "settings_unblock_topic_success",
+							error_level: "log",
+							payload: { categoryId },
+						});
+					} catch (error) {
+						showSnackbar(i18n.t("Common.error"));
+						logFrontendEvent({
+							event_name: "settings_unblock_topic_failed",
+							error_level: "error",
+							payload: {
+								categoryId,
+								error: error instanceof Error ? error.message : "Unknown error",
+							},
+						});
+					}
+				},
+			});
+		},
+		[lightImpact, showDialog, showSnackbar, refetchBlockedTopics, logFrontendEvent],
+	);
+
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
 			<SafeAreaView style={styles.safeArea} edges={["top"]}>
@@ -255,16 +298,45 @@ export default function SettingsScreen() {
 						<Text style={styles.title}>{i18n.t("Settings.title")}</Text>
 					</View>
 
-					{/* Card 1: フィードバック・レビュー */}
+					{/* Card 1: フィードバック・レビュー・ブロック一覧 */}
 					<Card style={styles.card}>
 						<SettingsMenuItem
 							label={i18n.t("Settings.sendFeedback")}
 							onPress={handleSendFeedback}
-							isLast={Platform.OS === "web"}
+							isLast={Platform.OS === "web" && blockedTopics.length === 0}
 						/>
 						{/* #317 【設計】Leave Review は web では非表示 */}
 						{Platform.OS !== "web" && (
-							<SettingsMenuItem label={i18n.t("Settings.leaveReview")} onPress={handleLeaveReview} isLast />
+							<SettingsMenuItem
+								label={i18n.t("Settings.leaveReview")}
+								onPress={handleLeaveReview}
+								isLast={blockedTopics.length === 0}
+							/>
+						)}
+
+						{/* #[TICKET] 【設計】ブロック一覧セクション（Card 1 最下部） */}
+						{blockedTopics.length > 0 && (
+							<>
+								<View style={styles.separator} />
+								<View style={styles.blockedSection}>
+									<Text style={styles.blockedSectionTitle}>{i18n.t("Settings.blockedTopics")}</Text>
+									<View style={styles.blockedChips}>
+										{blockedTopics.map((topic) => (
+											<View key={topic.category_id} style={styles.blockedChip}>
+												<Text style={styles.blockedChipText} numberOfLines={1}>
+													{topic.category_name}
+												</Text>
+												<TouchableOpacity
+													onPress={() => handleUnblockTopic(topic.category_id, topic.category_name)}
+													style={styles.blockedChipButton}
+													hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+													<X size={14} color="#49454F" />
+												</TouchableOpacity>
+											</View>
+										))}
+									</View>
+								</View>
+							</>
 						)}
 					</Card>
 
@@ -352,5 +424,41 @@ const styles = StyleSheet.create({
 		height: 1,
 		backgroundColor: "#F3F4F6",
 		marginHorizontal: 16,
+	},
+	// #[TICKET] 【設計】ブロック一覧のスタイル
+	blockedSection: {
+		paddingHorizontal: 16,
+		paddingVertical: 16,
+	},
+	blockedSectionTitle: {
+		fontSize: 14,
+		fontWeight: "600",
+		color: "#49454F",
+		marginBottom: 12,
+	},
+	blockedChips: {
+		flexDirection: "row",
+		flexWrap: "wrap",
+		gap: 8,
+	},
+	blockedChip: {
+		flexDirection: "row",
+		alignItems: "center",
+		backgroundColor: "#F3F4F6",
+		paddingLeft: 12,
+		paddingRight: 8,
+		paddingVertical: 8,
+		borderRadius: 16,
+		gap: 6,
+		maxWidth: "48%",
+	},
+	blockedChipText: {
+		fontSize: 14,
+		color: "#1C1B1F",
+		fontWeight: "500",
+		flex: 1,
+	},
+	blockedChipButton: {
+		padding: 2,
 	},
 });
