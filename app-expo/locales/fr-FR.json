@@ -172,6 +172,12 @@
 		}
 	},
 	"Topics": {
+		"BlockTopicModal": {
+			"title": "Bloquer ce plat ?",
+			"description": "Les plats bloqués n'apparaîtront plus dans les recommandations.",
+			"note": "Vous pouvez débloquer à tout moment depuis les paramètres.",
+			"confirm": "Bloquer"
+		},
 		"HideTopicModal": {
 			"title": "Masquer",
 			"description": "Veuillez indiquer la raison du masquage (facultatif)",
@@ -189,11 +195,17 @@
 		"empty": "Aucun plat disponible",
 		"retry": "Retour à la recherche",
 		"chooseThis": "Je choisis celui-ci !",
+		"blockedMessage": "{{title}} a été bloqué",
 		"hiddenMessage": "{{title}} a été masqué",
 		"imageLoadFailed": "Échec du chargement de l'image",
 		"tapToReload": "Appuyez pour recharger",
 		"headerTitle": "Plats Recommandés pour Vous",
-		"subCopy": "Appuyez sur un plat que vous aimez pour trouver des restaurants"
+		"subCopy": "Appuyez sur un plat que vous aimez pour trouver des restaurants",
+		"redrawDialog": {
+			"title": "Relancer les recommandations ?",
+			"message": "Nous afficherons des recommandations différentes avec les mêmes critères."
+		},
+		"redrawButton": "Relancer"
 	},
 	"Notifications": {
 		"title": "Notifications",
@@ -547,7 +559,11 @@
 		"privacy": "Politique de confidentialité",
 		"copyright": "Droits d'auteur",
 		"legalDocument": "Document juridique",
-		"logout": "Se déconnecter"
+		"logout": "Se déconnecter",
+		"blockedTopics": "Plats bloqués",
+		"blockedTopicsEmpty": "Aucun plat bloqué",
+		"unblockDialogMessage": "Ce plat réapparaîtra dans les recommandations.",
+		"unblocked": "Débloqué avec succès"
 	},
 	"Dialog": {
 		"a11y": {

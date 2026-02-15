@@ -172,6 +172,12 @@
 		}
 	},
 	"Topics": {
+		"BlockTopicModal": {
+			"title": "هل تريد حظر هذا الطبق؟",
+			"description": "الأطباق المحظورة لن تظهر في التوصيات بعد الآن.",
+			"note": "يمكنك إلغاء الحظر في أي وقت من صفحة الإعدادات.",
+			"confirm": "حظر"
+		},
 		"HideTopicModal": {
 			"title": "إخفاء",
 			"description": "أخبرنا سبب الإخفاء (اختياري)",
@@ -189,11 +195,17 @@
 		"empty": "لا توجد أطباق متاحة",
 		"retry": "العودة إلى البحث",
 		"chooseThis": "اختر هذا!",
+		"blockedMessage": "تم حظر {{title}}",
 		"hiddenMessage": "تم إخفاء {{title}}",
 		"imageLoadFailed": "فشل تحميل الصورة",
 		"tapToReload": "اضغط لإعادة التحميل",
 		"headerTitle": "الأطباق الموصى بها لك",
-		"subCopy": "انقر على طبق يعجبك للعثور على المطاعم"
+		"subCopy": "انقر على طبق يعجبك للعثور على المطاعم",
+		"redrawDialog": {
+			"title": "إعادة اختيار التوصيات؟",
+			"message": "سنعرض توصيات مختلفة بنفس الشروط."
+		},
+		"redrawButton": "إعادة الاختيار"
 	},
 	"Notifications": {
 		"title": "الإشعارات",
@@ -547,7 +559,11 @@
 		"privacy": "سياسة الخصوصية",
 		"copyright": "حقوق النشر",
 		"legalDocument": "مستند قانوني",
-		"logout": "تسجيل الخروج"
+		"logout": "تسجيل الخروج",
+		"blockedTopics": "الأطباق المحظورة",
+		"blockedTopicsEmpty": "لا توجد أطباق محظورة",
+		"unblockDialogMessage": "سيتم إرجاع هذا الطبق إلى التوصيات.",
+		"unblocked": "تم إلغاء الحظر"
 	},
 	"Dialog": {
 		"a11y": {

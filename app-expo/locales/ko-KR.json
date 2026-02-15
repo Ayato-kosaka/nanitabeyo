@@ -172,6 +172,12 @@
 		}
 	},
 	"Topics": {
+		"BlockTopicModal": {
+			"title": "이 요리를 차단하시겠습니까?",
+			"description": "차단된 요리는 더 이상 추천에 표시되지 않습니다.",
+			"note": "설정에서 언제든지 차단을 해제할 수 있습니다.",
+			"confirm": "차단하기"
+		},
 		"HideTopicModal": {
 			"title": "숨기기",
 			"description": "숨기는 이유를 알려주세요 (선택사항)",
@@ -189,11 +195,17 @@
 		"empty": "표시할 요리가 없습니다",
 		"retry": "검색으로 돌아가기",
 		"chooseThis": "이걸로 할래!",
+		"blockedMessage": "{{title}}을(를) 차단했습니다",
 		"hiddenMessage": "{{title}} 이(가) 숨겨졌습니다",
 		"imageLoadFailed": "이미지를 불러오지 못했습니다",
 		"tapToReload": "탭하여 다시 로드",
 		"headerTitle": "당신을 위한 추천 요리",
-		"subCopy": "마음에 드는 요리를 탭하여 레스토랑을 찾으세요"
+		"subCopy": "마음에 드는 요리를 탭하여 레스토랑을 찾으세요",
+		"redrawDialog": {
+			"title": "추천을 다시 뽑으시겠습니까?",
+			"message": "같은 조건으로 다른 추천을 보여드립니다."
+		},
+		"redrawButton": "다시 뽑기"
 	},
 	"Notifications": {
 		"title": "알림",
@@ -547,7 +559,11 @@
 		"privacy": "개인정보 처리방침",
 		"copyright": "저작권",
 		"legalDocument": "법적 문서",
-		"logout": "로그아웃"
+		"logout": "로그아웃",
+		"blockedTopics": "차단한 요리",
+		"blockedTopicsEmpty": "차단한 요리가 없습니다",
+		"unblockDialogMessage": "이 요리를 추천 대상으로 다시 포함합니다.",
+		"unblocked": "차단을 해제했습니다"
 	},
 	"Dialog": {
 		"a11y": {

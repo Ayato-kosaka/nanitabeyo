@@ -172,6 +172,12 @@
 		}
 	},
 	"Topics": {
+		"BlockTopicModal": {
+			"title": "Block this dish?",
+			"description": "Blocked dish topics will no longer appear in recommendations.",
+			"note": "You can unblock at any time from settings.",
+			"confirm": "Block"
+		},
 		"HideTopicModal": {
 			"title": "Hide",
 			"description": "Please tell us the reason for hiding (optional)",
@@ -189,11 +195,17 @@
 		"empty": "No dishes available",
 		"retry": "Back to search",
 		"chooseThis": "Choose this!",
+		"blockedMessage": "{{title}} has been blocked",
 		"hiddenMessage": "{{title}} has been hidden",
 		"imageLoadFailed": "Failed to load image",
 		"tapToReload": "Tap to reload",
 		"headerTitle": "Recommended Dishes for You",
-		"subCopy": "Tap on a dish you like to find restaurants"
+		"subCopy": "Tap on a dish you like to find restaurants",
+		"redrawDialog": {
+			"title": "Redraw recommendations?",
+			"message": "We'll show different recommendations with the same criteria."
+		},
+		"redrawButton": "Redraw"
 	},
 	"Notifications": {
 		"title": "Notifications",
@@ -547,7 +559,11 @@
 		"privacy": "Privacy Policy",
 		"copyright": "Copyright",
 		"legalDocument": "Legal Document",
-		"logout": "Logout"
+		"logout": "Logout",
+		"blockedTopics": "Blocked Dishes",
+		"blockedTopicsEmpty": "No blocked dishes",
+		"unblockDialogMessage": "This dish topic will be included in recommendations again.",
+		"unblocked": "Unblocked successfully"
 	},
 	"Dialog": {
 		"a11y": {

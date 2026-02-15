@@ -172,6 +172,12 @@
 		}
 	},
 	"Topics": {
+		"BlockTopicModal": {
+			"title": "屏蔽此菜品？",
+			"description": "被屏蔽的菜品将不再出现在推荐中。",
+			"note": "您可以随时从设置中取消屏蔽。",
+			"confirm": "屏蔽"
+		},
 		"HideTopicModal": {
 			"title": "隐藏",
 			"description": "请告诉我们隐藏的理由（可选）",
@@ -189,11 +195,17 @@
 		"empty": "没有可显示的菜品",
 		"retry": "返回搜索",
 		"chooseThis": "就选这个！",
+		"blockedMessage": "已屏蔽{{title}}",
 		"hiddenMessage": "{{title}}已被隐藏",
 		"imageLoadFailed": "图片加载失败",
 		"tapToReload": "点击重新加载",
 		"headerTitle": "为您推荐的菜品",
-		"subCopy": "点击您喜欢的菜品来查找餐厅"
+		"subCopy": "点击您喜欢的菜品来查找餐厅",
+		"redrawDialog": {
+			"title": "重新抽取推荐？",
+			"message": "我们将用相同条件显示不同的推荐。"
+		},
+		"redrawButton": "重新抽取"
 	},
 	"Notifications": {
 		"title": "通知",
@@ -547,7 +559,11 @@
 		"privacy": "隐私政策",
 		"copyright": "版权",
 		"legalDocument": "法律文件",
-		"logout": "登出"
+		"logout": "登出",
+		"blockedTopics": "已屏蔽的菜品",
+		"blockedTopicsEmpty": "没有屏蔽的菜品",
+		"unblockDialogMessage": "此菜品将重新出现在推荐中。",
+		"unblocked": "已取消屏蔽"
 	},
 	"Dialog": {
 		"a11y": {
