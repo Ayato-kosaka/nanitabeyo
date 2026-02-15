@@ -78,7 +78,7 @@ export const useBlockedTopics = () => {
 
 	useEffect(() => {
 		fetchBlockedTopics();
-	}, [user?.id]);
+	}, [user?.id, user?.is_anonymous]);
 
 	return {
 		blockedTopics,

@@ -155,16 +155,14 @@ export default function TopicsScreen() {
 					// 同条件で recommendations API を再実行
 					await searchTopics(params);
 
-					// #[TICKET] 【設計】重複除去: 既存表示済み categoryId を除外
-					const newTopics = topics.filter((topic) => !displayedCategoryIds.has(topic.categoryId));
-					if (newTopics.length > 0) {
-						newTopics.forEach((t) => setDisplayedCategoryIds((prev) => new Set([...prev, t.categoryId])));
-					}
+					// #[TICKET] 【設計】NOTE: 重複除去は searchTopics の完了後に topics が更新されるため、
+					// ここでは displayedCategoryIds に追加のみ行い、実際のフィルタリングは
+					// 画面側で visibleTopics を使用する際に行われる
 
 					logFrontendEvent({
 						event_name: "topics_redraw_success",
 						error_level: "log",
-						payload: { newCount: newTopics.length },
+						payload: {},
 					});
 				} catch (error) {
 					showSnackbar(i18n.t("Topics.errors.fetchFailed"));
@@ -176,7 +174,7 @@ export default function TopicsScreen() {
 				}
 			},
 		});
-	}, [params, searchTopics, topics, displayedCategoryIds, showDialog, showSnackbar, logFrontendEvent]);
+	}, [params, searchTopics, showDialog, showSnackbar, logFrontendEvent]);
 
 	const visibleTopics = topics.filter((topic) => !topic.isHidden);
 

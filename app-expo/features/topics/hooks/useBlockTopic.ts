@@ -37,13 +37,13 @@ export const useBlockTopic = (
 				});
 
 				blockTopic(selectedCardId);
-				showSnackbar(i18n.t("Topics.blockedMessage", { title: selectedTopic?.topicTitle }));
+				showSnackbar(i18n.t("Topics.blockedMessage", { title: selectedTopic.topicTitle }));
 				close();
 			} catch (error) {
 				// If reaction insertion fails, still proceed with blocking locally
 				console.error("Failed to insert block reaction:", error);
 				blockTopic(selectedCardId);
-				showSnackbar(i18n.t("Topics.blockedMessage", { title: selectedTopic?.topicTitle }));
+				showSnackbar(i18n.t("Topics.blockedMessage", { title: selectedTopic.topicTitle }));
 				close();
 			}
 		}
