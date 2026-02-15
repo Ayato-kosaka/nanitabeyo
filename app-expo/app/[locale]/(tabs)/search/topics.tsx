@@ -6,11 +6,11 @@ import Carousel from "react-native-reanimated-carousel";
 import { Image } from "expo-image";
 import { Topic, SearchParams } from "@/types/search";
 import { useTopicSearch } from "@/features/topics/hooks/useTopicSearch";
-import { useHideTopic } from "@/features/topics/hooks/useHideTopic";
+import { useBlockTopic } from "@/features/topics/hooks/useBlockTopic";
 import { TopicCard } from "@/features/topics/components/TopicCard";
 import { TopicsLoading } from "@/features/topics/components/TopicsLoading";
 import { TopicsError } from "@/features/topics/components/TopicsError";
-import { HideTopicForm } from "@/features/topics/components/HideTopicForm";
+import { BlockTopicForm } from "@/features/topics/components/BlockTopicForm";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { CARD_WIDTH, CARD_MAX_HEIGHT, width as SCREEN_WIDTH } from "@/features/topics/constants";
@@ -44,12 +44,13 @@ export default function TopicsScreen() {
 
 	const { topics, isLoading, error, searchTopics, hideTopic, createDishItemsPromise } = useTopicSearch();
 	const { showSnackbar } = useSnackbar();
+	// #[TICKET] 【設計】hide → block に切替（理由入力モーダルなし）
 	const {
-		BlurModal: HideTopicBlurModal,
-		close: closeHideModal,
-		handleHideCard,
-		confirmHideCard,
-	} = useHideTopic(topics, hideTopic, showSnackbar);
+		BlurModal: BlockTopicBlurModal,
+		close: closeBlockModal,
+		handleBlockCard,
+		confirmBlockCard,
+	} = useBlockTopic(topics, hideTopic, showSnackbar);
 
 	useEffect(() => {
 		if (params) {
@@ -187,7 +188,8 @@ export default function TopicsScreen() {
 
 	const renderCard = ({ item, index }: { item: Topic; index: number }) => (
 		<TouchableOpacity key={item.categoryId} activeOpacity={0.95} onPress={handleCardPress}>
-			<TopicCard item={item} onHide={handleHideCard} displayIndex={index} cardHeight={cardHeight} />
+			{/* #[TICKET] 【設計】hide → block に変更 */}
+			<TopicCard item={item} onBlock={handleBlockCard} displayIndex={index} cardHeight={cardHeight} />
 		</TouchableOpacity>
 	);
 
@@ -313,16 +315,10 @@ export default function TopicsScreen() {
 				)}
 			</View>
 
-			<HideTopicBlurModal>
-				{({ close }) => (
-					<HideTopicForm
-						onSubmit={(hideReason) => {
-							confirmHideCard(hideReason);
-						}}
-						onCancel={close}
-					/>
-				)}
-			</HideTopicBlurModal>
+			{/* #[TICKET] 【設計】Block確認モーダル（理由入力なし） */}
+			<BlockTopicBlurModal>
+				{({ close }) => <BlockTopicForm onConfirm={confirmBlockCard} onCancel={close} />}
+			</BlockTopicBlurModal>
 		</View>
 	);
 }

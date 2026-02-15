@@ -124,9 +124,10 @@ export const TopicCard = ({
 		}
 	};
 
-	const handleHide = async () => {
+	// #[TICKET] 【設計】hide → block に変更
+	const handleBlock = async () => {
 		errorNotification();
-		onHide(item.categoryId);
+		onBlock(item.categoryId);
 	};
 
 	// impression ログ送信済みフラグ（重複防止用）
@@ -204,7 +205,8 @@ export const TopicCard = ({
 					<TouchableOpacity style={styles.topButton} onPress={handleSave}>
 						<Bookmark size={20} color={isSaved ? "transparent" : "white"} fill={isSaved ? "orange" : "transparent"} />
 					</TouchableOpacity>
-					<TouchableOpacity style={styles.topButton} onPress={handleHide}>
+					{/* #[TICKET] 【設計】block ボタン */}
+					<TouchableOpacity style={styles.topButton} onPress={handleBlock}>
 						<Trash size={18} color="#FFF" />
 					</TouchableOpacity>
 				</View>
