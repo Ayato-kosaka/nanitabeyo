@@ -208,6 +208,7 @@ export default function DishCategoryManualTextSupplyScreen() {
 			error_level: "log",
 			payload: {},
 		});
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
 	/* -------------------------------------------------------------------------- */
@@ -335,11 +336,12 @@ export default function DishCategoryManualTextSupplyScreen() {
 							runOnJS(handleOk)();
 						});
 					} else if (event.translationX < -SWIPE_THRESHOLD) {
-						// 左スワイプ → 編集
+						// 左スワイプ → 編集（UIスレッドで即座にリセット）
 						translateX.value = withTiming(-1000, { duration: 200 }, () => {
 							runOnJS(handleEdit)();
-							translateX.value = 0;
 						});
+						// #749 【設計】編集モーダル表示後に位置をリセット（UIスレッドで実行）
+						translateX.value = withTiming(0, { duration: 0 });
 					} else {
 						// 元に戻す
 						translateX.value = withSpring(0);
