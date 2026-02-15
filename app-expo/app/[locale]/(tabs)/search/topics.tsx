@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { MapPin, Clock, Users, Salad, ChefHat } from "lucide-react-native";
+import { MapPin, Clock, Users, Salad, ChefHat, RefreshCw } from "lucide-react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import Carousel from "react-native-reanimated-carousel";
 import { Image } from "expo-image";
@@ -41,9 +41,12 @@ export default function TopicsScreen() {
 	const [currentIndex, setCurrentIndex] = useState(0);
 	const carouselRef = useRef<any>(null);
 	const { selectionChanged } = useHaptics();
+	// #[TICKET] 【設計】表示済み categoryId を記録（重複除去用）
+	const [displayedCategoryIds, setDisplayedCategoryIds] = useState<Set<string>>(new Set());
 
 	const { topics, isLoading, error, searchTopics, hideTopic, createDishItemsPromise } = useTopicSearch();
 	const { showSnackbar } = useSnackbar();
+	const { showDialog } = useDialog();
 	// #[TICKET] 【設計】hide → block に切替（理由入力モーダルなし）
 	const {
 		BlurModal: BlockTopicBlurModal,
@@ -62,6 +65,14 @@ export default function TopicsScreen() {
 			router.back();
 		}
 	}, [params, searchTopics, showSnackbar, router]);
+
+	// #[TICKET] 【設計】初回取得時に表示済み categoryId を記録
+	useEffect(() => {
+		if (!isLoading && topics.length > 0) {
+			const ids = new Set(topics.map((t) => t.categoryId));
+			setDisplayedCategoryIds(ids);
+		}
+	}, [isLoading, topics.length]);
 
 	const handleViewDetails = useCallback(
 		(topic: Topic) => {
@@ -127,6 +138,42 @@ export default function TopicsScreen() {
 	const handleBack = () => {
 		router.back();
 	};
+
+	// #[TICKET] 【設計】再抽選ハンドラ（同条件で API を再実行、重複除去）
+	const handleRedraw = useCallback(() => {
+		if (!params) return;
+
+		showDialog(i18n.t("Topics.redrawDialog.message"), {
+			title: i18n.t("Topics.redrawDialog.title"),
+			okLabel: i18n.t("Common.ok"),
+			cancelLabel: i18n.t("Common.cancel"),
+			onConfirm: async () => {
+				try {
+					// 同条件で recommendations API を再実行
+					await searchTopics(params);
+
+					// #[TICKET] 【設計】重複除去: 既存表示済み categoryId を除外
+					const newTopics = topics.filter((topic) => !displayedCategoryIds.has(topic.categoryId));
+					if (newTopics.length > 0) {
+						newTopics.forEach((t) => setDisplayedCategoryIds((prev) => new Set([...prev, t.categoryId])));
+					}
+
+					logFrontendEvent({
+						event_name: "topics_redraw_success",
+						error_level: "log",
+						payload: { newCount: newTopics.length },
+					});
+				} catch (error) {
+					showSnackbar(i18n.t("Topics.errors.fetchFailed"));
+					logFrontendEvent({
+						event_name: "topics_redraw_failed",
+						error_level: "error",
+						payload: { error: error instanceof Error ? error.message : "Unknown error" },
+					});
+				}
+			},
+		});
+	}, [params, searchTopics, topics, displayedCategoryIds, showDialog, showSnackbar, logFrontendEvent]);
 
 	const visibleTopics = topics.filter((topic) => !topic.isHidden);
 
@@ -203,8 +250,19 @@ export default function TopicsScreen() {
 
 	return (
 		<View style={styles.container}>
-			{/* #674 【仕様】ヘッダー（戻るボタン + タイトル） */}
-			<SearchHeader title={i18n.t("Topics.headerTitle")} onPressBack={handleBack} />
+			{/* #674 【仕様】ヘッダー（戻るボタン + タイトル + 再抽選ボタン） */}
+			<SearchHeader
+				title={i18n.t("Topics.headerTitle")}
+				onPressBack={handleBack}
+				rightContent={
+					// #[TICKET] 【設計】3件未満の場合のみ再抽選ボタンを表示
+					visibleTopics.length > 0 && visibleTopics.length < 3 ? (
+						<TouchableOpacity onPress={handleRedraw} style={styles.redrawButton} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+							<RefreshCw size={20} color="#f05537" />
+						</TouchableOpacity>
+					) : undefined
+				}
+			/>
 
 			{/* #674 【仕様】条件チップ表示 */}
 			{params && (
@@ -452,5 +510,9 @@ const styles = StyleSheet.create({
 	thumbnailImage: {
 		width: "100%",
 		height: "100%",
+	},
+	// #[TICKET] 【設計】再抽選ボタンのスタイル
+	redrawButton: {
+		padding: 4,
 	},
 });
