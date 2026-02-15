@@ -264,8 +264,9 @@ export default function DishCategoryManualTextSupplyScreen() {
 
 	const moveToNext = useCallback(() => {
 		setCurrentIndex((prev) => prev + 1);
-		translateX.value = 0;
-		translateY.value = 0;
+		// #749 【設計】UIスレッドで即座にリセット（次のカード表示用）
+		translateX.value = withTiming(0, { duration: 0 });
+		translateY.value = withTiming(0, { duration: 0 });
 	}, [translateX, translateY]);
 
 	// #749 【処理】右スワイプ/右ボタン → OK（ローカル永続化のみ、POSTなし）
@@ -468,12 +469,15 @@ export default function DishCategoryManualTextSupplyScreen() {
 		editModal.close();
 		setEditingItem(null);
 
+		// #749 【設計】編集モーダルを閉じる際にカード位置をリセット（UIスレッドで実行）
+		translateX.value = withTiming(0, { duration: 0 });
+
 		logFrontendEvent({
 			event_name: "dish_manual_text_supply_edit_closed",
 			error_level: "log",
 			payload: { targetId: editingItem?.id },
 		});
-	}, [editModal, editingItem, logFrontendEvent]);
+	}, [editModal, editingItem, translateX, logFrontendEvent]);
 
 	/* -------------------------------------------------------------------------- */
 	/*                              完了判定                                      */
