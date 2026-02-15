@@ -17,12 +17,12 @@ import { useImageLoadWithRetry } from "@/hooks/useImageLoadWithRetry";
 // Display a single topic card inside the carousel
 export const TopicCard = ({
 	item,
-	onHide,
+	onBlock,
 	displayIndex,
 	cardHeight,
 }: {
 	item: Topic;
-	onHide: (id: string) => void;
+	onBlock: (id: string) => void;
 	displayIndex?: number;
 	cardHeight: number;
 }) => {

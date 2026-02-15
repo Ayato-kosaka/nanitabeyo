@@ -12,6 +12,7 @@ import { TopicsLoading } from "@/features/topics/components/TopicsLoading";
 import { TopicsError } from "@/features/topics/components/TopicsError";
 import { BlockTopicForm } from "@/features/topics/components/BlockTopicForm";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
+import { useDialog } from "@/contexts/DialogProvider";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { CARD_WIDTH, CARD_MAX_HEIGHT, width as SCREEN_WIDTH } from "@/features/topics/constants";
 import { timeSlots, sceneOptions, moodOptions, tasteOptions } from "@/features/search/constants";
@@ -44,9 +45,11 @@ export default function TopicsScreen() {
 	// #[TICKET] 【設計】表示済み categoryId を記録（重複除去用）
 	const [displayedCategoryIds, setDisplayedCategoryIds] = useState<Set<string>>(new Set());
 
-	const { topics, isLoading, error, searchTopics, hideTopic, createDishItemsPromise } = useTopicSearch();
+	const { topics, isLoading, error, searchTopics, hideTopic: hideTopicOriginal, createDishItemsPromise } = useTopicSearch();
 	const { showSnackbar } = useSnackbar();
 	const { showDialog } = useDialog();
+	// #[TICKET] 【設計】hideTopic を 1 パラメータに変換（block は理由不要）
+	const hideTopic = useCallback((id: string) => hideTopicOriginal(id, ""), [hideTopicOriginal]);
 	// #[TICKET] 【設計】hide → block に切替（理由入力モーダルなし）
 	const {
 		BlurModal: BlockTopicBlurModal,
