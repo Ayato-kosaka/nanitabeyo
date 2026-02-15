@@ -58,7 +58,9 @@ export class DishCategoriesController {
   @ApiResponse({ status: 200, description: '取得成功' })
   async getRecommendations(
     @Query() query: QueryDishCategoryRecommendationsDto,
+    @CurrentUser() user?: RequestUser,
   ): Promise<QueryDishCategoryRecommendationsResponse> {
-    return this.dishCategoriesService.getRecommendations(query);
+    // #[TICKET] 【設計】userId を service に伝搬して block/hide 除外に利用
+    return this.dishCategoriesService.getRecommendations(query, user?.id);
   }
 }

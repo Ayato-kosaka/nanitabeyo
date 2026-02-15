@@ -48,6 +48,7 @@ export class DishCategoriesService {
    */
   async getRecommendations(
     dto: QueryDishCategoryRecommendationsDto,
+    userId?: string,
   ): Promise<QueryDishCategoryRecommendationsResponse> {
     this.logger.debug('GetRecommendations', 'getRecommendations', {
       address: dto.address,
@@ -56,6 +57,7 @@ export class DishCategoriesService {
       mood: dto.mood,
       taste: dto.taste,
       languageTag: dto.languageTag,
+      userId,
     });
 
     try {
@@ -64,6 +66,7 @@ export class DishCategoriesService {
 
       // #533 【仕様】Step 2: 候補取得＋スレート構成＋ローカライズ
       // Step 2-1: 候補取得（SQL scoring）
+      // #[TICKET] 【設計】userId を repository に渡して block/hide 除外
       const candidates = await this.repo.findCategoryCandidatesWithScores({
         addressTokens: normalized.addressTokens,
         regionTokens: normalized.regionTokens,
@@ -73,6 +76,7 @@ export class DishCategoriesService {
         satietyKey: normalized.satietyKey,
         tasteKey: normalized.tasteKey,
         candidateLimit: CANDIDATE_LIMIT,
+        userId,
       });
 
       // #533 【フォールバック】候補0件の場合はClaude経路へ
@@ -80,7 +84,7 @@ export class DishCategoriesService {
         this.logger.log('FallbackToClaude', 'getRecommendations', {
           reason: 'no_candidates',
         });
-        return this.fallbackToClaude(dto);
+        return this.fallbackToClaude(dto, userId);
       }
 
       // Step 2-2: スレート構成（Core/Variety/Explore）
@@ -92,7 +96,7 @@ export class DishCategoriesService {
           reason: 'insufficient_candidates',
           count: selectedCandidates.length,
         });
-        return this.fallbackToClaude(dto);
+        return this.fallbackToClaude(dto, userId);
       }
 
       // Step 2-3: ローカライズ文言取得
@@ -123,7 +127,7 @@ export class DishCategoriesService {
         stack: error instanceof Error ? error.stack : undefined,
       });
 
-      return await this.fallbackToClaude(dto);
+      return await this.fallbackToClaude(dto, userId);
     }
   }
 
@@ -378,9 +382,11 @@ export class DishCategoriesService {
 
   /**
    * #533 【フォールバック】Claude経路（既存実装）
+   * #[TICKET] 【設計】userId を受け取り、block/hide 除外を適用
    */
   private async fallbackToClaude(
     dto: QueryDishCategoryRecommendationsDto,
+    userId?: string,
   ): Promise<QueryDishCategoryRecommendationsResponse> {
     try {
       // #533 【設計】ClaudeへはDTOのみを渡す
@@ -398,14 +404,33 @@ export class DishCategoriesService {
       const dishCategories =
         await this.repo.findDishCategoriesByNames(categoryNames);
 
-      const items: DishCategoryRecommendationItem[] = claudeRecommendations.map(
-        (claudeRec) => {
+      // #[TICKET] 【設計】Claude経路でもblock/hide除外を適用
+      let blockedCategoryIds: Set<string> = new Set();
+      if (userId) {
+        const blockedReactions = await this.prisma.prisma.reactions.findMany({
+          where: {
+            user_id: userId,
+            target_type: 'dish_categories',
+            action_type: { in: ['block', 'hide'] },
+          },
+          select: { target_id: true },
+        });
+        blockedCategoryIds = new Set(blockedReactions.map((r) => r.target_id));
+      }
+
+      const items: DishCategoryRecommendationItem[] = claudeRecommendations
+        .map((claudeRec) => {
           const matchedCategory = dishCategories.find((dbCategory) =>
             dbCategory.dish_category_variants.some(
               (variant) =>
                 variant.surface_form === claudeRec.category.toLowerCase(),
             ),
           );
+
+          // #[TICKET] 【設計】block/hide されているカテゴリは除外
+          if (matchedCategory && blockedCategoryIds.has(matchedCategory.id)) {
+            return null;
+          }
 
           let categoryName = claudeRec.category;
           if (dto.localLanguageCode && matchedCategory?.labels) {
@@ -432,8 +457,8 @@ export class DishCategoriesService {
             categoryId: matchedCategory?.id || '',
             imageUrl: matchedCategory?.image_url || '',
           };
-        },
-      );
+        })
+        .filter((item): item is DishCategoryRecommendationItem => item !== null);
 
       return items;
     } catch (error) {

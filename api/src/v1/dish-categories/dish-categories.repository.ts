@@ -129,6 +129,7 @@ export class DishCategoriesRepository {
 
   /**
    * #533 【仕様】料理カテゴリ候補をスコアリングして取得（WITH params/weights構造）
+   * #[TICKET] 【設計】userId を受け取り、block/hide 除外を適用
    */
   async findCategoryCandidatesWithScores(params: {
     addressTokens: DishCategoryCandidateNormalizedInput['addressTokens'];
@@ -139,6 +140,7 @@ export class DishCategoriesRepository {
     satietyKey: DishCategoryCandidateNormalizedInput['satietyKey'];
     tasteKey: DishCategoryCandidateNormalizedInput['tasteKey'];
     candidateLimit: number;
+    userId?: string;
   }): Promise<DishCategoryCandidateWithScores[]> {
     const startTime = Date.now();
 
@@ -227,6 +229,21 @@ export class DishCategoriesRepository {
             OR dcf.feature_key = 'region:scope:global'
           )
           AND dcf.score > 0
+          -- #[TICKET] 【設計】block/hide 除外: userId が指定されている場合のみ適用
+          ${
+            params.userId
+              ? Prisma.sql`
+          AND NOT EXISTS (
+            SELECT 1
+            FROM reactions r
+            WHERE r.user_id = ${params.userId}
+              AND r.target_type = 'dish_categories'
+              AND r.target_id = dcf.dish_category_id
+              AND r.action_type IN ('block', 'hide')
+          )
+          `
+              : Prisma.empty
+          }
       ),
       -- #533 【設計】条件系特徴量（timeSlot/scene/satiety/taste）を LEFT JOIN
       base_candidates AS (
