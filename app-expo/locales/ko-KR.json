@@ -190,6 +190,20 @@
 		"retry": "검색으로 돌아가기",
 		"chooseThis": "이걸로 할래!",
 		"hiddenMessage": "{{title}} 이(가) 숨겨졌습니다",
+
+		"BlockTopicModal": {
+			"title": "Block this dish?",
+			"description": "Blocked dish topics will no longer appear in recommendations.",
+			"note": "You can unblock it anytime from Settings.",
+			"confirm": "Block"
+		},
+		"blockedMessage": "Blocked {{title}}",
+		"reloadDialog": {
+			"title": "Find more options?",
+			"message": "There are only a few recommendations right now. We will search again with the same conditions.",
+			"confirm": "Search again",
+			"cancel": "Close"
+		},
 		"imageLoadFailed": "이미지를 불러오지 못했습니다",
 		"tapToReload": "탭하여 다시 로드",
 		"headerTitle": "당신을 위한 추천 요리",
@@ -547,7 +561,17 @@
 		"privacy": "개인정보 처리방침",
 		"copyright": "저작권",
 		"legalDocument": "법적 문서",
-		"logout": "로그아웃"
+		"logout": "로그아웃",
+
+		"blockedTopics": {
+			"title": "Blocked dishes",
+			"empty": "No blocked dishes",
+			"loading": "Loading...",
+			"unblockTitle": "Unblock this topic?",
+			"unblockMessage": "This dish topic will be added back to recommendations.",
+			"unblockConfirm": "Unblock",
+			"unblocked": "Unblocked"
+		}
 	},
 	"Dialog": {
 		"a11y": {

@@ -134,8 +134,15 @@ export const useTopicSearch = () => {
 					},
 				});
 
-				let topicsResponseWithCategoryIds: QueryDishCategoryRecommendationsResponse = topicsResponse
-					.filter((topic) => topic.categoryId && topic.imageUrl)
+				const dedupedTopics: QueryDishCategoryRecommendationsResponse = Array.from(
+					new Map<string, QueryDishCategoryRecommendationsResponse[number]>(
+						topicsResponse
+							.filter((topic) => topic.categoryId && topic.imageUrl)
+							.map((topic) => [topic.categoryId, topic]),
+					).values(),
+				);
+
+				let topicsResponseWithCategoryIds: QueryDishCategoryRecommendationsResponse = dedupedTopics
 					.slice(0, searchResultTopicsNumber)
 					.map((topic) => ({
 						...topic,

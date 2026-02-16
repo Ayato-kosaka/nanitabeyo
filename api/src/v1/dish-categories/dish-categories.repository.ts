@@ -131,6 +131,7 @@ export class DishCategoriesRepository {
    * #533 【仕様】料理カテゴリ候補をスコアリングして取得（WITH params/weights構造）
    */
   async findCategoryCandidatesWithScores(params: {
+    userId: string;
     addressTokens: DishCategoryCandidateNormalizedInput['addressTokens'];
     regionTokens: DishCategoryCandidateNormalizedInput['regionTokens'];
     regionFallbackKeys: DishCategoryCandidateNormalizedInput['regionFallbackKeys'];
@@ -198,6 +199,7 @@ export class DishCategoriesRepository {
     >`
       WITH params AS (
         SELECT
+          ${params.userId}::uuid AS user_id,
           ${params.addressTokens}::text[] AS address_tokens,
           ${params.regionTokens}::text[] AS region_tokens,
           ${params.regionFallbackKeys}::text[] AS region_fallback_keys,
@@ -228,6 +230,13 @@ export class DishCategoriesRepository {
           )
           AND dcf.score > 0
       ),
+      blocked_categories AS (
+        SELECT DISTINCT r.target_id AS category_id
+        FROM reactions r, params p
+        WHERE r.user_id = p.user_id
+          AND r.target_type = 'dish_categories'
+          AND r.action_type IN ('block', 'hide')
+      ),
       -- #533 【設計】条件系特徴量（timeSlot/scene/satiety/taste）を LEFT JOIN
       base_candidates AS (
         SELECT
@@ -244,6 +253,7 @@ export class DishCategoriesRepository {
         FROM region_ok_categories roc
         CROSS JOIN params p
         JOIN dish_categories dc ON dc.id = roc.category_id
+        LEFT JOIN blocked_categories bc ON bc.category_id = roc.category_id
         -- timeSlot
         LEFT JOIN dish_category_features ts_feat
           ON ts_feat.dish_category_id = roc.category_id
@@ -264,6 +274,7 @@ export class DishCategoriesRepository {
           ON t_feat.dish_category_id = roc.category_id
           AND t_feat.feature_type = 'taste'
           AND t_feat.feature_key = p.taste_key
+        WHERE bc.category_id IS NULL
       ),
       -- #533 【設計】rel_score と final_score を計算
       scored_candidates AS (

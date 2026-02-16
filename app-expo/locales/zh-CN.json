@@ -190,6 +190,20 @@
 		"retry": "返回搜索",
 		"chooseThis": "就选这个！",
 		"hiddenMessage": "{{title}}已被隐藏",
+
+		"BlockTopicModal": {
+			"title": "Block this dish?",
+			"description": "Blocked dish topics will no longer appear in recommendations.",
+			"note": "You can unblock it anytime from Settings.",
+			"confirm": "Block"
+		},
+		"blockedMessage": "Blocked {{title}}",
+		"reloadDialog": {
+			"title": "Find more options?",
+			"message": "There are only a few recommendations right now. We will search again with the same conditions.",
+			"confirm": "Search again",
+			"cancel": "Close"
+		},
 		"imageLoadFailed": "图片加载失败",
 		"tapToReload": "点击重新加载",
 		"headerTitle": "为您推荐的菜品",
@@ -547,7 +561,17 @@
 		"privacy": "隐私政策",
 		"copyright": "版权",
 		"legalDocument": "法律文件",
-		"logout": "登出"
+		"logout": "登出",
+
+		"blockedTopics": {
+			"title": "Blocked dishes",
+			"empty": "No blocked dishes",
+			"loading": "Loading...",
+			"unblockTitle": "Unblock this topic?",
+			"unblockMessage": "This dish topic will be added back to recommendations.",
+			"unblockConfirm": "Unblock",
+			"unblocked": "Unblocked"
+		}
 	},
 	"Dialog": {
 		"a11y": {

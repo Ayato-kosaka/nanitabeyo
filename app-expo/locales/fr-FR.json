@@ -190,6 +190,20 @@
 		"retry": "Retour à la recherche",
 		"chooseThis": "Je choisis celui-ci !",
 		"hiddenMessage": "{{title}} a été masqué",
+
+		"BlockTopicModal": {
+			"title": "Block this dish?",
+			"description": "Blocked dish topics will no longer appear in recommendations.",
+			"note": "You can unblock it anytime from Settings.",
+			"confirm": "Block"
+		},
+		"blockedMessage": "Blocked {{title}}",
+		"reloadDialog": {
+			"title": "Find more options?",
+			"message": "There are only a few recommendations right now. We will search again with the same conditions.",
+			"confirm": "Search again",
+			"cancel": "Close"
+		},
 		"imageLoadFailed": "Échec du chargement de l'image",
 		"tapToReload": "Appuyez pour recharger",
 		"headerTitle": "Plats Recommandés pour Vous",
@@ -547,7 +561,17 @@
 		"privacy": "Politique de confidentialité",
 		"copyright": "Droits d'auteur",
 		"legalDocument": "Document juridique",
-		"logout": "Se déconnecter"
+		"logout": "Se déconnecter",
+
+		"blockedTopics": {
+			"title": "Blocked dishes",
+			"empty": "No blocked dishes",
+			"loading": "Loading...",
+			"unblockTitle": "Unblock this topic?",
+			"unblockMessage": "This dish topic will be added back to recommendations.",
+			"unblockConfirm": "Unblock",
+			"unblocked": "Unblocked"
+		}
 	},
 	"Dialog": {
 		"a11y": {

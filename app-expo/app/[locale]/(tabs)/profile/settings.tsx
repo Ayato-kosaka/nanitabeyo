@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
 	View,
 	Text,
@@ -11,7 +11,7 @@ import {
 	Linking,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { ChevronRight } from "lucide-react-native";
+import { ChevronRight, X } from "lucide-react-native";
 import { Card } from "@/components/Card";
 import i18n from "@/lib/i18n";
 import { useAuth } from "@/contexts/AuthProvider";
@@ -24,6 +24,9 @@ import { useDialog } from "@/contexts/DialogProvider";
 import { Env } from "@/constants/Env";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
+import { supabase } from "@/lib/supabase";
+import { deleteReaction } from "@/lib/reactions";
+import { useLocale } from "@/hooks/useLocale";
 
 interface SettingsMenuItemProps {
 	label: string;
@@ -44,12 +47,17 @@ function SettingsMenuItem({ label, onPress, isLast, textStyle }: SettingsMenuIte
 	);
 }
 
+type BlockedTopicChip = { id: string; label: string };
+
 export default function SettingsScreen() {
 	const { logout, user } = useAuth();
+	const { locale } = useLocale();
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { showDialog } = useDialog();
 	const { showSnackbar } = useSnackbar();
+	const [blockedTopics, setBlockedTopics] = useState<BlockedTopicChip[]>([]);
+	const [isLoadingBlockedTopics, setIsLoadingBlockedTopics] = useState(false);
 	const [selectedLegalDocument, setSelectedLegalDocument] = useState<
 		"guidelines" | "terms" | "privacy" | "copyright" | null
 	>(null);
@@ -63,6 +71,78 @@ export default function SettingsScreen() {
 		open: openLegalDocumentModal,
 		close: closeLegalDocumentModal,
 	} = useBlurModal({ intensity: 100 });
+
+
+	const fetchBlockedTopics = useCallback(async () => {
+		try {
+			setIsLoadingBlockedTopics(true);
+			const { data: blockedReactions, error: reactionsError } = await supabase
+				.from("reactions")
+				.select("target_id")
+				.eq("target_type", "dish_categories")
+				.eq("action_type", "block")
+				.order("created_at", { ascending: false });
+
+			if (reactionsError) throw reactionsError;
+
+			const uniqueIds = Array.from(new Set((blockedReactions || []).map((item) => item.target_id).filter(Boolean)));
+			if (uniqueIds.length === 0) {
+				setBlockedTopics([]);
+				return;
+			}
+
+			const { data: categories, error: categoriesError } = await supabase
+				.from("dish_categories")
+				.select("id,label_en,labels")
+				.in("id", uniqueIds);
+
+			if (categoriesError) throw categoriesError;
+
+			const localeCode = locale.split("-")[0];
+			const categoryById = new Map(
+				(categories || []).map((category) => {
+					const labels = (category.labels || {}) as Record<string, string>;
+					const label = labels[localeCode] || labels.en || category.label_en || category.id;
+					return [category.id, label] as const;
+				}),
+			);
+
+			setBlockedTopics(
+				uniqueIds.map((id) => ({ id, label: categoryById.get(id) || id })),
+			);
+		} catch (error) {
+			console.error("failed to fetch blocked topics", error);
+			showSnackbar(i18n.t("Common.error"));
+		} finally {
+			setIsLoadingBlockedTopics(false);
+		}
+	}, [locale, showSnackbar]);
+
+	useEffect(() => {
+		fetchBlockedTopics().catch(() => undefined);
+	}, [fetchBlockedTopics]);
+
+	const handleUnblockTopic = useCallback((topic: BlockedTopicChip) => {
+		showDialog(i18n.t("Settings.blockedTopics.unblockMessage"), {
+			title: i18n.t("Settings.blockedTopics.unblockTitle"),
+			okLabel: i18n.t("Settings.blockedTopics.unblockConfirm"),
+			cancelLabel: i18n.t("Common.cancel"),
+			onConfirm: async () => {
+				try {
+					await deleteReaction({
+						target_type: "dish_categories",
+						target_id: topic.id,
+						action_type: "block",
+					});
+					setBlockedTopics((prev) => prev.filter((item) => item.id !== topic.id));
+					showSnackbar(i18n.t("Settings.blockedTopics.unblocked"));
+				} catch (error) {
+					console.error("failed to unblock topic", error);
+					showSnackbar(i18n.t("Common.error"));
+				}
+			},
+		});
+	}, [showDialog, showSnackbar]);
 
 	// #611 【設計】ストア直接遷移（market:// / itms-apps:// → https:// フォールバック）
 	const openStoreReviewPage = useCallback(async () => {
@@ -266,6 +346,29 @@ export default function SettingsScreen() {
 						{Platform.OS !== "web" && (
 							<SettingsMenuItem label={i18n.t("Settings.leaveReview")} onPress={handleLeaveReview} isLast />
 						)}
+						<View style={styles.separator} />
+						<View style={styles.blockedTopicsSection}>
+							<Text style={styles.blockedTopicsTitle}>{i18n.t("Settings.blockedTopics.title")}</Text>
+							{isLoadingBlockedTopics ? (
+								<Text style={styles.blockedTopicsEmpty}>{i18n.t("Settings.blockedTopics.loading")}</Text>
+							) : blockedTopics.length === 0 ? (
+								<Text style={styles.blockedTopicsEmpty}>{i18n.t("Settings.blockedTopics.empty")}</Text>
+							) : (
+								<View style={styles.blockedTopicsChips}>
+									{blockedTopics.map((topic) => (
+										<View key={topic.id} style={styles.blockedTopicChip}>
+											<Text style={styles.blockedTopicChipText}>{topic.label}</Text>
+											<TouchableOpacity
+												style={styles.blockedTopicChipClose}
+												onPress={() => handleUnblockTopic(topic)}
+												accessibilityRole="button">
+												<X size={12} color="#6B7280" />
+											</TouchableOpacity>
+										</View>
+									))}
+								</View>
+							)}
+						</View>
 					</Card>
 
 					{/* Card 2: Legal ＋ Logout */}
@@ -353,4 +456,47 @@ const styles = StyleSheet.create({
 		backgroundColor: "#F3F4F6",
 		marginHorizontal: 16,
 	},
+	blockedTopicsSection: {
+		paddingHorizontal: 16,
+		paddingVertical: 12,
+	},
+	blockedTopicsTitle: {
+		fontSize: 14,
+		fontWeight: "700",
+		color: "#1A1A1A",
+		marginBottom: 8,
+	},
+	blockedTopicsEmpty: {
+		fontSize: 13,
+		color: "#6B7280",
+	},
+	blockedTopicsChips: {
+		flexDirection: "row",
+		flexWrap: "wrap",
+		gap: 8,
+	},
+	blockedTopicChip: {
+		flexDirection: "row",
+		alignItems: "center",
+		backgroundColor: "#F3F4F6",
+		borderRadius: 999,
+		paddingLeft: 12,
+		paddingRight: 8,
+		paddingVertical: 6,
+		gap: 6,
+	},
+	blockedTopicChipText: {
+		fontSize: 13,
+		color: "#374151",
+		fontWeight: "500",
+	},
+	blockedTopicChipClose: {
+		width: 18,
+		height: 18,
+		alignItems: "center",
+		justifyContent: "center",
+		borderRadius: 9,
+		backgroundColor: "#E5E7EB",
+	},
+
 });

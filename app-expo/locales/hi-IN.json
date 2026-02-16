@@ -190,6 +190,20 @@
 		"retry": "खोज पर लौटें",
 		"chooseThis": "इसे चुनें!",
 		"hiddenMessage": "{{title}} को छिपा दिया गया है",
+
+		"BlockTopicModal": {
+			"title": "Block this dish?",
+			"description": "Blocked dish topics will no longer appear in recommendations.",
+			"note": "You can unblock it anytime from Settings.",
+			"confirm": "Block"
+		},
+		"blockedMessage": "Blocked {{title}}",
+		"reloadDialog": {
+			"title": "Find more options?",
+			"message": "There are only a few recommendations right now. We will search again with the same conditions.",
+			"confirm": "Search again",
+			"cancel": "Close"
+		},
 		"imageLoadFailed": "चित्र लोड करने में विफल",
 		"tapToReload": "पुनः लोड करने के लिए टैप करें",
 		"headerTitle": "आपके लिए अनुशंसित व्यंजन",
@@ -548,7 +562,17 @@
 		"privacy": "गोपनीयता नीति",
 		"copyright": "कॉपीराइट",
 		"legalDocument": "कानूनी दस्तावेज़",
-		"logout": "लॉग आउट"
+		"logout": "लॉग आउट",
+
+		"blockedTopics": {
+			"title": "Blocked dishes",
+			"empty": "No blocked dishes",
+			"loading": "Loading...",
+			"unblockTitle": "Unblock this topic?",
+			"unblockMessage": "This dish topic will be added back to recommendations.",
+			"unblockConfirm": "Unblock",
+			"unblocked": "Unblocked"
+		}
 	},
 	"Dialog": {
 		"a11y": {

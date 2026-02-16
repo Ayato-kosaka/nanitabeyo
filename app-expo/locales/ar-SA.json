@@ -190,6 +190,20 @@
 		"retry": "العودة إلى البحث",
 		"chooseThis": "اختر هذا!",
 		"hiddenMessage": "تم إخفاء {{title}}",
+
+		"BlockTopicModal": {
+			"title": "Block this dish?",
+			"description": "Blocked dish topics will no longer appear in recommendations.",
+			"note": "You can unblock it anytime from Settings.",
+			"confirm": "Block"
+		},
+		"blockedMessage": "Blocked {{title}}",
+		"reloadDialog": {
+			"title": "Find more options?",
+			"message": "There are only a few recommendations right now. We will search again with the same conditions.",
+			"confirm": "Search again",
+			"cancel": "Close"
+		},
 		"imageLoadFailed": "فشل تحميل الصورة",
 		"tapToReload": "اضغط لإعادة التحميل",
 		"headerTitle": "الأطباق الموصى بها لك",
@@ -547,7 +561,17 @@
 		"privacy": "سياسة الخصوصية",
 		"copyright": "حقوق النشر",
 		"legalDocument": "مستند قانوني",
-		"logout": "تسجيل الخروج"
+		"logout": "تسجيل الخروج",
+
+		"blockedTopics": {
+			"title": "Blocked dishes",
+			"empty": "No blocked dishes",
+			"loading": "Loading...",
+			"unblockTitle": "Unblock this topic?",
+			"unblockMessage": "This dish topic will be added back to recommendations.",
+			"unblockConfirm": "Unblock",
+			"unblocked": "Unblocked"
+		}
 	},
 	"Dialog": {
 		"a11y": {
