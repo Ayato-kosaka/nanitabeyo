@@ -48,10 +48,10 @@ import { useImageLoadWithRetry } from "@/hooks/useImageLoadWithRetry";
 
 // #749 【設計】CDN JSON から取得する候補アイテムの型
 type CandidateItem = {
-	id: string; // Wikidata QID (例: Q46383)
-	label: string; // 例: 寿司（画面では表示しない）
+	item_qid: string; // Wikidata QID (例: Q46383)
+	label_ja: string; // 例: 寿司（画面では表示しない）
 	title: string; // 例: 握り寿司
-	subTitle: string; // 例: 溢れんばかりのネタとしゃりの旨みが…
+	subtitle: string; // 例: 溢れんばかりのネタとしゃりの旨みが…
 	imageUrl: string;
 };
 
@@ -158,7 +158,7 @@ export default function DishCategoryManualTextSupplyScreen() {
 			}
 
 			// Step 3: 除外処理
-			const filteredItems = jsonData.filter((item) => !dismissed.includes(item.id));
+			const filteredItems = jsonData.filter((item) => !dismissed.includes(item.item_qid));
 			setAllItems(filteredItems);
 			setDismissedIds(new Set(dismissed));
 
@@ -259,6 +259,15 @@ export default function DishCategoryManualTextSupplyScreen() {
 	}, [allItems, currentIndex]);
 
 	/* -------------------------------------------------------------------------- */
+	/*                    先読み用 5枚の画像URLリスト                             */
+	/* -------------------------------------------------------------------------- */
+
+	useEffect(() => {
+		const urls = allItems.slice(currentIndex, currentIndex + 5).map((i) => i.imageUrl);
+		Image.prefetch(urls); // これが “先読み” の本命
+	}, [allItems, currentIndex]);
+
+	/* -------------------------------------------------------------------------- */
 	/*                              スワイプ処理                                  */
 	/* -------------------------------------------------------------------------- */
 
@@ -275,14 +284,14 @@ export default function DishCategoryManualTextSupplyScreen() {
 
 		mediumImpact();
 		const newDismissed = new Set(dismissedIds);
-		newDismissed.add(currentItem.id);
+		newDismissed.add(currentItem.item_qid);
 		setDismissedIds(newDismissed);
 		saveDismissedIds(newDismissed);
 
 		logFrontendEvent({
 			event_name: "dish_manual_text_supply_ok_confirmed",
 			error_level: "log",
-			payload: { targetId: currentItem.id },
+			payload: { targetId: currentItem.item_qid },
 		});
 
 		moveToNext();
@@ -298,7 +307,7 @@ export default function DishCategoryManualTextSupplyScreen() {
 		logFrontendEvent({
 			event_name: "dish_manual_text_supply_skipped",
 			error_level: "log",
-			payload: { targetId: currentItem.id },
+			payload: { targetId: currentItem.item_qid },
 		});
 
 		moveToNext();
@@ -311,14 +320,14 @@ export default function DishCategoryManualTextSupplyScreen() {
 		lightImpact();
 		setEditingItem(currentItem);
 		setEditTitle(currentItem.title);
-		setEditSubTitle(currentItem.subTitle);
+		setEditSubTitle(currentItem.subtitle);
 		setValidationError("");
 		editModal.open();
 
 		logFrontendEvent({
 			event_name: "dish_manual_text_supply_edit_opened",
 			error_level: "log",
-			payload: { targetId: currentItem.id },
+			payload: { targetId: currentItem.item_qid },
 		});
 	}, [currentItem, lightImpact, editModal, logFrontendEvent]);
 
@@ -372,7 +381,7 @@ export default function DishCategoryManualTextSupplyScreen() {
 			return false;
 		}
 
-		if (editTitle === editingItem.title && editSubTitle === editingItem.subTitle) {
+		if (editTitle === editingItem.title && editSubTitle === editingItem.subtitle) {
 			setValidationError("少し直してみてください");
 			return false;
 		}
@@ -391,7 +400,7 @@ export default function DishCategoryManualTextSupplyScreen() {
 		logFrontendEvent({
 			event_name: "dish_manual_text_supply_edit_submit_started",
 			error_level: "log",
-			payload: { targetId: editingItem.id },
+			payload: { targetId: editingItem.item_qid },
 		});
 
 		try {
@@ -401,11 +410,11 @@ export default function DishCategoryManualTextSupplyScreen() {
 					type: TYPE,
 					taskKey: TASK_KEY,
 					targetType: TARGET_TYPE,
-					targetId: editingItem.id,
+					targetId: editingItem.item_qid,
 					payload: {
 						original: {
 							title: editingItem.title,
-							subTitle: editingItem.subTitle,
+							subTitle: editingItem.subtitle,
 						},
 						proposed: {
 							title: editTitle,
@@ -420,16 +429,16 @@ export default function DishCategoryManualTextSupplyScreen() {
 
 			// #749 【設計】送信成功時のみローカル永続化
 			const newDismissed = new Set(dismissedIds);
-			newDismissed.add(editingItem.id);
+			newDismissed.add(editingItem.item_qid);
 			setDismissedIds(newDismissed);
 			saveDismissedIds(newDismissed);
 
-			showSnackbar("改善案を送信しました！", "success");
+			showSnackbar("改善案を送信しました！");
 
 			logFrontendEvent({
 				event_name: "dish_manual_text_supply_edit_submit_success",
 				error_level: "log",
-				payload: { targetId: editingItem.id },
+				payload: { targetId: editingItem.item_qid },
 			});
 
 			editModal.close();
@@ -437,13 +446,13 @@ export default function DishCategoryManualTextSupplyScreen() {
 			moveToNext();
 		} catch (err) {
 			console.error("Failed to submit edit", err);
-			showSnackbar("送信に失敗しました", "error");
+			showSnackbar("送信に失敗しました");
 
 			logFrontendEvent({
 				event_name: "dish_manual_text_supply_edit_submit_error",
 				error_level: "error",
 				payload: {
-					targetId: editingItem.id,
+					targetId: editingItem.item_qid,
 					error: err instanceof Error ? err.message : String(err),
 				},
 			});
@@ -475,7 +484,7 @@ export default function DishCategoryManualTextSupplyScreen() {
 		logFrontendEvent({
 			event_name: "dish_manual_text_supply_edit_closed",
 			error_level: "log",
-			payload: { targetId: editingItem?.id },
+			payload: { targetId: editingItem?.item_qid },
 		});
 	}, [editModal, editingItem, translateX, logFrontendEvent]);
 
@@ -519,7 +528,7 @@ export default function DishCategoryManualTextSupplyScreen() {
 		return (
 			<View style={[styles.container, { paddingTop: insets.top }]}>
 				<Text style={styles.errorText}>{loadError}</Text>
-				<PrimaryButton title="再試行" onPress={loadCandidates} style={{ marginTop: 20 }} />
+				<PrimaryButton label="再試行" onPress={loadCandidates} style={{ marginTop: 20 }} />
 			</View>
 		);
 	}
@@ -533,7 +542,7 @@ export default function DishCategoryManualTextSupplyScreen() {
 					<Text style={styles.thanksMessage}>
 						ご協力ありがとうございました。内容確認後、アプリに反映して、もっとなに食べよを使いやすくしていきます！
 					</Text>
-					<PrimaryButton title="閉じる" onPress={() => router.back()} style={{ marginTop: 40 }} />
+					<PrimaryButton label="閉じる" onPress={() => router.back()} style={{ marginTop: 40 }} />
 				</View>
 			</View>
 		);
@@ -546,7 +555,7 @@ export default function DishCategoryManualTextSupplyScreen() {
 				<View style={styles.thanksContainer}>
 					<Text style={styles.thanksTitle}>全て確認しました</Text>
 					<Text style={styles.thanksMessage}>スキップしたものがあります。もう一度確認しますか？</Text>
-					<PrimaryButton title="スキップしたものを再表示" onPress={handleReshowSkipped} style={{ marginTop: 20 }} />
+					<PrimaryButton label="スキップしたものを再表示" onPress={handleReshowSkipped} style={{ marginTop: 20 }} />
 					<Pressable onPress={() => setShowThanks(true)} style={{ marginTop: 20 }}>
 						<Text style={styles.skipLink}>今日はこれで終わる</Text>
 					</Pressable>
@@ -587,6 +596,7 @@ export default function DishCategoryManualTextSupplyScreen() {
 					</Pressable>
 					<Pressable style={[styles.actionButton, styles.skipButton]} onPress={handleSkip}>
 						<SkipForward size={24} color="#666" />
+						<Text style={styles.buttonText}>スキップ</Text>
 					</Pressable>
 					<Pressable style={[styles.actionButton, styles.okButton]} onPress={handleOk}>
 						<Check size={24} color="#FFF" />
@@ -606,7 +616,7 @@ export default function DishCategoryManualTextSupplyScreen() {
 							<Text style={styles.tutorialBold}>左スワイプ/左ボタン:</Text> 改善案を送る{"\n"}
 							<Text style={styles.tutorialBold}>中央ボタン:</Text> スキップ（後でまた出る）
 						</Text>
-						<PrimaryButton title="始める" onPress={closeTutorial} style={{ marginTop: 30 }} />
+						<PrimaryButton label="始める" onPress={closeTutorial} style={{ marginTop: 30 }} />
 					</View>
 				</tutorialModal.BlurModal>
 			)}
@@ -648,7 +658,7 @@ export default function DishCategoryManualTextSupplyScreen() {
 								item={{
 									...editingItem,
 									title: editTitle || editingItem.title,
-									subTitle: editSubTitle || editingItem.subTitle,
+									subtitle: editSubTitle || editingItem.subtitle,
 								}}
 								cardHeight={300}
 								isPreview
@@ -704,14 +714,14 @@ const CardView = ({
 		handlers,
 	} = useImageLoadWithRetry({
 		uri: item.imageUrl,
-		cacheBustingKey: item.id,
+		cacheBustingKey: item.item_qid,
 		onErrorCountChange: (count, errorMessage) => {
 			if (!isPreview) {
 				logFrontendEvent({
 					event_name: "dish_manual_text_supply_image_load_error",
 					error_level: "log",
 					payload: {
-						target_id: item.id,
+						target_id: item.item_qid,
 						error_count: count,
 						image_url: item.imageUrl,
 						error_message: errorMessage,
@@ -745,7 +755,7 @@ const CardView = ({
 			<View style={styles.cardOverlay}>
 				<View style={styles.cardContent}>
 					<Text style={styles.cardTitle}>{item.title}</Text>
-					<Text style={styles.cardDescription}>{item.subTitle}</Text>
+					<Text style={styles.cardDescription}>{item.subtitle}</Text>
 				</View>
 			</View>
 		</View>
@@ -841,12 +851,13 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		justifyContent: "center",
 		paddingHorizontal: 20,
-		paddingBottom: 40,
+		paddingBottom: 20,
 		gap: 12,
 	},
 	actionButton: {
-		flexDirection: "row",
+		flexDirection: "column",
 		alignItems: "center",
+		height: "100%",
 		backgroundColor: "#FF6B35",
 		paddingHorizontal: 20,
 		paddingVertical: 16,
@@ -862,14 +873,13 @@ const styles = StyleSheet.create({
 	},
 	skipButton: {
 		backgroundColor: "#E0E0E0",
-		flex: 0,
 		paddingHorizontal: 20,
 	},
 	okButton: {
 		backgroundColor: "#4CAF50",
 	},
 	buttonText: {
-		fontSize: 16,
+		fontSize: 12,
 		fontWeight: "600",
 		color: "#FFF",
 	},
