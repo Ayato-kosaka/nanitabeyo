@@ -81,6 +81,7 @@ export default function BlockedTopicsScreen() {
 	// #【設計】初回ロード
 	useEffect(() => {
 		fetchBlockedCategories();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
 	// #【設計】無限スクロール：次ページを読み込み
