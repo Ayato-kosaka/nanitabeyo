@@ -72,4 +72,19 @@ export class UsersMapper {
       nextCursor: result.nextCursor,
     };
   }
+
+  /**
+   * GET /v1/users/me/blocked-dish-categories のレスポンス変換
+   */
+  toMeBlockedDishCategoriesResponse(result: {
+    data: PrismaDishCategories[];
+    nextCursor: string | null;
+  }) {
+    return {
+      data: result.data.map((src) =>
+        convertPrismaToSupabase_DishCategories(src),
+      ),
+      nextCursor: result.nextCursor,
+    };
+  }
 }

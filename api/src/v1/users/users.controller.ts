@@ -10,6 +10,7 @@ import {
   Controller,
   Get,
   Post,
+  Delete,
   Body,
   Param,
   ParseUUIDPipe,
@@ -39,6 +40,8 @@ import {
   QueryMeSavedDishCategoriesDto,
   QueryMeSavedDishMediaDto,
   QuerySavedRestaurantsDto,
+  QueryMeBlockedDishCategoriesDto,
+  UnblockDishCategoryParamsDto,
 } from '@shared/v1/dto';
 import {
   GetUserProfileResponse,
@@ -50,6 +53,8 @@ import {
   QueryMeSavedDishCategoriesResponse,
   QueryMeSavedDishMediaResponse,
   QueryMeSavedRestaurantsResponse,
+  QueryMeBlockedDishCategoriesResponse,
+  UnblockDishCategoryResponse,
 } from '@shared/v1/res';
 
 // 横串 (Auth)
@@ -284,5 +289,48 @@ export class UsersController {
       await this.usersService.getMySavedNearbyRestaurants(user.id, query);
 
     return { data, nextCursor };
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*          GET /v1/users/me/blocked-dish-categories                 */
+  /* ------------------------------------------------------------------ */
+  @Get('me/blocked-dish-categories')
+  @UseGuards(AuthAnonGuard)
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @ApiOperation({ summary: 'ブロック中の料理カテゴリ一覧' })
+  @ApiQuery({
+    name: 'cursor',
+    required: false,
+    description: 'Cursor for pagination',
+  })
+  @ApiResponse({ status: 200, description: '取得成功' })
+  async getMeBlockedDishCategories(
+    @Query() query: QueryMeBlockedDishCategoriesDto,
+    @CurrentUser() user: RequestUser,
+  ): Promise<QueryMeBlockedDishCategoriesResponse> {
+    const items = await this.usersService.getMeBlockedDishCategories(
+      user.id,
+      query,
+    );
+    return this.usersMapper.toMeBlockedDishCategoriesResponse(items);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*     DELETE /v1/users/me/blocked-dish-categories/:categoryId       */
+  /* ------------------------------------------------------------------ */
+  @Delete('me/blocked-dish-categories/:categoryId')
+  @UseGuards(AuthAnonGuard)
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @ApiOperation({ summary: '料理カテゴリのブロック解除' })
+  @ApiParam({ name: 'categoryId', description: 'Dish Category ID' })
+  @ApiResponse({ status: 200, description: '解除成功' })
+  async unblockDishCategory(
+    @Param() params: UnblockDishCategoryParamsDto,
+    @CurrentUser() user: RequestUser,
+  ): Promise<UnblockDishCategoryResponse> {
+    return await this.usersService.unblockDishCategory(
+      user.id,
+      params.categoryId,
+    );
   }
 }

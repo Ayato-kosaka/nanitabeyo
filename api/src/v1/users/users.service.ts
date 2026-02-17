@@ -20,6 +20,7 @@ import {
   QueryMeSavedDishMediaDto,
   UpdateUserProfileDto,
   QuerySavedRestaurantsDto,
+  QueryMeBlockedDishCategoriesDto,
 } from '@shared/v1/dto';
 
 import { UsersRepository } from './users.repository';
@@ -399,5 +400,75 @@ export class UsersService {
     });
 
     return this.assembler.enrichUserProfileWithAvatarUrls(updatedUser);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*          GET /v1/users/me/blocked-dish-categories                 */
+  /* ------------------------------------------------------------------ */
+  async getMeBlockedDishCategories(
+    userId: string,
+    dto: QueryMeBlockedDishCategoriesDto,
+  ) {
+    this.logger.debug('GetMeBlockedDishCategories', 'getMeBlockedDishCategories', {
+      userId,
+      cursor: dto.cursor,
+    });
+
+    const { items: categoryIds, nextCursor } =
+      await this.repo.findBlockedDishCategories(userId, dto.cursor);
+
+    if (categoryIds.length === 0) {
+      this.logger.debug(
+        'GetMeBlockedDishCategoriesResult',
+        'getMeBlockedDishCategories',
+        {
+          count: 0,
+          nextCursor: null,
+        },
+      );
+      return {
+        data: [],
+        nextCursor: null,
+      };
+    }
+
+    const records = await this.dishCategoriesRepo.findDishCategoriesByIds(
+      categoryIds,
+    );
+
+    this.logger.debug(
+      'GetMeBlockedDishCategoriesResult',
+      'getMeBlockedDishCategories',
+      {
+        count: records.length,
+        nextCursor,
+      },
+    );
+
+    return {
+      data: records,
+      nextCursor,
+    };
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*     DELETE /v1/users/me/blocked-dish-categories/:categoryId       */
+  /* ------------------------------------------------------------------ */
+  async unblockDishCategory(userId: string, categoryId: string) {
+    this.logger.debug('UnblockDishCategory', 'unblockDishCategory', {
+      userId,
+      categoryId,
+    });
+
+    const success = await this.repo.unblockDishCategory(userId, categoryId);
+
+    this.logger.debug('UnblockDishCategoryResult', 'unblockDishCategory', {
+      success,
+    });
+
+    return {
+      success,
+      message: success ? 'Category unblocked successfully' : 'No block found',
+    };
   }
 }

@@ -31,6 +31,9 @@ export type QueryMeRestaurantBidsResponse = PaginatedResponse<SupabaseRestaurant
 /** GET /v1/users/me/saved-dish-categories のレスポンス型 */
 export type QueryMeSavedDishCategoriesResponse = PaginatedResponse<SupabaseDishCategories>;
 
+/** GET /v1/users/me/blocked-dish-categories のレスポンス型 */
+export type QueryMeBlockedDishCategoriesResponse = PaginatedResponse<SupabaseDishCategories>;
+
 /** GET /v1/users/me/saved-dish-media のレスポンス型 */
 export type QueryMeSavedDishMediaResponse = PaginatedResponse<DishMediaEntry>;
 
@@ -49,3 +52,10 @@ export type GetUserProfileResponse = UserProfile;
 
 /** POST /v1/users/me のレスポンス型 */
 export type UpdateUserProfileResponse = UserProfile;
+
+/** DELETE /v1/users/me/blocked-dish-categories/:categoryId のレスポンス型 */
+export type UnblockDishCategoryResponse = {
+	success: boolean;
+	message: string;
+};
+
