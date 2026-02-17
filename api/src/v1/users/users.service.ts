@@ -409,10 +409,14 @@ export class UsersService {
     userId: string,
     dto: QueryMeBlockedDishCategoriesDto,
   ) {
-    this.logger.debug('GetMeBlockedDishCategories', 'getMeBlockedDishCategories', {
-      userId,
-      cursor: dto.cursor,
-    });
+    this.logger.debug(
+      'GetMeBlockedDishCategories',
+      'getMeBlockedDishCategories',
+      {
+        userId,
+        cursor: dto.cursor,
+      },
+    );
 
     const { items: categoryIds, nextCursor } =
       await this.repo.findBlockedDishCategories(userId, dto.cursor);
@@ -432,9 +436,8 @@ export class UsersService {
       };
     }
 
-    const records = await this.dishCategoriesRepo.findDishCategoriesByIds(
-      categoryIds,
-    );
+    const records =
+      await this.dishCategoriesRepo.findDishCategoriesByIds(categoryIds);
 
     this.logger.debug(
       'GetMeBlockedDishCategoriesResult',

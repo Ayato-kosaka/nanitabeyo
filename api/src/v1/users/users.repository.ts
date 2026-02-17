@@ -169,11 +169,15 @@ export class UsersRepository {
     items: string[]; // dish_categories IDs
     nextCursor: string | null;
   }> {
-    this.logger.debug('FindBlockedDishCategories', 'findBlockedDishCategories', {
-      userId,
-      cursor,
-      limit,
-    });
+    this.logger.debug(
+      'FindBlockedDishCategories',
+      'findBlockedDishCategories',
+      {
+        userId,
+        cursor,
+        limit,
+      },
+    );
 
     const whereClause: any = {
       user_id: userId,
@@ -206,10 +210,14 @@ export class UsersRepository {
         ? items[items.length - 1].created_at.toISOString()
         : null;
 
-    this.logger.debug('BlockedDishCategoriesFound', 'findBlockedDishCategories', {
-      count: items.length,
-      hasMore,
-    });
+    this.logger.debug(
+      'BlockedDishCategoriesFound',
+      'findBlockedDishCategories',
+      {
+        count: items.length,
+        hasMore,
+      },
+    );
 
     return { items: items.map((r) => r.target_id), nextCursor };
   }

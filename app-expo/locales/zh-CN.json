@@ -190,7 +190,6 @@
 		"retry": "返回搜索",
 		"chooseThis": "就选这个！",
 		"hiddenMessage": "{{title}}已被隐藏",
-
 		"BlockTopicModal": {
 			"title": "Block this dish?",
 			"description": "Blocked dish topics will no longer appear in recommendations.",
@@ -562,15 +561,17 @@
 		"copyright": "版权",
 		"legalDocument": "法律文件",
 		"logout": "登出",
-
 		"blockedTopics": {
-			"title": "Blocked dishes",
-			"empty": "No blocked dishes",
-			"loading": "Loading...",
-			"unblockTitle": "Unblock this topic?",
-			"unblockMessage": "This dish topic will be added back to recommendations.",
-			"unblockConfirm": "Unblock",
-			"unblocked": "Unblocked"
+			"navigationLabel": "已屏蔽的菜品主题",
+			"pageTitle": "已屏蔽的菜品主题",
+			"title": "已屏蔽的菜品",
+			"empty": "没有已屏蔽的菜品",
+			"loading": "加载中...",
+			"unblockButton": "取消屏蔽",
+			"unblockTitle": "取消屏蔽此主题？",
+			"unblockMessage": "此菜品主题将重新添加到推荐中。",
+			"unblockConfirm": "取消屏蔽",
+			"unblocked": "已取消屏蔽"
 		}
 	},
 	"Dialog": {

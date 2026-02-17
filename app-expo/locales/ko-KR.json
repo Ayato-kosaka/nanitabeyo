@@ -190,7 +190,6 @@
 		"retry": "검색으로 돌아가기",
 		"chooseThis": "이걸로 할래!",
 		"hiddenMessage": "{{title}} 이(가) 숨겨졌습니다",
-
 		"BlockTopicModal": {
 			"title": "Block this dish?",
 			"description": "Blocked dish topics will no longer appear in recommendations.",
@@ -562,15 +561,17 @@
 		"copyright": "저작권",
 		"legalDocument": "법적 문서",
 		"logout": "로그아웃",
-
 		"blockedTopics": {
-			"title": "Blocked dishes",
-			"empty": "No blocked dishes",
-			"loading": "Loading...",
-			"unblockTitle": "Unblock this topic?",
-			"unblockMessage": "This dish topic will be added back to recommendations.",
-			"unblockConfirm": "Unblock",
-			"unblocked": "Unblocked"
+			"navigationLabel": "차단된 요리 주제",
+			"pageTitle": "차단된 요리 주제",
+			"title": "차단된 요리",
+			"empty": "차단된 요리가 없습니다",
+			"loading": "로딩 중...",
+			"unblockButton": "차단 해제",
+			"unblockTitle": "이 주제를 차단 해제하시겠습니까?",
+			"unblockMessage": "이 요리 주제가 추천에 다시 추가됩니다.",
+			"unblockConfirm": "차단 해제",
+			"unblocked": "차단 해제됨"
 		}
 	},
 	"Dialog": {

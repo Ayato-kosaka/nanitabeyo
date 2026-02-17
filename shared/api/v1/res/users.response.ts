@@ -58,4 +58,3 @@ export type UnblockDishCategoryResponse = {
 	success: boolean;
 	message: string;
 };
-
