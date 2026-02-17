@@ -33,6 +33,29 @@ export class DishCategoriesRepository {
   }
 
   /**
+   * IDリストから料理カテゴリを検索
+   */
+  async findDishCategoriesByIds(ids: string[]) {
+    this.logger.debug('FindDishCategoriesByIds', 'findDishCategoriesByIds', {
+      idsCount: ids.length,
+    });
+
+    if (ids.length === 0) {
+      return [];
+    }
+
+    const result = await this.prisma.prisma.dish_categories.findMany({
+      where: { id: { in: ids } },
+    });
+
+    this.logger.debug('DishCategoriesFound', 'findDishCategoriesByIds', {
+      count: result.length,
+    });
+
+    return result;
+  }
+
+  /**
    * カテゴリ名リストから料理カテゴリを検索
    */
   async findDishCategoriesByNames(categoryNames: string[]) {

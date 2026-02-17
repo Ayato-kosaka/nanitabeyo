@@ -190,7 +190,6 @@
 		"retry": "खोज पर लौटें",
 		"chooseThis": "इसे चुनें!",
 		"hiddenMessage": "{{title}} को छिपा दिया गया है",
-
 		"BlockTopicModal": {
 			"title": "Block this dish?",
 			"description": "Blocked dish topics will no longer appear in recommendations.",
@@ -563,15 +562,17 @@
 		"copyright": "कॉपीराइट",
 		"legalDocument": "कानूनी दस्तावेज़",
 		"logout": "लॉग आउट",
-
 		"blockedTopics": {
-			"title": "Blocked dishes",
-			"empty": "No blocked dishes",
-			"loading": "Loading...",
-			"unblockTitle": "Unblock this topic?",
-			"unblockMessage": "This dish topic will be added back to recommendations.",
-			"unblockConfirm": "Unblock",
-			"unblocked": "Unblocked"
+			"navigationLabel": "ब्लॉक किए गए व्यंजन विषय",
+			"pageTitle": "ब्लॉक किए गए व्यंजन विषय",
+			"title": "ब्लॉक किए गए व्यंजन",
+			"empty": "कोई ब्लॉक किए गए व्यंजन नहीं",
+			"loading": "लोड हो रहा है...",
+			"unblockButton": "अनब्लॉक करें",
+			"unblockTitle": "इस विषय को अनब्लॉक करें?",
+			"unblockMessage": "यह व्यंजन विषय सिफारिशों में वापस जोड़ दिया जाएगा।",
+			"unblockConfirm": "अनब्लॉक करें",
+			"unblocked": "अनब्लॉक किया गया"
 		}
 	},
 	"Dialog": {

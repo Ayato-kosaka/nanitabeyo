@@ -562,9 +562,12 @@
 		"legalDocument": "法的文書",
 		"logout": "ログアウト",
 		"blockedTopics": {
+			"navigationLabel": "ブロック済みの料理トピック",
+			"pageTitle": "ブロック済みの料理トピック",
 			"title": "ブロックしている料理",
 			"empty": "ブロックしている料理はありません",
 			"loading": "読み込み中...",
+			"unblockButton": "ブロックを解除",
 			"unblockTitle": "ブロックを解除しますか？",
 			"unblockMessage": "この料理トピックをおすすめ対象に戻します。",
 			"unblockConfirm": "解除する",

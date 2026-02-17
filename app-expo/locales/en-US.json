@@ -562,9 +562,12 @@
 		"legalDocument": "Legal Document",
 		"logout": "Logout",
 		"blockedTopics": {
+			"navigationLabel": "Blocked dish topics",
+			"pageTitle": "Blocked dish topics",
 			"title": "Blocked dishes",
 			"empty": "No blocked dishes",
 			"loading": "Loading...",
+			"unblockButton": "Unblock",
 			"unblockTitle": "Unblock this topic?",
 			"unblockMessage": "This dish topic will be added back to recommendations.",
 			"unblockConfirm": "Unblock",

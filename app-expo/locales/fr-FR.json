@@ -190,7 +190,6 @@
 		"retry": "Retour à la recherche",
 		"chooseThis": "Je choisis celui-ci !",
 		"hiddenMessage": "{{title}} a été masqué",
-
 		"BlockTopicModal": {
 			"title": "Block this dish?",
 			"description": "Blocked dish topics will no longer appear in recommendations.",
@@ -562,15 +561,17 @@
 		"copyright": "Droits d'auteur",
 		"legalDocument": "Document juridique",
 		"logout": "Se déconnecter",
-
 		"blockedTopics": {
-			"title": "Blocked dishes",
-			"empty": "No blocked dishes",
-			"loading": "Loading...",
-			"unblockTitle": "Unblock this topic?",
-			"unblockMessage": "This dish topic will be added back to recommendations.",
-			"unblockConfirm": "Unblock",
-			"unblocked": "Unblocked"
+			"navigationLabel": "Sujets de plats bloqués",
+			"pageTitle": "Sujets de plats bloqués",
+			"title": "Plats bloqués",
+			"empty": "Aucun plat bloqué",
+			"loading": "Chargement...",
+			"unblockButton": "Débloquer",
+			"unblockTitle": "Débloquer ce sujet ?",
+			"unblockMessage": "Ce sujet de plat sera réajouté aux recommandations.",
+			"unblockConfirm": "Débloquer",
+			"unblocked": "Débloqué"
 		}
 	},
 	"Dialog": {
