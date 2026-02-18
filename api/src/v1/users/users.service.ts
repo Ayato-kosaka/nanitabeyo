@@ -439,17 +439,23 @@ export class UsersService {
     const records =
       await this.dishCategoriesRepo.findDishCategoriesByIds(categoryIds);
 
+    // IN 検索結果の順序は categoryIds と一致しないため、フロント無限スクロール用に ID 順で並べ替える
+    const recordMap = new Map(records.map((record) => [record.id, record]));
+    const orderedRecords = categoryIds
+      .map((id) => recordMap.get(id))
+      .filter((record) => record != null);
+
     this.logger.debug(
       'GetMeBlockedDishCategoriesResult',
       'getMeBlockedDishCategories',
       {
-        count: records.length,
+        count: orderedRecords.length,
         nextCursor,
       },
     );
 
     return {
-      data: records,
+      data: orderedRecords,
       nextCursor,
     };
   }
