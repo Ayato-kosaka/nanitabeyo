@@ -191,17 +191,17 @@
 		"chooseThis": "就选这个！",
 		"hiddenMessage": "{{title}}已被隐藏",
 		"BlockTopicModal": {
-			"title": "Block this dish?",
-			"description": "Blocked dish topics will no longer appear in recommendations.",
-			"note": "You can unblock it anytime from Settings.",
-			"confirm": "Block"
+			"title": "要屏蔽这道菜吗？",
+			"description": "被屏蔽的菜品话题将不再出现在推荐中。",
+			"note": "您可以随时在设置中取消屏蔽。",
+			"confirm": "屏蔽"
 		},
-		"blockedMessage": "Blocked {{title}}",
+		"blockedMessage": "已屏蔽{{title}}",
 		"reloadDialog": {
-			"title": "Find more options?",
-			"message": "There are only a few recommendations right now. We will search again with the same conditions.",
-			"confirm": "Search again",
-			"cancel": "Close"
+			"title": "要查看更多选择吗？",
+			"message": "目前只有少量推荐。我们会在相同条件下重新搜索。",
+			"confirm": "重新搜索",
+			"cancel": "关闭"
 		},
 		"imageLoadFailed": "图片加载失败",
 		"tapToReload": "点击重新加载",

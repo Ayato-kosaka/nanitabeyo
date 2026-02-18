@@ -191,17 +191,17 @@
 		"chooseThis": "이걸로 할래!",
 		"hiddenMessage": "{{title}} 이(가) 숨겨졌습니다",
 		"BlockTopicModal": {
-			"title": "Block this dish?",
-			"description": "Blocked dish topics will no longer appear in recommendations.",
-			"note": "You can unblock it anytime from Settings.",
-			"confirm": "Block"
+			"title": "이 요리를 차단할까요?",
+			"description": "차단된 요리 토픽은 추천에 더 이상 표시되지 않습니다.",
+			"note": "설정에서 언제든지 차단을 해제할 수 있어요.",
+			"confirm": "차단하기"
 		},
-		"blockedMessage": "Blocked {{title}}",
+		"blockedMessage": "{{title}}이(가) 차단되었습니다",
 		"reloadDialog": {
-			"title": "Find more options?",
-			"message": "There are only a few recommendations right now. We will search again with the same conditions.",
-			"confirm": "Search again",
-			"cancel": "Close"
+			"title": "다른 메뉴를 더 찾아볼까요?",
+			"message": "지금은 추천이 많지 않아요. 같은 조건으로 다시 찾아볼게요.",
+			"confirm": "다시 검색하기",
+			"cancel": "닫기"
 		},
 		"imageLoadFailed": "이미지를 불러오지 못했습니다",
 		"tapToReload": "탭하여 다시 로드",
