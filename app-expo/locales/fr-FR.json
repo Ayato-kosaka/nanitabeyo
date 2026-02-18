@@ -191,17 +191,17 @@
 		"chooseThis": "Je choisis celui-ci !",
 		"hiddenMessage": "{{title}} a été masqué",
 		"BlockTopicModal": {
-			"title": "Block this dish?",
-			"description": "Blocked dish topics will no longer appear in recommendations.",
-			"note": "You can unblock it anytime from Settings.",
-			"confirm": "Block"
+			"title": "Bloquer ce plat ?",
+			"description": "Les sujets de plats bloqués n’apparaîtront plus dans les recommandations.",
+			"note": "Vous pouvez le débloquer à tout moment depuis les Paramètres.",
+			"confirm": "Bloquer"
 		},
-		"blockedMessage": "Blocked {{title}}",
+		"blockedMessage": "{{title}} a été bloqué",
 		"reloadDialog": {
-			"title": "Find more options?",
-			"message": "There are only a few recommendations right now. We will search again with the same conditions.",
-			"confirm": "Search again",
-			"cancel": "Close"
+			"title": "Trouver plus d’options ?",
+			"message": "Il n’y a que quelques recommandations pour le moment. Nous allons relancer une recherche avec les mêmes conditions.",
+			"confirm": "Rechercher de nouveau",
+			"cancel": "Fermer"
 		},
 		"imageLoadFailed": "Échec du chargement de l'image",
 		"tapToReload": "Appuyez pour recharger",
