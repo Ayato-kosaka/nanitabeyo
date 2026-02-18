@@ -94,10 +94,6 @@ export default function BlockedTopicsScreen() {
 	// #747 【設計】ブロック解除API呼び出し
 	const handleUnblock = useCallback(
 		(category: BlockedCategory) => {
-			const localeCode = locale.split("-")[0];
-			const labels = (category.labels || {}) as Record<string, string>;
-			const categoryLabel = labels[localeCode] || labels.en || category.label_en || category.id;
-
 			showDialog(i18n.t("Settings.blockedTopics.unblockMessage"), {
 				title: i18n.t("Settings.blockedTopics.unblockTitle"),
 				okLabel: i18n.t("Settings.blockedTopics.unblockConfirm"),
@@ -122,7 +118,6 @@ export default function BlockedTopicsScreen() {
 							payload: {
 								error: error instanceof Error ? error.message : String(error),
 								category_id: category.id,
-								category_label: categoryLabel,
 							},
 						});
 						showSnackbar(i18n.t("Common.error"));
