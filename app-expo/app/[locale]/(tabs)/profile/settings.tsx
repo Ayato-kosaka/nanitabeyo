@@ -25,6 +25,7 @@ import { Env } from "@/constants/Env";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useRouter } from "expo-router";
+import { useLocale } from "@/hooks/useLocale";
 
 interface SettingsMenuItemProps {
 	label: string;
@@ -50,6 +51,7 @@ export default function SettingsScreen() {
 	const router = useRouter();
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
+	const { locale } = useLocale();
 	const { showDialog } = useDialog();
 	const { showSnackbar } = useSnackbar();
 	const [selectedLegalDocument, setSelectedLegalDocument] = useState<
@@ -66,7 +68,7 @@ export default function SettingsScreen() {
 		close: closeLegalDocumentModal,
 	} = useBlurModal({ intensity: 100 });
 
-	// #【設計】ブロック済みトピック管理画面への遷移
+	// #747 【設計】ブロック済みトピック管理画面への遷移
 	const handleNavigateToBlockedTopics = useCallback(() => {
 		lightImpact();
 		logFrontendEvent({
@@ -74,8 +76,11 @@ export default function SettingsScreen() {
 			error_level: "log",
 			payload: {},
 		});
-		router.push("/(tabs)/profile/blocked-topics");
-	}, [lightImpact, logFrontendEvent, router]);
+		router.push({
+			pathname: "/[locale]/(tabs)/profile/blocked-topics",
+			params: { locale },
+		});
+	}, [lightImpact, logFrontendEvent, router, locale]);
 
 	// #611 【設計】ストア直接遷移（market:// / itms-apps:// → https:// フォールバック）
 	const openStoreReviewPage = useCallback(async () => {
@@ -270,15 +275,12 @@ export default function SettingsScreen() {
 
 					{/* Card 1: フィードバック・レビュー・ブロック済みトピック */}
 					<Card style={styles.card}>
-						<SettingsMenuItem
-							label={i18n.t("Settings.sendFeedback")}
-							onPress={handleSendFeedback}
-						/>
+						<SettingsMenuItem label={i18n.t("Settings.sendFeedback")} onPress={handleSendFeedback} />
 						{/* #317 【設計】Leave Review は web では非表示 */}
 						{Platform.OS !== "web" && (
 							<SettingsMenuItem label={i18n.t("Settings.leaveReview")} onPress={handleLeaveReview} />
 						)}
-						{/* #【設計】ブロック済みの料理トピック管理画面へ遷移 */}
+						{/* #747 【設計】ブロック済みの料理トピック管理画面へ遷移 */}
 						<SettingsMenuItem
 							label={i18n.t("Settings.blockedTopics.navigationLabel")}
 							onPress={handleNavigateToBlockedTopics}

@@ -18,7 +18,7 @@ export function FeedDishMediaViewer({ initialIndex, entriesKey }: FeedDishMediaV
 	const frame = useSafeAreaFrame(); // Safe Area を除いたフレームの高さ
 	const { user } = useAuth();
 
-	// #【設計】ReviewForm を BlurModal 経由で表示するための useBlurModal
+	// 【設計】ReviewForm を BlurModal 経由で表示するための useBlurModal
 	const { BlurModal: ReviewFormModal, open: openReviewModal, close: closeReviewModal } = useBlurModal({});
 
 	// 【設計】現在表示中のインデックスを管理（DishMediaFeed の onIndexChange で更新）

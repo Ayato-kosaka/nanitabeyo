@@ -1,13 +1,5 @@
 import React, { useCallback, useEffect, useState, useRef } from "react";
-import {
-	View,
-	Text,
-	StyleSheet,
-	FlatList,
-	TouchableOpacity,
-	Image,
-	ActivityIndicator,
-} from "react-native";
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Stack } from "expo-router";
@@ -18,6 +10,7 @@ import { useAPICall } from "@/hooks/useAPICall";
 import { useLocale } from "@/hooks/useLocale";
 import { QueryMeBlockedDishCategoriesResponse, UnblockDishCategoryResponse } from "@shared/api/v1/res";
 import type { SupabaseDishCategories } from "@shared/converters/convert_dish_categories";
+import { useLogger } from "@/hooks/useLogger";
 
 type BlockedCategory = SupabaseDishCategories;
 
@@ -26,6 +19,7 @@ export default function BlockedTopicsScreen() {
 	const { showSnackbar } = useSnackbar();
 	const { callBackend } = useAPICall();
 	const { locale } = useLocale();
+	const { logFrontendEvent } = useLogger();
 	const [categories, setCategories] = useState<BlockedCategory[]>([]);
 	const [isLoading, setIsLoading] = useState(false);
 	const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -33,7 +27,7 @@ export default function BlockedTopicsScreen() {
 	const [hasMore, setHasMore] = useState(true);
 	const isFetchingRef = useRef(false);
 
-	// #【設計】ブロック済みカテゴリを取得（cursor対応）
+	// #747 【設計】ブロック済みカテゴリを取得（cursor対応）
 	const fetchBlockedCategories = useCallback(
 		async (cursor?: string) => {
 			if (isFetchingRef.current) return;
@@ -67,7 +61,13 @@ export default function BlockedTopicsScreen() {
 				setNextCursor(response.nextCursor);
 				setHasMore(!!response.nextCursor);
 			} catch (error) {
-				console.error("Failed to fetch blocked categories:", error);
+				logFrontendEvent({
+					event_name: "fetch_blocked_categories_failed",
+					error_level: "error",
+					payload: {
+						error: error instanceof Error ? error.message : String(error),
+					},
+				});
 				showSnackbar(i18n.t("Common.error"));
 			} finally {
 				setIsLoading(false);
@@ -75,23 +75,23 @@ export default function BlockedTopicsScreen() {
 				isFetchingRef.current = false;
 			}
 		},
-		[callBackend, showSnackbar],
+		[callBackend, showSnackbar, logFrontendEvent],
 	);
 
-	// #【設計】初回ロード
+	// #747 【設計】初回ロード
 	useEffect(() => {
 		fetchBlockedCategories();
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
-	// #【設計】無限スクロール：次ページを読み込み
+	// #747 【設計】無限スクロール：次ページを読み込み
 	const handleLoadMore = useCallback(() => {
 		if (!isLoadingMore && hasMore && nextCursor) {
 			fetchBlockedCategories(nextCursor);
 		}
 	}, [isLoadingMore, hasMore, nextCursor, fetchBlockedCategories]);
 
-	// #【設計】ブロック解除API呼び出し
+	// #747 【設計】ブロック解除API呼び出し
 	const handleUnblock = useCallback(
 		(category: BlockedCategory) => {
 			const localeCode = locale.split("-")[0];
@@ -112,20 +112,28 @@ export default function BlockedTopicsScreen() {
 							},
 						);
 
-						// #【設計】成功時は該当行を除去
+						// #747 【設計】成功時は該当行を除去
 						setCategories((prev) => prev.filter((item) => item.id !== category.id));
 						showSnackbar(i18n.t("Settings.blockedTopics.unblocked"));
 					} catch (error) {
-						console.error("Failed to unblock category:", error);
+						logFrontendEvent({
+							event_name: "unblock_category_failed",
+							error_level: "error",
+							payload: {
+								error: error instanceof Error ? error.message : String(error),
+								category_id: category.id,
+								category_label: categoryLabel,
+							},
+						});
 						showSnackbar(i18n.t("Common.error"));
 					}
 				},
 			});
 		},
-		[callBackend, showDialog, showSnackbar, locale],
+		[callBackend, showDialog, showSnackbar, locale, logFrontendEvent],
 	);
 
-	// #【設計】リストアイテムのレンダリング
+	// #747 【設計】リストアイテムのレンダリング
 	const renderItem = useCallback(
 		({ item }: { item: BlockedCategory }) => {
 			const localeCode = locale.split("-")[0];
@@ -145,7 +153,7 @@ export default function BlockedTopicsScreen() {
 		[handleUnblock, locale],
 	);
 
-	// #【設計】フッター：次ページ読み込みインジケータ
+	// #747 【設計】フッター：次ページ読み込みインジケータ
 	const renderFooter = useCallback(() => {
 		if (!isLoadingMore) return null;
 		return (
@@ -155,7 +163,7 @@ export default function BlockedTopicsScreen() {
 		);
 	}, [isLoadingMore]);
 
-	// #【設計】空表示
+	// #747 【設計】空表示
 	const renderEmpty = useCallback(() => {
 		if (isLoading) return null;
 		return (
