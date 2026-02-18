@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useCallback, useRef, useEffect } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Image } from "expo-image";
-import { Trash, Bookmark, ImageOff, RefreshCw, Ban } from "lucide-react-native";
+import { Bookmark, ImageOff, RefreshCw, Ban } from "lucide-react-native";
 import { Topic } from "@/types/search";
 import { CARD_WIDTH } from "@/features/topics/constants";
 import { useHaptics } from "@/hooks/useHaptics";
