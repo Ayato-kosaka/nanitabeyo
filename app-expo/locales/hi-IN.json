@@ -191,17 +191,17 @@
 		"chooseThis": "इसे चुनें!",
 		"hiddenMessage": "{{title}} को छिपा दिया गया है",
 		"BlockTopicModal": {
-			"title": "Block this dish?",
-			"description": "Blocked dish topics will no longer appear in recommendations.",
-			"note": "You can unblock it anytime from Settings.",
-			"confirm": "Block"
+			"title": "क्या इस व्यंजन को ब्लॉक करना चाहते हैं?",
+			"description": "ब्लॉक किए गए व्यंजन अब आपकी सिफ़ारिशों में नहीं दिखेंगे।",
+			"note": "आप इसे कभी भी सेटिंग्स से अनब्लॉक कर सकते हैं।",
+			"confirm": "ब्लॉक करें"
 		},
-		"blockedMessage": "Blocked {{title}}",
+		"blockedMessage": "{{title}} को ब्लॉक कर दिया गया है",
 		"reloadDialog": {
-			"title": "Find more options?",
-			"message": "There are only a few recommendations right now. We will search again with the same conditions.",
-			"confirm": "Search again",
-			"cancel": "Close"
+			"title": "और विकल्प ढूँढें?",
+			"message": "इस समय केवल कुछ ही सिफ़ारिशें उपलब्ध हैं। हम इन्हीं शर्तों के साथ दोबारा खोज करेंगे।",
+			"confirm": "फिर से खोजें",
+			"cancel": "बंद करें"
 		},
 		"imageLoadFailed": "चित्र लोड करने में विफल",
 		"tapToReload": "पुनः लोड करने के लिए टैप करें",
