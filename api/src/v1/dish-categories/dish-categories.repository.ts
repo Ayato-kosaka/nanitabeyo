@@ -253,6 +253,7 @@ export class DishCategoriesRepository {
           )
           AND dcf.score > 0
       ),
+      -- #747【設計】block 対象の料理カテゴリを除外
       blocked_categories AS (
         SELECT DISTINCT r.target_id AS category_id
         FROM reactions r, params p
