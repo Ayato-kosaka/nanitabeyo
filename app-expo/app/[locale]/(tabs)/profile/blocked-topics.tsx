@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useState, useRef } from "react";
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator } from "react-native";
+import { LoadingIndicator } from "@/components/LoadingIndicator";
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Stack } from "expo-router";
 import i18n from "@/lib/i18n";
 import { useDialog } from "@/contexts/DialogProvider";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
@@ -23,6 +23,7 @@ export default function BlockedTopicsScreen() {
 	const [categories, setCategories] = useState<BlockedCategory[]>([]);
 	const [isLoading, setIsLoading] = useState(false);
 	const [isLoadingMore, setIsLoadingMore] = useState(false);
+	const [isRefreshing, setIsRefreshing] = useState(false);
 	const [nextCursor, setNextCursor] = useState<string | null>(null);
 	const [hasMore, setHasMore] = useState(true);
 	const isFetchingRef = useRef(false);
@@ -86,10 +87,23 @@ export default function BlockedTopicsScreen() {
 
 	// #747 【設計】無限スクロール：次ページを読み込み
 	const handleLoadMore = useCallback(() => {
-		if (!isLoadingMore && hasMore && nextCursor) {
+		if (!isLoadingMore && !isRefreshing && hasMore && nextCursor) {
 			fetchBlockedCategories(nextCursor);
 		}
-	}, [isLoadingMore, hasMore, nextCursor, fetchBlockedCategories]);
+	}, [isLoadingMore, isRefreshing, hasMore, nextCursor, fetchBlockedCategories]);
+
+	// #747 【設計】引っ張って更新：先頭から再取得
+	const handleRefresh = useCallback(async () => {
+		if (isFetchingRef.current) return;
+		setIsRefreshing(true);
+		setNextCursor(null);
+		setHasMore(true);
+		try {
+			await fetchBlockedCategories();
+		} finally {
+			setIsRefreshing(false);
+		}
+	}, [fetchBlockedCategories]);
 
 	// #747 【設計】ブロック解除API呼び出し
 	const handleUnblock = useCallback(
@@ -153,7 +167,7 @@ export default function BlockedTopicsScreen() {
 		if (!isLoadingMore) return null;
 		return (
 			<View style={styles.footerLoader}>
-				<ActivityIndicator size="small" color="#1A1A1A" />
+				<LoadingIndicator size="small" />
 			</View>
 		);
 	}, [isLoadingMore]);
@@ -170,29 +184,33 @@ export default function BlockedTopicsScreen() {
 
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
-			<Stack.Screen
-				options={{
-					title: i18n.t("Settings.blockedTopics.pageTitle"),
-					headerBackTitle: i18n.t("Common.back"),
-				}}
-			/>
-			<SafeAreaView style={styles.safeArea} edges={["bottom"]}>
-				{isLoading ? (
-					<View style={styles.loaderContainer}>
-						<ActivityIndicator size="large" color="#1A1A1A" />
+			<SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
+				<View style={styles.header}>
+					<Text style={styles.headerTitle}>{i18n.t("Settings.blockedTopics.pageTitle")}</Text>
+				</View>
+
+				<View style={styles.blockedTopicsContainer}>
+					<View style={styles.sheet}>
+						{isLoading ? (
+							<View style={styles.loaderContainer}>
+								<LoadingIndicator size="large" />
+							</View>
+						) : (
+							<FlatList
+								data={categories}
+								keyExtractor={(item) => item.id}
+								renderItem={renderItem}
+								ListEmptyComponent={renderEmpty}
+								ListFooterComponent={renderFooter}
+								onEndReached={handleLoadMore}
+								onEndReachedThreshold={0.5}
+								refreshing={isRefreshing}
+								onRefresh={handleRefresh}
+								contentContainerStyle={styles.listContent}
+							/>
+						)}
 					</View>
-				) : (
-					<FlatList
-						data={categories}
-						keyExtractor={(item) => item.id}
-						renderItem={renderItem}
-						ListEmptyComponent={renderEmpty}
-						ListFooterComponent={renderFooter}
-						onEndReached={handleLoadMore}
-						onEndReachedThreshold={0.5}
-						contentContainerStyle={styles.listContent}
-					/>
-				)}
+				</View>
 			</SafeAreaView>
 		</LinearGradient>
 	);
@@ -205,6 +223,38 @@ const styles = StyleSheet.create({
 	safeArea: {
 		flex: 1,
 	},
+	header: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "flex-start",
+		paddingHorizontal: 16,
+		paddingVertical: 16,
+	},
+	headerTitle: {
+		fontSize: 20,
+		fontWeight: "700",
+		color: "#1A1A1A",
+		letterSpacing: -0.5,
+	},
+	blockedTopicsContainer: {
+		flex: 1,
+		marginTop: 16,
+		borderTopLeftRadius: 32,
+		borderTopRightRadius: 32,
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 0 },
+		shadowOpacity: 0.1,
+		shadowRadius: 24,
+		elevation: 10,
+	},
+	sheet: {
+		flex: 1,
+		backgroundColor: "#FFFFFF",
+		borderTopLeftRadius: 32,
+		borderTopRightRadius: 32,
+		overflow: "hidden",
+		paddingTop: 24,
+	},
 	loaderContainer: {
 		flex: 1,
 		justifyContent: "center",
@@ -212,7 +262,7 @@ const styles = StyleSheet.create({
 	},
 	listContent: {
 		paddingHorizontal: 16,
-		paddingVertical: 12,
+		paddingBottom: 32,
 	},
 	itemContainer: {
 		flexDirection: "row",
