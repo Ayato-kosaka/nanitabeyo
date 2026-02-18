@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useCallback, useRef, useEffect } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Image } from "expo-image";
-import { Trash, Bookmark, ImageOff, RefreshCw } from "lucide-react-native";
+import { Trash, Bookmark, ImageOff, RefreshCw, Ban } from "lucide-react-native";
 import { Topic } from "@/types/search";
 import { CARD_WIDTH } from "@/features/topics/constants";
 import { useHaptics } from "@/hooks/useHaptics";
@@ -204,8 +204,11 @@ export const TopicCard = ({
 					<TouchableOpacity style={styles.topButton} onPress={handleSave}>
 						<Bookmark size={20} color={isSaved ? "transparent" : "white"} fill={isSaved ? "orange" : "transparent"} />
 					</TouchableOpacity>
-					<TouchableOpacity style={styles.topButton} onPress={handleBlock}>
+					{/* <TouchableOpacity style={styles.topButton} onPress={handleHide}>
 						<Trash size={18} color="#FFF" />
+					</TouchableOpacity> */}
+					<TouchableOpacity style={styles.topButton} onPress={handleBlock}>
+						<Ban size={18} color="#FFF" />
 					</TouchableOpacity>
 				</View>
 
