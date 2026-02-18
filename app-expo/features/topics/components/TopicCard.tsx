@@ -207,7 +207,12 @@ export const TopicCard = ({
 					{/* <TouchableOpacity style={styles.topButton} onPress={handleHide}>
 						<Trash size={18} color="#FFF" />
 					</TouchableOpacity> */}
-					<TouchableOpacity style={styles.topButton} onPress={handleBlock}>
+					<TouchableOpacity
+						style={styles.topButton}
+						onPress={handleBlock}
+						accessibilityRole="button"
+						accessibilityLabel={i18n.t("Topics.BlockTopicModal.title")}
+					>
 						<Ban size={18} color="#FFF" />
 					</TouchableOpacity>
 				</View>
