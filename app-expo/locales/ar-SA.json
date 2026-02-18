@@ -191,17 +191,17 @@
 		"chooseThis": "اختر هذا!",
 		"hiddenMessage": "تم إخفاء {{title}}",
 		"BlockTopicModal": {
-			"title": "Block this dish?",
-			"description": "Blocked dish topics will no longer appear in recommendations.",
-			"note": "You can unblock it anytime from Settings.",
-			"confirm": "Block"
+			"title": "حظر هذا الطبق؟",
+			"description": "لن تظهر مواضيع هذا الطبق المحظور بعد الآن في التوصيات.",
+			"note": "يمكنك إلغاء الحظر في أي وقت من الإعدادات.",
+			"confirm": "حظر"
 		},
-		"blockedMessage": "Blocked {{title}}",
+		"blockedMessage": "تم حظر {{title}}",
 		"reloadDialog": {
-			"title": "Find more options?",
-			"message": "There are only a few recommendations right now. We will search again with the same conditions.",
-			"confirm": "Search again",
-			"cancel": "Close"
+			"title": "هل تريد العثور على المزيد من الخيارات؟",
+			"message": "هناك عدد قليل فقط من التوصيات الآن. سنبحث مرة أخرى باستخدام نفس الشروط.",
+			"confirm": "ابحث مرة أخرى",
+			"cancel": "إغلاق"
 		},
 		"imageLoadFailed": "فشل تحميل الصورة",
 		"tapToReload": "اضغط لإعادة التحميل",
