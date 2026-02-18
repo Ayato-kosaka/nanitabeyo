@@ -401,13 +401,14 @@ export class DishCategoriesService {
       const dishCategories =
         await this.repo.findDishCategoriesByNames(categoryNames);
 
+      // #747 【設計】Claude経路でも block 対象の料理カテゴリを除外
       const blockedCategoryIds = new Set(
         (
           await this.prisma.prisma.reactions.findMany({
             where: {
               user_id: userId,
               target_type: 'dish_categories',
-              action_type: { in: ['block', 'hide'] },
+              action_type: 'block',
             },
             select: { target_id: true },
           })

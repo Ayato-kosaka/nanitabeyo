@@ -253,12 +253,13 @@ export class DishCategoriesRepository {
           )
           AND dcf.score > 0
       ),
+      -- #747【設計】block 対象の料理カテゴリを除外
       blocked_categories AS (
         SELECT DISTINCT r.target_id AS category_id
         FROM reactions r, params p
         WHERE r.user_id = p.user_id
           AND r.target_type = 'dish_categories'
-          AND r.action_type IN ('block', 'hide')
+          AND r.action_type = 'block'
       ),
       -- #533 【設計】条件系特徴量（timeSlot/scene/satiety/taste）を LEFT JOIN
       base_candidates AS (

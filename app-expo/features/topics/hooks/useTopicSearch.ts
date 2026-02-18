@@ -134,6 +134,7 @@ export const useTopicSearch = () => {
 					},
 				});
 
+				// #747 【設計】重複する categoryId を削除する
 				const dedupedTopics: QueryDishCategoryRecommendationsResponse = Array.from(
 					new Map<string, QueryDishCategoryRecommendationsResponse[number]>(
 						topicsResponse
