@@ -59,16 +59,7 @@ export const useTopicSearch = () => {
 				},
 			});
 
-			// #747 【設計】重複する categoryId を削除する
-			const dedupedTopics: QueryDishCategoryRecommendationsResponse = Array.from(
-				new Map<string, QueryDishCategoryRecommendationsResponse[number]>(
-					topicsResponse
-						.filter((topic) => topic.categoryId && topic.imageUrl)
-						.map((topic) => [topic.categoryId, topic]),
-				).values(),
-			);
-
-			let topicsResponseWithCategoryIds: QueryDishCategoryRecommendationsResponse = dedupedTopics
+			let topicsResponseWithCategoryIds: QueryDishCategoryRecommendationsResponse = topicsResponse
 				.slice(0, searchResultTopicsNumber)
 				.map((topic) => ({
 					...topic,
@@ -96,8 +87,8 @@ export const useTopicSearch = () => {
 									...topic,
 									category:
 										createDishCategoryVariantResponse.labels &&
-										typeof createDishCategoryVariantResponse.labels === "object" &&
-										params.localLanguageCode in createDishCategoryVariantResponse.labels
+											typeof createDishCategoryVariantResponse.labels === "object" &&
+											params.localLanguageCode in createDishCategoryVariantResponse.labels
 											? (createDishCategoryVariantResponse.labels as Record<string, string>)[params.localLanguageCode]
 											: topic.category,
 									categoryId: createDishCategoryVariantResponse.id,
