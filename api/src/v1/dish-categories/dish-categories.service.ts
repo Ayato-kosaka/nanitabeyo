@@ -104,12 +104,9 @@ export class DishCategoriesService {
             values.map((v) => {
               const float = parseFloat(v);
               if (isNaN(float) || float < 0) {
-                this.logger.warn(
-                  'InvalidRemoteConfigValue',
-                  'getRecommendations',
-                  { value: v },
+                throw new BadRequestException(
+                  `Invalid penalty weight value in remote config: ${v}`,
                 );
-                return 0;
               }
               return float;
             }),
