@@ -1,45 +1,95 @@
-import React, { useCallback, useEffect, useState, useRef } from "react";
-import { LoadingIndicator } from "@/components/LoadingIndicator";
+import React, { useCallback, useEffect, useState, useRef, memo } from "react";
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+import { LoadingIndicator } from "@/components/LoadingIndicator";
 import i18n from "@/lib/i18n";
 import { useDialog } from "@/contexts/DialogProvider";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useLocale } from "@/hooks/useLocale";
+import { useLogger } from "@/hooks/useLogger";
+
 import { QueryMeBlockedDishCategoriesResponse, UnblockDishCategoryResponse } from "@shared/api/v1/res";
 import type { SupabaseDishCategories } from "@shared/converters/convert_dish_categories";
-import { useLogger } from "@/hooks/useLogger";
 
 type BlockedCategory = SupabaseDishCategories;
 
+// ============================================================================
+// [ベストプラクティス] リストアイテムのメモ化
+// FlatList内の各アイテムを `React.memo` で囲むことで、他のアイテムのブロック解除時などに
+// 関係のないアイテムまで再レンダリングされるのを防ぎ、パフォーマンスを最適化します。
+// ============================================================================
+interface BlockedCategoryItemProps {
+	item: BlockedCategory;
+	localeCode: string;
+	onUnblock: (item: BlockedCategory) => void;
+}
+
+const BlockedCategoryItem = memo(({ item, localeCode, onUnblock }: BlockedCategoryItemProps) => {
+	const labels = (item.labels || {}) as Record<string, string>;
+	// 多言語対応のフォールバック処理を安全に行う
+	const categoryLabel = labels[localeCode] || labels.en || item.label_en || item.id;
+
+	return (
+		<View style={styles.itemContainer}>
+			{/* 画像のURIが存在しない場合のフォールバックを考慮し、空文字列を回避 */}
+			<Image source={{ uri: item.image_url || undefined }} style={styles.categoryImage} />
+			<Text style={styles.categoryLabel} numberOfLines={2}>
+				{categoryLabel}
+			</Text>
+			<TouchableOpacity
+				style={styles.unblockButton}
+				onPress={() => onUnblock(item)}
+				activeOpacity={0.7}
+				// [ベストプラクティス] アクセシビリティの向上
+				accessibilityRole="button"
+				accessibilityLabel={`${categoryLabel} ${i18n.t("Settings.blockedTopics.unblockButton")}`}>
+				<Text style={styles.unblockButtonText}>{i18n.t("Settings.blockedTopics.unblockButton")}</Text>
+			</TouchableOpacity>
+		</View>
+	);
+});
+BlockedCategoryItem.displayName = "BlockedCategoryItem";
+
+// ============================================================================
+// メインスクリーンコンポーネント
+// ============================================================================
 export default function BlockedTopicsScreen() {
 	const { showDialog } = useDialog();
 	const { showSnackbar } = useSnackbar();
 	const { callBackend } = useAPICall();
 	const { locale } = useLocale();
 	const { logFrontendEvent } = useLogger();
+
 	const [categories, setCategories] = useState<BlockedCategory[]>([]);
 	const [isLoading, setIsLoading] = useState(false);
 	const [isLoadingMore, setIsLoadingMore] = useState(false);
 	const [isRefreshing, setIsRefreshing] = useState(false);
 	const [nextCursor, setNextCursor] = useState<string | null>(null);
 	const [hasMore, setHasMore] = useState(true);
+
 	const isFetchingRef = useRef(false);
+	const localeCode = locale.split("-")[0];
 
 	// #747 【設計】ブロック済みカテゴリを取得（cursor対応）
+	// [レビュー対応] isRefreshフラグを追加し、状態管理の競合（Race condition）を防止
 	const fetchBlockedCategories = useCallback(
-		async (cursor?: string) => {
+		async (options: { cursor?: string; isRefresh?: boolean } = {}) => {
 			if (isFetchingRef.current) return;
 			isFetchingRef.current = true;
 
+			const { cursor, isRefresh = false } = options;
+
 			try {
-				const isFirstLoad = !cursor;
-				if (isFirstLoad) {
-					setIsLoading(true);
-				} else {
-					setIsLoadingMore(true);
+				// [レビュー対応] Refresh中は既にisRefreshingがtrueなので、isLoadingは変更しない
+				if (!isRefresh) {
+					if (!cursor) {
+						setIsLoading(true); // 初回ロード
+					} else {
+						setIsLoadingMore(true); // 追加ロード
+					}
 				}
 
 				const params = new URLSearchParams();
@@ -53,7 +103,9 @@ export default function BlockedTopicsScreen() {
 					},
 				);
 
-				if (isFirstLoad) {
+				// [レビュー対応] データの更新はAPIリクエストが「成功」した後のみ行う。
+				// これによりエラー時にnextCursorが失われるのを防ぐ。
+				if (!cursor || isRefresh) {
 					setCategories(response.data);
 				} else {
 					setCategories((prev) => [...prev, ...response.data]);
@@ -70,6 +122,7 @@ export default function BlockedTopicsScreen() {
 					},
 				});
 				showSnackbar(i18n.t("Common.error"));
+				// エラー時は既存のStateを維持するため、セット処理は行わない
 			} finally {
 				setIsLoading(false);
 				setIsLoadingMore(false);
@@ -82,24 +135,23 @@ export default function BlockedTopicsScreen() {
 	// #747 【設計】初回ロード
 	useEffect(() => {
 		fetchBlockedCategories();
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, []);
+	}, [fetchBlockedCategories]);
 
 	// #747 【設計】無限スクロール：次ページを読み込み
 	const handleLoadMore = useCallback(() => {
-		if (!isLoadingMore && !isRefreshing && hasMore && nextCursor) {
-			fetchBlockedCategories(nextCursor);
+		if (!isLoadingMore && !isRefreshing && !isLoading && hasMore && nextCursor) {
+			fetchBlockedCategories({ cursor: nextCursor });
 		}
-	}, [isLoadingMore, isRefreshing, hasMore, nextCursor, fetchBlockedCategories]);
+	}, [isLoadingMore, isRefreshing, isLoading, hasMore, nextCursor, fetchBlockedCategories]);
 
 	// #747 【設計】引っ張って更新：先頭から再取得
 	const handleRefresh = useCallback(async () => {
 		if (isFetchingRef.current) return;
 		setIsRefreshing(true);
-		setNextCursor(null);
-		setHasMore(true);
+
+		// [レビュー対応] 事前にnextCursorやStateをクリアしない（失敗時に備えるため）
 		try {
-			await fetchBlockedCategories();
+			await fetchBlockedCategories({ isRefresh: true });
 		} finally {
 			setIsRefreshing(false);
 		}
@@ -122,7 +174,7 @@ export default function BlockedTopicsScreen() {
 							},
 						);
 
-						// #747 【設計】成功時は該当行を除去
+						// #747 【設計】成功時は該当行を除去（オプティミスティックUIアップデート）
 						setCategories((prev) => prev.filter((item) => item.id !== category.id));
 						showSnackbar(i18n.t("Settings.blockedTopics.unblocked"));
 					} catch (error) {
@@ -139,27 +191,17 @@ export default function BlockedTopicsScreen() {
 				},
 			});
 		},
-		[callBackend, showDialog, showSnackbar, locale, logFrontendEvent],
+		[callBackend, showDialog, showSnackbar, logFrontendEvent], // localeへの依存は剥がし、UI責務を分離
 	);
 
-	// #747 【設計】リストアイテムのレンダリング
-	const renderItem = useCallback(
-		({ item }: { item: BlockedCategory }) => {
-			const localeCode = locale.split("-")[0];
-			const labels = (item.labels || {}) as Record<string, string>;
-			const categoryLabel = labels[localeCode] || labels.en || item.label_en || item.id;
+	// [ベストプラクティス] keyExtractorは安定した参照にするため関数化するか外に出す
+	const keyExtractor = useCallback((item: BlockedCategory) => item.id, []);
 
-			return (
-				<View style={styles.itemContainer}>
-					<Image source={{ uri: item.image_url || "" }} style={styles.categoryImage} />
-					<Text style={styles.categoryLabel}>{categoryLabel}</Text>
-					<TouchableOpacity style={styles.unblockButton} onPress={() => handleUnblock(item)}>
-						<Text style={styles.unblockButtonText}>{i18n.t("Settings.blockedTopics.unblockButton")}</Text>
-					</TouchableOpacity>
-				</View>
-			);
-		},
-		[handleUnblock, locale],
+	const renderItem = useCallback(
+		({ item }: { item: BlockedCategory }) => (
+			<BlockedCategoryItem item={item} localeCode={localeCode} onUnblock={handleUnblock} />
+		),
+		[handleUnblock, localeCode],
 	);
 
 	// #747 【設計】フッター：次ページ読み込みインジケータ
@@ -198,7 +240,7 @@ export default function BlockedTopicsScreen() {
 						) : (
 							<FlatList
 								data={categories}
-								keyExtractor={(item) => item.id}
+								keyExtractor={keyExtractor}
 								renderItem={renderItem}
 								ListEmptyComponent={renderEmpty}
 								ListFooterComponent={renderFooter}
@@ -207,6 +249,11 @@ export default function BlockedTopicsScreen() {
 								refreshing={isRefreshing}
 								onRefresh={handleRefresh}
 								contentContainerStyle={styles.listContent}
+								// [ベストプラクティス] 長いリストのメモリ最適化
+								removeClippedSubviews={true}
+								initialNumToRender={10}
+								maxToRenderPerBatch={10}
+								windowSize={5}
 							/>
 						)}
 					</View>
