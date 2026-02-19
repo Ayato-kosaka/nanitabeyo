@@ -30,15 +30,15 @@ export interface DishCategoryCandidateWithScores {
   order_score: number;
 }
 
-// #757 【設計】特徴量データ（core_ingredient / cooking_method）
-export interface DishCategoryFeature {
+// #757 【設計】ペナルティ計算用特徴量データ（core_ingredient / cooking_method）
+export interface DishCategoryPenaltyFeature {
   feature_key: string;
   score: number;
 }
 
-// #757 【設計】カテゴリごとの特徴量セット
-export interface DishCategoryFeatureSet {
+// #757 【設計】カテゴリごとのペナルティ計算用特徴量セット
+export interface DishCategoryPenaltyFeatureSet {
   category_id: string;
-  core_ingredients: DishCategoryFeature[];
-  cooking_methods: DishCategoryFeature[];
+  core_ingredients: DishCategoryPenaltyFeature[];
+  cooking_methods: DishCategoryPenaltyFeature[];
 }

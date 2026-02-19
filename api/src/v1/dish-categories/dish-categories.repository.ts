@@ -12,7 +12,7 @@ import { Prisma } from '../../../../shared/prisma';
 import {
   DishCategoryCandidateNormalizedInput,
   DishCategoryCandidateWithScores,
-  DishCategoryFeatureSet,
+  DishCategoryPenaltyFeatureSet,
 } from './dish-categories.interface';
 
 @Injectable()
@@ -497,7 +497,7 @@ export class DishCategoriesRepository {
    */
   async findCategoryPenaltyFeatures(
     categoryIds: string[],
-  ): Promise<DishCategoryFeatureSet[]> {
+  ): Promise<DishCategoryPenaltyFeatureSet[]> {
     this.logger.debug(
       'FindCategoryPenaltyFeatures',
       'findCategoryPenaltyFeatures',
@@ -511,54 +511,57 @@ export class DishCategoriesRepository {
     }
 
     // #757 【設計】core_ingredient と cooking_method を一括取得（N+1回避）
-    const features = await this.prisma.prisma.dish_category_features.findMany({
-      where: {
-        dish_category_id: { in: categoryIds },
-        feature_type: { in: ['core_ingredient', 'cooking_method'] },
-      },
-      select: {
-        dish_category_id: true,
-        feature_type: true,
-        feature_key: true,
-        score: true,
-      },
-    });
+    const penaltyFeatures =
+      await this.prisma.prisma.dish_category_features.findMany({
+        where: {
+          dish_category_id: { in: categoryIds },
+          feature_type: { in: ['core_ingredient', 'cooking_method'] },
+        },
+        select: {
+          dish_category_id: true,
+          feature_type: true,
+          feature_key: true,
+          score: true,
+        },
+      });
 
     // #757 【設計】カテゴリIDごとにグループ化
-    const featureMap = new Map<string, DishCategoryFeatureSet>();
+    const penaltyFeatureMap = new Map<string, DishCategoryPenaltyFeatureSet>();
 
     for (const categoryId of categoryIds) {
-      featureMap.set(categoryId, {
+      penaltyFeatureMap.set(categoryId, {
         category_id: categoryId,
         core_ingredients: [],
         cooking_methods: [],
       });
     }
 
-    for (const feature of features) {
-      const categoryFeatures = featureMap.get(feature.dish_category_id);
-      if (!categoryFeatures) continue;
+    for (const penaltyFeature of penaltyFeatures) {
+      const categoryPenaltyFeatures = penaltyFeatureMap.get(
+        penaltyFeature.dish_category_id,
+      );
+      if (!categoryPenaltyFeatures) continue;
 
-      const featureData = {
-        feature_key: feature.feature_key,
-        score: feature.score,
+      const penaltyFeatureData = {
+        feature_key: penaltyFeature.feature_key,
+        score: penaltyFeature.score,
       };
 
-      if (feature.feature_type === 'core_ingredient') {
-        categoryFeatures.core_ingredients.push(featureData);
-      } else if (feature.feature_type === 'cooking_method') {
-        categoryFeatures.cooking_methods.push(featureData);
+      if (penaltyFeature.feature_type === 'core_ingredient') {
+        categoryPenaltyFeatures.core_ingredients.push(penaltyFeatureData);
+      } else if (penaltyFeature.feature_type === 'cooking_method') {
+        categoryPenaltyFeatures.cooking_methods.push(penaltyFeatureData);
       }
     }
 
-    const result = Array.from(featureMap.values());
+    const result = Array.from(penaltyFeatureMap.values());
 
     this.logger.debug(
       'CategoryPenaltyFeaturesFound',
       'findCategoryPenaltyFeatures',
       {
         count: result.length,
-        totalFeatures: features.length,
+        totalFeatures: penaltyFeatures.length,
       },
     );
 

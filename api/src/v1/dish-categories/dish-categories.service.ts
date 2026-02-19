@@ -19,7 +19,7 @@ import { PrismaDishCategoryLocalizedText } from '../../../../shared/converters/c
 import {
   DishCategoryCandidateNormalizedInput,
   DishCategoryCandidateWithScores,
-  DishCategoryFeatureSet,
+  DishCategoryPenaltyFeatureSet,
 } from './dish-categories.interface';
 import { shuffle } from 'src/core/utils/backend-utils';
 
@@ -90,7 +90,7 @@ export class DishCategoriesService {
 
       // #757 【設計】Step 2-2: 特徴量取得（core_ingredient / cooking_method）
       const candidateIds = candidates.map((c) => c.category_id);
-      const featureSets =
+      const penaltyFeatureSets =
         await this.repo.findCategoryPenaltyFeatures(candidateIds);
 
       // #757 【設計】Step 2-2.5: ペナルティ重み取得
@@ -118,7 +118,7 @@ export class DishCategoriesService {
       // #757 【設計】Step 2-3: 逐次最適化でスレート構成
       const selectedCandidates = this.selectWithSequentialOptimization(
         candidates,
-        featureSets,
+        penaltyFeatureSets,
         penaltyWeightCoreIngredient,
         penaltyWeightCookingMethod,
       );
@@ -234,7 +234,7 @@ export class DishCategoriesService {
    */
   private selectWithSequentialOptimization(
     candidates: DishCategoryCandidateWithScores[],
-    featureSets: DishCategoryFeatureSet[],
+    penaltyFeatureSets: DishCategoryPenaltyFeatureSet[],
     penaltyWeightCoreIngredient: number,
     penaltyWeightCookingMethod: number,
   ): Array<{
@@ -244,9 +244,9 @@ export class DishCategoriesService {
     final_score: number;
   }> {
     // #757 【設計】特徴量マップを構築（高速アクセス）
-    const featureMap = new Map<string, DishCategoryFeatureSet>();
-    for (const fs of featureSets) {
-      featureMap.set(fs.category_id, fs);
+    const penaltyFeatureMap = new Map<string, DishCategoryPenaltyFeatureSet>();
+    for (const pfs of penaltyFeatureSets) {
+      penaltyFeatureMap.set(pfs.category_id, pfs);
     }
 
     // #757 【設計】選択済みカテゴリと使用済みジャンル
@@ -260,7 +260,7 @@ export class DishCategoriesService {
     const usedGenres = new Set<string>();
 
     // #757 【設計】特徴量の出現カウント（重複ペナルティ用）
-    const featureCounts = new Map<string, number>();
+    const penaltyFeatureCounts = new Map<string, number>();
 
     // #757 【設計】1枚目: order_score 上位（既存の jitter を尊重）
     if (candidates.length > 0) {
@@ -275,9 +275,9 @@ export class DishCategoriesService {
       if (first.macro_genre) usedGenres.add(first.macro_genre);
 
       // 特徴量カウント更新
-      this.updateFeatureCounts(
-        featureCounts,
-        featureMap.get(first.category_id),
+      this.updatePenaltyFeatureCounts(
+        penaltyFeatureCounts,
+        penaltyFeatureMap.get(first.category_id),
       );
 
       this.logger.debug(
@@ -324,8 +324,8 @@ export class DishCategoriesService {
         // #757 【設計】ペナルティ計算
         const penalty = this.calculateDiversityPenalty(
           candidate.category_id,
-          featureMap,
-          featureCounts,
+          penaltyFeatureMap,
+          penaltyFeatureCounts,
           penaltyWeightCoreIngredient,
           penaltyWeightCookingMethod,
         );
@@ -354,9 +354,9 @@ export class DishCategoriesService {
       if (bestCandidate.macro_genre) usedGenres.add(bestCandidate.macro_genre);
 
       // 特徴量カウント更新
-      this.updateFeatureCounts(
-        featureCounts,
-        featureMap.get(bestCandidate.category_id),
+      this.updatePenaltyFeatureCounts(
+        penaltyFeatureCounts,
+        penaltyFeatureMap.get(bestCandidate.category_id),
       );
 
       this.logger.debug(
@@ -394,28 +394,34 @@ export class DishCategoriesService {
    */
   private calculateDiversityPenalty(
     categoryId: string,
-    featureMap: Map<string, DishCategoryFeatureSet>,
-    featureCounts: Map<string, number>,
+    penaltyFeatureMap: Map<string, DishCategoryPenaltyFeatureSet>,
+    penaltyFeatureCounts: Map<string, number>,
     penaltyWeightCoreIngredient: number,
     penaltyWeightCookingMethod: number,
   ): number {
-    const featureSet = featureMap.get(categoryId);
-    if (!featureSet) return 0;
+    const penaltyFeatureSet = penaltyFeatureMap.get(categoryId);
+    if (!penaltyFeatureSet) return 0;
 
     let penalty = 0;
 
     // #757 【設計】core_ingredient のペナルティ
-    for (const feature of featureSet.core_ingredients) {
+    for (const penaltyFeature of penaltyFeatureSet.core_ingredients) {
       const count =
-        featureCounts.get(`core_ingredient:${feature.feature_key}`) || 0;
-      penalty += penaltyWeightCoreIngredient * feature.score * count * count;
+        penaltyFeatureCounts.get(
+          `core_ingredient:${penaltyFeature.feature_key}`,
+        ) || 0;
+      penalty +=
+        penaltyWeightCoreIngredient * penaltyFeature.score * count * count;
     }
 
     // #757 【設計】cooking_method のペナルティ
-    for (const feature of featureSet.cooking_methods) {
+    for (const penaltyFeature of penaltyFeatureSet.cooking_methods) {
       const count =
-        featureCounts.get(`cooking_method:${feature.feature_key}`) || 0;
-      penalty += penaltyWeightCookingMethod * feature.score * count * count;
+        penaltyFeatureCounts.get(
+          `cooking_method:${penaltyFeature.feature_key}`,
+        ) || 0;
+      penalty +=
+        penaltyWeightCookingMethod * penaltyFeature.score * count * count;
     }
 
     return penalty;
@@ -424,20 +430,20 @@ export class DishCategoriesService {
   /**
    * #757 【仕様】特徴量カウントの更新
    */
-  private updateFeatureCounts(
-    featureCounts: Map<string, number>,
-    featureSet: DishCategoryFeatureSet | undefined,
+  private updatePenaltyFeatureCounts(
+    penaltyFeatureCounts: Map<string, number>,
+    penaltyFeatureSet: DishCategoryPenaltyFeatureSet | undefined,
   ): void {
-    if (!featureSet) return;
+    if (!penaltyFeatureSet) return;
 
-    for (const feature of featureSet.core_ingredients) {
-      const key = `core_ingredient:${feature.feature_key}`;
-      featureCounts.set(key, (featureCounts.get(key) || 0) + 1);
+    for (const penaltyFeature of penaltyFeatureSet.core_ingredients) {
+      const key = `core_ingredient:${penaltyFeature.feature_key}`;
+      penaltyFeatureCounts.set(key, (penaltyFeatureCounts.get(key) || 0) + 1);
     }
 
-    for (const feature of featureSet.cooking_methods) {
-      const key = `cooking_method:${feature.feature_key}`;
-      featureCounts.set(key, (featureCounts.get(key) || 0) + 1);
+    for (const penaltyFeature of penaltyFeatureSet.cooking_methods) {
+      const key = `cooking_method:${penaltyFeature.feature_key}`;
+      penaltyFeatureCounts.set(key, (penaltyFeatureCounts.get(key) || 0) + 1);
     }
   }
 
