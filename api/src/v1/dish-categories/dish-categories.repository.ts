@@ -493,14 +493,18 @@ export class DishCategoriesRepository {
   /**
    * #757 【仕様】特徴量（core_ingredient / cooking_method）を一括取得
    * @param categoryIds 対象カテゴリIDリスト
-   * @returns カテゴリIDごとの特徴量セット
+   * @returns カテゴリIDごとの特徴量セット（逐次最適化の重複ペナルティ計算用）
    */
-  async findCategoryFeatures(
+  async findCategoryPenaltyFeatures(
     categoryIds: string[],
   ): Promise<DishCategoryFeatureSet[]> {
-    this.logger.debug('FindCategoryFeatures', 'findCategoryFeatures', {
-      categoryIdsCount: categoryIds.length,
-    });
+    this.logger.debug(
+      'FindCategoryPenaltyFeatures',
+      'findCategoryPenaltyFeatures',
+      {
+        categoryIdsCount: categoryIds.length,
+      },
+    );
 
     if (categoryIds.length === 0) {
       return [];
@@ -549,10 +553,14 @@ export class DishCategoriesRepository {
 
     const result = Array.from(featureMap.values());
 
-    this.logger.debug('CategoryFeaturesFound', 'findCategoryFeatures', {
-      count: result.length,
-      totalFeatures: features.length,
-    });
+    this.logger.debug(
+      'CategoryPenaltyFeaturesFound',
+      'findCategoryPenaltyFeatures',
+      {
+        count: result.length,
+        totalFeatures: features.length,
+      },
+    );
 
     return result;
   }

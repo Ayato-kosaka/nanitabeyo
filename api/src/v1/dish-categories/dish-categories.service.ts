@@ -14,6 +14,7 @@ import { DishCategoriesRepository } from './dish-categories.repository';
 import { ClaudeService } from '../../core/claude/claude.service';
 import { AppLoggerService } from '../../core/logger/logger.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { RemoteConfigService } from '../../core/remote-config/remote-config.service';
 import { PrismaDishCategoryLocalizedText } from '../../../../shared/converters/convert_dish_category_localized_text';
 import {
   DishCategoryCandidateNormalizedInput,
@@ -35,10 +36,6 @@ const EXPLORE_SIZE = 0;
 const EXPLORE_LOW_PCT = 0.1; // 上位10%は除外
 const EXPLORE_HIGH_PCT = 0.4; // 上位40%までは許可
 
-// #757 【定数】逐次最適化の重複ペナルティ重み
-const PENALTY_WEIGHT_CORE_INGREDIENT = 1.0;
-const PENALTY_WEIGHT_COOKING_METHOD = 0.4;
-
 @Injectable()
 export class DishCategoriesService {
   constructor(
@@ -46,6 +43,7 @@ export class DishCategoriesService {
     private readonly claudeService: ClaudeService,
     private readonly logger: AppLoggerService,
     private readonly prisma: PrismaService,
+    private readonly remoteConfigService: RemoteConfigService,
   ) {}
 
   /**
@@ -92,12 +90,37 @@ export class DishCategoriesService {
 
       // #757 【設計】Step 2-2: 特徴量取得（core_ingredient / cooking_method）
       const candidateIds = candidates.map((c) => c.category_id);
-      const featureSets = await this.repo.findCategoryFeatures(candidateIds);
+      const featureSets =
+        await this.repo.findCategoryPenaltyFeatures(candidateIds);
+
+      // #757 【設計】Step 2-2.5: ペナルティ重み取得
+      const [penaltyWeightCoreIngredient, penaltyWeightCookingMethod] =
+        await this.remoteConfigService
+          .getRemoteConfigValues([
+            'dish_category_recommendation_penalty_weight_core_ingredient',
+            'dish_category_recommendation_penalty_weight_cooking_method',
+          ])
+          .then((values) =>
+            values.map((v) => {
+              const float = parseFloat(v);
+              if (isNaN(float) || float < 0) {
+                this.logger.warn(
+                  'InvalidRemoteConfigValue',
+                  'getRecommendations',
+                  { value: v },
+                );
+                return 0;
+              }
+              return float;
+            }),
+          );
 
       // #757 【設計】Step 2-3: 逐次最適化でスレート構成
       const selectedCandidates = this.selectWithSequentialOptimization(
         candidates,
         featureSets,
+        penaltyWeightCoreIngredient,
+        penaltyWeightCookingMethod,
       );
 
       // #533 【フォールバック】6件未満の場合はClaude経路へ
@@ -212,6 +235,8 @@ export class DishCategoriesService {
   private selectWithSequentialOptimization(
     candidates: DishCategoryCandidateWithScores[],
     featureSets: DishCategoryFeatureSet[],
+    penaltyWeightCoreIngredient: number,
+    penaltyWeightCookingMethod: number,
   ): Array<{
     category_id: string;
     macro_genre: string | null;
@@ -301,6 +326,8 @@ export class DishCategoriesService {
           candidate.category_id,
           featureMap,
           featureCounts,
+          penaltyWeightCoreIngredient,
+          penaltyWeightCookingMethod,
         );
 
         // #757 【設計】調整スコア = base - penalty
@@ -362,13 +389,15 @@ export class DishCategoriesService {
    *
    * @description
    * penalty = Σ (weight_f * featureScore * count(key)^2)
-   * - core_ingredient: weight = 1.0
-   * - cooking_method: weight = 0.4
+   * - core_ingredient: weight は remoteConfig から取得
+   * - cooking_method: weight は remoteConfig から取得
    */
   private calculateDiversityPenalty(
     categoryId: string,
     featureMap: Map<string, DishCategoryFeatureSet>,
     featureCounts: Map<string, number>,
+    penaltyWeightCoreIngredient: number,
+    penaltyWeightCookingMethod: number,
   ): number {
     const featureSet = featureMap.get(categoryId);
     if (!featureSet) return 0;
@@ -379,14 +408,14 @@ export class DishCategoriesService {
     for (const feature of featureSet.core_ingredients) {
       const count =
         featureCounts.get(`core_ingredient:${feature.feature_key}`) || 0;
-      penalty += PENALTY_WEIGHT_CORE_INGREDIENT * feature.score * count * count;
+      penalty += penaltyWeightCoreIngredient * feature.score * count * count;
     }
 
     // #757 【設計】cooking_method のペナルティ
     for (const feature of featureSet.cooking_methods) {
       const count =
         featureCounts.get(`cooking_method:${feature.feature_key}`) || 0;
-      penalty += PENALTY_WEIGHT_COOKING_METHOD * feature.score * count * count;
+      penalty += penaltyWeightCookingMethod * feature.score * count * count;
     }
 
     return penalty;
