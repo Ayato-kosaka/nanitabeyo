@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ja">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width,initial-scale=1" />
+		<meta name="robots" content="noindex,nofollow" />
+		<title>Redirecting...</title>
+	</head>
+	<body>
+		<noscript>JavaScript を有効にしてください。</noscript>
+
+		<script>
+			const ALLOW_ORIGIN = "https://app.nanitabeyo.net";
+
+			const url = new URL(location.href);
+			const u = url.searchParams.get("u");
+
+			function safeTarget(raw) {
+				if (!raw) return null;
+
+				let decoded;
+				try {
+					decoded = decodeURIComponent(raw);
+				} catch {
+					return null;
+				}
+
+				let target;
+				try {
+					target = new URL(decoded);
+				} catch {
+					return null;
+				}
+
+				if (target.origin !== ALLOW_ORIGIN) return null;
+				return target.toString();
+			}
+
+			const target = safeTarget(u) || ALLOW_ORIGIN + "/";
+
+			// ✅ 履歴に Relay を残しにくくする
+			window.location.replace(target);
+		</script>
+	</body>
+</html>

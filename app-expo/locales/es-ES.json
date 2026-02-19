@@ -13,8 +13,6 @@
 		"success": "Éxito",
 		"linkCopied": "Enlace copiado al portapapeles",
 		"shareFailed": "No se pudo compartir el contenido",
-		"defaultTitle": "CraveCatch - Find your dish",
-		"defaultDesc": "Simplemente dile a la app cómo te sientes y nuestra IA te sugerirá los platos que probablemente se te antojen. Luego, explora fotos reales de comida y reseñas para elegir al instante el restaurante que te parezca adecuado.",
 		"daysRemaining": "Quedan {{count}} días",
 		"timeAgo": {
 			"seconds": "hace {{count}} segundos",
@@ -24,7 +22,6 @@
 			"months": "hace {{count}} meses",
 			"years": "hace {{count}} años"
 		},
-		"site": "CraveCatch",
 		"errors": {
 			"network": "Se produjo un error de red. Por favor, verifica tu conexión.",
 			"unexpected": "Se produjo un error inesperado. Por favor, inténtalo más tarde.",
@@ -193,6 +190,19 @@
 		"retry": "Volver a la búsqueda",
 		"chooseThis": "¡Este!",
 		"hiddenMessage": "{{title}} se ha ocultado",
+		"BlockTopicModal": {
+			"title": "¿Bloquear este plato?",
+			"description": "Los temas de platos bloqueados ya no aparecerán en las recomendaciones.",
+			"note": "Puedes desbloquearlo en cualquier momento desde Configuración.",
+			"confirm": "Bloquear"
+		},
+		"blockedMessage": "{{title}} se ha bloqueado",
+		"reloadDialog": {
+			"title": "¿Buscar más opciones?",
+			"message": "Ahora solo hay unas pocas recomendaciones. Volveremos a buscar con las mismas condiciones.",
+			"confirm": "Buscar de nuevo",
+			"cancel": "Cerrar"
+		},
 		"imageLoadFailed": "Error al cargar la imagen",
 		"tapToReload": "Toca para recargar",
 		"headerTitle": "Platos Recomendados para Ti",
@@ -499,6 +509,9 @@
 			"titleLength": "El título debe tener entre 5 y 80 caracteres",
 			"messageLength": "El mensaje debe tener entre 10 y 2000 caracteres",
 			"submitFailed": "Error al enviar comentarios. Por favor, inténtelo de nuevo."
+		},
+		"success": {
+			"submitted": "¡Gracias por tus comentarios!"
 		}
 	},
 	"auth": {
@@ -547,7 +560,19 @@
 		"privacy": "Política de privacidad",
 		"copyright": "Derechos de autor",
 		"legalDocument": "Documento legal",
-		"logout": "Cerrar sesión"
+		"logout": "Cerrar sesión",
+		"blockedTopics": {
+			"navigationLabel": "Temas de platos bloqueados",
+			"pageTitle": "Temas de platos bloqueados",
+			"title": "Platos bloqueados",
+			"empty": "No hay platos bloqueados",
+			"loading": "Cargando...",
+			"unblockButton": "Desbloquear",
+			"unblockTitle": "¿Desbloquear este tema?",
+			"unblockMessage": "Este tema de plato se volverá a añadir a las recomendaciones.",
+			"unblockConfirm": "Desbloquear",
+			"unblocked": "Desbloqueado"
+		}
 	},
 	"Dialog": {
 		"a11y": {

@@ -3,6 +3,7 @@ import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { Image } from "expo-image";
 
 import i18n from "@/lib/i18n";
+import { resolvePublicLocale, SITE_NAME_BY_PUBLIC_LOCALE } from "@/constants/seoLocales";
 import { Env } from "@/constants/Env";
 import { useLocale } from "@/hooks/useLocale";
 
@@ -24,19 +25,13 @@ export interface OpenInAppBannerProps {
 }
 
 /**
- * OpenInAppBanner（全方位ベストプラクティス版）
+ * OpenInAppBanner（Safari/Chrome(iOS)の「同一サイト起点UL抑止」まで考慮した版）
  *
  * 方針：
- * 1) 可能な限り Universal Links を最優先（Safari/Chrome/多くの環境で最も安定）
- * 2) iOS/Android の “自動ストア遷移” は避ける（ポップアップ/リダイレクト制限・UX悪化）
- *    → 代わりに「入手」ボタンをユーザー操作で提供
- * 3) In-App Browser（Instagram/FB等）は OS委譲が阻害されがち
- *    → 「Safari/Chrome で開く」案内に切り替える（成功率が上がる）
- * 4) カスタムスキームは最後の手段として用意（環境によっては抑止される）
- *
- * 重要：
- * - 本コンポーネントは Web のみ表示（ネイティブは return null）
- * - “アプリが開いたか” の検出は完全ではないため、過信しない
+ * - まず Universal Link を狙うが、Safari内で抑止されるケースがあるため
+ *   「別オリジン経由(=OIA relay)」をメイン導線にする（外部起点に寄せる）
+ * - OIA relay はサーバ側で許可ホストを固定し open redirect を防ぐ
+ * - JSで遷移をいじらない（ULはリンクタップが最強）
  */
 const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 	path,
@@ -65,34 +60,6 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 	// 【設計】A案：遅延後に同一ページに残っている場合のみ fallback/help を表示
 	const delayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-	const buildQueryString = useCallback(() => {
-		if (!params) return "";
-		const query = new URLSearchParams();
-		Object.entries(params).forEach(([key, value]) => {
-			if (value === undefined) return;
-			// 配列は comma join（既存実装互換）
-			const val = Array.isArray(value) ? value.join(",") : value;
-			query.append(key, val);
-		});
-		const qs = query.toString();
-		return qs ? `?${qs}` : "";
-	}, [params]);
-
-	const universalUrl = useMemo(() => {
-		// 例: https://app.nanitabeyo.net/ja/posts?ids=...
-		// ※ universalBaseUrl が末尾 "/" の場合も考慮
-		const base = universalBaseUrl?.replace(/\/+$/, "") || "";
-		const qs = buildQueryString();
-		return `${base}/${locale}/${path}${qs}`;
-	}, [universalBaseUrl, locale, path, buildQueryString]);
-
-	const customSchemeUrl = useMemo(() => {
-		// 例: nanitabeyo:///ja/posts?ids=...
-		const qs = buildQueryString();
-		return `${scheme}:///${locale}/${path}${qs}`;
-	}, [scheme, locale, path, buildQueryString]);
-
-	// 【設計】タイマークリーンアップ用のヘルパー関数
 	const clearDelayTimer = useCallback(() => {
 		if (delayTimerRef.current) {
 			clearTimeout(delayTimerRef.current);
@@ -100,65 +67,82 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 		}
 	}, []);
 
-	const addNonce = useCallback((urlString: string) => {
-		const url = new URL(urlString);
-		// analytics/ログで除外しやすいキー名にするのがコツ
-		url.searchParams.set("_oia", "1"); // open-in-app
-		url.searchParams.set("_t", String(Date.now())); // nonce
-		return url.toString();
-	}, []);
-
-	const normalizeForCompare = useCallback((urlString: string) => {
-		try {
-			const url = new URL(urlString);
-			url.hash = ""; // hash は比較から除外
-			return url.toString().replace(/\/$/, "");
-		} catch {
-			return urlString.replace(/\/$/, "");
+	const buildQueryString = useCallback(() => {
+		if (!params) return "";
+		const query = new URLSearchParams();
+		for (const [key, value] of Object.entries(params)) {
+			if (value === undefined) continue;
+			query.append(key, Array.isArray(value) ? value.join(",") : value);
 		}
-	}, []);
+		const qs = query.toString();
+		return qs ? `?${qs}` : "";
+	}, [params]);
 
-	// 【設計】同一URLの時だけ nonce を付与（毎回URLが変わるのを防ぐ）
-	const urlToGo = useMemo(() => {
-		if (!isBrowser) return universalUrl;
-		const current = normalizeForCompare(window.location.href);
-		const target = normalizeForCompare(universalUrl);
-		return current === target ? addNonce(universalUrl) : universalUrl;
-	}, [isBrowser, universalUrl, addNonce, normalizeForCompare]);
+	const universalUrl = useMemo(() => {
+		const base = universalBaseUrl.replace(/\/+$/, "");
+		const qs = buildQueryString();
+		return `${base}/${locale}/${path}${qs}`;
+	}, [universalBaseUrl, locale, path, buildQueryString]);
+
+	const customSchemeUrl = useMemo(() => {
+		const qs = buildQueryString();
+		return `${scheme}:///${locale}/${path}${qs}`;
+	}, [scheme, locale, path, buildQueryString]);
+
+	// クリックの多重押し時に「同一URL扱い」を避けたい場合だけ nonce を足す（控えめ）
+	const addNonceIfSame = useCallback(
+		(targetUrl: string) => {
+			if (!isBrowser) return targetUrl;
+			try {
+				const current = new URL(window.location.href);
+				const target = new URL(targetUrl);
+				current.hash = "";
+				target.hash = "";
+				const norm = (u: URL) => u.toString().replace(/\/$/, "");
+				if (norm(current) !== norm(target)) return targetUrl;
+
+				target.searchParams.set("_oia", "1");
+				target.searchParams.set("_t", String(Date.now()));
+				return target.toString();
+			} catch {
+				return targetUrl;
+			}
+		},
+		[isBrowser],
+	);
+
+	const urlToGo = useMemo(() => addNonceIfSame(universalUrl), [universalUrl, addNonceIfSame]);
+
+	/**
+	 * OIA relay（外部起点を擬似的に作る）
+	 * 例: https://oia-relay.web/oia/open?u=<encoded https://app.nanitabeyo.net/...>
+	 */
+	const oiaRelayUrl = useMemo(() => {
+		const base = "https://oia-relay.web.app".replace(/\/+$/, "");
+		if (!base) return undefined;
+		return `${base}/oia/open/?u=${encodeURIComponent(urlToGo)}`;
+	}, [urlToGo]);
+
+	// プラットフォーム判定（UAベース）
+	const { isIOS, isAndroid } = useMemo(() => {
+		const ua = navigator.userAgent || "";
+		return {
+			isIOS: /iPhone|iPad|iPod/i.test(ua),
+			isAndroid: /Android/i.test(ua),
+		};
+	}, []);
+	// 実際にユーザーに踏ませるURL（原則 relay、無ければ直UL）
+	const primaryHref = isIOS ? (oiaRelayUrl ?? urlToGo) : urlToGo;
 
 	const storeUrl = useMemo(() => {
 		// “自動遷移”はしない方針なので、ボタン用にURLを返すだけ
 		// iOS/Android の判定は UA で行う（Web のみなので許容）
 		if (!isBrowser) return undefined;
-		const ua = navigator.userAgent || "";
-		const isIOS = /iPhone|iPad|iPod/i.test(ua);
-		const isAndroid = /Android/i.test(ua);
 
 		if (isIOS) return Env.APP_STORE_URL || undefined;
 		if (isAndroid) return Env.PLAY_STORE_URL || undefined;
 		return undefined;
-	}, [isBrowser]);
-
-	// 【設計】<a> タグ用のプレーン CSS スタイル（StyleSheet 非経由で安全）
-	const openLinkStyle: React.CSSProperties = {
-		textDecoration: "none",
-		backgroundColor: "#f05537",
-		padding: "9px 14px",
-		borderRadius: 8,
-		display: "flex",
-		alignItems: "center",
-		justifyContent: "center",
-	};
-
-	const schemeLinkStyle: React.CSSProperties = {
-		textDecoration: "none",
-		backgroundColor: "#f05537",
-		padding: "8px 10px",
-		borderRadius: 8,
-		display: "flex",
-		alignItems: "center",
-		justifyContent: "center",
-	};
+	}, [isBrowser, isIOS, isAndroid]);
 
 	useEffect(() => {
 		if (!isBrowser) return;
@@ -166,14 +150,12 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 		// モバイル判定：Feature Detection 優先、UA はフォールバック
 		const checkMobile = () => {
 			try {
-				const hasCoarsePointer = window.matchMedia?.("(pointer: coarse)")?.matches ?? false;
+				const coarse = window.matchMedia?.("(pointer: coarse)")?.matches ?? false;
 				const noHover = window.matchMedia?.("(hover: none)")?.matches ?? false;
-				const featureDetection = hasCoarsePointer && noHover;
-
+				const feature = coarse && noHover;
 				const ua = navigator.userAgent || "";
-				const uaDetection = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
-
-				setIsMobile(featureDetection || uaDetection);
+				const uaDetect = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+				setIsMobile(feature || uaDetect);
 			} catch {
 				// matchMedia 未対応などの保険
 				const ua = navigator.userAgent || "";
@@ -217,49 +199,47 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 		};
 	}, [isBrowser, clearDelayTimer]);
 
-
-
-	const handleOpenInApp = useCallback(() => {
+	// 「押しても残った時だけ」fallback/help を出す（ただし遷移は a タグに任せる）
+	const onTapOpen = useCallback(() => {
 		if (!isBrowser) return;
 
-		// クリア既存のタイマー（多重クリック対策）
 		clearDelayTimer();
-
-		// 状態をリセット（連打時の混在を防ぐ）
 		setShowHelp(false);
 		setShouldShowFallback(false);
 		becameHiddenRef.current = false;
 
-		// クリック時点の URL を保持（遷移判定用）
 		const startHref = window.location.href;
 
-		// A案：押下直後は fallback/help を表示しない
-		// 700ms 後に「まだ同一ページに残っている場合のみ」表示する
 		delayTimerRef.current = setTimeout(() => {
-			// アプリに移動できた可能性（ページが hidden になった）
-			if (becameHiddenRef.current || document.visibilityState === "hidden") {
-				return;
-			}
+			if (becameHiddenRef.current || document.visibilityState === "hidden") return;
+			if (window.location.href !== startHref) return;
 
-			// URLが変わっていたら（別ページに遷移した）何も出さない
-			if (window.location.href !== startHref) {
-				return;
-			}
-
-			// まだ visible かつ同一ページにいる場合
-			// In-App Browser: help を表示（dismiss されていなければ）
-			// IAB でも fallback を出す（help を閉じた後に「別方式で試す」導線が必要）
-			if (isInAppBrowser && !isHelpDismissed) {
-				setShowHelp(true);
-			}
-			// 通常ブラウザ/IAB 両方で fallback を表示
+			if (isInAppBrowser && !isHelpDismissed) setShowHelp(true);
 			setShouldShowFallback(true);
 		}, 700);
 	}, [isBrowser, isInAppBrowser, isHelpDismissed, clearDelayTimer]);
 
-
-	// “モバイルでない”なら出さない（PC にバナーはノイズ）
 	if (!isMobile || !isBrowser) return null;
+
+	const openLinkStyle: React.CSSProperties = {
+		textDecoration: "none",
+		backgroundColor: "#f05537",
+		padding: "9px 14px",
+		borderRadius: 8,
+		display: "flex",
+		alignItems: "center",
+		justifyContent: "center",
+	};
+
+	const schemeLinkStyle: React.CSSProperties = {
+		textDecoration: "none",
+		backgroundColor: "#f05537",
+		padding: "8px 10px",
+		borderRadius: 8,
+		display: "flex",
+		alignItems: "center",
+		justifyContent: "center",
+	};
 
 	return (
 		<View style={styles.overlay} pointerEvents="box-none">
@@ -273,21 +253,22 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 						cachePolicy={"memory-disk"}
 					/>
 					<View style={styles.textBlock}>
-						<Text style={styles.bannerName}>{i18n.t("Common.site")}</Text>
+						<Text style={styles.bannerName}>{SITE_NAME_BY_PUBLIC_LOCALE[resolvePublicLocale(i18n.locale)]}</Text>
 					</View>
 				</View>
 
 				<View style={styles.actions}>
-					{/* メイン：Universal Link（<a href> でトップレベル遷移を実現） */}
+					{/* メイン：OIA relay（外部起点に寄せてUL成功率を上げる） */}
 					<a
-						href={urlToGo}
+						href={primaryHref}
 						style={openLinkStyle}
-						onClick={handleOpenInApp}
+						target="_self"
+						rel="noopener"
+						// JSで遷移は邪魔しない。押下検知だけ行う。
+						onClick={onTapOpen}
 						role="button"
 						aria-label={i18n.t("DeepLinking.openInApp")}>
-						<span style={{ color: "#fff", fontSize: 13, fontWeight: 800 }}>
-							{i18n.t("DeepLinking.openInApp")}
-						</span>
+						<span style={{ color: "#fff", fontSize: 13, fontWeight: 800 }}>{i18n.t("DeepLinking.openInApp")}</span>
 					</a>
 
 					{/* ストア：自動ではなく“ボタン”で提供（ポリシー/ブロック回避・UX改善） */}
@@ -316,9 +297,7 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 						}}
 						role="button"
 						aria-label={i18n.t("DeepLinking.tryScheme")}>
-						<span style={{ color: "#fff", fontSize: 12, fontWeight: 800 }}>
-							{i18n.t("DeepLinking.tryScheme")}
-						</span>
+						<span style={{ color: "#fff", fontSize: 12, fontWeight: 800 }}>{i18n.t("DeepLinking.tryScheme")}</span>
 					</a>
 				</View>
 			)}
@@ -363,7 +342,6 @@ const styles = StyleSheet.create({
 		borderRadius: 10,
 		paddingVertical: 10,
 		paddingHorizontal: 12,
-
 		shadowColor: "#000",
 		shadowOffset: { width: 0, height: 2 },
 		shadowOpacity: 0.12,
@@ -396,17 +374,6 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		gap: 8,
 	},
-	openButton: {
-		backgroundColor: "#f05537",
-		paddingVertical: 9,
-		paddingHorizontal: 14,
-		borderRadius: 8,
-	},
-	openButtonText: {
-		color: "#FFFFFF",
-		fontSize: 13,
-		fontWeight: "800",
-	},
 	storeButton: {
 		backgroundColor: "#1A1A1A",
 		paddingVertical: 9,
@@ -418,8 +385,6 @@ const styles = StyleSheet.create({
 		fontSize: 13,
 		fontWeight: "800",
 	},
-
-	// “開けないときの次の手” を控えめに
 	fallbackRow: {
 		marginTop: 8,
 		backgroundColor: "rgba(255,255,255,0.92)",
@@ -429,7 +394,6 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "space-between",
-
 		shadowColor: "#000",
 		shadowOffset: { width: 0, height: 1 },
 		shadowOpacity: 0.08,
@@ -443,19 +407,6 @@ const styles = StyleSheet.create({
 		fontWeight: "600",
 		color: "#333",
 	},
-	schemeButton: {
-		backgroundColor: "#f05537",
-		paddingVertical: 8,
-		paddingHorizontal: 10,
-		borderRadius: 8,
-	},
-	schemeButtonText: {
-		color: "#fff",
-		fontSize: 12,
-		fontWeight: "800",
-	},
-
-	// In-App Browser ヘルプ
 	helpBox: {
 		marginTop: 8,
 		backgroundColor: "rgba(26,26,26,0.96)",

@@ -13,8 +13,6 @@
 		"success": "成功",
 		"linkCopied": "リンクをクリップボードにコピーしました",
 		"shareFailed": "コンテンツの共有に失敗しました",
-		"defaultTitle": "なに食べよ ~食べたい料理が見つかる新感覚グルメアプリ~",
-		"defaultDesc": "あなたの気分を入力すると、AIが「これ食べたいでしょ！」という料理を提案してくれます。提案された料理写真やレビューを見ながら、直感的にお店を選べます。",
 		"daysRemaining": "残り{{count}}日",
 		"timeAgo": {
 			"seconds": "{{count}}秒前",
@@ -24,7 +22,6 @@
 			"months": "{{count}}ヶ月前",
 			"years": "{{count}}年前"
 		},
-		"site": "なに食べよ",
 		"errors": {
 			"network": "通信エラーが発生しました。ネットワーク接続をご確認ください。",
 			"unexpected": "予期しないエラーが発生しました。しばらくしてからお試しください。",
@@ -193,6 +190,19 @@
 		"retry": "検索に戻る",
 		"chooseThis": "これにする！",
 		"hiddenMessage": "{{title}}を非表示にしました",
+		"BlockTopicModal": {
+			"title": "この料理をブロックしますか？",
+			"description": "ブロックした料理トピックは、今後おすすめに表示されません。",
+			"note": "設定画面からいつでも解除できます。",
+			"confirm": "ブロックする"
+		},
+		"blockedMessage": "{{title}}をブロックしました",
+		"reloadDialog": {
+			"title": "別の候補を探しますか？",
+			"message": "現在のおすすめが少ないため、同じ条件でもう一度探します。",
+			"confirm": "探す",
+			"cancel": "閉じる"
+		},
 		"imageLoadFailed": "画像を読み込めませんでした",
 		"tapToReload": "タップして再読み込み",
 		"headerTitle": "あなたにおすすめの料理",
@@ -499,6 +509,9 @@
 			"titleLength": "タイトルは5文字以上80文字以下で入力してください",
 			"messageLength": "メッセージは10文字以上2000文字以下で入力してください",
 			"submitFailed": "送信に失敗しました。もう一度お試しください。"
+		},
+		"success": {
+			"submitted": "ご意見ありがとうございました！"
 		}
 	},
 	"auth": {
@@ -547,7 +560,19 @@
 		"privacy": "プライバシーポリシー",
 		"copyright": "著作権",
 		"legalDocument": "法的文書",
-		"logout": "ログアウト"
+		"logout": "ログアウト",
+		"blockedTopics": {
+			"navigationLabel": "ブロック済みの料理トピック",
+			"pageTitle": "ブロック済みの料理トピック",
+			"title": "ブロックしている料理",
+			"empty": "ブロックしている料理はありません",
+			"loading": "読み込み中...",
+			"unblockButton": "ブロックを解除",
+			"unblockTitle": "ブロックを解除しますか？",
+			"unblockMessage": "この料理トピックをおすすめ対象に戻します。",
+			"unblockConfirm": "解除する",
+			"unblocked": "ブロックを解除しました"
+		}
 	},
 	"Dialog": {
 		"a11y": {

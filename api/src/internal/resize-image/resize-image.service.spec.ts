@@ -133,6 +133,7 @@ describe('ResizeImageService - JPEG Decode Error Handling', () => {
     it('should successfully resize without Jimp when Sharp works normally', async () => {
       // Mock successful Sharp processing
       const mockSharp = {
+        rotate: jest.fn().mockReturnThis(),
         resize: jest.fn().mockReturnThis(),
         webp: jest.fn().mockReturnThis(),
         toBuffer: jest.fn().mockResolvedValue(Buffer.from('webp-data')),
@@ -155,6 +156,9 @@ describe('ResizeImageService - JPEG Decode Error Handling', () => {
       // Jimp should not be called
       expect(Jimp.read).not.toHaveBeenCalled();
 
+      // Should call rotate to normalize EXIF Orientation
+      expect(mockSharp.rotate).toHaveBeenCalledWith();
+
       // Should log completion
       expect(mockLogger.log).toHaveBeenCalledWith(
         'ResizeImageCompleted',
@@ -174,12 +178,14 @@ describe('ResizeImageService - JPEG Decode Error Handling', () => {
         sharpCallCount++;
         if (sharpCallCount === 1) {
           return {
+            rotate: jest.fn().mockReturnThis(),
             resize: jest.fn().mockReturnThis(),
             webp: jest.fn().mockReturnThis(),
             toBuffer: jest.fn().mockRejectedValue(jpegError),
           };
         } else {
           return {
+            rotate: jest.fn().mockReturnThis(),
             resize: jest.fn().mockReturnThis(),
             webp: jest.fn().mockReturnThis(),
             toBuffer: jest.fn().mockResolvedValue(Buffer.from('webp-data')),
@@ -246,6 +252,7 @@ describe('ResizeImageService - JPEG Decode Error Handling', () => {
 
       // Sharp always fails
       const mockSharp = {
+        rotate: jest.fn().mockReturnThis(),
         resize: jest.fn().mockReturnThis(),
         webp: jest.fn().mockReturnThis(),
         toBuffer: jest.fn().mockRejectedValue(jpegError),
@@ -287,6 +294,7 @@ describe('ResizeImageService - JPEG Decode Error Handling', () => {
 
       // Sharp always fails
       const mockSharp = {
+        rotate: jest.fn().mockReturnThis(),
         resize: jest.fn().mockReturnThis(),
         webp: jest.fn().mockReturnThis(),
         toBuffer: jest.fn().mockRejectedValue(jpegError),
@@ -325,6 +333,7 @@ describe('ResizeImageService - JPEG Decode Error Handling', () => {
       const networkError = new Error('Network timeout');
 
       const mockSharp = {
+        rotate: jest.fn().mockReturnThis(),
         resize: jest.fn().mockReturnThis(),
         webp: jest.fn().mockReturnThis(),
         toBuffer: jest.fn().mockRejectedValue(networkError),
@@ -373,12 +382,14 @@ describe('ResizeImageService - JPEG Decode Error Handling', () => {
           sharpCallCount++;
           if (sharpCallCount === 1) {
             return {
+              rotate: jest.fn().mockReturnThis(),
               resize: jest.fn().mockReturnThis(),
               webp: jest.fn().mockReturnThis(),
               toBuffer: jest.fn().mockRejectedValue(jpegError),
             };
           } else {
             return {
+              rotate: jest.fn().mockReturnThis(),
               resize: jest.fn().mockReturnThis(),
               webp: jest.fn().mockReturnThis(),
               toBuffer: jest.fn().mockResolvedValue(Buffer.from('webp-data')),

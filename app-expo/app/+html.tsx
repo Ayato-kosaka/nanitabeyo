@@ -28,9 +28,9 @@ export default function Root({ children }: PropsWithChildren) {
 				<meta name="apple-mobile-web-app-status-bar-style" content="default" />
 
 				{/* Icons / Favicons */}
-				<link rel="icon" href="/favicon.ico" sizes="any" />
-				<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
-				<link rel="icon" type="image/png" sizes="64x64" href="/favicon-64x64.png" />
+				<link rel="icon" href="/favicon.20260207.ico" sizes="any" />
+				<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.20260207.png" />
+				<link rel="icon" type="image/png" sizes="64x64" href="/favicon-64x64.20260207.png" />
 				<link rel="apple-touch-icon" href="/android-chrome-192x192.png" />
 
 				{/* Theme color（ライト/ダーク両方） */}

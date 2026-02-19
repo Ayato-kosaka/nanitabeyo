@@ -201,6 +201,8 @@ def main():
         # バックアップ（dry-run でない場合）
         if not args.dry_run:
             backup_path = backup_table_to_gcs(pg_conn, "dish_category_features", args.dry_run)
+            if not backup_path:
+                raise RuntimeError("Backup failed twice; aborting sync for safety.")
             if backup_path:
                 logger.info(f"✅ Backup completed: {backup_path}")
         

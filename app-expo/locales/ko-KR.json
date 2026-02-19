@@ -13,8 +13,6 @@
 		"success": "성공",
 		"linkCopied": "링크가 클립보드에 복사되었습니다",
 		"shareFailed": "콘텐츠를 공유하지 못했습니다",
-		"defaultTitle": "CraveCatch - Find your dish",
-		"defaultDesc": "앱에 지금 기분을 말하면 AI가 당신이 먹고 싶어 할 만한 요리를 추천해 줍니다. 그런 다음 실제 음식 사진과 리뷰를 보며 마음에 드는 식당을 바로 선택하세요.",
 		"daysRemaining": "남은 {{count}}일",
 		"timeAgo": {
 			"seconds": "{{count}}초 전",
@@ -24,7 +22,6 @@
 			"months": "{{count}}개월 전",
 			"years": "{{count}}년 전"
 		},
-		"site": "CraveCatch",
 		"errors": {
 			"network": "네트워크 오류가 발생했습니다. 연결을 확인해 주세요.",
 			"unexpected": "예기치 않은 오류가 발생했습니다. 나중에 다시 시도해 주세요.",
@@ -193,6 +190,19 @@
 		"retry": "검색으로 돌아가기",
 		"chooseThis": "이걸로 할래!",
 		"hiddenMessage": "{{title}} 이(가) 숨겨졌습니다",
+		"BlockTopicModal": {
+			"title": "이 요리를 차단할까요?",
+			"description": "차단된 요리 토픽은 추천에 더 이상 표시되지 않습니다.",
+			"note": "설정에서 언제든지 차단을 해제할 수 있어요.",
+			"confirm": "차단하기"
+		},
+		"blockedMessage": "{{title}}이(가) 차단되었습니다",
+		"reloadDialog": {
+			"title": "다른 메뉴를 더 찾아볼까요?",
+			"message": "지금은 추천이 많지 않아요. 같은 조건으로 다시 찾아볼게요.",
+			"confirm": "다시 검색하기",
+			"cancel": "닫기"
+		},
 		"imageLoadFailed": "이미지를 불러오지 못했습니다",
 		"tapToReload": "탭하여 다시 로드",
 		"headerTitle": "당신을 위한 추천 요리",
@@ -499,6 +509,9 @@
 			"titleLength": "제목은 5자 이상 80자 이하여야 합니다",
 			"messageLength": "메시지는 10자 이상 2000자 이하여야 합니다",
 			"submitFailed": "피드백 제출에 실패했습니다. 다시 시도해주세요."
+		},
+		"success": {
+			"submitted": "소중한 의견 감사합니다!"
 		}
 	},
 	"auth": {
@@ -547,7 +560,19 @@
 		"privacy": "개인정보 처리방침",
 		"copyright": "저작권",
 		"legalDocument": "법적 문서",
-		"logout": "로그아웃"
+		"logout": "로그아웃",
+		"blockedTopics": {
+			"navigationLabel": "차단된 요리 주제",
+			"pageTitle": "차단된 요리 주제",
+			"title": "차단된 요리",
+			"empty": "차단된 요리가 없습니다",
+			"loading": "로딩 중...",
+			"unblockButton": "차단 해제",
+			"unblockTitle": "이 주제를 차단 해제하시겠습니까?",
+			"unblockMessage": "이 요리 주제가 추천에 다시 추가됩니다.",
+			"unblockConfirm": "차단 해제",
+			"unblocked": "차단 해제됨"
+		}
 	},
 	"Dialog": {
 		"a11y": {

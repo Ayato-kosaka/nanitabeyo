@@ -20,6 +20,9 @@ python3 1_1_create_tables.py
 
 【注意】
 - GCP 認証が必要（gcloud auth application-default login）
+  - gcloud を使う場合: gcloud auth application-default login
+  - サービスアカウントキー(JSON)を使う場合:
+    export GOOGLE_APPLICATION_CREDENTIALS="/path/to/key.json"
 - テーブルは IF NOT EXISTS で作成されるため、再実行可能
 """
 
@@ -56,7 +59,8 @@ def main():
     REPO_ROOT = Path(__file__).resolve().parents[2]
     migration_files = [
         REPO_ROOT / "infra" / "big-query" / "migration" / "20251213T0000_create_wikidata_food_tables.sql",
-        REPO_ROOT / "infra" / "big-query" / "migration" / "20251215T0000_create_wikidata_food_llm_labels.sql"
+        REPO_ROOT / "infra" / "big-query" / "migration" / "20251215T0000_create_wikidata_food_llm_labels.sql",
+        REPO_ROOT / "infra" / "big-query" / "migration" / "20260210T0000_add_food_nodes_raw_staging.sql"  # #741 staging テーブル
     ]
 
     for migration_file in migration_files:    

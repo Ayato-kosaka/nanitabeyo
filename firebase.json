@@ -38,6 +38,13 @@
 					]
 				},
 				{
+					"source": "/favicon*.ico",
+					"headers": [
+						{ "key": "Content-Type", "value": "image/x-icon" },
+						{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+					]
+				},
+				{
 					"source": "/favicon-*.png",
 					"headers": [
 						{ "key": "Content-Type", "value": "image/png" },
@@ -64,12 +71,87 @@
 						{ "key": "Content-Type", "value": "application/manifest+json; charset=utf-8" },
 						{ "key": "Cache-Control", "value": "public, max-age=3600" }
 					]
+				},
+				{
+					"source": "/.well-known/apple-app-site-association",
+					"headers": [{ "key": "Content-Type", "value": "application/json" }]
+				},
+				{
+					"source": "/apple-app-site-association",
+					"headers": [{ "key": "Content-Type", "value": "application/json" }]
 				}
 			],
 			"rewrites": [
+				{ "source": "/:locale/auth/callback", "destination": "/[locale]/auth/callback.html" },
+				{ "source": "/:locale/auth/callback/", "destination": "/[locale]/auth/callback.html" },
+				{
+					"source": "/:locale/contribution-tasks/dish-category-image-optimizer",
+					"destination": "/[locale]/contribution-tasks/dish-category-image-optimizer.html"
+				},
+				{
+					"source": "/:locale/contribution-tasks/dish-category-image-optimizer/",
+					"destination": "/[locale]/contribution-tasks/dish-category-image-optimizer.html"
+				},
+				{
+					"source": "/:locale/contribution-tasks/dish-category-image-review",
+					"destination": "/[locale]/contribution-tasks/dish-category-image-review.html"
+				},
+				{
+					"source": "/:locale/contribution-tasks/dish-category-image-review/",
+					"destination": "/[locale]/contribution-tasks/dish-category-image-review.html"
+				},
+				{
+					"source": "/:locale/contribution-tasks/dish-category-manual-image-supply",
+					"destination": "/[locale]/contribution-tasks/dish-category-manual-image-supply.html"
+				},
+				{
+					"source": "/:locale/contribution-tasks/dish-category-manual-image-supply/",
+					"destination": "/[locale]/contribution-tasks/dish-category-manual-image-supply.html"
+				},
+				{
+					"source": "/:locale/contribution-tasks/dish-copy-survey",
+					"destination": "/[locale]/contribution-tasks/dish-copy-survey.html"
+				},
+				{
+					"source": "/:locale/contribution-tasks/dish-copy-survey/",
+					"destination": "/[locale]/contribution-tasks/dish-copy-survey.html"
+				},
+				{ "source": "/:locale/map", "destination": "/[locale]/map.html" },
+				{ "source": "/:locale/map/", "destination": "/[locale]/map.html" },
+				{ "source": "/:locale/notifications", "destination": "/[locale]/notifications.html" },
+				{ "source": "/:locale/notifications/", "destination": "/[locale]/notifications.html" },
+				{ "source": "/:locale/notifications/feed", "destination": "/[locale]/notifications/feed.html" },
+				{ "source": "/:locale/notifications/feed/", "destination": "/[locale]/notifications/feed.html" },
+				{ "source": "/:locale/posts", "destination": "/[locale]/posts.html" },
+				{ "source": "/:locale/posts/", "destination": "/[locale]/posts.html" },
+				{ "source": "/:locale/profile", "destination": "/[locale]/profile.html" },
+				{ "source": "/:locale/profile/", "destination": "/[locale]/profile.html" },
+				{ "source": "/:locale/profile/food", "destination": "/[locale]/profile/food.html" },
+				{ "source": "/:locale/profile/food/", "destination": "/[locale]/profile/food.html" },
+				{ "source": "/:locale/profile/search-results", "destination": "/[locale]/profile/search-results.html" },
+				{ "source": "/:locale/profile/search-results/", "destination": "/[locale]/profile/search-results.html" },
+				{ "source": "/:locale/profile/settings", "destination": "/[locale]/profile/settings.html" },
+				{ "source": "/:locale/profile/settings/", "destination": "/[locale]/profile/settings.html" },
+				{ "source": "/:locale/review", "destination": "/[locale]/review.html" },
+				{ "source": "/:locale/review/", "destination": "/[locale]/review.html" },
+				{ "source": "/:locale/review/selectRestaurant", "destination": "/[locale]/review/selectRestaurant.html" },
+				{ "source": "/:locale/review/selectRestaurant/", "destination": "/[locale]/review/selectRestaurant.html" },
+				{ "source": "/:locale/search", "destination": "/[locale]/search.html" },
+				{ "source": "/:locale/search/", "destination": "/[locale]/search.html" },
 				{
 					"source": "**",
 					"destination": "/index.html"
+				}
+			]
+		},
+		{
+			"site": "oia-relay",
+			"public": "app-expo/relay-public",
+			"ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+			"headers": [
+				{
+					"source": "**",
+					"headers": [{ "key": "Cache-Control", "value": "no-store" }]
 				}
 			]
 		}
