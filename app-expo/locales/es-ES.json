@@ -190,6 +190,19 @@
 		"retry": "Volver a la búsqueda",
 		"chooseThis": "¡Este!",
 		"hiddenMessage": "{{title}} se ha ocultado",
+		"BlockTopicModal": {
+			"title": "¿Bloquear este plato?",
+			"description": "Los temas de platos bloqueados ya no aparecerán en las recomendaciones.",
+			"note": "Puedes desbloquearlo en cualquier momento desde Configuración.",
+			"confirm": "Bloquear"
+		},
+		"blockedMessage": "{{title}} se ha bloqueado",
+		"reloadDialog": {
+			"title": "¿Buscar más opciones?",
+			"message": "Ahora solo hay unas pocas recomendaciones. Volveremos a buscar con las mismas condiciones.",
+			"confirm": "Buscar de nuevo",
+			"cancel": "Cerrar"
+		},
 		"imageLoadFailed": "Error al cargar la imagen",
 		"tapToReload": "Toca para recargar",
 		"headerTitle": "Platos Recomendados para Ti",
@@ -547,7 +560,19 @@
 		"privacy": "Política de privacidad",
 		"copyright": "Derechos de autor",
 		"legalDocument": "Documento legal",
-		"logout": "Cerrar sesión"
+		"logout": "Cerrar sesión",
+		"blockedTopics": {
+			"navigationLabel": "Temas de platos bloqueados",
+			"pageTitle": "Temas de platos bloqueados",
+			"title": "Platos bloqueados",
+			"empty": "No hay platos bloqueados",
+			"loading": "Cargando...",
+			"unblockButton": "Desbloquear",
+			"unblockTitle": "¿Desbloquear este tema?",
+			"unblockMessage": "Este tema de plato se volverá a añadir a las recomendaciones.",
+			"unblockConfirm": "Desbloquear",
+			"unblocked": "Desbloqueado"
+		}
 	},
 	"Dialog": {
 		"a11y": {

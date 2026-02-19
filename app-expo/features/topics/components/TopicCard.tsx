@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useCallback, useRef, useEffect } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Image } from "expo-image";
-import { Trash, Bookmark, ImageOff, RefreshCw } from "lucide-react-native";
+import { Bookmark, ImageOff, RefreshCw, Ban } from "lucide-react-native";
 import { Topic } from "@/types/search";
 import { CARD_WIDTH } from "@/features/topics/constants";
 import { useHaptics } from "@/hooks/useHaptics";
@@ -17,12 +17,12 @@ import { useImageLoadWithRetry } from "@/hooks/useImageLoadWithRetry";
 // Display a single topic card inside the carousel
 export const TopicCard = ({
 	item,
-	onHide,
+	onBlock,
 	displayIndex,
 	cardHeight,
 }: {
 	item: Topic;
-	onHide: (id: string) => void;
+	onBlock: (id: string) => void;
 	displayIndex?: number;
 	cardHeight: number;
 }) => {
@@ -124,9 +124,9 @@ export const TopicCard = ({
 		}
 	};
 
-	const handleHide = async () => {
+	const handleBlock = async () => {
 		errorNotification();
-		onHide(item.categoryId);
+		onBlock(item.categoryId);
 	};
 
 	// impression ログ送信済みフラグ（重複防止用）
@@ -204,8 +204,16 @@ export const TopicCard = ({
 					<TouchableOpacity style={styles.topButton} onPress={handleSave}>
 						<Bookmark size={20} color={isSaved ? "transparent" : "white"} fill={isSaved ? "orange" : "transparent"} />
 					</TouchableOpacity>
-					<TouchableOpacity style={styles.topButton} onPress={handleHide}>
+					{/* <TouchableOpacity style={styles.topButton} onPress={handleHide}>
 						<Trash size={18} color="#FFF" />
+					</TouchableOpacity> */}
+					<TouchableOpacity
+						style={styles.topButton}
+						onPress={handleBlock}
+						accessibilityRole="button"
+						accessibilityLabel={i18n.t("Topics.BlockTopicModal.title")}
+					>
+						<Ban size={18} color="#FFF" />
 					</TouchableOpacity>
 				</View>
 

@@ -190,6 +190,19 @@
 		"retry": "Retour à la recherche",
 		"chooseThis": "Je choisis celui-ci !",
 		"hiddenMessage": "{{title}} a été masqué",
+		"BlockTopicModal": {
+			"title": "Bloquer ce plat ?",
+			"description": "Les sujets de plats bloqués n’apparaîtront plus dans les recommandations.",
+			"note": "Vous pouvez le débloquer à tout moment depuis les Paramètres.",
+			"confirm": "Bloquer"
+		},
+		"blockedMessage": "{{title}} a été bloqué",
+		"reloadDialog": {
+			"title": "Trouver plus d’options ?",
+			"message": "Il n’y a que quelques recommandations pour le moment. Nous allons relancer une recherche avec les mêmes conditions.",
+			"confirm": "Rechercher de nouveau",
+			"cancel": "Fermer"
+		},
 		"imageLoadFailed": "Échec du chargement de l'image",
 		"tapToReload": "Appuyez pour recharger",
 		"headerTitle": "Plats Recommandés pour Vous",
@@ -547,7 +560,19 @@
 		"privacy": "Politique de confidentialité",
 		"copyright": "Droits d'auteur",
 		"legalDocument": "Document juridique",
-		"logout": "Se déconnecter"
+		"logout": "Se déconnecter",
+		"blockedTopics": {
+			"navigationLabel": "Sujets de plats bloqués",
+			"pageTitle": "Sujets de plats bloqués",
+			"title": "Plats bloqués",
+			"empty": "Aucun plat bloqué",
+			"loading": "Chargement...",
+			"unblockButton": "Débloquer",
+			"unblockTitle": "Débloquer ce sujet ?",
+			"unblockMessage": "Ce sujet de plat sera réajouté aux recommandations.",
+			"unblockConfirm": "Débloquer",
+			"unblocked": "Débloqué"
+		}
 	},
 	"Dialog": {
 		"a11y": {

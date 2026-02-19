@@ -48,6 +48,7 @@ export class DishCategoriesService {
    */
   async getRecommendations(
     dto: QueryDishCategoryRecommendationsDto,
+    userId: string,
   ): Promise<QueryDishCategoryRecommendationsResponse> {
     this.logger.debug('GetRecommendations', 'getRecommendations', {
       address: dto.address,
@@ -65,6 +66,7 @@ export class DishCategoriesService {
       // #533 【仕様】Step 2: 候補取得＋スレート構成＋ローカライズ
       // Step 2-1: 候補取得（SQL scoring）
       const candidates = await this.repo.findCategoryCandidatesWithScores({
+        userId,
         addressTokens: normalized.addressTokens,
         regionTokens: normalized.regionTokens,
         regionFallbackKeys: normalized.regionFallbackKeys,
@@ -80,7 +82,7 @@ export class DishCategoriesService {
         this.logger.log('FallbackToClaude', 'getRecommendations', {
           reason: 'no_candidates',
         });
-        return this.fallbackToClaude(dto);
+        return this.fallbackToClaude(dto, userId);
       }
 
       // Step 2-2: スレート構成（Core/Variety/Explore）
@@ -92,7 +94,7 @@ export class DishCategoriesService {
           reason: 'insufficient_candidates',
           count: selectedCandidates.length,
         });
-        return this.fallbackToClaude(dto);
+        return this.fallbackToClaude(dto, userId);
       }
 
       // Step 2-3: ローカライズ文言取得
@@ -123,7 +125,7 @@ export class DishCategoriesService {
         stack: error instanceof Error ? error.stack : undefined,
       });
 
-      return await this.fallbackToClaude(dto);
+      return await this.fallbackToClaude(dto, userId);
     }
   }
 
@@ -381,6 +383,7 @@ export class DishCategoriesService {
    */
   private async fallbackToClaude(
     dto: QueryDishCategoryRecommendationsDto,
+    userId: string,
   ): Promise<QueryDishCategoryRecommendationsResponse> {
     try {
       // #533 【設計】ClaudeへはDTOのみを渡す
@@ -398,8 +401,22 @@ export class DishCategoriesService {
       const dishCategories =
         await this.repo.findDishCategoriesByNames(categoryNames);
 
-      const items: DishCategoryRecommendationItem[] = claudeRecommendations.map(
-        (claudeRec) => {
+      // #747 【設計】Claude経路でも block 対象の料理カテゴリを除外
+      const blockedCategoryIds = new Set(
+        (
+          await this.prisma.prisma.reactions.findMany({
+            where: {
+              user_id: userId,
+              target_type: 'dish_categories',
+              action_type: 'block',
+            },
+            select: { target_id: true },
+          })
+        ).map((reaction) => reaction.target_id),
+      );
+
+      const items: DishCategoryRecommendationItem[] = claudeRecommendations
+        .map((claudeRec) => {
           const matchedCategory = dishCategories.find((dbCategory) =>
             dbCategory.dish_category_variants.some(
               (variant) =>
@@ -432,8 +449,8 @@ export class DishCategoriesService {
             categoryId: matchedCategory?.id || '',
             imageUrl: matchedCategory?.image_url || '',
           };
-        },
-      );
+        })
+        .filter((item) => item.categoryId && !blockedCategoryIds.has(item.categoryId));
 
       return items;
     } catch (error) {

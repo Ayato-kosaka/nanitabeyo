@@ -1,17 +1,18 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { MapPin, Clock, Users, Salad, ChefHat } from "lucide-react-native";
+import { MapPin, Clock, Users, Salad, ChefHat, RefreshCw } from "lucide-react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import Carousel from "react-native-reanimated-carousel";
 import { Image } from "expo-image";
 import { Topic, SearchParams } from "@/types/search";
 import { useTopicSearch } from "@/features/topics/hooks/useTopicSearch";
-import { useHideTopic } from "@/features/topics/hooks/useHideTopic";
+import { useBlockTopic } from "@/features/topics/hooks/useBlockTopic";
 import { TopicCard } from "@/features/topics/components/TopicCard";
 import { TopicsLoading } from "@/features/topics/components/TopicsLoading";
 import { TopicsError } from "@/features/topics/components/TopicsError";
-import { HideTopicForm } from "@/features/topics/components/HideTopicForm";
+import { BlockTopicForm } from "@/features/topics/components/BlockTopicForm";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
+import { useDialog } from "@/contexts/DialogProvider";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { CARD_WIDTH, CARD_MAX_HEIGHT, width as SCREEN_WIDTH } from "@/features/topics/constants";
 import { timeSlots, sceneOptions, moodOptions, tasteOptions } from "@/features/search/constants";
@@ -42,14 +43,14 @@ export default function TopicsScreen() {
 	const carouselRef = useRef<any>(null);
 	const { selectionChanged } = useHaptics();
 
-	const { topics, isLoading, error, searchTopics, hideTopic, createDishItemsPromise } = useTopicSearch();
+	const { topics, isLoading, error, searchTopics, refillTopics, hideTopic, createDishItemsPromise } = useTopicSearch();
 	const { showSnackbar } = useSnackbar();
+	const { showDialog } = useDialog();
 	const {
-		BlurModal: HideTopicBlurModal,
-		close: closeHideModal,
-		handleHideCard,
-		confirmHideCard,
-	} = useHideTopic(topics, hideTopic, showSnackbar);
+		BlurModal: BlockTopicBlurModal,
+		handleBlockCard,
+		confirmBlockCard,
+	} = useBlockTopic(topics, hideTopic, showSnackbar);
 
 	useEffect(() => {
 		if (params) {
@@ -187,7 +188,7 @@ export default function TopicsScreen() {
 
 	const renderCard = ({ item, index }: { item: Topic; index: number }) => (
 		<TouchableOpacity key={item.categoryId} activeOpacity={0.95} onPress={handleCardPress}>
-			<TopicCard item={item} onHide={handleHideCard} displayIndex={index} cardHeight={cardHeight} />
+			<TopicCard item={item} onBlock={handleBlockCard} displayIndex={index} cardHeight={cardHeight} />
 		</TouchableOpacity>
 	);
 
@@ -199,10 +200,39 @@ export default function TopicsScreen() {
 		return <TopicsError error={error} onBack={handleBack} />;
 	}
 
+	// #747 【仕様】リロードアイコンの表示条件：params が存在 && 表示中のトピックが1〜3件
+	const shouldShowReload = !!params && visibleTopics.length > 0 && visibleTopics.length <= 3;
+
+	const handleReloadRecommendations = () => {
+		if (!params) return;
+		showDialog(i18n.t("Topics.reloadDialog.message"), {
+			title: i18n.t("Topics.reloadDialog.title"),
+			okLabel: i18n.t("Topics.reloadDialog.confirm"),
+			cancelLabel: i18n.t("Topics.reloadDialog.cancel"),
+			onConfirm: async () => {
+				try {
+					await refillTopics(params);
+				} catch {
+					showSnackbar(i18n.t("Topics.errors.fetchFailed"));
+				}
+			},
+		});
+	};
+
 	return (
 		<View style={styles.container}>
 			{/* #674 【仕様】ヘッダー（戻るボタン + タイトル） */}
-			<SearchHeader title={i18n.t("Topics.headerTitle")} onPressBack={handleBack} />
+			<SearchHeader
+				title={i18n.t("Topics.headerTitle")}
+				onPressBack={handleBack}
+				rightContent={
+					shouldShowReload ? (
+						<TouchableOpacity onPress={handleReloadRecommendations} accessibilityRole="button">
+							<RefreshCw size={20} color="#1A1A1A" />
+						</TouchableOpacity>
+					) : undefined
+				}
+			/>
 
 			{/* #674 【仕様】条件チップ表示 */}
 			{params && (
@@ -313,16 +343,9 @@ export default function TopicsScreen() {
 				)}
 			</View>
 
-			<HideTopicBlurModal>
-				{({ close }) => (
-					<HideTopicForm
-						onSubmit={(hideReason) => {
-							confirmHideCard(hideReason);
-						}}
-						onCancel={close}
-					/>
-				)}
-			</HideTopicBlurModal>
+			<BlockTopicBlurModal>
+				{({ close }) => <BlockTopicForm onSubmit={confirmBlockCard} onCancel={close} />}
+			</BlockTopicBlurModal>
 		</View>
 	);
 }

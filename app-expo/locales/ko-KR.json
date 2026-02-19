@@ -190,6 +190,19 @@
 		"retry": "검색으로 돌아가기",
 		"chooseThis": "이걸로 할래!",
 		"hiddenMessage": "{{title}} 이(가) 숨겨졌습니다",
+		"BlockTopicModal": {
+			"title": "이 요리를 차단할까요?",
+			"description": "차단된 요리 토픽은 추천에 더 이상 표시되지 않습니다.",
+			"note": "설정에서 언제든지 차단을 해제할 수 있어요.",
+			"confirm": "차단하기"
+		},
+		"blockedMessage": "{{title}}이(가) 차단되었습니다",
+		"reloadDialog": {
+			"title": "다른 메뉴를 더 찾아볼까요?",
+			"message": "지금은 추천이 많지 않아요. 같은 조건으로 다시 찾아볼게요.",
+			"confirm": "다시 검색하기",
+			"cancel": "닫기"
+		},
 		"imageLoadFailed": "이미지를 불러오지 못했습니다",
 		"tapToReload": "탭하여 다시 로드",
 		"headerTitle": "당신을 위한 추천 요리",
@@ -547,7 +560,19 @@
 		"privacy": "개인정보 처리방침",
 		"copyright": "저작권",
 		"legalDocument": "법적 문서",
-		"logout": "로그아웃"
+		"logout": "로그아웃",
+		"blockedTopics": {
+			"navigationLabel": "차단된 요리 주제",
+			"pageTitle": "차단된 요리 주제",
+			"title": "차단된 요리",
+			"empty": "차단된 요리가 없습니다",
+			"loading": "로딩 중...",
+			"unblockButton": "차단 해제",
+			"unblockTitle": "이 주제를 차단 해제하시겠습니까?",
+			"unblockMessage": "이 요리 주제가 추천에 다시 추가됩니다.",
+			"unblockConfirm": "차단 해제",
+			"unblocked": "차단 해제됨"
+		}
 	},
 	"Dialog": {
 		"a11y": {

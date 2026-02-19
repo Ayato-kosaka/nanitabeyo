@@ -190,6 +190,19 @@
 		"retry": "返回搜索",
 		"chooseThis": "就选这个！",
 		"hiddenMessage": "{{title}}已被隐藏",
+		"BlockTopicModal": {
+			"title": "要屏蔽这道菜吗？",
+			"description": "被屏蔽的菜品话题将不再出现在推荐中。",
+			"note": "您可以随时在设置中取消屏蔽。",
+			"confirm": "屏蔽"
+		},
+		"blockedMessage": "已屏蔽{{title}}",
+		"reloadDialog": {
+			"title": "要查看更多选择吗？",
+			"message": "目前只有少量推荐。我们会在相同条件下重新搜索。",
+			"confirm": "重新搜索",
+			"cancel": "关闭"
+		},
 		"imageLoadFailed": "图片加载失败",
 		"tapToReload": "点击重新加载",
 		"headerTitle": "为您推荐的菜品",
@@ -547,7 +560,19 @@
 		"privacy": "隐私政策",
 		"copyright": "版权",
 		"legalDocument": "法律文件",
-		"logout": "登出"
+		"logout": "登出",
+		"blockedTopics": {
+			"navigationLabel": "已屏蔽的菜品主题",
+			"pageTitle": "已屏蔽的菜品主题",
+			"title": "已屏蔽的菜品",
+			"empty": "没有已屏蔽的菜品",
+			"loading": "加载中...",
+			"unblockButton": "取消屏蔽",
+			"unblockTitle": "取消屏蔽此主题？",
+			"unblockMessage": "此菜品主题将重新添加到推荐中。",
+			"unblockConfirm": "取消屏蔽",
+			"unblocked": "已取消屏蔽"
+		}
 	},
 	"Dialog": {
 		"a11y": {

@@ -190,6 +190,19 @@
 		"retry": "検索に戻る",
 		"chooseThis": "これにする！",
 		"hiddenMessage": "{{title}}を非表示にしました",
+		"BlockTopicModal": {
+			"title": "この料理をブロックしますか？",
+			"description": "ブロックした料理トピックは、今後おすすめに表示されません。",
+			"note": "設定画面からいつでも解除できます。",
+			"confirm": "ブロックする"
+		},
+		"blockedMessage": "{{title}}をブロックしました",
+		"reloadDialog": {
+			"title": "別の候補を探しますか？",
+			"message": "現在のおすすめが少ないため、同じ条件でもう一度探します。",
+			"confirm": "探す",
+			"cancel": "閉じる"
+		},
 		"imageLoadFailed": "画像を読み込めませんでした",
 		"tapToReload": "タップして再読み込み",
 		"headerTitle": "あなたにおすすめの料理",
@@ -547,7 +560,19 @@
 		"privacy": "プライバシーポリシー",
 		"copyright": "著作権",
 		"legalDocument": "法的文書",
-		"logout": "ログアウト"
+		"logout": "ログアウト",
+		"blockedTopics": {
+			"navigationLabel": "ブロック済みの料理トピック",
+			"pageTitle": "ブロック済みの料理トピック",
+			"title": "ブロックしている料理",
+			"empty": "ブロックしている料理はありません",
+			"loading": "読み込み中...",
+			"unblockButton": "ブロックを解除",
+			"unblockTitle": "ブロックを解除しますか？",
+			"unblockMessage": "この料理トピックをおすすめ対象に戻します。",
+			"unblockConfirm": "解除する",
+			"unblocked": "ブロックを解除しました"
+		}
 	},
 	"Dialog": {
 		"a11y": {

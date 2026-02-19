@@ -157,4 +157,96 @@ export class UsersRepository {
     });
     return result;
   }
+
+  /**
+   * ブロック中の料理カテゴリを取得
+   */
+  async findBlockedDishCategories(
+    userId: string,
+    cursor?: string,
+    limit = 42,
+  ): Promise<{
+    items: string[]; // dish_categories IDs
+    nextCursor: string | null;
+  }> {
+    this.logger.debug(
+      'FindBlockedDishCategories',
+      'findBlockedDishCategories',
+      {
+        userId,
+        cursor,
+        limit,
+      },
+    );
+
+    const whereClause: any = {
+      user_id: userId,
+      target_type: 'dish_categories',
+      action_type: 'block',
+    };
+
+    if (cursor) {
+      whereClause.created_at = {
+        lt: new Date(cursor),
+      };
+    }
+
+    const result = await this.prisma.prisma.reactions.findMany({
+      where: whereClause,
+      orderBy: {
+        created_at: 'desc',
+      },
+      take: limit + 1,
+      select: {
+        target_id: true,
+        created_at: true,
+      },
+    });
+
+    const hasMore = result.length > limit;
+    const items = hasMore ? result.slice(0, limit) : result;
+    const nextCursor =
+      hasMore && items.length > 0
+        ? items[items.length - 1].created_at.toISOString()
+        : null;
+
+    this.logger.debug(
+      'BlockedDishCategoriesFound',
+      'findBlockedDishCategories',
+      {
+        count: items.length,
+        hasMore,
+      },
+    );
+
+    return { items: items.map((r) => r.target_id), nextCursor };
+  }
+
+  /**
+   * 料理カテゴリのブロックを解除
+   */
+  async unblockDishCategory(
+    userId: string,
+    categoryId: string,
+  ): Promise<boolean> {
+    this.logger.debug('UnblockDishCategory', 'unblockDishCategory', {
+      userId,
+      categoryId,
+    });
+
+    const result = await this.prisma.prisma.reactions.deleteMany({
+      where: {
+        user_id: userId,
+        target_type: 'dish_categories',
+        target_id: categoryId,
+        action_type: 'block',
+      },
+    });
+
+    this.logger.debug('UnblockDishCategoryResult', 'unblockDishCategory', {
+      count: result.count,
+    });
+
+    return result.count > 0;
+  }
 }

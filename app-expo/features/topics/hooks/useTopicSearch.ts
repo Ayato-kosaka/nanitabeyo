@@ -30,6 +30,93 @@ export const useTopicSearch = () => {
 	const { locale } = useLocale();
 	const { logFrontendEvent } = useLogger();
 
+	const createTopic = useCallback((topic: QueryDishCategoryRecommendationsResponse[number]): Topic => {
+		// #633 【設計】Topic 生成時に dishItemsPromise を発火しない（ユーザー操作後に限定）
+		return {
+			...topic,
+			isHidden: false,
+		};
+	}, []);
+
+	const fetchTopicCandidates = useCallback(
+		async (params: SearchParams): Promise<Topic[]> => {
+			const remoteConfig = getRemoteConfig();
+			const searchResultTopicsNumber = parseInt(remoteConfig?.v1_search_result_dish_categories_number!, 10);
+
+			const topicsResponse = await callBackend<
+				QueryDishCategoryRecommendationsDto,
+				QueryDishCategoryRecommendationsResponse
+			>("v1/dish-categories/recommendations", {
+				method: "GET",
+				requestPayload: {
+					address: params.address,
+					timeSlot: params.timeSlot,
+					scene: params.scene,
+					mood: params.mood,
+					taste: params.taste,
+					languageTag: locale,
+					localLanguageCode: params.localLanguageCode,
+				},
+			});
+
+			let topicsResponseWithCategoryIds: QueryDishCategoryRecommendationsResponse = topicsResponse
+				.slice(0, searchResultTopicsNumber)
+				.map((topic) => ({
+					...topic,
+					imageUrl: wikimediaThumbFromOriginal(topic.imageUrl, CARD_WIDTH),
+				}));
+
+			if (topicsResponseWithCategoryIds.length < searchResultTopicsNumber) {
+				const createDishCategoryVariantResponse = await Promise.all(
+					topicsResponse
+						.filter(
+							(topic) => !topicsResponseWithCategoryIds.find((existing) => existing.categoryId === topic.categoryId),
+						)
+						.map(async (topic) => {
+							try {
+								const createDishCategoryVariantResponse = await callBackend<
+									CreateDishCategoryVariantDto,
+									CreateDishCategoryVariantResponse
+								>("v1/dish-category-variants", {
+									method: "POST",
+									requestPayload: {
+										name: topic.category,
+									},
+								});
+								return {
+									...topic,
+									category:
+										createDishCategoryVariantResponse.labels &&
+											typeof createDishCategoryVariantResponse.labels === "object" &&
+											params.localLanguageCode in createDishCategoryVariantResponse.labels
+											? (createDishCategoryVariantResponse.labels as Record<string, string>)[params.localLanguageCode]
+											: topic.category,
+									categoryId: createDishCategoryVariantResponse.id,
+									imageUrl: createDishCategoryVariantResponse.image_url,
+								};
+							} catch (error) {
+								console.error(`Error creating dish category variant for topic ${topic.category}:`, error);
+								return topic;
+							}
+						}),
+				);
+
+				const additionalTopicsWithCategoryIds = createDishCategoryVariantResponse
+					.filter((topic) => topic.categoryId && topic.imageUrl)
+					.slice(0, searchResultTopicsNumber - topicsResponseWithCategoryIds.length)
+					.map((topic) => ({
+						...topic,
+						imageUrl: wikimediaThumbFromOriginal(topic.imageUrl, CARD_WIDTH),
+					}));
+
+				topicsResponseWithCategoryIds = [...topicsResponseWithCategoryIds, ...additionalTopicsWithCategoryIds];
+			}
+
+			return topicsResponseWithCategoryIds.map((topic) => createTopic(topic));
+		},
+		[callBackend, createTopic, locale],
+	);
+
 	// #633 【設計】料理メディアの取得処理（オンデマンド実行用に export）
 	const createDishItemsPromise = useCallback(
 		(
@@ -113,104 +200,9 @@ export const useTopicSearch = () => {
 			setIsLoading(true);
 			setError(null);
 
-			const remoteConfig = getRemoteConfig();
-			const searchResultRestaurantsNumber = parseInt(remoteConfig?.v1_search_result_restaurants_number!, 10);
-			const searchResultTopicsNumber = parseInt(remoteConfig?.v1_search_result_dish_categories_number!, 10);
-
 			try {
-				const topicsResponse = await callBackend<
-					QueryDishCategoryRecommendationsDto,
-					QueryDishCategoryRecommendationsResponse
-				>("v1/dish-categories/recommendations", {
-					method: "GET",
-					requestPayload: {
-						address: params.address,
-						timeSlot: params.timeSlot,
-						scene: params.scene,
-						mood: params.mood,
-						taste: params.taste,
-						languageTag: locale,
-						localLanguageCode: params.localLanguageCode,
-					},
-				});
-
-				let topicsResponseWithCategoryIds: QueryDishCategoryRecommendationsResponse = topicsResponse
-					.filter((topic) => topic.categoryId && topic.imageUrl)
-					.slice(0, searchResultTopicsNumber)
-					.map((topic) => ({
-						...topic,
-						imageUrl: wikimediaThumbFromOriginal(topic.imageUrl, CARD_WIDTH),
-					}));
-
-				const createTopic = (topic: QueryDishCategoryRecommendationsResponse[number]): Topic => {
-					// #633 【設計】Topic 生成時に dishItemsPromise を発火しない（ユーザー操作後に限定）
-					return {
-						...topic,
-						isHidden: false,
-					};
-				};
-
-				// Early display: Set topics from initial response with category IDs
-				if (topicsResponseWithCategoryIds.length > 0) {
-					const initialTopics = topicsResponseWithCategoryIds.map((topic) => createTopic(topic));
-					setTopics(initialTopics);
-					// Set loading to false after early display
-					setIsLoading(false);
-				}
-
-				// Delayed addition: If we need more topics, create dish category variants and append them
-				if (topicsResponseWithCategoryIds.length < searchResultTopicsNumber) {
-					const createDishCategoryVariantResponse = await Promise.all(
-						topicsResponse
-							.filter(
-								(topic) => !topicsResponseWithCategoryIds.find((existing) => existing.categoryId === topic.categoryId),
-							)
-							.map(async (topic, index) => {
-								try {
-									const createDishCategoryVariantResponse = await callBackend<
-										CreateDishCategoryVariantDto,
-										CreateDishCategoryVariantResponse
-									>("v1/dish-category-variants", {
-										method: "POST",
-										requestPayload: {
-											name: topic.category,
-										},
-									});
-									return {
-										...topic,
-										category:
-											createDishCategoryVariantResponse.labels &&
-											typeof createDishCategoryVariantResponse.labels === "object" &&
-											params.localLanguageCode in createDishCategoryVariantResponse.labels
-												? (createDishCategoryVariantResponse.labels as Record<string, string>)[params.localLanguageCode]
-												: topic.category,
-										categoryId: createDishCategoryVariantResponse.id,
-										imageUrl: createDishCategoryVariantResponse.image_url,
-									};
-								} catch (error) {
-									console.error(`Error creating dish category variant for topic ${topic.category}:`, error);
-									return topic;
-								}
-							}),
-					);
-
-					const additionalTopicsWithCategoryIds = createDishCategoryVariantResponse
-						.filter((topic) => topic.categoryId && topic.imageUrl)
-						.slice(0, searchResultTopicsNumber - topicsResponseWithCategoryIds.length)
-						.map((topic) => ({
-							...topic,
-							imageUrl: wikimediaThumbFromOriginal(topic.imageUrl, CARD_WIDTH),
-						}));
-
-					// Add additional topics to the array (append to the end)
-					if (additionalTopicsWithCategoryIds.length > 0) {
-						const additionalTopics = additionalTopicsWithCategoryIds.map((topic) => createTopic(topic));
-						setTopics((prevTopics) => [...prevTopics, ...additionalTopics]);
-					}
-
-					// Update the final list for return value
-					topicsResponseWithCategoryIds = [...topicsResponseWithCategoryIds, ...additionalTopicsWithCategoryIds];
-				}
+				const fetchedTopics = await fetchTopicCandidates(params);
+				setTopics(fetchedTopics);
 
 				// // Mock API response based on search parameters
 				// const toplics = [...mockTopicCards]
@@ -229,7 +221,45 @@ export const useTopicSearch = () => {
 				setIsLoading(false);
 			}
 		},
-		[callBackend, locale, createDishItemsPromise],
+		[fetchTopicCandidates],
+	);
+
+	const refillTopics = useCallback(
+		async (params: SearchParams) => {
+			setIsLoading(true);
+			setError(null);
+
+			const remoteConfig = getRemoteConfig();
+			const searchResultTopicsNumber = parseInt(remoteConfig?.v1_search_result_dish_categories_number!, 10);
+
+			try {
+				const fetchedTopics = await fetchTopicCandidates(params);
+
+				setTopics((prevTopics) => {
+					const visibleTopics = prevTopics.filter((topic) => !topic.isHidden);
+					const hiddenTopics = prevTopics.filter((topic) => topic.isHidden);
+
+					const existingCategoryIds = new Set(prevTopics.map((topic) => topic.categoryId));
+					const additionalTopics = fetchedTopics.filter((topic) => !existingCategoryIds.has(topic.categoryId));
+
+					const neededCount = Math.max(0, searchResultTopicsNumber - visibleTopics.length);
+					const filledVisibleTopics = [...visibleTopics, ...additionalTopics.slice(0, neededCount)];
+
+					const dedupedVisibleTopics = Array.from(
+						new Map(filledVisibleTopics.map((topic) => [topic.categoryId, topic])).values(),
+					).slice(0, searchResultTopicsNumber);
+
+					return [...dedupedVisibleTopics, ...hiddenTopics];
+				});
+			} catch (err) {
+				const errorMessage = err instanceof Error ? err.message : i18n.t("Topics.errors.fetchFailed");
+				setError(errorMessage);
+				throw new Error(errorMessage);
+			} finally {
+				setIsLoading(false);
+			}
+		},
+		[fetchTopicCandidates],
 	);
 
 	const hideTopic = useCallback((topicId: string, reason: string) => {
@@ -257,6 +287,7 @@ export const useTopicSearch = () => {
 		isLoading,
 		error,
 		searchTopics,
+		refillTopics,
 		hideTopic,
 		resetTopics,
 		createDishItemsPromise, // Export the helper function for reuse
