@@ -200,7 +200,8 @@ export default function TopicsScreen() {
 		return <TopicsError error={error} onBack={handleBack} />;
 	}
 
-	const shouldShowReload = !!params && visibleTopics.length > 0 && visibleTopics.length < 3;
+	// #747 【仕様】リロードアイコンの表示条件：params が存在 && 表示中のトピックが1〜3件
+	const shouldShowReload = !!params && visibleTopics.length > 0 && visibleTopics.length <= 3;
 
 	const handleReloadRecommendations = () => {
 		if (!params) return;

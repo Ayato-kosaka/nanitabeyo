@@ -184,7 +184,7 @@ export default function BlockedTopicsScreen() {
 
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
-			<SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
+			<SafeAreaView style={styles.safeArea} edges={["top"]}>
 				<View style={styles.header}>
 					<Text style={styles.headerTitle}>{i18n.t("Settings.blockedTopics.pageTitle")}</Text>
 				</View>
