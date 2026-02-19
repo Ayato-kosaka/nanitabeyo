@@ -43,7 +43,7 @@ export default function TopicsScreen() {
 	const carouselRef = useRef<any>(null);
 	const { selectionChanged } = useHaptics();
 
-	const { topics, isLoading, error, searchTopics, hideTopic, createDishItemsPromise } = useTopicSearch();
+	const { topics, isLoading, error, searchTopics, refillTopics, hideTopic, createDishItemsPromise } = useTopicSearch();
 	const { showSnackbar } = useSnackbar();
 	const { showDialog } = useDialog();
 	const {
@@ -210,7 +210,7 @@ export default function TopicsScreen() {
 			cancelLabel: i18n.t("Topics.reloadDialog.cancel"),
 			onConfirm: async () => {
 				try {
-					await searchTopics(params);
+					await refillTopics(params);
 				} catch {
 					showSnackbar(i18n.t("Topics.errors.fetchFailed"));
 				}
