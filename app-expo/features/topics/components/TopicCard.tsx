@@ -211,8 +211,7 @@ export const TopicCard = ({
 						style={styles.topButton}
 						onPress={handleBlock}
 						accessibilityRole="button"
-						accessibilityLabel={i18n.t("Topics.BlockTopicModal.title")}
-					>
+						accessibilityLabel={i18n.t("Topics.BlockTopicModal.title")}>
 						<Ban size={18} color="#FFF" />
 					</TouchableOpacity>
 				</View>

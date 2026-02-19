@@ -74,6 +74,7 @@ python3 1_2_fetch_and_load_nodes.py --limit 1000
 ```
 
 期待される動作:
+
 - Phase 0: food_roots を BigQuery から取得
 - Phase 1: 各 root からノードを取得
 - Phase 2: Load Job で staging にロード
@@ -92,7 +93,7 @@ SELECT COUNT(DISTINCT item_qid) FROM `food-scroll.wikidata_food_graph.food_nodes
 SELECT COUNT(DISTINCT item_qid) FROM `food-scroll.wikidata_food_graph.food_nodes_raw`;
 
 -- 特定 QID の確認（coffee, hamburger など）
-SELECT * FROM `food-scroll.wikidata_food_graph.food_nodes_raw` 
+SELECT * FROM `food-scroll.wikidata_food_graph.food_nodes_raw`
 WHERE item_qid IN ('Q8486','Q6663');
 ```
 

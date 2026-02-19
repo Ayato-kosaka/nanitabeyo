@@ -12,6 +12,7 @@ import { Prisma } from '../../../../shared/prisma';
 import {
   DishCategoryCandidateNormalizedInput,
   DishCategoryCandidateWithScores,
+  DishCategoryFeatureSet,
 } from './dish-categories.interface';
 
 @Injectable()
@@ -484,6 +485,73 @@ export class DishCategoriesRepository {
 
     this.logger.debug('LocalizedTextsFound', 'findLocalizedTexts', {
       count: result.length,
+    });
+
+    return result;
+  }
+
+  /**
+   * #757 【仕様】特徴量（core_ingredient / cooking_method）を一括取得
+   * @param categoryIds 対象カテゴリIDリスト
+   * @returns カテゴリIDごとの特徴量セット
+   */
+  async findCategoryFeatures(
+    categoryIds: string[],
+  ): Promise<DishCategoryFeatureSet[]> {
+    this.logger.debug('FindCategoryFeatures', 'findCategoryFeatures', {
+      categoryIdsCount: categoryIds.length,
+    });
+
+    if (categoryIds.length === 0) {
+      return [];
+    }
+
+    // #757 【設計】core_ingredient と cooking_method を一括取得（N+1回避）
+    const features = await this.prisma.prisma.dish_category_features.findMany({
+      where: {
+        dish_category_id: { in: categoryIds },
+        feature_type: { in: ['core_ingredient', 'cooking_method'] },
+      },
+      select: {
+        dish_category_id: true,
+        feature_type: true,
+        feature_key: true,
+        score: true,
+      },
+    });
+
+    // #757 【設計】カテゴリIDごとにグループ化
+    const featureMap = new Map<string, DishCategoryFeatureSet>();
+
+    for (const categoryId of categoryIds) {
+      featureMap.set(categoryId, {
+        category_id: categoryId,
+        core_ingredients: [],
+        cooking_methods: [],
+      });
+    }
+
+    for (const feature of features) {
+      const categoryFeatures = featureMap.get(feature.dish_category_id);
+      if (!categoryFeatures) continue;
+
+      const featureData = {
+        feature_key: feature.feature_key,
+        score: feature.score,
+      };
+
+      if (feature.feature_type === 'core_ingredient') {
+        categoryFeatures.core_ingredients.push(featureData);
+      } else if (feature.feature_type === 'cooking_method') {
+        categoryFeatures.cooking_methods.push(featureData);
+      }
+    }
+
+    const result = Array.from(featureMap.values());
+
+    this.logger.debug('CategoryFeaturesFound', 'findCategoryFeatures', {
+      count: result.length,
+      totalFeatures: features.length,
     });
 
     return result;

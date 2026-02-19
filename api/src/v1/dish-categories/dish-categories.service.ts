@@ -18,6 +18,7 @@ import { PrismaDishCategoryLocalizedText } from '../../../../shared/converters/c
 import {
   DishCategoryCandidateNormalizedInput,
   DishCategoryCandidateWithScores,
+  DishCategoryFeatureSet,
 } from './dish-categories.interface';
 import { shuffle } from 'src/core/utils/backend-utils';
 
@@ -33,6 +34,10 @@ const EXPLORE_SIZE = 0;
 // #533 【定数】Explore選出用パーセンタイル
 const EXPLORE_LOW_PCT = 0.1; // 上位10%は除外
 const EXPLORE_HIGH_PCT = 0.4; // 上位40%までは許可
+
+// #757 【定数】逐次最適化の重複ペナルティ重み
+const PENALTY_WEIGHT_CORE_INGREDIENT = 1.0;
+const PENALTY_WEIGHT_COOKING_METHOD = 0.4;
 
 @Injectable()
 export class DishCategoriesService {
@@ -85,8 +90,15 @@ export class DishCategoriesService {
         return this.fallbackToClaude(dto, userId);
       }
 
-      // Step 2-2: スレート構成（Core/Variety/Explore）
-      const selectedCandidates = this.constructSlate(candidates);
+      // #757 【設計】Step 2-2: 特徴量取得（core_ingredient / cooking_method）
+      const candidateIds = candidates.map((c) => c.category_id);
+      const featureSets = await this.repo.findCategoryFeatures(candidateIds);
+
+      // #757 【設計】Step 2-3: 逐次最適化でスレート構成
+      const selectedCandidates = this.selectWithSequentialOptimization(
+        candidates,
+        featureSets,
+      );
 
       // #533 【フォールバック】6件未満の場合はClaude経路へ
       if (selectedCandidates.length < TARGET_SLATE_SIZE) {
@@ -97,19 +109,19 @@ export class DishCategoriesService {
         return this.fallbackToClaude(dto, userId);
       }
 
-      // Step 2-3: ローカライズ文言取得
+      // Step 2-4: ローカライズ文言取得
       const categoryIds = selectedCandidates.map((c) => c.category_id);
       const localizedTexts = await this.repo.findLocalizedTexts(
         categoryIds,
         normalized.langCandidates,
       );
 
-      // Step 2-4: カテゴリ情報を取得
+      // Step 2-5: カテゴリ情報を取得
       const categories = await this.prisma.prisma.dish_categories.findMany({
         where: { id: { in: categoryIds } },
       });
 
-      // Step 2-5: レスポンス構築
+      // Step 2-6: レスポンス構築
       const items = this.buildResponseItems(
         selectedCandidates,
         localizedTexts,
@@ -187,7 +199,223 @@ export class DishCategoriesService {
   }
 
   /**
+   * #757 【仕様】逐次最適化による6枚選抜（Greedy + 重複ペナルティ）
+   *
+   * @description
+   * final_score を尊重しつつ、core_ingredient / cooking_method の重複を抑制する。
+   * 1枚目は order_score 上位から選択（既存の jitter 尊重）。
+   * 2〜6枚目は、S(i) = final_score - penalty(i) で再スコアリングして選択。
+   * penalty(i) = Σ (weight_f * featureScore * count(key)^2)
+   *
+   * macro_genre の重複抑制も可能な限り維持する。
+   */
+  private selectWithSequentialOptimization(
+    candidates: DishCategoryCandidateWithScores[],
+    featureSets: DishCategoryFeatureSet[],
+  ): Array<{
+    category_id: string;
+    macro_genre: string | null;
+    rel_score: number;
+    final_score: number;
+  }> {
+    // #757 【設計】特徴量マップを構築（高速アクセス）
+    const featureMap = new Map<string, DishCategoryFeatureSet>();
+    for (const fs of featureSets) {
+      featureMap.set(fs.category_id, fs);
+    }
+
+    // #757 【設計】選択済みカテゴリと使用済みジャンル
+    const selected: Array<{
+      category_id: string;
+      macro_genre: string | null;
+      rel_score: number;
+      final_score: number;
+    }> = [];
+    const selectedCategoryIds = new Set<string>();
+    const usedGenres = new Set<string>();
+
+    // #757 【設計】特徴量の出現カウント（重複ペナルティ用）
+    const featureCounts = new Map<string, number>();
+
+    // #757 【設計】1枚目: order_score 上位（既存の jitter を尊重）
+    if (candidates.length > 0) {
+      const first = candidates[0];
+      selected.push({
+        category_id: first.category_id,
+        macro_genre: first.macro_genre,
+        rel_score: first.rel_score,
+        final_score: first.final_score,
+      });
+      selectedCategoryIds.add(first.category_id);
+      if (first.macro_genre) usedGenres.add(first.macro_genre);
+
+      // 特徴量カウント更新
+      this.updateFeatureCounts(
+        featureCounts,
+        featureMap.get(first.category_id),
+      );
+
+      this.logger.debug(
+        'SequentialOptimization',
+        'selectWithSequentialOptimization',
+        {
+          step: 1,
+          selected: first.category_id,
+          base_score: first.final_score,
+          penalty: 0,
+          adjusted_score: first.final_score,
+        },
+      );
+    }
+
+    // #757 【設計】2〜6枚目: 逐次最適化選抜
+    while (
+      selected.length < TARGET_SLATE_SIZE &&
+      selectedCategoryIds.size < candidates.length
+    ) {
+      let bestCandidate: DishCategoryCandidateWithScores | null = null;
+      let bestScore = -Infinity;
+      let bestPenalty = 0;
+
+      for (const candidate of candidates) {
+        // 既選択済みはスキップ
+        if (selectedCategoryIds.has(candidate.category_id)) continue;
+
+        // #757 【設計】macro_genre 重複抑制（可能な限り）
+        // 候補が多い場合は重複を避ける、少ない場合は許容して6件充足を優先
+        const hasUnusedGenreCandidates = candidates.some(
+          (c) =>
+            !selectedCategoryIds.has(c.category_id) &&
+            (!c.macro_genre || !usedGenres.has(c.macro_genre)),
+        );
+        if (
+          hasUnusedGenreCandidates &&
+          candidate.macro_genre &&
+          usedGenres.has(candidate.macro_genre)
+        ) {
+          continue;
+        }
+
+        // #757 【設計】ペナルティ計算
+        const penalty = this.calculateDiversityPenalty(
+          candidate.category_id,
+          featureMap,
+          featureCounts,
+        );
+
+        // #757 【設計】調整スコア = base - penalty
+        const adjustedScore = candidate.final_score - penalty;
+
+        if (adjustedScore > bestScore) {
+          bestScore = adjustedScore;
+          bestCandidate = candidate;
+          bestPenalty = penalty;
+        }
+      }
+
+      // #757 【設計】最良候補が見つからない場合は終了
+      if (!bestCandidate) break;
+
+      // 選択確定
+      selected.push({
+        category_id: bestCandidate.category_id,
+        macro_genre: bestCandidate.macro_genre,
+        rel_score: bestCandidate.rel_score,
+        final_score: bestCandidate.final_score,
+      });
+      selectedCategoryIds.add(bestCandidate.category_id);
+      if (bestCandidate.macro_genre) usedGenres.add(bestCandidate.macro_genre);
+
+      // 特徴量カウント更新
+      this.updateFeatureCounts(
+        featureCounts,
+        featureMap.get(bestCandidate.category_id),
+      );
+
+      this.logger.debug(
+        'SequentialOptimization',
+        'selectWithSequentialOptimization',
+        {
+          step: selected.length,
+          selected: bestCandidate.category_id,
+          base_score: bestCandidate.final_score,
+          penalty: bestPenalty,
+          adjusted_score: bestScore,
+        },
+      );
+    }
+
+    this.logger.debug(
+      'SequentialOptimizationComplete',
+      'selectWithSequentialOptimization',
+      {
+        selectedCount: selected.length,
+        targetSize: TARGET_SLATE_SIZE,
+      },
+    );
+
+    return selected;
+  }
+
+  /**
+   * #757 【仕様】多様性ペナルティの計算
+   *
+   * @description
+   * penalty = Σ (weight_f * featureScore * count(key)^2)
+   * - core_ingredient: weight = 1.0
+   * - cooking_method: weight = 0.4
+   */
+  private calculateDiversityPenalty(
+    categoryId: string,
+    featureMap: Map<string, DishCategoryFeatureSet>,
+    featureCounts: Map<string, number>,
+  ): number {
+    const featureSet = featureMap.get(categoryId);
+    if (!featureSet) return 0;
+
+    let penalty = 0;
+
+    // #757 【設計】core_ingredient のペナルティ
+    for (const feature of featureSet.core_ingredients) {
+      const count =
+        featureCounts.get(`core_ingredient:${feature.feature_key}`) || 0;
+      penalty += PENALTY_WEIGHT_CORE_INGREDIENT * feature.score * count * count;
+    }
+
+    // #757 【設計】cooking_method のペナルティ
+    for (const feature of featureSet.cooking_methods) {
+      const count =
+        featureCounts.get(`cooking_method:${feature.feature_key}`) || 0;
+      penalty += PENALTY_WEIGHT_COOKING_METHOD * feature.score * count * count;
+    }
+
+    return penalty;
+  }
+
+  /**
+   * #757 【仕様】特徴量カウントの更新
+   */
+  private updateFeatureCounts(
+    featureCounts: Map<string, number>,
+    featureSet: DishCategoryFeatureSet | undefined,
+  ): void {
+    if (!featureSet) return;
+
+    for (const feature of featureSet.core_ingredients) {
+      const key = `core_ingredient:${feature.feature_key}`;
+      featureCounts.set(key, (featureCounts.get(key) || 0) + 1);
+    }
+
+    for (const feature of featureSet.cooking_methods) {
+      const key = `cooking_method:${feature.feature_key}`;
+      featureCounts.set(key, (featureCounts.get(key) || 0) + 1);
+    }
+  }
+
+  /**
    * #533 【仕様】スレート構成ロジック（Core/Variety/Explore）
+   * #757 【非推奨】逐次最適化ロジック (selectWithSequentialOptimization) に置換済み
+   * このメソッドは後方互換性のため残しているが、現在は使用されていない。
    */
   private constructSlate(candidates: DishCategoryCandidateWithScores[]): Array<{
     category_id: string;
@@ -450,7 +678,9 @@ export class DishCategoriesService {
             imageUrl: matchedCategory?.image_url || '',
           };
         })
-        .filter((item) => item.categoryId && !blockedCategoryIds.has(item.categoryId));
+        .filter(
+          (item) => item.categoryId && !blockedCategoryIds.has(item.categoryId),
+        );
 
       return items;
     } catch (error) {

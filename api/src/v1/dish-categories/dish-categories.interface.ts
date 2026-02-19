@@ -29,3 +29,16 @@ export interface DishCategoryCandidateWithScores {
   random_unit: number;
   order_score: number;
 }
+
+// #757 【設計】特徴量データ（core_ingredient / cooking_method）
+export interface DishCategoryFeature {
+  feature_key: string;
+  score: number;
+}
+
+// #757 【設計】カテゴリごとの特徴量セット
+export interface DishCategoryFeatureSet {
+  category_id: string;
+  core_ingredients: DishCategoryFeature[];
+  cooking_methods: DishCategoryFeature[];
+}
