@@ -65,7 +65,10 @@ type CandidateJson = CandidateItem[];
 const TASK_KEY = "dish_category_manual_text_supply_v1";
 const TYPE = "text_feedback";
 const TARGET_TYPE = "dish_categories";
+const CDN_BASE_URL = "https://storage.googleapis.com/nanitabeyo-public";
 const CDN_JSON_PATH = "tickets/749/dish_category_manual_text_supply_v1.latest.json";
+// キャッシュ回避のためにクエリパラメータでタイムスタンプを付与
+const CDN_JSON_URL = `${CDN_BASE_URL}/${CDN_JSON_PATH}?t=${Date.now()}`;
 
 const TUTORIAL_STORAGE_KEY = "dish_manual_text_supply_tutorial_shown";
 const DISMISSED_IDS_STORAGE_KEY = "dish_manual_text_supply_v1_dismissed";
@@ -139,7 +142,7 @@ export default function DishCategoryManualTextSupplyScreen() {
 
 		try {
 			// Step 1: CDN JSONをキャッシュバイパスで取得
-			const cdnUrl = `https://${Env.CDN_PUBLIC_HOST}/${CDN_JSON_PATH}?t=${Date.now()}`;
+			const cdnUrl = CDN_JSON_URL;
 			const jsonResponse = await fetch(cdnUrl);
 			if (!jsonResponse.ok) {
 				throw new Error("Failed to fetch candidate JSON");
@@ -624,67 +627,69 @@ export default function DishCategoryManualTextSupplyScreen() {
 			{/* 編集モーダル */}
 			{editingItem && (
 				<editModal.BlurModal contentContainerStyle={styles.modalContent} showCloseButton={false}>
-					<ScrollView
-						style={styles.editContainer}
-						keyboardShouldPersistTaps="handled"
-						contentContainerStyle={{ paddingBottom: 40 }}>
-						<Text style={styles.editTitle}>改善案を入力</Text>
+					<View style={{ height }}>
+						<ScrollView
+							style={styles.editContainer}
+							keyboardShouldPersistTaps="handled"
+							contentContainerStyle={{ paddingBottom: 40 }}>
+							<Text style={styles.editTitle}>改善案を入力</Text>
 
-						<Text style={styles.inputLabel}>タイトル</Text>
-						<TextInput
-							style={styles.textInput}
-							value={editTitle}
-							onChangeText={setEditTitle}
-							placeholder="タイトルを入力"
-							multiline
-						/>
-
-						<Text style={styles.inputLabel}>サブタイトル</Text>
-						<TextInput
-							style={[styles.textInput, styles.textInputMulti]}
-							value={editSubTitle}
-							onChangeText={setEditSubTitle}
-							placeholder="サブタイトルを入力"
-							multiline
-							numberOfLines={3}
-						/>
-
-						{validationError ? <Text style={styles.validationError}>{validationError}</Text> : null}
-
-						{/* プレビュー */}
-						<Text style={styles.previewLabel}>プレビュー</Text>
-						<View style={{ alignItems: "center" }}>
-							<CardView
-								item={{
-									...editingItem,
-									title: editTitle || editingItem.title,
-									subtitle: editSubTitle || editingItem.subtitle,
-								}}
-								cardHeight={300}
-								isPreview
+							<Text style={styles.inputLabel}>タイトル</Text>
+							<TextInput
+								style={styles.textInput}
+								value={editTitle}
+								onChangeText={setEditTitle}
+								placeholder="タイトルを入力"
+								multiline
 							/>
-						</View>
 
-						{/* ボタン */}
-						<View style={styles.editButtons}>
-							<Pressable
-								style={[styles.editButton, styles.editButtonSecondary]}
-								onPress={handleEditClose}
-								disabled={isSubmitting}>
-								<Text style={styles.editButtonTextSecondary}>閉じる</Text>
-							</Pressable>
-							<Pressable
-								style={[styles.editButton, styles.editButtonPrimary, isSubmitting && styles.editButtonDisabled]}
-								onPress={handleEditSubmit}
-								disabled={isSubmitting}>
-								{isSubmitting ? (
-									<ActivityIndicator size="small" color="#FFF" />
-								) : (
-									<Text style={styles.editButtonTextPrimary}>送信</Text>
-								)}
-							</Pressable>
-						</View>
-					</ScrollView>
+							<Text style={styles.inputLabel}>サブタイトル</Text>
+							<TextInput
+								style={[styles.textInput, styles.textInputMulti]}
+								value={editSubTitle}
+								onChangeText={setEditSubTitle}
+								placeholder="サブタイトルを入力"
+								multiline
+								numberOfLines={3}
+							/>
+
+							{validationError ? <Text style={styles.validationError}>{validationError}</Text> : null}
+
+							{/* プレビュー */}
+							<Text style={styles.previewLabel}>プレビュー</Text>
+							<View style={{ alignItems: "center" }}>
+								<CardView
+									item={{
+										...editingItem,
+										title: editTitle || editingItem.title,
+										subtitle: editSubTitle || editingItem.subtitle,
+									}}
+									cardHeight={300}
+									isPreview
+								/>
+							</View>
+
+							{/* ボタン */}
+							<View style={styles.editButtons}>
+								<Pressable
+									style={[styles.editButton, styles.editButtonSecondary]}
+									onPress={handleEditClose}
+									disabled={isSubmitting}>
+									<Text style={styles.editButtonTextSecondary}>閉じる</Text>
+								</Pressable>
+								<Pressable
+									style={[styles.editButton, styles.editButtonPrimary, isSubmitting && styles.editButtonDisabled]}
+									onPress={handleEditSubmit}
+									disabled={isSubmitting}>
+									{isSubmitting ? (
+										<ActivityIndicator size="small" color="#FFF" />
+									) : (
+										<Text style={styles.editButtonTextPrimary}>送信</Text>
+									)}
+								</Pressable>
+							</View>
+						</ScrollView>
+					</View>
 				</editModal.BlurModal>
 			)}
 		</View>
