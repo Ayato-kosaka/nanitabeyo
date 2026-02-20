@@ -231,7 +231,7 @@ export class DishCategoriesService {
    */
   private selectWithSequentialOptimization(
     candidates: DishCategoryCandidateWithScores[],
-    penaltyFeatureSets: DishCategoryPenaltyFeatureSet[],
+    penaltyFeatureMap: Map<string, DishCategoryPenaltyFeatureSet>,
     penaltyWeightCoreIngredient: number,
     penaltyWeightCookingMethod: number,
   ): Array<{
@@ -240,11 +240,6 @@ export class DishCategoriesService {
     rel_score: number;
     final_score: number;
   }> {
-    // #757 【設計】特徴量マップを構築（高速アクセス）
-    const penaltyFeatureMap = new Map<string, DishCategoryPenaltyFeatureSet>();
-    for (const pfs of penaltyFeatureSets) {
-      penaltyFeatureMap.set(pfs.category_id, pfs);
-    }
 
     // #757 【設計】選択済みカテゴリと使用済みジャンル
     const selected: Array<{

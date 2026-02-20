@@ -497,7 +497,7 @@ export class DishCategoriesRepository {
    */
   async findCategoryPenaltyFeatures(
     categoryIds: string[],
-  ): Promise<DishCategoryPenaltyFeatureSet[]> {
+  ): Promise<Map<string, DishCategoryPenaltyFeatureSet>> {
     this.logger.debug(
       'FindCategoryPenaltyFeatures',
       'findCategoryPenaltyFeatures',
@@ -507,7 +507,7 @@ export class DishCategoriesRepository {
     );
 
     if (categoryIds.length === 0) {
-      return [];
+      return new Map();
     }
 
     // #757 【設計】core_ingredient と cooking_method を一括取得（N+1回避）
@@ -554,17 +554,15 @@ export class DishCategoriesRepository {
       }
     }
 
-    const result = Array.from(penaltyFeatureMap.values());
-
     this.logger.debug(
       'CategoryPenaltyFeaturesFound',
       'findCategoryPenaltyFeatures',
       {
-        count: result.length,
+        count: penaltyFeatureMap.size,
         totalFeatures: penaltyFeatures.length,
       },
     );
 
-    return result;
+    return penaltyFeatureMap;
   }
 }
