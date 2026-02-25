@@ -31,6 +31,7 @@ from datetime import datetime, timezone
 from typing import Optional, List, Dict
 from pathlib import Path
 from google.cloud import bigquery
+from google.api_core.exceptions import NotFound
 
 # プロジェクトルートのモジュールをインポート
 sys.path.append(str(Path(__file__).parent))
@@ -216,6 +217,10 @@ def process_images(loader: BigQueryLoader) -> None:
         f"Prepared {len(images)} wikimedia rows ({len(deduped_images)} rows after dedupe)"
     )
 
+    if not deduped_images:
+        logger.warning("No wikimedia images resolved. Skipping staging load and production update.")
+        return
+
     # 3) 今回生成した wikimedia 行を staging にロード
     logger.info(f"Loading {len(deduped_images)} wikimedia rows to staging: {staging_table_id}")
 
@@ -248,9 +253,12 @@ def process_images(loader: BigQueryLoader) -> None:
             GROUP BY source_type
             ORDER BY source_type
         """
-        before_rows = list(loader.client.query(before_counts_sql).result())
-        before_counts = {row.source_type: row.row_count for row in before_rows}
-        logger.info(f"dish_category_images source_type counts before update: {before_counts}")
+        try:
+            before_rows = list(loader.client.query(before_counts_sql).result())
+            before_counts = {row.source_type: row.row_count for row in before_rows}
+            logger.info(f"dish_category_images source_type counts before update: {before_counts}")
+        except NotFound:
+            logger.warning(f"Table {table_id} not found; skipping before-counts log.")
 
         # 4) 本番反映: wikimedia 行のみ差し替え
         delete_wikimedia_sql = f"""
