@@ -18,7 +18,7 @@ python3 4_2_process_images.py
 【注意】
 - Wikidata への新規アクセスは行わない
 - 既存の dish_category_catalog.image_url のみを使用
-- テーブルは CREATE OR REPLACE で再生成される
+- dish_category_images は wikimedia 行のみを差し替え、manual/analysis/partner 行は保持する
 """
 
 import sys
@@ -199,34 +199,28 @@ def process_images(loader: BigQueryLoader) -> None:
     logger.info(f"Processed images - total: {stats['total']}, "
                 f"resolved: {stats['resolved']}, failed: {stats['failed']}")
     
-    # 3) dish_category_images に格納（CREATE OR REPLACE）
-    if not images:
-        logger.warning("No images to load")
-        return
-    
     table_id = f"{loader.dataset_ref}.dish_category_images"
-    logger.info(f"Loading {len(images)} images to {table_id}")
-    
-    # まず既存テーブルを削除して再作成
-    delete_sql = f"DROP TABLE IF EXISTS `{table_id}`"
-    loader.execute_sql(delete_sql)
-    
-    # テーブル作成
-    create_sql = f"""
-        CREATE TABLE `{table_id}` (
-            dish_category_id STRING NOT NULL,
-            image_url        STRING NOT NULL,
-            source_type      STRING NOT NULL,
-            source_ref       STRING,
-            score            FLOAT64,
-            created_at       TIMESTAMP NOT NULL
-        )
-    """
-    loader.execute_sql(create_sql)
-    
-    # データ挿入
+    staging_table_id = f"{loader.dataset_ref}.dish_category_images_wikimedia_staging"
+
+    # 重複排除（dish_category_id, source_type, image_url 単位）
+    deduped_images: List[Dict] = []
+    seen_keys = set()
+    for image in images:
+        key = (image["dish_category_id"], image["source_type"], image["image_url"])
+        if key in seen_keys:
+            continue
+        seen_keys.add(key)
+        deduped_images.append(image)
+
+    logger.info(
+        f"Prepared {len(images)} wikimedia rows ({len(deduped_images)} rows after dedupe)"
+    )
+
+    # 3) 今回生成した wikimedia 行を staging にロード
+    logger.info(f"Loading {len(deduped_images)} wikimedia rows to staging: {staging_table_id}")
+
     job_config = bigquery.LoadJobConfig(
-        write_disposition="WRITE_APPEND",
+        write_disposition="WRITE_TRUNCATE",
         schema=[
             {"name": "dish_category_id", "type": "STRING", "mode": "REQUIRED"},
             {"name": "image_url", "type": "STRING", "mode": "REQUIRED"},
@@ -236,15 +230,76 @@ def process_images(loader: BigQueryLoader) -> None:
             {"name": "created_at", "type": "TIMESTAMP", "mode": "REQUIRED"},
         ]
     )
-    
-    job = loader.client.load_table_from_json(
-        images,
-        table_id,
-        job_config=job_config
-    )
-    job.result()
-    
-    logger.info(f"✅ Loaded {len(images)} images to {table_id}")
+
+    deleted = 0
+    inserted = 0
+    try:
+        job = loader.client.load_table_from_json(
+            deduped_images,
+            staging_table_id,
+            job_config=job_config
+        )
+        job.result()
+
+        # source_type 別件数の before ログ
+        before_counts_sql = f"""
+            SELECT source_type, COUNT(*) AS row_count
+            FROM `{table_id}`
+            GROUP BY source_type
+            ORDER BY source_type
+        """
+        before_rows = list(loader.client.query(before_counts_sql).result())
+        before_counts = {row.source_type: row.row_count for row in before_rows}
+        logger.info(f"dish_category_images source_type counts before update: {before_counts}")
+
+        # 4) 本番反映: wikimedia 行のみ差し替え
+        delete_wikimedia_sql = f"""
+            DELETE FROM `{table_id}`
+            WHERE source_type = 'wikimedia'
+        """
+        deleted = loader.execute_dml(delete_wikimedia_sql)
+        logger.info(f"Deleted wikimedia rows from production table: {deleted}")
+
+        insert_wikimedia_sql = f"""
+            INSERT INTO `{table_id}` (
+                dish_category_id,
+                image_url,
+                source_type,
+                source_ref,
+                score,
+                created_at
+            )
+            SELECT
+                dish_category_id,
+                image_url,
+                source_type,
+                source_ref,
+                score,
+                created_at
+            FROM `{staging_table_id}`
+        """
+        inserted = loader.execute_dml(insert_wikimedia_sql)
+        logger.info(f"Inserted wikimedia rows from staging to production table: {inserted}")
+
+        # source_type 別件数の after ログ
+        after_counts_sql = f"""
+            SELECT source_type, COUNT(*) AS row_count
+            FROM `{table_id}`
+            GROUP BY source_type
+            ORDER BY source_type
+        """
+        after_rows = list(loader.client.query(after_counts_sql).result())
+        after_counts = {row.source_type: row.row_count for row in after_rows}
+        logger.info(f"dish_category_images source_type counts after update: {after_counts}")
+
+        logger.info(
+            f"✅ Refreshed wikimedia images in {table_id}: "
+            f"staged={len(deduped_images)}, deleted={deleted}, inserted={inserted}"
+        )
+    finally:
+        drop_staging_sql = f"DROP TABLE IF EXISTS `{staging_table_id}`"
+        loader.execute_sql(drop_staging_sql)
+        logger.info(f"Dropped staging table: {staging_table_id}")
 
 
 def main():

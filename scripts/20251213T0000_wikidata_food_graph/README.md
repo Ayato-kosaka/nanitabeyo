@@ -227,7 +227,7 @@ BigQuery は「分析・生成の SoT（Single Source of Truth）」であり、
 #### `4_2_process_images.py`
 
 - **入力**: `dish_category_catalog.image_url`
-- **出力**: `dish_category_images`（DROP & CREATE / CREATE OR REPLACE 相当、source_type='wikimedia'）
+- **出力**: `dish_category_images`（`source_type='wikimedia'` のみ staging 経由で差し替え。manual/analysis/partner は保持。反映後に staging は削除）
 - **依存の意味**: image_url 更新（3_2）後、または画像正規化ロジック更新時に再実行する
 
 #### `550_macro_genre/1_3_build_dish_macro_genre_analysis.py`
@@ -388,8 +388,10 @@ BigQuery は「分析・生成の SoT（Single Source of Truth）」であり、
 - **CREATE OR REPLACE / DROP & CREATE（上書き生成）**
   - `3_1_build_dish_category_catalog.py`
   - `4_1_generate_variants.py`
-  - `4_2_process_images.py`
   - `550_macro_genre/*` の analysis 生成
+
+- **DELETE + INSERT（source_type 単位の部分更新）**
+  - `4_2_process_images.py`（`dish_category_images` の `source_type='wikimedia'` のみ置換）
 
 - **MERGE（更新 + 場合により削除を含む）**
   - `3_2_refresh_dish_category_catalog_core.py`（候補集合に無い item を落とす挙動があり得る）
