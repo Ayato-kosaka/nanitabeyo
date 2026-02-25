@@ -622,56 +622,6 @@ class BigQueryLoader:
         
         logger.info(f"Successfully loaded {len(edges)} edges")
     
-    def generate_dish_category_catalog(self) -> None:
-        """
-        dish_category_catalog テーブルを生成
-        blacklist を除外し、labels/desc/tags を付与
-        """
-        table_id = f"{self.dataset_ref}.dish_category_catalog"
-        logger.info(f"Generating dish_category_catalog table")
-        
-        # #550 【設計】CREATE OR REPLACE で再生成可能にする
-        sql = f"""
-        CREATE OR REPLACE TABLE `{table_id}` AS
-        WITH non_blacklisted AS (
-          -- blacklist に含まれていない dish を抽出
-          SELECT
-            n.item_qid,
-            n.label_ja,
-            n.label_en,
-            n.desc_ja,
-            n.desc_en
-          FROM `{self.dataset_ref}.food_nodes_raw` n
-          LEFT JOIN `{self.dataset_ref}.dish_blacklist` b
-            ON n.item_qid = b.dish_qid
-          WHERE b.dish_qid IS NULL
-        ),
-        tags_aggregated AS (
-          -- depth<=5 の祖先を tags として集約
-          SELECT
-            fp.child_qid AS item_qid,
-            ARRAY_AGG(DISTINCT fp.ancestor_qid ORDER BY fp.ancestor_qid) AS tags
-          FROM `{self.dataset_ref}.food_paths` fp
-          WHERE fp.depth <= 5
-            AND fp.depth > 0  -- #550 【設計】自分自身 (depth=0) は除外
-          GROUP BY fp.child_qid
-        )
-        SELECT
-          nb.item_qid,
-          nb.label_ja,
-          nb.label_en,
-          nb.desc_ja,
-          nb.desc_en,
-          NULL AS image_url,  -- #550 【設計】image_url は今回スコープ外
-          COALESCE(ta.tags, []) AS tags
-        FROM non_blacklisted nb
-        LEFT JOIN tags_aggregated ta
-          ON nb.item_qid = ta.item_qid
-        """
-        
-        self.execute_sql(sql)
-        logger.info("Successfully generated dish_category_catalog")
-    
     def generate_dish_macro_genre_analysis(self, max_candidates: int = 10) -> None:
         """
         dish_macro_genre_analysis テーブルを生成
