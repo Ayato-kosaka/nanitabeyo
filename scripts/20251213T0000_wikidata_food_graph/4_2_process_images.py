@@ -18,7 +18,7 @@ python3 4_2_process_images.py
 【注意】
 - Wikidata への新規アクセスは行わない
 - 既存の dish_category_catalog.image_url のみを使用
-- dish_category_images は wikimedia 行のみを差し替え、manual/analysis/partner 行は保持する
+- dish_category_images は wikimedia 行のみを差し替え、manual/analysis/partner 行は保持する（※ 事前に dish_category_images テーブルが BigQuery 上に存在し、想定スキーマで作成されていることが前提。このスクリプト自体はテーブル作成を行わない）
 """
 
 import sys
