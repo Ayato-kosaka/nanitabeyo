@@ -104,9 +104,13 @@ export class DishCategoriesService {
             values.map((v) => {
               const float = parseFloat(v);
               if (isNaN(float) || float < 0) {
-                this.logger.error('InvalidRemoteConfigValue', 'getRecommendations', {
-                  key: v,
-                });
+                this.logger.error(
+                  'InvalidRemoteConfigValue',
+                  'getRecommendations',
+                  {
+                    key: v,
+                  },
+                );
                 throw new BadRequestException(
                   `Invalid penalty weight value in remote config: ${v}`,
                 );
@@ -243,7 +247,6 @@ export class DishCategoriesService {
     rel_score: number;
     final_score: number;
   }> {
-
     // #757 【設計】選択済みカテゴリと使用済みジャンル
     const selected: Array<{
       category_id: string;
@@ -363,7 +366,8 @@ export class DishCategoriesService {
         {
           step: selected.length,
           selected: bestCandidate.category_id,
-          selectedRank: candidatesRankMap.get(bestCandidate.category_id) || null,
+          selectedRank:
+            candidatesRankMap.get(bestCandidate.category_id) || null,
           base_score: bestCandidate.final_score,
           penalty: bestPenalty,
           adjusted_score: bestScore,
