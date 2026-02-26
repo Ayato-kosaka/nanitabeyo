@@ -90,7 +90,7 @@ export class DishCategoriesService {
 
       // #757 【設計】Step 2-2: 特徴量取得（core_ingredient / cooking_method）
       const candidateIds = candidates.map((c) => c.category_id);
-      const penaltyFeatureSets =
+      const penaltyFeatureMap =
         await this.repo.findCategoryPenaltyFeatures(candidateIds);
 
       // #757 【設計】Step 2-2.5: ペナルティ重み取得
@@ -104,6 +104,9 @@ export class DishCategoriesService {
             values.map((v) => {
               const float = parseFloat(v);
               if (isNaN(float) || float < 0) {
+                this.logger.error('InvalidRemoteConfigValue', 'getRecommendations', {
+                  key: v,
+                });
                 throw new BadRequestException(
                   `Invalid penalty weight value in remote config: ${v}`,
                 );
@@ -115,7 +118,7 @@ export class DishCategoriesService {
       // #757 【設計】Step 2-3: 逐次最適化でスレート構成
       const selectedCandidates = this.selectWithSequentialOptimization(
         candidates,
-        penaltyFeatureSets,
+        penaltyFeatureMap,
         penaltyWeightCoreIngredient,
         penaltyWeightCookingMethod,
       );
@@ -250,6 +253,9 @@ export class DishCategoriesService {
     }> = [];
     const selectedCategoryIds = new Set<string>();
     const usedGenres = new Set<string>();
+    const candidatesRankMap = new Map(
+      candidates.map((c, idx) => [c.category_id, idx + 1]),
+    ); // ログ用に順位マップを作成
 
     // #757 【設計】特徴量の出現カウント（重複ペナルティ用）
     const penaltyFeatureCounts = new Map<string, number>();
@@ -294,17 +300,17 @@ export class DishCategoriesService {
       let bestScore = -Infinity;
       let bestPenalty = 0;
 
+      const hasUnusedGenreCandidates = candidates.some(
+        (c) =>
+          !selectedCategoryIds.has(c.category_id) &&
+          (!c.macro_genre || !usedGenres.has(c.macro_genre)),
+      );
       for (const candidate of candidates) {
         // 既選択済みはスキップ
         if (selectedCategoryIds.has(candidate.category_id)) continue;
 
         // #757 【設計】macro_genre 重複抑制（可能な限り）
         // 候補が多い場合は重複を避ける、少ない場合は許容して6件充足を優先
-        const hasUnusedGenreCandidates = candidates.some(
-          (c) =>
-            !selectedCategoryIds.has(c.category_id) &&
-            (!c.macro_genre || !usedGenres.has(c.macro_genre)),
-        );
         if (
           hasUnusedGenreCandidates &&
           candidate.macro_genre &&
@@ -357,6 +363,7 @@ export class DishCategoriesService {
         {
           step: selected.length,
           selected: bestCandidate.category_id,
+          selectedRank: candidatesRankMap.get(bestCandidate.category_id) || null,
           base_score: bestCandidate.final_score,
           penalty: bestPenalty,
           adjusted_score: bestScore,
@@ -370,6 +377,9 @@ export class DishCategoriesService {
       {
         selectedCount: selected.length,
         targetSize: TARGET_SLATE_SIZE,
+        penaltyWeightCoreIngredient,
+        penaltyWeightCookingMethod,
+        penaltyFeatureMapSize: penaltyFeatureMap.size,
       },
     );
 
@@ -392,6 +402,7 @@ export class DishCategoriesService {
     penaltyWeightCookingMethod: number,
   ): number {
     const penaltyFeatureSet = penaltyFeatureMap.get(categoryId);
+
     if (!penaltyFeatureSet) return 0;
 
     let penalty = 0;
