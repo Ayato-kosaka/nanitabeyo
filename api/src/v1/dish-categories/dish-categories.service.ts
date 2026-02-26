@@ -120,6 +120,10 @@ export class DishCategoriesService {
           );
 
       // #757 【設計】Step 2-3: 逐次最適化でスレート構成
+      // IMPORTANT:
+      // - final_score は jitter なしの確定値
+      // - order_score は jitter あり（dish_category_recommendation_score_jitter_ratio）
+      // したがって逐次最適化の比較軸は order_score を使う必要がある
       const selectedCandidates = this.selectWithSequentialOptimization(
         candidates,
         penaltyFeatureMap,
@@ -229,9 +233,12 @@ export class DishCategoriesService {
    * #757 【仕様】逐次最適化による6枚選抜（Greedy + 重複ペナルティ）
    *
    * @description
-   * final_score を尊重しつつ、core_ingredient / cooking_method の重複を抑制する。
-   * 1枚目は order_score 上位から選択（既存の jitter 尊重）。
-   * 2〜6枚目は、S(i) = final_score - penalty(i) で再スコアリングして選択。
+   * order_score（jitter反映済み）を尊重しつつ、
+   * core_ingredient / cooking_method の重複を抑制する。
+   *
+   * - 1枚目は order_score 上位から選択
+   * - 2〜6枚目は S(i) = order_score - penalty(i) で再スコアリングして選択
+   *
    * penalty(i) = Σ (weight_f * featureScore * count(key)^2)
    *
    * macro_genre の重複抑制も可能な限り維持する。
@@ -244,24 +251,34 @@ export class DishCategoriesService {
   ): Array<{
     category_id: string;
     macro_genre: string | null;
-    rel_score: number;
-    final_score: number;
   }> {
     // #757 【設計】選択済みカテゴリと使用済みジャンル
     const selected: Array<{
       category_id: string;
       macro_genre: string | null;
-      rel_score: number;
-      final_score: number;
     }> = [];
     const selectedCategoryIds = new Set<string>();
     const usedGenres = new Set<string>();
-    const candidatesRankMap = new Map(
-      candidates.map((c, idx) => [c.category_id, idx + 1]),
-    ); // ログ用に順位マップを作成
 
     // #757 【設計】特徴量の出現カウント（重複ペナルティ用）
     const penaltyFeatureCounts = new Map<string, number>();
+
+    // 便利：rank参照（ログ用）
+    const rankById = new Map<string, number>();
+    for (let i = 0; i < candidates.length; i++) {
+      rankById.set(candidates[i].category_id, i + 1);
+    }
+
+    this.logger.debug(
+      'SequentialOptimizationInit',
+      'selectWithSequentialOptimization',
+      {
+        candidatesCount: candidates.length,
+        penaltyFeatureMapSize: penaltyFeatureMap.size,
+        penaltyWeightCoreIngredient,
+        penaltyWeightCookingMethod,
+      },
+    );
 
     // #757 【設計】1枚目: order_score 上位（既存の jitter を尊重）
     if (candidates.length > 0) {
@@ -269,8 +286,6 @@ export class DishCategoriesService {
       selected.push({
         category_id: first.category_id,
         macro_genre: first.macro_genre,
-        rel_score: first.rel_score,
-        final_score: first.final_score,
       });
       selectedCategoryIds.add(first.category_id);
       if (first.macro_genre) usedGenres.add(first.macro_genre);
@@ -287,9 +302,11 @@ export class DishCategoriesService {
         {
           step: 1,
           selected: first.category_id,
-          base_score: first.final_score,
+          selectedRank: rankById.get(first.category_id) ?? null,
+          base_score: first.order_score, // order_score を基準に統一
+          base_final_score: first.final_score,
           penalty: 0,
-          adjusted_score: first.final_score,
+          adjusted_score: first.order_score,
         },
       );
     }
@@ -300,20 +317,21 @@ export class DishCategoriesService {
       selectedCategoryIds.size < candidates.length
     ) {
       let bestCandidate: DishCategoryCandidateWithScores | null = null;
-      let bestScore = -Infinity;
+      let bestAdjusted = -Infinity;
       let bestPenalty = 0;
 
+      // macro_genre の “可能な限り重複回避” のための判定
       const hasUnusedGenreCandidates = candidates.some(
         (c) =>
           !selectedCategoryIds.has(c.category_id) &&
           (!c.macro_genre || !usedGenres.has(c.macro_genre)),
       );
+
       for (const candidate of candidates) {
         // 既選択済みはスキップ
         if (selectedCategoryIds.has(candidate.category_id)) continue;
 
         // #757 【設計】macro_genre 重複抑制（可能な限り）
-        // 候補が多い場合は重複を避ける、少ない場合は許容して6件充足を優先
         if (
           hasUnusedGenreCandidates &&
           candidate.macro_genre &&
@@ -331,11 +349,11 @@ export class DishCategoriesService {
           penaltyWeightCookingMethod,
         );
 
-        // #757 【設計】調整スコア = base - penalty
-        const adjustedScore = candidate.final_score - penalty;
+        // #757 【重要】調整スコア = order_score（jitter反映済み） - penalty
+        const adjusted = candidate.order_score - penalty;
 
-        if (adjustedScore > bestScore) {
-          bestScore = adjustedScore;
+        if (adjusted > bestAdjusted) {
+          bestAdjusted = adjusted;
           bestCandidate = candidate;
           bestPenalty = penalty;
         }
@@ -348,8 +366,6 @@ export class DishCategoriesService {
       selected.push({
         category_id: bestCandidate.category_id,
         macro_genre: bestCandidate.macro_genre,
-        rel_score: bestCandidate.rel_score,
-        final_score: bestCandidate.final_score,
       });
       selectedCategoryIds.add(bestCandidate.category_id);
       if (bestCandidate.macro_genre) usedGenres.add(bestCandidate.macro_genre);
@@ -366,11 +382,11 @@ export class DishCategoriesService {
         {
           step: selected.length,
           selected: bestCandidate.category_id,
-          selectedRank:
-            candidatesRankMap.get(bestCandidate.category_id) || null,
-          base_score: bestCandidate.final_score,
+          selectedRank: rankById.get(bestCandidate.category_id) ?? null,
+          base_score: bestCandidate.order_score,
+          base_final_score: bestCandidate.final_score,
           penalty: bestPenalty,
-          adjusted_score: bestScore,
+          adjusted_score: bestAdjusted,
         },
       );
     }
@@ -406,7 +422,6 @@ export class DishCategoriesService {
     penaltyWeightCookingMethod: number,
   ): number {
     const penaltyFeatureSet = penaltyFeatureMap.get(categoryId);
-
     if (!penaltyFeatureSet) return 0;
 
     let penalty = 0;
@@ -531,7 +546,6 @@ export class DishCategoriesService {
 
     this.logger.debug('ConstructedSlate', 'constructSlate', {
       selectedCount: finalSelected.length,
-      // ログ設計のリスクがあるため、安定したら項目を減らす
       selectedDetails: finalSelected,
     });
 
@@ -586,8 +600,6 @@ export class DishCategoriesService {
     selectedCandidates: Array<{
       category_id: string;
       macro_genre: string | null;
-      rel_score: number;
-      final_score: number;
     }>,
     localizedTexts: PrismaDishCategoryLocalizedText[],
     categories: Array<{
