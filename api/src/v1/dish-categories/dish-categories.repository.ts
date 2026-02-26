@@ -12,6 +12,7 @@ import { Prisma } from '../../../../shared/prisma';
 import {
   DishCategoryCandidateNormalizedInput,
   DishCategoryCandidateWithScores,
+  DishCategoryPenaltyFeatureSet,
 } from './dish-categories.interface';
 
 @Injectable()
@@ -487,5 +488,81 @@ export class DishCategoriesRepository {
     });
 
     return result;
+  }
+
+  /**
+   * #757 【仕様】特徴量（core_ingredient / cooking_method）を一括取得
+   * @param categoryIds 対象カテゴリIDリスト
+   * @returns カテゴリIDごとの特徴量セット（逐次最適化の重複ペナルティ計算用）
+   */
+  async findCategoryPenaltyFeatures(
+    categoryIds: string[],
+  ): Promise<Map<string, DishCategoryPenaltyFeatureSet>> {
+    this.logger.debug(
+      'FindCategoryPenaltyFeatures',
+      'findCategoryPenaltyFeatures',
+      {
+        categoryIdsCount: categoryIds.length,
+      },
+    );
+
+    if (categoryIds.length === 0) {
+      return new Map();
+    }
+
+    // #757 【設計】core_ingredient と cooking_method を一括取得（N+1回避）
+    const penaltyFeatures =
+      await this.prisma.prisma.dish_category_features.findMany({
+        where: {
+          dish_category_id: { in: categoryIds },
+          feature_type: { in: ['core_ingredient', 'cooking_method'] },
+        },
+        select: {
+          dish_category_id: true,
+          feature_type: true,
+          feature_key: true,
+          score: true,
+        },
+      });
+
+    // #757 【設計】カテゴリIDごとにグループ化
+    const penaltyFeatureMap = new Map<string, DishCategoryPenaltyFeatureSet>();
+
+    for (const categoryId of categoryIds) {
+      penaltyFeatureMap.set(categoryId, {
+        category_id: categoryId,
+        core_ingredients: [],
+        cooking_methods: [],
+      });
+    }
+
+    for (const penaltyFeature of penaltyFeatures) {
+      const categoryPenaltyFeatures = penaltyFeatureMap.get(
+        penaltyFeature.dish_category_id,
+      );
+      if (!categoryPenaltyFeatures) continue;
+
+      const penaltyFeatureData = {
+        feature_key: penaltyFeature.feature_key,
+        score: penaltyFeature.score,
+      };
+
+      if (penaltyFeature.feature_type === 'core_ingredient') {
+        categoryPenaltyFeatures.core_ingredients.push(penaltyFeatureData);
+      } else if (penaltyFeature.feature_type === 'cooking_method') {
+        categoryPenaltyFeatures.cooking_methods.push(penaltyFeatureData);
+      }
+    }
+
+    this.logger.debug(
+      'CategoryPenaltyFeaturesFound',
+      'findCategoryPenaltyFeatures',
+      {
+        count: penaltyFeatureMap.size,
+        totalFeatures: penaltyFeatures.length,
+      },
+    );
+
+    return penaltyFeatureMap;
   }
 }
