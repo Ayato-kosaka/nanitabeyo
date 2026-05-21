@@ -92,6 +92,7 @@ export function AvatarBubbleMarker({
 						source={uri ? { uri } : undefined}
 						contentFit="cover"
 						transition={100}
+						cachePolicy="memory-disk" // #785 DishMediaContent と同一ポリシーにすることで iOS SDWebImage のパイプライン競合を防止
 					/>
 				</View>
 
