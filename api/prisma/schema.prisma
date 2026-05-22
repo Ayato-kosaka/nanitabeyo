@@ -250,7 +250,6 @@ model dish_reviews {
 
   @@index([created_at], map: "idx_dish_reviews_created_at")
   @@index([dish_id], map: "idx_dish_reviews_dish")
-  @@index([comment_tsv], map: "idx_dish_reviews_fulltext", type: Gin)
   @@schema("dev")
 }
 

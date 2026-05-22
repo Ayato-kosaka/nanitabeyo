@@ -6,7 +6,7 @@ import DishMediaContent from "./DishMediaContent";
 import { AvatarBubbleMarker } from "@/features/mapMarkers";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
-import * as Crypto from "expo-crypto";
+import { generateUUID } from "@/lib/uuid";
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from "react-native-reanimated";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import {
@@ -102,7 +102,7 @@ export default function DishMediaMap({
 	const { logFrontendEvent } = useLogger();
 
 	// 一意なセッションID（DishMediaContent へ伝搬）
-	const sessionId = useRef(Crypto.randomUUID());
+	const sessionId = useRef(generateUUID());
 
 	// #605 【設計】Carousel の上下移動量（0 = Expanded, MAX_TRANSLATE_Y = Collapsed）
 	const MAX_TRANSLATE_Y = height * (EXPANDED_RATIO - COLLAPSED_RATIO);

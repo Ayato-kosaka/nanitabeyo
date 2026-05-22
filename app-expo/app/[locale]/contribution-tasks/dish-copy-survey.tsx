@@ -20,7 +20,7 @@ import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { HelpCircle, CheckCircle2, Circle } from "lucide-react-native";
 import Carousel from "react-native-reanimated-carousel";
-import * as Crypto from "expo-crypto";
+import { generateUUID } from "@/lib/uuid";
 
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
@@ -171,7 +171,7 @@ export default function DishCopySurveyPage() {
 	const [dishes, setDishes] = useState<DishData[]>([]);
 
 	// セッション情報
-	const [sessionId] = useState(() => Crypto.randomUUID());
+	const [sessionId] = useState(() => generateUUID());
 	const [startedAt] = useState(() => new Date().toISOString());
 
 	// 回答管理

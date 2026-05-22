@@ -15,7 +15,7 @@ import { StyleSheet, FlatList, ViewToken, View, ListRenderItemInfo } from "react
 import DishMediaContent from "./DishMediaContent";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
-import * as Crypto from "expo-crypto";
+import { generateUUID } from "@/lib/uuid";
 import {
 	DishMediaEntriesStore,
 	NormalizedDishMediaEntry,
@@ -94,7 +94,7 @@ export default function DishMediaFeed({
 	const { logFrontendEvent } = useLogger();
 
 	// 一意なセッションID（DishMediaContent へ伝搬）
-	const sessionId = useRef(Crypto.randomUUID());
+	const sessionId = useRef(generateUUID());
 
 	// --- ライフサイクルログ（初回） ------------------------------
 	useEffect(() => {
