@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import { AppState } from "react-native";
-import * as Crypto from "expo-crypto";
+import { generateUUID } from "@/lib/uuid";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useLogger } from "@/hooks/useLogger";
 import { getRemoteConfig } from "@/lib/remoteConfig";
@@ -43,7 +43,7 @@ export const useMediaTracking = ({ isActive, sessionId, source, dishMedia }: Use
 				});
 
 			// 新しいインプレッションを作成
-			const id = Crypto.randomUUID();
+			const id = generateUUID();
 			impressionId.current = id;
 			watchStartTime.current = new Date();
 			watchMs.current = 0;

@@ -24,7 +24,7 @@ import {
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { HelpCircle, ChevronDown, MessageCircle } from "lucide-react-native";
-import * as Crypto from "expo-crypto";
+import { generateUUID } from "@/lib/uuid";
 
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
@@ -121,7 +121,7 @@ export default function DishRankingSummaryScreen() {
 	} | null>(null);
 
 	/* ---- Session tracking ---- */
-	const sessionId = useMemo(() => Crypto.randomUUID(), []);
+	const sessionId = useMemo(() => generateUUID(), []);
 	const startedAt = useMemo(() => new Date().toISOString(), []);
 
 	/* ---- BlurModal ---- */

@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 
-type LoadState = "loading" | "loaded" | "error";
+// #785 ローディングが終わらない不具合に対応するため追加（"idle" 状態追加）
+type LoadState = "idle" | "loading" | "loaded" | "error";
 
 interface UseImageLoadWithRetryOptions {
 	uri: string | undefined;
@@ -35,7 +36,8 @@ export const useImageLoadWithRetry = ({
 	onErrorCountChange,
 	onGiveUp,
 }: UseImageLoadWithRetryOptions) => {
-	const [loadState, setLoadState] = useState<LoadState>("loading");
+	// #785 初期値を "loading" から "idle" に変更（メモリキャッシュヒット時にイベントが発火しなくてもスケルトンが残らないよう）
+	const [loadState, setLoadState] = useState<LoadState>("idle");
 	const [errorCount, setErrorCount] = useState(0);
 	const [isRetrying, setIsRetrying] = useState(false);
 	const [reloadToken, setReloadToken] = useState(0);
@@ -44,6 +46,9 @@ export const useImageLoadWithRetry = ({
 
 	const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const prevSourceKeyRef = useRef<string | undefined>(undefined);
+	// #785 ローディングが終わらない不具合に対応するため追加
+	// 初回マウント済みフラグ（マウント後のURI変更のみリセットするため）
+	const isMountedRef = useRef(false);
 
 	// uri + cacheBustingKey をまとめた “ソースキー”
 	const sourceKey = useMemo(() => {
@@ -163,16 +168,22 @@ export const useImageLoadWithRetry = ({
 	);
 
 	// uri 変更時に状態をリセット
+	// #785 初回マウント時はスキップ（onDisplay/onLoad が useEffect より先に発火すると "loaded" → "idle" の逆戻りが起きるため）
 	useEffect(() => {
 		if (prevSourceKeyRef.current !== sourceKey) {
 			prevSourceKeyRef.current = sourceKey;
-			setErrorCount(0);
-			setLastErrorMessage(undefined); // #715 【設計】エラーメッセージもリセット
-			setIsRetrying(false);
-			setReloadToken(0);
-			setLoadState("loading"); // #715 【設計】新しい URI では loading 状態から開始
-			clearTimer();
+
+			if (isMountedRef.current) {
+				// URI が実際に変わった場合のみリセット（初回マウント時はスキップ）
+				setErrorCount(0);
+				setLastErrorMessage(undefined);
+				setIsRetrying(false);
+				setReloadToken(0);
+				setLoadState("idle"); // #785 "loading" ではなく "idle" にリセット
+				clearTimer();
+			}
 		}
+		isMountedRef.current = true;
 	}, [sourceKey, clearTimer]);
 
 	const hasGivenUp = errorCount > maxAutoRetry;
