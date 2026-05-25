@@ -56,7 +56,7 @@ class BigQueryClient:
         
         Args:
             generations: 生成結果のリスト
-                         [{'item_qid': 'Q...', 'locale': 'ja-JP', 
+                         [{'item_qid': 'Q...', 'locale': 'ja',
                            'topic_title': '...', 'tagline': '...', 
                            'confidence': 'high', 'model': 'gpt-4.1-mini', 
                            'run_id': '...', 'note': '...'}, ...]

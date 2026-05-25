@@ -2,9 +2,15 @@
 
 ## 概要
 
-このディレクトリには、**料理カテゴリ（Wikidata QID）ごとに感情訴求型の `topic_title` / `tagline` を多言語（ja-JP, en）で生成**するスクリプトが含まれています。
+このディレクトリには、**料理カテゴリ（Wikidata QID）ごとに感情訴求型の `topic_title` / `tagline` を多言語（ja, en）で生成**するスクリプトが含まれています。
 
 チケット: #582
+
+## #782 対応による locale 方針
+
+Issue #782 で、モバイルアプリから `languageTag: "ja"` が送信された際に、`dish_category_localized_text` 側の日本語 locale が `ja` ではなく `ja-JP` で登録されていたため、日本語の `topic_title` / `tagline` が取得できず英語にフォールバックする不具合が確認されました。
+
+この不具合の再発防止として、#582 パイプラインでは日本語 locale を `ja` に統一します。既存の `wikidata_food_copy_generations` と `dish_category_localized_text_catalog` に残っている旧 locale `ja-JP` も `ja` に更新してから同期します。
 
 ## 目的
 
@@ -19,7 +25,7 @@
 
 | レイヤ      | テーブル                               | 方針                         |
 | ----------- | -------------------------------------- | ---------------------------- |
-| LLM生成ログ | `wikidata_food_copy_generations`       | append-only / 全run保持      |
+| LLM生成ログ | `wikidata_food_copy_generations`       | 原則 append-only / 全run保持（#782 の locale 移行のみ既存行を更新）      |
 | 採用版      | `dish_category_localized_text_catalog` | **常に採用版のみ・ユニーク** |
 
 - **confidence は catalog に持たない** - 採用条件は投入時のフィルタで完結
@@ -30,11 +36,11 @@
 各料理 × locale に対して以下を生成：
 
 1. **topic_title**: 「形容詞 + 料理名」形式（最大12〜14文字）
-   - 例（ja-JP）: 「炭火香る焼き鳥」「とろける生チョコ」
+   - 例（ja）: 「炭火香る焼き鳥」「とろける生チョコ」
    - 例（en）: "Smoky Yakitori", "Silky Tiramisu"
 
 2. **tagline**: 1文のみのキャッチコピー（最大45文字）
-   - 例（ja-JP）: 「噛むほどに旨味が広がり、心まで満たされる。」
+   - 例（ja）: 「噛むほどに旨味が広がり、心まで満たされる。」
    - 例（en）: "Comfort in every bite."
 
 ### 2-pass 方式
@@ -186,7 +192,7 @@ python3 2_6_publish_catalog.py  # Pass2 優先で統合
 主要な設定項目：
 
 - `dataset`: BigQuery データセット（`food-scroll.wikidata_food_graph`）
-- `locales`: 対象locale（`["ja-JP", "en"]`）
+- `locales`: 対象locale（`["ja", "en"]`）
 - `run_id_prefix`: 実行ID接頭辞（例：`20251221T0000`）
 - `model_pass1`: Pass1 モデル（`gpt-4.1-mini`）
 - `model_pass2`: Pass2 モデル（`gpt-4.1`）
@@ -206,7 +212,7 @@ LLM 生成結果を append-only で保持するテーブル。
 **カラム:**
 
 - `item_qid`: Wikidata QID
-- `locale`: BCP47 形式（`ja-JP`, `en`）
+- `locale`: BCP47 形式（`ja`, `en`）
 - `topic_title`: 感情訴求型タイトル
 - `tagline`: キャッチコピー
 - `confidence`: 信頼度（`high` / `medium` / `low`）
@@ -241,7 +247,25 @@ LLM 生成結果を append-only で保持するテーブル。
 - 件数（input_count, success_count, error_count）
 - Pass2 発火率（triggered_count / trigger_rate）
 - Confidence 分布（high, medium, low の件数）
-- Locale 分布（ja-JP, en の件数）
+- Locale 分布（ja, en の件数）
+
+## 既存データの locale 更新
+
+#782 対応では、publish 時の `ja-JP -> ja` 読み替えは行いません。既存データ自体を `ja` に更新し、以後の生成・publish・sync が同じ locale 方針で動く状態にします。
+
+```sql
+-- 生成履歴側: 旧 locale を ja に更新
+UPDATE `food-scroll.wikidata_food_graph.wikidata_food_copy_generations`
+SET locale = "ja"
+WHERE locale = "ja-JP";
+
+-- 採用 catalog 側: 配信対象の旧 locale を ja に更新
+UPDATE `food-scroll.wikidata_food_graph.dish_category_localized_text_catalog`
+SET locale = "ja"
+WHERE locale = "ja-JP";
+```
+
+更新後、`9_3_sync_dish_category_localized_text.py` で BigQuery から PostgreSQL へ同期します。
 
 ## BigQuery での確認方法
 
