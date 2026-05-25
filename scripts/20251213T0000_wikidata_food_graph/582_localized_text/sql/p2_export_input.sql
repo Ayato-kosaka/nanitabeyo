@@ -26,12 +26,12 @@ SELECT
   p.locale,
   -- #582 【設計】locale に応じて適切なラベル・説明を選択
   CASE p.locale
-    WHEN 'ja-JP' THEN COALESCE(c.label_ja, c.label_en, '')
+    WHEN 'ja' THEN COALESCE(c.label_ja, c.label_en, '')
     WHEN 'en' THEN COALESCE(c.label_en, '')
     ELSE ''
   END AS label,
   CASE p.locale
-    WHEN 'ja-JP' THEN COALESCE(c.desc_ja, c.desc_en, '')
+    WHEN 'ja' THEN COALESCE(c.desc_ja, c.desc_en, '')
     WHEN 'en' THEN COALESCE(c.desc_en, '')
     ELSE ''
   END AS description,

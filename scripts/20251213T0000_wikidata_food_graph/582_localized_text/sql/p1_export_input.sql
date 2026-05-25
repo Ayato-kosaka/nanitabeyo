@@ -33,9 +33,9 @@ catalog_items AS (
     aliases_json
   FROM `{dataset}.dish_category_catalog`
 ),
--- #582 【設計】locale × item のクロス集計（ja-JP, en）
+-- #582 【設計】locale × item のクロス集計（ja, en）
 locales AS (
-  SELECT 'ja-JP' AS locale UNION ALL
+  SELECT 'ja' AS locale UNION ALL
   SELECT 'en' AS locale
 )
 
@@ -43,12 +43,12 @@ SELECT
   c.item_qid,
   l.locale,
   CASE l.locale
-    WHEN 'ja-JP' THEN COALESCE(c.label_ja, c.label_en, '')
+    WHEN 'ja' THEN COALESCE(c.label_ja, c.label_en, '')
     WHEN 'en' THEN COALESCE(c.label_en, '')
     ELSE ''
   END AS label,
   CASE l.locale
-    WHEN 'ja-JP' THEN COALESCE(c.desc_ja, c.desc_en, '')
+    WHEN 'ja' THEN COALESCE(c.desc_ja, c.desc_en, '')
     WHEN 'en' THEN COALESCE(c.desc_en, '')
     ELSE ''
   END AS description,

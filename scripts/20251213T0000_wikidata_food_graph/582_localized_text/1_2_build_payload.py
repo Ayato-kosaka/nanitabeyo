@@ -37,7 +37,7 @@ def load_config():
 
 def get_prompt_module(locale: str):
     """locale に応じた prompt module を取得"""
-    if locale == "ja-JP":
+    if locale == "ja":
         return localized_text_ja
     elif locale == "en":
         return localized_text_en
