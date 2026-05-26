@@ -1,3 +1,8 @@
+---
+name: user-feedback-forensics
+description: Analyze user feedback and extract actionable insights
+---
+
 # User Feedback Forensics Skill
 
 ## Purpose
