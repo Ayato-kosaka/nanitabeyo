@@ -6,7 +6,6 @@ import VideoPlayer from "../../../components/VideoPlayer";
 import { ActionButtons } from "./ActionButtons";
 import { DishReviewsSection } from "./DishReviewsSection";
 import { useMediaTracking } from "../hooks/useMediaTracking";
-import { getCacheKeyForImage } from "@/lib/image";
 import i18n from "@/lib/i18n";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import {
@@ -21,8 +20,8 @@ import { useAPICall } from "@/hooks/useAPICall";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { SkeletonShimmer } from "@/components/SkeletonShimmer";
-import { useLogger } from "@/hooks/useLogger";
-import { useImageLoadWithRetry } from "@/hooks/useImageLoadWithRetry";
+import { type DishMediaBackgroundImageState } from "@/features/dishMedia/hooks/useDishMediaBackgroundImageResources";
+import { getDishMediaBackgroundImageUri } from "@/features/dishMedia/utils/backgroundImage";
 
 interface DishMediaContentProps {
 	id: string;
@@ -34,6 +33,7 @@ interface DishMediaContentProps {
 	idType: IdType;
 	onCardPress?: (entry: NormalizedDishMediaEntry) => void;
 	displayIndex?: number;
+	backgroundImageState: DishMediaBackgroundImageState;
 }
 
 export default function DishMediaContent({
@@ -46,6 +46,7 @@ export default function DishMediaContent({
 	idType,
 	onCardPress, // #613 【設計】カード押下時のコールバック
 	displayIndex,
+	backgroundImageState,
 }: DishMediaContentProps) {
 	// #530 【設計】dishMediaEntry を useState で管理し、ポーリング結果を反映できるようにする
 	const [dishMediaEntry, setDishMediaEntry] = useState<NormalizedDishMediaEntry>(() => {
@@ -56,7 +57,6 @@ export default function DishMediaContent({
 	});
 
 	const { callBackend } = useAPICall();
-	const { logFrontendEvent } = useLogger();
 	const insets = useSafeAreaInsets();
 	const [rightActionsWidth, setRightActionsWidth] = useState(0);
 
@@ -75,15 +75,7 @@ export default function DishMediaContent({
 	const hasMediaUrl = Boolean(dishMediaEntry.dish_media.mediaUrl);
 
 	// #630 【設計】背景画像として使用する URI を統一（動画/画像で分岐）
-	const bgUri = useMemo(() => {
-		if (isVideo) {
-			// #630 動画の場合: 常に thumbnail を背景として使用
-			return dishMediaEntry.dish_media.thumbnailImageUrl;
-		} else {
-			// #630 画像の場合: mediaUrl があれば使用、なければ thumbnail
-			return dishMediaEntry.dish_media.mediaUrl ?? dishMediaEntry.dish_media.thumbnailImageUrl;
-		}
-	}, [isVideo, dishMediaEntry.dish_media.mediaUrl, dishMediaEntry.dish_media.thumbnailImageUrl]);
+	const bgUri = useMemo(() => getDishMediaBackgroundImageUri(dishMediaEntry), [dishMediaEntry]);
 
 	// #630 【設計】防御的プログラミング: bgUri が undefined の場合に警告
 	useEffect(() => {
@@ -96,54 +88,6 @@ export default function DishMediaContent({
 			});
 		}
 	}, [bgUri]); // #630 bgUri 変更時のみチェック（他の値はログ用コンテキストのみ）
-
-	// #630 【設計】背景画像のロード状態管理（薄い共通化）
-	const {
-		uri: bgUriWithBuster,
-		loadState: bgLoadState,
-		handlers: bgLoadHandlers,
-	} = useImageLoadWithRetry({
-		uri: bgUri,
-		cacheBustingKey: dishMediaEntry.dish_media.id,
-		enableAutoRetry: true,
-		onErrorCountChange: (count, errorMessage) => {
-			// #715 【設計】error_message をログに追加
-			logFrontendEvent({
-				event_name: "dish_media_background_image_load_error",
-				error_level: "log",
-				payload: {
-					media_id: dishMediaEntry.dish_media.id,
-					media_type: dishMediaEntry.dish_media.media_type,
-					bg_uri: bgUri,
-					error_count: count,
-					error_message: errorMessage,
-				},
-			});
-		},
-		onGiveUp: (count, errorMessage) => {
-			// #715 【設計】error_message をログに追加
-			logFrontendEvent({
-				event_name: "dish_media_background_image_load_error",
-				error_level: "error",
-				payload: {
-					media_id: dishMediaEntry.dish_media.id,
-					media_type: dishMediaEntry.dish_media.media_type,
-					bg_uri: bgUri,
-					error_count: count,
-					error_message: errorMessage,
-				},
-			});
-		},
-	});
-
-	// #630 【設計】背景画像ソース（ロードハンドラと連動）
-	const bgSource = useMemo(
-		() => ({
-			uri: bgUriWithBuster,
-			cacheKey: getCacheKeyForImage(bgUriWithBuster ?? bgUri),
-		}),
-		[bgUri, bgUriWithBuster],
-	);
 
 	// 【設計】メディア処理状況のポーリング
 	useEffect(() => {
@@ -215,8 +159,11 @@ export default function DishMediaContent({
 		dishMediaEntry.dish_media.mediaUrl,
 	]);
 
-	// #630 【UX】スケルトン表示条件（可読性向上のため派生状態として定義）
-	const shouldShowSkeleton = bgLoadState === "loading" && !isFailed && !isProcessing;
+	// #802 【設計】画像リソース取得に失敗した場合は skeleton を出し続けない。
+	// 既存実装でも画像ロード error 専用 UI はなく、loading 中のみ skeleton を表示していた。
+	// 新実装では ready の ImageRef がある場合だけ背景 Image を mount し、error 時は黒背景/背面背景にフォールバックする。
+	const shouldShowSkeleton =
+		(backgroundImageState.status === "idle" || backgroundImageState.status === "loading") && !isFailed && !isProcessing;
 
 	// #613 TapGesture 用の pressed state
 	const pressed = useSharedValue(0);
@@ -258,19 +205,17 @@ export default function DishMediaContent({
 		<View style={styles.container}>
 			<GestureDetector gesture={tapGesture}>
 				<Animated.View style={[StyleSheet.absoluteFill, pressStyle]}>
-					{/* #630 【設計】背景画像を統一（動画/画像共通でロード状態管理） */}
-					<Image
-						source={bgSource}
-						cachePolicy="memory-disk"
-						transition={100}
-						style={StyleSheet.absoluteFill}
-						contentFit="cover"
-						onLoadStart={bgLoadHandlers.onLoadStart}
-						onLoad={bgLoadHandlers.onLoad}
-						onError={bgLoadHandlers.onError}
-						onDisplay={bgLoadHandlers.onDisplay} // #715 【設計】onDisplay ハンドラを追加
-						onLoadEnd={bgLoadHandlers.onLoadEnd} // #715 【設計】onLoadEnd ハンドラを追加
-					/>
+					{/* #802 【設計】表示側 Image の load/display イベントには依存しない。 */}
+					{backgroundImageState.status === "ready" && (
+						<Image
+							source={backgroundImageState.image}
+							cachePolicy="memory-disk"
+							transition={100}
+							style={StyleSheet.absoluteFill}
+							contentFit="cover"
+							recyclingKey={`${dishMediaEntry.dish_media.id}::${bgUri ?? ""}`}
+						/>
+					)}
 					{/* #630 【設計】動画の場合のみ VideoPlayer を重ねて表示 */}
 					{isVideo && hasMediaUrl && !isProcessing && !isFailed && dishMediaEntry.dish_media.mediaUrl && (
 						<VideoPlayer

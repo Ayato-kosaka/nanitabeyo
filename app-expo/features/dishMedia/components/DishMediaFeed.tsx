@@ -27,6 +27,7 @@ import { shallow } from "zustand/shallow";
 import { Text } from "react-native";
 import i18n from "@/lib/i18n";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
+import { useDishMediaBackgroundImageResources } from "@/features/dishMedia/hooks/useDishMediaBackgroundImageResources";
 
 // --- ユーティリティ群（純粋関数） ------------------------------------------
 // インデックスを items.length の範囲内にクランプ
@@ -66,6 +67,14 @@ export default function DishMediaFeed({
 	useEffect(() => {
 		if (ids.length === 0 && liveIds.length > 0) setIds(liveIds);
 	}, [liveIds, ids.length]);
+
+	// #802 【責務分離】Feed は ids とページング制御だけを担い、背景画像 preload の最小購読は hook に閉じる。
+	const backgroundImagesSessionKey = useMemo(() => `${entriesKey}::${idType}::${ids.join(",")}`, [entriesKey, idType, ids]);
+	const { getBackgroundImageState } = useDishMediaBackgroundImageResources({
+		ids,
+		idType,
+		sessionKey: backgroundImagesSessionKey,
+	});
 
 	// 命令的スクロール用の List 参照
 	const listRef = useRef<FlatList<string>>(null);
@@ -166,10 +175,11 @@ export default function DishMediaFeed({
 					sessionId={sessionId.current}
 					entriesKey={entriesKey}
 					idType={idType}
+					backgroundImageState={getBackgroundImageState(item)}
 				/>
 			</View>
 		),
-		[pageHeight, currentIndex, getTitle, entriesKey, idType],
+		[pageHeight, currentIndex, getTitle, entriesKey, idType, getBackgroundImageState],
 	);
 
 	return (

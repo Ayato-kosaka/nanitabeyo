@@ -24,6 +24,7 @@ import { useActionSheet } from "@expo/react-native-action-sheet";
 import { useDishMediaActions } from "../hooks/useDishMediaActions";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
+import { useDishMediaBackgroundImageResources } from "@/features/dishMedia/hooks/useDishMediaBackgroundImageResources";
 
 const { width, height } = Dimensions.get("window");
 
@@ -94,6 +95,14 @@ export default function DishMediaMap({
 				google_place_id: restaurant.google_place_id,
 			}));
 	}, [ids, idType]);
+
+	// #802 【責務分離】Map は ids とレイアウト/Carousel 制御だけを担い、背景画像 preload の最小購読は hook に閉じる。
+	const backgroundImagesSessionKey = useMemo(() => `${entriesKey}::${idType}::${ids.join(",")}`, [entriesKey, idType, ids]);
+	const { getBackgroundImageState } = useDishMediaBackgroundImageResources({
+		ids,
+		idType,
+		sessionKey: backgroundImagesSessionKey,
+	});
 
 	const [currentIndex, setCurrentIndex] = useState(initialIndex);
 	const carouselRef = useRef<any>(null);
@@ -299,10 +308,11 @@ export default function DishMediaMap({
 					idType={idType}
 					onCardPress={handleCardPress} // #613 【設計】カード押下時のコールバックを渡す
 					displayIndex={index}
+					backgroundImageState={getBackgroundImageState(item)}
 				/>
 			</View>
 		),
-		[currentIndex, getTitle, entriesKey, idType, handleCardPress],
+		[currentIndex, getTitle, entriesKey, idType, handleCardPress, getBackgroundImageState],
 	);
 
 	// #638 【設計】現在選択中のエントリーを取得

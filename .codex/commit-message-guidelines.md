@@ -1,6 +1,7 @@
 # Commit Message Guidelines
 
 When writing a commit message, always include the related issue number, such as `#782`, if the work is tied to an issue.
+Commit messages must be written in Japanese.
 
 Use a format like this:
 
@@ -13,3 +14,4 @@ Rules:
 - Put the issue number in the first line.
 - Keep the first line focused on the issue, the bug, and the affected area.
 - Put the implementation summary on the second line in one short phrase.
+- Write both lines in Japanese.
