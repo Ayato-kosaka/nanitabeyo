@@ -27,9 +27,17 @@ GitHub Issueとして投稿されたユーザーフィードバックを起点�
 Before running BigQuery, set:
 
 ```bash
+export PATH=/home/ubuntu/.local/google-cloud-sdk/bin:$PATH
 export GOOGLE_APPLICATION_CREDENTIALS=~/.config/service-account-key/food-scroll-2bc35f43cfea.json
 export BQ_DATASET=food-scroll.nanitabeyo_logs_prod
 ````
+
+BigQuery execution notes for Codex:
+
+* In this workspace, `bq` may be available at `/home/ubuntu/.local/bin/bq` while `gcloud` is only under `/home/ubuntu/.local/google-cloud-sdk/bin`. If `bq query` fails with `'gcloud' not found but is required for authentication`, add `/home/ubuntu/.local/google-cloud-sdk/bin` to `PATH` and retry.
+* If `bq query` fails with `bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted`, this is a sandbox/network namespace issue. Retry the same `bq query` with escalated permissions rather than changing the query.
+* Prefer using `bq query --use_legacy_sql=false --format=prettyjson "..."` for ad hoc investigations so result payloads remain structured and easy to summarize.
+* Do not rely on `App Version` in the GitHub issue body to identify the client build; still query `frontend_event_logs.created_app_version` and `frontend_event_logs.created_commit_id`.
 
 ## Investigation Flow
 
