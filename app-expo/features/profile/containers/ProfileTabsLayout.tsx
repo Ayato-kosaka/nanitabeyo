@@ -52,15 +52,21 @@ export function ProfileTabsLayout() {
 			}
 		}
 		return tabs;
-	}, [isOwnProfile]);
+	}, [isOwnProfile, isGuest]);
 
 	const tabRoutes: RouteName[] = useMemo(() => {
-		const routes: RouteName[] = ["reviews"];
+		const routes: RouteName[] = [];
+		if (!isGuest) {
+			routes.push("reviews");
+		}
 		if (isOwnProfile) {
-			routes.push("saved-posts", "saved-topics", "liked", "wallet-deposit", "wallet-earning");
+			routes.push("saved-posts", "saved-topics", "liked");
+			if (!isGuest) {
+				routes.push("wallet-deposit", "wallet-earning");
+			}
 		}
 		return routes;
-	}, [isOwnProfile]);
+	}, [isOwnProfile, isGuest]);
 
 	const handleHeaderLayout = useCallback((event: LayoutChangeEvent) => {
 		const { height } = event.nativeEvent.layout;
