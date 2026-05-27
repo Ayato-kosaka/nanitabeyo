@@ -6,7 +6,7 @@ dataset: "food-scroll.wikidata_food_graph"
 # 対象locale（BCP47形式）
 # #582 バグで効かないので、 ./sql/p1_export_input.sql を直接修正する
 locales:
-  - "ja-JP"
+  - "ja"
   - "en"
 
 # タスク識別子

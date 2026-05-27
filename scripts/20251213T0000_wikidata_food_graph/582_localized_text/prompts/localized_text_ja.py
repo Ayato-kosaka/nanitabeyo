@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-#582 【設計】日本語（ja-JP）用の感情訴求型コピー生成プロンプト
+#582 【設計】日本語（ja）用の感情訴求型コピー生成プロンプト
 
 topic_title / tagline を生成する system/user prompt を組み立てる
 """

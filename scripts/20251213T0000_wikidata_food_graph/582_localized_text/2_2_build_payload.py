@@ -12,7 +12,11 @@ logger = logging.getLogger(__name__)
 SCRIPT_DIR = Path(__file__).parent
 
 def get_prompt_module(locale: str):
-    return localized_text_ja if locale == "ja-JP" else localized_text_en
+    if locale == "ja":
+        return localized_text_ja
+    if locale == "en":
+        return localized_text_en
+    raise ValueError(f"Unsupported locale: {locale}")
 
 def create_batch_request(items: list, custom_id: str, locale: str, model: str) -> dict:
     prompt_module = get_prompt_module(locale)

@@ -46,7 +46,7 @@ COMMENT ON COLUMN dish_category_localized_text.dish_category_id
   IS 'dish_category QID（FK、CASCADE削除）';
 
 COMMENT ON COLUMN dish_category_localized_text.locale 
-  IS 'ロケール（BCP47形式: ja-JP, en 等）';
+  IS 'ロケール（BCP47形式: ja, en 等）';
 
 COMMENT ON COLUMN dish_category_localized_text.topic_title 
   IS '感情訴求型タイトル（最大12-14文字）';
