@@ -70,6 +70,9 @@ export default function DishMediaFeed({
 
 	// #802 【責務分離】Feed は ids とページング制御だけを担い、背景画像 preload の最小購読は hook に閉じる。
 	const backgroundImagesSessionKey = useMemo(() => `${entriesKey}::${idType}::${ids.join(",")}`, [entriesKey, idType, ids]);
+	// TODO(#802): 現在は ids 全件を background image preload 対象にしている。
+	// Android では Google Place photo の大きい画像を複数同時に取得すると Glide 側で timeout することがある。
+	// 根本対応としては currentIndex 周辺の数件だけを preload する方式を検討する。
 	const { getBackgroundImageState } = useDishMediaBackgroundImageResources({
 		ids,
 		idType,

@@ -36,9 +36,35 @@ type UseDishMediaBackgroundImageResourcesParams = {
 	sessionKey: string;
 };
 
+const BACKGROUND_IMAGE_LOAD_MAX_RETRY = 2;
+const BACKGROUND_IMAGE_LOAD_RETRY_BASE_DELAY_MS = 700;
+
 const cloneBackgroundImageStates = (states: DishMediaBackgroundImageStates): DishMediaBackgroundImageStates => ({
 	...states,
 });
+
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const loadImageResourceWithRetry = async (uri: string) => {
+	let lastError: unknown;
+
+	for (let attempt = 0; attempt <= BACKGROUND_IMAGE_LOAD_MAX_RETRY; attempt += 1) {
+		try {
+			return await Image.loadAsync({
+				uri,
+				cacheKey: getCacheKeyForImage(uri),
+			});
+		} catch (error: unknown) {
+			lastError = error;
+
+			if (attempt < BACKGROUND_IMAGE_LOAD_MAX_RETRY) {
+				await wait(BACKGROUND_IMAGE_LOAD_RETRY_BASE_DELAY_MS * (attempt + 1));
+			}
+		}
+	}
+
+	throw lastError;
+};
 
 // #802 【設計】restaurant / reviews / likes など背景画像と無関係な store 更新で反応しないよう、
 // 背景画像リソース descriptor にだけ依存する比較を行う。
@@ -145,7 +171,7 @@ export const useDishMediaBackgroundImageResources = ({ ids, idType, sessionKey }
 			setImageStates(cloneBackgroundImageStates(imageStatesRef.current));
 
 			try {
-				const image = await Image.loadAsync({ uri, cacheKey: getCacheKeyForImage(uri) });
+				const image = await loadImageResourceWithRetry(uri);
 				if (imageLoadGenerationRef.current !== imageLoadGeneration) return;
 				imageStatesRef.current = {
 					...imageStatesRef.current,
