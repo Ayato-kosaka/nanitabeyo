@@ -1,81 +1,36 @@
-import React, { useMemo, useState, useCallback, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Image } from "expo-image";
-import { Bookmark, ImageOff, RefreshCw, Ban } from "lucide-react-native";
+import { Bookmark, ImageOff, Ban, RefreshCw } from "lucide-react-native";
 import { Topic } from "@/types/search";
 import { CARD_WIDTH } from "@/features/topics/constants";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import { toggleReaction } from "@/lib/reactions";
-import { WIKIMEDIA_HEADERS } from "@/lib/wikimedia";
 import { useTopicsStore } from "@/stores/useTopicsStore";
 import { profileSavedTopicsEntriesKey } from "@/features/profile/tabs/SavedTopicsTab";
 import { SkeletonShimmer } from "@/components/SkeletonShimmer";
 import i18n from "@/lib/i18n";
-import { useImageLoadWithRetry } from "@/hooks/useImageLoadWithRetry";
+import { type TopicImageResourceState } from "@/features/topics/hooks/useTopicImageResources";
 
-// Display a single topic card inside the carousel
 export const TopicCard = ({
 	item,
 	onBlock,
 	displayIndex,
 	cardHeight,
+	imageState,
+	onImageRetry,
 }: {
 	item: Topic;
 	onBlock: (id: string) => void;
 	displayIndex?: number;
 	cardHeight: number;
+	imageState: TopicImageResourceState;
+	onImageRetry?: (topic: Topic) => void;
 }) => {
 	const [isSaved, setIsSaved] = useState(false);
 	const { lightImpact, errorNotification } = useHaptics();
 	const { logFrontendEvent } = useLogger();
-
-	// #630 【設計】useImageLoadWithRetry を利用して、画像ロード状態 + 自動リトライ管理
-	const {
-		uri: imageUrl,
-		loadState,
-		isRetrying,
-		hasGivenUp,
-		handlers,
-		manualRetry,
-	} = useImageLoadWithRetry({
-		uri: item.imageUrl,
-		cacheBustingKey: item.categoryId,
-		onErrorCountChange: (count, errorMessage) => {
-			// #715 【設計】error_message をログに追加
-			logFrontendEvent({
-				event_name: "topic_image_load_error",
-				error_level: "log",
-				payload: {
-					topic_id: item.categoryId,
-					error_count: count,
-					image_url: item.imageUrl,
-					error_message: errorMessage,
-				},
-			});
-		},
-		onGiveUp: (count, errorMessage) => {
-			// #715 【設計】error_message をログに追加
-			logFrontendEvent({
-				event_name: "topic_image_load_give_up",
-				error_level: "warn",
-				payload: {
-					topic_id: item.categoryId,
-					error_count: count,
-					image_url: item.imageUrl,
-					error_message: errorMessage,
-				},
-			});
-		},
-	});
-
-	const source = useMemo(
-		() => ({
-			uri: imageUrl,
-			headers: WIKIMEDIA_HEADERS,
-		}),
-		[imageUrl],
-	);
 
 	const handleSave = async () => {
 		const willSave = !isSaved;
@@ -110,7 +65,6 @@ export const TopicCard = ({
 				updateTopicIdsByKey(profileSavedTopicsEntriesKey, (prev) => prev.filter((id) => id !== item.categoryId));
 			}
 		} catch (error) {
-			// Revert state on error
 			logFrontendEvent({
 				event_name: "topic_save_reaction_failed",
 				error_level: "log",
@@ -147,34 +101,24 @@ export const TopicCard = ({
 		}
 	}, [item.categoryId, displayIndex, logFrontendEvent]);
 
-	// #615 【UX】手動リトライ（ユーザーがタップで再読み込み）
-	const handleManualRetry = useCallback(() => {
-		manualRetry();
-		logFrontendEvent({
-			event_name: "topic_image_manual_retry",
-			error_level: "log",
-			payload: { topic_id: item.categoryId },
-		});
-	}, [manualRetry, item.categoryId, logFrontendEvent]);
-
-	// #630 【UX】派生状態: スケルトン表示条件（loading または retrying 中）
-	const shouldShowSkeleton = loadState === "loading" || isRetrying;
-	// #630 【UX】派生状態: 失敗UI表示条件
-	const shouldShowFailureUI = loadState === "error" && hasGivenUp;
+	// #802 【バグ】error 時は failure UI を優先し、skeleton は loading 中だけ表示する
+	const shouldShowSkeleton = imageState.status === "idle" || imageState.status === "loading";
+	const shouldShowFailureUI = imageState.status === "error";
 
 	return (
 		<View style={[styles.card, { height: cardHeight }]}>
-			<Image
-				source={source}
-				cachePolicy="memory"
-				transition={100}
-				style={styles.cardImage}
-				onLoadStart={handlers.onLoadStart}
-				onLoad={handlers.onLoad}
-				onError={handlers.onError}
-				onDisplay={handlers.onDisplay} // #715 【設計】onDisplay ハンドラを追加
-				onLoadEnd={handlers.onLoadEnd} // #715 【設計】onLoadEnd ハンドラを追加
-			/>
+			{/* #802 【設計】ready済みのImageRefを直接渡し、Carousel内Imageのloadイベントに依存しない */}
+			{imageState.status === "ready" ? (
+				<Image
+					source={imageState.image}
+					cachePolicy="memory"
+					transition={100}
+					style={styles.cardImage}
+					recyclingKey={item.categoryId}
+				/>
+			) : (
+				<View style={styles.cardImage} />
+			)}
 
 			{/* #615 【UX】画像ロード中のスケルトン表示 */}
 			{shouldShowSkeleton && (
@@ -187,16 +131,18 @@ export const TopicCard = ({
 			<View style={styles.cardOverlay}>
 				{/* #615 【UX】画像ロード失敗時の UI（アイコン + 再読み込み導線） */}
 				{shouldShowFailureUI && (
-					<TouchableOpacity style={styles.failureOverlay} onPress={handleManualRetry} activeOpacity={0.8}>
+					<View style={styles.failureOverlay}>
 						<View style={styles.failureContent}>
 							<ImageOff size={48} color="#FFF" strokeWidth={1.5} />
 							<Text style={styles.failureText}>{i18n.t("Topics.imageLoadFailed")}</Text>
-							<View style={styles.retryButton}>
-								<RefreshCw size={16} color="#FFF" />
-								<Text style={styles.retryText}>{i18n.t("Topics.tapToReload")}</Text>
-							</View>
+							{onImageRetry && (
+								<TouchableOpacity style={styles.retryButton} onPress={() => onImageRetry(item)} activeOpacity={0.8}>
+									<RefreshCw size={16} color="#FFF" />
+									<Text style={styles.retryText}>{i18n.t("Topics.tapToReload")}</Text>
+								</TouchableOpacity>
+							)}
 						</View>
-					</TouchableOpacity>
+					</View>
 				)}
 
 				{/* Top Buttons */}

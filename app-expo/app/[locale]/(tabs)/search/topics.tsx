@@ -8,6 +8,7 @@ import { Topic, SearchParams } from "@/types/search";
 import { useTopicSearch } from "@/features/topics/hooks/useTopicSearch";
 import { useBlockTopic } from "@/features/topics/hooks/useBlockTopic";
 import { TopicCard } from "@/features/topics/components/TopicCard";
+import { useTopicImageResources } from "@/features/topics/hooks/useTopicImageResources";
 import { TopicsLoading } from "@/features/topics/components/TopicsLoading";
 import { TopicsError } from "@/features/topics/components/TopicsError";
 import { BlockTopicForm } from "@/features/topics/components/BlockTopicForm";
@@ -100,7 +101,6 @@ export default function TopicsScreen() {
 						params.priceLevels,
 					);
 					upsertDishMediaEntries(dishItems);
-					console.log("getIds dishItems:", dishItems);
 					return dishItems.map((item) => String(item.dish_media.id));
 				};
 				updateMediaIdsByKeyAsync(entriesKey, getIds(), (_, fetched) => fetched);
@@ -128,7 +128,18 @@ export default function TopicsScreen() {
 		router.back();
 	};
 
-	const visibleTopics = topics.filter((topic) => !topic.isHidden);
+	const visibleTopics = useMemo(() => topics.filter((topic) => !topic.isHidden), [topics]);
+	const { getImageState, retryImage } = useTopicImageResources({
+		topics: visibleTopics,
+		sessionKey: searchParams ?? "",
+	});
+
+	useEffect(() => {
+		setCurrentIndex(0);
+		if (carouselRef.current) {
+			carouselRef.current.scrollTo({ index: 0, animated: false });
+		}
+	}, [searchParams]);
 
 	// #615 visibleTopics 変化時に currentIndex を範囲内に clamp（範囲外アクセス防止）
 	useEffect(() => {
@@ -186,11 +197,21 @@ export default function TopicsScreen() {
 		return Math.min(heightWithMargin, CARD_MAX_HEIGHT);
 	}, [carouselAvailableHeight]);
 
-	const renderCard = ({ item, index }: { item: Topic; index: number }) => (
-		<TouchableOpacity key={item.categoryId} activeOpacity={0.95} onPress={handleCardPress}>
-			<TopicCard item={item} onBlock={handleBlockCard} displayIndex={index} cardHeight={cardHeight} />
-		</TouchableOpacity>
-	);
+	const renderCard = ({ item, index }: { item: Topic; index: number }) => {
+		const imageState = getImageState(item);
+		return (
+			<TouchableOpacity key={item.categoryId} activeOpacity={0.95} onPress={handleCardPress}>
+				<TopicCard
+					item={item}
+					onBlock={handleBlockCard}
+					displayIndex={index}
+					cardHeight={cardHeight}
+					imageState={imageState}
+					onImageRetry={retryImage}
+				/>
+			</TouchableOpacity>
+		);
+	};
 
 	if (isLoading) {
 		return <TopicsLoading />;

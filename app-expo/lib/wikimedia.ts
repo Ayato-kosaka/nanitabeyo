@@ -5,18 +5,26 @@ import { Platform } from "react-native";
  * Wikimedia Commons image utilities for client-side thumbnail URL conversion
  */
 
+const WIKIMEDIA_THUMBNAIL_WIDTHS = [20, 40, 60, 120, 250, 330, 500, 960, 1280, 1920, 3840] as const;
+
+const getWikimediaThumbnailWidth = (widthPx: number): number => {
+	// Direct Wikimedia thumbnail hotlinks are rejected unless they use one of the standard widths.
+	const requestedWidth = Math.max(Math.round(widthPx), 960);
+	return WIKIMEDIA_THUMBNAIL_WIDTHS.find((width) => width >= requestedWidth) ?? 3840;
+};
+
 /**
  * Convert original Wikimedia Commons URL to thumbnail URL with specified width
  *
  * @param originalUrl - Original Wikimedia Commons URL (e.g., upload.wikimedia.org/.../<d1>/<d2>/<File>)
- * @param widthPx - Required width in pixels (will be clamped between 1024 and 1280)
+ * @param widthPx - Required width in pixels (rounded up to a Wikimedia standard thumbnail width)
  * @returns Thumbnail URL (e.g., upload.wikimedia.org/.../commons/thumb/<d1>/<d2>/<File>/<WIDTH>px-<File>)
  *
  * @example
  * ```ts
  * const originalUrl = "https://upload.wikimedia.org/wikipedia/commons/8/8b/Sushi.jpg";
  * const thumbnailUrl = wikimediaThumbFromOriginal(originalUrl, 400);
- * // Returns: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8b/Sushi.jpg/400px-Sushi.jpg"
+ * // Returns: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8b/Sushi.jpg/960px-Sushi.jpg"
  * ```
  */
 export function wikimediaThumbFromOriginal(originalUrl: string, widthPx: number): string {
@@ -28,7 +36,7 @@ export function wikimediaThumbFromOriginal(originalUrl: string, widthPx: number)
 		}
 
 		const parts = u.pathname.split("/"); // ["", "wikipedia", "commons", d1, d2, file]
-		const width = Math.min(Math.max(Math.round(widthPx), 1024), 1280); // 1024〜1280px にクランプ
+		const width = getWikimediaThumbnailWidth(widthPx);
 
 		// 例: ["", "wikipedia", "commons", "thumb", "8", "8b", "Sushi.jpg", "400px-Sushi.jpg"]
 		const thumbIndex = parts.indexOf("thumb");

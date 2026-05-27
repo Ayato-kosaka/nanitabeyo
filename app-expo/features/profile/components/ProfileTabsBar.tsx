@@ -20,33 +20,59 @@ export interface ProfileTabsBarProps extends TabBarProps<string> {
 	availableTabs: GroupName[];
 }
 
+function getGroupByRoute(route: RouteName): GroupName | undefined {
+	return (Object.entries(GROUP_ROUTES) as [GroupName, RouteName[]][]).find(([, routes]) =>
+		routes.includes(route),
+	)?.[0];
+}
+
 export function ProfileTabsBar({ tabNames, index, onTabPress, availableTabs }: ProfileTabsBarProps) {
 	const currentIndex = useSharedValueState(index);
 	const activeRoute = tabNames[currentIndex] ?? tabNames[0];
 
-	const [lastRouteByGroup] = React.useState<Record<GroupName, RouteName>>({
+	const lastRouteByGroupRef = React.useRef<Record<GroupName, RouteName>>({
 		reviews: "reviews",
 		saved: "saved-posts",
 		liked: "liked",
 		wallet: "wallet-deposit",
 	});
+	const pendingPressedRouteRef = React.useRef<RouteName | null>(null);
 
 	React.useEffect(() => {
-		const entry = (Object.entries(GROUP_ROUTES) as [GroupName, RouteName[]][]).find(([, routes]) =>
-			routes.includes(activeRoute as RouteName),
-		);
-		if (entry) {
-			lastRouteByGroup[entry[0]] = activeRoute as RouteName;
+		const route = activeRoute as RouteName;
+		const group = getGroupByRoute(route);
+		if (!group) {
+			return;
 		}
-	}, [activeRoute, lastRouteByGroup]);
 
-	const activeGroup = (Object.entries(GROUP_ROUTES) as [GroupName, RouteName[]][]).find(([, routes]) =>
-		routes.includes(activeRoute as RouteName),
-	)?.[0] as GroupName;
+		const pendingPressedRoute = pendingPressedRouteRef.current;
+		if (pendingPressedRoute) {
+			if (route === pendingPressedRoute) {
+				lastRouteByGroupRef.current[group] = route;
+				pendingPressedRouteRef.current = null;
+			}
+			return;
+		}
+
+		lastRouteByGroupRef.current[group] = route;
+	}, [activeRoute]);
+
+	const activeGroup = getGroupByRoute(activeRoute as RouteName);
+
+	const pressRoute = React.useCallback(
+		(route: RouteName) => {
+			const group = getGroupByRoute(route);
+			if (group) {
+				lastRouteByGroupRef.current[group] = route;
+			}
+			pendingPressedRouteRef.current = route === activeRoute ? null : route;
+			onTabPress(route);
+		},
+		[activeRoute, onTabPress],
+	);
 
 	const handleGroupPress = (group: GroupName) => {
-		const target = lastRouteByGroup[group];
-		onTabPress(target);
+		pressRoute(lastRouteByGroupRef.current[group]);
 	};
 
 	const renderIcon = (group: GroupName, isActive: boolean) => {
@@ -74,7 +100,7 @@ export function ProfileTabsBar({ tabNames, index, onTabPress, availableTabs }: P
 							<TouchableOpacity
 								key={route}
 								style={[styles.subTab, isActive && styles.activeSubTab]}
-								onPress={() => onTabPress(route)}>
+								onPress={() => pressRoute(route)}>
 								<Text style={[styles.subTabText, isActive && styles.activeSubTabText]}>
 									{i18n.t(`Profile.tabs.${route}`)}
 								</Text>
