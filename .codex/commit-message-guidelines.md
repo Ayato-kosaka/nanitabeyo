@@ -15,3 +15,5 @@ Rules:
 - Keep the first line focused on the issue, the bug, and the affected area.
 - Put the implementation summary on the second line in one short phrase.
 - Write both lines in Japanese.
+- Make the message understandable when reading history later: briefly include why the change was needed and what was changed.
+- Prefer concrete cause/effect wording over vague phrasing such as "fix bug" or "adjust behavior".
