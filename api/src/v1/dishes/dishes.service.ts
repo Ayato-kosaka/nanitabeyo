@@ -319,6 +319,10 @@ export class DishesService {
           id: randomUUID(),
           dish_id: dish.id,
           user_id: null, // Google からのインポートなので null
+          // 【設計】Google Places の originalText は投稿者が書いた元言語の本文。
+          // dish_reviews.comment には翻訳済み text ではなく元本文を保存し、
+          // original_language_code にはその元本文の言語を保存する。
+          // UGC 投稿保存に揃える方針。
           comment: review.originalText?.text || '',
           comment_tsv: null,
           original_language_code: review.originalText?.languageCode || '',
