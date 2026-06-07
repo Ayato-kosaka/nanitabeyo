@@ -63,6 +63,11 @@
 			"noSceneSelected": "कृपया एक दृश्य चुनें",
 			"searchFailed": "खोज विफल हुई"
 		},
+		"googleMapsFallback": {
+			"message": "इस क्षेत्र में रेस्तरां डेटा कम है। Google Maps में खोलें?",
+			"confirm": "Google Maps खोलें",
+			"cancel": "बंद करें"
+		},
 		"sections": {
 			"location": "कहां खोजें?",
 			"time": "कौन सा समय?",

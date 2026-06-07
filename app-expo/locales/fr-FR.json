@@ -63,6 +63,11 @@
 			"noSceneSelected": "Veuillez sélectionner une scène",
 			"searchFailed": "La recherche a échoué"
 		},
+		"googleMapsFallback": {
+			"message": "Les données de restaurants sont limitées dans cette zone. Ouvrir dans Google Maps ?",
+			"confirm": "Ouvrir Google Maps",
+			"cancel": "Fermer"
+		},
 		"sections": {
 			"location": "Où chercher ?",
 			"time": "À quelle heure ?",

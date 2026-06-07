@@ -39,6 +39,12 @@ BigQuery execution notes for Codex:
 * Prefer using `bq query --use_legacy_sql=false --format=prettyjson "..."` for ad hoc investigations so result payloads remain structured and easy to summarize.
 * Do not rely on `App Version` in the GitHub issue body to identify the client build; still query `frontend_event_logs.created_app_version` and `frontend_event_logs.created_commit_id`.
 
+PostgreSQL execution notes for Codex:
+
+* If production table state must be inspected directly, use `DATABASE_URL` from `scripts/.env`.
+* Inspect only the `public` schema unless the investigation clearly requires otherwise.
+* PostgreSQL access is read-only for this skill. Do not run `insert`, `update`, `delete`, `truncate`, DDL, migrations, or any other mutating operation.
+
 ## Investigation Flow
 
 ### 1. Read the GitHub Issue
