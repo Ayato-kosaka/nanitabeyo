@@ -63,6 +63,11 @@
 			"noSceneSelected": "请选择场景",
 			"searchFailed": "搜索失败"
 		},
+		"googleMapsFallback": {
+			"message": "该区域的餐厅数据不足。要在 Google 地图中打开吗？",
+			"confirm": "打开 Google 地图",
+			"cancel": "关闭"
+		},
 		"sections": {
 			"location": "在哪里搜索？",
 			"time": "什么时间？",

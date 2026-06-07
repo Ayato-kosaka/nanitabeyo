@@ -63,6 +63,11 @@
 			"noSceneSelected": "シーンを選択してください",
 			"searchFailed": "検索に失敗しました"
 		},
+		"googleMapsFallback": {
+			"message": "このエリアの店舗データが不足しています。Google マップで表示しますか？",
+			"confirm": "Google マップで開く",
+			"cancel": "閉じる"
+		},
 		"sections": {
 			"location": "どのあたりで探す？",
 			"time": "時間帯は？",

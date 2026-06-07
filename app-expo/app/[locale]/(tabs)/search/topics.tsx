@@ -112,6 +112,8 @@ export default function TopicsScreen() {
 					locale,
 					entriesKey, // #633 【設計】topicId ではなく entriesKey を渡す
 					...(params && { location: JSON.stringify(params.location) }),
+					// #827 【設計】0件時のGoogle Maps検索はresult画面で判断するため、表示中カテゴリを渡す。
+					category: topic.category,
 				},
 			});
 			// #633 【設計】分析基盤互換のため移行期間は topicId と entriesKey を併記

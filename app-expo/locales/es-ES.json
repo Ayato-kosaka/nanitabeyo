@@ -63,6 +63,11 @@
 			"noSceneSelected": "Seleccione una escena",
 			"searchFailed": "La búsqueda falló"
 		},
+		"googleMapsFallback": {
+			"message": "Hay pocos datos de restaurantes en esta zona. ¿Abrir en Google Maps?",
+			"confirm": "Abrir Google Maps",
+			"cancel": "Cerrar"
+		},
 		"sections": {
 			"location": "¿Dónde buscar?",
 			"time": "¿En qué horario?",
