@@ -35,6 +35,8 @@ export default function ResultScreen() {
 	const { showDialog } = useDialog();
 	const { locale } = useLocale();
 
+	const isGoogleMapsFallbackOpened = useRef<boolean>(false);
+
 	// #633 【防御】entriesKey が undefined の場合は戻る（クラッシュ防止）
 	useEffect(() => {
 		if (!entriesKey) {
@@ -83,6 +85,8 @@ export default function ResultScreen() {
 	useEffect(() => {
 		// #828 【設計】0件確定後の退避導線は、取得元ではなく検索結果画面の責務として扱う。
 		if (!entriesKey || isLoading || ids.length > 0 || !initialLocation || !category) return;
+		if (isGoogleMapsFallbackOpened.current) return;
+		isGoogleMapsFallbackOpened.current = true;
 
 		const buildGoogleMapsSearchUrl = (
 			category: string,
@@ -167,7 +171,6 @@ export default function ResultScreen() {
 				}
 			},
 		});
-
 
 		// #828 【設計】表示できる店舗がない場合、料理候補画面へ戻す。
 		// iOS で、react-native-paper の Portal.Host が transparentModal より下にあるため、この位置。
