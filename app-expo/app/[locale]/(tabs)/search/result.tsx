@@ -81,7 +81,7 @@ export default function ResultScreen() {
 	}, [entriesKey, logFrontendEvent]);
 
 	useEffect(() => {
-		// #827 【設計】0件確定後の退避導線は、取得元ではなく検索結果画面の責務として扱う。
+		// #828 【設計】0件確定後の退避導線は、取得元ではなく検索結果画面の責務として扱う。
 		if (!entriesKey || isLoading || ids.length > 0 || !initialLocation || !category) return;
 
 		const buildGoogleMapsSearchUrl = (
@@ -109,7 +109,7 @@ export default function ResultScreen() {
 			return url.toString();
 		};
 
-		// #827 【設計】アプリ側の検索カテゴリと表示言語に寄せ、Google Maps 側で同じ意図の検索を開く。
+		// #828 【設計】アプリ側の検索カテゴリと表示言語に寄せ、Google Maps 側で同じ意図の検索を開く。
 		const url = buildGoogleMapsSearchUrl(category, initialLocation, {
 			hl: locale.split("-")[0],
 		});
@@ -169,7 +169,7 @@ export default function ResultScreen() {
 		});
 
 
-		// #827 【設計】表示できる店舗がない場合、料理候補画面へ戻す。
+		// #828 【設計】表示できる店舗がない場合、料理候補画面へ戻す。
 		// iOS で、react-native-paper の Portal.Host が transparentModal より下にあるため、この位置。
 		handleClose();
 	}, [category, entriesKey, ids.length, initialLocation, isLoading, logFrontendEvent, showDialog, locale, handleClose]);
