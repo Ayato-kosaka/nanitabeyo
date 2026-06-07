@@ -63,6 +63,11 @@
 			"noSceneSelected": "يرجى اختيار مشهد",
 			"searchFailed": "فشل البحث"
 		},
+		"googleMapsFallback": {
+			"message": "بيانات المطاعم محدودة في هذه المنطقة. هل تريد فتحها في خرائط Google؟",
+			"confirm": "فتح خرائط Google",
+			"cancel": "إغلاق"
+		},
 		"sections": {
 			"location": "أين تبحث؟",
 			"time": "ما الوقت؟",

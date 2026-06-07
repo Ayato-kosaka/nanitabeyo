@@ -63,6 +63,11 @@
 			"noSceneSelected": "Please select a scene",
 			"searchFailed": "Search failed"
 		},
+		"googleMapsFallback": {
+			"message": "Restaurant data is limited in this area. Open it in Google Maps?",
+			"confirm": "Open Google Maps",
+			"cancel": "Close"
+		},
 		"sections": {
 			"location": "Where to search?",
 			"time": "What time?",
