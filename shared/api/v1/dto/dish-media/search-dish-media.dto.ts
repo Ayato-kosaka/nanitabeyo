@@ -49,6 +49,16 @@ export class SearchDishMediaDto {
 	@Max(100)
 	limit?: number;
 
+	/**
+	 * レビュー表示で優先する元言語コード
+	 *
+	 * @example "ja"
+	 */
+	@IsOptional()
+	@IsString()
+	@Matches(/^[a-z]{2}(?:-[A-Za-z0-9]{2,8})?$/, { message: "preferredLanguageCode must be a BCP-47 language code" })
+	preferredLanguageCode?: string;
+
 	// /**
 	//  * 前ページから渡されるカーソル
 	//  */

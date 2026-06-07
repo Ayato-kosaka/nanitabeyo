@@ -723,9 +723,10 @@ export class DishMediaRepository {
     option: {
       userId: string;
       reviewLimit?: number;
+      preferredLanguageCode?: string;
     },
   ): Promise<DishMediaEntryEntity[]> {
-    const { userId, reviewLimit = 6 } = option;
+    const { userId, reviewLimit = 6, preferredLanguageCode } = option;
     if (dishMediaIds.length === 0) return [];
 
     const dishMedias = await this.prisma.prisma.dish_media.findMany({
@@ -738,7 +739,7 @@ export class DishMediaRepository {
             restaurants: true,
             dish_reviews: {
               orderBy: { created_at: 'asc' }, // #509 【設計】dish_reviews の並び順を古い→新しいに統一
-              take: reviewLimit,
+              take: preferredLanguageCode ? undefined : reviewLimit,
               include: { users: true },
             },
           },
@@ -795,7 +796,11 @@ export class DishMediaRepository {
       .map((dishMediaId) => {
         const dishMedia = dishMediaMap.get(dishMediaId)!;
         const dishStats = dishStatsMap.get(dishMedia.dish_id);
-        const dishReviews = dishMedia.dishes.dish_reviews;
+        const dishReviews = this.prioritizeReviewsByLanguage(
+          dishMedia.dishes.dish_reviews,
+          preferredLanguageCode,
+          reviewLimit,
+        );
 
         return {
           restaurant: dishMedia.dishes.restaurants,
@@ -832,6 +837,23 @@ export class DishMediaRepository {
           })),
         };
       });
+  }
+
+  private prioritizeReviewsByLanguage<T extends { original_language_code: string }>(
+    reviews: T[],
+    preferredLanguageCode: string | undefined,
+    reviewLimit: number,
+  ): T[] {
+    if (!preferredLanguageCode) return reviews;
+
+    const preferred = reviews.filter(
+      (review) => review.original_language_code === preferredLanguageCode,
+    );
+    const fallback = reviews.filter(
+      (review) => review.original_language_code !== preferredLanguageCode,
+    );
+
+    return [...preferred, ...fallback].slice(0, reviewLimit);
   }
 
   // --- new helper ---

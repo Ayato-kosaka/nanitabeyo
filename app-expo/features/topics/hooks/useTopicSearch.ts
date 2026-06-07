@@ -136,18 +136,19 @@ export const useTopicSearch = () => {
 				let dishItems: DishMediaEntry[] = [];
 
 				// まずは、GET /v1/dish-media で既存の料理メディアを検索
-				dishItems = await callBackend<SearchDishMediaDto, SearchDishMediaResponse>("v1/dish-media/search", {
-					method: "GET",
-					requestPayload: {
+					dishItems = await callBackend<SearchDishMediaDto, SearchDishMediaResponse>("v1/dish-media/search", {
+						method: "GET",
+						requestPayload: {
 						location: `${latitude},${longitude}`,
 						radius: radius,
 						categoryId: categoryId,
 						limit: searchResultRestaurantsNumber,
-					},
-				});
+						preferredLanguageCode: searchLocationLanguageCode,
+						},
+					});
 
-				if (dishItems.length < searchResultRestaurantsNumber) {
-					// 足りない分は、POST /v1/dishes/bulk-import で新規インポート
+					if (dishItems.length < searchResultRestaurantsNumber) {
+						// 足りない分は、POST /v1/dishes/bulk-import で新規インポート
 
 					// Check if all price levels are selected - if so, don't send priceLevels parameter
 					const allPriceLevels = [
@@ -172,28 +173,28 @@ export const useTopicSearch = () => {
 					};
 
 					const importResponse = await callBackend<BulkImportDishesDto, BulkImportDishesResponse>(
-						"v1/dishes/bulk-import",
-						{
-							method: "POST",
-							requestPayload,
-						},
-					);
-					dishItems = dishItems.concat(
-						importResponse.filter(
-							(imported) =>
+								"v1/dishes/bulk-import",
+								{
+									method: "POST",
+									requestPayload,
+								},
+							);
+						dishItems = dishItems.concat(
+							importResponse.filter(
+								(imported) =>
 								!dishItems.find(
 									(existing) => existing.restaurant.google_place_id === imported.restaurant.google_place_id,
 								),
-						),
-					);
-				}
+							),
+						);
+					}
 
-				// #630 【設計】先読み削除（ロード中 skeleton を見せる方針に統一）
+					// #630 【設計】先読み削除（ロード中 skeleton を見せる方針に統一）
 				return dishItems.slice(0, searchResultRestaurantsNumber);
-			})();
-		},
+				})();
+			},
 		[callBackend, locale],
-	);
+		);
 
 	const searchTopics = useCallback(
 		async (params: SearchParams) => {

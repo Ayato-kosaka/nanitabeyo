@@ -49,6 +49,7 @@ export class DishMediaService {
       location: dto.location,
       radius: dto.radius,
       categoryId: dto.categoryId,
+      preferredLanguageCode: dto.preferredLanguageCode,
       userId,
     });
 
@@ -59,6 +60,7 @@ export class DishMediaService {
 
     const result = await this.fetchDishMediaEntryItems(dishMediaIds, {
       userId,
+      preferredLanguageCode: dto.preferredLanguageCode,
     });
 
     this.logger.debug('FindByCriteriaResult', 'findByCriteria', {
@@ -103,6 +105,7 @@ export class DishMediaService {
     option: {
       userId: string;
       reviewLimit?: number;
+      preferredLanguageCode?: string;
     },
   ): Promise<{ items: DishMediaEntry[] }> {
     if (!dishMediaIds.length) return { items: [] };
