@@ -146,9 +146,8 @@ export const useTopicSearch = () => {
 					},
 				});
 
-				if (dishItems.length < searchResultRestaurantsNumber) {
-					// 足りない分は、POST /v1/dishes/bulk-import で新規インポート
-
+				// #827 【設計】既存メディアが1件でもあるカテゴリは、Google import より既存DBの表示を優先する。
+				if (dishItems.length === 0) {
 					// Check if all price levels are selected - if so, don't send priceLevels parameter
 					const allPriceLevels = [
 						"PRICE_LEVEL_INEXPENSIVE",
