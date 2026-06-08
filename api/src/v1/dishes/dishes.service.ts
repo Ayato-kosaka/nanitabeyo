@@ -18,6 +18,7 @@ import { CloudTasksService } from '../../core/cloud-tasks/cloud-tasks.service';
 import { DishCategoriesRepository } from '../dish-categories/dish-categories.repository';
 import { RestaurantsRepository } from '../restaurants/restaurants.repository';
 import { PrismaService } from '../../prisma/prisma.service';
+import { DishMediaService } from '../dish-media/dish-media.service';
 
 // Import converters
 import {
@@ -39,6 +40,9 @@ import { randomUUID } from 'node:crypto';
 // Google Maps types for photo handling
 import { protos } from '@googlemaps/places';
 
+// #829 bulk-import は viewer を受け取らないが、既存 entry 組み立てでは UUID 条件が必要になる。
+const DUMMY_VIEWER_ID = '593e6eff-34b3-4293-90e4-b0e61d66f761';
+
 @Injectable()
 export class DishesService {
   constructor(
@@ -50,6 +54,7 @@ export class DishesService {
     private readonly dishCategoriesRepository: DishCategoriesRepository,
     private readonly restaurantsRepository: RestaurantsRepository,
     private readonly prisma: PrismaService,
+    private readonly dishMediaService: DishMediaService,
   ) {}
 
   /* ------------------------------------------------------------------ */
@@ -172,6 +177,36 @@ export class DishesService {
     }
 
     const results: BulkImportDishesResponse = [];
+    const placeIds = googlePlaces.places
+      .map((place) => place.id)
+      .filter((placeId): placeId is string => Boolean(placeId));
+
+    // #829 Text Search には既存店舗も混ざるため、Photo Media 呼び出し前に DB の completed メディアを横断的に再利用する。
+    // processing は現行フロントが画像の polling を継続しないため、ここでは返却対象にしない。
+    const completedMediaIdsByPlaceId =
+      await this.repo.findCompletedDishMediaIdsByPlaceIdsAndCategory(
+        placeIds,
+        dto.categoryId,
+      );
+    const completedMediaIds = [...new Set(completedMediaIdsByPlaceId.values())];
+    const existingCompletedEntries =
+      await this.dishMediaService.fetchDishMediaEntryItems(completedMediaIds, {
+        userId: DUMMY_VIEWER_ID,
+      });
+    const existingCompletedEntryByMediaId = new Map(
+      existingCompletedEntries.items.map((entry) => [
+        String(entry.dish_media.id),
+        entry,
+      ]),
+    );
+    const existingCompletedEntryByPlaceId = new Map<
+      string,
+      BulkImportDishesResponse[0]
+    >();
+    for (const [placeId, mediaId] of completedMediaIdsByPlaceId.entries()) {
+      const entry = existingCompletedEntryByMediaId.get(mediaId);
+      if (entry) existingCompletedEntryByPlaceId.set(placeId, entry);
+    }
 
     // 各レストランに対してデータ登録処理（並列処理）
     const processPromises = googlePlaces.places.map(async (place, index) => {
@@ -248,6 +283,24 @@ export class DishesService {
           throw new Error(
             `Invalid place data - missing fields: ${missingFields.join(', ')}`,
           );
+        }
+
+        const existingCompletedEntry = existingCompletedEntryByPlaceId.get(
+          place.id!,
+        );
+        if (existingCompletedEntry) {
+          // #829 既存 completed を返せる場合は、Photo Media API と Cloud Task の両方を skip する。
+          // この分岐が課金削減の主経路なので、写真なし判定より前に置く。
+          this.logger.debug(
+            'ExistingCompletedDishMediaFound',
+            'bulkImportFromGoogle',
+            {
+              placeId: place.id!,
+              categoryId: dto.categoryId,
+              dishMediaId: existingCompletedEntry.dish_media.id,
+            },
+          );
+          return existingCompletedEntry;
         }
 
         if (!photos || photos.length === 0) {

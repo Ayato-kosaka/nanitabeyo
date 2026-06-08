@@ -44,10 +44,8 @@ export class CreateDishMediaEntryService {
       photoUriCount: payload.photoUri.length,
     });
 
-    // 冪等性チェック: 既に処理済みかどうか確認
-    const isAlreadyProcessed = await this.checkIdempotency(
-      payload.idempotencyKey,
-    );
+    // #829 task name の重複排除では retry を止められないため、既存 DB 作成の有無を handler 側の冪等性境界にする。
+    const isAlreadyProcessed = await this.checkIdempotency(payload);
     if (isAlreadyProcessed) {
       this.logger.log('JobAlreadyProcessed', 'processAsyncJob', {
         jobId: payload.jobId,
@@ -271,10 +269,13 @@ export class CreateDishMediaEntryService {
   /**
    * 冪等性チェック: 既に処理済みかどうか確認
    */
-  private async checkIdempotency(idempotencyKey: string): Promise<boolean> {
-    // TODO: Redis や専用テーブルで冪等性キーを管理
-    // 現在は簡略化実装
-    return false;
+  private async checkIdempotency(
+    payload: CreateDishMediaEntryJobPayload,
+  ): Promise<boolean> {
+    return this.dishesRepository.existsDishMediaByPlaceIdAndCategory(
+      payload.restaurants.google_place_id,
+      payload.dishes.category_id,
+    );
   }
 
   /**

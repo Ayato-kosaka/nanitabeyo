@@ -16,6 +16,8 @@ Use comments to preserve intent, not to narrate code. The goal is to make future
 - Names the contract or invariant being preserved.
 - Explains why a less obvious alternative was not used.
 - Helps a future reader understand what must stay true if the code changes.
+- Includes the issue or ticket number when a comment preserves a decision made for that work item.
+- Calls out intentional filters, status choices, or partial behavior when broader alternatives would look equally plausible.
 
 ## What to avoid
 
