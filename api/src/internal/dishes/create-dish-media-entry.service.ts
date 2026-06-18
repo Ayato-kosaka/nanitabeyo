@@ -44,7 +44,8 @@ export class CreateDishMediaEntryService {
       photoUriCount: payload.photoUri.length,
     });
 
-    // #829 task name の重複排除では retry を止められないため、既存 DB 作成の有無を handler 側の冪等性境界にする。
+    // #829 【バグ】place/category で止めると、bulk-import が返した別 ID の row が作られず orphan response になる。
+    // #829 【設計】handler retry は同じ payload ID が completed 済みのときだけ処理済みとみなす。
     const isAlreadyProcessed = await this.checkIdempotency(payload);
     if (isAlreadyProcessed) {
       this.logger.log('JobAlreadyProcessed', 'processAsyncJob', {
@@ -267,15 +268,15 @@ export class CreateDishMediaEntryService {
   }
 
   /**
-   * 冪等性チェック: 既に処理済みかどうか確認
+   * #829 【設計】Cloud Tasks retry の冪等性境界。
+   *
+   * processing の同一 ID は、DB insert 後に画像保存や resize enqueue で落ちた可能性があるため再実行する。
+   * completed の同一 ID だけを return 対象にして、未完了 row の復旧余地を残す。
    */
   private async checkIdempotency(
     payload: CreateDishMediaEntryJobPayload,
   ): Promise<boolean> {
-    return this.dishesRepository.existsDishMediaByPlaceIdAndCategory(
-      payload.restaurants.google_place_id,
-      payload.dishes.category_id,
-    );
+    return this.dishesRepository.isDishMediaCompleted(payload.dish_media.id);
   }
 
   /**
