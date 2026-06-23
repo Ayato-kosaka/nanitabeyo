@@ -13,6 +13,7 @@ import { UserUploadsModule } from './user-uploads/user-uploads.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { LogsModule } from './logs/logs.module';
 import { ContributionTasksModule } from './contribution-tasks/contribution-tasks.module';
+import { DishCategoryGroupVotesModule } from './dish-category-group-votes/dish-category-group-votes.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { ContributionTasksModule } from './contribution-tasks/contribution-tasks
     NotificationsModule,
     LogsModule,
     ContributionTasksModule,
+    DishCategoryGroupVotesModule,
   ],
 })
 export class V1Module {}

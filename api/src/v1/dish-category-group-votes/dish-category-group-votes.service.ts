@@ -1,0 +1,252 @@
+// api/src/v1/dish-category-group-votes/dish-category-group-votes.service.ts
+//
+// #856 【設計】dish_category グループ投票のユースケース境界。
+//
+// この Service は「共有リンク型の投票」という仕様上の不変条件を守る層。
+// Controller は認証済み user_id と DTO を渡すだけにし、Repository は DB 操作に閉じる。
+// ここでは、候補削除とのレース耐性、一発勝負、店舗提案キャッシュの固定化、
+// Realtime 通知後の detail 再取得に必要な updated_at 更新をまとめて扱う。
+
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { Prisma } from '../../../../shared/prisma/client';
+import {
+  CreateDishCategoryGroupVoteDto,
+  SubmitDishCategoryGroupVoteDto,
+  UpdateDishCategoryGroupVoteCandidateDishMediaDto,
+} from '@shared/v1/dto';
+import {
+  CreateDishCategoryGroupVoteResponse,
+  DeleteDishCategoryGroupVoteCandidateResponse,
+  DishCategoryGroupVoteDetailResponse,
+  SubmitDishCategoryGroupVoteResponse,
+  UpdateDishCategoryGroupVoteCandidateDishMediaResponse,
+} from '@shared/v1/res';
+import { PrismaService } from '../../prisma/prisma.service';
+import { AppLoggerService } from '../../core/logger/logger.service';
+import { DishCategoryGroupVotesRepository } from './dish-category-group-votes.repository';
+import { DishCategoryGroupVotesAssembler } from './dish-category-group-votes.assembler';
+
+@Injectable()
+export class DishCategoryGroupVotesService {
+  constructor(
+    private readonly repo: DishCategoryGroupVotesRepository,
+    private readonly assembler: DishCategoryGroupVotesAssembler,
+    private readonly prisma: PrismaService,
+    private readonly logger: AppLoggerService,
+  ) {}
+
+  async create(
+    dto: CreateDishCategoryGroupVoteDto,
+    hostUserId: string,
+  ): Promise<CreateDishCategoryGroupVoteResponse> {
+    this.logger.debug('DishCategoryGroupVotes.create', 'start', {
+      hostUserId,
+      candidateCount: dto.candidates.length,
+    });
+
+    // session と candidates は共有URL公開後に分離して見えてはいけない。
+    // shareToken だけ発行され候補が未作成、または候補だけ残る状態を避けるため、
+    // 作成系は1トランザクションに閉じる。
+    const result = await this.prisma.withTransaction(
+      async (tx: Prisma.TransactionClient) => {
+        return this.repo.createSessionWithCandidates(tx, dto, hostUserId);
+      },
+    );
+
+    return {
+      id: result.id,
+      shareToken: result.shareToken,
+    };
+  }
+
+  async getDetailByShareToken(
+    shareToken: string,
+    viewerUserId: string,
+  ): Promise<DishCategoryGroupVoteDetailResponse> {
+    // shareToken は共有リンクの bearer secret として扱う。
+    // URLから得た shareToken で sessionId を解決し、以後の Realtime 購読は
+    // sessionId filter 付きで行う前提なので、detail には内部IDも含める。
+    const entity = await this.repo.findDetailByShareToken(
+      this.prisma.prisma,
+      shareToken,
+    );
+
+    if (!entity) {
+      throw new NotFoundException('Dish category group vote not found');
+    }
+
+    return this.assembler.toDetailResponse(entity, viewerUserId);
+  }
+
+  async submitVote(
+    sessionId: string,
+    dto: SubmitDishCategoryGroupVoteDto,
+    userId: string,
+  ): Promise<SubmitDishCategoryGroupVoteResponse> {
+    // DB の複合PKでも重複 candidate vote は防げるが、DTO内重複は
+    // 「既に投票済み」ではなくリクエスト形状の衝突として早めに落とす。
+    const duplicatedCandidateIds = this.findDuplicatedCandidateIds(
+      dto.votes.map((vote) => vote.candidateId),
+    );
+    if (duplicatedCandidateIds.length > 0) {
+      throw new ConflictException('Duplicated candidate vote');
+    }
+
+    try {
+      // participant INSERT が Realtime の唯一の変更通知になる。
+      // そのため participant と votes と sessions.updated_at は同じ commit に乗せ、
+      // 購読側が通知後に GET detail すれば必ず整合した投票結果を読めるようにする。
+      const participant = await this.prisma.withTransaction(
+        async (tx: Prisma.TransactionClient) => {
+          const session = await this.repo.findSessionById(tx, sessionId);
+          if (!session) {
+            throw new NotFoundException('Dish category group vote not found');
+          }
+
+          // 投票中にホストが候補削除しても送信をエラーにしない。
+          // ここで守るのは「候補が同一セッションに属すること」だけで、
+          // deleted_at や votes.length と未削除候補数の一致は検証しない。
+          await this.repo.assertCandidatesBelongToSession(
+            tx,
+            sessionId,
+            dto.votes.map((vote) => vote.candidateId),
+          );
+
+          const created = await this.repo.createParticipantWithVotes(
+            tx,
+            sessionId,
+            userId,
+            dto,
+          );
+          await this.repo.touchSession(tx, sessionId);
+          return created;
+        },
+      );
+
+      return {
+        participantId: participant.id,
+        stored: true,
+      };
+    } catch (error) {
+      // 一発勝負の最終防衛線は unique(session_id, user_id)。
+      // APIインスタンス間の同時送信でも DB 制約に寄せて 409 に正規化する。
+      if (this.repo.isUniqueViolation(error)) {
+        throw new ConflictException('Already voted');
+      }
+      throw error;
+    }
+  }
+
+  async updateCandidateDishMedia(
+    sessionId: string,
+    candidateId: string,
+    dto: UpdateDishCategoryGroupVoteCandidateDishMediaDto,
+    userId: string,
+  ): Promise<UpdateDishCategoryGroupVoteCandidateDishMediaResponse> {
+    this.logger.debug('DishCategoryGroupVotes.updateCandidateDishMedia', 'start', {
+      sessionId,
+      candidateId,
+      userId,
+      count: dto.dishMediaIds.length,
+    });
+
+    // 店舗提案は「最初に誰かが見た結果」をセッション内で固定する。
+    // 既存値がある場合は、後続ユーザーの位置情報や検索タイミングで候補が
+    // 差し替わらないように上書きしない。
+    return this.prisma.withTransaction(
+      async (tx: Prisma.TransactionClient) => {
+        const candidate = await this.repo.findCandidateById(
+          tx,
+          sessionId,
+          candidateId,
+        );
+        if (!candidate) {
+          throw new NotFoundException('Candidate not found');
+        }
+
+        if (candidate.dishMediaIds.length > 0) {
+          // 冪等化により、複数ユーザーが同時に「店を見る」を押しても
+          // クライアントは保存済みの固定結果をそのまま使える。
+          return {
+            candidateId,
+            dishMediaIds: candidate.dishMediaIds,
+            updated: false,
+          };
+        }
+
+        const updated = await this.repo.updateCandidateDishMediaIds(
+          tx,
+          sessionId,
+          candidateId,
+          dto.dishMediaIds,
+        );
+        await this.repo.touchSession(tx, sessionId);
+
+        return {
+          candidateId,
+          dishMediaIds: updated.dishMediaIds,
+          updated: true,
+        };
+      },
+    );
+  }
+
+  async deleteCandidate(
+    sessionId: string,
+    candidateId: string,
+    userId: string,
+  ): Promise<DeleteDishCategoryGroupVoteCandidateResponse> {
+    // 削除はホストの意思決定として扱うが、既存 votes の説明可能性を残すため
+    // 物理削除はしない。結果画面は deletedAt を見て非表示にする。
+    await this.prisma.withTransaction(
+      async (tx: Prisma.TransactionClient) => {
+        const session = await this.repo.findSessionById(tx, sessionId);
+        if (!session) {
+          throw new NotFoundException('Dish category group vote not found');
+        }
+        if (session.hostUserId !== userId) {
+          throw new ForbiddenException('Only host can delete candidates');
+        }
+
+        const candidate = await this.repo.findCandidateById(
+          tx,
+          sessionId,
+          candidateId,
+        );
+        if (!candidate) {
+          throw new NotFoundException('Candidate not found');
+        }
+
+        if (!candidate.deletedAt) {
+          // Realtime は candidates を購読しない方針なので、削除の即時反映は
+          // sessions.updated_at と次回 detail 再取得で整合させる。
+          await this.repo.softDeleteCandidate(tx, sessionId, candidateId);
+          await this.repo.touchSession(tx, sessionId);
+        }
+      },
+    );
+
+    return { deleted: true };
+  }
+
+  private findDuplicatedCandidateIds(candidateIds: string[]): string[] {
+    // DTO内重複の検出だけを担当する小さな helper。
+    // 「投票済みかどうか」は session/user のDB制約に寄せる。
+    const seen = new Set<string>();
+    const duplicated = new Set<string>();
+
+    for (const id of candidateIds) {
+      if (seen.has(id)) {
+        duplicated.add(id);
+      }
+      seen.add(id);
+    }
+
+    return [...duplicated];
+  }
+}
