@@ -9,7 +9,7 @@
 -- 「なに食べよ」の候補料理を友人と共有し、各参加者が一発勝負で
 -- like / dislike を入力できるようにする。
 -- 候補の表示名・画像と、店舗提案用 dish_media 検索条件は、投票開始時点の
--- スナップショットとして固定する。dish_media_ids は初回「店を見る」時に固定する。
+-- スナップショットとして固定する。dish_media_ids は初回「店を見る」時に検索結果として固定する。
 --
 -- 【実装方針】
 -- - 汎用投票テーブルにはせず、dish_category group vote 専用にする
@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS dish_category_group_vote_candidates (
   dish_category_id text NOT NULL REFERENCES dish_categories(id),
   display_name     text NOT NULL,
   image_url        text NOT NULL,
-  dish_media_ids   uuid[] NOT NULL DEFAULT '{}'::uuid[],
+  dish_media_ids   uuid[],
   display_order    integer NOT NULL,
   deleted_at       timestamptz,
   created_at       timestamptz NOT NULL DEFAULT now(),
@@ -132,7 +132,7 @@ COMMENT ON COLUMN dish_category_group_vote_sessions.updated_at IS
   '投票追加・候補削除など、セッション配下の変化を示す更新日時。';
 
 COMMENT ON TABLE dish_category_group_vote_candidates IS
-  'グループ投票に固定された dish_category 候補。表示名・画像・店舗提案用 dish_media_ids は作成時点のスナップショット。';
+  'グループ投票に固定された dish_category 候補。表示名・画像は作成時点、店舗提案用 dish_media_ids は初回検索時点のスナップショット。';
 
 COMMENT ON COLUMN dish_category_group_vote_candidates.dish_category_id IS
   '投票対象の dish_categories.id。';
@@ -144,7 +144,7 @@ COMMENT ON COLUMN dish_category_group_vote_candidates.image_url IS
   '投票作成時点で固定された候補画像URL。';
 
 COMMENT ON COLUMN dish_category_group_vote_candidates.dish_media_ids IS
-  '店舗提案画面に遷移するための dish_media.id 配列。初回「店を見る」時に最大5件を固定する。';
+  '店舗提案画面に遷移するための dish_media.id 配列。NULL は未検索、空配列は検索済み0件、値ありは検索済み候補あり。';
 
 COMMENT ON COLUMN dish_category_group_vote_candidates.display_order IS
   '結果画面・投票画面で使う固定表示順。ランキングで並び替えない。';

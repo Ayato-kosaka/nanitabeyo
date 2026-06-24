@@ -106,8 +106,8 @@ export class DishCategoryGroupVotesAssembler {
             dishCategoryId: candidate.dishCategoryId,
             displayName: candidate.displayName,
             imageUrl: candidate.imageUrl,
-            // 店舗提案キャッシュは初回「店を見る」後に埋まる。
-            // 未取得時は空配列を返し、フロントが PATCH 後に再取得/反映する。
+            // 店舗提案キャッシュは初回「店を見る」後に固定される。
+            // null は未検索、[] は検索済み0件として返し、フロントがUI表示を分ける。
             dishMediaIds: candidate.dishMediaIds,
             displayOrder: candidate.displayOrder,
             // 削除済み候補も返す。既存 votes の説明可能性を残しつつ、

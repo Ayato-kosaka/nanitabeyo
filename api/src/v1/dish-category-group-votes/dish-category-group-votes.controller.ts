@@ -124,7 +124,7 @@ export class DishCategoryGroupVotesController {
   @ApiOperation({
     summary: '店舗提案用 dish_media_ids を候補にキャッシュ',
     description:
-      '誰でも実行可能。既に dish_media_ids が保存済みなら上書きせず、既存値を返す。',
+      '誰でも実行可能。dish_media_ids が NULL の場合だけ保存する。空配列は検索済み0件として扱い、既に検索済みなら上書きせず既存値を返す。',
   })
   @ApiParam({ name: 'sessionId', required: true })
   @ApiParam({ name: 'candidateId', required: true })

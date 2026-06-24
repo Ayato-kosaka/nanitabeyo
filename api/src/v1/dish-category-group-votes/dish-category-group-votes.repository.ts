@@ -32,7 +32,7 @@ export type DishCategoryGroupVoteCandidateEntity = {
   dishCategoryId: string;
   displayName: string;
   imageUrl: string;
-  dishMediaIds: string[];
+  dishMediaIds: string[] | null;
   displayOrder: number;
   deletedAt: Date | null;
   createdAt: Date;
@@ -145,8 +145,8 @@ export class DishCategoryGroupVotesRepository {
   }
 
   /**
-   * 店舗提案用 dish_media_ids を空配列の場合だけ保存する。
-   * 既に保存済みの場合の上書き抑止は Service 側で判定する。
+   * 店舗提案用 dish_media_ids を未検索(NULL)の場合だけ保存する。
+   * 空配列は「検索済み0件」なので、既に検索済みの場合の上書き抑止は Service 側で判定する。
    */
   async updateCandidateDishMediaIds(
     db: PrismaExecutor,

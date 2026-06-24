@@ -5,7 +5,8 @@ import { IsArray, IsUUID } from "class-validator";
  * のリクエストDTO。
  *
  * フロントが既存の dish_media 検索結果から最大5件を渡す。
- * API は候補の dish_media_ids が空の場合だけ保存し、既に保存済みなら上書きしない。
+ * 空配列は「検索済みだが0件」として保存する。
+ * API は候補の dish_media_ids が NULL の場合だけ保存し、既に検索済みなら上書きしない。
  */
 export class UpdateDishCategoryGroupVoteCandidateDishMediaDto {
 	@IsArray()

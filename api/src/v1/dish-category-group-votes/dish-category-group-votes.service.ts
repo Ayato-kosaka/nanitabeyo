@@ -158,9 +158,9 @@ export class DishCategoryGroupVotesService {
       count: dto.dishMediaIds.length,
     });
 
-    // 店舗提案は「最初に誰かが見た結果」をセッション内で固定する。
-    // 既存値がある場合は、後続ユーザーの位置情報や検索タイミングで候補が
-    // 差し替わらないように上書きしない。
+    // 店舗提案は「最初に誰かが見た検索結果」をセッション内で固定する。
+    // NULL は未検索、空配列は検索済み0件、値ありは検索済み候補あり。
+    // 既に検索済みの場合は、後続ユーザーの検索タイミングで候補が差し替わらないように上書きしない。
     return this.prisma.withTransaction(
       async (tx: Prisma.TransactionClient) => {
         const candidate = await this.repo.findCandidateById(
@@ -172,9 +172,10 @@ export class DishCategoryGroupVotesService {
           throw new NotFoundException('Candidate not found');
         }
 
-        if (candidate.dishMediaIds.length > 0) {
+        if (candidate.dishMediaIds !== null) {
           // 冪等化により、複数ユーザーが同時に「店を見る」を押しても
           // クライアントは保存済みの固定結果をそのまま使える。
+          // 空配列も「検索済み0件」という有効な固定結果なので上書きしない。
           return {
             candidateId,
             dishMediaIds: candidate.dishMediaIds,

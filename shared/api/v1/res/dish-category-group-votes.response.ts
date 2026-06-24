@@ -48,7 +48,10 @@ export type DishCategoryGroupVoteCandidate = {
 	dishCategoryId: string;
 	displayName: string;
 	imageUrl: string;
-	dishMediaIds: string[];
+	/**
+	 * null は未検索、[] は検索済み0件、値ありは検索済み候補あり。
+	 */
+	dishMediaIds: string[] | null;
 	displayOrder: number;
 	deletedAt: string | null;
 	likeCount: number;
@@ -105,7 +108,7 @@ export type SubmitDishCategoryGroupVoteResponse = {
 export type UpdateDishCategoryGroupVoteCandidateDishMediaResponse = {
 	candidateId: string;
 	dishMediaIds: string[];
-	/** true の場合のみ、このリクエストで空配列から保存済みに更新した */
+	/** true の場合のみ、このリクエストで未検索(NULL)から検索済みに更新した */
 	updated: boolean;
 };
 
