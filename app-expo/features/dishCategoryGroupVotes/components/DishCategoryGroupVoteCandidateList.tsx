@@ -12,6 +12,7 @@ type Props = {
 	candidates: DishCategoryGroupVoteCandidate[];
 	isHost: boolean;
 	loadingCandidateId: string | null;
+	onPressCandidate: (candidate: DishCategoryGroupVoteCandidate) => void;
 	onPressDishMedia: (candidate: DishCategoryGroupVoteCandidate) => void;
 	onDeleteCandidate: (candidate: DishCategoryGroupVoteCandidate) => void;
 };
@@ -20,6 +21,7 @@ export function DishCategoryGroupVoteCandidateList({
 	candidates,
 	isHost,
 	loadingCandidateId,
+	onPressCandidate,
 	onPressDishMedia,
 	onDeleteCandidate,
 }: Props) {
@@ -35,6 +37,7 @@ export function DishCategoryGroupVoteCandidateList({
 					candidate={candidate}
 					isHost={isHost}
 					isDishMediaLoading={loadingCandidateId === candidate.id}
+					onPressCandidate={onPressCandidate}
 					onPressDishMedia={onPressDishMedia}
 					onDeleteCandidate={onDeleteCandidate}
 				/>

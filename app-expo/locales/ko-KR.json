@@ -70,7 +70,8 @@
 		"submitting": "제출 중",
 		"submitFailed": "투표를 제출하지 못했습니다",
 		"participantsList": "참가자: {{names}}",
-		"noParticipants": "아직 참가자가 없습니다"
+		"noParticipants": "아직 참가자가 없습니다",
+		"noVotes": "아직 투표가 없습니다"
 	},
 	"Error": {
 		"maintenanceMessage": "현재 점검 중입니다.",

@@ -70,7 +70,8 @@
 		"submitting": "Enviando",
 		"submitFailed": "No se pudo enviar tu voto",
 		"participantsList": "Participantes: {{names}}",
-		"noParticipants": "Aún no hay participantes"
+		"noParticipants": "Aún no hay participantes",
+		"noVotes": "Aún no hay votos"
 	},
 	"Error": {
 		"maintenanceMessage": "Actualmente estamos en mantenimiento.",

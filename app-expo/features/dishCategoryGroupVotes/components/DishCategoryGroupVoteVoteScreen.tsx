@@ -150,16 +150,10 @@ export function DishCategoryGroupVoteVoteScreen({ shareToken }: Props) {
 	return (
 		<SafeAreaView style={styles.safeArea}>
 			<View style={styles.header}>
-				<Text style={styles.progress}>
-					{i18n.t("DishCategoryGroupVotes.voteProgress", {
-						current: Math.min(index + 1, voteCandidates.length),
-						total: voteCandidates.length,
-					})}
-				</Text>
 				<View style={styles.progressSegments}>
-					{Array.from({ length: 6 }).map((_, segmentIndex) => (
+					{voteCandidates.map((candidate, segmentIndex) => (
 						<View
-							key={segmentIndex}
+							key={candidate.id}
 							style={[
 								styles.progressSegment,
 								segmentIndex < getFilledProgressSegments(index, voteCandidates.length) && styles.progressSegmentActive,
@@ -167,6 +161,12 @@ export function DishCategoryGroupVoteVoteScreen({ shareToken }: Props) {
 						/>
 					))}
 				</View>
+				<Text style={styles.progress}>
+					{i18n.t("DishCategoryGroupVotes.voteProgress", {
+						current: Math.min(index + 1, voteCandidates.length),
+						total: voteCandidates.length,
+					})}
+				</Text>
 			</View>
 			{currentCandidate ? (
 				<DishCategoryGroupVoteVoteCard candidate={currentCandidate} onVote={handleVote} />
@@ -244,5 +244,5 @@ const styles = StyleSheet.create({
 
 function getFilledProgressSegments(index: number, total: number) {
 	if (total <= 0) return 0;
-	return Math.min(6, Math.ceil(((index + 1) / total) * 6));
+	return Math.min(total, index + 1);
 }

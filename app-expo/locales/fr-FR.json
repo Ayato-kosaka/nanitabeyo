@@ -70,7 +70,8 @@
 		"submitting": "Envoi",
 		"submitFailed": "Impossible d'envoyer votre vote",
 		"participantsList": "Participants : {{names}}",
-		"noParticipants": "Aucun participant pour le moment"
+		"noParticipants": "Aucun participant pour le moment",
+		"noVotes": "Aucun vote pour le moment"
 	},
 	"Error": {
 		"maintenanceMessage": "Nous sommes actuellement en maintenance.",

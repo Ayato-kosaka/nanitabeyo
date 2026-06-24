@@ -6,6 +6,7 @@
  */
 import * as Clipboard from "expo-clipboard";
 import { router } from "expo-router";
+import { useState } from "react";
 import { SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
 import type { DishCategoryGroupVoteCandidate } from "@shared/api/v1/res";
 import { generateShareUrl } from "@/lib/share";
@@ -17,12 +18,14 @@ import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import { SearchHeader } from "@/features/search/components/SearchHeader";
+import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { useDishCategoryGroupVoteActions } from "../hooks/useDishCategoryGroupVoteActions";
 import { useDishCategoryGroupVoteDetail } from "../hooks/useDishCategoryGroupVoteDetail";
 import { useDishCategoryGroupVoteRealtime } from "../hooks/useDishCategoryGroupVoteRealtime";
 import { useCandidateDishMediaCache } from "../hooks/useCandidateDishMediaCache";
 import { DishCategoryGroupVoteCandidateList } from "./DishCategoryGroupVoteCandidateList";
 import { DishCategoryGroupVoteComments } from "./DishCategoryGroupVoteComments";
+import { DishCategoryGroupVoteCandidateDetailModal } from "./DishCategoryGroupVoteCandidateDetailModal";
 import { DishCategoryGroupVoteResultHeader } from "./DishCategoryGroupVoteResultHeader";
 
 type Props = {
@@ -34,6 +37,14 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 	const { logFrontendEvent } = useLogger();
 	const { confirm } = useDialog();
 	const { showSnackbar } = useSnackbar();
+	const [selectedCandidate, setSelectedCandidate] = useState<DishCategoryGroupVoteCandidate | null>(null);
+	const {
+		BlurModal: CandidateDetailBlurModal,
+		open: openCandidateDetail,
+		close: closeCandidateDetail,
+	} = useBlurModal({
+		closeOnBackdropPress: true,
+	});
 	const { detail, isLoading, error, refresh } = useDishCategoryGroupVoteDetail(shareToken);
 	const actions = useDishCategoryGroupVoteActions({
 		sessionId: detail?.session.id,
@@ -77,6 +88,11 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 		showSnackbar(i18n.t("Common.linkCopied"));
 	};
 
+	const handlePressCandidate = (candidate: DishCategoryGroupVoteCandidate) => {
+		setSelectedCandidate(candidate);
+		openCandidateDetail();
+	};
+
 	const handleDeleteCandidate = async (candidate: DishCategoryGroupVoteCandidate) => {
 		const ok = await confirm({
 			title: i18n.t("DishCategoryGroupVotes.deleteCandidateTitle"),
@@ -85,6 +101,10 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 			cancelLabel: i18n.t("Common.cancel"),
 		});
 		if (!ok) return;
+		if (selectedCandidate?.id === candidate.id) {
+			closeCandidateDetail();
+			setSelectedCandidate(null);
+		}
 		logFrontendEvent({
 			event_name: "dish_category_group_vote_candidate_delete_requested",
 			error_level: "log",
@@ -145,11 +165,23 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 					candidates={detail.candidates}
 					isHost={detail.session.isHost}
 					loadingCandidateId={loadingCandidateId}
+					onPressCandidate={handlePressCandidate}
 					onPressDishMedia={openCandidateDishMedia}
 					onDeleteCandidate={handleDeleteCandidate}
 				/>
 				<DishCategoryGroupVoteComments participants={detail.participants} />
 			</ScrollView>
+			<CandidateDetailBlurModal contentContainerStyle={styles.detailBackdrop}>
+				{selectedCandidate ? (
+					<DishCategoryGroupVoteCandidateDetailModal
+						candidate={selectedCandidate}
+						isHost={detail.session.isHost}
+						isDishMediaLoading={loadingCandidateId === selectedCandidate.id}
+						onPressDishMedia={openCandidateDishMedia}
+						onDeleteCandidate={handleDeleteCandidate}
+					/>
+				) : null}
+			</CandidateDetailBlurModal>
 		</SafeAreaView>
 	);
 }
@@ -184,5 +216,11 @@ const styles = StyleSheet.create({
 	},
 	voteButton: {
 		width: "100%",
+	},
+	detailBackdrop: {
+		flex: 1,
+		alignItems: "center",
+		justifyContent: "center",
+		padding: 18,
 	},
 });

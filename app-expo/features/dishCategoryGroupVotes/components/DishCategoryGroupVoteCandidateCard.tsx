@@ -4,9 +4,8 @@
  *
  * 投票結果、削除状態、店舗提案キャッシュ状態の3つをここで読み分ける。
  */
-import { Eye, Trash2 } from "lucide-react-native";
+import { ThumbsDown, ThumbsUp, Trash2 } from "lucide-react-native";
 import { Image } from "expo-image";
-import { useState } from "react";
 import { Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import type { DishCategoryGroupVoteCandidate } from "@shared/api/v1/res";
 import i18n from "@/lib/i18n";
@@ -15,6 +14,7 @@ type Props = {
 	candidate: DishCategoryGroupVoteCandidate;
 	isHost: boolean;
 	isDishMediaLoading: boolean;
+	onPressCandidate: (candidate: DishCategoryGroupVoteCandidate) => void;
 	onPressDishMedia: (candidate: DishCategoryGroupVoteCandidate) => void;
 	onDeleteCandidate: (candidate: DishCategoryGroupVoteCandidate) => void;
 };
@@ -23,24 +23,14 @@ export function DishCategoryGroupVoteCandidateCard({
 	candidate,
 	isHost,
 	isDishMediaLoading,
+	onPressCandidate,
 	onPressDishMedia,
 	onDeleteCandidate,
 }: Props) {
 	const hasEmptyDishMedia = candidate.dishMediaSearchStatus === "empty";
-	const [expandedReaction, setExpandedReaction] = useState<"like" | "dislike" | null>(null);
-	const likeVotes = candidate.votes.filter((vote) => vote.reaction === "like");
-	const dislikeVotes = candidate.votes.filter((vote) => vote.reaction === "dislike");
-	const likeSummary = formatVoteSummary(
-		likeVotes.map((vote) => vote.displayName),
-		expandedReaction === "like",
-	);
-	const dislikeSummary = formatVoteSummary(
-		dislikeVotes.map((vote) => vote.displayName),
-		expandedReaction === "dislike",
-	);
 
 	return (
-		<View style={styles.card}>
+		<Pressable style={styles.card} onPress={() => onPressCandidate(candidate)}>
 			<Image source={{ uri: candidate.imageUrl }} style={styles.image} contentFit="cover" />
 			<View style={styles.rankBadge}>
 				<Text style={styles.rankText}>{candidate.rank ? `${candidate.rank}位` : "-"}</Text>
@@ -50,25 +40,14 @@ export function DishCategoryGroupVoteCandidateCard({
 					{candidate.displayName}
 				</Text>
 				<View style={styles.voteSummaryRow}>
-					<Pressable
-						onPress={() => setExpandedReaction(expandedReaction === "like" ? null : "like")}
-						disabled={likeVotes.length <= 2}
-						style={styles.voteSummaryPressable}>
-						<Text style={styles.voteSummary} numberOfLines={expandedReaction === "like" ? undefined : 1}>
-							👍 {candidate.likeCount}
-							{likeSummary ? `（${likeSummary}）` : ""}
-						</Text>
-					</Pressable>
-					<Text style={styles.voteDivider}>/</Text>
-					<Pressable
-						onPress={() => setExpandedReaction(expandedReaction === "dislike" ? null : "dislike")}
-						disabled={dislikeVotes.length <= 2}
-						style={styles.voteSummaryPressable}>
-						<Text style={styles.voteSummary} numberOfLines={expandedReaction === "dislike" ? undefined : 1}>
-							👎 {candidate.dislikeCount}
-							{dislikeSummary ? `（${dislikeSummary}）` : ""}
-						</Text>
-					</Pressable>
+					<View style={styles.voteCount}>
+						<ThumbsUp size={13} color="#6B7280" strokeWidth={2.4} />
+						<Text style={styles.voteSummary}>{candidate.likeCount}</Text>
+					</View>
+					<View style={styles.voteCount}>
+						<ThumbsDown size={13} color="#6B7280" strokeWidth={2.4} />
+						<Text style={styles.voteSummary}>{candidate.dislikeCount}</Text>
+					</View>
 				</View>
 				{hasEmptyDishMedia ? (
 					<Text style={styles.emptyText}>{i18n.t("DishCategoryGroupVotes.noRestaurantsFound")}</Text>
@@ -77,9 +56,11 @@ export function DishCategoryGroupVoteCandidateCard({
 			<TouchableOpacity
 				style={[styles.secondaryButton, hasEmptyDishMedia && styles.disabledButton]}
 				disabled={hasEmptyDishMedia || isDishMediaLoading}
-				onPress={() => onPressDishMedia(candidate)}
+				onPress={(event) => {
+					event.stopPropagation();
+					onPressDishMedia(candidate);
+				}}
 				activeOpacity={0.85}>
-				<Eye size={14} color={hasEmptyDishMedia ? "#9CA3AF" : "#F05537"} />
 				<Text style={[styles.secondaryButtonText, hasEmptyDishMedia && styles.disabledButtonText]} numberOfLines={1}>
 					{isDishMediaLoading
 						? i18n.t("DishCategoryGroupVotes.loadingRestaurants")
@@ -89,22 +70,17 @@ export function DishCategoryGroupVoteCandidateCard({
 			{isHost ? (
 				<TouchableOpacity
 					style={styles.deleteButton}
-					onPress={() => onDeleteCandidate(candidate)}
+					onPress={(event) => {
+						event.stopPropagation();
+						onDeleteCandidate(candidate);
+					}}
 					activeOpacity={0.85}
 					accessibilityLabel={i18n.t("DishCategoryGroupVotes.deleteCandidate")}>
 					<Trash2 size={17} color="#DC2626" />
 				</TouchableOpacity>
-			) : (
-				<View style={styles.deleteSpacer} />
-			)}
-		</View>
+			) : null}
+		</Pressable>
 	);
-}
-
-function formatVoteSummary(names: string[], expanded: boolean) {
-	if (names.length === 0) return "";
-	if (expanded || names.length <= 2) return names.join("、");
-	return `${names.slice(0, 2).join("、")}、＋${names.length - 2}人`;
 }
 
 const styles = StyleSheet.create({
@@ -149,22 +125,19 @@ const styles = StyleSheet.create({
 	voteSummaryRow: {
 		marginTop: 5,
 		flexDirection: "row",
-		alignItems: "flex-start",
+		alignItems: "center",
+		gap: 10,
+	},
+	voteCount: {
+		flexDirection: "row",
+		alignItems: "center",
 		gap: 4,
 	},
-	voteSummaryPressable: {
-		flexShrink: 1,
-	},
 	voteSummary: {
-		fontSize: 11,
+		fontSize: 12,
 		lineHeight: 15,
 		color: "#6B7280",
-		fontWeight: "600",
-	},
-	voteDivider: {
-		fontSize: 11,
-		lineHeight: 15,
-		color: "#6B7280",
+		fontWeight: "800",
 	},
 	emptyText: {
 		marginTop: 4,
@@ -172,7 +145,7 @@ const styles = StyleSheet.create({
 		color: "#B45309",
 	},
 	secondaryButton: {
-		width: 74,
+		width: 72,
 		minHeight: 34,
 		borderRadius: 8,
 		borderWidth: 1,
@@ -202,8 +175,5 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		justifyContent: "center",
 		backgroundColor: "#FEF2F2",
-	},
-	deleteSpacer: {
-		width: 34,
 	},
 });

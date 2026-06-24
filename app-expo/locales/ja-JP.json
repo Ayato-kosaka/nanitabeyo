@@ -70,7 +70,8 @@
 		"submitting": "送信中",
 		"submitFailed": "投票を送信できませんでした",
 		"participantsList": "参加者：{{names}}",
-		"noParticipants": "まだ参加者はいません"
+		"noParticipants": "まだ参加者はいません",
+		"noVotes": "まだ投票がありません"
 	},
 	"Error": {
 		"maintenanceMessage": "ただいまメンテナンス中です。",

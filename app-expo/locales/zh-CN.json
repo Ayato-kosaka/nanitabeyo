@@ -70,7 +70,8 @@
 		"submitting": "提交中",
 		"submitFailed": "无法提交投票",
 		"participantsList": "参与者：{{names}}",
-		"noParticipants": "还没有参与者"
+		"noParticipants": "还没有参与者",
+		"noVotes": "还没有投票"
 	},
 	"Error": {
 		"maintenanceMessage": "当前正在维护中。",

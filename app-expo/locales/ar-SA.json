@@ -70,7 +70,8 @@
 		"submitting": "جارٍ الإرسال",
 		"submitFailed": "تعذر إرسال تصويتك",
 		"participantsList": "المشاركون: {{names}}",
-		"noParticipants": "لا يوجد مشاركون بعد"
+		"noParticipants": "لا يوجد مشاركون بعد",
+		"noVotes": "لا توجد أصوات بعد"
 	},
 	"Error": {
 		"maintenanceMessage": "نحن حالياً نقوم بأعمال صيانة.",

@@ -70,7 +70,8 @@
 		"submitting": "भेज रहे हैं",
 		"submitFailed": "आपका वोट भेजा नहीं जा सका",
 		"participantsList": "प्रतिभागी: {{names}}",
-		"noParticipants": "अभी कोई प्रतिभागी नहीं है"
+		"noParticipants": "अभी कोई प्रतिभागी नहीं है",
+		"noVotes": "अभी कोई वोट नहीं है"
 	},
 	"Error": {
 		"maintenanceMessage": "हम वर्तमान में रखरखाव कर रहे हैं।",
