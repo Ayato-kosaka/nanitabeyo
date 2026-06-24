@@ -1,12 +1,26 @@
 // api/src/v1/dish-category-group-votes/dish-category-group-votes.repository.ts
 //
 // #856 【設計】dish_category グループ投票の永続化境界。
-// Prisma schema 生成前でもAPI設計をレビューできるよう、ここでは
-// Entity とメソッド境界を先に定義し、DB実装は後続タスクで埋める。
-// 実装時は migration のテーブル名を使って Prisma Client 再生成後に置き換える。
+// この機能は DB スキーマと画面契約の両方に依存するため、Repository では
+// 変換済みの shared converter 型を使い、ローカル Entity を増やさない。
+// こうしておくと、Prisma schema / Supabase schema / API response の3者が
+// ずれていないかを型で追いやすい。
 
 import { Injectable } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import { Prisma, PrismaClient } from '../../../../shared/prisma/client';
+import {
+  PrismaDishCategoryGroupVoteCandidateVotes,
+} from '../../../../shared/converters/convert_dish_category_group_vote_candidate_votes';
+import {
+  PrismaDishCategoryGroupVoteCandidates,
+} from '../../../../shared/converters/convert_dish_category_group_vote_candidates';
+import {
+  PrismaDishCategoryGroupVoteParticipants,
+} from '../../../../shared/converters/convert_dish_category_group_vote_participants';
+import {
+  PrismaDishCategoryGroupVoteSessions,
+} from '../../../../shared/converters/convert_dish_category_group_vote_sessions';
 import {
   CreateDishCategoryGroupVoteDto,
   SubmitDishCategoryGroupVoteDto,
@@ -16,124 +30,207 @@ import {
   DishCategoryGroupVoteSearchContext,
 } from '@shared/v1/res';
 
-
-// TODO: 実装時は  type の定義は無駄に行わないこと。shared/converter を使うこと。
 export type PrismaExecutor = Prisma.TransactionClient | PrismaClient;
 
-export type DishCategoryGroupVoteSessionEntity = {
-  id: string;
-  hostUserId: string;
-  shareToken: string;
-  searchContext: DishCategoryGroupVoteSearchContext;
-  createdAt: Date;
-  updatedAt: Date;
-};
-
-export type DishCategoryGroupVoteCandidateEntity = {
-  id: string;
-  sessionId: string;
-  dishCategoryId: string;
-  displayName: string;
-  imageUrl: string;
-  dishMediaIds: string[];
-  dishMediaSearchStatus: DishCategoryGroupVoteDishMediaSearchStatus;
-  displayOrder: number;
-  deletedAt: Date | null;
-  createdAt: Date;
-};
-
-export type DishCategoryGroupVoteParticipantEntity = {
-  id: string;
-  sessionId: string;
-  userId: string;
-  displayName: string;
-  comment: string | null;
-  createdAt: Date;
-};
-
-export type DishCategoryGroupVoteCandidateVoteEntity = {
-  participantId: string;
-  candidateId: string;
-  reaction: 'like' | 'dislike';
-  createdAt: Date;
-};
-
-export type DishCategoryGroupVoteDetailEntity = {
-  session: DishCategoryGroupVoteSessionEntity;
-  candidates: DishCategoryGroupVoteCandidateEntity[];
-  participants: DishCategoryGroupVoteParticipantEntity[];
-  votes: DishCategoryGroupVoteCandidateVoteEntity[];
+export type DishCategoryGroupVoteDetailRecord = {
+  session: PrismaDishCategoryGroupVoteSessions;
+  candidates: PrismaDishCategoryGroupVoteCandidates[];
+  participants: PrismaDishCategoryGroupVoteParticipants[];
+  votes: PrismaDishCategoryGroupVoteCandidateVotes[];
 };
 
 @Injectable()
 export class DishCategoryGroupVotesRepository {
   /**
-   * セッションと候補を同一トランザクションで作成する。
-   * searchContext は、共有リンク参加者が後から店舗提案へ進むために session に固定する。
-   * shareToken は推測困難な値を生成し、displayOrder は candidates の配列順で採番する。
+   * session と candidates を同一トランザクションで作る。
+   * 共有リンクは session だけ先に存在しても意味がなく、候補だけ先に見えても意味がない。
+   * そのため、公開識別子の発行と候補スナップショットの固定を同じ commit に閉じる。
    */
   async createSessionWithCandidates(
     db: PrismaExecutor,
     dto: CreateDishCategoryGroupVoteDto,
     hostUserId: string,
   ): Promise<{ id: string; shareToken: string }> {
-    void db;
-    void dto;
-    void hostUserId;
-    throw new Error('Not implemented');
+    const shareToken = randomUUID().replace(/-/g, '');
+
+    const session = await db.dish_category_group_vote_sessions.create({
+      data: {
+        host_user_id: hostUserId,
+        share_token: shareToken,
+        // 共有リンク参加者は検索画面の route params を持たないので、
+        // 店を見る時点の検索条件を session に固定しておく。
+        search_context: dto.searchContext as unknown as Prisma.InputJsonValue,
+      },
+      select: {
+        id: true,
+        share_token: true,
+      },
+    });
+
+    // 候補は配列順で display_order を振る。body 由来の序列を信用しない。
+    // 同一 session 内での候補の見え方を安定させるため、表示名/画像もここで固定する。
+    await db.dish_category_group_vote_candidates.createMany({
+      data: dto.candidates.map((candidate, index) => ({
+        session_id: session.id,
+        dish_category_id: candidate.dishCategoryId,
+        display_name: candidate.displayName,
+        image_url: candidate.imageUrl,
+        dish_media_ids: [],
+        dish_media_search_status: 'not_searched',
+        display_order: index,
+      })),
+    });
+
+    return {
+      id: session.id,
+      shareToken: session.share_token,
+    };
   }
 
   /**
-   * shareToken から結果画面に必要な全データを取得する。
-   * 集計ビューは使わず、Service/Assembler 側で like/dislike 数と順位を計算する。
+   * shareToken から detail に必要な 4 テーブル分をまとめて読む。
+   * 集計ビューを置かず、候補順・参加者順・投票順の意味づけは assembler 側に残す。
    */
   async findDetailByShareToken(
     db: PrismaExecutor,
     shareToken: string,
-  ): Promise<DishCategoryGroupVoteDetailEntity | null> {
-    void db;
-    void shareToken;
-    throw new Error('Not implemented');
+  ): Promise<DishCategoryGroupVoteDetailRecord | null> {
+    const session = (await db.dish_category_group_vote_sessions.findUnique({
+      where: { share_token: shareToken },
+      select: {
+        id: true,
+        host_user_id: true,
+        share_token: true,
+        search_context: true,
+        created_at: true,
+        updated_at: true,
+      },
+    })) as PrismaDishCategoryGroupVoteSessions | null;
+
+    if (!session) return null;
+
+    const candidates = (await db.dish_category_group_vote_candidates.findMany({
+      where: { session_id: session.id },
+      orderBy: { display_order: 'asc' },
+      select: {
+        id: true,
+        session_id: true,
+        dish_category_id: true,
+        display_name: true,
+        image_url: true,
+        dish_media_ids: true,
+        dish_media_search_status: true,
+        display_order: true,
+        deleted_at: true,
+        created_at: true,
+      },
+    })) as PrismaDishCategoryGroupVoteCandidates[];
+
+    const participants = (await db.dish_category_group_vote_participants.findMany({
+      where: { session_id: session.id },
+      orderBy: { created_at: 'asc' },
+      select: {
+        id: true,
+        session_id: true,
+        user_id: true,
+        display_name: true,
+        comment: true,
+        created_at: true,
+      },
+    })) as PrismaDishCategoryGroupVoteParticipants[];
+
+    const votes = candidates.length === 0
+      ? []
+      : (await db.dish_category_group_vote_candidate_votes.findMany({
+          where: {
+            candidate_id: { in: candidates.map((candidate) => candidate.id) },
+          },
+          orderBy: { created_at: 'asc' },
+          select: {
+            participant_id: true,
+            candidate_id: true,
+            reaction: true,
+            created_at: true,
+          },
+        })) as PrismaDishCategoryGroupVoteCandidateVotes[];
+
+    return { session, candidates, participants, votes };
   }
 
+  /**
+   * sessionId を明示して read するのは、shareToken ではなく内部操作の境界を守るため。
+   * Realtime の再取得や候補更新では、公開トークンを経由しない方が責務がぶれない。
+   */
   async findSessionById(
     db: PrismaExecutor,
     sessionId: string,
-  ): Promise<DishCategoryGroupVoteSessionEntity | null> {
-    void db;
-    void sessionId;
-    throw new Error('Not implemented');
+  ): Promise<PrismaDishCategoryGroupVoteSessions | null> {
+    const session = (await db.dish_category_group_vote_sessions.findUnique({
+      where: { id: sessionId },
+      select: {
+        id: true,
+        host_user_id: true,
+        share_token: true,
+        search_context: true,
+        created_at: true,
+        updated_at: true,
+      },
+    })) as PrismaDishCategoryGroupVoteSessions | null;
+
+    return session;
   }
 
   async findCandidateById(
     db: PrismaExecutor,
     sessionId: string,
     candidateId: string,
-  ): Promise<DishCategoryGroupVoteCandidateEntity | null> {
-    void db;
-    void sessionId;
-    void candidateId;
-    throw new Error('Not implemented');
+  ): Promise<PrismaDishCategoryGroupVoteCandidates | null> {
+    const candidate = (await db.dish_category_group_vote_candidates.findFirst({
+      where: {
+        id: candidateId,
+        session_id: sessionId,
+      },
+      select: {
+        id: true,
+        session_id: true,
+        dish_category_id: true,
+        display_name: true,
+        image_url: true,
+        dish_media_ids: true,
+        dish_media_search_status: true,
+        display_order: true,
+        deleted_at: true,
+        created_at: true,
+      },
+    })) as PrismaDishCategoryGroupVoteCandidates | null;
+
+    return candidate;
   }
 
   /**
-   * 投票対象 candidateId がすべて session 配下に存在することだけ確認する。
-   * deleted_at は候補削除とのレースを許容するため問わない。
+   * 投票では「候補が同じ session に属するか」だけを検証する。
+   * deleted_at は投票送信と候補削除のレースを許容するため、ここでは見ない。
    */
   async assertCandidatesBelongToSession(
     db: PrismaExecutor,
     sessionId: string,
     candidateIds: string[],
-  ): Promise<void> {
-    void db;
-    void sessionId;
-    void candidateIds;
-    throw new Error('Not implemented');
+  ): Promise<boolean> {
+    const uniqueCandidateIds = [...new Set(candidateIds)];
+    const rows = await db.dish_category_group_vote_candidates.findMany({
+      where: {
+        session_id: sessionId,
+        id: { in: uniqueCandidateIds },
+      },
+      select: { id: true },
+    });
+
+    return rows.length === uniqueCandidateIds.length;
   }
 
   /**
-   * participant と votes を作成する。
-   * unique(session_id, user_id) により二重投票はDBで防ぐ。
+   * participant と votes は同じトランザクションに入れる。
+   * そうしないと Realtime で participant だけ先に見えて、候補別投票がまだ無い状態になる。
    */
   async createParticipantWithVotes(
     db: PrismaExecutor,
@@ -141,17 +238,32 @@ export class DishCategoryGroupVotesRepository {
     userId: string,
     dto: SubmitDishCategoryGroupVoteDto,
   ): Promise<{ id: string }> {
-    void db;
-    void sessionId;
-    void userId;
-    void dto;
-    throw new Error('Not implemented');
+    const participant = await db.dish_category_group_vote_participants.create({
+      data: {
+        session_id: sessionId,
+        user_id: userId,
+        display_name: dto.displayName,
+        comment: dto.comment ?? null,
+      },
+      select: { id: true },
+    });
+
+    if (dto.votes.length > 0) {
+      await db.dish_category_group_vote_candidate_votes.createMany({
+        data: dto.votes.map((vote) => ({
+          participant_id: participant.id,
+          candidate_id: vote.candidateId,
+          reaction: vote.reaction,
+        })),
+      });
+    }
+
+    return { id: participant.id };
   }
 
   /**
-   * 店舗提案用 dish_media_ids と検索状態を保存する。
-   * Prisma は PostgreSQL scalar list の NULL を扱えないため、未検索判定は status に寄せる。
-   * 既に検索済みの場合の上書き抑止は Service 側で判定する。
+   * 店を見るで得た検索結果を固定する。
+   * not_searched 以外は上書きせず、最初に保存された結果だけを真実にする。
    */
   async updateCandidateDishMediaIds(
     db: PrismaExecutor,
@@ -166,29 +278,61 @@ export class DishCategoryGroupVotesRepository {
     dishMediaIds: string[];
     dishMediaSearchStatus: DishCategoryGroupVoteDishMediaSearchStatus;
   }> {
-    void db;
     void sessionId;
-    void candidateId;
-    void dishMediaIds;
-    void dishMediaSearchStatus;
-    throw new Error('Not implemented');
+
+    const candidate = await db.dish_category_group_vote_candidates.update({
+      where: { id: candidateId },
+      data: {
+        dish_media_ids: dishMediaIds,
+        dish_media_search_status: dishMediaSearchStatus,
+      },
+      select: {
+        dish_media_ids: true,
+        dish_media_search_status: true,
+      },
+    });
+
+    return {
+      dishMediaIds: candidate.dish_media_ids,
+      dishMediaSearchStatus: candidate.dish_media_search_status as DishCategoryGroupVoteDishMediaSearchStatus,
+    };
   }
 
+  /**
+   * 候補は物理削除しない。
+   * 既存 vote の説明可能性を守るため、deleted_at だけを立てる。
+   */
   async softDeleteCandidate(
     db: PrismaExecutor,
     sessionId: string,
     candidateId: string,
   ): Promise<void> {
-    void db;
-    void sessionId;
-    void candidateId;
-    throw new Error('Not implemented');
+    await db.dish_category_group_vote_candidates.updateMany({
+      where: {
+        id: candidateId,
+        session_id: sessionId,
+        deleted_at: null,
+      },
+      data: {
+        deleted_at: new Date(),
+      },
+    });
   }
 
+  /**
+   * Realtime の再取得トリガーとして session.updated_at を更新する。
+   * ここを明示更新にしておくと、候補追加・削除・dish_media 固定を同じ再取得パスへ寄せられる。
+   */
   async touchSession(db: PrismaExecutor, sessionId: string): Promise<void> {
-    void db;
-    void sessionId;
-    throw new Error('Not implemented');
+    await db.dish_category_group_vote_sessions.update({
+      where: { id: sessionId },
+      data: {
+        updated_at: new Date(),
+      },
+      select: {
+        id: true,
+      },
+    });
   }
 
   isUniqueViolation(error: unknown): boolean {

@@ -8,6 +8,7 @@
 // Realtime 通知後の detail 再取得に必要な updated_at 更新をまとめて扱う。
 
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
@@ -40,6 +41,22 @@ export class DishCategoryGroupVotesService {
     private readonly logger: AppLoggerService,
   ) {}
 
+  private validateCreateCandidates(dto: CreateDishCategoryGroupVoteDto): void {
+    const seen = new Set<string>();
+    const duplicated = new Set<string>();
+
+    for (const candidate of dto.candidates) {
+      if (seen.has(candidate.dishCategoryId)) {
+        duplicated.add(candidate.dishCategoryId);
+      }
+      seen.add(candidate.dishCategoryId);
+    }
+
+    if (duplicated.size > 0) {
+      throw new BadRequestException('Duplicated candidate dishCategoryId');
+    }
+  }
+
   async create(
     dto: CreateDishCategoryGroupVoteDto,
     hostUserId: string,
@@ -51,39 +68,81 @@ export class DishCategoryGroupVotesService {
       localLanguageCode: dto.searchContext.localLanguageCode,
     });
 
-    // session と candidates は共有URL公開後に分離して見えてはいけない。
-    // shareToken だけ発行され候補が未作成、または候補だけ残る状態を避けるため、
-    // 作成系は1トランザクションに閉じる。searchContext も session と同時に固定し、
-    // 共有リンクを直接開いたゲストが店舗提案へ進めない状態を作らない。
-    const result = await this.prisma.withTransaction(
-      async (tx: Prisma.TransactionClient) => {
-        return this.repo.createSessionWithCandidates(tx, dto, hostUserId);
-      },
-    );
+    this.validateCreateCandidates(dto);
 
-    return {
-      id: result.id,
-      shareToken: result.shareToken,
-    };
+    try {
+      // session と candidates は共有URL公開後に分離して見えてはいけない。
+      // shareToken だけ発行され候補が未作成、または候補だけ残る状態を避けるため、
+      // 作成系は1トランザクションに閉じる。searchContext も session と同時に固定し、
+      // 共有リンクを直接開いたゲストが店舗提案へ進めない状態を作らない。
+      const result = await this.prisma.withTransaction(
+        async (tx: Prisma.TransactionClient) => {
+          return this.repo.createSessionWithCandidates(tx, dto, hostUserId);
+        },
+      );
+
+      this.logger.debug('DishCategoryGroupVotes.create', 'completed', {
+        hostUserId,
+        sessionId: result.id,
+        shareToken: result.shareToken,
+        candidateCount: dto.candidates.length,
+      });
+
+      return {
+        id: result.id,
+        shareToken: result.shareToken,
+      };
+    } catch (error) {
+      this.logger.error('DishCategoryGroupVotes.createFailed', 'create', {
+        hostUserId,
+        candidateCount: dto.candidates.length,
+        error,
+      });
+      if (this.repo.isUniqueViolation(error)) {
+        throw new ConflictException('Failed to create dish category group vote');
+      }
+      throw error;
+    }
   }
 
   async getDetailByShareToken(
     shareToken: string,
     viewerUserId: string,
   ): Promise<DishCategoryGroupVoteDetailResponse> {
-    // shareToken は共有リンクの bearer secret として扱う。
-    // URLから得た shareToken で sessionId を解決し、以後の Realtime 購読は
-    // sessionId filter 付きで行う前提なので、detail には内部IDも含める。
-    const entity = await this.repo.findDetailByShareToken(
-      this.prisma.prisma,
+    this.logger.debug('DishCategoryGroupVotes.getDetail', 'start', {
       shareToken,
-    );
+      viewerUserId,
+    });
 
-    if (!entity) {
-      throw new NotFoundException('Dish category group vote not found');
+    try {
+      // shareToken は共有リンクの bearer secret として扱う。
+      // URLから得た shareToken で sessionId を解決し、以後の Realtime 購読は
+      // sessionId filter 付きで行う前提なので、detail には内部IDも含める。
+      const entity = await this.repo.findDetailByShareToken(
+        this.prisma.prisma,
+        shareToken,
+      );
+
+      if (!entity) {
+        throw new NotFoundException('Dish category group vote not found');
+      }
+
+      const response = this.assembler.toDetailResponse(entity, viewerUserId);
+      this.logger.debug('DishCategoryGroupVotes.getDetail', 'completed', {
+        shareToken,
+        viewerUserId,
+        candidateCount: response.candidates.length,
+        participantCount: response.session.participantCount,
+      });
+      return response;
+    } catch (error) {
+      this.logger.error('DishCategoryGroupVotes.getDetailFailed', 'getDetailByShareToken', {
+        shareToken,
+        viewerUserId,
+        error,
+      });
+      throw error;
     }
-
-    return this.assembler.toDetailResponse(entity, viewerUserId);
   }
 
   async submitVote(
@@ -114,11 +173,14 @@ export class DishCategoryGroupVotesService {
           // 投票中にホストが候補削除しても送信をエラーにしない。
           // ここで守るのは「候補が同一セッションに属すること」だけで、
           // deleted_at や votes.length と未削除候補数の一致は検証しない。
-          await this.repo.assertCandidatesBelongToSession(
+          const candidatesBelong = await this.repo.assertCandidatesBelongToSession(
             tx,
             sessionId,
             dto.votes.map((vote) => vote.candidateId),
           );
+          if (!candidatesBelong) {
+            throw new NotFoundException('Candidate not found');
+          }
 
           const created = await this.repo.createParticipantWithVotes(
             tx,
@@ -131,11 +193,24 @@ export class DishCategoryGroupVotesService {
         },
       );
 
+      this.logger.debug('DishCategoryGroupVotes.submitVote', 'completed', {
+        sessionId,
+        userId,
+        participantId: participant.id,
+        voteCount: dto.votes.length,
+      });
+
       return {
         participantId: participant.id,
         stored: true,
       };
     } catch (error) {
+      this.logger.error('DishCategoryGroupVotes.submitVoteFailed', 'submitVote', {
+        sessionId,
+        userId,
+        voteCount: dto.votes.length,
+        error,
+      });
       // 一発勝負の最終防衛線は unique(session_id, user_id)。
       // APIインスタンス間の同時送信でも DB 制約に寄せて 409 に正規化する。
       if (this.repo.isUniqueViolation(error)) {
@@ -162,48 +237,70 @@ export class DishCategoryGroupVotesService {
     // Prisma は PostgreSQL scalar list の NULL を [] と区別できないため、
     // dishMediaIds ではなく dishMediaSearchStatus で未検索/0件/候補ありを判断する。
     // 既に検索済みの場合は、後続ユーザーの検索タイミングで候補が差し替わらないように上書きしない。
-    return this.prisma.withTransaction(
-      async (tx: Prisma.TransactionClient) => {
-        const candidate = await this.repo.findCandidateById(
-          tx,
-          sessionId,
-          candidateId,
-        );
-        if (!candidate) {
-          throw new NotFoundException('Candidate not found');
-        }
+    try {
+      const result = await this.prisma.withTransaction(
+        async (tx: Prisma.TransactionClient) => {
+          const candidate = await this.repo.findCandidateById(
+            tx,
+            sessionId,
+            candidateId,
+          );
+          if (!candidate) {
+            throw new NotFoundException('Candidate not found');
+          }
 
-        if (candidate.dishMediaSearchStatus !== 'not_searched') {
-          // 冪等化により、複数ユーザーが同時に「店を見る」を押しても
-          // クライアントは保存済みの固定結果をそのまま使える。
-          // empty も「検索済み0件」という有効な固定結果なので上書きしない。
+          if (candidate.dish_media_search_status !== 'not_searched') {
+            // 冪等化により、複数ユーザーが同時に「店を見る」を押しても
+            // クライアントは保存済みの固定結果をそのまま使える。
+            // empty も「検索済み0件」という有効な固定結果なので上書きしない。
+            return {
+              candidateId,
+              dishMediaIds: candidate.dish_media_ids,
+              dishMediaSearchStatus: candidate.dish_media_search_status as UpdateDishCategoryGroupVoteCandidateDishMediaResponse["dishMediaSearchStatus"],
+              updated: false,
+            };
+          }
+
+          const nextStatus =
+            dto.dishMediaIds.length > 0 ? 'found' : 'empty';
+          const updated = await this.repo.updateCandidateDishMediaIds(
+            tx,
+            sessionId,
+            candidateId,
+            dto.dishMediaIds,
+            nextStatus,
+          );
+          await this.repo.touchSession(tx, sessionId);
+
           return {
             candidateId,
-            dishMediaIds: candidate.dishMediaIds,
-            dishMediaSearchStatus: candidate.dishMediaSearchStatus,
-            updated: false,
+            dishMediaIds: updated.dishMediaIds,
+            dishMediaSearchStatus: updated.dishMediaSearchStatus,
+            updated: true,
           };
-        }
+        },
+      );
 
-        const nextStatus =
-          dto.dishMediaIds.length > 0 ? 'found' : 'empty';
-        const updated = await this.repo.updateCandidateDishMediaIds(
-          tx,
-          sessionId,
-          candidateId,
-          dto.dishMediaIds,
-          nextStatus,
-        );
-        await this.repo.touchSession(tx, sessionId);
+      this.logger.debug('DishCategoryGroupVotes.updateCandidateDishMedia', 'completed', {
+        sessionId,
+        candidateId,
+        userId,
+        count: dto.dishMediaIds.length,
+        updated: result.updated,
+        dishMediaSearchStatus: result.dishMediaSearchStatus,
+      });
 
-        return {
-          candidateId,
-          dishMediaIds: updated.dishMediaIds,
-          dishMediaSearchStatus: updated.dishMediaSearchStatus,
-          updated: true,
-        };
-      },
-    );
+      return result;
+    } catch (error) {
+      this.logger.error('DishCategoryGroupVotes.updateCandidateDishMediaFailed', 'updateCandidateDishMedia', {
+        sessionId,
+        candidateId,
+        userId,
+        count: dto.dishMediaIds.length,
+        error,
+      });
+      throw error;
+    }
   }
 
   async deleteCandidate(
@@ -213,35 +310,51 @@ export class DishCategoryGroupVotesService {
   ): Promise<DeleteDishCategoryGroupVoteCandidateResponse> {
     // 削除はホストの意思決定として扱うが、既存 votes の説明可能性を残すため
     // 物理削除はしない。結果画面は deletedAt を見て非表示にする。
-    await this.prisma.withTransaction(
-      async (tx: Prisma.TransactionClient) => {
-        const session = await this.repo.findSessionById(tx, sessionId);
-        if (!session) {
-          throw new NotFoundException('Dish category group vote not found');
-        }
-        if (session.hostUserId !== userId) {
-          throw new ForbiddenException('Only host can delete candidates');
-        }
+    try {
+      await this.prisma.withTransaction(
+        async (tx: Prisma.TransactionClient) => {
+          const session = await this.repo.findSessionById(tx, sessionId);
+          if (!session) {
+            throw new NotFoundException('Dish category group vote not found');
+          }
+          if (session.host_user_id !== userId) {
+            throw new ForbiddenException('Only host can delete candidates');
+          }
 
-        const candidate = await this.repo.findCandidateById(
-          tx,
-          sessionId,
-          candidateId,
-        );
-        if (!candidate) {
-          throw new NotFoundException('Candidate not found');
-        }
+          const candidate = await this.repo.findCandidateById(
+            tx,
+            sessionId,
+            candidateId,
+          );
+          if (!candidate) {
+            throw new NotFoundException('Candidate not found');
+          }
 
-        if (!candidate.deletedAt) {
-          // Realtime は candidates を購読しない方針なので、削除の即時反映は
-          // sessions.updated_at と次回 detail 再取得で整合させる。
-          await this.repo.softDeleteCandidate(tx, sessionId, candidateId);
-          await this.repo.touchSession(tx, sessionId);
-        }
-      },
-    );
+          if (!candidate.deleted_at) {
+            // Realtime は candidates を購読しない方針なので、削除の即時反映は
+            // sessions.updated_at と次回 detail 再取得で整合させる。
+            await this.repo.softDeleteCandidate(tx, sessionId, candidateId);
+            await this.repo.touchSession(tx, sessionId);
+          }
+        },
+      );
 
-    return { deleted: true };
+      this.logger.debug('DishCategoryGroupVotes.deleteCandidate', 'completed', {
+        sessionId,
+        candidateId,
+        userId,
+      });
+
+      return { deleted: true };
+    } catch (error) {
+      this.logger.error('DishCategoryGroupVotes.deleteCandidateFailed', 'deleteCandidate', {
+        sessionId,
+        candidateId,
+        userId,
+        error,
+      });
+      throw error;
+    }
   }
 
   private findDuplicatedCandidateIds(candidateIds: string[]): string[] {

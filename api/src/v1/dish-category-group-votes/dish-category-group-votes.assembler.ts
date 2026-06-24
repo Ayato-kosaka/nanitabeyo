@@ -1,32 +1,29 @@
 // api/src/v1/dish-category-group-votes/dish-category-group-votes.assembler.ts
 //
-// #856 【設計】DB Entity を結果画面用 Response に変換する。
-//
-// この Assembler は DB 取得形状と画面契約の境界を守る。
-// API は集計ビューを持たない方針なので、like/dislike 数、順位、参加者表示名の結合は
-// ここで都度組み立てる。候補は削除済みも返し、非表示判断は deletedAt を使って
-// フロントが行う。
+// #856 【設計】DB 取得形状を結果画面用 Response に変換する。
+// Repository は raw に近い converter 型を返し、この層で response だけを組み立てる。
+// こうしておくと、集計ロジックが DB に漏れず、画面契約の変更点もここに集約できる。
 
 import { Injectable } from '@nestjs/common';
-import { DishCategoryGroupVoteDetailResponse } from '@shared/v1/res';
-import { DishCategoryGroupVoteDetailEntity } from './dish-category-group-votes.repository';
+import { DishCategoryGroupVoteDetailResponse, DishCategoryGroupVoteSearchContext } from '@shared/v1/res';
+import { DishCategoryGroupVoteDetailRecord } from './dish-category-group-votes.repository';
 
 @Injectable()
 export class DishCategoryGroupVotesAssembler {
   toDetailResponse(
-    entity: DishCategoryGroupVoteDetailEntity,
+    entity: DishCategoryGroupVoteDetailRecord,
     viewerUserId: string,
   ): DishCategoryGroupVoteDetailResponse {
-    // votes は participantId だけを持つため、画面表示に必要な displayName は
-    // participants と結合して作る。Repository では集計用 join を固定せず、
-    // レスポンス契約の都合をこの層に閉じる。
+    // votes は participant_id しか持たないので、表示名は participants と結合して作る。
+    // この join を repository に寄せると、表示契約と永続化契約が混ざるため、ここで閉じる。
     const participantById = new Map(
       entity.participants.map((participant) => [participant.id, participant]),
     );
-    // hasVoted は「この端末の匿名/ログイン user_id が既に参加済みか」の判定。
-    // localStorage と併用するが、API側の真実は participants の unique(session_id,user_id)。
+
+    // hasVoted は viewer の user_id を participants と突き合わせて決める。
+    // localStorage ではなく DB を真実にするので、参加済み判定が複数端末でも揃う。
     const hasVoted = entity.participants.some(
-      (participant) => participant.userId === viewerUserId,
+      (participant) => participant.user_id === viewerUserId,
     );
 
     const voteItemsByCandidateId = new Map<
@@ -35,22 +32,20 @@ export class DishCategoryGroupVotesAssembler {
     >();
 
     for (const vote of entity.votes) {
-      const participant = participantById.get(vote.participantId);
-      // 壊れた履歴や将来の移行不整合で orphan vote が混ざっても、
-      // 結果画面全体を落とさず、表示可能な投票だけで集計する。
+      const participant = participantById.get(vote.participant_id);
+      // 履歴不整合で orphan vote が混ざっても、結果画面全体を落とさず読めるものだけ返す。
       if (!participant) continue;
 
-      const items = voteItemsByCandidateId.get(vote.candidateId) ?? [];
+      const items = voteItemsByCandidateId.get(vote.candidate_id) ?? [];
       items.push({
         participantId: participant.id,
-        displayName: participant.displayName,
-        reaction: vote.reaction,
+        displayName: participant.display_name,
+        reaction: vote.reaction as 'like' | 'dislike',
       });
-      voteItemsByCandidateId.set(vote.candidateId, items);
+      voteItemsByCandidateId.set(vote.candidate_id, items);
     }
 
-    // 集計ビューは作らない方針なので、候補最大数が小さい前提で
-    // GET detail ごとにメモリ上で集計する。
+    // 集計ビューは持たない方針なので、候補数が小さい前提で GET detail ごとに集計する。
     const countsByCandidateId = new Map<
       string,
       { likeCount: number; dislikeCount: number }
@@ -64,8 +59,8 @@ export class DishCategoryGroupVotesAssembler {
       });
     }
 
-    // 結果画面は候補順を固定し、順位バッジだけを動かす。
-    // そのため rank は map として別に算出し、候補配列の並び替えには使わない。
+    // 順位は候補配列の並びを壊さず、likeCount だけで別計算する。
+    // こうしておくと、比較の軸と表示順が別の責務として保たれる。
     const rankByCandidateId = this.buildRanks(entity.candidates.map((candidate) => {
       const counts = countsByCandidateId.get(candidate.id) ?? {
         likeCount: 0,
@@ -80,22 +75,20 @@ export class DishCategoryGroupVotesAssembler {
     return {
       session: {
         id: entity.session.id,
-        shareToken: entity.session.shareToken,
-        hostUserId: entity.session.hostUserId,
-        // searchContext は session 単位の店舗提案条件。
-        // 共有リンクから入った参加者は検索画面の route params を持たないため、
-        // detail レスポンスでこの値を受け取り、候補の dishCategoryId と組み合わせて検索する。
-        searchContext: entity.session.searchContext,
-        isHost: entity.session.hostUserId === viewerUserId,
+        shareToken: entity.session.share_token,
+        hostUserId: entity.session.host_user_id,
+        // searchContext は session 単位の固定情報。
+        // 共有リンクを直接開いた参加者が後から店舗提案へ進めるよう、detail に必ず返す。
+        searchContext: entity.session.search_context as DishCategoryGroupVoteSearchContext,
+        isHost: entity.session.host_user_id === viewerUserId,
         hasVoted,
         participantCount: entity.participants.length,
-        createdAt: entity.session.createdAt.toISOString(),
-        updatedAt: entity.session.updatedAt.toISOString(),
+        createdAt: entity.session.created_at.toISOString(),
+        updatedAt: entity.session.updated_at.toISOString(),
       },
       candidates: [...entity.candidates]
-        // ホストが作成した候補順を保存し続けることが仕様。
-        // ランキング順に並び替えると「迷わず決める」画面の比較軸が変わる。
-        .sort((a, b) => a.displayOrder - b.displayOrder)
+        // 候補順はホストの入力順を維持する。ランキングで並べ替えると、投票の比較軸が変わる。
+        .sort((a, b) => a.display_order - b.display_order)
         .map((candidate) => {
           const counts = countsByCandidateId.get(candidate.id) ?? {
             likeCount: 0,
@@ -103,17 +96,15 @@ export class DishCategoryGroupVotesAssembler {
           };
           return {
             id: candidate.id,
-            dishCategoryId: candidate.dishCategoryId,
-            displayName: candidate.displayName,
-            imageUrl: candidate.imageUrl,
-            // 店舗提案キャッシュは初回「店を見る」後に固定される。
-            // Prisma scalar list の NULL 表現に依存せず、status で未検索/0件/候補ありを分ける。
-            dishMediaIds: candidate.dishMediaIds,
-            dishMediaSearchStatus: candidate.dishMediaSearchStatus,
-            displayOrder: candidate.displayOrder,
-            // 削除済み候補も返す。既存 votes の説明可能性を残しつつ、
-            // 表示・店舗提案対象から外す判断はフロントの deletedAt チェックに寄せる。
-            deletedAt: candidate.deletedAt?.toISOString() ?? null,
+            dishCategoryId: candidate.dish_category_id,
+            displayName: candidate.display_name,
+            imageUrl: candidate.image_url,
+            // dish_media_ids は初回「店を見る」で固定される。
+            // NULL ではなく status を持つ前提なので、ここでは両方を返しておく。
+            dishMediaIds: candidate.dish_media_ids,
+            dishMediaSearchStatus: candidate.dish_media_search_status as DishCategoryGroupVoteDetailResponse["candidates"][number]["dishMediaSearchStatus"],
+            displayOrder: candidate.display_order,
+            deletedAt: candidate.deleted_at?.toISOString() ?? null,
             likeCount: counts.likeCount,
             dislikeCount: counts.dislikeCount,
             rank: rankByCandidateId.get(candidate.id) ?? null,
@@ -126,18 +117,16 @@ export class DishCategoryGroupVotesAssembler {
         .filter((participant) => !!participant.comment)
         .map((participant) => ({
           participantId: participant.id,
-          displayName: participant.displayName,
+          displayName: participant.display_name,
           comment: participant.comment!,
-          createdAt: participant.createdAt.toISOString(),
+          createdAt: participant.created_at.toISOString(),
         })),
     };
   }
 
   /**
-   * 同率は同じ順位にする。
-   * 表示順は並び替えないため、rank だけを候補に付与する。
-   * vote がまだない状態でも候補間の順位計算を壊さないよう、
-   * likeCount の値だけで順位表を作る。
+   * likeCount だけで順位を決める。
+   * 同率は同じ順位にし、候補の配列順はそのまま残す。
    */
   private buildRanks(
     items: { candidateId: string; likeCount: number }[],
