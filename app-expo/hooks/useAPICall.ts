@@ -77,7 +77,7 @@ export const useAPICall = () => {
 				requestPayload,
 				isMultipart = false,
 			}: {
-				method?: "GET" | "POST" | "DELETE";
+				method?: "GET" | "POST" | "PATCH" | "DELETE";
 				requestPayload: TRequest;
 				isMultipart?: boolean;
 			},

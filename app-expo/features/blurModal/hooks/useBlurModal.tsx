@@ -39,6 +39,8 @@ export interface BlurModalOptions {
 	dismissKeyboardFirst?: boolean;
 	/** バックドロップ押下でモーダルを閉じるかどうか */
 	closeOnBackdropPress?: boolean;
+	/** Android 戻るキーで閉じるかどうか */
+	backHandlerEnabled?: boolean;
 }
 
 export function useBlurModal({
@@ -51,6 +53,7 @@ export function useBlurModal({
 	keyboardVerticalOffset = 0,
 	dismissKeyboardFirst = true,
 	closeOnBackdropPress = false,
+	backHandlerEnabled = true,
 }: BlurModalOptions = {}) {
 	const insets = useSafeAreaInsets();
 	const [visible, setVisible] = useState(false);
@@ -64,6 +67,7 @@ export function useBlurModal({
 	/* ── Android 戻るキー対策 ─────────────────────────────────────── */
 	useEffect(() => {
 		if (!visible) return;
+		if (!backHandlerEnabled) return;
 		const sub = BackHandler.addEventListener("hardwareBackPress", () => {
 			/* ---- まずキーボードを閉じる ---- */
 			if (isKeyboardVisibleRef.current) {
@@ -74,7 +78,7 @@ export function useBlurModal({
 			return true; // ハンドリング済み
 		});
 		return () => sub.remove();
-	}, [visible, close]);
+	}, [visible, close, backHandlerEnabled]);
 
 	/* ── onOpen / onClose コールバック ────────────────────────────── */
 	useEffect(() => {
