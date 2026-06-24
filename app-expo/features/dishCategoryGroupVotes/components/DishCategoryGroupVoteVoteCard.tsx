@@ -6,9 +6,11 @@
  */
 import { useRef } from "react";
 import { Animated, PanResponder, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { Image } from "expo-image";
+import { ThumbsDown, ThumbsUp } from "lucide-react-native";
 import type { DishCategoryGroupVoteCandidate, DishCategoryGroupVoteReaction } from "@shared/api/v1/res";
 import i18n from "@/lib/i18n";
+import { CARD_MAX_HEIGHT, height as SCREEN_HEIGHT } from "@/features/topics/constants";
+import { TopicVisualCard } from "@/features/topics/components/TopicVisualCard";
 
 type Props = {
 	candidate: DishCategoryGroupVoteCandidate;
@@ -17,10 +19,12 @@ type Props = {
 
 export function DishCategoryGroupVoteVoteCard({ candidate, onVote }: Props) {
 	const translateX = useRef(new Animated.Value(0)).current;
+	const cardHeight = Math.max(360, Math.min(CARD_MAX_HEIGHT, SCREEN_HEIGHT - 280));
 
 	const panResponder = useRef(
 		PanResponder.create({
-			onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dx) > 12 && Math.abs(gesture.dx) > Math.abs(gesture.dy),
+			onMoveShouldSetPanResponder: (_, gesture) =>
+				Math.abs(gesture.dx) > 12 && Math.abs(gesture.dx) > Math.abs(gesture.dy),
 			onPanResponderMove: Animated.event([null, { dx: translateX }], { useNativeDriver: false }),
 			onPanResponderRelease: (_, gesture) => {
 				if (gesture.dx > 90) {
@@ -40,103 +44,86 @@ export function DishCategoryGroupVoteVoteCard({ candidate, onVote }: Props) {
 
 	return (
 		<View style={styles.container}>
-			<Animated.View
-				style={[
-					styles.card,
-					{
-						transform: [
-							{ translateX },
-							{
-								rotate: translateX.interpolate({
-									inputRange: [-160, 0, 160],
-									outputRange: ["-8deg", "0deg", "8deg"],
-								}),
-							},
-						],
-					},
-				]}
-				{...panResponder.panHandlers}>
-				<Image source={{ uri: candidate.imageUrl }} style={styles.image} contentFit="cover" />
-				<View style={styles.body}>
-					<Text style={styles.title}>{candidate.displayName}</Text>
-				</View>
+			<Animated.View style={[styles.cardMotion, getCardMotionStyle(translateX)]} {...panResponder.panHandlers}>
+				<TopicVisualCard
+					title={candidate.displayName}
+					tagline={candidate.tagline}
+					imageSource={{ uri: candidate.imageUrl }}
+					cardHeight={cardHeight}
+					recyclingKey={candidate.id}
+				/>
 			</Animated.View>
 			{/* #856 【設計】スワイプだけに依存しない。
 			    ボタン操作も同じ onVote に流すことで、操作経路による投票状態のズレを防ぐ。 */}
 			<View style={styles.buttonRow}>
 				<TouchableOpacity style={styles.dislikeButton} onPress={() => onVote("dislike")} activeOpacity={0.85}>
-					<Text style={styles.buttonText}>👎←</Text>
+					<ThumbsDown size={24} color="#F05537" strokeWidth={2.4} />
 					<Text style={styles.buttonLabel}>{i18n.t("DishCategoryGroupVotes.dislike")}</Text>
 				</TouchableOpacity>
 				<TouchableOpacity style={styles.likeButton} onPress={() => onVote("like")} activeOpacity={0.85}>
-					<Text style={styles.buttonText}>→👍</Text>
-					<Text style={styles.buttonLabel}>{i18n.t("DishCategoryGroupVotes.like")}</Text>
+					<ThumbsUp size={24} color="#FFFFFF" strokeWidth={2.4} />
+					<Text style={[styles.buttonLabel, styles.likeButtonLabel]}>{i18n.t("DishCategoryGroupVotes.like")}</Text>
 				</TouchableOpacity>
 			</View>
 		</View>
 	);
 }
 
+function getCardMotionStyle(translateX: Animated.Value) {
+	return {
+		transform: [
+			{ translateX },
+			{
+				rotate: translateX.interpolate({
+					inputRange: [-160, 0, 160],
+					outputRange: ["-8deg", "0deg", "8deg"],
+				}),
+			},
+		],
+	};
+}
+
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
 		justifyContent: "center",
-		gap: 22,
-		padding: 20,
+		alignItems: "center",
+		gap: 20,
+		paddingHorizontal: 16,
+		paddingBottom: 22,
 	},
-	card: {
-		aspectRatio: 0.78,
-		borderRadius: 8,
-		overflow: "hidden",
-		backgroundColor: "#FFFFFF",
-		borderWidth: StyleSheet.hairlineWidth,
-		borderColor: "#E5E7EB",
-	},
-	image: {
-		flex: 1,
-		backgroundColor: "#E5E7EB",
-	},
-	body: {
-		minHeight: 76,
-		justifyContent: "center",
-		paddingHorizontal: 18,
-		backgroundColor: "#FFFFFF",
-	},
-	title: {
-		fontSize: 24,
-		fontWeight: "800",
-		color: "#111827",
-		textAlign: "center",
+	cardMotion: {
+		alignItems: "center",
 	},
 	buttonRow: {
 		flexDirection: "row",
-		gap: 12,
+		gap: 16,
 	},
 	dislikeButton: {
-		flex: 1,
+		width: 116,
 		height: 58,
-		borderRadius: 8,
+		borderRadius: 29,
 		alignItems: "center",
 		justifyContent: "center",
-		backgroundColor: "#FEE2E2",
+		backgroundColor: "#FFFFFF",
+		borderWidth: 1,
+		borderColor: "#F05537",
 	},
 	likeButton: {
-		flex: 1,
+		width: 116,
 		height: 58,
-		borderRadius: 8,
+		borderRadius: 29,
 		alignItems: "center",
 		justifyContent: "center",
-		backgroundColor: "#DCFCE7",
-	},
-	buttonText: {
-		fontSize: 20,
-		fontWeight: "800",
-		color: "#111827",
+		backgroundColor: "#F05537",
 	},
 	buttonLabel: {
-		marginTop: 2,
+		marginTop: 3,
 		fontSize: 12,
-		fontWeight: "700",
-		color: "#374151",
+		fontWeight: "800",
+		color: "#6B7280",
+	},
+	likeButtonLabel: {
+		color: "#FFFFFF",
 	},
 });

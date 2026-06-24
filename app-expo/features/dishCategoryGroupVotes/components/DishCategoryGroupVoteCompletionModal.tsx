@@ -8,6 +8,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import i18n from "@/lib/i18n";
+import { PrimaryButton } from "@/components/PrimaryButton";
 import { buildDishCategoryGroupVoteNameSuggestions } from "../constants/animalNameSuggestions";
 
 type Props = {
@@ -50,7 +51,6 @@ export function DishCategoryGroupVoteCompletionModal({ usedDisplayNames, isSubmi
 	return (
 		<View style={styles.modal}>
 			<Text style={styles.title}>{i18n.t("DishCategoryGroupVotes.completionTitle")}</Text>
-			<Text style={styles.description}>{i18n.t("DishCategoryGroupVotes.completionDescription")}</Text>
 			<TextInput
 				style={styles.input}
 				value={displayName}
@@ -89,15 +89,13 @@ export function DishCategoryGroupVoteCompletionModal({ usedDisplayNames, isSubmi
 				multiline
 			/>
 			<View style={styles.actionRow}>
-				<TouchableOpacity
-					style={[styles.submitButton, !canSubmit && styles.submitButtonDisabled]}
+				<PrimaryButton
+					label={i18n.t("DishCategoryGroupVotes.submitVote")}
+					loading={isSubmitting}
 					disabled={!canSubmit}
 					onPress={() => onSubmit({ displayName: displayName.trim(), comment: comment.trim() || undefined })}
-					activeOpacity={0.85}>
-					<Text style={styles.submitButtonText}>
-						{isSubmitting ? i18n.t("DishCategoryGroupVotes.submitting") : i18n.t("DishCategoryGroupVotes.submitVote")}
-					</Text>
-				</TouchableOpacity>
+					style={styles.submitButton}
+				/>
 			</View>
 		</View>
 	);
@@ -116,12 +114,6 @@ const styles = StyleSheet.create({
 		fontWeight: "800",
 		color: "#111827",
 	},
-	description: {
-		marginTop: 6,
-		fontSize: 14,
-		lineHeight: 20,
-		color: "#4B5563",
-	},
 	suggestions: {
 		marginTop: 14,
 		gap: 8,
@@ -138,7 +130,7 @@ const styles = StyleSheet.create({
 	suggestionButton: {
 		width: 44,
 		height: 44,
-		borderRadius: 8,
+		borderRadius: 22,
 		alignItems: "center",
 		justifyContent: "center",
 		borderWidth: 1,
@@ -189,18 +181,5 @@ const styles = StyleSheet.create({
 	},
 	submitButton: {
 		flex: 1,
-		height: 44,
-		borderRadius: 8,
-		alignItems: "center",
-		justifyContent: "center",
-		backgroundColor: "#111827",
-	},
-	submitButtonDisabled: {
-		backgroundColor: "#9CA3AF",
-	},
-	submitButtonText: {
-		fontSize: 15,
-		fontWeight: "700",
-		color: "#FFFFFF",
 	},
 });

@@ -41,7 +41,7 @@
 		"viewInBrowser": "브라우저에서 계속하기"
 	},
 	"DishCategoryGroupVotes": {
-		"resultTitle": "그룹 투표",
+		"resultTitle": "모두의 투표 결과",
 		"resultSubtitle": "후보를 확인하고 선호도를 투표하세요.",
 		"resultSubtitleVoted": "현재 결과를 확인할 수 있습니다.",
 		"copyShareLink": "공유 링크 복사",
@@ -61,14 +61,16 @@
 		"dislike": "패스",
 		"voteProgress": "{{current}} / {{total}}",
 		"noVoteCandidates": "투표할 후보가 없습니다",
-		"completionTitle": "이름 입력",
+		"completionTitle": "투표를 확정하세요",
 		"completionDescription": "결과 화면에 표시할 이름과 선택 댓글을 입력하세요.",
 		"nameSuggestionLabel": "이 중 하나를 이름으로 사용할 수 있습니다",
 		"displayNamePlaceholder": "닉네임",
 		"commentPlaceholder": "댓글(선택)",
-		"submitVote": "투표 제출",
+		"submitVote": "투표 완료",
 		"submitting": "제출 중",
-		"submitFailed": "투표를 제출하지 못했습니다"
+		"submitFailed": "투표를 제출하지 못했습니다",
+		"participantsList": "참가자: {{names}}",
+		"noParticipants": "아직 참가자가 없습니다"
 	},
 	"Error": {
 		"maintenanceMessage": "현재 점검 중입니다.",

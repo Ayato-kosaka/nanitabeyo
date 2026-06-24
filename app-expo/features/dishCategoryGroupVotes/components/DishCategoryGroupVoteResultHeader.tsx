@@ -11,34 +11,30 @@ import i18n from "@/lib/i18n";
 
 type Props = {
 	session: DishCategoryGroupVoteDetailResponse["session"];
-	shareUrl: string;
+	participants: DishCategoryGroupVoteDetailResponse["participants"];
 	onCopyShareLink: () => void;
 };
 
-export function DishCategoryGroupVoteResultHeader({ session, shareUrl, onCopyShareLink }: Props) {
+export function DishCategoryGroupVoteResultHeader({ session, participants, onCopyShareLink }: Props) {
+	const participantNames = participants.map((participant) => participant.displayName).join("、");
+
 	return (
 		<View style={styles.container}>
-			<View style={styles.titleRow}>
-				<Text style={styles.title}>{i18n.t("DishCategoryGroupVotes.resultTitle")}</Text>
-				<View style={styles.participantBadge}>
-					<Users size={16} color="#1F2937" />
-					<Text style={styles.participantText}>{session.participantCount}</Text>
-				</View>
+			<View style={styles.participantRow}>
+				<Users size={16} color="#1F2937" />
+				<Text style={styles.participantCount}>{session.participantCount}</Text>
+				<Text style={styles.participantsText} numberOfLines={2}>
+					{participantNames
+						? i18n.t("DishCategoryGroupVotes.participantsList", { names: participantNames })
+						: i18n.t("DishCategoryGroupVotes.noParticipants")}
+				</Text>
 			</View>
-			<Text style={styles.subtitle}>
-				{session.hasVoted
-					? i18n.t("DishCategoryGroupVotes.resultSubtitleVoted")
-					: i18n.t("DishCategoryGroupVotes.resultSubtitle")}
-			</Text>
 			{/* #856 【設計】共有リンクはホスト専用にしない。
 			    ゲストがさらに共有できる方が、リンク型投票の導線として自然。 */}
 			<TouchableOpacity style={styles.shareButton} onPress={onCopyShareLink} activeOpacity={0.85}>
-				<Share2 size={18} color="#FFFFFF" />
+				<Share2 size={18} color="#F05537" />
 				<Text style={styles.shareButtonText}>{i18n.t("DishCategoryGroupVotes.copyShareLink")}</Text>
 			</TouchableOpacity>
-			<Text numberOfLines={1} style={styles.shareUrl}>
-				{shareUrl}
-			</Text>
 		</View>
 	);
 }
@@ -48,38 +44,21 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 20,
 		paddingTop: 20,
 		paddingBottom: 16,
-		backgroundColor: "#FFFFFF",
 		borderBottomWidth: StyleSheet.hairlineWidth,
 		borderBottomColor: "#E5E7EB",
 	},
-	titleRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		gap: 12,
-	},
-	title: {
-		flex: 1,
-		fontSize: 24,
-		fontWeight: "700",
-		color: "#111827",
-	},
-	participantBadge: {
+	participantRow: {
 		flexDirection: "row",
 		alignItems: "center",
 		gap: 6,
-		paddingHorizontal: 10,
-		paddingVertical: 6,
-		borderRadius: 999,
-		backgroundColor: "#F3F4F6",
 	},
-	participantText: {
+	participantCount: {
 		fontSize: 14,
-		fontWeight: "700",
+		fontWeight: "800",
 		color: "#1F2937",
 	},
-	subtitle: {
-		marginTop: 8,
+	participantsText: {
+		flex: 1,
 		fontSize: 14,
 		lineHeight: 20,
 		color: "#4B5563",
@@ -88,20 +67,17 @@ const styles = StyleSheet.create({
 		marginTop: 14,
 		height: 44,
 		borderRadius: 8,
-		backgroundColor: "#111827",
+		backgroundColor: "#FFFFFF",
+		borderWidth: 1,
+		borderColor: "#F05537",
 		alignItems: "center",
 		justifyContent: "center",
 		flexDirection: "row",
 		gap: 8,
 	},
 	shareButtonText: {
-		color: "#FFFFFF",
+		color: "#F05537",
 		fontSize: 15,
 		fontWeight: "700",
-	},
-	shareUrl: {
-		marginTop: 8,
-		fontSize: 12,
-		color: "#6B7280",
 	},
 });

@@ -6,14 +6,17 @@
  */
 import * as Clipboard from "expo-clipboard";
 import { router } from "expo-router";
-import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
 import type { DishCategoryGroupVoteCandidate } from "@shared/api/v1/res";
 import { generateShareUrl } from "@/lib/share";
 import i18n from "@/lib/i18n";
+import { LoadingIndicator } from "@/components/LoadingIndicator";
+import { PrimaryButton } from "@/components/PrimaryButton";
 import { useDialog } from "@/contexts/DialogProvider";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
+import { SearchHeader } from "@/features/search/components/SearchHeader";
 import { useDishCategoryGroupVoteActions } from "../hooks/useDishCategoryGroupVoteActions";
 import { useDishCategoryGroupVoteDetail } from "../hooks/useDishCategoryGroupVoteDetail";
 import { useDishCategoryGroupVoteRealtime } from "../hooks/useDishCategoryGroupVoteRealtime";
@@ -62,7 +65,7 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 		},
 	});
 
-	const shareUrl = generateShareUrl(`/${locale}/dish-category-group-votes/${shareToken}`);
+	const shareUrl = generateShareUrl(`/${locale}/dish-category-group-votes/${shareToken}/vote`);
 
 	const handleCopyShareLink = async () => {
 		await Clipboard.setStringAsync(shareUrl);
@@ -93,7 +96,7 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 	if (isLoading && !detail) {
 		return (
 			<SafeAreaView style={styles.center}>
-				<ActivityIndicator />
+				<LoadingIndicator size="large" />
 			</SafeAreaView>
 		);
 	}
@@ -102,25 +105,25 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 		return (
 			<SafeAreaView style={styles.center}>
 				<Text style={styles.errorText}>{i18n.t("DishCategoryGroupVotes.loadFailed")}</Text>
-				<TouchableOpacity style={styles.primaryButton} onPress={() => refresh()} activeOpacity={0.85}>
-					<Text style={styles.primaryButtonText}>{i18n.t("Common.retry")}</Text>
-				</TouchableOpacity>
+				<PrimaryButton label={i18n.t("Common.retry")} onPress={() => refresh()} style={styles.retryButton} />
 			</SafeAreaView>
 		);
 	}
 
 	return (
 		<SafeAreaView style={styles.safeArea}>
+			<SearchHeader title={i18n.t("DishCategoryGroupVotes.resultTitle")} onPressBack={() => router.back()} />
 			<ScrollView contentContainerStyle={styles.content}>
 				<DishCategoryGroupVoteResultHeader
 					session={detail.session}
-					shareUrl={shareUrl}
+					participants={detail.participants}
 					onCopyShareLink={handleCopyShareLink}
 				/>
 				{!detail.session.hasVoted ? (
 					<View style={styles.voteCtaContainer}>
-						<TouchableOpacity
-							style={styles.primaryButton}
+						<PrimaryButton
+							label={i18n.t("DishCategoryGroupVotes.voteCta")}
+							style={styles.voteButton}
 							onPress={() => {
 								logFrontendEvent({
 									event_name: "dish_category_group_vote_vote_opened",
@@ -135,9 +138,7 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 									},
 								});
 							}}
-							activeOpacity={0.85}>
-							<Text style={styles.primaryButtonText}>{i18n.t("DishCategoryGroupVotes.voteCta")}</Text>
-						</TouchableOpacity>
+						/>
 					</View>
 				) : null}
 				<DishCategoryGroupVoteCandidateList
@@ -147,7 +148,7 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 					onPressDishMedia={openCandidateDishMedia}
 					onDeleteCandidate={handleDeleteCandidate}
 				/>
-				<DishCategoryGroupVoteComments comments={detail.comments} />
+				<DishCategoryGroupVoteComments participants={detail.participants} />
 			</ScrollView>
 		</SafeAreaView>
 	);
@@ -178,17 +179,10 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 16,
 		paddingTop: 16,
 	},
-	primaryButton: {
-		height: 48,
-		borderRadius: 8,
-		alignItems: "center",
-		justifyContent: "center",
-		backgroundColor: "#111827",
-		paddingHorizontal: 18,
+	retryButton: {
+		minWidth: 160,
 	},
-	primaryButtonText: {
-		color: "#FFFFFF",
-		fontSize: 15,
-		fontWeight: "800",
+	voteButton: {
+		width: "100%",
 	},
 });

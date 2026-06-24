@@ -41,7 +41,7 @@
 		"viewInBrowser": "ブラウザで続ける"
 	},
 	"DishCategoryGroupVotes": {
-		"resultTitle": "みんなの投票",
+		"resultTitle": "みんなの投票結果",
 		"resultSubtitle": "候補を見て、あなたの好みを投票してください。",
 		"resultSubtitleVoted": "投票結果を確認できます。",
 		"copyShareLink": "共有リンクをコピー",
@@ -61,14 +61,16 @@
 		"dislike": "違う",
 		"voteProgress": "{{current}} / {{total}}",
 		"noVoteCandidates": "投票できる候補がありません",
-		"completionTitle": "名前を入力",
+		"completionTitle": "投票を確定しましょう",
 		"completionDescription": "結果画面に表示する名前と、任意のコメントを入力してください。",
 		"nameSuggestionLabel": "この絵文字を名前にできます",
 		"displayNamePlaceholder": "ニックネーム",
 		"commentPlaceholder": "コメント（任意）",
-		"submitVote": "投票を送信",
+		"submitVote": "投票完了",
 		"submitting": "送信中",
-		"submitFailed": "投票を送信できませんでした"
+		"submitFailed": "投票を送信できませんでした",
+		"participantsList": "参加者：{{names}}",
+		"noParticipants": "まだ参加者はいません"
 	},
 	"Error": {
 		"maintenanceMessage": "ただいまメンテナンス中です。",

@@ -41,7 +41,7 @@
 		"viewInBrowser": "在浏览器中继续"
 	},
 	"DishCategoryGroupVotes": {
-		"resultTitle": "群组投票",
+		"resultTitle": "大家的投票结果",
 		"resultSubtitle": "查看选项并投出你的偏好。",
 		"resultSubtitleVoted": "你可以查看当前结果。",
 		"copyShareLink": "复制分享链接",
@@ -61,14 +61,16 @@
 		"dislike": "跳过",
 		"voteProgress": "{{current}} / {{total}}",
 		"noVoteCandidates": "没有可投票的选项",
-		"completionTitle": "输入你的名字",
+		"completionTitle": "确认投票",
 		"completionDescription": "输入结果页显示的名字和可选评论。",
 		"nameSuggestionLabel": "你可以用其中一个作为名字",
 		"displayNamePlaceholder": "昵称",
 		"commentPlaceholder": "评论（可选）",
-		"submitVote": "提交投票",
+		"submitVote": "完成投票",
 		"submitting": "提交中",
-		"submitFailed": "无法提交投票"
+		"submitFailed": "无法提交投票",
+		"participantsList": "参与者：{{names}}",
+		"noParticipants": "还没有参与者"
 	},
 	"Error": {
 		"maintenanceMessage": "当前正在维护中。",

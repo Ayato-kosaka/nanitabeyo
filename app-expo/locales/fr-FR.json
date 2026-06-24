@@ -41,7 +41,7 @@
 		"viewInBrowser": "Continuer dans le navigateur"
 	},
 	"DishCategoryGroupVotes": {
-		"resultTitle": "Vote de groupe",
+		"resultTitle": "Résultats du vote",
 		"resultSubtitle": "Consultez les choix et votez selon vos préférences.",
 		"resultSubtitleVoted": "Vous pouvez consulter les résultats actuels.",
 		"copyShareLink": "Copier le lien",
@@ -61,14 +61,16 @@
 		"dislike": "Passer",
 		"voteProgress": "{{current}} / {{total}}",
 		"noVoteCandidates": "Aucun choix à voter",
-		"completionTitle": "Entrez votre nom",
+		"completionTitle": "Confirmez votre vote",
 		"completionDescription": "Entrez le nom affiché sur les résultats et un commentaire facultatif.",
 		"nameSuggestionLabel": "Vous pouvez en utiliser un comme nom",
 		"displayNamePlaceholder": "Pseudo",
 		"commentPlaceholder": "Commentaire (facultatif)",
-		"submitVote": "Envoyer le vote",
+		"submitVote": "Vote terminé",
 		"submitting": "Envoi",
-		"submitFailed": "Impossible d'envoyer votre vote"
+		"submitFailed": "Impossible d'envoyer votre vote",
+		"participantsList": "Participants : {{names}}",
+		"noParticipants": "Aucun participant pour le moment"
 	},
 	"Error": {
 		"maintenanceMessage": "Nous sommes actuellement en maintenance.",

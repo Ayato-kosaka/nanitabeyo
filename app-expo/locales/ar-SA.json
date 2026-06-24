@@ -41,7 +41,7 @@
 		"viewInBrowser": "متابعة في المتصفح"
 	},
 	"DishCategoryGroupVotes": {
-		"resultTitle": "تصويت جماعي",
+		"resultTitle": "نتائج تصويت المجموعة",
 		"resultSubtitle": "راجع الخيارات وصوّت لتفضيلاتك.",
 		"resultSubtitleVoted": "يمكنك مراجعة النتائج الحالية.",
 		"copyShareLink": "نسخ رابط المشاركة",
@@ -61,14 +61,16 @@
 		"dislike": "تخطي",
 		"voteProgress": "{{current}} / {{total}}",
 		"noVoteCandidates": "لا توجد خيارات للتصويت",
-		"completionTitle": "أدخل اسمك",
+		"completionTitle": "أكّد تصويتك",
 		"completionDescription": "أدخل الاسم الذي سيظهر في النتائج وتعليقًا اختياريًا.",
 		"nameSuggestionLabel": "يمكنك استخدام أحد هذه كاسم",
 		"displayNamePlaceholder": "الاسم المستعار",
 		"commentPlaceholder": "تعليق (اختياري)",
-		"submitVote": "إرسال التصويت",
+		"submitVote": "إكمال التصويت",
 		"submitting": "جارٍ الإرسال",
-		"submitFailed": "تعذر إرسال تصويتك"
+		"submitFailed": "تعذر إرسال تصويتك",
+		"participantsList": "المشاركون: {{names}}",
+		"noParticipants": "لا يوجد مشاركون بعد"
 	},
 	"Error": {
 		"maintenanceMessage": "نحن حالياً نقوم بأعمال صيانة.",

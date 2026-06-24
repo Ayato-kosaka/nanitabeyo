@@ -25,7 +25,6 @@ export function useCreateDishCategoryGroupVote() {
 
 	const createGroupVote = useCallback(
 		async ({ searchParams, topics }: CreateGroupVoteInput) => {
-
 			const visibleTopics = topics.filter((topic) => !topic.isHidden);
 			if (visibleTopics.length === 0) {
 				throw new Error("No visible topics to create a group vote");
@@ -44,6 +43,7 @@ export function useCreateDishCategoryGroupVote() {
 				candidates: visibleTopics.map((topic) => ({
 					dishCategoryId: topic.categoryId,
 					displayName: topic.topicTitle,
+					tagline: topic.reason,
 					imageUrl: topic.imageUrl,
 				})),
 			};
@@ -63,7 +63,6 @@ export function useCreateDishCategoryGroupVote() {
 						requestPayload,
 					},
 				);
-
 
 				logFrontendEvent({
 					event_name: "dish_category_group_vote_create_succeeded",

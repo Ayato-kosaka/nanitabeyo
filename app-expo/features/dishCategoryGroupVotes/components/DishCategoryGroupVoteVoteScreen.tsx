@@ -6,10 +6,12 @@
  */
 import { router } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { SafeAreaView, StyleSheet, Text, View } from "react-native";
 import type { SubmitDishCategoryGroupVoteDto } from "@shared/api/v1/dto";
 import type { DishCategoryGroupVoteReaction } from "@shared/api/v1/res";
 import i18n from "@/lib/i18n";
+import { LoadingIndicator } from "@/components/LoadingIndicator";
+import { PrimaryButton } from "@/components/PrimaryButton";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useLogger } from "@/hooks/useLogger";
 import { useLocale } from "@/hooks/useLocale";
@@ -64,13 +66,8 @@ export function DishCategoryGroupVoteVoteScreen({ shareToken }: Props) {
 	}, [detail?.session.hasVoted, locale, shareToken]);
 
 	const usedDisplayNames = useMemo(() => {
-		const names = new Set<string>();
-		detail?.comments.forEach((comment) => names.add(comment.displayName));
-		detail?.candidates.forEach((candidate) => {
-			candidate.votes.forEach((vote) => names.add(vote.displayName));
-		});
-		return [...names];
-	}, [detail?.candidates, detail?.comments]);
+		return detail?.participants.map((participant) => participant.displayName) ?? [];
+	}, [detail?.participants]);
 
 	const handleVote = (reaction: DishCategoryGroupVoteReaction) => {
 		const candidate = voteCandidates[index];
@@ -134,7 +131,7 @@ export function DishCategoryGroupVoteVoteScreen({ shareToken }: Props) {
 	if (isLoading && !detail) {
 		return (
 			<SafeAreaView style={styles.center}>
-				<ActivityIndicator />
+				<LoadingIndicator size="large" />
 			</SafeAreaView>
 		);
 	}
@@ -143,9 +140,7 @@ export function DishCategoryGroupVoteVoteScreen({ shareToken }: Props) {
 		return (
 			<SafeAreaView style={styles.center}>
 				<Text style={styles.errorText}>{i18n.t("DishCategoryGroupVotes.loadFailed")}</Text>
-				<TouchableOpacity style={styles.primaryButton} onPress={() => refresh()} activeOpacity={0.85}>
-					<Text style={styles.primaryButtonText}>{i18n.t("Common.retry")}</Text>
-				</TouchableOpacity>
+				<PrimaryButton label={i18n.t("Common.retry")} onPress={() => refresh()} style={styles.retryButton} />
 			</SafeAreaView>
 		);
 	}
@@ -161,6 +156,17 @@ export function DishCategoryGroupVoteVoteScreen({ shareToken }: Props) {
 						total: voteCandidates.length,
 					})}
 				</Text>
+				<View style={styles.progressSegments}>
+					{Array.from({ length: 6 }).map((_, segmentIndex) => (
+						<View
+							key={segmentIndex}
+							style={[
+								styles.progressSegment,
+								segmentIndex < getFilledProgressSegments(index, voteCandidates.length) && styles.progressSegmentActive,
+							]}
+						/>
+					))}
+				</View>
 			</View>
 			{currentCandidate ? (
 				<DishCategoryGroupVoteVoteCard candidate={currentCandidate} onVote={handleVote} />
@@ -191,12 +197,26 @@ const styles = StyleSheet.create({
 	header: {
 		paddingHorizontal: 20,
 		paddingTop: 16,
+		gap: 10,
 	},
 	progress: {
 		fontSize: 14,
 		fontWeight: "800",
 		color: "#4B5563",
 		textAlign: "center",
+	},
+	progressSegments: {
+		flexDirection: "row",
+		gap: 6,
+	},
+	progressSegment: {
+		flex: 1,
+		height: 6,
+		borderRadius: 999,
+		backgroundColor: "#E5E7EB",
+	},
+	progressSegmentActive: {
+		backgroundColor: "#F05537",
 	},
 	center: {
 		flex: 1,
@@ -217,17 +237,12 @@ const styles = StyleSheet.create({
 		color: "#374151",
 		textAlign: "center",
 	},
-	primaryButton: {
-		height: 46,
-		borderRadius: 8,
-		alignItems: "center",
-		justifyContent: "center",
-		backgroundColor: "#111827",
-		paddingHorizontal: 18,
-	},
-	primaryButtonText: {
-		color: "#FFFFFF",
-		fontSize: 15,
-		fontWeight: "800",
+	retryButton: {
+		minWidth: 160,
 	},
 });
+
+function getFilledProgressSegments(index: number, total: number) {
+	if (total <= 0) return 0;
+	return Math.min(6, Math.ceil(((index + 1) / total) * 6));
+}

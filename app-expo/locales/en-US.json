@@ -41,7 +41,7 @@
 		"viewInBrowser": "Continue in browser"
 	},
 	"DishCategoryGroupVotes": {
-		"resultTitle": "Group vote",
+		"resultTitle": "Group vote results",
 		"resultSubtitle": "Review the choices and vote for your preferences.",
 		"resultSubtitleVoted": "You can review the current results.",
 		"copyShareLink": "Copy share link",
@@ -61,14 +61,16 @@
 		"dislike": "Pass",
 		"voteProgress": "{{current}} / {{total}}",
 		"noVoteCandidates": "There are no choices to vote on",
-		"completionTitle": "Enter your name",
+		"completionTitle": "Confirm your vote",
 		"completionDescription": "Enter the name shown on the results page and an optional comment.",
 		"nameSuggestionLabel": "You can use one of these as your name",
 		"displayNamePlaceholder": "Nickname",
 		"commentPlaceholder": "Comment (optional)",
-		"submitVote": "Submit vote",
+		"submitVote": "Finish voting",
 		"submitting": "Submitting",
-		"submitFailed": "Could not submit your vote"
+		"submitFailed": "Could not submit your vote",
+		"participantsList": "Participants: {{names}}",
+		"noParticipants": "No participants yet"
 	},
 	"Error": {
 		"maintenanceMessage": "We are currently undergoing maintenance.",
