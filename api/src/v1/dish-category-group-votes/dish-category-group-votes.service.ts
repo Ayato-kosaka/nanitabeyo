@@ -159,7 +159,8 @@ export class DishCategoryGroupVotesService {
     });
 
     // 店舗提案は「最初に誰かが見た検索結果」をセッション内で固定する。
-    // NULL は未検索、空配列は検索済み0件、値ありは検索済み候補あり。
+    // Prisma は PostgreSQL scalar list の NULL を [] と区別できないため、
+    // dishMediaIds ではなく dishMediaSearchStatus で未検索/0件/候補ありを判断する。
     // 既に検索済みの場合は、後続ユーザーの検索タイミングで候補が差し替わらないように上書きしない。
     return this.prisma.withTransaction(
       async (tx: Prisma.TransactionClient) => {
@@ -172,28 +173,33 @@ export class DishCategoryGroupVotesService {
           throw new NotFoundException('Candidate not found');
         }
 
-        if (candidate.dishMediaIds !== null) {
+        if (candidate.dishMediaSearchStatus !== 'not_searched') {
           // 冪等化により、複数ユーザーが同時に「店を見る」を押しても
           // クライアントは保存済みの固定結果をそのまま使える。
-          // 空配列も「検索済み0件」という有効な固定結果なので上書きしない。
+          // empty も「検索済み0件」という有効な固定結果なので上書きしない。
           return {
             candidateId,
             dishMediaIds: candidate.dishMediaIds,
+            dishMediaSearchStatus: candidate.dishMediaSearchStatus,
             updated: false,
           };
         }
 
+        const nextStatus =
+          dto.dishMediaIds.length > 0 ? 'found' : 'empty';
         const updated = await this.repo.updateCandidateDishMediaIds(
           tx,
           sessionId,
           candidateId,
           dto.dishMediaIds,
+          nextStatus,
         );
         await this.repo.touchSession(tx, sessionId);
 
         return {
           candidateId,
           dishMediaIds: updated.dishMediaIds,
+          dishMediaSearchStatus: updated.dishMediaSearchStatus,
           updated: true,
         };
       },

@@ -4,6 +4,17 @@
 export type DishCategoryGroupVoteReaction = "like" | "dislike";
 
 /**
+ * 店舗提案用 dish_media 検索状態。
+ *
+ * Prisma は PostgreSQL scalar list の NULL を型表現できないため、
+ * dishMediaIds の null ではなく明示的な status で未検索/0件/候補ありを区別する。
+ */
+export type DishCategoryGroupVoteDishMediaSearchStatus =
+	| "not_searched"
+	| "found"
+	| "empty";
+
+/**
  * 店舗提案用 dish_media 検索条件のスナップショット。
  *
  * 共有リンクを直接開いたゲストでも「店を見る」を実行できるよう、
@@ -48,10 +59,8 @@ export type DishCategoryGroupVoteCandidate = {
 	dishCategoryId: string;
 	displayName: string;
 	imageUrl: string;
-	/**
-	 * null は未検索、[] は検索済み0件、値ありは検索済み候補あり。
-	 */
-	dishMediaIds: string[] | null;
+	dishMediaIds: string[];
+	dishMediaSearchStatus: DishCategoryGroupVoteDishMediaSearchStatus;
 	displayOrder: number;
 	deletedAt: string | null;
 	likeCount: number;
@@ -108,7 +117,8 @@ export type SubmitDishCategoryGroupVoteResponse = {
 export type UpdateDishCategoryGroupVoteCandidateDishMediaResponse = {
 	candidateId: string;
 	dishMediaIds: string[];
-	/** true の場合のみ、このリクエストで未検索(NULL)から検索済みに更新した */
+	dishMediaSearchStatus: DishCategoryGroupVoteDishMediaSearchStatus;
+	/** true の場合のみ、このリクエストで未検索から検索済みに更新した */
 	updated: boolean;
 };
 

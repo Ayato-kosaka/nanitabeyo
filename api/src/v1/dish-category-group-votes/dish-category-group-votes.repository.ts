@@ -11,7 +11,10 @@ import {
   CreateDishCategoryGroupVoteDto,
   SubmitDishCategoryGroupVoteDto,
 } from '@shared/v1/dto';
-import { DishCategoryGroupVoteSearchContext } from '@shared/v1/res';
+import {
+  DishCategoryGroupVoteDishMediaSearchStatus,
+  DishCategoryGroupVoteSearchContext,
+} from '@shared/v1/res';
 
 
 // TODO: 実装時は  type の定義は無駄に行わないこと。shared/converter を使うこと。
@@ -32,7 +35,8 @@ export type DishCategoryGroupVoteCandidateEntity = {
   dishCategoryId: string;
   displayName: string;
   imageUrl: string;
-  dishMediaIds: string[] | null;
+  dishMediaIds: string[];
+  dishMediaSearchStatus: DishCategoryGroupVoteDishMediaSearchStatus;
   displayOrder: number;
   deletedAt: Date | null;
   createdAt: Date;
@@ -145,19 +149,28 @@ export class DishCategoryGroupVotesRepository {
   }
 
   /**
-   * 店舗提案用 dish_media_ids を未検索(NULL)の場合だけ保存する。
-   * 空配列は「検索済み0件」なので、既に検索済みの場合の上書き抑止は Service 側で判定する。
+   * 店舗提案用 dish_media_ids と検索状態を保存する。
+   * Prisma は PostgreSQL scalar list の NULL を扱えないため、未検索判定は status に寄せる。
+   * 既に検索済みの場合の上書き抑止は Service 側で判定する。
    */
   async updateCandidateDishMediaIds(
     db: PrismaExecutor,
     sessionId: string,
     candidateId: string,
     dishMediaIds: string[],
-  ): Promise<{ dishMediaIds: string[] }> {
+    dishMediaSearchStatus: Exclude<
+      DishCategoryGroupVoteDishMediaSearchStatus,
+      'not_searched'
+    >,
+  ): Promise<{
+    dishMediaIds: string[];
+    dishMediaSearchStatus: DishCategoryGroupVoteDishMediaSearchStatus;
+  }> {
     void db;
     void sessionId;
     void candidateId;
     void dishMediaIds;
+    void dishMediaSearchStatus;
     throw new Error('Not implemented');
   }
 

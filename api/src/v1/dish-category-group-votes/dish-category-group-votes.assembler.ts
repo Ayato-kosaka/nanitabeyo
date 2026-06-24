@@ -107,8 +107,9 @@ export class DishCategoryGroupVotesAssembler {
             displayName: candidate.displayName,
             imageUrl: candidate.imageUrl,
             // 店舗提案キャッシュは初回「店を見る」後に固定される。
-            // null は未検索、[] は検索済み0件として返し、フロントがUI表示を分ける。
+            // Prisma scalar list の NULL 表現に依存せず、status で未検索/0件/候補ありを分ける。
             dishMediaIds: candidate.dishMediaIds,
+            dishMediaSearchStatus: candidate.dishMediaSearchStatus,
             displayOrder: candidate.displayOrder,
             // 削除済み候補も返す。既存 votes の説明可能性を残しつつ、
             // 表示・店舗提案対象から外す判断はフロントの deletedAt チェックに寄せる。

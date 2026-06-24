@@ -17,6 +17,8 @@
 --   （匿名ユーザーもあり、public.users 行が必ず存在する前提ではないため FK は張らない）
 -- - 共有URLには share_token を使い、DB主キー id は公開URLに載せない
 -- - search_context は共有リンクを直接開いたゲストでも同じ条件で店舗提案へ進めるよう保持する
+-- - Prisma は PostgreSQL scalar list の NULL を型として扱えず [] に寄せるため、
+--   dish_media_ids の NULL ではなく dish_media_search_status で未検索/0件/候補ありを表現する
 -- - 候補削除は投票後も可能にするため、deleted_at による論理削除にする
 -- - votes は insert-only。投票変更・削除はしない
 -- - Realtime は participants INSERT を session_id filter 付きで購読し、
@@ -49,7 +51,9 @@ CREATE TABLE IF NOT EXISTS dish_category_group_vote_candidates (
   dish_category_id text NOT NULL REFERENCES dish_categories(id),
   display_name     text NOT NULL,
   image_url        text NOT NULL,
-  dish_media_ids   uuid[],
+  dish_media_ids   uuid[] NOT NULL DEFAULT '{}'::uuid[],
+  dish_media_search_status text NOT NULL DEFAULT 'not_searched'
+    CHECK (dish_media_search_status IN ('not_searched', 'found', 'empty')),
   display_order    integer NOT NULL,
   deleted_at       timestamptz,
   created_at       timestamptz NOT NULL DEFAULT now(),
@@ -144,7 +148,10 @@ COMMENT ON COLUMN dish_category_group_vote_candidates.image_url IS
   '投票作成時点で固定された候補画像URL。';
 
 COMMENT ON COLUMN dish_category_group_vote_candidates.dish_media_ids IS
-  '店舗提案画面に遷移するための dish_media.id 配列。NULL は未検索、空配列は検索済み0件、値ありは検索済み候補あり。';
+  '店舗提案画面に遷移するための dish_media.id 配列。Prisma scalar list のNULL表現制約を避けるため未検索判定には使わない。';
+
+COMMENT ON COLUMN dish_category_group_vote_candidates.dish_media_search_status IS
+  '店舗提案用 dish_media 検索状態。not_searched は未検索、empty は検索済み0件、found は検索済み候補あり。';
 
 COMMENT ON COLUMN dish_category_group_vote_candidates.display_order IS
   '結果画面・投票画面で使う固定表示順。ランキングで並び替えない。';
