@@ -19,12 +19,15 @@ import {
 } from "react-native";
 import { useIsFocused } from "@react-navigation/native";
 import type { DishCategoryGroupVoteCandidate } from "@shared/api/v1/res";
+import type { QueryDishMediaByIdsDto } from "@shared/api/v1/dto";
+import type { QueryDishMediaByIdsResponse } from "@shared/api/v1/res";
 import { generateShareUrl } from "@/lib/share";
 import i18n from "@/lib/i18n";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { useDialog } from "@/contexts/DialogProvider";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
+import { useAPICall } from "@/hooks/useAPICall";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import { SearchHeader } from "@/features/search/components/SearchHeader";
@@ -37,6 +40,7 @@ import { DishCategoryGroupVoteCandidateList } from "./DishCategoryGroupVoteCandi
 import { DishCategoryGroupVoteComments } from "./DishCategoryGroupVoteComments";
 import { DishCategoryGroupVoteCandidateDetailModal } from "./DishCategoryGroupVoteCandidateDetailModal";
 import { DishCategoryGroupVoteResultHeader } from "./DishCategoryGroupVoteResultHeader";
+import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 
 type Props = {
 	shareToken: string;
@@ -45,6 +49,7 @@ type Props = {
 export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 	const { locale } = useLocale();
 	const isFocused = useIsFocused();
+	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
 	const { confirm } = useDialog();
 	const { showSnackbar } = useSnackbar();
@@ -84,20 +89,41 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 		cacheCandidateDishMedia: actions.cacheCandidateDishMedia,
 		searchContext: detail?.session.searchContext,
 		onOpenCachedDishMedia: (candidate, dishMediaIds) => {
-			// #856 【設計】posts 画面へ寄せて、既存の DishMediaMap / Feed 周りを再利用する。
-			// entriesKey は group vote 起点の一時キーとして扱い、posts screen 側で明示的にクリーンアップする。
+			const entriesKey = `dish-category-group-votes:${shareToken}:${candidate.id}`;
+			const { mediaIdsByKey, isLoadingByKey, upsertDishMediaEntries, updateMediaIdsByKeyAsync } =
+				useDishMediaEntriesStore.getState();
+
+			if (mediaIdsByKey[entriesKey] === undefined && !isLoadingByKey[entriesKey]) {
+				const fetchIds = async () => {
+					const response = await callBackend<QueryDishMediaByIdsDto, QueryDishMediaByIdsResponse>(
+						"v1/dish-media",
+						{
+							method: "GET",
+							requestPayload: {
+								ids: dishMediaIds,
+							},
+						},
+					);
+					upsertDishMediaEntries(response.items);
+					return response.items.map((item) => String(item.dish_media.id));
+				};
+
+				updateMediaIdsByKeyAsync(entriesKey, fetchIds(), (_, fetchedIds) => fetchedIds);
+			}
+
 			router.push({
-				pathname: "/[locale]/(tabs)/posts",
+				pathname: "/[locale]/(tabs)/search/result",
 				params: {
 					locale,
-					ids: dishMediaIds.join(","),
-					entriesKey: `dish-category-group-votes:${shareToken}:${candidate.id}`,
+					entriesKey,
+					location: JSON.stringify(detail.session.searchContext.location),
+					category: candidate.displayName,
 				},
 			});
 		},
 	});
 
-	const shareUrl = generateShareUrl(`/${locale}/dish-category-group-votes/${shareToken}/vote`);
+	const shareUrl = generateShareUrl(`/${locale}/search/dish-category-group-votes/${shareToken}/vote`);
 
 	const handleCopyShareLink = async () => {
 		await Clipboard.setStringAsync(shareUrl);
@@ -132,6 +158,10 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 			payload: { shareToken, candidateId: candidate.id },
 		});
 		await actions.deleteCandidate(candidate.id);
+	};
+
+	const handleOpenCandidateDishMedia = async (candidate: DishCategoryGroupVoteCandidate) => {
+		await openCandidateDishMedia(candidate);
 	};
 
 	if (isLoading && !detail) {
@@ -172,7 +202,7 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 									payload: { shareToken },
 								});
 								router.push({
-									pathname: `/[locale]/(tabs)/dish-category-group-votes/[shareToken]/vote`,
+									pathname: `/[locale]/(tabs)/search/dish-category-group-votes/[shareToken]/vote`,
 									params: {
 										locale,
 										shareToken,
@@ -187,7 +217,7 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 					isHost={detail.session.isHost}
 					loadingCandidateId={loadingCandidateId}
 					onPressCandidate={handlePressCandidate}
-					onPressDishMedia={openCandidateDishMedia}
+					onPressDishMedia={handleOpenCandidateDishMedia}
 					onDeleteCandidate={handleDeleteCandidate}
 				/>
 				<DishCategoryGroupVoteComments participants={detail.participants} />
@@ -198,7 +228,7 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 						candidate={selectedCandidate}
 						isHost={detail.session.isHost}
 						isDishMediaLoading={loadingCandidateId === selectedCandidate.id}
-						onPressDishMedia={openCandidateDishMedia}
+						onPressDishMedia={handleOpenCandidateDishMedia}
 						onDeleteCandidate={handleDeleteCandidate}
 					/>
 				) : null}

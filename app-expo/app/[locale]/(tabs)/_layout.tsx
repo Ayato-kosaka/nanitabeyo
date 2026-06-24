@@ -100,7 +100,6 @@ export default function TabLayout() {
 				}}
 			/>
 			<Tabs.Screen name="posts" options={{ href: null }} />
-			<Tabs.Screen name="dish-category-group-votes" options={{ href: null }} />
 		</Tabs>
 	);
 }

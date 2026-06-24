@@ -55,14 +55,14 @@ export function DishCategoryGroupVoteVoteScreen({ shareToken }: Props) {
 	}, [detail?.candidates]);
 
 	useEffect(() => {
-		if (detail?.session.hasVoted) {
-			router.replace({
-				pathname: "/[locale]/(tabs)/dish-category-group-votes/[shareToken]",
-				params: {
-					locale,
-					shareToken,
-				},
-			});
+			if (detail?.session.hasVoted) {
+				router.replace({
+					pathname: "/[locale]/(tabs)/search/dish-category-group-votes/[shareToken]",
+					params: {
+						locale,
+						shareToken,
+					},
+				});
 		}
 	}, [detail?.session.hasVoted, locale, shareToken]);
 
@@ -106,7 +106,7 @@ export function DishCategoryGroupVoteVoteScreen({ shareToken }: Props) {
 			await submitVote(dto);
 			closeCompletionModal();
 			router.replace({
-				pathname: "/[locale]/(tabs)/dish-category-group-votes/[shareToken]",
+				pathname: "/[locale]/(tabs)/search/dish-category-group-votes/[shareToken]",
 				params: {
 					locale,
 					shareToken,

@@ -153,7 +153,7 @@ export default function TopicsScreen() {
 				payload: { shareToken: cachedResponse.shareToken },
 			});
 			router.push({
-				pathname: "/[locale]/(tabs)/dish-category-group-votes/[shareToken]",
+				pathname: "/[locale]/(tabs)/search/dish-category-group-votes/[shareToken]",
 				params: {
 					locale,
 					shareToken: cachedResponse.shareToken,
@@ -166,7 +166,7 @@ export default function TopicsScreen() {
 			const response = await createGroupVote({ searchParams: params, topics: visibleTopics });
 			createdGroupVoteRef.current = response;
 			router.push({
-				pathname: "/[locale]/(tabs)/dish-category-group-votes/[shareToken]",
+				pathname: "/[locale]/(tabs)/search/dish-category-group-votes/[shareToken]",
 				params: {
 					locale,
 					shareToken: response.shareToken,

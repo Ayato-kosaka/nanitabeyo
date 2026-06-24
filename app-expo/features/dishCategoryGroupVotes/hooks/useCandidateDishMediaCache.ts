@@ -7,6 +7,7 @@
  */
 import { useCallback, useState } from "react";
 import type { DishCategoryGroupVoteCandidate, DishCategoryGroupVoteSearchContext } from "@shared/api/v1/res";
+import type { DishMediaEntry } from "@shared/api/v1/res";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
@@ -73,10 +74,11 @@ export function useCandidateDishMediaCache({
 			}
 
 			setLoadingCandidateId(candidate.id);
+			let dishItems: DishMediaEntry[] | undefined;
 			try {
 				// #856 【設計】共有リンク参加者は元の検索画面 params を持たない。
 				// そのため session の searchContext と候補の dishCategoryId から既存検索 helper を再利用する。
-				const dishItems = await createDishItemsForCategory({
+				dishItems = await createDishItemsForCategory({
 					callBackend,
 					categoryId: candidate.dishCategoryId,
 					categoryName: candidate.displayName,
@@ -86,6 +88,9 @@ export function useCandidateDishMediaCache({
 					radius: searchContext.radius,
 					priceLevels: searchContext.priceLevels,
 				});
+				// #856 【設計】検索 helper の成功後だけ cache し、0件なら Google Maps fallback へ寄せる。
+				// 失敗を empty として保存すると再検索できなくなるため、failure は保存しない。
+				if (!dishItems) return;
 				const dishMediaIds = dishItems.map((item) => String(item.dish_media.id));
 				await cacheCandidateDishMedia(candidate.id, dishMediaIds);
 				if (dishMediaIds.length === 0) {
@@ -97,11 +102,33 @@ export function useCandidateDishMediaCache({
 					return;
 				}
 				onOpenCachedDishMedia?.(candidate, dishMediaIds);
+			} catch (error) {
+				logFrontendEvent({
+					event_name: "dish_category_group_vote_candidate_dish_media_search_failed",
+					error_level: "error",
+					payload: {
+						candidateId: candidate.id,
+						error: error instanceof Error ? error.message : String(error),
+					},
+				});
+				showGoogleMapsFallbackDialog({
+					category: candidate.displayName,
+					location: searchContext.location,
+					locale,
+				});
 			} finally {
 				setLoadingCandidateId(null);
 			}
 		},
-		[cacheCandidateDishMedia, callBackend, locale, logFrontendEvent, onOpenCachedDishMedia, searchContext, showGoogleMapsFallbackDialog],
+		[
+			cacheCandidateDishMedia,
+			callBackend,
+			locale,
+			logFrontendEvent,
+			onOpenCachedDishMedia,
+			searchContext,
+			showGoogleMapsFallbackDialog,
+		],
 	);
 
 	return {
