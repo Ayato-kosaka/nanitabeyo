@@ -61,18 +61,19 @@ model contribution_tasks {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model dish_categories {
-  id                           String                         @id
-  label_en                     String
-  labels                       Json
-  image_url                    String
-  tags                         String[]
-  created_at                   DateTime                       @default(now()) @db.Timestamptz(6)
-  macro_genre_qid              String?
-  synced_at                    DateTime?                      @db.Timestamptz(6)
-  dish_category_features       dish_category_features[]
-  dish_category_localized_text dish_category_localized_text[]
-  dish_category_variants       dish_category_variants[]
-  dishes                       dishes[]
+  id                                  String                                @id
+  label_en                            String
+  labels                              Json
+  image_url                           String
+  tags                                String[]
+  created_at                          DateTime                              @default(now()) @db.Timestamptz(6)
+  macro_genre_qid                     String?
+  synced_at                           DateTime?                             @db.Timestamptz(6)
+  dish_category_features              dish_category_features[]
+  dish_category_group_vote_candidates dish_category_group_vote_candidates[]
+  dish_category_localized_text        dish_category_localized_text[]
+  dish_category_variants              dish_category_variants[]
+  dishes                              dishes[]
 
   @@index([tags], map: "idx_dish_categories_tags", type: Gin)
   @@schema("dev")
@@ -89,6 +90,80 @@ model dish_category_features {
   dish_categories  dish_categories @relation(fields: [dish_category_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@id([dish_category_id, feature_type, feature_key])
+  @@schema("dev")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model dish_category_group_vote_candidate_votes {
+  participant_id                        String                                @db.Uuid
+  candidate_id                          String                                @db.Uuid
+  reaction                              String
+  created_at                            DateTime                              @default(now()) @db.Timestamptz(6)
+  dish_category_group_vote_candidates   dish_category_group_vote_candidates   @relation(fields: [candidate_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  dish_category_group_vote_participants dish_category_group_vote_participants @relation(fields: [participant_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([participant_id, candidate_id])
+  @@index([candidate_id], map: "idx_dcgv_votes_candidate")
+  @@schema("dev")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model dish_category_group_vote_candidates {
+  id                                       String                                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  session_id                               String                                     @db.Uuid
+  dish_category_id                         String
+  display_name                             String
+  image_url                                String
+  dish_media_ids                           String[]                                   @default([]) @db.Uuid
+  dish_media_search_status                 String                                     @default("not_searched")
+  display_order                            Int
+  deleted_at                               DateTime?                                  @db.Timestamptz(6)
+  created_at                               DateTime                                   @default(now()) @db.Timestamptz(6)
+  dish_category_group_vote_candidate_votes dish_category_group_vote_candidate_votes[]
+  dish_categories                          dish_categories                            @relation(fields: [dish_category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  dish_category_group_vote_sessions        dish_category_group_vote_sessions          @relation(fields: [session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([session_id, dish_category_id], map: "dish_category_group_vote_candid_session_id_dish_category_id_key")
+  @@unique([session_id, display_order], map: "dish_category_group_vote_candidate_session_id_display_order_key")
+  @@index([dish_category_id], map: "idx_dcgv_candidates_category")
+  @@index([session_id, display_order], map: "idx_dcgv_candidates_session")
+  @@schema("dev")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model dish_category_group_vote_participants {
+  id                                       String                                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  session_id                               String                                     @db.Uuid
+  user_id                                  String                                     @db.Uuid
+  display_name                             String
+  comment                                  String?
+  created_at                               DateTime                                   @default(now()) @db.Timestamptz(6)
+  dish_category_group_vote_candidate_votes dish_category_group_vote_candidate_votes[]
+  dish_category_group_vote_sessions        dish_category_group_vote_sessions          @relation(fields: [session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([session_id, user_id])
+  @@index([session_id, created_at], map: "idx_dcgv_participants_session")
+  @@schema("dev")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model dish_category_group_vote_sessions {
+  id                                    String                                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  host_user_id                          String                                  @db.Uuid
+  share_token                           String                                  @unique
+  search_context                        Json                                    @default("{}")
+  created_at                            DateTime                                @default(now()) @db.Timestamptz(6)
+  updated_at                            DateTime                                @default(now()) @db.Timestamptz(6)
+  dish_category_group_vote_candidates   dish_category_group_vote_candidates[]
+  dish_category_group_vote_participants dish_category_group_vote_participants[]
+
+  @@index([share_token], map: "idx_dcgvs_share_token")
   @@schema("dev")
 }
 

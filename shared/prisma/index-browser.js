@@ -169,6 +169,44 @@ exports.Prisma.Dish_category_featuresScalarFieldEnum = {
   synced_at: 'synced_at'
 };
 
+exports.Prisma.Dish_category_group_vote_candidate_votesScalarFieldEnum = {
+  participant_id: 'participant_id',
+  candidate_id: 'candidate_id',
+  reaction: 'reaction',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Dish_category_group_vote_candidatesScalarFieldEnum = {
+  id: 'id',
+  session_id: 'session_id',
+  dish_category_id: 'dish_category_id',
+  display_name: 'display_name',
+  image_url: 'image_url',
+  dish_media_ids: 'dish_media_ids',
+  dish_media_search_status: 'dish_media_search_status',
+  display_order: 'display_order',
+  deleted_at: 'deleted_at',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Dish_category_group_vote_participantsScalarFieldEnum = {
+  id: 'id',
+  session_id: 'session_id',
+  user_id: 'user_id',
+  display_name: 'display_name',
+  comment: 'comment',
+  created_at: 'created_at'
+};
+
+exports.Prisma.Dish_category_group_vote_sessionsScalarFieldEnum = {
+  id: 'id',
+  host_user_id: 'host_user_id',
+  share_token: 'share_token',
+  search_context: 'search_context',
+  created_at: 'created_at',
+  updated_at: 'updated_at'
+};
+
 exports.Prisma.Dish_category_localized_textScalarFieldEnum = {
   dish_category_id: 'dish_category_id',
   locale: 'locale',
@@ -517,6 +555,10 @@ exports.Prisma.ModelName = {
   contribution_tasks: 'contribution_tasks',
   dish_categories: 'dish_categories',
   dish_category_features: 'dish_category_features',
+  dish_category_group_vote_candidate_votes: 'dish_category_group_vote_candidate_votes',
+  dish_category_group_vote_candidates: 'dish_category_group_vote_candidates',
+  dish_category_group_vote_participants: 'dish_category_group_vote_participants',
+  dish_category_group_vote_sessions: 'dish_category_group_vote_sessions',
   dish_category_localized_text: 'dish_category_localized_text',
   dish_category_variants: 'dish_category_variants',
   dish_media: 'dish_media',
