@@ -2,9 +2,9 @@
  * #856 【責務】
  * group vote の detail を取得・再取得する。
  *
- * 画面更新は Realtime の差分適用ではなく、この hook の refresh を通じた再取得で揃える。
+ * 画面更新はこの hook の refresh を通じた再取得で揃える。
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { DishCategoryGroupVoteDetailResponse } from "@shared/api/v1/res";
 import { useAPICall } from "@/hooks/useAPICall";
 
@@ -13,12 +13,20 @@ export function useDishCategoryGroupVoteDetail(shareToken?: string) {
 	const [detail, setDetail] = useState<DishCategoryGroupVoteDetailResponse | null>(null);
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const detailRef = useRef<DishCategoryGroupVoteDetailResponse | null>(null);
+
+	useEffect(() => {
+		detailRef.current = detail;
+	}, [detail]);
 
 	const refresh = useCallback(async () => {
 		if (!shareToken) return null;
 
+		const hadDetail = detailRef.current !== null;
 		setIsLoading(true);
-		setError(null);
+		if (!hadDetail) {
+			setError(null);
+		}
 		try {
 			const nextDetail = await callBackend<Record<string, never>, DishCategoryGroupVoteDetailResponse>(
 				`v1/dish-category-group-votes/${shareToken}`,
@@ -28,10 +36,13 @@ export function useDishCategoryGroupVoteDetail(shareToken?: string) {
 				},
 			);
 			setDetail(nextDetail);
+			setError(null);
 			return nextDetail;
 		} catch (err) {
 			const message = err instanceof Error ? err.message : String(err);
-			setError(message);
+			if (!hadDetail) {
+				setError(message);
+			}
 			throw err;
 		} finally {
 			setIsLoading(false);

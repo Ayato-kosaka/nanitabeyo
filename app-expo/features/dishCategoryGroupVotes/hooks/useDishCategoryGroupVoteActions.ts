@@ -3,7 +3,7 @@
  * group vote の mutation を集約する。
  *
  * submit / delete / dish-media cache 更新は、成功後に detail refresh へ戻す。
- * Realtime に自分自身の結果を依存させないため、mutation 成功と refresh を同じ境界に置く。
+ * 自分自身の画面更新を他画面の polling に依存させないため、mutation 成功と refresh を同じ境界に置く。
  */
 import { useCallback } from "react";
 import type {
@@ -43,8 +43,8 @@ export function useDishCategoryGroupVoteActions({ sessionId, refresh }: ActionsP
 				error_level: "log",
 				payload: { sessionId, voteCount: dto.votes.length },
 			});
-			// #856 【設計】自分の mutation は Realtime 到着を待たずに detail を再取得する。
-			// participants INSERT 購読は他参加者の更新通知であり、自分の整合性の根拠にはしない。
+			// #856 【設計】自分の mutation は detail を即時再取得する。
+			// 他画面の polling を待たずに、自分の整合性はこの refresh で確定させる。
 			await refresh();
 			return response;
 		},

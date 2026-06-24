@@ -6,8 +6,18 @@
  */
 import * as Clipboard from "expo-clipboard";
 import { router } from "expo-router";
-import { useState } from "react";
-import { SafeAreaView, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { useEffect, useState } from "react";
+import {
+	AppState,
+	type AppStateStatus,
+	SafeAreaView,
+	ScrollView,
+	StyleSheet,
+	Text,
+	View,
+	useWindowDimensions,
+} from "react-native";
+import { useIsFocused } from "@react-navigation/native";
 import type { DishCategoryGroupVoteCandidate } from "@shared/api/v1/res";
 import { generateShareUrl } from "@/lib/share";
 import i18n from "@/lib/i18n";
@@ -21,7 +31,7 @@ import { SearchHeader } from "@/features/search/components/SearchHeader";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { useDishCategoryGroupVoteActions } from "../hooks/useDishCategoryGroupVoteActions";
 import { useDishCategoryGroupVoteDetail } from "../hooks/useDishCategoryGroupVoteDetail";
-import { useDishCategoryGroupVoteRealtime } from "../hooks/useDishCategoryGroupVoteRealtime";
+import { useDishCategoryGroupVotePolling } from "../hooks/useDishCategoryGroupVotePolling";
 import { useCandidateDishMediaCache } from "../hooks/useCandidateDishMediaCache";
 import { DishCategoryGroupVoteCandidateList } from "./DishCategoryGroupVoteCandidateList";
 import { DishCategoryGroupVoteComments } from "./DishCategoryGroupVoteComments";
@@ -34,10 +44,12 @@ type Props = {
 
 export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 	const { locale } = useLocale();
+	const isFocused = useIsFocused();
 	const { logFrontendEvent } = useLogger();
 	const { confirm } = useDialog();
 	const { showSnackbar } = useSnackbar();
 	const { height: windowHeight } = useWindowDimensions();
+	const [appState, setAppState] = useState<AppStateStatus>(AppState.currentState);
 	const [selectedCandidate, setSelectedCandidate] = useState<DishCategoryGroupVoteCandidate | null>(null);
 	const {
 		BlurModal: CandidateDetailBlurModal,
@@ -47,6 +59,23 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 		closeOnBackdropPress: true,
 	});
 	const { detail, isLoading, error, refresh } = useDishCategoryGroupVoteDetail(shareToken);
+
+	useEffect(() => {
+		const subscription = AppState.addEventListener("change", (nextAppState) => {
+			setAppState(nextAppState);
+		});
+
+		return () => {
+			subscription.remove();
+		};
+	}, []);
+
+	useDishCategoryGroupVotePolling({
+		isFocused: isFocused && shareToken.length > 0,
+		appState,
+		refresh,
+	});
+
 	const actions = useDishCategoryGroupVoteActions({
 		sessionId: detail?.session.id,
 		refresh,
@@ -64,15 +93,6 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 					ids: dishMediaIds.join(","),
 					entriesKey: `dish-category-group-votes:${shareToken}:${candidate.id}`,
 				},
-			});
-		},
-	});
-
-	useDishCategoryGroupVoteRealtime({
-		sessionId: detail?.session.id,
-		onParticipantInserted: () => {
-			refresh().catch(() => {
-				showSnackbar(i18n.t("DishCategoryGroupVotes.refreshFailed"));
 			});
 		},
 	});

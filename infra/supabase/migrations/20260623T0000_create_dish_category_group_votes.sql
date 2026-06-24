@@ -21,8 +21,7 @@
 --   dish_media_ids の NULL ではなく dish_media_search_status で未検索/0件/候補ありを表現する
 -- - 候補削除は投票後も可能にするため、deleted_at による論理削除にする
 -- - votes は insert-only。投票変更・削除はしない
--- - Realtime は participants INSERT を session_id filter 付きで購読し、
---   受信後に API の detail を再取得する前提
+-- - 結果画面は GET detail を 5 秒間隔で polling し、表示中かつ foreground のときだけ更新する
 -- ==============================================================================
 
 -- 依存拡張
@@ -189,12 +188,3 @@ ALTER TABLE dish_category_group_vote_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE dish_category_group_vote_candidates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE dish_category_group_vote_participants ENABLE ROW LEVEL SECURITY;
 ALTER TABLE dish_category_group_vote_candidate_votes ENABLE ROW LEVEL SECURITY;
-
--- =========================
--- Realtime
--- =========================
--- MVPでは participants の INSERT だけを Realtime の変更通知として使う。
--- クライアントは session_id=eq.<session_id> filter で購読し、通知を受けたら
--- API の GET detail を再取得して candidates / participants / votes を同期する。
-ALTER PUBLICATION supabase_realtime
-  ADD TABLE dish_category_group_vote_participants;

@@ -155,7 +155,7 @@ export class DishCategoryGroupVotesRepository {
 
   /**
    * sessionId を明示して read するのは、shareToken ではなく内部操作の境界を守るため。
-   * Realtime の再取得や候補更新では、公開トークンを経由しない方が責務がぶれない。
+   * 候補更新や detail 再取得では、公開トークンを経由しない方が責務がぶれない。
    */
   async findSessionById(
     db: PrismaExecutor,
@@ -227,7 +227,7 @@ export class DishCategoryGroupVotesRepository {
 
   /**
    * participant と votes は同じトランザクションに入れる。
-   * そうしないと Realtime で participant だけ先に見えて、候補別投票がまだ無い状態になる。
+   * そうしないと detail 再取得時に participant だけ先に見えて、候補別投票がまだ無い状態になる。
    */
   async createParticipantWithVotes(
     db: PrismaExecutor,
@@ -318,7 +318,7 @@ export class DishCategoryGroupVotesRepository {
   }
 
   /**
-   * Realtime の再取得トリガーとして session.updated_at を更新する。
+   * session.updated_at を更新する。
    * ここを明示更新にしておくと、候補追加・削除・dish_media 固定を同じ再取得パスへ寄せられる。
    */
   async touchSession(db: PrismaExecutor, sessionId: string): Promise<void> {

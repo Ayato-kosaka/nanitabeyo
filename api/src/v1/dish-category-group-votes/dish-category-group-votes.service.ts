@@ -5,7 +5,7 @@
 // この Service は「共有リンク型の投票」という仕様上の不変条件を守る層。
 // Controller は認証済み user_id と DTO を渡すだけにし、Repository は DB 操作に閉じる。
 // ここでは、候補削除とのレース耐性、一発勝負、店舗提案キャッシュの固定化、
-// Realtime 通知後の detail 再取得に必要な updated_at 更新をまとめて扱う。
+// detail 再取得に必要な updated_at 更新をまとめて扱う。
 
 import {
   BadRequestException,
@@ -116,8 +116,7 @@ export class DishCategoryGroupVotesService {
 
     try {
       // shareToken は共有リンクの bearer secret として扱う。
-      // URLから得た shareToken で sessionId を解決し、以後の Realtime 購読は
-      // sessionId filter 付きで行う前提なので、detail には内部IDも含める。
+      // URLから得た shareToken で sessionId を解決し、detail には内部IDも含める。
       const entity = await this.repo.findDetailByShareToken(
         this.prisma.prisma,
         shareToken,
@@ -160,9 +159,8 @@ export class DishCategoryGroupVotesService {
     }
 
     try {
-      // participant INSERT が Realtime の唯一の変更通知になる。
-      // そのため participant と votes と sessions.updated_at は同じ commit に乗せ、
-      // 購読側が通知後に GET detail すれば必ず整合した投票結果を読めるようにする。
+      // participant と votes と sessions.updated_at は同じ commit に乗せ、
+      // GET detail の再取得で必ず整合した投票結果を読めるようにする。
       const participant = await this.prisma.withTransaction(
         async (tx: Prisma.TransactionClient) => {
           const session = await this.repo.findSessionById(tx, sessionId);
@@ -331,8 +329,7 @@ export class DishCategoryGroupVotesService {
           }
 
           if (!candidate.deleted_at) {
-            // Realtime は candidates を購読しない方針なので、削除の即時反映は
-            // sessions.updated_at と次回 detail 再取得で整合させる。
+            // 候補削除の即時反映は sessions.updated_at と次回 detail 再取得で整合させる。
             await this.repo.softDeleteCandidate(tx, sessionId, candidateId);
             await this.repo.touchSession(tx, sessionId);
           }

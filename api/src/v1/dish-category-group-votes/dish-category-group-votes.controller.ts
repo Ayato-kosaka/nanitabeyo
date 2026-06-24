@@ -79,7 +79,7 @@ export class DishCategoryGroupVotesController {
   @ApiOperation({
     summary: 'dish_category グループ投票詳細取得',
     description:
-      'shareToken からセッションを解決し、Realtime 購読用 sessionId、候補、投票、コメント、集計結果を返す。',
+      'shareToken からセッションを解決し、sessionId、候補、投票、コメント、集計結果を返す。',
   })
   @ApiParam({ name: 'shareToken', required: true })
   @ApiResponse({ status: 200, description: '取得成功' })
