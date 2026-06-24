@@ -1,13 +1,15 @@
-import { Tabs } from "expo-router";
+import { router, Tabs } from "expo-router";
 import { MapPinned, Bell, User, Search, Pencil } from "lucide-react-native";
 import i18n from "@/lib/i18n";
 import { useAuth } from "@/contexts/AuthProvider";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { View } from "react-native";
+import { useLocale } from "@/hooks/useLocale";
 
 const ICON_SIZE = 21;
 
 export default function TabLayout() {
+	const { locale } = useLocale();
 	const { user } = useAuth();
 	const insets = useSafeAreaInsets();
 
@@ -15,6 +17,15 @@ export default function TabLayout() {
 		<Tabs
 			initialRouteName="search"
 			safeAreaInsets={{ bottom: insets.bottom, top: 0 }}
+			screenListeners={{
+				tabPress: (event) => {
+					event.preventDefault();
+					router.replace({
+						pathname: "/[locale]/(tabs)/search",
+						params: { locale },
+					});
+				},
+			}}
 			screenOptions={{
 				header: () => null,
 				tabBarShowLabel: true,
