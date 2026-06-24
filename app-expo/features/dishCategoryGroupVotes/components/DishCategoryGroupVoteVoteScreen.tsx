@@ -6,7 +6,7 @@
  */
 import { router } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { SafeAreaView, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import type { SubmitDishCategoryGroupVoteDto } from "@shared/api/v1/dto";
 import type { DishCategoryGroupVoteReaction } from "@shared/api/v1/res";
 import i18n from "@/lib/i18n";
@@ -30,6 +30,7 @@ export function DishCategoryGroupVoteVoteScreen({ shareToken }: Props) {
 	const { showSnackbar } = useSnackbar();
 	const { locale } = useLocale();
 	const { logFrontendEvent } = useLogger();
+	const { height: windowHeight } = useWindowDimensions();
 	const { detail, isLoading, error, refresh } = useDishCategoryGroupVoteDetail(shareToken);
 	const { submitVote } = useDishCategoryGroupVoteActions({
 		sessionId: detail?.session.id,
@@ -177,7 +178,7 @@ export function DishCategoryGroupVoteVoteScreen({ shareToken }: Props) {
 			)}
 			<CompletionBlurModal
 				showCloseButton={false}
-				contentContainerStyle={styles.completionBackdrop}
+				contentContainerStyle={[styles.completionBackdrop, { minHeight: windowHeight }]}
 				paddingVertical={0}>
 				<DishCategoryGroupVoteCompletionModal
 					usedDisplayNames={usedDisplayNames}
@@ -227,7 +228,6 @@ const styles = StyleSheet.create({
 		backgroundColor: "#F9FAFB",
 	},
 	completionBackdrop: {
-		flex: 1,
 		padding: 20,
 		justifyContent: "center",
 		alignItems: "center",

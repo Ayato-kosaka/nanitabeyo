@@ -7,7 +7,7 @@
 import * as Clipboard from "expo-clipboard";
 import { router } from "expo-router";
 import { useState } from "react";
-import { SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import type { DishCategoryGroupVoteCandidate } from "@shared/api/v1/res";
 import { generateShareUrl } from "@/lib/share";
 import i18n from "@/lib/i18n";
@@ -37,6 +37,7 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 	const { logFrontendEvent } = useLogger();
 	const { confirm } = useDialog();
 	const { showSnackbar } = useSnackbar();
+	const { height: windowHeight } = useWindowDimensions();
 	const [selectedCandidate, setSelectedCandidate] = useState<DishCategoryGroupVoteCandidate | null>(null);
 	const {
 		BlurModal: CandidateDetailBlurModal,
@@ -171,7 +172,7 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 				/>
 				<DishCategoryGroupVoteComments participants={detail.participants} />
 			</ScrollView>
-			<CandidateDetailBlurModal contentContainerStyle={styles.detailBackdrop}>
+			<CandidateDetailBlurModal contentContainerStyle={[styles.detailBackdrop, { minHeight: windowHeight }]}>
 				{selectedCandidate ? (
 					<DishCategoryGroupVoteCandidateDetailModal
 						candidate={selectedCandidate}
@@ -218,7 +219,6 @@ const styles = StyleSheet.create({
 		width: "100%",
 	},
 	detailBackdrop: {
-		flex: 1,
 		alignItems: "center",
 		justifyContent: "center",
 		padding: 18,
