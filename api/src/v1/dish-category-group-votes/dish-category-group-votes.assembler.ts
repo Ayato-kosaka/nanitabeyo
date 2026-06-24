@@ -5,7 +5,10 @@
 // こうしておくと、集計ロジックが DB に漏れず、画面契約の変更点もここに集約できる。
 
 import { Injectable } from '@nestjs/common';
-import { DishCategoryGroupVoteDetailResponse, DishCategoryGroupVoteSearchContext } from '@shared/v1/res';
+import {
+  DishCategoryGroupVoteDetailResponse,
+  DishCategoryGroupVoteSearchContext,
+} from '@shared/v1/res';
 import { DishCategoryGroupVoteDetailRecord } from './dish-category-group-votes.repository';
 
 @Injectable()
@@ -55,22 +58,25 @@ export class DishCategoryGroupVotesAssembler {
       const votes = voteItemsByCandidateId.get(candidate.id) ?? [];
       countsByCandidateId.set(candidate.id, {
         likeCount: votes.filter((vote) => vote.reaction === 'like').length,
-        dislikeCount: votes.filter((vote) => vote.reaction === 'dislike').length,
+        dislikeCount: votes.filter((vote) => vote.reaction === 'dislike')
+          .length,
       });
     }
 
     // 順位は候補配列の並びを壊さず、likeCount だけで別計算する。
     // こうしておくと、比較の軸と表示順が別の責務として保たれる。
-    const rankByCandidateId = this.buildRanks(entity.candidates.map((candidate) => {
-      const counts = countsByCandidateId.get(candidate.id) ?? {
-        likeCount: 0,
-        dislikeCount: 0,
-      };
-      return {
-        candidateId: candidate.id,
-        likeCount: counts.likeCount,
-      };
-    }));
+    const rankByCandidateId = this.buildRanks(
+      entity.candidates.map((candidate) => {
+        const counts = countsByCandidateId.get(candidate.id) ?? {
+          likeCount: 0,
+          dislikeCount: 0,
+        };
+        return {
+          candidateId: candidate.id,
+          likeCount: counts.likeCount,
+        };
+      }),
+    );
 
     return {
       session: {
@@ -79,7 +85,8 @@ export class DishCategoryGroupVotesAssembler {
         hostUserId: entity.session.host_user_id,
         // searchContext は session 単位の固定情報。
         // 共有リンクを直接開いた参加者が後から店舗提案へ進めるよう、detail に必ず返す。
-        searchContext: entity.session.search_context as DishCategoryGroupVoteSearchContext,
+        searchContext: entity.session
+          .search_context as DishCategoryGroupVoteSearchContext,
         isHost: entity.session.host_user_id === viewerUserId,
         hasVoted,
         participantCount: entity.participants.length,
@@ -98,11 +105,13 @@ export class DishCategoryGroupVotesAssembler {
             id: candidate.id,
             dishCategoryId: candidate.dish_category_id,
             displayName: candidate.display_name,
+            tagline: candidate.tagline,
             imageUrl: candidate.image_url,
             // dish_media_ids は初回「店を見る」で固定される。
             // NULL ではなく status を持つ前提なので、ここでは両方を返しておく。
             dishMediaIds: candidate.dish_media_ids,
-            dishMediaSearchStatus: candidate.dish_media_search_status as DishCategoryGroupVoteDetailResponse["candidates"][number]["dishMediaSearchStatus"],
+            dishMediaSearchStatus:
+              candidate.dish_media_search_status as DishCategoryGroupVoteDetailResponse['candidates'][number]['dishMediaSearchStatus'],
             displayOrder: candidate.display_order,
             deletedAt: candidate.deleted_at?.toISOString() ?? null,
             likeCount: counts.likeCount,
@@ -111,16 +120,13 @@ export class DishCategoryGroupVotesAssembler {
             votes: voteItemsByCandidateId.get(candidate.id) ?? [],
           };
         }),
-      // コメントは料理ごとではなく参加者ごとに1件という仕様。
-      // 空コメントは結果画面のコメント一覧からは除外する。
-      comments: entity.participants
-        .filter((participant) => !!participant.comment)
-        .map((participant) => ({
-          participantId: participant.id,
-          displayName: participant.display_name,
-          comment: participant.comment!,
-          createdAt: participant.created_at.toISOString(),
-        })),
+      // コメント表示も参加者情報から派生させるため、参加者を detail の正規データにする。
+      participants: entity.participants.map((participant) => ({
+        id: participant.id,
+        displayName: participant.display_name,
+        comment: participant.comment,
+        createdAt: participant.created_at.toISOString(),
+      })),
     };
   }
 
@@ -131,8 +137,9 @@ export class DishCategoryGroupVotesAssembler {
   private buildRanks(
     items: { candidateId: string; likeCount: number }[],
   ): Map<string, number> {
-    const sortedScores = [...new Set(items.map((item) => item.likeCount))]
-      .sort((a, b) => b - a);
+    const sortedScores = [...new Set(items.map((item) => item.likeCount))].sort(
+      (a, b) => b - a,
+    );
     const rankByScore = new Map(
       sortedScores.map((score, index) => [score, index + 1]),
     );

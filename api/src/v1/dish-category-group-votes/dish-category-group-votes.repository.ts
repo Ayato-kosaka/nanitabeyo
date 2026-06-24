@@ -9,18 +9,10 @@
 import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { Prisma, PrismaClient } from '../../../../shared/prisma/client';
-import {
-  PrismaDishCategoryGroupVoteCandidateVotes,
-} from '../../../../shared/converters/convert_dish_category_group_vote_candidate_votes';
-import {
-  PrismaDishCategoryGroupVoteCandidates,
-} from '../../../../shared/converters/convert_dish_category_group_vote_candidates';
-import {
-  PrismaDishCategoryGroupVoteParticipants,
-} from '../../../../shared/converters/convert_dish_category_group_vote_participants';
-import {
-  PrismaDishCategoryGroupVoteSessions,
-} from '../../../../shared/converters/convert_dish_category_group_vote_sessions';
+import { PrismaDishCategoryGroupVoteCandidateVotes } from '../../../../shared/converters/convert_dish_category_group_vote_candidate_votes';
+import { PrismaDishCategoryGroupVoteCandidates } from '../../../../shared/converters/convert_dish_category_group_vote_candidates';
+import { PrismaDishCategoryGroupVoteParticipants } from '../../../../shared/converters/convert_dish_category_group_vote_participants';
+import { PrismaDishCategoryGroupVoteSessions } from '../../../../shared/converters/convert_dish_category_group_vote_sessions';
 import {
   CreateDishCategoryGroupVoteDto,
   SubmitDishCategoryGroupVoteDto,
@@ -74,6 +66,7 @@ export class DishCategoryGroupVotesRepository {
         session_id: session.id,
         dish_category_id: candidate.dishCategoryId,
         display_name: candidate.displayName,
+        tagline: candidate.tagline,
         image_url: candidate.imageUrl,
         dish_media_ids: [],
         dish_media_search_status: 'not_searched',
@@ -117,6 +110,7 @@ export class DishCategoryGroupVotesRepository {
         session_id: true,
         dish_category_id: true,
         display_name: true,
+        tagline: true,
         image_url: true,
         dish_media_ids: true,
         dish_media_search_status: true,
@@ -126,33 +120,35 @@ export class DishCategoryGroupVotesRepository {
       },
     })) as PrismaDishCategoryGroupVoteCandidates[];
 
-    const participants = (await db.dish_category_group_vote_participants.findMany({
-      where: { session_id: session.id },
-      orderBy: { created_at: 'asc' },
-      select: {
-        id: true,
-        session_id: true,
-        user_id: true,
-        display_name: true,
-        comment: true,
-        created_at: true,
-      },
-    })) as PrismaDishCategoryGroupVoteParticipants[];
+    const participants =
+      (await db.dish_category_group_vote_participants.findMany({
+        where: { session_id: session.id },
+        orderBy: { created_at: 'asc' },
+        select: {
+          id: true,
+          session_id: true,
+          user_id: true,
+          display_name: true,
+          comment: true,
+          created_at: true,
+        },
+      })) as PrismaDishCategoryGroupVoteParticipants[];
 
-    const votes = candidates.length === 0
-      ? []
-      : (await db.dish_category_group_vote_candidate_votes.findMany({
-          where: {
-            candidate_id: { in: candidates.map((candidate) => candidate.id) },
-          },
-          orderBy: { created_at: 'asc' },
-          select: {
-            participant_id: true,
-            candidate_id: true,
-            reaction: true,
-            created_at: true,
-          },
-        })) as PrismaDishCategoryGroupVoteCandidateVotes[];
+    const votes =
+      candidates.length === 0
+        ? []
+        : ((await db.dish_category_group_vote_candidate_votes.findMany({
+            where: {
+              candidate_id: { in: candidates.map((candidate) => candidate.id) },
+            },
+            orderBy: { created_at: 'asc' },
+            select: {
+              participant_id: true,
+              candidate_id: true,
+              reaction: true,
+              created_at: true,
+            },
+          })) as PrismaDishCategoryGroupVoteCandidateVotes[]);
 
     return { session, candidates, participants, votes };
   }
@@ -195,6 +191,7 @@ export class DishCategoryGroupVotesRepository {
         session_id: true,
         dish_category_id: true,
         display_name: true,
+        tagline: true,
         image_url: true,
         dish_media_ids: true,
         dish_media_search_status: true,
@@ -294,7 +291,8 @@ export class DishCategoryGroupVotesRepository {
 
     return {
       dishMediaIds: candidate.dish_media_ids,
-      dishMediaSearchStatus: candidate.dish_media_search_status as DishCategoryGroupVoteDishMediaSearchStatus,
+      dishMediaSearchStatus:
+        candidate.dish_media_search_status as DishCategoryGroupVoteDishMediaSearchStatus,
     };
   }
 

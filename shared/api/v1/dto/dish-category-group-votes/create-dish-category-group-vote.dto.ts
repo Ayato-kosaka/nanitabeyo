@@ -63,6 +63,11 @@ export class CreateDishCategoryGroupVoteCandidateDto {
 	@IsNotEmpty()
 	displayName!: string;
 
+	/** 投票作成時点で固定する候補サブタイトル */
+	@IsString()
+	@IsNotEmpty()
+	tagline!: string;
+
 	/** 投票作成時点で固定する画像URL */
 	@IsString()
 	@IsNotEmpty()

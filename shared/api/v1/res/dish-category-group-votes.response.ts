@@ -9,10 +9,7 @@ export type DishCategoryGroupVoteReaction = "like" | "dislike";
  * Prisma は PostgreSQL scalar list の NULL を型表現できないため、
  * dishMediaIds の null ではなく明示的な status で未検索/0件/候補ありを区別する。
  */
-export type DishCategoryGroupVoteDishMediaSearchStatus =
-	| "not_searched"
-	| "found"
-	| "empty";
+export type DishCategoryGroupVoteDishMediaSearchStatus = "not_searched" | "found" | "empty";
 
 /**
  * 店舗提案用 dish_media 検索条件のスナップショット。
@@ -58,6 +55,7 @@ export type DishCategoryGroupVoteCandidate = {
 	id: string;
 	dishCategoryId: string;
 	displayName: string;
+	tagline: string;
 	imageUrl: string;
 	dishMediaIds: string[];
 	dishMediaSearchStatus: DishCategoryGroupVoteDishMediaSearchStatus;
@@ -74,12 +72,14 @@ export type DishCategoryGroupVoteCandidate = {
 };
 
 /**
- * 結果画面下部に表示する参加者コメント。
+ * GET detail で返す参加者。
+ *
+ * コメント一覧も参加者から派生させ、参加者名列挙とコメント表示の真実を一本化する。
  */
-export type DishCategoryGroupVoteComment = {
-	participantId: string;
+export type DishCategoryGroupVoteParticipant = {
+	id: string;
 	displayName: string;
-	comment: string;
+	comment: string | null;
 	createdAt: string;
 };
 
@@ -99,7 +99,7 @@ export type DishCategoryGroupVoteDetailResponse = {
 		updatedAt: string;
 	};
 	candidates: DishCategoryGroupVoteCandidate[];
-	comments: DishCategoryGroupVoteComment[];
+	participants: DishCategoryGroupVoteParticipant[];
 };
 
 /**
