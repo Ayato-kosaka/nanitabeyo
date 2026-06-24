@@ -11,6 +11,7 @@ import {
   CreateDishCategoryGroupVoteDto,
   SubmitDishCategoryGroupVoteDto,
 } from '@shared/v1/dto';
+import { DishCategoryGroupVoteSearchContext } from '@shared/v1/res';
 
 
 // TODO: 実装時は  type の定義は無駄に行わないこと。shared/converter を使うこと。
@@ -20,6 +21,7 @@ export type DishCategoryGroupVoteSessionEntity = {
   id: string;
   hostUserId: string;
   shareToken: string;
+  searchContext: DishCategoryGroupVoteSearchContext;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -63,6 +65,7 @@ export type DishCategoryGroupVoteDetailEntity = {
 export class DishCategoryGroupVotesRepository {
   /**
    * セッションと候補を同一トランザクションで作成する。
+   * searchContext は、共有リンク参加者が後から店舗提案へ進むために session に固定する。
    * shareToken は推測困難な値を生成し、displayOrder は candidates の配列順で採番する。
    */
   async createSessionWithCandidates(

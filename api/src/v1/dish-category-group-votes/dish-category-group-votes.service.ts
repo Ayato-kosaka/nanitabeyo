@@ -47,11 +47,14 @@ export class DishCategoryGroupVotesService {
     this.logger.debug('DishCategoryGroupVotes.create', 'start', {
       hostUserId,
       candidateCount: dto.candidates.length,
+      radius: dto.searchContext.radius,
+      localLanguageCode: dto.searchContext.localLanguageCode,
     });
 
     // session と candidates は共有URL公開後に分離して見えてはいけない。
     // shareToken だけ発行され候補が未作成、または候補だけ残る状態を避けるため、
-    // 作成系は1トランザクションに閉じる。
+    // 作成系は1トランザクションに閉じる。searchContext も session と同時に固定し、
+    // 共有リンクを直接開いたゲストが店舗提案へ進めない状態を作らない。
     const result = await this.prisma.withTransaction(
       async (tx: Prisma.TransactionClient) => {
         return this.repo.createSessionWithCandidates(tx, dto, hostUserId);

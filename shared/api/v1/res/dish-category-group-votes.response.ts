@@ -4,6 +4,22 @@
 export type DishCategoryGroupVoteReaction = "like" | "dislike";
 
 /**
+ * 店舗提案用 dish_media 検索条件のスナップショット。
+ *
+ * 共有リンクを直接開いたゲストでも「店を見る」を実行できるよう、
+ * session detail で返す。
+ */
+export type DishCategoryGroupVoteSearchContext = {
+	location: {
+		latitude: number;
+		longitude: number;
+	};
+	radius: number;
+	priceLevels: string[];
+	localLanguageCode: string;
+};
+
+/**
  * POST /v1/dish-category-group-votes のレスポンス型。
  */
 export type CreateDishCategoryGroupVoteResponse = {
@@ -63,6 +79,7 @@ export type DishCategoryGroupVoteDetailResponse = {
 		id: string;
 		shareToken: string;
 		hostUserId: string;
+		searchContext: DishCategoryGroupVoteSearchContext;
 		isHost: boolean;
 		hasVoted: boolean;
 		participantCount: number;

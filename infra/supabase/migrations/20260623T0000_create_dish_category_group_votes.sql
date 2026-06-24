@@ -8,14 +8,15 @@
 -- 【背景】
 -- 「なに食べよ」の候補料理を友人と共有し、各参加者が一発勝負で
 -- like / dislike を入力できるようにする。
--- 候補の表示名・画像・店舗提案用 dish_media_ids は、投票開始時点の
--- スナップショットとして固定する。
+-- 候補の表示名・画像と、店舗提案用 dish_media 検索条件は、投票開始時点の
+-- スナップショットとして固定する。dish_media_ids は初回「店を見る」時に固定する。
 --
 -- 【実装方針】
 -- - 汎用投票テーブルにはせず、dish_category group vote 専用にする
 -- - host_user_id / participant user_id は Supabase Auth の user id を保存する
 --   （匿名ユーザーもあり、public.users 行が必ず存在する前提ではないため FK は張らない）
 -- - 共有URLには share_token を使い、DB主キー id は公開URLに載せない
+-- - search_context は共有リンクを直接開いたゲストでも同じ条件で店舗提案へ進めるよう保持する
 -- - 候補削除は投票後も可能にするため、deleted_at による論理削除にする
 -- - votes は insert-only。投票変更・削除はしない
 -- - Realtime は participants INSERT を session_id filter 付きで購読し、
@@ -33,6 +34,7 @@ CREATE TABLE IF NOT EXISTS dish_category_group_vote_sessions (
   id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   host_user_id  uuid NOT NULL,
   share_token   text NOT NULL UNIQUE,
+  search_context jsonb NOT NULL DEFAULT '{}'::jsonb,
   created_at    timestamptz NOT NULL DEFAULT now(),
   updated_at    timestamptz NOT NULL DEFAULT now()
 );
@@ -123,6 +125,9 @@ COMMENT ON COLUMN dish_category_group_vote_sessions.host_user_id IS
 COMMENT ON COLUMN dish_category_group_vote_sessions.share_token IS
   '共有URLに載せる推測困難な公開トークン。';
 
+COMMENT ON COLUMN dish_category_group_vote_sessions.search_context IS
+  '共有リンク参加者が店舗提案用 dish_media を検索できるよう、投票作成時点の位置・半径・価格帯・言語を保持する。';
+
 COMMENT ON COLUMN dish_category_group_vote_sessions.updated_at IS
   '投票追加・候補削除など、セッション配下の変化を示す更新日時。';
 
@@ -139,7 +144,7 @@ COMMENT ON COLUMN dish_category_group_vote_candidates.image_url IS
   '投票作成時点で固定された候補画像URL。';
 
 COMMENT ON COLUMN dish_category_group_vote_candidates.dish_media_ids IS
-  '店舗提案画面に遷移するための dish_media.id 配列。候補作成時点で最大5件を固定する。';
+  '店舗提案画面に遷移するための dish_media.id 配列。初回「店を見る」時に最大5件を固定する。';
 
 COMMENT ON COLUMN dish_category_group_vote_candidates.display_order IS
   '結果画面・投票画面で使う固定表示順。ランキングで並び替えない。';

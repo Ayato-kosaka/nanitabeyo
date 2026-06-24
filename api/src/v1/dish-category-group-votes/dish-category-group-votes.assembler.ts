@@ -82,6 +82,10 @@ export class DishCategoryGroupVotesAssembler {
         id: entity.session.id,
         shareToken: entity.session.shareToken,
         hostUserId: entity.session.hostUserId,
+        // searchContext は session 単位の店舗提案条件。
+        // 共有リンクから入った参加者は検索画面の route params を持たないため、
+        // detail レスポンスでこの値を受け取り、候補の dishCategoryId と組み合わせて検索する。
+        searchContext: entity.session.searchContext,
         isHost: entity.session.hostUserId === viewerUserId,
         hasVoted,
         participantCount: entity.participants.length,
