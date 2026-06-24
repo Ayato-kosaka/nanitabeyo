@@ -95,15 +95,12 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 
 			if (mediaIdsByKey[entriesKey] === undefined && !isLoadingByKey[entriesKey]) {
 				const fetchIds = async () => {
-					const response = await callBackend<QueryDishMediaByIdsDto, QueryDishMediaByIdsResponse>(
-						"v1/dish-media",
-						{
-							method: "GET",
-							requestPayload: {
-								ids: dishMediaIds,
-							},
+					const response = await callBackend<QueryDishMediaByIdsDto, QueryDishMediaByIdsResponse>("v1/dish-media", {
+						method: "GET",
+						requestPayload: {
+							ids: dishMediaIds,
 						},
-					);
+					});
 					upsertDishMediaEntries(response.items);
 					return response.items.map((item) => String(item.dish_media.id));
 				};
@@ -116,7 +113,7 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 				params: {
 					locale,
 					entriesKey,
-					location: JSON.stringify(detail.session.searchContext.location),
+					location: detail ? JSON.stringify(detail.session.searchContext.location) : undefined,
 					category: candidate.displayName,
 				},
 			});
@@ -201,7 +198,7 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 									error_level: "log",
 									payload: { shareToken },
 								});
-								router.push({
+								router.replace({
 									pathname: `/[locale]/(tabs)/search/dish-category-group-votes/[shareToken]/vote`,
 									params: {
 										locale,
