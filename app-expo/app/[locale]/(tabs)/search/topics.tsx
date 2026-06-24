@@ -24,6 +24,8 @@ import { useLogger } from "@/hooks/useLogger";
 import { makeDishMediaEntriesKey } from "@/features/dishMedia/utils/dishMediaEntriesKey";
 import { WIKIMEDIA_HEADERS } from "@/lib/wikimedia";
 import { SearchHeader } from "@/features/search/components/SearchHeader";
+import { useCreateDishCategoryGroupVote } from "@/features/dishCategoryGroupVotes/hooks/useCreateDishCategoryGroupVote";
+import type { CreateDishCategoryGroupVoteResponse } from "@shared/api/v1/res";
 
 export default function TopicsScreen() {
 	const { locale } = useLocale();
@@ -42,6 +44,7 @@ export default function TopicsScreen() {
 	const [isScrolling, setIsScrolling] = useState(false);
 	const [currentIndex, setCurrentIndex] = useState(0);
 	const carouselRef = useRef<any>(null);
+	const createdGroupVoteRef = useRef<CreateDishCategoryGroupVoteResponse | null>(null);
 	const { selectionChanged } = useHaptics();
 
 	const { topics, isLoading, error, searchTopics, refillTopics, hideTopic, createDishItemsPromise } = useTopicSearch();
@@ -52,6 +55,7 @@ export default function TopicsScreen() {
 		handleBlockCard,
 		confirmBlockCard,
 	} = useBlockTopic(topics, hideTopic, showSnackbar);
+	const { createGroupVote, isCreating } = useCreateDishCategoryGroupVote();
 
 	useEffect(() => {
 		if (params) {
@@ -131,6 +135,48 @@ export default function TopicsScreen() {
 	};
 
 	const visibleTopics = useMemo(() => topics.filter((topic) => !topic.isHidden), [topics]);
+
+	useEffect(() => {
+		createdGroupVoteRef.current = null;
+	}, [searchParams]);
+	const handleOpenGroupVote = useCallback(async () => {
+		if (!params) {
+			showSnackbar(i18n.t("Topics.errors.invalidSearchParams"));
+			return;
+		}
+
+		const cachedResponse = createdGroupVoteRef.current;
+		if (cachedResponse) {
+			logFrontendEvent({
+				event_name: "dish_category_group_vote_create_reused",
+				error_level: "log",
+				payload: { shareToken: cachedResponse.shareToken },
+			});
+			router.push({
+				pathname: "/[locale]/(tabs)/dish-category-group-votes/[shareToken]",
+				params: {
+					locale,
+					shareToken: cachedResponse.shareToken,
+				},
+			});
+			return;
+		}
+
+		try {
+			const response = await createGroupVote({ searchParams: params, topics: visibleTopics });
+			createdGroupVoteRef.current = response;
+			router.push({
+				pathname: "/[locale]/(tabs)/dish-category-group-votes/[shareToken]",
+				params: {
+					locale,
+					shareToken: response.shareToken,
+				},
+			});
+		} catch {
+			showSnackbar(i18n.t("Topics.errors.fetchFailed"));
+		}
+	}, [createGroupVote, locale, logFrontendEvent, params, showSnackbar, visibleTopics]);
+
 	const { getImageState, retryImage } = useTopicImageResources({
 		topics: visibleTopics,
 		sessionKey: searchParams ?? "",
@@ -249,11 +295,24 @@ export default function TopicsScreen() {
 				title={i18n.t("Topics.headerTitle")}
 				onPressBack={handleBack}
 				rightContent={
-					shouldShowReload ? (
-						<TouchableOpacity onPress={handleReloadRecommendations} accessibilityRole="button">
-							<RefreshCw size={20} color="#1A1A1A" />
+					<View style={styles.headerActions}>
+						<TouchableOpacity
+							onPress={handleOpenGroupVote}
+							disabled={isCreating}
+							accessibilityRole="button"
+							accessibilityLabel={i18n.t("DishCategoryGroupVotes.resultTitle")}
+							style={[styles.headerActionButton, isCreating && styles.headerActionButtonDisabled]}>
+							<Users size={20} color="#1A1A1A" />
 						</TouchableOpacity>
-					) : undefined
+						{shouldShowReload && (
+							<TouchableOpacity
+								onPress={handleReloadRecommendations}
+								accessibilityRole="button"
+								style={styles.headerActionButton}>
+								<RefreshCw size={20} color="#1A1A1A" />
+							</TouchableOpacity>
+						)}
+					</View>
 				}
 			/>
 
@@ -408,6 +467,18 @@ const styles = StyleSheet.create({
 		textAlign: "center",
 		paddingHorizontal: 20,
 		lineHeight: 20,
+	},
+	headerActions: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 8,
+		minHeight: 32,
+	},
+	headerActionButton: {
+		padding: 4,
+	},
+	headerActionButtonDisabled: {
+		opacity: 0.35,
 	},
 	retryButton: {
 		backgroundColor: "#F05537",
