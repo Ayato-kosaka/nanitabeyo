@@ -4,7 +4,7 @@
  *
  * 操作経路を分けず、最終的には同じ onVote に集約することで状態遷移を単純化する。
  */
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { Animated, PanResponder, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { ThumbsDown, ThumbsUp } from "lucide-react-native";
 import type { DishCategoryGroupVoteCandidate, DishCategoryGroupVoteReaction } from "@shared/api/v1/res";
@@ -19,7 +19,12 @@ type Props = {
 
 export function DishCategoryGroupVoteVoteCard({ candidate, onVote }: Props) {
 	const translateX = useRef(new Animated.Value(0)).current;
+	const onVoteRef = useRef(onVote);
 	const cardHeight = Math.max(360, Math.min(CARD_MAX_HEIGHT, SCREEN_HEIGHT - 280));
+
+	useEffect(() => {
+		onVoteRef.current = onVote;
+	}, [onVote]);
 
 	const panResponder = useRef(
 		PanResponder.create({
@@ -28,12 +33,12 @@ export function DishCategoryGroupVoteVoteCard({ candidate, onVote }: Props) {
 			onPanResponderMove: Animated.event([null, { dx: translateX }], { useNativeDriver: false }),
 			onPanResponderRelease: (_, gesture) => {
 				if (gesture.dx > 90) {
-					onVote("like");
+					onVoteRef.current("like");
 					translateX.setValue(0);
 					return;
 				}
 				if (gesture.dx < -90) {
-					onVote("dislike");
+					onVoteRef.current("dislike");
 					translateX.setValue(0);
 					return;
 				}

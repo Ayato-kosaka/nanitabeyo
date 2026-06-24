@@ -7,8 +7,11 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { useAuth } from "@/contexts/AuthProvider";
 import i18n from "@/lib/i18n";
 import { PrimaryButton } from "@/components/PrimaryButton";
+import { useEnsureOwnProfileLoaded } from "@/features/profile/hooks/useEnsureOwnProfileLoaded";
+import { useProfileStore } from "@/features/profile/stores/useProfileStore";
 import { buildDishCategoryGroupVoteNameSuggestions } from "../constants/animalNameSuggestions";
 
 type Props = {
@@ -18,20 +21,26 @@ type Props = {
 };
 
 export function DishCategoryGroupVoteCompletionModal({ usedDisplayNames, isSubmitting, onSubmit }: Props) {
+	const { user } = useAuth();
+	useEnsureOwnProfileLoaded();
+	const profile = useProfileStore((state) => state.profile);
 	const usedDisplayNamesKey = useMemo(() => usedDisplayNames.join("\u0000"), [usedDisplayNames]);
 	const [suggestions, setSuggestions] = useState<string[]>([]);
 	const [isManualName, setIsManualName] = useState(false);
 	const [displayName, setDisplayName] = useState("");
 	const [comment, setComment] = useState("");
+	const loggedInDisplayName =
+		user?.is_anonymous === false ? Array.from(profile?.display_name ?? "").slice(0, 8).join("") : "";
 
 	useEffect(() => {
 		const nextUsedDisplayNames = usedDisplayNamesKey ? usedDisplayNamesKey.split("\u0000") : [];
 		const nextSuggestions = buildDishCategoryGroupVoteNameSuggestions(nextUsedDisplayNames);
 		setSuggestions(nextSuggestions);
-		setIsManualName(false);
-		setDisplayName(nextSuggestions[0] ?? "");
+		const defaultDisplayName = loggedInDisplayName || nextSuggestions[0] || "";
+		setIsManualName(Boolean(loggedInDisplayName));
+		setDisplayName(defaultDisplayName);
 		setComment("");
-	}, [usedDisplayNamesKey]);
+	}, [loggedInDisplayName, usedDisplayNamesKey]);
 
 	useEffect(() => {
 		if (displayName.trim().length === 0) {
