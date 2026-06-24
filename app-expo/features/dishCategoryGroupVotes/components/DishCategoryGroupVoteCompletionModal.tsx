@@ -1,56 +1,42 @@
 /**
  * #856 【責務】
- * 投票完了時の名前・コメント入力を扱う BlurModal。
+ * 投票完了時の名前・コメント入力 UI をまとめる。
  *
- * このモーダルは閉じられない前提で、入力完了まで投票完了フローを止める。
- * 絵文字候補は匿名性の補助であり、API に保存されるのは displayName/comment のみ。
+ * BlurModal の開閉は親画面で管理し、このコンポーネントは内容表示だけに絞る。
+ * これにより、最後の候補への投票直後に確実にモーダルを表示できる。
  */
 import { useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import i18n from "@/lib/i18n";
 import { buildDishCategoryGroupVoteNameSuggestions } from "../constants/animalNameSuggestions";
 
 type Props = {
-	visible: boolean;
 	usedDisplayNames: string[];
 	isSubmitting: boolean;
 	onSubmit: (values: { displayName: string; comment?: string }) => void;
 };
 
-export function DishCategoryGroupVoteCompletionModal({
-	visible,
-	usedDisplayNames,
-	isSubmitting,
-	onSubmit,
-}: Props) {
-	const { BlurModal, open, close } = useBlurModal({
-		closeOnBackdropPress: false,
-		backHandlerEnabled: false,
-	});
+export function DishCategoryGroupVoteCompletionModal({ usedDisplayNames, isSubmitting, onSubmit }: Props) {
 	const usedDisplayNamesKey = useMemo(() => usedDisplayNames.join("\u0000"), [usedDisplayNames]);
 	const [suggestions, setSuggestions] = useState<string[]>([]);
 	const [isManualName, setIsManualName] = useState(false);
-	const [displayName, setDisplayName] = useState(suggestions[0] ?? "");
+	const [displayName, setDisplayName] = useState("");
 	const [comment, setComment] = useState("");
 
 	useEffect(() => {
-		if (visible) {
-			open();
-		} else {
-			close();
-		}
-	}, [close, open, visible]);
-
-	useEffect(() => {
-		if (!visible) return;
 		const nextUsedDisplayNames = usedDisplayNamesKey ? usedDisplayNamesKey.split("\u0000") : [];
 		const nextSuggestions = buildDishCategoryGroupVoteNameSuggestions(nextUsedDisplayNames);
 		setSuggestions(nextSuggestions);
 		setIsManualName(false);
 		setDisplayName(nextSuggestions[0] ?? "");
 		setComment("");
-	}, [usedDisplayNamesKey, visible]);
+	}, [usedDisplayNamesKey]);
+
+	useEffect(() => {
+		if (displayName.trim().length === 0) {
+			setIsManualName(false);
+		}
+	}, [displayName]);
 
 	const handleNameInputFocus = () => {
 		if (!isManualName) {
@@ -62,68 +48,62 @@ export function DishCategoryGroupVoteCompletionModal({
 	const canSubmit = displayName.trim().length > 0 && !isSubmitting;
 
 	return (
-		<BlurModal showCloseButton={false} contentContainerStyle={styles.backdrop} paddingVertical={0}>
-			<View style={styles.modal}>
-					<Text style={styles.title}>{i18n.t("DishCategoryGroupVotes.completionTitle")}</Text>
-					<Text style={styles.description}>{i18n.t("DishCategoryGroupVotes.completionDescription")}</Text>
-					{suggestions.length > 0 && !isManualName ? (
-						<View style={styles.suggestions}>
-							<Text style={styles.suggestionLabel}>{i18n.t("DishCategoryGroupVotes.nameSuggestionLabel")}</Text>
-							<View style={styles.suggestionRow}>
-								{suggestions.map((suggestion) => (
-									<TouchableOpacity
-										key={suggestion}
-										style={[styles.suggestionButton, displayName === suggestion && styles.suggestionButtonActive]}
-										onPress={() => setDisplayName(suggestion)}
-										activeOpacity={0.85}>
-										<Text style={styles.suggestionText}>{suggestion}</Text>
-									</TouchableOpacity>
-								))}
-							</View>
-						</View>
-					) : null}
-					<TextInput
-						style={styles.input}
-						value={displayName}
-						onChangeText={(text) => {
-							setIsManualName(true);
-							setDisplayName(text);
-						}}
-						onFocus={handleNameInputFocus}
-						placeholder={i18n.t("DishCategoryGroupVotes.displayNamePlaceholder")}
-						maxLength={8}
-					/>
-					<TextInput
-						style={[styles.input, styles.commentInput]}
-						value={comment}
-						onChangeText={setComment}
-						placeholder={i18n.t("DishCategoryGroupVotes.commentPlaceholder")}
-						multiline
-					/>
-					<View style={styles.actionRow}>
-						<TouchableOpacity
-							style={[styles.submitButton, !canSubmit && styles.submitButtonDisabled]}
-							disabled={!canSubmit}
-							onPress={() => onSubmit({ displayName: displayName.trim(), comment: comment.trim() || undefined })}
-							activeOpacity={0.85}>
-							<Text style={styles.submitButtonText}>
-								{isSubmitting ? i18n.t("DishCategoryGroupVotes.submitting") : i18n.t("DishCategoryGroupVotes.submitVote")}
-							</Text>
-						</TouchableOpacity>
+		<View style={styles.modal}>
+			<Text style={styles.title}>{i18n.t("DishCategoryGroupVotes.completionTitle")}</Text>
+			<Text style={styles.description}>{i18n.t("DishCategoryGroupVotes.completionDescription")}</Text>
+			<TextInput
+				style={styles.input}
+				value={displayName}
+				onChangeText={(text) => {
+					setDisplayName(text);
+					setIsManualName(text.trim().length > 0);
+				}}
+				onFocus={handleNameInputFocus}
+				placeholder={i18n.t("DishCategoryGroupVotes.displayNamePlaceholder")}
+				maxLength={8}
+			/>
+			{suggestions.length > 0 && (!isManualName || displayName.trim().length === 0) ? (
+				<View style={styles.suggestions}>
+					<Text style={styles.suggestionLabel}>{i18n.t("DishCategoryGroupVotes.nameSuggestionLabel")}</Text>
+					<View style={styles.suggestionRow}>
+						{suggestions.map((suggestion) => (
+							<TouchableOpacity
+								key={suggestion}
+								style={[styles.suggestionButton, displayName === suggestion && styles.suggestionButtonActive]}
+								onPress={() => {
+									setIsManualName(false);
+									setDisplayName(suggestion);
+								}}
+								activeOpacity={0.85}>
+								<Text style={styles.suggestionText}>{suggestion}</Text>
+							</TouchableOpacity>
+						))}
 					</View>
+				</View>
+			) : null}
+			<TextInput
+				style={[styles.input, styles.commentInput]}
+				value={comment}
+				onChangeText={setComment}
+				placeholder={i18n.t("DishCategoryGroupVotes.commentPlaceholder")}
+				multiline
+			/>
+			<View style={styles.actionRow}>
+				<TouchableOpacity
+					style={[styles.submitButton, !canSubmit && styles.submitButtonDisabled]}
+					disabled={!canSubmit}
+					onPress={() => onSubmit({ displayName: displayName.trim(), comment: comment.trim() || undefined })}
+					activeOpacity={0.85}>
+					<Text style={styles.submitButtonText}>
+						{isSubmitting ? i18n.t("DishCategoryGroupVotes.submitting") : i18n.t("DishCategoryGroupVotes.submitVote")}
+					</Text>
+				</TouchableOpacity>
 			</View>
-		</BlurModal>
+		</View>
 	);
 }
 
 const styles = StyleSheet.create({
-	backdrop: {
-		flex: 1,
-		alignItems: "center",
-		justifyContent: "center",
-		backgroundColor: "rgba(17, 24, 39, 0.42)",
-		padding: 20,
-	},
 	modal: {
 		width: "100%",
 		maxWidth: 420,
@@ -220,7 +200,7 @@ const styles = StyleSheet.create({
 	},
 	submitButtonText: {
 		fontSize: 15,
-		fontWeight: "800",
+		fontWeight: "700",
 		color: "#FFFFFF",
 	},
 });

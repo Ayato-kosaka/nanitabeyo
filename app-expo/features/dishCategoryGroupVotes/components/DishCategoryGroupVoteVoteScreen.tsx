@@ -12,6 +12,8 @@ import type { DishCategoryGroupVoteReaction } from "@shared/api/v1/res";
 import i18n from "@/lib/i18n";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useLogger } from "@/hooks/useLogger";
+import { useLocale } from "@/hooks/useLocale";
+import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { useDishCategoryGroupVoteActions } from "../hooks/useDishCategoryGroupVoteActions";
 import { useDishCategoryGroupVoteDetail } from "../hooks/useDishCategoryGroupVoteDetail";
 import type { DishCategoryGroupVoteDraftVote } from "../types";
@@ -24,15 +26,23 @@ type Props = {
 
 export function DishCategoryGroupVoteVoteScreen({ shareToken }: Props) {
 	const { showSnackbar } = useSnackbar();
+	const { locale } = useLocale();
 	const { logFrontendEvent } = useLogger();
 	const { detail, isLoading, error, refresh } = useDishCategoryGroupVoteDetail(shareToken);
 	const { submitVote } = useDishCategoryGroupVoteActions({
 		sessionId: detail?.session.id,
 		refresh,
 	});
+	const {
+		BlurModal: CompletionBlurModal,
+		open: openCompletionModal,
+		close: closeCompletionModal,
+	} = useBlurModal({
+		closeOnBackdropPress: false,
+		backHandlerEnabled: false,
+	});
 	const [index, setIndex] = useState(0);
 	const [votes, setVotes] = useState<DishCategoryGroupVoteDraftVote[]>([]);
-	const [isCompletionOpen, setIsCompletionOpen] = useState(false);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 
 	const voteCandidates = useMemo(() => {
@@ -43,9 +53,15 @@ export function DishCategoryGroupVoteVoteScreen({ shareToken }: Props) {
 
 	useEffect(() => {
 		if (detail?.session.hasVoted) {
-			router.back();
+			router.replace({
+				pathname: "/[locale]/(tabs)/dish-category-group-votes/[shareToken]",
+				params: {
+					locale,
+					shareToken,
+				},
+			});
 		}
-	}, [detail?.session.hasVoted]);
+	}, [detail?.session.hasVoted, locale, shareToken]);
 
 	const usedDisplayNames = useMemo(() => {
 		const names = new Set<string>();
@@ -69,7 +85,7 @@ export function DishCategoryGroupVoteVoteScreen({ shareToken }: Props) {
 		setVotes(nextVotes);
 
 		if (index >= voteCandidates.length - 1) {
-			setIsCompletionOpen(true);
+			openCompletionModal();
 			return;
 		}
 		setIndex((current) => current + 1);
@@ -90,8 +106,14 @@ export function DishCategoryGroupVoteVoteScreen({ shareToken }: Props) {
 				payload: { shareToken, voteCount: dto.votes.length },
 			});
 			await submitVote(dto);
-			setIsCompletionOpen(false);
-			router.back();
+			closeCompletionModal();
+			router.replace({
+				pathname: "/[locale]/(tabs)/dish-category-group-votes/[shareToken]",
+				params: {
+					locale,
+					shareToken,
+				},
+			});
 			logFrontendEvent({
 				event_name: "dish_category_group_vote_submit_succeeded",
 				error_level: "log",
@@ -147,12 +169,16 @@ export function DishCategoryGroupVoteVoteScreen({ shareToken }: Props) {
 					<Text style={styles.errorText}>{i18n.t("DishCategoryGroupVotes.noVoteCandidates")}</Text>
 				</View>
 			)}
-			<DishCategoryGroupVoteCompletionModal
-				visible={isCompletionOpen}
-				usedDisplayNames={usedDisplayNames}
-				isSubmitting={isSubmitting}
-				onSubmit={handleSubmit}
-			/>
+			<CompletionBlurModal
+				showCloseButton={false}
+				contentContainerStyle={styles.completionBackdrop}
+				paddingVertical={0}>
+				<DishCategoryGroupVoteCompletionModal
+					usedDisplayNames={usedDisplayNames}
+					isSubmitting={isSubmitting}
+					onSubmit={handleSubmit}
+				/>
+			</CompletionBlurModal>
 		</SafeAreaView>
 	);
 }
@@ -179,6 +205,12 @@ const styles = StyleSheet.create({
 		gap: 12,
 		padding: 24,
 		backgroundColor: "#F9FAFB",
+	},
+	completionBackdrop: {
+		flex: 1,
+		padding: 20,
+		justifyContent: "center",
+		alignItems: "center",
 	},
 	errorText: {
 		fontSize: 15,
