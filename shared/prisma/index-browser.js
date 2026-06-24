@@ -181,6 +181,7 @@ exports.Prisma.Dish_category_group_vote_candidatesScalarFieldEnum = {
   session_id: 'session_id',
   dish_category_id: 'dish_category_id',
   display_name: 'display_name',
+  tagline: 'tagline',
   image_url: 'image_url',
   dish_media_ids: 'dish_media_ids',
   dish_media_search_status: 'dish_media_search_status',

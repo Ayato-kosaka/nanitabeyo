@@ -223,6 +223,7 @@ export type Database = {
           id: string
           image_url: string
           session_id: string
+          tagline: string
         }
         Insert: {
           created_at?: string
@@ -235,6 +236,7 @@ export type Database = {
           id?: string
           image_url: string
           session_id: string
+          tagline: string
         }
         Update: {
           created_at?: string
@@ -247,6 +249,7 @@ export type Database = {
           id?: string
           image_url?: string
           session_id?: string
+          tagline?: string
         }
         Relationships: [
           {

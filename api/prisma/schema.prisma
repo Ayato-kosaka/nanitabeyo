@@ -117,6 +117,7 @@ model dish_category_group_vote_candidates {
   session_id                               String                                     @db.Uuid
   dish_category_id                         String
   display_name                             String
+  tagline                                  String
   image_url                                String
   dish_media_ids                           String[]                                   @default([]) @db.Uuid
   dish_media_search_status                 String                                     @default("not_searched")

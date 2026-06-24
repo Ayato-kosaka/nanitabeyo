@@ -11142,6 +11142,7 @@ export namespace Prisma {
     session_id: string | null
     dish_category_id: string | null
     display_name: string | null
+    tagline: string | null
     image_url: string | null
     dish_media_search_status: string | null
     display_order: number | null
@@ -11154,6 +11155,7 @@ export namespace Prisma {
     session_id: string | null
     dish_category_id: string | null
     display_name: string | null
+    tagline: string | null
     image_url: string | null
     dish_media_search_status: string | null
     display_order: number | null
@@ -11166,6 +11168,7 @@ export namespace Prisma {
     session_id: number
     dish_category_id: number
     display_name: number
+    tagline: number
     image_url: number
     dish_media_ids: number
     dish_media_search_status: number
@@ -11189,6 +11192,7 @@ export namespace Prisma {
     session_id?: true
     dish_category_id?: true
     display_name?: true
+    tagline?: true
     image_url?: true
     dish_media_search_status?: true
     display_order?: true
@@ -11201,6 +11205,7 @@ export namespace Prisma {
     session_id?: true
     dish_category_id?: true
     display_name?: true
+    tagline?: true
     image_url?: true
     dish_media_search_status?: true
     display_order?: true
@@ -11213,6 +11218,7 @@ export namespace Prisma {
     session_id?: true
     dish_category_id?: true
     display_name?: true
+    tagline?: true
     image_url?: true
     dish_media_ids?: true
     dish_media_search_status?: true
@@ -11313,6 +11319,7 @@ export namespace Prisma {
     session_id: string
     dish_category_id: string
     display_name: string
+    tagline: string
     image_url: string
     dish_media_ids: string[]
     dish_media_search_status: string
@@ -11345,6 +11352,7 @@ export namespace Prisma {
     session_id?: boolean
     dish_category_id?: boolean
     display_name?: boolean
+    tagline?: boolean
     image_url?: boolean
     dish_media_ids?: boolean
     dish_media_search_status?: boolean
@@ -11362,6 +11370,7 @@ export namespace Prisma {
     session_id?: boolean
     dish_category_id?: boolean
     display_name?: boolean
+    tagline?: boolean
     image_url?: boolean
     dish_media_ids?: boolean
     dish_media_search_status?: boolean
@@ -11377,6 +11386,7 @@ export namespace Prisma {
     session_id?: boolean
     dish_category_id?: boolean
     display_name?: boolean
+    tagline?: boolean
     image_url?: boolean
     dish_media_ids?: boolean
     dish_media_search_status?: boolean
@@ -11392,6 +11402,7 @@ export namespace Prisma {
     session_id?: boolean
     dish_category_id?: boolean
     display_name?: boolean
+    tagline?: boolean
     image_url?: boolean
     dish_media_ids?: boolean
     dish_media_search_status?: boolean
@@ -11400,7 +11411,7 @@ export namespace Prisma {
     created_at?: boolean
   }
 
-  export type dish_category_group_vote_candidatesOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "session_id" | "dish_category_id" | "display_name" | "image_url" | "dish_media_ids" | "dish_media_search_status" | "display_order" | "deleted_at" | "created_at", ExtArgs["result"]["dish_category_group_vote_candidates"]>
+  export type dish_category_group_vote_candidatesOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "session_id" | "dish_category_id" | "display_name" | "tagline" | "image_url" | "dish_media_ids" | "dish_media_search_status" | "display_order" | "deleted_at" | "created_at", ExtArgs["result"]["dish_category_group_vote_candidates"]>
   export type dish_category_group_vote_candidatesInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     dish_category_group_vote_candidate_votes?: boolean | dish_category_group_vote_candidates$dish_category_group_vote_candidate_votesArgs<ExtArgs>
     dish_categories?: boolean | dish_categoriesDefaultArgs<ExtArgs>
@@ -11428,6 +11439,7 @@ export namespace Prisma {
       session_id: string
       dish_category_id: string
       display_name: string
+      tagline: string
       image_url: string
       dish_media_ids: string[]
       dish_media_search_status: string
@@ -11864,6 +11876,7 @@ export namespace Prisma {
     readonly session_id: FieldRef<"dish_category_group_vote_candidates", 'String'>
     readonly dish_category_id: FieldRef<"dish_category_group_vote_candidates", 'String'>
     readonly display_name: FieldRef<"dish_category_group_vote_candidates", 'String'>
+    readonly tagline: FieldRef<"dish_category_group_vote_candidates", 'String'>
     readonly image_url: FieldRef<"dish_category_group_vote_candidates", 'String'>
     readonly dish_media_ids: FieldRef<"dish_category_group_vote_candidates", 'String[]'>
     readonly dish_media_search_status: FieldRef<"dish_category_group_vote_candidates", 'String'>
@@ -44726,6 +44739,7 @@ export namespace Prisma {
     session_id: 'session_id',
     dish_category_id: 'dish_category_id',
     display_name: 'display_name',
+    tagline: 'tagline',
     image_url: 'image_url',
     dish_media_ids: 'dish_media_ids',
     dish_media_search_status: 'dish_media_search_status',
@@ -45742,6 +45756,7 @@ export namespace Prisma {
     session_id?: UuidFilter<"dish_category_group_vote_candidates"> | string
     dish_category_id?: StringFilter<"dish_category_group_vote_candidates"> | string
     display_name?: StringFilter<"dish_category_group_vote_candidates"> | string
+    tagline?: StringFilter<"dish_category_group_vote_candidates"> | string
     image_url?: StringFilter<"dish_category_group_vote_candidates"> | string
     dish_media_ids?: StringNullableListFilter<"dish_category_group_vote_candidates">
     dish_media_search_status?: StringFilter<"dish_category_group_vote_candidates"> | string
@@ -45758,6 +45773,7 @@ export namespace Prisma {
     session_id?: SortOrder
     dish_category_id?: SortOrder
     display_name?: SortOrder
+    tagline?: SortOrder
     image_url?: SortOrder
     dish_media_ids?: SortOrder
     dish_media_search_status?: SortOrder
@@ -45779,6 +45795,7 @@ export namespace Prisma {
     session_id?: UuidFilter<"dish_category_group_vote_candidates"> | string
     dish_category_id?: StringFilter<"dish_category_group_vote_candidates"> | string
     display_name?: StringFilter<"dish_category_group_vote_candidates"> | string
+    tagline?: StringFilter<"dish_category_group_vote_candidates"> | string
     image_url?: StringFilter<"dish_category_group_vote_candidates"> | string
     dish_media_ids?: StringNullableListFilter<"dish_category_group_vote_candidates">
     dish_media_search_status?: StringFilter<"dish_category_group_vote_candidates"> | string
@@ -45795,6 +45812,7 @@ export namespace Prisma {
     session_id?: SortOrder
     dish_category_id?: SortOrder
     display_name?: SortOrder
+    tagline?: SortOrder
     image_url?: SortOrder
     dish_media_ids?: SortOrder
     dish_media_search_status?: SortOrder
@@ -45816,6 +45834,7 @@ export namespace Prisma {
     session_id?: UuidWithAggregatesFilter<"dish_category_group_vote_candidates"> | string
     dish_category_id?: StringWithAggregatesFilter<"dish_category_group_vote_candidates"> | string
     display_name?: StringWithAggregatesFilter<"dish_category_group_vote_candidates"> | string
+    tagline?: StringWithAggregatesFilter<"dish_category_group_vote_candidates"> | string
     image_url?: StringWithAggregatesFilter<"dish_category_group_vote_candidates"> | string
     dish_media_ids?: StringNullableListFilter<"dish_category_group_vote_candidates">
     dish_media_search_status?: StringWithAggregatesFilter<"dish_category_group_vote_candidates"> | string
@@ -48260,6 +48279,7 @@ export namespace Prisma {
   export type dish_category_group_vote_candidatesCreateInput = {
     id?: string
     display_name: string
+    tagline: string
     image_url: string
     dish_media_ids?: dish_category_group_vote_candidatesCreatedish_media_idsInput | string[]
     dish_media_search_status?: string
@@ -48276,6 +48296,7 @@ export namespace Prisma {
     session_id: string
     dish_category_id: string
     display_name: string
+    tagline: string
     image_url: string
     dish_media_ids?: dish_category_group_vote_candidatesCreatedish_media_idsInput | string[]
     dish_media_search_status?: string
@@ -48288,6 +48309,7 @@ export namespace Prisma {
   export type dish_category_group_vote_candidatesUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     display_name?: StringFieldUpdateOperationsInput | string
+    tagline?: StringFieldUpdateOperationsInput | string
     image_url?: StringFieldUpdateOperationsInput | string
     dish_media_ids?: dish_category_group_vote_candidatesUpdatedish_media_idsInput | string[]
     dish_media_search_status?: StringFieldUpdateOperationsInput | string
@@ -48304,6 +48326,7 @@ export namespace Prisma {
     session_id?: StringFieldUpdateOperationsInput | string
     dish_category_id?: StringFieldUpdateOperationsInput | string
     display_name?: StringFieldUpdateOperationsInput | string
+    tagline?: StringFieldUpdateOperationsInput | string
     image_url?: StringFieldUpdateOperationsInput | string
     dish_media_ids?: dish_category_group_vote_candidatesUpdatedish_media_idsInput | string[]
     dish_media_search_status?: StringFieldUpdateOperationsInput | string
@@ -48318,6 +48341,7 @@ export namespace Prisma {
     session_id: string
     dish_category_id: string
     display_name: string
+    tagline: string
     image_url: string
     dish_media_ids?: dish_category_group_vote_candidatesCreatedish_media_idsInput | string[]
     dish_media_search_status?: string
@@ -48329,6 +48353,7 @@ export namespace Prisma {
   export type dish_category_group_vote_candidatesUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
     display_name?: StringFieldUpdateOperationsInput | string
+    tagline?: StringFieldUpdateOperationsInput | string
     image_url?: StringFieldUpdateOperationsInput | string
     dish_media_ids?: dish_category_group_vote_candidatesUpdatedish_media_idsInput | string[]
     dish_media_search_status?: StringFieldUpdateOperationsInput | string
@@ -48342,6 +48367,7 @@ export namespace Prisma {
     session_id?: StringFieldUpdateOperationsInput | string
     dish_category_id?: StringFieldUpdateOperationsInput | string
     display_name?: StringFieldUpdateOperationsInput | string
+    tagline?: StringFieldUpdateOperationsInput | string
     image_url?: StringFieldUpdateOperationsInput | string
     dish_media_ids?: dish_category_group_vote_candidatesUpdatedish_media_idsInput | string[]
     dish_media_search_status?: StringFieldUpdateOperationsInput | string
@@ -51120,6 +51146,7 @@ export namespace Prisma {
     session_id?: SortOrder
     dish_category_id?: SortOrder
     display_name?: SortOrder
+    tagline?: SortOrder
     image_url?: SortOrder
     dish_media_ids?: SortOrder
     dish_media_search_status?: SortOrder
@@ -51137,6 +51164,7 @@ export namespace Prisma {
     session_id?: SortOrder
     dish_category_id?: SortOrder
     display_name?: SortOrder
+    tagline?: SortOrder
     image_url?: SortOrder
     dish_media_search_status?: SortOrder
     display_order?: SortOrder
@@ -51149,6 +51177,7 @@ export namespace Prisma {
     session_id?: SortOrder
     dish_category_id?: SortOrder
     display_name?: SortOrder
+    tagline?: SortOrder
     image_url?: SortOrder
     dish_media_search_status?: SortOrder
     display_order?: SortOrder
@@ -54803,6 +54832,7 @@ export namespace Prisma {
   export type dish_category_group_vote_candidatesCreateWithoutDish_categoriesInput = {
     id?: string
     display_name: string
+    tagline: string
     image_url: string
     dish_media_ids?: dish_category_group_vote_candidatesCreatedish_media_idsInput | string[]
     dish_media_search_status?: string
@@ -54817,6 +54847,7 @@ export namespace Prisma {
     id?: string
     session_id: string
     display_name: string
+    tagline: string
     image_url: string
     dish_media_ids?: dish_category_group_vote_candidatesCreatedish_media_idsInput | string[]
     dish_media_search_status?: string
@@ -54967,6 +54998,7 @@ export namespace Prisma {
     session_id?: UuidFilter<"dish_category_group_vote_candidates"> | string
     dish_category_id?: StringFilter<"dish_category_group_vote_candidates"> | string
     display_name?: StringFilter<"dish_category_group_vote_candidates"> | string
+    tagline?: StringFilter<"dish_category_group_vote_candidates"> | string
     image_url?: StringFilter<"dish_category_group_vote_candidates"> | string
     dish_media_ids?: StringNullableListFilter<"dish_category_group_vote_candidates">
     dish_media_search_status?: StringFilter<"dish_category_group_vote_candidates"> | string
@@ -55137,6 +55169,7 @@ export namespace Prisma {
   export type dish_category_group_vote_candidatesCreateWithoutDish_category_group_vote_candidate_votesInput = {
     id?: string
     display_name: string
+    tagline: string
     image_url: string
     dish_media_ids?: dish_category_group_vote_candidatesCreatedish_media_idsInput | string[]
     dish_media_search_status?: string
@@ -55152,6 +55185,7 @@ export namespace Prisma {
     session_id: string
     dish_category_id: string
     display_name: string
+    tagline: string
     image_url: string
     dish_media_ids?: dish_category_group_vote_candidatesCreatedish_media_idsInput | string[]
     dish_media_search_status?: string
@@ -55202,6 +55236,7 @@ export namespace Prisma {
   export type dish_category_group_vote_candidatesUpdateWithoutDish_category_group_vote_candidate_votesInput = {
     id?: StringFieldUpdateOperationsInput | string
     display_name?: StringFieldUpdateOperationsInput | string
+    tagline?: StringFieldUpdateOperationsInput | string
     image_url?: StringFieldUpdateOperationsInput | string
     dish_media_ids?: dish_category_group_vote_candidatesUpdatedish_media_idsInput | string[]
     dish_media_search_status?: StringFieldUpdateOperationsInput | string
@@ -55217,6 +55252,7 @@ export namespace Prisma {
     session_id?: StringFieldUpdateOperationsInput | string
     dish_category_id?: StringFieldUpdateOperationsInput | string
     display_name?: StringFieldUpdateOperationsInput | string
+    tagline?: StringFieldUpdateOperationsInput | string
     image_url?: StringFieldUpdateOperationsInput | string
     dish_media_ids?: dish_category_group_vote_candidatesUpdatedish_media_idsInput | string[]
     dish_media_search_status?: StringFieldUpdateOperationsInput | string
@@ -55531,6 +55567,7 @@ export namespace Prisma {
   export type dish_category_group_vote_candidatesCreateWithoutDish_category_group_vote_sessionsInput = {
     id?: string
     display_name: string
+    tagline: string
     image_url: string
     dish_media_ids?: dish_category_group_vote_candidatesCreatedish_media_idsInput | string[]
     dish_media_search_status?: string
@@ -55545,6 +55582,7 @@ export namespace Prisma {
     id?: string
     dish_category_id: string
     display_name: string
+    tagline: string
     image_url: string
     dish_media_ids?: dish_category_group_vote_candidatesCreatedish_media_idsInput | string[]
     dish_media_search_status?: string
@@ -58410,6 +58448,7 @@ export namespace Prisma {
     id?: string
     session_id: string
     display_name: string
+    tagline: string
     image_url: string
     dish_media_ids?: dish_category_group_vote_candidatesCreatedish_media_idsInput | string[]
     dish_media_search_status?: string
@@ -58465,6 +58504,7 @@ export namespace Prisma {
   export type dish_category_group_vote_candidatesUpdateWithoutDish_categoriesInput = {
     id?: StringFieldUpdateOperationsInput | string
     display_name?: StringFieldUpdateOperationsInput | string
+    tagline?: StringFieldUpdateOperationsInput | string
     image_url?: StringFieldUpdateOperationsInput | string
     dish_media_ids?: dish_category_group_vote_candidatesUpdatedish_media_idsInput | string[]
     dish_media_search_status?: StringFieldUpdateOperationsInput | string
@@ -58479,6 +58519,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     session_id?: StringFieldUpdateOperationsInput | string
     display_name?: StringFieldUpdateOperationsInput | string
+    tagline?: StringFieldUpdateOperationsInput | string
     image_url?: StringFieldUpdateOperationsInput | string
     dish_media_ids?: dish_category_group_vote_candidatesUpdatedish_media_idsInput | string[]
     dish_media_search_status?: StringFieldUpdateOperationsInput | string
@@ -58492,6 +58533,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     session_id?: StringFieldUpdateOperationsInput | string
     display_name?: StringFieldUpdateOperationsInput | string
+    tagline?: StringFieldUpdateOperationsInput | string
     image_url?: StringFieldUpdateOperationsInput | string
     dish_media_ids?: dish_category_group_vote_candidatesUpdatedish_media_idsInput | string[]
     dish_media_search_status?: StringFieldUpdateOperationsInput | string
@@ -58625,6 +58667,7 @@ export namespace Prisma {
     id?: string
     dish_category_id: string
     display_name: string
+    tagline: string
     image_url: string
     dish_media_ids?: dish_category_group_vote_candidatesCreatedish_media_idsInput | string[]
     dish_media_search_status?: string
@@ -58644,6 +58687,7 @@ export namespace Prisma {
   export type dish_category_group_vote_candidatesUpdateWithoutDish_category_group_vote_sessionsInput = {
     id?: StringFieldUpdateOperationsInput | string
     display_name?: StringFieldUpdateOperationsInput | string
+    tagline?: StringFieldUpdateOperationsInput | string
     image_url?: StringFieldUpdateOperationsInput | string
     dish_media_ids?: dish_category_group_vote_candidatesUpdatedish_media_idsInput | string[]
     dish_media_search_status?: StringFieldUpdateOperationsInput | string
@@ -58658,6 +58702,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     dish_category_id?: StringFieldUpdateOperationsInput | string
     display_name?: StringFieldUpdateOperationsInput | string
+    tagline?: StringFieldUpdateOperationsInput | string
     image_url?: StringFieldUpdateOperationsInput | string
     dish_media_ids?: dish_category_group_vote_candidatesUpdatedish_media_idsInput | string[]
     dish_media_search_status?: StringFieldUpdateOperationsInput | string
@@ -58671,6 +58716,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     dish_category_id?: StringFieldUpdateOperationsInput | string
     display_name?: StringFieldUpdateOperationsInput | string
+    tagline?: StringFieldUpdateOperationsInput | string
     image_url?: StringFieldUpdateOperationsInput | string
     dish_media_ids?: dish_category_group_vote_candidatesUpdatedish_media_idsInput | string[]
     dish_media_search_status?: StringFieldUpdateOperationsInput | string

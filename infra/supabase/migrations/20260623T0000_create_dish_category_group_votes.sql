@@ -50,6 +50,7 @@ CREATE TABLE IF NOT EXISTS dish_category_group_vote_candidates (
   session_id       uuid NOT NULL REFERENCES dish_category_group_vote_sessions(id) ON DELETE CASCADE,
   dish_category_id text NOT NULL REFERENCES dish_categories(id),
   display_name     text NOT NULL,
+  tagline          text NOT NULL,
   image_url        text NOT NULL,
   dish_media_ids   uuid[] NOT NULL DEFAULT '{}'::uuid[],
   dish_media_search_status text NOT NULL DEFAULT 'not_searched'
@@ -143,6 +144,9 @@ COMMENT ON COLUMN dish_category_group_vote_candidates.dish_category_id IS
 
 COMMENT ON COLUMN dish_category_group_vote_candidates.display_name IS
   '投票作成時点で固定された候補表示名。';
+
+COMMENT ON COLUMN dish_category_group_vote_candidates.tagline IS
+  '投票作成時点で固定された候補サブタイトル。Topics の reason/tagline を共有リンク参加者にも同じ内容で表示する。';
 
 COMMENT ON COLUMN dish_category_group_vote_candidates.image_url IS
   '投票作成時点で固定された候補画像URL。';

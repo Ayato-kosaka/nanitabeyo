@@ -245,6 +245,7 @@
 "dish_category_group_vote_candidates","session_id","uuid",false,"dish_category_group_vote_sessions.id",false,true,"N/A",true,"セッションIDへの外部キー","","","",""
 "dish_category_group_vote_candidates","dish_category_id","text",false,"dish_categories.id",false,true,"N/A",true,"投票対象の dish_categories.id。","","","",""
 "dish_category_group_vote_candidates","display_name","text",false,false,false,true,"N/A",false,"投票作成時点で固定された候補表示名。","","","",""
+"dish_category_group_vote_candidates","tagline","text",false,false,false,true,"N/A",false,"投票作成時点で固定された候補サブタイトル。Topics の reason/tagline を共有リンク参加者にも同じ内容で表示する。","","","",""
 "dish_category_group_vote_candidates","image_url","text",false,false,false,true,"N/A",false,"投票作成時点で固定された候補画像URL。","","","",""
 "dish_category_group_vote_candidates","dish_media_ids","uuid[]",false,false,false,true,"uuid[]",false,"店舗提案画面に遷移するための dish_media.id 配列。Prisma scalar list のNULL表現制約を避けるため未検索判定には使わない。","","","",""
 "dish_category_group_vote_candidates","dish_media_search_status","text",false,false,false,true,"not_searched",false,"店舗提案用 dish_media 検索状態。not_searched は未検索、empty は検索済み0件、found は検索済み候補あり。","","","",""
