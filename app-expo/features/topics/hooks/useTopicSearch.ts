@@ -4,23 +4,19 @@ import { Topic, SearchParams } from "@/types/search";
 import { useAPICall } from "@/hooks/useAPICall";
 import { wikimediaThumbFromOriginal } from "@/lib/wikimedia";
 import type {
-	BulkImportDishesDto,
 	CreateDishCategoryVariantDto,
 	QueryDishCategoryRecommendationsDto,
-	SearchDishMediaDto,
 } from "@shared/api/v1/dto";
 import type {
-	BulkImportDishesResponse,
-	DishMediaEntry,
 	QueryDishCategoryRecommendationsResponse,
 	CreateDishCategoryVariantResponse,
-	SearchDishMediaResponse,
 } from "@shared/api/v1/res";
 import { useLocale } from "@/hooks/useLocale";
 import { getRemoteConfig } from "@/lib/remoteConfig";
 import { useLogger } from "@/hooks/useLogger";
 import i18n from "@/lib/i18n";
 import { CARD_WIDTH, DEFAULT_SEARCH_RADIUS, DEFAULT_PRICE_LEVELS } from "../constants";
+import { createDishItemsForCategory } from "@/lib/dishMediaSearch";
 
 export const useTopicSearch = () => {
 	const [topics, setTopics] = useState<Topic[]>([]);
@@ -127,71 +123,23 @@ export const useTopicSearch = () => {
 			searchLocationLanguageCode: string,
 			radius: number = DEFAULT_SEARCH_RADIUS,
 			priceLevels: string[] = [...DEFAULT_PRICE_LEVELS],
-		): Promise<DishMediaEntry[]> => {
-			return (async (): Promise<DishMediaEntry[]> => {
-				// Get restaurant number from remote config
-				const remoteConfig = getRemoteConfig();
-				const searchResultRestaurantsNumber = parseInt(remoteConfig?.v1_search_result_restaurants_number!, 10);
+		) => {
+			const remoteConfig = getRemoteConfig();
+			const searchResultRestaurantsNumber = parseInt(remoteConfig?.v1_search_result_restaurants_number!, 10);
 
-				let dishItems: DishMediaEntry[] = [];
-
-				// まずは、GET /v1/dish-media で既存の料理メディアを検索
-				dishItems = await callBackend<SearchDishMediaDto, SearchDishMediaResponse>("v1/dish-media/search", {
-					method: "GET",
-					requestPayload: {
-						location: `${latitude},${longitude}`,
-						radius: radius,
-						categoryId: categoryId,
-						limit: searchResultRestaurantsNumber,
-					},
-				});
-
-				// #827 【設計】既存メディアが1件でもあるカテゴリは、Google import より既存DBの表示を優先する。
-				if (dishItems.length === 0) {
-					// Check if all price levels are selected - if so, don't send priceLevels parameter
-					const allPriceLevels = [
-						"PRICE_LEVEL_INEXPENSIVE",
-						"PRICE_LEVEL_MODERATE",
-						"PRICE_LEVEL_EXPENSIVE",
-						"PRICE_LEVEL_VERY_EXPENSIVE",
-					];
-					const isAllPriceLevelsSelected =
-						priceLevels.length === allPriceLevels.length &&
-						allPriceLevels.every((level) => priceLevels.includes(level));
-
-					const requestPayload: BulkImportDishesDto = {
-						location: `${latitude},${longitude}`,
-						radius: radius,
-						categoryId: categoryId,
-						categoryName: category,
-						minRating: 3.0, // Fixed value as per requirement
-						languageCode: searchLocationLanguageCode, // First part of locale (e.g., "ja" from "ja-JP")
-						// Only include priceLevels if not all are selected
-						...(isAllPriceLevelsSelected ? {} : { priceLevels: priceLevels }),
-					};
-
-					const importResponse = await callBackend<BulkImportDishesDto, BulkImportDishesResponse>(
-						"v1/dishes/bulk-import",
-						{
-							method: "POST",
-							requestPayload,
-						},
-					);
-					dishItems = dishItems.concat(
-						importResponse.filter(
-							(imported) =>
-								!dishItems.find(
-									(existing) => existing.restaurant.google_place_id === imported.restaurant.google_place_id,
-								),
-						),
-					);
-				}
-
-				// #630 【設計】先読み削除（ロード中 skeleton を見せる方針に統一）
-				return dishItems.slice(0, searchResultRestaurantsNumber);
-			})();
+			return createDishItemsForCategory({
+				callBackend,
+				categoryId,
+				categoryName: category,
+				latitude,
+				longitude,
+				searchLocationLanguageCode,
+				radius,
+				priceLevels,
+				searchResultRestaurantsNumber,
+			});
 		},
-		[callBackend, locale],
+		[callBackend],
 	);
 
 	const searchTopics = useCallback(

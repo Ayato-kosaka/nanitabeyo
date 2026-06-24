@@ -38,10 +38,18 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 	});
 	const { loadingCandidateId, openCandidateDishMedia } = useCandidateDishMediaCache({
 		cacheCandidateDishMedia: actions.cacheCandidateDishMedia,
-		onOpenCachedDishMedia: () => {
-			// #856 【設計】実際の遷移は dishMediaEntriesStore へ entriesKey を積んだ後に既存 result へ渡す。
-			// スケルトンでは API/DB 状態契約のレビューを優先し、遷移先接続は後続実装で埋める。
-			showSnackbar(i18n.t("DishCategoryGroupVotes.openRestaurantsPending"));
+		searchContext: detail?.session.searchContext,
+		onOpenCachedDishMedia: (candidate, dishMediaIds) => {
+			// #856 【設計】posts 画面へ寄せて、既存の DishMediaMap / Feed 周りを再利用する。
+			// entriesKey は group vote 起点の一時キーとして扱い、posts screen 側で明示的にクリーンアップする。
+			router.push({
+				pathname: "/[locale]/(tabs)/posts",
+				params: {
+					locale,
+					ids: dishMediaIds.join(","),
+					entriesKey: `dish-category-group-votes:${shareToken}:${candidate.id}`,
+				},
+			});
 		},
 	});
 
@@ -120,7 +128,7 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 									payload: { shareToken },
 								});
 								router.push({
-									pathname: `/[locale]/dish-category-group-votes/[shareToken]/vote`,
+									pathname: `/[locale]/(tabs)/dish-category-group-votes/[shareToken]/vote`,
 									params: {
 										locale,
 										shareToken,
