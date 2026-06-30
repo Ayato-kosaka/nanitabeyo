@@ -7,16 +7,8 @@
 import * as Clipboard from "expo-clipboard";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
-import {
-	AppState,
-	type AppStateStatus,
-	SafeAreaView,
-	ScrollView,
-	StyleSheet,
-	Text,
-	View,
-	useWindowDimensions,
-} from "react-native";
+import { AppState, type AppStateStatus, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useIsFocused } from "@react-navigation/native";
 import type { DishCategoryGroupVoteCandidate } from "@shared/api/v1/res";
 import type { QueryDishMediaByIdsDto } from "@shared/api/v1/dto";
@@ -179,7 +171,7 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 	}
 
 	return (
-		<SafeAreaView style={styles.safeArea}>
+		<SafeAreaView style={styles.safeArea} edges={[]}>
 			<SearchHeader title={i18n.t("DishCategoryGroupVotes.resultTitle")} onPressBack={() => router.back()} />
 			<ScrollView contentContainerStyle={styles.content}>
 				<DishCategoryGroupVoteResultHeader
