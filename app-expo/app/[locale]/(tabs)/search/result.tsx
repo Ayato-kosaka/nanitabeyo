@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { View, StyleSheet, TouchableOpacity, Platform } from "react-native";
 import { X, Share2 } from "lucide-react-native";
 import { router, useLocalSearchParams } from "expo-router";
@@ -34,6 +34,7 @@ export default function ResultScreen() {
 	const { shareRestaurant } = useDishMediaActions({ source: "search_result_screen" });
 	const { locale } = useLocale();
 	const { showGoogleMapsFallbackDialog } = useGoogleMapsFallback({ source: "search_result_screen" });
+	const shownGoogleMapsFallbackKeyRef = useRef<string | null>(null);
 
 	// #633 【防御】entriesKey が undefined の場合は戻る（クラッシュ防止）
 	useEffect(() => {
@@ -84,6 +85,11 @@ export default function ResultScreen() {
 		// #828 【設計】0件確定後の退避導線は、取得元ではなく検索結果画面の責務として扱う。
 		if (!entriesKey || isLoading || ids.length > 0 || !initialLocation || !category) return;
 
+		// 同じ0件結果の再レンダーでは重複表示せず、新しい検索条件では再度 fallback を出す。
+		const fallbackKey = `${entriesKey}:${category}:${typeof location === "string" ? location : ""}`;
+		if (shownGoogleMapsFallbackKeyRef.current === fallbackKey) return;
+		shownGoogleMapsFallbackKeyRef.current = fallbackKey;
+
 		showGoogleMapsFallbackDialog({
 			entriesKey,
 			category,
@@ -94,7 +100,17 @@ export default function ResultScreen() {
 		// #828 【設計】表示できる店舗がない場合、料理候補画面へ戻す。
 		// iOS で、react-native-paper の Portal.Host が transparentModal より下にあるため、この位置。
 		handleClose();
-	}, [category, entriesKey, ids.length, initialLocation, isLoading, locale, handleClose, showGoogleMapsFallbackDialog]);
+	}, [
+		category,
+		entriesKey,
+		ids.length,
+		initialLocation,
+		isLoading,
+		locale,
+		location,
+		handleClose,
+		showGoogleMapsFallbackDialog,
+	]);
 
 	const handleCloseWithHaptic = () => {
 		lightImpact();

@@ -6,7 +6,11 @@
  * 0件だった場合は Google Maps fallback を共通 hook で出す。
  */
 import { useCallback, useState } from "react";
-import type { DishCategoryGroupVoteCandidate, DishCategoryGroupVoteSearchContext } from "@shared/api/v1/res";
+import type {
+	DishCategoryGroupVoteCandidate,
+	DishCategoryGroupVoteSearchContext,
+	UpdateDishCategoryGroupVoteCandidateDishMediaResponse,
+} from "@shared/api/v1/res";
 import type { DishMediaEntry } from "@shared/api/v1/res";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useLocale } from "@/hooks/useLocale";
@@ -15,7 +19,10 @@ import { useGoogleMapsFallback } from "@/features/search/hooks/useGoogleMapsFall
 import { createDishItemsForCategory } from "@/lib/dishMediaSearch";
 
 type UseCandidateDishMediaCacheParams = {
-	cacheCandidateDishMedia: (candidateId: string, dishMediaIds: string[]) => Promise<unknown>;
+	cacheCandidateDishMedia: (
+		candidateId: string,
+		dishMediaIds: string[],
+	) => Promise<UpdateDishCategoryGroupVoteCandidateDishMediaResponse>;
 	searchContext?: DishCategoryGroupVoteSearchContext;
 	onOpenCachedDishMedia?: (candidate: DishCategoryGroupVoteCandidate, dishMediaIds: string[]) => void;
 };
@@ -91,9 +98,11 @@ export function useCandidateDishMediaCache({
 				// #856 【設計】検索 helper の成功後だけ cache し、0件なら Google Maps fallback へ寄せる。
 				// 失敗を empty として保存すると再検索できなくなるため、failure は保存しない。
 				if (!dishItems) return;
-				const dishMediaIds = dishItems.map((item) => String(item.dish_media.id));
-				await cacheCandidateDishMedia(candidate.id, dishMediaIds);
-				if (dishMediaIds.length === 0) {
+				const searchedDishMediaIds = dishItems.map((item) => String(item.dish_media.id));
+				const cacheResponse = await cacheCandidateDishMedia(candidate.id, searchedDishMediaIds);
+
+				// cache API は同時更新に負けた場合も永続化済みの候補を返すため、ローカル検索結果ではなくレスポンスを真実にする。
+				if (cacheResponse.dishMediaSearchStatus === "empty") {
 					showGoogleMapsFallbackDialog({
 						category: candidate.displayName,
 						location: searchContext.location,
@@ -101,7 +110,10 @@ export function useCandidateDishMediaCache({
 					});
 					return;
 				}
-				onOpenCachedDishMedia?.(candidate, dishMediaIds);
+
+				if (cacheResponse.dishMediaSearchStatus === "found") {
+					onOpenCachedDishMedia?.(candidate, cacheResponse.dishMediaIds);
+				}
 			} catch (error) {
 				logFrontendEvent({
 					event_name: "dish_category_group_vote_candidate_dish_media_search_failed",
