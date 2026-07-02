@@ -1,5 +1,10 @@
 import { Stack } from "expo-router";
 
+// deep link 時に Search Stack の戻り先として index を積む
+export const unstable_settings = {
+	initialRouteName: "index",
+};
+
 export default function SearchStackLayout() {
 	return (
 		<Stack screenOptions={{ headerShown: false }}>
