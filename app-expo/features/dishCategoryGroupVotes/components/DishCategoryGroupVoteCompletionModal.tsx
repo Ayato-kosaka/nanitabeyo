@@ -30,13 +30,18 @@ export function DishCategoryGroupVoteCompletionModal({ usedDisplayNames, isSubmi
 	const [displayName, setDisplayName] = useState("");
 	const [comment, setComment] = useState("");
 	const loggedInDisplayName =
-		user?.is_anonymous === false ? Array.from(profile?.display_name ?? "").slice(0, 8).join("") : "";
+		user?.is_anonymous === false
+			? Array.from(profile?.display_name ?? "")
+					.slice(0, 8)
+					.join("")
+			: "";
 
 	useEffect(() => {
 		const nextUsedDisplayNames = usedDisplayNamesKey ? usedDisplayNamesKey.split("\u0000") : [];
 		const nextSuggestions = buildDishCategoryGroupVoteNameSuggestions(nextUsedDisplayNames);
 		setSuggestions(nextSuggestions);
-		const defaultDisplayName = loggedInDisplayName || nextSuggestions[0] || "";
+		// 匿名参加者には候補を初期入力せず、手入力したい人が候補名のまま送る事故を防ぐ。
+		const defaultDisplayName = loggedInDisplayName || "";
 		setIsManualName(Boolean(loggedInDisplayName));
 		setDisplayName(defaultDisplayName);
 		setComment("");

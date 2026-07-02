@@ -7,7 +7,16 @@
 import * as Clipboard from "expo-clipboard";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
-import { AppState, type AppStateStatus, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import {
+	AppState,
+	type AppStateStatus,
+	Platform,
+	ScrollView,
+	StyleSheet,
+	Text,
+	View,
+	useWindowDimensions,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useIsFocused } from "@react-navigation/native";
 import type { DishCategoryGroupVoteCandidate } from "@shared/api/v1/res";
@@ -56,6 +65,8 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 		closeOnBackdropPress: true,
 	});
 	const { detail, isLoading, error, refresh } = useDishCategoryGroupVoteDetail(shareToken);
+	// /store はネイティブ内ではホームへ戻るため、共有リンクを開いた Web 参加者だけに出す。
+	const shouldShowStoreCta = detail?.session.hasVoted === true && Platform.OS === "web";
 
 	useEffect(() => {
 		const subscription = AppState.addEventListener("change", (nextAppState) => {
@@ -197,6 +208,21 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 										shareToken,
 									},
 								});
+							}}
+						/>
+					</View>
+				) : shouldShowStoreCta ? (
+					<View style={styles.voteCtaContainer}>
+						<PrimaryButton
+							label={i18n.t("DeepLinking.downloadApp")}
+							style={styles.voteButton}
+							onPress={() => {
+								logFrontendEvent({
+									event_name: "dish_category_group_vote_store_opened",
+									error_level: "log",
+									payload: { shareToken },
+								});
+								router.push("/store");
 							}}
 						/>
 					</View>

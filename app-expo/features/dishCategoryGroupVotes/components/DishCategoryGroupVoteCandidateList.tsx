@@ -25,9 +25,16 @@ export function DishCategoryGroupVoteCandidateList({
 	onPressDishMedia,
 	onDeleteCandidate,
 }: Props) {
-	// #856 【設計】削除済み候補は結果説明用に API からは返すが、通常UIでは見せない。
-	// 店舗提案対象も未削除候補だけに揃える。
-	const visibleCandidates = candidates.filter((candidate) => candidate.deletedAt === null);
+	// 結果一覧は「投票対象として残っている候補」の順位だけを見せる。
+	// rank が返らない古いレスポンスでも displayOrder で表示順を安定させる。
+	const visibleCandidates = candidates
+		.filter((candidate) => candidate.deletedAt === null)
+		.sort((a, b) => {
+			const rankA = a.rank ?? Number.MAX_SAFE_INTEGER;
+			const rankB = b.rank ?? Number.MAX_SAFE_INTEGER;
+			if (rankA !== rankB) return rankA - rankB;
+			return a.displayOrder - b.displayOrder;
+		});
 
 	return (
 		<View style={styles.container}>

@@ -63,19 +63,23 @@ export class DishCategoryGroupVotesAssembler {
       });
     }
 
-    // 順位は候補配列の並びを壊さず、likeCount だけで別計算する。
-    // こうしておくと、比較の軸と表示順が別の責務として保たれる。
+    // rank は通常 UI と同じ未削除候補だけで採番する。削除済みを含めると表示上の順位が飛ぶ。
+    // 配列順は API 互換のため作成順に残し、順位表示の責務は rank に寄せる。
     const rankByCandidateId = this.buildRanks(
-      entity.candidates.map((candidate) => {
-        const counts = countsByCandidateId.get(candidate.id) ?? {
-          likeCount: 0,
-          dislikeCount: 0,
-        };
-        return {
-          candidateId: candidate.id,
-          likeCount: counts.likeCount,
-        };
-      }),
+      entity.candidates
+        .filter((candidate) => candidate.deleted_at === null)
+        .map((candidate) => {
+          const counts = countsByCandidateId.get(candidate.id) ?? {
+            likeCount: 0,
+            dislikeCount: 0,
+          };
+          return {
+            candidateId: candidate.id,
+            likeCount: counts.likeCount,
+            dislikeCount: counts.dislikeCount,
+            displayOrder: candidate.display_order,
+          };
+        }),
     );
 
     return {
@@ -94,7 +98,7 @@ export class DishCategoryGroupVotesAssembler {
         updatedAt: entity.session.updated_at.toISOString(),
       },
       candidates: [...entity.candidates]
-        // 候補順はホストの入力順を維持する。ランキングで並べ替えると、投票の比較軸が変わる。
+        // レスポンス配列は既存クライアント向けに作成順を維持し、ランキング順は rank の契約に閉じる。
         .sort((a, b) => a.display_order - b.display_order)
         .map((candidate) => {
           const counts = countsByCandidateId.get(candidate.id) ?? {
@@ -131,24 +135,27 @@ export class DishCategoryGroupVotesAssembler {
   }
 
   /**
-   * likeCount だけで順位を決める。
-   * 同率は同じ順位にし、候補の配列順はそのまま残す。
+   * 通常 UI の表示順と同じ比較軸で rank を固定する。
+   * displayOrder まで比較して、同じ投票状態でも端末ごとに順位が揺れないようにする。
    */
   private buildRanks(
-    items: { candidateId: string; likeCount: number }[],
+    items: {
+      candidateId: string;
+      likeCount: number;
+      dislikeCount: number;
+      displayOrder: number;
+    }[],
   ): Map<string, number> {
-    const sortedScores = [...new Set(items.map((item) => item.likeCount))].sort(
-      (a, b) => b - a,
-    );
-    const rankByScore = new Map(
-      sortedScores.map((score, index) => [score, index + 1]),
-    );
-
     return new Map(
-      items.map((item) => [
-        item.candidateId,
-        rankByScore.get(item.likeCount) ?? 1,
-      ]),
+      [...items]
+        .sort((a, b) => {
+          if (a.likeCount !== b.likeCount) return b.likeCount - a.likeCount;
+          if (a.dislikeCount !== b.dislikeCount) {
+            return a.dislikeCount - b.dislikeCount;
+          }
+          return a.displayOrder - b.displayOrder;
+        })
+        .map((item, index): [string, number] => [item.candidateId, index + 1]),
     );
   }
 }

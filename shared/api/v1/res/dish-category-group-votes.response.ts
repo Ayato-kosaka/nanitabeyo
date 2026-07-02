@@ -64,8 +64,8 @@ export type DishCategoryGroupVoteCandidate = {
 	likeCount: number;
 	dislikeCount: number;
 	/**
-	 * likeCount の順位。同率は同じ順位。
-	 * 投票が一件もない場合の扱いは API 実装時に最終調整する。
+	 * likeCount DESC、dislikeCount ASC、displayOrder ASC の順位。
+	 * 削除済み候補は通常 UI の順位対象から外すため null。
 	 */
 	rank: number | null;
 	votes: DishCategoryGroupVoteCandidateVoter[];
