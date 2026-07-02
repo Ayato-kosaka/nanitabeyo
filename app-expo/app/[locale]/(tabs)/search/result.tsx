@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
-import { View, StyleSheet, TouchableOpacity, Platform, Linking } from "react-native";
+import { View, StyleSheet, TouchableOpacity, Platform } from "react-native";
 import { X, Share2 } from "lucide-react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import DishMediaMap from "@/features/dishMedia/components/DishMediaMap";
@@ -16,9 +16,9 @@ import {
 import { shallow } from "zustand/shallow";
 import { RestaurantLoading } from "@/features/dishMedia/components/RestaurantLoading";
 import { useDishMediaActions } from "@/features/dishMedia/hooks/useDishMediaActions";
-import { useDialog } from "@/contexts/DialogProvider";
 import i18n from "@/lib/i18n";
 import { useLocale } from "@/hooks/useLocale";
+import { useGoogleMapsFallback } from "@/features/search/hooks/useGoogleMapsFallback";
 
 const idType = "dish_media" as const;
 
@@ -32,10 +32,9 @@ export default function ResultScreen() {
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { shareRestaurant } = useDishMediaActions({ source: "search_result_screen" });
-	const { showDialog } = useDialog();
 	const { locale } = useLocale();
-
-	const isGoogleMapsFallbackOpened = useRef<boolean>(false);
+	const { showGoogleMapsFallbackDialog } = useGoogleMapsFallback({ source: "search_result_screen" });
+	const shownGoogleMapsFallbackKeyRef = useRef<string | null>(null);
 
 	// #633 【防御】entriesKey が undefined の場合は戻る（クラッシュ防止）
 	useEffect(() => {
@@ -85,97 +84,33 @@ export default function ResultScreen() {
 	useEffect(() => {
 		// #828 【設計】0件確定後の退避導線は、取得元ではなく検索結果画面の責務として扱う。
 		if (!entriesKey || isLoading || ids.length > 0 || !initialLocation || !category) return;
-		if (isGoogleMapsFallbackOpened.current) return;
-		isGoogleMapsFallbackOpened.current = true;
 
-		const buildGoogleMapsSearchUrl = (
-			category: string,
-			location: {
-				latitude: number;
-				longitude: number;
-			},
-			options?: {
-				zoom?: number;
-				hl?: string;
-			},
-		) => {
-			const zoom = options?.zoom ?? 14;
-			const lat = Number(location.latitude.toFixed(7));
-			const lng = Number(location.longitude.toFixed(7));
-			const encodedCategory = encodeURIComponent(category);
+		// 同じ0件結果の再レンダーでは重複表示せず、新しい検索条件では再度 fallback を出す。
+		const fallbackKey = `${entriesKey}:${category}:${typeof location === "string" ? location : ""}`;
+		if (shownGoogleMapsFallbackKeyRef.current === fallbackKey) return;
+		shownGoogleMapsFallbackKeyRef.current = fallbackKey;
 
-			const url = new URL(`https://www.google.com/maps/search/${encodedCategory}/@${lat},${lng},${zoom}z`);
-
-			if (options?.hl) {
-				url.searchParams.set("hl", options.hl);
-			}
-
-			return url.toString();
-		};
-
-		// #828 【設計】アプリ側の検索カテゴリと表示言語に寄せ、Google Maps 側で同じ意図の検索を開く。
-		const url = buildGoogleMapsSearchUrl(category, initialLocation, {
-			hl: locale.split("-")[0],
-		});
-
-		logFrontendEvent({
-			event_name: "google_maps_fallback_dialog_shown",
-			error_level: "warn",
-			payload: {
-				entriesKey,
-				category,
-				latitude: initialLocation.latitude,
-				longitude: initialLocation.longitude,
-			},
-		});
-
-		showDialog(i18n.t("Search.googleMapsFallback.message"), {
-			okLabel: i18n.t("Search.googleMapsFallback.confirm"),
-			cancelLabel: i18n.t("Search.googleMapsFallback.cancel"),
-			onConfirm: async () => {
-				try {
-					await Linking.openURL(url);
-					logFrontendEvent({
-						event_name: "google_maps_fallback_opened",
-						error_level: "log",
-						payload: {
-							entriesKey,
-							category,
-							latitude: initialLocation.latitude,
-							longitude: initialLocation.longitude,
-						},
-					});
-				} catch (error) {
-					logFrontendEvent({
-						event_name: "google_maps_fallback_open_failed",
-						error_level: "error",
-						payload: {
-							entriesKey,
-							category,
-							error_message: error instanceof Error ? error.message : String(error),
-						},
-					});
-				}
-			},
-			onHide: (reason) => {
-				if (reason !== "confirm") {
-					logFrontendEvent({
-						event_name: "google_maps_fallback_dismissed",
-						error_level: "log",
-						payload: {
-							entriesKey,
-							category,
-							reason,
-						},
-					});
-				}
-			},
+		showGoogleMapsFallbackDialog({
+			entriesKey,
+			category,
+			location: initialLocation,
+			locale,
 		});
 
 		// #828 【設計】表示できる店舗がない場合、料理候補画面へ戻す。
 		// iOS で、react-native-paper の Portal.Host が transparentModal より下にあるため、この位置。
 		handleClose();
-	}, [category, entriesKey, ids.length, initialLocation, isLoading, logFrontendEvent, showDialog, locale, handleClose]);
+	}, [
+		category,
+		entriesKey,
+		ids.length,
+		initialLocation,
+		isLoading,
+		locale,
+		location,
+		handleClose,
+		showGoogleMapsFallbackDialog,
+	]);
 
 	const handleCloseWithHaptic = () => {
 		lightImpact();

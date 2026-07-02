@@ -16,3 +16,4 @@ export * from "./notifications/mark-all-read.res";
 export * from "./notifications/unread-count.res";
 export * from "./notifications/create-device-token.res";
 export * from "./tools.response";
+export * from "./dish-category-group-votes.response";
