@@ -135,8 +135,8 @@ export class DishCategoryGroupVotesAssembler {
   }
 
   /**
-   * 通常 UI の表示順と同じ比較軸で rank を固定する。
-   * displayOrder まで比較して、同じ投票状態でも端末ごとに順位が揺れないようにする。
+   * rank は likeCount DESC、dislikeCount ASC の競技順位で決める。
+   * displayOrder は同順位内の表示順安定化だけに使い、同率判定には含めない。
    */
   private buildRanks(
     items: {
@@ -146,16 +146,35 @@ export class DishCategoryGroupVotesAssembler {
       displayOrder: number;
     }[],
   ): Map<string, number> {
+    const sortedItems = [...items].sort((a, b) => {
+      if (a.likeCount !== b.likeCount) return b.likeCount - a.likeCount;
+      if (a.dislikeCount !== b.dislikeCount) {
+        return a.dislikeCount - b.dislikeCount;
+      }
+      return a.displayOrder - b.displayOrder;
+    });
+
+    let previousScore: { likeCount: number; dislikeCount: number } | null =
+      null;
+    let currentRank = 0;
+
     return new Map(
-      [...items]
-        .sort((a, b) => {
-          if (a.likeCount !== b.likeCount) return b.likeCount - a.likeCount;
-          if (a.dislikeCount !== b.dislikeCount) {
-            return a.dislikeCount - b.dislikeCount;
-          }
-          return a.displayOrder - b.displayOrder;
-        })
-        .map((item, index): [string, number] => [item.candidateId, index + 1]),
+      sortedItems.map((item, index): [string, number] => {
+        const isSameScore =
+          previousScore !== null &&
+          previousScore.likeCount === item.likeCount &&
+          previousScore.dislikeCount === item.dislikeCount;
+
+        if (!isSameScore) {
+          currentRank = index + 1;
+          previousScore = {
+            likeCount: item.likeCount,
+            dislikeCount: item.dislikeCount,
+          };
+        }
+
+        return [item.candidateId, currentRank];
+      }),
     );
   }
 }

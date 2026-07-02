@@ -25,8 +25,8 @@ export function DishCategoryGroupVoteCandidateList({
 	onPressDishMedia,
 	onDeleteCandidate,
 }: Props) {
-	// 結果一覧は「投票対象として残っている候補」の順位だけを見せる。
-	// rank が返らない古いレスポンスでも displayOrder で表示順を安定させる。
+	// rank は同率を保持するため、同順位内だけ displayOrder で表示順を安定させる。
+	// rank が返らない古いレスポンスでも末尾で displayOrder 順に並べる。
 	const visibleCandidates = candidates
 		.filter((candidate) => candidate.deletedAt === null)
 		.sort((a, b) => {
