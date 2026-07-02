@@ -14,7 +14,7 @@
 		{
 			"site": "app-nanitabeyo-net",
 			"public": "app-expo/dist",
-			"ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+			"ignore": ["firebase.json", "**/node_modules/**"],
 			"headers": [
 				{
 					"source": "/sitemap.xml",
@@ -74,6 +74,10 @@
 				},
 				{
 					"source": "/.well-known/apple-app-site-association",
+					"headers": [{ "key": "Content-Type", "value": "application/json" }]
+				},
+				{
+					"source": "/.well-known/assetlinks.json",
 					"headers": [{ "key": "Content-Type", "value": "application/json" }]
 				},
 				{
