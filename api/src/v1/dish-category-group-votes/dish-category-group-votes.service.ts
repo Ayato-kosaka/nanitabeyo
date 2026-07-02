@@ -261,20 +261,23 @@ export class DishCategoryGroupVotesService {
 
           const nextStatus =
             dto.dishMediaIds.length > 0 ? 'found' : 'empty';
-          const updated = await this.repo.updateCandidateDishMediaIds(
+          const cached = await this.repo.updateCandidateDishMediaIds(
             tx,
             sessionId,
             candidateId,
             dto.dishMediaIds,
             nextStatus,
           );
-          await this.repo.touchSession(tx, sessionId);
+          if (cached.updated) {
+            // 更新があった場合のみ sessions.updated_at を更新し、次回 detail 再取得で反映させる。
+            await this.repo.touchSession(tx, sessionId);
+          }
 
           return {
             candidateId,
-            dishMediaIds: updated.dishMediaIds,
-            dishMediaSearchStatus: updated.dishMediaSearchStatus,
-            updated: true,
+            dishMediaIds: cached.dishMediaIds,
+            dishMediaSearchStatus: cached.dishMediaSearchStatus,
+            updated: cached.updated,
           };
         },
       );

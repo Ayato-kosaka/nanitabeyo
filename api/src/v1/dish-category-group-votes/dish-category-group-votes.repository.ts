@@ -138,17 +138,17 @@ export class DishCategoryGroupVotesRepository {
       candidates.length === 0
         ? []
         : ((await db.dish_category_group_vote_candidate_votes.findMany({
-            where: {
-              candidate_id: { in: candidates.map((candidate) => candidate.id) },
-            },
-            orderBy: { created_at: 'asc' },
-            select: {
-              participant_id: true,
-              candidate_id: true,
-              reaction: true,
-              created_at: true,
-            },
-          })) as PrismaDishCategoryGroupVoteCandidateVotes[]);
+          where: {
+            candidate_id: { in: candidates.map((candidate) => candidate.id) },
+          },
+          orderBy: { created_at: 'asc' },
+          select: {
+            participant_id: true,
+            candidate_id: true,
+            reaction: true,
+            created_at: true,
+          },
+        })) as PrismaDishCategoryGroupVoteCandidateVotes[]);
 
     return { session, candidates, participants, votes };
   }
@@ -274,25 +274,53 @@ export class DishCategoryGroupVotesRepository {
   ): Promise<{
     dishMediaIds: string[];
     dishMediaSearchStatus: DishCategoryGroupVoteDishMediaSearchStatus;
+    updated: boolean;
   }> {
-    void sessionId;
-
-    const candidate = await db.dish_category_group_vote_candidates.update({
-      where: { id: candidateId },
+    const result = await db.dish_category_group_vote_candidates.updateMany({
+      where: {
+        id: candidateId,
+        session_id: sessionId,
+        dish_media_search_status: 'not_searched',
+      },
       data: {
         dish_media_ids: dishMediaIds,
         dish_media_search_status: dishMediaSearchStatus,
       },
-      select: {
-        dish_media_ids: true,
-        dish_media_search_status: true,
-      },
     });
 
+    if (result.count === 1) {
+      // 1 件更新できた場合は、not_searched からの初回更新なので、更新済みとして返す。
+      return {
+        dishMediaIds,
+        dishMediaSearchStatus,
+        updated: true,
+      };
+    }
+
+    // 0 件更新の場合は、すでに検索済みのため、既存値を返す。
+    const existingCandidate =
+      await db.dish_category_group_vote_candidates.findFirst({
+        where: {
+          id: candidateId,
+          session_id: sessionId,
+        },
+        select: {
+          dish_media_ids: true,
+          dish_media_search_status: true,
+        },
+      });
+
+    if (!existingCandidate) {
+      throw new Error(
+        `Candidate not found for id ${candidateId} and sessionId ${sessionId}`,
+      );
+    }
+
     return {
-      dishMediaIds: candidate.dish_media_ids,
+      dishMediaIds: existingCandidate.dish_media_ids,
       dishMediaSearchStatus:
-        candidate.dish_media_search_status as DishCategoryGroupVoteDishMediaSearchStatus,
+        existingCandidate.dish_media_search_status as DishCategoryGroupVoteDishMediaSearchStatus,
+      updated: false,
     };
   }
 

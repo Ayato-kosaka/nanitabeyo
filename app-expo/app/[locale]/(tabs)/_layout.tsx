@@ -17,15 +17,6 @@ export default function TabLayout() {
 		<Tabs
 			initialRouteName="search"
 			safeAreaInsets={{ bottom: insets.bottom, top: 0 }}
-			screenListeners={{
-				tabPress: (event) => {
-					event.preventDefault();
-					router.replace({
-						pathname: "/[locale]/(tabs)/search",
-						params: { locale },
-					});
-				},
-			}}
 			screenOptions={{
 				header: () => null,
 				tabBarShowLabel: true,
@@ -50,6 +41,15 @@ export default function TabLayout() {
 			}}>
 			<Tabs.Screen
 				name="search"
+				listeners={{
+					tabPress: (event) => {
+						event.preventDefault();
+						router.replace({
+							pathname: "/[locale]/(tabs)/search",
+							params: { locale },
+						});
+					},
+				}}
 				options={{
 					title: i18n.t("Tabs.search"),
 					tabBarLabel: i18n.t("Tabs.labels.search"),
