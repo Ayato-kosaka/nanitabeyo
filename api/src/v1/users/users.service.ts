@@ -20,6 +20,7 @@ import {
   QueryMeSavedDishMediaDto,
   UpdateUserProfileDto,
   QuerySavedRestaurantsDto,
+  QueryMeBlockedDishCategoriesDto,
 } from '@shared/v1/dto';
 
 import { UsersRepository } from './users.repository';
@@ -399,5 +400,84 @@ export class UsersService {
     });
 
     return this.assembler.enrichUserProfileWithAvatarUrls(updatedUser);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*          GET /v1/users/me/blocked-dish-categories                 */
+  /* ------------------------------------------------------------------ */
+  async getMeBlockedDishCategories(
+    userId: string,
+    dto: QueryMeBlockedDishCategoriesDto,
+  ) {
+    this.logger.debug(
+      'GetMeBlockedDishCategories',
+      'getMeBlockedDishCategories',
+      {
+        userId,
+        cursor: dto.cursor,
+      },
+    );
+
+    const { items: categoryIds, nextCursor } =
+      await this.repo.findBlockedDishCategories(userId, dto.cursor);
+
+    if (categoryIds.length === 0) {
+      this.logger.debug(
+        'GetMeBlockedDishCategoriesResult',
+        'getMeBlockedDishCategories',
+        {
+          count: 0,
+          nextCursor: null,
+        },
+      );
+      return {
+        data: [],
+        nextCursor: null,
+      };
+    }
+
+    const records =
+      await this.dishCategoriesRepo.findDishCategoriesByIds(categoryIds);
+
+    // IN 検索結果の順序は categoryIds と一致しないため、フロント無限スクロール用に ID 順で並べ替える
+    const recordMap = new Map(records.map((record) => [record.id, record]));
+    const orderedRecords = categoryIds
+      .map((id) => recordMap.get(id))
+      .filter((record) => record != null);
+
+    this.logger.debug(
+      'GetMeBlockedDishCategoriesResult',
+      'getMeBlockedDishCategories',
+      {
+        count: orderedRecords.length,
+        nextCursor,
+      },
+    );
+
+    return {
+      data: orderedRecords,
+      nextCursor,
+    };
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*     DELETE /v1/users/me/blocked-dish-categories/:categoryId       */
+  /* ------------------------------------------------------------------ */
+  async unblockDishCategory(userId: string, categoryId: string) {
+    this.logger.debug('UnblockDishCategory', 'unblockDishCategory', {
+      userId,
+      categoryId,
+    });
+
+    const success = await this.repo.unblockDishCategory(userId, categoryId);
+
+    this.logger.debug('UnblockDishCategoryResult', 'unblockDishCategory', {
+      success,
+    });
+
+    return {
+      success,
+      message: success ? 'Category unblocked successfully' : 'No block found',
+    };
   }
 }

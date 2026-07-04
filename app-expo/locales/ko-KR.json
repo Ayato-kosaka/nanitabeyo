@@ -40,6 +40,39 @@
 		"downloadApp": "앱 다운로드",
 		"viewInBrowser": "브라우저에서 계속하기"
 	},
+	"DishCategoryGroupVotes": {
+		"resultTitle": "모두의 투표 결과",
+		"resultSubtitle": "후보를 확인하고 선호도를 투표하세요.",
+		"resultSubtitleVoted": "현재 결과를 확인할 수 있습니다.",
+		"copyShareLink": "공유 링크 복사",
+		"voteCta": "투표하기",
+		"candidatesTitle": "후보",
+		"commentsTitle": "댓글",
+		"viewRestaurants": "가게 보기",
+		"loadingRestaurants": "검색 중",
+		"noRestaurantsFound": "근처에서 후보 가게를 찾지 못했습니다",
+		"openRestaurantsPending": "가게 목록 연결은 아직 구현 중입니다",
+		"deleteCandidate": "후보 삭제",
+		"deleteCandidateTitle": "이 후보를 삭제할까요?",
+		"deleteCandidateMessage": "{{name}} 을(를) 투표 후보에서 숨깁니다.",
+		"loadFailed": "투표를 불러오지 못했습니다",
+		"refreshFailed": "최신 결과를 가져오지 못했습니다",
+		"like": "좋아요",
+		"dislike": "패스",
+		"voteProgress": "{{current}} / {{total}}",
+		"noVoteCandidates": "투표할 후보가 없습니다",
+		"completionTitle": "투표를 확정하세요",
+		"completionDescription": "결과 화면에 표시할 이름과 선택 댓글을 입력하세요.",
+		"nameSuggestionLabel": "이 중 하나를 이름으로 사용할 수 있습니다",
+		"displayNamePlaceholder": "닉네임",
+		"commentPlaceholder": "댓글(선택)",
+		"submitVote": "투표 완료",
+		"submitting": "제출 중",
+		"submitFailed": "투표를 제출하지 못했습니다",
+		"participantsList": "참가자: {{names}}",
+		"noParticipants": "아직 참가자가 없습니다",
+		"noVotes": "아직 투표가 없습니다"
+	},
 	"Error": {
 		"maintenanceMessage": "현재 점검 중입니다.",
 		"unsupportedVersion": "이 버전은 더 이상 지원되지 않습니다."
@@ -62,6 +95,11 @@
 			"noTimeSlotSelected": "시간대를 선택해 주세요",
 			"noSceneSelected": "장면을 선택해 주세요",
 			"searchFailed": "검색에 실패했습니다"
+		},
+		"googleMapsFallback": {
+			"message": "이 지역의 매장 데이터가 부족합니다. Google 지도에서 표시할까요?",
+			"confirm": "Google 지도 열기",
+			"cancel": "닫기"
 		},
 		"sections": {
 			"location": "어디에서 찾을까요?",
@@ -190,6 +228,19 @@
 		"retry": "검색으로 돌아가기",
 		"chooseThis": "이걸로 할래!",
 		"hiddenMessage": "{{title}} 이(가) 숨겨졌습니다",
+		"BlockTopicModal": {
+			"title": "이 요리를 차단할까요?",
+			"description": "차단된 요리 토픽은 추천에 더 이상 표시되지 않습니다.",
+			"note": "설정에서 언제든지 차단을 해제할 수 있어요.",
+			"confirm": "차단하기"
+		},
+		"blockedMessage": "{{title}}이(가) 차단되었습니다",
+		"reloadDialog": {
+			"title": "다른 메뉴를 더 찾아볼까요?",
+			"message": "지금은 추천이 많지 않아요. 같은 조건으로 다시 찾아볼게요.",
+			"confirm": "다시 검색하기",
+			"cancel": "닫기"
+		},
 		"imageLoadFailed": "이미지를 불러오지 못했습니다",
 		"tapToReload": "탭하여 다시 로드",
 		"headerTitle": "당신을 위한 추천 요리",
@@ -496,6 +547,9 @@
 			"titleLength": "제목은 5자 이상 80자 이하여야 합니다",
 			"messageLength": "메시지는 10자 이상 2000자 이하여야 합니다",
 			"submitFailed": "피드백 제출에 실패했습니다. 다시 시도해주세요."
+		},
+		"success": {
+			"submitted": "소중한 의견 감사합니다!"
 		}
 	},
 	"auth": {
@@ -544,7 +598,19 @@
 		"privacy": "개인정보 처리방침",
 		"copyright": "저작권",
 		"legalDocument": "법적 문서",
-		"logout": "로그아웃"
+		"logout": "로그아웃",
+		"blockedTopics": {
+			"navigationLabel": "차단된 요리 주제",
+			"pageTitle": "차단된 요리 주제",
+			"title": "차단된 요리",
+			"empty": "차단된 요리가 없습니다",
+			"loading": "로딩 중...",
+			"unblockButton": "차단 해제",
+			"unblockTitle": "이 주제를 차단 해제하시겠습니까?",
+			"unblockMessage": "이 요리 주제가 추천에 다시 추가됩니다.",
+			"unblockConfirm": "차단 해제",
+			"unblocked": "차단 해제됨"
+		}
 	},
 	"Dialog": {
 		"a11y": {

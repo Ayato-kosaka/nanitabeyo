@@ -40,6 +40,39 @@
 		"downloadApp": "Download App",
 		"viewInBrowser": "Continue in browser"
 	},
+	"DishCategoryGroupVotes": {
+		"resultTitle": "Group vote results",
+		"resultSubtitle": "Review the choices and vote for your preferences.",
+		"resultSubtitleVoted": "You can review the current results.",
+		"copyShareLink": "Copy share link",
+		"voteCta": "Vote",
+		"candidatesTitle": "Choices",
+		"commentsTitle": "Comments",
+		"viewRestaurants": "View restaurants",
+		"loadingRestaurants": "Searching",
+		"noRestaurantsFound": "No nearby restaurant candidates were found",
+		"openRestaurantsPending": "Restaurant list connection is not implemented yet",
+		"deleteCandidate": "Delete choice",
+		"deleteCandidateTitle": "Delete this choice?",
+		"deleteCandidateMessage": "Hide {{name}} from the vote choices.",
+		"loadFailed": "Could not load the vote",
+		"refreshFailed": "Could not refresh the latest results",
+		"like": "Like",
+		"dislike": "Pass",
+		"voteProgress": "{{current}} / {{total}}",
+		"noVoteCandidates": "There are no choices to vote on",
+		"completionTitle": "Confirm your vote",
+		"completionDescription": "Enter the name shown on the results page and an optional comment.",
+		"nameSuggestionLabel": "You can use one of these as your name",
+		"displayNamePlaceholder": "Nickname",
+		"commentPlaceholder": "Comment (optional)",
+		"submitVote": "Finish voting",
+		"submitting": "Submitting",
+		"submitFailed": "Could not submit your vote",
+		"participantsList": "Participants: {{names}}",
+		"noParticipants": "No participants yet",
+		"noVotes": "No votes yet"
+	},
 	"Error": {
 		"maintenanceMessage": "We are currently undergoing maintenance.",
 		"unsupportedVersion": "This version is no longer supported."
@@ -62,6 +95,11 @@
 			"noTimeSlotSelected": "Please select a time slot",
 			"noSceneSelected": "Please select a scene",
 			"searchFailed": "Search failed"
+		},
+		"googleMapsFallback": {
+			"message": "Restaurant data is limited in this area. Open it in Google Maps?",
+			"confirm": "Open Google Maps",
+			"cancel": "Close"
 		},
 		"sections": {
 			"location": "Where to search?",
@@ -190,6 +228,19 @@
 		"retry": "Back to search",
 		"chooseThis": "Choose this!",
 		"hiddenMessage": "{{title}} has been hidden",
+		"BlockTopicModal": {
+			"title": "Block this dish?",
+			"description": "Blocked dish topics will no longer appear in recommendations.",
+			"note": "You can unblock it anytime from Settings.",
+			"confirm": "Block"
+		},
+		"blockedMessage": "Blocked {{title}}",
+		"reloadDialog": {
+			"title": "Find more options?",
+			"message": "There are only a few recommendations right now. We will search again with the same conditions.",
+			"confirm": "Search again",
+			"cancel": "Close"
+		},
 		"imageLoadFailed": "Failed to load image",
 		"tapToReload": "Tap to reload",
 		"headerTitle": "Recommended Dishes for You",
@@ -496,6 +547,9 @@
 			"titleLength": "Title must be between 5 and 80 characters",
 			"messageLength": "Message must be between 10 and 2000 characters",
 			"submitFailed": "Failed to submit feedback. Please try again."
+		},
+		"success": {
+			"submitted": "Thank you for your feedback!"
 		}
 	},
 	"auth": {
@@ -544,7 +598,19 @@
 		"privacy": "Privacy Policy",
 		"copyright": "Copyright",
 		"legalDocument": "Legal Document",
-		"logout": "Logout"
+		"logout": "Logout",
+		"blockedTopics": {
+			"navigationLabel": "Blocked dish topics",
+			"pageTitle": "Blocked dish topics",
+			"title": "Blocked dishes",
+			"empty": "No blocked dishes",
+			"loading": "Loading...",
+			"unblockButton": "Unblock",
+			"unblockTitle": "Unblock this topic?",
+			"unblockMessage": "This dish topic will be added back to recommendations.",
+			"unblockConfirm": "Unblock",
+			"unblocked": "Unblocked"
+		}
 	},
 	"Dialog": {
 		"a11y": {

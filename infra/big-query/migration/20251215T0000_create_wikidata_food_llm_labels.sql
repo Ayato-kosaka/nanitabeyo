@@ -68,7 +68,7 @@ CREATE TABLE IF NOT EXISTS `${DATASET}.wikidata_food_llm_feature_scores` (
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `${DATASET}.wikidata_food_copy_generations` (
   item_qid    STRING NOT NULL,   -- Wikidata QID（dish_category）
-  locale      STRING NOT NULL,   -- BCP47 形式（'ja-JP', 'en'）
+  locale      STRING NOT NULL,   -- BCP47 形式（'ja', 'en'）
   topic_title STRING NOT NULL,   -- 感情訴求型タイトル（最大12-14文字）
   tagline     STRING NOT NULL,   -- キャッチコピー（最大45文字）
   confidence  STRING NOT NULL,   -- 'high' / 'medium' / 'low'

@@ -12,6 +12,7 @@ import { Prisma } from '../../../../shared/prisma';
 import {
   DishCategoryCandidateNormalizedInput,
   DishCategoryCandidateWithScores,
+  DishCategoryPenaltyFeatureSet,
 } from './dish-categories.interface';
 
 @Injectable()
@@ -27,6 +28,29 @@ export class DishCategoriesRepository {
 
     const result = await this.prisma.prisma.dish_categories.findUnique({
       where: { id },
+    });
+
+    return result;
+  }
+
+  /**
+   * IDリストから料理カテゴリを検索
+   */
+  async findDishCategoriesByIds(ids: string[]) {
+    this.logger.debug('FindDishCategoriesByIds', 'findDishCategoriesByIds', {
+      idsCount: ids.length,
+    });
+
+    if (ids.length === 0) {
+      return [];
+    }
+
+    const result = await this.prisma.prisma.dish_categories.findMany({
+      where: { id: { in: ids } },
+    });
+
+    this.logger.debug('DishCategoriesFound', 'findDishCategoriesByIds', {
+      count: result.length,
     });
 
     return result;
@@ -131,6 +155,7 @@ export class DishCategoriesRepository {
    * #533 【仕様】料理カテゴリ候補をスコアリングして取得（WITH params/weights構造）
    */
   async findCategoryCandidatesWithScores(params: {
+    userId: string;
     addressTokens: DishCategoryCandidateNormalizedInput['addressTokens'];
     regionTokens: DishCategoryCandidateNormalizedInput['regionTokens'];
     regionFallbackKeys: DishCategoryCandidateNormalizedInput['regionFallbackKeys'];
@@ -198,6 +223,7 @@ export class DishCategoriesRepository {
     >`
       WITH params AS (
         SELECT
+          ${params.userId}::uuid AS user_id,
           ${params.addressTokens}::text[] AS address_tokens,
           ${params.regionTokens}::text[] AS region_tokens,
           ${params.regionFallbackKeys}::text[] AS region_fallback_keys,
@@ -228,6 +254,14 @@ export class DishCategoriesRepository {
           )
           AND dcf.score > 0
       ),
+      -- #747【設計】block 対象の料理カテゴリを除外
+      blocked_categories AS (
+        SELECT DISTINCT r.target_id AS category_id
+        FROM reactions r, params p
+        WHERE r.user_id = p.user_id
+          AND r.target_type = 'dish_categories'
+          AND r.action_type = 'block'
+      ),
       -- #533 【設計】条件系特徴量（timeSlot/scene/satiety/taste）を LEFT JOIN
       base_candidates AS (
         SELECT
@@ -244,6 +278,7 @@ export class DishCategoriesRepository {
         FROM region_ok_categories roc
         CROSS JOIN params p
         JOIN dish_categories dc ON dc.id = roc.category_id
+        LEFT JOIN blocked_categories bc ON bc.category_id = roc.category_id
         -- timeSlot
         LEFT JOIN dish_category_features ts_feat
           ON ts_feat.dish_category_id = roc.category_id
@@ -264,6 +299,7 @@ export class DishCategoriesRepository {
           ON t_feat.dish_category_id = roc.category_id
           AND t_feat.feature_type = 'taste'
           AND t_feat.feature_key = p.taste_key
+        WHERE bc.category_id IS NULL
       ),
       -- #533 【設計】rel_score と final_score を計算
       scored_candidates AS (
@@ -452,5 +488,81 @@ export class DishCategoriesRepository {
     });
 
     return result;
+  }
+
+  /**
+   * #757 【仕様】特徴量（core_ingredient / cooking_method）を一括取得
+   * @param categoryIds 対象カテゴリIDリスト
+   * @returns カテゴリIDごとの特徴量セット（逐次最適化の重複ペナルティ計算用）
+   */
+  async findCategoryPenaltyFeatures(
+    categoryIds: string[],
+  ): Promise<Map<string, DishCategoryPenaltyFeatureSet>> {
+    this.logger.debug(
+      'FindCategoryPenaltyFeatures',
+      'findCategoryPenaltyFeatures',
+      {
+        categoryIdsCount: categoryIds.length,
+      },
+    );
+
+    if (categoryIds.length === 0) {
+      return new Map();
+    }
+
+    // #757 【設計】core_ingredient と cooking_method を一括取得（N+1回避）
+    const penaltyFeatures =
+      await this.prisma.prisma.dish_category_features.findMany({
+        where: {
+          dish_category_id: { in: categoryIds },
+          feature_type: { in: ['core_ingredient', 'cooking_method'] },
+        },
+        select: {
+          dish_category_id: true,
+          feature_type: true,
+          feature_key: true,
+          score: true,
+        },
+      });
+
+    // #757 【設計】カテゴリIDごとにグループ化
+    const penaltyFeatureMap = new Map<string, DishCategoryPenaltyFeatureSet>();
+
+    for (const categoryId of categoryIds) {
+      penaltyFeatureMap.set(categoryId, {
+        category_id: categoryId,
+        core_ingredients: [],
+        cooking_methods: [],
+      });
+    }
+
+    for (const penaltyFeature of penaltyFeatures) {
+      const categoryPenaltyFeatures = penaltyFeatureMap.get(
+        penaltyFeature.dish_category_id,
+      );
+      if (!categoryPenaltyFeatures) continue;
+
+      const penaltyFeatureData = {
+        feature_key: penaltyFeature.feature_key,
+        score: penaltyFeature.score,
+      };
+
+      if (penaltyFeature.feature_type === 'core_ingredient') {
+        categoryPenaltyFeatures.core_ingredients.push(penaltyFeatureData);
+      } else if (penaltyFeature.feature_type === 'cooking_method') {
+        categoryPenaltyFeatures.cooking_methods.push(penaltyFeatureData);
+      }
+    }
+
+    this.logger.debug(
+      'CategoryPenaltyFeaturesFound',
+      'findCategoryPenaltyFeatures',
+      {
+        count: penaltyFeatureMap.size,
+        totalFeatures: penaltyFeatures.length,
+      },
+    );
+
+    return penaltyFeatureMap;
   }
 }

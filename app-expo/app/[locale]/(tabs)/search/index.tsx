@@ -43,6 +43,7 @@ import { TutorialBottomSheet } from "@/features/search/components/TutorialBottom
 import { useSearchTutorial } from "@/features/search/hooks/useSearchTutorial";
 import { Image } from "expo-image";
 import { PrimaryButton } from "@/components/PrimaryButton";
+import { useIsFocused } from "@react-navigation/native";
 
 // #667 【設計】画面幅ベースでアイテムサイズを計算（4列グリッド）
 const SCREEN_WIDTH = Dimensions.get("window").width;
@@ -251,10 +252,15 @@ export default function SearchScreen() {
 	const { hasSeenTutorial, isLoading: isTutorialLoading, markTutorialAsSeen } = useSearchTutorial();
 	// チュートリアル初期処理実行済みフラグ
 	const didInitTutorialState = useRef(false);
+	// チュートリアル表示制御のため、画面がフォーカスされているかを判定
+	const isFocused = useIsFocused();
 
 	useEffect(() => {
+		if (!isFocused) return;
 		if (isTutorialLoading) return;
+		if (hasSeenTutorial === null) return;
 		if (didInitTutorialState.current) return;
+
 		didInitTutorialState.current = true;
 
 		if (!isJapanese) {
@@ -285,7 +291,7 @@ export default function SearchScreen() {
 				})
 				.catch(console.error);
 		}
-	}, [isTutorialLoading, hasSeenTutorial, logFrontendEvent, getCurrentLocation, isJapanese]);
+	}, [isFocused, isTutorialLoading, hasSeenTutorial, logFrontendEvent, getCurrentLocation, isJapanese]);
 
 	// #642 【設計】ヘルプアイコンからチュートリアルを手動で開く
 	const handleOpenTutorial = () => {

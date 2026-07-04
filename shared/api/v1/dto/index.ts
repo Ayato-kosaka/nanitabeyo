@@ -42,6 +42,8 @@ export { QueryMeRestaurantBidsDto } from "./users/query-me-restaurant-bids.dto";
 export { QueryMeSavedDishCategoriesDto } from "./users/query-me-saved-dish-categories.dto";
 export { QueryMeSavedDishMediaDto } from "./users/query-me-saved-dish-media.dto";
 export { QuerySavedRestaurantsDto } from "./users/query-saved-restaurants.dto";
+export { QueryMeBlockedDishCategoriesDto } from "./users/query-me-blocked-dish-categories.dto";
+export { UnblockDishCategoryParamsDto } from "./users/unblock-dish-category-params.dto";
 
 export { CreateFeedbackDto } from "./feedback/create-feedback.dto";
 
@@ -54,3 +56,9 @@ export { CreateFrontendLogDto } from "./logs/create-frontend-log.dto";
 
 export { QueryNotificationsDto } from "./notifications/query-notifications.dto";
 export { CreateDeviceTokenDto } from "./notifications/create-device-token.dto";
+
+export { CreateDishCategoryGroupVoteDto } from "./dish-category-group-votes/create-dish-category-group-vote.dto";
+export { SubmitDishCategoryGroupVoteDto } from "./dish-category-group-votes/submit-dish-category-group-vote.dto";
+export {
+	UpdateDishCategoryGroupVoteCandidateDishMediaDto,
+} from "./dish-category-group-votes/update-dish-category-group-vote-candidate-dish-media.dto";

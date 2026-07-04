@@ -171,7 +171,7 @@ ALTER TABLE `${DATASET}.dish_category_catalog`
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `${DATASET}.dish_category_localized_text_catalog` (
   item_qid        STRING NOT NULL,   -- dish_category QID
-  locale          STRING NOT NULL,   -- BCP47 形式（'ja-JP', 'en'）
+  locale          STRING NOT NULL,   -- BCP47 形式（'ja', 'en'）
   topic_title     STRING NOT NULL,   -- 感情訴求型タイトル（最大12-14文字）
   tagline         STRING NOT NULL,   -- キャッチコピー（最大45文字）
   source          STRING NOT NULL,   -- 'llm' / 'manual'

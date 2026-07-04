@@ -6,7 +6,7 @@ import DishMediaContent from "./DishMediaContent";
 import { AvatarBubbleMarker } from "@/features/mapMarkers";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
-import * as Crypto from "expo-crypto";
+import { generateUUID } from "@/lib/uuid";
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from "react-native-reanimated";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import {
@@ -24,6 +24,7 @@ import { useActionSheet } from "@expo/react-native-action-sheet";
 import { useDishMediaActions } from "../hooks/useDishMediaActions";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
+import { useDishMediaBackgroundImageResources } from "@/features/dishMedia/hooks/useDishMediaBackgroundImageResources";
 
 const { width, height } = Dimensions.get("window");
 
@@ -95,6 +96,14 @@ export default function DishMediaMap({
 			}));
 	}, [ids, idType]);
 
+	// #802 【責務分離】Map は ids とレイアウト/Carousel 制御だけを担い、背景画像 preload の最小購読は hook に閉じる。
+	const backgroundImagesSessionKey = useMemo(() => `${entriesKey}::${idType}::${ids.join(",")}`, [entriesKey, idType, ids]);
+	const { getBackgroundImageState } = useDishMediaBackgroundImageResources({
+		ids,
+		idType,
+		sessionKey: backgroundImagesSessionKey,
+	});
+
 	const [currentIndex, setCurrentIndex] = useState(initialIndex);
 	const carouselRef = useRef<any>(null);
 	const mapRef = useRef<any>(null);
@@ -102,7 +111,7 @@ export default function DishMediaMap({
 	const { logFrontendEvent } = useLogger();
 
 	// 一意なセッションID（DishMediaContent へ伝搬）
-	const sessionId = useRef(Crypto.randomUUID());
+	const sessionId = useRef(generateUUID());
 
 	// #605 【設計】Carousel の上下移動量（0 = Expanded, MAX_TRANSLATE_Y = Collapsed）
 	const MAX_TRANSLATE_Y = height * (EXPANDED_RATIO - COLLAPSED_RATIO);
@@ -299,10 +308,11 @@ export default function DishMediaMap({
 					idType={idType}
 					onCardPress={handleCardPress} // #613 【設計】カード押下時のコールバックを渡す
 					displayIndex={index}
+					backgroundImageState={getBackgroundImageState(item)}
 				/>
 			</View>
 		),
-		[currentIndex, getTitle, entriesKey, idType, handleCardPress],
+		[currentIndex, getTitle, entriesKey, idType, handleCardPress, getBackgroundImageState],
 	);
 
 	// #638 【設計】現在選択中のエントリーを取得

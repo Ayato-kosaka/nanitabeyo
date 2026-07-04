@@ -29,3 +29,16 @@ export interface DishCategoryCandidateWithScores {
   random_unit: number;
   order_score: number;
 }
+
+// #757 【設計】ペナルティ計算用特徴量データ（core_ingredient / cooking_method）
+export interface DishCategoryPenaltyFeature {
+  feature_key: string;
+  score: number;
+}
+
+// #757 【設計】カテゴリごとのペナルティ計算用特徴量セット
+export interface DishCategoryPenaltyFeatureSet {
+  category_id: string;
+  core_ingredients: DishCategoryPenaltyFeature[];
+  cooking_methods: DishCategoryPenaltyFeature[];
+}

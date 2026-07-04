@@ -3,6 +3,16 @@
 """
 main.py
 
+【注意】
+このスクリプトは簡易的な一括実行ルートですが、標準の実行ルートは 1_1, 1_2, 1_3 の段階実行です。
+#741 以降、1_2_fetch_and_load_nodes.py は food_roots テーブル駆動に移行しており、
+main.py は旧来の動作（ハードコード FOOD_ROOTS）を維持しています。
+
+推奨実行方法:
+  python3 1_1_create_tables.py
+  python3 1_2_fetch_and_load_nodes.py
+  python3 1_3_generate_paths_and_summary.py
+
 【目的】
 Wikidata から料理・飲み物のグラフ構造を取得し、BigQuery に構造化する
 

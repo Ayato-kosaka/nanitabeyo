@@ -24,6 +24,8 @@ import { useDialog } from "@/contexts/DialogProvider";
 import { Env } from "@/constants/Env";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
+import { useRouter } from "expo-router";
+import { useLocale } from "@/hooks/useLocale";
 
 interface SettingsMenuItemProps {
 	label: string;
@@ -46,8 +48,10 @@ function SettingsMenuItem({ label, onPress, isLast, textStyle }: SettingsMenuIte
 
 export default function SettingsScreen() {
 	const { logout, user } = useAuth();
+	const router = useRouter();
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
+	const { locale } = useLocale();
 	const { showDialog } = useDialog();
 	const { showSnackbar } = useSnackbar();
 	const [selectedLegalDocument, setSelectedLegalDocument] = useState<
@@ -63,6 +67,20 @@ export default function SettingsScreen() {
 		open: openLegalDocumentModal,
 		close: closeLegalDocumentModal,
 	} = useBlurModal({ intensity: 100 });
+
+	// #747 【設計】ブロック済みトピック管理画面への遷移
+	const handleNavigateToBlockedTopics = useCallback(() => {
+		lightImpact();
+		logFrontendEvent({
+			event_name: "settings_blocked_topics_pressed",
+			error_level: "log",
+			payload: {},
+		});
+		router.push({
+			pathname: "/[locale]/(tabs)/profile/blocked-topics",
+			params: { locale },
+		});
+	}, [lightImpact, logFrontendEvent, router, locale]);
 
 	// #611 【設計】ストア直接遷移（market:// / itms-apps:// → https:// フォールバック）
 	const openStoreReviewPage = useCallback(async () => {
@@ -240,10 +258,11 @@ export default function SettingsScreen() {
 	}, [lightImpact, openFeedbackModal, logFrontendEvent, user?.id]);
 
 	const handleFeedbackSubmit = useCallback(
-		(data: { type: "request" | "bug"; title: string; message: string; issueNumber: number; issueUrl: string }) => {
+		(_data: { type: "request" | "bug"; title: string; message: string; issueNumber: number; issueUrl: string }) => {
+			showSnackbar(i18n.t("Feedback.success.submitted"));
 			closeFeedbackModal();
 		},
-		[closeFeedbackModal, logFrontendEvent],
+		[closeFeedbackModal, showSnackbar],
 	);
 
 	return (
@@ -254,17 +273,19 @@ export default function SettingsScreen() {
 						<Text style={styles.title}>{i18n.t("Settings.title")}</Text>
 					</View>
 
-					{/* Card 1: フィードバック・レビュー */}
+					{/* Card 1: フィードバック・レビュー・ブロック済みトピック */}
 					<Card style={styles.card}>
-						<SettingsMenuItem
-							label={i18n.t("Settings.sendFeedback")}
-							onPress={handleSendFeedback}
-							isLast={Platform.OS === "web"}
-						/>
+						<SettingsMenuItem label={i18n.t("Settings.sendFeedback")} onPress={handleSendFeedback} />
 						{/* #317 【設計】Leave Review は web では非表示 */}
 						{Platform.OS !== "web" && (
-							<SettingsMenuItem label={i18n.t("Settings.leaveReview")} onPress={handleLeaveReview} isLast />
+							<SettingsMenuItem label={i18n.t("Settings.leaveReview")} onPress={handleLeaveReview} />
 						)}
+						{/* #747 【設計】ブロック済みの料理トピック管理画面へ遷移 */}
+						<SettingsMenuItem
+							label={i18n.t("Settings.blockedTopics.navigationLabel")}
+							onPress={handleNavigateToBlockedTopics}
+							isLast
+						/>
 					</Card>
 
 					{/* Card 2: Legal ＋ Logout */}

@@ -14,9 +14,9 @@ import { SeoOverride } from "@/contexts/SeoContext/SeoProvider";
 import { resolvePublicLocale, SITE_NAME_BY_PUBLIC_LOCALE } from "@/constants/seoLocales";
 
 export default function PostsScreen() {
-	const { ids } = useLocalSearchParams<{ ids?: string | string[] }>();
+	const { ids, entriesKey: entriesKeyParam } = useLocalSearchParams<{ ids?: string | string[]; entriesKey?: string | string[] }>();
 	const { callBackend } = useAPICall();
-	const entriesKey = "PostsScreen";
+	const entriesKey = typeof entriesKeyParam === "string" && entriesKeyParam.length > 0 ? entriesKeyParam : "PostsScreen";
 
 	const [seoData, setSeoData] = useState<SeoOverride["data"]>({});
 
@@ -54,12 +54,12 @@ export default function PostsScreen() {
 		return () => {
 			clearByKey(entriesKey);
 		};
-	}, [ids, callBackend]);
+	}, [callBackend, entriesKey, ids]);
 
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
 			{/* #688 【設計】Web Deep Linking バナー（アプリ未インストール時の導線） */}
-			<OpenInAppBanner path="posts" params={{ ids }} />
+			<OpenInAppBanner path="posts" params={{ ids, entriesKey }} />
 			<DishMediaMap entriesKey={entriesKey} idType="dish_media" />
 		</LinearGradient>
 	);

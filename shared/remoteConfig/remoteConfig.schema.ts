@@ -29,6 +29,8 @@ export const remoteConfigSchema = z.object({
 	dish_category_recommendation_weight_market_salience: z.string(),
 	dish_category_recommendation_weight_dine_out_orderability: z.string(),
 	dish_category_recommendation_score_jitter_ratio: z.string(),
+	dish_category_recommendation_penalty_weight_core_ingredient: z.string(),
+	dish_category_recommendation_penalty_weight_cooking_method: z.string(),
 });
 
 export type RemoteConfigValues = z.infer<typeof remoteConfigSchema>;

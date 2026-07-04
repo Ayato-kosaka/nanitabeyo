@@ -40,6 +40,39 @@
 		"downloadApp": "تنزيل التطبيق",
 		"viewInBrowser": "متابعة في المتصفح"
 	},
+	"DishCategoryGroupVotes": {
+		"resultTitle": "نتائج تصويت المجموعة",
+		"resultSubtitle": "راجع الخيارات وصوّت لتفضيلاتك.",
+		"resultSubtitleVoted": "يمكنك مراجعة النتائج الحالية.",
+		"copyShareLink": "نسخ رابط المشاركة",
+		"voteCta": "تصويت",
+		"candidatesTitle": "الخيارات",
+		"commentsTitle": "التعليقات",
+		"viewRestaurants": "عرض المطاعم",
+		"loadingRestaurants": "جارٍ البحث",
+		"noRestaurantsFound": "لم يتم العثور على مطاعم قريبة",
+		"openRestaurantsPending": "ربط قائمة المطاعم لم يُنفذ بعد",
+		"deleteCandidate": "حذف الخيار",
+		"deleteCandidateTitle": "هل تريد حذف هذا الخيار؟",
+		"deleteCandidateMessage": "إخفاء {{name}} من خيارات التصويت.",
+		"loadFailed": "تعذر تحميل التصويت",
+		"refreshFailed": "تعذر تحديث النتائج",
+		"like": "أعجبني",
+		"dislike": "تخطي",
+		"voteProgress": "{{current}} / {{total}}",
+		"noVoteCandidates": "لا توجد خيارات للتصويت",
+		"completionTitle": "أكّد تصويتك",
+		"completionDescription": "أدخل الاسم الذي سيظهر في النتائج وتعليقًا اختياريًا.",
+		"nameSuggestionLabel": "يمكنك استخدام أحد هذه كاسم",
+		"displayNamePlaceholder": "الاسم المستعار",
+		"commentPlaceholder": "تعليق (اختياري)",
+		"submitVote": "إكمال التصويت",
+		"submitting": "جارٍ الإرسال",
+		"submitFailed": "تعذر إرسال تصويتك",
+		"participantsList": "المشاركون: {{names}}",
+		"noParticipants": "لا يوجد مشاركون بعد",
+		"noVotes": "لا توجد أصوات بعد"
+	},
 	"Error": {
 		"maintenanceMessage": "نحن حالياً نقوم بأعمال صيانة.",
 		"unsupportedVersion": "هذا الإصدار لم يعد مدعومًا."
@@ -62,6 +95,11 @@
 			"noTimeSlotSelected": "يرجى اختيار فترة زمنية",
 			"noSceneSelected": "يرجى اختيار مشهد",
 			"searchFailed": "فشل البحث"
+		},
+		"googleMapsFallback": {
+			"message": "بيانات المطاعم محدودة في هذه المنطقة. هل تريد فتحها في خرائط Google؟",
+			"confirm": "فتح خرائط Google",
+			"cancel": "إغلاق"
 		},
 		"sections": {
 			"location": "أين تبحث؟",
@@ -190,6 +228,19 @@
 		"retry": "العودة إلى البحث",
 		"chooseThis": "اختر هذا!",
 		"hiddenMessage": "تم إخفاء {{title}}",
+		"BlockTopicModal": {
+			"title": "حظر هذا الطبق؟",
+			"description": "لن تظهر مواضيع هذا الطبق المحظور بعد الآن في التوصيات.",
+			"note": "يمكنك إلغاء الحظر في أي وقت من الإعدادات.",
+			"confirm": "حظر"
+		},
+		"blockedMessage": "تم حظر {{title}}",
+		"reloadDialog": {
+			"title": "هل تريد العثور على المزيد من الخيارات؟",
+			"message": "هناك عدد قليل فقط من التوصيات الآن. سنبحث مرة أخرى باستخدام نفس الشروط.",
+			"confirm": "ابحث مرة أخرى",
+			"cancel": "إغلاق"
+		},
 		"imageLoadFailed": "فشل تحميل الصورة",
 		"tapToReload": "اضغط لإعادة التحميل",
 		"headerTitle": "الأطباق الموصى بها لك",
@@ -496,6 +547,9 @@
 			"titleLength": "يجب أن يكون العنوان بين 5 و 80 حرفاً",
 			"messageLength": "يجب أن تكون الرسالة بين 10 و 2000 حرف",
 			"submitFailed": "فشل في إرسال الملاحظات. يرجى المحاولة مرة أخرى."
+		},
+		"success": {
+			"submitted": "شكرًا لملاحظاتك!"
 		}
 	},
 	"auth": {
@@ -544,7 +598,19 @@
 		"privacy": "سياسة الخصوصية",
 		"copyright": "حقوق النشر",
 		"legalDocument": "مستند قانوني",
-		"logout": "تسجيل الخروج"
+		"logout": "تسجيل الخروج",
+		"blockedTopics": {
+			"navigationLabel": "مواضيع الأطباق المحظورة",
+			"pageTitle": "مواضيع الأطباق المحظورة",
+			"title": "أطباق محظورة",
+			"empty": "لا توجد أطباق محظورة",
+			"loading": "جاري التحميل...",
+			"unblockButton": "إلغاء الحظر",
+			"unblockTitle": "إلغاء حظر هذا الموضوع؟",
+			"unblockMessage": "ستتم إضافة هذا الموضوع إلى التوصيات مرة أخرى.",
+			"unblockConfirm": "إلغاء الحظر",
+			"unblocked": "تم إلغاء الحظر"
+		}
 	},
 	"Dialog": {
 		"a11y": {

@@ -1,17 +1,19 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { MapPin, Clock, Users, Salad, ChefHat } from "lucide-react-native";
+import { MapPin, Clock, Users, Salad, ChefHat, RefreshCw } from "lucide-react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import Carousel from "react-native-reanimated-carousel";
 import { Image } from "expo-image";
 import { Topic, SearchParams } from "@/types/search";
 import { useTopicSearch } from "@/features/topics/hooks/useTopicSearch";
-import { useHideTopic } from "@/features/topics/hooks/useHideTopic";
+import { useBlockTopic } from "@/features/topics/hooks/useBlockTopic";
 import { TopicCard } from "@/features/topics/components/TopicCard";
+import { useTopicImageResources } from "@/features/topics/hooks/useTopicImageResources";
 import { TopicsLoading } from "@/features/topics/components/TopicsLoading";
 import { TopicsError } from "@/features/topics/components/TopicsError";
-import { HideTopicForm } from "@/features/topics/components/HideTopicForm";
+import { BlockTopicForm } from "@/features/topics/components/BlockTopicForm";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
+import { useDialog } from "@/contexts/DialogProvider";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { CARD_WIDTH, CARD_MAX_HEIGHT, width as SCREEN_WIDTH } from "@/features/topics/constants";
 import { timeSlots, sceneOptions, moodOptions, tasteOptions } from "@/features/search/constants";
@@ -22,6 +24,8 @@ import { useLogger } from "@/hooks/useLogger";
 import { makeDishMediaEntriesKey } from "@/features/dishMedia/utils/dishMediaEntriesKey";
 import { WIKIMEDIA_HEADERS } from "@/lib/wikimedia";
 import { SearchHeader } from "@/features/search/components/SearchHeader";
+import { useCreateDishCategoryGroupVote } from "@/features/dishCategoryGroupVotes/hooks/useCreateDishCategoryGroupVote";
+import type { CreateDishCategoryGroupVoteResponse } from "@shared/api/v1/res";
 
 export default function TopicsScreen() {
 	const { locale } = useLocale();
@@ -40,16 +44,18 @@ export default function TopicsScreen() {
 	const [isScrolling, setIsScrolling] = useState(false);
 	const [currentIndex, setCurrentIndex] = useState(0);
 	const carouselRef = useRef<any>(null);
+	const createdGroupVoteRef = useRef<CreateDishCategoryGroupVoteResponse | null>(null);
 	const { selectionChanged } = useHaptics();
 
-	const { topics, isLoading, error, searchTopics, hideTopic, createDishItemsPromise } = useTopicSearch();
+	const { topics, isLoading, error, searchTopics, refillTopics, hideTopic, createDishItemsPromise } = useTopicSearch();
 	const { showSnackbar } = useSnackbar();
+	const { showDialog } = useDialog();
 	const {
-		BlurModal: HideTopicBlurModal,
-		close: closeHideModal,
-		handleHideCard,
-		confirmHideCard,
-	} = useHideTopic(topics, hideTopic, showSnackbar);
+		BlurModal: BlockTopicBlurModal,
+		handleBlockCard,
+		confirmBlockCard,
+	} = useBlockTopic(topics, hideTopic, showSnackbar);
+	const { createGroupVote, isCreating } = useCreateDishCategoryGroupVote();
 
 	useEffect(() => {
 		if (params) {
@@ -99,7 +105,6 @@ export default function TopicsScreen() {
 						params.priceLevels,
 					);
 					upsertDishMediaEntries(dishItems);
-					console.log("getIds dishItems:", dishItems);
 					return dishItems.map((item) => String(item.dish_media.id));
 				};
 				updateMediaIdsByKeyAsync(entriesKey, getIds(), (_, fetched) => fetched);
@@ -111,6 +116,8 @@ export default function TopicsScreen() {
 					locale,
 					entriesKey, // #633 【設計】topicId ではなく entriesKey を渡す
 					...(params && { location: JSON.stringify(params.location) }),
+					// #828 【設計】0件時のGoogle Maps検索はresult画面で判断するため、表示中カテゴリを渡す。
+					category: topic.category,
 				},
 			});
 			// #633 【設計】分析基盤互換のため移行期間は topicId と entriesKey を併記
@@ -127,7 +134,60 @@ export default function TopicsScreen() {
 		router.back();
 	};
 
-	const visibleTopics = topics.filter((topic) => !topic.isHidden);
+	const visibleTopics = useMemo(() => topics.filter((topic) => !topic.isHidden), [topics]);
+
+	useEffect(() => {
+		createdGroupVoteRef.current = null;
+	}, [searchParams]);
+	const handleOpenGroupVote = useCallback(async () => {
+		if (!params) {
+			showSnackbar(i18n.t("Topics.errors.invalidSearchParams"));
+			return;
+		}
+
+		const cachedResponse = createdGroupVoteRef.current;
+		if (cachedResponse) {
+			logFrontendEvent({
+				event_name: "dish_category_group_vote_create_reused",
+				error_level: "log",
+				payload: { shareToken: cachedResponse.shareToken },
+			});
+			router.push({
+				pathname: "/[locale]/(tabs)/search/dish-category-group-votes/[shareToken]",
+				params: {
+					locale,
+					shareToken: cachedResponse.shareToken,
+				},
+			});
+			return;
+		}
+
+		try {
+			const response = await createGroupVote({ searchParams: params, topics: visibleTopics });
+			createdGroupVoteRef.current = response;
+			router.push({
+				pathname: "/[locale]/(tabs)/search/dish-category-group-votes/[shareToken]",
+				params: {
+					locale,
+					shareToken: response.shareToken,
+				},
+			});
+		} catch {
+			showSnackbar(i18n.t("Topics.errors.fetchFailed"));
+		}
+	}, [createGroupVote, locale, logFrontendEvent, params, showSnackbar, visibleTopics]);
+
+	const { getImageState, retryImage } = useTopicImageResources({
+		topics: visibleTopics,
+		sessionKey: searchParams ?? "",
+	});
+
+	useEffect(() => {
+		setCurrentIndex(0);
+		if (carouselRef.current) {
+			carouselRef.current.scrollTo({ index: 0, animated: false });
+		}
+	}, [searchParams]);
 
 	// #615 visibleTopics 変化時に currentIndex を範囲内に clamp（範囲外アクセス防止）
 	useEffect(() => {
@@ -185,11 +245,21 @@ export default function TopicsScreen() {
 		return Math.min(heightWithMargin, CARD_MAX_HEIGHT);
 	}, [carouselAvailableHeight]);
 
-	const renderCard = ({ item, index }: { item: Topic; index: number }) => (
-		<TouchableOpacity key={item.categoryId} activeOpacity={0.95} onPress={handleCardPress}>
-			<TopicCard item={item} onHide={handleHideCard} displayIndex={index} cardHeight={cardHeight} />
-		</TouchableOpacity>
-	);
+	const renderCard = ({ item, index }: { item: Topic; index: number }) => {
+		const imageState = getImageState(item);
+		return (
+			<TouchableOpacity key={item.categoryId} activeOpacity={0.95} onPress={handleCardPress}>
+				<TopicCard
+					item={item}
+					onBlock={handleBlockCard}
+					displayIndex={index}
+					cardHeight={cardHeight}
+					imageState={imageState}
+					onImageRetry={retryImage}
+				/>
+			</TouchableOpacity>
+		);
+	};
 
 	if (isLoading) {
 		return <TopicsLoading />;
@@ -199,10 +269,52 @@ export default function TopicsScreen() {
 		return <TopicsError error={error} onBack={handleBack} />;
 	}
 
+	// #747 【仕様】リロードアイコンの表示条件：params が存在 && 表示中のトピックが0〜3件
+	const shouldShowReload = !!params && visibleTopics.length >= 0 && visibleTopics.length <= 3;
+
+	const handleReloadRecommendations = () => {
+		if (!params) return;
+		showDialog(i18n.t("Topics.reloadDialog.message"), {
+			title: i18n.t("Topics.reloadDialog.title"),
+			okLabel: i18n.t("Topics.reloadDialog.confirm"),
+			cancelLabel: i18n.t("Topics.reloadDialog.cancel"),
+			onConfirm: async () => {
+				try {
+					await refillTopics(params);
+				} catch {
+					showSnackbar(i18n.t("Topics.errors.fetchFailed"));
+				}
+			},
+		});
+	};
+
 	return (
 		<View style={styles.container}>
 			{/* #674 【仕様】ヘッダー（戻るボタン + タイトル） */}
-			<SearchHeader title={i18n.t("Topics.headerTitle")} onPressBack={handleBack} />
+			<SearchHeader
+				title={i18n.t("Topics.headerTitle")}
+				onPressBack={handleBack}
+				rightContent={
+					<View style={styles.headerActions}>
+						<TouchableOpacity
+							onPress={handleOpenGroupVote}
+							disabled={isCreating}
+							accessibilityRole="button"
+							accessibilityLabel={i18n.t("DishCategoryGroupVotes.resultTitle")}
+							style={[styles.headerActionButton, isCreating && styles.headerActionButtonDisabled]}>
+							<Users size={20} color="#1A1A1A" />
+						</TouchableOpacity>
+						{shouldShowReload && (
+							<TouchableOpacity
+								onPress={handleReloadRecommendations}
+								accessibilityRole="button"
+								style={styles.headerActionButton}>
+								<RefreshCw size={20} color="#1A1A1A" />
+							</TouchableOpacity>
+						)}
+					</View>
+				}
+			/>
 
 			{/* #674 【仕様】条件チップ表示 */}
 			{params && (
@@ -313,16 +425,9 @@ export default function TopicsScreen() {
 				)}
 			</View>
 
-			<HideTopicBlurModal>
-				{({ close }) => (
-					<HideTopicForm
-						onSubmit={(hideReason) => {
-							confirmHideCard(hideReason);
-						}}
-						onCancel={close}
-					/>
-				)}
-			</HideTopicBlurModal>
+			<BlockTopicBlurModal>
+				{({ close }) => <BlockTopicForm onSubmit={confirmBlockCard} onCancel={close} />}
+			</BlockTopicBlurModal>
 		</View>
 	);
 }
@@ -362,6 +467,18 @@ const styles = StyleSheet.create({
 		textAlign: "center",
 		paddingHorizontal: 20,
 		lineHeight: 20,
+	},
+	headerActions: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 8,
+		minHeight: 32,
+	},
+	headerActionButton: {
+		padding: 4,
+	},
+	headerActionButtonDisabled: {
+		opacity: 0.35,
 	},
 	retryButton: {
 		backgroundColor: "#F05537",
