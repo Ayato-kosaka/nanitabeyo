@@ -8,6 +8,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { AppLoggerService } from '../../core/logger/logger.service';
 import { RemoteConfigService } from '../../core/remote-config/remote-config.service';
 import { PrismaDishCategoryLocalizedText } from '../../../../shared/converters/convert_dish_category_localized_text';
+import type { SupabaseDishCategoryFeatures } from '../../../../shared/converters/convert_dish_category_features';
 import { Prisma } from '../../../../shared/prisma';
 import {
   DishCategoryCandidateNormalizedInput,
@@ -159,9 +160,12 @@ export class DishCategoriesRepository {
     addressTokens: DishCategoryCandidateNormalizedInput['addressTokens'];
     regionTokens: DishCategoryCandidateNormalizedInput['regionTokens'];
     regionFallbackKeys: DishCategoryCandidateNormalizedInput['regionFallbackKeys'];
+    budgetIntentKeys: DishCategoryCandidateNormalizedInput['budgetIntentKeys'];
     timeSlotKey: DishCategoryCandidateNormalizedInput['timeSlotKey'];
     sceneKey: DishCategoryCandidateNormalizedInput['sceneKey'];
     satietyKey: DishCategoryCandidateNormalizedInput['satietyKey'];
+    diningPaceKey: DishCategoryCandidateNormalizedInput['diningPaceKey'];
+    coreIngredientKey: DishCategoryCandidateNormalizedInput['coreIngredientKey'];
     tasteKey: DishCategoryCandidateNormalizedInput['tasteKey'];
     candidateLimit: number;
   }): Promise<DishCategoryCandidateWithScores[]> {
@@ -172,6 +176,9 @@ export class DishCategoriesRepository {
       wScene,
       wSatiety,
       wTaste,
+      wBudgetIntent,
+      wDiningPace,
+      wCoreIngredient,
       wMarketSalience,
       wDineOutOrderability,
       scoreJitterRatio,
@@ -181,6 +188,9 @@ export class DishCategoriesRepository {
         'dish_category_recommendation_weight_scene',
         'dish_category_recommendation_weight_satiety',
         'dish_category_recommendation_weight_taste',
+        'dish_category_recommendation_weight_budget_intent',
+        'dish_category_recommendation_weight_dining_pace',
+        'dish_category_recommendation_weight_core_ingredient',
         'dish_category_recommendation_weight_market_salience',
         'dish_category_recommendation_weight_dine_out_orderability',
         'dish_category_recommendation_score_jitter_ratio',
@@ -210,6 +220,9 @@ export class DishCategoriesRepository {
           wScene,
           wSatiety,
           wTaste,
+          wBudgetIntent,
+          wDiningPace,
+          wCoreIngredient,
           wMarketSalience,
           wDineOutOrderability,
           scoreJitterRatio,
@@ -227,9 +240,12 @@ export class DishCategoriesRepository {
           ${params.addressTokens}::text[] AS address_tokens,
           ${params.regionTokens}::text[] AS region_tokens,
           ${params.regionFallbackKeys}::text[] AS region_fallback_keys,
+          ${params.budgetIntentKeys}::text[] AS budget_intent_keys,
           ${params.timeSlotKey}::text AS time_slot_key,
           ${params.sceneKey}::text AS scene_key,
           ${params.satietyKey}::text AS satiety_key,
+          ${params.diningPaceKey}::text AS dining_pace_key,
+          ${params.coreIngredientKey}::text AS core_ingredient_key,
           ${params.tasteKey}::text AS taste_key,
           ${params.candidateLimit}::int AS candidate_limit
       ),
@@ -239,6 +255,9 @@ export class DishCategoriesRepository {
           ${wScene}::numeric AS w_scene,
           ${wSatiety}::numeric AS w_sat,
           ${wTaste}::numeric AS w_taste,
+          ${wBudgetIntent}::numeric AS w_budget_intent,
+          ${wDiningPace}::numeric AS w_dining_pace,
+          ${wCoreIngredient}::numeric AS w_core_ingredient,
           ${wMarketSalience}::numeric AS w_market_salience,
           ${wDineOutOrderability}::numeric AS w_dine_out_orderability,
           ${Math.min(Math.max(scoreJitterRatio, 0), 1)}::numeric AS score_jitter_ratio
@@ -262,23 +281,37 @@ export class DishCategoriesRepository {
           AND r.target_type = 'dish_categories'
           AND r.action_type = 'block'
       ),
-      -- #533 【設計】条件系特徴量（timeSlot/scene/satiety/taste）を LEFT JOIN
+      -- #876 【設計】条件系特徴量を LEFT JOIN
       base_candidates AS (
         SELECT
           roc.category_id,
           dc.macro_genre_qid AS macro_genre,
+          -- budget_intent
+          bi_feat.score AS bi_score,
           -- timeSlot
           ts_feat.score AS ts_score,
           -- scene
           sc_feat.score AS sc_score,
           -- satiety
           sat_feat.score AS sat_score,
+          -- dining_pace
+          dp_feat.score AS dp_score,
+          -- core_ingredient
+          ci_feat.score AS ci_score,
           -- taste
           t_feat.score AS t_score
         FROM region_ok_categories roc
         CROSS JOIN params p
         JOIN dish_categories dc ON dc.id = roc.category_id
         LEFT JOIN blocked_categories bc ON bc.category_id = roc.category_id
+        -- budget_intent
+        LEFT JOIN LATERAL (
+          SELECT MAX(dcf.score) AS score
+          FROM dish_category_features dcf
+          WHERE dcf.dish_category_id = roc.category_id
+            AND dcf.feature_type = 'budget_intent'
+            AND dcf.feature_key = ANY(p.budget_intent_keys)
+        ) bi_feat ON true
         -- timeSlot
         LEFT JOIN dish_category_features ts_feat
           ON ts_feat.dish_category_id = roc.category_id
@@ -294,6 +327,16 @@ export class DishCategoriesRepository {
           ON sat_feat.dish_category_id = roc.category_id
           AND sat_feat.feature_type = 'satiety'
           AND sat_feat.feature_key = p.satiety_key
+        -- dining_pace
+        LEFT JOIN dish_category_features dp_feat
+          ON dp_feat.dish_category_id = roc.category_id
+          AND dp_feat.feature_type = 'dining_pace'
+          AND dp_feat.feature_key = p.dining_pace_key
+        -- core_ingredient
+        LEFT JOIN dish_category_features ci_feat
+          ON ci_feat.dish_category_id = roc.category_id
+          AND ci_feat.feature_type = 'core_ingredient'
+          AND ci_feat.feature_key = p.core_ingredient_key
         -- taste
         LEFT JOIN dish_category_features t_feat
           ON t_feat.dish_category_id = roc.category_id
@@ -306,40 +349,55 @@ export class DishCategoriesRepository {
         SELECT
           bc.category_id,
           bc.macro_genre,
+          COALESCE(bc.bi_score, 0) AS budget_intent_score,
           COALESCE(bc.ts_score, 0) AS time_slot_score,
           COALESCE(bc.sc_score, 0) AS scene_score,
           COALESCE(bc.sat_score, 0) AS satiety_score,
+          COALESCE(bc.dp_score, 0) AS dining_pace_score,
+          COALESCE(bc.ci_score, 0) AS core_ingredient_score,
           COALESCE(bc.t_score, 0) AS taste_score,
           COALESCE(r.market_salience_score, 0) AS market_salience_score,
           COALESCE(r.dine_out_orderability_score, 0) AS dine_out_orderability_score,
           -- weight_sum: 指定された条件のweightのみ加算
           (
+            CASE WHEN COALESCE(array_length(p.budget_intent_keys, 1), 0) > 0 THEN w.w_budget_intent ELSE 0 END +
             CASE WHEN p.time_slot_key IS NOT NULL THEN w.w_time ELSE 0 END +
             CASE WHEN p.scene_key IS NOT NULL THEN w.w_scene ELSE 0 END +
             CASE WHEN p.satiety_key IS NOT NULL THEN w.w_sat ELSE 0 END +
+            CASE WHEN p.dining_pace_key IS NOT NULL THEN w.w_dining_pace ELSE 0 END +
+            CASE WHEN p.core_ingredient_key IS NOT NULL THEN w.w_core_ingredient ELSE 0 END +
             CASE WHEN p.taste_key IS NOT NULL THEN w.w_taste ELSE 0 END
           ) AS weight_sum,
           -- #533 【設計】weight_sum=0 のとき rel_score=1
           -- 検索条件が無いとき、market/orderability だけで回せるようにする
           CASE
             WHEN (
+              CASE WHEN COALESCE(array_length(p.budget_intent_keys, 1), 0) > 0 THEN w.w_budget_intent ELSE 0 END +
               CASE WHEN p.time_slot_key IS NOT NULL THEN w.w_time ELSE 0 END +
               CASE WHEN p.scene_key IS NOT NULL THEN w.w_scene ELSE 0 END +
               CASE WHEN p.satiety_key IS NOT NULL THEN w.w_sat ELSE 0 END +
+              CASE WHEN p.dining_pace_key IS NOT NULL THEN w.w_dining_pace ELSE 0 END +
+              CASE WHEN p.core_ingredient_key IS NOT NULL THEN w.w_core_ingredient ELSE 0 END +
               CASE WHEN p.taste_key IS NOT NULL THEN w.w_taste ELSE 0 END
             ) = 0
             THEN 1
             ELSE
               (
+                w.w_budget_intent * COALESCE(bc.bi_score, 0) +
                 w.w_time * COALESCE(bc.ts_score, 0) +
                 w.w_scene * COALESCE(bc.sc_score, 0) +
                 w.w_sat * COALESCE(bc.sat_score, 0) +
+                w.w_dining_pace * COALESCE(bc.dp_score, 0) +
+                w.w_core_ingredient * COALESCE(bc.ci_score, 0) +
                 w.w_taste * COALESCE(bc.t_score, 0)
               ) /
               (
+                CASE WHEN COALESCE(array_length(p.budget_intent_keys, 1), 0) > 0 THEN w.w_budget_intent ELSE 0 END +
                 CASE WHEN p.time_slot_key IS NOT NULL THEN w.w_time ELSE 0 END +
                 CASE WHEN p.scene_key IS NOT NULL THEN w.w_scene ELSE 0 END +
                 CASE WHEN p.satiety_key IS NOT NULL THEN w.w_sat ELSE 0 END +
+                CASE WHEN p.dining_pace_key IS NOT NULL THEN w.w_dining_pace ELSE 0 END +
+                CASE WHEN p.core_ingredient_key IS NOT NULL THEN w.w_core_ingredient ELSE 0 END +
                 CASE WHEN p.taste_key IS NOT NULL THEN w.w_taste ELSE 0 END
               )
           END AS rel_score
@@ -369,9 +427,12 @@ export class DishCategoriesRepository {
         SELECT 
           sc.category_id,
           sc.macro_genre,
+          sc.budget_intent_score,
           sc.time_slot_score,
           sc.scene_score,
           sc.satiety_score,
+          sc.dining_pace_score,
+          sc.core_ingredient_score,
           sc.taste_score,
           sc.rel_score,
           sc.market_salience_score,
@@ -404,9 +465,12 @@ export class DishCategoriesRepository {
       SELECT
         category_id,
         macro_genre,
+        budget_intent_score,
         time_slot_score,
         scene_score,
         satiety_score,
+        dining_pace_score,
+        core_ingredient_score,
         taste_score,
         rel_score,
         market_salience_score,
@@ -510,12 +574,12 @@ export class DishCategoriesRepository {
       return new Map();
     }
 
-    // #757 【設計】core_ingredient と cooking_method を一括取得（N+1回避）
+    // #876 【設計】core_ingredient / taste / cooking_method を一括取得（N+1回避）
     const penaltyFeatures =
       await this.prisma.prisma.dish_category_features.findMany({
         where: {
           dish_category_id: { in: categoryIds },
-          feature_type: { in: ['core_ingredient', 'cooking_method'] },
+          feature_type: { in: ['core_ingredient', 'taste', 'cooking_method'] },
         },
         select: {
           dish_category_id: true,
@@ -532,6 +596,7 @@ export class DishCategoriesRepository {
       penaltyFeatureMap.set(categoryId, {
         category_id: categoryId,
         core_ingredients: [],
+        taste_features: [],
         cooking_methods: [],
       });
     }
@@ -549,6 +614,8 @@ export class DishCategoriesRepository {
 
       if (penaltyFeature.feature_type === 'core_ingredient') {
         categoryPenaltyFeatures.core_ingredients.push(penaltyFeatureData);
+      } else if (penaltyFeature.feature_type === 'taste') {
+        categoryPenaltyFeatures.taste_features.push(penaltyFeatureData);
       } else if (penaltyFeature.feature_type === 'cooking_method') {
         categoryPenaltyFeatures.cooking_methods.push(penaltyFeatureData);
       }
@@ -564,5 +631,104 @@ export class DishCategoriesRepository {
     );
 
     return penaltyFeatureMap;
+  }
+
+  /**
+   * #876 【仕様】深掘り候補として返す特徴量を取得
+   */
+  async findCategoryDeepDiveFeatures(
+    categoryIds: string[],
+    scoreThreshold = 0.85,
+  ): Promise<
+    Map<
+      string,
+      Array<
+        Pick<
+          SupabaseDishCategoryFeatures,
+          'feature_type' | 'feature_key' | 'score'
+        >
+      >
+    >
+  > {
+    this.logger.debug(
+      'FindCategoryDeepDiveFeatures',
+      'findCategoryDeepDiveFeatures',
+      {
+        categoryIdsCount: categoryIds.length,
+        scoreThreshold,
+      },
+    );
+
+    if (categoryIds.length === 0) {
+      return new Map();
+    }
+
+    const features =
+      await this.prisma.prisma.dish_category_features.findMany({
+        where: {
+          dish_category_id: { in: categoryIds },
+          feature_type: {
+            in: ['budget_intent', 'dining_pace', 'taste', 'core_ingredient'],
+          },
+          score: { gt: scoreThreshold },
+        },
+        select: {
+          dish_category_id: true,
+          feature_type: true,
+          feature_key: true,
+          score: true,
+        },
+      });
+
+    const featurePriority = new Map<string, number>([
+      ['budget_intent', 0],
+      ['dining_pace', 1],
+      ['taste', 2],
+      ['core_ingredient', 3],
+    ]);
+
+    const grouped = new Map<
+      string,
+      Array<
+        Pick<
+          SupabaseDishCategoryFeatures,
+          'feature_type' | 'feature_key' | 'score'
+        >
+      >
+    >();
+    for (const categoryId of categoryIds) {
+      grouped.set(categoryId, []);
+    }
+
+    const sortedFeatures = [...features].sort((a, b) => {
+      const typeDiff =
+        (featurePriority.get(a.feature_type) ?? Number.MAX_SAFE_INTEGER) -
+        (featurePriority.get(b.feature_type) ?? Number.MAX_SAFE_INTEGER);
+      if (typeDiff !== 0) return typeDiff;
+      const scoreDiff = b.score - a.score;
+      if (scoreDiff !== 0) return scoreDiff;
+      return a.feature_key.localeCompare(b.feature_key);
+    });
+
+    for (const feature of sortedFeatures) {
+      const categoryFeatures = grouped.get(feature.dish_category_id);
+      if (!categoryFeatures) continue;
+      categoryFeatures.push({
+        feature_type: feature.feature_type,
+        feature_key: feature.feature_key,
+        score: feature.score,
+      });
+    }
+
+    this.logger.debug(
+      'CategoryDeepDiveFeaturesFound',
+      'findCategoryDeepDiveFeatures',
+      {
+        count: grouped.size,
+        totalFeatures: features.length,
+      },
+    );
+
+    return grouped;
   }
 }
