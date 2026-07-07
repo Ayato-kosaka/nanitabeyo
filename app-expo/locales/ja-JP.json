@@ -107,6 +107,8 @@
 			"scene": "だれと行く？",
 			"mood": "お腹の減り具合は？",
 			"taste": "テイストは？",
+			"diningPace": "食事にかける時間は？",
+			"foodStyle": "どんな系統が食べたい？",
 			"distance": "距離は？",
 			"budget": "価格帯は？",
 			"restrictions": "制約条件"
@@ -132,6 +134,12 @@
 		"labels": {
 			"noMinBudget": "下限なし",
 			"noMaxBudget": "上限なし"
+		},
+		"priceLevels": {
+			"inexpensive": "節約する",
+			"moderate": "お手頃に",
+			"expensive": "ちょい贅沢",
+			"veryExpensive": "高級"
 		},
 		"distanceLabels": {
 			"100m": "100m",
@@ -170,8 +178,17 @@
 			"sweet": "甘いもの",
 			"spicy": "辛いもの",
 			"healthy": "ヘルシー",
-			"junk": "ジャンク",
-			"alcohol": "お酒メイン"
+			"junk": "ジャンキー"
+		},
+		"coreIngredientOptions": {
+			"meat": "お肉メイン",
+			"fish": "魚介メイン",
+			"rice": "お米系",
+			"noodle": "麺系"
+		},
+		"diningPaceOptions": {
+			"quick": "さくっと過ごす",
+			"leisurely": "ゆっくり過ごす"
 		},
 		"restrictionOptions": {
 			"vegetarian": "ベジタリアン",
@@ -210,6 +227,9 @@
 		}
 	},
 	"Topics": {
+		"deepDive": {
+			"title": "この系統で絞る"
+		},
 		"HideTopicModal": {
 			"title": "非表示にする",
 			"description": "非表示にする理由を教えてください（任意）",

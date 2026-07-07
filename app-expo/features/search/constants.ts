@@ -38,7 +38,23 @@ export const tasteOptions = [
 	{ id: "spicy", label: "Search.tasteOptions.spicy", icon: "🌶️" },
 	{ id: "healthy", label: "Search.tasteOptions.healthy", icon: "🥬" },
 	{ id: "junk", label: "Search.tasteOptions.junk", icon: "🍔" },
-	{ id: "alcohol", label: "Search.tasteOptions.alcohol", icon: "🍺" },
+] as const;
+
+export const coreIngredientOptions = [
+	{ id: "meat", label: "Search.coreIngredientOptions.meat", icon: "🍖" },
+	{ id: "fish", label: "Search.coreIngredientOptions.fish", icon: "🐟" },
+	{ id: "rice", label: "Search.coreIngredientOptions.rice", icon: "🍚" },
+	{ id: "noodle", label: "Search.coreIngredientOptions.noodle", icon: "🍜" },
+] as const;
+
+export const foodStyleOptions = [
+	...tasteOptions.map((option) => ({ ...option, featureType: "taste" as const })),
+	...coreIngredientOptions.map((option) => ({ ...option, featureType: "core_ingredient" as const })),
+] as const;
+
+export const diningPaceOptions = [
+	{ id: "quick", label: "Search.diningPaceOptions.quick", icon: "🐇" },
+	{ id: "leisurely", label: "Search.diningPaceOptions.leisurely", icon: "🐢" },
 ] as const;
 
 // Distance options in meters
@@ -58,11 +74,36 @@ export const distanceOptions = [
 
 // Price level options (Google Maps PriceLevel enum compliant, excluding FREE)
 export const priceLevelOptions = [
-	{ value: "PRICE_LEVEL_INEXPENSIVE", label: "Search.priceLevels.inexpensive", icon: "💰" },
-	{ value: "PRICE_LEVEL_MODERATE", label: "Search.priceLevels.moderate", icon: "💰💰" },
-	{ value: "PRICE_LEVEL_EXPENSIVE", label: "Search.priceLevels.expensive", icon: "💰💰💰" },
-	{ value: "PRICE_LEVEL_VERY_EXPENSIVE", label: "Search.priceLevels.veryExpensive", icon: "💰💰💰💰" },
+	{ value: "PRICE_LEVEL_INEXPENSIVE", label: "Search.priceLevels.inexpensive", budgetIntent: "inexpensive" },
+	{ value: "PRICE_LEVEL_MODERATE", label: "Search.priceLevels.moderate", budgetIntent: "moderate" },
+	{ value: "PRICE_LEVEL_EXPENSIVE", label: "Search.priceLevels.expensive", budgetIntent: "expensive" },
+	{ value: "PRICE_LEVEL_VERY_EXPENSIVE", label: "Search.priceLevels.veryExpensive", budgetIntent: "very_expensive" },
 ] as const;
+
+export const budgetIntentToPriceLevel = Object.fromEntries(
+	priceLevelOptions.map((option) => [option.budgetIntent, option.value]),
+) as Record<(typeof priceLevelOptions)[number]["budgetIntent"], (typeof priceLevelOptions)[number]["value"]>;
+
+export const priceLevelToBudgetIntent = Object.fromEntries(
+	priceLevelOptions.map((option) => [option.value, option.budgetIntent]),
+) as Record<(typeof priceLevelOptions)[number]["value"], (typeof priceLevelOptions)[number]["budgetIntent"]>;
+
+export const allPriceLevelValues = priceLevelOptions.map((option) => option.value);
+
+export const deriveBudgetIntentFromPriceLevels = (selectedPriceLevels: string[]) => {
+	if (selectedPriceLevels.length === 0 || selectedPriceLevels.length === allPriceLevelValues.length) return undefined;
+
+	return selectedPriceLevels
+		.map((priceLevel) => priceLevelToBudgetIntent[priceLevel as keyof typeof priceLevelToBudgetIntent])
+		.filter((budgetIntent): budgetIntent is NonNullable<typeof budgetIntent> => !!budgetIntent);
+};
+
+export const normalizePriceLevelsForDishMediaSearch = (selectedPriceLevels: string[]) => {
+	if (selectedPriceLevels.length === 0 || selectedPriceLevels.length === allPriceLevelValues.length) {
+		return [...allPriceLevelValues];
+	}
+	return selectedPriceLevels;
+};
 
 export const restrictionOptions = [
 	{ id: "vegetarian", label: "Search.restrictionOptions.vegetarian", icon: "🌱" },

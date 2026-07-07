@@ -15,6 +15,7 @@ type TopicVisualCardProps = {
 	imageState?: TopicImageResourceState;
 	recyclingKey?: string;
 	topRightContent?: ReactNode;
+	bottomContent?: ReactNode;
 	onImageRetry?: () => void;
 };
 
@@ -26,6 +27,7 @@ export function TopicVisualCard({
 	imageState,
 	recyclingKey,
 	topRightContent,
+	bottomContent,
 	onImageRetry,
 }: TopicVisualCardProps) {
 	const shouldShowSkeleton = imageState ? imageState.status === "idle" || imageState.status === "loading" : false;
@@ -76,6 +78,7 @@ export function TopicVisualCard({
 				<View style={styles.cardContent}>
 					<Text style={styles.cardTitle}>{title}</Text>
 					<Text style={styles.cardDescription}>{tagline}</Text>
+					{bottomContent}
 				</View>
 			</View>
 		</View>

@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { MapPin, Clock, Users, Salad, ChefHat, RefreshCw } from "lucide-react-native";
+import { MapPin, Clock, Users, ChefHat, RefreshCw, DollarSign } from "lucide-react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import Carousel from "react-native-reanimated-carousel";
 import { Image } from "expo-image";
 import { Topic, SearchParams } from "@/types/search";
 import { useTopicSearch } from "@/features/topics/hooks/useTopicSearch";
 import { useBlockTopic } from "@/features/topics/hooks/useBlockTopic";
-import { TopicCard } from "@/features/topics/components/TopicCard";
+import { TopicCard, type TopicDeepDiveOption } from "@/features/topics/components/TopicCard";
 import { useTopicImageResources } from "@/features/topics/hooks/useTopicImageResources";
 import { TopicsLoading } from "@/features/topics/components/TopicsLoading";
 import { TopicsError } from "@/features/topics/components/TopicsError";
@@ -16,7 +16,17 @@ import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useDialog } from "@/contexts/DialogProvider";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { CARD_WIDTH, CARD_MAX_HEIGHT, width as SCREEN_WIDTH } from "@/features/topics/constants";
-import { timeSlots, sceneOptions, moodOptions, tasteOptions } from "@/features/search/constants";
+import {
+	budgetIntentToPriceLevel,
+	coreIngredientOptions,
+	deriveBudgetIntentFromPriceLevels,
+	diningPaceOptions,
+	normalizePriceLevelsForDishMediaSearch,
+	priceLevelOptions,
+	sceneOptions,
+	tasteOptions,
+	timeSlots,
+} from "@/features/search/constants";
 import i18n from "@/lib/i18n";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
@@ -27,9 +37,23 @@ import { SearchHeader } from "@/features/search/components/SearchHeader";
 import { useCreateDishCategoryGroupVote } from "@/features/dishCategoryGroupVotes/hooks/useCreateDishCategoryGroupVote";
 import type { CreateDishCategoryGroupVoteResponse } from "@shared/api/v1/res";
 
+const DEEP_DIVE_SCORE_THRESHOLD = 0.85;
+
+const BUDGET_INTENT_ORDER = ["inexpensive", "moderate", "expensive", "very_expensive"] as const;
+const DINING_PACE_ORDER = ["quick", "leisurely"] as const;
+const FOOD_STYLE_ORDER = ["sweet", "spicy", "healthy", "junk", "meat", "fish", "rice", "noodle"] as const;
+
+const getOrderIndex = (order: readonly string[], key: string) => {
+	const index = order.indexOf(key);
+	return index === -1 ? Number.MAX_SAFE_INTEGER : index;
+};
+
 export default function TopicsScreen() {
 	const { locale } = useLocale();
-	const { searchParams } = useLocalSearchParams<{ searchParams: string }>();
+	const { searchParams, pinnedTopic: pinnedTopicParam } = useLocalSearchParams<{
+		searchParams: string;
+		pinnedTopic?: string;
+	}>();
 	const params = useMemo(() => {
 		if (searchParams) {
 			try {
@@ -40,6 +64,14 @@ export default function TopicsScreen() {
 		}
 		return null;
 	}, [searchParams]);
+	const pinnedTopic = useMemo(() => {
+		if (!pinnedTopicParam) return null;
+		try {
+			return JSON.parse(pinnedTopicParam) as Topic;
+		} catch {
+			return null;
+		}
+	}, [pinnedTopicParam]);
 	const { logFrontendEvent } = useLogger();
 	const [isScrolling, setIsScrolling] = useState(false);
 	const [currentIndex, setCurrentIndex] = useState(0);
@@ -59,14 +91,14 @@ export default function TopicsScreen() {
 
 	useEffect(() => {
 		if (params) {
-			searchTopics(params).catch(() => {
+			searchTopics(params, { pinnedTopic }).catch(() => {
 				showSnackbar(i18n.t("Topics.errors.fetchFailed"));
 			});
 		} else {
 			showSnackbar(i18n.t("Topics.errors.invalidSearchParams"));
 			router.back();
 		}
-	}, [params, searchTopics, showSnackbar, router]);
+	}, [params, pinnedTopic, searchTopics, showSnackbar, router]);
 
 	const handleViewDetails = useCallback(
 		(topic: Topic) => {
@@ -75,6 +107,8 @@ export default function TopicsScreen() {
 				showSnackbar(i18n.t("Topics.errors.invalidSearchParams"));
 				return;
 			}
+
+			const dishMediaPriceLevels = normalizePriceLevelsForDishMediaSearch(params.priceLevels);
 
 			// #633 【設計】SavedTopicsTab と同じパターンで entriesKey 駆動のオンデマンド取得
 			const { mediaIdsByKey, isLoadingByKey, upsertDishMediaEntries, updateMediaIdsByKeyAsync } =
@@ -88,7 +122,7 @@ export default function TopicsScreen() {
 					longitude: params.location.longitude,
 				},
 				radius: params.distance,
-				priceLevels: params.priceLevels,
+				priceLevels: dishMediaPriceLevels,
 				languageCode: params.localLanguageCode,
 			});
 
@@ -102,7 +136,7 @@ export default function TopicsScreen() {
 						params.location.longitude,
 						params.localLanguageCode,
 						params.distance,
-						params.priceLevels,
+						dishMediaPriceLevels,
 					);
 					upsertDishMediaEntries(dishItems);
 					return dishItems.map((item) => String(item.dish_media.id));
@@ -235,6 +269,118 @@ export default function TopicsScreen() {
 		setCurrentIndex(index);
 	}, []);
 
+	const getDeepDiveLabel = useCallback((option: TopicDeepDiveOption) => {
+		if (option.featureType === "budget_intent") {
+			const priceOption = priceLevelOptions.find((priceLevel) => priceLevel.budgetIntent === option.featureKey);
+			return priceOption ? i18n.t(priceOption.label) : option.featureKey;
+		}
+		if (option.featureType === "dining_pace") {
+			const paceOption = diningPaceOptions.find((pace) => pace.id === option.featureKey);
+			return paceOption ? `${paceOption.icon}${i18n.t(paceOption.label)}` : option.featureKey;
+		}
+		if (option.featureType === "taste") {
+			const tasteOption = tasteOptions.find((taste) => taste.id === option.featureKey);
+			return tasteOption ? `${tasteOption.icon}${i18n.t(tasteOption.label)}` : option.featureKey;
+		}
+		if (option.featureType === "core_ingredient") {
+			const coreOption = coreIngredientOptions.find((coreIngredient) => coreIngredient.id === option.featureKey);
+			return coreOption ? `${coreOption.icon}${i18n.t(coreOption.label)}` : option.featureKey;
+		}
+		return option.featureKey;
+	}, []);
+
+	const getDeepDiveOptions = useCallback(
+		(topic: Topic): TopicDeepDiveOption[] => {
+			if (!params) return [];
+			const features = (topic.deepDiveFeatures ?? []).filter((feature) => feature.score > DEEP_DIVE_SCORE_THRESHOLD);
+			const selectedBudgetIntent = deriveBudgetIntentFromPriceLevels(params.priceLevels);
+
+			const budgetCandidates = selectedBudgetIntent?.length
+				? []
+				: features
+						.filter((feature) => feature.feature_type === "budget_intent")
+						.sort(
+							(a, b) =>
+								b.score - a.score ||
+								getOrderIndex(BUDGET_INTENT_ORDER, a.feature_key) - getOrderIndex(BUDGET_INTENT_ORDER, b.feature_key),
+						)
+						.slice(0, 1);
+
+			const diningPaceCandidates = params.diningPace
+				? []
+				: features
+						.filter((feature) => feature.feature_type === "dining_pace")
+						.sort(
+							(a, b) =>
+								b.score - a.score ||
+								getOrderIndex(DINING_PACE_ORDER, a.feature_key) - getOrderIndex(DINING_PACE_ORDER, b.feature_key),
+						)
+						.slice(0, 1);
+
+			const foodStyleCandidates =
+				params.taste || params.coreIngredient
+					? []
+					: features
+							.filter((feature) => feature.feature_type === "taste" || feature.feature_type === "core_ingredient")
+							.sort(
+								(a, b) =>
+									b.score - a.score ||
+									getOrderIndex(FOOD_STYLE_ORDER, a.feature_key) - getOrderIndex(FOOD_STYLE_ORDER, b.feature_key),
+							);
+
+			return [...budgetCandidates, ...diningPaceCandidates, ...foodStyleCandidates].slice(0, 3).map((feature) => {
+				const option = {
+					key: `${feature.feature_type}:${feature.feature_key}`,
+					label: "",
+					featureType: feature.feature_type,
+					featureKey: feature.feature_key,
+				};
+				return { ...option, label: getDeepDiveLabel(option) };
+			});
+		},
+		[getDeepDiveLabel, params],
+	);
+
+	const handleDeepDive = useCallback(
+		(topic: Topic, option: TopicDeepDiveOption) => {
+			if (!params) return;
+
+			const nextParams: SearchParams = { ...params };
+			if (option.featureType === "budget_intent") {
+				const priceLevel = budgetIntentToPriceLevel[option.featureKey as keyof typeof budgetIntentToPriceLevel];
+				if (priceLevel) nextParams.priceLevels = [priceLevel];
+			} else if (option.featureType === "dining_pace") {
+				nextParams.diningPace = option.featureKey as SearchParams["diningPace"];
+			} else if (option.featureType === "taste") {
+				nextParams.taste = option.featureKey as SearchParams["taste"];
+				nextParams.coreIngredient = undefined;
+			} else if (option.featureType === "core_ingredient") {
+				nextParams.coreIngredient = option.featureKey as SearchParams["coreIngredient"];
+				nextParams.taste = undefined;
+			}
+
+			logFrontendEvent({
+				event_name: "topic_deep_dive_selected",
+				error_level: "log",
+				payload: {
+					topic_id: topic.categoryId,
+					feature_type: option.featureType,
+					feature_key: option.featureKey,
+				},
+			});
+
+			router.push({
+				pathname: "/[locale]/(tabs)/search/topics",
+				params: {
+					locale,
+					searchParams: JSON.stringify(nextParams),
+					pinnedTopic: JSON.stringify(topic),
+				},
+			});
+		},
+		[locale, logFrontendEvent, params],
+	);
+
 	// カルーセルに使える「縦方向の空きスペース」を測る
 	const [carouselAvailableHeight, setCarouselAvailableHeight] = useState(0);
 
@@ -252,6 +398,8 @@ export default function TopicsScreen() {
 				<TopicCard
 					item={item}
 					onBlock={handleBlockCard}
+					onDeepDive={handleDeepDive}
+					deepDiveOptions={getDeepDiveOptions(item)}
 					displayIndex={index}
 					cardHeight={cardHeight}
 					imageState={imageState}
@@ -344,12 +492,24 @@ export default function TopicsScreen() {
 					</View>
 
 					<View style={styles.chipRow}>
-						{/* お腹の減り具合（mood が選択されている場合のみ） */}
-						{params.mood && (
+						{/* 価格帯（budgetIntent が選択されている場合のみ） */}
+						{deriveBudgetIntentFromPriceLevels(params.priceLevels)?.map((budgetIntent) => {
+							const priceOption = priceLevelOptions.find((option) => option.budgetIntent === budgetIntent);
+							if (!priceOption) return null;
+							return (
+								<View key={budgetIntent} style={styles.conditionChip}>
+									<DollarSign size={14} color="#f05537" />
+									<Text style={styles.conditionChipText}>{i18n.t(priceOption.label)}</Text>
+								</View>
+							);
+						})}
+
+						{/* 食事にかける時間（diningPace が選択されている場合のみ） */}
+						{params.diningPace && (
 							<View style={styles.conditionChip}>
-								<Salad size={14} color="#f05537" />
+								<Clock size={14} color="#f05537" />
 								<Text style={styles.conditionChipText}>
-									{i18n.t(moodOptions.find((m) => m.id === params.mood)?.label || "")}
+									{i18n.t(diningPaceOptions.find((option) => option.id === params.diningPace)?.label || "")}
 								</Text>
 							</View>
 						)}
@@ -360,6 +520,16 @@ export default function TopicsScreen() {
 								<ChefHat size={14} color="#f05537" />
 								<Text style={styles.conditionChipText}>
 									{i18n.t(tasteOptions.find((t) => t.id === params.taste)?.label || "")}
+								</Text>
+							</View>
+						)}
+
+						{/* 中核食材・主食系（coreIngredient が選択されている場合のみ） */}
+						{params.coreIngredient && (
+							<View style={styles.conditionChip}>
+								<ChefHat size={14} color="#f05537" />
+								<Text style={styles.conditionChipText}>
+									{i18n.t(coreIngredientOptions.find((option) => option.id === params.coreIngredient)?.label || "")}
 								</Text>
 							</View>
 						)}

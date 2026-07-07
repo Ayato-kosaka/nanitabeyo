@@ -11,7 +11,6 @@ import {
 	Plus,
 	ChevronUp,
 	ChefHat,
-	Salad,
 	HelpCircle,
 } from "lucide-react-native";
 import { router } from "expo-router";
@@ -23,13 +22,12 @@ import { LocationAutocomplete } from "@/components/LocationAutocomplete";
 import {
 	timeSlots,
 	sceneOptions,
-	moodOptions,
-	tasteOptions,
+	foodStyleOptions,
+	diningPaceOptions,
 	distanceOptions,
 	priceLevelOptions,
 	TUTORIAL_PAGES,
 	PRELOAD_IMAGES,
-	MOOD_ICON_SIZES,
 } from "@/features/search/constants";
 import { DistanceSlider } from "@/features/search/components/DistanceSlider";
 import { PriceLevelsMultiSelect } from "@/features/search/components/PriceLevelsMultiSelect";
@@ -38,7 +36,7 @@ import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { DEFAULT_PRICE_LEVELS, DEFAULT_SEARCH_RADIUS } from "@/features/topics/constants";
+import { DEFAULT_SEARCH_RADIUS } from "@/features/topics/constants";
 import { TutorialBottomSheet } from "@/features/search/components/TutorialBottomSheet";
 import { useSearchTutorial } from "@/features/search/hooks/useSearchTutorial";
 import { Image } from "expo-image";
@@ -67,13 +65,12 @@ export default function SearchScreen() {
 	const [locationQuery, setLocationQuery] = useState("");
 	const [timeSlot, setTimeSlot] = useState<SearchParams["timeSlot"]>("lunch");
 	const [scene, setScene] = useState<SearchParams["scene"]>("solo"); // #533 【仕様】scene 初期値を solo に変更（レコメンドAPI必須化対応）
-	const [mood, setMood] = useState<SearchParams["mood"] | undefined>(undefined);
 	const [taste, setTaste] = useState<SearchParams["taste"] | undefined>(undefined);
+	const [coreIngredient, setCoreIngredient] = useState<SearchParams["coreIngredient"] | undefined>(undefined);
+	const [diningPace, setDiningPace] = useState<SearchParams["diningPace"] | undefined>(undefined);
 	const isSearchingRef = useRef(false);
 	const [distance, setDistance] = useState<number>(DEFAULT_SEARCH_RADIUS);
-	const [priceLevels, setPriceLevels] = useState<(typeof priceLevelOptions)[number]["value"][]>([
-		...DEFAULT_PRICE_LEVELS,
-	]);
+	const [priceLevels, setPriceLevels] = useState<(typeof priceLevelOptions)[number]["value"][]>([]);
 	const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
 	const { getCurrentLocation, getLocationDetails } = useLocationSearch();
@@ -181,8 +178,9 @@ export default function SearchScreen() {
 			...location,
 			timeSlot,
 			scene,
-			mood,
 			taste,
+			coreIngredient,
+			diningPace,
 			distance,
 			priceLevels,
 			locationQuery, // #674 【仕様】検索画面で入力されたロケーション表示用文字列を渡す
@@ -210,8 +208,9 @@ export default function SearchScreen() {
 		location,
 		timeSlot,
 		scene,
-		mood,
 		taste,
+		coreIngredient,
+		diningPace,
 		distance,
 		priceLevels,
 		locationQuery,
@@ -232,14 +231,20 @@ export default function SearchScreen() {
 		setScene(sceneId);
 	};
 
-	const handleMoodSelect = (moodId: SearchParams["mood"]) => {
+	const handleFoodStyleSelect = (option: (typeof foodStyleOptions)[number]) => {
 		lightImpact();
-		setMood(mood === moodId ? undefined : moodId);
+		if (option.featureType === "taste") {
+			setTaste(taste === option.id ? undefined : option.id);
+			setCoreIngredient(undefined);
+			return;
+		}
+		setCoreIngredient(coreIngredient === option.id ? undefined : option.id);
+		setTaste(undefined);
 	};
 
-	const handleTasteSelect = (tasteId: SearchParams["taste"]) => {
+	const handleDiningPaceSelect = (diningPaceId: SearchParams["diningPace"]) => {
 		lightImpact();
-		setTaste(taste === tasteId ? undefined : tasteId);
+		setDiningPace(diningPace === diningPaceId ? undefined : diningPaceId);
 	};
 
 	const handleAdvancedToggle = () => {
@@ -431,29 +436,44 @@ export default function SearchScreen() {
 					</View>
 				</View>
 
-				{/* #667 【設計】Mood - カード無し、円形アイコン横並び（画像なし） */}
+				{/* Price Levels */}
 				<View style={styles.section}>
 					<View style={styles.sectionHeader}>
-						<Salad size={20} color="#F05537" />
-						<Text style={styles.sectionTitle}>{i18n.t("Search.sections.mood")}</Text>
+						<DollarSign size={20} color="#F05537" />
+						<Text style={styles.sectionTitle}>{i18n.t("Search.sections.budget")}</Text>
 					</View>
-					<View style={styles.moodContainer}>
-						{moodOptions.map((option) => (
-							<Pressable key={option.id} style={styles.moodItem} onPress={() => handleMoodSelect(option.id)}>
-								<View
-									style={[
-										styles.moodCircle,
-										{
-											width: MOOD_ICON_SIZES[option.id as keyof typeof MOOD_ICON_SIZES],
-											height: MOOD_ICON_SIZES[option.id as keyof typeof MOOD_ICON_SIZES],
-										},
-										mood === option.id && styles.selectedMoodCircle,
-									]}
-								/>
-								<Text style={[styles.moodLabel, mood === option.id && styles.selectedMoodLabel]}>
+					<View style={styles.sliderSection}>
+						<PriceLevelsMultiSelect
+							selectedPriceLevels={priceLevels}
+							onPriceLevelsChange={setPriceLevels}
+							customStyles={{
+								chipGrid: styles.chipGrid,
+								chip: styles.chip,
+								selectedChip: styles.selectedChip,
+								chipText: styles.chipText,
+								selectedChipText: styles.selectedChipText,
+							}}
+						/>
+					</View>
+				</View>
+
+				{/* Dining Pace */}
+				<View style={styles.section}>
+					<View style={styles.sectionHeader}>
+						<Clock size={20} color="#F05537" />
+						<Text style={styles.sectionTitle}>{i18n.t("Search.sections.diningPace")}</Text>
+					</View>
+					<View style={styles.chipGrid}>
+						{diningPaceOptions.map((option) => (
+							<TouchableOpacity
+								key={option.id}
+								style={[styles.chip, diningPace === option.id && styles.selectedChip]}
+								onPress={() => handleDiningPaceSelect(option.id)}>
+								<Text style={styles.chipEmoji}>{option.icon}</Text>
+								<Text style={[styles.chipText, diningPace === option.id && styles.selectedChipText]}>
 									{i18n.t(option.label)}
 								</Text>
-							</Pressable>
+							</TouchableOpacity>
 						))}
 					</View>
 				</View>
@@ -485,46 +505,28 @@ export default function SearchScreen() {
 							</View>
 						</View>
 
-						{/* Price Levels */}
-						<View style={styles.section}>
-							<View style={styles.sectionHeader}>
-								<DollarSign size={20} color="#F05537" />
-								<Text style={styles.sectionTitle}>{i18n.t("Search.sections.budget")}</Text>
-							</View>
-							<View style={styles.sliderSection}>
-								<PriceLevelsMultiSelect
-									selectedPriceLevels={priceLevels}
-									onPriceLevelsChange={setPriceLevels}
-									customStyles={{
-										chipGrid: styles.chipGrid,
-										chip: styles.chip,
-										selectedChip: styles.selectedChip,
-										chipEmoji: styles.chipEmoji,
-										chipText: styles.chipText,
-										selectedChipText: styles.selectedChipText,
-									}}
-								/>
-							</View>
-						</View>
-
-						{/* Taste */}
+						{/* Food Style */}
 						<View style={styles.section}>
 							<View style={styles.sectionHeader}>
 								<ChefHat size={20} color="#F05537" />
-								<Text style={styles.sectionTitle}>{i18n.t("Search.sections.taste")}</Text>
+								<Text style={styles.sectionTitle}>{i18n.t("Search.sections.foodStyle")}</Text>
 							</View>
 							<View style={styles.chipGrid}>
-								{tasteOptions.map((option) => (
-									<TouchableOpacity
-										key={option.id}
-										style={[styles.chip, taste === option.id && styles.selectedChip]}
-										onPress={() => handleTasteSelect(option.id)}>
-										<Text style={styles.chipEmoji}>{option.icon}</Text>
-										<Text style={[styles.chipText, taste === option.id && styles.selectedChipText]}>
-											{i18n.t(option.label)}
-										</Text>
-									</TouchableOpacity>
-								))}
+								{foodStyleOptions.map((option) => {
+									const isSelected =
+										option.featureType === "taste" ? taste === option.id : coreIngredient === option.id;
+									return (
+										<TouchableOpacity
+											key={`${option.featureType}:${option.id}`}
+											style={[styles.chip, isSelected && styles.selectedChip]}
+											onPress={() => handleFoodStyleSelect(option)}>
+											<Text style={styles.chipEmoji}>{option.icon}</Text>
+											<Text style={[styles.chipText, isSelected && styles.selectedChipText]}>
+												{i18n.t(option.label)}
+											</Text>
+										</TouchableOpacity>
+									);
+								})}
 							</View>
 						</View>
 
