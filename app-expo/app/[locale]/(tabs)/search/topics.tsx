@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { MapPin, Clock, Users, ChefHat, RefreshCw, DollarSign } from "lucide-react-native";
+import { MapPin, SunMoon, Users, ChefHat, RefreshCw, DollarSign, Timer } from "lucide-react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import Carousel from "react-native-reanimated-carousel";
 import { Image } from "expo-image";
@@ -301,16 +301,22 @@ export default function TopicsScreen() {
 			const features = (topic.deepDiveFeatures ?? []).filter((feature) => {
 				if (feature.score <= DEEP_DIVE_SCORE_THRESHOLD) return false;
 				if (feature.feature_type === "budget_intent") {
-					return ALLOWED_DEEP_DIVE_KEYS.budget_intent.has(feature.feature_key as (typeof priceLevelOptions)[number]["budgetIntent"]);
+					return ALLOWED_DEEP_DIVE_KEYS.budget_intent.has(
+						feature.feature_key as (typeof priceLevelOptions)[number]["budgetIntent"],
+					);
 				}
 				if (feature.feature_type === "dining_pace") {
-					return ALLOWED_DEEP_DIVE_KEYS.dining_pace.has(feature.feature_key as (typeof diningPaceOptions)[number]["id"]);
+					return ALLOWED_DEEP_DIVE_KEYS.dining_pace.has(
+						feature.feature_key as (typeof diningPaceOptions)[number]["id"],
+					);
 				}
 				if (feature.feature_type === "taste") {
 					return ALLOWED_DEEP_DIVE_KEYS.taste.has(feature.feature_key as (typeof tasteOptions)[number]["id"]);
 				}
 				if (feature.feature_type === "core_ingredient") {
-					return ALLOWED_DEEP_DIVE_KEYS.core_ingredient.has(feature.feature_key as (typeof coreIngredientOptions)[number]["id"]);
+					return ALLOWED_DEEP_DIVE_KEYS.core_ingredient.has(
+						feature.feature_key as (typeof coreIngredientOptions)[number]["id"],
+					);
 				}
 				return false;
 			});
@@ -497,7 +503,7 @@ export default function TopicsScreen() {
 
 						{/* 時間帯 */}
 						<View style={styles.conditionChip}>
-							<Clock size={14} color="#f05537" />
+							<SunMoon size={14} color="#f05537" />
 							<Text style={styles.conditionChipText}>
 								{i18n.t(timeSlots.find((s) => s.id === params.timeSlot)?.label || "")}
 							</Text>
@@ -528,7 +534,7 @@ export default function TopicsScreen() {
 						{/* 食事にかける時間（diningPace が選択されている場合のみ） */}
 						{params.diningPace && (
 							<View style={styles.conditionChip}>
-								<Clock size={14} color="#f05537" />
+								<Timer size={14} color="#f05537" />
 								<Text style={styles.conditionChipText}>
 									{i18n.t(diningPaceOptions.find((option) => option.id === params.diningPace)?.label || "")}
 								</Text>

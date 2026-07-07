@@ -3,15 +3,16 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Press
 import {
 	MapPin,
 	Search,
-	Clock,
+	SunMoon,
 	Users,
 	Navigation,
-	MapPin as Distance,
+	Ruler,
 	DollarSign,
 	Plus,
 	ChevronUp,
 	ChefHat,
 	HelpCircle,
+	Timer,
 } from "lucide-react-native";
 import { router } from "expo-router";
 import { SearchParams } from "@/types/search";
@@ -377,7 +378,7 @@ export default function SearchScreen() {
 				{/* #667 【設計】Time of Day - カード無し、画像グリッド表示（4列1行） */}
 				<View style={styles.section}>
 					<View style={styles.sectionHeader}>
-						<Clock size={20} color="#F05537" />
+						<SunMoon size={20} color="#F05537" />
 						<Text style={styles.sectionTitle}>{i18n.t("Search.sections.time")}</Text>
 						<View style={styles.requiredBadge}>
 							<Text style={styles.requiredText}>{i18n.t("Search.required")}</Text>
@@ -460,7 +461,7 @@ export default function SearchScreen() {
 				{/* Dining Pace */}
 				<View style={styles.section}>
 					<View style={styles.sectionHeader}>
-						<Clock size={20} color="#F05537" />
+						<Timer size={20} color="#F05537" />
 						<Text style={styles.sectionTitle}>{i18n.t("Search.sections.diningPace")}</Text>
 					</View>
 					<View style={styles.chipGrid}>
@@ -494,7 +495,7 @@ export default function SearchScreen() {
 						{/* Distance */}
 						<View style={styles.section}>
 							<View style={styles.sectionHeader}>
-								<Distance size={20} color="#F05537" />
+								<Ruler size={20} color="#F05537" />
 								<Text style={styles.sectionTitle}>{i18n.t("Search.sections.distance")}</Text>
 							</View>
 							<View style={styles.sliderSection}>
