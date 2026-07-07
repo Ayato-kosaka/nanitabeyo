@@ -42,6 +42,12 @@ const DEEP_DIVE_SCORE_THRESHOLD = 0.85;
 const BUDGET_INTENT_ORDER = ["inexpensive", "moderate", "expensive", "very_expensive"] as const;
 const DINING_PACE_ORDER = ["quick", "leisurely"] as const;
 const FOOD_STYLE_ORDER = ["sweet", "spicy", "healthy", "junk", "meat", "fish", "rice", "noodle"] as const;
+const ALLOWED_DEEP_DIVE_KEYS = {
+	budget_intent: new Set(priceLevelOptions.map((option) => option.budgetIntent)),
+	dining_pace: new Set(diningPaceOptions.map((option) => option.id)),
+	taste: new Set(tasteOptions.map((option) => option.id)),
+	core_ingredient: new Set(coreIngredientOptions.map((option) => option.id)),
+} as const;
 
 const getOrderIndex = (order: readonly string[], key: string) => {
 	const index = order.indexOf(key);
@@ -292,7 +298,22 @@ export default function TopicsScreen() {
 	const getDeepDiveOptions = useCallback(
 		(topic: Topic): TopicDeepDiveOption[] => {
 			if (!params) return [];
-			const features = (topic.deepDiveFeatures ?? []).filter((feature) => feature.score > DEEP_DIVE_SCORE_THRESHOLD);
+			const features = (topic.deepDiveFeatures ?? []).filter((feature) => {
+				if (feature.score <= DEEP_DIVE_SCORE_THRESHOLD) return false;
+				if (feature.feature_type === "budget_intent") {
+					return ALLOWED_DEEP_DIVE_KEYS.budget_intent.has(feature.feature_key as (typeof priceLevelOptions)[number]["budgetIntent"]);
+				}
+				if (feature.feature_type === "dining_pace") {
+					return ALLOWED_DEEP_DIVE_KEYS.dining_pace.has(feature.feature_key as (typeof diningPaceOptions)[number]["id"]);
+				}
+				if (feature.feature_type === "taste") {
+					return ALLOWED_DEEP_DIVE_KEYS.taste.has(feature.feature_key as (typeof tasteOptions)[number]["id"]);
+				}
+				if (feature.feature_type === "core_ingredient") {
+					return ALLOWED_DEEP_DIVE_KEYS.core_ingredient.has(feature.feature_key as (typeof coreIngredientOptions)[number]["id"]);
+				}
+				return false;
+			});
 			const selectedBudgetIntent = deriveBudgetIntentFromPriceLevels(params.priceLevels);
 
 			const budgetCandidates = selectedBudgetIntent?.length

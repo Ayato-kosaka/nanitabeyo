@@ -1,6 +1,7 @@
 import React, { type ReactNode } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import { ImageOff, RefreshCw } from "lucide-react-native";
 import { CARD_WIDTH } from "@/features/topics/constants";
 import { SkeletonShimmer } from "@/components/SkeletonShimmer";
@@ -58,6 +59,12 @@ export function TopicVisualCard({
 			)}
 
 			<View style={styles.cardOverlay}>
+				<LinearGradient
+					pointerEvents="none"
+					colors={["rgba(0, 0, 0, 0.00)", "rgba(0, 0, 0, 0.18)", "rgba(0, 0, 0, 0.40)"]}
+					locations={[0, 0.58, 1]}
+					style={styles.bottomGradient}
+				/>
 				{shouldShowFailureUI && (
 					<View style={styles.failureOverlay}>
 						<View style={styles.failureContent}>
@@ -150,10 +157,16 @@ const styles = StyleSheet.create({
 		left: 0,
 		right: 0,
 		bottom: 0,
-		backgroundColor: "rgba(0, 0, 0, 0.1)",
 		padding: 24,
 		justifyContent: "space-between",
 		zIndex: 3,
+	},
+	bottomGradient: {
+		position: "absolute",
+		left: 0,
+		right: 0,
+		bottom: 0,
+		height: "72%",
 	},
 	topRightContent: {
 		alignSelf: "flex-end",
@@ -164,6 +177,7 @@ const styles = StyleSheet.create({
 		flex: 1,
 		justifyContent: "flex-end",
 		zIndex: 1,
+		paddingBottom: 8,
 	},
 	cardTitle: {
 		fontSize: 32,
@@ -180,7 +194,7 @@ const styles = StyleSheet.create({
 		fontSize: 18,
 		color: "#FFFFFF",
 		lineHeight: 28,
-		marginBottom: 16,
+		marginBottom: 18,
 		textShadowColor: "rgba(0, 0, 0, 0.8)",
 		textShadowOffset: { width: 0, height: 1 },
 		textShadowRadius: 3,

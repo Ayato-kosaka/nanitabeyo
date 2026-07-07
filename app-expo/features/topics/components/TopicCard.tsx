@@ -41,6 +41,8 @@ export const TopicCard = ({
 	const { lightImpact, errorNotification } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 
+	const deepDiveChipWidth = deepDiveOptions.length === 1 ? "100%" : deepDiveOptions.length === 2 ? "48.5%" : "31.5%";
+
 	const handleSave = async () => {
 		const willSave = !isSaved;
 		lightImpact();
@@ -122,12 +124,16 @@ export const TopicCard = ({
 			bottomContent={
 				deepDiveOptions.length > 0 ? (
 					<View style={styles.deepDiveContainer}>
-						<Text style={styles.deepDiveTitle}>--- {i18n.t("Topics.deepDive.title")} ---</Text>
+						<View style={styles.deepDiveTitleRow}>
+							<View style={styles.deepDiveTitleLine} />
+							<Text style={styles.deepDiveTitle}>{i18n.t("Topics.deepDive.title")}</Text>
+							<View style={styles.deepDiveTitleLine} />
+						</View>
 						<View style={styles.deepDiveChips}>
 							{deepDiveOptions.map((option) => (
 								<TouchableOpacity
 									key={option.key}
-									style={styles.deepDiveChip}
+									style={[styles.deepDiveChip, { width: deepDiveChipWidth }]}
 									onPress={() => onDeepDive?.(item, option)}
 									activeOpacity={0.8}>
 									<Text style={styles.deepDiveChipText}>{option.label}</Text>
@@ -174,37 +180,52 @@ const styles = StyleSheet.create({
 		elevation: 4,
 	},
 	deepDiveContainer: {
-		marginTop: 2,
-		gap: 8,
+		marginTop: 10,
+		gap: 10,
+		paddingBottom: 6,
+	},
+	deepDiveTitleRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 12,
+	},
+	deepDiveTitleLine: {
+		flex: 1,
+		height: 1,
+		backgroundColor: "rgba(255, 255, 255, 0.75)",
 	},
 	deepDiveTitle: {
 		color: "#FFFFFF",
-		fontSize: 12,
-		fontWeight: "700",
+		fontSize: 13,
+		fontWeight: "800",
 		textAlign: "center",
-		textShadowColor: "rgba(0, 0, 0, 0.8)",
+		textShadowColor: "rgba(0, 0, 0, 0.9)",
 		textShadowOffset: { width: 0, height: 1 },
 		textShadowRadius: 3,
 	},
 	deepDiveChips: {
 		flexDirection: "row",
 		flexWrap: "wrap",
-		gap: 8,
-		justifyContent: "center",
+		justifyContent: "space-between",
+		rowGap: 10,
 	},
 	deepDiveChip: {
 		borderWidth: 1,
-		borderColor: "rgba(255, 255, 255, 0.9)",
-		backgroundColor: "rgba(255, 255, 255, 0.24)",
+		borderColor: "rgba(255, 255, 255, 0.92)",
+		backgroundColor: "rgba(255, 255, 255, 0.32)",
 		paddingHorizontal: 12,
-		paddingVertical: 7,
+		paddingVertical: 11,
 		borderRadius: 18,
+		minHeight: 42,
+		justifyContent: "center",
+		alignItems: "center",
 	},
 	deepDiveChipText: {
 		color: "#FFFFFF",
-		fontSize: 12,
-		fontWeight: "700",
-		textShadowColor: "rgba(0, 0, 0, 0.6)",
+		fontSize: 13,
+		fontWeight: "800",
+		textAlign: "center",
+		textShadowColor: "rgba(0, 0, 0, 0.7)",
 		textShadowOffset: { width: 0, height: 1 },
 		textShadowRadius: 2,
 	},
