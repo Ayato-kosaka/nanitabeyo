@@ -146,12 +146,16 @@ export const useTopicSearch = () => {
 			setError(null);
 
 			try {
+				const remoteConfig = getRemoteConfig();
+				const searchResultTopicsNumber = parseInt(remoteConfig?.v1_search_result_dish_categories_number!, 10);
 				const fetchedTopics = await fetchTopicCandidates(params);
 				if (options?.pinnedTopic) {
 					const pinnedTopic = { ...options.pinnedTopic, isHidden: false };
 					const nextTopics = [
 						pinnedTopic,
-						...fetchedTopics.filter((topic) => topic.categoryId !== pinnedTopic.categoryId).slice(0, 5),
+						...fetchedTopics
+							.filter((topic) => topic.categoryId !== pinnedTopic.categoryId)
+							.slice(0, Math.max(0, searchResultTopicsNumber - 1)),
 					];
 					setTopics(nextTopics);
 				} else {
