@@ -12,7 +12,6 @@ import type { CreateDishCategoryGroupVoteResponse } from "@shared/api/v1/res";
 import type { SearchParams, Topic } from "@/types/search";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useLogger } from "@/hooks/useLogger";
-import { normalizePriceLevelsForDishMediaSearch } from "@/features/search/constants";
 
 type CreateGroupVoteInput = {
 	searchParams: SearchParams;
@@ -38,7 +37,7 @@ export function useCreateDishCategoryGroupVote() {
 						longitude: searchParams.location.longitude,
 					},
 					radius: searchParams.distance,
-					priceLevels: normalizePriceLevelsForDishMediaSearch(searchParams.priceLevels),
+					priceLevels: searchParams.priceLevels,
 					localLanguageCode: searchParams.localLanguageCode,
 				},
 				candidates: visibleTopics.map((topic) => ({

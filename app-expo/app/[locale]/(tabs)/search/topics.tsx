@@ -21,7 +21,6 @@ import {
 	coreIngredientOptions,
 	deriveBudgetIntentFromPriceLevels,
 	diningPaceOptions,
-	normalizePriceLevelsForDishMediaSearch,
 	priceLevelOptions,
 	sceneOptions,
 	tasteOptions,
@@ -114,8 +113,6 @@ export default function TopicsScreen() {
 				return;
 			}
 
-			const dishMediaPriceLevels = normalizePriceLevelsForDishMediaSearch(params.priceLevels);
-
 			// #633 【設計】SavedTopicsTab と同じパターンで entriesKey 駆動のオンデマンド取得
 			const { mediaIdsByKey, isLoadingByKey, upsertDishMediaEntries, updateMediaIdsByKeyAsync } =
 				useDishMediaEntriesStore.getState();
@@ -128,7 +125,7 @@ export default function TopicsScreen() {
 					longitude: params.location.longitude,
 				},
 				radius: params.distance,
-				priceLevels: dishMediaPriceLevels,
+				priceLevels: params.priceLevels,
 				languageCode: params.localLanguageCode,
 			});
 
@@ -142,7 +139,7 @@ export default function TopicsScreen() {
 						params.location.longitude,
 						params.localLanguageCode,
 						params.distance,
-						dishMediaPriceLevels,
+						params.priceLevels,
 					);
 					upsertDishMediaEntries(dishItems);
 					return dishItems.map((item) => String(item.dish_media.id));

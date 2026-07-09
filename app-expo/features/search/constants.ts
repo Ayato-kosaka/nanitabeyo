@@ -90,19 +90,14 @@ export const priceLevelToBudgetIntent = Object.fromEntries(
 
 export const allPriceLevelValues = priceLevelOptions.map((option) => option.value);
 
+export const isNoPriceLevelsSelected = (priceLevels: string[]) => priceLevels.length === 0;
+
 export const deriveBudgetIntentFromPriceLevels = (selectedPriceLevels: string[]) => {
 	if (selectedPriceLevels.length === 0 || selectedPriceLevels.length === allPriceLevelValues.length) return undefined;
 
 	return selectedPriceLevels
 		.map((priceLevel) => priceLevelToBudgetIntent[priceLevel as keyof typeof priceLevelToBudgetIntent])
 		.filter((budgetIntent): budgetIntent is NonNullable<typeof budgetIntent> => !!budgetIntent);
-};
-
-export const normalizePriceLevelsForDishMediaSearch = (selectedPriceLevels: string[]) => {
-	if (selectedPriceLevels.length === 0 || selectedPriceLevels.length === allPriceLevelValues.length) {
-		return [...allPriceLevelValues];
-	}
-	return selectedPriceLevels;
 };
 
 export const restrictionOptions = [
