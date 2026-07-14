@@ -558,6 +558,107 @@ class WikidataClient:
 
         logger.info(f"Fetched {len(nodes)} food nodes in total")
         return nodes
+
+    def fetch_nodes_by_qids(
+        self,
+        qids: List[str],
+        batch_size: int = 100,
+    ) -> List[Dict]:
+        """
+        指定された QID そのものの node 情報だけを取得する。
+
+        これは fetch_food_nodes() とは責務が違う。
+
+        - fetch_food_nodes()
+          food_roots を起点に `?item (P31|P279)* ?root` を満たす広い集合を取得する。
+          graph 全体を再構築するための通常ルート。
+
+        - fetch_nodes_by_qids()
+          人手で確認済みの QID を `food_nodes_raw` に補充するため、指定 QID だけを読む。
+          root の子孫は辿らない。親子 edge も取得しない。
+
+        このメソッドは「raw の node 原票を足す」ための薄い取得処理であり、
+        料理として採用してよいか、graph 上どの root に属するか、blacklist に該当するかは
+        後続テーブル・後続ジョブ側の責務として扱う。
+
+        Args:
+            qids: 取得したい Wikidata QID のリスト。
+            batch_size: VALUES 句に入れる QID 数。WDQS 負荷を避けるため大きくしすぎない。
+
+        Returns:
+            ノード情報のリスト。
+            [{'item_qid': 'Q12345', 'label_ja': '...', 'label_en': '...', ...}, ...]
+        """
+        valid_qids = []
+        seen_qids = set()
+
+        for qid in qids:
+            if not (qid and qid.startswith("Q") and qid[1:].isdigit()):
+                logger.warning("Skipping invalid QID: %r", qid)
+                continue
+            if qid in seen_qids:
+                continue
+            seen_qids.add(qid)
+            valid_qids.append(qid)
+
+        if not valid_qids:
+            logger.warning("No valid QIDs to fetch")
+            return []
+
+        nodes: List[Dict] = []
+
+        for i in range(0, len(valid_qids), batch_size):
+            batch = valid_qids[i:i + batch_size]
+            values_clause = " ".join([f"wd:{qid}" for qid in batch])
+
+            # `?item wikibase:statements ?statement_count` は、VALUES で与えた URI が
+            # 実在する Wikidata item であることを確認するために置いている。
+            # VALUES だけだと、存在しない QID でも空ラベルの行を作れてしまうため、
+            # raw に「存在確認できていない QID」を入れる事故を避ける。
+            query = f"""
+            SELECT DISTINCT ?item ?label_ja ?label_en ?desc_ja ?desc_en
+            WHERE {{
+              VALUES ?item {{ {values_clause} }}
+              ?item wikibase:statements ?statement_count .
+
+              OPTIONAL {{ ?item rdfs:label ?label_ja FILTER(LANG(?label_ja) = "ja") }}
+              OPTIONAL {{ ?item rdfs:label ?label_en FILTER(LANG(?label_en) = "en") }}
+              OPTIONAL {{ ?item schema:description ?desc_ja FILTER(LANG(?desc_ja) = "ja") }}
+              OPTIONAL {{ ?item schema:description ?desc_en FILTER(LANG(?desc_en) = "en") }}
+
+              FILTER(STRSTARTS(STR(?item), "http://www.wikidata.org/entity/Q"))
+            }}
+            ORDER BY ?item
+            """
+
+            logger.info(
+                "Fetching explicit QID batch %d/%d (%d QIDs)",
+                i // batch_size + 1,
+                (len(valid_qids) + batch_size - 1) // batch_size,
+                len(batch),
+            )
+            results = self.execute_query(query)
+
+            for result in results:
+                item_uri = result.get("item", {}).get("value", "")
+                item_qid = item_uri.split("/")[-1] if item_uri else None
+
+                if not item_qid:
+                    continue
+
+                nodes.append({
+                    "item_qid": item_qid,
+                    "label_ja": result.get("label_ja", {}).get("value"),
+                    "label_en": result.get("label_en", {}).get("value"),
+                    "desc_ja": result.get("desc_ja", {}).get("value"),
+                    "desc_en": result.get("desc_en", {}).get("value"),
+                })
+
+            # 手動補充用途なので通常は小さいが、連続実行時にも WDQS に寄せすぎない。
+            time.sleep(0.5)
+
+        logger.info("Fetched %d explicit nodes", len(nodes))
+        return nodes
     
     def fetch_parent_edges(self, qids: List[str]) -> List[Tuple[str, str]]:
         """

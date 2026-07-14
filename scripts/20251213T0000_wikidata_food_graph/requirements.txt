@@ -3,9 +3,11 @@
 
 # Wikidata SPARQL queries
 SPARQLWrapper==2.0.0
+requests==2.31.0
 
 # BigQuery client
 google-cloud-bigquery==3.14.1
+google-auth==2.23.4
 
 # Google Cloud Storage (for PostgreSQL backup)
 google-cloud-storage==2.10.0
