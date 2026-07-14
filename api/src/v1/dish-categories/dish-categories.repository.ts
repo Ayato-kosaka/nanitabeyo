@@ -382,6 +382,8 @@ export class DishCategoriesRepository {
             ) = 0
             THEN 1
             ELSE
+              -- rel_score = Σ(wᵢ × sᵢ) / Σwᵢ wᵢ = 条件の重要度 sᵢ = その料理カテゴリが条件にどれだけ合うか
+              -- ユーザーの今の気分ベクトルと、料理特徴ベクトルの向きが近いほど rel_score が高い
               (
                 w.w_budget_intent * COALESCE(bc.bi_score, 0) +
                 w.w_time * COALESCE(bc.ts_score, 0) +
@@ -438,6 +440,8 @@ export class DishCategoriesRepository {
           sc.market_salience_score,
           sc.dine_out_orderability_score,
           -- #533 【設計】final_score計算式
+          -- rel_score を主スコアとして、market/orderabilityを補正係数にする
+          -- 補正係数はに 1 以下なので、market/orderability は rel_score を押し上げるというより、低いものを少し沈める働きになります。
           sc.rel_score * (1 - w.w_market_salience + w.w_market_salience * sc.market_salience_score)
             * (1 - w.w_dine_out_orderability + w.w_dine_out_orderability * sc.dine_out_orderability_score)
           AS final_score,
