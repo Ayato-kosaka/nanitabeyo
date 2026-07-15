@@ -60,7 +60,10 @@ def main():
     migration_files = [
         REPO_ROOT / "infra" / "big-query" / "migration" / "20251213T0000_create_wikidata_food_tables.sql",
         REPO_ROOT / "infra" / "big-query" / "migration" / "20251215T0000_create_wikidata_food_llm_labels.sql",
-        REPO_ROOT / "infra" / "big-query" / "migration" / "20260210T0000_add_food_nodes_raw_staging.sql"  # #741 staging テーブル
+        REPO_ROOT / "infra" / "big-query" / "migration" / "20260210T0000_add_food_nodes_raw_staging.sql",  # #741 staging テーブル
+        # 【設計】Wikidata 生値ではなく Nanitabeyo 運用上の代表 label / alias を採用するための補正元。
+        # 3_2 は Wikidata refresh に集中させ、補正は 3_4 で毎回再適用する。
+        REPO_ROOT / "infra" / "big-query" / "migration" / "20260715T0000_create_dish_category_label_alias_overrides.sql",
     ]
 
     for migration_file in migration_files:    
