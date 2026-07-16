@@ -1,200 +1,290 @@
-# Dish Category Manual Image Supply Screen
+# Dish Category Manual Image Supply
 
-## 概要
+## 目的
 
-料理カテゴリ（dish_categories）の画像をユーザー協力で改善するための単体画面。
+`dish_categories` の画像を、人手で用意した縦長画像に差し替えるための運用画面と、本番反映手順をまとめる。
+
+この画面の責務は「候補カテゴリを表示し、ユーザーが選んだ画像の originalPath を `contribution_tasks` に保存する」ことまで。画像リサイズ、public bucket へのコピー、`wikidata_food_graph.dish_category_images` への反映は、別途本番反映手順で行う。
 
 ## 実装場所
 
 `app-expo/app/[locale]/contribution-tasks/dish-category-manual-image-supply.tsx`
 
-## 主な機能
+## URL パラメータ
 
-1. **チュートリアルモーダル**
-   - 初回表示時にモーダル表示
-   - AsyncStorageでフラグ管理
-   - 右上の「？」アイコンからいつでも再表示可能
+未指定時は既存運用を壊さないため v2 を読む。
 
-2. **グリッド表示**
-   - 3列固定レイアウト
-   - カード比率 9:16
-   - 背景に候補画像表示
-   - 下部にカテゴリ名をオーバーレイ表示
+- `taskVersion`: `v3` または `3` のように指定する。`taskKey` と `cdnJsonPath` が未指定なら、この値から自動生成する。
+- `taskKey`: 完全な task key を直接指定する。例: `dish_category_manual_image_supply_v3`
+- `cdnJsonPath`: CDN JSON の path を直接指定する。例: `tickets/703/dish_category_manual_image_supply_v3.latest.json`
 
-3. **画像アップロード**
-   - `selectMedia` で画像選択
-   - `uploadFile` で即座にアップロード
-   - 状態バッジで進行状況表示
-     - 準備中…（アップロード中）
-     - OK！（成功）
-     - もう一度！（失敗）
+例:
 
-4. **送信処理**
-   - 1件ずつPOST `/v1/contribution-tasks`
-   - 部分成功許容（失敗分は残して再送可能）
-
-5. **サンクス画面**
-   - 未対応候補が残っている場合：「まだ協力できる料理を見る」
-   - すべて完了の場合：「画面を閉じる」
-
-## データソース
-
-### CDN JSON
-
-URL: `https://${CDN_PUBLIC_HOST}/tickets/703/dish_category_manual_image_supply_v1.latest.json`
-
-**スキーマ例:**
-
-```json
-{
-	"items": [
-		{
-			"targetId": "Q164606",
-			"category": "カレー",
-			"imageUrl": "https://upload.wikimedia.org/wikipedia/commons/1/1e/Indiandishes.jpg",
-			"topicTitle": "カレー",
-			"reason": "スパイシーで美味しそうな画像を選んでください"
-		}
-	]
-}
+```text
+/ja/contribution-tasks/dish-category-manual-image-supply?taskVersion=v3
 ```
 
-### 完了済み除外API
+この指定は以下と等価。
 
-`GET /v1/contribution-tasks/completed-target-ids`
+```text
+taskKey=dish_category_manual_image_supply_v3
+cdnJsonPath=tickets/703/dish_category_manual_image_supply_v3.latest.json
+```
 
-**クエリパラメータ:**
+## CDN JSON
 
-- `taskKey=dish_category_manual_image_supply_v1`
-- `targetType=dish_categories`
-- `type=image_feedback`
-- `minCount=1`
-- `limit=1000`
+配置先:
 
-## ログイベント
+```text
+gs://nanitabeyo-public/tickets/703/dish_category_manual_image_supply_vX.latest.json
+https://cdn-public.nanitabeyo.net/tickets/703/dish_category_manual_image_supply_vX.latest.json
+```
 
-以下のイベントが記録されます：
+スキーマは direct array。古い `{ "items": [...] }` 形式ではない。
 
-- `dish_manual_image_supply_tutorial_shown` - チュートリアル表示
-- `dish_manual_image_supply_help_opened` - ヘルプボタン押下
-- `dish_manual_image_supply_item_opened` - カード選択
-- `dish_manual_image_supply_upload_started` - アップロード開始
-- `dish_manual_image_supply_upload_succeeded` - アップロード成功
-- `dish_manual_image_supply_upload_failed` - アップロード失敗
-- `dish_manual_image_supply_submit_started` - 送信開始
-- `dish_manual_image_supply_submit_result` - 送信結果
-- `dish_manual_image_supply_thanks_continue_clicked` - サンクス画面から継続
+```json
+[
+	{
+		"category_id": "Q164606",
+		"category": "カレー",
+		"imageUrl": "https://upload.wikimedia.org/wikipedia/commons/1/1e/Indiandishes.jpg",
+		"topicTitle": "カレー",
+		"reason": "カレーらしさが伝わる、縦長で美味しそうな画像を選んでください"
+	}
+]
+```
 
-## テスト方法
+各項目の責務:
 
-1. **開発環境でのテスト:**
+- `category_id`: `dish_categories.id` / Wikidata QID。送信時の `targetId` になる。
+- `category`: グリッド表示名。
+- `imageUrl`: 参考画像。手動アップロード対象を示すための表示用で、本番反映される画像 URL ではない。
+- `topicTitle`: モーダル表示用タイトル。なければ `category` と同じでよい。
+- `reason`: 画像選定の補助文。なければ同系統の候補から自然な文を生成する。
+
+## v3 ファイル作成
+
+ローカル作業用の配置先:
+
+```text
+tmp/tickets/703/dish_category_manual_image_supply_v3.latest.json
+```
+
+bucket 配置は手動で行う。
 
 ```bash
-cd app-expo
-pnpm start
+gsutil cp tmp/tickets/703/dish_category_manual_image_supply_v3.latest.json \
+  gs://nanitabeyo-public/tickets/703/dish_category_manual_image_supply_v3.latest.json
 ```
 
-2. **CDN JSONの配置:**
+## 手動アップロード手順
 
-CDN上に以下のパスでJSONファイルを配置：
-`tickets/703/dish_category_manual_image_supply_v1.latest.json`
+この手順の責務は、Canva などで作った画像を private bucket に置き、`contribution_tasks` に「どのカテゴリにどの originalPath を使うか」を登録すること。
 
-3. **テストデータ例:**
+### 1. Canva ダウンロード画像のリネーム
 
-```json
-{
-	"items": [
-		{
-			"targetId": "Q164606",
-			"category": "カレー",
-			"imageUrl": "https://upload.wikimedia.org/wikipedia/commons/1/1e/Indiandishes.jpg",
-			"topicTitle": "カレー",
-			"reason": "スパイシーで美味しそうな画像を選んでください"
-		},
-		{
-			"targetId": "Q13393",
-			"category": "おにぎり",
-			"imageUrl": "https://upload.wikimedia.org/wikipedia/commons/2/22/Japanese_rice_balls_%28onigiri%29.jpg",
-			"topicTitle": "おにぎり",
-			"reason": "ふっくらとした美味しそうなおにぎりの画像を選んでください"
-		}
-	]
-}
+`manual_uploaded_category_names` と `target_categories` をブラウザ console などで使い、ダウンロード順の `1.jpg`, `2.jpg` ... を QID 付きファイル名に変換する。
+
+```js
+manual_uploaded_category_names
+	.map((name) => target_categories.find((y) => y.category === name))
+	.filter(Boolean)
+	.map((x, i) => `mv ${i + 1}.jpg dish_category_manual_image_supply_t703_${x.category_id}.jpg`)
+	.join("\n");
 ```
 
-4. **手動テストシナリオ:**
-   - [ ] 画面を開いたときにチュートリアルモーダルが表示される
-   - [ ] チュートリアルを閉じられる
-   - [ ] グリッドが3列で表示される
-   - [ ] カードをタップすると詳細モーダルが開く
-   - [ ] 「画像を選ぶ」をタップして画像を選択できる
-   - [ ] アップロード中に「準備中…」バッジが表示される
-   - [ ] アップロード成功後に「OK！」バッジが表示される
-   - [ ] 送信ボタンが画像セット済み時に有効化される
-   - [ ] 送信ボタンを押すと送信処理が開始される
-   - [ ] サンクス画面が表示される
-   - [ ] 右上の「？」ボタンでチュートリアルを再表示できる
+### 2. private bucket へ配置
 
-## 技術的な詳細
+ファイルは以下の prefix に置く。
 
-### 使用コンポーネント
+```text
+tickets/703/ayato_manual_uploads/
+```
 
-- `useBlurModal` - モーダル表示用フック
-- `useLogger` - ログ記録用フック
-- `useAPICall` - API呼び出し用フック
-- `useFileUploader` - ファイルアップロード用フック
-- `selectMedia` - 画像選択用関数
-- `PrimaryButton` - プライマリボタンコンポーネント
+### 3. contribution_tasks へ登録
 
-### 状態管理
+`TASK_KEY` と `CDN_JSON_PATH` は対象 version に合わせる。v3 なら以下。
 
-ローカルステート管理（Zustandなどのグローバルストアは不要）：
+```js
+const TASK_KEY = "dish_category_manual_image_supply_v3";
+const CDN_JSON_PATH = "tickets/703/dish_category_manual_image_supply_v3.latest.json";
 
-- `items` - 候補アイテムリスト
-- `itemStates` - アイテムごとのアップロード状態
-- `isLoadingCandidates` - 候補読み込み中フラグ
-- `isSubmitting` - 送信中フラグ
-- `showTutorial` - チュートリアル表示フラグ
-- `showThanks` - サンクス画面表示フラグ
-- `selectedItem` - 選択中のアイテム
+manual_uploaded_category_names
+	.map((name) => target_categories.find((y) => y.category === name))
+	.filter(Boolean)
+	.map(
+		(x) =>
+			`curl -s -X POST \
+-H "authorization:Bearer YOUR_TOKEN_HERE" \
+-H "Content-Type:application/json" \
+-d '{
+  "type":"image_feedback",
+  "taskKey":"${TASK_KEY}",
+  "targetType":"dish_categories",
+  "targetId":"${x.category_id}",
+  "payload":{
+    "cdn":{"path":"${CDN_JSON_PATH}"},
+    "reason":"${x.reason}",
+    "category":"${x.category}",
+    "topicTitle":"${x.topicTitle}",
+    "sourceImageUrl":"${x.imageUrl}",
+    "source":"ayato_manual_uploads"
+  },
+  "result":{
+    "originalPath":"tickets/703/ayato_manual_uploads/dish_category_manual_image_supply_t703_${x.category_id}.jpg"
+  }
+}' \
+https://api.nanitabeyo.net/v1/contribution-tasks`,
+	)
+	.join("\n");
+```
 
-### エラーハンドリング
+## 本番反映手順
 
-- CDN取得失敗 → リトライ導線表示
-- completed-target-ids取得失敗 → 除外なしで暫定表示
-- アップロード失敗 → 該当カードに「もう一度！」バッジ表示
-- 送信失敗 → 失敗分を残して再送可能
+この手順の責務は、`contribution_tasks.result.originalPath` を起点にして、リサイズ済み public 画像を生成し、BigQuery の `dish_category_images` に CDN URL を登録すること。v ごとに `params.task_key` と `params.public_file_prefix` を変える。
 
-## API連携
+### 1. リサイズ Cloud Tasks を作る
 
-### POST /v1/contribution-tasks
+```sql
+WITH params AS (
+  SELECT
+    'dish_category_manual_image_supply_v3' AS task_key,
+    1024 AS image_size,
+    0.5625 AS aspect_ratio
+)
+SELECT
+  FORMAT(
+    '''%s''',
+    CONCAT(
+      'gcloud tasks create-http-task ',
+      'image-resize-', ct.target_id, ' ',
+      '--project=food-scroll ',
+      '--location=asia-northeast1 ',
+      '--queue=image-resize-queue ',
+      '--url=https://api.nanitabeyo.net/internal/resize-image ',
+      '--method=POST ',
+      '--header=Content-Type:application/json ',
+      '--oidc-service-account-email=tasks-invoker@food-scroll.iam.gserviceaccount.com ',
+      '--oidc-token-audience=https://api.nanitabeyo.net ',
+      '--body-content=',
+      TO_JSON_STRING(STRUCT(
+        'dish_categories' AS `table`,
+        'image_url' AS `column`,
+        ct.target_id AS recordId,
+        params.image_size AS size,
+        params.aspect_ratio AS aspectRatio,
+        JSON_VALUE(ct.result, '$.originalPath') AS originalPath
+      ))
+    )
+  ) AS command
+FROM `food-scroll.nanitabeyo_logs_prod.contribution_tasks` ct
+CROSS JOIN params
+WHERE ct.task_key = params.task_key
+  AND ct.target_type = 'dish_categories'
+  AND ct.type = 'image_feedback'
+  AND JSON_VALUE(ct.result, '$.originalPath') IS NOT NULL;
+```
 
-**リクエスト例:**
+### 2. resized private から public bucket への copy コマンドを作る
+
+```sql
+WITH params AS (
+  SELECT
+    'dish_category_manual_image_supply_v3' AS task_key,
+    'dish_category_manual_image_supply_v3' AS public_file_prefix
+),
+tasks AS (
+  SELECT
+    ct.target_id,
+    JSON_VALUE(ct.result, '$.originalPath') AS original_path
+  FROM `food-scroll.nanitabeyo_logs_prod.contribution_tasks` ct
+  CROSS JOIN params
+  WHERE ct.task_key = params.task_key
+    AND ct.target_type = 'dish_categories'
+    AND ct.type = 'image_feedback'
+    AND JSON_VALUE(ct.result, '$.originalPath') IS NOT NULL
+)
+SELECT
+  CONCAT(
+    'gsutil cp ',
+    'gs://nanitabeyo-private/production/resized-image/dish_categories/image_url/',
+    target_id,
+    '/',
+    REGEXP_REPLACE(REGEXP_EXTRACT(original_path, r'([^/]+)$'), r'\.[^.]+$', ''),
+    '/1024.webp ',
+    'gs://nanitabeyo-public/dish_categories/image_url/',
+    target_id,
+    '/',
+    params.public_file_prefix,
+    '-1024.webp'
+  ) AS command
+FROM tasks
+CROSS JOIN params
+ORDER BY target_id;
+```
+
+### 3. BigQuery `dish_category_images` 反映 SQL を作る
+
+```sql
+WITH params AS (
+  SELECT
+    'dish_category_manual_image_supply_v3' AS task_key,
+    'dish_category_manual_image_supply_v3' AS public_file_prefix
+),
+source_rows AS (
+  SELECT
+    ct.target_id AS dish_category_id,
+    CONCAT(
+      'https://cdn-public.nanitabeyo.net/dish_categories/image_url/',
+      ct.target_id,
+      '/',
+      params.public_file_prefix,
+      '-1024.webp'
+    ) AS image_url,
+    'manual' AS source_type,
+    CAST(ct.id AS STRING) AS source_ref
+  FROM `food-scroll.nanitabeyo_logs_prod.contribution_tasks` ct
+  CROSS JOIN params
+  WHERE ct.task_key = params.task_key
+    AND ct.target_type = 'dish_categories'
+    AND ct.type = 'image_feedback'
+    AND JSON_VALUE(ct.result, '$.originalPath') IS NOT NULL
+)
+MERGE `food-scroll.wikidata_food_graph.dish_category_images` T
+USING source_rows S
+ON T.dish_category_id = S.dish_category_id
+   AND T.image_url = S.image_url
+WHEN NOT MATCHED THEN
+  INSERT (dish_category_id, image_url, source_type, source_ref, score, created_at)
+  VALUES (S.dish_category_id, S.image_url, S.source_type, S.source_ref, NULL, CURRENT_TIMESTAMP());
+```
+
+## 画面の送信 payload
 
 ```json
 {
 	"type": "image_feedback",
-	"taskKey": "dish_category_manual_image_supply_v1",
+	"taskKey": "dish_category_manual_image_supply_v3",
 	"targetType": "dish_categories",
 	"targetId": "Q164606",
 	"payload": {
 		"category": "カレー",
 		"topicTitle": "カレー",
-		"reason": "スパイシーで美味しそうな画像を選んでください",
+		"reason": "カレーらしさが伝わる、縦長で美味しそうな画像を選んでください",
 		"sourceImageUrl": "https://upload.wikimedia.org/wikipedia/commons/1/1e/Indiandishes.jpg",
 		"cdn": {
-			"path": "tickets/703/dish_category_manual_image_supply_v1.latest.json"
+			"path": "tickets/703/dish_category_manual_image_supply_v3.latest.json"
 		}
 	},
 	"result": {
-		"originalPath": "gs://bucket/uploads/user123/original.jpg"
+		"originalPath": "tickets/703/ayato_manual_uploads/dish_category_manual_image_supply_t703_Q164606.jpg"
 	}
 }
 ```
 
 ## 注意事項
 
-- すべての文言は日本語固定（i18n不要）
-- チュートリアル表示フラグはAsyncStorageに保存
-- アップロード済みの孤児ファイルはサーバー側Lifecycleで回収
-- 送信は1件ずつ順番に実行（部分成功許容）
+- `Q1193068`（居酒屋）や `Q30022`（カフェ）のような業態・場所寄りの項目を進める場合も、task key と CDN path を対象 version に揃える。
+- この画面で public CDN URL は確定しない。最終 URL は本番反映手順の copy 先と BigQuery MERGE で決まる。
+- `taskVersion` だけでなく `taskKey` / `cdnJsonPath` を直接指定できるため、検証時は意図しない version を混ぜないよう URL を確認する。
+- `contribution_tasks` は部分成功を許容する。再送時は completed-target-ids によって、同じ `taskKey` で完了済みの `targetId` が候補から除外される。

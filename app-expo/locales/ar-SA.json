@@ -41,7 +41,7 @@
 		"viewInBrowser": "متابعة في المتصفح"
 	},
 	"DishCategoryGroupVotes": {
-		"resultTitle": "نتائج تصويت المجموعة",
+		"resultTitle": "نتائج تصويت الأصدقاء",
 		"resultSubtitle": "راجع الخيارات وصوّت لتفضيلاتك.",
 		"resultSubtitleVoted": "يمكنك مراجعة النتائج الحالية.",
 		"copyShareLink": "نسخ رابط المشاركة",
@@ -107,6 +107,8 @@
 			"scene": "مع من تذهب؟",
 			"mood": "ما مقدار جوعك؟",
 			"taste": "ما النكهات؟",
+			"diningPace": "كم ستستغرق الوجبة؟",
+			"foodStyle": "ما نوع الطعام؟",
 			"distance": "ما المسافة؟",
 			"budget": "الميزانية؟",
 			"restrictions": "القيود"
@@ -132,6 +134,12 @@
 		"labels": {
 			"noMinBudget": "لا حد أدنى",
 			"noMaxBudget": "لا حد أقصى"
+		},
+		"priceLevels": {
+			"inexpensive": "اقتصادي",
+			"moderate": "مناسب",
+			"expensive": "فاخر قليلاً",
+			"veryExpensive": "فاخر"
 		},
 		"distanceLabels": {
 			"100m": "100م",
@@ -170,8 +178,17 @@
 			"sweet": "حلو",
 			"spicy": "حار",
 			"healthy": "صحي",
-			"junk": "وجبات سريعة",
-			"alcohol": "مشروبات فقط"
+			"junk": "وجبات سريعة"
+		},
+		"coreIngredientOptions": {
+			"meat": "لحم",
+			"fish": "مأكولات بحرية",
+			"rice": "أرز",
+			"noodle": "نودلز"
+		},
+		"diningPaceOptions": {
+			"quick": "سريع",
+			"leisurely": "بتمهل"
 		},
 		"restrictionOptions": {
 			"vegetarian": "نباتي",
@@ -210,6 +227,9 @@
 		}
 	},
 	"Topics": {
+		"deepDive": {
+			"title": "تصفية بهذا النمط"
+		},
 		"HideTopicModal": {
 			"title": "إخفاء",
 			"description": "أخبرنا سبب الإخفاء (اختياري)",

@@ -41,7 +41,7 @@
 		"viewInBrowser": "在浏览器中继续"
 	},
 	"DishCategoryGroupVotes": {
-		"resultTitle": "大家的投票结果",
+		"resultTitle": "好友的投票结果",
 		"resultSubtitle": "查看选项并投出你的偏好。",
 		"resultSubtitleVoted": "你可以查看当前结果。",
 		"copyShareLink": "复制分享链接",
@@ -107,6 +107,8 @@
 			"scene": "和谁一起去？",
 			"mood": "您有多饿？",
 			"taste": "什么口味？",
+			"diningPace": "用餐时间？",
+			"foodStyle": "想吃哪一类？",
 			"distance": "距离？",
 			"budget": "预算？",
 			"restrictions": "限制条件"
@@ -132,6 +134,12 @@
 		"labels": {
 			"noMinBudget": "无下限",
 			"noMaxBudget": "无上限"
+		},
+		"priceLevels": {
+			"inexpensive": "省一点",
+			"moderate": "实惠",
+			"expensive": "小奢侈",
+			"veryExpensive": "高端"
 		},
 		"distanceLabels": {
 			"100m": "100米",
@@ -170,8 +178,17 @@
 			"sweet": "甜食",
 			"spicy": "辣的",
 			"healthy": "健康",
-			"junk": "垃圾食品",
-			"alcohol": "以酒为主"
+			"junk": "垃圾食品"
+		},
+		"coreIngredientOptions": {
+			"meat": "肉类",
+			"fish": "海鲜",
+			"rice": "米饭",
+			"noodle": "面类"
+		},
+		"diningPaceOptions": {
+			"quick": "快速",
+			"leisurely": "慢慢享用"
 		},
 		"restrictionOptions": {
 			"vegetarian": "素食",
@@ -210,6 +227,9 @@
 		}
 	},
 	"Topics": {
+		"deepDive": {
+			"title": "按这个类型筛选"
+		},
 		"HideTopicModal": {
 			"title": "隐藏",
 			"description": "请告诉我们隐藏的理由（可选）",

@@ -41,7 +41,7 @@
 		"viewInBrowser": "브라우저에서 계속하기"
 	},
 	"DishCategoryGroupVotes": {
-		"resultTitle": "모두의 투표 결과",
+		"resultTitle": "친구들의 투표 결과",
 		"resultSubtitle": "후보를 확인하고 선호도를 투표하세요.",
 		"resultSubtitleVoted": "현재 결과를 확인할 수 있습니다.",
 		"copyShareLink": "공유 링크 복사",
@@ -107,6 +107,8 @@
 			"scene": "누구와 가시나요?",
 			"mood": "얼마나 배고프세요?",
 			"taste": "어떤 맛?",
+			"diningPace": "식사 시간은?",
+			"foodStyle": "어떤 계열이 먹고 싶나요?",
 			"distance": "거리?",
 			"budget": "예산?",
 			"restrictions": "제한 조건"
@@ -132,6 +134,12 @@
 		"labels": {
 			"noMinBudget": "최소 없음",
 			"noMaxBudget": "최대 없음"
+		},
+		"priceLevels": {
+			"inexpensive": "아끼기",
+			"moderate": "적당하게",
+			"expensive": "조금 호화롭게",
+			"veryExpensive": "고급"
 		},
 		"distanceLabels": {
 			"100m": "100m",
@@ -170,8 +178,17 @@
 			"sweet": "달콤한 것",
 			"spicy": "매운 것",
 			"healthy": "건강식",
-			"junk": "정크",
-			"alcohol": "술 위주"
+			"junk": "정크"
+		},
+		"coreIngredientOptions": {
+			"meat": "고기",
+			"fish": "해산물",
+			"rice": "밥",
+			"noodle": "면"
+		},
+		"diningPaceOptions": {
+			"quick": "가볍게",
+			"leisurely": "여유롭게"
 		},
 		"restrictionOptions": {
 			"vegetarian": "채식",
@@ -210,6 +227,9 @@
 		}
 	},
 	"Topics": {
+		"deepDive": {
+			"title": "이 계열로 좁히기"
+		},
 		"HideTopicModal": {
 			"title": "숨기기",
 			"description": "숨기는 이유를 알려주세요 (선택사항)",

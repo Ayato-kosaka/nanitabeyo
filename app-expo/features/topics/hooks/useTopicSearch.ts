@@ -3,20 +3,15 @@ import { Topic, SearchParams } from "@/types/search";
 // import { mockTopicCards } from "@/data/searchMockData";
 import { useAPICall } from "@/hooks/useAPICall";
 import { wikimediaThumbFromOriginal } from "@/lib/wikimedia";
-import type {
-	CreateDishCategoryVariantDto,
-	QueryDishCategoryRecommendationsDto,
-} from "@shared/api/v1/dto";
-import type {
-	QueryDishCategoryRecommendationsResponse,
-	CreateDishCategoryVariantResponse,
-} from "@shared/api/v1/res";
+import type { CreateDishCategoryVariantDto, QueryDishCategoryRecommendationsDto } from "@shared/api/v1/dto";
+import type { QueryDishCategoryRecommendationsResponse, CreateDishCategoryVariantResponse } from "@shared/api/v1/res";
 import { useLocale } from "@/hooks/useLocale";
 import { getRemoteConfig } from "@/lib/remoteConfig";
 import { useLogger } from "@/hooks/useLogger";
 import i18n from "@/lib/i18n";
 import { CARD_WIDTH, DEFAULT_SEARCH_RADIUS, DEFAULT_PRICE_LEVELS } from "../constants";
 import { createDishItemsForCategory } from "@/lib/dishMediaSearch";
+import { deriveBudgetIntentFromPriceLevels } from "@/features/search/constants";
 
 export const useTopicSearch = () => {
 	const [topics, setTopics] = useState<Topic[]>([]);
@@ -30,6 +25,7 @@ export const useTopicSearch = () => {
 		// #633 【設計】Topic 生成時に dishItemsPromise を発火しない（ユーザー操作後に限定）
 		return {
 			...topic,
+			deepDiveFeatures: topic.deepDiveFeatures ?? [],
 			isHidden: false,
 		};
 	}, []);
@@ -48,8 +44,10 @@ export const useTopicSearch = () => {
 					address: params.address,
 					timeSlot: params.timeSlot,
 					scene: params.scene,
-					mood: params.mood,
 					taste: params.taste,
+					budgetIntent: deriveBudgetIntentFromPriceLevels(params.priceLevels),
+					diningPace: params.diningPace,
+					coreIngredient: params.coreIngredient,
 					languageTag: locale,
 					localLanguageCode: params.localLanguageCode,
 				},
@@ -143,13 +141,26 @@ export const useTopicSearch = () => {
 	);
 
 	const searchTopics = useCallback(
-		async (params: SearchParams) => {
+		async (params: SearchParams, options?: { pinnedTopic?: Topic | null }) => {
 			setIsLoading(true);
 			setError(null);
 
 			try {
+				const remoteConfig = getRemoteConfig();
+				const searchResultTopicsNumber = parseInt(remoteConfig?.v1_search_result_dish_categories_number!, 10);
 				const fetchedTopics = await fetchTopicCandidates(params);
-				setTopics(fetchedTopics);
+				if (options?.pinnedTopic) {
+					const pinnedTopic = { ...options.pinnedTopic, isHidden: false };
+					const nextTopics = [
+						pinnedTopic,
+						...fetchedTopics
+							.filter((topic) => topic.categoryId !== pinnedTopic.categoryId)
+							.slice(0, Math.max(0, searchResultTopicsNumber - 1)),
+					];
+					setTopics(nextTopics);
+				} else {
+					setTopics(fetchedTopics);
+				}
 
 				// // Mock API response based on search parameters
 				// const toplics = [...mockTopicCards]

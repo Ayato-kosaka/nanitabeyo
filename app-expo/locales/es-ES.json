@@ -41,7 +41,7 @@
 		"viewInBrowser": "Continuar en el navegador"
 	},
 	"DishCategoryGroupVotes": {
-		"resultTitle": "Resultados de la votación",
+		"resultTitle": "Resultados de la votación de amigos",
 		"resultSubtitle": "Revisa las opciones y vota por tus preferencias.",
 		"resultSubtitleVoted": "Puedes revisar los resultados actuales.",
 		"copyShareLink": "Copiar enlace",
@@ -107,6 +107,8 @@
 			"scene": "¿Con quién vas?",
 			"mood": "¿Cuánta hambre tienes?",
 			"taste": "¿Qué sabores?",
+			"diningPace": "¿Cuánto tiempo?",
+			"foodStyle": "¿Qué tipo de comida?",
 			"distance": "¿Qué distancia?",
 			"budget": "¿Presupuesto?",
 			"restrictions": "Restricciones"
@@ -132,6 +134,12 @@
 		"labels": {
 			"noMinBudget": "Sin mínimo",
 			"noMaxBudget": "Sin máximo"
+		},
+		"priceLevels": {
+			"inexpensive": "Ahorrar",
+			"moderate": "A buen precio",
+			"expensive": "Un poco especial",
+			"veryExpensive": "Alta gama"
 		},
 		"distanceLabels": {
 			"100m": "100m",
@@ -170,8 +178,17 @@
 			"sweet": "Dulce",
 			"spicy": "Picante",
 			"healthy": "Saludable",
-			"junk": "Comida chatarra",
-			"alcohol": "Principalmente bebidas"
+			"junk": "Comida chatarra"
+		},
+		"coreIngredientOptions": {
+			"meat": "Carne",
+			"fish": "Mariscos",
+			"rice": "Arroz",
+			"noodle": "Fideos"
+		},
+		"diningPaceOptions": {
+			"quick": "Rápido",
+			"leisurely": "Sin prisa"
 		},
 		"restrictionOptions": {
 			"vegetarian": "Vegetariano",
@@ -210,6 +227,9 @@
 		}
 	},
 	"Topics": {
+		"deepDive": {
+			"title": "Filtrar este estilo"
+		},
 		"HideTopicModal": {
 			"title": "Ocultar",
 			"description": "Dinos la razón para ocultarlo (opcional)",

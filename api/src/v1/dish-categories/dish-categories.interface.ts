@@ -7,9 +7,12 @@ export type DishCategoryCandidateNormalizedInput = {
   // market_salience / orderability 用の地域フォールバックキー
   // （狭い地域→広い地域→global）
   regionFallbackKeys: string[];
+  budgetIntentKeys: string[];
   timeSlotKey: string | null;
   sceneKey: string | null;
   satietyKey: string | null;
+  diningPaceKey: string | null;
+  coreIngredientKey: string | null;
   tasteKey: string | null;
   langCandidates: string[];
 };
@@ -17,9 +20,12 @@ export type DishCategoryCandidateNormalizedInput = {
 export interface DishCategoryCandidateWithScores {
   category_id: string;
   macro_genre: string | null;
+  budget_intent_score: number;
   time_slot_score: number;
   scene_score: number;
   satiety_score: number;
+  dining_pace_score: number;
+  core_ingredient_score: number;
   taste_score: number;
   rel_score: number;
   market_salience_score: number;
@@ -40,5 +46,6 @@ export interface DishCategoryPenaltyFeature {
 export interface DishCategoryPenaltyFeatureSet {
   category_id: string;
   core_ingredients: DishCategoryPenaltyFeature[];
+  taste_features: DishCategoryPenaltyFeature[];
   cooking_methods: DishCategoryPenaltyFeature[];
 }
