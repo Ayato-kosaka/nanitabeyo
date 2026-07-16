@@ -41,7 +41,7 @@
 		"viewInBrowser": "Continue in browser"
 	},
 	"DishCategoryGroupVotes": {
-		"resultTitle": "Group vote results",
+		"resultTitle": "Friends' voting results",
 		"resultSubtitle": "Review the choices and vote for your preferences.",
 		"resultSubtitleVoted": "You can review the current results.",
 		"copyShareLink": "Copy share link",

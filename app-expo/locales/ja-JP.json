@@ -41,7 +41,7 @@
 		"viewInBrowser": "ブラウザで続ける"
 	},
 	"DishCategoryGroupVotes": {
-		"resultTitle": "みんなの投票結果",
+		"resultTitle": "友達の投票結果",
 		"resultSubtitle": "候補を見て、あなたの好みを投票してください。",
 		"resultSubtitleVoted": "投票結果を確認できます。",
 		"copyShareLink": "共有リンクをコピー",
