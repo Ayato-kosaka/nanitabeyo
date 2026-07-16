@@ -134,7 +134,10 @@ export const TopicCard = ({
 								<TouchableOpacity
 									key={option.key}
 									style={[styles.deepDiveChip, { width: deepDiveChipWidth }]}
-									onPress={() => onDeepDive?.(item, option)}
+									onPress={(event) => {
+										event.stopPropagation();
+										onDeepDive?.(item, option);
+									}}
 									activeOpacity={0.8}>
 									<Text style={styles.deepDiveChipText}>{option.label}</Text>
 								</TouchableOpacity>
