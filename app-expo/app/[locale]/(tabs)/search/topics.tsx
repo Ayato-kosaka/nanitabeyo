@@ -21,6 +21,7 @@ import {
 	coreIngredientOptions,
 	deriveBudgetIntentFromPriceLevels,
 	diningPaceOptions,
+	foodStyleOptions,
 	priceLevelOptions,
 	sceneOptions,
 	tasteOptions,
@@ -38,9 +39,9 @@ import type { CreateDishCategoryGroupVoteResponse } from "@shared/api/v1/res";
 
 const DEEP_DIVE_SCORE_THRESHOLD = 0.85;
 
-const BUDGET_INTENT_ORDER = ["inexpensive", "moderate", "expensive", "very_expensive"] as const;
-const DINING_PACE_ORDER = ["quick", "leisurely"] as const;
-const FOOD_STYLE_ORDER = ["sweet", "spicy", "healthy", "junk", "meat", "fish", "rice", "noodle"] as const;
+const BUDGET_INTENT_ORDER = priceLevelOptions.map((option) => option.budgetIntent);
+const DINING_PACE_ORDER = diningPaceOptions.map((option) => option.id);
+const FOOD_STYLE_ORDER = foodStyleOptions.map((option) => option.id);
 const ALLOWED_DEEP_DIVE_KEYS = {
 	budget_intent: new Set(priceLevelOptions.map((option) => option.budgetIntent)),
 	dining_pace: new Set(diningPaceOptions.map((option) => option.id)),
