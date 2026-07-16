@@ -41,7 +41,7 @@
 		"viewInBrowser": "브라우저에서 계속하기"
 	},
 	"DishCategoryGroupVotes": {
-		"resultTitle": "모두의 투표 결과",
+		"resultTitle": "친구들의 투표 결과",
 		"resultSubtitle": "후보를 확인하고 선호도를 투표하세요.",
 		"resultSubtitleVoted": "현재 결과를 확인할 수 있습니다.",
 		"copyShareLink": "공유 링크 복사",
