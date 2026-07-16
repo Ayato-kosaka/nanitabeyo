@@ -7,7 +7,7 @@ import { Image } from "expo-image";
 import { Topic, SearchParams } from "@/types/search";
 import { useTopicSearch } from "@/features/topics/hooks/useTopicSearch";
 import { useBlockTopic } from "@/features/topics/hooks/useBlockTopic";
-import { TopicCard, type TopicDeepDiveOption } from "@/features/topics/components/TopicCard";
+import { TopicCard, TOPIC_CARD_CTA_OVERHANG, type TopicDeepDiveOption } from "@/features/topics/components/TopicCard";
 import { useTopicImageResources } from "@/features/topics/hooks/useTopicImageResources";
 import { TopicsLoading } from "@/features/topics/components/TopicsLoading";
 import { TopicsError } from "@/features/topics/components/TopicsError";
@@ -257,12 +257,14 @@ export default function TopicsScreen() {
 		setCurrentIndex(index);
 	};
 
-	// #674 【仕様】カードタップ時の処理（スクロール中は無視）
-	const handleCardPress = useCallback(() => {
-		if (isScrolling) return; // スクロール中はタップ無視
-		if (currentIndex >= visibleTopics.length) return;
-		handleViewDetails(visibleTopics[currentIndex]);
-	}, [isScrolling, currentIndex, visibleTopics, handleViewDetails]);
+	// #674 【仕様】カード・メインCTAタップ時の処理（スクロール中は無視）
+	const handleCardPress = useCallback(
+		(topic: Topic) => {
+			if (isScrolling) return;
+			handleViewDetails(topic);
+		},
+		[handleViewDetails, isScrolling],
+	);
 
 	// #674 【仕様】サムネイルタップ時の処理
 	const handleThumbnailPress = useCallback((index: number) => {
@@ -411,25 +413,24 @@ export default function TopicsScreen() {
 	// ✅ 実際にカルーセルに渡す高さ：「空きの高さ」と「CARD_MAX_HEIGHT」の小さい方
 	const cardHeight = useMemo(() => {
 		if (carouselAvailableHeight <= 0) return 0;
-		const heightWithMargin = carouselAvailableHeight;
+		const heightWithMargin = carouselAvailableHeight - TOPIC_CARD_CTA_OVERHANG;
 		return Math.min(heightWithMargin, CARD_MAX_HEIGHT);
 	}, [carouselAvailableHeight]);
 
 	const renderCard = ({ item, index }: { item: Topic; index: number }) => {
 		const imageState = getImageState(item);
 		return (
-			<TouchableOpacity key={item.categoryId} activeOpacity={0.95} onPress={handleCardPress}>
-				<TopicCard
-					item={item}
-					onBlock={handleBlockCard}
-					onDeepDive={handleDeepDive}
-					deepDiveOptions={getDeepDiveOptions(item)}
-					displayIndex={index}
-					cardHeight={cardHeight}
-					imageState={imageState}
-					onImageRetry={retryImage}
-				/>
-			</TouchableOpacity>
+			<TopicCard
+				item={item}
+				onBlock={handleBlockCard}
+				onDeepDive={handleDeepDive}
+				onSelect={handleCardPress}
+				deepDiveOptions={getDeepDiveOptions(item)}
+				displayIndex={index}
+				cardHeight={cardHeight}
+				imageState={imageState}
+				onImageRetry={retryImage}
+			/>
 		);
 	};
 
@@ -578,7 +579,7 @@ export default function TopicsScreen() {
 								<Carousel
 									ref={carouselRef}
 									width={CARD_WIDTH}
-									height={cardHeight}
+									height={cardHeight + TOPIC_CARD_CTA_OVERHANG}
 									data={visibleTopics}
 									renderItem={renderCard}
 									onSnapToItem={handleSnapToItem}

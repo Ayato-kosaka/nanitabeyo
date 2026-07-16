@@ -246,7 +246,7 @@
 		},
 		"empty": "表示できる料理がありません",
 		"retry": "検索に戻る",
-		"chooseThis": "これにする！",
+		"chooseThis": "この料理にする！",
 		"hiddenMessage": "{{title}}を非表示にしました",
 		"BlockTopicModal": {
 			"title": "この料理をブロックしますか？",
