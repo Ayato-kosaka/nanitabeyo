@@ -107,6 +107,8 @@
 			"scene": "Avec qui allez-vous ?",
 			"mood": "Quelle faim avez-vous ?",
 			"taste": "Quels goûts ?",
+			"diningPace": "Combien de temps ?",
+			"foodStyle": "Quel type de plat ?",
 			"distance": "À quelle distance ?",
 			"budget": "Budget ?",
 			"restrictions": "Restrictions"
@@ -132,6 +134,12 @@
 		"labels": {
 			"noMinBudget": "Pas de minimum",
 			"noMaxBudget": "Pas de maximum"
+		},
+		"priceLevels": {
+			"inexpensive": "Économique",
+			"moderate": "Abordable",
+			"expensive": "Un peu chic",
+			"veryExpensive": "Haut de gamme"
 		},
 		"distanceLabels": {
 			"100m": "100m",
@@ -170,8 +178,17 @@
 			"sweet": "Sucré",
 			"spicy": "Épicé",
 			"healthy": "Sain",
-			"junk": "Junk food",
-			"alcohol": "Principalement des boissons"
+			"junk": "Junk food"
+		},
+		"coreIngredientOptions": {
+			"meat": "Viande",
+			"fish": "Fruits de mer",
+			"rice": "Riz",
+			"noodle": "Nouilles"
+		},
+		"diningPaceOptions": {
+			"quick": "Rapide",
+			"leisurely": "Tranquille"
 		},
 		"restrictionOptions": {
 			"vegetarian": "Végétarien",
@@ -210,6 +227,9 @@
 		}
 	},
 	"Topics": {
+		"deepDive": {
+			"title": "Filtrer ce style"
+		},
 		"HideTopicModal": {
 			"title": "Masquer",
 			"description": "Veuillez indiquer la raison du masquage (facultatif)",
