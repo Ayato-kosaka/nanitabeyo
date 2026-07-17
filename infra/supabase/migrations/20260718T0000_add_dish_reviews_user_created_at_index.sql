@@ -1,0 +1,96 @@
+-- DB性能改善チケット: #896
+-- 内容:
+--   ユーザー別のレビュー一覧取得で使用するクエリ向けに、
+--   dish_reviews (user_id, created_at DESC) の複合インデックスを追加する
+--
+-- 背景:
+--   - Supabase の本番 Database Observability で、
+--     Disk IO Budget が枯渇間近であるという警告を確認
+--   - Budget 枯渇後はディスクスループットがベースラインの 5 MB/s に戻り、
+--     API遅延・タイムアウト・DB内部処理の遅延につながる可能性がある
+--   - public.dish_reviews は約964MBで、DB使用容量の約60%を占める最大テーブル
+--
+-- Query Performance 調査結果:
+--   - 対象クエリは以下の条件・並び順で実行されている
+--       WHERE user_id = $1
+--       ORDER BY created_at DESC
+--       LIMIT $2 OFFSET $3
+--   - 実行回数: 993回
+--   - 平均実行時間: 約4.48秒
+--   - 最大実行時間: 約11.23秒
+--   - 合計実行時間: 約74分
+--   - 全クエリ時間に占める割合: 約14.44%
+--   - キャッシュヒット率: 約11.01%
+--   - キャッシュヒット率が低く、物理ディスク読み込みが多い可能性が高い
+--
+-- 該当アプリケーション処理:
+--   - GET /v1/users/:id/dish-reviews
+--   - app-expo/features/profile/tabs/ReviewTab.tsx
+--   - api/src/v1/users/users.controller.ts
+--   - api/src/v1/users/users.service.ts
+--   - api/src/v1/dish-media/dish-media.repository.ts
+--   - Prisma の dish_reviews.findMany が対象SQLを生成する
+--   - 現在の実装は created_at を使用したカーソルページネーションであり、
+--     ページング方式の変更は本対応の対象外
+--
+-- 現在の関連インデックス:
+--   - dish_reviews_pkey           ON dish_reviews (id)
+--   - idx_dish_reviews_created_at ON dish_reviews (created_at)
+--   - idx_dish_reviews_dish       ON dish_reviews (dish_id)
+--   - user_id を先頭列とするインデックスは存在しない
+--
+-- 原因:
+--   - 対象クエリは user_id で絞り込み、created_at の降順で先頭43件を取得する
+--   - created_at 単独インデックスでは、作成日時順に行を読みながら
+--     対象 user_id をフィルタする実行計画になる可能性がある
+--   - レビュー数が少ないユーザーや古いレビューしか持たないユーザーでは、
+--     条件に一致する行を見つけるまで多数の行・ブロックを読む可能性がある
+--
+-- 判断:
+--   - 絞り込み列 user_id を先頭、並び順の created_at DESC を第2列とする
+--     複合インデックスが対象クエリに適している
+--   - アプリケーションの検索条件・並び順・レスポンス仕様は変更しない
+--   - 本チケットでは Compute プラン変更やアプリ側の追加最適化は実施しない
+--
+-- 実施方法:
+--   - 本番テーブルへの書き込み停止を避けるため CREATE INDEX CONCURRENTLY を使用する
+--   - CREATE INDEX CONCURRENTLY はトランザクション内では実行できないため、
+--     このマイグレーションを BEGIN / COMMIT で囲まない
+--   - インデックス作成自体も Disk I/O を使用するため、アクセスの少ない時間帯に適用する
+--   - 適用中は Disk throughput、I/O wait、API応答時間を監視する
+--
+-- 影響範囲:
+--   - 読み取り性能:
+--       ユーザー別レビュー取得が複合インデックスを利用できるようになる
+--   - 書き込み性能:
+--       dish_reviews の INSERT / UPDATE / DELETE 時にインデックス更新コストが僅かに増える
+--   - ストレージ:
+--       複合インデックス分のディスク容量が追加で必要になる
+--   - アプリケーション挙動:
+--       検索結果・並び順・ページング仕様への変更なし
+--
+-- 期待効果:
+--   - 対象クエリが Seq Scan または created_at 単独インデックスの広範囲走査から、
+--     idx_dish_reviews_user_created_at を使用した Index Scan に変わる
+--   - 読み込みブロック数と物理ディスクI/Oを削減する
+--   - 対象クエリの平均・最大実行時間を短縮する
+--   - Disk IO Budget の消費ペースを抑制する
+--
+-- 適用後の確認:
+--   - pg_indexes で idx_dish_reviews_user_created_at の存在を確認する
+--   - 実在するユーザーUUIDを使用し、以下相当の EXPLAIN (ANALYZE, BUFFERS) で
+--     idx_dish_reviews_user_created_at が利用されることを確認する
+--       SELECT *
+--       FROM public.dish_reviews
+--       WHERE user_id = '<USER_UUID>'
+--       ORDER BY created_at DESC
+--       LIMIT 43;
+--   - プロフィール画面のレビュー一覧で初回表示・追加取得・並び順を確認する
+--   - Query Performance で実行時間とディスク読み込み量の改善を確認する
+--
+-- ロールバック:
+--   - 問題が発生した場合は以下をトランザクション外で実行する
+--       DROP INDEX CONCURRENTLY IF EXISTS public.idx_dish_reviews_user_created_at;
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_dish_reviews_user_created_at
+  ON public.dish_reviews (user_id, created_at DESC);
