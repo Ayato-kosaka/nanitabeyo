@@ -97,7 +97,7 @@
 			"searchFailed": "Search failed"
 		},
 		"googleMapsFallback": {
-			"message": "Restaurant data is limited in this area. Open it in Google Maps?",
+			"message": "You can view restaurants matching your criteria on Google Maps.",
 			"confirm": "Open Google Maps",
 			"cancel": "Close"
 		},
