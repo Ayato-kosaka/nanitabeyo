@@ -14,6 +14,26 @@ const envSchema = z.object({
   CORS_ORIGIN: z.string(),
   DATABASE_URL: z.string(),
   DB_SCHEMA: z.string(),
+  // #904 【設計】Prisma 7 driver adapterではPool設定をDATABASE_URLではなくpg.Poolへ渡す
+  DB_POOL_MAX: z.coerce.number().int().min(1).max(10).default(1),
+  DB_POOL_CONNECTION_TIMEOUT_MS: z.coerce
+    .number()
+    .int()
+    .min(1_000)
+    .max(60_000)
+    .default(10_000),
+  DB_POOL_IDLE_TIMEOUT_MS: z.coerce
+    .number()
+    .int()
+    .min(1_000)
+    .max(300_000)
+    .default(30_000),
+  DB_POOL_MAX_LIFETIME_SECONDS: z.coerce
+    .number()
+    .int()
+    .min(0)
+    .max(3_600)
+    .default(0),
   SUPABASE_JWT_SECRET: z.string(),
   GOOGLE_PLACE_API_KEY: z.string(),
   GCS_BUCKET_NAME: z.string(),
