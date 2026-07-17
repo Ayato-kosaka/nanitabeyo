@@ -1,7 +1,9 @@
 import { PrismaClient } from '../../../../shared/prisma/client';
 import { performance } from 'node:perf_hooks';
+import type { Pool, PoolClient } from 'pg';
 import {
   Counter,
+  Gauge,
   Histogram,
   Registry,
   collectDefaultMetrics,
@@ -43,6 +45,133 @@ const queryLatency =
     buckets: [5, 10, 25, 50, 100, 250, 500, 1_000, 2_500, 5_000],
     registers: [registry],
   });
+
+// #904 【設計】Prisma 7 adapter-pgの実効Pool状態と接続取得待ち時間をNodeドライバ側で計測する
+const poolTotalConnections =
+  (registry.getSingleMetric('pg_pool_total_connections') as Gauge<string>) ??
+  new Gauge({
+    name: 'pg_pool_total_connections',
+    help: 'Total number of PostgreSQL clients in the pool',
+    registers: [registry],
+  });
+
+const poolIdleConnections =
+  (registry.getSingleMetric('pg_pool_idle_connections') as Gauge<string>) ??
+  new Gauge({
+    name: 'pg_pool_idle_connections',
+    help: 'Number of idle PostgreSQL clients in the pool',
+    registers: [registry],
+  });
+
+const poolWaitingRequests =
+  (registry.getSingleMetric('pg_pool_waiting_requests') as Gauge<string>) ??
+  new Gauge({
+    name: 'pg_pool_waiting_requests',
+    help: 'Number of requests waiting for a PostgreSQL client',
+    registers: [registry],
+  });
+
+const poolConnectionErrors =
+  (registry.getSingleMetric(
+    'pg_pool_connection_errors_total',
+  ) as Counter<string>) ??
+  new Counter({
+    name: 'pg_pool_connection_errors_total',
+    help: 'Total number of PostgreSQL pool connection errors',
+    labelNames: ['source'] as const,
+    registers: [registry],
+  });
+
+const poolAcquireLatency =
+  (registry.getSingleMetric(
+    'pg_pool_acquire_duration_milliseconds',
+  ) as Histogram<string>) ??
+  new Histogram({
+    name: 'pg_pool_acquire_duration_milliseconds',
+    help: 'PostgreSQL pool client acquisition duration in milliseconds',
+    labelNames: ['status'] as const,
+    buckets: [1, 5, 10, 25, 50, 100, 250, 500, 1_000, 5_000, 10_000],
+    registers: [registry],
+  });
+
+const instrumentedPools: WeakSet<Pool> =
+  (global as any).__PG_POOL_METRICS_INSTRUMENTED__ ?? new WeakSet<Pool>();
+(global as any).__PG_POOL_METRICS_INSTRUMENTED__ = instrumentedPools;
+
+type PoolConnectCallback = (
+  error: Error | undefined,
+  client: PoolClient | undefined,
+  done: (release?: any) => void,
+) => void;
+
+function updatePoolStateMetrics(pool: Pool): void {
+  poolTotalConnections.set(pool.totalCount);
+  poolIdleConnections.set(pool.idleCount);
+  poolWaitingRequests.set(pool.waitingCount);
+}
+
+/**
+ * pg.Pool の状態と接続取得待ち時間を既存の Prometheus registry へ登録する。
+ *
+ * @param pool 計測対象の pg.Pool
+ * @returns 計測処理を追加した同一の pg.Pool
+ * @remarks 副作用として connect をラップし、Poolイベントリスナーを追加する。
+ * 失敗時は元の接続エラーを変更せず、呼び出し元へそのまま返す。
+ */
+export function withPoolMetrics<TPool extends Pool>(pool: TPool): TPool {
+  if (instrumentedPools.has(pool)) {
+    return pool;
+  }
+  instrumentedPools.add(pool);
+  updatePoolStateMetrics(pool);
+
+  const originalConnect = pool.connect.bind(pool) as Pool['connect'];
+  pool.connect = ((callback?: PoolConnectCallback) => {
+    const startedAt = performance.now();
+
+    const observeAcquire = (status: 'success' | 'error') => {
+      poolAcquireLatency
+        .labels(status)
+        .observe(performance.now() - startedAt);
+      updatePoolStateMetrics(pool);
+    };
+
+    if (callback) {
+      originalConnect((error, client, done) => {
+        const status = error ? 'error' : 'success';
+        if (error) {
+          poolConnectionErrors.labels('acquire').inc();
+        }
+        observeAcquire(status);
+        callback(error, client, done);
+      });
+      return;
+    }
+
+    return originalConnect().then(
+      (client) => {
+        observeAcquire('success');
+        return client;
+      },
+      (error) => {
+        poolConnectionErrors.labels('acquire').inc();
+        observeAcquire('error');
+        throw error;
+      },
+    );
+  }) as Pool['connect'];
+
+  pool.on('connect', () => updatePoolStateMetrics(pool));
+  pool.on('acquire', () => updatePoolStateMetrics(pool));
+  pool.on('release', () => updatePoolStateMetrics(pool));
+  pool.on('remove', () => updatePoolStateMetrics(pool));
+  pool.on('error', () => {
+    poolConnectionErrors.labels('idle').inc();
+    updatePoolStateMetrics(pool);
+  });
+
+  return pool;
+}
 
 /* ------------------------ Prisma Client Extension ---------------------- */
 /**
