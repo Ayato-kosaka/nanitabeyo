@@ -97,7 +97,7 @@
 			"searchFailed": "検索に失敗しました"
 		},
 		"googleMapsFallback": {
-			"message": "このエリアの店舗データが不足しています。Google マップで表示しますか？",
+			"message": "条件に合うお店を Googleマップ上でご確認頂けます。",
 			"confirm": "Google マップで開く",
 			"cancel": "閉じる"
 		},

@@ -97,7 +97,7 @@
 			"searchFailed": "La recherche a échoué"
 		},
 		"googleMapsFallback": {
-			"message": "Les données de restaurants sont limitées dans cette zone. Ouvrir dans Google Maps ?",
+			"message": "Vous pouvez consulter sur Google Maps les restaurants correspondant à vos critères.",
 			"confirm": "Ouvrir Google Maps",
 			"cancel": "Fermer"
 		},
