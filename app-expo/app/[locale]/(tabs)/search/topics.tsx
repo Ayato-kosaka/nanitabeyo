@@ -422,6 +422,8 @@ export default function TopicsScreen() {
 		const imageState = getImageState(item);
 		return (
 			<TopicCard
+				// Carousel は index で要素を再利用するため、非表示後に次の料理の state/画像を引き継がないよう再マウントする。
+				key={item.categoryId}
 				item={item}
 				onBlock={handleBlockCard}
 				onDeepDive={handleDeepDive}
