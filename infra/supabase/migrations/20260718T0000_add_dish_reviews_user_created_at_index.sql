@@ -8,7 +8,7 @@
 --     Disk IO Budget が枯渇間近であるという警告を確認
 --   - Budget 枯渇後はディスクスループットがベースラインの 5 MB/s に戻り、
 --     API遅延・タイムアウト・DB内部処理の遅延につながる可能性がある
---   - public.dish_reviews は約964MBで、DB使用容量の約60%を占める最大テーブル
+--   - dish_reviews は約964MBで、DB使用容量の約60%を占める最大テーブル
 --
 -- Query Performance 調査結果:
 --   - 対象クエリは以下の条件・並び順で実行されている
@@ -81,7 +81,7 @@
 --   - 実在するユーザーUUIDを使用し、以下相当の EXPLAIN (ANALYZE, BUFFERS) で
 --     idx_dish_reviews_user_created_at が利用されることを確認する
 --       SELECT *
---       FROM public.dish_reviews
+--       FROM dish_reviews
 --       WHERE user_id = '<USER_UUID>'
 --       ORDER BY created_at DESC
 --       LIMIT 43;
@@ -90,7 +90,7 @@
 --
 -- ロールバック:
 --   - 問題が発生した場合は以下をトランザクション外で実行する
---       DROP INDEX CONCURRENTLY IF EXISTS public.idx_dish_reviews_user_created_at;
+--       DROP INDEX CONCURRENTLY IF EXISTS idx_dish_reviews_user_created_at;
 
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_dish_reviews_user_created_at
-  ON public.dish_reviews (user_id, created_at DESC);
+  ON dish_reviews (user_id, created_at DESC);
