@@ -98,7 +98,6 @@ export default function TopicsScreen() {
 	useEffect(() => {
 		if (params) {
 			searchTopics(params, { pinnedTopic }).catch(() => {
-				// useTopicSearch は再試行と状態管理を担当し、画面側が最終失敗をSnackbarで可視化する。
 				showSnackbar(i18n.t("Topics.errors.fetchFailed"));
 			});
 		} else {

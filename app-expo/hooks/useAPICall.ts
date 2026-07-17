@@ -16,13 +16,13 @@ import { fetchWithAuth } from "@/lib/fetchWithAuth";
 export type ApiError = {
 	/** クライアント側で使う大まかな分類コード */
 	code:
-	| "maintenance_mode"
-	| "unsupported_version"
-	| "forbidden"
-	| "http_error"
-	| "api_error"
-	| "invalid_response"
-	| "network_error";
+		| "maintenance_mode"
+		| "unsupported_version"
+		| "forbidden"
+		| "http_error"
+		| "api_error"
+		| "invalid_response"
+		| "network_error";
 
 	/** HTTP ステータス。ネットワークエラー等の場合は undefined or 0 */
 	status?: number;
@@ -58,7 +58,7 @@ export type ApiError = {
 export const useAPICall = () => {
 	const { logFrontendEvent } = useLogger();
 	const { showDialog } = useDialog();
-	const { getSession, refreshSession } = useAuth();
+	const { getSession } = useAuth();
 
 	/**
 	 * 指定されたエンドポイントに対して API を呼び出す関数
@@ -83,7 +83,7 @@ export const useAPICall = () => {
 			},
 		): Promise<R> => {
 			// 🔐 認証トークンの有無をチェック
-			let accessToken = getSession()?.access_token;
+			const accessToken = getSession()?.access_token;
 			if (!accessToken) {
 				throw new Error("User is not authenticated: Supabase access_token is missing.");
 			}
@@ -101,88 +101,22 @@ export const useAPICall = () => {
 				},
 			});
 
-			// #897 リトライ上限は初回を含め2回に固定する。401・GETの一時障害が重なっても
-			// API呼び出し単位で無制限に再送せず、最終失敗は従来どおり下の共通処理へ渡す。
-			let response: Response | undefined;
-			let endpoint = endpointName;
-			let networkError: unknown;
-
-			for (let attempt = 0; attempt < 2; attempt++) {
-				response = undefined;
-				try {
-					const result = await fetchWithAuth(
-						endpointName,
-						{
-							method,
-							requestPayload,
-							isMultipart,
-						},
-						accessToken,
-					);
-					response = result.response;
-					endpoint = result.endpoint;
-					networkError = undefined;
-				} catch (error) {
-					networkError = error;
-					// 通信到達が不明なPOST等は重複作成を避ける。副作用のないGETだけを再送する。
-					if (method === "GET" && attempt === 0) {
-						logFrontendEvent({
-							event_name: "api_call_retry",
-							error_level: "warn",
-							payload: { endpoint: endpointName, method, reason: "network_error" },
-						});
-						await new Promise((resolve) => setTimeout(resolve, 500));
-						continue;
-					}
-					break;
-				}
-
-				// 自動refreshだけでは失敗済みリクエストは復旧しないため、新tokenで1回だけ再送する。
-				// 401は認証段階で拒否された応答なので、POSTを含めても処理の二重実行にはならない。
-				if (response.status === 401 && attempt === 0) {
-					try {
-						const refreshedSession = await refreshSession();
-						if (!refreshedSession?.access_token) break;
-						accessToken = refreshedSession.access_token;
-						logFrontendEvent({
-							event_name: "api_call_retry",
-							error_level: "warn",
-							payload: { endpoint: endpointName, method, reason: "session_refreshed_after_401" },
-						});
-						continue;
-					} catch (error) {
-						logFrontendEvent({
-							event_name: "api_call_session_refresh_failed",
-							error_level: "error",
-							payload: {
-								endpoint: endpointName,
-								error: error instanceof Error ? error.message : String(error),
-							},
-						});
-						break;
-					}
-				}
-
-				// 503は一時的な過負荷でも返る。GETに限定し、Retry-Afterを最大5秒まで尊重する。
-				if (response.status === 503 && method === "GET" && attempt === 0) {
-					const retryAfterHeader = response.headers.get("retry-after");
-					const retryAfterSeconds = retryAfterHeader === null ? Number.NaN : Number(retryAfterHeader);
-					const retryDelayMs = Number.isFinite(retryAfterSeconds)
-						? Math.min(Math.max(retryAfterSeconds * 1000, 0), 5000)
-						: 500;
-					logFrontendEvent({
-						event_name: "api_call_retry",
-						error_level: "warn",
-						payload: { endpoint: endpointName, method, reason: "service_unavailable", retryDelayMs },
-					});
-					await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
-					continue;
-				}
-
-				break;
-			}
-
-			if (!response) {
+			// #525 【設計】fetchWithAuth のネットワークエラーを ApiError 形式に正規化
+			let response: Response;
+			let endpoint: string;
+			try {
+				const result = await fetchWithAuth(
+					endpointName,
+					{
+						method,
+						requestPayload,
+						isMultipart,
+					},
+					accessToken,
+				);
+				response = result.response;
+				endpoint = result.endpoint;
+			} catch (networkError) {
 				logFrontendEvent({
 					event_name: "api_call_error",
 					error_level: "error",
@@ -354,7 +288,7 @@ export const useAPICall = () => {
 			// data のみを返す
 			return json.data;
 		},
-		[logFrontendEvent, getSession, refreshSession, showDialog],
+		[logFrontendEvent, getSession, showDialog],
 	);
 
 	return { callBackend };
