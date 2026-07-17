@@ -35,23 +35,42 @@ export const useTopicSearch = () => {
 			const remoteConfig = getRemoteConfig();
 			const searchResultTopicsNumber = parseInt(remoteConfig?.v1_search_result_dish_categories_number!, 10);
 
-			const topicsResponse = await callBackend<
-				QueryDishCategoryRecommendationsDto,
-				QueryDishCategoryRecommendationsResponse
-			>("v1/dish-categories/recommendations", {
-				method: "GET",
-				requestPayload: {
-					address: params.address,
-					timeSlot: params.timeSlot,
-					scene: params.scene,
-					taste: params.taste,
-					budgetIntent: deriveBudgetIntentFromPriceLevels(params.priceLevels),
-					diningPace: params.diningPace,
-					coreIngredient: params.coreIngredient,
-					languageTag: locale,
-					localLanguageCode: params.localLanguageCode,
-				},
-			});
+			const fetchRecommendations = () =>
+				callBackend<QueryDishCategoryRecommendationsDto, QueryDishCategoryRecommendationsResponse>(
+					"v1/dish-categories/recommendations",
+					{
+						method: "GET",
+						requestPayload: {
+							address: params.address,
+							timeSlot: params.timeSlot,
+							scene: params.scene,
+							taste: params.taste,
+							budgetIntent: deriveBudgetIntentFromPriceLevels(params.priceLevels),
+							diningPace: params.diningPace,
+							coreIngredient: params.coreIngredient,
+							languageTag: locale,
+							localLanguageCode: params.localLanguageCode,
+						},
+					},
+				);
+
+			let topicsResponse = await fetchRecommendations();
+			// #897 バックエンドは外部推薦のフォールバックまで失敗した場合、成功応答の空配列を返す。
+			// 空配列だけを一時失敗として扱い、別操作を要求せず500ms後に一度だけ再検索する。
+			if (topicsResponse.length === 0) {
+				logFrontendEvent({
+					event_name: "dish_category_recommendations_empty_retry",
+					error_level: "warn",
+					payload: {},
+				});
+				await new Promise((resolve) => setTimeout(resolve, 500));
+				topicsResponse = await fetchRecommendations();
+			}
+
+			if (topicsResponse.length === 0) {
+				// hookは表示手段を持たない。呼び出し元へ伝播し、Topics画面のSnackbarで通知する。
+				throw new Error(i18n.t("Topics.errors.fetchFailed"));
+			}
 
 			let topicsResponseWithCategoryIds: QueryDishCategoryRecommendationsResponse = topicsResponse
 				.slice(0, searchResultTopicsNumber)
@@ -81,8 +100,8 @@ export const useTopicSearch = () => {
 									...topic,
 									category:
 										createDishCategoryVariantResponse.labels &&
-										typeof createDishCategoryVariantResponse.labels === "object" &&
-										params.localLanguageCode in createDishCategoryVariantResponse.labels
+											typeof createDishCategoryVariantResponse.labels === "object" &&
+											params.localLanguageCode in createDishCategoryVariantResponse.labels
 											? (createDishCategoryVariantResponse.labels as Record<string, string>)[params.localLanguageCode]
 											: topic.category,
 									categoryId: createDishCategoryVariantResponse.id,
@@ -108,7 +127,7 @@ export const useTopicSearch = () => {
 
 			return topicsResponseWithCategoryIds.map((topic) => createTopic(topic));
 		},
-		[callBackend, createTopic, locale],
+		[callBackend, createTopic, locale, logFrontendEvent],
 	);
 
 	// #633 【設計】料理メディアの取得処理（オンデマンド実行用に export）
