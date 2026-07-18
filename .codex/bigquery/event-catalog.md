@@ -98,6 +98,9 @@ rg -o 'event_name:\s*"[^"]+"' app-expo --glob '!**/node_modules/**'
 - `topic_deep_dive_selected`
 - `topic_save_reaction_failed`
 - `topic_impression`
+- `topic_block_confirmed`
+- `topic_block_success`
+- `topic_block_failed`
 - `topic_image_resource_load_error`
 - `topic_image_manual_retry`
 - `saved_topic_selected`

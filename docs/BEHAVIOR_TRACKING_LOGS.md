@@ -22,7 +22,7 @@
 
 ### 1. topic_impression
 
-トピックカードが表示された時に発火（1回のみ）
+トピックカードがカルーセルのアクティブカードになった時に発火（同一検索セッション・topic IDごとに1回のみ）
 
 ```typescript
 {
@@ -65,6 +65,21 @@
 
 - スワイプ回数と map 到達率の相関
 - トピック間の比較行動パターン分析
+
+### 2.1 topic_block_confirmed / topic_block_success / topic_block_failed
+
+ブロックの確定操作、永続化成功、永続化失敗をそれぞれ記録します。確定後に画面が変化しない事象を、操作未達と保存失敗に切り分けるためのイベントです。
+
+```typescript
+{
+  event_name: "topic_block_confirmed" | "topic_block_success" | "topic_block_failed",
+  error_level: "log" | "error",
+  payload: {
+    topic_id: string,
+    error?: string
+  }
+}
+```
 
 ### 3. dish_media_impression
 
@@ -117,17 +132,15 @@
 
 ### 重複防止
 
-impression ログは `useRef` で送信済みフラグを管理し、コンポーネントのライフサイクル中に1回のみ送信されます。
+topic impression は画面側の `Set<topicId>` で送信済みIDを管理し、Carouselの事前描画やblock後の再マウントを閲覧として数えません。検索条件が変わった時だけ送信済みIDをリセットします。
 
 ```typescript
-const impressionLoggedRef = useRef(false);
+const impressedTopicIdsRef = useRef(new Set<string>());
 
-useEffect(() => {
-  if (!impressionLoggedRef.current) {
-    impressionLoggedRef.current = true;
-    logFrontendEvent({...});
-  }
-}, [依存配列]);
+if (!impressedTopicIdsRef.current.has(activeTopic.categoryId)) {
+  impressedTopicIdsRef.current.add(activeTopic.categoryId);
+  logFrontendEvent({...});
+}
 ```
 
 ### 安全性

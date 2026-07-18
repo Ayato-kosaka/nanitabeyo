@@ -11,7 +11,6 @@ import { TopicCard, TOPIC_CARD_CTA_OVERHANG, type TopicDeepDiveOption } from "@/
 import { useTopicImageResources } from "@/features/topics/hooks/useTopicImageResources";
 import { TopicsLoading } from "@/features/topics/components/TopicsLoading";
 import { TopicsError } from "@/features/topics/components/TopicsError";
-import { BlockTopicForm } from "@/features/topics/components/BlockTopicForm";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useDialog } from "@/contexts/DialogProvider";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
@@ -81,31 +80,44 @@ export default function TopicsScreen() {
 	const { logFrontendEvent } = useLogger();
 	const [isScrolling, setIsScrolling] = useState(false);
 	const [currentIndex, setCurrentIndex] = useState(0);
+	const [loadedSearchSessionKey, setLoadedSearchSessionKey] = useState<string | null>(null);
 	const carouselRef = useRef<any>(null);
 	const createdGroupVoteRef = useRef<CreateDishCategoryGroupVoteResponse | null>(null);
+	// #907 【設計】描画ライフサイクルと閲覧実績を分離し、検索セッション内のtopic単位で重複を防ぐ。
+	const impressedTopicIdsRef = useRef<Set<string>>(new Set());
 	const { selectionChanged } = useHaptics();
 
 	const { topics, isLoading, error, searchTopics, refillTopics, hideTopic, createDishItemsPromise } = useTopicSearch();
 	const { showSnackbar } = useSnackbar();
 	const { showDialog } = useDialog();
-	const {
-		BlurModal: BlockTopicBlurModal,
-		handleBlockCard,
-		confirmBlockCard,
-	} = useBlockTopic(topics, hideTopic, showSnackbar);
+	const { handleBlockCard } = useBlockTopic(hideTopic, showSnackbar);
 	const { createGroupVote, isCreating } = useCreateDishCategoryGroupVote();
 
 	useEffect(() => {
+		const searchSessionKey = searchParams ?? "";
+		// #907 【仕様】検索開始時に閲覧記録を無効化し、旧topicsを新しい検索セッションへ混在させない。
+		setLoadedSearchSessionKey(null);
+		impressedTopicIdsRef.current.clear();
+		setCurrentIndex(0);
+		if (carouselRef.current) {
+			carouselRef.current.scrollTo({ index: 0, animated: false });
+		}
+
 		if (params) {
-			searchTopics(params, { pinnedTopic }).catch(() => {
-				// useTopicSearch は再試行と状態管理を担当し、画面側が最終失敗をSnackbarで可視化する。
-				showSnackbar(i18n.t("Topics.errors.fetchFailed"));
-			});
+			searchTopics(params, { pinnedTopic })
+				.then(() => {
+					// #907 【設計】完了した検索キーを保持し、取得中に残る旧topicsのimpression送信を抑止する。
+					setLoadedSearchSessionKey(searchSessionKey);
+				})
+				.catch(() => {
+					// useTopicSearch は再試行と状態管理を担当し、画面側が最終失敗をSnackbarで可視化する。
+					showSnackbar(i18n.t("Topics.errors.fetchFailed"));
+				});
 		} else {
 			showSnackbar(i18n.t("Topics.errors.invalidSearchParams"));
 			router.back();
 		}
-	}, [params, pinnedTopic, searchTopics, showSnackbar, router]);
+	}, [params, pinnedTopic, searchParams, searchTopics, showSnackbar, router]);
 
 	const handleViewDetails = useCallback(
 		(topic: Topic) => {
@@ -221,12 +233,34 @@ export default function TopicsScreen() {
 		sessionKey: searchParams ?? "",
 	});
 
+	/**
+	 * 現在アクティブなtopicの初回表示だけを記録する。
+	 * topicが存在しないindexでは何も行わず、同一検索セッション内の再表示も送信しない。
+	 */
+	const logActiveTopicImpression = useCallback(
+		(index: number) => {
+			const topic = visibleTopics[index];
+			if (!topic || impressedTopicIdsRef.current.has(topic.categoryId)) return;
+
+			// #907 【仕様】Carouselが事前描画したカードではなく、アクティブになったtopicだけをimpressionとする。
+			impressedTopicIdsRef.current.add(topic.categoryId);
+			logFrontendEvent({
+				event_name: "topic_impression",
+				error_level: "log",
+				payload: {
+					topic_id: topic.categoryId,
+					display_index: index,
+				},
+			});
+		},
+		[logFrontendEvent, visibleTopics],
+	);
+
 	useEffect(() => {
-		setCurrentIndex(0);
-		if (carouselRef.current) {
-			carouselRef.current.scrollTo({ index: 0, animated: false });
-		}
-	}, [searchParams]);
+		if (loadedSearchSessionKey !== (searchParams ?? "")) return;
+		// #907 【設計】初期表示・snap・block後の自動繰り上がりを同じ判定経路へ集約する。
+		logActiveTopicImpression(currentIndex);
+	}, [currentIndex, loadedSearchSessionKey, logActiveTopicImpression, searchParams]);
 
 	// #615 visibleTopics 変化時に currentIndex を範囲内に clamp（範囲外アクセス防止）
 	useEffect(() => {
@@ -273,7 +307,7 @@ export default function TopicsScreen() {
 		if (carouselRef.current) {
 			carouselRef.current.scrollTo({ index, animated: true });
 		}
-		setCurrentIndex(index);
+		// #907 【仕様】アニメーション完了前はactive扱いにせず、onSnapToItemでindexとログを確定する。
 	}, []);
 
 	const getDeepDiveLabel = useCallback((option: TopicDeepDiveOption) => {
@@ -430,7 +464,6 @@ export default function TopicsScreen() {
 				onDeepDive={handleDeepDive}
 				onSelect={handleCardPress}
 				deepDiveOptions={getDeepDiveOptions(item)}
-				displayIndex={index}
 				cardHeight={cardHeight}
 				imageState={imageState}
 				onImageRetry={retryImage}
@@ -623,10 +656,6 @@ export default function TopicsScreen() {
 					</View>
 				)}
 			</View>
-
-			<BlockTopicBlurModal>
-				{({ close }) => <BlockTopicForm onSubmit={confirmBlockCard} onCancel={close} />}
-			</BlockTopicBlurModal>
 		</View>
 	);
 }
