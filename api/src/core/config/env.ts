@@ -21,13 +21,13 @@ const envSchema = z.object({
     .int()
     .min(1_000)
     .max(60_000)
-    .default(10_000),
+    .default(60_000),
   DB_POOL_IDLE_TIMEOUT_MS: z.coerce
     .number()
     .int()
     .min(1_000)
     .max(300_000)
-    .default(30_000),
+    .default(300_000),
   DB_POOL_MAX_LIFETIME_SECONDS: z.coerce
     .number()
     .int()
