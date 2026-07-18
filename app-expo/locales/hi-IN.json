@@ -97,7 +97,7 @@
 			"searchFailed": "खोज विफल हुई"
 		},
 		"googleMapsFallback": {
-			"message": "इस क्षेत्र में रेस्तरां डेटा कम है। Google Maps में खोलें?",
+			"message": "आप अपनी शर्तों से मेल खाने वाले रेस्तरां Google Maps पर देख सकते हैं।",
 			"confirm": "Google Maps खोलें",
 			"cancel": "बंद करें"
 		},

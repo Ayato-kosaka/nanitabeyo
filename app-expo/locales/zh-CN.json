@@ -97,7 +97,7 @@
 			"searchFailed": "搜索失败"
 		},
 		"googleMapsFallback": {
-			"message": "该区域的餐厅数据不足。要在 Google 地图中打开吗？",
+			"message": "您可以在 Google 地图上查看符合条件的餐厅。",
 			"confirm": "打开 Google 地图",
 			"cancel": "关闭"
 		},

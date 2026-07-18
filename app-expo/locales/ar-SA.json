@@ -97,7 +97,7 @@
 			"searchFailed": "فشل البحث"
 		},
 		"googleMapsFallback": {
-			"message": "بيانات المطاعم محدودة في هذه المنطقة. هل تريد فتحها في خرائط Google؟",
+			"message": "يمكنك الاطلاع على المطاعم التي تطابق شروطك على خرائط Google.",
 			"confirm": "فتح خرائط Google",
 			"cancel": "إغلاق"
 		},

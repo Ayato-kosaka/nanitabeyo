@@ -97,7 +97,7 @@
 			"searchFailed": "검색에 실패했습니다"
 		},
 		"googleMapsFallback": {
-			"message": "이 지역의 매장 데이터가 부족합니다. Google 지도에서 표시할까요?",
+			"message": "조건에 맞는 음식점을 Google 지도에서 확인할 수 있습니다.",
 			"confirm": "Google 지도 열기",
 			"cancel": "닫기"
 		},

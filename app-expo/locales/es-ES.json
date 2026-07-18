@@ -97,7 +97,7 @@
 			"searchFailed": "La búsqueda falló"
 		},
 		"googleMapsFallback": {
-			"message": "Hay pocos datos de restaurantes en esta zona. ¿Abrir en Google Maps?",
+			"message": "Puedes consultar en Google Maps los restaurantes que cumplen tus criterios.",
 			"confirm": "Abrir Google Maps",
 			"cancel": "Cerrar"
 		},

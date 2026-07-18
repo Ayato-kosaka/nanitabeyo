@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState } from "react";
 import { Text, TouchableOpacity, StyleSheet, View } from "react-native";
 import { Bookmark, Ban } from "lucide-react-native";
 import { Topic } from "@/types/search";
@@ -27,23 +27,21 @@ export const TopicCard = ({
 	onDeepDive,
 	onSelect,
 	deepDiveOptions = [],
-	displayIndex,
 	cardHeight,
 	imageState,
 	onImageRetry,
 }: {
 	item: Topic;
-	onBlock: (id: string) => void;
+	onBlock: (topic: Topic) => void;
 	onDeepDive?: (topic: Topic, option: TopicDeepDiveOption) => void;
 	onSelect: (topic: Topic) => void;
 	deepDiveOptions?: TopicDeepDiveOption[];
-	displayIndex?: number;
 	cardHeight: number;
 	imageState: TopicImageResourceState;
 	onImageRetry?: (topic: Topic) => void;
 }) => {
 	const [isSaved, setIsSaved] = useState(false);
-	const { lightImpact, errorNotification } = useHaptics();
+	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 
 	const deepDiveChipWidth = deepDiveOptions.length === 1 ? "100%" : deepDiveOptions.length === 2 ? "48.5%" : "31.5%";
@@ -94,28 +92,9 @@ export const TopicCard = ({
 		}
 	};
 
-	const handleBlock = async () => {
-		errorNotification();
-		onBlock(item.categoryId);
+	const handleBlock = () => {
+		onBlock(item);
 	};
-
-	// impression ログ送信済みフラグ（重複防止用）
-	const impressionLoggedRef = useRef(false);
-
-	// ログ追加【仕様】topic_impression ログ送信（カード表示時に1回のみ）
-	useEffect(() => {
-		if (!impressionLoggedRef.current) {
-			impressionLoggedRef.current = true;
-			logFrontendEvent({
-				event_name: "topic_impression",
-				error_level: "log",
-				payload: {
-					topic_id: item.categoryId,
-					display_index: displayIndex ?? null,
-				},
-			});
-		}
-	}, [item.categoryId, displayIndex, logFrontendEvent]);
 
 	return (
 		<View style={[styles.cardPressArea, { height: cardHeight + TOPIC_CARD_CTA_OVERHANG }]}>

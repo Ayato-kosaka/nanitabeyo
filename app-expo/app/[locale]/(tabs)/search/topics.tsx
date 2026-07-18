@@ -11,7 +11,6 @@ import { TopicCard, TOPIC_CARD_CTA_OVERHANG, type TopicDeepDiveOption } from "@/
 import { useTopicImageResources } from "@/features/topics/hooks/useTopicImageResources";
 import { TopicsLoading } from "@/features/topics/components/TopicsLoading";
 import { TopicsError } from "@/features/topics/components/TopicsError";
-import { BlockTopicForm } from "@/features/topics/components/BlockTopicForm";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useDialog } from "@/contexts/DialogProvider";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
@@ -81,30 +80,54 @@ export default function TopicsScreen() {
 	const { logFrontendEvent } = useLogger();
 	const [isScrolling, setIsScrolling] = useState(false);
 	const [currentIndex, setCurrentIndex] = useState(0);
+	const [loadedSearchSessionKey, setLoadedSearchSessionKey] = useState<string | null>(null);
+	const [carouselAvailableHeight, setCarouselAvailableHeight] = useState(0);
 	const carouselRef = useRef<any>(null);
+	// #907 【設計】サムネイルによるプログラム移動だけを識別し、スワイプ分析へ混在させない。
+	const thumbnailNavigationTargetRef = useRef<number | null>(null);
 	const createdGroupVoteRef = useRef<CreateDishCategoryGroupVoteResponse | null>(null);
+	// #907 【設計】描画ライフサイクルと閲覧実績を分離し、検索セッション内のtopic単位で重複を防ぐ。
+	const impressedTopicIdsRef = useRef<Set<string>>(new Set());
 	const { selectionChanged } = useHaptics();
 
 	const { topics, isLoading, error, searchTopics, refillTopics, hideTopic, createDishItemsPromise } = useTopicSearch();
 	const { showSnackbar } = useSnackbar();
 	const { showDialog } = useDialog();
-	const {
-		BlurModal: BlockTopicBlurModal,
-		handleBlockCard,
-		confirmBlockCard,
-	} = useBlockTopic(topics, hideTopic, showSnackbar);
+	const { handleBlockCard } = useBlockTopic(hideTopic, showSnackbar);
 	const { createGroupVote, isCreating } = useCreateDishCategoryGroupVote();
+	// #907 【設計】Carouselのmount条件とimpressionの準備条件で同じ高さを参照する。
+	const cardHeight = useMemo(() => {
+		if (carouselAvailableHeight <= 0) return 0;
+		const heightWithMargin = carouselAvailableHeight - TOPIC_CARD_CTA_OVERHANG;
+		return Math.min(heightWithMargin, CARD_MAX_HEIGHT);
+	}, [carouselAvailableHeight]);
 
 	useEffect(() => {
+		const searchSessionKey = searchParams ?? "";
+		// #907 【仕様】検索開始時に閲覧記録を無効化し、旧topicsを新しい検索セッションへ混在させない。
+		setLoadedSearchSessionKey(null);
+		impressedTopicIdsRef.current.clear();
+		thumbnailNavigationTargetRef.current = null;
+		setCurrentIndex(0);
+		if (carouselRef.current) {
+			carouselRef.current.scrollTo({ index: 0, animated: false });
+		}
+
 		if (params) {
-			searchTopics(params, { pinnedTopic }).catch(() => {
-				showSnackbar(i18n.t("Topics.errors.fetchFailed"));
-			});
+			searchTopics(params, { pinnedTopic })
+				.then(() => {
+					// #907 【設計】完了した検索キーを保持し、取得中に残る旧topicsのimpression送信を抑止する。
+					setLoadedSearchSessionKey(searchSessionKey);
+				})
+				.catch(() => {
+					// useTopicSearch は再試行と状態管理を担当し、画面側が最終失敗をSnackbarで可視化する。
+					showSnackbar(i18n.t("Topics.errors.fetchFailed"));
+				});
 		} else {
 			showSnackbar(i18n.t("Topics.errors.invalidSearchParams"));
 			router.back();
 		}
-	}, [params, pinnedTopic, searchTopics, showSnackbar, router]);
+	}, [params, pinnedTopic, searchParams, searchTopics, showSnackbar, router]);
 
 	const handleViewDetails = useCallback(
 		(topic: Topic) => {
@@ -173,6 +196,7 @@ export default function TopicsScreen() {
 	};
 
 	const visibleTopics = useMemo(() => topics.filter((topic) => !topic.isHidden), [topics]);
+	const isCarouselReady = cardHeight > 0 && visibleTopics.length > 0;
 
 	useEffect(() => {
 		createdGroupVoteRef.current = null;
@@ -220,12 +244,35 @@ export default function TopicsScreen() {
 		sessionKey: searchParams ?? "",
 	});
 
+	/**
+	 * 現在アクティブなtopicの初回表示だけを記録する。
+	 * topicが存在しないindexでは何も行わず、同一検索セッション内の再表示も送信しない。
+	 */
+	const logActiveTopicImpression = useCallback(
+		(index: number) => {
+			const topic = visibleTopics[index];
+			if (!topic || impressedTopicIdsRef.current.has(topic.categoryId)) return;
+
+			// #907 【仕様】Carouselが事前描画したカードではなく、アクティブになったtopicだけをimpressionとする。
+			impressedTopicIdsRef.current.add(topic.categoryId);
+			logFrontendEvent({
+				event_name: "topic_impression",
+				error_level: "log",
+				payload: {
+					topic_id: topic.categoryId,
+					display_index: index,
+				},
+			});
+		},
+		[logFrontendEvent, visibleTopics],
+	);
+
 	useEffect(() => {
-		setCurrentIndex(0);
-		if (carouselRef.current) {
-			carouselRef.current.scrollTo({ index: 0, animated: false });
-		}
-	}, [searchParams]);
+		if (loadedSearchSessionKey !== (searchParams ?? "")) return;
+		if (!isCarouselReady) return;
+		// #907 【設計】初期表示・snap・block後の自動繰り上がりを同じ判定経路へ集約する。
+		logActiveTopicImpression(currentIndex);
+	}, [currentIndex, isCarouselReady, loadedSearchSessionKey, logActiveTopicImpression, searchParams]);
 
 	// #615 visibleTopics 変化時に currentIndex を範囲内に clamp（範囲外アクセス防止）
 	useEffect(() => {
@@ -241,9 +288,19 @@ export default function TopicsScreen() {
 	}, [visibleTopics.length]);
 
 	const handleSnapToItem = (index: number) => {
+		const isThumbnailNavigation = thumbnailNavigationTargetRef.current === index;
+		// #907 【設計】移動成否にかかわらず消費し、後続のユーザースワイプを誤って抑制しない。
+		thumbnailNavigationTargetRef.current = null;
+
 		selectionChanged();
-		// ログ追加【仕様】topic_swiped_next ログ送信（前のインデックスと異なる場合のみ）
-		if (index !== currentIndex && index >= 0 && index < visibleTopics.length && currentIndex >= 0) {
+		// #907 【仕様】topic_swiped_nextはジェスチャー操作だけを記録し、サムネイルによる直接移動を除外する。
+		if (
+			!isThumbnailNavigation &&
+			index !== currentIndex &&
+			index >= 0 &&
+			index < visibleTopics.length &&
+			currentIndex >= 0
+		) {
 			logFrontendEvent({
 				event_name: "topic_swiped_next",
 				error_level: "log",
@@ -268,12 +325,16 @@ export default function TopicsScreen() {
 	);
 
 	// #674 【仕様】サムネイルタップ時の処理
-	const handleThumbnailPress = useCallback((index: number) => {
-		if (carouselRef.current) {
+	const handleThumbnailPress = useCallback(
+		(index: number) => {
+			if (index === currentIndex || !carouselRef.current) return;
+
+			// #907 【仕様】indexはsnap完了後に更新し、カード表示前のimpression送信を防ぐ。
+			thumbnailNavigationTargetRef.current = index;
 			carouselRef.current.scrollTo({ index, animated: true });
-		}
-		setCurrentIndex(index);
-	}, []);
+		},
+		[currentIndex],
+	);
 
 	const getDeepDiveLabel = useCallback((option: TopicDeepDiveOption) => {
 		if (option.featureType === "budget_intent") {
@@ -408,26 +469,17 @@ export default function TopicsScreen() {
 		[locale, logFrontendEvent, params],
 	);
 
-	// カルーセルに使える「縦方向の空きスペース」を測る
-	const [carouselAvailableHeight, setCarouselAvailableHeight] = useState(0);
-
-	// ✅ 実際にカルーセルに渡す高さ：「空きの高さ」と「CARD_MAX_HEIGHT」の小さい方
-	const cardHeight = useMemo(() => {
-		if (carouselAvailableHeight <= 0) return 0;
-		const heightWithMargin = carouselAvailableHeight - TOPIC_CARD_CTA_OVERHANG;
-		return Math.min(heightWithMargin, CARD_MAX_HEIGHT);
-	}, [carouselAvailableHeight]);
-
 	const renderCard = ({ item, index }: { item: Topic; index: number }) => {
 		const imageState = getImageState(item);
 		return (
 			<TopicCard
+				// Carousel は index で要素を再利用するため、非表示後に次の料理の state/画像を引き継がないよう再マウントする。
+				key={item.categoryId}
 				item={item}
 				onBlock={handleBlockCard}
 				onDeepDive={handleDeepDive}
 				onSelect={handleCardPress}
 				deepDiveOptions={getDeepDiveOptions(item)}
-				displayIndex={index}
 				cardHeight={cardHeight}
 				imageState={imageState}
 				onImageRetry={retryImage}
@@ -620,10 +672,6 @@ export default function TopicsScreen() {
 					</View>
 				)}
 			</View>
-
-			<BlockTopicBlurModal>
-				{({ close }) => <BlockTopicForm onSubmit={confirmBlockCard} onCancel={close} />}
-			</BlockTopicBlurModal>
 		</View>
 	);
 }
