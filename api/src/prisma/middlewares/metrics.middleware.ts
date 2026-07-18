@@ -163,7 +163,8 @@ export function withPoolMetrics<TPool extends Pool>(pool: TPool): TPool {
 
   pool.on('connect', () => updatePoolStateMetrics(pool));
   pool.on('acquire', () => updatePoolStateMetrics(pool));
-  pool.on('release', () => updatePoolStateMetrics(pool));
+  // #904 【バグ】releaseイベント時点ではidleキュー反映前のため、完了後の状態を次のイベントループで計測する
+  pool.on('release', () => setImmediate(() => updatePoolStateMetrics(pool)));
   pool.on('remove', () => updatePoolStateMetrics(pool));
   pool.on('error', () => {
     poolConnectionErrors.labels('idle').inc();
