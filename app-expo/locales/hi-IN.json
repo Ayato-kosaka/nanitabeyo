@@ -40,6 +40,39 @@
 		"downloadApp": "ऐप डाउनलोड करें",
 		"viewInBrowser": "ब्राउज़र में जारी रखें"
 	},
+	"DishCategoryGroupVotes": {
+		"resultTitle": "दोस्तों के मतदान के नतीजे",
+		"resultSubtitle": "विकल्प देखें और अपनी पसंद पर वोट करें।",
+		"resultSubtitleVoted": "आप मौजूदा परिणाम देख सकते हैं।",
+		"copyShareLink": "शेयर लिंक कॉपी करें",
+		"voteCta": "वोट करें",
+		"candidatesTitle": "विकल्प",
+		"commentsTitle": "टिप्पणियाँ",
+		"viewRestaurants": "रेस्तरां देखें",
+		"loadingRestaurants": "खोज रहे हैं",
+		"noRestaurantsFound": "पास में कोई रेस्तरां विकल्प नहीं मिला",
+		"openRestaurantsPending": "रेस्तरां सूची से कनेक्शन अभी लागू नहीं है",
+		"deleteCandidate": "विकल्प हटाएँ",
+		"deleteCandidateTitle": "यह विकल्प हटाएँ?",
+		"deleteCandidateMessage": "{{name}} को वोट विकल्पों से छिपाएँ।",
+		"loadFailed": "वोट लोड नहीं हो सका",
+		"refreshFailed": "नए परिणाम लोड नहीं हो सके",
+		"like": "पसंद",
+		"dislike": "छोड़ें",
+		"voteProgress": "{{current}} / {{total}}",
+		"noVoteCandidates": "वोट करने के लिए कोई विकल्प नहीं है",
+		"completionTitle": "अपना वोट पक्का करें",
+		"completionDescription": "परिणाम पेज पर दिखने वाला नाम और वैकल्पिक टिप्पणी दर्ज करें।",
+		"nameSuggestionLabel": "आप इनमें से किसी एक को नाम बना सकते हैं",
+		"displayNamePlaceholder": "निकनेम",
+		"commentPlaceholder": "टिप्पणी (वैकल्पिक)",
+		"submitVote": "वोट पूरा करें",
+		"submitting": "भेज रहे हैं",
+		"submitFailed": "आपका वोट भेजा नहीं जा सका",
+		"participantsList": "प्रतिभागी: {{names}}",
+		"noParticipants": "अभी कोई प्रतिभागी नहीं है",
+		"noVotes": "अभी कोई वोट नहीं है"
+	},
 	"Error": {
 		"maintenanceMessage": "हम वर्तमान में रखरखाव कर रहे हैं।",
 		"unsupportedVersion": "यह संस्करण अब समर्थित नहीं है।"
@@ -64,7 +97,7 @@
 			"searchFailed": "खोज विफल हुई"
 		},
 		"googleMapsFallback": {
-			"message": "इस क्षेत्र में रेस्तरां डेटा कम है। Google Maps में खोलें?",
+			"message": "आप अपनी शर्तों से मेल खाने वाले रेस्तरां Google Maps पर देख सकते हैं।",
 			"confirm": "Google Maps खोलें",
 			"cancel": "बंद करें"
 		},
@@ -74,6 +107,8 @@
 			"scene": "आप किसके साथ जा रहे हैं?",
 			"mood": "आपको कितनी भूख है?",
 			"taste": "क्या स्वाद?",
+			"diningPace": "भोजन में कितना समय?",
+			"foodStyle": "किस तरह का खाना?",
 			"distance": "कितनी दूरी?",
 			"budget": "बजट?",
 			"restrictions": "प्रतिबंध"
@@ -99,6 +134,12 @@
 		"labels": {
 			"noMinBudget": "कोई न्यूनतम नहीं",
 			"noMaxBudget": "कोई अधिकतम नहीं"
+		},
+		"priceLevels": {
+			"inexpensive": "बचत",
+			"moderate": "किफायती",
+			"expensive": "थोड़ा खास",
+			"veryExpensive": "प्रीमियम"
 		},
 		"distanceLabels": {
 			"100m": "100मी",
@@ -137,8 +178,17 @@
 			"sweet": "मीठा",
 			"spicy": "मसालेदार",
 			"healthy": "स्वस्थ",
-			"junk": "जंक",
-			"alcohol": "मुख्यतः पेय"
+			"junk": "जंक"
+		},
+		"coreIngredientOptions": {
+			"meat": "मांस",
+			"fish": "सीफूड",
+			"rice": "चावल",
+			"noodle": "नूडल्स"
+		},
+		"diningPaceOptions": {
+			"quick": "जल्दी",
+			"leisurely": "आराम से"
 		},
 		"restrictionOptions": {
 			"vegetarian": "शाकाहारी",
@@ -177,6 +227,9 @@
 		}
 	},
 	"Topics": {
+		"deepDive": {
+			"title": "इस शैली से छांटें"
+		},
 		"HideTopicModal": {
 			"title": "छिपाएँ",
 			"description": "कृपया छिपाने का कारण बताएं (वैकल्पिक)",

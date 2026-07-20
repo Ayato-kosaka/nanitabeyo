@@ -40,6 +40,39 @@
 		"downloadApp": "下载应用",
 		"viewInBrowser": "在浏览器中继续"
 	},
+	"DishCategoryGroupVotes": {
+		"resultTitle": "好友的投票结果",
+		"resultSubtitle": "查看选项并投出你的偏好。",
+		"resultSubtitleVoted": "你可以查看当前结果。",
+		"copyShareLink": "复制分享链接",
+		"voteCta": "投票",
+		"candidatesTitle": "选项",
+		"commentsTitle": "评论",
+		"viewRestaurants": "查看餐厅",
+		"loadingRestaurants": "搜索中",
+		"noRestaurantsFound": "未找到附近的候选餐厅",
+		"openRestaurantsPending": "餐厅列表连接尚未实现",
+		"deleteCandidate": "删除选项",
+		"deleteCandidateTitle": "删除此选项？",
+		"deleteCandidateMessage": "从投票选项中隐藏 {{name}}。",
+		"loadFailed": "无法加载投票",
+		"refreshFailed": "无法刷新最新结果",
+		"like": "喜欢",
+		"dislike": "跳过",
+		"voteProgress": "{{current}} / {{total}}",
+		"noVoteCandidates": "没有可投票的选项",
+		"completionTitle": "确认投票",
+		"completionDescription": "输入结果页显示的名字和可选评论。",
+		"nameSuggestionLabel": "你可以用其中一个作为名字",
+		"displayNamePlaceholder": "昵称",
+		"commentPlaceholder": "评论（可选）",
+		"submitVote": "完成投票",
+		"submitting": "提交中",
+		"submitFailed": "无法提交投票",
+		"participantsList": "参与者：{{names}}",
+		"noParticipants": "还没有参与者",
+		"noVotes": "还没有投票"
+	},
 	"Error": {
 		"maintenanceMessage": "当前正在维护中。",
 		"unsupportedVersion": "此版本已不再受支持."
@@ -64,7 +97,7 @@
 			"searchFailed": "搜索失败"
 		},
 		"googleMapsFallback": {
-			"message": "该区域的餐厅数据不足。要在 Google 地图中打开吗？",
+			"message": "您可以在 Google 地图上查看符合条件的餐厅。",
 			"confirm": "打开 Google 地图",
 			"cancel": "关闭"
 		},
@@ -74,6 +107,8 @@
 			"scene": "和谁一起去？",
 			"mood": "您有多饿？",
 			"taste": "什么口味？",
+			"diningPace": "用餐时间？",
+			"foodStyle": "想吃哪一类？",
 			"distance": "距离？",
 			"budget": "预算？",
 			"restrictions": "限制条件"
@@ -99,6 +134,12 @@
 		"labels": {
 			"noMinBudget": "无下限",
 			"noMaxBudget": "无上限"
+		},
+		"priceLevels": {
+			"inexpensive": "省一点",
+			"moderate": "实惠",
+			"expensive": "小奢侈",
+			"veryExpensive": "高端"
 		},
 		"distanceLabels": {
 			"100m": "100米",
@@ -137,8 +178,17 @@
 			"sweet": "甜食",
 			"spicy": "辣的",
 			"healthy": "健康",
-			"junk": "垃圾食品",
-			"alcohol": "以酒为主"
+			"junk": "垃圾食品"
+		},
+		"coreIngredientOptions": {
+			"meat": "肉类",
+			"fish": "海鲜",
+			"rice": "米饭",
+			"noodle": "面类"
+		},
+		"diningPaceOptions": {
+			"quick": "快速",
+			"leisurely": "慢慢享用"
 		},
 		"restrictionOptions": {
 			"vegetarian": "素食",
@@ -177,6 +227,9 @@
 		}
 	},
 	"Topics": {
+		"deepDive": {
+			"title": "按这个类型筛选"
+		},
 		"HideTopicModal": {
 			"title": "隐藏",
 			"description": "请告诉我们隐藏的理由（可选）",

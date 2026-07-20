@@ -1,4 +1,5 @@
 import { Dimensions } from "react-native";
+import { allPriceLevelValues } from "../search/constants";
 
 // Obtain device dimensions to calculate card size
 const { width, height } = Dimensions.get("window");
@@ -10,11 +11,6 @@ export const CARD_MAX_HEIGHT = (CARD_WIDTH / 9) * 16; // 16:9 のアスペクト
 
 // #633 【設計】Topics 検索のデフォルト値（createDishItemsPromise と handleViewDetails で共通化）
 export const DEFAULT_SEARCH_RADIUS = 500; // メートル
-export const DEFAULT_PRICE_LEVELS = [
-	"PRICE_LEVEL_INEXPENSIVE",
-	"PRICE_LEVEL_MODERATE",
-	"PRICE_LEVEL_EXPENSIVE",
-	"PRICE_LEVEL_VERY_EXPENSIVE",
-] as const;
+export const DEFAULT_PRICE_LEVELS = allPriceLevelValues;
 
 export { width, height };

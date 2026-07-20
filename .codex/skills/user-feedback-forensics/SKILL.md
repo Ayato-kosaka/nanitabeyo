@@ -15,6 +15,12 @@ GitHub Issueとして投稿されたユーザーフィードバックを起点�
 - Service account key: `~/.config/service-account-key/food-scroll-2bc35f43cfea.json`
 - Log schema reference:
   - `infra/big-query/migration/20251203T0000_backfill_legacy_log_tables_and_views.sql`
+- BigQuery instructions:
+  - `.codex/bigquery/access.md`
+  - `.codex/bigquery/safety-policy.md`
+  - `.codex/bigquery/schemas.md`
+  - `.codex/bigquery/query-patterns.md`
+  - `.codex/bigquery/event-catalog.md`
 
 ## Important Caveats
 
@@ -24,20 +30,14 @@ GitHub Issueとして投稿されたユーザーフィードバックを起点�
 - To identify the actual client build and connected environment, use `frontend_event_logs.created_app_version`, `frontend_event_logs.created_commit_id`, and the user's frontend/backend request flow around the feedback timestamp.
 - If the issue body shows an old commit such as `4065557...`, first check whether that is the deployed API commit. It may simply mean the feedback endpoint is backed by an old API revision, even when the installed client is newer.
 
-Before running BigQuery, set:
+Before running BigQuery, read `.codex/bigquery/access.md` and
+`.codex/bigquery/safety-policy.md`. In Codex managed sandbox, run `bq query`
+with escalated permissions from the first attempt because `bq`/`gcloud` can fail
+before execution with sandbox namespace errors.
 
-```bash
-export PATH=/home/ubuntu/.local/google-cloud-sdk/bin:$PATH
-export GOOGLE_APPLICATION_CREDENTIALS=~/.config/service-account-key/food-scroll-2bc35f43cfea.json
-export BQ_DATASET=food-scroll.nanitabeyo_logs_prod
-````
-
-BigQuery execution notes for Codex:
-
-* In this workspace, `bq` may be available at `/home/ubuntu/.local/bin/bq` while `gcloud` is only under `/home/ubuntu/.local/google-cloud-sdk/bin`. If `bq query` fails with `'gcloud' not found but is required for authentication`, add `/home/ubuntu/.local/google-cloud-sdk/bin` to `PATH` and retry.
-* If `bq query` fails with `bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted`, this is a sandbox/network namespace issue. Retry the same `bq query` with escalated permissions rather than changing the query.
-* Prefer using `bq query --use_legacy_sql=false --format=prettyjson "..."` for ad hoc investigations so result payloads remain structured and easy to summarize.
-* Do not rely on `App Version` in the GitHub issue body to identify the client build; still query `frontend_event_logs.created_app_version` and `frontend_event_logs.created_commit_id`.
+Do not rely on `App Version` in the GitHub issue body to identify the client
+build; still query `frontend_event_logs.created_app_version` and
+`frontend_event_logs.created_commit_id`.
 
 PostgreSQL execution notes for Codex:
 

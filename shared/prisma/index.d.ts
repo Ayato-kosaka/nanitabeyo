@@ -44,6 +44,32 @@ export type dish_categories = $Result.DefaultSelection<Prisma.$dish_categoriesPa
  */
 export type dish_category_features = $Result.DefaultSelection<Prisma.$dish_category_featuresPayload>
 /**
+ * Model dish_category_group_vote_candidate_votes
+ * This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+ * This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+ * This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+ */
+export type dish_category_group_vote_candidate_votes = $Result.DefaultSelection<Prisma.$dish_category_group_vote_candidate_votesPayload>
+/**
+ * Model dish_category_group_vote_candidates
+ * This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+ * This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+ * This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+ */
+export type dish_category_group_vote_candidates = $Result.DefaultSelection<Prisma.$dish_category_group_vote_candidatesPayload>
+/**
+ * Model dish_category_group_vote_participants
+ * This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+ * This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+ */
+export type dish_category_group_vote_participants = $Result.DefaultSelection<Prisma.$dish_category_group_vote_participantsPayload>
+/**
+ * Model dish_category_group_vote_sessions
+ * This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+ * This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+ */
+export type dish_category_group_vote_sessions = $Result.DefaultSelection<Prisma.$dish_category_group_vote_sessionsPayload>
+/**
  * Model dish_category_localized_text
  * This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
  * This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -452,6 +478,46 @@ export class PrismaClient<
     * ```
     */
   get dish_category_features(): Prisma.dish_category_featuresDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.dish_category_group_vote_candidate_votes`: Exposes CRUD operations for the **dish_category_group_vote_candidate_votes** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Dish_category_group_vote_candidate_votes
+    * const dish_category_group_vote_candidate_votes = await prisma.dish_category_group_vote_candidate_votes.findMany()
+    * ```
+    */
+  get dish_category_group_vote_candidate_votes(): Prisma.dish_category_group_vote_candidate_votesDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.dish_category_group_vote_candidates`: Exposes CRUD operations for the **dish_category_group_vote_candidates** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Dish_category_group_vote_candidates
+    * const dish_category_group_vote_candidates = await prisma.dish_category_group_vote_candidates.findMany()
+    * ```
+    */
+  get dish_category_group_vote_candidates(): Prisma.dish_category_group_vote_candidatesDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.dish_category_group_vote_participants`: Exposes CRUD operations for the **dish_category_group_vote_participants** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Dish_category_group_vote_participants
+    * const dish_category_group_vote_participants = await prisma.dish_category_group_vote_participants.findMany()
+    * ```
+    */
+  get dish_category_group_vote_participants(): Prisma.dish_category_group_vote_participantsDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.dish_category_group_vote_sessions`: Exposes CRUD operations for the **dish_category_group_vote_sessions** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Dish_category_group_vote_sessions
+    * const dish_category_group_vote_sessions = await prisma.dish_category_group_vote_sessions.findMany()
+    * ```
+    */
+  get dish_category_group_vote_sessions(): Prisma.dish_category_group_vote_sessionsDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.dish_category_localized_text`: Exposes CRUD operations for the **dish_category_localized_text** model.
@@ -1161,6 +1227,10 @@ export namespace Prisma {
     contribution_tasks: 'contribution_tasks',
     dish_categories: 'dish_categories',
     dish_category_features: 'dish_category_features',
+    dish_category_group_vote_candidate_votes: 'dish_category_group_vote_candidate_votes',
+    dish_category_group_vote_candidates: 'dish_category_group_vote_candidates',
+    dish_category_group_vote_participants: 'dish_category_group_vote_participants',
+    dish_category_group_vote_sessions: 'dish_category_group_vote_sessions',
     dish_category_localized_text: 'dish_category_localized_text',
     dish_category_variants: 'dish_category_variants',
     dish_media: 'dish_media',
@@ -1203,7 +1273,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "backend_event_logs" | "config" | "contribution_tasks" | "dish_categories" | "dish_category_features" | "dish_category_localized_text" | "dish_category_variants" | "dish_media" | "dish_media_analysis_results" | "dish_media_impressions" | "dish_media_likes" | "dish_media_views" | "dish_reviews" | "dishes" | "external_api_logs" | "frontend_event_logs" | "notification_recipients" | "notifications" | "payouts" | "permissions" | "prompt_families" | "prompt_usages" | "prompt_variants" | "reactions" | "restaurant_bids" | "restaurants" | "role_permissions" | "roles" | "user_device_tokens" | "user_notification_cursors" | "user_roles" | "users"
+      modelProps: "backend_event_logs" | "config" | "contribution_tasks" | "dish_categories" | "dish_category_features" | "dish_category_group_vote_candidate_votes" | "dish_category_group_vote_candidates" | "dish_category_group_vote_participants" | "dish_category_group_vote_sessions" | "dish_category_localized_text" | "dish_category_variants" | "dish_media" | "dish_media_analysis_results" | "dish_media_impressions" | "dish_media_likes" | "dish_media_views" | "dish_reviews" | "dishes" | "external_api_logs" | "frontend_event_logs" | "notification_recipients" | "notifications" | "payouts" | "permissions" | "prompt_families" | "prompt_usages" | "prompt_variants" | "reactions" | "restaurant_bids" | "restaurants" | "role_permissions" | "roles" | "user_device_tokens" | "user_notification_cursors" | "user_roles" | "users"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1574,6 +1644,302 @@ export namespace Prisma {
           count: {
             args: Prisma.dish_category_featuresCountArgs<ExtArgs>
             result: $Utils.Optional<Dish_category_featuresCountAggregateOutputType> | number
+          }
+        }
+      }
+      dish_category_group_vote_candidate_votes: {
+        payload: Prisma.$dish_category_group_vote_candidate_votesPayload<ExtArgs>
+        fields: Prisma.dish_category_group_vote_candidate_votesFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.dish_category_group_vote_candidate_votesFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_group_vote_candidate_votesPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.dish_category_group_vote_candidate_votesFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_group_vote_candidate_votesPayload>
+          }
+          findFirst: {
+            args: Prisma.dish_category_group_vote_candidate_votesFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_group_vote_candidate_votesPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.dish_category_group_vote_candidate_votesFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_group_vote_candidate_votesPayload>
+          }
+          findMany: {
+            args: Prisma.dish_category_group_vote_candidate_votesFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_group_vote_candidate_votesPayload>[]
+          }
+          create: {
+            args: Prisma.dish_category_group_vote_candidate_votesCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_group_vote_candidate_votesPayload>
+          }
+          createMany: {
+            args: Prisma.dish_category_group_vote_candidate_votesCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.dish_category_group_vote_candidate_votesCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_group_vote_candidate_votesPayload>[]
+          }
+          delete: {
+            args: Prisma.dish_category_group_vote_candidate_votesDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_group_vote_candidate_votesPayload>
+          }
+          update: {
+            args: Prisma.dish_category_group_vote_candidate_votesUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_group_vote_candidate_votesPayload>
+          }
+          deleteMany: {
+            args: Prisma.dish_category_group_vote_candidate_votesDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.dish_category_group_vote_candidate_votesUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.dish_category_group_vote_candidate_votesUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_group_vote_candidate_votesPayload>[]
+          }
+          upsert: {
+            args: Prisma.dish_category_group_vote_candidate_votesUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_group_vote_candidate_votesPayload>
+          }
+          aggregate: {
+            args: Prisma.Dish_category_group_vote_candidate_votesAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateDish_category_group_vote_candidate_votes>
+          }
+          groupBy: {
+            args: Prisma.dish_category_group_vote_candidate_votesGroupByArgs<ExtArgs>
+            result: $Utils.Optional<Dish_category_group_vote_candidate_votesGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.dish_category_group_vote_candidate_votesCountArgs<ExtArgs>
+            result: $Utils.Optional<Dish_category_group_vote_candidate_votesCountAggregateOutputType> | number
+          }
+        }
+      }
+      dish_category_group_vote_candidates: {
+        payload: Prisma.$dish_category_group_vote_candidatesPayload<ExtArgs>
+        fields: Prisma.dish_category_group_vote_candidatesFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.dish_category_group_vote_candidatesFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_group_vote_candidatesPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.dish_category_group_vote_candidatesFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_group_vote_candidatesPayload>
+          }
+          findFirst: {
+            args: Prisma.dish_category_group_vote_candidatesFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_group_vote_candidatesPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.dish_category_group_vote_candidatesFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_group_vote_candidatesPayload>
+          }
+          findMany: {
+            args: Prisma.dish_category_group_vote_candidatesFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_group_vote_candidatesPayload>[]
+          }
+          create: {
+            args: Prisma.dish_category_group_vote_candidatesCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_group_vote_candidatesPayload>
+          }
+          createMany: {
+            args: Prisma.dish_category_group_vote_candidatesCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.dish_category_group_vote_candidatesCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_group_vote_candidatesPayload>[]
+          }
+          delete: {
+            args: Prisma.dish_category_group_vote_candidatesDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_group_vote_candidatesPayload>
+          }
+          update: {
+            args: Prisma.dish_category_group_vote_candidatesUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_group_vote_candidatesPayload>
+          }
+          deleteMany: {
+            args: Prisma.dish_category_group_vote_candidatesDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.dish_category_group_vote_candidatesUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.dish_category_group_vote_candidatesUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_group_vote_candidatesPayload>[]
+          }
+          upsert: {
+            args: Prisma.dish_category_group_vote_candidatesUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_group_vote_candidatesPayload>
+          }
+          aggregate: {
+            args: Prisma.Dish_category_group_vote_candidatesAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateDish_category_group_vote_candidates>
+          }
+          groupBy: {
+            args: Prisma.dish_category_group_vote_candidatesGroupByArgs<ExtArgs>
+            result: $Utils.Optional<Dish_category_group_vote_candidatesGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.dish_category_group_vote_candidatesCountArgs<ExtArgs>
+            result: $Utils.Optional<Dish_category_group_vote_candidatesCountAggregateOutputType> | number
+          }
+        }
+      }
+      dish_category_group_vote_participants: {
+        payload: Prisma.$dish_category_group_vote_participantsPayload<ExtArgs>
+        fields: Prisma.dish_category_group_vote_participantsFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.dish_category_group_vote_participantsFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_group_vote_participantsPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.dish_category_group_vote_participantsFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_group_vote_participantsPayload>
+          }
+          findFirst: {
+            args: Prisma.dish_category_group_vote_participantsFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_group_vote_participantsPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.dish_category_group_vote_participantsFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_group_vote_participantsPayload>
+          }
+          findMany: {
+            args: Prisma.dish_category_group_vote_participantsFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_group_vote_participantsPayload>[]
+          }
+          create: {
+            args: Prisma.dish_category_group_vote_participantsCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_group_vote_participantsPayload>
+          }
+          createMany: {
+            args: Prisma.dish_category_group_vote_participantsCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.dish_category_group_vote_participantsCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_group_vote_participantsPayload>[]
+          }
+          delete: {
+            args: Prisma.dish_category_group_vote_participantsDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_group_vote_participantsPayload>
+          }
+          update: {
+            args: Prisma.dish_category_group_vote_participantsUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_group_vote_participantsPayload>
+          }
+          deleteMany: {
+            args: Prisma.dish_category_group_vote_participantsDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.dish_category_group_vote_participantsUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.dish_category_group_vote_participantsUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_group_vote_participantsPayload>[]
+          }
+          upsert: {
+            args: Prisma.dish_category_group_vote_participantsUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_group_vote_participantsPayload>
+          }
+          aggregate: {
+            args: Prisma.Dish_category_group_vote_participantsAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateDish_category_group_vote_participants>
+          }
+          groupBy: {
+            args: Prisma.dish_category_group_vote_participantsGroupByArgs<ExtArgs>
+            result: $Utils.Optional<Dish_category_group_vote_participantsGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.dish_category_group_vote_participantsCountArgs<ExtArgs>
+            result: $Utils.Optional<Dish_category_group_vote_participantsCountAggregateOutputType> | number
+          }
+        }
+      }
+      dish_category_group_vote_sessions: {
+        payload: Prisma.$dish_category_group_vote_sessionsPayload<ExtArgs>
+        fields: Prisma.dish_category_group_vote_sessionsFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.dish_category_group_vote_sessionsFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_group_vote_sessionsPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.dish_category_group_vote_sessionsFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_group_vote_sessionsPayload>
+          }
+          findFirst: {
+            args: Prisma.dish_category_group_vote_sessionsFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_group_vote_sessionsPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.dish_category_group_vote_sessionsFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_group_vote_sessionsPayload>
+          }
+          findMany: {
+            args: Prisma.dish_category_group_vote_sessionsFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_group_vote_sessionsPayload>[]
+          }
+          create: {
+            args: Prisma.dish_category_group_vote_sessionsCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_group_vote_sessionsPayload>
+          }
+          createMany: {
+            args: Prisma.dish_category_group_vote_sessionsCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.dish_category_group_vote_sessionsCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_group_vote_sessionsPayload>[]
+          }
+          delete: {
+            args: Prisma.dish_category_group_vote_sessionsDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_group_vote_sessionsPayload>
+          }
+          update: {
+            args: Prisma.dish_category_group_vote_sessionsUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_group_vote_sessionsPayload>
+          }
+          deleteMany: {
+            args: Prisma.dish_category_group_vote_sessionsDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.dish_category_group_vote_sessionsUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.dish_category_group_vote_sessionsUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_group_vote_sessionsPayload>[]
+          }
+          upsert: {
+            args: Prisma.dish_category_group_vote_sessionsUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$dish_category_group_vote_sessionsPayload>
+          }
+          aggregate: {
+            args: Prisma.Dish_category_group_vote_sessionsAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateDish_category_group_vote_sessions>
+          }
+          groupBy: {
+            args: Prisma.dish_category_group_vote_sessionsGroupByArgs<ExtArgs>
+            result: $Utils.Optional<Dish_category_group_vote_sessionsGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.dish_category_group_vote_sessionsCountArgs<ExtArgs>
+            result: $Utils.Optional<Dish_category_group_vote_sessionsCountAggregateOutputType> | number
           }
         }
       }
@@ -3672,6 +4038,10 @@ export namespace Prisma {
     contribution_tasks?: contribution_tasksOmit
     dish_categories?: dish_categoriesOmit
     dish_category_features?: dish_category_featuresOmit
+    dish_category_group_vote_candidate_votes?: dish_category_group_vote_candidate_votesOmit
+    dish_category_group_vote_candidates?: dish_category_group_vote_candidatesOmit
+    dish_category_group_vote_participants?: dish_category_group_vote_participantsOmit
+    dish_category_group_vote_sessions?: dish_category_group_vote_sessionsOmit
     dish_category_localized_text?: dish_category_localized_textOmit
     dish_category_variants?: dish_category_variantsOmit
     dish_media?: dish_mediaOmit
@@ -3780,6 +4150,7 @@ export namespace Prisma {
 
   export type Dish_categoriesCountOutputType = {
     dish_category_features: number
+    dish_category_group_vote_candidates: number
     dish_category_localized_text: number
     dish_category_variants: number
     dishes: number
@@ -3787,6 +4158,7 @@ export namespace Prisma {
 
   export type Dish_categoriesCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     dish_category_features?: boolean | Dish_categoriesCountOutputTypeCountDish_category_featuresArgs
+    dish_category_group_vote_candidates?: boolean | Dish_categoriesCountOutputTypeCountDish_category_group_vote_candidatesArgs
     dish_category_localized_text?: boolean | Dish_categoriesCountOutputTypeCountDish_category_localized_textArgs
     dish_category_variants?: boolean | Dish_categoriesCountOutputTypeCountDish_category_variantsArgs
     dishes?: boolean | Dish_categoriesCountOutputTypeCountDishesArgs
@@ -3813,6 +4185,13 @@ export namespace Prisma {
   /**
    * Dish_categoriesCountOutputType without action
    */
+  export type Dish_categoriesCountOutputTypeCountDish_category_group_vote_candidatesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: dish_category_group_vote_candidatesWhereInput
+  }
+
+  /**
+   * Dish_categoriesCountOutputType without action
+   */
   export type Dish_categoriesCountOutputTypeCountDish_category_localized_textArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: dish_category_localized_textWhereInput
   }
@@ -3829,6 +4208,108 @@ export namespace Prisma {
    */
   export type Dish_categoriesCountOutputTypeCountDishesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: dishesWhereInput
+  }
+
+
+  /**
+   * Count Type Dish_category_group_vote_candidatesCountOutputType
+   */
+
+  export type Dish_category_group_vote_candidatesCountOutputType = {
+    dish_category_group_vote_candidate_votes: number
+  }
+
+  export type Dish_category_group_vote_candidatesCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    dish_category_group_vote_candidate_votes?: boolean | Dish_category_group_vote_candidatesCountOutputTypeCountDish_category_group_vote_candidate_votesArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * Dish_category_group_vote_candidatesCountOutputType without action
+   */
+  export type Dish_category_group_vote_candidatesCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Dish_category_group_vote_candidatesCountOutputType
+     */
+    select?: Dish_category_group_vote_candidatesCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * Dish_category_group_vote_candidatesCountOutputType without action
+   */
+  export type Dish_category_group_vote_candidatesCountOutputTypeCountDish_category_group_vote_candidate_votesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: dish_category_group_vote_candidate_votesWhereInput
+  }
+
+
+  /**
+   * Count Type Dish_category_group_vote_participantsCountOutputType
+   */
+
+  export type Dish_category_group_vote_participantsCountOutputType = {
+    dish_category_group_vote_candidate_votes: number
+  }
+
+  export type Dish_category_group_vote_participantsCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    dish_category_group_vote_candidate_votes?: boolean | Dish_category_group_vote_participantsCountOutputTypeCountDish_category_group_vote_candidate_votesArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * Dish_category_group_vote_participantsCountOutputType without action
+   */
+  export type Dish_category_group_vote_participantsCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Dish_category_group_vote_participantsCountOutputType
+     */
+    select?: Dish_category_group_vote_participantsCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * Dish_category_group_vote_participantsCountOutputType without action
+   */
+  export type Dish_category_group_vote_participantsCountOutputTypeCountDish_category_group_vote_candidate_votesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: dish_category_group_vote_candidate_votesWhereInput
+  }
+
+
+  /**
+   * Count Type Dish_category_group_vote_sessionsCountOutputType
+   */
+
+  export type Dish_category_group_vote_sessionsCountOutputType = {
+    dish_category_group_vote_candidates: number
+    dish_category_group_vote_participants: number
+  }
+
+  export type Dish_category_group_vote_sessionsCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    dish_category_group_vote_candidates?: boolean | Dish_category_group_vote_sessionsCountOutputTypeCountDish_category_group_vote_candidatesArgs
+    dish_category_group_vote_participants?: boolean | Dish_category_group_vote_sessionsCountOutputTypeCountDish_category_group_vote_participantsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * Dish_category_group_vote_sessionsCountOutputType without action
+   */
+  export type Dish_category_group_vote_sessionsCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Dish_category_group_vote_sessionsCountOutputType
+     */
+    select?: Dish_category_group_vote_sessionsCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * Dish_category_group_vote_sessionsCountOutputType without action
+   */
+  export type Dish_category_group_vote_sessionsCountOutputTypeCountDish_category_group_vote_candidatesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: dish_category_group_vote_candidatesWhereInput
+  }
+
+  /**
+   * Dish_category_group_vote_sessionsCountOutputType without action
+   */
+  export type Dish_category_group_vote_sessionsCountOutputTypeCountDish_category_group_vote_participantsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: dish_category_group_vote_participantsWhereInput
   }
 
 
@@ -7459,6 +7940,7 @@ export namespace Prisma {
     macro_genre_qid?: boolean
     synced_at?: boolean
     dish_category_features?: boolean | dish_categories$dish_category_featuresArgs<ExtArgs>
+    dish_category_group_vote_candidates?: boolean | dish_categories$dish_category_group_vote_candidatesArgs<ExtArgs>
     dish_category_localized_text?: boolean | dish_categories$dish_category_localized_textArgs<ExtArgs>
     dish_category_variants?: boolean | dish_categories$dish_category_variantsArgs<ExtArgs>
     dishes?: boolean | dish_categories$dishesArgs<ExtArgs>
@@ -7501,6 +7983,7 @@ export namespace Prisma {
   export type dish_categoriesOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "label_en" | "labels" | "image_url" | "tags" | "created_at" | "macro_genre_qid" | "synced_at", ExtArgs["result"]["dish_categories"]>
   export type dish_categoriesInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     dish_category_features?: boolean | dish_categories$dish_category_featuresArgs<ExtArgs>
+    dish_category_group_vote_candidates?: boolean | dish_categories$dish_category_group_vote_candidatesArgs<ExtArgs>
     dish_category_localized_text?: boolean | dish_categories$dish_category_localized_textArgs<ExtArgs>
     dish_category_variants?: boolean | dish_categories$dish_category_variantsArgs<ExtArgs>
     dishes?: boolean | dish_categories$dishesArgs<ExtArgs>
@@ -7513,6 +7996,7 @@ export namespace Prisma {
     name: "dish_categories"
     objects: {
       dish_category_features: Prisma.$dish_category_featuresPayload<ExtArgs>[]
+      dish_category_group_vote_candidates: Prisma.$dish_category_group_vote_candidatesPayload<ExtArgs>[]
       dish_category_localized_text: Prisma.$dish_category_localized_textPayload<ExtArgs>[]
       dish_category_variants: Prisma.$dish_category_variantsPayload<ExtArgs>[]
       dishes: Prisma.$dishesPayload<ExtArgs>[]
@@ -7921,6 +8405,7 @@ export namespace Prisma {
   export interface Prisma__dish_categoriesClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     dish_category_features<T extends dish_categories$dish_category_featuresArgs<ExtArgs> = {}>(args?: Subset<T, dish_categories$dish_category_featuresArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_category_featuresPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    dish_category_group_vote_candidates<T extends dish_categories$dish_category_group_vote_candidatesArgs<ExtArgs> = {}>(args?: Subset<T, dish_categories$dish_category_group_vote_candidatesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_category_group_vote_candidatesPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     dish_category_localized_text<T extends dish_categories$dish_category_localized_textArgs<ExtArgs> = {}>(args?: Subset<T, dish_categories$dish_category_localized_textArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_category_localized_textPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     dish_category_variants<T extends dish_categories$dish_category_variantsArgs<ExtArgs> = {}>(args?: Subset<T, dish_categories$dish_category_variantsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_category_variantsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     dishes<T extends dish_categories$dishesArgs<ExtArgs> = {}>(args?: Subset<T, dish_categories$dishesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dishesPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -8370,6 +8855,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: Dish_category_featuresScalarFieldEnum | Dish_category_featuresScalarFieldEnum[]
+  }
+
+  /**
+   * dish_categories.dish_category_group_vote_candidates
+   */
+  export type dish_categories$dish_category_group_vote_candidatesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_candidates
+     */
+    select?: dish_category_group_vote_candidatesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_candidates
+     */
+    omit?: dish_category_group_vote_candidatesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_candidatesInclude<ExtArgs> | null
+    where?: dish_category_group_vote_candidatesWhereInput
+    orderBy?: dish_category_group_vote_candidatesOrderByWithRelationInput | dish_category_group_vote_candidatesOrderByWithRelationInput[]
+    cursor?: dish_category_group_vote_candidatesWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: Dish_category_group_vote_candidatesScalarFieldEnum | Dish_category_group_vote_candidatesScalarFieldEnum[]
   }
 
   /**
@@ -9552,6 +10061,4471 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: dish_category_featuresInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model dish_category_group_vote_candidate_votes
+   */
+
+  export type AggregateDish_category_group_vote_candidate_votes = {
+    _count: Dish_category_group_vote_candidate_votesCountAggregateOutputType | null
+    _min: Dish_category_group_vote_candidate_votesMinAggregateOutputType | null
+    _max: Dish_category_group_vote_candidate_votesMaxAggregateOutputType | null
+  }
+
+  export type Dish_category_group_vote_candidate_votesMinAggregateOutputType = {
+    participant_id: string | null
+    candidate_id: string | null
+    reaction: string | null
+    created_at: Date | null
+  }
+
+  export type Dish_category_group_vote_candidate_votesMaxAggregateOutputType = {
+    participant_id: string | null
+    candidate_id: string | null
+    reaction: string | null
+    created_at: Date | null
+  }
+
+  export type Dish_category_group_vote_candidate_votesCountAggregateOutputType = {
+    participant_id: number
+    candidate_id: number
+    reaction: number
+    created_at: number
+    _all: number
+  }
+
+
+  export type Dish_category_group_vote_candidate_votesMinAggregateInputType = {
+    participant_id?: true
+    candidate_id?: true
+    reaction?: true
+    created_at?: true
+  }
+
+  export type Dish_category_group_vote_candidate_votesMaxAggregateInputType = {
+    participant_id?: true
+    candidate_id?: true
+    reaction?: true
+    created_at?: true
+  }
+
+  export type Dish_category_group_vote_candidate_votesCountAggregateInputType = {
+    participant_id?: true
+    candidate_id?: true
+    reaction?: true
+    created_at?: true
+    _all?: true
+  }
+
+  export type Dish_category_group_vote_candidate_votesAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which dish_category_group_vote_candidate_votes to aggregate.
+     */
+    where?: dish_category_group_vote_candidate_votesWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of dish_category_group_vote_candidate_votes to fetch.
+     */
+    orderBy?: dish_category_group_vote_candidate_votesOrderByWithRelationInput | dish_category_group_vote_candidate_votesOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: dish_category_group_vote_candidate_votesWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` dish_category_group_vote_candidate_votes from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` dish_category_group_vote_candidate_votes.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned dish_category_group_vote_candidate_votes
+    **/
+    _count?: true | Dish_category_group_vote_candidate_votesCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: Dish_category_group_vote_candidate_votesMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: Dish_category_group_vote_candidate_votesMaxAggregateInputType
+  }
+
+  export type GetDish_category_group_vote_candidate_votesAggregateType<T extends Dish_category_group_vote_candidate_votesAggregateArgs> = {
+        [P in keyof T & keyof AggregateDish_category_group_vote_candidate_votes]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateDish_category_group_vote_candidate_votes[P]>
+      : GetScalarType<T[P], AggregateDish_category_group_vote_candidate_votes[P]>
+  }
+
+
+
+
+  export type dish_category_group_vote_candidate_votesGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: dish_category_group_vote_candidate_votesWhereInput
+    orderBy?: dish_category_group_vote_candidate_votesOrderByWithAggregationInput | dish_category_group_vote_candidate_votesOrderByWithAggregationInput[]
+    by: Dish_category_group_vote_candidate_votesScalarFieldEnum[] | Dish_category_group_vote_candidate_votesScalarFieldEnum
+    having?: dish_category_group_vote_candidate_votesScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: Dish_category_group_vote_candidate_votesCountAggregateInputType | true
+    _min?: Dish_category_group_vote_candidate_votesMinAggregateInputType
+    _max?: Dish_category_group_vote_candidate_votesMaxAggregateInputType
+  }
+
+  export type Dish_category_group_vote_candidate_votesGroupByOutputType = {
+    participant_id: string
+    candidate_id: string
+    reaction: string
+    created_at: Date
+    _count: Dish_category_group_vote_candidate_votesCountAggregateOutputType | null
+    _min: Dish_category_group_vote_candidate_votesMinAggregateOutputType | null
+    _max: Dish_category_group_vote_candidate_votesMaxAggregateOutputType | null
+  }
+
+  type GetDish_category_group_vote_candidate_votesGroupByPayload<T extends dish_category_group_vote_candidate_votesGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<Dish_category_group_vote_candidate_votesGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof Dish_category_group_vote_candidate_votesGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], Dish_category_group_vote_candidate_votesGroupByOutputType[P]>
+            : GetScalarType<T[P], Dish_category_group_vote_candidate_votesGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type dish_category_group_vote_candidate_votesSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    participant_id?: boolean
+    candidate_id?: boolean
+    reaction?: boolean
+    created_at?: boolean
+    dish_category_group_vote_candidates?: boolean | dish_category_group_vote_candidatesDefaultArgs<ExtArgs>
+    dish_category_group_vote_participants?: boolean | dish_category_group_vote_participantsDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["dish_category_group_vote_candidate_votes"]>
+
+  export type dish_category_group_vote_candidate_votesSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    participant_id?: boolean
+    candidate_id?: boolean
+    reaction?: boolean
+    created_at?: boolean
+    dish_category_group_vote_candidates?: boolean | dish_category_group_vote_candidatesDefaultArgs<ExtArgs>
+    dish_category_group_vote_participants?: boolean | dish_category_group_vote_participantsDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["dish_category_group_vote_candidate_votes"]>
+
+  export type dish_category_group_vote_candidate_votesSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    participant_id?: boolean
+    candidate_id?: boolean
+    reaction?: boolean
+    created_at?: boolean
+    dish_category_group_vote_candidates?: boolean | dish_category_group_vote_candidatesDefaultArgs<ExtArgs>
+    dish_category_group_vote_participants?: boolean | dish_category_group_vote_participantsDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["dish_category_group_vote_candidate_votes"]>
+
+  export type dish_category_group_vote_candidate_votesSelectScalar = {
+    participant_id?: boolean
+    candidate_id?: boolean
+    reaction?: boolean
+    created_at?: boolean
+  }
+
+  export type dish_category_group_vote_candidate_votesOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"participant_id" | "candidate_id" | "reaction" | "created_at", ExtArgs["result"]["dish_category_group_vote_candidate_votes"]>
+  export type dish_category_group_vote_candidate_votesInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    dish_category_group_vote_candidates?: boolean | dish_category_group_vote_candidatesDefaultArgs<ExtArgs>
+    dish_category_group_vote_participants?: boolean | dish_category_group_vote_participantsDefaultArgs<ExtArgs>
+  }
+  export type dish_category_group_vote_candidate_votesIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    dish_category_group_vote_candidates?: boolean | dish_category_group_vote_candidatesDefaultArgs<ExtArgs>
+    dish_category_group_vote_participants?: boolean | dish_category_group_vote_participantsDefaultArgs<ExtArgs>
+  }
+  export type dish_category_group_vote_candidate_votesIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    dish_category_group_vote_candidates?: boolean | dish_category_group_vote_candidatesDefaultArgs<ExtArgs>
+    dish_category_group_vote_participants?: boolean | dish_category_group_vote_participantsDefaultArgs<ExtArgs>
+  }
+
+  export type $dish_category_group_vote_candidate_votesPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "dish_category_group_vote_candidate_votes"
+    objects: {
+      dish_category_group_vote_candidates: Prisma.$dish_category_group_vote_candidatesPayload<ExtArgs>
+      dish_category_group_vote_participants: Prisma.$dish_category_group_vote_participantsPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      participant_id: string
+      candidate_id: string
+      reaction: string
+      created_at: Date
+    }, ExtArgs["result"]["dish_category_group_vote_candidate_votes"]>
+    composites: {}
+  }
+
+  type dish_category_group_vote_candidate_votesGetPayload<S extends boolean | null | undefined | dish_category_group_vote_candidate_votesDefaultArgs> = $Result.GetResult<Prisma.$dish_category_group_vote_candidate_votesPayload, S>
+
+  type dish_category_group_vote_candidate_votesCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<dish_category_group_vote_candidate_votesFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: Dish_category_group_vote_candidate_votesCountAggregateInputType | true
+    }
+
+  export interface dish_category_group_vote_candidate_votesDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['dish_category_group_vote_candidate_votes'], meta: { name: 'dish_category_group_vote_candidate_votes' } }
+    /**
+     * Find zero or one Dish_category_group_vote_candidate_votes that matches the filter.
+     * @param {dish_category_group_vote_candidate_votesFindUniqueArgs} args - Arguments to find a Dish_category_group_vote_candidate_votes
+     * @example
+     * // Get one Dish_category_group_vote_candidate_votes
+     * const dish_category_group_vote_candidate_votes = await prisma.dish_category_group_vote_candidate_votes.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends dish_category_group_vote_candidate_votesFindUniqueArgs>(args: SelectSubset<T, dish_category_group_vote_candidate_votesFindUniqueArgs<ExtArgs>>): Prisma__dish_category_group_vote_candidate_votesClient<$Result.GetResult<Prisma.$dish_category_group_vote_candidate_votesPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one Dish_category_group_vote_candidate_votes that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {dish_category_group_vote_candidate_votesFindUniqueOrThrowArgs} args - Arguments to find a Dish_category_group_vote_candidate_votes
+     * @example
+     * // Get one Dish_category_group_vote_candidate_votes
+     * const dish_category_group_vote_candidate_votes = await prisma.dish_category_group_vote_candidate_votes.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends dish_category_group_vote_candidate_votesFindUniqueOrThrowArgs>(args: SelectSubset<T, dish_category_group_vote_candidate_votesFindUniqueOrThrowArgs<ExtArgs>>): Prisma__dish_category_group_vote_candidate_votesClient<$Result.GetResult<Prisma.$dish_category_group_vote_candidate_votesPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Dish_category_group_vote_candidate_votes that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_category_group_vote_candidate_votesFindFirstArgs} args - Arguments to find a Dish_category_group_vote_candidate_votes
+     * @example
+     * // Get one Dish_category_group_vote_candidate_votes
+     * const dish_category_group_vote_candidate_votes = await prisma.dish_category_group_vote_candidate_votes.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends dish_category_group_vote_candidate_votesFindFirstArgs>(args?: SelectSubset<T, dish_category_group_vote_candidate_votesFindFirstArgs<ExtArgs>>): Prisma__dish_category_group_vote_candidate_votesClient<$Result.GetResult<Prisma.$dish_category_group_vote_candidate_votesPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Dish_category_group_vote_candidate_votes that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_category_group_vote_candidate_votesFindFirstOrThrowArgs} args - Arguments to find a Dish_category_group_vote_candidate_votes
+     * @example
+     * // Get one Dish_category_group_vote_candidate_votes
+     * const dish_category_group_vote_candidate_votes = await prisma.dish_category_group_vote_candidate_votes.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends dish_category_group_vote_candidate_votesFindFirstOrThrowArgs>(args?: SelectSubset<T, dish_category_group_vote_candidate_votesFindFirstOrThrowArgs<ExtArgs>>): Prisma__dish_category_group_vote_candidate_votesClient<$Result.GetResult<Prisma.$dish_category_group_vote_candidate_votesPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more Dish_category_group_vote_candidate_votes that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_category_group_vote_candidate_votesFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Dish_category_group_vote_candidate_votes
+     * const dish_category_group_vote_candidate_votes = await prisma.dish_category_group_vote_candidate_votes.findMany()
+     * 
+     * // Get first 10 Dish_category_group_vote_candidate_votes
+     * const dish_category_group_vote_candidate_votes = await prisma.dish_category_group_vote_candidate_votes.findMany({ take: 10 })
+     * 
+     * // Only select the `participant_id`
+     * const dish_category_group_vote_candidate_votesWithParticipant_idOnly = await prisma.dish_category_group_vote_candidate_votes.findMany({ select: { participant_id: true } })
+     * 
+     */
+    findMany<T extends dish_category_group_vote_candidate_votesFindManyArgs>(args?: SelectSubset<T, dish_category_group_vote_candidate_votesFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_category_group_vote_candidate_votesPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a Dish_category_group_vote_candidate_votes.
+     * @param {dish_category_group_vote_candidate_votesCreateArgs} args - Arguments to create a Dish_category_group_vote_candidate_votes.
+     * @example
+     * // Create one Dish_category_group_vote_candidate_votes
+     * const Dish_category_group_vote_candidate_votes = await prisma.dish_category_group_vote_candidate_votes.create({
+     *   data: {
+     *     // ... data to create a Dish_category_group_vote_candidate_votes
+     *   }
+     * })
+     * 
+     */
+    create<T extends dish_category_group_vote_candidate_votesCreateArgs>(args: SelectSubset<T, dish_category_group_vote_candidate_votesCreateArgs<ExtArgs>>): Prisma__dish_category_group_vote_candidate_votesClient<$Result.GetResult<Prisma.$dish_category_group_vote_candidate_votesPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many Dish_category_group_vote_candidate_votes.
+     * @param {dish_category_group_vote_candidate_votesCreateManyArgs} args - Arguments to create many Dish_category_group_vote_candidate_votes.
+     * @example
+     * // Create many Dish_category_group_vote_candidate_votes
+     * const dish_category_group_vote_candidate_votes = await prisma.dish_category_group_vote_candidate_votes.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends dish_category_group_vote_candidate_votesCreateManyArgs>(args?: SelectSubset<T, dish_category_group_vote_candidate_votesCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Dish_category_group_vote_candidate_votes and returns the data saved in the database.
+     * @param {dish_category_group_vote_candidate_votesCreateManyAndReturnArgs} args - Arguments to create many Dish_category_group_vote_candidate_votes.
+     * @example
+     * // Create many Dish_category_group_vote_candidate_votes
+     * const dish_category_group_vote_candidate_votes = await prisma.dish_category_group_vote_candidate_votes.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Dish_category_group_vote_candidate_votes and only return the `participant_id`
+     * const dish_category_group_vote_candidate_votesWithParticipant_idOnly = await prisma.dish_category_group_vote_candidate_votes.createManyAndReturn({
+     *   select: { participant_id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends dish_category_group_vote_candidate_votesCreateManyAndReturnArgs>(args?: SelectSubset<T, dish_category_group_vote_candidate_votesCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_category_group_vote_candidate_votesPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a Dish_category_group_vote_candidate_votes.
+     * @param {dish_category_group_vote_candidate_votesDeleteArgs} args - Arguments to delete one Dish_category_group_vote_candidate_votes.
+     * @example
+     * // Delete one Dish_category_group_vote_candidate_votes
+     * const Dish_category_group_vote_candidate_votes = await prisma.dish_category_group_vote_candidate_votes.delete({
+     *   where: {
+     *     // ... filter to delete one Dish_category_group_vote_candidate_votes
+     *   }
+     * })
+     * 
+     */
+    delete<T extends dish_category_group_vote_candidate_votesDeleteArgs>(args: SelectSubset<T, dish_category_group_vote_candidate_votesDeleteArgs<ExtArgs>>): Prisma__dish_category_group_vote_candidate_votesClient<$Result.GetResult<Prisma.$dish_category_group_vote_candidate_votesPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one Dish_category_group_vote_candidate_votes.
+     * @param {dish_category_group_vote_candidate_votesUpdateArgs} args - Arguments to update one Dish_category_group_vote_candidate_votes.
+     * @example
+     * // Update one Dish_category_group_vote_candidate_votes
+     * const dish_category_group_vote_candidate_votes = await prisma.dish_category_group_vote_candidate_votes.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends dish_category_group_vote_candidate_votesUpdateArgs>(args: SelectSubset<T, dish_category_group_vote_candidate_votesUpdateArgs<ExtArgs>>): Prisma__dish_category_group_vote_candidate_votesClient<$Result.GetResult<Prisma.$dish_category_group_vote_candidate_votesPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more Dish_category_group_vote_candidate_votes.
+     * @param {dish_category_group_vote_candidate_votesDeleteManyArgs} args - Arguments to filter Dish_category_group_vote_candidate_votes to delete.
+     * @example
+     * // Delete a few Dish_category_group_vote_candidate_votes
+     * const { count } = await prisma.dish_category_group_vote_candidate_votes.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends dish_category_group_vote_candidate_votesDeleteManyArgs>(args?: SelectSubset<T, dish_category_group_vote_candidate_votesDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Dish_category_group_vote_candidate_votes.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_category_group_vote_candidate_votesUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Dish_category_group_vote_candidate_votes
+     * const dish_category_group_vote_candidate_votes = await prisma.dish_category_group_vote_candidate_votes.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends dish_category_group_vote_candidate_votesUpdateManyArgs>(args: SelectSubset<T, dish_category_group_vote_candidate_votesUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Dish_category_group_vote_candidate_votes and returns the data updated in the database.
+     * @param {dish_category_group_vote_candidate_votesUpdateManyAndReturnArgs} args - Arguments to update many Dish_category_group_vote_candidate_votes.
+     * @example
+     * // Update many Dish_category_group_vote_candidate_votes
+     * const dish_category_group_vote_candidate_votes = await prisma.dish_category_group_vote_candidate_votes.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more Dish_category_group_vote_candidate_votes and only return the `participant_id`
+     * const dish_category_group_vote_candidate_votesWithParticipant_idOnly = await prisma.dish_category_group_vote_candidate_votes.updateManyAndReturn({
+     *   select: { participant_id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends dish_category_group_vote_candidate_votesUpdateManyAndReturnArgs>(args: SelectSubset<T, dish_category_group_vote_candidate_votesUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_category_group_vote_candidate_votesPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one Dish_category_group_vote_candidate_votes.
+     * @param {dish_category_group_vote_candidate_votesUpsertArgs} args - Arguments to update or create a Dish_category_group_vote_candidate_votes.
+     * @example
+     * // Update or create a Dish_category_group_vote_candidate_votes
+     * const dish_category_group_vote_candidate_votes = await prisma.dish_category_group_vote_candidate_votes.upsert({
+     *   create: {
+     *     // ... data to create a Dish_category_group_vote_candidate_votes
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Dish_category_group_vote_candidate_votes we want to update
+     *   }
+     * })
+     */
+    upsert<T extends dish_category_group_vote_candidate_votesUpsertArgs>(args: SelectSubset<T, dish_category_group_vote_candidate_votesUpsertArgs<ExtArgs>>): Prisma__dish_category_group_vote_candidate_votesClient<$Result.GetResult<Prisma.$dish_category_group_vote_candidate_votesPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of Dish_category_group_vote_candidate_votes.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_category_group_vote_candidate_votesCountArgs} args - Arguments to filter Dish_category_group_vote_candidate_votes to count.
+     * @example
+     * // Count the number of Dish_category_group_vote_candidate_votes
+     * const count = await prisma.dish_category_group_vote_candidate_votes.count({
+     *   where: {
+     *     // ... the filter for the Dish_category_group_vote_candidate_votes we want to count
+     *   }
+     * })
+    **/
+    count<T extends dish_category_group_vote_candidate_votesCountArgs>(
+      args?: Subset<T, dish_category_group_vote_candidate_votesCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], Dish_category_group_vote_candidate_votesCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Dish_category_group_vote_candidate_votes.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {Dish_category_group_vote_candidate_votesAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends Dish_category_group_vote_candidate_votesAggregateArgs>(args: Subset<T, Dish_category_group_vote_candidate_votesAggregateArgs>): Prisma.PrismaPromise<GetDish_category_group_vote_candidate_votesAggregateType<T>>
+
+    /**
+     * Group by Dish_category_group_vote_candidate_votes.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_category_group_vote_candidate_votesGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends dish_category_group_vote_candidate_votesGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: dish_category_group_vote_candidate_votesGroupByArgs['orderBy'] }
+        : { orderBy?: dish_category_group_vote_candidate_votesGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, dish_category_group_vote_candidate_votesGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetDish_category_group_vote_candidate_votesGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the dish_category_group_vote_candidate_votes model
+   */
+  readonly fields: dish_category_group_vote_candidate_votesFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for dish_category_group_vote_candidate_votes.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__dish_category_group_vote_candidate_votesClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    dish_category_group_vote_candidates<T extends dish_category_group_vote_candidatesDefaultArgs<ExtArgs> = {}>(args?: Subset<T, dish_category_group_vote_candidatesDefaultArgs<ExtArgs>>): Prisma__dish_category_group_vote_candidatesClient<$Result.GetResult<Prisma.$dish_category_group_vote_candidatesPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    dish_category_group_vote_participants<T extends dish_category_group_vote_participantsDefaultArgs<ExtArgs> = {}>(args?: Subset<T, dish_category_group_vote_participantsDefaultArgs<ExtArgs>>): Prisma__dish_category_group_vote_participantsClient<$Result.GetResult<Prisma.$dish_category_group_vote_participantsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the dish_category_group_vote_candidate_votes model
+   */
+  interface dish_category_group_vote_candidate_votesFieldRefs {
+    readonly participant_id: FieldRef<"dish_category_group_vote_candidate_votes", 'String'>
+    readonly candidate_id: FieldRef<"dish_category_group_vote_candidate_votes", 'String'>
+    readonly reaction: FieldRef<"dish_category_group_vote_candidate_votes", 'String'>
+    readonly created_at: FieldRef<"dish_category_group_vote_candidate_votes", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * dish_category_group_vote_candidate_votes findUnique
+   */
+  export type dish_category_group_vote_candidate_votesFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_candidate_votes
+     */
+    select?: dish_category_group_vote_candidate_votesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_candidate_votes
+     */
+    omit?: dish_category_group_vote_candidate_votesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_candidate_votesInclude<ExtArgs> | null
+    /**
+     * Filter, which dish_category_group_vote_candidate_votes to fetch.
+     */
+    where: dish_category_group_vote_candidate_votesWhereUniqueInput
+  }
+
+  /**
+   * dish_category_group_vote_candidate_votes findUniqueOrThrow
+   */
+  export type dish_category_group_vote_candidate_votesFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_candidate_votes
+     */
+    select?: dish_category_group_vote_candidate_votesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_candidate_votes
+     */
+    omit?: dish_category_group_vote_candidate_votesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_candidate_votesInclude<ExtArgs> | null
+    /**
+     * Filter, which dish_category_group_vote_candidate_votes to fetch.
+     */
+    where: dish_category_group_vote_candidate_votesWhereUniqueInput
+  }
+
+  /**
+   * dish_category_group_vote_candidate_votes findFirst
+   */
+  export type dish_category_group_vote_candidate_votesFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_candidate_votes
+     */
+    select?: dish_category_group_vote_candidate_votesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_candidate_votes
+     */
+    omit?: dish_category_group_vote_candidate_votesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_candidate_votesInclude<ExtArgs> | null
+    /**
+     * Filter, which dish_category_group_vote_candidate_votes to fetch.
+     */
+    where?: dish_category_group_vote_candidate_votesWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of dish_category_group_vote_candidate_votes to fetch.
+     */
+    orderBy?: dish_category_group_vote_candidate_votesOrderByWithRelationInput | dish_category_group_vote_candidate_votesOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for dish_category_group_vote_candidate_votes.
+     */
+    cursor?: dish_category_group_vote_candidate_votesWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` dish_category_group_vote_candidate_votes from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` dish_category_group_vote_candidate_votes.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of dish_category_group_vote_candidate_votes.
+     */
+    distinct?: Dish_category_group_vote_candidate_votesScalarFieldEnum | Dish_category_group_vote_candidate_votesScalarFieldEnum[]
+  }
+
+  /**
+   * dish_category_group_vote_candidate_votes findFirstOrThrow
+   */
+  export type dish_category_group_vote_candidate_votesFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_candidate_votes
+     */
+    select?: dish_category_group_vote_candidate_votesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_candidate_votes
+     */
+    omit?: dish_category_group_vote_candidate_votesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_candidate_votesInclude<ExtArgs> | null
+    /**
+     * Filter, which dish_category_group_vote_candidate_votes to fetch.
+     */
+    where?: dish_category_group_vote_candidate_votesWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of dish_category_group_vote_candidate_votes to fetch.
+     */
+    orderBy?: dish_category_group_vote_candidate_votesOrderByWithRelationInput | dish_category_group_vote_candidate_votesOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for dish_category_group_vote_candidate_votes.
+     */
+    cursor?: dish_category_group_vote_candidate_votesWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` dish_category_group_vote_candidate_votes from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` dish_category_group_vote_candidate_votes.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of dish_category_group_vote_candidate_votes.
+     */
+    distinct?: Dish_category_group_vote_candidate_votesScalarFieldEnum | Dish_category_group_vote_candidate_votesScalarFieldEnum[]
+  }
+
+  /**
+   * dish_category_group_vote_candidate_votes findMany
+   */
+  export type dish_category_group_vote_candidate_votesFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_candidate_votes
+     */
+    select?: dish_category_group_vote_candidate_votesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_candidate_votes
+     */
+    omit?: dish_category_group_vote_candidate_votesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_candidate_votesInclude<ExtArgs> | null
+    /**
+     * Filter, which dish_category_group_vote_candidate_votes to fetch.
+     */
+    where?: dish_category_group_vote_candidate_votesWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of dish_category_group_vote_candidate_votes to fetch.
+     */
+    orderBy?: dish_category_group_vote_candidate_votesOrderByWithRelationInput | dish_category_group_vote_candidate_votesOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing dish_category_group_vote_candidate_votes.
+     */
+    cursor?: dish_category_group_vote_candidate_votesWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` dish_category_group_vote_candidate_votes from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` dish_category_group_vote_candidate_votes.
+     */
+    skip?: number
+    distinct?: Dish_category_group_vote_candidate_votesScalarFieldEnum | Dish_category_group_vote_candidate_votesScalarFieldEnum[]
+  }
+
+  /**
+   * dish_category_group_vote_candidate_votes create
+   */
+  export type dish_category_group_vote_candidate_votesCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_candidate_votes
+     */
+    select?: dish_category_group_vote_candidate_votesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_candidate_votes
+     */
+    omit?: dish_category_group_vote_candidate_votesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_candidate_votesInclude<ExtArgs> | null
+    /**
+     * The data needed to create a dish_category_group_vote_candidate_votes.
+     */
+    data: XOR<dish_category_group_vote_candidate_votesCreateInput, dish_category_group_vote_candidate_votesUncheckedCreateInput>
+  }
+
+  /**
+   * dish_category_group_vote_candidate_votes createMany
+   */
+  export type dish_category_group_vote_candidate_votesCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many dish_category_group_vote_candidate_votes.
+     */
+    data: dish_category_group_vote_candidate_votesCreateManyInput | dish_category_group_vote_candidate_votesCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * dish_category_group_vote_candidate_votes createManyAndReturn
+   */
+  export type dish_category_group_vote_candidate_votesCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_candidate_votes
+     */
+    select?: dish_category_group_vote_candidate_votesSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_candidate_votes
+     */
+    omit?: dish_category_group_vote_candidate_votesOmit<ExtArgs> | null
+    /**
+     * The data used to create many dish_category_group_vote_candidate_votes.
+     */
+    data: dish_category_group_vote_candidate_votesCreateManyInput | dish_category_group_vote_candidate_votesCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_candidate_votesIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * dish_category_group_vote_candidate_votes update
+   */
+  export type dish_category_group_vote_candidate_votesUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_candidate_votes
+     */
+    select?: dish_category_group_vote_candidate_votesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_candidate_votes
+     */
+    omit?: dish_category_group_vote_candidate_votesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_candidate_votesInclude<ExtArgs> | null
+    /**
+     * The data needed to update a dish_category_group_vote_candidate_votes.
+     */
+    data: XOR<dish_category_group_vote_candidate_votesUpdateInput, dish_category_group_vote_candidate_votesUncheckedUpdateInput>
+    /**
+     * Choose, which dish_category_group_vote_candidate_votes to update.
+     */
+    where: dish_category_group_vote_candidate_votesWhereUniqueInput
+  }
+
+  /**
+   * dish_category_group_vote_candidate_votes updateMany
+   */
+  export type dish_category_group_vote_candidate_votesUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update dish_category_group_vote_candidate_votes.
+     */
+    data: XOR<dish_category_group_vote_candidate_votesUpdateManyMutationInput, dish_category_group_vote_candidate_votesUncheckedUpdateManyInput>
+    /**
+     * Filter which dish_category_group_vote_candidate_votes to update
+     */
+    where?: dish_category_group_vote_candidate_votesWhereInput
+    /**
+     * Limit how many dish_category_group_vote_candidate_votes to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * dish_category_group_vote_candidate_votes updateManyAndReturn
+   */
+  export type dish_category_group_vote_candidate_votesUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_candidate_votes
+     */
+    select?: dish_category_group_vote_candidate_votesSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_candidate_votes
+     */
+    omit?: dish_category_group_vote_candidate_votesOmit<ExtArgs> | null
+    /**
+     * The data used to update dish_category_group_vote_candidate_votes.
+     */
+    data: XOR<dish_category_group_vote_candidate_votesUpdateManyMutationInput, dish_category_group_vote_candidate_votesUncheckedUpdateManyInput>
+    /**
+     * Filter which dish_category_group_vote_candidate_votes to update
+     */
+    where?: dish_category_group_vote_candidate_votesWhereInput
+    /**
+     * Limit how many dish_category_group_vote_candidate_votes to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_candidate_votesIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * dish_category_group_vote_candidate_votes upsert
+   */
+  export type dish_category_group_vote_candidate_votesUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_candidate_votes
+     */
+    select?: dish_category_group_vote_candidate_votesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_candidate_votes
+     */
+    omit?: dish_category_group_vote_candidate_votesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_candidate_votesInclude<ExtArgs> | null
+    /**
+     * The filter to search for the dish_category_group_vote_candidate_votes to update in case it exists.
+     */
+    where: dish_category_group_vote_candidate_votesWhereUniqueInput
+    /**
+     * In case the dish_category_group_vote_candidate_votes found by the `where` argument doesn't exist, create a new dish_category_group_vote_candidate_votes with this data.
+     */
+    create: XOR<dish_category_group_vote_candidate_votesCreateInput, dish_category_group_vote_candidate_votesUncheckedCreateInput>
+    /**
+     * In case the dish_category_group_vote_candidate_votes was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<dish_category_group_vote_candidate_votesUpdateInput, dish_category_group_vote_candidate_votesUncheckedUpdateInput>
+  }
+
+  /**
+   * dish_category_group_vote_candidate_votes delete
+   */
+  export type dish_category_group_vote_candidate_votesDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_candidate_votes
+     */
+    select?: dish_category_group_vote_candidate_votesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_candidate_votes
+     */
+    omit?: dish_category_group_vote_candidate_votesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_candidate_votesInclude<ExtArgs> | null
+    /**
+     * Filter which dish_category_group_vote_candidate_votes to delete.
+     */
+    where: dish_category_group_vote_candidate_votesWhereUniqueInput
+  }
+
+  /**
+   * dish_category_group_vote_candidate_votes deleteMany
+   */
+  export type dish_category_group_vote_candidate_votesDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which dish_category_group_vote_candidate_votes to delete
+     */
+    where?: dish_category_group_vote_candidate_votesWhereInput
+    /**
+     * Limit how many dish_category_group_vote_candidate_votes to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * dish_category_group_vote_candidate_votes without action
+   */
+  export type dish_category_group_vote_candidate_votesDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_candidate_votes
+     */
+    select?: dish_category_group_vote_candidate_votesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_candidate_votes
+     */
+    omit?: dish_category_group_vote_candidate_votesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_candidate_votesInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model dish_category_group_vote_candidates
+   */
+
+  export type AggregateDish_category_group_vote_candidates = {
+    _count: Dish_category_group_vote_candidatesCountAggregateOutputType | null
+    _avg: Dish_category_group_vote_candidatesAvgAggregateOutputType | null
+    _sum: Dish_category_group_vote_candidatesSumAggregateOutputType | null
+    _min: Dish_category_group_vote_candidatesMinAggregateOutputType | null
+    _max: Dish_category_group_vote_candidatesMaxAggregateOutputType | null
+  }
+
+  export type Dish_category_group_vote_candidatesAvgAggregateOutputType = {
+    display_order: number | null
+  }
+
+  export type Dish_category_group_vote_candidatesSumAggregateOutputType = {
+    display_order: number | null
+  }
+
+  export type Dish_category_group_vote_candidatesMinAggregateOutputType = {
+    id: string | null
+    session_id: string | null
+    dish_category_id: string | null
+    display_name: string | null
+    tagline: string | null
+    image_url: string | null
+    dish_media_search_status: string | null
+    display_order: number | null
+    deleted_at: Date | null
+    created_at: Date | null
+  }
+
+  export type Dish_category_group_vote_candidatesMaxAggregateOutputType = {
+    id: string | null
+    session_id: string | null
+    dish_category_id: string | null
+    display_name: string | null
+    tagline: string | null
+    image_url: string | null
+    dish_media_search_status: string | null
+    display_order: number | null
+    deleted_at: Date | null
+    created_at: Date | null
+  }
+
+  export type Dish_category_group_vote_candidatesCountAggregateOutputType = {
+    id: number
+    session_id: number
+    dish_category_id: number
+    display_name: number
+    tagline: number
+    image_url: number
+    dish_media_ids: number
+    dish_media_search_status: number
+    display_order: number
+    deleted_at: number
+    created_at: number
+    _all: number
+  }
+
+
+  export type Dish_category_group_vote_candidatesAvgAggregateInputType = {
+    display_order?: true
+  }
+
+  export type Dish_category_group_vote_candidatesSumAggregateInputType = {
+    display_order?: true
+  }
+
+  export type Dish_category_group_vote_candidatesMinAggregateInputType = {
+    id?: true
+    session_id?: true
+    dish_category_id?: true
+    display_name?: true
+    tagline?: true
+    image_url?: true
+    dish_media_search_status?: true
+    display_order?: true
+    deleted_at?: true
+    created_at?: true
+  }
+
+  export type Dish_category_group_vote_candidatesMaxAggregateInputType = {
+    id?: true
+    session_id?: true
+    dish_category_id?: true
+    display_name?: true
+    tagline?: true
+    image_url?: true
+    dish_media_search_status?: true
+    display_order?: true
+    deleted_at?: true
+    created_at?: true
+  }
+
+  export type Dish_category_group_vote_candidatesCountAggregateInputType = {
+    id?: true
+    session_id?: true
+    dish_category_id?: true
+    display_name?: true
+    tagline?: true
+    image_url?: true
+    dish_media_ids?: true
+    dish_media_search_status?: true
+    display_order?: true
+    deleted_at?: true
+    created_at?: true
+    _all?: true
+  }
+
+  export type Dish_category_group_vote_candidatesAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which dish_category_group_vote_candidates to aggregate.
+     */
+    where?: dish_category_group_vote_candidatesWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of dish_category_group_vote_candidates to fetch.
+     */
+    orderBy?: dish_category_group_vote_candidatesOrderByWithRelationInput | dish_category_group_vote_candidatesOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: dish_category_group_vote_candidatesWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` dish_category_group_vote_candidates from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` dish_category_group_vote_candidates.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned dish_category_group_vote_candidates
+    **/
+    _count?: true | Dish_category_group_vote_candidatesCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: Dish_category_group_vote_candidatesAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: Dish_category_group_vote_candidatesSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: Dish_category_group_vote_candidatesMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: Dish_category_group_vote_candidatesMaxAggregateInputType
+  }
+
+  export type GetDish_category_group_vote_candidatesAggregateType<T extends Dish_category_group_vote_candidatesAggregateArgs> = {
+        [P in keyof T & keyof AggregateDish_category_group_vote_candidates]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateDish_category_group_vote_candidates[P]>
+      : GetScalarType<T[P], AggregateDish_category_group_vote_candidates[P]>
+  }
+
+
+
+
+  export type dish_category_group_vote_candidatesGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: dish_category_group_vote_candidatesWhereInput
+    orderBy?: dish_category_group_vote_candidatesOrderByWithAggregationInput | dish_category_group_vote_candidatesOrderByWithAggregationInput[]
+    by: Dish_category_group_vote_candidatesScalarFieldEnum[] | Dish_category_group_vote_candidatesScalarFieldEnum
+    having?: dish_category_group_vote_candidatesScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: Dish_category_group_vote_candidatesCountAggregateInputType | true
+    _avg?: Dish_category_group_vote_candidatesAvgAggregateInputType
+    _sum?: Dish_category_group_vote_candidatesSumAggregateInputType
+    _min?: Dish_category_group_vote_candidatesMinAggregateInputType
+    _max?: Dish_category_group_vote_candidatesMaxAggregateInputType
+  }
+
+  export type Dish_category_group_vote_candidatesGroupByOutputType = {
+    id: string
+    session_id: string
+    dish_category_id: string
+    display_name: string
+    tagline: string
+    image_url: string
+    dish_media_ids: string[]
+    dish_media_search_status: string
+    display_order: number
+    deleted_at: Date | null
+    created_at: Date
+    _count: Dish_category_group_vote_candidatesCountAggregateOutputType | null
+    _avg: Dish_category_group_vote_candidatesAvgAggregateOutputType | null
+    _sum: Dish_category_group_vote_candidatesSumAggregateOutputType | null
+    _min: Dish_category_group_vote_candidatesMinAggregateOutputType | null
+    _max: Dish_category_group_vote_candidatesMaxAggregateOutputType | null
+  }
+
+  type GetDish_category_group_vote_candidatesGroupByPayload<T extends dish_category_group_vote_candidatesGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<Dish_category_group_vote_candidatesGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof Dish_category_group_vote_candidatesGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], Dish_category_group_vote_candidatesGroupByOutputType[P]>
+            : GetScalarType<T[P], Dish_category_group_vote_candidatesGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type dish_category_group_vote_candidatesSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    session_id?: boolean
+    dish_category_id?: boolean
+    display_name?: boolean
+    tagline?: boolean
+    image_url?: boolean
+    dish_media_ids?: boolean
+    dish_media_search_status?: boolean
+    display_order?: boolean
+    deleted_at?: boolean
+    created_at?: boolean
+    dish_category_group_vote_candidate_votes?: boolean | dish_category_group_vote_candidates$dish_category_group_vote_candidate_votesArgs<ExtArgs>
+    dish_categories?: boolean | dish_categoriesDefaultArgs<ExtArgs>
+    dish_category_group_vote_sessions?: boolean | dish_category_group_vote_sessionsDefaultArgs<ExtArgs>
+    _count?: boolean | Dish_category_group_vote_candidatesCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["dish_category_group_vote_candidates"]>
+
+  export type dish_category_group_vote_candidatesSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    session_id?: boolean
+    dish_category_id?: boolean
+    display_name?: boolean
+    tagline?: boolean
+    image_url?: boolean
+    dish_media_ids?: boolean
+    dish_media_search_status?: boolean
+    display_order?: boolean
+    deleted_at?: boolean
+    created_at?: boolean
+    dish_categories?: boolean | dish_categoriesDefaultArgs<ExtArgs>
+    dish_category_group_vote_sessions?: boolean | dish_category_group_vote_sessionsDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["dish_category_group_vote_candidates"]>
+
+  export type dish_category_group_vote_candidatesSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    session_id?: boolean
+    dish_category_id?: boolean
+    display_name?: boolean
+    tagline?: boolean
+    image_url?: boolean
+    dish_media_ids?: boolean
+    dish_media_search_status?: boolean
+    display_order?: boolean
+    deleted_at?: boolean
+    created_at?: boolean
+    dish_categories?: boolean | dish_categoriesDefaultArgs<ExtArgs>
+    dish_category_group_vote_sessions?: boolean | dish_category_group_vote_sessionsDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["dish_category_group_vote_candidates"]>
+
+  export type dish_category_group_vote_candidatesSelectScalar = {
+    id?: boolean
+    session_id?: boolean
+    dish_category_id?: boolean
+    display_name?: boolean
+    tagline?: boolean
+    image_url?: boolean
+    dish_media_ids?: boolean
+    dish_media_search_status?: boolean
+    display_order?: boolean
+    deleted_at?: boolean
+    created_at?: boolean
+  }
+
+  export type dish_category_group_vote_candidatesOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "session_id" | "dish_category_id" | "display_name" | "tagline" | "image_url" | "dish_media_ids" | "dish_media_search_status" | "display_order" | "deleted_at" | "created_at", ExtArgs["result"]["dish_category_group_vote_candidates"]>
+  export type dish_category_group_vote_candidatesInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    dish_category_group_vote_candidate_votes?: boolean | dish_category_group_vote_candidates$dish_category_group_vote_candidate_votesArgs<ExtArgs>
+    dish_categories?: boolean | dish_categoriesDefaultArgs<ExtArgs>
+    dish_category_group_vote_sessions?: boolean | dish_category_group_vote_sessionsDefaultArgs<ExtArgs>
+    _count?: boolean | Dish_category_group_vote_candidatesCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type dish_category_group_vote_candidatesIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    dish_categories?: boolean | dish_categoriesDefaultArgs<ExtArgs>
+    dish_category_group_vote_sessions?: boolean | dish_category_group_vote_sessionsDefaultArgs<ExtArgs>
+  }
+  export type dish_category_group_vote_candidatesIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    dish_categories?: boolean | dish_categoriesDefaultArgs<ExtArgs>
+    dish_category_group_vote_sessions?: boolean | dish_category_group_vote_sessionsDefaultArgs<ExtArgs>
+  }
+
+  export type $dish_category_group_vote_candidatesPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "dish_category_group_vote_candidates"
+    objects: {
+      dish_category_group_vote_candidate_votes: Prisma.$dish_category_group_vote_candidate_votesPayload<ExtArgs>[]
+      dish_categories: Prisma.$dish_categoriesPayload<ExtArgs>
+      dish_category_group_vote_sessions: Prisma.$dish_category_group_vote_sessionsPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      session_id: string
+      dish_category_id: string
+      display_name: string
+      tagline: string
+      image_url: string
+      dish_media_ids: string[]
+      dish_media_search_status: string
+      display_order: number
+      deleted_at: Date | null
+      created_at: Date
+    }, ExtArgs["result"]["dish_category_group_vote_candidates"]>
+    composites: {}
+  }
+
+  type dish_category_group_vote_candidatesGetPayload<S extends boolean | null | undefined | dish_category_group_vote_candidatesDefaultArgs> = $Result.GetResult<Prisma.$dish_category_group_vote_candidatesPayload, S>
+
+  type dish_category_group_vote_candidatesCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<dish_category_group_vote_candidatesFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: Dish_category_group_vote_candidatesCountAggregateInputType | true
+    }
+
+  export interface dish_category_group_vote_candidatesDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['dish_category_group_vote_candidates'], meta: { name: 'dish_category_group_vote_candidates' } }
+    /**
+     * Find zero or one Dish_category_group_vote_candidates that matches the filter.
+     * @param {dish_category_group_vote_candidatesFindUniqueArgs} args - Arguments to find a Dish_category_group_vote_candidates
+     * @example
+     * // Get one Dish_category_group_vote_candidates
+     * const dish_category_group_vote_candidates = await prisma.dish_category_group_vote_candidates.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends dish_category_group_vote_candidatesFindUniqueArgs>(args: SelectSubset<T, dish_category_group_vote_candidatesFindUniqueArgs<ExtArgs>>): Prisma__dish_category_group_vote_candidatesClient<$Result.GetResult<Prisma.$dish_category_group_vote_candidatesPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one Dish_category_group_vote_candidates that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {dish_category_group_vote_candidatesFindUniqueOrThrowArgs} args - Arguments to find a Dish_category_group_vote_candidates
+     * @example
+     * // Get one Dish_category_group_vote_candidates
+     * const dish_category_group_vote_candidates = await prisma.dish_category_group_vote_candidates.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends dish_category_group_vote_candidatesFindUniqueOrThrowArgs>(args: SelectSubset<T, dish_category_group_vote_candidatesFindUniqueOrThrowArgs<ExtArgs>>): Prisma__dish_category_group_vote_candidatesClient<$Result.GetResult<Prisma.$dish_category_group_vote_candidatesPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Dish_category_group_vote_candidates that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_category_group_vote_candidatesFindFirstArgs} args - Arguments to find a Dish_category_group_vote_candidates
+     * @example
+     * // Get one Dish_category_group_vote_candidates
+     * const dish_category_group_vote_candidates = await prisma.dish_category_group_vote_candidates.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends dish_category_group_vote_candidatesFindFirstArgs>(args?: SelectSubset<T, dish_category_group_vote_candidatesFindFirstArgs<ExtArgs>>): Prisma__dish_category_group_vote_candidatesClient<$Result.GetResult<Prisma.$dish_category_group_vote_candidatesPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Dish_category_group_vote_candidates that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_category_group_vote_candidatesFindFirstOrThrowArgs} args - Arguments to find a Dish_category_group_vote_candidates
+     * @example
+     * // Get one Dish_category_group_vote_candidates
+     * const dish_category_group_vote_candidates = await prisma.dish_category_group_vote_candidates.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends dish_category_group_vote_candidatesFindFirstOrThrowArgs>(args?: SelectSubset<T, dish_category_group_vote_candidatesFindFirstOrThrowArgs<ExtArgs>>): Prisma__dish_category_group_vote_candidatesClient<$Result.GetResult<Prisma.$dish_category_group_vote_candidatesPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more Dish_category_group_vote_candidates that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_category_group_vote_candidatesFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Dish_category_group_vote_candidates
+     * const dish_category_group_vote_candidates = await prisma.dish_category_group_vote_candidates.findMany()
+     * 
+     * // Get first 10 Dish_category_group_vote_candidates
+     * const dish_category_group_vote_candidates = await prisma.dish_category_group_vote_candidates.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const dish_category_group_vote_candidatesWithIdOnly = await prisma.dish_category_group_vote_candidates.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends dish_category_group_vote_candidatesFindManyArgs>(args?: SelectSubset<T, dish_category_group_vote_candidatesFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_category_group_vote_candidatesPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a Dish_category_group_vote_candidates.
+     * @param {dish_category_group_vote_candidatesCreateArgs} args - Arguments to create a Dish_category_group_vote_candidates.
+     * @example
+     * // Create one Dish_category_group_vote_candidates
+     * const Dish_category_group_vote_candidates = await prisma.dish_category_group_vote_candidates.create({
+     *   data: {
+     *     // ... data to create a Dish_category_group_vote_candidates
+     *   }
+     * })
+     * 
+     */
+    create<T extends dish_category_group_vote_candidatesCreateArgs>(args: SelectSubset<T, dish_category_group_vote_candidatesCreateArgs<ExtArgs>>): Prisma__dish_category_group_vote_candidatesClient<$Result.GetResult<Prisma.$dish_category_group_vote_candidatesPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many Dish_category_group_vote_candidates.
+     * @param {dish_category_group_vote_candidatesCreateManyArgs} args - Arguments to create many Dish_category_group_vote_candidates.
+     * @example
+     * // Create many Dish_category_group_vote_candidates
+     * const dish_category_group_vote_candidates = await prisma.dish_category_group_vote_candidates.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends dish_category_group_vote_candidatesCreateManyArgs>(args?: SelectSubset<T, dish_category_group_vote_candidatesCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Dish_category_group_vote_candidates and returns the data saved in the database.
+     * @param {dish_category_group_vote_candidatesCreateManyAndReturnArgs} args - Arguments to create many Dish_category_group_vote_candidates.
+     * @example
+     * // Create many Dish_category_group_vote_candidates
+     * const dish_category_group_vote_candidates = await prisma.dish_category_group_vote_candidates.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Dish_category_group_vote_candidates and only return the `id`
+     * const dish_category_group_vote_candidatesWithIdOnly = await prisma.dish_category_group_vote_candidates.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends dish_category_group_vote_candidatesCreateManyAndReturnArgs>(args?: SelectSubset<T, dish_category_group_vote_candidatesCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_category_group_vote_candidatesPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a Dish_category_group_vote_candidates.
+     * @param {dish_category_group_vote_candidatesDeleteArgs} args - Arguments to delete one Dish_category_group_vote_candidates.
+     * @example
+     * // Delete one Dish_category_group_vote_candidates
+     * const Dish_category_group_vote_candidates = await prisma.dish_category_group_vote_candidates.delete({
+     *   where: {
+     *     // ... filter to delete one Dish_category_group_vote_candidates
+     *   }
+     * })
+     * 
+     */
+    delete<T extends dish_category_group_vote_candidatesDeleteArgs>(args: SelectSubset<T, dish_category_group_vote_candidatesDeleteArgs<ExtArgs>>): Prisma__dish_category_group_vote_candidatesClient<$Result.GetResult<Prisma.$dish_category_group_vote_candidatesPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one Dish_category_group_vote_candidates.
+     * @param {dish_category_group_vote_candidatesUpdateArgs} args - Arguments to update one Dish_category_group_vote_candidates.
+     * @example
+     * // Update one Dish_category_group_vote_candidates
+     * const dish_category_group_vote_candidates = await prisma.dish_category_group_vote_candidates.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends dish_category_group_vote_candidatesUpdateArgs>(args: SelectSubset<T, dish_category_group_vote_candidatesUpdateArgs<ExtArgs>>): Prisma__dish_category_group_vote_candidatesClient<$Result.GetResult<Prisma.$dish_category_group_vote_candidatesPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more Dish_category_group_vote_candidates.
+     * @param {dish_category_group_vote_candidatesDeleteManyArgs} args - Arguments to filter Dish_category_group_vote_candidates to delete.
+     * @example
+     * // Delete a few Dish_category_group_vote_candidates
+     * const { count } = await prisma.dish_category_group_vote_candidates.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends dish_category_group_vote_candidatesDeleteManyArgs>(args?: SelectSubset<T, dish_category_group_vote_candidatesDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Dish_category_group_vote_candidates.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_category_group_vote_candidatesUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Dish_category_group_vote_candidates
+     * const dish_category_group_vote_candidates = await prisma.dish_category_group_vote_candidates.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends dish_category_group_vote_candidatesUpdateManyArgs>(args: SelectSubset<T, dish_category_group_vote_candidatesUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Dish_category_group_vote_candidates and returns the data updated in the database.
+     * @param {dish_category_group_vote_candidatesUpdateManyAndReturnArgs} args - Arguments to update many Dish_category_group_vote_candidates.
+     * @example
+     * // Update many Dish_category_group_vote_candidates
+     * const dish_category_group_vote_candidates = await prisma.dish_category_group_vote_candidates.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more Dish_category_group_vote_candidates and only return the `id`
+     * const dish_category_group_vote_candidatesWithIdOnly = await prisma.dish_category_group_vote_candidates.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends dish_category_group_vote_candidatesUpdateManyAndReturnArgs>(args: SelectSubset<T, dish_category_group_vote_candidatesUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_category_group_vote_candidatesPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one Dish_category_group_vote_candidates.
+     * @param {dish_category_group_vote_candidatesUpsertArgs} args - Arguments to update or create a Dish_category_group_vote_candidates.
+     * @example
+     * // Update or create a Dish_category_group_vote_candidates
+     * const dish_category_group_vote_candidates = await prisma.dish_category_group_vote_candidates.upsert({
+     *   create: {
+     *     // ... data to create a Dish_category_group_vote_candidates
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Dish_category_group_vote_candidates we want to update
+     *   }
+     * })
+     */
+    upsert<T extends dish_category_group_vote_candidatesUpsertArgs>(args: SelectSubset<T, dish_category_group_vote_candidatesUpsertArgs<ExtArgs>>): Prisma__dish_category_group_vote_candidatesClient<$Result.GetResult<Prisma.$dish_category_group_vote_candidatesPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of Dish_category_group_vote_candidates.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_category_group_vote_candidatesCountArgs} args - Arguments to filter Dish_category_group_vote_candidates to count.
+     * @example
+     * // Count the number of Dish_category_group_vote_candidates
+     * const count = await prisma.dish_category_group_vote_candidates.count({
+     *   where: {
+     *     // ... the filter for the Dish_category_group_vote_candidates we want to count
+     *   }
+     * })
+    **/
+    count<T extends dish_category_group_vote_candidatesCountArgs>(
+      args?: Subset<T, dish_category_group_vote_candidatesCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], Dish_category_group_vote_candidatesCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Dish_category_group_vote_candidates.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {Dish_category_group_vote_candidatesAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends Dish_category_group_vote_candidatesAggregateArgs>(args: Subset<T, Dish_category_group_vote_candidatesAggregateArgs>): Prisma.PrismaPromise<GetDish_category_group_vote_candidatesAggregateType<T>>
+
+    /**
+     * Group by Dish_category_group_vote_candidates.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_category_group_vote_candidatesGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends dish_category_group_vote_candidatesGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: dish_category_group_vote_candidatesGroupByArgs['orderBy'] }
+        : { orderBy?: dish_category_group_vote_candidatesGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, dish_category_group_vote_candidatesGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetDish_category_group_vote_candidatesGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the dish_category_group_vote_candidates model
+   */
+  readonly fields: dish_category_group_vote_candidatesFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for dish_category_group_vote_candidates.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__dish_category_group_vote_candidatesClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    dish_category_group_vote_candidate_votes<T extends dish_category_group_vote_candidates$dish_category_group_vote_candidate_votesArgs<ExtArgs> = {}>(args?: Subset<T, dish_category_group_vote_candidates$dish_category_group_vote_candidate_votesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_category_group_vote_candidate_votesPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    dish_categories<T extends dish_categoriesDefaultArgs<ExtArgs> = {}>(args?: Subset<T, dish_categoriesDefaultArgs<ExtArgs>>): Prisma__dish_categoriesClient<$Result.GetResult<Prisma.$dish_categoriesPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    dish_category_group_vote_sessions<T extends dish_category_group_vote_sessionsDefaultArgs<ExtArgs> = {}>(args?: Subset<T, dish_category_group_vote_sessionsDefaultArgs<ExtArgs>>): Prisma__dish_category_group_vote_sessionsClient<$Result.GetResult<Prisma.$dish_category_group_vote_sessionsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the dish_category_group_vote_candidates model
+   */
+  interface dish_category_group_vote_candidatesFieldRefs {
+    readonly id: FieldRef<"dish_category_group_vote_candidates", 'String'>
+    readonly session_id: FieldRef<"dish_category_group_vote_candidates", 'String'>
+    readonly dish_category_id: FieldRef<"dish_category_group_vote_candidates", 'String'>
+    readonly display_name: FieldRef<"dish_category_group_vote_candidates", 'String'>
+    readonly tagline: FieldRef<"dish_category_group_vote_candidates", 'String'>
+    readonly image_url: FieldRef<"dish_category_group_vote_candidates", 'String'>
+    readonly dish_media_ids: FieldRef<"dish_category_group_vote_candidates", 'String[]'>
+    readonly dish_media_search_status: FieldRef<"dish_category_group_vote_candidates", 'String'>
+    readonly display_order: FieldRef<"dish_category_group_vote_candidates", 'Int'>
+    readonly deleted_at: FieldRef<"dish_category_group_vote_candidates", 'DateTime'>
+    readonly created_at: FieldRef<"dish_category_group_vote_candidates", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * dish_category_group_vote_candidates findUnique
+   */
+  export type dish_category_group_vote_candidatesFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_candidates
+     */
+    select?: dish_category_group_vote_candidatesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_candidates
+     */
+    omit?: dish_category_group_vote_candidatesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_candidatesInclude<ExtArgs> | null
+    /**
+     * Filter, which dish_category_group_vote_candidates to fetch.
+     */
+    where: dish_category_group_vote_candidatesWhereUniqueInput
+  }
+
+  /**
+   * dish_category_group_vote_candidates findUniqueOrThrow
+   */
+  export type dish_category_group_vote_candidatesFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_candidates
+     */
+    select?: dish_category_group_vote_candidatesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_candidates
+     */
+    omit?: dish_category_group_vote_candidatesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_candidatesInclude<ExtArgs> | null
+    /**
+     * Filter, which dish_category_group_vote_candidates to fetch.
+     */
+    where: dish_category_group_vote_candidatesWhereUniqueInput
+  }
+
+  /**
+   * dish_category_group_vote_candidates findFirst
+   */
+  export type dish_category_group_vote_candidatesFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_candidates
+     */
+    select?: dish_category_group_vote_candidatesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_candidates
+     */
+    omit?: dish_category_group_vote_candidatesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_candidatesInclude<ExtArgs> | null
+    /**
+     * Filter, which dish_category_group_vote_candidates to fetch.
+     */
+    where?: dish_category_group_vote_candidatesWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of dish_category_group_vote_candidates to fetch.
+     */
+    orderBy?: dish_category_group_vote_candidatesOrderByWithRelationInput | dish_category_group_vote_candidatesOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for dish_category_group_vote_candidates.
+     */
+    cursor?: dish_category_group_vote_candidatesWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` dish_category_group_vote_candidates from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` dish_category_group_vote_candidates.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of dish_category_group_vote_candidates.
+     */
+    distinct?: Dish_category_group_vote_candidatesScalarFieldEnum | Dish_category_group_vote_candidatesScalarFieldEnum[]
+  }
+
+  /**
+   * dish_category_group_vote_candidates findFirstOrThrow
+   */
+  export type dish_category_group_vote_candidatesFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_candidates
+     */
+    select?: dish_category_group_vote_candidatesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_candidates
+     */
+    omit?: dish_category_group_vote_candidatesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_candidatesInclude<ExtArgs> | null
+    /**
+     * Filter, which dish_category_group_vote_candidates to fetch.
+     */
+    where?: dish_category_group_vote_candidatesWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of dish_category_group_vote_candidates to fetch.
+     */
+    orderBy?: dish_category_group_vote_candidatesOrderByWithRelationInput | dish_category_group_vote_candidatesOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for dish_category_group_vote_candidates.
+     */
+    cursor?: dish_category_group_vote_candidatesWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` dish_category_group_vote_candidates from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` dish_category_group_vote_candidates.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of dish_category_group_vote_candidates.
+     */
+    distinct?: Dish_category_group_vote_candidatesScalarFieldEnum | Dish_category_group_vote_candidatesScalarFieldEnum[]
+  }
+
+  /**
+   * dish_category_group_vote_candidates findMany
+   */
+  export type dish_category_group_vote_candidatesFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_candidates
+     */
+    select?: dish_category_group_vote_candidatesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_candidates
+     */
+    omit?: dish_category_group_vote_candidatesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_candidatesInclude<ExtArgs> | null
+    /**
+     * Filter, which dish_category_group_vote_candidates to fetch.
+     */
+    where?: dish_category_group_vote_candidatesWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of dish_category_group_vote_candidates to fetch.
+     */
+    orderBy?: dish_category_group_vote_candidatesOrderByWithRelationInput | dish_category_group_vote_candidatesOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing dish_category_group_vote_candidates.
+     */
+    cursor?: dish_category_group_vote_candidatesWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` dish_category_group_vote_candidates from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` dish_category_group_vote_candidates.
+     */
+    skip?: number
+    distinct?: Dish_category_group_vote_candidatesScalarFieldEnum | Dish_category_group_vote_candidatesScalarFieldEnum[]
+  }
+
+  /**
+   * dish_category_group_vote_candidates create
+   */
+  export type dish_category_group_vote_candidatesCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_candidates
+     */
+    select?: dish_category_group_vote_candidatesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_candidates
+     */
+    omit?: dish_category_group_vote_candidatesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_candidatesInclude<ExtArgs> | null
+    /**
+     * The data needed to create a dish_category_group_vote_candidates.
+     */
+    data: XOR<dish_category_group_vote_candidatesCreateInput, dish_category_group_vote_candidatesUncheckedCreateInput>
+  }
+
+  /**
+   * dish_category_group_vote_candidates createMany
+   */
+  export type dish_category_group_vote_candidatesCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many dish_category_group_vote_candidates.
+     */
+    data: dish_category_group_vote_candidatesCreateManyInput | dish_category_group_vote_candidatesCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * dish_category_group_vote_candidates createManyAndReturn
+   */
+  export type dish_category_group_vote_candidatesCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_candidates
+     */
+    select?: dish_category_group_vote_candidatesSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_candidates
+     */
+    omit?: dish_category_group_vote_candidatesOmit<ExtArgs> | null
+    /**
+     * The data used to create many dish_category_group_vote_candidates.
+     */
+    data: dish_category_group_vote_candidatesCreateManyInput | dish_category_group_vote_candidatesCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_candidatesIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * dish_category_group_vote_candidates update
+   */
+  export type dish_category_group_vote_candidatesUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_candidates
+     */
+    select?: dish_category_group_vote_candidatesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_candidates
+     */
+    omit?: dish_category_group_vote_candidatesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_candidatesInclude<ExtArgs> | null
+    /**
+     * The data needed to update a dish_category_group_vote_candidates.
+     */
+    data: XOR<dish_category_group_vote_candidatesUpdateInput, dish_category_group_vote_candidatesUncheckedUpdateInput>
+    /**
+     * Choose, which dish_category_group_vote_candidates to update.
+     */
+    where: dish_category_group_vote_candidatesWhereUniqueInput
+  }
+
+  /**
+   * dish_category_group_vote_candidates updateMany
+   */
+  export type dish_category_group_vote_candidatesUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update dish_category_group_vote_candidates.
+     */
+    data: XOR<dish_category_group_vote_candidatesUpdateManyMutationInput, dish_category_group_vote_candidatesUncheckedUpdateManyInput>
+    /**
+     * Filter which dish_category_group_vote_candidates to update
+     */
+    where?: dish_category_group_vote_candidatesWhereInput
+    /**
+     * Limit how many dish_category_group_vote_candidates to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * dish_category_group_vote_candidates updateManyAndReturn
+   */
+  export type dish_category_group_vote_candidatesUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_candidates
+     */
+    select?: dish_category_group_vote_candidatesSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_candidates
+     */
+    omit?: dish_category_group_vote_candidatesOmit<ExtArgs> | null
+    /**
+     * The data used to update dish_category_group_vote_candidates.
+     */
+    data: XOR<dish_category_group_vote_candidatesUpdateManyMutationInput, dish_category_group_vote_candidatesUncheckedUpdateManyInput>
+    /**
+     * Filter which dish_category_group_vote_candidates to update
+     */
+    where?: dish_category_group_vote_candidatesWhereInput
+    /**
+     * Limit how many dish_category_group_vote_candidates to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_candidatesIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * dish_category_group_vote_candidates upsert
+   */
+  export type dish_category_group_vote_candidatesUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_candidates
+     */
+    select?: dish_category_group_vote_candidatesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_candidates
+     */
+    omit?: dish_category_group_vote_candidatesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_candidatesInclude<ExtArgs> | null
+    /**
+     * The filter to search for the dish_category_group_vote_candidates to update in case it exists.
+     */
+    where: dish_category_group_vote_candidatesWhereUniqueInput
+    /**
+     * In case the dish_category_group_vote_candidates found by the `where` argument doesn't exist, create a new dish_category_group_vote_candidates with this data.
+     */
+    create: XOR<dish_category_group_vote_candidatesCreateInput, dish_category_group_vote_candidatesUncheckedCreateInput>
+    /**
+     * In case the dish_category_group_vote_candidates was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<dish_category_group_vote_candidatesUpdateInput, dish_category_group_vote_candidatesUncheckedUpdateInput>
+  }
+
+  /**
+   * dish_category_group_vote_candidates delete
+   */
+  export type dish_category_group_vote_candidatesDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_candidates
+     */
+    select?: dish_category_group_vote_candidatesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_candidates
+     */
+    omit?: dish_category_group_vote_candidatesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_candidatesInclude<ExtArgs> | null
+    /**
+     * Filter which dish_category_group_vote_candidates to delete.
+     */
+    where: dish_category_group_vote_candidatesWhereUniqueInput
+  }
+
+  /**
+   * dish_category_group_vote_candidates deleteMany
+   */
+  export type dish_category_group_vote_candidatesDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which dish_category_group_vote_candidates to delete
+     */
+    where?: dish_category_group_vote_candidatesWhereInput
+    /**
+     * Limit how many dish_category_group_vote_candidates to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * dish_category_group_vote_candidates.dish_category_group_vote_candidate_votes
+   */
+  export type dish_category_group_vote_candidates$dish_category_group_vote_candidate_votesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_candidate_votes
+     */
+    select?: dish_category_group_vote_candidate_votesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_candidate_votes
+     */
+    omit?: dish_category_group_vote_candidate_votesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_candidate_votesInclude<ExtArgs> | null
+    where?: dish_category_group_vote_candidate_votesWhereInput
+    orderBy?: dish_category_group_vote_candidate_votesOrderByWithRelationInput | dish_category_group_vote_candidate_votesOrderByWithRelationInput[]
+    cursor?: dish_category_group_vote_candidate_votesWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: Dish_category_group_vote_candidate_votesScalarFieldEnum | Dish_category_group_vote_candidate_votesScalarFieldEnum[]
+  }
+
+  /**
+   * dish_category_group_vote_candidates without action
+   */
+  export type dish_category_group_vote_candidatesDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_candidates
+     */
+    select?: dish_category_group_vote_candidatesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_candidates
+     */
+    omit?: dish_category_group_vote_candidatesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_candidatesInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model dish_category_group_vote_participants
+   */
+
+  export type AggregateDish_category_group_vote_participants = {
+    _count: Dish_category_group_vote_participantsCountAggregateOutputType | null
+    _min: Dish_category_group_vote_participantsMinAggregateOutputType | null
+    _max: Dish_category_group_vote_participantsMaxAggregateOutputType | null
+  }
+
+  export type Dish_category_group_vote_participantsMinAggregateOutputType = {
+    id: string | null
+    session_id: string | null
+    user_id: string | null
+    display_name: string | null
+    comment: string | null
+    created_at: Date | null
+  }
+
+  export type Dish_category_group_vote_participantsMaxAggregateOutputType = {
+    id: string | null
+    session_id: string | null
+    user_id: string | null
+    display_name: string | null
+    comment: string | null
+    created_at: Date | null
+  }
+
+  export type Dish_category_group_vote_participantsCountAggregateOutputType = {
+    id: number
+    session_id: number
+    user_id: number
+    display_name: number
+    comment: number
+    created_at: number
+    _all: number
+  }
+
+
+  export type Dish_category_group_vote_participantsMinAggregateInputType = {
+    id?: true
+    session_id?: true
+    user_id?: true
+    display_name?: true
+    comment?: true
+    created_at?: true
+  }
+
+  export type Dish_category_group_vote_participantsMaxAggregateInputType = {
+    id?: true
+    session_id?: true
+    user_id?: true
+    display_name?: true
+    comment?: true
+    created_at?: true
+  }
+
+  export type Dish_category_group_vote_participantsCountAggregateInputType = {
+    id?: true
+    session_id?: true
+    user_id?: true
+    display_name?: true
+    comment?: true
+    created_at?: true
+    _all?: true
+  }
+
+  export type Dish_category_group_vote_participantsAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which dish_category_group_vote_participants to aggregate.
+     */
+    where?: dish_category_group_vote_participantsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of dish_category_group_vote_participants to fetch.
+     */
+    orderBy?: dish_category_group_vote_participantsOrderByWithRelationInput | dish_category_group_vote_participantsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: dish_category_group_vote_participantsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` dish_category_group_vote_participants from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` dish_category_group_vote_participants.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned dish_category_group_vote_participants
+    **/
+    _count?: true | Dish_category_group_vote_participantsCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: Dish_category_group_vote_participantsMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: Dish_category_group_vote_participantsMaxAggregateInputType
+  }
+
+  export type GetDish_category_group_vote_participantsAggregateType<T extends Dish_category_group_vote_participantsAggregateArgs> = {
+        [P in keyof T & keyof AggregateDish_category_group_vote_participants]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateDish_category_group_vote_participants[P]>
+      : GetScalarType<T[P], AggregateDish_category_group_vote_participants[P]>
+  }
+
+
+
+
+  export type dish_category_group_vote_participantsGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: dish_category_group_vote_participantsWhereInput
+    orderBy?: dish_category_group_vote_participantsOrderByWithAggregationInput | dish_category_group_vote_participantsOrderByWithAggregationInput[]
+    by: Dish_category_group_vote_participantsScalarFieldEnum[] | Dish_category_group_vote_participantsScalarFieldEnum
+    having?: dish_category_group_vote_participantsScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: Dish_category_group_vote_participantsCountAggregateInputType | true
+    _min?: Dish_category_group_vote_participantsMinAggregateInputType
+    _max?: Dish_category_group_vote_participantsMaxAggregateInputType
+  }
+
+  export type Dish_category_group_vote_participantsGroupByOutputType = {
+    id: string
+    session_id: string
+    user_id: string
+    display_name: string
+    comment: string | null
+    created_at: Date
+    _count: Dish_category_group_vote_participantsCountAggregateOutputType | null
+    _min: Dish_category_group_vote_participantsMinAggregateOutputType | null
+    _max: Dish_category_group_vote_participantsMaxAggregateOutputType | null
+  }
+
+  type GetDish_category_group_vote_participantsGroupByPayload<T extends dish_category_group_vote_participantsGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<Dish_category_group_vote_participantsGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof Dish_category_group_vote_participantsGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], Dish_category_group_vote_participantsGroupByOutputType[P]>
+            : GetScalarType<T[P], Dish_category_group_vote_participantsGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type dish_category_group_vote_participantsSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    session_id?: boolean
+    user_id?: boolean
+    display_name?: boolean
+    comment?: boolean
+    created_at?: boolean
+    dish_category_group_vote_candidate_votes?: boolean | dish_category_group_vote_participants$dish_category_group_vote_candidate_votesArgs<ExtArgs>
+    dish_category_group_vote_sessions?: boolean | dish_category_group_vote_sessionsDefaultArgs<ExtArgs>
+    _count?: boolean | Dish_category_group_vote_participantsCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["dish_category_group_vote_participants"]>
+
+  export type dish_category_group_vote_participantsSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    session_id?: boolean
+    user_id?: boolean
+    display_name?: boolean
+    comment?: boolean
+    created_at?: boolean
+    dish_category_group_vote_sessions?: boolean | dish_category_group_vote_sessionsDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["dish_category_group_vote_participants"]>
+
+  export type dish_category_group_vote_participantsSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    session_id?: boolean
+    user_id?: boolean
+    display_name?: boolean
+    comment?: boolean
+    created_at?: boolean
+    dish_category_group_vote_sessions?: boolean | dish_category_group_vote_sessionsDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["dish_category_group_vote_participants"]>
+
+  export type dish_category_group_vote_participantsSelectScalar = {
+    id?: boolean
+    session_id?: boolean
+    user_id?: boolean
+    display_name?: boolean
+    comment?: boolean
+    created_at?: boolean
+  }
+
+  export type dish_category_group_vote_participantsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "session_id" | "user_id" | "display_name" | "comment" | "created_at", ExtArgs["result"]["dish_category_group_vote_participants"]>
+  export type dish_category_group_vote_participantsInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    dish_category_group_vote_candidate_votes?: boolean | dish_category_group_vote_participants$dish_category_group_vote_candidate_votesArgs<ExtArgs>
+    dish_category_group_vote_sessions?: boolean | dish_category_group_vote_sessionsDefaultArgs<ExtArgs>
+    _count?: boolean | Dish_category_group_vote_participantsCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type dish_category_group_vote_participantsIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    dish_category_group_vote_sessions?: boolean | dish_category_group_vote_sessionsDefaultArgs<ExtArgs>
+  }
+  export type dish_category_group_vote_participantsIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    dish_category_group_vote_sessions?: boolean | dish_category_group_vote_sessionsDefaultArgs<ExtArgs>
+  }
+
+  export type $dish_category_group_vote_participantsPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "dish_category_group_vote_participants"
+    objects: {
+      dish_category_group_vote_candidate_votes: Prisma.$dish_category_group_vote_candidate_votesPayload<ExtArgs>[]
+      dish_category_group_vote_sessions: Prisma.$dish_category_group_vote_sessionsPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      session_id: string
+      user_id: string
+      display_name: string
+      comment: string | null
+      created_at: Date
+    }, ExtArgs["result"]["dish_category_group_vote_participants"]>
+    composites: {}
+  }
+
+  type dish_category_group_vote_participantsGetPayload<S extends boolean | null | undefined | dish_category_group_vote_participantsDefaultArgs> = $Result.GetResult<Prisma.$dish_category_group_vote_participantsPayload, S>
+
+  type dish_category_group_vote_participantsCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<dish_category_group_vote_participantsFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: Dish_category_group_vote_participantsCountAggregateInputType | true
+    }
+
+  export interface dish_category_group_vote_participantsDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['dish_category_group_vote_participants'], meta: { name: 'dish_category_group_vote_participants' } }
+    /**
+     * Find zero or one Dish_category_group_vote_participants that matches the filter.
+     * @param {dish_category_group_vote_participantsFindUniqueArgs} args - Arguments to find a Dish_category_group_vote_participants
+     * @example
+     * // Get one Dish_category_group_vote_participants
+     * const dish_category_group_vote_participants = await prisma.dish_category_group_vote_participants.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends dish_category_group_vote_participantsFindUniqueArgs>(args: SelectSubset<T, dish_category_group_vote_participantsFindUniqueArgs<ExtArgs>>): Prisma__dish_category_group_vote_participantsClient<$Result.GetResult<Prisma.$dish_category_group_vote_participantsPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one Dish_category_group_vote_participants that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {dish_category_group_vote_participantsFindUniqueOrThrowArgs} args - Arguments to find a Dish_category_group_vote_participants
+     * @example
+     * // Get one Dish_category_group_vote_participants
+     * const dish_category_group_vote_participants = await prisma.dish_category_group_vote_participants.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends dish_category_group_vote_participantsFindUniqueOrThrowArgs>(args: SelectSubset<T, dish_category_group_vote_participantsFindUniqueOrThrowArgs<ExtArgs>>): Prisma__dish_category_group_vote_participantsClient<$Result.GetResult<Prisma.$dish_category_group_vote_participantsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Dish_category_group_vote_participants that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_category_group_vote_participantsFindFirstArgs} args - Arguments to find a Dish_category_group_vote_participants
+     * @example
+     * // Get one Dish_category_group_vote_participants
+     * const dish_category_group_vote_participants = await prisma.dish_category_group_vote_participants.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends dish_category_group_vote_participantsFindFirstArgs>(args?: SelectSubset<T, dish_category_group_vote_participantsFindFirstArgs<ExtArgs>>): Prisma__dish_category_group_vote_participantsClient<$Result.GetResult<Prisma.$dish_category_group_vote_participantsPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Dish_category_group_vote_participants that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_category_group_vote_participantsFindFirstOrThrowArgs} args - Arguments to find a Dish_category_group_vote_participants
+     * @example
+     * // Get one Dish_category_group_vote_participants
+     * const dish_category_group_vote_participants = await prisma.dish_category_group_vote_participants.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends dish_category_group_vote_participantsFindFirstOrThrowArgs>(args?: SelectSubset<T, dish_category_group_vote_participantsFindFirstOrThrowArgs<ExtArgs>>): Prisma__dish_category_group_vote_participantsClient<$Result.GetResult<Prisma.$dish_category_group_vote_participantsPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more Dish_category_group_vote_participants that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_category_group_vote_participantsFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Dish_category_group_vote_participants
+     * const dish_category_group_vote_participants = await prisma.dish_category_group_vote_participants.findMany()
+     * 
+     * // Get first 10 Dish_category_group_vote_participants
+     * const dish_category_group_vote_participants = await prisma.dish_category_group_vote_participants.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const dish_category_group_vote_participantsWithIdOnly = await prisma.dish_category_group_vote_participants.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends dish_category_group_vote_participantsFindManyArgs>(args?: SelectSubset<T, dish_category_group_vote_participantsFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_category_group_vote_participantsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a Dish_category_group_vote_participants.
+     * @param {dish_category_group_vote_participantsCreateArgs} args - Arguments to create a Dish_category_group_vote_participants.
+     * @example
+     * // Create one Dish_category_group_vote_participants
+     * const Dish_category_group_vote_participants = await prisma.dish_category_group_vote_participants.create({
+     *   data: {
+     *     // ... data to create a Dish_category_group_vote_participants
+     *   }
+     * })
+     * 
+     */
+    create<T extends dish_category_group_vote_participantsCreateArgs>(args: SelectSubset<T, dish_category_group_vote_participantsCreateArgs<ExtArgs>>): Prisma__dish_category_group_vote_participantsClient<$Result.GetResult<Prisma.$dish_category_group_vote_participantsPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many Dish_category_group_vote_participants.
+     * @param {dish_category_group_vote_participantsCreateManyArgs} args - Arguments to create many Dish_category_group_vote_participants.
+     * @example
+     * // Create many Dish_category_group_vote_participants
+     * const dish_category_group_vote_participants = await prisma.dish_category_group_vote_participants.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends dish_category_group_vote_participantsCreateManyArgs>(args?: SelectSubset<T, dish_category_group_vote_participantsCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Dish_category_group_vote_participants and returns the data saved in the database.
+     * @param {dish_category_group_vote_participantsCreateManyAndReturnArgs} args - Arguments to create many Dish_category_group_vote_participants.
+     * @example
+     * // Create many Dish_category_group_vote_participants
+     * const dish_category_group_vote_participants = await prisma.dish_category_group_vote_participants.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Dish_category_group_vote_participants and only return the `id`
+     * const dish_category_group_vote_participantsWithIdOnly = await prisma.dish_category_group_vote_participants.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends dish_category_group_vote_participantsCreateManyAndReturnArgs>(args?: SelectSubset<T, dish_category_group_vote_participantsCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_category_group_vote_participantsPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a Dish_category_group_vote_participants.
+     * @param {dish_category_group_vote_participantsDeleteArgs} args - Arguments to delete one Dish_category_group_vote_participants.
+     * @example
+     * // Delete one Dish_category_group_vote_participants
+     * const Dish_category_group_vote_participants = await prisma.dish_category_group_vote_participants.delete({
+     *   where: {
+     *     // ... filter to delete one Dish_category_group_vote_participants
+     *   }
+     * })
+     * 
+     */
+    delete<T extends dish_category_group_vote_participantsDeleteArgs>(args: SelectSubset<T, dish_category_group_vote_participantsDeleteArgs<ExtArgs>>): Prisma__dish_category_group_vote_participantsClient<$Result.GetResult<Prisma.$dish_category_group_vote_participantsPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one Dish_category_group_vote_participants.
+     * @param {dish_category_group_vote_participantsUpdateArgs} args - Arguments to update one Dish_category_group_vote_participants.
+     * @example
+     * // Update one Dish_category_group_vote_participants
+     * const dish_category_group_vote_participants = await prisma.dish_category_group_vote_participants.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends dish_category_group_vote_participantsUpdateArgs>(args: SelectSubset<T, dish_category_group_vote_participantsUpdateArgs<ExtArgs>>): Prisma__dish_category_group_vote_participantsClient<$Result.GetResult<Prisma.$dish_category_group_vote_participantsPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more Dish_category_group_vote_participants.
+     * @param {dish_category_group_vote_participantsDeleteManyArgs} args - Arguments to filter Dish_category_group_vote_participants to delete.
+     * @example
+     * // Delete a few Dish_category_group_vote_participants
+     * const { count } = await prisma.dish_category_group_vote_participants.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends dish_category_group_vote_participantsDeleteManyArgs>(args?: SelectSubset<T, dish_category_group_vote_participantsDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Dish_category_group_vote_participants.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_category_group_vote_participantsUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Dish_category_group_vote_participants
+     * const dish_category_group_vote_participants = await prisma.dish_category_group_vote_participants.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends dish_category_group_vote_participantsUpdateManyArgs>(args: SelectSubset<T, dish_category_group_vote_participantsUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Dish_category_group_vote_participants and returns the data updated in the database.
+     * @param {dish_category_group_vote_participantsUpdateManyAndReturnArgs} args - Arguments to update many Dish_category_group_vote_participants.
+     * @example
+     * // Update many Dish_category_group_vote_participants
+     * const dish_category_group_vote_participants = await prisma.dish_category_group_vote_participants.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more Dish_category_group_vote_participants and only return the `id`
+     * const dish_category_group_vote_participantsWithIdOnly = await prisma.dish_category_group_vote_participants.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends dish_category_group_vote_participantsUpdateManyAndReturnArgs>(args: SelectSubset<T, dish_category_group_vote_participantsUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_category_group_vote_participantsPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one Dish_category_group_vote_participants.
+     * @param {dish_category_group_vote_participantsUpsertArgs} args - Arguments to update or create a Dish_category_group_vote_participants.
+     * @example
+     * // Update or create a Dish_category_group_vote_participants
+     * const dish_category_group_vote_participants = await prisma.dish_category_group_vote_participants.upsert({
+     *   create: {
+     *     // ... data to create a Dish_category_group_vote_participants
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Dish_category_group_vote_participants we want to update
+     *   }
+     * })
+     */
+    upsert<T extends dish_category_group_vote_participantsUpsertArgs>(args: SelectSubset<T, dish_category_group_vote_participantsUpsertArgs<ExtArgs>>): Prisma__dish_category_group_vote_participantsClient<$Result.GetResult<Prisma.$dish_category_group_vote_participantsPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of Dish_category_group_vote_participants.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_category_group_vote_participantsCountArgs} args - Arguments to filter Dish_category_group_vote_participants to count.
+     * @example
+     * // Count the number of Dish_category_group_vote_participants
+     * const count = await prisma.dish_category_group_vote_participants.count({
+     *   where: {
+     *     // ... the filter for the Dish_category_group_vote_participants we want to count
+     *   }
+     * })
+    **/
+    count<T extends dish_category_group_vote_participantsCountArgs>(
+      args?: Subset<T, dish_category_group_vote_participantsCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], Dish_category_group_vote_participantsCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Dish_category_group_vote_participants.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {Dish_category_group_vote_participantsAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends Dish_category_group_vote_participantsAggregateArgs>(args: Subset<T, Dish_category_group_vote_participantsAggregateArgs>): Prisma.PrismaPromise<GetDish_category_group_vote_participantsAggregateType<T>>
+
+    /**
+     * Group by Dish_category_group_vote_participants.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_category_group_vote_participantsGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends dish_category_group_vote_participantsGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: dish_category_group_vote_participantsGroupByArgs['orderBy'] }
+        : { orderBy?: dish_category_group_vote_participantsGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, dish_category_group_vote_participantsGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetDish_category_group_vote_participantsGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the dish_category_group_vote_participants model
+   */
+  readonly fields: dish_category_group_vote_participantsFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for dish_category_group_vote_participants.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__dish_category_group_vote_participantsClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    dish_category_group_vote_candidate_votes<T extends dish_category_group_vote_participants$dish_category_group_vote_candidate_votesArgs<ExtArgs> = {}>(args?: Subset<T, dish_category_group_vote_participants$dish_category_group_vote_candidate_votesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_category_group_vote_candidate_votesPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    dish_category_group_vote_sessions<T extends dish_category_group_vote_sessionsDefaultArgs<ExtArgs> = {}>(args?: Subset<T, dish_category_group_vote_sessionsDefaultArgs<ExtArgs>>): Prisma__dish_category_group_vote_sessionsClient<$Result.GetResult<Prisma.$dish_category_group_vote_sessionsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the dish_category_group_vote_participants model
+   */
+  interface dish_category_group_vote_participantsFieldRefs {
+    readonly id: FieldRef<"dish_category_group_vote_participants", 'String'>
+    readonly session_id: FieldRef<"dish_category_group_vote_participants", 'String'>
+    readonly user_id: FieldRef<"dish_category_group_vote_participants", 'String'>
+    readonly display_name: FieldRef<"dish_category_group_vote_participants", 'String'>
+    readonly comment: FieldRef<"dish_category_group_vote_participants", 'String'>
+    readonly created_at: FieldRef<"dish_category_group_vote_participants", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * dish_category_group_vote_participants findUnique
+   */
+  export type dish_category_group_vote_participantsFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_participants
+     */
+    select?: dish_category_group_vote_participantsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_participants
+     */
+    omit?: dish_category_group_vote_participantsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_participantsInclude<ExtArgs> | null
+    /**
+     * Filter, which dish_category_group_vote_participants to fetch.
+     */
+    where: dish_category_group_vote_participantsWhereUniqueInput
+  }
+
+  /**
+   * dish_category_group_vote_participants findUniqueOrThrow
+   */
+  export type dish_category_group_vote_participantsFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_participants
+     */
+    select?: dish_category_group_vote_participantsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_participants
+     */
+    omit?: dish_category_group_vote_participantsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_participantsInclude<ExtArgs> | null
+    /**
+     * Filter, which dish_category_group_vote_participants to fetch.
+     */
+    where: dish_category_group_vote_participantsWhereUniqueInput
+  }
+
+  /**
+   * dish_category_group_vote_participants findFirst
+   */
+  export type dish_category_group_vote_participantsFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_participants
+     */
+    select?: dish_category_group_vote_participantsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_participants
+     */
+    omit?: dish_category_group_vote_participantsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_participantsInclude<ExtArgs> | null
+    /**
+     * Filter, which dish_category_group_vote_participants to fetch.
+     */
+    where?: dish_category_group_vote_participantsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of dish_category_group_vote_participants to fetch.
+     */
+    orderBy?: dish_category_group_vote_participantsOrderByWithRelationInput | dish_category_group_vote_participantsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for dish_category_group_vote_participants.
+     */
+    cursor?: dish_category_group_vote_participantsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` dish_category_group_vote_participants from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` dish_category_group_vote_participants.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of dish_category_group_vote_participants.
+     */
+    distinct?: Dish_category_group_vote_participantsScalarFieldEnum | Dish_category_group_vote_participantsScalarFieldEnum[]
+  }
+
+  /**
+   * dish_category_group_vote_participants findFirstOrThrow
+   */
+  export type dish_category_group_vote_participantsFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_participants
+     */
+    select?: dish_category_group_vote_participantsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_participants
+     */
+    omit?: dish_category_group_vote_participantsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_participantsInclude<ExtArgs> | null
+    /**
+     * Filter, which dish_category_group_vote_participants to fetch.
+     */
+    where?: dish_category_group_vote_participantsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of dish_category_group_vote_participants to fetch.
+     */
+    orderBy?: dish_category_group_vote_participantsOrderByWithRelationInput | dish_category_group_vote_participantsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for dish_category_group_vote_participants.
+     */
+    cursor?: dish_category_group_vote_participantsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` dish_category_group_vote_participants from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` dish_category_group_vote_participants.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of dish_category_group_vote_participants.
+     */
+    distinct?: Dish_category_group_vote_participantsScalarFieldEnum | Dish_category_group_vote_participantsScalarFieldEnum[]
+  }
+
+  /**
+   * dish_category_group_vote_participants findMany
+   */
+  export type dish_category_group_vote_participantsFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_participants
+     */
+    select?: dish_category_group_vote_participantsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_participants
+     */
+    omit?: dish_category_group_vote_participantsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_participantsInclude<ExtArgs> | null
+    /**
+     * Filter, which dish_category_group_vote_participants to fetch.
+     */
+    where?: dish_category_group_vote_participantsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of dish_category_group_vote_participants to fetch.
+     */
+    orderBy?: dish_category_group_vote_participantsOrderByWithRelationInput | dish_category_group_vote_participantsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing dish_category_group_vote_participants.
+     */
+    cursor?: dish_category_group_vote_participantsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` dish_category_group_vote_participants from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` dish_category_group_vote_participants.
+     */
+    skip?: number
+    distinct?: Dish_category_group_vote_participantsScalarFieldEnum | Dish_category_group_vote_participantsScalarFieldEnum[]
+  }
+
+  /**
+   * dish_category_group_vote_participants create
+   */
+  export type dish_category_group_vote_participantsCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_participants
+     */
+    select?: dish_category_group_vote_participantsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_participants
+     */
+    omit?: dish_category_group_vote_participantsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_participantsInclude<ExtArgs> | null
+    /**
+     * The data needed to create a dish_category_group_vote_participants.
+     */
+    data: XOR<dish_category_group_vote_participantsCreateInput, dish_category_group_vote_participantsUncheckedCreateInput>
+  }
+
+  /**
+   * dish_category_group_vote_participants createMany
+   */
+  export type dish_category_group_vote_participantsCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many dish_category_group_vote_participants.
+     */
+    data: dish_category_group_vote_participantsCreateManyInput | dish_category_group_vote_participantsCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * dish_category_group_vote_participants createManyAndReturn
+   */
+  export type dish_category_group_vote_participantsCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_participants
+     */
+    select?: dish_category_group_vote_participantsSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_participants
+     */
+    omit?: dish_category_group_vote_participantsOmit<ExtArgs> | null
+    /**
+     * The data used to create many dish_category_group_vote_participants.
+     */
+    data: dish_category_group_vote_participantsCreateManyInput | dish_category_group_vote_participantsCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_participantsIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * dish_category_group_vote_participants update
+   */
+  export type dish_category_group_vote_participantsUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_participants
+     */
+    select?: dish_category_group_vote_participantsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_participants
+     */
+    omit?: dish_category_group_vote_participantsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_participantsInclude<ExtArgs> | null
+    /**
+     * The data needed to update a dish_category_group_vote_participants.
+     */
+    data: XOR<dish_category_group_vote_participantsUpdateInput, dish_category_group_vote_participantsUncheckedUpdateInput>
+    /**
+     * Choose, which dish_category_group_vote_participants to update.
+     */
+    where: dish_category_group_vote_participantsWhereUniqueInput
+  }
+
+  /**
+   * dish_category_group_vote_participants updateMany
+   */
+  export type dish_category_group_vote_participantsUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update dish_category_group_vote_participants.
+     */
+    data: XOR<dish_category_group_vote_participantsUpdateManyMutationInput, dish_category_group_vote_participantsUncheckedUpdateManyInput>
+    /**
+     * Filter which dish_category_group_vote_participants to update
+     */
+    where?: dish_category_group_vote_participantsWhereInput
+    /**
+     * Limit how many dish_category_group_vote_participants to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * dish_category_group_vote_participants updateManyAndReturn
+   */
+  export type dish_category_group_vote_participantsUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_participants
+     */
+    select?: dish_category_group_vote_participantsSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_participants
+     */
+    omit?: dish_category_group_vote_participantsOmit<ExtArgs> | null
+    /**
+     * The data used to update dish_category_group_vote_participants.
+     */
+    data: XOR<dish_category_group_vote_participantsUpdateManyMutationInput, dish_category_group_vote_participantsUncheckedUpdateManyInput>
+    /**
+     * Filter which dish_category_group_vote_participants to update
+     */
+    where?: dish_category_group_vote_participantsWhereInput
+    /**
+     * Limit how many dish_category_group_vote_participants to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_participantsIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * dish_category_group_vote_participants upsert
+   */
+  export type dish_category_group_vote_participantsUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_participants
+     */
+    select?: dish_category_group_vote_participantsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_participants
+     */
+    omit?: dish_category_group_vote_participantsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_participantsInclude<ExtArgs> | null
+    /**
+     * The filter to search for the dish_category_group_vote_participants to update in case it exists.
+     */
+    where: dish_category_group_vote_participantsWhereUniqueInput
+    /**
+     * In case the dish_category_group_vote_participants found by the `where` argument doesn't exist, create a new dish_category_group_vote_participants with this data.
+     */
+    create: XOR<dish_category_group_vote_participantsCreateInput, dish_category_group_vote_participantsUncheckedCreateInput>
+    /**
+     * In case the dish_category_group_vote_participants was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<dish_category_group_vote_participantsUpdateInput, dish_category_group_vote_participantsUncheckedUpdateInput>
+  }
+
+  /**
+   * dish_category_group_vote_participants delete
+   */
+  export type dish_category_group_vote_participantsDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_participants
+     */
+    select?: dish_category_group_vote_participantsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_participants
+     */
+    omit?: dish_category_group_vote_participantsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_participantsInclude<ExtArgs> | null
+    /**
+     * Filter which dish_category_group_vote_participants to delete.
+     */
+    where: dish_category_group_vote_participantsWhereUniqueInput
+  }
+
+  /**
+   * dish_category_group_vote_participants deleteMany
+   */
+  export type dish_category_group_vote_participantsDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which dish_category_group_vote_participants to delete
+     */
+    where?: dish_category_group_vote_participantsWhereInput
+    /**
+     * Limit how many dish_category_group_vote_participants to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * dish_category_group_vote_participants.dish_category_group_vote_candidate_votes
+   */
+  export type dish_category_group_vote_participants$dish_category_group_vote_candidate_votesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_candidate_votes
+     */
+    select?: dish_category_group_vote_candidate_votesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_candidate_votes
+     */
+    omit?: dish_category_group_vote_candidate_votesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_candidate_votesInclude<ExtArgs> | null
+    where?: dish_category_group_vote_candidate_votesWhereInput
+    orderBy?: dish_category_group_vote_candidate_votesOrderByWithRelationInput | dish_category_group_vote_candidate_votesOrderByWithRelationInput[]
+    cursor?: dish_category_group_vote_candidate_votesWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: Dish_category_group_vote_candidate_votesScalarFieldEnum | Dish_category_group_vote_candidate_votesScalarFieldEnum[]
+  }
+
+  /**
+   * dish_category_group_vote_participants without action
+   */
+  export type dish_category_group_vote_participantsDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_participants
+     */
+    select?: dish_category_group_vote_participantsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_participants
+     */
+    omit?: dish_category_group_vote_participantsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_participantsInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model dish_category_group_vote_sessions
+   */
+
+  export type AggregateDish_category_group_vote_sessions = {
+    _count: Dish_category_group_vote_sessionsCountAggregateOutputType | null
+    _min: Dish_category_group_vote_sessionsMinAggregateOutputType | null
+    _max: Dish_category_group_vote_sessionsMaxAggregateOutputType | null
+  }
+
+  export type Dish_category_group_vote_sessionsMinAggregateOutputType = {
+    id: string | null
+    host_user_id: string | null
+    share_token: string | null
+    created_at: Date | null
+    updated_at: Date | null
+  }
+
+  export type Dish_category_group_vote_sessionsMaxAggregateOutputType = {
+    id: string | null
+    host_user_id: string | null
+    share_token: string | null
+    created_at: Date | null
+    updated_at: Date | null
+  }
+
+  export type Dish_category_group_vote_sessionsCountAggregateOutputType = {
+    id: number
+    host_user_id: number
+    share_token: number
+    search_context: number
+    created_at: number
+    updated_at: number
+    _all: number
+  }
+
+
+  export type Dish_category_group_vote_sessionsMinAggregateInputType = {
+    id?: true
+    host_user_id?: true
+    share_token?: true
+    created_at?: true
+    updated_at?: true
+  }
+
+  export type Dish_category_group_vote_sessionsMaxAggregateInputType = {
+    id?: true
+    host_user_id?: true
+    share_token?: true
+    created_at?: true
+    updated_at?: true
+  }
+
+  export type Dish_category_group_vote_sessionsCountAggregateInputType = {
+    id?: true
+    host_user_id?: true
+    share_token?: true
+    search_context?: true
+    created_at?: true
+    updated_at?: true
+    _all?: true
+  }
+
+  export type Dish_category_group_vote_sessionsAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which dish_category_group_vote_sessions to aggregate.
+     */
+    where?: dish_category_group_vote_sessionsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of dish_category_group_vote_sessions to fetch.
+     */
+    orderBy?: dish_category_group_vote_sessionsOrderByWithRelationInput | dish_category_group_vote_sessionsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: dish_category_group_vote_sessionsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` dish_category_group_vote_sessions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` dish_category_group_vote_sessions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned dish_category_group_vote_sessions
+    **/
+    _count?: true | Dish_category_group_vote_sessionsCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: Dish_category_group_vote_sessionsMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: Dish_category_group_vote_sessionsMaxAggregateInputType
+  }
+
+  export type GetDish_category_group_vote_sessionsAggregateType<T extends Dish_category_group_vote_sessionsAggregateArgs> = {
+        [P in keyof T & keyof AggregateDish_category_group_vote_sessions]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateDish_category_group_vote_sessions[P]>
+      : GetScalarType<T[P], AggregateDish_category_group_vote_sessions[P]>
+  }
+
+
+
+
+  export type dish_category_group_vote_sessionsGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: dish_category_group_vote_sessionsWhereInput
+    orderBy?: dish_category_group_vote_sessionsOrderByWithAggregationInput | dish_category_group_vote_sessionsOrderByWithAggregationInput[]
+    by: Dish_category_group_vote_sessionsScalarFieldEnum[] | Dish_category_group_vote_sessionsScalarFieldEnum
+    having?: dish_category_group_vote_sessionsScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: Dish_category_group_vote_sessionsCountAggregateInputType | true
+    _min?: Dish_category_group_vote_sessionsMinAggregateInputType
+    _max?: Dish_category_group_vote_sessionsMaxAggregateInputType
+  }
+
+  export type Dish_category_group_vote_sessionsGroupByOutputType = {
+    id: string
+    host_user_id: string
+    share_token: string
+    search_context: JsonValue
+    created_at: Date
+    updated_at: Date
+    _count: Dish_category_group_vote_sessionsCountAggregateOutputType | null
+    _min: Dish_category_group_vote_sessionsMinAggregateOutputType | null
+    _max: Dish_category_group_vote_sessionsMaxAggregateOutputType | null
+  }
+
+  type GetDish_category_group_vote_sessionsGroupByPayload<T extends dish_category_group_vote_sessionsGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<Dish_category_group_vote_sessionsGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof Dish_category_group_vote_sessionsGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], Dish_category_group_vote_sessionsGroupByOutputType[P]>
+            : GetScalarType<T[P], Dish_category_group_vote_sessionsGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type dish_category_group_vote_sessionsSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    host_user_id?: boolean
+    share_token?: boolean
+    search_context?: boolean
+    created_at?: boolean
+    updated_at?: boolean
+    dish_category_group_vote_candidates?: boolean | dish_category_group_vote_sessions$dish_category_group_vote_candidatesArgs<ExtArgs>
+    dish_category_group_vote_participants?: boolean | dish_category_group_vote_sessions$dish_category_group_vote_participantsArgs<ExtArgs>
+    _count?: boolean | Dish_category_group_vote_sessionsCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["dish_category_group_vote_sessions"]>
+
+  export type dish_category_group_vote_sessionsSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    host_user_id?: boolean
+    share_token?: boolean
+    search_context?: boolean
+    created_at?: boolean
+    updated_at?: boolean
+  }, ExtArgs["result"]["dish_category_group_vote_sessions"]>
+
+  export type dish_category_group_vote_sessionsSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    host_user_id?: boolean
+    share_token?: boolean
+    search_context?: boolean
+    created_at?: boolean
+    updated_at?: boolean
+  }, ExtArgs["result"]["dish_category_group_vote_sessions"]>
+
+  export type dish_category_group_vote_sessionsSelectScalar = {
+    id?: boolean
+    host_user_id?: boolean
+    share_token?: boolean
+    search_context?: boolean
+    created_at?: boolean
+    updated_at?: boolean
+  }
+
+  export type dish_category_group_vote_sessionsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "host_user_id" | "share_token" | "search_context" | "created_at" | "updated_at", ExtArgs["result"]["dish_category_group_vote_sessions"]>
+  export type dish_category_group_vote_sessionsInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    dish_category_group_vote_candidates?: boolean | dish_category_group_vote_sessions$dish_category_group_vote_candidatesArgs<ExtArgs>
+    dish_category_group_vote_participants?: boolean | dish_category_group_vote_sessions$dish_category_group_vote_participantsArgs<ExtArgs>
+    _count?: boolean | Dish_category_group_vote_sessionsCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type dish_category_group_vote_sessionsIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+  export type dish_category_group_vote_sessionsIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+
+  export type $dish_category_group_vote_sessionsPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "dish_category_group_vote_sessions"
+    objects: {
+      dish_category_group_vote_candidates: Prisma.$dish_category_group_vote_candidatesPayload<ExtArgs>[]
+      dish_category_group_vote_participants: Prisma.$dish_category_group_vote_participantsPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      host_user_id: string
+      share_token: string
+      search_context: Prisma.JsonValue
+      created_at: Date
+      updated_at: Date
+    }, ExtArgs["result"]["dish_category_group_vote_sessions"]>
+    composites: {}
+  }
+
+  type dish_category_group_vote_sessionsGetPayload<S extends boolean | null | undefined | dish_category_group_vote_sessionsDefaultArgs> = $Result.GetResult<Prisma.$dish_category_group_vote_sessionsPayload, S>
+
+  type dish_category_group_vote_sessionsCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<dish_category_group_vote_sessionsFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: Dish_category_group_vote_sessionsCountAggregateInputType | true
+    }
+
+  export interface dish_category_group_vote_sessionsDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['dish_category_group_vote_sessions'], meta: { name: 'dish_category_group_vote_sessions' } }
+    /**
+     * Find zero or one Dish_category_group_vote_sessions that matches the filter.
+     * @param {dish_category_group_vote_sessionsFindUniqueArgs} args - Arguments to find a Dish_category_group_vote_sessions
+     * @example
+     * // Get one Dish_category_group_vote_sessions
+     * const dish_category_group_vote_sessions = await prisma.dish_category_group_vote_sessions.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends dish_category_group_vote_sessionsFindUniqueArgs>(args: SelectSubset<T, dish_category_group_vote_sessionsFindUniqueArgs<ExtArgs>>): Prisma__dish_category_group_vote_sessionsClient<$Result.GetResult<Prisma.$dish_category_group_vote_sessionsPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one Dish_category_group_vote_sessions that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {dish_category_group_vote_sessionsFindUniqueOrThrowArgs} args - Arguments to find a Dish_category_group_vote_sessions
+     * @example
+     * // Get one Dish_category_group_vote_sessions
+     * const dish_category_group_vote_sessions = await prisma.dish_category_group_vote_sessions.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends dish_category_group_vote_sessionsFindUniqueOrThrowArgs>(args: SelectSubset<T, dish_category_group_vote_sessionsFindUniqueOrThrowArgs<ExtArgs>>): Prisma__dish_category_group_vote_sessionsClient<$Result.GetResult<Prisma.$dish_category_group_vote_sessionsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Dish_category_group_vote_sessions that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_category_group_vote_sessionsFindFirstArgs} args - Arguments to find a Dish_category_group_vote_sessions
+     * @example
+     * // Get one Dish_category_group_vote_sessions
+     * const dish_category_group_vote_sessions = await prisma.dish_category_group_vote_sessions.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends dish_category_group_vote_sessionsFindFirstArgs>(args?: SelectSubset<T, dish_category_group_vote_sessionsFindFirstArgs<ExtArgs>>): Prisma__dish_category_group_vote_sessionsClient<$Result.GetResult<Prisma.$dish_category_group_vote_sessionsPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Dish_category_group_vote_sessions that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_category_group_vote_sessionsFindFirstOrThrowArgs} args - Arguments to find a Dish_category_group_vote_sessions
+     * @example
+     * // Get one Dish_category_group_vote_sessions
+     * const dish_category_group_vote_sessions = await prisma.dish_category_group_vote_sessions.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends dish_category_group_vote_sessionsFindFirstOrThrowArgs>(args?: SelectSubset<T, dish_category_group_vote_sessionsFindFirstOrThrowArgs<ExtArgs>>): Prisma__dish_category_group_vote_sessionsClient<$Result.GetResult<Prisma.$dish_category_group_vote_sessionsPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more Dish_category_group_vote_sessions that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_category_group_vote_sessionsFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Dish_category_group_vote_sessions
+     * const dish_category_group_vote_sessions = await prisma.dish_category_group_vote_sessions.findMany()
+     * 
+     * // Get first 10 Dish_category_group_vote_sessions
+     * const dish_category_group_vote_sessions = await prisma.dish_category_group_vote_sessions.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const dish_category_group_vote_sessionsWithIdOnly = await prisma.dish_category_group_vote_sessions.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends dish_category_group_vote_sessionsFindManyArgs>(args?: SelectSubset<T, dish_category_group_vote_sessionsFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_category_group_vote_sessionsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a Dish_category_group_vote_sessions.
+     * @param {dish_category_group_vote_sessionsCreateArgs} args - Arguments to create a Dish_category_group_vote_sessions.
+     * @example
+     * // Create one Dish_category_group_vote_sessions
+     * const Dish_category_group_vote_sessions = await prisma.dish_category_group_vote_sessions.create({
+     *   data: {
+     *     // ... data to create a Dish_category_group_vote_sessions
+     *   }
+     * })
+     * 
+     */
+    create<T extends dish_category_group_vote_sessionsCreateArgs>(args: SelectSubset<T, dish_category_group_vote_sessionsCreateArgs<ExtArgs>>): Prisma__dish_category_group_vote_sessionsClient<$Result.GetResult<Prisma.$dish_category_group_vote_sessionsPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many Dish_category_group_vote_sessions.
+     * @param {dish_category_group_vote_sessionsCreateManyArgs} args - Arguments to create many Dish_category_group_vote_sessions.
+     * @example
+     * // Create many Dish_category_group_vote_sessions
+     * const dish_category_group_vote_sessions = await prisma.dish_category_group_vote_sessions.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends dish_category_group_vote_sessionsCreateManyArgs>(args?: SelectSubset<T, dish_category_group_vote_sessionsCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Dish_category_group_vote_sessions and returns the data saved in the database.
+     * @param {dish_category_group_vote_sessionsCreateManyAndReturnArgs} args - Arguments to create many Dish_category_group_vote_sessions.
+     * @example
+     * // Create many Dish_category_group_vote_sessions
+     * const dish_category_group_vote_sessions = await prisma.dish_category_group_vote_sessions.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Dish_category_group_vote_sessions and only return the `id`
+     * const dish_category_group_vote_sessionsWithIdOnly = await prisma.dish_category_group_vote_sessions.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends dish_category_group_vote_sessionsCreateManyAndReturnArgs>(args?: SelectSubset<T, dish_category_group_vote_sessionsCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_category_group_vote_sessionsPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a Dish_category_group_vote_sessions.
+     * @param {dish_category_group_vote_sessionsDeleteArgs} args - Arguments to delete one Dish_category_group_vote_sessions.
+     * @example
+     * // Delete one Dish_category_group_vote_sessions
+     * const Dish_category_group_vote_sessions = await prisma.dish_category_group_vote_sessions.delete({
+     *   where: {
+     *     // ... filter to delete one Dish_category_group_vote_sessions
+     *   }
+     * })
+     * 
+     */
+    delete<T extends dish_category_group_vote_sessionsDeleteArgs>(args: SelectSubset<T, dish_category_group_vote_sessionsDeleteArgs<ExtArgs>>): Prisma__dish_category_group_vote_sessionsClient<$Result.GetResult<Prisma.$dish_category_group_vote_sessionsPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one Dish_category_group_vote_sessions.
+     * @param {dish_category_group_vote_sessionsUpdateArgs} args - Arguments to update one Dish_category_group_vote_sessions.
+     * @example
+     * // Update one Dish_category_group_vote_sessions
+     * const dish_category_group_vote_sessions = await prisma.dish_category_group_vote_sessions.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends dish_category_group_vote_sessionsUpdateArgs>(args: SelectSubset<T, dish_category_group_vote_sessionsUpdateArgs<ExtArgs>>): Prisma__dish_category_group_vote_sessionsClient<$Result.GetResult<Prisma.$dish_category_group_vote_sessionsPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more Dish_category_group_vote_sessions.
+     * @param {dish_category_group_vote_sessionsDeleteManyArgs} args - Arguments to filter Dish_category_group_vote_sessions to delete.
+     * @example
+     * // Delete a few Dish_category_group_vote_sessions
+     * const { count } = await prisma.dish_category_group_vote_sessions.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends dish_category_group_vote_sessionsDeleteManyArgs>(args?: SelectSubset<T, dish_category_group_vote_sessionsDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Dish_category_group_vote_sessions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_category_group_vote_sessionsUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Dish_category_group_vote_sessions
+     * const dish_category_group_vote_sessions = await prisma.dish_category_group_vote_sessions.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends dish_category_group_vote_sessionsUpdateManyArgs>(args: SelectSubset<T, dish_category_group_vote_sessionsUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Dish_category_group_vote_sessions and returns the data updated in the database.
+     * @param {dish_category_group_vote_sessionsUpdateManyAndReturnArgs} args - Arguments to update many Dish_category_group_vote_sessions.
+     * @example
+     * // Update many Dish_category_group_vote_sessions
+     * const dish_category_group_vote_sessions = await prisma.dish_category_group_vote_sessions.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more Dish_category_group_vote_sessions and only return the `id`
+     * const dish_category_group_vote_sessionsWithIdOnly = await prisma.dish_category_group_vote_sessions.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends dish_category_group_vote_sessionsUpdateManyAndReturnArgs>(args: SelectSubset<T, dish_category_group_vote_sessionsUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_category_group_vote_sessionsPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one Dish_category_group_vote_sessions.
+     * @param {dish_category_group_vote_sessionsUpsertArgs} args - Arguments to update or create a Dish_category_group_vote_sessions.
+     * @example
+     * // Update or create a Dish_category_group_vote_sessions
+     * const dish_category_group_vote_sessions = await prisma.dish_category_group_vote_sessions.upsert({
+     *   create: {
+     *     // ... data to create a Dish_category_group_vote_sessions
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Dish_category_group_vote_sessions we want to update
+     *   }
+     * })
+     */
+    upsert<T extends dish_category_group_vote_sessionsUpsertArgs>(args: SelectSubset<T, dish_category_group_vote_sessionsUpsertArgs<ExtArgs>>): Prisma__dish_category_group_vote_sessionsClient<$Result.GetResult<Prisma.$dish_category_group_vote_sessionsPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of Dish_category_group_vote_sessions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_category_group_vote_sessionsCountArgs} args - Arguments to filter Dish_category_group_vote_sessions to count.
+     * @example
+     * // Count the number of Dish_category_group_vote_sessions
+     * const count = await prisma.dish_category_group_vote_sessions.count({
+     *   where: {
+     *     // ... the filter for the Dish_category_group_vote_sessions we want to count
+     *   }
+     * })
+    **/
+    count<T extends dish_category_group_vote_sessionsCountArgs>(
+      args?: Subset<T, dish_category_group_vote_sessionsCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], Dish_category_group_vote_sessionsCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Dish_category_group_vote_sessions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {Dish_category_group_vote_sessionsAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends Dish_category_group_vote_sessionsAggregateArgs>(args: Subset<T, Dish_category_group_vote_sessionsAggregateArgs>): Prisma.PrismaPromise<GetDish_category_group_vote_sessionsAggregateType<T>>
+
+    /**
+     * Group by Dish_category_group_vote_sessions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {dish_category_group_vote_sessionsGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends dish_category_group_vote_sessionsGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: dish_category_group_vote_sessionsGroupByArgs['orderBy'] }
+        : { orderBy?: dish_category_group_vote_sessionsGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, dish_category_group_vote_sessionsGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetDish_category_group_vote_sessionsGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the dish_category_group_vote_sessions model
+   */
+  readonly fields: dish_category_group_vote_sessionsFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for dish_category_group_vote_sessions.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__dish_category_group_vote_sessionsClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    dish_category_group_vote_candidates<T extends dish_category_group_vote_sessions$dish_category_group_vote_candidatesArgs<ExtArgs> = {}>(args?: Subset<T, dish_category_group_vote_sessions$dish_category_group_vote_candidatesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_category_group_vote_candidatesPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    dish_category_group_vote_participants<T extends dish_category_group_vote_sessions$dish_category_group_vote_participantsArgs<ExtArgs> = {}>(args?: Subset<T, dish_category_group_vote_sessions$dish_category_group_vote_participantsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_category_group_vote_participantsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the dish_category_group_vote_sessions model
+   */
+  interface dish_category_group_vote_sessionsFieldRefs {
+    readonly id: FieldRef<"dish_category_group_vote_sessions", 'String'>
+    readonly host_user_id: FieldRef<"dish_category_group_vote_sessions", 'String'>
+    readonly share_token: FieldRef<"dish_category_group_vote_sessions", 'String'>
+    readonly search_context: FieldRef<"dish_category_group_vote_sessions", 'Json'>
+    readonly created_at: FieldRef<"dish_category_group_vote_sessions", 'DateTime'>
+    readonly updated_at: FieldRef<"dish_category_group_vote_sessions", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * dish_category_group_vote_sessions findUnique
+   */
+  export type dish_category_group_vote_sessionsFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_sessions
+     */
+    select?: dish_category_group_vote_sessionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_sessions
+     */
+    omit?: dish_category_group_vote_sessionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_sessionsInclude<ExtArgs> | null
+    /**
+     * Filter, which dish_category_group_vote_sessions to fetch.
+     */
+    where: dish_category_group_vote_sessionsWhereUniqueInput
+  }
+
+  /**
+   * dish_category_group_vote_sessions findUniqueOrThrow
+   */
+  export type dish_category_group_vote_sessionsFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_sessions
+     */
+    select?: dish_category_group_vote_sessionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_sessions
+     */
+    omit?: dish_category_group_vote_sessionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_sessionsInclude<ExtArgs> | null
+    /**
+     * Filter, which dish_category_group_vote_sessions to fetch.
+     */
+    where: dish_category_group_vote_sessionsWhereUniqueInput
+  }
+
+  /**
+   * dish_category_group_vote_sessions findFirst
+   */
+  export type dish_category_group_vote_sessionsFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_sessions
+     */
+    select?: dish_category_group_vote_sessionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_sessions
+     */
+    omit?: dish_category_group_vote_sessionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_sessionsInclude<ExtArgs> | null
+    /**
+     * Filter, which dish_category_group_vote_sessions to fetch.
+     */
+    where?: dish_category_group_vote_sessionsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of dish_category_group_vote_sessions to fetch.
+     */
+    orderBy?: dish_category_group_vote_sessionsOrderByWithRelationInput | dish_category_group_vote_sessionsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for dish_category_group_vote_sessions.
+     */
+    cursor?: dish_category_group_vote_sessionsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` dish_category_group_vote_sessions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` dish_category_group_vote_sessions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of dish_category_group_vote_sessions.
+     */
+    distinct?: Dish_category_group_vote_sessionsScalarFieldEnum | Dish_category_group_vote_sessionsScalarFieldEnum[]
+  }
+
+  /**
+   * dish_category_group_vote_sessions findFirstOrThrow
+   */
+  export type dish_category_group_vote_sessionsFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_sessions
+     */
+    select?: dish_category_group_vote_sessionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_sessions
+     */
+    omit?: dish_category_group_vote_sessionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_sessionsInclude<ExtArgs> | null
+    /**
+     * Filter, which dish_category_group_vote_sessions to fetch.
+     */
+    where?: dish_category_group_vote_sessionsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of dish_category_group_vote_sessions to fetch.
+     */
+    orderBy?: dish_category_group_vote_sessionsOrderByWithRelationInput | dish_category_group_vote_sessionsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for dish_category_group_vote_sessions.
+     */
+    cursor?: dish_category_group_vote_sessionsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` dish_category_group_vote_sessions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` dish_category_group_vote_sessions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of dish_category_group_vote_sessions.
+     */
+    distinct?: Dish_category_group_vote_sessionsScalarFieldEnum | Dish_category_group_vote_sessionsScalarFieldEnum[]
+  }
+
+  /**
+   * dish_category_group_vote_sessions findMany
+   */
+  export type dish_category_group_vote_sessionsFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_sessions
+     */
+    select?: dish_category_group_vote_sessionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_sessions
+     */
+    omit?: dish_category_group_vote_sessionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_sessionsInclude<ExtArgs> | null
+    /**
+     * Filter, which dish_category_group_vote_sessions to fetch.
+     */
+    where?: dish_category_group_vote_sessionsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of dish_category_group_vote_sessions to fetch.
+     */
+    orderBy?: dish_category_group_vote_sessionsOrderByWithRelationInput | dish_category_group_vote_sessionsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing dish_category_group_vote_sessions.
+     */
+    cursor?: dish_category_group_vote_sessionsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` dish_category_group_vote_sessions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` dish_category_group_vote_sessions.
+     */
+    skip?: number
+    distinct?: Dish_category_group_vote_sessionsScalarFieldEnum | Dish_category_group_vote_sessionsScalarFieldEnum[]
+  }
+
+  /**
+   * dish_category_group_vote_sessions create
+   */
+  export type dish_category_group_vote_sessionsCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_sessions
+     */
+    select?: dish_category_group_vote_sessionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_sessions
+     */
+    omit?: dish_category_group_vote_sessionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_sessionsInclude<ExtArgs> | null
+    /**
+     * The data needed to create a dish_category_group_vote_sessions.
+     */
+    data: XOR<dish_category_group_vote_sessionsCreateInput, dish_category_group_vote_sessionsUncheckedCreateInput>
+  }
+
+  /**
+   * dish_category_group_vote_sessions createMany
+   */
+  export type dish_category_group_vote_sessionsCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many dish_category_group_vote_sessions.
+     */
+    data: dish_category_group_vote_sessionsCreateManyInput | dish_category_group_vote_sessionsCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * dish_category_group_vote_sessions createManyAndReturn
+   */
+  export type dish_category_group_vote_sessionsCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_sessions
+     */
+    select?: dish_category_group_vote_sessionsSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_sessions
+     */
+    omit?: dish_category_group_vote_sessionsOmit<ExtArgs> | null
+    /**
+     * The data used to create many dish_category_group_vote_sessions.
+     */
+    data: dish_category_group_vote_sessionsCreateManyInput | dish_category_group_vote_sessionsCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * dish_category_group_vote_sessions update
+   */
+  export type dish_category_group_vote_sessionsUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_sessions
+     */
+    select?: dish_category_group_vote_sessionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_sessions
+     */
+    omit?: dish_category_group_vote_sessionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_sessionsInclude<ExtArgs> | null
+    /**
+     * The data needed to update a dish_category_group_vote_sessions.
+     */
+    data: XOR<dish_category_group_vote_sessionsUpdateInput, dish_category_group_vote_sessionsUncheckedUpdateInput>
+    /**
+     * Choose, which dish_category_group_vote_sessions to update.
+     */
+    where: dish_category_group_vote_sessionsWhereUniqueInput
+  }
+
+  /**
+   * dish_category_group_vote_sessions updateMany
+   */
+  export type dish_category_group_vote_sessionsUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update dish_category_group_vote_sessions.
+     */
+    data: XOR<dish_category_group_vote_sessionsUpdateManyMutationInput, dish_category_group_vote_sessionsUncheckedUpdateManyInput>
+    /**
+     * Filter which dish_category_group_vote_sessions to update
+     */
+    where?: dish_category_group_vote_sessionsWhereInput
+    /**
+     * Limit how many dish_category_group_vote_sessions to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * dish_category_group_vote_sessions updateManyAndReturn
+   */
+  export type dish_category_group_vote_sessionsUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_sessions
+     */
+    select?: dish_category_group_vote_sessionsSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_sessions
+     */
+    omit?: dish_category_group_vote_sessionsOmit<ExtArgs> | null
+    /**
+     * The data used to update dish_category_group_vote_sessions.
+     */
+    data: XOR<dish_category_group_vote_sessionsUpdateManyMutationInput, dish_category_group_vote_sessionsUncheckedUpdateManyInput>
+    /**
+     * Filter which dish_category_group_vote_sessions to update
+     */
+    where?: dish_category_group_vote_sessionsWhereInput
+    /**
+     * Limit how many dish_category_group_vote_sessions to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * dish_category_group_vote_sessions upsert
+   */
+  export type dish_category_group_vote_sessionsUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_sessions
+     */
+    select?: dish_category_group_vote_sessionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_sessions
+     */
+    omit?: dish_category_group_vote_sessionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_sessionsInclude<ExtArgs> | null
+    /**
+     * The filter to search for the dish_category_group_vote_sessions to update in case it exists.
+     */
+    where: dish_category_group_vote_sessionsWhereUniqueInput
+    /**
+     * In case the dish_category_group_vote_sessions found by the `where` argument doesn't exist, create a new dish_category_group_vote_sessions with this data.
+     */
+    create: XOR<dish_category_group_vote_sessionsCreateInput, dish_category_group_vote_sessionsUncheckedCreateInput>
+    /**
+     * In case the dish_category_group_vote_sessions was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<dish_category_group_vote_sessionsUpdateInput, dish_category_group_vote_sessionsUncheckedUpdateInput>
+  }
+
+  /**
+   * dish_category_group_vote_sessions delete
+   */
+  export type dish_category_group_vote_sessionsDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_sessions
+     */
+    select?: dish_category_group_vote_sessionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_sessions
+     */
+    omit?: dish_category_group_vote_sessionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_sessionsInclude<ExtArgs> | null
+    /**
+     * Filter which dish_category_group_vote_sessions to delete.
+     */
+    where: dish_category_group_vote_sessionsWhereUniqueInput
+  }
+
+  /**
+   * dish_category_group_vote_sessions deleteMany
+   */
+  export type dish_category_group_vote_sessionsDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which dish_category_group_vote_sessions to delete
+     */
+    where?: dish_category_group_vote_sessionsWhereInput
+    /**
+     * Limit how many dish_category_group_vote_sessions to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * dish_category_group_vote_sessions.dish_category_group_vote_candidates
+   */
+  export type dish_category_group_vote_sessions$dish_category_group_vote_candidatesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_candidates
+     */
+    select?: dish_category_group_vote_candidatesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_candidates
+     */
+    omit?: dish_category_group_vote_candidatesOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_candidatesInclude<ExtArgs> | null
+    where?: dish_category_group_vote_candidatesWhereInput
+    orderBy?: dish_category_group_vote_candidatesOrderByWithRelationInput | dish_category_group_vote_candidatesOrderByWithRelationInput[]
+    cursor?: dish_category_group_vote_candidatesWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: Dish_category_group_vote_candidatesScalarFieldEnum | Dish_category_group_vote_candidatesScalarFieldEnum[]
+  }
+
+  /**
+   * dish_category_group_vote_sessions.dish_category_group_vote_participants
+   */
+  export type dish_category_group_vote_sessions$dish_category_group_vote_participantsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_participants
+     */
+    select?: dish_category_group_vote_participantsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_participants
+     */
+    omit?: dish_category_group_vote_participantsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_participantsInclude<ExtArgs> | null
+    where?: dish_category_group_vote_participantsWhereInput
+    orderBy?: dish_category_group_vote_participantsOrderByWithRelationInput | dish_category_group_vote_participantsOrderByWithRelationInput[]
+    cursor?: dish_category_group_vote_participantsWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: Dish_category_group_vote_participantsScalarFieldEnum | Dish_category_group_vote_participantsScalarFieldEnum[]
+  }
+
+  /**
+   * dish_category_group_vote_sessions without action
+   */
+  export type dish_category_group_vote_sessionsDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the dish_category_group_vote_sessions
+     */
+    select?: dish_category_group_vote_sessionsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the dish_category_group_vote_sessions
+     */
+    omit?: dish_category_group_vote_sessionsOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: dish_category_group_vote_sessionsInclude<ExtArgs> | null
   }
 
 
@@ -39750,6 +44724,57 @@ export namespace Prisma {
   export type Dish_category_featuresScalarFieldEnum = (typeof Dish_category_featuresScalarFieldEnum)[keyof typeof Dish_category_featuresScalarFieldEnum]
 
 
+  export const Dish_category_group_vote_candidate_votesScalarFieldEnum: {
+    participant_id: 'participant_id',
+    candidate_id: 'candidate_id',
+    reaction: 'reaction',
+    created_at: 'created_at'
+  };
+
+  export type Dish_category_group_vote_candidate_votesScalarFieldEnum = (typeof Dish_category_group_vote_candidate_votesScalarFieldEnum)[keyof typeof Dish_category_group_vote_candidate_votesScalarFieldEnum]
+
+
+  export const Dish_category_group_vote_candidatesScalarFieldEnum: {
+    id: 'id',
+    session_id: 'session_id',
+    dish_category_id: 'dish_category_id',
+    display_name: 'display_name',
+    tagline: 'tagline',
+    image_url: 'image_url',
+    dish_media_ids: 'dish_media_ids',
+    dish_media_search_status: 'dish_media_search_status',
+    display_order: 'display_order',
+    deleted_at: 'deleted_at',
+    created_at: 'created_at'
+  };
+
+  export type Dish_category_group_vote_candidatesScalarFieldEnum = (typeof Dish_category_group_vote_candidatesScalarFieldEnum)[keyof typeof Dish_category_group_vote_candidatesScalarFieldEnum]
+
+
+  export const Dish_category_group_vote_participantsScalarFieldEnum: {
+    id: 'id',
+    session_id: 'session_id',
+    user_id: 'user_id',
+    display_name: 'display_name',
+    comment: 'comment',
+    created_at: 'created_at'
+  };
+
+  export type Dish_category_group_vote_participantsScalarFieldEnum = (typeof Dish_category_group_vote_participantsScalarFieldEnum)[keyof typeof Dish_category_group_vote_participantsScalarFieldEnum]
+
+
+  export const Dish_category_group_vote_sessionsScalarFieldEnum: {
+    id: 'id',
+    host_user_id: 'host_user_id',
+    share_token: 'share_token',
+    search_context: 'search_context',
+    created_at: 'created_at',
+    updated_at: 'updated_at'
+  };
+
+  export type Dish_category_group_vote_sessionsScalarFieldEnum = (typeof Dish_category_group_vote_sessionsScalarFieldEnum)[keyof typeof Dish_category_group_vote_sessionsScalarFieldEnum]
+
+
   export const Dish_category_localized_textScalarFieldEnum: {
     dish_category_id: 'dish_category_id',
     locale: 'locale',
@@ -40542,6 +45567,7 @@ export namespace Prisma {
     macro_genre_qid?: StringNullableFilter<"dish_categories"> | string | null
     synced_at?: DateTimeNullableFilter<"dish_categories"> | Date | string | null
     dish_category_features?: Dish_category_featuresListRelationFilter
+    dish_category_group_vote_candidates?: Dish_category_group_vote_candidatesListRelationFilter
     dish_category_localized_text?: Dish_category_localized_textListRelationFilter
     dish_category_variants?: Dish_category_variantsListRelationFilter
     dishes?: DishesListRelationFilter
@@ -40557,6 +45583,7 @@ export namespace Prisma {
     macro_genre_qid?: SortOrderInput | SortOrder
     synced_at?: SortOrderInput | SortOrder
     dish_category_features?: dish_category_featuresOrderByRelationAggregateInput
+    dish_category_group_vote_candidates?: dish_category_group_vote_candidatesOrderByRelationAggregateInput
     dish_category_localized_text?: dish_category_localized_textOrderByRelationAggregateInput
     dish_category_variants?: dish_category_variantsOrderByRelationAggregateInput
     dishes?: dishesOrderByRelationAggregateInput
@@ -40575,6 +45602,7 @@ export namespace Prisma {
     macro_genre_qid?: StringNullableFilter<"dish_categories"> | string | null
     synced_at?: DateTimeNullableFilter<"dish_categories"> | Date | string | null
     dish_category_features?: Dish_category_featuresListRelationFilter
+    dish_category_group_vote_candidates?: Dish_category_group_vote_candidatesListRelationFilter
     dish_category_localized_text?: Dish_category_localized_textListRelationFilter
     dish_category_variants?: Dish_category_variantsListRelationFilter
     dishes?: DishesListRelationFilter
@@ -40664,6 +45692,282 @@ export namespace Prisma {
     feature_key?: StringWithAggregatesFilter<"dish_category_features"> | string
     score?: FloatWithAggregatesFilter<"dish_category_features"> | number
     synced_at?: DateTimeWithAggregatesFilter<"dish_category_features"> | Date | string
+  }
+
+  export type dish_category_group_vote_candidate_votesWhereInput = {
+    AND?: dish_category_group_vote_candidate_votesWhereInput | dish_category_group_vote_candidate_votesWhereInput[]
+    OR?: dish_category_group_vote_candidate_votesWhereInput[]
+    NOT?: dish_category_group_vote_candidate_votesWhereInput | dish_category_group_vote_candidate_votesWhereInput[]
+    participant_id?: UuidFilter<"dish_category_group_vote_candidate_votes"> | string
+    candidate_id?: UuidFilter<"dish_category_group_vote_candidate_votes"> | string
+    reaction?: StringFilter<"dish_category_group_vote_candidate_votes"> | string
+    created_at?: DateTimeFilter<"dish_category_group_vote_candidate_votes"> | Date | string
+    dish_category_group_vote_candidates?: XOR<Dish_category_group_vote_candidatesScalarRelationFilter, dish_category_group_vote_candidatesWhereInput>
+    dish_category_group_vote_participants?: XOR<Dish_category_group_vote_participantsScalarRelationFilter, dish_category_group_vote_participantsWhereInput>
+  }
+
+  export type dish_category_group_vote_candidate_votesOrderByWithRelationInput = {
+    participant_id?: SortOrder
+    candidate_id?: SortOrder
+    reaction?: SortOrder
+    created_at?: SortOrder
+    dish_category_group_vote_candidates?: dish_category_group_vote_candidatesOrderByWithRelationInput
+    dish_category_group_vote_participants?: dish_category_group_vote_participantsOrderByWithRelationInput
+  }
+
+  export type dish_category_group_vote_candidate_votesWhereUniqueInput = Prisma.AtLeast<{
+    participant_id_candidate_id?: dish_category_group_vote_candidate_votesParticipant_idCandidate_idCompoundUniqueInput
+    AND?: dish_category_group_vote_candidate_votesWhereInput | dish_category_group_vote_candidate_votesWhereInput[]
+    OR?: dish_category_group_vote_candidate_votesWhereInput[]
+    NOT?: dish_category_group_vote_candidate_votesWhereInput | dish_category_group_vote_candidate_votesWhereInput[]
+    participant_id?: UuidFilter<"dish_category_group_vote_candidate_votes"> | string
+    candidate_id?: UuidFilter<"dish_category_group_vote_candidate_votes"> | string
+    reaction?: StringFilter<"dish_category_group_vote_candidate_votes"> | string
+    created_at?: DateTimeFilter<"dish_category_group_vote_candidate_votes"> | Date | string
+    dish_category_group_vote_candidates?: XOR<Dish_category_group_vote_candidatesScalarRelationFilter, dish_category_group_vote_candidatesWhereInput>
+    dish_category_group_vote_participants?: XOR<Dish_category_group_vote_participantsScalarRelationFilter, dish_category_group_vote_participantsWhereInput>
+  }, "participant_id_candidate_id">
+
+  export type dish_category_group_vote_candidate_votesOrderByWithAggregationInput = {
+    participant_id?: SortOrder
+    candidate_id?: SortOrder
+    reaction?: SortOrder
+    created_at?: SortOrder
+    _count?: dish_category_group_vote_candidate_votesCountOrderByAggregateInput
+    _max?: dish_category_group_vote_candidate_votesMaxOrderByAggregateInput
+    _min?: dish_category_group_vote_candidate_votesMinOrderByAggregateInput
+  }
+
+  export type dish_category_group_vote_candidate_votesScalarWhereWithAggregatesInput = {
+    AND?: dish_category_group_vote_candidate_votesScalarWhereWithAggregatesInput | dish_category_group_vote_candidate_votesScalarWhereWithAggregatesInput[]
+    OR?: dish_category_group_vote_candidate_votesScalarWhereWithAggregatesInput[]
+    NOT?: dish_category_group_vote_candidate_votesScalarWhereWithAggregatesInput | dish_category_group_vote_candidate_votesScalarWhereWithAggregatesInput[]
+    participant_id?: UuidWithAggregatesFilter<"dish_category_group_vote_candidate_votes"> | string
+    candidate_id?: UuidWithAggregatesFilter<"dish_category_group_vote_candidate_votes"> | string
+    reaction?: StringWithAggregatesFilter<"dish_category_group_vote_candidate_votes"> | string
+    created_at?: DateTimeWithAggregatesFilter<"dish_category_group_vote_candidate_votes"> | Date | string
+  }
+
+  export type dish_category_group_vote_candidatesWhereInput = {
+    AND?: dish_category_group_vote_candidatesWhereInput | dish_category_group_vote_candidatesWhereInput[]
+    OR?: dish_category_group_vote_candidatesWhereInput[]
+    NOT?: dish_category_group_vote_candidatesWhereInput | dish_category_group_vote_candidatesWhereInput[]
+    id?: UuidFilter<"dish_category_group_vote_candidates"> | string
+    session_id?: UuidFilter<"dish_category_group_vote_candidates"> | string
+    dish_category_id?: StringFilter<"dish_category_group_vote_candidates"> | string
+    display_name?: StringFilter<"dish_category_group_vote_candidates"> | string
+    tagline?: StringFilter<"dish_category_group_vote_candidates"> | string
+    image_url?: StringFilter<"dish_category_group_vote_candidates"> | string
+    dish_media_ids?: StringNullableListFilter<"dish_category_group_vote_candidates">
+    dish_media_search_status?: StringFilter<"dish_category_group_vote_candidates"> | string
+    display_order?: IntFilter<"dish_category_group_vote_candidates"> | number
+    deleted_at?: DateTimeNullableFilter<"dish_category_group_vote_candidates"> | Date | string | null
+    created_at?: DateTimeFilter<"dish_category_group_vote_candidates"> | Date | string
+    dish_category_group_vote_candidate_votes?: Dish_category_group_vote_candidate_votesListRelationFilter
+    dish_categories?: XOR<Dish_categoriesScalarRelationFilter, dish_categoriesWhereInput>
+    dish_category_group_vote_sessions?: XOR<Dish_category_group_vote_sessionsScalarRelationFilter, dish_category_group_vote_sessionsWhereInput>
+  }
+
+  export type dish_category_group_vote_candidatesOrderByWithRelationInput = {
+    id?: SortOrder
+    session_id?: SortOrder
+    dish_category_id?: SortOrder
+    display_name?: SortOrder
+    tagline?: SortOrder
+    image_url?: SortOrder
+    dish_media_ids?: SortOrder
+    dish_media_search_status?: SortOrder
+    display_order?: SortOrder
+    deleted_at?: SortOrderInput | SortOrder
+    created_at?: SortOrder
+    dish_category_group_vote_candidate_votes?: dish_category_group_vote_candidate_votesOrderByRelationAggregateInput
+    dish_categories?: dish_categoriesOrderByWithRelationInput
+    dish_category_group_vote_sessions?: dish_category_group_vote_sessionsOrderByWithRelationInput
+  }
+
+  export type dish_category_group_vote_candidatesWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    session_id_dish_category_id?: dish_category_group_vote_candidatesSession_idDish_category_idCompoundUniqueInput
+    session_id_display_order?: dish_category_group_vote_candidatesSession_idDisplay_orderCompoundUniqueInput
+    AND?: dish_category_group_vote_candidatesWhereInput | dish_category_group_vote_candidatesWhereInput[]
+    OR?: dish_category_group_vote_candidatesWhereInput[]
+    NOT?: dish_category_group_vote_candidatesWhereInput | dish_category_group_vote_candidatesWhereInput[]
+    session_id?: UuidFilter<"dish_category_group_vote_candidates"> | string
+    dish_category_id?: StringFilter<"dish_category_group_vote_candidates"> | string
+    display_name?: StringFilter<"dish_category_group_vote_candidates"> | string
+    tagline?: StringFilter<"dish_category_group_vote_candidates"> | string
+    image_url?: StringFilter<"dish_category_group_vote_candidates"> | string
+    dish_media_ids?: StringNullableListFilter<"dish_category_group_vote_candidates">
+    dish_media_search_status?: StringFilter<"dish_category_group_vote_candidates"> | string
+    display_order?: IntFilter<"dish_category_group_vote_candidates"> | number
+    deleted_at?: DateTimeNullableFilter<"dish_category_group_vote_candidates"> | Date | string | null
+    created_at?: DateTimeFilter<"dish_category_group_vote_candidates"> | Date | string
+    dish_category_group_vote_candidate_votes?: Dish_category_group_vote_candidate_votesListRelationFilter
+    dish_categories?: XOR<Dish_categoriesScalarRelationFilter, dish_categoriesWhereInput>
+    dish_category_group_vote_sessions?: XOR<Dish_category_group_vote_sessionsScalarRelationFilter, dish_category_group_vote_sessionsWhereInput>
+  }, "id" | "session_id_dish_category_id" | "session_id_display_order">
+
+  export type dish_category_group_vote_candidatesOrderByWithAggregationInput = {
+    id?: SortOrder
+    session_id?: SortOrder
+    dish_category_id?: SortOrder
+    display_name?: SortOrder
+    tagline?: SortOrder
+    image_url?: SortOrder
+    dish_media_ids?: SortOrder
+    dish_media_search_status?: SortOrder
+    display_order?: SortOrder
+    deleted_at?: SortOrderInput | SortOrder
+    created_at?: SortOrder
+    _count?: dish_category_group_vote_candidatesCountOrderByAggregateInput
+    _avg?: dish_category_group_vote_candidatesAvgOrderByAggregateInput
+    _max?: dish_category_group_vote_candidatesMaxOrderByAggregateInput
+    _min?: dish_category_group_vote_candidatesMinOrderByAggregateInput
+    _sum?: dish_category_group_vote_candidatesSumOrderByAggregateInput
+  }
+
+  export type dish_category_group_vote_candidatesScalarWhereWithAggregatesInput = {
+    AND?: dish_category_group_vote_candidatesScalarWhereWithAggregatesInput | dish_category_group_vote_candidatesScalarWhereWithAggregatesInput[]
+    OR?: dish_category_group_vote_candidatesScalarWhereWithAggregatesInput[]
+    NOT?: dish_category_group_vote_candidatesScalarWhereWithAggregatesInput | dish_category_group_vote_candidatesScalarWhereWithAggregatesInput[]
+    id?: UuidWithAggregatesFilter<"dish_category_group_vote_candidates"> | string
+    session_id?: UuidWithAggregatesFilter<"dish_category_group_vote_candidates"> | string
+    dish_category_id?: StringWithAggregatesFilter<"dish_category_group_vote_candidates"> | string
+    display_name?: StringWithAggregatesFilter<"dish_category_group_vote_candidates"> | string
+    tagline?: StringWithAggregatesFilter<"dish_category_group_vote_candidates"> | string
+    image_url?: StringWithAggregatesFilter<"dish_category_group_vote_candidates"> | string
+    dish_media_ids?: StringNullableListFilter<"dish_category_group_vote_candidates">
+    dish_media_search_status?: StringWithAggregatesFilter<"dish_category_group_vote_candidates"> | string
+    display_order?: IntWithAggregatesFilter<"dish_category_group_vote_candidates"> | number
+    deleted_at?: DateTimeNullableWithAggregatesFilter<"dish_category_group_vote_candidates"> | Date | string | null
+    created_at?: DateTimeWithAggregatesFilter<"dish_category_group_vote_candidates"> | Date | string
+  }
+
+  export type dish_category_group_vote_participantsWhereInput = {
+    AND?: dish_category_group_vote_participantsWhereInput | dish_category_group_vote_participantsWhereInput[]
+    OR?: dish_category_group_vote_participantsWhereInput[]
+    NOT?: dish_category_group_vote_participantsWhereInput | dish_category_group_vote_participantsWhereInput[]
+    id?: UuidFilter<"dish_category_group_vote_participants"> | string
+    session_id?: UuidFilter<"dish_category_group_vote_participants"> | string
+    user_id?: UuidFilter<"dish_category_group_vote_participants"> | string
+    display_name?: StringFilter<"dish_category_group_vote_participants"> | string
+    comment?: StringNullableFilter<"dish_category_group_vote_participants"> | string | null
+    created_at?: DateTimeFilter<"dish_category_group_vote_participants"> | Date | string
+    dish_category_group_vote_candidate_votes?: Dish_category_group_vote_candidate_votesListRelationFilter
+    dish_category_group_vote_sessions?: XOR<Dish_category_group_vote_sessionsScalarRelationFilter, dish_category_group_vote_sessionsWhereInput>
+  }
+
+  export type dish_category_group_vote_participantsOrderByWithRelationInput = {
+    id?: SortOrder
+    session_id?: SortOrder
+    user_id?: SortOrder
+    display_name?: SortOrder
+    comment?: SortOrderInput | SortOrder
+    created_at?: SortOrder
+    dish_category_group_vote_candidate_votes?: dish_category_group_vote_candidate_votesOrderByRelationAggregateInput
+    dish_category_group_vote_sessions?: dish_category_group_vote_sessionsOrderByWithRelationInput
+  }
+
+  export type dish_category_group_vote_participantsWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    session_id_user_id?: dish_category_group_vote_participantsSession_idUser_idCompoundUniqueInput
+    AND?: dish_category_group_vote_participantsWhereInput | dish_category_group_vote_participantsWhereInput[]
+    OR?: dish_category_group_vote_participantsWhereInput[]
+    NOT?: dish_category_group_vote_participantsWhereInput | dish_category_group_vote_participantsWhereInput[]
+    session_id?: UuidFilter<"dish_category_group_vote_participants"> | string
+    user_id?: UuidFilter<"dish_category_group_vote_participants"> | string
+    display_name?: StringFilter<"dish_category_group_vote_participants"> | string
+    comment?: StringNullableFilter<"dish_category_group_vote_participants"> | string | null
+    created_at?: DateTimeFilter<"dish_category_group_vote_participants"> | Date | string
+    dish_category_group_vote_candidate_votes?: Dish_category_group_vote_candidate_votesListRelationFilter
+    dish_category_group_vote_sessions?: XOR<Dish_category_group_vote_sessionsScalarRelationFilter, dish_category_group_vote_sessionsWhereInput>
+  }, "id" | "session_id_user_id">
+
+  export type dish_category_group_vote_participantsOrderByWithAggregationInput = {
+    id?: SortOrder
+    session_id?: SortOrder
+    user_id?: SortOrder
+    display_name?: SortOrder
+    comment?: SortOrderInput | SortOrder
+    created_at?: SortOrder
+    _count?: dish_category_group_vote_participantsCountOrderByAggregateInput
+    _max?: dish_category_group_vote_participantsMaxOrderByAggregateInput
+    _min?: dish_category_group_vote_participantsMinOrderByAggregateInput
+  }
+
+  export type dish_category_group_vote_participantsScalarWhereWithAggregatesInput = {
+    AND?: dish_category_group_vote_participantsScalarWhereWithAggregatesInput | dish_category_group_vote_participantsScalarWhereWithAggregatesInput[]
+    OR?: dish_category_group_vote_participantsScalarWhereWithAggregatesInput[]
+    NOT?: dish_category_group_vote_participantsScalarWhereWithAggregatesInput | dish_category_group_vote_participantsScalarWhereWithAggregatesInput[]
+    id?: UuidWithAggregatesFilter<"dish_category_group_vote_participants"> | string
+    session_id?: UuidWithAggregatesFilter<"dish_category_group_vote_participants"> | string
+    user_id?: UuidWithAggregatesFilter<"dish_category_group_vote_participants"> | string
+    display_name?: StringWithAggregatesFilter<"dish_category_group_vote_participants"> | string
+    comment?: StringNullableWithAggregatesFilter<"dish_category_group_vote_participants"> | string | null
+    created_at?: DateTimeWithAggregatesFilter<"dish_category_group_vote_participants"> | Date | string
+  }
+
+  export type dish_category_group_vote_sessionsWhereInput = {
+    AND?: dish_category_group_vote_sessionsWhereInput | dish_category_group_vote_sessionsWhereInput[]
+    OR?: dish_category_group_vote_sessionsWhereInput[]
+    NOT?: dish_category_group_vote_sessionsWhereInput | dish_category_group_vote_sessionsWhereInput[]
+    id?: UuidFilter<"dish_category_group_vote_sessions"> | string
+    host_user_id?: UuidFilter<"dish_category_group_vote_sessions"> | string
+    share_token?: StringFilter<"dish_category_group_vote_sessions"> | string
+    search_context?: JsonFilter<"dish_category_group_vote_sessions">
+    created_at?: DateTimeFilter<"dish_category_group_vote_sessions"> | Date | string
+    updated_at?: DateTimeFilter<"dish_category_group_vote_sessions"> | Date | string
+    dish_category_group_vote_candidates?: Dish_category_group_vote_candidatesListRelationFilter
+    dish_category_group_vote_participants?: Dish_category_group_vote_participantsListRelationFilter
+  }
+
+  export type dish_category_group_vote_sessionsOrderByWithRelationInput = {
+    id?: SortOrder
+    host_user_id?: SortOrder
+    share_token?: SortOrder
+    search_context?: SortOrder
+    created_at?: SortOrder
+    updated_at?: SortOrder
+    dish_category_group_vote_candidates?: dish_category_group_vote_candidatesOrderByRelationAggregateInput
+    dish_category_group_vote_participants?: dish_category_group_vote_participantsOrderByRelationAggregateInput
+  }
+
+  export type dish_category_group_vote_sessionsWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    share_token?: string
+    AND?: dish_category_group_vote_sessionsWhereInput | dish_category_group_vote_sessionsWhereInput[]
+    OR?: dish_category_group_vote_sessionsWhereInput[]
+    NOT?: dish_category_group_vote_sessionsWhereInput | dish_category_group_vote_sessionsWhereInput[]
+    host_user_id?: UuidFilter<"dish_category_group_vote_sessions"> | string
+    search_context?: JsonFilter<"dish_category_group_vote_sessions">
+    created_at?: DateTimeFilter<"dish_category_group_vote_sessions"> | Date | string
+    updated_at?: DateTimeFilter<"dish_category_group_vote_sessions"> | Date | string
+    dish_category_group_vote_candidates?: Dish_category_group_vote_candidatesListRelationFilter
+    dish_category_group_vote_participants?: Dish_category_group_vote_participantsListRelationFilter
+  }, "id" | "share_token">
+
+  export type dish_category_group_vote_sessionsOrderByWithAggregationInput = {
+    id?: SortOrder
+    host_user_id?: SortOrder
+    share_token?: SortOrder
+    search_context?: SortOrder
+    created_at?: SortOrder
+    updated_at?: SortOrder
+    _count?: dish_category_group_vote_sessionsCountOrderByAggregateInput
+    _max?: dish_category_group_vote_sessionsMaxOrderByAggregateInput
+    _min?: dish_category_group_vote_sessionsMinOrderByAggregateInput
+  }
+
+  export type dish_category_group_vote_sessionsScalarWhereWithAggregatesInput = {
+    AND?: dish_category_group_vote_sessionsScalarWhereWithAggregatesInput | dish_category_group_vote_sessionsScalarWhereWithAggregatesInput[]
+    OR?: dish_category_group_vote_sessionsScalarWhereWithAggregatesInput[]
+    NOT?: dish_category_group_vote_sessionsScalarWhereWithAggregatesInput | dish_category_group_vote_sessionsScalarWhereWithAggregatesInput[]
+    id?: UuidWithAggregatesFilter<"dish_category_group_vote_sessions"> | string
+    host_user_id?: UuidWithAggregatesFilter<"dish_category_group_vote_sessions"> | string
+    share_token?: StringWithAggregatesFilter<"dish_category_group_vote_sessions"> | string
+    search_context?: JsonWithAggregatesFilter<"dish_category_group_vote_sessions">
+    created_at?: DateTimeWithAggregatesFilter<"dish_category_group_vote_sessions"> | Date | string
+    updated_at?: DateTimeWithAggregatesFilter<"dish_category_group_vote_sessions"> | Date | string
   }
 
   export type dish_category_localized_textWhereInput = {
@@ -42783,6 +48087,7 @@ export namespace Prisma {
     macro_genre_qid?: string | null
     synced_at?: Date | string | null
     dish_category_features?: dish_category_featuresCreateNestedManyWithoutDish_categoriesInput
+    dish_category_group_vote_candidates?: dish_category_group_vote_candidatesCreateNestedManyWithoutDish_categoriesInput
     dish_category_localized_text?: dish_category_localized_textCreateNestedManyWithoutDish_categoriesInput
     dish_category_variants?: dish_category_variantsCreateNestedManyWithoutDish_categoriesInput
     dishes?: dishesCreateNestedManyWithoutDish_categoriesInput
@@ -42798,6 +48103,7 @@ export namespace Prisma {
     macro_genre_qid?: string | null
     synced_at?: Date | string | null
     dish_category_features?: dish_category_featuresUncheckedCreateNestedManyWithoutDish_categoriesInput
+    dish_category_group_vote_candidates?: dish_category_group_vote_candidatesUncheckedCreateNestedManyWithoutDish_categoriesInput
     dish_category_localized_text?: dish_category_localized_textUncheckedCreateNestedManyWithoutDish_categoriesInput
     dish_category_variants?: dish_category_variantsUncheckedCreateNestedManyWithoutDish_categoriesInput
     dishes?: dishesUncheckedCreateNestedManyWithoutDish_categoriesInput
@@ -42813,6 +48119,7 @@ export namespace Prisma {
     macro_genre_qid?: NullableStringFieldUpdateOperationsInput | string | null
     synced_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dish_category_features?: dish_category_featuresUpdateManyWithoutDish_categoriesNestedInput
+    dish_category_group_vote_candidates?: dish_category_group_vote_candidatesUpdateManyWithoutDish_categoriesNestedInput
     dish_category_localized_text?: dish_category_localized_textUpdateManyWithoutDish_categoriesNestedInput
     dish_category_variants?: dish_category_variantsUpdateManyWithoutDish_categoriesNestedInput
     dishes?: dishesUpdateManyWithoutDish_categoriesNestedInput
@@ -42828,6 +48135,7 @@ export namespace Prisma {
     macro_genre_qid?: NullableStringFieldUpdateOperationsInput | string | null
     synced_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dish_category_features?: dish_category_featuresUncheckedUpdateManyWithoutDish_categoriesNestedInput
+    dish_category_group_vote_candidates?: dish_category_group_vote_candidatesUncheckedUpdateManyWithoutDish_categoriesNestedInput
     dish_category_localized_text?: dish_category_localized_textUncheckedUpdateManyWithoutDish_categoriesNestedInput
     dish_category_variants?: dish_category_variantsUncheckedUpdateManyWithoutDish_categoriesNestedInput
     dishes?: dishesUncheckedUpdateManyWithoutDish_categoriesNestedInput
@@ -42919,6 +48227,290 @@ export namespace Prisma {
     feature_key?: StringFieldUpdateOperationsInput | string
     score?: FloatFieldUpdateOperationsInput | number
     synced_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type dish_category_group_vote_candidate_votesCreateInput = {
+    reaction: string
+    created_at?: Date | string
+    dish_category_group_vote_candidates: dish_category_group_vote_candidatesCreateNestedOneWithoutDish_category_group_vote_candidate_votesInput
+    dish_category_group_vote_participants: dish_category_group_vote_participantsCreateNestedOneWithoutDish_category_group_vote_candidate_votesInput
+  }
+
+  export type dish_category_group_vote_candidate_votesUncheckedCreateInput = {
+    participant_id: string
+    candidate_id: string
+    reaction: string
+    created_at?: Date | string
+  }
+
+  export type dish_category_group_vote_candidate_votesUpdateInput = {
+    reaction?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    dish_category_group_vote_candidates?: dish_category_group_vote_candidatesUpdateOneRequiredWithoutDish_category_group_vote_candidate_votesNestedInput
+    dish_category_group_vote_participants?: dish_category_group_vote_participantsUpdateOneRequiredWithoutDish_category_group_vote_candidate_votesNestedInput
+  }
+
+  export type dish_category_group_vote_candidate_votesUncheckedUpdateInput = {
+    participant_id?: StringFieldUpdateOperationsInput | string
+    candidate_id?: StringFieldUpdateOperationsInput | string
+    reaction?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type dish_category_group_vote_candidate_votesCreateManyInput = {
+    participant_id: string
+    candidate_id: string
+    reaction: string
+    created_at?: Date | string
+  }
+
+  export type dish_category_group_vote_candidate_votesUpdateManyMutationInput = {
+    reaction?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type dish_category_group_vote_candidate_votesUncheckedUpdateManyInput = {
+    participant_id?: StringFieldUpdateOperationsInput | string
+    candidate_id?: StringFieldUpdateOperationsInput | string
+    reaction?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type dish_category_group_vote_candidatesCreateInput = {
+    id?: string
+    display_name: string
+    tagline: string
+    image_url: string
+    dish_media_ids?: dish_category_group_vote_candidatesCreatedish_media_idsInput | string[]
+    dish_media_search_status?: string
+    display_order: number
+    deleted_at?: Date | string | null
+    created_at?: Date | string
+    dish_category_group_vote_candidate_votes?: dish_category_group_vote_candidate_votesCreateNestedManyWithoutDish_category_group_vote_candidatesInput
+    dish_categories: dish_categoriesCreateNestedOneWithoutDish_category_group_vote_candidatesInput
+    dish_category_group_vote_sessions: dish_category_group_vote_sessionsCreateNestedOneWithoutDish_category_group_vote_candidatesInput
+  }
+
+  export type dish_category_group_vote_candidatesUncheckedCreateInput = {
+    id?: string
+    session_id: string
+    dish_category_id: string
+    display_name: string
+    tagline: string
+    image_url: string
+    dish_media_ids?: dish_category_group_vote_candidatesCreatedish_media_idsInput | string[]
+    dish_media_search_status?: string
+    display_order: number
+    deleted_at?: Date | string | null
+    created_at?: Date | string
+    dish_category_group_vote_candidate_votes?: dish_category_group_vote_candidate_votesUncheckedCreateNestedManyWithoutDish_category_group_vote_candidatesInput
+  }
+
+  export type dish_category_group_vote_candidatesUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    display_name?: StringFieldUpdateOperationsInput | string
+    tagline?: StringFieldUpdateOperationsInput | string
+    image_url?: StringFieldUpdateOperationsInput | string
+    dish_media_ids?: dish_category_group_vote_candidatesUpdatedish_media_idsInput | string[]
+    dish_media_search_status?: StringFieldUpdateOperationsInput | string
+    display_order?: IntFieldUpdateOperationsInput | number
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    dish_category_group_vote_candidate_votes?: dish_category_group_vote_candidate_votesUpdateManyWithoutDish_category_group_vote_candidatesNestedInput
+    dish_categories?: dish_categoriesUpdateOneRequiredWithoutDish_category_group_vote_candidatesNestedInput
+    dish_category_group_vote_sessions?: dish_category_group_vote_sessionsUpdateOneRequiredWithoutDish_category_group_vote_candidatesNestedInput
+  }
+
+  export type dish_category_group_vote_candidatesUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    session_id?: StringFieldUpdateOperationsInput | string
+    dish_category_id?: StringFieldUpdateOperationsInput | string
+    display_name?: StringFieldUpdateOperationsInput | string
+    tagline?: StringFieldUpdateOperationsInput | string
+    image_url?: StringFieldUpdateOperationsInput | string
+    dish_media_ids?: dish_category_group_vote_candidatesUpdatedish_media_idsInput | string[]
+    dish_media_search_status?: StringFieldUpdateOperationsInput | string
+    display_order?: IntFieldUpdateOperationsInput | number
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    dish_category_group_vote_candidate_votes?: dish_category_group_vote_candidate_votesUncheckedUpdateManyWithoutDish_category_group_vote_candidatesNestedInput
+  }
+
+  export type dish_category_group_vote_candidatesCreateManyInput = {
+    id?: string
+    session_id: string
+    dish_category_id: string
+    display_name: string
+    tagline: string
+    image_url: string
+    dish_media_ids?: dish_category_group_vote_candidatesCreatedish_media_idsInput | string[]
+    dish_media_search_status?: string
+    display_order: number
+    deleted_at?: Date | string | null
+    created_at?: Date | string
+  }
+
+  export type dish_category_group_vote_candidatesUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    display_name?: StringFieldUpdateOperationsInput | string
+    tagline?: StringFieldUpdateOperationsInput | string
+    image_url?: StringFieldUpdateOperationsInput | string
+    dish_media_ids?: dish_category_group_vote_candidatesUpdatedish_media_idsInput | string[]
+    dish_media_search_status?: StringFieldUpdateOperationsInput | string
+    display_order?: IntFieldUpdateOperationsInput | number
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type dish_category_group_vote_candidatesUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    session_id?: StringFieldUpdateOperationsInput | string
+    dish_category_id?: StringFieldUpdateOperationsInput | string
+    display_name?: StringFieldUpdateOperationsInput | string
+    tagline?: StringFieldUpdateOperationsInput | string
+    image_url?: StringFieldUpdateOperationsInput | string
+    dish_media_ids?: dish_category_group_vote_candidatesUpdatedish_media_idsInput | string[]
+    dish_media_search_status?: StringFieldUpdateOperationsInput | string
+    display_order?: IntFieldUpdateOperationsInput | number
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type dish_category_group_vote_participantsCreateInput = {
+    id?: string
+    user_id: string
+    display_name: string
+    comment?: string | null
+    created_at?: Date | string
+    dish_category_group_vote_candidate_votes?: dish_category_group_vote_candidate_votesCreateNestedManyWithoutDish_category_group_vote_participantsInput
+    dish_category_group_vote_sessions: dish_category_group_vote_sessionsCreateNestedOneWithoutDish_category_group_vote_participantsInput
+  }
+
+  export type dish_category_group_vote_participantsUncheckedCreateInput = {
+    id?: string
+    session_id: string
+    user_id: string
+    display_name: string
+    comment?: string | null
+    created_at?: Date | string
+    dish_category_group_vote_candidate_votes?: dish_category_group_vote_candidate_votesUncheckedCreateNestedManyWithoutDish_category_group_vote_participantsInput
+  }
+
+  export type dish_category_group_vote_participantsUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    user_id?: StringFieldUpdateOperationsInput | string
+    display_name?: StringFieldUpdateOperationsInput | string
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    dish_category_group_vote_candidate_votes?: dish_category_group_vote_candidate_votesUpdateManyWithoutDish_category_group_vote_participantsNestedInput
+    dish_category_group_vote_sessions?: dish_category_group_vote_sessionsUpdateOneRequiredWithoutDish_category_group_vote_participantsNestedInput
+  }
+
+  export type dish_category_group_vote_participantsUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    session_id?: StringFieldUpdateOperationsInput | string
+    user_id?: StringFieldUpdateOperationsInput | string
+    display_name?: StringFieldUpdateOperationsInput | string
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    dish_category_group_vote_candidate_votes?: dish_category_group_vote_candidate_votesUncheckedUpdateManyWithoutDish_category_group_vote_participantsNestedInput
+  }
+
+  export type dish_category_group_vote_participantsCreateManyInput = {
+    id?: string
+    session_id: string
+    user_id: string
+    display_name: string
+    comment?: string | null
+    created_at?: Date | string
+  }
+
+  export type dish_category_group_vote_participantsUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    user_id?: StringFieldUpdateOperationsInput | string
+    display_name?: StringFieldUpdateOperationsInput | string
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type dish_category_group_vote_participantsUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    session_id?: StringFieldUpdateOperationsInput | string
+    user_id?: StringFieldUpdateOperationsInput | string
+    display_name?: StringFieldUpdateOperationsInput | string
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type dish_category_group_vote_sessionsCreateInput = {
+    id?: string
+    host_user_id: string
+    share_token: string
+    search_context?: JsonNullValueInput | InputJsonValue
+    created_at?: Date | string
+    updated_at?: Date | string
+    dish_category_group_vote_candidates?: dish_category_group_vote_candidatesCreateNestedManyWithoutDish_category_group_vote_sessionsInput
+    dish_category_group_vote_participants?: dish_category_group_vote_participantsCreateNestedManyWithoutDish_category_group_vote_sessionsInput
+  }
+
+  export type dish_category_group_vote_sessionsUncheckedCreateInput = {
+    id?: string
+    host_user_id: string
+    share_token: string
+    search_context?: JsonNullValueInput | InputJsonValue
+    created_at?: Date | string
+    updated_at?: Date | string
+    dish_category_group_vote_candidates?: dish_category_group_vote_candidatesUncheckedCreateNestedManyWithoutDish_category_group_vote_sessionsInput
+    dish_category_group_vote_participants?: dish_category_group_vote_participantsUncheckedCreateNestedManyWithoutDish_category_group_vote_sessionsInput
+  }
+
+  export type dish_category_group_vote_sessionsUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    host_user_id?: StringFieldUpdateOperationsInput | string
+    share_token?: StringFieldUpdateOperationsInput | string
+    search_context?: JsonNullValueInput | InputJsonValue
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    dish_category_group_vote_candidates?: dish_category_group_vote_candidatesUpdateManyWithoutDish_category_group_vote_sessionsNestedInput
+    dish_category_group_vote_participants?: dish_category_group_vote_participantsUpdateManyWithoutDish_category_group_vote_sessionsNestedInput
+  }
+
+  export type dish_category_group_vote_sessionsUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    host_user_id?: StringFieldUpdateOperationsInput | string
+    share_token?: StringFieldUpdateOperationsInput | string
+    search_context?: JsonNullValueInput | InputJsonValue
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    dish_category_group_vote_candidates?: dish_category_group_vote_candidatesUncheckedUpdateManyWithoutDish_category_group_vote_sessionsNestedInput
+    dish_category_group_vote_participants?: dish_category_group_vote_participantsUncheckedUpdateManyWithoutDish_category_group_vote_sessionsNestedInput
+  }
+
+  export type dish_category_group_vote_sessionsCreateManyInput = {
+    id?: string
+    host_user_id: string
+    share_token: string
+    search_context?: JsonNullValueInput | InputJsonValue
+    created_at?: Date | string
+    updated_at?: Date | string
+  }
+
+  export type dish_category_group_vote_sessionsUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    host_user_id?: StringFieldUpdateOperationsInput | string
+    share_token?: StringFieldUpdateOperationsInput | string
+    search_context?: JsonNullValueInput | InputJsonValue
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type dish_category_group_vote_sessionsUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    host_user_id?: StringFieldUpdateOperationsInput | string
+    share_token?: StringFieldUpdateOperationsInput | string
+    search_context?: JsonNullValueInput | InputJsonValue
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type dish_category_localized_textCreateInput = {
@@ -45320,6 +50912,12 @@ export namespace Prisma {
     none?: dish_category_featuresWhereInput
   }
 
+  export type Dish_category_group_vote_candidatesListRelationFilter = {
+    every?: dish_category_group_vote_candidatesWhereInput
+    some?: dish_category_group_vote_candidatesWhereInput
+    none?: dish_category_group_vote_candidatesWhereInput
+  }
+
   export type Dish_category_localized_textListRelationFilter = {
     every?: dish_category_localized_textWhereInput
     some?: dish_category_localized_textWhereInput
@@ -45339,6 +50937,10 @@ export namespace Prisma {
   }
 
   export type dish_category_featuresOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type dish_category_group_vote_candidatesOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -45467,6 +51069,209 @@ export namespace Prisma {
     _max?: NestedFloatFilter<$PrismaModel>
   }
 
+  export type Dish_category_group_vote_candidatesScalarRelationFilter = {
+    is?: dish_category_group_vote_candidatesWhereInput
+    isNot?: dish_category_group_vote_candidatesWhereInput
+  }
+
+  export type Dish_category_group_vote_participantsScalarRelationFilter = {
+    is?: dish_category_group_vote_participantsWhereInput
+    isNot?: dish_category_group_vote_participantsWhereInput
+  }
+
+  export type dish_category_group_vote_candidate_votesParticipant_idCandidate_idCompoundUniqueInput = {
+    participant_id: string
+    candidate_id: string
+  }
+
+  export type dish_category_group_vote_candidate_votesCountOrderByAggregateInput = {
+    participant_id?: SortOrder
+    candidate_id?: SortOrder
+    reaction?: SortOrder
+    created_at?: SortOrder
+  }
+
+  export type dish_category_group_vote_candidate_votesMaxOrderByAggregateInput = {
+    participant_id?: SortOrder
+    candidate_id?: SortOrder
+    reaction?: SortOrder
+    created_at?: SortOrder
+  }
+
+  export type dish_category_group_vote_candidate_votesMinOrderByAggregateInput = {
+    participant_id?: SortOrder
+    candidate_id?: SortOrder
+    reaction?: SortOrder
+    created_at?: SortOrder
+  }
+
+  export type IntFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntFilter<$PrismaModel> | number
+  }
+
+  export type Dish_category_group_vote_candidate_votesListRelationFilter = {
+    every?: dish_category_group_vote_candidate_votesWhereInput
+    some?: dish_category_group_vote_candidate_votesWhereInput
+    none?: dish_category_group_vote_candidate_votesWhereInput
+  }
+
+  export type Dish_category_group_vote_sessionsScalarRelationFilter = {
+    is?: dish_category_group_vote_sessionsWhereInput
+    isNot?: dish_category_group_vote_sessionsWhereInput
+  }
+
+  export type dish_category_group_vote_candidate_votesOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type dish_category_group_vote_candidatesSession_idDish_category_idCompoundUniqueInput = {
+    session_id: string
+    dish_category_id: string
+  }
+
+  export type dish_category_group_vote_candidatesSession_idDisplay_orderCompoundUniqueInput = {
+    session_id: string
+    display_order: number
+  }
+
+  export type dish_category_group_vote_candidatesCountOrderByAggregateInput = {
+    id?: SortOrder
+    session_id?: SortOrder
+    dish_category_id?: SortOrder
+    display_name?: SortOrder
+    tagline?: SortOrder
+    image_url?: SortOrder
+    dish_media_ids?: SortOrder
+    dish_media_search_status?: SortOrder
+    display_order?: SortOrder
+    deleted_at?: SortOrder
+    created_at?: SortOrder
+  }
+
+  export type dish_category_group_vote_candidatesAvgOrderByAggregateInput = {
+    display_order?: SortOrder
+  }
+
+  export type dish_category_group_vote_candidatesMaxOrderByAggregateInput = {
+    id?: SortOrder
+    session_id?: SortOrder
+    dish_category_id?: SortOrder
+    display_name?: SortOrder
+    tagline?: SortOrder
+    image_url?: SortOrder
+    dish_media_search_status?: SortOrder
+    display_order?: SortOrder
+    deleted_at?: SortOrder
+    created_at?: SortOrder
+  }
+
+  export type dish_category_group_vote_candidatesMinOrderByAggregateInput = {
+    id?: SortOrder
+    session_id?: SortOrder
+    dish_category_id?: SortOrder
+    display_name?: SortOrder
+    tagline?: SortOrder
+    image_url?: SortOrder
+    dish_media_search_status?: SortOrder
+    display_order?: SortOrder
+    deleted_at?: SortOrder
+    created_at?: SortOrder
+  }
+
+  export type dish_category_group_vote_candidatesSumOrderByAggregateInput = {
+    display_order?: SortOrder
+  }
+
+  export type IntWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedIntFilter<$PrismaModel>
+    _min?: NestedIntFilter<$PrismaModel>
+    _max?: NestedIntFilter<$PrismaModel>
+  }
+
+  export type dish_category_group_vote_participantsSession_idUser_idCompoundUniqueInput = {
+    session_id: string
+    user_id: string
+  }
+
+  export type dish_category_group_vote_participantsCountOrderByAggregateInput = {
+    id?: SortOrder
+    session_id?: SortOrder
+    user_id?: SortOrder
+    display_name?: SortOrder
+    comment?: SortOrder
+    created_at?: SortOrder
+  }
+
+  export type dish_category_group_vote_participantsMaxOrderByAggregateInput = {
+    id?: SortOrder
+    session_id?: SortOrder
+    user_id?: SortOrder
+    display_name?: SortOrder
+    comment?: SortOrder
+    created_at?: SortOrder
+  }
+
+  export type dish_category_group_vote_participantsMinOrderByAggregateInput = {
+    id?: SortOrder
+    session_id?: SortOrder
+    user_id?: SortOrder
+    display_name?: SortOrder
+    comment?: SortOrder
+    created_at?: SortOrder
+  }
+
+  export type Dish_category_group_vote_participantsListRelationFilter = {
+    every?: dish_category_group_vote_participantsWhereInput
+    some?: dish_category_group_vote_participantsWhereInput
+    none?: dish_category_group_vote_participantsWhereInput
+  }
+
+  export type dish_category_group_vote_participantsOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type dish_category_group_vote_sessionsCountOrderByAggregateInput = {
+    id?: SortOrder
+    host_user_id?: SortOrder
+    share_token?: SortOrder
+    search_context?: SortOrder
+    created_at?: SortOrder
+    updated_at?: SortOrder
+  }
+
+  export type dish_category_group_vote_sessionsMaxOrderByAggregateInput = {
+    id?: SortOrder
+    host_user_id?: SortOrder
+    share_token?: SortOrder
+    created_at?: SortOrder
+    updated_at?: SortOrder
+  }
+
+  export type dish_category_group_vote_sessionsMinOrderByAggregateInput = {
+    id?: SortOrder
+    host_user_id?: SortOrder
+    share_token?: SortOrder
+    created_at?: SortOrder
+    updated_at?: SortOrder
+  }
+
   export type dish_category_localized_textDish_category_idLocaleCompoundUniqueInput = {
     dish_category_id: string
     locale: string
@@ -45523,17 +51328,6 @@ export namespace Prisma {
     surface_form?: SortOrder
     source?: SortOrder
     created_at?: SortOrder
-  }
-
-  export type IntFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel>
-    in?: number[] | ListIntFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntFilter<$PrismaModel> | number
   }
 
   export type IntNullableFilter<$PrismaModel = never> = {
@@ -45655,22 +51449,6 @@ export namespace Prisma {
   export type dish_mediaSumOrderByAggregateInput = {
     lock_no?: SortOrder
     video_duration_ms?: SortOrder
-  }
-
-  export type IntWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel>
-    in?: number[] | ListIntFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
-    _count?: NestedIntFilter<$PrismaModel>
-    _avg?: NestedFloatFilter<$PrismaModel>
-    _sum?: NestedIntFilter<$PrismaModel>
-    _min?: NestedIntFilter<$PrismaModel>
-    _max?: NestedIntFilter<$PrismaModel>
   }
 
   export type IntNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -46875,6 +52653,13 @@ export namespace Prisma {
     connect?: dish_category_featuresWhereUniqueInput | dish_category_featuresWhereUniqueInput[]
   }
 
+  export type dish_category_group_vote_candidatesCreateNestedManyWithoutDish_categoriesInput = {
+    create?: XOR<dish_category_group_vote_candidatesCreateWithoutDish_categoriesInput, dish_category_group_vote_candidatesUncheckedCreateWithoutDish_categoriesInput> | dish_category_group_vote_candidatesCreateWithoutDish_categoriesInput[] | dish_category_group_vote_candidatesUncheckedCreateWithoutDish_categoriesInput[]
+    connectOrCreate?: dish_category_group_vote_candidatesCreateOrConnectWithoutDish_categoriesInput | dish_category_group_vote_candidatesCreateOrConnectWithoutDish_categoriesInput[]
+    createMany?: dish_category_group_vote_candidatesCreateManyDish_categoriesInputEnvelope
+    connect?: dish_category_group_vote_candidatesWhereUniqueInput | dish_category_group_vote_candidatesWhereUniqueInput[]
+  }
+
   export type dish_category_localized_textCreateNestedManyWithoutDish_categoriesInput = {
     create?: XOR<dish_category_localized_textCreateWithoutDish_categoriesInput, dish_category_localized_textUncheckedCreateWithoutDish_categoriesInput> | dish_category_localized_textCreateWithoutDish_categoriesInput[] | dish_category_localized_textUncheckedCreateWithoutDish_categoriesInput[]
     connectOrCreate?: dish_category_localized_textCreateOrConnectWithoutDish_categoriesInput | dish_category_localized_textCreateOrConnectWithoutDish_categoriesInput[]
@@ -46901,6 +52686,13 @@ export namespace Prisma {
     connectOrCreate?: dish_category_featuresCreateOrConnectWithoutDish_categoriesInput | dish_category_featuresCreateOrConnectWithoutDish_categoriesInput[]
     createMany?: dish_category_featuresCreateManyDish_categoriesInputEnvelope
     connect?: dish_category_featuresWhereUniqueInput | dish_category_featuresWhereUniqueInput[]
+  }
+
+  export type dish_category_group_vote_candidatesUncheckedCreateNestedManyWithoutDish_categoriesInput = {
+    create?: XOR<dish_category_group_vote_candidatesCreateWithoutDish_categoriesInput, dish_category_group_vote_candidatesUncheckedCreateWithoutDish_categoriesInput> | dish_category_group_vote_candidatesCreateWithoutDish_categoriesInput[] | dish_category_group_vote_candidatesUncheckedCreateWithoutDish_categoriesInput[]
+    connectOrCreate?: dish_category_group_vote_candidatesCreateOrConnectWithoutDish_categoriesInput | dish_category_group_vote_candidatesCreateOrConnectWithoutDish_categoriesInput[]
+    createMany?: dish_category_group_vote_candidatesCreateManyDish_categoriesInputEnvelope
+    connect?: dish_category_group_vote_candidatesWhereUniqueInput | dish_category_group_vote_candidatesWhereUniqueInput[]
   }
 
   export type dish_category_localized_textUncheckedCreateNestedManyWithoutDish_categoriesInput = {
@@ -46945,6 +52737,20 @@ export namespace Prisma {
     update?: dish_category_featuresUpdateWithWhereUniqueWithoutDish_categoriesInput | dish_category_featuresUpdateWithWhereUniqueWithoutDish_categoriesInput[]
     updateMany?: dish_category_featuresUpdateManyWithWhereWithoutDish_categoriesInput | dish_category_featuresUpdateManyWithWhereWithoutDish_categoriesInput[]
     deleteMany?: dish_category_featuresScalarWhereInput | dish_category_featuresScalarWhereInput[]
+  }
+
+  export type dish_category_group_vote_candidatesUpdateManyWithoutDish_categoriesNestedInput = {
+    create?: XOR<dish_category_group_vote_candidatesCreateWithoutDish_categoriesInput, dish_category_group_vote_candidatesUncheckedCreateWithoutDish_categoriesInput> | dish_category_group_vote_candidatesCreateWithoutDish_categoriesInput[] | dish_category_group_vote_candidatesUncheckedCreateWithoutDish_categoriesInput[]
+    connectOrCreate?: dish_category_group_vote_candidatesCreateOrConnectWithoutDish_categoriesInput | dish_category_group_vote_candidatesCreateOrConnectWithoutDish_categoriesInput[]
+    upsert?: dish_category_group_vote_candidatesUpsertWithWhereUniqueWithoutDish_categoriesInput | dish_category_group_vote_candidatesUpsertWithWhereUniqueWithoutDish_categoriesInput[]
+    createMany?: dish_category_group_vote_candidatesCreateManyDish_categoriesInputEnvelope
+    set?: dish_category_group_vote_candidatesWhereUniqueInput | dish_category_group_vote_candidatesWhereUniqueInput[]
+    disconnect?: dish_category_group_vote_candidatesWhereUniqueInput | dish_category_group_vote_candidatesWhereUniqueInput[]
+    delete?: dish_category_group_vote_candidatesWhereUniqueInput | dish_category_group_vote_candidatesWhereUniqueInput[]
+    connect?: dish_category_group_vote_candidatesWhereUniqueInput | dish_category_group_vote_candidatesWhereUniqueInput[]
+    update?: dish_category_group_vote_candidatesUpdateWithWhereUniqueWithoutDish_categoriesInput | dish_category_group_vote_candidatesUpdateWithWhereUniqueWithoutDish_categoriesInput[]
+    updateMany?: dish_category_group_vote_candidatesUpdateManyWithWhereWithoutDish_categoriesInput | dish_category_group_vote_candidatesUpdateManyWithWhereWithoutDish_categoriesInput[]
+    deleteMany?: dish_category_group_vote_candidatesScalarWhereInput | dish_category_group_vote_candidatesScalarWhereInput[]
   }
 
   export type dish_category_localized_textUpdateManyWithoutDish_categoriesNestedInput = {
@@ -47001,6 +52807,20 @@ export namespace Prisma {
     update?: dish_category_featuresUpdateWithWhereUniqueWithoutDish_categoriesInput | dish_category_featuresUpdateWithWhereUniqueWithoutDish_categoriesInput[]
     updateMany?: dish_category_featuresUpdateManyWithWhereWithoutDish_categoriesInput | dish_category_featuresUpdateManyWithWhereWithoutDish_categoriesInput[]
     deleteMany?: dish_category_featuresScalarWhereInput | dish_category_featuresScalarWhereInput[]
+  }
+
+  export type dish_category_group_vote_candidatesUncheckedUpdateManyWithoutDish_categoriesNestedInput = {
+    create?: XOR<dish_category_group_vote_candidatesCreateWithoutDish_categoriesInput, dish_category_group_vote_candidatesUncheckedCreateWithoutDish_categoriesInput> | dish_category_group_vote_candidatesCreateWithoutDish_categoriesInput[] | dish_category_group_vote_candidatesUncheckedCreateWithoutDish_categoriesInput[]
+    connectOrCreate?: dish_category_group_vote_candidatesCreateOrConnectWithoutDish_categoriesInput | dish_category_group_vote_candidatesCreateOrConnectWithoutDish_categoriesInput[]
+    upsert?: dish_category_group_vote_candidatesUpsertWithWhereUniqueWithoutDish_categoriesInput | dish_category_group_vote_candidatesUpsertWithWhereUniqueWithoutDish_categoriesInput[]
+    createMany?: dish_category_group_vote_candidatesCreateManyDish_categoriesInputEnvelope
+    set?: dish_category_group_vote_candidatesWhereUniqueInput | dish_category_group_vote_candidatesWhereUniqueInput[]
+    disconnect?: dish_category_group_vote_candidatesWhereUniqueInput | dish_category_group_vote_candidatesWhereUniqueInput[]
+    delete?: dish_category_group_vote_candidatesWhereUniqueInput | dish_category_group_vote_candidatesWhereUniqueInput[]
+    connect?: dish_category_group_vote_candidatesWhereUniqueInput | dish_category_group_vote_candidatesWhereUniqueInput[]
+    update?: dish_category_group_vote_candidatesUpdateWithWhereUniqueWithoutDish_categoriesInput | dish_category_group_vote_candidatesUpdateWithWhereUniqueWithoutDish_categoriesInput[]
+    updateMany?: dish_category_group_vote_candidatesUpdateManyWithWhereWithoutDish_categoriesInput | dish_category_group_vote_candidatesUpdateManyWithWhereWithoutDish_categoriesInput[]
+    deleteMany?: dish_category_group_vote_candidatesScalarWhereInput | dish_category_group_vote_candidatesScalarWhereInput[]
   }
 
   export type dish_category_localized_textUncheckedUpdateManyWithoutDish_categoriesNestedInput = {
@@ -47065,6 +52885,261 @@ export namespace Prisma {
     upsert?: dish_categoriesUpsertWithoutDish_category_featuresInput
     connect?: dish_categoriesWhereUniqueInput
     update?: XOR<XOR<dish_categoriesUpdateToOneWithWhereWithoutDish_category_featuresInput, dish_categoriesUpdateWithoutDish_category_featuresInput>, dish_categoriesUncheckedUpdateWithoutDish_category_featuresInput>
+  }
+
+  export type dish_category_group_vote_candidatesCreateNestedOneWithoutDish_category_group_vote_candidate_votesInput = {
+    create?: XOR<dish_category_group_vote_candidatesCreateWithoutDish_category_group_vote_candidate_votesInput, dish_category_group_vote_candidatesUncheckedCreateWithoutDish_category_group_vote_candidate_votesInput>
+    connectOrCreate?: dish_category_group_vote_candidatesCreateOrConnectWithoutDish_category_group_vote_candidate_votesInput
+    connect?: dish_category_group_vote_candidatesWhereUniqueInput
+  }
+
+  export type dish_category_group_vote_participantsCreateNestedOneWithoutDish_category_group_vote_candidate_votesInput = {
+    create?: XOR<dish_category_group_vote_participantsCreateWithoutDish_category_group_vote_candidate_votesInput, dish_category_group_vote_participantsUncheckedCreateWithoutDish_category_group_vote_candidate_votesInput>
+    connectOrCreate?: dish_category_group_vote_participantsCreateOrConnectWithoutDish_category_group_vote_candidate_votesInput
+    connect?: dish_category_group_vote_participantsWhereUniqueInput
+  }
+
+  export type dish_category_group_vote_candidatesUpdateOneRequiredWithoutDish_category_group_vote_candidate_votesNestedInput = {
+    create?: XOR<dish_category_group_vote_candidatesCreateWithoutDish_category_group_vote_candidate_votesInput, dish_category_group_vote_candidatesUncheckedCreateWithoutDish_category_group_vote_candidate_votesInput>
+    connectOrCreate?: dish_category_group_vote_candidatesCreateOrConnectWithoutDish_category_group_vote_candidate_votesInput
+    upsert?: dish_category_group_vote_candidatesUpsertWithoutDish_category_group_vote_candidate_votesInput
+    connect?: dish_category_group_vote_candidatesWhereUniqueInput
+    update?: XOR<XOR<dish_category_group_vote_candidatesUpdateToOneWithWhereWithoutDish_category_group_vote_candidate_votesInput, dish_category_group_vote_candidatesUpdateWithoutDish_category_group_vote_candidate_votesInput>, dish_category_group_vote_candidatesUncheckedUpdateWithoutDish_category_group_vote_candidate_votesInput>
+  }
+
+  export type dish_category_group_vote_participantsUpdateOneRequiredWithoutDish_category_group_vote_candidate_votesNestedInput = {
+    create?: XOR<dish_category_group_vote_participantsCreateWithoutDish_category_group_vote_candidate_votesInput, dish_category_group_vote_participantsUncheckedCreateWithoutDish_category_group_vote_candidate_votesInput>
+    connectOrCreate?: dish_category_group_vote_participantsCreateOrConnectWithoutDish_category_group_vote_candidate_votesInput
+    upsert?: dish_category_group_vote_participantsUpsertWithoutDish_category_group_vote_candidate_votesInput
+    connect?: dish_category_group_vote_participantsWhereUniqueInput
+    update?: XOR<XOR<dish_category_group_vote_participantsUpdateToOneWithWhereWithoutDish_category_group_vote_candidate_votesInput, dish_category_group_vote_participantsUpdateWithoutDish_category_group_vote_candidate_votesInput>, dish_category_group_vote_participantsUncheckedUpdateWithoutDish_category_group_vote_candidate_votesInput>
+  }
+
+  export type dish_category_group_vote_candidatesCreatedish_media_idsInput = {
+    set: string[]
+  }
+
+  export type dish_category_group_vote_candidate_votesCreateNestedManyWithoutDish_category_group_vote_candidatesInput = {
+    create?: XOR<dish_category_group_vote_candidate_votesCreateWithoutDish_category_group_vote_candidatesInput, dish_category_group_vote_candidate_votesUncheckedCreateWithoutDish_category_group_vote_candidatesInput> | dish_category_group_vote_candidate_votesCreateWithoutDish_category_group_vote_candidatesInput[] | dish_category_group_vote_candidate_votesUncheckedCreateWithoutDish_category_group_vote_candidatesInput[]
+    connectOrCreate?: dish_category_group_vote_candidate_votesCreateOrConnectWithoutDish_category_group_vote_candidatesInput | dish_category_group_vote_candidate_votesCreateOrConnectWithoutDish_category_group_vote_candidatesInput[]
+    createMany?: dish_category_group_vote_candidate_votesCreateManyDish_category_group_vote_candidatesInputEnvelope
+    connect?: dish_category_group_vote_candidate_votesWhereUniqueInput | dish_category_group_vote_candidate_votesWhereUniqueInput[]
+  }
+
+  export type dish_categoriesCreateNestedOneWithoutDish_category_group_vote_candidatesInput = {
+    create?: XOR<dish_categoriesCreateWithoutDish_category_group_vote_candidatesInput, dish_categoriesUncheckedCreateWithoutDish_category_group_vote_candidatesInput>
+    connectOrCreate?: dish_categoriesCreateOrConnectWithoutDish_category_group_vote_candidatesInput
+    connect?: dish_categoriesWhereUniqueInput
+  }
+
+  export type dish_category_group_vote_sessionsCreateNestedOneWithoutDish_category_group_vote_candidatesInput = {
+    create?: XOR<dish_category_group_vote_sessionsCreateWithoutDish_category_group_vote_candidatesInput, dish_category_group_vote_sessionsUncheckedCreateWithoutDish_category_group_vote_candidatesInput>
+    connectOrCreate?: dish_category_group_vote_sessionsCreateOrConnectWithoutDish_category_group_vote_candidatesInput
+    connect?: dish_category_group_vote_sessionsWhereUniqueInput
+  }
+
+  export type dish_category_group_vote_candidate_votesUncheckedCreateNestedManyWithoutDish_category_group_vote_candidatesInput = {
+    create?: XOR<dish_category_group_vote_candidate_votesCreateWithoutDish_category_group_vote_candidatesInput, dish_category_group_vote_candidate_votesUncheckedCreateWithoutDish_category_group_vote_candidatesInput> | dish_category_group_vote_candidate_votesCreateWithoutDish_category_group_vote_candidatesInput[] | dish_category_group_vote_candidate_votesUncheckedCreateWithoutDish_category_group_vote_candidatesInput[]
+    connectOrCreate?: dish_category_group_vote_candidate_votesCreateOrConnectWithoutDish_category_group_vote_candidatesInput | dish_category_group_vote_candidate_votesCreateOrConnectWithoutDish_category_group_vote_candidatesInput[]
+    createMany?: dish_category_group_vote_candidate_votesCreateManyDish_category_group_vote_candidatesInputEnvelope
+    connect?: dish_category_group_vote_candidate_votesWhereUniqueInput | dish_category_group_vote_candidate_votesWhereUniqueInput[]
+  }
+
+  export type dish_category_group_vote_candidatesUpdatedish_media_idsInput = {
+    set?: string[]
+    push?: string | string[]
+  }
+
+  export type IntFieldUpdateOperationsInput = {
+    set?: number
+    increment?: number
+    decrement?: number
+    multiply?: number
+    divide?: number
+  }
+
+  export type dish_category_group_vote_candidate_votesUpdateManyWithoutDish_category_group_vote_candidatesNestedInput = {
+    create?: XOR<dish_category_group_vote_candidate_votesCreateWithoutDish_category_group_vote_candidatesInput, dish_category_group_vote_candidate_votesUncheckedCreateWithoutDish_category_group_vote_candidatesInput> | dish_category_group_vote_candidate_votesCreateWithoutDish_category_group_vote_candidatesInput[] | dish_category_group_vote_candidate_votesUncheckedCreateWithoutDish_category_group_vote_candidatesInput[]
+    connectOrCreate?: dish_category_group_vote_candidate_votesCreateOrConnectWithoutDish_category_group_vote_candidatesInput | dish_category_group_vote_candidate_votesCreateOrConnectWithoutDish_category_group_vote_candidatesInput[]
+    upsert?: dish_category_group_vote_candidate_votesUpsertWithWhereUniqueWithoutDish_category_group_vote_candidatesInput | dish_category_group_vote_candidate_votesUpsertWithWhereUniqueWithoutDish_category_group_vote_candidatesInput[]
+    createMany?: dish_category_group_vote_candidate_votesCreateManyDish_category_group_vote_candidatesInputEnvelope
+    set?: dish_category_group_vote_candidate_votesWhereUniqueInput | dish_category_group_vote_candidate_votesWhereUniqueInput[]
+    disconnect?: dish_category_group_vote_candidate_votesWhereUniqueInput | dish_category_group_vote_candidate_votesWhereUniqueInput[]
+    delete?: dish_category_group_vote_candidate_votesWhereUniqueInput | dish_category_group_vote_candidate_votesWhereUniqueInput[]
+    connect?: dish_category_group_vote_candidate_votesWhereUniqueInput | dish_category_group_vote_candidate_votesWhereUniqueInput[]
+    update?: dish_category_group_vote_candidate_votesUpdateWithWhereUniqueWithoutDish_category_group_vote_candidatesInput | dish_category_group_vote_candidate_votesUpdateWithWhereUniqueWithoutDish_category_group_vote_candidatesInput[]
+    updateMany?: dish_category_group_vote_candidate_votesUpdateManyWithWhereWithoutDish_category_group_vote_candidatesInput | dish_category_group_vote_candidate_votesUpdateManyWithWhereWithoutDish_category_group_vote_candidatesInput[]
+    deleteMany?: dish_category_group_vote_candidate_votesScalarWhereInput | dish_category_group_vote_candidate_votesScalarWhereInput[]
+  }
+
+  export type dish_categoriesUpdateOneRequiredWithoutDish_category_group_vote_candidatesNestedInput = {
+    create?: XOR<dish_categoriesCreateWithoutDish_category_group_vote_candidatesInput, dish_categoriesUncheckedCreateWithoutDish_category_group_vote_candidatesInput>
+    connectOrCreate?: dish_categoriesCreateOrConnectWithoutDish_category_group_vote_candidatesInput
+    upsert?: dish_categoriesUpsertWithoutDish_category_group_vote_candidatesInput
+    connect?: dish_categoriesWhereUniqueInput
+    update?: XOR<XOR<dish_categoriesUpdateToOneWithWhereWithoutDish_category_group_vote_candidatesInput, dish_categoriesUpdateWithoutDish_category_group_vote_candidatesInput>, dish_categoriesUncheckedUpdateWithoutDish_category_group_vote_candidatesInput>
+  }
+
+  export type dish_category_group_vote_sessionsUpdateOneRequiredWithoutDish_category_group_vote_candidatesNestedInput = {
+    create?: XOR<dish_category_group_vote_sessionsCreateWithoutDish_category_group_vote_candidatesInput, dish_category_group_vote_sessionsUncheckedCreateWithoutDish_category_group_vote_candidatesInput>
+    connectOrCreate?: dish_category_group_vote_sessionsCreateOrConnectWithoutDish_category_group_vote_candidatesInput
+    upsert?: dish_category_group_vote_sessionsUpsertWithoutDish_category_group_vote_candidatesInput
+    connect?: dish_category_group_vote_sessionsWhereUniqueInput
+    update?: XOR<XOR<dish_category_group_vote_sessionsUpdateToOneWithWhereWithoutDish_category_group_vote_candidatesInput, dish_category_group_vote_sessionsUpdateWithoutDish_category_group_vote_candidatesInput>, dish_category_group_vote_sessionsUncheckedUpdateWithoutDish_category_group_vote_candidatesInput>
+  }
+
+  export type dish_category_group_vote_candidate_votesUncheckedUpdateManyWithoutDish_category_group_vote_candidatesNestedInput = {
+    create?: XOR<dish_category_group_vote_candidate_votesCreateWithoutDish_category_group_vote_candidatesInput, dish_category_group_vote_candidate_votesUncheckedCreateWithoutDish_category_group_vote_candidatesInput> | dish_category_group_vote_candidate_votesCreateWithoutDish_category_group_vote_candidatesInput[] | dish_category_group_vote_candidate_votesUncheckedCreateWithoutDish_category_group_vote_candidatesInput[]
+    connectOrCreate?: dish_category_group_vote_candidate_votesCreateOrConnectWithoutDish_category_group_vote_candidatesInput | dish_category_group_vote_candidate_votesCreateOrConnectWithoutDish_category_group_vote_candidatesInput[]
+    upsert?: dish_category_group_vote_candidate_votesUpsertWithWhereUniqueWithoutDish_category_group_vote_candidatesInput | dish_category_group_vote_candidate_votesUpsertWithWhereUniqueWithoutDish_category_group_vote_candidatesInput[]
+    createMany?: dish_category_group_vote_candidate_votesCreateManyDish_category_group_vote_candidatesInputEnvelope
+    set?: dish_category_group_vote_candidate_votesWhereUniqueInput | dish_category_group_vote_candidate_votesWhereUniqueInput[]
+    disconnect?: dish_category_group_vote_candidate_votesWhereUniqueInput | dish_category_group_vote_candidate_votesWhereUniqueInput[]
+    delete?: dish_category_group_vote_candidate_votesWhereUniqueInput | dish_category_group_vote_candidate_votesWhereUniqueInput[]
+    connect?: dish_category_group_vote_candidate_votesWhereUniqueInput | dish_category_group_vote_candidate_votesWhereUniqueInput[]
+    update?: dish_category_group_vote_candidate_votesUpdateWithWhereUniqueWithoutDish_category_group_vote_candidatesInput | dish_category_group_vote_candidate_votesUpdateWithWhereUniqueWithoutDish_category_group_vote_candidatesInput[]
+    updateMany?: dish_category_group_vote_candidate_votesUpdateManyWithWhereWithoutDish_category_group_vote_candidatesInput | dish_category_group_vote_candidate_votesUpdateManyWithWhereWithoutDish_category_group_vote_candidatesInput[]
+    deleteMany?: dish_category_group_vote_candidate_votesScalarWhereInput | dish_category_group_vote_candidate_votesScalarWhereInput[]
+  }
+
+  export type dish_category_group_vote_candidate_votesCreateNestedManyWithoutDish_category_group_vote_participantsInput = {
+    create?: XOR<dish_category_group_vote_candidate_votesCreateWithoutDish_category_group_vote_participantsInput, dish_category_group_vote_candidate_votesUncheckedCreateWithoutDish_category_group_vote_participantsInput> | dish_category_group_vote_candidate_votesCreateWithoutDish_category_group_vote_participantsInput[] | dish_category_group_vote_candidate_votesUncheckedCreateWithoutDish_category_group_vote_participantsInput[]
+    connectOrCreate?: dish_category_group_vote_candidate_votesCreateOrConnectWithoutDish_category_group_vote_participantsInput | dish_category_group_vote_candidate_votesCreateOrConnectWithoutDish_category_group_vote_participantsInput[]
+    createMany?: dish_category_group_vote_candidate_votesCreateManyDish_category_group_vote_participantsInputEnvelope
+    connect?: dish_category_group_vote_candidate_votesWhereUniqueInput | dish_category_group_vote_candidate_votesWhereUniqueInput[]
+  }
+
+  export type dish_category_group_vote_sessionsCreateNestedOneWithoutDish_category_group_vote_participantsInput = {
+    create?: XOR<dish_category_group_vote_sessionsCreateWithoutDish_category_group_vote_participantsInput, dish_category_group_vote_sessionsUncheckedCreateWithoutDish_category_group_vote_participantsInput>
+    connectOrCreate?: dish_category_group_vote_sessionsCreateOrConnectWithoutDish_category_group_vote_participantsInput
+    connect?: dish_category_group_vote_sessionsWhereUniqueInput
+  }
+
+  export type dish_category_group_vote_candidate_votesUncheckedCreateNestedManyWithoutDish_category_group_vote_participantsInput = {
+    create?: XOR<dish_category_group_vote_candidate_votesCreateWithoutDish_category_group_vote_participantsInput, dish_category_group_vote_candidate_votesUncheckedCreateWithoutDish_category_group_vote_participantsInput> | dish_category_group_vote_candidate_votesCreateWithoutDish_category_group_vote_participantsInput[] | dish_category_group_vote_candidate_votesUncheckedCreateWithoutDish_category_group_vote_participantsInput[]
+    connectOrCreate?: dish_category_group_vote_candidate_votesCreateOrConnectWithoutDish_category_group_vote_participantsInput | dish_category_group_vote_candidate_votesCreateOrConnectWithoutDish_category_group_vote_participantsInput[]
+    createMany?: dish_category_group_vote_candidate_votesCreateManyDish_category_group_vote_participantsInputEnvelope
+    connect?: dish_category_group_vote_candidate_votesWhereUniqueInput | dish_category_group_vote_candidate_votesWhereUniqueInput[]
+  }
+
+  export type dish_category_group_vote_candidate_votesUpdateManyWithoutDish_category_group_vote_participantsNestedInput = {
+    create?: XOR<dish_category_group_vote_candidate_votesCreateWithoutDish_category_group_vote_participantsInput, dish_category_group_vote_candidate_votesUncheckedCreateWithoutDish_category_group_vote_participantsInput> | dish_category_group_vote_candidate_votesCreateWithoutDish_category_group_vote_participantsInput[] | dish_category_group_vote_candidate_votesUncheckedCreateWithoutDish_category_group_vote_participantsInput[]
+    connectOrCreate?: dish_category_group_vote_candidate_votesCreateOrConnectWithoutDish_category_group_vote_participantsInput | dish_category_group_vote_candidate_votesCreateOrConnectWithoutDish_category_group_vote_participantsInput[]
+    upsert?: dish_category_group_vote_candidate_votesUpsertWithWhereUniqueWithoutDish_category_group_vote_participantsInput | dish_category_group_vote_candidate_votesUpsertWithWhereUniqueWithoutDish_category_group_vote_participantsInput[]
+    createMany?: dish_category_group_vote_candidate_votesCreateManyDish_category_group_vote_participantsInputEnvelope
+    set?: dish_category_group_vote_candidate_votesWhereUniqueInput | dish_category_group_vote_candidate_votesWhereUniqueInput[]
+    disconnect?: dish_category_group_vote_candidate_votesWhereUniqueInput | dish_category_group_vote_candidate_votesWhereUniqueInput[]
+    delete?: dish_category_group_vote_candidate_votesWhereUniqueInput | dish_category_group_vote_candidate_votesWhereUniqueInput[]
+    connect?: dish_category_group_vote_candidate_votesWhereUniqueInput | dish_category_group_vote_candidate_votesWhereUniqueInput[]
+    update?: dish_category_group_vote_candidate_votesUpdateWithWhereUniqueWithoutDish_category_group_vote_participantsInput | dish_category_group_vote_candidate_votesUpdateWithWhereUniqueWithoutDish_category_group_vote_participantsInput[]
+    updateMany?: dish_category_group_vote_candidate_votesUpdateManyWithWhereWithoutDish_category_group_vote_participantsInput | dish_category_group_vote_candidate_votesUpdateManyWithWhereWithoutDish_category_group_vote_participantsInput[]
+    deleteMany?: dish_category_group_vote_candidate_votesScalarWhereInput | dish_category_group_vote_candidate_votesScalarWhereInput[]
+  }
+
+  export type dish_category_group_vote_sessionsUpdateOneRequiredWithoutDish_category_group_vote_participantsNestedInput = {
+    create?: XOR<dish_category_group_vote_sessionsCreateWithoutDish_category_group_vote_participantsInput, dish_category_group_vote_sessionsUncheckedCreateWithoutDish_category_group_vote_participantsInput>
+    connectOrCreate?: dish_category_group_vote_sessionsCreateOrConnectWithoutDish_category_group_vote_participantsInput
+    upsert?: dish_category_group_vote_sessionsUpsertWithoutDish_category_group_vote_participantsInput
+    connect?: dish_category_group_vote_sessionsWhereUniqueInput
+    update?: XOR<XOR<dish_category_group_vote_sessionsUpdateToOneWithWhereWithoutDish_category_group_vote_participantsInput, dish_category_group_vote_sessionsUpdateWithoutDish_category_group_vote_participantsInput>, dish_category_group_vote_sessionsUncheckedUpdateWithoutDish_category_group_vote_participantsInput>
+  }
+
+  export type dish_category_group_vote_candidate_votesUncheckedUpdateManyWithoutDish_category_group_vote_participantsNestedInput = {
+    create?: XOR<dish_category_group_vote_candidate_votesCreateWithoutDish_category_group_vote_participantsInput, dish_category_group_vote_candidate_votesUncheckedCreateWithoutDish_category_group_vote_participantsInput> | dish_category_group_vote_candidate_votesCreateWithoutDish_category_group_vote_participantsInput[] | dish_category_group_vote_candidate_votesUncheckedCreateWithoutDish_category_group_vote_participantsInput[]
+    connectOrCreate?: dish_category_group_vote_candidate_votesCreateOrConnectWithoutDish_category_group_vote_participantsInput | dish_category_group_vote_candidate_votesCreateOrConnectWithoutDish_category_group_vote_participantsInput[]
+    upsert?: dish_category_group_vote_candidate_votesUpsertWithWhereUniqueWithoutDish_category_group_vote_participantsInput | dish_category_group_vote_candidate_votesUpsertWithWhereUniqueWithoutDish_category_group_vote_participantsInput[]
+    createMany?: dish_category_group_vote_candidate_votesCreateManyDish_category_group_vote_participantsInputEnvelope
+    set?: dish_category_group_vote_candidate_votesWhereUniqueInput | dish_category_group_vote_candidate_votesWhereUniqueInput[]
+    disconnect?: dish_category_group_vote_candidate_votesWhereUniqueInput | dish_category_group_vote_candidate_votesWhereUniqueInput[]
+    delete?: dish_category_group_vote_candidate_votesWhereUniqueInput | dish_category_group_vote_candidate_votesWhereUniqueInput[]
+    connect?: dish_category_group_vote_candidate_votesWhereUniqueInput | dish_category_group_vote_candidate_votesWhereUniqueInput[]
+    update?: dish_category_group_vote_candidate_votesUpdateWithWhereUniqueWithoutDish_category_group_vote_participantsInput | dish_category_group_vote_candidate_votesUpdateWithWhereUniqueWithoutDish_category_group_vote_participantsInput[]
+    updateMany?: dish_category_group_vote_candidate_votesUpdateManyWithWhereWithoutDish_category_group_vote_participantsInput | dish_category_group_vote_candidate_votesUpdateManyWithWhereWithoutDish_category_group_vote_participantsInput[]
+    deleteMany?: dish_category_group_vote_candidate_votesScalarWhereInput | dish_category_group_vote_candidate_votesScalarWhereInput[]
+  }
+
+  export type dish_category_group_vote_candidatesCreateNestedManyWithoutDish_category_group_vote_sessionsInput = {
+    create?: XOR<dish_category_group_vote_candidatesCreateWithoutDish_category_group_vote_sessionsInput, dish_category_group_vote_candidatesUncheckedCreateWithoutDish_category_group_vote_sessionsInput> | dish_category_group_vote_candidatesCreateWithoutDish_category_group_vote_sessionsInput[] | dish_category_group_vote_candidatesUncheckedCreateWithoutDish_category_group_vote_sessionsInput[]
+    connectOrCreate?: dish_category_group_vote_candidatesCreateOrConnectWithoutDish_category_group_vote_sessionsInput | dish_category_group_vote_candidatesCreateOrConnectWithoutDish_category_group_vote_sessionsInput[]
+    createMany?: dish_category_group_vote_candidatesCreateManyDish_category_group_vote_sessionsInputEnvelope
+    connect?: dish_category_group_vote_candidatesWhereUniqueInput | dish_category_group_vote_candidatesWhereUniqueInput[]
+  }
+
+  export type dish_category_group_vote_participantsCreateNestedManyWithoutDish_category_group_vote_sessionsInput = {
+    create?: XOR<dish_category_group_vote_participantsCreateWithoutDish_category_group_vote_sessionsInput, dish_category_group_vote_participantsUncheckedCreateWithoutDish_category_group_vote_sessionsInput> | dish_category_group_vote_participantsCreateWithoutDish_category_group_vote_sessionsInput[] | dish_category_group_vote_participantsUncheckedCreateWithoutDish_category_group_vote_sessionsInput[]
+    connectOrCreate?: dish_category_group_vote_participantsCreateOrConnectWithoutDish_category_group_vote_sessionsInput | dish_category_group_vote_participantsCreateOrConnectWithoutDish_category_group_vote_sessionsInput[]
+    createMany?: dish_category_group_vote_participantsCreateManyDish_category_group_vote_sessionsInputEnvelope
+    connect?: dish_category_group_vote_participantsWhereUniqueInput | dish_category_group_vote_participantsWhereUniqueInput[]
+  }
+
+  export type dish_category_group_vote_candidatesUncheckedCreateNestedManyWithoutDish_category_group_vote_sessionsInput = {
+    create?: XOR<dish_category_group_vote_candidatesCreateWithoutDish_category_group_vote_sessionsInput, dish_category_group_vote_candidatesUncheckedCreateWithoutDish_category_group_vote_sessionsInput> | dish_category_group_vote_candidatesCreateWithoutDish_category_group_vote_sessionsInput[] | dish_category_group_vote_candidatesUncheckedCreateWithoutDish_category_group_vote_sessionsInput[]
+    connectOrCreate?: dish_category_group_vote_candidatesCreateOrConnectWithoutDish_category_group_vote_sessionsInput | dish_category_group_vote_candidatesCreateOrConnectWithoutDish_category_group_vote_sessionsInput[]
+    createMany?: dish_category_group_vote_candidatesCreateManyDish_category_group_vote_sessionsInputEnvelope
+    connect?: dish_category_group_vote_candidatesWhereUniqueInput | dish_category_group_vote_candidatesWhereUniqueInput[]
+  }
+
+  export type dish_category_group_vote_participantsUncheckedCreateNestedManyWithoutDish_category_group_vote_sessionsInput = {
+    create?: XOR<dish_category_group_vote_participantsCreateWithoutDish_category_group_vote_sessionsInput, dish_category_group_vote_participantsUncheckedCreateWithoutDish_category_group_vote_sessionsInput> | dish_category_group_vote_participantsCreateWithoutDish_category_group_vote_sessionsInput[] | dish_category_group_vote_participantsUncheckedCreateWithoutDish_category_group_vote_sessionsInput[]
+    connectOrCreate?: dish_category_group_vote_participantsCreateOrConnectWithoutDish_category_group_vote_sessionsInput | dish_category_group_vote_participantsCreateOrConnectWithoutDish_category_group_vote_sessionsInput[]
+    createMany?: dish_category_group_vote_participantsCreateManyDish_category_group_vote_sessionsInputEnvelope
+    connect?: dish_category_group_vote_participantsWhereUniqueInput | dish_category_group_vote_participantsWhereUniqueInput[]
+  }
+
+  export type dish_category_group_vote_candidatesUpdateManyWithoutDish_category_group_vote_sessionsNestedInput = {
+    create?: XOR<dish_category_group_vote_candidatesCreateWithoutDish_category_group_vote_sessionsInput, dish_category_group_vote_candidatesUncheckedCreateWithoutDish_category_group_vote_sessionsInput> | dish_category_group_vote_candidatesCreateWithoutDish_category_group_vote_sessionsInput[] | dish_category_group_vote_candidatesUncheckedCreateWithoutDish_category_group_vote_sessionsInput[]
+    connectOrCreate?: dish_category_group_vote_candidatesCreateOrConnectWithoutDish_category_group_vote_sessionsInput | dish_category_group_vote_candidatesCreateOrConnectWithoutDish_category_group_vote_sessionsInput[]
+    upsert?: dish_category_group_vote_candidatesUpsertWithWhereUniqueWithoutDish_category_group_vote_sessionsInput | dish_category_group_vote_candidatesUpsertWithWhereUniqueWithoutDish_category_group_vote_sessionsInput[]
+    createMany?: dish_category_group_vote_candidatesCreateManyDish_category_group_vote_sessionsInputEnvelope
+    set?: dish_category_group_vote_candidatesWhereUniqueInput | dish_category_group_vote_candidatesWhereUniqueInput[]
+    disconnect?: dish_category_group_vote_candidatesWhereUniqueInput | dish_category_group_vote_candidatesWhereUniqueInput[]
+    delete?: dish_category_group_vote_candidatesWhereUniqueInput | dish_category_group_vote_candidatesWhereUniqueInput[]
+    connect?: dish_category_group_vote_candidatesWhereUniqueInput | dish_category_group_vote_candidatesWhereUniqueInput[]
+    update?: dish_category_group_vote_candidatesUpdateWithWhereUniqueWithoutDish_category_group_vote_sessionsInput | dish_category_group_vote_candidatesUpdateWithWhereUniqueWithoutDish_category_group_vote_sessionsInput[]
+    updateMany?: dish_category_group_vote_candidatesUpdateManyWithWhereWithoutDish_category_group_vote_sessionsInput | dish_category_group_vote_candidatesUpdateManyWithWhereWithoutDish_category_group_vote_sessionsInput[]
+    deleteMany?: dish_category_group_vote_candidatesScalarWhereInput | dish_category_group_vote_candidatesScalarWhereInput[]
+  }
+
+  export type dish_category_group_vote_participantsUpdateManyWithoutDish_category_group_vote_sessionsNestedInput = {
+    create?: XOR<dish_category_group_vote_participantsCreateWithoutDish_category_group_vote_sessionsInput, dish_category_group_vote_participantsUncheckedCreateWithoutDish_category_group_vote_sessionsInput> | dish_category_group_vote_participantsCreateWithoutDish_category_group_vote_sessionsInput[] | dish_category_group_vote_participantsUncheckedCreateWithoutDish_category_group_vote_sessionsInput[]
+    connectOrCreate?: dish_category_group_vote_participantsCreateOrConnectWithoutDish_category_group_vote_sessionsInput | dish_category_group_vote_participantsCreateOrConnectWithoutDish_category_group_vote_sessionsInput[]
+    upsert?: dish_category_group_vote_participantsUpsertWithWhereUniqueWithoutDish_category_group_vote_sessionsInput | dish_category_group_vote_participantsUpsertWithWhereUniqueWithoutDish_category_group_vote_sessionsInput[]
+    createMany?: dish_category_group_vote_participantsCreateManyDish_category_group_vote_sessionsInputEnvelope
+    set?: dish_category_group_vote_participantsWhereUniqueInput | dish_category_group_vote_participantsWhereUniqueInput[]
+    disconnect?: dish_category_group_vote_participantsWhereUniqueInput | dish_category_group_vote_participantsWhereUniqueInput[]
+    delete?: dish_category_group_vote_participantsWhereUniqueInput | dish_category_group_vote_participantsWhereUniqueInput[]
+    connect?: dish_category_group_vote_participantsWhereUniqueInput | dish_category_group_vote_participantsWhereUniqueInput[]
+    update?: dish_category_group_vote_participantsUpdateWithWhereUniqueWithoutDish_category_group_vote_sessionsInput | dish_category_group_vote_participantsUpdateWithWhereUniqueWithoutDish_category_group_vote_sessionsInput[]
+    updateMany?: dish_category_group_vote_participantsUpdateManyWithWhereWithoutDish_category_group_vote_sessionsInput | dish_category_group_vote_participantsUpdateManyWithWhereWithoutDish_category_group_vote_sessionsInput[]
+    deleteMany?: dish_category_group_vote_participantsScalarWhereInput | dish_category_group_vote_participantsScalarWhereInput[]
+  }
+
+  export type dish_category_group_vote_candidatesUncheckedUpdateManyWithoutDish_category_group_vote_sessionsNestedInput = {
+    create?: XOR<dish_category_group_vote_candidatesCreateWithoutDish_category_group_vote_sessionsInput, dish_category_group_vote_candidatesUncheckedCreateWithoutDish_category_group_vote_sessionsInput> | dish_category_group_vote_candidatesCreateWithoutDish_category_group_vote_sessionsInput[] | dish_category_group_vote_candidatesUncheckedCreateWithoutDish_category_group_vote_sessionsInput[]
+    connectOrCreate?: dish_category_group_vote_candidatesCreateOrConnectWithoutDish_category_group_vote_sessionsInput | dish_category_group_vote_candidatesCreateOrConnectWithoutDish_category_group_vote_sessionsInput[]
+    upsert?: dish_category_group_vote_candidatesUpsertWithWhereUniqueWithoutDish_category_group_vote_sessionsInput | dish_category_group_vote_candidatesUpsertWithWhereUniqueWithoutDish_category_group_vote_sessionsInput[]
+    createMany?: dish_category_group_vote_candidatesCreateManyDish_category_group_vote_sessionsInputEnvelope
+    set?: dish_category_group_vote_candidatesWhereUniqueInput | dish_category_group_vote_candidatesWhereUniqueInput[]
+    disconnect?: dish_category_group_vote_candidatesWhereUniqueInput | dish_category_group_vote_candidatesWhereUniqueInput[]
+    delete?: dish_category_group_vote_candidatesWhereUniqueInput | dish_category_group_vote_candidatesWhereUniqueInput[]
+    connect?: dish_category_group_vote_candidatesWhereUniqueInput | dish_category_group_vote_candidatesWhereUniqueInput[]
+    update?: dish_category_group_vote_candidatesUpdateWithWhereUniqueWithoutDish_category_group_vote_sessionsInput | dish_category_group_vote_candidatesUpdateWithWhereUniqueWithoutDish_category_group_vote_sessionsInput[]
+    updateMany?: dish_category_group_vote_candidatesUpdateManyWithWhereWithoutDish_category_group_vote_sessionsInput | dish_category_group_vote_candidatesUpdateManyWithWhereWithoutDish_category_group_vote_sessionsInput[]
+    deleteMany?: dish_category_group_vote_candidatesScalarWhereInput | dish_category_group_vote_candidatesScalarWhereInput[]
+  }
+
+  export type dish_category_group_vote_participantsUncheckedUpdateManyWithoutDish_category_group_vote_sessionsNestedInput = {
+    create?: XOR<dish_category_group_vote_participantsCreateWithoutDish_category_group_vote_sessionsInput, dish_category_group_vote_participantsUncheckedCreateWithoutDish_category_group_vote_sessionsInput> | dish_category_group_vote_participantsCreateWithoutDish_category_group_vote_sessionsInput[] | dish_category_group_vote_participantsUncheckedCreateWithoutDish_category_group_vote_sessionsInput[]
+    connectOrCreate?: dish_category_group_vote_participantsCreateOrConnectWithoutDish_category_group_vote_sessionsInput | dish_category_group_vote_participantsCreateOrConnectWithoutDish_category_group_vote_sessionsInput[]
+    upsert?: dish_category_group_vote_participantsUpsertWithWhereUniqueWithoutDish_category_group_vote_sessionsInput | dish_category_group_vote_participantsUpsertWithWhereUniqueWithoutDish_category_group_vote_sessionsInput[]
+    createMany?: dish_category_group_vote_participantsCreateManyDish_category_group_vote_sessionsInputEnvelope
+    set?: dish_category_group_vote_participantsWhereUniqueInput | dish_category_group_vote_participantsWhereUniqueInput[]
+    disconnect?: dish_category_group_vote_participantsWhereUniqueInput | dish_category_group_vote_participantsWhereUniqueInput[]
+    delete?: dish_category_group_vote_participantsWhereUniqueInput | dish_category_group_vote_participantsWhereUniqueInput[]
+    connect?: dish_category_group_vote_participantsWhereUniqueInput | dish_category_group_vote_participantsWhereUniqueInput[]
+    update?: dish_category_group_vote_participantsUpdateWithWhereUniqueWithoutDish_category_group_vote_sessionsInput | dish_category_group_vote_participantsUpdateWithWhereUniqueWithoutDish_category_group_vote_sessionsInput[]
+    updateMany?: dish_category_group_vote_participantsUpdateManyWithWhereWithoutDish_category_group_vote_sessionsInput | dish_category_group_vote_participantsUpdateManyWithWhereWithoutDish_category_group_vote_sessionsInput[]
+    deleteMany?: dish_category_group_vote_participantsScalarWhereInput | dish_category_group_vote_participantsScalarWhereInput[]
   }
 
   export type dish_categoriesCreateNestedOneWithoutDish_category_localized_textInput = {
@@ -47173,14 +53248,6 @@ export namespace Prisma {
     connectOrCreate?: payoutsCreateOrConnectWithoutDish_mediaInput | payoutsCreateOrConnectWithoutDish_mediaInput[]
     createMany?: payoutsCreateManyDish_mediaInputEnvelope
     connect?: payoutsWhereUniqueInput | payoutsWhereUniqueInput[]
-  }
-
-  export type IntFieldUpdateOperationsInput = {
-    set?: number
-    increment?: number
-    decrement?: number
-    multiply?: number
-    divide?: number
   }
 
   export type NullableIntFieldUpdateOperationsInput = {
@@ -48762,6 +54829,44 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type dish_category_group_vote_candidatesCreateWithoutDish_categoriesInput = {
+    id?: string
+    display_name: string
+    tagline: string
+    image_url: string
+    dish_media_ids?: dish_category_group_vote_candidatesCreatedish_media_idsInput | string[]
+    dish_media_search_status?: string
+    display_order: number
+    deleted_at?: Date | string | null
+    created_at?: Date | string
+    dish_category_group_vote_candidate_votes?: dish_category_group_vote_candidate_votesCreateNestedManyWithoutDish_category_group_vote_candidatesInput
+    dish_category_group_vote_sessions: dish_category_group_vote_sessionsCreateNestedOneWithoutDish_category_group_vote_candidatesInput
+  }
+
+  export type dish_category_group_vote_candidatesUncheckedCreateWithoutDish_categoriesInput = {
+    id?: string
+    session_id: string
+    display_name: string
+    tagline: string
+    image_url: string
+    dish_media_ids?: dish_category_group_vote_candidatesCreatedish_media_idsInput | string[]
+    dish_media_search_status?: string
+    display_order: number
+    deleted_at?: Date | string | null
+    created_at?: Date | string
+    dish_category_group_vote_candidate_votes?: dish_category_group_vote_candidate_votesUncheckedCreateNestedManyWithoutDish_category_group_vote_candidatesInput
+  }
+
+  export type dish_category_group_vote_candidatesCreateOrConnectWithoutDish_categoriesInput = {
+    where: dish_category_group_vote_candidatesWhereUniqueInput
+    create: XOR<dish_category_group_vote_candidatesCreateWithoutDish_categoriesInput, dish_category_group_vote_candidatesUncheckedCreateWithoutDish_categoriesInput>
+  }
+
+  export type dish_category_group_vote_candidatesCreateManyDish_categoriesInputEnvelope = {
+    data: dish_category_group_vote_candidatesCreateManyDish_categoriesInput | dish_category_group_vote_candidatesCreateManyDish_categoriesInput[]
+    skipDuplicates?: boolean
+  }
+
   export type dish_category_localized_textCreateWithoutDish_categoriesInput = {
     locale: string
     topic_title: string
@@ -48869,6 +54974,39 @@ export namespace Prisma {
     synced_at?: DateTimeFilter<"dish_category_features"> | Date | string
   }
 
+  export type dish_category_group_vote_candidatesUpsertWithWhereUniqueWithoutDish_categoriesInput = {
+    where: dish_category_group_vote_candidatesWhereUniqueInput
+    update: XOR<dish_category_group_vote_candidatesUpdateWithoutDish_categoriesInput, dish_category_group_vote_candidatesUncheckedUpdateWithoutDish_categoriesInput>
+    create: XOR<dish_category_group_vote_candidatesCreateWithoutDish_categoriesInput, dish_category_group_vote_candidatesUncheckedCreateWithoutDish_categoriesInput>
+  }
+
+  export type dish_category_group_vote_candidatesUpdateWithWhereUniqueWithoutDish_categoriesInput = {
+    where: dish_category_group_vote_candidatesWhereUniqueInput
+    data: XOR<dish_category_group_vote_candidatesUpdateWithoutDish_categoriesInput, dish_category_group_vote_candidatesUncheckedUpdateWithoutDish_categoriesInput>
+  }
+
+  export type dish_category_group_vote_candidatesUpdateManyWithWhereWithoutDish_categoriesInput = {
+    where: dish_category_group_vote_candidatesScalarWhereInput
+    data: XOR<dish_category_group_vote_candidatesUpdateManyMutationInput, dish_category_group_vote_candidatesUncheckedUpdateManyWithoutDish_categoriesInput>
+  }
+
+  export type dish_category_group_vote_candidatesScalarWhereInput = {
+    AND?: dish_category_group_vote_candidatesScalarWhereInput | dish_category_group_vote_candidatesScalarWhereInput[]
+    OR?: dish_category_group_vote_candidatesScalarWhereInput[]
+    NOT?: dish_category_group_vote_candidatesScalarWhereInput | dish_category_group_vote_candidatesScalarWhereInput[]
+    id?: UuidFilter<"dish_category_group_vote_candidates"> | string
+    session_id?: UuidFilter<"dish_category_group_vote_candidates"> | string
+    dish_category_id?: StringFilter<"dish_category_group_vote_candidates"> | string
+    display_name?: StringFilter<"dish_category_group_vote_candidates"> | string
+    tagline?: StringFilter<"dish_category_group_vote_candidates"> | string
+    image_url?: StringFilter<"dish_category_group_vote_candidates"> | string
+    dish_media_ids?: StringNullableListFilter<"dish_category_group_vote_candidates">
+    dish_media_search_status?: StringFilter<"dish_category_group_vote_candidates"> | string
+    display_order?: IntFilter<"dish_category_group_vote_candidates"> | number
+    deleted_at?: DateTimeNullableFilter<"dish_category_group_vote_candidates"> | Date | string | null
+    created_at?: DateTimeFilter<"dish_category_group_vote_candidates"> | Date | string
+  }
+
   export type dish_category_localized_textUpsertWithWhereUniqueWithoutDish_categoriesInput = {
     where: dish_category_localized_textWhereUniqueInput
     update: XOR<dish_category_localized_textUpdateWithoutDish_categoriesInput, dish_category_localized_textUncheckedUpdateWithoutDish_categoriesInput>
@@ -48961,6 +55099,7 @@ export namespace Prisma {
     created_at?: Date | string
     macro_genre_qid?: string | null
     synced_at?: Date | string | null
+    dish_category_group_vote_candidates?: dish_category_group_vote_candidatesCreateNestedManyWithoutDish_categoriesInput
     dish_category_localized_text?: dish_category_localized_textCreateNestedManyWithoutDish_categoriesInput
     dish_category_variants?: dish_category_variantsCreateNestedManyWithoutDish_categoriesInput
     dishes?: dishesCreateNestedManyWithoutDish_categoriesInput
@@ -48975,6 +55114,7 @@ export namespace Prisma {
     created_at?: Date | string
     macro_genre_qid?: string | null
     synced_at?: Date | string | null
+    dish_category_group_vote_candidates?: dish_category_group_vote_candidatesUncheckedCreateNestedManyWithoutDish_categoriesInput
     dish_category_localized_text?: dish_category_localized_textUncheckedCreateNestedManyWithoutDish_categoriesInput
     dish_category_variants?: dish_category_variantsUncheckedCreateNestedManyWithoutDish_categoriesInput
     dishes?: dishesUncheckedCreateNestedManyWithoutDish_categoriesInput
@@ -49005,6 +55145,7 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     macro_genre_qid?: NullableStringFieldUpdateOperationsInput | string | null
     synced_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dish_category_group_vote_candidates?: dish_category_group_vote_candidatesUpdateManyWithoutDish_categoriesNestedInput
     dish_category_localized_text?: dish_category_localized_textUpdateManyWithoutDish_categoriesNestedInput
     dish_category_variants?: dish_category_variantsUpdateManyWithoutDish_categoriesNestedInput
     dishes?: dishesUpdateManyWithoutDish_categoriesNestedInput
@@ -49019,9 +55160,518 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     macro_genre_qid?: NullableStringFieldUpdateOperationsInput | string | null
     synced_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dish_category_group_vote_candidates?: dish_category_group_vote_candidatesUncheckedUpdateManyWithoutDish_categoriesNestedInput
     dish_category_localized_text?: dish_category_localized_textUncheckedUpdateManyWithoutDish_categoriesNestedInput
     dish_category_variants?: dish_category_variantsUncheckedUpdateManyWithoutDish_categoriesNestedInput
     dishes?: dishesUncheckedUpdateManyWithoutDish_categoriesNestedInput
+  }
+
+  export type dish_category_group_vote_candidatesCreateWithoutDish_category_group_vote_candidate_votesInput = {
+    id?: string
+    display_name: string
+    tagline: string
+    image_url: string
+    dish_media_ids?: dish_category_group_vote_candidatesCreatedish_media_idsInput | string[]
+    dish_media_search_status?: string
+    display_order: number
+    deleted_at?: Date | string | null
+    created_at?: Date | string
+    dish_categories: dish_categoriesCreateNestedOneWithoutDish_category_group_vote_candidatesInput
+    dish_category_group_vote_sessions: dish_category_group_vote_sessionsCreateNestedOneWithoutDish_category_group_vote_candidatesInput
+  }
+
+  export type dish_category_group_vote_candidatesUncheckedCreateWithoutDish_category_group_vote_candidate_votesInput = {
+    id?: string
+    session_id: string
+    dish_category_id: string
+    display_name: string
+    tagline: string
+    image_url: string
+    dish_media_ids?: dish_category_group_vote_candidatesCreatedish_media_idsInput | string[]
+    dish_media_search_status?: string
+    display_order: number
+    deleted_at?: Date | string | null
+    created_at?: Date | string
+  }
+
+  export type dish_category_group_vote_candidatesCreateOrConnectWithoutDish_category_group_vote_candidate_votesInput = {
+    where: dish_category_group_vote_candidatesWhereUniqueInput
+    create: XOR<dish_category_group_vote_candidatesCreateWithoutDish_category_group_vote_candidate_votesInput, dish_category_group_vote_candidatesUncheckedCreateWithoutDish_category_group_vote_candidate_votesInput>
+  }
+
+  export type dish_category_group_vote_participantsCreateWithoutDish_category_group_vote_candidate_votesInput = {
+    id?: string
+    user_id: string
+    display_name: string
+    comment?: string | null
+    created_at?: Date | string
+    dish_category_group_vote_sessions: dish_category_group_vote_sessionsCreateNestedOneWithoutDish_category_group_vote_participantsInput
+  }
+
+  export type dish_category_group_vote_participantsUncheckedCreateWithoutDish_category_group_vote_candidate_votesInput = {
+    id?: string
+    session_id: string
+    user_id: string
+    display_name: string
+    comment?: string | null
+    created_at?: Date | string
+  }
+
+  export type dish_category_group_vote_participantsCreateOrConnectWithoutDish_category_group_vote_candidate_votesInput = {
+    where: dish_category_group_vote_participantsWhereUniqueInput
+    create: XOR<dish_category_group_vote_participantsCreateWithoutDish_category_group_vote_candidate_votesInput, dish_category_group_vote_participantsUncheckedCreateWithoutDish_category_group_vote_candidate_votesInput>
+  }
+
+  export type dish_category_group_vote_candidatesUpsertWithoutDish_category_group_vote_candidate_votesInput = {
+    update: XOR<dish_category_group_vote_candidatesUpdateWithoutDish_category_group_vote_candidate_votesInput, dish_category_group_vote_candidatesUncheckedUpdateWithoutDish_category_group_vote_candidate_votesInput>
+    create: XOR<dish_category_group_vote_candidatesCreateWithoutDish_category_group_vote_candidate_votesInput, dish_category_group_vote_candidatesUncheckedCreateWithoutDish_category_group_vote_candidate_votesInput>
+    where?: dish_category_group_vote_candidatesWhereInput
+  }
+
+  export type dish_category_group_vote_candidatesUpdateToOneWithWhereWithoutDish_category_group_vote_candidate_votesInput = {
+    where?: dish_category_group_vote_candidatesWhereInput
+    data: XOR<dish_category_group_vote_candidatesUpdateWithoutDish_category_group_vote_candidate_votesInput, dish_category_group_vote_candidatesUncheckedUpdateWithoutDish_category_group_vote_candidate_votesInput>
+  }
+
+  export type dish_category_group_vote_candidatesUpdateWithoutDish_category_group_vote_candidate_votesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    display_name?: StringFieldUpdateOperationsInput | string
+    tagline?: StringFieldUpdateOperationsInput | string
+    image_url?: StringFieldUpdateOperationsInput | string
+    dish_media_ids?: dish_category_group_vote_candidatesUpdatedish_media_idsInput | string[]
+    dish_media_search_status?: StringFieldUpdateOperationsInput | string
+    display_order?: IntFieldUpdateOperationsInput | number
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    dish_categories?: dish_categoriesUpdateOneRequiredWithoutDish_category_group_vote_candidatesNestedInput
+    dish_category_group_vote_sessions?: dish_category_group_vote_sessionsUpdateOneRequiredWithoutDish_category_group_vote_candidatesNestedInput
+  }
+
+  export type dish_category_group_vote_candidatesUncheckedUpdateWithoutDish_category_group_vote_candidate_votesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    session_id?: StringFieldUpdateOperationsInput | string
+    dish_category_id?: StringFieldUpdateOperationsInput | string
+    display_name?: StringFieldUpdateOperationsInput | string
+    tagline?: StringFieldUpdateOperationsInput | string
+    image_url?: StringFieldUpdateOperationsInput | string
+    dish_media_ids?: dish_category_group_vote_candidatesUpdatedish_media_idsInput | string[]
+    dish_media_search_status?: StringFieldUpdateOperationsInput | string
+    display_order?: IntFieldUpdateOperationsInput | number
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type dish_category_group_vote_participantsUpsertWithoutDish_category_group_vote_candidate_votesInput = {
+    update: XOR<dish_category_group_vote_participantsUpdateWithoutDish_category_group_vote_candidate_votesInput, dish_category_group_vote_participantsUncheckedUpdateWithoutDish_category_group_vote_candidate_votesInput>
+    create: XOR<dish_category_group_vote_participantsCreateWithoutDish_category_group_vote_candidate_votesInput, dish_category_group_vote_participantsUncheckedCreateWithoutDish_category_group_vote_candidate_votesInput>
+    where?: dish_category_group_vote_participantsWhereInput
+  }
+
+  export type dish_category_group_vote_participantsUpdateToOneWithWhereWithoutDish_category_group_vote_candidate_votesInput = {
+    where?: dish_category_group_vote_participantsWhereInput
+    data: XOR<dish_category_group_vote_participantsUpdateWithoutDish_category_group_vote_candidate_votesInput, dish_category_group_vote_participantsUncheckedUpdateWithoutDish_category_group_vote_candidate_votesInput>
+  }
+
+  export type dish_category_group_vote_participantsUpdateWithoutDish_category_group_vote_candidate_votesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    user_id?: StringFieldUpdateOperationsInput | string
+    display_name?: StringFieldUpdateOperationsInput | string
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    dish_category_group_vote_sessions?: dish_category_group_vote_sessionsUpdateOneRequiredWithoutDish_category_group_vote_participantsNestedInput
+  }
+
+  export type dish_category_group_vote_participantsUncheckedUpdateWithoutDish_category_group_vote_candidate_votesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    session_id?: StringFieldUpdateOperationsInput | string
+    user_id?: StringFieldUpdateOperationsInput | string
+    display_name?: StringFieldUpdateOperationsInput | string
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type dish_category_group_vote_candidate_votesCreateWithoutDish_category_group_vote_candidatesInput = {
+    reaction: string
+    created_at?: Date | string
+    dish_category_group_vote_participants: dish_category_group_vote_participantsCreateNestedOneWithoutDish_category_group_vote_candidate_votesInput
+  }
+
+  export type dish_category_group_vote_candidate_votesUncheckedCreateWithoutDish_category_group_vote_candidatesInput = {
+    participant_id: string
+    reaction: string
+    created_at?: Date | string
+  }
+
+  export type dish_category_group_vote_candidate_votesCreateOrConnectWithoutDish_category_group_vote_candidatesInput = {
+    where: dish_category_group_vote_candidate_votesWhereUniqueInput
+    create: XOR<dish_category_group_vote_candidate_votesCreateWithoutDish_category_group_vote_candidatesInput, dish_category_group_vote_candidate_votesUncheckedCreateWithoutDish_category_group_vote_candidatesInput>
+  }
+
+  export type dish_category_group_vote_candidate_votesCreateManyDish_category_group_vote_candidatesInputEnvelope = {
+    data: dish_category_group_vote_candidate_votesCreateManyDish_category_group_vote_candidatesInput | dish_category_group_vote_candidate_votesCreateManyDish_category_group_vote_candidatesInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type dish_categoriesCreateWithoutDish_category_group_vote_candidatesInput = {
+    id: string
+    label_en: string
+    labels: JsonNullValueInput | InputJsonValue
+    image_url: string
+    tags?: dish_categoriesCreatetagsInput | string[]
+    created_at?: Date | string
+    macro_genre_qid?: string | null
+    synced_at?: Date | string | null
+    dish_category_features?: dish_category_featuresCreateNestedManyWithoutDish_categoriesInput
+    dish_category_localized_text?: dish_category_localized_textCreateNestedManyWithoutDish_categoriesInput
+    dish_category_variants?: dish_category_variantsCreateNestedManyWithoutDish_categoriesInput
+    dishes?: dishesCreateNestedManyWithoutDish_categoriesInput
+  }
+
+  export type dish_categoriesUncheckedCreateWithoutDish_category_group_vote_candidatesInput = {
+    id: string
+    label_en: string
+    labels: JsonNullValueInput | InputJsonValue
+    image_url: string
+    tags?: dish_categoriesCreatetagsInput | string[]
+    created_at?: Date | string
+    macro_genre_qid?: string | null
+    synced_at?: Date | string | null
+    dish_category_features?: dish_category_featuresUncheckedCreateNestedManyWithoutDish_categoriesInput
+    dish_category_localized_text?: dish_category_localized_textUncheckedCreateNestedManyWithoutDish_categoriesInput
+    dish_category_variants?: dish_category_variantsUncheckedCreateNestedManyWithoutDish_categoriesInput
+    dishes?: dishesUncheckedCreateNestedManyWithoutDish_categoriesInput
+  }
+
+  export type dish_categoriesCreateOrConnectWithoutDish_category_group_vote_candidatesInput = {
+    where: dish_categoriesWhereUniqueInput
+    create: XOR<dish_categoriesCreateWithoutDish_category_group_vote_candidatesInput, dish_categoriesUncheckedCreateWithoutDish_category_group_vote_candidatesInput>
+  }
+
+  export type dish_category_group_vote_sessionsCreateWithoutDish_category_group_vote_candidatesInput = {
+    id?: string
+    host_user_id: string
+    share_token: string
+    search_context?: JsonNullValueInput | InputJsonValue
+    created_at?: Date | string
+    updated_at?: Date | string
+    dish_category_group_vote_participants?: dish_category_group_vote_participantsCreateNestedManyWithoutDish_category_group_vote_sessionsInput
+  }
+
+  export type dish_category_group_vote_sessionsUncheckedCreateWithoutDish_category_group_vote_candidatesInput = {
+    id?: string
+    host_user_id: string
+    share_token: string
+    search_context?: JsonNullValueInput | InputJsonValue
+    created_at?: Date | string
+    updated_at?: Date | string
+    dish_category_group_vote_participants?: dish_category_group_vote_participantsUncheckedCreateNestedManyWithoutDish_category_group_vote_sessionsInput
+  }
+
+  export type dish_category_group_vote_sessionsCreateOrConnectWithoutDish_category_group_vote_candidatesInput = {
+    where: dish_category_group_vote_sessionsWhereUniqueInput
+    create: XOR<dish_category_group_vote_sessionsCreateWithoutDish_category_group_vote_candidatesInput, dish_category_group_vote_sessionsUncheckedCreateWithoutDish_category_group_vote_candidatesInput>
+  }
+
+  export type dish_category_group_vote_candidate_votesUpsertWithWhereUniqueWithoutDish_category_group_vote_candidatesInput = {
+    where: dish_category_group_vote_candidate_votesWhereUniqueInput
+    update: XOR<dish_category_group_vote_candidate_votesUpdateWithoutDish_category_group_vote_candidatesInput, dish_category_group_vote_candidate_votesUncheckedUpdateWithoutDish_category_group_vote_candidatesInput>
+    create: XOR<dish_category_group_vote_candidate_votesCreateWithoutDish_category_group_vote_candidatesInput, dish_category_group_vote_candidate_votesUncheckedCreateWithoutDish_category_group_vote_candidatesInput>
+  }
+
+  export type dish_category_group_vote_candidate_votesUpdateWithWhereUniqueWithoutDish_category_group_vote_candidatesInput = {
+    where: dish_category_group_vote_candidate_votesWhereUniqueInput
+    data: XOR<dish_category_group_vote_candidate_votesUpdateWithoutDish_category_group_vote_candidatesInput, dish_category_group_vote_candidate_votesUncheckedUpdateWithoutDish_category_group_vote_candidatesInput>
+  }
+
+  export type dish_category_group_vote_candidate_votesUpdateManyWithWhereWithoutDish_category_group_vote_candidatesInput = {
+    where: dish_category_group_vote_candidate_votesScalarWhereInput
+    data: XOR<dish_category_group_vote_candidate_votesUpdateManyMutationInput, dish_category_group_vote_candidate_votesUncheckedUpdateManyWithoutDish_category_group_vote_candidatesInput>
+  }
+
+  export type dish_category_group_vote_candidate_votesScalarWhereInput = {
+    AND?: dish_category_group_vote_candidate_votesScalarWhereInput | dish_category_group_vote_candidate_votesScalarWhereInput[]
+    OR?: dish_category_group_vote_candidate_votesScalarWhereInput[]
+    NOT?: dish_category_group_vote_candidate_votesScalarWhereInput | dish_category_group_vote_candidate_votesScalarWhereInput[]
+    participant_id?: UuidFilter<"dish_category_group_vote_candidate_votes"> | string
+    candidate_id?: UuidFilter<"dish_category_group_vote_candidate_votes"> | string
+    reaction?: StringFilter<"dish_category_group_vote_candidate_votes"> | string
+    created_at?: DateTimeFilter<"dish_category_group_vote_candidate_votes"> | Date | string
+  }
+
+  export type dish_categoriesUpsertWithoutDish_category_group_vote_candidatesInput = {
+    update: XOR<dish_categoriesUpdateWithoutDish_category_group_vote_candidatesInput, dish_categoriesUncheckedUpdateWithoutDish_category_group_vote_candidatesInput>
+    create: XOR<dish_categoriesCreateWithoutDish_category_group_vote_candidatesInput, dish_categoriesUncheckedCreateWithoutDish_category_group_vote_candidatesInput>
+    where?: dish_categoriesWhereInput
+  }
+
+  export type dish_categoriesUpdateToOneWithWhereWithoutDish_category_group_vote_candidatesInput = {
+    where?: dish_categoriesWhereInput
+    data: XOR<dish_categoriesUpdateWithoutDish_category_group_vote_candidatesInput, dish_categoriesUncheckedUpdateWithoutDish_category_group_vote_candidatesInput>
+  }
+
+  export type dish_categoriesUpdateWithoutDish_category_group_vote_candidatesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    label_en?: StringFieldUpdateOperationsInput | string
+    labels?: JsonNullValueInput | InputJsonValue
+    image_url?: StringFieldUpdateOperationsInput | string
+    tags?: dish_categoriesUpdatetagsInput | string[]
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    macro_genre_qid?: NullableStringFieldUpdateOperationsInput | string | null
+    synced_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dish_category_features?: dish_category_featuresUpdateManyWithoutDish_categoriesNestedInput
+    dish_category_localized_text?: dish_category_localized_textUpdateManyWithoutDish_categoriesNestedInput
+    dish_category_variants?: dish_category_variantsUpdateManyWithoutDish_categoriesNestedInput
+    dishes?: dishesUpdateManyWithoutDish_categoriesNestedInput
+  }
+
+  export type dish_categoriesUncheckedUpdateWithoutDish_category_group_vote_candidatesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    label_en?: StringFieldUpdateOperationsInput | string
+    labels?: JsonNullValueInput | InputJsonValue
+    image_url?: StringFieldUpdateOperationsInput | string
+    tags?: dish_categoriesUpdatetagsInput | string[]
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    macro_genre_qid?: NullableStringFieldUpdateOperationsInput | string | null
+    synced_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dish_category_features?: dish_category_featuresUncheckedUpdateManyWithoutDish_categoriesNestedInput
+    dish_category_localized_text?: dish_category_localized_textUncheckedUpdateManyWithoutDish_categoriesNestedInput
+    dish_category_variants?: dish_category_variantsUncheckedUpdateManyWithoutDish_categoriesNestedInput
+    dishes?: dishesUncheckedUpdateManyWithoutDish_categoriesNestedInput
+  }
+
+  export type dish_category_group_vote_sessionsUpsertWithoutDish_category_group_vote_candidatesInput = {
+    update: XOR<dish_category_group_vote_sessionsUpdateWithoutDish_category_group_vote_candidatesInput, dish_category_group_vote_sessionsUncheckedUpdateWithoutDish_category_group_vote_candidatesInput>
+    create: XOR<dish_category_group_vote_sessionsCreateWithoutDish_category_group_vote_candidatesInput, dish_category_group_vote_sessionsUncheckedCreateWithoutDish_category_group_vote_candidatesInput>
+    where?: dish_category_group_vote_sessionsWhereInput
+  }
+
+  export type dish_category_group_vote_sessionsUpdateToOneWithWhereWithoutDish_category_group_vote_candidatesInput = {
+    where?: dish_category_group_vote_sessionsWhereInput
+    data: XOR<dish_category_group_vote_sessionsUpdateWithoutDish_category_group_vote_candidatesInput, dish_category_group_vote_sessionsUncheckedUpdateWithoutDish_category_group_vote_candidatesInput>
+  }
+
+  export type dish_category_group_vote_sessionsUpdateWithoutDish_category_group_vote_candidatesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    host_user_id?: StringFieldUpdateOperationsInput | string
+    share_token?: StringFieldUpdateOperationsInput | string
+    search_context?: JsonNullValueInput | InputJsonValue
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    dish_category_group_vote_participants?: dish_category_group_vote_participantsUpdateManyWithoutDish_category_group_vote_sessionsNestedInput
+  }
+
+  export type dish_category_group_vote_sessionsUncheckedUpdateWithoutDish_category_group_vote_candidatesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    host_user_id?: StringFieldUpdateOperationsInput | string
+    share_token?: StringFieldUpdateOperationsInput | string
+    search_context?: JsonNullValueInput | InputJsonValue
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    dish_category_group_vote_participants?: dish_category_group_vote_participantsUncheckedUpdateManyWithoutDish_category_group_vote_sessionsNestedInput
+  }
+
+  export type dish_category_group_vote_candidate_votesCreateWithoutDish_category_group_vote_participantsInput = {
+    reaction: string
+    created_at?: Date | string
+    dish_category_group_vote_candidates: dish_category_group_vote_candidatesCreateNestedOneWithoutDish_category_group_vote_candidate_votesInput
+  }
+
+  export type dish_category_group_vote_candidate_votesUncheckedCreateWithoutDish_category_group_vote_participantsInput = {
+    candidate_id: string
+    reaction: string
+    created_at?: Date | string
+  }
+
+  export type dish_category_group_vote_candidate_votesCreateOrConnectWithoutDish_category_group_vote_participantsInput = {
+    where: dish_category_group_vote_candidate_votesWhereUniqueInput
+    create: XOR<dish_category_group_vote_candidate_votesCreateWithoutDish_category_group_vote_participantsInput, dish_category_group_vote_candidate_votesUncheckedCreateWithoutDish_category_group_vote_participantsInput>
+  }
+
+  export type dish_category_group_vote_candidate_votesCreateManyDish_category_group_vote_participantsInputEnvelope = {
+    data: dish_category_group_vote_candidate_votesCreateManyDish_category_group_vote_participantsInput | dish_category_group_vote_candidate_votesCreateManyDish_category_group_vote_participantsInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type dish_category_group_vote_sessionsCreateWithoutDish_category_group_vote_participantsInput = {
+    id?: string
+    host_user_id: string
+    share_token: string
+    search_context?: JsonNullValueInput | InputJsonValue
+    created_at?: Date | string
+    updated_at?: Date | string
+    dish_category_group_vote_candidates?: dish_category_group_vote_candidatesCreateNestedManyWithoutDish_category_group_vote_sessionsInput
+  }
+
+  export type dish_category_group_vote_sessionsUncheckedCreateWithoutDish_category_group_vote_participantsInput = {
+    id?: string
+    host_user_id: string
+    share_token: string
+    search_context?: JsonNullValueInput | InputJsonValue
+    created_at?: Date | string
+    updated_at?: Date | string
+    dish_category_group_vote_candidates?: dish_category_group_vote_candidatesUncheckedCreateNestedManyWithoutDish_category_group_vote_sessionsInput
+  }
+
+  export type dish_category_group_vote_sessionsCreateOrConnectWithoutDish_category_group_vote_participantsInput = {
+    where: dish_category_group_vote_sessionsWhereUniqueInput
+    create: XOR<dish_category_group_vote_sessionsCreateWithoutDish_category_group_vote_participantsInput, dish_category_group_vote_sessionsUncheckedCreateWithoutDish_category_group_vote_participantsInput>
+  }
+
+  export type dish_category_group_vote_candidate_votesUpsertWithWhereUniqueWithoutDish_category_group_vote_participantsInput = {
+    where: dish_category_group_vote_candidate_votesWhereUniqueInput
+    update: XOR<dish_category_group_vote_candidate_votesUpdateWithoutDish_category_group_vote_participantsInput, dish_category_group_vote_candidate_votesUncheckedUpdateWithoutDish_category_group_vote_participantsInput>
+    create: XOR<dish_category_group_vote_candidate_votesCreateWithoutDish_category_group_vote_participantsInput, dish_category_group_vote_candidate_votesUncheckedCreateWithoutDish_category_group_vote_participantsInput>
+  }
+
+  export type dish_category_group_vote_candidate_votesUpdateWithWhereUniqueWithoutDish_category_group_vote_participantsInput = {
+    where: dish_category_group_vote_candidate_votesWhereUniqueInput
+    data: XOR<dish_category_group_vote_candidate_votesUpdateWithoutDish_category_group_vote_participantsInput, dish_category_group_vote_candidate_votesUncheckedUpdateWithoutDish_category_group_vote_participantsInput>
+  }
+
+  export type dish_category_group_vote_candidate_votesUpdateManyWithWhereWithoutDish_category_group_vote_participantsInput = {
+    where: dish_category_group_vote_candidate_votesScalarWhereInput
+    data: XOR<dish_category_group_vote_candidate_votesUpdateManyMutationInput, dish_category_group_vote_candidate_votesUncheckedUpdateManyWithoutDish_category_group_vote_participantsInput>
+  }
+
+  export type dish_category_group_vote_sessionsUpsertWithoutDish_category_group_vote_participantsInput = {
+    update: XOR<dish_category_group_vote_sessionsUpdateWithoutDish_category_group_vote_participantsInput, dish_category_group_vote_sessionsUncheckedUpdateWithoutDish_category_group_vote_participantsInput>
+    create: XOR<dish_category_group_vote_sessionsCreateWithoutDish_category_group_vote_participantsInput, dish_category_group_vote_sessionsUncheckedCreateWithoutDish_category_group_vote_participantsInput>
+    where?: dish_category_group_vote_sessionsWhereInput
+  }
+
+  export type dish_category_group_vote_sessionsUpdateToOneWithWhereWithoutDish_category_group_vote_participantsInput = {
+    where?: dish_category_group_vote_sessionsWhereInput
+    data: XOR<dish_category_group_vote_sessionsUpdateWithoutDish_category_group_vote_participantsInput, dish_category_group_vote_sessionsUncheckedUpdateWithoutDish_category_group_vote_participantsInput>
+  }
+
+  export type dish_category_group_vote_sessionsUpdateWithoutDish_category_group_vote_participantsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    host_user_id?: StringFieldUpdateOperationsInput | string
+    share_token?: StringFieldUpdateOperationsInput | string
+    search_context?: JsonNullValueInput | InputJsonValue
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    dish_category_group_vote_candidates?: dish_category_group_vote_candidatesUpdateManyWithoutDish_category_group_vote_sessionsNestedInput
+  }
+
+  export type dish_category_group_vote_sessionsUncheckedUpdateWithoutDish_category_group_vote_participantsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    host_user_id?: StringFieldUpdateOperationsInput | string
+    share_token?: StringFieldUpdateOperationsInput | string
+    search_context?: JsonNullValueInput | InputJsonValue
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    dish_category_group_vote_candidates?: dish_category_group_vote_candidatesUncheckedUpdateManyWithoutDish_category_group_vote_sessionsNestedInput
+  }
+
+  export type dish_category_group_vote_candidatesCreateWithoutDish_category_group_vote_sessionsInput = {
+    id?: string
+    display_name: string
+    tagline: string
+    image_url: string
+    dish_media_ids?: dish_category_group_vote_candidatesCreatedish_media_idsInput | string[]
+    dish_media_search_status?: string
+    display_order: number
+    deleted_at?: Date | string | null
+    created_at?: Date | string
+    dish_category_group_vote_candidate_votes?: dish_category_group_vote_candidate_votesCreateNestedManyWithoutDish_category_group_vote_candidatesInput
+    dish_categories: dish_categoriesCreateNestedOneWithoutDish_category_group_vote_candidatesInput
+  }
+
+  export type dish_category_group_vote_candidatesUncheckedCreateWithoutDish_category_group_vote_sessionsInput = {
+    id?: string
+    dish_category_id: string
+    display_name: string
+    tagline: string
+    image_url: string
+    dish_media_ids?: dish_category_group_vote_candidatesCreatedish_media_idsInput | string[]
+    dish_media_search_status?: string
+    display_order: number
+    deleted_at?: Date | string | null
+    created_at?: Date | string
+    dish_category_group_vote_candidate_votes?: dish_category_group_vote_candidate_votesUncheckedCreateNestedManyWithoutDish_category_group_vote_candidatesInput
+  }
+
+  export type dish_category_group_vote_candidatesCreateOrConnectWithoutDish_category_group_vote_sessionsInput = {
+    where: dish_category_group_vote_candidatesWhereUniqueInput
+    create: XOR<dish_category_group_vote_candidatesCreateWithoutDish_category_group_vote_sessionsInput, dish_category_group_vote_candidatesUncheckedCreateWithoutDish_category_group_vote_sessionsInput>
+  }
+
+  export type dish_category_group_vote_candidatesCreateManyDish_category_group_vote_sessionsInputEnvelope = {
+    data: dish_category_group_vote_candidatesCreateManyDish_category_group_vote_sessionsInput | dish_category_group_vote_candidatesCreateManyDish_category_group_vote_sessionsInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type dish_category_group_vote_participantsCreateWithoutDish_category_group_vote_sessionsInput = {
+    id?: string
+    user_id: string
+    display_name: string
+    comment?: string | null
+    created_at?: Date | string
+    dish_category_group_vote_candidate_votes?: dish_category_group_vote_candidate_votesCreateNestedManyWithoutDish_category_group_vote_participantsInput
+  }
+
+  export type dish_category_group_vote_participantsUncheckedCreateWithoutDish_category_group_vote_sessionsInput = {
+    id?: string
+    user_id: string
+    display_name: string
+    comment?: string | null
+    created_at?: Date | string
+    dish_category_group_vote_candidate_votes?: dish_category_group_vote_candidate_votesUncheckedCreateNestedManyWithoutDish_category_group_vote_participantsInput
+  }
+
+  export type dish_category_group_vote_participantsCreateOrConnectWithoutDish_category_group_vote_sessionsInput = {
+    where: dish_category_group_vote_participantsWhereUniqueInput
+    create: XOR<dish_category_group_vote_participantsCreateWithoutDish_category_group_vote_sessionsInput, dish_category_group_vote_participantsUncheckedCreateWithoutDish_category_group_vote_sessionsInput>
+  }
+
+  export type dish_category_group_vote_participantsCreateManyDish_category_group_vote_sessionsInputEnvelope = {
+    data: dish_category_group_vote_participantsCreateManyDish_category_group_vote_sessionsInput | dish_category_group_vote_participantsCreateManyDish_category_group_vote_sessionsInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type dish_category_group_vote_candidatesUpsertWithWhereUniqueWithoutDish_category_group_vote_sessionsInput = {
+    where: dish_category_group_vote_candidatesWhereUniqueInput
+    update: XOR<dish_category_group_vote_candidatesUpdateWithoutDish_category_group_vote_sessionsInput, dish_category_group_vote_candidatesUncheckedUpdateWithoutDish_category_group_vote_sessionsInput>
+    create: XOR<dish_category_group_vote_candidatesCreateWithoutDish_category_group_vote_sessionsInput, dish_category_group_vote_candidatesUncheckedCreateWithoutDish_category_group_vote_sessionsInput>
+  }
+
+  export type dish_category_group_vote_candidatesUpdateWithWhereUniqueWithoutDish_category_group_vote_sessionsInput = {
+    where: dish_category_group_vote_candidatesWhereUniqueInput
+    data: XOR<dish_category_group_vote_candidatesUpdateWithoutDish_category_group_vote_sessionsInput, dish_category_group_vote_candidatesUncheckedUpdateWithoutDish_category_group_vote_sessionsInput>
+  }
+
+  export type dish_category_group_vote_candidatesUpdateManyWithWhereWithoutDish_category_group_vote_sessionsInput = {
+    where: dish_category_group_vote_candidatesScalarWhereInput
+    data: XOR<dish_category_group_vote_candidatesUpdateManyMutationInput, dish_category_group_vote_candidatesUncheckedUpdateManyWithoutDish_category_group_vote_sessionsInput>
+  }
+
+  export type dish_category_group_vote_participantsUpsertWithWhereUniqueWithoutDish_category_group_vote_sessionsInput = {
+    where: dish_category_group_vote_participantsWhereUniqueInput
+    update: XOR<dish_category_group_vote_participantsUpdateWithoutDish_category_group_vote_sessionsInput, dish_category_group_vote_participantsUncheckedUpdateWithoutDish_category_group_vote_sessionsInput>
+    create: XOR<dish_category_group_vote_participantsCreateWithoutDish_category_group_vote_sessionsInput, dish_category_group_vote_participantsUncheckedCreateWithoutDish_category_group_vote_sessionsInput>
+  }
+
+  export type dish_category_group_vote_participantsUpdateWithWhereUniqueWithoutDish_category_group_vote_sessionsInput = {
+    where: dish_category_group_vote_participantsWhereUniqueInput
+    data: XOR<dish_category_group_vote_participantsUpdateWithoutDish_category_group_vote_sessionsInput, dish_category_group_vote_participantsUncheckedUpdateWithoutDish_category_group_vote_sessionsInput>
+  }
+
+  export type dish_category_group_vote_participantsUpdateManyWithWhereWithoutDish_category_group_vote_sessionsInput = {
+    where: dish_category_group_vote_participantsScalarWhereInput
+    data: XOR<dish_category_group_vote_participantsUpdateManyMutationInput, dish_category_group_vote_participantsUncheckedUpdateManyWithoutDish_category_group_vote_sessionsInput>
+  }
+
+  export type dish_category_group_vote_participantsScalarWhereInput = {
+    AND?: dish_category_group_vote_participantsScalarWhereInput | dish_category_group_vote_participantsScalarWhereInput[]
+    OR?: dish_category_group_vote_participantsScalarWhereInput[]
+    NOT?: dish_category_group_vote_participantsScalarWhereInput | dish_category_group_vote_participantsScalarWhereInput[]
+    id?: UuidFilter<"dish_category_group_vote_participants"> | string
+    session_id?: UuidFilter<"dish_category_group_vote_participants"> | string
+    user_id?: UuidFilter<"dish_category_group_vote_participants"> | string
+    display_name?: StringFilter<"dish_category_group_vote_participants"> | string
+    comment?: StringNullableFilter<"dish_category_group_vote_participants"> | string | null
+    created_at?: DateTimeFilter<"dish_category_group_vote_participants"> | Date | string
   }
 
   export type dish_categoriesCreateWithoutDish_category_localized_textInput = {
@@ -49034,6 +55684,7 @@ export namespace Prisma {
     macro_genre_qid?: string | null
     synced_at?: Date | string | null
     dish_category_features?: dish_category_featuresCreateNestedManyWithoutDish_categoriesInput
+    dish_category_group_vote_candidates?: dish_category_group_vote_candidatesCreateNestedManyWithoutDish_categoriesInput
     dish_category_variants?: dish_category_variantsCreateNestedManyWithoutDish_categoriesInput
     dishes?: dishesCreateNestedManyWithoutDish_categoriesInput
   }
@@ -49048,6 +55699,7 @@ export namespace Prisma {
     macro_genre_qid?: string | null
     synced_at?: Date | string | null
     dish_category_features?: dish_category_featuresUncheckedCreateNestedManyWithoutDish_categoriesInput
+    dish_category_group_vote_candidates?: dish_category_group_vote_candidatesUncheckedCreateNestedManyWithoutDish_categoriesInput
     dish_category_variants?: dish_category_variantsUncheckedCreateNestedManyWithoutDish_categoriesInput
     dishes?: dishesUncheckedCreateNestedManyWithoutDish_categoriesInput
   }
@@ -49078,6 +55730,7 @@ export namespace Prisma {
     macro_genre_qid?: NullableStringFieldUpdateOperationsInput | string | null
     synced_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dish_category_features?: dish_category_featuresUpdateManyWithoutDish_categoriesNestedInput
+    dish_category_group_vote_candidates?: dish_category_group_vote_candidatesUpdateManyWithoutDish_categoriesNestedInput
     dish_category_variants?: dish_category_variantsUpdateManyWithoutDish_categoriesNestedInput
     dishes?: dishesUpdateManyWithoutDish_categoriesNestedInput
   }
@@ -49092,6 +55745,7 @@ export namespace Prisma {
     macro_genre_qid?: NullableStringFieldUpdateOperationsInput | string | null
     synced_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dish_category_features?: dish_category_featuresUncheckedUpdateManyWithoutDish_categoriesNestedInput
+    dish_category_group_vote_candidates?: dish_category_group_vote_candidatesUncheckedUpdateManyWithoutDish_categoriesNestedInput
     dish_category_variants?: dish_category_variantsUncheckedUpdateManyWithoutDish_categoriesNestedInput
     dishes?: dishesUncheckedUpdateManyWithoutDish_categoriesNestedInput
   }
@@ -49106,6 +55760,7 @@ export namespace Prisma {
     macro_genre_qid?: string | null
     synced_at?: Date | string | null
     dish_category_features?: dish_category_featuresCreateNestedManyWithoutDish_categoriesInput
+    dish_category_group_vote_candidates?: dish_category_group_vote_candidatesCreateNestedManyWithoutDish_categoriesInput
     dish_category_localized_text?: dish_category_localized_textCreateNestedManyWithoutDish_categoriesInput
     dishes?: dishesCreateNestedManyWithoutDish_categoriesInput
   }
@@ -49120,6 +55775,7 @@ export namespace Prisma {
     macro_genre_qid?: string | null
     synced_at?: Date | string | null
     dish_category_features?: dish_category_featuresUncheckedCreateNestedManyWithoutDish_categoriesInput
+    dish_category_group_vote_candidates?: dish_category_group_vote_candidatesUncheckedCreateNestedManyWithoutDish_categoriesInput
     dish_category_localized_text?: dish_category_localized_textUncheckedCreateNestedManyWithoutDish_categoriesInput
     dishes?: dishesUncheckedCreateNestedManyWithoutDish_categoriesInput
   }
@@ -49150,6 +55806,7 @@ export namespace Prisma {
     macro_genre_qid?: NullableStringFieldUpdateOperationsInput | string | null
     synced_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dish_category_features?: dish_category_featuresUpdateManyWithoutDish_categoriesNestedInput
+    dish_category_group_vote_candidates?: dish_category_group_vote_candidatesUpdateManyWithoutDish_categoriesNestedInput
     dish_category_localized_text?: dish_category_localized_textUpdateManyWithoutDish_categoriesNestedInput
     dishes?: dishesUpdateManyWithoutDish_categoriesNestedInput
   }
@@ -49164,6 +55821,7 @@ export namespace Prisma {
     macro_genre_qid?: NullableStringFieldUpdateOperationsInput | string | null
     synced_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dish_category_features?: dish_category_featuresUncheckedUpdateManyWithoutDish_categoriesNestedInput
+    dish_category_group_vote_candidates?: dish_category_group_vote_candidatesUncheckedUpdateManyWithoutDish_categoriesNestedInput
     dish_category_localized_text?: dish_category_localized_textUncheckedUpdateManyWithoutDish_categoriesNestedInput
     dishes?: dishesUncheckedUpdateManyWithoutDish_categoriesNestedInput
   }
@@ -50393,6 +57051,7 @@ export namespace Prisma {
     macro_genre_qid?: string | null
     synced_at?: Date | string | null
     dish_category_features?: dish_category_featuresCreateNestedManyWithoutDish_categoriesInput
+    dish_category_group_vote_candidates?: dish_category_group_vote_candidatesCreateNestedManyWithoutDish_categoriesInput
     dish_category_localized_text?: dish_category_localized_textCreateNestedManyWithoutDish_categoriesInput
     dish_category_variants?: dish_category_variantsCreateNestedManyWithoutDish_categoriesInput
   }
@@ -50407,6 +57066,7 @@ export namespace Prisma {
     macro_genre_qid?: string | null
     synced_at?: Date | string | null
     dish_category_features?: dish_category_featuresUncheckedCreateNestedManyWithoutDish_categoriesInput
+    dish_category_group_vote_candidates?: dish_category_group_vote_candidatesUncheckedCreateNestedManyWithoutDish_categoriesInput
     dish_category_localized_text?: dish_category_localized_textUncheckedCreateNestedManyWithoutDish_categoriesInput
     dish_category_variants?: dish_category_variantsUncheckedCreateNestedManyWithoutDish_categoriesInput
   }
@@ -50540,6 +57200,7 @@ export namespace Prisma {
     macro_genre_qid?: NullableStringFieldUpdateOperationsInput | string | null
     synced_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dish_category_features?: dish_category_featuresUpdateManyWithoutDish_categoriesNestedInput
+    dish_category_group_vote_candidates?: dish_category_group_vote_candidatesUpdateManyWithoutDish_categoriesNestedInput
     dish_category_localized_text?: dish_category_localized_textUpdateManyWithoutDish_categoriesNestedInput
     dish_category_variants?: dish_category_variantsUpdateManyWithoutDish_categoriesNestedInput
   }
@@ -50554,6 +57215,7 @@ export namespace Prisma {
     macro_genre_qid?: NullableStringFieldUpdateOperationsInput | string | null
     synced_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dish_category_features?: dish_category_featuresUncheckedUpdateManyWithoutDish_categoriesNestedInput
+    dish_category_group_vote_candidates?: dish_category_group_vote_candidatesUncheckedUpdateManyWithoutDish_categoriesNestedInput
     dish_category_localized_text?: dish_category_localized_textUncheckedUpdateManyWithoutDish_categoriesNestedInput
     dish_category_variants?: dish_category_variantsUncheckedUpdateManyWithoutDish_categoriesNestedInput
   }
@@ -51782,6 +58444,19 @@ export namespace Prisma {
     synced_at: Date | string
   }
 
+  export type dish_category_group_vote_candidatesCreateManyDish_categoriesInput = {
+    id?: string
+    session_id: string
+    display_name: string
+    tagline: string
+    image_url: string
+    dish_media_ids?: dish_category_group_vote_candidatesCreatedish_media_idsInput | string[]
+    dish_media_search_status?: string
+    display_order: number
+    deleted_at?: Date | string | null
+    created_at?: Date | string
+  }
+
   export type dish_category_localized_textCreateManyDish_categoriesInput = {
     locale: string
     topic_title: string
@@ -51824,6 +58499,47 @@ export namespace Prisma {
     feature_key?: StringFieldUpdateOperationsInput | string
     score?: FloatFieldUpdateOperationsInput | number
     synced_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type dish_category_group_vote_candidatesUpdateWithoutDish_categoriesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    display_name?: StringFieldUpdateOperationsInput | string
+    tagline?: StringFieldUpdateOperationsInput | string
+    image_url?: StringFieldUpdateOperationsInput | string
+    dish_media_ids?: dish_category_group_vote_candidatesUpdatedish_media_idsInput | string[]
+    dish_media_search_status?: StringFieldUpdateOperationsInput | string
+    display_order?: IntFieldUpdateOperationsInput | number
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    dish_category_group_vote_candidate_votes?: dish_category_group_vote_candidate_votesUpdateManyWithoutDish_category_group_vote_candidatesNestedInput
+    dish_category_group_vote_sessions?: dish_category_group_vote_sessionsUpdateOneRequiredWithoutDish_category_group_vote_candidatesNestedInput
+  }
+
+  export type dish_category_group_vote_candidatesUncheckedUpdateWithoutDish_categoriesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    session_id?: StringFieldUpdateOperationsInput | string
+    display_name?: StringFieldUpdateOperationsInput | string
+    tagline?: StringFieldUpdateOperationsInput | string
+    image_url?: StringFieldUpdateOperationsInput | string
+    dish_media_ids?: dish_category_group_vote_candidatesUpdatedish_media_idsInput | string[]
+    dish_media_search_status?: StringFieldUpdateOperationsInput | string
+    display_order?: IntFieldUpdateOperationsInput | number
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    dish_category_group_vote_candidate_votes?: dish_category_group_vote_candidate_votesUncheckedUpdateManyWithoutDish_category_group_vote_candidatesNestedInput
+  }
+
+  export type dish_category_group_vote_candidatesUncheckedUpdateManyWithoutDish_categoriesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    session_id?: StringFieldUpdateOperationsInput | string
+    display_name?: StringFieldUpdateOperationsInput | string
+    tagline?: StringFieldUpdateOperationsInput | string
+    image_url?: StringFieldUpdateOperationsInput | string
+    dish_media_ids?: dish_category_group_vote_candidatesUpdatedish_media_idsInput | string[]
+    dish_media_search_status?: StringFieldUpdateOperationsInput | string
+    display_order?: IntFieldUpdateOperationsInput | number
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type dish_category_localized_textUpdateWithoutDish_categoriesInput = {
@@ -51897,6 +58613,142 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
+  }
+
+  export type dish_category_group_vote_candidate_votesCreateManyDish_category_group_vote_candidatesInput = {
+    participant_id: string
+    reaction: string
+    created_at?: Date | string
+  }
+
+  export type dish_category_group_vote_candidate_votesUpdateWithoutDish_category_group_vote_candidatesInput = {
+    reaction?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    dish_category_group_vote_participants?: dish_category_group_vote_participantsUpdateOneRequiredWithoutDish_category_group_vote_candidate_votesNestedInput
+  }
+
+  export type dish_category_group_vote_candidate_votesUncheckedUpdateWithoutDish_category_group_vote_candidatesInput = {
+    participant_id?: StringFieldUpdateOperationsInput | string
+    reaction?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type dish_category_group_vote_candidate_votesUncheckedUpdateManyWithoutDish_category_group_vote_candidatesInput = {
+    participant_id?: StringFieldUpdateOperationsInput | string
+    reaction?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type dish_category_group_vote_candidate_votesCreateManyDish_category_group_vote_participantsInput = {
+    candidate_id: string
+    reaction: string
+    created_at?: Date | string
+  }
+
+  export type dish_category_group_vote_candidate_votesUpdateWithoutDish_category_group_vote_participantsInput = {
+    reaction?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    dish_category_group_vote_candidates?: dish_category_group_vote_candidatesUpdateOneRequiredWithoutDish_category_group_vote_candidate_votesNestedInput
+  }
+
+  export type dish_category_group_vote_candidate_votesUncheckedUpdateWithoutDish_category_group_vote_participantsInput = {
+    candidate_id?: StringFieldUpdateOperationsInput | string
+    reaction?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type dish_category_group_vote_candidate_votesUncheckedUpdateManyWithoutDish_category_group_vote_participantsInput = {
+    candidate_id?: StringFieldUpdateOperationsInput | string
+    reaction?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type dish_category_group_vote_candidatesCreateManyDish_category_group_vote_sessionsInput = {
+    id?: string
+    dish_category_id: string
+    display_name: string
+    tagline: string
+    image_url: string
+    dish_media_ids?: dish_category_group_vote_candidatesCreatedish_media_idsInput | string[]
+    dish_media_search_status?: string
+    display_order: number
+    deleted_at?: Date | string | null
+    created_at?: Date | string
+  }
+
+  export type dish_category_group_vote_participantsCreateManyDish_category_group_vote_sessionsInput = {
+    id?: string
+    user_id: string
+    display_name: string
+    comment?: string | null
+    created_at?: Date | string
+  }
+
+  export type dish_category_group_vote_candidatesUpdateWithoutDish_category_group_vote_sessionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    display_name?: StringFieldUpdateOperationsInput | string
+    tagline?: StringFieldUpdateOperationsInput | string
+    image_url?: StringFieldUpdateOperationsInput | string
+    dish_media_ids?: dish_category_group_vote_candidatesUpdatedish_media_idsInput | string[]
+    dish_media_search_status?: StringFieldUpdateOperationsInput | string
+    display_order?: IntFieldUpdateOperationsInput | number
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    dish_category_group_vote_candidate_votes?: dish_category_group_vote_candidate_votesUpdateManyWithoutDish_category_group_vote_candidatesNestedInput
+    dish_categories?: dish_categoriesUpdateOneRequiredWithoutDish_category_group_vote_candidatesNestedInput
+  }
+
+  export type dish_category_group_vote_candidatesUncheckedUpdateWithoutDish_category_group_vote_sessionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    dish_category_id?: StringFieldUpdateOperationsInput | string
+    display_name?: StringFieldUpdateOperationsInput | string
+    tagline?: StringFieldUpdateOperationsInput | string
+    image_url?: StringFieldUpdateOperationsInput | string
+    dish_media_ids?: dish_category_group_vote_candidatesUpdatedish_media_idsInput | string[]
+    dish_media_search_status?: StringFieldUpdateOperationsInput | string
+    display_order?: IntFieldUpdateOperationsInput | number
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    dish_category_group_vote_candidate_votes?: dish_category_group_vote_candidate_votesUncheckedUpdateManyWithoutDish_category_group_vote_candidatesNestedInput
+  }
+
+  export type dish_category_group_vote_candidatesUncheckedUpdateManyWithoutDish_category_group_vote_sessionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    dish_category_id?: StringFieldUpdateOperationsInput | string
+    display_name?: StringFieldUpdateOperationsInput | string
+    tagline?: StringFieldUpdateOperationsInput | string
+    image_url?: StringFieldUpdateOperationsInput | string
+    dish_media_ids?: dish_category_group_vote_candidatesUpdatedish_media_idsInput | string[]
+    dish_media_search_status?: StringFieldUpdateOperationsInput | string
+    display_order?: IntFieldUpdateOperationsInput | number
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type dish_category_group_vote_participantsUpdateWithoutDish_category_group_vote_sessionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    user_id?: StringFieldUpdateOperationsInput | string
+    display_name?: StringFieldUpdateOperationsInput | string
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    dish_category_group_vote_candidate_votes?: dish_category_group_vote_candidate_votesUpdateManyWithoutDish_category_group_vote_participantsNestedInput
+  }
+
+  export type dish_category_group_vote_participantsUncheckedUpdateWithoutDish_category_group_vote_sessionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    user_id?: StringFieldUpdateOperationsInput | string
+    display_name?: StringFieldUpdateOperationsInput | string
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    dish_category_group_vote_candidate_votes?: dish_category_group_vote_candidate_votesUncheckedUpdateManyWithoutDish_category_group_vote_participantsNestedInput
+  }
+
+  export type dish_category_group_vote_participantsUncheckedUpdateManyWithoutDish_category_group_vote_sessionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    user_id?: StringFieldUpdateOperationsInput | string
+    display_name?: StringFieldUpdateOperationsInput | string
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type dish_media_impressionsCreateManyDish_mediaInput = {
