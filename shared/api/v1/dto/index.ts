@@ -56,3 +56,9 @@ export { CreateFrontendLogDto } from "./logs/create-frontend-log.dto";
 
 export { QueryNotificationsDto } from "./notifications/query-notifications.dto";
 export { CreateDeviceTokenDto } from "./notifications/create-device-token.dto";
+
+export { CreateDishCategoryGroupVoteDto } from "./dish-category-group-votes/create-dish-category-group-vote.dto";
+export { SubmitDishCategoryGroupVoteDto } from "./dish-category-group-votes/submit-dish-category-group-vote.dto";
+export {
+	UpdateDishCategoryGroupVoteCandidateDishMediaDto,
+} from "./dish-category-group-votes/update-dish-category-group-vote-candidate-dish-media.dto";

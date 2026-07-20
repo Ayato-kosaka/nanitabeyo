@@ -40,6 +40,39 @@
 		"downloadApp": "앱 다운로드",
 		"viewInBrowser": "브라우저에서 계속하기"
 	},
+	"DishCategoryGroupVotes": {
+		"resultTitle": "친구들의 투표 결과",
+		"resultSubtitle": "후보를 확인하고 선호도를 투표하세요.",
+		"resultSubtitleVoted": "현재 결과를 확인할 수 있습니다.",
+		"copyShareLink": "공유 링크 복사",
+		"voteCta": "투표하기",
+		"candidatesTitle": "후보",
+		"commentsTitle": "댓글",
+		"viewRestaurants": "가게 보기",
+		"loadingRestaurants": "검색 중",
+		"noRestaurantsFound": "근처에서 후보 가게를 찾지 못했습니다",
+		"openRestaurantsPending": "가게 목록 연결은 아직 구현 중입니다",
+		"deleteCandidate": "후보 삭제",
+		"deleteCandidateTitle": "이 후보를 삭제할까요?",
+		"deleteCandidateMessage": "{{name}} 을(를) 투표 후보에서 숨깁니다.",
+		"loadFailed": "투표를 불러오지 못했습니다",
+		"refreshFailed": "최신 결과를 가져오지 못했습니다",
+		"like": "좋아요",
+		"dislike": "패스",
+		"voteProgress": "{{current}} / {{total}}",
+		"noVoteCandidates": "투표할 후보가 없습니다",
+		"completionTitle": "투표를 확정하세요",
+		"completionDescription": "결과 화면에 표시할 이름과 선택 댓글을 입력하세요.",
+		"nameSuggestionLabel": "이 중 하나를 이름으로 사용할 수 있습니다",
+		"displayNamePlaceholder": "닉네임",
+		"commentPlaceholder": "댓글(선택)",
+		"submitVote": "투표 완료",
+		"submitting": "제출 중",
+		"submitFailed": "투표를 제출하지 못했습니다",
+		"participantsList": "참가자: {{names}}",
+		"noParticipants": "아직 참가자가 없습니다",
+		"noVotes": "아직 투표가 없습니다"
+	},
 	"Error": {
 		"maintenanceMessage": "현재 점검 중입니다.",
 		"unsupportedVersion": "이 버전은 더 이상 지원되지 않습니다."
@@ -64,7 +97,7 @@
 			"searchFailed": "검색에 실패했습니다"
 		},
 		"googleMapsFallback": {
-			"message": "이 지역의 매장 데이터가 부족합니다. Google 지도에서 표시할까요?",
+			"message": "조건에 맞는 음식점을 Google 지도에서 확인할 수 있습니다.",
 			"confirm": "Google 지도 열기",
 			"cancel": "닫기"
 		},
@@ -74,6 +107,8 @@
 			"scene": "누구와 가시나요?",
 			"mood": "얼마나 배고프세요?",
 			"taste": "어떤 맛?",
+			"diningPace": "식사 시간은?",
+			"foodStyle": "어떤 계열이 먹고 싶나요?",
 			"distance": "거리?",
 			"budget": "예산?",
 			"restrictions": "제한 조건"
@@ -99,6 +134,12 @@
 		"labels": {
 			"noMinBudget": "최소 없음",
 			"noMaxBudget": "최대 없음"
+		},
+		"priceLevels": {
+			"inexpensive": "아끼기",
+			"moderate": "적당하게",
+			"expensive": "조금 호화롭게",
+			"veryExpensive": "고급"
 		},
 		"distanceLabels": {
 			"100m": "100m",
@@ -137,8 +178,17 @@
 			"sweet": "달콤한 것",
 			"spicy": "매운 것",
 			"healthy": "건강식",
-			"junk": "정크",
-			"alcohol": "술 위주"
+			"junk": "정크"
+		},
+		"coreIngredientOptions": {
+			"meat": "고기",
+			"fish": "해산물",
+			"rice": "밥",
+			"noodle": "면"
+		},
+		"diningPaceOptions": {
+			"quick": "가볍게",
+			"leisurely": "여유롭게"
 		},
 		"restrictionOptions": {
 			"vegetarian": "채식",
@@ -177,6 +227,9 @@
 		}
 	},
 	"Topics": {
+		"deepDive": {
+			"title": "이 계열로 좁히기"
+		},
 		"HideTopicModal": {
 			"title": "숨기기",
 			"description": "숨기는 이유를 알려주세요 (선택사항)",

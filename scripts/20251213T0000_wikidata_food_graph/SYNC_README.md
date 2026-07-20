@@ -46,6 +46,19 @@ python3 1_1_create_tables.py
 
 ### 2. Variants 生成
 
+手動 label / alias 補正を variants に反映したい場合は、先に `3_4` を実行します。
+
+```bash
+python3 3_4_apply_label_alias_overrides.py
+```
+
+- `dish_category_label_alias_overrides` の採用ルールを `dish_category_catalog` に反映
+- `apply_to_label=true` は `labels_json` と `label_ja` / `label_en` を上書き
+- 上書き前の元 label は `aliases_json` に降格して保持
+- `apply_to_label=false` は `aliases_json` への追加のみ
+- 同一 `item_qid + locale` に `apply_to_label=true` が複数ある場合はエラー
+- `3_2_refresh_dish_category_catalog_core.py` 実行後は Wikidata 値に戻るため、必要に応じて `3_4` を再実行
+
 ```bash
 python3 4_1_generate_variants.py
 ```
@@ -59,6 +72,7 @@ python3 4_1_generate_variants.py
 - label_en を canonical として追加
 - labels_json から全言語ラベルを抽出
 - グローバル一意性を保証（表記揺れは単独一意）
+- 現状 aliases_json は variants 生成に使わない
 
 ### 3. 画像処理
 

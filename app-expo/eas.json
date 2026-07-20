@@ -8,7 +8,7 @@
 			"developmentClient": true,
 			"distribution": "internal",
 			"ios": {
-				"image": "latest"
+				"image": "macos-sequoia-15.6-xcode-26.2"
 			}
 		},
 		"preview": {
@@ -16,7 +16,7 @@
 			"environment": "preview",
 			"channel": "preview",
 			"ios": {
-				"image": "latest"
+				"image": "macos-sequoia-15.6-xcode-26.2"
 			}
 		},
 		"production": {
@@ -24,10 +24,10 @@
 			"environment": "production",
 			"channel": "production",
 			"ios": {
-				"image": "latest",
+				"image": "macos-sequoia-15.6-xcode-26.2",
 				"cocoapods": "1.15.2"
 			},
-			"cache": { "key": "fix-nullbyte-2025-08-17" }
+			"cache": { "key": "fix-xcode-26-2026-06-08" }
 		}
 	},
 	"submit": {

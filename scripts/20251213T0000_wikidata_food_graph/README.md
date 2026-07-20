@@ -50,7 +50,7 @@ BigQuery は「分析・生成の SoT（Single Source of Truth）」であり、
 
 - `1_1_create_tables.py`
   - `infra/big-query/migration/*.sql` を実行し、BigQuery 側の基盤テーブル群を作成する
-  - 例: `20251213T0000_create_wikidata_food_tables.sql`, `20251215T0000_create_wikidata_food_llm_labels.sql`, `20251216T0000_create_macro_genre_tables.sql` 等
+  - 例: `20251213T0000_create_wikidata_food_tables.sql`, `20251215T0000_create_wikidata_food_llm_labels.sql`, `20260715T0000_create_dish_category_label_alias_overrides.sql` 等
 
 ### 2.2 Core Extraction（Wikidata 取得 → raw / edges）
 
@@ -73,6 +73,10 @@ BigQuery は「分析・生成の SoT（Single Source of Truth）」であり、
 
 - `3_3_refresh_dish_category_catalog_graph.py`
   - tags/roots 等 “graph由来属性” を更新（MERGE）
+
+- `3_4_apply_label_alias_overrides.py`
+  - `dish_category_label_alias_overrides` の手動補正を `dish_category_catalog` に反映（MERGE）
+  - `3_2` は Wikidata 生値を再取得するため、Nanitabeyo 運用上の代表 label / alias は `3_4` で後から再適用する
 
 ### 2.5 Derived（variants / images / macro genre）
 
@@ -214,6 +218,27 @@ BigQuery は「分析・生成の SoT（Single Source of Truth）」であり、
 - **出力**: `dish_category_catalog`（MERGE: tags/roots 等を更新）
 - **依存の意味**: graph（paths/root_summary）が更新された場合、catalog の graph属性も更新が必要
 
+#### `3_4_apply_label_alias_overrides.py`
+
+- **入力**: `dish_category_label_alias_overrides`, `dish_category_catalog`
+- **出力**: `dish_category_catalog`（MERGE: label_ja / label_en / labels_json / aliases_json を更新）
+- **依存の意味**:
+  - `3_2_refresh_dish_category_catalog_core.py` は Wikidata 生値で labels/aliases を上書きする
+  - そのため、手動で採用した検索・表示向け label / alias は `3_2` の後に `3_4` で再適用する
+  - `apply_to_label=true` の表記は `labels_json` に昇格するため、後続の `4_1_generate_variants.py` でも variants 生成元になる
+
+反映ルール:
+
+- `apply_to_label=true`
+  - `surface_form` を対象 locale の代表 label に昇格する
+  - `locale='ja'` なら `label_ja` と `labels_json['ja']` を更新する
+  - `locale='en'` なら `label_en` と `labels_json['en']` を更新する
+  - 上書き前の元 label は同 locale の `aliases_json` に降格して保持する
+- `apply_to_label=false`
+  - 代表 label は変えず、`surface_form` を同 locale の `aliases_json` に追加する
+- 同一 `item_qid + locale` で `apply_to_label=true` が複数ある場合はエラー
+- 新 label が既に alias に存在していても削除しない
+
 ---
 
 ### 4.3 Derived（variants / images / macro genre）
@@ -222,7 +247,8 @@ BigQuery は「分析・生成の SoT（Single Source of Truth）」であり、
 
 - **入力**: `dish_category_catalog`（label_en, labels_json 等）
 - **出力**: `dish_category_variant_catalog`（DROP & CREATE / CREATE OR REPLACE 相当）
-- **依存の意味**: label 更新（3_2）後は variants も作り直すのが自然
+- **依存の意味**: label 更新（3_2 / 3_4）後は variants も作り直すのが自然
+- **注意**: 現状は `aliases_json` を variants 生成に使わない。`apply_to_label=true` で `labels_json` に昇格した表記だけが variants に入る。
 
 #### `4_2_process_images.py`
 
@@ -308,12 +334,13 @@ BigQuery は「分析・生成の SoT（Single Source of Truth）」であり、
 3. `3_1_build_dish_category_catalog.py`（候補集合再構築）
 4. `3_2_refresh_dish_category_catalog_core.py`（core属性付与）
 5. `3_3_refresh_dish_category_catalog_graph.py`（tags/roots 再計算）
-6. 派生が必要なら:
+6. `3_4_apply_label_alias_overrides.py`（手動 label / alias 補正を再適用）
+7. 派生が必要なら:
    - `4_1_generate_variants.py`
    - `4_2_process_images.py`
    - `550_macro_genre/*`（運用している場合）
 
-7. Serving 反映:
+8. Serving 反映:
    - `9_1`, `9_4`（variants までやったなら）, features/copy も更新したなら `9_2`,`9_3`
 
 ### 5.2 画像を更新したい（Wikimedia 正規化の再生成）
@@ -355,12 +382,18 @@ BigQuery は「分析・生成の SoT（Single Source of Truth）」であり、
 
 ### 5.4 variants を更新したい
 
-**理由**: variants は `dish_category_catalog`（labels）依存。labels を変えるなら `3_2` → `4_1` が自然。
+**理由**: variants は `dish_category_catalog`（labels）依存。Wikidata refresh を伴う場合は `3_2` 後に `3_4` で手動補正を戻してから `4_1` を実行する。
 
 推奨:
 
-- labels 更新を伴う: `3_2` → `4_1` → `9_4`
+- Wikidata labels 更新を伴う: `3_2` → `3_4` → `4_1` → `9_1` → `9_4`
+- 手動 label / alias 補正だけを反映する: `3_4` → `4_1` → `9_1` → `9_4`
 - variants 仕様変更のみ: `4_1` → `9_4`
+
+> 注意:
+> 現状の `4_1_generate_variants.py` は `aliases_json` を読まない。
+> `apply_to_label=true` で `labels_json` に昇格した表記は variants に入るが、
+> alias 追加だけの表記は将来 `aliases_json` 由来 variants を実装するまで variants には入らない。
 
 ### 5.5 “本番に反映” だけしたい（BQ 側は出来ている）
 
@@ -464,12 +497,15 @@ BigQuery は「分析・生成の SoT（Single Source of Truth）」であり、
 6. **catalog graph 更新**: `3_3_refresh_dish_category_catalog_graph.py`
    → `dish_category_catalog`（tags/roots 等が最新）
 
-7. **派生（任意）**
+7. **catalog label / alias 補正**: `3_4_apply_label_alias_overrides.py`
+   → `dish_category_catalog`（Nanitabeyo 運用上の代表 label / alias を再適用）
+
+8. **派生（任意）**
    - `4_1_generate_variants.py` → `dish_category_variant_catalog`
    - `4_2_process_images.py` → `dish_category_images`
    - `550_macro_genre/*` → `dish_macro_genre_analysis`
 
-8. **LLM（任意・目的別）**
+9. **LLM（任意・目的別）**
    - `557_*` / `572_*` / `575_*` / `581_*` → `dish_category_features_catalog`
    - `582_*` → `dish_category_localized_text_catalog`
    - `548_*` → `dish_blacklist`（採用方針に従い反映）

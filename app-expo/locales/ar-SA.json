@@ -40,6 +40,39 @@
 		"downloadApp": "تنزيل التطبيق",
 		"viewInBrowser": "متابعة في المتصفح"
 	},
+	"DishCategoryGroupVotes": {
+		"resultTitle": "نتائج تصويت الأصدقاء",
+		"resultSubtitle": "راجع الخيارات وصوّت لتفضيلاتك.",
+		"resultSubtitleVoted": "يمكنك مراجعة النتائج الحالية.",
+		"copyShareLink": "نسخ رابط المشاركة",
+		"voteCta": "تصويت",
+		"candidatesTitle": "الخيارات",
+		"commentsTitle": "التعليقات",
+		"viewRestaurants": "عرض المطاعم",
+		"loadingRestaurants": "جارٍ البحث",
+		"noRestaurantsFound": "لم يتم العثور على مطاعم قريبة",
+		"openRestaurantsPending": "ربط قائمة المطاعم لم يُنفذ بعد",
+		"deleteCandidate": "حذف الخيار",
+		"deleteCandidateTitle": "هل تريد حذف هذا الخيار؟",
+		"deleteCandidateMessage": "إخفاء {{name}} من خيارات التصويت.",
+		"loadFailed": "تعذر تحميل التصويت",
+		"refreshFailed": "تعذر تحديث النتائج",
+		"like": "أعجبني",
+		"dislike": "تخطي",
+		"voteProgress": "{{current}} / {{total}}",
+		"noVoteCandidates": "لا توجد خيارات للتصويت",
+		"completionTitle": "أكّد تصويتك",
+		"completionDescription": "أدخل الاسم الذي سيظهر في النتائج وتعليقًا اختياريًا.",
+		"nameSuggestionLabel": "يمكنك استخدام أحد هذه كاسم",
+		"displayNamePlaceholder": "الاسم المستعار",
+		"commentPlaceholder": "تعليق (اختياري)",
+		"submitVote": "إكمال التصويت",
+		"submitting": "جارٍ الإرسال",
+		"submitFailed": "تعذر إرسال تصويتك",
+		"participantsList": "المشاركون: {{names}}",
+		"noParticipants": "لا يوجد مشاركون بعد",
+		"noVotes": "لا توجد أصوات بعد"
+	},
 	"Error": {
 		"maintenanceMessage": "نحن حالياً نقوم بأعمال صيانة.",
 		"unsupportedVersion": "هذا الإصدار لم يعد مدعومًا."
@@ -64,7 +97,7 @@
 			"searchFailed": "فشل البحث"
 		},
 		"googleMapsFallback": {
-			"message": "بيانات المطاعم محدودة في هذه المنطقة. هل تريد فتحها في خرائط Google؟",
+			"message": "يمكنك الاطلاع على المطاعم التي تطابق شروطك على خرائط Google.",
 			"confirm": "فتح خرائط Google",
 			"cancel": "إغلاق"
 		},
@@ -74,6 +107,8 @@
 			"scene": "مع من تذهب؟",
 			"mood": "ما مقدار جوعك؟",
 			"taste": "ما النكهات؟",
+			"diningPace": "كم ستستغرق الوجبة؟",
+			"foodStyle": "ما نوع الطعام؟",
 			"distance": "ما المسافة؟",
 			"budget": "الميزانية؟",
 			"restrictions": "القيود"
@@ -99,6 +134,12 @@
 		"labels": {
 			"noMinBudget": "لا حد أدنى",
 			"noMaxBudget": "لا حد أقصى"
+		},
+		"priceLevels": {
+			"inexpensive": "اقتصادي",
+			"moderate": "مناسب",
+			"expensive": "فاخر قليلاً",
+			"veryExpensive": "فاخر"
 		},
 		"distanceLabels": {
 			"100m": "100م",
@@ -137,8 +178,17 @@
 			"sweet": "حلو",
 			"spicy": "حار",
 			"healthy": "صحي",
-			"junk": "وجبات سريعة",
-			"alcohol": "مشروبات فقط"
+			"junk": "وجبات سريعة"
+		},
+		"coreIngredientOptions": {
+			"meat": "لحم",
+			"fish": "مأكولات بحرية",
+			"rice": "أرز",
+			"noodle": "نودلز"
+		},
+		"diningPaceOptions": {
+			"quick": "سريع",
+			"leisurely": "بتمهل"
 		},
 		"restrictionOptions": {
 			"vegetarian": "نباتي",
@@ -177,6 +227,9 @@
 		}
 	},
 	"Topics": {
+		"deepDive": {
+			"title": "تصفية بهذا النمط"
+		},
 		"HideTopicModal": {
 			"title": "إخفاء",
 			"description": "أخبرنا سبب الإخفاء (اختياري)",

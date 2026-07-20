@@ -19,7 +19,7 @@ import {
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { HelpCircle, CheckCircle2, AlertTriangle, Loader2 } from "lucide-react-native";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Clipboard from "expo-clipboard";
 
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
@@ -72,10 +72,11 @@ type ItemState = {
 /*                              定数・固定値                                   */
 /* -------------------------------------------------------------------------- */
 
-const TASK_KEY = "dish_category_manual_image_supply_v2";
 const TARGET_TYPE = "dish_categories";
 const TYPE = "image_feedback";
-const CDN_JSON_PATH = "tickets/703/dish_category_manual_image_supply_v2.latest.json";
+const DEFAULT_TASK_VERSION = "v2";
+const TASK_KEY_PREFIX = "dish_category_manual_image_supply";
+const CDN_JSON_PATH_PREFIX = "tickets/703/dish_category_manual_image_supply";
 
 const TUTORIAL_STORAGE_KEY = "dish_manual_image_supply_tutorial_shown";
 
@@ -92,6 +93,19 @@ const TUTORIAL_EXAMPLE_IMAGES = [
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const PAGE_WIDTH = SCREEN_WIDTH - 48;
 
+type SearchParamValue = string | string[] | undefined;
+
+const firstSearchParam = (value: SearchParamValue): string | undefined => {
+	const firstValue = Array.isArray(value) ? value[0] : value;
+	const trimmed = firstValue?.trim();
+	return trimmed || undefined;
+};
+
+const normalizeTaskVersion = (value: string | undefined): string => {
+	if (!value) return DEFAULT_TASK_VERSION;
+	return value.startsWith("v") ? value : `v${value}`;
+};
+
 /* -------------------------------------------------------------------------- */
 /*                              メインコンポーネント                             */
 /* -------------------------------------------------------------------------- */
@@ -100,10 +114,26 @@ export default function DishCategoryManualImageSupplyScreen() {
 	const insets = useSafeAreaInsets();
 	const { width } = useWindowDimensions();
 	const router = useRouter();
+	const {
+		taskVersion: taskVersionParam,
+		taskKey: taskKeyParam,
+		cdnJsonPath: cdnJsonPathParam,
+	} = useLocalSearchParams<{
+		taskVersion?: SearchParamValue;
+		taskKey?: SearchParamValue;
+		cdnJsonPath?: SearchParamValue;
+	}>();
 	const { logFrontendEvent } = useLogger();
 	const { callBackend } = useAPICall();
 	const { uploadFile } = useFileUploader();
 	const { showSnackbar } = useSnackbar();
+
+	const taskVersion = useMemo(() => normalizeTaskVersion(firstSearchParam(taskVersionParam)), [taskVersionParam]);
+	const taskKey = useMemo(() => firstSearchParam(taskKeyParam) ?? `${TASK_KEY_PREFIX}_${taskVersion}`, [taskKeyParam, taskVersion]);
+	const cdnJsonPath = useMemo(
+		() => firstSearchParam(cdnJsonPathParam) ?? `${CDN_JSON_PATH_PREFIX}_${taskVersion}.latest.json`,
+		[cdnJsonPathParam, taskVersion],
+	);
 
 	// #703 【状態】候補アイテムリスト（除外後）
 	const [items, setItems] = useState<CandidateItem[]>([]);
@@ -146,7 +176,7 @@ export default function DishCategoryManualImageSupplyScreen() {
 
 		try {
 			// Step 1: CDN JSONをキャッシュバイパスで取得
-			const cdnUrl = `https://${Env.CDN_PUBLIC_HOST}/${CDN_JSON_PATH}?v=${Date.now()}`;
+			const cdnUrl = `https://${Env.CDN_PUBLIC_HOST}/${cdnJsonPath}?v=${Date.now()}`;
 			const jsonResponse = await fetch(cdnUrl);
 			if (!jsonResponse.ok) {
 				throw new Error("Failed to fetch candidate JSON");
@@ -161,7 +191,7 @@ export default function DishCategoryManualImageSupplyScreen() {
 					{
 						method: "GET",
 						requestPayload: {
-							taskKey: TASK_KEY,
+							taskKey,
 							targetType: TARGET_TYPE,
 							type: TYPE,
 							minCount: 1,
@@ -193,7 +223,12 @@ export default function DishCategoryManualImageSupplyScreen() {
 		} finally {
 			setIsLoadingCandidates(false);
 		}
-	}, [callBackend]);
+	}, [callBackend, cdnJsonPath, taskKey]);
+
+	// #703 【処理】候補読み込み
+	useEffect(() => {
+		loadCandidates();
+	}, [loadCandidates]);
 
 	// #703 【処理】初回表示時のチュートリアル判定
 	useEffect(() => {
@@ -214,7 +249,6 @@ export default function DishCategoryManualImageSupplyScreen() {
 			}
 		};
 
-		loadCandidates();
 		checkTutorial();
 	}, []);
 
@@ -364,7 +398,7 @@ export default function DishCategoryManualImageSupplyScreen() {
 					method: "POST",
 					requestPayload: {
 						type: TYPE,
-						taskKey: TASK_KEY,
+						taskKey,
 						targetType: TARGET_TYPE,
 						targetId: item.category_id,
 						payload: {
@@ -372,7 +406,7 @@ export default function DishCategoryManualImageSupplyScreen() {
 							topicTitle: item.topicTitle,
 							reason: item.reason,
 							sourceImageUrl: item.imageUrl,
-							cdn: { path: CDN_JSON_PATH },
+							cdn: { path: cdnJsonPath },
 						},
 						result: {
 							originalPath: state.uploaded.originalPath,
@@ -394,7 +428,7 @@ export default function DishCategoryManualImageSupplyScreen() {
 
 		setIsSubmitting(false);
 		setShowThanks(true);
-	}, [items, itemStates, callBackend, logFrontendEvent]);
+	}, [items, itemStates, callBackend, logFrontendEvent, cdnJsonPath, taskKey]);
 
 	/* -------------------------------------------------------------------------- */
 	/*                              サンクス画面                                  */

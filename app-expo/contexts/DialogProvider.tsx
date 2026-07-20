@@ -9,7 +9,7 @@ import React, {
 	useState,
 	type ReactNode,
 } from "react";
-import { BackHandler, Platform, ScrollView, View } from "react-native";
+import { BackHandler, Platform, ScrollView, StyleSheet, View } from "react-native";
 import { Portal, Dialog, Button, Paragraph, Text, TextInput, HelperText } from "react-native-paper";
 
 /**
@@ -830,11 +830,12 @@ export const DialogProvider = ({ children }: { children: ReactNode }) => {
 			<Portal>
 				<Dialog
 					visible={visible}
+					style={styles.dialog}
 					/**
 					 * onDismiss は「呼ばれる」ので、許可しない場合は handleDismiss 内で弾く（6）
 					 */
 					onDismiss={handleDismiss}>
-					{!!cur?.title && <Dialog.Title>{cur.title}</Dialog.Title>}
+					{!!cur?.title && <Dialog.Title style={styles.title}>{cur.title}</Dialog.Title>}
 
 					<Dialog.Content>
 						<View accessible accessibilityLabel={a11yLabel}>
@@ -844,7 +845,7 @@ export const DialogProvider = ({ children }: { children: ReactNode }) => {
 								contentContainerStyle={{ paddingBottom: 4 }}
 								// confirm中でもスクロールは許可
 							>
-								<Paragraph>{cur?.message ?? ""}</Paragraph>
+								<Paragraph style={styles.message}>{cur?.message ?? ""}</Paragraph>
 
 								{/* prompt UI（2） */}
 								{cur?.kind === "prompt" && (
@@ -875,7 +876,7 @@ export const DialogProvider = ({ children }: { children: ReactNode }) => {
 						</View>
 					</Dialog.Content>
 
-					<Dialog.Actions>
+					<Dialog.Actions style={styles.actions}>
 						{renderedActions.map((a) => {
 							const isOk = a.key === "ok";
 							const isCancel = a.key === "cancel";
@@ -908,7 +909,12 @@ export const DialogProvider = ({ children }: { children: ReactNode }) => {
 							return (
 								<Button
 									key={a.key}
-									mode={a.mode ?? "text"}
+									mode={isOk || isCancel ? "contained" : (a.mode ?? "text")}
+									buttonColor={isOk ? "#F05537" : isCancel ? "#F8F9FA" : undefined}
+									textColor={isOk ? "#FFFFFF" : isCancel ? "#6B7280" : undefined}
+									style={isOk || isCancel ? styles.actionButton : undefined}
+									contentStyle={isOk || isCancel ? styles.actionButtonContent : undefined}
+									labelStyle={[styles.actionButtonLabel, isOk && styles.confirmButtonLabel]}
 									onPress={onPress}
 									disabled={disabled}
 									accessibilityLabel={a.accessibilityLabel}
@@ -930,6 +936,44 @@ export const DialogProvider = ({ children }: { children: ReactNode }) => {
 		</DialogContext.Provider>
 	);
 };
+
+const styles = StyleSheet.create({
+	dialog: {
+		backgroundColor: "#FFFFFF",
+		borderRadius: 20,
+	},
+	title: {
+		fontSize: 20,
+		fontWeight: "700",
+		color: "#1C1B1F",
+		letterSpacing: -0.3,
+	},
+	message: {
+		fontSize: 16,
+		fontWeight: "500",
+		lineHeight: 24,
+		color: "#49454F",
+	},
+	actions: {
+		gap: 4,
+		paddingHorizontal: 24,
+		paddingBottom: 20,
+	},
+	actionButton: {
+		borderRadius: 16,
+	},
+	actionButtonContent: {
+		minHeight: 48,
+		paddingHorizontal: 8,
+	},
+	actionButtonLabel: {
+		fontSize: 16,
+		fontWeight: "600",
+	},
+	confirmButtonLabel: {
+		fontWeight: "700",
+	},
+});
 
 /** useDialog フック */
 export const useDialog = (): DialogContextType => {

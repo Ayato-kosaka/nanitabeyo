@@ -40,6 +40,39 @@
 		"downloadApp": "Télécharger l'app",
 		"viewInBrowser": "Continuer dans le navigateur"
 	},
+	"DishCategoryGroupVotes": {
+		"resultTitle": "Résultats du vote des amis",
+		"resultSubtitle": "Consultez les choix et votez selon vos préférences.",
+		"resultSubtitleVoted": "Vous pouvez consulter les résultats actuels.",
+		"copyShareLink": "Copier le lien",
+		"voteCta": "Voter",
+		"candidatesTitle": "Choix",
+		"commentsTitle": "Commentaires",
+		"viewRestaurants": "Voir les restaurants",
+		"loadingRestaurants": "Recherche",
+		"noRestaurantsFound": "Aucun restaurant proche n'a été trouvé",
+		"openRestaurantsPending": "La connexion à la liste des restaurants n'est pas encore implémentée",
+		"deleteCandidate": "Supprimer le choix",
+		"deleteCandidateTitle": "Supprimer ce choix ?",
+		"deleteCandidateMessage": "Masquer {{name}} des choix du vote.",
+		"loadFailed": "Impossible de charger le vote",
+		"refreshFailed": "Impossible d'actualiser les résultats",
+		"like": "J'aime",
+		"dislike": "Passer",
+		"voteProgress": "{{current}} / {{total}}",
+		"noVoteCandidates": "Aucun choix à voter",
+		"completionTitle": "Confirmez votre vote",
+		"completionDescription": "Entrez le nom affiché sur les résultats et un commentaire facultatif.",
+		"nameSuggestionLabel": "Vous pouvez en utiliser un comme nom",
+		"displayNamePlaceholder": "Pseudo",
+		"commentPlaceholder": "Commentaire (facultatif)",
+		"submitVote": "Vote terminé",
+		"submitting": "Envoi",
+		"submitFailed": "Impossible d'envoyer votre vote",
+		"participantsList": "Participants : {{names}}",
+		"noParticipants": "Aucun participant pour le moment",
+		"noVotes": "Aucun vote pour le moment"
+	},
 	"Error": {
 		"maintenanceMessage": "Nous sommes actuellement en maintenance.",
 		"unsupportedVersion": "Cette version n'est plus prise en charge."
@@ -64,7 +97,7 @@
 			"searchFailed": "La recherche a échoué"
 		},
 		"googleMapsFallback": {
-			"message": "Les données de restaurants sont limitées dans cette zone. Ouvrir dans Google Maps ?",
+			"message": "Vous pouvez consulter sur Google Maps les restaurants correspondant à vos critères.",
 			"confirm": "Ouvrir Google Maps",
 			"cancel": "Fermer"
 		},
@@ -74,6 +107,8 @@
 			"scene": "Avec qui allez-vous ?",
 			"mood": "Quelle faim avez-vous ?",
 			"taste": "Quels goûts ?",
+			"diningPace": "Combien de temps ?",
+			"foodStyle": "Quel type de plat ?",
 			"distance": "À quelle distance ?",
 			"budget": "Budget ?",
 			"restrictions": "Restrictions"
@@ -99,6 +134,12 @@
 		"labels": {
 			"noMinBudget": "Pas de minimum",
 			"noMaxBudget": "Pas de maximum"
+		},
+		"priceLevels": {
+			"inexpensive": "Économique",
+			"moderate": "Abordable",
+			"expensive": "Un peu chic",
+			"veryExpensive": "Haut de gamme"
 		},
 		"distanceLabels": {
 			"100m": "100m",
@@ -137,8 +178,17 @@
 			"sweet": "Sucré",
 			"spicy": "Épicé",
 			"healthy": "Sain",
-			"junk": "Junk food",
-			"alcohol": "Principalement des boissons"
+			"junk": "Junk food"
+		},
+		"coreIngredientOptions": {
+			"meat": "Viande",
+			"fish": "Fruits de mer",
+			"rice": "Riz",
+			"noodle": "Nouilles"
+		},
+		"diningPaceOptions": {
+			"quick": "Rapide",
+			"leisurely": "Tranquille"
 		},
 		"restrictionOptions": {
 			"vegetarian": "Végétarien",
@@ -177,6 +227,9 @@
 		}
 	},
 	"Topics": {
+		"deepDive": {
+			"title": "Filtrer ce style"
+		},
 		"HideTopicModal": {
 			"title": "Masquer",
 			"description": "Veuillez indiquer la raison du masquage (facultatif)",

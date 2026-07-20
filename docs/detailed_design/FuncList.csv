@@ -34,3 +34,7 @@
 "","Auth","A","DataBase","DB","user_roles","ユーザーに割り当てられたロール（多対多）の対応付けテーブル"
 "","Common","C","DataBase","DB","config","アプリの動作に関わる設定値を保持するテーブル"
 "","Dish","D","DataBase","DB","contribution_tasks","ユーザー協力・フィードバックを汎用的に記録するためのテーブル。企画（task_key）単位で、ユーザーに提示した内容（payload）と回答結果（result）を事実ログとして保存する。特定の更新処理や集計ロジックには依存しない設計。"
+"","Dish","D","DataBase","DB","dish_category_group_vote_sessions","dish_category 候補のグループ投票セッション。共有URL用 share_token とホストユーザーIDを保持する。"
+"","Dish","D","DataBase","DB","dish_category_group_vote_candidates","グループ投票に固定された dish_category 候補。表示名・画像は作成時点、店舗提案用 dish_media_ids は初回検索時点のスナップショット。"
+"","Dish","D","DataBase","DB","dish_category_group_vote_participants","グループ投票の参加者。1セッションにつき1ユーザー1参加で、表示名と任意コメントを保持する。"
+"","Dish","D","DataBase","DB","dish_category_group_vote_candidate_votes","参加者ごとの候補別投票。like / dislike のみを保存し、投票後の変更は行わない。"
