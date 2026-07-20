@@ -5,6 +5,7 @@ import { useHaptics } from "@/hooks/useHaptics";
 import { StyleSheet } from "react-native";
 import { StyleProp } from "react-native";
 import { ViewStyle } from "react-native";
+import i18n from "@/lib/i18n";
 
 interface PriceLevelsMultiSelectProps {
 	selectedPriceLevels: (typeof priceLevelOptions)[number]["value"][];
@@ -48,7 +49,9 @@ export function PriceLevelsMultiSelect({
 							key={option.value}
 							style={[customStyles?.chip, isSelected && customStyles?.selectedChip]}
 							onPress={() => togglePriceLevel(option.value)}>
-							<Text style={[customStyles?.chipEmoji]}>{option.icon}</Text>
+							<Text style={[customStyles?.chipText, isSelected && customStyles?.selectedChipText]}>
+								{i18n.t(option.label)}
+							</Text>
 						</TouchableOpacity>
 					);
 				})}

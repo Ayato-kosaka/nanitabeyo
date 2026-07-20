@@ -3,20 +3,15 @@ import { Topic, SearchParams } from "@/types/search";
 // import { mockTopicCards } from "@/data/searchMockData";
 import { useAPICall } from "@/hooks/useAPICall";
 import { wikimediaThumbFromOriginal } from "@/lib/wikimedia";
-import type {
-	CreateDishCategoryVariantDto,
-	QueryDishCategoryRecommendationsDto,
-} from "@shared/api/v1/dto";
-import type {
-	QueryDishCategoryRecommendationsResponse,
-	CreateDishCategoryVariantResponse,
-} from "@shared/api/v1/res";
+import type { CreateDishCategoryVariantDto, QueryDishCategoryRecommendationsDto } from "@shared/api/v1/dto";
+import type { QueryDishCategoryRecommendationsResponse, CreateDishCategoryVariantResponse } from "@shared/api/v1/res";
 import { useLocale } from "@/hooks/useLocale";
 import { getRemoteConfig } from "@/lib/remoteConfig";
 import { useLogger } from "@/hooks/useLogger";
 import i18n from "@/lib/i18n";
 import { CARD_WIDTH, DEFAULT_SEARCH_RADIUS, DEFAULT_PRICE_LEVELS } from "../constants";
 import { createDishItemsForCategory } from "@/lib/dishMediaSearch";
+import { deriveBudgetIntentFromPriceLevels } from "@/features/search/constants";
 
 export const useTopicSearch = () => {
 	const [topics, setTopics] = useState<Topic[]>([]);
@@ -30,6 +25,7 @@ export const useTopicSearch = () => {
 		// #633 【設計】Topic 生成時に dishItemsPromise を発火しない（ユーザー操作後に限定）
 		return {
 			...topic,
+			deepDiveFeatures: topic.deepDiveFeatures ?? [],
 			isHidden: false,
 		};
 	}, []);
@@ -39,21 +35,42 @@ export const useTopicSearch = () => {
 			const remoteConfig = getRemoteConfig();
 			const searchResultTopicsNumber = parseInt(remoteConfig?.v1_search_result_dish_categories_number!, 10);
 
-			const topicsResponse = await callBackend<
-				QueryDishCategoryRecommendationsDto,
-				QueryDishCategoryRecommendationsResponse
-			>("v1/dish-categories/recommendations", {
-				method: "GET",
-				requestPayload: {
-					address: params.address,
-					timeSlot: params.timeSlot,
-					scene: params.scene,
-					mood: params.mood,
-					taste: params.taste,
-					languageTag: locale,
-					localLanguageCode: params.localLanguageCode,
-				},
-			});
+			const fetchRecommendations = () =>
+				callBackend<QueryDishCategoryRecommendationsDto, QueryDishCategoryRecommendationsResponse>(
+					"v1/dish-categories/recommendations",
+					{
+						method: "GET",
+						requestPayload: {
+							address: params.address,
+							timeSlot: params.timeSlot,
+							scene: params.scene,
+							taste: params.taste,
+							budgetIntent: deriveBudgetIntentFromPriceLevels(params.priceLevels),
+							diningPace: params.diningPace,
+							coreIngredient: params.coreIngredient,
+							languageTag: locale,
+							localLanguageCode: params.localLanguageCode,
+						},
+					},
+				);
+
+			let topicsResponse = await fetchRecommendations();
+			// #897 バックエンドは外部推薦のフォールバックまで失敗した場合、成功応答の空配列を返す。
+			// 空配列だけを一時失敗として扱い、別操作を要求せず500ms後に一度だけ再検索する。
+			if (topicsResponse.length === 0) {
+				logFrontendEvent({
+					event_name: "dish_category_recommendations_empty_retry",
+					error_level: "warn",
+					payload: {},
+				});
+				await new Promise((resolve) => setTimeout(resolve, 500));
+				topicsResponse = await fetchRecommendations();
+			}
+
+			if (topicsResponse.length === 0) {
+				// hookは表示手段を持たない。呼び出し元へ伝播し、Topics画面のSnackbarで通知する。
+				throw new Error(i18n.t("Topics.errors.fetchFailed"));
+			}
 
 			let topicsResponseWithCategoryIds: QueryDishCategoryRecommendationsResponse = topicsResponse
 				.slice(0, searchResultTopicsNumber)
@@ -83,8 +100,8 @@ export const useTopicSearch = () => {
 									...topic,
 									category:
 										createDishCategoryVariantResponse.labels &&
-										typeof createDishCategoryVariantResponse.labels === "object" &&
-										params.localLanguageCode in createDishCategoryVariantResponse.labels
+											typeof createDishCategoryVariantResponse.labels === "object" &&
+											params.localLanguageCode in createDishCategoryVariantResponse.labels
 											? (createDishCategoryVariantResponse.labels as Record<string, string>)[params.localLanguageCode]
 											: topic.category,
 									categoryId: createDishCategoryVariantResponse.id,
@@ -110,7 +127,7 @@ export const useTopicSearch = () => {
 
 			return topicsResponseWithCategoryIds.map((topic) => createTopic(topic));
 		},
-		[callBackend, createTopic, locale],
+		[callBackend, createTopic, locale, logFrontendEvent],
 	);
 
 	// #633 【設計】料理メディアの取得処理（オンデマンド実行用に export）
@@ -143,13 +160,26 @@ export const useTopicSearch = () => {
 	);
 
 	const searchTopics = useCallback(
-		async (params: SearchParams) => {
+		async (params: SearchParams, options?: { pinnedTopic?: Topic | null }) => {
 			setIsLoading(true);
 			setError(null);
 
 			try {
+				const remoteConfig = getRemoteConfig();
+				const searchResultTopicsNumber = parseInt(remoteConfig?.v1_search_result_dish_categories_number!, 10);
 				const fetchedTopics = await fetchTopicCandidates(params);
-				setTopics(fetchedTopics);
+				if (options?.pinnedTopic) {
+					const pinnedTopic = { ...options.pinnedTopic, isHidden: false };
+					const nextTopics = [
+						pinnedTopic,
+						...fetchedTopics
+							.filter((topic) => topic.categoryId !== pinnedTopic.categoryId)
+							.slice(0, Math.max(0, searchResultTopicsNumber - 1)),
+					];
+					setTopics(nextTopics);
+				} else {
+					setTopics(fetchedTopics);
+				}
 
 				// // Mock API response based on search parameters
 				// const toplics = [...mockTopicCards]

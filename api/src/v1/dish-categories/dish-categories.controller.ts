@@ -51,6 +51,27 @@ export class DishCategoriesController {
   @ApiQuery({ name: 'scene', required: false, description: 'シーン' })
   @ApiQuery({ name: 'mood', required: false, description: '気分' })
   @ApiQuery({
+    name: 'budgetIntent',
+    required: false,
+    isArray: true,
+    description: '価格帯 (inexpensive / moderate / expensive / very_expensive)',
+  })
+  @ApiQuery({
+    name: 'diningPace',
+    required: false,
+    description: '食事にかける時間 (quick / leisurely)',
+  })
+  @ApiQuery({
+    name: 'coreIngredient',
+    required: false,
+    description: '中核食材・主食系 (meat / fish / rice / noodle)',
+  })
+  @ApiQuery({
+    name: 'taste',
+    required: false,
+    description: '味の好み (sweet / spicy / healthy / junk)',
+  })
+  @ApiQuery({
     name: 'languageTag',
     required: true,
     description: '出力言語 (IETF BCP 47準拠, 例: en-US, ja-JP, fr-CA)',
