@@ -41,7 +41,7 @@
 		"viewInBrowser": "ब्राउज़र में जारी रखें"
 	},
 	"DishCategoryGroupVotes": {
-		"resultTitle": "समूह वोट परिणाम",
+		"resultTitle": "दोस्तों के मतदान के नतीजे",
 		"resultSubtitle": "विकल्प देखें और अपनी पसंद पर वोट करें।",
 		"resultSubtitleVoted": "आप मौजूदा परिणाम देख सकते हैं।",
 		"copyShareLink": "शेयर लिंक कॉपी करें",
@@ -97,7 +97,7 @@
 			"searchFailed": "खोज विफल हुई"
 		},
 		"googleMapsFallback": {
-			"message": "इस क्षेत्र में रेस्तरां डेटा कम है। Google Maps में खोलें?",
+			"message": "आप अपनी शर्तों से मेल खाने वाले रेस्तरां Google Maps पर देख सकते हैं।",
 			"confirm": "Google Maps खोलें",
 			"cancel": "बंद करें"
 		},
@@ -107,6 +107,8 @@
 			"scene": "आप किसके साथ जा रहे हैं?",
 			"mood": "आपको कितनी भूख है?",
 			"taste": "क्या स्वाद?",
+			"diningPace": "भोजन में कितना समय?",
+			"foodStyle": "किस तरह का खाना?",
 			"distance": "कितनी दूरी?",
 			"budget": "बजट?",
 			"restrictions": "प्रतिबंध"
@@ -132,6 +134,12 @@
 		"labels": {
 			"noMinBudget": "कोई न्यूनतम नहीं",
 			"noMaxBudget": "कोई अधिकतम नहीं"
+		},
+		"priceLevels": {
+			"inexpensive": "बचत",
+			"moderate": "किफायती",
+			"expensive": "थोड़ा खास",
+			"veryExpensive": "प्रीमियम"
 		},
 		"distanceLabels": {
 			"100m": "100मी",
@@ -170,8 +178,17 @@
 			"sweet": "मीठा",
 			"spicy": "मसालेदार",
 			"healthy": "स्वस्थ",
-			"junk": "जंक",
-			"alcohol": "मुख्यतः पेय"
+			"junk": "जंक"
+		},
+		"coreIngredientOptions": {
+			"meat": "मांस",
+			"fish": "सीफूड",
+			"rice": "चावल",
+			"noodle": "नूडल्स"
+		},
+		"diningPaceOptions": {
+			"quick": "जल्दी",
+			"leisurely": "आराम से"
 		},
 		"restrictionOptions": {
 			"vegetarian": "शाकाहारी",
@@ -210,6 +227,9 @@
 		}
 	},
 	"Topics": {
+		"deepDive": {
+			"title": "इस शैली से छांटें"
+		},
 		"HideTopicModal": {
 			"title": "छिपाएँ",
 			"description": "कृपया छिपाने का कारण बताएं (वैकल्पिक)",

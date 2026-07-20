@@ -2,6 +2,7 @@ import type { BulkImportDishesDto, SearchDishMediaDto } from "@shared/api/v1/dto
 import type { BulkImportDishesResponse, DishMediaEntry, SearchDishMediaResponse } from "@shared/api/v1/res";
 import { getRemoteConfig } from "@/lib/remoteConfig";
 import { DEFAULT_PRICE_LEVELS, DEFAULT_SEARCH_RADIUS } from "@/features/topics/constants";
+import { isNoPriceLevelsSelected } from "@/features/search/constants";
 
 type CallBackend = <TRequest extends Record<string, any> | FormData, R>(
 	endpointName: string,
@@ -54,15 +55,6 @@ export async function createDishItemsForCategory({
 		return dishItems.slice(0, searchResultRestaurantsNumber);
 	}
 
-	const allPriceLevels = [
-		"PRICE_LEVEL_INEXPENSIVE",
-		"PRICE_LEVEL_MODERATE",
-		"PRICE_LEVEL_EXPENSIVE",
-		"PRICE_LEVEL_VERY_EXPENSIVE",
-	];
-	const isAllPriceLevelsSelected =
-		priceLevels.length === allPriceLevels.length && allPriceLevels.every((level) => priceLevels.includes(level));
-
 	const requestPayload: BulkImportDishesDto = {
 		location: `${latitude},${longitude}`,
 		radius,
@@ -70,7 +62,11 @@ export async function createDishItemsForCategory({
 		categoryName,
 		minRating: 3.0,
 		languageCode: searchLocationLanguageCode,
-		...(isAllPriceLevelsSelected ? {} : { priceLevels }),
+		// #876 以下の仕様で priceLevels を送る。
+		// - 初期値 []: priceLevels を送らない
+		// - 全部チェック: priceLevels を送る
+		// - 一部チェック: priceLevels を送る
+		...(isNoPriceLevelsSelected(priceLevels) ? {} : { priceLevels }),
 	};
 
 	const importResponse = await callBackend<BulkImportDishesDto, BulkImportDishesResponse>("v1/dishes/bulk-import", {

@@ -63,9 +63,13 @@ export class CreateDishCategoryGroupVoteCandidateDto {
 	@IsNotEmpty()
 	displayName!: string;
 
-	/** 投票作成時点で固定する候補サブタイトル */
+	/**
+	 * 投票作成時点で固定する候補サブタイトル。
+	 *
+	 * 推薦APIは要求言語の localized text がない場合も候補自体は返し、reason を
+	 * 空文字にする。その候補を投票から脱落させないため、文字列であることだけを保証する。
+	 */
 	@IsString()
-	@IsNotEmpty()
 	tagline!: string;
 
 	/** 投票作成時点で固定する画像URL */

@@ -16,6 +16,7 @@ import { useCdnCookieStore } from "@/stores/useCdnCookieStore";
 type AuthContextType = {
 	user: User | null;
 	getSession: () => Session | null;
+	refreshSession: () => Promise<Session | null>;
 	loading: boolean;
 	loginWithEmail: (email: string, password: string) => Promise<void>;
 	logout: (options?: SignOut) => Promise<void>;
@@ -44,6 +45,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 	const { locale } = useLocale();
 	const sessionRef = useRef<Session | null>(null);
 	const getSession = useCallback(() => sessionRef.current, []);
+	/**
+	 * 401 を受けたリクエストが、新しい access token で即時再試行できるようにする。
+	 * Supabase の自動更新は後続リクエストには効くが、既に失敗した通信は再送しないため、
+	 * 更新済み Session を呼び出し元へ返しつつ、同期参照する sessionRef も先に更新する。
+	 */
+	const refreshSession = useCallback(async (): Promise<Session | null> => {
+		const { data, error } = await supabase.auth.refreshSession();
+		if (error) throw error;
+
+		const refreshedSession = data.session;
+		if (refreshedSession) {
+			sessionRef.current = refreshedSession;
+			setUser(refreshedSession.user);
+		}
+
+		return refreshedSession;
+	}, []);
 
 	useEffect(() => {
 		/**
@@ -372,6 +390,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 		() => ({
 			user,
 			getSession,
+			refreshSession,
 			loading,
 			loginWithEmail,
 			signUpWithEmail,
@@ -385,6 +404,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 		[
 			user,
 			getSession,
+			refreshSession,
 			loading,
 			loginWithEmail,
 			signUpWithEmail,

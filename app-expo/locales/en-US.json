@@ -41,7 +41,7 @@
 		"viewInBrowser": "Continue in browser"
 	},
 	"DishCategoryGroupVotes": {
-		"resultTitle": "Group vote results",
+		"resultTitle": "Friends' voting results",
 		"resultSubtitle": "Review the choices and vote for your preferences.",
 		"resultSubtitleVoted": "You can review the current results.",
 		"copyShareLink": "Copy share link",
@@ -97,7 +97,7 @@
 			"searchFailed": "Search failed"
 		},
 		"googleMapsFallback": {
-			"message": "Restaurant data is limited in this area. Open it in Google Maps?",
+			"message": "You can view restaurants matching your criteria on Google Maps.",
 			"confirm": "Open Google Maps",
 			"cancel": "Close"
 		},
@@ -107,6 +107,8 @@
 			"scene": "Who are you going with?",
 			"mood": "How hungry are you?",
 			"taste": "What flavors?",
+			"diningPace": "How long will you spend?",
+			"foodStyle": "What kind of food?",
 			"distance": "How far?",
 			"budget": "Price range?",
 			"restrictions": "Restrictions"
@@ -132,6 +134,12 @@
 		"labels": {
 			"noMinBudget": "No minimum",
 			"noMaxBudget": "No maximum"
+		},
+		"priceLevels": {
+			"inexpensive": "Save money",
+			"moderate": "Reasonable",
+			"expensive": "A little fancy",
+			"veryExpensive": "High-end"
 		},
 		"distanceLabels": {
 			"100m": "100m",
@@ -170,8 +178,17 @@
 			"sweet": "Sweet",
 			"spicy": "Spicy",
 			"healthy": "Healthy",
-			"junk": "Junk",
-			"alcohol": "Mostly drinks"
+			"junk": "Junk"
+		},
+		"coreIngredientOptions": {
+			"meat": "Meat",
+			"fish": "Seafood",
+			"rice": "Rice",
+			"noodle": "Noodles"
+		},
+		"diningPaceOptions": {
+			"quick": "Quick",
+			"leisurely": "Leisurely"
 		},
 		"restrictionOptions": {
 			"vegetarian": "Vegetarian",
@@ -210,6 +227,9 @@
 		}
 	},
 	"Topics": {
+		"deepDive": {
+			"title": "Narrow this style"
+		},
 		"HideTopicModal": {
 			"title": "Hide",
 			"description": "Please tell us the reason for hiding (optional)",
