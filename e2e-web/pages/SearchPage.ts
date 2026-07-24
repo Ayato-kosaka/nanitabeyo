@@ -1,0 +1,86 @@
+import { expect, type Locator, type Page } from "@playwright/test";
+
+/**
+ * 🔍 「さがす」タブ（検索フォーム画面）の Page Object
+ *
+ * 対応画面: app-expo/app/[locale]/(tabs)/search/index.tsx
+ *
+ * 検索実行には必須 3 項目（場所・時間帯・シーン）の入力が必要で、
+ * 未充足の間は検索ボタン (search-submit-button) が disabled になる。
+ * ただし PrimaryButton の disabled は DOM の disabled/aria-disabled 属性には
+ * 反映されず、押しても内部で onPress 呼び出し自体がガードされる実装のため、
+ * Playwright からは「クリックしても何も起きない」という振る舞いでのみ検証できる。
+ */
+export class SearchPage {
+	readonly page: Page;
+	/** 画面ヘッダのタイトル文字列（ja-JP: Search.headerTitle） */
+	readonly headerTitle: Locator;
+	/** 場所オートコンプリートの入力欄 */
+	readonly locationInput: Locator;
+	/** 場所入力のクリアボタン */
+	readonly locationClearButton: Locator;
+	/** 場所サジェストのリスト */
+	readonly locationSuggestions: Locator;
+	/** 検索実行ボタン（FAB） */
+	readonly submitButton: Locator;
+	/** 詳細条件の展開トグル */
+	readonly advancedToggle: Locator;
+
+	constructor(page: Page) {
+		this.page = page;
+		this.headerTitle = page.getByText("どんな料理を探しましょう？🍽");
+		// LocationAutocomplete は testID ベース + サフィックスで内部要素の testID を生成する
+		this.locationInput = page.getByTestId("search-location-autocomplete-input");
+		this.locationClearButton = page.getByTestId("search-location-autocomplete-clear");
+		this.locationSuggestions = page.getByTestId("search-location-autocomplete-suggestions");
+		this.submitButton = page.getByTestId("search-submit-button");
+		this.advancedToggle = page.getByTestId("search-advanced-toggle");
+	}
+
+	/** 指定 URL へ直接遷移する（locale プレフィックス必須） */
+	async goto(locale = "ja-JP"): Promise<void> {
+		await this.page.goto(`/${locale}/search`);
+	}
+
+	/** 検索画面が表示されていることを検証する */
+	async expectLoaded(): Promise<void> {
+		await expect(this.headerTitle).toBeVisible();
+	}
+
+	/** 場所入力欄に文字を入力する */
+	async typeLocation(query: string): Promise<void> {
+		await this.locationInput.fill(query);
+	}
+
+	/** n 番目の場所サジェストの Locator を返す（0 始まり） */
+	locationSuggestion(index: number): Locator {
+		return this.page.getByTestId(`search-location-autocomplete-suggestion-${index}`);
+	}
+
+	/**
+	 * n 番目の場所サジェストを選択し、位置情報の確定（v1/locations/details）が
+	 * 完了するまで待つ。
+	 *
+	 * サジェスト選択(handleLocationSelect)はクリック直後に候補の文言を入力欄へ反映するが、
+	 * 実際に検索の必須項目となる `location` state は非同期の詳細取得 API 完了後に
+	 * セットされる。この待機なしに検索ボタンを押すと、location 未確定のまま
+	 * ガードに引っかかり画面遷移しない（PrimaryButton の disabled ガード参照）。
+	 */
+	async selectLocationSuggestion(index: number): Promise<void> {
+		const responsePromise = this.page.waitForResponse(
+			(response) => response.url().includes("v1/locations/details") && response.ok(),
+		);
+		await this.locationSuggestion(index).click();
+		await responsePromise;
+	}
+
+	/** 時間帯グリッドの項目の Locator を返す（id は timeSlots 定義の値） */
+	timeSlot(id: string): Locator {
+		return this.page.getByTestId(`search-time-slot-${id}`);
+	}
+
+	/** シーングリッドの項目の Locator を返す（id は sceneOptions 定義の値） */
+	scene(id: string): Locator {
+		return this.page.getByTestId(`search-scene-${id}`);
+	}
+}

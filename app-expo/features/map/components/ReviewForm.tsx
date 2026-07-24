@@ -575,6 +575,7 @@ export function ReviewForm({
 				*/}
 					<View>
 						<TextInput
+							testID="review-comment-input"
 							style={[styles.textInput, styles.textArea]}
 							placeholderTextColor="#A0A0A0"
 							placeholder={i18n.t("Map.placeholders.enterReviewShort")}
@@ -592,6 +593,7 @@ export function ReviewForm({
 
 					{/* 料理カテゴリ選択 Pressable 行 */}
 					<Pressable
+						testID="review-dish-category-row"
 						style={styles.dishCategorySelectRow}
 						onPress={openDishCategoryModal}
 						disabled={!!prefilledMedia} // #400 【設計】prefilledMedia が指定されている場合は、料理カテゴリ選択を無効化
@@ -630,6 +632,7 @@ export function ReviewForm({
 							<View style={styles.priceInputContainer}>
 								<Text style={styles.currencySymbol}>{currencySymbol}</Text>
 								<TextInput
+									testID="review-price-input"
 									style={[styles.textInput, styles.priceInput]}
 									placeholder={"0"}
 									placeholderTextColor="#A0A0A0"
@@ -640,6 +643,7 @@ export function ReviewForm({
 							</View>
 						) : (
 							<TextInput
+								testID="review-price-input"
 								style={[styles.textInput, styles.priceInputSmall]}
 								placeholder={"0"}
 								placeholderTextColor="#A0A0A0"
@@ -664,7 +668,7 @@ export function ReviewForm({
 									// #644 【UX】未選択時の星アイコン外枠を灰色に変更
 									const isActive = star <= rating;
 									return (
-										<TouchableOpacity key={star} onPress={() => setRating(star)}>
+										<TouchableOpacity key={star} testID={`review-star-${star}`} onPress={() => setRating(star)}>
 											<Star
 												size={36}
 												color={isActive ? "#FFD700" : "#D1D5DB"}
@@ -699,6 +703,7 @@ export function ReviewForm({
 			{!isKeyboardVisible && (
 				<View style={styles.buttonContainer}>
 					<PrimaryButton
+						testID="review-submit-button"
 						label={i18n.t("Common.postReview")}
 						onPress={handleSubmit}
 						disabled={isProcessing || !isValid}

@@ -388,6 +388,7 @@ export default function SearchScreen() {
 						{timeSlots.map((slot) => (
 							<Pressable
 								key={slot.id}
+								testID={`search-time-slot-${slot.id}`}
 								style={[styles.gridItem, timeSlot === slot.id && styles.selectedGridItem]}
 								onPress={() => handleTimeSlotSelect(slot.id)}>
 								<Image
@@ -419,6 +420,7 @@ export default function SearchScreen() {
 						{sceneOptions.map((option) => (
 							<Pressable
 								key={option.id}
+								testID={`search-scene-${option.id}`}
 								style={[styles.gridItem, scene === option.id && styles.selectedGridItem]}
 								onPress={() => handleSceneSelect(option.id)}>
 								<Image
@@ -481,7 +483,10 @@ export default function SearchScreen() {
 
 				{/* Advanced Filters Toggle */}
 				{!showAdvancedFilters && (
-					<TouchableOpacity style={styles.advancedToggle} onPress={handleAdvancedToggle}>
+					<TouchableOpacity
+						testID="search-advanced-toggle"
+						style={styles.advancedToggle}
+						onPress={handleAdvancedToggle}>
 						{showAdvancedFilters ? <ChevronUp size={20} color="#F05537" /> : <Plus size={20} color="#F05537" />}
 						<Text style={styles.advancedToggleText}>
 							{showAdvancedFilters ? i18n.t("Search.advancedToggle.close") : i18n.t("Search.advancedToggle.open")}
@@ -564,6 +569,7 @@ export default function SearchScreen() {
 			{/* Search FAB */}
 			<View style={styles.searchFabContainer}>
 				<PrimaryButton
+					testID="search-submit-button"
 					label={i18n.t("Search.searchButton")}
 					onPress={handleSearch}
 					colors={["#000000", "#000000"]}

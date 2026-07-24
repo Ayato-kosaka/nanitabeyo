@@ -25,6 +25,7 @@ async function bootstrap() {
   });
 
   app.enableCors({
+    // CORS_ORIGIN はカンマ区切りで複数指定可能（env.ts で string[] に変換済み）
     origin: env.CORS_ORIGIN,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],

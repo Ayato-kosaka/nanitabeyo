@@ -295,13 +295,21 @@ export function ActionButtons({ id, idType, onLayout, buttonsGesture }: ActionBu
 				</TouchableOpacity> */}
 
 				<View style={styles.actionContainer}>
-					<TouchableOpacity style={styles.actionButton} onPress={handleLike} hitSlop={buttonHitSlop}>
+					<TouchableOpacity
+						testID="dish-action-like"
+						style={styles.actionButton}
+						onPress={handleLike}
+						hitSlop={buttonHitSlop}>
 						<Heart size={28} color={isLiked ? "#FF3040" : "#FFFFFF"} fill={isLiked ? "#FF3040" : "white"} />
 					</TouchableOpacity>
 					<Text style={styles.actionText}>{formatLikeCount(likeCount)}</Text>
 				</View>
 
-				<TouchableOpacity style={styles.actionButton} onPress={handleSave} hitSlop={buttonHitSlop}>
+				<TouchableOpacity
+					testID="dish-action-save"
+					style={styles.actionButton}
+					onPress={handleSave}
+					hitSlop={buttonHitSlop}>
 					<Bookmark size={30} color={"transparent"} fill={isSaved ? "orange" : "white"} />
 				</TouchableOpacity>
 
