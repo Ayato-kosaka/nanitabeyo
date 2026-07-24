@@ -230,6 +230,34 @@
 		"deepDive": {
 			"title": "Filtrar este estilo"
 		},
+		"tutorial": {
+			"helpLabel": "Cómo usar esta pantalla",
+			"helpHint": "Mostrar el tutorial de recomendaciones desde el principio",
+			"skip": "Omitir",
+			"next": "Siguiente",
+			"finish": "Empezar",
+			"progress": "{{current}} / {{total}}",
+			"progressAccessibility": "Paso {{current}} de {{total}}",
+			"steps": {
+				"swipeAndDecide": {
+					"title": "Elige un plato que te apetezca",
+					"body": "Desliza a izquierda o derecha para comparar platos. Cuando te decidas, toca «¡Elegir este!»."
+				},
+				"deepDive": {
+					"title": "Explora platos similares",
+					"body": "¿Aún no te decides? Elige un estilo para acotar las sugerencias."
+				},
+				"topicActions": {
+					"title": "Adapta las sugerencias a tus gustos",
+					"save": "Guardar: vuelve a ver este plato más tarde",
+					"block": "Bloquear: recibe menos platos que no encajan contigo"
+				},
+				"groupVote": {
+					"title": "Decidid juntos",
+					"body": "Comparte las sugerencias con tu grupo y votad juntos."
+				}
+			}
+		},
 		"HideTopicModal": {
 			"title": "Ocultar",
 			"description": "Dinos la razón para ocultarlo (opcional)",

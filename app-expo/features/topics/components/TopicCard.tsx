@@ -10,6 +10,7 @@ import { profileSavedTopicsEntriesKey } from "@/features/profile/tabs/SavedTopic
 import i18n from "@/lib/i18n";
 import { type TopicImageResourceState } from "@/features/topics/hooks/useTopicImageResources";
 import { CARD_WIDTH } from "@/features/topics/constants";
+import type { TopicsTutorialTargetRefs } from "@/features/topics/types/tutorial";
 import { TopicVisualCard } from "./TopicVisualCard";
 
 export type TopicDeepDiveOption = {
@@ -30,6 +31,7 @@ export const TopicCard = ({
 	cardHeight,
 	imageState,
 	onImageRetry,
+	tutorialTargetRefs,
 }: {
 	item: Topic;
 	onBlock: (topic: Topic) => void;
@@ -39,6 +41,13 @@ export const TopicCard = ({
 	cardHeight: number;
 	imageState: TopicImageResourceState;
 	onImageRetry?: (topic: Topic) => void;
+	/**
+	 * アクティブなCarouselカードにだけ渡すチュートリアル用ref。
+	 *
+	 * 非表示カードにも同じrefを渡すと、Carouselの事前描画・再利用により
+	 * 画面外カードの座標で上書きされるため、親画面でactive indexを判定する。
+	 */
+	tutorialTargetRefs?: Pick<TopicsTutorialTargetRefs, "swipeArea" | "selectCta" | "deepDive" | "topicActions">;
 }) => {
 	const [isSaved, setIsSaved] = useState(false);
 	const { lightImpact } = useHaptics();
@@ -98,79 +107,102 @@ export const TopicCard = ({
 
 	return (
 		<View style={[styles.cardPressArea, { height: cardHeight + TOPIC_CARD_CTA_OVERHANG }]}>
-			<TouchableOpacity onPress={() => onSelect(item)} activeOpacity={0.95}>
-				<TopicVisualCard
-					title={item.topicTitle}
-					tagline={item.reason}
-					imageSource={{ uri: item.imageUrl }}
-					cardHeight={cardHeight}
-					imageState={imageState}
-					recyclingKey={item.categoryId}
-					onImageRetry={onImageRetry ? () => onImageRetry(item) : undefined}
-					bottomContent={
-						<View style={styles.bottomContent}>
-							{deepDiveOptions.length > 0 ? (
-								<View style={styles.deepDiveContainer}>
-									<View style={styles.deepDiveTitleRow}>
-										<View style={styles.deepDiveTitleLine} />
-										<Text style={styles.deepDiveTitle}>{i18n.t("Topics.deepDive.title")}</Text>
-										<View style={styles.deepDiveTitleLine} />
+			{/* measureInWindowの基準を安定させるため、Touchableではなく明示的なViewを計測する。 */}
+			<View
+				ref={tutorialTargetRefs?.swipeArea}
+				collapsable={false}
+				testID={tutorialTargetRefs ? "topics-tutorial-target-swipe" : undefined}>
+				<TouchableOpacity onPress={() => onSelect(item)} activeOpacity={0.95}>
+					<TopicVisualCard
+						title={item.topicTitle}
+						tagline={item.reason}
+						imageSource={{ uri: item.imageUrl }}
+						cardHeight={cardHeight}
+						imageState={imageState}
+						recyclingKey={item.categoryId}
+						onImageRetry={onImageRetry ? () => onImageRetry(item) : undefined}
+						bottomContent={
+							<View style={styles.bottomContent}>
+								{deepDiveOptions.length > 0 ? (
+									<View
+										ref={tutorialTargetRefs?.deepDive}
+										collapsable={false}
+										style={styles.deepDiveContainer}
+										testID={tutorialTargetRefs ? "topics-tutorial-target-deep-dive" : undefined}>
+										<View style={styles.deepDiveTitleRow}>
+											<View style={styles.deepDiveTitleLine} />
+											<Text style={styles.deepDiveTitle}>{i18n.t("Topics.deepDive.title")}</Text>
+											<View style={styles.deepDiveTitleLine} />
+										</View>
+										<View style={styles.deepDiveChips}>
+											{deepDiveOptions.map((option) => (
+												<TouchableOpacity
+													key={option.key}
+													style={[styles.deepDiveChip, { width: deepDiveChipWidth }]}
+													onPress={(event) => {
+														event.stopPropagation();
+														onDeepDive?.(item, option);
+													}}
+													activeOpacity={0.8}>
+													<Text style={styles.deepDiveChipText}>{option.label}</Text>
+												</TouchableOpacity>
+											))}
+										</View>
 									</View>
-									<View style={styles.deepDiveChips}>
-										{deepDiveOptions.map((option) => (
-											<TouchableOpacity
-												key={option.key}
-												style={[styles.deepDiveChip, { width: deepDiveChipWidth }]}
-												onPress={(event) => {
-													event.stopPropagation();
-													onDeepDive?.(item, option);
-												}}
-												activeOpacity={0.8}>
-												<Text style={styles.deepDiveChipText}>{option.label}</Text>
-											</TouchableOpacity>
-										))}
-									</View>
-								</View>
-							) : null}
-							<View style={styles.ctaSpacer} />
-						</View>
-					}
-					topRightContent={
-						<>
-							<TouchableOpacity
-								style={styles.topButton}
-								onPress={(event) => {
-									event.stopPropagation();
-									void handleSave();
-								}}>
-								<Bookmark
-									size={20}
-									color={isSaved ? "transparent" : "white"}
-									fill={isSaved ? "orange" : "transparent"}
-								/>
-							</TouchableOpacity>
-							<TouchableOpacity
-								style={styles.topButton}
-								onPress={(event) => {
-									event.stopPropagation();
-									void handleBlock();
-								}}
-								accessibilityRole="button"
-								accessibilityLabel={i18n.t("Topics.BlockTopicModal.title")}>
-								<Ban size={18} color="#FFF" />
-							</TouchableOpacity>
-						</>
-					}
-				/>
-			</TouchableOpacity>
-			<TouchableOpacity
-				style={styles.selectButton}
-				onPress={() => onSelect(item)}
-				activeOpacity={0.85}
-				accessibilityRole="button"
-				accessibilityLabel={i18n.t("Topics.chooseThis")}>
-				<Text style={styles.selectButtonText}>{i18n.t("Topics.chooseThis")}</Text>
-			</TouchableOpacity>
+								) : null}
+								<View style={styles.ctaSpacer} />
+							</View>
+						}
+						topRightContent={
+							<View
+								ref={tutorialTargetRefs?.topicActions}
+								collapsable={false}
+								style={styles.topicActions}
+								testID={tutorialTargetRefs ? "topics-tutorial-target-actions" : undefined}>
+								<TouchableOpacity
+									style={styles.topButton}
+									onPress={(event) => {
+										event.stopPropagation();
+										void handleSave();
+									}}
+									accessibilityRole="button"
+									accessibilityLabel={i18n.t("Common.save")}
+									accessibilityState={{ selected: isSaved }}>
+									<Bookmark
+										size={20}
+										color={isSaved ? "transparent" : "white"}
+										fill={isSaved ? "orange" : "transparent"}
+									/>
+								</TouchableOpacity>
+								<TouchableOpacity
+									style={styles.topButton}
+									onPress={(event) => {
+										event.stopPropagation();
+										void handleBlock();
+									}}
+									accessibilityRole="button"
+									accessibilityLabel={i18n.t("Topics.BlockTopicModal.title")}>
+									<Ban size={18} color="#FFF" />
+								</TouchableOpacity>
+							</View>
+						}
+					/>
+				</TouchableOpacity>
+			</View>
+			<View
+				ref={tutorialTargetRefs?.selectCta}
+				collapsable={false}
+				style={styles.selectButtonTarget}
+				testID={tutorialTargetRefs ? "topics-tutorial-target-select" : undefined}>
+				<TouchableOpacity
+					style={styles.selectButton}
+					onPress={() => onSelect(item)}
+					activeOpacity={0.85}
+					accessibilityRole="button"
+					accessibilityLabel={i18n.t("Topics.chooseThis")}>
+					<Text style={styles.selectButtonText}>{i18n.t("Topics.chooseThis")}</Text>
+				</TouchableOpacity>
+			</View>
 		</View>
 	);
 };
@@ -186,17 +218,19 @@ const styles = StyleSheet.create({
 	ctaSpacer: {
 		height: 16,
 	},
-	selectButton: {
+	selectButtonTarget: {
 		position: "absolute",
 		left: "10%",
 		right: "10%",
 		bottom: 0,
+		zIndex: 10,
+	},
+	selectButton: {
 		minHeight: 52,
 		borderRadius: 24,
 		alignItems: "center",
 		justifyContent: "center",
 		backgroundColor: "#F05537",
-		zIndex: 10,
 	},
 	selectButtonText: {
 		color: "#FFFFFF",
@@ -207,6 +241,9 @@ const styles = StyleSheet.create({
 	topButton: {
 		flexDirection: "row",
 		alignItems: "center",
+		justifyContent: "center",
+		minWidth: 44,
+		minHeight: 44,
 		backgroundColor: "rgba(0, 0, 0, 0.3)",
 		paddingHorizontal: 16,
 		paddingVertical: 10,
@@ -217,6 +254,9 @@ const styles = StyleSheet.create({
 		shadowOpacity: 0.3,
 		shadowRadius: 4,
 		elevation: 4,
+	},
+	topicActions: {
+		gap: 12,
 	},
 	deepDiveContainer: {
 		marginTop: 10,

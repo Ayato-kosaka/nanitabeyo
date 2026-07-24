@@ -230,6 +230,34 @@
 		"deepDive": {
 			"title": "Narrow this style"
 		},
+		"tutorial": {
+			"helpLabel": "How to use this screen",
+			"helpHint": "Show the dish recommendation tutorial from the beginning",
+			"skip": "Skip",
+			"next": "Next",
+			"finish": "Start exploring",
+			"progress": "{{current}} / {{total}}",
+			"progressAccessibility": "Step {{current}} of {{total}}",
+			"steps": {
+				"swipeAndDecide": {
+					"title": "Choose a dish that catches your eye",
+					"body": "Swipe left or right to compare dishes. When you find one you want, tap “Choose this!”"
+				},
+				"deepDive": {
+					"title": "Explore similar dishes",
+					"body": "Still deciding? Pick a style to narrow the suggestions to similar dishes."
+				},
+				"topicActions": {
+					"title": "Make suggestions fit your taste",
+					"save": "Save: Keep a dish so you can revisit it later",
+					"block": "Block: See fewer dishes that do not match your taste"
+				},
+				"groupVote": {
+					"title": "Decide together",
+					"body": "Share the suggestions with the people joining you and vote together."
+				}
+			}
+		},
 		"HideTopicModal": {
 			"title": "Hide",
 			"description": "Please tell us the reason for hiding (optional)",
