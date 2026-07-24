@@ -32,12 +32,14 @@ interface SettingsMenuItemProps {
 	onPress: () => void;
 	isLast?: boolean;
 	textStyle?: StyleProp<TextStyle>;
+	/** E2E テスト用: Web では data-testid として出力される */
+	testID?: string;
 }
 
-function SettingsMenuItem({ label, onPress, isLast, textStyle }: SettingsMenuItemProps) {
+function SettingsMenuItem({ label, onPress, isLast, textStyle, testID }: SettingsMenuItemProps) {
 	return (
 		<>
-			<TouchableOpacity style={styles.menuItem} onPress={onPress}>
+			<TouchableOpacity style={styles.menuItem} onPress={onPress} testID={testID}>
 				<Text style={[styles.menuItemText, textStyle]}>{label}</Text>
 				<ChevronRight size={20} color="#9CA3AF" />
 			</TouchableOpacity>
@@ -275,7 +277,11 @@ export default function SettingsScreen() {
 
 					{/* Card 1: フィードバック・レビュー・ブロック済みトピック */}
 					<Card style={styles.card}>
-						<SettingsMenuItem label={i18n.t("Settings.sendFeedback")} onPress={handleSendFeedback} />
+						<SettingsMenuItem
+							label={i18n.t("Settings.sendFeedback")}
+							onPress={handleSendFeedback}
+							testID="settings-feedback"
+						/>
 						{/* #317 【設計】Leave Review は web では非表示 */}
 						{Platform.OS !== "web" && (
 							<SettingsMenuItem label={i18n.t("Settings.leaveReview")} onPress={handleLeaveReview} />
@@ -285,6 +291,7 @@ export default function SettingsScreen() {
 							label={i18n.t("Settings.blockedTopics.navigationLabel")}
 							onPress={handleNavigateToBlockedTopics}
 							isLast
+							testID="settings-blocked-topics"
 						/>
 					</Card>
 
@@ -294,8 +301,16 @@ export default function SettingsScreen() {
 							label={i18n.t("Settings.communityGuidelines")}
 							onPress={() => handleLegalDocument("guidelines")}
 						/>
-						<SettingsMenuItem label={i18n.t("Settings.terms")} onPress={() => handleLegalDocument("terms")} />
-						<SettingsMenuItem label={i18n.t("Settings.privacy")} onPress={() => handleLegalDocument("privacy")} />
+						<SettingsMenuItem
+							label={i18n.t("Settings.terms")}
+							onPress={() => handleLegalDocument("terms")}
+							testID="settings-terms"
+						/>
+						<SettingsMenuItem
+							label={i18n.t("Settings.privacy")}
+							onPress={() => handleLegalDocument("privacy")}
+							testID="settings-privacy"
+						/>
 						<SettingsMenuItem
 							label={i18n.t("Settings.copyright")}
 							onPress={() => handleLegalDocument("copyright")}
@@ -305,6 +320,7 @@ export default function SettingsScreen() {
 							<SettingsMenuItem
 								label={i18n.t("Settings.logout")}
 								onPress={handleLogout}
+								testID="settings-logout"
 								textStyle={{
 									color: "#FF3E33",
 									fontWeight: "700",

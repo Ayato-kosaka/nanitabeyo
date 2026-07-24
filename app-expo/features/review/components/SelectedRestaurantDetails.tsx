@@ -134,6 +134,7 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 							</View>
 							{/* #644 【設計】自分の投稿ボタン「写真・動画を投稿」 */}
 							<PrimaryButton
+								testID="restaurant-detail-post-photo-button"
 								onPress={handleReviewButtonPress}
 								label={i18n.t("Review.selectRestaurant.postPhotoVideo")}
 								icon={<Camera size={20} color="#F05537" />}

@@ -163,7 +163,12 @@ export function ProfileHeader({
 								icon={<Edit3 size={16} color="#FFFFFF" />}
 							/>
 						) : isGuest && isOwnProfile ? (
-							<PrimaryButton style={{ flex: 1 }} onPress={onLogin || (() => {})} label={i18n.t("auth.btn_login")} />
+							<PrimaryButton
+								testID="profile-login-button"
+								style={{ flex: 1 }}
+								onPress={onLogin || (() => {})}
+								label={i18n.t("auth.btn_login")}
+							/>
 						) : (
 							<>
 								<TouchableOpacity
