@@ -87,13 +87,39 @@ jobs:
       # production は本番ドメイン、preview/development はプレビューチャンネル URL を対象にする。
       # スモークは NestJS API を呼ばないため、プレビュー URL が API の CORS_ORIGIN に
       # 含まれていなくても成立する
+      #
+      # 注意: このワークフローは target 未指定で firebase.json の全 Hosting サイト
+      # (food-scroll と app-nanitabeyo-net の 2 つ)をデプロイするため、アクションの
+      # details_url(= urls[0])は並び順先頭の food-scroll(本番へ 301 リダイレクトするだけの
+      # サイト)のプレビュー URL になってしまう。それを対象にするとリダイレクト先の本番を
+      # テストして green になり「デプロイしたばかりのアプリを検証していない」ことになるため、
+      # urls 配列から app-nanitabeyo-net の URL を明示的に選択する(見つからなければ fail)
+      - name: 🔎 Resolve smoke test URL
+        id: smoke_url
+        env:
+          DEPLOY_TARGET: ${{ github.event.inputs.target }}
+          WEB_BASE_URL: ${{ vars.WEB_BASE_URL }}
+          DEPLOY_URLS: ${{ steps.firebase_deploy.outputs.urls }}
+        run: |
+          if [ "$DEPLOY_TARGET" = "production" ]; then
+            url="$WEB_BASE_URL"
+          else
+            url=$(echo "$DEPLOY_URLS" | jq -r '.[] | select(contains("app-nanitabeyo-net"))' | head -n 1)
+          fi
+          if [ -z "$url" ]; then
+            echo "::error::スモーク対象 URL を解決できませんでした(urls: $DEPLOY_URLS)"
+            exit 1
+          fi
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "スモーク対象: $url"
+
       - name: 🎭 Install Playwright browsers
         run: pnpm --filter e2e-web exec playwright install --with-deps chromium
 
       - name: 🧪 Post-deploy smoke test
         run: pnpm --filter e2e-web exec playwright test --grep "@smoke" --project=desktop-chrome
         env:
-          PLAYWRIGHT_BASE_URL: ${{ github.event.inputs.target == 'production' && vars.WEB_BASE_URL || steps.firebase_deploy.outputs.details_url }}
+          PLAYWRIGHT_BASE_URL: ${{ steps.smoke_url.outputs.url }}
 
       - name: 📊 Upload post-deploy smoke report
         if: failure()
