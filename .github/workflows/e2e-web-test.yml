@@ -1,0 +1,82 @@
+name: E2E Web Test
+
+# 🎭 Playwright E2E テスト(e2e-web ワークスペース)
+# - 毎晩の定期実行で api-development の退行・dev データ起因の破損を検知する
+# - dev 環境の静的ビルド(EAS の development 環境変数を焼き込み)をローカル配信し、
+#   Cloud Run api-development に接続してテストする(ローカル実行と同一構成)
+# - Tier 3 (@mutation) は dev DB へ書き込むため CI では実行しない(手動実行のみ)
+on:
+  workflow_dispatch:
+  schedule:
+    # 毎日 JST 3:00(UTC 18:00)に実行
+    - cron: "0 18 * * *"
+
+# 同時実行しても壊れはしないが無駄なので、実行中があれば新しい方を待たせる
+concurrency:
+  group: e2e-web-test
+  cancel-in-progress: false
+
+jobs:
+  e2e-web:
+    name: Playwright E2E (development)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: ⏬ Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🟣 Setup PNPM
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10.8.0
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: 📦 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # app-expo が参照する共有パッケージの型/実装を生成する
+      - name: 📚 Build shared package
+        run: pnpm -F shared run build
+
+      - name: 🏗 Setup Expo & EAS CLI
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      # development 環境の EXPO_PUBLIC_* を app-expo/.env に取得する
+      # (EXPO_PUBLIC_BACKEND_BASE_URL=api-development 等がビルドに焼き込まれる)
+      - name: 🛠️ Sync environment variables from EAS CLI
+        working-directory: app-expo
+        run: pnpx eas-cli env:pull development --non-interactive
+
+      - name: 🏗️ Build Web App
+        run: pnpm --filter app-expo build:web
+
+      # ubuntu-latest では WebKit(mobile-safari)も動作するため両方インストールする
+      - name: 🎭 Install Playwright browsers
+        run: pnpm --filter e2e-web exec playwright install --with-deps chromium webkit
+
+      # Tier 1 + 2 を全プロジェクトで実行(@mutation は playwright.config.ts の grepInvert で除外済み)
+      # TEST_USER_* 未設定の場合、authenticated 系は自動スキップされる(テスト側の skip 条件)
+      - name: 🧪 Run Playwright tests (Tier 1 + 2)
+        run: pnpm --filter e2e-web test
+        env:
+          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+
+      # 動画・スクリーンショット・トレース付きの HTML レポートを保存する
+      # (ダウンロード後に `npx playwright show-report <展開先>` で閲覧)
+      - name: 📊 Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: e2e-web/playwright-report/
+          retention-days: 14

@@ -63,14 +63,42 @@ jobs:
       - name: 🏗️ Build Web App
         run: pnpm --filter app-expo build:web
 
+      # 【デプロイ前ゲート】firebase.json の rewrite 先が dist に実在するかを静的に検証する。
+      # 過去に「expo export の出力形式変更(X.html → X/index.html)に rewrite が追従せず、
+      # 本番の主要 4 タブへの直リンクが 404 になる」事故が起きたための再発防止。
+      # ブラウザ不要・数秒で完了する(e2e-web/tests/config/firebase-rewrites.spec.ts)
+      - name: 🔍 Verify firebase.json rewrites match dist
+        run: pnpm --filter e2e-web exec playwright test --project=config
+
       - name: 📄 Generate app-ads.txt from secret
         working-directory: app-expo
         run: echo "${{ secrets.ADMOB_APP_ADS_TXT }}" > dist/app-ads.txt
 
       - name: 🚀 Deploy to Firebase Hosting
+        id: firebase_deploy
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.GCP_SA_KEY }}
           projectId: ${{ secrets.FIREBASE_PROJECT_ID_PROD }}
           channelId: ${{ github.event.inputs.target == 'production' && 'live' || github.event.inputs.target }}
+
+      # 【デプロイ後検証】デプロイされたばかりの URL に対して @smoke(起動・直リンク)を実行する。
+      # production は本番ドメイン、preview/development はプレビューチャンネル URL を対象にする。
+      # スモークは NestJS API を呼ばないため、プレビュー URL が API の CORS_ORIGIN に
+      # 含まれていなくても成立する
+      - name: 🎭 Install Playwright browsers
+        run: pnpm --filter e2e-web exec playwright install --with-deps chromium
+
+      - name: 🧪 Post-deploy smoke test
+        run: pnpm --filter e2e-web exec playwright test --grep "@smoke" --project=desktop-chrome
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ github.event.inputs.target == 'production' && vars.WEB_BASE_URL || steps.firebase_deploy.outputs.details_url }}
+
+      - name: 📊 Upload post-deploy smoke report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: post-deploy-smoke-report
+          path: e2e-web/playwright-report/
+          retention-days: 14
