@@ -42,6 +42,8 @@ export default function TabLayout() {
 				options={{
 					title: i18n.t("Tabs.search"),
 					tabBarLabel: i18n.t("Tabs.labels.search"),
+					// E2E テスト用: Web では data-testid として出力される
+					tabBarButtonTestID: "tab-search",
 					tabBarIcon: ({ color }) => (
 						<View style={{ marginVertical: 4 }}>
 							<Search size={ICON_SIZE} color={color} />
@@ -55,6 +57,7 @@ export default function TabLayout() {
 					href: null,
 					title: i18n.t("Tabs.map"),
 					tabBarLabel: i18n.t("Tabs.labels.map"),
+					tabBarButtonTestID: "tab-map",
 					tabBarIcon: ({ color }) => (
 						<View style={{ marginVertical: 4 }}>
 							<MapPinned size={ICON_SIZE} color={color} />
@@ -67,6 +70,7 @@ export default function TabLayout() {
 				options={{
 					title: i18n.t("Tabs.review"),
 					tabBarLabel: i18n.t("Tabs.labels.review"),
+					tabBarButtonTestID: "tab-review",
 					tabBarIcon: ({ color }) => (
 						<View style={{ marginVertical: 4 }}>
 							<Pencil size={ICON_SIZE} color={color} />
@@ -79,6 +83,7 @@ export default function TabLayout() {
 				options={{
 					title: i18n.t("Tabs.notifications"),
 					tabBarLabel: i18n.t("Tabs.labels.notifications"),
+					tabBarButtonTestID: "tab-notifications",
 					tabBarIcon: ({ color }) => (
 						<View style={{ marginVertical: 4 }}>
 							<Bell size={ICON_SIZE} color={color} />
@@ -92,6 +97,7 @@ export default function TabLayout() {
 				options={{
 					title: i18n.t("Tabs.profile"),
 					tabBarLabel: i18n.t("Tabs.labels.profile"),
+					tabBarButtonTestID: "tab-profile",
 					tabBarIcon: ({ color }) => (
 						<View style={{ marginVertical: 4 }}>
 							<User size={ICON_SIZE} color={color} />

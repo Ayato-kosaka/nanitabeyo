@@ -169,7 +169,7 @@ export default function ResultScreen() {
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
 			{/* Header with Back Button */}
 			<View style={{ ...styles.closeButtonContainer, top: Platform.OS === "ios" ? 40 : 0 }}>
-				<TouchableOpacity style={styles.closeButton} onPress={handleCloseWithHaptic}>
+				<TouchableOpacity testID="result-close-button" style={styles.closeButton} onPress={handleCloseWithHaptic}>
 					<X size={24} color="#000" />
 				</TouchableOpacity>
 				{/* #659 【UI】一括シェアボタン - 閉じるボタンの直下に配置 */}
