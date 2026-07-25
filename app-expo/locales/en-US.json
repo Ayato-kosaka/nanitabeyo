@@ -205,6 +205,11 @@
 			"seafoodAllergy": "Seafood allergy",
 			"halal": "Halal"
 		},
+		"result": {
+			"accessibility": {
+				"bulkShare": "Share all"
+			}
+		},
 		"tutorial": {
 			"page1": {
 				"title": "Discover what you want to eat",
@@ -315,6 +320,14 @@
 		"buttons": {
 			"viewRestaurant": "View restaurant"
 		},
+		"accessibility": {
+			"viewRestaurant": "View {{name}}'s restaurant details",
+			"like": "Like {{name}}",
+			"save": "Save {{name}}",
+			"share": "Share {{name}}",
+			"openMap": "Open map for {{name}}",
+			"reviewLike": "Like {{username}}'s review"
+		},
 		"processing": "Processing media...",
 		"errors": {
 			"mapOpenFailed": "Could not open map application",
@@ -326,6 +339,11 @@
 	},
 	"ImageCardGrid": {
 		"openItemDetails": "Open item details"
+	},
+	"Stars": {
+		"accessibility": {
+			"rating": "Rating {{rating}}/5"
+		}
 	},
 	"Tabs": {
 		"home": "Home",

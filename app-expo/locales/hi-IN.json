@@ -205,6 +205,11 @@
 			"seafoodAllergy": "समुद्री भोजन से एलर्जी",
 			"halal": "हलाल"
 		},
+		"result": {
+			"accessibility": {
+				"bulkShare": "सभी शेयर करें"
+			}
+		},
 		"tutorial": {
 			"page1": {
 				"title": "आप क्या खाना चाहते हैं, जानें",
@@ -315,6 +320,14 @@
 		"buttons": {
 			"viewRestaurant": "रेस्टोरेंट देखें"
 		},
+		"accessibility": {
+			"viewRestaurant": "{{name}} के रेस्तरां का विवरण देखें",
+			"like": "{{name}} को पसंद करें",
+			"save": "{{name}} सेव करें",
+			"share": "{{name}} शेयर करें",
+			"openMap": "{{name}} का मानचित्र खोलें",
+			"reviewLike": "{{username}} की समीक्षा को पसंद करें"
+		},
 		"processing": "मीडिया प्रोसेस किया जा रहा है...",
 		"info": {
 			"walkFromShibuya": "शिबुया स्टेशन से 13 मिनट की पैदल दूरी"
@@ -326,6 +339,11 @@
 	},
 	"ImageCardGrid": {
 		"openItemDetails": "आइटम विवरण खोलें"
+	},
+	"Stars": {
+		"accessibility": {
+			"rating": "रेटिंग {{rating}}/5"
+		}
 	},
 	"Tabs": {
 		"home": "होम",

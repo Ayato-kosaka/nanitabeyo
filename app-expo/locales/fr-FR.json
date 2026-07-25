@@ -205,6 +205,11 @@
 			"seafoodAllergy": "Allergie aux fruits de mer",
 			"halal": "Halal"
 		},
+		"result": {
+			"accessibility": {
+				"bulkShare": "Tout partager"
+			}
+		},
 		"tutorial": {
 			"page1": {
 				"title": "Découvrez ce que vous voulez manger",
@@ -315,6 +320,14 @@
 		"buttons": {
 			"viewRestaurant": "Voir le restaurant"
 		},
+		"accessibility": {
+			"viewRestaurant": "Voir les détails du restaurant {{name}}",
+			"like": "Aimer {{name}}",
+			"save": "Enregistrer {{name}}",
+			"share": "Partager {{name}}",
+			"openMap": "Ouvrir la carte de {{name}}",
+			"reviewLike": "Aimer l'avis de {{username}}"
+		},
 		"processing": "Traitement du média...",
 		"errors": {
 			"mapOpenFailed": "Impossible d'ouvrir l'application de carte",
@@ -326,6 +339,11 @@
 	},
 	"ImageCardGrid": {
 		"openItemDetails": "Ouvrir les détails de l'article"
+	},
+	"Stars": {
+		"accessibility": {
+			"rating": "Note {{rating}}/5"
+		}
 	},
 	"Tabs": {
 		"home": "Accueil",

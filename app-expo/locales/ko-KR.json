@@ -205,6 +205,11 @@
 			"seafoodAllergy": "해산물 알레르기",
 			"halal": "할랄"
 		},
+		"result": {
+			"accessibility": {
+				"bulkShare": "모두 공유"
+			}
+		},
 		"tutorial": {
 			"page1": {
 				"title": "먹고 싶은 음식을 발견하세요",
@@ -315,6 +320,14 @@
 		"buttons": {
 			"viewRestaurant": "가게 보기"
 		},
+		"accessibility": {
+			"viewRestaurant": "{{name}} 매장 상세 보기",
+			"like": "{{name}} 좋아요",
+			"save": "{{name}} 저장",
+			"share": "{{name}} 공유",
+			"openMap": "{{name}} 지도 열기",
+			"reviewLike": "{{username}}님의 리뷰에 좋아요"
+		},
 		"processing": "미디어 처리 중...",
 		"info": {
 			"walkFromShibuya": "시부야역에서 도보 13분"
@@ -326,6 +339,11 @@
 	},
 	"ImageCardGrid": {
 		"openItemDetails": "항목 세부정보 열기"
+	},
+	"Stars": {
+		"accessibility": {
+			"rating": "평점 {{rating}}/5"
+		}
 	},
 	"Tabs": {
 		"home": "홈",

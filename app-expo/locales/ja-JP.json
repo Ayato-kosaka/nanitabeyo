@@ -205,6 +205,11 @@
 			"seafoodAllergy": "魚介アレルギー",
 			"halal": "ハラール"
 		},
+		"result": {
+			"accessibility": {
+				"bulkShare": "まとめてシェア"
+			}
+		},
 		"tutorial": {
 			"page1": {
 				"title": "食べたい料理に気づけるアプリ",
@@ -315,6 +320,14 @@
 		"buttons": {
 			"viewRestaurant": "店を見る"
 		},
+		"accessibility": {
+			"viewRestaurant": "{{name}}の店舗詳細を見る",
+			"like": "{{name}}にいいね",
+			"save": "{{name}}を保存",
+			"share": "{{name}}をシェア",
+			"openMap": "{{name}}の地図を開く",
+			"reviewLike": "{{username}}の口コミにいいね"
+		},
 		"processing": "メディアを処理中...",
 		"errors": {
 			"mapOpenFailed": "地図アプリを開けませんでした",
@@ -326,6 +339,11 @@
 	},
 	"ImageCardGrid": {
 		"openItemDetails": "詳細を表示"
+	},
+	"Stars": {
+		"accessibility": {
+			"rating": "評価 {{rating}}/5"
+		}
 	},
 	"Tabs": {
 		"home": "ホーム",
