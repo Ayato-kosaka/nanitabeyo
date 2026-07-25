@@ -47,6 +47,8 @@
 		"copyShareLink": "공유 링크 복사",
 		"voteCta": "투표하기",
 		"candidatesTitle": "후보",
+		"rankLabel": "{{rank}}위",
+		"unvoted": "미투표",
 		"commentsTitle": "댓글",
 		"viewRestaurants": "가게 보기",
 		"loadingRestaurants": "검색 중",

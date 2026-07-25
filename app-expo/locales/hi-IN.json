@@ -47,6 +47,8 @@
 		"copyShareLink": "शेयर लिंक कॉपी करें",
 		"voteCta": "वोट करें",
 		"candidatesTitle": "विकल्प",
+		"rankLabel": "स्थान {{rank}}",
+		"unvoted": "अभी तक वोट नहीं",
 		"commentsTitle": "टिप्पणियाँ",
 		"viewRestaurants": "रेस्तरां देखें",
 		"loadingRestaurants": "खोज रहे हैं",

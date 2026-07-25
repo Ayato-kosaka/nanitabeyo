@@ -47,6 +47,8 @@
 		"copyShareLink": "نسخ رابط المشاركة",
 		"voteCta": "تصويت",
 		"candidatesTitle": "الخيارات",
+		"rankLabel": "المركز {{rank}}",
+		"unvoted": "لم يتم التصويت",
 		"commentsTitle": "التعليقات",
 		"viewRestaurants": "عرض المطاعم",
 		"loadingRestaurants": "جارٍ البحث",

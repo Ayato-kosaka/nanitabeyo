@@ -47,6 +47,8 @@
 		"copyShareLink": "共有リンクをコピー",
 		"voteCta": "投票する",
 		"candidatesTitle": "候補",
+		"rankLabel": "{{rank}}位",
+		"unvoted": "未投票",
 		"commentsTitle": "コメント",
 		"viewRestaurants": "店を見る",
 		"loadingRestaurants": "検索中",

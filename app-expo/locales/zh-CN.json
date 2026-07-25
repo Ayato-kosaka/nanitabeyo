@@ -47,6 +47,8 @@
 		"copyShareLink": "复制分享链接",
 		"voteCta": "投票",
 		"candidatesTitle": "选项",
+		"rankLabel": "第{{rank}}名",
+		"unvoted": "未投票",
 		"commentsTitle": "评论",
 		"viewRestaurants": "查看餐厅",
 		"loadingRestaurants": "搜索中",
