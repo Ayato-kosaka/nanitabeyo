@@ -9,17 +9,15 @@ import { SearchPage } from "../../pages/SearchPage";
  * 前提: 実 API を呼ばないため CORS 設定に依存せず green になる。
  */
 test.describe("検索フォーム", () => {
-	// ─ テストケース: 場所が未確定のまま検索ボタンを押しても遷移しない ─
+	// ─ テストケース: 場所が未確定のまま検索ボタンを押すとバリデーションスナックバーが出て遷移しない ─
 	// 手順:
-	//   1. appPage で起動(検索画面)。search-submit-button(PrimaryButton)は
-	//      disabled 時、コンポーネント内部の handlePress が onPress 呼び出し自体を
-	//      ガードする実装になっている(disabled/aria-disabled は DOM に反映されないため
-	//      Playwright の toBeDisabled() では検証できず、handleSearch 内の
-	//      「検索場所を選択してください」スナックバー分岐も実質到達不能)。
-	//      そのため「非活性の結果、押しても何も起きない」ことを振る舞いで検証する
+	//   1. appPage で起動(検索画面)。#973 以降、search-submit-button(PrimaryButton)は
+	//      常にタップ可能で、未充足時は handleSearch 内のバリデーションが
+	//      global-snackbar でエラーメッセージを表示し、画面遷移をガードする実装になっている
 	//   2. 場所を明示的に未入力の状態で検索ボタンをクリックする
-	//   3. トピック画面へ遷移しておらず、検索画面のヘッダが表示され続けることを検証
-	test("場所が未確定のまま検索ボタンを押しても遷移しない", async ({ appPage }) => {
+	//   3. 「検索場所を選択してください」のスナックバーが表示されることを検証
+	//   4. トピック画面へ遷移しておらず、検索画面のヘッダが表示され続けることを検証
+	test("場所が未確定のまま検索ボタンを押すとバリデーションスナックバーが出て遷移しない", async ({ appPage }) => {
 		const searchPage = new SearchPage(appPage);
 
 		// 自動位置取得が先に完了している場合に備え、明示的にクリアしてから検証する
@@ -28,7 +26,8 @@ test.describe("検索フォーム", () => {
 		}
 
 		await searchPage.submitButton.click();
-		await appPage.waitForTimeout(500);
+		await expect(searchPage.snackbar).toBeVisible();
+		await expect(searchPage.snackbar).toContainText("検索場所を選択してください");
 		await expect(appPage).not.toHaveURL(/\/search\/topics/);
 		await searchPage.expectLoaded();
 	});

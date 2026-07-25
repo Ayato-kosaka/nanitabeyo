@@ -253,6 +253,10 @@ export default function SearchScreen() {
 		setShowAdvancedFilters(!showAdvancedFilters);
 	};
 
+	// #973【設計】検索ボタンをdisabledにすると handleSearch 内のバリデーションスナックバーが
+	// 発火しなくなるため、常にタップ可能にしたうえで見た目だけ「未充足」を伝える
+	const isSearchReady = !!location && !!timeSlot && !!scene;
+
 	// ========== チュートリアル表示制御 ==========
 	const [showTutorial, setShowTutorial] = useState(false);
 	const { hasSeenTutorial, isLoading: isTutorialLoading, markTutorialAsSeen } = useSearchTutorial();
@@ -567,17 +571,19 @@ export default function SearchScreen() {
 			</ScrollView>
 
 			{/* Search FAB */}
-			{/* #973【設計】背景を不透明の白から完全透明に変更し、ボタンの裏に隠れがちな価格帯セクションに気づけるようにする。
-			    ボタン以外の透明部分はタッチを透過させ、下のスクロール操作を妨げない。背景を無くした分、ボタン自体に影を付けて視認性を確保する */}
+			{/* #973【設計】コンテナ背景は完全透明にし、ボタンの裏に隠れがちな価格帯セクションに気づけるようにする。
+			    ボタン以外の透明部分はタッチを透過させ、下のスクロール操作を妨げない。
+			    ボタン自体は searchFab に白背景を持たせて視認性を確保しつつ、
+			    未充足時は disabled にせず色をグレーに落とすことで、押下時の
+			    バリデーションスナックバー（handleSearch 内）が必ず届くようにする */}
 			<View style={styles.searchFabContainer} pointerEvents="box-none">
 				<PrimaryButton
 					testID="search-submit-button"
 					label={i18n.t("Search.searchButton")}
 					onPress={handleSearch}
-					colors={["#000000", "#000000"]}
+					colors={isSearchReady ? ["#000000", "#000000"] : ["#9CA3AF", "#6B7280"]}
 					labelStyle={{ color: "#FFFFFF" }}
 					shadowColor="rgba(0, 0, 0, 0.45)"
-					disabled={!location || !timeSlot || !scene}
 					icon={<Search size={20} color="#FFFFFF" />}
 					style={styles.searchFab}
 				/>
@@ -804,6 +810,10 @@ const styles = StyleSheet.create({
 	},
 	searchFab: {
 		width: "100%",
+		// #973【設計】コンテナ全体を透明にした分、ボタンの矩形部分だけ白背景を持たせて
+		// 未充足時のグレー表示も含め視認性を確保する(価格帯セクションの見通しは維持)
+		backgroundColor: "#FFFFFF",
+		borderRadius: 8,
 	},
 	restrictionsContainer: {
 		flexDirection: "row",
