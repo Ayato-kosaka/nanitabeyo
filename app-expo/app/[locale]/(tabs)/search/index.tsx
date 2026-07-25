@@ -585,7 +585,7 @@ export default function SearchScreen() {
 					labelStyle={{ color: isSearchReady ? "#FFFFFF" : "#6B7280" }}
 					shadowColor="rgba(0, 0, 0, 0.45)"
 					icon={<Search size={20} color={isSearchReady ? "#FFFFFF" : "#6B7280"} />}
-					style={[styles.searchFab, !isSearchReady && styles.searchFabNotReady]}
+					style={styles.searchFab}
 				/>
 			</View>
 
@@ -814,11 +814,6 @@ const styles = StyleSheet.create({
 		// 未充足時のグレー表示も含め視認性を確保する(価格帯セクションの見通しは維持)
 		backgroundColor: "#FFFFFF",
 		borderRadius: 8,
-	},
-	// #973【設計】未充足時は背景が白に近いグレーで輪郭が判別しづらいため、枠線で境界を補強する
-	searchFabNotReady: {
-		borderWidth: 1,
-		borderColor: "#9CA3AF",
 	},
 	restrictionsContainer: {
 		flexDirection: "row",
