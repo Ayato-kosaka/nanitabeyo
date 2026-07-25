@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
-import { useLocationSearch } from "@/hooks/useLocationSearch";
+import { useLocationSearch, type LocationSearchStatus } from "@/hooks/useLocationSearch";
 import { useHaptics } from "@/hooks/useHaptics";
 import i18n from "@/lib/i18n";
 import { type AutocompleteLocation } from "@shared/api/v1/res";
@@ -53,10 +53,18 @@ export function LocationAutocomplete({
 }: LocationAutocompleteProps) {
 	const [showSuggestions, setShowSuggestions] = useState(false);
 	const [isFocused, setIsFocused] = useState(false);
+	// #931 【設計】デバウンス待機中(=まだAPIを呼んでいない)かどうかはHookの外側(このコンポーネント)でしか
+	// 分からないため、ローカルで保持しHookの status と合成して表示状態を決定する。
+	const [isDebouncing, setIsDebouncing] = useState(false);
 	const inputRef = useRef<TextInput>(null);
 	const debounceRef = useRef<number | null>(null);
+	// #931 【設計】ブラーによる遅延非表示タイマー。フォーカスが戻った場合はキャンセルする必要がある
+	// (例: 再試行ボタン押下でクリック直後に blur→非表示が予約された後、focus() で復帰するケース)
+	const blurTimeoutRef = useRef<number | null>(null);
+	// #931 【設計】エラー時の再試行ボタンで直前のクエリを再実行するために保持
+	const lastQueryRef = useRef("");
 
-	const { suggestions, isSearching, searchLocations } = useLocationSearch();
+	const { suggestions, status, searchLocations, clearSuggestions } = useLocationSearch();
 	const { lightImpact } = useHaptics();
 
 	// Auto focus on mount if requested
@@ -86,29 +94,55 @@ export function LocationAutocomplete({
 			// Show suggestions if there's text and input is focused
 			setShowSuggestions(trimmed.length > 0 && isFocused);
 
-			// If入力が短すぎる場合は検索をかけず、サジェストも消す
+			// #931 【修正】検索条件を満たさない場合は Hook 側の候補も破棄する。
+			// 従来は表示フラグを畳むだけで suggestions が残存し、再入力の1文字目で
+			// 直前の(無関係な)候補が一瞬再表示されるバグがあった。
 			if (!hasEnoughChars) {
+				setIsDebouncing(false);
+				clearSuggestions();
 				return;
 			}
 
+			// #931 【設計】デバウンス待機中フラグを立てる。この間は "debouncing" として
+			// ローディング表示のみ行い、0件文言のフラッシュを防ぐ。
+			setIsDebouncing(true);
+
 			// Debounce the API call
 			debounceRef.current = setTimeout(() => {
+				setIsDebouncing(false);
+				lastQueryRef.current = trimmed;
 				searchLocations(trimmed).catch((error) => {
 					console.warn("Location search failed:", error);
 				});
 			}, DEBOUNCE_DELAY_MS) as unknown as number;
 		},
-		[onChangeText, searchLocations, isFocused],
+		[onChangeText, searchLocations, isFocused, clearSuggestions],
 	);
 
 	// Handle input focus
 	const handleFocus = useCallback(() => {
+		// #931 【修正】直前の blur による遅延非表示予約が残っている場合はキャンセルする。
+		// キャンセルしないと、再フォーカス直後に表示した結果パネルが遅れて閉じてしまう
+		// (再試行ボタン押下 → blur予約 → focus復帰 → 予約がそのまま発火、という不具合があった)
+		if (blurTimeoutRef.current) {
+			clearTimeout(blurTimeoutRef.current);
+			blurTimeoutRef.current = null;
+		}
+
 		setIsFocused(true);
 
 		if (autoClearOnFocus && value.length > 0) {
 			// クリアボタンと同じ順序に揃える
 			onChangeText("");
 			onClear?.();
+
+			// #931 【修正】自動クリア時も Hook 側の候補・状態を初期化し、
+			// 直後の入力で無関係な旧候補が再表示されないようにする
+			if (debounceRef.current) {
+				clearTimeout(debounceRef.current);
+			}
+			setIsDebouncing(false);
+			clearSuggestions();
 
 			// 自動クリアしたときは一旦サジェスト閉じる
 			setShowSuggestions(false);
@@ -122,10 +156,11 @@ export function LocationAutocomplete({
 	// Handle input blur
 	const handleBlur = useCallback(() => {
 		// Delay hiding suggestions to allow for suggestion selection
-		setTimeout(() => {
+		blurTimeoutRef.current = setTimeout(() => {
 			setIsFocused(false);
 			setShowSuggestions(false);
-		}, BLUR_SUGGESTION_HIDE_DELAY_MS);
+			blurTimeoutRef.current = null;
+		}, BLUR_SUGGESTION_HIDE_DELAY_MS) as unknown as number;
 	}, []);
 
 	// Handle suggestion selection
@@ -149,11 +184,19 @@ export function LocationAutocomplete({
 		onChangeText("");
 		setShowSuggestions(false);
 
+		// #931 【修正】クリア操作では query だけでなく Hook 側の候補・状態も同時初期化する
+		// (座標や選択状態の初期化は onClear 経由で呼び出し元の handleLocationClear が担う)
+		if (debounceRef.current) {
+			clearTimeout(debounceRef.current);
+		}
+		setIsDebouncing(false);
+		clearSuggestions();
+
 		if (onClear) {
 			onClear();
 		}
 		inputRef.current?.focus();
-	}, [onChangeText, onClear, lightImpact]);
+	}, [onChangeText, onClear, lightImpact, clearSuggestions]);
 
 	// Cleanup debounce timer on unmount
 	useEffect(() => {
@@ -161,11 +204,33 @@ export function LocationAutocomplete({
 			if (debounceRef.current) {
 				clearTimeout(debounceRef.current);
 			}
+			if (blurTimeoutRef.current) {
+				clearTimeout(blurTimeoutRef.current);
+			}
 		};
 	}, []);
 
+	// #931 【設計】検索失敗時の再試行。直前に実際に投げたクエリ(lastQueryRef)を再送する。
+	// 再試行ボタンはTextInputの外側にあるため押下でblurが発生し結果パネルが閉じてしまう。
+	// 明示的に再フォーカスして handleFocus 側のキャンセル処理でパネルを開いたままにする。
+	const handleRetry = useCallback(() => {
+		if (!lastQueryRef.current) return;
+		inputRef.current?.focus();
+		searchLocations(lastQueryRef.current).catch((error) => {
+			console.warn("Location search retry failed:", error);
+		});
+	}, [searchLocations]);
+
 	const trimmedValueLength = value.trim().length;
 	const hasEnoughCharsForSearch = trimmedValueLength >= MIN_SEARCH_LENGTH;
+
+	// #931 【設計】デバウンス待機中はHookの検索がまだ始まっていないため、ローカルの isDebouncing を
+	// 優先した合成ステータスを画面表示に使う。これにより「デバウンス中に0件文言が一瞬出る」バグを防ぐ。
+	const displayStatus: LocationSearchStatus | "idle" = !hasEnoughCharsForSearch
+		? "idle"
+		: isDebouncing
+			? "debouncing"
+			: status;
 
 	return (
 		<View style={styles.container}>
@@ -203,16 +268,16 @@ export function LocationAutocomplete({
 				{renderInputRight}
 			</View>
 
-			{/* Loading indicator */}
-			{isSearching && (
+			{/* #931 Loading indicator: デバウンス待機中とAPI呼び出し中の両方で表示する */}
+			{(displayStatus === "debouncing" || displayStatus === "searching") && (
 				<View style={styles.loadingContainer}>
 					<LoadingIndicator size="small" />
-					<Text style={styles.loadingText}>{i18n.t("Profile.loading")}</Text>
+					<Text style={styles.loadingText}>{i18n.t("Search.loading")}</Text>
 				</View>
 			)}
 
 			{/* Suggestions List */}
-			{showSuggestions && suggestions.length > 0 && (
+			{showSuggestions && displayStatus === "success" && suggestions.length > 0 && (
 				<View style={styles.suggestionsContainer}>
 					<ScrollView
 						keyboardShouldPersistTaps="handled"
@@ -245,10 +310,26 @@ export function LocationAutocomplete({
 				</View>
 			)}
 
-			{/* No results message */}
-			{showSuggestions && !isSearching && suggestions.length === 0 && hasEnoughCharsForSearch && (
+			{/* #931 No results message: 0件が確定した(status === "empty")ときのみ表示し、
+			    デバウンス待機中/検索中に一瞬フラッシュしないようにする */}
+			{showSuggestions && displayStatus === "empty" && (
 				<View style={styles.noResultsContainer}>
 					<Text style={styles.noResultsText}>{i18n.t("Search.noLocationsFound")}</Text>
+				</View>
+			)}
+
+			{/* #931 Error message: 0件(=正常応答)とは別文言で表示し、再試行を提供する */}
+			{showSuggestions && displayStatus === "error" && (
+				<View style={styles.noResultsContainer}>
+					<Text style={styles.noResultsText}>{i18n.t("Search.errors.searchFailed")}</Text>
+					<TouchableOpacity
+						style={styles.retryButton}
+						onPress={handleRetry}
+						accessibilityRole="button"
+						accessibilityLabel={i18n.t("Common.retry")}
+						testID={`${testID}-retry`}>
+						<Text style={styles.retryButtonText}>{i18n.t("Common.retry")}</Text>
+					</TouchableOpacity>
 				</View>
 			)}
 		</View>
@@ -349,5 +430,17 @@ const styles = StyleSheet.create({
 	noResultsText: {
 		fontSize: 14,
 		color: "#6B7280",
+	},
+	retryButton: {
+		marginTop: 12,
+		backgroundColor: "#F05537",
+		paddingHorizontal: 20,
+		paddingVertical: 10,
+		borderRadius: 20,
+	},
+	retryButtonText: {
+		color: "#FFFFFF",
+		fontWeight: "600",
+		fontSize: 14,
 	},
 });
