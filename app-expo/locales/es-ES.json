@@ -406,7 +406,8 @@
 			"displayNameRequired": "El nombre para mostrar es obligatorio",
 			"displayNameLength": "El nombre para mostrar debe tener 30 caracteres o menos",
 			"bioLength": "La biografía debe tener 150 caracteres o menos"
-		}
+		},
+		"guestDisplayName": "Invitado"
 	},
 	"NotFound": {
 		"title": "¡Vaya!",

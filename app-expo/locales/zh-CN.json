@@ -406,7 +406,8 @@
 			"displayNameRequired": "显示名称为必填项",
 			"displayNameLength": "显示名称不能超过30个字符",
 			"bioLength": "简介不能超过150个字符"
-		}
+		},
+		"guestDisplayName": "访客"
 	},
 	"NotFound": {
 		"title": "哎呀！",

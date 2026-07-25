@@ -406,7 +406,8 @@
 			"displayNameRequired": "표시 이름은 필수입니다",
 			"displayNameLength": "표시 이름은 30자 이하여야 합니다",
 			"bioLength": "자기소개는 150자 이하여야 합니다"
-		}
+		},
+		"guestDisplayName": "게스트"
 	},
 	"NotFound": {
 		"title": "이런!",
