@@ -128,6 +128,8 @@
 		"accessibility": {
 			"locationInputHint": "أدخل موقعًا للبحث عن المطاعم",
 			"clearLocation": "مسح الموقع",
+			"useCurrentLocation": "استخدام الموقع الحالي",
+			"showTutorial": "عرض كيفية الاستخدام",
 			"selectLocation": "اختر هذا الموقع"
 		},
 		"loading": "جارٍ البحث...",
@@ -502,6 +504,7 @@
 			"dishCategoryNoResults": "لم يتم العثور على فئات أطباق مطابقة",
 			"dishCategoryInputHint": "أدخل فئة الطبق للبحث",
 			"clearDishCategory": "مسح فئة الطبق",
+			"useCurrentLocation": "استخدام الموقع الحالي",
 			"selectDishCategory": "اختر فئة الطبق هذه"
 		},
 		"errors": {

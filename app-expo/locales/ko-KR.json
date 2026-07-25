@@ -128,6 +128,8 @@
 		"accessibility": {
 			"locationInputHint": "레스토랑을 검색할 위치를 입력하세요",
 			"clearLocation": "위치 지우기",
+			"useCurrentLocation": "현재 위치 사용",
+			"showTutorial": "사용법 보기",
 			"selectLocation": "이 위치 선택"
 		},
 		"loading": "검색 중...",
@@ -502,6 +504,7 @@
 			"dishCategoryNoResults": "일치하는 요리 카테고리를 찾을 수 없습니다",
 			"dishCategoryInputHint": "검색할 음식 카테고리를 입력하세요",
 			"clearDishCategory": "음식 카테고리 지우기",
+			"useCurrentLocation": "현재 위치 사용",
 			"selectDishCategory": "이 음식 카테고리 선택"
 		},
 		"errors": {

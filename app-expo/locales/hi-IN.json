@@ -128,6 +128,8 @@
 		"accessibility": {
 			"locationInputHint": "रेस्टोरेंट खोजने के लिए स्थान दर्ज करें",
 			"clearLocation": "स्थान साफ़ करें",
+			"useCurrentLocation": "वर्तमान स्थान का उपयोग करें",
+			"showTutorial": "उपयोग कैसे करें देखें",
 			"selectLocation": "इस स्थान को चुनें"
 		},
 		"loading": "खोज जारी...",
@@ -502,6 +504,7 @@
 			"dishCategoryNoResults": "No matching dish categories found",
 			"dishCategoryInputHint": "खोजने के लिए डिश श्रेणी दर्ज करें",
 			"clearDishCategory": "डिश श्रेणी साफ़ करें",
+			"useCurrentLocation": "वर्तमान स्थान का उपयोग करें",
 			"selectDishCategory": "इस डिश श्रेणी को चुनें"
 		},
 		"errors": {
