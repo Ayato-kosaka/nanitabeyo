@@ -44,8 +44,6 @@ export const TopicCard = ({
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 
-	const deepDiveChipWidth = deepDiveOptions.length === 1 ? "100%" : deepDiveOptions.length === 2 ? "48.5%" : "31.5%";
-
 	const handleSave = async () => {
 		const willSave = !isSaved;
 		lightImpact();
@@ -120,7 +118,8 @@ export const TopicCard = ({
 										{deepDiveOptions.map((option) => (
 											<TouchableOpacity
 												key={option.key}
-												style={[styles.deepDiveChip, { width: deepDiveChipWidth }]}
+												style={styles.deepDiveChip}
+												hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
 												onPress={(event) => {
 													event.stopPropagation();
 													onDeepDive?.(item, option);
@@ -220,7 +219,7 @@ const styles = StyleSheet.create({
 	},
 	deepDiveContainer: {
 		marginTop: 10,
-		gap: 10,
+		gap: 8,
 		paddingBottom: 6,
 	},
 	deepDiveTitleRow: {
@@ -245,17 +244,20 @@ const styles = StyleSheet.create({
 	deepDiveChips: {
 		flexDirection: "row",
 		flexWrap: "wrap",
-		justifyContent: "space-between",
-		rowGap: 10,
+		justifyContent: "center",
+		alignSelf: "center",
+		// #973【設計】主CTA(左右10%インセット=横幅80%)より確実に狭くし、深堀チップ行が主CTAより目立たないようにする
+		maxWidth: "76%",
+		gap: 8,
 	},
 	deepDiveChip: {
 		borderWidth: 1,
 		borderColor: "rgba(255, 255, 255, 0.92)",
 		backgroundColor: "rgba(255, 255, 255, 0.32)",
 		paddingHorizontal: 12,
-		paddingVertical: 11,
-		borderRadius: 18,
-		minHeight: 42,
+		paddingVertical: 7,
+		borderRadius: 14,
+		minHeight: 32,
 		justifyContent: "center",
 		alignItems: "center",
 	},
