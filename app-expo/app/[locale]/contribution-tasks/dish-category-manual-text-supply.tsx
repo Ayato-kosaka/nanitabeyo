@@ -38,7 +38,6 @@ import { Env } from "@/constants/Env";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useHaptics } from "@/hooks/useHaptics";
-import { CARD_WIDTH } from "@/features/topics/constants";
 import { SkeletonShimmer } from "@/components/SkeletonShimmer";
 import { useImageLoadWithRetry } from "@/hooks/useImageLoadWithRetry";
 
@@ -583,7 +582,7 @@ export default function DishCategoryManualTextSupplyScreen() {
 			<View style={styles.cardArea}>
 				{currentItem ? (
 					<GestureDetector gesture={panGesture}>
-						<Animated.View style={[animatedCardStyle, { width: CARD_WIDTH }]}>
+						<Animated.View style={[animatedCardStyle, { width: width - 32 }]}>
 							<CardView item={currentItem} cardHeight={cardHeight} />
 						</Animated.View>
 					</GestureDetector>
@@ -710,6 +709,10 @@ const CardView = ({
 	isPreview?: boolean;
 }) => {
 	const { logFrontendEvent } = useLogger();
+	// #958 【修正】以前は features/topics/constants.ts の CARD_WIDTH(モジュール評価時の
+	// window幅で固定、リサイズ非追従)を直接使っていた。本ツールは中央カラム対象外(社内管理画面)
+	// のためウィンドウ幅そのままでよいが、削除された CARD_WIDTH の代わりに素の window 幅を使う
+	const { width: cardWidth } = useWindowDimensions();
 
 	// #749 【設計】画像ロード管理
 	const {
@@ -739,7 +742,7 @@ const CardView = ({
 	const shouldShowSkeleton = loadState === "loading" || isRetrying;
 
 	return (
-		<View style={[styles.card, { height: cardHeight }]}>
+		<View style={[styles.card, { width: cardWidth - 32, height: cardHeight }]}>
 			<Image
 				source={{ uri: imageUrl }}
 				cachePolicy="memory"
@@ -794,7 +797,6 @@ const styles = StyleSheet.create({
 		justifyContent: "center",
 	},
 	card: {
-		width: CARD_WIDTH,
 		borderRadius: 24,
 		overflow: "hidden",
 		backgroundColor: "#EEE",

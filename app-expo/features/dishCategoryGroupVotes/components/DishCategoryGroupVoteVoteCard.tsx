@@ -9,7 +9,8 @@ import { Animated, PanResponder, StyleSheet, Text, TouchableOpacity, View } from
 import { ThumbsDown, ThumbsUp } from "lucide-react-native";
 import type { DishCategoryGroupVoteCandidate, DishCategoryGroupVoteReaction } from "@shared/api/v1/res";
 import i18n from "@/lib/i18n";
-import { CARD_MAX_HEIGHT, height as SCREEN_HEIGHT } from "@/features/topics/constants";
+import { height as SCREEN_HEIGHT } from "@/features/topics/constants";
+import { useTopicCardSize } from "@/features/topics/hooks/useTopicCardSize";
 import { TopicVisualCard } from "@/features/topics/components/TopicVisualCard";
 
 type Props = {
@@ -20,7 +21,8 @@ type Props = {
 export function DishCategoryGroupVoteVoteCard({ candidate, onVote }: Props) {
 	const translateX = useRef(new Animated.Value(0)).current;
 	const onVoteRef = useRef(onVote);
-	const cardHeight = Math.max(360, Math.min(CARD_MAX_HEIGHT, SCREEN_HEIGHT - 280));
+	const { cardWidth, cardMaxHeight } = useTopicCardSize();
+	const cardHeight = Math.max(360, Math.min(cardMaxHeight, SCREEN_HEIGHT - 280));
 
 	useEffect(() => {
 		onVoteRef.current = onVote;
@@ -54,6 +56,7 @@ export function DishCategoryGroupVoteVoteCard({ candidate, onVote }: Props) {
 					title={candidate.displayName}
 					tagline={candidate.tagline}
 					imageSource={{ uri: candidate.imageUrl }}
+					cardWidth={cardWidth}
 					cardHeight={cardHeight}
 					recyclingKey={candidate.id}
 				/>

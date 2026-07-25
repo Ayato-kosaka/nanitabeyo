@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Pressable } from "react-native";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Pressable } from "react-native";
 import {
 	MapPin,
 	Search,
@@ -43,20 +43,17 @@ import { useSearchTutorial } from "@/features/search/hooks/useSearchTutorial";
 import { Image } from "expo-image";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { useIsFocused } from "@react-navigation/native";
+import { useContentWidth } from "@/hooks/useContentWidth";
 
 // #667 【設計】画面幅ベースでアイテムサイズを計算（4列グリッド）
-const SCREEN_WIDTH = Dimensions.get("window").width;
+// #958 【修正】Dimensions.get("window") はモジュール評価時に1回だけ計算されリサイズに
+// 追従しないうえ、web ではウィンドウ実幅であって CenteredAppShell が収める中央カラム幅とは
+// 一致しない。ITEM_WIDTH の計算は useContentWidth() を使いコンポーネント内で行う
 const HORIZONTAL_PADDING = 16;
 const ITEM_PADDING = 3;
 const BORDER_WIDTH = 2;
 const ITEM_GAP = 2;
 const NUM_COLUMNS = 4;
-const ITEM_WIDTH =
-	(SCREEN_WIDTH -
-		HORIZONTAL_PADDING * 2 -
-		ITEM_GAP * (NUM_COLUMNS - 1) -
-		(ITEM_PADDING * 2 + BORDER_WIDTH * 2) * NUM_COLUMNS) /
-	NUM_COLUMNS;
 
 export default function SearchScreen() {
 	const { locale, isJapanese } = useLocale();
@@ -76,6 +73,18 @@ export default function SearchScreen() {
 
 	const { getCurrentLocation, getLocationDetails } = useLocationSearch();
 	const { showSnackbar } = useSnackbar();
+
+	// #958 【修正】中央カラム幅に追従する4列グリッドのアイテムサイズ
+	const contentWidth = useContentWidth();
+	const itemWidth = useMemo(
+		() =>
+			(contentWidth -
+				HORIZONTAL_PADDING * 2 -
+				ITEM_GAP * (NUM_COLUMNS - 1) -
+				(ITEM_PADDING * 2 + BORDER_WIDTH * 2) * NUM_COLUMNS) /
+			NUM_COLUMNS,
+		[contentWidth],
+	);
 
 	useEffect(() => {
 		// Screen view logging
@@ -389,11 +398,15 @@ export default function SearchScreen() {
 							<Pressable
 								key={slot.id}
 								testID={`search-time-slot-${slot.id}`}
-								style={[styles.gridItem, timeSlot === slot.id && styles.selectedGridItem]}
+								style={[
+									styles.gridItem,
+									{ width: itemWidth + 2 * ITEM_PADDING + 2 * BORDER_WIDTH },
+									timeSlot === slot.id && styles.selectedGridItem,
+								]}
 								onPress={() => handleTimeSlotSelect(slot.id)}>
 								<Image
 									source={slot.image}
-									style={[{ width: ITEM_WIDTH, height: ITEM_WIDTH }, styles.gridItemImage]}
+									style={[{ width: itemWidth, height: itemWidth }, styles.gridItemImage]}
 									contentFit="cover"
 									transition={0}
 									priority="high"
@@ -421,11 +434,15 @@ export default function SearchScreen() {
 							<Pressable
 								key={option.id}
 								testID={`search-scene-${option.id}`}
-								style={[styles.gridItem, scene === option.id && styles.selectedGridItem]}
+								style={[
+									styles.gridItem,
+									{ width: itemWidth + 2 * ITEM_PADDING + 2 * BORDER_WIDTH },
+									scene === option.id && styles.selectedGridItem,
+								]}
 								onPress={() => handleSceneSelect(option.id)}>
 								<Image
 									source={option.image}
-									style={[{ width: ITEM_WIDTH, height: ITEM_WIDTH }, styles.gridItemImage]}
+									style={[{ width: itemWidth, height: itemWidth }, styles.gridItemImage]}
 									contentFit="cover"
 									transition={0}
 									priority="high"
@@ -673,8 +690,9 @@ const styles = StyleSheet.create({
 		gap: ITEM_GAP,
 	},
 	// #667 【設計】グリッドアイテム（画像+ラベル）
+	// #958 【修正】width は中央カラム幅に追従させる必要があるため、静的スタイルから外し
+	// JSX 側でインラインスタイルとして合成する(itemWidth 参照)
 	gridItem: {
-		width: ITEM_WIDTH + 2 * ITEM_PADDING + 2 * BORDER_WIDTH,
 		maxWidth: 256,
 		alignItems: "center",
 		overflow: "hidden",
