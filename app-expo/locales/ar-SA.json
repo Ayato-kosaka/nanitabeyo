@@ -619,6 +619,8 @@
 		"copyright": "حقوق النشر",
 		"legalDocument": "مستند قانوني",
 		"logout": "تسجيل الخروج",
+		"logoutConfirmTitle": "هل تريد تسجيل الخروج؟",
+		"logoutConfirmMessage": "ستحتاج إلى تسجيل الدخول مرة أخرى لإدارة منشوراتك ومراجعاتك.",
 		"blockedTopics": {
 			"navigationLabel": "مواضيع الأطباق المحظورة",
 			"pageTitle": "مواضيع الأطباق المحظورة",

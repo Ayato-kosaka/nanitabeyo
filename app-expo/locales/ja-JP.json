@@ -619,6 +619,8 @@
 		"copyright": "著作権",
 		"legalDocument": "法的文書",
 		"logout": "ログアウト",
+		"logoutConfirmTitle": "ログアウトしますか？",
+		"logoutConfirmMessage": "再度ログインするまで、投稿やレビューの管理ができなくなります。",
 		"blockedTopics": {
 			"navigationLabel": "ブロック済みの料理トピック",
 			"pageTitle": "ブロック済みの料理トピック",
