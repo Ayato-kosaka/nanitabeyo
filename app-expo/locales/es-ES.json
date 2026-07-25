@@ -229,6 +229,10 @@
 				"primaryCta": "Usar ubicación actual",
 				"secondaryCta": "Más tarde"
 			}
+		},
+		"recentLocations": {
+			"title": "Ubicaciones recientes",
+			"clear": "Borrar ubicaciones recientes"
 		}
 	},
 	"Topics": {

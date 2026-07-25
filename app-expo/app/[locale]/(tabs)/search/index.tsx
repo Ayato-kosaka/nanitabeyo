@@ -19,7 +19,7 @@ import { SearchParams } from "@/types/search";
 import type { AutocompleteLocation, LocationDetailsResponse } from "@shared/api/v1/res";
 import { useLocationSearch } from "@/hooks/useLocationSearch";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
-import { LocationAutocomplete } from "@/components/LocationAutocomplete";
+import { LocationAutocomplete, type RecentLocation } from "@/components/LocationAutocomplete";
 import {
 	timeSlots,
 	sceneOptions,
@@ -42,6 +42,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { DEFAULT_SEARCH_RADIUS } from "@/features/topics/constants";
 import { TutorialBottomSheet } from "@/features/search/components/TutorialBottomSheet";
 import { useSearchTutorial } from "@/features/search/hooks/useSearchTutorial";
+import { useRecentLocations } from "@/features/search/hooks/useRecentLocations";
 import { Image } from "expo-image";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { useIsFocused } from "@react-navigation/native";
@@ -141,6 +142,10 @@ export default function SearchScreen() {
 		try {
 			const locationDetails = await getLocationDetails(prediction);
 			setLocation(locationDetails);
+			// #953 【仕様】details 取得に成功した地点だけを「最近使った場所」に保存する。
+			// viewport はスプレッドすると型上は Omit していても実行時には残ってしまうため、明示的に除く。
+			const { viewport: _viewport, ...locationWithoutViewport } = locationDetails;
+			addRecentLocation({ ...locationWithoutViewport, locationQuery: prediction.mainText });
 		} catch (error) {
 			logFrontendEvent({
 				event_name: "location_selection_failed",
@@ -150,6 +155,20 @@ export default function SearchScreen() {
 			showSnackbar(i18n.t("Search.errors.fetchLocation"));
 		}
 	};
+
+	// #953 【仕様】最近使った場所は details API を呼び直さず、保存済みの location をそのまま復元する
+	const handleSelectRecentLocation = useCallback(
+		(recent: RecentLocation) => {
+			logFrontendEvent({
+				event_name: "recent_location_selected",
+				error_level: "log",
+				payload: { locationQuery: recent.locationQuery },
+			});
+			setLocation(recent);
+			setLocationQuery(recent.locationQuery);
+		},
+		[logFrontendEvent],
+	);
 
 	const handleUseCurrentLocation = async () => {
 		lightImpact();
@@ -275,6 +294,9 @@ export default function SearchScreen() {
 		setShowAdvancedFilters(!showAdvancedFilters);
 	};
 
+	// #953 【仕様】直近5件の地点をローカル保存し、地点未入力でのフォーカス時に再選択候補として出す
+	const { recentLocations, addRecentLocation, clearRecentLocations } = useRecentLocations();
+
 	// ========== チュートリアル表示制御 ==========
 	const [showTutorial, setShowTutorial] = useState(false);
 	const { hasSeenTutorial, isLoading: isTutorialLoading, markTutorialAsSeen } = useSearchTutorial();
@@ -385,6 +407,9 @@ export default function SearchScreen() {
 							onClear={handleLocationClear}
 							placeholder={i18n.t("Search.placeholders.enterLocation")}
 							autoClearOnFocus={locationQuery === i18n.t("Search.currentLocation")}
+							recentLocations={recentLocations}
+							onSelectRecentLocation={handleSelectRecentLocation}
+							onClearRecentLocations={recentLocations.length > 0 ? clearRecentLocations : undefined}
 							renderInputRight={
 								<TouchableOpacity style={styles.currentLocationButton} onPress={handleUseCurrentLocation}>
 									<Navigation size={20} color="#000000" />

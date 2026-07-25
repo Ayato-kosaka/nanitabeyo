@@ -229,6 +229,10 @@
 				"primaryCta": "استخدم الموقع الحالي",
 				"secondaryCta": "لاحقاً"
 			}
+		},
+		"recentLocations": {
+			"title": "المواقع الأخيرة",
+			"clear": "مسح المواقع الأخيرة"
 		}
 	},
 	"Topics": {

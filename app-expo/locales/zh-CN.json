@@ -229,6 +229,10 @@
 				"primaryCta": "使用当前位置",
 				"secondaryCta": "稍后"
 			}
+		},
+		"recentLocations": {
+			"title": "最近使用的地点",
+			"clear": "清除最近使用的地点"
 		}
 	},
 	"Topics": {

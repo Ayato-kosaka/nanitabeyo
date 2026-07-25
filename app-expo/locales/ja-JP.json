@@ -229,6 +229,10 @@
 				"primaryCta": "現在地を利用する",
 				"secondaryCta": "あとで"
 			}
+		},
+		"recentLocations": {
+			"title": "最近使った場所",
+			"clear": "最近使った場所を消去"
 		}
 	},
 	"Topics": {
