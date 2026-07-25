@@ -31,7 +31,7 @@ import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
-import { SearchHeader } from "@/features/search/components/SearchHeader";
+import { ScreenHeader } from "@/components/ScreenHeader";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { useDishCategoryGroupVoteActions } from "../hooks/useDishCategoryGroupVoteActions";
 import { useDishCategoryGroupVoteDetail } from "../hooks/useDishCategoryGroupVoteDetail";
@@ -236,9 +236,13 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 		);
 	}
 
+	// #941 【仕様】全候補の総投票数が 0 のときは BE が返す rank(=同スコアで全員1位) を
+	// そのまま表示せず「未投票」に統一する。総投票数はここでのみ判定し、rank の算出ロジック(BE)は変更しない。
+	const hasVotes = detail.candidates.some((candidate) => candidate.likeCount > 0 || candidate.dislikeCount > 0);
+
 	return (
 		<SafeAreaView style={styles.safeArea} edges={[]}>
-			<SearchHeader title={i18n.t("DishCategoryGroupVotes.resultTitle")} onPressBack={() => router.back()} />
+			<ScreenHeader title={i18n.t("DishCategoryGroupVotes.resultTitle")} onPressBack={() => router.back()} />
 			<ScrollView contentContainerStyle={styles.content}>
 				<DishCategoryGroupVoteResultHeader
 					session={detail.session}
@@ -285,6 +289,7 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 				<DishCategoryGroupVoteCandidateList
 					candidates={detail.candidates}
 					isHost={detail.session.isHost}
+					hasVotes={hasVotes}
 					loadingCandidateId={loadingCandidateId}
 					onPressCandidate={handlePressCandidate}
 					onPressDishMedia={handleOpenCandidateDishMedia}
@@ -297,6 +302,7 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 					<DishCategoryGroupVoteCandidateDetailModal
 						candidate={selectedCandidate}
 						isHost={detail.session.isHost}
+						hasVotes={hasVotes}
 						isDishMediaLoading={loadingCandidateId === selectedCandidate.id}
 						onPressDishMedia={handleOpenCandidateDishMedia}
 						onDeleteCandidate={handleDeleteCandidate}

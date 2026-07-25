@@ -49,6 +49,8 @@
 		"copyShareLink": "نسخ رابط المشاركة",
 		"voteCta": "تصويت",
 		"candidatesTitle": "الخيارات",
+		"rankLabel": "المركز {{rank}}",
+		"unvoted": "لم يتم التصويت",
 		"commentsTitle": "التعليقات",
 		"viewRestaurants": "عرض المطاعم",
 		"loadingRestaurants": "جارٍ البحث",
@@ -62,7 +64,10 @@
 		"refreshFailed": "تعذر تحديث النتائج",
 		"like": "أعجبني",
 		"dislike": "تخطي",
+		"likeButtonLabel": "أعجبني {{title}}",
+		"dislikeButtonLabel": "لم يعجبني {{title}}",
 		"voteProgress": "{{current}} / {{total}}",
+		"voteProgressAnnouncement": "{{current}} من {{total}}: {{title}}",
 		"noVoteCandidates": "لا توجد خيارات للتصويت",
 		"completionTitle": "أكّد تصويتك",
 		"completionDescription": "أدخل الاسم الذي سيظهر في النتائج وتعليقًا اختياريًا.",
@@ -126,6 +131,8 @@
 		"accessibility": {
 			"locationInputHint": "أدخل موقعًا للبحث عن المطاعم",
 			"clearLocation": "مسح الموقع",
+			"useCurrentLocation": "استخدام الموقع الحالي",
+			"showTutorial": "عرض كيفية الاستخدام",
 			"selectLocation": "اختر هذا الموقع"
 		},
 		"loading": "جارٍ البحث...",
@@ -201,6 +208,11 @@
 			"seafoodAllergy": "حساسية المأكولات البحرية",
 			"halal": "حلال"
 		},
+		"result": {
+			"accessibility": {
+				"bulkShare": "مشاركة الكل"
+			}
+		},
 		"tutorial": {
 			"page1": {
 				"title": "اكتشف ما تريد أن تأكله",
@@ -227,6 +239,10 @@
 				"primaryCta": "استخدم الموقع الحالي",
 				"secondaryCta": "لاحقاً"
 			}
+		},
+		"recentLocations": {
+			"title": "المواقع الأخيرة",
+			"clear": "مسح المواقع الأخيرة"
 		}
 	},
 	"Topics": {
@@ -272,7 +288,8 @@
 		"accessibility": {
 			"blockTopic": "إزالة {{title}} من التوصيات",
 			"saveTopic": "حفظ {{title}}",
-			"unsaveTopic": "إلغاء حفظ {{title}}"
+			"unsaveTopic": "إلغاء حفظ {{title}}",
+			"thumbnail": "صورة مصغرة لـ {{title}}، {{index}} من {{total}}"
 		}
 	},
 	"Notifications": {
@@ -310,6 +327,14 @@
 		"buttons": {
 			"viewRestaurant": "عرض المطعم"
 		},
+		"accessibility": {
+			"viewRestaurant": "عرض تفاصيل مطعم {{name}}",
+			"like": "الإعجاب بـ {{name}}",
+			"save": "حفظ {{name}}",
+			"share": "مشاركة {{name}}",
+			"openMap": "فتح خريطة {{name}}",
+			"reviewLike": "الإعجاب بمراجعة {{username}}"
+		},
 		"processing": "جارٍ معالجة الوسائط...",
 		"info": {
 			"walkFromShibuya": "على بُعد 13 دقيقة سيرًا من محطة شيبويا"
@@ -321,6 +346,11 @@
 	},
 	"ImageCardGrid": {
 		"openItemDetails": "فتح تفاصيل العنصر"
+	},
+	"Stars": {
+		"accessibility": {
+			"rating": "التقييم {{rating}}/5"
+		}
 	},
 	"Tabs": {
 		"home": "الصفحة الرئيسية",
@@ -338,13 +368,17 @@
 		}
 	},
 	"Profile": {
+		"tabGroups": {
+			"reviews": "المراجعات",
+			"saved": "المحفوظة",
+			"liked": "الإعجابات",
+			"wallet": "المحفظة"
+		},
 		"tabs": {
 			"deposits": "الودائع",
 			"earnings": "الأرباح",
-			"topics": "المواضيع",
-			"posts": "المنشورات",
 			"saved-posts": "المنشورات",
-			"saved-topics": "المواضيع",
+			"saved-topics": "الأطباق",
 			"wallet-deposit": "الودائع",
 			"wallet-earning": "الأرباح"
 		},
@@ -383,7 +417,8 @@
 			"follow": "متابعة",
 			"following": "متابَع",
 			"message": "رسالة",
-			"searchByMood": "ابحث عن الأطباق التي ستنال \"إعجابك\" حسب مزاجك اليوم",
+			"searchForReview": "ابحث عن مطعم لتقييمه",
+			"searchByMood": "ابحث حسب مزاجك اليوم",
 			"sendFeedback": "إرسال ملاحظات"
 		},
 		"stats": {
@@ -415,7 +450,8 @@
 			"displayNameRequired": "اسم العرض مطلوب",
 			"displayNameLength": "يجب ألا يتجاوز اسم العرض 30 حرفًا",
 			"bioLength": "يجب ألا تتجاوز النبذة 150 حرفًا"
-		}
+		},
+		"guestDisplayName": "ضيف"
 	},
 	"NotFound": {
 		"title": "عذرًا!",
@@ -498,6 +534,7 @@
 			"dishCategoryNoResults": "لم يتم العثور على فئات أطباق مطابقة",
 			"dishCategoryInputHint": "أدخل فئة الطبق للبحث",
 			"clearDishCategory": "مسح فئة الطبق",
+			"useCurrentLocation": "استخدام الموقع الحالي",
 			"selectDishCategory": "اختر فئة الطبق هذه"
 		},
 		"errors": {
@@ -628,6 +665,8 @@
 		"copyright": "حقوق النشر",
 		"legalDocument": "مستند قانوني",
 		"logout": "تسجيل الخروج",
+		"logoutConfirmTitle": "هل تريد تسجيل الخروج؟",
+		"logoutConfirmMessage": "ستحتاج إلى تسجيل الدخول مرة أخرى لإدارة منشوراتك ومراجعاتك.",
 		"blockedTopics": {
 			"navigationLabel": "مواضيع الأطباق المحظورة",
 			"pageTitle": "مواضيع الأطباق المحظورة",

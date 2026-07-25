@@ -32,7 +32,7 @@ import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import { makeDishMediaEntriesKey } from "@/features/dishMedia/utils/dishMediaEntriesKey";
 import { WIKIMEDIA_HEADERS } from "@/lib/wikimedia";
-import { SearchHeader } from "@/features/search/components/SearchHeader";
+import { ScreenHeader } from "@/components/ScreenHeader";
 import { useCreateDishCategoryGroupVote } from "@/features/dishCategoryGroupVotes/hooks/useCreateDishCategoryGroupVote";
 import type { CreateDishCategoryGroupVoteResponse } from "@shared/api/v1/res";
 
@@ -518,7 +518,7 @@ export default function TopicsScreen() {
 	return (
 		<View style={styles.container}>
 			{/* #674 【仕様】ヘッダー（戻るボタン + タイトル） */}
-			<SearchHeader
+			<ScreenHeader
 				title={i18n.t("Topics.headerTitle")}
 				onPressBack={handleBack}
 				rightContent={
@@ -661,12 +661,23 @@ export default function TopicsScreen() {
 								key={topic.categoryId}
 								style={[styles.thumbnail, currentIndex === index && styles.thumbnailActive]}
 								onPress={() => handleThumbnailPress(index)}
-								activeOpacity={0.7}>
+								activeOpacity={0.7}
+								accessibilityRole="button"
+								accessibilityLabel={i18n.t("Topics.accessibility.thumbnail", {
+									title: topic.topicTitle,
+									index: index + 1,
+									total: visibleTopics.length,
+								})}
+								accessibilityState={{ selected: currentIndex === index }}>
 								<Image
 									source={{ uri: topic.imageUrl, headers: WIKIMEDIA_HEADERS }}
 									style={styles.thumbnailImage}
 									contentFit="cover"
 									cachePolicy="memory"
+									// #937 【仕様】親 TouchableOpacity 側で読み上げるため、画像自体は装飾扱いにする
+									alt=""
+									accessibilityElementsHidden
+									importantForAccessibility="no"
 								/>
 							</TouchableOpacity>
 						))}

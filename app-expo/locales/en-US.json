@@ -49,6 +49,8 @@
 		"copyShareLink": "Copy share link",
 		"voteCta": "Vote",
 		"candidatesTitle": "Choices",
+		"rankLabel": "#{{rank}}",
+		"unvoted": "Not voted yet",
 		"commentsTitle": "Comments",
 		"viewRestaurants": "View restaurants",
 		"loadingRestaurants": "Searching",
@@ -62,7 +64,10 @@
 		"refreshFailed": "Could not refresh the latest results",
 		"like": "Like",
 		"dislike": "Pass",
+		"likeButtonLabel": "Like {{title}}",
+		"dislikeButtonLabel": "Dislike {{title}}",
 		"voteProgress": "{{current}} / {{total}}",
+		"voteProgressAnnouncement": "{{current}} of {{total}}: {{title}}",
 		"noVoteCandidates": "There are no choices to vote on",
 		"completionTitle": "Confirm your vote",
 		"completionDescription": "Enter the name shown on the results page and an optional comment.",
@@ -126,6 +131,8 @@
 		"accessibility": {
 			"locationInputHint": "Enter a location to search for restaurants",
 			"clearLocation": "Clear location",
+			"useCurrentLocation": "Use current location",
+			"showTutorial": "View how to use",
 			"selectLocation": "Select this location"
 		},
 		"loading": "Searching...",
@@ -201,6 +208,11 @@
 			"seafoodAllergy": "Seafood allergy",
 			"halal": "Halal"
 		},
+		"result": {
+			"accessibility": {
+				"bulkShare": "Share all"
+			}
+		},
 		"tutorial": {
 			"page1": {
 				"title": "Discover what you want to eat",
@@ -227,6 +239,10 @@
 				"primaryCta": "Use current location",
 				"secondaryCta": "Later"
 			}
+		},
+		"recentLocations": {
+			"title": "Recent locations",
+			"clear": "Clear recent locations"
 		}
 	},
 	"Topics": {
@@ -272,7 +288,8 @@
 		"accessibility": {
 			"blockTopic": "Remove {{title}} from recommendations",
 			"saveTopic": "Save {{title}}",
-			"unsaveTopic": "Unsave {{title}}"
+			"unsaveTopic": "Unsave {{title}}",
+			"thumbnail": "{{title}} thumbnail, {{index}} of {{total}}"
 		}
 	},
 	"Notifications": {
@@ -310,6 +327,14 @@
 		"buttons": {
 			"viewRestaurant": "View restaurant"
 		},
+		"accessibility": {
+			"viewRestaurant": "View {{name}}'s restaurant details",
+			"like": "Like {{name}}",
+			"save": "Save {{name}}",
+			"share": "Share {{name}}",
+			"openMap": "Open map for {{name}}",
+			"reviewLike": "Like {{username}}'s review"
+		},
 		"processing": "Processing media...",
 		"errors": {
 			"mapOpenFailed": "Could not open map application",
@@ -321,6 +346,11 @@
 	},
 	"ImageCardGrid": {
 		"openItemDetails": "Open item details"
+	},
+	"Stars": {
+		"accessibility": {
+			"rating": "Rating {{rating}}/5"
+		}
 	},
 	"Tabs": {
 		"home": "Home",
@@ -338,13 +368,17 @@
 		}
 	},
 	"Profile": {
+		"tabGroups": {
+			"reviews": "Reviews",
+			"saved": "Saved",
+			"liked": "Liked",
+			"wallet": "Wallet"
+		},
 		"tabs": {
 			"deposits": "Deposits",
 			"earnings": "Earnings",
-			"topics": "Topics",
-			"posts": "Posts",
 			"saved-posts": "Posts",
-			"saved-topics": "Topics",
+			"saved-topics": "Dishes",
 			"wallet-deposit": "Deposits",
 			"wallet-earning": "Earnings"
 		},
@@ -383,7 +417,8 @@
 			"follow": "Follow",
 			"following": "Following",
 			"message": "Message",
-			"searchByMood": "Find dishes you'll \"like\" based on today's mood",
+			"searchForReview": "Find a restaurant to review",
+			"searchByMood": "Search by today's mood",
 			"sendFeedback": "Send Feedback"
 		},
 		"stats": {
@@ -415,7 +450,8 @@
 			"displayNameRequired": "Display name is required",
 			"displayNameLength": "Display name must be 30 characters or less",
 			"bioLength": "Bio must be 150 characters or less"
-		}
+		},
+		"guestDisplayName": "Guest"
 	},
 	"NotFound": {
 		"title": "Oops!",
@@ -498,6 +534,7 @@
 			"dishCategoryNoResults": "No matching dish categories found",
 			"dishCategoryInputHint": "Enter a dish category to search",
 			"clearDishCategory": "Clear dish category",
+			"useCurrentLocation": "Use current location",
 			"selectDishCategory": "Select this dish category"
 		},
 		"errors": {
@@ -628,6 +665,8 @@
 		"copyright": "Copyright",
 		"legalDocument": "Legal Document",
 		"logout": "Logout",
+		"logoutConfirmTitle": "Log out?",
+		"logoutConfirmMessage": "You'll need to log in again to manage your posts and reviews.",
 		"blockedTopics": {
 			"navigationLabel": "Blocked dish topics",
 			"pageTitle": "Blocked dish topics",

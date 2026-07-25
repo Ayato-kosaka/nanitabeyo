@@ -83,8 +83,9 @@ export function ProfileHeader({
 				)}
 
 				{/* Display Name */}
+				{/* #948 【仕様】ゲストは locale 非依存のダミー値(profileData.ts)ではなく現在言語の「ゲスト」表示にする */}
 				<Text style={[styles.displayName]} pointerEvents="none">
-					{profile.display_name}
+					{isGuest ? i18n.t("Profile.guestDisplayName") : profile.display_name}
 				</Text>
 				{/* <Text style={styles.headerTitle}>{profile.username}</Text> */}
 				<View style={{ flexDirection: "row", gap: 8 }}>

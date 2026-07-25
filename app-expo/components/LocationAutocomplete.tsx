@@ -5,8 +5,17 @@ import { useHaptics } from "@/hooks/useHaptics";
 import i18n from "@/lib/i18n";
 import { type AutocompleteLocation } from "@shared/api/v1/res";
 import { isFoodAndDrinkPlaceForUser } from "@shared/utils/google_places_restaurant_type";
-import { MapPin, Utensils, X } from "lucide-react-native";
+import { MapPin, Utensils, X, History, Trash2 } from "lucide-react-native";
+import type { LocationDetailsResponse } from "@shared/api/v1/res";
 import { LoadingIndicator } from "./LoadingIndicator";
+
+/**
+ * #953 【仕様】details API のレスポンスから viewport を除いたもの＋検索画面の表示用文字列。
+ * 「最近使った場所」として再選択した際に details API を呼び直さず復元できる形にする。
+ */
+export type RecentLocation = Omit<LocationDetailsResponse, "viewport"> & {
+	locationQuery: string;
+};
 
 interface LocationAutocompleteProps {
 	/** Current value of the input */
@@ -27,6 +36,12 @@ interface LocationAutocompleteProps {
 	autoClearOnFocus?: boolean;
 	/** Test ID for testing */
 	testID?: string;
+	/** #953 未入力でのフォーカス時に「最近使った場所」として提示する候補(最大5件) */
+	recentLocations?: RecentLocation[];
+	/** #953 「最近使った場所」の1件が選択されたときのハンドラ */
+	onSelectRecentLocation?: (location: RecentLocation) => void;
+	/** #953 「最近使った場所」を全件クリアするハンドラ。未指定なら消去ボタンを出さない */
+	onClearRecentLocations?: () => void;
 }
 
 // ===== Tunables (ベストプラクティス的にマジックナンバーを定数化) =====
@@ -50,6 +65,9 @@ export function LocationAutocomplete({
 	autofocus = false,
 	renderInputRight,
 	testID = "location-autocomplete",
+	recentLocations = [],
+	onSelectRecentLocation,
+	onClearRecentLocations,
 }: LocationAutocompleteProps) {
 	const [showSuggestions, setShowSuggestions] = useState(false);
 	const [isFocused, setIsFocused] = useState(false);
@@ -143,6 +161,20 @@ export function LocationAutocomplete({
 		[onSelectSuggestion, lightImpact],
 	);
 
+	// #953 【仕様】最近使った場所は details API を呼び直さず、保存済みの location をそのまま復元する
+	const handleRecentLocationPress = useCallback(
+		(recent: RecentLocation) => {
+			lightImpact();
+			onSelectRecentLocation?.(recent);
+			setIsFocused(false);
+
+			setTimeout(() => {
+				inputRef.current?.blur();
+			}, BLUR_AFTER_SELECT_DELAY_MS);
+		},
+		[onSelectRecentLocation, lightImpact],
+	);
+
 	// Handle clear button press
 	const handleClear = useCallback(() => {
 		lightImpact();
@@ -166,6 +198,9 @@ export function LocationAutocomplete({
 
 	const trimmedValueLength = value.trim().length;
 	const hasEnoughCharsForSearch = trimmedValueLength >= MIN_SEARCH_LENGTH;
+	// #953 【仕様】未入力でフォーカスしたときだけ「最近使った場所」を出す。文字入力が始まったら
+	// 通常の検索候補(showSuggestions)に切り替わるため、両者は同時に表示されない。
+	const showRecentLocations = isFocused && trimmedValueLength === 0 && recentLocations.length > 0;
 
 	return (
 		<View style={styles.container}>
@@ -194,6 +229,7 @@ export function LocationAutocomplete({
 					<TouchableOpacity
 						style={styles.clearButton}
 						onPress={handleClear}
+						hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
 						accessibilityRole="button"
 						accessibilityLabel={i18n.t("Search.accessibility.clearLocation")}
 						testID={`${testID}-clear`}>
@@ -202,6 +238,48 @@ export function LocationAutocomplete({
 				)}
 				{renderInputRight}
 			</View>
+
+			{/* #953 最近使った場所 */}
+			{showRecentLocations && (
+				<View style={styles.suggestionsContainer}>
+					<View style={styles.recentLocationsHeader}>
+						<Text style={styles.recentLocationsTitle}>{i18n.t("Search.recentLocations.title")}</Text>
+						{onClearRecentLocations && (
+							<TouchableOpacity
+								onPress={onClearRecentLocations}
+								hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+								accessibilityRole="button"
+								accessibilityLabel={i18n.t("Search.recentLocations.clear")}
+								testID={`${testID}-recent-locations-clear`}>
+								<Trash2 size={16} color="#9CA3AF" />
+							</TouchableOpacity>
+						)}
+					</View>
+					<ScrollView
+						keyboardShouldPersistTaps="handled"
+						showsVerticalScrollIndicator={false}
+						style={styles.suggestionsList}
+						testID={`${testID}-recent-locations`}>
+						{recentLocations.map((recent, index) => (
+							<TouchableOpacity
+								key={`${recent.location.latitude},${recent.location.longitude}`}
+								style={[styles.suggestionItem, index === recentLocations.length - 1 && styles.lastSuggestionItem]}
+								onPress={() => handleRecentLocationPress(recent)}
+								accessibilityRole="button"
+								accessibilityLabel={recent.locationQuery}
+								accessibilityHint={i18n.t("Search.accessibility.selectLocation")}
+								testID={`${testID}-recent-location-${index}`}>
+								<History size={16} color="#6B7280" />
+								<View style={styles.suggestionText}>
+									<Text style={styles.suggestionMainText} numberOfLines={1}>
+										{recent.locationQuery}
+									</Text>
+								</View>
+							</TouchableOpacity>
+						))}
+					</ScrollView>
+				</View>
+			)}
 
 			{/* Loading indicator */}
 			{isSearching && (
@@ -307,6 +385,19 @@ const styles = StyleSheet.create({
 		elevation: 4,
 	},
 	suggestionsList: {},
+	recentLocationsHeader: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+		paddingHorizontal: 20,
+		paddingTop: 14,
+		paddingBottom: 4,
+	},
+	recentLocationsTitle: {
+		fontSize: 12,
+		fontWeight: "600",
+		color: "#9CA3AF",
+	},
 	suggestionItem: {
 		flexDirection: "row",
 		alignItems: "center",

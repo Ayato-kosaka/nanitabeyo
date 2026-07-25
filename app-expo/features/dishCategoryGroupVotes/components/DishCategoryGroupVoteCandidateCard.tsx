@@ -13,6 +13,7 @@ import i18n from "@/lib/i18n";
 type Props = {
 	candidate: DishCategoryGroupVoteCandidate;
 	isHost: boolean;
+	hasVotes: boolean;
 	isDishMediaLoading: boolean;
 	onPressCandidate: (candidate: DishCategoryGroupVoteCandidate) => void;
 	onPressDishMedia: (candidate: DishCategoryGroupVoteCandidate) => void;
@@ -22,6 +23,7 @@ type Props = {
 export function DishCategoryGroupVoteCandidateCard({
 	candidate,
 	isHost,
+	hasVotes,
 	isDishMediaLoading,
 	onPressCandidate,
 	onPressDishMedia,
@@ -33,7 +35,12 @@ export function DishCategoryGroupVoteCandidateCard({
 		<Pressable style={styles.card} onPress={() => onPressCandidate(candidate)}>
 			<Image source={{ uri: candidate.imageUrl }} style={styles.image} contentFit="cover" />
 			<View style={styles.rankBadge}>
-				<Text style={styles.rankText}>{candidate.rank ? `${candidate.rank}位` : "-"}</Text>
+				{/* #941 【仕様】総投票数0はBEが全候補同率rank(=1)で返すため、UI側で「未投票」に統一する */}
+				<Text style={styles.rankText} numberOfLines={1}>
+					{hasVotes && candidate.rank
+						? i18n.t("DishCategoryGroupVotes.rankLabel", { rank: candidate.rank })
+						: i18n.t("DishCategoryGroupVotes.unvoted")}
+				</Text>
 			</View>
 			<View style={styles.info}>
 				<Text style={styles.title} numberOfLines={1}>
@@ -103,9 +110,11 @@ const styles = StyleSheet.create({
 		backgroundColor: "#E5E7EB",
 	},
 	rankBadge: {
-		width: 38,
+		// #941 「未投票」など可変長ラベルが入るため固定 width から minWidth+padding に変更
+		minWidth: 38,
 		height: 38,
 		borderRadius: 19,
+		paddingHorizontal: 6,
 		alignItems: "center",
 		justifyContent: "center",
 		backgroundColor: "#F05537",
