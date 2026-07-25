@@ -8,6 +8,7 @@ import { DishReviewsSection } from "./DishReviewsSection";
 import { useMediaTracking } from "../hooks/useMediaTracking";
 import i18n from "@/lib/i18n";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
+import Stars from "@/components/Stars";
 import {
 	NormalizedDishMediaEntry,
 	selectEntryByMediaId,
@@ -256,11 +257,13 @@ export default function DishMediaContent({
 				<View style={styles.headerLeft}>
 					<Text style={styles.menuName}>{getTitle(dishMediaEntry)}</Text>
 					<View style={styles.priceRatingContainer}>
-						{/* <Text style={styles.price}>{i18n.t("Search.currencySuffix")}2,800</Text> */}
-						{/* <View style={styles.ratingContainer}>
-              {renderStars(5, 4)}
-              <Text style={styles.reviewCount}>(127)</Text>
-            </View> */}
+						{/* #956 【仕様】レビューが1件も無いdishでは平均評価が意味を持たないため出し分ける */}
+						{dishMediaEntry.dish.reviewCount > 0 && (
+							<View style={styles.ratingContainer}>
+								<Stars rating={dishMediaEntry.dish.averageRating} size={12} />
+								<Text style={styles.reviewCount}>({dishMediaEntry.dish.reviewCount})</Text>
+							</View>
+						)}
 					</View>
 				</View>
 				<View style={styles.headerRight}></View>

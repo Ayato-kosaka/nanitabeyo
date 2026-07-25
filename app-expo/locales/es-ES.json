@@ -11,6 +11,7 @@
 		"retry": "Reintentar",
 		"error": "Se produjo un error. Vuelve a intentarlo.",
 		"success": "Éxito",
+		"ratingLabel": "Valoración {{rating}} de {{maxStars}}",
 		"linkCopied": "Enlace copiado al portapapeles",
 		"shareFailed": "No se pudo compartir el contenido",
 		"daysRemaining": "Quedan {{count}} días",

@@ -11,6 +11,7 @@
 		"retry": "重试",
 		"error": "发生错误。请重试。",
 		"success": "成功",
+		"ratingLabel": "评分 {{maxStars}}分中的{{rating}}分",
 		"linkCopied": "链接已复制到剪贴板",
 		"shareFailed": "分享内容失败",
 		"daysRemaining": "剩余{{count}}天",

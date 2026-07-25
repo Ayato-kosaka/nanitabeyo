@@ -11,6 +11,7 @@
 		"retry": "إعادة المحاولة",
 		"error": "حدث خطأ. يُرجى المحاولة مرة أخرى.",
 		"success": "نجح",
+		"ratingLabel": "التقييم {{rating}} من {{maxStars}}",
 		"linkCopied": "تم نسخ الرابط إلى الحافظة",
 		"shareFailed": "فشل في مشاركة المحتوى",
 		"daysRemaining": "متبقي {{count}} يومًا",

@@ -11,6 +11,7 @@
 		"retry": "पुनः प्रयास करें",
 		"error": "एक त्रुटि हुई है। कृपया पुनः प्रयास करें।",
 		"success": "सफलता",
+		"ratingLabel": "रेटिंग {{rating}}/{{maxStars}}",
 		"linkCopied": "लिंक क्लिपबोर्ड पर कॉपी किया गया",
 		"shareFailed": "सामग्री साझा करने में विफल",
 		"daysRemaining": "{{count}} दिन शेष",

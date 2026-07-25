@@ -11,6 +11,7 @@
 		"retry": "再試行",
 		"error": "エラーが発生しました。もう一度お試しください。",
 		"success": "成功",
+		"ratingLabel": "評価 {{rating}}/{{maxStars}}",
 		"linkCopied": "リンクをクリップボードにコピーしました",
 		"shareFailed": "コンテンツの共有に失敗しました",
 		"daysRemaining": "残り{{count}}日",

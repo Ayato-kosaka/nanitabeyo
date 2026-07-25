@@ -11,6 +11,7 @@
 		"retry": "Retry",
 		"error": "An error occurred. Please try again.",
 		"success": "Success",
+		"ratingLabel": "Rating {{rating}} out of {{maxStars}}",
 		"linkCopied": "Link copied to clipboard",
 		"shareFailed": "Failed to share content",
 		"daysRemaining": "Remaining {{count}} days",
