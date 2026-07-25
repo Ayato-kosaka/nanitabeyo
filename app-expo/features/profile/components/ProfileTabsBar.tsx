@@ -89,7 +89,8 @@ export function ProfileTabsBar({ tabNames, index, onTabPress, availableTabs }: P
 
 	// #946 【仕様】上段グループタブはアイコンのみで「保存」等の概念がUIに現れず、
 	// 空状態文言("保存"で見返せます等)と用語が食い違って見えていた。
-	// アイコン下に短いテキストラベルを添えて概念を可視化する。
+	// レビューで可視テキストラベルの追加はタブ段のレイアウトを崩すと指摘されたため、
+	// 見た目はアイコンのみのまま、accessibilityLabel のみで概念をスクリーンリーダーに伝える。
 	const groupLabel = (group: GroupName) => i18n.t(`Profile.tabGroups.${group}`);
 
 	const renderSubTabs = () => {
@@ -131,7 +132,6 @@ export function ProfileTabsBar({ tabNames, index, onTabPress, availableTabs }: P
 							accessibilityLabel={groupLabel(group)}
 							testID={`profile-tab-group-${group}`}>
 							{renderIcon(group, isActive)}
-							<Text style={[styles.tabLabel, isActive && styles.activeTabLabel]}>{groupLabel(group)}</Text>
 						</TouchableOpacity>
 					);
 				})}
@@ -156,16 +156,6 @@ const styles = StyleSheet.create({
 	activeTab: {
 		borderBottomWidth: 2,
 		borderBottomColor: "#F05537",
-	},
-	tabLabel: {
-		marginTop: 4,
-		fontSize: 11,
-		fontWeight: "500",
-		color: "#666",
-	},
-	activeTabLabel: {
-		color: "#F05537",
-		fontWeight: "600",
 	},
 	subTabsContainer: {
 		flexDirection: "row",
