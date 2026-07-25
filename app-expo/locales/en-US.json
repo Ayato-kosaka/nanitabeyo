@@ -224,6 +224,10 @@
 				"primaryCta": "Use current location",
 				"secondaryCta": "Later"
 			}
+		},
+		"recentLocations": {
+			"title": "Recent locations",
+			"clear": "Clear recent locations"
 		}
 	},
 	"Topics": {

@@ -224,6 +224,10 @@
 				"primaryCta": "현재 위치 사용",
 				"secondaryCta": "나중에"
 			}
+		},
+		"recentLocations": {
+			"title": "최근 사용한 장소",
+			"clear": "최근 사용한 장소 지우기"
 		}
 	},
 	"Topics": {
