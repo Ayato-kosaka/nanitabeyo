@@ -34,14 +34,32 @@ interface SettingsMenuItemProps {
 	textStyle?: StyleProp<TextStyle>;
 	/** E2E テスト用: Web では data-testid として出力される */
 	testID?: string;
+	/**
+	 * #950 【仕様】画面遷移(router.push)は "link"、モーダル起動・破壊的操作等は "button" として
+	 * 支援技術に役割を伝える。Web では role="link"/"button" に対応する。
+	 */
+	accessibilityRole?: "link" | "button";
 }
 
-function SettingsMenuItem({ label, onPress, isLast, textStyle, testID }: SettingsMenuItemProps) {
+function SettingsMenuItem({
+	label,
+	onPress,
+	isLast,
+	textStyle,
+	testID,
+	accessibilityRole = "button",
+}: SettingsMenuItemProps) {
 	return (
 		<>
-			<TouchableOpacity style={styles.menuItem} onPress={onPress} testID={testID}>
+			<TouchableOpacity
+				style={styles.menuItem}
+				onPress={onPress}
+				testID={testID}
+				accessibilityRole={accessibilityRole}
+				accessibilityLabel={label}>
 				<Text style={[styles.menuItemText, textStyle]}>{label}</Text>
-				<ChevronRight size={20} color="#9CA3AF" />
+				{/* #950 【仕様】装飾アイコンのため読み上げ対象から除外し、行のラベルと二重に読み上げさせない */}
+				<ChevronRight size={20} color="#9CA3AF" accessibilityElementsHidden importantForAccessibility="no" />
 			</TouchableOpacity>
 			{!isLast && <View style={styles.separator} />}
 		</>
@@ -54,7 +72,7 @@ export default function SettingsScreen() {
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { locale } = useLocale();
-	const { showDialog } = useDialog();
+	const { showDialog, confirm } = useDialog();
 	const { showSnackbar } = useSnackbar();
 	const [selectedLegalDocument, setSelectedLegalDocument] = useState<
 		"guidelines" | "terms" | "privacy" | "copyright" | null
@@ -224,6 +242,7 @@ export default function SettingsScreen() {
 	);
 
 	// ログアウト処理を実行
+	// #950 【仕様】破壊的操作(セッション破棄)のため、押下直後に実行せず確認ダイアログを挟む
 	const handleLogout = useCallback(async () => {
 		mediumImpact();
 		logFrontendEvent({
@@ -231,6 +250,14 @@ export default function SettingsScreen() {
 			error_level: "log",
 			payload: {},
 		});
+
+		const ok = await confirm({
+			title: i18n.t("Settings.logoutConfirmTitle"),
+			message: i18n.t("Settings.logoutConfirmMessage"),
+			confirmLabel: i18n.t("Settings.logout"),
+			cancelLabel: i18n.t("Common.cancel"),
+		});
+		if (!ok) return;
 
 		try {
 			await logout({ scope: "local" });
@@ -281,10 +308,16 @@ export default function SettingsScreen() {
 							label={i18n.t("Settings.sendFeedback")}
 							onPress={handleSendFeedback}
 							testID="settings-feedback"
+							accessibilityRole="button"
 						/>
 						{/* #317 【設計】Leave Review は web では非表示 */}
 						{Platform.OS !== "web" && (
-							<SettingsMenuItem label={i18n.t("Settings.leaveReview")} onPress={handleLeaveReview} />
+							<SettingsMenuItem
+								label={i18n.t("Settings.leaveReview")}
+								onPress={handleLeaveReview}
+								testID="settings-leave-review"
+								accessibilityRole="button"
+							/>
 						)}
 						{/* #747 【設計】ブロック済みの料理トピック管理画面へ遷移 */}
 						<SettingsMenuItem
@@ -292,6 +325,7 @@ export default function SettingsScreen() {
 							onPress={handleNavigateToBlockedTopics}
 							isLast
 							testID="settings-blocked-topics"
+							accessibilityRole="link"
 						/>
 					</Card>
 
@@ -300,21 +334,27 @@ export default function SettingsScreen() {
 						<SettingsMenuItem
 							label={i18n.t("Settings.communityGuidelines")}
 							onPress={() => handleLegalDocument("guidelines")}
+							testID="settings-guidelines"
+							accessibilityRole="button"
 						/>
 						<SettingsMenuItem
 							label={i18n.t("Settings.terms")}
 							onPress={() => handleLegalDocument("terms")}
 							testID="settings-terms"
+							accessibilityRole="button"
 						/>
 						<SettingsMenuItem
 							label={i18n.t("Settings.privacy")}
 							onPress={() => handleLegalDocument("privacy")}
 							testID="settings-privacy"
+							accessibilityRole="button"
 						/>
 						<SettingsMenuItem
 							label={i18n.t("Settings.copyright")}
 							onPress={() => handleLegalDocument("copyright")}
 							isLast={!!user?.is_anonymous}
+							testID="settings-copyright"
+							accessibilityRole="button"
 						/>
 						{!user?.is_anonymous && (
 							<SettingsMenuItem
@@ -326,6 +366,7 @@ export default function SettingsScreen() {
 									fontWeight: "700",
 								}}
 								isLast
+								accessibilityRole="button"
 							/>
 						)}
 					</Card>

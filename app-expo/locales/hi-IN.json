@@ -628,6 +628,8 @@
 		"copyright": "कॉपीराइट",
 		"legalDocument": "कानूनी दस्तावेज़",
 		"logout": "लॉग आउट",
+		"logoutConfirmTitle": "लॉग आउट करें?",
+		"logoutConfirmMessage": "अपनी पोस्ट और समीक्षाएं प्रबंधित करने के लिए आपको फिर से लॉगिन करना होगा।",
 		"blockedTopics": {
 			"navigationLabel": "ब्लॉक किए गए व्यंजन विषय",
 			"pageTitle": "ब्लॉक किए गए व्यंजन विषय",

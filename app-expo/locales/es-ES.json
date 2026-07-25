@@ -628,6 +628,8 @@
 		"copyright": "Derechos de autor",
 		"legalDocument": "Documento legal",
 		"logout": "Cerrar sesión",
+		"logoutConfirmTitle": "¿Cerrar sesión?",
+		"logoutConfirmMessage": "Deberás iniciar sesión de nuevo para gestionar tus publicaciones y reseñas.",
 		"blockedTopics": {
 			"navigationLabel": "Temas de platos bloqueados",
 			"pageTitle": "Temas de platos bloqueados",

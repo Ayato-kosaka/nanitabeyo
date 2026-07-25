@@ -628,6 +628,8 @@
 		"copyright": "Copyright",
 		"legalDocument": "Legal Document",
 		"logout": "Logout",
+		"logoutConfirmTitle": "Log out?",
+		"logoutConfirmMessage": "You'll need to log in again to manage your posts and reviews.",
 		"blockedTopics": {
 			"navigationLabel": "Blocked dish topics",
 			"pageTitle": "Blocked dish topics",

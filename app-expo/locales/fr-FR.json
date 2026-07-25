@@ -628,6 +628,8 @@
 		"copyright": "Droits d'auteur",
 		"legalDocument": "Document juridique",
 		"logout": "Se déconnecter",
+		"logoutConfirmTitle": "Se déconnecter ?",
+		"logoutConfirmMessage": "Vous devrez vous reconnecter pour gérer vos publications et avis.",
 		"blockedTopics": {
 			"navigationLabel": "Sujets de plats bloqués",
 			"pageTitle": "Sujets de plats bloqués",

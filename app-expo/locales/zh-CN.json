@@ -628,6 +628,8 @@
 		"copyright": "版权",
 		"legalDocument": "法律文件",
 		"logout": "登出",
+		"logoutConfirmTitle": "要退出登录吗？",
+		"logoutConfirmMessage": "再次登录后才能管理你的帖子和评论。",
 		"blockedTopics": {
 			"navigationLabel": "已屏蔽的菜品主题",
 			"pageTitle": "已屏蔽的菜品主题",
