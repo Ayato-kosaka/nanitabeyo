@@ -16,6 +16,7 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"devDependencies": {
+		"@axe-core/playwright": "^4.12.1",
 		"@playwright/test": "^1.54.2",
 		"@supabase/supabase-js": "^2.49.4",
 		"@types/node": "^22.15.3",
