@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef } from "react";
 import { View, StyleSheet, Animated, Easing, ViewStyle } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { DimensionValue } from "react-native";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 /**
  * SkeletonShimmer（iOSっぽい見た目）
@@ -75,9 +76,14 @@ export const SkeletonShimmer: React.FC<SkeletonShimmerProps> = ({
 	// #615【設計】0→1 の進捗値を使い、translate に変換する
 	const progress = useRef(new Animated.Value(0)).current;
 
+	// #959【設計】OS の「モーションを減らす」設定が有効なときは、装飾目的のループアニメを止めて静的表示にする
+	const reducedMotion = useReducedMotion();
+	const shouldAnimate = enabled && !reducedMotion;
+
 	useEffect(() => {
 		// #615【パフォーマンス】enabled=false のときは停止して見た目を固定
-		if (!enabled) {
+		// #959【アクセシビリティ】reduced motion 時も同様に停止する
+		if (!shouldAnimate) {
 			progress.stopAnimation();
 			progress.setValue(0);
 			return;
@@ -94,7 +100,7 @@ export const SkeletonShimmer: React.FC<SkeletonShimmerProps> = ({
 		);
 		anim.start();
 		return () => anim.stop();
-	}, [enabled, durationMs, progress]);
+	}, [shouldAnimate, durationMs, progress]);
 
 	// #615【設計】移動距離（サイズが数値ならレスポンシブに算出）
 	const travelDistance = useMemo(() => {
