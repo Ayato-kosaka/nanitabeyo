@@ -471,7 +471,13 @@ export default function SelectRestaurantScreen() {
 						onClear={() => setSearchQuery("")}
 						placeholder={i18n.t("Map.placeholders.searchRestaurantsForReview")}
 						renderInputRight={
-							<TouchableOpacity style={styles.currentLocationButton} onPress={handleCurrentLocation}>
+							<TouchableOpacity
+								style={styles.currentLocationButton}
+								onPress={handleCurrentLocation}
+								hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+								accessibilityRole="button"
+								accessibilityLabel={i18n.t("Map.accessibility.useCurrentLocation")}
+								testID="review-select-restaurant-current-location-button">
 								<Navigation size={20} color="#000000" />
 							</TouchableOpacity>
 						}

@@ -194,6 +194,7 @@ export function LocationAutocomplete({
 					<TouchableOpacity
 						style={styles.clearButton}
 						onPress={handleClear}
+						hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
 						accessibilityRole="button"
 						accessibilityLabel={i18n.t("Search.accessibility.clearLocation")}
 						testID={`${testID}-clear`}>

@@ -337,7 +337,13 @@ export default function SearchScreen() {
 				<Text style={styles.headerTitle}>{i18n.t("Search.headerTitle")}</Text>
 				{/* #642 【設計】ヘルプアイコンからチュートリアルを再表示 */}
 				{isJapanese && (
-					<TouchableOpacity style={styles.helpButton} onPress={handleOpenTutorial}>
+					<TouchableOpacity
+						style={styles.helpButton}
+						onPress={handleOpenTutorial}
+						hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+						accessibilityRole="button"
+						accessibilityLabel={i18n.t("Search.accessibility.showTutorial")}
+						testID="search-help-button">
 						<HelpCircle size={24} color="#6B7280" />
 					</TouchableOpacity>
 				)}
@@ -366,7 +372,13 @@ export default function SearchScreen() {
 							placeholder={i18n.t("Search.placeholders.enterLocation")}
 							autoClearOnFocus={locationQuery === i18n.t("Search.currentLocation")}
 							renderInputRight={
-								<TouchableOpacity style={styles.currentLocationButton} onPress={handleUseCurrentLocation}>
+								<TouchableOpacity
+									style={styles.currentLocationButton}
+									onPress={handleUseCurrentLocation}
+									hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+									accessibilityRole="button"
+									accessibilityLabel={i18n.t("Search.accessibility.useCurrentLocation")}
+									testID="search-current-location-button">
 									<Navigation size={20} color="#000000" />
 								</TouchableOpacity>
 							}

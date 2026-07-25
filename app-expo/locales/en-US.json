@@ -123,6 +123,8 @@
 		"accessibility": {
 			"locationInputHint": "Enter a location to search for restaurants",
 			"clearLocation": "Clear location",
+			"useCurrentLocation": "Use current location",
+			"showTutorial": "View how to use",
 			"selectLocation": "Select this location"
 		},
 		"loading": "Searching...",
@@ -489,6 +491,7 @@
 			"dishCategoryNoResults": "No matching dish categories found",
 			"dishCategoryInputHint": "Enter a dish category to search",
 			"clearDishCategory": "Clear dish category",
+			"useCurrentLocation": "Use current location",
 			"selectDishCategory": "Select this dish category"
 		},
 		"errors": {

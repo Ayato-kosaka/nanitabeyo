@@ -123,6 +123,8 @@
 		"accessibility": {
 			"locationInputHint": "レストランを検索する場所を入力してください",
 			"clearLocation": "場所をクリア",
+			"useCurrentLocation": "現在地を使う",
+			"showTutorial": "使い方を見る",
 			"selectLocation": "この場所を選択"
 		},
 		"loading": "検索中...",
@@ -489,6 +491,7 @@
 			"dishCategoryNoResults": "一致する料理カテゴリが見つかりませんでした",
 			"dishCategoryInputHint": "料理カテゴリを入力して検索してください",
 			"clearDishCategory": "料理カテゴリをクリア",
+			"useCurrentLocation": "現在地を使う",
 			"selectDishCategory": "この料理カテゴリを選択"
 		},
 		"errors": {
