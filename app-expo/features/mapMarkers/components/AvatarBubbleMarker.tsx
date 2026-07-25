@@ -1,10 +1,14 @@
 // app-expo/features/mapMarkers/components/AvatarBubbleMarker.tsx
 
 import React from "react";
-import { View, StyleSheet, Platform } from "react-native";
+import { View, Text, StyleSheet, Platform } from "react-native";
 import { Marker } from "@/components/MapView";
 import { Image } from "expo-image";
 import type { MapMarkerProps as RNMarkerProps } from "react-native-maps";
+
+// #955 【仕様】選択中のピンを重なりの中でも必ず最前面にするための固定値
+const ACTIVE_Z_INDEX = 999;
+const ACTIVE_SCALE = 1.15;
 
 /**
  * AvatarBubbleMarker（View Marker版）
@@ -46,6 +50,8 @@ type Props = RNMarkerProps & {
 	size?: number;
 	color?: string;
 	isActive?: boolean;
+	/** #955 選択中(isActive)のときだけ吹き出し下に表示する店舗名 */
+	name?: string;
 };
 
 export function AvatarBubbleMarker({
@@ -54,6 +60,7 @@ export function AvatarBubbleMarker({
 	size = 48,
 	color = "#FFFFFF",
 	isActive = false,
+	name,
 	...props
 }: Props) {
 	// Androidは領域制限のためsize=37が最も安定
@@ -63,6 +70,8 @@ export function AvatarBubbleMarker({
 	return (
 		<Marker
 			{...props}
+			// #955 【仕様】選択中ピンは重なっている他ピンより必ず手前に来るよう最前面のzIndexにする
+			zIndex={isActive ? ACTIVE_Z_INDEX : undefined}
 			// anchorは画像下寄せ。プラットフォームごとに値が異なる理由:
 			// - iOS / Web: y=0.85 にすることで「吹き出し+尻尾」の先端が実座標に重なるように配置
 			// - Android: Marker children が内部でビットマップ化され、下方向がクリップされやすいため
@@ -70,7 +79,13 @@ export function AvatarBubbleMarker({
 			//   ・iOS / Web と同じ y=0.85 を使うと、クリッピングされたビットマップ基準でさらに下にずれて見える
 			// → ビットマップの描画領域制限と視覚的な位置合わせを両立するため、Android だけ y=0.5 を使用する
 			anchor={{ x: 0.5, y: Platform.OS === "android" ? 0.5 : 0.85 }}>
-			<View style={[styles.container, { width: bubbleSize, height: bubbleSize + 4 }]}>
+			<View
+				style={[
+					styles.container,
+					{ width: bubbleSize, height: bubbleSize + 4 },
+					// #955 【仕様】選択中は一回り拡大して視認性を上げる
+					isActive && { transform: [{ scale: ACTIVE_SCALE }] },
+				]}>
 				{/* 吹き出し本体 */}
 				<View
 					style={[
@@ -112,6 +127,17 @@ export function AvatarBubbleMarker({
 						]}
 					/>
 				)}
+
+				{/* #955 【仕様】選択中の店舗名を吹き出し下に表示し、どのピンが選択されているか一目で分かるようにする。
+				    Android は Marker children が丸ごとビットマップ化され描画可能領域が狭いため(ファイル冒頭コメント参照)、
+				    尻尾と同様にラベルも Android では出さない。 */}
+				{Platform.OS !== "android" && isActive && name && (
+					<View style={styles.nameLabel} pointerEvents="none">
+						<Text style={styles.nameLabelText} numberOfLines={1}>
+							{name}
+						</Text>
+					</View>
+				)}
 			</View>
 		</Marker>
 	);
@@ -143,5 +169,18 @@ const styles = StyleSheet.create({
 		borderLeftColor: "transparent",
 		borderRightColor: "transparent",
 		marginTop: -1,
+	},
+	nameLabel: {
+		marginTop: 4,
+		paddingHorizontal: 8,
+		paddingVertical: 3,
+		borderRadius: 999,
+		backgroundColor: "#1F2937",
+		maxWidth: 140,
+	},
+	nameLabelText: {
+		fontSize: 11,
+		fontWeight: "700",
+		color: "#FFFFFF",
 	},
 });

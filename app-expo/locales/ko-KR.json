@@ -497,13 +497,15 @@
 			"dishCategoryInvalidInput": "잘못된 요리 카테고리 이름",
 			"reviewSubmitFailed": "리뷰 게시 실패",
 			"placeNotRestaurant": "이 장소는 레스토랑이 아닙니다.",
-			"placeNotFound": "이 레스토랑 정보를 가져올 수 없습니다."
+			"placeNotFound": "이 레스토랑 정보를 가져올 수 없습니다.",
+			"loadFailed": "지도를 불러오지 못했습니다"
 		},
 		"consent_review_prefix": "계속 진행하면 ",
 		"consent_review_guidelines": "커뮤니티 가이드라인",
 		"consent_review_and": " 및 ",
 		"consent_review_copyright": "저작권",
-		"consent_review_suffix": "에 동의하는 것으로 간주됩니다."
+		"consent_review_suffix": "에 동의하는 것으로 간주됩니다.",
+		"openInGoogleMaps": "Google 지도에서 열기"
 	},
 	"Restaurant": {
 		"Loading": {

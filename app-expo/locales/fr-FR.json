@@ -497,13 +497,15 @@
 			"dishCategoryInvalidInput": "Nom de catégorie de plat invalide",
 			"reviewSubmitFailed": "Échec de la publication de l'avis",
 			"placeNotRestaurant": "Ce lieu n'est pas un restaurant.",
-			"placeNotFound": "Nous n'avons pas pu récupérer les informations de ce restaurant."
+			"placeNotFound": "Nous n'avons pas pu récupérer les informations de ce restaurant.",
+			"loadFailed": "Impossible de charger la carte"
 		},
 		"consent_review_prefix": "En continuant, vous acceptez nos ",
 		"consent_review_guidelines": "Directives de la communauté",
 		"consent_review_and": " et ",
 		"consent_review_copyright": "Droits d'auteur",
-		"consent_review_suffix": "."
+		"consent_review_suffix": ".",
+		"openInGoogleMaps": "Ouvrir dans Google Maps"
 	},
 	"Restaurant": {
 		"Loading": {

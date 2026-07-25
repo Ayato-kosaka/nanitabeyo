@@ -498,13 +498,15 @@
 			"dishCategoryInvalidInput": "Invalid dish category name",
 			"reviewSubmitFailed": "समीक्षा पोस्ट करने में विफल",
 			"placeNotRestaurant": "यह स्थान एक रेस्टोरेंट नहीं है।",
-			"placeNotFound": "हम इस रेस्टोरेंट की जानकारी प्राप्त नहीं कर सके।"
+			"placeNotFound": "हम इस रेस्टोरेंट की जानकारी प्राप्त नहीं कर सके।",
+			"loadFailed": "मानचित्र लोड नहीं हो सका"
 		},
 		"consent_review_prefix": "जारी रखकर, आप हमारी ",
 		"consent_review_guidelines": "समुदाय दिशानिर्देश",
 		"consent_review_and": " और ",
 		"consent_review_copyright": "कॉपीराइट",
-		"consent_review_suffix": " से सहमत होते हैं।"
+		"consent_review_suffix": " से सहमत होते हैं।",
+		"openInGoogleMaps": "Google मैप्स में खोलें"
 	},
 	"Restaurant": {
 		"Loading": {

@@ -497,13 +497,15 @@
 			"dishCategoryInvalidInput": "اسم فئة الطبق غير صالح",
 			"reviewSubmitFailed": "فشل في نشر المراجعة",
 			"placeNotRestaurant": "هذا المكان ليس مطعمًا.",
-			"placeNotFound": "لم نتمكن من الحصول على معلومات هذا المطعم."
+			"placeNotFound": "لم نتمكن من الحصول على معلومات هذا المطعم.",
+			"loadFailed": "تعذر تحميل الخريطة"
 		},
 		"consent_review_prefix": "بالمتابعة، فإنك توافق على ",
 		"consent_review_guidelines": "إرشادات المجتمع",
 		"consent_review_and": " و",
 		"consent_review_copyright": "حقوق النشر",
-		"consent_review_suffix": " الخاصة بنا."
+		"consent_review_suffix": " الخاصة بنا.",
+		"openInGoogleMaps": "فتح في خرائط Google"
 	},
 	"Restaurant": {
 		"Loading": {

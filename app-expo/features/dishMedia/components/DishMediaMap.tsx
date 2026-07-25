@@ -97,7 +97,10 @@ export default function DishMediaMap({
 	}, [ids, idType]);
 
 	// #802 【責務分離】Map は ids とレイアウト/Carousel 制御だけを担い、背景画像 preload の最小購読は hook に閉じる。
-	const backgroundImagesSessionKey = useMemo(() => `${entriesKey}::${idType}::${ids.join(",")}`, [entriesKey, idType, ids]);
+	const backgroundImagesSessionKey = useMemo(
+		() => `${entriesKey}::${idType}::${ids.join(",")}`,
+		[entriesKey, idType, ids],
+	);
 	const { getBackgroundImageState } = useDishMediaBackgroundImageResources({
 		ids,
 		idType,
@@ -241,9 +244,37 @@ export default function DishMediaMap({
 		[onIndexChange, selectionChanged, currentIndex, ids, idType, logFrontendEvent],
 	);
 
+	// #955 【仕様】onSnapToItem(カルーセルのスクロールアニメーション完了)を待つとハイライト反映が
+	// 遅れて見えるため、ピン押下と同時に選択状態を更新する。カルーセルのスクロールは並行して行う。
 	const handleMarkerPress = useCallback((index: number) => {
+		setCurrentIndex(index);
 		carouselRef.current?.scrollTo({ index, animated: true });
 	}, []);
+
+	// #955 【仕様】カード→地図の同期。カルーセルのスワイプ(=currentIndex変化)に追従して
+	// 地図を選択店舗中心へパンする。連続スワイプで毎回アニメーションが割り込まないよう200ms debounce する。
+	// 初回マウント時は別のuseEffect(全体が収まるregionへの初期位置合わせ)に任せ、ここでは発火させない。
+	const didInitialRegionSetRef = useRef(false);
+	useEffect(() => {
+		if (!didInitialRegionSetRef.current) {
+			didInitialRegionSetRef.current = true;
+			return;
+		}
+		const restaurant = restaurants[currentIndex];
+		if (!restaurant) return;
+
+		const timer = setTimeout(() => {
+			mapRef.current?.animateToRegion(
+				{
+					...restaurant.coordinate,
+					latitudeDelta: region.latitudeDelta,
+					longitudeDelta: region.longitudeDelta,
+				},
+				200,
+			);
+		}, 200);
+		return () => clearTimeout(timer);
+	}, [currentIndex, restaurants, region]);
 
 	// #613 【設計】カード押下時に ActionSheet を開く処理（DishMediaContent から entry を受け取る）
 	const { showActionSheetWithOptions } = useActionSheet();
@@ -358,6 +389,7 @@ export default function DishMediaMap({
 							coordinate={restaurant.coordinate}
 							onPress={() => handleMarkerPress(index)}
 							uri={restaurant.imageUrls?.sm}
+							name={restaurant.name}
 							color={index === currentIndex ? "#F05537" : "#FFF"}
 							isActive={index === currentIndex}
 						/>

@@ -1,9 +1,12 @@
 import React, { forwardRef, useRef, useCallback, useImperativeHandle } from "react";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { GoogleMap, Marker as GoogleMarker } from "@react-google-maps/api";
 import type { MapViewProps, MarkerProps } from "./MapView";
 import type { MapPressEvent, MarkerPressEvent, PoiClickEvent, Region } from "react-native-maps";
 import { OverlayView } from "@react-google-maps/api";
-import { TouchableOpacity } from "react-native";
+import { useMapsLoader } from "@/contexts/MapsLoaderContext";
+import { LoadingIndicator } from "@/components/LoadingIndicator";
+import i18n from "@/lib/i18n";
 
 /** ─────────────────────────────────────────────────────────────
  *  ネイティブと API 互換にするためのハンドル
@@ -14,7 +17,7 @@ export interface MapViewHandle {
 }
 
 /* ─────────────────────────────── Marker ──────────────────────────────── */
-export const Marker: React.FC<MarkerProps> = ({ coordinate, title, onPress, testID, children }) => {
+export const Marker: React.FC<MarkerProps> = ({ coordinate, title, onPress, testID, zIndex, children }) => {
 	const handleClick = useCallback(() => {
 		if (!onPress) return;
 		const event = {
@@ -35,13 +38,16 @@ export const Marker: React.FC<MarkerProps> = ({ coordinate, title, onPress, test
 			position={{ lat: coordinate.latitude, lng: coordinate.longitude }}
 			mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}>
 			<TouchableOpacity onPress={handleClick} testID={testID}>
-				<div style={{ transform: "translate(-50%, -100%)" }}>{children}</div>
+				{/* #955 【仕様】OVERLAY_MOUSE_TARGET ペイン内は挿入順で重なるため、
+				    選択中のピンを最前面にするには明示的な z-index が必要 */}
+				<div style={{ transform: "translate(-50%, -100%)", position: "relative", zIndex: zIndex ?? 0 }}>{children}</div>
 			</TouchableOpacity>
 		</OverlayView>
 	) : (
 		<GoogleMarker
 			position={{ lat: coordinate.latitude, lng: coordinate.longitude }}
 			title={title}
+			zIndex={zIndex}
 			onClick={handleClick}
 		/>
 	);
@@ -49,9 +55,13 @@ export const Marker: React.FC<MarkerProps> = ({ coordinate, title, onPress, test
 
 /* ─────────────────────────────── MapView ──────────────────────────────── */
 const MapView = forwardRef<MapViewHandle | null, MapViewProps>(
-	({ style, region, onRegionChangeComplete, onPress, onPoiClick, children }, ref) => {
+	({ style, region, initialRegion, onRegionChangeComplete, onPress, onPoiClick, children }, ref) => {
 		/* Google Maps 本体を保持（外部には晒さない） */
 		const innerMapRef = useRef<google.maps.Map | null>(null);
+		// #938 【仕様】initialRegion が渡されているのに参照していなかったため、Web だけ地図の
+		// 初期中心が定まらず「読み込み直後は無関係な位置→アニメーションで正しい位置へパン」という
+		// ちらつきが発生していた。region(可変)より initialRegion(初期値専用)を優先する。
+		const effectiveRegion = initialRegion ?? region;
 
 		/* Google Maps 読み込み完了時 */
 		const handleLoad = useCallback(
@@ -64,16 +74,16 @@ const MapView = forwardRef<MapViewHandle | null, MapViewProps>(
 				});
 				const div = map.getDiv();
 				const width = div?.offsetWidth ?? 0;
-				if (region?.longitudeDelta && width > 0) {
-					const z = Math.log2((360 * width) / (256 * region.longitudeDelta));
+				if (effectiveRegion?.longitudeDelta && width > 0) {
+					const z = Math.log2((360 * width) / (256 * effectiveRegion.longitudeDelta));
 					map.setZoom(Math.max(0, Math.min(21, z)));
-				} else if (region?.latitudeDelta) {
+				} else if (effectiveRegion?.latitudeDelta) {
 					// ざっくり初期値（緯度方向は近似でOK）
-					const z = Math.log2(360 / region.latitudeDelta);
+					const z = Math.log2(360 / effectiveRegion.latitudeDelta);
 					map.setZoom(Math.max(0, Math.min(21, z)));
 				}
 			},
-			[region],
+			[effectiveRegion],
 		);
 
 		/* パン／ズーム完了時に Region を返す */
@@ -164,10 +174,42 @@ const MapView = forwardRef<MapViewHandle | null, MapViewProps>(
 			...(typeof style === "object" && style !== null ? (style as React.CSSProperties) : {}),
 		};
 
+		// #938 【仕様】Maps JS SDK はアプリ全体で1回だけ読み込む(MapsLoaderProvider)。
+		// 結果画面など MapView が実際にマウントされるまでロードは始まらないため、
+		// ロード中/失敗時はここで専用の表示に差し替える。
+		const { isLoaded, loadError } = useMapsLoader();
+
+		if (loadError) {
+			const query = effectiveRegion ? `${effectiveRegion.latitude},${effectiveRegion.longitude}` : "";
+			const fallbackUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+			return (
+				<View style={[containerStyle as object, styles.center]}>
+					<Text style={styles.errorText}>{i18n.t("Map.errors.loadFailed")}</Text>
+					{query ? (
+						<TouchableOpacity
+							onPress={() => window.open(fallbackUrl, "_blank", "noopener,noreferrer")}
+							accessibilityRole="button"
+							accessibilityLabel={i18n.t("Map.openInGoogleMaps")}>
+							<Text style={styles.fallbackLink}>{i18n.t("Map.openInGoogleMaps")}</Text>
+						</TouchableOpacity>
+					) : null}
+				</View>
+			);
+		}
+
+		if (!isLoaded) {
+			return (
+				<View style={[containerStyle as object, styles.center]}>
+					<LoadingIndicator size="small" />
+				</View>
+			);
+		}
+
 		return (
 			<GoogleMap
 				onLoad={handleLoad}
 				mapContainerStyle={containerStyle}
+				center={effectiveRegion ? { lat: effectiveRegion.latitude, lng: effectiveRegion.longitude } : undefined}
 				onClick={handleClick}
 				onIdle={handleIdle}
 				options={{
@@ -179,6 +221,25 @@ const MapView = forwardRef<MapViewHandle | null, MapViewProps>(
 		);
 	},
 );
+
+const styles = StyleSheet.create({
+	center: {
+		alignItems: "center",
+		justifyContent: "center",
+		gap: 12,
+		backgroundColor: "#F3F4F6",
+	},
+	errorText: {
+		fontSize: 14,
+		color: "#6B7280",
+	},
+	fallbackLink: {
+		fontSize: 14,
+		fontWeight: "700",
+		color: "#F05537",
+		textDecorationLine: "underline",
+	},
+});
 
 export default MapView;
 

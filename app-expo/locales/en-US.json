@@ -497,13 +497,15 @@
 			"dishCategoryInvalidInput": "Invalid dish category name",
 			"reviewSubmitFailed": "Failed to post review",
 			"placeNotRestaurant": "This place is not a restaurant.",
-			"placeNotFound": "We couldn't retrieve this restaurant's information."
+			"placeNotFound": "We couldn't retrieve this restaurant's information.",
+			"loadFailed": "Failed to load the map"
 		},
 		"consent_review_prefix": "By continuing, you agree to our ",
 		"consent_review_guidelines": "Community Guidelines",
 		"consent_review_and": " and ",
 		"consent_review_copyright": "Copyright",
-		"consent_review_suffix": "."
+		"consent_review_suffix": ".",
+		"openInGoogleMaps": "Open in Google Maps"
 	},
 	"Restaurant": {
 		"Loading": {

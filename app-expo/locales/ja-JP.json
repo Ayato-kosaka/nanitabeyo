@@ -497,13 +497,15 @@
 			"dishCategoryInvalidInput": "無効な料理カテゴリ名です",
 			"reviewSubmitFailed": "レビューの投稿に失敗しました",
 			"placeNotRestaurant": "この場所はレストランではありません。",
-			"placeNotFound": "このレストラン情報を取得できませんでした。"
+			"placeNotFound": "このレストラン情報を取得できませんでした。",
+			"loadFailed": "地図を読み込めませんでした"
 		},
 		"consent_review_prefix": "このまま続行すると、",
 		"consent_review_guidelines": "コミュニティガイドライン",
 		"consent_review_and": " と ",
 		"consent_review_copyright": "著作権",
-		"consent_review_suffix": " に同意したことになります。"
+		"consent_review_suffix": " に同意したことになります。",
+		"openInGoogleMaps": "Google マップで開く"
 	},
 	"Restaurant": {
 		"Loading": {
