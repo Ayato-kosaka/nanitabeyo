@@ -47,6 +47,8 @@
 		"copyShareLink": "Copiar enlace",
 		"voteCta": "Votar",
 		"candidatesTitle": "Opciones",
+		"rankLabel": "N.º {{rank}}",
+		"unvoted": "Sin votos",
 		"commentsTitle": "Comentarios",
 		"viewRestaurants": "Ver restaurantes",
 		"loadingRestaurants": "Buscando",
