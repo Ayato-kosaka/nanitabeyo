@@ -286,11 +286,19 @@ export function ActionButtons({ id, idType, onLayout, buttonsGesture }: ActionBu
 	return (
 		<GestureDetector gesture={buttonsGesture}>
 			<View style={styles.rightActions} onLayout={handleLayout}>
-				<TouchableOpacity style={styles.actionButton} onPress={handleViewRestaurant} hitSlop={buttonHitSlop}>
+				<TouchableOpacity
+					style={styles.actionButton}
+					onPress={handleViewRestaurant}
+					hitSlop={buttonHitSlop}
+					accessibilityRole="button"
+					accessibilityLabel={i18n.t("DishMediaContent.accessibility.viewRestaurant", { name: restaurant.name })}>
 					<Image
 						source={{ uri: restaurant.imageUrls?.sm, cacheKey: getCacheKeyForImage(restaurant.imageUrls?.sm) }}
 						style={styles.restaurantAvatar}
 						onError={() => console.log("Failed to load restaurant avatar")}
+						// #937 【仕様】店舗名を伝える情報画像として alt/accessibilityLabel を付与する(ボタン自体のrole/labelは#939で対応)
+						alt={restaurant.name}
+						accessibilityLabel={restaurant.name}
 					/>
 				</TouchableOpacity>
 
@@ -299,7 +307,10 @@ export function ActionButtons({ id, idType, onLayout, buttonsGesture }: ActionBu
 						testID="dish-action-like"
 						style={styles.actionButton}
 						onPress={handleLike}
-						hitSlop={buttonHitSlop}>
+						hitSlop={buttonHitSlop}
+						accessibilityRole="button"
+						accessibilityLabel={i18n.t("DishMediaContent.accessibility.like", { name: restaurant.name })}
+						aria-selected={isLiked}>
 						<Heart size={28} color={isLiked ? "#FF3040" : "#FFFFFF"} fill={isLiked ? "#FF3040" : "white"} />
 					</TouchableOpacity>
 					<Text style={styles.actionText}>{formatLikeCount(likeCount)}</Text>
@@ -309,19 +320,32 @@ export function ActionButtons({ id, idType, onLayout, buttonsGesture }: ActionBu
 					testID="dish-action-save"
 					style={styles.actionButton}
 					onPress={handleSave}
-					hitSlop={buttonHitSlop}>
+					hitSlop={buttonHitSlop}
+					accessibilityRole="button"
+					accessibilityLabel={i18n.t("DishMediaContent.accessibility.save", { name: restaurant.name })}
+					aria-selected={isSaved}>
 					<Bookmark size={30} color={"transparent"} fill={isSaved ? "orange" : "white"} />
 				</TouchableOpacity>
 
 				<View style={styles.actionContainer}>
-					<TouchableOpacity style={styles.actionButton} onPress={handleSharePress} hitSlop={buttonHitSlop}>
+					<TouchableOpacity
+						style={styles.actionButton}
+						onPress={handleSharePress}
+						hitSlop={buttonHitSlop}
+						accessibilityRole="button"
+						accessibilityLabel={i18n.t("DishMediaContent.accessibility.share", { name: restaurant.name })}>
 						<Share size={28} color="#FFFFFF" />
 					</TouchableOpacity>
 					<Text style={styles.actionText}>{i18n.t("DishMediaContent.actions.share")}</Text>
 				</View>
 
 				<View style={styles.actionContainer}>
-					<TouchableOpacity style={styles.actionButton} onPress={handleMapPinPress} hitSlop={buttonHitSlop}>
+					<TouchableOpacity
+						style={styles.actionButton}
+						onPress={handleMapPinPress}
+						hitSlop={buttonHitSlop}
+						accessibilityRole="button"
+						accessibilityLabel={i18n.t("DishMediaContent.accessibility.openMap", { name: restaurant.name })}>
 						<MapPinned size={28} color="#FFFFFF" />
 					</TouchableOpacity>
 					<Text style={styles.actionText}>{i18n.t("DishMediaContent.actions.openMap")}</Text>
@@ -343,7 +367,9 @@ export function ActionButtons({ id, idType, onLayout, buttonsGesture }: ActionBu
 								onPress={() => {
 									option.onPress();
 									closeMenuModal();
-								}}>
+								}}
+								accessibilityRole="button"
+								accessibilityLabel={option.label}>
 								<option.icon size={20} color="#FFFFFF" />
 								<Text style={styles.menuItemText}>{option.label}</Text>
 							</TouchableOpacity>

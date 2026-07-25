@@ -106,31 +106,34 @@ export class DishCategoriesService {
         await this.repo.findCategoryPenaltyFeatures(candidateIds);
 
       // #757 【設計】Step 2-2.5: ペナルティ重み取得
-      const [penaltyWeightCoreIngredient, penaltyWeightTaste, penaltyWeightCookingMethod] =
-        await this.remoteConfigService
-          .getRemoteConfigValues([
-            'dish_category_recommendation_penalty_weight_core_ingredient',
-            'dish_category_recommendation_penalty_weight_taste',
-            'dish_category_recommendation_penalty_weight_cooking_method',
-          ])
-          .then((values) =>
-            values.map((v) => {
-              const float = parseFloat(v);
-              if (isNaN(float) || float < 0) {
-                this.logger.error(
-                  'InvalidRemoteConfigValue',
-                  'getRecommendations',
-                  {
-                    key: v,
-                  },
-                );
-                throw new BadRequestException(
-                  `Invalid penalty weight value in remote config: ${v}`,
-                );
-              }
-              return float;
-            }),
-          );
+      const [
+        penaltyWeightCoreIngredient,
+        penaltyWeightTaste,
+        penaltyWeightCookingMethod,
+      ] = await this.remoteConfigService
+        .getRemoteConfigValues([
+          'dish_category_recommendation_penalty_weight_core_ingredient',
+          'dish_category_recommendation_penalty_weight_taste',
+          'dish_category_recommendation_penalty_weight_cooking_method',
+        ])
+        .then((values) =>
+          values.map((v) => {
+            const float = parseFloat(v);
+            if (isNaN(float) || float < 0) {
+              this.logger.error(
+                'InvalidRemoteConfigValue',
+                'getRecommendations',
+                {
+                  key: v,
+                },
+              );
+              throw new BadRequestException(
+                `Invalid penalty weight value in remote config: ${v}`,
+              );
+            }
+            return float;
+          }),
+        );
 
       // #757 【設計】Step 2-3: 逐次最適化でスレート構成
       // IMPORTANT:
@@ -175,6 +178,22 @@ export class DishCategoriesService {
         DEEP_DIVE_SCORE_THRESHOLD,
       );
 
+      // #954 【仕様】カード再訪時に保存状態を正しく初期化するため、選定済み候補分だけ
+      // reactions(action_type=save) を取得してSetにする(候補全件ではなく選定後に絞ることでクエリを軽くする)。
+      const savedCategoryIds = new Set(
+        (
+          await this.prisma.prisma.reactions.findMany({
+            where: {
+              user_id: userId,
+              target_type: 'dish_categories',
+              target_id: { in: categoryIds },
+              action_type: 'save',
+            },
+            select: { target_id: true },
+          })
+        ).map((reaction) => reaction.target_id),
+      );
+
       // Step 2-6: レスポンス構築
       const items = this.buildResponseItems(
         selectedCandidates,
@@ -182,6 +201,7 @@ export class DishCategoriesService {
         categories,
         deepDiveFeatureMap,
         dto.localLanguageCode,
+        savedCategoryIds,
       );
 
       return items;
@@ -700,6 +720,7 @@ export class DishCategoriesService {
       Array<{ feature_type: string; feature_key: string; score: number }>
     >,
     localLanguageCode: string,
+    savedCategoryIds: Set<string>,
   ): DishCategoryRecommendationItem[] {
     const items: DishCategoryRecommendationItem[] = [];
 
@@ -745,6 +766,7 @@ export class DishCategoriesService {
         categoryId: category.id,
         imageUrl: category.image_url,
         deepDiveFeatures: deepDiveFeatureMap.get(candidate.category_id) ?? [],
+        isSaved: savedCategoryIds.has(category.id),
       });
     }
 
@@ -775,17 +797,26 @@ export class DishCategoriesService {
         await this.repo.findDishCategoriesByNames(categoryNames);
 
       // #747 【設計】Claude経路でも block 対象の料理カテゴリを除外
+      // #954 【仕様】あわせて save 状態も取得し、カード再訪時の保存状態表示に使う(1クエリにまとめて往復を減らす)。
+      const userCategoryReactions = await this.prisma.prisma.reactions.findMany(
+        {
+          where: {
+            user_id: userId,
+            target_type: 'dish_categories',
+            action_type: { in: ['block', 'save'] },
+          },
+          select: { target_id: true, action_type: true },
+        },
+      );
       const blockedCategoryIds = new Set(
-        (
-          await this.prisma.prisma.reactions.findMany({
-            where: {
-              user_id: userId,
-              target_type: 'dish_categories',
-              action_type: 'block',
-            },
-            select: { target_id: true },
-          })
-        ).map((reaction) => reaction.target_id),
+        userCategoryReactions
+          .filter((reaction) => reaction.action_type === 'block')
+          .map((reaction) => reaction.target_id),
+      );
+      const savedCategoryIds = new Set(
+        userCategoryReactions
+          .filter((reaction) => reaction.action_type === 'save')
+          .map((reaction) => reaction.target_id),
       );
 
       const mappedItems = claudeRecommendations
@@ -821,6 +852,9 @@ export class DishCategoriesService {
             reason: claudeRec.reason,
             categoryId: matchedCategory?.id || '',
             imageUrl: matchedCategory?.image_url || '',
+            isSaved: matchedCategory
+              ? savedCategoryIds.has(matchedCategory.id)
+              : false,
           };
         })
         .filter(

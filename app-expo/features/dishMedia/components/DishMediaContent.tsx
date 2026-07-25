@@ -214,6 +214,9 @@ export default function DishMediaContent({
 							style={StyleSheet.absoluteFill}
 							contentFit="cover"
 							recyclingKey={`${dishMediaEntry.dish_media.id}::${bgUri ?? ""}`}
+							// #937 【仕様】料理名(無ければ店舗名)を伝える情報画像として alt/accessibilityLabel を付与する
+							alt={dishMediaEntry.dish.name ?? dishMediaEntry.restaurant.name}
+							accessibilityLabel={dishMediaEntry.dish.name ?? dishMediaEntry.restaurant.name}
 						/>
 					)}
 					{/* #630 【設計】動画の場合のみ VideoPlayer を重ねて表示 */}

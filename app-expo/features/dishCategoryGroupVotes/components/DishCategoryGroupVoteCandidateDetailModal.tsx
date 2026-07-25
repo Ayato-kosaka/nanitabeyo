@@ -14,6 +14,7 @@ import i18n from "@/lib/i18n";
 type Props = {
 	candidate: DishCategoryGroupVoteCandidate;
 	isHost: boolean;
+	hasVotes: boolean;
 	isDishMediaLoading: boolean;
 	onPressDishMedia: (candidate: DishCategoryGroupVoteCandidate) => void;
 	onDeleteCandidate: (candidate: DishCategoryGroupVoteCandidate) => void;
@@ -22,6 +23,7 @@ type Props = {
 export function DishCategoryGroupVoteCandidateDetailModal({
 	candidate,
 	isHost,
+	hasVotes,
 	isDishMediaLoading,
 	onPressDishMedia,
 	onDeleteCandidate,
@@ -36,7 +38,12 @@ export function DishCategoryGroupVoteCandidateDetailModal({
 				<View style={styles.hero}>
 					<Image source={{ uri: candidate.imageUrl }} style={styles.image} contentFit="cover" />
 					<View style={styles.rankBadge}>
-						<Text style={styles.rankText}>{candidate.rank ? `${candidate.rank}位` : "-"}</Text>
+						{/* #941 【仕様】総投票数0はBEが全候補同率rank(=1)で返すため、UI側で「未投票」に統一する */}
+						<Text style={styles.rankText}>
+							{hasVotes && candidate.rank
+								? i18n.t("DishCategoryGroupVotes.rankLabel", { rank: candidate.rank })
+								: i18n.t("DishCategoryGroupVotes.unvoted")}
+						</Text>
 					</View>
 				</View>
 				<Text style={styles.title}>{candidate.displayName}</Text>
@@ -72,7 +79,10 @@ export function DishCategoryGroupVoteCandidateDetailModal({
 					<TouchableOpacity
 						style={styles.deleteButton}
 						onPress={() => onDeleteCandidate(candidate)}
-						activeOpacity={0.85}>
+						activeOpacity={0.85}
+						accessibilityRole="button"
+						accessibilityLabel={i18n.t("DishCategoryGroupVotes.deleteCandidate")}
+						testID={`dish-category-group-vote-detail-delete-candidate-${candidate.id}`}>
 						<Trash2 size={16} color="#DC2626" />
 						<Text style={styles.deleteButtonText}>{i18n.t("DishCategoryGroupVotes.deleteCandidate")}</Text>
 					</TouchableOpacity>

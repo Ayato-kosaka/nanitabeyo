@@ -9,6 +9,8 @@
 		"post": "Publicar",
 		"postReview": "Publicar reseña",
 		"retry": "Reintentar",
+		"undo": "Deshacer",
+		"view": "Ver",
 		"error": "Se produjo un error. Vuelve a intentarlo.",
 		"success": "Éxito",
 		"linkCopied": "Enlace copiado al portapapeles",
@@ -47,6 +49,8 @@
 		"copyShareLink": "Copiar enlace",
 		"voteCta": "Votar",
 		"candidatesTitle": "Opciones",
+		"rankLabel": "N.º {{rank}}",
+		"unvoted": "Sin votos",
 		"commentsTitle": "Comentarios",
 		"viewRestaurants": "Ver restaurantes",
 		"loadingRestaurants": "Buscando",
@@ -55,11 +59,15 @@
 		"deleteCandidate": "Eliminar opción",
 		"deleteCandidateTitle": "¿Eliminar esta opción?",
 		"deleteCandidateMessage": "Ocultar {{name}} de las opciones de votación.",
+		"candidateDeleted": "Se eliminó {{name}} de los candidatos",
 		"loadFailed": "No se pudo cargar la votación",
 		"refreshFailed": "No se pudieron actualizar los resultados",
 		"like": "Me gusta",
 		"dislike": "Paso",
+		"likeButtonLabel": "Me gusta {{title}}",
+		"dislikeButtonLabel": "No me gusta {{title}}",
 		"voteProgress": "{{current}} / {{total}}",
+		"voteProgressAnnouncement": "{{current}} de {{total}}: {{title}}",
 		"noVoteCandidates": "No hay opciones para votar",
 		"completionTitle": "Confirma tu voto",
 		"completionDescription": "Introduce el nombre que se mostrará en los resultados y un comentario opcional.",
@@ -126,6 +134,8 @@
 		"accessibility": {
 			"locationInputHint": "Introduce una ubicación para buscar restaurantes",
 			"clearLocation": "Borrar ubicación",
+			"useCurrentLocation": "Usar ubicación actual",
+			"showTutorial": "Ver cómo usar",
 			"selectLocation": "Seleccionar esta ubicación"
 		},
 		"loading": "Buscando...",
@@ -201,6 +211,11 @@
 			"seafoodAllergy": "Alergia a mariscos",
 			"halal": "Halal"
 		},
+		"result": {
+			"accessibility": {
+				"bulkShare": "Compartir todo"
+			}
+		},
 		"tutorial": {
 			"page1": {
 				"title": "Descubre lo que quieres comer",
@@ -227,6 +242,10 @@
 				"primaryCta": "Usar ubicación actual",
 				"secondaryCta": "Más tarde"
 			}
+		},
+		"recentLocations": {
+			"title": "Ubicaciones recientes",
+			"clear": "Borrar ubicaciones recientes"
 		}
 	},
 	"Topics": {
@@ -258,6 +277,7 @@
 			"confirm": "Bloquear"
 		},
 		"blockedMessage": "{{title}} se ha bloqueado",
+		"savedMessage": "Guardado",
 		"reloadDialog": {
 			"title": "¿Buscar más opciones?",
 			"message": "Ahora solo hay unas pocas recomendaciones. Volveremos a buscar con las mismas condiciones.",
@@ -267,7 +287,13 @@
 		"imageLoadFailed": "Error al cargar la imagen",
 		"tapToReload": "Toca para recargar",
 		"headerTitle": "Platos Recomendados para Ti",
-		"subCopy": "Toca un plato que te guste para encontrar restaurantes"
+		"subCopy": "Toca un plato que te guste para encontrar restaurantes",
+		"accessibility": {
+			"blockTopic": "Quitar {{title}} de las recomendaciones",
+			"saveTopic": "Guardar {{title}}",
+			"unsaveTopic": "Quitar {{title}} de guardados",
+			"thumbnail": "Miniatura de {{title}}, {{index}} de {{total}}"
+		}
 	},
 	"Notifications": {
 		"title": "Notificaciones",
@@ -304,6 +330,14 @@
 		"buttons": {
 			"viewRestaurant": "Ver restaurante"
 		},
+		"accessibility": {
+			"viewRestaurant": "Ver detalles del restaurante de {{name}}",
+			"like": "Me gusta {{name}}",
+			"save": "Guardar {{name}}",
+			"share": "Compartir {{name}}",
+			"openMap": "Abrir el mapa de {{name}}",
+			"reviewLike": "Me gusta la reseña de {{username}}"
+		},
 		"processing": "Procesando el contenido...",
 		"errors": {
 			"mapOpenFailed": "No se pudo abrir la aplicación de mapas",
@@ -315,6 +349,11 @@
 	},
 	"ImageCardGrid": {
 		"openItemDetails": "Abrir detalles del elemento"
+	},
+	"Stars": {
+		"accessibility": {
+			"rating": "Valoración {{rating}}/5"
+		}
 	},
 	"Tabs": {
 		"home": "Inicio",
@@ -332,13 +371,17 @@
 		}
 	},
 	"Profile": {
+		"tabGroups": {
+			"reviews": "Reseñas",
+			"saved": "Guardado",
+			"liked": "Me gusta",
+			"wallet": "Cartera"
+		},
 		"tabs": {
 			"deposits": "Depósitos",
 			"earnings": "Ganancias",
-			"topics": "Temas",
-			"posts": "Publicaciones",
 			"saved-posts": "Publicaciones",
-			"saved-topics": "Temas",
+			"saved-topics": "Platos",
 			"wallet-deposit": "Depósitos",
 			"wallet-earning": "Ganancias"
 		},
@@ -377,7 +420,8 @@
 			"follow": "Seguir",
 			"following": "Siguiendo",
 			"message": "Mensaje",
-			"searchByMood": "Encuentra platos que te \"gustarán\" según tu estado de ánimo de hoy",
+			"searchForReview": "Busca un restaurante para reseñar",
+			"searchByMood": "Buscar según tu ánimo de hoy",
 			"sendFeedback": "Enviar Comentarios"
 		},
 		"stats": {
@@ -409,7 +453,8 @@
 			"displayNameRequired": "El nombre para mostrar es obligatorio",
 			"displayNameLength": "El nombre para mostrar debe tener 30 caracteres o menos",
 			"bioLength": "La biografía debe tener 150 caracteres o menos"
-		}
+		},
+		"guestDisplayName": "Invitado"
 	},
 	"NotFound": {
 		"title": "¡Vaya!",
@@ -492,6 +537,7 @@
 			"dishCategoryNoResults": "No se encontraron categorías de platos coincidentes",
 			"dishCategoryInputHint": "Introduce una categoría de plato para buscar",
 			"clearDishCategory": "Borrar categoría de plato",
+			"useCurrentLocation": "Usar ubicación actual",
 			"selectDishCategory": "Seleccionar esta categoría de plato"
 		},
 		"errors": {
@@ -622,6 +668,8 @@
 		"copyright": "Derechos de autor",
 		"legalDocument": "Documento legal",
 		"logout": "Cerrar sesión",
+		"logoutConfirmTitle": "¿Cerrar sesión?",
+		"logoutConfirmMessage": "Deberás iniciar sesión de nuevo para gestionar tus publicaciones y reseñas.",
 		"blockedTopics": {
 			"navigationLabel": "Temas de platos bloqueados",
 			"pageTitle": "Temas de platos bloqueados",

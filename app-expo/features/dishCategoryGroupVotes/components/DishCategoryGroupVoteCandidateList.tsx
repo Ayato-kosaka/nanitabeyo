@@ -11,6 +11,7 @@ import { DishCategoryGroupVoteCandidateCard } from "./DishCategoryGroupVoteCandi
 type Props = {
 	candidates: DishCategoryGroupVoteCandidate[];
 	isHost: boolean;
+	hasVotes: boolean;
 	loadingCandidateId: string | null;
 	onPressCandidate: (candidate: DishCategoryGroupVoteCandidate) => void;
 	onPressDishMedia: (candidate: DishCategoryGroupVoteCandidate) => void;
@@ -20,21 +21,17 @@ type Props = {
 export function DishCategoryGroupVoteCandidateList({
 	candidates,
 	isHost,
+	hasVotes,
 	loadingCandidateId,
 	onPressCandidate,
 	onPressDishMedia,
 	onDeleteCandidate,
 }: Props) {
-	// rank は同率を保持するため、同順位内だけ displayOrder で表示順を安定させる。
-	// rank が返らない古いレスポンスでも末尾で displayOrder 順に並べる。
+	// #856 【仕様】表示順は投票結果で並び替えず、候補作成時の displayOrder を維持する
+	// (順位はバッジのみで示す)。rank によるソートは行わない。
 	const visibleCandidates = candidates
 		.filter((candidate) => candidate.deletedAt === null)
-		.sort((a, b) => {
-			const rankA = a.rank ?? Number.MAX_SAFE_INTEGER;
-			const rankB = b.rank ?? Number.MAX_SAFE_INTEGER;
-			if (rankA !== rankB) return rankA - rankB;
-			return a.displayOrder - b.displayOrder;
-		});
+		.sort((a, b) => a.displayOrder - b.displayOrder);
 
 	return (
 		<View style={styles.container}>
@@ -43,6 +40,7 @@ export function DishCategoryGroupVoteCandidateList({
 					key={candidate.id}
 					candidate={candidate}
 					isHost={isHost}
+					hasVotes={hasVotes}
 					isDishMediaLoading={loadingCandidateId === candidate.id}
 					onPressCandidate={onPressCandidate}
 					onPressDishMedia={onPressDishMedia}

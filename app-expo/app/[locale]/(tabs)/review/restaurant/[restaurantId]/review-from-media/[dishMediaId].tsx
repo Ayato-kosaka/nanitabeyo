@@ -16,7 +16,7 @@ import { useLogger } from "@/hooks/useLogger";
 import type { GetRestaurantByIdResponse, QueryDishMediaByIdsResponse, DishMediaEntry } from "@shared/api/v1/res";
 import i18n from "@/lib/i18n";
 import { QueryDishMediaByIdsDto } from "@shared/api/v1/dto";
-import { ReviewHeader } from "@/features/review/components/ReviewHeader";
+import { ScreenHeader } from "@/components/ScreenHeader";
 import { useLocale } from "@/hooks/useLocale";
 
 export default function ReviewFromMediaScreen() {
@@ -123,7 +123,7 @@ export default function ReviewFromMediaScreen() {
 	if (isLoading) {
 		return (
 			<View style={styles.container}>
-				<ReviewHeader
+				<ScreenHeader
 					title={i18n.t("Review.title")}
 					onPressBack={() => {
 						lightImpact();
@@ -141,7 +141,7 @@ export default function ReviewFromMediaScreen() {
 	if (error || !restaurantEntry || !dishMedia) {
 		return (
 			<View style={styles.container}>
-				<ReviewHeader
+				<ScreenHeader
 					title={i18n.t("Review.title")}
 					onPressBack={() => {
 						lightImpact();
@@ -157,7 +157,7 @@ export default function ReviewFromMediaScreen() {
 
 	return (
 		<View style={styles.container}>
-			<ReviewHeader
+			<ScreenHeader
 				title={restaurantEntry.restaurant.name}
 				onPressBack={() => {
 					lightImpact();

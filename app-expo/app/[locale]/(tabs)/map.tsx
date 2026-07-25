@@ -262,7 +262,13 @@ export default function MapScreen() {
 					onClear={() => setSearchQuery("")}
 					placeholder={i18n.t("Map.placeholders.searchRestaurants")}
 					renderInputRight={
-						<TouchableOpacity style={styles.currentLocationButton} onPress={handleCurrentLocation}>
+						<TouchableOpacity
+							style={styles.currentLocationButton}
+							onPress={handleCurrentLocation}
+							hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+							accessibilityRole="button"
+							accessibilityLabel={i18n.t("Map.accessibility.useCurrentLocation")}
+							testID="map-current-location-button">
 							<Navigation size={20} color="#F05537" />
 						</TouchableOpacity>
 					}
