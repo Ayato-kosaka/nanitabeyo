@@ -27,8 +27,6 @@ interface LocationAutocompleteProps {
 	autoClearOnFocus?: boolean;
 	/** Test ID for testing */
 	testID?: string;
-	/** #930 【仕様】未入力のままフォーカスを外した(=一度触れた)ことを親に伝える用。バリデーション表示のトリガーに使う */
-	onBlur?: () => void;
 }
 
 // ===== Tunables (ベストプラクティス的にマジックナンバーを定数化) =====
@@ -52,7 +50,6 @@ export function LocationAutocomplete({
 	autofocus = false,
 	renderInputRight,
 	testID = "location-autocomplete",
-	onBlur: onBlurProp,
 }: LocationAutocompleteProps) {
 	const [showSuggestions, setShowSuggestions] = useState(false);
 	const [isFocused, setIsFocused] = useState(false);
@@ -129,8 +126,7 @@ export function LocationAutocomplete({
 			setIsFocused(false);
 			setShowSuggestions(false);
 		}, BLUR_SUGGESTION_HIDE_DELAY_MS);
-		onBlurProp?.();
-	}, [onBlurProp]);
+	}, []);
 
 	// Handle suggestion selection
 	const handleSuggestionPress = useCallback(

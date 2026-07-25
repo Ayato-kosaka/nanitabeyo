@@ -20,7 +20,6 @@ import type { AutocompleteLocation, LocationDetailsResponse } from "@shared/api/
 import { useLocationSearch } from "@/hooks/useLocationSearch";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { LocationAutocomplete } from "@/components/LocationAutocomplete";
-import { FormErrorText } from "@/components/FormErrorText";
 import {
 	timeSlots,
 	sceneOptions,
@@ -65,9 +64,6 @@ export default function SearchScreen() {
 	const { logFrontendEvent } = useLogger();
 	const [location, setLocation] = useState<Omit<LocationDetailsResponse, "viewport"> | null>(null);
 	const [locationQuery, setLocationQuery] = useState("");
-	// #930 【仕様】検索ボタンはdisabled中は押下できないため、押下をトリガーにしたエラー表示は成立しない。
-	// 代わりに「一度フォーカスして離れた」ことをトリガーに、未入力ならエラーを表示する。
-	const [locationTouched, setLocationTouched] = useState(false);
 	const [timeSlot, setTimeSlot] = useState<SearchParams["timeSlot"]>("lunch");
 	const [scene, setScene] = useState<SearchParams["scene"]>("solo"); // #533 【仕様】scene 初期値を solo に変更（レコメンドAPI必須化対応）
 	const [taste, setTaste] = useState<SearchParams["taste"] | undefined>(undefined);
@@ -367,7 +363,6 @@ export default function SearchScreen() {
 							onChangeText={setLocationQuery}
 							onSelectSuggestion={handleLocationSelect}
 							onClear={handleLocationClear}
-							onBlur={() => setLocationTouched(true)}
 							placeholder={i18n.t("Search.placeholders.enterLocation")}
 							autoClearOnFocus={locationQuery === i18n.t("Search.currentLocation")}
 							renderInputRight={
@@ -378,10 +373,6 @@ export default function SearchScreen() {
 							testID="search-location-autocomplete"
 						/>
 					</View>
-					<FormErrorText
-						message={locationTouched && !location ? i18n.t("Search.errors.noLocationSelected") : null}
-						testID="search-location-error"
-					/>
 				</View>
 
 				{/* #667 【設計】Time of Day - カード無し、画像グリッド表示（4列1行） */}
