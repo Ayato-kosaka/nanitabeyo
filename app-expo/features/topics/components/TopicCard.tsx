@@ -44,7 +44,8 @@ export const TopicCard = ({
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 
-	const deepDiveChipWidth = deepDiveOptions.length === 1 ? "100%" : deepDiveOptions.length === 2 ? "48.5%" : "31.5%";
+	// #973【設計】3件表示時は折り返さず1行に収める。1〜2件は内容幅で主CTAより確実に小さく見せる
+	const isThreeDeepDiveChips = deepDiveOptions.length >= 3;
 
 	const handleSave = async () => {
 		const willSave = !isSaved;
@@ -116,11 +117,12 @@ export const TopicCard = ({
 										<Text style={styles.deepDiveTitle}>{i18n.t("Topics.deepDive.title")}</Text>
 										<View style={styles.deepDiveTitleLine} />
 									</View>
-									<View style={styles.deepDiveChips}>
+									<View style={[styles.deepDiveChips, isThreeDeepDiveChips && styles.deepDiveChipsRow]}>
 										{deepDiveOptions.map((option) => (
 											<TouchableOpacity
 												key={option.key}
-												style={[styles.deepDiveChip, { width: deepDiveChipWidth }]}
+												style={[styles.deepDiveChip, isThreeDeepDiveChips && styles.deepDiveChipThird]}
+												hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
 												onPress={(event) => {
 													event.stopPropagation();
 													onDeepDive?.(item, option);
@@ -220,7 +222,7 @@ const styles = StyleSheet.create({
 	},
 	deepDiveContainer: {
 		marginTop: 10,
-		gap: 10,
+		gap: 8,
 		paddingBottom: 6,
 	},
 	deepDiveTitleRow: {
@@ -245,19 +247,35 @@ const styles = StyleSheet.create({
 	deepDiveChips: {
 		flexDirection: "row",
 		flexWrap: "wrap",
+		justifyContent: "center",
+		alignSelf: "center",
+		// #973【設計】主CTA(左右10%インセット=横幅80%)より確実に狭くし、深堀チップ行が主CTAより目立たないようにする(1〜2件時)
+		maxWidth: "76%",
+		gap: 8,
+	},
+	// #973【設計】3件時は折り返さず1行に収める。flex:1による均等割りはWebでチップが
+	// 不当に縮み文字が視認できなくなる問題があったため、固定%幅＋定幅の行コンテナに戻した
+	deepDiveChipsRow: {
+		flexWrap: "nowrap",
+		alignSelf: "center",
 		justifyContent: "space-between",
-		rowGap: 10,
+		width: "94%",
+		maxWidth: undefined,
 	},
 	deepDiveChip: {
 		borderWidth: 1,
 		borderColor: "rgba(255, 255, 255, 0.92)",
 		backgroundColor: "rgba(255, 255, 255, 0.32)",
 		paddingHorizontal: 12,
-		paddingVertical: 11,
-		borderRadius: 18,
-		minHeight: 42,
+		paddingVertical: 7,
+		borderRadius: 14,
+		minHeight: 32,
 		justifyContent: "center",
 		alignItems: "center",
+	},
+	deepDiveChipThird: {
+		width: "31%",
+		paddingHorizontal: 6,
 	},
 	deepDiveChipText: {
 		color: "#FFFFFF",
