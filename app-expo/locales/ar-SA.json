@@ -91,6 +91,9 @@
 		"errors": {
 			"fetchLocation": "فشل في جلب الموقع",
 			"getCurrentLocation": "فشل في الحصول على الموقع الحالي",
+			"getCurrentLocationDenied": "تم رفض الوصول إلى الموقع. يرجى كتابة موقعك في الحقل أدناه.",
+			"getCurrentLocationUnsupported": "لا يمكن الحصول على الموقع الحالي في هذه البيئة. يرجى كتابة موقعك في الحقل أدناه.",
+			"getCurrentLocationTimeout": "انتهت مهلة الحصول على الموقع الحالي. يرجى المحاولة مرة أخرى أو كتابة موقعك أدناه.",
 			"noLocationSelected": "يرجى اختيار موقع",
 			"noTimeSlotSelected": "يرجى اختيار فترة زمنية",
 			"noSceneSelected": "يرجى اختيار مشهد",

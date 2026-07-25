@@ -3,6 +3,12 @@ import { useAPICall } from "@/hooks/useAPICall";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import * as Location from "expo-location";
+// #932 【設計】現在地の緯度経度取得だけは native(expo-location) と web(navigator.geolocation) で
+// 実装を分ける必要があるため、この1関数だけを .ts / .web.ts に分離して import する
+// (Metro が拡張子で自動解決する)。それ以外の検索・キャッシュ・逆ジオコーディング処理は
+// 完全に共通のため、このファイル自体は分割しない。
+import { getCurrentLocationPosition } from "./useCurrentLocationPosition";
+import { LocationPermissionError } from "./locationPermissionError";
 import { getRandomBytesAsync } from "expo-crypto";
 import { encode as b64encode } from "base-64";
 import type {
@@ -224,19 +230,9 @@ export const useLocationSearch = () => {
 		// Create new request
 		const locationPromise = (async (): Promise<Omit<LocationDetailsResponse, "viewport">> => {
 			try {
-				const { status } = await Location.requestForegroundPermissionsAsync();
-				if (status !== "granted") {
-					logFrontendEvent({
-						event_name: "current_location_permission_denied",
-						error_level: "warn",
-						payload: {},
-					});
-				}
-
-				const position = await Location.getCurrentPositionAsync({
-					accuracy: Location.Accuracy.Balanced,
-				});
-				const { latitude, longitude } = position.coords;
+				// #932 【修正】native/web で実装の異なる権限確認+位置取得を共通の関数に委譲。
+				// 失敗理由(denied/timeout/unsupported/unavailable)は LocationPermissionError として分類される
+				const { latitude, longitude } = await getCurrentLocationPosition();
 
 				// Call the new reverse geocoding API
 				try {
@@ -292,7 +288,7 @@ export const useLocationSearch = () => {
 					}
 
 					const fallbackResult = {
-						location: position.coords,
+						location: { latitude, longitude },
 						address,
 						localLanguageCode: locale.split("-")[0],
 					};
@@ -309,7 +305,10 @@ export const useLocationSearch = () => {
 				logFrontendEvent({
 					event_name: "current_location_fetch_failed",
 					error_level: "error",
-					payload: { error: String(error) },
+					payload: {
+						error: String(error),
+						kind: error instanceof LocationPermissionError ? error.kind : "unavailable",
+					},
 				});
 				throw error;
 			} finally {

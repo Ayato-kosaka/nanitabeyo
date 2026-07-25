@@ -18,8 +18,9 @@ import { router } from "expo-router";
 import { SearchParams } from "@/types/search";
 import type { AutocompleteLocation, LocationDetailsResponse } from "@shared/api/v1/res";
 import { useLocationSearch } from "@/hooks/useLocationSearch";
+import { LocationPermissionError, type LocationPermissionErrorKind } from "@/hooks/locationPermissionError";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
-import { LocationAutocomplete } from "@/components/LocationAutocomplete";
+import { LocationAutocomplete, type LocationAutocompleteHandle } from "@/components/LocationAutocomplete";
 import {
 	timeSlots,
 	sceneOptions,
@@ -76,6 +77,8 @@ export default function SearchScreen() {
 
 	const { getCurrentLocation, getLocationDetails } = useLocationSearch();
 	const { showSnackbar } = useSnackbar();
+	// #932 【設計】現在地取得の恒久的な失敗(権限拒否・未対応)時に手入力へ誘導するため
+	const locationInputRef = useRef<LocationAutocompleteHandle>(null);
 
 	useEffect(() => {
 		// Screen view logging
@@ -129,6 +132,22 @@ export default function SearchScreen() {
 		}
 	};
 
+	// #932 【設計】失敗理由(kind)ごとに文言を出し分ける。denied/unsupported は再試行しても
+	// 解決しないため、手入力へ誘導するよう地点入力欄へフォーカスを移動する
+	const getCurrentLocationErrorMessage = (kind: LocationPermissionErrorKind): string => {
+		switch (kind) {
+			case "denied":
+				return i18n.t("Search.errors.getCurrentLocationDenied");
+			case "unsupported":
+				return i18n.t("Search.errors.getCurrentLocationUnsupported");
+			case "timeout":
+				return i18n.t("Search.errors.getCurrentLocationTimeout");
+			case "unavailable":
+			default:
+				return i18n.t("Search.errors.getCurrentLocation");
+		}
+	};
+
 	const handleUseCurrentLocation = async () => {
 		lightImpact();
 		logFrontendEvent({
@@ -146,12 +165,18 @@ export default function SearchScreen() {
 				payload: { hasLocation: !!currentLocation },
 			});
 		} catch (error) {
+			const kind: LocationPermissionErrorKind = error instanceof LocationPermissionError ? error.kind : "unavailable";
 			logFrontendEvent({
 				event_name: "current_location_failed",
 				error_level: "error",
-				payload: { error: String(error) },
+				payload: { error: String(error), kind },
 			});
-			showSnackbar(i18n.t("Search.errors.getCurrentLocation"));
+			showSnackbar(getCurrentLocationErrorMessage(kind));
+
+			// #932 【設計】権限拒否・未対応は再試行しても解決しないため、手入力へ誘導する
+			if (kind === "denied" || kind === "unsupported") {
+				locationInputRef.current?.focus();
+			}
 		}
 	};
 
@@ -271,12 +296,23 @@ export default function SearchScreen() {
 
 		if (!isJapanese) {
 			// #642 【設計】対応言語以外ではチュートリアルを表示しない
+			// #932 【修正】マウント時の自動取得はユーザー操作を伴わないためSnackbarは出さない(UXを損なうため)。
+			// ただし console.error への握りつぶしをやめ、理由(kind)付きで構造化ログに残す
 			getCurrentLocation()
 				.then((currentLocation) => {
 					setLocation(currentLocation);
 					setLocationQuery(i18n.t("Search.currentLocation"));
 				})
-				.catch(console.error);
+				.catch((error) => {
+					logFrontendEvent({
+						event_name: "current_location_auto_fetch_failed",
+						error_level: "warn",
+						payload: {
+							error: String(error),
+							kind: error instanceof LocationPermissionError ? error.kind : "unavailable",
+						},
+					});
+				});
 			return;
 		}
 
@@ -290,12 +326,22 @@ export default function SearchScreen() {
 			});
 		} else if (hasSeenTutorial === true) {
 			// #642 【設計】チュートリアル既表示の場合、現在地取得してセットする
+			// #932 【修正】上と同様、Snackbarは出さず理由(kind)付きで構造化ログに残す
 			getCurrentLocation()
 				.then((currentLocation) => {
 					setLocation(currentLocation);
 					setLocationQuery(i18n.t("Search.currentLocation"));
 				})
-				.catch(console.error);
+				.catch((error) => {
+					logFrontendEvent({
+						event_name: "current_location_auto_fetch_failed",
+						error_level: "warn",
+						payload: {
+							error: String(error),
+							kind: error instanceof LocationPermissionError ? error.kind : "unavailable",
+						},
+					});
+				});
 		}
 	}, [isFocused, isTutorialLoading, hasSeenTutorial, logFrontendEvent, getCurrentLocation, isJapanese]);
 
@@ -359,6 +405,7 @@ export default function SearchScreen() {
 					</View>
 					<View style={styles.locationSection}>
 						<LocationAutocomplete
+							ref={locationInputRef}
 							value={locationQuery}
 							onChangeText={setLocationQuery}
 							onSelectSuggestion={handleLocationSelect}
@@ -366,7 +413,12 @@ export default function SearchScreen() {
 							placeholder={i18n.t("Search.placeholders.enterLocation")}
 							autoClearOnFocus={locationQuery === i18n.t("Search.currentLocation")}
 							renderInputRight={
-								<TouchableOpacity style={styles.currentLocationButton} onPress={handleUseCurrentLocation}>
+								<TouchableOpacity
+									style={styles.currentLocationButton}
+									onPress={handleUseCurrentLocation}
+									accessibilityRole="button"
+									accessibilityLabel={i18n.t("Search.currentLocation")}
+									testID="search-current-location-button">
 									<Navigation size={20} color="#000000" />
 								</TouchableOpacity>
 							}

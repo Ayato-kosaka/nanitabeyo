@@ -91,6 +91,9 @@
 		"errors": {
 			"fetchLocation": "Failed to fetch location",
 			"getCurrentLocation": "Failed to get current location",
+			"getCurrentLocationDenied": "Location access was denied. Please type your location in the field below.",
+			"getCurrentLocationUnsupported": "Getting your current location isn't supported here. Please type your location in the field below.",
+			"getCurrentLocationTimeout": "Getting your current location timed out. Please try again or type your location in the field below.",
 			"noLocationSelected": "Please select a location",
 			"noTimeSlotSelected": "Please select a time slot",
 			"noSceneSelected": "Please select a scene",
