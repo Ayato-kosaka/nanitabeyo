@@ -361,13 +361,17 @@
 		}
 	},
 	"Profile": {
+		"tabGroups": {
+			"reviews": "리뷰",
+			"saved": "저장됨",
+			"liked": "좋아요",
+			"wallet": "지갑"
+		},
 		"tabs": {
 			"deposits": "예치금",
 			"earnings": "수익",
-			"topics": "주제",
-			"posts": "게시물",
 			"saved-posts": "게시물",
-			"saved-topics": "주제",
+			"saved-topics": "요리",
 			"wallet-deposit": "예치금",
 			"wallet-earning": "수익"
 		},

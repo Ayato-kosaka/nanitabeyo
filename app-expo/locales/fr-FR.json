@@ -361,13 +361,17 @@
 		}
 	},
 	"Profile": {
+		"tabGroups": {
+			"reviews": "Avis",
+			"saved": "Enregistré",
+			"liked": "J'aime",
+			"wallet": "Portefeuille"
+		},
 		"tabs": {
 			"deposits": "Dépôts",
 			"earnings": "Revenus",
-			"topics": "Sujets",
-			"posts": "Publications",
 			"saved-posts": "Publications",
-			"saved-topics": "Sujets",
+			"saved-topics": "Plats",
 			"wallet-deposit": "Dépôts",
 			"wallet-earning": "Revenus"
 		},

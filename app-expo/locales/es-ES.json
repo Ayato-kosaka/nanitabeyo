@@ -361,13 +361,17 @@
 		}
 	},
 	"Profile": {
+		"tabGroups": {
+			"reviews": "Reseñas",
+			"saved": "Guardado",
+			"liked": "Me gusta",
+			"wallet": "Cartera"
+		},
 		"tabs": {
 			"deposits": "Depósitos",
 			"earnings": "Ganancias",
-			"topics": "Temas",
-			"posts": "Publicaciones",
 			"saved-posts": "Publicaciones",
-			"saved-topics": "Temas",
+			"saved-topics": "Platos",
 			"wallet-deposit": "Depósitos",
 			"wallet-earning": "Ganancias"
 		},

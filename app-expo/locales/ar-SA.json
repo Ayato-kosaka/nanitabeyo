@@ -361,13 +361,17 @@
 		}
 	},
 	"Profile": {
+		"tabGroups": {
+			"reviews": "المراجعات",
+			"saved": "المحفوظة",
+			"liked": "الإعجابات",
+			"wallet": "المحفظة"
+		},
 		"tabs": {
 			"deposits": "الودائع",
 			"earnings": "الأرباح",
-			"topics": "المواضيع",
-			"posts": "المنشورات",
 			"saved-posts": "المنشورات",
-			"saved-topics": "المواضيع",
+			"saved-topics": "الأطباق",
 			"wallet-deposit": "الودائع",
 			"wallet-earning": "الأرباح"
 		},
