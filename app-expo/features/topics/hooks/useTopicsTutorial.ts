@@ -110,12 +110,15 @@ export function useTopicsTutorial({ canAutoOpen }: UseTopicsTutorialOptions) {
 	 *
 	 * auto要求を出しただけでは保存しないため、レイアウト計測に失敗した端末で
 	 * 「見ていないのに閲覧済み」になることを防げる。
+	 *
+	 * reasonがmanualでも必ず保存する。ここで保存しないと、Storage読込完了前に
+	 * 「？」から開いたユーザーがhasSeenTutorial=falseのまま次回起動を迎え、
+	 * 見たばかりのチュートリアルが自動でもう一度開いてしまう。
 	 */
 	const markPresented = useCallback(() => {
 		if (!request || presentedRequestIdRef.current === request.id) return;
 
 		presentedRequestIdRef.current = request.id;
-		if (request.reason !== "auto") return;
 
 		// 保存完了を待たずメモリ上は閲覧済みにし、同一セッションの再表示を確実に防ぐ。
 		setHasSeenTutorial(true);

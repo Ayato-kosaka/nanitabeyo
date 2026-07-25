@@ -244,16 +244,16 @@
 					"body": "Desliza a izquierda o derecha para comparar platos. Cuando te decidas, toca «¡Elegir este!»."
 				},
 				"deepDive": {
-					"title": "Explora platos similares",
+					"title": "Profundiza según tu estado de ánimo",
 					"body": "¿Aún no te decides? Elige un estilo para acotar las sugerencias."
 				},
 				"topicActions": {
 					"title": "Adapta las sugerencias a tus gustos",
 					"save": "Guardar: vuelve a ver este plato más tarde",
-					"block": "Bloquear: recibe menos platos que no encajan contigo"
+					"block": "Bloquear: deja de recibir sugerencias de platos que no te gustan"
 				},
 				"groupVote": {
-					"title": "Decidid juntos",
+					"title": "Decide con amigos",
 					"body": "Comparte las sugerencias con tu grupo y votad juntos."
 				}
 			}

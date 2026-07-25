@@ -13,6 +13,8 @@ import {
 } from "react-native";
 import Svg, { Defs, Mask, Rect as SvgRect } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
+import { Pointer } from "lucide-react-native";
 import i18n from "@/lib/i18n";
 import { useLogger } from "@/hooks/useLogger";
 import type {
@@ -31,6 +33,11 @@ const INITIAL_CALLOUT_HEIGHT = 210;
 const MEASURE_RETRY_COUNT = 6;
 const MEASURE_RETRY_INTERVAL_MS = 50;
 const MEASURE_TIMEOUT_MS = 150;
+
+/** 最初のステップだけ表示する、横スワイプを手ほどきするアイコンの往復ヒント。 */
+const SWIPE_HINT_ICON_SIZE = 40;
+const SWIPE_HINT_TRAVEL = 34;
+const SWIPE_HINT_DURATION_MS = 850;
 
 /**
  * 表示順はプロダクト判断そのものなので、描画コードから切り離して固定する。
@@ -334,6 +341,29 @@ export function TopicsSpotlightTutorial({
 	}, [candidateSteps, onUnavailable, reportMissingTarget, targetRefs, visible]);
 
 	const currentStep = availableSteps[currentStepIndex];
+	const isSwipeStep = currentStep?.id === "swipeAndDecide";
+
+	/**
+	 * 1ステップ目だけ、カード上で指アイコンを左右に往復させてスワイプ操作を手本で示す。
+	 *
+	 * Reduce Motion設定時はアイコン自体を出さないため、アニメーションも起動しない。
+	 */
+	const swipeHintTranslateX = useSharedValue(-SWIPE_HINT_TRAVEL);
+	useEffect(() => {
+		if (isSwipeStep && visible && !reduceMotionEnabled) {
+			swipeHintTranslateX.value = withRepeat(
+				withTiming(SWIPE_HINT_TRAVEL, { duration: SWIPE_HINT_DURATION_MS, easing: Easing.inOut(Easing.quad) }),
+				-1,
+				true,
+			);
+		} else {
+			swipeHintTranslateX.value = -SWIPE_HINT_TRAVEL;
+		}
+	}, [isSwipeStep, reduceMotionEnabled, swipeHintTranslateX, visible]);
+
+	const swipeHintAnimatedStyle = useAnimatedStyle(() => ({
+		transform: [{ translateX: swipeHintTranslateX.value }],
+	}));
 
 	/**
 	 * ステップ移動・画面回転・Webリサイズのたびに、現在の対象だけ再計測する。
@@ -565,6 +595,9 @@ export function TopicsSpotlightTutorial({
 		total: availableSteps.length,
 	});
 	const maskId = `topics-tutorial-mask-${requestId}`;
+	// スワイプ範囲の実測値でだけアイコンを出す。穴の外接矩形ではなくカード自体の座標を使う。
+	const swipeAreaRect = measuredTargets.swipeArea;
+	const showSwipeHint = isSwipeStep && !reduceMotionEnabled && !!swipeAreaRect;
 
 	return (
 		<Modal
@@ -617,6 +650,24 @@ export function TopicsSpotlightTutorial({
 						/>
 					))}
 				</Svg>
+
+				{showSwipeHint && swipeAreaRect && (
+					<Animated.View
+						pointerEvents="none"
+						testID="topics-tutorial-swipe-hint"
+						style={[
+							styles.swipeHint,
+							{
+								left: swipeAreaRect.x + swipeAreaRect.width / 2 - SWIPE_HINT_ICON_SIZE / 2,
+								top: swipeAreaRect.y + swipeAreaRect.height * 0.38 - SWIPE_HINT_ICON_SIZE / 2,
+							},
+							swipeHintAnimatedStyle,
+						]}>
+						<View style={styles.swipeHintBadge}>
+							<Pointer size={20} color="#FFFFFF" />
+						</View>
+					</Animated.View>
+				)}
 
 				<View
 					collapsable={false}
@@ -673,13 +724,16 @@ export function TopicsSpotlightTutorial({
 						</View>
 
 						<View style={styles.actions}>
-							<TouchableOpacity
-								onPress={handleSkip}
-								style={styles.skipButton}
-								accessibilityRole="button"
-								testID="topics-tutorial-skip">
-								<Text style={styles.skipButtonText}>{i18n.t("Topics.tutorial.skip")}</Text>
-							</TouchableOpacity>
+							{/* 最終ステップは「使ってみる」と機能が重複するため、スキップ導線は出さない。 */}
+							{!isLastStep && (
+								<TouchableOpacity
+									onPress={handleSkip}
+									style={styles.skipButton}
+									accessibilityRole="button"
+									testID="topics-tutorial-skip">
+									<Text style={styles.skipButtonText}>{i18n.t("Topics.tutorial.skip")}</Text>
+								</TouchableOpacity>
+							)}
 							<TouchableOpacity
 								onPress={handlePrimaryAction}
 								style={styles.primaryButton}
@@ -731,6 +785,21 @@ const styles = StyleSheet.create({
 	},
 	arrowBelow: {
 		bottom: -8,
+	},
+	swipeHint: {
+		position: "absolute",
+		width: SWIPE_HINT_ICON_SIZE,
+		height: SWIPE_HINT_ICON_SIZE,
+	},
+	swipeHintBadge: {
+		width: SWIPE_HINT_ICON_SIZE,
+		height: SWIPE_HINT_ICON_SIZE,
+		borderRadius: SWIPE_HINT_ICON_SIZE / 2,
+		alignItems: "center",
+		justifyContent: "center",
+		backgroundColor: "rgba(0, 0, 0, 0.55)",
+		borderWidth: 2,
+		borderColor: "rgba(255, 255, 255, 0.9)",
 	},
 	title: {
 		color: "#171717",

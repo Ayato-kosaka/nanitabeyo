@@ -244,16 +244,16 @@
 					"body": "Balayez à gauche ou à droite pour comparer les plats. Une fois décidé, touchez « Choisir ! »."
 				},
 				"deepDive": {
-					"title": "Voir des plats similaires",
+					"title": "Approfondissez selon votre humeur",
 					"body": "Vous hésitez encore ? Choisissez un style pour affiner les suggestions."
 				},
 				"topicActions": {
 					"title": "Adaptez les suggestions à vos goûts",
 					"save": "Enregistrer : retrouvez ce plat plus tard",
-					"block": "Bloquer : voyez moins de plats qui ne vous plaisent pas"
+					"block": "Bloquer : ne plus voir les plats qui ne vous plaisent pas"
 				},
 				"groupVote": {
-					"title": "Décidez ensemble",
+					"title": "Décidez entre amis",
 					"body": "Partagez les suggestions avec vos proches et votez ensemble."
 				}
 			}

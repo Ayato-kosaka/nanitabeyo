@@ -41,6 +41,9 @@ import type { CreateDishCategoryGroupVoteResponse } from "@shared/api/v1/res";
 
 const DEEP_DIVE_SCORE_THRESHOLD = 0.85;
 
+// ヘッダーアイコンは見た目を小さく保ちつつ、タップ領域だけ44pt相当に広げる。
+const HEADER_ACTION_HIT_SLOP = { top: 12, right: 12, bottom: 12, left: 12 };
+
 const BUDGET_INTENT_ORDER = priceLevelOptions.map((option) => option.budgetIntent);
 const DINING_PACE_ORDER = diningPaceOptions.map((option) => option.id);
 const FOOD_STYLE_ORDER = foodStyleOptions.map((option) => option.id);
@@ -578,7 +581,7 @@ export default function TopicsScreen() {
 							accessibilityRole="button"
 							accessibilityLabel={i18n.t("Topics.tutorial.helpLabel")}
 							accessibilityHint={i18n.t("Topics.tutorial.helpHint")}
-							hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+							hitSlop={HEADER_ACTION_HIT_SLOP}
 							testID="topics-tutorial-help"
 							style={[
 								styles.headerActionButton,
@@ -592,6 +595,7 @@ export default function TopicsScreen() {
 								disabled={isCreating}
 								accessibilityRole="button"
 								accessibilityLabel={i18n.t("DishCategoryGroupVotes.resultTitle")}
+								hitSlop={HEADER_ACTION_HIT_SLOP}
 								testID="topics-group-vote"
 								style={[styles.headerActionButton, isCreating && styles.headerActionButtonDisabled]}>
 								<Users size={20} color="#1A1A1A" />
@@ -601,6 +605,7 @@ export default function TopicsScreen() {
 							<TouchableOpacity
 								onPress={handleReloadRecommendations}
 								accessibilityRole="button"
+								hitSlop={HEADER_ACTION_HIT_SLOP}
 								style={styles.headerActionButton}>
 								<RefreshCw size={20} color="#1A1A1A" />
 							</TouchableOpacity>
@@ -795,13 +800,10 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "center",
 		gap: 8,
-		minHeight: 44,
+		minHeight: 32,
 	},
 	headerActionButton: {
-		minWidth: 44,
-		minHeight: 44,
-		alignItems: "center",
-		justifyContent: "center",
+		padding: 4,
 	},
 	headerActionButtonDisabled: {
 		opacity: 0.35,

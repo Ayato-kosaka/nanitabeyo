@@ -244,16 +244,16 @@
 					"body": "Swipe left or right to compare dishes. When you find one you want, tap “Choose this!”"
 				},
 				"deepDive": {
-					"title": "Explore similar dishes",
+					"title": "Search deeper to match your mood",
 					"body": "Still deciding? Pick a style to narrow the suggestions to similar dishes."
 				},
 				"topicActions": {
 					"title": "Make suggestions fit your taste",
 					"save": "Save: Keep a dish so you can revisit it later",
-					"block": "Block: See fewer dishes that do not match your taste"
+					"block": "Block: Stop dishes you don't like from being suggested again"
 				},
 				"groupVote": {
-					"title": "Decide together",
+					"title": "Decide with friends",
 					"body": "Share the suggestions with the people joining you and vote together."
 				}
 			}
