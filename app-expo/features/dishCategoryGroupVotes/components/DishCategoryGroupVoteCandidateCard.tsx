@@ -82,7 +82,9 @@ export function DishCategoryGroupVoteCandidateCard({
 						onDeleteCandidate(candidate);
 					}}
 					activeOpacity={0.85}
-					accessibilityLabel={i18n.t("DishCategoryGroupVotes.deleteCandidate")}>
+					accessibilityRole="button"
+					accessibilityLabel={i18n.t("DishCategoryGroupVotes.deleteCandidate")}
+					testID={`dish-category-group-vote-delete-candidate-${candidate.id}`}>
 					<Trash2 size={17} color="#DC2626" />
 				</TouchableOpacity>
 			) : null}

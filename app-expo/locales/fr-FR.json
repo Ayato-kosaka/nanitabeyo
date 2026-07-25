@@ -9,6 +9,8 @@
 		"post": "Publier",
 		"postReview": "Publier un avis",
 		"retry": "Réessayer",
+		"undo": "Annuler",
+		"view": "Voir",
 		"error": "Une erreur s'est produite. Veuillez réessayer.",
 		"success": "Succès",
 		"linkCopied": "Lien copié dans le presse-papiers",
@@ -57,6 +59,7 @@
 		"deleteCandidate": "Supprimer le choix",
 		"deleteCandidateTitle": "Supprimer ce choix ?",
 		"deleteCandidateMessage": "Masquer {{name}} des choix du vote.",
+		"candidateDeleted": "{{name}} a été retiré des candidats",
 		"loadFailed": "Impossible de charger le vote",
 		"refreshFailed": "Impossible d'actualiser les résultats",
 		"like": "J'aime",
@@ -271,6 +274,7 @@
 			"confirm": "Bloquer"
 		},
 		"blockedMessage": "{{title}} a été bloqué",
+		"savedMessage": "Enregistré",
 		"reloadDialog": {
 			"title": "Trouver plus d’options ?",
 			"message": "Il n’y a que quelques recommandations pour le moment. Nous allons relancer une recherche avec les mêmes conditions.",
@@ -282,6 +286,9 @@
 		"headerTitle": "Plats Recommandés pour Vous",
 		"subCopy": "Appuyez sur un plat que vous aimez pour trouver des restaurants",
 		"accessibility": {
+			"blockTopic": "Retirer {{title}} des recommandations",
+			"saveTopic": "Enregistrer {{title}}",
+			"unsaveTopic": "Retirer {{title}} des favoris",
 			"thumbnail": "Miniature de {{title}}, {{index}} sur {{total}}"
 		}
 	},

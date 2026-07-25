@@ -9,6 +9,8 @@
 		"post": "Post",
 		"postReview": "Post review",
 		"retry": "Retry",
+		"undo": "Undo",
+		"view": "View",
 		"error": "An error occurred. Please try again.",
 		"success": "Success",
 		"linkCopied": "Link copied to clipboard",
@@ -57,6 +59,7 @@
 		"deleteCandidate": "Delete choice",
 		"deleteCandidateTitle": "Delete this choice?",
 		"deleteCandidateMessage": "Hide {{name}} from the vote choices.",
+		"candidateDeleted": "Removed {{name}} from candidates",
 		"loadFailed": "Could not load the vote",
 		"refreshFailed": "Could not refresh the latest results",
 		"like": "Like",
@@ -271,6 +274,7 @@
 			"confirm": "Block"
 		},
 		"blockedMessage": "Blocked {{title}}",
+		"savedMessage": "Saved",
 		"reloadDialog": {
 			"title": "Find more options?",
 			"message": "There are only a few recommendations right now. We will search again with the same conditions.",
@@ -282,6 +286,9 @@
 		"headerTitle": "Recommended Dishes for You",
 		"subCopy": "Tap on a dish you like to find restaurants",
 		"accessibility": {
+			"blockTopic": "Remove {{title}} from recommendations",
+			"saveTopic": "Save {{title}}",
+			"unsaveTopic": "Unsave {{title}}",
 			"thumbnail": "{{title}} thumbnail, {{index}} of {{total}}"
 		}
 	},

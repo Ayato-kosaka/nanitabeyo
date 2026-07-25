@@ -79,7 +79,10 @@ export function DishCategoryGroupVoteCandidateDetailModal({
 					<TouchableOpacity
 						style={styles.deleteButton}
 						onPress={() => onDeleteCandidate(candidate)}
-						activeOpacity={0.85}>
+						activeOpacity={0.85}
+						accessibilityRole="button"
+						accessibilityLabel={i18n.t("DishCategoryGroupVotes.deleteCandidate")}
+						testID={`dish-category-group-vote-detail-delete-candidate-${candidate.id}`}>
 						<Trash2 size={16} color="#DC2626" />
 						<Text style={styles.deleteButtonText}>{i18n.t("DishCategoryGroupVotes.deleteCandidate")}</Text>
 					</TouchableOpacity>

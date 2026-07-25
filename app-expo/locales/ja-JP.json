@@ -9,6 +9,8 @@
 		"post": "投稿",
 		"postReview": "レビューを投稿する",
 		"retry": "再試行",
+		"undo": "元に戻す",
+		"view": "見る",
 		"error": "エラーが発生しました。もう一度お試しください。",
 		"success": "成功",
 		"linkCopied": "リンクをクリップボードにコピーしました",
@@ -57,6 +59,7 @@
 		"deleteCandidate": "候補を削除",
 		"deleteCandidateTitle": "候補を削除しますか？",
 		"deleteCandidateMessage": "{{name}} を投票候補から非表示にします。",
+		"candidateDeleted": "{{name}}を候補から削除しました",
 		"loadFailed": "投票を読み込めませんでした",
 		"refreshFailed": "最新の投票結果を取得できませんでした",
 		"like": "好き",
@@ -271,6 +274,7 @@
 			"confirm": "ブロックする"
 		},
 		"blockedMessage": "{{title}}をブロックしました",
+		"savedMessage": "保存しました",
 		"reloadDialog": {
 			"title": "別の候補を探しますか？",
 			"message": "現在のおすすめが少ないため、同じ条件でもう一度探します。",
@@ -282,6 +286,9 @@
 		"headerTitle": "あなたにおすすめの料理",
 		"subCopy": "いいかも！と思った料理をタップしてお店を見つけよう",
 		"accessibility": {
+			"blockTopic": "{{title}}をおすすめから除外",
+			"saveTopic": "{{title}}を保存",
+			"unsaveTopic": "{{title}}の保存を解除",
 			"thumbnail": "{{title}}のサムネイル、{{index}}件目/{{total}}件中"
 		}
 	},
