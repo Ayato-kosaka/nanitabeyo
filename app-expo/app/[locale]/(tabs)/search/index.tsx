@@ -15,7 +15,6 @@ import {
 	Timer,
 } from "lucide-react-native";
 import { router } from "expo-router";
-import { LinearGradient } from "expo-linear-gradient";
 import { SearchParams } from "@/types/search";
 import type { AutocompleteLocation, LocationDetailsResponse } from "@shared/api/v1/res";
 import { useLocationSearch } from "@/hooks/useLocationSearch";
@@ -568,25 +567,21 @@ export default function SearchScreen() {
 			</ScrollView>
 
 			{/* Search FAB */}
-			{/* #973【設計】背景を単色から上端透明のグラデーションに変更し、ボタン裏に隠れがちな価格帯セクションに気づけるようにする。
-			    ボタン以外の透明部分はタッチを透過させ、下のスクロール操作を妨げない */}
-			<LinearGradient
-				colors={["rgba(248, 249, 250, 0)", "rgba(248, 249, 250, 0.92)", "#F8F9FA"]}
-				locations={[0, 0.45, 1]}
-				style={styles.searchFabContainer}
-				pointerEvents="box-none">
+			{/* #973【設計】背景を不透明の白から完全透明に変更し、ボタンの裏に隠れがちな価格帯セクションに気づけるようにする。
+			    ボタン以外の透明部分はタッチを透過させ、下のスクロール操作を妨げない。背景を無くした分、ボタン自体に影を付けて視認性を確保する */}
+			<View style={styles.searchFabContainer} pointerEvents="box-none">
 				<PrimaryButton
 					testID="search-submit-button"
 					label={i18n.t("Search.searchButton")}
 					onPress={handleSearch}
 					colors={["#000000", "#000000"]}
 					labelStyle={{ color: "#FFFFFF" }}
-					shadowColor="transparent"
+					shadowColor="rgba(0, 0, 0, 0.45)"
 					disabled={!location || !timeSlot || !scene}
 					icon={<Search size={20} color="#FFFFFF" />}
 					style={styles.searchFab}
 				/>
-			</LinearGradient>
+			</View>
 
 			{/* #642 【設計】チュートリアル BottomSheet */}
 			<TutorialBottomSheet
@@ -799,7 +794,7 @@ const styles = StyleSheet.create({
 	searchFabContainer: {
 		position: "absolute",
 		bottom: 0,
-		paddingTop: 32,
+		paddingTop: 12,
 		paddingBottom: 32,
 		paddingHorizontal: HORIZONTAL_PADDING,
 		width: "100%",

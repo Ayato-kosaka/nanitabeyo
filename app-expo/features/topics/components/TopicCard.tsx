@@ -44,6 +44,9 @@ export const TopicCard = ({
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 
+	// #973【設計】3件表示時は折り返さず1行に収める。1〜2件は内容幅で主CTAより確実に小さく見せる
+	const isThreeDeepDiveChips = deepDiveOptions.length >= 3;
+
 	const handleSave = async () => {
 		const willSave = !isSaved;
 		lightImpact();
@@ -114,18 +117,20 @@ export const TopicCard = ({
 										<Text style={styles.deepDiveTitle}>{i18n.t("Topics.deepDive.title")}</Text>
 										<View style={styles.deepDiveTitleLine} />
 									</View>
-									<View style={styles.deepDiveChips}>
+									<View style={[styles.deepDiveChips, isThreeDeepDiveChips && styles.deepDiveChipsRow]}>
 										{deepDiveOptions.map((option) => (
 											<TouchableOpacity
 												key={option.key}
-												style={styles.deepDiveChip}
+												style={[styles.deepDiveChip, isThreeDeepDiveChips && styles.deepDiveChipFlex]}
 												hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
 												onPress={(event) => {
 													event.stopPropagation();
 													onDeepDive?.(item, option);
 												}}
 												activeOpacity={0.8}>
-												<Text style={styles.deepDiveChipText}>{option.label}</Text>
+												<Text style={styles.deepDiveChipText} numberOfLines={1}>
+													{option.label}
+												</Text>
 											</TouchableOpacity>
 										))}
 									</View>
@@ -246,9 +251,15 @@ const styles = StyleSheet.create({
 		flexWrap: "wrap",
 		justifyContent: "center",
 		alignSelf: "center",
-		// #973【設計】主CTA(左右10%インセット=横幅80%)より確実に狭くし、深堀チップ行が主CTAより目立たないようにする
+		// #973【設計】主CTA(左右10%インセット=横幅80%)より確実に狭くし、深堀チップ行が主CTAより目立たないようにする(1〜2件時)
 		maxWidth: "76%",
 		gap: 8,
+	},
+	// #973【設計】3件時は折り返さず1行×均等幅で収め、はみ出す分はテキストを1行省略する
+	deepDiveChipsRow: {
+		flexWrap: "nowrap",
+		alignSelf: "stretch",
+		maxWidth: undefined,
 	},
 	deepDiveChip: {
 		borderWidth: 1,
@@ -260,6 +271,11 @@ const styles = StyleSheet.create({
 		minHeight: 32,
 		justifyContent: "center",
 		alignItems: "center",
+	},
+	deepDiveChipFlex: {
+		flex: 1,
+		flexShrink: 1,
+		paddingHorizontal: 6,
 	},
 	deepDiveChipText: {
 		color: "#FFFFFF",
