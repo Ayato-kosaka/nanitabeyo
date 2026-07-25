@@ -58,6 +58,21 @@ group by function_name, api_name, endpoint, method
 order by count desc;
 ```
 
+Web Vitals p75 (#957。SLO: LCP≤2.5s / INP≤200ms / CLS≤0.1。`payload` は JSON 文字列想定のため
+`JSON_VALUE`/`JSON_VALUE_ARRAY` 等、実際のカラム型に応じて調整すること):
+
+```sql
+select
+  JSON_VALUE(payload, '$.metric') as metric,
+  APPROX_QUANTILES(CAST(JSON_VALUE(payload, '$.value') AS FLOAT64), 100)[OFFSET(75)] as p75_value,
+  count(1) as sample_count
+from `food-scroll.nanitabeyo_logs_prod.frontend_event_logs`
+where event_name = 'web_vital'
+  and created_at >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 7 DAY)
+group by metric
+order by metric;
+```
+
 ## Source-Confirmed Frontend Event Groups
 
 Source checked with:
@@ -313,6 +328,9 @@ rg -o 'event_name:\s*"[^"]+"' app-expo --glob '!**/node_modules/**'
 - `performance_timer_end`
 - `performance_measure`
 - `performance_measure_async`
+- `web_vital` (#957: Core Web Vitals RUM, web のみ。`payload.metric` は `"LCP" | "INP" | "CLS" | "TTFB" | "FCP"`、
+  `payload.value`/`payload.rating`(`"good" | "needs-improvement" | "poor"`)/`payload.path` を伴う。
+  発火元は `components/AppProvider.web.tsx`。p75 集計例は below)
 
 ## Source-Confirmed External API Logs
 
