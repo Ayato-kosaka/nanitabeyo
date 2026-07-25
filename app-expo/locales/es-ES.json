@@ -266,7 +266,10 @@
 		"imageLoadFailed": "Error al cargar la imagen",
 		"tapToReload": "Toca para recargar",
 		"headerTitle": "Platos Recomendados para Ti",
-		"subCopy": "Toca un plato que te guste para encontrar restaurantes"
+		"subCopy": "Toca un plato que te guste para encontrar restaurantes",
+		"accessibility": {
+			"thumbnail": "Miniatura de {{title}}, {{index}} de {{total}}"
+		}
 	},
 	"Notifications": {
 		"title": "Notificaciones",

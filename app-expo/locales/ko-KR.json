@@ -266,7 +266,10 @@
 		"imageLoadFailed": "이미지를 불러오지 못했습니다",
 		"tapToReload": "탭하여 다시 로드",
 		"headerTitle": "당신을 위한 추천 요리",
-		"subCopy": "마음에 드는 요리를 탭하여 레스토랑을 찾으세요"
+		"subCopy": "마음에 드는 요리를 탭하여 레스토랑을 찾으세요",
+		"accessibility": {
+			"thumbnail": "{{title}} 썸네일, {{total}}개 중 {{index}}번째"
+		}
 	},
 	"Notifications": {
 		"title": "알림",

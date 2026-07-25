@@ -90,6 +90,7 @@ export function LikeTab() {
 			const gridItem = {
 				id: item.id,
 				imageUrl: entry.dish_media.thumbnailImageUrl,
+				title: entry.dish.name ?? undefined,
 			};
 
 			return (

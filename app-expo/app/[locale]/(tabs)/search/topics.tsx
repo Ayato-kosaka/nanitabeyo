@@ -660,12 +660,23 @@ export default function TopicsScreen() {
 								key={topic.categoryId}
 								style={[styles.thumbnail, currentIndex === index && styles.thumbnailActive]}
 								onPress={() => handleThumbnailPress(index)}
-								activeOpacity={0.7}>
+								activeOpacity={0.7}
+								accessibilityRole="button"
+								accessibilityLabel={i18n.t("Topics.accessibility.thumbnail", {
+									title: topic.topicTitle,
+									index: index + 1,
+									total: visibleTopics.length,
+								})}
+								accessibilityState={{ selected: currentIndex === index }}>
 								<Image
 									source={{ uri: topic.imageUrl, headers: WIKIMEDIA_HEADERS }}
 									style={styles.thumbnailImage}
 									contentFit="cover"
 									cachePolicy="memory"
+									// #937 【仕様】親 TouchableOpacity 側で読み上げるため、画像自体は装飾扱いにする
+									alt=""
+									accessibilityElementsHidden
+									importantForAccessibility="no"
 								/>
 							</TouchableOpacity>
 						))}

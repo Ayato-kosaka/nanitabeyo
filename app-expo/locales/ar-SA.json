@@ -266,7 +266,10 @@
 		"imageLoadFailed": "فشل تحميل الصورة",
 		"tapToReload": "اضغط لإعادة التحميل",
 		"headerTitle": "الأطباق الموصى بها لك",
-		"subCopy": "انقر على طبق يعجبك للعثور على المطاعم"
+		"subCopy": "انقر على طبق يعجبك للعثور على المطاعم",
+		"accessibility": {
+			"thumbnail": "صورة مصغرة لـ {{title}}، {{index}} من {{total}}"
+		}
 	},
 	"Notifications": {
 		"title": "الإشعارات",

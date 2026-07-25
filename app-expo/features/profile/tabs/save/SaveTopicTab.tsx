@@ -55,17 +55,17 @@ export function SaveTopicTab({
 		({ item, index }: { item: { id: string }; index: number }) => {
 			const topic = selectTopicById(item.id)(useTopicsStore.getState());
 			if (!topic) return <View />;
+			const topicLabel = (topic.labels as { [key: string]: string })[locale.split("-")[0]] ?? topic.label_en;
 			return (
 				<ImageCard
 					item={{
 						id: topic.id,
 						imageUrl: wikimediaThumbFromOriginal(topic.image_url, cardWidth),
+						title: topicLabel,
 					}}
 					onPress={() => onItemPress?.(topic, index)}>
 					<View style={styles.topicCardOverlay}>
-						<Text style={styles.topicName}>
-							{(topic.labels as { [key: string]: string })[locale.split("-")[0]] ?? topic.label_en}
-						</Text>
+						<Text style={styles.topicName}>{topicLabel}</Text>
 					</View>
 				</ImageCard>
 			);
