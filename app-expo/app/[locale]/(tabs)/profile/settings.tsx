@@ -26,6 +26,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useRouter } from "expo-router";
 import { useLocale } from "@/hooks/useLocale";
+import { ScreenHeader } from "@/components/ScreenHeader";
 
 interface SettingsMenuItemProps {
 	label: string;
@@ -69,6 +70,13 @@ export default function SettingsScreen() {
 		open: openLegalDocumentModal,
 		close: closeLegalDocumentModal,
 	} = useBlurModal({ intensity: 100 });
+
+	// #949 【設計】設定画面は Stack で push されるため戻る導線が存在せず、
+	// ハードウェア/スワイプバックが使えない Web ではロックアウトになっていた。ScreenHeader で解消する。
+	const handleBack = useCallback(() => {
+		lightImpact();
+		router.back();
+	}, [lightImpact, router]);
 
 	// #747 【設計】ブロック済みトピック管理画面への遷移
 	const handleNavigateToBlockedTopics = useCallback(() => {
@@ -269,12 +277,9 @@ export default function SettingsScreen() {
 
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
-			<SafeAreaView style={styles.safeArea} edges={["top"]}>
+			<SafeAreaView style={styles.safeArea} edges={[]}>
+				<ScreenHeader title={i18n.t("Settings.title")} onPressBack={handleBack} />
 				<ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-					<View style={styles.header}>
-						<Text style={styles.title}>{i18n.t("Settings.title")}</Text>
-					</View>
-
 					{/* Card 1: フィードバック・レビュー・ブロック済みトピック */}
 					<Card style={styles.card}>
 						<SettingsMenuItem
@@ -357,17 +362,6 @@ const styles = StyleSheet.create({
 	},
 	scrollContent: {
 		paddingBottom: 32,
-	},
-	header: {
-		paddingHorizontal: 32,
-		paddingVertical: 12,
-	},
-	title: {
-		fontSize: 20,
-		fontWeight: "700",
-		color: "#1A1A1A",
-		letterSpacing: -0.5,
-		flex: 1,
 	},
 	card: {
 		padding: 0,

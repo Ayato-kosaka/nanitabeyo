@@ -31,7 +31,7 @@ import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
-import { SearchHeader } from "@/features/search/components/SearchHeader";
+import { ScreenHeader } from "@/components/ScreenHeader";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { useDishCategoryGroupVoteActions } from "../hooks/useDishCategoryGroupVoteActions";
 import { useDishCategoryGroupVoteDetail } from "../hooks/useDishCategoryGroupVoteDetail";
@@ -183,7 +183,7 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 
 	return (
 		<SafeAreaView style={styles.safeArea} edges={[]}>
-			<SearchHeader title={i18n.t("DishCategoryGroupVotes.resultTitle")} onPressBack={() => router.back()} />
+			<ScreenHeader title={i18n.t("DishCategoryGroupVotes.resultTitle")} onPressBack={() => router.back()} />
 			<ScrollView contentContainerStyle={styles.content}>
 				<DishCategoryGroupVoteResultHeader
 					session={detail.session}

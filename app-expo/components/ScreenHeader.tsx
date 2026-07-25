@@ -5,7 +5,9 @@ import { ChevronLeft } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import i18n from "@/lib/i18n";
 
-export type ReviewHeaderProps = {
+// #949 【設計】SearchHeader / ReviewHeader は実装が完全に重複していたため本コンポーネントへ統合。
+// 「戻る」導線を持つ画面（検索・口コミ・設定・ブロック一覧など）はこれ経由で統一する。
+export type ScreenHeaderProps = {
 	/** 表示するタイトル（i18n 済み文字列） */
 	title: string;
 	/** 戻るボタン押下時のハンドラ（画面側で router.back() や haptics を制御） */
@@ -18,7 +20,7 @@ export type ReviewHeaderProps = {
 	titleStyle?: StyleProp<TextStyle>;
 };
 
-export function ReviewHeader({ title, onPressBack, rightContent, containerStyle, titleStyle }: ReviewHeaderProps) {
+export function ScreenHeader({ title, onPressBack, rightContent, containerStyle, titleStyle }: ScreenHeaderProps) {
 	const insets = useSafeAreaInsets();
 	return (
 		<View style={[{ paddingTop: insets.top + 8 }, styles.container, containerStyle]}>
@@ -27,7 +29,8 @@ export function ReviewHeader({ title, onPressBack, rightContent, containerStyle,
 				onPress={onPressBack}
 				accessibilityRole="button"
 				accessibilityLabel={i18n.t("Common.back")}
-				hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}>
+				hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+				testID="screen-header-back">
 				<ChevronLeft size={24} color="#1A1A1A" />
 			</TouchableOpacity>
 

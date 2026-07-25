@@ -2,12 +2,16 @@ import React, { useCallback, useEffect, useState, useRef, memo } from "react";
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { router } from "expo-router";
 
 import { LoadingIndicator } from "@/components/LoadingIndicator";
+import { ScreenHeader } from "@/components/ScreenHeader";
+import { EmptyState } from "@/components/EmptyState";
 import i18n from "@/lib/i18n";
 import { useDialog } from "@/contexts/DialogProvider";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useAPICall } from "@/hooks/useAPICall";
+import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 
@@ -62,6 +66,7 @@ export default function BlockedTopicsScreen() {
 	const { callBackend } = useAPICall();
 	const { locale } = useLocale();
 	const { logFrontendEvent } = useLogger();
+	const { lightImpact } = useHaptics();
 
 	const [categories, setCategories] = useState<BlockedCategory[]>([]);
 	const [isLoading, setIsLoading] = useState(false);
@@ -194,6 +199,26 @@ export default function BlockedTopicsScreen() {
 		[callBackend, showDialog, showSnackbar, logFrontendEvent], // localeへの依存は剥がし、UI責務を分離
 	);
 
+	// #949 【設計】Stack push 画面のため戻る導線が存在しなかった。ScreenHeader で router.back() に接続する。
+	const handleBack = useCallback(() => {
+		lightImpact();
+		router.back();
+	}, [lightImpact]);
+
+	// #947 【仕様】空状態から検索画面へ1タップで戻れるCTA（ブロック対象が0件の際に迷子にならないための導線）
+	const handleSearchByMood = useCallback(() => {
+		lightImpact();
+		router.push({
+			pathname: "/[locale]/(tabs)/search",
+			params: { locale },
+		});
+		logFrontendEvent({
+			event_name: "blocked_topics_empty_cta_pressed",
+			error_level: "log",
+			payload: {},
+		});
+	}, [lightImpact, locale, logFrontendEvent]);
+
 	// [ベストプラクティス] keyExtractorは安定した参照にするため関数化するか外に出す
 	const keyExtractor = useCallback((item: BlockedCategory) => item.id, []);
 
@@ -215,21 +240,23 @@ export default function BlockedTopicsScreen() {
 	}, [isLoadingMore]);
 
 	// #747 【設計】空表示
+	// #947 【仕様】EmptyState 共通コンポーネントへ置き換え、検索画面へのCTAを追加
 	const renderEmpty = useCallback(() => {
 		if (isLoading) return null;
 		return (
-			<View style={styles.emptyContainer}>
-				<Text style={styles.emptyText}>{i18n.t("Settings.blockedTopics.empty")}</Text>
-			</View>
+			<EmptyState
+				message={i18n.t("Settings.blockedTopics.empty")}
+				actionLabel={i18n.t("Profile.buttons.searchByMood")}
+				onAction={handleSearchByMood}
+				testID="blocked-topics-empty-state"
+			/>
 		);
-	}, [isLoading]);
+	}, [isLoading, handleSearchByMood]);
 
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
-			<SafeAreaView style={styles.safeArea} edges={["top"]}>
-				<View style={styles.header}>
-					<Text style={styles.headerTitle}>{i18n.t("Settings.blockedTopics.pageTitle")}</Text>
-				</View>
+			<SafeAreaView style={styles.safeArea} edges={[]}>
+				<ScreenHeader title={i18n.t("Settings.blockedTopics.pageTitle")} onPressBack={handleBack} />
 
 				<View style={styles.blockedTopicsContainer}>
 					<View style={styles.sheet}>
@@ -269,19 +296,6 @@ const styles = StyleSheet.create({
 	},
 	safeArea: {
 		flex: 1,
-	},
-	header: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "flex-start",
-		paddingHorizontal: 16,
-		paddingVertical: 16,
-	},
-	headerTitle: {
-		fontSize: 20,
-		fontWeight: "700",
-		color: "#1A1A1A",
-		letterSpacing: -0.5,
 	},
 	blockedTopicsContainer: {
 		flex: 1,
@@ -347,16 +361,6 @@ const styles = StyleSheet.create({
 		fontSize: 14,
 		fontWeight: "600",
 		color: "#1A1A1A",
-	},
-	emptyContainer: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-		paddingVertical: 60,
-	},
-	emptyText: {
-		fontSize: 16,
-		color: "#6B7280",
 	},
 	footerLoader: {
 		paddingVertical: 20,

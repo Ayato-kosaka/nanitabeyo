@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { GridList } from "@/components/collapsible-tabs/GridList";
 import { ImageCard } from "@/components/ImageCardGrid";
+import { EmptyState } from "@/components/EmptyState";
 import Stars from "@/components/Stars";
 import i18n from "@/lib/i18n";
 import { useAPICall } from "@/hooks/useAPICall";
@@ -131,6 +132,20 @@ export function ReviewTab() {
 		fetchInitialWithReviewsByKey(entriesKey, {}, fetcher);
 	}, [entriesKey, fetchInitialWithReviewsByKey, fetcher]);
 
+	// #947 【仕様】空状態からレビュー投稿の起点(お店を探す画面)へ1タップで移動できるCTA
+	const handleSearchForReview = useCallback(() => {
+		lightImpact();
+		router.push({
+			pathname: "/[locale]/(tabs)/review",
+			params: { locale },
+		});
+		logFrontendEvent({
+			event_name: "reviews_empty_cta_pressed",
+			error_level: "log",
+			payload: {},
+		});
+	}, [lightImpact, locale, logFrontendEvent]);
+
 	const header = useMemo(
 		() => (
 			<TouchableOpacity
@@ -146,28 +161,19 @@ export function ReviewTab() {
 		[onlyMyPhotoVideoReviews],
 	);
 
-	const renderEmptyState = useCallback(() => {
-		if (error) {
-			return (
-				<View style={styles.emptyStateContainer}>
-					<View style={styles.emptyStateCard}>
-						<Text style={styles.emptyStateText}>{error}</Text>
-						<TouchableOpacity style={styles.retryButton} onPress={handleRefresh}>
-							<Text style={styles.retryButtonText}>{i18n.t("Profile.tabError.retry")}</Text>
-						</TouchableOpacity>
-					</View>
-				</View>
-			);
-		}
-
-		return (
-			<View style={styles.emptyStateContainer}>
-				<View style={styles.emptyStateCard}>
-					<Text style={styles.emptyStateText}>{i18n.t("Profile.emptyState.noDishReviews")}</Text>
-				</View>
-			</View>
-		);
-	}, [error, handleRefresh]);
+	const renderEmptyState = useCallback(
+		() => (
+			<EmptyState
+				message={i18n.t("Profile.emptyState.noDishReviews")}
+				actionLabel={i18n.t("Profile.buttons.searchForReview")}
+				onAction={handleSearchForReview}
+				error={error}
+				onRetry={handleRefresh}
+				testID="review-tab-empty-state"
+			/>
+		),
+		[error, handleRefresh, handleSearchForReview],
+	);
 
 	return (
 		<GridList
@@ -244,36 +250,5 @@ const styles = StyleSheet.create({
 		fontSize: 10,
 		color: "#FFF",
 		marginLeft: 4,
-	},
-	emptyStateContainer: {
-		flex: 1,
-	},
-	emptyStateCard: {
-		backgroundColor: "#FFFFFF",
-		borderRadius: 20,
-		padding: 32,
-		alignItems: "center",
-		justifyContent: "center",
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 0 },
-		shadowOpacity: 0.08,
-		shadowRadius: 16,
-		elevation: 4,
-	},
-	emptyStateText: {
-		fontSize: 16,
-		color: "#6B7280",
-		textAlign: "center",
-	},
-	retryButton: {
-		marginTop: 16,
-		backgroundColor: "#F05537",
-		paddingHorizontal: 20,
-		paddingVertical: 10,
-		borderRadius: 20,
-	},
-	retryButtonText: {
-		color: "#FFFFFF",
-		fontWeight: "600",
 	},
 });

@@ -26,7 +26,7 @@ import { SavedRestaurantsSheet, SavedRestaurantsSheetHandle } from "@/features/r
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { useRestaurantStore } from "@/features/review/stores/useRestaurantStore";
 import { useLocale } from "@/hooks/useLocale";
-import { ReviewHeader } from "@/features/review/components/ReviewHeader";
+import { ScreenHeader } from "@/components/ScreenHeader";
 import { INITIAL_REGION, REGION_JP } from "@/features/map/constants";
 
 type SavedRestaurant = QueryMeSavedRestaurantsResponse["data"][number];
@@ -454,7 +454,7 @@ export default function SelectRestaurantScreen() {
 				pointerEvents="box-none" // 余白部分は Map をタッチ可能にする
 			>
 				{/* #644 【設計】画面タイトル with 戻るボタン */}
-				<ReviewHeader
+				<ScreenHeader
 					title={i18n.t("Review.selectRestaurant.title")}
 					onPressBack={() => {
 						lightImpact();

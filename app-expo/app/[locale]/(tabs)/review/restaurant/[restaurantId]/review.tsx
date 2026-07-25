@@ -10,7 +10,7 @@ import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useLogger } from "@/hooks/useLogger";
 import type { GetRestaurantByIdResponse, DishMediaEntry } from "@shared/api/v1/res";
 import i18n from "@/lib/i18n";
-import { ReviewHeader } from "@/features/review/components/ReviewHeader";
+import { ScreenHeader } from "@/components/ScreenHeader";
 import { useLocale } from "@/hooks/useLocale";
 
 export default function ReviewScreen() {
@@ -100,7 +100,7 @@ export default function ReviewScreen() {
 	if (isLoading && !restaurant) {
 		return (
 			<View style={styles.container}>
-				<ReviewHeader
+				<ScreenHeader
 					title={i18n.t("Review.title")}
 					onPressBack={() => {
 						lightImpact();
@@ -118,7 +118,7 @@ export default function ReviewScreen() {
 	if (error && !restaurant) {
 		return (
 			<View style={styles.container}>
-				<ReviewHeader
+				<ScreenHeader
 					title={i18n.t("Review.title")}
 					onPressBack={() => {
 						lightImpact();
@@ -138,7 +138,7 @@ export default function ReviewScreen() {
 
 	return (
 		<View style={styles.container}>
-			<ReviewHeader
+			<ScreenHeader
 				title={i18n.t("Review.title")}
 				onPressBack={() => {
 					lightImpact();
