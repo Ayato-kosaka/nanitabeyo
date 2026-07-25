@@ -21,9 +21,7 @@ export interface ProfileTabsBarProps extends TabBarProps<string> {
 }
 
 function getGroupByRoute(route: RouteName): GroupName | undefined {
-	return (Object.entries(GROUP_ROUTES) as [GroupName, RouteName[]][]).find(([, routes]) =>
-		routes.includes(route),
-	)?.[0];
+	return (Object.entries(GROUP_ROUTES) as [GroupName, RouteName[]][]).find(([, routes]) => routes.includes(route))?.[0];
 }
 
 export function ProfileTabsBar({ tabNames, index, onTabPress, availableTabs }: ProfileTabsBarProps) {
@@ -89,6 +87,11 @@ export function ProfileTabsBar({ tabNames, index, onTabPress, availableTabs }: P
 		}
 	};
 
+	// #946 【仕様】上段グループタブはアイコンのみで「保存」等の概念がUIに現れず、
+	// 空状態文言("保存"で見返せます等)と用語が食い違って見えていた。
+	// アイコン下に短いテキストラベルを添えて概念を可視化する。
+	const groupLabel = (group: GroupName) => i18n.t(`Profile.tabGroups.${group}`);
+
 	const renderSubTabs = () => {
 		if (activeGroup === "saved" || activeGroup === "wallet") {
 			const routes = GROUP_ROUTES[activeGroup];
@@ -122,8 +125,13 @@ export function ProfileTabsBar({ tabNames, index, onTabPress, availableTabs }: P
 						<TouchableOpacity
 							key={group}
 							style={[styles.tab, isActive && styles.activeTab]}
-							onPress={() => handleGroupPress(group)}>
+							onPress={() => handleGroupPress(group)}
+							accessibilityRole="tab"
+							accessibilityState={{ selected: isActive }}
+							accessibilityLabel={groupLabel(group)}
+							testID={`profile-tab-group-${group}`}>
 							{renderIcon(group, isActive)}
+							<Text style={[styles.tabLabel, isActive && styles.activeTabLabel]}>{groupLabel(group)}</Text>
 						</TouchableOpacity>
 					);
 				})}
@@ -148,6 +156,16 @@ const styles = StyleSheet.create({
 	activeTab: {
 		borderBottomWidth: 2,
 		borderBottomColor: "#F05537",
+	},
+	tabLabel: {
+		marginTop: 4,
+		fontSize: 11,
+		fontWeight: "500",
+		color: "#666",
+	},
+	activeTabLabel: {
+		color: "#F05537",
+		fontWeight: "600",
 	},
 	subTabsContainer: {
 		flexDirection: "row",

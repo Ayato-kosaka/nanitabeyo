@@ -329,13 +329,17 @@
 		}
 	},
 	"Profile": {
+		"tabGroups": {
+			"reviews": "समीक्षाएं",
+			"saved": "सेव किया गया",
+			"liked": "पसंदीदा",
+			"wallet": "वॉलेट"
+		},
 		"tabs": {
 			"deposits": "जमा",
 			"earnings": "आय",
-			"topics": "विषय",
-			"posts": "पोस्ट",
 			"saved-posts": "पोस्ट",
-			"saved-topics": "विषय",
+			"saved-topics": "व्यंजन",
 			"wallet-deposit": "जमा",
 			"wallet-earning": "आय"
 		},

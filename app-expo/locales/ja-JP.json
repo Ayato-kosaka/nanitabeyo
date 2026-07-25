@@ -329,13 +329,17 @@
 		}
 	},
 	"Profile": {
+		"tabGroups": {
+			"reviews": "レビュー",
+			"saved": "保存",
+			"liked": "いいね",
+			"wallet": "ウォレット"
+		},
 		"tabs": {
 			"deposits": "入札",
 			"earnings": "収益",
-			"topics": "トピック",
-			"posts": "投稿",
 			"saved-posts": "投稿",
-			"saved-topics": "トピック",
+			"saved-topics": "料理",
 			"wallet-deposit": "入札",
 			"wallet-earning": "収益"
 		},
