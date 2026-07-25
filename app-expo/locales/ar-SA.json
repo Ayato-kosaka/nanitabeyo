@@ -198,6 +198,11 @@
 			"seafoodAllergy": "حساسية المأكولات البحرية",
 			"halal": "حلال"
 		},
+		"result": {
+			"accessibility": {
+				"bulkShare": "مشاركة الكل"
+			}
+		},
 		"tutorial": {
 			"page1": {
 				"title": "اكتشف ما تريد أن تأكله",
@@ -301,6 +306,14 @@
 		"buttons": {
 			"viewRestaurant": "عرض المطعم"
 		},
+		"accessibility": {
+			"viewRestaurant": "عرض تفاصيل مطعم {{name}}",
+			"like": "الإعجاب بـ {{name}}",
+			"save": "حفظ {{name}}",
+			"share": "مشاركة {{name}}",
+			"openMap": "فتح خريطة {{name}}",
+			"reviewLike": "الإعجاب بمراجعة {{username}}"
+		},
 		"processing": "جارٍ معالجة الوسائط...",
 		"info": {
 			"walkFromShibuya": "على بُعد 13 دقيقة سيرًا من محطة شيبويا"
@@ -312,6 +325,11 @@
 	},
 	"ImageCardGrid": {
 		"openItemDetails": "فتح تفاصيل العنصر"
+	},
+	"Stars": {
+		"accessibility": {
+			"rating": "التقييم {{rating}}/5"
+		}
 	},
 	"Tabs": {
 		"home": "الصفحة الرئيسية",

@@ -198,6 +198,11 @@
 			"seafoodAllergy": "海鲜过敏",
 			"halal": "清真"
 		},
+		"result": {
+			"accessibility": {
+				"bulkShare": "批量分享"
+			}
+		},
 		"tutorial": {
 			"page1": {
 				"title": "发现您想吃的美食",
@@ -301,6 +306,14 @@
 		"buttons": {
 			"viewRestaurant": "查看餐厅"
 		},
+		"accessibility": {
+			"viewRestaurant": "查看{{name}}的门店详情",
+			"like": "点赞{{name}}",
+			"save": "保存{{name}}",
+			"share": "分享{{name}}",
+			"openMap": "打开{{name}}的地图",
+			"reviewLike": "为{{username}}的点评点赞"
+		},
 		"processing": "正在处理媒体...",
 		"errors": {
 			"mapOpenFailed": "无法打开地图应用",
@@ -312,6 +325,11 @@
 	},
 	"ImageCardGrid": {
 		"openItemDetails": "打开项目详情"
+	},
+	"Stars": {
+		"accessibility": {
+			"rating": "评分 {{rating}}/5"
+		}
 	},
 	"Tabs": {
 		"home": "首页",
