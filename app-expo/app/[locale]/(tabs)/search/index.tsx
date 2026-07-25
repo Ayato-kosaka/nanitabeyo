@@ -492,7 +492,9 @@ export default function SearchScreen() {
 							<SectionHeader icon={<Ruler size={20} color="#F05537" />} title={i18n.t("Search.sections.distance")} />
 							<View style={styles.sliderSection}>
 								<Text style={styles.sliderValue}>
-									{distanceOptions.find((option) => option.value === distance)?.label}
+									{i18n.t(
+										distanceOptions.find((option) => option.value === distance)?.label ?? distanceOptions[0].label,
+									)}
 								</Text>
 								<DistanceSlider distance={distance} setDistance={setDistance} />
 							</View>
