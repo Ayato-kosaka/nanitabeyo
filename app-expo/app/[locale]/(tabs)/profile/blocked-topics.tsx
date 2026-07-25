@@ -205,20 +205,6 @@ export default function BlockedTopicsScreen() {
 		router.back();
 	}, [lightImpact]);
 
-	// #947 【仕様】空状態から検索画面へ1タップで戻れるCTA（ブロック対象が0件の際に迷子にならないための導線）
-	const handleSearchByMood = useCallback(() => {
-		lightImpact();
-		router.push({
-			pathname: "/[locale]/(tabs)/search",
-			params: { locale },
-		});
-		logFrontendEvent({
-			event_name: "blocked_topics_empty_cta_pressed",
-			error_level: "log",
-			payload: {},
-		});
-	}, [lightImpact, locale, logFrontendEvent]);
-
 	// [ベストプラクティス] keyExtractorは安定した参照にするため関数化するか外に出す
 	const keyExtractor = useCallback((item: BlockedCategory) => item.id, []);
 
@@ -240,18 +226,12 @@ export default function BlockedTopicsScreen() {
 	}, [isLoadingMore]);
 
 	// #747 【設計】空表示
-	// #947 【仕様】EmptyState 共通コンポーネントへ置き換え、検索画面へのCTAを追加
+	// #947 【仕様】EmptyState 共通コンポーネントへ置き換え。ブロック中料理画面は「ブロック解除」導線が
+	// 主目的の画面のため、他タブと異なりCTA(検索へ誘導)は付与しない(PRレビュー指摘)。
 	const renderEmpty = useCallback(() => {
 		if (isLoading) return null;
-		return (
-			<EmptyState
-				message={i18n.t("Settings.blockedTopics.empty")}
-				actionLabel={i18n.t("Profile.buttons.searchByMood")}
-				onAction={handleSearchByMood}
-				testID="blocked-topics-empty-state"
-			/>
-		);
-	}, [isLoading, handleSearchByMood]);
+		return <EmptyState message={i18n.t("Settings.blockedTopics.empty")} testID="blocked-topics-empty-state" />;
+	}, [isLoading]);
 
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
