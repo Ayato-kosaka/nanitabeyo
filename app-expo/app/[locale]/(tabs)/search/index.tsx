@@ -581,7 +581,7 @@ export default function SearchScreen() {
 					testID="search-submit-button"
 					label={i18n.t("Search.searchButton")}
 					onPress={handleSearch}
-					colors={isSearchReady ? ["#000000", "#000000"] : ["#6B7280", "#6B7280"]}
+					colors={isSearchReady ? ["#000000", "#000000"] : ["#4B5563", "#4B5563"]}
 					labelStyle={{ color: "#FFFFFF" }}
 					shadowColor="rgba(0, 0, 0, 0.45)"
 					icon={<Search size={20} color="#FFFFFF" />}
