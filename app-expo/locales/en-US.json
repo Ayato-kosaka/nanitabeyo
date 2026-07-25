@@ -414,7 +414,8 @@
 			"displayNameRequired": "Display name is required",
 			"displayNameLength": "Display name must be 30 characters or less",
 			"bioLength": "Bio must be 150 characters or less"
-		}
+		},
+		"guestDisplayName": "Guest"
 	},
 	"NotFound": {
 		"title": "Oops!",

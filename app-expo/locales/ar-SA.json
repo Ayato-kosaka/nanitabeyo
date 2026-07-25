@@ -414,7 +414,8 @@
 			"displayNameRequired": "اسم العرض مطلوب",
 			"displayNameLength": "يجب ألا يتجاوز اسم العرض 30 حرفًا",
 			"bioLength": "يجب ألا تتجاوز النبذة 150 حرفًا"
-		}
+		},
+		"guestDisplayName": "ضيف"
 	},
 	"NotFound": {
 		"title": "عذرًا!",

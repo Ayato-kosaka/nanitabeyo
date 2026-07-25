@@ -414,7 +414,8 @@
 			"displayNameRequired": "प्रदर्शन नाम आवश्यक है",
 			"displayNameLength": "प्रदर्शन नाम 30 वर्ण या उससे कम होना चाहिए",
 			"bioLength": "परिचय 150 वर्ण या उससे कम होना चाहिए"
-		}
+		},
+		"guestDisplayName": "अतिथि"
 	},
 	"NotFound": {
 		"title": "ओह!",
@@ -473,8 +474,7 @@
 			"bidSuccess": "{{place}} के लिए ¥{{amount}} में सफलतापूर्वक बोली लगाई गई",
 			"bidError": "बोली लगाने में विफल",
 			"reviewSuccess": "समीक्षा सफलतापूर्वक पोस्ट की गई",
-			"reviewError": "समीक्षा पोस्ट करने में विफल",
-			"reviewSubmitFailed": "समीक्षा पोस्ट करने में विफल"
+			"reviewError": "समीक्षा पोस्ट करने में विफल"
 		},
 		"currentLocation": "वर्तमान स्थान",
 		"media": {
