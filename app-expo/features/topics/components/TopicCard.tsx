@@ -121,16 +121,14 @@ export const TopicCard = ({
 										{deepDiveOptions.map((option) => (
 											<TouchableOpacity
 												key={option.key}
-												style={[styles.deepDiveChip, isThreeDeepDiveChips && styles.deepDiveChipFlex]}
+												style={[styles.deepDiveChip, isThreeDeepDiveChips && styles.deepDiveChipThird]}
 												hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
 												onPress={(event) => {
 													event.stopPropagation();
 													onDeepDive?.(item, option);
 												}}
 												activeOpacity={0.8}>
-												<Text style={styles.deepDiveChipText} numberOfLines={1}>
-													{option.label}
-												</Text>
+												<Text style={styles.deepDiveChipText}>{option.label}</Text>
 											</TouchableOpacity>
 										))}
 									</View>
@@ -255,10 +253,13 @@ const styles = StyleSheet.create({
 		maxWidth: "76%",
 		gap: 8,
 	},
-	// #973【設計】3件時は折り返さず1行×均等幅で収め、はみ出す分はテキストを1行省略する
+	// #973【設計】3件時は折り返さず1行に収める。flex:1による均等割りはWebでチップが
+	// 不当に縮み文字が視認できなくなる問題があったため、固定%幅＋定幅の行コンテナに戻した
 	deepDiveChipsRow: {
 		flexWrap: "nowrap",
-		alignSelf: "stretch",
+		alignSelf: "center",
+		justifyContent: "space-between",
+		width: "94%",
 		maxWidth: undefined,
 	},
 	deepDiveChip: {
@@ -272,9 +273,8 @@ const styles = StyleSheet.create({
 		justifyContent: "center",
 		alignItems: "center",
 	},
-	deepDiveChipFlex: {
-		flex: 1,
-		flexShrink: 1,
+	deepDiveChipThird: {
+		width: "31%",
 		paddingHorizontal: 6,
 	},
 	deepDiveChipText: {
