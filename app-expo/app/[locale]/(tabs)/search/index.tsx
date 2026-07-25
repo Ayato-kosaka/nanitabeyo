@@ -505,7 +505,9 @@ export default function SearchScreen() {
 							</View>
 							<View style={styles.sliderSection}>
 								<Text style={styles.sliderValue}>
-									{distanceOptions.find((option) => option.value === distance)?.label}
+									{i18n.t(
+										distanceOptions.find((option) => option.value === distance)?.label ?? distanceOptions[0].label,
+									)}
 								</Text>
 								<DistanceSlider distance={distance} setDistance={setDistance} />
 							</View>
