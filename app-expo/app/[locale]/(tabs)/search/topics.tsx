@@ -90,10 +90,11 @@ export default function TopicsScreen() {
 	const impressedTopicIdsRef = useRef<Set<string>>(new Set());
 	const { selectionChanged } = useHaptics();
 
-	const { topics, isLoading, error, searchTopics, refillTopics, hideTopic, createDishItemsPromise } = useTopicSearch();
+	const { topics, isLoading, error, searchTopics, refillTopics, hideTopic, unhideTopic, createDishItemsPromise } =
+		useTopicSearch();
 	const { showSnackbar } = useSnackbar();
 	const { showDialog } = useDialog();
-	const { handleBlockCard } = useBlockTopic(hideTopic, showSnackbar);
+	const { handleBlockCard } = useBlockTopic(hideTopic, unhideTopic, showSnackbar);
 	const { createGroupVote, isCreating } = useCreateDishCategoryGroupVote();
 	// #907 【設計】Carouselのmount条件とimpressionの準備条件で同じ高さを参照する。
 	const cardHeight = useMemo(() => {

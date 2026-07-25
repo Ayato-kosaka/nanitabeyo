@@ -126,13 +126,24 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 	const shareUrl = generateShareUrl(`/${locale}/search/dish-category-group-votes/${shareToken}/vote`);
 
 	const handleCopyShareLink = async () => {
-		await Clipboard.setStringAsync(shareUrl);
-		logFrontendEvent({
-			event_name: "dish_category_group_vote_share_link_copied",
-			error_level: "log",
-			payload: { shareToken },
-		});
-		showSnackbar(i18n.t("Common.linkCopied"));
+		// #942 【仕様】Web ではクリップボードAPIが非セキュアコンテキスト等で失敗しうるため、
+		// 失敗を無音にせずエラー通知する
+		try {
+			await Clipboard.setStringAsync(shareUrl);
+			logFrontendEvent({
+				event_name: "dish_category_group_vote_share_link_copied",
+				error_level: "log",
+				payload: { shareToken },
+			});
+			showSnackbar(i18n.t("Common.linkCopied"));
+		} catch (error) {
+			logFrontendEvent({
+				event_name: "dish_category_group_vote_share_link_copy_failed",
+				error_level: "error",
+				payload: { shareToken, error: error instanceof Error ? error.message : String(error) },
+			});
+			showSnackbar(i18n.t("Common.shareFailed"));
+		}
 	};
 
 	const handlePressCandidate = (candidate: DishCategoryGroupVoteCandidate) => {
@@ -157,7 +168,51 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 			error_level: "log",
 			payload: { shareToken, candidateId: candidate.id },
 		});
-		await actions.deleteCandidate(candidate.id);
+		try {
+			await actions.deleteCandidate(candidate.id);
+			// #943 【仕様】ホストの誤削除からの回復導線として、10秒間Undo可能なスナックバーを出す
+			showSnackbar(i18n.t("DishCategoryGroupVotes.candidateDeleted", { name: candidate.displayName }), {
+				action: {
+					label: i18n.t("Common.undo"),
+					onPress: () => handleUndoDeleteCandidate(candidate),
+				},
+				duration: 10000,
+			});
+		} catch (error) {
+			logFrontendEvent({
+				event_name: "dish_category_group_vote_candidate_delete_failed",
+				error_level: "error",
+				payload: {
+					shareToken,
+					candidateId: candidate.id,
+					error: error instanceof Error ? error.message : String(error),
+				},
+			});
+			showSnackbar(i18n.t("Common.error"));
+		}
+	};
+
+	// #943 【仕様】削除のUndo。BEの復元APIを叩き、成功したらrefreshで整合させる(actions.restoreCandidate内で実施済み)
+	const handleUndoDeleteCandidate = async (candidate: DishCategoryGroupVoteCandidate) => {
+		try {
+			await actions.restoreCandidate(candidate.id);
+			logFrontendEvent({
+				event_name: "dish_category_group_vote_candidate_delete_undo",
+				error_level: "log",
+				payload: { shareToken, candidateId: candidate.id },
+			});
+		} catch (error) {
+			logFrontendEvent({
+				event_name: "dish_category_group_vote_candidate_restore_failed",
+				error_level: "error",
+				payload: {
+					shareToken,
+					candidateId: candidate.id,
+					error: error instanceof Error ? error.message : String(error),
+				},
+			});
+			showSnackbar(i18n.t("Common.error"));
+		}
 	};
 
 	const handleOpenCandidateDishMedia = async (candidate: DishCategoryGroupVoteCandidate) => {

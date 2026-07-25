@@ -9,6 +9,8 @@
 		"post": "发布",
 		"postReview": "发布评论",
 		"retry": "重试",
+		"undo": "撤销",
+		"view": "查看",
 		"error": "发生错误。请重试。",
 		"success": "成功",
 		"linkCopied": "链接已复制到剪贴板",
@@ -55,6 +57,7 @@
 		"deleteCandidate": "删除选项",
 		"deleteCandidateTitle": "删除此选项？",
 		"deleteCandidateMessage": "从投票选项中隐藏 {{name}}。",
+		"candidateDeleted": "已从候选中移除{{name}}",
 		"loadFailed": "无法加载投票",
 		"refreshFailed": "无法刷新最新结果",
 		"like": "喜欢",
@@ -255,6 +258,7 @@
 			"confirm": "屏蔽"
 		},
 		"blockedMessage": "已屏蔽{{title}}",
+		"savedMessage": "已保存",
 		"reloadDialog": {
 			"title": "要查看更多选择吗？",
 			"message": "目前只有少量推荐。我们会在相同条件下重新搜索。",
@@ -264,7 +268,12 @@
 		"imageLoadFailed": "图片加载失败",
 		"tapToReload": "点击重新加载",
 		"headerTitle": "为您推荐的菜品",
-		"subCopy": "点击您喜欢的菜品来查找餐厅"
+		"subCopy": "点击您喜欢的菜品来查找餐厅",
+		"accessibility": {
+			"blockTopic": "从推荐中移除{{title}}",
+			"saveTopic": "保存{{title}}",
+			"unsaveTopic": "取消保存{{title}}"
+		}
 	},
 	"Notifications": {
 		"title": "通知",

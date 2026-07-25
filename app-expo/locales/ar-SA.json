@@ -9,6 +9,8 @@
 		"post": "نشر",
 		"postReview": "نشر مراجعة",
 		"retry": "إعادة المحاولة",
+		"undo": "تراجع",
+		"view": "عرض",
 		"error": "حدث خطأ. يُرجى المحاولة مرة أخرى.",
 		"success": "نجح",
 		"linkCopied": "تم نسخ الرابط إلى الحافظة",
@@ -55,6 +57,7 @@
 		"deleteCandidate": "حذف الخيار",
 		"deleteCandidateTitle": "هل تريد حذف هذا الخيار؟",
 		"deleteCandidateMessage": "إخفاء {{name}} من خيارات التصويت.",
+		"candidateDeleted": "تمت إزالة {{name}} من المرشحين",
 		"loadFailed": "تعذر تحميل التصويت",
 		"refreshFailed": "تعذر تحديث النتائج",
 		"like": "أعجبني",
@@ -255,6 +258,7 @@
 			"confirm": "حظر"
 		},
 		"blockedMessage": "تم حظر {{title}}",
+		"savedMessage": "تم الحفظ",
 		"reloadDialog": {
 			"title": "هل تريد العثور على المزيد من الخيارات؟",
 			"message": "هناك عدد قليل فقط من التوصيات الآن. سنبحث مرة أخرى باستخدام نفس الشروط.",
@@ -264,7 +268,12 @@
 		"imageLoadFailed": "فشل تحميل الصورة",
 		"tapToReload": "اضغط لإعادة التحميل",
 		"headerTitle": "الأطباق الموصى بها لك",
-		"subCopy": "انقر على طبق يعجبك للعثور على المطاعم"
+		"subCopy": "انقر على طبق يعجبك للعثور على المطاعم",
+		"accessibility": {
+			"blockTopic": "إزالة {{title}} من التوصيات",
+			"saveTopic": "حفظ {{title}}",
+			"unsaveTopic": "إلغاء حفظ {{title}}"
+		}
 	},
 	"Notifications": {
 		"title": "الإشعارات",
