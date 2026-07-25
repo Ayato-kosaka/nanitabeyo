@@ -410,7 +410,8 @@
 			"follow": "Follow",
 			"following": "Following",
 			"message": "Message",
-			"searchByMood": "Find dishes you'll \"like\" based on today's mood",
+			"searchForReview": "Find a restaurant to review",
+			"searchByMood": "Search by today's mood",
 			"sendFeedback": "Send Feedback"
 		},
 		"stats": {

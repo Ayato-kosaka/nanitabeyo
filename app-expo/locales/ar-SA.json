@@ -410,7 +410,8 @@
 			"follow": "متابعة",
 			"following": "متابَع",
 			"message": "رسالة",
-			"searchByMood": "ابحث عن الأطباق التي ستنال \"إعجابك\" حسب مزاجك اليوم",
+			"searchForReview": "ابحث عن مطعم لتقييمه",
+			"searchByMood": "ابحث حسب مزاجك اليوم",
 			"sendFeedback": "إرسال ملاحظات"
 		},
 		"stats": {

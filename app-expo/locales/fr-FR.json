@@ -410,7 +410,8 @@
 			"follow": "Suivre",
 			"following": "Suivi",
 			"message": "Message",
-			"searchByMood": "Trouvez des plats que vous \"aimerez\" selon votre humeur du jour",
+			"searchForReview": "Trouver un restaurant à noter",
+			"searchByMood": "Chercher selon l'humeur du jour",
 			"sendFeedback": "Envoyer Commentaires"
 		},
 		"stats": {

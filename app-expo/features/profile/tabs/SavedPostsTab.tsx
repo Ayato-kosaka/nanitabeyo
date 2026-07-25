@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect } from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import { GridList } from "@/components/collapsible-tabs/GridList";
 import { ImageCard } from "@/components/ImageCardGrid";
+import { EmptyState } from "@/components/EmptyState";
 import Stars from "@/components/Stars";
 import i18n from "@/lib/i18n";
 import { useAPICall } from "@/hooks/useAPICall";
@@ -91,6 +92,20 @@ export function SavedPostsTab({ isOwnProfile }: SavedPostsTabProps) {
 		fetchInitialByKey(profileSavedPostsEntriesKey, {}, fetcher);
 	}, [profileSavedPostsEntriesKey, fetchInitialByKey, fetcher]);
 
+	// #947 【仕様】空状態から検索画面へ1タップで戻れるCTA
+	const handleSearchByMood = useCallback(() => {
+		lightImpact();
+		router.push({
+			pathname: "/[locale]/(tabs)/search",
+			params: { locale },
+		});
+		logFrontendEvent({
+			event_name: "saved_posts_empty_cta_pressed",
+			error_level: "log",
+			payload: {},
+		});
+	}, [lightImpact, locale, logFrontendEvent]);
+
 	const renderPostItem = useCallback(
 		({ item, index }: { item: { id: string }; index: number }) => {
 			const entry = selectEntryByMediaId(item.id)(useDishMediaEntriesStore.getState());
@@ -116,28 +131,19 @@ export function SavedPostsTab({ isOwnProfile }: SavedPostsTabProps) {
 		[handleItemPress],
 	);
 
-	const renderEmptyState = useCallback(() => {
-		if (error) {
-			return (
-				<View style={styles.emptyStateContainer}>
-					<View style={styles.emptyStateCard}>
-						<Text style={styles.emptyStateText}>{error}</Text>
-						<TouchableOpacity style={styles.retryButton} onPress={handleRefresh}>
-							<Text style={styles.retryButtonText}>{i18n.t("Profile.tabError.retry")}</Text>
-						</TouchableOpacity>
-					</View>
-				</View>
-			);
-		}
-
-		return (
-			<View style={styles.emptyStateContainer}>
-				<View style={styles.emptyStateCard}>
-					<Text style={styles.emptyStateText}>{i18n.t("Profile.emptyState.noSavedPosts")}</Text>
-				</View>
-			</View>
-		);
-	}, [error, handleRefresh]);
+	const renderEmptyState = useCallback(
+		() => (
+			<EmptyState
+				message={i18n.t("Profile.emptyState.noSavedPosts")}
+				actionLabel={i18n.t("Profile.buttons.searchByMood")}
+				onAction={handleSearchByMood}
+				error={error}
+				onRetry={handleRefresh}
+				testID="saved-posts-tab-empty-state"
+			/>
+		),
+		[error, handleRefresh, handleSearchByMood],
+	);
 
 	return (
 		<GridList
@@ -206,36 +212,5 @@ const styles = StyleSheet.create({
 		textShadowColor: "rgba(0, 0, 0, 0.5)",
 		textShadowOffset: { width: 0, height: 1 },
 		textShadowRadius: 2,
-	},
-	emptyStateContainer: {
-		flex: 1,
-	},
-	emptyStateCard: {
-		backgroundColor: "#FFFFFF",
-		borderRadius: 20,
-		padding: 32,
-		alignItems: "center",
-		justifyContent: "center",
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 0 },
-		shadowOpacity: 0.08,
-		shadowRadius: 16,
-		elevation: 4,
-	},
-	emptyStateText: {
-		fontSize: 16,
-		color: "#6B7280",
-		textAlign: "center",
-	},
-	retryButton: {
-		marginTop: 16,
-		backgroundColor: "#F05537",
-		paddingHorizontal: 20,
-		paddingVertical: 10,
-		borderRadius: 20,
-	},
-	retryButtonText: {
-		color: "#FFFFFF",
-		fontWeight: "600",
 	},
 });
