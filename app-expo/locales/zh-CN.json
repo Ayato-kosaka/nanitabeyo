@@ -264,7 +264,10 @@
 		"imageLoadFailed": "图片加载失败",
 		"tapToReload": "点击重新加载",
 		"headerTitle": "为您推荐的菜品",
-		"subCopy": "点击您喜欢的菜品来查找餐厅"
+		"subCopy": "点击您喜欢的菜品来查找餐厅",
+		"accessibility": {
+			"thumbnail": "{{title}}的缩略图，共{{total}}项中的第{{index}}项"
+		}
 	},
 	"Notifications": {
 		"title": "通知",

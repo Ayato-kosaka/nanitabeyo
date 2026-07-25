@@ -291,6 +291,9 @@ export function ActionButtons({ id, idType, onLayout, buttonsGesture }: ActionBu
 						source={{ uri: restaurant.imageUrls?.sm, cacheKey: getCacheKeyForImage(restaurant.imageUrls?.sm) }}
 						style={styles.restaurantAvatar}
 						onError={() => console.log("Failed to load restaurant avatar")}
+						// #937 【仕様】店舗名を伝える情報画像として alt/accessibilityLabel を付与する(ボタン自体のrole/labelは#939で対応)
+						alt={restaurant.name}
+						accessibilityLabel={restaurant.name}
 					/>
 				</TouchableOpacity>
 

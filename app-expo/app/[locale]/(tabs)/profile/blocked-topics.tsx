@@ -35,7 +35,14 @@ const BlockedCategoryItem = memo(({ item, localeCode, onUnblock }: BlockedCatego
 	return (
 		<View style={styles.itemContainer}>
 			{/* 画像のURIが存在しない場合のフォールバックを考慮し、空文字列を回避 */}
-			<Image source={{ uri: item.image_url || undefined }} style={styles.categoryImage} />
+			{/* #937 【仕様】隣接する categoryLabel テキストと内容が重複するため、画像自体は装飾扱いにする */}
+			<Image
+				source={{ uri: item.image_url || undefined }}
+				style={styles.categoryImage}
+				accessible={false}
+				accessibilityElementsHidden
+				importantForAccessibility="no"
+			/>
 			<Text style={styles.categoryLabel} numberOfLines={2}>
 				{categoryLabel}
 			</Text>

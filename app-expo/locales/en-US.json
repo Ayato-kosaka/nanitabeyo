@@ -264,7 +264,10 @@
 		"imageLoadFailed": "Failed to load image",
 		"tapToReload": "Tap to reload",
 		"headerTitle": "Recommended Dishes for You",
-		"subCopy": "Tap on a dish you like to find restaurants"
+		"subCopy": "Tap on a dish you like to find restaurants",
+		"accessibility": {
+			"thumbnail": "{{title}} thumbnail, {{index}} of {{total}}"
+		}
 	},
 	"Notifications": {
 		"title": "Notifications",

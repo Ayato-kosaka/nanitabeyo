@@ -264,7 +264,10 @@
 		"imageLoadFailed": "Échec du chargement de l'image",
 		"tapToReload": "Appuyez pour recharger",
 		"headerTitle": "Plats Recommandés pour Vous",
-		"subCopy": "Appuyez sur un plat que vous aimez pour trouver des restaurants"
+		"subCopy": "Appuyez sur un plat que vous aimez pour trouver des restaurants",
+		"accessibility": {
+			"thumbnail": "Miniature de {{title}}, {{index}} sur {{total}}"
+		}
 	},
 	"Notifications": {
 		"title": "Notifications",

@@ -264,7 +264,10 @@
 		"imageLoadFailed": "画像を読み込めませんでした",
 		"tapToReload": "タップして再読み込み",
 		"headerTitle": "あなたにおすすめの料理",
-		"subCopy": "いいかも！と思った料理をタップしてお店を見つけよう"
+		"subCopy": "いいかも！と思った料理をタップしてお店を見つけよう",
+		"accessibility": {
+			"thumbnail": "{{title}}のサムネイル、{{index}}件目/{{total}}件中"
+		}
 	},
 	"Notifications": {
 		"title": "お知らせ",
