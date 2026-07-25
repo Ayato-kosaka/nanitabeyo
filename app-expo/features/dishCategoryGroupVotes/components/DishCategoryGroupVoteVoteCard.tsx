@@ -61,11 +61,23 @@ export function DishCategoryGroupVoteVoteCard({ candidate, onVote }: Props) {
 			{/* #856 【設計】スワイプだけに依存しない。
 			    ボタン操作も同じ onVote に流すことで、操作経路による投票状態のズレを防ぐ。 */}
 			<View style={styles.buttonRow}>
-				<TouchableOpacity style={styles.dislikeButton} onPress={() => onVote("dislike")} activeOpacity={0.85}>
+				<TouchableOpacity
+					style={styles.dislikeButton}
+					onPress={() => onVote("dislike")}
+					activeOpacity={0.85}
+					testID="dish-category-group-vote-dislike-button"
+					accessibilityRole="button"
+					accessibilityLabel={i18n.t("DishCategoryGroupVotes.dislikeButtonLabel", { title: candidate.displayName })}>
 					<ThumbsDown size={24} color="#F05537" strokeWidth={2.4} />
 					<Text style={styles.buttonLabel}>{i18n.t("DishCategoryGroupVotes.dislike")}</Text>
 				</TouchableOpacity>
-				<TouchableOpacity style={styles.likeButton} onPress={() => onVote("like")} activeOpacity={0.85}>
+				<TouchableOpacity
+					style={styles.likeButton}
+					onPress={() => onVote("like")}
+					activeOpacity={0.85}
+					testID="dish-category-group-vote-like-button"
+					accessibilityRole="button"
+					accessibilityLabel={i18n.t("DishCategoryGroupVotes.likeButtonLabel", { title: candidate.displayName })}>
 					<ThumbsUp size={24} color="#FFFFFF" strokeWidth={2.4} />
 					<Text style={[styles.buttonLabel, styles.likeButtonLabel]}>{i18n.t("DishCategoryGroupVotes.like")}</Text>
 				</TouchableOpacity>
