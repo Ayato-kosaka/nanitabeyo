@@ -520,5 +520,83 @@ describe('LocationsService', () => {
       expect(result).toHaveLength(1);
       expect(result[0].place_id).toBe('place-1');
     });
+
+    it('should keep multiple same-name establishments (e.g. chain branches)', async () => {
+      // #952 【テスト】PR #980 レビュー指摘: 同名チェーンの別店舗(establishment 同士、
+      // place_id・secondaryText が異なる)は表示名が同じでも別地点なので全て残ること
+      mockExternalApiService.callPlacesAutocomplete.mockResolvedValue({
+        suggestions: [
+          buildSuggestion(
+            'place-sbux-1',
+            'スターバックス',
+            '日本、東京都渋谷区道玄坂',
+            ['cafe', 'establishment'],
+          ),
+          buildSuggestion(
+            'place-sbux-2',
+            'スターバックス',
+            '日本、東京都渋谷区宇田川町',
+            ['cafe', 'establishment'],
+          ),
+          buildSuggestion(
+            'place-sbux-addr',
+            'スターバックス',
+            '日本、東京都渋谷区２丁目',
+            ['geocode'],
+          ),
+        ],
+      } as never);
+
+      const result = await service.autocompleteLocations(mockQuery);
+
+      // establishment 2店舗は残り、同名の番地レベル geocode だけが落ちる
+      expect(result).toHaveLength(2);
+      expect(result.map((place) => place.place_id)).toEqual([
+        'place-sbux-1',
+        'place-sbux-2',
+      ]);
+    });
+
+    it('should keep non-establishment candidates when no same-name establishment exists', async () => {
+      // #952 【テスト】同名の establishment が無い場合、住所系候補はそのまま残ること
+      // (住所そのものを検索したいケースを壊さない)
+      mockExternalApiService.callPlacesAutocomplete.mockResolvedValue({
+        suggestions: [
+          buildSuggestion('place-addr-1', '渋谷２丁目', '日本、東京都渋谷区', [
+            'geocode',
+          ]),
+          buildSuggestion('place-town', '渋谷区', '日本、東京都', [
+            'locality',
+            'political',
+            'geocode',
+          ]),
+        ],
+      } as never);
+
+      const result = await service.autocompleteLocations(mockQuery);
+
+      expect(result).toHaveLength(2);
+    });
+
+    it('should collapse exact duplicates (same mainText and secondaryText)', async () => {
+      // #952 【テスト】表示が完全一致する候補は区別できないため1件に畳むこと
+      mockExternalApiService.callPlacesAutocomplete.mockResolvedValue({
+        suggestions: [
+          buildSuggestion('place-dup-1', '渋谷駅', '日本、東京都渋谷区', [
+            'train_station',
+            'establishment',
+          ]),
+          buildSuggestion('place-dup-2', '渋谷駅', '日本、東京都渋谷区', [
+            'transit_station',
+            'establishment',
+          ]),
+        ],
+      } as never);
+
+      const result = await service.autocompleteLocations(mockQuery);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].place_id).toBe('place-dup-1');
+    });
   });
 });
