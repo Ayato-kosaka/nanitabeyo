@@ -230,6 +230,34 @@
 		"deepDive": {
 			"title": "이 계열로 좁히기"
 		},
+		"tutorial": {
+			"helpLabel": "이 화면 사용 방법",
+			"helpHint": "요리 추천 튜토리얼을 처음부터 표시합니다",
+			"skip": "건너뛰기",
+			"next": "다음",
+			"finish": "시작하기",
+			"progress": "{{current}} / {{total}}",
+			"progressAccessibility": "총 {{total}}단계 중 {{current}}단계",
+			"steps": {
+				"swipeAndDecide": {
+					"title": "마음에 드는 요리를 골라보세요",
+					"body": "좌우로 스와이프해 요리를 비교할 수 있어요. 먹고 싶은 요리를 정했다면 ‘이 요리로 선택!’을 눌러주세요."
+				},
+				"deepDive": {
+					"title": "기분에 맞춰 더 깊이 검색",
+					"body": "아직 고민된다면 원하는 계열을 골라 비슷한 요리로 범위를 좁혀보세요."
+				},
+				"topicActions": {
+					"title": "취향에 맞게 정리하기",
+					"save": "저장: 마음에 드는 요리를 나중에 다시 볼 수 있어요",
+					"block": "차단: 취향에 맞지 않는 요리는 앞으로 추천되지 않아요"
+				},
+				"groupVote": {
+					"title": "친구와 정하기",
+					"body": "같이 먹을 사람들과 후보를 공유하고 함께 투표할 수 있어요."
+				}
+			}
+		},
 		"HideTopicModal": {
 			"title": "숨기기",
 			"description": "숨기는 이유를 알려주세요 (선택사항)",

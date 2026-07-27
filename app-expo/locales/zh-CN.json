@@ -230,6 +230,34 @@
 		"deepDive": {
 			"title": "按这个类型筛选"
 		},
+		"tutorial": {
+			"helpLabel": "如何使用此页面",
+			"helpHint": "从头显示菜品推荐教程",
+			"skip": "跳过",
+			"next": "下一步",
+			"finish": "开始使用",
+			"progress": "{{current}} / {{total}}",
+			"progressAccessibility": "第 {{current}} 步，共 {{total}} 步",
+			"steps": {
+				"swipeAndDecide": {
+					"title": "选择让你心动的菜品",
+					"body": "左右滑动即可比较菜品。决定后，点击“就选这道菜！”"
+				},
+				"deepDive": {
+					"title": "按心情深入搜索",
+					"body": "如果还没决定，可以选择感兴趣的风格，进一步筛选相似菜品。"
+				},
+				"topicActions": {
+					"title": "按喜好整理推荐",
+					"save": "收藏：稍后可以再次查看感兴趣的菜品",
+					"block": "屏蔽：今后不再推荐你不喜欢的菜品"
+				},
+				"groupVote": {
+					"title": "和朋友一起决定",
+					"body": "与同行的人分享候选菜品，大家一起投票决定。"
+				}
+			}
+		},
 		"HideTopicModal": {
 			"title": "隐藏",
 			"description": "请告诉我们隐藏的理由（可选）",
