@@ -27,6 +27,8 @@ export class SearchPage {
 	readonly advancedToggle: Locator;
 	/** 距離スライダー */
 	readonly distanceSlider: Locator;
+	/** 初期表示されるおすすめ移動時間の並び */
+	readonly distanceRecommendedEstimates: Locator;
 	/** おすすめ外の移動時間を開閉するトグル */
 	readonly distanceEstimatesToggle: Locator;
 
@@ -40,6 +42,7 @@ export class SearchPage {
 		this.submitButton = page.getByTestId("search-submit-button");
 		this.advancedToggle = page.getByTestId("search-advanced-toggle");
 		this.distanceSlider = page.getByTestId("search-distance-slider");
+		this.distanceRecommendedEstimates = page.getByTestId("search-distance-recommended-estimates");
 		this.distanceEstimatesToggle = page.getByTestId("search-distance-estimates-toggle");
 	}
 
