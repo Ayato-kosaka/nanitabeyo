@@ -110,6 +110,9 @@
 		"errors": {
 			"fetchLocation": "Échec de la récupération de la localisation",
 			"getCurrentLocation": "Impossible d'obtenir la position actuelle",
+			"getCurrentLocationDenied": "L'accès à la position a été refusé. Veuillez saisir votre position dans le champ ci-dessous.",
+			"getCurrentLocationUnsupported": "La récupération de votre position actuelle n'est pas prise en charge ici. Veuillez saisir votre position ci-dessous.",
+			"getCurrentLocationTimeout": "La récupération de votre position actuelle a expiré. Réessayez ou saisissez votre position ci-dessous.",
 			"noLocationSelected": "Veuillez sélectionner un lieu",
 			"noTimeSlotSelected": "Veuillez sélectionner un créneau horaire",
 			"noSceneSelected": "Veuillez sélectionner une scène",

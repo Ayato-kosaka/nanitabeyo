@@ -110,6 +110,9 @@
 		"errors": {
 			"fetchLocation": "위치를 가져오지 못했습니다",
 			"getCurrentLocation": "현재 위치를 가져오지 못했습니다",
+			"getCurrentLocationDenied": "위치 액세스가 거부되었습니다. 아래 입력란에 위치를 직접 입력해주세요.",
+			"getCurrentLocationUnsupported": "이 환경에서는 현재 위치 가져오기를 지원하지 않습니다. 아래 입력란에 위치를 직접 입력해주세요.",
+			"getCurrentLocationTimeout": "현재 위치를 가져오는 데 시간이 초과되었습니다. 다시 시도하거나 아래에 위치를 직접 입력해주세요.",
 			"noLocationSelected": "위치를 선택해 주세요",
 			"noTimeSlotSelected": "시간대를 선택해 주세요",
 			"noSceneSelected": "장면을 선택해 주세요",

@@ -110,6 +110,9 @@
 		"errors": {
 			"fetchLocation": "No se pudo obtener la ubicación",
 			"getCurrentLocation": "No se pudo obtener la ubicación actual",
+			"getCurrentLocationDenied": "Se denegó el acceso a la ubicación. Escribe tu ubicación en el campo de abajo.",
+			"getCurrentLocationUnsupported": "La obtención de tu ubicación actual no es compatible aquí. Escribe tu ubicación en el campo de abajo.",
+			"getCurrentLocationTimeout": "Se agotó el tiempo para obtener tu ubicación actual. Inténtalo de nuevo o escribe tu ubicación abajo.",
 			"noLocationSelected": "Seleccione una ubicación",
 			"noTimeSlotSelected": "Seleccione un horario",
 			"noSceneSelected": "Seleccione una escena",

@@ -110,6 +110,9 @@
 		"errors": {
 			"fetchLocation": "获取位置失败",
 			"getCurrentLocation": "获取当前位置失败",
+			"getCurrentLocationDenied": "位置访问被拒绝。请在下方输入框中直接输入位置。",
+			"getCurrentLocationUnsupported": "当前环境不支持获取当前位置。请在下方输入框中直接输入位置。",
+			"getCurrentLocationTimeout": "获取当前位置超时。请重试，或在下方直接输入位置。",
 			"noLocationSelected": "请选择位置",
 			"noTimeSlotSelected": "请选择时间段",
 			"noSceneSelected": "请选择场景",
