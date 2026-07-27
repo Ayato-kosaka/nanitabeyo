@@ -97,7 +97,7 @@ test.describe("現在地取得", () => {
 		await appPage.getByTestId("search-current-location-button").click();
 
 		await expect(
-			appPage.getByText("現在地の取得がタイムアウトしました。もう一度お試しいただくか、下の欄に直接入力してください。"),
+			appPage.getByText("現在地の取得がタイムアウトしました。もう一度お試しいただくか、直接入力してください。"),
 		).toBeVisible();
 	});
 });

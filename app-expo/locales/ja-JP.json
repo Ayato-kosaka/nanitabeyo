@@ -112,7 +112,7 @@
 			"getCurrentLocation": "現在地の取得に失敗しました",
 			"getCurrentLocationDenied": "位置情報の利用が許可されていません。地名を直接入力してください。",
 			"getCurrentLocationUnsupported": "この環境では現在地の取得に対応していません。地名を直接入力してください。",
-			"getCurrentLocationTimeout": "現在地の取得がタイムアウトしました。もう一度お試しいただくか、下の欄に直接入力してください。",
+			"getCurrentLocationTimeout": "現在地の取得がタイムアウトしました。もう一度お試しいただくか、直接入力してください。",
 			"noLocationSelected": "検索場所を選択してください",
 			"noTimeSlotSelected": "時間帯を選択してください",
 			"noSceneSelected": "シーンを選択してください",
