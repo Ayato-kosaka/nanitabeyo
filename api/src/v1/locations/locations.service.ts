@@ -554,10 +554,66 @@ export class LocationsService {
         return [];
       }
 
-      return places;
+      // #952 【設計】Google は同じ場所を粒度違いで複数返すことがある
+      // (例: 渋谷駅 →「日本、東京都渋谷区」の transit_station と
+      //  「日本、東京都渋谷区２丁目２４」の番地レベル geocode の2件)。
+      // ユーザーにとって同名候補の粒度差は意味を持たず単なる重複に見えるため、
+      // ここで同名候補を1件に畳む。全クライアントに効かせるためサーバー側で行う。
+      return this.dedupeAutocompletePlaces(places);
     } catch (error) {
       throw error;
     }
+  }
+
+  /**
+   * #952 【設計】Autocomplete 候補の同名重複を除去する。
+   *
+   * ルール:
+   * 1. mainText を正規化(NFKC + 空白除去)したものをグループキーにする。
+   *    「渋谷駅」と「渋谷駅前」のような別地点は別キーになり残る。
+   * 2. 同名グループ内では `establishment` を types に持つ候補(実在施設としての
+   *    prediction)を優先する。番地レベルの重複(street_address / premise /
+   *    純粋な geocode)は establishment を持たないため、これで自然に落ちる。
+   * 3. 優先度が同じ候補同士は Google の関連度順(配列順)で先勝ち。
+   * 4. 返却順は元の関連度順を維持する(グループの初出位置)。
+   *
+   * なお Autocomplete (New) は最大5件固定で追加取得手段がないため、
+   * dedup により件数は減りうる(通常は0〜1件)。同名重複が並ぶより
+   * 少なくてもクリーンな候補の方が選びやすい、という判断を優先している。
+   */
+  private dedupeAutocompletePlaces(
+    places: AutocompleteLocationsResponse,
+  ): AutocompleteLocationsResponse {
+    const normalizeKey = (mainText: string): string =>
+      mainText.normalize('NFKC').replace(/\s+/g, '');
+
+    const isEstablishment = (place: { types: string[] }): boolean =>
+      place.types.includes('establishment');
+
+    const bestByKey = new Map<
+      string,
+      { place: AutocompleteLocationsResponse[number]; firstIndex: number }
+    >();
+
+    places.forEach((place, index) => {
+      const key = normalizeKey(place.mainText);
+      const existing = bestByKey.get(key);
+
+      if (!existing) {
+        bestByKey.set(key, { place, firstIndex: index });
+        return;
+      }
+
+      // 既存より優先すべきは「後から来た establishment vs 既存の非 establishment」のみ。
+      // それ以外(同格)は関連度順の先勝ちを維持する。
+      if (isEstablishment(place) && !isEstablishment(existing.place)) {
+        bestByKey.set(key, { place, firstIndex: existing.firstIndex });
+      }
+    });
+
+    return [...bestByKey.values()]
+      .sort((a, b) => a.firstIndex - b.firstIndex)
+      .map((entry) => entry.place);
   }
 
   /**
