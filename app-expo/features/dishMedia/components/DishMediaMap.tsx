@@ -26,8 +26,12 @@ import { PrimaryButton } from "@/components/PrimaryButton";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useDishMediaBackgroundImageResources } from "@/features/dishMedia/hooks/useDishMediaBackgroundImageResources";
+import { useContentWidth } from "@/hooks/useContentWidth";
 
-const { width, height } = Dimensions.get("window");
+// #958 【修正】カルーセルの幅は window 実幅ではなく中央カラム幅に追従させる必要があるため、
+// コンポーネント内の useContentWidth() を使う(下の contentWidth)。height はカルーセルの
+// 高さ比率計算にのみ使い、横レイアウトには影響しないため据え置き
+const { height } = Dimensions.get("window");
 
 // #605 【設計】Carousel の展開/縮小比率（画面高さに対する割合）
 const EXPANDED_RATIO = 0.8;
@@ -66,6 +70,10 @@ export default function DishMediaMap({
 	entriesKey,
 	idType,
 }: DishMediaMapProps) {
+	// #958 【修正】web の中央カラム内では window 実幅でカルーセルを描画するとカードが
+	// カラムからはみ出すため、カラム幅(native では画面幅)を基準にする
+	const contentWidth = useContentWidth();
+
 	const selector = useCallback(
 		(state: DishMediaEntriesStore) => selectIdsByKey(entriesKey, idType)(state),
 		[entriesKey, idType],
@@ -170,7 +178,7 @@ export default function DishMediaMap({
 		}
 
 		// マップのアスペクト比
-		const aspectRatio = width / height;
+		const aspectRatio = contentWidth / height;
 
 		// 全ピンの最小・最大座標を取得
 		const latitudes = restaurants.map((restaurant) => restaurant.coordinate.latitude);
@@ -199,7 +207,7 @@ export default function DishMediaMap({
 			latitudeDelta: latDelta,
 			longitudeDelta: lngDelta,
 		};
-	}, [restaurants, initialLocation]);
+	}, [restaurants, initialLocation, contentWidth]);
 	const region = useMemo(() => getMapRegion(), [getMapRegion]);
 
 	useEffect(() => {
@@ -400,7 +408,7 @@ export default function DishMediaMap({
 				{/* Carousel - Bottom 4/5 of screen, overlapping map */}
 				<Carousel
 					ref={carouselRef}
-					width={width}
+					width={contentWidth}
 					height={CAROUSEL_HEIGHT}
 					data={ids}
 					renderItem={renderCarouselItem}
