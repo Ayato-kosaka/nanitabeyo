@@ -51,6 +51,9 @@ export function TopicVisualCard({
 					style={styles.cardImage}
 					recyclingKey={recyclingKey}
 					contentFit="cover"
+					// #937 【仕様】料理名を伝える情報画像として alt/accessibilityLabel を付与する
+					alt={title}
+					accessibilityLabel={title}
 				/>
 			) : (
 				<View style={styles.cardImage} />

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Pressable } from "react-native";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
 import {
 	MapPin,
 	Search,
@@ -18,20 +18,26 @@ import { router } from "expo-router";
 import { SearchParams } from "@/types/search";
 import type { AutocompleteLocation, LocationDetailsResponse } from "@shared/api/v1/res";
 import { useLocationSearch } from "@/hooks/useLocationSearch";
+import { LocationPermissionError, type LocationPermissionErrorKind } from "@/hooks/locationPermissionError";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
-import { LocationAutocomplete } from "@/components/LocationAutocomplete";
+import {
+	LocationAutocomplete,
+	type LocationAutocompleteHandle,
+	type RecentLocation,
+} from "@/components/LocationAutocomplete";
 import {
 	timeSlots,
 	sceneOptions,
 	foodStyleOptions,
 	diningPaceOptions,
-	distanceOptions,
 	priceLevelOptions,
 	TUTORIAL_PAGES,
 	PRELOAD_IMAGES,
 } from "@/features/search/constants";
 import { DistanceSlider } from "@/features/search/components/DistanceSlider";
 import { PriceLevelsMultiSelect } from "@/features/search/components/PriceLevelsMultiSelect";
+import { SelectableGridItem } from "@/features/search/components/SelectableGridItem";
+import { SelectableChip } from "@/features/search/components/SelectableChip";
 import i18n from "@/lib/i18n";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
@@ -40,6 +46,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { DEFAULT_SEARCH_RADIUS } from "@/features/topics/constants";
 import { TutorialBottomSheet } from "@/features/search/components/TutorialBottomSheet";
 import { useSearchTutorial } from "@/features/search/hooks/useSearchTutorial";
+import { useRecentLocations } from "@/features/search/hooks/useRecentLocations";
 import { Image } from "expo-image";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { useIsFocused } from "@react-navigation/native";
@@ -54,6 +61,26 @@ const ITEM_PADDING = 3;
 const BORDER_WIDTH = 2;
 const ITEM_GAP = 2;
 const NUM_COLUMNS = 4;
+
+// #934 【設計】各セクション見出し。accessibilityRole="header" を持たせ、必須バッジは
+// 別要素として視覚表示しつつスクリーンリーダー向けには見出しの accessibilityLabel に合成する
+// (別々に読み上げられるより「(必須)」まで一続きで聞こえた方が分かりやすいため)
+function SectionHeader({ icon, title, required }: { icon: React.ReactNode; title: string; required?: boolean }) {
+	const label = required ? `${title} (${i18n.t("Search.required")})` : title;
+	return (
+		<View style={styles.sectionHeader}>
+			{icon}
+			<Text style={styles.sectionTitle} accessibilityRole="header" accessibilityLabel={label}>
+				{title}
+			</Text>
+			{required && (
+				<View style={styles.requiredBadge} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+					<Text style={styles.requiredText}>{i18n.t("Search.required")}</Text>
+				</View>
+			)}
+		</View>
+	);
+}
 
 export default function SearchScreen() {
 	const { locale, isJapanese } = useLocale();
@@ -73,6 +100,8 @@ export default function SearchScreen() {
 
 	const { getCurrentLocation, getLocationDetails } = useLocationSearch();
 	const { showSnackbar } = useSnackbar();
+	// #932 【設計】現在地取得の恒久的な失敗(権限拒否・未対応)時に手入力へ誘導するため
+	const locationInputRef = useRef<LocationAutocompleteHandle>(null);
 
 	// #958 【修正】中央カラム幅に追従する4列グリッドのアイテムサイズ
 	const contentWidth = useContentWidth();
@@ -128,6 +157,10 @@ export default function SearchScreen() {
 		try {
 			const locationDetails = await getLocationDetails(prediction);
 			setLocation(locationDetails);
+			// #953 【仕様】details 取得に成功した地点だけを「最近使った場所」に保存する。
+			// viewport はスプレッドすると型上は Omit していても実行時には残ってしまうため、明示的に除く。
+			const { viewport: _viewport, ...locationWithoutViewport } = locationDetails;
+			addRecentLocation({ ...locationWithoutViewport, locationQuery: prediction.mainText });
 		} catch (error) {
 			logFrontendEvent({
 				event_name: "location_selection_failed",
@@ -137,6 +170,36 @@ export default function SearchScreen() {
 			showSnackbar(i18n.t("Search.errors.fetchLocation"));
 		}
 	};
+
+	// #932 【設計】失敗理由(kind)ごとに文言を出し分ける。denied/unsupported は再試行しても
+	// 解決しないため、手入力へ誘導するよう地点入力欄へフォーカスを移動する
+	const getCurrentLocationErrorMessage = (kind: LocationPermissionErrorKind): string => {
+		switch (kind) {
+			case "denied":
+				return i18n.t("Search.errors.getCurrentLocationDenied");
+			case "unsupported":
+				return i18n.t("Search.errors.getCurrentLocationUnsupported");
+			case "timeout":
+				return i18n.t("Search.errors.getCurrentLocationTimeout");
+			case "unavailable":
+			default:
+				return i18n.t("Search.errors.getCurrentLocation");
+		}
+	};
+
+	// #953 【仕様】最近使った場所は details API を呼び直さず、保存済みの location をそのまま復元する
+	const handleSelectRecentLocation = useCallback(
+		(recent: RecentLocation) => {
+			logFrontendEvent({
+				event_name: "recent_location_selected",
+				error_level: "log",
+				payload: { locationQuery: recent.locationQuery },
+			});
+			setLocation(recent);
+			setLocationQuery(recent.locationQuery);
+		},
+		[logFrontendEvent],
+	);
 
 	const handleUseCurrentLocation = async () => {
 		lightImpact();
@@ -155,12 +218,18 @@ export default function SearchScreen() {
 				payload: { hasLocation: !!currentLocation },
 			});
 		} catch (error) {
+			const kind: LocationPermissionErrorKind = error instanceof LocationPermissionError ? error.kind : "unavailable";
 			logFrontendEvent({
 				event_name: "current_location_failed",
 				error_level: "error",
-				payload: { error: String(error) },
+				payload: { error: String(error), kind },
 			});
-			showSnackbar(i18n.t("Search.errors.getCurrentLocation"));
+			showSnackbar(getCurrentLocationErrorMessage(kind));
+
+			// #932 【設計】権限拒否・未対応は再試行しても解決しないため、手入力へ誘導する
+			if (kind === "denied" || kind === "unsupported") {
+				locationInputRef.current?.focus();
+			}
 		}
 	};
 
@@ -262,6 +331,9 @@ export default function SearchScreen() {
 		setShowAdvancedFilters(!showAdvancedFilters);
 	};
 
+	// #953 【仕様】直近5件の地点をローカル保存し、地点未入力でのフォーカス時に再選択候補として出す
+	const { recentLocations, addRecentLocation, clearRecentLocations } = useRecentLocations();
+
 	// ========== チュートリアル表示制御 ==========
 	const [showTutorial, setShowTutorial] = useState(false);
 	const { hasSeenTutorial, isLoading: isTutorialLoading, markTutorialAsSeen } = useSearchTutorial();
@@ -280,12 +352,23 @@ export default function SearchScreen() {
 
 		if (!isJapanese) {
 			// #642 【設計】対応言語以外ではチュートリアルを表示しない
+			// #932 【修正】マウント時の自動取得はユーザー操作を伴わないためSnackbarは出さない(UXを損なうため)。
+			// ただし console.error への握りつぶしをやめ、理由(kind)付きで構造化ログに残す
 			getCurrentLocation()
 				.then((currentLocation) => {
 					setLocation(currentLocation);
 					setLocationQuery(i18n.t("Search.currentLocation"));
 				})
-				.catch(console.error);
+				.catch((error) => {
+					logFrontendEvent({
+						event_name: "current_location_auto_fetch_failed",
+						error_level: "warn",
+						payload: {
+							error: String(error),
+							kind: error instanceof LocationPermissionError ? error.kind : "unavailable",
+						},
+					});
+				});
 			return;
 		}
 
@@ -299,12 +382,22 @@ export default function SearchScreen() {
 			});
 		} else if (hasSeenTutorial === true) {
 			// #642 【設計】チュートリアル既表示の場合、現在地取得してセットする
+			// #932 【修正】上と同様、Snackbarは出さず理由(kind)付きで構造化ログに残す
 			getCurrentLocation()
 				.then((currentLocation) => {
 					setLocation(currentLocation);
 					setLocationQuery(i18n.t("Search.currentLocation"));
 				})
-				.catch(console.error);
+				.catch((error) => {
+					logFrontendEvent({
+						event_name: "current_location_auto_fetch_failed",
+						error_level: "warn",
+						payload: {
+							error: String(error),
+							kind: error instanceof LocationPermissionError ? error.kind : "unavailable",
+						},
+					});
+				});
 		}
 	}, [isFocused, isTutorialLoading, hasSeenTutorial, logFrontendEvent, getCurrentLocation, isJapanese]);
 
@@ -346,7 +439,13 @@ export default function SearchScreen() {
 				<Text style={styles.headerTitle}>{i18n.t("Search.headerTitle")}</Text>
 				{/* #642 【設計】ヘルプアイコンからチュートリアルを再表示 */}
 				{isJapanese && (
-					<TouchableOpacity style={styles.helpButton} onPress={handleOpenTutorial}>
+					<TouchableOpacity
+						style={styles.helpButton}
+						onPress={handleOpenTutorial}
+						hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+						accessibilityRole="button"
+						accessibilityLabel={i18n.t("Search.accessibility.showTutorial")}
+						testID="search-help-button">
 						<HelpCircle size={24} color="#6B7280" />
 					</TouchableOpacity>
 				)}
@@ -359,23 +458,31 @@ export default function SearchScreen() {
 				showsVerticalScrollIndicator={false}>
 				{/* Location Input */}
 				<View style={styles.section}>
-					<View style={styles.sectionHeader}>
-						<MapPin size={20} color="#F05537" />
-						<Text style={styles.sectionTitle}>{i18n.t("Search.sections.location")}</Text>
-						<View style={styles.requiredBadge}>
-							<Text style={styles.requiredText}>{i18n.t("Search.required")}</Text>
-						</View>
-					</View>
+					<SectionHeader
+						icon={<MapPin size={20} color="#F05537" />}
+						title={i18n.t("Search.sections.location")}
+						required
+					/>
 					<View style={styles.locationSection}>
 						<LocationAutocomplete
+							ref={locationInputRef}
 							value={locationQuery}
 							onChangeText={setLocationQuery}
 							onSelectSuggestion={handleLocationSelect}
 							onClear={handleLocationClear}
 							placeholder={i18n.t("Search.placeholders.enterLocation")}
 							autoClearOnFocus={locationQuery === i18n.t("Search.currentLocation")}
+							recentLocations={recentLocations}
+							onSelectRecentLocation={handleSelectRecentLocation}
+							onClearRecentLocations={recentLocations.length > 0 ? clearRecentLocations : undefined}
 							renderInputRight={
-								<TouchableOpacity style={styles.currentLocationButton} onPress={handleUseCurrentLocation}>
+								<TouchableOpacity
+									style={styles.currentLocationButton}
+									onPress={handleUseCurrentLocation}
+									hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+									accessibilityRole="button"
+									accessibilityLabel={i18n.t("Search.accessibility.useCurrentLocation")}
+									testID="search-current-location-button">
 									<Navigation size={20} color="#000000" />
 								</TouchableOpacity>
 							}
@@ -386,114 +493,76 @@ export default function SearchScreen() {
 
 				{/* #667 【設計】Time of Day - カード無し、画像グリッド表示（4列1行） */}
 				<View style={styles.section}>
-					<View style={styles.sectionHeader}>
-						<SunMoon size={20} color="#F05537" />
-						<Text style={styles.sectionTitle}>{i18n.t("Search.sections.time")}</Text>
-						<View style={styles.requiredBadge}>
-							<Text style={styles.requiredText}>{i18n.t("Search.required")}</Text>
-						</View>
-					</View>
-					<View style={styles.gridContainer}>
+					<SectionHeader icon={<SunMoon size={20} color="#F05537" />} title={i18n.t("Search.sections.time")} required />
+					<View
+						style={styles.gridContainer}
+						accessibilityRole="radiogroup"
+						accessibilityLabel={i18n.t("Search.sections.time")}>
 						{timeSlots.map((slot) => (
-							<Pressable
+							<SelectableGridItem
 								key={slot.id}
 								testID={`search-time-slot-${slot.id}`}
-								style={[
-									styles.gridItem,
-									{ width: itemWidth + 2 * ITEM_PADDING + 2 * BORDER_WIDTH },
-									timeSlot === slot.id && styles.selectedGridItem,
-								]}
-								onPress={() => handleTimeSlotSelect(slot.id)}>
-								<Image
-									source={slot.image}
-									style={[{ width: itemWidth, height: itemWidth }, styles.gridItemImage]}
-									contentFit="cover"
-									transition={0}
-									priority="high"
-									cachePolicy="memory"
-								/>
-								<Text style={[styles.gridItemLabel, timeSlot === slot.id && styles.selectedGridItemLabel]}>
-									{i18n.t(slot.label)}
-								</Text>
-							</Pressable>
+								selected={timeSlot === slot.id}
+								onPress={() => handleTimeSlotSelect(slot.id)}
+								image={slot.image}
+								label={i18n.t(slot.label)}
+								itemWidth={itemWidth}
+							/>
 						))}
 					</View>
 				</View>
 
 				{/* #667 【設計】Scene - カード無し、画像グリッド表示（4列2行） */}
 				<View style={styles.section}>
-					<View style={styles.sectionHeader}>
-						<Users size={20} color="#F05537" />
-						<Text style={styles.sectionTitle}>{i18n.t("Search.sections.scene")}</Text>
-						<View style={styles.requiredBadge}>
-							<Text style={styles.requiredText}>{i18n.t("Search.required")}</Text>
-						</View>
-					</View>
-					<View style={styles.gridContainer}>
+					<SectionHeader icon={<Users size={20} color="#F05537" />} title={i18n.t("Search.sections.scene")} required />
+					<View
+						style={styles.gridContainer}
+						accessibilityRole="radiogroup"
+						accessibilityLabel={i18n.t("Search.sections.scene")}>
 						{sceneOptions.map((option) => (
-							<Pressable
+							<SelectableGridItem
 								key={option.id}
 								testID={`search-scene-${option.id}`}
-								style={[
-									styles.gridItem,
-									{ width: itemWidth + 2 * ITEM_PADDING + 2 * BORDER_WIDTH },
-									scene === option.id && styles.selectedGridItem,
-								]}
-								onPress={() => handleSceneSelect(option.id)}>
-								<Image
-									source={option.image}
-									style={[{ width: itemWidth, height: itemWidth }, styles.gridItemImage]}
-									contentFit="cover"
-									transition={0}
-									priority="high"
-									cachePolicy="memory"
-								/>
-								<Text style={[styles.gridItemLabel, scene === option.id && styles.selectedGridItemLabel]}>
-									{i18n.t(option.label)}
-								</Text>
-							</Pressable>
+								selected={scene === option.id}
+								onPress={() => handleSceneSelect(option.id)}
+								image={option.image}
+								label={i18n.t(option.label)}
+								itemWidth={itemWidth}
+							/>
 						))}
 					</View>
 				</View>
 
 				{/* Price Levels */}
 				<View style={styles.section}>
-					<View style={styles.sectionHeader}>
-						<DollarSign size={20} color="#F05537" />
-						<Text style={styles.sectionTitle}>{i18n.t("Search.sections.budget")}</Text>
-					</View>
+					<SectionHeader icon={<DollarSign size={20} color="#F05537" />} title={i18n.t("Search.sections.budget")} />
 					<View style={styles.sliderSection}>
 						<PriceLevelsMultiSelect
 							selectedPriceLevels={priceLevels}
 							onPriceLevelsChange={setPriceLevels}
-							customStyles={{
-								chipGrid: styles.chipGrid,
-								chip: styles.chip,
-								selectedChip: styles.selectedChip,
-								chipText: styles.chipText,
-								selectedChipText: styles.selectedChipText,
-							}}
+							customStyles={{ chipGrid: styles.chipGrid }}
+							groupAccessibilityLabel={i18n.t("Search.sections.budget")}
 						/>
 					</View>
 				</View>
 
 				{/* Dining Pace */}
 				<View style={styles.section}>
-					<View style={styles.sectionHeader}>
-						<Timer size={20} color="#F05537" />
-						<Text style={styles.sectionTitle}>{i18n.t("Search.sections.diningPace")}</Text>
-					</View>
-					<View style={styles.chipGrid}>
+					<SectionHeader icon={<Timer size={20} color="#F05537" />} title={i18n.t("Search.sections.diningPace")} />
+					<View
+						style={styles.chipGrid}
+						accessibilityRole="radiogroup"
+						accessibilityLabel={i18n.t("Search.sections.diningPace")}>
 						{diningPaceOptions.map((option) => (
-							<TouchableOpacity
+							<SelectableChip
 								key={option.id}
-								style={[styles.chip, diningPace === option.id && styles.selectedChip]}
-								onPress={() => handleDiningPaceSelect(option.id)}>
-								<Text style={styles.chipEmoji}>{option.icon}</Text>
-								<Text style={[styles.chipText, diningPace === option.id && styles.selectedChipText]}>
-									{i18n.t(option.label)}
-								</Text>
-							</TouchableOpacity>
+								role="radio"
+								selected={diningPace === option.id}
+								label={i18n.t(option.label)}
+								icon={option.icon}
+								onPress={() => handleDiningPaceSelect(option.id)}
+								testID={`search-dining-pace-${option.id}`}
+							/>
 						))}
 					</View>
 				</View>
@@ -516,38 +585,33 @@ export default function SearchScreen() {
 					<>
 						{/* Distance */}
 						<View style={styles.section}>
-							<View style={styles.sectionHeader}>
-								<Ruler size={20} color="#F05537" />
-								<Text style={styles.sectionTitle}>{i18n.t("Search.sections.distance")}</Text>
-							</View>
+							<SectionHeader icon={<Ruler size={20} color="#F05537" />} title={i18n.t("Search.sections.distance")} />
 							<View style={styles.sliderSection}>
-								<Text style={styles.sliderValue}>
-									{distanceOptions.find((option) => option.value === distance)?.label}
-								</Text>
+								{/* #987 【設計】距離値・おすすめ移動時間・詳細開閉を一つのコンパクトな操作領域に集約 */}
 								<DistanceSlider distance={distance} setDistance={setDistance} />
 							</View>
 						</View>
 
 						{/* Food Style */}
 						<View style={styles.section}>
-							<View style={styles.sectionHeader}>
-								<ChefHat size={20} color="#F05537" />
-								<Text style={styles.sectionTitle}>{i18n.t("Search.sections.foodStyle")}</Text>
-							</View>
-							<View style={styles.chipGrid}>
+							<SectionHeader icon={<ChefHat size={20} color="#F05537" />} title={i18n.t("Search.sections.foodStyle")} />
+							<View
+								style={styles.chipGrid}
+								accessibilityRole="radiogroup"
+								accessibilityLabel={i18n.t("Search.sections.foodStyle")}>
 								{foodStyleOptions.map((option) => {
 									const isSelected =
 										option.featureType === "taste" ? taste === option.id : coreIngredient === option.id;
 									return (
-										<TouchableOpacity
+										<SelectableChip
 											key={`${option.featureType}:${option.id}`}
-											style={[styles.chip, isSelected && styles.selectedChip]}
-											onPress={() => handleFoodStyleSelect(option)}>
-											<Text style={styles.chipEmoji}>{option.icon}</Text>
-											<Text style={[styles.chipText, isSelected && styles.selectedChipText]}>
-												{i18n.t(option.label)}
-											</Text>
-										</TouchableOpacity>
+											role="radio"
+											selected={isSelected}
+											label={i18n.t(option.label)}
+											icon={option.icon}
+											onPress={() => handleFoodStyleSelect(option)}
+											testID={`search-food-style-${option.featureType}-${option.id}`}
+										/>
 									);
 								})}
 							</View>
@@ -607,7 +671,8 @@ export default function SearchScreen() {
 				onRequestCurrentLocation={handleTutorialRequestLocation}
 			/>
 			{/* #642 【設計】オフスクリーンでチュートリアル画像を一度描画して decode */}
-			<View style={{ width: 0, height: 0, position: "absolute", overflow: "hidden" }}>
+			{/* #934 【修正】decode専用で内容を持たないため aria-hidden で支援技術から隠す(axe: image-alt 対策) */}
+			<View style={{ width: 0, height: 0, position: "absolute", overflow: "hidden" }} aria-hidden>
 				{PRELOAD_IMAGES.map((src, i) => (
 					<Image key={i} source={src} />
 				))}
@@ -689,36 +754,6 @@ const styles = StyleSheet.create({
 		flexWrap: "wrap",
 		gap: ITEM_GAP,
 	},
-	// #667 【設計】グリッドアイテム（画像+ラベル）
-	// #958 【修正】width は中央カラム幅に追従させる必要があるため、静的スタイルから外し
-	// JSX 側でインラインスタイルとして合成する(itemWidth 参照)
-	gridItem: {
-		maxWidth: 256,
-		alignItems: "center",
-		overflow: "hidden",
-		padding: ITEM_PADDING,
-		borderRadius: 16,
-		borderWidth: BORDER_WIDTH,
-		borderColor: "transparent",
-	},
-	selectedGridItem: {
-		borderColor: "#000000",
-		backgroundColor: "#E5E5E5",
-	},
-	gridItemImage: {
-		borderRadius: 16,
-		maxWidth: 256,
-		maxHeight: 256,
-	},
-	// #667 【設計】グリッドアイテムのラベル
-	gridItemLabel: {
-		marginTop: 4,
-		fontSize: 11,
-		color: "#000000",
-		fontWeight: "600",
-		textAlign: "center",
-	},
-	selectedGridItemLabel: {},
 	// #667 【設計】ムード用の横並びコンテナ
 	moodContainer: {
 		flexDirection: "row",
@@ -771,41 +806,8 @@ const styles = StyleSheet.create({
 		flexWrap: "wrap",
 		gap: 12,
 	},
-	chip: {
-		flexDirection: "row",
-		alignItems: "center",
-		backgroundColor: "#F8F9FA",
-		paddingHorizontal: 12,
-		paddingVertical: 6,
-		borderRadius: 24,
-		borderWidth: BORDER_WIDTH,
-		borderColor: "#C9C9C9",
-		marginBottom: 6,
-	},
-	selectedChip: {
-		// 濃い灰色
-		backgroundColor: "#E5E5E5",
-		borderColor: "#000000",
-	},
-	chipEmoji: {
-		fontSize: 14,
-		marginRight: 4,
-	},
-	chipText: {
-		fontSize: 13,
-		color: "#000000",
-		fontWeight: "600",
-	},
-	selectedChipText: {},
 	sliderSection: {
-		alignItems: "center",
-	},
-	sliderValue: {
-		fontSize: 18,
-		fontWeight: "700",
-		color: "#000000",
-		marginBottom: 8,
-		textAlign: "center",
+		width: "100%",
 	},
 	searchFabContainer: {
 		position: "absolute",

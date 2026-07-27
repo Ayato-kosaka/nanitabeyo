@@ -169,11 +169,20 @@ export default function ResultScreen() {
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
 			{/* Header with Back Button */}
 			<View style={{ ...styles.closeButtonContainer, top: Platform.OS === "ios" ? 40 : 0 }}>
-				<TouchableOpacity testID="result-close-button" style={styles.closeButton} onPress={handleCloseWithHaptic}>
+				<TouchableOpacity
+					testID="result-close-button"
+					style={styles.closeButton}
+					onPress={handleCloseWithHaptic}
+					accessibilityRole="button"
+					accessibilityLabel={i18n.t("Common.close")}>
 					<X size={24} color="#000" />
 				</TouchableOpacity>
 				{/* #659 【UI】一括シェアボタン - 閉じるボタンの直下に配置 */}
-				<TouchableOpacity style={styles.shareButton} onPress={handleBulkShare}>
+				<TouchableOpacity
+					style={styles.shareButton}
+					onPress={handleBulkShare}
+					accessibilityRole="button"
+					accessibilityLabel={i18n.t("Search.result.accessibility.bulkShare")}>
 					<Share2 size={24} color="#000" />
 				</TouchableOpacity>
 			</View>

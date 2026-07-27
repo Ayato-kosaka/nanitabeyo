@@ -1,9 +1,12 @@
 import React, { useState } from "react";
 import { Text, TouchableOpacity, StyleSheet, View } from "react-native";
+import { router } from "expo-router";
 import { Bookmark, Ban } from "lucide-react-native";
 import { Topic } from "@/types/search";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
+import { useLocale } from "@/hooks/useLocale";
+import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { toggleReaction } from "@/lib/reactions";
 import { useTopicsStore } from "@/stores/useTopicsStore";
 import { profileSavedTopicsEntriesKey } from "@/features/profile/tabs/SavedTopicsTab";
@@ -43,9 +46,13 @@ export const TopicCard = ({
 	imageState: TopicImageResourceState;
 	onImageRetry?: (topic: Topic) => void;
 }) => {
-	const [isSaved, setIsSaved] = useState(false);
+	// #954 【仕様】サーバの保存状態(item.isSaved)で初期化する。従来は常にfalseだったため
+	// 保存済みカテゴリでも再訪時は未保存表示になっていた。
+	const [isSaved, setIsSaved] = useState(item.isSaved ?? false);
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
+	const { locale } = useLocale();
+	const { showSnackbar } = useSnackbar();
 
 	const deepDiveChipWidth = deepDiveOptions.length === 1 ? "100%" : deepDiveOptions.length === 2 ? "48.5%" : "31.5%";
 
@@ -78,13 +85,22 @@ export const TopicCard = ({
 					const without = prev.filter((id) => id !== item.categoryId);
 					return [item.categoryId, ...without];
 				});
+				// #954 【仕様】保存操作のみ完了フィードバックを出す(解除は状態変化が見た目で分かるため省略)
+				showSnackbar(i18n.t("Topics.savedMessage"), {
+					action: {
+						label: i18n.t("Common.view"),
+						onPress: () => router.push({ pathname: "/[locale]/(tabs)/profile", params: { locale } }),
+					},
+				});
 			} else {
 				updateTopicIdsByKey(profileSavedTopicsEntriesKey, (prev) => prev.filter((id) => id !== item.categoryId));
 			}
 		} catch (error) {
+			// #954 【仕様】保存APIが失敗した場合、見た目だけ切り替わったままにせず表示を元に戻す
+			setIsSaved(!willSave);
 			logFrontendEvent({
 				event_name: "topic_save_reaction_failed",
-				error_level: "log",
+				error_level: "error",
 				payload: {
 					error: error instanceof Error ? error.message : String(error),
 					target_id: item.categoryId,
@@ -92,6 +108,7 @@ export const TopicCard = ({
 					willReact: willSave,
 				},
 			});
+			showSnackbar(i18n.t("Common.error"));
 		}
 	};
 
@@ -146,7 +163,13 @@ export const TopicCard = ({
 								onPress={(event) => {
 									event.stopPropagation();
 									void handleSave();
-								}}>
+								}}
+								accessibilityRole="button"
+								accessibilityState={{ selected: isSaved }}
+								accessibilityLabel={i18n.t(
+									isSaved ? "Topics.accessibility.unsaveTopic" : "Topics.accessibility.saveTopic",
+									{ title: item.topicTitle },
+								)}>
 								<Bookmark
 									size={20}
 									color={isSaved ? "transparent" : "white"}
@@ -160,7 +183,7 @@ export const TopicCard = ({
 									void handleBlock();
 								}}
 								accessibilityRole="button"
-								accessibilityLabel={i18n.t("Topics.BlockTopicModal.title")}>
+								accessibilityLabel={i18n.t("Topics.accessibility.blockTopic", { title: item.topicTitle })}>
 								<Ban size={18} color="#FFF" />
 							</TouchableOpacity>
 						</>

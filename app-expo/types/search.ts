@@ -21,4 +21,6 @@ export interface Topic {
 	imageUrl: string;
 	deepDiveFeatures?: DishCategoryDeepDiveFeature[];
 	isHidden?: boolean;
+	/** #954 推薦API取得時点でユーザーが既に保存済みか。カード再訪時の初期表示に使う */
+	isSaved?: boolean;
 }

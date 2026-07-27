@@ -9,6 +9,8 @@
 		"post": "Post",
 		"postReview": "Post review",
 		"retry": "Retry",
+		"undo": "Undo",
+		"view": "View",
 		"error": "An error occurred. Please try again.",
 		"success": "Success",
 		"linkCopied": "Link copied to clipboard",
@@ -47,6 +49,8 @@
 		"copyShareLink": "Copy share link",
 		"voteCta": "Vote",
 		"candidatesTitle": "Choices",
+		"rankLabel": "#{{rank}}",
+		"unvoted": "Not voted yet",
 		"commentsTitle": "Comments",
 		"viewRestaurants": "View restaurants",
 		"loadingRestaurants": "Searching",
@@ -55,11 +59,15 @@
 		"deleteCandidate": "Delete choice",
 		"deleteCandidateTitle": "Delete this choice?",
 		"deleteCandidateMessage": "Hide {{name}} from the vote choices.",
+		"candidateDeleted": "Removed {{name}} from candidates",
 		"loadFailed": "Could not load the vote",
 		"refreshFailed": "Could not refresh the latest results",
 		"like": "Like",
 		"dislike": "Pass",
+		"likeButtonLabel": "Like {{title}}",
+		"dislikeButtonLabel": "Dislike {{title}}",
 		"voteProgress": "{{current}} / {{total}}",
+		"voteProgressAnnouncement": "{{current}} of {{total}}: {{title}}",
 		"noVoteCandidates": "There are no choices to vote on",
 		"completionTitle": "Confirm your vote",
 		"completionDescription": "Enter the name shown on the results page and an optional comment.",
@@ -81,7 +89,18 @@
 		"currentLocation": "Current location",
 		"DistanceSlider": {
 			"near": "Near",
-			"far": "Far"
+			"far": "Far",
+			"edgeEstimate": "Estimated time to the edge of the search area",
+			"approxMinutes": "About {{minutes}} min",
+			"modes": {
+				"walk": "Walk",
+				"bike": "Bike",
+				"car": "Car",
+				"train": "Train"
+			},
+			"showMore": "Show more",
+			"showLess": "Show less",
+			"estimateHint": "Times vary by route, traffic, and waiting time"
 		},
 		"BudgetSlider": {
 			"cheap": "Cheap",
@@ -91,6 +110,9 @@
 		"errors": {
 			"fetchLocation": "Failed to fetch location",
 			"getCurrentLocation": "Failed to get current location",
+			"getCurrentLocationDenied": "Location access was denied. Please type your location in the field below.",
+			"getCurrentLocationUnsupported": "Getting your current location isn't supported here. Please type your location in the field below.",
+			"getCurrentLocationTimeout": "Getting your current location timed out. Please try again or type your location in the field below.",
 			"noLocationSelected": "Please select a location",
 			"noTimeSlotSelected": "Please select a time slot",
 			"noSceneSelected": "Please select a scene",
@@ -123,6 +145,8 @@
 		"accessibility": {
 			"locationInputHint": "Enter a location to search for restaurants",
 			"clearLocation": "Clear location",
+			"useCurrentLocation": "Use current location",
+			"showTutorial": "View how to use",
 			"selectLocation": "Select this location"
 		},
 		"loading": "Searching...",
@@ -198,6 +222,11 @@
 			"seafoodAllergy": "Seafood allergy",
 			"halal": "Halal"
 		},
+		"result": {
+			"accessibility": {
+				"bulkShare": "Share all"
+			}
+		},
 		"tutorial": {
 			"page1": {
 				"title": "Discover what you want to eat",
@@ -224,6 +253,10 @@
 				"primaryCta": "Use current location",
 				"secondaryCta": "Later"
 			}
+		},
+		"recentLocations": {
+			"title": "Recent locations",
+			"clear": "Clear recent locations"
 		}
 	},
 	"Topics": {
@@ -255,6 +288,7 @@
 			"confirm": "Block"
 		},
 		"blockedMessage": "Blocked {{title}}",
+		"savedMessage": "Saved",
 		"reloadDialog": {
 			"title": "Find more options?",
 			"message": "There are only a few recommendations right now. We will search again with the same conditions.",
@@ -264,7 +298,13 @@
 		"imageLoadFailed": "Failed to load image",
 		"tapToReload": "Tap to reload",
 		"headerTitle": "Recommended Dishes for You",
-		"subCopy": "Tap on a dish you like to find restaurants"
+		"subCopy": "Tap on a dish you like to find restaurants",
+		"accessibility": {
+			"blockTopic": "Remove {{title}} from recommendations",
+			"saveTopic": "Save {{title}}",
+			"unsaveTopic": "Unsave {{title}}",
+			"thumbnail": "{{title}} thumbnail, {{index}} of {{total}}"
+		}
 	},
 	"Notifications": {
 		"title": "Notifications",
@@ -301,6 +341,14 @@
 		"buttons": {
 			"viewRestaurant": "View restaurant"
 		},
+		"accessibility": {
+			"viewRestaurant": "View {{name}}'s restaurant details",
+			"like": "Like {{name}}",
+			"save": "Save {{name}}",
+			"share": "Share {{name}}",
+			"openMap": "Open map for {{name}}",
+			"reviewLike": "Like {{username}}'s review"
+		},
 		"processing": "Processing media...",
 		"errors": {
 			"mapOpenFailed": "Could not open map application",
@@ -312,6 +360,11 @@
 	},
 	"ImageCardGrid": {
 		"openItemDetails": "Open item details"
+	},
+	"Stars": {
+		"accessibility": {
+			"rating": "Rating {{rating}}/5"
+		}
 	},
 	"Tabs": {
 		"home": "Home",
@@ -329,13 +382,17 @@
 		}
 	},
 	"Profile": {
+		"tabGroups": {
+			"reviews": "Reviews",
+			"saved": "Saved",
+			"liked": "Liked",
+			"wallet": "Wallet"
+		},
 		"tabs": {
 			"deposits": "Deposits",
 			"earnings": "Earnings",
-			"topics": "Topics",
-			"posts": "Posts",
 			"saved-posts": "Posts",
-			"saved-topics": "Topics",
+			"saved-topics": "Dishes",
 			"wallet-deposit": "Deposits",
 			"wallet-earning": "Earnings"
 		},
@@ -374,7 +431,8 @@
 			"follow": "Follow",
 			"following": "Following",
 			"message": "Message",
-			"searchByMood": "Find dishes you'll \"like\" based on today's mood",
+			"searchForReview": "Find a restaurant to review",
+			"searchByMood": "Search by today's mood",
 			"sendFeedback": "Send Feedback"
 		},
 		"stats": {
@@ -406,7 +464,8 @@
 			"displayNameRequired": "Display name is required",
 			"displayNameLength": "Display name must be 30 characters or less",
 			"bioLength": "Bio must be 150 characters or less"
-		}
+		},
+		"guestDisplayName": "Guest"
 	},
 	"NotFound": {
 		"title": "Oops!",
@@ -489,6 +548,7 @@
 			"dishCategoryNoResults": "No matching dish categories found",
 			"dishCategoryInputHint": "Enter a dish category to search",
 			"clearDishCategory": "Clear dish category",
+			"useCurrentLocation": "Use current location",
 			"selectDishCategory": "Select this dish category"
 		},
 		"errors": {
@@ -619,6 +679,8 @@
 		"copyright": "Copyright",
 		"legalDocument": "Legal Document",
 		"logout": "Logout",
+		"logoutConfirmTitle": "Log out?",
+		"logoutConfirmMessage": "You'll need to log in again to manage your posts and reviews.",
 		"blockedTopics": {
 			"navigationLabel": "Blocked dish topics",
 			"pageTitle": "Blocked dish topics",

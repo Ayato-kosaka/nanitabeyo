@@ -118,6 +118,10 @@ const PrimaryButtonComponent: React.FC<PrimaryButtonProps> = ({
 	return (
 		<Pressable
 			accessibilityRole="button"
+			// #930 【仕様】react-native-web は disabled prop からのみ aria-disabled を生成し、
+			// accessibilityState.disabled だけでは DOM 上「有効なボタン」に見えてしまう。
+			// disabled を渡すことで見た目(opacity)と実際の操作可否・支援技術への伝達を一致させる。
+			disabled={isDisabled}
 			accessibilityState={{ disabled: isDisabled, busy: loading }}
 			accessibilityLabel={accessibilityLabel ?? label}
 			testID={testID}

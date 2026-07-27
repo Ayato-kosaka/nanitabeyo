@@ -12,6 +12,7 @@ import i18n from "@/lib/i18n";
 import { height as SCREEN_HEIGHT } from "@/features/topics/constants";
 import { useTopicCardSize } from "@/features/topics/hooks/useTopicCardSize";
 import { TopicVisualCard } from "@/features/topics/components/TopicVisualCard";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 type Props = {
 	candidate: DishCategoryGroupVoteCandidate;
@@ -27,6 +28,15 @@ export function DishCategoryGroupVoteVoteCard({ candidate, onVote }: Props) {
 	useEffect(() => {
 		onVoteRef.current = onVote;
 	}, [onVote]);
+
+	// #959【アクセシビリティ】PanResponder は useRef(...).current で 1 度だけ生成されるクロージャのため、
+	// onVoteRef と同じ理由で reducedMotion も ref 経由で参照する(直接参照すると初回値に固定されてしまう)
+	const reducedMotion = useReducedMotion();
+	const reducedMotionRef = useRef(reducedMotion);
+
+	useEffect(() => {
+		reducedMotionRef.current = reducedMotion;
+	}, [reducedMotion]);
 
 	const panResponder = useRef(
 		PanResponder.create({
@@ -44,7 +54,12 @@ export function DishCategoryGroupVoteVoteCard({ candidate, onVote }: Props) {
 					translateX.setValue(0);
 					return;
 				}
-				Animated.spring(translateX, { toValue: 0, useNativeDriver: true }).start();
+				// #959【アクセシビリティ】reduced motion 時は中央へのバウンド演出(spring)を省略し即座に戻す
+				if (reducedMotionRef.current) {
+					translateX.setValue(0);
+				} else {
+					Animated.spring(translateX, { toValue: 0, useNativeDriver: true }).start();
+				}
 			},
 		}),
 	).current;
@@ -64,11 +79,23 @@ export function DishCategoryGroupVoteVoteCard({ candidate, onVote }: Props) {
 			{/* #856 【設計】スワイプだけに依存しない。
 			    ボタン操作も同じ onVote に流すことで、操作経路による投票状態のズレを防ぐ。 */}
 			<View style={styles.buttonRow}>
-				<TouchableOpacity style={styles.dislikeButton} onPress={() => onVote("dislike")} activeOpacity={0.85}>
+				<TouchableOpacity
+					style={styles.dislikeButton}
+					onPress={() => onVote("dislike")}
+					activeOpacity={0.85}
+					testID="dish-category-group-vote-dislike-button"
+					accessibilityRole="button"
+					accessibilityLabel={i18n.t("DishCategoryGroupVotes.dislikeButtonLabel", { title: candidate.displayName })}>
 					<ThumbsDown size={24} color="#F05537" strokeWidth={2.4} />
 					<Text style={styles.buttonLabel}>{i18n.t("DishCategoryGroupVotes.dislike")}</Text>
 				</TouchableOpacity>
-				<TouchableOpacity style={styles.likeButton} onPress={() => onVote("like")} activeOpacity={0.85}>
+				<TouchableOpacity
+					style={styles.likeButton}
+					onPress={() => onVote("like")}
+					activeOpacity={0.85}
+					testID="dish-category-group-vote-like-button"
+					accessibilityRole="button"
+					accessibilityLabel={i18n.t("DishCategoryGroupVotes.likeButtonLabel", { title: candidate.displayName })}>
 					<ThumbsUp size={24} color="#FFFFFF" strokeWidth={2.4} />
 					<Text style={[styles.buttonLabel, styles.likeButtonLabel]}>{i18n.t("DishCategoryGroupVotes.like")}</Text>
 				</TouchableOpacity>
