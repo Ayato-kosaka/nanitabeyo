@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Platform } from "react-native
 import { ScrollView } from "react-native-gesture-handler";
 import { LinearGradient } from "expo-linear-gradient";
 import { Heart } from "lucide-react-native";
+import Stars from "@/components/Stars";
 import { formatLikeCount, sliceByUnitLimit } from "../utils/text";
 import { dateStringToTimestamp } from "@/lib/frontend-utils";
 import { useLogger } from "@/hooks/useLogger";
@@ -152,6 +153,10 @@ export function DishReviewsSection({ id, idType, paddingRight, carouselRef }: Di
 						<View key={review.id} style={styles.commentItem}>
 							<View style={styles.commentHeader}>
 								<Text style={styles.commentUsername}>{review.username}</Text>
+								{/* #956 【仕様】投稿者が付けた星をコメントごとに表示する。
+								    色はデフォルトの gold だとダーク背景上で悪目立ちするため、
+								    タイムスタンプ(#CCCCCC)と同系のミュートカラーに合わせる */}
+								<Stars rating={review.rating} size={11} color="#CCCCCC" />
 								<Text style={styles.commentTimestamp}>{dateStringToTimestamp(review.created_at)}</Text>
 							</View>
 							<View style={styles.commentContent}>

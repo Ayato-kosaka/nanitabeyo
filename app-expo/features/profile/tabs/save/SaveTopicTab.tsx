@@ -1,11 +1,12 @@
 import React, { useCallback } from "react";
-import { View, Text, StyleSheet, ViewStyle, StyleProp, FlatListProps, useWindowDimensions } from "react-native";
+import { View, Text, StyleSheet, ViewStyle, StyleProp, FlatListProps } from "react-native";
 import { GridList } from "@/components/collapsible-tabs/GridList";
 import { ImageCard } from "@/components/ImageCardGrid";
 import { EmptyState } from "@/components/EmptyState";
 import i18n from "@/lib/i18n";
 import type { QueryMeSavedDishCategoriesResponse } from "@shared/api/v1/res";
 import { useLocale } from "@/hooks/useLocale";
+import { useContentWidth } from "@/hooks/useContentWidth";
 import { wikimediaThumbFromOriginal } from "@/lib/wikimedia";
 import { DishCategory, selectTopicById, useTopicsStore } from "@/stores/useTopicsStore";
 
@@ -43,7 +44,9 @@ export function SaveTopicTab({
 	onEmptyAction,
 }: SaveTopicTabProps) {
 	const { locale } = useLocale();
-	const { width: deviceWidth } = useWindowDimensions();
+	// #958 【修正】useWindowDimensions はウィンドウ実幅を返すため、CenteredAppShell が
+	// 収める中央カラム幅とズレる(サムネイル取得サイズが過大になる)。useContentWidth に置換
+	const deviceWidth = useContentWidth();
 
 	// Calculate card width for 2 columns with 16px padding and 8px gap
 	// Same calculation as ImageCardGrid: (deviceWidth - paddingHorizontal*2 - gap*(columns-1)) / columns

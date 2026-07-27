@@ -272,13 +272,9 @@ export default function DishMediaContent({
 			<View style={styles.topHeader}>
 				<View style={styles.headerLeft}>
 					<Text style={styles.menuName}>{getTitle(dishMediaEntry)}</Text>
-					<View style={styles.priceRatingContainer}>
-						{/* <Text style={styles.price}>{i18n.t("Search.currencySuffix")}2,800</Text> */}
-						{/* <View style={styles.ratingContainer}>
-              {renderStars(5, 4)}
-              <Text style={styles.reviewCount}>(127)</Text>
-            </View> */}
-					</View>
+					{/* #956 【仕様】評価表示は「投稿者が付けた星」(DishReviewsSection側)のみとし、
+					    平均評価はレビュー数が少ないフェーズでは目安として機能しないため表示しない */}
+					<View style={styles.priceRatingContainer}></View>
 				</View>
 				<View style={styles.headerRight}></View>
 			</View>

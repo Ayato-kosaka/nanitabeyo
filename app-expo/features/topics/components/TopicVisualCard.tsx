@@ -3,7 +3,6 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { ImageOff, RefreshCw } from "lucide-react-native";
-import { CARD_WIDTH } from "@/features/topics/constants";
 import { SkeletonShimmer } from "@/components/SkeletonShimmer";
 import i18n from "@/lib/i18n";
 import { type TopicImageResourceState } from "@/features/topics/hooks/useTopicImageResources";
@@ -12,6 +11,10 @@ type TopicVisualCardProps = {
 	title: string;
 	tagline: string;
 	imageSource: React.ComponentProps<typeof Image>["source"];
+	// #958 【修正】以前は features/topics/constants.ts の CARD_WIDTH(モジュール評価時の
+	// window幅で固定、リサイズ非追従・中央カラム幅とも不一致)を直接 import していた。
+	// cardHeight と同様に呼び出し元から算出済みの値を渡す方式へ統一
+	cardWidth: number;
 	cardHeight: number;
 	imageState?: TopicImageResourceState;
 	recyclingKey?: string;
@@ -24,6 +27,7 @@ export function TopicVisualCard({
 	title,
 	tagline,
 	imageSource,
+	cardWidth,
 	cardHeight,
 	imageState,
 	recyclingKey,
@@ -37,8 +41,8 @@ export function TopicVisualCard({
 	const shouldRenderImage = !imageState || imageState.status === "ready";
 
 	return (
-		<View style={[styles.card, { height: cardHeight }]}>
-			{/* #802 【設計】Topics ではプリロード済み ImageRef を優先し、Carousel 内 Image の load 順序に依存しない。 */}
+		<View style={[styles.card, { width: cardWidth, height: cardHeight }]}>
+			{/* #802 【設計】Topics ではプリロード済み ImageRef(web は直接指定の uri)を優先し、Carousel 内 Image の load 順序に依存しない。 */}
 			{shouldRenderImage ? (
 				<Image
 					source={resolvedImageSource}
@@ -97,7 +101,6 @@ export function TopicVisualCard({
 
 const styles = StyleSheet.create({
 	card: {
-		width: CARD_WIDTH,
 		borderRadius: 24,
 		overflow: "hidden",
 		backgroundColor: "#EEE",

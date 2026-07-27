@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Image, type ImageRef } from "expo-image";
+import { Platform } from "react-native";
+import { Image, type ImageRef, type ImageSource } from "expo-image";
 import { Topic } from "@/types/search";
 import { WIKIMEDIA_HEADERS } from "@/lib/wikimedia";
 import { useLogger } from "@/hooks/useLogger";
@@ -7,7 +8,9 @@ import { useLogger } from "@/hooks/useLogger";
 export type TopicImageResourceState =
 	| { status: "idle" }
 	| { status: "loading" }
-	| { status: "ready"; image: ImageRef }
+	// #929 【設計】image は native では Image.loadAsync 済みの ImageRef、web では直接渡す URI ソース。
+	// どちらも同一の state を cards/thumbnails 双方へ渡すことで、画面単位で1回だけ取得したリソースを共有する。
+	| { status: "ready"; image: ImageRef | ImageSource }
 	| { status: "error"; errorMessage?: string };
 
 type TopicImageResourceStates = Record<string, TopicImageResourceState>;
@@ -22,6 +25,16 @@ const getTopicImageKey = (topic: Topic) => `${topic.categoryId}::${topic.imageUr
 const cloneTopicImageStates = (states: TopicImageResourceStates): TopicImageResourceStates => ({ ...states });
 
 /**
+ * #929 【設計】ready state が保持する native の ImageRef のみを解放する。
+ * web の ready state は uri を直接渡す ImageSource であり、native画像リソースを確保していないため対象外。
+ */
+const releaseIfImageRef = (image: ImageRef | ImageSource) => {
+	if (typeof (image as Partial<ImageRef>).release === "function") {
+		(image as ImageRef).release();
+	}
+};
+
+/**
  * #802 【設計】Topics 画面の画像リソース取得状態を管理する。
  * 入力: 表示中の topics と検索条件を表す sessionKey。
  * 出力: cards/thumbnails が参照する画像 state、retry/reset 用の操作。
@@ -34,11 +47,30 @@ export const useTopicImageResources = ({ topics, sessionKey }: UseTopicImageReso
 	const imageLoadGenerationRef = useRef(0);
 	const [topicImageStates, setTopicImageStates] = useState<TopicImageResourceStates>({});
 
+	/**
+	 * #929 【設計】直前の setState commit(＝旧 <Image> の source 差し替え)より前に release すると
+	 * 表示中の native 画像が消えるため、release は次の tick まで遅延させて実行する。
+	 */
+	const releaseStatesDeferred = useCallback((states: TopicImageResourceStates) => {
+		setTimeout(() => {
+			for (const state of Object.values(states)) {
+				if (state.status === "ready") releaseIfImageRef(state.image);
+			}
+		}, 0);
+	}, []);
+
 	const resetImageStates = useCallback(() => {
 		imageLoadGenerationRef.current += 1;
+		const previousStates = topicImageStatesRef.current;
 		topicImageStatesRef.current = {};
 		setTopicImageStates({});
-	}, []);
+		releaseStatesDeferred(previousStates);
+	}, [releaseStatesDeferred]);
+
+	// #929 【設計】アンマウント時も検索セッション終了と同様に、保持中の ImageRef を解放する。
+	useEffect(() => {
+		return () => releaseStatesDeferred(topicImageStatesRef.current);
+	}, [releaseStatesDeferred]);
 
 	const loadTopicImage = useCallback(
 		async (topic: Topic) => {
@@ -53,14 +85,44 @@ export const useTopicImageResources = ({ topics, sessionKey }: UseTopicImageReso
 			};
 			setTopicImageStates(cloneTopicImageStates(topicImageStatesRef.current));
 
+			// #929 【設計】web の Image.loadAsync は fetch→blob→createObjectURL を internally 行い、
+			// release() が実質no-opでBlob URLを解放できない(expo-image 2.4.1)。検索を繰り返す本画面では
+			// Blob が蓄積し続けるため、web は取得を介さずURLをそのまま cards/thumbnails 双方へ渡す。
+			// #929 【バグ】source に headers を渡すと(値が空オブジェクトでも)、expo-image web の
+			// useHeaders が同じ fetch→blob 変換を <Image> インスタンスごとに個別実行してしまい、
+			// ブラウザキャッシュ共有もdedupeも効かなくなる。web は #719 により実際のヘッダーを
+			// 送れないため、headers キー自体を省略して plain <img src> 経路のみを使う。
+			if (Platform.OS === "web") {
+				topicImageStatesRef.current = {
+					...topicImageStatesRef.current,
+					[key]: { status: "ready", image: { uri: topic.imageUrl } },
+				};
+				setTopicImageStates(cloneTopicImageStates(topicImageStatesRef.current));
+				return;
+			}
+
+			const loadStartedAt = Date.now();
 			try {
 				const image = await Image.loadAsync({ uri: topic.imageUrl, headers: WIKIMEDIA_HEADERS, cacheKey: key });
-				if (imageLoadGenerationRef.current !== imageLoadGeneration) return;
+				if (imageLoadGenerationRef.current !== imageLoadGeneration) {
+					// #929 【設計】古い検索セッションの結果はUIへ渡らないため、保持し続けずその場で解放する。
+					image.release();
+					return;
+				}
 				topicImageStatesRef.current = {
 					...topicImageStatesRef.current,
 					[key]: { status: "ready", image },
 				};
 				setTopicImageStates(cloneTopicImageStates(topicImageStatesRef.current));
+				logFrontendEvent({
+					event_name: "topic_image_resource_ready",
+					error_level: "log",
+					payload: {
+						topic_id: topic.categoryId,
+						duration_ms: Date.now() - loadStartedAt,
+						platform: Platform.OS,
+					},
+				});
 			} catch (error: unknown) {
 				if (imageLoadGenerationRef.current !== imageLoadGeneration) return;
 				const errorMessage = error instanceof Error ? error.message : String(error);

@@ -18,6 +18,7 @@ const Stars: React.FC<StarsProps> = ({ rating, maxStars = 5, size = 12, color = 
 	return (
 		// #939 【修正】星アイコンの並びには名前が無く、スクリーンリーダーでは評価値を判別できなかった。
 		// コンテナに評価値のラベルを付け、個々の星アイコン(装飾)は読み上げ対象から除外する
+		// (#956 で追加していた Common.ratingLabel ベースのラベルは #939 のこの実装に統一)
 		<View style={styles.container} accessible accessibilityLabel={i18n.t("Stars.accessibility.rating", { rating })}>
 			{Array.from({ length: fullStars }).map((_, index) => (
 				<FontAwesome

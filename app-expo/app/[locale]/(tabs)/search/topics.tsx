@@ -11,10 +11,12 @@ import { TopicCard, TOPIC_CARD_CTA_OVERHANG, type TopicDeepDiveOption } from "@/
 import { useTopicImageResources } from "@/features/topics/hooks/useTopicImageResources";
 import { TopicsLoading } from "@/features/topics/components/TopicsLoading";
 import { TopicsError } from "@/features/topics/components/TopicsError";
+import { SkeletonShimmer } from "@/components/SkeletonShimmer";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useDialog } from "@/contexts/DialogProvider";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
-import { CARD_WIDTH, CARD_MAX_HEIGHT, width as SCREEN_WIDTH } from "@/features/topics/constants";
+import { useTopicCardSize } from "@/features/topics/hooks/useTopicCardSize";
+import { useContentWidth } from "@/hooks/useContentWidth";
 import {
 	budgetIntentToPriceLevel,
 	coreIngredientOptions,
@@ -31,7 +33,6 @@ import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import { makeDishMediaEntriesKey } from "@/features/dishMedia/utils/dishMediaEntriesKey";
-import { WIKIMEDIA_HEADERS } from "@/lib/wikimedia";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { useCreateDishCategoryGroupVote } from "@/features/dishCategoryGroupVotes/hooks/useCreateDishCategoryGroupVote";
 import type { CreateDishCategoryGroupVoteResponse } from "@shared/api/v1/res";
@@ -96,12 +97,16 @@ export default function TopicsScreen() {
 	const { showDialog } = useDialog();
 	const { handleBlockCard } = useBlockTopic(hideTopic, unhideTopic, showSnackbar);
 	const { createGroupVote, isCreating } = useCreateDishCategoryGroupVote();
+	// #958 【修正】CARD_WIDTH/CARD_MAX_HEIGHT/SCREEN_WIDTH(window幅固定、中央カラム幅と不一致)の
+	// 代わりに useContentWidth ベースの値を使う
+	const { cardWidth, cardMaxHeight } = useTopicCardSize();
+	const contentWidth = useContentWidth();
 	// #907 【設計】Carouselのmount条件とimpressionの準備条件で同じ高さを参照する。
 	const cardHeight = useMemo(() => {
 		if (carouselAvailableHeight <= 0) return 0;
 		const heightWithMargin = carouselAvailableHeight - TOPIC_CARD_CTA_OVERHANG;
-		return Math.min(heightWithMargin, CARD_MAX_HEIGHT);
-	}, [carouselAvailableHeight]);
+		return Math.min(heightWithMargin, cardMaxHeight);
+	}, [carouselAvailableHeight, cardMaxHeight]);
 
 	useEffect(() => {
 		const searchSessionKey = searchParams ?? "";
@@ -481,6 +486,7 @@ export default function TopicsScreen() {
 				onDeepDive={handleDeepDive}
 				onSelect={handleCardPress}
 				deepDiveOptions={getDeepDiveOptions(item)}
+				cardWidth={cardWidth}
 				cardHeight={cardHeight}
 				imageState={imageState}
 				onImageRetry={retryImage}
@@ -632,7 +638,7 @@ export default function TopicsScreen() {
 							<View style={styles.carouselContainer}>
 								<Carousel
 									ref={carouselRef}
-									width={CARD_WIDTH}
+									width={cardWidth}
 									height={cardHeight + TOPIC_CARD_CTA_OVERHANG}
 									data={visibleTopics}
 									renderItem={renderCard}
@@ -644,7 +650,7 @@ export default function TopicsScreen() {
 										parallaxScrollingScale: 0.9,
 										parallaxScrollingOffset: 100,
 									}}
-									style={styles.carousel}
+									style={{ width: cardWidth }}
 								/>
 							</View>
 						)
@@ -656,31 +662,45 @@ export default function TopicsScreen() {
 				{/* ✅ 下部サムネイル：absolute ではなく通常フローの一番下 */}
 				{visibleTopics.length > 0 && (
 					<View style={styles.thumbnailGrid}>
-						{visibleTopics.map((topic, index) => (
-							<TouchableOpacity
-								key={topic.categoryId}
-								style={[styles.thumbnail, currentIndex === index && styles.thumbnailActive]}
-								onPress={() => handleThumbnailPress(index)}
-								activeOpacity={0.7}
-								accessibilityRole="button"
-								accessibilityLabel={i18n.t("Topics.accessibility.thumbnail", {
-									title: topic.topicTitle,
-									index: index + 1,
-									total: visibleTopics.length,
-								})}
-								accessibilityState={{ selected: currentIndex === index }}>
-								<Image
-									source={{ uri: topic.imageUrl, headers: WIKIMEDIA_HEADERS }}
-									style={styles.thumbnailImage}
-									contentFit="cover"
-									cachePolicy="memory"
-									// #937 【仕様】親 TouchableOpacity 側で読み上げるため、画像自体は装飾扱いにする
-									alt=""
-									accessibilityElementsHidden
-									importantForAccessibility="no"
-								/>
-							</TouchableOpacity>
-						))}
+						{visibleTopics.map((topic, index) => {
+							// #929 【設計】メインカードと同じ imageState を参照し、画面単位で1回だけ取得したリソースを共有する。
+							// native は取得済み ImageRef、web は直接指定の uri であり、いずれも独自に再取得しない。
+							const thumbnailImageState = getImageState(topic);
+							return (
+								<TouchableOpacity
+									key={topic.categoryId}
+									style={[
+										styles.thumbnail,
+										// #958 【修正】サムネイル幅は中央カラム幅に追従させる
+										{ width: (contentWidth - 72) / 6 },
+										currentIndex === index && styles.thumbnailActive,
+									]}
+									onPress={() => handleThumbnailPress(index)}
+									activeOpacity={0.7}
+									accessibilityRole="button"
+									accessibilityLabel={i18n.t("Topics.accessibility.thumbnail", {
+										title: topic.topicTitle,
+										index: index + 1,
+										total: visibleTopics.length,
+									})}
+									accessibilityState={{ selected: currentIndex === index }}>
+									{thumbnailImageState.status === "ready" ? (
+										<Image
+											source={thumbnailImageState.image}
+											style={styles.thumbnailImage}
+											contentFit="cover"
+											recyclingKey={`topic-thumbnail:${topic.categoryId}`}
+											// #937 【仕様】親 TouchableOpacity 側で読み上げるため、画像自体は装飾扱いにする
+											alt=""
+											accessibilityElementsHidden
+											importantForAccessibility="no"
+										/>
+									) : (
+										<SkeletonShimmer width="100%" height="100%" />
+									)}
+								</TouchableOpacity>
+							);
+						})}
 					</View>
 				)}
 			</View>
@@ -766,9 +786,7 @@ const styles = StyleSheet.create({
 		justifyContent: "center",
 		alignItems: "center",
 	},
-	carousel: {
-		width: SCREEN_WIDTH,
-	},
+	// #958 【修正】width は中央カラム幅に追従させる必要があるため JSX 側でインライン合成する
 	emptyContainer: {
 		flex: 1,
 		justifyContent: "center",
@@ -806,7 +824,7 @@ const styles = StyleSheet.create({
 		gap: 8,
 	},
 	thumbnail: {
-		width: (SCREEN_WIDTH - 72) / 6, // 画面幅から余白を引いて3等分
+		// #958 【修正】width は中央カラム幅に追従させる必要があるため JSX 側でインライン合成する
 		aspectRatio: 1, // 正方形
 		borderRadius: 12,
 		overflow: "hidden",

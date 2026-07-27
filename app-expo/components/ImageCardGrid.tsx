@@ -1,17 +1,10 @@
 import React, { memo, ReactNode, useCallback, useMemo } from "react";
-import {
-	FlatList,
-	ListRenderItemInfo,
-	Pressable,
-	StyleProp,
-	StyleSheet,
-	useWindowDimensions,
-	ViewStyle,
-} from "react-native";
+import { FlatList, ListRenderItemInfo, Pressable, StyleProp, StyleSheet, ViewStyle } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import i18n from "@/lib/i18n";
 import { useHaptics } from "@/hooks/useHaptics";
+import { useContentWidth } from "@/hooks/useContentWidth";
 import { WIKIMEDIA_HEADERS } from "@/lib/wikimedia";
 import { getCacheKeyForImage } from "@/lib/image";
 
@@ -79,7 +72,9 @@ function _ImageCard<T extends ImageCardItem>({
 	children?: ReactNode;
 }) {
 	const { lightImpact } = useHaptics();
-	const { width: widthDimensions } = useWindowDimensions();
+	// #958 【修正】useWindowDimensions はブラウザウィンドウ実幅を返すため、
+	// CenteredAppShell が収める中央カラム幅とズレてカードがカラムの外へはみ出していた
+	const widthDimensions = useContentWidth();
 
 	const source = useMemo(
 		() => ({ uri: item.imageUrl, headers: WIKIMEDIA_HEADERS, cacheKey: getCacheKeyForImage(item.imageUrl) }),
