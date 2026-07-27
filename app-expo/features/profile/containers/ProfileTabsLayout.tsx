@@ -1,6 +1,6 @@
-import React, { useState, useCallback, useMemo } from "react";
-import { View, StyleSheet, LayoutChangeEvent } from "react-native";
-import { router } from "expo-router";
+import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import { View, StyleSheet, LayoutChangeEvent, Platform } from "react-native";
+import { router, useLocalSearchParams } from "expo-router";
 import { Tabs } from "@/components/collapsible-tabs";
 import { ProfileHeader } from "../components/ProfileHeader";
 import { ProfileTabsBar } from "../components/ProfileTabsBar";
@@ -67,6 +67,25 @@ export function ProfileTabsLayout() {
 		}
 		return routes;
 	}, [isOwnProfile, isGuest]);
+
+	// #954 【修正】遷移元からタブを指定できるようにする(例: トピック保存スナックバーの
+	// 「見る」→ tab=saved-topics)。指定が無い/不正な場合は従来通り先頭タブを表示する。
+	const { tab: requestedTabParam } = useLocalSearchParams<{ tab?: string }>();
+	const requestedTab = useMemo(
+		() => (requestedTabParam && tabRoutes.includes(requestedTabParam as RouteName) ? requestedTabParam : undefined),
+		[requestedTabParam, tabRoutes],
+	);
+
+	// #954 【設計】プロフィールはタブナビゲータ内で mount され続けるため、initialTabName
+	// (mount 時のみ有効)だけでは2回目以降の遷移でタブが切り替わらない。
+	// native は Tabs.Container の ref(jumpToTab)で追従させる。web のアダプタは
+	// initialTabName の変更に自身で追従する実装のため ref は不要(関数コンポーネントに
+	// ref を渡すと警告になるため web では付けない)。
+	const tabsContainerRef = useRef<{ jumpToTab?: (name: string) => void } | null>(null);
+	useEffect(() => {
+		if (!requestedTab) return;
+		tabsContainerRef.current?.jumpToTab?.(requestedTab);
+	}, [requestedTab]);
 
 	const handleHeaderLayout = useCallback((event: LayoutChangeEvent) => {
 		const { height } = event.nativeEvent.layout;
@@ -176,9 +195,11 @@ export function ProfileTabsLayout() {
 	return (
 		<View style={styles.container}>
 			<Tabs.Container
+				{...(Platform.OS !== "web" ? { ref: tabsContainerRef as never } : {})}
 				headerHeight={headerHeight}
 				renderHeader={renderHeader}
 				renderTabBar={renderTabBar}
+				initialTabName={requestedTab}
 				onIndexChange={handleTabChange}
 				pagerProps={{ scrollEnabled: true }}
 				headerContainerStyle={{ shadowColor: "transparent" }}
