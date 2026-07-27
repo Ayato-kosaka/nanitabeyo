@@ -62,4 +62,38 @@ test.describe("検索フォーム", () => {
 		await expect(appPage.getByText("距離は？")).toBeVisible();
 		await expect(appPage.getByText("どんな系統が食べたい？")).toBeVisible();
 	});
+
+	// ─ テストケース: 距離に適した移動手段だけをおすすめ順で表示する ─
+	// #987 【仕様】500mでは自転車・徒歩、10kmでは電車・車を既定表示し、
+	// おすすめ外の手段は「もっと見る」を操作したときだけ表示する。
+	test("距離に応じて移動時間のおすすめ表示が切り替わる", async ({ appPage }) => {
+		const searchPage = new SearchPage(appPage);
+
+		await searchPage.advancedToggle.click();
+
+		// デフォルト500m: 一般化所要時間が短いおすすめ2件のみを表示
+		await expect(searchPage.distanceEstimate("bike")).toContainText("6");
+		await expect(searchPage.distanceEstimate("walk")).toContainText("7");
+		await expect(searchPage.distanceEstimate("car")).not.toBeVisible();
+		await expect(searchPage.distanceEstimate("train")).not.toBeVisible();
+
+		// おすすめ外は明示操作した場合だけ表示
+		await searchPage.distanceEstimatesToggle.click();
+		await expect(searchPage.distanceEstimate("car")).toContainText("9");
+		await expect(searchPage.distanceEstimate("train")).toContainText("18");
+		await searchPage.distanceEstimatesToggle.click();
+		await expect(searchPage.distanceEstimate("car")).not.toBeVisible();
+		await expect(searchPage.distanceEstimate("train")).not.toBeVisible();
+
+		// 500m（index 2）から10km（index 8）へキーボード操作で変更
+		await searchPage.distanceSlider.focus();
+		for (let step = 0; step < 6; step += 1) {
+			await searchPage.distanceSlider.press("ArrowRight");
+		}
+
+		await expect(searchPage.distanceEstimate("train")).toContainText("36");
+		await expect(searchPage.distanceEstimate("car")).toContainText("42");
+		await expect(searchPage.distanceEstimate("bike")).not.toBeVisible();
+		await expect(searchPage.distanceEstimate("walk")).not.toBeVisible();
+	});
 });
