@@ -119,5 +119,10 @@ test.describe("検索フォーム", () => {
 		await expect(searchPage.distanceEstimate("car")).toContainText("42");
 		await expect(searchPage.distanceEstimate("bike")).not.toBeVisible();
 		await expect(searchPage.distanceEstimate("walk")).not.toBeVisible();
+
+		// 展開時の値も確認し、整数分の境界が浮動小数点誤差で1分増えないことを保証
+		await searchPage.distanceEstimatesToggle.click();
+		await expect(searchPage.distanceEstimate("bike")).toContainText("44");
+		await expect(searchPage.distanceEstimate("walk")).toContainText("125");
 	});
 });
