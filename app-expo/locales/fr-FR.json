@@ -89,7 +89,18 @@
 		"currentLocation": "Localisation actuelle",
 		"DistanceSlider": {
 			"near": "Proche",
-			"far": "Loin"
+			"far": "Loin",
+			"edgeEstimate": "Temps estimé jusqu’à la limite de la zone",
+			"approxMinutes": "Env. {{minutes}} min",
+			"modes": {
+				"walk": "À pied",
+				"bike": "Vélo",
+				"car": "Voiture",
+				"train": "Train"
+			},
+			"showMore": "Voir plus",
+			"showLess": "Voir moins",
+			"estimateHint": "Les temps varient selon l’itinéraire, le trafic et l’attente"
 		},
 		"BudgetSlider": {
 			"cheap": "Bon marché",
