@@ -147,7 +147,8 @@ export function FeedbackForm({
 	return (
 		<>
 			<Card style={{ gap: 16 }}>
-				<Text style={styles.feedbackTitle}>{i18n.t("Feedback.title")}</Text>
+				{/* #951 【設計】タイトルは呼び出し元の画面(profile/feedback)の ScreenHeader が表示するため、
+				    フォーム内では重複表示しない */}
 
 				{/* Submit Error Display */}
 				{submitError ? (
@@ -237,13 +238,6 @@ export function FeedbackForm({
 }
 
 const styles = StyleSheet.create({
-	feedbackTitle: {
-		fontSize: 20,
-		fontWeight: "700",
-		color: "#1A1A1A",
-		textAlign: "center",
-		letterSpacing: -0.3,
-	},
 	feedbackLabel: {
 		fontSize: 16,
 		fontWeight: "600",
