@@ -11,6 +11,7 @@ import { TopicCard, TOPIC_CARD_CTA_OVERHANG, type TopicDeepDiveOption } from "@/
 import { useTopicImageResources } from "@/features/topics/hooks/useTopicImageResources";
 import { TopicsLoading } from "@/features/topics/components/TopicsLoading";
 import { TopicsError } from "@/features/topics/components/TopicsError";
+import { SkeletonShimmer } from "@/components/SkeletonShimmer";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useDialog } from "@/contexts/DialogProvider";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
@@ -31,7 +32,6 @@ import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import { makeDishMediaEntriesKey } from "@/features/dishMedia/utils/dishMediaEntriesKey";
-import { WIKIMEDIA_HEADERS } from "@/lib/wikimedia";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { useCreateDishCategoryGroupVote } from "@/features/dishCategoryGroupVotes/hooks/useCreateDishCategoryGroupVote";
 import type { CreateDishCategoryGroupVoteResponse } from "@shared/api/v1/res";
@@ -656,31 +656,40 @@ export default function TopicsScreen() {
 				{/* ✅ 下部サムネイル：absolute ではなく通常フローの一番下 */}
 				{visibleTopics.length > 0 && (
 					<View style={styles.thumbnailGrid}>
-						{visibleTopics.map((topic, index) => (
-							<TouchableOpacity
-								key={topic.categoryId}
-								style={[styles.thumbnail, currentIndex === index && styles.thumbnailActive]}
-								onPress={() => handleThumbnailPress(index)}
-								activeOpacity={0.7}
-								accessibilityRole="button"
-								accessibilityLabel={i18n.t("Topics.accessibility.thumbnail", {
-									title: topic.topicTitle,
-									index: index + 1,
-									total: visibleTopics.length,
-								})}
-								accessibilityState={{ selected: currentIndex === index }}>
-								<Image
-									source={{ uri: topic.imageUrl, headers: WIKIMEDIA_HEADERS }}
-									style={styles.thumbnailImage}
-									contentFit="cover"
-									cachePolicy="memory"
-									// #937 【仕様】親 TouchableOpacity 側で読み上げるため、画像自体は装飾扱いにする
-									alt=""
-									accessibilityElementsHidden
-									importantForAccessibility="no"
-								/>
-							</TouchableOpacity>
-						))}
+						{visibleTopics.map((topic, index) => {
+							// #929 【設計】メインカードと同じ imageState を参照し、画面単位で1回だけ取得したリソースを共有する。
+							// native は取得済み ImageRef、web は直接指定の uri であり、いずれも独自に再取得しない。
+							const thumbnailImageState = getImageState(topic);
+							return (
+								<TouchableOpacity
+									key={topic.categoryId}
+									style={[styles.thumbnail, currentIndex === index && styles.thumbnailActive]}
+									onPress={() => handleThumbnailPress(index)}
+									activeOpacity={0.7}
+									accessibilityRole="button"
+									accessibilityLabel={i18n.t("Topics.accessibility.thumbnail", {
+										title: topic.topicTitle,
+										index: index + 1,
+										total: visibleTopics.length,
+									})}
+									accessibilityState={{ selected: currentIndex === index }}>
+									{thumbnailImageState.status === "ready" ? (
+										<Image
+											source={thumbnailImageState.image}
+											style={styles.thumbnailImage}
+											contentFit="cover"
+											recyclingKey={`topic-thumbnail:${topic.categoryId}`}
+											// #937 【仕様】親 TouchableOpacity 側で読み上げるため、画像自体は装飾扱いにする
+											alt=""
+											accessibilityElementsHidden
+											importantForAccessibility="no"
+										/>
+									) : (
+										<SkeletonShimmer width="100%" height="100%" />
+									)}
+								</TouchableOpacity>
+							);
+						})}
 					</View>
 				)}
 			</View>

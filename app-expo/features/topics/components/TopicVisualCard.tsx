@@ -38,7 +38,7 @@ export function TopicVisualCard({
 
 	return (
 		<View style={[styles.card, { height: cardHeight }]}>
-			{/* #802 【設計】Topics ではプリロード済み ImageRef を優先し、Carousel 内 Image の load 順序に依存しない。 */}
+			{/* #802 【設計】Topics ではプリロード済み ImageRef(web は直接指定の uri)を優先し、Carousel 内 Image の load 順序に依存しない。 */}
 			{shouldRenderImage ? (
 				<Image
 					source={resolvedImageSource}
