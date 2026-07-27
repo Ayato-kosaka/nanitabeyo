@@ -89,7 +89,18 @@
 		"currentLocation": "वर्तमान स्थान",
 		"DistanceSlider": {
 			"near": "पास",
-			"far": "दूर"
+			"far": "दूर",
+			"edgeEstimate": "खोज क्षेत्र की सीमा तक अनुमानित समय",
+			"approxMinutes": "लगभग {{minutes}} मिनट",
+			"modes": {
+				"walk": "पैदल",
+				"bike": "साइकिल",
+				"car": "कार",
+				"train": "ट्रेन"
+			},
+			"showMore": "और देखें",
+			"showLess": "कम दिखाएं",
+			"estimateHint": "समय मार्ग, यातायात और प्रतीक्षा के अनुसार बदल सकता है"
 		},
 		"BudgetSlider": {
 			"cheap": "सस्ता",

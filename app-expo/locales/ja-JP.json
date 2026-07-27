@@ -89,7 +89,18 @@
 		"currentLocation": "現在地",
 		"DistanceSlider": {
 			"near": "近い",
-			"far": "遠い"
+			"far": "遠い",
+			"edgeEstimate": "検索範囲の端までの目安",
+			"approxMinutes": "約{{minutes}}分",
+			"modes": {
+				"walk": "徒歩",
+				"bike": "自転車",
+				"car": "車",
+				"train": "電車"
+			},
+			"showMore": "もっと見る",
+			"showLess": "閉じる",
+			"estimateHint": "経路・混雑・待ち時間により変わります"
 		},
 		"BudgetSlider": {
 			"cheap": "安い",

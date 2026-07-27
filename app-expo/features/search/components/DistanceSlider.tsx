@@ -1,6 +1,27 @@
 import React, { useCallback, useMemo, useRef, useState } from "react";
-import { View, Text, PanResponder, StyleSheet, type LayoutChangeEvent } from "react-native";
+import {
+	View,
+	Text,
+	PanResponder,
+	StyleSheet,
+	TouchableOpacity,
+	type LayoutChangeEvent,
+} from "react-native";
+import {
+	Bike,
+	CarFront,
+	ChevronDown,
+	ChevronUp,
+	Footprints,
+	TrainFront,
+} from "lucide-react-native";
 import { distanceOptions } from "@/features/search/constants";
+import {
+	getRecommendedTravelTimeEstimates,
+	getTravelTimeEstimates,
+	type TravelMode,
+	type TravelTimeEstimate,
+} from "@/features/search/travelTimeEstimates";
 import i18n from "@/lib/i18n";
 import { useHaptics } from "@/hooks/useHaptics";
 
@@ -16,24 +37,93 @@ import { useHaptics } from "@/hooks/useHaptics";
 // 端末サイズに依存しない正確なタップ/ドラッグ操作を実現する。
 
 const THUMB_SIZE = 28;
-const THUMB_HIT_SLOP = { top: 16, bottom: 16, left: 16, right: 16 };
+const TICK_SIZE = 6;
+const THUMB_HIT_SLOP = { top: 19, bottom: 19, left: 19, right: 19 };
 // ドラッグとして確定する最小水平移動量。ScrollView の縦スクロールと共存させるため、
 // 「横方向の移動が縦方向より明確に大きい」場合のみこのスライダーがジェスチャーを奪う
 const DRAG_ACTIVATION_THRESHOLD_PX = 4;
+
+const TRAVEL_MODE_LABEL_KEYS = {
+	walk: "Search.DistanceSlider.modes.walk",
+	bike: "Search.DistanceSlider.modes.bike",
+	car: "Search.DistanceSlider.modes.car",
+	train: "Search.DistanceSlider.modes.train",
+} as const satisfies Record<TravelMode, string>;
+
+const TRAVEL_MODE_ICONS = {
+	walk: Footprints,
+	bike: Bike,
+	car: CarFront,
+	train: TrainFront,
+} as const;
 
 interface DistanceSliderProps {
 	distance: number;
 	setDistance: (value: number) => void;
 }
 
+function TravelEstimateChip({
+	estimate,
+	secondary = false,
+}: {
+	estimate: TravelTimeEstimate;
+	secondary?: boolean;
+}) {
+	const Icon = TRAVEL_MODE_ICONS[estimate.mode];
+	const modeLabel = i18n.t(TRAVEL_MODE_LABEL_KEYS[estimate.mode]);
+	const minutesLabel = i18n.t("Search.DistanceSlider.approxMinutes", {
+		minutes: estimate.minutes,
+	});
+
+	return (
+		<View
+			style={[styles.estimateChip, secondary && styles.secondaryEstimateChip]}
+			accessibilityLabel={`${modeLabel} ${minutesLabel}`}
+			testID={`search-distance-estimate-${estimate.mode}`}
+		>
+			<Icon size={16} color={secondary ? "#6B7280" : "#F05537"} />
+			<Text style={styles.estimateLabel}>{modeLabel}</Text>
+			<Text
+				style={[
+					styles.estimateMinutes,
+					secondary && styles.secondaryEstimateMinutes,
+				]}
+			>
+				{minutesLabel}
+			</Text>
+		</View>
+	);
+}
+
 export function DistanceSlider({ distance, setDistance }: DistanceSliderProps) {
 	const { selectionChanged } = useHaptics();
 	const [trackWidth, setTrackWidth] = useState(0);
+	const [showAllEstimates, setShowAllEstimates] = useState(false);
 
 	const currentIndex = useMemo(() => {
-		const index = distanceOptions.findIndex((option) => option.value === distance);
+		const index = distanceOptions.findIndex(
+			(option) => option.value === distance,
+		);
 		return index === -1 ? 0 : index;
 	}, [distance]);
+
+	const allEstimates = useMemo(
+		() => getTravelTimeEstimates(distance),
+		[distance],
+	);
+	const recommendedEstimates = useMemo(
+		() => getRecommendedTravelTimeEstimates(distance),
+		[distance],
+	);
+	const recommendedModes = useMemo(
+		() => new Set(recommendedEstimates.map((estimate) => estimate.mode)),
+		[recommendedEstimates],
+	);
+	const otherEstimates = useMemo(
+		() =>
+			allEstimates.filter((estimate) => !recommendedModes.has(estimate.mode)),
+		[allEstimates, recommendedModes],
+	);
 
 	// #935 【設計】PanResponder のコールバックは生成時のクロージャを使い続けるため、
 	// 最新値を ref 経由で参照する(useRef で1回だけ生成し毎レンダーの再生成を避けるため)
@@ -125,12 +215,31 @@ export function DistanceSlider({ distance, setDistance }: DistanceSliderProps) {
 		[increment, decrement],
 	);
 
+	const toggleEstimates = useCallback(() => {
+		selectionChanged();
+		setShowAllEstimates((current) => !current);
+	}, [selectionChanged]);
+
 	const currentOption = distanceOptions[currentIndex];
-	const thumbPosition =
-		trackWidth > 0 ? (currentIndex / (distanceOptions.length - 1)) * trackWidth - THUMB_SIZE / 2 : -THUMB_SIZE / 2;
+	const thumbCenter =
+		trackWidth > 0
+			? (currentIndex / (distanceOptions.length - 1)) * trackWidth
+			: 0;
+	const thumbPosition = thumbCenter - THUMB_SIZE / 2;
 
 	return (
 		<View style={styles.sliderContainer}>
+			<View style={styles.sliderHeader}>
+				<Text style={styles.sliderHint}>
+					{i18n.t("Search.DistanceSlider.edgeEstimate")}
+				</Text>
+				<View style={styles.distanceBadge}>
+					<Text style={styles.distanceValue}>
+						{i18n.t(currentOption.label)}
+					</Text>
+				</View>
+			</View>
+
 			<View
 				style={styles.sliderTrack}
 				onLayout={handleTrackLayout}
@@ -156,28 +265,137 @@ export function DistanceSlider({ distance, setDistance }: DistanceSliderProps) {
 				// react-native-web は未知のプロパティをそのまま div へ forward するため実際には機能する
 				focusable
 				{...({ onKeyDown: handleKeyDown } as Record<string, unknown>)}
-				testID="search-distance-slider">
-				<View style={[styles.sliderThumb, { left: thumbPosition }]} />
+				testID="search-distance-slider"
+			>
+				<View
+					pointerEvents="none"
+					style={[styles.sliderProgress, { width: thumbCenter }]}
+				/>
+				{distanceOptions.map((option, index) => {
+					const tickCenter =
+						trackWidth > 0
+							? (index / (distanceOptions.length - 1)) * trackWidth
+							: 0;
+					return (
+						<View
+							key={option.value}
+							pointerEvents="none"
+							style={[
+								styles.sliderTick,
+								index <= currentIndex && styles.activeSliderTick,
+								{ left: tickCenter - TICK_SIZE / 2 },
+							]}
+						/>
+					);
+				})}
+				<View
+					pointerEvents="none"
+					style={[styles.sliderThumb, { left: thumbPosition }]}
+				/>
 			</View>
-			<View style={styles.sliderLabels}>
-				<Text style={styles.sliderLabelLeft}>{i18n.t("Search.DistanceSlider.near")}</Text>
-				<Text style={styles.sliderLabelRight}>{i18n.t("Search.DistanceSlider.far")}</Text>
+
+			<View
+				style={styles.estimateRow}
+				accessibilityRole="list"
+				accessibilityHint={i18n.t("Search.DistanceSlider.estimateHint")}
+				testID="search-distance-recommended-estimates"
+			>
+				{recommendedEstimates.map((estimate) => (
+					<TravelEstimateChip key={estimate.mode} estimate={estimate} />
+				))}
+				{otherEstimates.length > 0 && (
+					<TouchableOpacity
+						style={styles.moreButton}
+						onPress={toggleEstimates}
+						accessibilityRole="button"
+						accessibilityState={{ expanded: showAllEstimates }}
+						testID="search-distance-estimates-toggle"
+					>
+						<Text style={styles.moreButtonText}>
+							{showAllEstimates
+								? i18n.t("Search.DistanceSlider.showLess")
+								: i18n.t("Search.DistanceSlider.showMore")}
+						</Text>
+						{showAllEstimates ? (
+							<ChevronUp size={14} color="#F05537" />
+						) : (
+							<ChevronDown size={14} color="#F05537" />
+						)}
+					</TouchableOpacity>
+				)}
 			</View>
+
+			{showAllEstimates && (
+				<View
+					style={styles.estimateRow}
+					testID="search-distance-other-estimates"
+				>
+					{otherEstimates.map((estimate) => (
+						<TravelEstimateChip
+							key={estimate.mode}
+							estimate={estimate}
+							secondary
+						/>
+					))}
+				</View>
+			)}
 		</View>
 	);
 }
 
 const styles = StyleSheet.create({
 	sliderContainer: {
-		width: 300,
-		justifyContent: "center",
+		width: "100%",
+	},
+	sliderHeader: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+		gap: 12,
+		marginBottom: 14,
+	},
+	sliderHint: {
+		flex: 1,
+		fontSize: 12,
+		lineHeight: 18,
+		color: "#6B7280",
+	},
+	distanceBadge: {
+		backgroundColor: "#FDEBE7",
+		paddingHorizontal: 12,
+		paddingVertical: 5,
+		borderRadius: 14,
+	},
+	distanceValue: {
+		fontSize: 16,
+		fontWeight: "700",
+		color: "#F05537",
 	},
 	sliderTrack: {
 		height: 6,
-		backgroundColor: "#C9C9C9",
+		backgroundColor: "#D1D5DB",
 		borderRadius: 3,
 		position: "relative",
-		marginHorizontal: 16,
+		marginHorizontal: THUMB_SIZE / 2,
+		marginBottom: 18,
+	},
+	sliderProgress: {
+		position: "absolute",
+		left: 0,
+		top: 0,
+		height: 6,
+		backgroundColor: "#F05537",
+		borderRadius: 3,
+	},
+	sliderTick: {
+		position: "absolute",
+		width: TICK_SIZE,
+		height: TICK_SIZE,
+		borderRadius: TICK_SIZE / 2,
+		backgroundColor: "#D1D5DB",
+	},
+	activeSliderTick: {
+		backgroundColor: "#F05537",
 	},
 	sliderThumb: {
 		position: "absolute",
@@ -187,27 +405,55 @@ const styles = StyleSheet.create({
 		borderRadius: THUMB_SIZE / 2,
 		top: -11,
 		borderWidth: 3,
-		borderColor: "#000000",
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 4 },
-		shadowOpacity: 0.15,
-		shadowRadius: 8,
-		elevation: 6,
+		borderColor: "#F05537",
+		shadowColor: "#000000",
+		shadowOffset: { width: 0, height: 2 },
+		shadowOpacity: 0.12,
+		shadowRadius: 4,
+		elevation: 4,
 	},
-	sliderLabels: {
+	estimateRow: {
 		flexDirection: "row",
-		justifyContent: "space-between",
-		marginTop: 12,
-		paddingHorizontal: 16,
+		alignItems: "center",
+		flexWrap: "wrap",
+		gap: 8,
 	},
-	sliderLabelLeft: {
-		fontSize: 13,
-		color: "#000000",
-		fontWeight: "600",
+	estimateChip: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 5,
+		backgroundColor: "#FFF7F5",
+		paddingHorizontal: 10,
+		paddingVertical: 7,
+		borderRadius: 16,
 	},
-	sliderLabelRight: {
-		fontSize: 13,
-		color: "#000000",
+	secondaryEstimateChip: {
+		backgroundColor: "#F3F4F6",
+	},
+	estimateLabel: {
+		fontSize: 12,
 		fontWeight: "600",
+		color: "#111827",
+	},
+	estimateMinutes: {
+		fontSize: 12,
+		fontWeight: "700",
+		color: "#F05537",
+	},
+	secondaryEstimateMinutes: {
+		color: "#4B5563",
+	},
+	moreButton: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 2,
+		minHeight: 44,
+		paddingHorizontal: 4,
+		paddingVertical: 7,
+	},
+	moreButtonText: {
+		fontSize: 12,
+		fontWeight: "600",
+		color: "#F05537",
 	},
 });

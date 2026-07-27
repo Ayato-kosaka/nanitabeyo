@@ -89,7 +89,18 @@
 		"currentLocation": "현재 위치",
 		"DistanceSlider": {
 			"near": "가까움",
-			"far": "멀리"
+			"far": "멀리",
+			"edgeEstimate": "검색 범위 끝까지 예상 시간",
+			"approxMinutes": "약 {{minutes}}분",
+			"modes": {
+				"walk": "도보",
+				"bike": "자전거",
+				"car": "자동차",
+				"train": "전철"
+			},
+			"showMore": "더 보기",
+			"showLess": "접기",
+			"estimateHint": "경로, 교통 상황, 대기 시간에 따라 달라집니다"
 		},
 		"BudgetSlider": {
 			"cheap": "저렴함",

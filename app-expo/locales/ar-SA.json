@@ -89,7 +89,18 @@
 		"currentLocation": "الموقع الحالي",
 		"DistanceSlider": {
 			"near": "قريب",
-			"far": "بعيد"
+			"far": "بعيد",
+			"edgeEstimate": "الوقت التقديري إلى حدود نطاق البحث",
+			"approxMinutes": "حوالي {{minutes}} دقيقة",
+			"modes": {
+				"walk": "مشيًا",
+				"bike": "دراجة",
+				"car": "سيارة",
+				"train": "قطار"
+			},
+			"showMore": "عرض المزيد",
+			"showLess": "عرض أقل",
+			"estimateHint": "يختلف الوقت حسب المسار والازدحام ووقت الانتظار"
 		},
 		"BudgetSlider": {
 			"cheap": "رخيص",

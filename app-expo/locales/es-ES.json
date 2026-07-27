@@ -89,7 +89,18 @@
 		"currentLocation": "Ubicación actual",
 		"DistanceSlider": {
 			"near": "Cerca",
-			"far": "Lejos"
+			"far": "Lejos",
+			"edgeEstimate": "Tiempo estimado hasta el límite del área",
+			"approxMinutes": "Aprox. {{minutes}} min",
+			"modes": {
+				"walk": "A pie",
+				"bike": "Bicicleta",
+				"car": "Coche",
+				"train": "Tren"
+			},
+			"showMore": "Ver más",
+			"showLess": "Ver menos",
+			"estimateHint": "Los tiempos varían según la ruta, el tráfico y la espera"
 		},
 		"BudgetSlider": {
 			"cheap": "Barato",

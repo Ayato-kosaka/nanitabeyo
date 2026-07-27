@@ -89,7 +89,18 @@
 		"currentLocation": "Current location",
 		"DistanceSlider": {
 			"near": "Near",
-			"far": "Far"
+			"far": "Far",
+			"edgeEstimate": "Estimated time to the edge of the search area",
+			"approxMinutes": "About {{minutes}} min",
+			"modes": {
+				"walk": "Walk",
+				"bike": "Bike",
+				"car": "Car",
+				"train": "Train"
+			},
+			"showMore": "Show more",
+			"showLess": "Show less",
+			"estimateHint": "Times vary by route, traffic, and waiting time"
 		},
 		"BudgetSlider": {
 			"cheap": "Cheap",
