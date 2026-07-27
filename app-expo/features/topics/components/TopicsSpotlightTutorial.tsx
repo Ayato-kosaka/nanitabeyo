@@ -3,7 +3,9 @@ import {
 	AccessibilityInfo,
 	findNodeHandle,
 	Modal,
+	Platform,
 	ScrollView,
+	StatusBar,
 	StyleSheet,
 	Text,
 	TouchableOpacity,
@@ -97,6 +99,16 @@ const isUsableRect = (rect: TopicsTutorialRect) =>
 	[rect.x, rect.y, rect.width, rect.height].every(Number.isFinite) && rect.width > 0 && rect.height > 0;
 
 /**
+ * #927 【修正】Android の measureInWindow はアプリのウィンドウ(ステータスバーの下から始まる)
+ * 基準の座標を返すが、オーバーレイの Modal は statusBarTranslucent のため画面最上端から
+ * 描画される。座標基準の差 = ステータスバー高さのぶん、穴が対象より上にずれていたため、
+ * Android でのみ y に StatusBar.currentHeight を加算して Modal の座標系へ揃える。
+ * (iOS はウィンドウ=画面全体、web は viewport 基準で Modal と一致するため補正不要。
+ *  将来 edge-to-edge を有効化した場合はウィンドウが画面全体になるためこの補正は不要になる)
+ */
+const ANDROID_STATUS_BAR_OFFSET = Platform.OS === "android" ? (StatusBar.currentHeight ?? 0) : 0;
+
+/**
  * 1つのViewを画面座標で計測する。
  *
  * measureInWindowは対象が未mountの場合にcallbackが返らない実装差もあり得るため、
@@ -121,10 +133,26 @@ const measureTarget = (
 
 		requestAnimationFrame(() => {
 			target.measureInWindow((x, y, width, height) => {
-				finish({ x, y, width, height });
+				finish({ x, y: y + ANDROID_STATUS_BAR_OFFSET, width, height });
 			});
 		});
 	});
+};
+
+/**
+ * #927 【修正】2回の計測結果が実質同一(各値の差が1px以内)かを判定する。
+ * カルーセルの初期スナップや画像ロードによるレイアウト確定前に計測すると、
+ * その瞬間の座標で穴が固定され全プラットフォームで「ずれた」表示になるため、
+ * 連続2回一致するまで待って「動いていない」ことを確認してから表示する。
+ */
+const isSameRect = (a: TopicsTutorialRect | null | undefined, b: TopicsTutorialRect | null | undefined) => {
+	if (!a || !b) return false;
+	return (
+		Math.abs(a.x - b.x) <= 1 &&
+		Math.abs(a.y - b.y) <= 1 &&
+		Math.abs(a.width - b.width) <= 1 &&
+		Math.abs(a.height - b.height) <= 1
+	);
 };
 
 /** 複数スポットの外接矩形。吹き出しの配置基準にだけ使い、穴自体は個別に描画する。 */
@@ -293,6 +321,7 @@ export function TopicsSpotlightTutorial({
 		const prepare = async () => {
 			const targetKeys = Array.from(new Set(candidateSteps.flatMap((step) => step.targetKeys)));
 			let latestMeasurements: MeasuredTargets = {};
+			let previousMeasurements: MeasuredTargets = {};
 
 			for (let attempt = 0; attempt < MEASURE_RETRY_COUNT; attempt += 1) {
 				if (attempt > 0) {
@@ -303,10 +332,17 @@ export function TopicsSpotlightTutorial({
 				const entries = await Promise.all(
 					targetKeys.map(async (targetKey) => [targetKey, await measureTarget(targetKey, targetRefs)] as const),
 				);
+				previousMeasurements = latestMeasurements;
 				latestMeasurements = Object.fromEntries(entries.filter(([, rect]) => rect !== null)) as MeasuredTargets;
 
-				// optionalを含め全ターゲットが揃えば、最終リトライを待たずに表示できる。
-				if (targetKeys.every((targetKey) => latestMeasurements[targetKey])) {
+				// #927 【修正】optionalを含め全ターゲットが揃い、かつ直前の計測と一致(=レイアウトが
+				// 静止)したときだけ確定する。カルーセルの初期スナップや画像ロードで座標が動いている
+				// 最中の値で穴を固定すると、全プラットフォームで「ずれた」スポットライトになるため。
+				const allMeasured = targetKeys.every((targetKey) => latestMeasurements[targetKey]);
+				const allStable = targetKeys.every((targetKey) =>
+					isSameRect(latestMeasurements[targetKey], previousMeasurements[targetKey]),
+				);
+				if (allMeasured && allStable) {
 					break;
 				}
 			}
@@ -378,20 +414,26 @@ export function TopicsSpotlightTutorial({
 
 		const remeasureCurrentStep = async () => {
 			let entries: readonly (readonly [TopicsTutorialTargetKey, TopicsTutorialRect | null])[] = [];
+			let previousEntries: ReadonlyMap<TopicsTutorialTargetKey, TopicsTutorialRect | null> = new Map();
 
 			// ステップ切替直後の1フレームだけrefが不安定でも閉じないよう、短く再試行する。
+			// #927 【修正】prepare と同様に、連続2回一致するまで待ってレイアウト静止を確認する
+			// (回転・リサイズ直後の遷移アニメーション中の座標で穴を固定しないため)。
 			for (let attempt = 0; attempt < 3; attempt += 1) {
 				if (attempt > 0) {
 					await wait(MEASURE_RETRY_INTERVAL_MS);
 				}
 				if (isCancelled) return;
 
+				previousEntries = new Map(entries);
 				entries = await Promise.all(
 					currentStep.targetKeys.map(
 						async (targetKey) => [targetKey, await measureTarget(targetKey, targetRefs)] as const,
 					),
 				);
-				if (entries.every(([, rect]) => rect !== null)) break;
+				const allMeasured = entries.every(([, rect]) => rect !== null);
+				const allStable = entries.every(([targetKey, rect]) => isSameRect(rect, previousEntries.get(targetKey)));
+				if (allMeasured && allStable) break;
 			}
 			if (isCancelled) return;
 

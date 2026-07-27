@@ -8,6 +8,8 @@ import { SnackbarProvider } from "@/contexts/SnackbarProvider";
 import { PaperProvider, Portal } from "react-native-paper";
 import { SplashHandler } from "@/components/SplashHandler";
 import { AppProvider } from "@/components/AppProvider";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { CenteredAppShell } from "@/components/CenteredAppShell";
 import { HealthCheckInitializer } from "@/components/HealthCheckInitializer";
 import { PushTokenRegistration } from "@/components/PushTokenRegistration";
 import { MetaAppEventsInitializer } from "@/components/MetaAppEventsInitializer";
@@ -91,29 +93,39 @@ export default function RootLayout() {
 			<SeoProvider initialDefaults={seoDefaults}>
 				<SeoHeadRenderer />
 				<PaperProvider theme={theme}>
-					<SnackbarProvider>
-						<DialogProvider>
-							<TrueSheetProvider>
-								<AuthProvider>
-									<PushTokenRegistration />
-									<MetaAppEventsInitializer />
-									<Portal.Host>
-										<SplashHandler>
-											<HealthCheckInitializer>
-												<AppProvider>
-													<Stack screenOptions={{ header: () => null }}>
-														<Stack.Screen name="(tabs)" options={{ header: () => null }} />
-														<Stack.Screen name="+not-found" />
-													</Stack>
-													<StatusBar style="light" />
-												</AppProvider>
-											</HealthCheckInitializer>
-										</SplashHandler>
-									</Portal.Host>
-								</AuthProvider>
-							</TrueSheetProvider>
-						</DialogProvider>
-					</SnackbarProvider>
+					{/* #958 【設計】SnackbarProvider/DialogProvider(Portalの元)/Portal.Host をまとめて
+					    包む位置に設置。Dialog(Portal経由)・Snackbar(素のabsolute)いずれも
+					    「最も近いposition付き祖先」基準で幅が決まるため、個別変更なしに
+					    同じ中央カラムへ自動的に収まる */}
+					<CenteredAppShell>
+						<SnackbarProvider>
+							<DialogProvider>
+								<TrueSheetProvider>
+									<AuthProvider>
+										<PushTokenRegistration />
+										<MetaAppEventsInitializer />
+										<Portal.Host>
+											<SplashHandler>
+												<HealthCheckInitializer>
+													<AppProvider>
+														{/* #940 【設計】render中の未捕捉例外で白画面になるのを防ぐ最終防波堤。
+														    再試行はアプリのルートへ戻すことで安全な状態に復帰させる */}
+														<ErrorBoundary onRetry={() => router.replace("/")}>
+															<Stack screenOptions={{ header: () => null }}>
+																<Stack.Screen name="(tabs)" options={{ header: () => null }} />
+																<Stack.Screen name="+not-found" />
+															</Stack>
+														</ErrorBoundary>
+														<StatusBar style="light" />
+													</AppProvider>
+												</HealthCheckInitializer>
+											</SplashHandler>
+										</Portal.Host>
+									</AuthProvider>
+								</TrueSheetProvider>
+							</DialogProvider>
+						</SnackbarProvider>
+					</CenteredAppShell>
 				</PaperProvider>
 			</SeoProvider>
 		</>

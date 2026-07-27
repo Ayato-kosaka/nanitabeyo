@@ -26,6 +26,12 @@ export class SearchPage {
 	readonly submitButton: Locator;
 	/** 詳細条件の展開トグル */
 	readonly advancedToggle: Locator;
+	/** 距離スライダー */
+	readonly distanceSlider: Locator;
+	/** 初期表示されるおすすめ移動時間の並び */
+	readonly distanceRecommendedEstimates: Locator;
+	/** おすすめ外の移動時間を開閉するトグル */
+	readonly distanceEstimatesToggle: Locator;
 	/** グローバルスナックバー（バリデーションエラー等の通知） */
 	readonly snackbar: Locator;
 
@@ -38,6 +44,9 @@ export class SearchPage {
 		this.locationSuggestions = page.getByTestId("search-location-autocomplete-suggestions");
 		this.submitButton = page.getByTestId("search-submit-button");
 		this.advancedToggle = page.getByTestId("search-advanced-toggle");
+		this.distanceSlider = page.getByTestId("search-distance-slider");
+		this.distanceRecommendedEstimates = page.getByTestId("search-distance-recommended-estimates");
+		this.distanceEstimatesToggle = page.getByTestId("search-distance-estimates-toggle");
 		this.snackbar = page.getByTestId("global-snackbar");
 	}
 
@@ -86,5 +95,10 @@ export class SearchPage {
 	/** シーングリッドの項目の Locator を返す（id は sceneOptions 定義の値） */
 	scene(id: string): Locator {
 		return this.page.getByTestId(`search-scene-${id}`);
+	}
+
+	/** 交通手段ごとの所要時間チップを返す */
+	distanceEstimate(mode: "walk" | "bike" | "car" | "train"): Locator {
+		return this.page.getByTestId(`search-distance-estimate-${mode}`);
 	}
 }

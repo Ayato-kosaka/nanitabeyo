@@ -11,6 +11,7 @@ import React, {
 } from "react";
 import { BackHandler, Platform, ScrollView, StyleSheet, View } from "react-native";
 import { Portal, Dialog, Button, Paragraph, Text, TextInput, HelperText } from "react-native-paper";
+import { useContentWidth } from "@/hooks/useContentWidth";
 
 /**
  * =========================
@@ -266,6 +267,13 @@ const useIsMountedRef = () => {
 
 export const DialogProvider = ({ children }: { children: ReactNode }) => {
 	const isMountedRef = useIsMountedRef();
+
+	// #958 【修正】paper の Portal は PaperProvider 直下のホスト(=CenteredAppShell の外側)に
+	// 描画されるため、Dialog がウィンドウ全幅に広がり web の中央カラムからはみ出していた。
+	// Dialog 自体をカラム幅(-左右マージン26px相当)に制約し中央寄せする。
+	// native では contentWidth = 画面幅のため、paper 既定(marginHorizontal:26)と同じ見た目になる。
+	const contentWidth = useContentWidth();
+	const dialogWidth = Math.max(0, contentWidth - 52);
 
 	/**
 	 * キューは ref で持つ（state で持つと無駄レンダーが増えやすい）
@@ -830,7 +838,7 @@ export const DialogProvider = ({ children }: { children: ReactNode }) => {
 			<Portal>
 				<Dialog
 					visible={visible}
-					style={styles.dialog}
+					style={[styles.dialog, { width: dialogWidth, alignSelf: "center" }]}
 					/**
 					 * onDismiss は「呼ばれる」ので、許可しない場合は handleDismiss 内で弾く（6）
 					 */

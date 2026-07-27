@@ -4,6 +4,18 @@ import { Snackbar } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import i18n from "@/lib/i18n";
 
+/** #936 【仕様】Undo等の任意アクションボタン。onPress後は自動でスナックバーを閉じる */
+export type SnackbarAction = {
+	label: string;
+	onPress: () => void;
+};
+
+export type ShowSnackbarOptions = {
+	action?: SnackbarAction;
+	/** 表示時間(ms)。未指定時は既存の4000msを維持する */
+	duration?: number;
+};
+
 /**
  * Snackbar の表示制御用 Context の型定義。
  */
@@ -12,8 +24,9 @@ type SnackbarContextType = {
 	 * 指定したメッセージを一時的に表示する。
 	 *
 	 * @param message - 表示するメッセージ文字列
+	 * @param options - Undoボタン等の任意アクションと表示時間
 	 */
-	showSnackbar: (message: string) => void;
+	showSnackbar: (message: string, options?: ShowSnackbarOptions) => void;
 };
 
 const SnackbarContext = createContext<SnackbarContextType | undefined>(undefined);
@@ -31,6 +44,8 @@ const SnackbarContext = createContext<SnackbarContextType | undefined>(undefined
 export const SnackbarProvider = ({ children }: { children: ReactNode }) => {
 	const [visible, setVisible] = useState(false);
 	const [message, setMessage] = useState("");
+	const [action, setAction] = useState<SnackbarAction | undefined>(undefined);
+	const [duration, setDuration] = useState(4000);
 	const insets = useSafeAreaInsets();
 
 	// タブバーのおおよその高さ（必要に応じて調整）
@@ -42,9 +57,12 @@ export const SnackbarProvider = ({ children }: { children: ReactNode }) => {
 	 * スナックバーを表示する。
 	 *
 	 * @param message - 表示するテキスト
+	 * @param options - Undoボタン等の任意アクションと表示時間
 	 */
-	const showSnackbar = useCallback((message: string) => {
+	const showSnackbar = useCallback((message: string, options?: ShowSnackbarOptions) => {
 		setMessage(message);
+		setAction(options?.action);
+		setDuration(options?.duration ?? 4000);
 		setVisible(true);
 	}, []);
 
@@ -54,9 +72,22 @@ export const SnackbarProvider = ({ children }: { children: ReactNode }) => {
 			<Snackbar
 				visible={visible}
 				onDismiss={() => setVisible(false)}
-				duration={4000}
+				duration={duration}
 				style={[styles.snackbar, { bottom: bottomOffset }]}
-				testID="global-snackbar">
+				testID="global-snackbar"
+				// #936 【仕様】スクリーンリーダーにメッセージ表示を自動通知する(Web は aria-live="polite" に対応)
+				accessibilityLiveRegion="polite"
+				action={
+					action
+						? {
+								label: action.label,
+								onPress: () => {
+									action.onPress();
+									setVisible(false);
+								},
+							}
+						: undefined
+				}>
 				<TouchableOpacity activeOpacity={0.8} onPress={() => setVisible(false)}>
 					<Text style={{ color: "#FFF" }}>{message}</Text>
 				</TouchableOpacity>

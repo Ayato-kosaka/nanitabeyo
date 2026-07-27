@@ -57,20 +57,23 @@ export const diningPaceOptions = [
 	{ id: "leisurely", label: "Search.diningPaceOptions.leisurely", icon: "🐢" },
 ] as const;
 
+// #935 【修正】label はモジュール評価時に i18n.t() を呼んでいたため、
+// 起動時ロケールの文言で固定されロケール切替後も更新されないバグがあった
+// (timeSlots 等の他オプション定義と同様、キー文字列を保持し使用箇所で i18n.t() する方式に統一)。
 // Distance options in meters
 export const distanceOptions = [
-	{ value: 100, label: i18n.t("Search.distanceLabels.100m") },
-	{ value: 300, label: i18n.t("Search.distanceLabels.300m") },
-	{ value: 500, label: i18n.t("Search.distanceLabels.500m") },
-	{ value: 800, label: i18n.t("Search.distanceLabels.800m") },
-	{ value: 1000, label: i18n.t("Search.distanceLabels.1km") },
-	{ value: 2000, label: i18n.t("Search.distanceLabels.2km") },
-	{ value: 3000, label: i18n.t("Search.distanceLabels.3km") },
-	{ value: 5000, label: i18n.t("Search.distanceLabels.5km") },
-	{ value: 10000, label: i18n.t("Search.distanceLabels.10km") },
-	{ value: 15000, label: i18n.t("Search.distanceLabels.15km") },
-	{ value: 20000, label: i18n.t("Search.distanceLabels.20km") },
-];
+	{ value: 100, label: "Search.distanceLabels.100m" },
+	{ value: 300, label: "Search.distanceLabels.300m" },
+	{ value: 500, label: "Search.distanceLabels.500m" },
+	{ value: 800, label: "Search.distanceLabels.800m" },
+	{ value: 1000, label: "Search.distanceLabels.1km" },
+	{ value: 2000, label: "Search.distanceLabels.2km" },
+	{ value: 3000, label: "Search.distanceLabels.3km" },
+	{ value: 5000, label: "Search.distanceLabels.5km" },
+	{ value: 10000, label: "Search.distanceLabels.10km" },
+	{ value: 15000, label: "Search.distanceLabels.15km" },
+	{ value: 20000, label: "Search.distanceLabels.20km" },
+] as const;
 
 // Price level options (Google Maps PriceLevel enum compliant, excluding FREE)
 export const priceLevelOptions = [

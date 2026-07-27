@@ -1,15 +1,17 @@
 import React, { useState } from "react";
 import { Text, TouchableOpacity, StyleSheet, View } from "react-native";
+import { router } from "expo-router";
 import { Bookmark, Ban } from "lucide-react-native";
 import { Topic } from "@/types/search";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
+import { useLocale } from "@/hooks/useLocale";
+import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { toggleReaction } from "@/lib/reactions";
 import { useTopicsStore } from "@/stores/useTopicsStore";
 import { profileSavedTopicsEntriesKey } from "@/features/profile/tabs/SavedTopicsTab";
 import i18n from "@/lib/i18n";
 import { type TopicImageResourceState } from "@/features/topics/hooks/useTopicImageResources";
-import { CARD_WIDTH } from "@/features/topics/constants";
 import type { TopicsTutorialTargetRefs } from "@/features/topics/types/tutorial";
 import { TopicVisualCard } from "./TopicVisualCard";
 
@@ -28,9 +30,11 @@ export const TopicCard = ({
 	onDeepDive,
 	onSelect,
 	deepDiveOptions = [],
+	cardWidth,
 	cardHeight,
 	imageState,
 	onImageRetry,
+	onImageLoadError,
 	tutorialTargetRefs,
 }: {
 	item: Topic;
@@ -38,9 +42,14 @@ export const TopicCard = ({
 	onDeepDive?: (topic: Topic, option: TopicDeepDiveOption) => void;
 	onSelect: (topic: Topic) => void;
 	deepDiveOptions?: TopicDeepDiveOption[];
+	// #958 【修正】CARD_WIDTH の直接 import(window幅固定・中央カラム幅と不一致)をやめ、
+	// cardHeight と同様に呼び出し元(topics.tsx)から算出済みの値を受け取る
+	cardWidth: number;
 	cardHeight: number;
 	imageState: TopicImageResourceState;
 	onImageRetry?: (topic: Topic) => void;
+	/** #929 【設計】表示側 <Image> の読み込み失敗通知(TopicVisualCard から中継) */
+	onImageLoadError?: (topic: Topic) => void;
 	/**
 	 * アクティブなCarouselカードにだけ渡すチュートリアル用ref。
 	 *
@@ -49,9 +58,13 @@ export const TopicCard = ({
 	 */
 	tutorialTargetRefs?: Pick<TopicsTutorialTargetRefs, "swipeArea" | "selectCta" | "deepDive" | "topicActions">;
 }) => {
-	const [isSaved, setIsSaved] = useState(false);
+	// #954 【仕様】サーバの保存状態(item.isSaved)で初期化する。従来は常にfalseだったため
+	// 保存済みカテゴリでも再訪時は未保存表示になっていた。
+	const [isSaved, setIsSaved] = useState(item.isSaved ?? false);
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
+	const { locale } = useLocale();
+	const { showSnackbar } = useSnackbar();
 
 	// #973【設計】3件表示時は折り返さず1行に収める。1〜2件は内容幅で主CTAより確実に小さく見せる
 	const isThreeDeepDiveChips = deepDiveOptions.length >= 3;
@@ -85,13 +98,29 @@ export const TopicCard = ({
 					const without = prev.filter((id) => id !== item.categoryId);
 					return [item.categoryId, ...without];
 				});
+				// #954 【仕様】保存操作のみ完了フィードバックを出す(解除は状態変化が見た目で分かるため省略)
+				// #954 【修正】保存したのは料理トピックなので、遷移先は既定の「投稿」タブではなく
+				// 「トピック」タブ(tab=saved-topics)を明示する(レビュー指摘)。
+				// tabRequest は同じタブへの2回目以降の遷移でも切替を発火させるためのリクエスト識別子
+				showSnackbar(i18n.t("Topics.savedMessage"), {
+					action: {
+						label: i18n.t("Common.view"),
+						onPress: () =>
+							router.push({
+								pathname: "/[locale]/(tabs)/profile",
+								params: { locale, tab: "saved-topics", tabRequest: String(Date.now()) },
+							}),
+					},
+				});
 			} else {
 				updateTopicIdsByKey(profileSavedTopicsEntriesKey, (prev) => prev.filter((id) => id !== item.categoryId));
 			}
 		} catch (error) {
+			// #954 【仕様】保存APIが失敗した場合、見た目だけ切り替わったままにせず表示を元に戻す
+			setIsSaved(!willSave);
 			logFrontendEvent({
 				event_name: "topic_save_reaction_failed",
-				error_level: "log",
+				error_level: "error",
 				payload: {
 					error: error instanceof Error ? error.message : String(error),
 					target_id: item.categoryId,
@@ -99,6 +128,7 @@ export const TopicCard = ({
 					willReact: willSave,
 				},
 			});
+			showSnackbar(i18n.t("Common.error"));
 		}
 	};
 
@@ -107,7 +137,7 @@ export const TopicCard = ({
 	};
 
 	return (
-		<View style={[styles.cardPressArea, { height: cardHeight + TOPIC_CARD_CTA_OVERHANG }]}>
+		<View style={[styles.cardPressArea, { width: cardWidth, height: cardHeight + TOPIC_CARD_CTA_OVERHANG }]}>
 			{/* measureInWindowの基準を安定させるため、Touchableではなく明示的なViewを計測する。 */}
 			<View
 				ref={tutorialTargetRefs?.swipeArea}
@@ -118,10 +148,12 @@ export const TopicCard = ({
 						title={item.topicTitle}
 						tagline={item.reason}
 						imageSource={{ uri: item.imageUrl }}
+						cardWidth={cardWidth}
 						cardHeight={cardHeight}
 						imageState={imageState}
 						recyclingKey={item.categoryId}
 						onImageRetry={onImageRetry ? () => onImageRetry(item) : undefined}
+						onImageLoadError={onImageLoadError ? () => onImageLoadError(item) : undefined}
 						bottomContent={
 							<View style={styles.bottomContent}>
 								{deepDiveOptions.length > 0 ? (
@@ -168,8 +200,11 @@ export const TopicCard = ({
 										void handleSave();
 									}}
 									accessibilityRole="button"
-									accessibilityLabel={i18n.t("Common.save")}
-									accessibilityState={{ selected: isSaved }}>
+									accessibilityState={{ selected: isSaved }}
+									accessibilityLabel={i18n.t(
+										isSaved ? "Topics.accessibility.unsaveTopic" : "Topics.accessibility.saveTopic",
+										{ title: item.topicTitle },
+									)}>
 									<Bookmark
 										size={20}
 										color={isSaved ? "transparent" : "white"}
@@ -183,7 +218,7 @@ export const TopicCard = ({
 										void handleBlock();
 									}}
 									accessibilityRole="button"
-									accessibilityLabel={i18n.t("Topics.BlockTopicModal.title")}>
+									accessibilityLabel={i18n.t("Topics.accessibility.blockTopic", { title: item.topicTitle })}>
 									<Ban size={18} color="#FFF" />
 								</TouchableOpacity>
 							</View>
@@ -211,7 +246,6 @@ export const TopicCard = ({
 
 const styles = StyleSheet.create({
 	cardPressArea: {
-		width: CARD_WIDTH,
 		position: "relative",
 	},
 	bottomContent: {

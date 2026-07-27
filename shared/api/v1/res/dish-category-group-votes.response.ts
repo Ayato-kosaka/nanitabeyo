@@ -128,3 +128,10 @@ export type UpdateDishCategoryGroupVoteCandidateDishMediaResponse = {
 export type DeleteDishCategoryGroupVoteCandidateResponse = {
 	deleted: true;
 };
+
+/**
+ * #943 PATCH /v1/dish-category-group-votes/:sessionId/candidates/:candidateId/restore のレスポンス型。
+ */
+export type RestoreDishCategoryGroupVoteCandidateResponse = {
+	restored: true;
+};

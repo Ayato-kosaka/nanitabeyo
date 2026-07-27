@@ -1,6 +1,6 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { View, StyleSheet, LayoutChangeEvent } from "react-native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { Tabs } from "@/components/collapsible-tabs";
 import { ProfileHeader } from "../components/ProfileHeader";
 import { ProfileTabsBar } from "../components/ProfileTabsBar";
@@ -67,6 +67,29 @@ export function ProfileTabsLayout() {
 		}
 		return routes;
 	}, [isOwnProfile, isGuest]);
+
+	// #954 【修正】遷移元からタブを指定できるようにする(例: トピック保存スナックバーの
+	// 「見る」→ tab=saved-topics)。指定が無い/不正な場合は従来通り先頭タブを表示する。
+	// tabRequest は「同じタブへの2回目以降の遷移」でも必ず切り替えるためのリクエスト識別子
+	// (遷移元が Date.now() 等を渡す。値自体に意味はなく、変化の検知にだけ使う)。
+	const { tab: requestedTabParam, tabRequest: tabRequestParam } = useLocalSearchParams<{
+		tab?: string;
+		tabRequest?: string;
+	}>();
+	const requestedTab = useMemo(
+		() => (requestedTabParam && tabRoutes.includes(requestedTabParam as RouteName) ? requestedTabParam : undefined),
+		[requestedTabParam, tabRoutes],
+	);
+
+	// #954 【設計】プロフィールはタブナビゲータ内で mount され続けるため、initialTabName
+	// (mount 時のみ有効)だけでは2回目以降の遷移でタブが切り替わらない。
+	// native は react-native-collapsible-tab-view の CollapsibleRef.jumpToTab、web は
+	// アダプタ(index.web.tsx)に追加した同名の命令的 API で、パラメータ変更のたびに切り替える。
+	const tabsContainerRef = useRef<{ jumpToTab?: (name: string) => void } | null>(null);
+	useEffect(() => {
+		if (!requestedTab) return;
+		tabsContainerRef.current?.jumpToTab?.(requestedTab);
+	}, [requestedTab, tabRequestParam]);
 
 	const handleHeaderLayout = useCallback((event: LayoutChangeEvent) => {
 		const { height } = event.nativeEvent.layout;
@@ -176,9 +199,11 @@ export function ProfileTabsLayout() {
 	return (
 		<View style={styles.container}>
 			<Tabs.Container
+				ref={tabsContainerRef as never}
 				headerHeight={headerHeight}
 				renderHeader={renderHeader}
 				renderTabBar={renderTabBar}
+				initialTabName={requestedTab}
 				onIndexChange={handleTabChange}
 				pagerProps={{ scrollEnabled: true }}
 				headerContainerStyle={{ shadowColor: "transparent" }}
