@@ -27,11 +27,19 @@ export function DishCategoryGroupVoteCandidateList({
 	onPressDishMedia,
 	onDeleteCandidate,
 }: Props) {
-	// #856 【仕様】表示順は投票結果で並び替えず、候補作成時の displayOrder を維持する
-	// (順位はバッジのみで示す)。rank によるソートは行わない。
+	// #856 【仕様】結果一覧は rank 昇順(=likeCount DESC 由来)で表示し、同順位内と
+	// rank が返らない古いレスポンスは displayOrder で表示順を安定させる。
+	// #941 【修正】「全員未投票で全候補1位」対応の際に誤って displayOrder 固定へ変更して
+	// しまっていたため、レビュー指摘を受け #856 の rank 昇順ソートへ復旧した
+	// (未投票時は全候補 rank=1 のため自然に displayOrder 順となり、未投票バッジ表示と両立する)。
 	const visibleCandidates = candidates
 		.filter((candidate) => candidate.deletedAt === null)
-		.sort((a, b) => a.displayOrder - b.displayOrder);
+		.sort((a, b) => {
+			const rankA = a.rank ?? Number.MAX_SAFE_INTEGER;
+			const rankB = b.rank ?? Number.MAX_SAFE_INTEGER;
+			if (rankA !== rankB) return rankA - rankB;
+			return a.displayOrder - b.displayOrder;
+		});
 
 	return (
 		<View style={styles.container}>
