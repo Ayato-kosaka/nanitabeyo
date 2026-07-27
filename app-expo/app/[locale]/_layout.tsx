@@ -8,6 +8,7 @@ import { SnackbarProvider } from "@/contexts/SnackbarProvider";
 import { PaperProvider, Portal } from "react-native-paper";
 import { SplashHandler } from "@/components/SplashHandler";
 import { AppProvider } from "@/components/AppProvider";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { HealthCheckInitializer } from "@/components/HealthCheckInitializer";
 import { PushTokenRegistration } from "@/components/PushTokenRegistration";
 import { MetaAppEventsInitializer } from "@/components/MetaAppEventsInitializer";
@@ -101,10 +102,14 @@ export default function RootLayout() {
 										<SplashHandler>
 											<HealthCheckInitializer>
 												<AppProvider>
-													<Stack screenOptions={{ header: () => null }}>
-														<Stack.Screen name="(tabs)" options={{ header: () => null }} />
-														<Stack.Screen name="+not-found" />
-													</Stack>
+													{/* #940 【設計】render中の未捕捉例外で白画面になるのを防ぐ最終防波堤。
+													    再試行はアプリのルートへ戻すことで安全な状態に復帰させる */}
+													<ErrorBoundary onRetry={() => router.replace("/")}>
+														<Stack screenOptions={{ header: () => null }}>
+															<Stack.Screen name="(tabs)" options={{ header: () => null }} />
+															<Stack.Screen name="+not-found" />
+														</Stack>
+													</ErrorBoundary>
 													<StatusBar style="light" />
 												</AppProvider>
 											</HealthCheckInitializer>
