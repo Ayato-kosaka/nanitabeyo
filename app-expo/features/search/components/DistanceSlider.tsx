@@ -227,7 +227,8 @@ export function DistanceSlider({ distance, setDistance }: DistanceSliderProps) {
 			<View
 				style={styles.estimateRow}
 				accessibilityRole="list"
-				accessibilityHint={i18n.t("Search.DistanceSlider.estimateHint")}>
+				accessibilityHint={i18n.t("Search.DistanceSlider.estimateHint")}
+				testID="search-distance-recommended-estimates">
 				{recommendedEstimates.map((estimate) => (
 					<TravelEstimateChip key={estimate.mode} estimate={estimate} />
 				))}
