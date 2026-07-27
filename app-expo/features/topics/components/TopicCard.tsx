@@ -96,10 +96,17 @@ export const TopicCard = ({
 					return [item.categoryId, ...without];
 				});
 				// #954 【仕様】保存操作のみ完了フィードバックを出す(解除は状態変化が見た目で分かるため省略)
+				// #954 【修正】保存したのは料理トピックなので、遷移先は既定の「投稿」タブではなく
+				// 「トピック」タブ(tab=saved-topics)を明示する(レビュー指摘)。
+				// tabRequest は同じタブへの2回目以降の遷移でも切替を発火させるためのリクエスト識別子
 				showSnackbar(i18n.t("Topics.savedMessage"), {
 					action: {
 						label: i18n.t("Common.view"),
-						onPress: () => router.push({ pathname: "/[locale]/(tabs)/profile", params: { locale } }),
+						onPress: () =>
+							router.push({
+								pathname: "/[locale]/(tabs)/profile",
+								params: { locale, tab: "saved-topics", tabRequest: String(Date.now()) },
+							}),
 					},
 				});
 			} else {
