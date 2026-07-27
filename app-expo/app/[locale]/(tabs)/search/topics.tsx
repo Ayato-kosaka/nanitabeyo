@@ -282,7 +282,7 @@ export default function TopicsScreen() {
 		}
 	}, [createGroupVote, locale, logFrontendEvent, params, showSnackbar, visibleTopics]);
 
-	const { getImageState, retryImage } = useTopicImageResources({
+	const { getImageState, retryImage, markImageError } = useTopicImageResources({
 		topics: visibleTopics,
 		sessionKey: searchParams ?? "",
 	});
@@ -544,6 +544,7 @@ export default function TopicsScreen() {
 				cardHeight={cardHeight}
 				imageState={imageState}
 				onImageRetry={retryImage}
+				onImageLoadError={markImageError}
 				// 非表示カードによるref上書きを防ぐため、アクティブカードにだけ登録する。
 				tutorialTargetRefs={isActiveCard ? tutorialTargetRefs : undefined}
 			/>
@@ -768,6 +769,9 @@ export default function TopicsScreen() {
 											alt=""
 											accessibilityElementsHidden
 											importantForAccessibility="no"
+											// #929 【修正】web は ready でも実際の読み込み成否が未検証のため、
+											// 失敗を共有 state へ反映してカード側の失敗UI/再試行に繋げる
+											onError={() => markImageError(topic)}
 										/>
 									) : (
 										<SkeletonShimmer width="100%" height="100%" />

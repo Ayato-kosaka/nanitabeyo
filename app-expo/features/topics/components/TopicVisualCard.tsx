@@ -21,6 +21,9 @@ type TopicVisualCardProps = {
 	topRightContent?: ReactNode;
 	bottomContent?: ReactNode;
 	onImageRetry?: () => void;
+	/** #929 【設計】表示側 <Image> の読み込み失敗通知。web は取得を介さず URL を直接渡すため、
+	 * ここで初めて失敗が分かる(PR #980 レビュー指摘)。呼び出し元が error 状態へ遷移させる */
+	onImageLoadError?: () => void;
 };
 
 export function TopicVisualCard({
@@ -34,6 +37,7 @@ export function TopicVisualCard({
 	topRightContent,
 	bottomContent,
 	onImageRetry,
+	onImageLoadError,
 }: TopicVisualCardProps) {
 	const shouldShowSkeleton = imageState ? imageState.status === "idle" || imageState.status === "loading" : false;
 	const shouldShowFailureUI = imageState?.status === "error";
@@ -54,6 +58,7 @@ export function TopicVisualCard({
 					// #937 【仕様】料理名を伝える情報画像として alt/accessibilityLabel を付与する
 					alt={title}
 					accessibilityLabel={title}
+					onError={onImageLoadError}
 				/>
 			) : (
 				<View style={styles.cardImage} />
