@@ -22,6 +22,16 @@ import { LoadingIndicator } from "./LoadingIndicator";
 const MIN_SEARCH_LENGTH = 2;
 const DEBOUNCE_DELAY_MS = 300;
 
+/**
+ * #991 【修正】web で候補パネル内の mousedown の既定動作(TextInput からのフォーカス移動)を抑止する。
+ * 抑止しないと mousedown → 即 blur → 150ms 後にパネル非表示が予約され、mousedown→mouseup が
+ * 150ms を超える人間の普通のクリックでは押し終わる前に行が消えて onPress が発火しない
+ * (詳細は LocationAutocomplete.tsx の同名定数を参照。native には mouse イベントが無く影響しない)
+ */
+const preventFocusStealOnWeb = {
+	onMouseDown: (event: { preventDefault: () => void }) => event.preventDefault(),
+} as Record<string, unknown>;
+
 interface DishCategoryAutocompleteProps {
 	/** 入力値 */
 	value: string;
@@ -250,7 +260,7 @@ export function DishCategoryAutocomplete({
 
 			{/* 候補リスト */}
 			{showSuggestions && suggestions.length > 0 && (
-				<View style={styles.suggestionsContainer}>
+				<View style={styles.suggestionsContainer} {...preventFocusStealOnWeb}>
 					<ScrollView
 						keyboardShouldPersistTaps="handled"
 						showsVerticalScrollIndicator={false}
