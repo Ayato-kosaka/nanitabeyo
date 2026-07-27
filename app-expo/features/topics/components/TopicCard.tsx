@@ -34,6 +34,7 @@ export const TopicCard = ({
 	cardHeight,
 	imageState,
 	onImageRetry,
+	onImageLoadError,
 	tutorialTargetRefs,
 }: {
 	item: Topic;
@@ -47,6 +48,8 @@ export const TopicCard = ({
 	cardHeight: number;
 	imageState: TopicImageResourceState;
 	onImageRetry?: (topic: Topic) => void;
+	/** #929 【設計】表示側 <Image> の読み込み失敗通知(TopicVisualCard から中継) */
+	onImageLoadError?: (topic: Topic) => void;
 	/**
 	 * アクティブなCarouselカードにだけ渡すチュートリアル用ref。
 	 *
@@ -150,6 +153,7 @@ export const TopicCard = ({
 						imageState={imageState}
 						recyclingKey={item.categoryId}
 						onImageRetry={onImageRetry ? () => onImageRetry(item) : undefined}
+						onImageLoadError={onImageLoadError ? () => onImageLoadError(item) : undefined}
 						bottomContent={
 							<View style={styles.bottomContent}>
 								{deepDiveOptions.length > 0 ? (

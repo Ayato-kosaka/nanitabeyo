@@ -160,6 +160,42 @@ export const useTopicImageResources = ({ topics, sessionKey }: UseTopicImageReso
 		[loadTopicImage, logFrontendEvent],
 	);
 
+	/**
+	 * #929 【修正】表示側 <Image> の onError から呼び、該当 topic を error 状態へ遷移させる。
+	 * web の ready state は URL を渡すだけで実際の読み込み成否を検証していないため
+	 * (PR #980 レビュー指摘)、期限切れ・無効・一時的に取得不能な画像が「ready のまま
+	 * 白いカード」になっていた。error へ遷移させることで native と同じ失敗オーバーレイと
+	 * 再試行導線(retryImage)が表示される。retryImage は error state からの再取得を行うため、
+	 * 一時的な失敗ならリトライで復帰できる。
+	 */
+	const markImageError = useCallback(
+		(topic: Topic, errorMessage?: string) => {
+			const key = getTopicImageKey(topic);
+			const current = topicImageStatesRef.current[key];
+			// すでに error / 再取得中(loading)の場合は上書きしない(遅延到着した onError で
+			// リトライ中の状態を巻き戻さないため)
+			if (current?.status === "error" || current?.status === "loading") return;
+
+			topicImageStatesRef.current = {
+				...topicImageStatesRef.current,
+				[key]: { status: "error", errorMessage },
+			};
+			setTopicImageStates(cloneTopicImageStates(topicImageStatesRef.current));
+			logFrontendEvent({
+				event_name: "topic_image_resource_load_error",
+				error_level: "warn",
+				payload: {
+					topic_id: topic.categoryId,
+					image_url: topic.imageUrl,
+					error_message: errorMessage ?? "render-side image load failed",
+					platform: Platform.OS,
+					source: "render_onerror",
+				},
+			});
+		},
+		[logFrontendEvent],
+	);
+
 	const getImageState = useCallback(
 		(topic: Topic) => topicImageStates[getTopicImageKey(topic)] ?? { status: "idle" as const },
 		[topicImageStates],
@@ -184,8 +220,9 @@ export const useTopicImageResources = ({ topics, sessionKey }: UseTopicImageReso
 			imageStates: topicImageStates,
 			getImageState,
 			retryImage,
+			markImageError,
 			resetImageStates,
 		}),
-		[getImageState, retryImage, topicImageStates, resetImageStates],
+		[getImageState, retryImage, markImageError, topicImageStates, resetImageStates],
 	);
 };
