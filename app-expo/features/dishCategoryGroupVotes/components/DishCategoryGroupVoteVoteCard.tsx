@@ -11,6 +11,7 @@ import type { DishCategoryGroupVoteCandidate, DishCategoryGroupVoteReaction } fr
 import i18n from "@/lib/i18n";
 import { CARD_MAX_HEIGHT, height as SCREEN_HEIGHT } from "@/features/topics/constants";
 import { TopicVisualCard } from "@/features/topics/components/TopicVisualCard";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 type Props = {
 	candidate: DishCategoryGroupVoteCandidate;
@@ -25,6 +26,15 @@ export function DishCategoryGroupVoteVoteCard({ candidate, onVote }: Props) {
 	useEffect(() => {
 		onVoteRef.current = onVote;
 	}, [onVote]);
+
+	// #959【アクセシビリティ】PanResponder は useRef(...).current で 1 度だけ生成されるクロージャのため、
+	// onVoteRef と同じ理由で reducedMotion も ref 経由で参照する(直接参照すると初回値に固定されてしまう)
+	const reducedMotion = useReducedMotion();
+	const reducedMotionRef = useRef(reducedMotion);
+
+	useEffect(() => {
+		reducedMotionRef.current = reducedMotion;
+	}, [reducedMotion]);
 
 	const panResponder = useRef(
 		PanResponder.create({
@@ -42,7 +52,12 @@ export function DishCategoryGroupVoteVoteCard({ candidate, onVote }: Props) {
 					translateX.setValue(0);
 					return;
 				}
-				Animated.spring(translateX, { toValue: 0, useNativeDriver: true }).start();
+				// #959【アクセシビリティ】reduced motion 時は中央へのバウンド演出(spring)を省略し即座に戻す
+				if (reducedMotionRef.current) {
+					translateX.setValue(0);
+				} else {
+					Animated.spring(translateX, { toValue: 0, useNativeDriver: true }).start();
+				}
 			},
 		}),
 	).current;
