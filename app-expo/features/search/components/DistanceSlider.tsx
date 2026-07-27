@@ -291,11 +291,9 @@ export function DistanceSlider({ distance, setDistance }: DistanceSliderProps) {
 						testID="search-distance-estimates-toggle"
 					>
 						<Text style={styles.moreButtonText}>
-							{i18n.t(
-								showAllEstimates
-									? "Search.DistanceSlider.showLess"
-									: "Search.DistanceSlider.showMore",
-							)}
+							{showAllEstimates
+								? i18n.t("Search.DistanceSlider.showLess")
+								: i18n.t("Search.DistanceSlider.showMore")}
 						</Text>
 						{showAllEstimates ? (
 							<ChevronUp size={14} color="#F05537" />
