@@ -38,7 +38,9 @@ test.describe("料理提案チュートリアル(ja-JP 初回訪問)", () => {
 		// Step 2: 深掘り候補がある料理だけ表示する。候補なしならStep 3へ直接進む。
 		await expect(topicsPage.tutorialDeepDiveStep.or(topicsPage.tutorialActionsStep)).toBeVisible();
 		if (await topicsPage.tutorialDeepDiveStep.isVisible()) {
-			await expect(appPage.getByText("似た料理をもっと見る", { exact: true })).toBeVisible();
+			// #927 【修正】#975 の文言変更(深堀→再検索表現)に追従。旧文言「似た料理をもっと見る」の
+			// 決め打ちが残っていたため、このスペックはマージ当初から失敗し続けていた
+			await expect(appPage.getByText("気分に合わせて深堀再検索", { exact: true })).toBeVisible();
 			await topicsPage.tutorialNextButton.click();
 		}
 
@@ -49,7 +51,8 @@ test.describe("料理提案チュートリアル(ja-JP 初回訪問)", () => {
 
 		// Step 4: 発見しにくいグループ投票は必須ステップ。
 		await expect(topicsPage.tutorialGroupVoteStep).toBeVisible();
-		await expect(appPage.getByText("みんなで決める", { exact: true })).toBeVisible();
+		// #927 【修正】現行文言「友達と決める」(Topics.tutorial.steps.groupVote.title)に追従
+		await expect(appPage.getByText("友達と決める", { exact: true })).toBeVisible();
 		await topicsPage.tutorialFinishButton.click();
 		await expect(topicsPage.tutorialOverlay).toHaveCount(0);
 
