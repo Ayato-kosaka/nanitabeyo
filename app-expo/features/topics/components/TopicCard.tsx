@@ -12,7 +12,6 @@ import { useTopicsStore } from "@/stores/useTopicsStore";
 import { profileSavedTopicsEntriesKey } from "@/features/profile/tabs/SavedTopicsTab";
 import i18n from "@/lib/i18n";
 import { type TopicImageResourceState } from "@/features/topics/hooks/useTopicImageResources";
-import { CARD_WIDTH } from "@/features/topics/constants";
 import type { TopicsTutorialTargetRefs } from "@/features/topics/types/tutorial";
 import { TopicVisualCard } from "./TopicVisualCard";
 
@@ -31,6 +30,7 @@ export const TopicCard = ({
 	onDeepDive,
 	onSelect,
 	deepDiveOptions = [],
+	cardWidth,
 	cardHeight,
 	imageState,
 	onImageRetry,
@@ -41,6 +41,9 @@ export const TopicCard = ({
 	onDeepDive?: (topic: Topic, option: TopicDeepDiveOption) => void;
 	onSelect: (topic: Topic) => void;
 	deepDiveOptions?: TopicDeepDiveOption[];
+	// #958 【修正】CARD_WIDTH の直接 import(window幅固定・中央カラム幅と不一致)をやめ、
+	// cardHeight と同様に呼び出し元(topics.tsx)から算出済みの値を受け取る
+	cardWidth: number;
 	cardHeight: number;
 	imageState: TopicImageResourceState;
 	onImageRetry?: (topic: Topic) => void;
@@ -124,7 +127,7 @@ export const TopicCard = ({
 	};
 
 	return (
-		<View style={[styles.cardPressArea, { height: cardHeight + TOPIC_CARD_CTA_OVERHANG }]}>
+		<View style={[styles.cardPressArea, { width: cardWidth, height: cardHeight + TOPIC_CARD_CTA_OVERHANG }]}>
 			{/* measureInWindowの基準を安定させるため、Touchableではなく明示的なViewを計測する。 */}
 			<View
 				ref={tutorialTargetRefs?.swipeArea}
@@ -135,6 +138,7 @@ export const TopicCard = ({
 						title={item.topicTitle}
 						tagline={item.reason}
 						imageSource={{ uri: item.imageUrl }}
+						cardWidth={cardWidth}
 						cardHeight={cardHeight}
 						imageState={imageState}
 						recyclingKey={item.categoryId}
@@ -231,7 +235,6 @@ export const TopicCard = ({
 
 const styles = StyleSheet.create({
 	cardPressArea: {
-		width: CARD_WIDTH,
 		position: "relative",
 	},
 	bottomContent: {

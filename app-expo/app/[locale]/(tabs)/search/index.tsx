@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from "react-native";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
 import {
 	MapPin,
 	Search,
@@ -50,20 +50,17 @@ import { useRecentLocations } from "@/features/search/hooks/useRecentLocations";
 import { Image } from "expo-image";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { useIsFocused } from "@react-navigation/native";
+import { useContentWidth } from "@/hooks/useContentWidth";
 
 // #667 【設計】画面幅ベースでアイテムサイズを計算（4列グリッド）
-const SCREEN_WIDTH = Dimensions.get("window").width;
+// #958 【修正】Dimensions.get("window") はモジュール評価時に1回だけ計算されリサイズに
+// 追従しないうえ、web ではウィンドウ実幅であって CenteredAppShell が収める中央カラム幅とは
+// 一致しない。ITEM_WIDTH の計算は useContentWidth() を使いコンポーネント内で行う
 const HORIZONTAL_PADDING = 16;
 const ITEM_PADDING = 3;
 const BORDER_WIDTH = 2;
 const ITEM_GAP = 2;
 const NUM_COLUMNS = 4;
-const ITEM_WIDTH =
-	(SCREEN_WIDTH -
-		HORIZONTAL_PADDING * 2 -
-		ITEM_GAP * (NUM_COLUMNS - 1) -
-		(ITEM_PADDING * 2 + BORDER_WIDTH * 2) * NUM_COLUMNS) /
-	NUM_COLUMNS;
 
 // #934 【設計】各セクション見出し。accessibilityRole="header" を持たせ、必須バッジは
 // 別要素として視覚表示しつつスクリーンリーダー向けには見出しの accessibilityLabel に合成する
@@ -105,6 +102,18 @@ export default function SearchScreen() {
 	const { showSnackbar } = useSnackbar();
 	// #932 【設計】現在地取得の恒久的な失敗(権限拒否・未対応)時に手入力へ誘導するため
 	const locationInputRef = useRef<LocationAutocompleteHandle>(null);
+
+	// #958 【修正】中央カラム幅に追従する4列グリッドのアイテムサイズ
+	const contentWidth = useContentWidth();
+	const itemWidth = useMemo(
+		() =>
+			(contentWidth -
+				HORIZONTAL_PADDING * 2 -
+				ITEM_GAP * (NUM_COLUMNS - 1) -
+				(ITEM_PADDING * 2 + BORDER_WIDTH * 2) * NUM_COLUMNS) /
+			NUM_COLUMNS,
+		[contentWidth],
+	);
 
 	useEffect(() => {
 		// Screen view logging
@@ -501,7 +510,7 @@ export default function SearchScreen() {
 								onPress={() => handleTimeSlotSelect(slot.id)}
 								image={slot.image}
 								label={i18n.t(slot.label)}
-								itemWidth={ITEM_WIDTH}
+								itemWidth={itemWidth}
 							/>
 						))}
 					</View>
@@ -522,7 +531,7 @@ export default function SearchScreen() {
 								onPress={() => handleSceneSelect(option.id)}
 								image={option.image}
 								label={i18n.t(option.label)}
-								itemWidth={ITEM_WIDTH}
+								itemWidth={itemWidth}
 							/>
 						))}
 					</View>
@@ -648,6 +657,9 @@ export default function SearchScreen() {
 			    ボタン自体は searchFab に白背景を持たせて視認性を確保しつつ、
 			    未充足時は disabled にせず色をグレーに落とすことで、押下時の
 			    バリデーションスナックバー（handleSearch 内）が必ず届くようにする */}
+			{/* #989 【修正】絶対配置の全幅コンテナがボタン以外の透明領域でもクリックを奪い、
+			    この帯域に重なるフォーム要素(距離スライダー等)がマウス操作不能になっていたため、
+			    コンテナ自体はヒット対象から外し子のボタンだけが反応するようにする */}
 			<View style={styles.searchFabContainer} pointerEvents="box-none">
 				<PrimaryButton
 					testID="search-submit-button"

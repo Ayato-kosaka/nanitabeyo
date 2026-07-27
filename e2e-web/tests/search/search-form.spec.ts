@@ -67,9 +67,7 @@ test.describe("検索フォーム", () => {
 	// 一般化所要時間の短い順で表示する。おすすめ外は「もっと見る」でだけ確認できる。
 	test("距離に応じて移動時間のおすすめ表示が切り替わる", async ({ appPage }) => {
 		const searchPage = new SearchPage(appPage);
-		const recommended = searchPage.distanceRecommendedEstimates.locator(
-			'[data-testid^="search-distance-estimate-"]',
-		);
+		const recommended = searchPage.distanceRecommendedEstimates.locator('[data-testid^="search-distance-estimate-"]');
 
 		await searchPage.advancedToggle.click();
 

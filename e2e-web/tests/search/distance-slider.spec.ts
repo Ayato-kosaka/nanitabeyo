@@ -11,10 +11,18 @@ import { test, expect } from "../../fixtures/test";
  * タップ・ドラッグ・キーボード操作それぞれで値が正しく更新されることを検証する。
  */
 test.describe("距離スライダー", () => {
+	// #989 【修正】画面下部固定の検索FAB(全幅の実ボタン)と重なる位置では
+	// クリックがボタンに奪われるため、scrollIntoViewIfNeeded(=見えていれば
+	// スクロールしない)ではなく block:"center" でビューポート中央へ出してから操作する。
+	// 実ユーザーも FAB の下に重なった状態では操作できない(スクロールして操作する)ため、
+	// これはテスト都合ではなく実際の操作手順の再現である
+	const scrollSliderToCenter = (slider: import("@playwright/test").Locator) =>
+		slider.evaluate((el) => el.scrollIntoView({ block: "center" }));
+
 	test("タップでその位置に応じた値へ即座にジャンプする", async ({ appPage }) => {
 		await appPage.getByTestId("search-advanced-toggle").click();
 		const slider = appPage.getByTestId("search-distance-slider");
-		await slider.scrollIntoViewIfNeeded();
+		await scrollSliderToCenter(slider);
 		const box = await slider.boundingBox();
 		if (!box) throw new Error("slider bounding box not found");
 
@@ -23,14 +31,16 @@ test.describe("距離スライダー", () => {
 		await expect(slider).toHaveAttribute("aria-valuenow", "9");
 
 		// 左端付近をタップ → 近い距離側の低いインデックスへジャンプすること
-		await appPage.mouse.click(box.x + box.width * 0.05, box.y + box.height / 2);
+		// #989 【修正】5% は 11 段階(10 区間)のちょうど丸め境界(ratio 0.05 → 0.5 → round で 1)に
+		// あたり丸め実装依存で結果が揺れるため、境界を避けた 2% 位置で検証する
+		await appPage.mouse.click(box.x + box.width * 0.02, box.y + box.height / 2);
 		await expect(slider).toHaveAttribute("aria-valuenow", "0");
 	});
 
 	test("ドラッグで指の位置に追従して値が更新される", async ({ appPage }) => {
 		await appPage.getByTestId("search-advanced-toggle").click();
 		const slider = appPage.getByTestId("search-distance-slider");
-		await slider.scrollIntoViewIfNeeded();
+		await scrollSliderToCenter(slider);
 		const box = await slider.boundingBox();
 		if (!box) throw new Error("slider bounding box not found");
 
