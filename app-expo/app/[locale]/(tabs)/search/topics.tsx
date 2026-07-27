@@ -85,7 +85,6 @@ export default function TopicsScreen() {
 		}
 	}, [pinnedTopicParam]);
 	const { logFrontendEvent } = useLogger();
-	const [isScrolling, setIsScrolling] = useState(false);
 	const [currentIndex, setCurrentIndex] = useState(0);
 	const [loadedSearchSessionKey, setLoadedSearchSessionKey] = useState<string | null>(null);
 	const [carouselAvailableHeight, setCarouselAvailableHeight] = useState(0);
@@ -359,13 +358,18 @@ export default function TopicsScreen() {
 		setCurrentIndex(index);
 	};
 
-	// #674 【仕様】カード・メインCTAタップ時の処理（スクロール中は無視）
+	// #674 【仕様】カード・メインCTAタップ時の処理。
+	// 旧実装は「スクロール中はタップ無視」のガードがあったが、これは当時
+	// visibleTopics[currentIndex] という index 参照で選択しており、スクロール中の
+	// 曖昧な index による誤選択を防ぐためのものだった。現在は押されたカード自身の
+	// topic を直接受け取るため曖昧さはなく、ガードは「押下フィードバックは出るのに
+	// 遷移しない」だけの挙動になっていたため撤去した(レビュー指摘)。
+	// 実スワイプとタップの弁別は Carousel のジェスチャ制御に委ねる。
 	const handleCardPress = useCallback(
 		(topic: Topic) => {
-			if (isScrolling) return;
 			handleViewDetails(topic);
 		},
-		[handleViewDetails, isScrolling],
+		[handleViewDetails],
 	);
 
 	// #674 【仕様】サムネイルタップ時の処理
@@ -715,8 +719,6 @@ export default function TopicsScreen() {
 									data={visibleTopics}
 									renderItem={renderCard}
 									onSnapToItem={handleSnapToItem}
-									onScrollStart={() => setIsScrolling(true)}
-									onScrollEnd={() => setIsScrolling(false)}
 									mode="parallax"
 									modeConfig={{
 										parallaxScrollingScale: 0.9,
