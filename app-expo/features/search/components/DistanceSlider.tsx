@@ -118,6 +118,13 @@ export function DistanceSlider({ distance, setDistance }: DistanceSliderProps) {
 		[commitIndex],
 	);
 
+	// #935 【修正】ドラッグ開始時のトラック相対X。移動中は locationX を読まず、
+	// この起点 + gestureState.dx(画面座標ベースの累積差分)で位置を計算する。
+	// locationX は「今タッチしているビュー」基準のため、Android では指が高さ6pxの
+	// トラックから縦に外れた瞬間に基準が変わって値が飛び、サムが往復する(ブルブル)
+	// 不具合の原因になっていた。dx はビューに依存せず安定している。
+	const grantLocationXRef = useRef(0);
+
 	const panResponder = useRef(
 		PanResponder.create({
 			// #935 【修正】トラック全体をタップ対象にする(サム単体ではなくトラック View に付与)
@@ -127,11 +134,16 @@ export function DistanceSlider({ distance, setDistance }: DistanceSliderProps) {
 				Math.abs(gestureState.dx) > Math.abs(gestureState.dy),
 			// #935 【修正】タップした瞬間にその位置へジャンプする
 			onPanResponderGrant: (evt) => {
+				grantLocationXRef.current = evt.nativeEvent.locationX;
 				updateFromLocationX(evt.nativeEvent.locationX);
 			},
-			onPanResponderMove: (evt) => {
-				updateFromLocationX(evt.nativeEvent.locationX);
+			onPanResponderMove: (_evt, gestureState) => {
+				updateFromLocationX(grantLocationXRef.current + gestureState.dx);
 			},
+			// #935 【修正】ドラッグ中に指が縦にずれると親 ScrollView がレスポンダを要求するが、
+			// 譲渡する(デフォルト true)とスライダーと ScrollView が交互に掴んで表示が震える。
+			// 一度スライダーが掴んだジェスチャは離すまで手放さない
+			onPanResponderTerminationRequest: () => false,
 		}),
 	).current;
 
