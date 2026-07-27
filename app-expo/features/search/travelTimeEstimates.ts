@@ -67,11 +67,14 @@ const TRAVEL_MODE_RULES = [
  */
 export function getTravelTimeEstimates(distanceMeters: number): TravelTimeEstimate[] {
 	const normalizedDistanceMeters = Math.max(0, distanceMeters);
-	const distanceKm = normalizedDistanceMeters / METERS_PER_KILOMETER;
 
 	return TRAVEL_MODE_RULES.map((rule) => ({
 		mode: rule.mode,
-		minutes: Math.ceil(rule.fixedMinutes + (distanceKm / rule.speedKmh) * MINUTES_PER_HOUR),
+		// #987 【実装】kmへ先に変換すると整数分の境界で丸め誤差が出るため、メートルのまま計算する
+		minutes: Math.ceil(
+			rule.fixedMinutes +
+				(normalizedDistanceMeters * MINUTES_PER_HOUR) / (METERS_PER_KILOMETER * rule.speedKmh),
+		),
 		isRecommended:
 			normalizedDistanceMeters >= rule.recommendedMinMeters &&
 			normalizedDistanceMeters <= rule.recommendedMaxMeters,
