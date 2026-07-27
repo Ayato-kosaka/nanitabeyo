@@ -44,7 +44,7 @@ const TRAVEL_MODE_RULES = [
 		mode: "car",
 		fixedMinutes: 7,
 		speedKmh: 17.5,
-		recommendedMinMeters: 3000,
+		recommendedMinMeters: 5000,
 		recommendedMaxMeters: Number.POSITIVE_INFINITY,
 		order: 2,
 	},
