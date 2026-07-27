@@ -58,6 +58,19 @@ const BLUR_AFTER_SELECT_DELAY_MS = 100;
 const AUTOFOCUS_DELAY_MS = 100;
 
 /**
+ * #991 【修正】web でサジェストパネル内の mousedown の既定動作(TextInput からのフォーカス移動)を
+ * 抑止する props。抑止しないと mousedown → 即 blur → 150ms 後にパネル非表示が予約され、
+ * mousedown→mouseup が 150ms を超える人間の普通のクリックでは「押し終わる前に行が消えて
+ * onPress(=mouseup 時)が発火しない」= 選択が成立しない不具合になる(タッチ操作では blur の
+ * 発生順序が異なるため起きず、デスクトップのマウス操作でのみ発生していた)。
+ * react-native-web は未知の props をそのまま DOM へ forward するため onMouseDown を直接渡せる
+ * (#935 の onKeyDown と同じパターン)。native には mouse イベントが存在しないため影響しない。
+ */
+const preventFocusStealOnWeb = {
+	onMouseDown: (event: { preventDefault: () => void }) => event.preventDefault(),
+} as Record<string, unknown>;
+
+/**
  * Unified location autocomplete component that combines text input and suggestions.
  * Handles debouncing, API calls, keyboard navigation, and accessibility.
  */
@@ -322,7 +335,7 @@ export const LocationAutocomplete = forwardRef<LocationAutocompleteHandle, Locat
 
 				{/* #953 最近使った場所 */}
 				{showRecentLocations && (
-					<View style={styles.suggestionsContainer}>
+					<View style={styles.suggestionsContainer} {...preventFocusStealOnWeb}>
 						<View style={styles.recentLocationsHeader}>
 							<Text style={styles.recentLocationsTitle}>{i18n.t("Search.recentLocations.title")}</Text>
 							{onClearRecentLocations && (
@@ -372,7 +385,7 @@ export const LocationAutocomplete = forwardRef<LocationAutocompleteHandle, Locat
 
 				{/* Suggestions List */}
 				{showSuggestions && displayStatus === "success" && suggestions.length > 0 && (
-					<View style={styles.suggestionsContainer}>
+					<View style={styles.suggestionsContainer} {...preventFocusStealOnWeb}>
 						<ScrollView
 							keyboardShouldPersistTaps="handled"
 							showsVerticalScrollIndicator={false}
@@ -413,8 +426,9 @@ export const LocationAutocomplete = forwardRef<LocationAutocompleteHandle, Locat
 				)}
 
 				{/* #931 Error message: 0件(=正常応答)とは別文言で表示し、再試行を提供する */}
+				{/* #991 再試行ボタンも同じフォーカス移動起因の競合(#931)を持つため mousedown を抑止する */}
 				{showSuggestions && displayStatus === "error" && (
-					<View style={styles.noResultsContainer}>
+					<View style={styles.noResultsContainer} {...preventFocusStealOnWeb}>
 						<Text style={styles.noResultsText}>{i18n.t("Search.errors.searchFailed")}</Text>
 						<TouchableOpacity
 							style={styles.retryButton}
