@@ -9,9 +9,10 @@
 		"post": "पोस्ट करें",
 		"postReview": "समीक्षा पोस्ट करें",
 		"retry": "पुनः प्रयास करें",
+		"undo": "पूर्ववत करें",
+		"view": "देखें",
 		"error": "एक त्रुटि हुई है। कृपया पुनः प्रयास करें।",
 		"success": "सफलता",
-		"ratingLabel": "रेटिंग {{rating}}/{{maxStars}}",
 		"linkCopied": "लिंक क्लिपबोर्ड पर कॉपी किया गया",
 		"shareFailed": "सामग्री साझा करने में विफल",
 		"daysRemaining": "{{count}} दिन शेष",
@@ -48,6 +49,8 @@
 		"copyShareLink": "शेयर लिंक कॉपी करें",
 		"voteCta": "वोट करें",
 		"candidatesTitle": "विकल्प",
+		"rankLabel": "स्थान {{rank}}",
+		"unvoted": "अभी तक वोट नहीं",
 		"commentsTitle": "टिप्पणियाँ",
 		"viewRestaurants": "रेस्तरां देखें",
 		"loadingRestaurants": "खोज रहे हैं",
@@ -56,11 +59,15 @@
 		"deleteCandidate": "विकल्प हटाएँ",
 		"deleteCandidateTitle": "यह विकल्प हटाएँ?",
 		"deleteCandidateMessage": "{{name}} को वोट विकल्पों से छिपाएँ।",
+		"candidateDeleted": "{{name}} को उम्मीदवारों से हटा दिया गया",
 		"loadFailed": "वोट लोड नहीं हो सका",
 		"refreshFailed": "नए परिणाम लोड नहीं हो सके",
 		"like": "पसंद",
 		"dislike": "छोड़ें",
+		"likeButtonLabel": "{{title}} पसंद है",
+		"dislikeButtonLabel": "{{title}} पसंद नहीं है",
 		"voteProgress": "{{current}} / {{total}}",
+		"voteProgressAnnouncement": "{{total}} में से {{current}}: {{title}}",
 		"noVoteCandidates": "वोट करने के लिए कोई विकल्प नहीं है",
 		"completionTitle": "अपना वोट पक्का करें",
 		"completionDescription": "परिणाम पेज पर दिखने वाला नाम और वैकल्पिक टिप्पणी दर्ज करें।",
@@ -82,7 +89,18 @@
 		"currentLocation": "वर्तमान स्थान",
 		"DistanceSlider": {
 			"near": "पास",
-			"far": "दूर"
+			"far": "दूर",
+			"edgeEstimate": "खोज क्षेत्र की सीमा तक अनुमानित समय",
+			"approxMinutes": "लगभग {{minutes}} मिनट",
+			"modes": {
+				"walk": "पैदल",
+				"bike": "साइकिल",
+				"car": "कार",
+				"train": "ट्रेन"
+			},
+			"showMore": "और देखें",
+			"showLess": "कम दिखाएं",
+			"estimateHint": "समय मार्ग, यातायात और प्रतीक्षा के अनुसार बदल सकता है"
 		},
 		"BudgetSlider": {
 			"cheap": "सस्ता",
@@ -92,6 +110,9 @@
 		"errors": {
 			"fetchLocation": "स्थान प्राप्त करने में विफल",
 			"getCurrentLocation": "वर्तमान स्थान प्राप्त करने में विफल",
+			"getCurrentLocationDenied": "स्थान की अनुमति अस्वीकार कर दी गई। कृपया नीचे दिए गए फ़ील्ड में अपना स्थान टाइप करें।",
+			"getCurrentLocationUnsupported": "यहां वर्तमान स्थान प्राप्त करना समर्थित नहीं है। कृपया नीचे अपना स्थान टाइप करें।",
+			"getCurrentLocationTimeout": "वर्तमान स्थान प्राप्त करने का समय समाप्त हो गया। कृपया पुनः प्रयास करें या नीचे अपना स्थान टाइप करें।",
 			"noLocationSelected": "कृपया एक स्थान चुनें",
 			"noTimeSlotSelected": "कृपया एक समय स्लॉट चुनें",
 			"noSceneSelected": "कृपया एक दृश्य चुनें",
@@ -124,6 +145,8 @@
 		"accessibility": {
 			"locationInputHint": "रेस्टोरेंट खोजने के लिए स्थान दर्ज करें",
 			"clearLocation": "स्थान साफ़ करें",
+			"useCurrentLocation": "वर्तमान स्थान का उपयोग करें",
+			"showTutorial": "उपयोग कैसे करें देखें",
 			"selectLocation": "इस स्थान को चुनें"
 		},
 		"loading": "खोज जारी...",
@@ -199,6 +222,11 @@
 			"seafoodAllergy": "समुद्री भोजन से एलर्जी",
 			"halal": "हलाल"
 		},
+		"result": {
+			"accessibility": {
+				"bulkShare": "सभी शेयर करें"
+			}
+		},
 		"tutorial": {
 			"page1": {
 				"title": "आप क्या खाना चाहते हैं, जानें",
@@ -225,6 +253,10 @@
 				"primaryCta": "वर्तमान स्थिति का उपयोग करें",
 				"secondaryCta": "बाद में"
 			}
+		},
+		"recentLocations": {
+			"title": "हाल के स्थान",
+			"clear": "हाल के स्थान साफ़ करें"
 		}
 	},
 	"Topics": {
@@ -256,6 +288,7 @@
 			"confirm": "ब्लॉक करें"
 		},
 		"blockedMessage": "{{title}} को ब्लॉक कर दिया गया है",
+		"savedMessage": "सेव किया गया",
 		"reloadDialog": {
 			"title": "और विकल्प ढूँढें?",
 			"message": "इस समय केवल कुछ ही सिफ़ारिशें उपलब्ध हैं। हम इन्हीं शर्तों के साथ दोबारा खोज करेंगे।",
@@ -265,7 +298,13 @@
 		"imageLoadFailed": "चित्र लोड करने में विफल",
 		"tapToReload": "पुनः लोड करने के लिए टैप करें",
 		"headerTitle": "आपके लिए अनुशंसित व्यंजन",
-		"subCopy": "रेस्तरां खोजने के लिए पसंदीदा व्यंजन पर टैप करें"
+		"subCopy": "रेस्तरां खोजने के लिए पसंदीदा व्यंजन पर टैप करें",
+		"accessibility": {
+			"blockTopic": "अनुशंसाओं से {{title}} हटाएं",
+			"saveTopic": "{{title}} सेव करें",
+			"unsaveTopic": "{{title}} सेव से हटाएं",
+			"thumbnail": "{{title}} थंबनेल, {{total}} में से {{index}}"
+		}
 	},
 	"Notifications": {
 		"title": "सूचनाएँ",
@@ -302,6 +341,14 @@
 		"buttons": {
 			"viewRestaurant": "रेस्टोरेंट देखें"
 		},
+		"accessibility": {
+			"viewRestaurant": "{{name}} के रेस्तरां का विवरण देखें",
+			"like": "{{name}} को पसंद करें",
+			"save": "{{name}} सेव करें",
+			"share": "{{name}} शेयर करें",
+			"openMap": "{{name}} का मानचित्र खोलें",
+			"reviewLike": "{{username}} की समीक्षा को पसंद करें"
+		},
 		"processing": "मीडिया प्रोसेस किया जा रहा है...",
 		"info": {
 			"walkFromShibuya": "शिबुया स्टेशन से 13 मिनट की पैदल दूरी"
@@ -313,6 +360,11 @@
 	},
 	"ImageCardGrid": {
 		"openItemDetails": "आइटम विवरण खोलें"
+	},
+	"Stars": {
+		"accessibility": {
+			"rating": "रेटिंग {{rating}}/5"
+		}
 	},
 	"Tabs": {
 		"home": "होम",
@@ -330,13 +382,17 @@
 		}
 	},
 	"Profile": {
+		"tabGroups": {
+			"reviews": "समीक्षाएं",
+			"saved": "सेव किया गया",
+			"liked": "पसंदीदा",
+			"wallet": "वॉलेट"
+		},
 		"tabs": {
 			"deposits": "जमा",
 			"earnings": "आय",
-			"topics": "विषय",
-			"posts": "पोस्ट",
 			"saved-posts": "पोस्ट",
-			"saved-topics": "विषय",
+			"saved-topics": "व्यंजन",
 			"wallet-deposit": "जमा",
 			"wallet-earning": "आय"
 		},
@@ -375,7 +431,8 @@
 			"follow": "फ़ॉलो",
 			"following": "फ़ॉलो कर रहे हैं",
 			"message": "संदेश",
-			"searchByMood": "आज के मूड के अनुसार \"पसंदीदा\" व्यंजन खोजें",
+			"searchForReview": "समीक्षा के लिए रेस्तरां खोजें",
+			"searchByMood": "आज के मूड से खोजें",
 			"sendFeedback": "फीडबैक भेजें"
 		},
 		"stats": {
@@ -407,7 +464,8 @@
 			"displayNameRequired": "प्रदर्शन नाम आवश्यक है",
 			"displayNameLength": "प्रदर्शन नाम 30 वर्ण या उससे कम होना चाहिए",
 			"bioLength": "परिचय 150 वर्ण या उससे कम होना चाहिए"
-		}
+		},
+		"guestDisplayName": "अतिथि"
 	},
 	"NotFound": {
 		"title": "ओह!",
@@ -466,8 +524,7 @@
 			"bidSuccess": "{{place}} के लिए ¥{{amount}} में सफलतापूर्वक बोली लगाई गई",
 			"bidError": "बोली लगाने में विफल",
 			"reviewSuccess": "समीक्षा सफलतापूर्वक पोस्ट की गई",
-			"reviewError": "समीक्षा पोस्ट करने में विफल",
-			"reviewSubmitFailed": "समीक्षा पोस्ट करने में विफल"
+			"reviewError": "समीक्षा पोस्ट करने में विफल"
 		},
 		"currentLocation": "वर्तमान स्थान",
 		"media": {
@@ -491,6 +548,7 @@
 			"dishCategoryNoResults": "No matching dish categories found",
 			"dishCategoryInputHint": "खोजने के लिए डिश श्रेणी दर्ज करें",
 			"clearDishCategory": "डिश श्रेणी साफ़ करें",
+			"useCurrentLocation": "वर्तमान स्थान का उपयोग करें",
 			"selectDishCategory": "इस डिश श्रेणी को चुनें"
 		},
 		"errors": {
@@ -621,6 +679,8 @@
 		"copyright": "कॉपीराइट",
 		"legalDocument": "कानूनी दस्तावेज़",
 		"logout": "लॉग आउट",
+		"logoutConfirmTitle": "लॉग आउट करें?",
+		"logoutConfirmMessage": "अपनी पोस्ट और समीक्षाएं प्रबंधित करने के लिए आपको फिर से लॉगिन करना होगा।",
 		"blockedTopics": {
 			"navigationLabel": "ब्लॉक किए गए व्यंजन विषय",
 			"pageTitle": "ब्लॉक किए गए व्यंजन विषय",

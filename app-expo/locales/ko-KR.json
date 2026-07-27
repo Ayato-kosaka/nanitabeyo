@@ -9,9 +9,10 @@
 		"post": "게시",
 		"postReview": "리뷰 게시하기",
 		"retry": "재시도",
+		"undo": "실행 취소",
+		"view": "보기",
 		"error": "오류가 발생했습니다. 다시 시도해 주세요.",
 		"success": "성공",
-		"ratingLabel": "평점 {{maxStars}}점 만점에 {{rating}}점",
 		"linkCopied": "링크가 클립보드에 복사되었습니다",
 		"shareFailed": "콘텐츠를 공유하지 못했습니다",
 		"daysRemaining": "남은 {{count}}일",
@@ -48,6 +49,8 @@
 		"copyShareLink": "공유 링크 복사",
 		"voteCta": "투표하기",
 		"candidatesTitle": "후보",
+		"rankLabel": "{{rank}}위",
+		"unvoted": "미투표",
 		"commentsTitle": "댓글",
 		"viewRestaurants": "가게 보기",
 		"loadingRestaurants": "검색 중",
@@ -56,11 +59,15 @@
 		"deleteCandidate": "후보 삭제",
 		"deleteCandidateTitle": "이 후보를 삭제할까요?",
 		"deleteCandidateMessage": "{{name}} 을(를) 투표 후보에서 숨깁니다.",
+		"candidateDeleted": "{{name}}을(를) 후보에서 삭제했습니다",
 		"loadFailed": "투표를 불러오지 못했습니다",
 		"refreshFailed": "최신 결과를 가져오지 못했습니다",
 		"like": "좋아요",
 		"dislike": "패스",
+		"likeButtonLabel": "{{title}} 좋아요",
+		"dislikeButtonLabel": "{{title}} 별로예요",
 		"voteProgress": "{{current}} / {{total}}",
+		"voteProgressAnnouncement": "{{total}}개 중 {{current}}번째: {{title}}",
 		"noVoteCandidates": "투표할 후보가 없습니다",
 		"completionTitle": "투표를 확정하세요",
 		"completionDescription": "결과 화면에 표시할 이름과 선택 댓글을 입력하세요.",
@@ -82,7 +89,18 @@
 		"currentLocation": "현재 위치",
 		"DistanceSlider": {
 			"near": "가까움",
-			"far": "멀리"
+			"far": "멀리",
+			"edgeEstimate": "검색 범위 끝까지 예상 시간",
+			"approxMinutes": "약 {{minutes}}분",
+			"modes": {
+				"walk": "도보",
+				"bike": "자전거",
+				"car": "자동차",
+				"train": "전철"
+			},
+			"showMore": "더 보기",
+			"showLess": "접기",
+			"estimateHint": "경로, 교통 상황, 대기 시간에 따라 달라집니다"
 		},
 		"BudgetSlider": {
 			"cheap": "저렴함",
@@ -92,6 +110,9 @@
 		"errors": {
 			"fetchLocation": "위치를 가져오지 못했습니다",
 			"getCurrentLocation": "현재 위치를 가져오지 못했습니다",
+			"getCurrentLocationDenied": "위치 액세스가 거부되었습니다. 아래 입력란에 위치를 직접 입력해주세요.",
+			"getCurrentLocationUnsupported": "이 환경에서는 현재 위치 가져오기를 지원하지 않습니다. 아래 입력란에 위치를 직접 입력해주세요.",
+			"getCurrentLocationTimeout": "현재 위치를 가져오는 데 시간이 초과되었습니다. 다시 시도하거나 아래에 위치를 직접 입력해주세요.",
 			"noLocationSelected": "위치를 선택해 주세요",
 			"noTimeSlotSelected": "시간대를 선택해 주세요",
 			"noSceneSelected": "장면을 선택해 주세요",
@@ -124,6 +145,8 @@
 		"accessibility": {
 			"locationInputHint": "레스토랑을 검색할 위치를 입력하세요",
 			"clearLocation": "위치 지우기",
+			"useCurrentLocation": "현재 위치 사용",
+			"showTutorial": "사용법 보기",
 			"selectLocation": "이 위치 선택"
 		},
 		"loading": "검색 중...",
@@ -199,6 +222,11 @@
 			"seafoodAllergy": "해산물 알레르기",
 			"halal": "할랄"
 		},
+		"result": {
+			"accessibility": {
+				"bulkShare": "모두 공유"
+			}
+		},
 		"tutorial": {
 			"page1": {
 				"title": "먹고 싶은 음식을 발견하세요",
@@ -225,6 +253,10 @@
 				"primaryCta": "현재 위치 사용",
 				"secondaryCta": "나중에"
 			}
+		},
+		"recentLocations": {
+			"title": "최근 사용한 장소",
+			"clear": "최근 사용한 장소 지우기"
 		}
 	},
 	"Topics": {
@@ -256,6 +288,7 @@
 			"confirm": "차단하기"
 		},
 		"blockedMessage": "{{title}}이(가) 차단되었습니다",
+		"savedMessage": "저장했습니다",
 		"reloadDialog": {
 			"title": "다른 메뉴를 더 찾아볼까요?",
 			"message": "지금은 추천이 많지 않아요. 같은 조건으로 다시 찾아볼게요.",
@@ -265,7 +298,13 @@
 		"imageLoadFailed": "이미지를 불러오지 못했습니다",
 		"tapToReload": "탭하여 다시 로드",
 		"headerTitle": "당신을 위한 추천 요리",
-		"subCopy": "마음에 드는 요리를 탭하여 레스토랑을 찾으세요"
+		"subCopy": "마음에 드는 요리를 탭하여 레스토랑을 찾으세요",
+		"accessibility": {
+			"blockTopic": "추천에서 {{title}} 제외",
+			"saveTopic": "{{title}} 저장",
+			"unsaveTopic": "{{title}} 저장 해제",
+			"thumbnail": "{{title}} 썸네일, {{total}}개 중 {{index}}번째"
+		}
 	},
 	"Notifications": {
 		"title": "알림",
@@ -302,6 +341,14 @@
 		"buttons": {
 			"viewRestaurant": "가게 보기"
 		},
+		"accessibility": {
+			"viewRestaurant": "{{name}} 매장 상세 보기",
+			"like": "{{name}} 좋아요",
+			"save": "{{name}} 저장",
+			"share": "{{name}} 공유",
+			"openMap": "{{name}} 지도 열기",
+			"reviewLike": "{{username}}님의 리뷰에 좋아요"
+		},
 		"processing": "미디어 처리 중...",
 		"info": {
 			"walkFromShibuya": "시부야역에서 도보 13분"
@@ -313,6 +360,11 @@
 	},
 	"ImageCardGrid": {
 		"openItemDetails": "항목 세부정보 열기"
+	},
+	"Stars": {
+		"accessibility": {
+			"rating": "평점 {{rating}}/5"
+		}
 	},
 	"Tabs": {
 		"home": "홈",
@@ -330,13 +382,17 @@
 		}
 	},
 	"Profile": {
+		"tabGroups": {
+			"reviews": "리뷰",
+			"saved": "저장됨",
+			"liked": "좋아요",
+			"wallet": "지갑"
+		},
 		"tabs": {
 			"deposits": "예치금",
 			"earnings": "수익",
-			"topics": "주제",
-			"posts": "게시물",
 			"saved-posts": "게시물",
-			"saved-topics": "주제",
+			"saved-topics": "요리",
 			"wallet-deposit": "예치금",
 			"wallet-earning": "수익"
 		},
@@ -375,7 +431,8 @@
 			"follow": "팔로우",
 			"following": "팔로잉",
 			"message": "메시지",
-			"searchByMood": "오늘의 기분으로 \"좋아할\" 요리 찾기",
+			"searchForReview": "리뷰할 가게 찾기",
+			"searchByMood": "오늘 기분으로 찾기",
 			"sendFeedback": "피드백 보내기"
 		},
 		"stats": {
@@ -407,7 +464,8 @@
 			"displayNameRequired": "표시 이름은 필수입니다",
 			"displayNameLength": "표시 이름은 30자 이하여야 합니다",
 			"bioLength": "자기소개는 150자 이하여야 합니다"
-		}
+		},
+		"guestDisplayName": "게스트"
 	},
 	"NotFound": {
 		"title": "이런!",
@@ -490,6 +548,7 @@
 			"dishCategoryNoResults": "일치하는 요리 카테고리를 찾을 수 없습니다",
 			"dishCategoryInputHint": "검색할 음식 카테고리를 입력하세요",
 			"clearDishCategory": "음식 카테고리 지우기",
+			"useCurrentLocation": "현재 위치 사용",
 			"selectDishCategory": "이 음식 카테고리 선택"
 		},
 		"errors": {
@@ -620,6 +679,8 @@
 		"copyright": "저작권",
 		"legalDocument": "법적 문서",
 		"logout": "로그아웃",
+		"logoutConfirmTitle": "로그아웃하시겠어요?",
+		"logoutConfirmMessage": "다시 로그인해야 게시물과 리뷰를 관리할 수 있습니다.",
 		"blockedTopics": {
 			"navigationLabel": "차단된 요리 주제",
 			"pageTitle": "차단된 요리 주제",

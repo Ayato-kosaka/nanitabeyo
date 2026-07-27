@@ -1,16 +1,8 @@
 import React, { useCallback } from "react";
-import {
-	View,
-	Text,
-	StyleSheet,
-	TouchableOpacity,
-	ViewStyle,
-	StyleProp,
-	FlatListProps,
-	useWindowDimensions,
-} from "react-native";
+import { View, Text, StyleSheet, ViewStyle, StyleProp, FlatListProps, useWindowDimensions } from "react-native";
 import { GridList } from "@/components/collapsible-tabs/GridList";
 import { ImageCard } from "@/components/ImageCardGrid";
+import { EmptyState } from "@/components/EmptyState";
 import i18n from "@/lib/i18n";
 import type { QueryMeSavedDishCategoriesResponse } from "@shared/api/v1/res";
 import { useLocale } from "@/hooks/useLocale";
@@ -29,6 +21,10 @@ interface SaveTopicTabProps {
 	contentContainerStyle?: StyleProp<ViewStyle>;
 	error?: string | null;
 	onRetry?: () => void;
+	/** #947 空状態のCTAラベル。未指定ならCTAを表示しない */
+	emptyActionLabel?: string;
+	/** #947 空状態のCTA押下時のハンドラ */
+	onEmptyAction?: () => void;
 }
 
 export function SaveTopicTab({
@@ -43,6 +39,8 @@ export function SaveTopicTab({
 	contentContainerStyle,
 	error,
 	onRetry,
+	emptyActionLabel,
+	onEmptyAction,
 }: SaveTopicTabProps) {
 	const { locale } = useLocale();
 	const { width: deviceWidth } = useWindowDimensions();
@@ -55,17 +53,17 @@ export function SaveTopicTab({
 		({ item, index }: { item: { id: string }; index: number }) => {
 			const topic = selectTopicById(item.id)(useTopicsStore.getState());
 			if (!topic) return <View />;
+			const topicLabel = (topic.labels as { [key: string]: string })[locale.split("-")[0]] ?? topic.label_en;
 			return (
 				<ImageCard
 					item={{
 						id: topic.id,
 						imageUrl: wikimediaThumbFromOriginal(topic.image_url, cardWidth),
+						title: topicLabel,
 					}}
 					onPress={() => onItemPress?.(topic, index)}>
 					<View style={styles.topicCardOverlay}>
-						<Text style={styles.topicName}>
-							{(topic.labels as { [key: string]: string })[locale.split("-")[0]] ?? topic.label_en}
-						</Text>
+						<Text style={styles.topicName}>{topicLabel}</Text>
 					</View>
 				</ImageCard>
 			);
@@ -73,28 +71,19 @@ export function SaveTopicTab({
 		[onItemPress, cardWidth, locale],
 	);
 
-	const renderEmptyState = useCallback(() => {
-		if (error) {
-			return (
-				<View style={styles.emptyStateContainer}>
-					<View style={styles.emptyStateCard}>
-						<Text style={styles.emptyStateText}>{i18n.t("Profile.tabError.failedToLoad", { error })}</Text>
-						<TouchableOpacity style={styles.retryButton} onPress={onRetry}>
-							<Text style={styles.retryButtonText}>{i18n.t("Profile.tabError.retry")}</Text>
-						</TouchableOpacity>
-					</View>
-				</View>
-			);
-		}
-
-		return (
-			<View style={styles.emptyStateContainer}>
-				<View style={styles.emptyStateCard}>
-					<Text style={styles.emptyStateText}>{i18n.t("Profile.emptyState.noSavedTopics")}</Text>
-				</View>
-			</View>
-		);
-	}, [error, onRetry]);
+	const renderEmptyState = useCallback(
+		() => (
+			<EmptyState
+				message={i18n.t("Profile.emptyState.noSavedTopics")}
+				actionLabel={emptyActionLabel}
+				onAction={onEmptyAction}
+				error={error ? i18n.t("Profile.tabError.failedToLoad", { error }) : null}
+				onRetry={onRetry}
+				testID="save-topic-tab-empty-state"
+			/>
+		),
+		[error, onRetry, emptyActionLabel, onEmptyAction],
+	);
 
 	return (
 		<GridList
@@ -146,36 +135,5 @@ const styles = StyleSheet.create({
 		fontSize: 12,
 		color: "#E5E5E5",
 		fontWeight: "500",
-	},
-	emptyStateContainer: {
-		flex: 1,
-	},
-	emptyStateCard: {
-		backgroundColor: "#FFFFFF",
-		borderRadius: 20,
-		padding: 32,
-		alignItems: "center",
-		justifyContent: "center",
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 0 },
-		shadowOpacity: 0.08,
-		shadowRadius: 16,
-		elevation: 4,
-	},
-	emptyStateText: {
-		fontSize: 16,
-		color: "#6B7280",
-		textAlign: "center",
-	},
-	retryButton: {
-		marginTop: 16,
-		backgroundColor: "#F05537",
-		paddingHorizontal: 20,
-		paddingVertical: 10,
-		borderRadius: 20,
-	},
-	retryButtonText: {
-		color: "#FFFFFF",
-		fontWeight: "600",
 	},
 });

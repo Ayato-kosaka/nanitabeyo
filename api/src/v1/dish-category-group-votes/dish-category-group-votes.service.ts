@@ -24,6 +24,7 @@ import {
   CreateDishCategoryGroupVoteResponse,
   DeleteDishCategoryGroupVoteCandidateResponse,
   DishCategoryGroupVoteDetailResponse,
+  RestoreDishCategoryGroupVoteCandidateResponse,
   SubmitDishCategoryGroupVoteResponse,
   UpdateDishCategoryGroupVoteCandidateDishMediaResponse,
 } from '@shared/v1/res';
@@ -99,7 +100,9 @@ export class DishCategoryGroupVotesService {
         error,
       });
       if (this.repo.isUniqueViolation(error)) {
-        throw new ConflictException('Failed to create dish category group vote');
+        throw new ConflictException(
+          'Failed to create dish category group vote',
+        );
       }
       throw error;
     }
@@ -135,11 +138,15 @@ export class DishCategoryGroupVotesService {
       });
       return response;
     } catch (error) {
-      this.logger.error('DishCategoryGroupVotes.getDetailFailed', 'getDetailByShareToken', {
-        shareToken,
-        viewerUserId,
-        error,
-      });
+      this.logger.error(
+        'DishCategoryGroupVotes.getDetailFailed',
+        'getDetailByShareToken',
+        {
+          shareToken,
+          viewerUserId,
+          error,
+        },
+      );
       throw error;
     }
   }
@@ -171,11 +178,12 @@ export class DishCategoryGroupVotesService {
           // 投票中にホストが候補削除しても送信をエラーにしない。
           // ここで守るのは「候補が同一セッションに属すること」だけで、
           // deleted_at や votes.length と未削除候補数の一致は検証しない。
-          const candidatesBelong = await this.repo.assertCandidatesBelongToSession(
-            tx,
-            sessionId,
-            dto.votes.map((vote) => vote.candidateId),
-          );
+          const candidatesBelong =
+            await this.repo.assertCandidatesBelongToSession(
+              tx,
+              sessionId,
+              dto.votes.map((vote) => vote.candidateId),
+            );
           if (!candidatesBelong) {
             throw new NotFoundException('Candidate not found');
           }
@@ -203,12 +211,16 @@ export class DishCategoryGroupVotesService {
         stored: true,
       };
     } catch (error) {
-      this.logger.error('DishCategoryGroupVotes.submitVoteFailed', 'submitVote', {
-        sessionId,
-        userId,
-        voteCount: dto.votes.length,
-        error,
-      });
+      this.logger.error(
+        'DishCategoryGroupVotes.submitVoteFailed',
+        'submitVote',
+        {
+          sessionId,
+          userId,
+          voteCount: dto.votes.length,
+          error,
+        },
+      );
       // 一発勝負の最終防衛線は unique(session_id, user_id)。
       // APIインスタンス間の同時送信でも DB 制約に寄せて 409 に正規化する。
       if (this.repo.isUniqueViolation(error)) {
@@ -224,12 +236,16 @@ export class DishCategoryGroupVotesService {
     dto: UpdateDishCategoryGroupVoteCandidateDishMediaDto,
     userId: string,
   ): Promise<UpdateDishCategoryGroupVoteCandidateDishMediaResponse> {
-    this.logger.debug('DishCategoryGroupVotes.updateCandidateDishMedia', 'start', {
-      sessionId,
-      candidateId,
-      userId,
-      count: dto.dishMediaIds.length,
-    });
+    this.logger.debug(
+      'DishCategoryGroupVotes.updateCandidateDishMedia',
+      'start',
+      {
+        sessionId,
+        candidateId,
+        userId,
+        count: dto.dishMediaIds.length,
+      },
+    );
 
     // 店舗提案は「最初に誰かが見た検索結果」をセッション内で固定する。
     // Prisma は PostgreSQL scalar list の NULL を [] と区別できないため、
@@ -254,13 +270,13 @@ export class DishCategoryGroupVotesService {
             return {
               candidateId,
               dishMediaIds: candidate.dish_media_ids,
-              dishMediaSearchStatus: candidate.dish_media_search_status as UpdateDishCategoryGroupVoteCandidateDishMediaResponse["dishMediaSearchStatus"],
+              dishMediaSearchStatus:
+                candidate.dish_media_search_status as UpdateDishCategoryGroupVoteCandidateDishMediaResponse['dishMediaSearchStatus'],
               updated: false,
             };
           }
 
-          const nextStatus =
-            dto.dishMediaIds.length > 0 ? 'found' : 'empty';
+          const nextStatus = dto.dishMediaIds.length > 0 ? 'found' : 'empty';
           const cached = await this.repo.updateCandidateDishMediaIds(
             tx,
             sessionId,
@@ -282,24 +298,32 @@ export class DishCategoryGroupVotesService {
         },
       );
 
-      this.logger.debug('DishCategoryGroupVotes.updateCandidateDishMedia', 'completed', {
-        sessionId,
-        candidateId,
-        userId,
-        count: dto.dishMediaIds.length,
-        updated: result.updated,
-        dishMediaSearchStatus: result.dishMediaSearchStatus,
-      });
+      this.logger.debug(
+        'DishCategoryGroupVotes.updateCandidateDishMedia',
+        'completed',
+        {
+          sessionId,
+          candidateId,
+          userId,
+          count: dto.dishMediaIds.length,
+          updated: result.updated,
+          dishMediaSearchStatus: result.dishMediaSearchStatus,
+        },
+      );
 
       return result;
     } catch (error) {
-      this.logger.error('DishCategoryGroupVotes.updateCandidateDishMediaFailed', 'updateCandidateDishMedia', {
-        sessionId,
-        candidateId,
-        userId,
-        count: dto.dishMediaIds.length,
-        error,
-      });
+      this.logger.error(
+        'DishCategoryGroupVotes.updateCandidateDishMediaFailed',
+        'updateCandidateDishMedia',
+        {
+          sessionId,
+          candidateId,
+          userId,
+          count: dto.dishMediaIds.length,
+          error,
+        },
+      );
       throw error;
     }
   }
@@ -347,12 +371,75 @@ export class DishCategoryGroupVotesService {
 
       return { deleted: true };
     } catch (error) {
-      this.logger.error('DishCategoryGroupVotes.deleteCandidateFailed', 'deleteCandidate', {
-        sessionId,
-        candidateId,
-        userId,
-        error,
-      });
+      this.logger.error(
+        'DishCategoryGroupVotes.deleteCandidateFailed',
+        'deleteCandidate',
+        {
+          sessionId,
+          candidateId,
+          userId,
+          error,
+        },
+      );
+      throw error;
+    }
+  }
+
+  // #943 【仕様】誤削除からの回復用。deleteCandidateと対になる操作なので認可・冪等の扱いを揃える。
+  async restoreCandidate(
+    sessionId: string,
+    candidateId: string,
+    userId: string,
+  ): Promise<RestoreDishCategoryGroupVoteCandidateResponse> {
+    try {
+      await this.prisma.withTransaction(
+        async (tx: Prisma.TransactionClient) => {
+          const session = await this.repo.findSessionById(tx, sessionId);
+          if (!session) {
+            throw new NotFoundException('Dish category group vote not found');
+          }
+          if (session.host_user_id !== userId) {
+            throw new ForbiddenException('Only host can restore candidates');
+          }
+
+          const candidate = await this.repo.findCandidateById(
+            tx,
+            sessionId,
+            candidateId,
+          );
+          if (!candidate) {
+            throw new NotFoundException('Candidate not found');
+          }
+
+          if (candidate.deleted_at) {
+            await this.repo.restoreCandidate(tx, sessionId, candidateId);
+            await this.repo.touchSession(tx, sessionId);
+          }
+        },
+      );
+
+      this.logger.debug(
+        'DishCategoryGroupVotes.restoreCandidate',
+        'completed',
+        {
+          sessionId,
+          candidateId,
+          userId,
+        },
+      );
+
+      return { restored: true };
+    } catch (error) {
+      this.logger.error(
+        'DishCategoryGroupVotes.restoreCandidateFailed',
+        'restoreCandidate',
+        {
+          sessionId,
+          candidateId,
+          userId,
+          error,
+        },
+      );
       throw error;
     }
   }

@@ -100,8 +100,8 @@ export const useTopicSearch = () => {
 									...topic,
 									category:
 										createDishCategoryVariantResponse.labels &&
-											typeof createDishCategoryVariantResponse.labels === "object" &&
-											params.localLanguageCode in createDishCategoryVariantResponse.labels
+										typeof createDishCategoryVariantResponse.labels === "object" &&
+										params.localLanguageCode in createDishCategoryVariantResponse.labels
 											? (createDishCategoryVariantResponse.labels as Record<string, string>)[params.localLanguageCode]
 											: topic.category,
 									categoryId: createDishCategoryVariantResponse.id,
@@ -254,6 +254,14 @@ export const useTopicSearch = () => {
 		console.log("Topic hidden:", hideReason);
 	}, []);
 
+	// #936 【仕様】ブロックのUndo用。元の配列位置を保ったまま isHidden だけを戻す
+	// (末尾に追加し直すと表示順が変わり、視聴済みカードの前後関係が崩れるため)。
+	const unhideTopic = useCallback((topicId: string) => {
+		setTopics((prevTopics) =>
+			prevTopics.map((topic) => (topic.categoryId === topicId ? { ...topic, isHidden: false } : topic)),
+		);
+	}, []);
+
 	const resetTopics = useCallback(() => {
 		setTopics([]);
 		setError(null);
@@ -266,6 +274,7 @@ export const useTopicSearch = () => {
 		searchTopics,
 		refillTopics,
 		hideTopic,
+		unhideTopic,
 		resetTopics,
 		createDishItemsPromise, // Export the helper function for reuse
 	};

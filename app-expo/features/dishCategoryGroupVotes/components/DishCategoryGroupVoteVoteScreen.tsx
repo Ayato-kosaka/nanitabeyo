@@ -6,7 +6,7 @@
  */
 import { router } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { SafeAreaView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { AccessibilityInfo, SafeAreaView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import type { SubmitDishCategoryGroupVoteDto } from "@shared/api/v1/dto";
 import type { DishCategoryGroupVoteReaction } from "@shared/api/v1/res";
 import i18n from "@/lib/i18n";
@@ -54,15 +54,28 @@ export function DishCategoryGroupVoteVoteScreen({ shareToken }: Props) {
 		return detail?.candidates.filter((candidate) => candidate.deletedAt === null) ?? [];
 	}, [detail?.candidates]);
 
+	// #945 【仕様】スワイプ/ボタンどちらの操作でもカードが切り替わったことを読み上げる
 	useEffect(() => {
-			if (detail?.session.hasVoted) {
-				router.replace({
-					pathname: "/[locale]/(tabs)/search/dish-category-group-votes/[shareToken]",
-					params: {
-						locale,
-						shareToken,
-					},
-				});
+		const candidate = voteCandidates[index];
+		if (!candidate) return;
+		AccessibilityInfo.announceForAccessibility(
+			i18n.t("DishCategoryGroupVotes.voteProgressAnnouncement", {
+				current: index + 1,
+				total: voteCandidates.length,
+				title: candidate.displayName,
+			}),
+		);
+	}, [index, voteCandidates]);
+
+	useEffect(() => {
+		if (detail?.session.hasVoted) {
+			router.replace({
+				pathname: "/[locale]/(tabs)/search/dish-category-group-votes/[shareToken]",
+				params: {
+					locale,
+					shareToken,
+				},
+			});
 		}
 	}, [detail?.session.hasVoted, locale, shareToken]);
 

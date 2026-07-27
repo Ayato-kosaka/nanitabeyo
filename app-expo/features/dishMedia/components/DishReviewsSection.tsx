@@ -165,14 +165,25 @@ export function DishReviewsSection({ id, idType, paddingRight, carouselRef }: Di
 										{displayText}
 										{isTruncated && "...  "}
 										{isTruncated && (
-											<TouchableOpacity style={styles.seeMoreButton} onPress={() => handleSeeMore(review.id)}>
+											<TouchableOpacity
+												style={styles.seeMoreButton}
+												onPress={() => handleSeeMore(review.id)}
+												accessibilityRole="button"
+												accessibilityLabel={i18n.t("DishMediaContent.actions.seeMore")}>
 												<Text style={styles.seeMoreText}>{i18n.t("DishMediaContent.actions.seeMore")}</Text>
 											</TouchableOpacity>
 										)}
 									</Text>
 								</View>
 								<View style={styles.commentActions}>
-									<TouchableOpacity style={styles.commentLikeButton} onPress={() => handleReviewLike(review.id)}>
+									<TouchableOpacity
+										style={styles.commentLikeButton}
+										onPress={() => handleReviewLike(review.id)}
+										accessibilityRole="button"
+										accessibilityLabel={i18n.t("DishMediaContent.accessibility.reviewLike", {
+											username: review.username,
+										})}
+										aria-selected={review.isLiked ?? false}>
 										<Heart
 											size={14}
 											color={review.isLiked ? "#FF3040" : "#CCCCCC"}
