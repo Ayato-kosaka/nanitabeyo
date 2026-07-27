@@ -33,7 +33,7 @@ import { useHaptics } from "@/hooks/useHaptics";
 
 const THUMB_SIZE = 28;
 const TICK_SIZE = 6;
-const THUMB_HIT_SLOP = { top: 16, bottom: 16, left: 16, right: 16 };
+const THUMB_HIT_SLOP = { top: 19, bottom: 19, left: 19, right: 19 };
 const DRAG_ACTIVATION_THRESHOLD_PX = 4;
 
 const TRAVEL_MODE_LABEL_KEYS = {
@@ -426,6 +426,7 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "center",
 		gap: 2,
+		minHeight: 44,
 		paddingHorizontal: 4,
 		paddingVertical: 7,
 	},
