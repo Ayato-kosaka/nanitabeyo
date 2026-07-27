@@ -66,13 +66,15 @@ const TRAVEL_MODE_RULES = [
  * 副作用: なし。
  */
 export function getTravelTimeEstimates(distanceMeters: number): TravelTimeEstimate[] {
-	const distanceKm = Math.max(0, distanceMeters) / METERS_PER_KILOMETER;
+	const normalizedDistanceMeters = Math.max(0, distanceMeters);
+	const distanceKm = normalizedDistanceMeters / METERS_PER_KILOMETER;
 
 	return TRAVEL_MODE_RULES.map((rule) => ({
 		mode: rule.mode,
 		minutes: Math.ceil(rule.fixedMinutes + (distanceKm / rule.speedKmh) * MINUTES_PER_HOUR),
 		isRecommended:
-			distanceMeters >= rule.recommendedMinMeters && distanceMeters <= rule.recommendedMaxMeters,
+			normalizedDistanceMeters >= rule.recommendedMinMeters &&
+			normalizedDistanceMeters <= rule.recommendedMaxMeters,
 	})).sort((left, right) => {
 		if (left.minutes !== right.minutes) return left.minutes - right.minutes;
 		const leftOrder = TRAVEL_MODE_RULES.find((rule) => rule.mode === left.mode)?.order ?? 0;
