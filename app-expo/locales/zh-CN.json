@@ -89,7 +89,18 @@
 		"currentLocation": "当前位置",
 		"DistanceSlider": {
 			"near": "近",
-			"far": "远"
+			"far": "远",
+			"edgeEstimate": "到搜索范围边缘的预计时间",
+			"approxMinutes": "约{{minutes}}分钟",
+			"modes": {
+				"walk": "步行",
+				"bike": "自行车",
+				"car": "汽车",
+				"train": "轨道交通"
+			},
+			"showMore": "查看更多",
+			"showLess": "收起",
+			"estimateHint": "所需时间会因路线、交通和等候时间而异"
 		},
 		"BudgetSlider": {
 			"cheap": "便宜",
