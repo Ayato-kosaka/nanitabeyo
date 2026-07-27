@@ -54,7 +54,7 @@ jobs:
       # (EXPO_PUBLIC_BACKEND_BASE_URL=api-development 等がビルドに焼き込まれる)
       - name: 🛠️ Sync environment variables from EAS CLI
         working-directory: app-expo
-        run: pnpx eas-cli env:pull development --non-interactive
+        run: pnpx eas-cli env:pull development --non-interactive --path .env
 
       - name: 🏗️ Build Web App
         run: pnpm --filter app-expo build:web
