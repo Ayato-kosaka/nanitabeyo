@@ -181,8 +181,8 @@
 			"junk": "ジャンキー"
 		},
 		"coreIngredientOptions": {
-			"meat": "お肉メイン",
-			"fish": "魚介メイン",
+			"meat": "お肉系",
+			"fish": "魚介系",
 			"rice": "お米系",
 			"noodle": "麺系"
 		},
