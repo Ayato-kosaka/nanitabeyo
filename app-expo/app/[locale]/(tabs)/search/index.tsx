@@ -25,7 +25,6 @@ import {
 	sceneOptions,
 	foodStyleOptions,
 	diningPaceOptions,
-	distanceOptions,
 	priceLevelOptions,
 	TUTORIAL_PAGES,
 	PRELOAD_IMAGES,
@@ -528,11 +527,7 @@ export default function SearchScreen() {
 						<View style={styles.section}>
 							<SectionHeader icon={<Ruler size={20} color="#F05537" />} title={i18n.t("Search.sections.distance")} />
 							<View style={styles.sliderSection}>
-								<Text style={styles.sliderValue}>
-									{i18n.t(
-										distanceOptions.find((option) => option.value === distance)?.label ?? distanceOptions[0].label,
-									)}
-								</Text>
+								{/* #987 【設計】距離値・おすすめ移動時間・詳細開閉を一つのコンパクトな操作領域に集約 */}
 								<DistanceSlider distance={distance} setDistance={setDistance} />
 							</View>
 						</View>
@@ -752,14 +747,7 @@ const styles = StyleSheet.create({
 		gap: 12,
 	},
 	sliderSection: {
-		alignItems: "center",
-	},
-	sliderValue: {
-		fontSize: 18,
-		fontWeight: "700",
-		color: "#000000",
-		marginBottom: 8,
-		textAlign: "center",
+		width: "100%",
 	},
 	searchFabContainer: {
 		position: "absolute",
