@@ -639,7 +639,10 @@ export default function SearchScreen() {
 			</ScrollView>
 
 			{/* Search FAB */}
-			<View style={styles.searchFabContainer}>
+			{/* #989 【修正】絶対配置の全幅コンテナがボタン以外の透明領域でもクリックを奪い、
+			    この帯域に重なるフォーム要素(距離スライダー等)がマウス操作不能になっていたため、
+			    コンテナ自体はヒット対象から外し子のボタンだけが反応するようにする */}
+			<View style={styles.searchFabContainer} pointerEvents="box-none">
 				<PrimaryButton
 					testID="search-submit-button"
 					label={i18n.t("Search.searchButton")}

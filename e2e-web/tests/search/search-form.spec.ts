@@ -10,15 +10,11 @@ import { SearchPage } from "../../pages/SearchPage";
  */
 test.describe("検索フォーム", () => {
 	// ─ テストケース: 場所が未確定のまま検索ボタンを押しても遷移しない ─
-	// 手順:
-	//   1. appPage で起動(検索画面)。search-submit-button(PrimaryButton)は
-	//      disabled 時、コンポーネント内部の handlePress が onPress 呼び出し自体を
-	//      ガードする実装になっている(disabled/aria-disabled は DOM に反映されないため
-	//      Playwright の toBeDisabled() では検証できず、handleSearch 内の
-	//      「検索場所を選択してください」スナックバー分岐も実質到達不能)。
-	//      そのため「非活性の結果、押しても何も起きない」ことを振る舞いで検証する
-	//   2. 場所を明示的に未入力の状態で検索ボタンをクリックする
-	//   3. トピック画面へ遷移しておらず、検索画面のヘッダが表示され続けることを検証
+	// #989 【修正】#951 で PrimaryButton が実 disabled 属性 + aria-disabled を DOM に出す
+	// ようになったため、旧実装前提の「普通にクリックして何も起きないことを確認」は
+	// Playwright がクリック自体を拒否してタイムアウトするようになった。
+	// 現仕様では「disabled 属性で押下不能」がそのまま保証内容なので、
+	// disabled/aria-disabled の検証 + force クリックでも遷移しないことの検証に変更
 	test("場所が未確定のまま検索ボタンを押しても遷移しない", async ({ appPage }) => {
 		const searchPage = new SearchPage(appPage);
 
@@ -27,7 +23,11 @@ test.describe("検索フォーム", () => {
 			await searchPage.locationClearButton.click();
 		}
 
-		await searchPage.submitButton.click();
+		await expect(searchPage.submitButton).toBeDisabled();
+		await expect(searchPage.submitButton).toHaveAttribute("aria-disabled", "true");
+
+		// actionability チェックを迂回して物理クリックしても遷移しないこと
+		await searchPage.submitButton.click({ force: true });
 		await appPage.waitForTimeout(500);
 		await expect(appPage).not.toHaveURL(/\/search\/topics/);
 		await searchPage.expectLoaded();
@@ -68,9 +68,7 @@ test.describe("検索フォーム", () => {
 	// 一般化所要時間の短い順で表示する。おすすめ外は「もっと見る」でだけ確認できる。
 	test("距離に応じて移動時間のおすすめ表示が切り替わる", async ({ appPage }) => {
 		const searchPage = new SearchPage(appPage);
-		const recommended = searchPage.distanceRecommendedEstimates.locator(
-			'[data-testid^="search-distance-estimate-"]',
-		);
+		const recommended = searchPage.distanceRecommendedEstimates.locator('[data-testid^="search-distance-estimate-"]');
 
 		await searchPage.advancedToggle.click();
 

@@ -1,20 +1,6 @@
 import React, { useCallback, useMemo, useRef, useState } from "react";
-import {
-	View,
-	Text,
-	PanResponder,
-	StyleSheet,
-	TouchableOpacity,
-	type LayoutChangeEvent,
-} from "react-native";
-import {
-	Bike,
-	CarFront,
-	ChevronDown,
-	ChevronUp,
-	Footprints,
-	TrainFront,
-} from "lucide-react-native";
+import { View, Text, PanResponder, StyleSheet, TouchableOpacity, type LayoutChangeEvent } from "react-native";
+import { Bike, CarFront, ChevronDown, ChevronUp, Footprints, TrainFront } from "lucide-react-native";
 import { distanceOptions } from "@/features/search/constants";
 import {
 	getRecommendedTravelTimeEstimates,
@@ -62,13 +48,7 @@ interface DistanceSliderProps {
 	setDistance: (value: number) => void;
 }
 
-function TravelEstimateChip({
-	estimate,
-	secondary = false,
-}: {
-	estimate: TravelTimeEstimate;
-	secondary?: boolean;
-}) {
+function TravelEstimateChip({ estimate, secondary = false }: { estimate: TravelTimeEstimate; secondary?: boolean }) {
 	const Icon = TRAVEL_MODE_ICONS[estimate.mode];
 	const modeLabel = i18n.t(TRAVEL_MODE_LABEL_KEYS[estimate.mode]);
 	const minutesLabel = i18n.t("Search.DistanceSlider.approxMinutes", {
@@ -79,18 +59,10 @@ function TravelEstimateChip({
 		<View
 			style={[styles.estimateChip, secondary && styles.secondaryEstimateChip]}
 			accessibilityLabel={`${modeLabel} ${minutesLabel}`}
-			testID={`search-distance-estimate-${estimate.mode}`}
-		>
+			testID={`search-distance-estimate-${estimate.mode}`}>
 			<Icon size={16} color={secondary ? "#6B7280" : "#F05537"} />
 			<Text style={styles.estimateLabel}>{modeLabel}</Text>
-			<Text
-				style={[
-					styles.estimateMinutes,
-					secondary && styles.secondaryEstimateMinutes,
-				]}
-			>
-				{minutesLabel}
-			</Text>
+			<Text style={[styles.estimateMinutes, secondary && styles.secondaryEstimateMinutes]}>{minutesLabel}</Text>
 		</View>
 	);
 }
@@ -101,27 +73,18 @@ export function DistanceSlider({ distance, setDistance }: DistanceSliderProps) {
 	const [showAllEstimates, setShowAllEstimates] = useState(false);
 
 	const currentIndex = useMemo(() => {
-		const index = distanceOptions.findIndex(
-			(option) => option.value === distance,
-		);
+		const index = distanceOptions.findIndex((option) => option.value === distance);
 		return index === -1 ? 0 : index;
 	}, [distance]);
 
-	const allEstimates = useMemo(
-		() => getTravelTimeEstimates(distance),
-		[distance],
-	);
-	const recommendedEstimates = useMemo(
-		() => getRecommendedTravelTimeEstimates(distance),
-		[distance],
-	);
+	const allEstimates = useMemo(() => getTravelTimeEstimates(distance), [distance]);
+	const recommendedEstimates = useMemo(() => getRecommendedTravelTimeEstimates(distance), [distance]);
 	const recommendedModes = useMemo(
 		() => new Set(recommendedEstimates.map((estimate) => estimate.mode)),
 		[recommendedEstimates],
 	);
 	const otherEstimates = useMemo(
-		() =>
-			allEstimates.filter((estimate) => !recommendedModes.has(estimate.mode)),
+		() => allEstimates.filter((estimate) => !recommendedModes.has(estimate.mode)),
 		[allEstimates, recommendedModes],
 	);
 
@@ -221,22 +184,15 @@ export function DistanceSlider({ distance, setDistance }: DistanceSliderProps) {
 	}, [selectionChanged]);
 
 	const currentOption = distanceOptions[currentIndex];
-	const thumbCenter =
-		trackWidth > 0
-			? (currentIndex / (distanceOptions.length - 1)) * trackWidth
-			: 0;
+	const thumbCenter = trackWidth > 0 ? (currentIndex / (distanceOptions.length - 1)) * trackWidth : 0;
 	const thumbPosition = thumbCenter - THUMB_SIZE / 2;
 
 	return (
 		<View style={styles.sliderContainer}>
 			<View style={styles.sliderHeader}>
-				<Text style={styles.sliderHint}>
-					{i18n.t("Search.DistanceSlider.edgeEstimate")}
-				</Text>
+				<Text style={styles.sliderHint}>{i18n.t("Search.DistanceSlider.edgeEstimate")}</Text>
 				<View style={styles.distanceBadge}>
-					<Text style={styles.distanceValue}>
-						{i18n.t(currentOption.label)}
-					</Text>
+					<Text style={styles.distanceValue}>{i18n.t(currentOption.label)}</Text>
 				</View>
 			</View>
 
@@ -265,17 +221,10 @@ export function DistanceSlider({ distance, setDistance }: DistanceSliderProps) {
 				// react-native-web は未知のプロパティをそのまま div へ forward するため実際には機能する
 				focusable
 				{...({ onKeyDown: handleKeyDown } as Record<string, unknown>)}
-				testID="search-distance-slider"
-			>
-				<View
-					pointerEvents="none"
-					style={[styles.sliderProgress, { width: thumbCenter }]}
-				/>
+				testID="search-distance-slider">
+				<View pointerEvents="none" style={[styles.sliderProgress, { width: thumbCenter }]} />
 				{distanceOptions.map((option, index) => {
-					const tickCenter =
-						trackWidth > 0
-							? (index / (distanceOptions.length - 1)) * trackWidth
-							: 0;
+					const tickCenter = trackWidth > 0 ? (index / (distanceOptions.length - 1)) * trackWidth : 0;
 					return (
 						<View
 							key={option.value}
@@ -288,18 +237,16 @@ export function DistanceSlider({ distance, setDistance }: DistanceSliderProps) {
 						/>
 					);
 				})}
-				<View
-					pointerEvents="none"
-					style={[styles.sliderThumb, { left: thumbPosition }]}
-				/>
+				<View pointerEvents="none" style={[styles.sliderThumb, { left: thumbPosition }]} />
 			</View>
 
+			{/* #989 【修正】accessibilityRole="list" は子に listitem を要求するため(axe:
+			    aria-required-children critical)、チップ+ボタン混在のこの行には付与しない。
+			    各チップは accessibilityLabel で個別に読み上げられるため list 化は不要 */}
 			<View
 				style={styles.estimateRow}
-				accessibilityRole="list"
 				accessibilityHint={i18n.t("Search.DistanceSlider.estimateHint")}
-				testID="search-distance-recommended-estimates"
-			>
+				testID="search-distance-recommended-estimates">
 				{recommendedEstimates.map((estimate) => (
 					<TravelEstimateChip key={estimate.mode} estimate={estimate} />
 				))}
@@ -309,33 +256,19 @@ export function DistanceSlider({ distance, setDistance }: DistanceSliderProps) {
 						onPress={toggleEstimates}
 						accessibilityRole="button"
 						accessibilityState={{ expanded: showAllEstimates }}
-						testID="search-distance-estimates-toggle"
-					>
+						testID="search-distance-estimates-toggle">
 						<Text style={styles.moreButtonText}>
-							{showAllEstimates
-								? i18n.t("Search.DistanceSlider.showLess")
-								: i18n.t("Search.DistanceSlider.showMore")}
+							{showAllEstimates ? i18n.t("Search.DistanceSlider.showLess") : i18n.t("Search.DistanceSlider.showMore")}
 						</Text>
-						{showAllEstimates ? (
-							<ChevronUp size={14} color="#F05537" />
-						) : (
-							<ChevronDown size={14} color="#F05537" />
-						)}
+						{showAllEstimates ? <ChevronUp size={14} color="#F05537" /> : <ChevronDown size={14} color="#F05537" />}
 					</TouchableOpacity>
 				)}
 			</View>
 
 			{showAllEstimates && (
-				<View
-					style={styles.estimateRow}
-					testID="search-distance-other-estimates"
-				>
+				<View style={styles.estimateRow} testID="search-distance-other-estimates">
 					{otherEstimates.map((estimate) => (
-						<TravelEstimateChip
-							key={estimate.mode}
-							estimate={estimate}
-							secondary
-						/>
+						<TravelEstimateChip key={estimate.mode} estimate={estimate} secondary />
 					))}
 				</View>
 			)}

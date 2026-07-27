@@ -35,13 +35,28 @@ test.describe("検索フォームのアクセシビリティ", () => {
 	});
 
 	// ─ テストケース: 時間帯グリッドが radiogroup/radio セマンティクスを持つ ─
+	// #989 【修正】時間帯には現在時刻に応じた初期選択があるため、「夜ごはんは未選択」の
+	// 決め打ちは時間帯によって失敗する。未選択のスロットを動的に選び、radio の
+	// 排他動作(選ぶと aria-checked が付け替わる)を検証する形に変更
 	test("時間帯グリッドが radiogroup/radio ロールを持つ", async ({ appPage }) => {
 		const timeSlotDinner = appPage.getByTestId("search-time-slot-dinner");
 		await expect(timeSlotDinner).toHaveAttribute("role", "radio");
-		await expect(timeSlotDinner).toHaveAttribute("aria-checked", "false");
 
-		await timeSlotDinner.click();
-		await expect(timeSlotDinner).toHaveAttribute("aria-checked", "true");
+		// 現在未選択のスロットを1つ探す(初期選択は現在時刻依存)
+		const slotIds = ["morning", "lunch", "dinner", "late_night"];
+		let uncheckedId: string | null = null;
+		for (const slot of slotIds) {
+			const el = appPage.getByTestId(`search-time-slot-${slot}`);
+			if ((await el.getAttribute("aria-checked")) === "false") {
+				uncheckedId = slot;
+				break;
+			}
+		}
+		expect(uncheckedId, "未選択の時間帯スロットが存在しない").not.toBeNull();
+
+		const unchecked = appPage.getByTestId(`search-time-slot-${uncheckedId}`);
+		await unchecked.click();
+		await expect(unchecked).toHaveAttribute("aria-checked", "true");
 	});
 
 	// ─ テストケース: 価格帯チップが checkbox セマンティクスを持ち複数選択できる ─
