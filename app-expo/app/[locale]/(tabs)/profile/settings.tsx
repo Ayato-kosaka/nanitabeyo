@@ -16,7 +16,6 @@ import { Card } from "@/components/Card";
 import i18n from "@/lib/i18n";
 import { useAuth } from "@/contexts/AuthProvider";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
-import { FeedbackForm } from "@/features/profile/components/FeedbackForm";
 import { LegalDocument } from "@/features/settings/components/LegalDocument";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
@@ -78,11 +77,8 @@ export default function SettingsScreen() {
 	const [selectedLegalDocument, setSelectedLegalDocument] = useState<
 		"guidelines" | "terms" | "privacy" | "copyright" | null
 	>(null);
-	const {
-		BlurModal: FeedbackModal,
-		open: openFeedbackModal,
-		close: closeFeedbackModal,
-	} = useBlurModal({ intensity: 100 });
+	// #951 【設計】フィードバックは useBlurModal をやめ、専用画面(profile/feedback)へ遷移する
+	// (レビュー指摘: #949 の ScreenHeader による戻る導線と統一するため)
 	const {
 		BlurModal: LegalDocumentModal,
 		open: openLegalDocumentModal,
@@ -283,24 +279,19 @@ export default function SettingsScreen() {
 		}
 	}, [logout, mediumImpact, logFrontendEvent]);
 
-	// フィードバック送信モーダルを起動
+	// #951 【設計】フィードバック画面へ遷移(モーダル起動から変更)
 	const handleSendFeedback = useCallback(() => {
 		lightImpact();
-		openFeedbackModal();
 		logFrontendEvent({
 			event_name: "settings_send_feedback_pressed",
 			error_level: "log",
 			payload: { userId: user?.id },
 		});
-	}, [lightImpact, openFeedbackModal, logFrontendEvent, user?.id]);
-
-	const handleFeedbackSubmit = useCallback(
-		(_data: { type: "request" | "bug"; title: string; message: string; issueNumber: number; issueUrl: string }) => {
-			showSnackbar(i18n.t("Feedback.success.submitted"));
-			closeFeedbackModal();
-		},
-		[closeFeedbackModal, showSnackbar],
-	);
+		router.push({
+			pathname: "/[locale]/(tabs)/profile/feedback",
+			params: { locale },
+		});
+	}, [lightImpact, logFrontendEvent, user?.id, router, locale]);
 
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
@@ -313,7 +304,8 @@ export default function SettingsScreen() {
 							label={i18n.t("Settings.sendFeedback")}
 							onPress={handleSendFeedback}
 							testID="settings-feedback"
-							accessibilityRole="button"
+							// #951 【仕様】モーダル起動から画面遷移(router.push)に変わったため link に変更(#950 の規約)
+							accessibilityRole="link"
 						/>
 						{/* #317 【設計】Leave Review は web では非表示 */}
 						{Platform.OS !== "web" && (
@@ -377,11 +369,6 @@ export default function SettingsScreen() {
 					</Card>
 				</ScrollView>
 			</SafeAreaView>
-
-			{/* フィードバックモーダル */}
-			<FeedbackModal>
-				<FeedbackForm onSubmit={handleFeedbackSubmit} onCancel={closeFeedbackModal} />
-			</FeedbackModal>
 
 			{/* Legal ドキュメントモーダル */}
 			<LegalDocumentModal>
