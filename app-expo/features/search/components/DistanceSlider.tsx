@@ -1,5 +1,13 @@
 import React, { useCallback, useMemo, useRef, useState } from "react";
-import { View, Text, PanResponder, StyleSheet, TouchableOpacity, type LayoutChangeEvent } from "react-native";
+import {
+	View,
+	Text,
+	PanResponder,
+	Pressable,
+	StyleSheet,
+	TouchableOpacity,
+	type LayoutChangeEvent,
+} from "react-native";
 import { Bike, CarFront, ChevronDown, ChevronUp, Footprints, TrainFront } from "lucide-react-native";
 import { distanceOptions } from "@/features/search/constants";
 import {
@@ -111,11 +119,21 @@ export function DistanceSlider({ distance, setDistance }: DistanceSliderProps) {
 	const updateFromLocationX = useCallback(
 		(locationX: number) => {
 			const width = trackWidthRef.current;
-			if (width <= 0) return;
+			if (width <= 0 || !Number.isFinite(locationX)) return;
 			const ratio = Math.max(0, Math.min(1, locationX / width));
 			commitIndex(Math.round(ratio * (distanceOptions.length - 1)));
 		},
 		[commitIndex],
+	);
+
+	// #935 【設計】タップ位置のトラック相対Xを取り出す。native の PressEvent は locationX を
+	// 持つが、web(react-native-web)のクリックでは nativeEvent が DOM MouseEvent 相当で
+	// locationX が無いため、同じ意味を持つ offsetX(ターゲット相対X)へフォールバックする
+	const handleTrackPress = useCallback(
+		(event: { nativeEvent: { locationX?: number; offsetX?: number } }) => {
+			updateFromLocationX(event.nativeEvent.locationX ?? event.nativeEvent.offsetX ?? Number.NaN);
+		},
+		[updateFromLocationX],
 	);
 
 	// #935 【修正】ドラッグ開始時のトラック相対X。移動中は locationX を読まず、
@@ -127,22 +145,26 @@ export function DistanceSlider({ distance, setDistance }: DistanceSliderProps) {
 
 	const panResponder = useRef(
 		PanResponder.create({
-			// #935 【修正】トラック全体をタップ対象にする(サム単体ではなくトラック View に付与)
-			onStartShouldSetPanResponder: () => true,
+			// #935 【修正】PR #980 レビュー指摘: タッチ開始で即レスポンダを奪うと、
+			// トラック(+ヒットスロップ)上から始まる縦スワイプまで奪ってしまい、
+			// 親の検索 ScrollView がスクロールできなくなる。開始時は奪わず、
+			// 「横方向の移動が確定した」ときだけ奪う(タップは下の Pressable が担う)
+			onStartShouldSetPanResponder: () => false,
 			onMoveShouldSetPanResponder: (_evt, gestureState) =>
 				Math.abs(gestureState.dx) > DRAG_ACTIVATION_THRESHOLD_PX &&
 				Math.abs(gestureState.dx) > Math.abs(gestureState.dy),
-			// #935 【修正】タップした瞬間にその位置へジャンプする
-			onPanResponderGrant: (evt) => {
-				grantLocationXRef.current = evt.nativeEvent.locationX;
+			onPanResponderGrant: (evt, gestureState) => {
+				// #935 【設計】grant は横移動の確定後に来るため、locationX から確定までの
+				// 累積移動量(dx)を引き戻してタッチ開始時点のトラック相対Xを復元する
+				grantLocationXRef.current = evt.nativeEvent.locationX - gestureState.dx;
 				updateFromLocationX(evt.nativeEvent.locationX);
 			},
 			onPanResponderMove: (_evt, gestureState) => {
 				updateFromLocationX(grantLocationXRef.current + gestureState.dx);
 			},
-			// #935 【修正】ドラッグ中に指が縦にずれると親 ScrollView がレスポンダを要求するが、
-			// 譲渡する(デフォルト true)とスライダーと ScrollView が交互に掴んで表示が震える。
-			// 一度スライダーが掴んだジェスチャは離すまで手放さない
+			// #935 【修正】横ドラッグ確定後に指が縦へずれても親 ScrollView へ譲渡しない
+			// (譲渡すると交互に掴んで表示が震える)。縦スワイプはそもそも上の条件で
+			// レスポンダを取らないため、スクロールを妨げない
 			onPanResponderTerminationRequest: () => false,
 		}),
 	).current;
@@ -250,6 +272,18 @@ export function DistanceSlider({ distance, setDistance }: DistanceSliderProps) {
 					);
 				})}
 				<View pointerEvents="none" style={[styles.sliderThumb, { left: thumbPosition }]} />
+				{/* #935 【設計】タップでのジャンプは PanResponder(移動確定時のみ奪う)では
+				    受け取れないため、トラックと同じ矩形の Pressable が担う。移動を伴う操作は
+				    親トラックの onMoveShouldSetPanResponder(横)か ScrollView(縦)が
+				    この Pressable からレスポンダを引き継ぐため、役割が競合しない。
+				    (装飾ではなく操作面のため pointerEvents は生かし、読み上げは親に集約する) */}
+				<Pressable
+					style={StyleSheet.absoluteFill}
+					hitSlop={THUMB_HIT_SLOP}
+					onPress={handleTrackPress}
+					accessibilityElementsHidden
+					importantForAccessibility="no"
+				/>
 			</View>
 
 			{/* #989 【修正】accessibilityRole="list" は子に listitem を要求するため(axe:
