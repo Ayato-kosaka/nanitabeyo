@@ -1,10 +1,8 @@
 import React from "react";
-import { View, Text, TouchableOpacity, TextStyle } from "react-native";
+import { View, StyleSheet, StyleProp, ViewStyle } from "react-native";
 import { priceLevelOptions } from "@/features/search/constants";
 import { useHaptics } from "@/hooks/useHaptics";
-import { StyleSheet } from "react-native";
-import { StyleProp } from "react-native";
-import { ViewStyle } from "react-native";
+import { SelectableChip } from "@/features/search/components/SelectableChip";
 import i18n from "@/lib/i18n";
 
 interface PriceLevelsMultiSelectProps {
@@ -12,18 +10,16 @@ interface PriceLevelsMultiSelectProps {
 	onPriceLevelsChange: (priceLevels: (typeof priceLevelOptions)[number]["value"][]) => void;
 	customStyles?: {
 		chipGrid?: StyleProp<ViewStyle>;
-		chip?: StyleProp<ViewStyle>;
-		selectedChip?: StyleProp<ViewStyle>;
-		chipEmoji?: StyleProp<TextStyle>;
-		chipText?: StyleProp<TextStyle>;
-		selectedChipText?: StyleProp<TextStyle>;
 	};
+	/** #934 【設計】チップ群のグループラベル(スクリーンリーダー向け。画面側のセクション見出しと合わせる) */
+	groupAccessibilityLabel?: string;
 }
 
 export function PriceLevelsMultiSelect({
 	selectedPriceLevels,
 	onPriceLevelsChange,
 	customStyles,
+	groupAccessibilityLabel,
 }: PriceLevelsMultiSelectProps) {
 	const { lightImpact } = useHaptics();
 
@@ -41,18 +37,20 @@ export function PriceLevelsMultiSelect({
 
 	return (
 		<View style={styles.container}>
-			<View style={[customStyles?.chipGrid]}>
+			{/* #934 【設計】複数選択チップのグループ。RN の AccessibilityRole に group 相当が無いため
+			    accessibilityLabel のみでグループの意味付けを行う(各チップ自体は role="checkbox" を持つ) */}
+			<View style={[customStyles?.chipGrid]} accessibilityLabel={groupAccessibilityLabel}>
 				{priceLevelOptions.map((option) => {
 					const isSelected = selectedPriceLevels.includes(option.value);
 					return (
-						<TouchableOpacity
+						<SelectableChip
 							key={option.value}
-							style={[customStyles?.chip, isSelected && customStyles?.selectedChip]}
-							onPress={() => togglePriceLevel(option.value)}>
-							<Text style={[customStyles?.chipText, isSelected && customStyles?.selectedChipText]}>
-								{i18n.t(option.label)}
-							</Text>
-						</TouchableOpacity>
+							role="checkbox"
+							selected={isSelected}
+							label={i18n.t(option.label)}
+							onPress={() => togglePriceLevel(option.value)}
+							testID={`search-price-level-${option.value}`}
+						/>
 					);
 				})}
 			</View>

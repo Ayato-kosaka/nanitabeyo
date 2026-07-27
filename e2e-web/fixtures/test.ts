@@ -1,6 +1,6 @@
 import { test as base, expect, type Page } from "@playwright/test";
 import { waitForAnonymousSession } from "../utils/auth";
-import { seedTutorialAsSeen } from "../utils/storage";
+import { seedTopicsTutorialAsSeen, seedTutorialAsSeen } from "../utils/storage";
 
 /**
  * 🧩 カスタムフィクスチャ
@@ -18,6 +18,11 @@ type AppOptions = {
 	 * チュートリアル自体をテストする spec だけ `test.use({ seedTutorialSeen: false })` で無効化する。
 	 */
 	seedTutorialSeen: boolean;
+	/**
+	 * 料理提案画面のスポットライトチュートリアルを表示済みにするか。
+	 * 既存の検索フローを遮らないよう既定true、専用specのみfalseにする。
+	 */
+	seedTopicsTutorialSeen: boolean;
 };
 
 /** テストへ提供するフィクスチャ */
@@ -56,12 +61,16 @@ const KNOWN_CONSOLE_NOISE: RegExp[] = [
 export const test = base.extend<AppOptions & AppFixtures>({
 	// ── オプション ──────────────────────────────────────────────
 	seedTutorialSeen: [true, { option: true }],
+	seedTopicsTutorialSeen: [true, { option: true }],
 
 	// ── context: チュートリアルシードを適用 ─────────────────────
 	// addInitScript はページ生成前に仕込む必要があるため context を拡張する
-	context: async ({ context, seedTutorialSeen }, use) => {
+	context: async ({ context, seedTopicsTutorialSeen, seedTutorialSeen }, use) => {
 		if (seedTutorialSeen) {
 			await seedTutorialAsSeen(context);
+		}
+		if (seedTopicsTutorialSeen) {
+			await seedTopicsTutorialAsSeen(context);
 		}
 		await use(context);
 	},

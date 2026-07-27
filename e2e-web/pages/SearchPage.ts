@@ -5,11 +5,12 @@ import { expect, type Locator, type Page } from "@playwright/test";
  *
  * 対応画面: app-expo/app/[locale]/(tabs)/search/index.tsx
  *
- * 検索実行には必須 3 項目（場所・時間帯・シーン）の入力が必要で、
- * 未充足の間は検索ボタン (search-submit-button) が disabled になる。
- * ただし PrimaryButton の disabled は DOM の disabled/aria-disabled 属性には
- * 反映されず、押しても内部で onPress 呼び出し自体がガードされる実装のため、
- * Playwright からは「クリックしても何も起きない」という振る舞いでのみ検証できる。
+ * 検索実行には必須 3 項目（場所・時間帯・シーン）の入力が必要。
+ * #973 以降、検索ボタン (search-submit-button) は常にタップ可能で、
+ * 未充足のまま押すと handleSearch 内のバリデーションが働き、
+ * global-snackbar でエラーメッセージを表示したうえで画面遷移しない実装になっている
+ * (以前は PrimaryButton の disabled で onPress 自体をガードしており、
+ * このスナックバー分岐は実質到達不能だった)。
  */
 export class SearchPage {
 	readonly page: Page;
@@ -25,6 +26,14 @@ export class SearchPage {
 	readonly submitButton: Locator;
 	/** 詳細条件の展開トグル */
 	readonly advancedToggle: Locator;
+	/** 距離スライダー */
+	readonly distanceSlider: Locator;
+	/** 初期表示されるおすすめ移動時間の並び */
+	readonly distanceRecommendedEstimates: Locator;
+	/** おすすめ外の移動時間を開閉するトグル */
+	readonly distanceEstimatesToggle: Locator;
+	/** グローバルスナックバー（バリデーションエラー等の通知） */
+	readonly snackbar: Locator;
 
 	constructor(page: Page) {
 		this.page = page;
@@ -35,6 +44,10 @@ export class SearchPage {
 		this.locationSuggestions = page.getByTestId("search-location-autocomplete-suggestions");
 		this.submitButton = page.getByTestId("search-submit-button");
 		this.advancedToggle = page.getByTestId("search-advanced-toggle");
+		this.distanceSlider = page.getByTestId("search-distance-slider");
+		this.distanceRecommendedEstimates = page.getByTestId("search-distance-recommended-estimates");
+		this.distanceEstimatesToggle = page.getByTestId("search-distance-estimates-toggle");
+		this.snackbar = page.getByTestId("global-snackbar");
 	}
 
 	/** 指定 URL へ直接遷移する（locale プレフィックス必須） */
@@ -64,7 +77,7 @@ export class SearchPage {
 	 * サジェスト選択(handleLocationSelect)はクリック直後に候補の文言を入力欄へ反映するが、
 	 * 実際に検索の必須項目となる `location` state は非同期の詳細取得 API 完了後に
 	 * セットされる。この待機なしに検索ボタンを押すと、location 未確定のまま
-	 * ガードに引っかかり画面遷移しない（PrimaryButton の disabled ガード参照）。
+	 * handleSearch 内のバリデーションに引っかかり画面遷移しない。
 	 */
 	async selectLocationSuggestion(index: number): Promise<void> {
 		const responsePromise = this.page.waitForResponse(
@@ -82,5 +95,10 @@ export class SearchPage {
 	/** シーングリッドの項目の Locator を返す（id は sceneOptions 定義の値） */
 	scene(id: string): Locator {
 		return this.page.getByTestId(`search-scene-${id}`);
+	}
+
+	/** 交通手段ごとの所要時間チップを返す */
+	distanceEstimate(mode: "walk" | "bike" | "car" | "train"): Locator {
+		return this.page.getByTestId(`search-distance-estimate-${mode}`);
 	}
 }

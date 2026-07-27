@@ -47,10 +47,13 @@ export async function fetchWithAuth<TRequest extends Record<string, any> | FormD
 		method = "POST",
 		requestPayload,
 		isMultipart = false,
+		signal,
 	}: {
 		method?: "GET" | "POST" | "PATCH" | "DELETE";
 		requestPayload: TRequest;
 		isMultipart?: boolean;
+		// #940 【設計】応答が返らないまま無期限に待ち続けるのを防ぐためのタイムアウト用シグナル
+		signal?: AbortSignal;
 	},
 	accessToken: string,
 ) {
@@ -78,6 +81,7 @@ export async function fetchWithAuth<TRequest extends Record<string, any> | FormD
 			body: buildRequestBody(method, shouldUseQuery, isMultipart, requestPayload),
 			// Include credentials for web to receive CDN signed cookies
 			credentials: Platform.OS === "web" ? "include" : "same-origin",
+			signal,
 		}),
 		endpoint,
 	};

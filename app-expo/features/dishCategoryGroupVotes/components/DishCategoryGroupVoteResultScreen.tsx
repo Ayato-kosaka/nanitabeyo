@@ -31,7 +31,7 @@ import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
-import { SearchHeader } from "@/features/search/components/SearchHeader";
+import { ScreenHeader } from "@/components/ScreenHeader";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { useDishCategoryGroupVoteActions } from "../hooks/useDishCategoryGroupVoteActions";
 import { useDishCategoryGroupVoteDetail } from "../hooks/useDishCategoryGroupVoteDetail";
@@ -126,13 +126,24 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 	const shareUrl = generateShareUrl(`/${locale}/search/dish-category-group-votes/${shareToken}/vote`);
 
 	const handleCopyShareLink = async () => {
-		await Clipboard.setStringAsync(shareUrl);
-		logFrontendEvent({
-			event_name: "dish_category_group_vote_share_link_copied",
-			error_level: "log",
-			payload: { shareToken },
-		});
-		showSnackbar(i18n.t("Common.linkCopied"));
+		// #942 【仕様】Web ではクリップボードAPIが非セキュアコンテキスト等で失敗しうるため、
+		// 失敗を無音にせずエラー通知する
+		try {
+			await Clipboard.setStringAsync(shareUrl);
+			logFrontendEvent({
+				event_name: "dish_category_group_vote_share_link_copied",
+				error_level: "log",
+				payload: { shareToken },
+			});
+			showSnackbar(i18n.t("Common.linkCopied"));
+		} catch (error) {
+			logFrontendEvent({
+				event_name: "dish_category_group_vote_share_link_copy_failed",
+				error_level: "error",
+				payload: { shareToken, error: error instanceof Error ? error.message : String(error) },
+			});
+			showSnackbar(i18n.t("Common.shareFailed"));
+		}
 	};
 
 	const handlePressCandidate = (candidate: DishCategoryGroupVoteCandidate) => {
@@ -157,7 +168,51 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 			error_level: "log",
 			payload: { shareToken, candidateId: candidate.id },
 		});
-		await actions.deleteCandidate(candidate.id);
+		try {
+			await actions.deleteCandidate(candidate.id);
+			// #943 【仕様】ホストの誤削除からの回復導線として、10秒間Undo可能なスナックバーを出す
+			showSnackbar(i18n.t("DishCategoryGroupVotes.candidateDeleted", { name: candidate.displayName }), {
+				action: {
+					label: i18n.t("Common.undo"),
+					onPress: () => handleUndoDeleteCandidate(candidate),
+				},
+				duration: 10000,
+			});
+		} catch (error) {
+			logFrontendEvent({
+				event_name: "dish_category_group_vote_candidate_delete_failed",
+				error_level: "error",
+				payload: {
+					shareToken,
+					candidateId: candidate.id,
+					error: error instanceof Error ? error.message : String(error),
+				},
+			});
+			showSnackbar(i18n.t("Common.error"));
+		}
+	};
+
+	// #943 【仕様】削除のUndo。BEの復元APIを叩き、成功したらrefreshで整合させる(actions.restoreCandidate内で実施済み)
+	const handleUndoDeleteCandidate = async (candidate: DishCategoryGroupVoteCandidate) => {
+		try {
+			await actions.restoreCandidate(candidate.id);
+			logFrontendEvent({
+				event_name: "dish_category_group_vote_candidate_delete_undo",
+				error_level: "log",
+				payload: { shareToken, candidateId: candidate.id },
+			});
+		} catch (error) {
+			logFrontendEvent({
+				event_name: "dish_category_group_vote_candidate_restore_failed",
+				error_level: "error",
+				payload: {
+					shareToken,
+					candidateId: candidate.id,
+					error: error instanceof Error ? error.message : String(error),
+				},
+			});
+			showSnackbar(i18n.t("Common.error"));
+		}
 	};
 
 	const handleOpenCandidateDishMedia = async (candidate: DishCategoryGroupVoteCandidate) => {
@@ -181,9 +236,13 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 		);
 	}
 
+	// #941 【仕様】全候補の総投票数が 0 のときは BE が返す rank(=同スコアで全員1位) を
+	// そのまま表示せず「未投票」に統一する。総投票数はここでのみ判定し、rank の算出ロジック(BE)は変更しない。
+	const hasVotes = detail.candidates.some((candidate) => candidate.likeCount > 0 || candidate.dislikeCount > 0);
+
 	return (
 		<SafeAreaView style={styles.safeArea} edges={[]}>
-			<SearchHeader title={i18n.t("DishCategoryGroupVotes.resultTitle")} onPressBack={() => router.back()} />
+			<ScreenHeader title={i18n.t("DishCategoryGroupVotes.resultTitle")} onPressBack={() => router.back()} />
 			<ScrollView contentContainerStyle={styles.content}>
 				<DishCategoryGroupVoteResultHeader
 					session={detail.session}
@@ -230,6 +289,7 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 				<DishCategoryGroupVoteCandidateList
 					candidates={detail.candidates}
 					isHost={detail.session.isHost}
+					hasVotes={hasVotes}
 					loadingCandidateId={loadingCandidateId}
 					onPressCandidate={handlePressCandidate}
 					onPressDishMedia={handleOpenCandidateDishMedia}
@@ -242,6 +302,7 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 					<DishCategoryGroupVoteCandidateDetailModal
 						candidate={selectedCandidate}
 						isHost={detail.session.isHost}
+						hasVotes={hasVotes}
 						isDishMediaLoading={loadingCandidateId === selectedCandidate.id}
 						onPressDishMedia={handleOpenCandidateDishMedia}
 						onDeleteCandidate={handleDeleteCandidate}

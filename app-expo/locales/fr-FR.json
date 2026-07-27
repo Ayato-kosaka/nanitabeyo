@@ -9,6 +9,8 @@
 		"post": "Publier",
 		"postReview": "Publier un avis",
 		"retry": "Réessayer",
+		"undo": "Annuler",
+		"view": "Voir",
 		"error": "Une erreur s'est produite. Veuillez réessayer.",
 		"success": "Succès",
 		"linkCopied": "Lien copié dans le presse-papiers",
@@ -47,6 +49,8 @@
 		"copyShareLink": "Copier le lien",
 		"voteCta": "Voter",
 		"candidatesTitle": "Choix",
+		"rankLabel": "N° {{rank}}",
+		"unvoted": "Pas encore voté",
 		"commentsTitle": "Commentaires",
 		"viewRestaurants": "Voir les restaurants",
 		"loadingRestaurants": "Recherche",
@@ -55,11 +59,15 @@
 		"deleteCandidate": "Supprimer le choix",
 		"deleteCandidateTitle": "Supprimer ce choix ?",
 		"deleteCandidateMessage": "Masquer {{name}} des choix du vote.",
+		"candidateDeleted": "{{name}} a été retiré des candidats",
 		"loadFailed": "Impossible de charger le vote",
 		"refreshFailed": "Impossible d'actualiser les résultats",
 		"like": "J'aime",
 		"dislike": "Passer",
+		"likeButtonLabel": "J'aime {{title}}",
+		"dislikeButtonLabel": "Je n'aime pas {{title}}",
 		"voteProgress": "{{current}} / {{total}}",
+		"voteProgressAnnouncement": "{{current}} sur {{total}} : {{title}}",
 		"noVoteCandidates": "Aucun choix à voter",
 		"completionTitle": "Confirmez votre vote",
 		"completionDescription": "Entrez le nom affiché sur les résultats et un commentaire facultatif.",
@@ -81,7 +89,18 @@
 		"currentLocation": "Localisation actuelle",
 		"DistanceSlider": {
 			"near": "Proche",
-			"far": "Loin"
+			"far": "Loin",
+			"edgeEstimate": "Temps estimé jusqu’à la limite de la zone",
+			"approxMinutes": "Env. {{minutes}} min",
+			"modes": {
+				"walk": "À pied",
+				"bike": "Vélo",
+				"car": "Voiture",
+				"train": "Train"
+			},
+			"showMore": "Voir plus",
+			"showLess": "Voir moins",
+			"estimateHint": "Les temps varient selon l’itinéraire, le trafic et l’attente"
 		},
 		"BudgetSlider": {
 			"cheap": "Bon marché",
@@ -91,6 +110,9 @@
 		"errors": {
 			"fetchLocation": "Échec de la récupération de la localisation",
 			"getCurrentLocation": "Impossible d'obtenir la position actuelle",
+			"getCurrentLocationDenied": "L'accès à la position a été refusé. Veuillez saisir votre position dans le champ ci-dessous.",
+			"getCurrentLocationUnsupported": "La récupération de votre position actuelle n'est pas prise en charge ici. Veuillez saisir votre position ci-dessous.",
+			"getCurrentLocationTimeout": "La récupération de votre position actuelle a expiré. Réessayez ou saisissez votre position ci-dessous.",
 			"noLocationSelected": "Veuillez sélectionner un lieu",
 			"noTimeSlotSelected": "Veuillez sélectionner un créneau horaire",
 			"noSceneSelected": "Veuillez sélectionner une scène",
@@ -123,6 +145,8 @@
 		"accessibility": {
 			"locationInputHint": "Saisissez un lieu pour rechercher des restaurants",
 			"clearLocation": "Effacer le lieu",
+			"useCurrentLocation": "Utiliser la position actuelle",
+			"showTutorial": "Voir le mode d'emploi",
 			"selectLocation": "Sélectionner ce lieu"
 		},
 		"loading": "Recherche...",
@@ -198,6 +222,11 @@
 			"seafoodAllergy": "Allergie aux fruits de mer",
 			"halal": "Halal"
 		},
+		"result": {
+			"accessibility": {
+				"bulkShare": "Tout partager"
+			}
+		},
 		"tutorial": {
 			"page1": {
 				"title": "Découvrez ce que vous voulez manger",
@@ -224,11 +253,43 @@
 				"primaryCta": "Utiliser la position actuelle",
 				"secondaryCta": "Plus tard"
 			}
+		},
+		"recentLocations": {
+			"title": "Lieux récents",
+			"clear": "Effacer les lieux récents"
 		}
 	},
 	"Topics": {
 		"deepDive": {
 			"title": "Filtrer ce style"
+		},
+		"tutorial": {
+			"helpLabel": "Comment utiliser cet écran",
+			"helpHint": "Afficher le tutoriel des suggestions depuis le début",
+			"skip": "Ignorer",
+			"next": "Suivant",
+			"finish": "Commencer",
+			"progress": "{{current}} / {{total}}",
+			"progressAccessibility": "Étape {{current}} sur {{total}}",
+			"steps": {
+				"swipeAndDecide": {
+					"title": "Choisissez un plat qui vous tente",
+					"body": "Balayez à gauche ou à droite pour comparer les plats. Une fois décidé, touchez « Choisir ! »."
+				},
+				"deepDive": {
+					"title": "Approfondissez selon votre humeur",
+					"body": "Vous hésitez encore ? Choisissez un style pour affiner les suggestions."
+				},
+				"topicActions": {
+					"title": "Adaptez les suggestions à vos goûts",
+					"save": "Enregistrer : retrouvez ce plat plus tard",
+					"block": "Bloquer : ne plus voir les plats qui ne vous plaisent pas"
+				},
+				"groupVote": {
+					"title": "Décidez entre amis",
+					"body": "Partagez les suggestions avec vos proches et votez ensemble."
+				}
+			}
 		},
 		"HideTopicModal": {
 			"title": "Masquer",
@@ -255,6 +316,7 @@
 			"confirm": "Bloquer"
 		},
 		"blockedMessage": "{{title}} a été bloqué",
+		"savedMessage": "Enregistré",
 		"reloadDialog": {
 			"title": "Trouver plus d’options ?",
 			"message": "Il n’y a que quelques recommandations pour le moment. Nous allons relancer une recherche avec les mêmes conditions.",
@@ -264,7 +326,13 @@
 		"imageLoadFailed": "Échec du chargement de l'image",
 		"tapToReload": "Appuyez pour recharger",
 		"headerTitle": "Plats Recommandés pour Vous",
-		"subCopy": "Appuyez sur un plat que vous aimez pour trouver des restaurants"
+		"subCopy": "Appuyez sur un plat que vous aimez pour trouver des restaurants",
+		"accessibility": {
+			"blockTopic": "Retirer {{title}} des recommandations",
+			"saveTopic": "Enregistrer {{title}}",
+			"unsaveTopic": "Retirer {{title}} des favoris",
+			"thumbnail": "Miniature de {{title}}, {{index}} sur {{total}}"
+		}
 	},
 	"Notifications": {
 		"title": "Notifications",
@@ -301,6 +369,14 @@
 		"buttons": {
 			"viewRestaurant": "Voir le restaurant"
 		},
+		"accessibility": {
+			"viewRestaurant": "Voir les détails du restaurant {{name}}",
+			"like": "Aimer {{name}}",
+			"save": "Enregistrer {{name}}",
+			"share": "Partager {{name}}",
+			"openMap": "Ouvrir la carte de {{name}}",
+			"reviewLike": "Aimer l'avis de {{username}}"
+		},
 		"processing": "Traitement du média...",
 		"errors": {
 			"mapOpenFailed": "Impossible d'ouvrir l'application de carte",
@@ -312,6 +388,11 @@
 	},
 	"ImageCardGrid": {
 		"openItemDetails": "Ouvrir les détails de l'article"
+	},
+	"Stars": {
+		"accessibility": {
+			"rating": "Note {{rating}}/5"
+		}
 	},
 	"Tabs": {
 		"home": "Accueil",
@@ -329,13 +410,17 @@
 		}
 	},
 	"Profile": {
+		"tabGroups": {
+			"reviews": "Avis",
+			"saved": "Enregistré",
+			"liked": "J'aime",
+			"wallet": "Portefeuille"
+		},
 		"tabs": {
 			"deposits": "Dépôts",
 			"earnings": "Revenus",
-			"topics": "Sujets",
-			"posts": "Publications",
 			"saved-posts": "Publications",
-			"saved-topics": "Sujets",
+			"saved-topics": "Plats",
 			"wallet-deposit": "Dépôts",
 			"wallet-earning": "Revenus"
 		},
@@ -374,7 +459,8 @@
 			"follow": "Suivre",
 			"following": "Suivi",
 			"message": "Message",
-			"searchByMood": "Trouvez des plats que vous \"aimerez\" selon votre humeur du jour",
+			"searchForReview": "Trouver un restaurant à noter",
+			"searchByMood": "Chercher selon l'humeur du jour",
 			"sendFeedback": "Envoyer Commentaires"
 		},
 		"stats": {
@@ -406,7 +492,8 @@
 			"displayNameRequired": "Le nom d'affichage est requis",
 			"displayNameLength": "Le nom d'affichage doit contenir 30 caractères ou moins",
 			"bioLength": "La bio doit contenir 150 caractères ou moins"
-		}
+		},
+		"guestDisplayName": "Invité"
 	},
 	"NotFound": {
 		"title": "Oups !",
@@ -489,6 +576,7 @@
 			"dishCategoryNoResults": "Aucune catégorie de plat correspondante trouvée",
 			"dishCategoryInputHint": "Saisissez une catégorie de plat pour rechercher",
 			"clearDishCategory": "Effacer la catégorie de plat",
+			"useCurrentLocation": "Utiliser la position actuelle",
 			"selectDishCategory": "Sélectionner cette catégorie de plat"
 		},
 		"errors": {
@@ -621,6 +709,8 @@
 		"copyright": "Droits d'auteur",
 		"legalDocument": "Document juridique",
 		"logout": "Se déconnecter",
+		"logoutConfirmTitle": "Se déconnecter ?",
+		"logoutConfirmMessage": "Vous devrez vous reconnecter pour gérer vos publications et avis.",
 		"blockedTopics": {
 			"navigationLabel": "Sujets de plats bloqués",
 			"pageTitle": "Sujets de plats bloqués",
