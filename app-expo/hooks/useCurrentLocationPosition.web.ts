@@ -5,6 +5,11 @@ import { LocationPermissionError } from "./locationPermissionError";
 // 出ないままクラッシュしていた。web では expo-location を経由せず navigator.geolocation を直接使い、
 // permissions.query は「あれば試すだけ」のオプショナル事前チェックに留める。
 const TIMEOUT_MS = 10000;
+// #932 【修正】maximumAge: 0 はキャッシュ位置を禁止して毎回新規測位を強制するため、
+// GPS を持たないPCでは Wi-Fi/IP 測位待ちになり「以前は即反映されていたのにタイムアウトする」
+// 退行を起こしていた(移行前の expo-location はキャッシュを許容)。検索の起点用途では
+// 数分前の位置で十分なため、キャッシュを許容して即時応答を優先する
+const MAXIMUM_AGE_MS = 5 * 60 * 1000;
 
 /**
  * 現在地の緯度経度を取得する(web実装)。
@@ -48,7 +53,7 @@ export async function getCurrentLocationPosition(): Promise<{ latitude: number; 
 						break;
 				}
 			},
-			{ enableHighAccuracy: false, timeout: TIMEOUT_MS, maximumAge: 0 },
+			{ enableHighAccuracy: false, timeout: TIMEOUT_MS, maximumAge: MAXIMUM_AGE_MS },
 		);
 	});
 }
