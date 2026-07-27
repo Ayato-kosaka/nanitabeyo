@@ -153,8 +153,10 @@ export function DishReviewsSection({ id, idType, paddingRight, carouselRef }: Di
 						<View key={review.id} style={styles.commentItem}>
 							<View style={styles.commentHeader}>
 								<Text style={styles.commentUsername}>{review.username}</Text>
-								{/* #956 【仕様】口コミごとの評価分布を判断できるよう、投稿時のratingを星で表示する */}
-								<Stars rating={review.rating} size={11} />
+								{/* #956 【仕様】投稿者が付けた星をコメントごとに表示する。
+								    色はデフォルトの gold だとダーク背景上で悪目立ちするため、
+								    タイムスタンプ(#CCCCCC)と同系のミュートカラーに合わせる */}
+								<Stars rating={review.rating} size={11} color="#CCCCCC" />
 								<Text style={styles.commentTimestamp}>{dateStringToTimestamp(review.created_at)}</Text>
 							</View>
 							<View style={styles.commentContent}>

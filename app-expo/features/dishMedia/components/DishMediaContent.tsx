@@ -8,7 +8,6 @@ import { DishReviewsSection } from "./DishReviewsSection";
 import { useMediaTracking } from "../hooks/useMediaTracking";
 import i18n from "@/lib/i18n";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
-import Stars from "@/components/Stars";
 import {
 	NormalizedDishMediaEntry,
 	selectEntryByMediaId,
@@ -256,15 +255,9 @@ export default function DishMediaContent({
 			<View style={styles.topHeader}>
 				<View style={styles.headerLeft}>
 					<Text style={styles.menuName}>{getTitle(dishMediaEntry)}</Text>
-					<View style={styles.priceRatingContainer}>
-						{/* #956 【仕様】レビューが1件も無いdishでは平均評価が意味を持たないため出し分ける */}
-						{dishMediaEntry.dish.reviewCount > 0 && (
-							<View style={styles.ratingContainer}>
-								<Stars rating={dishMediaEntry.dish.averageRating} size={12} />
-								<Text style={styles.reviewCount}>({dishMediaEntry.dish.reviewCount})</Text>
-							</View>
-						)}
-					</View>
+					{/* #956 【仕様】評価表示は「投稿者が付けた星」(DishReviewsSection側)のみとし、
+					    平均評価はレビュー数が少ないフェーズでは目安として機能しないため表示しない */}
+					<View style={styles.priceRatingContainer}></View>
 				</View>
 				<View style={styles.headerRight}></View>
 			</View>
