@@ -263,6 +263,34 @@
 		"deepDive": {
 			"title": "Filtrer ce style"
 		},
+		"tutorial": {
+			"helpLabel": "Comment utiliser cet écran",
+			"helpHint": "Afficher le tutoriel des suggestions depuis le début",
+			"skip": "Ignorer",
+			"next": "Suivant",
+			"finish": "Commencer",
+			"progress": "{{current}} / {{total}}",
+			"progressAccessibility": "Étape {{current}} sur {{total}}",
+			"steps": {
+				"swipeAndDecide": {
+					"title": "Choisissez un plat qui vous tente",
+					"body": "Balayez à gauche ou à droite pour comparer les plats. Une fois décidé, touchez « Choisir ! »."
+				},
+				"deepDive": {
+					"title": "Approfondissez selon votre humeur",
+					"body": "Vous hésitez encore ? Choisissez un style pour affiner les suggestions."
+				},
+				"topicActions": {
+					"title": "Adaptez les suggestions à vos goûts",
+					"save": "Enregistrer : retrouvez ce plat plus tard",
+					"block": "Bloquer : ne plus voir les plats qui ne vous plaisent pas"
+				},
+				"groupVote": {
+					"title": "Décidez entre amis",
+					"body": "Partagez les suggestions avec vos proches et votez ensemble."
+				}
+			}
+		},
 		"HideTopicModal": {
 			"title": "Masquer",
 			"description": "Veuillez indiquer la raison du masquage (facultatif)",

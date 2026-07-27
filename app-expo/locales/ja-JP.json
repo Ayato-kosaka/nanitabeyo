@@ -205,8 +205,8 @@
 			"junk": "ジャンキー"
 		},
 		"coreIngredientOptions": {
-			"meat": "お肉メイン",
-			"fish": "魚介メイン",
+			"meat": "お肉系",
+			"fish": "魚介系",
 			"rice": "お米系",
 			"noodle": "麺系"
 		},
@@ -261,7 +261,35 @@
 	},
 	"Topics": {
 		"deepDive": {
-			"title": "この系統で絞る"
+			"title": "この系統で再検索"
+		},
+		"tutorial": {
+			"helpLabel": "この画面の使い方",
+			"helpHint": "料理提案画面のチュートリアルを最初から表示します",
+			"skip": "スキップ",
+			"next": "次へ",
+			"finish": "使ってみる",
+			"progress": "{{current}} / {{total}}",
+			"progressAccessibility": "{{total}}ステップ中{{current}}番目",
+			"steps": {
+				"swipeAndDecide": {
+					"title": "気になる料理を選ぼう",
+					"body": "左右にスワイプして料理を見比べられます。食べたい料理が決まったら「この料理にする！」をタップ。"
+				},
+				"deepDive": {
+					"title": "気分に合わせて深堀再検索",
+					"body": "まだ決めきれないときは、気になる系統を選ぶと近い系統で再検索できます。"
+				},
+				"topicActions": {
+					"title": "好みに合わせて整理",
+					"save": "保存：気になる料理をあとで見返せます",
+					"block": "ブロック：好みでない料理を今後提案しないように出来ます"
+				},
+				"groupVote": {
+					"title": "友達と決める",
+					"body": "一緒に食べる人と候補を共有して、みんなで投票できます。"
+				}
+			}
 		},
 		"HideTopicModal": {
 			"title": "非表示にする",

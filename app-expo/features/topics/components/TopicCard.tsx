@@ -13,6 +13,7 @@ import { profileSavedTopicsEntriesKey } from "@/features/profile/tabs/SavedTopic
 import i18n from "@/lib/i18n";
 import { type TopicImageResourceState } from "@/features/topics/hooks/useTopicImageResources";
 import { CARD_WIDTH } from "@/features/topics/constants";
+import type { TopicsTutorialTargetRefs } from "@/features/topics/types/tutorial";
 import { TopicVisualCard } from "./TopicVisualCard";
 
 export type TopicDeepDiveOption = {
@@ -33,6 +34,7 @@ export const TopicCard = ({
 	cardHeight,
 	imageState,
 	onImageRetry,
+	tutorialTargetRefs,
 }: {
 	item: Topic;
 	onBlock: (topic: Topic) => void;
@@ -42,6 +44,13 @@ export const TopicCard = ({
 	cardHeight: number;
 	imageState: TopicImageResourceState;
 	onImageRetry?: (topic: Topic) => void;
+	/**
+	 * アクティブなCarouselカードにだけ渡すチュートリアル用ref。
+	 *
+	 * 非表示カードにも同じrefを渡すと、Carouselの事前描画・再利用により
+	 * 画面外カードの座標で上書きされるため、親画面でactive indexを判定する。
+	 */
+	tutorialTargetRefs?: Pick<TopicsTutorialTargetRefs, "swipeArea" | "selectCta" | "deepDive" | "topicActions">;
 }) => {
 	// #954 【仕様】サーバの保存状態(item.isSaved)で初期化する。従来は常にfalseだったため
 	// 保存済みカテゴリでも再訪時は未保存表示になっていた。
@@ -51,7 +60,8 @@ export const TopicCard = ({
 	const { locale } = useLocale();
 	const { showSnackbar } = useSnackbar();
 
-	const deepDiveChipWidth = deepDiveOptions.length === 1 ? "100%" : deepDiveOptions.length === 2 ? "48.5%" : "31.5%";
+	// #973【設計】3件表示時は折り返さず1行に収める。1〜2件は内容幅で主CTAより確実に小さく見せる
+	const isThreeDeepDiveChips = deepDiveOptions.length >= 3;
 
 	const handleSave = async () => {
 		const willSave = !isSaved;
@@ -115,85 +125,106 @@ export const TopicCard = ({
 
 	return (
 		<View style={[styles.cardPressArea, { height: cardHeight + TOPIC_CARD_CTA_OVERHANG }]}>
-			<TouchableOpacity onPress={() => onSelect(item)} activeOpacity={0.95}>
-				<TopicVisualCard
-					title={item.topicTitle}
-					tagline={item.reason}
-					imageSource={{ uri: item.imageUrl }}
-					cardHeight={cardHeight}
-					imageState={imageState}
-					recyclingKey={item.categoryId}
-					onImageRetry={onImageRetry ? () => onImageRetry(item) : undefined}
-					bottomContent={
-						<View style={styles.bottomContent}>
-							{deepDiveOptions.length > 0 ? (
-								<View style={styles.deepDiveContainer}>
-									<View style={styles.deepDiveTitleRow}>
-										<View style={styles.deepDiveTitleLine} />
-										<Text style={styles.deepDiveTitle}>{i18n.t("Topics.deepDive.title")}</Text>
-										<View style={styles.deepDiveTitleLine} />
+			{/* measureInWindowの基準を安定させるため、Touchableではなく明示的なViewを計測する。 */}
+			<View
+				ref={tutorialTargetRefs?.swipeArea}
+				collapsable={false}
+				testID={tutorialTargetRefs ? "topics-tutorial-target-swipe" : undefined}>
+				<TouchableOpacity onPress={() => onSelect(item)} activeOpacity={0.95}>
+					<TopicVisualCard
+						title={item.topicTitle}
+						tagline={item.reason}
+						imageSource={{ uri: item.imageUrl }}
+						cardHeight={cardHeight}
+						imageState={imageState}
+						recyclingKey={item.categoryId}
+						onImageRetry={onImageRetry ? () => onImageRetry(item) : undefined}
+						bottomContent={
+							<View style={styles.bottomContent}>
+								{deepDiveOptions.length > 0 ? (
+									<View
+										ref={tutorialTargetRefs?.deepDive}
+										collapsable={false}
+										style={styles.deepDiveContainer}
+										testID={tutorialTargetRefs ? "topics-tutorial-target-deep-dive" : undefined}>
+										<View style={styles.deepDiveTitleRow}>
+											<View style={styles.deepDiveTitleLine} />
+											<Text style={styles.deepDiveTitle}>{i18n.t("Topics.deepDive.title")}</Text>
+											<View style={styles.deepDiveTitleLine} />
+										</View>
+										<View style={[styles.deepDiveChips, isThreeDeepDiveChips && styles.deepDiveChipsRow]}>
+											{deepDiveOptions.map((option) => (
+												<TouchableOpacity
+													key={option.key}
+													style={[styles.deepDiveChip, isThreeDeepDiveChips && styles.deepDiveChipThird]}
+													hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+													onPress={(event) => {
+														event.stopPropagation();
+														onDeepDive?.(item, option);
+													}}
+													activeOpacity={0.8}>
+													<Text style={styles.deepDiveChipText}>{option.label}</Text>
+												</TouchableOpacity>
+											))}
+										</View>
 									</View>
-									<View style={styles.deepDiveChips}>
-										{deepDiveOptions.map((option) => (
-											<TouchableOpacity
-												key={option.key}
-												style={[styles.deepDiveChip, { width: deepDiveChipWidth }]}
-												onPress={(event) => {
-													event.stopPropagation();
-													onDeepDive?.(item, option);
-												}}
-												activeOpacity={0.8}>
-												<Text style={styles.deepDiveChipText}>{option.label}</Text>
-											</TouchableOpacity>
-										))}
-									</View>
-								</View>
-							) : null}
-							<View style={styles.ctaSpacer} />
-						</View>
-					}
-					topRightContent={
-						<>
-							<TouchableOpacity
-								style={styles.topButton}
-								onPress={(event) => {
-									event.stopPropagation();
-									void handleSave();
-								}}
-								accessibilityRole="button"
-								accessibilityState={{ selected: isSaved }}
-								accessibilityLabel={i18n.t(
-									isSaved ? "Topics.accessibility.unsaveTopic" : "Topics.accessibility.saveTopic",
-									{ title: item.topicTitle },
-								)}>
-								<Bookmark
-									size={20}
-									color={isSaved ? "transparent" : "white"}
-									fill={isSaved ? "orange" : "transparent"}
-								/>
-							</TouchableOpacity>
-							<TouchableOpacity
-								style={styles.topButton}
-								onPress={(event) => {
-									event.stopPropagation();
-									void handleBlock();
-								}}
-								accessibilityRole="button"
-								accessibilityLabel={i18n.t("Topics.accessibility.blockTopic", { title: item.topicTitle })}>
-								<Ban size={18} color="#FFF" />
-							</TouchableOpacity>
-						</>
-					}
-				/>
-			</TouchableOpacity>
-			<TouchableOpacity
-				style={styles.selectButton}
-				onPress={() => onSelect(item)}
-				activeOpacity={0.85}
-				accessibilityRole="button"
-				accessibilityLabel={i18n.t("Topics.chooseThis")}>
-				<Text style={styles.selectButtonText}>{i18n.t("Topics.chooseThis")}</Text>
-			</TouchableOpacity>
+								) : null}
+								<View style={styles.ctaSpacer} />
+							</View>
+						}
+						topRightContent={
+							<View
+								ref={tutorialTargetRefs?.topicActions}
+								collapsable={false}
+								style={styles.topicActions}
+								testID={tutorialTargetRefs ? "topics-tutorial-target-actions" : undefined}>
+								<TouchableOpacity
+									style={styles.topButton}
+									onPress={(event) => {
+										event.stopPropagation();
+										void handleSave();
+									}}
+									accessibilityRole="button"
+									accessibilityState={{ selected: isSaved }}
+									accessibilityLabel={i18n.t(
+										isSaved ? "Topics.accessibility.unsaveTopic" : "Topics.accessibility.saveTopic",
+										{ title: item.topicTitle },
+									)}>
+									<Bookmark
+										size={20}
+										color={isSaved ? "transparent" : "white"}
+										fill={isSaved ? "orange" : "transparent"}
+									/>
+								</TouchableOpacity>
+								<TouchableOpacity
+									style={styles.topButton}
+									onPress={(event) => {
+										event.stopPropagation();
+										void handleBlock();
+									}}
+									accessibilityRole="button"
+									accessibilityLabel={i18n.t("Topics.accessibility.blockTopic", { title: item.topicTitle })}>
+									<Ban size={18} color="#FFF" />
+								</TouchableOpacity>
+							</View>
+						}
+					/>
+				</TouchableOpacity>
+			</View>
+			<View
+				ref={tutorialTargetRefs?.selectCta}
+				collapsable={false}
+				style={styles.selectButtonTarget}
+				testID={tutorialTargetRefs ? "topics-tutorial-target-select" : undefined}>
+				<TouchableOpacity
+					style={styles.selectButton}
+					onPress={() => onSelect(item)}
+					activeOpacity={0.85}
+					accessibilityRole="button"
+					accessibilityLabel={i18n.t("Topics.chooseThis")}>
+					<Text style={styles.selectButtonText}>{i18n.t("Topics.chooseThis")}</Text>
+				</TouchableOpacity>
+			</View>
 		</View>
 	);
 };
@@ -209,17 +240,19 @@ const styles = StyleSheet.create({
 	ctaSpacer: {
 		height: 16,
 	},
-	selectButton: {
+	selectButtonTarget: {
 		position: "absolute",
 		left: "10%",
 		right: "10%",
 		bottom: 0,
+		zIndex: 10,
+	},
+	selectButton: {
 		minHeight: 52,
 		borderRadius: 24,
 		alignItems: "center",
 		justifyContent: "center",
 		backgroundColor: "#F05537",
-		zIndex: 10,
 	},
 	selectButtonText: {
 		color: "#FFFFFF",
@@ -230,6 +263,9 @@ const styles = StyleSheet.create({
 	topButton: {
 		flexDirection: "row",
 		alignItems: "center",
+		justifyContent: "center",
+		minWidth: 44,
+		minHeight: 44,
 		backgroundColor: "rgba(0, 0, 0, 0.3)",
 		paddingHorizontal: 16,
 		paddingVertical: 10,
@@ -241,9 +277,12 @@ const styles = StyleSheet.create({
 		shadowRadius: 4,
 		elevation: 4,
 	},
+	topicActions: {
+		gap: 12,
+	},
 	deepDiveContainer: {
 		marginTop: 10,
-		gap: 10,
+		gap: 8,
 		paddingBottom: 6,
 	},
 	deepDiveTitleRow: {
@@ -268,19 +307,35 @@ const styles = StyleSheet.create({
 	deepDiveChips: {
 		flexDirection: "row",
 		flexWrap: "wrap",
+		justifyContent: "center",
+		alignSelf: "center",
+		// #973【設計】主CTA(左右10%インセット=横幅80%)より確実に狭くし、深堀チップ行が主CTAより目立たないようにする(1〜2件時)
+		maxWidth: "76%",
+		gap: 8,
+	},
+	// #973【設計】3件時は折り返さず1行に収める。flex:1による均等割りはWebでチップが
+	// 不当に縮み文字が視認できなくなる問題があったため、固定%幅＋定幅の行コンテナに戻した
+	deepDiveChipsRow: {
+		flexWrap: "nowrap",
+		alignSelf: "center",
 		justifyContent: "space-between",
-		rowGap: 10,
+		width: "94%",
+		maxWidth: undefined,
 	},
 	deepDiveChip: {
 		borderWidth: 1,
 		borderColor: "rgba(255, 255, 255, 0.92)",
 		backgroundColor: "rgba(255, 255, 255, 0.32)",
 		paddingHorizontal: 12,
-		paddingVertical: 11,
-		borderRadius: 18,
-		minHeight: 42,
+		paddingVertical: 7,
+		borderRadius: 14,
+		minHeight: 32,
 		justifyContent: "center",
 		alignItems: "center",
+	},
+	deepDiveChipThird: {
+		width: "31%",
+		paddingHorizontal: 6,
 	},
 	deepDiveChipText: {
 		color: "#FFFFFF",
