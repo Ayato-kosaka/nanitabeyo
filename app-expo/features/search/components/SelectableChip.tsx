@@ -1,5 +1,5 @@
 import React from "react";
-import { TouchableOpacity, Text, StyleSheet } from "react-native";
+import { TouchableOpacity, Text, StyleSheet, View } from "react-native";
 import { Check } from "lucide-react-native";
 
 interface SelectableChipProps {
@@ -32,9 +32,16 @@ export function SelectableChip({ label, icon, selected, onPress, role, testID }:
 			accessibilityRole={role}
 			aria-checked={selected}
 			accessibilityLabel={label}>
-			{selected && <Check size={12} color="#000000" strokeWidth={3} style={styles.checkIcon} />}
 			{icon && <Text style={styles.emoji}>{icon}</Text>}
 			<Text style={[styles.text, selected && styles.selectedText]}>{label}</Text>
+			{/* #934 【修正】チェックをラベルと同じ行に入れるとチップの横幅が変わり選択のたびに
+			    レイアウトが動くため(レビュー指摘)、SelectableGridItem(時間帯グリッド)と同じ
+			    右上の絶対配置バッジに変更して幅を不変にする */}
+			{selected && (
+				<View style={styles.checkBadge}>
+					<Check size={10} color="#FFFFFF" strokeWidth={3} />
+				</View>
+			)}
 		</TouchableOpacity>
 	);
 }
@@ -50,13 +57,27 @@ const styles = StyleSheet.create({
 		borderWidth: 2,
 		borderColor: "#C9C9C9",
 		marginBottom: 6,
+		// #934 【設計】右上バッジをチップの角に少しはみ出して重ねるため
+		position: "relative",
+		overflow: "visible",
 	},
 	selectedChip: {
 		backgroundColor: "#E5E5E5",
 		borderColor: "#000000",
 	},
-	checkIcon: {
-		marginRight: 4,
+	// #934 【設計】SelectableGridItem の checkBadge と同じ見た目(黒地・白縁・白チェック)
+	checkBadge: {
+		position: "absolute",
+		top: -6,
+		right: -6,
+		width: 16,
+		height: 16,
+		borderRadius: 8,
+		backgroundColor: "#000000",
+		alignItems: "center",
+		justifyContent: "center",
+		borderWidth: 1.5,
+		borderColor: "#FFFFFF",
 	},
 	emoji: {
 		fontSize: 14,
