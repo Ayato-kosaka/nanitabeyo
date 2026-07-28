@@ -215,9 +215,20 @@ jobs:
           restore-keys: |
             pods-specs-${{ runner.os }}-
 
+      # runner 既定の CocoaPods 1.17.0 は pnpm monorepo で「pathname contains null byte」が
+      # 断続発生する（CocoaPods#12798/#12866。run 30358267522 / 30363689911 で発生）。
+      # eas.json の production ビルドと同じ 1.15.2 へ固定し、あわせて flaky 対策で最大 3 回リトライする
       - name: 🍫 Pod install
         working-directory: app-expo/ios
-        run: pod install
+        run: |
+          gem install cocoapods -v 1.15.2 --no-document
+          for i in 1 2 3; do
+            pod _1.15.2_ install && exit 0
+            echo "pod install 失敗 (attempt $i)。Pods を削除して再試行します"
+            rm -rf Pods
+            sleep 5
+          done
+          exit 1
 
       # Detox iOS が内部で利用するシミュレータ操作 CLI（Detox 公式の環境構築手順）
       # 新しい Homebrew はサードパーティ tap を明示的に trust しないと formula をロードできない
