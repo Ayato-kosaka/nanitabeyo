@@ -39,3 +39,40 @@ jobs:
             exit 1
           fi
 
+      - name: 🟣 Setup PNPM
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10.8.0
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: 📦 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🏗 Setup Expo & EAS CLI
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: ✨ Update environment variable
+        run: |
+          pnpx eas-cli env:update ${{ github.event.inputs.channel }} \
+            --variable-name EXPO_PUBLIC_COMMIT_ID \
+            --value ${{ github.sha }} \
+            --non-interactive
+
+      - name: 📤 EAS Update to selected channel
+        run: |
+          echo "Starting EAS update to channel: ${{ github.event.inputs.channel }}"
+          pnpx eas-cli update \
+            --channel ${{ github.event.inputs.channel }} \
+            --platform all \
+            --message "Update from GitHub Actions: ${{ github.sha }}" \
+            --environment ${{ github.event.inputs.channel }}
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
