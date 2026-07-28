@@ -1,6 +1,12 @@
 import { by, device, element, expect as detoxExpect, waitFor } from "detox";
 
-import { iosLanguageAndLocale, localeDeepLink, warnIfAndroidLocaleMismatch } from "../utils/locale";
+import {
+	E2E_LOCALE,
+	getAndroidSystemLocale,
+	iosLanguageAndLocale,
+	localeDeepLink,
+	warnIfAndroidLocaleMismatch,
+} from "../utils/locale";
 import {
 	isAuthenticatedAvailable,
 	isMutationEnabled,
@@ -204,6 +210,31 @@ export const describeAuthenticated: typeof describe = isAuthenticatedAvailable()
  * describeMutation("いいね/保存 @mutation", () => { ... });
  */
 export const describeMutation: typeof describe = isMutationEnabled() ? describe : describe.skip;
+
+/**
+ * ja-JP ロケール前提のテスト用の `describe`。
+ *
+ * #1031 【設計】B4: 検索チュートリアルの自動表示は app-expo 側が `isJapanese` でゲートしており、
+ * 端末ロケールが ja-JP でないとそもそも開かない。CI は Android のシステムロケールを ja-JP へ固定するが
+ * （e2e-mobile-test.yml の adb setprop）、ローカルの手元エミュレータでは固定されていないことがある。
+ * その場合に **120 秒待ってから失敗する**のは調査コストが高いので、spec ごと skip して理由を明示する。
+ *
+ * 判定は Android のシステムロケールのみを見る（iOS は launchApp の `languageAndLocale` で
+ * 常に固定されるため。`getAndroidSystemLocale()` は iOS / adb 不在時に null を返すので skip しない）。
+ *
+ * @example
+ * describeJapaneseLocale("検索チュートリアル", () => { ... });
+ */
+export const describeJapaneseLocale: typeof describe = (() => {
+	const androidLocale = getAndroidSystemLocale();
+	if (androidLocale !== null && androidLocale !== E2E_LOCALE) {
+		console.warn(
+			`⚠️ Android ロケールが ${E2E_LOCALE} ではない（現在: ${androidLocale}）ため、ja-JP 前提の spec を skip します。`,
+		);
+		return describe.skip;
+	}
+	return describe;
+})();
 
 /**
  * プラットフォーム依存の launchApp オプションを組み立てる。

@@ -196,9 +196,17 @@ export class SearchScreen {
 		await element(this.advancedToggle).tap();
 	}
 
-	/** おすすめ外の移動時間チップの開閉を切り替える */
+	/**
+	 * おすすめ外の移動時間チップの開閉を切り替える。
+	 *
+	 * #1031 【バグ】スクロール起点に `search-advanced-toggle` を使ってはいけない。
+	 * この要素は `showAdvancedFilters === false` のときだけ描画される（app-expo の
+	 * search/index.tsx）ため、`openAdvancedFilters()` が成功した時点でツリーから消えており、
+	 * スワイプが必要な画面サイズでは "no elements found" で確実に落ちる。
+	 * 展開後も残る `scrollAnchor`（search-scene-solo）を起点にする。
+	 */
 	async toggleOtherDistanceEstimates(): Promise<void> {
-		await this.scrollUntilVisible(this.distanceEstimatesToggle, this.advancedToggle);
+		await this.scrollUntilVisible(this.distanceEstimatesToggle, this.scrollAnchor);
 		await element(this.distanceEstimatesToggle).tap();
 	}
 

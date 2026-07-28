@@ -1,4 +1,4 @@
-import { LAUNCH_TIMEOUT, launchAppWithSession } from "../../fixtures/e2e";
+import { LAUNCH_TIMEOUT, describeJapaneseLocale, launchAppWithSession } from "../../fixtures/e2e";
 import { SearchScreen } from "../../screens/SearchScreen";
 
 /**
@@ -25,7 +25,10 @@ import { SearchScreen } from "../../screens/SearchScreen";
  * チュートリアルは `isJapanese` のときだけ自動表示される（app-expo の search/index.tsx）。
  * デバイスロケールの ja-JP 固定は fixtures/e2e.ts + utils/locale.ts の責務（#1031 確定判断 B4）。
  */
-describe("検索チュートリアル（初回起動）", () => {
+// #1031 【設計】B4: チュートリアルは app-expo 側が isJapanese でゲートしているため、
+// 端末ロケールが ja-JP でない環境（ロケール未固定のローカルエミュレータ等）では spec ごと skip する
+// （CI は e2e-mobile-test.yml の adb setprop で ja-JP に固定済み）
+describeJapaneseLocale("検索チュートリアル（初回起動）", () => {
 	const search = new SearchScreen();
 
 	beforeAll(async () => {
