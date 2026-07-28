@@ -25,6 +25,14 @@ module.exports = {
 			build:
 				"cd ../app-expo/android && ./gradlew :app:assembleRelease :app:assembleAndroidTest -DtestBuildType=release -PreactNativeArchitectures=x86_64",
 		},
+		"ios.release": {
+			type: "ios.app",
+			binaryPath: "../app-expo/ios/build/Build/Products/Release-iphonesimulator/nanitabeyo.app",
+			// #1027 【設計】シミュレータ用 Release ビルド（署名不要）。derivedDataPath を ios/build に
+			// 固定して binaryPath と対応させる（事前に `expo prebuild --platform ios` + `pod install` が必要）
+			build:
+				"cd ../app-expo/ios && xcodebuild -workspace nanitabeyo.xcworkspace -scheme nanitabeyo -configuration Release -sdk iphonesimulator -derivedDataPath build",
+		},
 	},
 	devices: {
 		emulator: {
@@ -35,11 +43,23 @@ module.exports = {
 				avdName: process.env.DETOX_AVD_NAME || "e2e_avd",
 			},
 		},
+		simulator: {
+			type: "ios.simulator",
+			device: {
+				// #1027 【設計】CI は Xcode 26.2（eas.json の EAS ビルドと同一）固定のため、同梱ランタイムに
+				// 存在する機種を指定する。ローカルで別機種を使う場合は DETOX_IOS_DEVICE で上書きする
+				type: process.env.DETOX_IOS_DEVICE || "iPhone 16",
+			},
+		},
 	},
 	configurations: {
 		"android.emu.release": {
 			device: "emulator",
 			app: "android.release",
+		},
+		"ios.sim.release": {
+			device: "simulator",
+			app: "ios.release",
 		},
 	},
 };
