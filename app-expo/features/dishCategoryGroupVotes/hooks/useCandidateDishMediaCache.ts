@@ -92,6 +92,8 @@ export function useCandidateDishMediaCache({
 					latitude: searchContext.location.latitude,
 					longitude: searchContext.location.longitude,
 					searchLocationLanguageCode: searchContext.localLanguageCode,
+					// #817 【設計】端末言語を第一優先にする
+					viewerLanguageCode: locale,
 					radius: searchContext.radius,
 					priceLevels: searchContext.priceLevels,
 				});

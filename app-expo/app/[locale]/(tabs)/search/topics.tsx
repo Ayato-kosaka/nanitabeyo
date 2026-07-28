@@ -200,6 +200,8 @@ export default function TopicsScreen() {
 				radius: params.distance,
 				priceLevels: params.priceLevels,
 				languageCode: params.localLanguageCode,
+				// #817 端末言語でレビューの並びが変わるためキーに含める
+				viewerLanguageCode: locale,
 			});
 
 			// #633 【設計】未取得 & 非ロード中の場合のみ fetch（重複実行を防止）

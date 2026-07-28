@@ -28,7 +28,14 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { roundToOneDecimal, shuffle } from '../../core/utils/backend-utils';
 import { CLS_KEY_APP_VERSION } from 'src/core/cls/cls.constants';
 import { ClsService } from 'nestjs-cls';
+import { normalizePreferredLanguageCodes } from '../../../../shared/utils/languageCode';
+import { prioritizeReviewsByLanguage } from './review-ordering';
 import { MediaProcessingStatus } from '@shared/v1/res';
+
+/** #817 優先言語のレビュー先読みクエリの戻り値 */
+type DishReviewWithUser = Prisma.dish_reviewsGetPayload<{
+  include: { users: true };
+}>;
 
 /* -------------------------------------------------------------------------- */
 /*                       返却型 (ドメイン Entity 例)                           */
@@ -729,11 +736,15 @@ export class DishMediaRepository {
     option: {
       userId: string;
       reviewLimit?: number;
-      preferredLanguageCode?: string;
+      preferredLanguageCodes?: readonly string[];
     },
   ): Promise<DishMediaEntryEntity[]> {
-    const { userId, reviewLimit = 6, preferredLanguageCode } = option;
+    const { userId, reviewLimit = 6 } = option;
     if (dishMediaIds.length === 0) return [];
+
+    const preferredLanguageCodes = normalizePreferredLanguageCodes(
+      option.preferredLanguageCodes,
+    );
 
     const dishMedias = await this.prisma.prisma.dish_media.findMany({
       where: { id: { in: dishMediaIds } },
@@ -745,13 +756,24 @@ export class DishMediaRepository {
             restaurants: true,
             dish_reviews: {
               orderBy: { created_at: 'asc' }, // #509 【設計】dish_reviews の並び順を古い→新しいに統一
-              take: preferredLanguageCode ? undefined : reviewLimit,
+              take: reviewLimit,
               include: { users: true },
             },
           },
         },
       },
     });
+
+    // #817 【設計】優先言語のレビューは created_at 順で reviewLimit 件目より後ろに埋もれている
+    // ことがあるため、別クエリで dish ごとに take して補充する。
+    // nested take は親 1 件ごとに効くので、取得行数は
+    // (優先言語分 reviewLimit + 既定分 reviewLimit) × dish 数 に収まり、青天井にならない。
+    const preferredReviewsByDish = await this.findPreferredLanguageReviews(
+      dishMedias.map((m) => m.dish_id),
+      preferredLanguageCodes,
+      reviewLimit,
+      userId,
+    );
 
     // Get all dish IDs to calculate aggregates
     const dishIds = dishMedias.map((m) => m.dish_id);
@@ -781,8 +803,24 @@ export class DishMediaRepository {
     );
 
     const dishMediaMap = new Map(dishMedias.map((m) => [m.id, m]));
-    const allReviewIds = dishMedias.flatMap((m) =>
-      m.dishes.dish_reviews.map((r) => r.id),
+
+    // #817 【設計】表示する reviewLimit 件を先に確定させてから reactions を引く。
+    // 優先度付け・slice の前に id を集めると、表示しないレビューまで
+    // reactions の IN 句へ流れ込み、クエリが不必要に膨らむ。
+    const reviewsByDishMediaId = new Map(
+      dishMedias.map((m) => [
+        m.id,
+        prioritizeReviewsByLanguage(
+          m.dishes.dish_reviews,
+          preferredReviewsByDish.get(m.dish_id) ?? [],
+          preferredLanguageCodes,
+          reviewLimit,
+        ),
+      ]),
+    );
+
+    const allReviewIds = [...reviewsByDishMediaId.values()].flatMap((reviews) =>
+      reviews.map((r) => r.id),
     );
 
     const { reactionSet, reviewLikeCountMap } =
@@ -802,11 +840,7 @@ export class DishMediaRepository {
       .map((dishMediaId) => {
         const dishMedia = dishMediaMap.get(dishMediaId)!;
         const dishStats = dishStatsMap.get(dishMedia.dish_id);
-        const dishReviews = this.prioritizeReviewsByLanguage(
-          dishMedia.dishes.dish_reviews,
-          preferredLanguageCode,
-          reviewLimit,
-        );
+        const dishReviews = reviewsByDishMediaId.get(dishMediaId) ?? [];
 
         return {
           restaurant: dishMedia.dishes.restaurants,
@@ -845,25 +879,64 @@ export class DishMediaRepository {
       });
   }
 
-  private prioritizeReviewsByLanguage<
-    T extends { original_language_code: string },
-  >(
-    reviews: T[],
-    preferredLanguageCode: string | undefined,
+  /**
+   * #817 【設計】優先言語のレビューを dish ごとに reviewLimit 件だけ先読みする。
+   *
+   * `original_language_code` には `ja` と `ja-JP` が混在するため、
+   * 正規形の前方一致（`ja` または `ja-*`）で拾う。nested take が親ごとに効くので、
+   * 取得行数は reviewLimit × dish 数で頭打ちになる。
+   */
+  private async findPreferredLanguageReviews(
+    dishIds: string[],
+    preferredLanguageCodes: string[],
     reviewLimit: number,
-  ): T[] {
-    if (!preferredLanguageCode) return reviews;
+    userId: string,
+  ): Promise<Map<string, DishReviewWithUser[]>> {
+    const result = new Map<string, DishReviewWithUser[]>();
+    if (preferredLanguageCodes.length === 0 || dishIds.length === 0) {
+      return result;
+    }
 
-    const preferred = reviews.filter(
-      (review) => review.original_language_code === preferredLanguageCode,
-    );
-    const fallback = reviews.filter(
-      (review) => review.original_language_code !== preferredLanguageCode,
-    );
+    const dishes = await this.prisma.prisma.dishes.findMany({
+      where: { id: { in: dishIds } },
+      select: {
+        id: true,
+        dish_reviews: {
+          where: {
+            OR: preferredLanguageCodes.flatMap((code) => [
+              { original_language_code: { equals: code, mode: 'insensitive' } },
+              {
+                original_language_code: {
+                  startsWith: `${code}-`,
+                  mode: 'insensitive',
+                },
+              },
+            ]),
+          },
+          orderBy: { created_at: 'asc' }, // #509 【設計】古い→新しい
+          take: reviewLimit,
+          include: { users: true },
+        },
+      },
+    });
 
-    return [...preferred, ...fallback].slice(0, reviewLimit);
+    for (const dish of dishes) {
+      result.set(dish.id, dish.dish_reviews);
+    }
+
+    // userId は将来 like 状態を先読みする際に使う想定だが、現状は reactions 側で解決している
+    void userId;
+
+    return result;
   }
 
+  /**
+   * #817 【設計】優先言語のレビューを上位へ寄せる。フィルタではなく並び替えなので、
+   * 優先言語が 0 件でも従来どおり reviewLimit 件が返り、reviewCount との整合も崩れない。
+   *
+   * 優先順位は preferredLanguageCodes の並び順（端末言語 → 検索地点の言語）。
+   * 同一優先度の中では created_at 昇順を維持する（#509）。
+   */
   // --- new helper ---
   private async buildReactionAggregates(
     dishMediaIds: string[],
