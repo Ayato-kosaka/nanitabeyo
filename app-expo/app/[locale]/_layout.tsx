@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from "react";
-import { Stack, useRouter } from "expo-router";
+import { Stack, useRootNavigationState, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useFrameworkReady } from "@/hooks/useFrameworkReady";
 import { DialogProvider } from "@/contexts/DialogProvider";
@@ -52,12 +52,28 @@ export default function RootLayout() {
 	const theme = getPaperTheme(scheme, locale);
 	const { logFrontendEvent } = useLogger();
 
+	// #1027 【バグ】ルートナビゲータがマウントされる前に router.replace() を呼ぶと expo-router の
+	// assertIsReady が
+	//   「Attempted to navigate before mounting the Root Layout component.」
+	// を投げ、**JS 例外でアプリごとクラッシュする**（Detox の Android release run 30391843038 で実測）。
+	// useRootNavigationState() は準備完了までは undefined / key 無しを返すので、これを遷移の可否判定に使う。
+	// ナビゲータが後から準備完了すると key が入って再レンダーされ、下の useEffect が再実行される
+	const rootNavigationState = useRootNavigationState();
+	const isNavigationReady = rootNavigationState?.key != null;
+
 	const fontsLoaded = useLocaleFonts(locale);
 
 	// #717 【設計】locale に応じた SEO defaults を生成
 	const seoDefaults: SeoData = useMemo(() => DEFAULT_SEO_BY_PUBLIC_LOCALE[resolvePublicLocale(locale)], [locale]);
 
 	useEffect(() => {
+		// #1027 【バグ】locale は usePathname() の第 1 セグメントなので、遷移の途中経過では
+		// 空文字になりうる（例: `/` にいる一瞬）。これを「不正なロケール」と誤判定して `/` へ
+		// リダイレクトすると、`/` → `/ja-JP` へ飛ばす app/index.tsx と押し合いになるうえ、
+		// ナビゲータ未準備のタイミングだと上記のクラッシュを引き起こす。
+		// 空のときは「まだ確定していない」とみなして何もしない（確定すれば再実行される）
+		if (!locale) return;
+
 		const isLocaleSupported = isValidBcp47Tag(locale);
 
 		// Log locale initialization
@@ -72,6 +88,9 @@ export default function RootLayout() {
 		});
 
 		if (!isLocaleSupported) {
+			// #1027 【バグ】ナビゲータ未準備の間は遷移を見送る。準備完了で再実行され、そこで初めて飛ぶ
+			if (!isNavigationReady) return;
+
 			logFrontendEvent({
 				event_name: "locale_validation_failed",
 				error_level: "warn",
@@ -83,7 +102,7 @@ export default function RootLayout() {
 
 		// #717 【設計】i18n の locale を必ず同期
 		i18n.locale = getResolvedLocale(locale);
-	}, [locale, router, logFrontendEvent, scheme]);
+	}, [locale, router, logFrontendEvent, scheme, isNavigationReady]);
 
 	if (!fontsLoaded) return null;
 

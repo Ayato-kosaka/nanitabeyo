@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useRouter } from "expo-router";
+import { useRootNavigationState, useRouter } from "expo-router";
 import type { ExternalPathString } from "expo-router";
 import * as Localization from "expo-localization";
 import * as SplashScreen from "expo-splash-screen";
@@ -21,7 +21,17 @@ SplashScreen.preventAutoHideAsync();
 export default function App() {
 	const router = useRouter();
 
+	// #1027 【バグ】ルートナビゲータのマウント前に router.replace() を呼ぶと expo-router の
+	// assertIsReady が「Attempted to navigate before mounting the Root Layout component.」を投げ、
+	// JS 例外でアプリごとクラッシュする。setTimeout(0) だけでは「次のタスクまでに必ずマウント済み」を
+	// 保証できない（release ビルド + 低速端末では間に合わないことがある）ため、
+	// ナビゲータの準備完了を明示的に待ってからリダイレクトする
+	const rootNavigationState = useRootNavigationState();
+	const isNavigationReady = rootNavigationState?.key != null;
+
 	useEffect(() => {
+		if (!isNavigationReady) return;
+
 		const resolvedLocale = getResolvedLocale(Localization.getLocales?.()[0]?.languageTag);
 
 		if (Env.NODE_ENV === "development") {
@@ -33,7 +43,7 @@ export default function App() {
 			router.replace(`/${resolvedLocale}` as ExternalPathString);
 		}, 0);
 		return () => clearTimeout(timer);
-	}, []);
+	}, [isNavigationReady]);
 
 	return null;
 }
