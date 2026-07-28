@@ -34,6 +34,7 @@ import i18n from "@/lib/i18n";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
+import { useScreenTrace } from "@/hooks/useScreenTrace";
 import { makeDishMediaEntriesKey } from "@/features/dishMedia/utils/dishMediaEntriesKey";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { useCreateDishCategoryGroupVote } from "@/features/dishCategoryGroupVotes/hooks/useCreateDishCategoryGroupVote";
@@ -63,6 +64,8 @@ const getOrderIndex = (order: readonly string[], key: string) => {
 };
 
 export default function TopicsScreen() {
+	// #1016 【設計】カード操作が重いという申告のある画面のため、Firebase Performance Monitoringの画面トレースを計装する。
+	useScreenTrace("Topics");
 	const { locale } = useLocale();
 	const { searchParams, pinnedTopic: pinnedTopicParam } = useLocalSearchParams<{
 		searchParams: string;

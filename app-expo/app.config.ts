@@ -101,6 +101,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		"expo-video",
 		"expo-audio",
 		"expo-notifications",
+		// #1016 【設計】Androidは既存のgoogle-services.json(android.googleServicesFile)を利用する。
+		// iOS用GoogleService-Info.plistは未配置のため、ios.googleServicesFileは未設定のまま。
+		// prebuild/EASビルドでiOSネイティブプロジェクトを生成する場合はオーナー確認のうえ配置が必要。
+		"@react-native-firebase/app",
+		"@react-native-firebase/perf",
 		[
 			"expo-splash-screen",
 			{
