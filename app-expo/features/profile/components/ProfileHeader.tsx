@@ -92,7 +92,8 @@ export function ProfileHeader({
 					{/* <TouchableOpacity style={styles.shareButton} onPress={onShare || (() => {})}>
 						<Share size={24} color="#666" />
 					</TouchableOpacity> */}
-					<TouchableOpacity style={styles.settingButton} onPress={handleSettings}>
+					{/* #1031 【設計】Detox から設定画面への実UI導線を検証するため testID を追加 */}
+					<TouchableOpacity testID="profile-settings-button" style={styles.settingButton} onPress={handleSettings}>
 						<Settings size={24} color="#666" />
 					</TouchableOpacity>
 				</View>
