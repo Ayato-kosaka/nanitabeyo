@@ -1,0 +1,83 @@
+name: Evidence Collect
+
+# 📸 テストエビデンス回収ワークフロー（#1027）
+# - 指定した workflow run の Artifact（Detox のスクリーンショット等）をダウンロードし、
+#   エビデンス用ブランチへ commit する
+# - Actions の Artifact ダウンロード URL(Azure blob)へ直接アクセスできない環境からでも、
+#   git 経由でエビデンスを取得できるようにするための決定的な補助ワークフロー
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "Artifact を持つ workflow run の ID"
+        required: true
+        type: string
+      artifact_name:
+        description: "ダウンロードする Artifact 名（例: detox-report-android）"
+        required: true
+        type: string
+      dest_dir:
+        description: "リポジトリ内の格納先ディレクトリ"
+        required: true
+        default: "docs/e2e-evidence"
+        type: string
+      branch:
+        description: "commit 先のエビデンスブランチ"
+        required: true
+        default: "e2e-evidence/boot-screenshots"
+        type: string
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  collect:
+    name: Collect ${{ inputs.artifact_name }} from run ${{ inputs.run_id }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: ⏬ Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 📥 Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ inputs.run_id }}
+          name: ${{ inputs.artifact_name }}
+          path: /tmp/evidence
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      # 既存のエビデンスブランチがあれば継続し、無ければ main から新規作成する
+      - name: 💾 Commit evidence to branch
+        env:
+          BRANCH: ${{ inputs.branch }}
+          DEST: ${{ inputs.dest_dir }}/${{ inputs.artifact_name }}
+          RUN_ID: ${{ inputs.run_id }}
+          ARTIFACT: ${{ inputs.artifact_name }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if git fetch origin "refs/heads/$BRANCH:refs/remotes/origin/$BRANCH" 2>/dev/null; then
+            git switch --create "$BRANCH" --track "origin/$BRANCH" || git switch "$BRANCH"
+          else
+            git switch --create "$BRANCH"
+          fi
+
+          rm -rf "$DEST"
+          mkdir -p "$DEST"
+          # ディレクトリ構造ごとコピーする（before/after 等の同名ファイルの衝突を避ける）
+          cp -r /tmp/evidence/. "$DEST"/
+
+          git add "$DEST"
+          if git diff --cached --quiet; then
+            echo "変更なし（Artifact が空、または既存と同一）"
+            exit 0
+          fi
+          git commit -m "docs: テストエビデンス回収 ($ARTIFACT / run $RUN_ID) #1027"
+          git push -u origin "$BRANCH"

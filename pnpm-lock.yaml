@@ -415,6 +415,9 @@ importers:
       react-native-google-mobile-ads:
         specifier: ^15.4.0
         version: 15.8.3(expo@53.0.24(@babel/core@7.28.5)(@expo/metro-runtime@5.0.5(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0)))(graphql@16.8.1)(react-native-webview@13.13.5(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react@19.0.0)
+      react-native-launch-arguments:
+        specifier: 4.1.1
+        version: 4.1.1(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)
       react-native-maps:
         specifier: 1.18.0
         version: 1.18.0(react-native-web@0.20.0(encoding@0.1.13)(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)
@@ -491,6 +494,9 @@ importers:
 
   e2e-mobile:
     devDependencies:
+      '@supabase/supabase-js':
+        specifier: ^2.49.4
+        version: 2.84.0
       '@types/jest':
         specifier: ^29.5.14
         version: 29.5.14
@@ -500,6 +506,9 @@ importers:
       detox:
         specifier: 20.51.4
         version: 20.51.4(@jest/environment@29.7.0)(@jest/types@29.6.3)(@types/bunyan@1.8.11)(expect@29.7.0)(jest-environment-node@29.7.0)(jest@29.7.0(@types/node@22.19.1))
+      dotenv:
+        specifier: ^16.5.0
+        version: 16.6.1
       jest:
         specifier: ^29.7.0
         version: 29.7.0(@types/node@22.19.1)(ts-node@10.9.2(@swc/core@1.15.3)(@types/node@22.19.1)(typescript@5.8.3))
@@ -8354,6 +8363,12 @@ packages:
     peerDependencies:
       react: '*'
       react-native: '*'
+
+  react-native-launch-arguments@4.1.1:
+    resolution: {integrity: sha512-7tkJNHKhn37eXmGKz4UJ+47AywEqb3fknUsJ1GjCLNL0cpxDddKr43JbLrPGpASIxUSu36oYV/a0o0T6IWyKMg==}
+    peerDependencies:
+      react: '>=16.8.1'
+      react-native: '>=0.60.0-rc.0 <1.0.x'
 
   react-native-maps@1.18.0:
     resolution: {integrity: sha512-S17nYUqeMptgIPaAZuVRo+eRelPreBBYQWw6jsxU7qQ12p+THSfFaqabcNn7fBmsXhT3T27iIl8ek8v1H8BaGw==}
@@ -19959,6 +19974,11 @@ snapshots:
       react-native: 0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0)
 
   react-native-is-edge-to-edge@1.2.1(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0):
+    dependencies:
+      react: 19.0.0
+      react-native: 0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0)
+
+  react-native-launch-arguments@4.1.1(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0):
     dependencies:
       react: 19.0.0
       react-native: 0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0)

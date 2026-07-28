@@ -1,4 +1,11 @@
-import { device, element, by, waitFor } from "detox";
+import {
+	DEFAULT_TIMEOUT,
+	LAUNCH_TIMEOUT,
+	by,
+	device,
+	launchAppWithoutSession,
+	waitUntilVisible,
+} from "../../fixtures/e2e";
 
 /**
  * 🚀 起動スモークテスト @smoke
@@ -7,31 +14,23 @@ import { device, element, by, waitFor } from "detox";
  *       アプリの起動シーケンス全体が壊れていないことを最小の手数で保証する（e2e-web の boot.spec.ts に対応）。
  * 検証範囲: タブバーの表示のみ。個別機能には踏み込まない (Tier 1)。
  *
+ * ## この spec だけ launchArgs を渡さずに起動する理由（#1030 3-1 の例外規約）
+ * 他の spec は `launchAppWithSession()` で Node 側が確立済みのセッションを注入し、
+ * 匿名サインイン（30 回/時/IP、dev/prod 共有プロジェクト）の消費を run あたり 1 回に抑える。
+ * しかし本 spec は **「アプリが自力で匿名サインインを自動確立すること」自体が検証対象**なので、
+ * 意図的に `launchAppWithoutSession()` を使う。
+ * （e2e-web の boot.spec.ts が共有 storageState を使わずフレッシュな状態へ戻しているのと同じ判断。
+ *   この例外で匿名クォータを 1 消費することは #1030 3-1 の見積に織り込み済み）
+ *
  * 注意: tabBarButtonTestID は app-expo/app/[locale]/(tabs)/_layout.tsx で定義されている。
  * tab-notifications は匿名ユーザーには非表示、tab-map は常に非表示（内部遷移専用）のため、
  * ここでは匿名ユーザーでも必ず表示される 3 タブのみを検証する。
  */
 describe("起動 @smoke", () => {
 	beforeAll(async () => {
-		// #1027 【設計】クリーンな初回起動を検証するため新規インスタンスで起動する
-		// #1027 【バグ】iOS はメインキューに常駐する作業(常時アニメーション)があり Detox の同期が
-		// 永遠にアイドルにならず launchApp がタイムアウトする(run 30359425182)。iOS のみ同期を無効化し、
-		// 検証は waitFor のポーリングで行う(Android は同期が機能しているため既定のまま)
-		await device.launchApp({
-			newInstance: true,
-			...(device.getPlatform() === "ios"
-				? {
-						// #1027 【バグ】起動直後の位置情報許可ダイアログ表示中はアプリが inactive となり
-						// Detox の waitForActive が完了せずタイムアウトする(run 30364296574 の beforeAllFailure.png)。
-						// iOS は位置情報を事前許可して起動する(applesimutils 経由。Android はダイアログが
-						// 起動シーケンスをブロックしないため不要)
-						// #1027 【バグ】位置情報の次は ATT(トラッキング許可)ダイアログが同様にブロックする
-						// (run 30368487678)ため、システムダイアログを出しうる許可はすべて事前付与する
-						permissions: { location: "inuse", userTracking: "YES" },
-						launchArgs: { detoxEnableSynchronization: 0 },
-					}
-				: {}),
-		});
+		// #1030 【設計】3-1 の例外: セッションを注入せず、アプリ本来の signInAnonymously() を通す。
+		// 起動シーケンスそのものが検証対象なので、起動完了待ちは fixtures に任せずテスト本体で行う
+		await launchAppWithoutSession();
 	});
 
 	// ─ テストケース: 起動するとタブバー付きの検索画面が表示される ─
@@ -40,18 +39,13 @@ describe("起動 @smoke", () => {
 	//   2. さがす/レビュー/マイページの各タブが表示されることを検証
 	it("起動するとタブバー付きの検索画面が表示される", async () => {
 		// #1027 【パフォーマンス】初回起動は JS バンドル読込 + 匿名サインインの通信を含むため長めに待つ
-		await waitFor(element(by.id("tab-search")))
-			.toBeVisible()
-			.withTimeout(120000);
-		await waitFor(element(by.id("tab-review")))
-			.toBeVisible()
-			.withTimeout(15000);
-		await waitFor(element(by.id("tab-profile")))
-			.toBeVisible()
-			.withTimeout(15000);
+		await waitUntilVisible(by.id("tab-search"), LAUNCH_TIMEOUT);
+		// タブバーは同時に描画されるため、以降は通常のタイムアウトで足りる
+		await waitUntilVisible(by.id("tab-review"), DEFAULT_TIMEOUT);
+		await waitUntilVisible(by.id("tab-profile"), DEFAULT_TIMEOUT);
 
-		// #1027 【設計】起動成功のエビデンスとしてスクリーンショットを保存する
-		// （CI では artifacts/ 配下に出力され、Actions の Artifact として回収できる）
+		// #1027 【設計】起動成功のエビデンスとしてスクリーンショットを残す（CI の Artifact から回収する）。
+		// .detoxrc.js の screenshot は "failing" のため、成功時も残すよう CI は --take-screenshots all で実行する
 		await device.takeScreenshot("boot-search-screen");
 	});
 });

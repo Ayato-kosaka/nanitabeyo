@@ -18,9 +18,18 @@ export type ScreenHeaderProps = {
 	containerStyle?: StyleProp<ViewStyle>;
 	/** タイトルの追加スタイル（必要であれば） */
 	titleStyle?: StyleProp<TextStyle>;
+	// #1031 【設計】画面ごとにタイトル表示を検証できるよう testID を付与できるようにする（`${testID}-title` をタイトル Text に付与）
+	testID?: string;
 };
 
-export function ScreenHeader({ title, onPressBack, rightContent, containerStyle, titleStyle }: ScreenHeaderProps) {
+export function ScreenHeader({
+	title,
+	onPressBack,
+	rightContent,
+	containerStyle,
+	titleStyle,
+	testID,
+}: ScreenHeaderProps) {
 	const insets = useSafeAreaInsets();
 	return (
 		<View style={[{ paddingTop: insets.top + 8 }, styles.container, containerStyle]}>
@@ -34,7 +43,11 @@ export function ScreenHeader({ title, onPressBack, rightContent, containerStyle,
 				<ChevronLeft size={24} color="#1A1A1A" />
 			</TouchableOpacity>
 
-			<Text style={[styles.title, titleStyle]} numberOfLines={1} ellipsizeMode="tail">
+			<Text
+				testID={testID ? `${testID}-title` : undefined}
+				style={[styles.title, titleStyle]}
+				numberOfLines={1}
+				ellipsizeMode="tail">
 				{title}
 			</Text>
 

@@ -4,6 +4,8 @@ node_modules/
 # expo
 .expo/
 dist/
+# #1030 sentinel ゲート（scripts/assert-no-e2e-hook.mjs）用の native バンドル出力先
+dist-e2e-check/
 web-build/
 expo-env.d.ts
 

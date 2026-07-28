@@ -320,26 +320,34 @@ export function ActionButtons({ id, idType, onLayout, buttonsGesture }: ActionBu
 				</TouchableOpacity>
 
 				<View style={styles.actionContainer}>
+					{/* #1031 【設計】Detox から状態(いいね済みか)を検証できるよう、状態別の accessibilityLabel を付与 */}
 					<TouchableOpacity
 						testID="dish-action-like"
 						style={styles.actionButton}
 						onPress={handleLike}
 						hitSlop={buttonHitSlop}
 						accessibilityRole="button"
-						accessibilityLabel={i18n.t("DishMediaContent.accessibility.like", { name: restaurant.name })}
+						accessibilityLabel={i18n.t(
+							isLiked ? "DishMediaContent.accessibility.likeActive" : "DishMediaContent.accessibility.likeInactive",
+							{ name: restaurant.name },
+						)}
 						aria-selected={isLiked}>
 						<Heart size={28} color={isLiked ? "#FF3040" : "#FFFFFF"} fill={isLiked ? "#FF3040" : "white"} />
 					</TouchableOpacity>
 					<Text style={styles.actionText}>{formatLikeCount(likeCount)}</Text>
 				</View>
 
+				{/* #1031 【設計】Detox から状態(保存済みか)を検証できるよう、状態別の accessibilityLabel を付与 */}
 				<TouchableOpacity
 					testID="dish-action-save"
 					style={styles.actionButton}
 					onPress={handleSave}
 					hitSlop={buttonHitSlop}
 					accessibilityRole="button"
-					accessibilityLabel={i18n.t("DishMediaContent.accessibility.save", { name: restaurant.name })}
+					accessibilityLabel={i18n.t(
+						isSaved ? "DishMediaContent.accessibility.saveActive" : "DishMediaContent.accessibility.saveInactive",
+						{ name: restaurant.name },
+					)}
 					aria-selected={isSaved}>
 					<Bookmark size={30} color={"transparent"} fill={isSaved ? "orange" : "white"} />
 				</TouchableOpacity>

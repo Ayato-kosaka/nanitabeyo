@@ -8,8 +8,8 @@ import { useLogger } from "@/hooks/useLogger";
 export type TopicImageResourceState =
 	| { status: "idle" }
 	| { status: "loading" }
-	// #929 【設計】image は native では Image.loadAsync 済みの ImageRef、web では直接渡す URI ソース。
-	// どちらも同一の state を cards/thumbnails 双方へ渡すことで、画面単位で1回だけ取得したリソースを共有する。
+	// #802/#929 【設計】ready は表示イベントではなく、画面で共有できる source が確定した状態。
+	// native は取得済み ImageRef、web は直接 URL を持ち、カードとサムネイルは必ず同じ値を参照する。
 	| { status: "ready"; image: ImageRef | ImageSource }
 	| { status: "error"; errorMessage?: string };
 
@@ -20,6 +20,7 @@ type UseTopicImageResourcesParams = {
 	sessionKey: string;
 };
 
+// categoryId だけでは同じ料理の画像 URL 更新を検知できないため、リソースの世代を URL まで含めて識別する。
 const getTopicImageKey = (topic: Topic) => `${topic.categoryId}::${topic.imageUrl}`;
 
 const cloneTopicImageStates = (states: TopicImageResourceStates): TopicImageResourceStates => ({ ...states });
@@ -35,11 +36,10 @@ const releaseIfImageRef = (image: ImageRef | ImageSource) => {
 };
 
 /**
- * #802 【設計】Topics 画面の画像リソース取得状態を管理する。
- * 入力: 表示中の topics と検索条件を表す sessionKey。
- * 出力: cards/thumbnails が参照する画像 state、retry/reset 用の操作。
- * 副作用: 未取得画像を Image.loadAsync で先読みし、失敗時は error state として保持する。
- * 失敗時: 古い session の非同期結果は破棄し、現在 session の state のみ更新する。
+ * #802/#929 【設計】Topics 画面を画像リソースの所有境界とし、カードとサムネイルへ同じ source を配る。
+ * native は Image.loadAsync の完了を ready の根拠にして同じ ImageRef を共有し、表示側の onLoad 系イベントには依存しない。
+ * web は Blob の生成と重複取得を避けるため URL を共有し、実際の表示失敗だけを onError から error へ反映する。
+ * sessionKey が変わった後の非同期結果は現セッションへ混ぜず、所有権を失った ImageRef は必ず解放する。
  */
 export const useTopicImageResources = ({ topics, sessionKey }: UseTopicImageResourcesParams) => {
 	const { logFrontendEvent } = useLogger();
@@ -60,6 +60,7 @@ export const useTopicImageResources = ({ topics, sessionKey }: UseTopicImageReso
 	}, []);
 
 	const resetImageStates = useCallback(() => {
+		// generation を先に進めることで、キャンセル不能な旧 loadAsync の完了を新セッションへ混入させない。
 		imageLoadGenerationRef.current += 1;
 		const previousStates = topicImageStatesRef.current;
 		topicImageStatesRef.current = {};
@@ -85,13 +86,9 @@ export const useTopicImageResources = ({ topics, sessionKey }: UseTopicImageReso
 			};
 			setTopicImageStates(cloneTopicImageStates(topicImageStatesRef.current));
 
-			// #929 【設計】web の Image.loadAsync は fetch→blob→createObjectURL を internally 行い、
-			// release() が実質no-opでBlob URLを解放できない(expo-image 2.4.1)。検索を繰り返す本画面では
-			// Blob が蓄積し続けるため、web は取得を介さずURLをそのまま cards/thumbnails 双方へ渡す。
-			// #929 【バグ】source に headers を渡すと(値が空オブジェクトでも)、expo-image web の
-			// useHeaders が同じ fetch→blob 変換を <Image> インスタンスごとに個別実行してしまい、
-			// ブラウザキャッシュ共有もdedupeも効かなくなる。web は #719 により実際のヘッダーを
-			// 送れないため、headers キー自体を省略して plain <img src> 経路のみを使う。
+			// #719/#929 【設計】expo-image 2.4.1 の web は loadAsync や空の headers でも
+			// fetch→Blob URL を生成し、表示ごとの重複取得と解放不能な Blob を生む。
+			// headers キーも含めず同じ URL を配り、ブラウザの通常キャッシュとリクエスト共有に委ねる。
 			if (Platform.OS === "web") {
 				topicImageStatesRef.current = {
 					...topicImageStatesRef.current,
@@ -103,9 +100,12 @@ export const useTopicImageResources = ({ topics, sessionKey }: UseTopicImageReso
 
 			const loadStartedAt = Date.now();
 			try {
+				// #802/#929 【設計】native の URL 取得とキャッシュキー決定はこの一箇所に集約する。
+				// loadAsync は native の disk cache を利用し、返した ImageRef を表示側が再利用するため、
+				// 表示側 <Image> の cachePolicy を変えてもこの取得経路の disk cache 設定にはならない。
 				const image = await Image.loadAsync({ uri: topic.imageUrl, headers: WIKIMEDIA_HEADERS, cacheKey: key });
 				if (imageLoadGenerationRef.current !== imageLoadGeneration) {
-					// #929 【設計】古い検索セッションの結果はUIへ渡らないため、保持し続けずその場で解放する。
+					// 旧セッションの ImageRef はどの表示にも所有権を渡さないため、完了した時点で解放する。
 					image.release();
 					return;
 				}
@@ -114,6 +114,7 @@ export const useTopicImageResources = ({ topics, sessionKey }: UseTopicImageReso
 					[key]: { status: "ready", image },
 				};
 				setTopicImageStates(cloneTopicImageStates(topicImageStatesRef.current));
+				// 表示イベントではなく共有リソースの準備時間を測り、onLoad 欠落が計測値や状態を左右しないようにする。
 				logFrontendEvent({
 					event_name: "topic_image_resource_ready",
 					error_level: "log",
@@ -161,19 +162,14 @@ export const useTopicImageResources = ({ topics, sessionKey }: UseTopicImageReso
 	);
 
 	/**
-	 * #929 【修正】表示側 <Image> の onError から呼び、該当 topic を error 状態へ遷移させる。
-	 * web の ready state は URL を渡すだけで実際の読み込み成否を検証していないため
-	 * (PR #980 レビュー指摘)、期限切れ・無効・一時的に取得不能な画像が「ready のまま
-	 * 白いカード」になっていた。error へ遷移させることで native と同じ失敗オーバーレイと
-	 * 再試行導線(retryImage)が表示される。retryImage は error state からの再取得を行うため、
-	 * 一時的な失敗ならリトライで復帰できる。
+	 * web の ready は「共有する URL が確定済み」を表し、ネットワーク成功までは保証しない。
+	 * 表示側の失敗だけをここで共有 error に変換し、カードとサムネイルに同じ再試行導線を出す。
 	 */
 	const markImageError = useCallback(
 		(topic: Topic, errorMessage?: string) => {
 			const key = getTopicImageKey(topic);
 			const current = topicImageStatesRef.current[key];
-			// すでに error / 再取得中(loading)の場合は上書きしない(遅延到着した onError で
-			// リトライ中の状態を巻き戻さないため)
+			// 古い描画の onError で、すでに開始した再試行を error へ巻き戻さない。
 			if (current?.status === "error" || current?.status === "loading") return;
 
 			topicImageStatesRef.current = {

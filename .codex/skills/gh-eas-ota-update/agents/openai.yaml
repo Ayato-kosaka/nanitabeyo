@@ -1,0 +1,4 @@
+interface:
+  display_name: "GitHub EAS OTA Update"
+  short_description: "releaseブランチのOTA互換性を監査して安全に配信"
+  default_prompt: "$gh-eas-ota-update を使って、ソースからreleaseへのマージを監査し、productionのEAS Updateを安全に配信してください。"
