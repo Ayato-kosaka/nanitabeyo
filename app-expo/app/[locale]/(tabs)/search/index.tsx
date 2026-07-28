@@ -443,7 +443,10 @@ export default function SearchScreen() {
 		<SafeAreaView style={styles.container} edges={["top"]}>
 			{/* Header */}
 			<View style={styles.header}>
-				<Text style={styles.headerTitle}>{i18n.t("Search.headerTitle")}</Text>
+				{/* #1031 【設計】Detox から表示確認できるよう testID を追加 */}
+				<Text testID="search-header-title" style={styles.headerTitle}>
+					{i18n.t("Search.headerTitle")}
+				</Text>
 				{/* #642 【設計】ヘルプアイコンからチュートリアルを再表示 */}
 				{isJapanese && (
 					<TouchableOpacity

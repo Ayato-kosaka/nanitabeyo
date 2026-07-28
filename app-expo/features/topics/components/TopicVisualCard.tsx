@@ -21,8 +21,7 @@ type TopicVisualCardProps = {
 	topRightContent?: ReactNode;
 	bottomContent?: ReactNode;
 	onImageRetry?: () => void;
-	/** #929 【設計】表示側 <Image> の読み込み失敗通知。web は取得を介さず URL を直接渡すため、
-	 * ここで初めて失敗が分かる(PR #980 レビュー指摘)。呼び出し元が error 状態へ遷移させる */
+	/** web の URL 共有経路で実際の読み込み失敗を共有 state へ返すための通知。 */
 	onImageLoadError?: () => void;
 };
 
@@ -46,10 +45,14 @@ export function TopicVisualCard({
 
 	return (
 		<View style={[styles.card, { width: cardWidth, height: cardHeight }]}>
-			{/* #802 【設計】Topics ではプリロード済み ImageRef(web は直接指定の uri)を優先し、Carousel 内 Image の load 順序に依存しない。 */}
+			{/* #802/#929 【設計】Topics では共有 state の source だけを描画し、Carousel 内の
+			    onLoad/onLoadEnd 順序を ready 判定に使わない。native の source は取得済み
+			    ImageRef なので、下の cachePolicy は loadAsync の disk cache を制御しない。 */}
 			{shouldRenderImage ? (
 				<Image
 					source={resolvedImageSource}
+					// #785 【設計】同一 URL を異なる cachePolicy で読み込むと iOS の画像パイプラインが
+					// 分かれてイベントが欠落し得るため、既存の memory 契約を呼び出しごとに変えない。
 					cachePolicy="memory"
 					transition={100}
 					style={styles.cardImage}

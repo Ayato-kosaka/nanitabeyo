@@ -1,10 +1,9 @@
 import { usePathname } from "expo-router";
 import { useCallback, useEffect, useRef } from "react";
-import { supabase } from "../lib/supabase";
 import { getRemoteConfig } from "../lib/remoteConfig";
 import { Env } from "../constants/Env";
 import type { CreateFrontendLogDto } from "@shared/api/v1/dto";
-import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import { enqueueLog } from "@/lib/logQueue";
 
 /**
  * ログレベルの優先度マッピング。
@@ -42,7 +41,8 @@ export const useLogger = () => {
 	}, [pathname]);
 
 	/**
-	 * Backend API にフロントエンドイベントログを送信する。
+	 * フロントエンドイベントログをローカルキューへ蓄積する。
+	 * 実際の Backend API への送信は lib/logQueue.ts が一定間隔/件数でバッチ処理する。
 	 *
 	 * @param event_name - イベント名称（例: "onCapture", "playAudio" など）
 	 * @param error_level - エラーレベル（"verbose", "debug", "log", "warn", "error" のいずれか）
@@ -59,14 +59,6 @@ export const useLogger = () => {
 				return;
 			}
 
-			const {
-				data: { session },
-			} = await supabase.auth.getSession();
-			const accessToken = session?.access_token;
-			if (!accessToken) {
-				throw new Error("User is not authenticated: Supabase access_token is missing.");
-			}
-
 			const now = new Date().toISOString();
 
 			const logDto: CreateFrontendLogDto = {
@@ -79,15 +71,8 @@ export const useLogger = () => {
 				created_commit_id: Env.COMMIT_ID,
 			};
 
-			await fetchWithAuth(
-				"v1/logs/frontend",
-				{
-					method: "POST",
-					requestPayload: logDto,
-					isMultipart: false,
-				},
-				accessToken,
-			);
+			// #1012 【設計】即時送信ではなくキューへ蓄積し、バッチ送信(#1011)にまとめる
+			enqueueLog(logDto);
 
 			if (Env.NODE_ENV === "development") {
 				console.log(`📤 [${error_level}] [${path_name}] ${event_name}`, payload);

@@ -1,0 +1,138 @@
+name: E2E Mobile Test
+
+# 📱 Detox E2E テスト（e2e-mobile ワークスペース）
+# - app-expo を expo prebuild + Gradle でネイティブビルドし、エミュレータ上で実行する
+# - dev 環境のビルド（EAS の development 環境変数を焼き込み）で Cloud Run api-development に
+#   接続してテストする（e2e-web-test.yml と同一方針）
+# - 現在はスパイク段階: Android の起動スモークのみ。iOS ジョブ・夜間 cron は設計確定後に追加する（#1027）
+on:
+  workflow_dispatch:
+
+# 読み取り専用で足りるため、既定トークン権限を明示的に絞る
+permissions:
+  contents: read
+
+# 同時実行しても壊れはしないが無駄なので、実行中があれば新しい方を待たせる
+concurrency:
+  group: e2e-mobile-test
+  cancel-in-progress: false
+
+jobs:
+  e2e-android:
+    name: Detox E2E Android (development)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: ⏬ Checkout repository
+        uses: actions/checkout@v4
+
+      # ubuntu-latest はネストせずに KVM を使えるが、既定では runner ユーザーに権限がないため許可する
+      # （エミュレータのハードウェアアクセラレーションに必須）
+      - name: 🖥 Enable KVM group perms
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: 🟣 Setup PNPM
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10.8.0
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: 📦 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # app-expo が参照する共有パッケージの型/実装を生成する
+      - name: 📚 Build shared package
+        run: pnpm -F shared run build
+
+      - name: 🏗 Setup Expo & EAS CLI
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      # development 環境の EXPO_PUBLIC_* を app-expo/.env に取得する
+      # （EXPO_PUBLIC_BACKEND_BASE_URL=api-development 等がビルドに焼き込まれる）
+      - name: 🛠️ Sync environment variables from EAS CLI
+        working-directory: app-expo
+        run: pnpx eas-cli env:pull development --non-interactive --path .env
+
+      # Gradle (AGP 8.x) は JDK 17 を要求する
+      - name: ☕ Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      # Gradle の依存・ビルドキャッシュを共有し、2 回目以降のビルドを高速化する
+      - name: 🐘 Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # CNG: android/ ディレクトリを生成する。E2E_DETOX=1 で @config-plugins/detox が
+      # androidTest 設定（DetoxTest.java・build.gradle・Network Security Config）を注入する
+      - name: 🧬 Expo prebuild (Android)
+        working-directory: app-expo
+        env:
+          E2E_DETOX: "1"
+        run: pnpm exec expo prebuild --platform android --no-install
+
+      # release APK + androidTest APK をビルドする（エミュレータ用に x86_64 のみ。.detoxrc.js 参照）
+      - name: 🏗️ Detox build (Android release)
+        run: pnpm --filter e2e-mobile build:android
+
+      # AVD スナップショットをキャッシュし、2 回目以降のエミュレータ起動を高速化する
+      - name: 💾 AVD cache
+        uses: actions/cache@v4
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-34-google_apis-x86_64
+
+      # キャッシュがない場合のみ AVD を作成し、起動済みスナップショットを生成する
+      # （google_apis: アプリが Google Play services（Maps/AdMob）へ依存するため）
+      - name: 📸 Create AVD and generate snapshot for caching
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          avd-name: e2e_avd
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: false
+          script: echo "AVD スナップショットを生成しました"
+
+      # Tier 1 (@smoke) を実行する（スパイク段階のため全テスト = スモークのみ）
+      - name: 🧪 Run Detox tests (Android)
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          avd-name: e2e_avd
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: pnpm --filter e2e-mobile run test:ci:android
+
+      # 失敗時のスクリーンショット・デバイスログを保存する
+      # （ダウンロード後に artifacts/ 配下を直接閲覧できる）
+      - name: 📊 Upload Detox artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: detox-report-android
+          path: e2e-mobile/artifacts/
+          if-no-files-found: ignore
+          retention-days: 14

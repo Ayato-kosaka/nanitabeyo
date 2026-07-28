@@ -1,0 +1,2 @@
+# Detox のテストエビデンス（スクリーンショット・ログ・動画）。CI では Artifact として保存する
+artifacts/
