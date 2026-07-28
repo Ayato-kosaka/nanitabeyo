@@ -14,7 +14,13 @@ import { device, element, by, waitFor } from "detox";
 describe("起動 @smoke", () => {
 	beforeAll(async () => {
 		// #1027 【設計】クリーンな初回起動を検証するため新規インスタンスで起動する
-		await device.launchApp({ newInstance: true });
+		// #1027 【バグ】iOS はメインキューに常駐する作業(常時アニメーション)があり Detox の同期が
+		// 永遠にアイドルにならず launchApp がタイムアウトする(run 30359425182)。iOS のみ同期を無効化し、
+		// 検証は waitFor のポーリングで行う(Android は同期が機能しているため既定のまま)
+		await device.launchApp({
+			newInstance: true,
+			...(device.getPlatform() === "ios" ? { launchArgs: { detoxEnableSynchronization: 0 } } : {}),
+		});
 	});
 
 	// ─ テストケース: 起動するとタブバー付きの検索画面が表示される ─
