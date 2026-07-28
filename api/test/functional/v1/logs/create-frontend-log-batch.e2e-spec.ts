@@ -151,6 +151,7 @@ describe('Logs frontend batch endpoint (functional)', () => {
           path_name: log.path_name,
           payload: log.payload,
           error_level: log.error_level,
+          created_at: log.created_at,
           created_app_version: log.created_app_version,
           created_commit_id: log.created_commit_id,
         });
