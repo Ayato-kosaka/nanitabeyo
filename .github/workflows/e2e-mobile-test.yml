@@ -204,15 +204,16 @@ jobs:
 
       # CocoaPods の Specs キャッシュ。Podfile.lock は prebuild 後にしか存在しないため
       # pnpm-lock.yaml を近似キーとして使う（#1029）
+      # 注意: app-expo/ios/Pods はキャッシュしない。prebuild 直後の ios/ へ前回 run の Pods を
+      # 復元すると、pod install が「pathname contains null byte」で断続的に失敗する
+      # (CocoaPods#12798/#12866。run 30358267522 で実際に発生) ため、Specs キャッシュのみ保持する
       - name: 📥 Cache CocoaPods
         uses: actions/cache@v4
         with:
-          path: |
-            ~/Library/Caches/CocoaPods
-            app-expo/ios/Pods
-          key: pods-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          path: ~/Library/Caches/CocoaPods
+          key: pods-specs-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: |
-            pods-${{ runner.os }}-
+            pods-specs-${{ runner.os }}-
 
       - name: 🍫 Pod install
         working-directory: app-expo/ios
