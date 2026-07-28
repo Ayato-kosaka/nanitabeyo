@@ -8,8 +8,8 @@
 		"build:ios": "detox build --configuration ios.sim.release",
 		"test:android": "detox test --configuration android.emu.release",
 		"test:ios": "detox test --configuration ios.sim.release",
-		"test:ci:android": "detox test --configuration android.emu.release --headless --record-logs failing --take-screenshots failing --artifacts-location artifacts",
-		"test:ci:ios": "detox test --configuration ios.sim.release --record-logs failing --take-screenshots failing --artifacts-location artifacts",
+		"test:ci:android": "detox test --configuration android.emu.release --headless --record-logs failing --take-screenshots all --artifacts-location artifacts",
+		"test:ci:ios": "detox test --configuration ios.sim.release --record-logs failing --take-screenshots all --artifacts-location artifacts",
 		"typecheck": "tsc --noEmit"
 	},
 	"devDependencies": {

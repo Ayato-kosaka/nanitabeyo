@@ -32,5 +32,9 @@ describe("起動 @smoke", () => {
 		await waitFor(element(by.id("tab-profile")))
 			.toBeVisible()
 			.withTimeout(15000);
+
+		// #1027 【設計】起動成功のエビデンスとしてスクリーンショットを保存する
+		// （CI では artifacts/ 配下に出力され、Actions の Artifact として回収できる）
+		await device.takeScreenshot("boot-search-screen");
 	});
 });
