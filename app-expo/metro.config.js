@@ -12,6 +12,19 @@ const config = getDefaultConfig(projectRoot);
 // import/require のせいで実装モジュール自体はバンドルに残ってしまう。
 // そこで resolver 段で noop 実装へ差し替え、モジュールグラフに入る時点で実装を排除する（主ガード = 第 1 層）。
 const E2E_AUTH_HOOK_ENABLED = process.env.EXPO_PUBLIC_E2E_AUTH_HOOK === "1";
+
+// #1030 【セキュリティ】(レビュー Major-3) E2E ビルドはローカル prebuild + Gradle/xcodebuild 経路のみで、
+// EAS Build / EAS Update を通らない。EAS 経路のバンドル時にフラグが立っているのは環境変数の設定事故
+// （= 本番への混入の入口）であり、GitHub job 側の shell assert では EAS サーバ内の env を検査できない。
+// バンドルが実行される場所（= この Metro 設定の評価時点）で確実に落とす。
+// - EAS_BUILD: EAS Build サーバ上で常に設定される（クラウドビルド全経路をカバー）
+// - EXPO_PUBLIC_NODE_ENV=production: eas update --environment production のローカルバンドルをカバー
+if (E2E_AUTH_HOOK_ENABLED && (process.env.EAS_BUILD || process.env.EXPO_PUBLIC_NODE_ENV === "production")) {
+	throw new Error(
+		"EXPO_PUBLIC_E2E_AUTH_HOOK=1 のまま EAS ビルド/本番向けバンドルが実行されました（E2E フックの本番混入）。" +
+			"環境変数の設定を確認してください（#1030）。",
+	);
+}
 const E2E_INJECT_SESSION_IMPL = path.resolve(projectRoot, "lib/e2e/injectTestSession.ts");
 const E2E_INJECT_SESSION_NOOP = path.resolve(projectRoot, "lib/e2e/injectTestSession.noop.ts");
 const E2E_LAUNCH_ARGS_PACKAGE = "react-native-launch-arguments";

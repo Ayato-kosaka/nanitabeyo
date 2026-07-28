@@ -26,6 +26,15 @@ jobs:
         working-directory: app-expo
 
     steps:
+      # #1030 【セキュリティ】E2E セッション注入フック用フラグが本番系ジョブへ紛れ込んでいないことを検証する。
+      # 主ガードは metro.config.js の EAS 経路 hard fail だが、ローカルバンドル経路の早期検知として残す
+      - name: 🔒 Assert E2E auth hook flag is empty
+        run: |
+          if [ -n "${EXPO_PUBLIC_E2E_AUTH_HOOK:-}" ]; then
+            echo "::error::EXPO_PUBLIC_E2E_AUTH_HOOK が設定されています。本番系ワークフローでの設定は禁止です（#1030）。"
+            exit 1
+          fi
+
       - name: ⏬ Checkout repository
         uses: actions/checkout@v4
 

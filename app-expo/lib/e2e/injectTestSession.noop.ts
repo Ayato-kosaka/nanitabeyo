@@ -24,3 +24,11 @@ export const injectTestSession = async (): Promise<InjectTestSessionResult> => "
 
 /** 通常ビルドでは E2E 由来のエラーは発生し得ないため常に false */
 export const isTestSessionInjectionError = (_error: unknown): boolean => false;
+
+// #1030 【設計】(レビュー m-2) impl とのシグネチャ乖離を typecheck で検出する（型のみの参照 = バンドルへは出ない）。
+// sentinel は noop に存在しないため、モジュール全体ではなく公開関数単位で突き合わせる
+import type * as Impl from "./injectTestSession";
+const _injectSignatureCheck: (typeof Impl)["injectTestSession"] = injectTestSession;
+const _isErrorSignatureCheck: (typeof Impl)["isTestSessionInjectionError"] = isTestSessionInjectionError;
+void _injectSignatureCheck;
+void _isErrorSignatureCheck;

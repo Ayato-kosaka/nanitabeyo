@@ -128,6 +128,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 				// 通常の初期化エラー（ネットワーク断等）はこれまでどおり握り潰して起動を続けるが、
 				// 「期待ユーザーで走れていない」状態で先へ進むとテストが緑のまま嘘の検証をするため、明示的に落とす。
 				// 通常ビルドでは isTestSessionInjectionError が常に false を返すので、本番挙動は 1 バイトも変わらない。
+				// なお、この throw は呼び出し側が await しないため unhandled rejection となり RN アプリ自体は停止しない。
+				// セッション未確立のままテストが確実に失敗すること + console.error(E2E_TEST_SESSION_SENTINEL 付き)で
+				// 原因を logcat から特定できることを「fail-loud」として扱う（レビュー m-1）。
 				if (isTestSessionInjectionError(err)) throw err;
 			} finally {
 				setLoading(false);
