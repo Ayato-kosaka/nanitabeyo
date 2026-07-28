@@ -15,10 +15,9 @@ let flushTimer: ReturnType<typeof setTimeout> | null = null;
 
 // #1012 【設計】送信の度に supabase.auth.getSession() を await せずに済むよう、
 // Auth状態の変化を購読してアクセストークンをメモリにキャッシュする
+// (購読の登録は flushLogQueue 定義後にファイル末尾で行う)
 let cachedAccessToken: string | undefined;
-supabase.auth.onAuthStateChange((_event, session) => {
-	cachedAccessToken = session?.access_token;
-});
+let cachedUserId: string | null = null;
 
 const getAccessToken = async (): Promise<string | undefined> => {
 	if (cachedAccessToken) return cachedAccessToken;
@@ -97,6 +96,21 @@ export const enqueueLog = (dto: CreateFrontendLogDto): void => {
 		flushTimer = setTimeout(flushLogQueue, FLUSH_INTERVAL_MS);
 	}
 };
+
+// #1012 【設計】キューはenqueue時のセッションに紐付ける。ユーザーが変わる場合は
+// cachedAccessToken を差し替える前にflushし、旧ユーザーのログが新トークンで送信されて
+// API側の user.id により新ユーザーのイベントとして記録されるのを防ぐ。
+// flushLogQueue → sendBatch → getAccessToken は最初のawaitまで同期実行されるため、
+// この時点では旧トークンが読まれる。
+// (SIGNED_OUT で旧トークンが失効済みの場合は送信失敗として黙殺され、従来どおりログは破棄される)
+supabase.auth.onAuthStateChange((_event, session) => {
+	const nextUserId = session?.user?.id ?? null;
+	if (nextUserId !== cachedUserId) {
+		flushLogQueue();
+		cachedUserId = nextUserId;
+	}
+	cachedAccessToken = session?.access_token;
+});
 
 // #1012 【設計】バックグラウンド遷移直前のログを消失させないよう、AppState監視でキューをflushする
 // (features/dishMedia/hooks/useMediaTracking.ts のAppState監視パターンを参考に、モジュール単位で1回だけ購読する)

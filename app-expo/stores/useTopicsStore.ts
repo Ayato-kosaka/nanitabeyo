@@ -108,6 +108,7 @@ export type TopicsStore = {
 	 *
 	 * - key を省略した場合:
 	 *   - 全てのキーと状態をクリア（完全リセット）
+	 *   - savedByTopicId も含めて破棄する（ユーザー切替時に前ユーザーの保存状態を残さない）
 	 */
 	clearByKey: (key?: string) => void;
 
@@ -269,6 +270,11 @@ export const useTopicsStore = createWithEqualityFn<TopicsStore>()((set, get) => 
 					hasFetchedInitialByKey: {},
 					nextCursorByKey: {},
 					isLoadingMoreByKey: {},
+					// #1007 【設計】savedByTopicId は画面用途キーに紐付かないため key 指定時は保持するが、
+					// 完全リセット（AuthProvider のユーザー切替）では必ず破棄する。
+					// selectIsTopicSaved は store 値をサーバの item.isSaved より優先するため、
+					// 残したままだと新ユーザーに前ユーザーの保存状態が表示され、次のタップで逆向きの保存操作を送ってしまう。
+					savedByTopicId: {},
 				};
 			}
 

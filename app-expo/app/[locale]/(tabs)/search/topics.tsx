@@ -417,6 +417,10 @@ export default function TopicsScreen() {
 	// #1007 【設計】getDeepDiveOptions は Carousel の再レンダーのたびに全カード分呼ばれるため、
 	// 同一検索セッション内では topic.categoryId 単位で結果をキャッシュする。params が変わると
 	// 深掘り候補の算出条件自体が変わるため、params 変化時にキャッシュを破棄する。
+	// #1007 【設計】label は i18n.t() 済みの文字列を保持するため、キーへ locale も含める。
+	// params はロケール変更では変わらず、画面を維持したままロケールが変わると
+	// useTopicSearch が同じ categoryId を新しい言語で再取得しても旧ロケールのラベルが返り続けるため、
+	// effect ではなくキー側で無効化して同一レンダー内で新しい言語に切り替わるようにする。
 	const deepDiveOptionsCacheRef = useRef<Map<string, TopicDeepDiveOption[]>>(new Map());
 	useEffect(() => {
 		deepDiveOptionsCacheRef.current = new Map();
@@ -425,7 +429,8 @@ export default function TopicsScreen() {
 	const getDeepDiveOptions = useCallback(
 		(topic: Topic): TopicDeepDiveOption[] => {
 			if (!params) return [];
-			const cached = deepDiveOptionsCacheRef.current.get(topic.categoryId);
+			const cacheKey = `${locale}:${topic.categoryId}`;
+			const cached = deepDiveOptionsCacheRef.current.get(cacheKey);
 			if (cached) return cached;
 			const features = (topic.deepDiveFeatures ?? []).filter((feature) => {
 				if (feature.score <= DEEP_DIVE_SCORE_THRESHOLD) return false;
@@ -495,10 +500,10 @@ export default function TopicsScreen() {
 					};
 					return { ...option, label: getDeepDiveLabel(option) };
 				});
-			deepDiveOptionsCacheRef.current.set(topic.categoryId, result);
+			deepDiveOptionsCacheRef.current.set(cacheKey, result);
 			return result;
 		},
-		[getDeepDiveLabel, params],
+		[getDeepDiveLabel, locale, params],
 	);
 
 	const handleDeepDive = useCallback(
