@@ -21,6 +21,12 @@ export type ReusableGoogleImportDishMedia = {
   reuseKind: 'completed' | 'google-import-non-completed';
 };
 
+/**
+ * #829 再処理して意味があるステータス。`failed` は恒久エラーなので含めない。
+ * 片方が completed でもう片方が processing、という状態は再処理対象なので completed も含む。
+ */
+const NON_FAILED_PROCESSING_STATUSES = ['idle', 'processing', 'completed'];
+
 @Injectable()
 export class DishesRepository {
   constructor(
@@ -169,6 +175,10 @@ export class DishesRepository {
         id: true,
         dish_media: {
           where: {
+            // #829 【バグ】docstring どおり Google import 由来だけを再利用する。
+            // ユーザー投稿を bulk-import の結果として返すと、投稿者以外の画面に
+            // isMine/isSaved/isLiked が壊れた状態で出てしまう。
+            user_id: null,
             media_processing_status: 'completed',
             thumbnail_processing_status: 'completed',
           },
@@ -212,6 +222,13 @@ export class DishesRepository {
           dish_media: {
             where: {
               user_id: null,
+              // #829 【バグ】failed は恒久エラー（元画像が sharp で扱えない等）なので
+              // 再利用対象にすると、その place で毎回 Photo Media を課金し続けてしまう。
+              // 再試行して意味があるのは processing / idle のときだけ。
+              media_processing_status: { in: NON_FAILED_PROCESSING_STATUSES },
+              thumbnail_processing_status: {
+                in: NON_FAILED_PROCESSING_STATUSES,
+              },
               OR: [
                 { media_processing_status: { not: 'completed' } },
                 { thumbnail_processing_status: { not: 'completed' } },
