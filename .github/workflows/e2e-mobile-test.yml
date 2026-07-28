@@ -219,9 +219,11 @@ jobs:
         run: pod install
 
       # Detox iOS が内部で利用するシミュレータ操作 CLI（Detox 公式の環境構築手順）
+      # 新しい Homebrew はサードパーティ tap を明示的に trust しないと formula をロードできない
       - name: 🧰 Install applesimutils
         run: |
           brew tap wix/brew
+          brew trust wix/brew
           brew install applesimutils
 
       # pnpm は detox の postinstall（Detox.framework のローカルビルド）を実行しないため、
