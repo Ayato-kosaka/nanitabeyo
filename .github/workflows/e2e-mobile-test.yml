@@ -1,10 +1,11 @@
 name: E2E Mobile Test
 
 # 📱 Detox E2E テスト（e2e-mobile ワークスペース）
-# - app-expo を expo prebuild + Gradle でネイティブビルドし、エミュレータ上で実行する
+# - app-expo を expo prebuild + Gradle / xcodebuild でネイティブビルドし、
+#   Android エミュレータ / iOS シミュレータ上で実行する
 # - dev 環境のビルド（EAS の development 環境変数を焼き込み）で Cloud Run api-development に
 #   接続してテストする（e2e-web-test.yml と同一方針）
-# - 現在はスパイク段階: Android の起動スモークのみ。iOS ジョブ・夜間 cron は設計確定後に追加する（#1027）
+# - Tier 3 (@mutation) は dev DB へ書き込むため、scope=mutation を明示したときだけ実行する
 on:
   workflow_dispatch:
     inputs:
@@ -16,6 +17,18 @@ on:
           - all
           - android
           - ios
+      scope:
+        description: "実行するテストの範囲（tier1 = smoke のみ / tier1-2 = 既定 / mutation = dev DB へ書き込む）"
+        type: choice
+        default: tier1-2
+        options:
+          - tier1-2
+          - tier1
+          - mutation
+  schedule:
+    # #1029 【設計】毎日 JST 4:00（UTC 19:00）。e2e-web(JST 3:00 / timeout 30分) と時間帯を分け、
+    # テストユーザーと Supabase の匿名サインイン枠を取り合わないようにする
+    - cron: "0 19 * * *"
 
 # 読み取り専用で足りるため、既定トークン権限を明示的に絞る
 permissions:
@@ -27,8 +40,35 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  prepare:
+    name: 実行スコープの解決
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      android_script: ${{ steps.resolve.outputs.android_script }}
+      ios_script: ${{ steps.resolve.outputs.ios_script }}
+    steps:
+      # #1029 【設計】Tier の選択をここで 1 箇所に集約し、各ジョブは受け取った script 名を実行するだけにする。
+      # schedule 実行では inputs が空になるため、既定（tier1-2）へフォールバックする
+      - name: 実行するスクリプトを決定
+        id: resolve
+        shell: bash
+        env:
+          SCOPE: ${{ inputs.scope || 'tier1-2' }}
+        run: |
+          set -euo pipefail
+          case "$SCOPE" in
+            tier1)    android=test:ci:smoke:android; ios=test:ci:smoke:ios ;;
+            mutation) android=test:ci:mutation:android; ios=test:ci:mutation:ios ;;
+            *)        android=test:ci:android;       ios=test:ci:ios ;;
+          esac
+          echo "android_script=$android" >> "$GITHUB_OUTPUT"
+          echo "ios_script=$ios" >> "$GITHUB_OUTPUT"
+          echo "scope=$SCOPE -> android:$android / ios:$ios" >> "$GITHUB_STEP_SUMMARY"
+
   e2e-android:
     name: Detox E2E Android (development)
+    needs: prepare
     if: ${{ inputs.platform != 'ios' }}
     runs-on: ubuntu-latest
     timeout-minutes: 90
@@ -123,7 +163,7 @@ jobs:
           disable-animations: false
           script: echo "AVD スナップショットを生成しました"
 
-      # Tier 1 (@smoke) を実行する（スパイク段階のため全テスト = スモークのみ）
+      # prepare ジョブが解決した Tier のスクリプトを実行する
       - name: 🧪 Run Detox tests (Android)
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -141,7 +181,11 @@ jobs:
             adb shell setprop persist.sys.locale ja-JP
             adb shell setprop ctl.restart zygote
             adb wait-for-device shell 'while [ "$(getprop sys.boot_completed)" != "1" ]; do sleep 1; done'
-            pnpm --filter e2e-mobile run test:ci:android
+            pnpm --filter e2e-mobile run ${{ needs.prepare.outputs.android_script }}
+        # #1030 【設計】3-3: 未設定なら describeAuthenticated 配下が自動 skip されるだけで他は動く
+        env:
+          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
 
       # 失敗時のスクリーンショット・デバイスログを保存する
       # （ダウンロード後に artifacts/ 配下を直接閲覧できる）
@@ -152,10 +196,12 @@ jobs:
           name: detox-report-android
           path: e2e-mobile/artifacts/
           if-no-files-found: ignore
-          retention-days: 14
+          # #1030 レビュー B-2: artifact には長期資格情報が載りうるため保存期間を短くする
+          retention-days: 7
 
   e2e-ios:
     name: Detox E2E iOS (development)
+    needs: prepare
     if: ${{ inputs.platform != 'android' }}
     # macos-latest は macos-26 への移行が進行中のため、eas.json の EAS ビルド環境
     # （macos-sequoia-15.6-xcode-26.2）に合わせて macos-15 を明示固定する（#1029）
@@ -254,9 +300,13 @@ jobs:
       - name: 🏗️ Detox build (iOS release)
         run: pnpm --filter e2e-mobile build:ios
 
-      # Tier 1 (@smoke) を実行する（スパイク段階のため全テスト = スモークのみ）
+      # prepare ジョブが解決した Tier のスクリプトを実行する
       - name: 🧪 Run Detox tests (iOS)
-        run: pnpm --filter e2e-mobile run test:ci:ios
+        run: pnpm --filter e2e-mobile run ${{ needs.prepare.outputs.ios_script }}
+        # #1030 【設計】3-3: 未設定なら describeAuthenticated 配下が自動 skip されるだけで他は動く
+        env:
+          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
 
       # 失敗時のスクリーンショット・デバイスログを保存する
       - name: 📊 Upload Detox artifacts
@@ -266,4 +316,5 @@ jobs:
           name: detox-report-ios
           path: e2e-mobile/artifacts/
           if-no-files-found: ignore
-          retention-days: 14
+          # #1030 レビュー B-2: artifact には長期資格情報が載りうるため保存期間を短くする
+          retention-days: 7
