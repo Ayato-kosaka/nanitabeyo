@@ -134,7 +134,14 @@ jobs:
           force-avd-creation: false
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
-          script: pnpm --filter e2e-mobile run test:ci:android
+          # #1031 【設計】B4: Android は Detox の languageAndLocale が使えないため、
+          # エミュレータのシステムロケールを ja-JP へ固定してから実行する
+          # （utils/locale.ts の warnIfAndroidLocaleMismatch が出す警告と対の対処）
+          script: |
+            adb shell setprop persist.sys.locale ja-JP
+            adb shell setprop ctl.restart zygote
+            adb wait-for-device shell 'while [ "$(getprop sys.boot_completed)" != "1" ]; do sleep 1; done'
+            pnpm --filter e2e-mobile run test:ci:android
 
       # 失敗時のスクリーンショット・デバイスログを保存する
       # （ダウンロード後に artifacts/ 配下を直接閲覧できる）

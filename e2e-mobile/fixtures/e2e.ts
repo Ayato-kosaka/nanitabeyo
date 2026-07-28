@@ -54,6 +54,27 @@ export type { SessionOwner };
  */
 const APP_READY_TEST_ID = "tab-search";
 
+/**
+ * このワーカープロセスで既にアプリのインストールを済ませたか。
+ *
+ * #1027 【バグ】`.detoxrc.js` の `behavior.launchApp: "manual"` を指定すると、Detox は
+ * 「アプリの導入は利用者が管理する」と解釈して **自動インストールも行わない**。その結果 Android では
+ * `No instrumentation runner found on device ... for package com.nanitabeyo` で launchApp が失敗する
+ * （run 30382087368 で実測）。手動起動の利点（余計な起動で匿名クォータを消費しない）は維持したいので、
+ * 起動ヘルパ側でインストールだけを明示的に補う。
+ */
+let appInstalled = false;
+
+/**
+ * アプリ（と Android では androidTest APK）がデバイスへ導入済みであることを保証する。
+ * Detox の jest ランナーはワーカープロセスごとに device を持つため、フラグもプロセス単位で足りる。
+ */
+async function ensureAppInstalled(): Promise<void> {
+	if (appInstalled) return;
+	await device.installApp();
+	appInstalled = true;
+}
+
 /** 起動ヘルパの共通オプション */
 type LaunchOptions = {
 	/**
@@ -109,6 +130,9 @@ export async function launchAppWithSession(opts: { as: SessionOwner } & LaunchOp
 		);
 	}
 
+	// #1027 【バグ】manual 起動モードでは Detox が自動インストールしないため、ここで明示的に導入する
+	await ensureAppInstalled();
+
 	if (resetState) {
 		await device.resetAppState();
 	}
@@ -146,6 +170,9 @@ export async function launchAppWithSession(opts: { as: SessionOwner } & LaunchOp
  */
 export async function launchAppWithoutSession(opts: LaunchOptions = {}): Promise<void> {
 	const { url, resetState = false, waitForReady = false } = opts;
+
+	// #1027 【バグ】manual 起動モードでは Detox が自動インストールしないため、ここで明示的に導入する
+	await ensureAppInstalled();
 
 	if (resetState) {
 		await device.resetAppState();
