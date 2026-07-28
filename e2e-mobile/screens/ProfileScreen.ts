@@ -43,6 +43,15 @@ export class ProfileScreen {
 		await waitUntilVisible(this.savedPostsGrid, timeout);
 	}
 
+	/**
+	 * ログインボタンが存在するかを **待たずに** 判定する。
+	 * ログイン済みでは `!isGuest` によりボタンごとレンダリングされないため、
+	 * 「ゲスト表示になっていないこと」の検証に使う（hasReviewsGrid() と対になる判定）。
+	 */
+	async hasLoginButton(): Promise<boolean> {
+		return existsNow(this.loginButton);
+	}
+
 	/** ログインボタンをタップしてログインモーダルを開く（匿名ユーザーのみ） */
 	async openLoginModal(): Promise<void> {
 		await element(this.loginButton).tap();
