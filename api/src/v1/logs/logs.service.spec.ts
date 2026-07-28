@@ -80,8 +80,9 @@ describe('LogsService', () => {
       expect(callArgs.event_name).toBe('button_click');
       expect(callArgs.user_id).toBe('test-user-id');
       expect(callArgs.path_name).toBe('/home');
-      expect(callArgs.payload).toBe(JSON.stringify({ button: 'submit' }));
+      expect(callArgs.payload).toEqual({ button: 'submit' });
       expect(callArgs.error_level).toBe('log');
+      expect(callArgs.created_at).toBe('2024-01-01T00:00:00.000Z');
       expect(callArgs.created_app_version).toBe('1.0.0');
       expect(callArgs.created_commit_id).toBe('abc123');
       expect(callArgs.id).toBeDefined();

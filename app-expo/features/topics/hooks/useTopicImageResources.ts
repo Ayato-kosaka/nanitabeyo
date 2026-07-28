@@ -201,6 +201,9 @@ export const useTopicImageResources = ({ topics, sessionKey }: UseTopicImageReso
 		resetImageStates();
 	}, [sessionKey, resetImageStates]);
 
+	// サムネイルは検索結果の全件を常時表示するナビゲーションであり、メインカードと同じ共有リソースを参照する。
+	// 一部だけを先読みすると範囲外のサムネイルと循環Carouselの隣接カードがSkeletonのままになるため、
+	// この画面では全件を事前取得する。
 	useEffect(() => {
 		if (topics.length === 0) return;
 		for (const topic of topics) {
