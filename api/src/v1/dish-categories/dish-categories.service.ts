@@ -31,6 +31,12 @@ const TARGET_SLATE_SIZE = 6;
 const CORE_SIZE = 3;
 const VARIETY_SIZE = 3;
 const EXPLORE_SIZE = 0;
+const DEEP_DIVE_SCORE_THRESHOLD = 0.85;
+
+type PenaltyExclusionKeys = {
+  coreIngredientKey: string | null;
+  tasteKey: string | null;
+};
 
 // #533 【定数】Explore選出用パーセンタイル
 const EXPLORE_LOW_PCT = 0.1; // 上位10%は除外
@@ -58,6 +64,9 @@ export class DishCategoriesService {
       timeSlot: dto.timeSlot,
       scene: dto.scene,
       mood: dto.mood,
+      budgetIntent: dto.budgetIntent,
+      diningPace: dto.diningPace,
+      coreIngredient: dto.coreIngredient,
       taste: dto.taste,
       languageTag: dto.languageTag,
     });
@@ -73,9 +82,12 @@ export class DishCategoriesService {
         addressTokens: normalized.addressTokens,
         regionTokens: normalized.regionTokens,
         regionFallbackKeys: normalized.regionFallbackKeys,
+        budgetIntentKeys: normalized.budgetIntentKeys,
         timeSlotKey: normalized.timeSlotKey,
         sceneKey: normalized.sceneKey,
         satietyKey: normalized.satietyKey,
+        diningPaceKey: normalized.diningPaceKey,
+        coreIngredientKey: normalized.coreIngredientKey,
         tasteKey: normalized.tasteKey,
         candidateLimit: CANDIDATE_LIMIT,
       });
@@ -88,36 +100,40 @@ export class DishCategoriesService {
         return this.fallbackToClaude(dto, userId);
       }
 
-      // #757 【設計】Step 2-2: 特徴量取得（core_ingredient / cooking_method）
+      // #876 【設計】Step 2-2: 特徴量取得（core_ingredient / taste / cooking_method）
       const candidateIds = candidates.map((c) => c.category_id);
       const penaltyFeatureMap =
         await this.repo.findCategoryPenaltyFeatures(candidateIds);
 
       // #757 【設計】Step 2-2.5: ペナルティ重み取得
-      const [penaltyWeightCoreIngredient, penaltyWeightCookingMethod] =
-        await this.remoteConfigService
-          .getRemoteConfigValues([
-            'dish_category_recommendation_penalty_weight_core_ingredient',
-            'dish_category_recommendation_penalty_weight_cooking_method',
-          ])
-          .then((values) =>
-            values.map((v) => {
-              const float = parseFloat(v);
-              if (isNaN(float) || float < 0) {
-                this.logger.error(
-                  'InvalidRemoteConfigValue',
-                  'getRecommendations',
-                  {
-                    key: v,
-                  },
-                );
-                throw new BadRequestException(
-                  `Invalid penalty weight value in remote config: ${v}`,
-                );
-              }
-              return float;
-            }),
-          );
+      const [
+        penaltyWeightCoreIngredient,
+        penaltyWeightTaste,
+        penaltyWeightCookingMethod,
+      ] = await this.remoteConfigService
+        .getRemoteConfigValues([
+          'dish_category_recommendation_penalty_weight_core_ingredient',
+          'dish_category_recommendation_penalty_weight_taste',
+          'dish_category_recommendation_penalty_weight_cooking_method',
+        ])
+        .then((values) =>
+          values.map((v) => {
+            const float = parseFloat(v);
+            if (isNaN(float) || float < 0) {
+              this.logger.error(
+                'InvalidRemoteConfigValue',
+                'getRecommendations',
+                {
+                  key: v,
+                },
+              );
+              throw new BadRequestException(
+                `Invalid penalty weight value in remote config: ${v}`,
+              );
+            }
+            return float;
+          }),
+        );
 
       // #757 【設計】Step 2-3: 逐次最適化でスレート構成
       // IMPORTANT:
@@ -128,7 +144,12 @@ export class DishCategoriesService {
         candidates,
         penaltyFeatureMap,
         penaltyWeightCoreIngredient,
+        penaltyWeightTaste,
         penaltyWeightCookingMethod,
+        {
+          coreIngredientKey: normalized.coreIngredientKey,
+          tasteKey: normalized.tasteKey,
+        },
       );
 
       // #533 【フォールバック】6件未満の場合はClaude経路へ
@@ -152,12 +173,35 @@ export class DishCategoriesService {
         where: { id: { in: categoryIds } },
       });
 
+      const deepDiveFeatureMap = await this.repo.findCategoryDeepDiveFeatures(
+        categoryIds,
+        DEEP_DIVE_SCORE_THRESHOLD,
+      );
+
+      // #954 【仕様】カード再訪時に保存状態を正しく初期化するため、選定済み候補分だけ
+      // reactions(action_type=save) を取得してSetにする(候補全件ではなく選定後に絞ることでクエリを軽くする)。
+      const savedCategoryIds = new Set(
+        (
+          await this.prisma.prisma.reactions.findMany({
+            where: {
+              user_id: userId,
+              target_type: 'dish_categories',
+              target_id: { in: categoryIds },
+              action_type: 'save',
+            },
+            select: { target_id: true },
+          })
+        ).map((reaction) => reaction.target_id),
+      );
+
       // Step 2-6: レスポンス構築
       const items = this.buildResponseItems(
         selectedCandidates,
         localizedTexts,
         categories,
+        deepDiveFeatureMap,
         dto.localLanguageCode,
+        savedCategoryIds,
       );
 
       return items;
@@ -199,6 +243,15 @@ export class DishCategoriesService {
     const sceneKey = dto.scene || null;
     // #533 【仕様】moodをsatietyKeyに変換（内部処理用）
     const satietyKey = dto.mood || null;
+    const budgetIntentKeys = Array.from(
+      new Set(
+        (dto.budgetIntent ?? [])
+          .map((value) => value.trim())
+          .filter((value) => value.length > 0),
+      ),
+    );
+    const diningPaceKey = dto.diningPace || null;
+    const coreIngredientKey = dto.coreIngredient || null;
     const tasteKey = dto.taste || null;
 
     // #533 【仕様】langCandidates生成（exact→base→en）
@@ -221,9 +274,12 @@ export class DishCategoriesService {
       addressTokens,
       regionTokens,
       regionFallbackKeys,
+      budgetIntentKeys,
       timeSlotKey,
       sceneKey,
       satietyKey,
+      diningPaceKey,
+      coreIngredientKey,
       tasteKey,
       langCandidates,
     };
@@ -234,7 +290,7 @@ export class DishCategoriesService {
    *
    * @description
    * order_score（jitter反映済み）を尊重しつつ、
-   * core_ingredient / cooking_method の重複を抑制する。
+   * core_ingredient / taste / cooking_method の重複を抑制する。
    *
    * - 1枚目は order_score 上位から選択
    * - 2〜6枚目は S(i) = order_score - penalty(i) で再スコアリングして選択
@@ -247,7 +303,9 @@ export class DishCategoriesService {
     candidates: DishCategoryCandidateWithScores[],
     penaltyFeatureMap: Map<string, DishCategoryPenaltyFeatureSet>,
     penaltyWeightCoreIngredient: number,
+    penaltyWeightTaste: number,
     penaltyWeightCookingMethod: number,
+    penaltyExclusionKeys: PenaltyExclusionKeys,
   ): Array<{
     category_id: string;
     macro_genre: string | null;
@@ -276,7 +334,9 @@ export class DishCategoriesService {
         candidatesCount: candidates.length,
         penaltyFeatureMapSize: penaltyFeatureMap.size,
         penaltyWeightCoreIngredient,
+        penaltyWeightTaste,
         penaltyWeightCookingMethod,
+        penaltyExclusionKeys,
       },
     );
 
@@ -294,6 +354,7 @@ export class DishCategoriesService {
       this.updatePenaltyFeatureCounts(
         penaltyFeatureCounts,
         penaltyFeatureMap.get(first.category_id),
+        penaltyExclusionKeys,
       );
 
       this.logger.debug(
@@ -346,7 +407,9 @@ export class DishCategoriesService {
           penaltyFeatureMap,
           penaltyFeatureCounts,
           penaltyWeightCoreIngredient,
+          penaltyWeightTaste,
           penaltyWeightCookingMethod,
+          penaltyExclusionKeys,
         );
 
         // #757 【重要】調整スコア = order_score（jitter反映済み） - penalty
@@ -374,6 +437,7 @@ export class DishCategoriesService {
       this.updatePenaltyFeatureCounts(
         penaltyFeatureCounts,
         penaltyFeatureMap.get(bestCandidate.category_id),
+        penaltyExclusionKeys,
       );
 
       this.logger.debug(
@@ -398,6 +462,7 @@ export class DishCategoriesService {
         selectedCount: selected.length,
         targetSize: TARGET_SLATE_SIZE,
         penaltyWeightCoreIngredient,
+        penaltyWeightTaste,
         penaltyWeightCookingMethod,
         penaltyFeatureMapSize: penaltyFeatureMap.size,
       },
@@ -412,6 +477,7 @@ export class DishCategoriesService {
    * @description
    * penalty = Σ (weight_f * featureScore * count(key)^2)
    * - core_ingredient: weight は remoteConfig から取得
+   * - taste: weight は remoteConfig から取得
    * - cooking_method: weight は remoteConfig から取得
    */
   private calculateDiversityPenalty(
@@ -419,7 +485,9 @@ export class DishCategoriesService {
     penaltyFeatureMap: Map<string, DishCategoryPenaltyFeatureSet>,
     penaltyFeatureCounts: Map<string, number>,
     penaltyWeightCoreIngredient: number,
+    penaltyWeightTaste: number,
     penaltyWeightCookingMethod: number,
+    penaltyExclusionKeys: PenaltyExclusionKeys,
   ): number {
     const penaltyFeatureSet = penaltyFeatureMap.get(categoryId);
     if (!penaltyFeatureSet) return 0;
@@ -428,12 +496,31 @@ export class DishCategoriesService {
 
     // #757 【設計】core_ingredient のペナルティ
     for (const penaltyFeature of penaltyFeatureSet.core_ingredients) {
+      if (
+        penaltyExclusionKeys.coreIngredientKey &&
+        penaltyFeature.feature_key === penaltyExclusionKeys.coreIngredientKey
+      ) {
+        continue;
+      }
       const count =
         penaltyFeatureCounts.get(
           `core_ingredient:${penaltyFeature.feature_key}`,
         ) || 0;
       penalty +=
         penaltyWeightCoreIngredient * penaltyFeature.score * count * count;
+    }
+
+    // #876 【設計】taste のペナルティ
+    for (const penaltyFeature of penaltyFeatureSet.taste_features) {
+      if (
+        penaltyExclusionKeys.tasteKey &&
+        penaltyFeature.feature_key === penaltyExclusionKeys.tasteKey
+      ) {
+        continue;
+      }
+      const count =
+        penaltyFeatureCounts.get(`taste:${penaltyFeature.feature_key}`) || 0;
+      penalty += penaltyWeightTaste * penaltyFeature.score * count * count;
     }
 
     // #757 【設計】cooking_method のペナルティ
@@ -451,15 +538,34 @@ export class DishCategoriesService {
 
   /**
    * #757 【仕様】特徴量カウントの更新
+   * core_ingredient / taste は検索条件として指定されている key だけ除外する。
    */
   private updatePenaltyFeatureCounts(
     penaltyFeatureCounts: Map<string, number>,
     penaltyFeatureSet: DishCategoryPenaltyFeatureSet | undefined,
+    penaltyExclusionKeys: PenaltyExclusionKeys,
   ): void {
     if (!penaltyFeatureSet) return;
 
     for (const penaltyFeature of penaltyFeatureSet.core_ingredients) {
+      if (
+        penaltyExclusionKeys.coreIngredientKey &&
+        penaltyFeature.feature_key === penaltyExclusionKeys.coreIngredientKey
+      ) {
+        continue;
+      }
       const key = `core_ingredient:${penaltyFeature.feature_key}`;
+      penaltyFeatureCounts.set(key, (penaltyFeatureCounts.get(key) || 0) + 1);
+    }
+
+    for (const penaltyFeature of penaltyFeatureSet.taste_features) {
+      if (
+        penaltyExclusionKeys.tasteKey &&
+        penaltyFeature.feature_key === penaltyExclusionKeys.tasteKey
+      ) {
+        continue;
+      }
+      const key = `taste:${penaltyFeature.feature_key}`;
       penaltyFeatureCounts.set(key, (penaltyFeatureCounts.get(key) || 0) + 1);
     }
 
@@ -609,7 +715,12 @@ export class DishCategoriesService {
       image_url: string;
       macro_genre_qid: string | null;
     }>,
+    deepDiveFeatureMap: Map<
+      string,
+      Array<{ feature_type: string; feature_key: string; score: number }>
+    >,
     localLanguageCode: string,
+    savedCategoryIds: Set<string>,
   ): DishCategoryRecommendationItem[] {
     const items: DishCategoryRecommendationItem[] = [];
 
@@ -654,6 +765,8 @@ export class DishCategoriesService {
         reason,
         categoryId: category.id,
         imageUrl: category.image_url,
+        deepDiveFeatures: deepDiveFeatureMap.get(candidate.category_id) ?? [],
+        isSaved: savedCategoryIds.has(category.id),
       });
     }
 
@@ -684,20 +797,29 @@ export class DishCategoriesService {
         await this.repo.findDishCategoriesByNames(categoryNames);
 
       // #747 【設計】Claude経路でも block 対象の料理カテゴリを除外
+      // #954 【仕様】あわせて save 状態も取得し、カード再訪時の保存状態表示に使う(1クエリにまとめて往復を減らす)。
+      const userCategoryReactions = await this.prisma.prisma.reactions.findMany(
+        {
+          where: {
+            user_id: userId,
+            target_type: 'dish_categories',
+            action_type: { in: ['block', 'save'] },
+          },
+          select: { target_id: true, action_type: true },
+        },
+      );
       const blockedCategoryIds = new Set(
-        (
-          await this.prisma.prisma.reactions.findMany({
-            where: {
-              user_id: userId,
-              target_type: 'dish_categories',
-              action_type: 'block',
-            },
-            select: { target_id: true },
-          })
-        ).map((reaction) => reaction.target_id),
+        userCategoryReactions
+          .filter((reaction) => reaction.action_type === 'block')
+          .map((reaction) => reaction.target_id),
+      );
+      const savedCategoryIds = new Set(
+        userCategoryReactions
+          .filter((reaction) => reaction.action_type === 'save')
+          .map((reaction) => reaction.target_id),
       );
 
-      const items: DishCategoryRecommendationItem[] = claudeRecommendations
+      const mappedItems = claudeRecommendations
         .map((claudeRec) => {
           const matchedCategory = dishCategories.find((dbCategory) =>
             dbCategory.dish_category_variants.some(
@@ -730,11 +852,26 @@ export class DishCategoriesService {
             reason: claudeRec.reason,
             categoryId: matchedCategory?.id || '',
             imageUrl: matchedCategory?.image_url || '',
+            isSaved: matchedCategory
+              ? savedCategoryIds.has(matchedCategory.id)
+              : false,
           };
         })
         .filter(
           (item) => item.categoryId && !blockedCategoryIds.has(item.categoryId),
         );
+
+      const deepDiveFeatureMap = await this.repo.findCategoryDeepDiveFeatures(
+        Array.from(new Set(mappedItems.map((item) => item.categoryId))),
+        DEEP_DIVE_SCORE_THRESHOLD,
+      );
+
+      const items: DishCategoryRecommendationItem[] = mappedItems.map(
+        (item) => ({
+          ...item,
+          deepDiveFeatures: deepDiveFeatureMap.get(item.categoryId) ?? [],
+        }),
+      );
 
       return items;
     } catch (error) {

@@ -9,6 +9,8 @@
 		"post": "نشر",
 		"postReview": "نشر مراجعة",
 		"retry": "إعادة المحاولة",
+		"undo": "تراجع",
+		"view": "عرض",
 		"error": "حدث خطأ. يُرجى المحاولة مرة أخرى.",
 		"success": "نجح",
 		"linkCopied": "تم نسخ الرابط إلى الحافظة",
@@ -40,6 +42,45 @@
 		"downloadApp": "تنزيل التطبيق",
 		"viewInBrowser": "متابعة في المتصفح"
 	},
+	"DishCategoryGroupVotes": {
+		"resultTitle": "نتائج تصويت الأصدقاء",
+		"resultSubtitle": "راجع الخيارات وصوّت لتفضيلاتك.",
+		"resultSubtitleVoted": "يمكنك مراجعة النتائج الحالية.",
+		"copyShareLink": "نسخ رابط المشاركة",
+		"voteCta": "تصويت",
+		"candidatesTitle": "الخيارات",
+		"rankLabel": "المركز {{rank}}",
+		"unvoted": "لم يتم التصويت",
+		"commentsTitle": "التعليقات",
+		"viewRestaurants": "عرض المطاعم",
+		"loadingRestaurants": "جارٍ البحث",
+		"noRestaurantsFound": "لم يتم العثور على مطاعم قريبة",
+		"openRestaurantsPending": "ربط قائمة المطاعم لم يُنفذ بعد",
+		"deleteCandidate": "حذف الخيار",
+		"deleteCandidateTitle": "هل تريد حذف هذا الخيار؟",
+		"deleteCandidateMessage": "إخفاء {{name}} من خيارات التصويت.",
+		"candidateDeleted": "تمت إزالة {{name}} من المرشحين",
+		"loadFailed": "تعذر تحميل التصويت",
+		"refreshFailed": "تعذر تحديث النتائج",
+		"like": "أعجبني",
+		"dislike": "تخطي",
+		"likeButtonLabel": "أعجبني {{title}}",
+		"dislikeButtonLabel": "لم يعجبني {{title}}",
+		"voteProgress": "{{current}} / {{total}}",
+		"voteProgressAnnouncement": "{{current}} من {{total}}: {{title}}",
+		"noVoteCandidates": "لا توجد خيارات للتصويت",
+		"completionTitle": "أكّد تصويتك",
+		"completionDescription": "أدخل الاسم الذي سيظهر في النتائج وتعليقًا اختياريًا.",
+		"nameSuggestionLabel": "يمكنك استخدام أحد هذه كاسم",
+		"displayNamePlaceholder": "الاسم المستعار",
+		"commentPlaceholder": "تعليق (اختياري)",
+		"submitVote": "إكمال التصويت",
+		"submitting": "جارٍ الإرسال",
+		"submitFailed": "تعذر إرسال تصويتك",
+		"participantsList": "المشاركون: {{names}}",
+		"noParticipants": "لا يوجد مشاركون بعد",
+		"noVotes": "لا توجد أصوات بعد"
+	},
 	"Error": {
 		"maintenanceMessage": "نحن حالياً نقوم بأعمال صيانة.",
 		"unsupportedVersion": "هذا الإصدار لم يعد مدعومًا."
@@ -48,7 +89,18 @@
 		"currentLocation": "الموقع الحالي",
 		"DistanceSlider": {
 			"near": "قريب",
-			"far": "بعيد"
+			"far": "بعيد",
+			"edgeEstimate": "الوقت التقديري إلى حدود نطاق البحث",
+			"approxMinutes": "حوالي {{minutes}} دقيقة",
+			"modes": {
+				"walk": "مشيًا",
+				"bike": "دراجة",
+				"car": "سيارة",
+				"train": "قطار"
+			},
+			"showMore": "عرض المزيد",
+			"showLess": "عرض أقل",
+			"estimateHint": "يختلف الوقت حسب المسار والازدحام ووقت الانتظار"
 		},
 		"BudgetSlider": {
 			"cheap": "رخيص",
@@ -58,10 +110,18 @@
 		"errors": {
 			"fetchLocation": "فشل في جلب الموقع",
 			"getCurrentLocation": "فشل في الحصول على الموقع الحالي",
+			"getCurrentLocationDenied": "تم رفض الوصول إلى الموقع. يرجى كتابة موقعك في الحقل أدناه.",
+			"getCurrentLocationUnsupported": "لا يمكن الحصول على الموقع الحالي في هذه البيئة. يرجى كتابة موقعك في الحقل أدناه.",
+			"getCurrentLocationTimeout": "انتهت مهلة الحصول على الموقع الحالي. يرجى المحاولة مرة أخرى أو كتابة موقعك أدناه.",
 			"noLocationSelected": "يرجى اختيار موقع",
 			"noTimeSlotSelected": "يرجى اختيار فترة زمنية",
 			"noSceneSelected": "يرجى اختيار مشهد",
 			"searchFailed": "فشل البحث"
+		},
+		"googleMapsFallback": {
+			"message": "يمكنك الاطلاع على المطاعم التي تطابق شروطك على خرائط Google.",
+			"confirm": "فتح خرائط Google",
+			"cancel": "إغلاق"
 		},
 		"sections": {
 			"location": "أين تبحث؟",
@@ -69,6 +129,8 @@
 			"scene": "مع من تذهب؟",
 			"mood": "ما مقدار جوعك؟",
 			"taste": "ما النكهات؟",
+			"diningPace": "كم ستستغرق الوجبة؟",
+			"foodStyle": "ما نوع الطعام؟",
 			"distance": "ما المسافة؟",
 			"budget": "الميزانية؟",
 			"restrictions": "القيود"
@@ -83,6 +145,8 @@
 		"accessibility": {
 			"locationInputHint": "أدخل موقعًا للبحث عن المطاعم",
 			"clearLocation": "مسح الموقع",
+			"useCurrentLocation": "استخدام الموقع الحالي",
+			"showTutorial": "عرض كيفية الاستخدام",
 			"selectLocation": "اختر هذا الموقع"
 		},
 		"loading": "جارٍ البحث...",
@@ -94,6 +158,12 @@
 		"labels": {
 			"noMinBudget": "لا حد أدنى",
 			"noMaxBudget": "لا حد أقصى"
+		},
+		"priceLevels": {
+			"inexpensive": "اقتصادي",
+			"moderate": "مناسب",
+			"expensive": "فاخر قليلاً",
+			"veryExpensive": "فاخر"
 		},
 		"distanceLabels": {
 			"100m": "100م",
@@ -132,8 +202,17 @@
 			"sweet": "حلو",
 			"spicy": "حار",
 			"healthy": "صحي",
-			"junk": "وجبات سريعة",
-			"alcohol": "مشروبات فقط"
+			"junk": "وجبات سريعة"
+		},
+		"coreIngredientOptions": {
+			"meat": "لحم",
+			"fish": "مأكولات بحرية",
+			"rice": "أرز",
+			"noodle": "نودلز"
+		},
+		"diningPaceOptions": {
+			"quick": "سريع",
+			"leisurely": "بتمهل"
 		},
 		"restrictionOptions": {
 			"vegetarian": "نباتي",
@@ -142,6 +221,11 @@
 			"nutAllergy": "حساسية المكسرات",
 			"seafoodAllergy": "حساسية المأكولات البحرية",
 			"halal": "حلال"
+		},
+		"result": {
+			"accessibility": {
+				"bulkShare": "مشاركة الكل"
+			}
 		},
 		"tutorial": {
 			"page1": {
@@ -169,9 +253,44 @@
 				"primaryCta": "استخدم الموقع الحالي",
 				"secondaryCta": "لاحقاً"
 			}
+		},
+		"recentLocations": {
+			"title": "المواقع الأخيرة",
+			"clear": "مسح المواقع الأخيرة"
 		}
 	},
 	"Topics": {
+		"deepDive": {
+			"title": "تصفية بهذا النمط"
+		},
+		"tutorial": {
+			"helpLabel": "كيفية استخدام هذه الشاشة",
+			"helpHint": "عرض دليل اقتراحات الأطباق من البداية",
+			"skip": "تخطي",
+			"next": "التالي",
+			"finish": "ابدأ",
+			"progress": "{{current}} / {{total}}",
+			"progressAccessibility": "الخطوة {{current}} من {{total}}",
+			"steps": {
+				"swipeAndDecide": {
+					"title": "اختر طبقًا يعجبك",
+					"body": "اسحب يمينًا أو يسارًا لمقارنة الأطباق. عندما تقرر، اضغط على «اختر هذا!»."
+				},
+				"deepDive": {
+					"title": "تعمّق في البحث حسب مزاجك",
+					"body": "لم تقرر بعد؟ اختر نمطًا لتضييق الاقتراحات إلى أطباق مشابهة."
+				},
+				"topicActions": {
+					"title": "نظّم الاقتراحات حسب ذوقك",
+					"save": "حفظ: ارجع إلى الطبق لاحقًا",
+					"block": "حظر: أوقف اقتراح الأطباق التي لا تناسب ذوقك مستقبلاً"
+				},
+				"groupVote": {
+					"title": "قرر مع الأصدقاء",
+					"body": "شارك الاقتراحات مع من سيأكلون معك وصوّتوا معًا."
+				}
+			}
+		},
 		"HideTopicModal": {
 			"title": "إخفاء",
 			"description": "أخبرنا سبب الإخفاء (اختياري)",
@@ -197,6 +316,7 @@
 			"confirm": "حظر"
 		},
 		"blockedMessage": "تم حظر {{title}}",
+		"savedMessage": "تم الحفظ",
 		"reloadDialog": {
 			"title": "هل تريد العثور على المزيد من الخيارات؟",
 			"message": "هناك عدد قليل فقط من التوصيات الآن. سنبحث مرة أخرى باستخدام نفس الشروط.",
@@ -206,7 +326,13 @@
 		"imageLoadFailed": "فشل تحميل الصورة",
 		"tapToReload": "اضغط لإعادة التحميل",
 		"headerTitle": "الأطباق الموصى بها لك",
-		"subCopy": "انقر على طبق يعجبك للعثور على المطاعم"
+		"subCopy": "انقر على طبق يعجبك للعثور على المطاعم",
+		"accessibility": {
+			"blockTopic": "إزالة {{title}} من التوصيات",
+			"saveTopic": "حفظ {{title}}",
+			"unsaveTopic": "إلغاء حفظ {{title}}",
+			"thumbnail": "صورة مصغرة لـ {{title}}، {{index}} من {{total}}"
+		}
 	},
 	"Notifications": {
 		"title": "الإشعارات",
@@ -243,6 +369,16 @@
 		"buttons": {
 			"viewRestaurant": "عرض المطعم"
 		},
+		"accessibility": {
+			"viewRestaurant": "عرض تفاصيل مطعم {{name}}",
+			"likeActive": "إلغاء الإعجاب بـ {{name}}",
+			"likeInactive": "الإعجاب بـ {{name}}",
+			"saveActive": "إلغاء حفظ {{name}}",
+			"saveInactive": "حفظ {{name}}",
+			"share": "مشاركة {{name}}",
+			"openMap": "فتح خريطة {{name}}",
+			"reviewLike": "الإعجاب بمراجعة {{username}}"
+		},
 		"processing": "جارٍ معالجة الوسائط...",
 		"info": {
 			"walkFromShibuya": "على بُعد 13 دقيقة سيرًا من محطة شيبويا"
@@ -254,6 +390,11 @@
 	},
 	"ImageCardGrid": {
 		"openItemDetails": "فتح تفاصيل العنصر"
+	},
+	"Stars": {
+		"accessibility": {
+			"rating": "التقييم {{rating}}/5"
+		}
 	},
 	"Tabs": {
 		"home": "الصفحة الرئيسية",
@@ -271,13 +412,17 @@
 		}
 	},
 	"Profile": {
+		"tabGroups": {
+			"reviews": "المراجعات",
+			"saved": "المحفوظة",
+			"liked": "الإعجابات",
+			"wallet": "المحفظة"
+		},
 		"tabs": {
 			"deposits": "الودائع",
 			"earnings": "الأرباح",
-			"topics": "المواضيع",
-			"posts": "المنشورات",
 			"saved-posts": "المنشورات",
-			"saved-topics": "المواضيع",
+			"saved-topics": "الأطباق",
 			"wallet-deposit": "الودائع",
 			"wallet-earning": "الأرباح"
 		},
@@ -316,7 +461,8 @@
 			"follow": "متابعة",
 			"following": "متابَع",
 			"message": "رسالة",
-			"searchByMood": "ابحث عن الأطباق التي ستنال \"إعجابك\" حسب مزاجك اليوم",
+			"searchForReview": "ابحث عن مطعم لتقييمه",
+			"searchByMood": "ابحث حسب مزاجك اليوم",
 			"sendFeedback": "إرسال ملاحظات"
 		},
 		"stats": {
@@ -348,7 +494,8 @@
 			"displayNameRequired": "اسم العرض مطلوب",
 			"displayNameLength": "يجب ألا يتجاوز اسم العرض 30 حرفًا",
 			"bioLength": "يجب ألا تتجاوز النبذة 150 حرفًا"
-		}
+		},
+		"guestDisplayName": "ضيف"
 	},
 	"NotFound": {
 		"title": "عذرًا!",
@@ -431,6 +578,7 @@
 			"dishCategoryNoResults": "لم يتم العثور على فئات أطباق مطابقة",
 			"dishCategoryInputHint": "أدخل فئة الطبق للبحث",
 			"clearDishCategory": "مسح فئة الطبق",
+			"useCurrentLocation": "استخدام الموقع الحالي",
 			"selectDishCategory": "اختر فئة الطبق هذه"
 		},
 		"errors": {
@@ -561,6 +709,8 @@
 		"copyright": "حقوق النشر",
 		"legalDocument": "مستند قانوني",
 		"logout": "تسجيل الخروج",
+		"logoutConfirmTitle": "هل تريد تسجيل الخروج؟",
+		"logoutConfirmMessage": "ستحتاج إلى تسجيل الدخول مرة أخرى لإدارة منشوراتك ومراجعاتك.",
 		"blockedTopics": {
 			"navigationLabel": "مواضيع الأطباق المحظورة",
 			"pageTitle": "مواضيع الأطباق المحظورة",

@@ -9,6 +9,8 @@
 		"post": "投稿",
 		"postReview": "レビューを投稿する",
 		"retry": "再試行",
+		"undo": "元に戻す",
+		"view": "見る",
 		"error": "エラーが発生しました。もう一度お試しください。",
 		"success": "成功",
 		"linkCopied": "リンクをクリップボードにコピーしました",
@@ -40,6 +42,45 @@
 		"downloadApp": "アプリをダウンロード",
 		"viewInBrowser": "ブラウザで続ける"
 	},
+	"DishCategoryGroupVotes": {
+		"resultTitle": "友達の投票結果",
+		"resultSubtitle": "候補を見て、あなたの好みを投票してください。",
+		"resultSubtitleVoted": "投票結果を確認できます。",
+		"copyShareLink": "共有リンクをコピー",
+		"voteCta": "投票する",
+		"candidatesTitle": "候補",
+		"rankLabel": "{{rank}}位",
+		"unvoted": "未投票",
+		"commentsTitle": "コメント",
+		"viewRestaurants": "店を見る",
+		"loadingRestaurants": "検索中",
+		"noRestaurantsFound": "近くに候補のお店が見つかりませんでした",
+		"openRestaurantsPending": "店舗一覧への接続は実装中です",
+		"deleteCandidate": "候補を削除",
+		"deleteCandidateTitle": "候補を削除しますか？",
+		"deleteCandidateMessage": "{{name}} を投票候補から非表示にします。",
+		"candidateDeleted": "{{name}}を候補から削除しました",
+		"loadFailed": "投票を読み込めませんでした",
+		"refreshFailed": "最新の投票結果を取得できませんでした",
+		"like": "好き",
+		"dislike": "違う",
+		"likeButtonLabel": "{{title}}が好き",
+		"dislikeButtonLabel": "{{title}}は違う",
+		"voteProgress": "{{current}} / {{total}}",
+		"voteProgressAnnouncement": "{{total}}件中{{current}}件目: {{title}}",
+		"noVoteCandidates": "投票できる候補がありません",
+		"completionTitle": "投票を確定しましょう",
+		"completionDescription": "結果画面に表示する名前と、任意のコメントを入力してください。",
+		"nameSuggestionLabel": "この絵文字を名前にできます",
+		"displayNamePlaceholder": "ニックネーム",
+		"commentPlaceholder": "コメント（任意）",
+		"submitVote": "投票完了",
+		"submitting": "送信中",
+		"submitFailed": "投票を送信できませんでした",
+		"participantsList": "参加者：{{names}}",
+		"noParticipants": "まだ参加者はいません",
+		"noVotes": "まだ投票がありません"
+	},
 	"Error": {
 		"maintenanceMessage": "ただいまメンテナンス中です。",
 		"unsupportedVersion": "古いバージョンのため利用できません。"
@@ -48,7 +89,18 @@
 		"currentLocation": "現在地",
 		"DistanceSlider": {
 			"near": "近い",
-			"far": "遠い"
+			"far": "遠い",
+			"edgeEstimate": "検索範囲の端までの目安",
+			"approxMinutes": "約{{minutes}}分",
+			"modes": {
+				"walk": "徒歩",
+				"bike": "自転車",
+				"car": "車",
+				"train": "電車"
+			},
+			"showMore": "もっと見る",
+			"showLess": "閉じる",
+			"estimateHint": "経路・混雑・待ち時間により変わります"
 		},
 		"BudgetSlider": {
 			"cheap": "安い",
@@ -58,10 +110,18 @@
 		"errors": {
 			"fetchLocation": "位置情報の取得に失敗しました",
 			"getCurrentLocation": "現在地の取得に失敗しました",
+			"getCurrentLocationDenied": "位置情報の利用が許可されていません。地名を直接入力してください。",
+			"getCurrentLocationUnsupported": "この環境では現在地の取得に対応していません。地名を直接入力してください。",
+			"getCurrentLocationTimeout": "現在地の取得がタイムアウトしました。もう一度お試しいただくか、直接入力してください。",
 			"noLocationSelected": "検索場所を選択してください",
 			"noTimeSlotSelected": "時間帯を選択してください",
 			"noSceneSelected": "シーンを選択してください",
 			"searchFailed": "検索に失敗しました"
+		},
+		"googleMapsFallback": {
+			"message": "条件に合うお店を Googleマップ上でご確認頂けます。",
+			"confirm": "Google マップで開く",
+			"cancel": "閉じる"
 		},
 		"sections": {
 			"location": "どのあたりで探す？",
@@ -69,6 +129,8 @@
 			"scene": "だれと行く？",
 			"mood": "お腹の減り具合は？",
 			"taste": "テイストは？",
+			"diningPace": "食事にかける時間は？",
+			"foodStyle": "どんな系統が食べたい？",
 			"distance": "距離は？",
 			"budget": "価格帯は？",
 			"restrictions": "制約条件"
@@ -83,6 +145,8 @@
 		"accessibility": {
 			"locationInputHint": "レストランを検索する場所を入力してください",
 			"clearLocation": "場所をクリア",
+			"useCurrentLocation": "現在地を使う",
+			"showTutorial": "使い方を見る",
 			"selectLocation": "この場所を選択"
 		},
 		"loading": "検索中...",
@@ -94,6 +158,12 @@
 		"labels": {
 			"noMinBudget": "下限なし",
 			"noMaxBudget": "上限なし"
+		},
+		"priceLevels": {
+			"inexpensive": "節約する",
+			"moderate": "お手頃に",
+			"expensive": "ちょい贅沢",
+			"veryExpensive": "高級"
 		},
 		"distanceLabels": {
 			"100m": "100m",
@@ -132,8 +202,17 @@
 			"sweet": "甘いもの",
 			"spicy": "辛いもの",
 			"healthy": "ヘルシー",
-			"junk": "ジャンク",
-			"alcohol": "お酒メイン"
+			"junk": "ジャンキー"
+		},
+		"coreIngredientOptions": {
+			"meat": "お肉系",
+			"fish": "魚介系",
+			"rice": "お米系",
+			"noodle": "麺系"
+		},
+		"diningPaceOptions": {
+			"quick": "さくっと過ごす",
+			"leisurely": "ゆっくり過ごす"
 		},
 		"restrictionOptions": {
 			"vegetarian": "ベジタリアン",
@@ -142,6 +221,11 @@
 			"nutAllergy": "ナッツアレルギー",
 			"seafoodAllergy": "魚介アレルギー",
 			"halal": "ハラール"
+		},
+		"result": {
+			"accessibility": {
+				"bulkShare": "まとめてシェア"
+			}
 		},
 		"tutorial": {
 			"page1": {
@@ -169,9 +253,44 @@
 				"primaryCta": "現在地を利用する",
 				"secondaryCta": "あとで"
 			}
+		},
+		"recentLocations": {
+			"title": "最近使った場所",
+			"clear": "最近使った場所を消去"
 		}
 	},
 	"Topics": {
+		"deepDive": {
+			"title": "この系統で再検索"
+		},
+		"tutorial": {
+			"helpLabel": "この画面の使い方",
+			"helpHint": "料理提案画面のチュートリアルを最初から表示します",
+			"skip": "スキップ",
+			"next": "次へ",
+			"finish": "使ってみる",
+			"progress": "{{current}} / {{total}}",
+			"progressAccessibility": "{{total}}ステップ中{{current}}番目",
+			"steps": {
+				"swipeAndDecide": {
+					"title": "気になる料理を選ぼう",
+					"body": "左右にスワイプして料理を見比べられます。食べたい料理が決まったら「この料理にする！」をタップ。"
+				},
+				"deepDive": {
+					"title": "気分に合わせて深堀再検索",
+					"body": "まだ決めきれないときは、気になる系統を選ぶと近い系統で再検索できます。"
+				},
+				"topicActions": {
+					"title": "好みに合わせて整理",
+					"save": "保存：気になる料理をあとで見返せます",
+					"block": "ブロック：好みでない料理を今後提案しないように出来ます"
+				},
+				"groupVote": {
+					"title": "友達と決める",
+					"body": "一緒に食べる人と候補を共有して、みんなで投票できます。"
+				}
+			}
+		},
 		"HideTopicModal": {
 			"title": "非表示にする",
 			"description": "非表示にする理由を教えてください（任意）",
@@ -188,7 +307,7 @@
 		},
 		"empty": "表示できる料理がありません",
 		"retry": "検索に戻る",
-		"chooseThis": "これにする！",
+		"chooseThis": "この料理にする！",
 		"hiddenMessage": "{{title}}を非表示にしました",
 		"BlockTopicModal": {
 			"title": "この料理をブロックしますか？",
@@ -197,6 +316,7 @@
 			"confirm": "ブロックする"
 		},
 		"blockedMessage": "{{title}}をブロックしました",
+		"savedMessage": "保存しました",
 		"reloadDialog": {
 			"title": "別の候補を探しますか？",
 			"message": "現在のおすすめが少ないため、同じ条件でもう一度探します。",
@@ -206,7 +326,13 @@
 		"imageLoadFailed": "画像を読み込めませんでした",
 		"tapToReload": "タップして再読み込み",
 		"headerTitle": "あなたにおすすめの料理",
-		"subCopy": "いいかも！と思った料理をタップしてお店を見つけよう"
+		"subCopy": "いいかも！と思った料理をタップしてお店を見つけよう",
+		"accessibility": {
+			"blockTopic": "{{title}}をおすすめから除外",
+			"saveTopic": "{{title}}を保存",
+			"unsaveTopic": "{{title}}の保存を解除",
+			"thumbnail": "{{title}}のサムネイル、{{index}}件目/{{total}}件中"
+		}
 	},
 	"Notifications": {
 		"title": "お知らせ",
@@ -243,6 +369,16 @@
 		"buttons": {
 			"viewRestaurant": "店を見る"
 		},
+		"accessibility": {
+			"viewRestaurant": "{{name}}の店舗詳細を見る",
+			"likeActive": "{{name}}のいいねを解除",
+			"likeInactive": "{{name}}にいいね",
+			"saveActive": "{{name}}の保存を解除",
+			"saveInactive": "{{name}}を保存",
+			"share": "{{name}}をシェア",
+			"openMap": "{{name}}の地図を開く",
+			"reviewLike": "{{username}}の口コミにいいね"
+		},
 		"processing": "メディアを処理中...",
 		"errors": {
 			"mapOpenFailed": "地図アプリを開けませんでした",
@@ -254,6 +390,11 @@
 	},
 	"ImageCardGrid": {
 		"openItemDetails": "詳細を表示"
+	},
+	"Stars": {
+		"accessibility": {
+			"rating": "評価 {{rating}}/5"
+		}
 	},
 	"Tabs": {
 		"home": "ホーム",
@@ -271,13 +412,17 @@
 		}
 	},
 	"Profile": {
+		"tabGroups": {
+			"reviews": "レビュー",
+			"saved": "保存",
+			"liked": "いいね",
+			"wallet": "ウォレット"
+		},
 		"tabs": {
 			"deposits": "入札",
 			"earnings": "収益",
-			"topics": "トピック",
-			"posts": "投稿",
 			"saved-posts": "投稿",
-			"saved-topics": "トピック",
+			"saved-topics": "料理",
 			"wallet-deposit": "入札",
 			"wallet-earning": "収益"
 		},
@@ -316,7 +461,8 @@
 			"follow": "フォロー",
 			"following": "フォロー中",
 			"message": "メッセージ",
-			"searchByMood": "\"いいね\"と思う料理を今日の気分で探す",
+			"searchForReview": "お店を探してレビュー",
+			"searchByMood": "今日の気分で探す",
 			"sendFeedback": "ご意見・不具合"
 		},
 		"stats": {
@@ -348,7 +494,8 @@
 			"bioLength": "自己紹介は150文字以内で入力してください"
 		},
 		"savedCount": "{{count}}件保存",
-		"guestBio": "ようこそ、ゲストさん 👋\n「なに食べよ」を見つけてくださりありがとうございます😊\nアカウント登録すると、写真や動画でレビューを投稿して\nグルメの楽しさをシェアできます📸✨"
+		"guestBio": "ようこそ、ゲストさん 👋\n「なに食べよ」を見つけてくださりありがとうございます😊\nアカウント登録すると、写真や動画でレビューを投稿して\nグルメの楽しさをシェアできます📸✨",
+		"guestDisplayName": "ゲスト"
 	},
 	"NotFound": {
 		"title": "おっと！",
@@ -431,6 +578,7 @@
 			"dishCategoryNoResults": "一致する料理カテゴリが見つかりませんでした",
 			"dishCategoryInputHint": "料理カテゴリを入力して検索してください",
 			"clearDishCategory": "料理カテゴリをクリア",
+			"useCurrentLocation": "現在地を使う",
 			"selectDishCategory": "この料理カテゴリを選択"
 		},
 		"errors": {
@@ -561,6 +709,8 @@
 		"copyright": "著作権",
 		"legalDocument": "法的文書",
 		"logout": "ログアウト",
+		"logoutConfirmTitle": "ログアウトしますか？",
+		"logoutConfirmMessage": "再度ログインするまで、投稿やレビューの管理ができなくなります。",
 		"blockedTopics": {
 			"navigationLabel": "ブロック済みの料理トピック",
 			"pageTitle": "ブロック済みの料理トピック",

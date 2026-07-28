@@ -14,7 +14,10 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
-import { CreateFrontendLogDto } from '@shared/v1/dto';
+import {
+  CreateFrontendLogDto,
+  CreateFrontendLogBatchDto,
+} from '@shared/v1/dto';
 import { CreateFrontendLogResponseDto } from '@shared/v1/res';
 
 // 横串 (Auth)
@@ -45,5 +48,23 @@ export class LogsController {
     @CurrentUser() user: RequestUser,
   ): Promise<CreateFrontendLogResponseDto> {
     return this.logsService.createFrontendLog(dto, user.id);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*                POST /v1/logs/frontend/batch                        */
+  /* ------------------------------------------------------------------ */
+  // #1011 【設計】クライアント側のキュー化・バッチ送信(#1012)が本エンドポイントを利用する
+  @Post('frontend/batch')
+  @UseGuards(AuthAnonGuard)
+  @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
+  @ApiOperation({
+    summary: 'フロントエンドログを配列でまとめて Cloud Logging へ出力',
+  })
+  @ApiResponse({ status: 201, description: 'ログ受信成功' })
+  async createFrontendLogBatch(
+    @Body() dto: CreateFrontendLogBatchDto,
+    @CurrentUser() user: RequestUser,
+  ): Promise<CreateFrontendLogResponseDto> {
+    return this.logsService.createFrontendLogBatch(dto.logs, user.id);
   }
 }

@@ -7,7 +7,7 @@ import {
 import { PrismaClient, Prisma } from '../../../shared/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
-import { withMetrics } from './middlewares/metrics.middleware';
+import { withMetrics, withPoolMetrics } from './middlewares/metrics.middleware';
 import { env } from 'src/core/config/env';
 
 // グローバルなシングルトンインスタンスを作成
@@ -40,12 +40,50 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     url.searchParams.delete('sslmode');
     const connectionString = url.toString();
 
-    const pool = new Pool({
-      connectionString,
-      ssl: {
-        rejectUnauthorized: false,
-      },
+    // #904 【設計】Prisma 7 driver adapterの接続上限と待機時間はpg.Pool側で明示管理する
+    const pool = withPoolMetrics(
+      new Pool({
+        connectionString,
+        ssl: {
+          rejectUnauthorized: false,
+        },
+        max: env.DB_POOL_MAX,
+        connectionTimeoutMillis: env.DB_POOL_CONNECTION_TIMEOUT_MS,
+        idleTimeoutMillis: env.DB_POOL_IDLE_TIMEOUT_MS,
+        maxLifetimeSeconds: env.DB_POOL_MAX_LIFETIME_SECONDS,
+      }),
+    );
+
+    // #904 【バグ】idle clientのerror未捕捉によるプロセス終了を防ぎ、Pool状態を構造化ログへ残す
+    pool.on('error', (error) => {
+      this.logger.error(
+        JSON.stringify({
+          severity: 'ERROR',
+          type: 'pg_pool',
+          message: 'Unexpected error on idle PostgreSQL client',
+          error: error.message,
+          total_count: pool.totalCount,
+          idle_count: pool.idleCount,
+          waiting_count: pool.waitingCount,
+          timestamp: new Date().toISOString(),
+        }),
+        error.stack,
+      );
     });
+
+    this.logger.log(
+      JSON.stringify({
+        severity: 'INFO',
+        type: 'pg_pool_config',
+        message: 'PostgreSQL pool configured',
+        max: env.DB_POOL_MAX,
+        connection_timeout_ms: env.DB_POOL_CONNECTION_TIMEOUT_MS,
+        idle_timeout_ms: env.DB_POOL_IDLE_TIMEOUT_MS,
+        max_lifetime_seconds: env.DB_POOL_MAX_LIFETIME_SECONDS,
+        timestamp: new Date().toISOString(),
+      }),
+    );
+
     const adapter = new PrismaPg(pool);
     const base = new PrismaClient({
       adapter,

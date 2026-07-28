@@ -26,10 +26,14 @@ export const remoteConfigSchema = z.object({
 	dish_category_recommendation_weight_scene: z.string(),
 	dish_category_recommendation_weight_satiety: z.string(),
 	dish_category_recommendation_weight_taste: z.string(),
+	dish_category_recommendation_weight_budget_intent: z.string(),
+	dish_category_recommendation_weight_dining_pace: z.string(),
+	dish_category_recommendation_weight_core_ingredient: z.string(),
 	dish_category_recommendation_weight_market_salience: z.string(),
 	dish_category_recommendation_weight_dine_out_orderability: z.string(),
 	dish_category_recommendation_score_jitter_ratio: z.string(),
 	dish_category_recommendation_penalty_weight_core_ingredient: z.string(),
+	dish_category_recommendation_penalty_weight_taste: z.string(),
 	dish_category_recommendation_penalty_weight_cooking_method: z.string(),
 });
 

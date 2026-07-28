@@ -17,11 +17,15 @@ Wikidata から core 情報を取得し、dish_category_catalog を MERGE 更新
 
 【使用方法】
 python3 3_2_refresh_dish_category_catalog_core.py
+
+# catalog に未登録の候補だけを追加し、既存 catalog の更新や stale 削除は避ける
+python3 3_2_refresh_dish_category_catalog_core.py --missing-only --skip-delete-stale
 """
 
 import sys
 import json
 import logging
+import argparse
 import time
 import urllib.parse
 import tempfile
@@ -95,6 +99,66 @@ def fetch_candidate_qids(bq_loader: BigQueryLoader) -> List[str]:
     logger.info(f"Found {len(qids)} candidate QIDs")
     
     return qids
+
+
+def filter_missing_catalog_qids(
+    bq_loader: BigQueryLoader,
+    candidate_qids: List[str]
+) -> List[str]:
+    """
+    # 【設計】candidate のうち、dish_category_catalog にまだ存在しない QID だけを返す。
+
+    `3_2_refresh_dish_category_catalog_core.py` の通常モードは、既存 catalog の
+    label/image/多言語 JSON も Wikidata 最新値で更新する「全件 refresh」である。
+    一方で、手動で raw/blacklist を調整した直後は「新規候補だけ catalog に到達させたい」
+    ことがある。その用途では既存 1万件以上を WDQS から取り直す必要がなく、失敗面も
+    コスト面も大きい。
+
+    この関数は `--missing-only` 用の局所絞り込みであり、candidate 集合そのものは変えない。
+    つまり stale 判定を実行する場合は、引き続き `food_nodes_raw - dish_blacklist` の
+    全 candidate を使うことで、整合性確認の意味を保つ。
+    
+    Args:
+        bq_loader: BigQuery ローダー
+        candidate_qids: `food_nodes_raw - dish_blacklist` の全候補 QID
+
+    Returns:
+        catalog 未登録の QID リスト
+    """
+    if not candidate_qids:
+        return []
+
+    logger.info("Filtering candidates to items missing from dish_category_catalog...")
+
+    sql = f"""
+    WITH candidates AS (
+      SELECT qid AS item_qid
+      FROM UNNEST(@candidate_qids) AS qid
+    )
+    SELECT c.item_qid
+    FROM candidates c
+    LEFT JOIN `{bq_loader.dataset_ref}.dish_category_catalog` cat
+      ON cat.item_qid = c.item_qid
+    WHERE cat.item_qid IS NULL
+    ORDER BY c.item_qid
+    """
+
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ArrayQueryParameter("candidate_qids", "STRING", candidate_qids),
+        ]
+    )
+    query_job = bq_loader.client.query(sql, job_config=job_config)
+    results = query_job.result()
+
+    missing_qids = [row.item_qid for row in results]
+    logger.info(
+        "Found %d missing catalog QIDs out of %d candidates",
+        len(missing_qids),
+        len(candidate_qids),
+    )
+
+    return missing_qids
 
 
 def fetch_core_data_batch(
@@ -1106,10 +1170,33 @@ def delete_stale_entries(
 
 def main():
     """メイン処理"""
+    parser = argparse.ArgumentParser(description="Refresh dish_category_catalog core data")
+    parser.add_argument(
+        "--missing-only",
+        action="store_true",
+        help=(
+            "Fetch Wikidata core data only for candidate QIDs that are not yet "
+            "present in dish_category_catalog. Existing catalog rows are not refreshed."
+        ),
+    )
+    parser.add_argument(
+        "--skip-delete-stale",
+        action="store_true",
+        help=(
+            "Skip deletion of catalog rows that are no longer in candidates. "
+            "Useful for narrow missing-only backfills."
+        ),
+    )
+    args = parser.parse_args()
+
     logger.info("=" * 80)
     logger.info("Refreshing dish_category_catalog (core)")
     logger.info("=" * 80)
     logger.info(f"Project: {GCP_PROJECT}, Dataset: {BQ_DATASET}")
+    if args.missing_only:
+        logger.info("Mode: missing-only (existing catalog rows will not be fetched/refreshed)")
+    if args.skip_delete_stale:
+        logger.info("Stale delete: skipped by --skip-delete-stale")
     
     # BigQuery Loader 初期化
     bq_loader = BigQueryLoader(GCP_PROJECT, BQ_DATASET)
@@ -1124,14 +1211,24 @@ def main():
     if not candidate_qids:
         logger.warning("No candidate QIDs found, exiting")
         return
+
+    fetch_qids = candidate_qids
+    if args.missing_only:
+        fetch_qids = filter_missing_catalog_qids(bq_loader, candidate_qids)
+        if not fetch_qids:
+            logger.info("No missing catalog QIDs found. Nothing to fetch or merge.")
+            if not args.skip_delete_stale:
+                logger.info("Step 5: Deleting stale entries...")
+                delete_stale_entries(bq_loader, candidate_qids)
+            return
     
     # 2. SPARQL でバッチ分割して core 情報を取得
     logger.info(f"Step 2: Fetching core data in batches (batch_size={BATCH_SIZE})...")
     all_core_data = []
     
-    for i in range(0, len(candidate_qids), BATCH_SIZE):
-        batch = candidate_qids[i:i + BATCH_SIZE]
-        logger.info(f"Fetching batch {i // BATCH_SIZE + 1}/{(len(candidate_qids) + BATCH_SIZE - 1) // BATCH_SIZE} ({len(batch)} items)...")
+    for i in range(0, len(fetch_qids), BATCH_SIZE):
+        batch = fetch_qids[i:i + BATCH_SIZE]
+        logger.info(f"Fetching batch {i // BATCH_SIZE + 1}/{(len(fetch_qids) + BATCH_SIZE - 1) // BATCH_SIZE} ({len(batch)} items)...")
         
         core_data = fetch_core_data_batch(wikidata_client, batch)
         all_core_data.extend(core_data)
@@ -1150,8 +1247,11 @@ def main():
     merge_core_data(bq_loader)
     
     # 5. 過分の削除
-    logger.info("Step 5: Deleting stale entries...")
-    delete_stale_entries(bq_loader, candidate_qids)
+    if args.skip_delete_stale:
+        logger.info("Step 5: Skipping stale entry deletion (--skip-delete-stale)")
+    else:
+        logger.info("Step 5: Deleting stale entries...")
+        delete_stale_entries(bq_loader, candidate_qids)
     
     logger.info("=" * 80)
     logger.info("✅ Successfully refreshed dish_category_catalog (core)")

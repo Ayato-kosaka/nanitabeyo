@@ -24,12 +24,12 @@ const toQueryString = (payload: Record<string, unknown>): string => {
 };
 
 const buildRequestBody = <TRequest extends Record<string, any> | FormData>(
-	method: "GET" | "POST" | "DELETE",
+	method: "GET" | "POST" | "PATCH" | "DELETE",
 	shouldUseQuery: boolean,
 	isMultipart: boolean,
 	requestPayload: TRequest,
 ): BodyInit | undefined => {
-	if (method === "POST") {
+	if (method === "POST" || method === "PATCH") {
 		return isMultipart ? (requestPayload as FormData) : JSON.stringify(requestPayload);
 	}
 	if (method === "DELETE") {
@@ -47,10 +47,13 @@ export async function fetchWithAuth<TRequest extends Record<string, any> | FormD
 		method = "POST",
 		requestPayload,
 		isMultipart = false,
+		signal,
 	}: {
-		method?: "GET" | "POST" | "DELETE";
+		method?: "GET" | "POST" | "PATCH" | "DELETE";
 		requestPayload: TRequest;
 		isMultipart?: boolean;
+		// #940 【設計】応答が返らないまま無期限に待ち続けるのを防ぐためのタイムアウト用シグナル
+		signal?: AbortSignal;
 	},
 	accessToken: string,
 ) {
@@ -68,7 +71,7 @@ export async function fetchWithAuth<TRequest extends Record<string, any> | FormD
 	const qs = shouldUseQuery ? toQueryString(requestPayload as Record<string, unknown>) : "";
 	const endpoint = `${Env.BACKEND_BASE_URL}/${endpointName}${qs}`;
 
-	const willSendBody = method === "POST" || (method === "DELETE" && !shouldUseQuery);
+	const willSendBody = method === "POST" || method === "PATCH" || (method === "DELETE" && !shouldUseQuery);
 
 	if (willSendBody && !isMultipart) headers["Content-Type"] = "application/json";
 	return {
@@ -78,6 +81,7 @@ export async function fetchWithAuth<TRequest extends Record<string, any> | FormD
 			body: buildRequestBody(method, shouldUseQuery, isMultipart, requestPayload),
 			// Include credentials for web to receive CDN signed cookies
 			credentials: Platform.OS === "web" ? "include" : "same-origin",
+			signal,
 		}),
 		endpoint,
 	};

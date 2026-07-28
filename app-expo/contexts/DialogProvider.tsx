@@ -9,8 +9,9 @@ import React, {
 	useState,
 	type ReactNode,
 } from "react";
-import { BackHandler, Platform, ScrollView, View } from "react-native";
+import { BackHandler, Platform, ScrollView, StyleSheet, View } from "react-native";
 import { Portal, Dialog, Button, Paragraph, Text, TextInput, HelperText } from "react-native-paper";
+import { useContentWidth } from "@/hooks/useContentWidth";
 
 /**
  * =========================
@@ -266,6 +267,13 @@ const useIsMountedRef = () => {
 
 export const DialogProvider = ({ children }: { children: ReactNode }) => {
 	const isMountedRef = useIsMountedRef();
+
+	// #958 【修正】paper の Portal は PaperProvider 直下のホスト(=CenteredAppShell の外側)に
+	// 描画されるため、Dialog がウィンドウ全幅に広がり web の中央カラムからはみ出していた。
+	// Dialog 自体をカラム幅(-左右マージン26px相当)に制約し中央寄せする。
+	// native では contentWidth = 画面幅のため、paper 既定(marginHorizontal:26)と同じ見た目になる。
+	const contentWidth = useContentWidth();
+	const dialogWidth = Math.max(0, contentWidth - 52);
 
 	/**
 	 * キューは ref で持つ（state で持つと無駄レンダーが増えやすい）
@@ -830,11 +838,12 @@ export const DialogProvider = ({ children }: { children: ReactNode }) => {
 			<Portal>
 				<Dialog
 					visible={visible}
+					style={[styles.dialog, { width: dialogWidth, alignSelf: "center" }]}
 					/**
 					 * onDismiss は「呼ばれる」ので、許可しない場合は handleDismiss 内で弾く（6）
 					 */
 					onDismiss={handleDismiss}>
-					{!!cur?.title && <Dialog.Title>{cur.title}</Dialog.Title>}
+					{!!cur?.title && <Dialog.Title style={styles.title}>{cur.title}</Dialog.Title>}
 
 					<Dialog.Content>
 						<View accessible accessibilityLabel={a11yLabel}>
@@ -844,7 +853,7 @@ export const DialogProvider = ({ children }: { children: ReactNode }) => {
 								contentContainerStyle={{ paddingBottom: 4 }}
 								// confirm中でもスクロールは許可
 							>
-								<Paragraph>{cur?.message ?? ""}</Paragraph>
+								<Paragraph style={styles.message}>{cur?.message ?? ""}</Paragraph>
 
 								{/* prompt UI（2） */}
 								{cur?.kind === "prompt" && (
@@ -875,7 +884,7 @@ export const DialogProvider = ({ children }: { children: ReactNode }) => {
 						</View>
 					</Dialog.Content>
 
-					<Dialog.Actions>
+					<Dialog.Actions style={styles.actions}>
 						{renderedActions.map((a) => {
 							const isOk = a.key === "ok";
 							const isCancel = a.key === "cancel";
@@ -908,7 +917,12 @@ export const DialogProvider = ({ children }: { children: ReactNode }) => {
 							return (
 								<Button
 									key={a.key}
-									mode={a.mode ?? "text"}
+									mode={isOk || isCancel ? "contained" : (a.mode ?? "text")}
+									buttonColor={isOk ? "#F05537" : isCancel ? "#F8F9FA" : undefined}
+									textColor={isOk ? "#FFFFFF" : isCancel ? "#6B7280" : undefined}
+									style={isOk || isCancel ? styles.actionButton : undefined}
+									contentStyle={isOk || isCancel ? styles.actionButtonContent : undefined}
+									labelStyle={[styles.actionButtonLabel, isOk && styles.confirmButtonLabel]}
 									onPress={onPress}
 									disabled={disabled}
 									accessibilityLabel={a.accessibilityLabel}
@@ -930,6 +944,44 @@ export const DialogProvider = ({ children }: { children: ReactNode }) => {
 		</DialogContext.Provider>
 	);
 };
+
+const styles = StyleSheet.create({
+	dialog: {
+		backgroundColor: "#FFFFFF",
+		borderRadius: 20,
+	},
+	title: {
+		fontSize: 20,
+		fontWeight: "700",
+		color: "#1C1B1F",
+		letterSpacing: -0.3,
+	},
+	message: {
+		fontSize: 16,
+		fontWeight: "500",
+		lineHeight: 24,
+		color: "#49454F",
+	},
+	actions: {
+		gap: 4,
+		paddingHorizontal: 24,
+		paddingBottom: 20,
+	},
+	actionButton: {
+		borderRadius: 16,
+	},
+	actionButtonContent: {
+		minHeight: 48,
+		paddingHorizontal: 8,
+	},
+	actionButtonLabel: {
+		fontSize: 16,
+		fontWeight: "600",
+	},
+	confirmButtonLabel: {
+		fontWeight: "700",
+	},
+});
 
 /** useDialog フック */
 export const useDialog = (): DialogContextType => {

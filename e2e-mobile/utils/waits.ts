@@ -1,0 +1,75 @@
+import { element, waitFor } from "detox";
+
+/**
+ * ⏳ 待機ヘルパ
+ *
+ * Detox の `waitFor(...).toBeVisible().withTimeout(...)` は毎回 4 段のチェーンになり、
+ * spec / Screen Object に散らばると「どこにどのタイムアウトが効いているか」が読めなくなる。
+ * ここへ集約し、タイムアウトの既定値も 1 箇所で管理する。
+ *
+ * ⚠️ Detox には Playwright の `waitForResponse` に相当するネットワーク傍受 API が無い。
+ * 「API 応答を待つ」目的の待機は Detox の同期機構（ネットワークが落ち着くまで次の操作を
+ * ブロックする仕組み）に委ね、**画面上の観測点**（要素の出現/消失）で待つこと。
+ */
+
+/**
+ * 画面表示待ちの既定タイムアウト（ms）。
+ * 実 API（Cloud Run api-development）のコールドスタートを見込み、e2e-web の expect.timeout より長めに取る。
+ */
+export const DEFAULT_TIMEOUT = 15_000;
+
+/**
+ * アプリ起動待ちのタイムアウト（ms）。
+ * release APK の初回起動は「JS バンドル読込 → 匿名認証 or セッション注入 → 初回描画」を含むため長い。
+ */
+export const LAUNCH_TIMEOUT = 120_000;
+
+/**
+ * 要素が可視になるまで待つ。
+ *
+ * @param matcher 対象のマッチャ（例: `by.id("tab-search")`）
+ * @param timeout タイムアウト (ms)。既定 DEFAULT_TIMEOUT
+ * @失敗時 タイムアウト時に Detox の例外を投げる（失敗時スクリーンショットは .detoxrc.js の artifacts 設定で保存される）
+ */
+export async function waitUntilVisible(matcher: Detox.NativeMatcher, timeout: number = DEFAULT_TIMEOUT): Promise<void> {
+	await waitFor(element(matcher)).toBeVisible().withTimeout(timeout);
+}
+
+/**
+ * 要素がビューツリーに存在するまで待つ（画面外にあってもよい場合はこちら）。
+ *
+ * @param matcher 対象のマッチャ
+ * @param timeout タイムアウト (ms)
+ */
+export async function waitUntilExists(matcher: Detox.NativeMatcher, timeout: number = DEFAULT_TIMEOUT): Promise<void> {
+	await waitFor(element(matcher)).toExist().withTimeout(timeout);
+}
+
+/**
+ * 要素がビューツリーから消えるまで待つ（モーダル・スナックバーの閉じ待ちなど）。
+ *
+ * @param matcher 対象のマッチャ
+ * @param timeout タイムアウト (ms)
+ */
+export async function waitUntilGone(matcher: Detox.NativeMatcher, timeout: number = DEFAULT_TIMEOUT): Promise<void> {
+	await waitFor(element(matcher)).not.toExist().withTimeout(timeout);
+}
+
+/**
+ * 要素が存在するかどうかを **待たずに** 判定する。
+ *
+ * 「出ていれば閉じる」といったベストエフォート処理に使う。
+ * ⚠️ 通常のアサーションには使わないこと（false は「まだ描画されていない」だけの可能性がある）。
+ *
+ * @param matcher 対象のマッチャ
+ * @param timeout 存在確認に費やす上限 (ms)。既定 2 秒（短くして無駄な待ちを避ける）
+ * @returns 存在すれば true / しなければ false（例外は投げない）
+ */
+export async function existsNow(matcher: Detox.NativeMatcher, timeout = 2_000): Promise<boolean> {
+	try {
+		await waitFor(element(matcher)).toExist().withTimeout(timeout);
+		return true;
+	} catch {
+		return false;
+	}
+}

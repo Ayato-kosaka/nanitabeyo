@@ -144,7 +144,8 @@ export class DishMediaRepository {
         0.50 AS w_is_open_at,
         0.30 AS w_distance,
         0.50 AS w_impr_total,
-        0.40 AS w_avg_rating
+        0.40 AS w_avg_rating,
+        1.50 AS w_recent_user_impression_penalty
     ),
     -- ========== 候補集合（Stage0: 地理フィルタ） ==========
     candidates_radius AS (
@@ -207,18 +208,19 @@ export class DishMediaRepository {
         FALSE AS is_open_at
       FROM geo g
     ),
-    -- 疲労EXISTS除外（同一メディアを直近24h出さない）
-    fatigue_filtered AS (
-      SELECT ofl.*
+    -- 疲労ペナルティ（同一ユーザーに直近24h表示済みのメディアは候補に残して減点）
+    fatigue_marked AS (
+      SELECT
+        ofl.*,
+        EXISTS (
+          SELECT 1
+          FROM dish_media_impressions dmi
+          WHERE dmi.dish_media_id = ofl.dish_media_id
+            AND (SELECT user_id FROM params) IS NOT NULL
+            AND dmi.user_id = (SELECT user_id FROM params)
+            AND dmi.created_at >= (SELECT now_ts FROM params) - INTERVAL '24 hours'
+        ) AS has_recent_user_impression
       FROM open_flags ofl
-      WHERE NOT EXISTS (
-        SELECT 1
-        FROM dish_media_impressions dmi
-        WHERE dmi.dish_media_id = ofl.dish_media_id
-          AND (SELECT user_id FROM params) IS NOT NULL
-          AND dmi.user_id = (SELECT user_id FROM params)
-          AND dmi.created_at >= (SELECT now_ts FROM params) - INTERVAL '24 hours'
-      )
     ),
     -- ========== dish_reviews 平均評価（Stage2: Pre-Rank特徴） ==========
     -- #440 【設計】dish_reviews の平均評価を dish_id 単位で集計
@@ -229,22 +231,22 @@ export class DishMediaRepository {
       FROM dish_reviews dr
       JOIN (
         SELECT DISTINCT dish_id
-        FROM fatigue_filtered
-      ) ff ON ff.dish_id = dr.dish_id
+        FROM fatigue_marked
+      ) fm ON fm.dish_id = dr.dish_id
       GROUP BY dr.dish_id
     ),
     -- ========== 指標結合（Stage2: Pre-Rank特徴） ==========
     features AS (
       SELECT
-        ff.*,
+        fm.*,
         ar.impr_total, ar.view_total, ar.skip_total, ar.completion_total,
         ar.watch_ms_total, ar.save_total, ar.like_total, ar.open_map_total,
         dar.avg_rating,
         -- レート（イプシロン平滑）
         CASE
-          WHEN ar.impr_total > 0 AND ff.video_duration_ms > 0
+          WHEN ar.impr_total > 0 AND fm.video_duration_ms > 0
             THEN LEAST(1.0, GREATEST(0.0, ar.watch_ms_total::double precision
-                        / (ar.impr_total::double precision * ff.video_duration_ms::double precision)))
+                        / (ar.impr_total::double precision * fm.video_duration_ms::double precision)))
           ELSE NULL
         END AS avg_watch_rate,
         CASE WHEN ar.view_total > 0
@@ -263,11 +265,11 @@ export class DishMediaRepository {
           THEN ar.open_map_total::double precision / ar.impr_total::double precision
           ELSE NULL
         END AS open_map_rate
-      FROM fatigue_filtered ff
+      FROM fatigue_marked fm
       LEFT JOIN dish_media_analysis_results ar
-        ON ar.dish_media_id = ff.dish_media_id
+        ON ar.dish_media_id = fm.dish_media_id
       LEFT JOIN dish_avg_ratings dar
-        ON dar.dish_id = ff.dish_id
+        ON dar.dish_id = fm.dish_id
     ),
     -- ========== Pre-Rank スコア（軽量式） ==========
     pre_rank AS (
@@ -290,7 +292,11 @@ export class DishMediaRepository {
             ELSE 0.0
           END +
           -- #440 【設計】dish_reviews の平均評価を正規化（1-5 を 0-1 に変換）してスコアに加算
-          (SELECT w_avg_rating FROM weights) * COALESCE(f.avg_rating / 5.0, 0.0)
+          (SELECT w_avg_rating FROM weights) * COALESCE(f.avg_rating / 5.0, 0.0) -
+          CASE
+            WHEN f.has_recent_user_impression THEN (SELECT w_recent_user_impression_penalty FROM weights)
+            ELSE 0.0
+          END
         ) AS base_score
       FROM features f
     ),
@@ -839,7 +845,9 @@ export class DishMediaRepository {
       });
   }
 
-  private prioritizeReviewsByLanguage<T extends { original_language_code: string }>(
+  private prioritizeReviewsByLanguage<
+    T extends { original_language_code: string },
+  >(
     reviews: T[],
     preferredLanguageCode: string | undefined,
     reviewLimit: number,

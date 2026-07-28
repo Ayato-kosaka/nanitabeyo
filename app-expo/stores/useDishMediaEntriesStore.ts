@@ -586,7 +586,16 @@ const handleAsyncAction = <T>(
 			await onSuccess(items);
 		})
 		.catch((err) => {
-			const errorMessage = err ? (err instanceof Error ? err.message : String(err)) : null;
+			// #940 【修正】useAPICall は API/HTTPエラーを Error インスタンスではなく
+			// ApiError(プレーンオブジェクト、message フィールドを持つ)として throw するため、
+			// String(err) では "[object Object]" になっていた。message フィールドを優先して抽出する
+			const errorMessage = err
+				? err instanceof Error
+					? err.message
+					: typeof err === "object" && typeof (err as { message?: unknown }).message === "string"
+						? (err as { message: string }).message
+						: String(err)
+				: null;
 			set((state) => ({
 				errorByKey: {
 					...state.errorByKey,

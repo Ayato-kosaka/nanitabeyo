@@ -1,5 +1,9 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useRef, useCallback, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
+// #1030 【設計】E2E(Detox) 専用のセッション注入フック。
+// 通常ビルドでは metro.config.js が noop 実装（lib/e2e/injectTestSession.noop.ts）へ解決し直すため、
+// 本番バンドルにはこの実装コードも react-native-launch-arguments も一切含まれない。
+import { injectTestSession, isTestSessionInjectionError } from "@/lib/e2e/injectTestSession";
 import { Session, User, Provider, SignOut } from "@supabase/supabase-js";
 import * as Linking from "expo-linking";
 import { useLogger } from "@/hooks/useLogger";
@@ -16,6 +20,7 @@ import { useCdnCookieStore } from "@/stores/useCdnCookieStore";
 type AuthContextType = {
 	user: User | null;
 	getSession: () => Session | null;
+	refreshSession: () => Promise<Session | null>;
 	loading: boolean;
 	loginWithEmail: (email: string, password: string) => Promise<void>;
 	logout: (options?: SignOut) => Promise<void>;
@@ -44,6 +49,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 	const { locale } = useLocale();
 	const sessionRef = useRef<Session | null>(null);
 	const getSession = useCallback(() => sessionRef.current, []);
+	/**
+	 * 401 を受けたリクエストが、新しい access token で即時再試行できるようにする。
+	 * Supabase の自動更新は後続リクエストには効くが、既に失敗した通信は再送しないため、
+	 * 更新済み Session を呼び出し元へ返しつつ、同期参照する sessionRef も先に更新する。
+	 */
+	const refreshSession = useCallback(async (): Promise<Session | null> => {
+		const { data, error } = await supabase.auth.refreshSession();
+		if (error) throw error;
+
+		const refreshedSession = data.session;
+		if (refreshedSession) {
+			sessionRef.current = refreshedSession;
+			setUser(refreshedSession.user);
+		}
+
+		return refreshedSession;
+	}, []);
 
 	useEffect(() => {
 		/**
@@ -54,6 +76,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 		 */
 		const initializeAuth = async () => {
 			try {
+				// #1030 【設計】E2E(Detox) 実行時のみ、起動引数で渡されたセッションを注入して匿名サインインを回避する
+				//（Supabase の匿名サインインは 30 回/時/IP 制限があり、dev/prod で同一プロジェクトを共有しているため）。
+				// 通常ビルドでは noop 実装へ差し替えられるので、この行は常に "skipped" を返して素通りする。
+				// ⚠️ ここで早期 return せず、以降の getSession() → 復元 の既存フローへ合流させるのが重要（#1030 レビュー M-5）:
+				//    注入後も `sessionRestored` ログ・`sessionRef` 更新・`setUser` は本番と完全に同一経路を通る。
+				// ⚠️ 注入するかどうかは「セッションの有無」ではなく「期待ユーザーとの一致」で判定される（同 B-1）。
+				//    期待ユーザーと不一致なのに注入できない場合は例外が飛ぶ（fail-loud。下の catch で再 throw する）。
+				await injectTestSession();
+
 				const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
 				if (sessionError) throw sessionError;
 				const restoredSession = sessionData?.session;
@@ -93,6 +124,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 					error_level: "error",
 					payload: { message: err.message },
 				});
+				// #1030 【設計】E2E のセッション注入失敗だけは握り潰さない（fail-loud。レビュー B-1）。
+				// 通常の初期化エラー（ネットワーク断等）はこれまでどおり握り潰して起動を続けるが、
+				// 「期待ユーザーで走れていない」状態で先へ進むとテストが緑のまま嘘の検証をするため、明示的に落とす。
+				// 通常ビルドでは isTestSessionInjectionError が常に false を返すので、本番挙動は 1 バイトも変わらない。
+				// なお、この throw は呼び出し側が await しないため unhandled rejection となり RN アプリ自体は停止しない。
+				// セッション未確立のままテストが確実に失敗すること + console.error(E2E_TEST_SESSION_SENTINEL 付き)で
+				// 原因を logcat から特定できることを「fail-loud」として扱う（レビュー m-1）。
+				if (isTestSessionInjectionError(err)) throw err;
 			} finally {
 				setLoading(false);
 			}
@@ -372,6 +411,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 		() => ({
 			user,
 			getSession,
+			refreshSession,
 			loading,
 			loginWithEmail,
 			signUpWithEmail,
@@ -385,6 +425,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 		[
 			user,
 			getSession,
+			refreshSession,
 			loading,
 			loginWithEmail,
 			signUpWithEmail,

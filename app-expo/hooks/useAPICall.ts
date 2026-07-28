@@ -44,6 +44,10 @@ export type ApiError = {
 	raw?: unknown;
 };
 
+// #940 【設計】応答が返らないまま無期限に待ち続ける(=ユーザーがローディング画面に留まり続ける)のを
+// 防ぐためのタイムアウト。リトライを含む呼び出し全体で共有する(各試行ごとにリセットはしない)
+const API_CALL_TIMEOUT_MS = 30_000;
+
 /**
  * ☁️ API 呼び出しフック
  *
@@ -58,7 +62,7 @@ export type ApiError = {
 export const useAPICall = () => {
 	const { logFrontendEvent } = useLogger();
 	const { showDialog } = useDialog();
-	const { getSession } = useAuth();
+	const { getSession, refreshSession } = useAuth();
 
 	/**
 	 * 指定されたエンドポイントに対して API を呼び出す関数
@@ -77,13 +81,13 @@ export const useAPICall = () => {
 				requestPayload,
 				isMultipart = false,
 			}: {
-				method?: "GET" | "POST" | "DELETE";
+				method?: "GET" | "POST" | "PATCH" | "DELETE";
 				requestPayload: TRequest;
 				isMultipart?: boolean;
 			},
 		): Promise<R> => {
 			// 🔐 認証トークンの有無をチェック
-			const accessToken = getSession()?.access_token;
+			let accessToken = getSession()?.access_token;
 			if (!accessToken) {
 				throw new Error("User is not authenticated: Supabase access_token is missing.");
 			}
@@ -101,22 +105,110 @@ export const useAPICall = () => {
 				},
 			});
 
-			// #525 【設計】fetchWithAuth のネットワークエラーを ApiError 形式に正規化
-			let response: Response;
-			let endpoint: string;
+			// #897 リトライ上限は初回を含め2回に固定する。401・GETの一時障害が重なっても
+			// API呼び出し単位で無制限に再送せず、最終失敗は従来どおり下の共通処理へ渡す。
+			// #940 【設計】リトライを含む呼び出し全体で1つの AbortController を共有し、
+			// 30秒応答が無ければ中断して network_error として分類する
+			let response: Response | undefined;
+			let endpoint = endpointName;
+			let networkError: unknown;
+			let didTimeout = false;
+			const abortController = new AbortController();
+			const timeoutId = setTimeout(() => {
+				didTimeout = true;
+				abortController.abort();
+			}, API_CALL_TIMEOUT_MS);
+
 			try {
-				const result = await fetchWithAuth(
-					endpointName,
-					{
-						method,
-						requestPayload,
-						isMultipart,
-					},
-					accessToken,
-				);
-				response = result.response;
-				endpoint = result.endpoint;
-			} catch (networkError) {
+				for (let attempt = 0; attempt < 2; attempt++) {
+					response = undefined;
+					try {
+						const result = await fetchWithAuth(
+							endpointName,
+							{
+								method,
+								requestPayload,
+								isMultipart,
+								signal: abortController.signal,
+							},
+							accessToken,
+						);
+						response = result.response;
+						endpoint = result.endpoint;
+						networkError = undefined;
+					} catch (error) {
+						networkError = error;
+						// タイムアウト後はリトライせず即座に打ち切る(既に応答期限を超過しているため)
+						if (didTimeout) {
+							logFrontendEvent({
+								event_name: "api_call_timeout",
+								error_level: "warn",
+								payload: { endpoint: endpointName, method, timeoutMs: API_CALL_TIMEOUT_MS },
+							});
+							break;
+						}
+						// 通信到達が不明なPOST等は重複作成を避ける。副作用のないGETだけを再送する。
+						if (method === "GET" && attempt === 0) {
+							logFrontendEvent({
+								event_name: "api_call_retry",
+								error_level: "warn",
+								payload: { endpoint: endpointName, method, reason: "network_error" },
+							});
+							await new Promise((resolve) => setTimeout(resolve, 500));
+							continue;
+						}
+						break;
+					}
+
+					// 自動refreshだけでは失敗済みリクエストは復旧しないため、新tokenで1回だけ再送する。
+					// 401は認証段階で拒否された応答なので、POSTを含めても処理の二重実行にはならない。
+					if (response.status === 401 && attempt === 0) {
+						try {
+							const refreshedSession = await refreshSession();
+							if (!refreshedSession?.access_token) break;
+							accessToken = refreshedSession.access_token;
+							logFrontendEvent({
+								event_name: "api_call_retry",
+								error_level: "warn",
+								payload: { endpoint: endpointName, method, reason: "session_refreshed_after_401" },
+							});
+							continue;
+						} catch (error) {
+							logFrontendEvent({
+								event_name: "api_call_session_refresh_failed",
+								error_level: "error",
+								payload: {
+									endpoint: endpointName,
+									error: error instanceof Error ? error.message : String(error),
+								},
+							});
+							break;
+						}
+					}
+
+					// 503は一時的な過負荷でも返る。GETに限定し、Retry-Afterを最大5秒まで尊重する。
+					if (response.status === 503 && method === "GET" && attempt === 0) {
+						const retryAfterHeader = response.headers.get("retry-after");
+						const retryAfterSeconds = retryAfterHeader === null ? Number.NaN : Number(retryAfterHeader);
+						const retryDelayMs = Number.isFinite(retryAfterSeconds)
+							? Math.min(Math.max(retryAfterSeconds * 1000, 0), 5000)
+							: 500;
+						logFrontendEvent({
+							event_name: "api_call_retry",
+							error_level: "warn",
+							payload: { endpoint: endpointName, method, reason: "service_unavailable", retryDelayMs },
+						});
+						await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+						continue;
+					}
+
+					break;
+				}
+			} finally {
+				clearTimeout(timeoutId);
+			}
+
+			if (!response) {
 				logFrontendEvent({
 					event_name: "api_call_error",
 					error_level: "error",
@@ -125,12 +217,15 @@ export const useAPICall = () => {
 						method,
 						status: 0,
 						error: networkError instanceof Error ? networkError.message : String(networkError),
+						timedOut: didTimeout,
 					},
 				});
 				throw {
 					code: "network_error",
 					status: 0,
-					message: `Network error while calling ${endpointName}`,
+					message: didTimeout
+						? `Network timeout (${API_CALL_TIMEOUT_MS}ms) while calling ${endpointName}`
+						: `Network error while calling ${endpointName}`,
 					raw: networkError,
 				} satisfies ApiError;
 			}
@@ -288,7 +383,7 @@ export const useAPICall = () => {
 			// data のみを返す
 			return json.data;
 		},
-		[logFrontendEvent, getSession, showDialog],
+		[logFrontendEvent, getSession, refreshSession, showDialog],
 	);
 
 	return { callBackend };

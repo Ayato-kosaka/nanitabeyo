@@ -9,6 +9,8 @@
 		"post": "Post",
 		"postReview": "Post review",
 		"retry": "Retry",
+		"undo": "Undo",
+		"view": "View",
 		"error": "An error occurred. Please try again.",
 		"success": "Success",
 		"linkCopied": "Link copied to clipboard",
@@ -40,6 +42,45 @@
 		"downloadApp": "Download App",
 		"viewInBrowser": "Continue in browser"
 	},
+	"DishCategoryGroupVotes": {
+		"resultTitle": "Friends' voting results",
+		"resultSubtitle": "Review the choices and vote for your preferences.",
+		"resultSubtitleVoted": "You can review the current results.",
+		"copyShareLink": "Copy share link",
+		"voteCta": "Vote",
+		"candidatesTitle": "Choices",
+		"rankLabel": "#{{rank}}",
+		"unvoted": "Not voted yet",
+		"commentsTitle": "Comments",
+		"viewRestaurants": "View restaurants",
+		"loadingRestaurants": "Searching",
+		"noRestaurantsFound": "No nearby restaurant candidates were found",
+		"openRestaurantsPending": "Restaurant list connection is not implemented yet",
+		"deleteCandidate": "Delete choice",
+		"deleteCandidateTitle": "Delete this choice?",
+		"deleteCandidateMessage": "Hide {{name}} from the vote choices.",
+		"candidateDeleted": "Removed {{name}} from candidates",
+		"loadFailed": "Could not load the vote",
+		"refreshFailed": "Could not refresh the latest results",
+		"like": "Like",
+		"dislike": "Pass",
+		"likeButtonLabel": "Like {{title}}",
+		"dislikeButtonLabel": "Dislike {{title}}",
+		"voteProgress": "{{current}} / {{total}}",
+		"voteProgressAnnouncement": "{{current}} of {{total}}: {{title}}",
+		"noVoteCandidates": "There are no choices to vote on",
+		"completionTitle": "Confirm your vote",
+		"completionDescription": "Enter the name shown on the results page and an optional comment.",
+		"nameSuggestionLabel": "You can use one of these as your name",
+		"displayNamePlaceholder": "Nickname",
+		"commentPlaceholder": "Comment (optional)",
+		"submitVote": "Finish voting",
+		"submitting": "Submitting",
+		"submitFailed": "Could not submit your vote",
+		"participantsList": "Participants: {{names}}",
+		"noParticipants": "No participants yet",
+		"noVotes": "No votes yet"
+	},
 	"Error": {
 		"maintenanceMessage": "We are currently undergoing maintenance.",
 		"unsupportedVersion": "This version is no longer supported."
@@ -48,7 +89,18 @@
 		"currentLocation": "Current location",
 		"DistanceSlider": {
 			"near": "Near",
-			"far": "Far"
+			"far": "Far",
+			"edgeEstimate": "Estimated time to the edge of the search area",
+			"approxMinutes": "About {{minutes}} min",
+			"modes": {
+				"walk": "Walk",
+				"bike": "Bike",
+				"car": "Car",
+				"train": "Train"
+			},
+			"showMore": "Show more",
+			"showLess": "Show less",
+			"estimateHint": "Times vary by route, traffic, and waiting time"
 		},
 		"BudgetSlider": {
 			"cheap": "Cheap",
@@ -58,10 +110,18 @@
 		"errors": {
 			"fetchLocation": "Failed to fetch location",
 			"getCurrentLocation": "Failed to get current location",
+			"getCurrentLocationDenied": "Location access was denied. Please type your location in the field below.",
+			"getCurrentLocationUnsupported": "Getting your current location isn't supported here. Please type your location in the field below.",
+			"getCurrentLocationTimeout": "Getting your current location timed out. Please try again or type your location in the field below.",
 			"noLocationSelected": "Please select a location",
 			"noTimeSlotSelected": "Please select a time slot",
 			"noSceneSelected": "Please select a scene",
 			"searchFailed": "Search failed"
+		},
+		"googleMapsFallback": {
+			"message": "You can view restaurants matching your criteria on Google Maps.",
+			"confirm": "Open Google Maps",
+			"cancel": "Close"
 		},
 		"sections": {
 			"location": "Where to search?",
@@ -69,6 +129,8 @@
 			"scene": "Who are you going with?",
 			"mood": "How hungry are you?",
 			"taste": "What flavors?",
+			"diningPace": "How long will you spend?",
+			"foodStyle": "What kind of food?",
 			"distance": "How far?",
 			"budget": "Price range?",
 			"restrictions": "Restrictions"
@@ -83,6 +145,8 @@
 		"accessibility": {
 			"locationInputHint": "Enter a location to search for restaurants",
 			"clearLocation": "Clear location",
+			"useCurrentLocation": "Use current location",
+			"showTutorial": "View how to use",
 			"selectLocation": "Select this location"
 		},
 		"loading": "Searching...",
@@ -94,6 +158,12 @@
 		"labels": {
 			"noMinBudget": "No minimum",
 			"noMaxBudget": "No maximum"
+		},
+		"priceLevels": {
+			"inexpensive": "Save money",
+			"moderate": "Reasonable",
+			"expensive": "A little fancy",
+			"veryExpensive": "High-end"
 		},
 		"distanceLabels": {
 			"100m": "100m",
@@ -132,8 +202,17 @@
 			"sweet": "Sweet",
 			"spicy": "Spicy",
 			"healthy": "Healthy",
-			"junk": "Junk",
-			"alcohol": "Mostly drinks"
+			"junk": "Junk"
+		},
+		"coreIngredientOptions": {
+			"meat": "Meat",
+			"fish": "Seafood",
+			"rice": "Rice",
+			"noodle": "Noodles"
+		},
+		"diningPaceOptions": {
+			"quick": "Quick",
+			"leisurely": "Leisurely"
 		},
 		"restrictionOptions": {
 			"vegetarian": "Vegetarian",
@@ -142,6 +221,11 @@
 			"nutAllergy": "Nut allergy",
 			"seafoodAllergy": "Seafood allergy",
 			"halal": "Halal"
+		},
+		"result": {
+			"accessibility": {
+				"bulkShare": "Share all"
+			}
 		},
 		"tutorial": {
 			"page1": {
@@ -169,9 +253,44 @@
 				"primaryCta": "Use current location",
 				"secondaryCta": "Later"
 			}
+		},
+		"recentLocations": {
+			"title": "Recent locations",
+			"clear": "Clear recent locations"
 		}
 	},
 	"Topics": {
+		"deepDive": {
+			"title": "Narrow this style"
+		},
+		"tutorial": {
+			"helpLabel": "How to use this screen",
+			"helpHint": "Show the dish recommendation tutorial from the beginning",
+			"skip": "Skip",
+			"next": "Next",
+			"finish": "Start exploring",
+			"progress": "{{current}} / {{total}}",
+			"progressAccessibility": "Step {{current}} of {{total}}",
+			"steps": {
+				"swipeAndDecide": {
+					"title": "Choose a dish that catches your eye",
+					"body": "Swipe left or right to compare dishes. When you find one you want, tap “Choose this!”"
+				},
+				"deepDive": {
+					"title": "Search deeper to match your mood",
+					"body": "Still deciding? Pick a style to narrow the suggestions to similar dishes."
+				},
+				"topicActions": {
+					"title": "Make suggestions fit your taste",
+					"save": "Save: Keep a dish so you can revisit it later",
+					"block": "Block: Stop dishes you don't like from being suggested again"
+				},
+				"groupVote": {
+					"title": "Decide with friends",
+					"body": "Share the suggestions with the people joining you and vote together."
+				}
+			}
+		},
 		"HideTopicModal": {
 			"title": "Hide",
 			"description": "Please tell us the reason for hiding (optional)",
@@ -197,6 +316,7 @@
 			"confirm": "Block"
 		},
 		"blockedMessage": "Blocked {{title}}",
+		"savedMessage": "Saved",
 		"reloadDialog": {
 			"title": "Find more options?",
 			"message": "There are only a few recommendations right now. We will search again with the same conditions.",
@@ -206,7 +326,13 @@
 		"imageLoadFailed": "Failed to load image",
 		"tapToReload": "Tap to reload",
 		"headerTitle": "Recommended Dishes for You",
-		"subCopy": "Tap on a dish you like to find restaurants"
+		"subCopy": "Tap on a dish you like to find restaurants",
+		"accessibility": {
+			"blockTopic": "Remove {{title}} from recommendations",
+			"saveTopic": "Save {{title}}",
+			"unsaveTopic": "Unsave {{title}}",
+			"thumbnail": "{{title}} thumbnail, {{index}} of {{total}}"
+		}
 	},
 	"Notifications": {
 		"title": "Notifications",
@@ -243,6 +369,16 @@
 		"buttons": {
 			"viewRestaurant": "View restaurant"
 		},
+		"accessibility": {
+			"viewRestaurant": "View {{name}}'s restaurant details",
+			"likeActive": "Unlike {{name}}",
+			"likeInactive": "Like {{name}}",
+			"saveActive": "Unsave {{name}}",
+			"saveInactive": "Save {{name}}",
+			"share": "Share {{name}}",
+			"openMap": "Open map for {{name}}",
+			"reviewLike": "Like {{username}}'s review"
+		},
 		"processing": "Processing media...",
 		"errors": {
 			"mapOpenFailed": "Could not open map application",
@@ -254,6 +390,11 @@
 	},
 	"ImageCardGrid": {
 		"openItemDetails": "Open item details"
+	},
+	"Stars": {
+		"accessibility": {
+			"rating": "Rating {{rating}}/5"
+		}
 	},
 	"Tabs": {
 		"home": "Home",
@@ -271,13 +412,17 @@
 		}
 	},
 	"Profile": {
+		"tabGroups": {
+			"reviews": "Reviews",
+			"saved": "Saved",
+			"liked": "Liked",
+			"wallet": "Wallet"
+		},
 		"tabs": {
 			"deposits": "Deposits",
 			"earnings": "Earnings",
-			"topics": "Topics",
-			"posts": "Posts",
 			"saved-posts": "Posts",
-			"saved-topics": "Topics",
+			"saved-topics": "Dishes",
 			"wallet-deposit": "Deposits",
 			"wallet-earning": "Earnings"
 		},
@@ -316,7 +461,8 @@
 			"follow": "Follow",
 			"following": "Following",
 			"message": "Message",
-			"searchByMood": "Find dishes you'll \"like\" based on today's mood",
+			"searchForReview": "Find a restaurant to review",
+			"searchByMood": "Search by today's mood",
 			"sendFeedback": "Send Feedback"
 		},
 		"stats": {
@@ -348,7 +494,8 @@
 			"displayNameRequired": "Display name is required",
 			"displayNameLength": "Display name must be 30 characters or less",
 			"bioLength": "Bio must be 150 characters or less"
-		}
+		},
+		"guestDisplayName": "Guest"
 	},
 	"NotFound": {
 		"title": "Oops!",
@@ -431,6 +578,7 @@
 			"dishCategoryNoResults": "No matching dish categories found",
 			"dishCategoryInputHint": "Enter a dish category to search",
 			"clearDishCategory": "Clear dish category",
+			"useCurrentLocation": "Use current location",
 			"selectDishCategory": "Select this dish category"
 		},
 		"errors": {
@@ -561,6 +709,8 @@
 		"copyright": "Copyright",
 		"legalDocument": "Legal Document",
 		"logout": "Logout",
+		"logoutConfirmTitle": "Log out?",
+		"logoutConfirmMessage": "You'll need to log in again to manage your posts and reviews.",
 		"blockedTopics": {
 			"navigationLabel": "Blocked dish topics",
 			"pageTitle": "Blocked dish topics",

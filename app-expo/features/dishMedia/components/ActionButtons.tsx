@@ -40,26 +40,43 @@ export function ActionButtons({ id, idType, onLayout, buttonsGesture }: ActionBu
 	const router = useRouter();
 	const { locale } = useLocale();
 
+	// #940 【修正】entry 未取得時に throw する前に理由を記録する。throw 自体は残す
+	// (このコンポーネントは entry の存在を前提に構築されており、無ければ描画できないため)。
+	// ErrorBoundary(親の DishMediaMap.renderCarouselItem に設置済み)がこの throw を捕捉する
 	const selector = useCallback(
 		(state: DishMediaEntriesStore) => {
 			const entry = idType === "dish_media" ? selectEntryByMediaId(id)(state) : selectEntryByReviewId(id)(state);
-			if (!entry) throw new Error("ActionButtons: entry is undefined");
+			if (!entry) {
+				logFrontendEvent({
+					event_name: "action_buttons_entry_missing",
+					error_level: "error",
+					payload: { id, idType, context: "selector" },
+				});
+				throw new Error("ActionButtons: entry is undefined");
+			}
 			return {
 				isSaved: entry.dish_media.isSaved,
 				isLiked: entry.dish_media.isLiked,
 				likeCount: entry.dish_media.likeCount,
 			};
 		},
-		[id, idType],
+		[id, idType, logFrontendEvent],
 	);
 	const { isSaved, isLiked, likeCount } = useDishMediaEntriesStore(selector, shallow);
 
 	const { dishMediaId, restaurant } = useMemo(() => {
 		const state = useDishMediaEntriesStore.getState(); // ← subscribe しない snapshot 読み
 		const entry = idType === "dish_media" ? selectEntryByMediaId(id)(state) : selectEntryByReviewId(id)(state);
-		if (!entry) throw new Error("ActionButtons: entry is undefined");
+		if (!entry) {
+			logFrontendEvent({
+				event_name: "action_buttons_entry_missing",
+				error_level: "error",
+				payload: { id, idType, context: "memo" },
+			});
+			throw new Error("ActionButtons: entry is undefined");
+		}
 		return { dishMediaId: entry.dish_media.id, restaurant: entry.restaurant };
-	}, [id, idType]);
+	}, [id, idType, logFrontendEvent]);
 
 	// #613 【設計】ActionButtons の押下処理を hooks で共通化
 	const { openInGoogleMaps, shareRestaurant } = useDishMediaActions({
@@ -286,34 +303,74 @@ export function ActionButtons({ id, idType, onLayout, buttonsGesture }: ActionBu
 	return (
 		<GestureDetector gesture={buttonsGesture}>
 			<View style={styles.rightActions} onLayout={handleLayout}>
-				<TouchableOpacity style={styles.actionButton} onPress={handleViewRestaurant} hitSlop={buttonHitSlop}>
+				<TouchableOpacity
+					style={styles.actionButton}
+					onPress={handleViewRestaurant}
+					hitSlop={buttonHitSlop}
+					accessibilityRole="button"
+					accessibilityLabel={i18n.t("DishMediaContent.accessibility.viewRestaurant", { name: restaurant.name })}>
 					<Image
 						source={{ uri: restaurant.imageUrls?.sm, cacheKey: getCacheKeyForImage(restaurant.imageUrls?.sm) }}
 						style={styles.restaurantAvatar}
 						onError={() => console.log("Failed to load restaurant avatar")}
+						// #937 【仕様】店舗名を伝える情報画像として alt/accessibilityLabel を付与する(ボタン自体のrole/labelは#939で対応)
+						alt={restaurant.name}
+						accessibilityLabel={restaurant.name}
 					/>
 				</TouchableOpacity>
 
 				<View style={styles.actionContainer}>
-					<TouchableOpacity style={styles.actionButton} onPress={handleLike} hitSlop={buttonHitSlop}>
+					{/* #1031 【設計】Detox から状態(いいね済みか)を検証できるよう、状態別の accessibilityLabel を付与 */}
+					<TouchableOpacity
+						testID="dish-action-like"
+						style={styles.actionButton}
+						onPress={handleLike}
+						hitSlop={buttonHitSlop}
+						accessibilityRole="button"
+						accessibilityLabel={i18n.t(
+							isLiked ? "DishMediaContent.accessibility.likeActive" : "DishMediaContent.accessibility.likeInactive",
+							{ name: restaurant.name },
+						)}
+						aria-selected={isLiked}>
 						<Heart size={28} color={isLiked ? "#FF3040" : "#FFFFFF"} fill={isLiked ? "#FF3040" : "white"} />
 					</TouchableOpacity>
 					<Text style={styles.actionText}>{formatLikeCount(likeCount)}</Text>
 				</View>
 
-				<TouchableOpacity style={styles.actionButton} onPress={handleSave} hitSlop={buttonHitSlop}>
+				{/* #1031 【設計】Detox から状態(保存済みか)を検証できるよう、状態別の accessibilityLabel を付与 */}
+				<TouchableOpacity
+					testID="dish-action-save"
+					style={styles.actionButton}
+					onPress={handleSave}
+					hitSlop={buttonHitSlop}
+					accessibilityRole="button"
+					accessibilityLabel={i18n.t(
+						isSaved ? "DishMediaContent.accessibility.saveActive" : "DishMediaContent.accessibility.saveInactive",
+						{ name: restaurant.name },
+					)}
+					aria-selected={isSaved}>
 					<Bookmark size={30} color={"transparent"} fill={isSaved ? "orange" : "white"} />
 				</TouchableOpacity>
 
 				<View style={styles.actionContainer}>
-					<TouchableOpacity style={styles.actionButton} onPress={handleSharePress} hitSlop={buttonHitSlop}>
+					<TouchableOpacity
+						style={styles.actionButton}
+						onPress={handleSharePress}
+						hitSlop={buttonHitSlop}
+						accessibilityRole="button"
+						accessibilityLabel={i18n.t("DishMediaContent.accessibility.share", { name: restaurant.name })}>
 						<Share size={28} color="#FFFFFF" />
 					</TouchableOpacity>
 					<Text style={styles.actionText}>{i18n.t("DishMediaContent.actions.share")}</Text>
 				</View>
 
 				<View style={styles.actionContainer}>
-					<TouchableOpacity style={styles.actionButton} onPress={handleMapPinPress} hitSlop={buttonHitSlop}>
+					<TouchableOpacity
+						style={styles.actionButton}
+						onPress={handleMapPinPress}
+						hitSlop={buttonHitSlop}
+						accessibilityRole="button"
+						accessibilityLabel={i18n.t("DishMediaContent.accessibility.openMap", { name: restaurant.name })}>
 						<MapPinned size={28} color="#FFFFFF" />
 					</TouchableOpacity>
 					<Text style={styles.actionText}>{i18n.t("DishMediaContent.actions.openMap")}</Text>
@@ -335,7 +392,9 @@ export function ActionButtons({ id, idType, onLayout, buttonsGesture }: ActionBu
 								onPress={() => {
 									option.onPress();
 									closeMenuModal();
-								}}>
+								}}
+								accessibilityRole="button"
+								accessibilityLabel={option.label}>
 								<option.icon size={20} color="#FFFFFF" />
 								<Text style={styles.menuItemText}>{option.label}</Text>
 							</TouchableOpacity>

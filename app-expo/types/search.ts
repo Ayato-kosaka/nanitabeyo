@@ -1,10 +1,12 @@
-import type { DishMediaEntry, LocationDetailsResponse } from "@shared/api/v1/res";
+import type { DishCategoryDeepDiveFeature, DishMediaEntry, LocationDetailsResponse } from "@shared/api/v1/res";
 
 export type SearchParams = Omit<LocationDetailsResponse, "viewport"> & {
 	timeSlot: "morning" | "lunch" | "dinner" | "late_night";
 	scene: "solo" | "date" | "friends" | "family" | "drinking";
 	mood?: "light" | "normal" | "heavy";
-	taste?: "sweet" | "spicy" | "healthy" | "junk" | "alcohol";
+	taste?: "sweet" | "spicy" | "healthy" | "junk";
+	coreIngredient?: "meat" | "fish" | "rice" | "noodle";
+	diningPace?: "quick" | "leisurely";
 	distance: number; // meters
 	priceLevels: string[]; // price levels
 	locationQuery: string; // #674 【仕様】検索画面で入力されたロケーション表示用文字列
@@ -17,5 +19,8 @@ export interface Topic {
 	reason: string;
 	categoryId: string;
 	imageUrl: string;
+	deepDiveFeatures?: DishCategoryDeepDiveFeature[];
 	isHidden?: boolean;
+	/** #954 推薦API取得時点でユーザーが既に保存済みか。カード再訪時の初期表示に使う */
+	isSaved?: boolean;
 }

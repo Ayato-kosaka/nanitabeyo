@@ -433,11 +433,13 @@ export class DishesService {
     const ordered = Array.from(merged.values());
     const preferred = ordered.filter(
       (review) =>
-        normalizeLanguageCode(review.originalText?.languageCode) === preferredCode,
+        normalizeLanguageCode(review.originalText?.languageCode) ===
+        preferredCode,
     );
     const fallback = ordered.filter(
       (review) =>
-        normalizeLanguageCode(review.originalText?.languageCode) !== preferredCode,
+        normalizeLanguageCode(review.originalText?.languageCode) !==
+        preferredCode,
     );
 
     // #636 【設計】preferred language があれば先頭に寄せ、なければ従来 fallback に任せる

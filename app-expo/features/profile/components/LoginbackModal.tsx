@@ -132,7 +132,7 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 	);
 
 	return (
-		<View style={styles.container}>
+		<View style={styles.container} testID="login-modal">
 			<View style={styles.header}>
 				<Text style={styles.title}>{i18n.t("auth.login_title")}</Text>
 			</View>
@@ -195,6 +195,7 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 			{/* OAuth Buttons */}
 			<View style={styles.oauthContainer}>
 				<PrimaryButton
+					testID="login-google-button"
 					label={i18n.t("auth.provider_google")}
 					icon={
 						<Image
@@ -235,6 +236,7 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 					nativeLoadingColor={"#1A1A1A"}
 				/> */}
 				<PrimaryButton
+					testID="login-apple-button"
 					label={i18n.t("auth.provider_apple")}
 					icon={
 						<Image
@@ -263,7 +265,11 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 						{i18n.t("auth.consent_login_terms")}
 					</Text>
 					{i18n.t("auth.consent_login_and")}
-					<Text style={styles.consentLink} onPress={() => handleOpenLegalDocument("privacy")}>
+					{/* #1031 【設計】Detox からリーガルモーダルへの導線をタップできるよう testID を追加 */}
+					<Text
+						testID="login-privacy-link"
+						style={styles.consentLink}
+						onPress={() => handleOpenLegalDocument("privacy")}>
 						{i18n.t("auth.consent_login_privacy")}
 					</Text>
 					{i18n.t("auth.consent_login_suffix")}
@@ -283,8 +289,13 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 			</OtpModalComponent>
 
 			{/* Legal ドキュメントモーダル */}
+			{/* #1031 【設計】Detox からモーダル表示を検証できるよう testID を追加 */}
 			<LegalDocumentModal>
-				{selectedLegalDocument && <LegalDocument documentType={selectedLegalDocument} />}
+				{selectedLegalDocument && (
+					<View testID="legal-document-modal">
+						<LegalDocument documentType={selectedLegalDocument} />
+					</View>
+				)}
 			</LegalDocumentModal>
 		</View>
 	);

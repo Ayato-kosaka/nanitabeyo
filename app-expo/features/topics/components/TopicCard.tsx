@@ -1,43 +1,88 @@
-import React, { useState, useRef, useEffect } from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { Image } from "expo-image";
-import { Bookmark, ImageOff, Ban, RefreshCw } from "lucide-react-native";
+import React, { useCallback } from "react";
+import { Text, TouchableOpacity, StyleSheet, View } from "react-native";
+import { router } from "expo-router";
+import { Bookmark, Ban } from "lucide-react-native";
 import { Topic } from "@/types/search";
-import { CARD_WIDTH } from "@/features/topics/constants";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
+import { useLocale } from "@/hooks/useLocale";
+import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { toggleReaction } from "@/lib/reactions";
-import { useTopicsStore } from "@/stores/useTopicsStore";
+import { TopicsStore, selectIsTopicSaved, useTopicsStore } from "@/stores/useTopicsStore";
 import { profileSavedTopicsEntriesKey } from "@/features/profile/tabs/SavedTopicsTab";
-import { SkeletonShimmer } from "@/components/SkeletonShimmer";
 import i18n from "@/lib/i18n";
 import { type TopicImageResourceState } from "@/features/topics/hooks/useTopicImageResources";
+import type { TopicsTutorialTargetRefs } from "@/features/topics/types/tutorial";
+import { TopicVisualCard } from "./TopicVisualCard";
+
+export type TopicDeepDiveOption = {
+	key: string;
+	label: string;
+	featureType: string;
+	featureKey: string;
+};
+
+export const TOPIC_CARD_CTA_OVERHANG = 14;
 
 export const TopicCard = ({
 	item,
 	onBlock,
-	displayIndex,
+	onDeepDive,
+	onSelect,
+	deepDiveOptions = [],
+	cardWidth,
 	cardHeight,
 	imageState,
+	isSelecting = false,
 	onImageRetry,
+	onImageLoadError,
+	tutorialTargetRefs,
 }: {
 	item: Topic;
-	onBlock: (id: string) => void;
-	displayIndex?: number;
+	onBlock: (topic: Topic) => void;
+	onDeepDive?: (topic: Topic, option: TopicDeepDiveOption) => void;
+	onSelect: (topic: Topic) => void;
+	deepDiveOptions?: TopicDeepDiveOption[];
+	// #958 【修正】CARD_WIDTH の直接 import(window幅固定・中央カラム幅と不一致)をやめ、
+	// cardHeight と同様に呼び出し元(topics.tsx)から算出済みの値を受け取る
+	cardWidth: number;
 	cardHeight: number;
 	imageState: TopicImageResourceState;
+	isSelecting?: boolean;
 	onImageRetry?: (topic: Topic) => void;
+	/** #929 【設計】表示側 <Image> の読み込み失敗通知(TopicVisualCard から中継) */
+	onImageLoadError?: (topic: Topic) => void;
+	/**
+	 * アクティブなCarouselカードにだけ渡すチュートリアル用ref。
+	 *
+	 * 非表示カードにも同じrefを渡すと、Carouselの事前描画・再利用により
+	 * 画面外カードの座標で上書きされるため、親画面でactive indexを判定する。
+	 */
+	tutorialTargetRefs?: Pick<TopicsTutorialTargetRefs, "swipeArea" | "selectCta" | "deepDive" | "topicActions">;
 }) => {
-	const [isSaved, setIsSaved] = useState(false);
-	const { lightImpact, errorNotification } = useHaptics();
+	// #1007 【設計】isSaved をローカル useState ではなく useTopicsStore の savedByTopicId から
+	// 購読する（ActionButtons.tsx と同じ per-entity selector パターン）。Carousel の key 撤去で
+	// カードが再利用されても、topic.categoryId 単位の状態としてstore側に保持されるため引き継がれる。
+	// store未登録時はサーバの保存状態(item.isSaved)を fallback とする。
+	const selectIsSaved = useCallback(
+		(state: TopicsStore) => selectIsTopicSaved(item.categoryId, item.isSaved ?? false)(state),
+		[item.categoryId, item.isSaved],
+	);
+	const isSaved = useTopicsStore(selectIsSaved);
+	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
+	const { locale } = useLocale();
+	const { showSnackbar } = useSnackbar();
+
+	// #973【設計】3件表示時は折り返さず1行に収める。1〜2件は内容幅で主CTAより確実に小さく見せる
+	const isThreeDeepDiveChips = deepDiveOptions.length >= 3;
 
 	const handleSave = async () => {
 		const willSave = !isSaved;
 		lightImpact();
-		setIsSaved(willSave);
 
-		const { updateTopicIdsByKey, upsertTopics } = useTopicsStore.getState();
+		const { setTopicSaved, updateTopicIdsByKey, upsertTopics } = useTopicsStore.getState();
+		setTopicSaved(item.categoryId, willSave);
 
 		try {
 			await toggleReaction({
@@ -61,13 +106,29 @@ export const TopicCard = ({
 					const without = prev.filter((id) => id !== item.categoryId);
 					return [item.categoryId, ...without];
 				});
+				// #954 【仕様】保存操作のみ完了フィードバックを出す(解除は状態変化が見た目で分かるため省略)
+				// #954 【修正】保存したのは料理トピックなので、遷移先は既定の「投稿」タブではなく
+				// 「トピック」タブ(tab=saved-topics)を明示する(レビュー指摘)。
+				// tabRequest は同じタブへの2回目以降の遷移でも切替を発火させるためのリクエスト識別子
+				showSnackbar(i18n.t("Topics.savedMessage"), {
+					action: {
+						label: i18n.t("Common.view"),
+						onPress: () =>
+							router.push({
+								pathname: "/[locale]/(tabs)/profile",
+								params: { locale, tab: "saved-topics", tabRequest: String(Date.now()) },
+							}),
+					},
+				});
 			} else {
 				updateTopicIdsByKey(profileSavedTopicsEntriesKey, (prev) => prev.filter((id) => id !== item.categoryId));
 			}
 		} catch (error) {
+			// #954 【仕様】保存APIが失敗した場合、見た目だけ切り替わったままにせず表示を元に戻す
+			setTopicSaved(item.categoryId, !willSave);
 			logFrontendEvent({
 				event_name: "topic_save_reaction_failed",
-				error_level: "log",
+				error_level: "error",
 				payload: {
 					error: error instanceof Error ? error.message : String(error),
 					target_id: item.categoryId,
@@ -75,183 +136,165 @@ export const TopicCard = ({
 					willReact: willSave,
 				},
 			});
+			showSnackbar(i18n.t("Common.error"));
 		}
 	};
 
-	const handleBlock = async () => {
-		errorNotification();
-		onBlock(item.categoryId);
+	const handleBlock = () => {
+		onBlock(item);
 	};
-
-	// impression ログ送信済みフラグ（重複防止用）
-	const impressionLoggedRef = useRef(false);
-
-	// ログ追加【仕様】topic_impression ログ送信（カード表示時に1回のみ）
-	useEffect(() => {
-		if (!impressionLoggedRef.current) {
-			impressionLoggedRef.current = true;
-			logFrontendEvent({
-				event_name: "topic_impression",
-				error_level: "log",
-				payload: {
-					topic_id: item.categoryId,
-					display_index: displayIndex ?? null,
-				},
-			});
-		}
-	}, [item.categoryId, displayIndex, logFrontendEvent]);
-
-	// #802 【バグ】error 時は failure UI を優先し、skeleton は loading 中だけ表示する
-	const shouldShowSkeleton = imageState.status === "idle" || imageState.status === "loading";
-	const shouldShowFailureUI = imageState.status === "error";
 
 	return (
-		<View style={[styles.card, { height: cardHeight }]}>
-			{/* #802 【設計】ready済みのImageRefを直接渡し、Carousel内Imageのloadイベントに依存しない */}
-			{imageState.status === "ready" ? (
-				<Image
-					source={imageState.image}
-					cachePolicy="memory"
-					transition={100}
-					style={styles.cardImage}
-					recyclingKey={item.categoryId}
-				/>
-			) : (
-				<View style={styles.cardImage} />
-			)}
-
-			{/* #615 【UX】画像ロード中のスケルトン表示 */}
-			{shouldShowSkeleton && (
-				<View style={styles.skeletonOverlay}>
-					<SkeletonShimmer width="100%" height="100%" borderRadius={24} />
-				</View>
-			)}
-
-			{/* Content Overlay */}
-			<View style={styles.cardOverlay}>
-				{/* #615 【UX】画像ロード失敗時の UI（アイコン + 再読み込み導線） */}
-				{shouldShowFailureUI && (
-					<View style={styles.failureOverlay}>
-						<View style={styles.failureContent}>
-							<ImageOff size={48} color="#FFF" strokeWidth={1.5} />
-							<Text style={styles.failureText}>{i18n.t("Topics.imageLoadFailed")}</Text>
-							{onImageRetry && (
-								<TouchableOpacity style={styles.retryButton} onPress={() => onImageRetry(item)} activeOpacity={0.8}>
-									<RefreshCw size={16} color="#FFF" />
-									<Text style={styles.retryText}>{i18n.t("Topics.tapToReload")}</Text>
+		<View style={[styles.cardPressArea, { width: cardWidth, height: cardHeight + TOPIC_CARD_CTA_OVERHANG }]}>
+			{/* measureInWindowの基準を安定させるため、Touchableではなく明示的なViewを計測する。 */}
+			<View
+				ref={tutorialTargetRefs?.swipeArea}
+				collapsable={false}
+				testID={tutorialTargetRefs ? "topics-tutorial-target-swipe" : undefined}>
+				<TouchableOpacity onPress={() => onSelect(item)} activeOpacity={0.95}>
+					<TopicVisualCard
+						title={item.topicTitle}
+						tagline={item.reason}
+						imageSource={{ uri: item.imageUrl }}
+						cardWidth={cardWidth}
+						cardHeight={cardHeight}
+						imageState={imageState}
+						recyclingKey={item.categoryId}
+						onImageRetry={onImageRetry ? () => onImageRetry(item) : undefined}
+						onImageLoadError={onImageLoadError ? () => onImageLoadError(item) : undefined}
+						bottomContent={
+							<View style={styles.bottomContent}>
+								{deepDiveOptions.length > 0 ? (
+									<View
+										ref={tutorialTargetRefs?.deepDive}
+										collapsable={false}
+										style={styles.deepDiveContainer}
+										testID={tutorialTargetRefs ? "topics-tutorial-target-deep-dive" : undefined}>
+										<View style={styles.deepDiveTitleRow}>
+											<View style={styles.deepDiveTitleLine} />
+											<Text style={styles.deepDiveTitle}>{i18n.t("Topics.deepDive.title")}</Text>
+											<View style={styles.deepDiveTitleLine} />
+										</View>
+										<View style={[styles.deepDiveChips, isThreeDeepDiveChips && styles.deepDiveChipsRow]}>
+											{deepDiveOptions.map((option) => (
+												<TouchableOpacity
+													key={option.key}
+													style={[styles.deepDiveChip, isThreeDeepDiveChips && styles.deepDiveChipThird]}
+													hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+													onPress={(event) => {
+														event.stopPropagation();
+														onDeepDive?.(item, option);
+													}}
+													activeOpacity={0.8}>
+													<Text style={styles.deepDiveChipText}>{option.label}</Text>
+												</TouchableOpacity>
+											))}
+										</View>
+									</View>
+								) : null}
+								<View style={styles.ctaSpacer} />
+							</View>
+						}
+						topRightContent={
+							<View
+								ref={tutorialTargetRefs?.topicActions}
+								collapsable={false}
+								style={styles.topicActions}
+								testID={tutorialTargetRefs ? "topics-tutorial-target-actions" : undefined}>
+								<TouchableOpacity
+									style={styles.topButton}
+									onPress={(event) => {
+										event.stopPropagation();
+										void handleSave();
+									}}
+									accessibilityRole="button"
+									accessibilityState={{ selected: isSaved }}
+									accessibilityLabel={i18n.t(
+										isSaved ? "Topics.accessibility.unsaveTopic" : "Topics.accessibility.saveTopic",
+										{ title: item.topicTitle },
+									)}>
+									<Bookmark
+										size={20}
+										color={isSaved ? "transparent" : "white"}
+										fill={isSaved ? "orange" : "transparent"}
+									/>
 								</TouchableOpacity>
-							)}
-						</View>
-					</View>
-				)}
-
-				{/* Top Buttons */}
-				<View style={styles.topButtons}>
-					<TouchableOpacity style={styles.topButton} onPress={handleSave}>
-						<Bookmark size={20} color={isSaved ? "transparent" : "white"} fill={isSaved ? "orange" : "transparent"} />
-					</TouchableOpacity>
-					{/* <TouchableOpacity style={styles.topButton} onPress={handleHide}>
-						<Trash size={18} color="#FFF" />
-					</TouchableOpacity> */}
-					<TouchableOpacity
-						style={styles.topButton}
-						onPress={handleBlock}
-						accessibilityRole="button"
-						accessibilityLabel={i18n.t("Topics.BlockTopicModal.title")}>
-						<Ban size={18} color="#FFF" />
-					</TouchableOpacity>
-				</View>
-
-				{/* Content */}
-				<View style={styles.cardContent}>
-					<Text style={styles.cardTitle}>{item.topicTitle}</Text>
-					<Text style={styles.cardDescription}>{item.reason}</Text>
-				</View>
+								<TouchableOpacity
+									style={styles.topButton}
+									onPress={(event) => {
+										event.stopPropagation();
+										void handleBlock();
+									}}
+									accessibilityRole="button"
+									accessibilityLabel={i18n.t("Topics.accessibility.blockTopic", { title: item.topicTitle })}>
+									<Ban size={18} color="#FFF" />
+								</TouchableOpacity>
+							</View>
+						}
+					/>
+				</TouchableOpacity>
+			</View>
+			<View
+				ref={tutorialTargetRefs?.selectCta}
+				collapsable={false}
+				style={styles.selectButtonTarget}
+				testID={tutorialTargetRefs ? "topics-tutorial-target-select" : undefined}>
+				{/* #1031 【設計】カルーセルで複数カードが同時マウントされるため atIndex(0) で先頭を指定できるよう testID を追加 */}
+				<TouchableOpacity
+					testID="topics-choose-button"
+					style={[styles.selectButton, isSelecting && styles.selectButtonDisabled]}
+					onPress={() => onSelect(item)}
+					disabled={isSelecting}
+					activeOpacity={0.85}
+					accessibilityRole="button"
+					accessibilityState={{ disabled: isSelecting }}
+					accessibilityLabel={i18n.t("Topics.chooseThis")}>
+					<Text style={styles.selectButtonText}>{i18n.t("Topics.chooseThis")}</Text>
+				</TouchableOpacity>
 			</View>
 		</View>
 	);
 };
 
 const styles = StyleSheet.create({
-	card: {
-		width: CARD_WIDTH,
-		borderRadius: 24,
-		overflow: "hidden",
-		backgroundColor: "#EEE",
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 0 },
-		shadowOpacity: 0.3,
-		shadowRadius: 32,
-		elevation: 12,
+	cardPressArea: {
 		position: "relative",
 	},
-	cardImage: {
-		width: "100%",
-		height: "100%",
+	bottomContent: {
+		gap: 10,
 	},
-	// #615 【UX】スケルトン表示用の絶対配置オーバーレイ
-	skeletonOverlay: {
+	ctaSpacer: {
+		height: 16,
+	},
+	selectButtonTarget: {
 		position: "absolute",
-		top: 0,
-		left: 0,
-		right: 0,
+		left: "10%",
+		right: "10%",
 		bottom: 0,
-		zIndex: 1,
+		zIndex: 10,
 	},
-	// #615 【UX】画像ロード失敗時のオーバーレイ
-	failureOverlay: {
-		position: "absolute",
-		top: 0,
-		left: 0,
-		right: 0,
-		bottom: 0,
-		justifyContent: "center",
-		alignItems: "center",
-		zIndex: 2,
-	},
-	failureContent: {
-		alignItems: "center",
-		gap: 16,
-	},
-	failureText: {
-		fontSize: 16,
-		color: "#FFF",
-		fontWeight: "600",
-		textAlign: "center",
-	},
-	retryButton: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 8,
-		backgroundColor: "rgba(0, 0, 0, 0.3)",
-		paddingHorizontal: 20,
-		paddingVertical: 12,
+	selectButton: {
+		minHeight: 52,
 		borderRadius: 24,
+		alignItems: "center",
+		justifyContent: "center",
+		backgroundColor: "#F05537",
 	},
-	retryText: {
-		fontSize: 14,
-		color: "#FFF",
-		fontWeight: "600",
+	selectButtonDisabled: {
+		opacity: 0.55,
 	},
-	cardOverlay: {
-		position: "absolute",
-		top: 0,
-		left: 0,
-		right: 0,
-		bottom: 0,
-		backgroundColor: "rgba(0, 0, 0, 0.1)",
-		padding: 24,
-		justifyContent: "space-between",
-		zIndex: 3,
-	},
-	topButtons: {
-		alignSelf: "flex-end",
-		gap: 12,
-		zIndex: 4,
+	selectButtonText: {
+		color: "#FFFFFF",
+		fontSize: 17,
+		fontWeight: "800",
+		letterSpacing: 0.2,
 	},
 	topButton: {
 		flexDirection: "row",
 		alignItems: "center",
+		justifyContent: "center",
+		minWidth: 44,
+		minHeight: 44,
 		backgroundColor: "rgba(0, 0, 0, 0.3)",
 		paddingHorizontal: 16,
 		paddingVertical: 10,
@@ -263,30 +306,73 @@ const styles = StyleSheet.create({
 		shadowRadius: 4,
 		elevation: 4,
 	},
-	cardContent: {
+	topicActions: {
+		gap: 12,
+	},
+	deepDiveContainer: {
+		marginTop: 10,
+		gap: 8,
+		paddingBottom: 6,
+	},
+	deepDiveTitleRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 12,
+	},
+	deepDiveTitleLine: {
 		flex: 1,
-		justifyContent: "flex-end",
-		zIndex: 1,
+		height: 1,
+		backgroundColor: "rgba(255, 255, 255, 0.75)",
 	},
-	cardTitle: {
-		fontSize: 32,
-		fontWeight: "700",
+	deepDiveTitle: {
 		color: "#FFFFFF",
-		marginBottom: 16,
-		textShadowColor: "rgba(0, 0, 0, 0.8)",
-		textShadowOffset: { width: 0, height: 2 },
-		textShadowRadius: 4,
-		lineHeight: 40,
-		letterSpacing: -0.5,
-	},
-	cardDescription: {
-		fontSize: 18,
-		color: "#FFFFFF",
-		lineHeight: 28,
-		marginBottom: 16,
-		textShadowColor: "rgba(0, 0, 0, 0.8)",
+		fontSize: 13,
+		fontWeight: "800",
+		textAlign: "center",
+		textShadowColor: "rgba(0, 0, 0, 0.9)",
 		textShadowOffset: { width: 0, height: 1 },
 		textShadowRadius: 3,
-		fontWeight: "500",
+	},
+	deepDiveChips: {
+		flexDirection: "row",
+		flexWrap: "wrap",
+		justifyContent: "center",
+		alignSelf: "center",
+		// #973【設計】主CTA(左右10%インセット=横幅80%)より確実に狭くし、深堀チップ行が主CTAより目立たないようにする(1〜2件時)
+		maxWidth: "76%",
+		gap: 8,
+	},
+	// #973【設計】3件時は折り返さず1行に収める。flex:1による均等割りはWebでチップが
+	// 不当に縮み文字が視認できなくなる問題があったため、固定%幅＋定幅の行コンテナに戻した
+	deepDiveChipsRow: {
+		flexWrap: "nowrap",
+		alignSelf: "center",
+		justifyContent: "space-between",
+		width: "94%",
+		maxWidth: undefined,
+	},
+	deepDiveChip: {
+		borderWidth: 1,
+		borderColor: "rgba(255, 255, 255, 0.92)",
+		backgroundColor: "rgba(255, 255, 255, 0.32)",
+		paddingHorizontal: 12,
+		paddingVertical: 7,
+		borderRadius: 14,
+		minHeight: 32,
+		justifyContent: "center",
+		alignItems: "center",
+	},
+	deepDiveChipThird: {
+		width: "31%",
+		paddingHorizontal: 6,
+	},
+	deepDiveChipText: {
+		color: "#FFFFFF",
+		fontSize: 13,
+		fontWeight: "800",
+		textAlign: "center",
+		textShadowColor: "rgba(0, 0, 0, 0.7)",
+		textShadowOffset: { width: 0, height: 1 },
+		textShadowRadius: 2,
 	},
 });
