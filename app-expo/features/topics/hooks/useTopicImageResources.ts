@@ -18,7 +18,12 @@ type TopicImageResourceStates = Record<string, TopicImageResourceState>;
 type UseTopicImageResourcesParams = {
 	topics: Topic[];
 	sessionKey: string;
+	// #1010 【設計】現在アクティブなカードのindex。プリロード範囲を activeIndex 基準に絞るために使う。
+	activeIndex: number;
 };
+
+// #1010 【設計】アクティブカードの前後何枚分を同時にプリロードするか。
+const PRELOAD_RADIUS = 2;
 
 const getTopicImageKey = (topic: Topic) => `${topic.categoryId}::${topic.imageUrl}`;
 
@@ -41,7 +46,7 @@ const releaseIfImageRef = (image: ImageRef | ImageSource) => {
  * 副作用: 未取得画像を Image.loadAsync で先読みし、失敗時は error state として保持する。
  * 失敗時: 古い session の非同期結果は破棄し、現在 session の state のみ更新する。
  */
-export const useTopicImageResources = ({ topics, sessionKey }: UseTopicImageResourcesParams) => {
+export const useTopicImageResources = ({ topics, sessionKey, activeIndex }: UseTopicImageResourcesParams) => {
 	const { logFrontendEvent } = useLogger();
 	const topicImageStatesRef = useRef<TopicImageResourceStates>({});
 	const imageLoadGenerationRef = useRef(0);
@@ -205,15 +210,21 @@ export const useTopicImageResources = ({ topics, sessionKey }: UseTopicImageReso
 		resetImageStates();
 	}, [sessionKey, resetImageStates]);
 
+	// #1010 【設計】全topics無条件のプリロードは検索結果の全画像を同時取得してしまうため、
+	// activeIndex を基準とした前後 PRELOAD_RADIUS 件のみを先読み対象にする。
+	// 範囲外へ出た画像の解放は resetImageStates/アンマウント時の release 経路に委ねる(二重取得はしない)。
 	useEffect(() => {
 		if (topics.length === 0) return;
-		for (const topic of topics) {
+		const start = Math.max(0, activeIndex - PRELOAD_RADIUS);
+		const end = Math.min(topics.length - 1, activeIndex + PRELOAD_RADIUS);
+		for (let i = start; i <= end; i++) {
+			const topic = topics[i];
 			const key = getTopicImageKey(topic);
 			const current = topicImageStatesRef.current[key];
 			if (current) continue;
 			void loadTopicImage(topic);
 		}
-	}, [topics, loadTopicImage]);
+	}, [topics, activeIndex, loadTopicImage]);
 
 	return useMemo(
 		() => ({

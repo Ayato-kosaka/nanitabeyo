@@ -24,6 +24,32 @@ export class LogsService {
     dto: CreateFrontendLogDto,
     userId: string,
   ): Promise<CreateFrontendLogResponseDto> {
+    await this.writeFrontendLog(dto, userId);
+    return { received: true };
+  }
+
+  /**
+   * フロントエンドログを配列で受け取り、1件ずつ AppLoggerService 経由で Cloud Logging へ出力
+   * #1011 【設計】件中1件の書き込みに失敗しても、他の件の記録は継続する（単発エンドポイントと同じ「失敗時は黙殺」方針を各件に適用）
+   * @param dtos フロントエンドログ DTO の配列
+   * @param userId 認証済みユーザーID
+   * @returns 常に { received: true } を返す
+   */
+  async createFrontendLogBatch(
+    dtos: CreateFrontendLogDto[],
+    userId: string,
+  ): Promise<CreateFrontendLogResponseDto> {
+    for (const dto of dtos) {
+      await this.writeFrontendLog(dto, userId);
+    }
+
+    return { received: true };
+  }
+
+  private async writeFrontendLog(
+    dto: CreateFrontendLogDto,
+    userId: string,
+  ): Promise<void> {
     try {
       await this.loggerService.logFrontendEvent({
         id: randomUUID(),
@@ -38,7 +64,5 @@ export class LogsService {
     } catch {
       // #487 【設計】書き込み失敗時はログ出力のみ、フロントへのエラー返却なし
     }
-
-    return { received: true };
   }
 }

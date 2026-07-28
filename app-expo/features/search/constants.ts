@@ -14,6 +14,12 @@ export const timeSlots = [
 	},
 ] as const;
 
+// #1015 【パフォーマンス】priceLevelOptionsと同型の派生Map。呼び出し側のfind()をO(1)参照に置き換える。
+export const timeSlotsById = Object.fromEntries(timeSlots.map((option) => [option.id, option])) as Record<
+	string,
+	(typeof timeSlots)[number]
+>;
+
 export const sceneOptions = [
 	{ id: "solo", label: "Search.sceneOptions.solo", icon: "👤", image: require("./assets/scenes/solo.webp") },
 	{ id: "date", label: "Search.sceneOptions.date", icon: "💕", image: require("./assets/scenes/date.webp") },
@@ -26,6 +32,11 @@ export const sceneOptions = [
 		image: require("./assets/scenes/drinking.webp"),
 	},
 ] as const;
+
+export const sceneOptionsById = Object.fromEntries(sceneOptions.map((option) => [option.id, option])) as Record<
+	string,
+	(typeof sceneOptions)[number]
+>;
 
 export const moodOptions = [
 	{ id: "light", label: "Search.moodOptions.light", icon: "🥗" },
@@ -40,12 +51,21 @@ export const tasteOptions = [
 	{ id: "junk", label: "Search.tasteOptions.junk", icon: "🍔" },
 ] as const;
 
+export const tasteOptionsById = Object.fromEntries(tasteOptions.map((option) => [option.id, option])) as Record<
+	string,
+	(typeof tasteOptions)[number]
+>;
+
 export const coreIngredientOptions = [
 	{ id: "meat", label: "Search.coreIngredientOptions.meat", icon: "🍖" },
 	{ id: "fish", label: "Search.coreIngredientOptions.fish", icon: "🐟" },
 	{ id: "rice", label: "Search.coreIngredientOptions.rice", icon: "🍚" },
 	{ id: "noodle", label: "Search.coreIngredientOptions.noodle", icon: "🍜" },
 ] as const;
+
+export const coreIngredientOptionsById = Object.fromEntries(
+	coreIngredientOptions.map((option) => [option.id, option]),
+) as Record<string, (typeof coreIngredientOptions)[number]>;
 
 export const foodStyleOptions = [
 	...tasteOptions.map((option) => ({ ...option, featureType: "taste" as const })),
@@ -56,6 +76,10 @@ export const diningPaceOptions = [
 	{ id: "quick", label: "Search.diningPaceOptions.quick", icon: "🐇" },
 	{ id: "leisurely", label: "Search.diningPaceOptions.leisurely", icon: "🐢" },
 ] as const;
+
+export const diningPaceOptionsById = Object.fromEntries(
+	diningPaceOptions.map((option) => [option.id, option]),
+) as Record<string, (typeof diningPaceOptions)[number]>;
 
 // #935 【修正】label はモジュール評価時に i18n.t() を呼んでいたため、
 // 起動時ロケールの文言で固定されロケール切替後も更新されないバグがあった

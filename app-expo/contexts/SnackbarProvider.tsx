@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode, useCallback } from "react";
+import React, { createContext, useContext, useState, ReactNode, useCallback, useMemo } from "react";
 import { StyleSheet, Text, TouchableOpacity } from "react-native";
 import { Snackbar } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -66,8 +66,12 @@ export const SnackbarProvider = ({ children }: { children: ReactNode }) => {
 		setVisible(true);
 	}, []);
 
+	// #1013 【パフォーマンス】DialogProvider/AuthProvider と同様に context value を安定化し、
+	// Snackbar表示時に無関係な consumer まで再レンダーされるのを防ぐ
+	const value = useMemo<SnackbarContextType>(() => ({ showSnackbar }), [showSnackbar]);
+
 	return (
-		<SnackbarContext.Provider value={{ showSnackbar }}>
+		<SnackbarContext.Provider value={value}>
 			{children}
 			<Snackbar
 				visible={visible}

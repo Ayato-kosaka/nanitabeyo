@@ -71,9 +71,11 @@ export function TopicVisualCard({
 			)}
 
 			<View style={styles.cardOverlay}>
+				{/* #1008 【パフォーマンス】タイトル・説明文のtextShadowを撤去した分、下部グラデーションの
+				    不透明度を上げて可読性を担保する */}
 				<LinearGradient
 					pointerEvents="none"
-					colors={["rgba(0, 0, 0, 0.00)", "rgba(0, 0, 0, 0.18)", "rgba(0, 0, 0, 0.40)"]}
+					colors={["rgba(0, 0, 0, 0.00)", "rgba(0, 0, 0, 0.32)", "rgba(0, 0, 0, 0.62)"]}
 					locations={[0, 0.58, 1]}
 					style={styles.bottomGradient}
 				/>
@@ -112,8 +114,10 @@ const styles = StyleSheet.create({
 		shadowColor: "#000",
 		shadowOffset: { width: 0, height: 0 },
 		shadowOpacity: 0.3,
-		shadowRadius: 32,
-		elevation: 12,
+		// #1008 【パフォーマンス】parallaxモードのスケール変換と重なるとAndroidでオーバードロー・
+		// ラスタライズ負荷が増えるため、shadowRadius/elevationを縮小する。
+		shadowRadius: 12,
+		elevation: 6,
 		position: "relative",
 	},
 	cardImage: {
@@ -190,14 +194,13 @@ const styles = StyleSheet.create({
 		zIndex: 1,
 		paddingBottom: 8,
 	},
+	// #1008 【パフォーマンス】textShadowはAndroidでラスタライズ負荷になるため撤去し、
+	// 可読性は上の bottomGradient の不透明度側で担保する。
 	cardTitle: {
 		fontSize: 32,
 		fontWeight: "700",
 		color: "#FFFFFF",
 		marginBottom: 16,
-		textShadowColor: "rgba(0, 0, 0, 0.8)",
-		textShadowOffset: { width: 0, height: 2 },
-		textShadowRadius: 4,
 		lineHeight: 40,
 		letterSpacing: -0.5,
 	},
@@ -206,9 +209,6 @@ const styles = StyleSheet.create({
 		color: "#FFFFFF",
 		lineHeight: 28,
 		marginBottom: 18,
-		textShadowColor: "rgba(0, 0, 0, 0.8)",
-		textShadowOffset: { width: 0, height: 1 },
-		textShadowRadius: 3,
 		fontWeight: "500",
 	},
 });
