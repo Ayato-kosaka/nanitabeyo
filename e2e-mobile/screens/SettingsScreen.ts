@@ -16,6 +16,10 @@ export class SettingsScreen {
 	 * 画面タイトル（ja-JP: Settings.title＝「設定」）。
 	 * ナビゲーションヘッダー（ScreenHeader）のため testID 化は見送られている（#1031 確定 §3-P3）。
 	 * i18n 文字列セレクタのため、翻訳キー変更時はここも見直すこと。
+	 *
+	 * ⚠️ 本 Screen Object で唯一のロケール依存セレクタ。**Android 端末のロケールが ja-JP でない場合、
+	 * expectLoaded() がここで最初に落ちる**（iOS は launchApp の languageAndLocale で固定できるが、
+	 * Android は CI 側で `adb shell setprop persist.sys.locale ja-JP` を実行する前提。#1031 B4）。
 	 */
 	readonly title = by.text("設定");
 	/** ご意見・不具合（フィードバック）行（既存 testID） */

@@ -12,7 +12,10 @@ import { ProfileScreen } from "../../screens/ProfileScreen";
  * ログイン済み前提のテスト（reviews タブの表示等）はこの PR では扱わない（別 PR 担当）。
  */
 describe("マイページ（匿名ユーザー）", () => {
-	beforeAll(async () => {
+	// #1031 【バグ】beforeAll だと前のテストが残した画面状態(開いたままのモーダル等)を次が引き継ぎ、
+	// タップがオーバーレイに阻まれて落ちる。セッション注入起動は匿名クォータを消費しないため
+	// (fixtures/e2e.ts の launchAppWithSession)、テストごとに起動し直して独立性を担保する
+	beforeEach(async () => {
 		// #1031 【設計】通常の spec は launchAppWithSession({ as: "anon" }) で
 		// 匿名サインインのクォータを消費せずに起動する
 		await launchAppWithSession({ as: "anon" });

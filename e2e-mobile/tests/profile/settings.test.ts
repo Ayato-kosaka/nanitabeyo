@@ -19,7 +19,10 @@ import { SettingsScreen } from "../../screens/SettingsScreen";
  *   Linking.openURL が実際に走ってしまうため）。
  */
 describe("設定画面（匿名ユーザー）", () => {
-	beforeAll(async () => {
+	// #1031 【バグ】beforeAll だと前のテストが残した画面状態(開いたままのモーダル等)を次が引き継ぎ、
+	// タップがオーバーレイに阻まれて落ちる。セッション注入起動は匿名クォータを消費しないため
+	// (fixtures/e2e.ts の launchAppWithSession)、テストごとに起動し直して独立性を担保する
+	beforeEach(async () => {
 		await launchAppWithSession({ as: "anon" });
 	});
 
