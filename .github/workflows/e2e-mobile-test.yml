@@ -183,27 +183,11 @@ jobs:
           # （run 30394200940 で en-US のままだと実測）。persist.sys.locale は protected property なので
           # 書き込みには `adb root` が要る。google_apis イメージなら可能（google_apis_playstore では不可）。
           # 設定後は zygote を再起動しないとアプリ側の Locale へ反映されない
+          # ⚠️ この `script:` は **1 行ずつ別プロセスで実行される**（run 30401214828 で実測）。
+          # 複数行の if/for も、行をまたぐ変数の引き継ぎも成立しないため、
+          # ロジックは必ずスクリプトファイルへ切り出して 1 行で呼ぶこと
           script: |
-            set -x
-            adb root
-            adb wait-for-device
-            adb shell setprop persist.sys.locale ja-JP
-            adb shell setprop persist.sys.language ja
-            adb shell setprop persist.sys.country JP
-            adb shell setprop ctl.restart zygote
-            # zygote 再起動でシステムサーバが落ちるため、boot_completed が立ち直るまで待つ
-            sleep 10
-            adb wait-for-device
-            timeout 180 bash -c 'until [ "$(adb shell getprop sys.boot_completed | tr -d "\r")" = "1" ]; do sleep 2; done'
-            adb unroot || true
-            adb wait-for-device
-            # 反映されていなければ以降の ja-JP 前提 spec が無意味になるため、ここで落として原因を明示する
-            LOCALE=$(adb shell getprop persist.sys.locale | tr -d '\r')
-            echo "system locale: ${LOCALE}"
-            if [ "${LOCALE}" != "ja-JP" ]; then
-              echo "::error::システムロケールを ja-JP へ設定できませんでした（現在: ${LOCALE}）。"
-              exit 1
-            fi
+            bash e2e-mobile/scripts/setup-android-locale.sh
             pnpm --filter e2e-mobile run ${{ needs.prepare.outputs.android_script }}
         # #1030 【設計】3-3: 未設定なら describeAuthenticated 配下が自動 skip されるだけで他は動く
         env:
