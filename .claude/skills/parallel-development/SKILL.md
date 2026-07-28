@@ -176,6 +176,8 @@ Workerへ渡すpromptには、必要な項目だけを具体的に含める。
 
 `mcp__github__*` や無制限の `Bash` は、対象を限定できない例外時だけ使う。通常は実ツール名とコマンドパターンを列挙する。Claude Code Actionまたは内蔵GitHub MCP serverのpinを更新するときは、ツール名と権限境界を公式ソースで再確認する。
 
+**`Bash(pnpm *)` 等のprefixパターンは実装runで機能しないことがある**: 許可パターンは実行コマンド文字列の先頭一致のため、`cd api && pnpm dev` や `mkdir -p tmp && cp ...` のような複合コマンドは対象コマンドで始まっていても丸ごと拒否される。実装run(`access=write`)でこれが起きると、権限拒否のたびにturnを浪費し、`error_max_turns` で失敗しつつ何もcommit・pushされない(branchもPRも作られない)まま課金だけが発生する。実装runで許可パターンを絞る場合は、対象プロジェクトのpackage managerが要求する複合コマンド(`cd`後の実行、`&&`連結、環境変数のinlineセットなど)を実際に洗い出してから列挙する。洗い出しが難しい、または初回runなら、`Bash`(無制限)を使い、対象branch・禁止事項をpromptの文面側で縛る方が安全で安価になりやすい。
+
 ## 設計レビューを回す
 
 1. 設計者の結果がSub-issueへ記録されていることを確認する。
@@ -237,6 +239,12 @@ Workerへ渡すpromptには、必要な項目だけを具体的に含める。
 - デフォルトブランチへマージしないこと
 
 WorkerがbranchをpushしたがPRを作らなかった場合は、リーダーが `gh pr create --draft` で作る。PR本文はテンプレートへ依存せず、対象Issue、設計、変更、検証、Artifact、依存PR、残課題をその都度まとめる。
+
+**`mcp__github__create_pull_request` を実装runのallowedToolsへ入れない**: このMCPツールはGitHub API経由でファイルをcommitし、現在checkoutしているlocal branchとは無関係な新規branch(英語スラグの自動生成名になることがある)を作ることがある。結果として、`branch_name` で指定したbranchとは別のbranchにPRが作られ、かつlocalで実行したはずのtypecheck/build/testがそのAPI commitには反映されていない(pnpm等のBashツールでの検証と、実際にpushされる変更が乖離する)、という事故が起きた。実装runでは `gh pr create` (Bash経由、現在のlocal branchを対象にする)だけを許可し、`mcp__github__create_pull_request` は外す。
+
+**max_turnsは実測に基づいて決める**: `pnpm install`(初回1分前後)+ モノレポ全体の `pnpm run typecheck`/`pnpm build`(数分)+ 実装 + 検証 + `gh pr create` までを1 write runでやり切るには、単純な1ファイル変更でも40〜50では不足しがちで、80〜100が必要だった。低いmax_turnsで打ち切られると `error_max_turns` で失敗し、branchもPRも一切残らないまま課金だけが発生する。
+
+**runの`conclusion: success`は「成果物ができた」ことを保証しない**: Claude Codeが権限拒否やエラーで行き詰まり、何も達成せずに応答を終えても、SDK的には `is_error: false` で「成功」と報告されることがある。runが成功扱いでも、必ず `git ls-remote --heads origin <branch_name>` とPR一覧で実際にbranch・PRが存在するかを確認すること。存在しなければ、権限・max_turns・promptを見直して再実行する。
 
 ## PRレビューを回す
 
