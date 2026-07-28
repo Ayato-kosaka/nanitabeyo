@@ -6,7 +6,8 @@
 		"app-expo",
 		"api",
 		"shared",
-		"e2e-web"
+		"e2e-web",
+		"e2e-mobile"
 	],
 	"scripts": {
 		"dev": "turbo run dev",

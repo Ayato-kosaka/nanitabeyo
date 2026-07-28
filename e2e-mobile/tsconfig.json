@@ -1,0 +1,13 @@
+{
+	// e2e-mobile は実行時に ts-jest が TS を変換するため、
+	// この tsconfig は `pnpm typecheck` (tsc --noEmit) による型チェックと ts-jest の設定共有用。
+	"extends": "../tsconfig.base.json",
+	"compilerOptions": {
+		"target": "ES2022",
+		"module": "CommonJS",
+		"moduleResolution": "Node",
+		"types": ["node", "jest", "detox"],
+		"noEmit": true
+	},
+	"include": ["tests/**/*.ts", "screens/**/*.ts", "fixtures/**/*.ts", "utils/**/*.ts"]
+}

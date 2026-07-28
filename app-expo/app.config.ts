@@ -219,6 +219,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 					] as [string, any],
 				]
 			: []),
+		...(process.env.E2E_DETOX === "1"
+			? [
+					// #1027 【設計】Detox E2E 用プラグイン（androidTest 設定・Network Security Config を注入する）
+					// 通常の EAS ビルドへ混入させないため、E2E ビルド時のみ E2E_DETOX=1 で有効化する
+					"@config-plugins/detox",
+				]
+			: []),
 		[
 			// #492 【設計】ATT (App Tracking Transparency) ダイアログ設定
 			"expo-tracking-transparency",
