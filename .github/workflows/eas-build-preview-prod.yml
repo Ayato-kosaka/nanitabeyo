@@ -23,6 +23,9 @@ jobs:
         working-directory: app-expo
 
     steps:
+      - name: ⏬ Checkout repository
+        uses: actions/checkout@v4
+
       # #1030 【セキュリティ】E2E セッション注入フック用フラグが本番系ジョブへ紛れ込んでいないことを検証する。
       # 主ガードは metro.config.js の EAS 経路 hard fail だが、ローカルバンドル経路の早期検知として残す
       - name: 🔒 Assert E2E auth hook flag is empty
@@ -32,31 +35,3 @@ jobs:
             exit 1
           fi
 
-      - name: ⏬ Checkout repository
-        uses: actions/checkout@v4
-
-      - name: 🟣 Setup PNPM
-        uses: pnpm/action-setup@v2
-        with:
-          version: 10.8.0
-
-      - name: 🔧 Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "pnpm"
-
-      - name: 📦 Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: 🏗 Setup Expo & EAS CLI
-        uses: expo/expo-github-action@v8
-        with:
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
-
-      - name: ✨ Update environment variable
-        run: pnpx eas-cli env:update --variable-name EXPO_PUBLIC_COMMIT_ID --value ${{ github.sha }}  --non-interactive
-
-      - name: 🚀 Build app (preview)
-        run: pnpx eas-cli build --profile preview --platform ${{ inputs.platform || 'all' }} --non-interactive --no-wait --clear-cache

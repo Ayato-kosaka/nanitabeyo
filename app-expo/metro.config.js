@@ -17,8 +17,9 @@ const E2E_AUTH_HOOK_ENABLED = process.env.EXPO_PUBLIC_E2E_AUTH_HOOK === "1";
 // EAS Build / EAS Update を通らない。EAS 経路のバンドル時にフラグが立っているのは環境変数の設定事故
 // （= 本番への混入の入口）であり、GitHub job 側の shell assert では EAS サーバ内の env を検査できない。
 // バンドルが実行される場所（= この Metro 設定の評価時点）で確実に落とす。
-// - EAS_BUILD: EAS Build サーバ上で常に設定される（クラウドビルド全経路をカバー）
-// - EXPO_PUBLIC_NODE_ENV=production: eas update --environment production のローカルバンドルをカバー
+// - EAS_BUILD: EAS Build サーバ上で常に設定される（クラウドビルド全経路をカバー。主条件）
+// - EXPO_PUBLIC_NODE_ENV=production: eas update --environment production のローカルバンドル向けの
+//   防御的な追加条件（EAS production 環境の実値は未確認のため、この条件単体には依存しない。レビュー m-1）
 if (E2E_AUTH_HOOK_ENABLED && (process.env.EAS_BUILD || process.env.EXPO_PUBLIC_NODE_ENV === "production")) {
 	throw new Error(
 		"EXPO_PUBLIC_E2E_AUTH_HOOK=1 のまま EAS ビルド/本番向けバンドルが実行されました（E2E フックの本番混入）。" +
