@@ -3,3 +3,4 @@ packages:
   - api
   - shared
   - e2e-web
+  - e2e-mobile
