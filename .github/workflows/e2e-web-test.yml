@@ -59,6 +59,14 @@ jobs:
       - name: 🏗️ Build Web App
         run: pnpm --filter app-expo build:web
 
+      # #1030 【セキュリティ】E2E セッション注入フックが本番相当バンドルへ混入していないことを検証する
+      # sentinel ゲート（web は上のビルド成果物を流用し、native は検査用に追加 export する）。
+      # metro.config.js の resolver 差し替えが Expo SDK 更新等で壊れた場合、ここで fail して気付ける
+      - name: 🛡️ Assert no E2E hook in production bundles
+        run: |
+          pnpm --filter app-expo build:e2e-check-native
+          pnpm --filter app-expo assert:no-e2e-hook
+
       # ubuntu-latest では WebKit(mobile-safari)も動作するため両方インストールする
       - name: 🎭 Install Playwright browsers
         run: pnpm --filter e2e-web exec playwright install --with-deps chromium webkit
