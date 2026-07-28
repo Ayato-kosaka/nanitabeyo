@@ -269,6 +269,8 @@ WorkerがbranchをpushしたがPRを作らなかった場合、または誤っ�
 
 レビュー担当に、明示なく実装を変更させない。レビューと修正の責務を分ける。
 
+**`gh pr review --approve` は同一bot(claude[bot])が実装者・レビュー担当を兼ねるため使えない**: 実装runもレビューrunも同じClaude GitHub App(`claude[bot]`)としてGitHubへ投稿するため、「自分自身のPRは承認できない」というGitHubの制約に必ず当たる。レビューpromptには「判定内容(Approve相当/Request Changes相当)を本文冒頭に明記した上で `gh pr review --comment` で投稿する」よう指示し、承認バッジそのものには依存しない運用にする。マージ判断はコメント内容をリーダーが読んで行う。
+
 ## テストエビデンスを扱う
 
 Workerへ、実行したテストの生データを `/tmp/claude-artifacts/` 配下へ保存させる。Git管理下へ置かせず、実装commitへの混入を防ぐ。

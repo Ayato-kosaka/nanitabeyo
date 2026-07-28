@@ -581,7 +581,9 @@ export default function TopicsScreen() {
 	return (
 		<View style={styles.container}>
 			{/* #674 【仕様】ヘッダー（戻るボタン + タイトル） */}
+			{/* #1031 【設計】Detox からタイトル表示を検証できるよう testID を追加 */}
 			<ScreenHeader
+				testID="topics-header"
 				title={i18n.t("Topics.headerTitle")}
 				onPressBack={handleBack}
 				rightContent={
@@ -738,8 +740,9 @@ export default function TopicsScreen() {
 				{visibleTopics.length > 0 && (
 					<View style={styles.thumbnailGrid}>
 						{visibleTopics.map((topic, index) => {
-							// #929 【設計】メインカードと同じ imageState を参照し、画面単位で1回だけ取得したリソースを共有する。
-							// native は取得済み ImageRef、web は直接指定の uri であり、いずれも独自に再取得しない。
+							// #929 【設計】サムネイルを独立した URL ローダーにせず、メインカードと同じ
+							// source を参照する。native は同一 ImageRef を共有して再取得・再デコードを避け、
+							// web は同一 URL を共有してブラウザ側のリクエスト重複排除を利用する。
 							const thumbnailImageState = getImageState(topic);
 							return (
 								<TouchableOpacity
@@ -764,13 +767,14 @@ export default function TopicsScreen() {
 											source={thumbnailImageState.image}
 											style={styles.thumbnailImage}
 											contentFit="cover"
+											// Carousel/一覧の View 再利用時に、別 topic の bitmap を一瞬残さないための表示 identity。
+											// リソース共有キーとは責務が異なるので、ImageRef を共有しても削除しない。
 											recyclingKey={`topic-thumbnail:${topic.categoryId}`}
 											// #937 【仕様】親 TouchableOpacity 側で読み上げるため、画像自体は装飾扱いにする
 											alt=""
 											accessibilityElementsHidden
 											importantForAccessibility="no"
-											// #929 【修正】web は ready でも実際の読み込み成否が未検証のため、
-											// 失敗を共有 state へ反映してカード側の失敗UI/再試行に繋げる
+											// web の ready は URL 確定を表すだけなので、実際の表示失敗は共有 state へ戻す。
 											onError={() => markImageError(topic)}
 										/>
 									) : (

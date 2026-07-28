@@ -371,8 +371,10 @@
 		},
 		"accessibility": {
 			"viewRestaurant": "Voir les détails du restaurant {{name}}",
-			"like": "Aimer {{name}}",
-			"save": "Enregistrer {{name}}",
+			"likeActive": "Ne plus aimer {{name}}",
+			"likeInactive": "Aimer {{name}}",
+			"saveActive": "Retirer {{name}} des enregistrements",
+			"saveInactive": "Enregistrer {{name}}",
 			"share": "Partager {{name}}",
 			"openMap": "Ouvrir la carte de {{name}}",
 			"reviewLike": "Aimer l'avis de {{username}}"

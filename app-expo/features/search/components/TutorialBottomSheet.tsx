@@ -165,6 +165,9 @@ export function TutorialBottomSheet({
 	// 現在ページの CTA 設定
 	const currentConfig = tutorialPages[currentPage] ?? tutorialPages[0];
 
+	// #1031 【設計】プライマリCTAが「つぎへ」か「はじめよう(finish)」かを Detox から判別できるよう testID を出し分ける
+	const isLastPage = currentPage === tutorialPages.length - 1;
+
 	return (
 		<TrueSheet
 			ref={sheetRef}
@@ -177,7 +180,8 @@ export function TutorialBottomSheet({
 			dimmed
 			dismissible
 			onDidDismiss={handleDidDismiss}>
-			<View style={[styles.container, { width: contentWidth }]}>
+			{/* #1031 【設計】Detox からチュートリアル表示を検証できるよう testID を追加 */}
+			<View testID="search-tutorial-overlay" style={[styles.container, { width: contentWidth }]}>
 				{/* 上：横スワイプで動くコンテンツ */}
 				<FlatList
 					ref={listRef}
@@ -213,6 +217,7 @@ export function TutorialBottomSheet({
 					{/* CTA ボタン群 */}
 					<View style={styles.ctaContainer}>
 						<TouchableOpacity
+							testID={isLastPage ? "search-tutorial-finish" : "search-tutorial-next"}
 							style={styles.primaryButton}
 							onPress={currentConfig.onPrimaryCtaPress}
 							activeOpacity={0.7}>
@@ -222,6 +227,7 @@ export function TutorialBottomSheet({
 						<View style={styles.secondaryWrapper}>
 							{currentConfig.secondaryCtaLabel && currentConfig.onSecondaryCtaPress ? (
 								<TouchableOpacity
+									testID="search-tutorial-later"
 									style={styles.secondaryButton}
 									onPress={currentConfig.onSecondaryCtaPress}
 									activeOpacity={0.7}>
