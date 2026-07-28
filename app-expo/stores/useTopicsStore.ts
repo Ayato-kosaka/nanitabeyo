@@ -55,6 +55,13 @@ export type TopicsStore = {
 	 */
 	isLoadingMoreByKey: Record<string, boolean>;
 
+	/**
+	 * #1007 【設計】検索結果カード（Topic）単位の保存状態。topicById は「保存済みトピック一覧」用の
+	 * 正規化データ（DishCategory型）であるのに対し、こちらは検索結果カード（Topic型）が参照する
+	 * 保存フラグのみを topic.categoryId をキーに持つ別枠のスライス。
+	 */
+	savedByTopicId: Record<string, boolean>;
+
 	// ------ public 挿入・更新メソッド（同期） ------
 
 	/**
@@ -72,6 +79,12 @@ export type TopicsStore = {
 	 * 指定した DishCategory（topic.id）をピンポイントに更新する。
 	 */
 	updateTopic: (topicId: string, topicUpdater: (topic: DishCategory) => DishCategory) => void;
+
+	/**
+	 * #1007 【設計】検索結果カード（Topic）の保存状態を更新する。TopicCard はこの値を購読し、
+	 * カード再利用（Carousel の key 撤去）後もカテゴリ単位で保存状態を維持する。
+	 */
+	setTopicSaved: (topicId: string, isSaved: boolean) => void;
 
 	// ------ public 挿入・更新メソッド（非同期ラッパー） ------
 
@@ -163,6 +176,15 @@ export const selectTopicById =
 	(state: TopicsStore): DishCategory | null =>
 		state.topicById[topicId] ?? null;
 
+/**
+ * #1007 【設計】検索結果カード（Topic）の保存状態を取得するセレクタ。
+ * store未登録時は呼び出し元が渡す fallback（サーバから受け取った item.isSaved 等）を採用する。
+ */
+export const selectIsTopicSaved =
+	(topicId: string, fallback: boolean) =>
+	(state: TopicsStore): boolean =>
+		state.savedByTopicId[topicId] ?? fallback;
+
 export const useTopicsStore = createWithEqualityFn<TopicsStore>()((set, get) => ({
 	// ------ 初期状態 ------
 
@@ -173,6 +195,7 @@ export const useTopicsStore = createWithEqualityFn<TopicsStore>()((set, get) => 
 	hasFetchedInitialByKey: {},
 	nextCursorByKey: {},
 	isLoadingMoreByKey: {},
+	savedByTopicId: {},
 
 	// ------ 同期挿入・更新メソッド ------
 
@@ -217,6 +240,13 @@ export const useTopicsStore = createWithEqualityFn<TopicsStore>()((set, get) => 
 						},
 					};
 		}),
+
+	setTopicSaved: (topicId, isSaved) =>
+		set((state) =>
+			state.savedByTopicId[topicId] === isSaved
+				? state
+				: { savedByTopicId: { ...state.savedByTopicId, [topicId]: isSaved } },
+		),
 
 	// ------ 非同期挿入・更新メソッド ------
 

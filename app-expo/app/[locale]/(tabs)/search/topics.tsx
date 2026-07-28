@@ -3,15 +3,14 @@ import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { MapPin, SunMoon, Users, ChefHat, RefreshCw, DollarSign, Timer, CircleHelp } from "lucide-react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import Carousel from "react-native-reanimated-carousel";
-import { Image } from "expo-image";
 import { Topic, SearchParams } from "@/types/search";
 import { useTopicSearch } from "@/features/topics/hooks/useTopicSearch";
 import { useBlockTopic } from "@/features/topics/hooks/useBlockTopic";
 import { TopicCard, TOPIC_CARD_CTA_OVERHANG, type TopicDeepDiveOption } from "@/features/topics/components/TopicCard";
+import { TopicThumbnail } from "@/features/topics/components/TopicThumbnail";
 import { useTopicImageResources } from "@/features/topics/hooks/useTopicImageResources";
 import { TopicsLoading } from "@/features/topics/components/TopicsLoading";
 import { TopicsError } from "@/features/topics/components/TopicsError";
-import { SkeletonShimmer } from "@/components/SkeletonShimmer";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useDialog } from "@/contexts/DialogProvider";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
@@ -20,13 +19,16 @@ import { useContentWidth } from "@/hooks/useContentWidth";
 import {
 	budgetIntentToPriceLevel,
 	coreIngredientOptions,
+	coreIngredientOptionsById,
 	deriveBudgetIntentFromPriceLevels,
 	diningPaceOptions,
+	diningPaceOptionsById,
 	foodStyleOptions,
 	priceLevelOptions,
-	sceneOptions,
+	sceneOptionsById,
 	tasteOptions,
-	timeSlots,
+	tasteOptionsById,
+	timeSlotsById,
 } from "@/features/search/constants";
 import i18n from "@/lib/i18n";
 import { useHaptics } from "@/hooks/useHaptics";
@@ -285,6 +287,8 @@ export default function TopicsScreen() {
 	const { getImageState, retryImage, markImageError } = useTopicImageResources({
 		topics: visibleTopics,
 		sessionKey: searchParams ?? "",
+		// #1010 【設計】プリロード対象をアクティブカード基準に絞るため、現在の表示位置を渡す。
+		activeIndex: currentIndex,
 	});
 
 	/**
@@ -373,16 +377,21 @@ export default function TopicsScreen() {
 	);
 
 	// #674 【仕様】サムネイルタップ時の処理
-	const handleThumbnailPress = useCallback(
-		(index: number) => {
-			if (index === currentIndex || !carouselRef.current) return;
+	// #1007 【設計】currentIndex を直接依存に含めると、スワイプのたびに handleThumbnailPress の参照が
+	// 変わり TopicThumbnail(React.memo)の props が全件変化してしまう。ref 経由で最新値を読むことで
+	// 関数自体は安定させ、isActive の変化した2件だけが再レンダーされるようにする。
+	const currentIndexRef = useRef(currentIndex);
+	useEffect(() => {
+		currentIndexRef.current = currentIndex;
+	}, [currentIndex]);
 
-			// #907 【仕様】indexはsnap完了後に更新し、カード表示前のimpression送信を防ぐ。
-			thumbnailNavigationTargetRef.current = index;
-			carouselRef.current.scrollTo({ index, animated: true });
-		},
-		[currentIndex],
-	);
+	const handleThumbnailPress = useCallback((index: number) => {
+		if (index === currentIndexRef.current || !carouselRef.current) return;
+
+		// #907 【仕様】indexはsnap完了後に更新し、カード表示前のimpression送信を防ぐ。
+		thumbnailNavigationTargetRef.current = index;
+		carouselRef.current.scrollTo({ index, animated: true });
+	}, []);
 
 	const getDeepDiveLabel = useCallback((option: TopicDeepDiveOption) => {
 		if (option.featureType === "budget_intent") {
@@ -390,23 +399,34 @@ export default function TopicsScreen() {
 			return priceOption ? i18n.t(priceOption.label) : option.featureKey;
 		}
 		if (option.featureType === "dining_pace") {
-			const paceOption = diningPaceOptions.find((pace) => pace.id === option.featureKey);
+			// #1015 【パフォーマンス】find() の代わりに priceLevelOptions と同型の派生Mapを参照する
+			const paceOption = diningPaceOptionsById[option.featureKey];
 			return paceOption ? `${paceOption.icon}${i18n.t(paceOption.label)}` : option.featureKey;
 		}
 		if (option.featureType === "taste") {
-			const tasteOption = tasteOptions.find((taste) => taste.id === option.featureKey);
+			const tasteOption = tasteOptionsById[option.featureKey];
 			return tasteOption ? `${tasteOption.icon}${i18n.t(tasteOption.label)}` : option.featureKey;
 		}
 		if (option.featureType === "core_ingredient") {
-			const coreOption = coreIngredientOptions.find((coreIngredient) => coreIngredient.id === option.featureKey);
+			const coreOption = coreIngredientOptionsById[option.featureKey];
 			return coreOption ? `${coreOption.icon}${i18n.t(coreOption.label)}` : option.featureKey;
 		}
 		return option.featureKey;
 	}, []);
 
+	// #1007 【設計】getDeepDiveOptions は Carousel の再レンダーのたびに全カード分呼ばれるため、
+	// 同一検索セッション内では topic.categoryId 単位で結果をキャッシュする。params が変わると
+	// 深掘り候補の算出条件自体が変わるため、params 変化時にキャッシュを破棄する。
+	const deepDiveOptionsCacheRef = useRef<Map<string, TopicDeepDiveOption[]>>(new Map());
+	useEffect(() => {
+		deepDiveOptionsCacheRef.current = new Map();
+	}, [params]);
+
 	const getDeepDiveOptions = useCallback(
 		(topic: Topic): TopicDeepDiveOption[] => {
 			if (!params) return [];
+			const cached = deepDiveOptionsCacheRef.current.get(topic.categoryId);
+			if (cached) return cached;
 			const features = (topic.deepDiveFeatures ?? []).filter((feature) => {
 				if (feature.score <= DEEP_DIVE_SCORE_THRESHOLD) return false;
 				if (feature.feature_type === "budget_intent") {
@@ -464,15 +484,19 @@ export default function TopicsScreen() {
 									getOrderIndex(FOOD_STYLE_ORDER, a.feature_key) - getOrderIndex(FOOD_STYLE_ORDER, b.feature_key),
 							);
 
-			return [...budgetCandidates, ...diningPaceCandidates, ...foodStyleCandidates].slice(0, 3).map((feature) => {
-				const option = {
-					key: `${feature.feature_type}:${feature.feature_key}`,
-					label: "",
-					featureType: feature.feature_type,
-					featureKey: feature.feature_key,
-				};
-				return { ...option, label: getDeepDiveLabel(option) };
-			});
+			const result = [...budgetCandidates, ...diningPaceCandidates, ...foodStyleCandidates]
+				.slice(0, 3)
+				.map((feature) => {
+					const option = {
+						key: `${feature.feature_type}:${feature.feature_key}`,
+						label: "",
+						featureType: feature.feature_type,
+						featureKey: feature.feature_key,
+					};
+					return { ...option, label: getDeepDiveLabel(option) };
+				});
+			deepDiveOptionsCacheRef.current.set(topic.categoryId, result);
+			return result;
 		},
 		[getDeepDiveLabel, params],
 	);
@@ -528,28 +552,45 @@ export default function TopicsScreen() {
 		return activeTopic ? getDeepDiveOptions(activeTopic) : [];
 	}, [currentIndex, getDeepDiveOptions, visibleTopics]);
 
-	const renderCard = ({ item, index }: { item: Topic; index: number }) => {
-		const imageState = getImageState(item);
-		const isActiveCard = index === currentIndex;
-		return (
-			<TopicCard
-				// Carousel は index で要素を再利用するため、非表示後に次の料理の state/画像を引き継がないよう再マウントする。
-				key={item.categoryId}
-				item={item}
-				onBlock={handleBlockCard}
-				onDeepDive={handleDeepDive}
-				onSelect={handleCardPress}
-				deepDiveOptions={isActiveCard ? activeDeepDiveOptions : getDeepDiveOptions(item)}
-				cardWidth={cardWidth}
-				cardHeight={cardHeight}
-				imageState={imageState}
-				onImageRetry={retryImage}
-				onImageLoadError={markImageError}
-				// 非表示カードによるref上書きを防ぐため、アクティブカードにだけ登録する。
-				tutorialTargetRefs={isActiveCard ? tutorialTargetRefs : undefined}
-			/>
-		);
-	};
+	// #1007 【設計】isSaved を useTopicsStore の topic.categoryId 単位のスライスへ外出ししたため、
+	// カード再利用時も保存状態はstore側で引き継がれる。Carousel の key を撤去してカード再利用を有効化し、
+	// DishMediaMap.tsx の renderCarouselItem と同様に renderItem 自体も useCallback で安定化する。
+	const renderCard = useCallback(
+		({ item, index }: { item: Topic; index: number }) => {
+			const imageState = getImageState(item);
+			const isActiveCard = index === currentIndex;
+			return (
+				<TopicCard
+					item={item}
+					onBlock={handleBlockCard}
+					onDeepDive={handleDeepDive}
+					onSelect={handleCardPress}
+					deepDiveOptions={isActiveCard ? activeDeepDiveOptions : getDeepDiveOptions(item)}
+					cardWidth={cardWidth}
+					cardHeight={cardHeight}
+					imageState={imageState}
+					onImageRetry={retryImage}
+					onImageLoadError={markImageError}
+					// 非表示カードによるref上書きを防ぐため、アクティブカードにだけ登録する。
+					tutorialTargetRefs={isActiveCard ? tutorialTargetRefs : undefined}
+				/>
+			);
+		},
+		[
+			getImageState,
+			currentIndex,
+			handleBlockCard,
+			handleDeepDive,
+			handleCardPress,
+			activeDeepDiveOptions,
+			getDeepDiveOptions,
+			cardWidth,
+			cardHeight,
+			retryImage,
+			markImageError,
+			tutorialTargetRefs,
+		],
+	);
 
 	if (isLoading) {
 		return <TopicsLoading />;
@@ -637,19 +678,16 @@ export default function TopicsScreen() {
 						</View>
 
 						{/* 時間帯 */}
+						{/* #1015 【パフォーマンス】find() の代わりに priceLevelOptions と同型の派生Mapを参照する */}
 						<View style={styles.conditionChip}>
 							<SunMoon size={14} color="#f05537" />
-							<Text style={styles.conditionChipText}>
-								{i18n.t(timeSlots.find((s) => s.id === params.timeSlot)?.label || "")}
-							</Text>
+							<Text style={styles.conditionChipText}>{i18n.t(timeSlotsById[params.timeSlot]?.label || "")}</Text>
 						</View>
 
 						{/* 誰と行くか */}
 						<View style={styles.conditionChip}>
 							<Users size={14} color="#f05537" />
-							<Text style={styles.conditionChipText}>
-								{i18n.t(sceneOptions.find((s) => s.id === params.scene)?.label || "")}
-							</Text>
+							<Text style={styles.conditionChipText}>{i18n.t(sceneOptionsById[params.scene]?.label || "")}</Text>
 						</View>
 					</View>
 
@@ -671,7 +709,7 @@ export default function TopicsScreen() {
 							<View style={styles.conditionChip}>
 								<Timer size={14} color="#f05537" />
 								<Text style={styles.conditionChipText}>
-									{i18n.t(diningPaceOptions.find((option) => option.id === params.diningPace)?.label || "")}
+									{i18n.t(diningPaceOptionsById[params.diningPace]?.label || "")}
 								</Text>
 							</View>
 						)}
@@ -680,9 +718,7 @@ export default function TopicsScreen() {
 						{params.taste && (
 							<View style={styles.conditionChip}>
 								<ChefHat size={14} color="#f05537" />
-								<Text style={styles.conditionChipText}>
-									{i18n.t(tasteOptions.find((t) => t.id === params.taste)?.label || "")}
-								</Text>
+								<Text style={styles.conditionChipText}>{i18n.t(tasteOptionsById[params.taste]?.label || "")}</Text>
 							</View>
 						)}
 
@@ -691,7 +727,7 @@ export default function TopicsScreen() {
 							<View style={styles.conditionChip}>
 								<ChefHat size={14} color="#f05537" />
 								<Text style={styles.conditionChipText}>
-									{i18n.t(coreIngredientOptions.find((option) => option.id === params.coreIngredient)?.label || "")}
+									{i18n.t(coreIngredientOptionsById[params.coreIngredient]?.label || "")}
 								</Text>
 							</View>
 						)}
@@ -737,48 +773,24 @@ export default function TopicsScreen() {
 				{/* ✅ 下部サムネイル：absolute ではなく通常フローの一番下 */}
 				{visibleTopics.length > 0 && (
 					<View style={styles.thumbnailGrid}>
-						{visibleTopics.map((topic, index) => {
-							// #929 【設計】メインカードと同じ imageState を参照し、画面単位で1回だけ取得したリソースを共有する。
-							// native は取得済み ImageRef、web は直接指定の uri であり、いずれも独自に再取得しない。
-							const thumbnailImageState = getImageState(topic);
-							return (
-								<TouchableOpacity
-									key={topic.categoryId}
-									style={[
-										styles.thumbnail,
-										// #958 【修正】サムネイル幅は中央カラム幅に追従させる
-										{ width: (contentWidth - 72) / 6 },
-										currentIndex === index && styles.thumbnailActive,
-									]}
-									onPress={() => handleThumbnailPress(index)}
-									activeOpacity={0.7}
-									accessibilityRole="button"
-									accessibilityLabel={i18n.t("Topics.accessibility.thumbnail", {
-										title: topic.topicTitle,
-										index: index + 1,
-										total: visibleTopics.length,
-									})}
-									accessibilityState={{ selected: currentIndex === index }}>
-									{thumbnailImageState.status === "ready" ? (
-										<Image
-											source={thumbnailImageState.image}
-											style={styles.thumbnailImage}
-											contentFit="cover"
-											recyclingKey={`topic-thumbnail:${topic.categoryId}`}
-											// #937 【仕様】親 TouchableOpacity 側で読み上げるため、画像自体は装飾扱いにする
-											alt=""
-											accessibilityElementsHidden
-											importantForAccessibility="no"
-											// #929 【修正】web は ready でも実際の読み込み成否が未検証のため、
-											// 失敗を共有 state へ反映してカード側の失敗UI/再試行に繋げる
-											onError={() => markImageError(topic)}
-										/>
-									) : (
-										<SkeletonShimmer width="100%" height="100%" />
-									)}
-								</TouchableOpacity>
-							);
-						})}
+						{visibleTopics.map((topic, index) => (
+							// #1007 【設計】TopicThumbnail(React.memo)へ分離し、isActive/imageState 以外の
+							// props(onPress/onImageError含む)を安定参照にすることで、スワイプ時の
+							// 再レンダー範囲を「旧選択」「新選択」の2件のみに抑える。
+							<TopicThumbnail
+								key={topic.categoryId}
+								topic={topic}
+								index={index}
+								total={visibleTopics.length}
+								isActive={currentIndex === index}
+								// #929 【設計】メインカードと同じ imageState を参照し、画面単位で1回だけ取得したリソースを共有する。
+								imageState={getImageState(topic)}
+								// #958 【修正】サムネイル幅は中央カラム幅に追従させる
+								width={(contentWidth - 72) / 6}
+								onPress={handleThumbnailPress}
+								onImageError={markImageError}
+							/>
+						))}
 					</View>
 				)}
 			</View>
@@ -905,6 +917,8 @@ const styles = StyleSheet.create({
 		fontWeight: "500",
 	},
 	// 下部サムネイル（通常フローで一番下）
+	// #1007 【設計】個々のサムネイルのスタイル(thumbnail/thumbnailActive/thumbnailImage)は
+	// TopicThumbnail.tsx へ移動した。
 	thumbnailGrid: {
 		paddingHorizontal: 16,
 		paddingVertical: 12,
@@ -912,30 +926,5 @@ const styles = StyleSheet.create({
 		flexWrap: "wrap",
 		justifyContent: "center",
 		gap: 8,
-	},
-	thumbnail: {
-		// #958 【修正】width は中央カラム幅に追従させる必要があるため JSX 側でインライン合成する
-		aspectRatio: 1, // 正方形
-		borderRadius: 12,
-		overflow: "hidden",
-		borderWidth: 2,
-		borderColor: "#C9C9C9",
-		shadowColor: "#C9C9C9",
-		shadowOffset: { width: 0, height: 2 },
-		shadowOpacity: 0.3,
-		shadowRadius: 4,
-		elevation: 4,
-	},
-	thumbnailActive: {
-		borderColor: "#f05537",
-		shadowColor: "#f05537",
-		shadowOffset: { width: 0, height: 2 },
-		shadowOpacity: 0.3,
-		shadowRadius: 4,
-		elevation: 4,
-	},
-	thumbnailImage: {
-		width: "100%",
-		height: "100%",
 	},
 });

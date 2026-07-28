@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback } from "react";
 import { Text, TouchableOpacity, StyleSheet, View } from "react-native";
 import { router } from "expo-router";
 import { Bookmark, Ban } from "lucide-react-native";
@@ -8,7 +8,7 @@ import { useLogger } from "@/hooks/useLogger";
 import { useLocale } from "@/hooks/useLocale";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { toggleReaction } from "@/lib/reactions";
-import { useTopicsStore } from "@/stores/useTopicsStore";
+import { TopicsStore, selectIsTopicSaved, useTopicsStore } from "@/stores/useTopicsStore";
 import { profileSavedTopicsEntriesKey } from "@/features/profile/tabs/SavedTopicsTab";
 import i18n from "@/lib/i18n";
 import { type TopicImageResourceState } from "@/features/topics/hooks/useTopicImageResources";
@@ -58,9 +58,15 @@ export const TopicCard = ({
 	 */
 	tutorialTargetRefs?: Pick<TopicsTutorialTargetRefs, "swipeArea" | "selectCta" | "deepDive" | "topicActions">;
 }) => {
-	// #954 【仕様】サーバの保存状態(item.isSaved)で初期化する。従来は常にfalseだったため
-	// 保存済みカテゴリでも再訪時は未保存表示になっていた。
-	const [isSaved, setIsSaved] = useState(item.isSaved ?? false);
+	// #1007 【設計】isSaved をローカル useState ではなく useTopicsStore の savedByTopicId から
+	// 購読する（ActionButtons.tsx と同じ per-entity selector パターン）。Carousel の key 撤去で
+	// カードが再利用されても、topic.categoryId 単位の状態としてstore側に保持されるため引き継がれる。
+	// store未登録時はサーバの保存状態(item.isSaved)を fallback とする。
+	const selectIsSaved = useCallback(
+		(state: TopicsStore) => selectIsTopicSaved(item.categoryId, item.isSaved ?? false)(state),
+		[item.categoryId, item.isSaved],
+	);
+	const isSaved = useTopicsStore(selectIsSaved);
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { locale } = useLocale();
@@ -72,9 +78,9 @@ export const TopicCard = ({
 	const handleSave = async () => {
 		const willSave = !isSaved;
 		lightImpact();
-		setIsSaved(willSave);
 
-		const { updateTopicIdsByKey, upsertTopics } = useTopicsStore.getState();
+		const { setTopicSaved, updateTopicIdsByKey, upsertTopics } = useTopicsStore.getState();
+		setTopicSaved(item.categoryId, willSave);
 
 		try {
 			await toggleReaction({
@@ -117,7 +123,7 @@ export const TopicCard = ({
 			}
 		} catch (error) {
 			// #954 【仕様】保存APIが失敗した場合、見た目だけ切り替わったままにせず表示を元に戻す
-			setIsSaved(!willSave);
+			setTopicSaved(item.categoryId, !willSave);
 			logFrontendEvent({
 				event_name: "topic_save_reaction_failed",
 				error_level: "error",
