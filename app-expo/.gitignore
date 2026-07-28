@@ -8,6 +8,9 @@ web-build/
 expo-env.d.ts
 
 # native
+# CNG (expo prebuild) の生成物。コミットせず都度生成する（Detox E2E ビルド等で使用）
+/android
+/ios
 *.orig.*
 *.jks
 *.p8
