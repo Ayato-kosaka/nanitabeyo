@@ -287,8 +287,6 @@ export default function TopicsScreen() {
 	const { getImageState, retryImage, markImageError } = useTopicImageResources({
 		topics: visibleTopics,
 		sessionKey: searchParams ?? "",
-		// #1010 【設計】プリロード対象をアクティブカード基準に絞るため、現在の表示位置を渡す。
-		activeIndex: currentIndex,
 	});
 
 	/**

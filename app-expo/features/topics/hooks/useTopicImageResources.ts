@@ -18,12 +18,7 @@ type TopicImageResourceStates = Record<string, TopicImageResourceState>;
 type UseTopicImageResourcesParams = {
 	topics: Topic[];
 	sessionKey: string;
-	// #1010 【設計】現在アクティブなカードのindex。プリロード範囲を activeIndex 基準に絞るために使う。
-	activeIndex: number;
 };
-
-// #1010 【設計】アクティブカードの前後何枚分を同時にプリロードするか。
-const PRELOAD_RADIUS = 2;
 
 // categoryId だけでは同じ料理の画像 URL 更新を検知できないため、リソースの世代を URL まで含めて識別する。
 const getTopicImageKey = (topic: Topic) => `${topic.categoryId}::${topic.imageUrl}`;
@@ -46,7 +41,7 @@ const releaseIfImageRef = (image: ImageRef | ImageSource) => {
  * web は Blob の生成と重複取得を避けるため URL を共有し、実際の表示失敗だけを onError から error へ反映する。
  * sessionKey が変わった後の非同期結果は現セッションへ混ぜず、所有権を失った ImageRef は必ず解放する。
  */
-export const useTopicImageResources = ({ topics, sessionKey, activeIndex }: UseTopicImageResourcesParams) => {
+export const useTopicImageResources = ({ topics, sessionKey }: UseTopicImageResourcesParams) => {
 	const { logFrontendEvent } = useLogger();
 	const topicImageStatesRef = useRef<TopicImageResourceStates>({});
 	const imageLoadGenerationRef = useRef(0);
@@ -206,21 +201,18 @@ export const useTopicImageResources = ({ topics, sessionKey, activeIndex }: UseT
 		resetImageStates();
 	}, [sessionKey, resetImageStates]);
 
-	// #1010 【設計】全topics無条件のプリロードは検索結果の全画像を同時取得してしまうため、
-	// activeIndex を基準とした前後 PRELOAD_RADIUS 件のみを先読み対象にする。
-	// 範囲外へ出た画像の解放は resetImageStates/アンマウント時の release 経路に委ねる(二重取得はしない)。
+	// サムネイルは検索結果の全件を常時表示するナビゲーションであり、メインカードと同じ共有リソースを参照する。
+	// 一部だけを先読みすると範囲外のサムネイルと循環Carouselの隣接カードがSkeletonのままになるため、
+	// この画面では全件を事前取得する。
 	useEffect(() => {
 		if (topics.length === 0) return;
-		const start = Math.max(0, activeIndex - PRELOAD_RADIUS);
-		const end = Math.min(topics.length - 1, activeIndex + PRELOAD_RADIUS);
-		for (let i = start; i <= end; i++) {
-			const topic = topics[i];
+		for (const topic of topics) {
 			const key = getTopicImageKey(topic);
 			const current = topicImageStatesRef.current[key];
 			if (current) continue;
 			void loadTopicImage(topic);
 		}
-	}, [topics, activeIndex, loadTopicImage]);
+	}, [topics, loadTopicImage]);
 
 	return useMemo(
 		() => ({
