@@ -7,11 +7,10 @@ name: E2E Mobile Test
 # - 現在はスパイク段階: Android の起動スモークのみ。iOS ジョブ・夜間 cron は設計確定後に追加する（#1027）
 on:
   workflow_dispatch:
-  # スパイク検証用の一時トリガー: workflow_dispatch は default ブランチに
-  # ワークフローが存在しないと呼べないため、検証中は push で起動する（main マージ前に削除する）
-  push:
-    branches:
-      - claude/detox-github-actions-mzp45k
+
+# 読み取り専用で足りるため、既定トークン権限を明示的に絞る
+permissions:
+  contents: read
 
 # 同時実行しても壊れはしないが無駄なので、実行中があれば新しい方を待たせる
 concurrency:
@@ -133,7 +132,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: detox-android-artifacts
+          name: detox-report-android
           path: e2e-mobile/artifacts/
           if-no-files-found: ignore
           retention-days: 14
