@@ -19,7 +19,16 @@ describe("起動 @smoke", () => {
 		// 検証は waitFor のポーリングで行う(Android は同期が機能しているため既定のまま)
 		await device.launchApp({
 			newInstance: true,
-			...(device.getPlatform() === "ios" ? { launchArgs: { detoxEnableSynchronization: 0 } } : {}),
+			...(device.getPlatform() === "ios"
+				? {
+						// #1027 【バグ】起動直後の位置情報許可ダイアログ表示中はアプリが inactive となり
+						// Detox の waitForActive が完了せずタイムアウトする(run 30364296574 の beforeAllFailure.png)。
+						// iOS は位置情報を事前許可して起動する(applesimutils 経由。Android はダイアログが
+						// 起動シーケンスをブロックしないため不要)
+						permissions: { location: "inuse" },
+						launchArgs: { detoxEnableSynchronization: 0 },
+					}
+				: {}),
 		});
 	});
 
