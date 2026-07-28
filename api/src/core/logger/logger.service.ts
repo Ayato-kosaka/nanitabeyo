@@ -130,6 +130,9 @@ export class AppLoggerService implements INestLoggerService {
         path_name: input.path_name,
         payload: this.convertToBigQueryRecord(input.payload),
         error_level: input.error_level,
+        // `created_at` is the event-occurrence time; Cloud Logging's timestamp
+        // is only the ingestion time and can lag when the client batches logs.
+        created_at: input.created_at,
         created_app_version: input.created_app_version,
         created_commit_id: input.created_commit_id,
       }),
