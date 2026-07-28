@@ -28,7 +28,10 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { roundToOneDecimal, shuffle } from '../../core/utils/backend-utils';
 import { CLS_KEY_APP_VERSION } from 'src/core/cls/cls.constants';
 import { ClsService } from 'nestjs-cls';
-import { normalizePreferredLanguageCodes } from '../../../../shared/utils/languageCode';
+import {
+  languageMatchCandidates,
+  normalizePreferredLanguageCodes,
+} from '../../../../shared/utils/languageCode';
 import { prioritizeReviewsByLanguage } from './review-ordering';
 import { MediaProcessingStatus } from '@shared/v1/res';
 
@@ -772,7 +775,6 @@ export class DishMediaRepository {
       dishMedias.map((m) => m.dish_id),
       preferredLanguageCodes,
       reviewLimit,
-      userId,
     );
 
     // Get all dish IDs to calculate aggregates
@@ -890,7 +892,6 @@ export class DishMediaRepository {
     dishIds: string[],
     preferredLanguageCodes: string[],
     reviewLimit: number,
-    userId: string,
   ): Promise<Map<string, DishReviewWithUser[]>> {
     const result = new Map<string, DishReviewWithUser[]>();
     if (preferredLanguageCodes.length === 0 || dishIds.length === 0) {
@@ -903,15 +904,24 @@ export class DishMediaRepository {
         id: true,
         dish_reviews: {
           where: {
-            OR: preferredLanguageCodes.flatMap((code) => [
-              { original_language_code: { equals: code, mode: 'insensitive' } },
-              {
-                original_language_code: {
-                  startsWith: `${code}-`,
-                  mode: 'insensitive',
+            // #817 【設計】正規形(zh-hans)をそのまま DB 値へ突き合わせると、
+            // 実際に保存されている zh-CN に一致しない。必ず候補集合で引くこと。
+            OR: preferredLanguageCodes
+              .flatMap((code) => languageMatchCandidates(code))
+              .flatMap((candidate) => [
+                {
+                  original_language_code: {
+                    equals: candidate,
+                    mode: 'insensitive' as const,
+                  },
                 },
-              },
-            ]),
+                {
+                  original_language_code: {
+                    startsWith: `${candidate}-`,
+                    mode: 'insensitive' as const,
+                  },
+                },
+              ]),
           },
           orderBy: { created_at: 'asc' }, // #509 【設計】古い→新しい
           take: reviewLimit,
@@ -924,19 +934,9 @@ export class DishMediaRepository {
       result.set(dish.id, dish.dish_reviews);
     }
 
-    // userId は将来 like 状態を先読みする際に使う想定だが、現状は reactions 側で解決している
-    void userId;
-
     return result;
   }
 
-  /**
-   * #817 【設計】優先言語のレビューを上位へ寄せる。フィルタではなく並び替えなので、
-   * 優先言語が 0 件でも従来どおり reviewLimit 件が返り、reviewCount との整合も崩れない。
-   *
-   * 優先順位は preferredLanguageCodes の並び順（端末言語 → 検索地点の言語）。
-   * 同一優先度の中では created_at 昇順を維持する（#509）。
-   */
   // --- new helper ---
   private async buildReactionAggregates(
     dishMediaIds: string[],

@@ -1,5 +1,6 @@
 import {
   BCP47_LANGUAGE_TAG_PATTERN,
+  languageMatchCandidates,
   languagePriorityRank,
   normalizeLanguageCode,
   normalizePreferredLanguageCodes,
@@ -70,8 +71,10 @@ describe('languagePriorityRank', () => {
     expect(languagePriorityRank('zh-CN', ['zh-Hans'])).toBe(0);
   });
 
-  it('優先指定が空なら常に最下位（＝並び替えが起きない）', () => {
-    expect(languagePriorityRank('ja', [])).toBe(0);
+  it('優先指定が空なら最上位と最下位が縮退する（＝並び替えが起きない）', () => {
+    const noPreference: string[] = [];
+
+    expect(languagePriorityRank('ja', noPreference)).toBe(noPreference.length);
   });
 });
 
@@ -109,4 +112,55 @@ describe('BCP47_LANGUAGE_TAG_PATTERN', () => {
       expect(BCP47_LANGUAGE_TAG_PATTERN.test(value)).toBe(false);
     },
   );
+});
+
+/**
+ * #817 【回帰防止】正規化は zh-CN → zh-hans のようにタグを書き換えるため、
+ * 正規形をそのまま DB 値へ突き合わせると中国語だけ一致しない。
+ * 補充クエリの WHERE 句はこの候補集合で組み立てること。
+ */
+describe('languageMatchCandidates', () => {
+  /** dish-media.repository.ts の WHERE 句と同じ判定を再現する */
+  const matchesDbValue = (normalizedCode: string, dbValue: string) =>
+    languageMatchCandidates(normalizedCode).some((candidate) => {
+      const value = dbValue.toLowerCase();
+      return value === candidate || value.startsWith(`${candidate}-`);
+    });
+
+  it.each([
+    ['ja', 'ja'],
+    ['ja', 'ja-JP'], // UGC 投稿の保存値
+    ['en', 'en-US'],
+    ['zh-hans', 'zh-Hans'],
+    ['zh-hans', 'zh-CN'], // #817 これが拾えないと中国語で補充が空振りする
+    ['zh-hans', 'zh-SG'],
+    ['zh-hant', 'zh-Hant'],
+    ['zh-hant', 'zh-TW'],
+    ['zh-hant', 'zh-HK'],
+    ['zh-hant', 'zh-MO'],
+  ])('正規形 %s が DB 実値 %s に一致する', (normalized, dbValue) => {
+    expect(matchesDbValue(normalized, dbValue)).toBe(true);
+  });
+
+  it.each([
+    ['zh-hans', 'zh-TW'], // 簡体を指定して繁体を拾わない
+    ['zh-hant', 'zh-CN'],
+    ['ja', 'java'], // ハイフン無しの前方一致で誤爆しない
+    ['ja', 'en'],
+  ])('正規形 %s は DB 実値 %s に一致しない', (normalized, dbValue) => {
+    expect(matchesDbValue(normalized, dbValue)).toBe(false);
+  });
+
+  it('正規化 → 候補展開 が端末ロケールから一気通貫で動く', () => {
+    const [normalized] = normalizePreferredLanguageCodes(['zh-CN']);
+
+    expect(normalized).toBe('zh-hans');
+    expect(languageMatchCandidates(normalized)).toEqual(
+      expect.arrayContaining(['zh-hans', 'zh-cn', 'zh-sg']),
+    );
+  });
+
+  it('空文字は候補なし', () => {
+    expect(languageMatchCandidates('')).toEqual([]);
+  });
 });

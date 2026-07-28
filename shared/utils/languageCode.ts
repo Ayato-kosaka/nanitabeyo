@@ -64,6 +64,33 @@ export function normalizeLanguageCode(value: string | null | undefined): string 
 }
 
 /**
+ * 正規形の言語コードに対して、DB へ実際に保存されうるタグの候補を返す。
+ *
+ * #817 【設計】正規化は `zh-CN` → `zh-hans` のようにタグを書き換えるため、
+ * 正規形をそのまま DB 値へ突き合わせると中国語だけ一致しない。
+ * DB を検索する際は、必ずこの候補集合で前方一致すること。
+ *
+ * 例:
+ * - `ja`      → `["ja"]`      （`ja` と `ja-JP` は `ja` / `ja-*` で拾える）
+ * - `zh-hans` → `["zh-hans", "zh-cn", "zh-sg"]`
+ * - `zh-hant` → `["zh-hant", "zh-tw", "zh-hk", "zh-mo"]`
+ */
+export function languageMatchCandidates(normalizedCode: string): string[] {
+	if (!normalizedCode) return [];
+
+	// 中国語は script 表記と region 表記が同じものを指すため、両方を候補に含める
+	if (normalizedCode === "zh-hans" || normalizedCode === "zh-hant") {
+		const regions = Object.entries(CHINESE_REGION_TO_SCRIPT)
+			.filter(([, script]) => `zh-${script}` === normalizedCode)
+			.map(([region]) => `zh-${region}`);
+
+		return [normalizedCode, ...regions];
+	}
+
+	return [normalizedCode];
+}
+
+/**
  * 優先言語リストの中で、その言語コードが何番目に優先されるかを返す。
  *
  * 小さいほど優先度が高い。どの優先言語にも当たらない場合は
