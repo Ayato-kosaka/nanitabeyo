@@ -415,6 +415,9 @@ importers:
       react-native-google-mobile-ads:
         specifier: ^15.4.0
         version: 15.8.3(expo@53.0.24(@babel/core@7.28.5)(@expo/metro-runtime@5.0.5(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0)))(graphql@16.8.1)(react-native-webview@13.13.5(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react@19.0.0)
+      react-native-launch-arguments:
+        specifier: 4.1.1
+        version: 4.1.1(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)
       react-native-maps:
         specifier: 1.18.0
         version: 1.18.0(react-native-web@0.20.0(encoding@0.1.13)(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)
@@ -488,6 +491,9 @@ importers:
 
   e2e-mobile:
     devDependencies:
+      '@supabase/supabase-js':
+        specifier: ^2.49.4
+        version: 2.84.0
       '@types/jest':
         specifier: ^29.5.14
         version: 29.5.14
@@ -495,8 +501,11 @@ importers:
         specifier: ^22.15.3
         version: 22.19.1
       detox:
-        specifier: ^20.51.4
+        specifier: 20.51.4
         version: 20.51.4(@jest/environment@29.7.0)(@jest/types@29.6.3)(@types/bunyan@1.8.11)(expect@29.7.0)(jest-environment-node@29.7.0)(jest@29.7.0(@types/node@22.19.1))
+      dotenv:
+        specifier: ^16.5.0
+        version: 16.6.1
       jest:
         specifier: ^29.7.0
         version: 29.7.0(@types/node@22.19.1)(ts-node@10.9.2(@swc/core@1.15.3)(@types/node@22.19.1)(typescript@5.8.3))
@@ -8352,6 +8361,12 @@ packages:
       react: '*'
       react-native: '*'
 
+  react-native-launch-arguments@4.1.1:
+    resolution: {integrity: sha512-7tkJNHKhn37eXmGKz4UJ+47AywEqb3fknUsJ1GjCLNL0cpxDddKr43JbLrPGpASIxUSu36oYV/a0o0T6IWyKMg==}
+    peerDependencies:
+      react: '>=16.8.1'
+      react-native: '>=0.60.0-rc.0 <1.0.x'
+
   react-native-maps@1.18.0:
     resolution: {integrity: sha512-S17nYUqeMptgIPaAZuVRo+eRelPreBBYQWw6jsxU7qQ12p+THSfFaqabcNn7fBmsXhT3T27iIl8ek8v1H8BaGw==}
     engines: {node: '>=18'}
@@ -11103,7 +11118,7 @@ snapshots:
       getenv: 2.0.0
       glob: 10.5.0
       resolve-from: 5.0.0
-      semver: 7.7.3
+      semver: 7.8.5
       slash: 3.0.0
       slugify: 1.6.6
       xcode: 3.0.1
@@ -11184,7 +11199,7 @@ snapshots:
       require-from-string: 2.0.2
       resolve-from: 5.0.0
       resolve-workspace-root: 2.0.0
-      semver: 7.7.3
+      semver: 7.8.5
       slugify: 1.6.6
       sucrase: 3.35.0
     transitivePeerDependencies:
@@ -11202,7 +11217,7 @@ snapshots:
     dependencies:
       '@expo/logger': 1.0.221
       joi: 17.13.3
-      semver: 7.7.3
+      semver: 7.8.5
       zod: 4.1.12
 
   '@expo/eas-build-job@1.0.243':
@@ -11272,7 +11287,7 @@ snapshots:
       jimp-compact: 0.16.1
       parse-png: 2.1.0
       resolve-from: 5.0.0
-      semver: 7.7.3
+      semver: 7.8.5
       temp-dir: 2.0.0
       unique-string: 2.0.0
 
@@ -11284,7 +11299,7 @@ snapshots:
       jimp-compact: 0.16.1
       parse-png: 2.1.0
       resolve-from: 5.0.0
-      semver: 7.7.3
+      semver: 7.8.5
       temp-dir: 2.0.0
       unique-string: 2.0.0
 
@@ -14361,7 +14376,7 @@ snapshots:
   bin-version-check@5.1.0:
     dependencies:
       bin-version: 6.0.0
-      semver: 7.7.3
+      semver: 7.8.5
       semver-truncate: 3.0.0
 
   bin-version@6.0.0:
@@ -15307,7 +15322,7 @@ snapshots:
       proper-lockfile: 3.2.0
       resolve-from: 5.0.0
       sanitize-filename: 1.6.4
-      semver: 7.7.3
+      semver: 7.8.5
       serialize-error: 8.1.0
       shell-quote: 1.8.3
       signal-exit: 3.0.7
@@ -15833,7 +15848,7 @@ snapshots:
       promise-breaker: 6.0.0
       qs: 6.14.0
       raw-body: 2.5.2
-      semver: 7.7.3
+      semver: 7.8.5
     transitivePeerDependencies:
       - supports-color
 
@@ -17738,7 +17753,7 @@ snapshots:
       '@babel/parser': 7.28.5
       '@istanbuljs/schema': 0.1.3
       istanbul-lib-coverage: 3.2.2
-      semver: 7.7.3
+      semver: 7.8.5
     transitivePeerDependencies:
       - supports-color
 
@@ -18054,7 +18069,7 @@ snapshots:
       jest-util: 29.7.0
       natural-compare: 1.4.0
       pretty-format: 29.7.0
-      semver: 7.7.3
+      semver: 7.8.5
     transitivePeerDependencies:
       - supports-color
 
@@ -19181,7 +19196,7 @@ snapshots:
     dependencies:
       hosted-git-info: 7.0.2
       proc-log: 4.2.0
-      semver: 7.7.3
+      semver: 7.8.5
       validate-npm-package-name: 5.0.1
 
   npm-pick-manifest@9.1.0:
@@ -19189,7 +19204,7 @@ snapshots:
       npm-install-checks: 6.3.0
       npm-normalize-package-bin: 3.0.1
       npm-package-arg: 11.0.3
-      semver: 7.7.3
+      semver: 7.8.5
 
   npm-run-all@4.1.5:
     dependencies:
@@ -19960,6 +19975,11 @@ snapshots:
       react: 19.0.0
       react-native: 0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0)
 
+  react-native-launch-arguments@4.1.1(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0):
+    dependencies:
+      react: 19.0.0
+      react-native: 0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0)
+
   react-native-maps@1.18.0(react-native-web@0.20.0(encoding@0.1.13)(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(react-native@0.79.5(@babel/core@7.28.5)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0):
     dependencies:
       '@types/geojson': 7946.0.16
@@ -20459,7 +20479,7 @@ snapshots:
 
   semver-truncate@3.0.0:
     dependencies:
-      semver: 7.7.3
+      semver: 7.8.5
 
   semver@5.7.2: {}
 
@@ -21594,7 +21614,7 @@ snapshots:
       pupa: 2.1.1
       registry-auth-token: 5.1.0
       registry-url: 5.1.0
-      semver: 7.7.3
+      semver: 7.8.5
       semver-diff: 3.1.1
       xdg-basedir: 4.0.0
     transitivePeerDependencies:

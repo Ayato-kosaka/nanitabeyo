@@ -237,7 +237,9 @@ export const TopicCard = ({
 				collapsable={false}
 				style={styles.selectButtonTarget}
 				testID={tutorialTargetRefs ? "topics-tutorial-target-select" : undefined}>
+				{/* #1031 【設計】カルーセルで複数カードが同時マウントされるため atIndex(0) で先頭を指定できるよう testID を追加 */}
 				<TouchableOpacity
+					testID="topics-choose-button"
 					style={styles.selectButton}
 					onPress={() => onSelect(item)}
 					activeOpacity={0.85}

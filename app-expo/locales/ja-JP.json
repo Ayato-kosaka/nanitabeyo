@@ -371,8 +371,10 @@
 		},
 		"accessibility": {
 			"viewRestaurant": "{{name}}の店舗詳細を見る",
-			"like": "{{name}}にいいね",
-			"save": "{{name}}を保存",
+			"likeActive": "{{name}}のいいねを解除",
+			"likeInactive": "{{name}}にいいね",
+			"saveActive": "{{name}}の保存を解除",
+			"saveInactive": "{{name}}を保存",
 			"share": "{{name}}をシェア",
 			"openMap": "{{name}}の地図を開く",
 			"reviewLike": "{{username}}の口コミにいいね"

@@ -627,7 +627,9 @@ export default function TopicsScreen() {
 	return (
 		<View style={styles.container}>
 			{/* #674 【仕様】ヘッダー（戻るボタン + タイトル） */}
+			{/* #1031 【設計】Detox からタイトル表示を検証できるよう testID を追加 */}
 			<ScreenHeader
+				testID="topics-header"
 				title={i18n.t("Topics.headerTitle")}
 				onPressBack={handleBack}
 				rightContent={

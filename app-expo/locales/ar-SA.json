@@ -371,8 +371,10 @@
 		},
 		"accessibility": {
 			"viewRestaurant": "عرض تفاصيل مطعم {{name}}",
-			"like": "الإعجاب بـ {{name}}",
-			"save": "حفظ {{name}}",
+			"likeActive": "إلغاء الإعجاب بـ {{name}}",
+			"likeInactive": "الإعجاب بـ {{name}}",
+			"saveActive": "إلغاء حفظ {{name}}",
+			"saveInactive": "حفظ {{name}}",
 			"share": "مشاركة {{name}}",
 			"openMap": "فتح خريطة {{name}}",
 			"reviewLike": "الإعجاب بمراجعة {{username}}"
