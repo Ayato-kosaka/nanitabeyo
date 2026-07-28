@@ -146,7 +146,8 @@ jobs:
           path: |
             ~/.android/avd/*
             ~/.android/adb*
-          key: avd-34-google_apis-x86_64
+          # ロケール(ja-JP)をブートプロパティで焼くため、変更時はキーを更新して AVD を作り直す
+          key: avd-34-google_apis-x86_64-ja-v2
 
       # キャッシュがない場合のみ AVD を作成し、起動済みスナップショットを生成する
       # （google_apis: アプリが Google Play services（Maps/AdMob）へ依存するため）
@@ -159,7 +160,10 @@ jobs:
           arch: x86_64
           avd-name: e2e_avd
           force-avd-creation: false
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          # #1031 【設計】B4: Android は Detox の languageAndLocale が使えないため、
+          # エミュレータのブートプロパティでシステムロケールを ja-JP に固定する
+          # (adb shell setprop persist.sys.locale は root が必要で CI では失敗する)
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -prop persist.sys.locale=ja-JP -prop persist.sys.language=ja -prop persist.sys.country=JP
           disable-animations: false
           script: echo "AVD スナップショットを生成しました"
 
@@ -172,15 +176,12 @@ jobs:
           arch: x86_64
           avd-name: e2e_avd
           force-avd-creation: false
-          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -prop persist.sys.locale=ja-JP -prop persist.sys.language=ja -prop persist.sys.country=JP
           disable-animations: true
-          # #1031 【設計】B4: Android は Detox の languageAndLocale が使えないため、
-          # エミュレータのシステムロケールを ja-JP へ固定してから実行する
-          # （utils/locale.ts の warnIfAndroidLocaleMismatch が出す警告と対の対処）
+          # ロケールは emulator-options のブートプロパティで設定済み。ここでは確認だけ行う
+          # （不一致でも run は止めない。ja-JP 前提の spec は describeJapaneseLocale が skip する）
           script: |
-            adb shell setprop persist.sys.locale ja-JP
-            adb shell setprop ctl.restart zygote
-            adb wait-for-device shell 'while [ "$(getprop sys.boot_completed)" != "1" ]; do sleep 1; done'
+            echo "system locale: $(adb shell getprop persist.sys.locale | tr -d '\r')"
             pnpm --filter e2e-mobile run ${{ needs.prepare.outputs.android_script }}
         # #1030 【設計】3-3: 未設定なら describeAuthenticated 配下が自動 skip されるだけで他は動く
         env:
