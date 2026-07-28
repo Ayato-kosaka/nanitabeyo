@@ -36,8 +36,11 @@ description: CSVまたはGitHubの親Issueから複数課題を読み取り、�
 | `max_turns`         | 作業の大きさに合わせ、必要以上に増やさない           |
 | `extra_claude_args` | `allowedTools`、effort、出力形式を動的に指定する     |
 | `retention_days`    | エビデンスを人間が確認できる期間を確保する           |
+| `setup_playwright`  | UI変更を検証するrunでは`true`にする（下記参照）      |
 
 `task_key` は `[a-z0-9._-]` のみを使い、Issue、PR、役割を判別できるようにする。例: `issue-123-design-security`。
+
+**Workflowが実行前に済ませておくこと**: `write`/`observe` 両jobとも、Claude Code実行前に `pnpm install --frozen-lockfile` と `pnpm --filter shared build` を済ませている。promptで「依存関係は既にinstall済み、sharedもbuild済みなので再実行不要」と明記し、turnを節約すること。`setup_playwright: true` を指定すると、さらに EAS CLI で development環境変数を `app-expo/.env` へ取得し、Playwright(chromium)ブラウザをインストールし、`TEST_USER_EMAIL`/`TEST_USER_PASSWORD` をClaude Code実行時のenvへ渡す（`.github/workflows/e2e-web-test.yml` と同じ手順）。UI変更を伴う実装run・レビューrunでは基本的に `true` にし、promptで「`pnpm --filter app-expo build:web` → dist配信 → `pnpm --filter e2e-web test` (または個別spec) でスクリーンショットを撮ること」まで具体的に指示する。単純な依存バージョン更新やバックエンドのみの変更では `false`(既定)のままでよい。
 
 ## 認証と利用枠
 
@@ -235,14 +238,16 @@ Workerへ渡すpromptには、必要な項目だけを具体的に含める。
 - 必須テストと期待結果
 - `/tmp/claude-artifacts/` へ保存するエビデンス
 - commitとpushを行うこと
-- PRを作る場合はDraftにすること
+- PRを作る場合はDraftにすること、かつ **`gh pr create --draft --base "<base_branchの値>"` のように `--base` を必ず明示すること**（省略するとリポジトリの既定ブランチ宛のPRが作られてしまう。統合ブランチ運用では毎回事故る）
 - デフォルトブランチへマージしないこと
 
-WorkerがbranchをpushしたがPRを作らなかった場合は、リーダーが `gh pr create --draft` で作る。PR本文はテンプレートへ依存せず、対象Issue、設計、変更、検証、Artifact、依存PR、残課題をその都度まとめる。
+WorkerがbranchをpushしたがPRを作らなかった場合、または誤ったbaseでPRを作ってしまった場合は、リーダーが `gh pr create --draft --base <base>` で作る／`gh pr edit <number> --base <base>` で修正する。PR本文はテンプレートへ依存せず、対象Issue、設計、変更、検証、Artifact、依存PR、残課題をその都度まとめる。
 
 **`mcp__github__create_pull_request` を実装runのallowedToolsへ入れない**: このMCPツールはGitHub API経由でファイルをcommitし、現在checkoutしているlocal branchとは無関係な新規branch(英語スラグの自動生成名になることがある)を作ることがある。結果として、`branch_name` で指定したbranchとは別のbranchにPRが作られ、かつlocalで実行したはずのtypecheck/build/testがそのAPI commitには反映されていない(pnpm等のBashツールでの検証と、実際にpushされる変更が乖離する)、という事故が起きた。実装runでは `gh pr create` (Bash経由、現在のlocal branchを対象にする)だけを許可し、`mcp__github__create_pull_request` は外す。
 
-**max_turnsは実測に基づいて決める**: `pnpm install`(初回1分前後)+ モノレポ全体の `pnpm run typecheck`/`pnpm build`(数分)+ 実装 + 検証 + `gh pr create` までを1 write runでやり切るには、単純な1ファイル変更でも40〜50では不足しがちで、80〜100が必要だった。低いmax_turnsで打ち切られると `error_max_turns` で失敗し、branchもPRも一切残らないまま課金だけが発生する。
+**max_turnsは実測に基づいて決める**: install/shared buildをWorkflow側で先に済ませるようになった（上記参照）後でも、単一Issueの実装 + typecheck + 検証 + `gh pr create` で40〜50、複数Issueを1PRへ束ねる場合や機能追加＋functional test追加を伴う場合は150〜200を見ておく。低いmax_turnsで打ち切られると `error_max_turns` で失敗し、branchもPRも一切残らないまま課金だけが発生する。
+
+**`--ref` にはデフォルトブランチだけを指定できる（例外なし）**: `workflow_dispatch` はGitHubの仕様上、`--ref` で指定したブランチ上のWorkflowファイルが**既定ブランチ上のバージョンと1バイトでも違う**場合、`Claude Codeを実行` ステップ自体を無言でスキップする(`Skipping action due to workflow validation`という警告のみ)。これは `claude-worker.yml` 自体を修正した直後に踏みやすい罠で、修正branchを`--ref`に指定して試し撃ちしても何も起きず、後段のcommit検証stepが「変更なし」でjob failするだけになる。Workflow自体の変更を試すときは、**まずmainへマージしてから**改めてdispatchすること。
 
 **runの`conclusion: success`は「成果物ができた」ことを保証しない**: Claude Codeが権限拒否やエラーで行き詰まり、何も達成せずに応答を終えても、SDK的には `is_error: false` で「成功」と報告されることがある。runが成功扱いでも、必ず `git ls-remote --heads origin <branch_name>` とPR一覧で実際にbranch・PRが存在するかを確認すること。存在しなければ、権限・max_turns・promptを見直して再実行する。
 
