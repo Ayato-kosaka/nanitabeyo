@@ -1,0 +1,61 @@
+import { LAUNCH_TIMEOUT, launchAppWithSession } from "../../fixtures/e2e";
+import { SearchScreen } from "../../screens/SearchScreen";
+
+/**
+ * 🎓 検索チュートリアルの表示テスト（Tier 2）
+ *
+ * 目的: ja-JP 初回起動時のチュートリアル自動表示と、完了後の再表示抑止
+ *       （AsyncStorage フラグ `search_tutorial_seen_v1`）を保証する。
+ *       （e2e-web の tests/search/search-tutorial.spec.ts に対応。#1031 確定判断 B5 で PR-3 のスコープ）
+ *
+ * ## e2e-web との差分
+ * - **未視聴状態の作り方**: e2e-web は `test.use({ seedTutorialSeen: false })` でシードを外す。
+ *   ネイティブには AsyncStorage のシード手段がまだ無いため、`resetState: true` でアプリのストレージごと
+ *   消して「初回起動」を再現する。⚠️ `resetState` は iOS ではアンインストール相当で高コストなため
+ *   （#1030 m-5）、**このシナリオでだけ**使う。セッションは launchArgs で再注入されるので
+ *   匿名サインインのクォータは消費しない
+ * - **完了フラグの検証**（#1031 m6）: e2e-web は `page.evaluate` で localStorage を直接読んでいるが、
+ *   Detox からアプリの AsyncStorage は読めない。**「アプリを再起動しても表示されない」**という
+ *   ユーザーから観測できる事実に置き換える。ストレージへの永続化まで含めて検証できるため、
+ *   タブ切り替えによる再訪問で代替するより強い検証になっている
+ * - **完了操作**: 最終ページのプライマリ CTA「はじめよう」は現在地取得（OS の位置情報アクセス）を伴うため、
+ *   e2e-web と同じくセカンダリ CTA「あとで」で完了させる（どちらも markTutorialAsSeen を通る）
+ *
+ * ## 前提
+ * チュートリアルは `isJapanese` のときだけ自動表示される（app-expo の search/index.tsx）。
+ * デバイスロケールの ja-JP 固定は fixtures/e2e.ts + utils/locale.ts の責務（#1031 確定判断 B4）。
+ */
+describe("検索チュートリアル（初回起動）", () => {
+	const search = new SearchScreen();
+
+	beforeAll(async () => {
+		// アプリのストレージを消して「チュートリアル未視聴」を再現する。
+		// セッションは launchArgs で注入し直されるため、匿名サインインは追加で発生しない。
+		//
+		// ⚠️ `waitForReady: false` にしているのは、起動完了の観測点がタブバー (`tab-search`) だから。
+		// チュートリアルは BottomSheet（Android では別ウィンドウの Modal）として最前面に出るため、
+		// 先にシートが開くと背後のタブバーが Detox から見えず、起動待ちがタイムアウトしうる。
+		// この spec では「チュートリアルが出ること」自体が起動完了の観測点になるので、それを直接待つ
+		await launchAppWithSession({ as: "anon", resetState: true, waitForReady: false });
+	});
+
+	// ─ テストケース: 初回起動で自動表示され、完了すると次回以降は表示されない ─
+	// 手順:
+	//   1. ストレージを消した状態で起動する（beforeAll）
+	//   2. チュートリアル（search-tutorial-overlay）が自動表示されることを検証
+	//   3. 「つぎへ」で最終ページまで進め、「あとで」で完了させる
+	//   4. チュートリアルが閉じ、検索画面が操作できる状態になることを検証
+	//   5. アプリを再起動する（ストレージは消さない）
+	//   6. チュートリアルが自動表示されないことを検証（= 視聴済みフラグが永続化されている）
+	it("初回起動で自動表示され、完了すると再起動しても表示されない", async () => {
+		// 初回起動は JS バンドル読込 + セッション注入を含むため、起動待ちと同じスケールで待つ
+		await search.expectTutorialShown(LAUNCH_TIMEOUT);
+
+		await search.completeTutorial();
+		await search.expectLoaded();
+
+		// ストレージを保持したまま起動し直す（resetState は既定 false）
+		await launchAppWithSession({ as: "anon" });
+		await search.expectTutorialAbsent();
+	});
+});
