@@ -75,6 +75,26 @@ export async function existsNow(matcher: Detox.NativeMatcher, timeout = 2_000): 
 }
 
 /**
+ * 要素が **可視かどうか** を待たずに判定する。
+ *
+ * `existsNow` との違いは「ビューツリーに在るか」ではなく「実際に見えているか」を見る点。
+ * 前面にモーダル（初回チュートリアル等）が被っている状況を検出したいときは、
+ * 存在では区別できないためこちらを使う。
+ *
+ * @param matcher 対象のマッチャ
+ * @param timeout 判定に費やす上限 (ms)。既定 2 秒
+ * @returns 可視なら true / そうでなければ false（例外は投げない）
+ */
+export async function visibleNow(matcher: Detox.NativeMatcher, timeout = 2_000): Promise<boolean> {
+	try {
+		await waitFor(element(matcher)).toBeVisible().withTimeout(timeout);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+/**
  * 任意の条件が真になるまでポーリングして待つ（要素の可視性では表せない状態変化用）。
  *
  * #1031 【設計】B1: 「いいね済みかどうか」のような **選択状態** は Detox のマッチャでは待てない

@@ -1,6 +1,7 @@
 import {
 	DEFAULT_TIMEOUT,
 	by,
+	dismissSearchTutorialIfPresent,
 	element,
 	existsNow,
 	expect,
@@ -272,12 +273,11 @@ export class SearchScreen {
 	 * @returns 閉じた場合 true / そもそも出ていなかった場合 false
 	 */
 	async dismissTutorialIfPresent(): Promise<boolean> {
+		// #1027 実体は fixtures/e2e.ts へ移した。起動処理（waitForAppReady）でも同じ後始末が要るためで、
+		// screens 側と二重管理にならないようここからは委譲するだけにする。
 		// チュートリアルは AsyncStorage の読み込み完了後に開くため、起動直後は少し遅れて現れる。
 		// 「出ていない」と誤判定して後続の操作がブロックされないよう、既定より長めに様子を見る
-		if (!(await existsNow(this.tutorialOverlay, 3_000))) return false;
-
-		await this.completeTutorial();
-		return true;
+		return dismissSearchTutorialIfPresent(3_000);
 	}
 
 	/**

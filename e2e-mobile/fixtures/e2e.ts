@@ -17,6 +17,7 @@ import {
 	DEFAULT_TIMEOUT,
 	LAUNCH_TIMEOUT,
 	existsNow,
+	visibleNow,
 	waitUntil,
 	waitUntilExists,
 	waitUntilGone,
@@ -48,7 +49,16 @@ import {
  */
 
 export { by, device, element, waitFor, detoxExpect as expect };
-export { DEFAULT_TIMEOUT, LAUNCH_TIMEOUT, existsNow, waitUntil, waitUntilExists, waitUntilGone, waitUntilVisible };
+export {
+	DEFAULT_TIMEOUT,
+	LAUNCH_TIMEOUT,
+	existsNow,
+	visibleNow,
+	waitUntil,
+	waitUntilExists,
+	waitUntilGone,
+	waitUntilVisible,
+};
 export { localeDeepLink };
 export type { SessionOwner };
 
@@ -170,13 +180,73 @@ export async function launchAppWithoutSession(opts: LaunchOptions = {}): Promise
 }
 
 /**
+ * 初回起動チュートリアル（`app-expo` の search/index.tsx）の testID。
+ *
+ * #1027 【バグ】このチュートリアルは **ja-JP のとき初回起動で自動的に開く**全画面級のシートで、
+ * 開いている間はタブバーを含む背後の UI が Detox から操作できない（run 30394200940 の iOS で
+ * 全 spec が beforeAll ごと失敗した原因）。Android で顕在化していなかったのは、
+ * 端末ロケールが en-US のままでチュートリアル自体が出ていなかったからにすぎない。
+ *
+ * screens/SearchScreen.ts にも同じ定義があるが、**起動処理はどの画面にも依存してはいけない**
+ * （fixtures が screens に依存すると循環参照になる）ため、ここでは matcher を直接持つ。
+ */
+const SEARCH_TUTORIAL = {
+	overlay: by.id("search-tutorial-overlay"),
+	nextButton: by.id("search-tutorial-next"),
+	finishButton: by.id("search-tutorial-finish"),
+	laterButton: by.id("search-tutorial-later"),
+};
+
+/**
+ * 初回起動チュートリアルが開いていれば最後まで送って閉じる（ベストエフォート）。
+ *
+ * 完了は最終ページのセカンダリ CTA「あとで」で行う。プライマリ CTA「はじめよう」は
+ * 現在地取得（OS の位置情報アクセス）を伴うため使わない。どちらも `markTutorialAsSeen()` を通り、
+ * AsyncStorage の視聴済みフラグが立つので、同一インストール内では二度と出てこない。
+ *
+ * @param probeTimeout 「出ているか」の判定に費やす上限 (ms)
+ * @returns 閉じた場合 true / そもそも出ていなかった場合 false
+ */
+export async function dismissSearchTutorialIfPresent(probeTimeout = 3_000): Promise<boolean> {
+	if (!(await existsNow(SEARCH_TUTORIAL.overlay, probeTimeout))) return false;
+
+	// ページ送りは FlatList のスクロールアニメーションを伴う。プライマリ CTA の testID が
+	// 「つぎへ」→「はじめよう」へ切り替わるのを毎回待ち合わせることでアニメーション完了を待つ
+	for (let page = 0; page < 10; page += 1) {
+		if (await existsNow(SEARCH_TUTORIAL.finishButton, 1_000)) break;
+		if (!(await existsNow(SEARCH_TUTORIAL.nextButton, 1_000))) break;
+		await element(SEARCH_TUTORIAL.nextButton).tap();
+	}
+
+	await waitUntilVisible(SEARCH_TUTORIAL.finishButton);
+	await element(SEARCH_TUTORIAL.laterButton).tap();
+	await waitUntilGone(SEARCH_TUTORIAL.overlay);
+	return true;
+}
+
+/**
  * アプリが操作可能な状態（タブレイアウトの描画完了）になるまで待つ。
  *
+ * #1027 【バグ】ja-JP の初回起動ではチュートリアルが先に開き、タブバーが **存在はするが見えない**
+ * 状態になる。そのため単純にタブバーの可視化を待つと、チュートリアルが閉じられないまま
+ * LAUNCH_TIMEOUT まで待って失敗する。ここでは
+ * 「タブバーが見える」か「チュートリアルが出た」かのどちらかを先に待ち、
+ * 後者ならチュートリアルを閉じてから改めてタブバーを待つ。
+ *
  * @param timeout タイムアウト (ms)。既定は初回起動を見込んだ LAUNCH_TIMEOUT
- * @失敗時 タイムアウト時に Detox の例外を投げる
+ * @失敗時 タイムアウト時に例外を投げる
  */
 export async function waitForAppReady(timeout: number = LAUNCH_TIMEOUT): Promise<void> {
-	await waitUntilVisible(by.id(APP_READY_TEST_ID), timeout);
+	await waitUntil(
+		async () =>
+			(await visibleNow(by.id(APP_READY_TEST_ID), 1_000)) || (await existsNow(SEARCH_TUTORIAL.overlay, 1_000)),
+		{ timeout, interval: 250, description: "タブバーの表示、または初回チュートリアルの表示" },
+	);
+
+	// 既にタブバーが見えている（＝チュートリアル未表示）ケースでは probe だけで済むよう短く見る
+	await dismissSearchTutorialIfPresent(1_000);
+
+	await waitUntilVisible(by.id(APP_READY_TEST_ID), DEFAULT_TIMEOUT);
 }
 
 /**
