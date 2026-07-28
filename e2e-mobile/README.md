@@ -2,8 +2,9 @@
 
 `app-expo` を `expo prebuild` + Gradle / xcodebuild でネイティブビルドし、Android エミュレータ / iOS シミュレータ上で、Cloud Run の `api-development` に接続して実環境相当の E2E テストを行うワークスペースです。方針は `e2e-web/`(Playwright)を踏襲しています。
 
-> 現在の実装範囲: **Android の起動スモーク + 共通基盤(fixtures / Tier 機構 / 認証セッション注入の呼び出し側)**。
-> iOS 構成・シナリオ拡充・アプリ側の注入フックは Sub-issue で進行中(#1027 / #1028 / #1029 / #1030 / #1031)。
+> 現在の実装範囲: **Android / iOS 両対応。共通基盤(fixtures / Tier 機構 / 認証セッション注入)+ Tier 1〜2 のシナリオ**
+> (smoke / navigation / search / profile / review)。認証済み(ログイン済み)シナリオと `@mutation` の拡充は後続。
+> 設計と決定の経緯は #1027 とその Sub-issue(#1028 / #1029 / #1030 / #1031)を参照。
 
 ## 構成の全体像
 
@@ -51,7 +52,9 @@ cd app-expo && pnpx eas-cli env:pull development --non-interactive --path .env &
 cp e2e-mobile/.env.example e2e-mobile/.env
 ```
 
-## 実行方法(Android)
+## 実行方法
+
+### Android
 
 ```bash
 # 1. ネイティブプロジェクト生成(E2E_DETOX=1 で Detox 用 config plugin を有効化)
@@ -60,7 +63,10 @@ cd app-expo && E2E_DETOX=1 pnpm exec expo prebuild --platform android --no-insta
 # 2. release APK + androidTest APK をビルド(アプリ変更後は再実行が必要)
 pnpm --filter e2e-mobile build:android
 
-# 3. テスト実行(AVD が起動していること。名前が e2e_avd 以外なら DETOX_AVD_NAME で指定)
+# 3. エミュレータのロケールを ja-JP に固定する(1 回だけ。ランタイム再起動を伴うため数十秒かかる)
+adb shell setprop persist.sys.locale ja-JP && adb shell setprop ctl.restart zygote
+
+# 4. テスト実行(AVD が起動していること。名前が e2e_avd 以外なら DETOX_AVD_NAME で指定)
 pnpm test:e2e:mobile                          # ルートから(= pnpm --filter e2e-mobile test)
 
 # e2e-mobile ディレクトリ内での実行バリエーション
@@ -70,9 +76,28 @@ pnpm test:mutation:android                    # Tier 3(tests/mutation/)のみ �
 pnpm test:all:android                         # 全件(@mutation 含む)
 ```
 
-- prebuild と native ビルドは `detox test` に**含めていない**(毎回のリビルドを避けるため)。アプリを変更したら手順 1〜2 をやり直すこと
-- ローカルの AVD 名が異なる場合: `DETOX_AVD_NAME=<AVD名> pnpm test:android`(または `e2e-mobile/.env` に記載)
+### iOS
+
+```bash
+# 1. ネイティブプロジェクト生成 + Pod install
+cd app-expo && E2E_DETOX=1 pnpm exec expo prebuild --platform ios --no-install && cd ios && pod install && cd ../..
+
+# 2. シミュレータ用 Release ビルド(署名不要)
+pnpm --filter e2e-mobile build:ios
+
+# 3. テスト実行(機種は既定 iPhone 16。変更する場合は DETOX_IOS_DEVICE で指定)
+pnpm --filter e2e-mobile test:ios             # Android と同じく :smoke / :mutation / :all もある
+```
+
+- 事前に `brew tap wix/brew && brew trust wix/brew && brew install applesimutils` が必要(Detox 公式手順)
+- **CocoaPods は 1.15.2 を使うこと**。runner 既定の 1.17.0 は pnpm monorepo で `pathname contains null byte` が断続発生する(CocoaPods#12798 / #12866)
+- iOS はロケール・権限を `launchApp` 側で固定するため、手動設定は不要
+
+### 共通の注意
+
+- prebuild と native ビルドは `detox test` に**含めていない**(毎回のリビルドを避けるため)。アプリを変更したらビルド手順をやり直すこと
 - 失敗時のスクリーンショットは `e2e-mobile/artifacts/` に出力される
+- **iOS は Detox の同期機構を無効化している**(`fixtures/e2e.ts` の `platformLaunchOptions`)。メインキューに常駐する作業があり同期が永遠にアイドルにならないため、待機は `waitFor` のポーリングに委ねている(恒久対応は #1040)
 
 ## テスト 3 層構造(CI との棲み分け)
 
@@ -93,9 +118,17 @@ Tier 3 の安全弁は **2 段構え**(#1028 §6-3 / #1030 レビュー M-3):
 
 ## CI(GitHub Actions)
 
-| ワークフロー          | トリガー          | 内容                                                                                           |
-| --------------------- | ----------------- | ---------------------------------------------------------------------------------------------- |
-| `e2e-mobile-test.yml` | workflow_dispatch | prebuild → Gradle(release + androidTest)→ エミュレータ上で Detox 実行。artifact をアップロード |
+| ワークフロー           | トリガー                          | 内容                                                                                                                                 |
+| ---------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `e2e-mobile-test.yml`  | 毎晩 JST 4:00 + workflow_dispatch | Android(ubuntu + KVM)と iOS(macos-15 / Xcode 26.2)を独立ジョブで実行。prebuild → ネイティブビルド → Detox 実行 → artifact 保存(7 日) |
+| `evidence-collect.yml` | workflow_dispatch                 | 指定 run の artifact をエビデンスブランチへ回収する補助ワークフロー(Artifact へ直接アクセスできない環境向け)                         |
+
+`workflow_dispatch` の入力:
+
+- `platform`: `all`(既定)/ `android` / `ios`
+- `scope`: `tier1-2`(既定)/ `tier1`(smoke のみ)/ `mutation`(**dev DB へ書き込む**)
+
+夜間 cron は入力が空になるため `platform=all` / `scope=tier1-2` へフォールバックする。
 
 必要な GitHub Secrets(リポジトリレベル。**e2e-web と共用で、新規 secret は追加しない**):
 
