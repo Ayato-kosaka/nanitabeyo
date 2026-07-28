@@ -39,65 +39,24 @@ DENIALS=$(jq -r '[.[] | select(.type == "result")] | last | (.permission_denials
   echo "- turns: $NUM_TURNS / cost: \$$COST / permission denials: $DENIALS"
 } >> "$SUMMARY"
 
-sanitize() {
-  local value="$1"
-  local max_length="$2"
-
-  # permission情報にコマンド断片が含まれても、代表的な認証情報を公開しない。
-  value=$(printf '%s' "$value" \
-    | tr '\r\n' '  ' \
-    | sed -E \
-      -e 's/sk-ant-[A-Za-z0-9_-]+/[REDACTED_ANTHROPIC_KEY]/g' \
-      -e 's/github_pat_[A-Za-z0-9_]+/[REDACTED_GITHUB_TOKEN]/g' \
-      -e 's/gh[pousr]_[A-Za-z0-9_]+/[REDACTED_GITHUB_TOKEN]/g' \
-      -e 's/(AKIA|ASIA)[A-Z0-9]{16}/[REDACTED_AWS_ACCESS_KEY]/g' \
-      -e 's/eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/[REDACTED_JWT]/g' \
-      -e 's/Bearer[[:space:]]+[A-Za-z0-9._~+\/-]+/Bearer [REDACTED]/Ig' \
-      -e 's#https://[^/@[:space:]]+:[^/@[:space:]]+@#https://[REDACTED]@#g' \
-      -e 's/((TOKEN|KEY|SECRET|PASSWORD|PASSWD|AUTHORIZATION)[A-Za-z0-9_ -]*[=:][[:space:]]*)[^ ,;]+/\1[REDACTED]/Ig')
-
-  if (( ${#value} > max_length )); then
-    value="${value:0:max_length}…"
-  fi
-  printf '%s' "$value"
-}
-
 if (( DENIALS > 0 )); then
-  echo "::warning::permission_denials_count=$DENIALS。拒否されたツールと安全な概要をStep Summaryへ限定表示します。"
+  echo "::warning::permission_denials_count=$DENIALS。拒否されたツールの安全なメタデータだけをStep Summaryへ表示します。"
 
-  # result.permission_denialsが権限拒否の一次情報。tool_resultのエラーが存在する場合だけ
-  # tool_use_idで関連付けて理由を補い、なければ一般的な説明を表示する。
+  # result.permission_denialsから、値を含まないメタデータだけを最大20件抽出する。
+  # tool_inputの値・Bashコマンド・tool_result本文は、未知の機密情報を含み得るため公開しない。
   jq -r '
-    def content_text:
-      if type == "string" then .
-      elif type == "array" then
-        map(if type == "object" then (.text // tostring) else tostring end) | join("\n")
-      else tostring
-      end;
-
-    . as $events
-    | ([
-        $events[]
-        | select(.type == "user")
-        | (.message.content // [])[]?
-        | select(.type == "tool_result" and (.is_error // false) == true and (.tool_use_id // "") != "")
-        | . as $result
-        | {key: $result.tool_use_id, value: (($result.content // "") | content_text)}
-      ] | from_entries) as $errors
-    | ([.[] | select(.type == "result")] | last | (.permission_denials // []))[:20][]
+    ([.[] | select(.type == "result")] | last | (.permission_denials // []))[:20][]
     | {
         tool: (.tool_name // "unknown"),
         tool_use_id: (.tool_use_id // ""),
-        command: (if .tool_name == "Bash" then (.tool_input.command // "") else "" end),
-        parameter_names: (if .tool_name == "Bash" then [] else ((.tool_input // {}) | keys) end),
-        reason: ($errors[.tool_use_id] // "Claude Codeの権限設定により拒否されました。SDK resultには詳細理由が含まれていません。")
+        parameter_names: ((.tool_input // {}) | keys)
       }
     | @base64
   ' "$TMP_EVENTS" > "$TMP_DENIALS" 2>/dev/null || true
 
   {
     echo
-    echo "### 権限拒否の詳細（機密情報をマスク済み）"
+    echo "### 権限拒否の詳細（引数値は非表示）"
 
     if [[ ! -s "$TMP_DENIALS" ]]; then
       echo "permission_denialsの詳細を抽出できませんでした。Claude Codeの出力形式が想定と異なる可能性があります。"
@@ -108,28 +67,18 @@ if (( DENIALS > 0 )); then
         DENIAL_JSON=$(printf '%s' "$denial_b64" | base64 --decode 2>/dev/null || echo '{}')
         TOOL=$(jq -r '.tool // "unknown"' <<< "$DENIAL_JSON" 2>/dev/null || echo unknown)
         TOOL_USE_ID=$(jq -r '.tool_use_id // ""' <<< "$DENIAL_JSON" 2>/dev/null || true)
-        COMMAND=$(jq -r '.command // ""' <<< "$DENIAL_JSON" 2>/dev/null || true)
         PARAMETER_NAMES=$(jq -r '(.parameter_names // []) | join(", ")' <<< "$DENIAL_JSON" 2>/dev/null || true)
-        REASON=$(jq -r '.reason // "詳細理由を取得できませんでした。"' <<< "$DENIAL_JSON" 2>/dev/null || echo "詳細理由を取得できませんでした。")
-
-        TOOL=$(sanitize "$TOOL" 100)
-        TOOL_USE_ID=$(sanitize "$TOOL_USE_ID" 100)
-        COMMAND=$(sanitize "$COMMAND" 500)
-        PARAMETER_NAMES=$(sanitize "$PARAMETER_NAMES" 300)
-        REASON=$(sanitize "$REASON" 1000)
 
         echo "#### $INDEX. \`$TOOL\`"
         if [[ -n "$TOOL_USE_ID" ]]; then
           echo "- tool_use_id: \`$TOOL_USE_ID\`"
         fi
-        if [[ -n "$COMMAND" ]]; then
-          echo "- command（先頭500文字）:"
-          echo "    $COMMAND"
-        elif [[ -n "$PARAMETER_NAMES" ]]; then
+        if [[ -n "$PARAMETER_NAMES" ]]; then
           echo "- parameters（値は非表示）: \`$PARAMETER_NAMES\`"
+        else
+          echo "- parameters: なし"
         fi
-        echo "- reason（先頭1000文字）:"
-        echo "    $REASON"
+        echo "- 詳細理由・コマンド・引数値は、機密情報保護のため公開しません。"
       done < "$TMP_DENIALS"
 
       if (( DENIALS > 20 )); then
