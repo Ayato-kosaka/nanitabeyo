@@ -33,6 +33,7 @@ export const TopicCard = ({
 	cardWidth,
 	cardHeight,
 	imageState,
+	isSelecting = false,
 	onImageRetry,
 	onImageLoadError,
 	tutorialTargetRefs,
@@ -47,6 +48,7 @@ export const TopicCard = ({
 	cardWidth: number;
 	cardHeight: number;
 	imageState: TopicImageResourceState;
+	isSelecting?: boolean;
 	onImageRetry?: (topic: Topic) => void;
 	/** #929 【設計】表示側 <Image> の読み込み失敗通知(TopicVisualCard から中継) */
 	onImageLoadError?: (topic: Topic) => void;
@@ -240,10 +242,12 @@ export const TopicCard = ({
 				{/* #1031 【設計】カルーセルで複数カードが同時マウントされるため atIndex(0) で先頭を指定できるよう testID を追加 */}
 				<TouchableOpacity
 					testID="topics-choose-button"
-					style={styles.selectButton}
+					style={[styles.selectButton, isSelecting && styles.selectButtonDisabled]}
 					onPress={() => onSelect(item)}
+					disabled={isSelecting}
 					activeOpacity={0.85}
 					accessibilityRole="button"
+					accessibilityState={{ disabled: isSelecting }}
 					accessibilityLabel={i18n.t("Topics.chooseThis")}>
 					<Text style={styles.selectButtonText}>{i18n.t("Topics.chooseThis")}</Text>
 				</TouchableOpacity>
@@ -275,6 +279,9 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		justifyContent: "center",
 		backgroundColor: "#F05537",
+	},
+	selectButtonDisabled: {
+		opacity: 0.55,
 	},
 	selectButtonText: {
 		color: "#FFFFFF",
