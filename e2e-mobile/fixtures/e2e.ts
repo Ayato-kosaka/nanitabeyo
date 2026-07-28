@@ -17,6 +17,7 @@ import {
 	DEFAULT_TIMEOUT,
 	LAUNCH_TIMEOUT,
 	existsNow,
+	waitUntil,
 	waitUntilExists,
 	waitUntilGone,
 	waitUntilVisible,
@@ -47,7 +48,7 @@ import {
  */
 
 export { by, device, element, waitFor, detoxExpect as expect };
-export { DEFAULT_TIMEOUT, LAUNCH_TIMEOUT, existsNow, waitUntilExists, waitUntilGone, waitUntilVisible };
+export { DEFAULT_TIMEOUT, LAUNCH_TIMEOUT, existsNow, waitUntil, waitUntilExists, waitUntilGone, waitUntilVisible };
 export { localeDeepLink };
 export type { SessionOwner };
 

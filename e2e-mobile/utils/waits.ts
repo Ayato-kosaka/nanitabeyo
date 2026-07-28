@@ -73,3 +73,43 @@ export async function existsNow(matcher: Detox.NativeMatcher, timeout = 2_000): 
 		return false;
 	}
 }
+
+/**
+ * 任意の条件が真になるまでポーリングして待つ（要素の可視性では表せない状態変化用）。
+ *
+ * #1031 【設計】B1: 「いいね済みかどうか」のような **選択状態** は Detox のマッチャでは待てない
+ * （`accessibilityState` を検証する API が無い）。状態は `getAttributes()` で読み取るしかなく、
+ * 読み取り結果に対する待ちはこのヘルパで行う。
+ *
+ * ⚠️ 要素の出現待ちには使わないこと。それは `waitUntilVisible` の仕事で、
+ * Detox の同期機構と噛み合った待ち方をしてくれる。
+ *
+ * @param predicate 真になれば待機を終える判定関数。例外を投げた場合は「まだ偽」とみなして継続する
+ * @param options.timeout タイムアウト (ms)。既定 DEFAULT_TIMEOUT
+ * @param options.interval ポーリング間隔 (ms)。既定 500
+ * @param options.description タイムアウト時のメッセージに載せる、何を待っていたかの説明
+ * @失敗時 期限内に真にならなければ日本語のメッセージで例外を投げる
+ */
+export async function waitUntil(
+	predicate: () => Promise<boolean>,
+	options: { timeout?: number; interval?: number; description?: string } = {},
+): Promise<void> {
+	const { timeout = DEFAULT_TIMEOUT, interval = 500, description = "条件" } = options;
+	const deadline = Date.now() + timeout;
+
+	for (;;) {
+		let satisfied = false;
+		try {
+			satisfied = await predicate();
+		} catch {
+			// 判定中の例外（要素の再マウント中など）は「まだ偽」とみなして再試行する
+			satisfied = false;
+		}
+		if (satisfied) return;
+
+		if (Date.now() >= deadline) {
+			throw new Error(`${description} が ${timeout}ms 以内に成立しませんでした。`);
+		}
+		await new Promise((resolve) => setTimeout(resolve, interval));
+	}
+}
