@@ -208,8 +208,19 @@ Supabase の匿名サインインは **30 回/時/IP**、しかも **カスタ�
 | 項目                                                                      | 消費         |
 | ------------------------------------------------------------------------- | ------------ |
 | `globalSetup` の `signInAnonymously`                                      | 1            |
+| Detox の自動起動(`behavior.launchApp: "auto"`。後述)                      | 1            |
 | `tests/smoke/boot.test.ts`(**launchArgs なし起動**の唯一の例外)           | 1            |
 | ログアウト導線のテスト(`SIGNED_OUT` でアプリが自動的に匿名サインインする) | テスト本数分 |
+
+> **なぜ `behavior.launchApp: "manual"` にしないのか**
+> 「fixtures 側だけが起動を制御すれば自動起動の 1 消費を省ける」と考えて `manual` を試したが、
+> Detox の `manual` は「自動起動をスキップする」設定ではなく **「利用者が Xcode / Android Studio から自分で起動する」** モードで、
+> Detox は起動引数を stdout へ出力したうえで `Press any key to continue...` と入力待ちに入る。
+> CI(非 TTY)では `TypeError: process.stdin.setRawMode is not a function` で全 spec が即死し、
+> さらに **launchArgs の refresh_token が公開ログへ平文出力される**(run 30386865911 で実測)。
+> Android では自動インストールも行われず `No instrumentation runner found` になる。
+> よって `manual` は使用禁止。自動起動による 1 消費は、セッションが AsyncStorage に永続化され
+> spec 間で引き継がれるため **run あたり 1 回で頭打ち**になり、上表のとおり許容する。
 
 ### 運用ルール
 

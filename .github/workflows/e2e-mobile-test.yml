@@ -207,7 +207,9 @@ jobs:
     # macos-latest は macos-26 への移行が進行中のため、eas.json の EAS ビルド環境
     # （macos-sequoia-15.6-xcode-26.2）に合わせて macos-15 を明示固定する（#1029）
     runs-on: macos-15
-    timeout-minutes: 60
+    # #1027 【実測】xcodebuild（Release / シミュレータ）だけで ~35 分かかる（run 30386865911）。
+    # そのうえで Tier1-2 の全 spec を実行するため、60 分では足りずジョブが打ち切られていた
+    timeout-minutes: 120
 
     steps:
       - name: ⏬ Checkout repository
