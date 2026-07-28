@@ -53,6 +53,10 @@ export { ExistsContributionTaskQueryDto } from "./contribution-tasks/exists-cont
 export { CompletedTargetIdsQueryDto } from "./contribution-tasks/completed-target-ids.query";
 
 export { CreateFrontendLogDto } from "./logs/create-frontend-log.dto";
+export {
+	CreateFrontendLogBatchDto,
+	CREATE_FRONTEND_LOG_BATCH_MAX_SIZE,
+} from "./logs/create-frontend-log-batch.dto";
 
 export { QueryNotificationsDto } from "./notifications/query-notifications.dto";
 export { CreateDeviceTokenDto } from "./notifications/create-device-token.dto";
