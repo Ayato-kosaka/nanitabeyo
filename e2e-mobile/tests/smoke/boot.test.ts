@@ -25,7 +25,9 @@ describe("起動 @smoke", () => {
 						// Detox の waitForActive が完了せずタイムアウトする(run 30364296574 の beforeAllFailure.png)。
 						// iOS は位置情報を事前許可して起動する(applesimutils 経由。Android はダイアログが
 						// 起動シーケンスをブロックしないため不要)
-						permissions: { location: "inuse" },
+						// #1027 【バグ】位置情報の次は ATT(トラッキング許可)ダイアログが同様にブロックする
+						// (run 30368487678)ため、システムダイアログを出しうる許可はすべて事前付与する
+						permissions: { location: "inuse", userTracking: "YES" },
 						launchArgs: { detoxEnableSynchronization: 0 },
 					}
 				: {}),
