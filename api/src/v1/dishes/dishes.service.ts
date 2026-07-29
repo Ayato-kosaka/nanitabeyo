@@ -156,8 +156,18 @@ export class DishesService {
     });
 
     // #636 【バグ】contextualContents は experimental で返却保証が弱いため、places のみ必須とする
-    if (!googlePlaces || !googlePlaces?.places) {
-      throw new Error('No places found from Google Maps API');
+    // 【設計】0件は異常ではなく「その地点・カテゴリに該当店舗が無かった」という正常な結果。
+    // searchRestaurants は3段のフォールバック（full → relaxed → minimal）を尽くしたうえで
+    // places を持たない空レスポンスを返す契約なので、ここを throw にすると
+    // 該当なしの検索がすべて 500 INTERNAL_ERROR になる。空配列を返してクライアントへ委ねる。
+    if (!googlePlaces?.places || googlePlaces.places.length === 0) {
+      this.logger.warn('BulkImportNoPlacesFound', 'bulkImportFromGoogle', {
+        location: dto.location,
+        radius: dto.radius,
+        categoryName: dto.categoryName,
+        categoryId: dto.categoryId,
+      });
+      return [];
     }
 
     const contextualContents = googlePlaces?.contextualContents;
