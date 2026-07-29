@@ -63,3 +63,20 @@ if [ "${actual_locale}" != "${EXPECTED_LOCALE}" ]; then
 fi
 
 echo "✅ システムロケールを ${EXPECTED_LOCALE} に固定しました"
+
+# ── ソフトキーボード(IME)の無効化 ──────────────────────────────────────────────
+# #1027 【バグ】ロケールを ja-JP にすると、テキスト入力へフォーカスした瞬間に
+# 日本語 IME の初回セットアップ（「入力レイアウトの選択」ダイアログ）が画面下半分を覆い、
+# その裏の検索サジェストを Detox が可視判定できなくなる（run 30432596949 の
+# location-autocomplete がこれで失敗した）。
+#
+# e2e-mobile は文字入力に一貫して `replaceText` を使っており（Android の Detox は Espresso の
+# typeTextIntoFocusedView 経由なので非 ASCII を typeText できない。screens/SearchScreen.ts 参照）、
+# **IME は 1 つも要らない**。まとめて無効化して、キーボードとそのウィザードが出る余地を消す。
+echo "▶ ソフトキーボード(IME)を無効化します"
+for ime in $(adb shell ime list -s 2>/dev/null | tr -d '\r'); do
+	# 無効化できない IME があっても失敗させない（機種イメージによって構成が違うため）
+	adb shell ime disable "${ime}" || true
+done
+adb shell settings put secure show_ime_with_hard_keyboard 0 || true
+echo "✅ IME を無効化しました（残: $(adb shell ime list -s 2>/dev/null | tr -d '\r' | tr '\n' ' ')）"

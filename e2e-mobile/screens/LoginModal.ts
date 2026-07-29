@@ -10,11 +10,17 @@ import { DEFAULT_TIMEOUT, by, element, expect, waitUntilVisible } from "../fixtu
  * ログイン画面に進むため E2E テストの対象外とする（bot 検知・利用規約の観点でもアンチパターン。
  * e2e-web の LoginModal と同じ判断）。このモーダルでは「表示・ボタンの存在・リーガルリンク」までを検証する。
  *
- * ## #1031 【設計確定】B2: リーガルモーダル検証方法の変更
- * e2e-web（`login-modal.spec.ts`）は「プライバシーポリシー」という同一文字列の出現数（1→3）で
- * リーガルモーダルの表示を判定しているが、Detox に要素数アサーション API（`toHaveCount` 相当）は無い。
- * そのため PR #1033 で追加された `login-privacy-link` / `legal-document-modal` の testID を使い、
- * 「リンクをタップ → モーダルの testID が出現する」という直接検証に置き換える。
+ * ## #1031 B2 → #1027 で方針変更: リーガルモーダルの検証はこの画面では行わない
+ * e2e-web（`login-modal.spec.ts`）は同意文言内のリンクをクリックしてリーガルモーダルを開く検証をしている。
+ * ネイティブでも同じことをしようと `login-privacy-link` を app-expo に追加したが、**この testID は
+ * ネイティブでは効かない**。同意文言はリンク部分を `<Text>` の入れ子で表現しており、React Native は
+ * 入れ子の `<Text>` を仮想ノード（Android: ReactVirtualTextShadowNode）として親の TextView に畳み込むため、
+ * **リンクに対応するネイティブ View が存在しない**（run 30432596949 の Espresso は
+ * "No views in hierarchy found matching: view.getTag() is \"login-privacy-link\"" を返した）。
+ * web では span + data-testid として実在するので e2e-web 側の検証は有効なまま。
+ *
+ * ネイティブでは代わりに **設定画面のリーガル行**（`settings-privacy` = 実体のある行）から
+ * 同じ `legal-document-modal` を開く経路で検証する（tests/profile/settings.test.ts）。
  */
 export class LoginModal {
 	/** モーダルのコンテナ（既存 testID） */
@@ -23,25 +29,11 @@ export class LoginModal {
 	readonly googleButton = by.id("login-google-button");
 	/** Apple ログインボタン（既存 testID） */
 	readonly appleButton = by.id("login-apple-button");
-	/** 同意文言内のプライバシーポリシーリンク（#1031 確定 B2。PR #1033 で testID 追加） */
-	readonly privacyLink = by.id("login-privacy-link");
-	/** プライバシーポリシーのリーガルドキュメントモーダル（#1031 確定 B2。PR #1033 で testID 追加） */
-	readonly legalDocumentModal = by.id("legal-document-modal");
 
 	/** ログインモーダルが開いていることを検証する */
 	async expectOpened(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
 		await waitUntilVisible(this.container, timeout);
 		await expect(element(this.googleButton)).toBeVisible();
 		await expect(element(this.appleButton)).toBeVisible();
-	}
-
-	/** プライバシーポリシーリンクをタップしてリーガルモーダルを開く */
-	async openPrivacyPolicy(): Promise<void> {
-		await element(this.privacyLink).tap();
-	}
-
-	/** リーガルドキュメントモーダルが開いていることを検証する */
-	async expectLegalDocumentOpened(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
-		await waitUntilVisible(this.legalDocumentModal, timeout);
 	}
 }

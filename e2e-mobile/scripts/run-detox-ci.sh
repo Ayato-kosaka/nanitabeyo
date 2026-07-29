@@ -22,21 +22,29 @@ set -uo pipefail
 readonly SCRIPT_NAME="${1:?実行する pnpm スクリプト名を渡してください（例: test:ci:android）}"
 readonly REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 readonly ARTIFACTS_DIR="${REPO_ROOT}/e2e-mobile/artifacts"
+# ⚠️ 実行中は artifacts/ の外へ書くこと。Detox は起動時に artifacts のルートを作り直すため、
+# 先に置いたファイルは消える（run 30432596949 で detox-run.log が Artifact に含まれず実測）。
+# 収集は Detox が終わってから artifacts/ へコピーする
+readonly WORK_DIR="${REPO_ROOT}/e2e-mobile/.detox-ci-logs"
 
-mkdir -p "${ARTIFACTS_DIR}"
+rm -rf "${WORK_DIR}"
+mkdir -p "${WORK_DIR}"
 
 echo "▶ pnpm --filter e2e-mobile run ${SCRIPT_NAME}"
 
-# tee でジョブログと Artifact の両方へ出す。冒頭の `set -o pipefail` により
+# tee でジョブログと収集用ファイルの両方へ出す。冒頭の `set -o pipefail` により
 # tee ではなく pnpm 側の終了コードが $? に残る（`set -e` は付けない。後始末を必ず走らせるため）
-pnpm --filter e2e-mobile run "${SCRIPT_NAME}" 2>&1 | tee "${ARTIFACTS_DIR}/detox-run.log"
+pnpm --filter e2e-mobile run "${SCRIPT_NAME}" 2>&1 | tee "${WORK_DIR}/detox-run.log"
 readonly EXIT_CODE=$?
 
 # 失敗時のみクラッシュログを回収する（成功時に置くとノイズにしかならない）。
 # adb が無い環境（iOS ジョブ）では単に何もしない
 if [ "${EXIT_CODE}" -ne 0 ] && command -v adb >/dev/null 2>&1; then
 	echo "▶ クラッシュログ（logcat の crash バッファ）を回収します"
-	adb logcat -b crash -d > "${ARTIFACTS_DIR}/logcat-crash.log" 2>&1 || true
+	adb logcat -b crash -d > "${WORK_DIR}/logcat-crash.log" 2>&1 || true
 fi
+
+mkdir -p "${ARTIFACTS_DIR}"
+cp "${WORK_DIR}"/*.log "${ARTIFACTS_DIR}/" 2>/dev/null || true
 
 exit "${EXIT_CODE}"

@@ -31,8 +31,29 @@ export const LAUNCH_TIMEOUT = 120_000;
  * @param timeout タイムアウト (ms)。既定 DEFAULT_TIMEOUT
  * @失敗時 タイムアウト時に Detox の例外を投げる（失敗時スクリーンショットは .detoxrc.js の artifacts 設定で保存される）
  */
-export async function waitUntilVisible(matcher: Detox.NativeMatcher, timeout: number = DEFAULT_TIMEOUT): Promise<void> {
-	await waitFor(element(matcher)).toBeVisible().withTimeout(timeout);
+export async function waitUntilVisible(
+	matcher: Detox.NativeMatcher,
+	timeout: number = DEFAULT_TIMEOUT,
+	index?: number,
+): Promise<void> {
+	await waitFor(target(matcher, index)).toBeVisible().withTimeout(timeout);
+}
+
+/**
+ * マッチャを操作対象の要素へ変換する。
+ *
+ * #1027 【バグ】Detox は **複数一致した状態で `element(matcher)` を操作すると例外**になる。
+ * しかもそのメッセージは "matches 2 views in the hierarchy" で、
+ * ベストエフォート系ヘルパ（`existsNow` 等）では「存在しない」と誤判定されてしまう
+ * （run 30429560108 では、これが原因でチュートリアルの後始末が毎回スキップされていた）。
+ * TrueSheet のように **同じ testID の View がツリーへ二重に現れる**実装があるため、
+ * 「複数一致しうると分かっている要素」は呼び出し側が index を明示できるようにしておく。
+ *
+ * @param matcher 対象のマッチャ
+ * @param index 複数一致する場合に選ぶ添字。省略時は「一意であること」を要求する
+ */
+function target(matcher: Detox.NativeMatcher, index?: number): Detox.NativeElement {
+	return index === undefined ? element(matcher) : element(matcher).atIndex(index);
 }
 
 /**
@@ -41,8 +62,12 @@ export async function waitUntilVisible(matcher: Detox.NativeMatcher, timeout: nu
  * @param matcher 対象のマッチャ
  * @param timeout タイムアウト (ms)
  */
-export async function waitUntilExists(matcher: Detox.NativeMatcher, timeout: number = DEFAULT_TIMEOUT): Promise<void> {
-	await waitFor(element(matcher)).toExist().withTimeout(timeout);
+export async function waitUntilExists(
+	matcher: Detox.NativeMatcher,
+	timeout: number = DEFAULT_TIMEOUT,
+	index?: number,
+): Promise<void> {
+	await waitFor(target(matcher, index)).toExist().withTimeout(timeout);
 }
 
 /**
@@ -51,8 +76,12 @@ export async function waitUntilExists(matcher: Detox.NativeMatcher, timeout: num
  * @param matcher 対象のマッチャ
  * @param timeout タイムアウト (ms)
  */
-export async function waitUntilGone(matcher: Detox.NativeMatcher, timeout: number = DEFAULT_TIMEOUT): Promise<void> {
-	await waitFor(element(matcher)).not.toExist().withTimeout(timeout);
+export async function waitUntilGone(
+	matcher: Detox.NativeMatcher,
+	timeout: number = DEFAULT_TIMEOUT,
+	index?: number,
+): Promise<void> {
+	await waitFor(target(matcher, index)).not.toExist().withTimeout(timeout);
 }
 
 /**
@@ -65,9 +94,9 @@ export async function waitUntilGone(matcher: Detox.NativeMatcher, timeout: numbe
  * @param timeout 存在確認に費やす上限 (ms)。既定 2 秒（短くして無駄な待ちを避ける）
  * @returns 存在すれば true / しなければ false（例外は投げない）
  */
-export async function existsNow(matcher: Detox.NativeMatcher, timeout = 2_000): Promise<boolean> {
+export async function existsNow(matcher: Detox.NativeMatcher, timeout = 2_000, index?: number): Promise<boolean> {
 	try {
-		await waitFor(element(matcher)).toExist().withTimeout(timeout);
+		await waitFor(target(matcher, index)).toExist().withTimeout(timeout);
 		return true;
 	} catch (error) {
 		rethrowIfAppIsGone(error);
@@ -86,9 +115,9 @@ export async function existsNow(matcher: Detox.NativeMatcher, timeout = 2_000): 
  * @param timeout 判定に費やす上限 (ms)。既定 2 秒
  * @returns 可視なら true / そうでなければ false（例外は投げない）
  */
-export async function visibleNow(matcher: Detox.NativeMatcher, timeout = 2_000): Promise<boolean> {
+export async function visibleNow(matcher: Detox.NativeMatcher, timeout = 2_000, index?: number): Promise<boolean> {
 	try {
-		await waitFor(element(matcher)).toBeVisible().withTimeout(timeout);
+		await waitFor(target(matcher, index)).toBeVisible().withTimeout(timeout);
 		return true;
 	} catch (error) {
 		rethrowIfAppIsGone(error);

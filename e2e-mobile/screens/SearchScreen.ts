@@ -72,8 +72,16 @@ export class SearchScreen {
 	/** グローバルスナックバー（バリデーションエラー等の通知） */
 	readonly snackbar = by.id("global-snackbar");
 
-	/** 検索チュートリアル（BottomSheet）のコンテンツ全体 */
+	/**
+	 * 検索チュートリアル（BottomSheet）のコンテンツ全体。
+	 *
+	 * ⚠️ #1027 この testID は **常に 2 つの View に一致する**（run 30432596949 で実測）。
+	 * TrueSheet がシートの内容をツリーへ二重に載せるためで、index を指定せずに待つと Detox は
+	 * "matches 2 views in the hierarchy" で失敗する。扱うときは必ず `TUTORIAL_OVERLAY_INDEX` を渡すこと。
+	 */
 	readonly tutorialOverlay = by.id("search-tutorial-overlay");
+	/** 上記の理由で固定する添字（先頭の一致を使う） */
+	private static readonly TUTORIAL_OVERLAY_INDEX = 0;
 	/** チュートリアルの「つぎへ」（最終ページ以外で描画される） */
 	readonly tutorialNextButton = by.id("search-tutorial-next");
 	/** チュートリアルの「はじめよう」（最終ページのプライマリ CTA。押すと現在地取得が走る） */
@@ -82,14 +90,14 @@ export class SearchScreen {
 	readonly tutorialLaterButton = by.id("search-tutorial-later");
 
 	/**
-	 * スクロール操作の起点にする要素。
+	 * 検索フォーム全体を包む縦スクロール領域（#1027 で app-expo 側に testID を追加）。
 	 *
-	 * #1031 【設計】検索画面の `ScrollView` には testID が無いため、Detox の
-	 * `whileElement(...).scroll()` が使えない。代わりに **スクロール領域の内側にある実在の要素**を
-	 * 掴んで swipe することで同等のスクロールを行う（`search-scene-solo` は同行者グリッドの先頭項目）。
-	 * ⚠️ app-expo に `search-scroll-view` 相当の testID が追加されたら `whileElement().scroll()` へ置き換えること。
+	 * 以前は testID が無く、代わりに「スクロール領域内の小さな要素を swipe する」方式を採っていたが、
+	 * Detox の `swipe` は **掴んだ要素の高さの範囲内**でしか指を動かせない。
+	 * 起点にしていた `search-scene-solo` は数十 px のタイルで、5 回スワイプしても画面下部の
+	 * `search-advanced-toggle` まで到達できなかった（run 30432596949 で実測）。
 	 */
-	private readonly scrollAnchor = by.id("search-scene-solo");
+	private readonly scrollView = by.id("search-scroll-view");
 
 	/** n 番目の場所サジェスト（0 始まり） */
 	locationSuggestion(index: number): Detox.NativeMatcher {
@@ -191,21 +199,13 @@ export class SearchScreen {
 
 	/** 詳細条件（距離・フードスタイル等）を展開する。画面外にある場合はスクロールしてから押す */
 	async openAdvancedFilters(): Promise<void> {
-		await this.scrollUntilVisible(this.advancedToggle, this.scrollAnchor);
+		await this.scrollUntilVisible(this.advancedToggle);
 		await element(this.advancedToggle).tap();
 	}
 
-	/**
-	 * おすすめ外の移動時間チップの開閉を切り替える。
-	 *
-	 * #1031 【バグ】スクロール起点に `search-advanced-toggle` を使ってはいけない。
-	 * この要素は `showAdvancedFilters === false` のときだけ描画される（app-expo の
-	 * search/index.tsx）ため、`openAdvancedFilters()` が成功した時点でツリーから消えており、
-	 * スワイプが必要な画面サイズでは "no elements found" で確実に落ちる。
-	 * 展開後も残る `scrollAnchor`（search-scene-solo）を起点にする。
-	 */
+	/** おすすめ外の移動時間チップの開閉を切り替える。画面外にある場合はスクロールしてから押す */
 	async toggleOtherDistanceEstimates(): Promise<void> {
-		await this.scrollUntilVisible(this.distanceEstimatesToggle, this.scrollAnchor);
+		await this.scrollUntilVisible(this.distanceEstimatesToggle);
 		await element(this.distanceEstimatesToggle).tap();
 	}
 
@@ -219,7 +219,7 @@ export class SearchScreen {
 	 * ja-JP かつ未視聴（AsyncStorage の `search_tutorial_seen_v1` が未設定）のときだけ成立する。
 	 */
 	async expectTutorialShown(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
-		await waitUntilVisible(this.tutorialOverlay, timeout);
+		await waitUntilVisible(this.tutorialOverlay, timeout, SearchScreen.TUTORIAL_OVERLAY_INDEX);
 	}
 
 	/**
@@ -243,7 +243,7 @@ export class SearchScreen {
 	 * @param maxPages ページ送りの上限（無限ループ防止。現在のページ数は 4）
 	 */
 	async completeTutorial(maxPages = 10): Promise<void> {
-		await waitUntilVisible(this.tutorialOverlay);
+		await waitUntilVisible(this.tutorialOverlay, DEFAULT_TIMEOUT, SearchScreen.TUTORIAL_OVERLAY_INDEX);
 
 		// #1031 【設計】§4-1: ページ送りは FlatList のスクロールアニメーションを伴う。
 		// プライマリ CTA の testID が「つぎへ」→「はじめよう」に切り替わることを毎回待ち合わせることで、
@@ -257,7 +257,9 @@ export class SearchScreen {
 
 		await waitUntilVisible(this.tutorialFinishButton);
 		await element(this.tutorialLaterButton).tap();
-		await waitUntilGone(this.tutorialOverlay);
+		// #1027 閉じ待ちは overlay ではなく「あとで」ボタンで行う（overlay は複数一致するため
+		// 「消えた」と「複数一致で判定不能」を区別できない）
+		await waitUntilGone(this.tutorialLaterButton);
 	}
 
 	/**
@@ -278,30 +280,17 @@ export class SearchScreen {
 	/**
 	 * 対象が画面内に入るまでスクロールする。
 	 *
-	 * #1031 【設計】検索画面の ScrollView に testID が無く `whileElement().scroll()` を使えないため、
-	 * スクロール領域内の実在要素を掴んで swipe することで代替する。
+	 * Detox の `whileElement(...).scroll()` は「見えるまでスクロールを繰り返す」を 1 つの式で表せる
+	 * 公式の手段で、スクロール量も要素サイズに縛られない。
 	 *
 	 * @param target 画面内に入れたい要素
-	 * @param anchor swipe の起点にする、スクロール領域内の要素
-	 * @param maxSwipes swipe の上限回数
-	 * @失敗時 上限まで swipe しても見えない場合、最後に Detox の waitFor で失敗させる（失敗理由を残すため）
+	 * @param pixels 1 回あたりのスクロール量 (px)
+	 * @失敗時 スクロールし切っても見えない場合、Detox の例外を投げる
 	 */
-	private async scrollUntilVisible(
-		target: Detox.NativeMatcher,
-		anchor: Detox.NativeMatcher,
-		maxSwipes = 5,
-	): Promise<void> {
-		for (let i = 0; i < maxSwipes; i += 1) {
-			const visible = await waitFor(element(target))
-				.toBeVisible()
-				.withTimeout(1_000)
-				.then(() => true)
-				.catch(() => false);
-			if (visible) return;
-
-			await element(anchor).swipe("up", "slow", 0.6);
-		}
-
-		await waitUntilVisible(target);
+	private async scrollUntilVisible(target: Detox.NativeMatcher, pixels = 300): Promise<void> {
+		await waitFor(element(target))
+			.toBeVisible()
+			.whileElement(this.scrollView)
+			.scroll(pixels, "down");
 	}
 }

@@ -49,6 +49,28 @@ describe("設定画面（匿名ユーザー）", () => {
 		await waitUntilVisible(settingsScreen.privacyItem);
 	});
 
+	// ─ テストケース: プライバシーポリシー行でリーガルモーダルが開く ─
+	// 手順:
+	//   1. 設定画面を表示する
+	//   2. プライバシーポリシー行（settings-privacy）をタップする
+	//   3. リーガルドキュメントモーダル（legal-document-modal）が表示されることを検証
+	//
+	// #1027 この検証はもともと #1031 B2 でログインモーダルの同意文言リンクに置く予定だったが、
+	// リンクは `<Text>` の入れ子でネイティブ View を持たず Detox から到達できないことが実測で判明した
+	// （screens/LoginModal.ts のコメント参照）。実体のある行を持つこちらの画面へ移してある。
+	it("プライバシーポリシー行でリーガルモーダルが開く", async () => {
+		const tabBar = new TabBar();
+		const profileScreen = new ProfileScreen();
+		const settingsScreen = new SettingsScreen();
+
+		await tabBar.gotoProfile();
+		await profileScreen.gotoSettings();
+		await settingsScreen.expectLoaded();
+
+		await settingsScreen.openPrivacyPolicy();
+		await settingsScreen.expectLegalDocumentOpened();
+	});
+
 	// ─ テストケース: 匿名時はログアウトが表示されない ─
 	// 手順:
 	//   1. 設定画面を表示する（匿名状態）

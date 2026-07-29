@@ -210,6 +210,12 @@ export async function launchAppWithoutSession(opts: LaunchOptions = {}): Promise
  */
 const SEARCH_TUTORIAL = {
 	overlay: by.id("search-tutorial-overlay"),
+	/**
+	 * #1027 【バグ】`search-tutorial-overlay` は **常に 2 つの View に一致する**（run 30432596949 で実測）。
+	 * TrueSheet がシートの内容をツリーへ二重に載せるためで、index を指定しないと Detox は
+	 * "matches 2 views in the hierarchy" で失敗する。以後この testID を扱うときは必ずこの index を渡すこと。
+	 */
+	overlayIndex: 0,
 	nextButton: by.id("search-tutorial-next"),
 	finishButton: by.id("search-tutorial-finish"),
 	laterButton: by.id("search-tutorial-later"),
@@ -243,7 +249,7 @@ function tutorialLaunchArgs(tutorialSeen: boolean | "device"): Record<string, st
  * @returns 閉じた場合 true / そもそも出ていなかった場合 false
  */
 export async function dismissSearchTutorialIfPresent(probeTimeout = 3_000): Promise<boolean> {
-	if (!(await existsNow(SEARCH_TUTORIAL.overlay, probeTimeout))) return false;
+	if (!(await existsNow(SEARCH_TUTORIAL.overlay, probeTimeout, SEARCH_TUTORIAL.overlayIndex))) return false;
 
 	// ページ送りは FlatList のスクロールアニメーションを伴う。プライマリ CTA の testID が
 	// 「つぎへ」→「はじめよう」へ切り替わるのを毎回待ち合わせることでアニメーション完了を待つ
@@ -258,7 +264,9 @@ export async function dismissSearchTutorialIfPresent(probeTimeout = 3_000): Prom
 	if (!(await visibleNow(SEARCH_TUTORIAL.laterButton, 3_000))) return false;
 
 	await element(SEARCH_TUTORIAL.laterButton).tap();
-	await waitUntilGone(SEARCH_TUTORIAL.overlay);
+	// #1027 閉じ待ちは overlay ではなく「あとで」ボタンで行う。overlay は 2 つの View に一致するため、
+	// `not.toExist()` の判定が「消えた」なのか「複数一致で判定不能」なのか区別できなくなる
+	await waitUntilGone(SEARCH_TUTORIAL.laterButton);
 	return true;
 }
 
@@ -282,7 +290,7 @@ export async function waitForAppReady(timeout: number = LAUNCH_TIMEOUT): Promise
 	try {
 		await waitUntilVisible(by.id(APP_READY_TEST_ID), timeout);
 	} catch (error) {
-		if (await existsNow(SEARCH_TUTORIAL.overlay, 1_000)) {
+		if (await existsNow(SEARCH_TUTORIAL.overlay, 1_000, SEARCH_TUTORIAL.overlayIndex)) {
 			throw new Error(
 				[
 					"起動完了（タブバーの表示）を待てず、代わりに検索チュートリアルが表示されています。",
