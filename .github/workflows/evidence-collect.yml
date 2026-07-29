@@ -117,6 +117,7 @@ jobs:
           import json
           import mimetypes
           import os
+          import re
           import shutil
           import urllib.parse
           from datetime import datetime, timezone
@@ -138,6 +139,37 @@ jobs:
           bucket = os.environ["GCS_BUCKET"]
           prefix = f"e2e-evidence/{repository}/runs/{run_id}/{artifact_name}"
 
+          used_object_paths = set()
+
+          def safe_object_path(relative, used):
+              """GCS オブジェクト名として安全な相対パスを返す。
+
+              gsutil の glob 解釈と URL エンコード肥大を避けるため、
+              各セグメントを [A-Za-z0-9._-] だけに落とす。
+              衝突したら連番を付ける。
+              """
+              segments = []
+              for segment in relative.parts[:-1]:
+                  segments.append(re.sub(r"[^A-Za-z0-9._-]+", "_", segment) or "_")
+
+              stem = relative.stem
+              suffix = relative.suffix.lower()
+              safe_stem = re.sub(r"[^A-Za-z0-9._-]+", "_", stem).strip("_") or "file"
+              safe_suffix = re.sub(r"[^A-Za-z0-9.]+", "", suffix) or ".bin"
+
+              candidate = "/".join(segments + [f"{safe_stem}{safe_suffix}"])
+              if candidate not in used:
+                  used.add(candidate)
+                  return candidate
+
+              counter = 2
+              while True:
+                  candidate = "/".join(segments + [f"{safe_stem}-{counter}{safe_suffix}"])
+                  if candidate not in used:
+                      used.add(candidate)
+                      return candidate
+                  counter += 1
+
           images = []
           videos = []
 
@@ -150,14 +182,20 @@ jobs:
                   continue
 
               relative = path.relative_to(source)
-              destination = publish / relative
+              # 【バグ】gsutil は `[` `]` `*` `?` を glob として解釈するため、
+              # これらを含むファイル名は「該当なし」となり転送に失敗する。
+              # 日本語ファイル名も URL が %エンコードで肥大する。
+              # 公開名は安全な文字だけへ正規化し、元の名前は manifest に残す。
+              safe_relative = safe_object_path(relative, used_object_paths)
+              destination = publish / safe_relative
               destination.parent.mkdir(parents=True, exist_ok=True)
               shutil.copy2(path, destination)
 
-              object_name = f"{prefix}/{relative.as_posix()}"
+              object_name = f"{prefix}/{safe_relative}"
               encoded_object = urllib.parse.quote(object_name, safe="/")
               entry = {
                   "path": relative.as_posix(),
+                  "publishedPath": safe_relative,
                   "url": f"https://storage.googleapis.com/{bucket}/{encoded_object}",
                   "contentType": mimetypes.guess_type(path.name)[0] or "application/octet-stream",
               }
