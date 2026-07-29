@@ -62,7 +62,11 @@ describe("検索フォーム", () => {
 
 		await search.openAdvancedFilters();
 
-		await waitUntilVisible(search.distanceSlider);
+		// #1027 スライダーも可視ではなく存在で見る。詳細条件を開いた直後の距離セクションは
+		// 画面下部（iOS では検索 FAB / ホームインジケータの領域）へ来ることがあり、
+		// `toBeVisible`（既定 75% 以上の露出が必要）はスクロール位置に左右されてフレークになる
+		//（run 30470033327 の iOS で実測）。直後のチップ群と同じ理由・同じ判定に揃える
+		await waitUntilExists(search.distanceSlider);
 		// #1031 【設計】チップ行の可視性ではなく存在を見る。距離セクションは画面下部固定の検索 FAB と
 		// 重なる位置に来ることがあり、`toBeVisible`（既定 75% 以上の露出が必要）はスクロール位置に
 		// 左右されてフレークになる。おすすめ / おすすめ外の出し分けは**条件付きレンダリング**なので、

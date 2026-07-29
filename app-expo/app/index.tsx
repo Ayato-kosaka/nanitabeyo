@@ -12,6 +12,27 @@ WebBrowser.maybeCompleteAuthSession();
 // 初回表示中はスプラッシュ画面を保持（明示的に後で解除するまで表示）
 SplashScreen.preventAutoHideAsync();
 
+/** BCP 47 言語タグの形式か（app/[locale]/_layout.tsx と同じ判定） */
+const isValidBcp47Tag = (tag: string): boolean => /^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*$/.test(tag);
+
+/**
+ * ディープリンクのパスを「アプリ内ルート」として解釈できるなら、その絶対パスを返す。
+ *
+ * #1027 先頭セグメントがロケールであることを条件にする。これによりロケール配下の画面
+ *（`ja-JP/profile` 等）だけを行き先として採用し、OAuth コールバックのような
+ * ルーティング対象外の URL でリダイレクト先を上書きしてしまう事故を防ぐ。
+ *
+ * @param path `Linking.parse(url).path`（先頭スラッシュ無し / 無ければ null）
+ * @returns 採用できる場合は "/ja-JP/profile" 形式 / それ以外は null
+ */
+const toInAppPath = (path: string | null | undefined): string | null => {
+	const normalized = path?.replace(/^\/+/, "") ?? "";
+	if (!normalized) return null;
+	const [firstSegment] = normalized.split("/");
+	if (!firstSegment || !isValidBcp47Tag(firstSegment)) return null;
+	return `/${normalized}`;
+};
+
 /**
  * 🚀 アプリ初回起動時、デバイスのロケールに応じて自動的にリダイレクトする。
  *
@@ -35,22 +56,25 @@ export default function App() {
 	// その隙に `router.replace("/ja-JP")` が走ると、`nanitabeyo:///ja-JP/profile` で起動しても
 	// ロケール直下（= 既定タブの検索画面）へ着地してしまう
 	// （run 30460621899 の iOS で実測。Android は解決が先に済むため顕在化しない）。
-	// 初期 URL に行き先（パス）がある場合は expo-router 自身の遷移に任せ、ここでは何もしない。
-	// `null` は「まだ調べていない」を表し、判定が付くまでリダイレクトを保留する
-	const [hasInitialDeepLink, setHasInitialDeepLink] = useState<boolean | null>(null);
+	//
+	// ⚠️ 「行き先があるならリダイレクトしない（expo-router に任せる）」は **不可**。
+	// このアプリではルート (`/`) が何も描画しないため、遷移が来なければ空画面のまま固まる
+	// （run 30470033327 の iOS では、その結果ディープリンク 2 件とも 2 分待って失敗した）。
+	// 正しくは **リダイレクト先そのものを初期 URL に合わせる**。こうすると競合しようがない。
+	//
+	// `null` は「まだ初期 URL を調べていない」を表し、判定が付くまでリダイレクトを保留する
+	const [initialPath, setInitialPath] = useState<string | null | undefined>(undefined);
 
 	useEffect(() => {
 		let cancelled = false;
 		Linking.getInitialURL()
 			.then((url) => {
 				if (cancelled) return;
-				// パスが空（= アプリのスキームだけ）ならディープリンクとしての行き先が無いので通常起動と同じ
-				const path = url ? Linking.parse(url).path : null;
-				setHasInitialDeepLink(!!path && path !== "/");
+				setInitialPath(url ? (Linking.parse(url).path ?? null) : null);
 			})
 			.catch(() => {
-				// 取得できない場合は従来どおりリダイレクトする（起動できなくなる方が害が大きい）
-				if (!cancelled) setHasInitialDeepLink(false);
+				// 取得できない場合は通常起動として扱う（起動できなくなる方が害が大きい）
+				if (!cancelled) setInitialPath(null);
 			});
 		return () => {
 			cancelled = true;
@@ -59,20 +83,23 @@ export default function App() {
 
 	useEffect(() => {
 		if (!isNavigationReady) return;
-		if (hasInitialDeepLink === null || hasInitialDeepLink) return;
+		if (initialPath === undefined) return;
 
 		const resolvedLocale = getResolvedLocale(Localization.getLocales?.()[0]?.languageTag);
+		// 初期 URL の先頭セグメントがロケールなら、そのパスをそのまま行き先にする。
+		// アプリ内のルートとして解釈できない URL（OAuth コールバック等）は巻き込まない
+		const deepLinkTarget = toInAppPath(initialPath);
+		const target = deepLinkTarget ?? `/${resolvedLocale}`;
 
 		if (Env.NODE_ENV === "development") {
-			console.log(`[LocaleRedirect] Detected locale: ${resolvedLocale}`);
+			console.log(`[LocaleRedirect] Detected locale: ${resolvedLocale} / target: ${target}`);
 		}
 
 		const timer = setTimeout(() => {
-			// 対応するロケールにリダイレクト
-			router.replace(`/${resolvedLocale}` as ExternalPathString);
+			router.replace(target as ExternalPathString);
 		}, 0);
 		return () => clearTimeout(timer);
-	}, [isNavigationReady, hasInitialDeepLink]);
+	}, [isNavigationReady, initialPath]);
 
 	return null;
 }
