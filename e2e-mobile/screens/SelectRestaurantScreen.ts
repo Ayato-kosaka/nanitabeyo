@@ -1,4 +1,10 @@
-import { DEFAULT_TIMEOUT, by, element, waitUntilVisible } from "../fixtures/e2e";
+import {
+	DEFAULT_TIMEOUT,
+	by,
+	element,
+	tapWhenVisible,
+	waitUntilVisible,
+} from "../fixtures/e2e";
 
 /**
  * 📍 レビュー投稿用の「お店選択」Screen Object。
@@ -53,7 +59,7 @@ export class SelectRestaurantScreen {
 	 * 候補パネルは「入力あり && フォーカス中」で開くため、入力前に必ずタップしてフォーカスを与える。
 	 */
 	async searchRestaurant(query: string): Promise<void> {
-		await element(this.searchInput).tap();
+		await tapWhenVisible(this.searchInput);
 		await element(this.searchInput).replaceText(query);
 	}
 
@@ -65,12 +71,12 @@ export class SelectRestaurantScreen {
 	 */
 	async selectSuggestion(index: number, timeout: number = DEFAULT_TIMEOUT): Promise<void> {
 		await waitUntilVisible(this.suggestion(index), timeout);
-		await element(this.suggestion(index)).tap();
+		await tapWhenVisible(this.suggestion(index));
 	}
 
 	/** 選択したお店の詳細で「写真・動画を投稿」をタップしてレビューフォームへ進む */
 	async gotoReviewForm(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
 		await waitUntilVisible(this.postPhotoButton, timeout);
-		await element(this.postPhotoButton).tap();
+		await tapWhenVisible(this.postPhotoButton);
 	}
 }

@@ -17,6 +17,7 @@ import {
 	DEFAULT_TIMEOUT,
 	LAUNCH_TIMEOUT,
 	existsNow,
+	tapWhenVisible,
 	visibleNow,
 	waitUntil,
 	waitUntilExists,
@@ -53,6 +54,7 @@ export {
 	DEFAULT_TIMEOUT,
 	LAUNCH_TIMEOUT,
 	existsNow,
+	tapWhenVisible,
 	visibleNow,
 	waitUntil,
 	waitUntilExists,
@@ -209,13 +211,12 @@ export async function launchAppWithoutSession(opts: LaunchOptions = {}): Promise
  * （fixtures が screens に依存すると循環参照になる）ため、ここでは matcher を直接持つ。
  */
 const SEARCH_TUTORIAL = {
-	overlay: by.id("search-tutorial-overlay"),
 	/**
-	 * #1027 【バグ】`search-tutorial-overlay` は **常に 2 つの View に一致する**（run 30432596949 で実測）。
-	 * TrueSheet がシートの内容をツリーへ二重に載せるためで、index を指定しないと Detox は
-	 * "matches 2 views in the hierarchy" で失敗する。以後この testID を扱うときは必ずこの index を渡すこと。
+	 * ⚠️ #1027 `search-tutorial-overlay` は観測点に使わない。
+	 * Android では常に 2 つの View に一致し（TrueSheet がシートの内容を二重に載せる）、
+	 * iOS では表示中でも `toBeVisible` が成立しない（面積を持つ実体が無い）。
+	 * 「出ている / 出ていない」の判定は、実体のあるボタン（つぎへ / はじめよう）で行う。
 	 */
-	overlayIndex: 0,
 	nextButton: by.id("search-tutorial-next"),
 	finishButton: by.id("search-tutorial-finish"),
 	laterButton: by.id("search-tutorial-later"),
@@ -249,7 +250,10 @@ function tutorialLaunchArgs(tutorialSeen: boolean | "device"): Record<string, st
  * @returns 閉じた場合 true / そもそも出ていなかった場合 false
  */
 export async function dismissSearchTutorialIfPresent(probeTimeout = 3_000): Promise<boolean> {
-	if (!(await existsNow(SEARCH_TUTORIAL.overlay, probeTimeout, SEARCH_TUTORIAL.overlayIndex))) return false;
+	const shown =
+		(await visibleNow(SEARCH_TUTORIAL.nextButton, probeTimeout)) ||
+		(await visibleNow(SEARCH_TUTORIAL.finishButton, 1_000));
+	if (!shown) return false;
 
 	// ページ送りは FlatList のスクロールアニメーションを伴う。プライマリ CTA の testID が
 	// 「つぎへ」→「はじめよう」へ切り替わるのを毎回待ち合わせることでアニメーション完了を待つ
@@ -290,7 +294,7 @@ export async function waitForAppReady(timeout: number = LAUNCH_TIMEOUT): Promise
 	try {
 		await waitUntilVisible(by.id(APP_READY_TEST_ID), timeout);
 	} catch (error) {
-		if (await existsNow(SEARCH_TUTORIAL.overlay, 1_000, SEARCH_TUTORIAL.overlayIndex)) {
+		if (await visibleNow(SEARCH_TUTORIAL.nextButton, 1_000)) {
 			throw new Error(
 				[
 					"起動完了（タブバーの表示）を待てず、代わりに検索チュートリアルが表示されています。",

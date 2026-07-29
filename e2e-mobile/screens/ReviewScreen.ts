@@ -1,4 +1,11 @@
-import { DEFAULT_TIMEOUT, by, element, waitUntilGone, waitUntilVisible } from "../fixtures/e2e";
+import {
+	DEFAULT_TIMEOUT,
+	by,
+	element,
+	tapWhenVisible,
+	waitUntilGone,
+	waitUntilVisible,
+} from "../fixtures/e2e";
 
 /**
  * ✏️ 「レビュー」タブの Screen Object（e2e-web の pages/ReviewPage.ts に対応）
@@ -70,7 +77,7 @@ export class ReviewScreen {
 
 	/** ゲスト向けログイン CTA をタップする */
 	async tapGuestLogin(): Promise<void> {
-		await element(this.guestLoginButton).tap();
+		await tapWhenVisible(this.guestLoginButton);
 	}
 
 	// ── ログイン済み / レビュー投稿フォームの操作（#1031 B6 の再開後に追加） ──────────────
@@ -86,7 +93,7 @@ export class ReviewScreen {
 	/** レビュー投稿 CTA をタップして「お店選択」画面へ進む（ログイン済みのみ表示） */
 	async gotoPostReview(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
 		await waitUntilVisible(this.postButton, timeout);
-		await element(this.postButton).tap();
+		await tapWhenVisible(this.postButton);
 	}
 
 	/**
@@ -105,17 +112,17 @@ export class ReviewScreen {
 	 * #1031 Android の Detox は ASCII 以外を `typeText` できないため `replaceText` を使う。
 	 */
 	async fillComment(text: string): Promise<void> {
-		await element(this.commentInput).tap();
+		await tapWhenVisible(this.commentInput);
 		await element(this.commentInput).replaceText(text);
 	}
 
 	/** 料理カテゴリを検索して先頭候補を選ぶ（`isValid` に dishCategoryId が必須のため省略できない） */
 	async chooseDishCategory(query: string, timeout: number = DEFAULT_TIMEOUT): Promise<void> {
-		await element(this.dishCategoryRow).tap();
+		await tapWhenVisible(this.dishCategoryRow);
 		await waitUntilVisible(this.dishCategoryInput, timeout);
 		await element(this.dishCategoryInput).replaceText(query);
 		await waitUntilVisible(this.dishCategorySuggestion(0), timeout);
-		await element(this.dishCategorySuggestion(0)).tap();
+		await tapWhenVisible(this.dishCategorySuggestion(0));
 	}
 
 	/** 価格を入力する（数値のみ。`isValid` は 0 より大きい有限数を要求する） */
@@ -125,12 +132,12 @@ export class ReviewScreen {
 
 	/** 星評価を選ぶ */
 	async rate(star: 1 | 2 | 3 | 4 | 5): Promise<void> {
-		await element(this.star(star)).tap();
+		await tapWhenVisible(this.star(star));
 	}
 
 	/** 投稿ボタンをタップする */
 	async submit(): Promise<void> {
-		await element(this.submitButton).tap();
+		await tapWhenVisible(this.submitButton);
 	}
 
 	/**

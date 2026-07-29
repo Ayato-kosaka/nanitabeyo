@@ -1,4 +1,13 @@
-import { DEFAULT_TIMEOUT, by, element, existsNow, waitFor, waitUntilGone, waitUntilVisible } from "../fixtures/e2e";
+import {
+	DEFAULT_TIMEOUT,
+	by,
+	element,
+	existsNow,
+	tapWhenVisible,
+	waitFor,
+	waitUntilGone,
+	waitUntilVisible,
+} from "../fixtures/e2e";
 
 /**
  * 🃏 トピック提案画面（検索結果のカードカルーセル）の Screen Object
@@ -105,7 +114,7 @@ export class TopicsScreen {
 
 	/** ヘッダーの戻るボタンで検索画面へ戻る */
 	async goBack(): Promise<void> {
-		await element(this.backButton).tap();
+		await tapWhenVisible(this.backButton);
 	}
 
 	/**
@@ -119,9 +128,9 @@ export class TopicsScreen {
 		if (!(await existsNow(this.tutorialOverlay, 1_000))) return false;
 
 		if (await existsNow(this.tutorialSkipButton, 1_000)) {
-			await element(this.tutorialSkipButton).tap();
+			await tapWhenVisible(this.tutorialSkipButton);
 		} else {
-			await element(this.tutorialFinishButton).tap();
+			await tapWhenVisible(this.tutorialFinishButton);
 		}
 
 		// #1031 【設計】§4-1: 閉じる動作は Reanimated のフェードアウトを伴うため、

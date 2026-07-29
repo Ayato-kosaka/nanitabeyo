@@ -99,6 +99,17 @@ pnpm --filter e2e-mobile test:ios             # Android と同じく :smoke / :m
 - 失敗時のスクリーンショットは `e2e-mobile/artifacts/` に出力される
 - **iOS は Detox の同期機構を無効化している**(`fixtures/e2e.ts` の `platformLaunchOptions`)。メインキューに常駐する作業があり同期が永遠にアイドルにならないため、待機は `waitFor` のポーリングに委ねている(恒久対応は #1040)
 
+### Screen Object を書くときの必須ルール(#1027 で実測した落とし穴)
+
+| ルール | 理由 |
+| --- | --- |
+| **タップは `tapWhenVisible()` を使う**。`element(...).tap()` を直接呼ばない | iOS は同期機構を切っているため、描画完了前にタップが飛んで "No elements found" になる(run 30432596949 の `profile-settings-button`)。Android は同期機構が吸収するので**片方でしか出ない** |
+| **`FlatList` の testID は `toExist` で見る**。`toBeVisible` を使わない | `toBeVisible` は「面積の 75% 以上が可視」を要求する。データ 0 件のリストは面積を持たず、**描画されていても不可視と判定される**(iOS の `save-post-tab-grid` / `review-tab-grid`) |
+| **「包むだけの View」を観測点にしない**。実体のあるボタン等を見る | `search-tutorial-overlay` は Android で常に 2 view に一致し(TrueSheet の二重マウント)、iOS では表示中でも `toBeVisible` が成立しなかった |
+| **複数一致しうる要素は index を明示する**。ただし `atIndex(0)` = 見えているものとは限らない | カルーセルは前後のカードも同時にマウントするため、添字 0 が画面外のカードになりうる(`topics-choose-button`)。可視な添字を走査して選ぶこと |
+| **スクロールは `whileElement(...).scroll()`**。要素を掴んだ `swipe` に頼らない | `swipe` は掴んだ要素の高さの範囲内でしか指を動かせず、小さなタイルを起点にすると何回スワイプしても画面下部へ届かない |
+| **入れ子の `<Text>` に付けた testID はネイティブでは消える** | React Native は入れ子 Text を親の TextView へ畳み込むため、対応するネイティブ View が存在しない(`login-privacy-link`)。web では span として実在するので e2e-web 側では使える |
+
 ## テスト 3 層構造(CI との棲み分け)
 
 | 層     | ディレクトリ                                                                                | 内容                                       | 実行タイミング                                        |

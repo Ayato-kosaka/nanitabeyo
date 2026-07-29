@@ -1,10 +1,13 @@
+import { strict as assert } from "node:assert";
+
 import {
 	DEFAULT_TIMEOUT,
 	by,
 	dismissSearchTutorialIfPresent,
 	element,
 	existsNow,
-	expect,
+	tapWhenVisible,
+	visibleNow,
 	waitFor,
 	waitUntilGone,
 	waitUntilVisible,
@@ -75,13 +78,15 @@ export class SearchScreen {
 	/**
 	 * 検索チュートリアル（BottomSheet）のコンテンツ全体。
 	 *
-	 * ⚠️ #1027 この testID は **常に 2 つの View に一致する**（run 30432596949 で実測）。
-	 * TrueSheet がシートの内容をツリーへ二重に載せるためで、index を指定せずに待つと Detox は
-	 * "matches 2 views in the hierarchy" で失敗する。扱うときは必ず `TUTORIAL_OVERLAY_INDEX` を渡すこと。
+	 * ⚠️ #1027 この testID は扱いが難しく、**アサーションの観測点には使わないこと**。
+	 * - Android では **常に 2 つの View に一致する**（TrueSheet がシートの内容をツリーへ二重に載せる）。
+	 *   index を指定せずに待つと Detox は "matches 2 views in the hierarchy" で失敗する
+	 * - iOS では表示中でも `toBeVisible` が 2 分待って成立しなかった（面積を持つ実体が無いため）
+	 *
+	 * 「チュートリアルが出ている / 出ていない」の判定には、実体のあるボタン
+	 * （`tutorialNextButton` = 1 ページ目の「つぎへ」）を使う。
 	 */
 	readonly tutorialOverlay = by.id("search-tutorial-overlay");
-	/** 上記の理由で固定する添字（先頭の一致を使う） */
-	private static readonly TUTORIAL_OVERLAY_INDEX = 0;
 	/** チュートリアルの「つぎへ」（最終ページ以外で描画される） */
 	readonly tutorialNextButton = by.id("search-tutorial-next");
 	/** チュートリアルの「はじめよう」（最終ページのプライマリ CTA。押すと現在地取得が走る） */
@@ -151,7 +156,7 @@ export class SearchScreen {
 	 * @param query 入力する地名（例: "渋谷"）
 	 */
 	async typeLocation(query: string): Promise<void> {
-		await element(this.locationInput).tap();
+		await tapWhenVisible(this.locationInput);
 		await element(this.locationInput).replaceText(query);
 	}
 
@@ -167,7 +172,7 @@ export class SearchScreen {
 	async clearLocationIfPresent(): Promise<boolean> {
 		if (!(await existsNow(this.locationClearButton))) return false;
 
-		await element(this.locationClearButton).tap();
+		await tapWhenVisible(this.locationClearButton);
 		return true;
 	}
 
@@ -184,34 +189,34 @@ export class SearchScreen {
 	 */
 	async selectLocationSuggestion(index: number): Promise<void> {
 		await waitUntilVisible(this.locationSuggestion(index));
-		await element(this.locationSuggestion(index)).tap();
+		await tapWhenVisible(this.locationSuggestion(index));
 	}
 
 	/** 時間帯を選択する */
 	async selectTimeSlot(id: "morning" | "lunch" | "dinner" | "late_night"): Promise<void> {
-		await element(this.timeSlot(id)).tap();
+		await tapWhenVisible(this.timeSlot(id));
 	}
 
 	/** 同行者（シーン）を選択する */
 	async selectScene(id: "solo" | "date" | "friends" | "family" | "drinking"): Promise<void> {
-		await element(this.scene(id)).tap();
+		await tapWhenVisible(this.scene(id));
 	}
 
 	/** 詳細条件（距離・フードスタイル等）を展開する。画面外にある場合はスクロールしてから押す */
 	async openAdvancedFilters(): Promise<void> {
 		await this.scrollUntilVisible(this.advancedToggle);
-		await element(this.advancedToggle).tap();
+		await tapWhenVisible(this.advancedToggle);
 	}
 
 	/** おすすめ外の移動時間チップの開閉を切り替える。画面外にある場合はスクロールしてから押す */
 	async toggleOtherDistanceEstimates(): Promise<void> {
 		await this.scrollUntilVisible(this.distanceEstimatesToggle);
-		await element(this.distanceEstimatesToggle).tap();
+		await tapWhenVisible(this.distanceEstimatesToggle);
 	}
 
 	/** 検索を実行する */
 	async submit(): Promise<void> {
-		await element(this.submitButton).tap();
+		await tapWhenVisible(this.submitButton);
 	}
 
 	/**
@@ -219,7 +224,11 @@ export class SearchScreen {
 	 * ja-JP かつ未視聴（AsyncStorage の `search_tutorial_seen_v1` が未設定）のときだけ成立する。
 	 */
 	async expectTutorialShown(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
-		await waitUntilVisible(this.tutorialOverlay, timeout, SearchScreen.TUTORIAL_OVERLAY_INDEX);
+		// #1027 観測点は overlay ではなく **1 ページ目の「つぎへ」ボタン**にする。
+		// overlay は「シートの内容を包むだけの View」で面積や重なりの扱いがプラットフォームで揺れ、
+		// iOS では 2 分待っても toBeVisible が成立しなかった（run 30432596949）。
+		// ボタンなら「チュートリアルが出ていて操作できる」という検証したい事実と 1:1 で対応する
+		await waitUntilVisible(this.tutorialNextButton, timeout);
 	}
 
 	/**
@@ -231,7 +240,12 @@ export class SearchScreen {
 	 */
 	async expectTutorialAbsent(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
 		await waitUntilVisible(this.headerTitle, timeout);
-		await expect(element(this.tutorialOverlay)).not.toExist();
+		// #1027 「存在しない」ではなく「見えていない」で判定する。
+		// TrueSheet はシートを閉じていても内容をツリーに残すことがあり（Android では overlay が
+		// 常に 2 つの View に一致する）、存在での判定はプラットフォーム差に巻き込まれる。
+		// ユーザーから観測できる事実（チュートリアルが見えていない）を直接検証する
+		const shown = await visibleNow(this.tutorialNextButton, 3_000);
+		assert.equal(shown, false, "再起動後にチュートリアルが再表示されている（視聴済みフラグが永続化されていない）");
 	}
 
 	/**
@@ -243,7 +257,7 @@ export class SearchScreen {
 	 * @param maxPages ページ送りの上限（無限ループ防止。現在のページ数は 4）
 	 */
 	async completeTutorial(maxPages = 10): Promise<void> {
-		await waitUntilVisible(this.tutorialOverlay, DEFAULT_TIMEOUT, SearchScreen.TUTORIAL_OVERLAY_INDEX);
+		await waitUntilVisible(this.tutorialNextButton);
 
 		// #1031 【設計】§4-1: ページ送りは FlatList のスクロールアニメーションを伴う。
 		// プライマリ CTA の testID が「つぎへ」→「はじめよう」に切り替わることを毎回待ち合わせることで、
@@ -252,11 +266,11 @@ export class SearchScreen {
 			if (await existsNow(this.tutorialFinishButton, 1_000)) break;
 			if (!(await existsNow(this.tutorialNextButton, 1_000))) break;
 
-			await element(this.tutorialNextButton).tap();
+			await tapWhenVisible(this.tutorialNextButton);
 		}
 
 		await waitUntilVisible(this.tutorialFinishButton);
-		await element(this.tutorialLaterButton).tap();
+		await tapWhenVisible(this.tutorialLaterButton);
 		// #1027 閉じ待ちは overlay ではなく「あとで」ボタンで行う（overlay は複数一致するため
 		// 「消えた」と「複数一致で判定不能」を区別できない）
 		await waitUntilGone(this.tutorialLaterButton);

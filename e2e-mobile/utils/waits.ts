@@ -15,8 +15,12 @@ import { element, waitFor } from "detox";
 /**
  * 画面表示待ちの既定タイムアウト（ms）。
  * 実 API（Cloud Run api-development）のコールドスタートを見込み、e2e-web の expect.timeout より長めに取る。
+ *
+ * #1027 15 秒では iOS シミュレータで足りなかった（run 30432596949 のディープリンク →
+ * マイページで `profile-login-button` の描画がプロフィール取得待ちに引きずられて間に合わなかった）。
+ * この値を払うのは **失敗するときだけ**なので、通過時の実行時間には影響しない。
  */
-export const DEFAULT_TIMEOUT = 15_000;
+export const DEFAULT_TIMEOUT = 25_000;
 
 /**
  * アプリ起動待ちのタイムアウト（ms）。
@@ -54,6 +58,29 @@ export async function waitUntilVisible(
  */
 function target(matcher: Detox.NativeMatcher, index?: number): Detox.NativeElement {
 	return index === undefined ? element(matcher) : element(matcher).atIndex(index);
+}
+
+/**
+ * 要素が可視になるのを待ってからタップする。
+ *
+ * #1027 【バグ】**Screen Object のタップは必ずこれを使うこと。**
+ * iOS は Detox の同期機構を無効化しているため（`fixtures/e2e.ts` の `detoxEnableSynchronization: 0`。
+ * 有効にすると常駐アニメーションで永遠にアイドル判定にならない。恒久対応は #1040）、
+ * `element(...).tap()` を待たずに呼ぶと **画面の描画が終わる前にタップが飛び**、
+ * "No elements found" で落ちる（run 30432596949 の iOS で `profile-settings-button` が実際にこれ）。
+ * Android では同期機構が吸収してくれるので顕在化しないが、待ってから押して困ることは無い。
+ *
+ * @param matcher 対象のマッチャ
+ * @param timeout 可視待ちのタイムアウト (ms)
+ * @param index 複数一致する場合に選ぶ添字
+ */
+export async function tapWhenVisible(
+	matcher: Detox.NativeMatcher,
+	timeout: number = DEFAULT_TIMEOUT,
+	index?: number,
+): Promise<void> {
+	await waitUntilVisible(matcher, timeout, index);
+	await target(matcher, index).tap();
 }
 
 /**

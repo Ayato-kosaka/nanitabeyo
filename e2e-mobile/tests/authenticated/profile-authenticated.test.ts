@@ -1,6 +1,6 @@
 import { strict as assert } from "node:assert";
 
-import { describeAuthenticated, launchAppWithSession, waitUntilVisible } from "../../fixtures/e2e";
+import { describeAuthenticated, launchAppWithSession, waitUntilExists, waitUntilVisible } from "../../fixtures/e2e";
 import { ProfileScreen } from "../../screens/ProfileScreen";
 import { TabBar } from "../../screens/TabBar";
 
@@ -48,7 +48,9 @@ describeAuthenticated("マイページ（ログイン済みユーザー）", () 
 
 		// 先に reviews タブの表示を待つ。プロフィールの描画完了を待たずに存在有無を判定すると、
 		// 「まだ描画されていないだけ」を「ゲスト表示ではない」と誤って解釈しうるため
-		await waitUntilVisible(profileScreen.reviewsGrid);
+		// #1027 `toBeVisible` ではなく存在で見る。グリッドの実体は FlatList で、
+		// 投稿が 0 件だと面積を持たず、iOS の 75% 可視判定を満たせないため（ProfileScreen 参照）
+		await waitUntilExists(profileScreen.reviewsGrid);
 
 		const hasLoginButton = await profileScreen.hasLoginButton();
 		assert.equal(hasLoginButton, false, "ログイン済みでは profile-login-button が存在しないはず");

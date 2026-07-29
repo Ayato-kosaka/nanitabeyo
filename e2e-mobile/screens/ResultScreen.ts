@@ -1,4 +1,11 @@
-import { DEFAULT_TIMEOUT, by, element, waitFor, waitUntil } from "../fixtures/e2e";
+import {
+	DEFAULT_TIMEOUT,
+	by,
+	element,
+	tapWhenVisible,
+	waitFor,
+	waitUntil,
+} from "../fixtures/e2e";
 
 /**
  * 🍽 検索結果フィード画面（料理メディアのフィード / マップ）の Screen Object
@@ -47,7 +54,7 @@ export class ResultScreen {
 
 	/** 結果画面を閉じてトピック画面へ戻る */
 	async close(): Promise<void> {
-		await element(this.closeButton).tap();
+		await tapWhenVisible(this.closeButton);
 	}
 
 	/**
@@ -57,7 +64,7 @@ export class ResultScreen {
 	 * @param index フィード内の何枚目のカードか（既定 0 = 表示中のカード）
 	 */
 	async like(index = 0): Promise<void> {
-		await element(this.likeButton).atIndex(index).tap();
+		await tapWhenVisible(this.likeButton, DEFAULT_TIMEOUT, index);
 	}
 
 	/**
@@ -67,7 +74,7 @@ export class ResultScreen {
 	 * @param index フィード内の何枚目のカードか（既定 0 = 表示中のカード）
 	 */
 	async save(index = 0): Promise<void> {
-		await element(this.saveButton).atIndex(index).tap();
+		await tapWhenVisible(this.saveButton, DEFAULT_TIMEOUT, index);
 	}
 
 	/**

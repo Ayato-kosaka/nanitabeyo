@@ -224,9 +224,11 @@ jobs:
     # macos-latest は macos-26 への移行が進行中のため、eas.json の EAS ビルド環境
     # （macos-sequoia-15.6-xcode-26.2）に合わせて macos-15 を明示固定する（#1029）
     runs-on: macos-15
-    # #1027 【実測】xcodebuild（Release / シミュレータ）だけで ~35 分かかる（run 30386865911）。
-    # そのうえで Tier1-2 の全 spec を実行するため、60 分では足りずジョブが打ち切られていた
-    timeout-minutes: 120
+    # #1027 【実測】xcodebuild（Release / シミュレータ）だけで ~31 分かかる（run 30432596949）。
+    # そのうえで Tier1-2 の全 spec を実行し、失敗があれば --retries 1 でもう 1 周するため、
+    # 120 分でもテスト実行の途中で打ち切られた（run 30432596949 は 84 分走って未完）。
+    # iOS は Detox の同期機構を切っている分どの待機もポーリングになり Android より遅い（#1040）
+    timeout-minutes: 180
 
     steps:
       - name: ⏬ Checkout repository

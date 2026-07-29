@@ -1,4 +1,11 @@
-import { DEFAULT_TIMEOUT, by, element, existsNow, waitUntilVisible } from "../fixtures/e2e";
+import {
+	DEFAULT_TIMEOUT,
+	by,
+	element,
+	existsNow,
+	tapWhenVisible,
+	waitUntilVisible,
+} from "../fixtures/e2e";
 
 /**
  * ⚙️ 設定画面の Screen Object（e2e-web の pages/SettingsPage.ts に対応）
@@ -62,7 +69,7 @@ export class SettingsScreen {
 
 	/** プライバシーポリシー行をタップしてリーガルドキュメントのモーダルを開く */
 	async openPrivacyPolicy(): Promise<void> {
-		await element(this.privacyItem).tap();
+		await tapWhenVisible(this.privacyItem);
 	}
 
 	/** リーガルドキュメントのモーダルが開いていることを検証する */
