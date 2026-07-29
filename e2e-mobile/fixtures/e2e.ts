@@ -87,6 +87,18 @@ type LaunchOptions = {
 	resetState?: boolean;
 	/** 起動後に「アプリ起動完了」まで待つか。既定 true */
 	waitForReady?: boolean;
+	/**
+	 * 検索チュートリアルの「視聴済みフラグ」をどう扱うか（#1027）。
+	 *
+	 * - `true`（既定） … 視聴済みとして起動する = **チュートリアルは開かない**
+	 * - `false` … 未視聴として起動する = 初回起動の自動表示を再現する
+	 * - `"device"` … 起動引数を渡さず、端末の AsyncStorage の実データに従う
+	 *
+	 * e2e-web の `test.use({ seedTutorialSeen })` に対応する（詳細は app-expo/lib/e2e/tutorialSeed.ts）。
+	 * チュートリアルは Android では別ウィンドウの Dialog として最前面に出るため、
+	 * 既定で抑止しておかないと **どの spec でもタップがシートに吸われうる**。
+	 */
+	tutorialSeen?: boolean | "device";
 };
 
 /**
@@ -108,7 +120,7 @@ type LaunchOptions = {
  * @失敗時 期待するセッションが環境変数に無い場合、日本語メッセージで例外を投げる（fail-loud。#1030 B-1）
  */
 export async function launchAppWithSession(opts: { as: SessionOwner } & LaunchOptions): Promise<void> {
-	const { as, url, resetState = false, waitForReady = true } = opts;
+	const { as, url, resetState = false, waitForReady = true, tutorialSeen = true } = opts;
 
 	const session = readSessionFromEnv(as);
 	if (!session) {
@@ -139,8 +151,12 @@ export async function launchAppWithSession(opts: { as: SessionOwner } & LaunchOp
 			e2eAccessToken: session.accessToken,
 			e2eRefreshToken: session.refreshToken,
 			// #1030 【設計】B-1: アプリ側は「セッションの有無」ではなく「期待ユーザーと現在ユーザーの一致」で
-			// 再注入を判断する。その期待値がこのキー
+			// 再注入を判断する。その期待値がこの 2 キー。
+			// ⚠️ `e2eExpectedUserId` はアプリ側フックの **必須項目**で、欠けると起動時に fail-loud で例外になる
+			//（app-expo/lib/e2e/injectTestSession.ts）。トークンと必ずセットで渡すこと
 			e2eSessionOwner: as,
+			e2eExpectedUserId: session.userId,
+			...tutorialLaunchArgs(tutorialSeen),
 		}),
 	});
 
@@ -162,7 +178,7 @@ export async function launchAppWithSession(opts: { as: SessionOwner } & LaunchOp
  * @param opts.waitForReady 既定 false。起動シーケンスそのものを検証する spec が自分で待つため
  */
 export async function launchAppWithoutSession(opts: LaunchOptions = {}): Promise<void> {
-	const { url, resetState = false, waitForReady = false } = opts;
+	const { url, resetState = false, waitForReady = false, tutorialSeen = true } = opts;
 
 	if (resetState) {
 		await device.resetAppState();
@@ -171,7 +187,9 @@ export async function launchAppWithoutSession(opts: LaunchOptions = {}): Promise
 	await device.launchApp({
 		newInstance: true,
 		url,
-		...platformLaunchOptions(),
+		// #1027 セッションは渡さないが、チュートリアルの抑止だけは他の spec と揃える。
+		// アプリ側のセッション注入フックはこのキーを見ないため、匿名サインインの検証には影響しない
+		...platformLaunchOptions(tutorialLaunchArgs(tutorialSeen)),
 	});
 
 	if (waitForReady) {
@@ -198,11 +216,25 @@ const SEARCH_TUTORIAL = {
 };
 
 /**
+ * 起動引数へ載せるチュートリアルのシード値を組み立てる（#1027）。
+ *
+ * `"device"` のときだけキー自体を渡さない。アプリ側フックは「未指定 = 固定なし」と解釈し、
+ * AsyncStorage の実データを読む（= 永続化そのものを検証する spec 向け）。
+ */
+function tutorialLaunchArgs(tutorialSeen: boolean | "device"): Record<string, string> {
+	if (tutorialSeen === "device") return {};
+	return { e2eTutorialSeen: tutorialSeen ? "1" : "0" };
+}
+
+/**
  * 初回起動チュートリアルが開いていれば最後まで送って閉じる（ベストエフォート）。
  *
  * 完了は最終ページのセカンダリ CTA「あとで」で行う。プライマリ CTA「はじめよう」は
  * 現在地取得（OS の位置情報アクセス）を伴うため使わない。どちらも `markTutorialAsSeen()` を通り、
- * AsyncStorage の視聴済みフラグが立つので、同一インストール内では二度と出てこない。
+ * AsyncStorage の視聴済みフラグが立つ。
+ *
+ * ⚠️ **通常の spec はこれを呼ぶ必要が無い**（#1027）。起動引数のシードでチュートリアル自体が開かないため。
+ * 残しているのは「シードを外して起動した spec が、検証後に後片付けとして閉じたい」場合のため。
  *
  * @param probeTimeout 「出ているか」の判定に費やす上限 (ms)
  * @returns 閉じた場合 true / そもそも出ていなかった場合 false
@@ -230,33 +262,36 @@ export async function dismissSearchTutorialIfPresent(probeTimeout = 3_000): Prom
 /**
  * アプリが操作可能な状態（タブレイアウトの描画完了）になるまで待つ。
  *
- * #1027 【バグ】ja-JP の初回起動ではチュートリアルが先に開き、タブバーが **存在はするが見えない**
- * 状態になる。そのため単純にタブバーの可視化を待つと、チュートリアルが閉じられないまま
- * LAUNCH_TIMEOUT まで待って失敗する。ここでは
- * 「タブバーが見える」か「チュートリアルが出た」かのどちらかを先に待ち、
- * 後者ならチュートリアルを閉じてから改めてタブバーを待つ。
+ * #1027 【設計】チュートリアルの後始末はここでは行わない。起動引数のシード（`tutorialSeen`）で
+ * **そもそも開かない**ようにしてあるため（app-expo/lib/e2e/tutorialSeed.ts）。
+ * かつて「出ていたら閉じる」をここでやっていたが、
+ * - シートは AsyncStorage の読み込み完了後、タブバーが見えた数百 ms 後に遅れて被さる
+ * - Android の Espresso は別ウィンドウによる遮蔽を可視性判定へ反映しない
+ *   （= シートが開いていてもタブバーは `toBeVisible()` を満たす）
+ * ため「起動完了を待ち切ったのに直後のタップだけが落ちる」を消せなかった（run 30429560108）。
  *
  * @param timeout タイムアウト (ms)。既定は初回起動を見込んだ LAUNCH_TIMEOUT
- * @失敗時 タイムアウト時に例外を投げる
+ * @失敗時 タイムアウト時に例外を投げる。チュートリアルが出ていた場合は
+ *         「シードが効いていない（= ビルド時に EXPO_PUBLIC_E2E_TUTORIAL_HOOK が立っていない）」と
+ *         判断できるよう、メッセージにその旨を足して投げ直す
  */
 export async function waitForAppReady(timeout: number = LAUNCH_TIMEOUT): Promise<void> {
-	await waitUntil(
-		async () =>
-			(await visibleNow(by.id(APP_READY_TEST_ID), 1_000)) || (await existsNow(SEARCH_TUTORIAL.overlay, 1_000)),
-		{ timeout, interval: 250, description: "タブバーの表示、または初回チュートリアルの表示" },
-	);
-
-	// #1027 【バグ】チュートリアルは AsyncStorage の読み込み完了後に開くため、
-	// **タブバーが見えた直後に遅れて被さってくる**ことがある（run 30402626759 で実測。
-	// 1 回だけ probe する実装では取りこぼし、後続のタップがシートに阻まれて落ちていた）。
-	// 「閉じる → タブバーが本当に操作可能か確かめる」を数回繰り返して、この競合を吸収する
-	for (let attempt = 0; attempt < 3; attempt += 1) {
-		await dismissSearchTutorialIfPresent(3_000);
-		if (await visibleNow(by.id(APP_READY_TEST_ID), 2_000)) return;
+	try {
+		await waitUntilVisible(by.id(APP_READY_TEST_ID), timeout);
+	} catch (error) {
+		if (await existsNow(SEARCH_TUTORIAL.overlay, 1_000)) {
+			throw new Error(
+				[
+					"起動完了（タブバーの表示）を待てず、代わりに検索チュートリアルが表示されています。",
+					"  チュートリアルは起動引数 e2eTutorialSeen でシードして抑止する設計です（#1027）。",
+					"  ビルド時に EXPO_PUBLIC_E2E_TUTORIAL_HOOK=1 が設定されていたか確認してください",
+					"  （このフックは **バンドル時** に metro の resolver で有効/無効が決まります）。",
+					`  元の失敗: ${error instanceof Error ? error.message : String(error)}`,
+				].join("\n"),
+			);
+		}
+		throw error;
 	}
-
-	// ここまでで解決していなければチュートリアル以外の原因。通常の待機で明確に失敗させる
-	await waitUntilVisible(by.id(APP_READY_TEST_ID), DEFAULT_TIMEOUT);
 }
 
 /**

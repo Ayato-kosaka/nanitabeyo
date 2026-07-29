@@ -30,7 +30,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      # #1030 / #1031 【セキュリティ】E2E フック用フラグ（セッション注入・メディア選択差し替え）が
+      # #1027 / #1030 / #1031 【セキュリティ】E2E フック用フラグ
+      # （セッション注入・メディア選択差し替え・チュートリアルシード）が
       # 本番系ジョブへ紛れ込んでいないことを検証する。
       # 主ガードは metro.config.js の EAS 経路 hard fail だが、ローカルバンドル経路の早期検知として残す
       - name: 🔒 Assert E2E hook flags are empty
@@ -41,6 +42,10 @@ jobs:
           fi
           if [ -n "${EXPO_PUBLIC_E2E_MEDIA_HOOK:-}" ]; then
             echo "::error::EXPO_PUBLIC_E2E_MEDIA_HOOK が設定されています。本番系ワークフローでの設定は禁止です（#1031）。"
+            exit 1
+          fi
+          if [ -n "${EXPO_PUBLIC_E2E_TUTORIAL_HOOK:-}" ]; then
+            echo "::error::EXPO_PUBLIC_E2E_TUTORIAL_HOOK が設定されています。本番系ワークフローでの設定は禁止です（#1027）。"
             exit 1
           fi
 

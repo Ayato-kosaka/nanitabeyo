@@ -144,6 +144,9 @@ jobs:
           # #1031 B6 レビュー投稿(@mutation)は OS のフォトピッカーを Detox から操作できないため、
           # E2E ビルドに限りメディア選択を固定画像へ差し替える
           EXPO_PUBLIC_E2E_MEDIA_HOOK: "1"
+          # #1027 検索チュートリアル（別ウィンドウの BottomSheet）は全 spec のタップを吸ってしまうため、
+          # 起動引数で「視聴済み」をシードできるようにする（e2e-web の seedTutorialSeen と同じ考え方）
+          EXPO_PUBLIC_E2E_TUTORIAL_HOOK: "1"
         run: pnpm --filter e2e-mobile build:android
 
       # AVD スナップショットをキャッシュし、2 回目以降のエミュレータ起動を高速化する
@@ -196,7 +199,7 @@ jobs:
           # ロジックは必ずスクリプトファイルへ切り出して 1 行で呼ぶこと
           script: |
             bash e2e-mobile/scripts/setup-android-locale.sh
-            pnpm --filter e2e-mobile run ${{ needs.prepare.outputs.android_script }}
+            bash e2e-mobile/scripts/run-detox-ci.sh ${{ needs.prepare.outputs.android_script }}
         # #1030 【設計】3-3: 未設定なら describeAuthenticated 配下が自動 skip されるだけで他は動く
         env:
           TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
@@ -320,11 +323,14 @@ jobs:
           EXPO_PUBLIC_E2E_AUTH_HOOK: "1"
           # #1031 B6 Android と同じ理由でメディア選択の差し替えフックも有効化する
           EXPO_PUBLIC_E2E_MEDIA_HOOK: "1"
+          # #1027 Android と同じ理由でチュートリアルのシードフックも有効化する
+          EXPO_PUBLIC_E2E_TUTORIAL_HOOK: "1"
         run: pnpm --filter e2e-mobile build:ios
 
       # prepare ジョブが解決した Tier のスクリプトを実行する
       - name: 🧪 Run Detox tests (iOS)
-        run: pnpm --filter e2e-mobile run ${{ needs.prepare.outputs.ios_script }}
+        # #1027 実行ログを artifacts/ にも残す（ジョブログは末尾しか API で取得できないため）
+        run: bash e2e-mobile/scripts/run-detox-ci.sh ${{ needs.prepare.outputs.ios_script }}
         # #1030 【設計】3-3: 未設定なら describeAuthenticated 配下が自動 skip されるだけで他は動く
         env:
           TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}

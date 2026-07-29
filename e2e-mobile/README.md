@@ -121,6 +121,30 @@ pnpm --filter e2e-mobile test:ios             # Android と同じく :smoke / :m
 >
 > **フォームの本文入力欄が出てこない場合は、まずビルド時の `EXPO_PUBLIC_E2E_MEDIA_HOOK` を疑うこと。**
 
+> **検索チュートリアルは「閉じる」ではなく「シードする」**(#1027)
+> ja-JP の初回起動では検索チュートリアル(`TutorialBottomSheet`)が自動的に開く。実体は TrueSheet で、
+> Android では **別ウィンドウの Dialog** として最前面に出るため、開いている間は背後のタップがシートに吸われる。
+>
+> 当初は各 spec の前処理で「出ていたら閉じる」で吸収していたが、これは原理的に競合が残る:
+>
+> - シートが開くのは AsyncStorage の読み込み完了後で、**タブバーが見えた数百 ms 後に遅れて被さる**
+> - Android の Espresso は「別ウィンドウに覆われている」ことを可視性判定へ反映しない。
+>   つまりシートが開いていてもタブバーは `toBeVisible()` を満たし、**起動完了と誤判定する**
+>
+> 結果「起動完了を待ち切ったのに直後のタップだけが落ちる」が消せず、run 30429560108 では 12 suite 中 10 suite が
+> この経路で失敗した。現在は **e2e-web と同じシード方式**へ揃えている:
+>
+> - 実装: `app-expo/lib/e2e/tutorialSeed.ts` / 差し替え先: `tutorialSeed.noop.ts`
+> - 有効化: ビルド時に `EXPO_PUBLIC_E2E_TUTORIAL_HOOK=1`。本番混入ガードは上記 3 点と同一方式
+> - 使い方: `launchAppWithSession({ as, tutorialSeen })`
+>   - `true`(既定) … 視聴済み扱い = チュートリアルは開かない
+>   - `false` … 未視聴扱い = 初回起動の自動表示を再現する(`tests/search/search-tutorial.test.ts`)
+>   - `"device"` … 起動引数を渡さず AsyncStorage の実データを読む。**永続化そのものを検証する再起動で使う**
+>     (ここで既定値のままにすると、シードした値を読み返すだけの偽の緑になる)
+>
+> **起動待ちが「チュートリアルが表示されています」というメッセージで失敗する場合は、
+> ビルド時の `EXPO_PUBLIC_E2E_TUTORIAL_HOOK` を疑うこと。**
+
 **ディレクトリ = Tier を正とする。** `@smoke` / `@mutation` はレポート上の可読性のため `describe` 名にも併記するが、フィルタの正には使わない(タグ文字列とディレクトリの二重管理を避けるため)。
 
 ### リトライ方針
@@ -184,8 +208,9 @@ CI 側の要件(#1029 の受け入れ条件):
    ↓ process.env 経由でテストワーカーへ受け渡し(**トークンはディスクへ書かない**)
 [各 spec]
    launchAppWithSession({ as: "anon" | "authenticated" })
-     → device.launchApp({ launchArgs: { e2eAccessToken, e2eRefreshToken, e2eSessionOwner } })
-     → アプリ側フックが setSession() する(app-expo 側。**別 PR で実装中**)
+     → device.launchApp({ launchArgs: {
+          e2eAccessToken, e2eRefreshToken, e2eSessionOwner, e2eExpectedUserId, e2eTutorialSeen } })
+     → アプリ側フック(app-expo/lib/e2e/injectTestSession.ts)が setSession() する
 [fixtures/globalTeardown.ts]
    signOut({ scope: "global" }) で発行したセッションを revoke
 ```
@@ -194,8 +219,10 @@ CI 側の要件(#1029 の受け入れ条件):
 - **`e2eSessionOwner` を渡すのが要点**(#1030 B-1)。アプリ側は「セッションの有無」ではなく
   **「期待ユーザーと現在ユーザーの一致」**で再注入を判断する。
   「匿名セッションが残っているせいで注入がスキップされ、認証済みのつもりのテストが匿名のまま緑になる」事故を防ぐため
-- **アプリ側フックが未実装の間**、launchArgs は単に無視される(アプリは通常どおり自前で匿名サインインする)。
-  渡す側の契約は確定済みなので、アプリ側 PR の合流で自動的に有効になる
+- **`e2eExpectedUserId` は必須**。アプリ側フックは一致判定ができない状態を契約違反として **起動時に fail-loud** させる。
+  トークンだけ渡しても起動できないので、`utils/sessionEnv.ts` は 3 つ揃っていなければ `null` を返す
+- **フックはビルド時に決まる**。`EXPO_PUBLIC_E2E_AUTH_HOOK=1` を付けずにビルドすると metro が noop 実装を焼き込み、
+  launchArgs は **黙って無視される**(= 認証済みテストが匿名のまま緑になる)。CI では Detox build ステップで設定している
 - **fail-loud**: 期待するセッションが用意できていない状態で `launchAppWithSession()` を呼ぶと例外になる。
   黙って通常起動へフォールバックしない(テストが緑のまま検証内容だけ嘘になるのを防ぐ)
 
@@ -206,7 +233,13 @@ CI 側の要件(#1029 の受け入れ条件):
 
 - **`globalTeardown` で `signOut({ scope: "global" })`**(globalSetup が途中で失敗した場合も、確立済みのセッションを revoke してから中断する)
 - **Detox の device log artifact は既定で無効**(`.detoxrc.js` の `artifacts.plugins.log: "none"`)。
-  logcat / Detox の debug log には launchArgs が載りうるため。収集したい場合は **launchArgs を渡さない run に限る**こと
+  logcat / Detox の debug log には launchArgs が載りうるため。収集したい場合は **launchArgs を渡さない run に限る**こと。
+  CI が代わりに集めているのは次の 2 つで、いずれもトークンを含まない:
+  - `artifacts/detox-run.log` … Detox/Jest の標準出力。GitHub Actions のジョブログは API から末尾しか取れず、
+    アプリが落ちると "Detox can't seem to connect to the test app(s)!" が数千行積もって肝心の失敗理由を押し出すため、
+    `scripts/run-detox-ci.sh` が全文を Artifact 側にも残している
+  - `artifacts/logcat-crash.log` … 失敗時のみ `adb logcat -b crash`。crash バッファはスタックトレース専用で
+    Intent extras(= launchArgs)を含まない
 - **トークンをディスクへ書かない**(`process.env` のみ)。ログにも出さない
 
 ### テストユーザーの準備(1 回だけ)

@@ -124,6 +124,8 @@ async function establishAnonymousSession(supabaseUrl: string, supabaseAnonKey: s
 	writeSessionToEnv("anon", {
 		accessToken: data.session.access_token,
 		refreshToken: data.session.refresh_token,
+		// #1030 B-1: アプリ側フックが「期待ユーザーと現在ユーザーの一致」で再注入を判断するため必須
+		userId: data.session.user.id,
 	});
 	console.log("✅ 匿名セッションを確立しました（全 spec で共有します）");
 }
@@ -163,6 +165,7 @@ async function establishAuthenticatedSession(supabaseUrl: string, supabaseAnonKe
 	writeSessionToEnv("authenticated", {
 		accessToken: data.session.access_token,
 		refreshToken: data.session.refresh_token,
+		userId: data.session.user.id,
 	});
 	process.env[AUTHENTICATED_AVAILABLE_ENV] = "1";
 	console.log("✅ テストユーザーのセッションを確立しました（tests/authenticated/ を実行します）");

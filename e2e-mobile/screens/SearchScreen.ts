@@ -119,16 +119,14 @@ export class SearchScreen {
 	/**
 	 * 検索画面が表示されていることを検証する。
 	 *
-	 * ⚠️ チュートリアルが自動表示されていた場合は **先に閉じてから**検証する。
-	 * ネイティブのチュートリアルは BottomSheet（Android では別ウィンドウの Modal）として
-	 * 描画され、その間は背後の検索フォームが Detox から見えなくなるため、
-	 * 「チュートリアルが出ているせいで画面表示の検証に失敗する」誤検知を防ぐ必要がある。
-	 * チュートリアルそのものを検証する spec は expectLoaded を呼ぶ前に検証すること。
+	 * #1027 チュートリアルの後始末はここでは行わない。起動引数 `e2eTutorialSeen` のシードで
+	 * **そもそも開かない**設計に変えたため（fixtures/e2e.ts の `tutorialSeen` オプション）。
+	 * 以前はここで「出ていたら閉じる」をしていたが、呼ばれるたびに数秒の probe が入るうえ、
+	 * シートが遅れて被さる競合を消し切れなかった。
 	 *
 	 * @param timeout タイムアウト (ms)
 	 */
 	async expectLoaded(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
-		await this.dismissTutorialIfPresent();
 		await waitUntilVisible(this.headerTitle, timeout);
 	}
 
@@ -265,18 +263,15 @@ export class SearchScreen {
 	/**
 	 * チュートリアルが出ていれば閉じる（ベストエフォート）。
 	 *
-	 * #1031 【設計】§4-3: e2e-web は fixtures が localStorage へ視聴済みフラグをシードして抑止しているが、
-	 * ネイティブ側の AsyncStorage シード手段は共通基盤（#1030 の launchArgs 経路）にまだ無い。
-	 * そのため各 spec は「出ていたら閉じる」で吸収する。
-	 * シード方式が基盤に入ったらこの前処理は不要になる。
+	 * #1027 【設計】§4-3: e2e-web は fixtures が localStorage へ視聴済みフラグをシードして抑止している。
+	 * ネイティブも起動引数 `e2eTutorialSeen` によるシード方式へ揃えたため、
+	 * **通常の spec からこれを呼ぶ必要は無い**（`launchAppWithSession` の既定が「視聴済み」）。
+	 * シードを外して起動した spec の後片付け用に残している。
 	 *
 	 * @returns 閉じた場合 true / そもそも出ていなかった場合 false
 	 */
 	async dismissTutorialIfPresent(): Promise<boolean> {
-		// #1027 実体は fixtures/e2e.ts へ移した。起動処理（waitForAppReady）でも同じ後始末が要るためで、
-		// screens 側と二重管理にならないようここからは委譲するだけにする。
-		// チュートリアルは AsyncStorage の読み込み完了後に開くため、起動直後は少し遅れて現れる。
-		// 「出ていない」と誤判定して後続の操作がブロックされないよう、既定より長めに様子を見る
+		// 実体は fixtures/e2e.ts。screens 側と二重管理にならないよう委譲するだけにする
 		return dismissSearchTutorialIfPresent(3_000);
 	}
 

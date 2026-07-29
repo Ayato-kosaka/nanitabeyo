@@ -25,6 +25,7 @@ import { fileURLToPath } from "node:url";
 const SENTINELS = [
 	{ value: "__E2E_TEST_SESSION_HOOK__", label: "セッション注入フック（lib/e2e/injectTestSession.ts）" },
 	{ value: "__E2E_MEDIA_SELECTION_HOOK__", label: "メディア選択差し替えフック（lib/e2e/selectMediaStub.ts）" },
+	{ value: "__E2E_TUTORIAL_SEED_HOOK__", label: "チュートリアル視聴済みシードフック（lib/e2e/tutorialSeed.ts）" },
 ];
 
 // #1030 【設計】(レビュー m-6) `import.meta.dirname` は Node >= 20.11 依存。
@@ -89,7 +90,8 @@ if (offenders.length > 0) {
 		[
 			"❌ 本番相当バンドルに E2E フックが混入しています。",
 			"metro.config.js の resolveRequest による noop 差し替えが機能していない可能性があります。",
-			"（EXPO_PUBLIC_E2E_AUTH_HOOK / EXPO_PUBLIC_E2E_MEDIA_HOOK を立てたまま検査していないかも確認してください）",
+			"（EXPO_PUBLIC_E2E_AUTH_HOOK / EXPO_PUBLIC_E2E_MEDIA_HOOK / EXPO_PUBLIC_E2E_TUTORIAL_HOOK を" +
+				"立てたまま検査していないかも確認してください）",
 			...offenders.map(({ file, sentinel }) => `  - ${path.relative(appRoot, file)} … ${sentinel.label}`),
 		].join("\n"),
 	);

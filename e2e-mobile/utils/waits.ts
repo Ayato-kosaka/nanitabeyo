@@ -69,7 +69,8 @@ export async function existsNow(matcher: Detox.NativeMatcher, timeout = 2_000): 
 	try {
 		await waitFor(element(matcher)).toExist().withTimeout(timeout);
 		return true;
-	} catch {
+	} catch (error) {
+		rethrowIfAppIsGone(error);
 		return false;
 	}
 }
@@ -89,9 +90,36 @@ export async function visibleNow(matcher: Detox.NativeMatcher, timeout = 2_000):
 	try {
 		await waitFor(element(matcher)).toBeVisible().withTimeout(timeout);
 		return true;
-	} catch {
+	} catch (error) {
+		rethrowIfAppIsGone(error);
 		return false;
 	}
+}
+
+/**
+ * 「アプリが落ちている / Detox が接続できていない」ことを示すエラーの断片。
+ *
+ * #1027 【バグ】`existsNow` / `visibleNow` はベストエフォート判定なので **あらゆる例外を false へ潰す**が、
+ * アプリのクラッシュだけは潰してはいけない。潰すとポーリングが最後まで空回りし、
+ * ログには "Detox can't seem to connect to the test app(s)!" が数千行積み上がったうえで
+ * 「要素が見つからない」という **原因と無関係な失敗**として報告される（run 30429560108 で実測）。
+ */
+const APP_IS_GONE_SIGNS = [
+	"can't seem to connect to the test app",
+	"has crashed",
+	"app has not been running",
+	"Detox instance has not been initialized",
+];
+
+/**
+ * アプリが落ちている類のエラーなら、握り潰さずに投げ直す。
+ *
+ * @param error 判定対象の例外
+ * @失敗時（意図的） APP_IS_GONE_SIGNS のいずれかを含むメッセージなら、元の例外をそのまま throw する
+ */
+function rethrowIfAppIsGone(error: unknown): void {
+	const message = error instanceof Error ? error.message : String(error);
+	if (APP_IS_GONE_SIGNS.some((sign) => message.includes(sign))) throw error;
 }
 
 /**
@@ -121,7 +149,9 @@ export async function waitUntil(
 		let satisfied = false;
 		try {
 			satisfied = await predicate();
-		} catch {
+		} catch (error) {
+			// #1027 アプリが落ちている場合だけは再試行せず即座に失敗させる（原因不明の空回りを防ぐ）
+			rethrowIfAppIsGone(error);
 			// 判定中の例外（要素の再マウント中など）は「まだ偽」とみなして再試行する
 			satisfied = false;
 		}

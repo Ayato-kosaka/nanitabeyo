@@ -40,8 +40,7 @@ describe("起動 @smoke", () => {
 	//   2. さがす/レビュー/マイページの各タブが表示されることを検証
 	it("起動するとタブバー付きの検索画面が表示される", async () => {
 		// #1027 【パフォーマンス】初回起動は JS バンドル読込 + 匿名サインインの通信を含むため長めに待つ
-		// #1027 【バグ】ja-JP の初回起動ではチュートリアルが先に開き、タブバーが存在はするが見えない
-		// 状態になる。waitForAppReady はそれを閉じてからタブバーを待つ（fixtures/e2e.ts）
+		// （ja-JP 初回起動で開く検索チュートリアルは起動引数のシードで抑止済み。fixtures/e2e.ts の tutorialSeen）
 		await waitForAppReady(LAUNCH_TIMEOUT);
 		// タブバーは同時に描画されるため、以降は通常のタイムアウトで足りる
 		await waitUntilVisible(by.id("tab-review"), DEFAULT_TIMEOUT);

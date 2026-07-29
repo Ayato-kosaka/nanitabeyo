@@ -21,12 +21,14 @@ export const SESSION_ENV_KEYS = {
 	anon: {
 		accessToken: "E2E_ANON_ACCESS_TOKEN",
 		refreshToken: "E2E_ANON_REFRESH_TOKEN",
+		userId: "E2E_ANON_USER_ID",
 	},
 	authenticated: {
 		accessToken: "E2E_AUTH_ACCESS_TOKEN",
 		refreshToken: "E2E_AUTH_REFRESH_TOKEN",
+		userId: "E2E_AUTH_USER_ID",
 	},
-} as const satisfies Record<SessionOwner, { accessToken: string; refreshToken: string }>;
+} as const satisfies Record<SessionOwner, { accessToken: string; refreshToken: string; userId: string }>;
 
 /**
  * 認証済みテストが実行可能か（= TEST_USER_EMAIL / TEST_USER_PASSWORD が設定され、ログインに成功したか）。
@@ -38,6 +40,15 @@ export const AUTHENTICATED_AVAILABLE_ENV = "E2E_AUTHENTICATED_AVAILABLE";
 export type E2ESession = {
 	accessToken: string;
 	refreshToken: string;
+	/**
+	 * このセッションの `auth.users.id`。
+	 *
+	 * #1030 【設計】B-1: アプリ側フック（app-expo/lib/e2e/injectTestSession.ts）は
+	 * 「セッションの有無」ではなく **「期待ユーザーと現在ユーザーの一致」** で再注入を判断する契約になっており、
+	 * `e2eExpectedUserId` が渡されないと **fail-loud で起動時に例外を投げる**。
+	 * トークンだけ渡してもアプリは起動できないため、この 3 つは常にセットで扱うこと。
+	 */
+	userId: string;
 };
 
 /**
@@ -51,20 +62,24 @@ export function writeSessionToEnv(owner: SessionOwner, session: E2ESession): voi
 	const keys = SESSION_ENV_KEYS[owner];
 	process.env[keys.accessToken] = session.accessToken;
 	process.env[keys.refreshToken] = session.refreshToken;
+	process.env[keys.userId] = session.userId;
 }
 
 /**
  * 環境変数からセッションを読み出す。
  *
  * @param owner セッションの持ち主
- * @returns 両方のトークンが揃っていればセッション / 1 つでも欠けていれば null
+ * @returns 3 つ揃っていればセッション / 1 つでも欠けていれば null
  */
 export function readSessionFromEnv(owner: SessionOwner): E2ESession | null {
 	const keys = SESSION_ENV_KEYS[owner];
 	const accessToken = process.env[keys.accessToken];
 	const refreshToken = process.env[keys.refreshToken];
-	if (!accessToken || !refreshToken) return null;
-	return { accessToken, refreshToken };
+	const userId = process.env[keys.userId];
+	// #1030 B-1: userId が欠けた状態で起動するとアプリ側フックが fail-loud で落ちる。
+	// 「一部だけ揃っている」を成立させないため、1 つでも欠けていれば null にする
+	if (!accessToken || !refreshToken || !userId) return null;
+	return { accessToken, refreshToken, userId };
 }
 
 /** 認証済みテストが実行可能かどうか（globalSetup が判定して立てたフラグを読むだけ） */
