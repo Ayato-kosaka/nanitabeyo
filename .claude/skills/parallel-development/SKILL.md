@@ -57,7 +57,7 @@ description: CSVまたはGitHubの親Issueから複数課題を読み取り、�
 
 1. 対象リポジトリ、既定ブランチ、現在の作業ツリー、既存Issue、Sub-issue、PRを確認する。
 2. `gh auth status` と `gh workflow view claude-worker.yml` を確認する。
-3. `gh secret list` で `CLAUDE_CODE_OAUTH_TOKEN` の名前が存在することを確認する。秘密値は読まない。
+3. `gh secret list` で `CLAUDE_CODE_OAUTH_TOKEN` の名前が存在することだけを確認する。値を取得、表示、コピーしない。
 4. 公式Claude GitHub Appが対象リポジトリへインストール済みであることを確認する。未導入なら、ユーザーへ導入を依頼して停止する。
 5. 既定ブランチのrulesetでPR経由と必要な人間レビューを必須にし、Claude GitHub Appをbypass対象にしていないことを確認する。
 6. ユーザーが指定したCSVまたは親Issueを全件読み、未解決範囲を把握する。
@@ -287,7 +287,31 @@ Workerへ、実行したテストの生データを `/tmp/claude-artifacts/` 配
 
 秘密値、`.env`、認証情報、個人情報をArtifactへ含めない。Artifactは必ず対象PRの最新commit SHAに対応させる。新しいcommitがpushされたら、古いエビデンスだけで完了判定しない。
 
-`gh run download` で必要なArtifactを取得し、要約だけでなく中身を確認する。人間にはrun URL、Artifact名、対象SHA、成功・失敗、未実施項目をまとめて提示する。
+実装runのエビデンスは暫定確認に使い、人間へ公開する最終エビデンスは、原則として独立レビューrunまたは専用validation runのArtifactを使う。UI変更では `access=observe`、`setup_playwright=true`、`base_ref=<PRの最新HEAD SHA>` で検証runを起動し、レビュー指摘の修正後は新しいHEAD SHAで再実行する。
+
+レビューがApprove相当で、必須テストが成功し、未解決の重大指摘がなく、レビューrunへ渡した `base_ref` と現在のPR HEAD SHAが一致した場合だけ、`.github/workflows/evidence-collect.yml` を起動する。`workflow_dispatch` の `--ref main` は信頼済みWorkflowを選ぶためのrefであり、Actions APIのrun `head_sha` はテスト対象SHAを表さないことがある。したがって、リーダー自身がdispatch時に記録した `base_ref` と現在のPR HEADを照合し、そのSHAを `source_sha` として渡す。
+
+```bash
+PR_HEAD_SHA="$(gh pr view <pr-number> --json headRefOid --jq .headRefOid)"
+
+gh workflow run evidence-collect.yml \
+  --ref main \
+  -f run_id=<review-or-validation-run-id> \
+  -f artifact_name=<claude-worker-artifact-name> \
+  -f source_sha="$PR_HEAD_SHA"
+```
+
+`evidence-collect.yml` は元runが成功したClaude Workerであることを確認し、Artifact内の画像・動画だけを `nanitabeyo-public` へ公開する。Playwright trace、HTML report、ログ、JUnit等の生データは元Artifactに残す。公開後は、GCS上とActions Artifactの両方へ `manifest.json` を保存する。このWorkflow自身にはIssue・PRコメントをさせない。
+
+収集runの完了後、`evidence-manifest-<source-run-id>` Artifactまたは公開manifestを読み、`repository`、`sourceRunId`、`sourceCommitSha`、`artifactName` が期待値と一致することを確認する。リーダーがIssueまたはPRへ、画像はMarkdown画像、動画はリンクとしてコメントし、元run URL、Artifact名、対象SHAも併記する。
+
+```markdown
+![画面名](https://storage.googleapis.com/nanitabeyo-public/...)
+
+🎥 [動画名](https://storage.googleapis.com/nanitabeyo-public/...)
+```
+
+`gh run download` で元Artifactも必要に応じて取得し、要約だけでなく中身を確認する。人間にはrun URL、Artifact名、対象SHA、成功・失敗、未実施項目をまとめて提示する。
 
 ## runを追跡する
 
