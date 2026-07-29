@@ -116,6 +116,21 @@ pnpm --filter e2e-mobile test:ios             # Android と同じく :smoke / :m
 
 **ディレクトリ = Tier を正とする。** `@smoke` / `@mutation` はレポート上の可読性のため `describe` 名にも併記するが、フィルタの正には使わない(タグ文字列とディレクトリの二重管理を避けるため)。
 
+### リトライ方針
+
+CI のスクリプト(`test:ci:*`)だけ `detox test --retries 1` を付けている。ローカルは付けない(fail fast)。
+
+- **なぜ必要か**: 実 API 依存の spec(トピック提案フロー等)は、AI が選ぶ料理・店舗によっては
+  dev 環境側のデータ不備(画像未処理等)で結果フィード取得が 500 になることが実測されている。
+  アプリ側の既知の不安定要素で、このテストの実装不備ではない。e2e-web も同じ理由で
+  `topics-flow` / `reactions` に `retries: 2` を設定している
+- **なぜ spec 単位ではなく全体なのか**: e2e-web(Playwright)は spec 単位でリトライ数を設定できるが、
+  **Detox のリトライは失敗した spec ファイルを丸ごと再実行する粒度**しか無い。
+  `jest.retryTimes()` で spec 単位にすると `beforeAll` が再実行されないため、
+  「検索を beforeAll で 1 回だけ行う」構成の spec では再試行の意味が無くなる
+- **@mutation には付けない**: 再試行すると dev DB への書き込みが二重に走りうるため。
+  Tier 3 は手動実行なので、落ちたら中身を見て判断する
+
 Tier 3 の安全弁は **2 段構え**(#1028 §6-3 / #1030 レビュー M-3):
 
 1. **設定段(主防御)**: `jest.config.js` の `testPathIgnorePatterns` が `tests/mutation/` を探索から外す
