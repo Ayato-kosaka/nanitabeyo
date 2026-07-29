@@ -88,6 +88,16 @@ export class CreateDishMediaEntryService {
   private async downloadAndStorePhotos(
     payload: CreateDishMediaEntryJobPayload,
   ): Promise<void> {
+    // #1053 【課金】bulk-import が「GCS に実体あり」と判定した再利用パスでは photoUri が空。
+    // その場合 download は不要で、upsert と resize のやり直しだけが目的になる。
+    if (payload.photoUri.length === 0) {
+      this.logger.debug('PhotoDownloadSkipped', 'downloadAndStorePhotos', {
+        jobId: payload.jobId,
+        mediaPath: payload.dish_media.media_path,
+      });
+      return;
+    }
+
     const downloadPromises = payload.photoUri.map(async (photoUri, index) => {
       try {
         // 写真データを取得
@@ -133,45 +143,67 @@ export class CreateDishMediaEntryService {
     dishMedia: PrismaDishMedia,
     restaurants: PrismaRestaurants,
   ) {
+    // #1053 【設計】分岐判定は media/thumbnail の AND なので、
+    // 「media=completed / thumbnail=processing」は未完了に倒れて handler が再実行される。
+    // そのとき completed 側まで再 enqueue すると、resize-image 側が fileExists で
+    // 早期 return するため画像処理自体は走らないものの、Cloud Tasks の実行回数と
+    // Cloud Run のリクエスト数だけが二重に増える。completed の列は skip する。
+    const skipMedia = dishMedia.media_processing_status === 'completed';
+    const skipThumbnail = dishMedia.thumbnail_processing_status === 'completed';
+
+    if (skipMedia || skipThumbnail) {
+      this.logger.debug('ResizeEnqueueSkipped', 'enqueueResizeImageJob', {
+        dishMediaId: dishMedia.id,
+        skipMedia,
+        skipThumbnail,
+      });
+    }
+
     return Promise.all([
       // メイン画像リサイズジョブ
-      this.cloudTasksService
-        .enqueueResizeImage({
-          table: 'dish_media',
-          column: 'media_path',
-          recordId: dishMedia.id,
-          size: 1024,
-          aspectRatio: 9 / 16,
-          originalPath: dishMedia.media_path,
-        })
-        .catch((error) => {
-          this.logger.error('EnqueueResizeImageError', 'createDishMediaEntry', {
-            dishMediaId: dishMedia.id,
-            error: error instanceof Error ? error.message : 'Unknown error',
-          });
-          throw error;
-        }),
+      !skipMedia &&
+        this.cloudTasksService
+          .enqueueResizeImage({
+            table: 'dish_media',
+            column: 'media_path',
+            recordId: dishMedia.id,
+            size: 1024,
+            aspectRatio: 9 / 16,
+            originalPath: dishMedia.media_path,
+          })
+          .catch((error) => {
+            this.logger.error(
+              'EnqueueResizeImageError',
+              'createDishMediaEntry',
+              {
+                dishMediaId: dishMedia.id,
+                error: error instanceof Error ? error.message : 'Unknown error',
+              },
+            );
+            throw error;
+          }),
       // サムネイル画像リサイズジョブ
-      this.cloudTasksService
-        .enqueueResizeImage({
-          table: 'dish_media',
-          column: 'thumbnail_path',
-          recordId: dishMedia.id,
-          size: 256,
-          aspectRatio: 9 / 16,
-          originalPath: dishMedia.thumbnail_path,
-        })
-        .catch((error) => {
-          this.logger.error(
-            'EnqueueResizeThumbnailError',
-            'createDishMediaEntry',
-            {
-              dishMediaId: dishMedia.id,
-              error: error instanceof Error ? error.message : 'Unknown error',
-            },
-          );
-          throw error;
-        }),
+      !skipThumbnail &&
+        this.cloudTasksService
+          .enqueueResizeImage({
+            table: 'dish_media',
+            column: 'thumbnail_path',
+            recordId: dishMedia.id,
+            size: 256,
+            aspectRatio: 9 / 16,
+            originalPath: dishMedia.thumbnail_path,
+          })
+          .catch((error) => {
+            this.logger.error(
+              'EnqueueResizeThumbnailError',
+              'createDishMediaEntry',
+              {
+                dishMediaId: dishMedia.id,
+                error: error instanceof Error ? error.message : 'Unknown error',
+              },
+            );
+            throw error;
+          }),
       restaurants.image_path &&
         this.cloudTasksService
           .enqueueResizeImage({
