@@ -141,6 +141,9 @@ jobs:
         # （= 認証済みテストが匿名のまま走り、テストは緑なのに検証内容だけが嘘になる）
         env:
           EXPO_PUBLIC_E2E_AUTH_HOOK: "1"
+          # #1031 B6 レビュー投稿(@mutation)は OS のフォトピッカーを Detox から操作できないため、
+          # E2E ビルドに限りメディア選択を固定画像へ差し替える
+          EXPO_PUBLIC_E2E_MEDIA_HOOK: "1"
         run: pnpm --filter e2e-mobile build:android
 
       # AVD スナップショットをキャッシュし、2 回目以降のエミュレータ起動を高速化する
@@ -315,6 +318,8 @@ jobs:
         # #1030 【設計】Android と同じ理由でバンドル時にセッション注入フックを有効化する
         env:
           EXPO_PUBLIC_E2E_AUTH_HOOK: "1"
+          # #1031 B6 Android と同じ理由でメディア選択の差し替えフックも有効化する
+          EXPO_PUBLIC_E2E_MEDIA_HOOK: "1"
         run: pnpm --filter e2e-mobile build:ios
 
       # prepare ジョブが解決した Tier のスクリプトを実行する

@@ -20,8 +20,12 @@ import { fileURLToPath } from "node:url";
  * metro.config.js の resolver 差し替えが Expo SDK 更新等で壊れた場合、ここで fail して気付ける。
  */
 
-// #1030 【セキュリティ】lib/e2e/injectTestSession.ts のみが持つ番号札。noop 実装側には存在しない
-const SENTINEL = "__E2E_TEST_SESSION_HOOK__";
+// #1030 / #1031 【セキュリティ】各 E2E フックの実装ファイルのみが持つ番号札。noop 実装側には存在しない。
+// フックを増やしたら必ずここへ追加すること（追加を忘れると新しいフックだけゲートを素通りする）
+const SENTINELS = [
+	{ value: "__E2E_TEST_SESSION_HOOK__", label: "セッション注入フック（lib/e2e/injectTestSession.ts）" },
+	{ value: "__E2E_MEDIA_SELECTION_HOOK__", label: "メディア選択差し替えフック（lib/e2e/selectMediaStub.ts）" },
+];
 
 // #1030 【設計】(レビュー m-6) `import.meta.dirname` は Node >= 20.11 依存。
 // CI の node-version は "20"（マイナー未固定）なので、どのバージョンでも動く fileURLToPath を使う
@@ -69,17 +73,24 @@ for (const { dir, how } of targets) {
 		continue;
 	}
 
-	offenders = offenders.concat(bundles.filter((file) => readFileSync(file, "latin1").includes(SENTINEL)));
+	for (const file of bundles) {
+		const contents = readFileSync(file, "latin1");
+		for (const sentinel of SENTINELS) {
+			if (contents.includes(sentinel.value)) {
+				offenders.push({ file, sentinel });
+			}
+		}
+	}
 	console.log(`🔎 検査: ${path.relative(appRoot, absolute)}（${bundles.length} ファイル）`);
 }
 
 if (offenders.length > 0) {
 	console.error(
 		[
-			`❌ 本番相当バンドルに E2E セッション注入フック（${SENTINEL}）が混入しています。`,
+			"❌ 本番相当バンドルに E2E フックが混入しています。",
 			"metro.config.js の resolveRequest による noop 差し替えが機能していない可能性があります。",
-			"（EXPO_PUBLIC_E2E_AUTH_HOOK=1 のまま検査していないかも確認してください）",
-			...offenders.map((file) => `  - ${path.relative(appRoot, file)}`),
+			"（EXPO_PUBLIC_E2E_AUTH_HOOK / EXPO_PUBLIC_E2E_MEDIA_HOOK を立てたまま検査していないかも確認してください）",
+			...offenders.map(({ file, sentinel }) => `  - ${path.relative(appRoot, file)} … ${sentinel.label}`),
 		].join("\n"),
 	);
 	process.exit(1);
@@ -89,4 +100,6 @@ if (missing) {
 	process.exit(1);
 }
 
-console.log(`✅ 本番相当バンドルに E2E セッション注入フックは含まれていません（検査ファイル数: ${scannedCount}）`);
+console.log(
+	`✅ 本番相当バンドルに E2E フック（${SENTINELS.length} 種）は含まれていません（検査ファイル数: ${scannedCount}）`,
+);

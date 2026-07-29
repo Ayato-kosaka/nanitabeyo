@@ -105,14 +105,21 @@ pnpm --filter e2e-mobile test:ios             # Android と同じく :smoke / :m
 | ------ | ------------------------------------------------------------------------------------------- | ------------------------------------------ | ----------------------------------------------------- |
 | Tier 1 | `tests/smoke/`                                                                              | 起動・タブ導線の最小確認                   | 夜間 CI + 手動実行。将来の PR ゲート候補              |
 | Tier 2 | `tests/navigation/` `tests/search/` `tests/review/` `tests/profile/` `tests/authenticated/` | 機能テスト全般(実 API 読み取り)            | 夜間 CI                                               |
-| Tier 3 | `tests/mutation/`                                                                           | dev DB への書き込み(いいね/保存)           | **既定では実行されない**。`RUN_MUTATION=1` で明示実行 |
+| Tier 3 | `tests/mutation/`                                                                           | dev DB への書き込み(いいね/保存・レビュー投稿) | **既定では実行されない**。`RUN_MUTATION=1` で明示実行 |
 
-> **レビュー投稿テストが Tier 3 に無い理由**(#1031 B6 確定)
+> **レビュー投稿テストと OS フォトピッカー**(#1031 B6)
 > `ReviewForm` は画面に入った直後に OS のフォトピッカー(`selectMedia`)を開く。フォトピッカーは
-> **アプリ外プロセス**で動くため Detox からは操作できず、投稿フローの自動化がそこで止まる。
-> 「メディア選択をアプリ側のテストフックで固定画像へ差し替える」方式が決まるまで実装を見送る。
-> `screens/ReviewScreen.ts` には投稿フォームの testID 定義だけを置いてあるので、
-> 方式が決まればそのまま使える。
+> **アプリ外プロセス**で動くため Detox からは操作できず、当初は投稿フローの自動化を見送っていた。
+> 現在は **E2E ビルドに限りメディア選択を固定画像へ差し替えるフック**を用意して解決している:
+>
+> - 実装: `app-expo/lib/e2e/selectMediaStub.ts` / 差し替え先: `selectMediaStub.noop.ts`
+> - 有効化: ビルド時に `EXPO_PUBLIC_E2E_MEDIA_HOOK=1`(e2e-mobile-test.yml の Detox build ステップ)
+> - 本番混入ガードはセッション注入フック(#1030)と同一方式の二重構え:
+>   1. `metro.config.js` の `resolveRequest` が **解決後の実ファイルパス**で判定して noop へ差し替える
+>   2. `scripts/assert-no-e2e-hook.mjs` が本番相当バンドルに sentinel が無いことを検査する
+>   3. 加えて EAS 経路(`EAS_BUILD`)でフラグが立っていたら metro が hard fail する
+>
+> **フォームの本文入力欄が出てこない場合は、まずビルド時の `EXPO_PUBLIC_E2E_MEDIA_HOOK` を疑うこと。**
 
 **ディレクトリ = Tier を正とする。** `@smoke` / `@mutation` はレポート上の可読性のため `describe` 名にも併記するが、フィルタの正には使わない(タグ文字列とディレクトリの二重管理を避けるため)。
 
