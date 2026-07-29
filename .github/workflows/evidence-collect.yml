@@ -38,6 +38,8 @@ jobs:
       SOURCE_RUN_ID: ${{ inputs.run_id }}
       ARTIFACT_NAME: ${{ inputs.artifact_name }}
       SOURCE_SHA: ${{ inputs.source_sha }}
+      # 元runがClaude Workerであることを .path で判定する（.name は run-name のため使えない）
+      EXPECTED_WORKFLOW_PATH: .github/workflows/claude-worker.yml
 
     steps:
       - name: 入力値を検証
@@ -69,14 +71,20 @@ jobs:
           set -euo pipefail
 
           RUN_JSON="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${SOURCE_RUN_ID}")"
-          WORKFLOW_NAME="$(jq -r '.name' <<<"$RUN_JSON")"
+          # 【バグ】run オブジェクトの .name は workflow 名ではなく run-name を返す。
+          # claude-worker.yml は run-name を定義しているため .name は
+          # "Claude Worker / <task_key> / <model> / <access>" になり、
+          # "Claude Worker" と完全一致することは無い（＝この検証は必ず落ちていた）。
+          # workflow ファイルを一意に指す .path で判定する。
+          WORKFLOW_PATH="$(jq -r '.path' <<<"$RUN_JSON")"
+          RUN_NAME="$(jq -r '.name' <<<"$RUN_JSON")"
           EVENT="$(jq -r '.event' <<<"$RUN_JSON")"
           STATUS="$(jq -r '.status' <<<"$RUN_JSON")"
           CONCLUSION="$(jq -r '.conclusion' <<<"$RUN_JSON")"
           SOURCE_URL="$(jq -r '.html_url' <<<"$RUN_JSON")"
 
-          if [[ "$WORKFLOW_NAME" != "Claude Worker" || "$EVENT" != "workflow_dispatch" ]]; then
-            echo "::error::元runはClaude Workerのworkflow_dispatchではありません（name=$WORKFLOW_NAME, event=$EVENT）。"
+          if [[ "$WORKFLOW_PATH" != "$EXPECTED_WORKFLOW_PATH" || "$EVENT" != "workflow_dispatch" ]]; then
+            echo "::error::元runはClaude Workerのworkflow_dispatchではありません（path=$WORKFLOW_PATH, event=$EVENT, run-name=$RUN_NAME）。"
             exit 1
           fi
 
@@ -192,6 +200,12 @@ jobs:
               output.write(f"video_count={len(videos)}\n")
               output.write(f"manifest_url={manifest['publicManifestUrl']}\n")
           PY
+
+      # ubuntu-24.04 ランナーへの gcloud 同梱は保証されていないため、
+      # api-deploy.yml と同様に SDK のセットアップを明示する。
+      # 既に入っていても害はない。
+      - name: Google Cloud SDKをセットアップ
+        uses: google-github-actions/setup-gcloud@v2
 
       - name: Google Cloudへ認証
         shell: bash
