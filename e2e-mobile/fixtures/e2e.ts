@@ -218,7 +218,10 @@ export async function dismissSearchTutorialIfPresent(probeTimeout = 3_000): Prom
 		await element(SEARCH_TUTORIAL.nextButton).tap();
 	}
 
-	await waitUntilVisible(SEARCH_TUTORIAL.finishButton);
+	// ベストエフォートに徹する。ここで例外を投げると呼び出し側のリトライを潰してしまううえ、
+	// 「チュートリアルを閉じられなかった」ではなく本来の検証内容で失敗させたいため
+	if (!(await visibleNow(SEARCH_TUTORIAL.laterButton, 3_000))) return false;
+
 	await element(SEARCH_TUTORIAL.laterButton).tap();
 	await waitUntilGone(SEARCH_TUTORIAL.overlay);
 	return true;
@@ -243,9 +246,16 @@ export async function waitForAppReady(timeout: number = LAUNCH_TIMEOUT): Promise
 		{ timeout, interval: 250, description: "タブバーの表示、または初回チュートリアルの表示" },
 	);
 
-	// 既にタブバーが見えている（＝チュートリアル未表示）ケースでは probe だけで済むよう短く見る
-	await dismissSearchTutorialIfPresent(1_000);
+	// #1027 【バグ】チュートリアルは AsyncStorage の読み込み完了後に開くため、
+	// **タブバーが見えた直後に遅れて被さってくる**ことがある（run 30402626759 で実測。
+	// 1 回だけ probe する実装では取りこぼし、後続のタップがシートに阻まれて落ちていた）。
+	// 「閉じる → タブバーが本当に操作可能か確かめる」を数回繰り返して、この競合を吸収する
+	for (let attempt = 0; attempt < 3; attempt += 1) {
+		await dismissSearchTutorialIfPresent(3_000);
+		if (await visibleNow(by.id(APP_READY_TEST_ID), 2_000)) return;
+	}
 
+	// ここまでで解決していなければチュートリアル以外の原因。通常の待機で明確に失敗させる
 	await waitUntilVisible(by.id(APP_READY_TEST_ID), DEFAULT_TIMEOUT);
 }
 
