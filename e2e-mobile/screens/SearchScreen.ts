@@ -6,6 +6,7 @@ import {
 	dismissSearchTutorialIfPresent,
 	element,
 	existsNow,
+	tapWhenPresent,
 	tapWhenVisible,
 	visibleNow,
 	waitFor,
@@ -219,9 +220,17 @@ export class SearchScreen {
 		await tapWhenVisible(this.distanceEstimatesToggle);
 	}
 
-	/** 検索を実行する */
+	/**
+	 * 検索を実行する。
+	 *
+	 * #1027 【バグ】ここだけは可視ではなく **存在**で待つ。この FAB は画面下端に絶対配置されており、
+	 * iOS の `toBeVisible`（面積の 75% 以上が可視かつ非遮蔽）を満たせず 25 秒タイムアウトする
+	 *（run 30493326741 で実測。ソフトウェアキーボードを無効化しても再現した）。
+	 * Artifact のスクリーンショットではボタンははっきり描画されており、タップ自体は届く。
+	 * 同じ「画面下端に来る要素」である距離セクションも、spec 側で既に `toExist` へ倒してある。
+	 */
 	async submit(): Promise<void> {
-		await tapWhenVisible(this.submitButton);
+		await tapWhenPresent(this.submitButton);
 	}
 
 	/**

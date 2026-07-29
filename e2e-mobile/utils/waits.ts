@@ -88,6 +88,11 @@ export async function tapWhenVisible(
 	// （run 30460621899 の iOS で `profile-settings-button` が実際にこれ。同じ spec が
 	//   リトライでは通っており、恒常的に叩けないわけではない）。
 	// アニメーションが落ち着けば叩けるので、この種のエラーに限って数回だけ待って叩き直す
+	await tapWithHitTestRetry(matcher, index);
+}
+
+/** hit-test の一時的な失敗に限って数回だけ待って叩き直す（tapWhenVisible / tapWhenPresent 共通） */
+async function tapWithHitTestRetry(matcher: Detox.NativeMatcher, index?: number): Promise<void> {
 	for (let attempt = 0; ; attempt += 1) {
 		try {
 			await target(matcher, index).tap();
@@ -97,6 +102,34 @@ export async function tapWhenVisible(
 			await new Promise((resolve) => setTimeout(resolve, 500));
 		}
 	}
+}
+
+/**
+ * 要素が **ツリーに在る**のを待ってからタップする（iOS の可視判定を通せない要素向け）。
+ *
+ * #1027 【バグ】iOS の `toBeVisible` は「面積の 75% 以上が見えていて他の View に覆われていないこと」を
+ * 要求する。検索画面の下端に固定された FAB（`search-submit-button`）はこの判定を通らず、
+ * 25 秒待ってもタイムアウトする（run 30493326741 で実測。ソフトウェアキーボードを無効化しても再現した）。
+ * 同じ画面の下端に来る要素（詳細条件の距離セクション）も以前から同じ症状で、
+ * spec 側では既に `toExist` へ倒してある。
+ *
+ * 画面には確かに描画されており（Artifact のスクリーンショットで確認済み）タップ自体は届くため、
+ * **存在で待って、タップは hit-test の一時的失敗に対する再試行付きで行う**。
+ *
+ * ⚠️ 既定は `tapWhenVisible` を使うこと。可視判定を捨てるのは
+ * 「見えているのに Detox の判定だけが通らない」と実測できた要素に限る。
+ *
+ * @param matcher 対象のマッチャ
+ * @param timeout 存在待ちのタイムアウト (ms)
+ * @param index 複数一致する場合に選ぶ添字
+ */
+export async function tapWhenPresent(
+	matcher: Detox.NativeMatcher,
+	timeout: number = DEFAULT_TIMEOUT,
+	index?: number,
+): Promise<void> {
+	await waitUntilExists(matcher, timeout, index);
+	await tapWithHitTestRetry(matcher, index);
 }
 
 /** 「見えているのに叩けない」の再試行回数（1 回 500ms 待つ） */
