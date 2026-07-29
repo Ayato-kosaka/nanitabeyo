@@ -112,13 +112,15 @@ type LaunchOptions = {
  * ## 仕組み（#1030 確定設計 A' 案）
  * 1. globalSetup が Node 側 supabase client で 1 回だけセッションを確立し、`process.env` へ格納する
  * 2. このヘルパがそれを `launchArgs`（`e2eAccessToken` / `e2eRefreshToken` / `e2eSessionOwner`）としてアプリへ渡す
- * 3. アプリ側フック（app-expo。**別 PR で実装中**）が `supabase.auth.setSession()` で注入する
+ * 3. アプリ側フック（app-expo/lib/e2e/injectTestSession.ts）が `supabase.auth.setSession()` で注入する
  *
  * これにより「アプリのデータを何度消しても匿名サインインを消費しない」状態を作り、
  * 「テスト間の状態汚染を避けたい」と「レート制限を超えたくない」を両立させる（#1030 3-1）。
  *
- * ⚠️ **アプリ側フックが未実装の間**は、launchArgs は単に無視される（アプリは通常どおり自前で
- * 匿名サインインする）。渡す側の契約はこの時点で確定させ、アプリ側 PR の合流で自動的に有効になる。
+ * ⚠️ フックの有効/無効は **バンドル時** に metro の resolver が決める。
+ * `EXPO_PUBLIC_E2E_AUTH_HOOK=1` を付けずにビルドすると noop 実装が焼き込まれ、
+ * launchArgs は **黙って無視される**（= 認証済みテストが匿名のまま緑になる）。
+ * CI では e2e-mobile-test.yml の Detox build ステップで設定している。
  *
  * @param opts.as 期待するセッションの持ち主。`authenticated` はテストユーザー、`anon` は匿名
  * @失敗時 期待するセッションが環境変数に無い場合、日本語メッセージで例外を投げる（fail-loud。#1030 B-1）
