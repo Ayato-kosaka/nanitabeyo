@@ -136,6 +136,11 @@ jobs:
 
       # release APK + androidTest APK をビルドする（エミュレータ用に x86_64 のみ。.detoxrc.js 参照）
       - name: 🏗️ Detox build (Android release)
+        # #1030 【設計】A' 案のセッション注入フックは **バンドル時** に metro.config.js の resolver で
+        # 有効/無効が決まる。ここで立てないと noop 実装が焼き込まれ、launchArgs が黙って無視される
+        # （= 認証済みテストが匿名のまま走り、テストは緑なのに検証内容だけが嘘になる）
+        env:
+          EXPO_PUBLIC_E2E_AUTH_HOOK: "1"
         run: pnpm --filter e2e-mobile build:android
 
       # AVD スナップショットをキャッシュし、2 回目以降のエミュレータ起動を高速化する
@@ -307,6 +312,9 @@ jobs:
 
       # シミュレータ用 Release ビルド（署名不要）。ビルド失敗とテスト失敗を切り分けるため独立ステップにする
       - name: 🏗️ Detox build (iOS release)
+        # #1030 【設計】Android と同じ理由でバンドル時にセッション注入フックを有効化する
+        env:
+          EXPO_PUBLIC_E2E_AUTH_HOOK: "1"
         run: pnpm --filter e2e-mobile build:ios
 
       # prepare ジョブが解決した Tier のスクリプトを実行する
