@@ -305,6 +305,48 @@ describe('DishesService.bulkImportFromGoogle', () => {
       expect(payload.photoUri).toEqual(['https://google/photo.jpg']);
     });
 
+    // #1053 Codex レビュー指摘(P1) の回帰テスト。
+    // #829 より前に作られた行の review.id は randomUUID 由来で決定論 ID と一致しない。
+    // id だけで照合すると同じレビューが二重登録され reviewCount が水増しされる。
+    it('旧 randomUUID 由来の既存レビューを内容で重複排除する', async () => {
+      storage.fileExists.mockResolvedValue(true);
+      dishMediaService.fetchDishMediaEntryItems.mockResolvedValue({
+        items: [
+          buildExistingEntry('existing-media', {
+            dish_reviews: [
+              {
+                // 決定論 ID ではない旧 ID。ただし本文・投稿者・rating は
+                // Google が今回返すレビューと同一
+                id: 'legacy-random-uuid',
+                dish_id: 'dish-uuid',
+                user_id: null,
+                comment: 'おいしい',
+                comment_tsv: null,
+                original_language_code: 'ja',
+                rating: 5,
+                price_cents: null,
+                currency_code: null,
+                created_dish_media_id: 'existing-media',
+                imported_user_name: '太郎',
+                imported_user_avatar: null,
+                created_at: '2026-01-01T00:00:00.000Z',
+                username: '太郎',
+                isLiked: false,
+                likeCount: 0,
+              },
+            ],
+          }),
+        ],
+      });
+
+      await service.bulkImportFromGoogle(dto, VIEWER_ID);
+
+      const payload = cloudTasks.enqueueCreateDishMediaEntry.mock.calls[0][0];
+      // 旧 ID の1件だけが残り、決定論 ID の重複は追加されない
+      expect(payload.dish_reviews).toHaveLength(1);
+      expect(payload.dish_reviews[0].id).toBe('legacy-random-uuid');
+    });
+
     it('今回 Google が返した新しいレビューが捨てられない', async () => {
       storage.fileExists.mockResolvedValue(true);
 

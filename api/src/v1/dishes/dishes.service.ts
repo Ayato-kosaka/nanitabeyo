@@ -298,30 +298,11 @@ export class DishesService {
             ? contextualContent.photos
             : place.photos || [];
 
-        // #636 【設計】reviews: contextualContents.reviews を優先、なければ place.reviews にフォールバック
-        const reviews =
-          contextualContent?.reviews && contextualContent.reviews.length > 0
-            ? contextualContent.reviews
-            : place.reviews || [];
-
-        // #636 【設計】フォールバック発生時のモニタリングログ（どちらを使ったか記録）
-        if (
-          (!contextualContent?.reviews ||
-            contextualContent.reviews.length === 0) &&
-          place.reviews &&
-          place.reviews.length > 0
-        ) {
-          this.logger.log(
-            'ContextualReviewsMissingFallbackToPlaceReviews',
-            'bulkImportFromGoogle',
-            {
-              placeId: place.id || 'unknown',
-              dishCategoryName: dto.categoryName,
-              contextualReviewsCount: contextualContent?.reviews?.length || 0,
-              placeReviewsCount: place.reviews.length,
-            },
-          );
-        }
+        const reviews = this.selectGooglePlaceReviews({
+          contextualReviews: contextualContent?.reviews || [],
+          placeReviews: place.reviews || [],
+          preferredLanguageCode: dto.languageCode,
+        });
 
         if (
           (!contextualContent?.photos ||
@@ -554,6 +535,10 @@ export class DishesService {
           ),
           dish_id: dish.id,
           user_id: null, // Google からのインポートなので null
+          // #817 【設計】Google Places の originalText は投稿者が書いた元言語の本文。
+          // dish_reviews.comment には翻訳済み text ではなく元本文を保存し、
+          // original_language_code にはその元本文の言語を保存する。
+          // UGC 投稿保存に揃える方針。
           comment: review.originalText?.text || '',
           comment_tsv: null,
           original_language_code: review.originalText?.languageCode || '',
@@ -685,6 +670,59 @@ export class DishesService {
     return results;
   }
 
+  private selectGooglePlaceReviews(params: {
+    contextualReviews: protos.google.maps.places.v1.IReview[];
+    placeReviews: protos.google.maps.places.v1.IReview[];
+    preferredLanguageCode?: string;
+  }): protos.google.maps.places.v1.IReview[] {
+    const normalizeLanguageCode = (value?: string | null) =>
+      value?.toLowerCase() ?? '';
+    const preferredCode = normalizeLanguageCode(params.preferredLanguageCode);
+    const contextualReviews = params.contextualReviews ?? [];
+    const placeReviews = params.placeReviews ?? [];
+
+    if (!preferredCode) {
+      // #636 【設計】preferred language 指定がない場合は従来どおり contextual → place の優先順にする
+      return contextualReviews.length > 0 ? contextualReviews : placeReviews;
+    }
+
+    const reviewKey = (review: protos.google.maps.places.v1.IReview) =>
+      [
+        review.authorAttribution?.uri ?? '',
+        typeof review.publishTime === 'string'
+          ? review.publishTime
+          : review.publishTime
+            ? JSON.stringify(review.publishTime)
+            : '',
+        review.originalText?.languageCode ?? '',
+        review.originalText?.text ?? '',
+        review.rating ?? '',
+      ].join('|');
+
+    const merged = new Map<string, protos.google.maps.places.v1.IReview>();
+    for (const review of contextualReviews) {
+      merged.set(reviewKey(review), review);
+    }
+    for (const review of placeReviews) {
+      merged.set(reviewKey(review), review);
+    }
+
+    const ordered = Array.from(merged.values());
+    const preferred = ordered.filter(
+      (review) =>
+        normalizeLanguageCode(review.originalText?.languageCode) ===
+        preferredCode,
+    );
+    const fallback = ordered.filter(
+      (review) =>
+        normalizeLanguageCode(review.originalText?.languageCode) !==
+        preferredCode,
+    );
+
+    // #636 【設計】preferred language があれば先頭に寄せ、なければ従来 fallback に任せる
+    return [...preferred, ...fallback];
+  }
+
   private buildGoogleImportRetryEntry(
     entry: DishMediaEntry,
     photoUri: string,
@@ -778,19 +816,49 @@ export class DishesService {
   }
 
   /**
-   * #1053 既存 review と Google の新規 review を id で union する。
+   * #1053 既存 review と Google の新規 review を union する。
    *
    * ID は (placeId, categoryId, 本文, 投稿者, rating) から決定論的に導出されるため、
-   * 同じレビューは必ず同じ id になる。既存を優先して残し（created_at 等の
-   * DB 側の値を壊さない）、未知の id だけを追加する。
+   * #829 以降に作られた行は id だけで突き合わせできる。
+   *
+   * ただし **#829 より前に作られた行の id は `randomUUID()` 由来**で、決定論 ID とは
+   * 一致しない。本メソッドが復旧対象にしているのはまさにその旧 failed/processing 行なので、
+   * id だけで照合すると同じレビューが別 id で payload に入り、handler の
+   * `createMany({ skipDuplicates })` も主キーが違うため弾けず、**reviewCount と
+   * averageRating が水増しされる**。
+   *
+   * そこで内容キー（本文 + 投稿者名 + rating）でも照合する。
+   * 決定論 ID は `authorAttribution.uri` を使うが、これは DB に保存されていないため
+   * 既存行から再計算できない。両側に存在する列だけでキーを作る必要がある。
+   *
+   * 内容キーの照合は Google import 由来（`user_id === null`）に限る。
+   * ユーザー投稿レビューを本文一致で潰すと、別人の同文投稿が消える。
    */
   private mergeDishReviewsById(
     existing: SupabaseDishReviews[],
     incoming: SupabaseDishReviews[],
   ): SupabaseDishReviews[] {
+    const contentKey = (review: SupabaseDishReviews) =>
+      [
+        review.comment ?? '',
+        review.imported_user_name ?? '',
+        review.rating ?? '',
+      ].join('\u0000');
+
     const byId = new Map(existing.map((review) => [review.id, review]));
+    const seenContent = new Set(
+      existing
+        .filter((review) => review.user_id === null)
+        .map((review) => contentKey(review)),
+    );
+
     for (const review of incoming) {
-      if (!byId.has(review.id)) byId.set(review.id, review);
+      if (byId.has(review.id)) continue;
+      if (review.user_id === null && seenContent.has(contentKey(review))) {
+        continue;
+      }
+      byId.set(review.id, review);
+      if (review.user_id === null) seenContent.add(contentKey(review));
     }
     return [...byId.values()];
   }

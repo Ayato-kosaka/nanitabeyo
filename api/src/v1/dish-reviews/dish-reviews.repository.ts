@@ -68,6 +68,9 @@ export class DishReviewsRepository {
       data: {
         dish_id: dto.dishId,
         user_id: userId,
+        // 【設計】comment はユーザーが入力した本文を翻訳せず保存する。
+        // original_language_code は本文そのものの言語を表すが、投稿時点では
+        // 端末/アプリの入力言語に基づくため、ユーザーが別言語で書く可能性は残る。
         comment: dto.comment,
         original_language_code: dto.languageCode,
         rating: dto.rating,
