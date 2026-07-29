@@ -44,10 +44,9 @@ export class CreateDishMediaEntryService {
       photoUriCount: payload.photoUri.length,
     });
 
-    // 冪等性チェック: 既に処理済みかどうか確認
-    const isAlreadyProcessed = await this.checkIdempotency(
-      payload.idempotencyKey,
-    );
+    // #829 【バグ】place/category で止めると、bulk-import が返した別 ID の row が作られず orphan response になる。
+    // #829 【設計】handler retry は同じ payload ID が completed 済みのときだけ処理済みとみなす。
+    const isAlreadyProcessed = await this.checkIdempotency(payload);
     if (isAlreadyProcessed) {
       this.logger.log('JobAlreadyProcessed', 'processAsyncJob', {
         jobId: payload.jobId,
@@ -269,12 +268,15 @@ export class CreateDishMediaEntryService {
   }
 
   /**
-   * 冪等性チェック: 既に処理済みかどうか確認
+   * #829 【設計】Cloud Tasks retry の冪等性境界。
+   *
+   * processing の同一 ID は、DB insert 後に画像保存や resize enqueue で落ちた可能性があるため再実行する。
+   * completed の同一 ID だけを return 対象にして、未完了 row の復旧余地を残す。
    */
-  private async checkIdempotency(idempotencyKey: string): Promise<boolean> {
-    // TODO: Redis や専用テーブルで冪等性キーを管理
-    // 現在は簡略化実装
-    return false;
+  private async checkIdempotency(
+    payload: CreateDishMediaEntryJobPayload,
+  ): Promise<boolean> {
+    return this.dishesRepository.isDishMediaCompleted(payload.dish_media.id);
   }
 
   /**

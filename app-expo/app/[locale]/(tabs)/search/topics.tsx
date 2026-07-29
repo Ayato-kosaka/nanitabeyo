@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { MapPin, SunMoon, Users, ChefHat, RefreshCw, DollarSign, Timer, CircleHelp } from "lucide-react-native";
 import { router, useLocalSearchParams } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 import Carousel from "react-native-reanimated-carousel";
 import { Topic, SearchParams } from "@/types/search";
 import { useTopicSearch } from "@/features/topics/hooks/useTopicSearch";
@@ -93,7 +94,10 @@ export default function TopicsScreen() {
 	const [currentIndex, setCurrentIndex] = useState(0);
 	const [loadedSearchSessionKey, setLoadedSearchSessionKey] = useState<string | null>(null);
 	const [carouselAvailableHeight, setCarouselAvailableHeight] = useState(0);
+	const [isSelectingTopic, setIsSelectingTopic] = useState(false);
 	const carouselRef = useRef<any>(null);
+	// React stateの反映前に連打された押下も防ぐため、同期的に参照できるガードを併用する。
+	const isSelectingTopicRef = useRef(false);
 	// #907 【設計】サムネイルによるプログラム移動だけを識別し、スワイプ分析へ混在させない。
 	const thumbnailNavigationTargetRef = useRef<number | null>(null);
 	const createdGroupVoteRef = useRef<CreateDishCategoryGroupVoteResponse | null>(null);
@@ -121,6 +125,14 @@ export default function TopicsScreen() {
 		[],
 	);
 	const { selectionChanged } = useHaptics();
+
+	// 結果画面から戻った時は再選択できるようにし、遷移中だけ連打を抑止する。
+	useFocusEffect(
+		useCallback(() => {
+			isSelectingTopicRef.current = false;
+			setIsSelectingTopic(false);
+		}, []),
+	);
 
 	const { topics, isLoading, error, searchTopics, refillTopics, hideTopic, unhideTopic, createDishItemsPromise } =
 		useTopicSearch();
@@ -173,6 +185,9 @@ export default function TopicsScreen() {
 				showSnackbar(i18n.t("Topics.errors.invalidSearchParams"));
 				return;
 			}
+			if (isSelectingTopicRef.current) return;
+			isSelectingTopicRef.current = true;
+			setIsSelectingTopic(true);
 
 			// #633 【設計】SavedTopicsTab と同じパターンで entriesKey 駆動のオンデマンド取得
 			const { mediaIdsByKey, isLoadingByKey, upsertDishMediaEntries, updateMediaIdsByKeyAsync } =
@@ -290,8 +305,6 @@ export default function TopicsScreen() {
 	const { getImageState, retryImage, markImageError } = useTopicImageResources({
 		topics: visibleTopics,
 		sessionKey: searchParams ?? "",
-		// #1010 【設計】プリロード対象をアクティブカード基準に絞るため、現在の表示位置を渡す。
-		activeIndex: currentIndex,
 	});
 
 	/**
@@ -577,6 +590,7 @@ export default function TopicsScreen() {
 					cardWidth={cardWidth}
 					cardHeight={cardHeight}
 					imageState={imageState}
+					isSelecting={isSelectingTopic}
 					onImageRetry={retryImage}
 					onImageLoadError={markImageError}
 					// 非表示カードによるref上書きを防ぐため、アクティブカードにだけ登録する。
@@ -594,6 +608,7 @@ export default function TopicsScreen() {
 			getDeepDiveOptions,
 			cardWidth,
 			cardHeight,
+			isSelectingTopic,
 			retryImage,
 			markImageError,
 			tutorialTargetRefs,

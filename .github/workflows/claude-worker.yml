@@ -226,34 +226,23 @@ jobs:
           show_full_output: false
           display_report: false
 
+      - name: 信頼済み要約スクリプトを取得
+        if: always()
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: .claude-worker-trusted
+          sparse-checkout: .github/scripts/summarize-claude-output.sh
+          sparse-checkout-cone-mode: false
+          fetch-depth: 1
+          persist-credentials: false
+
       - name: 実行結果を要約
         if: always()
         shell: bash
-        run: |
-          set -euo pipefail
-          OUT=/home/runner/work/_temp/claude-execution-output.json
-          if [[ ! -f "$OUT" ]]; then
-            echo "::warning::実行結果ログ($OUT)が見つかりません。"
-            exit 0
-          fi
-          # ファイルはJSONL（改行区切りJSON）。-s で1つの配列にslurpしてから
-          # type=result の最後の要素（実行全体のサマリ）を取り出す。
-          SUBTYPE=$(jq -rs '[.[] | select(.type=="result")] | last | .subtype // "unknown"' "$OUT" 2>/dev/null || echo unknown)
-          IS_ERROR=$(jq -rs '[.[] | select(.type=="result")] | last | .is_error // false' "$OUT" 2>/dev/null || echo unknown)
-          NUM_TURNS=$(jq -rs '[.[] | select(.type=="result")] | last | .num_turns // "?"' "$OUT" 2>/dev/null || echo "?")
-          COST=$(jq -rs '[.[] | select(.type=="result")] | last | .total_cost_usd // "?"' "$OUT" 2>/dev/null || echo "?")
-          DENIALS=$(jq -rs '[.[] | select(.type=="result")] | last | .permission_denials_count // 0' "$OUT" 2>/dev/null || echo 0)
-          {
-            echo "### Claude Code 実行結果"
-            echo "- subtype: \`$SUBTYPE\` / is_error: \`$IS_ERROR\`"
-            echo "- turns: $NUM_TURNS / cost: \$$COST / permission denials: $DENIALS"
-          } >> "$GITHUB_STEP_SUMMARY"
-          if [[ "$DENIALS" != "0" && "$DENIALS" != "null" ]]; then
-            echo "::warning::permission_denials_count=$DENIALS。allowedToolsのBashパターンが実際のコマンドと一致していない可能性があります（複合コマンドはprefixパターンに丸ごと弾かれます）。"
-          fi
-          if [[ "$SUBTYPE" == "error_max_turns" ]]; then
-            echo "::warning::max_turns($NUM_TURNS)に到達して打ち切られました。タスクを分割するか max_turns を増やして再実行してください。"
-          fi
+        env:
+          CLAUDE_EXECUTION_OUTPUT: ${{ steps.claude.outputs.execution_file }}
+        run: bash .claude-worker-trusted/.github/scripts/summarize-claude-output.sh
 
       - name: テストエビデンスを保存
         if: always()
@@ -380,35 +369,27 @@ jobs:
             pull_requests: write
             issues: write
             actions: read
+          # 公開リポジトリのログへツール出力や機密情報を露出させない。
           show_full_output: false
           display_report: false
+
+      - name: 信頼済み要約スクリプトを取得
+        if: always()
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: .claude-worker-trusted
+          sparse-checkout: .github/scripts/summarize-claude-output.sh
+          sparse-checkout-cone-mode: false
+          fetch-depth: 1
+          persist-credentials: false
 
       - name: 実行結果を要約
         if: always()
         shell: bash
-        run: |
-          set -euo pipefail
-          OUT=/home/runner/work/_temp/claude-execution-output.json
-          if [[ ! -f "$OUT" ]]; then
-            echo "::warning::実行結果ログ($OUT)が見つかりません。"
-            exit 0
-          fi
-          SUBTYPE=$(jq -rs '[.[] | select(.type=="result")] | last | .subtype // "unknown"' "$OUT" 2>/dev/null || echo unknown)
-          IS_ERROR=$(jq -rs '[.[] | select(.type=="result")] | last | .is_error // false' "$OUT" 2>/dev/null || echo unknown)
-          NUM_TURNS=$(jq -rs '[.[] | select(.type=="result")] | last | .num_turns // "?"' "$OUT" 2>/dev/null || echo "?")
-          COST=$(jq -rs '[.[] | select(.type=="result")] | last | .total_cost_usd // "?"' "$OUT" 2>/dev/null || echo "?")
-          DENIALS=$(jq -rs '[.[] | select(.type=="result")] | last | .permission_denials_count // 0' "$OUT" 2>/dev/null || echo 0)
-          {
-            echo "### Claude Code 実行結果"
-            echo "- subtype: \`$SUBTYPE\` / is_error: \`$IS_ERROR\`"
-            echo "- turns: $NUM_TURNS / cost: \$$COST / permission denials: $DENIALS"
-          } >> "$GITHUB_STEP_SUMMARY"
-          if [[ "$DENIALS" != "0" && "$DENIALS" != "null" ]]; then
-            echo "::warning::permission_denials_count=$DENIALS。allowedToolsのBashパターンが実際のコマンドと一致していない可能性があります（複合コマンドはprefixパターンに丸ごと弾かれます）。"
-          fi
-          if [[ "$SUBTYPE" == "error_max_turns" ]]; then
-            echo "::warning::max_turns($NUM_TURNS)に到達して打ち切られました。タスクを分割するか max_turns を増やして再実行してください。"
-          fi
+        env:
+          CLAUDE_EXECUTION_OUTPUT: ${{ steps.claude.outputs.execution_file }}
+        run: bash .claude-worker-trusted/.github/scripts/summarize-claude-output.sh
 
       - name: commit・pushされたことを検証
         # このstepは常に実行し、Claude Codeが権限拒否やturn切れで行き詰まり
