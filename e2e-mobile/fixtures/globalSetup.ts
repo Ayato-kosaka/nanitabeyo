@@ -102,7 +102,7 @@ async function establishSessions(): Promise<void> {
  */
 async function establishAnonymousSession(supabaseUrl: string, supabaseAnonKey: string): Promise<void> {
 	const supabase = createNodeClient(supabaseUrl, supabaseAnonKey);
-	const { data, error } = await supabase.auth.signInAnonymously();
+	const { data, error } = await withNetworkRetry("匿名サインイン", () => supabase.auth.signInAnonymously());
 
 	if (error || !data.session) {
 		// #1030 【設計】レビュー 3.2: 匿名サインインの 30 回/時/IP は Supabase 公式が「カスタマイズ不可」と
@@ -149,7 +149,9 @@ async function establishAuthenticatedSession(supabaseUrl: string, supabaseAnonKe
 	}
 
 	const supabase = createNodeClient(supabaseUrl, supabaseAnonKey);
-	const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+	const { data, error } = await withNetworkRetry("テストユーザーのログイン", () =>
+		supabase.auth.signInWithPassword({ email, password }),
+	);
 
 	if (error || !data.session) {
 		throw new Error(
@@ -169,6 +171,43 @@ async function establishAuthenticatedSession(supabaseUrl: string, supabaseAnonKe
 	});
 	process.env[AUTHENTICATED_AVAILABLE_ENV] = "1";
 	console.log("✅ テストユーザーのセッションを確立しました（tests/authenticated/ を実行します）");
+}
+
+/**
+ * Supabase 呼び出しを **ネットワーク起因の失敗に限って**再試行する。
+ *
+ * #1027 【バグ】run 30445542854 の iOS は、globalSetup の `signInAnonymously()` が
+ * `ConnectTimeoutError`（supabase.co:443 へ 10 秒で接続できず）になり、テストを 1 件も実行できずに終わった。
+ * ランナーから外部への一時的な到達不能は再試行で吸収できる種類の失敗で、
+ * ここで落とすと **ビルドに費やした 26 分がまるごと無駄になる**。
+ *
+ * ⚠️ ただし再試行してよいのは「応答が返ってこなかった」場合だけ。
+ * 4xx（429 のレート制限・401 の認証情報誤りなど）は待っても直らず、
+ * とくに 429 は窓が 1 時間・上限変更不可なので **再試行が run を長引かせるだけ**になる（#1030 3.2）。
+ * 判定は「HTTP ステータスが取れたか」で行い、取れた時点で即座に呼び出し元へ返す。
+ *
+ * @param label ログに出す処理名（トークン等は絶対に含めないこと）
+ * @param call 実行する Supabase 呼び出し
+ * @returns 最後の呼び出しの結果（成功・失敗いずれも呼び出し元が従来どおり判定する）
+ */
+async function withNetworkRetry<T extends { error: { status?: number } | null }>(
+	label: string,
+	call: () => Promise<T>,
+): Promise<T> {
+	const MAX_ATTEMPTS = 3;
+	let result = await call();
+
+	for (let attempt = 1; attempt < MAX_ATTEMPTS; attempt += 1) {
+		// 成功、または HTTP ステータスが返っている（= サーバまで届いている）なら再試行しない
+		if (!result.error || typeof result.error.status === "number") return result;
+
+		const waitMs = 2_000 * attempt;
+		console.warn(`⚠️ ${label} がネットワーク起因で失敗しました。${waitMs}ms 後に再試行します（${attempt}/${MAX_ATTEMPTS - 1}）`);
+		await new Promise((resolve) => setTimeout(resolve, waitMs));
+		result = await call();
+	}
+
+	return result;
 }
 
 /**

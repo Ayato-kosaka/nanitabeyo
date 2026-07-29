@@ -253,7 +253,11 @@ CI 側の要件(#1029 の受け入れ条件):
     アプリが落ちると "Detox can't seem to connect to the test app(s)!" が数千行積もって肝心の失敗理由を押し出すため、
     `scripts/run-detox-ci.sh` が全文を Artifact 側にも残している
   - `artifacts/logcat-crash.log` … 失敗時のみ `adb logcat -b crash`。crash バッファはスタックトレース専用で
-    Intent extras(= launchArgs)を含まない
+    Intent extras(= launchArgs)を含まない。
+    ⚠️ 収集の判定に `command -v adb` を使ってはいけない。**GitHub の macOS ランナーにも Android SDK が入っている**ため
+    iOS ジョブでも真になり、端末が 1 台も繋がっていない状態の `adb logcat` は接続待ちで永久にブロックする
+    (run 30445542854 の iOS は、テスト自体は 31 秒で失敗していたのにここで 2.5 時間ハングし、
+    ジョブのタイムアウトで Artifact のアップロードにも到達しなかった)
 - **トークンをディスクへ書かない**(`process.env` のみ)。ログにも出さない
 
 ### テストユーザーの準備(1 回だけ)
