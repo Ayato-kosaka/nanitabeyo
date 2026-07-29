@@ -307,9 +307,13 @@ export class SearchScreen {
 	 * @失敗時 スクロールし切っても見えない場合、Detox の例外を投げる
 	 */
 	private async scrollUntilVisible(target: Detox.NativeMatcher, pixels = 300): Promise<void> {
+		// #1027 【バグ】スクロールの開始点を明示する。既定の開始点はスクロール領域の**下端寄り**で、
+		// iOS ではそこがタブバー・検索 FAB・ホームインジケータに覆われているため
+		// "View is not scrollable at the given start point"（= その点は見えていない）で失敗する
+		// （run 30460621899 の iOS で実測）。中央（0.5, 0.5）から始めれば何にも覆われない
 		await waitFor(element(target))
 			.toBeVisible()
 			.whileElement(this.scrollView)
-			.scroll(pixels, "down");
+			.scroll(pixels, "down", 0.5, 0.5);
 	}
 }

@@ -30,10 +30,19 @@ export class LoginModal {
 	/** Apple ログインボタン（既存 testID） */
 	readonly appleButton = by.id("login-apple-button");
 
-	/** ログインモーダルが開いていることを検証する */
+	/**
+	 * ログインモーダルが開いていることを検証する。
+	 *
+	 * #1027 【バグ】観測点にコンテナ（`login-modal`）を使ってはいけない。
+	 * このモーダルはぼかし背景（BlurModal）の上に内容を載せる構成で、iOS の可視判定は
+	 * 「面積の 75% 以上が見えていて、かつ他の View に覆われていないこと」を要求するため、
+	 * **モーダルが完全に開いていてもコンテナは不可視と判定される**
+	 *（run 30460621899 の iOS では、スクリーンショット上は Google/Apple ボタンまで描画済みなのに
+	 *  `login-modal` の toBeVisible が 25 秒タイムアウトしていた）。
+	 * 検証したいのは「ログイン導線が使える状態か」なので、実体のあるボタンを直接観測する。
+	 */
 	async expectOpened(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
-		await waitUntilVisible(this.container, timeout);
-		await expect(element(this.googleButton)).toBeVisible();
+		await waitUntilVisible(this.googleButton, timeout);
 		await expect(element(this.appleButton)).toBeVisible();
 	}
 }

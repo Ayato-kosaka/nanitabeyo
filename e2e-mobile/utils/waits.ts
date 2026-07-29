@@ -80,7 +80,40 @@ export async function tapWhenVisible(
 	index?: number,
 ): Promise<void> {
 	await waitUntilVisible(matcher, timeout, index);
-	await target(matcher, index).tap();
+
+	// #1027 【バグ】iOS は「見えているのに叩けない」状態が一時的に起こる。
+	// Detox の tap は対象の中心を hit-test して同じ View が返ることを要求するが、
+	// collapsible なヘッダーやモーダルの遷移中は **透明な View が一瞬上に載る**ため、
+	// "View is not hittable at its visible point" で失敗する
+	// （run 30460621899 の iOS で `profile-settings-button` が実際にこれ。同じ spec が
+	//   リトライでは通っており、恒常的に叩けないわけではない）。
+	// アニメーションが落ち着けば叩けるので、この種のエラーに限って数回だけ待って叩き直す
+	for (let attempt = 0; ; attempt += 1) {
+		try {
+			await target(matcher, index).tap();
+			return;
+		} catch (error) {
+			if (attempt >= TAP_RETRY_LIMIT || !isTransientHitTestError(error)) throw error;
+			await new Promise((resolve) => setTimeout(resolve, 500));
+		}
+	}
+}
+
+/** 「見えているのに叩けない」の再試行回数（1 回 500ms 待つ） */
+const TAP_RETRY_LIMIT = 4;
+
+/**
+ * iOS の hit-test 由来で **一時的に**叩けないことを示すエラーかどうか。
+ * 「そもそも要素が無い」「別の画面にいる」といった本物の失敗は再試行しても無駄なので、
+ * ここに挙げた文言に限定する。
+ */
+function isTransientHitTestError(error: unknown): boolean {
+	const message = error instanceof Error ? error.message : String(error);
+	return (
+		message.includes("not hittable at its visible point") ||
+		message.includes("View is not visible around point") ||
+		message.includes("is not scrollable at the given start point")
+	);
 }
 
 /**
