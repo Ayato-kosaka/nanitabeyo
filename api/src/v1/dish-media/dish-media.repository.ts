@@ -28,11 +28,9 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { roundToOneDecimal, shuffle } from '../../core/utils/backend-utils';
 import { CLS_KEY_APP_VERSION } from 'src/core/cls/cls.constants';
 import { ClsService } from 'nestjs-cls';
-import {
-  languageMatchCandidates,
-  normalizePreferredLanguageCodes,
-} from '../../../../shared/utils/languageCode';
+import { normalizePreferredLanguageCodes } from '../../../../shared/utils/languageCode';
 import { prioritizeReviewsByLanguage } from './review-ordering';
+import { buildLanguageWhereClause } from './language-where';
 import { MediaProcessingStatus } from '@shared/v1/res';
 
 /** #817 優先言語のレビュー先読みクエリの戻り値 */
@@ -884,9 +882,11 @@ export class DishMediaRepository {
   /**
    * #817 【設計】優先言語のレビューを dish ごとに reviewLimit 件だけ先読みする。
    *
-   * `original_language_code` には `ja` と `ja-JP` が混在するため、
-   * 正規形の前方一致（`ja` または `ja-*`）で拾う。nested take が親ごとに効くので、
-   * 取得行数は reviewLimit × dish 数で頭打ちになる。
+   * `original_language_code` には `ja` と `ja-JP` が混在し、さらに正規形(`zh-hans`)と
+   * DB 実値(`zh-CN`)がずれることもある。そのため `languageMatchCandidates()` で
+   * DB 実値の候補集合へ展開し、各候補の「完全一致」と「`候補-` の前方一致」で拾う
+   * （組み立ては `buildLanguageWhereClause()`）。
+   * nested take が親ごとに効くので、取得行数は reviewLimit × dish 数で頭打ちになる。
    */
   private async findPreferredLanguageReviews(
     dishIds: string[],
@@ -906,22 +906,8 @@ export class DishMediaRepository {
           where: {
             // #817 【設計】正規形(zh-hans)をそのまま DB 値へ突き合わせると、
             // 実際に保存されている zh-CN に一致しない。必ず候補集合で引くこと。
-            OR: preferredLanguageCodes
-              .flatMap((code) => languageMatchCandidates(code))
-              .flatMap((candidate) => [
-                {
-                  original_language_code: {
-                    equals: candidate,
-                    mode: 'insensitive' as const,
-                  },
-                },
-                {
-                  original_language_code: {
-                    startsWith: `${candidate}-`,
-                    mode: 'insensitive' as const,
-                  },
-                },
-              ]),
+            // #1052 組み立ては language-where.ts の純粋関数へ寄せてテスト可能にした。
+            OR: buildLanguageWhereClause(preferredLanguageCodes),
           },
           orderBy: { created_at: 'asc' }, // #509 【設計】古い→新しい
           take: reviewLimit,

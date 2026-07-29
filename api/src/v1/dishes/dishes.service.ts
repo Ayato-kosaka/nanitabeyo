@@ -39,6 +39,7 @@ import { randomUUID } from 'node:crypto';
 // Google Maps types for photo handling
 import { protos } from '@googlemaps/places';
 import { selectGooglePlaceReviews } from './select-google-place-reviews';
+import { normalizeLanguageCode } from '../../../../shared/utils/languageCode';
 
 @Injectable()
 export class DishesService {
@@ -191,6 +192,27 @@ export class DishesService {
           contextualReviews: contextualContent?.reviews || [],
           placeReviews: place.reviews || [],
           preferredLanguageCode: dto.languageCode,
+        });
+
+        // #1052 【観測】#636 の ContextualReviewsMissingFallbackToPlaceReviews は、
+        // 両集合を候補にする実装へ変わったことで事象定義が意味を失い削除された。
+        // 代替として「どちらから何件採用したか」「優先言語が何件ヒットしたか」を残す。
+        // #817 の再発（現地語レビューが英語に押し出される）はこの指標で検知できる。
+        this.logger.log('GooglePlaceReviewsSelected', 'bulkImportFromGoogle', {
+          placeId: place.id || 'unknown',
+          categoryId: dto.categoryId,
+          preferredLanguageCode: dto.languageCode,
+          contextualReviewsCount: contextualContent?.reviews?.length || 0,
+          placeReviewsCount: place.reviews?.length || 0,
+          selectedCount: reviews.length,
+          preferredLanguageHitCount: reviews.filter(
+            (review) =>
+              normalizeLanguageCode(review.originalText?.languageCode) ===
+              normalizeLanguageCode(dto.languageCode),
+          ).length,
+          selectedLanguageCodes: reviews.map(
+            (review) => review.originalText?.languageCode || '',
+          ),
         });
 
         if (
