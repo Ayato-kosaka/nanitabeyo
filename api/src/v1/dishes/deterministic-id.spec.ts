@@ -47,6 +47,17 @@ describe('Google import の決定論的 ID', () => {
     });
   });
 
+  describe('uuidV5 の名前空間検証', () => {
+    it.each([
+      'not-a-uuid',
+      '',
+      '8f2b1c94',
+      'zzzzzzzz-4d7e-5a13-9c60-2e4f8a1b3d57',
+    ])('不正な名前空間 %p は例外になる（黙って短いハッシュにしない）', (ns) => {
+      expect(() => uuidV5('name', ns)).toThrow(/Invalid UUID namespace/);
+    });
+  });
+
   describe('buildGoogleImportDishMediaId', () => {
     it('同じ place + category なら、別リクエストでも同じ ID になる', () => {
       // これが等しくないと、レースした2本の bulk-import が別 row を作る
@@ -82,8 +93,18 @@ describe('Google import の決定論的 ID', () => {
   });
 
   describe('buildGoogleImportDishReviewId', () => {
-    const build = (comment: string, author = 'https://example.com/u1') =>
-      buildGoogleImportDishReviewId(PLACE_ID, CATEGORY_ID, comment, author);
+    const build = (
+      comment: string,
+      author = 'https://example.com/u1',
+      rating = 5,
+    ) =>
+      buildGoogleImportDishReviewId(
+        PLACE_ID,
+        CATEGORY_ID,
+        comment,
+        author,
+        rating,
+      );
 
     it('同じレビューは、別リクエストでも同じ ID になる', () => {
       expect(build('美味しかった')).toBe(build('美味しかった'));
@@ -111,8 +132,13 @@ describe('Google import の決定論的 ID', () => {
 
     it('dish_media の名前空間と衝突しない', () => {
       expect(
-        buildGoogleImportDishReviewId(PLACE_ID, CATEGORY_ID, '', ''),
+        buildGoogleImportDishReviewId(PLACE_ID, CATEGORY_ID, '', '', 0),
       ).not.toBe(buildGoogleImportDishMediaId(PLACE_ID, CATEGORY_ID));
+    });
+
+    it('本文も投稿者も空な「評価のみ」のレビューを rating で区別する', () => {
+      // rating がキーに無いと、この 2 件が同一 ID に潰れて件数がズレる
+      expect(build('', '', 5)).not.toBe(build('', '', 1));
     });
 
     it('本文が空でも UUID として妥当', () => {
@@ -123,12 +149,11 @@ describe('Google import の決定論的 ID', () => {
   describe('レース時の重複防止（#829 の本質）', () => {
     it('DB を読めていない2本の bulk-import が同じ ID 集合を生成する', () => {
       const googleReviews = [
-        { text: 'レビュー1', author: 'https://example.com/a' },
-        { text: 'レビュー2', author: 'https://example.com/b' },
+        { text: 'レビュー1', author: 'https://example.com/a', rating: 5 },
+        { text: 'レビュー2', author: 'https://example.com/b', rating: 4 },
       ];
 
-      // 1本目: preflight lookup は「既存なし」
-      const first = {
+      const buildIds = () => ({
         mediaId: buildGoogleImportDishMediaId(PLACE_ID, CATEGORY_ID),
         reviewIds: googleReviews.map((r) =>
           buildGoogleImportDishReviewId(
@@ -136,22 +161,15 @@ describe('Google import の決定論的 ID', () => {
             CATEGORY_ID,
             r.text,
             r.author,
+            r.rating,
           ),
         ),
-      };
+      });
 
+      // 1本目: preflight lookup は「既存なし」
+      const first = buildIds();
       // 2本目: 1本目の handler がまだ commit していないので、やはり「既存なし」
-      const second = {
-        mediaId: buildGoogleImportDishMediaId(PLACE_ID, CATEGORY_ID),
-        reviewIds: googleReviews.map((r) =>
-          buildGoogleImportDishReviewId(
-            PLACE_ID,
-            CATEGORY_ID,
-            r.text,
-            r.author,
-          ),
-        ),
-      };
+      const second = buildIds();
 
       // ID が一致するので upsert / skipDuplicates がクロスリクエストでも効く
       expect(second.mediaId).toBe(first.mediaId);

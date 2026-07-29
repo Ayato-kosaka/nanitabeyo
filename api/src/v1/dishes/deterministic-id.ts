@@ -19,8 +19,15 @@ import { createHash } from 'node:crypto';
  */
 
 /** UUID 文字列を 16 バイトへ変換する */
-const uuidToBytes = (uuid: string): Buffer =>
-  Buffer.from(uuid.replace(/-/g, ''), 'hex');
+const uuidToBytes = (uuid: string): Buffer => {
+  const bytes = Buffer.from(uuid.replace(/-/g, ''), 'hex');
+  // Buffer.from(..., 'hex') は不正な文字で静かに打ち切るため、長さを必ず検証する。
+  // 検証しないと 0〜15 バイトの名前空間で黙ってハッシュしてしまう。
+  if (bytes.length !== 16) {
+    throw new Error(`Invalid UUID namespace: ${uuid}`);
+  }
+  return bytes;
+};
 
 /**
  * RFC 4122 UUID v5 を生成する。
@@ -72,15 +79,20 @@ export function buildGoogleImportDishMediaId(
  *
  * index ではなく本文でキーを作る。Google が返すレビューの並び順は保証されないため、
  * index を使うと並びが変わっただけで別 ID になり重複してしまう。
+ *
+ * 本文・投稿者が空でも区別できるよう rating まで含める。
  */
 export function buildGoogleImportDishReviewId(
   placeId: string,
   categoryId: string,
   reviewComment: string,
   authorUri: string,
+  rating: number,
 ): string {
+  // rating も含める。本文も authorAttribution.uri も無い「評価のみ」のレビューが
+  // 複数返ると、rating が無いキーでは同一 ID に潰れて件数がズレる。
   return uuidV5(
-    joinKeyParts(placeId, categoryId, authorUri, reviewComment),
+    joinKeyParts(placeId, categoryId, authorUri, reviewComment, String(rating)),
     NS_DISH_REVIEW,
   );
 }

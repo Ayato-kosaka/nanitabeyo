@@ -39,7 +39,6 @@ import {
   buildFullPath,
   getExt,
 } from 'src/core/storage/storage.utils';
-import { randomUUID } from 'node:crypto';
 import {
   buildGoogleImportDishMediaId,
   buildGoogleImportDishReviewId,
@@ -472,6 +471,7 @@ export class DishesService {
                 dto.categoryId,
                 review.originalText?.text || '',
                 review.authorAttribution?.uri || '',
+                review.rating || 0,
               ),
               dish_id: dish.id,
               user_id: null, // Google からのインポートなので null
