@@ -39,13 +39,13 @@ import {
   buildFullPath,
   getExt,
 } from 'src/core/storage/storage.utils';
-import { randomUUID } from 'node:crypto';
+import {
+  buildGoogleImportDishMediaId,
+  buildGoogleImportDishReviewId,
+} from './deterministic-id';
 
 // Google Maps types for photo handling
 import { protos } from '@googlemaps/places';
-
-// #829 bulk-import は viewer を受け取らないが、既存 entry 組み立てでは UUID 条件が必要になる。
-const DUMMY_VIEWER_ID = '593e6eff-34b3-4293-90e4-b0e61d66f761';
 
 @Injectable()
 export class DishesService {
@@ -133,6 +133,7 @@ export class DishesService {
   /* ------------------------------------------------------------------ */
   async bulkImportFromGoogle(
     dto: BulkImportDishesDto,
+    viewerId: string,
   ): Promise<BulkImportDishesResponse> {
     this.logger.debug('BulkImportFromGoogle', 'bulkImportFromGoogle', dto);
 
@@ -202,7 +203,7 @@ export class DishesService {
     // #829 【互換性】bulk-import は viewer を受け取らないため、既存 entry 組み立てだけ固定 viewer で既存 assembler に寄せる。
     const existingEntries =
       await this.dishMediaService.fetchDishMediaEntryItems(reusableMediaIds, {
-        userId: DUMMY_VIEWER_ID,
+        userId: viewerId,
       });
     const existingEntryByMediaId = new Map(
       existingEntries.items.map((entry) => [
@@ -228,7 +229,28 @@ export class DishesService {
     }
 
     // 各レストランに対してデータ登録処理（並列処理）
-    const processPromises = googlePlaces.places.map(async (place, index) => {
+    // #829 【バグ】Text Search が同じ place を2件返すと、ID が決定論的になった今は
+    // 同一 dish_media.id が2件レスポンスに載り、Cloud Task も二重に積まれる。
+    // contextualContents は元の places と index で対応するため、
+    // 重複除去後も必ず「元の index」を保持すること。
+    const seenPlaceIds = new Set<string>();
+    const uniquePlaces = googlePlaces.places
+      .map((place, index) => ({ place, index }))
+      .filter(({ place, index }) => {
+        if (!place.id) return true;
+        if (seenPlaceIds.has(place.id)) {
+          this.logger.warn(
+            'DuplicatePlaceInTextSearch',
+            'bulkImportFromGoogle',
+            { placeId: place.id, index },
+          );
+          return false;
+        }
+        seenPlaceIds.add(place.id);
+        return true;
+      });
+
+    const processPromises = uniquePlaces.map(async ({ place, index }) => {
       try {
         const contextualContent = canUseContextual
           ? contextualContents[index]
@@ -394,7 +416,13 @@ export class DishesService {
         };
 
         const dishMedia: SupabaseDishMedia = {
-          id: existingGoogleImportEntry?.dish_media.id ?? randomUUID(),
+          // #829 【バグ】randomUUID だと、1本目の handler が commit する前に2本目の
+          // bulk-import が走った場合に別 ID が採番され、dish_reviews が二重登録される。
+          // (placeId, categoryId) から決定論的に導出し、upsert / skipDuplicates を
+          // リクエスト間でも効かせる。
+          id:
+            existingGoogleImportEntry?.dish_media.id ??
+            buildGoogleImportDishMediaId(place.id!, dto.categoryId),
           dish_id: dish.id,
           user_id: null, // Google からのインポートなので null
           media_path: mediaPath,
@@ -412,11 +440,39 @@ export class DishesService {
           lock_no: existingGoogleImportEntry?.dish_media.lock_no ?? 0,
         };
 
+        if (existingGoogleImportEntry) {
+          // #829 【設計】この経路は既存 ID・既存 media_path・既存 review を payload へ
+          // 注入するため副作用が大きい。件数と status を必ず残し、failed ループや
+          // 課金残存を後からログで数えられるようにする。
+          this.logger.log(
+            'ExistingGoogleImportDishMediaReused',
+            'bulkImportFromGoogle',
+            {
+              placeId: place.id!,
+              categoryId: dto.categoryId,
+              dishMediaId: existingGoogleImportEntry.dish_media.id,
+              mediaProcessingStatus:
+                existingGoogleImportEntry.dish_media.media_processing_status,
+              thumbnailProcessingStatus:
+                existingGoogleImportEntry.dish_media
+                  .thumbnail_processing_status,
+              reusedReviewCount: existingGoogleImportEntry.dish_reviews.length,
+            },
+          );
+        }
+
         // #829 【設計】未完了 Google import の再処理では既存 review ID を渡し、handler 側の skipDuplicates と合わせて retry を no-op 化する。
         const dishReviews: SupabaseDishReviews[] = existingGoogleImportEntry
           ? this.toSupabaseDishReviews(existingGoogleImportEntry.dish_reviews)
           : reviews.map((review) => ({
-              id: randomUUID(),
+              // #829 【バグ】review ID も決定論的に導出し、リクエストを跨いだ重複を防ぐ
+              id: buildGoogleImportDishReviewId(
+                place.id!,
+                dto.categoryId,
+                review.originalText?.text || '',
+                review.authorAttribution?.uri || '',
+                review.rating || 0,
+              ),
               dish_id: dish.id,
               user_id: null, // Google からのインポートなので null
               comment: review.originalText?.text || '',

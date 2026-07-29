@@ -169,6 +169,10 @@ export class DishesRepository {
         id: true,
         dish_media: {
           where: {
+            // #829 【バグ】docstring どおり Google import 由来だけを再利用する。
+            // ユーザー投稿を bulk-import の結果として返すと、投稿者以外の画面に
+            // isMine/isSaved/isLiked が壊れた状態で出てしまう。
+            user_id: null,
             media_processing_status: 'completed',
             thumbnail_processing_status: 'completed',
           },
@@ -212,6 +216,19 @@ export class DishesRepository {
           dish_media: {
             where: {
               user_id: null,
+              // #829 【設計】failed も必ず lookup 対象に含める。
+              //
+              // failed を除外すると、その place は新規作成パスへ落ちて決定論 ID が
+              // 新たに採番される。既存行は randomUUID 由来なので ID が一致せず、
+              // skipDuplicates が効かないまま同じ Google レビューが二重登録される。
+              // ID の再利用（重複防止）と Photo Media 課金の抑止は別の関心事であり、
+              // ここで status を絞ると前者が壊れる。
+              //
+              // failed の place で Photo Media を毎回課金してしまう件は、
+              // tryGetPhotoMedia が reuse 判定より前にある構造の問題なので、
+              // 別途 handler 側の download skip 判定とあわせて対応する。
+              // 再利用が起きたことは ExistingGoogleImportDishMediaReused ログの
+              // mediaProcessingStatus で数えられる。
               OR: [
                 { media_processing_status: { not: 'completed' } },
                 { thumbnail_processing_status: { not: 'completed' } },
