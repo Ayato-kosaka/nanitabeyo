@@ -15,6 +15,9 @@ const review = (id: string, lang: string, minute: number): TestReview => ({
 
 const ids = (reviews: TestReview[]) => reviews.map((r) => r.id);
 
+// #817 レビュー欄は scrollToEnd で末尾へ着地するため、**配列の末尾が最も読まれる位置**。
+// 期待値はすべて「優先度の低いものが先頭、高いものが末尾」で書く。
+
 describe('prioritizeReviewsByLanguage', () => {
   const REVIEW_LIMIT = 6;
 
@@ -26,7 +29,7 @@ describe('prioritizeReviewsByLanguage', () => {
     );
   });
 
-  it('優先言語のレビューを先頭へ寄せる', () => {
+  it('優先言語のレビューを末尾（scrollToEnd の着地点）へ寄せる', () => {
     const base = [
       review('en1', 'en', 0),
       review('en2', 'en', 1),
@@ -36,7 +39,7 @@ describe('prioritizeReviewsByLanguage', () => {
 
     const result = prioritizeReviewsByLanguage(base, [], ['ja'], REVIEW_LIMIT);
 
-    expect(ids(result)).toEqual(['ja1', 'ja2', 'en1', 'en2']);
+    expect(ids(result)).toEqual(['en1', 'en2', 'ja1', 'ja2']);
   });
 
   it('#817 UGC の ja-JP が端末言語 ja として優先される（回帰防止）', () => {
@@ -51,10 +54,10 @@ describe('prioritizeReviewsByLanguage', () => {
     const result = prioritizeReviewsByLanguage(base, [], ['ja'], REVIEW_LIMIT);
 
     expect(ids(result)).toEqual([
-      'ugc-ja1',
-      'ugc-ja2',
       'google-en1',
       'google-en2',
+      'ugc-ja1',
+      'ugc-ja2',
     ]);
   });
 
@@ -67,7 +70,7 @@ describe('prioritizeReviewsByLanguage', () => {
 
     const result = prioritizeReviewsByLanguage(base, [], ['ja'], REVIEW_LIMIT);
 
-    expect(ids(result)).toEqual(['ugc-ja', 'google-ja', 'google-en']);
+    expect(ids(result)).toEqual(['google-en', 'ugc-ja', 'google-ja']);
   });
 
   it('端末言語 → 検索地点言語 → その他 の3段優先が効く', () => {
@@ -85,7 +88,7 @@ describe('prioritizeReviewsByLanguage', () => {
       REVIEW_LIMIT,
     );
 
-    expect(ids(result)).toEqual(['en', 'ja', 'fr']);
+    expect(ids(result)).toEqual(['fr', 'ja', 'en']);
   });
 
   it('reviewLimit の外に埋もれた優先言語を先読み分から補充する', () => {
@@ -108,7 +111,7 @@ describe('prioritizeReviewsByLanguage', () => {
       REVIEW_LIMIT,
     );
 
-    expect(ids(result)).toEqual(['ja1', 'ja2', 'en1', 'en2', 'en3', 'en4']);
+    expect(ids(result)).toEqual(['en1', 'en2', 'en3', 'en4', 'ja1', 'ja2']);
     expect(result).toHaveLength(REVIEW_LIMIT);
   });
 
@@ -124,7 +127,7 @@ describe('prioritizeReviewsByLanguage', () => {
       REVIEW_LIMIT,
     );
 
-    expect(ids(result)).toEqual(['ja1', 'en1']);
+    expect(ids(result)).toEqual(['en1', 'ja1']);
   });
 
   it('優先言語が 0 件なら created_at 昇順のまま（#509 の並び順を維持）', () => {
@@ -151,12 +154,12 @@ describe('prioritizeReviewsByLanguage', () => {
     expect(ids(result)).toEqual(['a', 'b', 'c']);
   });
 
-  it('original_language_code が空文字なら最下位へ落ちる', () => {
+  it('original_language_code が空文字なら最下位（＝先頭）へ落ちる', () => {
     const base = [review('unknown', '', 0), review('ja', 'ja', 1)];
 
     const result = prioritizeReviewsByLanguage(base, [], ['ja'], REVIEW_LIMIT);
 
-    expect(ids(result)).toEqual(['ja', 'unknown']);
+    expect(ids(result)).toEqual(['unknown', 'ja']);
   });
 
   it('reviewLimit より件数が少なくても切り詰めない', () => {
@@ -184,6 +187,29 @@ describe('prioritizeReviewsByLanguage', () => {
     expect(ids(result)).toEqual(['ja0', 'ja1', 'ja2', 'ja3', 'ja4', 'ja5']);
   });
 
+  // #817 【回帰防止】並び順は UI の scrollToEnd と対になっている。
+  // どちらか片方だけを反転させると、優先並び替えの効果が実機で消える。
+  it('末尾が最優先・先頭が最下位という向きを固定する', () => {
+    const base = [
+      review('other', 'fr', 0),
+      review('local', 'ja', 1),
+      review('device', 'en', 2),
+    ];
+
+    // 端末が英語、検索地点が日本
+    const result = prioritizeReviewsByLanguage(
+      base,
+      [],
+      ['en', 'ja'],
+      REVIEW_LIMIT,
+    );
+
+    // DishReviewsSection は mount 時に scrollToEnd するので、
+    // 末尾（= 最初に目に入る位置）へ端末言語が来ていなければならない
+    expect(result[result.length - 1].id).toBe('device');
+    expect(result[0].id).toBe('other');
+  });
+
   it('簡体と繁体を混同しない', () => {
     const base = [review('hant', 'zh-TW', 0), review('hans', 'zh-CN', 1)];
 
@@ -194,6 +220,6 @@ describe('prioritizeReviewsByLanguage', () => {
       REVIEW_LIMIT,
     );
 
-    expect(ids(result)).toEqual(['hans', 'hant']);
+    expect(ids(result)).toEqual(['hant', 'hans']);
   });
 });
