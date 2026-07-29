@@ -272,30 +272,11 @@ export class DishesService {
             ? contextualContent.photos
             : place.photos || [];
 
-        // #636 【設計】reviews: contextualContents.reviews を優先、なければ place.reviews にフォールバック
-        const reviews =
-          contextualContent?.reviews && contextualContent.reviews.length > 0
-            ? contextualContent.reviews
-            : place.reviews || [];
-
-        // #636 【設計】フォールバック発生時のモニタリングログ（どちらを使ったか記録）
-        if (
-          (!contextualContent?.reviews ||
-            contextualContent.reviews.length === 0) &&
-          place.reviews &&
-          place.reviews.length > 0
-        ) {
-          this.logger.log(
-            'ContextualReviewsMissingFallbackToPlaceReviews',
-            'bulkImportFromGoogle',
-            {
-              placeId: place.id || 'unknown',
-              dishCategoryName: dto.categoryName,
-              contextualReviewsCount: contextualContent?.reviews?.length || 0,
-              placeReviewsCount: place.reviews.length,
-            },
-          );
-        }
+        const reviews = this.selectGooglePlaceReviews({
+          contextualReviews: contextualContent?.reviews || [],
+          placeReviews: place.reviews || [],
+          preferredLanguageCode: dto.languageCode,
+        });
 
         if (
           (!contextualContent?.photos ||
@@ -485,6 +466,10 @@ export class DishesService {
               ),
               dish_id: dish.id,
               user_id: null, // Google からのインポートなので null
+              // #817 【設計】Google Places の originalText は投稿者が書いた元言語の本文。
+              // dish_reviews.comment には翻訳済み text ではなく元本文を保存し、
+              // original_language_code にはその元本文の言語を保存する。
+              // UGC 投稿保存に揃える方針。
               comment: review.originalText?.text || '',
               comment_tsv: null,
               original_language_code: review.originalText?.languageCode || '',
@@ -580,6 +565,59 @@ export class DishesService {
     });
 
     return results;
+  }
+
+  private selectGooglePlaceReviews(params: {
+    contextualReviews: protos.google.maps.places.v1.IReview[];
+    placeReviews: protos.google.maps.places.v1.IReview[];
+    preferredLanguageCode?: string;
+  }): protos.google.maps.places.v1.IReview[] {
+    const normalizeLanguageCode = (value?: string | null) =>
+      value?.toLowerCase() ?? '';
+    const preferredCode = normalizeLanguageCode(params.preferredLanguageCode);
+    const contextualReviews = params.contextualReviews ?? [];
+    const placeReviews = params.placeReviews ?? [];
+
+    if (!preferredCode) {
+      // #636 【設計】preferred language 指定がない場合は従来どおり contextual → place の優先順にする
+      return contextualReviews.length > 0 ? contextualReviews : placeReviews;
+    }
+
+    const reviewKey = (review: protos.google.maps.places.v1.IReview) =>
+      [
+        review.authorAttribution?.uri ?? '',
+        typeof review.publishTime === 'string'
+          ? review.publishTime
+          : review.publishTime
+            ? JSON.stringify(review.publishTime)
+            : '',
+        review.originalText?.languageCode ?? '',
+        review.originalText?.text ?? '',
+        review.rating ?? '',
+      ].join('|');
+
+    const merged = new Map<string, protos.google.maps.places.v1.IReview>();
+    for (const review of contextualReviews) {
+      merged.set(reviewKey(review), review);
+    }
+    for (const review of placeReviews) {
+      merged.set(reviewKey(review), review);
+    }
+
+    const ordered = Array.from(merged.values());
+    const preferred = ordered.filter(
+      (review) =>
+        normalizeLanguageCode(review.originalText?.languageCode) ===
+        preferredCode,
+    );
+    const fallback = ordered.filter(
+      (review) =>
+        normalizeLanguageCode(review.originalText?.languageCode) !==
+        preferredCode,
+    );
+
+    // #636 【設計】preferred language があれば先頭に寄せ、なければ従来 fallback に任せる
+    return [...preferred, ...fallback];
   }
 
   private buildGoogleImportRetryEntry(

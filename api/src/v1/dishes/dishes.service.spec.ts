@@ -13,7 +13,8 @@ jest.mock('../../core/config/env', () => ({
   env: new Proxy(
     {},
     {
-      get: (_target, key: string) => (key === 'DB_POOL_MAX' ? 1 : `test-${key}`),
+      get: (_target, key: string) =>
+        key === 'DB_POOL_MAX' ? 1 : `test-${key}`,
     },
   ),
 }));
@@ -28,12 +29,15 @@ import { CloudTasksService } from '../../core/cloud-tasks/cloud-tasks.service';
 import { DishCategoriesRepository } from '../dish-categories/dish-categories.repository';
 import { RestaurantsRepository } from '../restaurants/restaurants.repository';
 import { PrismaService } from '../../prisma/prisma.service';
+import { DishMediaService } from '../dish-media/dish-media.service';
 import type { BulkImportDishesDto } from '@shared/v1/dto';
 
 describe('DishesService', () => {
   let service: DishesService;
   let mockLocationsService: { searchRestaurants: jest.Mock };
   let mockCloudTasksService: { createTask: jest.Mock };
+
+  const VIEWER_ID = 'viewer-uuid';
 
   const dto = {
     location: '35.68944,139.69167',
@@ -72,6 +76,14 @@ describe('DishesService', () => {
         { provide: DishCategoriesRepository, useValue: {} },
         { provide: RestaurantsRepository, useValue: {} },
         { provide: PrismaService, useValue: {} },
+        {
+          provide: DishMediaService,
+          useValue: {
+            fetchDishMediaEntryItems: jest
+              .fn()
+              .mockResolvedValue({ items: [] }),
+          },
+        },
       ],
     }).compile();
 
@@ -87,13 +99,15 @@ describe('DishesService', () => {
     ])('%s のとき 500 ではなく空配列を返す', async (_label, response) => {
       mockLocationsService.searchRestaurants.mockResolvedValue(response);
 
-      await expect(service.bulkImportFromGoogle(dto)).resolves.toEqual([]);
+      await expect(
+        service.bulkImportFromGoogle(dto, VIEWER_ID),
+      ).resolves.toEqual([]);
     });
 
     it('該当なしのとき Cloud Task を enqueue しない', async () => {
       mockLocationsService.searchRestaurants.mockResolvedValue({});
 
-      await service.bulkImportFromGoogle(dto);
+      await service.bulkImportFromGoogle(dto, VIEWER_ID);
 
       expect(mockCloudTasksService.createTask).not.toHaveBeenCalled();
     });

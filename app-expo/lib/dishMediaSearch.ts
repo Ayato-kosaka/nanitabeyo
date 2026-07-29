@@ -48,6 +48,8 @@ export async function createDishItemsForCategory({
 			radius,
 			categoryId,
 			limit: searchResultRestaurantsNumber,
+			// #817 【設計】検索地点の言語のレビューを優先表示する。
+			preferredLanguageCode: searchLocationLanguageCode,
 		},
 	});
 
@@ -77,7 +79,8 @@ export async function createDishItemsForCategory({
 	return dishItems
 		.concat(
 			importResponse.filter(
-				(imported) => !dishItems.find((existing) => existing.restaurant.google_place_id === imported.restaurant.google_place_id),
+				(imported) =>
+					!dishItems.find((existing) => existing.restaurant.google_place_id === imported.restaurant.google_place_id),
 			),
 		)
 		.slice(0, searchResultRestaurantsNumber);
