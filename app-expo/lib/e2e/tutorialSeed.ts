@@ -24,9 +24,14 @@ import { Env } from "@/constants/Env";
  * ネイティブでは AsyncStorage を外から書けないため、**起動引数で同じ効果を出す**のがこのフック。
  *
  * ## 契約
- * - `e2eTutorialSeen: "1"` … 視聴済みとして扱う（チュートリアルは開かない）
- * - `e2eTutorialSeen: "0"` … 未視聴として扱う（チュートリアルが開く）
+ * - `e2eTutorialSeen: "seen"` … 視聴済みとして扱う（チュートリアルは開かない）
+ * - `e2eTutorialSeen: "unseen"` … 未視聴として扱う（チュートリアルが開く）
  * - 未指定 … このフックは何もしない = **AsyncStorage の実データを読む**（通常ビルドと同一挙動）
+ *
+ * ⚠️ 値に `"1"` / `"0"` / `"true"` を使ってはいけない。react-native-launch-arguments は
+ * 受け取った文字列を 1 つずつ `JSON.parse` にかけ、**成功したら型変換してしまう**
+ * （`"1"` → 数値 1、`"true"` → 真偽値 true）。JSON として解釈できない語を使うことで、
+ * 「文字列で渡す」という #1030 3-2 の規約が実際に守られる。
  *
  * 「完了操作が AsyncStorage へ永続化されること」を検証する spec は、
  * 1 回目を `"0"` で起動し、2 回目は **引数を渡さずに**起動する。こうすると 2 回目は実データを読むため、
@@ -46,7 +51,7 @@ export const E2E_TUTORIAL_SEED_SENTINEL = "__E2E_TUTORIAL_SEED_HOOK__";
 
 /** Detox の launchArgs から受け取るテスト専用パラメータ（値は文字列のみ。#1030 3-2 と同じ規約） */
 type E2ETutorialLaunchArgs = {
-	/** "1" = 視聴済みとして扱う / "0" = 未視聴として扱う / 未指定 = AsyncStorage の実データを読む */
+	/** "seen" = 視聴済みとして扱う / "unseen" = 未視聴として扱う / 未指定 = AsyncStorage の実データを読む */
 	e2eTutorialSeen?: string;
 };
 
@@ -76,7 +81,7 @@ export function readE2ETutorialSeen(): boolean | null {
 		return null;
 	}
 
-	// 未指定・不正値はいずれも「固定なし」。Detox 側は "0" / "1" しか渡さない
-	if (args.e2eTutorialSeen !== "0" && args.e2eTutorialSeen !== "1") return null;
-	return args.e2eTutorialSeen === "1";
+	// 未指定・不正値はいずれも「固定なし」。Detox 側は "seen" / "unseen" しか渡さない
+	if (args.e2eTutorialSeen !== "seen" && args.e2eTutorialSeen !== "unseen") return null;
+	return args.e2eTutorialSeen === "seen";
 }

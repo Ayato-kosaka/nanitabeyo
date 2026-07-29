@@ -223,7 +223,10 @@ const SEARCH_TUTORIAL = {
  */
 function tutorialLaunchArgs(tutorialSeen: boolean | "device"): Record<string, string> {
 	if (tutorialSeen === "device") return {};
-	return { e2eTutorialSeen: tutorialSeen ? "1" : "0" };
+	// ⚠️ "1" / "0" / "true" は使わないこと。アプリ側が使う react-native-launch-arguments は
+	// 受け取った文字列を 1 つずつ JSON.parse にかけ、**成功したら型変換してしまう**
+	// （"1" → 数値 1、"true" → 真偽値 true）。JSON として解釈できない語を使う
+	return { e2eTutorialSeen: tutorialSeen ? "seen" : "unseen" };
 }
 
 /**

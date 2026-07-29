@@ -141,6 +141,9 @@ pnpm --filter e2e-mobile test:ios             # Android と同じく :smoke / :m
 >   - `false` … 未視聴扱い = 初回起動の自動表示を再現する(`tests/search/search-tutorial.test.ts`)
 >   - `"device"` … 起動引数を渡さず AsyncStorage の実データを読む。**永続化そのものを検証する再起動で使う**
 >     (ここで既定値のままにすると、シードした値を読み返すだけの偽の緑になる)
+> - 実際に渡す値は `"seen"` / `"unseen"`。**`"1"` や `"true"` を使ってはいけない**
+>   (react-native-launch-arguments は受け取った文字列を 1 つずつ `JSON.parse` にかけ、成功したら型変換する。
+>   `"1"` は数値 1 になり、文字列比較が静かに外れる)
 >
 > **起動待ちが「チュートリアルが表示されています」というメッセージで失敗する場合は、
 > ビルド時の `EXPO_PUBLIC_E2E_TUTORIAL_HOOK` を疑うこと。**

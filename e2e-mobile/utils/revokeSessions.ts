@@ -72,5 +72,7 @@ async function revokeSession(owner: SessionOwner): Promise<void> {
 		// #1030 【設計】revoke 済みのトークンを環境変数に残さない（後続処理からの誤用防止）
 		delete process.env[SESSION_ENV_KEYS[owner].accessToken];
 		delete process.env[SESSION_ENV_KEYS[owner].refreshToken];
+		// userId は資格情報ではないが、トークンだけ消えて「セッションが半分残っている」状態を作らないよう揃えて消す
+		delete process.env[SESSION_ENV_KEYS[owner].userId];
 	}
 }
