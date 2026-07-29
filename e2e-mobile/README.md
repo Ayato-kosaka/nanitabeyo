@@ -108,6 +108,7 @@ pnpm --filter e2e-mobile test:ios             # Android と同じく :smoke / :m
 | **「包むだけの View」を観測点にしない**。実体のあるボタン等を見る | `search-tutorial-overlay` は Android で常に 2 view に一致し(TrueSheet の二重マウント)、iOS では表示中でも `toBeVisible` が成立しなかった |
 | **複数一致しうる要素は index を明示する**。ただし `atIndex(0)` = 見えているものとは限らない | カルーセルは前後のカードも同時にマウントするため、添字 0 が画面外のカードになりうる(`topics-choose-button`)。可視な添字を走査して選ぶこと |
 | **スクロールは `whileElement(...).scroll()`**。要素を掴んだ `swipe` に頼らない | `swipe` は掴んだ要素の高さの範囲内でしか指を動かせず、小さなタイルを起点にすると何回スワイプしても画面下部へ届かない |
+| **文字入力の後は端末のキーボードが邪魔をしうる** | Android は IME をまとめて無効化(`scripts/setup-android-locale.sh`)、iOS はハードウェアキーボード接続扱いにしてソフトウェアキーボードを出さない(`scripts/setup-ios-simulator.sh`)。入力は一貫して `replaceText` なのでキーボードは 1 つも要らない |
 | **入れ子の `<Text>` に付けた testID はネイティブでは消える** | React Native は入れ子 Text を親の TextView へ畳み込むため、対応するネイティブ View が存在しない(`login-privacy-link`)。web では span として実在するので e2e-web 側では使える |
 
 ## テスト 3 層構造(CI との棲み分け)

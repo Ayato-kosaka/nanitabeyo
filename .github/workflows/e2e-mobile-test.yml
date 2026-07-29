@@ -331,8 +331,11 @@ jobs:
 
       # prepare ジョブが解決した Tier のスクリプトを実行する
       - name: 🧪 Run Detox tests (iOS)
-        # #1027 実行ログを artifacts/ にも残す（ジョブログは末尾しか API で取得できないため）
-        run: bash e2e-mobile/scripts/run-detox-ci.sh ${{ needs.prepare.outputs.ios_script }}
+        # #1027 実行ログを artifacts/ にも残す（ジョブログは末尾しか API で取得できないため）。
+        # ソフトウェアキーボードの無効化は **Detox がシミュレータを起こす前**に済ませる必要がある
+        run: |
+          bash e2e-mobile/scripts/setup-ios-simulator.sh
+          bash e2e-mobile/scripts/run-detox-ci.sh ${{ needs.prepare.outputs.ios_script }}
         # #1030 【設計】3-3: 未設定なら describeAuthenticated 配下が自動 skip されるだけで他は動く
         env:
           TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}

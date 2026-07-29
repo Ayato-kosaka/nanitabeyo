@@ -22,7 +22,11 @@ import { SearchScreen } from "../../screens/SearchScreen";
 describe("検索フォーム", () => {
 	const search = new SearchScreen();
 
-	beforeAll(async () => {
+	// #1027 【バグ】beforeAll だと前のテストが残した状態（開いたキーボード・スクロール位置）を
+	// 次のテストが引き継ぎ、iOS では画面下部の要素が可視判定を通らなくなる。
+	// セッション注入起動は匿名クォータを消費しないため、テストごとに起動し直して独立性を担保する
+	// （profile 系 spec が #1031 で同じ理由から beforeEach へ移したのと同じ判断）
+	beforeEach(async () => {
 		// #1030 【設計】3-1: 匿名サインインのクォータを消費しないよう、確立済みセッションを注入して起動する
 		await launchAppWithSession({ as: "anon" });
 		// #1027 検索チュートリアルは起動引数のシード（`tutorialSeen` の既定 true）で抑止されるため、
