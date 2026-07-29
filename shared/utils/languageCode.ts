@@ -74,6 +74,11 @@ export function normalizeLanguageCode(value: string | null | undefined): string 
  * - `ja`      → `["ja"]`      （`ja` と `ja-JP` は `ja` / `ja-*` で拾える）
  * - `zh-hans` → `["zh-hans", "zh-cn", "zh-sg"]`
  * - `zh-hant` → `["zh-hant", "zh-tw", "zh-hk", "zh-mo"]`
+ *
+ * ⚠️ ここに素の `zh` を混ぜてはいけない。呼び出し側は各候補を「完全一致」と
+ * 「`候補-` の前方一致」で突き合わせるため、`zh` を含めると `zh-` が
+ * **繁体の `zh-TW` にも当たり**、簡体を希望したユーザーに繁体が混ざる。
+ * script 不明の実値は `languageWeakExactCandidates()` 側で完全一致だけ拾う。
  */
 export function languageMatchCandidates(normalizedCode: string): string[] {
 	if (!normalizedCode) return [];
@@ -91,10 +96,31 @@ export function languageMatchCandidates(normalizedCode: string): string[] {
 }
 
 /**
+ * #1052 完全一致でだけ拾いたい「弱い一致」の候補を返す。
+ *
+ * Google import は `originalText.languageCode` をそのまま保存するため、中国語のレビューは
+ * script を持たない `zh` で入りうる。これを拾わないと、中国語ユーザーの優先対象から
+ * Google 由来のレビューが丸ごと落ちる（#817 と同種の症状）。
+ *
+ * ただし `zh` を前方一致に使うと `zh-` が簡体・繁体の区別を壊すため、
+ * **完全一致のみ**で扱う。`zh` という実値は script が判らないだけで、
+ * 簡体・繁体どちらの希望者にとっても「読めはする」ので拾う価値がある。
+ */
+export function languageWeakExactCandidates(normalizedCode: string): string[] {
+	if (normalizedCode === "zh-hans" || normalizedCode === "zh-hant") {
+		return ["zh"];
+	}
+	return [];
+}
+
+/**
  * 優先言語リストの中で、その言語コードが何番目に優先されるかを返す。
  *
  * 小さいほど優先度が高い。どの優先言語にも当たらない場合は
  * `preferredLanguageCodes.length`（＝最下位）を返す。
+ *
+ * #1052 script 不明の中国語（`zh`）は「弱い一致」として `rank + 0.5` を返すため、
+ * 戻り値は整数とは限らない。完全一致した他言語より下、優先指定なしより上に並ぶ。
  *
  * #817 【設計】優先順位は「端末言語 → 検索地点の言語 → その他」。
  * 呼び出し側はこの順に並べた配列を渡すこと。
@@ -106,9 +132,28 @@ export function languagePriorityRank(
 	const normalized = normalizeLanguageCode(languageCode);
 	if (!normalized) return preferredLanguageCodes.length;
 
-	const rank = preferredLanguageCodes.findIndex((preferred) => normalizeLanguageCode(preferred) === normalized);
+	const exact = preferredLanguageCodes.findIndex((preferred) => normalizeLanguageCode(preferred) === normalized);
+	if (exact !== -1) return exact;
 
-	return rank === -1 ? preferredLanguageCodes.length : rank;
+	// #1052 【設計】script 不明の中国語（Google import の素の `zh`）は、
+	// 簡体・繁体のどちらを希望するユーザーにとっても「読めはする」ため、
+	// 完全一致より 1 段だけ弱い一致として扱う。
+	// 完全一致した他言語より下、優先指定なしより上に来るよう rank + 0.5 を返す。
+	const isChineseWithoutScript = normalized === "zh";
+	const isPreferredChinese = (preferred: string) => normalizeLanguageCode(preferred).startsWith("zh");
+
+	if (isChineseWithoutScript) {
+		const weak = preferredLanguageCodes.findIndex(isPreferredChinese);
+		if (weak !== -1) return weak + 0.5;
+	}
+
+	// 逆向き: 希望が素の `zh` で、レビューが `zh-hans` などの場合も同様に弱い一致とする
+	if (normalized.startsWith("zh")) {
+		const weak = preferredLanguageCodes.findIndex((preferred) => normalizeLanguageCode(preferred) === "zh");
+		if (weak !== -1) return weak + 0.5;
+	}
+
+	return preferredLanguageCodes.length;
 }
 
 /**
