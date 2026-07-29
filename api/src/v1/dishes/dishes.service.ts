@@ -46,6 +46,7 @@ import {
 
 // Google Maps types for photo handling
 import { protos } from '@googlemaps/places';
+import { selectGooglePlaceReviews } from './select-google-place-reviews';
 
 @Injectable()
 export class DishesService {
@@ -272,7 +273,7 @@ export class DishesService {
             ? contextualContent.photos
             : place.photos || [];
 
-        const reviews = this.selectGooglePlaceReviews({
+        const reviews = selectGooglePlaceReviews({
           contextualReviews: contextualContent?.reviews || [],
           placeReviews: place.reviews || [],
           preferredLanguageCode: dto.languageCode,
@@ -565,59 +566,6 @@ export class DishesService {
     });
 
     return results;
-  }
-
-  private selectGooglePlaceReviews(params: {
-    contextualReviews: protos.google.maps.places.v1.IReview[];
-    placeReviews: protos.google.maps.places.v1.IReview[];
-    preferredLanguageCode?: string;
-  }): protos.google.maps.places.v1.IReview[] {
-    const normalizeLanguageCode = (value?: string | null) =>
-      value?.toLowerCase() ?? '';
-    const preferredCode = normalizeLanguageCode(params.preferredLanguageCode);
-    const contextualReviews = params.contextualReviews ?? [];
-    const placeReviews = params.placeReviews ?? [];
-
-    if (!preferredCode) {
-      // #636 【設計】preferred language 指定がない場合は従来どおり contextual → place の優先順にする
-      return contextualReviews.length > 0 ? contextualReviews : placeReviews;
-    }
-
-    const reviewKey = (review: protos.google.maps.places.v1.IReview) =>
-      [
-        review.authorAttribution?.uri ?? '',
-        typeof review.publishTime === 'string'
-          ? review.publishTime
-          : review.publishTime
-            ? JSON.stringify(review.publishTime)
-            : '',
-        review.originalText?.languageCode ?? '',
-        review.originalText?.text ?? '',
-        review.rating ?? '',
-      ].join('|');
-
-    const merged = new Map<string, protos.google.maps.places.v1.IReview>();
-    for (const review of contextualReviews) {
-      merged.set(reviewKey(review), review);
-    }
-    for (const review of placeReviews) {
-      merged.set(reviewKey(review), review);
-    }
-
-    const ordered = Array.from(merged.values());
-    const preferred = ordered.filter(
-      (review) =>
-        normalizeLanguageCode(review.originalText?.languageCode) ===
-        preferredCode,
-    );
-    const fallback = ordered.filter(
-      (review) =>
-        normalizeLanguageCode(review.originalText?.languageCode) !==
-        preferredCode,
-    );
-
-    // #636 【設計】preferred language があれば先頭に寄せ、なければ従来 fallback に任せる
-    return [...preferred, ...fallback];
   }
 
   private buildGoogleImportRetryEntry(

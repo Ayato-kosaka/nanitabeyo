@@ -100,9 +100,12 @@ export class DishMediaController {
   @ApiQuery({ name: 'radius', required: true, description: '検索半径 (m)' })
   @ApiQuery({ name: 'categoryId', required: false })
   @ApiQuery({
-    name: 'preferredLanguageCode',
+    name: 'preferredLanguageCodes',
     required: false,
-    description: 'レビュー表示で優先する元言語コード',
+    isArray: true,
+    type: String,
+    description:
+      'レビュー表示で優先する元言語コード（優先度の高い順。端末言語→検索地点の言語）',
   })
   @ApiResponse({ status: 200, description: '取得成功' })
   async searchDishMedia(

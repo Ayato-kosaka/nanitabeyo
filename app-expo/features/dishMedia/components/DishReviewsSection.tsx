@@ -49,6 +49,14 @@ export function DishReviewsSection({ id, idType, paddingRight, carouselRef }: Di
 	const reviews = useDishMediaEntriesStore(selector, shallow);
 
 	// コメントを最下部までスクロールする
+	//
+	// #817 【設計】この挙動は従来どおり維持する。レビュー欄は画面下部に固定され、
+	// created_at 昇順（#509「古い→新しい」）の最新が最下部に来る。つまり
+	// **プライム位置は末尾** であり、scrollToEnd はその着地点を保証している。
+	// グラデーションも下ほど濃く、下端のほうが可読性が高い。
+	//
+	// 優先言語の反映は API 側の並び順（prioritizeReviewsByLanguage）が
+	// 優先言語を *末尾* へ寄せることで行う。ここを触る必要はない。
 	const scrollViewRef = useRef<ScrollView>(null);
 	useEffect(() => {
 		scrollViewRef.current?.scrollToEnd({ animated: false });
