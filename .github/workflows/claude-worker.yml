@@ -226,12 +226,23 @@ jobs:
           show_full_output: false
           display_report: false
 
+      - name: 信頼済み要約スクリプトを取得
+        if: always()
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: .claude-worker-trusted
+          sparse-checkout: .github/scripts/summarize-claude-output.sh
+          sparse-checkout-cone-mode: false
+          fetch-depth: 1
+          persist-credentials: false
+
       - name: 実行結果を要約
         if: always()
         shell: bash
         env:
           CLAUDE_EXECUTION_OUTPUT: ${{ steps.claude.outputs.execution_file }}
-        run: bash .github/scripts/summarize-claude-output.sh
+        run: bash .claude-worker-trusted/.github/scripts/summarize-claude-output.sh
 
       - name: テストエビデンスを保存
         if: always()
@@ -362,12 +373,23 @@ jobs:
           show_full_output: false
           display_report: false
 
+      - name: 信頼済み要約スクリプトを取得
+        if: always()
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: .claude-worker-trusted
+          sparse-checkout: .github/scripts/summarize-claude-output.sh
+          sparse-checkout-cone-mode: false
+          fetch-depth: 1
+          persist-credentials: false
+
       - name: 実行結果を要約
         if: always()
         shell: bash
         env:
           CLAUDE_EXECUTION_OUTPUT: ${{ steps.claude.outputs.execution_file }}
-        run: bash .github/scripts/summarize-claude-output.sh
+        run: bash .claude-worker-trusted/.github/scripts/summarize-claude-output.sh
 
       - name: commit・pushされたことを検証
         # このstepは常に実行し、Claude Codeが権限拒否やturn切れで行き詰まり
