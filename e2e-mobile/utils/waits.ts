@@ -153,6 +153,30 @@ export async function visibleNow(matcher: Detox.NativeMatcher, timeout = 2_000, 
 }
 
 /**
+ * 要素が **見えなくなる**まで待つ。
+ *
+ * #1027 `waitUntilGone`（= `not.toExist()`）との使い分け:
+ * ツリーから消えるかどうかがプラットフォームで揺れる要素（TrueSheet の中身など）は、
+ * 「存在しない」ではなく **「ユーザーから見えない」** で判定する方が壊れにくい。
+ *
+ * @param matcher 対象のマッチャ
+ * @param timeout タイムアウト (ms)
+ * @param index 複数一致する場合に選ぶ添字
+ * @失敗時 期限内に見えなくならなければ日本語のメッセージで例外を投げる
+ */
+export async function waitUntilNotVisible(
+	matcher: Detox.NativeMatcher,
+	timeout: number = DEFAULT_TIMEOUT,
+	index?: number,
+): Promise<void> {
+	await waitUntil(async () => !(await visibleNow(matcher, 1_000, index)), {
+		timeout,
+		interval: 250,
+		description: "要素が見えなくなること",
+	});
+}
+
+/**
  * 「アプリが落ちている / Detox が接続できていない」ことを示すエラーの断片。
  *
  * #1027 【バグ】`existsNow` / `visibleNow` はベストエフォート判定なので **あらゆる例外を false へ潰す**が、

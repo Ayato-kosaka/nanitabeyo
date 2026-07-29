@@ -29,8 +29,12 @@ module.exports = {
 	// 既定値（node_modules の除外）を失わないよう、除外パターンは必ず一緒に列挙する
 	testPathIgnorePatterns: isMutationEnabled ? ["/node_modules/"] : ["/node_modules/", "<rootDir>/tests/mutation/"],
 
-	// #1027 【設計】E2E は実機相当の起動・ネットワークを待つため単体テストより大幅に長くする
-	testTimeout: 300000,
+	// #1027 【設計】E2E は実機相当の起動・ネットワークを待つため単体テストより大幅に長くする。
+	// この値は **フック（beforeAll/beforeEach）にも効く**。run 30445542854 では最初に走った suite の
+	// beforeAll が 300 秒を超えた（エミュレータが冷えている状態での APK インストール + 初回起動）。
+	// 同じ suite はリトライでは 23 秒で通っており、恒常的な遅さではなく初回だけのコスト。
+	// 上限を上げても通過時の実行時間には影響しないため、余裕を取る
+	testTimeout: 600000,
 	// #1027 【設計】1 台のエミュレータを全テストで共有するため並列化しない
 	// #1030 【設計】レビュー 3.1: 並列化すると同一 refresh token を複数プロセスが同時に使うことになり、
 	// Supabase の reuse 検知でセッションファミリごと失効しうる。**maxWorkers: 1 が前提**

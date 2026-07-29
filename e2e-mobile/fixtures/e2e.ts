@@ -22,6 +22,7 @@ import {
 	waitUntil,
 	waitUntilExists,
 	waitUntilGone,
+	waitUntilNotVisible,
 	waitUntilVisible,
 } from "../utils/waits";
 
@@ -59,6 +60,7 @@ export {
 	waitUntil,
 	waitUntilExists,
 	waitUntilGone,
+	waitUntilNotVisible,
 	waitUntilVisible,
 };
 export { localeDeepLink };
@@ -210,12 +212,17 @@ export async function launchAppWithoutSession(opts: LaunchOptions = {}): Promise
  * screens/SearchScreen.ts にも同じ定義があるが、**起動処理はどの画面にも依存してはいけない**
  * （fixtures が screens に依存すると循環参照になる）ため、ここでは matcher を直接持つ。
  */
+const TUTORIAL_INDEX = 0;
+
 const SEARCH_TUTORIAL = {
 	/**
 	 * ⚠️ #1027 `search-tutorial-overlay` は観測点に使わない。
-	 * Android では常に 2 つの View に一致し（TrueSheet がシートの内容を二重に載せる）、
-	 * iOS では表示中でも `toBeVisible` が成立しない（面積を持つ実体が無い）。
-	 * 「出ている / 出ていない」の判定は、実体のあるボタン（つぎへ / はじめよう）で行う。
+	 * iOS では表示中でも `toBeVisible` が成立しない（面積を持つ実体が無い）ため、
+	 * 「出ている / 出ていない」の判定は実体のあるボタン（つぎへ / はじめよう）で行う。
+	 *
+	 * ⚠️ そして **TrueSheet の中身は Android で必ず 2 つの View に一致する**（run 30445542854 で実測。
+	 * overlay だけでなくボタンも同様で、2 件は id も座標も同一の重複エントリ）。
+	 * そのためシート内の要素を扱うヘルパには必ず `TUTORIAL_INDEX` を渡すこと。
 	 */
 	nextButton: by.id("search-tutorial-next"),
 	finishButton: by.id("search-tutorial-finish"),
@@ -251,26 +258,26 @@ function tutorialLaunchArgs(tutorialSeen: boolean | "device"): Record<string, st
  */
 export async function dismissSearchTutorialIfPresent(probeTimeout = 3_000): Promise<boolean> {
 	const shown =
-		(await visibleNow(SEARCH_TUTORIAL.nextButton, probeTimeout)) ||
-		(await visibleNow(SEARCH_TUTORIAL.finishButton, 1_000));
+		(await visibleNow(SEARCH_TUTORIAL.nextButton, probeTimeout, TUTORIAL_INDEX)) ||
+		(await visibleNow(SEARCH_TUTORIAL.finishButton, 1_000, TUTORIAL_INDEX));
 	if (!shown) return false;
 
 	// ページ送りは FlatList のスクロールアニメーションを伴う。プライマリ CTA の testID が
 	// 「つぎへ」→「はじめよう」へ切り替わるのを毎回待ち合わせることでアニメーション完了を待つ
 	for (let page = 0; page < 10; page += 1) {
-		if (await existsNow(SEARCH_TUTORIAL.finishButton, 1_000)) break;
-		if (!(await existsNow(SEARCH_TUTORIAL.nextButton, 1_000))) break;
-		await element(SEARCH_TUTORIAL.nextButton).tap();
+		if (await existsNow(SEARCH_TUTORIAL.finishButton, 1_000, TUTORIAL_INDEX)) break;
+		if (!(await existsNow(SEARCH_TUTORIAL.nextButton, 1_000, TUTORIAL_INDEX))) break;
+		await tapWhenVisible(SEARCH_TUTORIAL.nextButton, DEFAULT_TIMEOUT, TUTORIAL_INDEX);
 	}
 
 	// ベストエフォートに徹する。ここで例外を投げると呼び出し側のリトライを潰してしまううえ、
 	// 「チュートリアルを閉じられなかった」ではなく本来の検証内容で失敗させたいため
-	if (!(await visibleNow(SEARCH_TUTORIAL.laterButton, 3_000))) return false;
+	if (!(await visibleNow(SEARCH_TUTORIAL.laterButton, 3_000, TUTORIAL_INDEX))) return false;
 
-	await element(SEARCH_TUTORIAL.laterButton).tap();
+	await tapWhenVisible(SEARCH_TUTORIAL.laterButton, DEFAULT_TIMEOUT, TUTORIAL_INDEX);
 	// #1027 閉じ待ちは overlay ではなく「あとで」ボタンで行う。overlay は 2 つの View に一致するため、
 	// `not.toExist()` の判定が「消えた」なのか「複数一致で判定不能」なのか区別できなくなる
-	await waitUntilGone(SEARCH_TUTORIAL.laterButton);
+	await waitUntilNotVisible(SEARCH_TUTORIAL.laterButton, DEFAULT_TIMEOUT, TUTORIAL_INDEX);
 	return true;
 }
 
@@ -294,7 +301,7 @@ export async function waitForAppReady(timeout: number = LAUNCH_TIMEOUT): Promise
 	try {
 		await waitUntilVisible(by.id(APP_READY_TEST_ID), timeout);
 	} catch (error) {
-		if (await visibleNow(SEARCH_TUTORIAL.nextButton, 1_000)) {
+		if (await visibleNow(SEARCH_TUTORIAL.nextButton, 1_000, TUTORIAL_INDEX)) {
 			throw new Error(
 				[
 					"起動完了（タブバーの表示）を待てず、代わりに検索チュートリアルが表示されています。",

@@ -9,7 +9,7 @@ import {
 	tapWhenVisible,
 	visibleNow,
 	waitFor,
-	waitUntilGone,
+	waitUntilNotVisible,
 	waitUntilVisible,
 } from "../fixtures/e2e";
 
@@ -87,6 +87,11 @@ export class SearchScreen {
 	 * （`tutorialNextButton` = 1 ページ目の「つぎへ」）を使う。
 	 */
 	readonly tutorialOverlay = by.id("search-tutorial-overlay");
+	/**
+	 * ⚠️ #1027 **TrueSheet の中身は Android で必ず 2 つの View に一致する**（run 30445542854 で実測。
+	 * 2 件は id も座標も同一の重複エントリ）。シート内の要素を扱うヘルパには必ずこの添字を渡すこと。
+	 */
+	private static readonly TUTORIAL_INDEX = 0;
 	/** チュートリアルの「つぎへ」（最終ページ以外で描画される） */
 	readonly tutorialNextButton = by.id("search-tutorial-next");
 	/** チュートリアルの「はじめよう」（最終ページのプライマリ CTA。押すと現在地取得が走る） */
@@ -228,7 +233,7 @@ export class SearchScreen {
 		// overlay は「シートの内容を包むだけの View」で面積や重なりの扱いがプラットフォームで揺れ、
 		// iOS では 2 分待っても toBeVisible が成立しなかった（run 30432596949）。
 		// ボタンなら「チュートリアルが出ていて操作できる」という検証したい事実と 1:1 で対応する
-		await waitUntilVisible(this.tutorialNextButton, timeout);
+		await waitUntilVisible(this.tutorialNextButton, timeout, SearchScreen.TUTORIAL_INDEX);
 	}
 
 	/**
@@ -244,7 +249,7 @@ export class SearchScreen {
 		// TrueSheet はシートを閉じていても内容をツリーに残すことがあり（Android では overlay が
 		// 常に 2 つの View に一致する）、存在での判定はプラットフォーム差に巻き込まれる。
 		// ユーザーから観測できる事実（チュートリアルが見えていない）を直接検証する
-		const shown = await visibleNow(this.tutorialNextButton, 3_000);
+		const shown = await visibleNow(this.tutorialNextButton, 3_000, SearchScreen.TUTORIAL_INDEX);
 		assert.equal(shown, false, "再起動後にチュートリアルが再表示されている（視聴済みフラグが永続化されていない）");
 	}
 
@@ -257,23 +262,23 @@ export class SearchScreen {
 	 * @param maxPages ページ送りの上限（無限ループ防止。現在のページ数は 4）
 	 */
 	async completeTutorial(maxPages = 10): Promise<void> {
-		await waitUntilVisible(this.tutorialNextButton);
+		await waitUntilVisible(this.tutorialNextButton, DEFAULT_TIMEOUT, SearchScreen.TUTORIAL_INDEX);
 
 		// #1031 【設計】§4-1: ページ送りは FlatList のスクロールアニメーションを伴う。
 		// プライマリ CTA の testID が「つぎへ」→「はじめよう」に切り替わることを毎回待ち合わせることで、
 		// アニメーション完了を明示的に待つ（Detox の idle 同期だけに頼らない）
 		for (let page = 0; page < maxPages; page += 1) {
-			if (await existsNow(this.tutorialFinishButton, 1_000)) break;
-			if (!(await existsNow(this.tutorialNextButton, 1_000))) break;
+			if (await existsNow(this.tutorialFinishButton, 1_000, SearchScreen.TUTORIAL_INDEX)) break;
+			if (!(await existsNow(this.tutorialNextButton, 1_000, SearchScreen.TUTORIAL_INDEX))) break;
 
-			await tapWhenVisible(this.tutorialNextButton);
+			await tapWhenVisible(this.tutorialNextButton, DEFAULT_TIMEOUT, SearchScreen.TUTORIAL_INDEX);
 		}
 
-		await waitUntilVisible(this.tutorialFinishButton);
-		await tapWhenVisible(this.tutorialLaterButton);
-		// #1027 閉じ待ちは overlay ではなく「あとで」ボタンで行う（overlay は複数一致するため
-		// 「消えた」と「複数一致で判定不能」を区別できない）
-		await waitUntilGone(this.tutorialLaterButton);
+		await waitUntilVisible(this.tutorialFinishButton, DEFAULT_TIMEOUT, SearchScreen.TUTORIAL_INDEX);
+		await tapWhenVisible(this.tutorialLaterButton, DEFAULT_TIMEOUT, SearchScreen.TUTORIAL_INDEX);
+		// #1027 閉じ待ちは「見えなくなること」で行う。TrueSheet の中身はツリーから消えるとは限らず、
+		// 存在での判定はプラットフォーム差に巻き込まれる
+		await waitUntilNotVisible(this.tutorialLaterButton, DEFAULT_TIMEOUT, SearchScreen.TUTORIAL_INDEX);
 	}
 
 	/**
