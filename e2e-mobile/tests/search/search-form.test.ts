@@ -25,8 +25,8 @@ describe("検索フォーム", () => {
 	beforeAll(async () => {
 		// #1030 【設計】3-1: 匿名サインインのクォータを消費しないよう、確立済みセッションを注入して起動する
 		await launchAppWithSession({ as: "anon" });
-		// #1031 【設計】§4-3: チュートリアルの AsyncStorage シード手段が共通基盤に無いため、
-		// 出ていれば閉じてからフォームの検証に入る（expectLoaded の中で吸収される）
+		// #1027 検索チュートリアルは起動引数のシード（`tutorialSeen` の既定 true）で抑止されるため、
+		// ここでは素直にフォームの表示だけを待てばよい
 		await search.expectLoaded();
 	});
 
