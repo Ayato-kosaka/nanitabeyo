@@ -8,7 +8,11 @@
 import { Injectable } from '@nestjs/common';
 
 import { CreateDishDto, BulkImportDishesDto } from '@shared/v1/dto';
-import { CreateDishResponse, BulkImportDishesResponse } from '@shared/v1/res';
+import {
+  CreateDishResponse,
+  BulkImportDishesResponse,
+  DishMediaEntry,
+} from '@shared/v1/res';
 
 import { DishesRepository } from './dishes.repository';
 import { AppLoggerService } from '../../core/logger/logger.service';
@@ -18,6 +22,7 @@ import { CloudTasksService } from '../../core/cloud-tasks/cloud-tasks.service';
 import { DishCategoriesRepository } from '../dish-categories/dish-categories.repository';
 import { RestaurantsRepository } from '../restaurants/restaurants.repository';
 import { PrismaService } from '../../prisma/prisma.service';
+import { DishMediaService } from '../dish-media/dish-media.service';
 
 // Import converters
 import {
@@ -39,6 +44,9 @@ import { randomUUID } from 'node:crypto';
 // Google Maps types for photo handling
 import { protos } from '@googlemaps/places';
 
+// #829 bulk-import は viewer を受け取らないが、既存 entry 組み立てでは UUID 条件が必要になる。
+const DUMMY_VIEWER_ID = '593e6eff-34b3-4293-90e4-b0e61d66f761';
+
 @Injectable()
 export class DishesService {
   constructor(
@@ -50,6 +58,7 @@ export class DishesService {
     private readonly dishCategoriesRepository: DishCategoriesRepository,
     private readonly restaurantsRepository: RestaurantsRepository,
     private readonly prisma: PrismaService,
+    private readonly dishMediaService: DishMediaService,
   ) {}
 
   /* ------------------------------------------------------------------ */
@@ -172,6 +181,51 @@ export class DishesService {
     }
 
     const results: BulkImportDishesResponse = [];
+    const placeIds = googlePlaces.places
+      .map((place) => place.id)
+      .filter((placeId): placeId is string => Boolean(placeId));
+
+    // #829 【性能】Photo Media 前に、Text Search 結果の place/category だけを batch lookup する。
+    // completed は課金削減のため即再利用し、未完了 Google import は同じ ID で再処理してレスポンス ID の不整合を避ける。
+    const reusableMediaByPlaceId =
+      await this.repo.findReusableGoogleImportDishMediaByPlaceIdsAndCategory(
+        placeIds,
+        dto.categoryId,
+      );
+    const reusableMediaIds = [
+      ...new Set(
+        [...reusableMediaByPlaceId.values()].map(
+          (reusableMedia) => reusableMedia.dishMediaId,
+        ),
+      ),
+    ];
+    // #829 【互換性】bulk-import は viewer を受け取らないため、既存 entry 組み立てだけ固定 viewer で既存 assembler に寄せる。
+    const existingEntries =
+      await this.dishMediaService.fetchDishMediaEntryItems(reusableMediaIds, {
+        userId: DUMMY_VIEWER_ID,
+      });
+    const existingEntryByMediaId = new Map(
+      existingEntries.items.map((entry) => [
+        String(entry.dish_media.id),
+        entry,
+      ]),
+    );
+    const existingReusableEntryByPlaceId = new Map<
+      string,
+      {
+        reuseKind: 'completed' | 'google-import-non-completed';
+        entry: BulkImportDishesResponse[0];
+      }
+    >();
+    for (const [placeId, reusableMedia] of reusableMediaByPlaceId.entries()) {
+      const entry = existingEntryByMediaId.get(reusableMedia.dishMediaId);
+      if (entry) {
+        existingReusableEntryByPlaceId.set(placeId, {
+          reuseKind: reusableMedia.reuseKind,
+          entry,
+        });
+      }
+    }
 
     // 各レストランに対してデータ登録処理（並列処理）
     const processPromises = googlePlaces.places.map(async (place, index) => {
@@ -250,6 +304,23 @@ export class DishesService {
           );
         }
 
+        const existingReusableEntry = existingReusableEntryByPlaceId.get(
+          place.id!,
+        );
+        if (existingReusableEntry?.reuseKind === 'completed') {
+          // #829 【設計】completed は表示可能な既存 entry を真実源にし、Photo Media と Cloud Task を両方 skip する。
+          this.logger.debug(
+            'ExistingCompletedDishMediaFound',
+            'bulkImportFromGoogle',
+            {
+              placeId: place.id!,
+              categoryId: dto.categoryId,
+              dishMediaId: existingReusableEntry.entry.dish_media.id,
+            },
+          );
+          return existingReusableEntry.entry;
+        }
+
         if (!photos || photos.length === 0) {
           this.logger.warn('NoPhotoForPlace', 'bulkImportFromGoogle', {
             placeId: place.id!,
@@ -263,73 +334,102 @@ export class DishesService {
           throw new Error(`No photo URL found for place: ${place.id!}`);
         }
 
+        const existingGoogleImportEntry =
+          existingReusableEntry?.reuseKind === 'google-import-non-completed'
+            ? existingReusableEntry.entry
+            : undefined;
         const ext = getExt('image/jpeg');
-        const mediaFileName = buildFileName(place.id!, ext);
-        const mediaPath = buildFullPath({
-          resourceType: 'google-maps',
-          usageType: 'photo',
-          finalFileName: mediaFileName,
-        });
+        // #829 【設計】未完了 Google import は既存 GCS path を維持し、同じ dish_media.id の resize 完了を目指す。
+        const mediaPath =
+          existingGoogleImportEntry?.dish_media.media_path ??
+          buildFullPath({
+            resourceType: 'google-maps',
+            usageType: 'photo',
+            finalFileName: buildFileName(place.id!, ext),
+          });
 
         const restaurant: SupabaseRestaurants = {
-          id: 'unknown',
+          id: existingGoogleImportEntry?.restaurant.id ?? 'unknown',
           google_place_id: place.id!,
-          name: place.displayName!.text!,
-          name_language_code: dto.languageCode,
-          latitude: place.location!.latitude!,
-          longitude: place.location!.longitude!,
-          location: null,
+          name:
+            existingGoogleImportEntry?.restaurant.name ??
+            place.displayName!.text!,
+          name_language_code:
+            existingGoogleImportEntry?.restaurant.name_language_code ??
+            dto.languageCode,
+          latitude:
+            existingGoogleImportEntry?.restaurant.latitude ??
+            place.location!.latitude!,
+          longitude:
+            existingGoogleImportEntry?.restaurant.longitude ??
+            place.location!.longitude!,
+          location: existingGoogleImportEntry?.restaurant.location ?? null,
           image_url: photoMedia.photoUri,
           image_path: mediaPath,
-          address_components: JSON.parse(
-            JSON.stringify(place.addressComponents),
-          ),
-          plus_code: place.plusCode
-            ? JSON.parse(JSON.stringify(place.plusCode))
-            : null,
-          created_at: new Date().toISOString(),
+          address_components:
+            existingGoogleImportEntry?.restaurant.address_components ??
+            JSON.parse(JSON.stringify(place.addressComponents)),
+          plus_code:
+            existingGoogleImportEntry?.restaurant.plus_code ??
+            (place.plusCode
+              ? JSON.parse(JSON.stringify(place.plusCode))
+              : null),
+          created_at:
+            existingGoogleImportEntry?.restaurant.created_at ??
+            new Date().toISOString(),
         };
 
         const dish: SupabaseDishes = {
-          id: 'unknown',
+          id: existingGoogleImportEntry?.dish.id ?? 'unknown',
           restaurant_id: restaurant.id,
           category_id: dto.categoryId,
-          name: dto.categoryName,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          lock_no: 0,
+          name: existingGoogleImportEntry?.dish.name ?? dto.categoryName,
+          created_at:
+            existingGoogleImportEntry?.dish.created_at ??
+            new Date().toISOString(),
+          updated_at:
+            existingGoogleImportEntry?.dish.updated_at ??
+            new Date().toISOString(),
+          lock_no: existingGoogleImportEntry?.dish.lock_no ?? 0,
         };
 
         const dishMedia: SupabaseDishMedia = {
-          id: randomUUID(),
+          id: existingGoogleImportEntry?.dish_media.id ?? randomUUID(),
           dish_id: dish.id,
           user_id: null, // Google からのインポートなので null
           media_path: mediaPath,
-          media_type: 'image',
-          thumbnail_path: mediaPath,
+          media_type:
+            existingGoogleImportEntry?.dish_media.media_type ?? 'image',
+          thumbnail_path:
+            existingGoogleImportEntry?.dish_media.thumbnail_path ?? mediaPath,
           video_duration_ms: null,
           media_processing_status: 'processing', // #511 【設計】後続のジョブでリサイズ処理を行う
           thumbnail_processing_status: 'processing',
-          created_at: new Date().toISOString(),
+          created_at:
+            existingGoogleImportEntry?.dish_media.created_at ??
+            new Date().toISOString(),
           updated_at: new Date().toISOString(),
-          lock_no: 0,
+          lock_no: existingGoogleImportEntry?.dish_media.lock_no ?? 0,
         };
 
-        const dishReviews: SupabaseDishReviews[] = reviews.map((review) => ({
-          id: randomUUID(),
-          dish_id: dish.id,
-          user_id: null, // Google からのインポートなので null
-          comment: review.originalText?.text || '',
-          comment_tsv: null,
-          original_language_code: review.originalText?.languageCode || '',
-          rating: review.rating || 0,
-          price_cents: null,
-          currency_code: null,
-          created_dish_media_id: dishMedia.id,
-          imported_user_name: review.authorAttribution?.displayName || null,
-          imported_user_avatar: review.authorAttribution?.photoUri || null,
-          created_at: new Date().toISOString(),
-        }));
+        // #829 【設計】未完了 Google import の再処理では既存 review ID を渡し、handler 側の skipDuplicates と合わせて retry を no-op 化する。
+        const dishReviews: SupabaseDishReviews[] = existingGoogleImportEntry
+          ? this.toSupabaseDishReviews(existingGoogleImportEntry.dish_reviews)
+          : reviews.map((review) => ({
+              id: randomUUID(),
+              dish_id: dish.id,
+              user_id: null, // Google からのインポートなので null
+              comment: review.originalText?.text || '',
+              comment_tsv: null,
+              original_language_code: review.originalText?.languageCode || '',
+              rating: review.rating || 0,
+              price_cents: null,
+              currency_code: null,
+              created_dish_media_id: dishMedia.id,
+              imported_user_name: review.authorAttribution?.displayName || null,
+              imported_user_avatar: review.authorAttribution?.photoUri || null,
+              created_at: new Date().toISOString(),
+            }));
 
         // 非同期ジョブをキューに投入
         await this.enqueueCreateDishMediaEntryJob({
@@ -340,6 +440,14 @@ export class DishesService {
           placeId: place.id!,
           photoUri: photoMedia.photoUri,
         });
+
+        if (existingGoogleImportEntry) {
+          // #829 【互換性】未完了 row はフロントの polling 条件に乗りにくいため、同期レスポンスだけ Google Photo URL で completed 相当にする。
+          return this.buildGoogleImportRetryEntry(
+            existingGoogleImportEntry,
+            photoMedia.photoUri,
+          );
+        }
 
         const BulkImportDishesResponseEntry: BulkImportDishesResponse[0] = {
           restaurant: {
@@ -406,6 +514,41 @@ export class DishesService {
     });
 
     return results;
+  }
+
+  private buildGoogleImportRetryEntry(
+    entry: DishMediaEntry,
+    photoUri: string,
+  ): DishMediaEntry {
+    // #829 【互換性】DB の processing 状態は維持しつつ、bulk-import の既存レスポンス契約に合わせて表示用 URL を返す。
+    return {
+      ...entry,
+      restaurant: {
+        ...entry.restaurant,
+        image_url: photoUri,
+        imageUrls: {
+          sm: photoUri,
+          md: photoUri,
+        },
+      },
+      dish_media: {
+        ...entry.dish_media,
+        media_processing_status: 'completed',
+        thumbnail_processing_status: 'completed',
+        mediaUrl: photoUri,
+        thumbnailImageUrl: photoUri,
+      },
+    };
+  }
+
+  private toSupabaseDishReviews(
+    reviews: DishMediaEntry['dish_reviews'],
+  ): SupabaseDishReviews[] {
+    // #829 【設計】assembler が付与した表示用 field は handler payload には戻さない。
+    return reviews.map((review) => {
+      const { username, isLiked, likeCount, ...supabaseReview } = review;
+      return supabaseReview;
+    });
   }
 
   /**
