@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
 import { LinearGradient } from "expo-linear-gradient";
@@ -48,11 +48,17 @@ export function DishReviewsSection({ id, idType, paddingRight, carouselRef }: Di
 	);
 	const reviews = useDishMediaEntriesStore(selector, shallow);
 
-	// コメントを最下部までスクロールする
+	// #817 【設計】先頭を初期表示にする。
+	//
+	// 以前は mount 時に scrollToEnd していた（レビューが created_at 昇順だったため
+	// 「最新のコメントを見せる」意図）。しかし #817 でレビューの並びを
+	// 「端末言語 → 検索地点の言語 → その他」の優先度順へ変えたので、最下部は
+	// 「最も読めない言語のレビュー」になる。scrollToEnd を残すと、
+	// 日本語を上位へ寄せた効果を実機で完全に打ち消してしまう。
+	//
+	// web では ScrollView に overflow が出ず scrollToEnd が事実上 no-op だったため
+	// 表面化していなかったが、報告元の iOS では効いてしまう。
 	const scrollViewRef = useRef<ScrollView>(null);
-	useEffect(() => {
-		scrollViewRef.current?.scrollToEnd({ animated: false });
-	}, [reviews.length]);
 
 	// State to track expanded characters count for each comment
 	const [commentExpandedChars, setCommentExpandedChars] = useState(
