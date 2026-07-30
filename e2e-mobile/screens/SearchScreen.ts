@@ -6,10 +6,12 @@ import {
 	dismissSearchTutorialIfPresent,
 	element,
 	existsNow,
+	multiTapWhenPresent,
 	tapWhenPresent,
 	tapWhenVisible,
 	visibleNow,
 	waitFor,
+	waitUntil,
 	waitUntilNotVisible,
 	waitUntilVisible,
 } from "../fixtures/e2e";
@@ -40,6 +42,15 @@ import {
  *   `search-distance-slider` は PanResponder ベースの自作スライダーで、現在値は `aria-valuenow`
  *   （= web 専用属性）にしか出ておらず、**値を反映する testID が app-expo に無い**ため
  *   Detox からは操作後の値を検証できない。値検証用の testID が追加されたら移植すること
+ * - **先読み画像の即時表示**（#1083 / e2e-web の tests/search/tutorial-preload.spec.ts）は移植していない。
+ *   `PRELOAD_IMAGES` の先読みは `expo-image` のキャッシュへ decode 済み画像を載せるだけで、
+ *   Detox からその状態を読む API が無い（web の `performance.getEntriesByType("resource")` に
+ *   相当するものも、描画ピクセルを判定する手段も無い）。
+ *   `TutorialPage` の <Image> に testID を足しても言えるのは「要素が存在する」ことだけで、
+ *   **先読みブロックを削除しても同じく緑になる**（= 感度ゼロ）ため検証として成立しない。
+ *   #1031 B1/B3 と同じ判断で、観測不能な検証は web 側へ寄せ、ネイティブは
+ *   「チュートリアルが表示され、操作でき、完了後は再表示されない」までを検証範囲とする。
+ *   Detox に画像の描画結果を判定する手段が入ったら再検討すること
  * - **現在地取得**（e2e-web の current-location.spec.ts）は移植していない。
  *   「拒否」「タイムアウト」の再現には起動時の権限設定を spec ごとに切り替える必要があるが、
  *   fixtures/e2e.ts の `platformLaunchOptions()` は権限を常に付与する固定実装のため、
@@ -257,6 +268,32 @@ export class SearchScreen {
 	}
 
 	/**
+	 * 検索ボタンを **待機を挟まずに** 連打する（#1084 P1/P2）。
+	 *
+	 * ⚠️ `submit()` の連続呼び出しでは連打にならない。Android は Detox の同期機構が有効で、
+	 * 1 発目のあと画面遷移とネットワークの完了を待ってから 2 発目が飛ぶため、
+	 * 連打事故が起きる脆弱な窓を確実に外してしまう（詳細は `multiTapWhenPresent`）。
+	 *
+	 * @param times 連打回数。遷移が起きるケースでは 2 に留めること
+	 *              （3 発目以降は遷移後の画面の同じ座標へ落ちる）
+	 */
+	async submitRapid(times = 2): Promise<void> {
+		await multiTapWhenPresent(this.submitButton, times);
+	}
+
+	/**
+	 * チュートリアルの「つぎへ」を **待機を挟まずに** 連打する（#1084 P3）。
+	 *
+	 * シート内の要素なので TUTORIAL_INDEX を必ず渡す
+	 * （Android では TrueSheet の中身が常に 2 つの View に一致する）。
+	 *
+	 * @param times 連打回数
+	 */
+	async tutorialNextRapid(times = 3): Promise<void> {
+		await multiTapWhenPresent(this.tutorialNextButton, times, DEFAULT_TIMEOUT, SearchScreen.TUTORIAL_INDEX);
+	}
+
+	/**
 	 * チュートリアルが自動表示されていることを検証する。
 	 * ja-JP かつ未視聴（AsyncStorage の `search_tutorial_seen_v1` が未設定）のときだけ成立する。
 	 */
@@ -266,6 +303,43 @@ export class SearchScreen {
 		// iOS では 2 分待っても toBeVisible が成立しなかった（run 30432596949）。
 		// ボタンなら「チュートリアルが出ていて操作できる」という検証したい事実と 1:1 で対応する
 		await waitUntilVisible(this.tutorialNextButton, timeout, SearchScreen.TUTORIAL_INDEX);
+	}
+
+	/**
+	 * チュートリアルが **操作できる状態にある**ことを検証する（#1084 P3）。
+	 *
+	 * プライマリ CTA は単一のボタンで、testID だけが `currentPage` から導出される
+	 * （`isLastPage ? "search-tutorial-finish" : "search-tutorial-next"`）。連打しても
+	 * 「つぎへ」「はじめよう」のちょうど一方が見えていることを不変条件として使う。
+	 *
+	 * ⚠️ #1086 これは **「currentPage がページ範囲を外れたこと」の検知にはならない**。
+	 * 範囲外でも `isLastPage` は false になって「つぎへ」が描画され続け、`currentConfig` も
+	 * `?? tutorialPages[0]` でフォールバックするため件数は 1 のまま通る（そもそも
+	 * `handleNextPage` が `Math.min` でクランプしており範囲外になり得ない）。
+	 * ここで検知できるのは **「シートが閉じた」「CTA ごと消えた/二重になった」** という壊れ方だけ。
+	 *
+	 * ⚠️ #1027 「存在しない」ではなく「見えている」で判定する（TrueSheet はシートの内容を
+	 * ツリーへ残すことがあり、存在での判定はプラットフォーム差に巻き込まれる）。
+	 *
+	 * #1086 「どちらかが見えるまで待つ → 排他を確認する」の順にしている。先に「つぎへ」だけを
+	 * 固定時間待つ書き方だと、連打で最終ページへ到達しているケースで毎回その待ち時間を捨てることになる。
+	 */
+	async expectTutorialOperable(): Promise<void> {
+		let nextShown = false;
+		let finishShown = false;
+
+		await waitUntil(
+			async () => {
+				nextShown = await visibleNow(this.tutorialNextButton, 1_000, SearchScreen.TUTORIAL_INDEX);
+				finishShown = await visibleNow(this.tutorialFinishButton, 1_000, SearchScreen.TUTORIAL_INDEX);
+				return nextShown || finishShown;
+			},
+			{
+				description: "連打後にチュートリアルのプライマリ CTA（つぎへ / はじめよう）が見えていること",
+			},
+		);
+
+		assert.equal(nextShown !== finishShown, true, "連打後にチュートリアルのプライマリ CTA が二重になっている");
 	}
 
 	/**
@@ -291,10 +365,23 @@ export class SearchScreen {
 	 * 最終ページのプライマリ CTA「はじめよう」は現在地取得（OS の位置情報アクセス）を伴うため、
 	 * e2e-web と同じくセカンダリ CTA「あとで」で完了させる。どちらも `markTutorialAsSeen()` を通る。
 	 *
+	 * ⚠️ #1086 開始条件を「つぎへ が見えること」にしてはいけない。プライマリ CTA は単一ボタンで
+	 * testID が `isLastPage ? "search-tutorial-finish" : "search-tutorial-next"` と切り替わるため、
+	 * **最終ページでは `search-tutorial-next` がツリーに存在しない**。連打テスト（P3）のように
+	 * 既に最終ページへ到達している状態でこれを呼ぶと、アプリは正しいのに 25 秒の
+	 * タイムアウトで落ちる（＝ プレス回数に依存する偽の赤）。
+	 * e2e-web の P3 が `if ((await tutorialNextButton.count()) === 0) break;` で扱っているのと同じ理屈で、
+	 * 開始条件は **「つぎへ / はじめよう のどちらかが見えること」** に緩める。
+	 *
 	 * @param maxPages ページ送りの上限（無限ループ防止。現在のページ数は 4）
 	 */
 	async completeTutorial(maxPages = 10): Promise<void> {
-		await waitUntilVisible(this.tutorialNextButton, DEFAULT_TIMEOUT, SearchScreen.TUTORIAL_INDEX);
+		await waitUntil(
+			async () =>
+				(await visibleNow(this.tutorialNextButton, 1_000, SearchScreen.TUTORIAL_INDEX)) ||
+				(await visibleNow(this.tutorialFinishButton, 1_000, SearchScreen.TUTORIAL_INDEX)),
+			{ description: "チュートリアルのプライマリ CTA（つぎへ / はじめよう）が表示されること" },
+		);
 
 		// #1031 【設計】§4-1: ページ送りは FlatList のスクロールアニメーションを伴う。
 		// プライマリ CTA の testID が「つぎへ」→「はじめよう」に切り替わることを毎回待ち合わせることで、

@@ -60,4 +60,37 @@ describeJapaneseLocale("検索チュートリアル（初回起動）", () => {
 		await launchAppWithSession({ as: "anon", tutorialSeen: "device" });
 		await search.expectTutorialAbsent();
 	});
+
+	// ─ テストケース: 「つぎへ」を連打してもチュートリアルが壊れない（#1084 P3） ─
+	// 手順:
+	//   1. 「未視聴」を起動引数でシードして起動し直す（直前のテストが完了フラグを立てているため、
+	//      beforeAll の起動をそのまま引き継ぐとチュートリアルが出ない）
+	//   2. 1 ページ目で「つぎへ」を 3 連打する（multiTap = 待機を挟まない 1 アクション）
+	//   3. シートが開いたままで、プライマリ CTA が「つぎへ」「はじめよう」のちょうど一方だけである
+	//      ことを検証（= 連打でシートが閉じたり、CTA ごと描画が壊れたりしていない）
+	//   4. 連打後も操作が続けられ、最後まで進めて完了できることを検証
+	//      （3 連打で最終ページに着いていても completeTutorial() は成立する。#1086 で
+	//        「つぎへ」の可視を無条件に待つ実装をやめ、プレス回数に依存しない形にした）
+	// 補足: **設計（#1084 §3-2）の「3 連打 → 2 ページ目に居る」は採用していない**。
+	//       この前提は「全タップが同じ fromIndex を読む」＝ タップの間に React の再描画が入らない
+	//       ことを要求するが、multiTap が 1 ネイティブアクションでも RN 側は 1 プレスずつ
+	//       JS イベントとして処理するため成立するとは限らない（設計 §8 未確定 1 のまま）。
+	//       e2e-web では同じ前提が **実測で崩れた**（3 連打で 2〜3 ページ進み、3 回中 2 回落ちた）。
+	//       そこで web と同じく **プレスが何回処理されても必ず成立する不変条件** に置き換えている
+	//       （#1086: この不変条件が検知できるのは「シートが閉じた」「CTA ごと消えた/二重になった」
+	//        であって、「currentPage がページ範囲を外れた」ではない。詳細は
+	//        SearchScreen.expectTutorialOperable のコメントを参照）。
+	//       また最終ページのプライマリ CTA は「現在地を利用する」で、押すと現在地取得を伴い
+	//       シートを閉じるため、設計の「最終ページで multiTap(3) → finish が出たまま」は成立しない
+	it("「つぎへ」を連打してもチュートリアルが壊れない", async () => {
+		await launchAppWithSession({ as: "anon", tutorialSeen: false, waitForReady: false });
+		await search.expectTutorialShown(LAUNCH_TIMEOUT);
+
+		await search.tutorialNextRapid(3);
+		await search.expectTutorialOperable();
+
+		// 連打後も操作が続けられる（残りのページを通常タップで進み切り、「あとで」で完了できる）
+		await search.completeTutorial();
+		await search.expectLoaded();
+	});
 });
