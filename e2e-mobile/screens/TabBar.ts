@@ -1,4 +1,11 @@
-import { DEFAULT_TIMEOUT, by, element, existsNow, waitUntilVisible } from "../fixtures/e2e";
+import {
+	DEFAULT_TIMEOUT,
+	by,
+	element,
+	existsNow,
+	tapWhenVisible,
+	waitUntilVisible,
+} from "../fixtures/e2e";
 
 /**
  * 🧭 ボトムタブバーの Screen Object（e2e-web の pages/TabBar.ts に対応）
@@ -29,22 +36,22 @@ export class TabBar {
 
 	/** さがすタブへ遷移する */
 	async gotoSearch(): Promise<void> {
-		await element(this.searchTab).tap();
+		await tapWhenVisible(this.searchTab);
 	}
 
 	/** レビュータブへ遷移する */
 	async gotoReview(): Promise<void> {
-		await element(this.reviewTab).tap();
+		await tapWhenVisible(this.reviewTab);
 	}
 
 	/** マイページタブへ遷移する */
 	async gotoProfile(): Promise<void> {
-		await element(this.profileTab).tap();
+		await tapWhenVisible(this.profileTab);
 	}
 
 	/** お知らせタブへ遷移する（ログイン済みユーザー専用） */
 	async gotoNotifications(): Promise<void> {
-		await element(this.notificationsTab).tap();
+		await tapWhenVisible(this.notificationsTab);
 	}
 
 	/**

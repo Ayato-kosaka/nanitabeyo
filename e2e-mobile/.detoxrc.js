@@ -28,10 +28,20 @@ module.exports = {
 		// spec からは必ず fixtures/e2e.ts 経由で import させ、グローバルの `expect` が
 		// 「型は Jest・実体は Detox」という食い違いを起こさないようにする（@types/jest 採用との整合）
 		init: { exposeGlobals: false },
-		// #1030 【設計】3-1: 起動は fixtures の launchAppWithSession() が
-		// セッション注入・ロケール・権限まで面倒を見るため、Detox の自動起動は使わない。
-		// 自動起動されると launchArgs 無しの起動が先に走り、**匿名サインインのクォータを余計に消費する**
-		launchApp: "manual",
+		// #1027 【重要】launchApp は既定の "auto" のまま使う。"manual" にしてはいけない。
+		//
+		// Detox の `launchApp: "manual"` は「自動起動をスキップする」設定ではなく
+		// 「**あなたが Xcode / Android Studio から手動でアプリを起動する**」ためのモードで、
+		// Detox は起動引数を stdout に出力したうえで `Press any key to continue...` と
+		// キー入力待ちに入る。GitHub Actions のような非 TTY 環境では
+		// `TypeError: process.stdin.setRawMode is not a function` で全 spec が即死する。
+		// （加えて、launchArgs = refresh_token がログへ平文出力されてしまう）
+		// Android でも「インストールがスキップされ No instrumentation runner found」となる。
+		//
+		// 代償として init 時に launchArgs 無しの自動起動が 1 回走り、
+		// **匿名サインインのクォータを run あたり 1 消費する**（30 回/時/IP のうち 1）。
+		// ただしセッションは AsyncStorage に永続化され spec 間で引き継がれるため
+		// 消費は run ごとに 1 回で頭打ちになり、許容範囲と判断した（#1030 3-1 の見積内）。
 	},
 
 	// #1030 【設計】レビュー B-2: launchArgs には refresh_token（長期資格情報）が載る。
@@ -56,6 +66,14 @@ module.exports = {
 			build:
 				"cd ../app-expo/android && ./gradlew :app:assembleRelease :app:assembleAndroidTest -DtestBuildType=release -PreactNativeArchitectures=x86_64",
 		},
+		"ios.release": {
+			type: "ios.app",
+			binaryPath: "../app-expo/ios/build/Build/Products/Release-iphonesimulator/nanitabeyo.app",
+			// #1027 【設計】シミュレータ用 Release ビルド（署名不要）。derivedDataPath を ios/build に
+			// 固定して binaryPath と対応させる（事前に `expo prebuild --platform ios` + `pod install` が必要）
+			build:
+				"cd ../app-expo/ios && xcodebuild -workspace nanitabeyo.xcworkspace -scheme nanitabeyo -configuration Release -sdk iphonesimulator -derivedDataPath build",
+		},
 	},
 	devices: {
 		emulator: {
@@ -66,11 +84,23 @@ module.exports = {
 				avdName: process.env.DETOX_AVD_NAME || "e2e_avd",
 			},
 		},
+		simulator: {
+			type: "ios.simulator",
+			device: {
+				// #1027 【設計】CI は Xcode 26.2（eas.json の EAS ビルドと同一）固定のため、同梱ランタイムに
+				// 存在する機種を指定する。ローカルで別機種を使う場合は DETOX_IOS_DEVICE で上書きする
+				type: process.env.DETOX_IOS_DEVICE || "iPhone 16",
+			},
+		},
 	},
 	configurations: {
 		"android.emu.release": {
 			device: "emulator",
 			app: "android.release",
+		},
+		"ios.sim.release": {
+			device: "simulator",
+			app: "ios.release",
 		},
 	},
 };

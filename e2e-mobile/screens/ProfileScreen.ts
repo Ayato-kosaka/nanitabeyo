@@ -1,4 +1,12 @@
-import { DEFAULT_TIMEOUT, by, element, existsNow, waitUntilVisible } from "../fixtures/e2e";
+import {
+	DEFAULT_TIMEOUT,
+	by,
+	element,
+	existsNow,
+	tapWhenVisible,
+	waitUntilExists,
+	waitUntilVisible,
+} from "../fixtures/e2e";
 
 /**
  * 👤 マイページの Screen Object（e2e-web の pages/ProfilePage.ts に対応）
@@ -38,19 +46,37 @@ export class ProfileScreen {
 		await waitUntilVisible(this.loginButton, timeout);
 	}
 
-	/** 保存した投稿グリッドが表示されていることを検証する */
+	/**
+	 * 保存した投稿グリッドが描画されていることを検証する。
+	 *
+	 * #1027 【バグ】ここは `toBeVisible` ではなく **`toExist` で見る**。
+	 * グリッドの実体は `FlatList`（`ListEmptyComponent` 付き）で、保存が 0 件のテストユーザーでは
+	 * 中身が空になる。iOS の `toBeVisible` は「要素の面積の 75% 以上が見えていること」を要求するため、
+	 * 空リストのように面積を持たない要素は **描画されていても不可視と判定される**
+	 * （run 30432596949 の iOS で save-post-tab-grid / review-tab-grid が実際にこれで落ちた）。
+	 * この検証の意図は「保存タブが選択されている」ことなので、存在で判定すれば十分。
+	 */
 	async expectSavedPostsGridVisible(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
-		await waitUntilVisible(this.savedPostsGrid, timeout);
+		await waitUntilExists(this.savedPostsGrid, timeout);
+	}
+
+	/**
+	 * ログインボタンが存在するかを **待たずに** 判定する。
+	 * ログイン済みでは `!isGuest` によりボタンごとレンダリングされないため、
+	 * 「ゲスト表示になっていないこと」の検証に使う（hasReviewsGrid() と対になる判定）。
+	 */
+	async hasLoginButton(): Promise<boolean> {
+		return existsNow(this.loginButton);
 	}
 
 	/** ログインボタンをタップしてログインモーダルを開く（匿名ユーザーのみ） */
 	async openLoginModal(): Promise<void> {
-		await element(this.loginButton).tap();
+		await tapWhenVisible(this.loginButton);
 	}
 
 	/** 歯車ボタンをタップして設定画面へ遷移する（#1031 確定: URL 直遷移ではなく実 UI 導線のタップ） */
 	async gotoSettings(): Promise<void> {
-		await element(this.settingsButton).tap();
+		await tapWhenVisible(this.settingsButton);
 	}
 
 	/**

@@ -5,14 +5,23 @@
 	"description": "Detox によるモバイルネイティブ (iOS/Android) × api-development の E2E テスト",
 	"scripts": {
 		"build:android": "detox build --configuration android.emu.release",
+		"build:ios": "detox build --configuration ios.sim.release",
 		"test": "detox test --configuration android.emu.release",
 		"test:android": "detox test --configuration android.emu.release",
 		"test:smoke:android": "detox test --configuration android.emu.release -- --testPathPattern 'tests/smoke/'",
 		"test:mutation:android": "RUN_MUTATION=1 detox test --configuration android.emu.release -- --testPathPattern 'tests/mutation/'",
 		"test:all:android": "RUN_MUTATION=1 detox test --configuration android.emu.release",
-		"test:ci:android": "detox test --configuration android.emu.release --headless --artifacts-location artifacts",
-		"test:ci:smoke:android": "detox test --configuration android.emu.release --headless --artifacts-location artifacts -- --testPathPattern 'tests/smoke/'",
-		"typecheck": "tsc --noEmit"
+		"test:ci:android": "detox test --configuration android.emu.release --retries 1 --headless --take-screenshots all --artifacts-location artifacts",
+		"test:ci:smoke:android": "detox test --configuration android.emu.release --retries 1 --headless --take-screenshots all --artifacts-location artifacts -- --testPathPattern 'tests/smoke/'",
+		"test:ios": "detox test --configuration ios.sim.release",
+		"test:smoke:ios": "detox test --configuration ios.sim.release -- --testPathPattern 'tests/smoke/'",
+		"test:mutation:ios": "RUN_MUTATION=1 detox test --configuration ios.sim.release -- --testPathPattern 'tests/mutation/'",
+		"test:all:ios": "RUN_MUTATION=1 detox test --configuration ios.sim.release",
+		"test:ci:ios": "detox test --configuration ios.sim.release --retries 1 --take-screenshots all --artifacts-location artifacts",
+		"test:ci:smoke:ios": "detox test --configuration ios.sim.release --retries 1 --take-screenshots all --artifacts-location artifacts -- --testPathPattern 'tests/smoke/'",
+		"typecheck": "tsc --noEmit",
+		"test:ci:mutation:android": "RUN_MUTATION=1 detox test --configuration android.emu.release --headless --take-screenshots all --artifacts-location artifacts -- --testPathPattern 'tests/mutation/'",
+		"test:ci:mutation:ios": "RUN_MUTATION=1 detox test --configuration ios.sim.release --take-screenshots all --artifacts-location artifacts -- --testPathPattern 'tests/mutation/'"
 	},
 	"devDependencies": {
 		"@supabase/supabase-js": "^2.49.4",

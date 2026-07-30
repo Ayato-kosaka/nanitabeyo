@@ -371,8 +371,13 @@ export default function SettingsScreen() {
 			</SafeAreaView>
 
 			{/* Legal ドキュメントモーダル */}
+			{/* #1027 【設計】Detox からモーダル表示を検証できるよう testID を追加（LoginbackModal と同じ形） */}
 			<LegalDocumentModal>
-				{selectedLegalDocument && <LegalDocument documentType={selectedLegalDocument} />}
+				{selectedLegalDocument && (
+					<View testID="legal-document-modal">
+						<LegalDocument documentType={selectedLegalDocument} />
+					</View>
+				)}
 			</LegalDocumentModal>
 		</LinearGradient>
 	);

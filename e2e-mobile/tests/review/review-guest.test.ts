@@ -1,4 +1,5 @@
-import { by, element, expect, launchAppWithSession, waitUntilVisible } from "../../fixtures/e2e";
+import { element, expect, launchAppWithSession } from "../../fixtures/e2e";
+import { LoginModal } from "../../screens/LoginModal";
 import { ReviewScreen } from "../../screens/ReviewScreen";
 import { TabBar } from "../../screens/TabBar";
 
@@ -54,8 +55,9 @@ describe("レビュータブ（匿名ユーザー）", () => {
 
 		await reviewScreen.tapGuestLogin();
 
-		await waitUntilVisible(by.id("login-modal"));
-		await expect(element(by.id("login-google-button"))).toBeVisible();
-		await expect(element(by.id("login-apple-button"))).toBeVisible();
+		// #1027 コンテナ（login-modal）は観測点に使えない。ぼかし背景の構成のため iOS の可視判定を
+		// 満たせず、モーダルが完全に開いていてもタイムアウトする（screens/LoginModal.ts のコメント参照）。
+		// 判定は Screen Object に集約してあるので、ここでもそれを使う
+		await new LoginModal().expectOpened();
 	});
 });

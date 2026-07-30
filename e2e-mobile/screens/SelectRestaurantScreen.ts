@@ -1,4 +1,10 @@
-import { by } from "../fixtures/e2e";
+import {
+	DEFAULT_TIMEOUT,
+	by,
+	element,
+	tapWhenVisible,
+	waitUntilVisible,
+} from "../fixtures/e2e";
 
 /**
  * 📍 レビュー投稿用の「お店選択」Screen Object。
@@ -26,4 +32,51 @@ export class SelectRestaurantScreen {
 	 * （`handleReviewButtonPress`、`SelectedRestaurantDetails.tsx:68-88`）。
 	 */
 	readonly postPhotoButton = by.id("restaurant-detail-post-photo-button");
+
+	/**
+	 * 店名・エリア検索の入力欄。
+	 *
+	 * この画面の `LocationAutocomplete` は `testID` を渡していないため、コンポーネント既定の
+	 * `location-autocomplete` 接頭辞になる（検索画面側は `search-location-autocomplete` を渡しており別物）。
+	 */
+	readonly searchInput = by.id("location-autocomplete-input");
+
+	/** 検索候補（0 始まり） */
+	suggestion(index: number): Detox.NativeMatcher {
+		return by.id(`location-autocomplete-suggestion-${index}`);
+	}
+
+	/** 店名・エリア検索の入力欄が表示されるまで待つ */
+	async expectLoaded(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
+		await waitUntilVisible(this.searchInput, timeout);
+	}
+
+	/**
+	 * 店名で検索する。
+	 *
+	 * #1031 【設計】`typeText` ではなく `replaceText` を使う（Android の Detox は Espresso の
+	 * `typeTextIntoFocusedView` を使うため ASCII 以外を入力できない）。
+	 * 候補パネルは「入力あり && フォーカス中」で開くため、入力前に必ずタップしてフォーカスを与える。
+	 */
+	async searchRestaurant(query: string): Promise<void> {
+		await tapWhenVisible(this.searchInput);
+		await element(this.searchInput).replaceText(query);
+	}
+
+	/**
+	 * 検索候補を選ぶ。
+	 *
+	 * ⚠️ 飲食店カテゴリの候補を選ぶと `createAndOpenRestaurant()` が走り、
+	 * **dev DB に restaurants レコードが作られる**（@mutation の領分）。
+	 */
+	async selectSuggestion(index: number, timeout: number = DEFAULT_TIMEOUT): Promise<void> {
+		await waitUntilVisible(this.suggestion(index), timeout);
+		await tapWhenVisible(this.suggestion(index));
+	}
+
+	/** 選択したお店の詳細で「写真・動画を投稿」をタップしてレビューフォームへ進む */
+	async gotoReviewForm(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
+		await waitUntilVisible(this.postPhotoButton, timeout);
+		await tapWhenVisible(this.postPhotoButton);
+	}
 }

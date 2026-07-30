@@ -2,8 +2,9 @@
 
 `app-expo` を `expo prebuild` + Gradle / xcodebuild でネイティブビルドし、Android エミュレータ / iOS シミュレータ上で、Cloud Run の `api-development` に接続して実環境相当の E2E テストを行うワークスペースです。方針は `e2e-web/`(Playwright)を踏襲しています。
 
-> 現在の実装範囲: **Android の起動スモーク + 共通基盤(fixtures / Tier 機構 / 認証セッション注入の呼び出し側)**。
-> iOS 構成・シナリオ拡充・アプリ側の注入フックは Sub-issue で進行中(#1027 / #1028 / #1029 / #1030 / #1031)。
+> 現在の実装範囲: **Android / iOS 両対応。共通基盤(fixtures / Tier 機構 / 認証セッション注入)+ Tier 1〜2 のシナリオ**
+> (smoke / navigation / search / profile / review)。認証済み(ログイン済み)シナリオと `@mutation` の拡充は後続。
+> 設計と決定の経緯は #1027 とその Sub-issue(#1028 / #1029 / #1030 / #1031)を参照。
 
 ## 構成の全体像
 
@@ -51,7 +52,9 @@ cd app-expo && pnpx eas-cli env:pull development --non-interactive --path .env &
 cp e2e-mobile/.env.example e2e-mobile/.env
 ```
 
-## 実行方法(Android)
+## 実行方法
+
+### Android
 
 ```bash
 # 1. ネイティブプロジェクト生成(E2E_DETOX=1 で Detox 用 config plugin を有効化)
@@ -60,7 +63,10 @@ cd app-expo && E2E_DETOX=1 pnpm exec expo prebuild --platform android --no-insta
 # 2. release APK + androidTest APK をビルド(アプリ変更後は再実行が必要)
 pnpm --filter e2e-mobile build:android
 
-# 3. テスト実行(AVD が起動していること。名前が e2e_avd 以外なら DETOX_AVD_NAME で指定)
+# 3. エミュレータのロケールを ja-JP に固定する(1 回だけ。ランタイム再起動を伴うため数十秒かかる)
+adb shell setprop persist.sys.locale ja-JP && adb shell setprop ctl.restart zygote
+
+# 4. テスト実行(AVD が起動していること。名前が e2e_avd 以外なら DETOX_AVD_NAME で指定)
 pnpm test:e2e:mobile                          # ルートから(= pnpm --filter e2e-mobile test)
 
 # e2e-mobile ディレクトリ内での実行バリエーション
@@ -70,9 +76,40 @@ pnpm test:mutation:android                    # Tier 3(tests/mutation/)のみ �
 pnpm test:all:android                         # 全件(@mutation 含む)
 ```
 
-- prebuild と native ビルドは `detox test` に**含めていない**(毎回のリビルドを避けるため)。アプリを変更したら手順 1〜2 をやり直すこと
-- ローカルの AVD 名が異なる場合: `DETOX_AVD_NAME=<AVD名> pnpm test:android`(または `e2e-mobile/.env` に記載)
+### iOS
+
+```bash
+# 1. ネイティブプロジェクト生成 + Pod install
+cd app-expo && E2E_DETOX=1 pnpm exec expo prebuild --platform ios --no-install && cd ios && pod install && cd ../..
+
+# 2. シミュレータ用 Release ビルド(署名不要)
+pnpm --filter e2e-mobile build:ios
+
+# 3. テスト実行(機種は既定 iPhone 16。変更する場合は DETOX_IOS_DEVICE で指定)
+pnpm --filter e2e-mobile test:ios             # Android と同じく :smoke / :mutation / :all もある
+```
+
+- 事前に `brew tap wix/brew && brew trust wix/brew && brew install applesimutils` が必要(Detox 公式手順)
+- **CocoaPods は 1.15.2 を使うこと**。runner 既定の 1.17.0 は pnpm monorepo で `pathname contains null byte` が断続発生する(CocoaPods#12798 / #12866)
+- iOS はロケール・権限を `launchApp` 側で固定するため、手動設定は不要
+
+### 共通の注意
+
+- prebuild と native ビルドは `detox test` に**含めていない**(毎回のリビルドを避けるため)。アプリを変更したらビルド手順をやり直すこと
 - 失敗時のスクリーンショットは `e2e-mobile/artifacts/` に出力される
+- **iOS は Detox の同期機構を無効化している**(`fixtures/e2e.ts` の `platformLaunchOptions`)。メインキューに常駐する作業があり同期が永遠にアイドルにならないため、待機は `waitFor` のポーリングに委ねている(恒久対応は #1040)
+
+### Screen Object を書くときの必須ルール(#1027 で実測した落とし穴)
+
+| ルール | 理由 |
+| --- | --- |
+| **タップは `tapWhenVisible()` を使う**。`element(...).tap()` を直接呼ばない | iOS は同期機構を切っているため、描画完了前にタップが飛んで "No elements found" になる(run 30432596949 の `profile-settings-button`)。Android は同期機構が吸収するので**片方でしか出ない** |
+| **`FlatList` の testID は `toExist` で見る**。`toBeVisible` を使わない | `toBeVisible` は「面積の 75% 以上が可視」を要求する。データ 0 件のリストは面積を持たず、**描画されていても不可視と判定される**(iOS の `save-post-tab-grid` / `review-tab-grid`) |
+| **「包むだけの View」を観測点にしない**。実体のあるボタン等を見る | `search-tutorial-overlay` は Android で常に 2 view に一致し(TrueSheet の二重マウント)、iOS では表示中でも `toBeVisible` が成立しなかった |
+| **複数一致しうる要素は index を明示する**。ただし `atIndex(0)` = 見えているものとは限らない | カルーセルは前後のカードも同時にマウントするため、添字 0 が画面外のカードになりうる(`topics-choose-button`)。可視な添字を走査して選ぶこと |
+| **スクロールは `whileElement(...).scroll()`**。要素を掴んだ `swipe` に頼らない | `swipe` は掴んだ要素の高さの範囲内でしか指を動かせず、小さなタイルを起点にすると何回スワイプしても画面下部へ届かない |
+| **文字入力の後は端末のキーボードが邪魔をしうる** | Android は IME をまとめて無効化(`scripts/setup-android-locale.sh`)、iOS はハードウェアキーボード接続扱いにしてソフトウェアキーボードを出さない(`scripts/setup-ios-simulator.sh`)。入力は一貫して `replaceText` なのでキーボードは 1 つも要らない |
+| **入れ子の `<Text>` に付けた testID はネイティブでは消える** | React Native は入れ子 Text を親の TextView へ畳み込むため、対応するネイティブ View が存在しない(`login-privacy-link`)。web では span として実在するので e2e-web 側では使える |
 
 ## テスト 3 層構造(CI との棲み分け)
 
@@ -80,9 +117,65 @@ pnpm test:all:android                         # 全件(@mutation 含む)
 | ------ | ------------------------------------------------------------------------------------------- | ------------------------------------------ | ----------------------------------------------------- |
 | Tier 1 | `tests/smoke/`                                                                              | 起動・タブ導線の最小確認                   | 夜間 CI + 手動実行。将来の PR ゲート候補              |
 | Tier 2 | `tests/navigation/` `tests/search/` `tests/review/` `tests/profile/` `tests/authenticated/` | 機能テスト全般(実 API 読み取り)            | 夜間 CI                                               |
-| Tier 3 | `tests/mutation/`                                                                           | dev DB への書き込み(いいね/保存・レビュー) | **既定では実行されない**。`RUN_MUTATION=1` で明示実行 |
+| Tier 3 | `tests/mutation/`                                                                           | dev DB への書き込み(いいね/保存・レビュー投稿) | **既定では実行されない**。`RUN_MUTATION=1` で明示実行 |
+
+> **レビュー投稿テストと OS フォトピッカー**(#1031 B6)
+> `ReviewForm` は画面に入った直後に OS のフォトピッカー(`selectMedia`)を開く。フォトピッカーは
+> **アプリ外プロセス**で動くため Detox からは操作できず、当初は投稿フローの自動化を見送っていた。
+> 現在は **E2E ビルドに限りメディア選択を固定画像へ差し替えるフック**を用意して解決している:
+>
+> - 実装: `app-expo/lib/e2e/selectMediaStub.ts` / 差し替え先: `selectMediaStub.noop.ts`
+> - 有効化: ビルド時に `EXPO_PUBLIC_E2E_MEDIA_HOOK=1`(e2e-mobile-test.yml の Detox build ステップ)
+> - 本番混入ガードはセッション注入フック(#1030)と同一方式の二重構え:
+>   1. `metro.config.js` の `resolveRequest` が **解決後の実ファイルパス**で判定して noop へ差し替える
+>   2. `scripts/assert-no-e2e-hook.mjs` が本番相当バンドルに sentinel が無いことを検査する
+>   3. 加えて EAS 経路(`EAS_BUILD`)でフラグが立っていたら metro が hard fail する
+>
+> **フォームの本文入力欄が出てこない場合は、まずビルド時の `EXPO_PUBLIC_E2E_MEDIA_HOOK` を疑うこと。**
+
+> **検索チュートリアルは「閉じる」ではなく「シードする」**(#1027)
+> ja-JP の初回起動では検索チュートリアル(`TutorialBottomSheet`)が自動的に開く。実体は TrueSheet で、
+> Android では **別ウィンドウの Dialog** として最前面に出るため、開いている間は背後のタップがシートに吸われる。
+>
+> 当初は各 spec の前処理で「出ていたら閉じる」で吸収していたが、これは原理的に競合が残る:
+>
+> - シートが開くのは AsyncStorage の読み込み完了後で、**タブバーが見えた数百 ms 後に遅れて被さる**
+> - Android の Espresso は「別ウィンドウに覆われている」ことを可視性判定へ反映しない。
+>   つまりシートが開いていてもタブバーは `toBeVisible()` を満たし、**起動完了と誤判定する**
+>
+> 結果「起動完了を待ち切ったのに直後のタップだけが落ちる」が消せず、run 30429560108 では 12 suite 中 10 suite が
+> この経路で失敗した。現在は **e2e-web と同じシード方式**へ揃えている:
+>
+> - 実装: `app-expo/lib/e2e/tutorialSeed.ts` / 差し替え先: `tutorialSeed.noop.ts`
+> - 有効化: ビルド時に `EXPO_PUBLIC_E2E_TUTORIAL_HOOK=1`。本番混入ガードは上記 3 点と同一方式
+> - 使い方: `launchAppWithSession({ as, tutorialSeen })`
+>   - `true`(既定) … 視聴済み扱い = チュートリアルは開かない
+>   - `false` … 未視聴扱い = 初回起動の自動表示を再現する(`tests/search/search-tutorial.test.ts`)
+>   - `"device"` … 起動引数を渡さず AsyncStorage の実データを読む。**永続化そのものを検証する再起動で使う**
+>     (ここで既定値のままにすると、シードした値を読み返すだけの偽の緑になる)
+> - 実際に渡す値は `"seen"` / `"unseen"`。**`"1"` や `"true"` を使ってはいけない**
+>   (react-native-launch-arguments は受け取った文字列を 1 つずつ `JSON.parse` にかけ、成功したら型変換する。
+>   `"1"` は数値 1 になり、文字列比較が静かに外れる)
+>
+> **起動待ちが「チュートリアルが表示されています」というメッセージで失敗する場合は、
+> ビルド時の `EXPO_PUBLIC_E2E_TUTORIAL_HOOK` を疑うこと。**
 
 **ディレクトリ = Tier を正とする。** `@smoke` / `@mutation` はレポート上の可読性のため `describe` 名にも併記するが、フィルタの正には使わない(タグ文字列とディレクトリの二重管理を避けるため)。
+
+### リトライ方針
+
+CI のスクリプト(`test:ci:*`)だけ `detox test --retries 1` を付けている。ローカルは付けない(fail fast)。
+
+- **なぜ必要か**: 実 API 依存の spec(トピック提案フロー等)は、AI が選ぶ料理・店舗によっては
+  dev 環境側のデータ不備(画像未処理等)で結果フィード取得が 500 になることが実測されている。
+  アプリ側の既知の不安定要素で、このテストの実装不備ではない。e2e-web も同じ理由で
+  `topics-flow` / `reactions` に `retries: 2` を設定している
+- **なぜ spec 単位ではなく全体なのか**: e2e-web(Playwright)は spec 単位でリトライ数を設定できるが、
+  **Detox のリトライは失敗した spec ファイルを丸ごと再実行する粒度**しか無い。
+  `jest.retryTimes()` で spec 単位にすると `beforeAll` が再実行されないため、
+  「検索を beforeAll で 1 回だけ行う」構成の spec では再試行の意味が無くなる
+- **@mutation には付けない**: 再試行すると dev DB への書き込みが二重に走りうるため。
+  Tier 3 は手動実行なので、落ちたら中身を見て判断する
 
 Tier 3 の安全弁は **2 段構え**(#1028 §6-3 / #1030 レビュー M-3):
 
@@ -93,9 +186,17 @@ Tier 3 の安全弁は **2 段構え**(#1028 §6-3 / #1030 レビュー M-3):
 
 ## CI(GitHub Actions)
 
-| ワークフロー          | トリガー          | 内容                                                                                           |
-| --------------------- | ----------------- | ---------------------------------------------------------------------------------------------- |
-| `e2e-mobile-test.yml` | workflow_dispatch | prebuild → Gradle(release + androidTest)→ エミュレータ上で Detox 実行。artifact をアップロード |
+| ワークフロー           | トリガー                          | 内容                                                                                                                                 |
+| ---------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `e2e-mobile-test.yml`  | 毎晩 JST 4:00 + workflow_dispatch | Android(ubuntu + KVM)と iOS(macos-15 / Xcode 26.2)を独立ジョブで実行。prebuild → ネイティブビルド → Detox 実行 → artifact 保存(7 日) |
+| `evidence-collect.yml` | workflow_dispatch                 | 指定 run の artifact をエビデンスブランチへ回収する補助ワークフロー(Artifact へ直接アクセスできない環境向け)                         |
+
+`workflow_dispatch` の入力:
+
+- `platform`: `all`(既定)/ `android` / `ios`
+- `scope`: `tier1-2`(既定)/ `tier1`(smoke のみ)/ `mutation`(**dev DB へ書き込む**)
+
+夜間 cron は入力が空になるため `platform=all` / `scope=tier1-2` へフォールバックする。
 
 必要な GitHub Secrets(リポジトリレベル。**e2e-web と共用で、新規 secret は追加しない**):
 
@@ -122,8 +223,9 @@ CI 側の要件(#1029 の受け入れ条件):
    ↓ process.env 経由でテストワーカーへ受け渡し(**トークンはディスクへ書かない**)
 [各 spec]
    launchAppWithSession({ as: "anon" | "authenticated" })
-     → device.launchApp({ launchArgs: { e2eAccessToken, e2eRefreshToken, e2eSessionOwner } })
-     → アプリ側フックが setSession() する(app-expo 側。**別 PR で実装中**)
+     → device.launchApp({ launchArgs: {
+          e2eAccessToken, e2eRefreshToken, e2eSessionOwner, e2eExpectedUserId, e2eTutorialSeen } })
+     → アプリ側フック(app-expo/lib/e2e/injectTestSession.ts)が setSession() する
 [fixtures/globalTeardown.ts]
    signOut({ scope: "global" }) で発行したセッションを revoke
 ```
@@ -132,8 +234,10 @@ CI 側の要件(#1029 の受け入れ条件):
 - **`e2eSessionOwner` を渡すのが要点**(#1030 B-1)。アプリ側は「セッションの有無」ではなく
   **「期待ユーザーと現在ユーザーの一致」**で再注入を判断する。
   「匿名セッションが残っているせいで注入がスキップされ、認証済みのつもりのテストが匿名のまま緑になる」事故を防ぐため
-- **アプリ側フックが未実装の間**、launchArgs は単に無視される(アプリは通常どおり自前で匿名サインインする)。
-  渡す側の契約は確定済みなので、アプリ側 PR の合流で自動的に有効になる
+- **`e2eExpectedUserId` は必須**。アプリ側フックは一致判定ができない状態を契約違反として **起動時に fail-loud** させる。
+  トークンだけ渡しても起動できないので、`utils/sessionEnv.ts` は 3 つ揃っていなければ `null` を返す
+- **フックはビルド時に決まる**。`EXPO_PUBLIC_E2E_AUTH_HOOK=1` を付けずにビルドすると metro が noop 実装を焼き込み、
+  launchArgs は **黙って無視される**(= 認証済みテストが匿名のまま緑になる)。CI では Detox build ステップで設定している
 - **fail-loud**: 期待するセッションが用意できていない状態で `launchAppWithSession()` を呼ぶと例外になる。
   黙って通常起動へフォールバックしない(テストが緑のまま検証内容だけ嘘になるのを防ぐ)
 
@@ -144,7 +248,17 @@ CI 側の要件(#1029 の受け入れ条件):
 
 - **`globalTeardown` で `signOut({ scope: "global" })`**(globalSetup が途中で失敗した場合も、確立済みのセッションを revoke してから中断する)
 - **Detox の device log artifact は既定で無効**(`.detoxrc.js` の `artifacts.plugins.log: "none"`)。
-  logcat / Detox の debug log には launchArgs が載りうるため。収集したい場合は **launchArgs を渡さない run に限る**こと
+  logcat / Detox の debug log には launchArgs が載りうるため。収集したい場合は **launchArgs を渡さない run に限る**こと。
+  CI が代わりに集めているのは次の 2 つで、いずれもトークンを含まない:
+  - `artifacts/detox-run.log` … Detox/Jest の標準出力。GitHub Actions のジョブログは API から末尾しか取れず、
+    アプリが落ちると "Detox can't seem to connect to the test app(s)!" が数千行積もって肝心の失敗理由を押し出すため、
+    `scripts/run-detox-ci.sh` が全文を Artifact 側にも残している
+  - `artifacts/logcat-crash.log` … 失敗時のみ `adb logcat -b crash`。crash バッファはスタックトレース専用で
+    Intent extras(= launchArgs)を含まない。
+    ⚠️ 収集の判定に `command -v adb` を使ってはいけない。**GitHub の macOS ランナーにも Android SDK が入っている**ため
+    iOS ジョブでも真になり、端末が 1 台も繋がっていない状態の `adb logcat` は接続待ちで永久にブロックする
+    (run 30445542854 の iOS は、テスト自体は 31 秒で失敗していたのにここで 2.5 時間ハングし、
+    ジョブのタイムアウトで Artifact のアップロードにも到達しなかった)
 - **トークンをディスクへ書かない**(`process.env` のみ)。ログにも出さない
 
 ### テストユーザーの準備(1 回だけ)
@@ -175,8 +289,19 @@ Supabase の匿名サインインは **30 回/時/IP**、しかも **カスタ�
 | 項目                                                                      | 消費         |
 | ------------------------------------------------------------------------- | ------------ |
 | `globalSetup` の `signInAnonymously`                                      | 1            |
+| Detox の自動起動(`behavior.launchApp: "auto"`。後述)                      | 1            |
 | `tests/smoke/boot.test.ts`(**launchArgs なし起動**の唯一の例外)           | 1            |
 | ログアウト導線のテスト(`SIGNED_OUT` でアプリが自動的に匿名サインインする) | テスト本数分 |
+
+> **なぜ `behavior.launchApp: "manual"` にしないのか**
+> 「fixtures 側だけが起動を制御すれば自動起動の 1 消費を省ける」と考えて `manual` を試したが、
+> Detox の `manual` は「自動起動をスキップする」設定ではなく **「利用者が Xcode / Android Studio から自分で起動する」** モードで、
+> Detox は起動引数を stdout へ出力したうえで `Press any key to continue...` と入力待ちに入る。
+> CI(非 TTY)では `TypeError: process.stdin.setRawMode is not a function` で全 spec が即死し、
+> さらに **launchArgs の refresh_token が公開ログへ平文出力される**(run 30386865911 で実測)。
+> Android では自動インストールも行われず `No instrumentation runner found` になる。
+> よって `manual` は使用禁止。自動起動による 1 消費は、セッションが AsyncStorage に永続化され
+> spec 間で引き継がれるため **run あたり 1 回で頭打ち**になり、上表のとおり許容する。
 
 ### 運用ルール
 

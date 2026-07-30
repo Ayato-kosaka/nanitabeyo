@@ -20,14 +20,31 @@ const E2E_AUTH_HOOK_ENABLED = process.env.EXPO_PUBLIC_E2E_AUTH_HOOK === "1";
 // - EAS_BUILD: EAS Build サーバ上で常に設定される（クラウドビルド全経路をカバー。主条件）
 // - EXPO_PUBLIC_NODE_ENV=production: eas update --environment production のローカルバンドル向けの
 //   防御的な追加条件（EAS production 環境の実値は未確認のため、この条件単体には依存しない。レビュー m-1）
-if (E2E_AUTH_HOOK_ENABLED && (process.env.EAS_BUILD || process.env.EXPO_PUBLIC_NODE_ENV === "production")) {
+// #1031 B6 【セキュリティ】メディア選択を固定画像へ差し替える E2E フックも、
+// セッション注入フックとまったく同じ方式（resolver 差し替え + sentinel ゲート）で本番から排除する。
+// フラグを分けているのは「認証だけ E2E 化したい」「投稿フローも E2E 化したい」を別々に選べるようにするため
+const E2E_MEDIA_HOOK_ENABLED = process.env.EXPO_PUBLIC_E2E_MEDIA_HOOK === "1";
+
+// #1027 【セキュリティ】検索チュートリアルの視聴済みフラグを起動引数で固定する E2E フックも同一方式で排除する。
+// これも「認証だけ」「投稿フローだけ」と同様に独立して選べるようフラグを分けている
+const E2E_TUTORIAL_HOOK_ENABLED = process.env.EXPO_PUBLIC_E2E_TUTORIAL_HOOK === "1";
+
+// #1030 【セキュリティ】(レビュー Major-3) E2E ビルドはローカル prebuild + Gradle/xcodebuild 経路のみで、
+// EAS Build / EAS Update を通らない。EAS 経路でフラグが立っているのは環境変数の設定事故（= 本番混入の入口）。
+const IS_PRODUCTION_BUNDLE = process.env.EAS_BUILD || process.env.EXPO_PUBLIC_NODE_ENV === "production";
+if ((E2E_AUTH_HOOK_ENABLED || E2E_MEDIA_HOOK_ENABLED || E2E_TUTORIAL_HOOK_ENABLED) && IS_PRODUCTION_BUNDLE) {
 	throw new Error(
-		"EXPO_PUBLIC_E2E_AUTH_HOOK=1 のまま EAS ビルド/本番向けバンドルが実行されました（E2E フックの本番混入）。" +
-			"環境変数の設定を確認してください（#1030）。",
+		"EXPO_PUBLIC_E2E_AUTH_HOOK / EXPO_PUBLIC_E2E_MEDIA_HOOK / EXPO_PUBLIC_E2E_TUTORIAL_HOOK が立ったまま " +
+			"EAS ビルド/本番向けバンドルが実行されました（E2E フックの本番混入）。" +
+			"環境変数の設定を確認してください（#1027 / #1030 / #1031）。",
 	);
 }
 const E2E_INJECT_SESSION_IMPL = path.resolve(projectRoot, "lib/e2e/injectTestSession.ts");
 const E2E_INJECT_SESSION_NOOP = path.resolve(projectRoot, "lib/e2e/injectTestSession.noop.ts");
+const E2E_SELECT_MEDIA_IMPL = path.resolve(projectRoot, "lib/e2e/selectMediaStub.ts");
+const E2E_SELECT_MEDIA_NOOP = path.resolve(projectRoot, "lib/e2e/selectMediaStub.noop.ts");
+const E2E_TUTORIAL_SEED_IMPL = path.resolve(projectRoot, "lib/e2e/tutorialSeed.ts");
+const E2E_TUTORIAL_SEED_NOOP = path.resolve(projectRoot, "lib/e2e/tutorialSeed.noop.ts");
 const E2E_LAUNCH_ARGS_PACKAGE = "react-native-launch-arguments";
 
 config.resolver.resolveRequest = (context, moduleName, platform) => {
@@ -35,10 +52,16 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
 	// そのため EXPO_PUBLIC_E2E_AUTH_HOOK=1 のビルドでも web バンドルからは常に実装を排除する
 	//（= e2e-web が対象にする web export には、E2E ビルドであっても注入フックが 1 行も入らない）。
 	const excludeE2EHook = !E2E_AUTH_HOOK_ENABLED || platform === "web";
+	// #1031 B6 判定はフックごとに独立させる（片方だけ有効なビルドを許すため）
+	const excludeE2EMediaHook = !E2E_MEDIA_HOOK_ENABLED || platform === "web";
+	// #1027 チュートリアル視聴済みフラグのシードも同様に独立判定する
+	const excludeE2ETutorialHook = !E2E_TUTORIAL_HOOK_ENABLED || platform === "web";
 
-	if (excludeE2EHook) {
-		// #1030 【セキュリティ】起動引数読み取り用のネイティブモジュールも本番バンドルの JS グラフから外す。
-		// パッケージ名は specifier が一意（相対 import からは到達し得ない）ため、解決前に潰してよい
+	// #1030 【セキュリティ】起動引数読み取り用のネイティブモジュールも本番バンドルの JS グラフから外す。
+	// パッケージ名は specifier が一意（相対 import からは到達し得ない）ため、解決前に潰してよい。
+	// ⚠️ 起動引数を読むフックは複数あるため、**すべて無効なときだけ**潰すこと。
+	// 片方だけを見て潰すと「チュートリアルフックだけ有効なビルド」で実装が空モジュールを参照して壊れる
+	if (excludeE2EHook && excludeE2ETutorialHook) {
 		if (moduleName === E2E_LAUNCH_ARGS_PACKAGE || moduleName.startsWith(`${E2E_LAUNCH_ARGS_PACKAGE}/`)) {
 			return { type: "empty" };
 		}
@@ -51,9 +74,21 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
 	// #1030 【セキュリティ】(レビュー M-2) specifier 文字列（"@/lib/e2e/injectTestSession" 等）で判定すると
 	// 相対 import（"./injectTestSession"）を取りこぼし、実装が本番グラフへ静かに復帰する（fail-open）。
 	// 判定は必ず「解決後の実ファイルパス」で行い、import の書き方に依存しないようにする。
-	if (excludeE2EHook && resolution && resolution.type === "sourceFile") {
-		if (path.resolve(resolution.filePath) === E2E_INJECT_SESSION_IMPL) {
+	if (resolution && resolution.type === "sourceFile") {
+		const resolvedPath = path.resolve(resolution.filePath);
+
+		if (excludeE2EHook && resolvedPath === E2E_INJECT_SESSION_IMPL) {
 			return { type: "sourceFile", filePath: E2E_INJECT_SESSION_NOOP };
+		}
+
+		// #1031 B6 メディア選択の差し替えフックも同じ「解決後の実ファイルパス」で判定する
+		if (excludeE2EMediaHook && resolvedPath === E2E_SELECT_MEDIA_IMPL) {
+			return { type: "sourceFile", filePath: E2E_SELECT_MEDIA_NOOP };
+		}
+
+		// #1027 チュートリアル視聴済みフラグのシードフックも同じ「解決後の実ファイルパス」で判定する
+		if (excludeE2ETutorialHook && resolvedPath === E2E_TUTORIAL_SEED_IMPL) {
+			return { type: "sourceFile", filePath: E2E_TUTORIAL_SEED_NOOP };
 		}
 	}
 
