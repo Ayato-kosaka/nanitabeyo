@@ -160,7 +160,30 @@ jobs:
           # #1027 検索チュートリアル（別ウィンドウの BottomSheet）は全 spec のタップを吸ってしまうため、
           # 起動引数で「視聴済み」をシードできるようにする（e2e-web の seedTutorialSeen と同じ考え方）
           EXPO_PUBLIC_E2E_TUTORIAL_HOOK: "1"
+          # #1076 native は web と config の作られ方が違う。web は babel の
+          # expo-inline-manifest-plugin がバンドラのプロセス内で getConfig() を評価するため
+          # `.env` が確実に効くが、native は Gradle の :expo-constants:createExpoConfig が
+          # 別プロセスで app.config アセットを生成するため、`.env` 追記が黙って落ちうる
+          # (@expo/env は空文字を truthy チェックで捨て、.env.local を .env より優先する)。
+          # process env は @expo/env / dotenv-expand の双方で `.env` より優先されるため、
+          # 上の E2E フック群と同じ「ビルドステップの env: で渡す」方式に揃えて確実に焼き込む。
+          EXPO_PUBLIC_COMMIT_ID: ${{ github.sha }}
         run: pnpm --filter e2e-mobile build:android
+
+      # #1076 焼き込みは失敗しても例外もログも出ない (@expo/env が黙って捨てる) ため、
+      # 成果物を直接検査して落とす。assert-no-e2e-hook と同じ sentinel ゲートの考え方。
+      - name: 🔍 Assert commit id is baked into the APK
+        env:
+          COMMIT_ID: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          APK=app-expo/android/app/build/outputs/apk/release/app-release.apk
+          BAKED=$(unzip -p "$APK" assets/app.config | grep -o '"EXPO_PUBLIC_COMMIT_ID":"[^"]*"' || true)
+          echo "APK 内の値: ${BAKED:-(見つかりません)}"
+          if [ "$BAKED" != "\"EXPO_PUBLIC_COMMIT_ID\":\"$COMMIT_ID\"" ]; then
+            echo "::error::commit id が APK へ焼き込まれていません (期待値: $COMMIT_ID)。フロントログの created_commit_id が unknown-client になります。"
+            exit 1
+          fi
 
       # AVD スナップショットをキャッシュし、2 回目以降のエミュレータ起動を高速化する
       - name: 💾 AVD cache
@@ -361,6 +384,8 @@ jobs:
           EXPO_PUBLIC_E2E_MEDIA_HOOK: "1"
           # #1027 Android と同じ理由でチュートリアルのシードフックも有効化する
           EXPO_PUBLIC_E2E_TUTORIAL_HOOK: "1"
+          # #1076 Android と同じ理由（native は `.env` 追記が黙って落ちうるため process env で渡す）
+          EXPO_PUBLIC_COMMIT_ID: ${{ github.sha }}
         run: pnpm --filter e2e-mobile build:ios
 
       # prepare ジョブが解決した Tier のスクリプトを実行する
