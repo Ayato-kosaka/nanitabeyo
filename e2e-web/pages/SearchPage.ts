@@ -1,4 +1,5 @@
 import { expect, type Locator, type Page } from "@playwright/test";
+import { clickRapid, pressByTestIdIfPresent } from "../utils/rapid-click";
 
 /**
  * 🔍 「さがす」タブ（検索フォーム画面）の Page Object
@@ -42,6 +43,8 @@ export class SearchPage {
 	readonly tutorialNextButton: Locator;
 	/** チュートリアルのプライマリ CTA「現在地を利用する」（最終ページでだけ描画される） */
 	readonly tutorialFinishButton: Locator;
+	/** チュートリアルのセカンダリ CTA「あとで」（最終ページでだけ描画される） */
+	readonly tutorialLaterButton: Locator;
 	/**
 	 * チュートリアルシート内に描画されている画像。
 	 *
@@ -68,6 +71,7 @@ export class SearchPage {
 		this.tutorialOverlay = page.getByTestId("search-tutorial-overlay");
 		this.tutorialNextButton = page.getByTestId(SearchPage.TUTORIAL_NEXT_TEST_ID);
 		this.tutorialFinishButton = page.getByTestId("search-tutorial-finish");
+		this.tutorialLaterButton = page.getByTestId(SearchPage.TUTORIAL_LATER_TEST_ID);
 		this.tutorialImages = this.tutorialOverlay.locator("img");
 	}
 
@@ -78,6 +82,12 @@ export class SearchPage {
 	 * （Locator からセレクタ文字列は取り出せないため。{@link pressTutorialNextIfPresent}）。
 	 */
 	private static readonly TUTORIAL_NEXT_TEST_ID = "search-tutorial-next";
+
+	/**
+	 * チュートリアルのセカンダリ CTA「あとで」の testID。
+	 * 用途は {@link SearchPage.TUTORIAL_NEXT_TEST_ID} と同じ（{@link pressTutorialLaterIfPresent}）。
+	 */
+	private static readonly TUTORIAL_LATER_TEST_ID = "search-tutorial-later";
 
 	/** 指定 URL へ直接遷移する（locale プレフィックス必須） */
 	async goto(locale = "ja-JP"): Promise<void> {
@@ -154,7 +164,7 @@ export class SearchPage {
 	 * @param times 連打回数
 	 */
 	async submitRapid(times: number): Promise<void> {
-		await this.clickRapid(this.submitButton, times);
+		await clickRapid(this.submitButton, times);
 	}
 
 	/**
@@ -164,7 +174,7 @@ export class SearchPage {
 	 * @param times 連打回数
 	 */
 	async tutorialNextRapid(times: number): Promise<void> {
-		await this.clickRapid(this.tutorialNextButton, times);
+		await clickRapid(this.tutorialNextButton, times);
 	}
 
 	/**
@@ -185,74 +195,56 @@ export class SearchPage {
 	 * @returns 押した場合 true / 「つぎへ」が無かった（= 最終ページに居る）場合 false
 	 */
 	async pressTutorialNextIfPresent(): Promise<boolean> {
-		return this.page.evaluate((testId: string) => {
-			const element = document.querySelector(`[data-testid="${testId}"]`);
-			if (!element) return false;
-
-			const rect = element.getBoundingClientRect();
-			const base = {
-				bubbles: true,
-				cancelable: true,
-				composed: true,
-				clientX: rect.left + rect.width / 2,
-				clientY: rect.top + rect.height / 2,
-				button: 0,
-			};
-			const pointer = { ...base, pointerId: 1, pointerType: "mouse", isPrimary: true };
-
-			element.dispatchEvent(new PointerEvent("pointerdown", { ...pointer, buttons: 1 }));
-			element.dispatchEvent(new PointerEvent("pointerup", { ...pointer, buttons: 0 }));
-			element.dispatchEvent(new MouseEvent("click", { ...base, buttons: 0 }));
-			return true;
-		}, SearchPage.TUTORIAL_NEXT_TEST_ID);
+		return pressByTestIdIfPresent(this.page, SearchPage.TUTORIAL_NEXT_TEST_ID);
 	}
 
 	/**
-	 * 対象要素へ「同一 JS タスク内で」合成 pointer イベントを `times` 回 dispatch する。
+	 * チュートリアルのセカンダリ CTA「あとで」が **その瞬間に描画されていれば** 1 回だけ押す（#1091）。
 	 *
-	 * ## なぜ `page.mouse.down()/up()` を使わないか（#1086 で実測して差し替え）
-	 * `page.mouse` の 1 発ごとに CDP のラウンドトリップが挟まり、その隙にレンダラが
-	 * React のコミット（＝ 画面遷移）を流し切ってしまう。結果 2 発目以降は
-	 * **もうハンドラへ届かない**。`handleSearch` の多重検索防止ガードを外しても
-	 * レコメンド API は 1 回・トピック画面も 1 枚のままで、**感度がゼロ**だった
-	 * （N=2 でも N=3 でも同じ。#1086 のレビューで実測）。
+	 * ⚠️ `page.getByText("あとで").click()` を使わないこと。
+	 * 「あとで」は **最終ページにしか描画されない**（`TutorialBottomSheet` の
+	 * `index === pagesLength - 1 ? handleSkip : undefined`）。ページ送りアニメーション中は
+	 * `onViewableItemsChanged` が `currentPage` を揺らすため、
+	 * 「最終ページに着いた」ように一瞬見えてから `currentPage` が前のページへ戻り、
+	 * **「あとで」が unmount されてクリックが届かない**ことがある（#1091。並列実行時に 3 回に 1 回再現）。
 	 *
-	 * `locator.evaluate()` の中でループすれば全発が 1 つの JS タスクとして届く。
-	 * 実測では N=2 / N=5 のいずれでも、ガードを外すと API 呼び出しと積み上がる
-	 * トピック画面が N 枚になった（= 事故を再現できる）。
+	 * 特定と押下を同一 JS タスク内で行い、成立するまで呼び出し側で再試行する前提の API にしている。
 	 *
-	 * react-native-web の Pressable は pointer イベントから onPress を組み立てるため、
-	 * `click` 単発では届かない。**`pointerdown` → `pointerup` → `click` の順で**送ること。
-	 *
-	 * 要素参照を先に解決して同じ要素へ打ち続けるため、1 発目で画面が切り替わって
-	 * 対象が DOM から外れても残りの dispatch は落ちない（「遷移してしまった」という
-	 * 検証したい事象そのものを再現できる）。座標を先に取る必要も無くなったので、
-	 * 「3 発目以降が遷移後の画面を叩く」制約も無い。
-	 *
-	 * @param locator 連打対象
-	 * @param times 連打回数
+	 * @returns 押した場合 true /「あとで」が無かった（= 最終ページに居ない）場合 false
 	 */
-	private async clickRapid(locator: Locator, times: number): Promise<void> {
-		await locator.evaluate((element, count: number) => {
-			const rect = element.getBoundingClientRect();
-			const clientX = rect.left + rect.width / 2;
-			const clientY = rect.top + rect.height / 2;
-			const base = {
-				bubbles: true,
-				cancelable: true,
-				composed: true,
-				clientX,
-				clientY,
-				button: 0,
-			};
-			const pointer = { ...base, pointerId: 1, pointerType: "mouse", isPrimary: true };
+	async pressTutorialLaterIfPresent(): Promise<boolean> {
+		return pressByTestIdIfPresent(this.page, SearchPage.TUTORIAL_LATER_TEST_ID);
+	}
 
-			for (let i = 0; i < count; i += 1) {
-				element.dispatchEvent(new PointerEvent("pointerdown", { ...pointer, buttons: 1 }));
-				element.dispatchEvent(new PointerEvent("pointerup", { ...pointer, buttons: 0 }));
-				element.dispatchEvent(new MouseEvent("click", { ...base, buttons: 0 }));
-			}
-		}, times);
+	/**
+	 * チュートリアルを最終ページまで進め、「あとで」で完了させる（#1091）。
+	 *
+	 * 最終ページのプライマリ CTA「はじめよう」は現在地取得を伴うため、完了は必ず
+	 * セカンダリ CTA「あとで」で行う（どちらも `markTutorialAsSeen()` を通る）。
+	 *
+	 * ページ送り・完了操作のどちらも「特定と押下を同一 JS タスク内で行う」方式に統一したうえで、
+	 * **1 回のポーリングにまとめている**:
+	 *
+	 * 1.「あとで」が居れば押して終了（「あとで」は最終ページにしか描画されない）
+	 * 2. 居なければ「つぎへ」を 1 回押して次のポーリングを待つ
+	 *
+	 * こうすると `currentPage` がアニメーション中に前のページへ戻っても、次のポーリングで
+	 * 自然に押し直されるため、揺れに対して自己修復する（固定 sleep や絶対時間の閾値は使わない）。
+	 * `handleNextPage` は `Math.min` でクランプするので、余分に押しても最終ページを飛び越さない。
+	 */
+	async completeTutorialWithLater(): Promise<void> {
+		await expect
+			.poll(
+				async () => {
+					if (await this.pressTutorialLaterIfPresent()) return true;
+					await this.pressTutorialNextIfPresent();
+					return false;
+				},
+				{
+					message: "チュートリアルを最終ページまで進めて「あとで」を押せなかった",
+				},
+			)
+			.toBe(true);
 	}
 
 	/**

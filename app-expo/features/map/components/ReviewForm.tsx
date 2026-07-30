@@ -110,6 +110,19 @@ export function ReviewForm({
 
 	// Internal state - isolated from parent re-renders
 	const [isProcessing, setIsProcessing] = useState(false);
+	/**
+	 * #1090 【修正】投稿の多重実行を防ぐ同期ガード。
+	 *
+	 * `isProcessing`（useState）は **ボタンを disabled にする表示用途**であって、
+	 * 多重実行の判定には使えない。React が再レンダリングをコミットする前に 2 発目の
+	 * 押下が処理されると、両方が `isProcessing === false` を読んで通過しうるためで、
+	 * 通過すると `v1/dishes` の POST とメディアアップロードが二重に走り、
+	 * **同じレビューが 2 件登録される**。
+	 *
+	 * ref への代入は同期的に確定するため、同一 JS タスク内の連続呼び出しでもレースしない。
+	 * search/index.tsx の `isSearchingRef`、search/topics.tsx の `isSelectingTopicRef` と同じ方式。
+	 */
+	const isSubmittingRef = useRef(false);
 	const [price, setPrice] = useState(initialPrice);
 	const [reviewText, setReviewText] = useState(initialReviewText);
 	const [rating, setRating] = useState(initialRating);
@@ -351,6 +364,11 @@ export function ReviewForm({
 	const handleSubmit = useCallback(async () => {
 		if (!isValid || isProcessing || mediaState.status !== "success") return;
 
+		// #1090 多重投稿の判定は ref で行う（useState の isProcessing はレースが残る。
+		// 宣言箇所のコメント参照）。ここより後に投稿処理を書くこと
+		if (isSubmittingRef.current) return;
+		isSubmittingRef.current = true;
+
 		mediumImpact();
 		setIsProcessing(true);
 		setDishCategoryError(null);
@@ -490,6 +508,8 @@ export function ReviewForm({
 			});
 			showSnackbar(i18n.t("Map.errors.reviewSubmitFailed"));
 		} finally {
+			// #1090 失敗時に再投稿できるよう、表示用 state と同じタイミングで同期ガードも解除する
+			isSubmittingRef.current = false;
 			setIsProcessing(false);
 		}
 	}, [
