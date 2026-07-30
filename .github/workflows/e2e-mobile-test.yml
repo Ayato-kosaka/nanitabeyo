@@ -297,10 +297,18 @@ jobs:
         working-directory: app-expo/ios
         run: |
           gem install cocoapods -v 1.15.2 --no-document
-          for i in 1 2 3; do
+          for i in 1 2 3 4 5; do
             pod _1.15.2_ install && exit 0
             echo "pod install 失敗 (attempt $i)。Pods を削除して再試行します"
             rm -rf Pods
+            # #1027 run 30498641765 では 3 回とも "pathname contains null byte" で失敗した
+            # （それまでの run では 1 回目で通っていた）。復元した Specs キャッシュが壊れている
+            # 可能性があるため、2 回目以降はキャッシュも捨てて取り直す。
+            # キャッシュ復元は同一 run 内では 1 度きりなので、ここで消せば以降は素の取得になる
+            if [ "$i" -ge 2 ]; then
+              echo "  Specs キャッシュ（~/Library/Caches/CocoaPods）も破棄します"
+              rm -rf ~/Library/Caches/CocoaPods
+            fi
             sleep 5
           done
           exit 1
