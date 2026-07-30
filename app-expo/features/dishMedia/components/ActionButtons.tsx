@@ -303,6 +303,11 @@ export function ActionButtons({ id, idType, onLayout, buttonsGesture }: ActionBu
 	return (
 		<GestureDetector gesture={buttonsGesture}>
 			<View style={styles.rightActions} onLayout={handleLayout}>
+				{/* #1071 【リリース差分】店舗アバターボタンは押しても何も起きないため本番では出さない。
+				    店舗詳細への遷移は handleViewRestaurant 内 (router.push) がコメントアウトされたままで、
+				    コメントに残る遷移先ルート /(tabs)/(home)/restaurant/1 も存在しない。
+				    ログ送信 (restaurant_view_clicked) だけが走る状態なので、ボタン自体を落とす。
+				    店舗詳細画面が実装されたら、このコメントを外して復活させる。
 				<TouchableOpacity
 					style={styles.actionButton}
 					onPress={handleViewRestaurant}
@@ -318,6 +323,7 @@ export function ActionButtons({ id, idType, onLayout, buttonsGesture }: ActionBu
 						accessibilityLabel={restaurant.name}
 					/>
 				</TouchableOpacity>
+				*/}
 
 				<View style={styles.actionContainer}>
 					{/* #1031 【設計】Detox から状態(いいね済みか)を検証できるよう、状態別の accessibilityLabel を付与 */}
