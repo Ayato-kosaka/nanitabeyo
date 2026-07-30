@@ -12,6 +12,7 @@ description: CSVまたはGitHubの親Issueから複数課題を読み取り、�
 - 課題の分割、依存関係、モデル、並列数、レビュー回数、IssueとPRの対応を、その都度リーダー自身で判断する。
 - Workflowへ設計・開発プロセスを埋め込まない。同じ `claude-worker.yml` を動的なプロンプトで使い分ける。
 - CSVは課題の入力・一覧として扱い、作業中の議論と成果はGitHub Issue、PR、Actions、Artifactから再構築できる状態にする。
+- 画像・動画で示すべき根拠は、Artifact名やファイルパスの参照で済ませない。`evidence-collect.yml`で公開し、IssueまたはPRへMarkdown画像として埋め込む。人間がActionsのArtifactをダウンロードしないと確認できない状態を成果物と呼ばない。
 - 原則として一つのWorkflow runへ一つの明確な責務だけを渡す。
 - 独立した仕事は、全てdispatchしてから完了を待ち、GitHub Actions上で並列化する。
 - 同じ作業ブランチへ複数のwrite runを同時実行しない。一つのwrite runが完了してから、同じブランチの次の修正を起動する。
@@ -287,11 +288,27 @@ Workerへ、実行したテストの生データを `/tmp/claude-artifacts/` 配
 
 秘密値、`.env`、認証情報、個人情報をArtifactへ含めない。Artifactは必ず対象PRの最新commit SHAに対応させる。新しいcommitがpushされたら、古いエビデンスだけで完了判定しない。
 
-実装runのエビデンスは暫定確認に使い、人間へ公開する最終エビデンスは、原則として独立レビューrunまたは専用validation runのArtifactを使う。UI変更では `access=observe`、`setup_playwright=true`、`base_ref=<PRの最新HEAD SHA>` で検証runを起動し、レビュー指摘の修正後は新しいHEAD SHAで再実行する。
+実装runのエビデンスは暫定確認に使い、人間へ公開する最終エビデンスは、原則として独立レビューrunまたは専用validation runのArtifactを使う。UI変更では `access=observe`、`setup_playwright=true`、`base_ref=<検証対象の正確なSHA>` で検証runを起動し、レビュー指摘の修正後は新しいSHAで再実行する。
 
-レビューがApprove相当で、必須テストが成功し、未解決の重大指摘がなく、レビューrunへ渡した `base_ref` と現在のPR HEAD SHAが一致した場合だけ、`.github/workflows/evidence-collect.yml` を起動する。`workflow_dispatch` の `--ref main` は信頼済みWorkflowを選ぶためのrefであり、Actions APIのrun `head_sha` はテスト対象SHAを表さないことがある。したがって、リーダー自身がdispatch時に記録した `base_ref` と現在のPR HEADを照合し、そのSHAを `source_sha` として渡す。
+### 画像・動画は必ず`evidence-collect.yml`で可視化する
+
+**画像または動画を根拠としてIssueまたはPRへ書く場合、`evidence-collect.yml` の実行は必須である。** Artifact名、`/tmp/claude-artifacts/` のパス、スクリーンショットのファイル名一覧だけを書いて終わりにしない。人間がActionsのArtifactをダウンロードして解凍しなければ確認できない状態は、エビデンスを提示したことにならない。
+
+この必須要件は、PRのマージ判断とは独立である。次のいずれでも適用する。
+
+- 実装PRのUI検証エビデンス
+- Issueへ書くレビュー結果・調査結果・バグ再現
+- Sub-issueの起票根拠（「スクリーンショットで確認した」と書くなら公開する）
+- 設計提案の比較（before/afterの画面）
+
+したがって、リーダーはdispatch時に **run ID と `task_key` から決まるArtifact名（`claude-<task_key>-<run_id>-<run_attempt>`）と、検証対象SHA** を必ず記録する。記録しないと後から公開できない。
+
+一方、**マージ可否の判定に使う最終エビデンス**は従来どおり条件を満たしてから確定させる。レビューがApprove相当で、必須テストが成功し、未解決の重大指摘がなく、レビューrunへ渡した `base_ref` と現在のPR HEAD SHAが一致していること。公開自体は上記のとおり無条件に行い、「公開したこと」と「マージしてよいこと」を混同しない。
+
+`workflow_dispatch` の `--ref main` は信頼済みWorkflowを選ぶためのrefであり、Actions APIのrun `head_sha` はテスト対象SHAを表さないことがある。したがって `source_sha` には、リーダー自身がdispatch時に記録した検証対象SHAを渡す。PRがある場合はそれが現在のPR HEADと一致することも照合する。
 
 ```bash
+# PRのUI検証エビデンスを公開する場合
 PR_HEAD_SHA="$(gh pr view <pr-number> --json headRefOid --jq .headRefOid)"
 
 gh workflow run evidence-collect.yml \
@@ -299,17 +316,69 @@ gh workflow run evidence-collect.yml \
   -f run_id=<review-or-validation-run-id> \
   -f artifact_name=<claude-worker-artifact-name> \
   -f source_sha="$PR_HEAD_SHA"
+
+# PRが無いIssueベースのレビュー・調査エビデンスを公開する場合。
+# source_sha は「そのrunへ base_ref として渡したSHA」であり、PR HEADに限らない。
+gh workflow run evidence-collect.yml \
+  --ref main \
+  -f run_id=<review-run-id> \
+  -f artifact_name=<claude-worker-artifact-name> \
+  -f source_sha=<そのrunのbase_refとして渡したSHA>
 ```
 
 `evidence-collect.yml` は元runが成功したClaude Workerであることを確認し、Artifact内の画像・動画だけを `nanitabeyo-public` へ公開する。Playwright trace、HTML report、ログ、JUnit等の生データは元Artifactに残す。公開後は、GCS上とActions Artifactの両方へ `manifest.json` を保存する。このWorkflow自身にはIssue・PRコメントをさせない。
 
-収集runの完了後、`evidence-manifest-<source-run-id>` Artifactまたは公開manifestを読み、`repository`、`sourceRunId`、`sourceCommitSha`、`artifactName` が期待値と一致することを確認する。リーダーがIssueまたはPRへ、画像はMarkdown画像、動画はリンクとしてコメントし、元run URL、Artifact名、対象SHAも併記する。
+次の点に注意する。
+
+- **Artifact内に画像・動画が1件も無いとこのWorkflowは失敗する。** ログやJUnitだけのrunに対しては起動しない。逆に、画面を根拠にする指摘を書く予定なら、検証runのpromptで「スクリーンショットを `/tmp/claude-artifacts/screenshots/` へ保存すること」を明示し、画像が確実に生成されるようにする。
+- ファイル名は公開時に `[A-Za-z0-9._-]` へ正規化される。日本語名や `[` `]` を含む名前でも失敗しないが、公開後のURLは元の名前と一致しない。対応は `manifest.json` の `path` と `publishedPath` で確認する。
+- 公開先はキャッシュ `immutable` の公開バケットである。**認証情報・個人情報・秘密値が写った画像を公開しない。** 検証runのpromptに「スクリーンショットに認証情報が写らないようにする。写る場合はマスクするか保存しない」と明記する。
+- 同じ検証を修正後に再実行したら、新しいrunのArtifactで再度公開し、Issue・PRのコメントも新しいURLへ更新する。古いURLを残したまま「修正済み」と書かない。
+
+### 投稿した画像が実際に表示されているか検証する
+
+**公開しただけでは終わりではない。投稿後に本文を再取得し、画像として貼れているかを必ず確認する。**
+
+Markdown の画像埋め込みは、リンク記法（`[alt](url)`）の前に `!` を付けた `![alt](url)` である。`!` が1文字欠けるとリンクになり、画像は表示されない。
+
+さらに厄介な事故として、**リーダーの実行環境が外向きの本文を書き換え、画像埋め込みがコードスパンへ中和されることがある**。エージェント環境には、画像URL経由の情報持ち出しを防ぐため送信内容の画像参照を無効化するものがある。
+
+**この中和は記法を変えても回避できない。** 実測した結果、次の3方式すべてが中和された。
+
+| 方式 | GitHubへ保存された内容 |
+| --- | --- |
+| Markdown 画像 `![alt](url)` | `` `` `` が挿入されコードスパンになる |
+| HTML の `<img src="url">` | `<` が `&lt;` へエスケープされ、さらにコードスパンになる |
+| 生のURLだけ | コードスパンになる |
+
+つまり画像ホストへの参照は形式を問わず潰れる。特徴として、
+
+- リーダー側で正しい記法を組み立てていても、GitHub 上では `` `` `` で囲まれた文字列として保存される
+- 壊れる位置は一定しない（`!` の位置とURLの先頭のどちらにも入り得る）
+- GitHub 自身のURL（Actions run 等）は通るため、「run へのリンクは出るのに画像だけ出ない」という形で現れる
+- **リーダー側で貼り直しても必ず同じ結果になる。記法を変えて再試行するのは時間の無駄である**
+
+したがって次を守る。
+
+1. 画像を含むコメントを投稿したら、**必ず本文を API で再取得**し、画像行が `![` で始まりバッククォートを含まないことを機械的に検証する。目視で確認したことにしない。
+2. 壊れていたら、リーダーから貼り直しても同じ結果になる。**GitHub Actions のワーカーへ投稿を任せる**（`access=observe` + `--allowedTools` に `mcp__github__add_issue_comment` と `mcp__github__get_issue_comments`）。ランナーはリーダーの環境制約を受けない。
+3. そのワーカーへ渡す **promptに画像記法をそのまま書かない**。promptも同じ経路を通るため、記法自体が壊れて渡る。記法は言葉で説明し（「行頭の感嘆符 → 角括弧のalt → 丸括弧のURL」）、URLは `manifest.json` を取得させて `images[].url` から組み立てさせる。
+4. ワーカーにも**投稿後の再取得による検証を必須**として指示し、壊れていたら「壊れている事実と実際の文字列」を報告させる。成功と書かせない。**枚数の一致も検証させる**（記法が正しくても枚数が欠けていれば意味がない）。
+5. 画像記法をリーダー自身の手で1行ずつ書かない。URLは `manifest.json` から引き、記法を組み立てる箇所をコード上の1関数へ寄せる。手書きすると欠落と混入の両方が起きる。
+6. 検証は `body` の文字列一致だけでなく、`Accept: application/vnd.github.html+json` で `body_html` を取得し **`<img>` タグ数が期待枚数と一致すること**まで確認すると確実である。GitHubがどう解釈したかを直接見られる。
+7. **投稿ワーカーが失敗したら、画像は1枚も入っていない。** `conclusion: success` でなくても「一部は入ったはず」と考えない。必ずコメントを再取得して確認し、入っていなければ再実行する。ワーカーの失敗を検知せずに「エビデンスを公開した」と報告しない。
+
+収集runの完了後、`evidence-manifest-<source-run-id>` Artifactまたは公開manifestを読み、`repository`、`sourceRunId`、`sourceCommitSha`、`artifactName` が期待値と一致することを確認する。URLは `manifest.json` の `images[].url` / `videos[].url` をそのまま使い、手で組み立てない。
+
+リーダーがIssueまたはPRへ、画像はMarkdown画像、動画はリンクとしてコメントし、元run URL、Artifact名、対象SHAも併記する。
 
 ```markdown
 ![画面名](https://storage.googleapis.com/nanitabeyo-public/...)
 
 🎥 [動画名](https://storage.googleapis.com/nanitabeyo-public/...)
 ```
+
+枚数が多い場合は、結論に直結する数枚を本文へ直接埋め込み、残りは `<details>` で畳む。全部を並べて読めなくするのも、Artifactへのリンク1本で済ませるのも避ける。各画像には「何を示している画像か」を1行添える。
 
 `gh run download` で元Artifactも必要に応じて取得し、要約だけでなく中身を確認する。人間にはrun URL、Artifact名、対象SHA、成功・失敗、未実施項目をまとめて提示する。
 
