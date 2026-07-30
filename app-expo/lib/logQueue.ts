@@ -36,9 +36,9 @@ const getAccessToken = async (): Promise<string | undefined> => {
 const stats = {
 	sentBatches: 0,
 	sentLogs: 0,
-	/** 4xx で落ちた件数（= サーバ契約違反。クライアント側のバグ） */
+	/** 契約違反系の4xx（400/403/404/422 など）で落ちた件数（= クライアント側のバグ） */
 	droppedByReject: 0,
-	/** 5xx / ネットワーク / 認証欠落で落ちた件数（一時障害） */
+	/** 5xx / TRANSIENT_STATUSES / ネットワーク / 認証欠落で落ちた件数（一時障害） */
 	droppedByTransient: 0,
 	/** 2xx だがサーバが要素単位で棄却した件数（#1079 部分受理） */
 	partiallyRejected: 0,
@@ -46,13 +46,37 @@ const stats = {
 	lastFailure: undefined as { status: number | null; kind: string; count: number; at: string } | undefined,
 };
 
-/** 送信失敗の分類。4xx は「自分たちの契約が壊れている」、それ以外は「相手が一時的に落ちている」 */
+/** 送信失敗の分類。rejected は「自分たちの契約が壊れている」、transient は「相手/環境が一時的に落ちている」 */
 type FailureKind = "rejected" | "transient";
+
+// #1079 4xx でも「クライアント側の契約違反」ではないステータス。
+// droppedByReject は #1076 のような「送っているログのDTOが壊れている」を検知するための数値なので、
+// 直せば消えるわけではない・時間や環境で解消する類の4xxを混ぜるとシグナルが汚れる。
+//   401 Unauthorized      … flush中のトークン失効レース。次のトークンで送れば通る
+//   408 Request Timeout   … サーバ/経路側のタイムアウト
+//   425 Too Early         … リプレイ懸念による再送要求
+//   426 Upgrade Required  … アプリバージョン起因（maintenance.guard）。ログ本文とは無関係
+//   429 Too Many Requests … レート制限
+const TRANSIENT_STATUSES: readonly number[] = [401, 408, 425, 426, 429];
+
+/**
+ * HTTPステータスから失敗の分類を決める。
+ * 5xx と TRANSIENT_STATUSES は transient、それ以外の4xx（= 400/403/404/422 など、
+ * 送信しているDTOやエンドポイントの契約が壊れている状態）だけを rejected とする。
+ */
+const classifyFailure = (status: number): FailureKind =>
+	status >= 500 || TRANSIENT_STATUSES.includes(status) ? "transient" : "rejected";
 
 /**
  * #1079 送信の成否を外から観測するための読み取り専用スナップショット（E2E / デバッグ用）
+ * lastFailure も複製する。参照を共有すると呼び出し側が持っているスナップショットが
+ * 後続のflushで書き換わり、「そのとき何が起きていたか」の観測にならないため。
  */
-export const getLogQueueStats = () => ({ ...stats });
+export const getLogQueueStats = () =>
+	Object.freeze({
+		...stats,
+		lastFailure: stats.lastFailure ? Object.freeze({ ...stats.lastFailure }) : undefined,
+	});
 
 const recordFailure = (status: number | null, count: number, kind: FailureKind, err?: any): void => {
 	if (kind === "rejected") stats.droppedByReject += count;
@@ -102,7 +126,7 @@ const sendBatch = async (logs: CreateFrontendLogDto[]): Promise<void> => {
 		// #1079 fetchWithAuth は非2xxで throw しないため、これまで 400 は catch にすら入らず
 		// development でも何も出ていなかった（「黙殺」以前に「未検知」）。ここで明示的に判定する。
 		if (!response.ok) {
-			recordFailure(response.status, logs.length, response.status < 500 ? "rejected" : "transient");
+			recordFailure(response.status, logs.length, classifyFailure(response.status));
 			return;
 		}
 
