@@ -693,9 +693,26 @@ export default function SearchScreen() {
 			/>
 			{/* #642 【設計】オフスクリーンでチュートリアル画像を一度描画して decode */}
 			{/* #934 【修正】decode専用で内容を持たないため aria-hidden で支援技術から隠す(axe: image-alt 対策) */}
-			<View style={{ width: 0, height: 0, position: "absolute", overflow: "hidden" }} aria-hidden>
+			{/* #1087 【修正】0×0 だと native は 1 枚もロードしない。expo-image のネイティブ実装は
+			    ビューの bounds が 0 のときロード要求そのものを発行しないため、先読みは導入時(#656)から
+			    native では一度も効いていなかった。
+			    - iOS: ImageView.reload() は `guard let source = bestSource else { return }` で抜ける。
+			      bestSource は ImageUtils.getBestSource(from:forSize:) 経由で、
+			      `if size.width <= 0 || size.height <= 0 { return nil }` により無条件に nil になる
+			      (プレースホルダと違い本体 source にはフォールバックが無い)。
+			    - Android: ExpoImageViewWrapper.cleanIfNeeded() が `if (width == 0 || height == 0 ...)`
+			      で recycleView() して return し、Glide のリクエストを発行しない。
+			    - web だけはサイズに関係なく <img src> を DOM へ出すため効いていた(#1085 が web で
+			      「差なし」、#1086 の E2E が緑だったのはこのため)。
+			    そこで親・子とも非ゼロサイズ(1x1)を明示してロードを発行させる。見た目に出ないよう
+			    opacity: 0 を足し、pointerEvents="none" でタッチも奪わない。
+			    サイズが 0 に戻る再発は features/search/searchScreenPreload.test.tsx で検知する。 */}
+			<View
+				style={{ width: 1, height: 1, position: "absolute", overflow: "hidden", opacity: 0 }}
+				pointerEvents="none"
+				aria-hidden>
 				{PRELOAD_IMAGES.map((src, i) => (
-					<Image key={i} source={src} />
+					<Image key={i} source={src} style={{ width: 1, height: 1 }} />
 				))}
 			</View>
 		</SafeAreaView>
