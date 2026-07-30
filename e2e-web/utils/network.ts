@@ -14,6 +14,18 @@ export type RequestCounter = {
 	stop(): Promise<void>;
 };
 
+/** `countRequests` の絞り込みオプション */
+export type CountRequestsOptions = {
+	/**
+	 * 数える HTTP メソッド(大文字小文字は問わない)。未指定ならメソッドを問わず数える。
+	 *
+	 * 同じパスに GET と POST の両方がある場合(例: `v1/dishes`)、書き込みの回数だけを
+	 * 見たいときに指定する。CORS プリフライト(OPTIONS)は Playwright の route に載らないため
+	 * 考慮不要。
+	 */
+	method?: string;
+};
+
 /**
  * URL パターンに一致するリクエストを **素通しのまま**数える。
  *
@@ -25,12 +37,20 @@ export type RequestCounter = {
  *
  * @param page 対象ページ
  * @param urlGlob 計測対象の URL パターン(Playwright の glob)
+ * @param options メソッド絞り込み等のオプション
  */
-export async function countRequests(page: Page, urlGlob: string): Promise<RequestCounter> {
+export async function countRequests(
+	page: Page,
+	urlGlob: string,
+	options: CountRequestsOptions = {},
+): Promise<RequestCounter> {
 	let count = 0;
+	const method = options.method?.toUpperCase();
 
 	const handler = async (route: Route): Promise<void> => {
-		count += 1;
+		if (!method || route.request().method().toUpperCase() === method) {
+			count += 1;
+		}
 		await route.continue();
 	};
 	await page.route(urlGlob, handler);
