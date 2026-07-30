@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { View, StyleSheet, TouchableOpacity, Text, FlatList } from "react-native";
 import { TrueSheet } from "@lodev09/react-native-true-sheet";
 import { TutorialPage } from "@/components/TutorialPage";
+import type { PreloadAssetKey } from "@/constants/preloadAssets";
 import { useContentWidth } from "@/hooks/useContentWidth";
 import i18n from "@/lib/i18n";
 
@@ -16,7 +17,8 @@ export type TutorialBottomSheetProps = {
 };
 
 export type TutorialPageConst = {
-	image: any;
+	// #1087 【設計】画像の実体ではなく先読み定義(constants/preloadAssets.ts)のキーを持つ
+	asset: PreloadAssetKey;
 	titleKey: string;
 	bodyLineKeys: string[];
 	primaryCtaLabelKey: string;
@@ -25,7 +27,7 @@ export type TutorialPageConst = {
 
 // FlatList の 1 アイテム = 1 ページ分の設定
 type TutorialPageConfig = {
-	image: any;
+	asset: PreloadAssetKey;
 	title: string;
 	bodyLines: string[];
 	primaryCtaLabel: string;
@@ -147,7 +149,7 @@ export function TutorialBottomSheet({
 		const pagesLength = pageConfigs.length;
 
 		return pageConfigs.map((config, index) => ({
-			image: config.image,
+			asset: config.asset,
 			title: i18n.t(config.titleKey),
 			bodyLines: config.bodyLineKeys.map((key) => i18n.t(key)),
 			primaryCtaLabel: i18n.t(config.primaryCtaLabelKey),
@@ -190,7 +192,7 @@ export function TutorialBottomSheet({
 					style={{ flexGrow: 1 }}
 					renderItem={({ item }: { item: TutorialPageConfig }) => (
 						<View style={{ width: contentWidth }}>
-							<TutorialPage image={item.image} title={item.title} bodyLines={item.bodyLines} />
+							<TutorialPage asset={item.asset} title={item.title} bodyLines={item.bodyLines} />
 						</View>
 					)}
 					horizontal

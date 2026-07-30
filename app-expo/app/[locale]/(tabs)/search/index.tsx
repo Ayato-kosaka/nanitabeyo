@@ -32,8 +32,8 @@ import {
 	diningPaceOptions,
 	priceLevelOptions,
 	TUTORIAL_PAGES,
-	PRELOAD_IMAGES,
 } from "@/features/search/constants";
+import { PreloadImageDeck } from "@/components/PreloadImageDeck";
 import { DistanceSlider } from "@/features/search/components/DistanceSlider";
 import { PriceLevelsMultiSelect } from "@/features/search/components/PriceLevelsMultiSelect";
 import { SelectableGridItem } from "@/features/search/components/SelectableGridItem";
@@ -48,7 +48,6 @@ import { DEFAULT_SEARCH_RADIUS } from "@/features/topics/constants";
 import { TutorialBottomSheet } from "@/features/search/components/TutorialBottomSheet";
 import { useSearchTutorial } from "@/features/search/hooks/useSearchTutorial";
 import { useRecentLocations } from "@/features/search/hooks/useRecentLocations";
-import { Image } from "expo-image";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { useIsFocused } from "@react-navigation/native";
 import { useContentWidth } from "@/hooks/useContentWidth";
@@ -691,13 +690,9 @@ export default function SearchScreen() {
 				onCompleted={handleTutorialCompleted}
 				onRequestCurrentLocation={handleTutorialRequestLocation}
 			/>
-			{/* #642 【設計】オフスクリーンでチュートリアル画像を一度描画して decode */}
-			{/* #934 【修正】decode専用で内容を持たないため aria-hidden で支援技術から隠す(axe: image-alt 対策) */}
-			<View style={{ width: 0, height: 0, position: "absolute", overflow: "hidden" }} aria-hidden>
-				{PRELOAD_IMAGES.map((src, i) => (
-					<Image key={i} source={src} />
-				))}
-			</View>
+			{/* #642 / #1087 【設計】オフスクリーンで先読み対象アセットを一度描画して decode */}
+			{/* #934 の aria-hidden / #1087 の非ゼロサイズ・cachePolicy はすべて PreloadImageDeck 側に集約 */}
+			<PreloadImageDeck />
 		</SafeAreaView>
 	);
 }

@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, LayoutChangeEvent } from "react-native";
 import { Image } from "expo-image";
+import { PreloadedImage } from "@/components/PreloadedImage";
 import { ArrowLeft, Settings, Share, Pencil as Edit3, MessageCircle } from "lucide-react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Card } from "@/components/Card";
@@ -106,13 +107,15 @@ export function ProfileHeader({
 					<View style={[styles.profileHeader]} pointerEvents="none">
 						{isGuest ? (
 							// ゲストは従来通りアプリアイコンを表示
-							<Image
+							// #1087 【修正】ここだけ cachePolicy="disk" で、他 3 箇所の "memory-disk" と割れていた。
+							// 同一 URL を異なる cachePolicy で読むと iOS の画像パイプラインが分かれる(#785)ため
+							// PreloadedImage 経由に寄せて先読み定義と一致させる
+							<PreloadedImage
 								key={"guest-icon"}
-								source={require("@/assets/images/icon.webp")}
+								asset="appIcon"
 								style={styles.avatar}
 								contentFit="cover"
 								transition={0}
-								cachePolicy={"disk"}
 							/>
 						) : avatarUrl ? (
 							// avatarUrl がある場合はその画像を表示

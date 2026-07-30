@@ -1,9 +1,15 @@
-import { Image } from "expo-image";
 import React from "react";
-import { View, Text, StyleSheet, ImageSourcePropType } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
+
+import { PreloadedImage } from "@/components/PreloadedImage";
+import type { PreloadAssetKey } from "@/constants/preloadAssets";
 
 export type TutorialPageProps = {
-	image: ImageSourcePropType;
+	/**
+	 * #1087 【設計】`source` ではなく先読み定義のキーを受け取る。
+	 * cachePolicy が先読み側と必ず一致することを型で保証するため(#785)。
+	 */
+	asset: PreloadAssetKey;
 	title: string;
 	bodyLines: string[];
 };
@@ -14,12 +20,12 @@ export type TutorialPageProps = {
  * - 16:9 イラスト + タイトル + 本文のみを担当
  * - ページインジケータ / CTA は親コンポーネント側で制御する
  */
-export function TutorialPage({ image, title, bodyLines }: TutorialPageProps) {
+export function TutorialPage({ asset, title, bodyLines }: TutorialPageProps) {
 	return (
 		<View style={styles.container}>
 			{/* 16:9 イラスト画像 */}
 			<View style={styles.imageContainer}>
-				<Image source={image} style={styles.image} contentFit="cover" />
+				<PreloadedImage asset={asset} style={styles.image} contentFit="cover" />
 			</View>
 
 			{/* タイトル */}

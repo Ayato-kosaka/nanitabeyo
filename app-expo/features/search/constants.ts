@@ -143,44 +143,34 @@ export const MOOD_ICON_SIZES = {
 	heavy: 40,
 } as const;
 
+// #1087 【設計】画像は `asset` キーで指し、実体(source)と cachePolicy は
+// `constants/preloadAssets.ts` の 1 箇所だけが持つ。
+// 以前はここで `require()` し、それを `PRELOAD_IMAGES` が再利用する二重定義になっていたため、
+// 「先読み側と表示側で cachePolicy が食い違う」(#785) を防ぐ手立てが無かった。
 export const TUTORIAL_PAGES = [
 	{
-		image: require("@/assets/images/tutorial/search-page1.webp"),
+		asset: "tutorialPage1",
 		titleKey: "Search.tutorial.page1.title",
 		bodyLineKeys: ["Search.tutorial.page1.body1", "Search.tutorial.page1.body2"],
 		primaryCtaLabelKey: "Search.tutorial.page1.cta",
 	},
 	{
-		image: require("@/assets/images/tutorial/search-page2.webp"),
+		asset: "tutorialPage2",
 		titleKey: "Search.tutorial.page2.title",
 		bodyLineKeys: ["Search.tutorial.page2.body1", "Search.tutorial.page2.body2"],
 		primaryCtaLabelKey: "Search.tutorial.page2.cta",
 	},
 	{
-		image: require("@/assets/images/tutorial/search-page3.webp"),
+		asset: "tutorialPage3",
 		titleKey: "Search.tutorial.page3.title",
 		bodyLineKeys: ["Search.tutorial.page3.body1", "Search.tutorial.page3.body2"],
 		primaryCtaLabelKey: "Search.tutorial.page3.cta",
 	},
 	{
-		image: require("@/assets/images/tutorial/search-page4.webp"),
+		asset: "tutorialPage4",
 		titleKey: "Search.tutorial.page4.title",
 		bodyLineKeys: ["Search.tutorial.page4.body1", "Search.tutorial.page4.body2"],
 		primaryCtaLabelKey: "Search.tutorial.page4.primaryCta",
 		secondaryCtaLabelKey: "Search.tutorial.page4.secondaryCta",
 	},
 ] as const satisfies readonly TutorialPageConst[];
-
-// 先読みする画像の配列
-export const PRELOAD_IMAGES = [
-	// 検索チュートリアル画像
-	...TUTORIAL_PAGES.map((page) => page.image),
-	// アプリアイコン画像
-	require("@/assets/images/icon.webp"),
-	// レビュー機能のヒーロー画像
-	require("@/features/review/assets/review-hero.webp"),
-	// Apple アイコン画像
-	require("@/assets/images/logo_apple_icon.png"),
-	// Google アイコン画像
-	require("@/assets/images/logo_google_g_icon.png"),
-];

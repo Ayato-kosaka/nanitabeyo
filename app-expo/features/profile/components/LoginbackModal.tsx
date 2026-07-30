@@ -14,7 +14,7 @@ import { useAuth } from "@/contexts/AuthProvider";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { OtpModal } from "./OtpModal";
 import { LegalDocument } from "@/features/settings/components/LegalDocument";
-import { Image } from "expo-image";
+import { PreloadedImage } from "@/components/PreloadedImage";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 
 interface LoginbackModalProps {
@@ -197,13 +197,7 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 				<PrimaryButton
 					testID="login-google-button"
 					label={i18n.t("auth.provider_google")}
-					icon={
-						<Image
-							source={require("@/assets/images/logo_google_g_icon.png")}
-							style={{ width: 30, height: 30 }}
-							cachePolicy="memory-disk"
-						/>
-					}
+					icon={<PreloadedImage asset="googleIcon" style={{ width: 30, height: 30 }} />}
 					onPress={() => handleOAuthSignIn("google")}
 					style={{ width: "100%" }}
 					colors={["#ffffff", "#ffffff"]}
@@ -238,13 +232,7 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 				<PrimaryButton
 					testID="login-apple-button"
 					label={i18n.t("auth.provider_apple")}
-					icon={
-						<Image
-							source={require("@/assets/images/logo_apple_icon.png")}
-							style={{ width: 30, height: 30 }}
-							cachePolicy="memory-disk"
-						/>
-					}
+					icon={<PreloadedImage asset="appleIcon" style={{ width: 30, height: 30 }} />}
 					onPress={() => handleOAuthSignIn("apple")}
 					style={{ width: "100%" }}
 					colors={["#ffffff", "#ffffff"]}

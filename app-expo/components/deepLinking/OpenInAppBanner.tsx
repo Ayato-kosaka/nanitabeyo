@@ -1,7 +1,6 @@
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
-import { Image } from "expo-image";
-
+import { PreloadedImage } from "@/components/PreloadedImage";
 import i18n from "@/lib/i18n";
 import { resolvePublicLocale, SITE_NAME_BY_PUBLIC_LOCALE } from "@/constants/seoLocales";
 import { Env } from "@/constants/Env";
@@ -245,13 +244,7 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 		<View style={styles.overlay} pointerEvents="box-none">
 			<View style={styles.banner}>
 				<View style={styles.bannerInfo}>
-					<Image
-						source={require("@/assets/images/icon.webp")}
-						style={styles.icon}
-						contentFit="cover"
-						transition={0}
-						cachePolicy={"memory-disk"}
-					/>
+					<PreloadedImage asset="appIcon" style={styles.icon} contentFit="cover" transition={0} />
 					<View style={styles.textBlock}>
 						<Text style={styles.bannerName}>{SITE_NAME_BY_PUBLIC_LOCALE[resolvePublicLocale(i18n.locale)]}</Text>
 					</View>

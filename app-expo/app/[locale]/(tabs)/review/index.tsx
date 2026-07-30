@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect } from "react";
 import { View, Text, StyleSheet } from "react-native";
-import { Image } from "expo-image";
+import { PreloadedImage } from "@/components/PreloadedImage";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { useAuth } from "@/contexts/AuthProvider";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
@@ -86,11 +86,9 @@ export default function ReviewScreen() {
 			{/* ヒーローセクション */}
 			<View style={styles.heroSection}>
 				<View style={styles.heroImagePlaceholder}>
-					<Image
-						source={require("@/features/review/assets/review-hero.webp")}
-						style={styles.heroImage}
-						contentFit="contain"
-					/>
+					{/* #1087 【修正】先読み側と同じ cachePolicy="memory" で描く。
+					    既定の disk は decode 結果をメモリに残さないため、先読みが無駄になっていた */}
+					<PreloadedImage asset="reviewHero" style={styles.heroImage} contentFit="contain" />
 				</View>
 			</View>
 

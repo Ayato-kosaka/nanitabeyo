@@ -1,22 +1,16 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
-import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import i18n from "@/lib/i18n";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
+import { PreloadedImage } from "@/components/PreloadedImage";
 
 // #420 【仕様】店舗5件のローディング画面 - 必要データ（リスト＋サムネイル最低1枚）事前読み込み未完了の場合のみ表示
 export const RestaurantLoading = () => (
 	<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.loadingContainer}>
 		<View style={styles.loadingCard}>
 			<View style={styles.loadingIconContainer}>
-				<Image
-					source={require("@/assets/images/icon.webp")}
-					style={styles.loadingIcon}
-					contentFit="cover"
-					transition={0}
-					cachePolicy={"memory-disk"}
-				/>
+				<PreloadedImage asset="appIcon" style={styles.loadingIcon} contentFit="cover" transition={0} />
 			</View>
 			<LoadingIndicator size="large" style={styles.loadingSpinner} />
 			<Text style={styles.loadingTitle}>{i18n.t("Restaurant.Loading.title")}</Text>

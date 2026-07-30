@@ -1,10 +1,10 @@
 import type { Page } from "@playwright/test";
 
 /**
- * 🖼️ 先読み画像(PRELOAD_IMAGES)の観測ユーティリティ
+ * 🖼️ 先読み画像(PRELOAD_ASSETS)の観測ユーティリティ
  *
- * app-expo/features/search/constants.ts の `PRELOAD_IMAGES` と必ず対応させること。
- * 先読みは検索画面の末尾に置かれた 0x0 のオフスクリーン View（search/index.tsx）で
+ * app-expo/constants/preloadAssets.ts の `PRELOAD_ASSETS` と必ず対応させること。
+ * 先読みは検索画面の末尾に置かれたオフスクリーン View（components/PreloadImageDeck.tsx）で
  * `expo-image` の <Image> として描画される。web ビルドの expo-image は
  * <img src> を DOM へ出すため、Resource Timing と <img> の両方から観測できる。
  *
