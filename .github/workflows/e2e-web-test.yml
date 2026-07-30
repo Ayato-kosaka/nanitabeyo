@@ -56,6 +56,19 @@ jobs:
         working-directory: app-expo
         run: pnpx eas-cli env:pull development --non-interactive --path .env
 
+      # #1076 この run のビルドにだけ commit SHA を焼き込む。
+      # eas-cli env:update は使わない: EAS 側の共有 development 環境そのものを書き換えるため、
+      # CI の SHA が全開発者の env:pull に降ってくるうえ、E2E Web / E2E Mobile の同時実行で競合する。
+      # env:pull が生成した .env の末尾へ追記する。dotenv は同一ファイル内で後勝ちなので、
+      # env:pull 側が同名キーを出力していてもこの行が最終値になる。
+      # printf の先頭 \n は、env:pull の出力が改行で終わっていない場合に前行と連結して
+      # 「前行の値まで壊す」事故を防ぐ保険（echo では防げない）。
+      - name: 🔖 Inject commit id into .env
+        working-directory: app-expo
+        env:
+          COMMIT_ID: ${{ github.sha }}
+        run: printf '\nEXPO_PUBLIC_COMMIT_ID=%s\n' "$COMMIT_ID" >> .env
+
       - name: 🏗️ Build Web App
         run: pnpm --filter app-expo build:web
 

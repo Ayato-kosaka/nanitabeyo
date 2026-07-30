@@ -115,6 +115,19 @@ jobs:
         working-directory: app-expo
         run: pnpx eas-cli env:pull development --non-interactive --path .env
 
+      # #1076 この run のビルドにだけ commit SHA を焼き込む（e2e-web-test.yml と同一方針・同一内容）。
+      # eas-cli env:update は使わない: EAS 側の共有 development 環境そのものを書き換えるため、
+      # CI の SHA が全開発者の env:pull に降ってくるうえ、E2E Web / E2E Mobile の同時実行で競合する。
+      # prebuild ではなく Gradle ビルド時に効く: expo-constants の createExpoConfig タスクが
+      # preBuild で @expo/env.load(projectRoot) を呼び、この .env を読んで assets の app.config を生成する。
+      # printf の先頭 \n は、env:pull の出力が改行で終わっていない場合に前行と連結して
+      # 「前行の値まで壊す」事故を防ぐ保険（echo では防げない）。
+      - name: 🔖 Inject commit id into .env
+        working-directory: app-expo
+        env:
+          COMMIT_ID: ${{ github.sha }}
+        run: printf '\nEXPO_PUBLIC_COMMIT_ID=%s\n' "$COMMIT_ID" >> .env
+
       # Gradle (AGP 8.x) は JDK 17 を要求する
       - name: ☕ Setup JDK 17
         uses: actions/setup-java@v4
