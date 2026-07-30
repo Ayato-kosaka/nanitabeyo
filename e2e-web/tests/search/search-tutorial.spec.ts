@@ -13,12 +13,6 @@ import { SearchPage } from "../../pages/SearchPage";
  */
 test.use({ seedTutorialSeen: false });
 
-/**
- * P3 で「つぎへ」を押す回数の上限(無限ループ防止)。
- * 現在のチュートリアルは 4 ページなので、最悪でも 3 回で最終ページに着く。
- */
-const MAX_TUTORIAL_PAGE_PRESSES = 10;
-
 test.describe("検索チュートリアル(ja-JP 初回訪問)", () => {
 	// ─ テストケース: 初回訪問でチュートリアルが自動表示される ─
 	// 手順:
@@ -112,24 +106,18 @@ test.describe("検索チュートリアル(ja-JP 初回訪問)", () => {
 			)
 			.toBe(1);
 
-		// 連打後も操作が続けられる(残りのページを 1 ページずつ進み切れる)。
-		// 「つぎへ」が無くなった時点で最終ページに着いている。
-		// #1086 「つぎへ」の存在確認と押下は pressTutorialNextIfPresent で原子的に行う
-		// (プライマリ CTA は単一ノードで testID だけが入れ替わるため、count() で確認してから
-		//  click() すると『はじめよう』へ化けたノードを叩いてシートを閉じてしまうことがある)
-		for (let i = 0; i < MAX_TUTORIAL_PAGE_PRESSES; i += 1) {
-			if (!(await searchPage.pressTutorialNextIfPresent())) break;
-		}
-		await expect(searchPage.tutorialFinishButton).toBeVisible();
-
-		// 完了操作も通る(現在地取得を避けるため「あとで」で完了させる)。
-		// #1091 「あとで」も currentPage の揺れで unmount されうるため、
-		// 特定と押下を同一 JS タスク内で行い、揺れたら押し直す
-		await expect
-			.poll(() => searchPage.pressTutorialLaterIfPresent(), {
-				message: "連打後に「あとで」を押せなかった",
-			})
-			.toBe(true);
+		// 連打後も操作が続けられる(残りのページを進み切って完了できる)。
+		// 完了は現在地取得を避けるため「あとで」で行う。
+		//
+		// ⚠️ #1097 「つぎへ」が無くなったら break して完了操作へ移る、という書き方をしないこと。
+		//    pressTutorialNextIfPresent() の false は「**その瞬間** search-tutorial-next が DOM に無い」
+		//    ことしか意味せず、「最終ページに着いた」と同義ではない。ページ送りアニメーション中は
+		//    onViewableItemsChanged が currentPage を揺らすため(#1091 と同種の窓)、最終ページに
+		//    着いていないのに false が返り、その後の「あとで」が現れないまま待つ形になり得る。
+		//    「1 回のポーリング内で『あとで』→ 無ければ『つぎへ』」という自己修復構造の
+		//    completeTutorialWithLater() に寄せて、押し直し経路を必ず持たせる
+		//    (「あとで」は最終ページにしか描画されないので、押せた時点で最終ページ到達も同時に示される)。
+		await searchPage.completeTutorialWithLater();
 		await expect(page.getByText("どんな料理を探しましょう？🍽")).toBeVisible();
 	});
 });
