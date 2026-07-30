@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { getRemoteConfig } from "../lib/remoteConfig";
 import { Env } from "../constants/Env";
 import type { CreateFrontendLogDto } from "@shared/api/v1/dto";
+import { UNKNOWN_BUILD_META_CLIENT } from "@shared/api/v1/dto";
 import { enqueueLog } from "@/lib/logQueue";
 
 /**
@@ -67,7 +68,11 @@ export const useLogger = () => {
 				payload,
 				error_level,
 				created_at: now,
-				created_app_version: Env.APP_VERSION,
+				// #1078 Env.APP_VERSION は x-app-version ヘッダ(lib/fetchWithAuth.ts)にも使われ、
+				// そこへ非バージョン文字列が乗ると maintenance.guard の NaN 比較で全 API が 426 になる。
+				// そのため Env.ts 側に既定値は置かず、ログ組み立て時のここだけに閉じる。
+				created_app_version: Env.APP_VERSION || UNKNOWN_BUILD_META_CLIENT,
+				// COMMIT_ID の既定値は参照元が本行のみのため Env.ts 側で解決済み
 				created_commit_id: Env.COMMIT_ID,
 			};
 

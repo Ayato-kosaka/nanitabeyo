@@ -52,7 +52,11 @@ export { ListContributionTasksQueryDto } from "./contribution-tasks/list-contrib
 export { ExistsContributionTaskQueryDto } from "./contribution-tasks/exists-contribution-task.query";
 export { CompletedTargetIdsQueryDto } from "./contribution-tasks/completed-target-ids.query";
 
-export { CreateFrontendLogDto } from "./logs/create-frontend-log.dto";
+export {
+	CreateFrontendLogDto,
+	UNKNOWN_BUILD_META_CLIENT,
+	UNKNOWN_BUILD_META_SERVER,
+} from "./logs/create-frontend-log.dto";
 export {
 	CreateFrontendLogBatchDto,
 	CREATE_FRONTEND_LOG_BATCH_MAX_SIZE,
