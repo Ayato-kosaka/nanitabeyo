@@ -1,4 +1,4 @@
-import { ArrayMaxSize, ArrayMinSize, IsArray, ValidateNested } from "class-validator";
+import { ArrayMaxSize, ArrayMinSize, IsArray } from "class-validator";
 import { Type } from "class-transformer";
 import { CreateFrontendLogDto } from "./create-frontend-log.dto";
 
@@ -14,7 +14,9 @@ export class CreateFrontendLogBatchDto {
 	@IsArray()
 	@ArrayMinSize(1)
 	@ArrayMaxSize(CREATE_FRONTEND_LOG_BATCH_MAX_SIZE)
-	@ValidateNested({ each: true })
+	// #1079 要素の検証は api 側の FrontendLogBatchValidationPipe が 1 件ずつ行う。
+	// ここで @ValidateNested({ each: true }) を使うと 1 件の不正で最大 100 件が 400 になる（#1076）。
+	// @Type は残す: 要素の class 化・暗黙変換を従来どおり効かせるため。
 	@Type(() => CreateFrontendLogDto)
 	logs!: CreateFrontendLogDto[];
 }

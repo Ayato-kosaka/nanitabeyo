@@ -29,16 +29,67 @@ const getAccessToken = async (): Promise<string | undefined> => {
 	return cachedAccessToken;
 };
 
+// #1079 【設計】送信結果のカウンタ（プロセス内メモリのみ。永続化しない）
+// フロントログ送信の失敗を耐久的に残せる場所は「フロントログ以外の経路」しかなく、
+// それは親Issue対象外の「送信経路そのものの再設計」になるため、クライアント側は揮発に留める。
+// 主要な失敗モード（要素の検証エラー）はサーバに到達しているのでサーバ側が記録する。
+const stats = {
+	sentBatches: 0,
+	sentLogs: 0,
+	/** 4xx で落ちた件数（= サーバ契約違反。クライアント側のバグ） */
+	droppedByReject: 0,
+	/** 5xx / ネットワーク / 認証欠落で落ちた件数（一時障害） */
+	droppedByTransient: 0,
+	/** 2xx だがサーバが要素単位で棄却した件数（#1079 部分受理） */
+	partiallyRejected: 0,
+	/** 直近の失敗の要約。ログ本文は含めない */
+	lastFailure: undefined as { status: number | null; kind: string; count: number; at: string } | undefined,
+};
+
+/** 送信失敗の分類。4xx は「自分たちの契約が壊れている」、それ以外は「相手が一時的に落ちている」 */
+type FailureKind = "rejected" | "transient";
+
+/**
+ * #1079 送信の成否を外から観測するための読み取り専用スナップショット（E2E / デバッグ用）
+ */
+export const getLogQueueStats = () => ({ ...stats });
+
+const recordFailure = (status: number | null, count: number, kind: FailureKind, err?: any): void => {
+	if (kind === "rejected") stats.droppedByReject += count;
+	else stats.droppedByTransient += count;
+	stats.lastFailure = { status, kind, count, at: new Date().toISOString() };
+
+	// #1079 NODE_ENV に依らず1行だけ出す。flush間隔(5秒)以上の頻度にはならないので
+	// production でもコンソールを溢れさせない。ログ本文(payload/path_name)は出さない。
+	// production でゲートすると #1076 の「障害が見えない」が再来するため無条件にする。
+	console.warn(`⚠️ frontend log batch dropped: kind=${kind} status=${status ?? "n/a"} count=${count}`);
+
+	// 詳細（例外オブジェクト）は従来どおり development のみ
+	if (Env.NODE_ENV === "development" && err) {
+		console.error("🚨 Failed to flush frontend log batch", {
+			message: err.message,
+			full: err,
+			count,
+		});
+	}
+};
+
 const sendBatch = async (logs: CreateFrontendLogDto[]): Promise<void> => {
 	if (logs.length === 0) return;
 
+	// ⚠️ #1079 この関数と、この関数が呼ぶ全ての処理から
+	//    enqueueLog() / useLogger().logFrontendEvent() を呼んではならない。
+	//    失敗そのものがログを生むと、原因が入力側にある限り 100% 再び失敗するため収束せず、
+	//    FLUSH_BATCH_SIZE(20) の即時flush条件により5秒間隔の制限すら効かない同期ループに落ちる。
+	//    報告は console とメモリカウンタのみで行い、失敗したログはキューへ戻さず破棄する（再送しない）。
 	try {
 		const accessToken = await getAccessToken();
 		if (!accessToken) {
-			throw new Error("User is not authenticated: Supabase access_token is missing.");
+			recordFailure(null, logs.length, "transient");
+			return;
 		}
 
-		await fetchWithAuth(
+		const { response } = await fetchWithAuth(
 			"v1/logs/frontend/batch",
 			{
 				method: "POST",
@@ -47,15 +98,31 @@ const sendBatch = async (logs: CreateFrontendLogDto[]): Promise<void> => {
 			},
 			accessToken,
 		);
-	} catch (err: any) {
-		// 【設計】送信失敗は黙殺（ログ出力のみ）。失われたログの再送はしない
-		if (Env.NODE_ENV === "development") {
-			console.error("🚨 Failed to flush frontend log batch", {
-				message: err.message,
-				full: err,
-				count: logs.length,
-			});
+
+		// #1079 fetchWithAuth は非2xxで throw しないため、これまで 400 は catch にすら入らず
+		// development でも何も出ていなかった（「黙殺」以前に「未検知」）。ここで明示的に判定する。
+		if (!response.ok) {
+			recordFailure(response.status, logs.length, response.status < 500 ? "rejected" : "transient");
+			return;
 		}
+
+		stats.sentBatches += 1;
+		stats.sentLogs += logs.length;
+
+		// #1079 2xx でもサーバが要素単位で棄却しているケースを拾う
+		try {
+			const body = await response.json();
+			const rejected: number = body?.data?.rejected ?? 0;
+			if (rejected > 0) {
+				stats.partiallyRejected += rejected;
+				console.warn(`⚠️ frontend log batch partially rejected: ${rejected}/${logs.length}`);
+			}
+		} catch {
+			// body の解析失敗は無視（送信自体は成功しているため）
+		}
+	} catch (err: any) {
+		// ネットワーク例外・AbortError など
+		recordFailure(null, logs.length, "transient", err);
 	}
 };
 

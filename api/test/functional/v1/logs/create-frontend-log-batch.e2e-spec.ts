@@ -115,15 +115,109 @@ describe('Logs frontend batch endpoint (functional)', () => {
         .expect(400);
     });
 
-    it('rejects when one item in the array is invalid', async () => {
+    // #1079 【設計】従来は 1 件の不正で最大 100 件が 400 になっていた（#1076 の増幅要因）。
+    // 部分受理により、不正な要素だけを落として残りを受理する。
+    it('accepts the valid items and drops only the invalid one', async () => {
+      const spy = jest
+        .spyOn(loggerService, 'logFrontendEvent')
+        .mockResolvedValue(undefined);
+      const warnSpy = jest
+        .spyOn(loggerService, 'warn')
+        .mockImplementation(() => undefined);
+
       const logs = [
         buildLog('valid_event'),
         { ...buildLog('invalid_event'), error_level: 'unknown' },
       ];
-      await request(app.getHttpServer())
+      const res = await request(app.getHttpServer())
         .post('/v1/logs/frontend/batch')
         .send({ logs })
-        .expect(400);
+        .expect(201);
+
+      expect(res.body).toEqual({ received: true, accepted: 1, rejected: 1 });
+      expect(spy).toHaveBeenCalledTimes(1);
+      expect(spy.mock.calls[0][0]).toMatchObject({
+        event_name: 'valid_event',
+      });
+
+      // #1079 棄却はバックエンドログへ 1 リクエスト 1 行だけ残る（ログ本文は含まない）
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+      expect(warnSpy.mock.calls[0][0]).toBe('frontend_log_batch_rejected');
+      expect(warnSpy.mock.calls[0][2]).toMatchObject({
+        received: 2,
+        accepted: 1,
+        rejected: 1,
+        rejected_fields: { error_level: 1 },
+      });
+
+      spy.mockRestore();
+      warnSpy.mockRestore();
+    });
+
+    // #1078 【設計】メタ情報 1 個の欠落でログ本体を捨てない（従来は 400 で全滅）
+    it('accepts an item missing created_commit_id and fills the server-side default', async () => {
+      const spy = jest
+        .spyOn(loggerService, 'logFrontendEvent')
+        .mockResolvedValue(undefined);
+
+      const withoutCommitId: Record<string, unknown> = buildLog('no_commit_id');
+      delete withoutCommitId.created_commit_id;
+
+      const res = await request(app.getHttpServer())
+        .post('/v1/logs/frontend/batch')
+        .send({ logs: [buildLog('with_commit_id'), withoutCommitId] })
+        .expect(201);
+
+      expect(res.body).toEqual({ received: true, accepted: 2, rejected: 0 });
+      expect(spy).toHaveBeenCalledTimes(2);
+      expect(spy.mock.calls[1][0]).toMatchObject({
+        event_name: 'no_commit_id',
+        created_commit_id: 'unknown-server',
+      });
+
+      spy.mockRestore();
+    });
+
+    // #1079 指摘1 の回帰: route-scoped pipe は handler の全パラメータ（@CurrentUser() を含む）
+    // に適用される。metadata.type のガードが無いと正常リクエストでも常に 400 になる。
+    it('does not validate non-body parameters (regression for route-scoped pipe)', async () => {
+      const spy = jest
+        .spyOn(loggerService, 'logFrontendEvent')
+        .mockResolvedValue(undefined);
+
+      const res = await request(app.getHttpServer())
+        .post('/v1/logs/frontend/batch')
+        .send({ logs: [buildLog('current_user_param')] })
+        .expect(201);
+
+      expect(res.body).toEqual({ received: true, accepted: 1, rejected: 0 });
+      // @CurrentUser() が素通しされ、user.id が Service まで届いていること
+      expect(spy.mock.calls[0][0]).toMatchObject({ user_id: testUserId });
+
+      spy.mockRestore();
+    });
+
+    it('drops non-object items without failing the whole batch', async () => {
+      const spy = jest
+        .spyOn(loggerService, 'logFrontendEvent')
+        .mockResolvedValue(undefined);
+      const warnSpy = jest
+        .spyOn(loggerService, 'warn')
+        .mockImplementation(() => undefined);
+
+      const res = await request(app.getHttpServer())
+        .post('/v1/logs/frontend/batch')
+        .send({ logs: [buildLog('ok'), null, 'x', []] })
+        .expect(201);
+
+      expect(res.body).toEqual({ received: true, accepted: 1, rejected: 3 });
+      expect(spy).toHaveBeenCalledTimes(1);
+      expect(warnSpy.mock.calls[0][2]).toMatchObject({
+        rejected_constraints: { isObject: 3 },
+      });
+
+      spy.mockRestore();
+      warnSpy.mockRestore();
     });
 
     it('records the same content as individual single-log calls', async () => {
@@ -142,7 +236,12 @@ describe('Logs frontend batch endpoint (functional)', () => {
         .send({ logs })
         .expect(201);
 
-      expect(res.body).toEqual({ received: true });
+      // #1079 レスポンスに accepted / rejected が加わる（received: true は不変）
+      expect(res.body).toEqual({
+        received: true,
+        accepted: logs.length,
+        rejected: 0,
+      });
       expect(spy).toHaveBeenCalledTimes(logs.length);
       logs.forEach((log, i) => {
         expect(spy.mock.calls[i][0]).toMatchObject({
