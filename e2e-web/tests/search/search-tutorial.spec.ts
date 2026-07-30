@@ -44,22 +44,24 @@ test.describe("検索チュートリアル(ja-JP 初回訪問)", () => {
 	//      URL バー上のパス(例: /map)に対応する別ルートの静的 HTML が読み込まれてしまう。
 	//      そのため reload ではなく検索画面のパスへ明示的に goto する)
 	//   5. チュートリアルが自動表示されないことを検証
+	//
+	// ⚠️ #1091 ページ送り・完了操作を `getByText(...).click()` で書かないこと。
+	//    ページ送りアニメーション中に TutorialBottomSheet の `onViewableItemsChanged` が
+	//    `currentPage` を揺らすため、「はじめよう」の可視アサートが一瞬通った直後に
+	//    `currentPage` が 2 へ戻り、**最終ページにしか描画されない「あとで」が unmount されて**
+	//    クリックが届かずに落ちる(並列実行時に 3 回に 1 回再現)。
+	//    要素の特定と押下を同一 JS タスク内で行い、揺れたら押し直す
+	//    `SearchPage.completeTutorialWithLater()` に寄せて構造的に潰している。
 	test("完了後は再訪問しても表示されない", async ({ page }) => {
+		const searchPage = new SearchPage(page);
+
 		await page.goto("/");
 		await expect(page.getByText("食べたい料理に気づけるアプリ")).toBeVisible();
 
-		// page1 → page2 → page3 → page4 まで「つぎへ」で進める
-		for (let i = 0; i < 3; i++) {
-			await page.getByText("つぎへ", { exact: true }).click();
-		}
-		await expect(page.getByText("はじめよう", { exact: true })).toBeVisible();
+		// page1 → … → 最終ページまで進め、「あとで」で完了させる(現在地取得は避ける)
+		await searchPage.completeTutorialWithLater();
 
-		// 「あとで」を押して完了させる(現在地取得は避ける)
-		await page.getByText("あとで", { exact: true }).click();
-
-		await expect
-			.poll(() => page.evaluate(() => window.localStorage.getItem("search_tutorial_seen_v1")))
-			.toBe("true");
+		await expect.poll(() => page.evaluate(() => window.localStorage.getItem("search_tutorial_seen_v1"))).toBe("true");
 
 		await page.goto("/ja-JP/search");
 		await expect(page.getByText("どんな料理を探しましょう？🍽")).toBeVisible();
@@ -105,8 +107,7 @@ test.describe("検索チュートリアル(ja-JP 初回訪問)", () => {
 		await expect(searchPage.tutorialOverlay).toBeVisible();
 		await expect
 			.poll(
-				async () =>
-					(await searchPage.tutorialNextButton.count()) + (await searchPage.tutorialFinishButton.count()),
+				async () => (await searchPage.tutorialNextButton.count()) + (await searchPage.tutorialFinishButton.count()),
 				{ message: "連打でプライマリ CTA が消えた/二重になった" },
 			)
 			.toBe(1);
@@ -121,8 +122,14 @@ test.describe("検索チュートリアル(ja-JP 初回訪問)", () => {
 		}
 		await expect(searchPage.tutorialFinishButton).toBeVisible();
 
-		// 完了操作も通る(現在地取得を避けるため「あとで」で完了させる)
-		await page.getByText("あとで", { exact: true }).click();
+		// 完了操作も通る(現在地取得を避けるため「あとで」で完了させる)。
+		// #1091 「あとで」も currentPage の揺れで unmount されうるため、
+		// 特定と押下を同一 JS タスク内で行い、揺れたら押し直す
+		await expect
+			.poll(() => searchPage.pressTutorialLaterIfPresent(), {
+				message: "連打後に「あとで」を押せなかった",
+			})
+			.toBe(true);
 		await expect(page.getByText("どんな料理を探しましょう？🍽")).toBeVisible();
 	});
 });
