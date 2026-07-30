@@ -15,7 +15,7 @@ import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useLogger } from "@/hooks/useLogger";
 import type { GetRestaurantByIdResponse, QueryDishMediaByIdsResponse, DishMediaEntry } from "@shared/api/v1/res";
 import i18n from "@/lib/i18n";
-import { QueryDishMediaByIdsDto } from "@shared/api/v1/dto";
+import type { QueryDishMediaByIdsDto } from "@shared/api/v1/dto";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { useLocale } from "@/hooks/useLocale";
 

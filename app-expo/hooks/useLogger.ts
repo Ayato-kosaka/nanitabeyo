@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { getRemoteConfig } from "../lib/remoteConfig";
 import { Env } from "../constants/Env";
 import type { CreateFrontendLogDto } from "@shared/api/v1/dto";
-import { UNKNOWN_BUILD_META_CLIENT } from "@shared/api/v1/dto";
+import { UNKNOWN_BUILD_META_CLIENT } from "@shared/api/v1/constants/build-meta";
 import { enqueueLog } from "@/lib/logQueue";
 
 /**

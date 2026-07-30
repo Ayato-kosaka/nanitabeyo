@@ -1,7 +1,7 @@
 import { Platform } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as VideoThumbnails from "expo-video-thumbnails";
-import { CreateDishMediaDto } from "@shared/api/v1/dto";
+import type { CreateDishMediaDto } from "@shared/api/v1/dto";
 import { selectMediaForE2E } from "./e2e/selectMediaStub";
 
 const MAX_VIDEO_DURATION_SECONDS = 120; // 2 minutes

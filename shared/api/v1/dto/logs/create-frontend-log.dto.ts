@@ -1,4 +1,5 @@
 import { IsIn, IsObject, IsOptional, IsString } from "class-validator";
+export { UNKNOWN_BUILD_META_CLIENT, UNKNOWN_BUILD_META_SERVER } from "../../constants/build-meta";
 
 // ビルド時メタ情報（created_app_version / created_commit_id）を取得できなかったときの既定値。
 // #1078 git SHA は [0-9a-f] のみで構成されるため、'u'/'n'/'k'/'w' を含むこれらの値が
@@ -6,11 +7,6 @@ import { IsIn, IsObject, IsOptional, IsString } from "class-validator";
 // `STARTS_WITH(created_commit_id, 'unknown-')` で欠落由来の行を判別できる。
 // （逆に「'unknown-' で始まらない ＝ 実 SHA」までは保証しない。'test-commit' 等の
 //   非 SHA 文字列を送るクライアント／テストが存在しうるため）
-
-/** クライアントが値を持っていなかった（ビルド時 env 注入漏れ等） */
-export const UNKNOWN_BUILD_META_CLIENT = "unknown-client";
-/** クライアントがキーごと送ってこなかった（古い／壊れたバンドル。サーバが補完） */
-export const UNKNOWN_BUILD_META_SERVER = "unknown-server";
 
 /**
  * POST /v1/logs/frontend のボディ

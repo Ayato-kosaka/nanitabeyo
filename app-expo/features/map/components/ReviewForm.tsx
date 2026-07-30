@@ -28,7 +28,7 @@ import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useDishCategorySearch } from "@/hooks/useDishCategorySearch";
-import { CreateDishDto, type CreateDishMediaDto, type CreateDishReviewDto } from "@shared/api/v1/dto";
+import type { CreateDishDto, CreateDishMediaDto, CreateDishReviewDto } from "@shared/api/v1/dto";
 import { useFileUploader } from "@/hooks/useFileUploader";
 import type {
 	CreateDishMediaResponse,

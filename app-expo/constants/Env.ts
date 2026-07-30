@@ -1,5 +1,5 @@
 import Constants from "expo-constants";
-import { UNKNOWN_BUILD_META_CLIENT } from "@shared/api/v1/dto";
+import { UNKNOWN_BUILD_META_CLIENT } from "@shared/api/v1/constants/build-meta";
 
 const extra = Constants.expoConfig?.extra ?? {};
 

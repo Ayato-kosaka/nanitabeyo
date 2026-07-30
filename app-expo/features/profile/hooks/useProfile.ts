@@ -2,7 +2,7 @@ import { useAPICall } from "@/hooks/useAPICall";
 import { useLogger } from "@/hooks/useLogger";
 import { useCallback } from "react";
 import { useFileUploader } from "@/hooks/useFileUploader";
-import { UpdateUserProfileDto } from "@shared/api/v1/dto";
+import type { UpdateUserProfileDto } from "@shared/api/v1/dto";
 import { supabase } from "@/lib/supabase";
 import { useLocale } from "@/hooks/useLocale";
 import { useAuth } from "@/contexts/AuthProvider";
