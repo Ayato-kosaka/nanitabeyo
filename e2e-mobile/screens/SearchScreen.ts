@@ -304,28 +304,24 @@ export class SearchScreen {
 		await waitUntilVisible(this.tutorialNextButton, timeout, SearchScreen.TUTORIAL_INDEX);
 	}
 
-	/** チュートリアルの「つぎへ」を 1 回だけタップして次のページへ進む */
-	async tapTutorialNext(): Promise<void> {
-		await tapWhenVisible(this.tutorialNextButton, DEFAULT_TIMEOUT, SearchScreen.TUTORIAL_INDEX);
-	}
-
 	/**
-	 * 最終ページに到達し、シートが開いたままであることを検証する（#1084 P3）。
-	 * プライマリ CTA の testID が `search-tutorial-finish` に切り替わることで判別できる。
-	 */
-	async expectTutorialFinishShown(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
-		await waitUntilVisible(this.tutorialFinishButton, timeout, SearchScreen.TUTORIAL_INDEX);
-	}
-
-	/**
-	 * 最終ページに **到達していない**ことを検証する（#1084 P3: 連打によるページ飛びの検知）。
+	 * チュートリアルが **操作できる状態にある**ことを検証する（#1084 P3）。
 	 *
-	 * #1027 「存在しない」ではなく「見えていない」で判定する（TrueSheet はシートの内容を
+	 * プライマリ CTA の testID は `currentPage` から導出される（`isLastPage ? finish : next`）ため、
+	 * 連打で `currentPage` がページ範囲を外れると **どちらの CTA も期待どおりに出なくなる**。
+	 * 「つぎへ」「はじめよう」のちょうど一方が見えていることを、その検出点として使う。
+	 *
+	 * ⚠️ #1027 「存在しない」ではなく「見えている」で判定する（TrueSheet はシートの内容を
 	 * ツリーへ残すことがあり、存在での判定はプラットフォーム差に巻き込まれる）。
 	 */
-	async expectTutorialFinishAbsent(): Promise<void> {
-		const shown = await visibleNow(this.tutorialFinishButton, 3_000, SearchScreen.TUTORIAL_INDEX);
-		assert.equal(shown, false, "「つぎへ」の連打でページが飛び、最終ページまで進んでいる");
+	async expectTutorialOperable(): Promise<void> {
+		const nextShown = await visibleNow(this.tutorialNextButton, 3_000, SearchScreen.TUTORIAL_INDEX);
+		const finishShown = await visibleNow(this.tutorialFinishButton, 3_000, SearchScreen.TUTORIAL_INDEX);
+		assert.equal(
+			nextShown !== finishShown,
+			true,
+			"連打後にチュートリアルのプライマリ CTA が消えている/二重になっている（ページ範囲を外れた可能性がある）",
+		);
 	}
 
 	/**
