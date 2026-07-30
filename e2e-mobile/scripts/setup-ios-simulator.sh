@@ -13,9 +13,16 @@
 # Android 側で IME をまとめて無効化しているのと同じ対処を iOS でも行う
 # （scripts/setup-android-locale.sh）。
 #
-# ## 仕組み
+# ## 仕組みと限界
 # 「ハードウェアキーボードが接続されている」状態にすると、シミュレータはソフトウェアキーボードを出さない。
 # この設定は Simulator.app が起動時に読むため、**Detox がシミュレータを起こす前**に実行すること。
+#
+# ⚠️ ただし **これ単体では足りない**。run 30522949349 では設定が入っている（ログに
+# `ConnectHardwareKeyboard = 1`）にもかかわらずソフトウェアキーボードが出ていた
+# （Detox の可視性デバッグ画像で確認）。simctl 起動のシミュレータには Simulator.app の
+# 設定が効かないためと考えられる。
+# **入力欄へフォーカスを与えたあとは spec 側でキーボードを閉じること**
+# （screens/SearchScreen.ts の dismissKeyboard）。この設定はローカル実行での保険として残している。
 set -euo pipefail
 
 echo "▶ iOS シミュレータのソフトウェアキーボードを無効化します"

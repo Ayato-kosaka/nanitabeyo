@@ -179,7 +179,30 @@ export class SearchScreen {
 		if (!(await existsNow(this.locationClearButton))) return false;
 
 		await tapWhenVisible(this.locationClearButton);
+
+		// #1027 【バグ】クリアは **意図的に入力欄へフォーカスを戻す**（`LocationAutocomplete` の
+		// handleClear が `inputRef.current?.focus()` を呼ぶ。クリア直後に手入力へ移れるようにする仕様）。
+		// その結果 iOS ではソフトウェアキーボードが画面下半分を覆い、下端固定の検索 FAB を
+		// Detox が「見えない/叩けない」と判定する（run 30522949349 の可視性デバッグ画像で確認）。
+		// この入力欄は `onSubmitEditing` を持たず `blurOnSubmit` も既定（true）なので、
+		// リターンキーは **副作用なく blur してキーボードを閉じる**だけで済む。
+		await this.dismissKeyboard();
 		return true;
+	}
+
+	/**
+	 * 入力欄のリターンキーを押してキーボードを閉じる（ベストエフォート）。
+	 *
+	 * Detox にプラットフォーム共通の「キーボードを閉じる」API は無い。
+	 * Android は IME 自体を無効化してあるため（scripts/setup-android-locale.sh）そもそも不要で、
+	 * 環境によって失敗しうるので **失敗しても検証を止めない**。
+	 */
+	private async dismissKeyboard(): Promise<void> {
+		try {
+			await element(this.locationInput).tapReturnKey();
+		} catch {
+			// キーボードが出ていない環境（IME 無効の Android 等）では失敗しうる。無視して続行する
+		}
 	}
 
 	/**
