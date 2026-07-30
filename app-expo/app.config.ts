@@ -21,6 +21,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		bundleIdentifier: "com.nanitabeyo",
 		buildNumber: "1",
 		supportsTablet: false,
+		googleServicesFile: "./GoogleService-Info.plist",
 		associatedDomains: [`applinks:app.nanitabeyo.net`],
 		// #688 【設計】Universal Links のための entitlements 設定
 		entitlements: {
@@ -101,6 +102,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		"expo-video",
 		"expo-audio",
 		"expo-notifications",
+		// #1016 【設計】Androidは既存のgoogle-services.json(android.googleServicesFile)を利用する。
+		// iOS用GoogleService-Info.plistは未配置のため、ios.googleServicesFileは未設定のまま。
+		// prebuild/EASビルドでiOSネイティブプロジェクトを生成する場合はオーナー確認のうえ配置が必要。
+		"@react-native-firebase/app",
+		"@react-native-firebase/perf",
 		[
 			"expo-splash-screen",
 			{
@@ -204,27 +210,27 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		"expo-localization",
 		...(process.env.EXPO_PUBLIC_FACEBOOK_APP_ID && process.env.EXPO_PUBLIC_FACEBOOK_CLIENT_TOKEN
 			? [
-					[
-						// #492 【設計】Meta SDK (react-native-fbsdk-next) プラグイン設定
-						// expo config は eas build 実行の際に走るため、環境変数がないと落ちる。そのため、env が無ければスキップにする
-						"react-native-fbsdk-next",
-						{
-							appID: process.env.EXPO_PUBLIC_FACEBOOK_APP_ID,
-							clientToken: process.env.EXPO_PUBLIC_FACEBOOK_CLIENT_TOKEN,
-							displayName: "nanitabeyo",
-							advertiserIDCollectionEnabled: true,
-							autoLogAppEventsEnabled: true,
-							isAutoInitEnabled: true,
-						},
-					] as [string, any],
-				]
+				[
+					// #492 【設計】Meta SDK (react-native-fbsdk-next) プラグイン設定
+					// expo config は eas build 実行の際に走るため、環境変数がないと落ちる。そのため、env が無ければスキップにする
+					"react-native-fbsdk-next",
+					{
+						appID: process.env.EXPO_PUBLIC_FACEBOOK_APP_ID,
+						clientToken: process.env.EXPO_PUBLIC_FACEBOOK_CLIENT_TOKEN,
+						displayName: "nanitabeyo",
+						advertiserIDCollectionEnabled: true,
+						autoLogAppEventsEnabled: true,
+						isAutoInitEnabled: true,
+					},
+				] as [string, any],
+			]
 			: []),
 		...(process.env.E2E_DETOX === "1"
 			? [
-					// #1027 【設計】Detox E2E 用プラグイン（androidTest 設定・Network Security Config を注入する）
-					// 通常の EAS ビルドへ混入させないため、E2E ビルド時のみ E2E_DETOX=1 で有効化する
-					"@config-plugins/detox",
-				]
+				// #1027 【設計】Detox E2E 用プラグイン（androidTest 設定・Network Security Config を注入する）
+				// 通常の EAS ビルドへ混入させないため、E2E ビルド時のみ E2E_DETOX=1 で有効化する
+				"@config-plugins/detox",
+			]
 			: []),
 		[
 			// #492 【設計】ATT (App Tracking Transparency) ダイアログ設定

@@ -7,12 +7,15 @@ import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { LoginbackModal } from "@/features/profile/components/LoginbackModal";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
+import { useScreenTrace } from "@/hooks/useScreenTrace";
 import i18n from "@/lib/i18n";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useLocale } from "@/hooks/useLocale";
 
 export default function ReviewScreen() {
+	// #1016 【設計】主要画面(ホームタブ)にFirebase Performance Monitoringの画面トレースを計装する。
+	useScreenTrace("Review");
 	const { user } = useAuth();
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
