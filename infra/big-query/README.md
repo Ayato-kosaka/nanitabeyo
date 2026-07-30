@@ -225,14 +225,14 @@ scripts/20251213T0000_wikidata_food_graph/548_wikidata_food_llm_labeling/
 - **Project**: `food-scroll`
 - **Dataset**: `nanitabeyo_logs_dev`
 - **Location**: `asia-northeast1`
-- **TTL**: 90日
+- **default table expiration**: 設定しない
 
 ### prod 環境
 
 - **Project**: `food-scroll`
 - **Dataset**: `nanitabeyo_logs_prod`
 - **Location**: `asia-northeast1`
-- **TTL**: 730日（2年）
+- **default table expiration**: 設定しない
 
 ## 参考
 

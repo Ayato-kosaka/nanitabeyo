@@ -155,12 +155,14 @@ export const useTopicSearch = () => {
 				latitude,
 				longitude,
 				searchLocationLanguageCode,
+				// #817 【設計】端末言語を第一優先にする
+				viewerLanguageCode: locale,
 				radius,
 				priceLevels,
 				searchResultRestaurantsNumber,
 			});
 		},
-		[callBackend],
+		[callBackend, locale],
 	);
 
 	const searchTopics = useCallback(

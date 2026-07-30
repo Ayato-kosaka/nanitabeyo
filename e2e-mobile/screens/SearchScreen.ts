@@ -1,11 +1,16 @@
+import { strict as assert } from "node:assert";
+
 import {
 	DEFAULT_TIMEOUT,
 	by,
+	dismissSearchTutorialIfPresent,
 	element,
 	existsNow,
-	expect,
+	tapWhenPresent,
+	tapWhenVisible,
+	visibleNow,
 	waitFor,
-	waitUntilGone,
+	waitUntilNotVisible,
 	waitUntilVisible,
 } from "../fixtures/e2e";
 
@@ -71,8 +76,23 @@ export class SearchScreen {
 	/** グローバルスナックバー（バリデーションエラー等の通知） */
 	readonly snackbar = by.id("global-snackbar");
 
-	/** 検索チュートリアル（BottomSheet）のコンテンツ全体 */
+	/**
+	 * 検索チュートリアル（BottomSheet）のコンテンツ全体。
+	 *
+	 * ⚠️ #1027 この testID は扱いが難しく、**アサーションの観測点には使わないこと**。
+	 * - Android では **常に 2 つの View に一致する**（TrueSheet がシートの内容をツリーへ二重に載せる）。
+	 *   index を指定せずに待つと Detox は "matches 2 views in the hierarchy" で失敗する
+	 * - iOS では表示中でも `toBeVisible` が 2 分待って成立しなかった（面積を持つ実体が無いため）
+	 *
+	 * 「チュートリアルが出ている / 出ていない」の判定には、実体のあるボタン
+	 * （`tutorialNextButton` = 1 ページ目の「つぎへ」）を使う。
+	 */
 	readonly tutorialOverlay = by.id("search-tutorial-overlay");
+	/**
+	 * ⚠️ #1027 **TrueSheet の中身は Android で必ず 2 つの View に一致する**（run 30445542854 で実測。
+	 * 2 件は id も座標も同一の重複エントリ）。シート内の要素を扱うヘルパには必ずこの添字を渡すこと。
+	 */
+	private static readonly TUTORIAL_INDEX = 0;
 	/** チュートリアルの「つぎへ」（最終ページ以外で描画される） */
 	readonly tutorialNextButton = by.id("search-tutorial-next");
 	/** チュートリアルの「はじめよう」（最終ページのプライマリ CTA。押すと現在地取得が走る） */
@@ -81,14 +101,14 @@ export class SearchScreen {
 	readonly tutorialLaterButton = by.id("search-tutorial-later");
 
 	/**
-	 * スクロール操作の起点にする要素。
+	 * 検索フォーム全体を包む縦スクロール領域（#1027 で app-expo 側に testID を追加）。
 	 *
-	 * #1031 【設計】検索画面の `ScrollView` には testID が無いため、Detox の
-	 * `whileElement(...).scroll()` が使えない。代わりに **スクロール領域の内側にある実在の要素**を
-	 * 掴んで swipe することで同等のスクロールを行う（`search-scene-solo` は同行者グリッドの先頭項目）。
-	 * ⚠️ app-expo に `search-scroll-view` 相当の testID が追加されたら `whileElement().scroll()` へ置き換えること。
+	 * 以前は testID が無く、代わりに「スクロール領域内の小さな要素を swipe する」方式を採っていたが、
+	 * Detox の `swipe` は **掴んだ要素の高さの範囲内**でしか指を動かせない。
+	 * 起点にしていた `search-scene-solo` は数十 px のタイルで、5 回スワイプしても画面下部の
+	 * `search-advanced-toggle` まで到達できなかった（run 30432596949 で実測）。
 	 */
-	private readonly scrollAnchor = by.id("search-scene-solo");
+	private readonly scrollView = by.id("search-scroll-view");
 
 	/** n 番目の場所サジェスト（0 始まり） */
 	locationSuggestion(index: number): Detox.NativeMatcher {
@@ -118,16 +138,14 @@ export class SearchScreen {
 	/**
 	 * 検索画面が表示されていることを検証する。
 	 *
-	 * ⚠️ チュートリアルが自動表示されていた場合は **先に閉じてから**検証する。
-	 * ネイティブのチュートリアルは BottomSheet（Android では別ウィンドウの Modal）として
-	 * 描画され、その間は背後の検索フォームが Detox から見えなくなるため、
-	 * 「チュートリアルが出ているせいで画面表示の検証に失敗する」誤検知を防ぐ必要がある。
-	 * チュートリアルそのものを検証する spec は expectLoaded を呼ぶ前に検証すること。
+	 * #1027 チュートリアルの後始末はここでは行わない。起動引数 `e2eTutorialSeen` のシードで
+	 * **そもそも開かない**設計に変えたため（fixtures/e2e.ts の `tutorialSeen` オプション）。
+	 * 以前はここで「出ていたら閉じる」をしていたが、呼ばれるたびに数秒の probe が入るうえ、
+	 * シートが遅れて被さる競合を消し切れなかった。
 	 *
 	 * @param timeout タイムアウト (ms)
 	 */
 	async expectLoaded(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
-		await this.dismissTutorialIfPresent();
 		await waitUntilVisible(this.headerTitle, timeout);
 	}
 
@@ -144,7 +162,7 @@ export class SearchScreen {
 	 * @param query 入力する地名（例: "渋谷"）
 	 */
 	async typeLocation(query: string): Promise<void> {
-		await element(this.locationInput).tap();
+		await tapWhenVisible(this.locationInput);
 		await element(this.locationInput).replaceText(query);
 	}
 
@@ -160,8 +178,31 @@ export class SearchScreen {
 	async clearLocationIfPresent(): Promise<boolean> {
 		if (!(await existsNow(this.locationClearButton))) return false;
 
-		await element(this.locationClearButton).tap();
+		await tapWhenVisible(this.locationClearButton);
+
+		// #1027 【バグ】クリアは **意図的に入力欄へフォーカスを戻す**（`LocationAutocomplete` の
+		// handleClear が `inputRef.current?.focus()` を呼ぶ。クリア直後に手入力へ移れるようにする仕様）。
+		// その結果 iOS ではソフトウェアキーボードが画面下半分を覆い、下端固定の検索 FAB を
+		// Detox が「見えない/叩けない」と判定する（run 30522949349 の可視性デバッグ画像で確認）。
+		// この入力欄は `onSubmitEditing` を持たず `blurOnSubmit` も既定（true）なので、
+		// リターンキーは **副作用なく blur してキーボードを閉じる**だけで済む。
+		await this.dismissKeyboard();
 		return true;
+	}
+
+	/**
+	 * 入力欄のリターンキーを押してキーボードを閉じる（ベストエフォート）。
+	 *
+	 * Detox にプラットフォーム共通の「キーボードを閉じる」API は無い。
+	 * Android は IME 自体を無効化してあるため（scripts/setup-android-locale.sh）そもそも不要で、
+	 * 環境によって失敗しうるので **失敗しても検証を止めない**。
+	 */
+	private async dismissKeyboard(): Promise<void> {
+		try {
+			await element(this.locationInput).tapReturnKey();
+		} catch {
+			// キーボードが出ていない環境（IME 無効の Android 等）では失敗しうる。無視して続行する
+		}
 	}
 
 	/**
@@ -177,42 +218,42 @@ export class SearchScreen {
 	 */
 	async selectLocationSuggestion(index: number): Promise<void> {
 		await waitUntilVisible(this.locationSuggestion(index));
-		await element(this.locationSuggestion(index)).tap();
+		await tapWhenVisible(this.locationSuggestion(index));
 	}
 
 	/** 時間帯を選択する */
 	async selectTimeSlot(id: "morning" | "lunch" | "dinner" | "late_night"): Promise<void> {
-		await element(this.timeSlot(id)).tap();
+		await tapWhenVisible(this.timeSlot(id));
 	}
 
 	/** 同行者（シーン）を選択する */
 	async selectScene(id: "solo" | "date" | "friends" | "family" | "drinking"): Promise<void> {
-		await element(this.scene(id)).tap();
+		await tapWhenVisible(this.scene(id));
 	}
 
 	/** 詳細条件（距離・フードスタイル等）を展開する。画面外にある場合はスクロールしてから押す */
 	async openAdvancedFilters(): Promise<void> {
-		await this.scrollUntilVisible(this.advancedToggle, this.scrollAnchor);
-		await element(this.advancedToggle).tap();
+		await this.scrollUntilVisible(this.advancedToggle);
+		await tapWhenVisible(this.advancedToggle);
+	}
+
+	/** おすすめ外の移動時間チップの開閉を切り替える。画面外にある場合はスクロールしてから押す */
+	async toggleOtherDistanceEstimates(): Promise<void> {
+		await this.scrollUntilVisible(this.distanceEstimatesToggle);
+		await tapWhenVisible(this.distanceEstimatesToggle);
 	}
 
 	/**
-	 * おすすめ外の移動時間チップの開閉を切り替える。
+	 * 検索を実行する。
 	 *
-	 * #1031 【バグ】スクロール起点に `search-advanced-toggle` を使ってはいけない。
-	 * この要素は `showAdvancedFilters === false` のときだけ描画される（app-expo の
-	 * search/index.tsx）ため、`openAdvancedFilters()` が成功した時点でツリーから消えており、
-	 * スワイプが必要な画面サイズでは "no elements found" で確実に落ちる。
-	 * 展開後も残る `scrollAnchor`（search-scene-solo）を起点にする。
+	 * #1027 【バグ】ここだけは可視ではなく **存在**で待つ。この FAB は画面下端に絶対配置されており、
+	 * iOS の `toBeVisible`（面積の 75% 以上が可視かつ非遮蔽）を満たせず 25 秒タイムアウトする
+	 *（run 30493326741 で実測。ソフトウェアキーボードを無効化しても再現した）。
+	 * Artifact のスクリーンショットではボタンははっきり描画されており、タップ自体は届く。
+	 * 同じ「画面下端に来る要素」である距離セクションも、spec 側で既に `toExist` へ倒してある。
 	 */
-	async toggleOtherDistanceEstimates(): Promise<void> {
-		await this.scrollUntilVisible(this.distanceEstimatesToggle, this.scrollAnchor);
-		await element(this.distanceEstimatesToggle).tap();
-	}
-
-	/** 検索を実行する */
 	async submit(): Promise<void> {
-		await element(this.submitButton).tap();
+		await tapWhenPresent(this.submitButton);
 	}
 
 	/**
@@ -220,7 +261,11 @@ export class SearchScreen {
 	 * ja-JP かつ未視聴（AsyncStorage の `search_tutorial_seen_v1` が未設定）のときだけ成立する。
 	 */
 	async expectTutorialShown(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
-		await waitUntilVisible(this.tutorialOverlay, timeout);
+		// #1027 観測点は overlay ではなく **1 ページ目の「つぎへ」ボタン**にする。
+		// overlay は「シートの内容を包むだけの View」で面積や重なりの扱いがプラットフォームで揺れ、
+		// iOS では 2 分待っても toBeVisible が成立しなかった（run 30432596949）。
+		// ボタンなら「チュートリアルが出ていて操作できる」という検証したい事実と 1:1 で対応する
+		await waitUntilVisible(this.tutorialNextButton, timeout, SearchScreen.TUTORIAL_INDEX);
 	}
 
 	/**
@@ -232,7 +277,12 @@ export class SearchScreen {
 	 */
 	async expectTutorialAbsent(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
 		await waitUntilVisible(this.headerTitle, timeout);
-		await expect(element(this.tutorialOverlay)).not.toExist();
+		// #1027 「存在しない」ではなく「見えていない」で判定する。
+		// TrueSheet はシートを閉じていても内容をツリーに残すことがあり（Android では overlay が
+		// 常に 2 つの View に一致する）、存在での判定はプラットフォーム差に巻き込まれる。
+		// ユーザーから観測できる事実（チュートリアルが見えていない）を直接検証する
+		const shown = await visibleNow(this.tutorialNextButton, 3_000, SearchScreen.TUTORIAL_INDEX);
+		assert.equal(shown, false, "再起動後にチュートリアルが再表示されている（視聴済みフラグが永続化されていない）");
 	}
 
 	/**
@@ -244,69 +294,58 @@ export class SearchScreen {
 	 * @param maxPages ページ送りの上限（無限ループ防止。現在のページ数は 4）
 	 */
 	async completeTutorial(maxPages = 10): Promise<void> {
-		await waitUntilVisible(this.tutorialOverlay);
+		await waitUntilVisible(this.tutorialNextButton, DEFAULT_TIMEOUT, SearchScreen.TUTORIAL_INDEX);
 
 		// #1031 【設計】§4-1: ページ送りは FlatList のスクロールアニメーションを伴う。
 		// プライマリ CTA の testID が「つぎへ」→「はじめよう」に切り替わることを毎回待ち合わせることで、
 		// アニメーション完了を明示的に待つ（Detox の idle 同期だけに頼らない）
 		for (let page = 0; page < maxPages; page += 1) {
-			if (await existsNow(this.tutorialFinishButton, 1_000)) break;
-			if (!(await existsNow(this.tutorialNextButton, 1_000))) break;
+			if (await existsNow(this.tutorialFinishButton, 1_000, SearchScreen.TUTORIAL_INDEX)) break;
+			if (!(await existsNow(this.tutorialNextButton, 1_000, SearchScreen.TUTORIAL_INDEX))) break;
 
-			await element(this.tutorialNextButton).tap();
+			await tapWhenVisible(this.tutorialNextButton, DEFAULT_TIMEOUT, SearchScreen.TUTORIAL_INDEX);
 		}
 
-		await waitUntilVisible(this.tutorialFinishButton);
-		await element(this.tutorialLaterButton).tap();
-		await waitUntilGone(this.tutorialOverlay);
+		await waitUntilVisible(this.tutorialFinishButton, DEFAULT_TIMEOUT, SearchScreen.TUTORIAL_INDEX);
+		await tapWhenVisible(this.tutorialLaterButton, DEFAULT_TIMEOUT, SearchScreen.TUTORIAL_INDEX);
+		// #1027 閉じ待ちは「見えなくなること」で行う。TrueSheet の中身はツリーから消えるとは限らず、
+		// 存在での判定はプラットフォーム差に巻き込まれる
+		await waitUntilNotVisible(this.tutorialLaterButton, DEFAULT_TIMEOUT, SearchScreen.TUTORIAL_INDEX);
 	}
 
 	/**
 	 * チュートリアルが出ていれば閉じる（ベストエフォート）。
 	 *
-	 * #1031 【設計】§4-3: e2e-web は fixtures が localStorage へ視聴済みフラグをシードして抑止しているが、
-	 * ネイティブ側の AsyncStorage シード手段は共通基盤（#1030 の launchArgs 経路）にまだ無い。
-	 * そのため各 spec は「出ていたら閉じる」で吸収する。
-	 * シード方式が基盤に入ったらこの前処理は不要になる。
+	 * #1027 【設計】§4-3: e2e-web は fixtures が localStorage へ視聴済みフラグをシードして抑止している。
+	 * ネイティブも起動引数 `e2eTutorialSeen` によるシード方式へ揃えたため、
+	 * **通常の spec からこれを呼ぶ必要は無い**（`launchAppWithSession` の既定が「視聴済み」）。
+	 * シードを外して起動した spec の後片付け用に残している。
 	 *
 	 * @returns 閉じた場合 true / そもそも出ていなかった場合 false
 	 */
 	async dismissTutorialIfPresent(): Promise<boolean> {
-		// チュートリアルは AsyncStorage の読み込み完了後に開くため、起動直後は少し遅れて現れる。
-		// 「出ていない」と誤判定して後続の操作がブロックされないよう、既定より長めに様子を見る
-		if (!(await existsNow(this.tutorialOverlay, 3_000))) return false;
-
-		await this.completeTutorial();
-		return true;
+		// 実体は fixtures/e2e.ts。screens 側と二重管理にならないよう委譲するだけにする
+		return dismissSearchTutorialIfPresent(3_000);
 	}
 
 	/**
 	 * 対象が画面内に入るまでスクロールする。
 	 *
-	 * #1031 【設計】検索画面の ScrollView に testID が無く `whileElement().scroll()` を使えないため、
-	 * スクロール領域内の実在要素を掴んで swipe することで代替する。
+	 * Detox の `whileElement(...).scroll()` は「見えるまでスクロールを繰り返す」を 1 つの式で表せる
+	 * 公式の手段で、スクロール量も要素サイズに縛られない。
 	 *
 	 * @param target 画面内に入れたい要素
-	 * @param anchor swipe の起点にする、スクロール領域内の要素
-	 * @param maxSwipes swipe の上限回数
-	 * @失敗時 上限まで swipe しても見えない場合、最後に Detox の waitFor で失敗させる（失敗理由を残すため）
+	 * @param pixels 1 回あたりのスクロール量 (px)
+	 * @失敗時 スクロールし切っても見えない場合、Detox の例外を投げる
 	 */
-	private async scrollUntilVisible(
-		target: Detox.NativeMatcher,
-		anchor: Detox.NativeMatcher,
-		maxSwipes = 5,
-	): Promise<void> {
-		for (let i = 0; i < maxSwipes; i += 1) {
-			const visible = await waitFor(element(target))
-				.toBeVisible()
-				.withTimeout(1_000)
-				.then(() => true)
-				.catch(() => false);
-			if (visible) return;
-
-			await element(anchor).swipe("up", "slow", 0.6);
-		}
-
-		await waitUntilVisible(target);
+	private async scrollUntilVisible(target: Detox.NativeMatcher, pixels = 300): Promise<void> {
+		// #1027 【バグ】スクロールの開始点を明示する。既定の開始点はスクロール領域の**下端寄り**で、
+		// iOS ではそこがタブバー・検索 FAB・ホームインジケータに覆われているため
+		// "View is not scrollable at the given start point"（= その点は見えていない）で失敗する
+		// （run 30460621899 の iOS で実測）。中央（0.5, 0.5）から始めれば何にも覆われない
+		await waitFor(element(target))
+			.toBeVisible()
+			.whileElement(this.scrollView)
+			.scroll(pixels, "down", 0.5, 0.5);
 	}
 }

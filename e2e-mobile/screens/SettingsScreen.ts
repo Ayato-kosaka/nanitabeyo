@@ -1,4 +1,11 @@
-import { DEFAULT_TIMEOUT, by, existsNow, waitUntilVisible } from "../fixtures/e2e";
+import {
+	DEFAULT_TIMEOUT,
+	by,
+	element,
+	existsNow,
+	tapWhenVisible,
+	waitUntilVisible,
+} from "../fixtures/e2e";
 
 /**
  * ⚙️ 設定画面の Screen Object（e2e-web の pages/SettingsPage.ts に対応）
@@ -38,6 +45,14 @@ export class SettingsScreen {
 	readonly copyrightItem = by.id("settings-copyright");
 	/** ログアウト行（ログイン済みユーザーのみ表示・既存 testID） */
 	readonly logoutItem = by.id("settings-logout");
+	/**
+	 * リーガルドキュメントのモーダル（#1027 で settings.tsx へ testID を追加）。
+	 *
+	 * ログインモーダル内の同意文言リンク（`login-privacy-link`）でも同じモーダルが開くが、
+	 * あちらは `<Text>` の入れ子でネイティブ View を持たず Detox から到達できない。
+	 * ネイティブでのリーガルモーダル検証はこの経路に集約している（screens/LoginModal.ts 参照）。
+	 */
+	readonly legalDocumentModal = by.id("legal-document-modal");
 
 	/** 設定画面が表示されていることを検証する */
 	async expectLoaded(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
@@ -50,5 +65,15 @@ export class SettingsScreen {
 	 */
 	async hasLogoutItem(): Promise<boolean> {
 		return existsNow(this.logoutItem);
+	}
+
+	/** プライバシーポリシー行をタップしてリーガルドキュメントのモーダルを開く */
+	async openPrivacyPolicy(): Promise<void> {
+		await tapWhenVisible(this.privacyItem);
+	}
+
+	/** リーガルドキュメントのモーダルが開いていることを検証する */
+	async expectLegalDocumentOpened(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
+		await waitUntilVisible(this.legalDocumentModal, timeout);
 	}
 }

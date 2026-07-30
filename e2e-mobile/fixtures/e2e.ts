@@ -17,8 +17,13 @@ import {
 	DEFAULT_TIMEOUT,
 	LAUNCH_TIMEOUT,
 	existsNow,
+	tapWhenPresent,
+	tapWhenVisible,
+	visibleNow,
+	waitUntil,
 	waitUntilExists,
 	waitUntilGone,
+	waitUntilNotVisible,
 	waitUntilVisible,
 } from "../utils/waits";
 
@@ -47,7 +52,19 @@ import {
  */
 
 export { by, device, element, waitFor, detoxExpect as expect };
-export { DEFAULT_TIMEOUT, LAUNCH_TIMEOUT, existsNow, waitUntilExists, waitUntilGone, waitUntilVisible };
+export {
+	DEFAULT_TIMEOUT,
+	LAUNCH_TIMEOUT,
+	existsNow,
+	tapWhenPresent,
+	tapWhenVisible,
+	visibleNow,
+	waitUntil,
+	waitUntilExists,
+	waitUntilGone,
+	waitUntilNotVisible,
+	waitUntilVisible,
+};
 export { localeDeepLink };
 export type { SessionOwner };
 
@@ -76,6 +93,18 @@ type LaunchOptions = {
 	resetState?: boolean;
 	/** 起動後に「アプリ起動完了」まで待つか。既定 true */
 	waitForReady?: boolean;
+	/**
+	 * 検索チュートリアルの「視聴済みフラグ」をどう扱うか（#1027）。
+	 *
+	 * - `true`（既定） … 視聴済みとして起動する = **チュートリアルは開かない**
+	 * - `false` … 未視聴として起動する = 初回起動の自動表示を再現する
+	 * - `"device"` … 起動引数を渡さず、端末の AsyncStorage の実データに従う
+	 *
+	 * e2e-web の `test.use({ seedTutorialSeen })` に対応する（詳細は app-expo/lib/e2e/tutorialSeed.ts）。
+	 * チュートリアルは Android では別ウィンドウの Dialog として最前面に出るため、
+	 * 既定で抑止しておかないと **どの spec でもタップがシートに吸われうる**。
+	 */
+	tutorialSeen?: boolean | "device";
 };
 
 /**
@@ -85,19 +114,21 @@ type LaunchOptions = {
  * ## 仕組み（#1030 確定設計 A' 案）
  * 1. globalSetup が Node 側 supabase client で 1 回だけセッションを確立し、`process.env` へ格納する
  * 2. このヘルパがそれを `launchArgs`（`e2eAccessToken` / `e2eRefreshToken` / `e2eSessionOwner`）としてアプリへ渡す
- * 3. アプリ側フック（app-expo。**別 PR で実装中**）が `supabase.auth.setSession()` で注入する
+ * 3. アプリ側フック（app-expo/lib/e2e/injectTestSession.ts）が `supabase.auth.setSession()` で注入する
  *
  * これにより「アプリのデータを何度消しても匿名サインインを消費しない」状態を作り、
  * 「テスト間の状態汚染を避けたい」と「レート制限を超えたくない」を両立させる（#1030 3-1）。
  *
- * ⚠️ **アプリ側フックが未実装の間**は、launchArgs は単に無視される（アプリは通常どおり自前で
- * 匿名サインインする）。渡す側の契約はこの時点で確定させ、アプリ側 PR の合流で自動的に有効になる。
+ * ⚠️ フックの有効/無効は **バンドル時** に metro の resolver が決める。
+ * `EXPO_PUBLIC_E2E_AUTH_HOOK=1` を付けずにビルドすると noop 実装が焼き込まれ、
+ * launchArgs は **黙って無視される**（= 認証済みテストが匿名のまま緑になる）。
+ * CI では e2e-mobile-test.yml の Detox build ステップで設定している。
  *
  * @param opts.as 期待するセッションの持ち主。`authenticated` はテストユーザー、`anon` は匿名
  * @失敗時 期待するセッションが環境変数に無い場合、日本語メッセージで例外を投げる（fail-loud。#1030 B-1）
  */
 export async function launchAppWithSession(opts: { as: SessionOwner } & LaunchOptions): Promise<void> {
-	const { as, url, resetState = false, waitForReady = true } = opts;
+	const { as, url, resetState = false, waitForReady = true, tutorialSeen = true } = opts;
 
 	const session = readSessionFromEnv(as);
 	if (!session) {
@@ -124,14 +155,17 @@ export async function launchAppWithSession(opts: { as: SessionOwner } & LaunchOp
 		url,
 		// #1030 【設計】キー名は `e2e` プレフィックスで統一する（Detox 自身が使う `detox*` 系と衝突させないため）。
 		// 値は **文字列のみ**（launchArgs の数値・真偽値の型変換はプラットフォーム差があるため踏まない。#1030 3-2）
-		launchArgs: {
+		...platformLaunchOptions({
 			e2eAccessToken: session.accessToken,
 			e2eRefreshToken: session.refreshToken,
 			// #1030 【設計】B-1: アプリ側は「セッションの有無」ではなく「期待ユーザーと現在ユーザーの一致」で
-			// 再注入を判断する。その期待値がこのキー
+			// 再注入を判断する。その期待値がこの 2 キー。
+			// ⚠️ `e2eExpectedUserId` はアプリ側フックの **必須項目**で、欠けると起動時に fail-loud で例外になる
+			//（app-expo/lib/e2e/injectTestSession.ts）。トークンと必ずセットで渡すこと
 			e2eSessionOwner: as,
-		},
-		...platformLaunchOptions(),
+			e2eExpectedUserId: session.userId,
+			...tutorialLaunchArgs(tutorialSeen),
+		}),
 	});
 
 	if (waitForReady) {
@@ -152,7 +186,7 @@ export async function launchAppWithSession(opts: { as: SessionOwner } & LaunchOp
  * @param opts.waitForReady 既定 false。起動シーケンスそのものを検証する spec が自分で待つため
  */
 export async function launchAppWithoutSession(opts: LaunchOptions = {}): Promise<void> {
-	const { url, resetState = false, waitForReady = false } = opts;
+	const { url, resetState = false, waitForReady = false, tutorialSeen = true } = opts;
 
 	if (resetState) {
 		await device.resetAppState();
@@ -161,7 +195,9 @@ export async function launchAppWithoutSession(opts: LaunchOptions = {}): Promise
 	await device.launchApp({
 		newInstance: true,
 		url,
-		...platformLaunchOptions(),
+		// #1027 セッションは渡さないが、チュートリアルの抑止だけは他の spec と揃える。
+		// アプリ側のセッション注入フックはこのキーを見ないため、匿名サインインの検証には影響しない
+		...platformLaunchOptions(tutorialLaunchArgs(tutorialSeen)),
 	});
 
 	if (waitForReady) {
@@ -170,13 +206,118 @@ export async function launchAppWithoutSession(opts: LaunchOptions = {}): Promise
 }
 
 /**
+ * 初回起動チュートリアル（`app-expo` の search/index.tsx）の testID。
+ *
+ * #1027 【バグ】このチュートリアルは **ja-JP のとき初回起動で自動的に開く**全画面級のシートで、
+ * 開いている間はタブバーを含む背後の UI が Detox から操作できない（run 30394200940 の iOS で
+ * 全 spec が beforeAll ごと失敗した原因）。Android で顕在化していなかったのは、
+ * 端末ロケールが en-US のままでチュートリアル自体が出ていなかったからにすぎない。
+ *
+ * screens/SearchScreen.ts にも同じ定義があるが、**起動処理はどの画面にも依存してはいけない**
+ * （fixtures が screens に依存すると循環参照になる）ため、ここでは matcher を直接持つ。
+ */
+const TUTORIAL_INDEX = 0;
+
+const SEARCH_TUTORIAL = {
+	/**
+	 * ⚠️ #1027 `search-tutorial-overlay` は観測点に使わない。
+	 * iOS では表示中でも `toBeVisible` が成立しない（面積を持つ実体が無い）ため、
+	 * 「出ている / 出ていない」の判定は実体のあるボタン（つぎへ / はじめよう）で行う。
+	 *
+	 * ⚠️ そして **TrueSheet の中身は Android で必ず 2 つの View に一致する**（run 30445542854 で実測。
+	 * overlay だけでなくボタンも同様で、2 件は id も座標も同一の重複エントリ）。
+	 * そのためシート内の要素を扱うヘルパには必ず `TUTORIAL_INDEX` を渡すこと。
+	 */
+	nextButton: by.id("search-tutorial-next"),
+	finishButton: by.id("search-tutorial-finish"),
+	laterButton: by.id("search-tutorial-later"),
+};
+
+/**
+ * 起動引数へ載せるチュートリアルのシード値を組み立てる（#1027）。
+ *
+ * `"device"` のときだけキー自体を渡さない。アプリ側フックは「未指定 = 固定なし」と解釈し、
+ * AsyncStorage の実データを読む（= 永続化そのものを検証する spec 向け）。
+ */
+function tutorialLaunchArgs(tutorialSeen: boolean | "device"): Record<string, string> {
+	if (tutorialSeen === "device") return {};
+	// ⚠️ "1" / "0" / "true" は使わないこと。アプリ側が使う react-native-launch-arguments は
+	// 受け取った文字列を 1 つずつ JSON.parse にかけ、**成功したら型変換してしまう**
+	// （"1" → 数値 1、"true" → 真偽値 true）。JSON として解釈できない語を使う
+	return { e2eTutorialSeen: tutorialSeen ? "seen" : "unseen" };
+}
+
+/**
+ * 初回起動チュートリアルが開いていれば最後まで送って閉じる（ベストエフォート）。
+ *
+ * 完了は最終ページのセカンダリ CTA「あとで」で行う。プライマリ CTA「はじめよう」は
+ * 現在地取得（OS の位置情報アクセス）を伴うため使わない。どちらも `markTutorialAsSeen()` を通り、
+ * AsyncStorage の視聴済みフラグが立つ。
+ *
+ * ⚠️ **通常の spec はこれを呼ぶ必要が無い**（#1027）。起動引数のシードでチュートリアル自体が開かないため。
+ * 残しているのは「シードを外して起動した spec が、検証後に後片付けとして閉じたい」場合のため。
+ *
+ * @param probeTimeout 「出ているか」の判定に費やす上限 (ms)
+ * @returns 閉じた場合 true / そもそも出ていなかった場合 false
+ */
+export async function dismissSearchTutorialIfPresent(probeTimeout = 3_000): Promise<boolean> {
+	const shown =
+		(await visibleNow(SEARCH_TUTORIAL.nextButton, probeTimeout, TUTORIAL_INDEX)) ||
+		(await visibleNow(SEARCH_TUTORIAL.finishButton, 1_000, TUTORIAL_INDEX));
+	if (!shown) return false;
+
+	// ページ送りは FlatList のスクロールアニメーションを伴う。プライマリ CTA の testID が
+	// 「つぎへ」→「はじめよう」へ切り替わるのを毎回待ち合わせることでアニメーション完了を待つ
+	for (let page = 0; page < 10; page += 1) {
+		if (await existsNow(SEARCH_TUTORIAL.finishButton, 1_000, TUTORIAL_INDEX)) break;
+		if (!(await existsNow(SEARCH_TUTORIAL.nextButton, 1_000, TUTORIAL_INDEX))) break;
+		await tapWhenVisible(SEARCH_TUTORIAL.nextButton, DEFAULT_TIMEOUT, TUTORIAL_INDEX);
+	}
+
+	// ベストエフォートに徹する。ここで例外を投げると呼び出し側のリトライを潰してしまううえ、
+	// 「チュートリアルを閉じられなかった」ではなく本来の検証内容で失敗させたいため
+	if (!(await visibleNow(SEARCH_TUTORIAL.laterButton, 3_000, TUTORIAL_INDEX))) return false;
+
+	await tapWhenVisible(SEARCH_TUTORIAL.laterButton, DEFAULT_TIMEOUT, TUTORIAL_INDEX);
+	// #1027 閉じ待ちは overlay ではなく「あとで」ボタンで行う。overlay は 2 つの View に一致するため、
+	// `not.toExist()` の判定が「消えた」なのか「複数一致で判定不能」なのか区別できなくなる
+	await waitUntilNotVisible(SEARCH_TUTORIAL.laterButton, DEFAULT_TIMEOUT, TUTORIAL_INDEX);
+	return true;
+}
+
+/**
  * アプリが操作可能な状態（タブレイアウトの描画完了）になるまで待つ。
  *
+ * #1027 【設計】チュートリアルの後始末はここでは行わない。起動引数のシード（`tutorialSeen`）で
+ * **そもそも開かない**ようにしてあるため（app-expo/lib/e2e/tutorialSeed.ts）。
+ * かつて「出ていたら閉じる」をここでやっていたが、
+ * - シートは AsyncStorage の読み込み完了後、タブバーが見えた数百 ms 後に遅れて被さる
+ * - Android の Espresso は別ウィンドウによる遮蔽を可視性判定へ反映しない
+ *   （= シートが開いていてもタブバーは `toBeVisible()` を満たす）
+ * ため「起動完了を待ち切ったのに直後のタップだけが落ちる」を消せなかった（run 30429560108）。
+ *
  * @param timeout タイムアウト (ms)。既定は初回起動を見込んだ LAUNCH_TIMEOUT
- * @失敗時 タイムアウト時に Detox の例外を投げる
+ * @失敗時 タイムアウト時に例外を投げる。チュートリアルが出ていた場合は
+ *         「シードが効いていない（= ビルド時に EXPO_PUBLIC_E2E_TUTORIAL_HOOK が立っていない）」と
+ *         判断できるよう、メッセージにその旨を足して投げ直す
  */
 export async function waitForAppReady(timeout: number = LAUNCH_TIMEOUT): Promise<void> {
-	await waitUntilVisible(by.id(APP_READY_TEST_ID), timeout);
+	try {
+		await waitUntilVisible(by.id(APP_READY_TEST_ID), timeout);
+	} catch (error) {
+		if (await visibleNow(SEARCH_TUTORIAL.nextButton, 1_000, TUTORIAL_INDEX)) {
+			throw new Error(
+				[
+					"起動完了（タブバーの表示）を待てず、代わりに検索チュートリアルが表示されています。",
+					"  チュートリアルは起動引数 e2eTutorialSeen でシードして抑止する設計です（#1027）。",
+					"  ビルド時に EXPO_PUBLIC_E2E_TUTORIAL_HOOK=1 が設定されていたか確認してください",
+					"  （このフックは **バンドル時** に metro の resolver で有効/無効が決まります）。",
+					`  元の失敗: ${error instanceof Error ? error.message : String(error)}`,
+				].join("\n"),
+			);
+		}
+		throw error;
+	}
 }
 
 /**
@@ -245,17 +386,32 @@ export const describeJapaneseLocale: typeof describe = (() => {
  * - 実行時権限 … `adb shell pm grant <package> android.permission.ACCESS_FINE_LOCATION` 等
  * - ロケール   … `adb shell setprop persist.sys.locale ja-JP`（utils/locale.ts のヘルパ参照）
  */
-function platformLaunchOptions(): Detox.DeviceLaunchAppConfig {
+function platformLaunchOptions(launchArgs: Record<string, string> = {}): Detox.DeviceLaunchAppConfig {
+	const hasLaunchArgs = Object.keys(launchArgs).length > 0;
+
 	if (device.getPlatform() === "ios") {
 		return {
 			// #1031 【設計】B4: iOS はここでロケールを固定できる（Android にはこの機能が無い）
 			languageAndLocale: iosLanguageAndLocale(),
-			// #1028 【設計】権限ダイアログは操作を止めるため事前に付与する
-			permissions: { location: "inuse", notifications: "YES", camera: "YES", photos: "YES" },
+			// #1028 【設計】権限ダイアログは操作を止めるため事前に付与する。
+			// #1027 【バグ】特に location と userTracking(ATT) は **起動直後**に出るため、
+			// 未付与だとダイアログ表示中はアプリが inactive のままとなり Detox の waitForActive が
+			// 完了せず launchApp がタイムアウトする（run 30364296574 / 30368487678 で実測）。
+			permissions: {
+				location: "inuse",
+				userTracking: "YES",
+				notifications: "YES",
+				camera: "YES",
+				photos: "YES",
+			},
+			// #1027 【バグ】iOS はメインキューに常駐する作業（常時アニメーション等）があり、Detox の同期機構が
+			// 永遠にアイドル判定にならない（run 30359425182）。iOS のみ同期を無効化し、待機は waitFor の
+			// ポーリング（utils/waits.ts）に委ねる。恒久的な busy 原因の調査は #1040。
+			launchArgs: { ...launchArgs, detoxEnableSynchronization: 0 },
 		};
 	}
 
 	// #1031 【設計】B4: Android はロケールを起動時に指定できないため、ずれていれば警告だけ出して気付けるようにする
 	warnIfAndroidLocaleMismatch();
-	return {};
+	return hasLaunchArgs ? { launchArgs } : {};
 }

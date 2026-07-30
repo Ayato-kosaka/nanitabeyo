@@ -37,25 +37,9 @@ describe("ログインモーダル", () => {
 		await loginModal.expectOpened();
 	});
 
-	// ─ テストケース: プライバシーポリシーリンクでリーガルモーダルが開く ─
-	// 手順:
-	//   1. ログインモーダルを開く
-	//   2. 同意文言内のプライバシーポリシーリンク（login-privacy-link）をタップする
-	//   3. リーガルドキュメントモーダル（legal-document-modal）が表示されることを検証
-	//
-	// #1031 【設計確定】B2: e2e-web は「プライバシーポリシー」という同一文字列の出現数（1→3）で
-	// 判定しているが、Detox に要素数アサーション API は無いため、PR #1033 で追加された
-	// testID（login-privacy-link / legal-document-modal）を使って直接検証する。
-	it("プライバシーポリシーリンクでリーガルモーダルが開く", async () => {
-		const tabBar = new TabBar();
-		const profileScreen = new ProfileScreen();
-		const loginModal = new LoginModal();
-
-		await tabBar.gotoProfile();
-		await profileScreen.openLoginModal();
-		await loginModal.expectOpened();
-
-		await loginModal.openPrivacyPolicy();
-		await loginModal.expectLegalDocumentOpened();
-	});
+	// #1031 B2 のリーガルリンク検証は #1027 でこの spec から外した。
+	// 同意文言のリンクは `<Text>` の入れ子で、React Native は入れ子 Text を親の TextView へ畳み込むため
+	// **ネイティブ View が存在せず testID(login-privacy-link) では到達できない**（run 30432596949 で実測）。
+	// 代替として、実体のある行を持つ設定画面から同じ legal-document-modal を開く検証を
+	// tests/profile/settings.test.ts に置いている。
 });

@@ -1,4 +1,12 @@
-import { DEFAULT_TIMEOUT, by, element, existsNow, waitFor, waitUntilGone, waitUntilVisible } from "../fixtures/e2e";
+import {
+	DEFAULT_TIMEOUT,
+	by,
+	existsNow,
+	tapWhenVisible,
+	visibleNow,
+	waitUntilGone,
+	waitUntilVisible,
+} from "../fixtures/e2e";
 
 /**
  * 🃏 トピック提案画面（検索結果のカードカルーセル）の Screen Object
@@ -6,10 +14,16 @@ import { DEFAULT_TIMEOUT, by, element, existsNow, waitFor, waitUntilGone, waitUn
  * 対応画面: app-expo/app/[locale]/(tabs)/search/topics.tsx
  * 対応する e2e-web の Page Object: e2e-web/pages/TopicsPage.ts
  *
- * ## 「この料理にする！」ボタンに atIndex(0) が要る理由（#1031 §2）
+ * ## 操作対象は「アクティブなカード」だけを指す testID で掴む（#1027）
  * カードは `react-native-reanimated-carousel` で描画され、**前後のカードも同時にマウントされる**。
- * そのため `topics-choose-button` は常に複数一致しうる。Detox は複数一致した状態で
- * `element(matcher)` を操作すると例外になるため、必ず `atIndex(0)`（= 先頭のカード）で絞る。
+ * そのため `topics-choose-button` は常に複数一致し、`atIndex(n)` で 1 つに絞る必要があるが、
+ * **添字と「画面中央のカード」は対応しない**。添字を走査して可視なものを探す実装も試したが、
+ * マウント数が走査上限を超えると成立せず、run 30432596949 / 30445542854 の topics-flow は
+ * 2 テストとも 120 秒待って失敗し続けた。
+ *
+ * 現在は app-expo 側が **アクティブなカードにだけ** 付けている `topics-tutorial-target-select`
+ *（`TopicCard.tsx`。`tutorialTargetRefs` は `isActiveCard` のときしか渡らない）を使う。
+ * これは「いま操作できる 1 枚」と 1:1 で対応するため、添字の走査が要らない。
  *
  * ## スポットライトチュートリアルの扱い
  * この画面は初回訪問時にスポットライトチュートリアル（`topics-tutorial-overlay`）を自動表示する。
@@ -22,7 +36,13 @@ export class TopicsScreen {
 	readonly headerTitle = by.id("topics-header-title");
 	/** ヘッダーの戻るボタン */
 	readonly backButton = by.id("screen-header-back");
-	/** 「この料理にする！」ボタン（⚠️ 複数一致するため必ず atIndex で絞ること） */
+	/**
+	 * 「この料理にする！」ボタンを包む、**アクティブなカードにだけ存在する** View。
+	 * app-expo の `TopicCard.tsx` が `tutorialTargetRefs`（= `isActiveCard` のときだけ渡る）を
+	 * 受け取ったときにこの testID を出す。タップはこの View の中心に落ち、内側のボタンへ届く。
+	 */
+	readonly activeChooseButton = by.id("topics-tutorial-target-select");
+	/** 「この料理にする！」ボタンそのもの（⚠️ 全カード分が一致するため観測点には使わない） */
 	readonly chooseButton = by.id("topics-choose-button");
 	/** ヘッダーのグループ投票ボタン */
 	readonly groupVoteButton = by.id("topics-group-vote");
@@ -69,21 +89,21 @@ export class TopicsScreen {
 				await this.dismissTutorialIfPresent();
 				continue;
 			}
-			if (await this.isFirstChooseButtonVisible(2_000)) return;
+			if (await visibleNow(this.activeChooseButton, 2_000)) return;
 		}
 
 		// 期限切れ。失敗理由（何が見えていないか）を Detox のメッセージとして残すため、最後に一度だけ待ち直す
-		await waitFor(this.firstChooseButton()).toBeVisible().withTimeout(DEFAULT_TIMEOUT);
+		await waitUntilVisible(this.activeChooseButton);
 	}
 
-	/** 先頭のトピックカードを選択して結果フィードへ進む */
+	/** アクティブなトピックカードを選択して結果フィードへ進む */
 	async chooseFirstTopic(): Promise<void> {
-		await this.firstChooseButton().tap();
+		await tapWhenVisible(this.activeChooseButton);
 	}
 
 	/** ヘッダーの戻るボタンで検索画面へ戻る */
 	async goBack(): Promise<void> {
-		await element(this.backButton).tap();
+		await tapWhenVisible(this.backButton);
 	}
 
 	/**
@@ -97,9 +117,9 @@ export class TopicsScreen {
 		if (!(await existsNow(this.tutorialOverlay, 1_000))) return false;
 
 		if (await existsNow(this.tutorialSkipButton, 1_000)) {
-			await element(this.tutorialSkipButton).tap();
+			await tapWhenVisible(this.tutorialSkipButton);
 		} else {
-			await element(this.tutorialFinishButton).tap();
+			await tapWhenVisible(this.tutorialFinishButton);
 		}
 
 		// #1031 【設計】§4-1: 閉じる動作は Reanimated のフェードアウトを伴うため、
@@ -111,26 +131,5 @@ export class TopicsScreen {
 	/** ヘッダーのタイトルが表示されていることを検証する */
 	async expectHeaderVisible(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
 		await waitUntilVisible(this.headerTitle, timeout);
-	}
-
-	/** 先頭カードの「この料理にする！」ボタン（カルーセルの多重マウント対策で atIndex(0) 固定） */
-	private firstChooseButton(): Detox.NativeElement {
-		return element(this.chooseButton).atIndex(0);
-	}
-
-	/**
-	 * 先頭カードのボタンが見えているかを判定する。
-	 *
-	 * ⚠️ utils/waits.ts の `existsNow` は `element(matcher)` を使うため、複数一致する
-	 * `topics-choose-button` には使えない（「複数一致」の例外を「存在しない」と誤判定してしまう）。
-	 * そのため atIndex 付きで自前に判定する。
-	 */
-	private async isFirstChooseButtonVisible(timeout: number): Promise<boolean> {
-		try {
-			await waitFor(this.firstChooseButton()).toBeVisible().withTimeout(timeout);
-			return true;
-		} catch {
-			return false;
-		}
 	}
 }

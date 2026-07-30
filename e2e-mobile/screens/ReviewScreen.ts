@@ -1,4 +1,11 @@
-import { DEFAULT_TIMEOUT, by, element, waitUntilVisible } from "../fixtures/e2e";
+import {
+	DEFAULT_TIMEOUT,
+	by,
+	element,
+	tapWhenVisible,
+	waitUntilGone,
+	waitUntilVisible,
+} from "../fixtures/e2e";
 
 /**
  * ✏️ 「レビュー」タブの Screen Object（e2e-web の pages/ReviewPage.ts に対応）
@@ -18,14 +25,21 @@ import { DEFAULT_TIMEOUT, by, element, waitUntilVisible } from "../fixtures/e2e"
  * この PR のテストからは使わない。**将来のレビュー投稿テスト（別 PR・認証済みセッション利用）が
  * 迷わず使えるよう、実在する testID を調べたうえで定義だけ用意する**（#1031 B6 レビュー指摘の反映）。
  *
- * ## 写真付きレビュー投稿はスコープ外（#1031 B6 確定）
- * フォトピッカーは OS のアプリ外プロセスで動作するため、Detox からは操作できない。
- * そのため `ReviewForm` が起動直後に呼ぶメディア選択（`selectMedia`）を伴う画面遷移そのものを
- * この Screen Object / この PR のテストでは検証しない。テキスト入力欄（comment/dishCategory/price/star/submit）の
- * 定義だけを残しておき、実装は「メディア選択をアプリ側テストフックで固定画像に差し替える」方式が
- * 決まった将来の PR に委ねる。
+ * ## 写真付きレビュー投稿の扱い（#1031 B6 → #1027 で解決）
+ * フォトピッカーは OS のアプリ外プロセスで動作するため Detox からは操作できない。
+ * 現在は E2E ビルドに限りメディア選択を固定画像へ差し替えるフックを app-expo 側へ用意しており
+ *（`app-expo/lib/e2e/selectMediaStub.ts`）、投稿フォームの操作メソッドは実際に
+ * tests/mutation/review-post.test.ts から使われている。
+ * **`EXPO_PUBLIC_E2E_MEDIA_HOOK=1` を立ててビルドしていないとフォームが開かない**点に注意。
  */
 export class ReviewScreen {
+	/**
+	 * レビュー投稿フォーム関連の待機に使うタイムアウト (ms)。
+	 * 店舗レコードの作成・メディアのアップロード・レビュー登録がいずれもバックエンド往復を伴うため、
+	 * 画面表示待ちの既定値（DEFAULT_TIMEOUT）では足りない。
+	 */
+	static readonly FORM_TIMEOUT = 90_000;
+
 	// ── ゲスト向け表示（この PR のテストで実際に使う） ──────────────────────────
 	/** ゲスト向け説明文（ja-JP: `Review.guest.description` = "ログインしてレビューを書こう"） */
 	readonly guestDescription = by.id("review-guest-description");
@@ -63,6 +77,77 @@ export class ReviewScreen {
 
 	/** ゲスト向けログイン CTA をタップする */
 	async tapGuestLogin(): Promise<void> {
-		await element(this.guestLoginButton).tap();
+		await tapWhenVisible(this.guestLoginButton);
+	}
+
+	// ── ログイン済み / レビュー投稿フォームの操作（#1031 B6 の再開後に追加） ──────────────
+
+	/** 料理カテゴリ検索モーダルの入力欄（`ReviewForm.tsx` が testID="dish-category-search" を渡している） */
+	readonly dishCategoryInput = by.id("dish-category-search-input");
+
+	/** 料理カテゴリ検索モーダルの候補（0 始まり） */
+	dishCategorySuggestion(index: number): Detox.NativeMatcher {
+		return by.id(`dish-category-search-suggestion-${index}`);
+	}
+
+	/** レビュー投稿 CTA をタップして「お店選択」画面へ進む（ログイン済みのみ表示） */
+	async gotoPostReview(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
+		await waitUntilVisible(this.postButton, timeout);
+		await tapWhenVisible(this.postButton);
+	}
+
+	/**
+	 * レビュー投稿フォームが操作可能になるまで待つ。
+	 *
+	 * #1031 B6 フォームは入場直後のメディア選択が完了するまで本文入力欄を描画しない。
+	 * E2E ビルドではメディア選択が固定画像へ差し替わる（app-expo の lib/e2e/selectMediaStub.ts）ため、
+	 * ここで待てるのはその差し替えが効いている場合だけ。**待てない場合はフックが無効なビルド**を疑うこと。
+	 */
+	async expectFormLoaded(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
+		await waitUntilVisible(this.commentInput, timeout);
+	}
+
+	/**
+	 * レビュー本文を入力する。
+	 * #1031 Android の Detox は ASCII 以外を `typeText` できないため `replaceText` を使う。
+	 */
+	async fillComment(text: string): Promise<void> {
+		await tapWhenVisible(this.commentInput);
+		await element(this.commentInput).replaceText(text);
+	}
+
+	/** 料理カテゴリを検索して先頭候補を選ぶ（`isValid` に dishCategoryId が必須のため省略できない） */
+	async chooseDishCategory(query: string, timeout: number = DEFAULT_TIMEOUT): Promise<void> {
+		await tapWhenVisible(this.dishCategoryRow);
+		await waitUntilVisible(this.dishCategoryInput, timeout);
+		await element(this.dishCategoryInput).replaceText(query);
+		await waitUntilVisible(this.dishCategorySuggestion(0), timeout);
+		await tapWhenVisible(this.dishCategorySuggestion(0));
+	}
+
+	/** 価格を入力する（数値のみ。`isValid` は 0 より大きい有限数を要求する） */
+	async fillPrice(price: string): Promise<void> {
+		await element(this.priceInput).atIndex(0).replaceText(price);
+	}
+
+	/** 星評価を選ぶ */
+	async rate(star: 1 | 2 | 3 | 4 | 5): Promise<void> {
+		await tapWhenVisible(this.star(star));
+	}
+
+	/** 投稿ボタンをタップする */
+	async submit(): Promise<void> {
+		await tapWhenVisible(this.submitButton);
+	}
+
+	/**
+	 * 投稿が完了してフォームが閉じたことを検証する。
+	 *
+	 * 成功時は `showSnackbar(Map.alerts.reviewSuccess)` のあと `onCancel()` が呼ばれてフォームが閉じる
+	 * （`ReviewForm.tsx` の handleSubmit）。スナックバー文言はロケール依存なので、
+	 * **フォームが閉じたこと**をユーザーから観測できる成功の証跡として使う。
+	 */
+	async expectFormClosed(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
+		await waitUntilGone(this.submitButton, timeout);
 	}
 }

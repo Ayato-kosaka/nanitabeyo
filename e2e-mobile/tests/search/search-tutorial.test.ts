@@ -10,10 +10,9 @@ import { SearchScreen } from "../../screens/SearchScreen";
  *
  * ## e2e-web との差分
  * - **未視聴状態の作り方**: e2e-web は `test.use({ seedTutorialSeen: false })` でシードを外す。
- *   ネイティブには AsyncStorage のシード手段がまだ無いため、`resetState: true` でアプリのストレージごと
- *   消して「初回起動」を再現する。⚠️ `resetState` は iOS ではアンインストール相当で高コストなため
- *   （#1030 m-5）、**このシナリオでだけ**使う。セッションは launchArgs で再注入されるので
- *   匿名サインインのクォータは消費しない
+ *   ネイティブも #1027 で同じ方式に揃えた（起動引数 `e2eTutorialSeen`）。
+ *   `resetState: true`（アプリのストレージごと消す）は iOS ではアンインストール相当で高コストなため
+ *   （#1030 m-5）使わない
  * - **完了フラグの検証**（#1031 m6）: e2e-web は `page.evaluate` で localStorage を直接読んでいるが、
  *   Detox からアプリの AsyncStorage は読めない。**「アプリを再起動しても表示されない」**という
  *   ユーザーから観測できる事実に置き換える。ストレージへの永続化まで含めて検証できるため、
@@ -32,24 +31,22 @@ describeJapaneseLocale("検索チュートリアル（初回起動）", () => {
 	const search = new SearchScreen();
 
 	beforeAll(async () => {
-		// アプリのストレージを消して「チュートリアル未視聴」を再現する。
-		// セッションは launchArgs で注入し直されるため、匿名サインインは追加で発生しない。
+		// #1027 起動引数で「未視聴」をシードして初回起動を再現する（他の spec は既定の "視聴済み" で起動する）。
 		//
 		// ⚠️ `waitForReady: false` にしているのは、起動完了の観測点がタブバー (`tab-search`) だから。
 		// チュートリアルは BottomSheet（Android では別ウィンドウの Modal）として最前面に出るため、
-		// 先にシートが開くと背後のタブバーが Detox から見えず、起動待ちがタイムアウトしうる。
-		// この spec では「チュートリアルが出ること」自体が起動完了の観測点になるので、それを直接待つ
-		await launchAppWithSession({ as: "anon", resetState: true, waitForReady: false });
+		// この spec では「チュートリアルが出ること」自体を起動完了の観測点として直接待つ
+		await launchAppWithSession({ as: "anon", tutorialSeen: false, waitForReady: false });
 	});
 
 	// ─ テストケース: 初回起動で自動表示され、完了すると次回以降は表示されない ─
 	// 手順:
-	//   1. ストレージを消した状態で起動する（beforeAll）
+	//   1. 「未視聴」をシードして起動する（beforeAll）
 	//   2. チュートリアル（search-tutorial-overlay）が自動表示されることを検証
 	//   3. 「つぎへ」で最終ページまで進め、「あとで」で完了させる
 	//   4. チュートリアルが閉じ、検索画面が操作できる状態になることを検証
-	//   5. アプリを再起動する（ストレージは消さない）
-	//   6. チュートリアルが自動表示されないことを検証（= 視聴済みフラグが永続化されている）
+	//   5. **シードを外して**（`tutorialSeen: "device"`）アプリを再起動する
+	//   6. チュートリアルが自動表示されないことを検証（= 視聴済みフラグが AsyncStorage へ永続化されている）
 	it("初回起動で自動表示され、完了すると再起動しても表示されない", async () => {
 		// 初回起動は JS バンドル読込 + セッション注入を含むため、起動待ちと同じスケールで待つ
 		await search.expectTutorialShown(LAUNCH_TIMEOUT);
@@ -57,8 +54,10 @@ describeJapaneseLocale("検索チュートリアル（初回起動）", () => {
 		await search.completeTutorial();
 		await search.expectLoaded();
 
-		// ストレージを保持したまま起動し直す（resetState は既定 false）
-		await launchAppWithSession({ as: "anon" });
+		// #1027 【重要】ここで `tutorialSeen: true`（既定）にしてはいけない。
+		// シードした値をそのまま読み返すだけになり、**永続化を一切検証しない偽の緑**になる。
+		// `"device"` は起動引数を渡さない指定で、アプリは AsyncStorage の実データを読む
+		await launchAppWithSession({ as: "anon", tutorialSeen: "device" });
 		await search.expectTutorialAbsent();
 	});
 });

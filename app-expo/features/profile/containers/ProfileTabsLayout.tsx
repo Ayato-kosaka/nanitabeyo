@@ -8,13 +8,18 @@ import { ReviewTab } from "../tabs/ReviewTab";
 import { LikeTab } from "../tabs/LikeTab";
 import { SavedPostsTab } from "../tabs/SavedPostsTab";
 import { SavedTopicsTab } from "../tabs/SavedTopicsTab";
-import { DepositsTab } from "../tabs/wallet/DepositsTab";
-import { EarningsTab } from "../tabs/wallet/EarningsTab";
+// #1071 【リリース差分】ウォレットのペインを落としたため未使用になった import。
+// バンドルに未使用の Tab 実装を含めないようにコメントアウトする(復活時は下の
+// Tabs.Tab のコメントと合わせて戻す)。
+// import { DepositsTab } from "../tabs/wallet/DepositsTab";
+// import { EarningsTab } from "../tabs/wallet/EarningsTab";
 import { LoginbackModal } from "../components/LoginbackModal";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
-import { mockBids, mockEarnings } from "../constants";
+// #1071 【リリース差分】同上。constants.ts の mockBids / mockEarnings 自体は将来の
+// 復活のために残してあるため、import だけを落とす。
+// import { mockBids, mockEarnings } from "../constants";
 import { ProfileEditForm } from "../components/ProfileEditForm";
 import type { TabBarProps } from "react-native-collapsible-tab-view";
 import type { GroupName, RouteName } from "../components/ProfileTabsBar";
@@ -47,9 +52,15 @@ export function ProfileTabsLayout() {
 		}
 		if (isOwnProfile) {
 			tabs.push("saved", "liked");
-			if (!isGuest) {
-				tabs.push("wallet");
-			}
+			// #1071 【リリース差分】ウォレット(入札・収益)は未完成のため本番では出さない。
+			// 表示するデータは features/profile/constants.ts の mockBids / mockEarnings で、
+			// 実データを取る経路が存在しない(フロントから me/payouts を呼んでいない)。
+			// さらに #811 が MVP で「ウォレット」というアプリ内表現を禁止している。
+			// タブバー・tabRoutes・ペインの 3 箇所を全て落とすこと。
+			// 1 箇所でも残すと ?tab=wallet-deposit のディープリンクまたは横スワイプで到達できてしまう。
+			// if (!isGuest) {
+			// 	tabs.push("wallet");
+			// }
 		}
 		return tabs;
 	}, [isOwnProfile, isGuest]);
@@ -61,9 +72,12 @@ export function ProfileTabsLayout() {
 		}
 		if (isOwnProfile) {
 			routes.push("saved-posts", "saved-topics", "liked");
-			if (!isGuest) {
-				routes.push("wallet-deposit", "wallet-earning");
-			}
+			// #1071 【リリース差分】ウォレットの route も落とす。ここを残すと requestedTab の検証
+			// (tabRoutes.includes(...)) を通ってしまい、/ja-JP/profile?tab=wallet-deposit の
+			// ディープリンクでウォレットへ到達できてしまう。
+			// if (!isGuest) {
+			// 	routes.push("wallet-deposit", "wallet-earning");
+			// }
 		}
 		return routes;
 	}, [isOwnProfile, isGuest]);
@@ -228,6 +242,9 @@ export function ProfileTabsLayout() {
 						<LikeTab />
 					</Tabs.Tab>
 				) : null}
+				{/* #1071 【リリース差分】ウォレットのペイン自体も落とす。ここを残すと
+				    pagerProps={{ scrollEnabled: true }} により、タブバーに項目が無くても
+				    横スワイプでウォレットへ到達できてしまう。
 				{isOwnProfile && !isGuest ? (
 					<Tabs.Tab name="wallet-deposit">
 						<DepositsTab
@@ -258,6 +275,7 @@ export function ProfileTabsLayout() {
 						/>
 					</Tabs.Tab>
 				) : null}
+				*/}
 			</Tabs.Container>
 
 			{profile && (

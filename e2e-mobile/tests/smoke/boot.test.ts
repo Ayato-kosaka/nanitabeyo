@@ -1,4 +1,12 @@
-import { DEFAULT_TIMEOUT, LAUNCH_TIMEOUT, by, launchAppWithoutSession, waitUntilVisible } from "../../fixtures/e2e";
+import {
+	DEFAULT_TIMEOUT,
+	LAUNCH_TIMEOUT,
+	by,
+	device,
+	launchAppWithoutSession,
+	waitForAppReady,
+	waitUntilVisible,
+} from "../../fixtures/e2e";
 
 /**
  * 🚀 起動スモークテスト @smoke
@@ -32,9 +40,14 @@ describe("起動 @smoke", () => {
 	//   2. さがす/レビュー/マイページの各タブが表示されることを検証
 	it("起動するとタブバー付きの検索画面が表示される", async () => {
 		// #1027 【パフォーマンス】初回起動は JS バンドル読込 + 匿名サインインの通信を含むため長めに待つ
-		await waitUntilVisible(by.id("tab-search"), LAUNCH_TIMEOUT);
+		// （ja-JP 初回起動で開く検索チュートリアルは起動引数のシードで抑止済み。fixtures/e2e.ts の tutorialSeen）
+		await waitForAppReady(LAUNCH_TIMEOUT);
 		// タブバーは同時に描画されるため、以降は通常のタイムアウトで足りる
 		await waitUntilVisible(by.id("tab-review"), DEFAULT_TIMEOUT);
 		await waitUntilVisible(by.id("tab-profile"), DEFAULT_TIMEOUT);
+
+		// #1027 【設計】起動成功のエビデンスとしてスクリーンショットを残す（CI の Artifact から回収する）。
+		// .detoxrc.js の screenshot は "failing" のため、成功時も残すよう CI は --take-screenshots all で実行する
+		await device.takeScreenshot("boot-search-screen");
 	});
 });

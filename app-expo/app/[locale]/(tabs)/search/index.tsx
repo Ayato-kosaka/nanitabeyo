@@ -461,7 +461,11 @@ export default function SearchScreen() {
 				)}
 			</View>
 
+			{/* #1027 【設計】Detox の `whileElement(...).scroll()` でスクロール対象を指定できるよう testID を追加。
+			    これが無いと E2E 側は「スクロール領域内の小さな要素を swipe する」代替手段しか取れず、
+			    1 回のスワイプ量が要素の高さに制限されて画面下部の要素へ到達できない（run 30432596949 で実測） */}
 			<ScrollView
+				testID="search-scroll-view"
 				style={styles.scrollView}
 				contentContainerStyle={styles.scrollContent}
 				keyboardShouldPersistTaps="always"

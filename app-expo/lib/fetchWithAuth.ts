@@ -1,5 +1,6 @@
 import { Env } from "@/constants/Env";
 import { Platform } from "react-native";
+import i18n from "@/lib/i18n";
 
 /**
  * // #596 【バグ】GET/DELETE の querystring 生成で `undefined/null` が文字列化される不具合修正
@@ -61,6 +62,11 @@ export async function fetchWithAuth<TRequest extends Record<string, any> | FormD
 	// 🧾 リクエストヘッダー構築
 	const headers: Record<string, string> = {
 		"x-app-version": appVersion,
+		// #1052 端末言語。API はこれをレビューの優先言語として使う。
+		// 各エンドポイントの DTO へ個別に足すと配線を 1 か所忘れただけで
+		// 「検索では日本語なのに店舗ページでは英語」に戻るため、
+		// 全リクエスト共通のヘッダとしてここ 1 か所で付ける。
+		"x-app-language": i18n.locale,
 		Authorization: `Bearer ${accessToken}`,
 	};
 
