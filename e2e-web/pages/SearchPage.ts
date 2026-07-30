@@ -66,10 +66,18 @@ export class SearchPage {
 		this.snackbar = page.getByTestId("global-snackbar");
 		this.helpButton = page.getByTestId("search-help-button");
 		this.tutorialOverlay = page.getByTestId("search-tutorial-overlay");
-		this.tutorialNextButton = page.getByTestId("search-tutorial-next");
+		this.tutorialNextButton = page.getByTestId(SearchPage.TUTORIAL_NEXT_TEST_ID);
 		this.tutorialFinishButton = page.getByTestId("search-tutorial-finish");
 		this.tutorialImages = this.tutorialOverlay.locator("img");
 	}
+
+	/**
+	 * チュートリアルのプライマリ CTA「つぎへ」の testID。
+	 *
+	 * ブラウザ側で `document.querySelector` に渡すためだけに定数化している
+	 * （Locator からセレクタ文字列は取り出せないため。{@link pressTutorialNextIfPresent}）。
+	 */
+	private static readonly TUTORIAL_NEXT_TEST_ID = "search-tutorial-next";
 
 	/** 指定 URL へ直接遷移する（locale プレフィックス必須） */
 	async goto(locale = "ja-JP"): Promise<void> {
@@ -143,9 +151,6 @@ export class SearchPage {
 	 * - 1 発目で router.push が走ると検索画面が unmount され、2 発目の `click()` は
 	 *   "element is not attached to the DOM" で落ちる（連打事故の有無と無関係に赤くなる）
 	 *
-	 * 合成 click イベント（`dispatchEvent`）も使わない。react-native-web の Pressable は
-	 * pointer イベントから onPress を組み立てるため、実 pointer を発火する `page.mouse` でなければ届かない。
-	 *
 	 * @param times 連打回数
 	 */
 	async submitRapid(times: number): Promise<void> {
@@ -163,32 +168,102 @@ export class SearchPage {
 	}
 
 	/**
-	 * 対象の中心座標へ実 pointer の down/up を `times` 回送る。
+	 * チュートリアルの「つぎへ」が **その瞬間に描画されていれば** 1 回だけ押す（#1086）。
 	 *
-	 * 座標は最初に 1 回だけ取得する。1 発目で画面が切り替わっても同じ座標へ打ち続けることになるが、
-	 * それは「連打の間にアプリが遷移してしまった」という検証したい事象そのものなので意図的にそうしている。
+	 * ⚠️ ページ送りに `tutorialNextButton.click()` を使わないこと。
+	 * プライマリ CTA は **単一の DOM ノード**で、testID だけが
+	 * `search-tutorial-next` ↔ `search-tutorial-finish` と入れ替わる実装になっている
+	 * （TutorialBottomSheet の `isLastPage ? ... : ...`）。そのため Playwright が
+	 * 「つぎへ」として解決したノードが、クリックが届く頃には「はじめよう」へ化けていることがあり、
+	 * その場合は現在地取得が走って **シートが閉じてしまう**。
+	 * アプリは正しいのに後続の「あとで」が見つからず落ちる偽の赤で、実測では
+	 * 5 回中 3 回再現した（#1086。ページ送りアニメーション中に `onViewableItemsChanged` が
+	 * `currentPage` を揺らすため窓が広い）。
 	 *
-	 * @param locator 連打対象
-	 * @param times 連打回数
-	 * @失敗時 対象が描画されておらず座標を取得できない場合は日本語のメッセージで例外を投げる
+	 * 要素の特定とイベント送出を **同一 JS タスク内**で行えば、この取り違えは構造的に起こり得ない。
+	 *
+	 * @returns 押した場合 true / 「つぎへ」が無かった（= 最終ページに居る）場合 false
 	 */
-	private async clickRapid(locator: Locator, times: number): Promise<void> {
-		const box = await locator.boundingBox();
-		if (!box) throw new Error("連打対象の座標を取得できませんでした（描画されていない可能性があります）");
+	async pressTutorialNextIfPresent(): Promise<boolean> {
+		return this.page.evaluate((testId: string) => {
+			const element = document.querySelector(`[data-testid="${testId}"]`);
+			if (!element) return false;
 
-		await this.page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-		for (let i = 0; i < times; i += 1) {
-			await this.page.mouse.down();
-			await this.page.mouse.up();
-		}
+			const rect = element.getBoundingClientRect();
+			const base = {
+				bubbles: true,
+				cancelable: true,
+				composed: true,
+				clientX: rect.left + rect.width / 2,
+				clientY: rect.top + rect.height / 2,
+				button: 0,
+			};
+			const pointer = { ...base, pointerId: 1, pointerType: "mouse", isPrimary: true };
+
+			element.dispatchEvent(new PointerEvent("pointerdown", { ...pointer, buttons: 1 }));
+			element.dispatchEvent(new PointerEvent("pointerup", { ...pointer, buttons: 0 }));
+			element.dispatchEvent(new MouseEvent("click", { ...base, buttons: 0 }));
+			return true;
+		}, SearchPage.TUTORIAL_NEXT_TEST_ID);
 	}
 
 	/**
-	 * 現在の履歴の段数を返す（#1084 P1 の主観測点）。
+	 * 対象要素へ「同一 JS タスク内で」合成 pointer イベントを `times` 回 dispatch する。
 	 *
-	 * React Navigation の push は同一 params でも常に新しいスクリーンを積むため、
-	 * router.push が二重に走れば pushState も 2 回発行され段数の差分が 2 になる。
-	 * リクエスト件数と違いリトライやキャッシュの影響を受けない決定論的な観測点。
+	 * ## なぜ `page.mouse.down()/up()` を使わないか（#1086 で実測して差し替え）
+	 * `page.mouse` の 1 発ごとに CDP のラウンドトリップが挟まり、その隙にレンダラが
+	 * React のコミット（＝ 画面遷移）を流し切ってしまう。結果 2 発目以降は
+	 * **もうハンドラへ届かない**。`handleSearch` の多重検索防止ガードを外しても
+	 * レコメンド API は 1 回・トピック画面も 1 枚のままで、**感度がゼロ**だった
+	 * （N=2 でも N=3 でも同じ。#1086 のレビューで実測）。
+	 *
+	 * `locator.evaluate()` の中でループすれば全発が 1 つの JS タスクとして届く。
+	 * 実測では N=2 / N=5 のいずれでも、ガードを外すと API 呼び出しと積み上がる
+	 * トピック画面が N 枚になった（= 事故を再現できる）。
+	 *
+	 * react-native-web の Pressable は pointer イベントから onPress を組み立てるため、
+	 * `click` 単発では届かない。**`pointerdown` → `pointerup` → `click` の順で**送ること。
+	 *
+	 * 要素参照を先に解決して同じ要素へ打ち続けるため、1 発目で画面が切り替わって
+	 * 対象が DOM から外れても残りの dispatch は落ちない（「遷移してしまった」という
+	 * 検証したい事象そのものを再現できる）。座標を先に取る必要も無くなったので、
+	 * 「3 発目以降が遷移後の画面を叩く」制約も無い。
+	 *
+	 * @param locator 連打対象
+	 * @param times 連打回数
+	 */
+	private async clickRapid(locator: Locator, times: number): Promise<void> {
+		await locator.evaluate((element, count: number) => {
+			const rect = element.getBoundingClientRect();
+			const clientX = rect.left + rect.width / 2;
+			const clientY = rect.top + rect.height / 2;
+			const base = {
+				bubbles: true,
+				cancelable: true,
+				composed: true,
+				clientX,
+				clientY,
+				button: 0,
+			};
+			const pointer = { ...base, pointerId: 1, pointerType: "mouse", isPrimary: true };
+
+			for (let i = 0; i < count; i += 1) {
+				element.dispatchEvent(new PointerEvent("pointerdown", { ...pointer, buttons: 1 }));
+				element.dispatchEvent(new PointerEvent("pointerup", { ...pointer, buttons: 0 }));
+				element.dispatchEvent(new MouseEvent("click", { ...base, buttons: 0 }));
+			}
+		}, times);
+	}
+
+	/**
+	 * 現在の履歴の段数を返す。
+	 *
+	 * ⚠️ **これ単独では二重 push を検知できない**（#1086 で実測）。
+	 * 連打でトピック画面が 5 枚積み上がっても `window.history.length` の増分は 1 のままだった。
+	 * expo-router / React Navigation の web 実装は、同一タスク内で連続した push を
+	 * 1 回の履歴エントリへまとめてしまうためと思われる。
+	 * 二重 push の観測点は **「積み上がったトピック画面の枚数」**（TopicsPage.headerTitle の件数）で、
+	 * こちらは「増えていないこと」を補助的に見るだけの位置づけ。
 	 */
 	async historyLength(): Promise<number> {
 		return this.page.evaluate(() => window.history.length);

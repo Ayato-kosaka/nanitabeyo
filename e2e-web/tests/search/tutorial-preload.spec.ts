@@ -67,8 +67,6 @@ test.describe("先読み画像(PRELOAD_IMAGES)", () => {
 			(elements as HTMLImageElement[]).map((image) => ({
 				// .src はプロパティ経由なので絶対 URL になり、Resource Timing の entry.name と直接突き合わせられる
 				src: image.src,
-				naturalWidth: image.naturalWidth,
-				complete: image.complete,
 			})),
 		);
 
@@ -77,17 +75,43 @@ test.describe("先読み画像(PRELOAD_IMAGES)", () => {
 			const key = matchPreloadAssetKey(new URL(image.src).pathname);
 			expect(key, `シート内の画像が先読み対象の URL パターンに一致しない: ${image.src}`).not.toBeNull();
 
-			// happens-before の検証。先読みブロックが消えるとここが必ず崩れる
+			// happens-before の検証。先読みブロックが消えるとここが必ず崩れる。
+			// ⚠️ ここを expect.poll に包まないこと。「開く前に取得が始まったか」は
+			//    待てば真になる類の条件ではなく、poll にすると感度が死ぬ
 			const startTime = await findResourceStartTime(page, image.src);
 			expect(startTime, `${key} の取得エントリが存在しない: ${image.src}`).not.toBeNull();
 			expect(startTime as number, `${key} の取得がチュートリアルを開いた後に始まっている`).toBeLessThan(clickedAt);
 
-			// 補助: 即時性ではなく健全性(画像が壊れていない / decode に成功している)の検証
-			expect(image.naturalWidth, `${key} の decode に失敗している`).toBeGreaterThan(0);
-			expect(image.complete, `${key} の読み込みが完了していない`).toBe(true);
+			// 補助: 即時性ではなく健全性(画像が壊れていない / decode に成功している)の検証。
+			// #1086 ここだけは expect.poll で待つ。上のスナップショットは 1 回きりの観測なので、
+			// 遅いランナで complete が一瞬 false のところを踏むと **偽の赤**になる。
+			// 健全性は「いずれ真になる」性質の条件なので、待っても検証の意味は落ちない
+			await expect
+				.poll(() => readImageHealth(searchPage, image.src), {
+					message: `${key} の decode に失敗している / 読み込みが完了していない: ${image.src}`,
+				})
+				.toEqual({ complete: true, decoded: true });
 		}
 	});
 });
+
+/**
+ * シート内に描画されている画像のうち、指定 URL のものの読み込み状態を読む。
+ *
+ * @param searchPage 対象の検索画面
+ * @param src 対象画像の絶対 URL(<img>.src プロパティの値)
+ * @returns 見つかった場合その状態 / 見つからない場合 null(poll の再試行対象になる)
+ */
+async function readImageHealth(
+	searchPage: SearchPage,
+	src: string,
+): Promise<{ complete: boolean; decoded: boolean } | null> {
+	return searchPage.tutorialImages.evaluateAll((elements, target: string) => {
+		const image = (elements as HTMLImageElement[]).find((element) => element.src === target);
+		if (!image) return null;
+		return { complete: image.complete, decoded: image.naturalWidth > 0 };
+	}, src);
+}
 
 /**
  * 検索画面を開き、「チュートリアルが自動表示されていない」ところまで整える。

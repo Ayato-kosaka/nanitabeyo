@@ -18,6 +18,11 @@ export class TopicsPage {
 	readonly headerTitle: Locator;
 	/** 1 枚目のトピックカードの選択ボタン(ja-JP: Topics.chooseThis) */
 	readonly chooseThisButton: Locator;
+	/**
+	 * トピックカードの選択ボタン(絞り込み無し)。
+	 * 連打テストのように **画面が複数積み上がりうる**状況で `.last()` を取るために使う。
+	 */
+	private readonly chooseThisButtons: Locator;
 	/** ヘッダーの「？」再表示ボタン */
 	readonly tutorialHelpButton: Locator;
 	/** スポットライトを含む最前面オーバーレイ */
@@ -33,7 +38,8 @@ export class TopicsPage {
 	constructor(page: Page) {
 		this.page = page;
 		this.headerTitle = page.getByText("あなたにおすすめの料理", { exact: true });
-		this.chooseThisButton = page.getByText("この料理にする！", { exact: true }).first();
+		this.chooseThisButtons = page.getByText("この料理にする！", { exact: true });
+		this.chooseThisButton = this.chooseThisButtons.first();
 		this.tutorialHelpButton = page.getByTestId("topics-tutorial-help");
 		this.tutorialOverlay = page.getByTestId("topics-tutorial-overlay");
 		this.tutorialNextButton = page.getByTestId("topics-tutorial-next");
@@ -49,6 +55,36 @@ export class TopicsPage {
 	async expectLoaded(): Promise<void> {
 		await expect(this.headerTitle).toBeVisible({ timeout: 30_000 });
 		await expect(this.chooseThisButton).toBeVisible({ timeout: 30_000 });
+	}
+
+	/**
+	 * トピック提案画面の描画が終わる（カードが出る）まで待つ。枚数は問わない。
+	 *
+	 * #1084 P1 の連打テスト用。二重 push が起きていると `headerTitle` が複数一致して
+	 * {@link expectLoaded} が strict mode 違反で落ち、
+	 * 「何枚積み上がったか」という本来見たい情報がレポートに出ない。
+	 * ここは待つだけに徹し、判定は枚数のアサーション（{@link stackedScreens}）へ委ねる。
+	 *
+	 * ⚠️ #1086 `.first()` ではなく `.last()` で待つこと。積み上がったスタックのうち
+	 * **見えているのは最後に push された最前面の画面だけ**で、`.first()` は最下層の
+	 * 隠れた画面を指してしまう（連打事故が起きているときに「見えない」で 30 秒
+	 * タイムアウトし、失敗の理由が「二重に積まれた」ではなく「表示されない」になる）。
+	 */
+	async expectRenderedAllowingDuplicates(): Promise<void> {
+		await expect(this.headerTitle.last()).toBeVisible({ timeout: 30_000 });
+		await expect(this.chooseThisButtons.last()).toBeVisible({ timeout: 30_000 });
+	}
+
+	/**
+	 * 積み上がっているトピック画面の枚数（#1084 P1 の主観測点）。
+	 *
+	 * React Navigation の push は同一 params でも常に新しいスクリーンを積み、
+	 * web では前の画面も DOM に残る。したがって `router.push` が二重に走れば
+	 * この見出しが 2 件一致する。`window.history.length` の増分は二重 push でも 1 のままで
+	 * 検知できないため（#1086 で実測）、枚数をこの位置づけで使う。
+	 */
+	stackedScreens(): Locator {
+		return this.headerTitle;
 	}
 
 	/** 先頭のトピックカードを選択する */

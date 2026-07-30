@@ -11,6 +11,7 @@ import {
 	tapWhenVisible,
 	visibleNow,
 	waitFor,
+	waitUntil,
 	waitUntilNotVisible,
 	waitUntilVisible,
 } from "../fixtures/e2e";
@@ -307,21 +308,38 @@ export class SearchScreen {
 	/**
 	 * チュートリアルが **操作できる状態にある**ことを検証する（#1084 P3）。
 	 *
-	 * プライマリ CTA の testID は `currentPage` から導出される（`isLastPage ? finish : next`）ため、
-	 * 連打で `currentPage` がページ範囲を外れると **どちらの CTA も期待どおりに出なくなる**。
-	 * 「つぎへ」「はじめよう」のちょうど一方が見えていることを、その検出点として使う。
+	 * プライマリ CTA は単一のボタンで、testID だけが `currentPage` から導出される
+	 * （`isLastPage ? "search-tutorial-finish" : "search-tutorial-next"`）。連打しても
+	 * 「つぎへ」「はじめよう」のちょうど一方が見えていることを不変条件として使う。
+	 *
+	 * ⚠️ #1086 これは **「currentPage がページ範囲を外れたこと」の検知にはならない**。
+	 * 範囲外でも `isLastPage` は false になって「つぎへ」が描画され続け、`currentConfig` も
+	 * `?? tutorialPages[0]` でフォールバックするため件数は 1 のまま通る（そもそも
+	 * `handleNextPage` が `Math.min` でクランプしており範囲外になり得ない）。
+	 * ここで検知できるのは **「シートが閉じた」「CTA ごと消えた/二重になった」** という壊れ方だけ。
 	 *
 	 * ⚠️ #1027 「存在しない」ではなく「見えている」で判定する（TrueSheet はシートの内容を
 	 * ツリーへ残すことがあり、存在での判定はプラットフォーム差に巻き込まれる）。
+	 *
+	 * #1086 「どちらかが見えるまで待つ → 排他を確認する」の順にしている。先に「つぎへ」だけを
+	 * 固定時間待つ書き方だと、連打で最終ページへ到達しているケースで毎回その待ち時間を捨てることになる。
 	 */
 	async expectTutorialOperable(): Promise<void> {
-		const nextShown = await visibleNow(this.tutorialNextButton, 3_000, SearchScreen.TUTORIAL_INDEX);
-		const finishShown = await visibleNow(this.tutorialFinishButton, 3_000, SearchScreen.TUTORIAL_INDEX);
-		assert.equal(
-			nextShown !== finishShown,
-			true,
-			"連打後にチュートリアルのプライマリ CTA が消えている/二重になっている（ページ範囲を外れた可能性がある）",
+		let nextShown = false;
+		let finishShown = false;
+
+		await waitUntil(
+			async () => {
+				nextShown = await visibleNow(this.tutorialNextButton, 1_000, SearchScreen.TUTORIAL_INDEX);
+				finishShown = await visibleNow(this.tutorialFinishButton, 1_000, SearchScreen.TUTORIAL_INDEX);
+				return nextShown || finishShown;
+			},
+			{
+				description: "連打後にチュートリアルのプライマリ CTA（つぎへ / はじめよう）が見えていること",
+			},
 		);
+
+		assert.equal(nextShown !== finishShown, true, "連打後にチュートリアルのプライマリ CTA が二重になっている");
 	}
 
 	/**
@@ -347,10 +365,23 @@ export class SearchScreen {
 	 * 最終ページのプライマリ CTA「はじめよう」は現在地取得（OS の位置情報アクセス）を伴うため、
 	 * e2e-web と同じくセカンダリ CTA「あとで」で完了させる。どちらも `markTutorialAsSeen()` を通る。
 	 *
+	 * ⚠️ #1086 開始条件を「つぎへ が見えること」にしてはいけない。プライマリ CTA は単一ボタンで
+	 * testID が `isLastPage ? "search-tutorial-finish" : "search-tutorial-next"` と切り替わるため、
+	 * **最終ページでは `search-tutorial-next` がツリーに存在しない**。連打テスト（P3）のように
+	 * 既に最終ページへ到達している状態でこれを呼ぶと、アプリは正しいのに 25 秒の
+	 * タイムアウトで落ちる（＝ プレス回数に依存する偽の赤）。
+	 * e2e-web の P3 が `if ((await tutorialNextButton.count()) === 0) break;` で扱っているのと同じ理屈で、
+	 * 開始条件は **「つぎへ / はじめよう のどちらかが見えること」** に緩める。
+	 *
 	 * @param maxPages ページ送りの上限（無限ループ防止。現在のページ数は 4）
 	 */
 	async completeTutorial(maxPages = 10): Promise<void> {
-		await waitUntilVisible(this.tutorialNextButton, DEFAULT_TIMEOUT, SearchScreen.TUTORIAL_INDEX);
+		await waitUntil(
+			async () =>
+				(await visibleNow(this.tutorialNextButton, 1_000, SearchScreen.TUTORIAL_INDEX)) ||
+				(await visibleNow(this.tutorialFinishButton, 1_000, SearchScreen.TUTORIAL_INDEX)),
+			{ description: "チュートリアルのプライマリ CTA（つぎへ / はじめよう）が表示されること" },
+		);
 
 		// #1031 【設計】§4-1: ページ送りは FlatList のスクロールアニメーションを伴う。
 		// プライマリ CTA の testID が「つぎへ」→「はじめよう」に切り替わることを毎回待ち合わせることで、

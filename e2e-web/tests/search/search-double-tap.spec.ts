@@ -31,7 +31,7 @@ test.describe("検索ボタンの連打耐性", () => {
 	// 手順:
 	//   1. appPage で起動し、自動取得された現在地が入っている場合に備えて明示的にクリアする
 	//   2. レコメンド API の呼び出しを計測開始する(素通しのまま数えるだけ)
-	//   3. 検索ボタンを 5 連打する(遷移しないため回数を増やしても安全)
+	//   3. 検索ボタンを 5 連打する(同一 JS タスク内の合成 pointer 連打。SearchPage.clickRapid 参照)
 	//   4. スナックバーが出て、トピック画面へ遷移していないことを検証
 	//   5. レコメンド API が 1 回も呼ばれていないことを検証
 	//      = router.push がバリデーションより手前へ移動する回帰を止める
@@ -54,20 +54,26 @@ test.describe("検索ボタンの連打耐性", () => {
 		await recommendations.stop();
 	});
 
-	// ─ テストケース: 必須項目を満たした状態で 2 連打しても検索は 1 回だけ実行される ─
+	// ─ テストケース: 必須項目を満たした状態で連打しても検索は 1 回だけ実行される ─
 	// 手順:
 	//   1. appPage で起動し、場所に「渋谷」を入力してサジェスト先頭を選択(location 確定)
 	//      (時間帯・シーンには初期値があるため追加選択は不要)
 	//   2. 連打前の履歴段数を控え、レコメンド API の計測を開始する
-	//   3. 検索ボタンを 2 連打する
-	//      ⚠️ 3 回以上にしないこと。遷移後も同じ座標へ落ちるため、3 発目以降は
-	//         トピック画面の要素を叩いてしまう
-	//   4. トピック画面が表示されることを検証
-	//   5. 履歴段数の増分が 1 であること(= router.push が 1 回だけ)を検証
+	//   3. 検索ボタンを 5 連打する(同一 JS タスク内の合成 pointer 連打。SearchPage.clickRapid 参照)
+	//   4. トピック画面のカードが描画されるまで待つ(枚数は問わない)
+	//   5. **積み上がったトピック画面がちょうど 1 枚**であることを検証(主観測点 = 二重 push の検知)
 	//   6. レコメンド API の呼び出しが 1 回であることを検証
 	//   7. 1 回戻ると検索画面に着くことを検証
 	//      = 「戻ると同じトピック画面が 2 回出る」という事故そのものを直接見る
-	test("必須項目を満たした状態で検索ボタンを 2 連打しても検索は 1 回だけ実行される", async ({ appPage }) => {
+	//
+	// ⚠️ #1086 感度について
+	//   このテストは `handleSearch` の多重検索防止ガード(`if (isSearchingRef.current) return;`)を
+	//   外すと赤くなることを **実測で確認済み**(ガードを外して再ビルド → 5 連打で
+	//   トピック画面 5 枚 / レコメンド API 5 回)。以下の 2 点はそのための必須要件なので、
+	//   触るときは必ず「ガードを外すと赤くなるか」を再確認すること:
+	//   - 連打は `page.mouse` ではなく同一 JS タスク内の dispatch であること(SearchPage.clickRapid)
+	//   - 二重 push の観測点が **画面の枚数**であること(履歴段数では検知できない。下記参照)
+	test("必須項目を満たした状態で検索ボタンを連打しても検索は 1 回だけ実行される", async ({ appPage }) => {
 		const searchPage = new SearchPage(appPage);
 		const topicsPage = new TopicsPage(appPage);
 
@@ -77,11 +83,19 @@ test.describe("検索ボタンの連打耐性", () => {
 		const historyBefore = await searchPage.historyLength();
 		const recommendations = await countRequests(appPage, "**/v1/dish-categories/recommendations*");
 
-		await searchPage.submitRapid(2);
-		await topicsPage.expectLoaded();
+		await searchPage.submitRapid(5);
 
-		expect((await searchPage.historyLength()) - historyBefore, "連打で履歴が二重に積まれている").toBe(1);
+		// カードの描画(= レコメンド API の完了)まで待ってから枚数を数える。
+		// 二重 push はこの時点までに必ず DOM へ載っているため、1 枚目だけを見て取りこぼすことはない
+		await topicsPage.expectRenderedAllowingDuplicates();
+
+		await expect(topicsPage.stackedScreens(), "連打でトピック画面が二重に積まれている").toHaveCount(1);
 		expect(recommendations.count(), "連打でレコメンド API が二重に呼ばれている").toBe(1);
+
+		// ⚠️ 履歴段数は **二重 push を検知できない**(#1086 で実測。トピック画面が 5 枚積まっても増分は 1)。
+		//    残してあるのは「連打で余計な履歴が積まれないこと」を補助的に見るためで、
+		//    このアサートだけでは事故を捕まえられない
+		expect((await searchPage.historyLength()) - historyBefore, "連打で履歴が二重に積まれている").toBe(1);
 
 		await recommendations.stop();
 

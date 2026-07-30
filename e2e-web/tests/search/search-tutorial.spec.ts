@@ -13,6 +13,12 @@ import { SearchPage } from "../../pages/SearchPage";
  */
 test.use({ seedTutorialSeen: false });
 
+/**
+ * P3 で「つぎへ」を押す回数の上限(無限ループ防止)。
+ * 現在のチュートリアルは 4 ページなので、最悪でも 3 回で最終ページに着く。
+ */
+const MAX_TUTORIAL_PAGE_PRESSES = 10;
+
 test.describe("検索チュートリアル(ja-JP 初回訪問)", () => {
 	// ─ テストケース: 初回訪問でチュートリアルが自動表示される ─
 	// 手順:
@@ -65,7 +71,8 @@ test.describe("検索チュートリアル(ja-JP 初回訪問)", () => {
 	//   1. 未視聴シードでチュートリアルを自動表示させる
 	//   2. 1 ページ目で「つぎへ」を 3 連打する(待機を挟まない実 pointer 連打)
 	//   3. シートが開いたままで、プライマリ CTA が「つぎへ」「はじめよう」の
-	//      **ちょうど一方だけ**であることを検証(= currentPage がページ範囲内に収まっている)
+	//      **ちょうど一方だけ**であることを検証
+	//      (= 連打でシートが閉じたり、CTA ごと描画が壊れたりしていない)
 	//   4. 連打後も操作が続けられ、最終ページまで進めて完了できることを検証
 	// 補足: **設計(#1084 §3-2)の「3 連打 → 2 ページ目に居る」は web では成立しない**。
 	//       Playwright の連打は 1 プレスずつ別のブラウザタスクとして届き、React は discrete event の
@@ -75,8 +82,14 @@ test.describe("検索チュートリアル(ja-JP 初回訪問)", () => {
 	//        1 ネイティブアクションだが、それでも RN 側は 1 プレスずつ JS イベントとして処理する)。
 	//       「何ページ進むか」はプレスが何回処理されたかに依存して決定論的に書けないため、
 	//       **プレス回数に依存せず必ず成立する不変条件**へ置き換えている:
-	//       ページ範囲を超えないこと(超えると currentConfig が tutorialPages[0] へフォールバックし、
-	//       最終ページなのに「つぎへ」へ戻るなどの壊れ方をする)と、連打後も操作が続けられること。
+	//       連打後もプライマリ CTA がちょうど 1 つ見えていること(= シートが閉じていない/
+	//       CTA ごと消えていない)と、連打後も操作が続けられること。
+	//       ⚠️ #1086 この不変条件は **「currentPage がページ範囲を外れたこと」の検知にはならない**。
+	//       実装上は範囲外でも `isLastPage` が false になって `search-tutorial-next` が描画され続け、
+	//       `currentConfig` も `?? tutorialPages[0]` でフォールバックするため件数は 1 のまま通る
+	//       (そもそも handleNextPage が Math.min でクランプしており範囲外になり得ない)。
+	//       検知できるのは「シートが閉じた」「CTA ごと消えた/二重になった」という壊れ方だけ。
+	//       無害な回帰ガードとして残している。
 	//       また設計は「最終ページで 3 連打」としていたが、最終ページのプライマリ CTA は
 	//       「現在地を利用する」で、押すと現在地取得を伴い **シートを閉じる**（しかも連打対象と
 	//       同じ座標に現れる）。「finish が出たまま」は構造的に成立しないため採用していない。
@@ -94,14 +107,17 @@ test.describe("検索チュートリアル(ja-JP 初回訪問)", () => {
 			.poll(
 				async () =>
 					(await searchPage.tutorialNextButton.count()) + (await searchPage.tutorialFinishButton.count()),
-				{ message: "連打でページ範囲を外れ、プライマリ CTA が消えた/二重になった" },
+				{ message: "連打でプライマリ CTA が消えた/二重になった" },
 			)
 			.toBe(1);
 
-		// 連打後も操作が続けられる(残りのページを通常クリックで進み切れる)
-		for (let i = 0; i < 3; i += 1) {
-			if ((await searchPage.tutorialNextButton.count()) === 0) break;
-			await searchPage.tutorialNextButton.click();
+		// 連打後も操作が続けられる(残りのページを 1 ページずつ進み切れる)。
+		// 「つぎへ」が無くなった時点で最終ページに着いている。
+		// #1086 「つぎへ」の存在確認と押下は pressTutorialNextIfPresent で原子的に行う
+		// (プライマリ CTA は単一ノードで testID だけが入れ替わるため、count() で確認してから
+		//  click() すると『はじめよう』へ化けたノードを叩いてシートを閉じてしまうことがある)
+		for (let i = 0; i < MAX_TUTORIAL_PAGE_PRESSES; i += 1) {
+			if (!(await searchPage.pressTutorialNextIfPresent())) break;
 		}
 		await expect(searchPage.tutorialFinishButton).toBeVisible();
 
