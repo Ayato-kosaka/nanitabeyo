@@ -27,7 +27,9 @@
 		"errors": {
 			"network": "发生网络错误。请检查您的连接。",
 			"unexpected": "发生意外错误。请稍后重试。",
-			"notFound": "未找到"
+			"notFound": "未找到",
+			"authUnavailable": "登录失败。请检查您的网络连接后重试。",
+			"authRateLimited": "当前请求过于频繁。请稍后再试。"
 		}
 	},
 	"DeepLinking": {

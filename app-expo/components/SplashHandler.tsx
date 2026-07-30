@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthProvider";
 import { initRemoteConfig } from "@/lib/remoteConfig";
 import { Env } from "@/constants/Env";
 import { retry } from "@/lib/retry";
+import { AuthErrorFallback } from "@/components/AuthErrorFallback";
 
 /**
  * 🧯 アプリ起動時の Splash 画面を制御するコンポーネント。
@@ -16,7 +17,7 @@ import { retry } from "@/lib/retry";
  * @returns JSX構造
  */
 export const SplashHandler = ({ children }: { children: React.ReactNode }) => {
-	const { loading: isAuthLoading, user } = useAuth();
+	const { loading: isAuthLoading, user, authError, retryAuth, isRetryingAuth } = useAuth();
 
 	const [isRemoteConfigReady, setIsRemoteConfigReady] = useState(false);
 	const hasSplashBeenHiddenRef = useRef(false);
@@ -51,9 +52,15 @@ export const SplashHandler = ({ children }: { children: React.ReactNode }) => {
 	/**
 	 * 🎬 Splash 非表示ロジック
 	 * - 一度だけ実行されるようフラグで制御
+	 *
+	 * #1089 【バグ】条件が `user` だけだったため、匿名サインインが失敗した端末では
+	 * hideAsync() が永久に呼ばれず、native はスプラッシュが張り付いたままになっていた
+	 * （web の空画面と同じ根本原因・別症状）。認証が「確立できなかった」と確定した場合も
+	 * 必ず解除し、下のエラー UI をユーザーへ見せる。
 	 */
 	const hideSplashScreenIfReady = useCallback(async () => {
-		if (!isAuthLoading && user && !hasSplashBeenHiddenRef.current) {
+		const isAuthSettled = !isAuthLoading && (!!user || !!authError);
+		if (isAuthSettled && !hasSplashBeenHiddenRef.current) {
 			try {
 				await SplashScreen.hideAsync();
 				hasSplashBeenHiddenRef.current = true;
@@ -63,7 +70,7 @@ export const SplashHandler = ({ children }: { children: React.ReactNode }) => {
 				}
 			}
 		}
-	}, [isAuthLoading, user]);
+	}, [isAuthLoading, user, authError]);
 
 	// 初期化実行（on mount）
 	useEffect(() => {
@@ -73,7 +80,7 @@ export const SplashHandler = ({ children }: { children: React.ReactNode }) => {
 	// Splash 非表示条件を監視して実行
 	useEffect(() => {
 		hideSplashScreenIfReady();
-	}, [isAuthLoading, user, hideSplashScreenIfReady]);
+	}, [isAuthLoading, user, authError, hideSplashScreenIfReady]);
 
 	/**
 	 * 📌 アプリ起動に必要な要件がすべて満たされているか
@@ -81,6 +88,14 @@ export const SplashHandler = ({ children }: { children: React.ReactNode }) => {
 	const isAppReady = useMemo(() => {
 		return isRemoteConfigReady && !isAuthLoading && !!user;
 	}, [isRemoteConfigReady, isAuthLoading, user]);
+
+	// #1089 認証が確立できないまま確定した場合は、null を返し続けて空画面のまま放置せず、
+	// 「失敗した」ことと再試行手段をユーザーへ提示する。
+	// ⚠️ isAppReady の `!!user` ゲートそのもの（認証前でも UI を先に出す設計）は #1092 のスコープなので触らない。
+	//    Remote Config は失敗しても必ず ready になるため、ここでは待たずにエラー UI を優先する。
+	if (!isAuthLoading && !user && authError) {
+		return <AuthErrorFallback isRateLimited={authError.isRateLimited} isRetrying={isRetryingAuth} onRetry={retryAuth} />;
+	}
 
 	if (!isAppReady) return null;
 

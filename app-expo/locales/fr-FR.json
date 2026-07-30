@@ -27,7 +27,9 @@
 		"errors": {
 			"network": "Une erreur réseau s'est produite. Veuillez vérifier votre connexion.",
 			"unexpected": "Une erreur inattendue s'est produite. Veuillez réessayer plus tard.",
-			"notFound": "Non trouvé"
+			"notFound": "Non trouvé",
+			"authUnavailable": "Échec de la connexion. Veuillez vérifier votre connexion réseau, puis réessayer.",
+			"authRateLimited": "Trop de requêtes en ce moment. Veuillez patienter un instant, puis réessayer."
 		}
 	},
 	"DeepLinking": {
