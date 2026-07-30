@@ -34,6 +34,22 @@ export class SearchPage {
 	readonly distanceEstimatesToggle: Locator;
 	/** グローバルスナックバー（バリデーションエラー等の通知） */
 	readonly snackbar: Locator;
+	/** ヘッダーの「？」ボタン（チュートリアル再表示。ja-JP のときだけ描画される） */
+	readonly helpButton: Locator;
+	/** 検索チュートリアル BottomSheet の内容全体 */
+	readonly tutorialOverlay: Locator;
+	/** チュートリアルのプライマリ CTA「つぎへ」（最終ページ以外で描画される） */
+	readonly tutorialNextButton: Locator;
+	/** チュートリアルのプライマリ CTA「現在地を利用する」（最終ページでだけ描画される） */
+	readonly tutorialFinishButton: Locator;
+	/**
+	 * チュートリアルシート内に描画されている画像。
+	 *
+	 * ⚠️ overlay 配下に限定するのは、先読み用の 0x0 View（search/index.tsx の末尾）を
+	 * 除外するため。先読み用 View は TutorialBottomSheet の兄弟要素なので、
+	 * ここで拾えるのは「シートが実際に表示している画像」だけになる。
+	 */
+	readonly tutorialImages: Locator;
 
 	constructor(page: Page) {
 		this.page = page;
@@ -48,6 +64,11 @@ export class SearchPage {
 		this.distanceRecommendedEstimates = page.getByTestId("search-distance-recommended-estimates");
 		this.distanceEstimatesToggle = page.getByTestId("search-distance-estimates-toggle");
 		this.snackbar = page.getByTestId("global-snackbar");
+		this.helpButton = page.getByTestId("search-help-button");
+		this.tutorialOverlay = page.getByTestId("search-tutorial-overlay");
+		this.tutorialNextButton = page.getByTestId("search-tutorial-next");
+		this.tutorialFinishButton = page.getByTestId("search-tutorial-finish");
+		this.tutorialImages = this.tutorialOverlay.locator("img");
 	}
 
 	/** 指定 URL へ直接遷移する（locale プレフィックス必須） */
@@ -100,5 +121,76 @@ export class SearchPage {
 	/** 交通手段ごとの所要時間チップを返す */
 	distanceEstimate(mode: "walk" | "bike" | "car" | "train"): Locator {
 		return this.page.getByTestId(`search-distance-estimate-${mode}`);
+	}
+
+	/**
+	 * ヘルプボタンからチュートリアルを手動で開き、操作できる状態になるまで待つ。
+	 *
+	 * ja-JP では初回訪問時に自動表示されるが、fixtures が既定で視聴済みをシードしているため、
+	 * 視聴済み状態から意図的に開きたい場合はこの導線を使う。
+	 */
+	async openTutorial(): Promise<void> {
+		await this.helpButton.click();
+		await expect(this.tutorialNextButton).toBeVisible();
+	}
+
+	/**
+	 * 検索ボタンを待機を挟まず `times` 回連打する（#1084 P1/P2）。
+	 *
+	 * ⚠️ `locator.click()` のループにはしないこと。
+	 * - `click()` は毎回 actionability チェック（可視・安定・enabled・hit-target）を通るため、
+	 *   タップの間に必ず待機が挟まり「連打」の再現にならない
+	 * - 1 発目で router.push が走ると検索画面が unmount され、2 発目の `click()` は
+	 *   "element is not attached to the DOM" で落ちる（連打事故の有無と無関係に赤くなる）
+	 *
+	 * 合成 click イベント（`dispatchEvent`）も使わない。react-native-web の Pressable は
+	 * pointer イベントから onPress を組み立てるため、実 pointer を発火する `page.mouse` でなければ届かない。
+	 *
+	 * @param times 連打回数
+	 */
+	async submitRapid(times: number): Promise<void> {
+		await this.clickRapid(this.submitButton, times);
+	}
+
+	/**
+	 * チュートリアルの「つぎへ」を待機を挟まず `times` 回連打する（#1084 P3）。
+	 * 連打の再現方法と理由は {@link submitRapid} と同じ。
+	 *
+	 * @param times 連打回数
+	 */
+	async tutorialNextRapid(times: number): Promise<void> {
+		await this.clickRapid(this.tutorialNextButton, times);
+	}
+
+	/**
+	 * 対象の中心座標へ実 pointer の down/up を `times` 回送る。
+	 *
+	 * 座標は最初に 1 回だけ取得する。1 発目で画面が切り替わっても同じ座標へ打ち続けることになるが、
+	 * それは「連打の間にアプリが遷移してしまった」という検証したい事象そのものなので意図的にそうしている。
+	 *
+	 * @param locator 連打対象
+	 * @param times 連打回数
+	 * @失敗時 対象が描画されておらず座標を取得できない場合は日本語のメッセージで例外を投げる
+	 */
+	private async clickRapid(locator: Locator, times: number): Promise<void> {
+		const box = await locator.boundingBox();
+		if (!box) throw new Error("連打対象の座標を取得できませんでした（描画されていない可能性があります）");
+
+		await this.page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+		for (let i = 0; i < times; i += 1) {
+			await this.page.mouse.down();
+			await this.page.mouse.up();
+		}
+	}
+
+	/**
+	 * 現在の履歴の段数を返す（#1084 P1 の主観測点）。
+	 *
+	 * React Navigation の push は同一 params でも常に新しいスクリーンを積むため、
+	 * router.push が二重に走れば pushState も 2 回発行され段数の差分が 2 になる。
+	 * リクエスト件数と違いリトライやキャッシュの影響を受けない決定論的な観測点。
+	 */
+	async historyLength(): Promise<number> {
+		return this.page.evaluate(() => window.history.length);
 	}
 }

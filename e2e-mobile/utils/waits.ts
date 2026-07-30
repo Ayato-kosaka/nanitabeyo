@@ -93,9 +93,22 @@ export async function tapWhenVisible(
 
 /** hit-test の一時的な失敗に限って数回だけ待って叩き直す（tapWhenVisible / tapWhenPresent 共通） */
 async function tapWithHitTestRetry(matcher: Detox.NativeMatcher, index?: number): Promise<void> {
+	await withHitTestRetry(() => target(matcher, index).tap());
+}
+
+/**
+ * hit-test の一時的な失敗に限って数回だけ待ってタップ動作をやり直す。
+ *
+ * ⚠️ やり直しても二重に届かない前提で使うこと。ここで再試行の対象にしているのは
+ * **タップが 1 度も配送されずに失敗した**ことを示すエラー（`isTransientHitTestError`）だけで、
+ * 「押せたが結果が期待と違う」類のエラーは対象にしていない。
+ *
+ * @param action 実行するタップ動作
+ */
+async function withHitTestRetry(action: () => Promise<void>): Promise<void> {
 	for (let attempt = 0; ; attempt += 1) {
 		try {
-			await target(matcher, index).tap();
+			await action();
 			return;
 		} catch (error) {
 			if (attempt >= TAP_RETRY_LIMIT || !isTransientHitTestError(error)) throw error;
@@ -130,6 +143,37 @@ export async function tapWhenPresent(
 ): Promise<void> {
 	await waitUntilExists(matcher, timeout, index);
 	await tapWithHitTestRetry(matcher, index);
+}
+
+/**
+ * 要素が **ツリーに在る**のを待ってから、`times` 回の連続タップを **1 つの Detox アクション**として送る。
+ *
+ * #1084 【設計】§3-2: 連打の再現に `tap()` の連続は使えない。Android は Detox の同期機構が有効なため
+ * （fixtures/e2e.ts の `platformLaunchOptions()` は Android に `detoxEnableSynchronization` を渡さない）、
+ * `await tap(); await tap();` と書くと **1 発目のあと画面遷移とネットワークの完了まで待ってから**
+ * 2 発目が飛ぶ。連打事故が起きる脆弱な窓（React のコミット前 / ガードが立っている間）を確実に外すため、
+ * 事故があってもテストが緑になる（＝ 感度ゼロ）。
+ *
+ * Detox のアイドル待機はアクションと**アクションの間**に入るものなので、`multiTap` の内部の
+ * タップ間には待機が挟まらない。これが Android でも脆弱な窓へ複数タップを入れられる唯一の標準手段。
+ * iOS は元から同期を無効化してあるが、両プラットフォームで同じコードにするため統一して使う。
+ *
+ * 可視ではなく **存在**で待つ理由は `tapWhenPresent` と同じ（連打の主対象である検索 FAB は
+ * iOS の `toBeVisible` を満たせない）。
+ *
+ * @param matcher 対象のマッチャ
+ * @param times 連打回数
+ * @param timeout 存在待ちのタイムアウト (ms)
+ * @param index 複数一致する場合に選ぶ添字
+ */
+export async function multiTapWhenPresent(
+	matcher: Detox.NativeMatcher,
+	times: number,
+	timeout: number = DEFAULT_TIMEOUT,
+	index?: number,
+): Promise<void> {
+	await waitUntilExists(matcher, timeout, index);
+	await withHitTestRetry(() => target(matcher, index).multiTap(times));
 }
 
 /** 「見えているのに叩けない」の再試行回数（1 回 500ms 待つ） */

@@ -1,4 +1,5 @@
 import { test, expect } from "../../fixtures/test";
+import { SearchPage } from "../../pages/SearchPage";
 
 /**
  * 🎓 検索チュートリアルの表示テスト
@@ -57,5 +58,42 @@ test.describe("検索チュートリアル(ja-JP 初回訪問)", () => {
 		await page.goto("/ja-JP/search");
 		await expect(page.getByText("どんな料理を探しましょう？🍽")).toBeVisible();
 		await expect(page.getByText("食べたい料理に気づけるアプリ")).toHaveCount(0);
+	});
+
+	// ─ テストケース: 「つぎへ」を連打してもページが飛ばない(#1084 P3) ─
+	// 手順:
+	//   1. 未視聴シードでチュートリアルを自動表示させる
+	//   2. 1 ページ目で「つぎへ」を 3 連打する(待機を挟まない実 pointer 連打)
+	//   3. 2 ページ目に留まっていることを検証
+	//      handleNextPage はクロージャの index を fromIndex に使うため、連打しても全タップが
+	//      同じ fromIndex を読み、ページ送りは 1 回分しか起きない
+	//   4. 3 ページ目まで通常クリックで進め、そこで「つぎへ」を 3 連打する
+	//   5. 最終ページ(4 ページ目)へ 1 つだけ進み、シートが開いたままであることを検証
+	//      = Math.min による最終ページ超えの防止と、連打でシートが閉じないことの確認
+	// 補足: 設計(#1084 §3-2)は「最終ページで 3 連打」としていたが、最終ページのプライマリ CTA は
+	//       「現在地を利用する」(handleRequestLocation)で、押すと現在地取得を伴い **シートを閉じる**。
+	//       連打すれば当然閉じるため「finish が出たまま」は成立しない。連打の対象は P3 の定義どおり
+	//       「つぎへ」に限定し、最終ページ手前からの連打で同じ観測(最終ページ超えが起きず、
+	//       シートが開いたまま)を得る形に置き換えている
+	test("「つぎへ」を連打してもページが飛ばない", async ({ page }) => {
+		const searchPage = new SearchPage(page);
+
+		await page.goto("/");
+		await expect(page.getByText("食べたい料理に気づけるアプリ")).toBeVisible();
+
+		// 1 ページ目で 3 連打 → 2 ページ目までしか進まない(3 ページ以上飛んでいれば
+		// 2 ページ目のタイトルが出ず、最終ページまで飛んでいれば finish が出る)
+		await searchPage.tutorialNextRapid(3);
+		await expect(page.getByText("料理写真を見て")).toBeVisible();
+		await expect(searchPage.tutorialFinishButton).toHaveCount(0);
+
+		// 3 ページ目へ通常クリックで進む
+		await searchPage.tutorialNextButton.click();
+		await expect(page.getByText("写真と口コミで")).toBeVisible();
+
+		// 最終ページ手前で 3 連打 → 最終ページで止まり、シートは開いたまま
+		await searchPage.tutorialNextRapid(3);
+		await expect(searchPage.tutorialFinishButton).toBeVisible();
+		await expect(page.getByText("あとで", { exact: true })).toBeVisible();
 	});
 });

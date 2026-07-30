@@ -60,4 +60,35 @@ describeJapaneseLocale("検索チュートリアル（初回起動）", () => {
 		await launchAppWithSession({ as: "anon", tutorialSeen: "device" });
 		await search.expectTutorialAbsent();
 	});
+
+	// ─ テストケース: 「つぎへ」を連打してもページが飛ばない（#1084 P3） ─
+	// 手順:
+	//   1. 「未視聴」を起動引数でシードして起動し直す（直前のテストが完了フラグを立てているため、
+	//      beforeAll の起動をそのまま引き継ぐとチュートリアルが出ない）
+	//   2. 1 ページ目で「つぎへ」を 3 連打する（multiTap = 待機を挟まない 1 アクション）
+	//   3. 「つぎへ」が出たままで「はじめよう」が現れていないことを検証
+	//      = 3 ページ以上飛んでいない（handleNextPage はクロージャの index を fromIndex に使うため、
+	//        連打しても全タップが同じ fromIndex を読み、ページ送りは 1 回分しか起きない）
+	//   4. 3 ページ目まで通常タップで進め、そこで「つぎへ」を 3 連打する
+	//   5. 最終ページで止まり（「はじめよう」が出る）、シートが開いたままであることを検証
+	// 補足: 設計（#1084 §3-2）は「最終ページで multiTap(3)」としていたが、最終ページのプライマリ CTA は
+	//       「現在地を利用する」（handleRequestLocation）で、押すと現在地取得を伴い **シートを閉じる**。
+	//       連打すれば当然閉じるため「finish が出たまま」は成立しない。連打の対象は P3 の定義どおり
+	//       「つぎへ」に限定し、最終ページ手前からの連打で同じ観測を得る形に置き換えている
+	it("「つぎへ」を連打してもページが飛ばない", async () => {
+		await launchAppWithSession({ as: "anon", tutorialSeen: false, waitForReady: false });
+		await search.expectTutorialShown(LAUNCH_TIMEOUT);
+
+		// 1 ページ目で 3 連打 → 2 ページ目までしか進まない
+		await search.tutorialNextRapid(3);
+		await search.expectTutorialShown();
+		await search.expectTutorialFinishAbsent();
+
+		// 3 ページ目へ通常タップで進む
+		await search.tapTutorialNext();
+
+		// 最終ページ手前で 3 連打 → 最終ページで止まり、シートは開いたまま
+		await search.tutorialNextRapid(3);
+		await search.expectTutorialFinishShown();
+	});
 });
