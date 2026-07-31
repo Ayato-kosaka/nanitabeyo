@@ -32,6 +32,13 @@ export type RemoteConfigSource = "default" | "cache" | "network";
  * 「サーバ側で値を変えてもアプリが古い既定で動く」経路を新設することになるため、
  * 既定値は現行値と一致させ、かつ安全側（= 現行運用と同じ挙動）に倒す。
  *
+ * 【既知の限界】(#1110)
+ * ここの値の根拠は**本番**の config.json だが、CI ゲート
+ * （`scripts/assert-remote-config-defaults.mjs`）が突き合わせるのは、同じ job の E2E が叩くのと
+ * 同じ **development** の config.json である。両環境の値がずれると
+ * 「本番の既定値は正しいのに CI が落ちる」偽陽性が起こりうる。
+ * それでも development を見るのは、この job で守りたいのが「E2E が実際に読む値」との一致だから。
+ *
  * ⚠️ この module から `enqueueLog()` / `useLogger().logFrontendEvent()` を呼んではならない。
  *    `hooks/useLogger.ts` はログレベル判定のため `getRemoteConfig()` を読んでおり、
  *    ここでログを出すと logFrontendEvent → getRemoteConfig → logFrontendEvent の相互再帰になる
