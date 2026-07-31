@@ -27,8 +27,19 @@ jest.mock("expo-splash-screen", () => ({
 /** Remote Config の初期化。テストごとに解決タイミングを手で制御する */
 let mockRemoteConfigPromise: Promise<void>;
 let resolveRemoteConfig: () => void;
+// #1092 PR2 で SplashHandler が getRemoteConfigSource() も読むようになったので併せて差し替える
 jest.mock("@/lib/remoteConfig", () => ({
 	initRemoteConfig: () => mockRemoteConfigPromise,
+	getRemoteConfigSource: () => "network",
+}));
+
+// #1092 PR2 で SplashHandler が remote_config_resolved を送るようになった。
+// 実体の useLogger は logQueue → supabase → AsyncStorage まで芋づるで読み込み、
+// jest 環境では AsyncStorage の native モジュールが無くて suite ごと落ちる。
+// このテストの対象はログ内容ではなく描画とスプラッシュ解除なので、no-op に差し替える。
+const mockLogFrontendEvent = jest.fn();
+jest.mock("@/hooks/useLogger", () => ({
+	useLogger: () => ({ logFrontendEvent: mockLogFrontendEvent }),
 }));
 
 // Env は expo-constants 経由で app.config を読むため、テストでは値だけ差し替える
