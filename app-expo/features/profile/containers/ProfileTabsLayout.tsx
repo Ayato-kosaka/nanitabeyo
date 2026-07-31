@@ -26,11 +26,12 @@ import type { GroupName, RouteName } from "../components/ProfileTabsBar";
 import { useAuth } from "@/contexts/AuthProvider";
 import { useProfileStore } from "../stores/useProfileStore";
 import { useEnsureOwnProfileLoaded } from "../hooks/useEnsureOwnProfileLoaded";
+import { LoadingIndicator } from "@/components/LoadingIndicator";
 
 export function ProfileTabsLayout() {
 	const { mediumImpact, lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
-	const { user } = useAuth();
+	const { user, isAuthResolved } = useAuth();
 
 	// #467 【設計】プロフィールをグローバルストアから取得し、自動ロードを実行
 	useEnsureOwnProfileLoaded();
@@ -210,6 +211,19 @@ export function ProfileTabsLayout() {
 		[availableTabs],
 	);
 
+	// #1092 【設計】auth 未確定(user === null)の間はタブ構成を確定させない。
+	// isGuest は `user?.is_anonymous !== false` なので未確定はゲスト扱いになり、
+	// ログイン済みのリピーターでは「reviews タブ無しで描画 → 後からタブが増える」というちらつきになる。
+	// タブ本数が変わると Tabs.Container 全体が作り直されるため、確定するまで描画を保留する。
+	// ⚠️ この return はフックを全て呼び終えた後に置くこと（フックの呼び出し順を変えないため）。
+	if (!isAuthResolved) {
+		return (
+			<View style={[styles.container, styles.loadingContainer]}>
+				<LoadingIndicator size="large" />
+			</View>
+		);
+	}
+
 	return (
 		<View style={styles.container}>
 			<Tabs.Container
@@ -290,5 +304,10 @@ export function ProfileTabsLayout() {
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
+	},
+	loadingContainer: {
+		backgroundColor: "white",
+		justifyContent: "center",
+		alignItems: "center",
 	},
 });

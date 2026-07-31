@@ -89,7 +89,13 @@ export default function TabLayout() {
 							<Bell size={ICON_SIZE} color={color} />
 						</View>
 					),
-					href: user?.is_anonymous ? null : undefined,
+					// #1092 【設計】auth 未確定(user === null)を「ゲスト」と同じ扱いに寄せる。
+					// `user?.is_anonymous` の truthy 判定だと未確定は falsy になり、通知タブが
+					// **出てから消える**（タブ本数が 5→4 に変わりタブバー全体が再レイアウトする）。
+					// 出てから消えるより、出ない→出るの方が害が小さい。web の SSG は
+					// user === null の状態を出力するので、その観点でもこちらが安全。
+					// 判定は features/profile の isGuest と同じ `!== false` に揃えている。
+					href: user?.is_anonymous !== false ? null : undefined,
 				}}
 			/>
 			<Tabs.Screen

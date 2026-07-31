@@ -1,6 +1,7 @@
 import { useAPICall } from "@/hooks/useAPICall";
+import { useAuth } from "@/contexts/AuthProvider";
 import { useLogger } from "@/hooks/useLogger";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 interface HealthCheckState {
 	isChecking: boolean;
@@ -23,20 +24,32 @@ interface HealthData {
 export const HealthCheckInitializer: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 	const { logFrontendEvent } = useLogger();
 	const { callBackend } = useAPICall();
+	const { user } = useAuth();
 	const [state, setState] = useState<HealthCheckState>({
 		isChecking: false,
 		hasCompleted: false,
 		error: null,
 	});
 
+	// #1092 【設計】実行中/完了済みの判定は state ではなく ref で持つ。
+	// state 経由だと performHealthCheck の identity が状態遷移のたびに変わり、
+	// 「auth 解決後に 1 回だけ再試行する」下の effect が state の更新で誤発火する。
+	const isCheckingRef = useRef(false);
+	const hasCompletedRef = useRef(false);
+	/** 直前の試行が「トークンが無いだけ」で失敗したか（= auth の解決を待てば成功しうる） */
+	const needsAuthRetryRef = useRef(false);
+	/** auth 解決後の再試行を使ったか。再試行は 1 回だけで、失敗しても自分自身を再予約しない */
+	const hasRetriedAfterAuthRef = useRef(false);
+
 	/**
 	 * ヘルスチェックを実行する関数
 	 */
 	const performHealthCheck = useCallback(async () => {
-		if (state.isChecking || state.hasCompleted) {
+		if (isCheckingRef.current || hasCompletedRef.current) {
 			return;
 		}
 
+		isCheckingRef.current = true;
 		setState((prev) => ({ ...prev, isChecking: true, error: null }));
 
 		try {
@@ -45,6 +58,8 @@ export const HealthCheckInitializer: React.FC<{ children: React.ReactNode }> = (
 				requestPayload: {},
 			});
 
+			hasCompletedRef.current = true;
+			needsAuthRetryRef.current = false;
 			setState((prev) => ({
 				...prev,
 				isChecking: false,
@@ -56,12 +71,29 @@ export const HealthCheckInitializer: React.FC<{ children: React.ReactNode }> = (
 				event_name: "health_check_error",
 				error_level: "error",
 				payload: {
-					error: String(error),
+					error: error?.message ? String(error.message) : String(error),
 					code: error?.code,
 					status: error?.status,
 					requestId: error?.requestId,
 				},
 			});
+
+			// #1092 【修正】認証がまだ確立しておらずトークンが無かっただけの失敗を「完了」にしない。
+			// ここで hasCompleted を立てると、その起動ではヘルスチェックが二度と走らず、
+			// **メンテナンスモード(503)と強制アップデート(426)の検知が丸ごとスキップされる**。
+			// 完了扱いにせず、下の effect が auth の解決を待って 1 回だけ叩き直す。
+			if (error?.code === "unauthenticated") {
+				needsAuthRetryRef.current = true;
+				setState((prev) => ({
+					...prev,
+					isChecking: false,
+					hasCompleted: false,
+					error: "unauthenticated",
+				}));
+				return;
+			}
+
+			hasCompletedRef.current = true;
 
 			// callBackend内で既にダイアログ表示等の処理が行われているため、
 			// ここではエラー状態の設定のみを行う
@@ -87,8 +119,10 @@ export const HealthCheckInitializer: React.FC<{ children: React.ReactNode }> = (
 					error: error?.code || "network_error",
 				}));
 			}
+		} finally {
+			isCheckingRef.current = false;
 		}
-	}, [state.isChecking, state.hasCompleted, logFrontendEvent, callBackend]);
+	}, [logFrontendEvent, callBackend]);
 
 	/**
 	 * 起動時にヘルスチェックを自動実行
@@ -101,6 +135,24 @@ export const HealthCheckInitializer: React.FC<{ children: React.ReactNode }> = (
 
 		return () => clearTimeout(timeoutId);
 	}, []);
+
+	/**
+	 * #1092 auth の解決（= セッションが手に入った）で 1 回だけ叩き直す。
+	 *
+	 * ループしないことの保証:
+	 * 1. トークン欠如で失敗したとき（needsAuthRetryRef）にしか動かない
+	 * 2. 再試行は 1 回だけ（hasRetriedAfterAuthRef）
+	 * 3. 発火源は user の変化（= 外部起点の認証イベント）だけで、この処理は user を変化させない
+	 */
+	useEffect(() => {
+		if (!user) return;
+		if (!needsAuthRetryRef.current) return;
+		if (hasRetriedAfterAuthRef.current) return;
+
+		hasRetriedAfterAuthRef.current = true;
+		needsAuthRetryRef.current = false;
+		void performHealthCheck();
+	}, [user?.id, performHealthCheck]);
 
 	// デバッグ用（開発環境でのみ表示）
 	useEffect(() => {

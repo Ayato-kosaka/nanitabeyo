@@ -67,7 +67,7 @@ function SettingsMenuItem({
 }
 
 export default function SettingsScreen() {
-	const { logout, user } = useAuth();
+	const { logout, user, isAuthResolved } = useAuth();
 	const router = useRouter();
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
@@ -293,6 +293,12 @@ export default function SettingsScreen() {
 		});
 	}, [lightImpact, logFrontendEvent, user?.id, router, locale]);
 
+	// #1092 【設計】auth 未確定(user === null)を「ログイン済み」と誤解させない。
+	// `!user?.is_anonymous` は未確定でも true になるため、下のログアウト行が
+	// 一瞬出てから消える（押せてしまう瞬間もある）。確定するまではゲスト側に寄せる。
+	// 判定は features/profile の isGuest と同じ `!== false` に揃えている。
+	const isGuest = !isAuthResolved || user?.is_anonymous !== false;
+
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
 			<SafeAreaView style={styles.safeArea} edges={[]}>
@@ -349,11 +355,11 @@ export default function SettingsScreen() {
 						<SettingsMenuItem
 							label={i18n.t("Settings.copyright")}
 							onPress={() => handleLegalDocument("copyright")}
-							isLast={!!user?.is_anonymous}
+							isLast={isGuest}
 							testID="settings-copyright"
 							accessibilityRole="button"
 						/>
-						{!user?.is_anonymous && (
+						{!isGuest && (
 							<SettingsMenuItem
 								label={i18n.t("Settings.logout")}
 								onPress={handleLogout}

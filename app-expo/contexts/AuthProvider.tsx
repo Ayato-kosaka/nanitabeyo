@@ -42,6 +42,15 @@ type AuthContextType = {
 	getSession: () => Session | null;
 	refreshSession: () => Promise<Session | null>;
 	loading: boolean;
+	/**
+	 * #1092 認証の初期化が決着したか（成功・失敗を問わず）。`= !loading`。
+	 *
+	 * `user?.is_anonymous !== false` という書き方は「まだ決まっていない(user === null)」と
+	 * 「ゲストで確定した」を同じ扱いにするため、ログイン済みのリピーターには
+	 * 「一瞬ゲスト UI → 本来の UI」というちらつきになる。
+	 * 未確定の間は描画を保留する / スケルトンを出す、という判断に使う。
+	 */
+	isAuthResolved: boolean;
 	/** #1089 認証初期化が最終的に失敗している間だけ非 null。成功すると null に戻る */
 	authError: AuthFailure | null;
 	/** #1089 認証初期化をやり直す。429 のクールダウン中は、その時間を待ってから実行される */
@@ -563,6 +572,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 			getSession,
 			refreshSession,
 			loading,
+			isAuthResolved: !loading,
 			authError,
 			retryAuth,
 			isRetryingAuth,

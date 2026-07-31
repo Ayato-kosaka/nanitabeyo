@@ -88,10 +88,25 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 
 	const handleOAuthSignIn = useCallback(
 		async (provider: "google" | "facebook" | "twitter" | "apple") => {
+			// #1092 【設計】auth が未確定(user === null)のまま進めてはならない分岐。
+			// `user?.is_anonymous` は未確定でも undefined = falsy になるため、下の分岐は
+			// linkIdentity(匿名ユーザーの昇格)ではなく signInWithOAuth(新規ユーザー作成)を選ぶ。
+			// 匿名で貯めたデータから切り離された別アカウントが生まれる = アカウント分裂なので、
+			// 「未確定なら何もしない」を明示する。
+			// ユーザーの操作起点なので実際には解決済みのはずだが、その前提をコードで保証していなかった。
+			if (!user) {
+				logFrontendEvent({
+					event_name: "oauth_signin_blocked_auth_unresolved",
+					error_level: "warn",
+					payload: { provider },
+				});
+				showSnackbar(i18n.t("Common.error"));
+				return;
+			}
+
 			setIsLoading(true);
 			try {
-				// 前提: アプリの初期化時に signInAnonymously() をしているため、auth.userが存在する
-				const isAnonymous = user?.is_anonymous;
+				const isAnonymous = user.is_anonymous;
 
 				if (isAnonymous && !hasExistingAccount) {
 					// 未チェック（昇格狙い）: 匿名セッションのまま OAuth を追加(linkIdentity)を試みる。
