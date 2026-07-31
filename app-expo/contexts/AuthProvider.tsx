@@ -119,11 +119,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 	 * - 成功時: user が非 null になり、authError は null
 	 * - 失敗時: authError が非 null（= UI がエラーと再試行手段を出せる）
 	 * - どちらでも: loading は必ず false になる
+	 *
+	 * @param force 429 のクールダウンを無視して実行する。ユーザーの明示的な再試行操作からのみ渡す（#1097）
 	 */
-	const runAuthAttempt = useCallback(async () => {
+	const runAuthAttempt = useCallback(async ({ force = false }: { force?: boolean } = {}) => {
 		// #1089 多重実行の防止。再試行ボタンの連打やイベントの重複発火で匿名サインインが同時に何本も飛ぶと、
 		// 30 回/時/IP の枠を一気に消費して状況を悪化させる
 		if (isAuthenticatingRef.current) return;
+
+		// #1097 「クールダウンは実際に匿名サインインを叩くまでの最小間隔」という不変条件は、
+		// 呼び出し経路ごとではなく **実際に叩くこの関数の入口** で守る。
+		// 以前は retryAuth と AppState 復帰だけが確認しており、SIGNED_OUT 経路（リフレッシュトークン
+		// 失効など）はクールダウン中でも即座に /auth/v1/signup を叩けた（30 回/時/IP の枠を無駄に消費する）。
+		//
+		// ⚠️ force はユーザー操作起点の再試行（retryAuth）専用。ここで一律にブロックすると
+		//    「押しても何も起きない再試行ボタン」になり、#1089 で作った復帰経路そのものが死ぬ。
+		//
+		// 早期 return しても事後条件は崩れない: nextAttemptAllowedAtRef が未来を指しているのは
+		// 「直前の試行が catch まで到達した」= finally で loading=false になり authError が立っている
+		// 状態だけなので、UI はエラーと再試行手段を出したままになる（成功時は 0 に戻される）。
+		if (!force && Date.now() < nextAttemptAllowedAtRef.current) return;
+
 		isAuthenticatingRef.current = true;
 
 		try {
@@ -239,7 +255,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 		setIsRetryingAuth(true);
 		pendingRetryTimerRef.current = setTimeout(() => {
 			pendingRetryTimerRef.current = null;
-			runAuthAttempt().finally(() => setIsRetryingAuth(false));
+			// #1097 待ち時間はここで既に消化済みなので force で通す。
+			// クールダウンの判定を runAuthAttempt の入口へ寄せた結果、force なしだと
+			// 「タイマーの誤差 1ms」や「待機中に別経路の失敗でクールダウンが未来へ伸びた」だけで
+			// ユーザーの再試行が黙って捨てられ、押しても何も起きないボタンになるため。
+			runAuthAttempt({ force: true }).finally(() => setIsRetryingAuth(false));
 		}, waitMs);
 	}, [runAuthAttempt]);
 
@@ -247,12 +267,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 	// バックグラウンド中に回線が復旧した / レート制限の窓が明けた ケースを、ユーザー操作なしで拾う。
 	// ループしない保証: 発火源は OS のアプリ状態遷移だけで、この処理自体はアプリ状態を変化させない。
 	// 加えて「認証済みなら何もしない」「実行中/予約中なら何もしない」「クールダウン中は何もしない」で三重に抑止する。
+	// #1097 3 つ目（クールダウン）の判定は runAuthAttempt の入口へ移した（経路ごとに書くと今回のように
+	// 抜ける経路が出るため）。ここで force を渡さないので、クールダウン中の復帰は従来どおり素通りする。
 	useEffect(() => {
 		const subscription = AppState.addEventListener("change", (state) => {
 			if (state !== "active") return;
 			if (user) return;
 			if (isAuthenticatingRef.current || pendingRetryTimerRef.current) return;
-			if (Date.now() < nextAttemptAllowedAtRef.current) return;
 			void runAuthAttempt();
 		});
 
@@ -308,6 +329,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 					// #1089 ログアウト直後の匿名サインインも runAuthAttempt に寄せる。
 					// ここで失敗を握り潰すと user=null のまま authError も立たず、
 					// 起動時と同じ「画面が出ないまま戻れない」状態になるため（リトライとエラー UI を共通化する）。
+					// #1097 force は渡さない。SIGNED_OUT はユーザー操作とは限らない（リフレッシュトークン失効等でも
+					// 飛ぶ）ため、429 のクールダウン中はここで叩かず、再試行ボタン / フォアグラウンド復帰を待つ。
 					await runAuthAttempt();
 				} finally {
 					router.replace("/");
