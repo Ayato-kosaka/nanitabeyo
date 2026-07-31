@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as SplashScreen from "expo-splash-screen";
 import { useAuth } from "@/contexts/AuthProvider";
-import { initRemoteConfig } from "@/lib/remoteConfig";
+import { getRemoteConfigSource, initRemoteConfig } from "@/lib/remoteConfig";
 import { Env } from "@/constants/Env";
 import { retry } from "@/lib/retry";
 import { AuthErrorFallback } from "@/components/AuthErrorFallback";
+import { useLogger } from "@/hooks/useLogger";
 
 /**
  * 🧯 アプリ起動時の Splash 画面を制御するコンポーネント。
@@ -18,14 +19,17 @@ import { AuthErrorFallback } from "@/components/AuthErrorFallback";
  */
 export const SplashHandler = ({ children }: { children: React.ReactNode }) => {
 	const { loading: isAuthLoading, user, authError, retryAuth, isRetryingAuth } = useAuth();
+	const { logFrontendEvent } = useLogger();
 
 	const [isRemoteConfigReady, setIsRemoteConfigReady] = useState(false);
 	const hasSplashBeenHiddenRef = useRef(false);
+	const hasLoggedRemoteConfigSourceRef = useRef(false);
 
 	/**
 	 * 🔧 Remote Config の初期化処理
 	 */
 	const initializeRemoteConfig = useCallback(async () => {
+		let initError: unknown;
 		try {
 			await retry(() => initRemoteConfig(), {
 				retries: 3,
@@ -41,13 +45,33 @@ export const SplashHandler = ({ children }: { children: React.ReactNode }) => {
 				},
 			});
 		} catch (err: any) {
+			initError = err;
 			if (Env.NODE_ENV === "development") {
 				console.error("[SplashHandler] RemoteConfig initialization failed:", err);
 			}
 		} finally {
+			// #1092 値の出所（default / network）を残す。既定値をアプリへ埋め込んだことで
+			// 「CDN へ到達できないまま古い既定値で動き続ける端末」が生まれうるため、
+			// その割合を後から BigQuery で追えるようにしておく。
+			//
+			// ⚠️ ログ送信は必ずここ（= ログ経路の外側）で行うこと。`lib/remoteConfig.ts` の中で
+			//    logFrontendEvent を呼ぶと、hooks/useLogger.ts が閾値判定で getRemoteConfig() を
+			//    読んでいるため相互再帰になる（#1079 の logQueue と同じ規律）。
+			if (!hasLoggedRemoteConfigSourceRef.current) {
+				hasLoggedRemoteConfigSourceRef.current = true;
+				logFrontendEvent({
+					event_name: "remote_config_resolved",
+					error_level: initError ? "warn" : "log",
+					payload: {
+						source: getRemoteConfigSource(),
+						// 取得に失敗した場合のみ、原因の手掛かりとしてメッセージだけ残す
+						error_message: initError instanceof Error ? initError.message : undefined,
+					},
+				});
+			}
 			setIsRemoteConfigReady(true);
 		}
-	}, []);
+	}, [logFrontendEvent]);
 
 	/**
 	 * 🎬 Splash 非表示ロジック
