@@ -19,6 +19,7 @@ import {
 	IdType,
 } from "@/stores/useDishMediaEntriesStore";
 import { shallow } from "zustand/shallow";
+import { toErrorLogMessage } from "@/lib/errorMessage";
 
 interface DishReviewsSectionProps {
 	id: string;
@@ -136,7 +137,7 @@ export function DishReviewsSection({ id, idType, paddingRight, carouselRef }: Di
 				event_name: "review_like_reaction_failed",
 				error_level: "log",
 				payload: {
-					error: error instanceof Error ? error.message : String(error),
+					error: toErrorLogMessage(error),
 					target_id: review.id,
 					action_type: "like",
 				},

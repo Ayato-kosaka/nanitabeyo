@@ -8,6 +8,7 @@ import { Linking, Platform } from "react-native";
 import type { BaseResponse } from "@shared/api/v1/res";
 import { useCdnCookieStore } from "@/stores/useCdnCookieStore";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import { toErrorLogMessage } from "@/lib/errorMessage";
 
 /**
  * #525 【設計】統一されたエラーオブジェクト型
@@ -193,7 +194,7 @@ export const useAPICall = () => {
 								error_level: "error",
 								payload: {
 									endpoint: endpointName,
-									error: error instanceof Error ? error.message : String(error),
+									error: toErrorLogMessage(error),
 								},
 							});
 							break;
@@ -230,7 +231,7 @@ export const useAPICall = () => {
 						endpoint: endpointName,
 						method,
 						status: 0,
-						error: networkError instanceof Error ? networkError.message : String(networkError),
+						error: toErrorLogMessage(networkError),
 						timedOut: didTimeout,
 					},
 				});

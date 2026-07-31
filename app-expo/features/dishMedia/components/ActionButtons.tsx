@@ -25,6 +25,7 @@ import { profileSavedPostsEntriesKey } from "@/features/profile/tabs/SavedPostsT
 import { useDishMediaActions } from "../hooks/useDishMediaActions";
 import { GestureDetector } from "react-native-gesture-handler";
 import type { GestureType } from "react-native-gesture-handler";
+import { toErrorLogMessage } from "@/lib/errorMessage";
 
 interface ActionButtonsProps {
 	id: string;
@@ -137,7 +138,7 @@ export function ActionButtons({ id, idType, onLayout, buttonsGesture }: ActionBu
 				event_name: "dish_like_reaction_failed",
 				error_level: "warn",
 				payload: {
-					error: error instanceof Error ? error.message : String(error),
+					error: toErrorLogMessage(error),
 					dishMediaId: dishMediaId,
 					previousLikeCount: likeCount,
 					newLikeCount: newLikeCount,
@@ -191,7 +192,7 @@ export function ActionButtons({ id, idType, onLayout, buttonsGesture }: ActionBu
 				event_name: "dish_save_reaction_failed",
 				error_level: "log",
 				payload: {
-					error: error instanceof Error ? error.message : String(error),
+					error: toErrorLogMessage(error),
 					target_id: dishMediaId,
 					action_type: "save",
 					willReact: willSave,

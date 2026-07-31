@@ -40,6 +40,7 @@ import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useHaptics } from "@/hooks/useHaptics";
 import { SkeletonShimmer } from "@/components/SkeletonShimmer";
 import { useImageLoadWithRetry } from "@/hooks/useImageLoadWithRetry";
+import { toErrorLogMessage } from "@/lib/errorMessage";
 
 /* -------------------------------------------------------------------------- */
 /*                                    型定義                                   */
@@ -175,7 +176,7 @@ export default function DishCategoryManualTextSupplyScreen() {
 			logFrontendEvent({
 				event_name: "dish_manual_text_supply_data_load_error",
 				error_level: "error",
-				payload: { error: err instanceof Error ? err.message : String(err) },
+				payload: { error: toErrorLogMessage(err) },
 			});
 		} finally {
 			setIsLoadingCandidates(false);
@@ -455,7 +456,7 @@ export default function DishCategoryManualTextSupplyScreen() {
 				error_level: "error",
 				payload: {
 					targetId: editingItem.item_qid,
-					error: err instanceof Error ? err.message : String(err),
+					error: toErrorLogMessage(err),
 				},
 			});
 		} finally {
