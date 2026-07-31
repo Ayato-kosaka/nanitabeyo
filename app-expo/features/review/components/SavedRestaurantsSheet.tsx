@@ -96,7 +96,9 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 		const sheetRef = useRef<TrueSheet>(null);
 		const carouselRef = useRef<ICarouselInstance | null>(null);
 		const isDraggingRef = useRef(false);
-		const draggingTimeoutRef = useRef<number | null>(null);
+		// #1092 PR3 `number` 決め打ちにしない。@types/node を app-expo の devDependency へ明示したことで
+		// setTimeout の戻り値型が環境によって number / NodeJS.Timeout のどちらにも解決しうるため
+		const draggingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 		// 親コンポーネントから present/dismiss を呼び出せるようにする
 		useImperativeHandle(ref, () => ({

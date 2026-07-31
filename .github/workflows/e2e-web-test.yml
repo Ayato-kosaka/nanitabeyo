@@ -80,6 +80,15 @@ jobs:
           pnpm --filter app-expo build:e2e-check-native
           pnpm --filter app-expo assert:no-e2e-hook
 
+      # #1092 PR3 アプリへ埋め込んだ Remote Config の既定値が、実際の config.json と乖離していないか。
+      # 既定値は「CDN へ到達できない端末が使う値」なので、乖離するとその端末だけ挙動が変わり、
+      # かつリポジトリ内からは検知できない（テストの期待値も実装と同じ手書き値の複製のため、
+      # 両方が同時に間違っていても緑になる）。実物と突き合わせられるのは CI だけなのでここで守る。
+      # 上の env:pull で app-expo/.env が出来ているため CDN の URL を組み立てられる。
+      # 環境変数が無い環境では skip して成功扱いになるが、skip したことは必ず出力される。
+      - name: 🔎 Assert Remote Config defaults are not drifted
+        run: pnpm --filter app-expo assert:remote-config-defaults
+
       # ubuntu-latest では WebKit(mobile-safari)も動作するため両方インストールする
       - name: 🎭 Install Playwright browsers
         run: pnpm --filter e2e-web exec playwright install --with-deps chromium webkit
