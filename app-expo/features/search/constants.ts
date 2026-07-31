@@ -1,6 +1,7 @@
 // Constants and option data for the search feature
 import i18n from "@/lib/i18n";
 import type { TutorialPageConst } from "./components/TutorialBottomSheet";
+import { REVIEW_HERO_IMAGE } from "@/features/review/heroLayout";
 
 export const timeSlots = [
 	{ id: "morning", label: "Search.timeSlots.morning", icon: "🌅", image: require("./assets/timeSlots/morning.webp") },
@@ -172,13 +173,17 @@ export const TUTORIAL_PAGES = [
 ] as const satisfies readonly TutorialPageConst[];
 
 // 先読みする画像の配列
+// #1087 【補足】この配列は 0×0 のオフスクリーンビューで描画されており、native(expo-image) では
+// 実際にはロード要求が出ていない（web の <img> は 0×0 でも取得するので web だけ効いている）。
+// レビュータブのヒーロー画像だけは表示サイズでの先読みを ReviewHeroPreload が別途行うため、
+// require() 先は heroLayout.ts に一本化してある（同じアセット＝同じキャッシュキーであることを担保する）
 export const PRELOAD_IMAGES = [
 	// 検索チュートリアル画像
 	...TUTORIAL_PAGES.map((page) => page.image),
 	// アプリアイコン画像
 	require("@/assets/images/icon.webp"),
 	// レビュー機能のヒーロー画像
-	require("@/features/review/assets/review-hero.webp"),
+	REVIEW_HERO_IMAGE,
 	// Apple アイコン画像
 	require("@/assets/images/logo_apple_icon.png"),
 	// Google アイコン画像

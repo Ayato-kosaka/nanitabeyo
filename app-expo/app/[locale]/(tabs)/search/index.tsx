@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, type LayoutChangeEvent } from "react-native";
 import {
 	MapPin,
 	Search,
@@ -44,13 +44,14 @@ import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import { useScreenTrace } from "@/hooks/useScreenTrace";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { DEFAULT_SEARCH_RADIUS } from "@/features/topics/constants";
 import { TutorialBottomSheet } from "@/features/search/components/TutorialBottomSheet";
 import { useSearchTutorial } from "@/features/search/hooks/useSearchTutorial";
 import { useAutoCurrentLocation } from "@/features/search/hooks/useAutoCurrentLocation";
 import { useRecentLocations } from "@/features/search/hooks/useRecentLocations";
 import { Image } from "expo-image";
+import { ReviewHeroPreload } from "@/features/review/components/ReviewHeroPreload";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { useIsFocused } from "@react-navigation/native";
 import { useContentWidth } from "@/hooks/useContentWidth";
@@ -119,6 +120,20 @@ export default function SearchScreen() {
 			NUM_COLUMNS,
 		[contentWidth],
 	);
+
+	// #1087 【設計】レビュータブのヒーロー画像を「レビュータブでの実表示サイズ」で先読みするために、
+	// このタブ画面のルートサイズと safe-area インセットを渡す。
+	// 検索タブとレビュータブは同じタブナビゲータの兄弟なので、ルート（SafeAreaView）の矩形は同一。
+	// レビュー側は SafeAreaView(edges=["top","bottom"]) なので、その padding も再現できるよう
+	// インセットをそのまま渡す（react-native-safe-area-context の SafeAreaView はビュー位置に関係なく
+	// provider のインセットを padding として入れる実装のため、値をそのまま使ってよい）。
+	const insets = useSafeAreaInsets();
+	const [rootLayout, setRootLayout] = useState<{ width: number; height: number } | null>(null);
+	const handleRootLayout = useCallback((event: LayoutChangeEvent) => {
+		const { width, height } = event.nativeEvent.layout;
+		// 同値の再セットで毎フレーム再描画しないようにする
+		setRootLayout((prev) => (prev && prev.width === width && prev.height === height ? prev : { width, height }));
+	}, []);
 
 	useEffect(() => {
 		// Screen view logging
@@ -422,7 +437,7 @@ export default function SearchScreen() {
 	};
 
 	return (
-		<SafeAreaView style={styles.container} edges={["top"]}>
+		<SafeAreaView style={styles.container} edges={["top"]} onLayout={handleRootLayout}>
 			{/* Header */}
 			<View style={styles.header}>
 				{/* #1031 【設計】Detox から表示確認できるよう testID を追加 */}
@@ -675,11 +690,29 @@ export default function SearchScreen() {
 			/>
 			{/* #642 【設計】オフスクリーンでチュートリアル画像を一度描画して decode */}
 			{/* #934 【修正】decode専用で内容を持たないため aria-hidden で支援技術から隠す(axe: image-alt 対策) */}
+			{/* #1087 【補足】このブロックは 0×0 のため native では decode どころかロード要求すら出ていない
+			    （expo-image(Android) は View が 0×0 だとリクエストを投げずに終わる）。
+			    ここを 1×1 以上にすると 8 枚すべてが**原寸**でデコード・常駐する（合計 44MiB 超、内訳は PR 本文）。
+			    白飛びが実際に起きているのはレビュータブのヒーロー画像だけなので、この候補では
+			    ここは main のまま触らず（web は 0×0 でも <img> が取得するので現状維持）、
+			    ヒーロー 1 枚だけを下の ReviewHeroPreload で表示サイズ先読みする */}
 			<View style={{ width: 0, height: 0, position: "absolute", overflow: "hidden" }} aria-hidden>
 				{PRELOAD_IMAGES.map((src, i) => (
 					<Image key={i} source={src} />
 				))}
 			</View>
+			{/* #1087 【設計】レビュータブのヒーロー画像だけ、実表示サイズの不可視ビューで先読みする。
+			    offsetTop に -insets.top を渡すのは、このビューの親（edges=["top"] の SafeAreaView）が
+			    上インセット分の padding を持つため。打ち消してレビュータブのルートと同じ絶対位置に揃える */}
+			{rootLayout && (
+				<ReviewHeroPreload
+					width={rootLayout.width}
+					height={rootLayout.height}
+					offsetTop={-insets.top}
+					insetTop={insets.top}
+					insetBottom={insets.bottom}
+				/>
+			)}
 		</SafeAreaView>
 	);
 }

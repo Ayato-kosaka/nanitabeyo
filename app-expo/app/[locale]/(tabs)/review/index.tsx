@@ -13,6 +13,10 @@ import i18n from "@/lib/i18n";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useLocale } from "@/hooks/useLocale";
+// #1087 【設計】ヒーローの表示ジオメトリ（画像・contentFit・flex 配分）は先読み側
+// (features/review/components/ReviewHeroPreload.tsx) と共有する。
+// 片方だけ変えると先読みと表示でデコード要求サイズがズレ、Android では先読みが無効化される
+import { REVIEW_HERO_IMAGE, REVIEW_HERO_CONTENT_FIT, REVIEW_HERO_FLEX } from "@/features/review/heroLayout";
 
 export default function ReviewScreen() {
 	// #1016 【設計】主要画面(ホームタブ)にFirebase Performance Monitoringの画面トレースを計装する。
@@ -87,11 +91,7 @@ export default function ReviewScreen() {
 			{/* ヒーローセクション */}
 			<View style={styles.heroSection}>
 				<View style={styles.heroImagePlaceholder}>
-					<Image
-						source={require("@/features/review/assets/review-hero.webp")}
-						style={styles.heroImage}
-						contentFit="contain"
-					/>
+					<Image source={REVIEW_HERO_IMAGE} style={styles.heroImage} contentFit={REVIEW_HERO_CONTENT_FIT} />
 				</View>
 			</View>
 
@@ -141,7 +141,8 @@ const styles = StyleSheet.create({
 		backgroundColor: "#fbeedd", // #644 【設計】淡い黄色背景
 	},
 	titleSection: {
-		flex: 1,
+		// #1087 flex 配分は先読み側と共有（heroLayout.ts）
+		flex: REVIEW_HERO_FLEX.title,
 		paddingHorizontal: 38,
 	},
 	title: {
@@ -154,7 +155,7 @@ const styles = StyleSheet.create({
 		marginBottom: 32,
 	},
 	heroSection: {
-		flex: 2,
+		flex: REVIEW_HERO_FLEX.hero,
 		justifyContent: "center",
 		alignItems: "center",
 	},
@@ -169,7 +170,7 @@ const styles = StyleSheet.create({
 		height: "100%",
 	},
 	ctaSection: {
-		flex: 1,
+		flex: REVIEW_HERO_FLEX.cta,
 		paddingHorizontal: 24,
 	},
 	actionButtonContainer: {
