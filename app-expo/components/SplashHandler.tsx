@@ -19,18 +19,17 @@ const MAX_SPLASH_HIDE_ATTEMPTS = 3;
 /**
  * 🧯 アプリ起動時の Splash 画面を制御するコンポーネント。
  *
- * - Remote Config の初期化を待つ（認証の確定は **待たない**。#1092 PR4b）
- * - 最初の描画が可能になった時点で Splash を非表示にし、アプリ本体を表示
- * - 初回起動ログやエラー情報も適切に記録する
+ * - **何も待たない**（フォント: PR1 / Remote Config: PR3 / 認証: PR4b で順に外した）
+ * - マウント直後に Splash を非表示にし、アプリ本体を表示する
+ * - Remote Config の初期化は背後で走らせ、値の出所だけログに残す
  *
- * @param children - アプリのメイン画面（準備完了後に表示される）
+ * @param children - アプリのメイン画面
  * @returns JSX構造
  */
 export const SplashHandler = ({ children }: { children: React.ReactNode }) => {
 	const { loading: isAuthLoading, user, authError, retryAuth, isRetryingAuth } = useAuth();
 	const { logFrontendEvent } = useLogger();
 
-	const [isRemoteConfigReady, setIsRemoteConfigReady] = useState(false);
 	const hasSplashBeenHiddenRef = useRef(false);
 	/**
 	 * 🔁 hideAsync() が失敗した回数。**再試行のトリガを兼ねる**ので ref ではなく state。
@@ -41,6 +40,9 @@ export const SplashHandler = ({ children }: { children: React.ReactNode }) => {
 
 	/**
 	 * 🔧 Remote Config の初期化処理
+	 *
+	 * #1092 PR3 【修正】この完了は **描画の条件ではなくなった**（下の `canRenderFirstFrame` を参照）。
+	 * ここは「背後で最新値を取りに行き、値の出所を 1 回だけログに残す」だけの処理になっている。
 	 */
 	const initializeRemoteConfig = useCallback(async () => {
 		let initError: unknown;
@@ -83,29 +85,8 @@ export const SplashHandler = ({ children }: { children: React.ReactNode }) => {
 					},
 				});
 			}
-			setIsRemoteConfigReady(true);
 		}
 	}, [logFrontendEvent]);
-
-	/**
-	 * 📌 アプリ本体（children）を描画してよいか。
-	 *
-	 * #1092 【修正】ここから `!isAuthLoading && !!user` を外した。
-	 * 匿名サインインは起動のたびにネットワーク往復を伴い、回線が細い端末では秒単位で待つ。
-	 * その間 `return null` していたため、**アプリは 1 ピクセルも描画されていなかった**
-	 * （web は薄グレーの空画面、native はスプラッシュのまま）。
-	 * 認証を必要とするのは API 呼び出しであって描画ではないので、UI は先に出す。
-	 *
-	 * ⚠️ この結果、children は `user === null` の状態でマウントされる。
-	 *    その前提に耐えられるようにする作業は PR4a で先に済ませてある
-	 *    （`useAPICall` の `code: "unauthenticated"`、`HealthCheckInitializer` /
-	 *     `useAutoCurrentLocation` の auth 解決後 1 回だけの再試行、`LoginbackModal` の null ガード）。
-	 *
-	 * ⚠️ `isRemoteConfigReady` はまだ残す（外すのは #1092 PR3 のスコープ）。
-	 *    Remote Config の初期化は失敗しても finally で必ず ready になるので、
-	 *    ここが永久に false のまま止まることはない。
-	 */
-	const isAppReady = isRemoteConfigReady;
 
 	/**
 	 * #1089 認証が確立できないまま確定した状態。children ではなくエラー UI を出す。
@@ -116,10 +97,23 @@ export const SplashHandler = ({ children }: { children: React.ReactNode }) => {
 	/**
 	 * 📌 「何かを描画できる状態」か。これが Splash を解除してよいタイミングと一致する。
 	 *
-	 * 下の描画分岐（エラー UI / children / null）と 1 対 1 で対応させること。
+	 * 下の描画分岐と 1 対 1 で対応させること。
 	 * ここが描画分岐より **緩い**と真っ白な画面が見え、**厳しい**と描画済みなのにスプラッシュが被る。
+	 *
+	 * #1092 PR3 【修正】最後まで残っていた `isRemoteConfigReady` を外し、**常に true** にした。
+	 * Remote Config は PR2 で既定値をアプリへ埋め込み、PR3 で前回値を AsyncStorage から復元するので、
+	 * `getRemoteConfig()` は CDN 取得の前から意味のある値を返す。つまり CDN の往復
+	 * （回線が細い端末では秒単位）を待つ理由はもう無い。描画分岐も `return null` を持たず、
+	 * エラー UI か children のどちらかを必ず返すので、対応関係は保たれている。
+	 *
+	 * ⚠️ 型注釈 `: boolean` は意図的。`true` リテラル型に推論させると、下の
+	 *    `if (!canRenderFirstFrame) return;` が到達不能扱いになり、
+	 *    再びゲートを足したくなったときに黙って壊れる形になる。
+	 *
+	 * ⚠️ 待機条件をここへ戻さないこと。戻すと #1092 が丸ごと退行する。
+	 *    描画を遅らせたい事情ができたら、SplashHandler ではなく個々の画面側で吸収すること。
 	 */
-	const canRenderFirstFrame = isAppReady || isAuthUnavailable;
+	const canRenderFirstFrame: boolean = true;
 
 	/**
 	 * 🎬 Splash 非表示ロジック
@@ -128,12 +122,13 @@ export const SplashHandler = ({ children }: { children: React.ReactNode }) => {
 	 * #1092 【修正】条件を「認証が確定したか」から「最初のフレームを描画できるか」へ変えた。
 	 * ゲートを外して UI を先に出すようにした以上、スプラッシュも同じ時点で解除しないと、
 	 * 描画できているのにスプラッシュに隠されたままになり、この PR の効果が丸ごと消える。
+	 * PR3 で待機対象が全て消えたので、実際にはマウント直後の 1 回で解除される。
 	 *
 	 * #1089 【非退行】どの経路でも必ず一度は hideAsync() が呼ばれること。
 	 * 以前は条件が `user` だけだったため、匿名サインインが失敗した端末では hideAsync() が
 	 * 永久に呼ばれず、native はスプラッシュが張り付いたままになっていた。
-	 * 今の条件は `isRemoteConfigReady`（initializeRemoteConfig の finally で必ず true になる）を
-	 * 含むので、認証がどうなろうと解除される。**認証の状態を必須条件に戻さないこと。**
+	 * 今は認証にも Remote Config にも依存しないので、どちらが失敗しようと解除される。
+	 * **認証や Remote Config の状態を必須条件に戻さないこと。**
 	 *
 	 * #1092 【非退行】hideAsync() が reject した場合も必ず呼び直されること。
 	 * 「呼んだ」フラグを戻すだけでは不十分で、**戻した後に誰かが呼び直す経路**が要る。
@@ -185,7 +180,13 @@ export const SplashHandler = ({ children }: { children: React.ReactNode }) => {
 		);
 	}
 
-	if (!isAppReady) return null;
-
+	// #1092 PR3 `return null` の経路はもう無い。ここに待機ゲートを足すと、上の
+	// `canRenderFirstFrame` との 1 対 1 対応が崩れて「解除済みのスプラッシュの下に空画面」になる。
+	//
+	// ⚠️ children は `user === null`（PR4b）かつ Remote Config が既定値／保存値（PR3）の状態で
+	//    マウントされる。その前提に耐えられるようにする作業は先行 PR で済ませてある:
+	//    - PR4a … `useAPICall` の `code: "unauthenticated"`、`HealthCheckInitializer` /
+	//             `useAutoCurrentLocation` の auth 解決後 1 回だけの再試行、`LoginbackModal` の null ガード
+	//    - PR2  … `getRemoteConfig()` が null を返さない（`parseInt(undefined) = NaN` を塞いだ）
 	return <>{children}</>;
 };

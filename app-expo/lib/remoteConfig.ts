@@ -1,3 +1,5 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 import { Env } from "../constants/Env";
 import type { RemoteConfigValues } from "@shared/remoteConfig/remoteConfig.schema";
 import { Database } from "@shared/supabase/database.types";
@@ -5,10 +7,14 @@ import { TableRow } from "@shared/utils/devDB.types";
 
 /**
  * #1092 Remote Config の値の出所。
- * - `default`: CDN からまだ取得できていない（未初期化 or 取得失敗）。`DEFAULT_REMOTE_CONFIG` で動いている
- * - `network`: CDN の config.json を取得済み
+ * - `default`: CDN からも端末の保存領域からも値を得ていない。`DEFAULT_REMOTE_CONFIG` で動いている
+ * - `cache`: 前回の起動で CDN から取得し AsyncStorage に保存しておいた値で動いている（stale）
+ * - `network`: この起動で CDN の config.json を取得済み（fresh）
+ *
+ * `SplashHandler` の `remote_config_resolved` ログでこの内訳を送っており、
+ * 「CDN へ到達できないまま古い値で動いている端末」の割合を後から BigQuery で追える。
  */
-export type RemoteConfigSource = "default" | "network";
+export type RemoteConfigSource = "default" | "cache" | "network";
 
 /**
  * #1092 アプリへ埋め込む Remote Config の既定値。
@@ -82,9 +88,125 @@ export const DEFAULT_REMOTE_CONFIG: RemoteConfigValues = Object.freeze({
 	v1_bulk_import_preflight_enabled: "true",
 });
 
+/**
+ * #1092 PR3 CDN から取得した値を端末へ残す AsyncStorage のキー。
+ *
+ * 保存フォーマットを変えるときは末尾の版番号を上げること。読めない形式は黙って捨てて
+ * 既定値へフォールバックする（`hydrateFromStorage`）ので、移行コードは要らない。
+ */
+export const REMOTE_CONFIG_STORAGE_KEY = "@nanitabeyo/remote_config/v1";
+
+/** 保存フォーマットの版。`REMOTE_CONFIG_STORAGE_KEY` の版番号と対で管理する */
+const PERSISTED_FORMAT_VERSION = 1;
+
+/**
+ * #1092 PR3 CDN の config.json 取得に掛ける上限時間(ms)。
+ *
+ * `retry()` は **reject でしか再試行しない**ので、settle しない fetch（プロキシや
+ * キャプティブポータルに吸われた接続など）が 1 本あると初期化がそこで永久に止まる。
+ * PR3 で描画はこれを待たなくなったため起動不能にはならないが、
+ * 「いつまでも network へ昇格しない端末」が生まれるので上限を置いて再試行へ回す。
+ */
+export const REMOTE_CONFIG_FETCH_TIMEOUT_MS = 8000;
+
+/** AsyncStorage へ保存する形。`values` は **CDN から実際に取得できたキーだけ** */
+type PersistedRemoteConfig = {
+	version: number;
+	values: Record<string, string>;
+};
+
 // キャッシュ用のローカル変数（#1092 初期値は null ではなく埋め込みの既定値）
 let cachedValues: RemoteConfigValues = DEFAULT_REMOTE_CONFIG;
 let currentSource: RemoteConfigSource = "default";
+/** AsyncStorage の読み出しを 1 プロセスに 1 回だけにする（`retry()` で再入するため） */
+let hasHydratedFromStorage = false;
+
+/**
+ * 未知の値から「文字列の値だけを持つ辞書」を取り出す。
+ *
+ * 保存領域の中身は前のアプリ版が書いたものかもしれず、壊れていることもある。
+ * 数値や null が紛れ込むと `parseInt` 経路が NaN になるので、ここで型を絞る。
+ *
+ * @param input - JSON.parse の結果など、素性の分からない値
+ * @returns 文字列の値だけを残した辞書（取り出せなければ空）
+ */
+const toStringRecord = (input: unknown): Record<string, string> => {
+	if (typeof input !== "object" || input === null || Array.isArray(input)) return {};
+	return Object.fromEntries(
+		Object.entries(input as Record<string, unknown>).filter(([, value]) => typeof value === "string"),
+	) as Record<string, string>;
+};
+
+/**
+ * #1092 PR3 stale-while-revalidate の "stale" 側。
+ * 前回の起動で保存しておいた CDN の値を読み、既定値へ重ねて即座に使えるようにする。
+ *
+ * 失敗（未保存 / 壊れた JSON / ストレージ障害）はすべて握り潰す。
+ * ここで throw すると CDN 取得まで巻き添えで落ちるし、既定値で動けるので実害が無い。
+ *
+ * ⚠️ ここでログを出さないこと（`DEFAULT_REMOTE_CONFIG` の注意書きを参照）。
+ */
+const hydrateFromStorage = async (): Promise<void> => {
+	if (hasHydratedFromStorage) return;
+	hasHydratedFromStorage = true;
+
+	try {
+		const raw = await AsyncStorage.getItem(REMOTE_CONFIG_STORAGE_KEY);
+		if (!raw) return;
+
+		const parsed = JSON.parse(raw) as Partial<PersistedRemoteConfig> | null;
+		if (!parsed || parsed.version !== PERSISTED_FORMAT_VERSION) return;
+
+		const values = toStringRecord(parsed.values);
+		if (Object.keys(values).length === 0) return;
+
+		// 🛑 読み出しを待っている間に CDN の取得が先に終わっていたら、新しい値を古い値で潰さない
+		if (currentSource === "network") return;
+
+		cachedValues = { ...DEFAULT_REMOTE_CONFIG, ...(values as Partial<RemoteConfigValues>) };
+		currentSource = "cache";
+	} catch {
+		// 保存領域が読めなくても既定値で動ける。ここで落ちる理由は無い
+	}
+};
+
+/**
+ * #1092 PR3 次回起動のために CDN の値を端末へ残す。
+ *
+ * 既定値とマージした後の値ではなく **CDN から取得できたキーだけ**を保存する。
+ * こうしておくと、アプリを更新して `DEFAULT_REMOTE_CONFIG` が新しくなったときに、
+ * CDN が返していないキーは新しい既定値の方が使われる（古い既定値が保存領域に居座らない）。
+ *
+ * @param values - CDN の config.json から得たキーと値
+ */
+const persistToStorage = async (values: Record<string, string>): Promise<void> => {
+	try {
+		const payload: PersistedRemoteConfig = { version: PERSISTED_FORMAT_VERSION, values };
+		await AsyncStorage.setItem(REMOTE_CONFIG_STORAGE_KEY, JSON.stringify(payload));
+	} catch {
+		// 保存できなくても今回の起動には影響しない（次回また CDN から取り直すだけ）
+	}
+};
+
+/**
+ * タイムアウト付きの fetch。
+ *
+ * `AbortSignal.timeout()` は Hermes を含む一部の実行環境に無いので、AbortController を自前で回す。
+ * 中断されると fetch は reject するため、呼び出し側の `retry()` がそのまま再試行に乗る。
+ *
+ * @param url - 取得先 URL
+ * @param timeoutMs - 上限時間(ms)
+ * @returns レスポンス
+ */
+const fetchWithTimeout = async (url: string, timeoutMs: number): Promise<Response> => {
+	const controller = new AbortController();
+	const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+	try {
+		return await fetch(url, { signal: controller.signal });
+	} finally {
+		clearTimeout(timeoutId);
+	}
+};
 
 /**
  * CDN から静的マスタを取得
@@ -98,7 +220,7 @@ const fetchStaticMasterFromCDN = async <T extends keyof Database["dev"]["Tables"
 	// CDN の URL を組み立て
 	const cdnUrl = `https://${Env.CDN_PUBLIC_HOST}/${Env.GCS_STATIC_MASTER_DIR_PATH}${tableName}.json`;
 
-	const res = await fetch(cdnUrl);
+	const res = await fetchWithTimeout(cdnUrl, REMOTE_CONFIG_FETCH_TIMEOUT_MS);
 	if (!res.ok) {
 		throw new Error(`Failed to load static master from CDN. ${tableName}.json is not found.`);
 	}
@@ -117,9 +239,13 @@ const fetchStaticMasterFromCDN = async <T extends keyof Database["dev"]["Tables"
 };
 
 /**
- * 静的マスタから設定データを取得
+ * 静的マスタから設定データを取得（#1092 PR3 stale-while-revalidate）
  *
- * 取得に成功するまでは既定値のままなので、失敗しても呼び出し側は値を読める（例外は throw する）。
+ * 1. まず AsyncStorage に保存された前回の CDN 値を既定値へ重ねて **即座に使えるようにする**（stale）
+ * 2. 続いて CDN を取りに行き、取れたら上書きして保存する（revalidate）
+ *
+ * 描画はこの完了を待たない（`components/SplashHandler.tsx`）。取得に成功するまでは
+ * 保存値 or 既定値のままなので、失敗しても呼び出し側は値を読める（例外は throw する）。
  *
  * @returns 設定データ
  */
@@ -127,6 +253,11 @@ export const initRemoteConfig = async (): Promise<RemoteConfigValues> => {
 	// #1092 既定値は常に truthy なので、`cachedValues` の有無ではなく
 	// 「CDN から取得済みか」でキャッシュ判定する（従来どおりプロセス内で 1 回だけ取得する）
 	if (currentSource === "network") return cachedValues;
+
+	// 💾 保存済みの値を先に反映する。CDN より桁違いに速いので、これで「起動直後は既定値、
+	//    数秒後に本番値」ではなく「起動直後から前回の本番値」になる。
+	//    ⚠️ 呼び出し側は `retry()` でここへ再入するが、読み出しは 1 回だけ（hasHydratedFromStorage）
+	await hydrateFromStorage();
 
 	// 🔄 静的マスタから設定データを取得
 	const configJson = await fetchStaticMasterFromCDN("config");
@@ -139,28 +270,32 @@ export const initRemoteConfig = async (): Promise<RemoteConfigValues> => {
 	);
 
 	// #1092 CDN 側にキーが欠けていても undefined を配らない（従来は undefined → parseInt で NaN）。
-	// 取得できたキーは常に CDN の値が既定値を上書きする
+	// 取得できたキーは常に CDN の値が既定値・保存値を上書きする
 	cachedValues = { ...DEFAULT_REMOTE_CONFIG, ...(config as Partial<RemoteConfigValues>) };
 	currentSource = "network";
+
+	// 次回起動でこの値を即座に使えるようにする。保存に失敗しても握り潰す（今回の起動には影響しない）
+	await persistToStorage(config);
+
 	return cachedValues;
 };
 
 /**
  * キャッシュされた Remote Config の値を取得する。
  *
- * #1092 初期化前・初期化失敗時は `DEFAULT_REMOTE_CONFIG` を返す（null は返さない）。
+ * #1092 初期化前・初期化失敗時は保存値、それも無ければ `DEFAULT_REMOTE_CONFIG` を返す（null は返さない）。
  * 最新値が要るなら起動時に `initRemoteConfig` を呼び出すこと。
  *
- * @returns Remote Config 値（未取得なら埋め込みの既定値）
+ * @returns Remote Config 値（未取得なら保存値 or 埋め込みの既定値）
  */
 export const getRemoteConfig = (): RemoteConfigValues => cachedValues;
 
 /**
  * #1092 いま返している値の出所。
- * 「既定値のまま動いている端末がどれだけ在るか」を観測するために公開している。
+ * 「既定値／古い保存値のまま動いている端末がどれだけ在るか」を観測するために公開している。
  *
  * ⚠️ ここでログを出さないこと（上の `DEFAULT_REMOTE_CONFIG` の注意書きを参照）。
  *
- * @returns `default` or `network`
+ * @returns `default` / `cache` / `network`
  */
 export const getRemoteConfigSource = (): RemoteConfigSource => currentSource;

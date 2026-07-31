@@ -72,7 +72,9 @@ export function DishCategoryAutocomplete({
 	// LocationAutocompleteと同型のバグ(デバウンス中に「結果なし」文言が一瞬フラッシュする)を防ぐ
 	const [isDebouncing, setIsDebouncing] = useState(false);
 	const inputRef = useRef<TextInput>(null);
-	const debounceRef = useRef<number | null>(null);
+	// #1092 PR3 `number` 決め打ちにしない。@types/node を app-expo の devDependency へ明示したことで
+	// setTimeout の戻り値型が環境によって number / NodeJS.Timeout のどちらにも解決しうるため
+	const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	const { suggestions, isSearching, searchDishCategories } = useDishCategorySearch();
 	const { lightImpact } = useHaptics();

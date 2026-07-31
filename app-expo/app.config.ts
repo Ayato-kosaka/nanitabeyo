@@ -1,4 +1,3 @@
-import * as dotenv from "dotenv";
 import { ExpoConfig, ConfigContext } from "@expo/config";
 import { version } from "./package.json";
 
