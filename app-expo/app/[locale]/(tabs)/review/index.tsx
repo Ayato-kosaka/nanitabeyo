@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from "react-native";
 import { Image } from "expo-image";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { useAuth } from "@/contexts/AuthProvider";
+import { isGuestUser } from "@/lib/authGuest";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { LoginbackModal } from "@/features/profile/components/LoginbackModal";
 import { useHaptics } from "@/hooks/useHaptics";
@@ -97,7 +98,10 @@ export default function ReviewScreen() {
 			{/* CTA セクション */}
 			<View style={styles.ctaSection}>
 				<View style={styles.actionButtonContainer}>
-					{user?.is_anonymous !== false ? (
+					{/* #1092 PR4b 【修正】`user?.is_anonymous !== false` から共通判定（lib/authGuest.ts）へ寄せた。
+					    旧式は is_anonymous が undefined のときもゲストへ倒れるため、通知タブ・レビュータブは
+					    見えるのに、この画面だけログイン導線が出る、という食い違いになっていた */}
+					{isGuestUser(user) ? (
 						// #644 【設計】ゲスト状態：ログイン導線を表示
 						<>
 							{/* #1031 【設計】Detox から表示確認できるよう testID を追加 */}

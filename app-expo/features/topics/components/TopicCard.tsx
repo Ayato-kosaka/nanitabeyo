@@ -11,6 +11,7 @@ import { toggleReaction } from "@/lib/reactions";
 import { TopicsStore, selectIsTopicSaved, useTopicsStore } from "@/stores/useTopicsStore";
 import { profileSavedTopicsEntriesKey } from "@/features/profile/tabs/SavedTopicsTab";
 import i18n from "@/lib/i18n";
+import { toErrorLogMessage } from "@/lib/errorMessage";
 import { type TopicImageResourceState } from "@/features/topics/hooks/useTopicImageResources";
 import type { TopicsTutorialTargetRefs } from "@/features/topics/types/tutorial";
 import { TopicVisualCard } from "./TopicVisualCard";
@@ -130,7 +131,10 @@ export const TopicCard = ({
 				event_name: "topic_save_reaction_failed",
 				error_level: "error",
 				payload: {
-					error: error instanceof Error ? error.message : String(error),
+					// #1092 PR4b 保存 API は認証必須。認証未確定のまま押されると PR4a の
+					// ApiError(plain object) が来て "[object Object]" になるため共通関数へ寄せる。
+					// 置換前は (B) `instanceof Error ? message : String()` なので message 側
+					error: toErrorLogMessage(error),
 					target_id: item.categoryId,
 					action_type: "save",
 					willReact: willSave,

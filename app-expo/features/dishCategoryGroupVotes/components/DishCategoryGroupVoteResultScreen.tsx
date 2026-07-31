@@ -42,6 +42,7 @@ import { DishCategoryGroupVoteComments } from "./DishCategoryGroupVoteComments";
 import { DishCategoryGroupVoteCandidateDetailModal } from "./DishCategoryGroupVoteCandidateDetailModal";
 import { DishCategoryGroupVoteResultHeader } from "./DishCategoryGroupVoteResultHeader";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
+import { toErrorLogMessage } from "@/lib/errorMessage";
 
 type Props = {
 	shareToken: string;
@@ -140,7 +141,7 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 			logFrontendEvent({
 				event_name: "dish_category_group_vote_share_link_copy_failed",
 				error_level: "error",
-				payload: { shareToken, error: error instanceof Error ? error.message : String(error) },
+				payload: { shareToken, error: toErrorLogMessage(error) },
 			});
 			showSnackbar(i18n.t("Common.shareFailed"));
 		}
@@ -185,7 +186,7 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 				payload: {
 					shareToken,
 					candidateId: candidate.id,
-					error: error instanceof Error ? error.message : String(error),
+					error: toErrorLogMessage(error),
 				},
 			});
 			showSnackbar(i18n.t("Common.error"));
@@ -208,7 +209,7 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 				payload: {
 					shareToken,
 					candidateId: candidate.id,
-					error: error instanceof Error ? error.message : String(error),
+					error: toErrorLogMessage(error),
 				},
 			});
 			showSnackbar(i18n.t("Common.error"));

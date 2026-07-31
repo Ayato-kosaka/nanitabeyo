@@ -12,6 +12,7 @@ import type { CreateDishCategoryGroupVoteResponse } from "@shared/api/v1/res";
 import type { SearchParams, Topic } from "@/types/search";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useLogger } from "@/hooks/useLogger";
+import { toErrorLogMessage } from "@/lib/errorMessage";
 
 type CreateGroupVoteInput = {
 	searchParams: SearchParams;
@@ -80,7 +81,7 @@ export function useCreateDishCategoryGroupVote() {
 					error_level: "log",
 					payload: {
 						candidateCount: visibleTopics.length,
-						error: error instanceof Error ? error.message : String(error),
+						error: toErrorLogMessage(error),
 					},
 				});
 				throw error;

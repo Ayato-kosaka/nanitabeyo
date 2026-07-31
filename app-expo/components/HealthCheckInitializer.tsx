@@ -1,6 +1,7 @@
 import { useAPICall } from "@/hooks/useAPICall";
 import { useAuth } from "@/contexts/AuthProvider";
 import { useLogger } from "@/hooks/useLogger";
+import { toErrorLogMessage } from "@/lib/errorMessage";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 interface HealthCheckState {
@@ -71,7 +72,7 @@ export const HealthCheckInitializer: React.FC<{ children: React.ReactNode }> = (
 				event_name: "health_check_error",
 				error_level: "error",
 				payload: {
-					error: error?.message ? String(error.message) : String(error),
+					error: toErrorLogMessage(error),
 					code: error?.code,
 					status: error?.status,
 					requestId: error?.requestId,

@@ -3,6 +3,7 @@ import * as Linking from "expo-linking";
 import { useDialog } from "@/contexts/DialogProvider";
 import { useLogger } from "@/hooks/useLogger";
 import i18n from "@/lib/i18n";
+import { toErrorLogMessage } from "@/lib/errorMessage";
 import { buildGoogleMapsSearchUrl } from "@/lib/googleMaps";
 
 type GoogleMapsFallbackArgs = {
@@ -71,7 +72,8 @@ export function useGoogleMapsFallback({ source }: UseGoogleMapsFallbackParams) {
 							payload: {
 								entriesKey,
 								category,
-								error_message: error instanceof Error ? error.message : String(error),
+								// #1092 PR4b 置換前は (B) なので message 側へ寄せる（Error は message のみで非回帰）
+								error_message: toErrorLogMessage(error),
 								source,
 							},
 						});

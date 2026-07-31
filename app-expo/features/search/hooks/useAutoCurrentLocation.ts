@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthProvider";
 import { useLogger } from "@/hooks/useLogger";
+import { toErrorLogMessage } from "@/lib/errorMessage";
 import { LocationPermissionError } from "@/hooks/locationPermissionError";
 import type { LocationDetailsResponse } from "@shared/api/v1/res";
 
@@ -70,7 +71,7 @@ export const useAutoCurrentLocation = ({ getCurrentLocation, onResolved }: Param
 				event_name: "current_location_auto_fetch_failed",
 				error_level: "warn",
 				payload: {
-					error: error?.message ? String(error.message) : String(error),
+					error: toErrorLogMessage(error),
 					kind: error instanceof LocationPermissionError ? error.kind : "unavailable",
 					willRetryAfterAuth: needsAuthRetryRef.current && !hasRetriedAfterAuthRef.current,
 				},

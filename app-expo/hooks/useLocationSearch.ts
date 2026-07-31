@@ -2,6 +2,7 @@ import { useState, useCallback, useRef } from "react";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
+import { toErrorLogString } from "@/lib/errorMessage";
 import * as Location from "expo-location";
 // #932 【設計】現在地の緯度経度取得だけは native(expo-location) と web(navigator.geolocation) で
 // 実装を分ける必要があるため、この1関数だけを .ts / .web.ts に分離して import する
@@ -144,7 +145,7 @@ export const useLocationSearch = () => {
 				logFrontendEvent({
 					event_name: "location_search_failed",
 					error_level: "error",
-					payload: { query, error: String(error) },
+					payload: { query, error: toErrorLogString(error) },
 				});
 			}
 		},
@@ -189,7 +190,7 @@ export const useLocationSearch = () => {
 					error_level: "error",
 					payload: {
 						placeId: prediction.place_id,
-						error: String(error),
+						error: toErrorLogString(error),
 					},
 				});
 
@@ -268,7 +269,10 @@ export const useLocationSearch = () => {
 						payload: {
 							latitude,
 							longitude,
-							error: String(apiError),
+							// #1092 PR4b callBackend の失敗がそのまま来る。PR4a 以降ここには
+							// Error ではない ApiError(plain object) も流れるため String() だと "[object Object]" になる。
+							// (A) 素の String() だった箇所なので、Error の "Name: message" は保つ側へ寄せる
+							error: toErrorLogString(apiError),
 						},
 					});
 
@@ -306,7 +310,7 @@ export const useLocationSearch = () => {
 					event_name: "current_location_fetch_failed",
 					error_level: "error",
 					payload: {
-						error: String(error),
+						error: toErrorLogString(error),
 						kind: error instanceof LocationPermissionError ? error.kind : "unavailable",
 					},
 				});

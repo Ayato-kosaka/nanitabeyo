@@ -11,6 +11,7 @@ import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
 import { useLogger } from "@/hooks/useLogger";
 import { useAuth } from "@/contexts/AuthProvider";
+import { isGuestUser } from "@/lib/authGuest";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { OtpModal } from "./OtpModal";
 import { LegalDocument } from "@/features/settings/components/LegalDocument";
@@ -106,7 +107,10 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 
 			setIsLoading(true);
 			try {
-				const isAnonymous = user.is_anonymous;
+				// #1092 PR4b `user.is_anonymous` の直読みから共通判定（lib/authGuest.ts）へ寄せた。
+				// user === null は上でガード済みなので、ここでの意味は「匿名セッションか」で変わらない。
+				// is_anonymous が欠落している場合にログイン済み扱いになる（＝ linkIdentity しない）のも同じ
+				const isAnonymous = isGuestUser(user);
 
 				if (isAnonymous && !hasExistingAccount) {
 					// 未チェック（昇格狙い）: 匿名セッションのまま OAuth を追加(linkIdentity)を試みる。
@@ -193,7 +197,12 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 					</View> */}
 
 			{/* Existing Account Checkbox - Show only for anonymous users */}
-			{user?.is_anonymous && (
+			{/* #1092 PR4b ここは `isGuestUser(user)` へ丸ごと寄せない。isGuestUser は user === null（認証未確定）を
+			    ゲストへ倒すため、そのまま置くと未確定の一瞬だけチェックボックスが出て消える。
+			    このチェックボックスは上の handleOAuthSignIn の分岐用で、未確定の間はその分岐自体が
+			    「何もしない」に倒れている（＝出しても押す意味がない）。
+			    そのため null の扱いだけ従来どおり `user &&` で落とし、is_anonymous の解釈だけ共通判定へ揃える。 */}
+			{user && isGuestUser(user) && (
 				<TouchableOpacity
 					style={styles.checkboxContainer}
 					onPress={() => setHasExistingAccount(!hasExistingAccount)}

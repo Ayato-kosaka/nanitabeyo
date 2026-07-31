@@ -24,6 +24,7 @@ import { ProfileEditForm } from "../components/ProfileEditForm";
 import type { TabBarProps } from "react-native-collapsible-tab-view";
 import type { GroupName, RouteName } from "../components/ProfileTabsBar";
 import { useAuth } from "@/contexts/AuthProvider";
+import { isGuestUser } from "@/lib/authGuest";
 import { useProfileStore } from "../stores/useProfileStore";
 import { useEnsureOwnProfileLoaded } from "../hooks/useEnsureOwnProfileLoaded";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
@@ -44,7 +45,10 @@ export function ProfileTabsLayout() {
 	const [isFollowing, setIsFollowing] = useState(false);
 
 	const isOwnProfile = useMemo(() => true, []);
-	const isGuest = useMemo(() => user?.is_anonymous !== false, [user?.is_anonymous]);
+	// #1092 PR4b `user?.is_anonymous !== false` から共通判定へ寄せた。
+	// 旧式は is_anonymous が undefined のときもゲストへ倒れ、ログイン済みユーザーの
+	// レビュータブが消える。理由は lib/authGuest.ts を参照（通知タブ・設定と同じ式）
+	const isGuest = useMemo(() => isGuestUser(user), [user]);
 
 	const availableTabs: GroupName[] = useMemo(() => {
 		const tabs: GroupName[] = [];
@@ -212,7 +216,7 @@ export function ProfileTabsLayout() {
 	);
 
 	// #1092 【設計】auth 未確定(user === null)の間はタブ構成を確定させない。
-	// isGuest は `user?.is_anonymous !== false` なので未確定はゲスト扱いになり、
+	// isGuest は user === null をゲスト扱いにする（lib/authGuest.ts）ので、未確定のままだと
 	// ログイン済みのリピーターでは「reviews タブ無しで描画 → 後からタブが増える」というちらつきになる。
 	// タブ本数が変わると Tabs.Container 全体が作り直されるため、確定するまで描画を保留する。
 	// ⚠️ この return はフックを全て呼び終えた後に置くこと（フックの呼び出し順を変えないため）。

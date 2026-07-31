@@ -5,6 +5,7 @@ import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import { useAPICall } from "../hooks/useAPICall";
 import { useAuth } from "@/contexts/AuthProvider";
+import { isGuestUser } from "@/lib/authGuest";
 import { useLogger } from "../hooks/useLogger";
 import type { CreateDeviceTokenResponse } from "@shared/api/v1/res";
 import { Env } from "@/constants/Env";
@@ -35,7 +36,10 @@ export function PushTokenRegistration() {
 
 	useEffect(() => {
 		// #通知機能 【設計】匿名ユーザーは Push Token を登録しない
-		if (!user || user.is_anonymous) return;
+		// #1092 PR4b 判定は共通化（lib/authGuest.ts）。通知タブの表示可否と同じ式にしておく。
+		// `!user` を残しているのは判定のためではなく、この後の user.id 参照を TS に絞り込ませるため
+		// （isGuestUser は boolean を返すだけなので null を除いてくれない）
+		if (!user || isGuestUser(user)) return;
 
 		const registerPushToken = async () => {
 			try {
