@@ -159,6 +159,46 @@ describe("AuthProvider の 429 クールダウン（#1097）", () => {
 		expect(authValue.authError).toBeNull();
 	});
 
+	/**
+	 * #1092 `isAuthResolved` は「認証が決着したか（成功・失敗を問わず）」。
+	 *
+	 * 多くの画面が `user?.is_anonymous !== false` でゲスト判定をしており、これは
+	 * 「まだ決まっていない(user === null)」と「ゲストで確定した」を同じ扱いにする。
+	 * ログイン済みのリピーターには「一瞬ゲスト UI → 本来の UI」というちらつきになるため、
+	 * 未確定を区別できる値をコンテキストが配っていること自体を固定する。
+	 */
+	it("isAuthResolved は認証が決着するまで false、決着したら（失敗でも）true になる", async () => {
+		// 匿名サインインの完了を任意のタイミングまで遅らせ、「未確定」の瞬間を観測する
+		let completeSignIn!: (result: unknown) => void;
+		auth.signInAnonymously.mockReturnValue(
+			new Promise((resolve) => {
+				completeSignIn = resolve;
+			}),
+		);
+
+		await mountProvider();
+
+		expect(authValue.isAuthResolved).toBe(false);
+		expect(authValue.user).toBeNull();
+
+		await act(async () => {
+			completeSignIn({ data: { session: fakeSession("anon-1") }, error: null });
+		});
+
+		expect(authValue.isAuthResolved).toBe(true);
+		expect(authValue.isAuthResolved).toBe(!authValue.loading);
+	});
+
+	it("認証が失敗して確定したときも isAuthResolved は true（未確定と失敗確定を混同しない）", async () => {
+		auth.signInAnonymously.mockResolvedValue({ data: { session: null }, error: authApiError(429) });
+
+		await mountProvider();
+
+		expect(authValue.isAuthResolved).toBe(true);
+		expect(authValue.user).toBeNull();
+		expect(authValue.authError).not.toBeNull();
+	});
+
 	it("クールダウンが無いとき（通常のログアウト）の SIGNED_OUT は、これまでどおり即座に匿名サインインする", async () => {
 		// 起動時はセッション復元に成功 → クールダウンは置かれない
 		auth.getSession.mockResolvedValueOnce({ data: { session: fakeSession("user-1") }, error: null });
