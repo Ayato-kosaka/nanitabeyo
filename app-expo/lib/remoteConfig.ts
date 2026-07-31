@@ -189,20 +189,32 @@ const persistToStorage = async (values: Record<string, string>): Promise<void> =
 };
 
 /**
- * タイムアウト付きの fetch。
+ * タイムアウト付きで JSON を取得する。
  *
  * `AbortSignal.timeout()` は Hermes を含む一部の実行環境に無いので、AbortController を自前で回す。
  * 中断されると fetch は reject するため、呼び出し側の `retry()` がそのまま再試行に乗る。
  *
+ * ⚠️ **ボディの読み取り（`res.json()`）までを上限の内側に入れること。**
+ *    fetch の解決はヘッダ受信時点なので、そこで `clearTimeout` してしまうと
+ *    「ヘッダだけ返してボディで止まるサーバ / プロキシ」に当たったときに
+ *    この Promise が永遠に settle せず、`retry()` にも乗らない。
+ *    そうなるとその端末は二度と `network` へ昇格できない（保存値か既定値のまま固定される）。
+ *    描画自体は #1092 PR3 でブロックされなくなったが、無期限に待つ理由は無い。
+ *
  * @param url - 取得先 URL
- * @param timeoutMs - 上限時間(ms)
- * @returns レスポンス
+ * @param timeoutMs - ヘッダ受信からボディ読み取り完了までの上限時間(ms)
+ * @returns HTTP ステータスが ok なら解析済み JSON、そうでなければ `ok: false`
  */
-const fetchWithTimeout = async (url: string, timeoutMs: number): Promise<Response> => {
+const fetchJsonWithTimeout = async (
+	url: string,
+	timeoutMs: number,
+): Promise<{ ok: true; json: unknown } | { ok: false; json?: undefined }> => {
 	const controller = new AbortController();
 	const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 	try {
-		return await fetch(url, { signal: controller.signal });
+		const res = await fetch(url, { signal: controller.signal });
+		if (!res.ok) return { ok: false };
+		return { ok: true, json: await res.json() };
 	} finally {
 		clearTimeout(timeoutId);
 	}
@@ -220,12 +232,12 @@ const fetchStaticMasterFromCDN = async <T extends keyof Database["dev"]["Tables"
 	// CDN の URL を組み立て
 	const cdnUrl = `https://${Env.CDN_PUBLIC_HOST}/${Env.GCS_STATIC_MASTER_DIR_PATH}${tableName}.json`;
 
-	const res = await fetchWithTimeout(cdnUrl, REMOTE_CONFIG_FETCH_TIMEOUT_MS);
+	const res = await fetchJsonWithTimeout(cdnUrl, REMOTE_CONFIG_FETCH_TIMEOUT_MS);
 	if (!res.ok) {
 		throw new Error(`Failed to load static master from CDN. ${tableName}.json is not found.`);
 	}
 
-	const jsonData = await res.json();
+	const jsonData = res.json as { data?: unknown } | null;
 
 	if (!jsonData) {
 		throw new Error(`Failed to load static master from CDN. ${tableName}.json is empty.`);
