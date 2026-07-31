@@ -2,7 +2,7 @@ import { useState, useCallback, useRef } from "react";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
-import { toErrorLogMessage } from "@/lib/errorMessage";
+import { toErrorLogString } from "@/lib/errorMessage";
 import type { QueryDishCategoryVariantsDto, CreateDishCategoryVariantDto } from "@shared/api/v1/dto";
 import type { QueryDishCategoryVariantsResponse, CreateDishCategoryVariantResponse } from "@shared/api/v1/res";
 
@@ -78,7 +78,7 @@ export const useDishCategorySearch = () => {
 				logFrontendEvent({
 					event_name: "dish_category_search_failed",
 					error_level: "error",
-					payload: { query, error: toErrorLogMessage(error) },
+					payload: { query, error: toErrorLogString(error) },
 				});
 			} finally {
 				if (!controller.signal.aborted) {
@@ -127,7 +127,7 @@ export const useDishCategorySearch = () => {
 				logFrontendEvent({
 					event_name: "dish_category_variant_create_failed",
 					error_level: "error",
-					payload: { name, error: toErrorLogMessage(error) },
+					payload: { name, error: toErrorLogString(error) },
 				});
 
 				throw error;

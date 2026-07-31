@@ -17,6 +17,7 @@ import { useSafeAreaFrame } from "react-native-safe-area-context";
 import { Image } from "expo-image";
 import { getCacheKeyForImage } from "@/lib/image";
 import { useAuth } from "@/contexts/AuthProvider";
+import { isGuestUser } from "@/lib/authGuest";
 import { LoginbackModal } from "@/features/profile/components/LoginbackModal";
 import { RestaurantEntry } from "../stores/useRestaurantStore";
 import { useLocale } from "@/hooks/useLocale";
@@ -76,7 +77,10 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 		});
 
 		// #477【設計】匿名ユーザーの場合は LoginbackModal を表示、非匿名ユーザーの場合は ReviewForm を表示
-		if (user?.is_anonymous !== false) {
+		// #1092 PR4b 【修正】`user?.is_anonymous !== false` から共通判定（lib/authGuest.ts）へ寄せた。
+		// 旧式は is_anonymous が undefined のときもゲストへ倒れ、レビュータブの CTA は投稿導線なのに
+		// ここではログイン導線が出る、という画面間の食い違いになる
+		if (isGuestUser(user)) {
 			openLoginModal();
 		} else {
 			// ReviewForm に遷移すると同時にメディア選択が行われる
@@ -85,7 +89,7 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 				params: { locale, restaurantId: restaurantEntry.restaurant.id },
 			});
 		}
-	}, [lightImpact, openLoginModal, router, locale, restaurantEntry, user?.is_anonymous]);
+	}, [lightImpact, openLoginModal, router, locale, restaurantEntry, user]);
 
 	// #644 【設計】「みんなの投稿」のレビューアイテム押下時の処理
 	const onPressPostReview = useCallback(

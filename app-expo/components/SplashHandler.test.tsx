@@ -9,11 +9,14 @@ import { SplashHandler } from "./SplashHandler";
  * 匿名サインインは起動のたびにネットワーク往復を伴うため、回線が細い端末では
  * 「アプリが 1 ピクセルも描画されない」時間がそのまま初回起動の体感速度になっていた。
  *
- * ここで固定するのは 3 つ。どれも「ゲートを戻すと赤くなる」形にしてある:
+ * ここで固定するのは 4 つ。どれも「ゲートを戻すと赤くなる」形にしてある:
  * 1. `user === null`（認証未確定）でも children がマウントされる
  * 2. 認証が未確定のままでもスプラッシュが解除される
  * 3. 匿名サインインが失敗しても必ずスプラッシュが解除される（#1089 の非退行。
  *    hideAsync() が呼ばれないと native はスプラッシュが張り付いたまま操作不能になる）
+ * 4. hideAsync() 自体が失敗しても再試行される（同じくスプラッシュ張り付きの防止）。
+ *    ゲートを外して effect の依存から auth が消えた結果、「失敗したらフラグを戻す」だけでは
+ *    誰も呼び直さなくなったため、再試行の経路そのものをテストで固定する
  */
 
 const mockHideAsync = jest.fn(async () => true);
@@ -97,6 +100,11 @@ describe("#1092 SplashHandler は認証の完了を待たずに描画する", ()
 		});
 	};
 
+	/** 保留中の Promise（hideAsync の失敗 → 再試行）を消化するためだけの空 act */
+	const flushPendingWork = async () => {
+		await act(async () => {});
+	};
+
 	const isChildrenMounted = () => renderer.root.findAllByType(AppChildren).length > 0;
 	const isAuthErrorFallbackShown = () =>
 		renderer.root.findAll((node) => String(node.type) === "AuthErrorFallback").length > 0;
@@ -148,6 +156,71 @@ describe("#1092 SplashHandler は認証の完了を待たずに描画する", ()
 
 		expect(mockHideAsync).toHaveBeenCalledTimes(1);
 		expect(isChildrenMounted()).toBe(true);
+	});
+
+	it("hideAsync が失敗したら呼び直す（フラグを戻すだけで終わらせない）", async () => {
+		// 1 回目だけ失敗させる。フラグを戻すコードはあっても「戻した後に呼び直す者」が居ないと、
+		// canRenderFirstFrame は一度 true になったら変わらないので二度と再試行されず、
+		// native はスプラッシュが張り付いたまま操作不能になる（#1089 と同種の事故）
+		mockHideAsync.mockRejectedValueOnce(new Error("Splash screen is not registered"));
+
+		await mount();
+		await finishRemoteConfig();
+		await flushPendingWork();
+
+		expect(mockHideAsync).toHaveBeenCalledTimes(2);
+	});
+
+	it("再試行が成功したらそれ以上は呼ばない", async () => {
+		mockHideAsync.mockRejectedValueOnce(new Error("Splash screen is not registered"));
+
+		await mount();
+		await finishRemoteConfig();
+		await flushPendingWork();
+		expect(mockHideAsync).toHaveBeenCalledTimes(2);
+
+		// 認証の解決など、その後の再レンダリングで 3 回目が走らないこと
+		await updateAuth({ ...AUTH_PENDING, loading: false, user: { id: "anon-1" } });
+		await flushPendingWork();
+
+		expect(mockHideAsync).toHaveBeenCalledTimes(2);
+	});
+
+	it("失敗し続けても有限回で打ち切る（レンダリングループにしない）", async () => {
+		mockHideAsync.mockRejectedValue(new Error("Splash screen is not registered"));
+
+		await mount();
+		await finishRemoteConfig();
+		await flushPendingWork();
+		await flushPendingWork();
+
+		// MAX_SPLASH_HIDE_ATTEMPTS と一致させること。ここが青天井だと
+		// 「失敗 → setState → 再レンダリング → 失敗」で CPU を焼き続ける
+		expect(mockHideAsync).toHaveBeenCalledTimes(3);
+	});
+
+	it("hideAsync の解決を待っている間に再レンダリングされても二重に呼ばない", async () => {
+		// フラグを await の前に立てているか（立てる位置を戻すと 2 回呼ばれて赤くなる）
+		let finishHide: () => void = () => {};
+		mockHideAsync.mockImplementationOnce(
+			() =>
+				new Promise<boolean>((resolve) => {
+					finishHide = () => resolve(true);
+				}),
+		);
+
+		await mount();
+		await finishRemoteConfig();
+		expect(mockHideAsync).toHaveBeenCalledTimes(1);
+
+		// hideAsync が未解決のまま認証が進む
+		await updateAuth({ ...AUTH_PENDING, loading: false, user: { id: "anon-1" } });
+		expect(mockHideAsync).toHaveBeenCalledTimes(1);
+
+		await act(async () => {
+			finishHide();
+		});
+		expect(mockHideAsync).toHaveBeenCalledTimes(1);
 	});
 
 	it("認証が失敗している間は children ではなくエラー UI を出す", async () => {

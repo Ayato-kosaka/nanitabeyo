@@ -20,7 +20,7 @@ import type { AutocompleteLocation, LocationDetailsResponse } from "@shared/api/
 import { useLocationSearch } from "@/hooks/useLocationSearch";
 import { LocationPermissionError, type LocationPermissionErrorKind } from "@/hooks/locationPermissionError";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
-import { toErrorLogMessage } from "@/lib/errorMessage";
+import { toErrorLogString } from "@/lib/errorMessage";
 import {
 	LocationAutocomplete,
 	type LocationAutocompleteHandle,
@@ -170,7 +170,7 @@ export default function SearchScreen() {
 			logFrontendEvent({
 				event_name: "location_selection_failed",
 				error_level: "error",
-				payload: { placeId: prediction.place_id, error: toErrorLogMessage(error) },
+				payload: { placeId: prediction.place_id, error: toErrorLogString(error) },
 			});
 			showSnackbar(i18n.t("Search.errors.fetchLocation"));
 		}
@@ -227,7 +227,7 @@ export default function SearchScreen() {
 			logFrontendEvent({
 				event_name: "current_location_failed",
 				error_level: "error",
-				payload: { error: toErrorLogMessage(error), kind },
+				payload: { error: toErrorLogString(error), kind },
 			});
 			showSnackbar(getCurrentLocationErrorMessage(kind));
 
