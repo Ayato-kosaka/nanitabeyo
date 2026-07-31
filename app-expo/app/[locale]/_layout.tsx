@@ -61,7 +61,20 @@ export default function RootLayout() {
 	const rootNavigationState = useRootNavigationState();
 	const isNavigationReady = rootNavigationState?.key != null;
 
-	const fontsLoaded = useLocaleFonts(locale);
+	// #1092 【設計】フォントの読み込みで最初の描画をブロックしない（以前はこの下に
+	// `if (!fontsLoaded) return null;` があり、UI が 1 つも描画されないまま待っていた）。
+	// app-expo 配下（node_modules 除く）で `fontFamily` を宣言しているのは `constants/MD3Fonts/` の
+	// 6 ファイルだけで、その値は `constants/PaperTheme.ts` 経由で react-native-paper の MD3 テーマの
+	// `fonts` にしか渡らない。そのテーマで実際にテキストを描画するのは
+	// `contexts/DialogProvider.tsx` と `contexts/SnackbarProvider.tsx` の 2 つだけである
+	// （他の react-native-paper 利用箇所は Portal / Portal.Host とテーマ定義そのもので、テキストを持たない）。
+	// つまり検索画面もタブバーもプロフィールも元から OS 既定フォントで描画されており、
+	// ja で 5.5MB の NotoSansJP-Regular.ttf がブロックしていた相手は
+	// 「起動直後には出ないダイアログとスナックバー」だった。よって早期 return を外しても
+	// 起動直後の見た目は変わらず、フォント差し替えが起こりうるのは Dialog/Snackbar のテキストだけ。
+	// 読み込み自体は継続させたいので呼び出しは残す（揃った時点で Paper のテーマに反映される）。
+	// この不変条件は `__tests__/localeLayoutFontGate.test.ts` で固定している。
+	useLocaleFonts(locale);
 
 	// #717 【設計】locale に応じた SEO defaults を生成
 	const seoDefaults: SeoData = useMemo(() => DEFAULT_SEO_BY_PUBLIC_LOCALE[resolvePublicLocale(locale)], [locale]);
@@ -103,8 +116,6 @@ export default function RootLayout() {
 		// #717 【設計】i18n の locale を必ず同期
 		i18n.locale = getResolvedLocale(locale);
 	}, [locale, router, logFrontendEvent, scheme, isNavigationReady]);
-
-	if (!fontsLoaded) return null;
 
 	return (
 		<>
