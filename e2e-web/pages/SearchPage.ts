@@ -136,6 +136,11 @@ export class SearchPage {
 		return this.page.getByTestId(`search-scene-${id}`);
 	}
 
+	/** 食べたい系統チップの Locator を返す（id は tasteOptions / coreIngredientOptions 定義の値） */
+	foodStyle(featureType: "taste" | "core_ingredient", id: string): Locator {
+		return this.page.getByTestId(`search-food-style-${featureType}-${id}`);
+	}
+
 	/** 交通手段ごとの所要時間チップを返す */
 	distanceEstimate(mode: "walk" | "bike" | "car" | "train"): Locator {
 		return this.page.getByTestId(`search-distance-estimate-${mode}`);
