@@ -46,7 +46,7 @@ export const moodOptions = [
 
 export const tasteOptions = [
 	{ id: "sweet", label: "Search.tasteOptions.sweet", icon: "🍰" },
-	// { id: "spicy", label: "Search.tasteOptions.spicy", icon: "🌶️" },
+	{ id: "spicy", label: "Search.tasteOptions.spicy", icon: "🌶️" },
 	{ id: "healthy", label: "Search.tasteOptions.healthy", icon: "🥬" },
 	{ id: "junk", label: "Search.tasteOptions.junk", icon: "🍔" },
 ] as const;
