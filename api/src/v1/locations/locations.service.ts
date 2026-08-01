@@ -569,16 +569,25 @@ export class LocationsService {
    * #1123 【設計】「同名なら同一の駅」とみなしてよい鉄道系 type の集合。
    *
    * 含めた理由:
-   * - train_station / subway_station / transit_station:
+   * - train_station / subway_station:
    *   Issue #1123 の渋谷駅重複が該当。Google は同じ駅を「駅施設」と「出入口/番地相当」の
    *   別 place_id で返すことがあり、どちらも establishment を持つため #952 のルールでは
    *   畳めない。鉄道駅は同一エリア内に同名の別駅が存在しないため、同名なら同一駅と
    *   みなして安全に畳める。
-   * - light_rail_station:
-   *   新交通システム/路面電車の駅も鉄道駅と同じ命名慣習(同名の別駅が存在しない)で、
-   *   transit_station との併記による同種の重複が発生するため含める。
    *
-   * 含めなかった理由(安全側に倒す):
+   * 含めなかった理由(安全側 = 同名の別地点を消さない側に倒す):
+   * - transit_station:
+   *   PR #1149 レビュー指摘。これは鉄道駅に固有の type ではなく交通施設全般に付く
+   *   汎用 type で、実データではバス停も
+   *   ["bus_station", "transit_station", "point_of_interest", "establishment"]
+   *   のように併せ持つ。含めると同名の別バス停(進行方向・のりば違い)が畳まれてしまい、
+   *   下記「bus_station を含めない」という保護が実質無効になる。
+   *   #1123 の渋谷駅 2 候補はどちらも train_station / subway_station を持つため、
+   *   transit_station を外しても Issue は解決する。
+   * - light_rail_station:
+   *   PR #1149 レビュー指摘。#1123 に実例が無く、路面電車の停留場は運用上バス停に近い
+   *   命名(上り/下りが同名で道路を挟んだ別地点)になる地域があるため、実例が出るまでは
+   *   畳まない側に倒す。
    * - bus_station / bus_stop / transit_depot:
    *   「渋谷駅前」のように、同名でも進行方向・のりば・事業者ごとに別地点として
    *   存在するのが正常。畳むとユーザーが選びたいのりばを選べなくなる。
@@ -590,9 +599,19 @@ export class LocationsService {
   private static readonly RAIL_STATION_TYPES: ReadonlySet<string> = new Set([
     'train_station',
     'subway_station',
-    'transit_station',
-    'light_rail_station',
   ]);
+
+  /**
+   * #1123 【設計】同名でも別地点として正当に併存する交通施設の type 集合。
+   *
+   * PR #1149 レビュー指摘を受けた多重防御。RAIL_STATION_TYPES から汎用の
+   * transit_station を外しただけでは、将来 type を追加した際に再び同じ穴が開く。
+   * これらの type を1つでも持つ候補は、たとえ鉄道駅 type を併せ持っていても
+   * (例: 駅前ロータリーのバスターミナルが train_station を併記するケース)
+   * 同名畳み込みの対象外とし、常に残す。
+   */
+  private static readonly NEVER_COLLAPSE_TRANSIT_TYPES: ReadonlySet<string> =
+    new Set(['bus_station', 'bus_stop', 'transit_depot']);
 
   /**
    * #952 【設計】Autocomplete 候補の「同一地点の粒度違い重複」を除去する。
@@ -607,8 +626,9 @@ export class LocationsService {
    *    異なる別の実在地点)は全て残す。表示名だけで別地点を消してはならない。
    * 3-b. #1123 例外: 同名かつ鉄道駅 type(RAIL_STATION_TYPES)を持つ候補は、
    *    establishment 同士であっても同一駅の重複表示とみなし、Google の関連度順で
-   *    先頭の1件だけを残す。バス停など「同名の別地点」が正当に存在する交通施設を
-   *    RAIL_STATION_TYPES に含めないことで、この例外の適用範囲を鉄道駅に限定する。
+   *    先頭の1件だけを残す。適用範囲を鉄道駅に限定するため、(i) 交通施設全般に付く
+   *    汎用 type(transit_station)を RAIL_STATION_TYPES に含めず、(ii) バス停など
+   *    NEVER_COLLAPSE_TRANSIT_TYPES を持つ候補は明示的に除外する(PR #1149 指摘)。
    * 4. 完全重複(mainText と secondaryText の両方が一致)だけは同名同士でも1件に畳む。
    * 5. 返却順は Google の関連度順(元の配列順)を維持する。並び替えは行わない。
    */
@@ -621,9 +641,16 @@ export class LocationsService {
     const isEstablishment = (place: { types: string[] }): boolean =>
       place.types.includes('establishment');
 
-    // #1123 鉄道駅・軌道系の交通施設候補かどうか(判定 type は RAIL_STATION_TYPES 参照)
+    // #1123 鉄道駅候補かどうか(判定 type は RAIL_STATION_TYPES 参照)。
+    // PR #1149: 同名でも別地点が正当に併存するバス停系 type を持つ候補は、
+    // 鉄道駅 type を併せ持っていても畳み込み対象にしない(安全側に倒す)。
     const isRailStation = (place: { types: string[] }): boolean =>
-      place.types.some((type) => LocationsService.RAIL_STATION_TYPES.has(type));
+      place.types.some((type) =>
+        LocationsService.RAIL_STATION_TYPES.has(type),
+      ) &&
+      !place.types.some((type) =>
+        LocationsService.NEVER_COLLAPSE_TRANSIT_TYPES.has(type),
+      );
 
     // 同名の establishment が1件でも存在する mainText キーの集合
     const establishmentNameKeys = new Set(

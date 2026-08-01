@@ -693,19 +693,29 @@ describe('LocationsService', () => {
       ]);
     });
 
-    it('should keep same-name bus stops that are not rail stations', async () => {
-      // #1123 【テスト】bus_station / bus_stop は同名でものりば違いの別地点が正当に
-      // 存在するため RAIL_STATION_TYPES に含めていない。畳まれないことを守る。
+    it('should keep same-name bus stops that also carry the generic transit_station type', async () => {
+      // #1123 【受入条件4】【テスト】PR #1149 レビュー指摘: Google Places の実データでは
+      // バス停・バスターミナルは汎用の transit_station を併せ持つのが通例
+      // (例: ["bus_station", "transit_station", "point_of_interest", "establishment"])。
+      // 同名でも進行方向・のりば違いで別地点として正当に併存するため、
+      // 両方が残らなければならない。
       mockExternalApiService.callPlacesAutocomplete.mockResolvedValue({
         suggestions: [
           buildSuggestion(
             'place-bus-1',
             '渋谷駅前',
             '日本、東京都渋谷区道玄坂',
-            ['bus_station', 'establishment'],
+            [
+              'bus_station',
+              'transit_station',
+              'point_of_interest',
+              'establishment',
+            ],
           ),
           buildSuggestion('place-bus-2', '渋谷駅前', '日本、東京都渋谷区渋谷', [
             'bus_stop',
+            'transit_station',
+            'point_of_interest',
             'establishment',
           ]),
         ],
@@ -716,6 +726,40 @@ describe('LocationsService', () => {
       expect(result.map((place) => place.place_id)).toEqual([
         'place-bus-1',
         'place-bus-2',
+      ]);
+    });
+
+    it('should keep same-name tram stops on opposite sides of the street', async () => {
+      // #1123 【テスト】PR #1149 レビュー指摘(Minor): 路面電車の停留場は運用上バス停に
+      // 近く、上り/下りが同名で道路を挟んだ別地点として登録される地域がある。
+      // light_rail_station も畳み対象にしないことを守る。
+      mockExternalApiService.callPlacesAutocomplete.mockResolvedValue({
+        suggestions: [
+          buildSuggestion('place-tram-1', '広電西広島', '日本、広島県広島市', [
+            'light_rail_station',
+            'transit_station',
+            'point_of_interest',
+            'establishment',
+          ]),
+          buildSuggestion(
+            'place-tram-2',
+            '広電西広島',
+            '日本、広島県広島市西区己斐本町',
+            [
+              'light_rail_station',
+              'transit_station',
+              'point_of_interest',
+              'establishment',
+            ],
+          ),
+        ],
+      } as never);
+
+      const result = await service.autocompleteLocations(mockQuery);
+
+      expect(result.map((place) => place.place_id)).toEqual([
+        'place-tram-1',
+        'place-tram-2',
       ]);
     });
 
