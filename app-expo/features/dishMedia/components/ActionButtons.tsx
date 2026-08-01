@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useEffect } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, LayoutChangeEvent } from "react-native";
 import { Image } from "expo-image";
 import { Heart, Bookmark, Share, MapPinned, User, Calendar } from "lucide-react-native";
@@ -14,6 +14,7 @@ import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { getCacheKeyForImage } from "@/lib/image";
 import {
 	DishMediaEntriesStore,
+	NormalizedDishMediaEntry,
 	selectEntryByMediaId,
 	selectEntryByReviewId,
 	useDishMediaEntriesStore,
@@ -35,49 +36,46 @@ interface ActionButtonsProps {
 }
 
 export function ActionButtons({ id, idType, onLayout, buttonsGesture }: ActionButtonsProps) {
+	const { logFrontendEvent } = useLogger();
+
+	// ログアウト時は AuthProvider がストアを消去してから旧画面の unmount が完了するまで、
+	// FlatList のセルが一度だけ再描画される。欠損を例外にするとログアウトそのものが ErrorBoundary
+	// に捕捉されるため、その過渡状態ではアクションを描画しない。
+	const selector = useCallback(
+		(state: DishMediaEntriesStore) =>
+			idType === "dish_media" ? selectEntryByMediaId(id)(state) : selectEntryByReviewId(id)(state),
+		[id, idType],
+	);
+	const entry = useDishMediaEntriesStore(selector, shallow);
+
+	useEffect(() => {
+		if (!entry) {
+			logFrontendEvent({
+				event_name: "action_buttons_entry_missing",
+				error_level: "debug",
+				payload: { id, idType, context: "logout_or_unmount" },
+			});
+		}
+	}, [entry, id, idType, logFrontendEvent]);
+
+	if (!entry) return null;
+
+	return <ActionButtonsContent entry={entry} onLayout={onLayout} buttonsGesture={buttonsGesture} />;
+}
+
+function ActionButtonsContent({
+	entry,
+	onLayout,
+	buttonsGesture,
+}: Pick<ActionButtonsProps, "onLayout" | "buttonsGesture"> & { entry: NormalizedDishMediaEntry }) {
 	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
 	const { lightImpact } = useHaptics();
 	const router = useRouter();
 	const { locale } = useLocale();
-
-	// #940 【修正】entry 未取得時に throw する前に理由を記録する。throw 自体は残す
-	// (このコンポーネントは entry の存在を前提に構築されており、無ければ描画できないため)。
-	// ErrorBoundary(親の DishMediaMap.renderCarouselItem に設置済み)がこの throw を捕捉する
-	const selector = useCallback(
-		(state: DishMediaEntriesStore) => {
-			const entry = idType === "dish_media" ? selectEntryByMediaId(id)(state) : selectEntryByReviewId(id)(state);
-			if (!entry) {
-				logFrontendEvent({
-					event_name: "action_buttons_entry_missing",
-					error_level: "error",
-					payload: { id, idType, context: "selector" },
-				});
-				throw new Error("ActionButtons: entry is undefined");
-			}
-			return {
-				isSaved: entry.dish_media.isSaved,
-				isLiked: entry.dish_media.isLiked,
-				likeCount: entry.dish_media.likeCount,
-			};
-		},
-		[id, idType, logFrontendEvent],
-	);
-	const { isSaved, isLiked, likeCount } = useDishMediaEntriesStore(selector, shallow);
-
-	const { dishMediaId, restaurant } = useMemo(() => {
-		const state = useDishMediaEntriesStore.getState(); // ← subscribe しない snapshot 読み
-		const entry = idType === "dish_media" ? selectEntryByMediaId(id)(state) : selectEntryByReviewId(id)(state);
-		if (!entry) {
-			logFrontendEvent({
-				event_name: "action_buttons_entry_missing",
-				error_level: "error",
-				payload: { id, idType, context: "memo" },
-			});
-			throw new Error("ActionButtons: entry is undefined");
-		}
-		return { dishMediaId: entry.dish_media.id, restaurant: entry.restaurant };
-	}, [id, idType, logFrontendEvent]);
+	const { isSaved, isLiked, likeCount } = entry.dish_media;
+	const dishMediaId = entry.dish_media.id;
+	const { restaurant } = entry;
 
 	// #613 【設計】ActionButtons の押下処理を hooks で共通化
 	const { openInGoogleMaps, shareRestaurant } = useDishMediaActions({
