@@ -84,8 +84,12 @@ jobs:
       # 既定値は「CDN へ到達できない端末が使う値」なので、乖離するとその端末だけ挙動が変わり、
       # かつリポジトリ内からは検知できない（テストの期待値も実装と同じ手書き値の複製のため、
       # 両方が同時に間違っていても緑になる）。実物と突き合わせられるのは CI だけなのでここで守る。
-      # 上の env:pull で app-expo/.env が出来ているため CDN の URL を組み立てられる。
-      # 環境変数が無い環境では skip して成功扱いになるが、skip したことは必ず出力される。
+      # このゲートは 2 段構え（#1116）。
+      #   4-1: remoteConfigSchema のキー集合 ≡ DEFAULT_REMOTE_CONFIG のキー集合。
+      #        env にも CDN の到達性にも依存しないため、どの環境でも必ず実行される。
+      #   4-2: schema 既知キーの値を実際の config.json と突き合わせる。EAS の env と CDN 到達性が要る。
+      #        この job では上の env:pull で app-expo/.env が出来ているので 4-2 も実行される。
+      # env が無い環境（ローカル等）で skip されるのは 4-2 だけであり、skip した旨は必ず出力される。
       - name: 🔎 Assert Remote Config defaults are not drifted
         run: pnpm --filter app-expo assert:remote-config-defaults
 
