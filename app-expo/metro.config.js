@@ -39,6 +39,24 @@ if ((E2E_AUTH_HOOK_ENABLED || E2E_MEDIA_HOOK_ENABLED || E2E_TUTORIAL_HOOK_ENABLE
 			"環境変数の設定を確認してください（#1027 / #1030 / #1031）。",
 	);
 }
+
+// #1127 【診断】E2E フックが有効なビルドは、認証・メディア選択・チュートリアルの挙動が
+// 通常ビルドと変わる（例: メディア選択はフォトピッカーを開かず固定画像を返す）。
+// これが黙って差し替わっていると「実機で動かない」の切り分けに時間が溶けるため、
+// どのフックが有効なのかを名前付きで必ず目立たせる。
+const ENABLED_E2E_HOOKS = [
+	E2E_AUTH_HOOK_ENABLED && "EXPO_PUBLIC_E2E_AUTH_HOOK（セッション注入 / #1030）",
+	E2E_MEDIA_HOOK_ENABLED && "EXPO_PUBLIC_E2E_MEDIA_HOOK（メディア選択を固定画像へ差し替え / #1031 B6）",
+	E2E_TUTORIAL_HOOK_ENABLED && "EXPO_PUBLIC_E2E_TUTORIAL_HOOK（チュートリアル視聴済みフラグの固定 / #1027）",
+].filter(Boolean);
+if (ENABLED_E2E_HOOKS.length > 0) {
+	console.warn(
+		"\n⚠️⚠️⚠️  E2E フックが有効な状態でバンドルしています（通常ビルドとは挙動が異なります）  ⚠️⚠️⚠️\n" +
+			ENABLED_E2E_HOOKS.map((hook) => `  - ${hook}`).join("\n") +
+			"\n  通常の開発・動作確認では、これらの環境変数を外して Metro を起動し直してください。\n",
+	);
+}
+
 const E2E_INJECT_SESSION_IMPL = path.resolve(projectRoot, "lib/e2e/injectTestSession.ts");
 const E2E_INJECT_SESSION_NOOP = path.resolve(projectRoot, "lib/e2e/injectTestSession.noop.ts");
 const E2E_SELECT_MEDIA_IMPL = path.resolve(projectRoot, "lib/e2e/selectMediaStub.ts");

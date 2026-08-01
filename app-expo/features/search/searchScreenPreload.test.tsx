@@ -53,6 +53,11 @@ jest.mock("@/hooks/useHaptics", () => ({ useHaptics: () => ({ lightImpact: jest.
 jest.mock("@/hooks/useLogger", () => ({ useLogger: () => ({ logFrontendEvent: jest.fn() }) }));
 jest.mock("@/hooks/useScreenTrace", () => ({ useScreenTrace: jest.fn() }));
 jest.mock("@/hooks/useContentWidth", () => ({ useContentWidth: () => 390 }));
+// #1127 検索画面は useAutoCurrentLocation(#1092 PR4b で追加) 経由で AuthProvider → lib/supabase →
+// constants/Env を読み込む。jest では app.config.ts(動的 config)が評価されず
+// `Constants.expoConfig.extra` が undefined になるため、Env.ts:16 の `extra.eas.projectId` で
+// suite ごと落ちていた。useAutoCurrentLocation.test.tsx と同じく AuthProvider をスタブ化して断ち切る。
+jest.mock("@/contexts/AuthProvider", () => ({ useAuth: () => ({ user: null }) }));
 jest.mock("@/hooks/useLocationSearch", () => ({
 	useLocationSearch: () => ({
 		getCurrentLocation: () => Promise.resolve(null),
