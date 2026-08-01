@@ -11,19 +11,7 @@ import { SkeletonShimmer } from "@/components/SkeletonShimmer";
 import { InteractionManager } from "react-native";
 import { ScrollView } from "react-native";
 import { useContentWidth } from "@/hooks/useContentWidth";
-
-const CARD_HEIGHT = 100;
-
-// カード 1 枚 + タイトル + ちょい余白分をスクリーン比から計算する
-const CARD_AREA_HEIGHT = CARD_HEIGHT + 24; // カード + margin ちょい
-const TITLE_AREA_HEIGHT = 40;
-const TOP_PADDING = 12;
-const BOTTOM_PADDING = 0;
-
-// 使いたい見た目の高さ = 上マージン + タイトル + カード + 下マージン
-const smallDetentHeight = TOP_PADDING + TITLE_AREA_HEIGHT + CARD_AREA_HEIGHT + BOTTOM_PADDING;
-
-const LARGE_DETENT = 0.7;
+import { CARD_HEIGHT, LARGE_DETENT, computeSmallDetent } from "./savedRestaurantsSheetDetents";
 
 type SavedRestaurant = QueryMeSavedRestaurantsResponse["data"][number];
 
@@ -79,10 +67,7 @@ function useWidthMetrics() {
 function useSheetDetents() {
 	const { height: windowHeight } = useWindowDimensions();
 	return useMemo(() => {
-		// windowHeight が 0 や非有限値になる瞬間があり得るので、その場合は clamp 上限をそのまま使う
-		const smallDetent =
-			Number.isFinite(windowHeight) && windowHeight > 0 ? Math.min(smallDetentHeight / windowHeight, 0.5) : 0.5;
-		return [smallDetent, LARGE_DETENT];
+		return [computeSmallDetent(windowHeight), LARGE_DETENT];
 	}, [windowHeight]);
 }
 
