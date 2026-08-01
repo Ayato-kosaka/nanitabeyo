@@ -107,6 +107,17 @@ CI の並列度は `playwright.config.ts` が `CI=true` のとき workers=2 に�
 
 未設定の場合、`tests/authenticated/` 配下は自動的にスキップされる。
 
+### ⚠️ ログアウトを実行するテストは共有 storageState を使わない
+
+アプリの `handleLogout` は `logout({ scope: "local" })` を呼ぶが、これは localStorage を消すだけでなく
+`POST /auth/v1/logout?scope=local` で **そのセッションをサーバ側でも失効させる**。共有 storageState
+(`.auth/user.json`) のセッションでログアウトすると、並列実行中/後続の authenticated テストが
+「ログイン済みのはずなのに 403 でゲスト扱い」になって軒並み落ちる(実測済み)。
+
+そのため `tests/authenticated/logout.spec.ts` は共有 storageState を捨て、
+`utils/testUserSession.ts` の `signInTestUser()` で **そのテスト専用のセッション** を発行して注入している。
+ログアウト(あるいはセッションを失効させる操作)を伴うテストを追加する場合は必ずこの方式に従うこと。
+
 ## 匿名セッションの共有(レート制限対策)
 
 Supabase の匿名サインインは **30 回/時/IP** のレート制限があり、しかも dev/prod で同一 Supabase プロジェクト(`dish-scroll-prod`)を共有している。アプリは `AuthProvider` が起動時にセッションが無ければ自動で匿名サインインするため、テストごとに新規ブラウザコンテキストで起動する = テストごとに新規匿名ユーザーを作成する実装のままだと、E2E スイートを 1 回フルで回すだけで上限に達してしまう(429 でテストが不安定になる)。
@@ -117,7 +128,11 @@ Supabase の匿名サインインは **30 回/時/IP** のレート制限があ�
 2. `desktop-chrome` / `mobile-chrome` / `mobile-safari` の各プロジェクトがこの storageState を共有・再利用(`dependencies: ["anon-setup"]`)
 3. 匿名サインインの自動確立**そのもの**を検証する `tests/smoke/boot.spec.ts` だけは、ファイル冒頭で `test.use({ storageState: { cookies: [], origins: [] } })` して意図的にフレッシュな状態に戻している
 
-この結果、E2E スイート全体(3 デバイスプロジェクト分)を通しても匿名サインインの消費は実質 1 回(+ boot.spec.ts のフレッシュ分)まで削減される。**新しいテストファイルを追加する際も、匿名ユーザーで十分な内容であれば `appPage` フィクスチャをそのまま使えばよい**(共有 storageState は自動的に効く)。匿名サインイン自体の挙動を検証したい場合のみ、boot.spec.ts のように明示的に `storageState` を上書きすること。
+この結果、E2E スイート全体(3 デバイスプロジェクト分)を通しても匿名サインインの消費は実質 1 回(+ boot.spec.ts のフレッシュ分 + logout.spec.ts の再確立分)まで削減される。**新しいテストファイルを追加する際も、匿名ユーザーで十分な内容であれば `appPage` フィクスチャをそのまま使えばよい**(共有 storageState は自動的に効く)。匿名サインイン自体の挙動を検証したい場合のみ、boot.spec.ts のように明示的に `storageState` を上書きすること。
+
+なお `tests/authenticated/logout.spec.ts` は「ログアウト後に匿名セッションが再確立されること」自体が検証対象のため、
+共有セッションでは代替できず **実際に 1 回消費する**。だからこそ 3 つの観点(ホームへ戻る / 固まらない / API が成功する)を
+1 テストにまとめてあり、ここをテスト分割すると消費が人数分増える点に注意すること。
 
 ## CORS 運用手順
 
@@ -177,5 +192,7 @@ e2e-web/
 
 ## 補足
 
+- 認証フローの「どこが自動テストで守られていて、どこが守られていないか」の一覧は
+  [`docs/auth-e2e-coverage.md`](../docs/auth-e2e-coverage.md) にまとめてある。認証まわりのテストを増減させたら合わせて更新すること
 - `turbo run test` を使う場合は `--filter=!e2e-web` で除外すること(E2E は実ブラウザ + 共有 dev 環境依存でキャッシュに不適なため、turbo タスクには組み込んでいない)
 - `pnpm typecheck`(ルート)で e2e-web の型チェックも turbo 経由で実行される
