@@ -1,0 +1,132 @@
+name: App Expo Check
+
+# 🧪 app-expo の静的検査とネイティブビルド検証を、EAS を使わずに無料の GitHub Actions 上で行う。
+#
+# 目的:
+# - EAS Build は 1 ビルドごとに課金が発生する。EAS へ投げる前に落ちる原因をここで潰す。
+# - `expo prebuild` + `./gradlew :app:assembleDebug` は EAS Build の Android 側とほぼ同じ処理を通るため、
+#   config plugin の適用失敗・autolinking の破綻・compileSdk/targetSdk とサードパーティの衝突を
+#   EAS を消費せずに検出できる。
+# - iOS のネイティブビルドはこのワークフローの対象外（macOS ランナーが必要なため）。EAS で確認する。
+
+on:
+  pull_request:
+    paths:
+      - "app-expo/**"
+      - "shared/**"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".github/workflows/app-expo-check.yml"
+  workflow_dispatch:
+
+# 同じ PR で連続 push されたら古い方は不要
+concurrency:
+  group: app-expo-check-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  static-check:
+    name: typecheck・テスト
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: リポジトリを取得
+        uses: actions/checkout@v4
+
+      - name: PNPMをセットアップ
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10.8.0
+
+      - name: Node.jsをセットアップ
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: 依存関係をインストール
+        run: pnpm install --frozen-lockfile
+
+      - name: sharedパッケージをビルド
+        # app-expo の typecheck は shared/dist を前提にしている
+        run: pnpm --filter shared build
+
+      - name: typecheck
+        run: pnpm --filter app-expo typecheck
+
+      - name: ユニットテスト
+        run: pnpm --filter app-expo test
+
+  android-build:
+    name: Android ネイティブビルド（EAS の代替検証）
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: リポジトリを取得
+        uses: actions/checkout@v4
+
+      - name: PNPMをセットアップ
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10.8.0
+
+      - name: Node.jsをセットアップ
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: JDKをセットアップ
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Gradleキャッシュ
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      - name: 依存関係をインストール
+        run: pnpm install --frozen-lockfile
+
+      - name: sharedパッケージをビルド
+        run: pnpm --filter shared build
+
+      - name: ネイティブプロジェクトを生成（prebuild）
+        working-directory: app-expo
+        # android/ は Git 管理していないため、EAS Build と同じく毎回生成する。
+        # config plugin の適用失敗はこの時点で検出できる。
+        run: npx expo prebuild --clean --platform android --no-install
+
+      - name: 生成された Android 設定を表示
+        working-directory: app-expo/android
+        # targetSdk / edge-to-edge / 新アーキテクチャが期待どおりかをログへ残す
+        run: |
+          set -euo pipefail
+          echo "--- gradle.properties (抜粋) ---"
+          grep -E "newArchEnabled|edgeToEdgeEnabled|hermesEnabled|reactNativeArchitectures" gradle.properties || true
+          echo "--- 解決された SDK バージョン ---"
+          ./gradlew -q :app:properties --no-daemon 2>/dev/null \
+            | grep -E "^(compileSdkVersion|targetSdkVersion|minSdkVersion)" || true
+
+      - name: ビルド対象 ABI を絞る
+        working-directory: app-expo/android
+        # 検証目的なので全 ABI は要らない。CI 時間を大幅に短縮する。
+        run: sed -i 's/^reactNativeArchitectures=.*/reactNativeArchitectures=arm64-v8a/' gradle.properties
+
+      - name: Android をビルド（assembleDebug）
+        working-directory: app-expo/android
+        run: ./gradlew :app:assembleDebug --no-daemon --stacktrace
+
+      - name: 生成された APK を確認
+        working-directory: app-expo
+        run: find android -name "*.apk" -exec ls -lh {} \;
