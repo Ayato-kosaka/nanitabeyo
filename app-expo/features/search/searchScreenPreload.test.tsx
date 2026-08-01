@@ -51,7 +51,6 @@ jest.mock("@/lib/i18n", () => ({ __esModule: true, default: { t: (key: string) =
 jest.mock("@/hooks/useLocale", () => ({ useLocale: () => ({ locale: "ja-JP", isJapanese: true }) }));
 jest.mock("@/hooks/useHaptics", () => ({ useHaptics: () => ({ lightImpact: jest.fn(), mediumImpact: jest.fn() }) }));
 jest.mock("@/hooks/useLogger", () => ({ useLogger: () => ({ logFrontendEvent: jest.fn() }) }));
-jest.mock("@/hooks/useScreenTrace", () => ({ useScreenTrace: jest.fn() }));
 jest.mock("@/hooks/useContentWidth", () => ({ useContentWidth: () => 390 }));
 // #1127 検索画面は useAutoCurrentLocation(#1092 PR4b で追加) 経由で AuthProvider → lib/supabase →
 // constants/Env を読み込む。jest では app.config.ts(動的 config)が評価されず

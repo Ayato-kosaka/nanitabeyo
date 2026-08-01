@@ -30,10 +30,6 @@ jest.mock("@/lib/supabase", () => ({
 	},
 	consumeAuthRetryAfterHeader: jest.fn(() => null),
 }));
-jest.mock("@/lib/e2e/injectTestSession", () => ({
-	injectTestSession: jest.fn(async () => "skipped"),
-	isTestSessionInjectionError: jest.fn(() => false),
-}));
 jest.mock("@/hooks/useLogger", () => {
 	// 毎レンダーで新しい関数を返すと runAuthAttempt の identity が変わるので、安定した 1 つを返す
 	const logFrontendEvent = jest.fn();

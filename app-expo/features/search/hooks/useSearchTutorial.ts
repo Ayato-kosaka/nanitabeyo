@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { readE2ETutorialSeen } from "@/lib/e2e/tutorialSeed";
 
 const TUTORIAL_STORAGE_KEY = "search_tutorial_seen_v1";
 
@@ -17,17 +16,6 @@ export function useSearchTutorial() {
 
 	// チュートリアル表示状態を読み込み
 	const loadTutorialState = useCallback(async () => {
-		// #1027 【設計】E2E(Detox) では起動引数で視聴済みフラグを固定できる。
-		// 通常ビルドでは metro の resolver が noop 実装へ差し替えるため、この関数は常に null を返す
-		//（= 以下の AsyncStorage 読み込みへそのまま進み、本番と 1 バイトも挙動が変わらない）。
-		// 詳細と、なぜ「出ていたら閉じる」ではなくシード方式にしたのかは lib/e2e/tutorialSeed.ts を参照
-		const seeded = readE2ETutorialSeen();
-		if (seeded !== null) {
-			setHasSeenTutorial(seeded);
-			setIsLoading(false);
-			return;
-		}
-
 		try {
 			const value = await AsyncStorage.getItem(TUTORIAL_STORAGE_KEY);
 			setHasSeenTutorial(value === "true");

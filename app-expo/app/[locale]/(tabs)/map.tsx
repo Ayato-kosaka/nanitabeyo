@@ -20,7 +20,6 @@ import { useHaptics } from "@/hooks/useHaptics";
 import { SelectedRestaurantDetails } from "@/features/map/components/SelectedRestaurantDetails";
 import i18n from "@/lib/i18n";
 import { useLogger } from "@/hooks/useLogger";
-import { useScreenTrace } from "@/hooks/useScreenTrace";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import MapViewClass from "react-native-maps";
 import { isFoodAndDrinkPlaceForUser } from "@shared/utils/google_places_restaurant_type";
@@ -28,8 +27,6 @@ import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { INITIAL_REGION } from "@/features/map/constants";
 
 export default function MapScreen() {
-	// #1016 【設計】主要画面(マップタブ)にFirebase Performance Monitoringの画面トレースを計装する。
-	useScreenTrace("Map");
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { callBackend } = useAPICall();

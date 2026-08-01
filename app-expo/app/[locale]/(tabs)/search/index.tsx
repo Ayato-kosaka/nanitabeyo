@@ -43,7 +43,6 @@ import i18n from "@/lib/i18n";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
-import { useScreenTrace } from "@/hooks/useScreenTrace";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { DEFAULT_SEARCH_RADIUS } from "@/features/topics/constants";
 import { TutorialBottomSheet } from "@/features/search/components/TutorialBottomSheet";
@@ -51,7 +50,6 @@ import { useSearchTutorial } from "@/features/search/hooks/useSearchTutorial";
 import { useAutoCurrentLocation } from "@/features/search/hooks/useAutoCurrentLocation";
 import { useRecentLocations } from "@/features/search/hooks/useRecentLocations";
 import { Image } from "expo-image";
-import { useE2EPreloadProbe } from "@/lib/e2e/preloadProbe";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { useIsFocused } from "@react-navigation/native";
 import { useContentWidth } from "@/hooks/useContentWidth";
@@ -87,8 +85,6 @@ function SectionHeader({ icon, title, required }: { icon: React.ReactNode; title
 }
 
 export default function SearchScreen() {
-	// #1016 【設計】主要画面(検索タブ)にFirebase Performance Monitoringの画面トレースを計装する。
-	useScreenTrace("Search");
 	const { locale, isJapanese } = useLocale();
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
@@ -412,11 +408,6 @@ export default function SearchScreen() {
 		});
 	};
 
-	// #1087 【設計】E2E(Detox) ビルドに限り、先読み画像が実際に何枚ロードできたかを数えて
-	// 画面上の `<Text testID="search-preload-probe">` へ出す（通常ビルドでは metro の resolver が
-	// noop 実装へ差し替えるため、props も要素も一切増えない）。詳細は lib/e2e/preloadProbe.tsx
-	const preloadProbe = useE2EPreloadProbe(PRELOAD_IMAGES.length);
-
 	// #642 【設計】チュートリアルから位置情報取得を要求
 	const handleTutorialRequestLocation = async () => {
 		await handleUseCurrentLocation();
@@ -705,10 +696,9 @@ export default function SearchScreen() {
 				pointerEvents="none"
 				aria-hidden>
 				{PRELOAD_IMAGES.map((src, i) => (
-					<Image key={i} source={src} style={{ width: 1, height: 1 }} {...preloadProbe.imageProps(i)} />
+					<Image key={i} source={src} style={{ width: 1, height: 1 }} />
 				))}
 			</View>
-			{preloadProbe.element}
 		</SafeAreaView>
 	);
 }

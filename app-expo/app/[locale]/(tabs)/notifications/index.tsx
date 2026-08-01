@@ -15,7 +15,6 @@ import { useFocusEffect } from "expo-router";
 import { useNotificationUnreadCount } from "@/features/notifications/hooks/useNotificationUnreadCount";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { useLocale } from "@/hooks/useLocale";
-import { useScreenTrace } from "@/hooks/useScreenTrace";
 import { getCacheKeyForImage } from "@/lib/image";
 import { dateStringToTimestamp } from "@/lib/frontend-utils";
 
@@ -29,8 +28,6 @@ import { dateStringToTimestamp } from "@/lib/frontend-utils";
  * - 多言語対応（Intl.ListFormat でアクター名を表示）
  */
 export default function NotificationsScreen() {
-	// #1016 【設計】主要画面(通知タブ)にFirebase Performance Monitoringの画面トレースを計装する。
-	useScreenTrace("Notifications");
 	const router = useRouter();
 	const { lightImpact } = useHaptics();
 	const { user } = useAuth();
