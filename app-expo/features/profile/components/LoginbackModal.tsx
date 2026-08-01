@@ -111,18 +111,36 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 				// user === null は上でガード済みなので、ここでの意味は「匿名セッションか」で変わらない。
 				// is_anonymous が欠落している場合にログイン済み扱いになる（＝ linkIdentity しない）のも同じ
 				const isAnonymous = isGuestUser(user);
+				const isUpgrade = isAnonymous && !hasExistingAccount;
 
-				if (isAnonymous && !hasExistingAccount) {
-					// 未チェック（昇格狙い）: 匿名セッションのまま OAuth を追加(linkIdentity)を試みる。
-					await linkIdentity(provider);
-				} else {
-					// チェック済み（既存ログイン狙い）または既にログイン済みなら、通常の OAuth サインインを行う。
-					await signInWithOAuth(provider);
+				const launch = isUpgrade
+					? // 未チェック（昇格狙い）: 匿名セッションのまま OAuth を追加(linkIdentity)を試みる。
+						await linkIdentity(provider)
+					: // チェック済み（既存ログイン狙い）または既にログイン済みなら、通常の OAuth サインインを行う。
+						await signInWithOAuth(provider);
+
+				// #1062 【設計】ブラウザを閉じた等で認証結果 URL を受け取れなかった場合、
+				// セッションは一切変化していないため成功として記録しない。
+				// モーダルは閉じず、そのまま再試行できるようにする。
+				if (launch.outcome === "cancelled") {
+					logFrontendEvent({
+						event_name: "oauth_signin_cancelled",
+						error_level: "log",
+						payload: {
+							provider,
+							isUpgrade,
+							hasExistingAccount,
+							browser_result_type: launch.browserResultType,
+							context: "login_modal",
+						},
+					});
+					return;
 				}
+
 				logFrontendEvent({
 					event_name: "oauth_signin_success",
 					error_level: "log",
-					payload: { provider, isUpgrade: isAnonymous && !hasExistingAccount, hasExistingAccount },
+					payload: { provider, isUpgrade, hasExistingAccount, outcome: launch.outcome },
 				});
 
 				// OAuth 成功時に明示的にモーダルを閉じる（Android で戻ったときに残る問題を解消）

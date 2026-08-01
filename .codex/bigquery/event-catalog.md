@@ -163,11 +163,30 @@ rg -o 'event_name:\s*"[^"]+"' app-expo --glob '!**/node_modules/**'
 
 ### Profile, Auth, And Settings
 
+> **⚠️ #1062 以前の OAuth 系イベントの解釈について**
+>
+> #1062 の修正コミット以前、`oauth_callback_success` は「例外が投げられなかったこと」しか意味しておらず、
+> **セッションを確立できていない失敗が混入している**（特に Android の development build を QR /
+> `expo start` の `a` キーで起動したセッション。`Linking.getInitialURL()` が dev launcher の起動 URL を
+> 返し続け、`code` が取り落とされていた）。同様に `oauth_signin_success` にはブラウザのキャンセルが
+> 含まれている。過去分と比較する際はこの点に注意すること。
+>
+> 修正後は次の関係が成り立つ（発火条件を狭めただけで、旧系列は再構成できる）。
+>
+> ```
+> 旧 oauth_signin_success   ≡ 新 oauth_signin_success + oauth_signin_cancelled
+> 旧 oauth_callback_success ≡ 新 oauth_callback_success + oauth_callback_no_result + oauth_callback_error
+> ```
+>
+> ログインが成立したかを判定するには `oauth_callback_success`（`payload.via` / `payload.source` /
+> `payload.is_anonymous` を持つ）を使い、`onAuthStateChange:SIGNED_IN` の追随を確認すること。
+
 - `sessionRestored`
 - `signInAnonymously`
 - `authInitError`
 - `userChanged`
 - `oauth_callback_success`
+- `oauth_callback_no_result`
 - `oauth_link_conflict`
 - `oauth_callback_error`
 - `oauth_conflict_switch_existing`
@@ -180,6 +199,7 @@ rg -o 'event_name:\s*"[^"]+"' app-expo --glob '!**/node_modules/**'
 - `otp_verify_error`
 - `authentication_success`
 - `oauth_signin_success`
+- `oauth_signin_cancelled`
 - `oauth_signin_error`
 - `profile_shared`
 - `profile_edit_started`
