@@ -103,6 +103,43 @@ export function ReviewForm({
 	>({ status: "loading" });
 	const mountedRef = useRef(true);
 
+	/**
+	 * #1127 【修正】メディア選択 effect から props / ハンドラの identity を切り離すためのラッチ。
+	 *
+	 * 旧実装はマウント時のメディア選択 effect の依存配列に `onCancel` / `lightImpact` を並べていた。
+	 * `onCancel` は呼び出し元（review.tsx）でインライン生成されるため、親が再レンダーするたびに
+	 * effect が cleanup → 再実行され、cleanup の `mountedRef.current = false` が恒久化して
+	 * **選択結果が全部破棄され、ローディングのまま戻ることもできない**状態になっていた。
+	 *
+	 * レンダー中に ref へ直接代入すると、コミットされないレンダーの値を書き込みうる。
+	 * そのため更新は必ず別の useEffect（= コミット後）で行う。
+	 */
+	const onCancelRef = useRef(onCancel);
+	useEffect(() => {
+		onCancelRef.current = onCancel;
+	}, [onCancel]);
+	const lightImpactRef = useRef(lightImpact);
+	useEffect(() => {
+		lightImpactRef.current = lightImpact;
+	}, [lightImpact]);
+	const logFrontendEventRef = useRef(logFrontendEvent);
+	useEffect(() => {
+		logFrontendEventRef.current = logFrontendEvent;
+	}, [logFrontendEvent]);
+
+	/**
+	 * #1127 【修正】メディア選択の同時実行を防ぐ同期ガード。
+	 *
+	 * expo-image-picker の Android 実装（ImagePickerModule.kt）は
+	 * `if (isPickerOpen) return ImagePickerResponse(canceled = true)` を持っており、
+	 * 2 発目は **ピッカーを開かずに即 canceled** を返す。JS 側がそれを「ユーザーがキャンセルした」と
+	 * 誤認すると、写真を選んでいる最中に画面が閉じる。ref への代入は同期的に確定するため、
+	 * 同一 JS タスク内の連続呼び出しでもレースしない（isSubmittingRef と同じ方式）。
+	 */
+	const isSelectingMediaRef = useRef(false);
+	/** #1127 同一マウント内でメディア選択を何回起動したか（診断ログ用。2 回目以降は本来起きない） */
+	const mediaSelectionAttemptRef = useRef(0);
+
 	// 料理カテゴリの状態管理
 	const [dishCategoryName, setDishCategoryName] = useState(prefilledMedia?.dish.name ?? "");
 	const [dishCategoryId, setDishCategoryId] = useState<string | null>(prefilledMedia?.dish.category_id ?? null);
@@ -163,8 +200,109 @@ export function ReviewForm({
 		close: closeLegalDocumentModal,
 	} = useBlurModal({ intensity: 100 });
 
+	/**
+	 * #1127 【修正】メディア選択の実行本体。マウント時 effect と再試行ボタンで共有する。
+	 *
+	 * props / ハンドラはすべて ref 経由で読むため依存配列が空になり、identity が安定する。
+	 * これにより「親が再レンダーすると effect が張り替わる」経路が根本から無くなる。
+	 *
+	 * @param origin 起動起点（`"mount"` = マウント時 effect / `"retry"` = 再試行ボタン）
+	 * @param isCancelled この起動が属する effect が既に片付けられたかを返す関数
+	 */
+	const runMediaSelection = useCallback(async (origin: "mount" | "retry", isCancelled: () => boolean) => {
+		// #1127 native 側（Android の isPickerOpen）に弾かれる二重起動を JS 側で先に防ぐ。
+		// 宣言箇所のコメント参照。ここより後にピッカー起動処理を書くこと
+		if (isSelectingMediaRef.current) return;
+		isSelectingMediaRef.current = true;
+
+		const attempt = (mediaSelectionAttemptRef.current += 1);
+		logFrontendEventRef.current({
+			event_name: "review_media_selection_start",
+			// #1127 同一マウント内の 2 回目以降は本来起きない起動なので、後追いできるよう warn で残す
+			error_level: attempt > 1 ? "warn" : "log",
+			// #1127 【セキュリティ】メディアの URI や個人情報は payload へ入れないこと
+			payload: { attempt, origin },
+		});
+
+		/** #1127 診断ログの終端。結果を破棄したかどうかまで含めて 1 イベントで見えるようにする */
+		const logFinished = (outcome: { success: boolean; error?: string; discarded: boolean }) => {
+			logFrontendEventRef.current({
+				event_name: "review_media_selection_finished",
+				error_level: outcome.discarded || attempt > 1 ? "warn" : "log",
+				payload: { attempt, origin, ...outcome },
+			});
+		};
+
+		/**
+		 * #1127 結果を破棄する経路。**マウントされたままなら loading に置き去りにしない**。
+		 * 旧実装はここで黙って return しており、スピナーのまま戻ることもできない手詰まりになっていた。
+		 */
+		const discard = (outcome: { success: boolean; error?: string }) => {
+			logFinished({ ...outcome, discarded: true });
+			if (mountedRef.current) {
+				setMediaState({ status: "error", error: i18n.t("Map.media.mediaSelectionError") });
+			}
+		};
+
+		try {
+			const result = await selectMedia(["images", "videos"], { shouldGenerateThumbnail: true });
+
+			// Guard against setState on unmounted component
+			if (isCancelled() || !mountedRef.current) {
+				discard({ success: result.success, error: result.error });
+				return;
+			}
+
+			if (!result.success || result.media === undefined) {
+				// Handle cancellation - close modal automatically
+				if (result.error === "cancelled") {
+					logFinished({ success: false, error: result.error, discarded: false });
+					onCancelRef.current();
+					return;
+				}
+
+				// Handle other errors
+				let errorMessage = i18n.t("Map.media.mediaSelectionError");
+				switch (result.error) {
+					case "permission_denied":
+						errorMessage = i18n.t("Map.media.permissionDenied");
+						break;
+					case "video_too_long":
+						errorMessage = i18n.t("Map.media.videoTooLong");
+						break;
+					case "thumbnail_failed":
+						errorMessage = i18n.t("Map.media.thumbnailFailed");
+						break;
+				}
+
+				setMediaState({ status: "error", error: errorMessage });
+				logFinished({ success: false, error: result.error, discarded: false });
+				return;
+			}
+
+			// Success - set media and show form
+			setMediaState({ status: "success", media: result.media });
+			lightImpactRef.current(); // Haptic feedback on success
+			logFinished({ success: true, discarded: false });
+		} catch (error) {
+			if (isCancelled() || !mountedRef.current) {
+				discard({ success: false, error: "exception" });
+				return;
+			}
+			setMediaState({ status: "error", error: i18n.t("Map.media.mediaSelectionError") });
+			logFinished({ success: false, error: "exception", discarded: false });
+		} finally {
+			isSelectingMediaRef.current = false;
+		}
+	}, []);
+
 	// マウント時にメディア選択を実行
 	useEffect(() => {
+		// #1127 【修正】cleanup で落とされた mountedRef をここで再武装する。
+		// これが無いと effect が一度でも張り替わった時点で false が恒久化し、
+		// 以降すべての選択結果が破棄され続ける（宣言箇所のコメント参照）
+		mountedRef.current = true;
+
 		const handleSetMediaState = async () => {
 			if (!prefilledMedia || !mountedRef.current) return;
 			// #511 【設計】mediaUrl が null の場合（処理中）は早期 return
@@ -195,47 +333,6 @@ export function ReviewForm({
 
 		let cancelled = false;
 
-		const handleMediaSelection = async () => {
-			try {
-				const result = await selectMedia(["images", "videos"], { shouldGenerateThumbnail: true });
-
-				// Guard against setState on unmounted component
-				if (cancelled || !mountedRef.current) return;
-
-				if (!result.success || result.media === undefined) {
-					// Handle cancellation - close modal automatically
-					if (result.error === "cancelled") {
-						onCancel();
-						return;
-					}
-
-					// Handle other errors
-					let errorMessage = i18n.t("Map.media.mediaSelectionError");
-					switch (result.error) {
-						case "permission_denied":
-							errorMessage = i18n.t("Map.media.permissionDenied");
-							break;
-						case "video_too_long":
-							errorMessage = i18n.t("Map.media.videoTooLong");
-							break;
-						case "thumbnail_failed":
-							errorMessage = i18n.t("Map.media.thumbnailFailed");
-							break;
-					}
-
-					setMediaState({ status: "error", error: errorMessage });
-					return;
-				}
-
-				// Success - set media and show form
-				setMediaState({ status: "success", media: result.media });
-				lightImpact(); // Haptic feedback on success
-			} catch (error) {
-				if (cancelled || !mountedRef.current) return;
-				setMediaState({ status: "error", error: i18n.t("Map.media.mediaSelectionError") });
-			}
-		};
-
 		// #400 【設計】prefilledMedia が指定されている場合は、メディア選択をスキップしてプレビュー専用モードにする
 		if (prefilledMedia) {
 			handleSetMediaState();
@@ -244,58 +341,25 @@ export function ReviewForm({
 			};
 		} else {
 			// 通常のメディア選択フロー
-			handleMediaSelection();
+			runMediaSelection("mount", () => cancelled);
 			return () => {
 				cancelled = true;
 				mountedRef.current = false;
 			};
 		}
-	}, [onCancel, lightImpact, prefilledMedia]);
+		// #1127 依存は prefilledMedia（= モードの切り替え）だけに絞る。
+		// onCancel / lightImpact は ref 経由で読むため、親の再レンダーで effect が張り替わらない
+	}, [prefilledMedia, runMediaSelection]);
 
 	// Retry media selection
 	const handleRetry = useCallback(() => {
+		// #1127 前回の選択がまだ native 側で開いている間の再試行は無視する。
+		// ここで loading へ倒してから同時実行ガードに弾かれると、スピナーのまま固着する
+		if (isSelectingMediaRef.current) return;
 		setMediaState({ status: "loading" });
-		// Trigger re-selection by updating a key or re-running the effect
-		// Since we can't easily re-trigger the effect, we'll call the function directly
-		const retrySelection = async () => {
-			try {
-				const result = await selectMedia(["images", "videos"], { shouldGenerateThumbnail: true });
-
-				if (!mountedRef.current) return;
-
-				if (!result.success || result.media === undefined) {
-					if (result.error === "cancelled") {
-						onCancel();
-						return;
-					}
-
-					let errorMessage = i18n.t("Map.media.mediaSelectionError");
-					switch (result.error) {
-						case "permission_denied":
-							errorMessage = i18n.t("Map.media.permissionDenied");
-							break;
-						case "video_too_long":
-							errorMessage = i18n.t("Map.media.videoTooLong");
-							break;
-						case "thumbnail_failed":
-							errorMessage = i18n.t("Map.media.thumbnailFailed");
-							break;
-					}
-
-					setMediaState({ status: "error", error: errorMessage });
-					return;
-				}
-
-				setMediaState({ status: "success", media: result.media });
-				lightImpact();
-			} catch (error) {
-				if (!mountedRef.current) return;
-				setMediaState({ status: "error", error: i18n.t("Map.media.mediaSelectionError") });
-			}
-		};
-
-		retrySelection();
-	}, [onCancel, lightImpact]);
+		// #1127 マウント時 effect と同じ実行本体を使う（ref 経由・同時実行ガード・mountedRef の扱いを揃える）
+		runMediaSelection("retry", () => false);
+	}, [runMediaSelection]);
 
 	// Animated height for InitialMediaPreview
 	// 画面全体の高さ - フォーム部分の高さ - ボタン部分の高さ - 同意メッセージ - バッファ

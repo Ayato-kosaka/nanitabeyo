@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { View, StyleSheet, Text } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
@@ -33,17 +33,26 @@ export default function ReviewFromMediaScreen() {
 	const [dishMedia, setDishMedia] = useState<NormalizedDishMediaEntry | null>(null);
 
 	// #644 【設計】レビュー投稿成功時に /review/post/:id に遷移
-	const handleReviewSuccess = ({ dishReviewId }: { dishReviewId: string }) => {
-		// /review までスタックを掃除（なければ現在画面を /review に置き換え）
-		router.dismissTo(`/${locale}/(tabs)/review`);
-		router.push({
-			pathname: `/[locale]/(tabs)/review/post/[id]`,
-			params: {
-				locale,
-				id: dishReviewId,
-			},
-		});
-	};
+	// #1127 【修正】ReviewForm へ渡すコールバックは参照を安定させる（review.tsx と同じ多層防御）
+	const handleReviewSuccess = useCallback(
+		({ dishReviewId }: { dishReviewId: string }) => {
+			// /review までスタックを掃除（なければ現在画面を /review に置き換え）
+			router.dismissTo(`/${locale}/(tabs)/review`);
+			router.push({
+				pathname: `/[locale]/(tabs)/review/post/[id]`,
+				params: {
+					locale,
+					id: dishReviewId,
+				},
+			});
+		},
+		[locale],
+	);
+
+	// #1127 同上
+	const handleReviewCancel = useCallback(() => {
+		router.back();
+	}, []);
 
 	// #644 【設計】restaurant.id と dishMediaId でデータを取得
 	useEffect(() => {
@@ -169,7 +178,7 @@ export default function ReviewFromMediaScreen() {
 			<ReviewForm
 				restaurant={restaurantEntry.restaurant}
 				prefilledMedia={{ ...dishMedia.dish_media, dish: dishMedia.dish }}
-				onCancel={() => router.back()}
+				onCancel={handleReviewCancel}
 				onSuccess={handleReviewSuccess}
 			/>
 		</View>
