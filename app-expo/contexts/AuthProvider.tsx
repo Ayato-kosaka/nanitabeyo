@@ -123,6 +123,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 	/** クールダウン待ちで予約済みの再試行タイマー。二重予約の防止と unmount 時の解除に使う */
 	const pendingRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	/**
+	 * SIGNED_OUT 後の匿名サインインを「onAuthStateChange のコールバックを抜けてから」実行するためのタイマー。
+	 * 詳細は SIGNED_OUT ハンドラのコメントを参照。unmount 時の解除にも使う。
+	 */
+	const signedOutReauthTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	/**
 	 * 401 を受けたリクエストが、新しい access token で即時再試行できるようにする。
 	 * Supabase の自動更新は後続リクエストには効くが、既に失敗した通信は再送しないため、
 	 * 更新済み Session を呼び出し元へ返しつつ、同期参照する sessionRef も先に更新する。
@@ -362,16 +367,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 				sessionRef.current = null;
 				setUser(null);
 
-				try {
-					// #1089 ログアウト直後の匿名サインインも runAuthAttempt に寄せる。
-					// ここで失敗を握り潰すと user=null のまま authError も立たず、
-					// 起動時と同じ「画面が出ないまま戻れない」状態になるため（リトライとエラー UI を共通化する）。
-					// #1097 force は渡さない。SIGNED_OUT はユーザー操作とは限らない（リフレッシュトークン失効等でも
-					// 飛ぶ）ため、429 のクールダウン中はここで叩かず、再試行ボタン / フォアグラウンド復帰を待つ。
-					await runAuthAttempt();
-				} finally {
-					router.replace("/");
-				}
+				// ⚠️⚠️ このコールバックの中で supabase.auth.* を **await してはいけない**（#1124）。
+				//
+				// GoTrueClient.signOut() は _acquireLock でロックを取ったまま
+				// _removeSession() → `await _notifyAllSubscribers('SIGNED_OUT')` を実行する
+				// （@supabase/auth-js GoTrueClient.js:1549, :2052）。つまり **ロック保持中に
+				// このコールバックの完了を待っている**。
+				// ここで runAuthAttempt() を await すると、その中の supabase.auth.getSession() が
+				// _acquireLock の再入分岐（同 :1092）へ入り、pendingInLock の末尾 = 外側の _signOut の
+				// 完了を待つ。結果として
+				//   _signOut 完了待ち → コールバック完了待ち → _signOut 完了待ち
+				// の循環待ちになり、**永久にデッドロックする**。
+				// ロックは解放されないままなので、以降の supabase.auth.* が全て停止し、
+				// セッションが再確立できず API 呼び出しが全滅する（Web では未解決 Promise が
+				// 積み上がって画面が固まる）。
+				//
+				// そのため、コールバックを抜けてロックが解放されてから実行する。
+				// #1089 の意図（匿名サインインを runAuthAttempt に寄せ、失敗時は authError と
+				// 再試行 UI へ倒す）と #1097 の意図（force を渡さず 429 クールダウンを尊重する）は
+				// そのまま維持している。
+				if (signedOutReauthTimerRef.current) clearTimeout(signedOutReauthTimerRef.current);
+				signedOutReauthTimerRef.current = setTimeout(() => {
+					signedOutReauthTimerRef.current = null;
+					void runAuthAttempt();
+				}, 0);
+
+				// #1124 遷移は匿名サインインの成否に依存させない。
+				// 従来は finally に置かれていたため、上記デッドロックで到達せず
+				// 「ログアウトしても画面が変わらない」状態になっていた。
+				router.replace("/");
 			} else if (event === "PASSWORD_RECOVERY") {
 				// パスワード制のログイン機能を持たせる予定がないなら不要
 			} else if (event === "TOKEN_REFRESHED") {
@@ -390,6 +414,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 			if (pendingRetryTimerRef.current) {
 				clearTimeout(pendingRetryTimerRef.current);
 				pendingRetryTimerRef.current = null;
+			}
+			// #1124 SIGNED_OUT 後の匿名サインインも同様に解除する
+			if (signedOutReauthTimerRef.current) {
+				clearTimeout(signedOutReauthTimerRef.current);
+				signedOutReauthTimerRef.current = null;
 			}
 		};
 	}, []);

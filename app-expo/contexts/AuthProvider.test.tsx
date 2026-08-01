@@ -199,7 +199,19 @@ describe("AuthProvider の 429 クールダウン（#1097）", () => {
 		expect(authValue.authError).not.toBeNull();
 	});
 
-	it("クールダウンが無いとき（通常のログアウト）の SIGNED_OUT は、これまでどおり即座に匿名サインインする", async () => {
+	/**
+	 * #1124 「SIGNED_OUT のコールバックの中で supabase.auth.* を呼ばない」という不変条件のテスト。
+	 *
+	 * GoTrueClient.signOut() は _acquireLock でロックを保持したまま
+	 * `await _notifyAllSubscribers('SIGNED_OUT')` でこのコールバックの完了を待つ。
+	 * コールバック内で getSession()/signInAnonymously() を await すると _acquireLock の再入分岐が
+	 * 外側の _signOut の完了を待つため循環待ちになり、**永久にデッドロックする**。
+	 * ロックが解放されないので以降の supabase.auth.* が全て停止し、API 呼び出しが全滅する。
+	 *
+	 * ここでは「コールバックが解決した時点ではまだ叩いていない」ことを直接観測することで、
+	 * `await runAuthAttempt()` を戻したら赤くなる位置にテストを置く。
+	 */
+	it("SIGNED_OUT のコールバック内では匿名サインインを叩かない（デッドロック防止）", async () => {
 		// 起動時はセッション復元に成功 → クールダウンは置かれない
 		auth.getSession.mockResolvedValueOnce({ data: { session: fakeSession("user-1") }, error: null });
 		auth.signInAnonymously.mockResolvedValue({ data: { session: fakeSession("anon-1") }, error: null });
@@ -211,7 +223,47 @@ describe("AuthProvider の 429 クールダウン（#1097）", () => {
 			await emitAuthStateChange("SIGNED_OUT", null);
 		});
 
+		// ★ コールバックはロック保持中に await されている。ここで叩いていたらデッドロックする
+		expect(auth.signInAnonymously).not.toHaveBeenCalled();
+
+		// ★ 遷移は匿名サインインの成否に依存しない（従来は finally にあり、デッドロックで到達しなかった）
+		const { useRouter } = jest.requireMock("expo-router") as { useRouter: () => { replace: jest.Mock } };
+		expect(useRouter().replace).toHaveBeenCalledWith("/");
+	});
+
+	it("SIGNED_OUT でコールバックを抜けた直後に匿名サインインし、セッションを張り直す", async () => {
+		auth.getSession.mockResolvedValueOnce({ data: { session: fakeSession("user-1") }, error: null });
+		auth.signInAnonymously.mockResolvedValue({ data: { session: fakeSession("anon-1") }, error: null });
+
+		await mountProvider();
+
+		await act(async () => {
+			await emitAuthStateChange("SIGNED_OUT", null);
+		});
+
+		// コールバックを抜けた後（= ロック解放後）に実行される
+		await act(async () => {
+			jest.advanceTimersByTime(0);
+		});
+
 		expect(auth.signInAnonymously).toHaveBeenCalledTimes(1);
 		expect(authValue.user?.id).toBe("anon-1");
+	});
+
+	it("SIGNED_OUT が連続しても匿名サインインは 1 回にまとまる（枠を無駄に消費しない）", async () => {
+		auth.getSession.mockResolvedValueOnce({ data: { session: fakeSession("user-1") }, error: null });
+		auth.signInAnonymously.mockResolvedValue({ data: { session: fakeSession("anon-1") }, error: null });
+
+		await mountProvider();
+
+		await act(async () => {
+			await emitAuthStateChange("SIGNED_OUT", null);
+			await emitAuthStateChange("SIGNED_OUT", null);
+		});
+		await act(async () => {
+			jest.advanceTimersByTime(0);
+		});
+
+		expect(auth.signInAnonymously).toHaveBeenCalledTimes(1);
 	});
 });
