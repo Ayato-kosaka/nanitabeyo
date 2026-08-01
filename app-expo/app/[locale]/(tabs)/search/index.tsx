@@ -109,6 +109,11 @@ export default function SearchScreen() {
 	// #932 【設計】現在地取得の恒久的な失敗(権限拒否・未対応)時に手入力へ誘導するため
 	const locationInputRef = useRef<LocationAutocompleteHandle>(null);
 
+	// #953 【仕様】直近5件の地点をローカル保存し、地点未入力でのフォーカス時に再選択候補として出す
+	// #1129 【設計】handleSelectRecentLocation が addRecentLocation を依存配列で参照するため、
+	// 宣言はハンドラ定義より前に置く必要がある(useCallback の依存配列は定義時に評価されるため)
+	const { recentLocations, addRecentLocation, clearRecentLocations } = useRecentLocations();
+
 	// #958 【修正】中央カラム幅に追従する4列グリッドのアイテムサイズ
 	const contentWidth = useContentWidth();
 	const itemWidth = useMemo(
@@ -203,8 +208,12 @@ export default function SearchScreen() {
 			});
 			setLocation(recent);
 			setLocationQuery(recent.locationQuery);
+			// #1129 【仕様】再選択した地点を MRU(Most Recently Used)順で先頭へ引き上げる。
+			// addRecentLocation は同一地点を除去してから先頭へ積むため、件数は増えない。
+			// 保存タイミングはオートコンプリート選択時(handleLocationSelect)と揃えて「選択した瞬間」とする。
+			addRecentLocation(recent);
 		},
-		[logFrontendEvent],
+		[logFrontendEvent, addRecentLocation],
 	);
 
 	const handleUseCurrentLocation = async () => {
@@ -336,9 +345,6 @@ export default function SearchScreen() {
 		lightImpact();
 		setShowAdvancedFilters(!showAdvancedFilters);
 	};
-
-	// #953 【仕様】直近5件の地点をローカル保存し、地点未入力でのフォーカス時に再選択候補として出す
-	const { recentLocations, addRecentLocation, clearRecentLocations } = useRecentLocations();
 
 	// #973【設計】検索ボタンをdisabledにすると handleSearch 内のバリデーションスナックバーが
 	// 発火しなくなるため、常にタップ可能にしたうえで見た目だけ「未充足」を伝える
