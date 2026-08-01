@@ -1,0 +1,105 @@
+diff --git a/.github/workflows/e2e-web-test.yml b/.github/workflows/e2e-web-test.yml
+index 8938d61e..5c6a5c0a 100644
+--- a/.github/workflows/e2e-web-test.yml
++++ b/.github/workflows/e2e-web-test.yml
+@@ -84,8 +84,12 @@ jobs:
+       # 既定値は「CDN へ到達できない端末が使う値」なので、乖離するとその端末だけ挙動が変わり、
+       # かつリポジトリ内からは検知できない（テストの期待値も実装と同じ手書き値の複製のため、
+       # 両方が同時に間違っていても緑になる）。実物と突き合わせられるのは CI だけなのでここで守る。
+-      # 上の env:pull で app-expo/.env が出来ているため CDN の URL を組み立てられる。
+-      # 環境変数が無い環境では skip して成功扱いになるが、skip したことは必ず出力される。
++      # このゲートは 2 段構え（#1116）。
++      #   4-1: remoteConfigSchema のキー集合 ≡ DEFAULT_REMOTE_CONFIG のキー集合。
++      #        env にも CDN の到達性にも依存しないため、どの環境でも必ず実行される。
++      #   4-2: schema 既知キーの値を実際の config.json と突き合わせる。EAS の env と CDN 到達性が要る。
++      #        この job では上の env:pull で app-expo/.env が出来ているので 4-2 も実行される。
++      # env が無い環境（ローカル等）で skip されるのは 4-2 だけであり、skip した旨は必ず出力される。
+       - name: 🔎 Assert Remote Config defaults are not drifted
+         run: pnpm --filter app-expo assert:remote-config-defaults
+ 
+diff --git a/.github/workflows/pr-check.yml b/.github/workflows/pr-check.yml
+new file mode 100644
+index 00000000..1a9b21ac
+--- /dev/null
++++ b/.github/workflows/pr-check.yml
+@@ -0,0 +1,80 @@
++name: PR Check
++
++# 🔎 pull_request で回る軽量ゲート（#1112）
++# - このリポジトリ初の pull_request トリガー。既存 12 本はすべて workflow_dispatch / schedule。
++# - 検査は 3 つ。いずれも secrets もネットワークも不要なので、fork からの PR でも実行できる。
++#     1. 4-1: remoteConfigSchema のキー集合 ≡ DEFAULT_REMOTE_CONFIG のキー集合（#1116）
++#     2. app-expo の typecheck（どの workflow でも実行されていなかった）
++#     3. app-expo の jest（同上。18 suites / 156 tests）
++# - 4-2（実際の config.json との値の突き合わせ）は EAS の env が要るのでここでは SKIP される。
++#   SKIP した旨は必ずログへ出る。4-2 は引き続き nightly の e2e-web-test.yml が担当する。
++# - api は入れていない。pnpm --filter api test は api/.env（secrets）を要求し、
++#   かつ現状 red（env 起因 5 suite ＋ env と無関係な DI 失敗 3 件）のため（#1112 のコメント参照）。
++# - step は「安い順・失敗原因が特定しやすい順」に並べてある（fail-fast）。
++# - branches / paths のフィルタは意図的に付けていない。統合ブランチ宛ての PR でも回す必要があり、
++#   かつ 4-1 の入力の片方は shared/remoteConfig/remoteConfig.schema.ts なので、
++#   app-expo/** だけに絞るとこの Issue が守ろうとしている事故そのものを取りこぼす。
++on:
++  pull_request:
++
++# 同一 PR へ続けて push したとき、古い run の結果はもう誰も見ないのでキャンセルする。
++# 既存 workflow が cancel-in-progress: false なのはデプロイ／E2E を中断させないためで、
++# PR ゲートは逆に「最新 commit の結果だけが要る」ため true にする。
++# group に workflow 名と PR 番号を含めているので、PR をまたいでキャンセルし合うことはない。
++concurrency:
++  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
++  cancel-in-progress: true
++
++permissions:
++  # チェックアウトのみ。PR や Issue へ書き戻す必要は無い。
++  contents: read
++
++jobs:
++  pr-check:
++    name: PR Check
++    runs-on: ubuntu-latest
++    timeout-minutes: 20
++
++    steps:
++      - name: リポジトリを取得
++        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
++        with:
++          # このジョブは push も API 呼び出しもしないので、認証情報を runner に残さない。
++          persist-credentials: false
++
++      # pnpm/action-setup の `v2` は tag ではなく可変な branch なので、SHA で固定する
++      # （下の SHA は 2026-08-01 時点の v2 branch の HEAD ＝ 既存 workflow が今まさに使っている実体）。
++      - name: PNPMをセットアップ
++        uses: pnpm/action-setup@eae0cfeb286e66ffb5155f1a79b90583a127a68b # v2
++        with:
++          version: 10.8.0
++
++      - name: Node.jsをセットアップ
++        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
++        with:
++          node-version: "22"
++          cache: "pnpm"
++
++      - name: 依存関係をインストール
++        run: pnpm install --frozen-lockfile
++
++      # 4-1 は shared/dist を import せず shared/remoteConfig/remoteConfig.schema.ts を
++      # AST として読むだけなので、shared build より前に置いて最速で赤にできる。
++      - name: Remote Config 既定値のドリフトを検査
++        run: pnpm --filter app-expo assert:remote-config-defaults
++
++      # app-expo/tsconfig.dev.json は @shared/* を ../shared/dist/* へ向けているため、
++      # typecheck の前に shared を build しておかないと解決できない。
++      - name: sharedパッケージをビルド
++        run: pnpm --filter shared build
++
++      # 本来 4-1 の不変条件は DEFAULT_REMOTE_CONFIG: RemoteConfigValues の型注釈が守るもの。
++      # ここを通すことで、4-1 とは別経路の二重防御になる（#1112 本文）。
++      - name: app-expo の型検査
++        run: pnpm --filter app-expo typecheck
++
++      # __tests__/remoteConfigDefaults.test.ts と __tests__/remoteConfigCache.test.ts は
++      # まさにこの Issue の主題（既定値とキャッシュ）を守るテストだが、
++      # これまでどの workflow からも実行されていなかった。
++      - name: app-expo のユニットテスト
++        run: pnpm --filter app-expo test
