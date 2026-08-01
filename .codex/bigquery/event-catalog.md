@@ -174,12 +174,20 @@ rg -o 'event_name:\s*"[^"]+"' app-expo --glob '!**/node_modules/**'
 > 修正後は次の関係が成り立つ（発火条件を狭めただけで、旧系列は再構成できる）。
 >
 > ```
-> 旧 oauth_signin_success   ≡ 新 oauth_signin_success + oauth_signin_cancelled
+> 旧 oauth_signin_success   ≡ 新 oauth_signin_success + oauth_signin_browser_dismissed
 > 旧 oauth_callback_success ≡ 新 oauth_callback_success + oauth_callback_no_result + oauth_callback_error
 > ```
 >
 > ログインが成立したかを判定するには `oauth_callback_success`（`payload.via` / `payload.source` /
 > `payload.is_anonymous` を持つ）を使い、`onAuthStateChange:SIGNED_IN` の追随を確認すること。
+>
+> **⚠️ `oauth_signin_*` でログインの成否を判定しないこと。** Android の
+> `WebBrowser.openAuthSessionAsync` は「AppState が active に戻ったこと」と「deep link の url イベント」を
+> race させるため、**deep link でログインに成功した場合でも `dismiss` を返す**。実測でも、成功と同一試行で
+> `oauth_signin_browser_dismissed` が記録され、その 1 秒後に `oauth_callback_success` と
+> `userChanged`（`previous_user_id != new_user_id`）が出ている。したがって Android では
+> `oauth_signin_success` はほぼ発火せず、`oauth_signin_browser_dismissed` は「キャンセル」を意味しない。
+> これらはブラウザセッションの結末の記録であって、認証の成否ではない。
 
 - `sessionRestored`
 - `signInAnonymously`
@@ -199,7 +207,7 @@ rg -o 'event_name:\s*"[^"]+"' app-expo --glob '!**/node_modules/**'
 - `otp_verify_error`
 - `authentication_success`
 - `oauth_signin_success`
-- `oauth_signin_cancelled`
+- `oauth_signin_browser_dismissed`
 - `oauth_signin_error`
 - `profile_shared`
 - `profile_edit_started`

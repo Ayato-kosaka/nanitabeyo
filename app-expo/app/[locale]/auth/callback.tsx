@@ -175,18 +175,22 @@ export default function AuthCallbackScreen() {
 			// 既存アカウントに切り替え（prompt=none でサイレント認証）
 			const launch = await signInWithOAuth(conflictProvider);
 
-			// #1062 【設計】ブラウザを閉じた場合はスピナー画面に貼り付いたままになるため、プロフィールへ戻す
+			// #1062 【設計】結末は記録するだけで、ここでは画面遷移しない。
+			// Android の dismiss は「ユーザーが閉じた」を意味しない（deep link 成功時にも起こる）。
+			// ここでプロフィールへ戻すと、成功時に expo-router の callback 遷移と競合して
+			// code を処理できないまま離脱しうる。成否の判断と遷移は callback 画面へ一本化する。
+			// 本当にユーザーが閉じた場合にスピナーが残るのは修正前からの挙動で、本 PR では変えない。
 			if (launch.outcome === "cancelled") {
 				logFrontendEvent({
-					event_name: "oauth_signin_cancelled",
+					event_name: "oauth_signin_browser_dismissed",
 					error_level: "log",
 					payload: {
 						provider: conflictProvider,
+						outcome: launch.outcome,
 						browser_result_type: launch.browserResultType,
 						context: "conflict_switch",
 					},
 				});
-				router.replace({ pathname: "/[locale]/profile", params: { locale } });
 			}
 		} catch (error) {
 			logFrontendEvent({
