@@ -26,6 +26,7 @@ const SENTINELS = [
 	{ value: "__E2E_TEST_SESSION_HOOK__", label: "セッション注入フック（lib/e2e/injectTestSession.ts）" },
 	{ value: "__E2E_MEDIA_SELECTION_HOOK__", label: "メディア選択差し替えフック（lib/e2e/selectMediaStub.ts）" },
 	{ value: "__E2E_TUTORIAL_SEED_HOOK__", label: "チュートリアル視聴済みシードフック（lib/e2e/tutorialSeed.ts）" },
+	{ value: "__E2E_PRELOAD_PROBE_HOOK__", label: "先読み画像ロード枚数プローブ（lib/e2e/preloadProbe.tsx）" },
 ];
 
 // #1030 【設計】(レビュー m-6) `import.meta.dirname` は Node >= 20.11 依存。

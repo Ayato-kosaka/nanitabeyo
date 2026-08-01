@@ -73,7 +73,8 @@ pnpm test:e2e:mobile                          # ルートから(= pnpm --filter 
 pnpm test:android                             # Tier 1 + 2(tests/mutation/ は除外)
 pnpm test:smoke:android                       # Tier 1(tests/smoke/)のみ
 pnpm test:mutation:android                    # Tier 3(tests/mutation/)のみ ※ dev DB に書き込む
-pnpm test:all:android                         # 全件(@mutation 含む)
+pnpm test:all:android                         # 全件(@mutation 含む / @probe は含まない)
+pnpm test:probe:android                       # @probe(tests/probe/)のみ ※ 既定スコープ外。現在は空。下記参照
 ```
 
 ### iOS
@@ -118,6 +119,41 @@ pnpm --filter e2e-mobile test:ios             # Android と同じく :smoke / :m
 | Tier 1 | `tests/smoke/`                                                                              | 起動・タブ導線の最小確認                   | 夜間 CI + 手動実行。将来の PR ゲート候補              |
 | Tier 2 | `tests/navigation/` `tests/search/` `tests/review/` `tests/profile/` `tests/authenticated/` | 機能テスト全般(実 API 読み取り)            | 夜間 CI                                               |
 | Tier 3 | `tests/mutation/`                                                                           | dev DB への書き込み(いいね/保存・レビュー投稿) | **既定では実行されない**。`RUN_MUTATION=1` で明示実行 |
+| 番外   | `tests/probe/`                                                                              | 不具合の存在を数値で示すプローブ(`@probe`)。**現在は空** | **既定では実行されない**。`RUN_PROBE=1` で明示実行 |
+
+> **`@probe`(tests/probe/)は「落ちるのが正しい」spec を置く場所。現在は意図的に空**(#1087)
+> アプリ側の不具合を **客観的な数値** で示すための spec 置き場で、そこに置かれた spec は
+> **修正が入るまで赤いまま維持される**。夜間 CI の既定スコープ(tier1-2)へ混ぜると常時赤くなり
+> 本物の回帰が埋もれるため、Tier 3 と同じ二重ガードで既定の探索から外している
+> (`jest.config.js` の `testPathIgnorePatterns` + `fixtures/e2e.ts` の `describeProbe`)。
+> `test:all:*` にも含まれない。
+>
+> **現在この層に spec は無い。** 唯一の住人だった先読み画像プローブ(#1087)は、修正が main へ入り
+> 実機で解消を確認できた時点で `tests/search/preload-images.test.ts` の恒久的な回帰テストへ
+> **昇格**した(通るのが正しいテストになった)。仕組み(`RUN_PROBE` / `describeProbe` /
+> `test:probe:*` / ワークフローの `scope=probe`)は次のプローブのために残してある。
+>
+> **どういうときに使うか**: 「native では動いていないはずだ」という疑いはあるが、既存のテストでは
+> 緑にしかならないとき。アプリ側に E2E ビルド限定の観測点を足して数値を露出させ、その数値を待つ
+> spec をここへ置く。修正が入ったら **tier1-2 へ昇格させてこのディレクトリを空に戻す**。
+> 手順の詳細と前例は [`tests/probe/README.md`](tests/probe/README.md) を参照。
+
+> **先読み画像は「枚数を数える」プローブで検証する**(#1087 / #1083)
+> 検索画面末尾の先読みブロックは 0×0 で描かれていたため、expo-image の native 実装が
+> **ロード要求そのものを発行せず、導入時(#656)から一度も効いていなかった**。
+> web は size に関係なく `<img src>` を DOM へ出すため e2e-web では検知できず、
+> app-expo の jest(`features/search/searchScreenPreload.test.tsx`)は
+> **style が非ゼロかという構造しか見ない**ので、expo-image 側の振る舞いが変わった場合を見逃す。
+>
+> - 観測点: `app-expo/lib/e2e/preloadProbe.tsx`。先読みの各 `<Image>` の `onLoad` / `onError` を数え、
+>   `loaded=<n>/<total>` を持つ `search-preload-probe` を描画する
+> - 検証: `screens/SearchScreen.ts` の `expectPreloadImagesLoaded()` /
+>   spec は `tests/search/preload-images.test.ts`(Tier 2 = 夜間 CI の既定スコープ)
+> - 有効化: ビルド時に `EXPO_PUBLIC_E2E_TUTORIAL_HOOK=1`(先読み対象がチュートリアル画像のため
+>   **新しい環境変数は増やさず**このフラグに相乗りしている)。本番混入ガードは他フックと同一方式
+>
+> **プローブが「画面に存在しません」というメッセージで失敗する場合は、
+> ビルド時の `EXPO_PUBLIC_E2E_TUTORIAL_HOOK` を疑うこと。**
 
 > **レビュー投稿テストと OS フォトピッカー**(#1031 B6)
 > `ReviewForm` は画面に入った直後に OS のフォトピッカー(`selectMedia`)を開く。フォトピッカーは

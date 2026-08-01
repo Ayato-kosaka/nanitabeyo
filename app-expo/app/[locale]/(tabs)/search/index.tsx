@@ -51,6 +51,7 @@ import { useSearchTutorial } from "@/features/search/hooks/useSearchTutorial";
 import { useAutoCurrentLocation } from "@/features/search/hooks/useAutoCurrentLocation";
 import { useRecentLocations } from "@/features/search/hooks/useRecentLocations";
 import { Image } from "expo-image";
+import { useE2EPreloadProbe } from "@/lib/e2e/preloadProbe";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { useIsFocused } from "@react-navigation/native";
 import { useContentWidth } from "@/hooks/useContentWidth";
@@ -411,6 +412,11 @@ export default function SearchScreen() {
 		});
 	};
 
+	// #1087 【設計】E2E(Detox) ビルドに限り、先読み画像が実際に何枚ロードできたかを数えて
+	// 画面上の `<Text testID="search-preload-probe">` へ出す（通常ビルドでは metro の resolver が
+	// noop 実装へ差し替えるため、props も要素も一切増えない）。詳細は lib/e2e/preloadProbe.tsx
+	const preloadProbe = useE2EPreloadProbe(PRELOAD_IMAGES.length);
+
 	// #642 【設計】チュートリアルから位置情報取得を要求
 	const handleTutorialRequestLocation = async () => {
 		await handleUseCurrentLocation();
@@ -689,14 +695,20 @@ export default function SearchScreen() {
 			    そこで親・子とも非ゼロサイズ(1x1)を明示してロードを発行させる。見た目に出ないよう
 			    opacity: 0 を足し、pointerEvents="none" でタッチも奪わない。
 			    サイズが 0 に戻る再発は features/search/searchScreenPreload.test.tsx で検知する。 */}
+			{/* #1087 【設計】onLoad / onError は E2E ビルドでのみ実体を持つ（通常ビルドでは空オブジェクト）。
+			    上記の jest テストは「style が非ゼロか」という構造しか見ないため、expo-image 側の都合で
+			    実際にはロードされなくなった場合（1×1 では足りなくなる / opacity:0 で早期 return される 等）を
+			    見逃す。それを native で捕まえるための計測点で、
+			    e2e-mobile/tests/search/preload-images.test.ts が実ロード枚数を検証する */}
 			<View
 				style={{ width: 1, height: 1, position: "absolute", overflow: "hidden", opacity: 0 }}
 				pointerEvents="none"
 				aria-hidden>
 				{PRELOAD_IMAGES.map((src, i) => (
-					<Image key={i} source={src} style={{ width: 1, height: 1 }} />
+					<Image key={i} source={src} style={{ width: 1, height: 1 }} {...preloadProbe.imageProps(i)} />
 				))}
 			</View>
+			{preloadProbe.element}
 		</SafeAreaView>
 	);
 }

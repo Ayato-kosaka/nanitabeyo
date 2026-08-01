@@ -5,12 +5,15 @@
  * - Tier 1 `@smoke`   : tests/smoke/                              起動・タブ導線の最小確認
  * - Tier 2 (無タグ)   : tests/navigation|search|review|profile|authenticated/
  * - Tier 3 `@mutation`: tests/mutation/                           dev DB へ書き込む。**既定では読み込まれない**
+ * - 番外  `@probe`    : tests/probe/                              「修正が入るまで落ちるのが正しい」spec 置き場。
+ *                                                                **既定では読み込まれない / 現在は空**
  *
  * ## Tier の絞り込み方法（Playwright の --grep 相当）
  * - Tier 1 のみ : `pnpm test:smoke:android`      (= `-- --testPathPattern 'tests/smoke/'`)
- * - Tier 1+2    : `pnpm test:android`            (testPathIgnorePatterns が Tier 3 を弾く)
+ * - Tier 1+2    : `pnpm test:android`            (testPathIgnorePatterns が Tier 3 と @probe を弾く)
  * - Tier 3 のみ : `pnpm test:mutation:android`   (RUN_MUTATION=1 + --testPathPattern 'tests/mutation/')
- * - 全件        : `pnpm test:all:android`
+ * - @probe のみ : `pnpm test:probe:android`      (RUN_PROBE=1 + --testPathPattern 'tests/probe/')
+ * - 全件        : `pnpm test:all:android`        (@probe は含まない。上記で明示実行すること)
  *
  * `detox test` の `--` 以降の引数はそのまま Jest へ転送される（Detox CLI の仕様）。
  */
@@ -22,12 +25,24 @@
 // #1030 【設計】レビュー M-3: これに加えて fixtures/e2e.ts の describeMutation がコード段でも塞ぐ（二重ガード）。
 const isMutationEnabled = process.env.RUN_MUTATION === "1";
 
+// #1087 【設計】@probe（tests/probe/）も同じ方式で既定の探索から外す。こちらの理由は安全性ではなく
+// **「修正が入るまで落ちるのが正しい spec」だから**。アプリの不具合を数値で示すことが目的なので、
+// 夜間 CI の既定スコープ（tier1-2）へ混ぜると常時赤くなり、本物の回帰が埋もれる。
+// 二重ガードの片割れは fixtures/e2e.ts の describeProbe（--testPathPattern でのバイパス対策）。
+// ⚠️ この層は現在意図的に空（先読み画像プローブは修正完了に伴い tests/search/ へ昇格した）。
+//    仕組みだけを次の「落ちるのが正しい spec」のために残している（README.md 参照）。
+const isProbeEnabled = process.env.RUN_PROBE === "1";
+
+/** 既定値（node_modules の除外）を失わないよう、除外パターンは必ず一緒に列挙する */
+const testPathIgnorePatterns = ["/node_modules/"];
+if (!isMutationEnabled) testPathIgnorePatterns.push("<rootDir>/tests/mutation/");
+if (!isProbeEnabled) testPathIgnorePatterns.push("<rootDir>/tests/probe/");
+
 /** @type {import('ts-jest').JestConfigWithTsJest} */
 module.exports = {
 	rootDir: ".",
 	testMatch: ["<rootDir>/tests/**/*.test.ts"],
-	// 既定値（node_modules の除外）を失わないよう、除外パターンは必ず一緒に列挙する
-	testPathIgnorePatterns: isMutationEnabled ? ["/node_modules/"] : ["/node_modules/", "<rootDir>/tests/mutation/"],
+	testPathIgnorePatterns,
 
 	// #1027 【設計】E2E は実機相当の起動・ネットワークを待つため単体テストより大幅に長くする。
 	// この値は **フック（beforeAll/beforeEach）にも効く**。run 30445542854 では最初に走った suite の
