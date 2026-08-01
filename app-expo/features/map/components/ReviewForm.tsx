@@ -101,18 +101,33 @@ export function ReviewForm({
 	const [mediaState, setMediaState] = useState<
 		{ status: "loading" } | { status: "error"; error: string } | { status: "success"; media: MediaData }
 	>({ status: "loading" });
-	const mountedRef = useRef(true);
+
+	/**
+	 * #1127 【修正】メディア選択 effect の「実行世代」。非同期処理が書き戻してよいかの唯一の判定材料。
+	 *
+	 * 旧実装は cleanup で false を立てるだけの `mountedRef`（再武装なし）がこの役割を兼ねていた。
+	 * `onCancel` は呼び出し元（review.tsx）でインライン生成されるため親の再レンダーごとに
+	 * effect が cleanup → 再実行され、`mountedRef.current = false` が恒久化して
+	 * **選択結果が全部破棄され、ローディングのまま戻ることもできない**状態になっていた。
+	 *
+	 * ここを `cancelled`（effect ローカルの boolean）と `mountedRef` の 2 本立てで持つと、
+	 * cleanup 後に新しい effect が mountedRef を再武装した瞬間に
+	 * 「古い世代なのに mounted === true」という食い違いが生まれ、**古い起動の結果で
+	 * mediaState を上書きしうる**（React.StrictMode を入れると初回選択が即 error カードになる）。
+	 * そのため cleanup でインクリメントする世代カウンタ 1 本へ寄せ、
+	 * 「起動時に捕まえた世代 !== 現在の世代」= 無効、で統一する。
+	 */
+	const mediaGenerationRef = useRef(0);
 
 	/**
 	 * #1127 【修正】メディア選択 effect から props / ハンドラの identity を切り離すためのラッチ。
 	 *
-	 * 旧実装はマウント時のメディア選択 effect の依存配列に `onCancel` / `lightImpact` を並べていた。
-	 * `onCancel` は呼び出し元（review.tsx）でインライン生成されるため、親が再レンダーするたびに
-	 * effect が cleanup → 再実行され、cleanup の `mountedRef.current = false` が恒久化して
-	 * **選択結果が全部破棄され、ローディングのまま戻ることもできない**状態になっていた。
+	 * これらを依存配列へ並べると、親が再レンダーするたびに effect が張り替わる（上記の欠陥）。
 	 *
 	 * レンダー中に ref へ直接代入すると、コミットされないレンダーの値を書き込みうる。
 	 * そのため更新は必ず別の useEffect（= コミット後）で行う。
+	 * これらの ref 同期 effect はメディア選択 effect より**前に宣言**してあり、
+	 * 同一コミット内では宣言順に実行されるため、選択 effect は必ず最新値を読む。
 	 */
 	const onCancelRef = useRef(onCancel);
 	useEffect(() => {
@@ -126,6 +141,10 @@ export function ReviewForm({
 	useEffect(() => {
 		logFrontendEventRef.current = logFrontendEvent;
 	}, [logFrontendEvent]);
+	const prefilledMediaRef = useRef(prefilledMedia);
+	useEffect(() => {
+		prefilledMediaRef.current = prefilledMedia;
+	}, [prefilledMedia]);
 
 	/**
 	 * #1127 【修正】メディア選択の同時実行を防ぐ同期ガード。
@@ -137,7 +156,11 @@ export function ReviewForm({
 	 * 同一 JS タスク内の連続呼び出しでもレースしない（isSubmittingRef と同じ方式）。
 	 */
 	const isSelectingMediaRef = useRef(false);
-	/** #1127 同一マウント内でメディア選択を何回起動したか（診断ログ用。2 回目以降は本来起きない） */
+	/**
+	 * #1127 同一マウント内でメディア選択を何回**起動できた**か（診断ログ用。2 回目以降は本来起きない）。
+	 * 同時実行ガードで弾かれた起動はここを消費せず、`review_media_selection_skipped` として別に残す
+	 *（start / finished の対応が崩れると「何回走ったか」を後追いできなくなるため）。
+	 */
 	const mediaSelectionAttemptRef = useRef(0);
 
 	// 料理カテゴリの状態管理
@@ -207,12 +230,25 @@ export function ReviewForm({
 	 * これにより「親が再レンダーすると effect が張り替わる」経路が根本から無くなる。
 	 *
 	 * @param origin 起動起点（`"mount"` = マウント時 effect / `"retry"` = 再試行ボタン）
-	 * @param isCancelled この起動が属する effect が既に片付けられたかを返す関数
+	 * @param generation 起動時点の実行世代（`mediaGenerationRef` の値）。宣言箇所のコメント参照
 	 */
-	const runMediaSelection = useCallback(async (origin: "mount" | "retry", isCancelled: () => boolean) => {
+	const runMediaSelection = useCallback(async (origin: "mount" | "retry", generation: number) => {
+		/** #1127 この起動が属する世代がもう有効でない（= 張り替え済み / アンマウント済み）か */
+		const isStale = () => generation !== mediaGenerationRef.current;
+
 		// #1127 native 側（Android の isPickerOpen）に弾かれる二重起動を JS 側で先に防ぐ。
 		// 宣言箇所のコメント参照。ここより後にピッカー起動処理を書くこと
-		if (isSelectingMediaRef.current) return;
+		if (isSelectingMediaRef.current) {
+			// #1127 弾いた起動こそが「二重起動が起きた」という一番知りたい事実なので、
+			// attempt を消費しない専用イベントとして残す（start/finished の対を崩さないため）
+			logFrontendEventRef.current({
+				event_name: "review_media_selection_skipped",
+				error_level: "warn",
+				// #1127 【セキュリティ】メディアの URI や個人情報は payload へ入れないこと
+				payload: { origin },
+			});
+			return;
+		}
 		isSelectingMediaRef.current = true;
 
 		const attempt = (mediaSelectionAttemptRef.current += 1);
@@ -234,21 +270,21 @@ export function ReviewForm({
 		};
 
 		/**
-		 * #1127 結果を破棄する経路。**マウントされたままなら loading に置き去りにしない**。
-		 * 旧実装はここで黙って return しており、スピナーのまま戻ることもできない手詰まりになっていた。
+		 * #1127 結果を破棄する経路。旧実装はここで黙って return しており、
+		 * 破棄されたこと自体が観測できなかったのでログだけは必ず残す。
+		 *
+		 * 世代が古い＝「アンマウント済み」か「新しい effect が mediaState の所有権を持っている」の
+		 * どちらかなので、**ここから setMediaState してはいけない**（どちらの場合も上書きが誤り）。
 		 */
 		const discard = (outcome: { success: boolean; error?: string }) => {
 			logFinished({ ...outcome, discarded: true });
-			if (mountedRef.current) {
-				setMediaState({ status: "error", error: i18n.t("Map.media.mediaSelectionError") });
-			}
 		};
 
 		try {
 			const result = await selectMedia(["images", "videos"], { shouldGenerateThumbnail: true });
 
-			// Guard against setState on unmounted component
-			if (isCancelled() || !mountedRef.current) {
+			// Guard against setState on unmounted / superseded component
+			if (isStale()) {
 				discard({ success: result.success, error: result.error });
 				return;
 			}
@@ -285,7 +321,7 @@ export function ReviewForm({
 			lightImpactRef.current(); // Haptic feedback on success
 			logFinished({ success: true, discarded: false });
 		} catch (error) {
-			if (isCancelled() || !mountedRef.current) {
+			if (isStale()) {
 				discard({ success: false, error: "exception" });
 				return;
 			}
@@ -296,69 +332,102 @@ export function ReviewForm({
 		}
 	}, []);
 
+	/**
+	 * #1127 【修正】プレビュー専用モードの「中身」だけを取り出した依存キー。
+	 *
+	 * 呼び出し元のうち review-from-media/[dishMediaId].tsx は `prefilledMedia` を
+	 * インラインのオブジェクトリテラルで渡すため、オブジェクト identity をそのまま
+	 * 依存配列へ入れると親が再レンダーするたびに下の effect が張り替わり、
+	 * `media_type === "image"` のプレビューが毎回 `loading`（スピナー）へ巻き戻る。
+	 * 呼び出し側の useMemo だけに頼ると「呼び出し元が identity を安定させている」という
+	 * 暗黙の契約に依存し続けるので、ここでコンポーネント内に閉じる。
+	 *
+	 * 一方、#511 のとおり `mediaUrl` は null（加工中）から後追いで値ありへ変わりうるため
+	 * `id` だけをキーにすると今度は反映されなくなる。そのため
+	 * **`handleSetMediaState` が実際に読むフィールド**（id / media_type / mediaUrl /
+	 * thumbnailImageUrl）を突き合わせる。ここに項目を足したら本キーにも足すこと。
+	 */
+	const prefilledMediaKey = prefilledMedia
+		? JSON.stringify([
+				prefilledMedia.id,
+				prefilledMedia.media_type,
+				prefilledMedia.mediaUrl,
+				prefilledMedia.thumbnailImageUrl,
+			])
+		: null;
+
 	// マウント時にメディア選択を実行
 	useEffect(() => {
-		// #1127 【修正】cleanup で落とされた mountedRef をここで再武装する。
-		// これが無いと effect が一度でも張り替わった時点で false が恒久化し、
-		// 以降すべての選択結果が破棄され続ける（宣言箇所のコメント参照）
-		mountedRef.current = true;
+		// #1127 【修正】この実行の世代を確定する。cleanup（張り替え / アンマウント）で
+		// インクリメントされるため、非同期処理はこの値と現在値を比べるだけで生死を判定できる
+		const generation = ++mediaGenerationRef.current;
+		/** #1127 この実行がもう有効でない（= 張り替え済み / アンマウント済み）か */
+		const isStale = () => generation !== mediaGenerationRef.current;
 
 		const handleSetMediaState = async () => {
-			if (!prefilledMedia || !mountedRef.current) return;
+			// #1127 identity ではなく内容で張り替えるため、オブジェクト本体は ref 経由で読む
+			const media = prefilledMediaRef.current;
+			if (!media) return;
 			// #511 【設計】mediaUrl が null の場合（処理中）は早期 return
-			const mediaUrl = prefilledMedia.mediaUrl;
+			const mediaUrl = media.mediaUrl;
 			if (!mediaUrl) return;
 			try {
-				if (prefilledMedia.media_type === "image") {
+				if (media.media_type === "image") {
 					setMediaState({ status: "loading" });
 					await Image.prefetch(mediaUrl);
 				}
-				const thumbnailUrl = prefilledMedia.thumbnailImageUrl;
+				const thumbnailUrl = media.thumbnailImageUrl;
 				thumbnailUrl && (await Image.prefetch(thumbnailUrl));
+				// #1127 prefetch 中に張り替え / アンマウントされていたら書き戻さない
+				if (isStale()) return;
 				// 既存メディアをプレビュー用のMediaDataに変換
 				setMediaState({
 					status: "success",
 					media: {
-						type: prefilledMedia.media_type as CreateDishMediaDto["mediaType"],
+						type: media.media_type as CreateDishMediaDto["mediaType"],
 						uri: mediaUrl,
 						// 【設計】prefilledMedia が指定されている場合は、mimeType は利用しないので適当に設定
-						mimeType: prefilledMedia.media_type,
+						mimeType: media.media_type,
 						thumbnailUri: thumbnailUrl,
 					},
 				});
 			} catch (error) {
+				if (isStale()) return;
 				setMediaState({ status: "error", error: i18n.t("Map.media.mediaSelectionError") });
 			}
 		};
 
-		let cancelled = false;
-
 		// #400 【設計】prefilledMedia が指定されている場合は、メディア選択をスキップしてプレビュー専用モードにする
-		if (prefilledMedia) {
+		if (prefilledMediaKey !== null) {
 			handleSetMediaState();
-			return () => {
-				mountedRef.current = false;
-			};
 		} else {
 			// 通常のメディア選択フロー
-			runMediaSelection("mount", () => cancelled);
-			return () => {
-				cancelled = true;
-				mountedRef.current = false;
-			};
+			runMediaSelection("mount", generation);
 		}
-		// #1127 依存は prefilledMedia（= モードの切り替え）だけに絞る。
-		// onCancel / lightImpact は ref 経由で読むため、親の再レンダーで effect が張り替わらない
-	}, [prefilledMedia, runMediaSelection]);
+
+		return () => {
+			// #1127 世代を進めて、この実行に属する非同期処理の書き戻しを無効化する
+			mediaGenerationRef.current += 1;
+		};
+		// #1127 依存は 2 つ。
+		// - prefilledMediaKey: プレビュー専用モードかどうかと、プレビューの**中身**が変わったか
+		//   （オブジェクト identity では張り替えない）
+		// - runMediaSelection: useCallback([]) で参照が安定しているので実質不変
+		// prefilledMedia 本体 / onCancel / lightImpact / logFrontendEvent は ref 経由で読むため、
+		// 親の再レンダーだけでは effect が張り替わらない
+	}, [prefilledMediaKey, runMediaSelection]);
 
 	// Retry media selection
 	const handleRetry = useCallback(() => {
-		// #1127 前回の選択がまだ native 側で開いている間の再試行は無視する。
-		// ここで loading へ倒してから同時実行ガードに弾かれると、スピナーのまま固着する
-		if (isSelectingMediaRef.current) return;
-		setMediaState({ status: "loading" });
-		// #1127 マウント時 effect と同じ実行本体を使う（ref 経由・同時実行ガード・mountedRef の扱いを揃える）
-		runMediaSelection("retry", () => false);
+		// #1127 前回の選択がまだ native 側で開いている間は loading へ倒さない。
+		// 倒してから同時実行ガードに弾かれると、スピナーのまま固着する。
+		// 起動そのものは常に runMediaSelection へ委譲し、弾いた事実は向こうで診断ログに残す
+		//（両方の読み取りは同一 JS タスク内で同期的に走るのでレースしない）
+		if (!isSelectingMediaRef.current) setMediaState({ status: "loading" });
+		// #1127 マウント時 effect と同じ実行本体を使う（ref 経由・同時実行ガード・世代判定を揃える）。
+		// 再試行は「いま有効な世代」に属するので現在値をそのまま渡す。
+		// アンマウント時は cleanup が世代を進めるため、遅れて返ってきた結果は書き戻されない
+		runMediaSelection("retry", mediaGenerationRef.current);
 	}, [runMediaSelection]);
 
 	// Animated height for InitialMediaPreview

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { View, StyleSheet, Text } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
@@ -128,6 +128,16 @@ export default function ReviewFromMediaScreen() {
 		fetchData();
 	}, [restaurantId, dishMediaId, callBackend, showSnackbar, logFrontendEvent]);
 
+	// #1127 【修正】ReviewForm へ渡す prefilledMedia の参照を安定させる（FeedDishMediaViewer.tsx と同じ形）。
+	// インラインのオブジェクトリテラルのままだと、この画面が再レンダーするたびに identity が変わり、
+	// ReviewForm 側のプレビュー用 effect が張り替わってプレビューがスピナーへ点滅する。
+	// この画面は useAPICall() → useAuth() で AuthContext を購読しているため、再レンダーは頻繁に起きる。
+	// early return より前で宣言すること（Hooks の呼び出し順を固定するため）。
+	const prefilledMedia = useMemo(
+		() => (dishMedia ? { ...dishMedia.dish_media, dish: dishMedia.dish } : undefined),
+		[dishMedia],
+	);
+
 	// #644 【設計】ローディング表示
 	if (isLoading) {
 		return (
@@ -177,7 +187,7 @@ export default function ReviewFromMediaScreen() {
 			{/* #644 【設計】ReviewForm を既存メディア利用モード（prefilledMedia）で表示 */}
 			<ReviewForm
 				restaurant={restaurantEntry.restaurant}
-				prefilledMedia={{ ...dishMedia.dish_media, dish: dishMedia.dish }}
+				prefilledMedia={prefilledMedia}
 				onCancel={handleReviewCancel}
 				onSuccess={handleReviewSuccess}
 			/>
