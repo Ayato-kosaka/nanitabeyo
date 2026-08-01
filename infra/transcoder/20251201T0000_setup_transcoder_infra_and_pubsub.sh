@@ -180,7 +180,7 @@ run_pubsub_setup() {
   echo "  - TOPIC_NAME       : ${topic_name}"
   echo
 
-  ./setup_transcoder_pubsub.sh \
+  bash ./setup_transcoder_pubsub.sh \
     "${PROJECT_ID}" \
     "${cloud_run_url}" \
     "${PUSH_SA_EMAIL}" \
