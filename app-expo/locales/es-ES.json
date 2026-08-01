@@ -27,7 +27,9 @@
 		"errors": {
 			"network": "Se produjo un error de red. Por favor, verifica tu conexión.",
 			"unexpected": "Se produjo un error inesperado. Por favor, inténtalo más tarde.",
-			"notFound": "No encontrado"
+			"notFound": "No encontrado",
+			"authUnavailable": "No se pudo iniciar sesión. Por favor, verifica tu conexión de red e inténtalo de nuevo.",
+			"authRateLimited": "Demasiadas solicitudes en este momento. Por favor, espera un momento e inténtalo de nuevo."
 		}
 	},
 	"DeepLinking": {

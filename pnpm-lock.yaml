@@ -485,12 +485,15 @@ importers:
       '@types/jest':
         specifier: ^29.5.14
         version: 29.5.14
+      '@types/node':
+        specifier: ^22.19.1
+        version: 22.19.1
       '@types/react':
         specifier: ~19.0.10
         version: 19.0.14
       '@types/react-test-renderer':
-        specifier: 19.0.0
-        version: 19.0.0
+        specifier: ^19.1.0
+        version: 19.1.0
       dotenv:
         specifier: ^16.4.7
         version: 16.6.1
@@ -3353,8 +3356,8 @@ packages:
   '@types/range-parser@1.2.7':
     resolution: {integrity: sha512-hKormJbkJqzQGhziax5PItDUTMAM9uE2XXQmM37dyd4hVM+5aVl7oVxMVUiVQn2oCQFN/LKCZdvSM0pFRqbSmQ==}
 
-  '@types/react-test-renderer@19.0.0':
-    resolution: {integrity: sha512-qDVnNybqFm2eZKJ4jD34EvRd6VHD67KjgnWaEMM0Id9L22EpWe3nOSVKHWL1XWRCxUWe3lhXwlEeCKD1BlJCQA==}
+  '@types/react-test-renderer@19.1.0':
+    resolution: {integrity: sha512-XD0WZrHqjNrxA/MaR9O22w/RNidWR9YZmBdRGI7wcnWGrv/3dA8wKCJ8m63Sn+tLJhcjmuhOi629N66W6kgWzQ==}
 
   '@types/react@19.0.14':
     resolution: {integrity: sha512-ixLZ7zG7j1fM0DijL9hDArwhwcCb4vqmePgwtV0GfnkHRSCUEv4LvzarcTdhoqgyMznUx/EhoTUv31CKZzkQlw==}
@@ -14389,7 +14392,7 @@ snapshots:
 
   '@types/range-parser@1.2.7': {}
 
-  '@types/react-test-renderer@19.0.0':
+  '@types/react-test-renderer@19.1.0':
     dependencies:
       '@types/react': 19.0.14
 

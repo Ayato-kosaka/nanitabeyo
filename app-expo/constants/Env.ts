@@ -19,7 +19,20 @@ export const Env = {
 	// ?? ではなく || を使う: eas-cli env:pull が `EXPO_PUBLIC_COMMIT_ID=` を書き出すと空文字になり、
 	// 空文字は @IsString() を通過して BigQuery に "" が入り 'unknown-' 述語から漏れるため。
 	// ⚠️ APP_VERSION には同じことをしないこと（下記コメント参照）
-	COMMIT_ID: (extra.EXPO_PUBLIC_COMMIT_ID as string | undefined) || UNKNOWN_BUILD_META_CLIENT,
+	//
+	// #1076 process.env を第1候補にする。web と native で config の作られ方が違うため:
+	//   web    … babel-preset-expo の expo-inline-manifest-plugin がバンドラのプロセス内で
+	//            getConfig() を評価するので extra 経由で確実に届く
+	//   native … Gradle の :expo-constants:createExpoConfig が別プロセスで app.config アセットを
+	//            生成するため、`.env` 追記が黙って落ちうる（@expo/env は空文字を truthy チェックで
+	//            捨て、.env.local を .env より優先する）。実際に E2E Mobile で unknown-client になった
+	// process.env.EXPO_PUBLIC_* は babel-preset-expo の inline-env-vars が production バンドル時に
+	// リテラルへ置換するため、app.config アセット経路とは独立した第2の供給路になる。
+	// 片方が壊れてももう片方で拾えるようにしておく（両経路とも同じ値が入る想定）。
+	COMMIT_ID:
+		process.env.EXPO_PUBLIC_COMMIT_ID ||
+		(extra.EXPO_PUBLIC_COMMIT_ID as string | undefined) ||
+		UNKNOWN_BUILD_META_CLIENT,
 	NODE_ENV: extra.EXPO_PUBLIC_NODE_ENV as string,
 	APP_STORE_URL: extra.EXPO_PUBLIC_APP_STORE_URL as string,
 	PLAY_STORE_URL: extra.EXPO_PUBLIC_PLAY_STORE_URL as string,

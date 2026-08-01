@@ -27,7 +27,9 @@
 		"errors": {
 			"network": "네트워크 오류가 발생했습니다. 연결을 확인해 주세요.",
 			"unexpected": "예기치 않은 오류가 발생했습니다. 나중에 다시 시도해 주세요.",
-			"notFound": "찾을 수 없음"
+			"notFound": "찾을 수 없음",
+			"authUnavailable": "인증에 실패했습니다. 네트워크 연결을 확인한 후 다시 시도해 주세요.",
+			"authRateLimited": "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요."
 		}
 	},
 	"DeepLinking": {

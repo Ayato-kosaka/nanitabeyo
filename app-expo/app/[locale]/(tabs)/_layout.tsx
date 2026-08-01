@@ -2,6 +2,7 @@ import { Tabs } from "expo-router";
 import { MapPinned, Bell, User, Search, Pencil } from "lucide-react-native";
 import i18n from "@/lib/i18n";
 import { useAuth } from "@/contexts/AuthProvider";
+import { isGuestUser } from "@/lib/authGuest";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { View } from "react-native";
 
@@ -89,7 +90,16 @@ export default function TabLayout() {
 							<Bell size={ICON_SIZE} color={color} />
 						</View>
 					),
-					href: user?.is_anonymous ? null : undefined,
+					// #1092 【設計】auth 未確定(user === null)を「ゲスト」と同じ扱いに寄せる。
+					// `user?.is_anonymous` の truthy 判定だと未確定は falsy になり、通知タブが
+					// **出てから消える**（タブ本数が 5→4 に変わりタブバー全体が再レイアウトする）。
+					// 出てから消えるより、出ない→出るの方が害が小さい。web の SSG は
+					// user === null の状態を出力するので、その観点でもこちらが安全。
+					//
+					// #1092 PR4b 【修正】判定を `user?.is_anonymous !== false` から `isGuestUser()` へ寄せた。
+					// 旧式は `is_anonymous` が undefined（型の上では optional）のときもゲストへ倒れるため、
+					// **ログイン済みなのに通知タブが出ない**が起こりうる。判定の中身と理由は lib/authGuest.ts。
+					href: isGuestUser(user) ? null : undefined,
 				}}
 			/>
 			<Tabs.Screen

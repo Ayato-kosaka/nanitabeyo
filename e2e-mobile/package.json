@@ -21,7 +21,9 @@
 		"test:ci:smoke:ios": "detox test --configuration ios.sim.release --retries 1 --take-screenshots all --artifacts-location artifacts -- --testPathPattern 'tests/smoke/'",
 		"typecheck": "tsc --noEmit",
 		"test:ci:mutation:android": "RUN_MUTATION=1 detox test --configuration android.emu.release --headless --take-screenshots all --artifacts-location artifacts -- --testPathPattern 'tests/mutation/'",
-		"test:ci:mutation:ios": "RUN_MUTATION=1 detox test --configuration ios.sim.release --take-screenshots all --artifacts-location artifacts -- --testPathPattern 'tests/mutation/'"
+		"test:ci:mutation:ios": "RUN_MUTATION=1 detox test --configuration ios.sim.release --take-screenshots all --artifacts-location artifacts -- --testPathPattern 'tests/mutation/'",
+		"test:ci:probe:android": "RUN_PROBE=1 detox test --configuration android.emu.release --headless --take-screenshots all --artifacts-location artifacts -- --testPathPattern 'tests/probe/'",
+		"test:ci:probe:ios": "RUN_PROBE=1 detox test --configuration ios.sim.release --take-screenshots all --artifacts-location artifacts -- --testPathPattern 'tests/probe/'"
 	},
 	"devDependencies": {
 		"@supabase/supabase-js": "^2.49.4",

@@ -11,6 +11,7 @@ import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
 import { useLogger } from "@/hooks/useLogger";
 import { useAuth } from "@/contexts/AuthProvider";
+import { isGuestUser } from "@/lib/authGuest";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { OtpModal } from "./OtpModal";
 import { LegalDocument } from "@/features/settings/components/LegalDocument";
@@ -88,10 +89,28 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 
 	const handleOAuthSignIn = useCallback(
 		async (provider: "google" | "facebook" | "twitter" | "apple") => {
+			// #1092 【設計】auth が未確定(user === null)のまま進めてはならない分岐。
+			// `user?.is_anonymous` は未確定でも undefined = falsy になるため、下の分岐は
+			// linkIdentity(匿名ユーザーの昇格)ではなく signInWithOAuth(新規ユーザー作成)を選ぶ。
+			// 匿名で貯めたデータから切り離された別アカウントが生まれる = アカウント分裂なので、
+			// 「未確定なら何もしない」を明示する。
+			// ユーザーの操作起点なので実際には解決済みのはずだが、その前提をコードで保証していなかった。
+			if (!user) {
+				logFrontendEvent({
+					event_name: "oauth_signin_blocked_auth_unresolved",
+					error_level: "warn",
+					payload: { provider },
+				});
+				showSnackbar(i18n.t("Common.error"));
+				return;
+			}
+
 			setIsLoading(true);
 			try {
-				// 前提: アプリの初期化時に signInAnonymously() をしているため、auth.userが存在する
-				const isAnonymous = user?.is_anonymous;
+				// #1092 PR4b `user.is_anonymous` の直読みから共通判定（lib/authGuest.ts）へ寄せた。
+				// user === null は上でガード済みなので、ここでの意味は「匿名セッションか」で変わらない。
+				// is_anonymous が欠落している場合にログイン済み扱いになる（＝ linkIdentity しない）のも同じ
+				const isAnonymous = isGuestUser(user);
 
 				if (isAnonymous && !hasExistingAccount) {
 					// 未チェック（昇格狙い）: 匿名セッションのまま OAuth を追加(linkIdentity)を試みる。
@@ -178,7 +197,12 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 					</View> */}
 
 			{/* Existing Account Checkbox - Show only for anonymous users */}
-			{user?.is_anonymous && (
+			{/* #1092 PR4b ここは `isGuestUser(user)` へ丸ごと寄せない。isGuestUser は user === null（認証未確定）を
+			    ゲストへ倒すため、そのまま置くと未確定の一瞬だけチェックボックスが出て消える。
+			    このチェックボックスは上の handleOAuthSignIn の分岐用で、未確定の間はその分岐自体が
+			    「何もしない」に倒れている（＝出しても押す意味がない）。
+			    そのため null の扱いだけ従来どおり `user &&` で落とし、is_anonymous の解釈だけ共通判定へ揃える。 */}
+			{user && isGuestUser(user) && (
 				<TouchableOpacity
 					style={styles.checkboxContainer}
 					onPress={() => setHasExistingAccount(!hasExistingAccount)}

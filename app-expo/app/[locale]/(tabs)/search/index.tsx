@@ -20,6 +20,7 @@ import type { AutocompleteLocation, LocationDetailsResponse } from "@shared/api/
 import { useLocationSearch } from "@/hooks/useLocationSearch";
 import { LocationPermissionError, type LocationPermissionErrorKind } from "@/hooks/locationPermissionError";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
+import { toErrorLogString } from "@/lib/errorMessage";
 import {
 	LocationAutocomplete,
 	type LocationAutocompleteHandle,
@@ -47,6 +48,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { DEFAULT_SEARCH_RADIUS } from "@/features/topics/constants";
 import { TutorialBottomSheet } from "@/features/search/components/TutorialBottomSheet";
 import { useSearchTutorial } from "@/features/search/hooks/useSearchTutorial";
+import { useAutoCurrentLocation } from "@/features/search/hooks/useAutoCurrentLocation";
 import { useRecentLocations } from "@/features/search/hooks/useRecentLocations";
 import { Image } from "expo-image";
 import { PrimaryButton } from "@/components/PrimaryButton";
@@ -168,7 +170,7 @@ export default function SearchScreen() {
 			logFrontendEvent({
 				event_name: "location_selection_failed",
 				error_level: "error",
-				payload: { placeId: prediction.place_id, error: String(error) },
+				payload: { placeId: prediction.place_id, error: toErrorLogString(error) },
 			});
 			showSnackbar(i18n.t("Search.errors.fetchLocation"));
 		}
@@ -225,7 +227,7 @@ export default function SearchScreen() {
 			logFrontendEvent({
 				event_name: "current_location_failed",
 				error_level: "error",
-				payload: { error: String(error), kind },
+				payload: { error: toErrorLogString(error), kind },
 			});
 			showSnackbar(getCurrentLocationErrorMessage(kind));
 
@@ -341,6 +343,17 @@ export default function SearchScreen() {
 	// 発火しなくなるため、常にタップ可能にしたうえで見た目だけ「未充足」を伝える
 	const isSearchReady = !!location && !!timeSlot && !!scene;
 
+	// #1092 【設計】現在地の自動取得は下の「一度きり」ガードの内側から呼ばれるため、
+	// 認証未確立で失敗するとその起動では現在地が二度と入らない。
+	// トークン欠如で失敗したときだけ auth 解決後に 1 回取り直す責務をフックへ切り出している。
+	const { requestAutoCurrentLocation } = useAutoCurrentLocation({
+		getCurrentLocation,
+		onResolved: useCallback((currentLocation: Omit<LocationDetailsResponse, "viewport">) => {
+			setLocation(currentLocation);
+			setLocationQuery(i18n.t("Search.currentLocation"));
+		}, []),
+	});
+
 	// ========== チュートリアル表示制御 ==========
 	const [showTutorial, setShowTutorial] = useState(false);
 	const { hasSeenTutorial, isLoading: isTutorialLoading, markTutorialAsSeen } = useSearchTutorial();
@@ -359,23 +372,7 @@ export default function SearchScreen() {
 
 		if (!isJapanese) {
 			// #642 【設計】対応言語以外ではチュートリアルを表示しない
-			// #932 【修正】マウント時の自動取得はユーザー操作を伴わないためSnackbarは出さない(UXを損なうため)。
-			// ただし console.error への握りつぶしをやめ、理由(kind)付きで構造化ログに残す
-			getCurrentLocation()
-				.then((currentLocation) => {
-					setLocation(currentLocation);
-					setLocationQuery(i18n.t("Search.currentLocation"));
-				})
-				.catch((error) => {
-					logFrontendEvent({
-						event_name: "current_location_auto_fetch_failed",
-						error_level: "warn",
-						payload: {
-							error: String(error),
-							kind: error instanceof LocationPermissionError ? error.kind : "unavailable",
-						},
-					});
-				});
+			requestAutoCurrentLocation();
 			return;
 		}
 
@@ -389,24 +386,9 @@ export default function SearchScreen() {
 			});
 		} else if (hasSeenTutorial === true) {
 			// #642 【設計】チュートリアル既表示の場合、現在地取得してセットする
-			// #932 【修正】上と同様、Snackbarは出さず理由(kind)付きで構造化ログに残す
-			getCurrentLocation()
-				.then((currentLocation) => {
-					setLocation(currentLocation);
-					setLocationQuery(i18n.t("Search.currentLocation"));
-				})
-				.catch((error) => {
-					logFrontendEvent({
-						event_name: "current_location_auto_fetch_failed",
-						error_level: "warn",
-						payload: {
-							error: String(error),
-							kind: error instanceof LocationPermissionError ? error.kind : "unavailable",
-						},
-					});
-				});
+			requestAutoCurrentLocation();
 		}
-	}, [isFocused, isTutorialLoading, hasSeenTutorial, logFrontendEvent, getCurrentLocation, isJapanese]);
+	}, [isFocused, isTutorialLoading, hasSeenTutorial, logFrontendEvent, requestAutoCurrentLocation, isJapanese]);
 
 	// #642 【設計】ヘルプアイコンからチュートリアルを手動で開く
 	const handleOpenTutorial = () => {

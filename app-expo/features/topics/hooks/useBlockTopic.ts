@@ -8,6 +8,7 @@ import { insertReaction } from "@/lib/reactions";
 import i18n from "@/lib/i18n";
 import type { ShowSnackbarOptions } from "@/contexts/SnackbarProvider";
 import type { UnblockDishCategoryResponse } from "@shared/api/v1/res";
+import { toErrorLogMessage } from "@/lib/errorMessage";
 
 export const useBlockTopic = (
 	hideTopic: (id: string, reason: string) => void,
@@ -40,7 +41,7 @@ export const useBlockTopic = (
 					error_level: "error",
 					payload: {
 						topic_id: topic.categoryId,
-						error: error instanceof Error ? error.message : String(error),
+						error: toErrorLogMessage(error),
 					},
 				});
 				showSnackbar(i18n.t("Common.error"));
@@ -103,7 +104,7 @@ export const useBlockTopic = (
 							error_level: "error",
 							payload: {
 								topic_id: topic.categoryId,
-								error: error instanceof Error ? error.message : String(error),
+								error: toErrorLogMessage(error),
 							},
 						});
 

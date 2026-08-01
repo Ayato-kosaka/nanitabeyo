@@ -62,6 +62,35 @@ test.describe("検索フォーム", () => {
 		await expect(appPage.getByText("どんな系統が食べたい？")).toBeVisible();
 	});
 
+	// ─ テストケース: 食べたい系統チップに taste・core_ingredient の全選択肢が並ぶ ─
+	// #1107 tasteOptions の spicy は #876 の設計に含まれていたが、後から constants.ts 上で
+	// コメントアウトされ検索画面とおすすめ料理画面の両方から消えていた。同じ消え方を検知できるよう、
+	// 8 チップが揃っていることと spicy を選択できることを回帰テストとして固定する。
+	// なお本テストが直接守るのは検索画面側のみ。おすすめ料理画面の深掘り候補は API が返す
+	// deepDiveFeatures に依存するため e2e では固定できないが、両画面とも tasteOptions を
+	// 唯一の定義元にしているため、この 8 チップが守れていれば同じ消え方は検知できる。
+	// 手順:
+	//   1. appPage で起動し search-advanced-toggle を開く
+	//   2. taste 4 種・core_ingredient 4 種のチップがすべて表示されることを検証
+	//   3. 「辛いもの」を選択すると選択状態になることを検証
+	test("食べたい系統に taste・core_ingredient の全選択肢が表示され、辛いものを選択できる", async ({ appPage }) => {
+		const searchPage = new SearchPage(appPage);
+
+		await searchPage.advancedToggle.click();
+
+		for (const id of ["sweet", "spicy", "healthy", "junk"]) {
+			await expect(searchPage.foodStyle("taste", id)).toBeVisible();
+		}
+		for (const id of ["meat", "fish", "rice", "noodle"]) {
+			await expect(searchPage.foodStyle("core_ingredient", id)).toBeVisible();
+		}
+
+		const spicyChip = searchPage.foodStyle("taste", "spicy");
+		await expect(spicyChip).toHaveAttribute("aria-checked", "false");
+		await spicyChip.click();
+		await expect(spicyChip).toHaveAttribute("aria-checked", "true");
+	});
+
 	// ─ テストケース: 距離に適した移動手段だけをおすすめ順で表示する ─
 	// #987 【仕様】近距離の車・電車は既定表示せず、国交省資料の距離帯を満たす手段を
 	// 一般化所要時間の短い順で表示する。おすすめ外は「もっと見る」でだけ確認できる。

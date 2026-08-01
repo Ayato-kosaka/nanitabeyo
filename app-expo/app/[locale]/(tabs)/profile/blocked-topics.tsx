@@ -17,6 +17,7 @@ import { useLogger } from "@/hooks/useLogger";
 
 import { QueryMeBlockedDishCategoriesResponse, UnblockDishCategoryResponse } from "@shared/api/v1/res";
 import type { SupabaseDishCategories } from "@shared/converters/convert_dish_categories";
+import { toErrorLogMessage } from "@/lib/errorMessage";
 
 type BlockedCategory = SupabaseDishCategories;
 
@@ -130,7 +131,7 @@ export default function BlockedTopicsScreen() {
 					event_name: "fetch_blocked_categories_failed",
 					error_level: "error",
 					payload: {
-						error: error instanceof Error ? error.message : String(error),
+						error: toErrorLogMessage(error),
 					},
 				});
 				showSnackbar(i18n.t("Common.error"));
@@ -194,7 +195,7 @@ export default function BlockedTopicsScreen() {
 							event_name: "unblock_category_failed",
 							error_level: "error",
 							payload: {
-								error: error instanceof Error ? error.message : String(error),
+								error: toErrorLogMessage(error),
 								category_id: category.id,
 							},
 						});

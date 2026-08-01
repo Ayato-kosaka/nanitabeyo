@@ -17,6 +17,7 @@ import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import { useGoogleMapsFallback } from "@/features/search/hooks/useGoogleMapsFallback";
 import { createDishItemsForCategory } from "@/lib/dishMediaSearch";
+import { toErrorLogMessage } from "@/lib/errorMessage";
 
 type UseCandidateDishMediaCacheParams = {
 	cacheCandidateDishMedia: (
@@ -122,7 +123,7 @@ export function useCandidateDishMediaCache({
 					error_level: "error",
 					payload: {
 						candidateId: candidate.id,
-						error: error instanceof Error ? error.message : String(error),
+						error: toErrorLogMessage(error),
 					},
 				});
 				showGoogleMapsFallbackDialog({

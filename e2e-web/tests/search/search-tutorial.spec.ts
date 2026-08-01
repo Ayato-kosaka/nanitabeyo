@@ -13,12 +13,6 @@ import { SearchPage } from "../../pages/SearchPage";
  */
 test.use({ seedTutorialSeen: false });
 
-/**
- * P3 で「つぎへ」を押す回数の上限(無限ループ防止)。
- * 現在のチュートリアルは 4 ページなので、最悪でも 3 回で最終ページに着く。
- */
-const MAX_TUTORIAL_PAGE_PRESSES = 10;
-
 test.describe("検索チュートリアル(ja-JP 初回訪問)", () => {
 	// ─ テストケース: 初回訪問でチュートリアルが自動表示される ─
 	// 手順:
@@ -44,22 +38,24 @@ test.describe("検索チュートリアル(ja-JP 初回訪問)", () => {
 	//      URL バー上のパス(例: /map)に対応する別ルートの静的 HTML が読み込まれてしまう。
 	//      そのため reload ではなく検索画面のパスへ明示的に goto する)
 	//   5. チュートリアルが自動表示されないことを検証
+	//
+	// ⚠️ #1091 ページ送り・完了操作を `getByText(...).click()` で書かないこと。
+	//    ページ送りアニメーション中に TutorialBottomSheet の `onViewableItemsChanged` が
+	//    `currentPage` を揺らすため、「はじめよう」の可視アサートが一瞬通った直後に
+	//    `currentPage` が 2 へ戻り、**最終ページにしか描画されない「あとで」が unmount されて**
+	//    クリックが届かずに落ちる(並列実行時に 3 回に 1 回再現)。
+	//    要素の特定と押下を同一 JS タスク内で行い、揺れたら押し直す
+	//    `SearchPage.completeTutorialWithLater()` に寄せて構造的に潰している。
 	test("完了後は再訪問しても表示されない", async ({ page }) => {
+		const searchPage = new SearchPage(page);
+
 		await page.goto("/");
 		await expect(page.getByText("食べたい料理に気づけるアプリ")).toBeVisible();
 
-		// page1 → page2 → page3 → page4 まで「つぎへ」で進める
-		for (let i = 0; i < 3; i++) {
-			await page.getByText("つぎへ", { exact: true }).click();
-		}
-		await expect(page.getByText("はじめよう", { exact: true })).toBeVisible();
+		// page1 → … → 最終ページまで進め、「あとで」で完了させる(現在地取得は避ける)
+		await searchPage.completeTutorialWithLater();
 
-		// 「あとで」を押して完了させる(現在地取得は避ける)
-		await page.getByText("あとで", { exact: true }).click();
-
-		await expect
-			.poll(() => page.evaluate(() => window.localStorage.getItem("search_tutorial_seen_v1")))
-			.toBe("true");
+		await expect.poll(() => page.evaluate(() => window.localStorage.getItem("search_tutorial_seen_v1"))).toBe("true");
 
 		await page.goto("/ja-JP/search");
 		await expect(page.getByText("どんな料理を探しましょう？🍽")).toBeVisible();
@@ -105,24 +101,23 @@ test.describe("検索チュートリアル(ja-JP 初回訪問)", () => {
 		await expect(searchPage.tutorialOverlay).toBeVisible();
 		await expect
 			.poll(
-				async () =>
-					(await searchPage.tutorialNextButton.count()) + (await searchPage.tutorialFinishButton.count()),
+				async () => (await searchPage.tutorialNextButton.count()) + (await searchPage.tutorialFinishButton.count()),
 				{ message: "連打でプライマリ CTA が消えた/二重になった" },
 			)
 			.toBe(1);
 
-		// 連打後も操作が続けられる(残りのページを 1 ページずつ進み切れる)。
-		// 「つぎへ」が無くなった時点で最終ページに着いている。
-		// #1086 「つぎへ」の存在確認と押下は pressTutorialNextIfPresent で原子的に行う
-		// (プライマリ CTA は単一ノードで testID だけが入れ替わるため、count() で確認してから
-		//  click() すると『はじめよう』へ化けたノードを叩いてシートを閉じてしまうことがある)
-		for (let i = 0; i < MAX_TUTORIAL_PAGE_PRESSES; i += 1) {
-			if (!(await searchPage.pressTutorialNextIfPresent())) break;
-		}
-		await expect(searchPage.tutorialFinishButton).toBeVisible();
-
-		// 完了操作も通る(現在地取得を避けるため「あとで」で完了させる)
-		await page.getByText("あとで", { exact: true }).click();
+		// 連打後も操作が続けられる(残りのページを進み切って完了できる)。
+		// 完了は現在地取得を避けるため「あとで」で行う。
+		//
+		// ⚠️ #1097 「つぎへ」が無くなったら break して完了操作へ移る、という書き方をしないこと。
+		//    pressTutorialNextIfPresent() の false は「**その瞬間** search-tutorial-next が DOM に無い」
+		//    ことしか意味せず、「最終ページに着いた」と同義ではない。ページ送りアニメーション中は
+		//    onViewableItemsChanged が currentPage を揺らすため(#1091 と同種の窓)、最終ページに
+		//    着いていないのに false が返り、その後の「あとで」が現れないまま待つ形になり得る。
+		//    「1 回のポーリング内で『あとで』→ 無ければ『つぎへ』」という自己修復構造の
+		//    completeTutorialWithLater() に寄せて、押し直し経路を必ず持たせる
+		//    (「あとで」は最終ページにしか描画されないので、押せた時点で最終ページ到達も同時に示される)。
+		await searchPage.completeTutorialWithLater();
 		await expect(page.getByText("どんな料理を探しましょう？🍽")).toBeVisible();
 	});
 });

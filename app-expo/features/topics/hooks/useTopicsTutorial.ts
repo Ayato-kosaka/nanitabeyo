@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLogger } from "@/hooks/useLogger";
+import { toErrorLogMessage } from "@/lib/errorMessage";
 import type { TopicsTutorialOpenReason } from "@/features/topics/types/tutorial";
 
 /**
@@ -63,7 +64,8 @@ export function useTopicsTutorial({ canAutoOpen }: UseTopicsTutorialOptions) {
 					error_level: "warn",
 					payload: {
 						operation: "read",
-						message: error instanceof Error ? error.message : String(error),
+						// #1092 PR4b 置換前は (B) なので message 側へ寄せる（Error は message のみで非回帰）
+						message: toErrorLogMessage(error),
 					},
 				});
 			}
@@ -128,7 +130,8 @@ export function useTopicsTutorial({ canAutoOpen }: UseTopicsTutorialOptions) {
 				error_level: "warn",
 				payload: {
 					operation: "write",
-					message: error instanceof Error ? error.message : String(error),
+					// #1092 PR4b 置換前は (B) なので message 側へ寄せる（Error は message のみで非回帰）
+					message: toErrorLogMessage(error),
 				},
 			});
 		});

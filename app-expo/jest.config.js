@@ -21,6 +21,9 @@ module.exports = {
 		`/node_modules/(?!.*/node_modules/)(?!(?:${ALLOWED_TO_TRANSFORM}))`,
 		"/node_modules/react-native-reanimated/plugin/",
 	],
+	// #1092 PR3 preset 側の setupFiles（react-native / jest-expo）は必ず残すこと。
+	// 消すと react-native の native モジュールのモックごと消える
+	setupFiles: [...(jestExpoPreset.setupFiles ?? []), "<rootDir>/jest.setup.js"],
 	testMatch: ["<rootDir>/**/*.test.ts", "<rootDir>/**/*.test.tsx"],
 	testPathIgnorePatterns: ["/node_modules/", "/dist/", "/dist-e2e-check/", "/.expo/", "/e2e/"],
 	// テスト間でモック呼び出し履歴を持ち越さない（logQueue のようなモジュール状態を持つ対象で事故りやすい）

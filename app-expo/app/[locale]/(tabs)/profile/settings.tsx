@@ -15,6 +15,7 @@ import { ChevronRight } from "lucide-react-native";
 import { Card } from "@/components/Card";
 import i18n from "@/lib/i18n";
 import { useAuth } from "@/contexts/AuthProvider";
+import { isGuestUser } from "@/lib/authGuest";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { LegalDocument } from "@/features/settings/components/LegalDocument";
 import { useHaptics } from "@/hooks/useHaptics";
@@ -67,7 +68,7 @@ function SettingsMenuItem({
 }
 
 export default function SettingsScreen() {
-	const { logout, user } = useAuth();
+	const { logout, user, isAuthResolved } = useAuth();
 	const router = useRouter();
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
@@ -293,6 +294,12 @@ export default function SettingsScreen() {
 		});
 	}, [lightImpact, logFrontendEvent, user?.id, router, locale]);
 
+	// #1092 【設計】auth 未確定(user === null)を「ログイン済み」と誤解させない。
+	// `!user?.is_anonymous` は未確定でも true になるため、下のログアウト行が
+	// 一瞬出てから消える（押せてしまう瞬間もある）。確定するまではゲスト側に寄せる。
+	// 判定は features/profile の isGuest と同じ共通関数（lib/authGuest.ts）へ揃えている。
+	const isGuest = !isAuthResolved || isGuestUser(user);
+
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
 			<SafeAreaView style={styles.safeArea} edges={[]}>
@@ -349,11 +356,11 @@ export default function SettingsScreen() {
 						<SettingsMenuItem
 							label={i18n.t("Settings.copyright")}
 							onPress={() => handleLegalDocument("copyright")}
-							isLast={!!user?.is_anonymous}
+							isLast={isGuest}
 							testID="settings-copyright"
 							accessibilityRole="button"
 						/>
-						{!user?.is_anonymous && (
+						{!isGuest && (
 							<SettingsMenuItem
 								label={i18n.t("Settings.logout")}
 								onPress={handleLogout}

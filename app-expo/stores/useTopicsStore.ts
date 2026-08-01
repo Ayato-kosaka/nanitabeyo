@@ -1,4 +1,5 @@
 import i18n from "@/lib/i18n";
+import { toErrorLogMessage } from "@/lib/errorMessage";
 import type { SupabaseDishCategories } from "@shared/converters/convert_dish_categories";
 import { createWithEqualityFn } from "zustand/traditional";
 
@@ -397,7 +398,11 @@ const handleAsyncAction = <T>(
 			await onSuccess(items);
 		})
 		.catch((err) => {
-			const errorMessage = err ? (err instanceof Error ? err.message : String(err)) : null;
+			// #1092 PR4b callBackend の失敗がそのまま来る。PR4a 以降ここには Error ではない
+			// ApiError(plain object) も流れるため、置換前の (B) 式だと画面のエラー文言が
+			// 「読み込みに失敗しました: [object Object]」になる。message を優先する共通関数へ寄せる。
+			// ⚠️ err が falsy のときの null（i18n へ渡さない）は置換前のまま維持する
+			const errorMessage = err ? toErrorLogMessage(err) : null;
 			set((state) => ({
 				errorByKey: {
 					...state.errorByKey,

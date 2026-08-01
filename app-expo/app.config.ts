@@ -1,4 +1,3 @@
-import * as dotenv from "dotenv";
 import { ExpoConfig, ConfigContext } from "@expo/config";
 import { version } from "./package.json";
 
@@ -230,6 +229,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 				// #1027 【設計】Detox E2E 用プラグイン（androidTest 設定・Network Security Config を注入する）
 				// 通常の EAS ビルドへ混入させないため、E2E ビルド時のみ E2E_DETOX=1 で有効化する
 				"@config-plugins/detox",
+				// #1016 【設計】Detox の androidTest APK が持ち込む古い protobuf が firebase-perf と衝突し、
+				// JS が動く前に FirebaseInitProvider で NoSuchMethodError を起こすのを防ぐ。
+				// 必ず @config-plugins/detox の後に置く（androidTest の依存が入ってから除外する）
+				"./plugins/withDetoxProtobufFix",
 			]
 			: []),
 		[
