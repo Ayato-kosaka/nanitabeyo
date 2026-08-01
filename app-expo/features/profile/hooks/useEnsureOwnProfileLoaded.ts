@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthProvider";
 import { isGuestUser } from "@/lib/authGuest";
 import { ApiError, useAPICall } from "@/hooks/useAPICall";
@@ -25,14 +25,21 @@ import { useProfile } from "./useProfile";
  *   // profile が利用可能
  * }
  * ```
+ *
+ * #1120 【設計】戻り値の `isProfileResolved` は「ロードが決着したか（成功・失敗を問わず）」。
+ * `profile === null` は「まだ読んでいない」と「読んだが取れなかった」の両方を意味するため、
+ * これだけを見て UI を分岐すると、ログイン済みユーザーにも数百 ms だけゲスト向け UI が出て
+ * 消える（= ちらつき）。未決着の間は分岐そのものを保留する用途に使う。
  */
-export function useEnsureOwnProfileLoaded() {
+export function useEnsureOwnProfileLoaded(): { isProfileResolved: boolean } {
 	const { user } = useAuth();
 	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
 	const { createUserProfile } = useProfile();
 	// ロード済みフラグとリトライフラグを管理するための ref
 	const hasLoadedRef = useRef(false);
+	// #1120 ref は再レンダーを起こさないため、呼び出し側へ返す決着状態は state で持つ
+	const [isProfileResolved, setIsProfileResolved] = useState(false);
 
 	// #1092 PR4b タブの表示判定（lib/authGuest.ts）と同じ式にしておく。
 	// ここだけ判定がずれると「reviews タブは出ているのにプロフィールはダミーのまま」になる
@@ -42,19 +49,28 @@ export function useEnsureOwnProfileLoaded() {
 	useEffect(() => {
 		useProfileStore.getState().resetProfile();
 		hasLoadedRef.current = false;
+		// #1120 セッションが変わればロードもやり直しになるので、決着状態も未決着へ戻す
+		setIsProfileResolved(false);
 	}, [user?.id, isGuest]);
 
 	useEffect(() => {
 		// #467 【設計】既にプロフィールがロード済みの場合は何もしない
-		if (hasLoadedRef.current) return;
+		if (hasLoadedRef.current) {
+			setIsProfileResolved(true);
+			return;
+		}
 		const { profile, setProfile } = useProfileStore.getState();
-		if (profile) return;
+		if (profile) {
+			setIsProfileResolved(true);
+			return;
+		}
 
 		const loadProfile = async () => {
 			// #467 【設計】ゲストユーザーの場合はダミープロフィールを設定
 			if (isGuest) {
 				setProfile(userProfile);
 				hasLoadedRef.current = true;
+				setIsProfileResolved(true);
 				return;
 			}
 
@@ -93,9 +109,14 @@ export function useEnsureOwnProfileLoaded() {
 				});
 			} finally {
 				hasLoadedRef.current = true;
+				// #1120 失敗しても「決着した（= これ以上待っても profile は増えない）」ことは確定する。
+				// ここを成功時だけにすると、プロフィール取得が落ちた人の UI が永久にローディングで固まる
+				setIsProfileResolved(true);
 			}
 		};
 
 		loadProfile();
 	}, [callBackend, isGuest, logFrontendEvent, user?.id, createUserProfile]);
+
+	return { isProfileResolved };
 }
