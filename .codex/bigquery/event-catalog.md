@@ -195,7 +195,38 @@ rg -o 'event_name:\s*"[^"]+"' app-expo --glob '!**/node_modules/**'
 > `oauth_signin_success` はほぼ発火せず、`oauth_signin_browser_dismissed` は「キャンセル」を意味しない。
 > これらはブラウザセッションの結末の記録であって、認証の成否ではない。
 
+> **⚠️ #1135 認証初期化の「巻き戻し防止」イベント（`*Superseded` / `anonymousSignInDiscarded`）の解釈**
+>
+> 認証初期化（`AuthProvider.runAuthAttempt`）は、その最中に別経路（Web の OAuth code 交換など）が
+> 新しいセッションを載せた場合、自分が読んだ古い結果を書き戻さずにスキップする。
+> スキップしたことを記録するのが次の 3 イベントで、いずれも `error_level: "log"`（異常終了ではない）。
+>
+> | イベント | 発火位置 | 意味 |
+> |---|---|---|
+> | `sessionRestoreSuperseded` | `getSession()` がセッションを返した後 | 復元結果の書き戻しをスキップした |
+> | `anonymousSignInSuperseded` | `getSession()` が「セッション無し」を返した後 | 匿名サインインの**呼び出し自体**をスキップした |
+> | `anonymousSignInDiscarded` | 匿名サインイン**成功後**の書き戻し直前 | 匿名セッションを作ったが、その間に別セッションが載ったため書き戻しをスキップした |
+>
+> **⚠️ `sessionRestoreSuperseded` を「競合の検知シグナル」としてそのまま監視しないこと。**
+> コールドスタート時にアクセストークンが失効していると、`getSession()` がロック内でリフレッシュを行い
+> `TOKEN_REFRESHED` で世代が進むため、**正常起動でもこの分岐に入る**（アクセストークン寿命を超えて
+> 久しぶりに起動したセッションは全てこれになる。E2E のセッション注入経路も同様）。
+> 異常系（別ユーザーのセッションに追い越された）だけを見たい場合は
+> **`payload.stale_user_id` と `payload.current_user_id` の一致で区別する**こと。
+>
+> - `stale_user_id == current_user_id` … 正常。同一ユーザーのトークン更新に追い越されただけ（state は `TOKEN_REFRESHED` ハンドラが正しく設定済み）
+> - `stale_user_id != current_user_id` … 本来見たい競合。別経路が別ユーザーのセッションを確立した
+>
+> この性質上、`sessionRestored` の件数はこの修正以降減る（減った分が `sessionRestoreSuperseded` に移る）ため、
+> 過去分と件数を比較する際は両者の合計で見ること。
+> `anonymousSignInSuperseded` / `anonymousSignInDiscarded` は正常起動では発火しないので、そのまま競合の
+> 検知に使える（`anonymousSignInDiscarded` は「匿名サインインの枠を 1 消費したが使わなかった」を意味する。
+> Supabase の匿名サインインは 30 回/時/IP 制限があるため、多発する場合は経路を疑うこと）。
+
 - `sessionRestored`
+- `sessionRestoreSuperseded`
+- `anonymousSignInSuperseded`
+- `anonymousSignInDiscarded`
 - `signInAnonymously`
 - `authInitError`
 - `userChanged`
