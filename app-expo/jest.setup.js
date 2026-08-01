@@ -12,3 +12,21 @@
 jest.mock("@react-native-async-storage/async-storage", () =>
 	require("@react-native-async-storage/async-storage/jest/async-storage-mock"),
 );
+
+// #1087 jest-expo は app.config.ts を評価しないため `Constants.expoConfig` は空オブジェクトになる。
+// 一方 `constants/Env.ts` は `extra.eas.projectId` を無条件に触るので、Env へ到達した suite は
+// 「Cannot read properties of undefined (reading 'projectId')」で **ロード段階ごと**落ちる。
+// Env は lib/supabase → contexts/AuthProvider → 各 hooks と芋づるで読み込まれる位置に居るため、
+// AsyncStorage と同じ理由でここへ一括して置く（画面を描画する suite は必ず踏む）。
+//
+// ⚠️ 値はテスト用のダミー。**本物の app.config.ts の値と一致させる必要はない**が、
+//    Env 経由の値をアサートするテストを書くときは、この既定値を見ていることに注意すること。
+jest.mock("expo-constants", () => {
+	const actual = jest.requireActual("expo-constants");
+	const expoConfig = { ...(actual.default?.expoConfig ?? {}) };
+	expoConfig.version = expoConfig.version ?? "0.0.0-test";
+	expoConfig.extra = { eas: { projectId: "00000000-0000-0000-0000-000000000000" }, ...(expoConfig.extra ?? {}) };
+	// `__esModule: true` は明示すること。requireActual の戻り値では非列挙で定義されており
+	// スプレッドでは引き継がれないため、落とすと babel の interop が既定 export を解決できなくなる
+	return { ...actual, __esModule: true, default: { ...actual.default, expoConfig } };
+});

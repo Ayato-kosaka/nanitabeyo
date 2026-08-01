@@ -42,20 +42,50 @@ import {
  *   `search-distance-slider` は PanResponder ベースの自作スライダーで、現在値は `aria-valuenow`
  *   （= web 専用属性）にしか出ておらず、**値を反映する testID が app-expo に無い**ため
  *   Detox からは操作後の値を検証できない。値検証用の testID が追加されたら移植すること
- * - **先読み画像の即時表示**（#1083 / e2e-web の tests/search/tutorial-preload.spec.ts）は移植していない。
- *   `PRELOAD_IMAGES` の先読みは `expo-image` のキャッシュへ decode 済み画像を載せるだけで、
- *   Detox からその状態を読む API が無い（web の `performance.getEntriesByType("resource")` に
- *   相当するものも、描画ピクセルを判定する手段も無い）。
- *   `TutorialPage` の <Image> に testID を足しても言えるのは「要素が存在する」ことだけで、
- *   **先読みブロックを削除しても同じく緑になる**（= 感度ゼロ）ため検証として成立しない。
- *   #1031 B1/B3 と同じ判断で、観測不能な検証は web 側へ寄せ、ネイティブは
- *   「チュートリアルが表示され、操作でき、完了後は再表示されない」までを検証範囲とする。
- *   Detox に画像の描画結果を判定する手段が入ったら再検討すること
+ * - **先読み画像の即時表示**（#1083 / e2e-web の tests/search/tutorial-preload.spec.ts）は
+ *   **#1087 でプローブ方式に切り替えて観測できるようにした**。
+ *   かつては「`expo-image` のキャッシュ状態を Detox から読む API が無く、<Image> に testID を足しても
+ *   言えるのは要素の存在だけ（= 先読みブロックを消しても緑になる感度ゼロ）」という理由で移植を見送っていたが、
+ *   観測点を Detox 側ではなく **アプリ側**に足すことで解決している:
+ *   先読みの各 <Image> の `onLoad` / `onError` を数え、`loaded=<n>/<total>` を持つ
+ *   `search-preload-probe` を E2E ビルド限定で描画する（app-expo/lib/e2e/preloadProbe.tsx）。
+ *   検証は `expectPreloadImagesLoaded()`、spec は tests/search/preload-images.test.ts
  * - **現在地取得**（e2e-web の current-location.spec.ts）は移植していない。
  *   「拒否」「タイムアウト」の再現には起動時の権限設定を spec ごとに切り替える必要があるが、
  *   fixtures/e2e.ts の `platformLaunchOptions()` は権限を常に付与する固定実装のため、
  *   拒否ケースを表現できない。fixtures 側に権限を切り替える起動オプションが入ったら移植すること
  */
+/**
+ * 先読み対象の枚数（#1087）。
+ *
+ * ⚠️ `app-expo/features/search/constants.ts` の `PRELOAD_IMAGES` と必ず対応させること
+ * （チュートリアル 4 枚 + アプリアイコン + レビューのヒーロー画像 + Apple / Google のロゴ = 8 枚）。
+ * e2e-web の `utils/preload-assets.ts` の `PRELOAD_ASSET_KEYS` と同じ位置づけ。
+ */
+export const PRELOAD_IMAGE_COUNT = 8;
+
+/**
+ * 先読み完了を待つ上限 (ms)。
+ *
+ * #1087 の修正後、Android エミュレータでの実測は **1873ms**（8 枚すべて `onLoad` まで）。
+ * 8 枚はバンドル同梱のローカルアセットで、実 API もネットワークも介さないため、
+ * 実測とランナーの当たり外れを吸収できれば足りる。実測の約 5 倍を上限にしている:
+ * - 短すぎると、エミュレータが冷えている初回実行（ディスク I/O が効く）でフレークする
+ * - 長すぎると、再発時に赤くなるまで無駄に待たされる（当初の 20 秒はこちらの理由で縮めた）
+ *
+ * この上限を払うのは **失敗するときだけ**なので、通過時の実行時間には影響しない。
+ */
+export const PRELOAD_PROBE_TIMEOUT = 10_000;
+
+/**
+ * プローブ要素そのものの存在確認に費やす上限 (ms)。
+ *
+ * プローブは検索画面と同時にマウントされるため、`expectLoaded()` を通った時点で既に居るはず。
+ * 「居ない = E2E ビルドではない」を素早く名指しで報告するための短い待ちで、
+ * ロード完了を待つ `PRELOAD_PROBE_TIMEOUT` とは目的が違う。
+ */
+const PRELOAD_PROBE_PRESENCE_TIMEOUT = 3_000;
+
 export class SearchScreen {
 	/** 画面ヘッダのタイトル（i18n: Search.headerTitle） */
 	readonly headerTitle = by.id("search-header-title");
@@ -86,6 +116,17 @@ export class SearchScreen {
 	readonly submitButton = by.id("search-submit-button");
 	/** グローバルスナックバー（バリデーションエラー等の通知） */
 	readonly snackbar = by.id("global-snackbar");
+
+	/**
+	 * 先読み画像のロード枚数プローブ（#1087）。`loaded=<n>/<total>` の文字列を持つ。
+	 *
+	 * ⚠️ **E2E ビルド（`EXPO_PUBLIC_E2E_TUTORIAL_HOOK=1`）でしか存在しない。**
+	 * 通常ビルドでは metro の resolver が noop 実装へ差し替えるため、要素ごと描画されない
+	 *（app-expo/lib/e2e/preloadProbe.tsx）。
+	 */
+	readonly preloadProbe = by.id("search-preload-probe");
+	/** プローブの内訳（`loaded=<n> error=<n> total=<n>`）。失敗時の切り分け専用 */
+	readonly preloadProbeDetail = by.id("search-preload-probe-detail");
 
 	/**
 	 * 検索チュートリアル（BottomSheet）のコンテンツ全体。
@@ -158,6 +199,85 @@ export class SearchScreen {
 	 */
 	async expectLoaded(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
 		await waitUntilVisible(this.headerTitle, timeout);
+	}
+
+	/**
+	 * 先読み画像（`PRELOAD_IMAGES`）が **全枚数ロードできた**ことを検証する（#1087）。
+	 *
+	 * ## 何を観測しているか
+	 * アプリ側のプローブ（app-expo/lib/e2e/preloadProbe.tsx）が、先読みブロックの各 `<Image>` の
+	 * `onLoad` / `onError` を数えて `loaded=<n>/<total>` を描画している。ここではその文字列を待つだけ。
+	 * 「何 ms で表示されたか」ではなく **「何枚ロードできたか」という状態**を見るので、
+	 * ランナーの速度ではフレークしない（e2e-web の tutorial-preload.spec.ts と同じ観測原則）。
+	 *
+	 * ## 感度
+	 * 先読みブロックが 0×0 に戻ると expo-image の native 実装はロード要求を発行しない
+	 *（iOS: `getBestSource` が size<=0 で nil / Android: `cleanIfNeeded` が width/height 0 で早期 return）。
+	 * そのため `loaded=0/8` のまま動かず、このアサーションは赤くなる。
+	 * app-expo 側の jest（searchScreenPreload.test.tsx）は style が非ゼロかまでしか見ないので、
+	 * **expo-image の都合で実際にロードされなくなった変化を捕まえられるのはこちらだけ**。
+	 *
+	 * ## `toHaveText` を使う理由
+	 * プローブは 1×1 の絶対配置で、他の要素を 1px も遮蔽しない（既存 spec の可視判定を壊さないため）。
+	 * Detox の `toHaveText` は Espresso の `withText` / iOS の text 属性比較で、
+	 * `toBeVisible` と違い可視面積を要求しないため、この極小要素でも読める。
+	 *
+	 * @param total 期待する枚数（既定 PRELOAD_IMAGE_COUNT）
+	 * @param timeout タイムアウト (ms)
+	 * @失敗時 実測値（`loaded=<n> error=<n> total=<n>`）を添えた日本語メッセージで例外を投げる。
+	 *         プローブ要素自体が無い場合は「E2E ビルドでない」ことを名指しで報告する
+	 */
+	async expectPreloadImagesLoaded(
+		total: number = PRELOAD_IMAGE_COUNT,
+		timeout: number = PRELOAD_PROBE_TIMEOUT,
+	): Promise<void> {
+		// プローブが存在しない = ビルド時にフックが立っていない。ロード待ちを使い切ってから
+		// 「テキストが一致しない」と報告されると原因の切り分けに時間を取られるので先に名指しで落とす
+		if (!(await existsNow(this.preloadProbe, PRELOAD_PROBE_PRESENCE_TIMEOUT))) {
+			throw new Error(
+				[
+					"先読み画像プローブ（search-preload-probe）が画面に存在しません。",
+					"  このプローブは E2E ビルド限定で描画されます（app-expo/lib/e2e/preloadProbe.tsx）。",
+					"  ビルド時に EXPO_PUBLIC_E2E_TUTORIAL_HOOK=1 が設定されていたか確認してください",
+					"  （このフックは **バンドル時** に metro の resolver で有効/無効が決まります）。",
+				].join("\n"),
+			);
+		}
+
+		const expected = `loaded=${total}/${total}`;
+		try {
+			await waitFor(element(this.preloadProbe)).toHaveText(expected).withTimeout(timeout);
+		} catch (error) {
+			// ⚠️ このメッセージは **必ず実測値を載せること**。再発時に
+			// 「ロード要求が飛んでいない（error=0）」のか「飛んだが取得に失敗した（error>0）」のかを
+			// ログだけで切り分けられることが、このテストの価値そのもの
+			const actual = await this.readPreloadProbeDetail();
+			throw new Error(
+				[
+					`先読み画像が ${timeout}ms 以内に全枚数ロードされませんでした（期待: ${expected}）。`,
+					`  プローブの実測値: ${actual}`,
+					"  loaded=0 error=0 なら、native の expo-image がロード要求そのものを発行していません",
+					"  （先読みブロックのサイズが 0 に戻った可能性。app-expo の search/index.tsx 末尾）。",
+					"  error>0 なら、要求は飛んだが取得に失敗しています（アセット解決やキャッシュ側の問題）。",
+					`  元の失敗: ${error instanceof Error ? error.message : String(error)}`,
+				].join("\n"),
+			);
+		}
+	}
+
+	/**
+	 * プローブの内訳テキストを読む（失敗時の切り分け専用。読めなければ理由を文字列で返す）。
+	 *
+	 * `getAttributes()` の戻り値は iOS / Android で型が分かれるため、`text` だけを拾う形に絞る
+	 *（ResultScreen.ts の読み取りと同じ扱い）。
+	 */
+	private async readPreloadProbeDetail(): Promise<string> {
+		try {
+			const attributes = (await element(this.preloadProbeDetail).getAttributes()) as { text?: string };
+			return attributes.text ?? "(text 属性を読めませんでした)";
+		} catch (error) {
+			return `(プローブを読めませんでした: ${error instanceof Error ? error.message : String(error)})`;
+		}
 	}
 
 	/**

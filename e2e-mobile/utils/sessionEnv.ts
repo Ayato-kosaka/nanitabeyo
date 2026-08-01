@@ -96,3 +96,21 @@ export function isAuthenticatedAvailable(): boolean {
 export function isMutationEnabled(): boolean {
 	return process.env.RUN_MUTATION === "1";
 }
+
+/**
+ * @probe テスト（tests/probe/）が明示的に許可されているか。
+ *
+ * #1087 `tests/probe/` は **「修正が入るまで落ちるのが正しい」spec** を置く層。
+ * アプリの不具合を客観的な数値で示すのが目的なので、夜間 CI の既定スコープ（tier1-2）へ混ぜると
+ * 既存スコープが常時赤くなり、本物の回帰が埋もれる。そのため @mutation と同じ二重ガードで
+ * 既定の探索から外す:
+ * 1. 設定段（主防御）: jest.config.js の testPathIgnorePatterns が tests/probe/ を探索から外す
+ * 2. コード段（二重ガード）: このフラグを見る `describeProbe` が skip する
+ *
+ * ⚠️ #1087 の修正が main へ入った時点で、この層の住人（先読み画像プローブ）は
+ * 通常の回帰テスト（tests/search/preload-images.test.ts）へ昇格し、**現在この層は空**。
+ * 仕組みだけを次の「落ちるのが正しい spec」のために残している（e2e-mobile/README.md 参照）。
+ */
+export function isProbeEnabled(): boolean {
+	return process.env.RUN_PROBE === "1";
+}

@@ -45,6 +45,10 @@ const E2E_SELECT_MEDIA_IMPL = path.resolve(projectRoot, "lib/e2e/selectMediaStub
 const E2E_SELECT_MEDIA_NOOP = path.resolve(projectRoot, "lib/e2e/selectMediaStub.noop.ts");
 const E2E_TUTORIAL_SEED_IMPL = path.resolve(projectRoot, "lib/e2e/tutorialSeed.ts");
 const E2E_TUTORIAL_SEED_NOOP = path.resolve(projectRoot, "lib/e2e/tutorialSeed.noop.ts");
+// #1087 先読み画像のロード枚数プローブ。対象が検索チュートリアルの画像なので、
+// 新しいフラグを増やさず EXPO_PUBLIC_E2E_TUTORIAL_HOOK に相乗りする（判定は上の E2E_TUTORIAL_HOOK_ENABLED）
+const E2E_PRELOAD_PROBE_IMPL = path.resolve(projectRoot, "lib/e2e/preloadProbe.tsx");
+const E2E_PRELOAD_PROBE_NOOP = path.resolve(projectRoot, "lib/e2e/preloadProbe.noop.tsx");
 const E2E_LAUNCH_ARGS_PACKAGE = "react-native-launch-arguments";
 
 config.resolver.resolveRequest = (context, moduleName, platform) => {
@@ -89,6 +93,11 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
 		// #1027 チュートリアル視聴済みフラグのシードフックも同じ「解決後の実ファイルパス」で判定する
 		if (excludeE2ETutorialHook && resolvedPath === E2E_TUTORIAL_SEED_IMPL) {
 			return { type: "sourceFile", filePath: E2E_TUTORIAL_SEED_NOOP };
+		}
+
+		// #1087 先読み画像のロード枚数プローブも同じ「解決後の実ファイルパス」で判定する
+		if (excludeE2ETutorialHook && resolvedPath === E2E_PRELOAD_PROBE_IMPL) {
+			return { type: "sourceFile", filePath: E2E_PRELOAD_PROBE_NOOP };
 		}
 	}
 

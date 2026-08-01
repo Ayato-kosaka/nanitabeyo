@@ -10,6 +10,7 @@ import {
 import {
 	isAuthenticatedAvailable,
 	isMutationEnabled,
+	isProbeEnabled,
 	readSessionFromEnv,
 	type SessionOwner,
 } from "../utils/sessionEnv";
@@ -353,6 +354,24 @@ export const describeAuthenticated: typeof describe = isAuthenticatedAvailable()
  * describeMutation("いいね/保存 @mutation", () => { ... });
  */
 export const describeMutation: typeof describe = isMutationEnabled() ? describe : describe.skip;
+
+/**
+ * @probe テスト用の `describe`（#1087）。
+ *
+ * `tests/probe/` に置く spec は「アプリの不具合を客観的な数値で示す」ことが目的で、
+ * **修正が入るまで落ちるのが正しい振る舞い**。夜間 CI の既定スコープ（tier1-2）へ混ぜると
+ * 既存スコープが常時赤くなり、本物の回帰が埋もれる。そのため @mutation と同じ二重ガードで
+ * 既定の探索から外し、`RUN_PROBE=1` を明示したときだけ実行する:
+ * 1. 設定段（主防御）: jest.config.js の `testPathIgnorePatterns` が `tests/probe/` を探索から外す
+ * 2. コード段（二重ガード）: この `describeProbe` が `RUN_PROBE !== "1"` なら skip する
+ *
+ * ⚠️ **現在この層に spec は無い**（#1087 の先読み画像プローブは修正の完了に伴い
+ * tests/search/preload-images.test.ts へ昇格した）。使いどころは e2e-mobile/README.md を参照。
+ *
+ * @example
+ * describeProbe("先読み画像のロード枚数 @probe", () => { ... });
+ */
+export const describeProbe: typeof describe = isProbeEnabled() ? describe : describe.skip;
 
 /**
  * ja-JP ロケール前提のテスト用の `describe`。
