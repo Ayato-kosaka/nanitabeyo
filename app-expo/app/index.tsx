@@ -6,6 +6,7 @@ import * as Localization from "expo-localization";
 import * as SplashScreen from "expo-splash-screen";
 import { Env } from "@/constants/Env";
 import { getResolvedLocale } from "@/lib/i18n";
+import { consumeLogoutRedirect } from "@/lib/logoutRedirect";
 import * as WebBrowser from "expo-web-browser";
 WebBrowser.maybeCompleteAuthSession();
 
@@ -14,6 +15,15 @@ SplashScreen.preventAutoHideAsync();
 
 /** BCP 47 言語タグの形式か（app/[locale]/_layout.tsx と同じ判定） */
 const isValidBcp47Tag = (tag: string): boolean => /^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*$/.test(tag);
+
+/**
+ * #1124 起動時の URL を «ディープリンクの行き先» として採用済みか。
+ *
+ * `Linking.getInitialURL()` は「今回のディープリンク」ではなく «起動時の URL» を返し続けるため、
+ * この画面が再マウントされるたびに参照すると、古い行き先へ繰り返し送ってしまう。
+ * アプリのプロセス寿命で 1 回だけ採用する（モジュールスコープに置くのはそのため）。
+ */
+let hasConsumedInitialUrl = false;
 
 /**
  * ディープリンクのパスを「アプリ内ルート」として解釈できるなら、その絶対パスを返す。
@@ -42,6 +52,9 @@ const toInAppPath = (path: string | null | undefined): string | null => {
  */
 export default function App() {
 	const router = useRouter();
+	// #1124 ログアウトからの遷移では、起動時 URL をディープリンクとして再利用しない。
+	// Android で実機確認済みの `router.replace("/")` を変えず、共有モジュールからロケールを一度だけ受け取る。
+	const [logoutRedirectLocale] = useState(consumeLogoutRedirect);
 
 	// #1027 【バグ】ルートナビゲータのマウント前に router.replace() を呼ぶと expo-router の
 	// assertIsReady が「Attempted to navigate before mounting the Root Layout component.」を投げ、
@@ -66,6 +79,32 @@ export default function App() {
 	const [initialPath, setInitialPath] = useState<string | null | undefined>(undefined);
 
 	useEffect(() => {
+		// #1124 【バグ】2 回目以降のマウントでは初期 URL を採用しない。
+		//
+		// Linking.getInitialURL() は「今回のディープリンク」ではなく «起動時の URL» を返し続ける。
+		//   - react-native-web: モジュール読み込み時の window.location.href に束縛される
+		//     （react-native-web/dist/exports/Linking/index.js:13）
+		//   - ネイティブ: アプリを起動した intent / URL のまま（onNewIntent では更新されない）
+		// そのため、アプリ稼働中に "/" へ遷移してこの画面が再マウントされると
+		//（ErrorBoundary の再試行、app/store.tsx、[locale]/_layout の復帰など）、
+		// 「起動時の URL」を新しいディープリンクと誤認して古い行き先へ送ってしまう。
+		//
+		// 初回マウント（= コールドスタート）でだけ採用すれば、#1027 のディープリンク起動対応は
+		// そのまま成立する。
+		//
+		// ⚠️ これは「再マウント時に古い行き先へ送らない」ための対策であって、
+		// 「ログアウト後にホームへ戻る」ことの保証ではない。Web ではこの画面を一度も
+		// マウントせずに深い URL で直接開くことがあり、その場合ログアウト時のマウントが
+		// «初回» になって起動時 URL を採用してしまう（実測で設定画面へ戻った）。
+		// ログアウトの行き先は AuthProvider が明示的に指定している。
+		if (logoutRedirectLocale || hasConsumedInitialUrl) {
+			// ログアウト直後に初めてここへ来る場合も、以後は古い起動時 URL を採用しない。
+			if (logoutRedirectLocale) hasConsumedInitialUrl = true;
+			setInitialPath(null);
+			return;
+		}
+		hasConsumedInitialUrl = true;
+
 		let cancelled = false;
 		Linking.getInitialURL()
 			.then((url) => {
@@ -79,7 +118,7 @@ export default function App() {
 		return () => {
 			cancelled = true;
 		};
-	}, []);
+	}, [logoutRedirectLocale]);
 
 	useEffect(() => {
 		if (!isNavigationReady) return;
@@ -89,7 +128,7 @@ export default function App() {
 		// 初期 URL の先頭セグメントがロケールなら、そのパスをそのまま行き先にする。
 		// アプリ内のルートとして解釈できない URL（OAuth コールバック等）は巻き込まない
 		const deepLinkTarget = toInAppPath(initialPath);
-		const target = deepLinkTarget ?? `/${resolvedLocale}`;
+		const target = logoutRedirectLocale ? `/${logoutRedirectLocale}` : (deepLinkTarget ?? `/${resolvedLocale}`);
 
 		if (Env.NODE_ENV === "development") {
 			console.log(`[LocaleRedirect] Detected locale: ${resolvedLocale} / target: ${target}`);
@@ -99,7 +138,7 @@ export default function App() {
 			router.replace(target as ExternalPathString);
 		}, 0);
 		return () => clearTimeout(timer);
-	}, [isNavigationReady, initialPath]);
+	}, [isNavigationReady, initialPath, logoutRedirectLocale]);
 
 	return null;
 }
