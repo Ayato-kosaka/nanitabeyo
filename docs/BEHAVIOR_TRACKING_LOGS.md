@@ -225,10 +225,37 @@ interface CreateFrontendLogDto {
 	payload: Record<string, any>;
 	error_level: "verbose" | "debug" | "log" | "warn" | "error";
 	created_at: string;
-	created_app_version: string;
-	created_commit_id: string;
+	/** #1078 欠落を許容（送ってきたが文字列でない場合は従来どおり 400） */
+	created_app_version?: string;
+	/** #1078 同上 */
+	created_commit_id?: string;
 }
 ```
+
+#### ビルド時メタ情報（`created_app_version` / `created_commit_id`）の契約
+
+#1078 以降、この 2 項目は **1 個の欠落でログ本体を捨てない**契約になっている。3 層で吸収する。
+
+| 層 | 実装箇所 | 役割 | 入る値 |
+| --- | --- | --- | --- |
+| クライアント | `app-expo/constants/Env.ts`（`COMMIT_ID`）／`app-expo/hooks/useLogger.ts`（`created_app_version`） | 一次防衛。通常はここで埋まる | `"unknown-client"` |
+| 契約（DTO） | `shared/api/v1/dto/logs/create-frontend-log.dto.ts` | `@IsOptional()`。既に配布済みの古いバンドルを 400 で捨てない | （キーなし） |
+| サーバ | `api/src/v1/logs/logs.service.ts` の `writeFrontendLog` | 最終防衛。BigQuery 側が NULL にならないよう補完 | `"unknown-server"` |
+
+- 定数は `shared/api/v1/dto` の `UNKNOWN_BUILD_META_CLIENT` / `UNKNOWN_BUILD_META_SERVER`。クライアント・サーバ双方がこれを import する（ハードコード禁止）。
+- 空文字も欠落として扱う（`??` ではなく `||` で補完）。
+- **`Env.APP_VERSION` に既定値を入れてはいけない。** この値は `x-app-version` ヘッダ（全 API リクエスト共通）に乗り、非バージョン文字列だと `maintenance.guard` の比較が NaN になり全 API が 426 Upgrade Required になる。既定値の適用範囲は `useLogger` のログ組み立て時に限定する。
+- BigQuery 側の判別: `STARTS_WITH(created_commit_id, 'unknown-')` が欠落由来。git SHA は `[0-9a-f]` のみなので衝突しない。ただし逆方向（`unknown-` で始まらない ＝ 実 SHA）までは保証されない（`'test-commit'` 等の非 SHA 文字列を送るクライアント／テストが存在しうる）。補完により新規行は必ず非 NULL になるため、**NULL が観測されたら sink / VIEW 側の異常**と判断できる。
+
+#### バッチエンドポイントの部分受理（#1079）
+
+`POST /v1/logs/frontend/batch` は要素単位で検証し、不正な要素だけを落として残りを受理する（従来は 1 件の不正で最大 100 件が 400）。
+
+- レスポンスは `{ received: true, accepted: number, rejected: number }`。`received: true` は不変で、フィールドの追加のみ。
+- 単発エンドポイント `POST /v1/logs/frontend` のレスポンス（`{ received: true }`）と挙動は変えていない。
+- 封筒起因（`logs` が非配列 / 0 件 / 101 件超 / キー欠落）は従来どおり 400。
+- 棄却が発生したリクエストは、`backend_event_logs` に `event_name = "frontend_log_batch_rejected"` の `warn` が **1 リクエストにつき 1 行**出る。中身はフィールド名・制約名・位置の集計のみで、ログ本文（`payload` 等）は含まない。
+- 監視は `ValidationError` の件数ではなく `frontend_log_batch_rejected` を見ること（要素起因の 400 が出なくなるため、`ValidationError` の沈黙を「直った」と誤読しないこと）。
 
 ## 今後の拡張
 

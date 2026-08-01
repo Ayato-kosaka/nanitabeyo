@@ -1,4 +1,5 @@
 import i18n from "@/lib/i18n";
+import { toErrorLogMessage } from "@/lib/errorMessage";
 import type { DishMediaEntry } from "@shared/api/v1/res";
 import { createWithEqualityFn } from "zustand/traditional";
 
@@ -586,7 +587,12 @@ const handleAsyncAction = <T>(
 			await onSuccess(items);
 		})
 		.catch((err) => {
-			const errorMessage = err ? (err instanceof Error ? err.message : String(err)) : null;
+			// #940 【修正】useAPICall は API/HTTPエラーを Error インスタンスではなく
+			// ApiError(プレーンオブジェクト、message フィールドを持つ)として throw するため、
+			// String(err) では "[object Object]" になっていた。message フィールドを優先して抽出する
+			// #1092 PR4b 同じ判定を各所へ手書きで散らさないよう共通関数へ寄せた（振る舞いは #940 のまま）
+			// ⚠️ err が falsy のときの null（i18n へ渡さない）は維持する
+			const errorMessage = err ? toErrorLogMessage(err) : null;
 			set((state) => ({
 				errorByKey: {
 					...state.errorByKey,

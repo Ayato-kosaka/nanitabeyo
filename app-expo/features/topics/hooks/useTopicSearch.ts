@@ -9,7 +9,8 @@ import { useLocale } from "@/hooks/useLocale";
 import { getRemoteConfig } from "@/lib/remoteConfig";
 import { useLogger } from "@/hooks/useLogger";
 import i18n from "@/lib/i18n";
-import { CARD_WIDTH, DEFAULT_SEARCH_RADIUS, DEFAULT_PRICE_LEVELS } from "../constants";
+import { DEFAULT_SEARCH_RADIUS, DEFAULT_PRICE_LEVELS } from "../constants";
+import { useTopicCardSize } from "./useTopicCardSize";
 import { createDishItemsForCategory } from "@/lib/dishMediaSearch";
 import { deriveBudgetIntentFromPriceLevels } from "@/features/search/constants";
 
@@ -20,6 +21,9 @@ export const useTopicSearch = () => {
 	const { callBackend } = useAPICall();
 	const { locale } = useLocale();
 	const { logFrontendEvent } = useLogger();
+	// #958 【修正】CARD_WIDTH(window幅固定、中央カラム幅と不一致)の代わりに
+	// useContentWidth ベースの値でサムネイル取得サイズを決める
+	const { cardWidth } = useTopicCardSize();
 
 	const createTopic = useCallback((topic: QueryDishCategoryRecommendationsResponse[number]): Topic => {
 		// #633 【設計】Topic 生成時に dishItemsPromise を発火しない（ユーザー操作後に限定）
@@ -76,7 +80,7 @@ export const useTopicSearch = () => {
 				.slice(0, searchResultTopicsNumber)
 				.map((topic) => ({
 					...topic,
-					imageUrl: wikimediaThumbFromOriginal(topic.imageUrl, CARD_WIDTH),
+					imageUrl: wikimediaThumbFromOriginal(topic.imageUrl, cardWidth),
 				}));
 
 			if (topicsResponseWithCategoryIds.length < searchResultTopicsNumber) {
@@ -100,8 +104,8 @@ export const useTopicSearch = () => {
 									...topic,
 									category:
 										createDishCategoryVariantResponse.labels &&
-											typeof createDishCategoryVariantResponse.labels === "object" &&
-											params.localLanguageCode in createDishCategoryVariantResponse.labels
+										typeof createDishCategoryVariantResponse.labels === "object" &&
+										params.localLanguageCode in createDishCategoryVariantResponse.labels
 											? (createDishCategoryVariantResponse.labels as Record<string, string>)[params.localLanguageCode]
 											: topic.category,
 									categoryId: createDishCategoryVariantResponse.id,
@@ -119,7 +123,7 @@ export const useTopicSearch = () => {
 					.slice(0, searchResultTopicsNumber - topicsResponseWithCategoryIds.length)
 					.map((topic) => ({
 						...topic,
-						imageUrl: wikimediaThumbFromOriginal(topic.imageUrl, CARD_WIDTH),
+						imageUrl: wikimediaThumbFromOriginal(topic.imageUrl, cardWidth),
 					}));
 
 				topicsResponseWithCategoryIds = [...topicsResponseWithCategoryIds, ...additionalTopicsWithCategoryIds];
@@ -127,7 +131,7 @@ export const useTopicSearch = () => {
 
 			return topicsResponseWithCategoryIds.map((topic) => createTopic(topic));
 		},
-		[callBackend, createTopic, locale, logFrontendEvent],
+		[callBackend, createTopic, locale, logFrontendEvent, cardWidth],
 	);
 
 	// #633 【設計】料理メディアの取得処理（オンデマンド実行用に export）
@@ -151,12 +155,14 @@ export const useTopicSearch = () => {
 				latitude,
 				longitude,
 				searchLocationLanguageCode,
+				// #817 【設計】端末言語を第一優先にする
+				viewerLanguageCode: locale,
 				radius,
 				priceLevels,
 				searchResultRestaurantsNumber,
 			});
 		},
-		[callBackend],
+		[callBackend, locale],
 	);
 
 	const searchTopics = useCallback(
@@ -254,6 +260,14 @@ export const useTopicSearch = () => {
 		console.log("Topic hidden:", hideReason);
 	}, []);
 
+	// #936 【仕様】ブロックのUndo用。元の配列位置を保ったまま isHidden だけを戻す
+	// (末尾に追加し直すと表示順が変わり、視聴済みカードの前後関係が崩れるため)。
+	const unhideTopic = useCallback((topicId: string) => {
+		setTopics((prevTopics) =>
+			prevTopics.map((topic) => (topic.categoryId === topicId ? { ...topic, isHidden: false } : topic)),
+		);
+	}, []);
+
 	const resetTopics = useCallback(() => {
 		setTopics([]);
 		setError(null);
@@ -266,6 +280,7 @@ export const useTopicSearch = () => {
 		searchTopics,
 		refillTopics,
 		hideTopic,
+		unhideTopic,
 		resetTopics,
 		createDishItemsPromise, // Export the helper function for reuse
 	};

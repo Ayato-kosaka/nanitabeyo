@@ -554,10 +554,67 @@ export class LocationsService {
         return [];
       }
 
-      return places;
+      // #952 【設計】Google は同じ場所を粒度違いで複数返すことがある
+      // (例: 渋谷駅 →「日本、東京都渋谷区」の transit_station と
+      //  「日本、東京都渋谷区２丁目２４」の番地レベル geocode の2件)。
+      // ユーザーにとって同名候補の粒度差は意味を持たず単なる重複に見えるため、
+      // ここで同名候補を1件に畳む。全クライアントに効かせるためサーバー側で行う。
+      return this.dedupeAutocompletePlaces(places);
     } catch (error) {
       throw error;
     }
+  }
+
+  /**
+   * #952 【設計】Autocomplete 候補の「同一地点の粒度違い重複」を除去する。
+   *
+   * ルール(PR #980 レビュー指摘を受けた改訂版):
+   * 1. mainText を正規化(NFKC + 空白除去)したものを同名判定のキーにする。
+   *    「渋谷駅」と「渋谷駅前」のような別名は別キーになり残る。
+   * 2. 落とすのは「同名の establishment(実在施設)が存在する場合の非 establishment 候補」
+   *    だけに限定する。これが「渋谷駅(駅)と 渋谷駅(番地レベル geocode)」のような
+   *    同一地点の粒度違い重複に相当する。
+   * 3. 同名でも establishment 同士(例: 同名チェーンの別店舗。place_id・secondaryText が
+   *    異なる別の実在地点)は全て残す。表示名だけで別地点を消してはならない。
+   * 4. 完全重複(mainText と secondaryText の両方が一致)だけは同名同士でも1件に畳む。
+   * 5. 返却順は Google の関連度順(元の配列順)を維持する。
+   */
+  private dedupeAutocompletePlaces(
+    places: AutocompleteLocationsResponse,
+  ): AutocompleteLocationsResponse {
+    const normalizeKey = (text: string): string =>
+      text.normalize('NFKC').replace(/\s+/g, '');
+
+    const isEstablishment = (place: { types: string[] }): boolean =>
+      place.types.includes('establishment');
+
+    // 同名の establishment が1件でも存在する mainText キーの集合
+    const establishmentNameKeys = new Set(
+      places
+        .filter((place) => isEstablishment(place))
+        .map((place) => normalizeKey(place.mainText)),
+    );
+
+    const seenExactKeys = new Set<string>();
+
+    return places.filter((place) => {
+      const nameKey = normalizeKey(place.mainText);
+
+      // ルール4: mainText + secondaryText まで完全一致する候補は同一表示になるため1件に畳む
+      const exactKey = `${nameKey}\u0000${normalizeKey(place.secondaryText)}`;
+      if (seenExactKeys.has(exactKey)) {
+        return false;
+      }
+      seenExactKeys.add(exactKey);
+
+      // ルール2: 同名の establishment が存在するなら、非 establishment(番地レベルの
+      // geocode / street_address / premise 等)は同一地点の粒度違いとみなして落とす
+      if (!isEstablishment(place) && establishmentNameKeys.has(nameKey)) {
+        return false;
+      }
+
+      return true;
+    });
   }
 
   /**

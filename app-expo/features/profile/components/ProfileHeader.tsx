@@ -83,15 +83,17 @@ export function ProfileHeader({
 				)}
 
 				{/* Display Name */}
+				{/* #948 【仕様】ゲストは locale 非依存のダミー値(profileData.ts)ではなく現在言語の「ゲスト」表示にする */}
 				<Text style={[styles.displayName]} pointerEvents="none">
-					{profile.display_name}
+					{isGuest ? i18n.t("Profile.guestDisplayName") : profile.display_name}
 				</Text>
 				{/* <Text style={styles.headerTitle}>{profile.username}</Text> */}
 				<View style={{ flexDirection: "row", gap: 8 }}>
 					{/* <TouchableOpacity style={styles.shareButton} onPress={onShare || (() => {})}>
 						<Share size={24} color="#666" />
 					</TouchableOpacity> */}
-					<TouchableOpacity style={styles.settingButton} onPress={handleSettings}>
+					{/* #1031 【設計】Detox から設定画面への実UI導線を検証するため testID を追加 */}
+					<TouchableOpacity testID="profile-settings-button" style={styles.settingButton} onPress={handleSettings}>
 						<Settings size={24} color="#666" />
 					</TouchableOpacity>
 				</View>
@@ -163,7 +165,12 @@ export function ProfileHeader({
 								icon={<Edit3 size={16} color="#FFFFFF" />}
 							/>
 						) : isGuest && isOwnProfile ? (
-							<PrimaryButton style={{ flex: 1 }} onPress={onLogin || (() => {})} label={i18n.t("auth.btn_login")} />
+							<PrimaryButton
+								testID="profile-login-button"
+								style={{ flex: 1 }}
+								onPress={onLogin || (() => {})}
+								label={i18n.t("auth.btn_login")}
+							/>
 						) : (
 							<>
 								<TouchableOpacity

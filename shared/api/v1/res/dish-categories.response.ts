@@ -22,6 +22,8 @@ export type DishCategoryRecommendationItem = {
 	categoryId: string;
 	imageUrl: string;
 	deepDiveFeatures: DishCategoryDeepDiveFeature[];
+	/** #954 呼び出しユーザーがこのカテゴリを reactions(action_type=save) 済みか */
+	isSaved: boolean;
 };
 
 /** GET /v1/dish-categories/recommendations のレスポンス型 */

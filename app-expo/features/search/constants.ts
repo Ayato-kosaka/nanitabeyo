@@ -14,6 +14,12 @@ export const timeSlots = [
 	},
 ] as const;
 
+// #1015 【パフォーマンス】priceLevelOptionsと同型の派生Map。呼び出し側のfind()をO(1)参照に置き換える。
+export const timeSlotsById = Object.fromEntries(timeSlots.map((option) => [option.id, option])) as Record<
+	string,
+	(typeof timeSlots)[number]
+>;
+
 export const sceneOptions = [
 	{ id: "solo", label: "Search.sceneOptions.solo", icon: "👤", image: require("./assets/scenes/solo.webp") },
 	{ id: "date", label: "Search.sceneOptions.date", icon: "💕", image: require("./assets/scenes/date.webp") },
@@ -27,6 +33,11 @@ export const sceneOptions = [
 	},
 ] as const;
 
+export const sceneOptionsById = Object.fromEntries(sceneOptions.map((option) => [option.id, option])) as Record<
+	string,
+	(typeof sceneOptions)[number]
+>;
+
 export const moodOptions = [
 	{ id: "light", label: "Search.moodOptions.light", icon: "🥗" },
 	{ id: "normal", label: "Search.moodOptions.normal", icon: "🍱" },
@@ -35,10 +46,15 @@ export const moodOptions = [
 
 export const tasteOptions = [
 	{ id: "sweet", label: "Search.tasteOptions.sweet", icon: "🍰" },
-	// { id: "spicy", label: "Search.tasteOptions.spicy", icon: "🌶️" },
+	{ id: "spicy", label: "Search.tasteOptions.spicy", icon: "🌶️" },
 	{ id: "healthy", label: "Search.tasteOptions.healthy", icon: "🥬" },
 	{ id: "junk", label: "Search.tasteOptions.junk", icon: "🍔" },
 ] as const;
+
+export const tasteOptionsById = Object.fromEntries(tasteOptions.map((option) => [option.id, option])) as Record<
+	string,
+	(typeof tasteOptions)[number]
+>;
 
 export const coreIngredientOptions = [
 	{ id: "meat", label: "Search.coreIngredientOptions.meat", icon: "🍖" },
@@ -46,6 +62,10 @@ export const coreIngredientOptions = [
 	{ id: "rice", label: "Search.coreIngredientOptions.rice", icon: "🍚" },
 	{ id: "noodle", label: "Search.coreIngredientOptions.noodle", icon: "🍜" },
 ] as const;
+
+export const coreIngredientOptionsById = Object.fromEntries(
+	coreIngredientOptions.map((option) => [option.id, option]),
+) as Record<string, (typeof coreIngredientOptions)[number]>;
 
 export const foodStyleOptions = [
 	...tasteOptions.map((option) => ({ ...option, featureType: "taste" as const })),
@@ -57,20 +77,27 @@ export const diningPaceOptions = [
 	{ id: "leisurely", label: "Search.diningPaceOptions.leisurely", icon: "🐢" },
 ] as const;
 
+export const diningPaceOptionsById = Object.fromEntries(
+	diningPaceOptions.map((option) => [option.id, option]),
+) as Record<string, (typeof diningPaceOptions)[number]>;
+
+// #935 【修正】label はモジュール評価時に i18n.t() を呼んでいたため、
+// 起動時ロケールの文言で固定されロケール切替後も更新されないバグがあった
+// (timeSlots 等の他オプション定義と同様、キー文字列を保持し使用箇所で i18n.t() する方式に統一)。
 // Distance options in meters
 export const distanceOptions = [
-	{ value: 100, label: i18n.t("Search.distanceLabels.100m") },
-	{ value: 300, label: i18n.t("Search.distanceLabels.300m") },
-	{ value: 500, label: i18n.t("Search.distanceLabels.500m") },
-	{ value: 800, label: i18n.t("Search.distanceLabels.800m") },
-	{ value: 1000, label: i18n.t("Search.distanceLabels.1km") },
-	{ value: 2000, label: i18n.t("Search.distanceLabels.2km") },
-	{ value: 3000, label: i18n.t("Search.distanceLabels.3km") },
-	{ value: 5000, label: i18n.t("Search.distanceLabels.5km") },
-	{ value: 10000, label: i18n.t("Search.distanceLabels.10km") },
-	{ value: 15000, label: i18n.t("Search.distanceLabels.15km") },
-	{ value: 20000, label: i18n.t("Search.distanceLabels.20km") },
-];
+	{ value: 100, label: "Search.distanceLabels.100m" },
+	{ value: 300, label: "Search.distanceLabels.300m" },
+	{ value: 500, label: "Search.distanceLabels.500m" },
+	{ value: 800, label: "Search.distanceLabels.800m" },
+	{ value: 1000, label: "Search.distanceLabels.1km" },
+	{ value: 2000, label: "Search.distanceLabels.2km" },
+	{ value: 3000, label: "Search.distanceLabels.3km" },
+	{ value: 5000, label: "Search.distanceLabels.5km" },
+	{ value: 10000, label: "Search.distanceLabels.10km" },
+	{ value: 15000, label: "Search.distanceLabels.15km" },
+	{ value: 20000, label: "Search.distanceLabels.20km" },
+] as const;
 
 // Price level options (Google Maps PriceLevel enum compliant, excluding FREE)
 export const priceLevelOptions = [

@@ -29,6 +29,9 @@ import {
 } from 'src/core/storage/storage.utils';
 import { DishMediaAssembler } from './dish-media.assembler';
 import { DishMediaEntry } from '@shared/v1/res';
+import { ClsService } from 'nestjs-cls';
+import { CLS_KEY_APP_LANGUAGE } from '../../core/cls/cls.constants';
+import { normalizePreferredLanguageCodes } from '../../../../shared/utils/languageCode';
 
 @Injectable()
 export class DishMediaService {
@@ -39,6 +42,7 @@ export class DishMediaService {
     private readonly logger: AppLoggerService,
     private readonly transcoder: TranscoderService,
     private readonly cloudTasks: CloudTasksService,
+    private readonly cls: ClsService,
   ) {}
 
   /* ------------------------------------------------------------------ */
@@ -49,6 +53,7 @@ export class DishMediaService {
       location: dto.location,
       radius: dto.radius,
       categoryId: dto.categoryId,
+      preferredLanguageCodes: dto.preferredLanguageCodes,
       userId,
     });
 
@@ -59,6 +64,7 @@ export class DishMediaService {
 
     const result = await this.fetchDishMediaEntryItems(dishMediaIds, {
       userId,
+      preferredLanguageCodes: dto.preferredLanguageCodes,
     });
 
     this.logger.debug('FindByCriteriaResult', 'findByCriteria', {
@@ -103,16 +109,36 @@ export class DishMediaService {
     option: {
       userId: string;
       reviewLimit?: number;
+      preferredLanguageCodes?: readonly string[];
     },
   ): Promise<{ items: DishMediaEntry[] }> {
     if (!dishMediaIds.length) return { items: [] };
 
+    // #1052 【設計】呼び出し元が明示しない場合は端末言語（x-app-language）で補う。
+    // これを入れないと search 以外の 5 経路（?ids= / 店舗詳細 / 投稿・いいね・保存タブ /
+    // 通知）が created_at 順のままになり、「検索では日本語なのに店舗ページでは英語」
+    // という #817 より混乱しやすい状態が残る。
+    // 明示指定を優先するのは、検索が「端末言語 → 検索地点言語」の 2 段を渡すため。
+    const preferredLanguageCodes =
+      option.preferredLanguageCodes ?? this.resolveViewerLanguageCodes();
+
     const dishMediaEntries = await this.repo.getDishMediaEntriesByIds(
       dishMediaIds,
-      option,
+      { ...option, preferredLanguageCodes },
     );
 
     return this.assembler.toDishMediaEntry(dishMediaEntries);
+  }
+
+  /**
+   * #1052 端末言語（x-app-language）を優先言語 1 段として返す。
+   *
+   * ヘッダ未送信の旧クライアントでは空配列になり、呼び出し側は
+   * 「優先指定なし」＝従来の created_at 順へフォールバックする。
+   */
+  private resolveViewerLanguageCodes(): readonly string[] {
+    const appLanguage = this.cls.get<string>(CLS_KEY_APP_LANGUAGE);
+    return normalizePreferredLanguageCodes([appLanguage]);
   }
 
   /* ------------------------------------------------------------------ */
