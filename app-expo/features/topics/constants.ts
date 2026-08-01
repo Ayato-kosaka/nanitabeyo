@@ -4,10 +4,10 @@ import { allPriceLevelValues } from "../search/constants";
 // Obtain device dimensions to calculate card size
 const { width, height } = Dimensions.get("window");
 
-// Width of each topic card within the carousel
-export const CARD_WIDTH = width - 32;
-// Height of each topic card within the carousel
-export const CARD_MAX_HEIGHT = (CARD_WIDTH / 9) * 16; // 16:9 のアスペクト比を維持
+// #958 【修正】CARD_WIDTH/CARD_MAX_HEIGHT はここに定義されていたが、
+// Dimensions.get("window") のモジュール評価時1回読みでリサイズに追従せず、
+// web では CenteredAppShell が収める中央カラム幅とも一致しなかった。
+// features/topics/hooks/useTopicCardSize.ts の useContentWidth() ベースの計算に置き換えた。
 
 // #633 【設計】Topics 検索のデフォルト値（createDishItemsPromise と handleViewDetails で共通化）
 export const DEFAULT_SEARCH_RADIUS = 500; // メートル

@@ -2,8 +2,8 @@ import { Module, Global } from '@nestjs/common';
 import { ClsModule } from 'nestjs-cls';
 import { randomUUID } from 'crypto';
 
-import { CLS_KEY_REQUEST_ID } from '../cls/cls.constants';
-import { REQUEST_ID_HEADER } from './request-id.constants';
+import { CLS_KEY_APP_LANGUAGE, CLS_KEY_REQUEST_ID } from '../cls/cls.constants';
+import { APP_LANGUAGE_HEADER, REQUEST_ID_HEADER } from './request-id.constants';
 
 @Global()
 @Module({
@@ -24,6 +24,13 @@ import { REQUEST_ID_HEADER } from './request-id.constants';
         setup: (cls, req, res) => {
           const requestId = cls.getId();
           cls.set(CLS_KEY_REQUEST_ID, requestId);
+
+          // #1052 端末言語。未送信の旧クライアントは undefined のままで、
+          // 呼び出し側は従来どおり「優先指定なし」へフォールバックする。
+          const appLanguage = (req as any).headers?.[
+            APP_LANGUAGE_HEADER.toLowerCase()
+          ] as string | undefined;
+          if (appLanguage) cls.set(CLS_KEY_APP_LANGUAGE, appLanguage);
         },
       },
     }),

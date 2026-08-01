@@ -3,16 +3,52 @@ import type { Topic } from "@/types/search";
 import { useDialog } from "@/contexts/DialogProvider";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
+import { useAPICall } from "@/hooks/useAPICall";
 import { insertReaction } from "@/lib/reactions";
 import i18n from "@/lib/i18n";
+import type { ShowSnackbarOptions } from "@/contexts/SnackbarProvider";
+import type { UnblockDishCategoryResponse } from "@shared/api/v1/res";
+import { toErrorLogMessage } from "@/lib/errorMessage";
 
 export const useBlockTopic = (
 	hideTopic: (id: string, reason: string) => void,
-	showSnackbar: (message: string) => void,
+	unhideTopic: (id: string) => void,
+	showSnackbar: (message: string, options?: ShowSnackbarOptions) => void,
 ) => {
 	const { showDialog } = useDialog();
 	const { lightImpact, errorNotification } = useHaptics();
 	const { logFrontendEvent } = useLogger();
+	const { callBackend } = useAPICall();
+
+	// #936 【仕様】ブロックを元に戻す。ブロック解除は既存の設定画面と同じ DELETE API を使い、
+	// 成功したら初めてカードを isHidden=false に戻す(APIとUIの状態を必ず一致させる)。
+	const handleUndoBlock = useCallback(
+		async (topic: Topic) => {
+			try {
+				await callBackend<Record<string, never>, UnblockDishCategoryResponse>(
+					`/v1/users/me/blocked-dish-categories/${topic.categoryId}`,
+					{ method: "DELETE", requestPayload: {} },
+				);
+				unhideTopic(topic.categoryId);
+				logFrontendEvent({
+					event_name: "topic_block_undo",
+					error_level: "log",
+					payload: { topic_id: topic.categoryId },
+				});
+			} catch (error) {
+				logFrontendEvent({
+					event_name: "topic_block_undo_failed",
+					error_level: "error",
+					payload: {
+						topic_id: topic.categoryId,
+						error: toErrorLogMessage(error),
+					},
+				});
+				showSnackbar(i18n.t("Common.error"));
+			}
+		},
+		[callBackend, unhideTopic, logFrontendEvent, showSnackbar],
+	);
 
 	/**
 	 * ブロック対象を確認ダイアログのコールバックへ固定する。
@@ -49,7 +85,14 @@ export const useBlockTopic = (
 						});
 
 						hideTopic(topic.categoryId, "block");
-						showSnackbar(i18n.t("Topics.blockedMessage", { title: topic.topicTitle }));
+						// #936 【仕様】誤ブロックからの回復導線として、10秒間Undo可能なスナックバーを出す
+						showSnackbar(i18n.t("Topics.blockedMessage", { title: topic.topicTitle }), {
+							action: {
+								label: i18n.t("Common.undo"),
+								onPress: () => handleUndoBlock(topic),
+							},
+							duration: 10000,
+						});
 						logFrontendEvent({
 							event_name: "topic_block_success",
 							error_level: "log",
@@ -61,7 +104,7 @@ export const useBlockTopic = (
 							error_level: "error",
 							payload: {
 								topic_id: topic.categoryId,
-								error: error instanceof Error ? error.message : String(error),
+								error: toErrorLogMessage(error),
 							},
 						});
 
@@ -71,7 +114,7 @@ export const useBlockTopic = (
 				},
 			});
 		},
-		[errorNotification, hideTopic, lightImpact, logFrontendEvent, showDialog, showSnackbar],
+		[errorNotification, handleUndoBlock, hideTopic, lightImpact, logFrontendEvent, showDialog, showSnackbar],
 	);
 
 	return {
