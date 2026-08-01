@@ -6,6 +6,7 @@ import i18n from "@/lib/i18n";
 import { resolvePublicLocale, SITE_NAME_BY_PUBLIC_LOCALE } from "@/constants/seoLocales";
 import { Env } from "@/constants/Env";
 import { useLocale } from "@/hooks/useLocale";
+import { openExternalUrl } from "@/lib/openExternalUrl";
 
 export interface OpenInAppBannerProps {
 	/** 現在のパス（例: "posts"） */
@@ -275,9 +276,10 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 					{!!storeUrl && (
 						<Pressable
 							style={styles.storeButton}
-							// target="_blank" 相当：RNW の Pressable では a タグじゃないので window.open する
+							// target="_blank" 相当：RNW の Pressable では a タグじゃないので別タブで開く
 							// ただし “クリック同期” なのでブロックされにくい
-							onPress={() => window.open(storeUrl, "_blank", "noopener,noreferrer")}>
+							// #1121 window.open 直書きをやめ、外部遷移の共通ヘルパーへ寄せた（Web 専用コンポーネントなので挙動は同じ）
+							onPress={() => void openExternalUrl(storeUrl)}>
 							<Text style={styles.storeButtonText}>{i18n.t("DeepLinking.getApp")}</Text>
 						</Pressable>
 					)}
