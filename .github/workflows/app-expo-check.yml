@@ -125,7 +125,32 @@ jobs:
 
       - name: Android をビルド（assembleDebug）
         working-directory: app-expo/android
-        run: ./gradlew :app:assembleDebug --no-daemon --stacktrace
+        # Gradle のスタックトレースは数百行あり、末尾だけ見ても原因が分からない。
+        # 全出力をファイルへ残し、失敗時は次の step で要点だけを抜き出す。
+        run: |
+          set -o pipefail
+          ./gradlew :app:assembleDebug --no-daemon 2>&1 | tee /tmp/gradle-build.log
+
+      - name: 失敗原因を抽出
+        if: failure()
+        run: |
+          echo "===== コンパイルエラー (e: / error: ) ====="
+          grep -nE "^(e:|error:|\s+e:)" /tmp/gradle-build.log | head -60 || echo "(該当なし)"
+          echo
+          echo "===== 失敗したタスク ====="
+          grep -nE "^(FAILURE:|\* What went wrong:|Execution failed for task|> Task .* FAILED)" -A 4 /tmp/gradle-build.log | head -60 || echo "(該当なし)"
+          echo
+          echo "===== warning/deprecation を除いた末尾 120 行 ====="
+          grep -vE "^\s+at (org|java|jdk|kotlin)\." /tmp/gradle-build.log | tail -120
+
+      - name: Gradle ログを保存
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gradle-build-log
+          path: /tmp/gradle-build.log
+          if-no-files-found: ignore
+          retention-days: 14
 
       - name: 生成された APK を確認
         working-directory: app-expo
