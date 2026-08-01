@@ -6,7 +6,7 @@
  */
 import * as Clipboard from "expo-clipboard";
 import { router } from "expo-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	AppState,
 	type AppStateStatus,
@@ -58,13 +58,47 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 	const { height: windowHeight } = useWindowDimensions();
 	const [appState, setAppState] = useState<AppStateStatus>(AppState.currentState);
 	const [selectedCandidate, setSelectedCandidate] = useState<DishCategoryGroupVoteCandidate | null>(null);
+	// #1122 【修正】候補詳細モーダルは react-native-paper の Portal 経由で Portal.Host 直下
+	// (= Stack より後ろ・上のレイヤー)へ描かれる。開いたまま遷移すると、遷移先の画面の上に
+	// バックドロップ(StyleSheet.absoluteFill の Pressable)が残り続けるため、
+	// 遷移先の DishMediaMap をタップできない。
+	// iOS だけ無事だったのは、遷移先 /search/result が presentation:"transparentModal"
+	// (= ネイティブの modal presentation)で、Portal.Host より上に載るから。
+	// Web / Android では screens が同じ View 階層内に積まれるので Portal 側が勝つ。
+	//
+	// そこで「閉じてから遷移する」を setTimeout ではなく因果で書く:
+	// クローズ後に実行したい処理を ref へ積み、BlurModal 自身の onClose
+	// (visible=false のコミット後に発火 = Portal がアンマウント済み)で取り出して実行する。
+	const pendingAfterCandidateDetailCloseRef = useRef<(() => void) | null>(null);
+	const handleCandidateDetailClosed = useCallback(() => {
+		const pending = pendingAfterCandidateDetailCloseRef.current;
+		pendingAfterCandidateDetailCloseRef.current = null;
+		pending?.();
+	}, []);
 	const {
 		BlurModal: CandidateDetailBlurModal,
 		open: openCandidateDetail,
 		close: closeCandidateDetail,
+		visible: isCandidateDetailVisible,
 	} = useBlurModal({
 		closeOnBackdropPress: true,
+		// onClose は useBlurModal 内の useEffect の依存に入るため、必ず安定参照を渡すこと
+		onClose: handleCandidateDetailClosed,
 	});
+
+	// #1122 モーダルが開いていれば閉じ、閉じ終わってから navigate を実行する。
+	// 既に閉じている(一覧カードからの導線)ときは待つものが無いのでそのまま実行する。
+	const navigateAfterCandidateDetailClosed = useCallback(
+		(navigate: () => void) => {
+			if (!isCandidateDetailVisible) {
+				navigate();
+				return;
+			}
+			pendingAfterCandidateDetailCloseRef.current = navigate;
+			closeCandidateDetail();
+		},
+		[closeCandidateDetail, isCandidateDetailVisible],
+	);
 	const { detail, isLoading, error, refresh } = useDishCategoryGroupVoteDetail(shareToken);
 	// /store はネイティブ内ではホームへ戻るため、共有リンクを開いた Web 参加者だけに出す。
 	const shouldShowStoreCta = detail?.session.hasVoted === true && Platform.OS === "web";
@@ -112,14 +146,17 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 				updateMediaIdsByKeyAsync(entriesKey, fetchIds(), (_, fetchedIds) => fetchedIds);
 			}
 
-			router.push({
-				pathname: "/[locale]/(tabs)/search/result",
-				params: {
-					locale,
-					entriesKey,
-					location: detail ? JSON.stringify(detail.session.searchContext.location) : undefined,
-					category: candidate.displayName,
-				},
+			// #1122 モーダルのクローズ完了を待ってから遷移する(上の設計コメント参照)
+			navigateAfterCandidateDetailClosed(() => {
+				router.push({
+					pathname: "/[locale]/(tabs)/search/result",
+					params: {
+						locale,
+						entriesKey,
+						location: detail ? JSON.stringify(detail.session.searchContext.location) : undefined,
+						category: candidate.displayName,
+					},
+				});
 			});
 		},
 	});
