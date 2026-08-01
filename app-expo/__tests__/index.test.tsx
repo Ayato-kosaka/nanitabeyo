@@ -38,7 +38,7 @@ jest.mock("@/constants/Env", () => ({ Env: { NODE_ENV: "test" } }));
 const renderIndex = async () => {
 	const { act } = require("react");
 	const TestRenderer = require("react-test-renderer");
-	const App = require("./index").default;
+	const App = require("../app/index").default;
 
 	await act(async () => {
 		TestRenderer.create(<App />);
