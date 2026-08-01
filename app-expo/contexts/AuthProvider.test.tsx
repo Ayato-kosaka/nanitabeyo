@@ -239,10 +239,7 @@ describe("AuthProvider の 429 クールダウン（#1097）", () => {
 		//   "/"         → app/index.tsx が起動時 URL を採用し、Web では設定画面へ戻る
 		//   "/[locale]" → 自分が乗っているレイアウトへの replace で Android がフリーズする
 		const { useRouter } = jest.requireMock("expo-router") as { useRouter: () => { replace: jest.Mock } };
-		expect(useRouter().replace).toHaveBeenCalledWith({
-			pathname: "/[locale]/(tabs)/search",
-			params: { locale: "ja-JP" },
-		});
+		expect(useRouter().replace).toHaveBeenCalledWith("/");
 	});
 
 	it("SIGNED_OUT でコールバックを抜けた直後に匿名サインインし、セッションを張り直す", async () => {
