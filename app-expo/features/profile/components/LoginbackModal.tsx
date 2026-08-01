@@ -111,21 +111,35 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 				// user === null は上でガード済みなので、ここでの意味は「匿名セッションか」で変わらない。
 				// is_anonymous が欠落している場合にログイン済み扱いになる（＝ linkIdentity しない）のも同じ
 				const isAnonymous = isGuestUser(user);
+				const isUpgrade = isAnonymous && !hasExistingAccount;
 
-				if (isAnonymous && !hasExistingAccount) {
-					// 未チェック（昇格狙い）: 匿名セッションのまま OAuth を追加(linkIdentity)を試みる。
-					await linkIdentity(provider);
-				} else {
-					// チェック済み（既存ログイン狙い）または既にログイン済みなら、通常の OAuth サインインを行う。
-					await signInWithOAuth(provider);
-				}
+				const launch = isUpgrade
+					? // 未チェック（昇格狙い）: 匿名セッションのまま OAuth を追加(linkIdentity)を試みる。
+						await linkIdentity(provider)
+					: // チェック済み（既存ログイン狙い）または既にログイン済みなら、通常の OAuth サインインを行う。
+						await signInWithOAuth(provider);
+
+				// #1062 【設計】ブラウザセッションの結末を記録する。ただし **これで成否を判定してはいけない**。
+				// Android の openAuthSessionAsync は「AppState が active に戻ったこと」と
+				// 「deep link の url イベント」を race させるため、deep link でログインに成功した場合でも
+				// dismiss が勝つことがある（実測: 成功と同一試行で dismiss が記録される）。
+				// 成否は callback 画面の oauth_callback_success / oauth_callback_no_result を正とする。
 				logFrontendEvent({
-					event_name: "oauth_signin_success",
+					event_name:
+						launch.outcome === "cancelled" ? "oauth_signin_browser_dismissed" : "oauth_signin_success",
 					error_level: "log",
-					payload: { provider, isUpgrade: isAnonymous && !hasExistingAccount, hasExistingAccount },
+					payload: {
+						provider,
+						isUpgrade,
+						hasExistingAccount,
+						outcome: launch.outcome,
+						...(launch.outcome === "cancelled" ? { browser_result_type: launch.browserResultType } : {}),
+						context: "login_modal",
+					},
 				});
 
-				// OAuth 成功時に明示的にモーダルを閉じる（Android で戻ったときに残る問題を解消）
+				// ⚠️ 結末によらず必ず閉じる。dismiss でモーダルを開いたままにすると、
+				// Android では「ログインできたのにモーダルが残る」状態になる（上記 race のため）。
 				onClose();
 			} catch (error: unknown) {
 				logFrontendEvent({

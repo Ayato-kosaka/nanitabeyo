@@ -37,6 +37,28 @@ export type AuthFailure = {
 	message: string;
 };
 
+/**
+ * #1062 【設計】OAuth 用ブラウザセッションの結末。
+ * - `cancelled` はユーザーがブラウザを閉じた等で結果 URL を受け取れなかったことを表す。
+ *   セッションは一切変化していないため、呼び出し側は成功として扱ってはいけない。
+ */
+export type OAuthLaunchOutcome =
+	/** Web: この後ブラウザ側の全画面リダイレクトが起きる */
+	| { outcome: "redirecting" }
+	/** ネイティブ: ブラウザが結果 URL を返し、callback 画面へ引き継いだ */
+	| { outcome: "returned" }
+	/** ネイティブ: cancel / dismiss / locked。セッションは変化していない */
+	| { outcome: "cancelled"; browserResultType: string };
+
+/**
+ * #1062 【設計】コールバック URL の処理結果。
+ * 従来は「セッションが確立できなかった」ことを `null` で表していたため、
+ * 呼び出し側が戻り値を検査せず成功ログを出してしまっていた。判別可能ユニオンで明示する。
+ */
+export type OAuthCallbackResult =
+	| { status: "authenticated"; user: User; via: "pkce" | "implicit" }
+	| { status: "no_result" };
+
 type AuthContextType = {
 	user: User | null;
 	getSession: () => Session | null;
@@ -60,11 +82,17 @@ type AuthContextType = {
 	loginWithEmail: (email: string, password: string) => Promise<void>;
 	logout: (options?: SignOut) => Promise<void>;
 	signUpWithEmail: (email: string, password: string) => Promise<void>;
-	signInWithOAuth: (provider: Provider, options?: { queryParams?: { [key: string]: string } }) => Promise<void>;
+	signInWithOAuth: (
+		provider: Provider,
+		options?: { queryParams?: { [key: string]: string } },
+	) => Promise<OAuthLaunchOutcome>;
 	signInWithOtp: (phone: string) => Promise<void>;
 	verifyOtp: (phone: string, token: string) => Promise<void>;
-	linkIdentity: (provider: Provider, options?: { queryParams?: { [key: string]: string } }) => Promise<void>;
-	handleOAuthResultUrl: (url?: string | null) => Promise<User | null | undefined>;
+	linkIdentity: (
+		provider: Provider,
+		options?: { queryParams?: { [key: string]: string } },
+	) => Promise<OAuthLaunchOutcome>;
+	handleOAuthResultUrl: (url?: string | null) => Promise<OAuthCallbackResult>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -389,7 +417,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 	 * 新規ユーザー作成 または 既存ユーザー へのログインを行う。
 	 * @param provider - 'google' などのOAuthプロバイダー名
 	 */
-	const signInWithOAuth = async (provider: Provider, options?: { queryParams?: { [key: string]: string } }) => {
+	const signInWithOAuth = async (
+		provider: Provider,
+		options?: { queryParams?: { [key: string]: string } },
+	): Promise<OAuthLaunchOutcome> => {
 		const { queryParams = {} } = options || {};
 
 		// Google のときはデフォルトで毎回アカウント選択を出す
@@ -417,18 +448,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 		});
 		if (error) throw error;
 		if (Platform.OS !== "web" && data?.url) {
-			const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
-			if (result.type === "success" && result.url) {
-				const parsed = Linking.parse(result.url);
-				const locale = (parsed.hostname ?? "ja-JP") as string;
-				const qp = Object.fromEntries(Object.entries(parsed.queryParams ?? {}).map(([k, v]) => [k, String(v)])); // queryParams は string | number | boolean | null などが来るので文字列化
-				const href: Href = {
-					pathname: "/[locale]/auth/callback",
-					params: { locale, ...qp },
-				};
-				router.replace(href);
-			}
+			return openOAuthBrowserSession(data.url, redirectTo);
 		}
+		// Web はこの後ブラウザ側でリダイレクトされる
+		return { outcome: "redirecting" };
 	};
 
 	/**
@@ -463,7 +486,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 	const linkIdentity = async (
 		provider: Provider,
 		options?: { queryParams?: { [key: string]: string } },
-	): Promise<void> => {
+	): Promise<OAuthLaunchOutcome> => {
 		const { queryParams = {} } = options || {};
 
 		// Google のときはデフォルトで毎回アカウント選択を出す
@@ -495,25 +518,43 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 		});
 		if (error) throw error;
 		if (Platform.OS !== "web" && data?.url) {
-			const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
-			if (result.type === "success" && result.url) {
-				const parsed = Linking.parse(result.url);
-				const locale = (parsed.hostname ?? "ja-JP") as string;
-				const qp = Object.fromEntries(Object.entries(parsed.queryParams ?? {}).map(([k, v]) => [k, String(v)])); // queryParams は string | number | boolean | null などが来るので文字列化
-				const href: Href = {
-					pathname: "/[locale]/auth/callback",
-					params: { locale, ...qp },
-				};
-				router.replace(href);
-			}
+			return openOAuthBrowserSession(data.url, redirectTo);
 		}
+		// Web はこの後ブラウザ側でリダイレクトされる
+		return { outcome: "redirecting" };
+	};
+
+	/**
+	 * ネイティブで OAuth 用のブラウザセッションを開き、戻ってきた URL を callback 画面へ引き渡す。
+	 *
+	 * #1062 【設計】`result.type` が success 以外（ユーザーがブラウザを閉じた等）のときは
+	 * セッションが一切変化していないため、`cancelled` として呼び出し側へ返す。
+	 * 従来は戻り値を返しておらず、キャンセルでも `oauth_signin_success` が記録されていた。
+	 */
+	const openOAuthBrowserSession = async (authUrl: string, redirectTo: string): Promise<OAuthLaunchOutcome> => {
+		const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectTo);
+		if (result.type !== "success" || !result.url) {
+			return { outcome: "cancelled", browserResultType: result.type };
+		}
+
+		const parsed = Linking.parse(result.url);
+		const parsedLocale = (parsed.hostname ?? "ja-JP") as string;
+		const qp = Object.fromEntries(Object.entries(parsed.queryParams ?? {}).map(([k, v]) => [k, String(v)])); // queryParams は string | number | boolean | null などが来るので文字列化
+		const href: Href = {
+			pathname: "/[locale]/auth/callback",
+			params: { locale: parsedLocale, ...qp },
+		};
+		router.replace(href);
+		return { outcome: "returned" };
 	};
 
 	/** OAuthのリダイレクトURIから認証結果を処理する
 	 * - PKCE (codeフロー) と 旧インプリシット (#access_token) の両方に対応
+	 * - #1062 【設計】セッションを確立できなかった場合は `no_result` を返す。
+	 *   従来は黙って `null` を返しており、呼び出し側が失敗に気付けなかった。
 	 */
-	const handleOAuthResultUrl = async (url?: string | null) => {
-		if (!url) return;
+	const handleOAuthResultUrl = async (url?: string | null): Promise<OAuthCallbackResult> => {
+		if (!url) return { status: "no_result" };
 
 		const parsed = Linking.parse(url);
 		const code = parsed.queryParams?.code as string | undefined;
@@ -534,10 +575,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 		}
 
 		// 1) PKCE (codeフロー)
+		// #1062 【設計】交換結果の user をそのまま返す。以前は getUser() で現行セッションを
+		// 取り直していたため、交換が行われなかった場合に「匿名ユーザー」が成功として記録されていた。
 		if (code) {
 			const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 			if (error) throw error;
-			return data.user;
+			if (!data.user) return { status: "no_result" };
+			return { status: "authenticated", user: data.user, via: "pkce" };
 		}
 
 		// 2) 旧: インプリシット（#access_token）
@@ -546,16 +590,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 			const params = new URLSearchParams(hash);
 			const access_token = params.get("access_token");
 			const refresh_token = params.get("refresh_token");
-			const expires_at = params.get("expires_at");
 			if (access_token && refresh_token) {
-				await supabase.auth.setSession({ access_token, refresh_token });
-				const {
-					data: { user },
-				} = await supabase.auth.getUser();
-				return user ?? null;
+				const { data, error } = await supabase.auth.setSession({ access_token, refresh_token });
+				if (error) throw error;
+				if (!data.user) return { status: "no_result" };
+				return { status: "authenticated", user: data.user, via: "implicit" };
 			}
 		}
-		return null;
+		return { status: "no_result" };
 	};
 
 	/**
