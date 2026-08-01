@@ -132,6 +132,13 @@ describe("AuthProvider の 429 クールダウン（#1097）", () => {
 			await emitAuthStateChange("SIGNED_OUT", null);
 		});
 
+		// #1124 SIGNED_OUT 後の匿名サインインは setTimeout(0) の先へ移った（デッドロック回避）。
+		// ここでタイマーを進めないと「クールダウンが効いている」ではなく「まだ発火していない」
+		// という理由で緑になり、クールダウン検査を無効化しても気付けない（= このテストが空洞化する）。
+		await act(async () => {
+			jest.advanceTimersByTime(0);
+		});
+
 		// ここで 2 回目が飛ぶと、クールダウン中に /auth/v1/signup を叩いて 30 回/時/IP の枠を削る
 		expect(auth.signInAnonymously).toHaveBeenCalledTimes(1);
 	});
@@ -227,8 +234,12 @@ describe("AuthProvider の 429 クールダウン（#1097）", () => {
 		expect(auth.signInAnonymously).not.toHaveBeenCalled();
 
 		// ★ 遷移は匿名サインインの成否に依存しない（従来は finally にあり、デッドロックで到達しなかった）
+		//
+		// ★ 行き先は "/" ではなくロケール直下（ホーム = 検索タブ）。
+		//   "/" だと app/index.tsx が Linking.getInitialURL()（web はモジュール読み込み時の URL、
+		//   ネイティブは起動時の URL を返し続ける）を見て元の画面へ戻してしまう（#1124, Web で実測）。
 		const { useRouter } = jest.requireMock("expo-router") as { useRouter: () => { replace: jest.Mock } };
-		expect(useRouter().replace).toHaveBeenCalledWith("/");
+		expect(useRouter().replace).toHaveBeenCalledWith({ pathname: "/[locale]", params: { locale: "ja-JP" } });
 	});
 
 	it("SIGNED_OUT でコールバックを抜けた直後に匿名サインインし、セッションを張り直す", async () => {

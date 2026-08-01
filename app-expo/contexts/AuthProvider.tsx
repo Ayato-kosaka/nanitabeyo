@@ -382,7 +382,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 				// セッションが再確立できず API 呼び出しが全滅する（Web では未解決 Promise が
 				// 積み上がって画面が固まる）。
 				//
-				// そのため、コールバックを抜けてロックが解放されてから実行する。
+				// そのため、コールバックからは **await せずに** 実行する。
+				// 正しさの本体は「signOut がこのコールバックの完了を待たなくなること」であって、
+				// タイマーで遅らせること自体ではない（発火時点でロックがまだ保持されていても、
+				// 再入分岐で直列化されるだけで循環は生じない）。setTimeout を使うのは、
+				// 予約の解除（連続 SIGNED_OUT の集約・unmount 時の停止）を扱いやすくするため。
 				// #1089 の意図（匿名サインインを runAuthAttempt に寄せ、失敗時は authError と
 				// 再試行 UI へ倒す）と #1097 の意図（force を渡さず 429 クールダウンを尊重する）は
 				// そのまま維持している。
@@ -395,7 +399,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 				// #1124 遷移は匿名サインインの成否に依存させない。
 				// 従来は finally に置かれていたため、上記デッドロックで到達せず
 				// 「ログアウトしても画面が変わらない」状態になっていた。
-				router.replace("/");
+				//
+				// ⚠️ 行き先を "/" にしてはいけない。app/index.tsx は Linking.getInitialURL() を見て
+				// 「ディープリンクの行き先」へ再リダイレクトする。この初期 URL は
+				//   - react-native-web: モジュール読み込み時の window.location.href を返し続ける
+				//     （react-native-web/dist/exports/Linking/index.js:13 でモジュールスコープに束縛）
+				//   - ネイティブ: アプリを起動した時の URL を返し続ける
+				// ため、/ja-JP/profile で開いたセッションでログアウトすると
+				// ホームではなく元の画面へ戻ってしまう（Web で実測）。
+				// ロケール直下＝ホーム（検索タブ）へ直接遷移する。
+				router.replace({ pathname: "/[locale]", params: { locale } });
 			} else if (event === "PASSWORD_RECOVERY") {
 				// パスワード制のログイン機能を持たせる予定がないなら不要
 			} else if (event === "TOKEN_REFRESHED") {
