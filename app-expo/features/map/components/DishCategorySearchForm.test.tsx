@@ -20,6 +20,36 @@ jest.mock("@/lib/i18n", () => ({ __esModule: true, default: { t: (key: string) =
 jest.mock("@/components/DishCategoryAutocomplete", () => ({ DishCategoryAutocomplete: () => null }));
 jest.mock("@/components/LocationAutocomplete", () => ({ LocationAutocomplete: () => null }));
 
+// ⚠️ ここで差し替えるのは見本（LocationSearchForm）が「依存するフック」だけ。
+// LocationSearchForm 本体は実物のまま描画すること。モックするとこの suite の主眼である
+// 「両フォームの Card オフセットの突き合わせ」が何も検証しなくなる。
+//
+// #1133 で LocationSearchForm が useLocationField 経由になり、
+// useLocationSearch → useAPICall → useLogger → logQueue → lib/supabase が芋づるで読み込まれ、
+// `createClient` が env 無しでモジュール評価時に throw する（suite ごと起動不能になる）。
+// 同じ回避を features/profile/components/LocationSearchForm.test.tsx が既に行っている。
+jest.mock("@/hooks/useLogger", () => ({ useLogger: () => ({ logFrontendEvent: jest.fn() }) }));
+jest.mock("@/hooks/useLocationSearch", () => ({
+	useLocationSearch: () => ({
+		getCurrentLocation: jest.fn(),
+		suggestions: [],
+		status: "idle",
+		searchLocations: jest.fn(),
+		clearSuggestions: jest.fn(),
+	}),
+}));
+// useSnackbar は Provider 外だと throw するので、描画できるよう最小の実装を与える
+jest.mock("@/contexts/SnackbarProvider", () => ({ useSnackbar: () => ({ showSnackbar: jest.fn() }) }));
+jest.mock("@/hooks/useHaptics", () => ({ useHaptics: () => ({ lightImpact: jest.fn() }) }));
+jest.mock("@/features/search/hooks/useRecentLocations", () => ({
+	useRecentLocations: () => ({
+		recentLocations: [],
+		isLoading: false,
+		addRecentLocation: jest.fn(),
+		clearRecentLocations: jest.fn(),
+	}),
+}));
+
 import { Card } from "@/components/Card";
 import { DishCategorySearchForm } from "./DishCategorySearchForm";
 import { LocationSearchForm } from "@/features/profile/components/LocationSearchForm";
