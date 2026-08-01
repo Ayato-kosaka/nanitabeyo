@@ -266,6 +266,8 @@ UIの前提条件（ログイン状態、特定のデータ、共有トークン
 
 原則は**1 run 1 Issue**。同じファイルを同時に触るため分割すると壊れる場合だけ束ねる。「同じ機能領域だから」は束ねる理由にならない。上の実測例は同じ機能ディレクトリの2件だったが、変更ファイルは重複しておらず、分割して正解だった。
 
+レビューrunにも同じ形の事故がある。**複数PRをまとめて調べてから一括で投稿させると、turn切れで1件も投稿されない。** 「1件終わるごとに投稿してから次へ進むこと」をpromptへ明示し、1runあたり3〜4PRまでに抑える。実測で、4PRを1runへ渡して「最後にまとめて投稿」させたrunは1件だけ投稿して失敗した。
+
 **3. 「早めに小さくcommit」を指示しているか**
 
 実装promptに次を必ず入れる。
@@ -280,7 +282,29 @@ turnが切れても部分成果がbranchに残れば、追加runで続きから�
 
 **5. 失敗を正しく検知しているか**
 
-`error_max_turns` の失敗runでも、Workflowの `commit・pushされたことを検証` ステップが `success` を返し、かつ**実際にはbranchが存在しない**という食い違いを観測している。ステップの結果を信用せず、リーダー自身が **GitHub API（`mcp__github__list_branches` 等）でbranchの実在を確認**すること。ローカルの `git ls-remote` はgit proxyのキャッシュに影響され得るため、APIの結果を正とする。
+`error_max_turns` の失敗runでも、Workflowの `commit・pushされたことを検証` ステップが `success` を返し、かつ**実際にはbranchが存在しない**という食い違いを観測している。ステップの結果を信用せず、リーダー自身が **GitHub API（`mcp__github__list_branches` 等）でbranchの実在を確認**すること。
+
+この食い違いの原因のひとつは判明している（下記「ワーカーは `.github/workflows/` を変更できない」）。runが`success`でもbranchが無いときは、まずpushがremote rejectedされていないかを疑う。
+
+## ワーカーは `.github/workflows/` を変更できない
+
+**Claude Worker（`access=write`）は `.github/workflows/` 配下のファイルを作成・更新できない。** `claude-worker.yml` がClaude GitHub Appへ要求している権限は `contents: write` / `pull_requests: write` / `issues: write` / `actions: read` の4つで、**`workflows: write` を含まないため、GitHubがサーバ側でpushを拒否する**。
+
+```
+! [remote rejected] <branch> -> <branch>
+  (refusing to allow a GitHub App to create or update workflow
+   `.github/workflows/xxx.yml` without `workflows` permission)
+```
+
+REST Contents API経由でも `403 Resource not accessible by integration` になる。
+
+重要なのは **拒否されるのはpush全体である** という点で、workflowファイル1つのために **同じcommitに含まれる他の変更も含めてbranchが1つも作られない**。しかもrun自体は `conclusion: success` で終わり得るため、「成功したのに成果物が無い」という上記の食い違いとして現れる。実際にIssue #1112（PR CI新設）でこれを踏み、原因が判明するまで2回runを空振りさせた。
+
+したがって:
+
+- **workflowファイルを変更するタスクをワーカーへ渡さない。** 渡す場合は「`.github/workflows/` へは直接置かず、`.github/workflows-pending/` 等へ成果物とpatchを出力する」と明示し、**リーダーが適用してcommitする**。リーダーのgit認証はGitHub Appではないため、workflowファイルをpushできる。
+- 全ての実装promptへ「**`.github/workflows/` 配下を変更しない**」を入れておくと、無関係なタスクが巻き添えでbranchごと消えるのを防げる。
+- 恒久的にワーカーへ編集させたいなら、(1) Claude GitHub AppのインストールでWorkflows権限をwriteにする、(2) `claude-worker.yml` の write ジョブの `additional_permissions` へ `workflows: write` を追加する、の**両方**が要る。ただしエージェントがCI定義そのものを書き換えられるようになるため、権限を広げるかはリポジトリオーナーの判断に委ねること。
 
 **`--ref` にはデフォルトブランチだけを指定できる（例外なし）**: `workflow_dispatch` はGitHubの仕様上、`--ref` で指定したブランチ上のWorkflowファイルが**既定ブランチ上のバージョンと1バイトでも違う**場合、`Claude Codeを実行` ステップ自体を無言でスキップする(`Skipping action due to workflow validation`という警告のみ)。これは `claude-worker.yml` 自体を修正した直後に踏みやすい罠で、修正branchを`--ref`に指定して試し撃ちしても何も起きず、後段のcommit検証stepが「変更なし」でjob failするだけになる。Workflow自体の変更を試すときは、**まずmainへマージしてから**改めてdispatchすること。
 
