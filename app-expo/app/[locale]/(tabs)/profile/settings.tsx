@@ -15,8 +15,8 @@ import { ChevronRight } from "lucide-react-native";
 import { Card } from "@/components/Card";
 import i18n from "@/lib/i18n";
 import { useAuth } from "@/contexts/AuthProvider";
+import { isGuestUser } from "@/lib/authGuest";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
-import { FeedbackForm } from "@/features/profile/components/FeedbackForm";
 import { LegalDocument } from "@/features/settings/components/LegalDocument";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
@@ -26,20 +26,41 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useRouter } from "expo-router";
 import { useLocale } from "@/hooks/useLocale";
+import { ScreenHeader } from "@/components/ScreenHeader";
 
 interface SettingsMenuItemProps {
 	label: string;
 	onPress: () => void;
 	isLast?: boolean;
 	textStyle?: StyleProp<TextStyle>;
+	/** E2E テスト用: Web では data-testid として出力される */
+	testID?: string;
+	/**
+	 * #950 【仕様】画面遷移(router.push)は "link"、モーダル起動・破壊的操作等は "button" として
+	 * 支援技術に役割を伝える。Web では role="link"/"button" に対応する。
+	 */
+	accessibilityRole?: "link" | "button";
 }
 
-function SettingsMenuItem({ label, onPress, isLast, textStyle }: SettingsMenuItemProps) {
+function SettingsMenuItem({
+	label,
+	onPress,
+	isLast,
+	textStyle,
+	testID,
+	accessibilityRole = "button",
+}: SettingsMenuItemProps) {
 	return (
 		<>
-			<TouchableOpacity style={styles.menuItem} onPress={onPress}>
+			<TouchableOpacity
+				style={styles.menuItem}
+				onPress={onPress}
+				testID={testID}
+				accessibilityRole={accessibilityRole}
+				accessibilityLabel={label}>
 				<Text style={[styles.menuItemText, textStyle]}>{label}</Text>
-				<ChevronRight size={20} color="#9CA3AF" />
+				{/* #950 【仕様】装飾アイコンのため読み上げ対象から除外し、行のラベルと二重に読み上げさせない */}
+				<ChevronRight size={20} color="#9CA3AF" accessibilityElementsHidden importantForAccessibility="no" />
 			</TouchableOpacity>
 			{!isLast && <View style={styles.separator} />}
 		</>
@@ -47,26 +68,30 @@ function SettingsMenuItem({ label, onPress, isLast, textStyle }: SettingsMenuIte
 }
 
 export default function SettingsScreen() {
-	const { logout, user } = useAuth();
+	const { logout, user, isAuthResolved } = useAuth();
 	const router = useRouter();
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { locale } = useLocale();
-	const { showDialog } = useDialog();
+	const { showDialog, confirm } = useDialog();
 	const { showSnackbar } = useSnackbar();
 	const [selectedLegalDocument, setSelectedLegalDocument] = useState<
 		"guidelines" | "terms" | "privacy" | "copyright" | null
 	>(null);
-	const {
-		BlurModal: FeedbackModal,
-		open: openFeedbackModal,
-		close: closeFeedbackModal,
-	} = useBlurModal({ intensity: 100 });
+	// #951 【設計】フィードバックは useBlurModal をやめ、専用画面(profile/feedback)へ遷移する
+	// (レビュー指摘: #949 の ScreenHeader による戻る導線と統一するため)
 	const {
 		BlurModal: LegalDocumentModal,
 		open: openLegalDocumentModal,
 		close: closeLegalDocumentModal,
 	} = useBlurModal({ intensity: 100 });
+
+	// #949 【設計】設定画面は Stack で push されるため戻る導線が存在せず、
+	// ハードウェア/スワイプバックが使えない Web ではロックアウトになっていた。ScreenHeader で解消する。
+	const handleBack = useCallback(() => {
+		lightImpact();
+		router.back();
+	}, [lightImpact, router]);
 
 	// #747 【設計】ブロック済みトピック管理画面への遷移
 	const handleNavigateToBlockedTopics = useCallback(() => {
@@ -222,6 +247,7 @@ export default function SettingsScreen() {
 	);
 
 	// ログアウト処理を実行
+	// #950 【仕様】破壊的操作(セッション破棄)のため、押下直後に実行せず確認ダイアログを挟む
 	const handleLogout = useCallback(async () => {
 		mediumImpact();
 		logFrontendEvent({
@@ -229,6 +255,14 @@ export default function SettingsScreen() {
 			error_level: "log",
 			payload: {},
 		});
+
+		const ok = await confirm({
+			title: i18n.t("Settings.logoutConfirmTitle"),
+			message: i18n.t("Settings.logoutConfirmMessage"),
+			confirmLabel: i18n.t("Settings.logout"),
+			cancelLabel: i18n.t("Common.cancel"),
+		});
+		if (!ok) return;
 
 		try {
 			await logout({ scope: "local" });
@@ -246,45 +280,56 @@ export default function SettingsScreen() {
 		}
 	}, [logout, mediumImpact, logFrontendEvent]);
 
-	// フィードバック送信モーダルを起動
+	// #951 【設計】フィードバック画面へ遷移(モーダル起動から変更)
 	const handleSendFeedback = useCallback(() => {
 		lightImpact();
-		openFeedbackModal();
 		logFrontendEvent({
 			event_name: "settings_send_feedback_pressed",
 			error_level: "log",
 			payload: { userId: user?.id },
 		});
-	}, [lightImpact, openFeedbackModal, logFrontendEvent, user?.id]);
+		router.push({
+			pathname: "/[locale]/(tabs)/profile/feedback",
+			params: { locale },
+		});
+	}, [lightImpact, logFrontendEvent, user?.id, router, locale]);
 
-	const handleFeedbackSubmit = useCallback(
-		(_data: { type: "request" | "bug"; title: string; message: string; issueNumber: number; issueUrl: string }) => {
-			showSnackbar(i18n.t("Feedback.success.submitted"));
-			closeFeedbackModal();
-		},
-		[closeFeedbackModal, showSnackbar],
-	);
+	// #1092 【設計】auth 未確定(user === null)を「ログイン済み」と誤解させない。
+	// `!user?.is_anonymous` は未確定でも true になるため、下のログアウト行が
+	// 一瞬出てから消える（押せてしまう瞬間もある）。確定するまではゲスト側に寄せる。
+	// 判定は features/profile の isGuest と同じ共通関数（lib/authGuest.ts）へ揃えている。
+	const isGuest = !isAuthResolved || isGuestUser(user);
 
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
-			<SafeAreaView style={styles.safeArea} edges={["top"]}>
+			<SafeAreaView style={styles.safeArea} edges={[]}>
+				<ScreenHeader title={i18n.t("Settings.title")} onPressBack={handleBack} />
 				<ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-					<View style={styles.header}>
-						<Text style={styles.title}>{i18n.t("Settings.title")}</Text>
-					</View>
-
 					{/* Card 1: フィードバック・レビュー・ブロック済みトピック */}
 					<Card style={styles.card}>
-						<SettingsMenuItem label={i18n.t("Settings.sendFeedback")} onPress={handleSendFeedback} />
+						<SettingsMenuItem
+							label={i18n.t("Settings.sendFeedback")}
+							onPress={handleSendFeedback}
+							testID="settings-feedback"
+							// #951 【仕様】モーダル起動から画面遷移(router.push)に変わったため link に変更(#950 の規約)
+							accessibilityRole="link"
+						/>
 						{/* #317 【設計】Leave Review は web では非表示 */}
 						{Platform.OS !== "web" && (
-							<SettingsMenuItem label={i18n.t("Settings.leaveReview")} onPress={handleLeaveReview} />
+							<SettingsMenuItem
+								label={i18n.t("Settings.leaveReview")}
+								onPress={handleLeaveReview}
+								testID="settings-leave-review"
+								accessibilityRole="button"
+							/>
 						)}
 						{/* #747 【設計】ブロック済みの料理トピック管理画面へ遷移 */}
 						<SettingsMenuItem
 							label={i18n.t("Settings.blockedTopics.navigationLabel")}
 							onPress={handleNavigateToBlockedTopics}
 							isLast
+							testID="settings-blocked-topics"
+							accessibilityRole="link"
 						/>
 					</Card>
 
@@ -293,37 +338,53 @@ export default function SettingsScreen() {
 						<SettingsMenuItem
 							label={i18n.t("Settings.communityGuidelines")}
 							onPress={() => handleLegalDocument("guidelines")}
+							testID="settings-guidelines"
+							accessibilityRole="button"
 						/>
-						<SettingsMenuItem label={i18n.t("Settings.terms")} onPress={() => handleLegalDocument("terms")} />
-						<SettingsMenuItem label={i18n.t("Settings.privacy")} onPress={() => handleLegalDocument("privacy")} />
+						<SettingsMenuItem
+							label={i18n.t("Settings.terms")}
+							onPress={() => handleLegalDocument("terms")}
+							testID="settings-terms"
+							accessibilityRole="button"
+						/>
+						<SettingsMenuItem
+							label={i18n.t("Settings.privacy")}
+							onPress={() => handleLegalDocument("privacy")}
+							testID="settings-privacy"
+							accessibilityRole="button"
+						/>
 						<SettingsMenuItem
 							label={i18n.t("Settings.copyright")}
 							onPress={() => handleLegalDocument("copyright")}
-							isLast={!!user?.is_anonymous}
+							isLast={isGuest}
+							testID="settings-copyright"
+							accessibilityRole="button"
 						/>
-						{!user?.is_anonymous && (
+						{!isGuest && (
 							<SettingsMenuItem
 								label={i18n.t("Settings.logout")}
 								onPress={handleLogout}
+								testID="settings-logout"
 								textStyle={{
 									color: "#FF3E33",
 									fontWeight: "700",
 								}}
 								isLast
+								accessibilityRole="button"
 							/>
 						)}
 					</Card>
 				</ScrollView>
 			</SafeAreaView>
 
-			{/* フィードバックモーダル */}
-			<FeedbackModal>
-				<FeedbackForm onSubmit={handleFeedbackSubmit} onCancel={closeFeedbackModal} />
-			</FeedbackModal>
-
 			{/* Legal ドキュメントモーダル */}
+			{/* #1027 【設計】Detox からモーダル表示を検証できるよう testID を追加（LoginbackModal と同じ形） */}
 			<LegalDocumentModal>
-				{selectedLegalDocument && <LegalDocument documentType={selectedLegalDocument} />}
+				{selectedLegalDocument && (
+					<View testID="legal-document-modal">
+						<LegalDocument documentType={selectedLegalDocument} />
+					</View>
+				)}
 			</LegalDocumentModal>
 		</LinearGradient>
 	);
@@ -341,17 +402,6 @@ const styles = StyleSheet.create({
 	},
 	scrollContent: {
 		paddingBottom: 32,
-	},
-	header: {
-		paddingHorizontal: 32,
-		paddingVertical: 12,
-	},
-	title: {
-		fontSize: 20,
-		fontWeight: "700",
-		color: "#1A1A1A",
-		letterSpacing: -0.5,
-		flex: 1,
 	},
 	card: {
 		padding: 0,

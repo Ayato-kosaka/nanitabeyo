@@ -44,10 +44,9 @@ export class CreateDishMediaEntryService {
       photoUriCount: payload.photoUri.length,
     });
 
-    // 冪等性チェック: 既に処理済みかどうか確認
-    const isAlreadyProcessed = await this.checkIdempotency(
-      payload.idempotencyKey,
-    );
+    // #829 【バグ】place/category で止めると、bulk-import が返した別 ID の row が作られず orphan response になる。
+    // #829 【設計】handler retry は同じ payload ID が completed 済みのときだけ処理済みとみなす。
+    const isAlreadyProcessed = await this.checkIdempotency(payload);
     if (isAlreadyProcessed) {
       this.logger.log('JobAlreadyProcessed', 'processAsyncJob', {
         jobId: payload.jobId,
@@ -89,6 +88,16 @@ export class CreateDishMediaEntryService {
   private async downloadAndStorePhotos(
     payload: CreateDishMediaEntryJobPayload,
   ): Promise<void> {
+    // #1053 【課金】bulk-import が「GCS に実体あり」と判定した再利用パスでは photoUri が空。
+    // その場合 download は不要で、upsert と resize のやり直しだけが目的になる。
+    if (payload.photoUri.length === 0) {
+      this.logger.debug('PhotoDownloadSkipped', 'downloadAndStorePhotos', {
+        jobId: payload.jobId,
+        mediaPath: payload.dish_media.media_path,
+      });
+      return;
+    }
+
     const downloadPromises = payload.photoUri.map(async (photoUri, index) => {
       try {
         // 写真データを取得
@@ -134,45 +143,67 @@ export class CreateDishMediaEntryService {
     dishMedia: PrismaDishMedia,
     restaurants: PrismaRestaurants,
   ) {
+    // #1053 【設計】分岐判定は media/thumbnail の AND なので、
+    // 「media=completed / thumbnail=processing」は未完了に倒れて handler が再実行される。
+    // そのとき completed 側まで再 enqueue すると、resize-image 側が fileExists で
+    // 早期 return するため画像処理自体は走らないものの、Cloud Tasks の実行回数と
+    // Cloud Run のリクエスト数だけが二重に増える。completed の列は skip する。
+    const skipMedia = dishMedia.media_processing_status === 'completed';
+    const skipThumbnail = dishMedia.thumbnail_processing_status === 'completed';
+
+    if (skipMedia || skipThumbnail) {
+      this.logger.debug('ResizeEnqueueSkipped', 'enqueueResizeImageJob', {
+        dishMediaId: dishMedia.id,
+        skipMedia,
+        skipThumbnail,
+      });
+    }
+
     return Promise.all([
       // メイン画像リサイズジョブ
-      this.cloudTasksService
-        .enqueueResizeImage({
-          table: 'dish_media',
-          column: 'media_path',
-          recordId: dishMedia.id,
-          size: 1024,
-          aspectRatio: 9 / 16,
-          originalPath: dishMedia.media_path,
-        })
-        .catch((error) => {
-          this.logger.error('EnqueueResizeImageError', 'createDishMediaEntry', {
-            dishMediaId: dishMedia.id,
-            error: error instanceof Error ? error.message : 'Unknown error',
-          });
-          throw error;
-        }),
+      !skipMedia &&
+        this.cloudTasksService
+          .enqueueResizeImage({
+            table: 'dish_media',
+            column: 'media_path',
+            recordId: dishMedia.id,
+            size: 1024,
+            aspectRatio: 9 / 16,
+            originalPath: dishMedia.media_path,
+          })
+          .catch((error) => {
+            this.logger.error(
+              'EnqueueResizeImageError',
+              'createDishMediaEntry',
+              {
+                dishMediaId: dishMedia.id,
+                error: error instanceof Error ? error.message : 'Unknown error',
+              },
+            );
+            throw error;
+          }),
       // サムネイル画像リサイズジョブ
-      this.cloudTasksService
-        .enqueueResizeImage({
-          table: 'dish_media',
-          column: 'thumbnail_path',
-          recordId: dishMedia.id,
-          size: 256,
-          aspectRatio: 9 / 16,
-          originalPath: dishMedia.thumbnail_path,
-        })
-        .catch((error) => {
-          this.logger.error(
-            'EnqueueResizeThumbnailError',
-            'createDishMediaEntry',
-            {
-              dishMediaId: dishMedia.id,
-              error: error instanceof Error ? error.message : 'Unknown error',
-            },
-          );
-          throw error;
-        }),
+      !skipThumbnail &&
+        this.cloudTasksService
+          .enqueueResizeImage({
+            table: 'dish_media',
+            column: 'thumbnail_path',
+            recordId: dishMedia.id,
+            size: 256,
+            aspectRatio: 9 / 16,
+            originalPath: dishMedia.thumbnail_path,
+          })
+          .catch((error) => {
+            this.logger.error(
+              'EnqueueResizeThumbnailError',
+              'createDishMediaEntry',
+              {
+                dishMediaId: dishMedia.id,
+                error: error instanceof Error ? error.message : 'Unknown error',
+              },
+            );
+            throw error;
+          }),
       restaurants.image_path &&
         this.cloudTasksService
           .enqueueResizeImage({
@@ -269,12 +300,15 @@ export class CreateDishMediaEntryService {
   }
 
   /**
-   * 冪等性チェック: 既に処理済みかどうか確認
+   * #829 【設計】Cloud Tasks retry の冪等性境界。
+   *
+   * processing の同一 ID は、DB insert 後に画像保存や resize enqueue で落ちた可能性があるため再実行する。
+   * completed の同一 ID だけを return 対象にして、未完了 row の復旧余地を残す。
    */
-  private async checkIdempotency(idempotencyKey: string): Promise<boolean> {
-    // TODO: Redis や専用テーブルで冪等性キーを管理
-    // 現在は簡略化実装
-    return false;
+  private async checkIdempotency(
+    payload: CreateDishMediaEntryJobPayload,
+  ): Promise<boolean> {
+    return this.dishesRepository.isDishMediaCompleted(payload.dish_media.id);
   }
 
   /**

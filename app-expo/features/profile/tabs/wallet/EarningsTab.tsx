@@ -84,6 +84,7 @@ export function EarningsTab({
 					item={{
 						id: item.id,
 						imageUrl: item.imageUrl,
+						title: `${i18n.t("Search.currencySuffix")}${item.earnings.toLocaleString()}`,
 					}}
 					onPress={() => onItemPress?.(item, index)}>
 					<View style={styles.earningCardOverlay}>

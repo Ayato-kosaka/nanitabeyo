@@ -95,7 +95,11 @@ export function RestaurantReviewsTab({ restaurantId, onItemPress }: RestaurantRe
 
 			return (
 				<ImageCard
-					item={{ id: entry.dish_media.id, imageUrl: entry.dish_media.thumbnailImageUrl }}
+					item={{
+						id: entry.dish_media.id,
+						imageUrl: entry.dish_media.thumbnailImageUrl,
+						title: entry.dish.name ?? undefined,
+					}}
 					onPress={() => handleItemPress(index, entry.dish_media.id)}>
 					<View style={styles.reviewCardOverlay}>
 						<Text style={styles.reviewCardTitle}>{entry.dish.name}</Text>
