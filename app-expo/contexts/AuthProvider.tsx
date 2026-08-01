@@ -299,10 +299,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 						payload: { user_id: anonSession.user.id },
 					});
 
-					// #1135 ここは世代ガードを掛けない。今作った匿名セッションは auth-js がロック保持中に
-					// `_saveSession` 済みで、構造上「最新の書き込み」そのものだから（＝古い読み取り結果ではない）。
-					sessionRef.current = anonSession;
-					setUser(anonSession.user);
+					// #1135 匿名サインインの await をまたぐ区間も、別経路が載せたセッションを巻き戻さない。
+					// `getSession()` が «code 交換が始まる前» に「セッション無し」で解決すると、上の
+					// hasNewerSession() 分岐は素通りする。その後この await の最中に
+					//   1. 匿名サインインが `_saveSession` → SIGNED_IN(匿名)
+					//   2. pendingInLock の `exchangeCodeForSession()` が完了 → SIGNED_IN(OAuth)
+					// の順で流れると、無条件の書き戻しは確立済みの OAuth セッションを匿名へ巻き戻す
+					// （storage は OAuth のまま = 本 Issue と同型の症状）。
+					//
+					// ⚠️ ここを世代カウンタ（hasNewerSession）で守ることはできない。1 の SIGNED_IN でも
+					//    世代は進むため、「自分が作った匿名セッション」と「別経路のセッション」を区別できず、
+					//    競合が無い正常な匿名サインインまで書き戻しをスキップして user=null で固着する。
+					//    そこで «今 sessionRef に載っているのが自分以外のセッションか» を同一性で判定する。
+					const currentSession = sessionRef.current;
+					if (currentSession && currentSession.access_token !== anonSession.access_token) {
+						// 別経路が先にセッションを確立していた。state は onAuthStateChange 側で更新済みなので、
+						// 「認証が確立している」という事後条件はここで何もしなくても満たされる。
+						// （作ってしまった匿名ユーザーは storage 上も既に上書きされている＝ auth-js の管理下。
+						//   ここで消しに行くと確立済みセッションを触ることになるため、記録だけに留める）
+						logFrontendEvent({
+							event_name: "anonymousSignInDiscarded",
+							error_level: "log",
+							payload: { stale_user_id: anonSession.user.id, current_user_id: currentSession.user.id },
+						});
+					} else {
+						sessionRef.current = anonSession;
+						setUser(anonSession.user);
+					}
 				}
 
 				nextAttemptAllowedAtRef.current = 0;
