@@ -11,7 +11,14 @@ dotenv.config();
 const envSchema = z.object({
   API_COMMIT_ID: z.string(),
   API_NODE_ENV: z.string(),
-  CORS_ORIGIN: z.string(),
+  // カンマ区切りで複数オリジンを許可する（例: "https://app.example.com,http://localhost:4173"）
+  // 単一値もそのまま 1 要素の配列になるため後方互換
+  CORS_ORIGIN: z.string().transform((v) =>
+    v
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean),
+  ),
   DATABASE_URL: z.string(),
   DB_SCHEMA: z.string(),
   // #904 【設計】Prisma 7 driver adapterではPool設定をDATABASE_URLではなくpg.Poolへ渡す

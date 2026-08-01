@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthProvider";
+import { isGuestUser } from "@/lib/authGuest";
 import { ApiError, useAPICall } from "@/hooks/useAPICall";
 import { useLogger } from "@/hooks/useLogger";
 import { userProfile } from "@/data/profileData";
@@ -33,7 +34,9 @@ export function useEnsureOwnProfileLoaded() {
 	// ロード済みフラグとリトライフラグを管理するための ref
 	const hasLoadedRef = useRef(false);
 
-	const isGuest = user?.is_anonymous !== false;
+	// #1092 PR4b タブの表示判定（lib/authGuest.ts）と同じ式にしておく。
+	// ここだけ判定がずれると「reviews タブは出ているのにプロフィールはダミーのまま」になる
+	const isGuest = isGuestUser(user);
 
 	// ★セッション（userId / isGuest）が変わったらキャッシュをリセット
 	useEffect(() => {

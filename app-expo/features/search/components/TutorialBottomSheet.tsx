@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { View, StyleSheet, Dimensions, TouchableOpacity, Text, FlatList } from "react-native";
+import { View, StyleSheet, TouchableOpacity, Text, FlatList } from "react-native";
 import { TrueSheet } from "@lodev09/react-native-true-sheet";
 import { TutorialPage } from "@/components/TutorialPage";
+import { useContentWidth } from "@/hooks/useContentWidth";
 import i18n from "@/lib/i18n";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const SHEET_MAX_HEIGHT = 580;
 
 export type TutorialBottomSheetProps = {
@@ -50,6 +50,12 @@ export function TutorialBottomSheet({
 }: TutorialBottomSheetProps) {
 	// TrueSheet の ref
 	const sheetRef = useRef<TrueSheet>(null);
+
+	// #958 【修正】以前はモジュールスコープの Dimensions.get("window").width を
+	// ページ幅に使っており、web の中央カラム(560px)内でページが画面幅サイズに
+	// なって崩れていた。中央カラム対応の useContentWidth でカラム幅に合わせる
+	// (native では従来通り画面幅が返るため挙動は変わらない)
+	const contentWidth = useContentWidth();
 
 	// ページング用 FlatList の ref
 	const listRef = useRef<FlatList<TutorialPageConfig> | null>(null);
@@ -159,6 +165,9 @@ export function TutorialBottomSheet({
 	// 現在ページの CTA 設定
 	const currentConfig = tutorialPages[currentPage] ?? tutorialPages[0];
 
+	// #1031 【設計】プライマリCTAが「つぎへ」か「はじめよう(finish)」かを Detox から判別できるよう testID を出し分ける
+	const isLastPage = currentPage === tutorialPages.length - 1;
+
 	return (
 		<TrueSheet
 			ref={sheetRef}
@@ -171,7 +180,8 @@ export function TutorialBottomSheet({
 			dimmed
 			dismissible
 			onDidDismiss={handleDidDismiss}>
-			<View style={styles.container}>
+			{/* #1031 【設計】Detox からチュートリアル表示を検証できるよう testID を追加 */}
+			<View testID="search-tutorial-overlay" style={[styles.container, { width: contentWidth }]}>
 				{/* 上：横スワイプで動くコンテンツ */}
 				<FlatList
 					ref={listRef}
@@ -179,7 +189,7 @@ export function TutorialBottomSheet({
 					keyExtractor={(_: TutorialPageConfig, index: number) => `tutorial-page-${index}`}
 					style={{ flexGrow: 1 }}
 					renderItem={({ item }: { item: TutorialPageConfig }) => (
-						<View style={styles.pageContainer}>
+						<View style={{ width: contentWidth }}>
 							<TutorialPage image={item.image} title={item.title} bodyLines={item.bodyLines} />
 						</View>
 					)}
@@ -189,8 +199,8 @@ export function TutorialBottomSheet({
 					viewabilityConfig={viewabilityConfig}
 					onViewableItemsChanged={handleViewableItemsChanged}
 					getItemLayout={(_, index) => ({
-						length: SCREEN_WIDTH,
-						offset: SCREEN_WIDTH * index,
+						length: contentWidth,
+						offset: contentWidth * index,
 						index,
 					})}
 				/>
@@ -207,6 +217,7 @@ export function TutorialBottomSheet({
 					{/* CTA ボタン群 */}
 					<View style={styles.ctaContainer}>
 						<TouchableOpacity
+							testID={isLastPage ? "search-tutorial-finish" : "search-tutorial-next"}
 							style={styles.primaryButton}
 							onPress={currentConfig.onPrimaryCtaPress}
 							activeOpacity={0.7}>
@@ -216,6 +227,7 @@ export function TutorialBottomSheet({
 						<View style={styles.secondaryWrapper}>
 							{currentConfig.secondaryCtaLabel && currentConfig.onSecondaryCtaPress ? (
 								<TouchableOpacity
+									testID="search-tutorial-later"
 									style={styles.secondaryButton}
 									onPress={currentConfig.onSecondaryCtaPress}
 									activeOpacity={0.7}>
@@ -233,15 +245,10 @@ export function TutorialBottomSheet({
 }
 
 const styles = StyleSheet.create({
-	// Sheet 内コンテンツラッパー
+	// Sheet 内コンテンツラッパー(width は contentWidth をインラインで指定)
 	container: {
 		flex: 1,
-		width: SCREEN_WIDTH,
 		alignSelf: "center",
-	},
-	// 1ページ分のコンテナ（FlatList の 1 item）
-	pageContainer: {
-		width: SCREEN_WIDTH,
 	},
 	footer: {
 		paddingHorizontal: 24,

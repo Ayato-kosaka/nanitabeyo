@@ -11,6 +11,7 @@ import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
 import { useLogger } from "@/hooks/useLogger";
 import { useAuth } from "@/contexts/AuthProvider";
+import { isGuestUser } from "@/lib/authGuest";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { OtpModal } from "./OtpModal";
 import { LegalDocument } from "@/features/settings/components/LegalDocument";
@@ -88,25 +89,57 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 
 	const handleOAuthSignIn = useCallback(
 		async (provider: "google" | "facebook" | "twitter" | "apple") => {
+			// #1092 【設計】auth が未確定(user === null)のまま進めてはならない分岐。
+			// `user?.is_anonymous` は未確定でも undefined = falsy になるため、下の分岐は
+			// linkIdentity(匿名ユーザーの昇格)ではなく signInWithOAuth(新規ユーザー作成)を選ぶ。
+			// 匿名で貯めたデータから切り離された別アカウントが生まれる = アカウント分裂なので、
+			// 「未確定なら何もしない」を明示する。
+			// ユーザーの操作起点なので実際には解決済みのはずだが、その前提をコードで保証していなかった。
+			if (!user) {
+				logFrontendEvent({
+					event_name: "oauth_signin_blocked_auth_unresolved",
+					error_level: "warn",
+					payload: { provider },
+				});
+				showSnackbar(i18n.t("Common.error"));
+				return;
+			}
+
 			setIsLoading(true);
 			try {
-				// 前提: アプリの初期化時に signInAnonymously() をしているため、auth.userが存在する
-				const isAnonymous = user?.is_anonymous;
+				// #1092 PR4b `user.is_anonymous` の直読みから共通判定（lib/authGuest.ts）へ寄せた。
+				// user === null は上でガード済みなので、ここでの意味は「匿名セッションか」で変わらない。
+				// is_anonymous が欠落している場合にログイン済み扱いになる（＝ linkIdentity しない）のも同じ
+				const isAnonymous = isGuestUser(user);
+				const isUpgrade = isAnonymous && !hasExistingAccount;
 
-				if (isAnonymous && !hasExistingAccount) {
-					// 未チェック（昇格狙い）: 匿名セッションのまま OAuth を追加(linkIdentity)を試みる。
-					await linkIdentity(provider);
-				} else {
-					// チェック済み（既存ログイン狙い）または既にログイン済みなら、通常の OAuth サインインを行う。
-					await signInWithOAuth(provider);
-				}
+				const launch = isUpgrade
+					? // 未チェック（昇格狙い）: 匿名セッションのまま OAuth を追加(linkIdentity)を試みる。
+						await linkIdentity(provider)
+					: // チェック済み（既存ログイン狙い）または既にログイン済みなら、通常の OAuth サインインを行う。
+						await signInWithOAuth(provider);
+
+				// #1062 【設計】ブラウザセッションの結末を記録する。ただし **これで成否を判定してはいけない**。
+				// Android の openAuthSessionAsync は「AppState が active に戻ったこと」と
+				// 「deep link の url イベント」を race させるため、deep link でログインに成功した場合でも
+				// dismiss が勝つことがある（実測: 成功と同一試行で dismiss が記録される）。
+				// 成否は callback 画面の oauth_callback_success / oauth_callback_no_result を正とする。
 				logFrontendEvent({
-					event_name: "oauth_signin_success",
+					event_name:
+						launch.outcome === "cancelled" ? "oauth_signin_browser_dismissed" : "oauth_signin_success",
 					error_level: "log",
-					payload: { provider, isUpgrade: isAnonymous && !hasExistingAccount, hasExistingAccount },
+					payload: {
+						provider,
+						isUpgrade,
+						hasExistingAccount,
+						outcome: launch.outcome,
+						...(launch.outcome === "cancelled" ? { browser_result_type: launch.browserResultType } : {}),
+						context: "login_modal",
+					},
 				});
 
-				// OAuth 成功時に明示的にモーダルを閉じる（Android で戻ったときに残る問題を解消）
+				// ⚠️ 結末によらず必ず閉じる。dismiss でモーダルを開いたままにすると、
+				// Android では「ログインできたのにモーダルが残る」状態になる（上記 race のため）。
 				onClose();
 			} catch (error: unknown) {
 				logFrontendEvent({
@@ -132,7 +165,7 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 	);
 
 	return (
-		<View style={styles.container}>
+		<View style={styles.container} testID="login-modal">
 			<View style={styles.header}>
 				<Text style={styles.title}>{i18n.t("auth.login_title")}</Text>
 			</View>
@@ -178,7 +211,12 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 					</View> */}
 
 			{/* Existing Account Checkbox - Show only for anonymous users */}
-			{user?.is_anonymous && (
+			{/* #1092 PR4b ここは `isGuestUser(user)` へ丸ごと寄せない。isGuestUser は user === null（認証未確定）を
+			    ゲストへ倒すため、そのまま置くと未確定の一瞬だけチェックボックスが出て消える。
+			    このチェックボックスは上の handleOAuthSignIn の分岐用で、未確定の間はその分岐自体が
+			    「何もしない」に倒れている（＝出しても押す意味がない）。
+			    そのため null の扱いだけ従来どおり `user &&` で落とし、is_anonymous の解釈だけ共通判定へ揃える。 */}
+			{user && isGuestUser(user) && (
 				<TouchableOpacity
 					style={styles.checkboxContainer}
 					onPress={() => setHasExistingAccount(!hasExistingAccount)}
@@ -195,6 +233,7 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 			{/* OAuth Buttons */}
 			<View style={styles.oauthContainer}>
 				<PrimaryButton
+					testID="login-google-button"
 					label={i18n.t("auth.provider_google")}
 					icon={
 						<Image
@@ -235,6 +274,7 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 					nativeLoadingColor={"#1A1A1A"}
 				/> */}
 				<PrimaryButton
+					testID="login-apple-button"
 					label={i18n.t("auth.provider_apple")}
 					icon={
 						<Image
@@ -263,7 +303,11 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 						{i18n.t("auth.consent_login_terms")}
 					</Text>
 					{i18n.t("auth.consent_login_and")}
-					<Text style={styles.consentLink} onPress={() => handleOpenLegalDocument("privacy")}>
+					{/* #1031 【設計】Detox からリーガルモーダルへの導線をタップできるよう testID を追加 */}
+					<Text
+						testID="login-privacy-link"
+						style={styles.consentLink}
+						onPress={() => handleOpenLegalDocument("privacy")}>
 						{i18n.t("auth.consent_login_privacy")}
 					</Text>
 					{i18n.t("auth.consent_login_suffix")}
@@ -283,8 +327,13 @@ export function LoginbackModal({ onClose }: LoginbackModalProps) {
 			</OtpModalComponent>
 
 			{/* Legal ドキュメントモーダル */}
+			{/* #1031 【設計】Detox からモーダル表示を検証できるよう testID を追加 */}
 			<LegalDocumentModal>
-				{selectedLegalDocument && <LegalDocument documentType={selectedLegalDocument} />}
+				{selectedLegalDocument && (
+					<View testID="legal-document-modal">
+						<LegalDocument documentType={selectedLegalDocument} />
+					</View>
+				)}
 			</LegalDocumentModal>
 		</View>
 	);

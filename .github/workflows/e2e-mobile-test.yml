@@ -1,0 +1,416 @@
+name: E2E Mobile Test
+
+# 📱 Detox E2E テスト（e2e-mobile ワークスペース）
+# - app-expo を expo prebuild + Gradle / xcodebuild でネイティブビルドし、
+#   Android エミュレータ / iOS シミュレータ上で実行する
+# - dev 環境のビルド（EAS の development 環境変数を焼き込み）で Cloud Run api-development に
+#   接続してテストする（e2e-web-test.yml と同一方針）
+# - Tier 3 (@mutation) は dev DB へ書き込むため、scope=mutation を明示したときだけ実行する
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: "実行対象プラットフォーム"
+        type: choice
+        default: all
+        options:
+          - all
+          - android
+          - ios
+      scope:
+        description: "実行するテストの範囲（tier1 = smoke のみ / tier1-2 = 既定 / mutation = dev DB へ書き込む / probe = 不具合を数値で示す。落ちるのが正しい）"
+        type: choice
+        default: tier1-2
+        options:
+          - tier1-2
+          - tier1
+          - mutation
+          - probe
+  schedule:
+    # #1029 【設計】毎日 JST 4:00（UTC 19:00）。e2e-web(JST 3:00 / timeout 30分) と時間帯を分け、
+    # テストユーザーと Supabase の匿名サインイン枠を取り合わないようにする
+    - cron: "0 19 * * *"
+
+# 読み取り専用で足りるため、既定トークン権限を明示的に絞る
+permissions:
+  contents: read
+
+# 同時実行しても壊れはしないが無駄なので、実行中があれば新しい方を待たせる
+concurrency:
+  group: e2e-mobile-test
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: 実行スコープの解決
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      android_script: ${{ steps.resolve.outputs.android_script }}
+      ios_script: ${{ steps.resolve.outputs.ios_script }}
+    steps:
+      # #1029 【設計】Tier の選択をここで 1 箇所に集約し、各ジョブは受け取った script 名を実行するだけにする。
+      # schedule 実行では inputs が空になるため、既定（tier1-2）へフォールバックする
+      - name: 実行するスクリプトを決定
+        id: resolve
+        shell: bash
+        env:
+          SCOPE: ${{ inputs.scope || 'tier1-2' }}
+        run: |
+          set -euo pipefail
+          case "$SCOPE" in
+            tier1)    android=test:ci:smoke:android; ios=test:ci:smoke:ios ;;
+            mutation) android=test:ci:mutation:android; ios=test:ci:mutation:ios ;;
+            # #1087 @probe は「修正が入るまで落ちるのが正しい」spec。既定スコープにも
+            # schedule にも入らず、この scope を明示したときだけ走る（mutation と同じ扱い）
+            probe)    android=test:ci:probe:android;  ios=test:ci:probe:ios ;;
+            *)        android=test:ci:android;       ios=test:ci:ios ;;
+          esac
+          echo "android_script=$android" >> "$GITHUB_OUTPUT"
+          echo "ios_script=$ios" >> "$GITHUB_OUTPUT"
+          echo "scope=$SCOPE -> android:$android / ios:$ios" >> "$GITHUB_STEP_SUMMARY"
+
+  e2e-android:
+    name: Detox E2E Android (development)
+    needs: prepare
+    if: ${{ inputs.platform != 'ios' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: ⏬ Checkout repository
+        uses: actions/checkout@v4
+
+      # ubuntu-latest はネストせずに KVM を使えるが、既定では runner ユーザーに権限がないため許可する
+      # （エミュレータのハードウェアアクセラレーションに必須）
+      - name: 🖥 Enable KVM group perms
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: 🟣 Setup PNPM
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10.8.0
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: 📦 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # app-expo が参照する共有パッケージの型/実装を生成する
+      - name: 📚 Build shared package
+        run: pnpm -F shared run build
+
+      - name: 🏗 Setup Expo & EAS CLI
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      # development 環境の EXPO_PUBLIC_* を app-expo/.env に取得する
+      # （EXPO_PUBLIC_BACKEND_BASE_URL=api-development 等がビルドに焼き込まれる）
+      - name: 🛠️ Sync environment variables from EAS CLI
+        working-directory: app-expo
+        run: pnpx eas-cli env:pull development --non-interactive --path .env
+
+      # #1076 この run のビルドにだけ commit SHA を焼き込む（e2e-web-test.yml と同一方針・同一内容）。
+      # eas-cli env:update は使わない: EAS 側の共有 development 環境そのものを書き換えるため、
+      # CI の SHA が全開発者の env:pull に降ってくるうえ、E2E Web / E2E Mobile の同時実行で競合する。
+      # prebuild ではなく Gradle ビルド時に効く: expo-constants の createExpoConfig タスクが
+      # preBuild で @expo/env.load(projectRoot) を呼び、この .env を読んで assets の app.config を生成する。
+      # printf の先頭 \n は、env:pull の出力が改行で終わっていない場合に前行と連結して
+      # 「前行の値まで壊す」事故を防ぐ保険（echo では防げない）。
+      - name: 🔖 Inject commit id into .env
+        working-directory: app-expo
+        env:
+          COMMIT_ID: ${{ github.sha }}
+        run: printf '\nEXPO_PUBLIC_COMMIT_ID=%s\n' "$COMMIT_ID" >> .env
+
+      # Gradle (AGP 8.x) は JDK 17 を要求する
+      - name: ☕ Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      # Gradle の依存・ビルドキャッシュを共有し、2 回目以降のビルドを高速化する
+      - name: 🐘 Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # CNG: android/ ディレクトリを生成する。E2E_DETOX=1 で @config-plugins/detox が
+      # androidTest 設定（DetoxTest.java・build.gradle・Network Security Config）を注入する
+      - name: 🧬 Expo prebuild (Android)
+        working-directory: app-expo
+        env:
+          E2E_DETOX: "1"
+        run: pnpm exec expo prebuild --platform android --no-install
+
+      # release APK + androidTest APK をビルドする（エミュレータ用に x86_64 のみ。.detoxrc.js 参照）
+      - name: 🏗️ Detox build (Android release)
+        # #1030 【設計】A' 案のセッション注入フックは **バンドル時** に metro.config.js の resolver で
+        # 有効/無効が決まる。ここで立てないと noop 実装が焼き込まれ、launchArgs が黙って無視される
+        # （= 認証済みテストが匿名のまま走り、テストは緑なのに検証内容だけが嘘になる）
+        env:
+          EXPO_PUBLIC_E2E_AUTH_HOOK: "1"
+          # #1031 B6 レビュー投稿(@mutation)は OS のフォトピッカーを Detox から操作できないため、
+          # E2E ビルドに限りメディア選択を固定画像へ差し替える
+          EXPO_PUBLIC_E2E_MEDIA_HOOK: "1"
+          # #1027 検索チュートリアル（別ウィンドウの BottomSheet）は全 spec のタップを吸ってしまうため、
+          # 起動引数で「視聴済み」をシードできるようにする（e2e-web の seedTutorialSeen と同じ考え方）
+          EXPO_PUBLIC_E2E_TUTORIAL_HOOK: "1"
+          # #1076 native は web と config の作られ方が違う。web は babel の
+          # expo-inline-manifest-plugin がバンドラのプロセス内で getConfig() を評価するため
+          # `.env` が確実に効くが、native は Gradle の :expo-constants:createExpoConfig が
+          # 別プロセスで app.config アセットを生成するため、`.env` 追記が黙って落ちうる
+          # (@expo/env は空文字を truthy チェックで捨て、.env.local を .env より優先する)。
+          # process env は @expo/env / dotenv-expand の双方で `.env` より優先されるため、
+          # 上の E2E フック群と同じ「ビルドステップの env: で渡す」方式に揃えて確実に焼き込む。
+          EXPO_PUBLIC_COMMIT_ID: ${{ github.sha }}
+        run: pnpm --filter e2e-mobile build:android
+
+      # #1076 焼き込みは失敗しても例外もログも出ない (@expo/env が黙って捨てる) ため、
+      # 成果物を直接検査して落とす。assert-no-e2e-hook と同じ sentinel ゲートの考え方。
+      - name: 🔍 Assert commit id is baked into the APK
+        env:
+          COMMIT_ID: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          APK=app-expo/android/app/build/outputs/apk/release/app-release.apk
+          BAKED=$(unzip -p "$APK" assets/app.config | grep -o '"EXPO_PUBLIC_COMMIT_ID":"[^"]*"' || true)
+          echo "APK 内の値: ${BAKED:-(見つかりません)}"
+          if [ "$BAKED" != "\"EXPO_PUBLIC_COMMIT_ID\":\"$COMMIT_ID\"" ]; then
+            echo "::error::commit id が APK へ焼き込まれていません (期待値: $COMMIT_ID)。フロントログの created_commit_id が unknown-client になります。"
+            exit 1
+          fi
+
+      # AVD スナップショットをキャッシュし、2 回目以降のエミュレータ起動を高速化する
+      - name: 💾 AVD cache
+        uses: actions/cache@v4
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          # ロケール(ja-JP)をブートプロパティで焼くため、変更時はキーを更新して AVD を作り直す
+          key: avd-34-google_apis-x86_64-ja-v2
+
+      # キャッシュがない場合のみ AVD を作成し、起動済みスナップショットを生成する
+      # （google_apis: アプリが Google Play services（Maps/AdMob）へ依存するため）
+      - name: 📸 Create AVD and generate snapshot for caching
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          avd-name: e2e_avd
+          force-avd-creation: false
+          # ロケールは「テスト実行」ステップで adb root + setprop により固定する
+          # （ブートプロパティ `-prop persist.sys.locale` は反映されなかった。run 30394200940 で実測）
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -prop persist.sys.locale=ja-JP -prop persist.sys.language=ja -prop persist.sys.country=JP
+          disable-animations: false
+          script: echo "AVD スナップショットを生成しました"
+
+      # prepare ジョブが解決した Tier のスクリプトを実行する
+      - name: 🧪 Run Detox tests (Android)
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          avd-name: e2e_avd
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -prop persist.sys.locale=ja-JP -prop persist.sys.language=ja -prop persist.sys.country=JP
+          disable-animations: true
+          # #1031 【設計】B4: Android には Detox の languageAndLocale 相当が無いため、
+          # システムロケールを adb で ja-JP へ固定してからテストを実行する。
+          # #1027 【バグ】emulator-options の `-prop persist.sys.locale=ja-JP` では反映されなかった
+          # （run 30394200940 で en-US のままだと実測）。persist.sys.locale は protected property なので
+          # 書き込みには `adb root` が要る。google_apis イメージなら可能（google_apis_playstore では不可）。
+          # 設定後は zygote を再起動しないとアプリ側の Locale へ反映されない
+          # ⚠️ この `script:` は **1 行ずつ別プロセスで実行される**（run 30401214828 で実測）。
+          # 複数行の if/for も、行をまたぐ変数の引き継ぎも成立しないため、
+          # ロジックは必ずスクリプトファイルへ切り出して 1 行で呼ぶこと
+          script: |
+            bash e2e-mobile/scripts/setup-android-locale.sh
+            bash e2e-mobile/scripts/run-detox-ci.sh ${{ needs.prepare.outputs.android_script }}
+        # #1030 【設計】3-3: 未設定なら describeAuthenticated 配下が自動 skip されるだけで他は動く
+        env:
+          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+
+      # 失敗時のスクリーンショット・デバイスログを保存する
+      # （ダウンロード後に artifacts/ 配下を直接閲覧できる）
+      - name: 📊 Upload Detox artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: detox-report-android
+          path: e2e-mobile/artifacts/
+          if-no-files-found: ignore
+          # #1030 レビュー B-2: artifact には長期資格情報が載りうるため保存期間を短くする
+          retention-days: 7
+
+  e2e-ios:
+    name: Detox E2E iOS (development)
+    needs: prepare
+    if: ${{ inputs.platform != 'android' }}
+    # macos-latest は macos-26 への移行が進行中のため、eas.json の EAS ビルド環境
+    # （macos-sequoia-15.6-xcode-26.2）に合わせて macos-15 を明示固定する（#1029）
+    runs-on: macos-15
+    # #1027 【実測】xcodebuild（Release / シミュレータ）だけで ~31 分かかる（run 30432596949）。
+    # そのうえで Tier1-2 の全 spec を実行し、失敗があれば --retries 1 でもう 1 周するため、
+    # 120 分でもテスト実行の途中で打ち切られた（run 30432596949 は 84 分走って未完）。
+    # iOS は Detox の同期機構を切っている分どの待機もポーリングになり Android より遅い（#1040）
+    timeout-minutes: 180
+
+    steps:
+      - name: ⏬ Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🟣 Setup PNPM
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10.8.0
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: 📦 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # app-expo が参照する共有パッケージの型/実装を生成する
+      - name: 📚 Build shared package
+        run: pnpm -F shared run build
+
+      - name: 🏗 Setup Expo & EAS CLI
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      # development 環境の EXPO_PUBLIC_* を app-expo/.env に取得する
+      - name: 🛠️ Sync environment variables from EAS CLI
+        working-directory: app-expo
+        run: pnpx eas-cli env:pull development --non-interactive --path .env
+
+      # #1076 この run のビルドにだけ commit SHA を焼き込む（Android ジョブ・e2e-web と同一方針・同一内容）。
+      # このステップは #1048 で iOS ジョブが新設された際に行き渡らず、iOS だけ注入が抜けていた
+      # （#1081 と #1048 は別ジョブ＝別テキスト領域のため Git は競合なくマージしてしまう）。
+      # eas-cli env:update は使わない: EAS 側の共有 development 環境そのものを書き換えるため、
+      # CI の SHA が全開発者の env:pull に降ってくるうえ、E2E Web / E2E Mobile の同時実行で競合する。
+      # printf の先頭 \n は、env:pull の出力が改行で終わっていない場合に前行と連結して
+      # 「前行の値まで壊す」事故を防ぐ保険（echo では防げない）。
+      - name: 🔖 Inject commit id into .env
+        working-directory: app-expo
+        env:
+          COMMIT_ID: ${{ github.sha }}
+        run: printf '\nEXPO_PUBLIC_COMMIT_ID=%s\n' "$COMMIT_ID" >> .env
+
+      # macos-15 の既定 Xcode は 16.4 のため、eas.json の EAS ビルドと同じ 26.2 へ明示的に切り替える
+      # （「EAS では通るが CI では落ちる/その逆」を防ぐ。#1029）
+      - name: 🧭 Select Xcode 26.2
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "26.2"
+
+      # CNG: ios/ ディレクトリを生成する。pod install は後続ステップに分離して失敗を切り分けやすくする
+      - name: 🧬 Expo prebuild (iOS)
+        working-directory: app-expo
+        env:
+          E2E_DETOX: "1"
+        run: pnpm exec expo prebuild --platform ios --no-install
+
+      # CocoaPods の Specs キャッシュ。Podfile.lock は prebuild 後にしか存在しないため
+      # pnpm-lock.yaml を近似キーとして使う（#1029）
+      # 注意: app-expo/ios/Pods はキャッシュしない。prebuild 直後の ios/ へ前回 run の Pods を
+      # 復元すると、pod install が「pathname contains null byte」で断続的に失敗する
+      # (CocoaPods#12798/#12866。run 30358267522 で実際に発生) ため、Specs キャッシュのみ保持する
+      - name: 📥 Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/CocoaPods
+          key: pods-specs-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            pods-specs-${{ runner.os }}-
+
+      # runner 既定の CocoaPods 1.17.0 は pnpm monorepo で「pathname contains null byte」が
+      # 断続発生する（CocoaPods#12798/#12866。run 30358267522 / 30363689911 で発生）。
+      # eas.json の production ビルドと同じ 1.15.2 へ固定し、あわせて flaky 対策で最大 3 回リトライする
+      - name: 🍫 Pod install
+        working-directory: app-expo/ios
+        run: |
+          gem install cocoapods -v 1.15.2 --no-document
+          for i in 1 2 3 4 5; do
+            pod _1.15.2_ install && exit 0
+            echo "pod install 失敗 (attempt $i)。Pods を削除して再試行します"
+            rm -rf Pods
+            # #1027 run 30498641765 では 3 回とも "pathname contains null byte" で失敗した
+            # （それまでの run では 1 回目で通っていた）。復元した Specs キャッシュが壊れている
+            # 可能性があるため、2 回目以降はキャッシュも捨てて取り直す。
+            # キャッシュ復元は同一 run 内では 1 度きりなので、ここで消せば以降は素の取得になる
+            if [ "$i" -ge 2 ]; then
+              echo "  Specs キャッシュ（~/Library/Caches/CocoaPods）も破棄します"
+              rm -rf ~/Library/Caches/CocoaPods
+            fi
+            sleep 5
+          done
+          exit 1
+
+      # Detox iOS が内部で利用するシミュレータ操作 CLI（Detox 公式の環境構築手順）
+      # 新しい Homebrew はサードパーティ tap を明示的に trust しないと formula をロードできない
+      - name: 🧰 Install applesimutils
+        run: |
+          brew tap wix/brew
+          brew trust wix/brew
+          brew install applesimutils
+
+      # pnpm は detox の postinstall（Detox.framework のローカルビルド）を実行しないため、
+      # テスト実行前に明示的にフレームワークキャッシュを構築する
+      - name: 🧱 Build Detox framework cache
+        run: pnpm --filter e2e-mobile exec detox build-framework-cache
+
+      # シミュレータ用 Release ビルド（署名不要）。ビルド失敗とテスト失敗を切り分けるため独立ステップにする
+      - name: 🏗️ Detox build (iOS release)
+        # #1030 【設計】Android と同じ理由でバンドル時にセッション注入フックを有効化する
+        env:
+          EXPO_PUBLIC_E2E_AUTH_HOOK: "1"
+          # #1031 B6 Android と同じ理由でメディア選択の差し替えフックも有効化する
+          EXPO_PUBLIC_E2E_MEDIA_HOOK: "1"
+          # #1027 Android と同じ理由でチュートリアルのシードフックも有効化する
+          EXPO_PUBLIC_E2E_TUTORIAL_HOOK: "1"
+          # #1076 Android と同じ理由（native は `.env` 追記が黙って落ちうるため process env で渡す）
+          EXPO_PUBLIC_COMMIT_ID: ${{ github.sha }}
+        run: pnpm --filter e2e-mobile build:ios
+
+      # prepare ジョブが解決した Tier のスクリプトを実行する
+      - name: 🧪 Run Detox tests (iOS)
+        # #1027 実行ログを artifacts/ にも残す（ジョブログは末尾しか API で取得できないため）。
+        # ソフトウェアキーボードの無効化は **Detox がシミュレータを起こす前**に済ませる必要がある
+        run: |
+          bash e2e-mobile/scripts/setup-ios-simulator.sh
+          bash e2e-mobile/scripts/run-detox-ci.sh ${{ needs.prepare.outputs.ios_script }}
+        # #1030 【設計】3-3: 未設定なら describeAuthenticated 配下が自動 skip されるだけで他は動く
+        env:
+          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+
+      # 失敗時のスクリーンショット・デバイスログを保存する
+      - name: 📊 Upload Detox artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: detox-report-ios
+          path: e2e-mobile/artifacts/
+          if-no-files-found: ignore
+          # #1030 レビュー B-2: artifact には長期資格情報が載りうるため保存期間を短くする
+          retention-days: 7

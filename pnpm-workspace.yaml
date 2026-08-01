@@ -2,4 +2,5 @@ packages:
   - app-expo
   - api
   - shared
-  - e2e
+  - e2e-web
+  - e2e-mobile

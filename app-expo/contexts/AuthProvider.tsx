@@ -1,10 +1,19 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useRef, useCallback, useMemo } from "react";
-import { supabase } from "@/lib/supabase";
+import { supabase, consumeAuthRetryAfterHeader } from "@/lib/supabase";
 import { Session, User, Provider, SignOut } from "@supabase/supabase-js";
 import * as Linking from "expo-linking";
 import { useLogger } from "@/hooks/useLogger";
 import { useLocale } from "@/hooks/useLocale";
-import { Platform } from "react-native";
+import { AppState, Platform } from "react-native";
+import { retry } from "@/lib/retry";
+import {
+	ANON_SIGN_IN_RETRIES,
+	getAuthErrorStatus,
+	isRateLimitAuthError,
+	isRetryableAuthError,
+	parseRetryAfterMs,
+	resolveAuthCooldownMs,
+} from "@/lib/authRecovery";
 import * as AuthSession from "expo-auth-session";
 import * as WebBrowser from "expo-web-browser";
 import { Href, useRouter } from "expo-router";
@@ -12,20 +21,75 @@ import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { useTopicsStore } from "@/stores/useTopicsStore";
 import { useProfileStore } from "@/features/profile/stores/useProfileStore";
 import { useCdnCookieStore } from "@/stores/useCdnCookieStore";
+import { requestLogoutRedirect } from "@/lib/logoutRedirect";
+
+/**
+ * #1089 認証の初期化（セッション復元 or 匿名サインイン）が、リトライを使い切っても確立できなかった状態。
+ * 「まだ試している最中」とは区別され、UI へエラーと再試行手段を出すためのトリガーになる。
+ */
+export type AuthFailure = {
+	/** Supabase のレート制限（429）由来か。UI の文言を切り替えるために持つ */
+	isRateLimited: boolean;
+	/** 失敗の内容（デバッグ用。UI にそのまま出さない） */
+	message: string;
+};
+
+/**
+ * #1062 【設計】OAuth 用ブラウザセッションの結末。
+ * - `cancelled` はユーザーがブラウザを閉じた等で結果 URL を受け取れなかったことを表す。
+ *   セッションは一切変化していないため、呼び出し側は成功として扱ってはいけない。
+ */
+export type OAuthLaunchOutcome =
+	/** Web: この後ブラウザ側の全画面リダイレクトが起きる */
+	| { outcome: "redirecting" }
+	/** ネイティブ: ブラウザが結果 URL を返し、callback 画面へ引き継いだ */
+	| { outcome: "returned" }
+	/** ネイティブ: cancel / dismiss / locked。セッションは変化していない */
+	| { outcome: "cancelled"; browserResultType: string };
+
+/**
+ * #1062 【設計】コールバック URL の処理結果。
+ * 従来は「セッションが確立できなかった」ことを `null` で表していたため、
+ * 呼び出し側が戻り値を検査せず成功ログを出してしまっていた。判別可能ユニオンで明示する。
+ */
+export type OAuthCallbackResult =
+	| { status: "authenticated"; user: User; via: "pkce" | "implicit" }
+	| { status: "no_result" };
 
 type AuthContextType = {
 	user: User | null;
 	getSession: () => Session | null;
 	refreshSession: () => Promise<Session | null>;
 	loading: boolean;
+	/**
+	 * #1092 認証の初期化が決着したか（成功・失敗を問わず）。`= !loading`。
+	 *
+	 * `user?.is_anonymous !== false` という書き方は「まだ決まっていない(user === null)」と
+	 * 「ゲストで確定した」を同じ扱いにするため、ログイン済みのリピーターには
+	 * 「一瞬ゲスト UI → 本来の UI」というちらつきになる。
+	 * 未確定の間は描画を保留する / スケルトンを出す、という判断に使う。
+	 */
+	isAuthResolved: boolean;
+	/** #1089 認証初期化が最終的に失敗している間だけ非 null。成功すると null に戻る */
+	authError: AuthFailure | null;
+	/** #1089 認証初期化をやり直す。429 のクールダウン中は、その時間を待ってから実行される */
+	retryAuth: () => void;
+	/** #1089 `retryAuth()` の実行中（クールダウンの待機時間を含む） */
+	isRetryingAuth: boolean;
 	loginWithEmail: (email: string, password: string) => Promise<void>;
 	logout: (options?: SignOut) => Promise<void>;
 	signUpWithEmail: (email: string, password: string) => Promise<void>;
-	signInWithOAuth: (provider: Provider, options?: { queryParams?: { [key: string]: string } }) => Promise<void>;
+	signInWithOAuth: (
+		provider: Provider,
+		options?: { queryParams?: { [key: string]: string } },
+	) => Promise<OAuthLaunchOutcome>;
 	signInWithOtp: (phone: string) => Promise<void>;
 	verifyOtp: (phone: string, token: string) => Promise<void>;
-	linkIdentity: (provider: Provider, options?: { queryParams?: { [key: string]: string } }) => Promise<void>;
-	handleOAuthResultUrl: (url?: string | null) => Promise<User | null | undefined>;
+	linkIdentity: (
+		provider: Provider,
+		options?: { queryParams?: { [key: string]: string } },
+	) => Promise<OAuthLaunchOutcome>;
+	handleOAuthResultUrl: (url?: string | null) => Promise<OAuthCallbackResult>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -45,6 +109,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 	const { locale } = useLocale();
 	const sessionRef = useRef<Session | null>(null);
 	const getSession = useCallback(() => sessionRef.current, []);
+
+	// #1089 認証初期化の失敗と、そこからの復帰に必要な状態
+	const [authError, setAuthError] = useState<AuthFailure | null>(null);
+	const [isRetryingAuth, setIsRetryingAuth] = useState(false);
+	/** 認証初期化が実行中か。再試行ボタン連打・イベント多重発火で匿名サインインを二重に叩かないための門番 */
+	const isAuthenticatingRef = useRef(false);
+	/** 次に匿名サインインを叩いてよい時刻(epoch ms)。429 のバックオフをここで表現する */
+	const nextAttemptAllowedAtRef = useRef(0);
+	/** クールダウン待ちで予約済みの再試行タイマー。二重予約の防止と unmount 時の解除に使う */
+	const pendingRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	/**
+	 * SIGNED_OUT 後の匿名サインインを「onAuthStateChange のコールバックを抜けてから」実行するためのタイマー。
+	 * 詳細は SIGNED_OUT ハンドラのコメントを参照。unmount 時の解除にも使う。
+	 */
+	const signedOutReauthTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	/** SIGNED_OUT 後の root 遷移。匿名セッションの再確立を開始してから実行する。 */
+	const signedOutNavigationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	/**
 	 * 401 を受けたリクエストが、新しい access token で即時再試行できるようにする。
 	 * Supabase の自動更新は後続リクエストには効くが、既に失敗した通信は再送しないため、
@@ -63,14 +144,46 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 		return refreshedSession;
 	}, []);
 
-	useEffect(() => {
-		/**
-		 * 🔐 初期セッションの復元 or 匿名ログイン。
-		 * - アプリ起動時に呼び出され、常にセッション状態を確認する。
-		 * - セッションがなければ匿名ログインを自動的に実施。
-		 * - Supabase Auth は永続化済みなので、基本的にセッションは復元される前提。
-		 */
-		const initializeAuth = async () => {
+	/**
+	 * 🔐 初期セッションの復元 or 匿名ログイン。
+	 * - アプリ起動時に呼び出され、常にセッション状態を確認する。
+	 * - セッションがなければ匿名ログインを自動的に実施。
+	 * - Supabase Auth は永続化済みなので、基本的にセッションは復元される前提。
+	 *
+	 * #1089 【バグ】以前はこの処理が `useEffect(..., [])` の中に閉じた「起動時 1 回だけ」の関数で、
+	 * 匿名サインインが失敗すると setUser が一度も呼ばれないまま user=null が固定され、
+	 * `SplashHandler` の isAppReady が恒久的に false になっていた（web は薄グレーの空画面、
+	 * native は SplashScreen.hideAsync() が呼ばれずスプラッシュ固着）。
+	 * 復帰できるよう、再試行・フォアグラウンド復帰からも呼べる関数として外へ出している。
+	 *
+	 * 事後条件（ここが崩れると再び「永久に何も起きない」状態になる）:
+	 * - 成功時: user が非 null になり、authError は null
+	 * - 失敗時: authError が非 null（= UI がエラーと再試行手段を出せる）
+	 * - どちらでも: loading は必ず false になる
+	 *
+	 * @param force 429 のクールダウンを無視して実行する。ユーザーの明示的な再試行操作からのみ渡す（#1097）
+	 */
+	const runAuthAttempt = useCallback(
+		async ({ force = false }: { force?: boolean } = {}) => {
+			// #1089 多重実行の防止。再試行ボタンの連打やイベントの重複発火で匿名サインインが同時に何本も飛ぶと、
+			// 30 回/時/IP の枠を一気に消費して状況を悪化させる
+			if (isAuthenticatingRef.current) return;
+
+			// #1097 「クールダウンは実際に匿名サインインを叩くまでの最小間隔」という不変条件は、
+			// 呼び出し経路ごとではなく **実際に叩くこの関数の入口** で守る。
+			// 以前は retryAuth と AppState 復帰だけが確認しており、SIGNED_OUT 経路（リフレッシュトークン
+			// 失効など）はクールダウン中でも即座に /auth/v1/signup を叩けた（30 回/時/IP の枠を無駄に消費する）。
+			//
+			// ⚠️ force はユーザー操作起点の再試行（retryAuth）専用。ここで一律にブロックすると
+			//    「押しても何も起きない再試行ボタン」になり、#1089 で作った復帰経路そのものが死ぬ。
+			//
+			// 早期 return しても事後条件は崩れない: nextAttemptAllowedAtRef が未来を指しているのは
+			// 「直前の試行が catch まで到達した」= finally で loading=false になり authError が立っている
+			// 状態だけなので、UI はエラーと再試行手段を出したままになる（成功時は 0 に戻される）。
+			if (!force && Date.now() < nextAttemptAllowedAtRef.current) return;
+
+			isAuthenticatingRef.current = true;
+
 			try {
 				const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
 				if (sessionError) throw sessionError;
@@ -91,32 +204,110 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 					sessionRef.current = restoredSession;
 					setUser(restoredSession.user);
 				} else {
-					const { data: anonData, error: anonError } = await supabase.auth.signInAnonymously();
-					if (anonError) throw anonError;
+					// #1089 匿名サインインはオフラインや 5xx といった一時的な理由で簡単に落ちるため、有限回リトライする。
+					// ⚠️ 429（レート制限）はここではリトライしない（isRetryableAuthError が false を返す）。
+					//    30 回/時/IP・窓 1 時間の制限を秒間隔で叩き直しても成功率は上がらず枠を潰すだけなので、
+					//    下の catch で長いクールダウンを置き、「ユーザーの再試行」「フォアグラウンド復帰」まで待つ。
+					const anonSession = await retry(
+						async () => {
+							const { data, error } = await supabase.auth.signInAnonymously();
+							if (error) throw error;
+							return data.session;
+						},
+						{
+							retries: ANON_SIGN_IN_RETRIES,
+							initialDelayMs: 500,
+							maxDelayMs: 4000,
+							backoffFactor: 2,
+							shouldRetry: (error) => isRetryableAuthError(error),
+						},
+					);
+
+					// #1089 エラー無しでセッションも返らないケースを成功として扱うと、user=null のまま
+					// authError も立たない「復帰不能な無風状態」に戻ってしまうので、明示的に失敗へ倒す
+					if (!anonSession) throw new Error("signInAnonymously returned no session");
 
 					logFrontendEvent({
 						event_name: "signInAnonymously",
 						error_level: "log",
-						payload: { user_id: anonData.session?.user.id },
+						payload: { user_id: anonSession.user.id },
 					});
 
-					if (anonData?.session) {
-						sessionRef.current = anonData.session;
-						setUser(anonData.session.user);
-					}
+					sessionRef.current = anonSession;
+					setUser(anonSession.user);
 				}
+
+				nextAttemptAllowedAtRef.current = 0;
+				setAuthError(null);
 			} catch (err: any) {
+				const status = getAuthErrorStatus(err);
 				logFrontendEvent({
 					event_name: "authInitError",
 					error_level: "error",
-					payload: { message: err.message },
+					payload: { message: err.message, status },
 				});
+				// #1089 認証が確立できていないときは logQueue がアクセストークンを用意できず、
+				// 上の authInitError は送信されずに破棄される（= どこにも記録が残らない）。
+				// 原因を追える最後の手段として console にも 1 行だけ残す（logQueue.ts の drop ログと同じ方針）。
+				console.warn(`[AuthProvider] auth initialization failed: status=${status ?? "n/a"} message=${err?.message}`);
+
+				// #1089 429 は `Retry-After` を尊重した長いクールダウンを置く。それ以外は retry() で待った後なので 0
+				const cooldownMs = resolveAuthCooldownMs(err, parseRetryAfterMs(consumeAuthRetryAfterHeader(), Date.now()));
+				nextAttemptAllowedAtRef.current = Date.now() + cooldownMs;
+				setAuthError({ isRateLimited: isRateLimitAuthError(err), message: err?.message ?? "" });
 			} finally {
+				isAuthenticatingRef.current = false;
 				setLoading(false);
 			}
-		};
+		},
+		[logFrontendEvent],
+	);
 
-		initializeAuth();
+	/**
+	 * #1089 認証初期化の再試行。エラー UI の再試行ボタンと、フォアグラウンド復帰から呼ばれる。
+	 *
+	 * ループしないことの保証:
+	 * 1. 実行中（isAuthenticatingRef）なら何もしない
+	 * 2. 予約済み（pendingRetryTimerRef）なら二重に予約しない
+	 * 3. この関数は**外部起点のイベント（ユーザー操作 / OS のフォアグラウンド復帰）からしか呼ばれず**、
+	 *    失敗しても自分自身を再予約しない。したがって「失敗 → 即再試行 → 失敗」の自走ループが構造上作れない
+	 * 4. 429 のクールダウン（nextAttemptAllowedAtRef）は失敗のたびに未来へ進むだけで、短縮されない
+	 */
+	const retryAuth = useCallback(() => {
+		if (isAuthenticatingRef.current || pendingRetryTimerRef.current) return;
+
+		// クールダウン中に押された場合は、待ち時間を消化してから叩く（押しても何も起きない状態にしない）
+		const waitMs = Math.max(0, nextAttemptAllowedAtRef.current - Date.now());
+		setIsRetryingAuth(true);
+		pendingRetryTimerRef.current = setTimeout(() => {
+			pendingRetryTimerRef.current = null;
+			// #1097 待ち時間はここで既に消化済みなので force で通す。
+			// クールダウンの判定を runAuthAttempt の入口へ寄せた結果、force なしだと
+			// 「タイマーの誤差 1ms」や「待機中に別経路の失敗でクールダウンが未来へ伸びた」だけで
+			// ユーザーの再試行が黙って捨てられ、押しても何も起きないボタンになるため。
+			runAuthAttempt({ force: true }).finally(() => setIsRetryingAuth(false));
+		}, waitMs);
+	}, [runAuthAttempt]);
+
+	// #1089 フォアグラウンド復帰による復帰経路。
+	// バックグラウンド中に回線が復旧した / レート制限の窓が明けた ケースを、ユーザー操作なしで拾う。
+	// ループしない保証: 発火源は OS のアプリ状態遷移だけで、この処理自体はアプリ状態を変化させない。
+	// 加えて「認証済みなら何もしない」「実行中/予約中なら何もしない」「クールダウン中は何もしない」で三重に抑止する。
+	// #1097 3 つ目（クールダウン）の判定は runAuthAttempt の入口へ移した（経路ごとに書くと今回のように
+	// 抜ける経路が出るため）。ここで force を渡さないので、クールダウン中の復帰は従来どおり素通りする。
+	useEffect(() => {
+		const subscription = AppState.addEventListener("change", (state) => {
+			if (state !== "active") return;
+			if (user) return;
+			if (isAuthenticatingRef.current || pendingRetryTimerRef.current) return;
+			void runAuthAttempt();
+		});
+
+		return () => subscription.remove();
+	}, [user, runAuthAttempt]);
+
+	useEffect(() => {
+		runAuthAttempt();
 
 		/**
 		 * 👀 認証状態のリアルタイム監視。
@@ -160,14 +351,59 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 				sessionRef.current = null;
 				setUser(null);
 
-				try {
-					const { data: anonData, error: anonError } = await supabase.auth.signInAnonymously();
-					if (!anonError && anonData?.session) {
-						sessionRef.current = anonData.session;
-						setUser(anonData.session.user);
-					}
-				} finally {
+				// ⚠️⚠️ このコールバックの中で supabase.auth.* を **await してはいけない**（#1124）。
+				//
+				// GoTrueClient.signOut() は _acquireLock でロックを取ったまま
+				// _removeSession() → `await _notifyAllSubscribers('SIGNED_OUT')` を実行する
+				// （@supabase/auth-js GoTrueClient.js:1549, :2052）。つまり **ロック保持中に
+				// このコールバックの完了を待っている**。
+				// ここで runAuthAttempt() を await すると、その中の supabase.auth.getSession() が
+				// _acquireLock の再入分岐（同 :1092）へ入り、pendingInLock の末尾 = 外側の _signOut の
+				// 完了を待つ。結果として
+				//   _signOut 完了待ち → コールバック完了待ち → _signOut 完了待ち
+				// の循環待ちになり、**永久にデッドロックする**。
+				// ロックは解放されないままなので、以降の supabase.auth.* が全て停止し、
+				// セッションが再確立できず API 呼び出しが全滅する（Web では未解決 Promise が
+				// 積み上がって画面が固まる）。
+				//
+				// そのため、コールバックからは **await せずに** 実行する。
+				// 正しさの本体は「signOut がこのコールバックの完了を待たなくなること」であって、
+				// タイマーで遅らせること自体ではない（発火時点でロックがまだ保持されていても、
+				// 再入分岐で直列化されるだけで循環は生じない）。setTimeout を使うのは、
+				// 予約の解除（連続 SIGNED_OUT の集約・unmount 時の停止）を扱いやすくするため。
+				// #1089 の意図（匿名サインインを runAuthAttempt に寄せ、失敗時は authError と
+				// 再試行 UI へ倒す）と #1097 の意図（force を渡さず 429 クールダウンを尊重する）は
+				// そのまま維持している。
+				if (signedOutReauthTimerRef.current) clearTimeout(signedOutReauthTimerRef.current);
+				signedOutReauthTimerRef.current = setTimeout(() => {
+					signedOutReauthTimerRef.current = null;
+					void runAuthAttempt();
+				}, 0);
+
+				// #1124 遷移は匿名サインインの成否に依存させない。
+				// 従来は finally に置かれていたため、上記デッドロックで到達せず
+				// 「ログアウトしても画面が変わらない」状態になっていた。
+				//
+				const navigateHome = () => {
+					// Android で実機確認済みの文字列 `"/"` を維持する。URL の query や object href も
+					// フリーズしたため、ログアウト由来と現在のロケールは共有モジュールで index 側へ渡す。
+					requestLogoutRedirect(locale);
 					router.replace("/");
+				};
+
+				// Web と iOS は callback の外で再認証を開始してから遷移するとフリーズするため、ここで
+				// 同期的に遷移する。AuthProvider の再マウント時に起動時の runAuthAttempt が匿名セッションを復元する。
+				// Android だけは root への replace が再認証タイマーを取り消し得るため、下で遅延させる。
+				if (Platform.OS !== "android") {
+					navigateHome();
+				} else {
+					// native の root への replace は AuthProvider を unmount し、上のタイマーを cleanup で
+					// 取り消し得る。そのため、再認証を開始するタイマーより後に遷移を予約する。
+					if (signedOutNavigationTimerRef.current) clearTimeout(signedOutNavigationTimerRef.current);
+					signedOutNavigationTimerRef.current = setTimeout(() => {
+						signedOutNavigationTimerRef.current = null;
+						navigateHome();
+					}, 0);
 				}
 			} else if (event === "PASSWORD_RECOVERY") {
 				// パスワード制のログイン機能を持たせる予定がないなら不要
@@ -183,6 +419,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 		return () => {
 			authListener?.subscription.unsubscribe();
+			// #1089 予約済みの再試行が unmount 後に走って setState するのを防ぐ
+			if (pendingRetryTimerRef.current) {
+				clearTimeout(pendingRetryTimerRef.current);
+				pendingRetryTimerRef.current = null;
+			}
+			// #1124 SIGNED_OUT 後の匿名サインインも同様に解除する
+			if (signedOutReauthTimerRef.current) {
+				clearTimeout(signedOutReauthTimerRef.current);
+				signedOutReauthTimerRef.current = null;
+			}
+			if (signedOutNavigationTimerRef.current) {
+				clearTimeout(signedOutNavigationTimerRef.current);
+				signedOutNavigationTimerRef.current = null;
+			}
 		};
 	}, []);
 
@@ -209,7 +459,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 	 * 新規ユーザー作成 または 既存ユーザー へのログインを行う。
 	 * @param provider - 'google' などのOAuthプロバイダー名
 	 */
-	const signInWithOAuth = async (provider: Provider, options?: { queryParams?: { [key: string]: string } }) => {
+	const signInWithOAuth = async (
+		provider: Provider,
+		options?: { queryParams?: { [key: string]: string } },
+	): Promise<OAuthLaunchOutcome> => {
 		const { queryParams = {} } = options || {};
 
 		// Google のときはデフォルトで毎回アカウント選択を出す
@@ -237,18 +490,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 		});
 		if (error) throw error;
 		if (Platform.OS !== "web" && data?.url) {
-			const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
-			if (result.type === "success" && result.url) {
-				const parsed = Linking.parse(result.url);
-				const locale = (parsed.hostname ?? "ja-JP") as string;
-				const qp = Object.fromEntries(Object.entries(parsed.queryParams ?? {}).map(([k, v]) => [k, String(v)])); // queryParams は string | number | boolean | null などが来るので文字列化
-				const href: Href = {
-					pathname: "/[locale]/auth/callback",
-					params: { locale, ...qp },
-				};
-				router.replace(href);
-			}
+			return openOAuthBrowserSession(data.url, redirectTo);
 		}
+		// Web はこの後ブラウザ側でリダイレクトされる
+		return { outcome: "redirecting" };
 	};
 
 	/**
@@ -283,7 +528,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 	const linkIdentity = async (
 		provider: Provider,
 		options?: { queryParams?: { [key: string]: string } },
-	): Promise<void> => {
+	): Promise<OAuthLaunchOutcome> => {
 		const { queryParams = {} } = options || {};
 
 		// Google のときはデフォルトで毎回アカウント選択を出す
@@ -315,25 +560,43 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 		});
 		if (error) throw error;
 		if (Platform.OS !== "web" && data?.url) {
-			const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
-			if (result.type === "success" && result.url) {
-				const parsed = Linking.parse(result.url);
-				const locale = (parsed.hostname ?? "ja-JP") as string;
-				const qp = Object.fromEntries(Object.entries(parsed.queryParams ?? {}).map(([k, v]) => [k, String(v)])); // queryParams は string | number | boolean | null などが来るので文字列化
-				const href: Href = {
-					pathname: "/[locale]/auth/callback",
-					params: { locale, ...qp },
-				};
-				router.replace(href);
-			}
+			return openOAuthBrowserSession(data.url, redirectTo);
 		}
+		// Web はこの後ブラウザ側でリダイレクトされる
+		return { outcome: "redirecting" };
+	};
+
+	/**
+	 * ネイティブで OAuth 用のブラウザセッションを開き、戻ってきた URL を callback 画面へ引き渡す。
+	 *
+	 * #1062 【設計】`result.type` が success 以外（ユーザーがブラウザを閉じた等）のときは
+	 * セッションが一切変化していないため、`cancelled` として呼び出し側へ返す。
+	 * 従来は戻り値を返しておらず、キャンセルでも `oauth_signin_success` が記録されていた。
+	 */
+	const openOAuthBrowserSession = async (authUrl: string, redirectTo: string): Promise<OAuthLaunchOutcome> => {
+		const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectTo);
+		if (result.type !== "success" || !result.url) {
+			return { outcome: "cancelled", browserResultType: result.type };
+		}
+
+		const parsed = Linking.parse(result.url);
+		const parsedLocale = (parsed.hostname ?? "ja-JP") as string;
+		const qp = Object.fromEntries(Object.entries(parsed.queryParams ?? {}).map(([k, v]) => [k, String(v)])); // queryParams は string | number | boolean | null などが来るので文字列化
+		const href: Href = {
+			pathname: "/[locale]/auth/callback",
+			params: { locale: parsedLocale, ...qp },
+		};
+		router.replace(href);
+		return { outcome: "returned" };
 	};
 
 	/** OAuthのリダイレクトURIから認証結果を処理する
 	 * - PKCE (codeフロー) と 旧インプリシット (#access_token) の両方に対応
+	 * - #1062 【設計】セッションを確立できなかった場合は `no_result` を返す。
+	 *   従来は黙って `null` を返しており、呼び出し側が失敗に気付けなかった。
 	 */
-	const handleOAuthResultUrl = async (url?: string | null) => {
-		if (!url) return;
+	const handleOAuthResultUrl = async (url?: string | null): Promise<OAuthCallbackResult> => {
+		if (!url) return { status: "no_result" };
 
 		const parsed = Linking.parse(url);
 		const code = parsed.queryParams?.code as string | undefined;
@@ -354,10 +617,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 		}
 
 		// 1) PKCE (codeフロー)
+		// #1062 【設計】交換結果の user をそのまま返す。以前は getUser() で現行セッションを
+		// 取り直していたため、交換が行われなかった場合に「匿名ユーザー」が成功として記録されていた。
 		if (code) {
 			const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 			if (error) throw error;
-			return data.user;
+			if (!data.user) return { status: "no_result" };
+			return { status: "authenticated", user: data.user, via: "pkce" };
 		}
 
 		// 2) 旧: インプリシット（#access_token）
@@ -366,16 +632,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 			const params = new URLSearchParams(hash);
 			const access_token = params.get("access_token");
 			const refresh_token = params.get("refresh_token");
-			const expires_at = params.get("expires_at");
 			if (access_token && refresh_token) {
-				await supabase.auth.setSession({ access_token, refresh_token });
-				const {
-					data: { user },
-				} = await supabase.auth.getUser();
-				return user ?? null;
+				const { data, error } = await supabase.auth.setSession({ access_token, refresh_token });
+				if (error) throw error;
+				if (!data.user) return { status: "no_result" };
+				return { status: "authenticated", user: data.user, via: "implicit" };
 			}
 		}
-		return null;
+		return { status: "no_result" };
 	};
 
 	/**
@@ -392,6 +656,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 			getSession,
 			refreshSession,
 			loading,
+			isAuthResolved: !loading,
+			authError,
+			retryAuth,
+			isRetryingAuth,
 			loginWithEmail,
 			signUpWithEmail,
 			logout,
@@ -406,6 +674,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 			getSession,
 			refreshSession,
 			loading,
+			authError,
+			retryAuth,
+			isRetryingAuth,
 			loginWithEmail,
 			signUpWithEmail,
 			logout,

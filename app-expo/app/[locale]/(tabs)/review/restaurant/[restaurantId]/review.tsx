@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { View, StyleSheet, Text } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
@@ -10,7 +10,7 @@ import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useLogger } from "@/hooks/useLogger";
 import type { GetRestaurantByIdResponse, DishMediaEntry } from "@shared/api/v1/res";
 import i18n from "@/lib/i18n";
-import { ReviewHeader } from "@/features/review/components/ReviewHeader";
+import { ScreenHeader } from "@/components/ScreenHeader";
 import { useLocale } from "@/hooks/useLocale";
 
 export default function ReviewScreen() {
@@ -26,17 +26,28 @@ export default function ReviewScreen() {
 	const [restaurant, setRestaurant] = useState<RestaurantEntry | undefined>(undefined);
 
 	// #644 【設計】レビュー投稿成功時に /review/post/:id に遷移
-	const handleReviewSuccess = ({ dishReviewId }: { dishReviewId: string }) => {
-		// /review までスタックを掃除（なければ現在画面を /review に置き換え）
-		router.dismissTo(`/${locale}/(tabs)/review`);
-		router.push({
-			pathname: `/[locale]/(tabs)/review/post/[id]`,
-			params: {
-				locale,
-				id: dishReviewId,
-			},
-		});
-	};
+	// #1127 【修正】ReviewForm へ渡すコールバックは必ず参照を安定させること。
+	// ReviewForm はマウント時にメディア選択を走らせており、毎レンダー新しい関数を渡すと
+	// （ReviewForm 側の ref 化が失われた場合に）effect が張り替わって選択結果が捨てられる。多層防御。
+	const handleReviewSuccess = useCallback(
+		({ dishReviewId }: { dishReviewId: string }) => {
+			// /review までスタックを掃除（なければ現在画面を /review に置き換え）
+			router.dismissTo(`/${locale}/(tabs)/review`);
+			router.push({
+				pathname: `/[locale]/(tabs)/review/post/[id]`,
+				params: {
+					locale,
+					id: dishReviewId,
+				},
+			});
+		},
+		[locale],
+	);
+
+	// #1127 同上。インライン生成（`onCancel={() => router.back()}`）は親の再レンダーごとに identity が変わる
+	const handleReviewCancel = useCallback(() => {
+		router.back();
+	}, []);
 
 	// #644 【設計】restaurant.id でレストラン詳細を取得（ストアキャッシュ優先）
 	useEffect(() => {
@@ -100,7 +111,7 @@ export default function ReviewScreen() {
 	if (isLoading && !restaurant) {
 		return (
 			<View style={styles.container}>
-				<ReviewHeader
+				<ScreenHeader
 					title={i18n.t("Review.title")}
 					onPressBack={() => {
 						lightImpact();
@@ -118,7 +129,7 @@ export default function ReviewScreen() {
 	if (error && !restaurant) {
 		return (
 			<View style={styles.container}>
-				<ReviewHeader
+				<ScreenHeader
 					title={i18n.t("Review.title")}
 					onPressBack={() => {
 						lightImpact();
@@ -138,7 +149,7 @@ export default function ReviewScreen() {
 
 	return (
 		<View style={styles.container}>
-			<ReviewHeader
+			<ScreenHeader
 				title={i18n.t("Review.title")}
 				onPressBack={() => {
 					lightImpact();
@@ -147,7 +158,7 @@ export default function ReviewScreen() {
 			/>
 
 			{/* #644 【設計】ReviewForm をメディア選択ありモードで表示 */}
-			<ReviewForm restaurant={restaurant.restaurant} onCancel={() => router.back()} onSuccess={handleReviewSuccess} />
+			<ReviewForm restaurant={restaurant.restaurant} onCancel={handleReviewCancel} onSuccess={handleReviewSuccess} />
 		</View>
 	);
 }
