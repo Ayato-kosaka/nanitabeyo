@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useCallback, useState, forwardRef, useImperativeHandle } from "react";
-import { View, StyleSheet, Text, TouchableOpacity, useWindowDimensions } from "react-native";
+import { View, StyleSheet, Text, TouchableOpacity, useWindowDimensions, Platform } from "react-native";
 import { DetentChangeEvent, TrueSheet } from "@lodev09/react-native-true-sheet";
 import Carousel, { ICarouselInstance } from "react-native-reanimated-carousel";
 import { PrimaryButton } from "@/components/PrimaryButton";
@@ -12,8 +12,28 @@ import { InteractionManager } from "react-native";
 import { ScrollView } from "react-native";
 import { useContentWidth } from "@/hooks/useContentWidth";
 import { CARD_HEIGHT, LARGE_DETENT, computeSmallDetent } from "./savedRestaurantsSheetDetents";
+import {
+	CAROUSEL_DRAG_RESET_TIMEOUT_MS,
+	configureCarouselPanGesture,
+	isSheetDraggable,
+} from "./savedRestaurantsSheetGesture";
 
 type SavedRestaurant = QueryMeSavedRestaurantsResponse["data"][number];
+
+/**
+ * #1126 横スワイプ中にシートのドラッグを止める必要があるのは Android だけ。
+ *
+ * Android の `BottomSheetBehavior`(`ViewDragHelper`) は `abs(dy) > touchSlop(8dp)` だけで
+ * ドラッグを開始し、横方向の移動量と比較しない（詳細は savedRestaurantsSheetGesture.ts）。
+ * iOS（UIKit のシート）と web（@gorhom/bottom-sheet）はこの判定を持たないため、
+ * 挙動と見た目を変えないよう Android に限定する。
+ *
+ * なお TrueSheet は `draggable` が変わるたびにネイティブのグラバーを作り直し、
+ * `draggable === false` の間はグラバーを消してしまう（横スワイプのたびに点滅する）。
+ * そのため Android ではネイティブのグラバーを無効化し、ヘッダー内に同じ見た目
+ * （32x4dp / 角丸 / 黒 40% / シート上端から 16dp）のグラバーを自前で描画する。
+ */
+const GATES_SHEET_DRAG = Platform.OS === "android";
 
 export type SavedRestaurantsSheetHandle = {
 	present: () => Promise<void>;
@@ -148,10 +168,54 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 		}, []);
 
 		const [detentIndex, setDetentIndex] = useState(0);
+		// #1126 カルーセルの横スワイプが成立している間だけシートのドラッグを止めるためのフラグ。
+		// isDraggingRef（カード誤タップ抑止）と違い、TrueSheet へ props で渡すので state が必要。
+		const [isSwipingCarousel, setIsSwipingCarousel] = useState(false);
 
-		const handleDetentChange = useCallback((event: DetentChangeEvent) => {
-			setDetentIndex(event.nativeEvent.index);
+		const endCarouselSwipe = useCallback(() => {
+			isDraggingRef.current = false;
+			setIsSwipingCarousel(false);
+			if (draggingTimeoutRef.current) {
+				clearTimeout(draggingTimeoutRef.current);
+				draggingTimeoutRef.current = null;
+			}
 		}, []);
+
+		const beginCarouselSwipe = useCallback(() => {
+			isDraggingRef.current = true;
+			setIsSwipingCarousel(true);
+			// #644 【バグ】タイムアウトフォールバックを追加して isDraggingRef が true のまま固まるのを防ぐ
+			// #1126 シートのドラッグ抑止も同じタイマーで必ず解除する（解除漏れでシートが動かせなくなるのを防ぐ）
+			if (draggingTimeoutRef.current) {
+				clearTimeout(draggingTimeoutRef.current);
+			}
+			draggingTimeoutRef.current = setTimeout(endCarouselSwipe, CAROUSEL_DRAG_RESET_TIMEOUT_MS);
+		}, [endCarouselSwipe]);
+
+		const handleDetentChange = useCallback(
+			(event: DetentChangeEvent) => {
+				setDetentIndex(event.nativeEvent.index);
+				// #1126 detent が変わるとカルーセル自体がアンマウントされ onScrollEnd が来ないことがあるため、
+				// ここでも抑止を解除しておく
+				endCarouselSwipe();
+			},
+			[endCarouselSwipe],
+		);
+
+		/**
+		 * #1126 `onSnapToItem` の関数 ID は reanimated-carousel の内部で
+		 * `onScrollEnd` → `onGestureEnd` → Pan ジェスチャの useMemo の依存に伝播する。
+		 * インライン関数のままだと、横スワイプ中の再レンダー（isSwipingCarousel の更新）で
+		 * ジェスチャオブジェクトが作り直され、進行中のスワイプが切れてしまう。
+		 */
+		const handleSnapToItem = useCallback(
+			(index: number) => {
+				endCarouselSwipe();
+				const restaurant = savedRestaurants[index];
+				if (restaurant) onSnapToRestaurant?.(restaurant);
+			},
+			[endCarouselSwipe, savedRestaurants, onSnapToRestaurant],
+		);
 
 		const activeIndex = useMemo(() => {
 			return savedRestaurants.findIndex((r) => r.restaurant.id === activeRestaurantId);
@@ -186,7 +250,9 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 			<TrueSheet
 				ref={sheetRef}
 				detents={sheetDetents}
-				grabber
+				grabber={!GATES_SHEET_DRAG}
+				// #1126 横スワイプ中はシートを掴ませない（縦へ引いた場合はカルーセルが fail するので true のまま）
+				draggable={isSheetDraggable(detentIndex, GATES_SHEET_DRAG && isSwipingCarousel)}
 				cornerRadius={24}
 				backgroundColor="#FFFFFF"
 				dismissible={false}
@@ -194,6 +260,8 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 				scrollable={detentIndex === 1}
 				header={
 					<View style={styles.header}>
+						{/* #1126 ネイティブのグラバーは draggable の切り替えで点滅するため、Android では自前で描画する */}
+						{GATES_SHEET_DRAG ? <View style={styles.grabber} /> : null}
 						<Text style={styles.savedRestaurantsTitle}>{i18n.t("Review.selectRestaurant.savedRestaurantList")}</Text>
 					</View>
 				}
@@ -235,37 +303,16 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 										snapEnabled
 										maxScrollDistancePerSwipe={widthMetrics.cardWidth + 40}
 										mode="parallax"
+										// #1126 横方向専用の Pan にして、縦ジェスチャ（シートの展開）と排他にする
+										onConfigurePanGesture={configureCarouselPanGesture}
 										modeConfig={{
 											parallaxScrollingScale: 1,
 											parallaxAdjacentItemScale: 1,
 											parallaxScrollingOffset: ((widthMetrics.contentWidth - widthMetrics.cardWidth) * 3) / 4,
 										}}
-										onScrollStart={() => {
-											isDraggingRef.current = true;
-											// #644 【バグ】タイムアウトフォールバックを追加して isDraggingRef が true のまま固まるのを防ぐ
-											if (draggingTimeoutRef.current) {
-												clearTimeout(draggingTimeoutRef.current);
-											}
-											draggingTimeoutRef.current = setTimeout(() => {
-												isDraggingRef.current = false;
-											}, 500);
-										}}
-										onScrollEnd={() => {
-											isDraggingRef.current = false;
-											if (draggingTimeoutRef.current) {
-												clearTimeout(draggingTimeoutRef.current);
-												draggingTimeoutRef.current = null;
-											}
-										}}
-										onSnapToItem={(index) => {
-											isDraggingRef.current = false;
-											if (draggingTimeoutRef.current) {
-												clearTimeout(draggingTimeoutRef.current);
-												draggingTimeoutRef.current = null;
-											}
-											const restaurant = savedRestaurants[index];
-											if (restaurant) onSnapToRestaurant?.(restaurant);
-										}}
+										onScrollStart={beginCarouselSwipe}
+										onScrollEnd={endCarouselSwipe}
+										onSnapToItem={handleSnapToItem}
 										scrollAnimationDuration={350}
 										renderItem={renderItem}
 									/>
@@ -363,6 +410,17 @@ const styles = StyleSheet.create({
 	header: {
 		paddingHorizontal: 16,
 		marginVertical: 8,
+	},
+	// #1126 TrueSheet のネイティブグラバー（32x4dp / 角丸 / 黒 40% / シート上端から 16dp）の写し。
+	// header の marginTop が 8 なので、top: 8 でシート上端から 16 になる。
+	grabber: {
+		position: "absolute",
+		top: 8,
+		alignSelf: "center",
+		width: 32,
+		height: 4,
+		borderRadius: 2,
+		backgroundColor: "rgba(0, 0, 0, 0.4)",
 	},
 	savedRestaurantsTitle: {
 		fontSize: 14,
