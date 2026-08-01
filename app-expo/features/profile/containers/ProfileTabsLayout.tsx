@@ -1,6 +1,6 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { View, StyleSheet, LayoutChangeEvent } from "react-native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { Tabs } from "@/components/collapsible-tabs";
 import { ProfileHeader } from "../components/ProfileHeader";
 import { ProfileTabsBar } from "../components/ProfileTabsBar";
@@ -8,24 +8,31 @@ import { ReviewTab } from "../tabs/ReviewTab";
 import { LikeTab } from "../tabs/LikeTab";
 import { SavedPostsTab } from "../tabs/SavedPostsTab";
 import { SavedTopicsTab } from "../tabs/SavedTopicsTab";
-import { DepositsTab } from "../tabs/wallet/DepositsTab";
-import { EarningsTab } from "../tabs/wallet/EarningsTab";
+// #1071 【リリース差分】ウォレットのペインを落としたため未使用になった import。
+// バンドルに未使用の Tab 実装を含めないようにコメントアウトする(復活時は下の
+// Tabs.Tab のコメントと合わせて戻す)。
+// import { DepositsTab } from "../tabs/wallet/DepositsTab";
+// import { EarningsTab } from "../tabs/wallet/EarningsTab";
 import { LoginbackModal } from "../components/LoginbackModal";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
-import { mockBids, mockEarnings } from "../constants";
+// #1071 【リリース差分】同上。constants.ts の mockBids / mockEarnings 自体は将来の
+// 復活のために残してあるため、import だけを落とす。
+// import { mockBids, mockEarnings } from "../constants";
 import { ProfileEditForm } from "../components/ProfileEditForm";
 import type { TabBarProps } from "react-native-collapsible-tab-view";
 import type { GroupName, RouteName } from "../components/ProfileTabsBar";
 import { useAuth } from "@/contexts/AuthProvider";
+import { isGuestUser } from "@/lib/authGuest";
 import { useProfileStore } from "../stores/useProfileStore";
 import { useEnsureOwnProfileLoaded } from "../hooks/useEnsureOwnProfileLoaded";
+import { LoadingIndicator } from "@/components/LoadingIndicator";
 
 export function ProfileTabsLayout() {
 	const { mediumImpact, lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
-	const { user } = useAuth();
+	const { user, isAuthResolved } = useAuth();
 
 	// #467 【設計】プロフィールをグローバルストアから取得し、自動ロードを実行
 	useEnsureOwnProfileLoaded();
@@ -38,7 +45,10 @@ export function ProfileTabsLayout() {
 	const [isFollowing, setIsFollowing] = useState(false);
 
 	const isOwnProfile = useMemo(() => true, []);
-	const isGuest = useMemo(() => user?.is_anonymous !== false, [user?.is_anonymous]);
+	// #1092 PR4b `user?.is_anonymous !== false` から共通判定へ寄せた。
+	// 旧式は is_anonymous が undefined のときもゲストへ倒れ、ログイン済みユーザーの
+	// レビュータブが消える。理由は lib/authGuest.ts を参照（通知タブ・設定と同じ式）
+	const isGuest = useMemo(() => isGuestUser(user), [user]);
 
 	const availableTabs: GroupName[] = useMemo(() => {
 		const tabs: GroupName[] = [];
@@ -47,6 +57,12 @@ export function ProfileTabsLayout() {
 		}
 		if (isOwnProfile) {
 			tabs.push("saved", "liked");
+			// #1071 【リリース差分】ウォレット(入札・収益)は未完成のため本番では出さない。
+			// 表示するデータは features/profile/constants.ts の mockBids / mockEarnings で、
+			// 実データを取る経路が存在しない(フロントから me/payouts を呼んでいない)。
+			// さらに #811 が MVP で「ウォレット」というアプリ内表現を禁止している。
+			// タブバー・tabRoutes・ペインの 3 箇所を全て落とすこと。
+			// 1 箇所でも残すと ?tab=wallet-deposit のディープリンクまたは横スワイプで到達できてしまう。
 			// if (!isGuest) {
 			// 	tabs.push("wallet");
 			// }
@@ -61,12 +77,38 @@ export function ProfileTabsLayout() {
 		}
 		if (isOwnProfile) {
 			routes.push("saved-posts", "saved-topics", "liked");
-			if (!isGuest) {
-				routes.push("wallet-deposit", "wallet-earning");
-			}
+			// #1071 【リリース差分】ウォレットの route も落とす。ここを残すと requestedTab の検証
+			// (tabRoutes.includes(...)) を通ってしまい、/ja-JP/profile?tab=wallet-deposit の
+			// ディープリンクでウォレットへ到達できてしまう。
+			// if (!isGuest) {
+			// 	routes.push("wallet-deposit", "wallet-earning");
+			// }
 		}
 		return routes;
 	}, [isOwnProfile, isGuest]);
+
+	// #954 【修正】遷移元からタブを指定できるようにする(例: トピック保存スナックバーの
+	// 「見る」→ tab=saved-topics)。指定が無い/不正な場合は従来通り先頭タブを表示する。
+	// tabRequest は「同じタブへの2回目以降の遷移」でも必ず切り替えるためのリクエスト識別子
+	// (遷移元が Date.now() 等を渡す。値自体に意味はなく、変化の検知にだけ使う)。
+	const { tab: requestedTabParam, tabRequest: tabRequestParam } = useLocalSearchParams<{
+		tab?: string;
+		tabRequest?: string;
+	}>();
+	const requestedTab = useMemo(
+		() => (requestedTabParam && tabRoutes.includes(requestedTabParam as RouteName) ? requestedTabParam : undefined),
+		[requestedTabParam, tabRoutes],
+	);
+
+	// #954 【設計】プロフィールはタブナビゲータ内で mount され続けるため、initialTabName
+	// (mount 時のみ有効)だけでは2回目以降の遷移でタブが切り替わらない。
+	// native は react-native-collapsible-tab-view の CollapsibleRef.jumpToTab、web は
+	// アダプタ(index.web.tsx)に追加した同名の命令的 API で、パラメータ変更のたびに切り替える。
+	const tabsContainerRef = useRef<{ jumpToTab?: (name: string) => void } | null>(null);
+	useEffect(() => {
+		if (!requestedTab) return;
+		tabsContainerRef.current?.jumpToTab?.(requestedTab);
+	}, [requestedTab, tabRequestParam]);
 
 	const handleHeaderLayout = useCallback((event: LayoutChangeEvent) => {
 		const { height } = event.nativeEvent.layout;
@@ -173,12 +215,27 @@ export function ProfileTabsLayout() {
 		[availableTabs],
 	);
 
+	// #1092 【設計】auth 未確定(user === null)の間はタブ構成を確定させない。
+	// isGuest は user === null をゲスト扱いにする（lib/authGuest.ts）ので、未確定のままだと
+	// ログイン済みのリピーターでは「reviews タブ無しで描画 → 後からタブが増える」というちらつきになる。
+	// タブ本数が変わると Tabs.Container 全体が作り直されるため、確定するまで描画を保留する。
+	// ⚠️ この return はフックを全て呼び終えた後に置くこと（フックの呼び出し順を変えないため）。
+	if (!isAuthResolved) {
+		return (
+			<View style={[styles.container, styles.loadingContainer]}>
+				<LoadingIndicator size="large" />
+			</View>
+		);
+	}
+
 	return (
 		<View style={styles.container}>
 			<Tabs.Container
+				ref={tabsContainerRef as never}
 				headerHeight={headerHeight}
 				renderHeader={renderHeader}
 				renderTabBar={renderTabBar}
+				initialTabName={requestedTab}
 				onIndexChange={handleTabChange}
 				pagerProps={{ scrollEnabled: true }}
 				headerContainerStyle={{ shadowColor: "transparent" }}
@@ -203,6 +260,9 @@ export function ProfileTabsLayout() {
 						<LikeTab />
 					</Tabs.Tab>
 				) : null}
+				{/* #1071 【リリース差分】ウォレットのペイン自体も落とす。ここを残すと
+				    pagerProps={{ scrollEnabled: true }} により、タブバーに項目が無くても
+				    横スワイプでウォレットへ到達できてしまう。
 				{isOwnProfile && !isGuest ? (
 					<Tabs.Tab name="wallet-deposit">
 						<DepositsTab
@@ -233,6 +293,7 @@ export function ProfileTabsLayout() {
 						/>
 					</Tabs.Tab>
 				) : null}
+				*/}
 			</Tabs.Container>
 
 			{profile && (
@@ -247,5 +308,10 @@ export function ProfileTabsLayout() {
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
+	},
+	loadingContainer: {
+		backgroundColor: "white",
+		justifyContent: "center",
+		alignItems: "center",
 	},
 });

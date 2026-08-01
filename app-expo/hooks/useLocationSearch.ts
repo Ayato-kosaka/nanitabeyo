@@ -2,7 +2,14 @@ import { useState, useCallback, useRef } from "react";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
+import { toErrorLogString } from "@/lib/errorMessage";
 import * as Location from "expo-location";
+// #932 【設計】現在地の緯度経度取得だけは native(expo-location) と web(navigator.geolocation) で
+// 実装を分ける必要があるため、この1関数だけを .ts / .web.ts に分離して import する
+// (Metro が拡張子で自動解決する)。それ以外の検索・キャッシュ・逆ジオコーディング処理は
+// 完全に共通のため、このファイル自体は分割しない。
+import { getCurrentLocationPosition } from "./useCurrentLocationPosition";
+import { LocationPermissionError } from "./locationPermissionError";
 import { getRandomBytesAsync } from "expo-crypto";
 import { encode as b64encode } from "base-64";
 import type {
@@ -19,12 +26,21 @@ import type {
 import { SearchParams } from "@/types/search";
 import i18n from "@/lib/i18n";
 
+// #931 【設計】地点候補検索の状態を明示的に分離する。
+// "debouncing" は呼び出し元(LocationAutocomplete)がデバウンス待機中に採用する値で、
+// このHook自身は "idle"(未検索) → "searching"(API呼び出し中) → "success" / "empty" / "error" のみ遷移する。
+export type LocationSearchStatus = "idle" | "debouncing" | "searching" | "success" | "empty" | "error";
+
 export const useLocationSearch = () => {
 	const [suggestions, setSuggestions] = useState<AutocompleteLocation[]>([]);
-	const [isSearching, setIsSearching] = useState(false);
+	const [status, setStatus] = useState<LocationSearchStatus>("idle");
 	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
 	const { locale } = useLocale();
+
+	// #931 【設計】最後に発行したリクエストのみ結果を採用するための単調増加ID。
+	// 古い入力に対するレスポンスが後から返ってきても、この値が一致しなければ状態更新を捨てる。
+	const latestRequestIdRef = useRef(0);
 
 	// Session token for Google Places API
 	const sessionTokenRef = useRef<string | null>(null);
@@ -68,14 +84,25 @@ export const useLocationSearch = () => {
 		sessionTokenRef.current = null;
 	}, []);
 
+	// #931 【設計】候補・状態を初期化する。クリア操作や1文字未満への削除時に呼び出し、
+	// 「表示フラグだけ畳んで suggestions は残る」という旧実装の不整合(再入力で旧候補が再表示される)を解消する。
+	// 発行済みの request id を無効化するため、in-flight のレスポンスが後から届いても反映されない。
+	const clearSuggestions = useCallback(() => {
+		latestRequestIdRef.current += 1;
+		setSuggestions([]);
+		setStatus("idle");
+	}, []);
+
 	const searchLocations = useCallback(
 		async (query: string) => {
 			if (query.length < 1) {
-				setSuggestions([]);
+				clearSuggestions();
 				return;
 			}
 
-			setIsSearching(true);
+			// #931 【設計】このリクエストの identity を確保。完了時に最新でなければ結果を捨てる。
+			const requestId = ++latestRequestIdRef.current;
+			setStatus("searching");
 
 			try {
 				// Call the real API endpoint with session token
@@ -91,8 +118,12 @@ export const useLocationSearch = () => {
 					},
 				);
 
-				// Use API response directly
+				// #931 【設計】デバウンス+ネットワーク遅延により、古い入力のレスポンスが
+				// 新しい入力のレスポンスより後に届くレースがありうる。最新リクエストでなければ無視する。
+				if (latestRequestIdRef.current !== requestId) return;
+
 				setSuggestions(placesResponse);
+				setStatus(placesResponse.length > 0 ? "success" : "empty");
 
 				// Keep mock implementation as fallback (commented out as requested)
 				// // Simulate API delay
@@ -105,19 +136,20 @@ export const useLocationSearch = () => {
 				// );
 				// setSuggestions(filtered);
 			} catch (error) {
+				if (latestRequestIdRef.current !== requestId) return;
+
 				console.error("Location search error:", error);
 				setSuggestions([]);
+				setStatus("error");
 
 				logFrontendEvent({
 					event_name: "location_search_failed",
 					error_level: "error",
-					payload: { query, error: String(error) },
+					payload: { query, error: toErrorLogString(error) },
 				});
-			} finally {
-				setIsSearching(false);
 			}
 		},
-		[callBackend, locale, logFrontendEvent, getSessionToken],
+		[callBackend, locale, logFrontendEvent, getSessionToken, clearSuggestions],
 	);
 
 	const getLocationDetails = useCallback(
@@ -158,7 +190,7 @@ export const useLocationSearch = () => {
 					error_level: "error",
 					payload: {
 						placeId: prediction.place_id,
-						error: String(error),
+						error: toErrorLogString(error),
 					},
 				});
 
@@ -199,19 +231,9 @@ export const useLocationSearch = () => {
 		// Create new request
 		const locationPromise = (async (): Promise<Omit<LocationDetailsResponse, "viewport">> => {
 			try {
-				const { status } = await Location.requestForegroundPermissionsAsync();
-				if (status !== "granted") {
-					logFrontendEvent({
-						event_name: "current_location_permission_denied",
-						error_level: "warn",
-						payload: {},
-					});
-				}
-
-				const position = await Location.getCurrentPositionAsync({
-					accuracy: Location.Accuracy.Balanced,
-				});
-				const { latitude, longitude } = position.coords;
+				// #932 【修正】native/web で実装の異なる権限確認+位置取得を共通の関数に委譲。
+				// 失敗理由(denied/timeout/unsupported/unavailable)は LocationPermissionError として分類される
+				const { latitude, longitude } = await getCurrentLocationPosition();
 
 				// Call the new reverse geocoding API
 				try {
@@ -247,7 +269,10 @@ export const useLocationSearch = () => {
 						payload: {
 							latitude,
 							longitude,
-							error: String(apiError),
+							// #1092 PR4b callBackend の失敗がそのまま来る。PR4a 以降ここには
+							// Error ではない ApiError(plain object) も流れるため String() だと "[object Object]" になる。
+							// (A) 素の String() だった箇所なので、Error の "Name: message" は保つ側へ寄せる
+							error: toErrorLogString(apiError),
 						},
 					});
 
@@ -267,7 +292,7 @@ export const useLocationSearch = () => {
 					}
 
 					const fallbackResult = {
-						location: position.coords,
+						location: { latitude, longitude },
 						address,
 						localLanguageCode: locale.split("-")[0],
 					};
@@ -284,7 +309,10 @@ export const useLocationSearch = () => {
 				logFrontendEvent({
 					event_name: "current_location_fetch_failed",
 					error_level: "error",
-					payload: { error: String(error) },
+					payload: {
+						error: toErrorLogString(error),
+						kind: error instanceof LocationPermissionError ? error.kind : "unavailable",
+					},
 				});
 				throw error;
 			} finally {
@@ -301,8 +329,9 @@ export const useLocationSearch = () => {
 
 	return {
 		suggestions,
-		isSearching,
+		status,
 		searchLocations,
+		clearSuggestions,
 		getCurrentLocation,
 		getLocationDetails,
 	};

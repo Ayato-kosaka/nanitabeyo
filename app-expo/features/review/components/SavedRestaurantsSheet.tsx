@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useCallback, useState, forwardRef, useImperativeHandle } from "react";
-import { View, StyleSheet, Text, Dimensions, TouchableOpacity } from "react-native";
+import { View, StyleSheet, Text, TouchableOpacity, useWindowDimensions } from "react-native";
 import { DetentChangeEvent, TrueSheet } from "@lodev09/react-native-true-sheet";
 import Carousel, { ICarouselInstance } from "react-native-reanimated-carousel";
 import { PrimaryButton } from "@/components/PrimaryButton";
@@ -10,23 +10,8 @@ import type { QueryMeSavedRestaurantsResponse } from "@shared/api/v1/res";
 import { SkeletonShimmer } from "@/components/SkeletonShimmer";
 import { InteractionManager } from "react-native";
 import { ScrollView } from "react-native";
-
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
-const CARD_WIDTH = SCREEN_WIDTH * 0.92;
-const CARD_HEIGHT = 100;
-
-// カード 1 枚 + タイトル + ちょい余白分をスクリーン比から計算する
-const CARD_AREA_HEIGHT = CARD_HEIGHT + 24; // カード + margin ちょい
-const TITLE_AREA_HEIGHT = 40;
-const TOP_PADDING = 12;
-const BOTTOM_PADDING = 0;
-
-// 使いたい見た目の高さ = 上マージン + タイトル + カード + 下マージン
-const smallDetentHeight = TOP_PADDING + TITLE_AREA_HEIGHT + CARD_AREA_HEIGHT + BOTTOM_PADDING;
-
-// detent に渡すのは「割合」なので 0〜1 に正規化
-const SMALL_DETENT = Math.min(smallDetentHeight / SCREEN_HEIGHT, 0.5); // 上限を 0.5 にする etc.
-const LARGE_DETENT = 0.7;
+import { useContentWidth } from "@/hooks/useContentWidth";
+import { CARD_HEIGHT, LARGE_DETENT, computeSmallDetent } from "./savedRestaurantsSheetDetents";
 
 type SavedRestaurant = QueryMeSavedRestaurantsResponse["data"][number];
 
@@ -46,6 +31,47 @@ export type SavedRestaurantsSheetProps = {
 };
 
 /**
+ * #1067 幅に依存するスタイル・寸法をコンポーネント内で算出する。
+ *
+ * 以前はモジュール評価時の `Dimensions.get("window").width`（= ブラウザの実幅）を
+ * `StyleSheet.create` 内で使っていたため、web の中央カラム(#958, maxWidth 560px)の
+ * 外側にカードが描画され、1280px 幅ではカードも「写真・動画を投稿」ボタンも
+ * 可視領域に出てこなかった。`useContentWidth` でカラム幅にクランプして揃える
+ * （native ではウィンドウ幅がそのまま返るため挙動は変わらない）。
+ */
+function useWidthMetrics() {
+	const contentWidth = useContentWidth();
+	return useMemo(() => {
+		const cardWidth = contentWidth * 0.92;
+		return {
+			contentWidth,
+			cardWidth,
+			carouselWrapper: { width: contentWidth },
+			carousel: { width: contentWidth },
+			savedRestaurantItemContainer: {
+				width: cardWidth,
+				marginHorizontal: (contentWidth - cardWidth) / 2,
+			},
+			listItemContainer: { width: cardWidth },
+		};
+	}, [contentWidth]);
+}
+
+/**
+ * #1074 native で回転するとウィンドウ高さが変わりうる（web のリサイズ、Android の分割画面・
+ * フリーフォーム、OS が orientation 指定を無視する大画面デバイスなど）ため、`SMALL_DETENT` を
+ * モジュール評価時の固定値ではなく `useWindowDimensions()` の高さから算出する。
+ * `useWidthMetrics` と同様、`TrueSheet` の `detents` へ渡す配列を毎レンダー新規生成しないよう
+ * `useMemo` でまとめる。
+ */
+function useSheetDetents() {
+	const { height: windowHeight } = useWindowDimensions();
+	return useMemo(() => {
+		return [computeSmallDetent(windowHeight), LARGE_DETENT];
+	}, [windowHeight]);
+}
+
+/**
  * SavedRestaurantsSheet
  *
  * - 表示/非表示は `visible` props をソースオブトゥルースとして管理する
@@ -63,10 +89,14 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 			onRestaurantReviewPress,
 			onSnapToRestaurant,
 		} = props;
+		const widthMetrics = useWidthMetrics();
+		const sheetDetents = useSheetDetents();
 		const sheetRef = useRef<TrueSheet>(null);
 		const carouselRef = useRef<ICarouselInstance | null>(null);
 		const isDraggingRef = useRef(false);
-		const draggingTimeoutRef = useRef<number | null>(null);
+		// #1092 PR3 `number` 決め打ちにしない。@types/node を app-expo の devDependency へ明示したことで
+		// setTimeout の戻り値型が環境によって number / NodeJS.Timeout のどちらにも解決しうるため
+		const draggingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 		// 親コンポーネントから present/dismiss を呼び出せるようにする
 		useImperativeHandle(ref, () => ({
@@ -135,7 +165,7 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 
 		const renderItem = useCallback(
 			({ item }: { item: SavedRestaurant }) => (
-				<View style={styles.savedRestaurantItemContainer}>
+				<View style={[styles.savedRestaurantItemContainer, widthMetrics.savedRestaurantItemContainer]}>
 					<PrimaryCard
 						item={item}
 						onPress={() => {
@@ -149,13 +179,13 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 					/>
 				</View>
 			),
-			[onRestaurantCardPress, onRestaurantReviewPress],
+			[onRestaurantCardPress, onRestaurantReviewPress, widthMetrics.savedRestaurantItemContainer],
 		);
 
 		return (
 			<TrueSheet
 				ref={sheetRef}
-				detents={[SMALL_DETENT, LARGE_DETENT]}
+				detents={sheetDetents}
 				grabber
 				cornerRadius={24}
 				backgroundColor="#FFFFFF"
@@ -168,14 +198,14 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 					</View>
 				}
 				onDetentChange={handleDetentChange}>
-				<View style={[styles.container, detentIndex === 1 ? { flex: 1 } : {}]}>
+				<View testID="saved-restaurants-sheet" style={[styles.container, detentIndex === 1 ? { flex: 1 } : {}]}>
 					{/* #644 【UX】ローディング中はスケルトンを表示 */}
 					{isLoadingSavedRestaurants && savedRestaurants.length === 0 ? (
 						<>
 							{detentIndex === 0 ? (
 								// カルーセル表示時のスケルトン（2-3件）
-								<View style={styles.carouselWrapper}>
-									<View style={styles.savedRestaurantItemContainer}>
+								<View style={[styles.carouselWrapper, widthMetrics.carouselWrapper]}>
+									<View style={[styles.savedRestaurantItemContainer, widthMetrics.savedRestaurantItemContainer]}>
 										<SkeletonCard />
 									</View>
 								</View>
@@ -183,7 +213,7 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 								// リスト表示時のスケルトン（3-5件）
 								<View style={styles.listContent}>
 									{[1, 2, 3, 4, 5].map((key) => (
-										<View key={key} style={styles.listItemContainer}>
+										<View key={key} style={[styles.listItemContainer, widthMetrics.listItemContainer]}>
 											<SkeletonCard />
 										</View>
 									))}
@@ -193,22 +223,22 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 					) : savedRestaurants.length > 0 ? (
 						<>
 							{detentIndex === 0 ? (
-								<View style={styles.carouselWrapper}>
+								<View style={[styles.carouselWrapper, widthMetrics.carouselWrapper]}>
 									<Carousel<SavedRestaurant>
 										ref={carouselRef}
 										data={savedRestaurants}
 										loop={false}
-										style={styles.carousel}
-										width={SCREEN_WIDTH}
+										style={[styles.carousel, widthMetrics.carousel]}
+										width={widthMetrics.contentWidth}
 										height={CARD_HEIGHT + 24}
 										pagingEnabled={false}
 										snapEnabled
-										maxScrollDistancePerSwipe={CARD_WIDTH + 40}
+										maxScrollDistancePerSwipe={widthMetrics.cardWidth + 40}
 										mode="parallax"
 										modeConfig={{
 											parallaxScrollingScale: 1,
 											parallaxAdjacentItemScale: 1,
-											parallaxScrollingOffset: ((SCREEN_WIDTH - CARD_WIDTH) * 3) / 4,
+											parallaxScrollingOffset: ((widthMetrics.contentWidth - widthMetrics.cardWidth) * 3) / 4,
 										}}
 										onScrollStart={() => {
 											isDraggingRef.current = true;
@@ -248,7 +278,7 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 									showsVerticalScrollIndicator={false}
 									nestedScrollEnabled>
 									{savedRestaurants.map((item) => (
-										<View key={item.restaurant.id} style={styles.listItemContainer}>
+										<View key={item.restaurant.id} style={[styles.listItemContainer, widthMetrics.listItemContainer]}>
 											<PrimaryCard
 												item={item}
 												onPress={() => onRestaurantCardPress(item)}
@@ -339,20 +369,17 @@ const styles = StyleSheet.create({
 		fontWeight: "600",
 		color: "#666",
 	},
+	// 幅は useWidthMetrics で算出してスタイル配列で合成する（#1067）
 	carouselWrapper: {
-		width: SCREEN_WIDTH,
 		alignItems: "center",
 		paddingVertical: 4,
 		alignSelf: "center",
 	},
 	carousel: {
-		width: SCREEN_WIDTH,
 		height: CARD_HEIGHT + 24,
 	},
 	savedRestaurantItemContainer: {
-		width: CARD_WIDTH,
 		height: CARD_HEIGHT,
-		marginHorizontal: (SCREEN_WIDTH - CARD_WIDTH) / 2,
 		marginVertical: 12,
 	},
 	listContent: {
@@ -363,7 +390,6 @@ const styles = StyleSheet.create({
 		paddingBottom: 40,
 	},
 	listItemContainer: {
-		width: CARD_WIDTH,
 		marginBottom: 12,
 	},
 	savedRestaurantCard: {

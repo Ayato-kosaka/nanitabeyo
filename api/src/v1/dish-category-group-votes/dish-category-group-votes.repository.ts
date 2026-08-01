@@ -138,17 +138,17 @@ export class DishCategoryGroupVotesRepository {
       candidates.length === 0
         ? []
         : ((await db.dish_category_group_vote_candidate_votes.findMany({
-          where: {
-            candidate_id: { in: candidates.map((candidate) => candidate.id) },
-          },
-          orderBy: { created_at: 'asc' },
-          select: {
-            participant_id: true,
-            candidate_id: true,
-            reaction: true,
-            created_at: true,
-          },
-        })) as PrismaDishCategoryGroupVoteCandidateVotes[]);
+            where: {
+              candidate_id: { in: candidates.map((candidate) => candidate.id) },
+            },
+            orderBy: { created_at: 'asc' },
+            select: {
+              participant_id: true,
+              candidate_id: true,
+              reaction: true,
+              created_at: true,
+            },
+          })) as PrismaDishCategoryGroupVoteCandidateVotes[]);
 
     return { session, candidates, participants, votes };
   }
@@ -341,6 +341,24 @@ export class DishCategoryGroupVotesRepository {
       },
       data: {
         deleted_at: new Date(),
+      },
+    });
+  }
+
+  // #943 【仕様】ホストの誤削除からの回復用。削除済み(deleted_at IS NOT NULL)のときだけ戻す。
+  async restoreCandidate(
+    db: PrismaExecutor,
+    sessionId: string,
+    candidateId: string,
+  ): Promise<void> {
+    await db.dish_category_group_vote_candidates.updateMany({
+      where: {
+        id: candidateId,
+        session_id: sessionId,
+        deleted_at: { not: null },
+      },
+      data: {
+        deleted_at: null,
       },
     });
   }

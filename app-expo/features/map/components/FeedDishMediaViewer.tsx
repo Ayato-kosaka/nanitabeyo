@@ -8,6 +8,7 @@ import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { ReviewForm } from "./ReviewForm";
 import i18n from "@/lib/i18n";
 import { useAuth } from "@/contexts/AuthProvider";
+import { isGuestUser } from "@/lib/authGuest";
 
 type FeedDishMediaViewerProps = {
 	initialIndex: number;
@@ -52,7 +53,10 @@ export function FeedDishMediaViewer({ initialIndex, entriesKey }: FeedDishMediaV
 				onIndexChange={handleIndexChange}
 			/>
 			{/* #477【設計】匿名ユーザーの場合はレビュー投稿ボタンを非表示 */}
-			{user?.is_anonymous === false && (
+			{/* #1092 PR4b 【修正】`user?.is_anonymous === false` から共通判定（lib/authGuest.ts）へ寄せた。
+			    旧式は is_anonymous が undefined のときもゲスト扱いになり、ログイン済みなのに
+			    投稿ボタンだけ出ない（他画面では投稿できる）という食い違いになる */}
+			{!isGuestUser(user) && (
 				<PrimaryButton
 					style={styles.writeReviewButton}
 					label={i18n.t("Map.actions.writeReviewForThisDish")}

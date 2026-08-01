@@ -1,42 +1,53 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { MapPin, SunMoon, Users, ChefHat, RefreshCw, DollarSign, Timer } from "lucide-react-native";
+import { MapPin, SunMoon, Users, ChefHat, RefreshCw, DollarSign, Timer, CircleHelp } from "lucide-react-native";
 import { router, useLocalSearchParams } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 import Carousel from "react-native-reanimated-carousel";
-import { Image } from "expo-image";
 import { Topic, SearchParams } from "@/types/search";
 import { useTopicSearch } from "@/features/topics/hooks/useTopicSearch";
 import { useBlockTopic } from "@/features/topics/hooks/useBlockTopic";
 import { TopicCard, TOPIC_CARD_CTA_OVERHANG, type TopicDeepDiveOption } from "@/features/topics/components/TopicCard";
+import { TopicThumbnail } from "@/features/topics/components/TopicThumbnail";
 import { useTopicImageResources } from "@/features/topics/hooks/useTopicImageResources";
 import { TopicsLoading } from "@/features/topics/components/TopicsLoading";
 import { TopicsError } from "@/features/topics/components/TopicsError";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useDialog } from "@/contexts/DialogProvider";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
-import { CARD_WIDTH, CARD_MAX_HEIGHT, width as SCREEN_WIDTH } from "@/features/topics/constants";
+import { useTopicCardSize } from "@/features/topics/hooks/useTopicCardSize";
+import { useContentWidth } from "@/hooks/useContentWidth";
 import {
 	budgetIntentToPriceLevel,
 	coreIngredientOptions,
+	coreIngredientOptionsById,
 	deriveBudgetIntentFromPriceLevels,
 	diningPaceOptions,
+	diningPaceOptionsById,
 	foodStyleOptions,
 	priceLevelOptions,
-	sceneOptions,
+	sceneOptionsById,
 	tasteOptions,
-	timeSlots,
+	tasteOptionsById,
+	timeSlotsById,
 } from "@/features/search/constants";
 import i18n from "@/lib/i18n";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
+import { useScreenTrace } from "@/hooks/useScreenTrace";
 import { makeDishMediaEntriesKey } from "@/features/dishMedia/utils/dishMediaEntriesKey";
-import { WIKIMEDIA_HEADERS } from "@/lib/wikimedia";
-import { SearchHeader } from "@/features/search/components/SearchHeader";
+import { ScreenHeader } from "@/components/ScreenHeader";
 import { useCreateDishCategoryGroupVote } from "@/features/dishCategoryGroupVotes/hooks/useCreateDishCategoryGroupVote";
+import { useTopicsTutorial } from "@/features/topics/hooks/useTopicsTutorial";
+import { TopicsSpotlightTutorial } from "@/features/topics/components/TopicsSpotlightTutorial";
+import type { TopicsTutorialTargetRefs } from "@/features/topics/types/tutorial";
 import type { CreateDishCategoryGroupVoteResponse } from "@shared/api/v1/res";
 
 const DEEP_DIVE_SCORE_THRESHOLD = 0.85;
+
+// ヘッダーアイコンは見た目を小さく保ちつつ、タップ領域だけ44pt相当に広げる。
+const HEADER_ACTION_HIT_SLOP = { top: 12, right: 12, bottom: 12, left: 12 };
 
 const BUDGET_INTENT_ORDER = priceLevelOptions.map((option) => option.budgetIntent);
 const DINING_PACE_ORDER = diningPaceOptions.map((option) => option.id);
@@ -54,6 +65,8 @@ const getOrderIndex = (order: readonly string[], key: string) => {
 };
 
 export default function TopicsScreen() {
+	// #1016 【設計】カード操作が重いという申告のある画面のため、Firebase Performance Monitoringの画面トレースを計装する。
+	useScreenTrace("Topics");
 	const { locale } = useLocale();
 	const { searchParams, pinnedTopic: pinnedTopicParam } = useLocalSearchParams<{
 		searchParams: string;
@@ -78,29 +91,65 @@ export default function TopicsScreen() {
 		}
 	}, [pinnedTopicParam]);
 	const { logFrontendEvent } = useLogger();
-	const [isScrolling, setIsScrolling] = useState(false);
 	const [currentIndex, setCurrentIndex] = useState(0);
 	const [loadedSearchSessionKey, setLoadedSearchSessionKey] = useState<string | null>(null);
 	const [carouselAvailableHeight, setCarouselAvailableHeight] = useState(0);
+	const [isSelectingTopic, setIsSelectingTopic] = useState(false);
 	const carouselRef = useRef<any>(null);
+	// React stateの反映前に連打された押下も防ぐため、同期的に参照できるガードを併用する。
+	const isSelectingTopicRef = useRef(false);
 	// #907 【設計】サムネイルによるプログラム移動だけを識別し、スワイプ分析へ混在させない。
 	const thumbnailNavigationTargetRef = useRef<number | null>(null);
 	const createdGroupVoteRef = useRef<CreateDishCategoryGroupVoteResponse | null>(null);
 	// #907 【設計】描画ライフサイクルと閲覧実績を分離し、検索セッション内のtopic単位で重複を防ぐ。
 	const impressedTopicIdsRef = useRef<Set<string>>(new Set());
+	/**
+	 * #927 【設計】スポットライトは「画面上に見えている実体」を計測する。
+	 *
+	 * Carousel内の4つはアクティブカードだけに渡し、headerのgroupVoteは常に同じViewを参照する。
+	 * サムネイルは仕様上の説明対象外なのでref自体を用意しない。
+	 */
+	const swipeAreaTutorialRef = useRef<View>(null);
+	const selectCtaTutorialRef = useRef<View>(null);
+	const deepDiveTutorialRef = useRef<View>(null);
+	const topicActionsTutorialRef = useRef<View>(null);
+	const groupVoteTutorialRef = useRef<View>(null);
+	const tutorialTargetRefs = useMemo<TopicsTutorialTargetRefs>(
+		() => ({
+			swipeArea: swipeAreaTutorialRef,
+			selectCta: selectCtaTutorialRef,
+			deepDive: deepDiveTutorialRef,
+			topicActions: topicActionsTutorialRef,
+			groupVote: groupVoteTutorialRef,
+		}),
+		[],
+	);
 	const { selectionChanged } = useHaptics();
 
-	const { topics, isLoading, error, searchTopics, refillTopics, hideTopic, createDishItemsPromise } = useTopicSearch();
+	// 結果画面から戻った時は再選択できるようにし、遷移中だけ連打を抑止する。
+	useFocusEffect(
+		useCallback(() => {
+			isSelectingTopicRef.current = false;
+			setIsSelectingTopic(false);
+		}, []),
+	);
+
+	const { topics, isLoading, error, searchTopics, refillTopics, hideTopic, unhideTopic, createDishItemsPromise } =
+		useTopicSearch();
 	const { showSnackbar } = useSnackbar();
 	const { showDialog } = useDialog();
-	const { handleBlockCard } = useBlockTopic(hideTopic, showSnackbar);
+	const { handleBlockCard } = useBlockTopic(hideTopic, unhideTopic, showSnackbar);
 	const { createGroupVote, isCreating } = useCreateDishCategoryGroupVote();
+	// #958 【修正】CARD_WIDTH/CARD_MAX_HEIGHT/SCREEN_WIDTH(window幅固定、中央カラム幅と不一致)の
+	// 代わりに useContentWidth ベースの値を使う
+	const { cardWidth, cardMaxHeight } = useTopicCardSize();
+	const contentWidth = useContentWidth();
 	// #907 【設計】Carouselのmount条件とimpressionの準備条件で同じ高さを参照する。
 	const cardHeight = useMemo(() => {
 		if (carouselAvailableHeight <= 0) return 0;
 		const heightWithMargin = carouselAvailableHeight - TOPIC_CARD_CTA_OVERHANG;
-		return Math.min(heightWithMargin, CARD_MAX_HEIGHT);
-	}, [carouselAvailableHeight]);
+		return Math.min(heightWithMargin, cardMaxHeight);
+	}, [carouselAvailableHeight, cardMaxHeight]);
 
 	useEffect(() => {
 		const searchSessionKey = searchParams ?? "";
@@ -136,6 +185,9 @@ export default function TopicsScreen() {
 				showSnackbar(i18n.t("Topics.errors.invalidSearchParams"));
 				return;
 			}
+			if (isSelectingTopicRef.current) return;
+			isSelectingTopicRef.current = true;
+			setIsSelectingTopic(true);
 
 			// #633 【設計】SavedTopicsTab と同じパターンで entriesKey 駆動のオンデマンド取得
 			const { mediaIdsByKey, isLoadingByKey, upsertDishMediaEntries, updateMediaIdsByKeyAsync } =
@@ -151,6 +203,8 @@ export default function TopicsScreen() {
 				radius: params.distance,
 				priceLevels: params.priceLevels,
 				languageCode: params.localLanguageCode,
+				// #817 端末言語でレビューの並びが変わるためキーに含める
+				viewerLanguageCode: locale,
 			});
 
 			// #633 【設計】未取得 & 非ロード中の場合のみ fetch（重複実行を防止）
@@ -197,6 +251,17 @@ export default function TopicsScreen() {
 
 	const visibleTopics = useMemo(() => topics.filter((topic) => !topic.isHidden), [topics]);
 	const isCarouselReady = cardHeight > 0 && visibleTopics.length > 0;
+	// 旧検索結果が残る瞬間には開かず、現在の検索セッションの取得完了まで待つ。
+	const canOpenTopicsTutorial =
+		!isLoading && !error && isCarouselReady && loadedSearchSessionKey === (searchParams ?? "");
+	const {
+		isTutorialRequested,
+		tutorialRequestId,
+		openReason: tutorialOpenReason,
+		openManually: openTopicsTutorialManually,
+		close: closeTopicsTutorial,
+		markPresented: markTopicsTutorialPresented,
+	} = useTopicsTutorial({ canAutoOpen: canOpenTopicsTutorial });
 
 	useEffect(() => {
 		createdGroupVoteRef.current = null;
@@ -239,7 +304,7 @@ export default function TopicsScreen() {
 		}
 	}, [createGroupVote, locale, logFrontendEvent, params, showSnackbar, visibleTopics]);
 
-	const { getImageState, retryImage } = useTopicImageResources({
+	const { getImageState, retryImage, markImageError } = useTopicImageResources({
 		topics: visibleTopics,
 		sessionKey: searchParams ?? "",
 	});
@@ -315,26 +380,36 @@ export default function TopicsScreen() {
 		setCurrentIndex(index);
 	};
 
-	// #674 【仕様】カード・メインCTAタップ時の処理（スクロール中は無視）
+	// #674 【仕様】カード・メインCTAタップ時の処理。
+	// 旧実装は「スクロール中はタップ無視」のガードがあったが、これは当時
+	// visibleTopics[currentIndex] という index 参照で選択しており、スクロール中の
+	// 曖昧な index による誤選択を防ぐためのものだった。現在は押されたカード自身の
+	// topic を直接受け取るため曖昧さはなく、ガードは「押下フィードバックは出るのに
+	// 遷移しない」だけの挙動になっていたため撤去した(レビュー指摘)。
+	// 実スワイプとタップの弁別は Carousel のジェスチャ制御に委ねる。
 	const handleCardPress = useCallback(
 		(topic: Topic) => {
-			if (isScrolling) return;
 			handleViewDetails(topic);
 		},
-		[handleViewDetails, isScrolling],
+		[handleViewDetails],
 	);
 
 	// #674 【仕様】サムネイルタップ時の処理
-	const handleThumbnailPress = useCallback(
-		(index: number) => {
-			if (index === currentIndex || !carouselRef.current) return;
+	// #1007 【設計】currentIndex を直接依存に含めると、スワイプのたびに handleThumbnailPress の参照が
+	// 変わり TopicThumbnail(React.memo)の props が全件変化してしまう。ref 経由で最新値を読むことで
+	// 関数自体は安定させ、isActive の変化した2件だけが再レンダーされるようにする。
+	const currentIndexRef = useRef(currentIndex);
+	useEffect(() => {
+		currentIndexRef.current = currentIndex;
+	}, [currentIndex]);
 
-			// #907 【仕様】indexはsnap完了後に更新し、カード表示前のimpression送信を防ぐ。
-			thumbnailNavigationTargetRef.current = index;
-			carouselRef.current.scrollTo({ index, animated: true });
-		},
-		[currentIndex],
-	);
+	const handleThumbnailPress = useCallback((index: number) => {
+		if (index === currentIndexRef.current || !carouselRef.current) return;
+
+		// #907 【仕様】indexはsnap完了後に更新し、カード表示前のimpression送信を防ぐ。
+		thumbnailNavigationTargetRef.current = index;
+		carouselRef.current.scrollTo({ index, animated: true });
+	}, []);
 
 	const getDeepDiveLabel = useCallback((option: TopicDeepDiveOption) => {
 		if (option.featureType === "budget_intent") {
@@ -342,23 +417,39 @@ export default function TopicsScreen() {
 			return priceOption ? i18n.t(priceOption.label) : option.featureKey;
 		}
 		if (option.featureType === "dining_pace") {
-			const paceOption = diningPaceOptions.find((pace) => pace.id === option.featureKey);
+			// #1015 【パフォーマンス】find() の代わりに priceLevelOptions と同型の派生Mapを参照する
+			const paceOption = diningPaceOptionsById[option.featureKey];
 			return paceOption ? `${paceOption.icon}${i18n.t(paceOption.label)}` : option.featureKey;
 		}
 		if (option.featureType === "taste") {
-			const tasteOption = tasteOptions.find((taste) => taste.id === option.featureKey);
+			const tasteOption = tasteOptionsById[option.featureKey];
 			return tasteOption ? `${tasteOption.icon}${i18n.t(tasteOption.label)}` : option.featureKey;
 		}
 		if (option.featureType === "core_ingredient") {
-			const coreOption = coreIngredientOptions.find((coreIngredient) => coreIngredient.id === option.featureKey);
+			const coreOption = coreIngredientOptionsById[option.featureKey];
 			return coreOption ? `${coreOption.icon}${i18n.t(coreOption.label)}` : option.featureKey;
 		}
 		return option.featureKey;
 	}, []);
 
+	// #1007 【設計】getDeepDiveOptions は Carousel の再レンダーのたびに全カード分呼ばれるため、
+	// 同一検索セッション内では topic.categoryId 単位で結果をキャッシュする。params が変わると
+	// 深掘り候補の算出条件自体が変わるため、params 変化時にキャッシュを破棄する。
+	// #1007 【設計】label は i18n.t() 済みの文字列を保持するため、キーへ locale も含める。
+	// params はロケール変更では変わらず、画面を維持したままロケールが変わると
+	// useTopicSearch が同じ categoryId を新しい言語で再取得しても旧ロケールのラベルが返り続けるため、
+	// effect ではなくキー側で無効化して同一レンダー内で新しい言語に切り替わるようにする。
+	const deepDiveOptionsCacheRef = useRef<Map<string, TopicDeepDiveOption[]>>(new Map());
+	useEffect(() => {
+		deepDiveOptionsCacheRef.current = new Map();
+	}, [params]);
+
 	const getDeepDiveOptions = useCallback(
 		(topic: Topic): TopicDeepDiveOption[] => {
 			if (!params) return [];
+			const cacheKey = `${locale}:${topic.categoryId}`;
+			const cached = deepDiveOptionsCacheRef.current.get(cacheKey);
+			if (cached) return cached;
 			const features = (topic.deepDiveFeatures ?? []).filter((feature) => {
 				if (feature.score <= DEEP_DIVE_SCORE_THRESHOLD) return false;
 				if (feature.feature_type === "budget_intent") {
@@ -416,17 +507,21 @@ export default function TopicsScreen() {
 									getOrderIndex(FOOD_STYLE_ORDER, a.feature_key) - getOrderIndex(FOOD_STYLE_ORDER, b.feature_key),
 							);
 
-			return [...budgetCandidates, ...diningPaceCandidates, ...foodStyleCandidates].slice(0, 3).map((feature) => {
-				const option = {
-					key: `${feature.feature_type}:${feature.feature_key}`,
-					label: "",
-					featureType: feature.feature_type,
-					featureKey: feature.feature_key,
-				};
-				return { ...option, label: getDeepDiveLabel(option) };
-			});
+			const result = [...budgetCandidates, ...diningPaceCandidates, ...foodStyleCandidates]
+				.slice(0, 3)
+				.map((feature) => {
+					const option = {
+						key: `${feature.feature_type}:${feature.feature_key}`,
+						label: "",
+						featureType: feature.feature_type,
+						featureKey: feature.feature_key,
+					};
+					return { ...option, label: getDeepDiveLabel(option) };
+				});
+			deepDiveOptionsCacheRef.current.set(cacheKey, result);
+			return result;
 		},
-		[getDeepDiveLabel, params],
+		[getDeepDiveLabel, locale, params],
 	);
 
 	const handleDeepDive = useCallback(
@@ -469,23 +564,58 @@ export default function TopicsScreen() {
 		[locale, logFrontendEvent, params],
 	);
 
-	const renderCard = ({ item, index }: { item: Topic; index: number }) => {
-		const imageState = getImageState(item);
-		return (
-			<TopicCard
-				// Carousel は index で要素を再利用するため、非表示後に次の料理の state/画像を引き継がないよう再マウントする。
-				key={item.categoryId}
-				item={item}
-				onBlock={handleBlockCard}
-				onDeepDive={handleDeepDive}
-				onSelect={handleCardPress}
-				deepDiveOptions={getDeepDiveOptions(item)}
-				cardHeight={cardHeight}
-				imageState={imageState}
-				onImageRetry={retryImage}
-			/>
-		);
-	};
+	/**
+	 * #927 【設計】表示中カードの深掘り有無を、カード描画とチュートリアルで共有する。
+	 *
+	 * 別々に判定すると、片方だけ候補ありと判断したタイミングで
+	 * 「存在しないdeepDiveを説明する」競合が起きるため、同じ配列を使う。
+	 */
+	const activeDeepDiveOptions = useMemo(() => {
+		const activeTopic = visibleTopics[currentIndex];
+		return activeTopic ? getDeepDiveOptions(activeTopic) : [];
+	}, [currentIndex, getDeepDiveOptions, visibleTopics]);
+
+	// #1007 【設計】isSaved を useTopicsStore の topic.categoryId 単位のスライスへ外出ししたため、
+	// カード再利用時も保存状態はstore側で引き継がれる。Carousel の key を撤去してカード再利用を有効化し、
+	// DishMediaMap.tsx の renderCarouselItem と同様に renderItem 自体も useCallback で安定化する。
+	const renderCard = useCallback(
+		({ item, index }: { item: Topic; index: number }) => {
+			const imageState = getImageState(item);
+			const isActiveCard = index === currentIndex;
+			return (
+				<TopicCard
+					item={item}
+					onBlock={handleBlockCard}
+					onDeepDive={handleDeepDive}
+					onSelect={handleCardPress}
+					deepDiveOptions={isActiveCard ? activeDeepDiveOptions : getDeepDiveOptions(item)}
+					cardWidth={cardWidth}
+					cardHeight={cardHeight}
+					imageState={imageState}
+					isSelecting={isSelectingTopic}
+					onImageRetry={retryImage}
+					onImageLoadError={markImageError}
+					// 非表示カードによるref上書きを防ぐため、アクティブカードにだけ登録する。
+					tutorialTargetRefs={isActiveCard ? tutorialTargetRefs : undefined}
+				/>
+			);
+		},
+		[
+			getImageState,
+			currentIndex,
+			handleBlockCard,
+			handleDeepDive,
+			handleCardPress,
+			activeDeepDiveOptions,
+			getDeepDiveOptions,
+			cardWidth,
+			cardHeight,
+			isSelectingTopic,
+			retryImage,
+			markImageError,
+			tutorialTargetRefs,
+		],
+	);
 
 	if (isLoading) {
 		return <TopicsLoading />;
@@ -517,23 +647,45 @@ export default function TopicsScreen() {
 	return (
 		<View style={styles.container}>
 			{/* #674 【仕様】ヘッダー（戻るボタン + タイトル） */}
-			<SearchHeader
+			{/* #1031 【設計】Detox からタイトル表示を検証できるよう testID を追加 */}
+			<ScreenHeader
+				testID="topics-header"
 				title={i18n.t("Topics.headerTitle")}
 				onPressBack={handleBack}
 				rightContent={
 					<View style={styles.headerActions}>
+						{/* #927 【仕様】閲覧済みでも「？」から先頭ステップを再表示できる。 */}
 						<TouchableOpacity
-							onPress={handleOpenGroupVote}
-							disabled={isCreating}
+							onPress={openTopicsTutorialManually}
+							disabled={!canOpenTopicsTutorial || isTutorialRequested}
 							accessibilityRole="button"
-							accessibilityLabel={i18n.t("DishCategoryGroupVotes.resultTitle")}
-							style={[styles.headerActionButton, isCreating && styles.headerActionButtonDisabled]}>
-							<Users size={20} color="#1A1A1A" />
+							accessibilityLabel={i18n.t("Topics.tutorial.helpLabel")}
+							accessibilityHint={i18n.t("Topics.tutorial.helpHint")}
+							hitSlop={HEADER_ACTION_HIT_SLOP}
+							testID="topics-tutorial-help"
+							style={[
+								styles.headerActionButton,
+								(!canOpenTopicsTutorial || isTutorialRequested) && styles.headerActionButtonDisabled,
+							]}>
+							<CircleHelp size={20} color="#1A1A1A" />
 						</TouchableOpacity>
+						<View ref={groupVoteTutorialRef} collapsable={false} testID="topics-tutorial-target-group-vote">
+							<TouchableOpacity
+								onPress={handleOpenGroupVote}
+								disabled={isCreating}
+								accessibilityRole="button"
+								accessibilityLabel={i18n.t("DishCategoryGroupVotes.resultTitle")}
+								hitSlop={HEADER_ACTION_HIT_SLOP}
+								testID="topics-group-vote"
+								style={[styles.headerActionButton, isCreating && styles.headerActionButtonDisabled]}>
+								<Users size={20} color="#1A1A1A" />
+							</TouchableOpacity>
+						</View>
 						{shouldShowReload && (
 							<TouchableOpacity
 								onPress={handleReloadRecommendations}
 								accessibilityRole="button"
+								hitSlop={HEADER_ACTION_HIT_SLOP}
 								style={styles.headerActionButton}>
 								<RefreshCw size={20} color="#1A1A1A" />
 							</TouchableOpacity>
@@ -553,19 +705,16 @@ export default function TopicsScreen() {
 						</View>
 
 						{/* 時間帯 */}
+						{/* #1015 【パフォーマンス】find() の代わりに priceLevelOptions と同型の派生Mapを参照する */}
 						<View style={styles.conditionChip}>
 							<SunMoon size={14} color="#f05537" />
-							<Text style={styles.conditionChipText}>
-								{i18n.t(timeSlots.find((s) => s.id === params.timeSlot)?.label || "")}
-							</Text>
+							<Text style={styles.conditionChipText}>{i18n.t(timeSlotsById[params.timeSlot]?.label || "")}</Text>
 						</View>
 
 						{/* 誰と行くか */}
 						<View style={styles.conditionChip}>
 							<Users size={14} color="#f05537" />
-							<Text style={styles.conditionChipText}>
-								{i18n.t(sceneOptions.find((s) => s.id === params.scene)?.label || "")}
-							</Text>
+							<Text style={styles.conditionChipText}>{i18n.t(sceneOptionsById[params.scene]?.label || "")}</Text>
 						</View>
 					</View>
 
@@ -587,7 +736,7 @@ export default function TopicsScreen() {
 							<View style={styles.conditionChip}>
 								<Timer size={14} color="#f05537" />
 								<Text style={styles.conditionChipText}>
-									{i18n.t(diningPaceOptions.find((option) => option.id === params.diningPace)?.label || "")}
+									{i18n.t(diningPaceOptionsById[params.diningPace]?.label || "")}
 								</Text>
 							</View>
 						)}
@@ -596,9 +745,7 @@ export default function TopicsScreen() {
 						{params.taste && (
 							<View style={styles.conditionChip}>
 								<ChefHat size={14} color="#f05537" />
-								<Text style={styles.conditionChipText}>
-									{i18n.t(tasteOptions.find((t) => t.id === params.taste)?.label || "")}
-								</Text>
+								<Text style={styles.conditionChipText}>{i18n.t(tasteOptionsById[params.taste]?.label || "")}</Text>
 							</View>
 						)}
 
@@ -607,7 +754,7 @@ export default function TopicsScreen() {
 							<View style={styles.conditionChip}>
 								<ChefHat size={14} color="#f05537" />
 								<Text style={styles.conditionChipText}>
-									{i18n.t(coreIngredientOptions.find((option) => option.id === params.coreIngredient)?.label || "")}
+									{i18n.t(coreIngredientOptionsById[params.coreIngredient]?.label || "")}
 								</Text>
 							</View>
 						)}
@@ -631,19 +778,17 @@ export default function TopicsScreen() {
 							<View style={styles.carouselContainer}>
 								<Carousel
 									ref={carouselRef}
-									width={CARD_WIDTH}
+									width={cardWidth}
 									height={cardHeight + TOPIC_CARD_CTA_OVERHANG}
 									data={visibleTopics}
 									renderItem={renderCard}
 									onSnapToItem={handleSnapToItem}
-									onScrollStart={() => setIsScrolling(true)}
-									onScrollEnd={() => setIsScrolling(false)}
 									mode="parallax"
 									modeConfig={{
 										parallaxScrollingScale: 0.9,
 										parallaxScrollingOffset: 100,
 									}}
-									style={styles.carousel}
+									style={{ width: cardWidth }}
 								/>
 							</View>
 						)
@@ -656,22 +801,38 @@ export default function TopicsScreen() {
 				{visibleTopics.length > 0 && (
 					<View style={styles.thumbnailGrid}>
 						{visibleTopics.map((topic, index) => (
-							<TouchableOpacity
+							// #1007 【設計】TopicThumbnail(React.memo)へ分離し、isActive/imageState 以外の
+							// props(onPress/onImageError含む)を安定参照にすることで、スワイプ時の
+							// 再レンダー範囲を「旧選択」「新選択」の2件のみに抑える。
+							<TopicThumbnail
 								key={topic.categoryId}
-								style={[styles.thumbnail, currentIndex === index && styles.thumbnailActive]}
-								onPress={() => handleThumbnailPress(index)}
-								activeOpacity={0.7}>
-								<Image
-									source={{ uri: topic.imageUrl, headers: WIKIMEDIA_HEADERS }}
-									style={styles.thumbnailImage}
-									contentFit="cover"
-									cachePolicy="memory"
-								/>
-							</TouchableOpacity>
+								topic={topic}
+								index={index}
+								total={visibleTopics.length}
+								isActive={currentIndex === index}
+								// #929 【設計】メインカードと同じ imageState を参照し、画面単位で1回だけ取得したリソースを共有する。
+								imageState={getImageState(topic)}
+								// #958 【修正】サムネイル幅は中央カラム幅に追従させる
+								width={(contentWidth - 72) / 6}
+								onPress={handleThumbnailPress}
+								onImageError={markImageError}
+							/>
 						))}
 					</View>
 				)}
 			</View>
+
+			{/* #927 BottomSheetではなく、実UIの位置を指す画面専用スポットライト。 */}
+			<TopicsSpotlightTutorial
+				visible={isTutorialRequested}
+				requestId={tutorialRequestId}
+				openReason={tutorialOpenReason}
+				targetRefs={tutorialTargetRefs}
+				includeDeepDiveStep={activeDeepDiveOptions.length > 0}
+				onPresented={markTopicsTutorialPresented}
+				onClose={closeTopicsTutorial}
+				onUnavailable={closeTopicsTutorial}
+			/>
 		</View>
 	);
 }
@@ -754,9 +915,7 @@ const styles = StyleSheet.create({
 		justifyContent: "center",
 		alignItems: "center",
 	},
-	carousel: {
-		width: SCREEN_WIDTH,
-	},
+	// #958 【修正】width は中央カラム幅に追従させる必要があるため JSX 側でインライン合成する
 	emptyContainer: {
 		flex: 1,
 		justifyContent: "center",
@@ -785,6 +944,8 @@ const styles = StyleSheet.create({
 		fontWeight: "500",
 	},
 	// 下部サムネイル（通常フローで一番下）
+	// #1007 【設計】個々のサムネイルのスタイル(thumbnail/thumbnailActive/thumbnailImage)は
+	// TopicThumbnail.tsx へ移動した。
 	thumbnailGrid: {
 		paddingHorizontal: 16,
 		paddingVertical: 12,
@@ -792,30 +953,5 @@ const styles = StyleSheet.create({
 		flexWrap: "wrap",
 		justifyContent: "center",
 		gap: 8,
-	},
-	thumbnail: {
-		width: (SCREEN_WIDTH - 72) / 6, // 画面幅から余白を引いて3等分
-		aspectRatio: 1, // 正方形
-		borderRadius: 12,
-		overflow: "hidden",
-		borderWidth: 2,
-		borderColor: "#C9C9C9",
-		shadowColor: "#C9C9C9",
-		shadowOffset: { width: 0, height: 2 },
-		shadowOpacity: 0.3,
-		shadowRadius: 4,
-		elevation: 4,
-	},
-	thumbnailActive: {
-		borderColor: "#f05537",
-		shadowColor: "#f05537",
-		shadowOffset: { width: 0, height: 2 },
-		shadowOpacity: 0.3,
-		shadowRadius: 4,
-		elevation: 4,
-	},
-	thumbnailImage: {
-		width: "100%",
-		height: "100%",
 	},
 });

@@ -10,7 +10,7 @@ import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import { useFileUploader } from "@/hooks/useFileUploader";
 import { useAPICall } from "@/hooks/useAPICall";
-import { UpdateUserProfileDto } from "@shared/api/v1/dto";
+import type { UpdateUserProfileDto } from "@shared/api/v1/dto";
 import type { GetUserProfileResponse, UpdateUserProfileResponse } from "@shared/api/v1/res";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useProfileStore } from "../stores/useProfileStore";

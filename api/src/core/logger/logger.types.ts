@@ -71,7 +71,7 @@ export type ExternalApiLogRecord = {
 /* ------------------------------------------------------------------ */
 
 export type CreateFrontendEventInput = NonNullableFields<
-  Required<Omit<FrontendEventLogRecord, 'created_at'>>
+  Required<FrontendEventLogRecord>
 >;
 
 export type FrontendEventLogRecord = {

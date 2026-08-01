@@ -1,5 +1,6 @@
-import { IsNumber, IsString, IsUUID, Matches, IsArray, Min, Max, Length, IsIn, IsOptional } from "class-validator";
+import { IsNumber, IsString, IsUUID, Matches, IsArray, Min, Max, IsIn, IsOptional } from "class-validator";
 import { Type } from "class-transformer";
+import { BCP47_LANGUAGE_TAG_PATTERN } from "../../../../utils/languageCode";
 
 /** POST /v1/dishes/bulk-import のボディ */
 export class BulkImportDishesDto {
@@ -27,9 +28,19 @@ export class BulkImportDishesDto {
 	@Max(5)
 	minRating!: number;
 
-	/** レストランの所属する地域の言語コード (2〜5文字) */
+	/**
+	 * レストランの所属する地域の言語コード（IETF BCP 47）
+	 *
+	 * #1052 【バグ】以前は `@Length(2, 5)` だったため、`zh-Hans`(7文字) や
+	 * `zh-Hant`(7文字) で **bulk-import が丸ごと 400 になっていた**。
+	 * app 側は `searchLocationLanguageCode` をそのまま送るので、
+	 * `resolveLocalLanguageCode()` が中国語圏で返す値がそのまま弾かれる。
+	 * 検証は他の DTO と同じ共有パターンへ揃える。
+	 */
 	@IsString()
-	@Length(2, 5)
+	@Matches(BCP47_LANGUAGE_TAG_PATTERN, {
+		message: "languageCode must follow IETF BCP 47 format (e.g., en, ja, zh-Hant)",
+	})
 	languageCode!: string;
 
 	/** 価格レベル配列 */

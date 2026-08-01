@@ -73,6 +73,7 @@ export function DishCategorySearchForm({
 				onClear={handleClear}
 				placeholder={i18n.t("Map.placeholders.enterDishCategory")}
 				autofocus={true}
+				testID={testID}
 			/>
 		</View>
 	);
