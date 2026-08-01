@@ -164,19 +164,24 @@ jest.mock("./DishCategoryGroupVoteComments", () => ({
 	},
 }));
 jest.mock("../hooks/useDishCategoryGroupVotePolling", () => ({ useDishCategoryGroupVotePolling: jest.fn() }));
+// dishMediaSearchStatus:"not_searched" の候補では検索 → cache を経てから遷移するため、
+// 「検索中」を任意の長さで保持できるよう cache/検索 helper はテストから制御する
+const mockCacheCandidateDishMedia = jest.fn();
 jest.mock("../hooks/useDishCategoryGroupVoteActions", () => ({
 	useDishCategoryGroupVoteActions: () => ({
-		cacheCandidateDishMedia: jest.fn(),
+		cacheCandidateDishMedia: mockCacheCandidateDishMedia,
 		deleteCandidate: jest.fn(),
 		restoreCandidate: jest.fn(),
 		submitVote: jest.fn(),
 	}),
 }));
-// dishMediaSearchStatus:"found" の候補だけを扱うので、検索 helper と fallback は呼ばれない
 jest.mock("@/features/search/hooks/useGoogleMapsFallback", () => ({
 	useGoogleMapsFallback: () => ({ showGoogleMapsFallbackDialog: jest.fn() }),
 }));
-jest.mock("@/lib/dishMediaSearch", () => ({ createDishItemsForCategory: jest.fn() }));
+const mockCreateDishItemsForCategory = jest.fn();
+jest.mock("@/lib/dishMediaSearch", () => ({
+	createDishItemsForCategory: (...args: unknown[]) => mockCreateDishItemsForCategory(...args),
+}));
 // 遷移前の dish-media 先読みは非同期なので、store ごとスタブ化して本テストへ持ち込まない
 jest.mock("@/stores/useDishMediaEntriesStore", () => ({
 	useDishMediaEntriesStore: {
@@ -219,6 +224,17 @@ const CANDIDATE: DishCategoryGroupVoteCandidate = {
 	votes: [{ participantId: "participant-1", displayName: "ねこ", reaction: "like" }],
 };
 
+// #1122 未検索候補。「店を見る」を押すと検索 → cache を await してから遷移要求が来る
+const NOT_SEARCHED_CANDIDATE: DishCategoryGroupVoteCandidate = {
+	...CANDIDATE,
+	id: "candidate-2",
+	dishCategoryId: "dish-category-2",
+	displayName: "カレー",
+	dishMediaIds: [],
+	dishMediaSearchStatus: "not_searched",
+	displayOrder: 1,
+};
+
 const DETAIL: DishCategoryGroupVoteDetailResponse = {
 	session: {
 		id: "session-1",
@@ -236,7 +252,7 @@ const DETAIL: DishCategoryGroupVoteDetailResponse = {
 		createdAt: "2026-01-01T00:00:00.000Z",
 		updatedAt: "2026-01-01T00:00:00.000Z",
 	},
-	candidates: [CANDIDATE],
+	candidates: [CANDIDATE, NOT_SEARCHED_CANDIDATE],
 	participants: [{ id: "participant-1", displayName: "ねこ", comment: null, createdAt: "2026-01-01T00:00:00.000Z" }],
 };
 
@@ -247,10 +263,41 @@ const press = (root: ReactTestInstance, testID: string) => {
 	});
 };
 
+// モーダル右上の X。BlurModal が実物のまま描画されるので accessibilityLabel で引く
+const pressModalCloseButton = (root: ReactTestInstance) => {
+	const target = root.findAllByProps({ accessibilityLabel: "Common.close" })[0];
+	act(() => {
+		target.props.onPress?.();
+	});
+};
+
+// 検索 helper の解決タイミングをテスト側に握らせる
+const deferSearch = () => {
+	let resolve!: (items: { dish_media: { id: string } }[]) => void;
+	const promise = new Promise<{ dish_media: { id: string } }[]>((res) => {
+		resolve = res;
+	});
+	mockCreateDishItemsForCategory.mockReturnValueOnce(promise);
+	return async (items: { dish_media: { id: string } }[]) => {
+		await act(async () => {
+			resolve(items);
+			// 検索 → cacheCandidateDishMedia の 2 段 await を消化させる
+			await promise;
+		});
+	};
+};
+
 describe("DishCategoryGroupVoteResultScreen の「店を見る」", () => {
 	beforeEach(() => {
 		mockEvents.length = 0;
 		mockDetail.current = DETAIL;
+		mockRouterPush.mockClear();
+		mockCreateDishItemsForCategory.mockReset();
+		mockCacheCandidateDishMedia.mockReset();
+		mockCacheCandidateDishMedia.mockResolvedValue({
+			dishMediaSearchStatus: "found",
+			dishMediaIds: ["dish-media-2"],
+		});
 	});
 
 	it("詳細モーダルから押すと、遷移より先にモーダルが閉じる", () => {
@@ -290,6 +337,72 @@ describe("DishCategoryGroupVoteResultScreen の「店を見る」", () => {
 
 		expect(mockRouterPush).toHaveBeenCalledTimes(1);
 		expect(mockEvents).toEqual(["router.push"]);
+
+		act(() => {
+			renderer.unmount();
+		});
+	});
+
+	// #1122 【回帰】未検索候補では検索の await を挟むため、その間にモーダルを閉じられる。
+	// 押下時点の stale closure（isCandidateDetailVisible === true）のまま遷移を ref へ積むと、
+	// 次に別候補のモーダルを開いて閉じただけで、その残留分が発火して全く関係ない店へ飛ぶ。
+	it("検索中にモーダルを閉じたら、その後に別候補のモーダルを開閉しても遷移が残留発火しない", async () => {
+		const resolveSearch = deferSearch();
+		let renderer!: TestRenderer.ReactTestRenderer;
+		act(() => {
+			renderer = TestRenderer.create(<DishCategoryGroupVoteResultScreen shareToken="share-token-1" />);
+		});
+		const root = renderer.root;
+
+		// 候補 A（未検索）の詳細モーダルを開いて「店を見る」を押す → 検索の完了待ちに入る
+		press(root, `list-open-detail:${NOT_SEARCHED_CANDIDATE.id}`);
+		press(root, "primary-button:DishCategoryGroupVotes.viewRestaurants");
+		expect(mockCreateDishItemsForCategory).toHaveBeenCalledTimes(1);
+		expect(mockRouterPush).not.toHaveBeenCalled();
+
+		// 検索完了前にユーザーが X でモーダルを閉じる
+		pressModalCloseButton(root);
+		expect(mockEvents).toEqual(["portal-mounted", "portal-unmounted"]);
+
+		// 検索が完了する。ユーザーが自分で閉じた以上、勝手に遷移してはならない
+		await resolveSearch([{ dish_media: { id: "dish-media-2" } }]);
+		expect(mockRouterPush).not.toHaveBeenCalled();
+
+		// 候補 B の詳細モーダルを開いて閉じるだけ。ここで A への遷移が発火したら不具合
+		press(root, `list-open-detail:${CANDIDATE.id}`);
+		pressModalCloseButton(root);
+
+		expect(mockRouterPush).not.toHaveBeenCalled();
+		expect(mockEvents).toEqual(["portal-mounted", "portal-unmounted", "portal-mounted", "portal-unmounted"]);
+
+		act(() => {
+			renderer.unmount();
+		});
+	});
+
+	// #1122 【回帰】上のキャンセルを効かせすぎて、正常系（閉じずに待った場合）まで
+	// 遷移が消えてしまわないことを固定する
+	it("未検索候補でも、モーダルを開いたまま検索が終われば閉じてから遷移する", async () => {
+		const resolveSearch = deferSearch();
+		let renderer!: TestRenderer.ReactTestRenderer;
+		act(() => {
+			renderer = TestRenderer.create(<DishCategoryGroupVoteResultScreen shareToken="share-token-1" />);
+		});
+		const root = renderer.root;
+
+		press(root, `list-open-detail:${NOT_SEARCHED_CANDIDATE.id}`);
+		press(root, "primary-button:DishCategoryGroupVotes.viewRestaurants");
+		await resolveSearch([{ dish_media: { id: "dish-media-2" } }]);
+
+		expect(mockRouterPush).toHaveBeenCalledTimes(1);
+		expect(mockEvents).toEqual(["portal-mounted", "portal-unmounted", "router.push"]);
+		expect(mockRouterPush.mock.calls[0][0]).toMatchObject({
+			pathname: "/[locale]/(tabs)/search/result",
+			params: {
+				entriesKey: `dish-category-group-votes:share-token-1:${NOT_SEARCHED_CANDIDATE.id}`,
+				category: "カレー",
+			},
+		});
 
 		act(() => {
 			renderer.unmount();
