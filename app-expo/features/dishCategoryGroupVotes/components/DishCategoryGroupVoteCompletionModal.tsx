@@ -8,6 +8,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useAuth } from "@/contexts/AuthProvider";
+import { isGuestUser } from "@/lib/authGuest";
 import i18n from "@/lib/i18n";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { useEnsureOwnProfileLoaded } from "@/features/profile/hooks/useEnsureOwnProfileLoaded";
@@ -29,12 +30,14 @@ export function DishCategoryGroupVoteCompletionModal({ usedDisplayNames, isSubmi
 	const [isManualName, setIsManualName] = useState(false);
 	const [displayName, setDisplayName] = useState("");
 	const [comment, setComment] = useState("");
-	const loggedInDisplayName =
-		user?.is_anonymous === false
-			? Array.from(profile?.display_name ?? "")
-					.slice(0, 8)
-					.join("")
-			: "";
+	// #1092 PR4b 【修正】`user?.is_anonymous === false` から共通判定（lib/authGuest.ts）へ寄せた。
+	// 旧式は is_anonymous が undefined のときもゲスト扱いになり、ログイン済みなのに表示名が
+	// 初期入力されない（他画面ではログイン済みとして扱われている）という食い違いになる
+	const loggedInDisplayName = !isGuestUser(user)
+		? Array.from(profile?.display_name ?? "")
+				.slice(0, 8)
+				.join("")
+		: "";
 
 	useEffect(() => {
 		const nextUsedDisplayNames = usedDisplayNamesKey ? usedDisplayNamesKey.split("\u0000") : [];

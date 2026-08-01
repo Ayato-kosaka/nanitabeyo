@@ -44,55 +44,37 @@ export function FeedbackForm({
 	const [feedbackType, setFeedbackType] = useState<"request" | "bug">(initialType);
 	const [feedbackTitle, setFeedbackTitle] = useState(initialTitle);
 	const [feedbackMessage, setFeedbackMessage] = useState(initialMessage);
-	const [titleError, setTitleError] = useState("");
-	const [messageError, setMessageError] = useState("");
 	const [submitError, setSubmitError] = useState("");
 	const [isSubmitting, setIsSubmitting] = useState(false);
+	// #951 【仕様】送信ボタンをdisabledにする(=押下自体ができなくなる)ため、押下をトリガーにした
+	// 事後バリデーションでは有効範囲を利用者に伝えられない。フィールドを一度離れたことをトリガーに、
+	// 現在値が範囲外ならエラーを表示するリアルタイムバリデーションに変更する。
+	const [titleTouched, setTitleTouched] = useState(false);
+	const [messageTouched, setMessageTouched] = useState(false);
+
+	const isTitleValid = feedbackTitle.length >= 5 && feedbackTitle.length <= 80;
+	const isMessageValid = feedbackMessage.length >= 10 && feedbackMessage.length <= 2000;
+	const canSubmit = isTitleValid && isMessageValid && !isSubmitting;
+	const titleError = titleTouched && !isTitleValid ? i18n.t("Feedback.errors.titleLength") : "";
+	const messageError = messageTouched && !isMessageValid ? i18n.t("Feedback.errors.messageLength") : "";
 
 	const { callBackend } = useAPICall();
 	const { mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 
-	const handleTitleChange = useCallback(
-		(text: string) => {
-			setFeedbackTitle(text);
-			if (titleError) {
-				setTitleError("");
-			}
-		},
-		[titleError],
-	);
+	const handleTitleChange = useCallback((text: string) => {
+		setFeedbackTitle(text);
+	}, []);
 
-	const handleMessageChange = useCallback(
-		(text: string) => {
-			setFeedbackMessage(text);
-			if (messageError) {
-				setMessageError("");
-			}
-		},
-		[messageError],
-	);
+	const handleMessageChange = useCallback((text: string) => {
+		setFeedbackMessage(text);
+	}, []);
 
 	const handleSubmit = useCallback(async () => {
+		// #951 【仕様】ボタンは範囲外の間disabledで押下自体ができないため、ここに到達する時点で
+		// タイトル・本文は必ず有効範囲内(canSubmitがtrueの状態でしか呼ばれない)。
 		Keyboard.dismiss();
-
-		// Clear previous errors
-		setTitleError("");
-		setMessageError("");
 		setSubmitError("");
-
-		// Validate title
-		if (feedbackTitle.length < 5 || feedbackTitle.length > 80) {
-			setTitleError(i18n.t("Feedback.errors.titleLength"));
-			return;
-		}
-
-		// Validate message
-		if (feedbackMessage.length < 10 || feedbackMessage.length > 2000) {
-			setMessageError(i18n.t("Feedback.errors.messageLength"));
-			return;
-		}
-
 		setIsSubmitting(true);
 
 		try {
@@ -165,7 +147,8 @@ export function FeedbackForm({
 	return (
 		<>
 			<Card style={{ gap: 16 }}>
-				<Text style={styles.feedbackTitle}>{i18n.t("Feedback.title")}</Text>
+				{/* #951 【設計】タイトルは呼び出し元の画面(profile/feedback)の ScreenHeader が表示するため、
+				    フォーム内では重複表示しない */}
 
 				{/* Submit Error Display */}
 				{submitError ? (
@@ -191,27 +174,40 @@ export function FeedbackForm({
 
 				{/* Title Input */}
 				<View>
-					<Text style={styles.feedbackLabel}>{i18n.t("Feedback.labels.title")}</Text>
+					<Text style={styles.feedbackLabel} nativeID="feedback-title-label">
+						{i18n.t("Feedback.labels.title")}
+					</Text>
 					<TextInput
 						style={[styles.feedbackInput, titleError && styles.feedbackInputError]}
 						value={feedbackTitle}
 						onChangeText={handleTitleChange}
+						onBlur={() => setTitleTouched(true)}
 						placeholder={i18n.t("Feedback.placeholders.title")}
 						placeholderTextColor="#666"
 						maxLength={80}
 						editable={!isSubmitting}
+						// #951 【仕様】placeholder は入力後に消えるため、ラベルをアクセシブル名として明示する
+						accessibilityLabel={i18n.t("Feedback.labels.title")}
+						accessibilityLabelledBy="feedback-title-label"
 					/>
 					<Text style={styles.characterCount}>{feedbackTitle.length}/80</Text>
-					{titleError ? <Text style={styles.errorText}>{titleError}</Text> : null}
+					{titleError ? (
+						<Text style={styles.errorText} accessibilityRole="alert" accessibilityLiveRegion="polite">
+							{titleError}
+						</Text>
+					) : null}
 				</View>
 
 				{/* Message Input */}
 				<View>
-					<Text style={styles.feedbackLabel}>{i18n.t("Feedback.labels.message")}</Text>
+					<Text style={styles.feedbackLabel} nativeID="feedback-message-label">
+						{i18n.t("Feedback.labels.message")}
+					</Text>
 					<TextInput
 						style={[styles.feedbackInput, styles.feedbackTextArea, messageError && styles.feedbackInputError]}
 						value={feedbackMessage}
 						onChangeText={handleMessageChange}
+						onBlur={() => setMessageTouched(true)}
 						placeholder={i18n.t("Feedback.placeholders.message")}
 						placeholderTextColor="#666"
 						multiline
@@ -219,29 +215,29 @@ export function FeedbackForm({
 						maxLength={2000}
 						textAlignVertical="top"
 						editable={!isSubmitting}
+						accessibilityLabel={i18n.t("Feedback.labels.message")}
+						accessibilityLabelledBy="feedback-message-label"
 					/>
 					<Text style={styles.characterCount}>{feedbackMessage.length}/2000</Text>
-					{messageError ? <Text style={styles.errorText}>{messageError}</Text> : null}
+					{messageError ? (
+						<Text style={styles.errorText} accessibilityRole="alert" accessibilityLiveRegion="polite">
+							{messageError}
+						</Text>
+					) : null}
 				</View>
 			</Card>
 			<PrimaryButton
 				style={{ marginHorizontal: 16 }}
 				onPress={handleSubmit}
 				label={i18n.t("Feedback.buttons.submit")}
-				disabled={isSubmitting}
+				disabled={!canSubmit}
+				loading={isSubmitting}
 			/>
 		</>
 	);
 }
 
 const styles = StyleSheet.create({
-	feedbackTitle: {
-		fontSize: 20,
-		fontWeight: "700",
-		color: "#1A1A1A",
-		textAlign: "center",
-		letterSpacing: -0.3,
-	},
 	feedbackLabel: {
 		fontSize: 16,
 		fontWeight: "600",

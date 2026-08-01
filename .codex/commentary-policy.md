@@ -1,47 +1,103 @@
 # Commentary Policy
 
-Use comments to preserve intent, not to narrate code. The goal is to make future maintenance safer when a line or block would otherwise be hard to justify from its shape alone.
+このリポジトリでは、コメントは「少なければよい」ではなく、将来の保守で判断を誤りやすい箇所に十分な文脈を残すために使う。既存コードの `#511 【設計】...` のような粒度と密度を基準にし、実装の形だけでは読み取れない設計判断・制約・例外を明示する。
 
-## When to comment
+## 基本方針
 
-- The code crosses a responsibility boundary that is easy to miss.
-- A selector, cache key, or dependency list is intentionally narrower than the surrounding data model.
-- A state transition or fallback behavior is chosen for correctness rather than convenience.
-- Multiple pieces of code are coordinated by one design decision and the coupling is not obvious.
-- The implementation follows an existing pattern but the reason for that pattern is not self-evident.
+- コメントは日本語で書く。既存ファイルが英語コメント中心の場合だけ、そのファイルの流儀に合わせる。
+- issue / ticket に紐づく判断は `#829 【設計】...` のように番号とカテゴリを入れる。
+- 既存コードのコメント量に合わせる。周辺が設計コメントを厚めに残している場合、同じ程度の文脈を残す。
+- 「何をしているか」だけでなく、「なぜその条件・順序・例外にしたか」を書く。
+- 仕様の境界、責務の境界、非自明な fallback、冪等性、課金・性能・表示安定性に関わる判断はコメント対象にする。
 
-## What a good comment does
+## カテゴリ表記
 
-- States the reason behind the code.
-- Names the contract or invariant being preserved.
-- Explains why a less obvious alternative was not used.
-- Helps a future reader understand what must stay true if the code changes.
+既存コードに合わせ、判断の性質を角括弧で明示する。
 
-## What to avoid
+- `【設計】`: 正常系の仕様、責務分担、返却条件、状態遷移、冪等性境界。
+- `【バグ】`: 過去または今回の不具合を避けるための条件、順序、ガード。
+- `【性能】`: N+1 回避、取得件数制限、index 前提、外部 API / DB 負荷に関する判断。
+- `【互換性】`: 既存フロント、既存レスポンス型、既存データとの互換を守る判断。
+- `【運用】`: Cloud Tasks retry、ログ、監視、外部サービス障害時の扱い。
 
-- Comments that restate the code in prose.
-- Comments that explain obvious syntax or control flow.
-- Comments that fossilize temporary implementation details.
-- Comments that only describe history or process without explaining the current rule.
-- Long paragraphs that duplicate the surrounding code structure.
+カテゴリは増やしすぎない。迷う場合は `【設計】` を使う。
 
-## Style
+## コメントを書く場所
 
-- Keep comments short and concrete.
-- Prefer one sentence over a block when possible.
-- Match the surrounding annotation style when the file already has one.
-- Use the same wording for the same design decision across files.
-- Write comments at the level of the abstraction being protected, not at the level of every line.
+- helper / repository method には、その method が守る契約を書く。
+- service の分岐には、なぜその分岐が先に評価される必要があるかを書く。
+- status filter、`user_id: null`、`take: 1`、`skipDuplicates`、`upsert` など、より広い条件にも見える実装には意図を書く。
+- Cloud Tasks / retry / idempotency では、何を同一処理とみなすか、何を同一処理とみなさないかを書く。
+- 外部 API 課金や重い処理を skip する分岐には、skip してよい条件と skip してはいけない条件を書く。
 
-## Placement
+## コメント量の目安
 
-- Put the comment immediately before the code it explains.
-- If several lines implement one rule, comment the block once rather than repeating each line.
-- If a helper exists to encode the rule, document the helper instead of every call site.
-- If a pattern is repeated in multiple files, document the shared rule in the shared helper or common module.
+- 1 行の条件や field に対して、非自明な理由があれば短い inline comment を置いてよい。
+- 複数行で 1 つの設計判断を実装している場合は、直前に 1〜3 行の block comment を置く。
+- method 全体が issue 対応の中核なら、JSDoc で契約・優先順位・除外条件を書く。
+- 複数 file にまたがる設計判断は、それぞれの file で読者が迷う境界にコメントを置く。片方だけに書いて済ませない。
 
-## Review standard
+## 書くべき内容
 
-- A comment should still make sense if the reader has not seen the diff that introduced it.
-- A comment should remain true after a local refactor that preserves the same behavior.
-- If a comment becomes false or too specific, update or remove it.
+- その条件を狭くしている理由。
+- その順序で処理する理由。
+- 既存データや既存フロントとの互換性。
+- retry / race / partial failure で守る invariant。
+- 代替案を採らなかった理由。ただし長い議論は issue / PR に寄せ、コードコメントは現在のルールに絞る。
+- パフォーマンス上の前提。例: `placeIds` は Remote Config の page size 程度、`dish_media` は `dish_id` 絞り込みで代表 1 件だけ読む、など。
+
+## 避けるコメント
+
+- コードをそのまま日本語にしただけの説明。
+- `if` / `map` / `return` など構文の説明。
+- diff を見ないと意味が分からない履歴説明。
+- 「一旦」「仮」「あとで」だけで、現在守るべき契約が書かれていないコメント。
+- 古い実装や実験の残骸。
+- 生成される file に手書きコメントを残すこと。
+
+## 生成 file / schema の扱い
+
+- `shared/prisma/schema.prisma` は DB から再生成される前提なので、将来検討のためだけのコメントは書かない。
+- `shared/prisma/index.d.ts`、`shared/prisma/*.js`、`shared/supabase/database.types.ts` などの生成物にも手書きコメントを追加しない。
+- Prisma index 追加の検討や DB 設計メモは、コードコメントではなく issue / PR コメント / migration ファイル / 実装側 repository method のコメントに残す。
+- schema に反映すべき変更は、コメントではなく migration と schema 再生成で表現する。
+
+## 例
+
+良い例:
+
+```ts
+// #829 【性能】dish_media は dish_id で絞り、各 dish の代表 1 件だけを見る。place/category join で大量 media を取得しない。
+```
+
+良い例:
+
+```ts
+// #829 【設計】completed は表示可能な既存 entry を真実源にし、Photo Media と Cloud Task を両方 skip する。
+```
+
+良い例:
+
+```ts
+// #829 【バグ】place/category で handler を止めると、別 ID の enqueue 結果が永続化されない。
+```
+
+悪い例:
+
+```ts
+// dish_media を取得する
+```
+
+悪い例:
+
+```ts
+// TODO: index を追加するかも
+```
+
+## Review Standard
+
+- コメントだけを読んでも、その条件が broad / narrow どちらに倒されているのか分かる。
+- コメントが現行コードの契約として成立しており、過去の経緯だけを説明していない。
+- issue を知らない reviewer でも、課金・性能・冪等性・表示安定性のどれを守るための実装か分かる。
+- 生成 file に手書きコメントが残っていない。
+- 周辺コードより明らかにコメントが薄い場合は、実装が正しくても修正する。

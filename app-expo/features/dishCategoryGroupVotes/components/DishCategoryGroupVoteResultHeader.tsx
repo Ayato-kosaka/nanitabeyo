@@ -31,7 +31,13 @@ export function DishCategoryGroupVoteResultHeader({ session, participants, onCop
 			</View>
 			{/* #856 【設計】共有リンクはホスト専用にしない。
 			    ゲストがさらに共有できる方が、リンク型投票の導線として自然。 */}
-			<TouchableOpacity style={styles.shareButton} onPress={onCopyShareLink} activeOpacity={0.85}>
+			<TouchableOpacity
+				style={styles.shareButton}
+				onPress={onCopyShareLink}
+				activeOpacity={0.85}
+				accessibilityRole="button"
+				accessibilityLabel={i18n.t("DishCategoryGroupVotes.copyShareLink")}
+				testID="dish-category-group-vote-copy-share-link">
 				<Share2 size={18} color="#F05537" />
 				<Text style={styles.shareButtonText}>{i18n.t("DishCategoryGroupVotes.copyShareLink")}</Text>
 			</TouchableOpacity>

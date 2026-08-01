@@ -5,12 +5,15 @@
 ```bash
 export PATH=/home/ubuntu/.local/google-cloud-sdk/bin:$PATH
 export GOOGLE_APPLICATION_CREDENTIALS=~/.config/service-account-key/food-scroll-2bc35f43cfea.json
-export BQ_DATASET=food-scroll.nanitabeyo_logs_prod
+export BQ_DATASET=food-scroll.nanitabeyo_logs_dev
 ```
 
-Dataset:
+Datasets:
 
-- `food-scroll.nanitabeyo_logs_prod`
+- `food-scroll.nanitabeyo_logs_dev` — development APIの検証・ログ調査で使用する既定dataset
+- `food-scroll.nanitabeyo_logs_prod` — production調査を明示的に依頼された場合だけ使用する
+
+APIの開発・レビュー・検証では、必ず `food-scroll.nanitabeyo_logs_dev` を使用する。`nanitabeyo_logs_prod`へ切り替えない。
 
 Primary command shape:
 

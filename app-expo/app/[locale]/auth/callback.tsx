@@ -5,27 +5,37 @@
 - linkIdentity の衝突時に警告ダイアログを表示し、ユーザーの確認後に切替/キャンセルを選択可能にする。
 - 処理中はスピナーのみを表示し、ユーザー操作は不要（ダイアログ表示時を除く）。
 
-Web 専用フォールバックについて
-- Web 向けのフォールバック（リダイレクト受け口）として機能します。
-- ネイティブ（iOS/Android）では Linking のリスナーによって処理されますが、Web ではこのルートが認証プロバイダからの戻り先になります。
+認証結果 URL の選び方について（#1062）
+- ネイティブでは expo-router のパラメータ（signInWithOAuth の router.replace / OS のディープリンク）で、
+  Web では現在の URL として、認証結果が届きます。
+- どちらを使うかは「出所の優先順位」ではなく「認証結果を実際に含んでいるか」で決めます（lib/oauthResultUrl.ts）。
+  Android の development build を QR 起動すると Linking.getInitialURL() が dev launcher の起動 URL を
+  返し続けるため、出所で優先すると code を取り落とします（実機で QR 起動＝失敗 / アイコン起動＝成功 を確認）。
 
 補足
-- 初期 URL は Linking.getInitialURL()（expo-router からの遷移でも保持）で取得します。
-- 成功/失敗をフロントエンドログに記録し、いずれの場合も /(tabs)/profile に遷移します。
+- セッションを確立できなかった場合は oauth_callback_no_result を error レベルで記録し、
+  成功ログもプロフィール作成も行いません。いずれの場合も /[locale]/profile に遷移します。
 */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
-import { View, Text, StyleSheet, Linking, Modal, TouchableOpacity, Platform } from "react-native";
+import { View, Text, StyleSheet, Linking, TouchableOpacity } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthProvider";
 import { useLogger } from "@/hooks/useLogger";
 import i18n from "@/lib/i18n";
 import { Provider } from "@supabase/supabase-js";
-import * as AuthSession from "expo-auth-session";
 import { useProfile } from "@/features/profile/hooks/useProfile";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { Card } from "@/components/Card";
+import { describeOAuthUrl, pickOAuthResultUrl, type OAuthUrlCandidate } from "@/lib/oauthResultUrl";
+
+/**
+ * router のパラメータを URL の形に載せるための器。
+ * #1062 【設計】クエリしか読まないため、ホスト部分に意味は無い。
+ * 以前はここで Platform 分岐と AuthSession.makeRedirectUri による再構築を行っていたが、
+ * 認証結果の判定に redirect URI の正確な復元は不要なので廃止した。
+ */
+const ROUTER_PARAM_URL_BASE = "nanitabeyo://oauth-result";
 
 /**
  * OAuth認証のコールバック画面
@@ -40,37 +50,84 @@ export default function AuthCallbackScreen() {
 	const { BlurModal: ConflictModal, open: openConflictModal, close: closeConflictModal } = useBlurModal();
 	const [conflictProvider, setConflictProvider] = useState<Provider | null>(null);
 
-	useEffect(() => {
-		const handleAuthCallback = async () => {
-			// 初回URL（フラグメント含む）を取得
-			const initialUrl = await Linking.getInitialURL();
-			const qs = new URLSearchParams(Object.entries(rest).map(([k, v]) => [k, String(v)])).toString();
-			const redirectBase =
-				Platform.OS === "web"
-					? `${window.location.origin}/${locale}/auth/callback`
-					: AuthSession.makeRedirectUri({ scheme: "nanitabeyo", path: `${locale}/auth/callback` });
-			const url = initialUrl || `${redirectBase}?${qs}`; // expo-routerで遷移してきた場合も getInitialURL が持っています
-			try {
-				await handleOAuthResultUrl(url);
+	// 同じ code を二度交換しないためのラッチ（effect が再実行されても処理は一度きり）
+	const hasHandledRef = useRef(false);
 
-				const {
-					data: { user },
-				} = await supabase.auth.getUser();
+	useEffect(() => {
+		if (hasHandledRef.current) return;
+		hasHandledRef.current = true;
+
+		const handleAuthCallback = async () => {
+			const qs = new URLSearchParams(Object.entries(rest).map(([k, v]) => [k, String(v)])).toString();
+			// 初回URL（フラグメント含む）。Web では現在の URL、ネイティブでは起動時の URL。
+			const initialUrl = await Linking.getInitialURL();
+
+			// #1062 【設計】出所の順序ではなく「認証結果を実際に含むか」で選ぶ。
+			// router_params を先に置くのは、これが最も新しい結果だから（順序は保険で、正しさは順序に依存しない）。
+			const candidates: OAuthUrlCandidate[] = [
+				{ source: "router_params", url: qs ? `${ROUTER_PARAM_URL_BASE}?${qs}` : null },
+				{ source: "initial_url", url: initialUrl },
+			];
+			const picked = pickOAuthResultUrl(candidates);
+
+			const goToProfile = () => router.replace({ pathname: "/[locale]/profile", params: { locale } });
+
+			if (!picked) {
+				// ここが従来の「無言の失敗」の出口。成功ログもプロフィール作成も行わない。
+				logFrontendEvent({
+					event_name: "oauth_callback_no_result",
+					error_level: "error",
+					payload: {
+						intent: rest.intent ?? null,
+						provider: rest.provider ?? null,
+						candidates: candidates.map((candidate) => ({
+							source: candidate.source,
+							...(describeOAuthUrl(candidate.url) ?? {}),
+						})),
+					},
+				});
+				goToProfile();
+				return;
+			}
+
+			try {
+				const result = await handleOAuthResultUrl(picked.url);
+
+				if (result.status !== "authenticated") {
+					logFrontendEvent({
+						event_name: "oauth_callback_no_result",
+						error_level: "error",
+						payload: {
+							intent: rest.intent ?? null,
+							provider: rest.provider ?? null,
+							source: picked.source,
+							url_shape: describeOAuthUrl(picked.url),
+						},
+					});
+					goToProfile();
+					return;
+				}
+
+				const { user, via } = result;
 
 				logFrontendEvent({
 					event_name: "oauth_callback_success",
 					error_level: "log",
-					payload: { user_id: user?.id, from: "setSession" },
+					payload: {
+						user_id: user.id,
+						is_anonymous: user.is_anonymous ?? null,
+						via,
+						source: picked.source,
+						intent: rest.intent ?? null,
+					},
 				});
 
-				// 必要ならプロフィール作成
-				if (user) {
-					await createUserProfile({
-						displayName: user.user_metadata?.name ?? user.identities?.[0]?.identity_data?.name,
-						avatar: user.user_metadata?.avatar_url ?? user.identities?.[0]?.identity_data?.avatar_url,
-					});
-				}
-				router.replace({ pathname: "/[locale]/profile", params: { locale } });
+				// 必要ならプロフィール作成（セッションを確立できた場合のみ）
+				await createUserProfile({
+					displayName: user.user_metadata?.name ?? user.identities?.[0]?.identity_data?.name,
+					avatar: user.user_metadata?.avatar_url ?? user.identities?.[0]?.identity_data?.avatar_url,
+				});
+				goToProfile();
 			} catch (error: unknown) {
 				// linkIdentity による identity_already_exists エラーの場合は警告ダイアログを表示
 				const err = error as any;
@@ -84,13 +141,18 @@ export default function AuthCallbackScreen() {
 					openConflictModal();
 					return;
 				} else {
-					router.replace({ pathname: "/[locale]/profile", params: { locale } });
+					goToProfile();
 				}
 
 				logFrontendEvent({
 					event_name: "oauth_callback_error",
 					error_level: "error",
-					payload: { error: error instanceof Error ? error.message : String(error), url },
+					payload: {
+						error: error instanceof Error ? error.message : String(error),
+						// #1062 【設計】生の URL は code / access_token を含むため記録しない
+						source: picked.source,
+						url_shape: describeOAuthUrl(picked.url),
+					},
 				});
 			}
 		};
@@ -111,14 +173,32 @@ export default function AuthCallbackScreen() {
 			});
 
 			// 既存アカウントに切り替え（prompt=none でサイレント認証）
-			await signInWithOAuth(conflictProvider);
+			const launch = await signInWithOAuth(conflictProvider);
+
+			// #1062 【設計】結末は記録するだけで、ここでは画面遷移しない。
+			// Android の dismiss は「ユーザーが閉じた」を意味しない（deep link 成功時にも起こる）。
+			// ここでプロフィールへ戻すと、成功時に expo-router の callback 遷移と競合して
+			// code を処理できないまま離脱しうる。成否の判断と遷移は callback 画面へ一本化する。
+			// 本当にユーザーが閉じた場合にスピナーが残るのは修正前からの挙動で、本 PR では変えない。
+			if (launch.outcome === "cancelled") {
+				logFrontendEvent({
+					event_name: "oauth_signin_browser_dismissed",
+					error_level: "log",
+					payload: {
+						provider: conflictProvider,
+						outcome: launch.outcome,
+						browser_result_type: launch.browserResultType,
+						context: "conflict_switch",
+					},
+				});
+			}
 		} catch (error) {
 			logFrontendEvent({
 				event_name: "oauth_conflict_switch_error",
 				error_level: "error",
 				payload: { provider: conflictProvider, error: (error as Error).message },
 			});
-			router.replace("/(tabs)/profile");
+			router.replace({ pathname: "/[locale]/profile", params: { locale } });
 		}
 	};
 
@@ -130,7 +210,7 @@ export default function AuthCallbackScreen() {
 		});
 
 		closeConflictModal();
-		router.replace("/(tabs)/profile");
+		router.replace({ pathname: "/[locale]/profile", params: { locale } });
 	};
 
 	return (
