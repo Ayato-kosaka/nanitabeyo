@@ -400,13 +400,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 				// 従来は finally に置かれていたため、上記デッドロックで到達せず
 				// 「ログアウトしても画面が変わらない」状態になっていた。
 				//
-				// 行き先は "/"（app/index.tsx）。そこがロケールを解決してホーム（検索タブ）へ送る。
-				// ⚠️ ここを "/[locale]" のような «自分が乗っているレイアウト» へ replace すると、
-				// AuthProvider 自身（app/[locale]/_layout.tsx にマウントされている）を巻き込んで
-				// 再マウントが起き、Android でフリーズした（実機で実測）。
-				// 「ログアウト後にホームへ戻らない」問題は app/index.tsx 側で直している
-				// （初期 URL をディープリンクとして採用するのは初回マウントだけ）。
-				router.replace("/");
+				// 行き先はホーム（検索タブ）を **明示的に** 指定する。実機で試した他の 2 案は両方とも壊れた:
+				//   - "/"        … app/index.tsx が Linking.getInitialURL()（= 起動時の URL を返し続ける）を
+				//                  「ディープリンクの行き先」として採用するため、Web では設定画面へ戻ってしまう
+				//   - "/[locale]" … AuthProvider 自身が app/[locale]/_layout.tsx にマウントされているため、
+				//                  自分が乗っているレイアウトへの replace が再マウントを巻き込み Android がフリーズする
+				// タブ間の通常遷移と同じ形（アプリ内の他の画面遷移と同一）なので、どちらの罠も踏まない。
+				router.replace({ pathname: "/[locale]/(tabs)/search", params: { locale } });
 			} else if (event === "PASSWORD_RECOVERY") {
 				// パスワード制のログイン機能を持たせる予定がないなら不要
 			} else if (event === "TOKEN_REFRESHED") {

@@ -81,12 +81,18 @@ export default function App() {
 		//   - react-native-web: モジュール読み込み時の window.location.href に束縛される
 		//     （react-native-web/dist/exports/Linking/index.js:13）
 		//   - ネイティブ: アプリを起動した intent / URL のまま（onNewIntent では更新されない）
-		// そのため、ログアウト後に "/" へ遷移してこの画面が再マウントされると、
-		// 「起動時の URL」を新しいディープリンクと誤認し、ホームではなく元の画面
-		//（例: /ja-JP/profile）へ戻してしまう。Web で実測。
+		// そのため、アプリ稼働中に "/" へ遷移してこの画面が再マウントされると
+		//（ErrorBoundary の再試行、app/store.tsx、[locale]/_layout の復帰など）、
+		// 「起動時の URL」を新しいディープリンクと誤認して古い行き先へ送ってしまう。
 		//
 		// 初回マウント（= コールドスタート）でだけ採用すれば、#1027 のディープリンク起動対応は
 		// そのまま成立する。
+		//
+		// ⚠️ これは「再マウント時に古い行き先へ送らない」ための対策であって、
+		// 「ログアウト後にホームへ戻る」ことの保証ではない。Web ではこの画面を一度も
+		// マウントせずに深い URL で直接開くことがあり、その場合ログアウト時のマウントが
+		// «初回» になって起動時 URL を採用してしまう（実測で設定画面へ戻った）。
+		// ログアウトの行き先は AuthProvider が明示的に指定している。
 		if (hasConsumedInitialUrl) {
 			setInitialPath(null);
 			return;
