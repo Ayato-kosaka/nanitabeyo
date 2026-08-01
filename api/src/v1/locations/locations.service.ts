@@ -566,9 +566,57 @@ export class LocationsService {
   }
 
   /**
+   * #1123 【設計】「同名なら同一の駅」とみなしてよい鉄道系 type の集合。
+   *
+   * 含めた理由:
+   * - train_station / subway_station:
+   *   Issue #1123 の渋谷駅重複が該当。Google は同じ駅を「駅施設」と「出入口/番地相当」の
+   *   別 place_id で返すことがあり、どちらも establishment を持つため #952 のルールでは
+   *   畳めない。鉄道駅は同一エリア内に同名の別駅が存在しないため、同名なら同一駅と
+   *   みなして安全に畳める。
+   *
+   * 含めなかった理由(安全側 = 同名の別地点を消さない側に倒す):
+   * - transit_station:
+   *   PR #1149 レビュー指摘。これは鉄道駅に固有の type ではなく交通施設全般に付く
+   *   汎用 type で、実データではバス停も
+   *   ["bus_station", "transit_station", "point_of_interest", "establishment"]
+   *   のように併せ持つ。含めると同名の別バス停(進行方向・のりば違い)が畳まれてしまい、
+   *   下記「bus_station を含めない」という保護が実質無効になる。
+   *   #1123 の渋谷駅 2 候補はどちらも train_station / subway_station を持つため、
+   *   transit_station を外しても Issue は解決する。
+   * - light_rail_station:
+   *   PR #1149 レビュー指摘。#1123 に実例が無く、路面電車の停留場は運用上バス停に近い
+   *   命名(上り/下りが同名で道路を挟んだ別地点)になる地域があるため、実例が出るまでは
+   *   畳まない側に倒す。
+   * - bus_station / bus_stop / transit_depot:
+   *   「渋谷駅前」のように、同名でも進行方向・のりば・事業者ごとに別地点として
+   *   存在するのが正常。畳むとユーザーが選びたいのりばを選べなくなる。
+   * - airport / international_airport / ferry_terminal / heliport / taxi_stand /
+   *   park_and_ride:
+   *   同名でターミナル違い等の別地点が正当に併存しうるうえ、#1123 のような粒度違い
+   *   重複の実例が確認できていないため対象外とする。
+   */
+  private static readonly RAIL_STATION_TYPES: ReadonlySet<string> = new Set([
+    'train_station',
+    'subway_station',
+  ]);
+
+  /**
+   * #1123 【設計】同名でも別地点として正当に併存する交通施設の type 集合。
+   *
+   * PR #1149 レビュー指摘を受けた多重防御。RAIL_STATION_TYPES から汎用の
+   * transit_station を外しただけでは、将来 type を追加した際に再び同じ穴が開く。
+   * これらの type を1つでも持つ候補は、たとえ鉄道駅 type を併せ持っていても
+   * (例: 駅前ロータリーのバスターミナルが train_station を併記するケース)
+   * 同名畳み込みの対象外とし、常に残す。
+   */
+  private static readonly NEVER_COLLAPSE_TRANSIT_TYPES: ReadonlySet<string> =
+    new Set(['bus_station', 'bus_stop', 'transit_depot']);
+
+  /**
    * #952 【設計】Autocomplete 候補の「同一地点の粒度違い重複」を除去する。
    *
-   * ルール(PR #980 レビュー指摘を受けた改訂版):
+   * ルール(PR #980 レビュー指摘を受けた改訂版 / #1123 でルール3-bを追加):
    * 1. mainText を正規化(NFKC + 空白除去)したものを同名判定のキーにする。
    *    「渋谷駅」と「渋谷駅前」のような別名は別キーになり残る。
    * 2. 落とすのは「同名の establishment(実在施設)が存在する場合の非 establishment 候補」
@@ -576,8 +624,13 @@ export class LocationsService {
    *    同一地点の粒度違い重複に相当する。
    * 3. 同名でも establishment 同士(例: 同名チェーンの別店舗。place_id・secondaryText が
    *    異なる別の実在地点)は全て残す。表示名だけで別地点を消してはならない。
+   * 3-b. #1123 例外: 同名かつ鉄道駅 type(RAIL_STATION_TYPES)を持つ候補は、
+   *    establishment 同士であっても同一駅の重複表示とみなし、Google の関連度順で
+   *    先頭の1件だけを残す。適用範囲を鉄道駅に限定するため、(i) 交通施設全般に付く
+   *    汎用 type(transit_station)を RAIL_STATION_TYPES に含めず、(ii) バス停など
+   *    NEVER_COLLAPSE_TRANSIT_TYPES を持つ候補は明示的に除外する(PR #1149 指摘)。
    * 4. 完全重複(mainText と secondaryText の両方が一致)だけは同名同士でも1件に畳む。
-   * 5. 返却順は Google の関連度順(元の配列順)を維持する。
+   * 5. 返却順は Google の関連度順(元の配列順)を維持する。並び替えは行わない。
    */
   private dedupeAutocompletePlaces(
     places: AutocompleteLocationsResponse,
@@ -588,6 +641,17 @@ export class LocationsService {
     const isEstablishment = (place: { types: string[] }): boolean =>
       place.types.includes('establishment');
 
+    // #1123 鉄道駅候補かどうか(判定 type は RAIL_STATION_TYPES 参照)。
+    // PR #1149: 同名でも別地点が正当に併存するバス停系 type を持つ候補は、
+    // 鉄道駅 type を併せ持っていても畳み込み対象にしない(安全側に倒す)。
+    const isRailStation = (place: { types: string[] }): boolean =>
+      place.types.some((type) =>
+        LocationsService.RAIL_STATION_TYPES.has(type),
+      ) &&
+      !place.types.some((type) =>
+        LocationsService.NEVER_COLLAPSE_TRANSIT_TYPES.has(type),
+      );
+
     // 同名の establishment が1件でも存在する mainText キーの集合
     const establishmentNameKeys = new Set(
       places
@@ -596,6 +660,8 @@ export class LocationsService {
     );
 
     const seenExactKeys = new Set<string>();
+    // #1123 既に採用済みの鉄道駅候補の mainText キー(関連度順で先頭の1件が入る)
+    const keptRailStationNameKeys = new Set<string>();
 
     return places.filter((place) => {
       const nameKey = normalizeKey(place.mainText);
@@ -611,6 +677,15 @@ export class LocationsService {
       // geocode / street_address / premise 等)は同一地点の粒度違いとみなして落とす
       if (!isEstablishment(place) && establishmentNameKeys.has(nameKey)) {
         return false;
+      }
+
+      // ルール3-b(#1123): 同名の鉄道駅候補は先頭(= Google の関連度順で最上位)のみ残す。
+      // 走査順が元の配列順のため、採用済みキーを持つ後続の駅候補だけが落ちる。
+      if (isRailStation(place)) {
+        if (keptRailStationNameKeys.has(nameKey)) {
+          return false;
+        }
+        keptRailStationNameKeys.add(nameKey);
       }
 
       return true;
