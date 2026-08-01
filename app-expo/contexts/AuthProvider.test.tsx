@@ -44,6 +44,7 @@ jest.mock("expo-router", () => {
 	const replace = jest.fn();
 	return { useRouter: () => ({ replace }) };
 });
+jest.mock("@/lib/logoutRedirect", () => ({ requestLogoutRedirect: jest.fn() }));
 jest.mock("expo-linking", () => ({ parse: jest.fn() }));
 jest.mock("expo-auth-session", () => ({ makeRedirectUri: jest.fn() }));
 jest.mock("expo-web-browser", () => ({ openAuthSessionAsync: jest.fn() }));
@@ -233,13 +234,20 @@ describe("AuthProvider の 429 クールダウン（#1097）", () => {
 		// ★ コールバックはロック保持中に await されている。ここで叩いていたらデッドロックする
 		expect(auth.signInAnonymously).not.toHaveBeenCalled();
 
-		// ★ 遷移は匿名サインインの成否に依存しない（従来は finally にあり、デッドロックで到達しなかった）
-		//
-		// ★ 行き先はホーム（検索タブ）を明示指定する。実機で試した他の 2 案は両方とも壊れた:
-		//   "/"         → app/index.tsx が起動時 URL を採用し、Web では設定画面へ戻る
-		//   "/[locale]" → 自分が乗っているレイアウトへの replace で Android がフリーズする
+		// ★ 再認証を開始する前に root へ遷移すると、AuthProvider の unmount cleanup が
+		// 再認証タイマーを取り消してしまう。遷移も callback の外へ予約する。
 		const { useRouter } = jest.requireMock("expo-router") as { useRouter: () => { replace: jest.Mock } };
+		const { requestLogoutRedirect } = jest.requireMock("@/lib/logoutRedirect") as { requestLogoutRedirect: jest.Mock };
+		expect(requestLogoutRedirect).not.toHaveBeenCalled();
+		expect(useRouter().replace).not.toHaveBeenCalled();
+
+		await act(async () => {
+			jest.advanceTimersByTime(0);
+		});
+
+		expect(requestLogoutRedirect).toHaveBeenCalledWith("ja-JP");
 		expect(useRouter().replace).toHaveBeenCalledWith("/");
+		expect(auth.signInAnonymously).toHaveBeenCalledTimes(1);
 	});
 
 	it("SIGNED_OUT でコールバックを抜けた直後に匿名サインインし、セッションを張り直す", async () => {

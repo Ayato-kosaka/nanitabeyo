@@ -25,6 +25,7 @@ import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { useTopicsStore } from "@/stores/useTopicsStore";
 import { useProfileStore } from "@/features/profile/stores/useProfileStore";
 import { useCdnCookieStore } from "@/stores/useCdnCookieStore";
+import { requestLogoutRedirect } from "@/lib/logoutRedirect";
 
 /**
  * #1089 認証の初期化（セッション復元 or 匿名サインイン）が、リトライを使い切っても確立できなかった状態。
@@ -127,6 +128,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 	 * 詳細は SIGNED_OUT ハンドラのコメントを参照。unmount 時の解除にも使う。
 	 */
 	const signedOutReauthTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	/** SIGNED_OUT 後の root 遷移。匿名セッションの再確立を開始してから実行する。 */
+	const signedOutNavigationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	/**
 	 * 401 を受けたリクエストが、新しい access token で即時再試行できるようにする。
 	 * Supabase の自動更新は後続リクエストには効くが、既に失敗した通信は再送しないため、
@@ -164,27 +167,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 	 *
 	 * @param force 429 のクールダウンを無視して実行する。ユーザーの明示的な再試行操作からのみ渡す（#1097）
 	 */
-	const runAuthAttempt = useCallback(async ({ force = false }: { force?: boolean } = {}) => {
-		// #1089 多重実行の防止。再試行ボタンの連打やイベントの重複発火で匿名サインインが同時に何本も飛ぶと、
-		// 30 回/時/IP の枠を一気に消費して状況を悪化させる
-		if (isAuthenticatingRef.current) return;
+	const runAuthAttempt = useCallback(
+		async ({ force = false }: { force?: boolean } = {}) => {
+			// #1089 多重実行の防止。再試行ボタンの連打やイベントの重複発火で匿名サインインが同時に何本も飛ぶと、
+			// 30 回/時/IP の枠を一気に消費して状況を悪化させる
+			if (isAuthenticatingRef.current) return;
 
-		// #1097 「クールダウンは実際に匿名サインインを叩くまでの最小間隔」という不変条件は、
-		// 呼び出し経路ごとではなく **実際に叩くこの関数の入口** で守る。
-		// 以前は retryAuth と AppState 復帰だけが確認しており、SIGNED_OUT 経路（リフレッシュトークン
-		// 失効など）はクールダウン中でも即座に /auth/v1/signup を叩けた（30 回/時/IP の枠を無駄に消費する）。
-		//
-		// ⚠️ force はユーザー操作起点の再試行（retryAuth）専用。ここで一律にブロックすると
-		//    「押しても何も起きない再試行ボタン」になり、#1089 で作った復帰経路そのものが死ぬ。
-		//
-		// 早期 return しても事後条件は崩れない: nextAttemptAllowedAtRef が未来を指しているのは
-		// 「直前の試行が catch まで到達した」= finally で loading=false になり authError が立っている
-		// 状態だけなので、UI はエラーと再試行手段を出したままになる（成功時は 0 に戻される）。
-		if (!force && Date.now() < nextAttemptAllowedAtRef.current) return;
+			// #1097 「クールダウンは実際に匿名サインインを叩くまでの最小間隔」という不変条件は、
+			// 呼び出し経路ごとではなく **実際に叩くこの関数の入口** で守る。
+			// 以前は retryAuth と AppState 復帰だけが確認しており、SIGNED_OUT 経路（リフレッシュトークン
+			// 失効など）はクールダウン中でも即座に /auth/v1/signup を叩けた（30 回/時/IP の枠を無駄に消費する）。
+			//
+			// ⚠️ force はユーザー操作起点の再試行（retryAuth）専用。ここで一律にブロックすると
+			//    「押しても何も起きない再試行ボタン」になり、#1089 で作った復帰経路そのものが死ぬ。
+			//
+			// 早期 return しても事後条件は崩れない: nextAttemptAllowedAtRef が未来を指しているのは
+			// 「直前の試行が catch まで到達した」= finally で loading=false になり authError が立っている
+			// 状態だけなので、UI はエラーと再試行手段を出したままになる（成功時は 0 に戻される）。
+			if (!force && Date.now() < nextAttemptAllowedAtRef.current) return;
 
-		isAuthenticatingRef.current = true;
+			isAuthenticatingRef.current = true;
 
-		try {
+			try {
 				// #1030 【設計】E2E(Detox) 実行時のみ、起動引数で渡されたセッションを注入して匿名サインインを回避する
 				//（Supabase の匿名サインインは 30 回/時/IP 制限があり、dev/prod で同一プロジェクトを共有しているため）。
 				// 通常ビルドでは noop 実装へ差し替えられるので、この行は常に "skipped" を返して素通りする。
@@ -192,92 +196,94 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 				//    注入後も `sessionRestored` ログ・`sessionRef` 更新・`setUser` は本番と完全に同一経路を通る。
 				// ⚠️ 注入するかどうかは「セッションの有無」ではなく「期待ユーザーとの一致」で判定される（同 B-1）。
 				//    期待ユーザーと不一致なのに注入できない場合は例外が飛ぶ（fail-loud。下の catch で再 throw する）。
-			await injectTestSession();
+				await injectTestSession();
 
-			const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-			if (sessionError) throw sessionError;
-			const restoredSession = sessionData?.session;
+				const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+				if (sessionError) throw sessionError;
+				const restoredSession = sessionData?.session;
 
-			if (restoredSession) {
-				await supabase.auth.setSession({
-					access_token: restoredSession.access_token,
-					refresh_token: restoredSession.refresh_token,
-				});
+				if (restoredSession) {
+					await supabase.auth.setSession({
+						access_token: restoredSession.access_token,
+						refresh_token: restoredSession.refresh_token,
+					});
 
+					logFrontendEvent({
+						event_name: "sessionRestored",
+						error_level: "log",
+						payload: { user_id: restoredSession.user.id },
+					});
+
+					sessionRef.current = restoredSession;
+					setUser(restoredSession.user);
+				} else {
+					// #1089 匿名サインインはオフラインや 5xx といった一時的な理由で簡単に落ちるため、有限回リトライする。
+					// ⚠️ 429（レート制限）はここではリトライしない（isRetryableAuthError が false を返す）。
+					//    30 回/時/IP・窓 1 時間の制限を秒間隔で叩き直しても成功率は上がらず枠を潰すだけなので、
+					//    下の catch で長いクールダウンを置き、「ユーザーの再試行」「フォアグラウンド復帰」まで待つ。
+					const anonSession = await retry(
+						async () => {
+							const { data, error } = await supabase.auth.signInAnonymously();
+							if (error) throw error;
+							return data.session;
+						},
+						{
+							retries: ANON_SIGN_IN_RETRIES,
+							initialDelayMs: 500,
+							maxDelayMs: 4000,
+							backoffFactor: 2,
+							shouldRetry: (error) => isRetryableAuthError(error),
+						},
+					);
+
+					// #1089 エラー無しでセッションも返らないケースを成功として扱うと、user=null のまま
+					// authError も立たない「復帰不能な無風状態」に戻ってしまうので、明示的に失敗へ倒す
+					if (!anonSession) throw new Error("signInAnonymously returned no session");
+
+					logFrontendEvent({
+						event_name: "signInAnonymously",
+						error_level: "log",
+						payload: { user_id: anonSession.user.id },
+					});
+
+					sessionRef.current = anonSession;
+					setUser(anonSession.user);
+				}
+
+				nextAttemptAllowedAtRef.current = 0;
+				setAuthError(null);
+			} catch (err: any) {
+				const status = getAuthErrorStatus(err);
 				logFrontendEvent({
-					event_name: "sessionRestored",
-					error_level: "log",
-					payload: { user_id: restoredSession.user.id },
+					event_name: "authInitError",
+					error_level: "error",
+					payload: { message: err.message, status },
 				});
+				// #1089 認証が確立できていないときは logQueue がアクセストークンを用意できず、
+				// 上の authInitError は送信されずに破棄される（= どこにも記録が残らない）。
+				// 原因を追える最後の手段として console にも 1 行だけ残す（logQueue.ts の drop ログと同じ方針）。
+				console.warn(`[AuthProvider] auth initialization failed: status=${status ?? "n/a"} message=${err?.message}`);
 
-				sessionRef.current = restoredSession;
-				setUser(restoredSession.user);
-			} else {
-				// #1089 匿名サインインはオフラインや 5xx といった一時的な理由で簡単に落ちるため、有限回リトライする。
-				// ⚠️ 429（レート制限）はここではリトライしない（isRetryableAuthError が false を返す）。
-				//    30 回/時/IP・窓 1 時間の制限を秒間隔で叩き直しても成功率は上がらず枠を潰すだけなので、
-				//    下の catch で長いクールダウンを置き、「ユーザーの再試行」「フォアグラウンド復帰」まで待つ。
-				const anonSession = await retry(
-					async () => {
-						const { data, error } = await supabase.auth.signInAnonymously();
-						if (error) throw error;
-						return data.session;
-					},
-					{
-						retries: ANON_SIGN_IN_RETRIES,
-						initialDelayMs: 500,
-						maxDelayMs: 4000,
-						backoffFactor: 2,
-						shouldRetry: (error) => isRetryableAuthError(error),
-					},
-				);
+				// #1089 429 は `Retry-After` を尊重した長いクールダウンを置く。それ以外は retry() で待った後なので 0
+				const cooldownMs = resolveAuthCooldownMs(err, parseRetryAfterMs(consumeAuthRetryAfterHeader(), Date.now()));
+				nextAttemptAllowedAtRef.current = Date.now() + cooldownMs;
+				setAuthError({ isRateLimited: isRateLimitAuthError(err), message: err?.message ?? "" });
 
-				// #1089 エラー無しでセッションも返らないケースを成功として扱うと、user=null のまま
-				// authError も立たない「復帰不能な無風状態」に戻ってしまうので、明示的に失敗へ倒す
-				if (!anonSession) throw new Error("signInAnonymously returned no session");
-
-				logFrontendEvent({
-					event_name: "signInAnonymously",
-					error_level: "log",
-					payload: { user_id: anonSession.user.id },
-				});
-
-				sessionRef.current = anonSession;
-				setUser(anonSession.user);
+				// #1030 【設計】E2E のセッション注入失敗だけは握り潰さない（fail-loud。レビュー B-1）。
+				// 通常の初期化エラー（ネットワーク断等）はこれまでどおり握り潰して起動を続けるが、
+				// 「期待ユーザーで走れていない」状態で先へ進むとテストが緑のまま嘘の検証をするため、明示的に落とす。
+				// 通常ビルドでは isTestSessionInjectionError が常に false を返すので、本番挙動は 1 バイトも変わらない。
+				// なお、この throw は呼び出し側が await しないため unhandled rejection となり RN アプリ自体は停止しない。
+				// セッション未確立のままテストが確実に失敗すること + console.error(E2E_TEST_SESSION_SENTINEL 付き)で
+				// 原因を logcat から特定できることを「fail-loud」として扱う（レビュー m-1）。
+				if (isTestSessionInjectionError(err)) throw err;
+			} finally {
+				isAuthenticatingRef.current = false;
+				setLoading(false);
 			}
-
-			nextAttemptAllowedAtRef.current = 0;
-			setAuthError(null);
-		} catch (err: any) {
-			const status = getAuthErrorStatus(err);
-			logFrontendEvent({
-				event_name: "authInitError",
-				error_level: "error",
-				payload: { message: err.message, status },
-			});
-			// #1089 認証が確立できていないときは logQueue がアクセストークンを用意できず、
-			// 上の authInitError は送信されずに破棄される（= どこにも記録が残らない）。
-			// 原因を追える最後の手段として console にも 1 行だけ残す（logQueue.ts の drop ログと同じ方針）。
-			console.warn(`[AuthProvider] auth initialization failed: status=${status ?? "n/a"} message=${err?.message}`);
-
-			// #1089 429 は `Retry-After` を尊重した長いクールダウンを置く。それ以外は retry() で待った後なので 0
-			const cooldownMs = resolveAuthCooldownMs(err, parseRetryAfterMs(consumeAuthRetryAfterHeader(), Date.now()));
-			nextAttemptAllowedAtRef.current = Date.now() + cooldownMs;
-			setAuthError({ isRateLimited: isRateLimitAuthError(err), message: err?.message ?? "" });
-
-			// #1030 【設計】E2E のセッション注入失敗だけは握り潰さない（fail-loud。レビュー B-1）。
-			// 通常の初期化エラー（ネットワーク断等）はこれまでどおり握り潰して起動を続けるが、
-			// 「期待ユーザーで走れていない」状態で先へ進むとテストが緑のまま嘘の検証をするため、明示的に落とす。
-			// 通常ビルドでは isTestSessionInjectionError が常に false を返すので、本番挙動は 1 バイトも変わらない。
-			// なお、この throw は呼び出し側が await しないため unhandled rejection となり RN アプリ自体は停止しない。
-			// セッション未確立のままテストが確実に失敗すること + console.error(E2E_TEST_SESSION_SENTINEL 付き)で
-			// 原因を logcat から特定できることを「fail-loud」として扱う（レビュー m-1）。
-			if (isTestSessionInjectionError(err)) throw err;
-		} finally {
-			isAuthenticatingRef.current = false;
-			setLoading(false);
-		}
-	}, [logFrontendEvent]);
+		},
+		[logFrontendEvent],
+	);
 
 	/**
 	 * #1089 認証初期化の再試行。エラー UI の再試行ボタンと、フォアグラウンド復帰から呼ばれる。
@@ -400,13 +406,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 				// 従来は finally に置かれていたため、上記デッドロックで到達せず
 				// 「ログアウトしても画面が変わらない」状態になっていた。
 				//
-// ⚠️ 行き先は **文字列の "/"** にすること。実機で確認した結果は次のとおり:
-				//   "/"                          … Android OK / Web は設定画面へ戻る（app/index.tsx が起動時 URL を採用）
-				//   { pathname: "/[locale]" }     … Android フリーズ
-				//   { pathname: "/[locale]/(tabs)/search" } … Android フリーズ
-				// オブジェクト形式の href が Android で固まる原因は未特定（#1124 の引き継ぎメモ参照）。
-				// Web の「ホームへ戻らない」は未解決。フリーズの方が重大なため、まず "/" を維持する。
-				router.replace("/");
+				const navigateHome = () => {
+					// Android で実機確認済みの文字列 `"/"` を維持する。URL の query や object href も
+					// フリーズしたため、ログアウト由来と現在のロケールは共有モジュールで index 側へ渡す。
+					requestLogoutRedirect(locale);
+					router.replace("/");
+				};
+
+				// Web は callback の外で再認証を開始してから遷移するとフリーズするため、ここで同期的に
+				// 遷移する。AuthProvider の再マウント時に起動時の runAuthAttempt が匿名セッションを復元する。
+				if (Platform.OS === "web") {
+					navigateHome();
+				} else {
+					// native の root への replace は AuthProvider を unmount し、上のタイマーを cleanup で
+					// 取り消し得る。そのため、再認証を開始するタイマーより後に遷移を予約する。
+					if (signedOutNavigationTimerRef.current) clearTimeout(signedOutNavigationTimerRef.current);
+					signedOutNavigationTimerRef.current = setTimeout(() => {
+						signedOutNavigationTimerRef.current = null;
+						navigateHome();
+					}, 0);
+				}
 			} else if (event === "PASSWORD_RECOVERY") {
 				// パスワード制のログイン機能を持たせる予定がないなら不要
 			} else if (event === "TOKEN_REFRESHED") {
@@ -430,6 +449,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 			if (signedOutReauthTimerRef.current) {
 				clearTimeout(signedOutReauthTimerRef.current);
 				signedOutReauthTimerRef.current = null;
+			}
+			if (signedOutNavigationTimerRef.current) {
+				clearTimeout(signedOutNavigationTimerRef.current);
+				signedOutNavigationTimerRef.current = null;
 			}
 		};
 	}, []);

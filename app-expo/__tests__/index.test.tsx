@@ -12,11 +12,13 @@
 
 const mockGetInitialURL = jest.fn();
 const mockReplace = jest.fn();
+const mockConsumeLogoutRedirect = jest.fn();
 
 jest.mock("expo-router", () => ({
 	useRouter: () => ({ replace: mockReplace }),
 	useRootNavigationState: () => ({ key: "root" }),
 }));
+jest.mock("@/lib/logoutRedirect", () => ({ consumeLogoutRedirect: () => mockConsumeLogoutRedirect() }));
 jest.mock("expo-linking", () => ({
 	getInitialURL: () => mockGetInitialURL(),
 	// 実装と同じく path だけ取り出せれば足りる
@@ -56,6 +58,7 @@ describe("app/index.tsx のディープリンク採用（#1124）", () => {
 		jest.resetModules();
 		mockReplace.mockClear();
 		mockGetInitialURL.mockReset();
+		mockConsumeLogoutRedirect.mockReturnValue(null);
 	});
 
 	afterEach(() => {
@@ -78,6 +81,16 @@ describe("app/index.tsx のディープリンク採用（#1124）", () => {
 		mockReplace.mockClear();
 		await renderIndex(); // 2 回目（採用してはいけない）
 
+		expect(mockReplace).toHaveBeenCalledWith("/ja-JP");
+	});
+
+	it("ログアウト由来では、初回マウントでも起動時 URL を無視して元のロケールのホームへ送る", async () => {
+		mockConsumeLogoutRedirect.mockReturnValue("ja-JP");
+		mockGetInitialURL.mockResolvedValue("nanitabeyo:///ja-JP/profile/settings");
+
+		await renderIndex();
+
+		expect(mockGetInitialURL).not.toHaveBeenCalled();
 		expect(mockReplace).toHaveBeenCalledWith("/ja-JP");
 	});
 

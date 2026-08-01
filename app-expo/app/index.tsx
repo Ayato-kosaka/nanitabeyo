@@ -6,6 +6,7 @@ import * as Localization from "expo-localization";
 import * as SplashScreen from "expo-splash-screen";
 import { Env } from "@/constants/Env";
 import { getResolvedLocale } from "@/lib/i18n";
+import { consumeLogoutRedirect } from "@/lib/logoutRedirect";
 import * as WebBrowser from "expo-web-browser";
 WebBrowser.maybeCompleteAuthSession();
 
@@ -51,6 +52,9 @@ const toInAppPath = (path: string | null | undefined): string | null => {
  */
 export default function App() {
 	const router = useRouter();
+	// #1124 ログアウトからの遷移では、起動時 URL をディープリンクとして再利用しない。
+	// Android で実機確認済みの `router.replace("/")` を変えず、共有モジュールからロケールを一度だけ受け取る。
+	const [logoutRedirectLocale] = useState(consumeLogoutRedirect);
 
 	// #1027 【バグ】ルートナビゲータのマウント前に router.replace() を呼ぶと expo-router の
 	// assertIsReady が「Attempted to navigate before mounting the Root Layout component.」を投げ、
@@ -93,7 +97,9 @@ export default function App() {
 		// マウントせずに深い URL で直接開くことがあり、その場合ログアウト時のマウントが
 		// «初回» になって起動時 URL を採用してしまう（実測で設定画面へ戻った）。
 		// ログアウトの行き先は AuthProvider が明示的に指定している。
-		if (hasConsumedInitialUrl) {
+		if (logoutRedirectLocale || hasConsumedInitialUrl) {
+			// ログアウト直後に初めてここへ来る場合も、以後は古い起動時 URL を採用しない。
+			if (logoutRedirectLocale) hasConsumedInitialUrl = true;
 			setInitialPath(null);
 			return;
 		}
@@ -112,7 +118,7 @@ export default function App() {
 		return () => {
 			cancelled = true;
 		};
-	}, []);
+	}, [logoutRedirectLocale]);
 
 	useEffect(() => {
 		if (!isNavigationReady) return;
@@ -122,7 +128,7 @@ export default function App() {
 		// 初期 URL の先頭セグメントがロケールなら、そのパスをそのまま行き先にする。
 		// アプリ内のルートとして解釈できない URL（OAuth コールバック等）は巻き込まない
 		const deepLinkTarget = toInAppPath(initialPath);
-		const target = deepLinkTarget ?? `/${resolvedLocale}`;
+		const target = logoutRedirectLocale ? `/${logoutRedirectLocale}` : (deepLinkTarget ?? `/${resolvedLocale}`);
 
 		if (Env.NODE_ENV === "development") {
 			console.log(`[LocaleRedirect] Detected locale: ${resolvedLocale} / target: ${target}`);
@@ -132,7 +138,7 @@ export default function App() {
 			router.replace(target as ExternalPathString);
 		}, 0);
 		return () => clearTimeout(timer);
-	}, [isNavigationReady, initialPath]);
+	}, [isNavigationReady, initialPath, logoutRedirectLocale]);
 
 	return null;
 }
