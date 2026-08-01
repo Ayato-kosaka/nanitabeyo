@@ -413,8 +413,8 @@ importers:
         specifier: ~2.28.0
         version: 2.28.0(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
       react-native-google-mobile-ads:
-        specifier: ^16.4.0
-        version: 16.4.0(expo@54.0.36)(react@19.1.0)
+        specifier: 16.0.3
+        version: 16.0.3(expo@54.0.36)(react@19.1.0)
       react-native-launch-arguments:
         specifier: 4.1.1
         version: 4.1.1(react-native@0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
@@ -9098,8 +9098,8 @@ packages:
       react: '*'
       react-native: '*'
 
-  react-native-google-mobile-ads@16.4.0:
-    resolution: {integrity: sha512-I+H9huEO30XaNZ4InPLCZS2DsnbegGjWqFavJMFssDnm78OPJkAOodY6OSCsEtonq0pdG2YbhchhIuZmE427Mw==}
+  react-native-google-mobile-ads@16.0.3:
+    resolution: {integrity: sha512-H+ViSEPiwAorLhKL29t6oaEN+thA1KTvSR8IYRY80Bv4Y62IdIYcucuqUsELrH2qFPC3+D2uPRG4HriLY/hjvA==}
     peerDependencies:
       expo: '>=47.0.0'
     peerDependenciesMeta:
@@ -21844,7 +21844,7 @@ snapshots:
       react: 19.1.0
       react-native: 0.81.5(@babel/core@7.28.5)(@types/react@19.1.17)(react@19.1.0)
 
-  react-native-google-mobile-ads@16.4.0(expo@54.0.36)(react@19.1.0):
+  react-native-google-mobile-ads@16.0.3(expo@54.0.36)(react@19.1.0):
     dependencies:
       '@iabtcf/core': 1.5.6
       use-deep-compare-effect: 1.8.1(react@19.1.0)
