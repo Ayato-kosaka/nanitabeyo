@@ -413,9 +413,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 					router.replace("/");
 				};
 
-				// Web は callback の外で再認証を開始してから遷移するとフリーズするため、ここで同期的に
-				// 遷移する。AuthProvider の再マウント時に起動時の runAuthAttempt が匿名セッションを復元する。
-				if (Platform.OS === "web") {
+				// Web と iOS は callback の外で再認証を開始してから遷移するとフリーズするため、ここで
+				// 同期的に遷移する。AuthProvider の再マウント時に起動時の runAuthAttempt が匿名セッションを復元する。
+				// Android だけは root への replace が再認証タイマーを取り消し得るため、下で遅延させる。
+				if (Platform.OS !== "android") {
 					navigateHome();
 				} else {
 					// native の root への replace は AuthProvider を unmount し、上のタイマーを cleanup で

@@ -234,19 +234,17 @@ describe("AuthProvider の 429 クールダウン（#1097）", () => {
 		// ★ コールバックはロック保持中に await されている。ここで叩いていたらデッドロックする
 		expect(auth.signInAnonymously).not.toHaveBeenCalled();
 
-		// ★ 再認証を開始する前に root へ遷移すると、AuthProvider の unmount cleanup が
-		// 再認証タイマーを取り消してしまう。遷移も callback の外へ予約する。
+		// iOS / Web は callback の外で再認証を開始してから遷移するとフリーズするため、
+		// callback 内でホームへ遷移する。匿名サインイン自体は callback の外で開始する。
 		const { useRouter } = jest.requireMock("expo-router") as { useRouter: () => { replace: jest.Mock } };
 		const { requestLogoutRedirect } = jest.requireMock("@/lib/logoutRedirect") as { requestLogoutRedirect: jest.Mock };
-		expect(requestLogoutRedirect).not.toHaveBeenCalled();
-		expect(useRouter().replace).not.toHaveBeenCalled();
+		expect(requestLogoutRedirect).toHaveBeenCalledWith("ja-JP");
+		expect(useRouter().replace).toHaveBeenCalledWith("/");
 
 		await act(async () => {
 			jest.advanceTimersByTime(0);
 		});
 
-		expect(requestLogoutRedirect).toHaveBeenCalledWith("ja-JP");
-		expect(useRouter().replace).toHaveBeenCalledWith("/");
 		expect(auth.signInAnonymously).toHaveBeenCalledTimes(1);
 	});
 
