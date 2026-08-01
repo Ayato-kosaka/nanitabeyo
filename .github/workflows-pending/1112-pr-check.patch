@@ -19,7 +19,7 @@ index 8938d61e..5c6a5c0a 100644
  
 diff --git a/.github/workflows/pr-check.yml b/.github/workflows/pr-check.yml
 new file mode 100644
-index 00000000..1a9b21ac
+index 00000000..c4254a24
 --- /dev/null
 +++ b/.github/workflows/pr-check.yml
 @@ -0,0 +1,80 @@
@@ -30,7 +30,7 @@ index 00000000..1a9b21ac
 +# - 検査は 3 つ。いずれも secrets もネットワークも不要なので、fork からの PR でも実行できる。
 +#     1. 4-1: remoteConfigSchema のキー集合 ≡ DEFAULT_REMOTE_CONFIG のキー集合（#1116）
 +#     2. app-expo の typecheck（どの workflow でも実行されていなかった）
-+#     3. app-expo の jest（同上。18 suites / 156 tests）
++#     3. app-expo の jest（同上。2026-08-01 時点で 21 suites / 167 tests・全 green を実測済み）
 +# - 4-2（実際の config.json との値の突き合わせ）は EAS の env が要るのでここでは SKIP される。
 +#   SKIP した旨は必ずログへ出る。4-2 は引き続き nightly の e2e-web-test.yml が担当する。
 +# - api は入れていない。pnpm --filter api test は api/.env（secrets）を要求し、
