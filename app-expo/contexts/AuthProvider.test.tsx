@@ -267,6 +267,100 @@ describe("AuthProvider の 429 クールダウン（#1097）", () => {
 		expect(authValue.user?.id).toBe("anon-1");
 	});
 
+	/**
+	 * #1135 「認証初期化は、その最中に確立された新しいセッションを上書きしない」という不変条件のテスト。
+	 *
+	 * Web の OAuth は全画面リダイレクトなので、コールバックのページロードでは
+	 * 認証初期化（runAuthAttempt）と `exchangeCodeForSession()` が同時に走る。
+	 * GoTrueClient._acquireLock はロック保持中に来た呼び出しを pendingInLock へ積み、
+	 * **外側の保持者はそれを drain し終わるまで解決しない**（@supabase/auth-js GoTrueClient.js:1123-1129）。
+	 * そのため `getSession()` は「交換前の匿名セッション」を読んだまま、**交換が終わった後に**解決する。
+	 * その戻り値を無条件に書き戻すと、確立済みの OAuth セッションを匿名ユーザーへ巻き戻す
+	 * （localStorage は OAuth なのに画面はゲストのまま = 「1 回目のログインで入れない」）。
+	 *
+	 * ここでは getSession() の解決を保留したまま SIGNED_IN を流すことで、その順序を直接再現する。
+	 */
+	it("復元中に OAuth の SIGNED_IN が入ったら、後から匿名セッションで上書きしない（#1135）", async () => {
+		// ロックの drain を再現する: getSession() は「交換前の匿名セッション」を読み終えているが、まだ解決しない
+		let resolveGetSession!: (result: unknown) => void;
+		auth.getSession.mockReturnValue(
+			new Promise((resolve) => {
+				resolveGetSession = resolve;
+			}),
+		);
+
+		await mountProvider();
+
+		// OAuth の code 交換が完了し、SIGNED_IN が届く（callback 画面の exchangeCodeForSession 由来）
+		await act(async () => {
+			await emitAuthStateChange("SIGNED_IN", fakeSession("oauth-1"));
+		});
+		expect(authValue.user?.id).toBe("oauth-1");
+
+		// ★ ここでようやく getSession() が「交換前の匿名セッション」で解決する
+		await act(async () => {
+			resolveGetSession({ data: { session: fakeSession("anon-1") }, error: null });
+		});
+
+		// 古い読み取り結果で巻き戻してはいけない
+		expect(authValue.user?.id).toBe("oauth-1");
+		expect(authValue.getSession()?.user.id).toBe("oauth-1");
+		// 復元経路を通っているので匿名サインインは走らない（OAuth セッションを潰す経路）
+		expect(auth.signInAnonymously).not.toHaveBeenCalled();
+	});
+
+	/**
+	 * #1135 「セッションが無い」と読んだ後に OAuth セッションが載った場合、匿名サインインを叩かないこと。
+	 *
+	 * `signInAnonymously()` は `_saveSession` で storage を書き換えるため、ここで叩くと
+	 * 確立済みの OAuth セッションを **storage ごと** 潰す（React state だけの巻き戻しより重い破壊）。
+	 * 匿名セッションが残っていない状態で Web のコールバックに戻った場合に到達しうる経路。
+	 */
+	it("セッション無しと読んだ後に OAuth の SIGNED_IN が入ったら、匿名サインインを叩かない（#1135）", async () => {
+		let resolveGetSession!: (result: unknown) => void;
+		auth.getSession.mockReturnValue(
+			new Promise((resolve) => {
+				resolveGetSession = resolve;
+			}),
+		);
+		auth.signInAnonymously.mockResolvedValue({ data: { session: fakeSession("anon-1") }, error: null });
+
+		await mountProvider();
+
+		await act(async () => {
+			await emitAuthStateChange("SIGNED_IN", fakeSession("oauth-1"));
+		});
+
+		// getSession() は「交換前 = セッション無し」を読んだまま、交換完了後に解決する
+		await act(async () => {
+			resolveGetSession({ data: { session: null }, error: null });
+		});
+
+		expect(auth.signInAnonymously).not.toHaveBeenCalled();
+		expect(authValue.user?.id).toBe("oauth-1");
+		// #1089 の事後条件（どの経路でも loading は false / 認証確立時は authError は null）は維持される
+		expect(authValue.isAuthResolved).toBe(true);
+		expect(authValue.authError).toBeNull();
+	});
+
+	/**
+	 * #1135 復元経路で `setSession()` を呼ばないこと。
+	 *
+	 * `getSession()` は storage からの復元（必要ならリフレッシュ）まで済ませており、その直後に
+	 * 同じトークンで `setSession()` するのは `GET /auth/v1/user` を 1 往復増やすだけ。
+	 * その往復時間がまるごと上のテストの競合ウィンドウになるため、呼ばないことを固定する。
+	 */
+	it("復元経路では setSession を呼ばない（#1135 競合ウィンドウを作らない）", async () => {
+		auth.getSession.mockResolvedValueOnce({ data: { session: fakeSession("user-1") }, error: null });
+
+		await mountProvider();
+
+		// 復元自体はこれまでどおり成立する（sessionRef / setUser は残す）
+		expect(authValue.user?.id).toBe("user-1");
+		expect(authValue.getSession()?.user.id).toBe("user-1");
+		expect(auth.setSession).not.toHaveBeenCalled();
+	});
+
 	it("SIGNED_OUT が連続しても匿名サインインは 1 回にまとまる（枠を無駄に消費しない）", async () => {
 		auth.getSession.mockResolvedValueOnce({ data: { session: fakeSession("user-1") }, error: null });
 		auth.signInAnonymously.mockResolvedValue({ data: { session: fakeSession("anon-1") }, error: null });

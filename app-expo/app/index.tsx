@@ -7,6 +7,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { Env } from "@/constants/Env";
 import { getResolvedLocale } from "@/lib/i18n";
 import { consumeLogoutRedirect } from "@/lib/logoutRedirect";
+import { carriesOAuthResult } from "@/lib/oauthResultUrl";
 import * as WebBrowser from "expo-web-browser";
 WebBrowser.maybeCompleteAuthSession();
 
@@ -32,14 +33,26 @@ let hasConsumedInitialUrl = false;
  *（`ja-JP/profile` 等）だけを行き先として採用し、OAuth コールバックのような
  * ルーティング対象外の URL でリダイレクト先を上書きしてしまう事故を防ぐ。
  *
+ * #1135 【バグ】その「防ぐ」が Web では効いていなかった。
+ * Web のコールバック URL は `https://<host>/ja-JP/auth/callback?code=...` で、
+ * `Linking.parse().path` は `ja-JP/auth/callback`。**先頭セグメント `ja-JP` は BCP 47 判定を通る**ため
+ * そのまま採用され、`router.replace("/ja-JP/auth/callback")` で **`code` を落として** 遷移していた。
+ * 送られた先の callback 画面は交換すべき code を持たないので `oauth_callback_no_result` になる。
+ * （ネイティブの `nanitabeyo://ja-JP/auth/callback?...` は `ja-JP` が hostname 側に入るため元から弾かれる。）
+ *
+ * ここは «path だけ» を受け取る関数なので、クエリを見ずに済むよう「認証コールバックのルート自体を
+ * 行き先にしない」で表現する。クエリを持つ URL 側の判定は呼び出し元（`carriesOAuthResult`）で行う。
+ *
  * @param path `Linking.parse(url).path`（先頭スラッシュ無し / 無ければ null）
  * @returns 採用できる場合は "/ja-JP/profile" 形式 / それ以外は null
  */
 const toInAppPath = (path: string | null | undefined): string | null => {
 	const normalized = path?.replace(/^\/+/, "") ?? "";
 	if (!normalized) return null;
-	const [firstSegment] = normalized.split("/");
+	const [firstSegment, secondSegment] = normalized.split("/");
 	if (!firstSegment || !isValidBcp47Tag(firstSegment)) return null;
+	// #1135 `/[locale]/auth/*` は «クエリ込み» でしか意味を持たない route なので、行き先として採用しない
+	if (secondSegment === "auth") return null;
 	return `/${normalized}`;
 };
 
@@ -109,6 +122,13 @@ export default function App() {
 		Linking.getInitialURL()
 			.then((url) => {
 				if (cancelled) return;
+				// #1135 認証結果（code / error / access_token）を運んでいる URL は、行き先として採用しない。
+				// `Linking.parse().path` はクエリを落とすため、採用すると `code` ごと捨てて遷移することになる。
+				// 判定は lib/oauthResultUrl.ts の共有ロジック（callback 画面と同じもの）を使う。
+				if (carriesOAuthResult(url)) {
+					setInitialPath(null);
+					return;
+				}
 				setInitialPath(url ? (Linking.parse(url).path ?? null) : null);
 			})
 			.catch(() => {
