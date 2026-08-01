@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useCallback, useState, forwardRef, useImperativeHandle } from "react";
-import { View, StyleSheet, Text, Dimensions, TouchableOpacity } from "react-native";
+import { View, StyleSheet, Text, TouchableOpacity, useWindowDimensions } from "react-native";
 import { DetentChangeEvent, TrueSheet } from "@lodev09/react-native-true-sheet";
 import Carousel, { ICarouselInstance } from "react-native-reanimated-carousel";
 import { PrimaryButton } from "@/components/PrimaryButton";
@@ -12,9 +12,6 @@ import { InteractionManager } from "react-native";
 import { ScrollView } from "react-native";
 import { useContentWidth } from "@/hooks/useContentWidth";
 
-// 高さは web の中央カラム化(#958)の影響を受けないため、従来どおりモジュール評価時の
-// ウィンドウ高さから算出する（幅だけを useContentWidth に移行している）
-const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 const CARD_HEIGHT = 100;
 
 // カード 1 枚 + タイトル + ちょい余白分をスクリーン比から計算する
@@ -26,8 +23,6 @@ const BOTTOM_PADDING = 0;
 // 使いたい見た目の高さ = 上マージン + タイトル + カード + 下マージン
 const smallDetentHeight = TOP_PADDING + TITLE_AREA_HEIGHT + CARD_AREA_HEIGHT + BOTTOM_PADDING;
 
-// detent に渡すのは「割合」なので 0〜1 に正規化
-const SMALL_DETENT = Math.min(smallDetentHeight / SCREEN_HEIGHT, 0.5); // 上限を 0.5 にする etc.
 const LARGE_DETENT = 0.7;
 
 type SavedRestaurant = QueryMeSavedRestaurantsResponse["data"][number];
@@ -75,6 +70,23 @@ function useWidthMetrics() {
 }
 
 /**
+ * #1074 native で回転するとウィンドウ高さが変わりうる（web のリサイズ、Android の分割画面・
+ * フリーフォーム、OS が orientation 指定を無視する大画面デバイスなど）ため、`SMALL_DETENT` を
+ * モジュール評価時の固定値ではなく `useWindowDimensions()` の高さから算出する。
+ * `useWidthMetrics` と同様、`TrueSheet` の `detents` へ渡す配列を毎レンダー新規生成しないよう
+ * `useMemo` でまとめる。
+ */
+function useSheetDetents() {
+	const { height: windowHeight } = useWindowDimensions();
+	return useMemo(() => {
+		// windowHeight が 0 や非有限値になる瞬間があり得るので、その場合は clamp 上限をそのまま使う
+		const smallDetent =
+			Number.isFinite(windowHeight) && windowHeight > 0 ? Math.min(smallDetentHeight / windowHeight, 0.5) : 0.5;
+		return [smallDetent, LARGE_DETENT];
+	}, [windowHeight]);
+}
+
+/**
  * SavedRestaurantsSheet
  *
  * - 表示/非表示は `visible` props をソースオブトゥルースとして管理する
@@ -93,6 +105,7 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 			onSnapToRestaurant,
 		} = props;
 		const widthMetrics = useWidthMetrics();
+		const sheetDetents = useSheetDetents();
 		const sheetRef = useRef<TrueSheet>(null);
 		const carouselRef = useRef<ICarouselInstance | null>(null);
 		const isDraggingRef = useRef(false);
@@ -187,7 +200,7 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 		return (
 			<TrueSheet
 				ref={sheetRef}
-				detents={[SMALL_DETENT, LARGE_DETENT]}
+				detents={sheetDetents}
 				grabber
 				cornerRadius={24}
 				backgroundColor="#FFFFFF"
@@ -200,7 +213,7 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 					</View>
 				}
 				onDetentChange={handleDetentChange}>
-				<View style={[styles.container, detentIndex === 1 ? { flex: 1 } : {}]}>
+				<View testID="saved-restaurants-sheet" style={[styles.container, detentIndex === 1 ? { flex: 1 } : {}]}>
 					{/* #644 【UX】ローディング中はスケルトンを表示 */}
 					{isLoadingSavedRestaurants && savedRestaurants.length === 0 ? (
 						<>
