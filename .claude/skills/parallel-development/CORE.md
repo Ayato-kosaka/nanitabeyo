@@ -248,6 +248,40 @@ WorkerがbranchをpushしたがPRを作らなかった場合、または誤っ�
 
 **max_turnsは実測に基づいて決める**: install/shared buildをWorkflow側で先に済ませるようになった（上記参照）後でも、単一Issueの実装 + typecheck + 検証 + `gh pr create` で40〜50、複数Issueを1PRへ束ねる場合や機能追加＋functional test追加を伴う場合は150〜200を見ておく。低いmax_turnsで打ち切られると `error_max_turns` で失敗し、branchもPRも一切残らないまま課金だけが発生する。
 
+### ターン切れは「max_turnsを上げる」では直らない
+
+`error_max_turns` が起きたとき、まずmax_turnsを増やしたくなるが、**多くの場合は仕事の量ではなく仕事の形が原因**である。次を順に疑う。
+
+**1. 到達コストが読めない検証を実装runへ同居させていないか（最頻の原因）**
+
+実測例: 友達投票の2件（絵文字ちらつき／モーダル遷移）を1runへまとめ、`setup_playwright: true` でWeb目視検証まで要求したところ、120 turn・33分を使い切り、**commitゼロ**で失敗した。原因は実装ではなく検証側で、対象画面が投票データ（shareToken等）を前提とするためPlaywrightが到達できず、到達を試み続けてturnを溶かした。1件ずつに分割しPlaywright検証を外して再実行したところ、**両方とも成功した**。
+
+UIの前提条件（ログイン状態、特定のデータ、共有トークン、0件時だけ出るダイアログ等）を作らないと到達できない画面では、E2E検証は**いくらでもturnを消費し得る**。したがって:
+
+- **実装runと「到達可能性が不確実なE2E検証」を同居させない。** 実装は実装で完了させ、画面の目視検証は `access=observe` の専用runへ分ける。
+- promptに「到達できない場合は無理に造らず、理由を報告して代替検証（jest等）へ切り替える」と書いてあっても、`setup_playwright: true` が付いていると引きずられやすい。**環境ごと与えない**方が確実である。
+- `setup_playwright: true` は、**到達手順が既に確立している画面**（既存specがある、認証済みstorageStateだけで開ける等）に限って使う。
+
+**2. 1runへ複数Issueを詰めていないか**
+
+原則は**1 run 1 Issue**。同じファイルを同時に触るため分割すると壊れる場合だけ束ねる。「同じ機能領域だから」は束ねる理由にならない。上の実測例は同じ機能ディレクトリの2件だったが、変更ファイルは重複しておらず、分割して正解だった。
+
+**3. 「早めに小さくcommit」を指示しているか**
+
+実装promptに次を必ず入れる。
+
+> 早めに小さくcommitしてから改善すること。commitが1つも無いままturn切れで終わるのが最悪です。
+
+turnが切れても部分成果がbranchに残れば、追加runで続きから進められる。何も残らないと最初からやり直しになる。変更範囲が広いタスクでは「新規ファイルができた時点で一度commitする」のように**中間commitの位置まで指定**する。
+
+**4. 調査と実装を同じrunで両方やらせていないか**
+
+原因が未特定のバグでは、`observe` の調査runで根因と修正方針を確定させ、その結果をIssueコメントへ残してから、`write` の実装runへ「この確定設計に従え」と渡す。1runで調査から実装まで通すと、調査が長引いたときに実装へ到達できない。
+
+**5. 失敗を正しく検知しているか**
+
+`error_max_turns` の失敗runでも、Workflowの `commit・pushされたことを検証` ステップが `success` を返し、かつ**実際にはbranchが存在しない**という食い違いを観測している。ステップの結果を信用せず、リーダー自身が **GitHub API（`mcp__github__list_branches` 等）でbranchの実在を確認**すること。ローカルの `git ls-remote` はgit proxyのキャッシュに影響され得るため、APIの結果を正とする。
+
 **`--ref` にはデフォルトブランチだけを指定できる（例外なし）**: `workflow_dispatch` はGitHubの仕様上、`--ref` で指定したブランチ上のWorkflowファイルが**既定ブランチ上のバージョンと1バイトでも違う**場合、`Claude Codeを実行` ステップ自体を無言でスキップする(`Skipping action due to workflow validation`という警告のみ)。これは `claude-worker.yml` 自体を修正した直後に踏みやすい罠で、修正branchを`--ref`に指定して試し撃ちしても何も起きず、後段のcommit検証stepが「変更なし」でjob failするだけになる。Workflow自体の変更を試すときは、**まずmainへマージしてから**改めてdispatchすること。
 
 **runの`conclusion: success`は「成果物ができた」ことを保証しない**: Claude Codeが権限拒否やエラーで行き詰まり、何も達成せずに応答を終えても、SDK的には `is_error: false` で「成功」と報告されることがある。runが成功扱いでも、必ず `git ls-remote --heads origin <branch_name>` とPR一覧で実際にbranch・PRが存在するかを確認すること。存在しなければ、権限・max_turns・promptを見直して再実行する。
