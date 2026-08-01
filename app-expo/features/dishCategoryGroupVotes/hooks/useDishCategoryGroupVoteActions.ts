@@ -8,6 +8,7 @@
 import { useCallback } from "react";
 import type {
 	DeleteDishCategoryGroupVoteCandidateResponse,
+	RestoreDishCategoryGroupVoteCandidateResponse,
 	SubmitDishCategoryGroupVoteResponse,
 	UpdateDishCategoryGroupVoteCandidateDishMediaResponse,
 } from "@shared/api/v1/res";
@@ -73,6 +74,29 @@ export function useDishCategoryGroupVoteActions({ sessionId, refresh }: ActionsP
 		[callBackend, refresh, sessionId],
 	);
 
+	// #943 【仕様】削除のUndo導線。deleteCandidateと対になる操作で、成功後はrefreshで整合させる。
+	const restoreCandidate = useCallback(
+		async (candidateId: string) => {
+			if (!sessionId) throw new Error("sessionId is required");
+
+			const response = await callBackend<Record<string, never>, RestoreDishCategoryGroupVoteCandidateResponse>(
+				`v1/dish-category-group-votes/${sessionId}/candidates/${candidateId}/restore`,
+				{
+					method: "PATCH",
+					requestPayload: {},
+				},
+			);
+			logFrontendEvent({
+				event_name: "dish_category_group_vote_candidate_restored",
+				error_level: "log",
+				payload: { sessionId, candidateId },
+			});
+			await refresh();
+			return response;
+		},
+		[callBackend, refresh, sessionId],
+	);
+
 	const cacheCandidateDishMedia = useCallback(
 		async (candidateId: string, dishMediaIds: string[]) => {
 			if (!sessionId) throw new Error("sessionId is required");
@@ -98,6 +122,7 @@ export function useDishCategoryGroupVoteActions({ sessionId, refresh }: ActionsP
 	return {
 		submitVote,
 		deleteCandidate,
+		restoreCandidate,
 		cacheCandidateDishMedia,
 	};
 }

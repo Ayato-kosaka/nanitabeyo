@@ -23,6 +23,7 @@ import { useSafeAreaFrame } from "react-native-safe-area-context";
 import { Image } from "expo-image";
 import { getCacheKeyForImage } from "@/lib/image";
 import { useAuth } from "@/contexts/AuthProvider";
+import { isGuestUser } from "@/lib/authGuest";
 import { LoginbackModal } from "@/features/profile/components/LoginbackModal";
 
 function RestaurantTabsBar({ tabNames, index, onTabPress }: TabBarProps<string>) {
@@ -98,7 +99,10 @@ export function SelectedRestaurantDetails({ restaurant, meta: restaurantMeta }: 
 	const handleReviewButtonPress = async () => {
 		lightImpact();
 		// #477【設計】匿名ユーザーの場合は LoginbackModal を表示、非匿名ユーザーの場合は ReviewForm を表示
-		if (user?.is_anonymous !== false) {
+		// #1092 PR4b 【修正】`user?.is_anonymous !== false` から共通判定（lib/authGuest.ts）へ寄せた。
+		// 旧式は is_anonymous が undefined のときもゲストへ倒れ、レビュータブでは投稿できるのに
+		// ここではログイン導線が出る、という画面間の食い違いになる
+		if (isGuestUser(user)) {
 			openLoginModal();
 		} else {
 			// ReviewForm を開くと同時にメディア選択が行われる

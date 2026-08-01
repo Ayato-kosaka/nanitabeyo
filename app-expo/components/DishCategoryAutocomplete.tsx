@@ -16,6 +16,22 @@ import type { QueryDishCategoryVariantsResponse } from "@shared/api/v1/res";
 import { ChefHat, X } from "lucide-react-native";
 import { LoadingIndicator } from "./LoadingIndicator";
 
+// #931 【設計】検索APIを呼ぶ最小文字数。showSuggestions の判定・デバウンス起動・
+// 「結果なし」文言の表示条件すべてでこの値を揃え、旧実装で起きていた
+// 「閾値未満でも直前の(無関係な)候補が一瞬表示される」不整合を防ぐ
+const MIN_SEARCH_LENGTH = 2;
+const DEBOUNCE_DELAY_MS = 300;
+
+/**
+ * #991 【修正】web で候補パネル内の mousedown の既定動作(TextInput からのフォーカス移動)を抑止する。
+ * 抑止しないと mousedown → 即 blur → 150ms 後にパネル非表示が予約され、mousedown→mouseup が
+ * 150ms を超える人間の普通のクリックでは押し終わる前に行が消えて onPress が発火しない
+ * (詳細は LocationAutocomplete.tsx の同名定数を参照。native には mouse イベントが無く影響しない)
+ */
+const preventFocusStealOnWeb = {
+	onMouseDown: (event: { preventDefault: () => void }) => event.preventDefault(),
+} as Record<string, unknown>;
+
 interface DishCategoryAutocompleteProps {
 	/** 入力値 */
 	value: string;
@@ -52,8 +68,13 @@ export function DishCategoryAutocomplete({
 }: DishCategoryAutocompleteProps) {
 	const [showSuggestions, setShowSuggestions] = useState(false);
 	const [isFocused, setIsFocused] = useState(false);
+	// #931 【設計】デバウンス待機中(=まだAPIを呼んでいない)かどうかを保持し、
+	// LocationAutocompleteと同型のバグ(デバウンス中に「結果なし」文言が一瞬フラッシュする)を防ぐ
+	const [isDebouncing, setIsDebouncing] = useState(false);
 	const inputRef = useRef<TextInput>(null);
-	const debounceRef = useRef<number | null>(null);
+	// #1092 PR3 `number` 決め打ちにしない。@types/node を app-expo の devDependency へ明示したことで
+	// setTimeout の戻り値型が環境によって number / NodeJS.Timeout のどちらにも解決しうるため
+	const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	const { suggestions, isSearching, searchDishCategories } = useDishCategorySearch();
 	const { lightImpact } = useHaptics();
@@ -78,17 +99,28 @@ export function DishCategoryAutocomplete({
 				clearTimeout(debounceRef.current);
 			}
 
-			// テキストがあり、フォーカス中の場合は候補を表示
-			setShowSuggestions(text.length > 0 && isFocused);
+			const hasEnoughChars = text.length >= MIN_SEARCH_LENGTH;
+
+			// #931 【修正】検索閾値未満では候補欄自体を出さない。
+			// 従来は text.length > 0 で表示していたため、1文字だけ入力した際に
+			// 直前の(無関係な)候補が API 未呼び出しのまま一瞬表示されるバグがあった。
+			setShowSuggestions(hasEnoughChars && isFocused);
+
+			if (!hasEnoughChars) {
+				setIsDebouncing(false);
+				return;
+			}
+
+			// #931 【設計】デバウンス待機中フラグを立て、「結果なし」文言のフラッシュを防ぐ
+			setIsDebouncing(true);
 
 			// 2文字以上でAPI呼び出し（300msデバウンス）
-			if (text.length >= 2) {
-				debounceRef.current = setTimeout(() => {
-					searchDishCategories(text).catch((error) => {
-						console.warn("Dish category search failed:", error);
-					});
-				}, 300);
-			}
+			debounceRef.current = setTimeout(() => {
+				setIsDebouncing(false);
+				searchDishCategories(text).catch((error) => {
+					console.warn("Dish category search failed:", error);
+				});
+			}, DEBOUNCE_DELAY_MS);
 		},
 		[onChangeText, searchDishCategories, isFocused],
 	);
@@ -96,7 +128,7 @@ export function DishCategoryAutocomplete({
 	// フォーカス時のハンドラ
 	const handleFocus = useCallback(() => {
 		setIsFocused(true);
-		setShowSuggestions(value.length > 0);
+		setShowSuggestions(value.length >= MIN_SEARCH_LENGTH);
 
 		// アクセシビリティ告知
 		if (Platform.OS === "ios" || Platform.OS === "android") {
@@ -139,6 +171,15 @@ export function DishCategoryAutocomplete({
 	const handleClear = useCallback(() => {
 		lightImpact();
 		onChangeText("");
+		setShowSuggestions(false);
+
+		// #931 【修正】保留中のデバウンスタイマーが残っていると、クリア後に
+		// 前回入力に対する検索が発火し候補が復活してしまうため破棄する
+		if (debounceRef.current) {
+			clearTimeout(debounceRef.current);
+		}
+		setIsDebouncing(false);
+
 		if (onClear) {
 			onClear();
 		}
@@ -162,16 +203,18 @@ export function DishCategoryAutocomplete({
 	}, [isSearching]);
 
 	// 検索結果が変わった時のアクセシビリティ告知
+	// #931 【修正】isDebouncing 中は suggestions が直前検索の残留値のままのため、
+	// 確定前に「0件」または誤った件数を読み上げてしまわないようガードを追加
 	useEffect(() => {
-		if (!isSearching && showSuggestions && (Platform.OS === "ios" || Platform.OS === "android")) {
+		if (!isDebouncing && !isSearching && showSuggestions && (Platform.OS === "ios" || Platform.OS === "android")) {
 			const count = suggestions.length;
 			if (count > 0) {
 				AccessibilityInfo.announceForAccessibility(i18n.t("Map.accessibility.dishCategorySuggestionsFound", { count }));
-			} else if (value.length >= 2) {
+			} else if (value.length >= MIN_SEARCH_LENGTH) {
 				AccessibilityInfo.announceForAccessibility(i18n.t("Map.accessibility.dishCategoryNoResults"));
 			}
 		}
-	}, [isSearching, suggestions.length, showSuggestions, value.length]);
+	}, [isDebouncing, isSearching, suggestions.length, showSuggestions, value.length]);
 
 	return (
 		<View style={styles.container}>
@@ -209,8 +252,8 @@ export function DishCategoryAutocomplete({
 				{renderInputRight && renderInputRight}
 			</View>
 
-			{/* ローディングインジケーター */}
-			{isSearching && (
+			{/* #931 ローディングインジケーター: デバウンス待機中とAPI呼び出し中の両方で表示する */}
+			{(isDebouncing || isSearching) && (
 				<View style={styles.loadingContainer}>
 					<LoadingIndicator size="small" />
 					<Text style={styles.loadingText}>{i18n.t("Profile.loading")}</Text>
@@ -219,7 +262,7 @@ export function DishCategoryAutocomplete({
 
 			{/* 候補リスト */}
 			{showSuggestions && suggestions.length > 0 && (
-				<View style={styles.suggestionsContainer}>
+				<View style={styles.suggestionsContainer} {...preventFocusStealOnWeb}>
 					<ScrollView
 						keyboardShouldPersistTaps="handled"
 						showsVerticalScrollIndicator={false}
@@ -244,12 +287,16 @@ export function DishCategoryAutocomplete({
 				</View>
 			)}
 
-			{/* 結果なしメッセージ */}
-			{showSuggestions && !isSearching && suggestions.length === 0 && value.length >= 2 && (
-				<View style={styles.noResultsContainer}>
-					<Text style={styles.noResultsText}>{i18n.t("Map.noResultsFound")}</Text>
-				</View>
-			)}
+			{/* #931 結果なしメッセージ: デバウンス待機中/検索中は出さず、確定後のみ表示する */}
+			{showSuggestions &&
+				!isDebouncing &&
+				!isSearching &&
+				suggestions.length === 0 &&
+				value.length >= MIN_SEARCH_LENGTH && (
+					<View style={styles.noResultsContainer}>
+						<Text style={styles.noResultsText}>{i18n.t("Map.noResultsFound")}</Text>
+					</View>
+				)}
 		</View>
 	);
 }

@@ -2,6 +2,7 @@ import { Tabs } from "expo-router";
 import { MapPinned, Bell, User, Search, Pencil } from "lucide-react-native";
 import i18n from "@/lib/i18n";
 import { useAuth } from "@/contexts/AuthProvider";
+import { isGuestUser } from "@/lib/authGuest";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { View } from "react-native";
 
@@ -42,6 +43,8 @@ export default function TabLayout() {
 				options={{
 					title: i18n.t("Tabs.search"),
 					tabBarLabel: i18n.t("Tabs.labels.search"),
+					// E2E テスト用: Web では data-testid として出力される
+					tabBarButtonTestID: "tab-search",
 					tabBarIcon: ({ color }) => (
 						<View style={{ marginVertical: 4 }}>
 							<Search size={ICON_SIZE} color={color} />
@@ -55,6 +58,7 @@ export default function TabLayout() {
 					href: null,
 					title: i18n.t("Tabs.map"),
 					tabBarLabel: i18n.t("Tabs.labels.map"),
+					tabBarButtonTestID: "tab-map",
 					tabBarIcon: ({ color }) => (
 						<View style={{ marginVertical: 4 }}>
 							<MapPinned size={ICON_SIZE} color={color} />
@@ -67,6 +71,7 @@ export default function TabLayout() {
 				options={{
 					title: i18n.t("Tabs.review"),
 					tabBarLabel: i18n.t("Tabs.labels.review"),
+					tabBarButtonTestID: "tab-review",
 					tabBarIcon: ({ color }) => (
 						<View style={{ marginVertical: 4 }}>
 							<Pencil size={ICON_SIZE} color={color} />
@@ -79,12 +84,22 @@ export default function TabLayout() {
 				options={{
 					title: i18n.t("Tabs.notifications"),
 					tabBarLabel: i18n.t("Tabs.labels.notifications"),
+					tabBarButtonTestID: "tab-notifications",
 					tabBarIcon: ({ color }) => (
 						<View style={{ marginVertical: 4 }}>
 							<Bell size={ICON_SIZE} color={color} />
 						</View>
 					),
-					href: user?.is_anonymous ? null : undefined,
+					// #1092 【設計】auth 未確定(user === null)を「ゲスト」と同じ扱いに寄せる。
+					// `user?.is_anonymous` の truthy 判定だと未確定は falsy になり、通知タブが
+					// **出てから消える**（タブ本数が 5→4 に変わりタブバー全体が再レイアウトする）。
+					// 出てから消えるより、出ない→出るの方が害が小さい。web の SSG は
+					// user === null の状態を出力するので、その観点でもこちらが安全。
+					//
+					// #1092 PR4b 【修正】判定を `user?.is_anonymous !== false` から `isGuestUser()` へ寄せた。
+					// 旧式は `is_anonymous` が undefined（型の上では optional）のときもゲストへ倒れるため、
+					// **ログイン済みなのに通知タブが出ない**が起こりうる。判定の中身と理由は lib/authGuest.ts。
+					href: isGuestUser(user) ? null : undefined,
 				}}
 			/>
 			<Tabs.Screen
@@ -92,6 +107,7 @@ export default function TabLayout() {
 				options={{
 					title: i18n.t("Tabs.profile"),
 					tabBarLabel: i18n.t("Tabs.labels.profile"),
+					tabBarButtonTestID: "tab-profile",
 					tabBarIcon: ({ color }) => (
 						<View style={{ marginVertical: 4 }}>
 							<User size={ICON_SIZE} color={color} />

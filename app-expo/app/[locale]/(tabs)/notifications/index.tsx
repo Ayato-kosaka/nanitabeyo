@@ -10,6 +10,7 @@ import { useMarkNotificationsRead } from "@/features/notifications/hooks/useMark
 import { useRouter } from "expo-router";
 import type { NotificationItem, NotificationResponse } from "@shared/api/v1/res";
 import { useAuth } from "@/contexts/AuthProvider";
+import { isGuestUser } from "@/lib/authGuest";
 import { useFocusEffect } from "expo-router";
 import { useNotificationUnreadCount } from "@/features/notifications/hooks/useNotificationUnreadCount";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
@@ -39,7 +40,10 @@ export default function NotificationsScreen() {
 	const inFlightRef = React.useRef(false);
 	useFocusEffect(
 		React.useCallback(() => {
-			if (!user || user.is_anonymous) return;
+			// #1092 PR4b `!user || user.is_anonymous` から共通判定（lib/authGuest.ts）へ寄せた。
+			// 判定内容は同じだが、通知タブの表示可否（app/[locale]/(tabs)/_layout.tsx）と
+			// 同じ式であることをコードで保証しておく
+			if (isGuestUser(user)) return;
 			if (inFlightRef.current) return;
 			inFlightRef.current = true;
 			(async () => {
@@ -193,7 +197,8 @@ export default function NotificationsScreen() {
 	);
 
 	// #通知機能 【設計】匿名ユーザーまたは未認証ユーザーは空画面を表示
-	if (!user || user.is_anonymous) {
+	// #1092 PR4b 判定は共通化（lib/authGuest.ts）。タブの表示可否と同じ式にしておく
+	if (isGuestUser(user)) {
 		return (
 			<SafeAreaView style={styles.container}>
 				<View style={styles.header}>

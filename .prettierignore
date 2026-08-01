@@ -26,11 +26,11 @@ api/lib/
 api/.env
 api/.runtimeconfig.json
 
-# --- E2E / Detox ---
-e2e/artifacts/
-e2e/tmp/
-e2e/.detoxrc.json
-e2e/.env
+# --- E2E / Playwright ---
+e2e-web/playwright-report/
+e2e-web/test-results/
+e2e-web/blob-report/
+e2e-web/.auth/
 
 # --- macOS / OS Junk ---
 .DS_Store

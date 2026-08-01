@@ -1,0 +1,46 @@
+import { ReactNode } from "react";
+import { View, StyleSheet } from "react-native";
+import { CONTENT_MAX_WIDTH } from "@/constants/layout";
+
+/**
+ * #958 【設計】walica.jp のように、web の広い画面ではアプリ全体(タブバー含む)を
+ * 左右マージン付きの中央カラムへ収める。
+ *
+ * 設置位置が重要: `app/[locale]/_layout.tsx` で SnackbarProvider/DialogProvider/
+ * Portal.Host をまとめて包む位置に設置している。react-native-paper の Dialog は
+ * Portal 経由で、Snackbar は素の absolute position で描画されるが、いずれも
+ * 「最も近い position 付き祖先」を基準に幅が決まるため、この位置に置くことで
+ * 個別のコンポーネント側を一切変更せずに全て同じカラム幅へ自動的に収まる。
+ *
+ * グリッド等の px 計算は `Dimensions.get("window")` / `useWindowDimensions()` を
+ * 直接見ているとこのカラム幅を追従できない(ウィンドウ実幅のまま計算されカラムから
+ * はみ出す)ため、該当箇所は `hooks/useContentWidth.ts` に置き換える必要がある
+ * (同じ `min(windowWidth, CONTENT_MAX_WIDTH)` を返す)。
+ */
+export function CenteredAppShell({ children }: { children: ReactNode }) {
+	return (
+		<View style={styles.outer}>
+			<View style={styles.inner}>{children}</View>
+		</View>
+	);
+}
+
+const styles = StyleSheet.create({
+	outer: {
+		flex: 1,
+		width: "100%",
+		alignItems: "center",
+		backgroundColor: "#F3F4F6",
+	},
+	inner: {
+		flex: 1,
+		width: "100%",
+		maxWidth: CONTENT_MAX_WIDTH,
+		// #958 【UI】カラムと余白の境界を分かりやすくする控えめな影(walica.jp を参考)
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 0 },
+		shadowOpacity: 0.06,
+		shadowRadius: 24,
+		elevation: 2,
+	},
+});
