@@ -20,6 +20,7 @@ import { useHaptics } from "@/hooks/useHaptics";
 import { SelectedRestaurantDetails } from "@/features/map/components/SelectedRestaurantDetails";
 import i18n from "@/lib/i18n";
 import { useLogger } from "@/hooks/useLogger";
+import { useScreenTrace } from "@/hooks/useScreenTrace";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import MapViewClass from "react-native-maps";
 import { isFoodAndDrinkPlaceForUser } from "@shared/utils/google_places_restaurant_type";
@@ -27,6 +28,8 @@ import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { INITIAL_REGION } from "@/features/map/constants";
 
 export default function MapScreen() {
+	// #1016 【設計】主要画面(マップタブ)にFirebase Performance Monitoringの画面トレースを計装する。
+	useScreenTrace("Map");
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { callBackend } = useAPICall();
@@ -262,7 +265,13 @@ export default function MapScreen() {
 					onClear={() => setSearchQuery("")}
 					placeholder={i18n.t("Map.placeholders.searchRestaurants")}
 					renderInputRight={
-						<TouchableOpacity style={styles.currentLocationButton} onPress={handleCurrentLocation}>
+						<TouchableOpacity
+							style={styles.currentLocationButton}
+							onPress={handleCurrentLocation}
+							hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+							accessibilityRole="button"
+							accessibilityLabel={i18n.t("Map.accessibility.useCurrentLocation")}
+							testID="map-current-location-button">
 							<Navigation size={20} color="#F05537" />
 						</TouchableOpacity>
 					}

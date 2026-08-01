@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Platform } from "react-native
 import { ScrollView } from "react-native-gesture-handler";
 import { LinearGradient } from "expo-linear-gradient";
 import { Heart } from "lucide-react-native";
+import Stars from "@/components/Stars";
 import { formatLikeCount, sliceByUnitLimit } from "../utils/text";
 import { dateStringToTimestamp } from "@/lib/frontend-utils";
 import { useLogger } from "@/hooks/useLogger";
@@ -18,6 +19,7 @@ import {
 	IdType,
 } from "@/stores/useDishMediaEntriesStore";
 import { shallow } from "zustand/shallow";
+import { toErrorLogMessage } from "@/lib/errorMessage";
 
 interface DishReviewsSectionProps {
 	id: string;
@@ -48,6 +50,14 @@ export function DishReviewsSection({ id, idType, paddingRight, carouselRef }: Di
 	const reviews = useDishMediaEntriesStore(selector, shallow);
 
 	// コメントを最下部までスクロールする
+	//
+	// #817 【設計】この挙動は従来どおり維持する。レビュー欄は画面下部に固定され、
+	// created_at 昇順（#509「古い→新しい」）の最新が最下部に来る。つまり
+	// **プライム位置は末尾** であり、scrollToEnd はその着地点を保証している。
+	// グラデーションも下ほど濃く、下端のほうが可読性が高い。
+	//
+	// 優先言語の反映は API 側の並び順（prioritizeReviewsByLanguage）が
+	// 優先言語を *末尾* へ寄せることで行う。ここを触る必要はない。
 	const scrollViewRef = useRef<ScrollView>(null);
 	useEffect(() => {
 		scrollViewRef.current?.scrollToEnd({ animated: false });
@@ -127,7 +137,7 @@ export function DishReviewsSection({ id, idType, paddingRight, carouselRef }: Di
 				event_name: "review_like_reaction_failed",
 				error_level: "log",
 				payload: {
-					error: error instanceof Error ? error.message : String(error),
+					error: toErrorLogMessage(error),
 					target_id: review.id,
 					action_type: "like",
 				},
@@ -152,6 +162,10 @@ export function DishReviewsSection({ id, idType, paddingRight, carouselRef }: Di
 						<View key={review.id} style={styles.commentItem}>
 							<View style={styles.commentHeader}>
 								<Text style={styles.commentUsername}>{review.username}</Text>
+								{/* #956 【仕様】投稿者が付けた星をコメントごとに表示する。
+								    色はデフォルトの gold だとダーク背景上で悪目立ちするため、
+								    タイムスタンプ(#CCCCCC)と同系のミュートカラーに合わせる */}
+								<Stars rating={review.rating} size={11} color="#CCCCCC" />
 								<Text style={styles.commentTimestamp}>{dateStringToTimestamp(review.created_at)}</Text>
 							</View>
 							<View style={styles.commentContent}>
@@ -160,14 +174,25 @@ export function DishReviewsSection({ id, idType, paddingRight, carouselRef }: Di
 										{displayText}
 										{isTruncated && "...  "}
 										{isTruncated && (
-											<TouchableOpacity style={styles.seeMoreButton} onPress={() => handleSeeMore(review.id)}>
+											<TouchableOpacity
+												style={styles.seeMoreButton}
+												onPress={() => handleSeeMore(review.id)}
+												accessibilityRole="button"
+												accessibilityLabel={i18n.t("DishMediaContent.actions.seeMore")}>
 												<Text style={styles.seeMoreText}>{i18n.t("DishMediaContent.actions.seeMore")}</Text>
 											</TouchableOpacity>
 										)}
 									</Text>
 								</View>
 								<View style={styles.commentActions}>
-									<TouchableOpacity style={styles.commentLikeButton} onPress={() => handleReviewLike(review.id)}>
+									<TouchableOpacity
+										style={styles.commentLikeButton}
+										onPress={() => handleReviewLike(review.id)}
+										accessibilityRole="button"
+										accessibilityLabel={i18n.t("DishMediaContent.accessibility.reviewLike", {
+											username: review.username,
+										})}
+										aria-selected={review.isLiked ?? false}>
 										<Heart
 											size={14}
 											color={review.isLiked ? "#FF3040" : "#CCCCCC"}

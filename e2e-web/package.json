@@ -1,0 +1,26 @@
+{
+	"name": "e2e-web",
+	"version": "1.0.0",
+	"private": true,
+	"description": "Playwright による Expo Web (静的エクスポート) × api-development の E2E テスト",
+	"scripts": {
+		"test": "playwright test",
+		"test:smoke": "playwright test --grep @smoke",
+		"test:mutation": "RUN_MUTATION=1 playwright test --grep @mutation",
+		"test:all": "RUN_MUTATION=1 playwright test",
+		"test:ui": "playwright test --ui",
+		"test:headed": "playwright test --headed",
+		"report": "playwright show-report",
+		"serve:dist": "node ./scripts/serve-dist.mjs",
+		"build:web": "pnpm --filter app-expo build:web",
+		"typecheck": "tsc --noEmit"
+	},
+	"devDependencies": {
+		"@axe-core/playwright": "^4.12.1",
+		"@playwright/test": "^1.54.2",
+		"@supabase/supabase-js": "^2.49.4",
+		"@types/node": "^22.15.3",
+		"dotenv": "^16.5.0",
+		"typescript": "^5.4.3"
+	}
+}

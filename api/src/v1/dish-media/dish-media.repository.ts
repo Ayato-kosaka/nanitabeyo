@@ -28,7 +28,15 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { roundToOneDecimal, shuffle } from '../../core/utils/backend-utils';
 import { CLS_KEY_APP_VERSION } from 'src/core/cls/cls.constants';
 import { ClsService } from 'nestjs-cls';
+import { normalizePreferredLanguageCodes } from '../../../../shared/utils/languageCode';
+import { prioritizeReviewsByLanguage } from './review-ordering';
+import { buildLanguageWhereClause } from './language-where';
 import { MediaProcessingStatus } from '@shared/v1/res';
+
+/** #817 優先言語のレビュー先読みクエリの戻り値 */
+type DishReviewWithUser = Prisma.dish_reviewsGetPayload<{
+  include: { users: true };
+}>;
 
 /* -------------------------------------------------------------------------- */
 /*                       返却型 (ドメイン Entity 例)                           */
@@ -729,10 +737,15 @@ export class DishMediaRepository {
     option: {
       userId: string;
       reviewLimit?: number;
+      preferredLanguageCodes?: readonly string[];
     },
   ): Promise<DishMediaEntryEntity[]> {
     const { userId, reviewLimit = 6 } = option;
     if (dishMediaIds.length === 0) return [];
+
+    const preferredLanguageCodes = normalizePreferredLanguageCodes(
+      option.preferredLanguageCodes,
+    );
 
     const dishMedias = await this.prisma.prisma.dish_media.findMany({
       where: { id: { in: dishMediaIds } },
@@ -751,6 +764,16 @@ export class DishMediaRepository {
         },
       },
     });
+
+    // #817 【設計】優先言語のレビューは created_at 順で reviewLimit 件目より後ろに埋もれている
+    // ことがあるため、別クエリで dish ごとに take して補充する。
+    // nested take は親 1 件ごとに効くので、取得行数は
+    // (優先言語分 reviewLimit + 既定分 reviewLimit) × dish 数 に収まり、青天井にならない。
+    const preferredReviewsByDish = await this.findPreferredLanguageReviews(
+      dishMedias.map((m) => m.dish_id),
+      preferredLanguageCodes,
+      reviewLimit,
+    );
 
     // Get all dish IDs to calculate aggregates
     const dishIds = dishMedias.map((m) => m.dish_id);
@@ -780,8 +803,24 @@ export class DishMediaRepository {
     );
 
     const dishMediaMap = new Map(dishMedias.map((m) => [m.id, m]));
-    const allReviewIds = dishMedias.flatMap((m) =>
-      m.dishes.dish_reviews.map((r) => r.id),
+
+    // #817 【設計】表示する reviewLimit 件を先に確定させてから reactions を引く。
+    // 優先度付け・slice の前に id を集めると、表示しないレビューまで
+    // reactions の IN 句へ流れ込み、クエリが不必要に膨らむ。
+    const reviewsByDishMediaId = new Map(
+      dishMedias.map((m) => [
+        m.id,
+        prioritizeReviewsByLanguage(
+          m.dishes.dish_reviews,
+          preferredReviewsByDish.get(m.dish_id) ?? [],
+          preferredLanguageCodes,
+          reviewLimit,
+        ),
+      ]),
+    );
+
+    const allReviewIds = [...reviewsByDishMediaId.values()].flatMap((reviews) =>
+      reviews.map((r) => r.id),
     );
 
     const { reactionSet, reviewLikeCountMap } =
@@ -801,7 +840,7 @@ export class DishMediaRepository {
       .map((dishMediaId) => {
         const dishMedia = dishMediaMap.get(dishMediaId)!;
         const dishStats = dishStatsMap.get(dishMedia.dish_id);
-        const dishReviews = dishMedia.dishes.dish_reviews;
+        const dishReviews = reviewsByDishMediaId.get(dishMediaId) ?? [];
 
         return {
           restaurant: dishMedia.dishes.restaurants,
@@ -838,6 +877,50 @@ export class DishMediaRepository {
           })),
         };
       });
+  }
+
+  /**
+   * #817 【設計】優先言語のレビューを dish ごとに reviewLimit 件だけ先読みする。
+   *
+   * `original_language_code` には `ja` と `ja-JP` が混在し、さらに正規形(`zh-hans`)と
+   * DB 実値(`zh-CN`)がずれることもある。そのため `languageMatchCandidates()` で
+   * DB 実値の候補集合へ展開し、各候補の「完全一致」と「`候補-` の前方一致」で拾う
+   * （組み立ては `buildLanguageWhereClause()`）。
+   * nested take が親ごとに効くので、取得行数は reviewLimit × dish 数で頭打ちになる。
+   */
+  private async findPreferredLanguageReviews(
+    dishIds: string[],
+    preferredLanguageCodes: string[],
+    reviewLimit: number,
+  ): Promise<Map<string, DishReviewWithUser[]>> {
+    const result = new Map<string, DishReviewWithUser[]>();
+    if (preferredLanguageCodes.length === 0 || dishIds.length === 0) {
+      return result;
+    }
+
+    const dishes = await this.prisma.prisma.dishes.findMany({
+      where: { id: { in: dishIds } },
+      select: {
+        id: true,
+        dish_reviews: {
+          where: {
+            // #817 【設計】正規形(zh-hans)をそのまま DB 値へ突き合わせると、
+            // 実際に保存されている zh-CN に一致しない。必ず候補集合で引くこと。
+            // #1052 組み立ては language-where.ts の純粋関数へ寄せてテスト可能にした。
+            OR: buildLanguageWhereClause(preferredLanguageCodes),
+          },
+          orderBy: { created_at: 'asc' }, // #509 【設計】古い→新しい
+          take: reviewLimit,
+          include: { users: true },
+        },
+      },
+    });
+
+    for (const dish of dishes) {
+      result.set(dish.id, dish.dish_reviews);
+    }
+
+    return result;
   }
 
   // --- new helper ---

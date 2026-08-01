@@ -1,7 +1,8 @@
 import { Platform } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as VideoThumbnails from "expo-video-thumbnails";
-import { CreateDishMediaDto } from "@shared/api/v1/dto";
+import type { CreateDishMediaDto } from "@shared/api/v1/dto";
+import { selectMediaForE2E } from "./e2e/selectMediaStub";
 
 const MAX_VIDEO_DURATION_SECONDS = 120; // 2 minutes
 
@@ -156,6 +157,15 @@ export async function selectMedia(
 	},
 ): Promise<MediaSelectionResult> {
 	try {
+		// #1031 B6 【設計】E2E(Detox) 実行時のみ、OS のフォトピッカーを開かず固定画像を返す。
+		// ピッカーはアプリ外プロセスで動くため Detox から操作できず、レビュー投稿フローが自動化できない。
+		// 通常ビルドでは metro.config.js の resolver が noop 実装へ差し替えるため、この行は常に
+		// null を返して素通りする（本番バンドルには差し替えコード自体が入らない）。
+		const e2eMedia = await selectMediaForE2E();
+		if (e2eMedia) {
+			return { success: true, media: e2eMedia };
+		}
+
 		// Request permissions
 		const hasPermission = await requestPermissions();
 		if (!hasPermission) {

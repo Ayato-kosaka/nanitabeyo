@@ -3,16 +3,20 @@ import { View, Text, StyleSheet } from "react-native";
 import { Image } from "expo-image";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { useAuth } from "@/contexts/AuthProvider";
+import { isGuestUser } from "@/lib/authGuest";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { LoginbackModal } from "@/features/profile/components/LoginbackModal";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
+import { useScreenTrace } from "@/hooks/useScreenTrace";
 import i18n from "@/lib/i18n";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useLocale } from "@/hooks/useLocale";
 
 export default function ReviewScreen() {
+	// #1016 【設計】主要画面(ホームタブ)にFirebase Performance Monitoringの画面トレースを計装する。
+	useScreenTrace("Review");
 	const { user } = useAuth();
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
@@ -94,11 +98,19 @@ export default function ReviewScreen() {
 			{/* CTA セクション */}
 			<View style={styles.ctaSection}>
 				<View style={styles.actionButtonContainer}>
-					{user?.is_anonymous !== false ? (
+					{/* #1092 PR4b 【修正】`user?.is_anonymous !== false` から共通判定（lib/authGuest.ts）へ寄せた。
+					    旧式は is_anonymous が undefined のときもゲストへ倒れるため、通知タブ・レビュータブは
+					    見えるのに、この画面だけログイン導線が出る、という食い違いになっていた */}
+					{isGuestUser(user) ? (
 						// #644 【設計】ゲスト状態：ログイン導線を表示
 						<>
-							<Text style={styles.guestDescription}>{i18n.t("Review.guest.description")}</Text>
+							{/* #1031 【設計】Detox から表示確認できるよう testID を追加 */}
+							<Text testID="review-guest-description" style={styles.guestDescription}>
+								{i18n.t("Review.guest.description")}
+							</Text>
+							{/* #1031 【設計】ログイン導線タップを Detox から検証できるよう testID を追加 */}
 							<PrimaryButton
+								testID="review-guest-login-button"
 								onPress={handleLoginPress}
 								label={i18n.t("Review.guest.loginButton")}
 								style={styles.ctaButton}
@@ -106,7 +118,9 @@ export default function ReviewScreen() {
 						</>
 					) : (
 						// #644 【設計】ログイン済み状態：レビュー投稿導線を表示
+						// #1031 【設計】投稿導線タップを Detox から検証できるよう testID を追加
 						<PrimaryButton
+							testID="review-post-button"
 							onPress={handlePostReviewPress}
 							label={i18n.t("Review.authenticated.postButton")}
 							style={styles.ctaButton}

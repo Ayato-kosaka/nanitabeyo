@@ -17,6 +17,7 @@ import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import { useGoogleMapsFallback } from "@/features/search/hooks/useGoogleMapsFallback";
 import { createDishItemsForCategory } from "@/lib/dishMediaSearch";
+import { toErrorLogMessage } from "@/lib/errorMessage";
 
 type UseCandidateDishMediaCacheParams = {
 	cacheCandidateDishMedia: (
@@ -92,6 +93,8 @@ export function useCandidateDishMediaCache({
 					latitude: searchContext.location.latitude,
 					longitude: searchContext.location.longitude,
 					searchLocationLanguageCode: searchContext.localLanguageCode,
+					// #817 【設計】端末言語を第一優先にする
+					viewerLanguageCode: locale,
 					radius: searchContext.radius,
 					priceLevels: searchContext.priceLevels,
 				});
@@ -120,7 +123,7 @@ export function useCandidateDishMediaCache({
 					error_level: "error",
 					payload: {
 						candidateId: candidate.id,
-						error: error instanceof Error ? error.message : String(error),
+						error: toErrorLogMessage(error),
 					},
 				});
 				showGoogleMapsFallbackDialog({

@@ -17,6 +17,7 @@ import {
 } from "@/stores/useDishMediaEntriesStore";
 import type { MediaProcessingStatus, QueryDishMediaByIdsResponse } from "@shared/api/v1/res";
 import { useAPICall } from "@/hooks/useAPICall";
+import { useLogger } from "@/hooks/useLogger";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { SkeletonShimmer } from "@/components/SkeletonShimmer";
@@ -48,11 +49,24 @@ export default function DishMediaContent({
 	displayIndex,
 	backgroundImageState,
 }: DishMediaContentProps) {
+	// #940 【修正】entry 未取得時に throw する前に理由を記録する。throw 自体は残す
+	// (このコンポーネントは entry の存在を前提に構築されており、無ければ描画できないため)。
+	// ErrorBoundary(親の DishMediaMap.renderCarouselItem に設置済み)がこの throw を捕捉し、
+	// カード単位のリトライ表示に変換することで white screen を防ぐ
+	const { logFrontendEvent } = useLogger();
+
 	// #530 【設計】dishMediaEntry を useState で管理し、ポーリング結果を反映できるようにする
 	const [dishMediaEntry, setDishMediaEntry] = useState<NormalizedDishMediaEntry>(() => {
 		const state = useDishMediaEntriesStore.getState(); // ← subscribe しない snapshot 読み
 		const entry = idType === "dish_media" ? selectEntryByMediaId(id)(state) : selectEntryByReviewId(id)(state);
-		if (!entry) throw new Error("DishMediaContent: entry is undefined");
+		if (!entry) {
+			logFrontendEvent({
+				event_name: "dish_media_content_entry_missing",
+				error_level: "error",
+				payload: { id, idType, entriesKey },
+			});
+			throw new Error("DishMediaContent: entry is undefined");
+		}
 		return entry;
 	});
 
@@ -214,6 +228,9 @@ export default function DishMediaContent({
 							style={StyleSheet.absoluteFill}
 							contentFit="cover"
 							recyclingKey={`${dishMediaEntry.dish_media.id}::${bgUri ?? ""}`}
+							// #937 【仕様】料理名(無ければ店舗名)を伝える情報画像として alt/accessibilityLabel を付与する
+							alt={dishMediaEntry.dish.name ?? dishMediaEntry.restaurant.name}
+							accessibilityLabel={dishMediaEntry.dish.name ?? dishMediaEntry.restaurant.name}
 						/>
 					)}
 					{/* #630 【設計】動画の場合のみ VideoPlayer を重ねて表示 */}
@@ -255,13 +272,9 @@ export default function DishMediaContent({
 			<View style={styles.topHeader}>
 				<View style={styles.headerLeft}>
 					<Text style={styles.menuName}>{getTitle(dishMediaEntry)}</Text>
-					<View style={styles.priceRatingContainer}>
-						{/* <Text style={styles.price}>{i18n.t("Search.currencySuffix")}2,800</Text> */}
-						{/* <View style={styles.ratingContainer}>
-              {renderStars(5, 4)}
-              <Text style={styles.reviewCount}>(127)</Text>
-            </View> */}
-					</View>
+					{/* #956 【仕様】評価表示は「投稿者が付けた星」(DishReviewsSection側)のみとし、
+					    平均評価はレビュー数が少ないフェーズでは目安として機能しないため表示しない */}
+					<View style={styles.priceRatingContainer}></View>
 				</View>
 				<View style={styles.headerRight}></View>
 			</View>
