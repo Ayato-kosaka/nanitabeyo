@@ -202,19 +202,24 @@ jobs:
         working-directory: app-expo/ios
         run: pod install
 
-      - name: iOS をビルド（シミュレータ向け・署名なし）
+      - name: iOS をビルド（実機向け・署名なし）
         working-directory: app-expo/ios
-        # 実機向けの署名は EAS でのみ行う。ここではコンパイルが通ることだけを見る。
+        # EAS の development プロファイルは実機向けビルドである。
+        # シミュレータ向けビルドでは Clang のモジュール解決が異なり、実機でだけ出る
+        # モジュールインポート順のエラーを取り逃がす（実際に #1156 で取り逃がした）。
+        # そのため destination は generic/platform=iOS（実機）に合わせる。
+        # 署名だけは EAS に任せ、ここではコンパイルが通ることを見る。
         run: |
           set -o pipefail
           xcodebuild \
             -workspace nanitabeyo.xcworkspace \
             -scheme nanitabeyo \
             -configuration Debug \
-            -sdk iphonesimulator \
-            -destination 'generic/platform=iOS Simulator' \
+            -destination 'generic/platform=iOS' \
             -quiet \
             CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
             build 2>&1 | tee /tmp/xcodebuild.log
 
       - name: 失敗原因を抽出

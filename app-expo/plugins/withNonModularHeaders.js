@@ -2,43 +2,59 @@ const { withDangerousMod } = require("expo/config-plugins");
 const fs = require("fs");
 const path = require("path");
 
-const MARKER = "# #1156 allow-non-modular-headers";
+const MARKER = "# #1156 use-frameworks-module-fixes";
 
 /**
- * #1156 【設計】use_frameworks! 環境で非モジュラーヘッダの include をエラーにしない。
+ * framework module 化をやめさせる Pod。
+ *
+ * React Native Core のヘッダは module map を持たないため、React Native Core の型を
+ * 公開ヘッダで晒している Pod は use_frameworks! 下で必ず modular header 制約に抵触する。
+ * そういう Pod は framework ではなく素の静的ライブラリとしてビルドさせるのが確実。
+ */
+const STATIC_LIBRARY_PODS = ["react-native-maps"];
+
+/**
+ * #1156 【設計】use_frameworks! 環境で発生する modular header 由来のビルドエラーを回避する。
  *
  * 背景:
  *   `app.config.ts` の expo-build-properties は iOS を `useFrameworks: "static"` で
  *   ビルドしている。これは `@react-native-firebase` が Swift 混在のため要求する設定。
  *
- *   `use_frameworks!` を有効にすると各 Pod は framework module として扱われ、
- *   framework module の公開ヘッダから「モジュール化されていないヘッダ」を include
- *   することが `-Wnon-modular-include-in-framework-module` で警告される。React Native の
- *   Pods は `-Werror` 相当でビルドされるため、これがそのままビルドエラーになる。
+ *   use_frameworks! を有効にすると各 Pod は framework module として扱われる。
+ *   framework module の公開ヘッダから「module map を持たないヘッダ」を include すると
+ *   Clang が警告し、React Native の Pods は -Werror 相当のためビルドエラーになる。
+ *   React Native Core のヘッダ自体が module map を持たないので、React Native Core の
+ *   型を公開ヘッダで使っている Pod はすべてこれを踏みうる。
  *
- *   Expo SDK 54 (React Native 0.81) へ上げた際、`react-native-maps` が実際にこれを踏んだ。
+ *   Expo SDK 54 (React Native 0.81) へ上げた際、`react-native-maps` が実際に踏んだ。
+ *   EAS Build Develop の iOS が 2 回連続で XCODE_BUILD_ERROR になった。
  *
- *     include of non-modular header inside framework module
- *     'react_native_maps.AIRMap': '.../Pods/Headers/Public/React-Core/React/RCTComponent.h'
- *     [-Werror,-Wnon-modular-include-in-framework-module]
+ *     1 回目: include of non-modular header inside framework module
+ *             'react_native_maps.AIRMap': '.../React-Core/React/RCTComponent.h'
+ *             [-Werror,-Wnon-modular-include-in-framework-module]
  *
- *   React Native Core のヘッダ自体がモジュールマップを持たないため、React Native Core の
- *   ヘッダを公開ヘッダから include している Pod はすべて同じ問題を踏みうる。
+ *     2 回目: declaration of 'RCTViewManager' must be imported from module
+ *             'react_native_maps.AIRMapCalloutManager' before it is required
  *
- * 他案を採らなかった理由:
- *   expo-build-properties の `ios.forceStaticLinking` は、該当 Pod を framework ではなく
- *   static library として扱わせる公式オプションだが、
- *   expo-modules-autolinking の `cocoapods/installer.rb` を読むと、この patch は
- *   `should_disable_use_frameworks_for_core_expo_pods?` が真のとき、つまり
- *   `RCT_USE_PREBUILT_RNCORE == "1"` のときにしか適用されない。
- *   SDK 54 の precompiled React Native for iOS は `use_frameworks!` と併用できず
- *   ソースビルドへフォールバックするため、本プロジェクトではこの条件を満たさず効かない。
+ *   2 回目は 1 回目の対処（CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES）
+ *   だけでは足りず、framework module 化そのものが問題であることを示している。
  *
- * 対処:
- *   Podfile の post_install で全 Pod ターゲットに
- *   `CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES = YES` を設定し、
- *   この警告自体を出さないようにする。CocoaPods + use_frameworks! での定番の回避策であり、
- *   個別 Pod のバージョンに依存しないため、他の Pod が同じ問題を踏んでも追加対応が要らない。
+ * 対処は 2 段構え:
+ *
+ *   1. pre_install で `react-native-maps` の build_type を static_library へ差し替える。
+ *      framework ではなくなるため modular header の制約自体が適用されなくなる。
+ *      expo-modules-autolinking が ExpoModulesCore / Expo / expo-dev-menu へ
+ *      行っているのと同じ手法（scripts/ios/cocoapods/installer.rb 参照）。
+ *
+ *   2. post_install で全 Pod へ CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES=YES
+ *      を設定する。1 を適用していない他の Pod が同種の警告を出しても止まらないようにする保険。
+ *
+ * expo-build-properties の `ios.forceStaticLinking` を使わない理由:
+ *   同じ static_library 差し替えを行う公式オプションだが、expo-modules-autolinking の
+ *   `cocoapods/installer.rb` を読むと `should_disable_use_frameworks_for_core_expo_pods?`
+ *   が真のとき、つまり `RCT_USE_PREBUILT_RNCORE == "1"` のときにしか適用されない。
+ *   SDK 54 の precompiled React Native for iOS は use_frameworks! と併用できず
+ *   ソースビルドへフォールバックするため、本プロジェクトではこの条件を満たさない。
  */
 const withNonModularHeaders = (config) =>
 	withDangerousMod(config, [
@@ -56,8 +72,19 @@ const withNonModularHeaders = (config) =>
 				throw new Error(`withNonModularHeaders: Podfile に "${anchor}" が見つからない`);
 			}
 
-			const injection = `${anchor}
-    ${MARKER}
+			const replacement = `${MARKER}
+  pre_install do |installer|
+    installer.pod_targets.each do |pod_target|
+      if ${JSON.stringify(STATIC_LIBRARY_PODS)}.include?(pod_target.name)
+        Pod::UI.puts("[#1156] Forcing static library build for #{pod_target.name}")
+        def pod_target.build_type
+          Pod::BuildType.static_library
+        end
+      end
+    end
+  end
+
+  ${anchor}
     installer.pods_project.targets.each do |target|
       target.build_configurations.each do |build_configuration|
         build_configuration.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
@@ -65,7 +92,7 @@ const withNonModularHeaders = (config) =>
     end
 `;
 
-			fs.writeFileSync(podfilePath, contents.replace(anchor, injection), "utf8");
+			fs.writeFileSync(podfilePath, contents.replace(anchor, replacement), "utf8");
 			return cfg;
 		},
 	]);
