@@ -6,7 +6,7 @@
  */
 import * as Clipboard from "expo-clipboard";
 import { router } from "expo-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	AppState,
 	type AppStateStatus,
@@ -58,13 +58,80 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 	const { height: windowHeight } = useWindowDimensions();
 	const [appState, setAppState] = useState<AppStateStatus>(AppState.currentState);
 	const [selectedCandidate, setSelectedCandidate] = useState<DishCategoryGroupVoteCandidate | null>(null);
+	// #1122 【修正】候補詳細モーダルは react-native-paper の Portal 経由で Portal.Host 直下
+	// (= Stack より後ろ・上のレイヤー)へ描かれる。開いたまま遷移すると、遷移先の画面の上に
+	// バックドロップ(StyleSheet.absoluteFill の Pressable)が残り続けるため、
+	// 遷移先の DishMediaMap をタップできない。
+	// iOS だけ無事だったのは、遷移先 /search/result が presentation:"transparentModal"
+	// (= ネイティブの modal presentation)で、Portal.Host より上に載るから。
+	// Web / Android では screens が同じ View 階層内に積まれるので Portal 側が勝つ。
+	//
+	// そこで「閉じてから遷移する」を setTimeout ではなく因果で書く:
+	// クローズ後に実行したい処理を ref へ積み、BlurModal 自身の onClose
+	// (visible=false のコミット後に発火 = Portal がアンマウント済み)で取り出して実行する。
+	const pendingAfterCandidateDetailCloseRef = useRef<(() => void) | null>(null);
+	// #1122 【追補】未検索(not_searched)の候補では openCandidateDishMedia が非同期検索を await して
+	// から遷移を要求してくる。その待ち時間にユーザーが X / バックドロップでモーダルを閉じられるため、
+	// 「押した時点の状態」で判断すると (a) 遷移が黙って消える (b) pending に積んだ navigate が残留し、
+	// 次に別候補のモーダルを開いて閉じただけで発火する、という 2 つの事故が起きる。
+	//
+	// そこで表示セッションの世代番号(開閉のたびに +1)を持ち、押下時の世代を控えておく。
+	// 完了時に世代が変わっていたら「ユーザーが自分でモーダルを閉じた/別候補へ移った」なので
+	// 遷移はキャンセルする。意図して閉じたのに勝手に画面が変わる方がユーザーには有害なため、
+	// (a) は「遷移を復活させる」ではなく「キャンセルを正とする」を選ぶ。
+	const candidateDetailSessionRef = useRef(0);
+	const isCandidateDetailVisibleRef = useRef(false);
+	// 「店を見る」押下時に詳細モーダルが開いていたならその世代、一覧カード導線なら null。
+	// 候補ごとに保持することで、別候補への操作が割り込んでも取り違えない。
+	const dishMediaRequestSessionRef = useRef(new Map<string, number | null>());
+	const handleCandidateDetailOpened = useCallback(() => {
+		isCandidateDetailVisibleRef.current = true;
+		candidateDetailSessionRef.current += 1;
+		// 前のセッションの積み残しはここで確実に捨てる(残っていると無関係な店へ飛ぶ)
+		pendingAfterCandidateDetailCloseRef.current = null;
+	}, []);
+	const handleCandidateDetailClosed = useCallback(() => {
+		isCandidateDetailVisibleRef.current = false;
+		candidateDetailSessionRef.current += 1;
+		const pending = pendingAfterCandidateDetailCloseRef.current;
+		pendingAfterCandidateDetailCloseRef.current = null;
+		pending?.();
+	}, []);
 	const {
 		BlurModal: CandidateDetailBlurModal,
 		open: openCandidateDetail,
 		close: closeCandidateDetail,
 	} = useBlurModal({
 		closeOnBackdropPress: true,
+		// onOpen / onClose は useBlurModal 内の useEffect の依存に入るため、必ず安定参照を渡すこと
+		onOpen: handleCandidateDetailOpened,
+		onClose: handleCandidateDetailClosed,
 	});
+
+	// #1122 モーダルが開いていれば閉じ、閉じ終わってから navigate を実行する。
+	// 既に閉じている(一覧カードからの導線)ときは待つものが無いのでそのまま実行する。
+	const navigateAfterCandidateDetailClosed = useCallback(
+		(candidateId: string, navigate: () => void) => {
+			const requestedSession = dishMediaRequestSessionRef.current.get(candidateId) ?? null;
+			if (requestedSession === null) {
+				// 一覧カードからの導線。待つモーダルが無いのでそのまま遷移する
+				navigate();
+				return;
+			}
+			if (!isCandidateDetailVisibleRef.current || requestedSession !== candidateDetailSessionRef.current) {
+				// 検索中にユーザーがモーダルを閉じた(または別候補を開いた)。ユーザーの操作を優先して遷移しない
+				logFrontendEvent({
+					event_name: "dish_category_group_vote_candidate_dish_media_navigation_cancelled",
+					error_level: "log",
+					payload: { shareToken, candidateId },
+				});
+				return;
+			}
+			pendingAfterCandidateDetailCloseRef.current = navigate;
+			closeCandidateDetail();
+		},
+		[closeCandidateDetail, logFrontendEvent, shareToken],
+	);
 	const { detail, isLoading, error, refresh } = useDishCategoryGroupVoteDetail(shareToken);
 	// /store はネイティブ内ではホームへ戻るため、共有リンクを開いた Web 参加者だけに出す。
 	const shouldShowStoreCta = detail?.session.hasVoted === true && Platform.OS === "web";
@@ -112,14 +179,17 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 				updateMediaIdsByKeyAsync(entriesKey, fetchIds(), (_, fetchedIds) => fetchedIds);
 			}
 
-			router.push({
-				pathname: "/[locale]/(tabs)/search/result",
-				params: {
-					locale,
-					entriesKey,
-					location: detail ? JSON.stringify(detail.session.searchContext.location) : undefined,
-					category: candidate.displayName,
-				},
+			// #1122 モーダルのクローズ完了を待ってから遷移する(上の設計コメント参照)
+			navigateAfterCandidateDetailClosed(candidate.id, () => {
+				router.push({
+					pathname: "/[locale]/(tabs)/search/result",
+					params: {
+						locale,
+						entriesKey,
+						location: detail ? JSON.stringify(detail.session.searchContext.location) : undefined,
+						category: candidate.displayName,
+					},
+				});
 			});
 		},
 	});
@@ -217,7 +287,17 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 	};
 
 	const handleOpenCandidateDishMedia = async (candidate: DishCategoryGroupVoteCandidate) => {
-		await openCandidateDishMedia(candidate);
+		// #1122 押下時点で詳細モーダルが開いていたか(=どの表示セッションから来た要求か)を控える。
+		// 検索を挟む経路では完了までに数秒空くため、判断材料は押下時に固定しておく必要がある。
+		dishMediaRequestSessionRef.current.set(
+			candidate.id,
+			isCandidateDetailVisibleRef.current ? candidateDetailSessionRef.current : null,
+		);
+		try {
+			await openCandidateDishMedia(candidate);
+		} finally {
+			dishMediaRequestSessionRef.current.delete(candidate.id);
+		}
 	};
 
 	if (isLoading && !detail) {
