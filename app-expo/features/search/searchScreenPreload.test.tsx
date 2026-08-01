@@ -60,6 +60,14 @@ jest.mock("@/hooks/useLocationSearch", () => ({
 	}),
 }));
 jest.mock("@/contexts/SnackbarProvider", () => ({ useSnackbar: () => ({ showSnackbar: jest.fn() }) }));
+// #1087 【修正】このモックが無いと suite ごとロードに失敗する。
+// useAutoCurrentLocation → AuthProvider → lib/supabase → constants/Env と芋づるに読み込まれ、
+// Env が `Constants.expoConfig.extra.eas.projectId` を触るが、jest-expo は app.config.ts を
+// 評価しない（expoConfig は空オブジェクト）ため TypeError で落ちる。
+// 検証対象は先読みブロックの JSX だけなので、周辺の hooks と同じくスタブ化する
+jest.mock("@/features/search/hooks/useAutoCurrentLocation", () => ({
+	useAutoCurrentLocation: () => ({ requestAutoCurrentLocation: jest.fn() }),
+}));
 jest.mock("@/features/search/hooks/useRecentLocations", () => ({
 	useRecentLocations: () => ({ recentLocations: [], addRecentLocation: jest.fn(), clearRecentLocations: jest.fn() }),
 }));
