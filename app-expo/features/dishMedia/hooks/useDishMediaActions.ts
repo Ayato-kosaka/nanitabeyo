@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { Platform } from "react-native";
-import * as Linking from "expo-linking";
 import { getGoogleMapsLink } from "@/lib/googlePlaces";
+import { openExternalUrl } from "@/lib/openExternalUrl";
 import { generateShareUrl, handleShare } from "@/lib/share";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
@@ -45,15 +45,13 @@ export function useDishMediaActions({ source }: UseDishMediaActionsProps) {
 
 			try {
 				const { mapUrl, canOpen } = await getGoogleMapsLink(restaurant);
-				if (Platform.OS === "web") {
-					window.open(mapUrl, "_blank", "noopener,noreferrer");
+				// #1121 Web の別タブ起動は openExternalUrl へ寄せた。
+				// canOpen（Linking.canOpenURL）はネイティブのハンドラ有無の判定なので Web では見ない
+				if (Platform.OS !== "web" && !canOpen) {
+					showSnackbar(i18n.t("DishMediaContent.errors.mapOpenFailed"));
 					return;
 				}
-				if (canOpen) {
-					await Linking.openURL(mapUrl);
-				} else {
-					showSnackbar(i18n.t("DishMediaContent.errors.mapOpenFailed"));
-				}
+				await openExternalUrl(mapUrl);
 			} catch (error) {
 				showSnackbar(i18n.t("DishMediaContent.errors.mapOpenFailed"));
 				logFrontendEvent({

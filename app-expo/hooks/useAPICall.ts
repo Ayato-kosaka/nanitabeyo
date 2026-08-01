@@ -4,11 +4,12 @@ import { useLogger } from "./useLogger";
 import { useAuth } from "@/contexts/AuthProvider";
 import i18n from "@/lib/i18n";
 import { useDialog } from "@/contexts/DialogProvider";
-import { Linking, Platform } from "react-native";
+import { Platform } from "react-native";
 import type { BaseResponse } from "@shared/api/v1/res";
 import { useCdnCookieStore } from "@/stores/useCdnCookieStore";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { toErrorLogMessage } from "@/lib/errorMessage";
+import { openExternalUrl } from "@/lib/openExternalUrl";
 
 /**
  * #525 【設計】統一されたエラーオブジェクト型
@@ -311,7 +312,9 @@ export const useAPICall = () => {
 						okLabel: i18n.t("Common.goStore"),
 						onConfirm: () => {
 							if (storeUrl) {
-								Linking.openURL(storeUrl);
+								// #1121 外部遷移は openExternalUrl へ統一する。
+								// storeUrl は Platform.select の ios/android のみなので Web では undefined
+								void openExternalUrl(storeUrl);
 							}
 						},
 					});
