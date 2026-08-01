@@ -174,9 +174,15 @@ rg -o 'event_name:\s*"[^"]+"' app-expo --glob '!**/node_modules/**'
 > 修正後は次の関係が成り立つ（発火条件を狭めただけで、旧系列は再構成できる）。
 >
 > ```
-> 旧 oauth_signin_success   ≡ 新 oauth_signin_success + oauth_signin_browser_dismissed
-> 旧 oauth_callback_success ≡ 新 oauth_callback_success + oauth_callback_no_result + oauth_callback_error
+> 旧 oauth_signin_success                    ≡ 新 oauth_signin_success + oauth_signin_browser_dismissed
+> 旧 oauth_callback_success + 旧 oauth_callback_error
+>                                            ≡ 新 oauth_callback_success + oauth_callback_no_result + oauth_callback_error
 > ```
+>
+> callback 側を「旧 success ≡ 新 success + no_result + error」と書くのは誤り。旧コードでも
+> throw 経路（iOS / Web でのエラー応答・exchange 失敗）は旧 `oauth_callback_error` を出していた。
+> 新 `oauth_callback_error` には「旧 success に化けていた分（Android QR 起動で握り潰されていたエラー）」と
+> 「旧 error 相当分」が混在する。
 >
 > ログインが成立したかを判定するには `oauth_callback_success`（`payload.via` / `payload.source` /
 > `payload.is_anonymous` を持つ）を使い、`onAuthStateChange:SIGNED_IN` の追随を確認すること。
