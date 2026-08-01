@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { View, StyleSheet, Text } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
@@ -15,8 +15,8 @@ import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useLogger } from "@/hooks/useLogger";
 import type { GetRestaurantByIdResponse, QueryDishMediaByIdsResponse, DishMediaEntry } from "@shared/api/v1/res";
 import i18n from "@/lib/i18n";
-import { QueryDishMediaByIdsDto } from "@shared/api/v1/dto";
-import { ReviewHeader } from "@/features/review/components/ReviewHeader";
+import type { QueryDishMediaByIdsDto } from "@shared/api/v1/dto";
+import { ScreenHeader } from "@/components/ScreenHeader";
 import { useLocale } from "@/hooks/useLocale";
 
 export default function ReviewFromMediaScreen() {
@@ -33,17 +33,26 @@ export default function ReviewFromMediaScreen() {
 	const [dishMedia, setDishMedia] = useState<NormalizedDishMediaEntry | null>(null);
 
 	// #644 【設計】レビュー投稿成功時に /review/post/:id に遷移
-	const handleReviewSuccess = ({ dishReviewId }: { dishReviewId: string }) => {
-		// /review までスタックを掃除（なければ現在画面を /review に置き換え）
-		router.dismissTo(`/${locale}/(tabs)/review`);
-		router.push({
-			pathname: `/[locale]/(tabs)/review/post/[id]`,
-			params: {
-				locale,
-				id: dishReviewId,
-			},
-		});
-	};
+	// #1127 【修正】ReviewForm へ渡すコールバックは参照を安定させる（review.tsx と同じ多層防御）
+	const handleReviewSuccess = useCallback(
+		({ dishReviewId }: { dishReviewId: string }) => {
+			// /review までスタックを掃除（なければ現在画面を /review に置き換え）
+			router.dismissTo(`/${locale}/(tabs)/review`);
+			router.push({
+				pathname: `/[locale]/(tabs)/review/post/[id]`,
+				params: {
+					locale,
+					id: dishReviewId,
+				},
+			});
+		},
+		[locale],
+	);
+
+	// #1127 同上
+	const handleReviewCancel = useCallback(() => {
+		router.back();
+	}, []);
 
 	// #644 【設計】restaurant.id と dishMediaId でデータを取得
 	useEffect(() => {
@@ -119,11 +128,21 @@ export default function ReviewFromMediaScreen() {
 		fetchData();
 	}, [restaurantId, dishMediaId, callBackend, showSnackbar, logFrontendEvent]);
 
+	// #1127 【修正】ReviewForm へ渡す prefilledMedia の参照を安定させる（FeedDishMediaViewer.tsx と同じ形）。
+	// インラインのオブジェクトリテラルのままだと、この画面が再レンダーするたびに identity が変わり、
+	// ReviewForm 側のプレビュー用 effect が張り替わってプレビューがスピナーへ点滅する。
+	// この画面は useAPICall() → useAuth() で AuthContext を購読しているため、再レンダーは頻繁に起きる。
+	// early return より前で宣言すること（Hooks の呼び出し順を固定するため）。
+	const prefilledMedia = useMemo(
+		() => (dishMedia ? { ...dishMedia.dish_media, dish: dishMedia.dish } : undefined),
+		[dishMedia],
+	);
+
 	// #644 【設計】ローディング表示
 	if (isLoading) {
 		return (
 			<View style={styles.container}>
-				<ReviewHeader
+				<ScreenHeader
 					title={i18n.t("Review.title")}
 					onPressBack={() => {
 						lightImpact();
@@ -141,7 +160,7 @@ export default function ReviewFromMediaScreen() {
 	if (error || !restaurantEntry || !dishMedia) {
 		return (
 			<View style={styles.container}>
-				<ReviewHeader
+				<ScreenHeader
 					title={i18n.t("Review.title")}
 					onPressBack={() => {
 						lightImpact();
@@ -157,7 +176,7 @@ export default function ReviewFromMediaScreen() {
 
 	return (
 		<View style={styles.container}>
-			<ReviewHeader
+			<ScreenHeader
 				title={restaurantEntry.restaurant.name}
 				onPressBack={() => {
 					lightImpact();
@@ -168,8 +187,8 @@ export default function ReviewFromMediaScreen() {
 			{/* #644 【設計】ReviewForm を既存メディア利用モード（prefilledMedia）で表示 */}
 			<ReviewForm
 				restaurant={restaurantEntry.restaurant}
-				prefilledMedia={{ ...dishMedia.dish_media, dish: dishMedia.dish }}
-				onCancel={() => router.back()}
+				prefilledMedia={prefilledMedia}
+				onCancel={handleReviewCancel}
 				onSuccess={handleReviewSuccess}
 			/>
 		</View>

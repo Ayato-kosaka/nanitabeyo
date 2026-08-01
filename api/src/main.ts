@@ -25,10 +25,19 @@ async function bootstrap() {
   });
 
   app.enableCors({
+    // CORS_ORIGIN はカンマ区切りで複数指定可能（env.ts で string[] に変換済み）
     origin: env.CORS_ORIGIN,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-app-version'],
+    // #1052 x-app-language は非 safelisted ヘッダなので、許可リストへ足さないと
+    // web 版の preflight がすべて拒否され、認証済み API 呼び出しが一律失敗する。
+    // fetchWithAuth が全リクエストへ付けるため、漏れると影響範囲が全画面になる。
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'x-app-version',
+      'x-app-language',
+    ],
     exposedHeaders: ['x-request-id', 'x-cloud-trace-context'],
   });
 

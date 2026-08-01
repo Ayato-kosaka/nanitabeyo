@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback } from "react";
-import { Platform } from "react-native";
+import { InteractionManager, Platform } from "react-native";
 import { requestTrackingPermissionsAsync, getTrackingPermissionsAsync } from "expo-tracking-transparency";
 import { Settings } from "react-native-fbsdk-next";
 import { Env } from "@/constants/Env";
@@ -61,7 +61,12 @@ export const MetaAppEventsInitializer = () => {
 	}, []);
 
 	useEffect(() => {
-		initializeMetaAppEvents();
+		// #1013 【パフォーマンス】root layout 直下でネイティブブリッジ(SDK初期化・ATTダイアログ)を
+		// 即時実行すると起動直後の描画が遅れるため、初回インタラクション完了後まで初期化を遅延する
+		const task = InteractionManager.runAfterInteractions(() => {
+			initializeMetaAppEvents();
+		});
+		return () => task.cancel();
 	}, [initializeMetaAppEvents]);
 
 	return null;

@@ -1,0 +1,13 @@
+{
+	// e2e-web は Playwright 実行時に Playwright 自身が TS を変換するため、
+	// この tsconfig は `pnpm typecheck` (tsc --noEmit) による型チェック専用。
+	"extends": "../tsconfig.base.json",
+	"compilerOptions": {
+		"target": "ES2022",
+		"module": "ESNext",
+		"moduleResolution": "Bundler",
+		"types": ["node"],
+		"noEmit": true
+	},
+	"include": ["playwright.config.ts", "tests/**/*.ts", "fixtures/**/*.ts", "pages/**/*.ts", "utils/**/*.ts"]
+}

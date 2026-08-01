@@ -24,9 +24,14 @@ import { useActionSheet } from "@expo/react-native-action-sheet";
 import { useDishMediaActions } from "../hooks/useDishMediaActions";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useDishMediaBackgroundImageResources } from "@/features/dishMedia/hooks/useDishMediaBackgroundImageResources";
+import { useContentWidth } from "@/hooks/useContentWidth";
 
-const { width, height } = Dimensions.get("window");
+// #958 【修正】カルーセルの幅は window 実幅ではなく中央カラム幅に追従させる必要があるため、
+// コンポーネント内の useContentWidth() を使う(下の contentWidth)。height はカルーセルの
+// 高さ比率計算にのみ使い、横レイアウトには影響しないため据え置き
+const { height } = Dimensions.get("window");
 
 // #605 【設計】Carousel の展開/縮小比率（画面高さに対する割合）
 const EXPANDED_RATIO = 0.8;
@@ -65,6 +70,10 @@ export default function DishMediaMap({
 	entriesKey,
 	idType,
 }: DishMediaMapProps) {
+	// #958 【修正】web の中央カラム内では window 実幅でカルーセルを描画するとカードが
+	// カラムからはみ出すため、カラム幅(native では画面幅)を基準にする
+	const contentWidth = useContentWidth();
+
 	const selector = useCallback(
 		(state: DishMediaEntriesStore) => selectIdsByKey(entriesKey, idType)(state),
 		[entriesKey, idType],
@@ -97,7 +106,10 @@ export default function DishMediaMap({
 	}, [ids, idType]);
 
 	// #802 【責務分離】Map は ids とレイアウト/Carousel 制御だけを担い、背景画像 preload の最小購読は hook に閉じる。
-	const backgroundImagesSessionKey = useMemo(() => `${entriesKey}::${idType}::${ids.join(",")}`, [entriesKey, idType, ids]);
+	const backgroundImagesSessionKey = useMemo(
+		() => `${entriesKey}::${idType}::${ids.join(",")}`,
+		[entriesKey, idType, ids],
+	);
 	const { getBackgroundImageState } = useDishMediaBackgroundImageResources({
 		ids,
 		idType,
@@ -166,7 +178,7 @@ export default function DishMediaMap({
 		}
 
 		// マップのアスペクト比
-		const aspectRatio = width / height;
+		const aspectRatio = contentWidth / height;
 
 		// 全ピンの最小・最大座標を取得
 		const latitudes = restaurants.map((restaurant) => restaurant.coordinate.latitude);
@@ -195,7 +207,7 @@ export default function DishMediaMap({
 			latitudeDelta: latDelta,
 			longitudeDelta: lngDelta,
 		};
-	}, [restaurants, initialLocation]);
+	}, [restaurants, initialLocation, contentWidth]);
 	const region = useMemo(() => getMapRegion(), [getMapRegion]);
 
 	useEffect(() => {
@@ -298,18 +310,22 @@ export default function DishMediaMap({
 	const renderCarouselItem = useCallback(
 		({ item, index }: { item: string; index: number }) => (
 			<View style={styles.carouselItem}>
-				<DishMediaContent
-					id={item}
-					carouselRef={carouselRef}
-					isActive={index === currentIndex}
-					getTitle={getTitle}
-					sessionId={sessionId.current}
-					entriesKey={entriesKey}
-					idType={idType}
-					onCardPress={handleCardPress} // #613 【設計】カード押下時のコールバックを渡す
-					displayIndex={index}
-					backgroundImageState={getBackgroundImageState(item)}
-				/>
+				{/* #940 【設計】1枚のカードの描画中例外(entry未取得等)で結果画面全体を巻き込まないよう、
+				    カード単位で ErrorBoundary を設置する(アプリ全体の ErrorBoundary は最終防波堤として別途設置済み) */}
+				<ErrorBoundary>
+					<DishMediaContent
+						id={item}
+						carouselRef={carouselRef}
+						isActive={index === currentIndex}
+						getTitle={getTitle}
+						sessionId={sessionId.current}
+						entriesKey={entriesKey}
+						idType={idType}
+						onCardPress={handleCardPress} // #613 【設計】カード押下時のコールバックを渡す
+						displayIndex={index}
+						backgroundImageState={getBackgroundImageState(item)}
+					/>
+				</ErrorBoundary>
 			</View>
 		),
 		[currentIndex, getTitle, entriesKey, idType, handleCardPress, getBackgroundImageState],
@@ -343,8 +359,11 @@ export default function DishMediaMap({
 				</View>
 			)}
 
+			{/* #940 【修正】centerContainer が通常のフローに置かれ zIndex も無かったため、
+			    直後に絶対配置される mapContainer(zIndex:1) の下敷きになり実質見えなくなっていた。
+			    最前面に絶対配置し、地図の下敷きにならないようにする */}
 			{error && (
-				<View style={styles.centerContainer}>
+				<View style={styles.errorOverlay}>
 					<Text style={styles.errorText}>{error}</Text>
 				</View>
 			)}
@@ -389,7 +408,7 @@ export default function DishMediaMap({
 				{/* Carousel - Bottom 4/5 of screen, overlapping map */}
 				<Carousel
 					ref={carouselRef}
-					width={width}
+					width={contentWidth}
 					height={CAROUSEL_HEIGHT}
 					data={ids}
 					renderItem={renderCarouselItem}
@@ -490,6 +509,19 @@ const styles = StyleSheet.create({
 		marginTop: 16,
 		color: "#FFF",
 		fontSize: 16,
+	},
+	// #940 【修正】mapContainer(zIndex:1)より前面に絶対配置し、地図の下敷きにならないようにする
+	errorOverlay: {
+		position: "absolute",
+		top: 0,
+		left: 0,
+		right: 0,
+		bottom: 0,
+		zIndex: 5,
+		justifyContent: "center",
+		alignItems: "center",
+		backgroundColor: "rgba(0, 0, 0, 0.85)",
+		paddingHorizontal: 20,
 	},
 	errorText: {
 		color: "#FF6B6B",

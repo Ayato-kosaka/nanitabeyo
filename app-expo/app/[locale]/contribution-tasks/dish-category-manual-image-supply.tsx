@@ -32,6 +32,7 @@ import { Env } from "@/constants/Env";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { Dimensions } from "react-native";
+import { toErrorLogMessage } from "@/lib/errorMessage";
 
 /* -------------------------------------------------------------------------- */
 /*                                    型定義                                   */
@@ -351,7 +352,7 @@ export default function DishCategoryManualImageSupplyScreen() {
 				logFrontendEvent({
 					event_name: "dish_manual_image_supply_upload_failed",
 					error_level: "error",
-					payload: { targetId: item.category_id, error: err instanceof Error ? err.message : String(err) },
+					payload: { targetId: item.category_id, error: toErrorLogMessage(err) },
 				});
 			}
 		},

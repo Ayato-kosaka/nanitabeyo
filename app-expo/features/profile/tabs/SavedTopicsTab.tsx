@@ -146,6 +146,8 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 				location: { place_id: location.place_id },
 				radius: DEFAULT_SEARCH_RADIUS,
 				priceLevels: [...DEFAULT_PRICE_LEVELS],
+				// #817 端末言語でレビューの並びが変わるためキーに含める
+				viewerLanguageCode: locale,
 			});
 
 			if (mediaIdsByKey[entriesKey] === undefined && !isLoadingByKey[entriesKey]) {
@@ -193,6 +195,20 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 		closeLocationModal();
 	}, [closeLocationModal]);
 
+	// #947 【仕様】空状態から検索画面へ1タップで戻れるCTA
+	const handleSearchByMood = useCallback(() => {
+		lightImpact();
+		router.push({
+			pathname: "/[locale]/(tabs)/search",
+			params: { locale },
+		});
+		logFrontendEvent({
+			event_name: "saved_topics_empty_cta_pressed",
+			error_level: "log",
+			payload: {},
+		});
+	}, [lightImpact, locale, logFrontendEvent]);
+
 	if (!isOwnProfile) {
 		return (
 			<View style={styles.privateContainer}>
@@ -215,6 +231,8 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 				onItemPress={handleTopicPress}
 				error={error}
 				onRetry={handleRefresh}
+				emptyActionLabel={i18n.t("Profile.buttons.searchByMood")}
+				onEmptyAction={handleSearchByMood}
 			/>
 
 			{/* Location Search Modal - Updated to use render-prop pattern */}
