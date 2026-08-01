@@ -73,19 +73,11 @@ export function useLocationField({ screen, onSelected }: Params) {
 	const onSelectedRef = useRef(onSelected);
 	onSelectedRef.current = onSelected;
 
-	/**
-	 * #953 details 取得に成功した地点だけを「最近使った場所」に保存する。
-	 * サジェスト経由は詳細が取れて初めて緯度経度が判るため、呼び出し元が取得後に呼ぶ。
-	 */
-	const registerRecentLocation = useCallback(
-		(details: LocationDetailsResponse, query: string) => {
-			// viewport はスプレッドすると型上は Omit していても実行時には残ってしまうため、明示的に除く。
-			// 残すと AsyncStorage に不要な入れ子が積まれ、同一地点の重複判定にも関係しない値が保存され続ける。
-			const { viewport: _viewport, ...locationWithoutViewport } = details;
-			addRecentLocation({ ...locationWithoutViewport, locationQuery: query });
-		},
-		[addRecentLocation],
-	);
+	// #1133 【設計】「最近使った場所」への登録関数はここには置かない。
+	// サジェスト経由の登録は details が解決してから（＝呼び出し元が遷移したあと）でないとできず、
+	// その時点でこのフックを持つフォームは閉じている。ここに置くと**本番から呼ばれない関数**が
+	// テストだけ緑になり、実際に走る呼び出し元側の実装（viewport の除去など）は無防備になる。
+	// 登録は呼び出し元が行い、そこでテストする（`features/profile/tabs/SavedTopicsTab.test.tsx`）。
 
 	/** サジェスト選択。ここでは details を取りに行かず、取得の要否は呼び出し元に委ねる */
 	const handleSelectSuggestion = useCallback(
@@ -178,6 +170,5 @@ export function useLocationField({ screen, onSelected }: Params) {
 		handleSelectRecentLocation,
 		handleUseCurrentLocation,
 		handleClear,
-		registerRecentLocation,
 	};
 }

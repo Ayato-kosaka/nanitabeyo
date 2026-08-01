@@ -10,8 +10,12 @@ import { useLocationField, type SelectedLocation } from "./useLocationField";
  *
  * ここで固定したいのは、保存料理タブに機能を足す過程で**ホームの既存挙動が変質しないこと**と、
  * ホームにしか無かった細かい仕様（失敗時の手入力誘導・最近使った場所は API を叩き直さない・
- * 保存時に viewport を落とす・再選択で MRU 先頭へ）が、共通化の過程で落ちないこと。
+ * 再選択で MRU 先頭へ）が、共通化の過程で落ちないこと。
  * これらは落ちても型では気付けず、画面を触って初めて判る種類の差分なので、テストで押さえる。
+ *
+ * ⚠️ 「最近使った場所」への登録（viewport を落として保存する）はこのフックの責務ではない。
+ * details が解決する頃にはフォームが閉じており、登録は呼び出し元が行うため、
+ * その検証は `features/profile/tabs/SavedTopicsTab.test.tsx` にある。
  */
 
 const mockGetCurrentLocation = jest.fn<Promise<Omit<LocationDetailsResponse, "viewport">>, []>();
@@ -52,16 +56,6 @@ const shibuya: RecentLocation = {
 const currentPosition: Omit<LocationDetailsResponse, "viewport"> = {
 	location: { latitude: 35.68, longitude: 139.76 },
 	address: "country:JP, locality:Tokyo",
-	localLanguageCode: "ja",
-};
-
-const detailsWithViewport: LocationDetailsResponse = {
-	location: { latitude: 34.985, longitude: 135.758 },
-	viewport: {
-		low: { latitude: 34.98, longitude: 135.75 },
-		high: { latitude: 34.99, longitude: 135.76 },
-	},
-	address: "country:JP, locality:Kyoto",
 	localLanguageCode: "ja",
 };
 
@@ -182,23 +176,6 @@ describe("#1133 useLocationField", () => {
 		// #1129 はホームの画面側に実装されていてフック内に無いため、ここで呼ばないと
 		// 「ホームでは先頭に来るが保存料理では来ない」不整合になる
 		expect(mockAddRecentLocation).toHaveBeenCalledWith(shibuya);
-	});
-
-	it("最近使った場所へ登録するとき、viewport を落として保存する", async () => {
-		await mount();
-
-		await act(async () => {
-			field.registerRecentLocation(detailsWithViewport, "京都駅");
-		});
-
-		expect(mockAddRecentLocation).toHaveBeenCalledWith({
-			location: detailsWithViewport.location,
-			address: detailsWithViewport.address,
-			localLanguageCode: detailsWithViewport.localLanguageCode,
-			locationQuery: "京都駅",
-		});
-		// スプレッドだけだと実行時に viewport が残るため、キーの不在を明示的に確かめる
-		expect(mockAddRecentLocation.mock.calls[0][0]).not.toHaveProperty("viewport");
 	});
 
 	it("サジェスト選択は details を取りに行かず、未解決のまま呼び出し元へ委ねる", async () => {

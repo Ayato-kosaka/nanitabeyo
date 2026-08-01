@@ -252,17 +252,20 @@ describe("#1133 SavedTopicsTab の地点確定", () => {
 		await act(async () => {
 			captured.onItemPress!(topic, 0);
 		});
+		// details が未解決のうちに遷移していることを見たいので、ここでは完了を待たない
+		let pending: Promise<void> | void;
 		await act(async () => {
-			await captured.onSubmit!(predictionKyoto);
+			pending = captured.onSubmit!(predictionKyoto);
 		});
 
-		// details が未解決のまま遷移していること。await してしまうと、モーダル上に
-		// ローディングとエラー処理が無い今は「押しても何も起きない」時間ができる
+		// details を await してから遷移すると、モーダル上にローディングもエラー処理も無い今は
+		// 「押しても何も起きない」時間ができる
 		expect(mockRouterPush).toHaveBeenCalledTimes(1);
 		expect(mockAddRecentLocation).not.toHaveBeenCalled();
 
 		await act(async () => {
 			resolveDetails(kyotoDetails);
+			await pending;
 			await Promise.all(mockUpdateMediaIdsByKeyAsync.mock.results.map((r) => r.value));
 		});
 		expect(mockAddRecentLocation).toHaveBeenCalledTimes(1);

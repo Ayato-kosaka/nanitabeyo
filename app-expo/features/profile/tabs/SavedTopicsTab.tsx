@@ -37,8 +37,10 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 	const { getLocationDetails } = useLocationSearch();
 	// #1133 【設計】「最近使った場所」への登録はここで行う。登録できるのは details が解決した後
 	// (＝遷移後に走る getIds() の中)であり、その時点でモーダル内の LocationSearchForm は
-	// 閉じているため、フォーム側が持つ useLocationField の registerRecentLocation は使えない。
+	// 閉じているため、フォーム側(useLocationField)には置けない。
 	// ストレージはホームと共有する(#953 の recent_locations_v1)ので、キーは増やさない。
+	// ⚠️ この経路の検証は SavedTopicsTab.test.tsx にある。viewport の除去・details を叩くかの分岐は
+	// 型では守れないため、ここを触ったら必ずテストを一緒に見ること。
 	const { addRecentLocation } = useRecentLocations();
 
 	const {
