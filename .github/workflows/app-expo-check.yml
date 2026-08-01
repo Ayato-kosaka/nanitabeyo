@@ -7,7 +7,9 @@ name: App Expo Check
 # - `expo prebuild` + `./gradlew :app:assembleDebug` は EAS Build の Android 側とほぼ同じ処理を通るため、
 #   config plugin の適用失敗・autolinking の破綻・compileSdk/targetSdk とサードパーティの衝突を
 #   EAS を消費せずに検出できる。
-# - iOS のネイティブビルドはこのワークフローの対象外（macOS ランナーが必要なため）。EAS で確認する。
+# - iOS も `pod install` + `xcodebuild`（シミュレータ向け・署名なし）まで通すことで、
+#   `use_frameworks!` 由来のヘッダ問題や Pod の非互換を EAS を消費せずに検出できる。
+#   実機向けの署名・アーカイブは EAS でのみ検証する。
 
 on:
   pull_request:
@@ -155,3 +157,83 @@ jobs:
       - name: 生成された APK を確認
         working-directory: app-expo
         run: find android -name "*.apk" -exec ls -lh {} \;
+
+  ios-build:
+    name: iOS ネイティブビルド（EAS の代替検証）
+    runs-on: macos-15
+    timeout-minutes: 90
+    steps:
+      - name: リポジトリを取得
+        uses: actions/checkout@v4
+
+      - name: PNPMをセットアップ
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10.8.0
+
+      - name: Node.jsをセットアップ
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: 依存関係をインストール
+        run: pnpm install --frozen-lockfile
+
+      - name: sharedパッケージをビルド
+        run: pnpm --filter shared build
+
+      - name: ネイティブプロジェクトを生成（prebuild）
+        working-directory: app-expo
+        # ios/ は Git 管理していないため、EAS Build と同じく毎回生成する。
+        # config plugin（expo-build-properties の useFrameworks、withNonModularHeaders 等）の
+        # 適用失敗はこの時点で検出できる。
+        run: npx expo prebuild --clean --platform ios --no-install
+
+      - name: CocoaPodsキャッシュ
+        uses: actions/cache@v4
+        with:
+          path: app-expo/ios/Pods
+          key: pods-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            pods-${{ runner.os }}-
+
+      - name: Podをインストール
+        working-directory: app-expo/ios
+        run: pod install
+
+      - name: iOS をビルド（シミュレータ向け・署名なし）
+        working-directory: app-expo/ios
+        # 実機向けの署名は EAS でのみ行う。ここではコンパイルが通ることだけを見る。
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -workspace nanitabeyo.xcworkspace \
+            -scheme nanitabeyo \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -quiet \
+            CODE_SIGNING_ALLOWED=NO \
+            build 2>&1 | tee /tmp/xcodebuild.log
+
+      - name: 失敗原因を抽出
+        if: failure()
+        run: |
+          echo "===== error: 行 ====="
+          grep -nE "^(.*error:|.*\*\* BUILD FAILED)" /tmp/xcodebuild.log | head -60 || echo "(該当なし)"
+          echo
+          echo "===== non-modular header 警告 ====="
+          grep -n "non-modular-include-in-framework-module" /tmp/xcodebuild.log | head -20 || echo "(該当なし)"
+          echo
+          echo "===== 末尾 120 行 ====="
+          tail -120 /tmp/xcodebuild.log
+
+      - name: xcodebuild ログを保存
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-log
+          path: /tmp/xcodebuild.log
+          if-no-files-found: ignore
+          retention-days: 14
