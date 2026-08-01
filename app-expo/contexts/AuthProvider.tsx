@@ -400,15 +400,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 				// 従来は finally に置かれていたため、上記デッドロックで到達せず
 				// 「ログアウトしても画面が変わらない」状態になっていた。
 				//
-				// ⚠️ 行き先を "/" にしてはいけない。app/index.tsx は Linking.getInitialURL() を見て
-				// 「ディープリンクの行き先」へ再リダイレクトする。この初期 URL は
-				//   - react-native-web: モジュール読み込み時の window.location.href を返し続ける
-				//     （react-native-web/dist/exports/Linking/index.js:13 でモジュールスコープに束縛）
-				//   - ネイティブ: アプリを起動した時の URL を返し続ける
-				// ため、/ja-JP/profile で開いたセッションでログアウトすると
-				// ホームではなく元の画面へ戻ってしまう（Web で実測）。
-				// ロケール直下＝ホーム（検索タブ）へ直接遷移する。
-				router.replace({ pathname: "/[locale]", params: { locale } });
+				// 行き先は "/"（app/index.tsx）。そこがロケールを解決してホーム（検索タブ）へ送る。
+				// ⚠️ ここを "/[locale]" のような «自分が乗っているレイアウト» へ replace すると、
+				// AuthProvider 自身（app/[locale]/_layout.tsx にマウントされている）を巻き込んで
+				// 再マウントが起き、Android でフリーズした（実機で実測）。
+				// 「ログアウト後にホームへ戻らない」問題は app/index.tsx 側で直している
+				// （初期 URL をディープリンクとして採用するのは初回マウントだけ）。
+				router.replace("/");
 			} else if (event === "PASSWORD_RECOVERY") {
 				// パスワード制のログイン機能を持たせる予定がないなら不要
 			} else if (event === "TOKEN_REFRESHED") {

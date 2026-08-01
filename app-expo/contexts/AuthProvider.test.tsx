@@ -235,11 +235,12 @@ describe("AuthProvider の 429 クールダウン（#1097）", () => {
 
 		// ★ 遷移は匿名サインインの成否に依存しない（従来は finally にあり、デッドロックで到達しなかった）
 		//
-		// ★ 行き先は "/" ではなくロケール直下（ホーム = 検索タブ）。
-		//   "/" だと app/index.tsx が Linking.getInitialURL()（web はモジュール読み込み時の URL、
-		//   ネイティブは起動時の URL を返し続ける）を見て元の画面へ戻してしまう（#1124, Web で実測）。
+		// 行き先は "/"（app/index.tsx がロケールを解決してホームへ送る）。
+		// AuthProvider は app/[locale]/_layout.tsx にマウントされているため、
+		// "/[locale]" のような «自分が乗っているレイアウト» へ replace すると
+		// 再マウントを巻き込んで Android がフリーズする（実機で実測）。
 		const { useRouter } = jest.requireMock("expo-router") as { useRouter: () => { replace: jest.Mock } };
-		expect(useRouter().replace).toHaveBeenCalledWith({ pathname: "/[locale]", params: { locale: "ja-JP" } });
+		expect(useRouter().replace).toHaveBeenCalledWith("/");
 	});
 
 	it("SIGNED_OUT でコールバックを抜けた直後に匿名サインインし、セッションを張り直す", async () => {

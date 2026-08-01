@@ -16,6 +16,15 @@ SplashScreen.preventAutoHideAsync();
 const isValidBcp47Tag = (tag: string): boolean => /^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*$/.test(tag);
 
 /**
+ * #1124 起動時の URL を «ディープリンクの行き先» として採用済みか。
+ *
+ * `Linking.getInitialURL()` は「今回のディープリンク」ではなく «起動時の URL» を返し続けるため、
+ * この画面が再マウントされるたびに参照すると、古い行き先へ繰り返し送ってしまう。
+ * アプリのプロセス寿命で 1 回だけ採用する（モジュールスコープに置くのはそのため）。
+ */
+let hasConsumedInitialUrl = false;
+
+/**
  * ディープリンクのパスを「アプリ内ルート」として解釈できるなら、その絶対パスを返す。
  *
  * #1027 先頭セグメントがロケールであることを条件にする。これによりロケール配下の画面
@@ -66,6 +75,24 @@ export default function App() {
 	const [initialPath, setInitialPath] = useState<string | null | undefined>(undefined);
 
 	useEffect(() => {
+		// #1124 【バグ】2 回目以降のマウントでは初期 URL を採用しない。
+		//
+		// Linking.getInitialURL() は「今回のディープリンク」ではなく «起動時の URL» を返し続ける。
+		//   - react-native-web: モジュール読み込み時の window.location.href に束縛される
+		//     （react-native-web/dist/exports/Linking/index.js:13）
+		//   - ネイティブ: アプリを起動した intent / URL のまま（onNewIntent では更新されない）
+		// そのため、ログアウト後に "/" へ遷移してこの画面が再マウントされると、
+		// 「起動時の URL」を新しいディープリンクと誤認し、ホームではなく元の画面
+		//（例: /ja-JP/profile）へ戻してしまう。Web で実測。
+		//
+		// 初回マウント（= コールドスタート）でだけ採用すれば、#1027 のディープリンク起動対応は
+		// そのまま成立する。
+		if (hasConsumedInitialUrl) {
+			setInitialPath(null);
+			return;
+		}
+		hasConsumedInitialUrl = true;
+
 		let cancelled = false;
 		Linking.getInitialURL()
 			.then((url) => {
