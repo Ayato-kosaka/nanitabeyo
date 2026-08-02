@@ -1,5 +1,7 @@
 import { Platform } from "react-native";
-import * as FileSystem from "expo-file-system";
+// #1156 Expo SDK 54 で expo-file-system は新 API が既定になった。
+// 旧 API(cacheDirectory / EncodingType / FileSystemUploadType 等)は legacy サブパスへ移動している。
+import * as FileSystem from "expo-file-system/legacy";
 
 import { Env } from "@/constants/Env";
 

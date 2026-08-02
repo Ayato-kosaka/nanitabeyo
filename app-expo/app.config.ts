@@ -196,6 +196,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 				],
 			},
 		],
+		// #1156 【設計】use_frameworks! 環境で React Native Core の非モジュラーヘッダ include が
+		// -Werror になるのを抑止する（react-native-maps が SDK 54 で踏んだ）。詳細はプラグイン内のコメント参照。
+		"./plugins/withNonModularHeaders",
 		[
 			"expo-build-properties",
 			{

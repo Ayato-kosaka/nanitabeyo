@@ -172,7 +172,8 @@ export function TutorialBottomSheet({
 		<TrueSheet
 			ref={sheetRef}
 			detents={["auto"]}
-			maxHeight={SHEET_MAX_HEIGHT}
+			// #1156 true-sheet 3.11 で maxHeight は maxContentHeight へ改名された
+			maxContentHeight={SHEET_MAX_HEIGHT}
 			style={{ height: "100%" }}
 			cornerRadius={24}
 			backgroundColor="#FFFFFF"
