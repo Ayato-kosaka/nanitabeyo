@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { readE2ETutorialSeen } from "@/lib/e2e/tutorialSeed";
 import { useLogger } from "@/hooks/useLogger";
 import { toErrorLogMessage } from "@/lib/errorMessage";
 import type { TopicsTutorialOpenReason } from "@/features/topics/types/tutorial";
@@ -49,6 +50,22 @@ export function useTopicsTutorial({ canAutoOpen }: UseTopicsTutorialOptions) {
 		let isMounted = true;
 
 		const loadTutorialState = async () => {
+			// #1156 【設計】E2E(Detox) では起動引数で視聴済みフラグを固定できる。
+			// useSearchTutorial と同じシード方式へ揃える（#1027 の「出ていたら閉じる」ではなくシードする方針）。
+			//
+			// これが無いと、料理提案画面へ入る spec は毎回スポットライトチュートリアルと競合する。
+			// 実際 Expo SDK 54 化（#1156）で Carousel の高さ確定タイミングが変わった結果、
+			// canAutoOpen が成立する瞬間がずれ、iOS の search-double-tap / topics-flow が
+			// 「チュートリアルがヘッダーを覆って screen-header-back を押せない」で落ちるようになった。
+			//
+			// 通常ビルドでは metro の resolver が noop 実装へ差し替えるため、この関数は常に null を返す
+			// （= 以下の AsyncStorage 読み込みへそのまま進み、本番と 1 バイトも挙動が変わらない）。
+			const seeded = readE2ETutorialSeen();
+			if (seeded !== null) {
+				if (isMounted) setHasSeenTutorial(seeded);
+				return;
+			}
+
 			try {
 				const storedValue = await AsyncStorage.getItem(TOPICS_TUTORIAL_STORAGE_KEY);
 				if (isMounted) {

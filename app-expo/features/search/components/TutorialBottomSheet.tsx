@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { View, StyleSheet, TouchableOpacity, Text, FlatList } from "react-native";
 import { TrueSheet } from "@lodev09/react-native-true-sheet";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { TutorialPage } from "@/components/TutorialPage";
 import { useContentWidth } from "@/hooks/useContentWidth";
 import i18n from "@/lib/i18n";
@@ -56,6 +57,11 @@ export function TutorialBottomSheet({
 	// なって崩れていた。中央カラム対応の useContentWidth でカラム幅に合わせる
 	// (native では従来通り画面幅が返るため挙動は変わらない)
 	const contentWidth = useContentWidth();
+	// #1156 【バグ】Expo SDK 54 で Android の edge-to-edge が強制になり、アプリのウィンドウが
+	// ナビゲーションバーの下まで広がるようになった。footer は paddingBottom を固定値で持っていたため、
+	// 最下段の「あとで」がナビゲーションバーに隠れて操作できなくなっていた
+	// （E2E: android search-tutorial が completeTutorial のタップ待ちで安定して失敗）。
+	const insets = useSafeAreaInsets();
 
 	// ページング用 FlatList の ref
 	const listRef = useRef<FlatList<TutorialPageConfig> | null>(null);
@@ -172,8 +178,9 @@ export function TutorialBottomSheet({
 		<TrueSheet
 			ref={sheetRef}
 			detents={["auto"]}
-			// #1156 true-sheet 3.11 で maxHeight は maxContentHeight へ改名された
-			maxContentHeight={SHEET_MAX_HEIGHT}
+			// #1156 true-sheet 3.11 で maxHeight は maxContentHeight へ改名された。
+			// inset ぶん footer が伸びるので、上限も同じだけ広げて中身が潰れないようにする
+			maxContentHeight={SHEET_MAX_HEIGHT + insets.bottom}
 			style={{ height: "100%" }}
 			cornerRadius={24}
 			backgroundColor="#FFFFFF"
@@ -207,7 +214,7 @@ export function TutorialBottomSheet({
 				/>
 
 				{/* 下：固定フッター（インジケータ + CTA） */}
-				<View style={styles.footer}>
+				<View style={[styles.footer, { paddingBottom: styles.footer.paddingBottom + insets.bottom }]}>
 					{/* ページインジケータ */}
 					<View style={styles.indicatorContainer}>
 						{tutorialPages.map((_, index) => (
