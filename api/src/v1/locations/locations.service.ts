@@ -616,6 +616,13 @@ export class LocationsService {
    * これは NEVER_COLLAPSE_TRANSIT_TYPES による type ベースの保護より堅い:
    * 実環境には bus_station を持たない(types が establishment / point_of_interest
    * だけの)バス停が存在し、deny-list だけでは守れないため。
+   *
+   * 【受容済みリスク】(PR #1175 の独立レビュー 指摘3)
+   * 鉄道駅と同名で、かつ bus 系 type が欠落して transit_station だけを持つバス停は
+   * 畳まれる。上記のとおり Google の type 付与は欠落し得るため、deny-list による
+   * 保護は bus 系 type が付いている場合に限られる。
+   * この型シルエットは #1123 で畳みたい「駅施設側」候補と type だけでは区別できず、
+   * 畳まなければ #1123 が直らないため、畳む側を選んでいる。
    */
   private static readonly COLLAPSIBLE_TRANSIT_TYPES: ReadonlySet<string> =
     new Set([...LocationsService.RAIL_STATION_TYPES, 'transit_station']);

@@ -941,6 +941,86 @@ describe('LocationsService', () => {
       ]);
     });
 
+    it('should not treat a bus terminal as the evidence that a rail station exists', async () => {
+      // #1123 【テスト】ルール3-b(i) の「NEVER_COLLAPSE_TRANSIT_TYPES を持つ候補は
+      // 畳み込みの"根拠"としても数えない」を固定する。
+      //
+      // ここで並ぶ鉄道駅固有 type(train_station)は、バス停 type を併記した
+      // バスターミナル候補だけが持っている。根拠から除外しなければ、この1件を根拠に
+      // 同名の transit_station 候補が畳まれてしまう。
+      // (PR #1175 の独立レビュー M2: この除外を実装から削っても全テストが緑だった)
+      mockExternalApiService.callPlacesAutocomplete.mockResolvedValue({
+        suggestions: [
+          buildSuggestion(
+            'place-bus-terminal',
+            '渋谷駅',
+            '日本、東京都渋谷区(バスターミナル)',
+            [
+              'train_station',
+              'bus_station',
+              'transit_station',
+              'point_of_interest',
+              'establishment',
+            ],
+          ),
+          buildSuggestion('place-transit-only-a', '渋谷駅', '日本、東京都渋谷区', [
+            'transit_station',
+            'point_of_interest',
+            'establishment',
+          ]),
+          buildSuggestion(
+            'place-transit-only-b',
+            '渋谷駅',
+            '日本、東京都渋谷区道玄坂',
+            ['transit_station', 'point_of_interest', 'establishment'],
+          ),
+        ],
+      } as never);
+
+      const result = await service.autocompleteLocations(mockQuery);
+
+      // 鉄道駅固有 type はバスターミナルしか持たないため根拠が成立せず、3件とも残る。
+      // 根拠から除外しないと、transit_station だけの2件が畳まれて2件に減る。
+      expect(result.map((place) => place.place_id)).toEqual([
+        'place-bus-terminal',
+        'place-transit-only-a',
+        'place-transit-only-b',
+      ]);
+    });
+
+    it('should keep a same-name candidate that has no transit type even when a rail station exists', async () => {
+      // #1123 【テスト】ルール3-b(ii) の「候補自身が COLLAPSIBLE_TRANSIT_TYPES を
+      // 持たなければ畳まない」を固定する。
+      //
+      // 受入条件5(八景島駅前 バス停)のケースは同名の鉄道駅が居ないため (i) の段階で
+      // 弾かれ、(ii) は一度も判定を左右していなかった。ここでは鉄道駅を同居させて
+      // (ii) だけが効く経路を通す。
+      // (PR #1175 の独立レビュー M3: (ii) を実装から削っても全テストが緑だった)
+      mockExternalApiService.callPlacesAutocomplete.mockResolvedValue({
+        suggestions: [
+          buildSuggestion('place-rail-station', '八景島', '日本、神奈川県横浜市', [
+            'train_station',
+            'transit_station',
+            'point_of_interest',
+            'establishment',
+          ]),
+          buildSuggestion(
+            'place-no-transit-type',
+            '八景島',
+            '日本、神奈川県横浜市金沢区海の公園',
+            ['establishment', 'point_of_interest'],
+          ),
+        ],
+      } as never);
+
+      const result = await service.autocompleteLocations(mockQuery);
+
+      expect(result.map((place) => place.place_id)).toEqual([
+        'place-rail-station',
+        'place-no-transit-type',
+      ]);
+    });
+
     it('should keep same-name tram stops on opposite sides of the street', async () => {
       // #1123 【テスト】PR #1149 レビュー指摘(Minor): 路面電車の停留場は運用上バス停に
       // 近く、上り/下りが同名で道路を挟んだ別地点として登録される地域がある。
