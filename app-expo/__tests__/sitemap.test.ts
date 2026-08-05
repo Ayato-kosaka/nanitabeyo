@@ -233,7 +233,12 @@ describe("buildSitemapXml", () => {
 	});
 
 	it("baseUrl の末尾スラッシュを正規化する", () => {
-		expect(buildSitemapXml({ baseUrl: "https://example.test/" })).toContain("<loc>https://example.test/ja-JP</loc>");
+		// baseUrl 末尾の "/" と locale の間で "//" にならないこと。
+		// ロケールのトップ（`""`）は #721 の実測で実体が無いと分かったため
+		// SITEMAP_ROUTES から外してある。実在するルートで同じ不変条件を固定する。
+		expect(buildSitemapXml({ baseUrl: "https://example.test/" })).toContain(
+			"<loc>https://example.test/ja-JP/search</loc>",
+		);
 	});
 
 	it("URL を 1 件も出せない条件では throw する", () => {
