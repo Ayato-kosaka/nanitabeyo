@@ -40,7 +40,23 @@ import { PUBLIC_LOCALES } from "@/constants/seoLocales";
  *    落とせないので両方載せている。canonical はどちらも自分自身を指すので、
  *    どちらを正とするかは検索エンジン側の判断に委ねる。
  */
-export const SITEMAP_ROUTES = ["", "search", "map", "review", "review/selectRestaurant"] as const;
+export const SITEMAP_ROUTES = ["search", "map", "review", "review/selectRestaurant"] as const;
+
+/**
+ * #721 【重要】ロケールのトップ（`""` = `/en-US` など）は**意図的に外している**。
+ *
+ * `app/[locale]/` には `index.tsx` が無く（あるのは `_layout.tsx` / `+not-found.tsx` / `(tabs)/`）、
+ * `expo export` は `dist/en-US/index.html` も `dist/en-US.html` も生成しない。
+ * そのため `/en-US` は `cleanUrls` でヒットせず catch-all `**` → `/index.html` に落ち、
+ * **title も description も canonical も無い空の SPA シェル**が返る。
+ * これは Hosting エミュレータで実測した（PR #1182 の検証コメント）。
+ *
+ * 実体の無い URL を sitemap に載せると、8 ロケール分すべてが同一の空シェルとして
+ * クローラへ提出されることになる。載せない方が正しい。
+ *
+ * ロケールのトップも検索結果に出したくなったら、先に `app/[locale]/index.tsx` を作って
+ * 実体の HTML が生成されることを確認してから、ここへ `""` を戻すこと。
+ */
 
 /**
  * `hreflang="x-default"` が指すロケール。
