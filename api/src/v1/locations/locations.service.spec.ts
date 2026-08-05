@@ -621,31 +621,71 @@ describe('LocationsService', () => {
       expect(result[0].place_id).toBe('ChIJz8MVLFiLGGARXP0DqqhoDow');
     });
 
-    it('should keep the top-ranked station and preserve relevance order of other candidates', async () => {
-      // #1123 【受入条件1,3】【テスト】重複した駅候補を畳んでも、他候補の
-      // 関連度順(元の配列順)が維持されること。「渋谷駅前」は別名なので残る。
+    it('should reproduce the real development response for 渋谷駅', async () => {
+      // #1123 【受入条件1,3】【テスト】development 実環境の Autocomplete レスポンス
+      // 5件をそのまま fixture にしたケース(Issue #1123 の検証コメントの実測値)。
+      // - 同名の駅候補2件は先頭の1件だけが残る(受入条件1)
+      // - 「渋谷駅前」(premise, geocode)は別キーなので残る(受入条件3)。
+      //   同名の establishment が無いためルール2でも落ちない
+      // - 「渋谷駅 みどりの窓口」は正規化後も別キーなので残る
+      // - 返却順は Google の関連度順を維持する
       mockExternalApiService.callPlacesAutocomplete.mockResolvedValue({
         suggestions: [
           buildSuggestion(
             'ChIJz8MVLFiLGGARXP0DqqhoDow',
             '渋谷駅',
             '日本、東京都渋谷区',
-            ['train_station', 'transit_station', 'establishment'],
+            [
+              'point_of_interest',
+              'transportation_service',
+              'establishment',
+              'transit_station',
+            ],
           ),
-          buildSuggestion('place-square', '渋谷駅前', '日本、東京都渋谷区', [
-            'bus_station',
-            'transit_station',
-            'establishment',
-          ]),
           buildSuggestion(
             'ChIJnxAAO1aLGGARJqvi8d4oczM',
             '渋谷駅',
             '日本、東京都渋谷区渋谷２丁目２４',
             [
+              'transportation_service',
+              'point_of_interest',
               'train_station',
-              'subway_station',
               'transit_station',
               'establishment',
+              'subway_station',
+            ],
+          ),
+          buildSuggestion(
+            'ChIJN8-zcVeLGGARk4cjUnp9z-I',
+            '渋谷駅前おおしま皮膚科',
+            '日本、東京都渋谷区桜丘町２５−１８',
+            [
+              'point_of_interest',
+              'health',
+              'hair_care',
+              'establishment',
+              'doctor',
+              'service',
+              'beauty_salon',
+              'hospital',
+              'medical_clinic',
+            ],
+          ),
+          buildSuggestion(
+            'ChIJ97I--VeLGGARy5_VNv4n3iw',
+            '渋谷駅前',
+            '日本、東京都渋谷区',
+            ['premise', 'geocode'],
+          ),
+          buildSuggestion(
+            'ChIJ4cnQLFiLGGARSKxwdYkpEkI',
+            '渋谷駅 みどりの窓口',
+            '日本、東京都渋谷区道玄坂１丁目１',
+            [
+              'establishment',
+              'train_ticket_office',
+              'transportation_service',
+              'point_of_interest',
             ],
           ),
         ],
@@ -655,33 +695,123 @@ describe('LocationsService', () => {
 
       expect(result.map((place) => place.place_id)).toEqual([
         'ChIJz8MVLFiLGGARXP0DqqhoDow',
-        'place-square',
+        'ChIJN8-zcVeLGGARk4cjUnp9z-I',
+        'ChIJ97I--VeLGGARy5_VNv4n3iw',
+        'ChIJ4cnQLFiLGGARSKxwdYkpEkI',
       ]);
     });
 
+    it.each([
+      {
+        query: '新宿駅',
+        first: {
+          placeId: 'ChIJu9ljKNeMGGARcFUr-NmJhAk',
+          types: [
+            'transit_station',
+            'transportation_service',
+            'point_of_interest',
+            'establishment',
+          ],
+        },
+        second: {
+          placeId: 'ChIJH7qx1tCMGGAR1f2s7PGhMhw',
+          types: [
+            'train_station',
+            'subway_station',
+            'transit_station',
+            'transportation_service',
+            'point_of_interest',
+            'establishment',
+          ],
+        },
+      },
+      {
+        query: '東京駅',
+        first: {
+          placeId: 'ChIJu2cU7vuLGGART-M-fm6LD0E',
+          types: [
+            'transit_station',
+            'transportation_service',
+            'point_of_interest',
+            'establishment',
+          ],
+        },
+        second: {
+          placeId: 'ChIJC3Cf2PuLGGAROO00ukl8JwA',
+          types: [
+            'train_station',
+            'subway_station',
+            'transit_station',
+            'transportation_service',
+            'point_of_interest',
+            'establishment',
+          ],
+        },
+      },
+    ])(
+      'should keep only the top-ranked candidate for $query (same structure as 渋谷駅)',
+      async ({ query, first, second }) => {
+        // #1123 【受入条件1】【テスト】渋谷駅固有の問題ではないことの回帰テスト。
+        // 実環境検証(Issue #1123 の検証コメント)で、新宿駅・東京駅も
+        // 「関連度順の先頭は transit_station のみ / 2件目が train_station を持つ」
+        // という同一構造だと実測されている。
+        mockExternalApiService.callPlacesAutocomplete.mockResolvedValue({
+          suggestions: [
+            buildSuggestion(first.placeId, query, '日本、東京都', first.types),
+            buildSuggestion(
+              second.placeId,
+              query,
+              '日本、東京都(番地レベル)',
+              second.types,
+            ),
+          ],
+        } as never);
+
+        const result = await service.autocompleteLocations({
+          ...mockQuery,
+          q: query,
+        });
+
+        expect(result.map((place) => place.place_id)).toEqual([first.placeId]);
+      },
+    );
+
     it('should still keep same-name chain branches after the station rule was added', async () => {
       // #1123 【受入条件2】【テスト】「スターバックス」のような同名だが別の実店舗は
-      // 鉄道駅 type を持たないため新ルールの対象外で、引き続き複数返ること
+      // 交通施設 type を持たないため新ルールの対象外で、引き続き複数返ること
       // (#952 の意図を壊していないことの回帰テスト)。
+      // types は実環境検証の「スターバックス」レスポンス実測値。実環境では 5 件の
+      // mainText が全て異なり同名衝突が起きなかったため、mainText / secondaryText を
+      // 揃えて同名衝突を意図的に作っている(実測値どおりだとルール3を通過しない)。
+      const realStarbucksTypes = [
+        'store',
+        'food_store',
+        'point_of_interest',
+        'bar',
+        'coffee_shop',
+        'establishment',
+        'food',
+        'cafe',
+      ];
       mockExternalApiService.callPlacesAutocomplete.mockResolvedValue({
         suggestions: [
           buildSuggestion(
-            'place-sbux-shibuya',
+            'ChIJq_fYt4iLGGARrOojmQ4IMyE',
             'スターバックスコーヒー',
-            '日本、東京都渋谷区道玄坂',
-            ['cafe', 'food', 'point_of_interest', 'establishment'],
+            '日本、東京都目黒区青葉台２丁目１９−２３',
+            realStarbucksTypes,
           ),
           buildSuggestion(
             'place-sbux-udagawa',
             'スターバックスコーヒー',
             '日本、東京都渋谷区宇田川町',
-            ['cafe', 'food', 'point_of_interest', 'establishment'],
+            realStarbucksTypes,
           ),
           buildSuggestion(
             'place-sbux-ebisu',
             'スターバックスコーヒー',
             '日本、東京都渋谷区恵比寿',
-            ['cafe', 'food', 'point_of_interest', 'establishment'],
+            realStarbucksTypes,
           ),
         ],
       } as never);
@@ -689,7 +819,7 @@ describe('LocationsService', () => {
       const result = await service.autocompleteLocations(mockQuery);
 
       expect(result.map((place) => place.place_id)).toEqual([
-        'place-sbux-shibuya',
+        'ChIJq_fYt4iLGGARrOojmQ4IMyE',
         'place-sbux-udagawa',
         'place-sbux-ebisu',
       ]);
@@ -701,6 +831,8 @@ describe('LocationsService', () => {
       // (例: ["bus_station", "transit_station", "point_of_interest", "establishment"])。
       // 同名でも進行方向・のりば違いで別地点として正当に併存するため、
       // 両方が残らなければならない。
+      // 二重の保護がかかる: (i) 同名に鉄道駅固有 type を持つ候補が無いので
+      // ルール3-b の根拠が成立しない、(ii) NEVER_COLLAPSE_TRANSIT_TYPES に該当する。
       mockExternalApiService.callPlacesAutocomplete.mockResolvedValue({
         suggestions: [
           buildSuggestion(
@@ -731,10 +863,89 @@ describe('LocationsService', () => {
       ]);
     });
 
+    it('should keep same-name bus stops even when a real rail station shares the name', async () => {
+      // #1123 【受入条件4】【テスト】鉄道駅と同名のバス停が並ぶケース。
+      // 駅候補があるためルール3-b の根拠は成立するが、バス停は
+      // NEVER_COLLAPSE_TRANSIT_TYPES による deny-list で常に残る。
+      // (transit_station を畳み込み対象へ戻してもバス停保護が壊れないことの回帰テスト)
+      mockExternalApiService.callPlacesAutocomplete.mockResolvedValue({
+        suggestions: [
+          buildSuggestion(
+            'ChIJnxAAO1aLGGARJqvi8d4oczM',
+            '渋谷駅',
+            '日本、東京都渋谷区渋谷２丁目２４',
+            [
+              'train_station',
+              'subway_station',
+              'transit_station',
+              'point_of_interest',
+              'establishment',
+            ],
+          ),
+          buildSuggestion('place-bus-hachiko', '渋谷駅', '日本、東京都渋谷区', [
+            'bus_station',
+            'transit_station',
+            'point_of_interest',
+            'establishment',
+          ]),
+          buildSuggestion(
+            'place-bus-dogenzaka',
+            '渋谷駅',
+            '日本、東京都渋谷区道玄坂',
+            [
+              'bus_stop',
+              'transit_station',
+              'point_of_interest',
+              'establishment',
+            ],
+          ),
+        ],
+      } as never);
+
+      const result = await service.autocompleteLocations(mockQuery);
+
+      expect(result.map((place) => place.place_id)).toEqual([
+        'ChIJnxAAO1aLGGARJqvi8d4oczM',
+        'place-bus-hachiko',
+        'place-bus-dogenzaka',
+      ]);
+    });
+
+    it('should keep same-name candidates whose types are only establishment and point_of_interest', async () => {
+      // #1123 【受入条件5】【テスト】実環境検証で見つかった「types が
+      // establishment / point_of_interest だけのバス停」(例: 八景島駅前 バス停)。
+      // deny-list(bus_station 等)では守れないが、交通施設 type を持たないため
+      // ルール3-b の対象外となり両方残る。mainText は同じ(secondaryText だけ違う)。
+      mockExternalApiService.callPlacesAutocomplete.mockResolvedValue({
+        suggestions: [
+          buildSuggestion(
+            'ChIJw3k2HQBBGGARN0m20RcqInE',
+            '八景島駅前 バス停',
+            '日本、神奈川県横浜市金沢区海の公園１０',
+            ['establishment', 'point_of_interest'],
+          ),
+          buildSuggestion(
+            'place-bus-stop-opposite',
+            '八景島駅前 バス停',
+            '日本、神奈川県横浜市金沢区海の公園４０',
+            ['establishment', 'point_of_interest'],
+          ),
+        ],
+      } as never);
+
+      const result = await service.autocompleteLocations(mockQuery);
+
+      expect(result.map((place) => place.place_id)).toEqual([
+        'ChIJw3k2HQBBGGARN0m20RcqInE',
+        'place-bus-stop-opposite',
+      ]);
+    });
+
     it('should keep same-name tram stops on opposite sides of the street', async () => {
       // #1123 【テスト】PR #1149 レビュー指摘(Minor): 路面電車の停留場は運用上バス停に
       // 近く、上り/下りが同名で道路を挟んだ別地点として登録される地域がある。
-      // light_rail_station も畳み対象にしないことを守る。
+      // light_rail_station は畳み込みの根拠(RAIL_STATION_TYPES)に含めないため、
+      // 停留場同士だけが並ぶこのケースは transit_station を併せ持っていても畳まれない。
       mockExternalApiService.callPlacesAutocomplete.mockResolvedValue({
         suggestions: [
           buildSuggestion('place-tram-1', '広電西広島', '日本、広島県広島市', [
