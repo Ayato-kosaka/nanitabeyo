@@ -171,6 +171,14 @@ Workerへ渡すpromptには、必要な項目だけを具体的に含める。
 
 `workflow_dispatch` はClaude Code Actionのagent modeで動く。GitHub MCPを利用するrunでは、必要な `mcp__github__...` を `extra_claude_args` の `--allowedTools` へ明示する。指定がなければGitHub MCP serverは読み込まれず、`gh`を使う場合もBash権限が必要になる。
 
+**`extra_claude_args` の指定漏れは `conclusion: success` のまま無音で失敗する**。ツールが拒否されてもrunは成功扱いで終わるため、「実行されたのに成果物が無い」という、branch未作成のケースと同じ壊れ方をする。実際にPR #1175のレビューrunで、`--allowedTools` を渡し忘れたためGitHub MCPもBashも使えず、20分走ってコメントもテスト実行も無いまま success で終わった（Step Summaryに `permission_denials_count=46` の警告だけが残る）。
+
+したがって次を守る。
+
+- ワーカーへ何かを**投稿させる**runでは、`--allowedTools` に投稿用ツール（`mcp__github__add_issue_comment` 等）を必ず含める。PRコメントも `add_issue_comment` にPR番号を渡す。
+- ワーカーに**テストを実行させる**runでは `Bash` を含める。含めないと「検証した」と書いてあっても実際には何も実行されていない。
+- run完了後は `conclusion` を見ず、**期待した成果物（コメント、branch、commit）が実在するかをAPIで確認する**。無ければ、まずStep Summaryの `permission_denials_count` を疑う。
+
 役割に応じて、次から必要なものだけを選ぶ。
 
 - Issue設計: `Read,Grep,Glob,mcp__github__get_issue,mcp__github__get_issue_comments,mcp__github__add_issue_comment`
