@@ -90,7 +90,7 @@ if [[ "$remote_sha" != "$expected_sha" ]]; then
 fi
 
 # 対象release refにworkflow定義が存在し、GitHubから参照可能なことをdispatch前に確認する。
-gh workflow view "$workflow" --ref "$release_ref" >/dev/null
+gh workflow view "$workflow" --ref "$release_ref" --yaml >/dev/null
 
 # gh workflow runはrun IDを直接返さない。そのためdispatch直前のUTC時刻を記録し、
 # 同じbranch・workflow・head SHAかつ、この時刻以降に作られたrunだけを候補にする。

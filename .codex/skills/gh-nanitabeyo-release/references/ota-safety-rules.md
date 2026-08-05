@@ -109,6 +109,18 @@ platform suffixと条件付きimportも確認する。Metroのnative bundleが�
 
 version復元が変更するのは配信先metadataであり、ネイティブ非互換は修復しない。
 
+### `ota-safe-with-native-neutralization`
+
+全体マージを起点にし、対象バイナリに存在しないネイティブ機能だけを明示的に除外、revert、または無効化した最終ツリーが、実配布済みbuildと互換になる場合に使う。必要なら対象versionも復元する。
+
+- neutralization対象をpackage、config plugin、native asset、source import、実行時hookの単位で列挙する。
+- ネイティブ機能を外したことで残るJS経路、fallback、関連testも確認する。
+- 最終的なproduction dependencyとlockfile解決結果を、対象の実配布済みbuildと比較する。
+- 監査した最終ツリーの完全SHAをPRとGo/No-Go表へ記録する。
+- 過去releaseで使った除外セットを恒久的なallowlistにせず、sourceと対象buildごとに再検証する。
+
+これはcommit単位のcherry-pickが変更の依存関係を分断する場合に選べる。単にnative関連ファイルを削除しただけではsafeとせず、bundleが不足moduleや設定を参照しないことまで確認する。
+
 ### `full-merge-ota-unsafe`
 
 マージ後ソースのどこかが、対象バイナリに存在しない、または異なるネイティブ挙動を必要とする場合に使う。例:
@@ -155,7 +167,17 @@ version復元が必要な場合:
 - マージ直前にbase/head SHAを再確認する。
 - `gh pr merge --merge`を使い、squash/rebaseは禁止する。
 
-全体マージがunsafeな場合:
+全体マージがそのままunsafeな場合、次のどちらかを選ぶ。
+
+### 全体マージとnative neutralization
+
+- ソース全体を`--no-ff`でマージし、出典と機能間の依存関係を維持する。
+- 対象バイナリにないネイティブ機能だけを、承認された一覧に従って除外、revert、または無効化する。
+- 必要ならトップレベルversionだけを対象releaseへ戻す。
+- 最終ツリーに対してinstall、typecheck、関連test、bundle解決、production dependencyとlockfileの比較を行う。
+- neutralization対象、検証結果、最終SHAをPRへ記録する。
+
+### 最小バックポート
 
 - 一貫して動作する最小修正を選ぶ。
 - `cherry-pick -x`で出典を残す。
