@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { View, StyleSheet, TouchableOpacity, Text, FlatList } from "react-native";
+import { View, StyleSheet, TouchableOpacity, Text, FlatList, useWindowDimensions } from "react-native";
 import { TrueSheet } from "@lodev09/react-native-true-sheet";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { TutorialPage } from "@/components/TutorialPage";
@@ -62,6 +62,14 @@ export function TutorialBottomSheet({
 	// 最下段の「あとで」がナビゲーションバーに隠れて操作できなくなっていた
 	// （E2E: android search-tutorial が completeTutorial のタップ待ちで安定して失敗）。
 	const insets = useSafeAreaInsets();
+	const { height: windowHeight } = useWindowDimensions();
+	// #1156 【バグ】コンテンツ側の高さを明示しないと、`detents={["auto"]}` の測定結果が
+	// 「中身の自然な高さ」になり、シートの表示領域より高いレイアウトがそのまま組まれる。
+	// その状態では container の `flex: 1` も FlatList の `flex: 1` も配分する土台を持たないため、
+	// 下端の固定フッター（CTA と「あとで」）がシートの外へはみ出して操作できなくなっていた。
+	// safe-area inset と flexShrink の修正がレイアウトを 1px も動かさなかったのはこのためである。
+	// 高さを確定させることで FlatList が縮み、フッターは必ずシート内へ収まる。
+	const sheetContentHeight = Math.min(SHEET_MAX_HEIGHT + insets.bottom, windowHeight * 0.85);
 
 	// ページング用 FlatList の ref
 	const listRef = useRef<FlatList<TutorialPageConfig> | null>(null);
@@ -189,7 +197,9 @@ export function TutorialBottomSheet({
 			dismissible
 			onDidDismiss={handleDidDismiss}>
 			{/* #1031 【設計】Detox からチュートリアル表示を検証できるよう testID を追加 */}
-			<View testID="search-tutorial-overlay" style={[styles.container, { width: contentWidth }]}>
+			<View
+				testID="search-tutorial-overlay"
+				style={[styles.container, { width: contentWidth, height: sheetContentHeight }]}>
 				{/* 上：横スワイプで動くコンテンツ */}
 				<FlatList
 					ref={listRef}
@@ -260,10 +270,13 @@ export function TutorialBottomSheet({
 const styles = StyleSheet.create({
 	// Sheet 内コンテンツラッパー(width は contentWidth をインラインで指定)
 	container: {
-		flex: 1,
+		// #1156 高さは sheetContentHeight をインラインで指定する（flex: 1 では親が
+		// 自然高さのため土台にならない）
 		alignSelf: "center",
 	},
 	footer: {
+		// #1156 コンテンツが多いページでもフッターだけは縮ませない
+		flexShrink: 0,
 		paddingHorizontal: 24,
 		paddingBottom: 24,
 		paddingTop: 8,
