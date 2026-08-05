@@ -580,9 +580,11 @@ describe('LocationsService', () => {
 
     it('should keep only the top-ranked candidate for same-name station establishments', async () => {
       // #1123 【受入条件1】【テスト】渋谷駅が2件の establishment(どちらも駅・交通施設)
-      // として返るケース。実データの place_id / types を fixture に使用。
-      // 双方 establishment のため #952 のルールでは畳めなかったが、鉄道駅 type を持つ
-      // 同名候補なので Google の関連度順で先頭の1件だけが残ること。
+      // として返るケース。types は development 実環境の Autocomplete レスポンス実測値
+      // (Issue #1123 の検証コメント)をそのまま使用する。
+      // 重要: 関連度順で先頭の候補は train_station / subway_station を持たず、
+      // 交通系 type は汎用の transit_station だけである。fixture をここから外すと
+      // 実装が壊れていてもテストが緑になる(PR #1149 で実際に起きた事故)。
       mockExternalApiService.callPlacesAutocomplete.mockResolvedValue({
         suggestions: [
           buildSuggestion(
@@ -590,11 +592,10 @@ describe('LocationsService', () => {
             '渋谷駅',
             '日本、東京都渋谷区',
             [
-              'train_station',
-              'subway_station',
-              'transit_station',
               'point_of_interest',
+              'transportation_service',
               'establishment',
+              'transit_station',
             ],
           ),
           buildSuggestion(
@@ -602,11 +603,12 @@ describe('LocationsService', () => {
             '渋谷駅',
             '日本、東京都渋谷区渋谷２丁目２４',
             [
-              'train_station',
-              'subway_station',
-              'transit_station',
+              'transportation_service',
               'point_of_interest',
+              'train_station',
+              'transit_station',
               'establishment',
+              'subway_station',
             ],
           ),
         ],
