@@ -176,15 +176,62 @@ main へマージする段で、次を実施してください。
 - [ ] `nanitabeyo_logs_dev` でエラーが出ていないことを確認
 - [ ] **最新 main を development へ再デプロイして復旧**（成否にかかわらず必須）
 
-### #1112 を required check にするか（未設定）
+### #1112 を required check にするか → **required 化を推奨（オーナーの操作が必要）**
 
-`pull_request` トリガーの `pr-check.yml` を新設しましたが、**required check にはしていません**。
+`pull_request` トリガーの `pr-check.yml` を新設しましたが、**この PR の時点では required check ではありません**。
 branch ruleset は変更していないため、赤くてもマージできます。
-数日運用して安定を確認してから required 化するのが安全です。
 
-### ワーカーへの `workflows: write` 付与（保留）
+当初は「数日運用してから」と判断しましたが、独立したセカンドオピニオン（Fable 5）の指摘を受けて
+**この PR のマージ直後に required 化する**へ改めました。判断を変えた根拠は、次の実測です。
+
+- `GET /repos/{owner}/{repo}/rules/branches/main` → `[]`、`GET /branches/main` → `protected: false`。
+  **main には現在ゲートが 1 つもありません。** つまり required 化は「ゲートの強化」ではなく「最初のゲートの設置」です。
+  当初の「様子見」判断は、既に何らかの防御がある前提に立っていた点で誤りでした。
+- `pr-check.yml` の実行履歴は 4 run（success 3 / failure 1）。**flake 0 件、真陽性 1 件**
+  （#1130 × #1133 の組み合わせで起きた実在の回帰。#1169 で修正）。標本は小さいものの内訳は良好です。
+- 誤判断のコストが非対称です。偽赤のコストは re-run 1 回、見逃しのコストは main の破壊で、
+  次の防衛線は nightly の `e2e-web-test.yml` までありません。しかも ruleset を消せば戻せる**可逆な決定**です。
+- required 化の典型的な罠（paths フィルタ付き check がステータスを報告せず PR が永久にブロックされる）は
+  **`pr-check.yml` には当てはまりません**。意図的にフィルタを付けていないため、全 PR で必ずステータスが付きます。
+
+**この作業では ruleset を設定できませんでした**（セッションのトークンは `admin: false`）。
+オーナーが Settings → Rules → Rulesets で次を設定してください。
+
+1. Target branch: `main`
+2. Require status checks to pass → `PR Check` を追加
+3. `app-expo-check.yml` は **required にしないこと**。paths フィルタがあるため上記の罠を踏みます
+
+**設定時の注意**: PR #1171（SDK54）は現時点で `PR Check` のステータスが付いていません。
+`pr-check.yml` が main にも #1171 の head にも無いためで、required 化後は #1171 へ 1 度 push するか
+close/reopen して `pull_request` イベントを再発火させる必要があります。1 回の手間でありブロッカーではありません
+（#1171 は自前の `app-expo-check.yml` で typecheck・test を既に pass 済みで、実質同じ検査に合格しています）。
+
+`app-expo-check.yml` の static-check ジョブと `pr-check.yml` は typecheck + test が重複します。
+実害は二重実行のコスト程度なので、#1171 マージ後に static-check を外すか paths を調整する follow-up で解消してください。
+**required 化のブロッカーにはしないでください。**
+
+今後 flake（`pnpm install` のネットワーク断など）が観測されたら、まず re-run で凌ぎ、
+頻発するようなら required を外して原因を潰してから戻してください。可逆なので撤退基準を重くする必要はありません。
+
+### ワーカーへの `workflows: write` 付与 → **付与しない**
 
 Claude Worker は `.github/workflows/` 配下へ push できません（GitHub App の権限不足でサーバ側が push 全体を拒否）。
 今回は「ワーカーが patch を出力し、リーダーが適用して commit」で回避しました。
-恒久対応するとエージェントが CI 定義そのものを書き換えられるようになるため、判断は保留しています。
 詳細は `.claude/skills/parallel-development/CORE.md` の該当節を参照してください。
+
+リーダーとセカンドオピニオン（Fable 5）が独立に同じ結論に達したため、**付与しない**で確定します。
+
+- **頻度が低く、回避策が安い。** 13 チケット中 workflow を触ったのは #1112 の 1 件のみ。手順は文書化済みで実際に機能しました。
+- **付与すると、上の required check の信頼性が自己崩壊します。** `pull_request` の workflow は
+  PR の merge commit 上の定義で実行されるため、`workflows: write` を持つワーカーは
+  **自分の PR ブランチで `pr-check.yml` を弱め、その弱めた版で green を取れて**しまいます。
+  「ワーカーは workflow を書けない」という現状の制約が、required check の信頼性を支えています。2 つの判断はセットです。
+- **prompt injection の到達点が広がります。** ワーカーは Issue / PR 本文という外部入力を読みます。
+  権限を与えると、injection の影響が「変なコードを commit する」から
+  「`claude-worker.yml` 自身の権限拡大や secrets の取り回し変更」まで広がります。
+  GitHub App の権限は path 単位に絞れないため、`.github/workflows/**` 全体への write が all-or-nothing になります。
+- **#1112 で 2 回空振りした実害の本体は「権限が無いこと」ではなく「拒否が無音だったこと」**で、
+  こちらは `CORE.md` への追記（remote rejected の兆候、実装 prompt への禁止事項明記、`git ls-remote` での branch 実在確認）で緩和済みです。
+
+再検討するのは workflow 変更タスクが恒常化した場合のみです。その場合でも、付与の**前に**
+`.github/workflows/**` への変更へ人間レビューを必須化する ruleset（または CODEOWNERS + required review）を入れてください。
