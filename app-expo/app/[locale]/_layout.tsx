@@ -21,6 +21,7 @@ import i18n, { getResolvedLocale } from "@/lib/i18n";
 import { SeoProvider, SeoHeadRenderer, SeoData } from "@/contexts/SeoContext";
 import { DEFAULT_SEO_BY_PUBLIC_LOCALE, resolvePublicLocale } from "@/constants/seoLocales";
 import { TrueSheetProvider } from "@lodev09/react-native-true-sheet";
+import { buildLocaleStaticParams, type LocaleStaticParam } from "@/lib/seo/localeStaticParams";
 
 /**
  * 🌍 BCP 47 言語タグが妥当な形式かを検証するユーティリティ関数。
@@ -160,4 +161,15 @@ export default function RootLayout() {
 			</SeoProvider>
 		</>
 	);
+}
+
+/**
+ * 🌍 #721 ロケールごとに実体の HTML を事前生成させる。
+ *
+ * expo-router はこの export を見て動的セグメントを展開する。
+ * 実装と設計の背景は `@/lib/seo/localeStaticParams` を参照
+ * （テストから supabase を読み込まずに触れるよう切り出してある）。
+ */
+export function generateStaticParams(): LocaleStaticParam[] {
+	return buildLocaleStaticParams();
 }
