@@ -195,7 +195,12 @@ export function TutorialBottomSheet({
 					ref={listRef}
 					data={tutorialPages}
 					keyExtractor={(_: TutorialPageConfig, index: number) => `tutorial-page-${index}`}
-					style={{ flexGrow: 1 }}
+					// #1156 【バグ】`flexGrow: 1` だけだと React Native の既定 `flexShrink: 0` が効き、
+					// ページ内容がシートの高さに収まらないときにリストが縮まず、下の固定フッターごと
+					// シートの外へ押し出される。結果 CTA と「あとで」が画面外になり操作できなくなる
+					// （E2E: android search-tutorial が completeTutorial のタップ待ちで失敗）。
+					// `flex: 1` にして「余った分だけ伸び、足りなければ縮む」ようにし、フッターを常に残す。
+					style={{ flex: 1 }}
 					renderItem={({ item }: { item: TutorialPageConfig }) => (
 						<View style={{ width: contentWidth }}>
 							<TutorialPage image={item.image} title={item.title} bodyLines={item.bodyLines} />
