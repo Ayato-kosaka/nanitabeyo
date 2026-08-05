@@ -158,23 +158,56 @@
 
 ## 4. 実機とは別に残っている検証
 
-### #1123 の development での API 検証（未実施）
+### #1123 の development での API 検証 → **実施済み・合格**（ログ確認のみ未確認）
 
 #1123 は API 変更のため、`.claude/skills/parallel-development/API_TESTING.md` は
 「PR commit を development へ一時デプロイして検証し、必ず main へ復旧する」ことを求めています。
 
-**この統合ブランチの作業中は実施していません。** 同時期に別セッションが SDK54 関連の作業を進めており、
-development 環境を占有すると競合する恐れがあったためです（同規約が求める
-「他の development deploy や API 検証と競合しないことを確認してから開始する」を満たせませんでした）。
+**実施しました。そして 1 回目は不合格でした。** この検証が #1123 の再発を検知しています。
 
-main へマージする段で、次を実施してください。
+#### 経緯: ユニットテストが実装の穴を隠していた
 
-- [ ] `api-deploy.yml` を `target=development` で対象 SHA へデプロイ
-- [ ] `渋谷駅` の地点オートコンプリートで**同名の駅候補が 1 件**になることを確認
-- [ ] `スターバックス` など同名の別実店舗が**複数返る**ことを確認
-- [ ] 同名の別バス停が**消えない**ことを確認（今回のレビューで見つかった穴）
-- [ ] `nanitabeyo_logs_dev` でエラーが出ていないことを確認
-- [ ] **最新 main を development へ再デプロイして復旧**（成否にかかわらず必須）
+1 回目の検証（対象 SHA `02a697f3`）で `渋谷駅` が **2 件返り不合格**。原因は fixture が実 API と食い違っていたことでした。
+
+| | 関連度順の先頭候補 `ChIJz8MVLFiLGGARXP0DqqhoDow` の types |
+| --- | --- |
+| fixture（誤） | `train_station`, `subway_station`, `transit_station`, `point_of_interest`, `establishment` |
+| **実 API（実測）** | `point_of_interest`, `transportation_service`, `establishment`, **`transit_station`** |
+
+実データでは「駅施設側」の候補が鉄道駅固有 type を持たず、交通系は汎用の `transit_station` だけでした。
+PR #1149 のレビューで `transit_station` を `RAIL_STATION_TYPES` から外した結果 **#1123 が再発**していましたが、
+fixture が誤っていたためテストは緑のままでした。**fixture を実データへ直すと現実装が赤くなることを実測**しています。
+
+PR #1175 で「畳み込みの根拠（`RAIL_STATION_TYPES`）」と「畳み込みの対象（`COLLAPSIBLE_TRANSIT_TYPES`）」を分離して修正しました。
+
+#### 2 回目の検証結果（対象 SHA `fccb964a`）: 合格
+
+| # | 確認項目 | 判定 | 実測 |
+| --- | --- | --- | --- |
+| 1 | `渋谷駅` で同名の駅候補が 1 件 | ✅ 合格 | 5 件 → **4 件**。先頭 `ChIJz8MV…` が残り `ChIJnxAA…` が消えた |
+| 2 | `新宿駅` / `東京駅` も 1 件 | ✅ 合格 | 同じ構造で解消 |
+| 3 | `スターバックス` が複数返る | ✅ 合格 | 5 件全残 |
+| 4 | `渋谷駅前` で別地点が消えない | ✅ 合格 | 前回と完全同一の 5 件 |
+| 5 | 同名の別バス停が消えない | ✅ 合格 | `市役所前 バス停` で **mainText 完全一致の別バス停（久留米市 / 柳川市）が両方残存** |
+| 6 | `nanitabeyo_logs_dev` のエラー | ⚠️ **未確認** | 下記参照 |
+
+条件 5 は 1 回目では該当クエリが見つからず未検証でしたが、2 回目で直接の証拠が取れました。
+両候補とも `transit_station` を持ちながら残っており、「同名内に鉄道駅固有 type が無ければ畳み込みの根拠が成立しない」
+という設計が実環境で意図どおり効いていることを示します。これは同時に、ルール 3（同名 establishment 同士は全て残す）の実環境確認にもなっています。
+
+- deploy run: [31029432032](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/31029432032)（`fccb964a`）
+- 復旧 run: [31031259256](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/31031259256)（`0ccc730e` = main HEAD、success）
+
+#### 残っている未確認事項
+
+- [ ] **`nanitabeyo_logs_dev` のエラー確認**。ワーカーの runner に GCP 資格情報が付かず（`gcloud auth list` が
+      `No credentialed accounts`、`GOOGLE_APPLICATION_CREDENTIALS` が空）、BigQuery MCP もリーダー側で認証切れのため、
+      `bq` / MCP のどちらでも実行できませんでした。**「できたことにしない」ため未確認のまま残しています。**
+      実施するには `claude-worker.yml` へ `google-github-actions/auth` 相当のステップを足すか、
+      BigQuery MCP を再認可した対話セッションから実行してください。
+- **`API_COMMIT_ID` の直接照合は原理的に不可**でした。API に `API_COMMIT_ID` を返すエンドポイントもレスポンスヘッダも無く、
+      Cloud Run の env を読むには gcloud 認証が要ります。したがって復旧確認は
+      「対象 SHA の deploy run が success」かつ「それ以降 development への api-deploy が無い」という**間接的な事実**に依っています。
 
 ### #1112 を required check にするか → **required 化を推奨（オーナーの操作が必要）**
 
