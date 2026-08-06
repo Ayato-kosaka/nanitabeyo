@@ -26,7 +26,10 @@ function quoteIdent(name: string) {
 
 /**
  * 恒久的に処理できない画像エラーを表すカスタムエラークラス
- * ログで区別できるようにするが、レスポンスは5xxとする
+ *
+ * #514 【バグ】Cloud Tasks は 2xx を成功、それ以外をリトライ対象として扱う。
+ * このエラーはリトライしても決して成功しないため、Controller で捕捉して
+ * 204 を返し、キューから確実に取り除く（ログには残す）。
  */
 export class PermanentImageError extends Error {
   constructor(
@@ -150,6 +153,9 @@ export class ResizeImageService {
 
   /**
    * Download original image from GCS
+   *
+   * #514 【バグ】原本が存在しない（404）など 4xx はリトライしても決して成功しないため
+   * 恒久失敗として扱う。5xx / ネットワークエラーは従来どおりリトライさせる。
    */
   private async downloadOriginalImage(path: string): Promise<Buffer> {
     try {
@@ -159,14 +165,43 @@ export class ResizeImageService {
       // Download the image
       const response = await fetch(signedUrl);
       if (!response.ok) {
-        throw new Error(
-          `Failed to download image: ${response.status} ${response.statusText}`,
-        );
+        const message = `Failed to download image: ${response.status} ${response.statusText}`;
+
+        // #514 【バグ】4xx は原本側の恒久的な状態。リトライループを止める。
+        // 429 (Too Many Requests) だけは一時的なので従来どおりリトライ対象。
+        if (
+          response.status >= 400 &&
+          response.status < 500 &&
+          response.status !== 429
+        ) {
+          this.logger.error(
+            'DownloadOriginalImagePermanentFailure',
+            'downloadOriginalImage',
+            {
+              path,
+              status: response.status,
+              statusText: response.statusText,
+            },
+          );
+
+          throw new PermanentImageError(message, 'ORIGINAL_IMAGE_NOT_FOUND', {
+            path,
+            status: response.status,
+          });
+        }
+
+        throw new Error(message);
       }
 
       const arrayBuffer = await response.arrayBuffer();
       return Buffer.from(arrayBuffer);
     } catch (error) {
+      // 恒久失敗は上で専用イベントを出力済み。ここで一時失敗用のイベントを
+      // 重ねると恒久／一時の区別がログから失われるため通す。
+      if (error instanceof PermanentImageError) {
+        throw error;
+      }
+
       this.logger.error('DownloadOriginalImageError', 'downloadOriginalImage', {
         path,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -271,8 +306,13 @@ export class ResizeImageService {
       fit = 'cover'; // 縦横比を守りつつ埋める、必要ならトリミング
     }
 
+    // #514 【バグ】failOn: 'none' で libvips の警告レベルの破損を致命扱いしない。
+    // 本番で最多の "Corrupt JPEG data: N extraneous bytes before marker 0xc4" /
+    // "Invalid SOS parameters for sequential JPEG" は、これで読み切れる。
+    // 画像として解釈できない入力（マジックバイト不正など）は引き続き失敗するため、
+    // 恒久失敗の検知能力は落ちない。
     // 【バグ】EXIF Orientation を正規化して縦長画像の横回転を防止
-    const resized = await sharp(buffer)
+    const resized = await sharp(buffer, { failOn: 'none' })
       .rotate() // EXIF Orientation を適用して正規化
       .resize(width, height, {
         fit,
