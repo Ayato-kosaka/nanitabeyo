@@ -113,3 +113,48 @@ export async function stubGoogleMaps(context: BrowserContext): Promise<void> {
 		});
 	});
 }
+
+/** `stubSavedDishCategories` へ渡す料理カテゴリ1件分の最小形 */
+export type StubbedDishCategory = {
+	id: string;
+	label_en: string;
+	/** ロケール先頭2文字（"ja" 等）をキーにした表示名。無いロケールは label_en へフォールバックする */
+	labels: Record<string, string>;
+	image_url: string;
+};
+
+/**
+ * 「保存した料理カテゴリ」の一覧を固定のスタブへ差し替える（#1133）。
+ *
+ * マイページの保存料理カテゴリタブは実行アカウントの保存状況に依存するため、
+ * 実 API のままだと **0 件のこともあり** カードを押せない
+ * （= 地点検索モーダルを開く導線が無くなり、テストが環境依存で落ちる）。
+ * このテストが見たいのはモーダルの中身であってカテゴリ一覧の取得ではないので、
+ * 入口となる一覧だけを固定する。地点検索（autocomplete / details）は実 API のまま。
+ *
+ * ⚠️ 保存操作（POST）でデータを作る方式は採らない。dev DB へ書き込みが残るうえ、
+ * 保存済みだった場合に解除されるなど、テスト間で状態が干渉する。
+ *
+ * CORS の扱いは {@link stubEmptyDishMediaResults} と同じ理由でリクエスト元 origin を返す。
+ *
+ * @param context ルートを仕掛ける BrowserContext
+ * @param categories 一覧に出したい料理カテゴリ（新しい順）
+ */
+export async function stubSavedDishCategories(
+	context: BrowserContext,
+	categories: StubbedDishCategory[],
+): Promise<void> {
+	await context.route("**/v1/users/me/saved-dish-categories*", async (route: Route) => {
+		const origin = (await route.request().headerValue("origin")) ?? "*";
+		await route.fulfill({
+			status: 200,
+			contentType: "application/json",
+			headers: {
+				"access-control-allow-origin": origin,
+				"access-control-allow-credentials": "true",
+			},
+			// useAPICall は BaseResponse の `data` だけを返すので、ページング形式を二重に包む
+			body: JSON.stringify({ success: true, data: { data: categories, nextCursor: null } }),
+		});
+	});
+}
