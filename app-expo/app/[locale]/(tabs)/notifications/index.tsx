@@ -225,7 +225,12 @@ export default function NotificationsScreen() {
 		<SafeAreaView style={styles.container} edges={["top"]}>
 			{/* Header */}
 			<View style={styles.header}>
-				<Text style={styles.headerTitle}>{i18n.t("Notifications.title")}</Text>
+				{/* #1130 【テスト】ヘッダーの上端 y 座標を Detox から実測するための testID。
+				    SafeArea へ食い込んでいないことは描画ツリー（__tests__/notificationsSafeArea.test.tsx）
+				    では判定できず、実座標を読む必要があるため。見た目には影響しない */}
+				<Text testID="notifications-header-title" style={styles.headerTitle}>
+					{i18n.t("Notifications.title")}
+				</Text>
 				{unreadCount > 0 && (
 					<View style={styles.unreadBadge}>
 						<Text style={styles.unreadBadgeText}>{unreadCount}</Text>
