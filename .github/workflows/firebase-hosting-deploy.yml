@@ -39,8 +39,11 @@ jobs:
       - name: 📦 Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: 🗺️ Generate Sitemap
-        run: WEB_BASE_URL=${{ vars.WEB_BASE_URL }} node scripts/gen-sitemap.mjs
+      # 🗺️ sitemap.xml は app-expo の build:web が生成する
+      #    （app-expo/scripts/generate-sitemap.mjs）。
+      #    かつてここで scripts/gen-sitemap.mjs を呼んでいたが、#281 で生成器が
+      #    2 本になり、後から走る build:web が旧出力を上書きする状態になっていた。
+      #    生成器は 1 本に統一したので、ここでの明示実行は不要。
 
       # Build our shared library so it emits .d.ts / .js into shared/dist
       - name: 📚 Build shared package

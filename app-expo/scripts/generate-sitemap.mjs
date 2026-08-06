@@ -44,7 +44,11 @@ const outputPath = path.join(appRoot, "public", "sitemap.xml");
  * canonical（`SeoHeadRenderer.web.tsx`）もその値を使う。env が無い環境では
  * `lib/seo/sitemap.ts` の既定値（本番ドメイン）にフォールバックする。
  */
-const baseUrl = process.env.EXPO_PUBLIC_WEB_BASE_URL?.trim() || undefined;
+// #281 `WEB_BASE_URL` も見る理由:
+// 旧生成器 `scripts/gen-sitemap.mjs` は Repository variable の `WEB_BASE_URL` を使っており、
+// firebase-hosting-deploy.yml もその変数を渡していた。生成器を1本へ統一したあとも
+// その設定が生き続けるよう、両方の env を受ける。
+const baseUrl = process.env.EXPO_PUBLIC_WEB_BASE_URL?.trim() || process.env.WEB_BASE_URL?.trim() || undefined;
 
 // ── TypeScript モジュールを Node から読むための最小ローダ ────────────────────
 
