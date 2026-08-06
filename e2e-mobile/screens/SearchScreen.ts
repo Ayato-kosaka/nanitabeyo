@@ -98,6 +98,11 @@ export class SearchScreen {
 	readonly locationClearButton = by.id("search-location-autocomplete-clear");
 	/** 場所サジェストのリスト */
 	readonly locationSuggestions = by.id("search-location-autocomplete-suggestions");
+	/** 「最近使った場所」のリスト（#953。e2e-web の recentLocationsList に対応）。
+	 *  未入力でフォーカスしたときだけ描画される */
+	readonly recentLocationsList = by.id("search-location-autocomplete-recent-locations");
+	/** 「最近使った場所」を全件クリアするボタン（1件以上あるときだけ描画される） */
+	readonly recentLocationsClearButton = by.id("search-location-autocomplete-recent-locations-clear");
 	/** 入力欄右端の「現在地を使う」ボタン */
 	readonly currentLocationButton = by.id("search-current-location-button");
 
@@ -165,6 +170,11 @@ export class SearchScreen {
 	/** n 番目の場所サジェスト（0 始まり） */
 	locationSuggestion(index: number): Detox.NativeMatcher {
 		return by.id(`search-location-autocomplete-suggestion-${index}`);
+	}
+
+	/** n 番目の「最近使った場所」（0 始まり、先頭が最新） */
+	recentLocation(index: number): Detox.NativeMatcher {
+		return by.id(`search-location-autocomplete-recent-location-${index}`);
 	}
 
 	/** 時間帯グリッドの項目（id は app-expo/features/search/constants.ts の timeSlots の値） */
@@ -353,6 +363,7 @@ export class SearchScreen {
 	}
 
 	/**
+<<<<<<< HEAD
 	 * 場所入力欄をタップしてフォーカスを与える（#528）。
 	 *
 	 * `typeLocation()` から入力操作だけを切り離したもの。`LocationAutocomplete` は
@@ -398,6 +409,31 @@ export class SearchScreen {
 	 */
 	async dismissKeyboardIfOpen(): Promise<void> {
 		await this.dismissKeyboard();
+	}
+
+	/**
+	 * 「最近使った場所」パネルを表示する（e2e-web の openRecentLocations に対応）。
+	 *
+	 * `LocationAutocomplete` は「入力が空 && フォーカス中」のときだけこのパネルを出す
+	 * （showRecentLocations の条件）。`clearLocationIfPresent` はクリア後にリターンキーで
+	 * キーボードを閉じてしまう（= blur してパネルが閉じる）ため、そのあとで
+	 * 明示的に入力欄をタップし直してフォーカスを確定させる。
+	 */
+	async openRecentLocations(): Promise<void> {
+		await this.clearLocationIfPresent();
+		await tapWhenVisible(this.locationInput);
+		await waitUntilVisible(this.recentLocationsList);
+	}
+
+	/**
+	 * n 番目の「最近使った場所」の accessibilityLabel（= `RecentLocation.locationQuery`）を読み取る。
+	 *
+	 * 実 API の検索結果は地名も件数も事前に確定できないため、e2e-web のように入力欄の値を
+	 * 直接アサートするのではなく、ResultScreen の likeLabel と同じ「ラベルを読んで比較する」
+	 * 方式に倣う（値そのものではなく、選び直し前後で一致/変化したことを検証する）。
+	 */
+	async recentLocationLabel(index: number): Promise<string> {
+		return readLabel(this.recentLocation(index), 0);
 	}
 
 	/** 時間帯を選択する */
@@ -603,4 +639,16 @@ export class SearchScreen {
 			.whileElement(this.scrollView)
 			.scroll(pixels, "down", 0.5, 0.5);
 	}
+}
+
+/**
+ * 指定要素の accessibilityLabel を取得する（ResultScreen.ts の readLabel と同じ仕組み）。
+ *
+ * `getAttributes()` の戻り値は iOS / Android・単一 / 複数一致で型が分かれるが、
+ * `atIndex()` で 1 件に絞っているため `label` を持つ形にしかならない。
+ * 型定義がその絞り込みを表現できないので、ここで局所的に吸収する。
+ */
+async function readLabel(matcher: Detox.NativeMatcher, index: number): Promise<string> {
+	const attributes = (await element(matcher).atIndex(index).getAttributes()) as { label?: string };
+	return attributes.label ?? "";
 }
