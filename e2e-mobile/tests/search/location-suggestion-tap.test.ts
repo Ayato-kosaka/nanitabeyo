@@ -4,6 +4,7 @@ import {
 	element,
 	expect,
 	launchAppWithSession,
+	visibleNow,
 	waitUntilGone,
 	waitUntilNotVisible,
 	waitUntilVisible,
@@ -112,9 +113,16 @@ describe("場所オートコンプリートの候補タップ（実 API / #528�
 		// global-snackbar を出して遷移をガードするため、トピック画面へは進めない
 		await search.submit();
 
-		await expect(element(search.snackbar)).not.toBeVisible();
-		// トピック生成（AI）の完了は待たない。遷移したことだけをヘッダで確認する
+		// トピック生成（AI）の完了は待たない。遷移したことだけをヘッダで確認する。
+		// 地点が確定していなければここへ到達できず、25 秒待って落ちる
 		await topics.expectHeaderVisible();
+		// 遷移を確認したうえで、バリデーション通知が出ていないことも押さえる。
+		// 「遷移はしたがスナックバーも出ている」という中途半端な壊れ方を見逃さないため。
+		// ⚠️ Detox の `not.toBeVisible()` ではなく `visibleNow` で見る。スナックバーは非表示のとき
+		// **要素ごと描画されない**（react-native-paper の Snackbar）ため、「見えない」と
+		// 「存在しない」が混ざる。`visibleNow` はどちらも false に潰してくれる
+		const snackbarShown = await visibleNow(search.snackbar, 1_000);
+		assert.equal(snackbarShown, false, "地点を選択して検索したのにバリデーション通知が表示されている");
 	});
 
 	// ─ テストケース: 候補パネルを開いたままキーボードを閉じても、そのあと候補を選択できる ─
@@ -151,15 +159,18 @@ describe("場所オートコンプリートの候補タップ（実 API / #528�
 		// #528 の事故はこの「閉じる」に伴うレイアウト再計算で起きていた
 		await search.dismissKeyboardIfOpen();
 
-		// 入力欄が blur すると 150ms 後に候補パネルを畳む予約が入る（`BLUR_SUGGESTION_HIDE_DELAY_MS`）。
-		// 畳まれてしまった場合は入力欄をタップし直して開き直す。
-		// ⚠️ ここは「畳まれるのが正しい / 畳まれないのが正しい」を主張しない。閉じ方が
-		// プラットフォーム（IME の有無）に依存するためで、この spec が見たいのは
-		// **開き直したあとのタップが成立するか**である
-		if (!(await search.hasVisibleLocationSuggestions())) {
-			await search.focusLocationInput();
-			await waitUntilVisible(search.locationSuggestions);
-		}
+		// 入力欄をタップし直して候補パネルを開いた状態へ戻す。
+		//
+		// ⚠️ ここは「キーボードを閉じたら候補が畳まれる / 畳まれない」を主張しない。
+		// リターンキーで入力欄が blur すると 150ms 後にパネルを畳む予約が入る
+		//（`BLUR_SUGGESTION_HIDE_DELAY_MS`）が、IME を無効化した Android では
+		// そもそも blur が起きないため、閉じたかどうかはプラットフォーム依存になる。
+		// **条件分岐せず必ずタップし直す**ことで、どちらの経路でも同じ状態から次へ進める:
+		// - blur 済みなら再フォーカスで `handleFocus` が畳む予約をキャンセルしてパネルを開き直す
+		// - フォーカスが残っているなら onFocus は再発火せず、パネルもそのまま
+		// この spec が見たいのは閉じ方ではなく、**そのあとのタップが成立するか**である
+		await search.focusLocationInput();
+		await waitUntilVisible(search.locationSuggestions);
 		await waitUntilVisible(search.locationSuggestion(0));
 
 		await search.selectLocationSuggestion(0);

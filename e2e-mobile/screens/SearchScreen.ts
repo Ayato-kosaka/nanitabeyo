@@ -364,16 +364,6 @@ export class SearchScreen {
 	}
 
 	/**
-	 * 場所サジェストのパネルが **いま見えているか** を待たずに判定する（#528）。
-	 *
-	 * ⚠️ 通常のアサーションには使わないこと（`visibleNow` と同じ理由で、false は
-	 * 「まだ描画されていない」だけの可能性がある）。分岐（開いていなければ開き直す）専用。
-	 */
-	async hasVisibleLocationSuggestions(timeout = 2_000): Promise<boolean> {
-		return visibleNow(this.locationSuggestions, timeout);
-	}
-
-	/**
 	 * 場所入力欄の現在値を読む（#528）。
 	 *
 	 * ⚠️ **アサーションの主観測点にはしないこと。** Detox の `toHaveValue` / `toHaveText` は
