@@ -352,6 +352,64 @@ export class SearchScreen {
 		await tapWhenVisible(this.locationSuggestion(index));
 	}
 
+	/**
+	 * 場所入力欄をタップしてフォーカスを与える（#528）。
+	 *
+	 * `typeLocation()` から入力操作だけを切り離したもの。`LocationAutocomplete` は
+	 * `showSuggestions = 入力あり && フォーカス中` で候補を出すため、**入力済みの文字列を消さずに
+	 * 候補パネルだけ開き直したい**ときに使う。
+	 */
+	async focusLocationInput(): Promise<void> {
+		await tapWhenVisible(this.locationInput);
+	}
+
+	/**
+	 * 場所サジェストのパネルが **いま見えているか** を待たずに判定する（#528）。
+	 *
+	 * ⚠️ 通常のアサーションには使わないこと（`visibleNow` と同じ理由で、false は
+	 * 「まだ描画されていない」だけの可能性がある）。分岐（開いていなければ開き直す）専用。
+	 */
+	async hasVisibleLocationSuggestions(timeout = 2_000): Promise<boolean> {
+		return visibleNow(this.locationSuggestions, timeout);
+	}
+
+	/**
+	 * 場所入力欄の現在値を読む（#528）。
+	 *
+	 * ⚠️ **アサーションの主観測点にはしないこと。** Detox の `toHaveValue` / `toHaveText` は
+	 * TextInput に対する挙動がプラットフォームで揺れる（location-autocomplete.test.ts の
+	 * ヘッダに既に書いてあるとおり、既存 spec は「クリアボタンの有無」へ置き換えている）。
+	 * ここで `getAttributes()` を使うのは **「入力欄に何かが入った」ことを補助的に見る**ためで、
+	 * 「選択が成立した」の判定は検索が通ること（`submit()` 後に画面が進むこと）で行う。
+	 *
+	 * 戻り値の型が iOS / Android で分かれるため `text` だけを拾う形に絞る
+	 * （`readPreloadProbeDetail()` / ResultScreen.ts の読み取りと同じ扱い）。
+	 *
+	 * @returns 入力欄のテキスト。読めなかった場合は空文字
+	 */
+	async readLocationInputText(): Promise<string> {
+		try {
+			const attributes = (await element(this.locationInput).getAttributes()) as { text?: string };
+			return attributes.text ?? "";
+		} catch {
+			// 「まだ描画されていない」「属性を読めない」はどちらも空扱いにする。
+			// 呼び出し側は「空でないこと」を見るため、読めなければ素直に失敗すればよい
+			return "";
+		}
+	}
+
+	/**
+	 * 場所入力欄のリターンキーを押してキーボードを閉じる（#528 / ベストエフォート）。
+	 *
+	 * `clearLocationIfPresent()` が内部で使っているものと同じ操作を spec から呼べるようにしたもの。
+	 * Detox にプラットフォーム共通の「キーボードを閉じる」API は無く、Android は IME 自体を
+	 * 無効化してある（scripts/setup-android-locale.sh）ためそもそもキーボードが出ない。
+	 * **失敗しても検証を止めない**（環境差で落ちても、その失敗は検証したい事実と無関係なため）。
+	 */
+	async dismissKeyboardIfOpen(): Promise<void> {
+		await this.dismissKeyboard();
+	}
+
 	/** 時間帯を選択する */
 	async selectTimeSlot(id: "morning" | "lunch" | "dinner" | "late_night"): Promise<void> {
 		await tapWhenVisible(this.timeSlot(id));
