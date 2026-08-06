@@ -926,7 +926,13 @@ export const DialogProvider = ({ children }: { children: ReactNode }) => {
 									onPress={onPress}
 									disabled={disabled}
 									accessibilityLabel={a.accessibilityLabel}
-									testID={a.testID}>
+									// #1131 【設計】OK / キャンセルには既定の testID を与える。
+									// ネイティブ（Detox）にはラベル文字列でしか要素を特定できない場面があり、
+									// 「設定画面のログアウト行」と「確認ダイアログのログアウトボタン」のように
+									// **同じ文言のボタンが同時に 2 つ存在する**と matcher が複数一致して操作できない
+									// （Detox は複数一致した matcher の操作を例外にする）。
+									// 個別の testID が渡されていればそちらを優先する（custom actions は従来どおり）。
+									testID={a.testID ?? (isOk ? "dialog-confirm-button" : isCancel ? "dialog-cancel-button" : undefined)}>
 									{a.label}
 								</Button>
 							);
