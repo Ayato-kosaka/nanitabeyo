@@ -50,6 +50,13 @@ export class ResultScreen {
 	static readonly RESULT_TIMEOUT = 90_000;
 
 	/**
+	 * 「結果フィードが表示された」と判定する前に、その状態が続いていることを確かめる時間 (ms)。
+	 * 0 件時は退避ダイアログの表示と `handleClose()` が同じ commit の直後に走るため、
+	 * この程度の猶予があれば「一瞬見えただけ」と「本当に表示された」を区別できる。
+	 */
+	static readonly SETTLE_MS = 2_000;
+
+	/**
 	 * 結果画面が表示されていることを検証する。
 	 *
 	 * @param timeout タイムアウト (ms)
@@ -73,6 +80,17 @@ export class ResultScreen {
 	 * 「結果が返る日は緑・返らない日は赤」という実 API のデータ依存フレーキーになるため、
 	 * どちらの結末になったかを判別できるようにして、テスト側で扱えるようにする。
 	 *
+	 * ## 「閉じるボタンが見えた」だけで result と判定してはいけない理由
+	 * `result.tsx` の 0 件判定は **描画のあとの `useEffect`** で走る。読み込み中は
+	 * `RestaurantLoading` が `absoluteFill` + `zIndex: 9999` で全面を覆っているが、
+	 * 0 件が確定して `isLoading` が false になった瞬間にその覆いが外れるため、
+	 * 「退避ダイアログが出て `handleClose()` が効くまで」のごく短い間だけ
+	 * `result-close-button` が可視になる窓がある。
+	 *
+	 * 実際 run 31094008189 の iOS はこの窓を踏み、`waitForResultOrFallback` が "result" を
+	 * 返した直後に画面ごと消えて `close()` が 25 秒タイムアウトした。
+	 * そこで **「見えた」ではなく「見え続けている」** ことを確認してから result と判定する。
+	 *
 	 * @returns "result" = 結果フィードが表示された / "fallback" = 0 件で退避ダイアログが出た
 	 */
 	async waitForResultOrFallback(timeout: number = ResultScreen.RESULT_TIMEOUT): Promise<"result" | "fallback"> {
@@ -80,12 +98,22 @@ export class ResultScreen {
 
 		await waitUntil(
 			async () => {
-				if (await visibleNow(this.closeButton, 1_000)) {
-					outcome = "result";
-					return true;
-				}
+				// 退避ダイアログは終着状態（この後の遷移で消えたりしない）なので先に見る。
 				if (await visibleNow(this.googleMapsFallbackCancelButton, 1_000)) {
 					outcome = "fallback";
+					return true;
+				}
+				if (!(await visibleNow(this.closeButton, 1_000))) return false;
+
+				// 0 件確定の瞬間にだけ現れる「一瞬だけ閉じるボタンが見える」窓を除外する。
+				await new Promise((resolve) => setTimeout(resolve, ResultScreen.SETTLE_MS));
+
+				if (await visibleNow(this.googleMapsFallbackCancelButton, 1_000)) {
+					outcome = "fallback";
+					return true;
+				}
+				if (await visibleNow(this.closeButton, 1_000)) {
+					outcome = "result";
 					return true;
 				}
 				return false;
