@@ -98,9 +98,10 @@ export function DishCategoryGroupVoteCompletionModal({ usedDisplayNames, isSubmi
 	}
 
 	return (
-		<View style={styles.modal}>
+		<View testID="dish-category-group-vote-completion-form" style={styles.modal}>
 			<Text style={styles.title}>{i18n.t("DishCategoryGroupVotes.completionTitle")}</Text>
 			<TextInput
+				testID="dish-category-group-vote-display-name-input"
 				style={styles.input}
 				value={displayName}
 				onChangeText={(text) => {
