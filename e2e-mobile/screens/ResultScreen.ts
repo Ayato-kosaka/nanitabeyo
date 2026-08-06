@@ -3,8 +3,10 @@ import {
 	by,
 	element,
 	tapWhenVisible,
+	visibleNow,
 	waitFor,
 	waitUntil,
+	waitUntilNotVisible,
 } from "../fixtures/e2e";
 
 /**
@@ -35,12 +37,24 @@ export class ResultScreen {
 	readonly likeButton = by.id("dish-action-like");
 	/** 保存ボタン（⚠️ 同上） */
 	readonly saveButton = by.id("dish-action-save");
+	/**
+	 * #1156 検索結果 0 件のときに出る Google Maps 退避ダイアログの「閉じる」。
+	 * DialogProvider の既定 2 ボタンに付く安定 testID で、i18n のラベルに依存しない。
+	 */
+	readonly googleMapsFallbackCancelButton = by.id("dialog-action-cancel");
 
 	/**
 	 * 結果フィードの読み込み待ちタイムアウト (ms)。
 	 * トピック選択後は店舗 5 件分のリストとサムネイルの事前読み込みが走るため長めに取る。
 	 */
 	static readonly RESULT_TIMEOUT = 90_000;
+
+	/**
+	 * 「結果フィードが表示された」と判定する前に、その状態が続いていることを確かめる時間 (ms)。
+	 * 0 件時は退避ダイアログの表示と `handleClose()` が同じ commit の直後に走るため、
+	 * この程度の猶予があれば「一瞬見えただけ」と「本当に表示された」を区別できる。
+	 */
+	static readonly SETTLE_MS = 2_000;
 
 	/**
 	 * 結果画面が表示されていることを検証する。
@@ -50,6 +64,76 @@ export class ResultScreen {
 	 */
 	async expectLoaded(timeout: number = ResultScreen.RESULT_TIMEOUT): Promise<void> {
 		await waitFor(element(this.closeButton)).toBeVisible().withTimeout(timeout);
+	}
+
+	/**
+	 * #1156 トピック選択後に成立しうる 2 つの結末のうち、どちらになったかを待って返す。
+	 *
+	 * ## なぜ必要か
+	 * このフィードは dev の実 API を叩くため、選んだ料理カテゴリに表示できる店舗が
+	 * 1 件も無いことがある。その場合 `search/result.tsx` は Google Maps への退避
+	 * ダイアログを出したうえで **即座に `handleClose()` でトピック画面へ戻す**（#828）。
+	 * つまり 0 件のときは `result-close-button` が可視になることは無く、
+	 * `expectLoaded` は 90 秒待って必ずタイムアウトする。
+	 *
+	 * 実際に run 31074793886 の Android がこれで落ちた（同じ commit の別 run は成功）。
+	 * 「結果が返る日は緑・返らない日は赤」という実 API のデータ依存フレーキーになるため、
+	 * どちらの結末になったかを判別できるようにして、テスト側で扱えるようにする。
+	 *
+	 * ## 「閉じるボタンが見えた」だけで result と判定してはいけない理由
+	 * `result.tsx` の 0 件判定は **描画のあとの `useEffect`** で走る。読み込み中は
+	 * `RestaurantLoading` が `absoluteFill` + `zIndex: 9999` で全面を覆っているが、
+	 * 0 件が確定して `isLoading` が false になった瞬間にその覆いが外れるため、
+	 * 「退避ダイアログが出て `handleClose()` が効くまで」のごく短い間だけ
+	 * `result-close-button` が可視になる窓がある。
+	 *
+	 * 実際 run 31094008189 の iOS はこの窓を踏み、`waitForResultOrFallback` が "result" を
+	 * 返した直後に画面ごと消えて `close()` が 25 秒タイムアウトした。
+	 * そこで **「見えた」ではなく「見え続けている」** ことを確認してから result と判定する。
+	 *
+	 * @returns "result" = 結果フィードが表示された / "fallback" = 0 件で退避ダイアログが出た
+	 */
+	async waitForResultOrFallback(timeout: number = ResultScreen.RESULT_TIMEOUT): Promise<"result" | "fallback"> {
+		let outcome: "result" | "fallback" | null = null;
+
+		await waitUntil(
+			async () => {
+				// 退避ダイアログは終着状態（この後の遷移で消えたりしない）なので先に見る。
+				if (await visibleNow(this.googleMapsFallbackCancelButton, 1_000)) {
+					outcome = "fallback";
+					return true;
+				}
+				if (!(await visibleNow(this.closeButton, 1_000))) return false;
+
+				// 0 件確定の瞬間にだけ現れる「一瞬だけ閉じるボタンが見える」窓を除外する。
+				await new Promise((resolve) => setTimeout(resolve, ResultScreen.SETTLE_MS));
+
+				if (await visibleNow(this.googleMapsFallbackCancelButton, 1_000)) {
+					outcome = "fallback";
+					return true;
+				}
+				if (await visibleNow(this.closeButton, 1_000)) {
+					outcome = "result";
+					return true;
+				}
+				return false;
+			},
+			{ timeout, description: "結果フィードの表示、または 0 件時の Google Maps 退避ダイアログ" },
+		);
+
+		// waitUntil は成立時に必ず outcome を埋めてから true を返す
+		return outcome as unknown as "result" | "fallback";
+	}
+
+	/**
+	 * 0 件時の Google Maps 退避ダイアログを「閉じる」で閉じる。
+	 *
+	 * `dialog-action-cancel` は DialogProvider の既定 2 ボタンに付いている安定 testID で、
+	 * ラベル（i18n）に依存しない。
+	 */
+	async dismissGoogleMapsFallback(): Promise<void> {
+		await tapWhenVisible(this.googleMapsFallbackCancelButton);
+		await waitUntilNotVisible(this.googleMapsFallbackCancelButton);
 	}
 
 	/** 結果画面を閉じてトピック画面へ戻る */

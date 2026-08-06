@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { MapPin, SunMoon, Users, ChefHat, RefreshCw, DollarSign, Timer, CircleHelp } from "lucide-react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
-import Carousel from "react-native-reanimated-carousel";
+import { Carousel } from "react-native-reanimated-carousel";
 import { Topic, SearchParams } from "@/types/search";
 import { useTopicSearch } from "@/features/topics/hooks/useTopicSearch";
 import { useBlockTopic } from "@/features/topics/hooks/useBlockTopic";
@@ -776,19 +776,20 @@ export default function TopicsScreen() {
 					{visibleTopics.length > 0 ? (
 						cardHeight > 0 && (
 							<View style={styles.carouselContainer}>
+								{/* #1156 carousel v5: width/height は style へ、mode/modeConfig は layout へ移行。
+								    v5 は loop の既定が false になったため、v4 の挙動を保つよう明示する。 */}
 								<Carousel
 									ref={carouselRef}
-									width={cardWidth}
-									height={cardHeight + TOPIC_CARD_CTA_OVERHANG}
 									data={visibleTopics}
 									renderItem={renderCard}
 									onSnapToItem={handleSnapToItem}
-									mode="parallax"
-									modeConfig={{
-										parallaxScrollingScale: 0.9,
-										parallaxScrollingOffset: 100,
+									loop
+									layout={{
+										type: "parallax",
+										scale: 0.9,
+										offset: 100,
 									}}
-									style={{ width: cardWidth }}
+									style={{ width: cardWidth, height: cardHeight + TOPIC_CARD_CTA_OVERHANG }}
 								/>
 							</View>
 						)

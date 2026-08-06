@@ -196,6 +196,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 				],
 			},
 		],
+		// #1156 【設計】use_frameworks! 環境で React Native Core の非モジュラーヘッダ include が
+		// -Werror になるのを抑止する（react-native-maps が SDK 54 で踏んだ）。詳細はプラグイン内のコメント参照。
+		"./plugins/withNonModularHeaders",
+		// #1156 【設計】release ビルドの lint が metaspace 不足で OOM になるのを防ぐ。
+		// EAS の development は debug ビルドなので踏まないが、Detox E2E と preview/production は踏む。
+		"./plugins/withAndroidGradleMemory",
 		[
 			"expo-build-properties",
 			{

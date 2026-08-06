@@ -2,7 +2,9 @@
 import React, { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Platform, View } from "react-native";
 import { captureRef } from "react-native-view-shot";
-import * as FileSystem from "expo-file-system";
+// #1156 Expo SDK 54 で expo-file-system は新 API が既定になった。
+// 旧 API(cacheDirectory / EncodingType / FileSystemUploadType 等)は legacy サブパスへ移動している。
+import * as FileSystem from "expo-file-system/legacy";
 import * as Crypto from "expo-crypto";
 import { BubblePinBitmap } from "./BubblePinBitmap";
 
