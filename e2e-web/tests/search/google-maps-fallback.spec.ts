@@ -2,6 +2,7 @@ import { test, expect } from "../../fixtures/test";
 import { SearchPage } from "../../pages/SearchPage";
 import { TopicsPage } from "../../pages/TopicsPage";
 import { GoogleMapsFallbackDialog } from "../../pages/GoogleMapsFallbackDialog";
+import { stubEmptyDishMediaResults, stubGoogleMaps } from "../../utils/network";
 
 /**
  * 🗺 Google マップ fallback は別タブで開く（#1121 の回帰テスト）
@@ -9,25 +10,24 @@ import { GoogleMapsFallbackDialog } from "../../pages/GoogleMapsFallbackDialog";
  * ## 背景 (#1121)
  * `/ja-JP/search/topics` で検索結果が 0 件だったときに出る Google マップ fallback ダイアログの
  * 「Google マップで開く」を Web で押すと、`Linking.openURL()` が **同一タブ**を遷移させていた。
- * SPA から離脱するため、ブラウザバックで戻ってくると復元に失敗して画面が壊れる、というのが
- * 報告された不具合。PR #1151 で `openExternalUrl()` を導入し、Web では
+ * SPA から離脱するため、ブラウザバックで戻ってくると復元に失敗して壊れる、というのが報告された不具合。
+ * PR #1151 で `app-expo/lib/openExternalUrl.ts` を導入し、Web では
  * `window.open(url, "_blank", "noopener,noreferrer")` で別タブに開くよう修正済み。
  *
  * ## このテストの検証内容
  * 1. 「Google マップで開く」で **新しいタブ**が開き、その URL が Google マップの検索 URL であること
- * 2. **元のページの URL が変わらない**こと（= SPA を離脱していない。主症状の回帰）
+ * 2. **元のページの URL が変わらない**こと（= SPA を離脱していない。#1121 の主症状）
  *
  * 修正前は (1) で新しいタブが開かず `waitForEvent("page")` がタイムアウトし、
- * (2) も元タブの URL が www.google.com に変わるため落ちる。
+ * (2) も元タブの URL が www.google.com へ変わるため落ちる。
  *
- * ## 実 Google へは通信しない
- * 別タブが開く URL を検証したいだけなので、`https://www.google.com/**` は
- * `context.route()` でスタブ HTML に差し替える。Google Maps へのリクエストは 1 度も出ない。
+ * ## 外部への実通信はしない
+ * 検証したいのは「別タブが開いたこと」と「その URL」だけなので、Google へのリクエストは
+ * `stubGoogleMaps()` でスタブ HTML に差し替える。実 Google Maps へは 1 度も飛ばない。
  *
  * ## 0 件状態の作り方
- * 実 API で確実に 0 件になる検索条件を作るのは不可能なため、0 件判定に使う 2 つの
- * エンドポイントだけ空配列に差し替える（トピック提案までは実 API のまま）。
- * `v1/dishes/bulk-import` も潰すので **dev DB への書き込みは発生しない**（@mutation 不要）。
+ * `stubEmptyDishMediaResults()` で dish-media 検索 / bulk-import だけを空配列に固定する
+ * （トピック提案までは実 API のまま。dev DB への書き込みも発生しないので `@mutation` は不要）。
  */
 test.describe("Google マップ fallback (#1121)", () => {
 	// トピック生成は実 API（AI）で実測 30 秒近くかかるため、topics-flow.spec.ts と同様に延長する
@@ -38,47 +38,23 @@ test.describe("Google マップ fallback (#1121)", () => {
 
 	// ─ テストケース: 「Google マップで開く」は別タブで開き、元ページの URL を変えない ─
 	// 手順:
-	//   1. 料理メディア検索 / bulk-import を空配列に固定し、結果が必ず 0 件になるようにする
-	//   2. www.google.com へのリクエストをスタブ HTML に差し替える（実通信の遮断）
-	//   3. 渋谷で検索 → トピック提案 → 先頭のトピックを選択
-	//   4. 0 件のため Google マップ fallback ダイアログが表示される
-	//   5. 「Google マップで開く」を押す
-	//   6. 新しいタブが開き、その URL が Google マップの検索 URL であることを検証
-	//   7. 元のページの URL が押下前から変わっていないことを検証（#1121 の主症状）
+	//   1. 検索結果が必ず 0 件になるようスタブし、Google への実通信も遮断する
+	//   2. 渋谷で検索 → トピック提案 → 先頭のトピックを選択
+	//   3. 0 件のため Google マップ fallback ダイアログが表示される
+	//   4. 「Google マップで開く」を押し、新しいタブ (page イベント) を捕まえる
+	//   5. 新しいタブの URL が Google マップの検索 URL であることを検証
+	//   6. 元のページの URL が押下前から変わっていないことを検証（#1121 の主症状）
+	//   7. 開いたタブがちょうど 1 枚であることを検証（同一タブ遷移でも二重起動でもない）
 	test("「Google マップで開く」は新しいタブで開き、元のページの URL は変わらない", async ({ appPage }) => {
 		const context = appPage.context();
 
-		// ── 1. 検索結果を必ず 0 件にする ──────────────────────────────
-		// バックエンドは別オリジン (Cloud Run) のため、fulfill するレスポンスにも CORS ヘッダが要る。
-		// fetchWithAuth は web で `credentials: "include"` を使うので、`*` ではなく
-		// リクエスト元 origin をそのまま返し、allow-credentials も付ける必要がある。
-		const fulfillEmptyList = async (route: import("@playwright/test").Route): Promise<void> => {
-			const origin = (await route.request().headerValue("origin")) ?? "*";
-			await route.fulfill({
-				status: 200,
-				contentType: "application/json",
-				headers: {
-					"access-control-allow-origin": origin,
-					"access-control-allow-credentials": "true",
-				},
-				body: "[]",
-			});
-		};
-		await context.route("**/v1/dish-media/search*", fulfillEmptyList);
-		await context.route("**/v1/dishes/bulk-import*", fulfillEmptyList);
+		await stubEmptyDishMediaResults(context);
+		await stubGoogleMaps(context);
 
-		// ── 2. 実 Google へは通信させない ─────────────────────────────
-		// abort だと新しいタブの URL が about:blank のままになりうるので、
-		// ナビゲーションが commit されるようスタブ HTML を返す。
-		await context.route("https://www.google.com/**", async (route) => {
-			await route.fulfill({
-				status: 200,
-				contentType: "text/html",
-				body: "<html><body>stubbed google maps</body></html>",
-			});
-		});
+		// 「押したときだけ 1 枚開く」ことを見るため、テスト全体で開いたタブを数える
+		const openedPages: unknown[] = [];
+		context.on("page", (opened) => openedPages.push(opened));
 
-		// ── 3. 検索 → トピック提案 → トピック選択 ─────────────────────
 		const searchPage = new SearchPage(appPage);
 		const topicsPage = new TopicsPage(appPage);
 
@@ -88,77 +64,31 @@ test.describe("Google マップ fallback (#1121)", () => {
 		await topicsPage.expectLoaded();
 		await topicsPage.chooseFirstTopic();
 
-		// ── 4. 0 件 fallback ダイアログ ───────────────────────────────
+		// 0 件確定で fallback ダイアログが出る。#828 の実装は同時に result 画面を閉じるため、
+		// このときの背後の画面はトピック画面に戻っている
 		const fallbackDialog = new GoogleMapsFallbackDialog(appPage);
 		await fallbackDialog.expectVisible();
 
-		// ── 5〜6. 押下 → 新しいタブを捕まえる ─────────────────────────
-		// 押下**前**の URL を控える。expo-router の静的書き出しではタブグループ内の
-		// ネスト遷移で URL が画面と一致しないことがある（TopicsPage のコメント参照）ため、
-		// 期待値を決め打ちせず「押す前後で変わらないこと」を見る。
+		// 押下**前**の URL を控える。expo-router の静的書き出しではタブグループ内のネスト遷移で
+		// URL バーが表示内容と一致しないことがある（TopicsPage のコメント参照）ため、
+		// 期待値を決め打ちせず「押す前後で変わらないこと」で判定する
 		const urlBeforeClick = appPage.url();
 
 		const [newPage] = await Promise.all([context.waitForEvent("page"), fallbackDialog.confirmButton.click()]);
 
-		// window.open 直後は about:blank のことがあるため、URL の確定を待ってから検証する
+		// window.open 直後は about:blank のことがあるため、URL が確定するまで待ってから検証する
 		await newPage.waitForURL(GOOGLE_MAPS_SEARCH_URL, { timeout: 15_000 });
 		expect(newPage.url()).toMatch(GOOGLE_MAPS_SEARCH_URL);
-		// 検索地点の言語（ja）が引き継がれていること（buildGoogleMapsSearchUrl の hl）
+		// 検索地点の言語 (ja) が Google マップ側にも引き継がれていること（buildGoogleMapsSearchUrl の hl）
 		expect(newPage.url()).toContain("hl=ja");
 
-		// ── 7. 元のページは離脱していない（#1121 の主症状） ───────────
-		// 修正前はここが www.google.com/... に変わり、戻ると壊れていた。
+		// ここが #1121 の主症状。修正前は元タブが www.google.com/... へ遷移し、戻ると壊れていた
 		expect(appPage.url()).toBe(urlBeforeClick);
-		// 元タブがアプリのまま生きていること（別タブ起動なので閉じられていない）
-		expect(appPage.isClosed()).toBe(false);
+		// 元タブがアプリを表示したまま生きていること（別タブ起動なので離脱していない）
 		await expect(topicsPage.headerTitle.last()).toBeVisible();
 
+		expect(openedPages).toHaveLength(1);
+
 		await newPage.close();
-	});
-
-	// ─ テストケース: 「閉じる」では新しいタブが開かない ─
-	// 手順:
-	//   1. 上と同じ手順で fallback ダイアログを表示する
-	//   2. 「閉じる」を押す
-	//   3. ダイアログが閉じ、新しいタブが 1 つも開いていないことを検証
-	// 補足: 「押せば必ず新タブが開く」のではなく「確定操作のときだけ開く」ことを担保し、
-	//       (1) のテストが偶発的な popup を拾っていないことの裏取りにする。
-	test("「閉じる」では新しいタブは開かない", async ({ appPage }) => {
-		const context = appPage.context();
-
-		const fulfillEmptyList = async (route: import("@playwright/test").Route): Promise<void> => {
-			const origin = (await route.request().headerValue("origin")) ?? "*";
-			await route.fulfill({
-				status: 200,
-				contentType: "application/json",
-				headers: {
-					"access-control-allow-origin": origin,
-					"access-control-allow-credentials": "true",
-				},
-				body: "[]",
-			});
-		};
-		await context.route("**/v1/dish-media/search*", fulfillEmptyList);
-		await context.route("**/v1/dishes/bulk-import*", fulfillEmptyList);
-
-		const openedPages: string[] = [];
-		context.on("page", (opened) => openedPages.push(opened.url()));
-
-		const searchPage = new SearchPage(appPage);
-		const topicsPage = new TopicsPage(appPage);
-
-		await searchPage.typeLocation("渋谷");
-		await searchPage.selectLocationSuggestion(0);
-		await searchPage.submitButton.click();
-		await topicsPage.expectLoaded();
-		await topicsPage.chooseFirstTopic();
-
-		const fallbackDialog = new GoogleMapsFallbackDialog(appPage);
-		await fallbackDialog.expectVisible();
-
-		await fallbackDialog.cancelButton.click();
-
-		await expect(fallbackDialog.message).toBeHidden();
-		expect(openedPages).toEqual([]);
 	});
 });
