@@ -34,7 +34,10 @@ export class SettingsScreen {
 	readonly feedbackItem = by.id("settings-feedback");
 	/** レビューを書く（ストア誘導）行。ネイティブのみ表示（既存 testID） */
 	readonly leaveReviewItem = by.id("settings-leave-review");
-	/** ブロック済みの料理トピック行（既存 testID） */
+	/**
+	 * ブロック済みの料理カテゴリ行（既存 testID）。
+	 * #1132 で文言は「料理トピック」→「料理カテゴリ」へ変わったが、testID は据え置かれている。
+	 */
 	readonly blockedTopicsItem = by.id("settings-blocked-topics");
 	/** コミュニティガイドライン行（既存 testID） */
 	readonly guidelinesItem = by.id("settings-guidelines");
@@ -82,6 +85,23 @@ export class SettingsScreen {
 	 */
 	async hasLogoutItem(): Promise<boolean> {
 		return existsNow(this.logoutItem);
+	}
+
+	/**
+	 * 指定した文言の要素が設定画面に **無い**ことを判定する（待たずに即判定）。
+	 * #1132 の「旧文言が導線側に残っていないこと」の検証に使う。
+	 */
+	async hasText(text: string): Promise<boolean> {
+		return existsNow(by.text(text));
+	}
+
+	/**
+	 * ブロック済みの料理カテゴリ行をタップして一覧画面へ遷移する（#1132）。
+	 * e2e-web は `/ja-JP/profile/blocked-topics` へ URL 直遷移するが、
+	 * ネイティブには代替経路が無いため settings.test.ts と同じく実 UI 導線をタップする。
+	 */
+	async openBlockedTopics(): Promise<void> {
+		await tapWhenVisible(this.blockedTopicsItem);
 	}
 
 	/** プライバシーポリシー行をタップしてリーガルドキュメントのモーダルを開く */
