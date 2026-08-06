@@ -23,6 +23,10 @@ export class SearchPage {
 	readonly locationClearButton: Locator;
 	/** 場所サジェストのリスト */
 	readonly locationSuggestions: Locator;
+	/** 「最近使った場所」のリスト（#953）。未入力でフォーカスしたときだけ描画される */
+	readonly recentLocationsList: Locator;
+	/** 「最近使った場所」を全件クリアするボタン（1件以上あるときだけ描画される） */
+	readonly recentLocationsClearButton: Locator;
 	/** 検索実行ボタン（FAB） */
 	readonly submitButton: Locator;
 	/** 詳細条件の展開トグル */
@@ -61,6 +65,8 @@ export class SearchPage {
 		this.locationInput = page.getByTestId("search-location-autocomplete-input");
 		this.locationClearButton = page.getByTestId("search-location-autocomplete-clear");
 		this.locationSuggestions = page.getByTestId("search-location-autocomplete-suggestions");
+		this.recentLocationsList = page.getByTestId("search-location-autocomplete-recent-locations");
+		this.recentLocationsClearButton = page.getByTestId("search-location-autocomplete-recent-locations-clear");
 		this.submitButton = page.getByTestId("search-submit-button");
 		this.advancedToggle = page.getByTestId("search-advanced-toggle");
 		this.distanceSlider = page.getByTestId("search-distance-slider");
@@ -124,6 +130,27 @@ export class SearchPage {
 		);
 		await this.locationSuggestion(index).click();
 		await responsePromise;
+	}
+
+	/** n 番目の「最近使った場所」の Locator を返す（0 始まり、先頭が最新） */
+	recentLocation(index: number): Locator {
+		return this.page.getByTestId(`search-location-autocomplete-recent-location-${index}`);
+	}
+
+	/**
+	 * 「最近使った場所」パネルを表示する。
+	 *
+	 * `LocationAutocomplete` は「入力が空 && フォーカス中」のときだけこのパネルを出す
+	 * （showRecentLocations の条件）。クリアボタンは押下後に自身で入力欄へフォーカスを戻すが
+	 * （handleClear の `inputRef.current?.focus()`）、それだけに頼らず明示的に入力欄をクリックして
+	 * フォーカスを確定させる。
+	 */
+	async openRecentLocations(): Promise<void> {
+		if (await this.locationClearButton.isVisible().catch(() => false)) {
+			await this.locationClearButton.click();
+		}
+		await this.locationInput.click();
+		await expect(this.recentLocationsList).toBeVisible();
 	}
 
 	/** 時間帯グリッドの項目の Locator を返す（id は timeSlots 定義の値） */
