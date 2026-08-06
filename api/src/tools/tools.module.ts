@@ -6,8 +6,9 @@
 
 import { Module } from '@nestjs/common';
 import { ToolsDishCategoriesModule } from './dish-categories/tools-dish-categories.module';
+import { ToolsResizeImageModule } from './resize-image/tools-resize-image.module';
 
 @Module({
-  imports: [ToolsDishCategoriesModule],
+  imports: [ToolsDishCategoriesModule, ToolsResizeImageModule],
 })
 export class ToolsModule {}

@@ -117,8 +117,9 @@ Cache-Control: public, max-age=31536000, immutable
 **Response:**
 
 - HTTP 204 No Content (success)
+- HTTP 204 No Content (**permanent failure** — #514: リトライしても成功しないので終端する)
 - HTTP 400 Bad Request (validation error)
-- HTTP 500 Internal Server Error (processing error)
+- HTTP 500 Internal Server Error (**transient** processing error — Cloud Tasks がリトライする)
 
 **Authentication:**
 
@@ -127,6 +128,30 @@ Cache-Control: public, max-age=31536000, immutable
 - Localhost bypass for development
 
 ## Error Handling
+
+### 恒久失敗 vs 一時失敗 (#514)
+
+Cloud Tasks は **2xx を成功、それ以外をリトライ対象**として扱う。
+リトライしても決して成功しない失敗は 204 で終端し、無駄な Cloud Run 起動を止める。
+
+| 失敗                                     | 例外                                          | HTTP | Cloud Tasks |
+| ---------------------------------------- | --------------------------------------------- | ---- | ----------- |
+| 原本が 404 / 4xx (429 を除く)            | `PermanentImageError` / `ORIGINAL_IMAGE_NOT_FOUND` | 204  | リトライしない |
+| 再エンコードしても読めない画像           | `PermanentImageError` / `RESIZE_PERMANENT_FAILURE`  | 204  | リトライしない |
+| 原本取得が 5xx / 429 / ネットワークエラー | `Error`                                       | 500  | リトライする  |
+| GCS アップロード失敗など                 | `Error`                                       | 500  | リトライする  |
+
+失敗した分の再実行は `POST /tools/resize-image/re-enqueue`（`api/src/tools/resize-image/`）から
+recordId を明示指定して行う。全件再実行はできない（1 リクエスト最大 100 レコード）。
+利用には `tools.resize-image.re-enqueue` 権限（`permissions` / `role_permissions`）の付与が必要。
+
+### 壊れた JPEG への耐性 (#514)
+
+`performResize()` は `sharp(buffer, { failOn: 'none' })` で読む。
+libvips が警告レベルとして扱う破損（`Corrupt JPEG data: N extraneous bytes before marker 0xNN`、
+`Invalid SOS parameters for sequential JPEG`、`premature end of JPEG image`）は
+これで読み切れることを実測済み（`resize-image.corrupt-jpeg.spec.ts`）。
+画像として解釈できない入力は引き続き失敗するため、恒久失敗の検知能力は落ちていない。
 
 ### Graceful Degradation
 
@@ -189,6 +214,12 @@ Cache-Control: public, max-age=31536000, immutable
 - **ResizedImageExists**: Serving existing resized image
 - **ResizedImageNotFound**: Queueing new resize job
 - **ResizeQueueError**: Async queue failed (non-critical)
+- **DownloadOriginalImagePermanentFailure**: 原本が 4xx (#514・恒久・リトライしない)
+- **DownloadOriginalImageError**: 原本取得が 5xx / ネットワークエラー (一時・リトライする)
+- **ResizeAndStoreImagePermanentFailure**: 恒久失敗 (リトライしない)
+- **ResizeAndStoreImageError**: 一時失敗 (リトライする)
+- **ResizeImagePermanentFailureAcknowledged**: 恒久失敗を 204 で終端した (#514)
+- **ReEnqueueResizeImageStarted / Completed**: 運営ツールからの再 enqueue (#514)
 
 ### Log Levels
 
