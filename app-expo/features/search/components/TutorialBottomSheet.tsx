@@ -8,6 +8,22 @@ import i18n from "@/lib/i18n";
 
 const SHEET_MAX_HEIGHT = 580;
 
+/**
+ * #1156 【バグ】iOS では、アプリ起動直後に `present()` を呼ぶと表示要求が黙って捨てられる。
+ * ルートの UIViewController がまだウィンドウ階層に載っておらず、モーダル表示が成立しないため。
+ *
+ * 起動から `visible` が立つまでが速いほど踏みやすい。E2E は起動引数で視聴済みフラグを
+ * **同期的に**シードするので AsyncStorage の往復が無く、初回描画の 100ms 後には
+ * `present()` へ到達する。実際 run 31103373607 の iOS では
+ * `search_tutorial_auto_opened` がログに残っている（＝ アプリは表示を要求している）のに
+ * シートが最後まで現れず、`expectTutorialShown` が 2 分待って落ちた。
+ * 本番でも AsyncStorage が即座に返れば同じ窓に入りうる。
+ *
+ * `onDidPresent` が返るまで、短い間隔で有限回だけ要求し直して取りこぼしを埋める。
+ */
+const PRESENT_RETRY_INTERVAL_MS = 400;
+const PRESENT_ATTEMPT_LIMIT = 6;
+
 export type TutorialBottomSheetProps = {
 	visible: boolean;
 	pageConfigs: readonly TutorialPageConst[];
@@ -77,26 +93,52 @@ export function TutorialBottomSheet({
 	// 今どのページにいるか（インジケータ & CTA 用）
 	const [currentPage, setCurrentPage] = useState(0);
 
+	// シートが実際に表示され切ったか（present() の取りこぼし再試行を止める条件）
+	const didPresentRef = useRef(false);
+
 	// #642 【設計】TrueSheet の present/dismiss による表示制御
 	useEffect(() => {
 		if (!visible) {
+			didPresentRef.current = false;
 			sheetRef.current?.dismiss();
 			return;
 		}
 
-		// マウントが済んでから present() するために setTimeout で遅延させる
-		const timeoutId = setTimeout(() => {
-			sheetRef.current?.present();
-		}, 0);
+		// マウントが済んでから present() するために setTimeout で遅延させる。
+		// #1156 iOS では 1 回目が捨てられることがあるため、表示され切るまで有限回だけ要求し直す。
+		let attempts = 0;
+		let timeoutId: ReturnType<typeof setTimeout>;
+
+		const requestPresent = () => {
+			if (didPresentRef.current) return;
+
+			void sheetRef.current?.present();
+			attempts += 1;
+
+			if (attempts < PRESENT_ATTEMPT_LIMIT) {
+				timeoutId = setTimeout(requestPresent, PRESENT_RETRY_INTERVAL_MS);
+			}
+		};
+
+		timeoutId = setTimeout(requestPresent, 0);
 
 		return () => clearTimeout(timeoutId);
 	}, [visible]);
+
+	/**
+	 * TrueSheet の onDidPresent イベント
+	 * - 表示され切った時点で再試行を止める
+	 */
+	const handleDidPresent = useCallback(() => {
+		didPresentRef.current = true;
+	}, []);
 
 	/**
 	 * TrueSheet の onDidDismiss イベント
 	 * - ユーザー操作 or dismiss() 呼び出しで閉じきったタイミング
 	 */
 	const handleDidDismiss = useCallback(() => {
+		didPresentRef.current = false;
 		setCurrentPage(0);
 		listRef.current?.scrollToIndex({
 			index: 0,
@@ -195,6 +237,7 @@ export function TutorialBottomSheet({
 			grabber
 			dimmed
 			dismissible
+			onDidPresent={handleDidPresent}
 			onDidDismiss={handleDidDismiss}>
 			{/* #1031 【設計】Detox からチュートリアル表示を検証できるよう testID を追加 */}
 			<View
