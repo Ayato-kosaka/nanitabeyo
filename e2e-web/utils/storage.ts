@@ -46,3 +46,52 @@ export async function seedTopicsTutorialAsSeen(context: BrowserContext): Promise
 		window.localStorage.setItem(key, "true");
 	}, TOPICS_TUTORIAL_STORAGE_KEY);
 }
+
+/**
+ * 「最近使った場所」の保存キー。
+ * app-expo/features/search/hooks/useRecentLocations.ts の RECENT_LOCATIONS_STORAGE_KEY と一致させること。
+ *
+ * ⚠️ ホーム（さがすタブ）と保存料理カテゴリの地点検索モーダルは **同じキー** を共有する（#1133）。
+ * ここを片方だけ変えると「ホームで選んだ地点がモーダルに出ない」不具合になる。
+ */
+export const RECENT_LOCATIONS_STORAGE_KEY = "recent_locations_v1";
+
+/**
+ * 「最近使った場所」1件分の最小形。
+ *
+ * 実体は app-expo の `RecentLocation`（= LocationDetailsResponse から viewport を除いたもの
+ *  + locationQuery）だが、e2e-web からは @shared/app-expo の型を参照できないため、
+ * 画面が実際に読む項目だけをここで定義する。
+ * - `locationQuery`: パネルに表示される文字列
+ * - `location`: 再選択時に details API を呼ばずに検索へ進むための緯度経度
+ */
+export type SeededRecentLocation = {
+	locationQuery: string;
+	location: { latitude: number; longitude: number };
+	address?: string;
+	localLanguageCode?: string;
+};
+
+/**
+ * 「最近使った場所」を事前シードする（#1133）。
+ *
+ * 実 API（autocomplete → details）を経由して 1 件積むこともできるが、
+ * 「パネルが何件で、どんな文字列で描画されるか」を固定したいテストでは
+ * 実 API の候補文言に依存させたくないため、localStorage を直接シードする。
+ * 「ホームと本当に共有されているか」を見るテストだけは実 API 経由で積むこと
+ * （シードだと共有そのものを検証したことにならない）。
+ *
+ * @param context ブラウザコンテキスト（ページ生成前に呼ぶこと）
+ * @param locations 新しい順に並べた地点（先頭が最新。アプリ側の上限は5件）
+ */
+export async function seedRecentLocations(
+	context: BrowserContext,
+	locations: SeededRecentLocation[],
+): Promise<void> {
+	await context.addInitScript(
+		([key, value]) => {
+			window.localStorage.setItem(key as string, value as string);
+		},
+		[RECENT_LOCATIONS_STORAGE_KEY, JSON.stringify(locations)] as const,
+	);
+}
