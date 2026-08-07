@@ -93,6 +93,13 @@ jobs:
       # preview チャンネルの URL には hash が入り、既定 7 日で失効する。作り直すと
       # hash が変わるので、WEB_BASE_URL も API の CORS_ORIGIN も固定できなかった。
       # 専用サイトの live チャンネルなら https://nanitabeyo-dev.web.app で不変になる。
+      #
+      # ## ⚠️ preview を development と同じ扱いにしないこと
+      # target は 3 つある。`production 以外はすべて else` にすると、**preview を流した
+      # だけで development の配信が置き換わる**。preview は EAS の preview 環境変数で
+      # bundle を作るのに対し、nanitabeyo-dev の `/s/**` rewrite は api-development を
+      # 向いたままなので、クライアントと共有リンクで環境がちぐはぐになる。
+      # preview は従来どおり **チャンネル**（live ではない）へ出す。
       - name: 🎯 デプロイ対象と検証 URL を決める
         id: plan
         env:
@@ -100,13 +107,28 @@ jobs:
           WEB_BASE_URL: ${{ vars.WEB_BASE_URL }}
         run: |
           set -euo pipefail
-          if [ "$DEPLOY_TARGET" = "production" ]; then
-            echo "only=hosting:food-scroll,hosting:app-nanitabeyo-net,hosting:oia-relay" >> "$GITHUB_OUTPUT"
-            echo "url=${WEB_BASE_URL}" >> "$GITHUB_OUTPUT"
-          else
-            echo "only=hosting:nanitabeyo-dev" >> "$GITHUB_OUTPUT"
-            echo "url=https://nanitabeyo-dev.web.app" >> "$GITHUB_OUTPUT"
-          fi
+          case "$DEPLOY_TARGET" in
+            production)
+              echo "channel=live" >> "$GITHUB_OUTPUT"
+              echo "only=hosting:food-scroll,hosting:app-nanitabeyo-net,hosting:oia-relay" >> "$GITHUB_OUTPUT"
+              echo "url=${WEB_BASE_URL}" >> "$GITHUB_OUTPUT"
+              ;;
+            development)
+              echo "channel=live" >> "$GITHUB_OUTPUT"
+              echo "only=hosting:nanitabeyo-dev" >> "$GITHUB_OUTPUT"
+              echo "url=https://nanitabeyo-dev.web.app" >> "$GITHUB_OUTPUT"
+              ;;
+            preview)
+              # 使い捨ての確認用。live は踏まないので development の配信に影響しない。
+              # URL は毎回変わるため、デプロイ後に出力から拾う（url はここでは決めない）
+              echo "channel=preview" >> "$GITHUB_OUTPUT"
+              echo "only=nanitabeyo-dev" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "::error::未知の target です: ${DEPLOY_TARGET}"
+              exit 1
+              ;;
+          esac
 
       - name: 🔑 Firebase 認証情報を用意
         env:
@@ -120,11 +142,31 @@ jobs:
         id: firebase_deploy
         run: |
           set -euo pipefail
-          pnpm dlx firebase-tools@latest deploy \
-            --only "${{ steps.plan.outputs.only }}" \
-            --project "${{ secrets.FIREBASE_PROJECT_ID_PROD }}" \
-            --non-interactive
-          echo "デプロイ先: ${{ steps.plan.outputs.only }}"
+          if [ "${{ steps.plan.outputs.channel }}" = "live" ]; then
+            pnpm dlx firebase-tools@latest deploy \
+              --only "${{ steps.plan.outputs.only }}" \
+              --project "${{ secrets.FIREBASE_PROJECT_ID_PROD }}" \
+              --non-interactive
+            echo "デプロイ先: ${{ steps.plan.outputs.only }} (live)"
+          else
+            # `deploy --only hosting:x` は必ず live へ出るので、チャンネルは
+            # hosting:channel:deploy を使う。URL は毎回変わるので JSON で受け取る
+            pnpm dlx firebase-tools@latest hosting:channel:deploy \
+              "${{ steps.plan.outputs.channel }}" \
+              --only "${{ steps.plan.outputs.only }}" \
+              --project "${{ secrets.FIREBASE_PROJECT_ID_PROD }}" \
+              --expires 7d \
+              --non-interactive \
+              --json > "${RUNNER_TEMP}/channel.json"
+            url=$(jq -r '[.result[] | .url] | first // empty' "${RUNNER_TEMP}/channel.json")
+            if [ -z "$url" ]; then
+              echo "::error::preview チャンネルの URL を取得できませんでした"
+              cat "${RUNNER_TEMP}/channel.json"
+              exit 1
+            fi
+            echo "channel_url=$url" >> "$GITHUB_OUTPUT"
+            echo "デプロイ先: ${{ steps.plan.outputs.only }} (channel: ${{ steps.plan.outputs.channel }}) -> $url"
+          fi
 
       - name: 🧹 Firebase 認証情報を破棄
         if: always()
@@ -138,7 +180,11 @@ jobs:
         id: smoke_url
         run: |
           set -euo pipefail
+          # live は plan で決めた固定 URL、preview はデプロイ出力から拾った URL
           url="${{ steps.plan.outputs.url }}"
+          if [ -z "$url" ]; then
+            url="${{ steps.firebase_deploy.outputs.channel_url }}"
+          fi
           if [ -z "$url" ]; then
             echo "::error::スモーク対象 URL を解決できませんでした"
             exit 1
