@@ -37,7 +37,14 @@ export class ShareTargetDishMediaParamsDto {
 	@IsArray()
 	@ArrayMinSize(1)
 	@ArrayMaxSize(SHARE_LINK_MAX_DISH_MEDIA_IDS)
-	@IsUUID("4", { each: true })
+	/**
+	 * ⚠️ **バージョンを固定しないこと（`@IsUUID("4")` にしない）。**
+	 * `dish_media.id` は `gen_random_uuid()`（v4）だけでできているわけではなく、
+	 * 実データには v5 の ID が混ざっている（dev で実測: `358cb297-da34-52b8-...`）。
+	 * v4 に固定すると、**実在する投稿の共有が必ず 400 になる**。
+	 * 同じ ID 集合を受ける `QueryDishMediaByIdsDto` も版を指定していない。
+	 */
+	@IsUUID(undefined, { each: true })
 	ids!: string[];
 }
 

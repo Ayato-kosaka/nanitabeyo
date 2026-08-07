@@ -32,7 +32,17 @@ export type ResolvedShareTarget = {
   previewImagePath: string;
 };
 
-const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-9a-f][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+/**
+ * UUID の «形» だけを見る。`prisma.findUnique` へ渡す前に、UUID 列へ入りえない
+ * 文字列を落とすのが目的（Postgres 側の型エラーを 500 ではなく 400 にする）。
+ *
+ * ⚠️ **バージョンを v4 に固定しないこと。** `dish_media.id` は
+ * `gen_random_uuid()`（v4）だけでできているわけではなく、実データには v5 が
+ * 混ざっている（dev で実測: `358cb297-da34-52b8-...`）。固定すると実在する
+ * 投稿の共有が必ず 400 になる。DTO 側（`ShareTargetDishMediaParamsDto`）も
+ * 同じ理由で `@IsUUID()` を版指定なしにしてある。
+ */
+const UUID_SHAPE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 @Injectable()
 export class ShareLinkTargetResolvers {
@@ -89,7 +99,7 @@ export class ShareLinkTargetResolvers {
       );
     }
     const ids = rawIds.map(String);
-    if (!ids.every((id) => UUID_V4.test(id))) {
+    if (!ids.every((id) => UUID_SHAPE.test(id))) {
       throw new BadRequestException('target.params.ids must be UUIDs');
     }
     // 同じ ID を並べて上限を回避されないよう、重複は落としたうえで順序は保つ

@@ -49,6 +49,25 @@ describe('#721 CreateShareLinkDto を ValidationPipe へ通す', () => {
     expect(result.target.params).toEqual({ shareToken: 'abc123' });
   });
 
+  // #721 dev の実データには v5 の dish_media.id が混ざっている
+  //（実測: 358cb297-da34-52b8-9960-ff217bef1044）。
+  //
+  // ⚠️ 現状 `ShareTargetDishMediaParamsDto` は **ValidationPipe から呼ばれていない**。
+  // `ShareTargetDto.params` は `@IsObject()` だけなので、中身の検証は
+  // `ShareLinkTargetResolvers` 側の責務になっている（DTO のコメント参照）。
+  // つまり `@IsUUID("4")` は今は «実行されない罠» でしかなく、誰かが
+  // params を `@ValidateNested()` で繋いだ瞬間に実在する投稿の共有が 400 になる。
+  // 繋いでも壊れないことをここで固定しておく。
+  it('v5 の UUID を含む ids でも通る（実データに v5 が存在する）', async () => {
+    const ids = ['358cb297-da34-52b8-9960-ff217bef1044'];
+    const result = (await pipe.transform(
+      { target: { type: 'dish_media', params: { ids } }, locale: 'ja-JP' },
+      metadata,
+    )) as CreateShareLinkDto;
+
+    expect(result.target.params).toEqual({ ids });
+  });
+
   it('未知の target_type は弾く', async () => {
     await expect(
       pipe.transform({ target: { type: 'restaurants', params: {} } }, metadata),
