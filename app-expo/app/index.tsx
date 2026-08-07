@@ -8,14 +8,13 @@ import { Env } from "@/constants/Env";
 import { getResolvedLocale } from "@/lib/i18n";
 import { consumeLogoutRedirect } from "@/lib/logoutRedirect";
 import { carriesOAuthResult } from "@/lib/oauthResultUrl";
+// #721 ディープリンクの行き先判定は純関数へ切り出した（分岐をテストで固定するため）
+import { toInAppPath } from "@/lib/deepLinkTarget";
 import * as WebBrowser from "expo-web-browser";
 WebBrowser.maybeCompleteAuthSession();
 
 // 初回表示中はスプラッシュ画面を保持（明示的に後で解除するまで表示）
 SplashScreen.preventAutoHideAsync();
-
-/** BCP 47 言語タグの形式か（app/[locale]/_layout.tsx と同じ判定） */
-const isValidBcp47Tag = (tag: string): boolean => /^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*$/.test(tag);
 
 /**
  * #1124 起動時の URL を «ディープリンクの行き先» として採用済みか。
@@ -25,36 +24,6 @@ const isValidBcp47Tag = (tag: string): boolean => /^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2
  * アプリのプロセス寿命で 1 回だけ採用する（モジュールスコープに置くのはそのため）。
  */
 let hasConsumedInitialUrl = false;
-
-/**
- * ディープリンクのパスを「アプリ内ルート」として解釈できるなら、その絶対パスを返す。
- *
- * #1027 先頭セグメントがロケールであることを条件にする。これによりロケール配下の画面
- *（`ja-JP/profile` 等）だけを行き先として採用し、OAuth コールバックのような
- * ルーティング対象外の URL でリダイレクト先を上書きしてしまう事故を防ぐ。
- *
- * #1135 【バグ】その「防ぐ」が Web では効いていなかった。
- * Web のコールバック URL は `https://<host>/ja-JP/auth/callback?code=...` で、
- * `Linking.parse().path` は `ja-JP/auth/callback`。**先頭セグメント `ja-JP` は BCP 47 判定を通る**ため
- * そのまま採用され、`router.replace("/ja-JP/auth/callback")` で **`code` を落として** 遷移していた。
- * 送られた先の callback 画面は交換すべき code を持たないので `oauth_callback_no_result` になる。
- * （ネイティブの `nanitabeyo://ja-JP/auth/callback?...` は `ja-JP` が hostname 側に入るため元から弾かれる。）
- *
- * ここは «path だけ» を受け取る関数なので、クエリを見ずに済むよう「認証コールバックのルート自体を
- * 行き先にしない」で表現する。クエリを持つ URL 側の判定は呼び出し元（`carriesOAuthResult`）で行う。
- *
- * @param path `Linking.parse(url).path`（先頭スラッシュ無し / 無ければ null）
- * @returns 採用できる場合は "/ja-JP/profile" 形式 / それ以外は null
- */
-const toInAppPath = (path: string | null | undefined): string | null => {
-	const normalized = path?.replace(/^\/+/, "") ?? "";
-	if (!normalized) return null;
-	const [firstSegment, secondSegment] = normalized.split("/");
-	if (!firstSegment || !isValidBcp47Tag(firstSegment)) return null;
-	// #1135 `/[locale]/auth/*` は «クエリ込み» でしか意味を持たない route なので、行き先として採用しない
-	if (secondSegment === "auth") return null;
-	return `/${normalized}`;
-};
 
 /**
  * 🚀 アプリ初回起動時、デバイスのロケールに応じて自動的にリダイレクトする。

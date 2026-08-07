@@ -3,6 +3,9 @@ import { Platform } from "react-native";
 import { getGoogleMapsLink } from "@/lib/googlePlaces";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { generateShareUrl, handleShare } from "@/lib/share";
+import { createShareLink } from "@/lib/createShareLink";
+import { useAPICall } from "@/hooks/useAPICall";
+import { resolvePublicLocale } from "@/constants/seoLocales";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import { useHaptics } from "@/hooks/useHaptics";
@@ -20,6 +23,7 @@ export function useDishMediaActions({ source }: UseDishMediaActionsProps) {
 	const { showSnackbar } = useSnackbar();
 	const { logFrontendEvent } = useLogger();
 	const { locale } = useLocale();
+	const { callBackend } = useAPICall();
 
 	// #613 【設計】Google Maps で開く処理を共通化（緯度経度優先）
 	const openInGoogleMaps = useCallback(
@@ -85,8 +89,20 @@ export function useDishMediaActions({ source }: UseDishMediaActionsProps) {
 
 			try {
 				// #659 【設計】idsForShare がある場合は複数ID、なければ単体
-				const idsParam = idsForShare?.length ? idsForShare.join(",") : dishMediaId;
-				const shareUrl = generateShareUrl(`/${locale}/posts?ids=${idsParam}`);
+				const ids = idsForShare?.length ? idsForShare : [dishMediaId];
+
+				// #721 共有カードに «投稿ごとの» タイトルとサムネイルを出すため、
+				// 共有 URL を /s/:token へ移す。Web は output: "static" なので、
+				// `?ids=` に応じて初回 HTML の OGP を変えられない（クローラは初回 HTML しか見ない）。
+				//
+				// 発行に失敗しても共有そのものは止めない。既存形式へ落とすと OGP は既定に戻るが、
+				// 着地する画面は同じ（`?ids=` は後方互換で残してある）。
+				// 「共有ボタンを押したのに何も起きない」方が損失が大きい
+				const shareUrl =
+					(await createShareLink(callBackend, {
+						target: { type: "dish_media", params: { ids } },
+						locale: resolvePublicLocale(locale),
+					} as never)) ?? generateShareUrl(`/${locale}/posts?ids=${ids.join(",")}`);
 
 				logFrontendEvent({
 					event_name: "dish_share_attempted",
@@ -145,7 +161,7 @@ export function useDishMediaActions({ source }: UseDishMediaActionsProps) {
 				});
 			}
 		},
-		[locale, lightImpact, logFrontendEvent, showSnackbar, source],
+		[locale, lightImpact, logFrontendEvent, showSnackbar, source, callBackend],
 	);
 
 	return {

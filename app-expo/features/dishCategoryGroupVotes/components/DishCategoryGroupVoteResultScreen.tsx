@@ -23,6 +23,8 @@ import type { DishCategoryGroupVoteCandidate } from "@shared/api/v1/res";
 import type { QueryDishMediaByIdsDto } from "@shared/api/v1/dto";
 import type { QueryDishMediaByIdsResponse } from "@shared/api/v1/res";
 import { generateShareUrl } from "@/lib/share";
+import { createShareLink } from "@/lib/createShareLink";
+import { resolvePublicLocale } from "@/constants/seoLocales";
 import i18n from "@/lib/i18n";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { PrimaryButton } from "@/components/PrimaryButton";
@@ -194,12 +196,24 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 		},
 	});
 
-	const shareUrl = generateShareUrl(`/${locale}/search/dish-category-group-votes/${shareToken}/vote`);
+	// #721 共有 URL を /s/:token に寄せる。友達投票は共有カードに投稿固有の画像が要らないが、
+	// 共有 URL・Deep Link・OGP の生成経路を 1 本にまとめる価値があるので同じ基盤へ乗せる。
+	//
+	// ⚠️ 共有トークンを 2 系統にしない。友達投票は #856 の時点で share_token を持っており、
+	// `/s/:token` はその上に OGP と入口を足す層。share_links.target_params.shareToken に
+	// 既存トークンを持たせるだけなので、既存 URL・既存 API・既存 E2E は 1 つも壊れない。
+	const fallbackShareUrl = generateShareUrl(`/${locale}/search/dish-category-group-votes/${shareToken}/vote`);
 
 	const handleCopyShareLink = async () => {
 		// #942 【仕様】Web ではクリップボードAPIが非セキュアコンテキスト等で失敗しうるため、
 		// 失敗を無音にせずエラー通知する
 		try {
+			// 発行に失敗しても共有そのものは止めない（既存 URL へ落とす）
+			const shareUrl =
+				(await createShareLink(callBackend, {
+					target: { type: "dish_category_group_vote_sessions", params: { shareToken } },
+					locale: resolvePublicLocale(locale),
+				} as never)) ?? fallbackShareUrl;
 			await Clipboard.setStringAsync(shareUrl);
 			logFrontendEvent({
 				event_name: "dish_category_group_vote_share_link_copied",

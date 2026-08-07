@@ -88,6 +88,13 @@
 			"cleanUrls": true,
 			"rewrites": [
 				{
+					"source": "/s/**",
+					"run": {
+						"serviceId": "api-production",
+						"region": "asia-northeast1"
+					}
+				},
+				{
 					"source": "**",
 					"destination": "/index.html"
 				}
