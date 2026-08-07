@@ -43,6 +43,18 @@ export class PermanentImageError extends Error {
 }
 
 /**
+ * 原本のダウンロードで「恒久失敗」と判定する HTTP ステータス。
+ *
+ * #514 原本が存在しないことを直接示すものだけを入れる。
+ * - 404 Not Found: 原本が消えている（本番ログで実際に無限リトライを起こしていたのはこれ）
+ * - 410 Gone: 原本が意図的に削除された
+ *
+ * ⚠️ ここへ他の 4xx（403 / 408 / 425 / 429 など）を足さないこと。
+ * それらはリトライで成功しうるため、恒久扱いにすると画像が永久にリサイズされない。
+ */
+const PERMANENT_DOWNLOAD_STATUSES = new Set([404, 410]);
+
+/**
  * JPEGデコードエラーが再エンコードで救済可能かを判定
  * @param error エラーオブジェクト
  * @returns 再エンコードを試す対象ならtrue
@@ -154,8 +166,9 @@ export class ResizeImageService {
   /**
    * Download original image from GCS
    *
-   * #514 【バグ】原本が存在しない（404）など 4xx はリトライしても決して成功しないため
-   * 恒久失敗として扱う。5xx / ネットワークエラーは従来どおりリトライさせる。
+   * #514 【バグ】原本が存在しない（404 / 410）場合はリトライしても決して成功しないため
+   * 恒久失敗として扱う。それ以外（5xx・ネットワークエラー・その他の 4xx）は
+   * 従来どおりリトライさせる。
    */
   private async downloadOriginalImage(path: string): Promise<Buffer> {
     try {
@@ -167,13 +180,18 @@ export class ResizeImageService {
       if (!response.ok) {
         const message = `Failed to download image: ${response.status} ${response.statusText}`;
 
-        // #514 【バグ】4xx は原本側の恒久的な状態。リトライループを止める。
-        // 429 (Too Many Requests) だけは一時的なので従来どおりリトライ対象。
-        if (
-          response.status >= 400 &&
-          response.status < 500 &&
-          response.status !== 429
-        ) {
+        // #514 【バグ】原本が存在しないことが確定した場合だけリトライループを止める。
+        //
+        // ⚠️ ここを「4xx なら恒久失敗」へ広げないこと（レビュー指摘）。
+        // 署名付き URL は **試行のたびに新しく発行する**ため、次の 4xx はいずれも
+        // リトライで成功しうる。恒久扱いにすると controller が 204 を返して
+        // Cloud Tasks からジョブが消え、リサイズされない画像がそのまま残る。
+        //   - 403: 署名の期限切れ・クロックスキュー（ExpiredToken / SignatureDoesNotMatch）
+        //   - 408 / 425: 一時的なタイムアウト
+        //   - 429: レート制限
+        // #514 の本番ログで実際に無限リトライを起こしていたのは 404 なので、
+        // 恒久扱いは「原本が無い」ことを直接示す 404 / 410 に限定する。
+        if (PERMANENT_DOWNLOAD_STATUSES.has(response.status)) {
           this.logger.error(
             'DownloadOriginalImagePermanentFailure',
             'downloadOriginalImage',

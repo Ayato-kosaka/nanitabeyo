@@ -480,8 +480,25 @@ describe('ResizeImageService - JPEG Decode Error Handling', () => {
       );
     });
 
-    it.each([400, 403, 410])(
-      'should treat %i as a permanent failure',
+    it.each([410])('should treat %i as a permanent failure', async (status) => {
+      mockFetchStatus(status, 'Gone');
+
+      const error = await service.resizeAndStoreImage(testDto).catch((e) => e);
+
+      expect(error).toBeInstanceOf(PermanentImageError);
+      expect((error as PermanentImageError).code).toBe(
+        'ORIGINAL_IMAGE_NOT_FOUND',
+      );
+    });
+
+    // 一時的な 4xx を恒久扱いにすると、Cloud Tasks からジョブが消えて
+    // その画像は二度とリサイズされない。署名付き URL は試行ごとに発行し直すので、
+    // 次はいずれもリトライで成功しうる（レビュー指摘）。
+    //   400: リクエスト組み立ての不備。原本の不在を意味しない
+    //   403: 署名の期限切れ・クロックスキュー（ExpiredToken / SignatureDoesNotMatch）
+    //   408 / 425: 一時的なタイムアウト
+    it.each([400, 403, 408, 425])(
+      'should keep %i retryable (a client error is not proof the original is gone)',
       async (status) => {
         mockFetchStatus(status, 'Client Error');
 
@@ -489,9 +506,12 @@ describe('ResizeImageService - JPEG Decode Error Handling', () => {
           .resizeAndStoreImage(testDto)
           .catch((e) => e);
 
-        expect(error).toBeInstanceOf(PermanentImageError);
-        expect((error as PermanentImageError).code).toBe(
-          'ORIGINAL_IMAGE_NOT_FOUND',
+        expect(error).toBeInstanceOf(Error);
+        expect(error).not.toBeInstanceOf(PermanentImageError);
+        expect(mockLogger.error).toHaveBeenCalledWith(
+          'DownloadOriginalImageError',
+          'downloadOriginalImage',
+          expect.objectContaining({ path: testDto.originalPath }),
         );
       },
     );

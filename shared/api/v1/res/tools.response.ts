@@ -29,13 +29,18 @@ export type PopularDishCategoriesWithMediaResponse = PopularDishCategoryWithMedi
 
 /**
  * #514 再 enqueue 結果のステータス
- * - enqueued: Cloud Tasks に投入した
+ * - enqueued: 指定サイズをすべて Cloud Tasks に投入した
+ * - partially_enqueued: 一部のサイズだけ投入して途中で失敗した（`enqueuedSizes` が投入済み）
  * - skipped_record_not_found: レコードが存在しない
  * - skipped_original_path_empty: 原本パスが空（リサイズ対象なし）
- * - failed: enqueue 自体に失敗した
+ * - failed: 1 件も投入できずに失敗した
+ *
+ * `partially_enqueued` を `failed` と混ぜないこと。混ぜると運用者が「何も投入されていない」と
+ * 誤解してそのまま再実行し、成功済みのサイズまで重複投入される。
  */
 export type ReEnqueueResizeImageStatus =
 	| "enqueued"
+	| "partially_enqueued"
 	| "skipped_record_not_found"
 	| "skipped_original_path_empty"
 	| "failed";
@@ -46,9 +51,9 @@ export type ReEnqueueResizeImageResult = {
 	column: string;
 	recordId: string;
 	status: ReEnqueueResizeImageStatus;
-	/** 実際に投入したサイズ */
+	/** 実際に投入したサイズ。`partially_enqueued` のときは投入済みの分だけが入る */
 	enqueuedSizes: number[];
-	/** skipped / failed の理由 */
+	/** skipped / failed / partially_enqueued の理由 */
 	reason?: string;
 };
 

@@ -4,8 +4,16 @@
 #
 # ## 内容
 # - Artifact Registry リポジトリへ cleanup policy を設定し、古いイメージが自動で消えるようにする。
-#   - Keep  : tagged なイメージを新しい方から 10 個
+#   - Keep  : 新しい方から 10 個（Keep は Delete より優先される）
 #   - Delete: untagged なイメージのうち 7 日より古いもの
+#   - Delete: tagged なイメージのうち 30 日より古いもの
+#
+# ## ⚠️ Keep だけでは 1 バイトも減らない（レビュー指摘）
+# Artifact Registry の cleanup policy では、**削除するのは Delete 条件だけ**で、
+# Keep は「Delete 条件に当たっても消さない」という保護にしかならない。
+# したがって `mostRecentVersions.keepCount` を書いても 11 個目以降が消えるわけではない。
+# `api-deploy.yml` は deploy のたびに `:${github.sha}` を付けた **tagged** イメージを push するので、
+# tagged 側にも Delete 条件を置かないと、容量を食っている当のイメージが永久に残る。
 #
 # ## 背景
 # - `.github/workflows/api-deploy.yml` は deploy のたびに `${ARTIFACT_REPO_URI}/api:${github.sha}`
@@ -14,11 +22,18 @@
 #   したがって「全部消す」ではなく「直近 N 世代を残す」方針にする。
 #
 # ## この方針で残るもの / 消えるもの
-# - 残る: 直近 10 個の tagged イメージ（= 直近 10 デプロイ分。ここまでロールバックできる）
-# - 消える: 11 個目より古い tagged イメージ、および 7 日より古い untagged イメージ
+# - 残る: 直近 10 個のイメージ（= 直近 10 デプロイ分。ここまでロールバックできる）。
+#         Keep が Delete より優先されるため、30 日より古くてもこの 10 個は消えない。
+# - 消える: 直近 10 個に入らない tagged イメージのうち 30 日より古いもの、
+#           および 7 日より古い untagged イメージ
 #
 # ## ⚠️ ロールバックできなくなるリスク
-# - **11 世代より前へは戻せなくなる。** 「半年前の状態へ戻す」運用をしているなら KEEP_COUNT を上げること。
+# - **11 世代より前かつ 30 日より古いものへは戻せなくなる。**
+#   「半年前の状態へ戻す」運用をしているなら KEEP_COUNT か TAGGED_MAX_AGE を上げること。
+# - **長期間デプロイしていない環境が危ない。** 例えば development ばかり 10 回以上デプロイし、
+#   production は 30 日以上前のまま、という状態だと production の参照イメージが
+#   「直近 10 個」から押し出され、Delete 条件にかかりうる。
+#   本スクリプトは apply 前にこれを自動で照合して警告する（下の「保持対象の照合」）。
 # - Cloud Run のリビジョンが参照している digest は untagged に見えることがある。
 #   本スクリプトは実行前に **現在参照中の digest を必ず表示する**ので、
 #   それが保持対象に入っていることを目で確認してから apply すること。
@@ -56,6 +71,9 @@ PROJECT_ID="${4:-$(gcloud config get-value project 2>/dev/null || true)}"
 
 KEEP_COUNT=10
 UNTAGGED_MAX_AGE="7d"
+# tagged イメージを削除対象にする年齢。Keep（直近 KEEP_COUNT 個）が優先されるので、
+# 「直近 10 個に入らず、かつ 30 日より古い」ものだけが実際に消える。
+TAGGED_MAX_AGE="30d"
 
 usage() {
   echo "Usage: $0 {dryrun|apply|remove} <REPO_URI> <REGION> [PROJECT_ID]" >&2
@@ -98,6 +116,7 @@ echo
 # Cloud Run のリビジョンが参照しているイメージが消えると、そこへ戻せなくなる。
 # ------------------------------------------------------------------
 echo "--- 現在 Cloud Run が参照しているイメージ（消してはいけないもの） ---"
+REFERENCED_IMAGES=()
 for service in api-production api-development; do
   image="$(gcloud run services describe "${service}" \
     --project="${PROJECT_ID}" \
@@ -105,11 +124,59 @@ for service in api-production api-development; do
     --format='value(spec.template.spec.containers[0].image)' 2>/dev/null || true)"
   if [[ -n "${image}" ]]; then
     echo "  ${service}: ${image}"
+    REFERENCED_IMAGES+=("${service}=${image}")
   else
     echo "  ${service}: (取得できず。サービス名かリージョンを確認すること)"
   fi
 done
 echo
+
+# ------------------------------------------------------------------
+# 保持対象の照合
+#
+# Keep は「新しい方から KEEP_COUNT 個」なので、長期間デプロイしていない環境の
+# 参照イメージは押し出されて Delete 条件（TAGGED_MAX_AGE より古い tagged）に
+# かかりうる。目視だけに頼らず、ここで機械的に突き合わせて警告する。
+#
+# 照合は best-effort（タグ／digest の書式ゆれで空振りしうる）なので、
+# 結果が取れなかった場合は「安全」と言い切らずその旨を出す。
+# ------------------------------------------------------------------
+KEEP_SET_WARNING=0
+if [[ ${#REFERENCED_IMAGES[@]} -gt 0 ]]; then
+  echo "--- 参照中イメージが「直近 ${KEEP_COUNT} 個」に入っているかを照合する ---"
+  recent_versions="$(gcloud artifacts docker images list "${REPO_URI}" \
+    --project="${PROJECT_ID}" \
+    --include-tags \
+    --sort-by='~UPDATE_TIME' \
+    --limit="${KEEP_COUNT}" \
+    --format='value(version,tags)' 2>/dev/null || true)"
+
+  if [[ -z "${recent_versions}" ]]; then
+    echo "  ⚠️ イメージ一覧を取得できなかったため照合できない。手動で確認すること。"
+    KEEP_SET_WARNING=1
+  else
+    for entry in "${REFERENCED_IMAGES[@]}"; do
+      service="${entry%%=*}"
+      image="${entry#*=}"
+      # "<repo>/api:<sha>" なら :<sha> を、"<repo>/api@sha256:..." なら digest を照合キーにする
+      if [[ "${image}" == *"@"* ]]; then
+        key="${image##*@}"
+      else
+        key="${image##*:}"
+      fi
+
+      if grep -qF -- "${key}" <<<"${recent_versions}"; then
+        echo "  ✅ ${service}: 直近 ${KEEP_COUNT} 個に含まれる（Keep で保護される）"
+      else
+        echo "  ⚠️ ${service}: 直近 ${KEEP_COUNT} 個に **見つからない**（${key}）"
+        echo "     この環境を長期間デプロイしていない場合、参照イメージが削除されてロールバックできなくなる。"
+        echo "     KEEP_COUNT か TAGGED_MAX_AGE を上げるか、先に再デプロイしてから apply すること。"
+        KEEP_SET_WARNING=1
+      fi
+    done
+  fi
+  echo
+fi
 
 if [[ "${ACTION}" == "remove" ]]; then
   echo "--- cleanup policy を削除する ---"
@@ -123,9 +190,14 @@ fi
 
 # ------------------------------------------------------------------
 # ポリシー定義
-#   keep-recent-releases : tagged を新しい方から KEEP_COUNT 個保持
+#   keep-recent-releases : 新しい方から KEEP_COUNT 個を保護する
 #   delete-old-untagged  : untagged で UNTAGGED_MAX_AGE より古いものを削除
-# Keep は Delete より優先されるため、保持対象が消されることはない。
+#   delete-old-tagged    : tagged で TAGGED_MAX_AGE より古いものを削除
+#
+# ⚠️ Keep は「削除しない」保護でしかなく、それ自体は何も消さない。
+#    容量を食っているのは api-deploy が push する `:${github.sha}` の **tagged** イメージなので、
+#    delete-old-tagged が無いとこのスクリプトは目的を果たさない（レビュー指摘）。
+#    Keep は Delete より優先されるため、直近 KEEP_COUNT 個は年齢に関わらず残る。
 # ------------------------------------------------------------------
 POLICY_FILE="$(mktemp -t artifact-cleanup-policy.XXXXXX.json)"
 trap 'rm -f "${POLICY_FILE}"' EXIT
@@ -145,6 +217,14 @@ cat >"${POLICY_FILE}" <<EOF
     "condition": {
       "tagState": "untagged",
       "olderThan": "${UNTAGGED_MAX_AGE}"
+    }
+  },
+  {
+    "name": "delete-old-tagged",
+    "action": { "type": "Delete" },
+    "condition": {
+      "tagState": "tagged",
+      "olderThan": "${TAGGED_MAX_AGE}"
     }
   }
 ]
@@ -174,6 +254,10 @@ if [[ "${ACTION}" == "dryrun" ]]; then
 fi
 
 echo "--- 本適用する（実際に削除が始まる） ---"
+if [[ "${KEEP_SET_WARNING}" -ne 0 ]]; then
+  echo "⚠️ 上の照合で警告が出ている。参照中のイメージが消える可能性がある。"
+  echo "   先に再デプロイするか、KEEP_COUNT / TAGGED_MAX_AGE を上げてからやり直すこと。"
+fi
 read -r -p "現在参照中の digest が保持対象に入っていることを確認したか? [yes/N] " answer
 if [[ "${answer}" != "yes" ]]; then
   echo "中止した。"

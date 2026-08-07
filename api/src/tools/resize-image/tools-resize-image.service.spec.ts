@@ -214,6 +214,34 @@ describe('ToolsResizeImageService', () => {
     expect(result.results[1].status).toBe('enqueued');
   });
 
+  // restaurants の既定サイズは [256, 64] の 2 件。1 件目が成功して 2 件目が失敗すると
+  // 「Cloud Task は作られているのに結果は 0 件」という状態になり、それを見た運用者が
+  // 再実行して成功済みのサイズまで重複投入してしまう（レビュー指摘）
+  it('should report partially enqueued sizes when a later size fails', async () => {
+    prismaMock.restaurants.findUnique.mockResolvedValue({
+      image_path: 'production/a.jpg',
+    });
+    mockCloudTasks.enqueueResizeImage
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error('quota exceeded'));
+
+    const result = await service.reEnqueue({
+      targets: [
+        { table: 'restaurants', column: 'image_path', recordId: RESTAURANT_ID },
+      ],
+    });
+
+    // failed ではなく partially_enqueued。混ぜると「何も投入されていない」と誤解される
+    expect(result.results[0].status).toBe('partially_enqueued');
+    // 実際に投入できた 1 件目が結果へ出ること
+    expect(result.results[0].enqueuedSizes).toEqual([256]);
+    // 未投入のサイズが理由から読み取れること（再実行時はこれだけを指定する）
+    expect(result.results[0].reason).toContain('quota exceeded');
+    expect(result.results[0].reason).toContain('64');
+    // 集計も投入済みの実数と一致すること（0 のままだと運用者が重複投入する）
+    expect(result.enqueuedTasks).toBe(1);
+  });
+
   // #514 全件再実行（本番 476,637 件）を絶対に起こさないためのガード
   describe('bulk-run guard', () => {
     const validateDto = async (plain: unknown) =>

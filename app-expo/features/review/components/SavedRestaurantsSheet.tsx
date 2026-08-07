@@ -32,6 +32,25 @@ type SavedRestaurant = QueryMeSavedRestaurantsResponse["data"][number];
  * `draggable === false` の間はグラバーを消してしまう（横スワイプのたびに点滅する）。
  * そのため Android ではネイティブのグラバーを無効化し、ヘッダー内に同じ見た目
  * （32x4dp / 角丸 / 黒 40% / シート上端から 16dp）のグラバーを自前で描画する。
+ *
+ * ## ⚠️ 残っている競合窓（既知。JS からは閉じ切れない）
+ * `draggable` を false にするのは `onScrollStart`、つまりカルーセルの Pan が
+ * `activeOffsetX = 10dp` を超えて **活性化したあと**。一方 Android のシートは
+ * `abs(dy) > 8dp` で掴む。したがって
+ *
+ *   「横へ 10dp 動くより先に、縦へ 8dp ぶれた入力」
+ *
+ * では**シートが先に掴み、#1126 の症状（横スワイプで縦に広がる）が残る**。
+ * 角度でいうと水平から約 38.7°(= atan(8/10)) より急な入力が該当する。
+ * さらに `draggable` は React の prop なので、UI スレッドで判定できても
+ * ネイティブへ反映されるまで 1 フレーム前後の遅れがあり、非常に速いスワイプでは
+ * その遅れぶんの窓も残る。
+ *
+ * **これを「タッチダウン時点で false にする」方向へ直すのは見送っている。**
+ * その場合、意図的な縦ドラッグでもカルーセルの Pan が fail するまで
+ * （`failOffsetY = 20dp`）シートを掴めず、展開操作に遅れが出る。
+ * どちらの体感がましかは実機でしか判断できないため、#1126 は実機確認へ残している
+ * （`docs/manual-verification-parallel-dev-7he5dw.md`）。
  */
 const GATES_SHEET_DRAG = Platform.OS === "android";
 

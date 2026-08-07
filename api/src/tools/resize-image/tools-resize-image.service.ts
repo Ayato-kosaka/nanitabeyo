@@ -114,6 +114,12 @@ export class ToolsResizeImageService {
     // 明示指定があればそれだけ、無ければ既定サイズ一式
     const sizes = target.sizes ?? spec.sizes;
 
+    // ⚠️ 成功したサイズを 1 件ずつ記録すること（レビュー指摘）。
+    // restaurants / users の既定サイズは 2 件あるので、1 件目が成功して 2 件目が失敗すると、
+    // 「Cloud Task は既に作られているのに enqueuedSizes が空」という結果になる。
+    // それを見た運用者が再実行すると、成功済みのサイズまで重複投入される。
+    const enqueuedSizes: number[] = [];
+
     try {
       for (const size of sizes) {
         await this.cloudTasks.enqueueResizeImage({
@@ -124,20 +130,32 @@ export class ToolsResizeImageService {
           ...(spec.aspectRatio ? { aspectRatio: spec.aspectRatio } : {}),
           originalPath,
         });
+        enqueuedSizes.push(size);
       }
     } catch (error) {
+      const reason = error instanceof Error ? error.message : 'Unknown error';
       this.logger.error('ReEnqueueResizeImageError', 'reEnqueue', {
         ...base,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        enqueuedSizes,
+        remainingSizes: sizes.filter((size) => !enqueuedSizes.includes(size)),
+        error: reason,
       });
       return {
         ...base,
-        status: 'failed',
-        reason: error instanceof Error ? error.message : 'Unknown error',
+        // 1 件も投入できていなければ完全な失敗、途中まで投入できていれば部分成功として区別する。
+        // 再実行するときは remainingSizes（下の reason にも出す）だけを sizes へ指定すること
+        status: enqueuedSizes.length > 0 ? 'partially_enqueued' : 'failed',
+        enqueuedSizes,
+        reason:
+          enqueuedSizes.length > 0
+            ? `${reason}（投入済み: ${enqueuedSizes.join(', ')} / 未投入: ${sizes
+                .filter((size) => !enqueuedSizes.includes(size))
+                .join(', ')}）`
+            : reason,
       };
     }
 
-    return { ...base, status: 'enqueued', enqueuedSizes: [...sizes] };
+    return { ...base, status: 'enqueued', enqueuedSizes };
   }
 
   /**
