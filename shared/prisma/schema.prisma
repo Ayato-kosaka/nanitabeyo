@@ -625,7 +625,6 @@ model share_links {
   expires_at          DateTime? @db.Timestamptz(6)
   created_at          DateTime  @default(now()) @db.Timestamptz(6)
   updated_at          DateTime  @default(now()) @db.Timestamptz(6)
-  users               users?    @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([created_by, created_at(sort: Desc)], map: "idx_share_links_created_by_created_at")
   @@index([target_type, target_id], map: "idx_share_links_target")
@@ -683,7 +682,6 @@ model users {
   dish_media_likes dish_media_likes[]
   dish_reviews     dish_reviews[]
   restaurant_bids  restaurant_bids[]
-  share_links      share_links[]
 
   @@schema("dev")
 }

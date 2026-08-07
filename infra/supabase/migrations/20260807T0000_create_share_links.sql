@@ -62,7 +62,16 @@ CREATE TABLE IF NOT EXISTS share_links (
   --   3. それ以外 … GCS のオブジェクトパス。`GET /s/:token/og-image` が毎回署名し直して 302 する
   preview_image_path  text NOT NULL,
 
-  created_by     uuid NULL REFERENCES users(id),
+  -- ⚠️ **`REFERENCES users(id)` を付けないこと。**
+  -- このアプリのユーザーは Supabase Auth の匿名サインインで始まり、**匿名ユーザーには
+  -- `users` 行が存在しない**。FK を張ると匿名ユーザーからの共有が必ず失敗する
+  -- （api-development で実測: `Foreign key constraint violated on the constraint:
+  --  share_links_created_by_fkey` で 500）。
+  --
+  -- dish_media / dish_reviews などが `users(id)` へ FK を張っているのは、
+  -- 「ログイン済みユーザーしか行を作れない」列だから。ここは匿名でも作れるので違う。
+  -- 友達投票（20260623T0000）も同じ理由で FK を外している。
+  created_by     uuid NULL,
 
   status         text NOT NULL DEFAULT 'active'
     CHECK (status IN ('active', 'revoked')),
