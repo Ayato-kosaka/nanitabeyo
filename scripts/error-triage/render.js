@@ -208,11 +208,21 @@ const replaceAutoSection = (existingBody, autoSection) => {
 	return existingBody.slice(0, start) + autoSection + existingBody.slice(end + AUTO_END_MARKER.length);
 };
 
+/** 自動領域を復元したときに、保全した既存本文の前に置く見出し。 */
+const PRESERVED_BODY_NOTICE = "（自動領域のマーカーが見つからなかったため作り直しました。以下は既存の本文です）";
+
 /**
  * Issue body を組み立てる。既存 body があれば自動領域だけを差し替える。
  *
  * G2: `firstSeen` は既存 body の値と min() を取る。今回の窓の値で毎日上書きしない。
  * 不変条件 2: `occurrences` / `affectedUsers` は既存 body の値と**合算しない**。今回の窓の値をそのまま出す。
+ *
+ * S-2（PR #1200 レビュー）:
+ *   自動領域マーカーが見つからない場合でも、**既存 body を1文字も捨てない**。
+ *   自動領域内の注意書き（renderAutoSection）は `<!-- fp:… -->` を消すなとしか書いておらず、
+ *   `auto:start` / `auto:end` については何も言っていないので、人間がマーカーだけ消すことは十分あり得る。
+ *   捨てた場合、PR3 がこの戻り値で body を PATCH した瞬間に担当者の調査メモが黙って消える。
+ *   保全するかどうかを PR3 に委ねず、ここで決める。
  *
  * @param {{
  *   group: Record<string, any>,
@@ -231,16 +241,12 @@ const renderIssueBody = ({ group, window, generatedAt, existingBody = null, pare
 	const replaced = replaceAutoSection(existingBody, autoSection);
 	if (replaced !== null) return replaced;
 
-	return [
-		renderFpMarker(group.fingerprint),
-		renderFpAlgoMarker(),
-		autoSection,
-		"",
-		"---",
-		"",
-		"（ここから下は自由記述。スクリプトは触りません）",
-		"",
-	].join("\n");
+	const head = [renderFpMarker(group.fingerprint), renderFpAlgoMarker(), autoSection, "", "---", ""];
+	// 空白しか無い body（＝新規起票、あるいは実質空）と、人間が書いた本文とを区別する。
+	if (existingBody && existingBody.trim() !== "") {
+		return [...head, PRESERVED_BODY_NOTICE, "", existingBody, ""].join("\n");
+	}
+	return [...head, "（ここから下は自由記述。スクリプトは触りません）", ""].join("\n");
 };
 
 /** 回帰コメントの冪等マーカー（#1198 §5-D）。 */
@@ -373,6 +379,7 @@ module.exports = Object.freeze({
 	AUTO_START_MARKER,
 	AUTO_END_MARKER,
 	PARENT_SUMMARY_MARKER,
+	PRESERVED_BODY_NOTICE,
 	FP_MARKER_PATTERN,
 	FPALGO_MARKER_PATTERN,
 	FIRST_SEEN_MARKER_PATTERN,

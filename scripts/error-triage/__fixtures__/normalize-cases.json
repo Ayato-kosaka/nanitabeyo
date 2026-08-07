@@ -106,5 +106,23 @@
 		"note": "整形差の吸収",
 		"input": "  too\t\tmany   spaces  ",
 		"expected": "too many spaces"
+	},
+	{
+		"id": "b1-fullwidth-space",
+		"note": "★B-1: 全角スペース U+3000。RE2 の \\s は含まないので、ショートハンドのままだと SQL と JS で結果が割れる",
+		"input": "Validation failed: name=\"すし\u3000太郎\" is too long",
+		"expected": "Validation failed: name=\"すし 太郎\" is too long"
+	},
+	{
+		"id": "b1-unicode-spaces",
+		"note": "★B-1: NBSP / FIGURE SPACE / BOM / 垂直タブ（RE2 の \\s には \\v すら入らない）も畳む",
+		"input": "a\u00a0b\u2007c\ufeffd\u000be",
+		"expected": "a b c d e"
+	},
+	{
+		"id": "b1-url-query-stops-at-fullwidth-space",
+		"note": "★B-1: ルール6 は全角スペースで止まる（止まらないと SQL 側だけが日本語本文まで巻き込んで消す）",
+		"input": "GET /a?k=v\u3000続きの説明文です",
+		"expected": "GET /a? 続きの説明文です"
 	}
 ]

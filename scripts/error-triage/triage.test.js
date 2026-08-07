@@ -509,7 +509,35 @@ describe("buildPlan()", () => {
 		expect(plan.warnings.join("\n")).toMatch(/#1212 に複数の fingerprint/);
 	});
 
-	it("書き込み系の副作用を一切持たない（計画は素の値だけ）", () => {
-		expect(() => JSON.parse(JSON.stringify(plan))).not.toThrow();
+	// ★ N-2（PR #1200 レビュー）: 旧テストは `JSON.parse(JSON.stringify(plan))` が
+	//   throw しないことだけを見ており、循環参照が無いことしか示していなかった（副作用の有無と無関係）。
+	//   入力のディープコピーを取って前後比較する形にして、名前どおりの意味を持たせる。
+	it("書き込み系の副作用を一切持たない（入力を1バイトも書き換えない）", () => {
+		const envelope = makeEnvelope();
+		const commitDates = { ...COMMIT_DATES_AFTER_CLOSE };
+		const inputs = { envelope, issues: existingIssues, commitDates };
+		const before = JSON.parse(JSON.stringify(inputs));
+
+		buildPlan(inputs);
+
+		expect(JSON.parse(JSON.stringify(inputs))).toEqual(before);
+	});
+
+	it("戻り値は入力とオブジェクトを共有しない（あとで書き換えても入力へ波及しない）", () => {
+		const envelope = makeEnvelope();
+		const built = buildPlan({ envelope, issues: existingIssues, commitDates: COMMIT_DATES_AFTER_CLOSE });
+		const target = built.items.find((item) => item.fingerprint === envelope.groups[0].fingerprint);
+
+		target.reason = "書き換えた";
+		target.occurrences = -1;
+
+		expect(envelope.groups[0].occurrences).toBe(rows[0].occurrences);
+		expect(envelope.groups[0].reason).toBeUndefined();
+	});
+
+	it("同じ入力で2回呼んでも同じ計画になる（1回目の呼び出しが状態を残さない）", () => {
+		const envelope = makeEnvelope();
+		const args = { envelope, issues: existingIssues, commitDates: COMMIT_DATES_AFTER_CLOSE };
+		expect(buildPlan(args)).toEqual(buildPlan(args));
 	});
 });

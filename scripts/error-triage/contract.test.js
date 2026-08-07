@@ -175,6 +175,26 @@ describe("不変条件 3: messagePattern / route / endpoint / pathName は全て
 	it("URLクエリの秘密値が契約に現れない", () => {
 		expect(JSON.stringify(envelope)).not.toMatch(/AIzaSy/);
 	});
+
+	// ★ B-1（PR #1200 レビュー）: 正規化は SQL 側で行うので、SQL が吐いた値をそのまま
+	//   isNormalized() に掛ける。ルールが RE2 と JS で割れていると、SQL 側で正しく畳まれた値を
+	//   JS 側が「未正規化」と誤判定し、全角スペースが1つあるだけで run 全体が invalid になる。
+	it("SQL 側で畳まれた全角スペース入りの値を「未正規化」と誤判定しない", () => {
+		const fromSql = 'Validation failed: name="すし 太郎" is too long';
+		expect(isNormalized(fromSql)).toBe(true);
+
+		const dirty = build().envelope;
+		dirty.groups[0].messagePattern = fromSql;
+		expect(validateEnvelope(dirty).ok).toBe(true);
+	});
+
+	it("畳まれていない全角スペースが混ざったら validateEnvelope が落とす", () => {
+		const dirty = build().envelope;
+		dirty.groups[0].messagePattern = 'Validation failed: name="すし\u3000太郎" is too long';
+		const result = validateEnvelope(dirty);
+		expect(result.ok).toBe(false);
+		expect(result.errors.join("\n")).toContain("messagePattern");
+	});
 });
 
 describe("不変条件 4: user_id の値・payload 各種・緯度経度・検索クエリが出力に存在しない", () => {

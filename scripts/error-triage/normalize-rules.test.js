@@ -2,15 +2,32 @@
 
 const cases = require("./__fixtures__/normalize-cases.json");
 const {
+	ANY_CHAR_CLASS,
 	NORMALIZE_RULES,
 	OPAQUE_TOKEN_MIN_LENGTH,
+	POST_RULE_STEPS,
 	RULES_BY_NAME,
+	SQL_EXPR_PLACEHOLDER,
+	WHITESPACE_CODE_POINTS,
 	buildOpaqueTokenPattern,
 	compileRule,
 	isNormalized,
 	normalize,
+	truncateByCodePoints,
 } = require("./normalize-rules");
 const { MESSAGE_PATTERN_MAX_LENGTH } = require("./constants");
+
+/**
+ * RE2 表記（`\x{XXXX}`）を JS 表記（`\uXXXX`）へ機械的に変換する。
+ * これで「2つの表記が同じ集合を指しているか」をテスト側から検算できる。
+ *
+ * 唯一の例外が RE2 の上限 U+10FFFF で、JS の文字列は UTF-16 なので U+FFFF（全コードユニット）が対応する。
+ */
+const re2ToJsSource = (source) =>
+	source.replace(/\\x\{([0-9A-Fa-f]{1,6})\}/g, (_match, hex) => {
+		const codePoint = Number.parseInt(hex, 16);
+		return codePoint > 0xffff ? "\\uFFFF" : `\\u${hex.toUpperCase().padStart(4, "0")}`;
+	});
 
 describe("置換ルール表そのもの", () => {
 	it("適用順を保証する id の連番になっている", () => {
@@ -32,11 +49,33 @@ describe("置換ルール表そのもの", () => {
 		});
 
 		it("RE2 と JS の共通部分集合に収まっている（先読み・後読み・後方参照・インラインフラグを使わない）", () => {
-			expect(rule.pattern).not.toMatch(/\(\?=/);
-			expect(rule.pattern).not.toMatch(/\(\?!/);
-			expect(rule.pattern).not.toMatch(/\(\?</);
-			expect(rule.pattern).not.toMatch(/\(\?[ims]+[):]/);
-			expect(rule.pattern).not.toMatch(/\\[1-9]/);
+			for (const source of [rule.pattern, rule.re2Pattern]) {
+				expect(source).not.toMatch(/\(\?=/);
+				expect(source).not.toMatch(/\(\?!/);
+				expect(source).not.toMatch(/\(\?</);
+				expect(source).not.toMatch(/\(\?[ims]+[):]/);
+				expect(source).not.toMatch(/\\[1-9]/);
+			}
+		});
+
+		// ★ B-1（PR #1200 レビュー）: 構文ではなく**意味**の差を捕まえる検査。
+		//   RE2 の \s は [\t\n\f\r ]（ASCII のみ。\v すら含まない）、JS の \s は
+		//   U+00A0 / U+2007 / U+3000 / U+FEFF / \v などを含む。\w / \W も同様に定義が揺れる。
+		//   同じルール文字列が SQL と JS で違う結果を出すため、ショートハンドは一切使わない。
+		//   （\d と \b は RE2 / JS とも ASCII 一致なので許可する。下の別テストで固定する。）
+		it("Unicode 差のあるショートハンド（\\s / \\S / \\w / \\W）を使わない", () => {
+			for (const source of [rule.pattern, rule.re2Pattern]) {
+				expect(source).not.toMatch(/\\[sSwW]/);
+			}
+		});
+
+		it("JS 表記に RE2 専用の \\x{...} を、RE2 表記に JS 専用の \\uXXXX を混ぜない", () => {
+			expect(rule.pattern).not.toMatch(/\\x\{/);
+			expect(rule.re2Pattern).not.toMatch(/\\u[0-9A-Fa-f]{4}/);
+		});
+
+		it("JS 表記と RE2 表記は同じ集合を指す（表記だけが違う）", () => {
+			expect(re2ToJsSource(rule.re2Pattern)).toBe(rule.pattern);
 		});
 
 		it("置換文字列に後方参照を含まない（SQL 生成時に $1 / \\1 の方言差を持ち込まない）", () => {
@@ -47,6 +86,126 @@ describe("置換ルール表そのもの", () => {
 			expect(typeof rule.why).toBe("string");
 			expect(rule.why.length).toBeGreaterThan(0);
 		});
+	});
+});
+
+describe("B-1: 空白の定義が RE2 と JS で割れない", () => {
+	it("WHITESPACE_CODE_POINTS は JS の \\s と完全に同一の集合（取りこぼしが無いことの裏取り）", () => {
+		const declared = new Set(WHITESPACE_CODE_POINTS);
+		const actual = new Set();
+		for (let codePoint = 0; codePoint <= 0xffff; codePoint += 1) {
+			if (/\s/.test(String.fromCharCode(codePoint))) actual.add(codePoint);
+		}
+		expect([...actual].sort((a, b) => a - b)).toEqual([...declared].sort((a, b) => a - b));
+	});
+
+	it("RE2 の \\s（ASCII のみ）の全要素を含む＝RE2 側が畳めるものは JS 側も必ず畳む", () => {
+		// RE2: \s == [\t\n\f\r ]
+		for (const codePoint of [0x09, 0x0a, 0x0c, 0x0d, 0x20]) {
+			expect(WHITESPACE_CODE_POINTS).toContain(codePoint);
+		}
+	});
+
+	it("日本語アプリなので全角スペース U+3000 は畳む側に入っている", () => {
+		expect(WHITESPACE_CODE_POINTS).toContain(0x3000);
+	});
+
+	// レビュー本文の再現コマンドそのもの。修正前は false（＝run 全体が invalid）になっていた。
+	it.each([
+		["U+3000 全角スペース", "\u3000"],
+		["U+00A0 NO-BREAK SPACE", "\u00a0"],
+		["U+2007 FIGURE SPACE", "\u2007"],
+		["U+FEFF ZERO WIDTH NO-BREAK SPACE", "\ufeff"],
+		["U+000B 垂直タブ（\\v。RE2 の \\s にすら入らない）", "\u000b"],
+		["U+202F NARROW NO-BREAK SPACE", "\u202f"],
+		["U+205F MEDIUM MATHEMATICAL SPACE", "\u205f"],
+		["U+1680 OGHAM SPACE MARK", "\u1680"],
+		["U+2028 LINE SEPARATOR", "\u2028"],
+	])("%s は半角スペース1つへ畳まれ、その結果は isNormalized() が true になる", (_label, whitespace) => {
+		const raw = `Validation failed: name="すし${whitespace}太郎" is too long`;
+		const normalized = normalize(raw);
+		expect(normalized).toBe('Validation failed: name="すし 太郎" is too long');
+		expect(isNormalized(raw)).toBe(false);
+		expect(isNormalized(normalized)).toBe(true);
+	});
+
+	it("全角スペース版と半角スペース版が同じ messagePattern へ畳まれる（重複起票にならない）", () => {
+		expect(normalize("name\u3000is invalid")).toBe(normalize("name is invalid"));
+	});
+
+	it("ルール6 は全角スペースで止まる（クエリ部の後ろの日本語本文まで巻き込まない）", () => {
+		expect(normalize("GET /a?k=v\u3000続きの説明文です")).toBe("GET /a? 続きの説明文です");
+	});
+
+	it("ルール0（1行目だけ残す）は \\s を使わずに任意の1文字を表す", () => {
+		expect(RULES_BY_NAME["first-line-only"].pattern).toBe(`[\\r\\n]${ANY_CHAR_CLASS.js}*$`);
+		expect(normalize("first line\n\u3000second\u2028third")).toBe("first line");
+		expect(normalize("first line\r\nsecond")).toBe("first line");
+	});
+
+	it("\\d と \\b は RE2 / JS とも ASCII 一致なので使ってよい（全角数字を拾わない）", () => {
+		// 全角数字 １２３ が <n> になるなら \d が Unicode 解釈されている、という検算。
+		expect(normalize("code １２３ here")).toBe("code １２３ here");
+		expect(normalize("code 123 here")).toBe("code <n> here");
+	});
+});
+
+describe("S-1: 後処理（trim / 切り出し）もルール表の外に置かない", () => {
+	it("POST_RULE_STEPS が trim → 切り出し → trim の3手順を順番に持つ", () => {
+		expect(POST_RULE_STEPS.map((step) => step.name)).toEqual(["trim", "truncate", "trim-after-truncate"]);
+		expect(POST_RULE_STEPS.map((step) => step.id)).toEqual([0, 1, 2]);
+	});
+
+	it("各手順が SQL 断片を併記している（PR2 がルール表から SQL を生成できる）", () => {
+		for (const step of POST_RULE_STEPS) {
+			expect(step.sql).toContain(SQL_EXPR_PLACEHOLDER);
+			expect(typeof step.why).toBe("string");
+			expect(step.why.length).toBeGreaterThan(0);
+		}
+		expect(POST_RULE_STEPS[1].sql).toBe(`SUBSTR(${SQL_EXPR_PLACEHOLDER}, 1, ${MESSAGE_PATTERN_MAX_LENGTH})`);
+		// TRIM は既定の空白定義に頼らず、WHITESPACE_CODE_POINTS を明示指定する。
+		expect(POST_RULE_STEPS[0].sql).toContain("\\u3000");
+		expect(POST_RULE_STEPS[0].sql).toBe(POST_RULE_STEPS[2].sql);
+	});
+
+	it("凍結されていて呼び出し側から書き換えられない", () => {
+		expect(Object.isFrozen(POST_RULE_STEPS)).toBe(true);
+		expect(() => {
+			POST_RULE_STEPS[1].sql = "boom";
+		}).toThrow();
+	});
+
+	it("normalize() は POST_RULE_STEPS を順に適用したものと一致する（表が実装から離れない）", () => {
+		const rulesOnly = NORMALIZE_RULES.reduce(
+			(acc, rule) => acc.replace(compileRule(rule), rule.replacement),
+			`  ${"z".repeat(300)}\u3000 `,
+		);
+		const viaSteps = POST_RULE_STEPS.reduce((acc, step) => step.apply(acc), rulesOnly);
+		expect(normalize(`  ${"z".repeat(300)}\u3000 `)).toBe(viaSteps);
+	});
+
+	it("切り出しはコードポイント単位（BigQuery の SUBSTR と同じ単位）", () => {
+		expect(truncateByCodePoints("\u{1F600}\u{1F601}\u{1F602}", 2)).toBe("\u{1F600}\u{1F601}");
+		expect(truncateByCodePoints("abc", 10)).toBe("abc");
+	});
+
+	it("境界に絵文字が来ても孤立サロゲートを作らない", () => {
+		const out = normalize(`${"x".repeat(MESSAGE_PATTERN_MAX_LENGTH - 1)}\u{1F600}tail`);
+		expect(Array.from(out)).toHaveLength(MESSAGE_PATTERN_MAX_LENGTH);
+		expect(out.endsWith("\u{1F600}")).toBe(true);
+		// 孤立サロゲート（ペアの片割れだけ）が1つも無いこと。
+		expect(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/.test(out)).toBe(false);
+	});
+
+	it("切り出し位置の直後に絵文字が来る場合は丸ごと落ちる（半分だけ残らない）", () => {
+		const out = normalize(`${"x".repeat(MESSAGE_PATTERN_MAX_LENGTH)}\u{1F600}tail`);
+		expect(out).toBe("x".repeat(MESSAGE_PATTERN_MAX_LENGTH));
+	});
+
+	it("非BMP文字を含んでいても切り出しは 200 コードポイント（UTF-16 コードユニットではない）", () => {
+		const out = normalize("\u{1F600}".repeat(300));
+		expect(Array.from(out)).toHaveLength(MESSAGE_PATTERN_MAX_LENGTH);
+		expect(out).toHaveLength(MESSAGE_PATTERN_MAX_LENGTH * 2); // サロゲートペアなので UTF-16 では倍
 	});
 });
 

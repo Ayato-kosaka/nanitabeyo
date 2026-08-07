@@ -7,6 +7,7 @@ const {
 	AUTO_END_MARKER,
 	AUTO_START_MARKER,
 	PARENT_SUMMARY_MARKER,
+	PRESERVED_BODY_NOTICE,
 	TITLE_MAX_LENGTH,
 	extractAlgoVersion,
 	extractFingerprints,
@@ -194,7 +195,7 @@ describe("renderIssueBody() — 既存 body の更新", () => {
 		expect(twice).toBe(updated);
 	});
 
-	it("自動領域が見つからない body（人間が消した）には新規 body を作り直す", () => {
+	it("自動領域が見つからない body（人間が消した）には自動領域を作り直す", () => {
 		const rebuilt = renderIssueBody({
 			group: backendGroup,
 			window: WINDOW,
@@ -202,7 +203,70 @@ describe("renderIssueBody() — 既存 body の更新", () => {
 			existingBody: "マーカーを全部消してしまった本文",
 		});
 		expect(rebuilt).toContain(AUTO_START_MARKER);
+		expect(rebuilt).toContain(AUTO_END_MARKER);
 		expect(extractFingerprints(rebuilt)).toEqual([backendGroup.fingerprint]);
+	});
+
+	// ★ S-2（PR #1200 レビュー）: 自動領域マーカーが消されていても、人間の記述は絶対に捨てない。
+	//   捨てると PR3 の body 更新（PATCH）で担当者の調査メモが黙って消える。
+	describe("S-2: 自動領域マーカーが無い body でも人間の記述を保全する", () => {
+		const humanBody = [
+			`<!-- fp:${backendGroup.fingerprint} -->`,
+			"",
+			"## 調査メモ",
+			"原因は DTO の不整合。PR #1234 で対応中。",
+			"",
+			"- [ ] api 側の DTO を直す",
+			"- [x] 再現手順を確認した",
+		].join("\n");
+		const rebuilt = renderIssueBody({
+			group: backendGroup,
+			window: WINDOW,
+			generatedAt: GENERATED_AT,
+			existingBody: humanBody,
+		});
+
+		it("既存本文を1文字も捨てない（丸ごと含まれる）", () => {
+			expect(rebuilt).toContain(humanBody);
+			expect(rebuilt).toContain("原因は DTO の不整合。PR #1234 で対応中。");
+			expect(rebuilt).toContain("- [x] 再現手順を確認した");
+		});
+
+		it("保全したことが人間に分かるよう見出しを添える", () => {
+			expect(rebuilt).toContain(PRESERVED_BODY_NOTICE);
+			expect(rebuilt.indexOf(PRESERVED_BODY_NOTICE)).toBeGreaterThan(rebuilt.indexOf(AUTO_END_MARKER));
+		});
+
+		it("自動領域は先頭に1つだけ作り直される", () => {
+			expect(rebuilt.split(AUTO_START_MARKER)).toHaveLength(2);
+			expect(rebuilt.split("\n")[0]).toBe(`<!-- fp:${backendGroup.fingerprint} -->`);
+			expect(extractFirstSeenUtc(rebuilt)).toBe("2026-08-06T00:14:02Z");
+		});
+
+		it("もう一度通しても人間の記述は残り続ける（自動領域が復活するので以後は差し替えになる）", () => {
+			const twice = renderIssueBody({
+				group: backendGroup,
+				window: WINDOW,
+				generatedAt: GENERATED_AT,
+				existingBody: rebuilt,
+			});
+			expect(twice.split(AUTO_START_MARKER)).toHaveLength(2);
+			expect(twice).toContain("原因は DTO の不整合。PR #1234 で対応中。");
+			expect(twice).toBe(rebuilt);
+		});
+
+		it("既存 body が空白だけなら保全せず自由記述の案内を出す（新規起票と同じ形）", () => {
+			for (const emptyish of [null, "", "   \n\t "]) {
+				const body = renderIssueBody({
+					group: backendGroup,
+					window: WINDOW,
+					generatedAt: GENERATED_AT,
+					existingBody: emptyish,
+				});
+				expect(body).not.toContain(PRESERVED_BODY_NOTICE);
+				expect(body).toContain("（ここから下は自由記述。スクリプトは触りません）");
+			}
+		});
 	});
 });
 
