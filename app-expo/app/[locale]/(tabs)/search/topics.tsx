@@ -310,9 +310,15 @@ export default function TopicsScreen() {
 
 		try {
 			const response = await createGroupVote({ searchParams: params, topics: visibleTopics });
-			// #1205 作成中の 2 発目として抑止された場合は null が返る。遷移すると結果画面が二重に開くため何もしない
-			//（このガードは他の呼び出し経路からの多重実行に備えた保険で、通常は上の ref で先に弾かれる）。
-			if (!response) return;
+			// #1205 作成中の 2 発目として抑止された場合は null が返る。遷移すると結果画面が二重に開くため遷移しない。
+			//（通常は上の ref で先に弾かれるので、ここは他の呼び出し経路からの多重実行に備えた保険）
+			//
+			// ⚠️ **解除を忘れないこと。** ここは «遷移しない» 唯一の成功経路なので、
+			// ref を立てたまま抜けると useFocusEffect も走らず、**ボタンが二度と押せなくなる**。
+			if (!response) {
+				isOpeningGroupVoteRef.current = false;
+				return;
+			}
 			createdGroupVoteRef.current = response;
 			router.push({
 				pathname: "/[locale]/(tabs)/search/dish-category-group-votes/[shareToken]",
