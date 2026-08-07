@@ -78,6 +78,11 @@ const moduleCache = new Map();
 const resolveSpecifier = (specifier, fromFile) => {
 	let base;
 	if (specifier.startsWith("@/")) base = path.join(appRoot, specifier.slice(2));
+	// #721 `@shared/` は monorepo の `shared/` パッケージ（tsconfig の paths と同じ対応）。
+	// `PUBLIC_LOCALES` を api からも参照できるよう shared へ移したため、
+	// `constants/seoLocales.ts` からこの specifier が現れる。**dist ではなくソースの .ts を読む**
+	// （dist は build しないと古いままで、「テストは緑なのに sitemap だけ古い」を作る）
+	else if (specifier.startsWith("@shared/")) base = path.resolve(appRoot, "..", "shared", specifier.slice("@shared/".length));
 	else if (specifier.startsWith(".")) base = path.resolve(path.dirname(fromFile), specifier);
 	else
 		throw new Error(

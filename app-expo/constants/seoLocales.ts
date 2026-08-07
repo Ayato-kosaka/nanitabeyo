@@ -1,5 +1,13 @@
 import { Env } from "@/constants/Env";
 import type { SeoData } from "@/contexts/SeoContext";
+import {
+	DEFAULT_PUBLIC_LOCALE,
+	PUBLIC_LOCALES,
+	isPublicLocale,
+	resolvePublicLocale,
+	toOgLocale,
+	type PublicLocale,
+} from "@shared/api/v1/constants/publicLocales";
 
 /**
  * SEO用の公開ロケール定義
@@ -10,20 +18,15 @@ import type { SeoData } from "@/contexts/SeoContext";
  *
  * URL 設計: https://app.nanitabeyo.net/{locale}/...
  * 例: /ja-JP/posts/123, /en-US/posts/123
+ *
+ * ⚠️ #721 ロケール一覧そのものは `shared/api/v1/constants/publicLocales.ts` へ移した。
+ * 共有リンク（`/s/:token`）の `preview_locale` を **API 側で validation する**必要があり、
+ * api は app-expo を import できないため。ここは app 側の import パスを変えないための
+ * 再 export と、app 固有の SEO 文言だけを持つ。
+ * **一覧をこのファイルへ複製し直さないこと**（#281 で sitemap 生成器が 2 本になった事故と同型）。
  */
-
-/**
- * 公開されているロケール一覧（URL prefix として使用される形式）
- */
-export const PUBLIC_LOCALES = ["ja-JP", "en-US", "fr-FR", "zh-CN", "ar-SA", "ko-KR", "es-ES", "hi-IN"] as const;
-
-/**
- * デフォルトの公開ロケール
- * x-default hreflang や、ロケール不明時のフォールバックに使用
- */
-export const DEFAULT_PUBLIC_LOCALE = "ja-JP";
-
-export type PublicLocale = (typeof PUBLIC_LOCALES)[number];
+export { PUBLIC_LOCALES, DEFAULT_PUBLIC_LOCALE, isPublicLocale, resolvePublicLocale, toOgLocale };
+export type { PublicLocale };
 
 const WEB_BASE_URL = Env.WEB_BASE_URL;
 
@@ -105,13 +108,3 @@ export const DEFAULT_SEO_BY_PUBLIC_LOCALE: Record<PublicLocale, SeoData> = {
 	},
 };
 
-export function resolvePublicLocale(locale?: string): PublicLocale {
-	if (!locale) return DEFAULT_PUBLIC_LOCALE;
-	const normalized = locale.trim();
-	if (PUBLIC_LOCALES.includes(normalized as PublicLocale)) {
-		return normalized as PublicLocale;
-	}
-	const lang = normalized.split("-")[0];
-	const matched = PUBLIC_LOCALES.find((l) => l.startsWith(lang));
-	return matched ?? DEFAULT_PUBLIC_LOCALE;
-}
