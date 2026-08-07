@@ -183,6 +183,22 @@ export async function selectMedia(
 			videoExportPreset: ImagePicker.VideoExportPreset.Passthrough,
 			allowsEditing: options?.allowsEditing,
 			aspect: options?.aspect,
+			// #1156 【バグ】既定の `Automatic` だと、iOS は端末が撮った写真を **HEIC のまま**返す。
+			//
+			// HEIC は API 側の EXTENSION_TABLE（api/src/core/storage/storage.utils.ts）に無いため
+			// `getExt()` が "bin" を返し、`....bin` という名前で GCS へ上がる。アップロード自体は
+			// 200 で成功するので UI 上は成功したように見えるが、後段の resize（sharp → webp）が
+			// デコードできず `media_processing_status = "failed"` になり、フィードには
+			// 「このメディアは現在ご利用いただけません」とだけ表示される。
+			//
+			// 実測（dev の frontend_event_logs, 2026-08-07 17:55:48）:
+			//   mimeType "image/heic" / objectPath ".../image-heic/..._media.bin"
+			// 同日 17:38 の "image/jpeg" は ".jpg" で正常に処理されている。
+			//
+			// `Compatible` は PHPickerConfigurationAssetRepresentationMode.compatible へ直接マップされ、
+			// 「最も互換性の高い表現」＝ 画像なら JPEG へ変換して返す。iOS 14+ 専用オプションで、
+			// Android / Web では無視されるため分岐は要らない。
+			preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
 		});
 
 		if (result.canceled) {
