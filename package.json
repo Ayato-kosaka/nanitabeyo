@@ -7,7 +7,8 @@
 		"api",
 		"shared",
 		"e2e-web",
-		"e2e-mobile"
+		"e2e-mobile",
+		"scripts/error-triage"
 	],
 	"scripts": {
 		"dev": "turbo run dev",
