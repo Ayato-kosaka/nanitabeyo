@@ -38,3 +38,30 @@ ALTER TABLE share_links
 
 COMMENT ON COLUMN share_links.created_by IS
   '共有リンクを作成した Supabase Auth user id。匿名ユーザーもあり users 行が必ず存在する前提ではないため FK は張らない。NULL 可';
+
+-- =============================================================================
+-- 事後アサーション
+--
+-- `DROP CONSTRAINT IF EXISTS` は制約が無くても成功するので、**「流した」ことと
+-- 「制約が消えている」ことは別**。適用ログが success でも、対象スキーマを取り違えて
+-- いれば本来の schema には残ったままになる。それを後から気付ける材料がどこにも
+-- 残らないので、ここで実際の状態を検査して落とす。
+--
+-- 再実行しても安全（冪等）。むしろ **再実行が「今の dev は FK が無い」ことの証明**になる。
+-- =============================================================================
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conrelid = 'share_links'::regclass
+      AND contype  = 'f'
+      AND conname  = 'share_links_created_by_fkey'
+  ) THEN
+    RAISE EXCEPTION
+      'share_links_created_by_fkey がまだ存在します（search_path: %）。匿名ユーザーからの共有が 500 になります。',
+      current_schema();
+  END IF;
+
+  RAISE NOTICE '✅ share_links_created_by_fkey は存在しません（schema: %）', current_schema();
+END $$;
