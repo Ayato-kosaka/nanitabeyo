@@ -34,11 +34,18 @@ Hosting の rewrite は**先勝ち**。`/s/**` を catch-all（`"**" → /index.
 
 #281 で `/sitemap.xml` が catch-all に落ちて index.html を 200 で返していたのと**まったく同じ形**の事故になる。404 ではなく 200 が返るので、監視でもテストでも気づきにくい。
 
-### 2. `serviceId` はリテラルしか書けない
+### 2. 開発環境は preview チャンネルではなく**専用サイト**
 
-`firebase.json` は development / production で共通のファイルなので、preview チャンネルからも `api-production` を向く。
+`serviceId` はリテラルしか書けないので、1 つのサイト定義で development と production を切り替えることはできない。**サイトを分ける**ことで解決している。
 
-**開発環境で作った共有リンクを preview URL で開いても 404 になる。** dev の共有確認は development の API へ直接当てて行うこと。
+| Hosting サイト | URL | `/s/**` の向き先 |
+| --- | --- | --- |
+| `app-nanitabeyo-net` | `https://app.nanitabeyo.net` | `api-production` |
+| `nanitabeyo-dev` | `https://nanitabeyo-dev.web.app` | `api-development` |
+
+preview チャンネルにしていないのは、**URL に hash が入り既定 7 日で失効する**ため。作り直すと hash が変わるので `WEB_BASE_URL` も API の `CORS_ORIGIN` も固定できない。専用サイトの live チャンネルなら URL は不変。
+
+そのため `firebase-hosting-deploy.yml` は環境ごとにデプロイ先を `--only` で絞る。**絞らないと production ビルドが dev サイトにも載り、中身（本番 API 向け bundle）と rewrite の向き先（api-development）がちぐはぐになる。**
 
 ### 3. `og:image` に署名 URL を書いてはいけない
 
