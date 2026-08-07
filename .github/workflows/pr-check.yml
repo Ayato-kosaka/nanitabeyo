@@ -63,6 +63,15 @@ jobs:
       - name: Remote Config 既定値のドリフトを検査
         run: pnpm --filter app-expo assert:remote-config-defaults
 
+      # #1196 エラートリアージの純関数群。外部I/Oゼロ（node:crypto のみ）で shared/dist にも
+      # 依存しないため、shared build より前・最速の位置に置ける。
+      # このテストが守っているのは主に「正規化ルール表が RE2 と JS の共通部分集合に留まること」で、
+      # ここが崩れると BigQuery 側の REGEXP_REPLACE と JS の normalize() が別の結果を出し、
+      # 同じエラーが2グループに割れる（= Issue が重複起票される）。
+      # ルール表は SQL の生成元でもあるので、CI で回っていないと PR1 の価値が保全されない。
+      - name: error-triage のユニットテスト
+        run: pnpm --filter error-triage test
+
       # app-expo/tsconfig.dev.json は @shared/* を ../shared/dist/* へ向けているため、
       # typecheck の前に shared を build しておかないと解決できない。
       - name: sharedパッケージをビルド
