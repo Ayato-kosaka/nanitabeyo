@@ -11,17 +11,36 @@ name: App Expo Check
 #   `use_frameworks!` 由来のヘッダ問題や Pod の非互換を EAS を消費せずに検出できる。
 #   実機向けの署名・アーカイブは EAS でのみ検証する。
 
+#
+# ⚠️ 【重要】手動実行のみ。pull_request では回さない。
+#
+# もともとは app-expo/** を触る PR で自動実行していたが、#1156 の SDK 54 移行が終わった時点で
+# 「毎 PR 回すには重すぎ、かつ他のワークフローと重複している」ことがはっきりしたため外した。
+#
+# 1. コストが見合わない
+#    ios-build は macos runner を 15〜20 分使う。GitHub Actions の macOS は **課金が 10 倍**なので、
+#    app-expo/** を触る PR 1 本ごとに 200 分近い課金対象時間を消費していた。
+#
+# 2. ネイティブビルドの破壊は日次の Detox が捕まえる
+#    e2e-mobile-test.yml（JST 4:00 の schedule）は `expo prebuild` →
+#    `Detox build (Android release)` / `pod install` → `Detox build (iOS release)` を両 OS で回しており、
+#    **このワークフローの上位互換**（あちらは Android も release 構成）。検知が最大 1 日遅れる代わりに、
+#    より本番へ近い構成で毎日検証される。
+#
+# 3. static-check は PR Check と重複している
+#    pr-check.yml（#1112）が全 PR で typecheck と jest を回すようになったため、
+#    static-check は同じ検査を二重に走らせているだけになった。
+#
+# ## いつ手動で回すか
+#
+# **EAS Build を投げる前**。EAS は 1 ビルドごとに課金されるので、prebuild / config plugin /
+# autolinking / Pod の破綻をここで先に潰しておくと EAS の消費を節約できる。
+# 実際 #1156 では、EAS を消費する前にこのゲートが 2 件のビルド失敗を捕まえている。
+# ネイティブ層（config plugin、依存のメジャー更新、SDK バージョン）を触った PR でも回す価値がある。
 on:
-  pull_request:
-    paths:
-      - "app-expo/**"
-      - "shared/**"
-      - "pnpm-lock.yaml"
-      - "pnpm-workspace.yaml"
-      - ".github/workflows/app-expo-check.yml"
   workflow_dispatch:
 
-# 同じ PR で連続 push されたら古い方は不要
+# 同じ ref で連続 dispatch されたら古い方は不要
 concurrency:
   group: app-expo-check-${{ github.ref }}
   cancel-in-progress: true
