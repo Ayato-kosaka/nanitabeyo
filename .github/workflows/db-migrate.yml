@@ -149,8 +149,13 @@ jobs:
           set -euo pipefail
           psql "${DATABASE_URL}" -tAc "select 'user=' || current_user || ' db=' || current_database()"
           psql "${DATABASE_URL}" -tAc "
-            select md5(string_agg(sig, '|' order by sig)) from (
-              select c.relkind || ':' || c.relname || ':' || coalesce(count(a.attname)::text,'0') as sig
+            select coalesce(md5(string_agg(sig, '|' order by sig)), '(empty)') from (
+              -- pg_class.relkind は text ではなく char 型。裸の || は複数の演算子候補に
+              -- 一致してしまい ERROR: operator is not unique ... || unknown で落ちる。
+              -- 連結する全項を ::text へ明示キャストすること。
+              -- また string_agg は 0 行だと NULL を返し md5(NULL) も NULL になるので、
+              -- 空スキーマでも before/after を比較できるよう外側で coalesce する。
+              select c.relkind::text || ':' || c.relname::text || ':' || count(a.attname)::text as sig
               from pg_class c
               join pg_namespace n on n.oid = c.relnamespace
               left join pg_attribute a on a.attrelid = c.oid and a.attnum > 0
@@ -184,8 +189,13 @@ jobs:
         run: |
           set -euo pipefail
           psql "${DATABASE_URL}" -tAc "
-            select md5(string_agg(sig, '|' order by sig)) from (
-              select c.relkind || ':' || c.relname || ':' || coalesce(count(a.attname)::text,'0') as sig
+            select coalesce(md5(string_agg(sig, '|' order by sig)), '(empty)') from (
+              -- pg_class.relkind は text ではなく char 型。裸の || は複数の演算子候補に
+              -- 一致してしまい ERROR: operator is not unique ... || unknown で落ちる。
+              -- 連結する全項を ::text へ明示キャストすること。
+              -- また string_agg は 0 行だと NULL を返し md5(NULL) も NULL になるので、
+              -- 空スキーマでも before/after を比較できるよう外側で coalesce する。
+              select c.relkind::text || ':' || c.relname::text || ':' || count(a.attname)::text as sig
               from pg_class c
               join pg_namespace n on n.oid = c.relnamespace
               left join pg_attribute a on a.attrelid = c.oid and a.attnum > 0
