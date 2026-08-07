@@ -64,6 +64,66 @@ async function fulfillJson(route: Route, data: unknown): Promise<void> {
 	});
 }
 
+/**
+ * 遷移先のフィードが描けるだけの `DishMediaEntry` を 1 件作る。
+ *
+ * 画像は `example.invalid` を指すので読み込みは失敗するが、この spec が見るのは
+ * 「結果画面へ着いて操作できること」なので描画さえ通ればよい。
+ * 形は `shared/api/v1/res/dish-media.response.ts` の `DishMediaEntry`。
+ */
+function buildDishMediaEntry(dishMediaId: string) {
+	const now = "2026-08-07T00:00:00.000Z";
+	const image = "https://example.invalid/e2e-1122.jpg";
+	return {
+		restaurant: {
+			id: "e2e-1122-restaurant",
+			name: "E2E テスト店",
+			name_language_code: "ja",
+			image_url: image,
+			image_path: image,
+			google_place_id: "e2e-1122-place",
+			created_at: now,
+			latitude: 35.6812,
+			longitude: 139.7671,
+			location: null,
+			address_components: null,
+			plus_code: null,
+		},
+		dish: {
+			id: "e2e-1122-dish",
+			name: "E2E テスト料理",
+			restaurant_id: "e2e-1122-restaurant",
+			category_id: "e2e-1122-category",
+			created_at: now,
+			updated_at: now,
+			lock_no: 1,
+			reviewCount: 0,
+			averageRating: 0,
+		},
+		dish_media: {
+			id: dishMediaId,
+			dish_id: "e2e-1122-dish",
+			media_path: image,
+			thumbnail_path: image,
+			media_type: "image",
+			user_id: "e2e-1122-user",
+			lock_no: 1,
+			created_at: now,
+			updated_at: now,
+			media_processing_status: "completed",
+			thumbnail_processing_status: "completed",
+			isSaved: false,
+			isLiked: false,
+			likeCount: 0,
+			isMine: false,
+			mediaUrl: image,
+			thumbnailImageUrl: image,
+			video_duration_ms: null,
+		},
+		dish_reviews: [],
+	};
+}
+
 /** 任意のタイミングで解放できる門。未検索候補の「検索中」を再現するために使う */
 function createGate(): { wait: Promise<void>; open: () => void } {
 	let open!: () => void;
@@ -192,19 +252,29 @@ async function mockVoteBackend(page: Page, options: MockOptions = {}): Promise<v
 		});
 	});
 
-	// 遷移先（DishMediaMap）が id 指定で引く一覧。
+	// 遷移先（検索結果フィード）が id 指定で引く一覧。
 	//
-	// ⚠️ **空配列を返さないこと。** 0 件が確定すると画面が「Google マップで開く」
-	// fallback ダイアログを出してしまい、**結果画面そのものが開かない**。
-	// 本 spec の検証対象は中身ではなく「操作できること」なので、
-	// 遷移が成立する最小の 1 件を返す。
+	// ⚠️ **形と中身の両方に条件がある。**
+	//
+	// 1. 形は `{ items, notFound }`（`QueryDishMediaByIdsResponse`）。配列で返すと
+	//    `data.items` が undefined になり、フィードが 1 枚も描けない。
+	//    `/v1/dish-media/search` は配列なので、**この 2 つを混同しないこと。**
+	// 2. `items` を空にしない。0 件が確定すると `result.tsx` が
+	//    「Google マップで開く」fallback ダイアログを出し、**結果画面そのものが開かない**。
+	//
+	// 本 spec の検証対象は中身ではなく「モーダルが閉じてから遷移して操作できること」だが、
+	// フィードのカードが描けないと `result-close-button` まで到達しないので、
+	// `DishMediaEntry` を欠けなく 1 件返す（`app-expo/data/searchMockData.ts` と同じ形）。
 	await page.route("**/v1/dish-media?*", async (route) => {
-		await fulfillJson(route, [
-			{
-				dish_media: { id: "e2e-1122-dish-media-searched" },
-				restaurant: { google_place_id: "e2e-1122-place" },
-			},
-		]);
+		// ⚠️ **要求された id をそのまま返すこと。** 候補ごとに dishMediaIds が違う
+		// （found / other / 検索後）ので、固定 id を返すとフィードのストアが
+		// 「要求した id の entry が無い」状態になり 1 枚も描けない。
+		const requested = (new URL(route.request().url()).searchParams.get("ids") ?? "")
+			.split(",")
+			.map((id) => id.trim())
+			.filter(Boolean);
+		const ids = requested.length > 0 ? requested : ["e2e-1122-dish-media-found"];
+		await fulfillJson(route, { items: ids.map(buildDishMediaEntry), notFound: [] });
 	});
 }
 
