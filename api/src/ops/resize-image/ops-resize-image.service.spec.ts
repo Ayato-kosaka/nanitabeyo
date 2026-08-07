@@ -1,4 +1,4 @@
-// api/src/tools/resize-image/tools-resize-image.service.spec.ts
+// api/src/ops/resize-image/ops-resize-image.service.spec.ts
 //
 // #514 【設計】再 enqueue は「明示指定された recordId のみ」であることを固定する
 //
@@ -6,7 +6,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { validate } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
-import { ToolsResizeImageService } from './tools-resize-image.service';
+import { OpsResizeImageService } from './ops-resize-image.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CloudTasksService } from '../../core/cloud-tasks/cloud-tasks.service';
 import { AppLoggerService } from '../../core/logger/logger.service';
@@ -28,8 +28,8 @@ jest.mock('src/core/config/env', () => ({
 const RESTAURANT_ID = '557b343a-91f7-4acd-833e-03b6f1c38e5e';
 const DISH_MEDIA_ID = '5f482536-4aab-4deb-8ab8-f6f36259d4d9';
 
-describe('ToolsResizeImageService', () => {
-  let service: ToolsResizeImageService;
+describe('OpsResizeImageService', () => {
+  let service: OpsResizeImageService;
   let mockCloudTasks: jest.Mocked<CloudTasksService>;
   let prismaMock: {
     restaurants: { findUnique: jest.Mock };
@@ -46,7 +46,7 @@ describe('ToolsResizeImageService', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        ToolsResizeImageService,
+        OpsResizeImageService,
         { provide: PrismaService, useValue: { prisma: prismaMock } },
         {
           provide: CloudTasksService,
@@ -66,7 +66,7 @@ describe('ToolsResizeImageService', () => {
       ],
     }).compile();
 
-    service = module.get(ToolsResizeImageService);
+    service = module.get(OpsResizeImageService);
     mockCloudTasks = module.get(CloudTasksService);
   });
 

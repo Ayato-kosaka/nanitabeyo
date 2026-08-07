@@ -34,7 +34,7 @@ export class ReEnqueueResizeImageTargetDto {
 	sizes?: (64 | 256 | 512 | 1024)[];
 }
 
-/** POST /tools/resize-image/re-enqueue のボディ */
+/** POST /ops/resize-image/re-enqueue のボディ */
 export class ReEnqueueResizeImageDto {
 	/** 再 enqueue 対象。必ず明示指定（最大 100 件） */
 	@IsArray()

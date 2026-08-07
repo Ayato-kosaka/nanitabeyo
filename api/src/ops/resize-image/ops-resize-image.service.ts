@@ -1,6 +1,6 @@
-// api/src/tools/resize-image/tools-resize-image.service.ts
+// api/src/ops/resize-image/ops-resize-image.service.ts
 //
-// #514 【設計】運営用ツール - 失敗したリサイズジョブの再実行
+// #514 【設計】運用操作 - 失敗したリサイズジョブの再実行
 //
 // 恒久失敗（原本 404 / 壊れた JPEG）としてキューから取り除いた分を、
 // 原本を差し替えた後などに再実行するための経路。
@@ -40,7 +40,7 @@ const RESIZE_TARGET_SPECS: Record<
 export const SUPPORTED_RESIZE_TARGET_KEYS = Object.keys(RESIZE_TARGET_SPECS);
 
 @Injectable()
-export class ToolsResizeImageService {
+export class OpsResizeImageService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly cloudTasks: CloudTasksService,

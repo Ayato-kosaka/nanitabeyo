@@ -70,7 +70,7 @@ export {
 	ReEnqueueResizeImageDto,
 	ReEnqueueResizeImageTargetDto,
 	RE_ENQUEUE_RESIZE_IMAGE_MAX_TARGETS,
-} from "./tools/re-enqueue-resize-image.dto";
+} from "./ops/re-enqueue-resize-image.dto";
 
 export {
 	CreateShareLinkDto,

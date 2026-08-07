@@ -1,7 +1,7 @@
-// api/src/tools/resize-image/tools-resize-image.controller.ts
+// api/src/ops/resize-image/ops-resize-image.controller.ts
 //
-// Controller for tools resize-image endpoints
-// #514 【設計】運営用ツール - 失敗したリサイズジョブの再実行
+// Controller for operational resize-image endpoints
+// #514 【設計】運用操作 - 失敗したリサイズジョブの再実行
 //
 
 import { Controller, Post, Body, UseGuards } from '@nestjs/common';
@@ -16,22 +16,20 @@ import { ReEnqueueResizeImageDto } from '@shared/v1/dto';
 import { ReEnqueueResizeImageResponse } from '@shared/v1/res';
 
 // Service
-import { ToolsResizeImageService } from './tools-resize-image.service';
+import { OpsResizeImageService } from './ops-resize-image.service';
 
-@ApiTags('Tools - ResizeImage')
-@Controller('tools/resize-image')
-export class ToolsResizeImageController {
-  constructor(
-    private readonly toolsResizeImageService: ToolsResizeImageService,
-  ) {}
+@ApiTags('Ops - ResizeImage')
+@Controller('ops/resize-image')
+export class OpsResizeImageController {
+  constructor(private readonly opsResizeImageService: OpsResizeImageService) {}
 
   /**
    * #514 失敗したリサイズジョブの再 enqueue
-   * POST /tools/resize-image/re-enqueue
+   * POST /ops/resize-image/re-enqueue
    */
   @Post('re-enqueue')
   @UseGuards(AuthAnonGuard, PermissionGuard)
-  @Permissions('tools.resize-image.re-enqueue')
+  @Permissions('ops.resize-image.re-enqueue')
   @ApiOperation({
     summary: 'リサイズジョブの再 enqueue',
     description:
@@ -44,6 +42,6 @@ export class ToolsResizeImageController {
   async reEnqueue(
     @Body() dto: ReEnqueueResizeImageDto,
   ): Promise<ReEnqueueResizeImageResponse> {
-    return this.toolsResizeImageService.reEnqueue(dto);
+    return this.opsResizeImageService.reEnqueue(dto);
   }
 }
