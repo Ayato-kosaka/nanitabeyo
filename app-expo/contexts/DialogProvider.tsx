@@ -476,6 +476,9 @@ export const DialogProvider = ({ children }: { children: ReactNode }) => {
 						key: "cancel",
 						label: cancelLabel,
 						mode: "text",
+						// #1156 【設計】E2E から確実に掴めるよう、既定 2 ボタンには安定した testID を必ず付ける。
+						// ラベルは i18n で変わるため、ラベル一致で掴むテストは多言語で壊れる。
+						testID: "dialog-action-cancel",
 						onPress: () => {
 							try {
 								options?.onCancel?.();
@@ -488,6 +491,7 @@ export const DialogProvider = ({ children }: { children: ReactNode }) => {
 						key: "ok",
 						label: okLabel,
 						mode: "text",
+						testID: "dialog-action-ok",
 						onPress: async () => {
 							// 互換 onConfirm をここで実行
 							if (options?.onConfirm) {

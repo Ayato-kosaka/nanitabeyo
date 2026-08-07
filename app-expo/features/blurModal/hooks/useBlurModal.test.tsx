@@ -86,9 +86,23 @@ const ancestorsOf = (root: ReactTestInstance, testID: string): ReactTestInstance
 	return chain;
 };
 
+/**
+ * 押下できるノード（composite の Pressable）を描画順で返す。
+ *
+ * ⚠️ `findAllByType(Pressable)` を使わないこと。#1156（SDK 54 / RN 0.81）で `Pressable` の実体が
+ * `memo(Pressable)` になり、この呼び方は **1 件も返さなくなった**（test-renderer が持つノードの型は
+ * memo の内側の関数コンポーネントで、export されている memo オブジェクトとは別物のため）。
+ * 静かに空配列が返るだけなので、`[0]` が undefined になって初めて気づく形で落ちる。
+ *
+ * コンポーネントの同一性に依存すると RN のバージョンが上がるたびに同じ形で壊れるので、
+ * 「host 要素ではない」「onPress を関数として持つ」という構造で拾う。
+ */
+const pressableNodes = (root: ReactTestInstance): ReactTestInstance[] =>
+	root.findAll((node) => typeof node.type !== "string" && typeof node.props?.onPress === "function");
+
 /** Pressable の onPress は host 要素には出ないので、押下は composite 側から起こす */
 const findPressableByTestID = (root: ReactTestInstance, testID: string): ReactTestInstance =>
-	root.findAllByType(Pressable).find((node) => node.props?.testID === testID)!;
+	pressableNodes(root).find((node) => node.props?.testID === testID)!;
 
 describe("#528 BlurModal のタップ責務分離", () => {
 	let renderer: TestRenderer.ReactTestRenderer;
@@ -152,7 +166,7 @@ describe("#528 BlurModal のタップ責務分離", () => {
 		showKeyboard();
 
 		// バックドロップは最初の Pressable（× ボタンより手前に描画される）
-		act(() => renderer.root.findAllByType(Pressable)[0].props.onPress());
+		act(() => pressableNodes(renderer.root)[0].props.onPress());
 
 		expect(dismissSpy).toHaveBeenCalledTimes(1);
 		// キーボードを閉じただけなので、中身はまだ生きている
@@ -162,7 +176,7 @@ describe("#528 BlurModal のタップ責務分離", () => {
 	it("キーボードが出ていない背景タップでは、closeOnBackdropPress のときモーダルを閉じる", () => {
 		mount({ options: { closeOnBackdropPress: true } });
 
-		act(() => renderer.root.findAllByType(Pressable)[0].props.onPress());
+		act(() => pressableNodes(renderer.root)[0].props.onPress());
 
 		expect(dismissSpy).not.toHaveBeenCalled();
 		expect(renderer.root.findAll((n) => n.props?.testID === CHILD_TEST_ID)).toHaveLength(0);

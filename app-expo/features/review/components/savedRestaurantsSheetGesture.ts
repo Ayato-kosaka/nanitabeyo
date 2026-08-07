@@ -1,5 +1,3 @@
-import type { PanGesture } from "react-native-gesture-handler";
-
 /**
  * #1126 保存店カルーセル（横スクロール）と TrueSheet の縦ドラッグ（引き上げて縦並びへ展開）の
  * ジェスチャ競合を解消するための設定値と判定ロジック。
@@ -45,12 +43,26 @@ export const CAROUSEL_FAIL_OFFSET_Y = 20;
 export const CAROUSEL_DRAG_RESET_TIMEOUT_MS = 500;
 
 /**
+ * `configureCarouselPanGesture` が必要とする最小限の面。
+ *
+ * #1156 で react-native-reanimated-carousel が v5 へ上がり、`onConfigurePanGesture` へ渡るのが
+ * RNGH の `PanGesture` そのものではなく、それを包んだ `CarouselPanGesture`（`enabled` や
+ * `runOnJS` のような所有権を変える API を隠したファサード）になった。
+ * どちらか一方の型を import すると、もう一方を渡せなくなる（メソッドの戻り値が自分自身の型のため）。
+ * ここで必要なのは 2 メソッドだけなので、構造だけを要求して両方を受けられるようにしておく。
+ */
+type CarouselDirectionalPanGesture<G> = {
+	activeOffsetX(offset: [start: number, end: number]): G;
+	failOffsetY(offset: [start: number, end: number]): G;
+};
+
+/**
  * カルーセルの Pan ジェスチャを横方向専用に設定する。
  *
  * - 横へ `CAROUSEL_ACTIVE_OFFSET_X` dp 動くまで活性化しない
  * - 先に縦へ `CAROUSEL_FAIL_OFFSET_Y` dp 動いたら fail して縦ジェスチャへ譲る
  */
-export function configureCarouselPanGesture(gesture: Pick<PanGesture, "activeOffsetX" | "failOffsetY">): void {
+export function configureCarouselPanGesture<G extends CarouselDirectionalPanGesture<G>>(gesture: G): void {
 	gesture
 		.activeOffsetX([-CAROUSEL_ACTIVE_OFFSET_X, CAROUSEL_ACTIVE_OFFSET_X])
 		.failOffsetY([-CAROUSEL_FAIL_OFFSET_Y, CAROUSEL_FAIL_OFFSET_Y]);

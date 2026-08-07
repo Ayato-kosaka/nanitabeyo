@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useCallback, useState, forwardRef, useImperativeHandle } from "react";
 import { View, StyleSheet, Text, TouchableOpacity, useWindowDimensions, Platform } from "react-native";
 import { DetentChangeEvent, TrueSheet } from "@lodev09/react-native-true-sheet";
-import Carousel, { ICarouselInstance } from "react-native-reanimated-carousel";
+import { Carousel, type CarouselRef } from "react-native-reanimated-carousel";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { Image } from "expo-image";
 import i18n from "@/lib/i18n";
@@ -112,7 +112,7 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 		const widthMetrics = useWidthMetrics();
 		const sheetDetents = useSheetDetents();
 		const sheetRef = useRef<TrueSheet>(null);
-		const carouselRef = useRef<ICarouselInstance | null>(null);
+		const carouselRef = useRef<CarouselRef | null>(null);
 		const isDraggingRef = useRef(false);
 		// #1092 PR3 `number` 決め打ちにしない。@types/node を app-expo の devDependency へ明示したことで
 		// setTimeout の戻り値型が環境によって number / NodeJS.Timeout のどちらにも解決しうるため
@@ -292,28 +292,38 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 						<>
 							{detentIndex === 0 ? (
 								<View style={[styles.carouselWrapper, widthMetrics.carouselWrapper]}>
+									{/* #1156 carousel v5: width/height は style へ、mode/modeConfig は layout へ、
+									    pagingEnabled/snapEnabled/maxScrollDistancePerSwipe は snapMode へ集約された。 */}
 									<Carousel<SavedRestaurant>
 										ref={carouselRef}
 										data={savedRestaurants}
 										loop={false}
-										style={[styles.carousel, widthMetrics.carousel]}
-										width={widthMetrics.contentWidth}
-										height={CARD_HEIGHT + 24}
-										pagingEnabled={false}
-										snapEnabled
-										maxScrollDistancePerSwipe={widthMetrics.cardWidth + 40}
-										mode="parallax"
-										// #1126 横方向専用の Pan にして、縦ジェスチャ（シートの展開）と排他にする
-										onConfigurePanGesture={configureCarouselPanGesture}
-										modeConfig={{
-											parallaxScrollingScale: 1,
-											parallaxAdjacentItemScale: 1,
-											parallaxScrollingOffset: ((widthMetrics.contentWidth - widthMetrics.cardWidth) * 3) / 4,
+										style={[
+											styles.carousel,
+											widthMetrics.carousel,
+											{ width: widthMetrics.contentWidth, height: CARD_HEIGHT + 24 },
+										]}
+										snapMode="nearest"
+										layout={{
+											type: "parallax",
+											scale: 1,
+											adjacentScale: 1,
+											offset: ((widthMetrics.contentWidth - widthMetrics.cardWidth) * 3) / 4,
 										}}
+										// #1126 横方向専用の Pan にして、縦ジェスチャ（シートの展開）と排他にする。
+										// v5 でも onConfigurePanGesture は残っており、渡されるのは RNGH の PanGesture を
+										// 包んだ CarouselPanGesture（activeOffsetX / failOffsetY はそのまま使える）
+										onConfigurePanGesture={configureCarouselPanGesture}
 										onScrollStart={beginCarouselSwipe}
-										onScrollEnd={endCarouselSwipe}
+										// #1156 carousel v5 は onScrollEnd を廃止した。#1126 のシートドラッグ抑止は
+										// 「onSnapToItem」「beginCarouselSwipe が張るタイムアウト」「detent 変化」の
+										// 3 経路で必ず解除される（endCarouselSwipe を共有）。
+										// ⚠️ ここをインライン関数へ戻さないこと。onSnapToItem の関数 ID は
+										// carousel 内部で Pan ジェスチャの依存へ伝播するため、横スワイプ中の
+										// 再レンダー（isSwipingCarousel の更新）で進行中のスワイプが切れる
 										onSnapToItem={handleSnapToItem}
-										scrollAnimationDuration={350}
+										// #1156 carousel v5: scrollAnimationDuration は animation へ集約された
+										animation={{ type: "timing", duration: 350 }}
 										renderItem={renderItem}
 									/>
 								</View>
