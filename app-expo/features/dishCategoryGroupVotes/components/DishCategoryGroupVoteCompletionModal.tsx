@@ -117,8 +117,15 @@ export function DishCategoryGroupVoteCompletionModal({ usedDisplayNames, isSubmi
 					<Text style={styles.suggestionLabel}>{i18n.t("DishCategoryGroupVotes.nameSuggestionLabel")}</Text>
 					<View style={styles.suggestionRow}>
 						{suggestions.map((suggestion) => (
+							// 【a11y】押せるのに role が無いと、web では `<div tabindex="0">` として描画され、
+							// 支援技術からはボタンだと分からない。`accessibilityState.selected` まで出して
+							// 「どれを選んでいるか」も読み上げ側へ伝える（見た目は色でしか示していないため）。
 							<TouchableOpacity
 								key={suggestion}
+								testID="dish-category-group-vote-name-suggestion"
+								accessibilityRole="button"
+								accessibilityLabel={suggestion}
+								accessibilityState={{ selected: displayName === suggestion }}
 								style={[styles.suggestionButton, displayName === suggestion && styles.suggestionButtonActive]}
 								onPress={() => {
 									setIsManualName(false);

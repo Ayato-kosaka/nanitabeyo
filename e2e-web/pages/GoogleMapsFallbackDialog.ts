@@ -28,8 +28,14 @@ export class GoogleMapsFallbackDialog {
 	constructor(page: Page) {
 		this.page = page;
 		this.message = page.getByText("条件に合うお店を Googleマップ上でご確認頂けます。");
-		this.confirmButton = page.getByTestId("dialog-confirm-button");
-		this.cancelButton = page.getByTestId("dialog-cancel-button");
+		// ⚠️ `dialog-confirm-button` / `dialog-cancel-button` ではない。
+		// `DialogProvider` には testID の規約が 2 つ同居しており、#1131 が入れた
+		// 既定値（`dialog-confirm-button`）は `a.testID ?? ...` の形なので、
+		// **`showDialog()` が testID を明示している経路では既定値が必ず負ける**。
+		// Google マップ fallback は #1156 で `dialog-action-ok` を明示しているため、
+		// 既定値の方を待つと永久に見つからない。
+		this.confirmButton = page.getByTestId("dialog-action-ok");
+		this.cancelButton = page.getByTestId("dialog-action-cancel");
 	}
 
 	/**

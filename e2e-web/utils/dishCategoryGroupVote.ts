@@ -96,7 +96,12 @@ export async function mockVoteDetail(page: Page): Promise<void> {
 		await route.fulfill({
 			status: 200,
 			contentType: "application/json",
-			body: JSON.stringify(buildVoteDetail()),
+			// ⚠️ **BaseResponse の封筒 `{ success, data }` を外さないこと。**
+			// `useAPICall` は `data` だけを取り出すので、素の detail を返すと
+			// undefined が渡って画面が「投票を読み込めませんでした」になる。
+			// 失敗の見た目が「API が落ちている」ときと同じなので、mock 側の
+			// 封筒漏れだと気付くのに時間がかかる（実際 3 spec がこれで落ちていた）。
+			body: JSON.stringify({ success: true, data: buildVoteDetail() }),
 		});
 	});
 }

@@ -44,12 +44,21 @@ const RESULT_URL_PATTERN = /\/search\/result/;
 
 /** `callBackend` は `BaseResponse<R>`（`{ success, data }`）を厳密にパースするため同じ封筒で返す */
 async function fulfillJson(route: Route, data: unknown): Promise<void> {
+	// バックエンドは別オリジンのため、モック応答にも CORS ヘッダが要る。
+	//
+	// ⚠️ **`access-control-allow-origin: "*"` は使えない。** `fetchWithAuth` は web で
+	// `credentials: "include"` を付けるため、ブラウザがワイルドカードを拒否する:
+	//   The value of the 'Access-Control-Allow-Origin' header in the response must not be
+	//   the wildcard '*' when the request's credentials mode is 'include'.
+	// リクエスト元 origin をそのまま返し、`access-control-allow-credentials` を付ける。
+	// （`e2e-web/utils/network.ts` に同じ注意書きと実装がある）
+	const origin = (await route.request().headerValue("origin")) ?? "*";
 	await route.fulfill({
 		status: 200,
 		contentType: "application/json",
 		headers: {
-			// バックエンドは別オリジンのため、モック応答にも CORS ヘッダが要る
-			"access-control-allow-origin": "*",
+			"access-control-allow-origin": origin,
+			"access-control-allow-credentials": "true",
 		},
 		body: JSON.stringify({ success: true, data }),
 	});
@@ -184,9 +193,18 @@ async function mockVoteBackend(page: Page, options: MockOptions = {}): Promise<v
 	});
 
 	// 遷移先（DishMediaMap）が id 指定で引く一覧。
-	// 中身は本 spec の検証対象ではない（見たいのは「操作できること」）ので空で返す。
+	//
+	// ⚠️ **空配列を返さないこと。** 0 件が確定すると画面が「Google マップで開く」
+	// fallback ダイアログを出してしまい、**結果画面そのものが開かない**。
+	// 本 spec の検証対象は中身ではなく「操作できること」なので、
+	// 遷移が成立する最小の 1 件を返す。
 	await page.route("**/v1/dish-media?*", async (route) => {
-		await fulfillJson(route, { items: [] });
+		await fulfillJson(route, [
+			{
+				dish_media: { id: "e2e-1122-dish-media-searched" },
+				restaurant: { google_place_id: "e2e-1122-place" },
+			},
+		]);
 	});
 }
 
