@@ -13,6 +13,7 @@ import { InternalModule } from './internal/internal.module';
 import { ToolsModule } from './tools/tools.module';
 import { HealthModule } from './health/health.module';
 import { RobotsModule } from './robots/robots.module';
+import { ShareModule } from './share/share.module';
 import { ResponseWrapInterceptor } from './core/interceptors/response-wrap.interceptor';
 import { CoreModule } from './core/core.module';
 
@@ -28,6 +29,7 @@ import { CoreModule } from './core/core.module';
     ToolsModule, // Tools endpoints for admin use
     HealthModule, // Add HealthModule
     RobotsModule, // #276 robots.txt でクローラを全拒否
+    ShareModule, // #721 共有リンク /s/:token の SSR（v1 配下ではなくルート直下）
     CoreModule,
   ],
   controllers: [AppController],

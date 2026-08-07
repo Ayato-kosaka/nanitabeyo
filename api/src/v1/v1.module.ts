@@ -14,6 +14,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { LogsModule } from './logs/logs.module';
 import { ContributionTasksModule } from './contribution-tasks/contribution-tasks.module';
 import { DishCategoryGroupVotesModule } from './dish-category-group-votes/dish-category-group-votes.module';
+import { ShareLinksModule } from './share-links/share-links.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { DishCategoryGroupVotesModule } from './dish-category-group-votes/dish-c
     LogsModule,
     ContributionTasksModule,
     DishCategoryGroupVotesModule,
+    ShareLinksModule,
   ],
 })
 export class V1Module {}

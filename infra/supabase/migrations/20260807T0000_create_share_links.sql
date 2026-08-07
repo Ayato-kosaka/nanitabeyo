@@ -52,10 +52,14 @@ CREATE TABLE IF NOT EXISTS share_links (
   preview_locale      text NOT NULL,
   preview_title       text NOT NULL,
   preview_description text NOT NULL,
-  -- ⚠️ 署名付き URL を保存しないこと。このアプリのメディア URL は既定 24 時間で失効するため
+  -- ⚠️ **署名付き URL を保存しないこと。** このアプリのメディア URL は既定 24 時間で失効するため
   -- （api/src/core/storage/storage.service.ts）、URL を snapshot すると翌日に OGP 画像が 403 になる。
   -- SNS はキャッシュ期限が切れると再クロールするので「共有直後は出るのに後で消える」形で壊れる。
-  -- ここには GCS のパスを保存し、`GET /s/:token/og-image` が毎回署名し直して 302 する
+  --
+  -- 受け付ける形は 3 つ（判定は api/src/share/share-image.ts の 1 箇所だけ）:
+  --   1. `https://...` / `http://...` … 外部の絶対 URL。そのまま使う（投票候補の Wikimedia 画像など）
+  --   2. `/og/ja-JP.jpg` のような `/` 始まり … Web 側の静的アセット。WEB_BASE_URL を前置する
+  --   3. それ以外 … GCS のオブジェクトパス。`GET /s/:token/og-image` が毎回署名し直して 302 する
   preview_image_path  text NOT NULL,
 
   created_by     uuid NULL REFERENCES users(id),
