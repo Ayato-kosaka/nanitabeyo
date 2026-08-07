@@ -166,6 +166,17 @@ jobs:
       - name: リポジトリを取得
         uses: actions/checkout@v4
 
+      # #1156 【重要】このジョブは「EAS の代替検証」を名乗る以上、EAS と同じツールチェインで
+      # 組まなければ意味が無い。macos-15 の既定 Xcode は 16.4 だが、eas.json の iOS プロファイルは
+      # development / preview / production のいずれも `macos-sequoia-15.6-xcode-26.2` を指定している。
+      # 選択しないままだと **Xcode 26.2 でしか出ないネイティブのコンパイル失敗を取りこぼしたまま
+      # success を返す**（＝ EAS を消費してから初めて気付く）。
+      # e2e-mobile-test.yml が同じ runner で明示切り替えしているのと同じ理由・同じバージョンに揃える。
+      - name: Xcode 26.2 を選択
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "26.2"
+
       - name: PNPMをセットアップ
         uses: pnpm/action-setup@v2
         with:
@@ -194,9 +205,12 @@ jobs:
         uses: actions/cache@v4
         with:
           path: app-expo/ios/Pods
-          key: pods-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          # #1156 キャッシュ対象は spec リポジトリではなく `pod install` の生成物なので、
+          # Xcode を切り替えると前のツールチェインで生成した Pods を引き当てうる。
+          # キーにも restore-keys にも Xcode バージョンを含めて世代を分ける。
+          key: pods-${{ runner.os }}-xcode26.2-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: |
-            pods-${{ runner.os }}-
+            pods-${{ runner.os }}-xcode26.2-
 
       - name: Podをインストール
         working-directory: app-expo/ios
