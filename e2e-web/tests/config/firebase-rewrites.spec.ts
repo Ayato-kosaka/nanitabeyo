@@ -32,28 +32,71 @@ const REPO_ROOT = path.resolve(__dirname, "../../..");
 const FIREBASE_JSON_PATH = path.join(REPO_ROOT, "firebase.json");
 const DIST_DIR = path.join(REPO_ROOT, "app-expo/dist");
 
+/** firebase.json の rewrite。`destination`（静的ファイル）と `run`（Cloud Run）は排他 */
+type Rewrite = {
+	source: string;
+	destination?: string;
+	run?: { serviceId?: string; region?: string };
+};
+
+/** 静的アセットを配信するサイト（dist を public に持つもの） */
+const DIST_SITES = ["app-nanitabeyo-net", "nanitabeyo-dev"] as const;
+
+const readHosting = (): Array<{ site?: string; rewrites?: Rewrite[] }> =>
+	(
+		JSON.parse(fs.readFileSync(FIREBASE_JSON_PATH, "utf-8")) as {
+			hosting: Array<{ site?: string; rewrites?: Rewrite[] }>;
+		}
+	).hosting;
+
 test.describe("firebase.json rewrite 整合性", () => {
 	// ─ テストケース: 全 rewrite の destination が dist に実在する ─
 	// 手順:
-	//   1. firebase.json から本番サイト(app-nanitabeyo-net)の rewrites を読み込む
+	//   1. firebase.json から dist を配信するサイトの rewrites を読み込む
 	//   2. 各 destination(SPA fallback の /index.html 含む)が
 	//      app-expo/dist 配下に実ファイルとして存在することを検証
-	test("全 rewrite の destination が dist に実在する", async () => {
-		const firebaseConfig = JSON.parse(fs.readFileSync(FIREBASE_JSON_PATH, "utf-8")) as {
-			hosting: Array<{ site?: string; rewrites?: Array<{ source: string; destination: string }> }>;
-		};
+	//
+	// ⚠️ `destination` を持たない rewrite（Cloud Run へのプロキシ）は対象外。
+	// #721 で `/s/** -> run` を足したとき、ここが `rewrite.destination.replace(...)` で
+	// **TypeError を投げて落ちた**。「dist にファイルがあるか」という検査は
+	// 静的ファイルへの rewrite にしか意味がないので、種類で分けて扱う。
+	for (const siteName of DIST_SITES) {
+		test(`${siteName}: 全 rewrite の destination が dist に実在する`, async () => {
+			const site = readHosting().find((h) => h.site === siteName);
+			expect(site, `firebase.json に site: ${siteName} が存在すること`).toBeTruthy();
+			expect(site!.rewrites?.length, "rewrites が定義されていること").toBeGreaterThan(0);
 
-		const site = firebaseConfig.hosting.find((h) => h.site === "app-nanitabeyo-net");
-		expect(site, "firebase.json に site: app-nanitabeyo-net が存在すること").toBeTruthy();
-		expect(site!.rewrites?.length, "rewrites が定義されていること").toBeGreaterThan(0);
+			const missing = site!
+				.rewrites!.filter((rewrite) => rewrite.destination !== undefined)
+				.filter((rewrite) => !fs.existsSync(path.join(DIST_DIR, rewrite.destination!.replace(/^\//, ""))))
+				.map((rewrite) => `${rewrite.source} -> ${rewrite.destination}`);
 
-		const missing = site!
-			.rewrites!.filter((rewrite) => !fs.existsSync(path.join(DIST_DIR, rewrite.destination.replace(/^\//, ""))))
-			.map((rewrite) => `${rewrite.source} -> ${rewrite.destination}`);
+			expect(
+				missing,
+				"dist に存在しない destination を指す rewrite(本番で 404 になる)。firebase.json を dist の実構造に合わせて修正すること",
+			).toEqual([]);
+		});
+	}
 
-		expect(
-			missing,
-			"dist に存在しない destination を指す rewrite(本番で 404 になる)。firebase.json を dist の実構造に合わせて修正すること",
-		).toEqual([]);
+	// ─ テストケース: rewrite は destination か run のどちらか一方だけを持つ ─
+	// 両方あると Firebase 側の解釈が読めないし、どちらも無い rewrite は設定ミス。
+	// #721 で run 形式を導入したので、形の妥当性をここで固定する
+	test("各 rewrite は destination か run のどちらか一方を持つ", async () => {
+		const invalid: string[] = [];
+		for (const site of readHosting()) {
+			for (const rewrite of site.rewrites ?? []) {
+				const hasDestination = rewrite.destination !== undefined;
+				const hasRun = rewrite.run !== undefined;
+				if (hasDestination === hasRun) {
+					invalid.push(`${site.site}: ${rewrite.source}`);
+					continue;
+				}
+				// Cloud Run へ回すなら serviceId と region が要る（片方でも欠けるとデプロイが落ちる）
+				if (hasRun && (!rewrite.run!.serviceId || !rewrite.run!.region)) {
+					invalid.push(`${site.site}: ${rewrite.source}（run の serviceId / region が不足）`);
+				}
+			}
+		}
+		expect(invalid, "destination と run の指定が不正な rewrite").toEqual([]);
 	});
 });
