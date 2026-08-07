@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import { Platform } from "react-native";
 import { getGoogleMapsLink } from "@/lib/googlePlaces";
 import { openExternalUrl } from "@/lib/openExternalUrl";
@@ -75,6 +75,21 @@ export function useDishMediaActions({ source }: UseDishMediaActionsProps) {
 
 	// #613 【設計】友人に共有する処理を共通化
 	// #659 【設計】idsForShare 追加: 複数メディアの共有に対応
+	/**
+	 * #1205 【修正】共有処理が走っている dish_media の id。多重実行を同期的に弾く。
+	 *
+	 * `shareRestaurant` は `createShareLink`（POST /v1/share-links）を呼ぶので、
+	 * 連打すると **同じ投稿に対する share_links の行が 2 本できる**。
+	 * このフックには表示用の state すら無く、呼び出し側のボタンにも disabled が無いため、
+	 * ここで弾かないと止まる場所がどこにもない。
+	 *
+	 * 単一の boolean にせず **id ごとの Set** にしているのは、投稿一覧では別々の投稿の
+	 * 共有ボタンが同時に存在するため。boolean だと「A を共有中は B も押せない」になる。
+	 *
+	 * 解除は finally の 1 箇所（成功・失敗・例外のいずれでも通る）。
+	 */
+	const sharingIdsRef = useRef<Set<string>>(new Set());
+
 	const shareRestaurant = useCallback(
 		async ({
 			dishMediaId,
@@ -85,6 +100,11 @@ export function useDishMediaActions({ source }: UseDishMediaActionsProps) {
 			restaurant: Pick<SupabaseRestaurants, "id" | "name">;
 			idsForShare?: string[]; // #659 【設計】複数共有用のID配列（オプショナル）
 		}) => {
+			// #1205 この投稿の共有が進行中なら何もしない（宣言箇所のコメント参照）。
+			// haptics より前に弾く（押しても無反応に見えるより、振動しない方が自然）
+			if (sharingIdsRef.current.has(dishMediaId)) return;
+			sharingIdsRef.current.add(dishMediaId);
+
 			lightImpact();
 
 			try {
@@ -159,6 +179,9 @@ export function useDishMediaActions({ source }: UseDishMediaActionsProps) {
 						source, // #613 【設計】呼び出し元を記録
 					},
 				});
+			} finally {
+				// #1205 失敗しても押し直せるよう、成功・失敗・例外のいずれでも必ず解除する
+				sharingIdsRef.current.delete(dishMediaId);
 			}
 		},
 		[locale, lightImpact, logFrontendEvent, showSnackbar, source, callBackend],

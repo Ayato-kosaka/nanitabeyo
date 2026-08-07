@@ -3,7 +3,7 @@
 // #703 【実装】dish category 手動画像供給画面（ポップUI）実装
 // ユーザー協力で料理カテゴリの画像を改善するための単体画面
 
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
 	View,
 	StyleSheet,
@@ -143,6 +143,14 @@ export default function DishCategoryManualImageSupplyScreen() {
 	// #703 【状態】ローディング
 	const [isLoadingCandidates, setIsLoadingCandidates] = useState(true);
 	const [isSubmitting, setIsSubmitting] = useState(false);
+	/**
+	 * #1205 【修正】貢献タスク送信の多重実行を防ぐ同期ガード。
+	 *
+	 * `isSubmitting`（useState）は送信ボタンを disabled にする表示用途で、判定には使えない。
+	 * 通過すると `POST v1/contribution-tasks` が二重に走る。この API のリポジトリ実装は
+	 * 素の `create` で一意制約も無いため、**同じ内容の contribution_tasks 行が 2 件できる**。
+	 */
+	const isSubmittingRef = useRef(false);
 	// #703 【状態】エラー
 	const [loadError, setLoadError] = useState<string | null>(null);
 	// #703 【状態】チュートリアルモーダル
@@ -380,6 +388,11 @@ export default function DishCategoryManualImageSupplyScreen() {
 
 		if (readyItems.length === 0) return;
 
+		// #1205 多重実行の判定は ref で行う（宣言箇所のコメント参照）。
+		// 早期 return より後、実際の POST より前に立てること
+		if (isSubmittingRef.current) return;
+		isSubmittingRef.current = true;
+
 		setIsSubmitting(true);
 		logFrontendEvent({
 			event_name: "dish_manual_image_supply_submit_started",
@@ -390,6 +403,7 @@ export default function DishCategoryManualImageSupplyScreen() {
 		let successCount = 0;
 		let failCount = 0;
 
+		try {
 		for (const item of readyItems) {
 			const state = itemStates[item.category_id];
 			if (!state?.uploaded) continue;
@@ -427,8 +441,14 @@ export default function DishCategoryManualImageSupplyScreen() {
 			payload: { successCount, failCount },
 		});
 
-		setIsSubmitting(false);
 		setShowThanks(true);
+		} finally {
+			// #1205 ⚠️ この try..finally は今回追加した。元は最後に setIsSubmitting(false) を
+			// 直接書いており、**ループの途中で例外が抜けると解除されず送信不能のまま固まる**
+			// 形だった（各 POST は try..catch で握っているが、それ以外の例外は素通りする）
+			isSubmittingRef.current = false;
+			setIsSubmitting(false);
+		}
 	}, [items, itemStates, callBackend, logFrontendEvent, cdnJsonPath, taskKey]);
 
 	/* -------------------------------------------------------------------------- */
