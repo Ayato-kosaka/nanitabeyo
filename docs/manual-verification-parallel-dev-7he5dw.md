@@ -82,7 +82,7 @@
 
 #### ⚠️ ここは「直っている前提」で見ないでください（残っている競合窓）
 
-Codex レビューの指摘（[PR コメント](https://github.com/Ayato-kosaka/nanitabeyo/pull/1174#discussion_r-codex-1126)）で、
+Codex レビューの指摘（[PR コメント](https://github.com/Ayato-kosaka/nanitabeyo/pull/1174#discussion_r3732085875)）で、
 **シート側を止めるタイミングが遅い**ことが確認されています。JS からは閉じ切れないため、
 今回は直さずに残しています。実機で許容できるかの判断をお願いしたい、というのがこの項目です。
 
@@ -305,10 +305,10 @@ Hosting の検証は**ローカルエミュレータのみ**で、実デプロ�
 
 | Issue | 残っていること | なぜここで完了できないか |
 | --- | --- | --- |
-| #767 | `infra/gcp/setup_artifact_registry_cleanup_policy.sh` を `dryrun` → `apply` の順で実行 | runner に GCP 資格情報が無く gcloud を実行できない |
+| #767 | `infra/gcp/setup_artifact_registry_cleanup_policy.sh` を `dryrun` → `apply` の順で実行 | runner に GCP 資格情報が無く gcloud を実行できない。**dryrun の出力で「参照中イメージが直近 KEEP_COUNT 個に入っているか」の照合結果を必ず見ること**（警告が出たら先に再デプロイする） |
 | #767 | **`KEEP_COUNT=10` の妥当性を判断**（11 世代より前へロールバックできなくなる） | 運用方針の判断であり、こちらでは決められない |
 | #513 | — | **今回のバッチから取り下げ**（オーナー判断）。コード変更は入れていません。再開時は SQL の Critical 5 件（下記）を先に潰してください |
-| #514 | **本番デプロイ後**、`api/src/internal/resize-image/README.md` の手順でリランを実行 | 調査と修正は完了（PR #1183）。リランツールは新規コードなので、デプロイしないと叩けません |
+| #514 | **① 権限付与の SQL を流す → ② 本番デプロイ → ③ リラン実行** | 調査と修正は完了（PR #1183）。手順は `api/src/internal/resize-image/README.md`。**① を飛ばすと `PermissionGuard` が全ユーザーを弾きます**（Codex レビュー指摘。`permissions` / `role_permissions` の行はこのリポジトリではマイグレーション管理していないため） |
 | #281 | main へマージ・本番デプロイ後、**Search Console で sitemap を再送信** | Search Console にアクセスできない。**URL 数が 371 → 32 に減ります（意図した縮小）** |
 | #721 | (a) 共有プレビューの方針決定 | アーキテクチャの判断が要る。**ご検討中のため、このバッチでは着手していません** |
 
