@@ -322,7 +322,16 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 											widthMetrics.carousel,
 											{ width: widthMetrics.contentWidth, height: CARD_HEIGHT + 24 },
 										]}
-										snapMode="nearest"
+										// #1194 【回帰修正】1 スワイプで 1 枚だけ送る。
+										//
+										// v4 の `pagingEnabled` は既定 true（＝1 枚送り）だったが、#1156 の v4→v5 移行で
+										// `snapMode="nearest"` になった。`nearest` は**慣性が減衰し切った位置の最寄り**へ
+										// 吸着するため、ゆっくりした横スワイプでも数枚まとめて飛ぶ。
+										// 実機フィードバックで「遅い横スワイプでも一気に飛ぶ。一件一件が標準」と指摘された。
+										//
+										// `"page"` は 1 スワイプ＝1 ページに制限するので、v4 の挙動へ戻る。
+										// `"none"` にすると吸着自体が消えてカードが半端な位置で止まるので使わない。
+										snapMode="page"
 										layout={{
 											type: "parallax",
 											scale: 1,
