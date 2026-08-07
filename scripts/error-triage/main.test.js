@@ -1,4 +1,4 @@
-// #1196 error-triage / エントリポイント（`plan` サブコマンド）のテスト。
+// #1196 error-triage / エントリポイント（`plan` / `apply` サブコマンド）のテスト。
 //
 // 実時刻・BigQuery・GitHub には触りません。clock と fetch を注入し、
 // 出力（Job Summary / plan.json）を一時ディレクトリへ書かせて検証します。
@@ -115,7 +115,7 @@ describe("plan（dry-run）", () => {
 		expect(code).toBe(0);
 
 		const summary = readFileSync(workspace.summaryPath, "utf8");
-		expect(summary).toContain("Error Triage — dry-run (PR2)");
+		expect(summary).toContain("Error Triage — dry-run");
 		expect(summary).toContain("2026-08-05T23:00:00Z");
 		expect(summary).toContain("2026-08-07T00:00:00Z");
 		expect(summary).toContain("既存 Issue は読んでいません");
@@ -210,14 +210,165 @@ describe("plan（dry-run）", () => {
 	});
 });
 
-describe("PR2 の範囲外は明示的に断る", () => {
-	test("apply は PR3 の範囲として終了コード 2", async () => {
-		const code = await main({ argv: ["apply"], env: {}, clock, fetchImpl: makeFetch() });
-		expect(code).toBe(2);
+describe("サブコマンドの入口", () => {
+	test("apply は GITHUB_TOKEN / GITHUB_REPOSITORY が無ければ BigQuery を叩く前に落ちる", async () => {
+		const fetchImpl = makeFetch();
+		await expect(main({ argv: ["apply"], env: {}, clock, fetchImpl })).rejects.toThrow(/GITHUB_TOKEN/);
+		expect(fetchImpl.calls).toHaveLength(0);
 	});
 
 	test("未知のサブコマンドは使い方を出して終了コード 2", async () => {
 		expect(await main({ argv: [], env: {}, clock, fetchImpl: makeFetch() })).toBe(2);
 		expect(await main({ argv: ["triage"], env: {}, clock, fetchImpl: makeFetch() })).toBe(2);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// apply（triage Job）
+// ---------------------------------------------------------------------------
+
+const existingIssues = require("./__fixtures__/existing-issues.json");
+const { PARENT_ISSUE_NUMBER, TRIAGE_LABEL } = require("./constants");
+
+/**
+ * BigQuery と GitHub の両方を1つの fetch で捌く（実際の Job も同じ Node プロセス1本で動く）。
+ * BigQuery へは PLAN と同じ2レスポンス、GitHub へは最小限の偽サーバ。
+ */
+const makeApplyFetch = ({ issues = existingIssues, subIssues = [] } = {}) => {
+	const calls = [];
+	const state = { issues: JSON.parse(JSON.stringify(issues)), subIssues: [...subIssues], comments: {}, next: 6000 };
+	const bqResponses = [
+		{ totalBytesProcessed: "665800" },
+		{ jobComplete: true, totalRows: "2", totalBytesProcessed: "665800", rows: [row(GROUP), row(RUN_SUMMARY)] },
+	];
+	let bqIndex = 0;
+
+	const fetchImpl = async (rawUrl, init = {}) => {
+		const method = (init.method || "GET").toUpperCase();
+		const body = init.body ? JSON.parse(init.body) : null;
+		calls.push({ url: rawUrl, method, body });
+
+		if (rawUrl.startsWith("https://bigquery.googleapis.com")) {
+			const payload = bqResponses[bqIndex];
+			bqIndex += 1;
+			return { ok: true, status: 200, text: async () => JSON.stringify(payload) };
+		}
+
+		const url = new URL(rawUrl);
+		const path = url.pathname.replace("/repos/Ayato-kosaka/nanitabeyo", "");
+		const json = (status, value) => ({
+			ok: status < 300,
+			status,
+			text: async () => JSON.stringify(value),
+		});
+
+		if (method === "GET" && path === "/issues") {
+			const page = Number(url.searchParams.get("page") || "1");
+			return json(200, page === 1 ? state.issues : []);
+		}
+		if (method === "POST" && path === "/issues") {
+			state.next += 1;
+			const created = {
+				number: state.next,
+				id: 9000000 + state.next,
+				labels: body.labels.map((name) => ({ name })),
+				body: body.body,
+				state: "open",
+			};
+			state.issues.push(created);
+			return json(201, created);
+		}
+		if (method === "GET" && /\/sub_issues$/.test(path)) return json(200, state.subIssues);
+		if (method === "POST" && /\/sub_issues$/.test(path)) return json(201, {});
+		if (method === "GET" && /\/comments$/.test(path)) return json(200, []);
+		if (method === "POST" && /\/comments$/.test(path)) return json(201, { id: 1 });
+		if (method === "PATCH") return json(200, {});
+		if (method === "GET" && path.startsWith("/commits/")) return json(404, { message: "Not Found" });
+		return json(404, { message: `unhandled ${method} ${path}` });
+	};
+	fetchImpl.calls = calls;
+	fetchImpl.state = state;
+	fetchImpl.githubWrites = () => calls.filter((call) => call.method !== "GET" && !call.url.includes("bigquery"));
+	return fetchImpl;
+};
+
+const APPLY_ENV = {
+	GCP_PROJECT_ID: "food-scroll",
+	BQ_ACCESS_TOKEN: "bq-token",
+	GITHUB_TOKEN: "gh-token",
+	GITHUB_REPOSITORY: "Ayato-kosaka/nanitabeyo",
+	GITHUB_API_URL: "https://api.github.test",
+	GITHUB_SERVER_URL: "https://github.test",
+	GITHUB_RUN_ID: "31215551992",
+};
+
+describe("apply（triage Job）", () => {
+	test("BigQuery → 索引 → 起票 → 常駐サマリまで通し、終了コード 0", async () => {
+		const workspace = makeWorkspace();
+		writeFileSync(workspace.summaryPath, "", "utf8");
+		const fetchImpl = makeApplyFetch();
+
+		const code = await main({
+			argv: ["apply", "--out", workspace.planPath],
+			env: { ...APPLY_ENV, GITHUB_STEP_SUMMARY: workspace.summaryPath },
+			clock,
+			fetchImpl,
+			sleepImpl: async () => {},
+		});
+
+		expect(code).toBe(0);
+		const summary = readFileSync(workspace.summaryPath, "utf8");
+		expect(summary).toContain("Error Triage — apply");
+		expect(summary).toContain("適用結果（apply）");
+
+		const out = JSON.parse(readFileSync(workspace.planPath, "utf8"));
+		expect(out.applyResult.created).toHaveLength(1);
+		expect(out.applyResult.parentSummary).toBe("created");
+
+		// 起票 POST の body に run へのリンクが入る（Issue から run を辿れる）
+		const post = fetchImpl.calls.find((call) => call.method === "POST" && call.url.endsWith("/issues"));
+		expect(post.body.labels).toEqual([TRIAGE_LABEL]);
+		expect(post.body.body).toContain("https://github.test/Ayato-kosaka/nanitabeyo/actions/runs/31215551992");
+		expect(post.body.body).toContain(`親: #${PARENT_ISSUE_NUMBER}`);
+	});
+
+	test("--dry-run は GitHub へ1バイトも書かない", async () => {
+		const fetchImpl = makeApplyFetch();
+		const code = await main({
+			argv: ["apply", "--dry-run"],
+			env: APPLY_ENV,
+			clock,
+			fetchImpl,
+			sleepImpl: async () => {},
+		});
+		expect(code).toBe(0);
+		expect(fetchImpl.githubWrites()).toHaveLength(0);
+	});
+
+	test("既に起票済みなら2回目は何も起票しない（冪等）", async () => {
+		const fetchImpl = makeApplyFetch();
+		await main({ argv: ["apply"], env: APPLY_ENV, clock, fetchImpl, sleepImpl: async () => {} });
+		const afterFirst = fetchImpl.calls.filter((call) => call.method === "POST" && call.url.endsWith("/issues")).length;
+
+		// 2回目は BigQuery のレスポンスを使い切っているので、新しい fetch へ state を引き継ぐ
+		const second = makeApplyFetch({ issues: fetchImpl.state.issues });
+		await main({ argv: ["apply"], env: APPLY_ENV, clock, fetchImpl: second, sleepImpl: async () => {} });
+
+		expect(afterFirst).toBe(1);
+		expect(second.calls.filter((call) => call.method === "POST" && call.url.endsWith("/issues"))).toHaveLength(0);
+	});
+
+	test("GITHUB_TOKEN が無ければ BigQuery を叩く前に落ちる（権限不足で走り始めない）", async () => {
+		const fetchImpl = makeApplyFetch();
+		await expect(
+			main({ argv: ["apply"], env: { ...APPLY_ENV, GITHUB_TOKEN: undefined }, clock, fetchImpl }),
+		).rejects.toThrow(/GITHUB_TOKEN/);
+		expect(fetchImpl.calls).toHaveLength(0);
+	});
+
+	test("runUrlFrom は run_id が無ければ null", () => {
+		const { runUrlFrom } = require("./main");
+		expect(runUrlFrom({})).toBeNull();
+		expect(runUrlFrom({ GITHUB_REPOSITORY: "o/r", GITHUB_RUN_ID: "1" })).toBe("https://github.com/o/r/actions/runs/1");
 	});
 });

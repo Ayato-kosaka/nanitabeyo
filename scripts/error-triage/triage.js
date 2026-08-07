@@ -14,6 +14,7 @@ const {
 	PANIC_THRESHOLD,
 	REOPEN_LIMIT,
 	SCHEMA_VERSION,
+	SKIP_LABEL,
 	SURFACES,
 	FP_ALGO_VERSION,
 } = require("./constants");
@@ -288,7 +289,34 @@ const buildIndex = (issues) => {
 	return { index, warnings };
 };
 
-const hasSkipLabel = (entry) => entry.labels.includes("err/skip");
+const hasSkipLabel = (entry) => entry.labels.includes(SKIP_LABEL);
+
+/**
+ * 索引に載っている既存 Issue の `fpalgo` が、現行の `FP_ALGO_VERSION` と揃っているかを見る（#1198 §8-A）。
+ *
+ * fingerprint 定義を変えると既存 Issue との突合が全部外れ、**全件が新規起票**になる。
+ * PANIC ブレーカーでも起票は止まるが、「なぜ止まったのか」が分からない。
+ * `fpalgo` が1件でも食い違ったら、その run は**1件も書かずに止める**。
+ * 索引が空（初回）のときは不一致にしない。
+ *
+ * @param {Map<string, Array<Record<string, any>>>} index
+ * @returns {{ok:boolean, versions:number[], message:string|null}}
+ */
+const checkAlgoVersions = (index) => {
+	const versions = new Set();
+	for (const entries of index.values()) {
+		for (const entry of entries) versions.add(entry.algoVersion);
+	}
+	const sorted = [...versions].sort((a, b) => a - b);
+	if (sorted.length === 0 || (sorted.length === 1 && sorted[0] === FP_ALGO_VERSION)) {
+		return { ok: true, versions: sorted, message: null };
+	}
+	return {
+		ok: false,
+		versions: sorted,
+		message: `fpalgo 不一致: 既存 Issue は ${sorted.join(", ")} / 現行は ${FP_ALGO_VERSION}。移行 run を先に実行してください（#1198 §8-B）。この run では1件も書き込みません`,
+	};
+};
 
 /**
  * 同一 fp に複数 Issue があるとき、決定的に1件を選ぶ（#1198 §1-D）。
@@ -520,6 +548,12 @@ const buildPlan = ({ envelope, issues = [], commitDates = {}, limits = {} }) => 
 	const { index, warnings: indexWarnings } = buildIndex(issues);
 	const warnings = [...validation.warnings, ...indexWarnings];
 
+	// #1198 §8-A: fingerprint 世代が食い違ったら、この run は1件も書かない。
+	// PANIC と同じく「起票候補を全部 capped にする」形で計画へ表現し、
+	// `abort` フラグで呼び出し側（main.js の apply）に書き込みを止めさせる。
+	const algo = checkAlgoVersions(index);
+	if (!algo.ok) warnings.push(algo.message);
+
 	const decisions = [];
 	const createCandidates = [];
 	for (const group of envelope.groups || []) {
@@ -534,9 +568,10 @@ const buildPlan = ({ envelope, issues = [], commitDates = {}, limits = {} }) => 
 	}
 
 	const panic = createCandidates.length > panicThreshold;
-	const { picked, deferred } = panic
-		? { picked: [], deferred: [...createCandidates] }
-		: pickCreations(createCandidates, { limit: createLimit });
+	const { picked, deferred } =
+		panic || !algo.ok
+			? { picked: [], deferred: [...createCandidates] }
+			: pickCreations(createCandidates, { limit: createLimit });
 
 	for (const group of picked) {
 		decisions.push({ group, decision: { action: "create", reason: "unknown-fingerprint", issueNumber: null } });
@@ -546,9 +581,11 @@ const buildPlan = ({ envelope, issues = [], commitDates = {}, limits = {} }) => 
 			group,
 			decision: {
 				action: "capped",
-				reason: panic
-					? `PANIC: 未知 fingerprint ${createCandidates.length} 件 > 閾値 ${panicThreshold}`
-					: `1 run の起票上限 ${createLimit} 件を超過。次回 run へ繰り越し`,
+				reason: !algo.ok
+					? algo.message
+					: panic
+						? `PANIC: 未知 fingerprint ${createCandidates.length} 件 > 閾値 ${panicThreshold}`
+						: `1 run の起票上限 ${createLimit} 件を超過。次回 run へ繰り越し`,
 				issueNumber: null,
 			},
 		});
@@ -559,9 +596,10 @@ const buildPlan = ({ envelope, issues = [], commitDates = {}, limits = {} }) => 
 	const reopens = decisions
 		.filter(({ decision }) => decision.action === "reopen")
 		.sort((a, b) => compareIdentified(a.group, b.group));
-	reopens.slice(reopenLimit).forEach(({ decision }) => {
+	// fpalgo 不一致のときは reopen も含めて1件も書かない（起票だけ止めても状態機械は壊れたまま）。
+	reopens.slice(algo.ok ? reopenLimit : 0).forEach(({ decision }) => {
 		decision.action = "capped";
-		decision.reason = `1 run の reopen 上限 ${reopenLimit} 件を超過。次回 run へ繰り越し`;
+		decision.reason = algo.ok ? `1 run の reopen 上限 ${reopenLimit} 件を超過。次回 run へ繰り越し` : algo.message;
 	});
 
 	const items = decisions.map(({ group, decision }) => summarizeItem(group, decision));
@@ -579,6 +617,10 @@ const buildPlan = ({ envelope, issues = [], commitDates = {}, limits = {} }) => 
 		window: { ...envelope.window },
 		panic,
 		panicThreshold,
+		// 書き込みを丸ごと止めるべき理由があるか（#1198 §8-A）。apply はこれを見て何も書かずに exit 1 する。
+		abort: !algo.ok,
+		abortReason: algo.ok ? null : algo.message,
+		algoVersions: algo.versions,
 		limits: { createLimit, reopenLimit, panicThreshold, graceHours, minEventsReopen },
 		valid: validation.ok,
 		errors: validation.errors,
@@ -602,6 +644,7 @@ module.exports = Object.freeze({
 	findForbiddenFields,
 	validateEnvelope,
 	buildIndex,
+	checkAlgoVersions,
 	authoritative,
 	hasSkipLabel,
 	isRegression,

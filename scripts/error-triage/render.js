@@ -15,9 +15,9 @@
 
 "use strict";
 
-const { FP_ALGO_VERSION, SCHEMA_VERSION } = require("./constants");
+const { BODY_STALE_DAYS, FP_ALGO_VERSION, SCHEMA_VERSION, SUB_ISSUE_WARN_THRESHOLD } = require("./constants");
 const { FINGERPRINT_PATTERN } = require("./fingerprint");
-const { minTimestamp } = require("./window");
+const { minTimestamp, toDate } = require("./window");
 
 /** 自動領域の開始・終了マーカー。この内側だけをスクリプトが書き換える。 */
 const AUTO_START_MARKER = "<!-- error-triage:auto:start -->";
@@ -249,6 +249,92 @@ const renderIssueBody = ({ group, window, generatedAt, existingBody = null, pare
 	return [...head, "（ここから下は自由記述。スクリプトは触りません）", ""].join("\n");
 };
 
+// ---------------------------------------------------------------------------
+// 自動領域の読み戻し（PR3 の body 更新スロットリング用。#1198 §6-C）
+// ---------------------------------------------------------------------------
+//
+// ここに置く理由: 読む対象は `renderAutoSection()` が書いた文字列そのものなので、
+// 書式の唯一の正であるこのファイルの外へ出すと、書き手と読み手が別ファイルで静かにドリフトする。
+
+/** 自動領域フッタの `更新: <RFC3339>`（＝前回この Issue を更新した時刻）。 */
+const AUTO_UPDATED_AT_PATTERN = /更新: (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)/;
+/** 「どれだけ」行の件数（＝前回 run の occurrences）。 */
+const RENDERED_OCCURRENCES_PATTERN = /どれだけ[^|]*\|\s*\*\*(\d+)\s*件\*\*/;
+
+/**
+ * 既存 body から前回の `occurrences` を読む。読めなければ null。
+ *
+ * @param {string|null|undefined} body
+ * @returns {number|null}
+ */
+const extractRenderedOccurrences = (body) => {
+	if (!body) return null;
+	const matched = RENDERED_OCCURRENCES_PATTERN.exec(body);
+	return matched ? Number.parseInt(matched[1], 10) : null;
+};
+
+/**
+ * 既存 body から自動領域の最終更新時刻を読む。読めなければ null。
+ *
+ * @param {string|null|undefined} body
+ * @returns {string|null}
+ */
+const extractAutoUpdatedAtUtc = (body) => {
+	if (!body) return null;
+	const matched = AUTO_UPDATED_AT_PATTERN.exec(body);
+	return matched ? matched[1] : null;
+};
+
+/**
+ * 既存 body に body 未記載の新しい commit sha があるか（#1198 §6-C(3)）。
+ *
+ * @param {string|null|undefined} body
+ * @param {ReadonlyArray<{sha?:string}>} commits
+ * @returns {string|null} 未記載の sha（無ければ null）
+ */
+const findUnrecordedCommit = (body, commits = []) => {
+	const text = body || "";
+	for (const commit of commits) {
+		if (commit && commit.sha && !text.includes(commit.sha)) return commit.sha;
+	}
+	return null;
+};
+
+/**
+ * 既存 open / wontfix Issue の body を今回 PATCH すべきか（#1198 §6-C のスロットリング）。
+ *
+ * 日次 run で毎日全 open を PATCH すると、Issue の編集履歴が汚れ、`updated_at` が毎日動いて
+ * Issue 一覧の並びがかき混ぜられ、他の Issue の視認性まで下がる。
+ * 次のいずれかを満たすときだけ叩く:
+ *   1. 件数が前回値の 2倍以上 / 1/2 以下（＝桁が変わったときだけ知らせる）
+ *   2. 自動領域の更新から BODY_STALE_DAYS 日以上経過
+ *   3. body 未記載の commit が出た（＝新しいビルドでも出ている＝直っていない証拠）
+ * 前回値が読めない（自動領域が無い・人間がマーカーを消した）場合は**更新する**側へ倒す。
+ * 更新しても通知は飛ばないので、迷ったら更新する方が情報が古びない。
+ *
+ * @param {{existingBody?:string|null, group:Record<string, any>, generatedAt:string, staleDays?:number}} params
+ * @returns {{update:boolean, reason:string}}
+ */
+const shouldUpdateBody = ({ existingBody = null, group, generatedAt, staleDays = BODY_STALE_DAYS }) => {
+	const previousOccurrences = extractRenderedOccurrences(existingBody);
+	if (previousOccurrences === null) return { update: true, reason: "前回値を読めない（自動領域が無い）" };
+
+	const current = group.occurrences ?? 0;
+	if (current >= previousOccurrences * 2 || current * 2 <= previousOccurrences) {
+		return { update: true, reason: `件数が ${previousOccurrences} → ${current} と桁で変化` };
+	}
+
+	const unrecorded = findUnrecordedCommit(existingBody, group.commits);
+	if (unrecorded) return { update: true, reason: `未記載の commit \`${unrecorded}\`（新しいビルドでも発生）` };
+
+	const updatedAt = extractAutoUpdatedAtUtc(existingBody);
+	if (!updatedAt) return { update: true, reason: "自動領域の更新時刻を読めない" };
+	const ageDays = (toDate(generatedAt).getTime() - toDate(updatedAt).getTime()) / 86400000;
+	if (ageDays >= staleDays) return { update: true, reason: `自動領域が ${Math.floor(ageDays)} 日前` };
+
+	return { update: false, reason: `変化なし（${previousOccurrences} → ${current} 件 / ${Math.floor(ageDays)} 日前）` };
+};
+
 /** 回帰コメントの冪等マーカー（#1198 §5-D）。 */
 const renderRegressionMarker = (fingerprint, lastSeenUtc) =>
 	`<!-- error-triage:regression:${fingerprint}:${String(lastSeenUtc).slice(0, 10)} -->`;
@@ -346,12 +432,69 @@ const renderJobSummary = ({ envelope, plan, mode = "dry-run" }) => {
 };
 
 /**
- * 親 Issue の常駐サマリコメント（#1198 §4-B / G5）。毎回 PATCH で上書きする（通知は飛ばない）。
+ * apply（書き込み）の結果を markdown にする。Job Summary の末尾へ足す。
  *
- * @param {{envelope:Record<string, any>, plan:Record<string, any>}} params
+ * **失敗を必ず可視化する**のが目的。成功したように見えるのが一番まずい（#1198 §1-F）。
+ * sub-issue 紐付けの失敗は run を落とさない（横断レビュー §6-2）が、件数は必ずここへ出す。
+ *
+ * @param {{applyResult:Record<string, any>}} params
  * @returns {string}
  */
-const renderParentSummaryComment = ({ envelope, plan }) => {
+const renderApplySummary = ({ applyResult }) => {
+	const result = applyResult || {};
+	const list = (items, format) => (items && items.length > 0 ? items.map(format).join(" / ") : "—");
+	const lines = [
+		"",
+		`### 適用結果（${result.dryRun ? "dry-run: 書き込みなし" : "apply"}）`,
+		"",
+		`- 起票: **${(result.created || []).length}** 件 ${list(result.created, (item) => `#${item.issueNumber}`)}`,
+		`- reopen: **${(result.reopened || []).length}** 件 ${list(result.reopened, (item) => `#${item.issueNumber}`)}`,
+		`- body 更新: ${(result.bodyUpdated || []).length} 件 / 抑止 ${(result.bodySkipped || []).length} 件（#1198 §6-C のスロットリング）`,
+		`- sub-issue 紐付け: 成功 ${(result.subIssueLinked || []).length} 件 / **失敗 ${(result.subIssueFailures || []).length} 件**（best-effort。失敗しても run は落としません）`,
+		`- commit 日時の解決: ${result.commitLookups ?? 0} 回`,
+		`- 親の常駐サマリ: ${result.parentSummary ?? "—"}`,
+		"",
+	];
+
+	if (result.subIssueIndexOk === false) {
+		lines.push(
+			`> ⚠️ 親 #${result.parentIssue ?? "?"} の sub-issue 一覧を取得できませんでした（${result.subIssueIndexError ?? "理由不明"}）。`,
+			"> この run では第2の索引源が使えず、ラベル1枚だけで突合しています。紐付けの reconcile もスキップしました。",
+			"",
+		);
+	}
+	if (result.subIssueFailures && result.subIssueFailures.length > 0) {
+		lines.push("| 紐付けに失敗した Issue | 理由 |", "|---|---|");
+		for (const failure of result.subIssueFailures) {
+			lines.push(`| #${failure.issueNumber} | ${failure.message} |`);
+		}
+		lines.push("");
+	}
+	if (result.subIssueCount >= SUB_ISSUE_WARN_THRESHOLD) {
+		lines.push(
+			`> ⚠️ 親の sub-issue が ${result.subIssueCount} 件です（上限は 100 件と認識）。`,
+			"> **古い sub-issue を自動で外すことはしません**（S11。reconcile と競合して付け外しが振動するため）。",
+			"> 外すかどうかは人間が判断してください。",
+			"",
+		);
+	}
+	if (result.failures && result.failures.length > 0) {
+		lines.push("| 失敗した書き込み | 対象 | 理由 |", "|---|---|---|");
+		for (const failure of result.failures) {
+			lines.push(`| ${failure.stage} | ${failure.target ?? "—"} | ${failure.message} |`);
+		}
+		lines.push("");
+	}
+	return lines.join("\n");
+};
+
+/**
+ * 親 Issue の常駐サマリコメント（#1198 §4-B / G5）。毎回 PATCH で上書きする（通知は飛ばない）。
+ *
+ * @param {{envelope:Record<string, any>, plan:Record<string, any>, applyResult?:Record<string, any>|null}} params
+ * @returns {string}
+ */
+const renderParentSummaryComment = ({ envelope, plan, applyResult = null }) => {
 	const { runSummary } = envelope;
 	const oldestDeferred = plan.deferred
 		.map((item) => item.firstSeenUtc)
@@ -372,6 +515,24 @@ const renderParentSummaryComment = ({ envelope, plan }) => {
 		"### 除外内訳（上位5）",
 		"",
 		...renderExcludedBreakdown(runSummary.excludedBreakdown),
+		...(applyResult
+			? [
+					"",
+					"### 直近 run の書き込み結果",
+					"",
+					`- 起票 ${(applyResult.created || []).map((item) => `#${item.issueNumber}`).join(" / ") || "なし"}`,
+					`- reopen ${(applyResult.reopened || []).map((item) => `#${item.issueNumber}`).join(" / ") || "なし"}`,
+					`- sub-issue 紐付け 失敗 **${(applyResult.subIssueFailures || []).length} 件**（best-effort。run は落としません）`,
+					...(applyResult.subIssueCount >= SUB_ISSUE_WARN_THRESHOLD
+						? [
+								`- ⚠️ sub-issue が ${applyResult.subIssueCount} 件（上限 100 と認識）。**自動では外しません**（S11）。人間が判断してください`,
+							]
+						: []),
+					...(applyResult.failures && applyResult.failures.length > 0
+						? [`- ⚠️ 書き込み失敗 ${applyResult.failures.length} 件（詳細は run の Job Summary）`]
+						: []),
+				]
+			: []),
 	].join("\n");
 };
 
@@ -383,6 +544,8 @@ module.exports = Object.freeze({
 	FP_MARKER_PATTERN,
 	FPALGO_MARKER_PATTERN,
 	FIRST_SEEN_MARKER_PATTERN,
+	AUTO_UPDATED_AT_PATTERN,
+	RENDERED_OCCURRENCES_PATTERN,
 	FINGERPRINT_PATTERN,
 	TITLE_MAX_LENGTH,
 	renderFpMarker,
@@ -391,6 +554,10 @@ module.exports = Object.freeze({
 	extractFingerprints,
 	extractAlgoVersion,
 	extractFirstSeenUtc,
+	extractRenderedOccurrences,
+	extractAutoUpdatedAtUtc,
+	findUnrecordedCommit,
+	shouldUpdateBody,
 	describeLocation,
 	renderTitle,
 	renderAutoSection,
@@ -400,5 +567,6 @@ module.exports = Object.freeze({
 	renderRegressionComment,
 	renderExcludedBreakdown,
 	renderJobSummary,
+	renderApplySummary,
 	renderParentSummaryComment,
 });

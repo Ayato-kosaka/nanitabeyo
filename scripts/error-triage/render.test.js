@@ -10,14 +10,19 @@ const {
 	PRESERVED_BODY_NOTICE,
 	TITLE_MAX_LENGTH,
 	extractAlgoVersion,
+	extractAutoUpdatedAtUtc,
 	extractFingerprints,
 	extractFirstSeenUtc,
+	extractRenderedOccurrences,
+	findUnrecordedCommit,
+	renderApplySummary,
 	renderIssueBody,
 	renderJobSummary,
 	renderParentSummaryComment,
 	renderRegressionComment,
 	renderRegressionMarker,
 	renderTitle,
+	shouldUpdateBody,
 } = require("./render");
 const { buildEnvelope, buildPlan } = require("./triage");
 const { computeWindow } = require("./window");
@@ -358,9 +363,118 @@ describe("renderJobSummary() / renderParentSummaryComment()", () => {
 			envelope: buildEnvelope({ rows: many, runSummary, window: WINDOW, generatedAt: GENERATED_AT, query: QUERY })
 				.envelope,
 			issues: [],
+			limits: { createLimit: 5 },
 		});
 		const comment = renderParentSummaryComment({ envelope, plan: cappedPlan });
 		expect(comment).toContain("**繰り越し 3 件**");
 		expect(comment).toMatch(/最古の初観測: `2026-08-0\dT00:00:00Z`/);
+	});
+});
+
+describe("body 更新のスロットリング（#1198 §6-C）", () => {
+	const yesterdayBody = renderIssueBody({ group: backendGroup, window: WINDOW, generatedAt: "2026-08-06T00:05:12Z" });
+
+	it("自動領域から前回の件数と更新時刻を読み戻せる", () => {
+		expect(extractRenderedOccurrences(yesterdayBody)).toBe(backendGroup.occurrences);
+		expect(extractAutoUpdatedAtUtc(yesterdayBody)).toBe("2026-08-06T00:05:12Z");
+	});
+
+	it("件数も commit も変わらず、7日も経っていなければ叩かない", () => {
+		expect(shouldUpdateBody({ existingBody: yesterdayBody, group: backendGroup, generatedAt: GENERATED_AT })).toEqual({
+			update: false,
+			reason: expect.stringContaining("変化なし"),
+		});
+	});
+
+	it("件数が2倍以上になったら更新する（桁が変わったときだけ知らせる）", () => {
+		const surged = { ...backendGroup, occurrences: backendGroup.occurrences * 2 };
+		expect(shouldUpdateBody({ existingBody: yesterdayBody, group: surged, generatedAt: GENERATED_AT }).update).toBe(
+			true,
+		);
+	});
+
+	it("件数が半分以下になっても更新する", () => {
+		const calmed = { ...backendGroup, occurrences: Math.floor(backendGroup.occurrences / 2) };
+		expect(shouldUpdateBody({ existingBody: yesterdayBody, group: calmed, generatedAt: GENERATED_AT }).update).toBe(
+			true,
+		);
+	});
+
+	it("body 未記載の commit が出たら更新する（新しいビルドでも出ている＝直っていない）", () => {
+		const rebuilt = { ...backendGroup, commits: [...backendGroup.commits, { sha: "0123456789ab", count: 3 }] };
+		expect(findUnrecordedCommit(yesterdayBody, rebuilt.commits)).toBe("0123456789ab");
+		expect(shouldUpdateBody({ existingBody: yesterdayBody, group: rebuilt, generatedAt: GENERATED_AT }).update).toBe(
+			true,
+		);
+	});
+
+	it("7日以上経っていれば変化が無くても更新する", () => {
+		expect(
+			shouldUpdateBody({ existingBody: yesterdayBody, group: backendGroup, generatedAt: "2026-08-14T00:05:12Z" })
+				.update,
+		).toBe(true);
+	});
+
+	it("前回値を読めない（人間がマーカーを消した）ときは更新する側へ倒す", () => {
+		expect(shouldUpdateBody({ existingBody: "自由記述だけ", group: backendGroup, generatedAt: GENERATED_AT })).toEqual({
+			update: true,
+			reason: expect.stringContaining("前回値を読めない"),
+		});
+		expect(shouldUpdateBody({ existingBody: null, group: backendGroup, generatedAt: GENERATED_AT }).update).toBe(true);
+	});
+});
+
+describe("renderApplySummary()", () => {
+	const base = {
+		dryRun: false,
+		parentIssue: 1196,
+		created: [{ issueNumber: 1301 }],
+		reopened: [{ issueNumber: 1202 }],
+		bodyUpdated: [{ issueNumber: 1201 }],
+		bodySkipped: [],
+		subIssueLinked: [],
+		subIssueFailures: [],
+		subIssueIndexOk: true,
+		subIssueCount: 5,
+		failures: [],
+		commitLookups: 2,
+		parentSummary: "updated",
+	};
+
+	it("起票・reopen・body 更新の件数を出す", () => {
+		const summary = renderApplySummary({ applyResult: base });
+		expect(summary).toContain("起票: **1** 件 #1301");
+		expect(summary).toContain("reopen: **1** 件 #1202");
+		expect(summary).toContain("body 更新: 1 件");
+	});
+
+	it("sub-issue 紐付けの失敗件数を必ず出す（run は落とさないが黙らない。§6-2）", () => {
+		const summary = renderApplySummary({
+			applyResult: { ...base, subIssueFailures: [{ issueNumber: 1301, message: "HTTP 403" }] },
+		});
+		expect(summary).toContain("失敗 1 件");
+		expect(summary).toContain("| #1301 | HTTP 403 |");
+	});
+
+	it("S11: sub-issue が上限に近づいても「自動で外さない」ことを明示する", () => {
+		const summary = renderApplySummary({ applyResult: { ...base, subIssueCount: 95 } });
+		expect(summary).toContain("95 件");
+		expect(summary).toContain("自動で外すことはしません");
+		expect(summary).not.toMatch(/DELETE|自動削除/);
+	});
+
+	it("sub-issue 索引が取れなかったことを警告として出す", () => {
+		const summary = renderApplySummary({
+			applyResult: { ...base, subIssueIndexOk: false, subIssueIndexError: "HTTP 403" },
+		});
+		expect(summary).toContain("sub-issue 一覧を取得できませんでした");
+		expect(summary).toContain("ラベル1枚だけで突合");
+	});
+
+	it("書き込みの失敗を表に出す（成功したように見えるのが一番まずい）", () => {
+		const summary = renderApplySummary({
+			applyResult: { ...base, failures: [{ stage: "create", target: "fp:abc", message: "HTTP 403" }] },
+		});
+		expect(summary).toContain("| create | fp:abc | HTTP 403 |");
 	});
 });
