@@ -198,6 +198,12 @@ export async function selectMedia(
 			// `Compatible` は PHPickerConfigurationAssetRepresentationMode.compatible へ直接マップされ、
 			// 「最も互換性の高い表現」＝ 画像なら JPEG へ変換して返す。iOS 14+ 専用オプションで、
 			// Android / Web では無視されるため分岐は要らない。
+			//
+			// ⚠️ 画像限定にはできない。バグを踏んだのはレビュー投稿の
+			// `selectMedia(["images", "videos"])`（features/map/components/ReviewForm.tsx）なので、
+			// 動画を含む呼び出しにも効かせないと直らない。その結果 **動画側の表現も変わる**
+			// （HEVC ではなく互換表現が返りうる）が、動画の MIME は video/mp4・video/quicktime とも
+			// EXTENSION_TABLE にあり、どちらでも壊れないため許容する。
 			preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
 		});
 
