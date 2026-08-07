@@ -1,0 +1,113 @@
+name: Error Triage
+
+# 🩺 本番ログ（BigQuery）の error を集計し、エラーグループ単位で「何が起票されるか」を出す（#1196）。
+#
+# - **この時点（PR2）は dry-run の `plan` Job だけ**。Issue の起票・reopen・コメントを行う
+#   `triage` Job（`issues: write`）と `schedule` トリガは PR3 で足す。
+#   唯一の不可逆な副作用（Issue の起票）を最後の PR に隔離し、それ以前に「何が起票されるか」を
+#   実データで数日観測できる状態を作るのが、この順序の目的（横断レビュー §10）。
+# - read-only。BigQuery へテーブル・ビュー・スケジュールドクエリは追加しない
+#   （#1196 / .codex/bigquery/safety-policy.md）。
+# - 状態ストアは GitHub Issue のみ。リポジトリへ状態ファイルを commit しないので contents: read で足りる。
+# - 「起票しない plan」と「起票する apply」は **Job ごと**に分ける。`permissions:` は Job 単位でしか
+#   効かないので、フラグ方式だと「dry-run のつもりが issues: write を持っている」状態になる
+#   （claude-worker.yml の observe / write 分割と同じ考え方）。
+#
+# ■ BigQuery へのアクセス方式（横断レビュー §6-1 / B4）
+#   `bq` CLI ではなく **BigQuery REST `jobs.query` を Node 組み込み `fetch` で直叩き**する。
+#   理由: `bq` × WIF の前例がこのリポジトリに1本も無く（Workflow 全数確認済み）初回で詰まるリスクが
+#   高いこと、`google-github-actions/auth` の `token_format: access_token` でアクセストークンが
+#   直接取れること、REST のリクエストボディに `maximumBytesBilled` と `dryRun` を入れられるので
+#   **コスト上限も dry-run 見積りも CLI と等価**に保てること、依存パッケージが増えないこと。
+#   この方式なら `setup-gcloud` も `bq` も要らない。
+#
+# ■ コストガードは2層（#1199 §5）
+#   (Ⅰ) `maximumBytesBilled = 200MB` を常にリクエストへ載せる。`scripts/error-triage/bq.js` に
+#        ハードコードしてあり、**この Workflow の env / inputs からは渡せない**。上限が可変なら上限ではない。
+#   (Ⅱ) 本クエリの前に `dryRun: true` で見積もり、200MB を超えていたら本クエリを投げずに fail する。
+#   どちらも `scripts/error-triage/bq.js` 側の責務で、YAML から `bq` を直接叩かない。
+
+on:
+  workflow_dispatch:
+    inputs:
+      lookback_hours:
+        description: "遡る時間数。既定 25 は schedule 遅延で取りこぼさないための 1h ぶんの重複"
+        required: false
+        default: "25"
+        type: string
+
+# 前回の run が長引いているところへ次を重ねない
+# （PR3 で起票が入ったとき、同一 fingerprint を二重起票する唯一の経路になるため）。
+concurrency:
+  group: error-triage
+  cancel-in-progress: false
+
+# Workflow 全体には暗黙の書込権限を与えない（claude-worker.yml に倣う）。
+permissions: {}
+
+env:
+  # dataset の実体は food-scroll.nanitabeyo_logs_prod（scripts/error-triage/sql-generator.js が唯一の正）。
+  # ここに置くのは「どのプロジェクトへ課金するか」だけで、スキャン上限と起票上限は置かない。
+  LOOKBACK_HOURS: ${{ inputs.lookback_hours || '25' }}
+
+jobs:
+  # ---------------- dry-run: 計画だけ出す。GitHub へは書けない ----------------
+  plan:
+    name: 起票計画のみ（dry-run）
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write # WIF（OIDC）に必須
+      # PR3 で既存 Sub Issue の突合に使う。PR2 の時点ではまだ読んでいない（github.js が PR3 のため）。
+      # 起票・reopen・コメントは issues: write が要るので、この Job では**権限レベルで不可能**。
+      issues: read
+
+    steps:
+      - name: リポジトリを取得
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          # この Job は push も GitHub への書き込みもしないので、認証情報を runner に残さない。
+          persist-credentials: false
+
+      # scripts/error-triage は runtime 依存パッケージがゼロ（node:crypto / node:fs / 組み込み fetch のみ）
+      # なので pnpm install は要らない。install を挟まないぶん速く、サプライチェーン面も小さい。
+      - name: Node.js をセットアップ
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+
+      # 専用の read-only SA（error-triage-reader@food-scroll.iam.gserviceaccount.com）を借用する。
+      # この SA は roles/bigquery.jobUser と dataset nanitabeyo_logs_prod の READER だけを持つ。
+      # api-deploy.yml が使う GCP_SERVICE_ACCOUNT も、4本の Workflow で共用されている GCP_SA_KEY も使わない。
+      - name: Google Cloud へ認証（WIF）
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_TRIAGE_SERVICE_ACCOUNT }}
+          # ★ REST を直叩きするのでアクセストークンを直接受け取る。
+          #   これがあるので setup-gcloud（= gcloud SDK 同梱の bq）を入れずに済む。
+          token_format: access_token
+
+      # 見積り(dryRun) → 上限チェック → 本クエリ → 契約エンベロープ → 起票計画 → Job Summary。
+      # ここまでで GitHub への書き込みは一切発生しない（そもそも issues: write が無い）。
+      - name: 起票計画を作成（dry-run）
+        env:
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          BQ_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/error-triage
+          node scripts/error-triage/main.js plan \
+            --lookback-hours "$LOOKBACK_HOURS" \
+            --out /tmp/error-triage/plan.json
+
+      - name: 計画を Artifact として保存
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: error-triage-plan-${{ github.run_id }}
+          path: /tmp/error-triage/
+          if-no-files-found: warn
+          retention-days: 14
