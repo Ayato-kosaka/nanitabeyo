@@ -60,7 +60,7 @@ EOF
     # ⚠️ `break` だけにしないこと。ループを抜けた後の最後のコマンド（echo）の終了コードが
     # そのままスクリプトの終了コードになり、**失敗したのに exit 0** になる。
     # 手で叩いている間は画面の ❌ で気づけるが、CI から呼ぶと «緑のまま当たっていない»
-    # という一番たちの悪い形になる（.github/workflows/db-migrate-development.yml）。
+    # という一番たちの悪い形になる（.github/workflows/db-migrate.yml）。
     exit 1
   fi
 done

@@ -1,31 +1,28 @@
-name: DB Migrate (development only)
+name: DB Migrate
 
 # ==============================================================================
-# 開発環境スキーマ（dev）への migration 適用と、schema.prisma / Prisma Client の再生成。
+# dev / public スキーマへの migration 適用。dev 適用時のみ schema.prisma / Prisma Client を再生成。
 #
-# ## ⚠️ このワークフローは本番（public スキーマ）を絶対に変更しません
+# ## ⚠️ public への適用は本番 DB の変更です
 #
 # このリポジトリの本番と開発は「別 DB」ではなく **同じ DB の別スキーマ**
-# （本番 = public / 開発 = dev / test）です。したがって「別の接続文字列を使う」だけでは
-# 守れません。**スキーマの向き先そのものを固定し、事後に検算する**方式にしています。
+# （本番 = public / 開発 = dev / test）です。適用先を choice で選び、対象外の
+# アプリケーションスキーマへ migration が漏れていないことを事後に検算します。
 #
 # 三重にしてあります。**どれも外さないこと。**
 #
-# 1. `DB_SCHEMA` は `dev` のハードコード。**入力にしていません。**
+# 1. `DB_SCHEMA` は `dev` / `public` の choice のみ許可します。
 #    `scripts/apply-migration.sh` は `SET search_path TO $DB_SCHEMA, extensions` を
-#    流してから各ファイルを実行するので、スキーマ修飾のない DDL は必ず dev に落ちます。
-#    選べないことが最大の防御です。
+#    流してから各ファイルを実行するので、スキーマ修飾のない DDL は選択先に落ちます。
 #
 # 2. 適用前に、対象ファイルが **スキーマ固定を自力で外していないか**を静的に検査します。
-#    `public.` 修飾や `SET search_path` の再設定を含むファイルがあれば止めます。
-#    1 の前提（search_path で dev に閉じる）が崩れるのは、この 2 パターンだけです。
+#    対象外スキーマの明示修飾や `SET search_path` の再設定を含むファイルがあれば止めます。
 #
-# 3. 適用の前後で **public スキーマのオブジェクト一覧のハッシュ**を取り、
-#    1 ビットでも変わっていたら失敗させます。1・2 をすり抜けても事後に必ず露見します。
+# 3. 適用の前後で **対象外スキーマのオブジェクト一覧のハッシュ**を取り、
+#    差分があれば失敗させます（dev 適用時は public、public 適用時は dev を検算）。
 #
-# なお migration はテーブルを作るので、資格情報には dev スキーマへ CREATE できる権限が
-# 要ります（`prisma_dev` は DML だけなので不足します。普段ローカルの
-# `scripts/.env` に入れているものと同じ接続文字列を secret へ入れてください）。
+# なお migration はテーブルを作るので、資格情報には選択先スキーマへ CREATE できる権限が
+# 要ります。`secrets.POSTGRES_DATABASE_URL` には migration 用の接続文字列を登録してください。
 #
 # ## なぜ Actions でやるのか
 # migration は「誰かのローカルから流す」と、いつ・どのファイルまで当たったのかが
@@ -35,6 +32,14 @@ name: DB Migrate (development only)
 on:
   workflow_dispatch:
     inputs:
+      target_schema:
+        description: "migration の適用先スキーマ（public は本番）"
+        required: true
+        default: dev
+        type: choice
+        options:
+          - dev
+          - public
       from_file:
         description: "適用を開始する migration ファイル名（例: 20260807T0000_create_share_links.sql）。このファイル以降が順に適用されます"
         required: true
@@ -45,26 +50,33 @@ on:
         default: true
         type: boolean
       regenerate_prisma:
-        description: "適用後に prisma db pull / generate を実行し、差分をこのブランチへ commit する"
+        description: "dev 適用後に prisma db pull / generate を実行し、差分をこのブランチへ commit する"
         required: false
         default: true
         type: boolean
+      confirm_public:
+        description: "public へ実適用する場合のみ true にする（dry run では不要）"
+        required: false
+        default: false
+        type: boolean
 
-# 同時に 2 本流れると適用順が壊れるため直列化する
+# dev / public は同じ DB なので、同時に 2 本流れないよう直列化する
 concurrency:
-  group: db-migrate-development
+  group: db-migrate
   cancel-in-progress: false
 
 jobs:
   migrate:
-    name: dev スキーマへ migration を適用
+    name: ${{ inputs.target_schema }} スキーマへ migration を適用
     runs-on: ubuntu-latest
+    # production Environment に承認ルールがあれば public 適用時に強制される
+    environment: ${{ inputs.target_schema == 'public' && 'production' || 'development' }}
     permissions:
       contents: write
     env:
-      # ⚠️ ここを input にしないこと（冒頭の理由）
-      DB_SCHEMA: dev
-      DATABASE_URL: ${{ secrets.DEV_DATABASE_URL }}
+      DB_SCHEMA: ${{ inputs.target_schema }}
+      PROTECTED_SCHEMA: ${{ inputs.target_schema == 'public' && 'dev' || 'public' }}
+      DATABASE_URL: ${{ secrets.POSTGRES_DATABASE_URL }}
       MIGRATION_DIR: infra/supabase/migrations
 
     steps:
@@ -75,7 +87,16 @@ jobs:
         shell: bash
         run: |
           if [ -z "${DATABASE_URL}" ]; then
-            echo "::error::secrets.DEV_DATABASE_URL が未設定です。ローカルの scripts/.env に入れているものと同じ接続文字列を登録してください。"
+            echo "::error::secrets.POSTGRES_DATABASE_URL が未設定です。migration 対象 DB の接続文字列を登録してください。"
+            exit 1
+          fi
+
+      - name: public 実適用の確認
+        if: ${{ inputs.target_schema == 'public' && !inputs.dry_run }}
+        shell: bash
+        run: |
+          if [ "${{ inputs.confirm_public }}" != "true" ]; then
+            echo "::error::public への実適用には confirm_public=true が必要です。"
             exit 1
           fi
 
@@ -108,21 +129,21 @@ jobs:
           ls "${MIGRATION_DIR}"/*.sql | sort | awk -v t="${MIGRATION_DIR}/${TARGET}" '$0 >= t' > /tmp/targets.txt
           echo "── ${TARGET} 以降に適用されるファイル ──"
           cat /tmp/targets.txt
+          echo "適用先スキーマ: ${DB_SCHEMA}"
 
       # ── 安全ゲート 2: スキーマ固定を自力で外していないか ──────────────────
-      # apply-migration.sh は `SET search_path TO dev, extensions` を流してから
-      # 各ファイルを実行する。したがって dev から出られるのは、ファイル自身が
-      # `public.` で修飾するか、search_path を上書きした場合だけ。そこだけ見る。
-      - name: 対象ファイルが dev から出ようとしていないか検査
+      # apply-migration.sh は `SET search_path TO $DB_SCHEMA, extensions` を流してから
+      # 各ファイルを実行する。対象外スキーマの明示修飾と search_path の上書きを検査する。
+      - name: 対象ファイルが選択スキーマから出ようとしていないか検査
         shell: bash
         # 素朴な grep にしないこと。`-- 匿名ユーザーもあり public.users FK は張らない` のような
         # 日本語コメントに引っかかり、正しい migration が流せなくなる
         # （実際 20260623T0000_create_dish_category_group_votes.sql が該当する）。
         # コメントと文字列リテラルを落としてから見るために専用スクリプトへ切り出してある
-        run: xargs -a /tmp/targets.txt node scripts/assert-migration-schema-scoped.mjs
+        run: xargs -a /tmp/targets.txt node scripts/assert-migration-schema-scoped.mjs --target-schema "${DB_SCHEMA}"
 
-      # ── 安全ゲート 3: 事後の検算に使う public のスナップショット ────────────
-      - name: 接続先と public スキーマのスナップショットを取る
+      # ── 安全ゲート 3: 事後の検算に使う対象外スキーマのスナップショット ──────
+      - name: 接続先と対象外スキーマのスナップショットを取る
         shell: bash
         run: |
           set -euo pipefail
@@ -133,10 +154,10 @@ jobs:
               from pg_class c
               join pg_namespace n on n.oid = c.relnamespace
               left join pg_attribute a on a.attrelid = c.oid and a.attnum > 0
-              where n.nspname = 'public'
+              where n.nspname = '${PROTECTED_SCHEMA}'
               group by c.relkind, c.relname
-            ) t" > /tmp/public_before.txt
-          echo "public スキーマのハッシュ(before): $(cat /tmp/public_before.txt)"
+            ) t" > /tmp/protected_before.txt
+          echo "${PROTECTED_SCHEMA} スキーマのハッシュ(before): $(cat /tmp/protected_before.txt)"
 
       - name: dry run（適用しない）
         if: ${{ inputs.dry_run }}
@@ -152,12 +173,12 @@ jobs:
           set -euo pipefail
           # 既存の scripts/apply-migration.sh をそのまま使う（適用ロジックを二重に持たない）。
           # あのスクリプトは scripts/.env を source するので、ここで生成する。
-          # ⚠️ DB_SCHEMA は上の env（dev 固定）から書き出す。input からは絶対に取らない
+          # DB_SCHEMA は choice で検証済みの値だけを書き出す
           printf 'DATABASE_URL=%s\nDB_SCHEMA=%s\n' "${DATABASE_URL}" "${DB_SCHEMA}" > scripts/.env
           trap 'rm -f scripts/.env' EXIT
           bash scripts/apply-migration.sh "${{ inputs.from_file }}"
 
-      - name: public スキーマが 1 ビットも変わっていないことを検算
+      - name: 対象外スキーマが変わっていないことを検算
         if: ${{ !inputs.dry_run }}
         shell: bash
         run: |
@@ -168,24 +189,24 @@ jobs:
               from pg_class c
               join pg_namespace n on n.oid = c.relnamespace
               left join pg_attribute a on a.attrelid = c.oid and a.attnum > 0
-              where n.nspname = 'public'
+              where n.nspname = '${PROTECTED_SCHEMA}'
               group by c.relkind, c.relname
-            ) t" > /tmp/public_after.txt
-          echo "public スキーマのハッシュ(after) : $(cat /tmp/public_after.txt)"
-          if ! diff -q /tmp/public_before.txt /tmp/public_after.txt >/dev/null; then
-            echo "::error::本番スキーマ(public)が変化しました。適用した SQL を確認し、必要なら手で戻してください。"
+            ) t" > /tmp/protected_after.txt
+          echo "${PROTECTED_SCHEMA} スキーマのハッシュ(after) : $(cat /tmp/protected_after.txt)"
+          if ! diff -q /tmp/protected_before.txt /tmp/protected_after.txt >/dev/null; then
+            echo "::error::対象外スキーマ(${PROTECTED_SCHEMA})が変化しました。適用した SQL を確認し、必要なら手で戻してください。"
             exit 1
           fi
-          echo "✅ public は不変"
+          echo "✅ ${PROTECTED_SCHEMA} は不変"
 
-      # ── 適用後の schema.prisma / Prisma Client 再生成 ──────────────────────
+      # ── dev 適用後のみ schema.prisma / Prisma Client を再生成 ──────────────
       - name: 依存関係をインストール
-        if: ${{ !inputs.dry_run && inputs.regenerate_prisma }}
+        if: ${{ inputs.target_schema == 'dev' && !inputs.dry_run && inputs.regenerate_prisma }}
         shell: bash
         run: pnpm install --frozen-lockfile
 
       - name: schema.prisma と Prisma Client を再生成
-        if: ${{ !inputs.dry_run && inputs.regenerate_prisma }}
+        if: ${{ inputs.target_schema == 'dev' && !inputs.dry_run && inputs.regenerate_prisma }}
         shell: bash
         # scripts/db-pull.sh を呼ばないのは、あれが api/.env の存在と Supabase CLI の
         # ログインを前提にしており（supabase gen types / converters 生成）、
@@ -198,8 +219,8 @@ jobs:
           pnpm -C api exec prisma db pull --schema prisma/schema.prisma --config ../prisma.config.ts
           pnpm -C api exec prisma generate --schema prisma/schema.prisma --config ../prisma.config.ts
 
-      - name: 差分があればこのブランチへ commit する
-        if: ${{ !inputs.dry_run && inputs.regenerate_prisma }}
+      - name: 差分があればこのブランチへ commit する（dev のみ）
+        if: ${{ inputs.target_schema == 'dev' && !inputs.dry_run && inputs.regenerate_prisma }}
         shell: bash
         run: |
           set -euo pipefail
@@ -212,7 +233,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add api/prisma/schema.prisma shared/prisma
-          git commit -m "chore(db): dev スキーマの introspect 結果を反映する (${{ inputs.from_file }})"
+          git commit -m "chore(db): ${DB_SCHEMA} スキーマの introspect 結果を反映する (${{ inputs.from_file }})"
           git push origin HEAD:"${GITHUB_REF_NAME}"
 
       - name: 適用後のテーブル一覧（先頭 40 件）

@@ -4,18 +4,18 @@ import { readFileSync } from "node:fs";
  * 🛡️ migration ファイルが「適用先スキーマから出ようとしていないか」を検査する。
  *
  * 使い方:
- *   node scripts/assert-migration-schema-scoped.mjs <file.sql> [<file.sql> ...]
+ *   node scripts/assert-migration-schema-scoped.mjs --target-schema <dev|public> <file.sql> [<file.sql> ...]
  *
  * ## なぜ要るのか
  * このリポジトリの本番と開発は **同じ DB の別スキーマ**（本番 = public / 開発 = dev / test）です。
  * `scripts/apply-migration.sh` は各ファイルの前に `SET search_path TO $DB_SCHEMA, extensions`
  * を流すので、**スキーマ修飾のない DDL は必ず適用先スキーマに落ちます**。
  *
- * つまり dev へ流したはずの SQL が本番へ届くのは、次の 2 パターンだけです。
+ * 選択先と別のアプリケーションスキーマへ SQL が届くのは、次の 2 パターンです。
  *
  * | パターン | 例 |
  * | --- | --- |
- * | `public.` で明示的に修飾している | `CREATE TABLE public.foo (...)` |
+ * | 対象外スキーマを明示的に修飾している | `CREATE TABLE public.foo (...)` |
  * | `search_path` を自分で上書きしている | `SET search_path TO public;` |
  *
  * この 2 つだけを検査します。「本番を触らない」と宣言するのではなく、
@@ -84,13 +84,20 @@ export function stripSqlNoise(sql) {
 			out += " '' ";
 			continue;
 		}
-		// ドル引用符 $tag$ ... $tag$（関数本体）
+		// ドル引用符 $tag$ ... $tag$（主に関数本体）。
+		// 本体内の SQL も越境検査の対象なので、コメントと文字列だけ再帰的に除去する。
 		const dollar = /^\$[A-Za-z_]*\$/.exec(sql.slice(i));
 		if (dollar) {
 			const tag = dollar[0];
 			const end = sql.indexOf(tag, i + tag.length);
-			i = end === -1 ? sql.length : end + tag.length;
-			out += " ";
+			if (end === -1) {
+				i = sql.length;
+				out += " ";
+				continue;
+			}
+			const body = sql.slice(i + tag.length, end);
+			out += ` ${stripSqlNoise(body)} `;
+			i = end + tag.length;
 			continue;
 		}
 
@@ -104,16 +111,21 @@ export function stripSqlNoise(sql) {
  * 1 ファイルを検査する。
  *
  * @param {string} filePath
+ * @param {string} targetSchema
  * @returns {string[]} 違反の説明（空配列なら問題なし）
  */
-export function findSchemaEscapes(filePath) {
+export function findSchemaEscapes(filePath, targetSchema = "dev") {
 	const stripped = stripSqlNoise(readFileSync(filePath, "utf8"));
 	const violations = [];
 
-	// `public.` による明示修飾。`_public.` のような別語の一部は除く
-	for (const match of stripped.matchAll(/(^|[^A-Za-z0-9_."])public\s*\.\s*[A-Za-z_"]/gi)) {
-		const line = stripped.slice(0, match.index).split("\n").length;
-		violations.push(`${filePath}:${line} public スキーマを明示的に参照しています`);
+	// 対象外のアプリケーションスキーマによる明示修飾。
+	// auth / extensions など Supabase の共有スキーマ参照は許可する。
+	for (const schema of ["public", "dev", "test"].filter((value) => value !== targetSchema)) {
+		const pattern = new RegExp(`(^|[^A-Za-z0-9_."])${schema}\\s*\\.\\s*[A-Za-z_"]`, "gi");
+		for (const match of stripped.matchAll(pattern)) {
+			const line = stripped.slice(0, match.index).split("\n").length;
+			violations.push(`${filePath}:${line} 対象外の ${schema} スキーマを明示的に参照しています`);
+		}
 	}
 	// search_path の上書き
 	for (const match of stripped.matchAll(/\bset\s+(local\s+)?search_path\b/gi)) {
@@ -123,21 +135,32 @@ export function findSchemaEscapes(filePath) {
 	return violations;
 }
 
-const files = process.argv.slice(2);
+const args = process.argv.slice(2);
+const targetOptionIndex = args.indexOf("--target-schema");
+const targetSchema = targetOptionIndex === -1 ? "dev" : args[targetOptionIndex + 1];
+if (!["dev", "public"].includes(targetSchema)) {
+	console.error("--target-schema は dev または public を指定してください。");
+	process.exit(2);
+}
+if (targetOptionIndex !== -1) args.splice(targetOptionIndex, 2);
+
+const files = args;
 if (files.length === 0) {
-	console.error("使い方: node scripts/assert-migration-schema-scoped.mjs <file.sql> [...]");
+	console.error(
+		"使い方: node scripts/assert-migration-schema-scoped.mjs --target-schema <dev|public> <file.sql> [...]",
+	);
 	process.exit(2);
 }
 
-const allViolations = files.flatMap((file) => findSchemaEscapes(file));
+const allViolations = files.flatMap((file) => findSchemaEscapes(file, targetSchema));
 
 if (allViolations.length > 0) {
 	console.error("❌ 適用先スキーマから出る可能性のある記述が見つかりました。");
 	for (const v of allViolations) console.error(`   ${v}`);
 	console.error("");
-	console.error("   本番と開発は同じ DB の別スキーマです。スキーマ修飾を外すか、");
-	console.error("   本当に public を触る必要があるなら手動で適用してください。");
+	console.error("   本番と開発は同じ DB の別スキーマです。対象外スキーマの修飾を外すか、");
+	console.error("   migration の適用先が正しいか確認してください。");
 	process.exit(1);
 }
 
-console.log(`✅ ${files.length} ファイルすべてが search_path 依存（= 適用先スキーマに閉じる）`);
+console.log(`✅ ${files.length} ファイルすべてが ${targetSchema} スキーマにスコープされています`);
