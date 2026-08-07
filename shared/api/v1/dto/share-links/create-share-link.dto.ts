@@ -1,4 +1,14 @@
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsIn, IsOptional, IsString, IsUUID, ValidateNested } from "class-validator";
+import {
+	ArrayMaxSize,
+	ArrayMinSize,
+	IsArray,
+	IsIn,
+	IsObject,
+	IsOptional,
+	IsString,
+	IsUUID,
+	ValidateNested,
+} from "class-validator";
 import { Type } from "class-transformer";
 import { PUBLIC_LOCALES, type PublicLocale } from "../../constants/publicLocales";
 import { SHARE_LINK_MAX_DISH_MEDIA_IDS, SHARE_LINK_TARGET_TYPES, type ShareLinkTargetType } from "../../constants/shareLinks";
@@ -59,7 +69,15 @@ export class ShareTargetDto {
 	/**
 	 * type ごとの params。実体は `ShareTargetDishMediaParamsDto` か
 	 * `ShareTargetGroupVoteParamsDto` のいずれか。
+	 *
+	 * ⚠️ **`@IsObject()` を外さないこと。** `main.ts` の ValidationPipe は
+	 * `whitelist: true` なので、**デコレータが 1 つも付いていないプロパティは
+	 * 黙って削除される**。外すと `params` が undefined のまま Service へ渡り、
+	 * 正しいリクエストが必ず `target.params.ids is required` で 400 になる。
+	 * 型検査もユニットテスト（Service を直接呼ぶ）も通ってしまうので、
+	 * 実際に HTTP を通さないと気づけない。
 	 */
+	@IsObject()
 	params!: Record<string, unknown>;
 }
 
