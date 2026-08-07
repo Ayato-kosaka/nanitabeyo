@@ -15,13 +15,32 @@
 
 "use strict";
 
-const { BODY_STALE_DAYS, FP_ALGO_VERSION, SCHEMA_VERSION, SUB_ISSUE_WARN_THRESHOLD } = require("./constants");
+const {
+	BODY_STALE_DAYS,
+	FP_ALGO_VERSION,
+	SCHEMA_VERSION,
+	SUB_ISSUE_SOFT_LIMIT,
+	SUB_ISSUE_WARN_THRESHOLD,
+} = require("./constants");
 const { FINGERPRINT_PATTERN } = require("./fingerprint");
 const { minTimestamp, toDate } = require("./window");
 
 /** 自動領域の開始・終了マーカー。この内側だけをスクリプトが書き換える。 */
 const AUTO_START_MARKER = "<!-- error-triage:auto:start -->";
 const AUTO_END_MARKER = "<!-- error-triage:auto:end -->";
+
+/**
+ * 自動領域マーカーの**行全体アンカー**（PR #1211 レビュー M-1）。
+ *
+ * `indexOf(AUTO_END_MARKER)` で探すと、Issue 本文の**中身**（＝正規化しただけの本番エラーメッセージ）に
+ * `<!-- error-triage:auto:end -->` が混ざったときに自動領域の境界を誤検出し、
+ * 1 run ごとに自動領域が積み増されて body が単調増加する（実測 +717字/run）。
+ * fp マーカー（FP_MARKER_PATTERN）と同じく**行全体アンカー**で探すことで、
+ * 表のセルの中に現れた同じ文字列は境界として拾わない。
+ * サニタイズ（sanitizeInlineText）と合わせた二重防御で、片方が漏れても body は壊れない。
+ */
+const AUTO_START_LINE_PATTERN = /^[ \t]*<!-- error-triage:auto:start -->[ \t]*$/m;
+const AUTO_END_LINE_PATTERN = /^[ \t]*<!-- error-triage:auto:end -->[ \t]*$/m;
 
 /** 親 Issue の常駐サマリコメントを識別するマーカー（#1198 §4-B）。 */
 const PARENT_SUMMARY_MARKER = "<!-- error-triage:summary -->";
@@ -110,6 +129,39 @@ const describeLocation = (group) => {
 const truncate = (text, max) => (text.length <= max ? text : `${text.slice(0, max - 1)}…`);
 
 /**
+ * **表示直前**に、markdown へ埋めても壊れない形へ落とす（PR #1211 レビュー M-1）。
+ *
+ * `messagePattern` は本番の任意のエラーメッセージ（サードパーティ API の文言や外部例外を含む）を
+ * 正規化しただけの値で、正規化ルールは `` ` `` / `|` / `<` / `>` / `<!-- -->` を一切触らない。
+ * そのまま markdown のテーブルセル + コードスパンへ入れると、実測で次の3つが起きる:
+ *   1. `<!-- error-triage:auto:end -->` が混ざると自動領域の境界が壊れ、body が毎 run 膨張する
+ *      （65,536字の上限に達すると body の PATCH が 422 で失敗し続ける）
+ *   2. バックティックが閉じると `@ユーザー名` がコードスパンの外へ出て、**実在ユーザーへ通知が飛ぶ**
+ *      （「通知が飛ぶ操作は新規起票と回帰 reopen の2つだけ」という前提が破れる）
+ *   3. `|` を含むとテーブルの行が崩れる
+ *
+ * ★ ここは**表示だけ**の変換。`fingerprint` の計算入力（fingerprint.js / SQL 側の正規化）には
+ *   絶対に持ち込まないこと。持ち込むと既存 Issue との突合が全部外れる（＝全件が新規起票になる）。
+ * ★ `<` / `>` そのものは消さない。正規化の出力に `<n>` / `<uuid>` が普通に現れ、消すと読めなくなる。
+ *   潰すのは HTML コメントを開始・終了する並び（`<!--` / `-->`）だけ。
+ *
+ * @param {unknown} text
+ * @returns {string}
+ */
+const sanitizeInlineText = (text) =>
+	String(text ?? "")
+		// 改行・タブはテーブル行そのものを割るので先に潰す
+		.replace(/\s+/g, " ")
+		.trim()
+		// HTML コメントの開始・終了を成立させない（マーカー注入を塞ぐ）
+		.replace(/<!--/g, "<!- -")
+		.replace(/-->/g, "- ->")
+		// コードスパンを閉じさせない（閉じると @mention / リンクが生きてしまう）
+		.replace(/`/g, "'")
+		// GFM のテーブルセル区切りにしない（コードスパン内でも \| でエスケープする必要がある）
+		.replace(/\|/g, "\\|");
+
+/**
  * Issue タイトル。**起票時に固定し、以後スクリプトから変更しない**（#1198 §6-A）。
  *
  * @param {{surface:string, fingerprint:string, groupKey?:Record<string, unknown>, messagePattern?:string|null}} group
@@ -160,7 +212,8 @@ const renderAutoSection = ({ group, window, generatedAt, firstSeenUtc, parentIss
 	const key = group.groupKey || {};
 	const rows = [
 		["どこで", `\`${group.surface}\` / ${describeLocation(group)}${key.eventName ? ` / \`${key.eventName}\`` : ""}`],
-		["何が", group.messagePattern ? `\`${group.messagePattern}\`` : "（メッセージなし）"],
+		// ★ messagePattern は本番の任意文字列。**必ず sanitizeInlineText を通してから**埋める（M-1）。
+		["何が", group.messagePattern ? `\`${sanitizeInlineText(group.messagePattern)}\`` : "（メッセージなし）"],
 		["どれだけ", formatCounts(group)],
 		["いつ", `初観測 \`${firstSeenUtc}\` → 最終観測 \`${group.lastSeenUtc}\``],
 		["どのビルド", formatCommits(group)],
@@ -196,16 +249,23 @@ const renderAutoSection = ({ group, window, generatedAt, firstSeenUtc, parentIss
 /**
  * 既存 body の自動領域だけを差し替える。自動領域の外（人間の作業メモ）は保全する。
  *
+ * M-1（PR #1211 レビュー）: マーカーは**行全体アンカー**で探す。`indexOf` だと、表のセルに紛れ込んだ
+ * `<!-- error-triage:auto:end -->` を境界と誤認して自動領域が毎 run 積み増される。
+ * 開始マーカーより**後ろ**からしか終了マーカーを探さないので、順序が逆のものも拾わない。
+ *
  * @param {string|null|undefined} existingBody
  * @param {string} autoSection
  * @returns {string|null} 自動領域が見つからなければ null（＝呼び出し側が新規 body を作る）
  */
 const replaceAutoSection = (existingBody, autoSection) => {
 	if (!existingBody) return null;
-	const start = existingBody.indexOf(AUTO_START_MARKER);
-	const end = existingBody.indexOf(AUTO_END_MARKER);
-	if (start === -1 || end === -1 || end < start) return null;
-	return existingBody.slice(0, start) + autoSection + existingBody.slice(end + AUTO_END_MARKER.length);
+	const startMatch = AUTO_START_LINE_PATTERN.exec(existingBody);
+	if (!startMatch) return null;
+	const searchFrom = startMatch.index + startMatch[0].length;
+	const endMatch = AUTO_END_LINE_PATTERN.exec(existingBody.slice(searchFrom));
+	if (!endMatch) return null;
+	const end = searchFrom + endMatch.index;
+	return existingBody.slice(0, startMatch.index) + autoSection + existingBody.slice(end + endMatch[0].length);
 };
 
 /** 自動領域を復元したときに、保全した既存本文の前に置く見出し。 */
@@ -472,7 +532,7 @@ const renderApplySummary = ({ applyResult }) => {
 	}
 	if (result.subIssueCount >= SUB_ISSUE_WARN_THRESHOLD) {
 		lines.push(
-			`> ⚠️ 親の sub-issue が ${result.subIssueCount} 件です（上限は 100 件と認識）。`,
+			`> ⚠️ 親の sub-issue が ${result.subIssueCount} 件です（上限は ${SUB_ISSUE_SOFT_LIMIT} 件と認識）。`,
 			"> **古い sub-issue を自動で外すことはしません**（S11。reconcile と競合して付け外しが振動するため）。",
 			"> 外すかどうかは人間が判断してください。",
 			"",
@@ -508,6 +568,19 @@ const renderParentSummaryComment = ({ envelope, plan, applyResult = null }) => {
 		"",
 		`- 起票 ${plan.counts.create} / reopen ${plan.counts.reopen} / skip中 ${plan.counts["noop-skip"] ?? 0}`,
 		`- **繰り越し ${plan.counts.capped} 件**${oldestDeferred ? `（最古の初観測: \`${oldestDeferred}\`）` : ""}`,
+		// L-3（PR #1211 レビュー）: PANIC / 契約違反こそ、あとから振り返りたい run。
+		// Job Summary は 90 日で消えるので、**何が起きて何を止めたのか**をここへ必ず残す（G5）。
+		// 上の「起票 N / reopen N」は**計画値**なので、止めた run では実際には書いていないことを明示する。
+		...(plan.panic
+			? [
+					`- 🚨 **PANIC**: 未知 fingerprint が ${plan.counts.create + plan.counts.capped} 件で閾値 ${plan.panicThreshold} を超えました。この run では**起票・reopen・body 更新を1件も行っていません**（上の件数は計画値です）`,
+				]
+			: []),
+		...(plan.valid === false
+			? [
+					"- 🚨 **契約違反**: 契約エンベロープが不変条件を満たしていません。この run では**起票・reopen・body 更新を1件も行っていません**（上の件数は計画値です）",
+				]
+			: []),
 		runSummary.truncated
 			? `- ⚠️ **切り捨て**: グループ ${runSummary.groupCount} 件 > 上限 ${runSummary.groupLimit} 件`
 			: `- 切り捨て: なし（グループ ${runSummary.groupCount} 件 / 上限 ${runSummary.groupLimit} 件）`,
@@ -515,7 +588,17 @@ const renderParentSummaryComment = ({ envelope, plan, applyResult = null }) => {
 		"### 除外内訳（上位5）",
 		"",
 		...renderExcludedBreakdown(runSummary.excludedBreakdown),
-		...(applyResult
+		// `applyResult.dryRun` は「Phase 4 が1件も書いていない」を意味する（PANIC / 契約違反 / --dry-run）。
+		// このとき created / reopened は**計画上そうなるはずだった**中身なので、書いたかのように並べない（L-3）。
+		...(applyResult && applyResult.dryRun
+			? [
+					"",
+					"### 直近 run の書き込み結果",
+					"",
+					"- **この run では書き込みを止めました**（起票・reopen・body 更新はいずれも 0 件）。理由は上の 🚨 を参照してください",
+				]
+			: []),
+		...(applyResult && !applyResult.dryRun
 			? [
 					"",
 					"### 直近 run の書き込み結果",
@@ -525,7 +608,7 @@ const renderParentSummaryComment = ({ envelope, plan, applyResult = null }) => {
 					`- sub-issue 紐付け 失敗 **${(applyResult.subIssueFailures || []).length} 件**（best-effort。run は落としません）`,
 					...(applyResult.subIssueCount >= SUB_ISSUE_WARN_THRESHOLD
 						? [
-								`- ⚠️ sub-issue が ${applyResult.subIssueCount} 件（上限 100 と認識）。**自動では外しません**（S11）。人間が判断してください`,
+								`- ⚠️ sub-issue が ${applyResult.subIssueCount} 件（上限 ${SUB_ISSUE_SOFT_LIMIT} と認識）。**自動では外しません**（S11）。人間が判断してください`,
 							]
 						: []),
 					...(applyResult.failures && applyResult.failures.length > 0
@@ -539,6 +622,8 @@ const renderParentSummaryComment = ({ envelope, plan, applyResult = null }) => {
 module.exports = Object.freeze({
 	AUTO_START_MARKER,
 	AUTO_END_MARKER,
+	AUTO_START_LINE_PATTERN,
+	AUTO_END_LINE_PATTERN,
 	PARENT_SUMMARY_MARKER,
 	PRESERVED_BODY_NOTICE,
 	FP_MARKER_PATTERN,
@@ -558,6 +643,7 @@ module.exports = Object.freeze({
 	extractAutoUpdatedAtUtc,
 	findUnrecordedCommit,
 	shouldUpdateBody,
+	sanitizeInlineText,
 	describeLocation,
 	renderTitle,
 	renderAutoSection,

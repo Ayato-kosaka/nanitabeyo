@@ -372,3 +372,172 @@ describe("apply（triage Job）", () => {
 		expect(runUrlFrom({ GITHUB_REPOSITORY: "o/r", GITHUB_RUN_ID: "1" })).toBe("https://github.com/o/r/actions/runs/1");
 	});
 });
+
+// ---------------------------------------------------------------------------
+// L-3（PR #1211 レビュー）: PANIC / 契約違反のときの「記録だけは残す」
+// ---------------------------------------------------------------------------
+//
+// Phase 3 のガードには2種類あり、書き込みの止め方が違う:
+//   - abort（fpalgo 不一致）  : 状態機械そのものが壊れている → **1バイトも書かない**
+//   - panic / 契約違反        : 起票・reopen・body 更新はしないが、
+//                              **何が起きたかは親の常駐サマリへ残す**（Job Summary は 90 日で消える。G5）
+// 一番あとから振り返りたい run の記録だけが消える、という状態にしない。
+
+/** BigQuery のレスポンスを差し替えられる apply 用 fetch（PANIC / 契約違反の再現に使う）。 */
+const makeApplyFetchWithRows = ({ bqRows, issues = existingIssues }) => {
+	const fetchImpl = makeApplyFetch({ issues });
+	const original = fetchImpl;
+	const wrapped = async (rawUrl, init = {}) => {
+		if (rawUrl.startsWith("https://bigquery.googleapis.com") && wrapped.bqCalls > 0) {
+			wrapped.bqCalls += 1;
+			return {
+				ok: true,
+				status: 200,
+				text: async () =>
+					JSON.stringify({
+						jobComplete: true,
+						totalRows: String(bqRows.length),
+						totalBytesProcessed: "665800",
+						rows: bqRows.map(row),
+					}),
+			};
+		}
+		if (rawUrl.startsWith("https://bigquery.googleapis.com")) {
+			wrapped.bqCalls += 1;
+			return { ok: true, status: 200, text: async () => JSON.stringify({ totalBytesProcessed: "665800" }) };
+		}
+		return original(rawUrl, init);
+	};
+	wrapped.bqCalls = 0;
+	wrapped.calls = original.calls;
+	wrapped.state = original.state;
+	wrapped.githubWrites = original.githubWrites;
+	return wrapped;
+};
+
+/**
+ * PANIC 閾値（50）を超える 60 グループ。pathName を変えれば fingerprint が変わる。
+ * 数字を混ぜると不変条件 3（正規化済みであること）に引っかかって「契約違反」になってしまうので、
+ * **英字だけ**で散らして「PANIC だけが起きている」状態にする。
+ */
+const panicRows = () => [
+	...Array.from({ length: 60 }, (_, index) => ({
+		...GROUP,
+		groupKey: {
+			...GROUP.groupKey,
+			pathName: `/ja/search/${"abcdefghij"[Math.floor(index / 10)]}${"abcdefghij"[index % 10]}`,
+		},
+	})),
+	{ ...RUN_SUMMARY, groupCount: 60 },
+];
+
+describe("L-3: PANIC / 契約違反でも親の常駐サマリは残す", () => {
+	test("PANIC: 起票・reopen・body 更新は0件だが、親の常駐サマリだけは書く", async () => {
+		const workspace = makeWorkspace();
+		const fetchImpl = makeApplyFetchWithRows({ bqRows: panicRows() });
+
+		const code = await main({
+			argv: ["apply", "--out", workspace.planPath],
+			env: APPLY_ENV,
+			clock,
+			fetchImpl,
+			sleepImpl: async () => {},
+		});
+
+		// PANIC は exit 1（成功したように見せない）
+		expect(code).toBe(1);
+		const out = JSON.parse(readFileSync(workspace.planPath, "utf8"));
+		// PANIC だけが起きている（契約違反でも fpalgo 不一致でもない）
+		expect(out.plan.panic).toBe(true);
+		expect(out.plan.valid).toBe(true);
+		expect(out.plan.abort).toBe(false);
+		expect(out.applyResult.created).toHaveLength(0);
+		expect(out.applyResult.reopened).toHaveLength(0);
+		expect(out.applyResult.bodyUpdated).toHaveLength(0);
+
+		// 起票・reopen・body 更新の書き込みは1本も出ていない
+		expect(fetchImpl.calls.some((call) => call.method === "POST" && call.url.endsWith("/issues"))).toBe(false);
+		expect(fetchImpl.calls.some((call) => call.method === "PATCH")).toBe(false);
+
+		// 親の常駐サマリだけは残る（90日で消える Job Summary の代わり）
+		expect(out.applyResult.parentSummary).toBe("created");
+		const summaryPost = fetchImpl.calls.find(
+			(call) => call.method === "POST" && call.url.endsWith(`/issues/${PARENT_ISSUE_NUMBER}/comments`),
+		);
+		expect(summaryPost).toBeDefined();
+		expect(summaryPost.body.body).toContain("PANIC");
+		expect(summaryPost.body.body).toContain("起票・reopen・body 更新を1件も行っていません");
+		// 計画値を「書いた」ように見せない
+		expect(summaryPost.body.body).toContain("この run では書き込みを止めました");
+	});
+
+	test("PANIC でも --dry-run なら1バイトも書かない（preview Job は issues: read しか持たない）", async () => {
+		const fetchImpl = makeApplyFetchWithRows({ bqRows: panicRows() });
+		const code = await main({
+			argv: ["apply", "--dry-run"],
+			env: APPLY_ENV,
+			clock,
+			fetchImpl,
+			sleepImpl: async () => {},
+		});
+		expect(code).toBe(1);
+		expect(fetchImpl.githubWrites()).toHaveLength(0);
+	});
+
+	test("契約違反（不変条件を満たさない envelope）でも親の常駐サマリは残す", async () => {
+		const workspace = makeWorkspace();
+		// messagePattern が正規化されていない（生の数値が残っている）＝不変条件 4 違反
+		const fetchImpl = makeApplyFetchWithRows({
+			bqRows: [{ ...GROUP, messagePattern: "user 12345 not found" }, RUN_SUMMARY],
+		});
+
+		const code = await main({
+			argv: ["apply", "--out", workspace.planPath],
+			env: APPLY_ENV,
+			clock,
+			fetchImpl,
+			sleepImpl: async () => {},
+		});
+
+		expect(code).toBe(1);
+		const out = JSON.parse(readFileSync(workspace.planPath, "utf8"));
+		expect(out.plan.valid).toBe(false);
+		// Phase 4 は dry-run へ落ちる（計画上は create 1 件でも、POST は1本も出ない）
+		expect(out.applyResult.dryRun).toBe(true);
+		expect(out.applyResult.created.every((entry) => entry.issueNumber === null)).toBe(true);
+		expect(fetchImpl.calls.some((call) => call.method === "POST" && call.url.endsWith("/issues"))).toBe(false);
+		expect(fetchImpl.calls.some((call) => call.method === "PATCH")).toBe(false);
+
+		expect(out.applyResult.parentSummary).toBe("created");
+		const summaryPost = fetchImpl.calls.find(
+			(call) => call.method === "POST" && call.url.endsWith(`/issues/${PARENT_ISSUE_NUMBER}/comments`),
+		);
+		expect(summaryPost.body.body).toContain("契約違反");
+	});
+
+	test("abort（fpalgo 不一致）は親の常駐サマリも書かない（1バイトも書かない）", async () => {
+		// 既存 Issue の fpalgo が現行と違う ＝ 状態機械が壊れている
+		const tampered = existingIssues.map((issue) =>
+			String(issue.body).includes("fpalgo:1")
+				? { ...issue, body: String(issue.body).replace("fpalgo:1", "fpalgo:2") }
+				: issue,
+		);
+		const workspace = makeWorkspace();
+		const fetchImpl = makeApplyFetch({ issues: tampered });
+
+		const code = await main({
+			argv: ["apply", "--out", workspace.planPath],
+			env: APPLY_ENV,
+			clock,
+			fetchImpl,
+			sleepImpl: async () => {},
+		});
+
+		expect(code).toBe(1);
+		const out = JSON.parse(readFileSync(workspace.planPath, "utf8"));
+		expect(out.plan.abort).toBe(true);
+		expect(out.applyResult.aborted).toBe(true);
+		expect(out.applyResult.parentSummary).toBeNull();
+		expect(fetchImpl.githubWrites()).toHaveLength(0);
+	});
+});

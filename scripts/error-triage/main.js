@@ -246,8 +246,11 @@ const runApply = async ({ options, env, clock = systemClock, fetchImpl, sleepImp
 
 	// --- Phase 4 / 5 ---
 	//     abort（fpalgo 不一致）は状態機械そのものが壊れているので**1バイトも書かない**。
+	//     applyPlan は plan.abort を見て入口で return するので、親の常駐サマリにも到達しない。
 	//     PANIC と契約違反は「起票・reopen・body 更新はしないが、何が起きたかは親の常駐サマリへ残す」。
 	//     Job Summary は 90 日で消えるため、記録だけは残さないと誰も遡れない（G5）。
+	//     → Phase 4 は `dryRun: dryRun || blocked` で止め、Phase 5 だけ `dryRun` だけを見る（L-3）。
+	//     `--dry-run`（preview Job / issues: read）のときは Phase 5 も書かない。ここが唯一の書き込み判断。
 	const applyResult = await applyPlan({
 		client,
 		envelope: result.envelope,
@@ -259,6 +262,7 @@ const runApply = async ({ options, env, clock = systemClock, fetchImpl, sleepImp
 		parentIssue,
 		runUrl: runUrlFrom(env),
 		dryRun: dryRun || blocked,
+		parentSummaryDryRun: dryRun,
 		sleepImpl,
 	});
 	for (const message of applyResult.warnings) warn(message);

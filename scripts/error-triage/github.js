@@ -53,14 +53,19 @@ const {
 	renderTitle,
 	shouldUpdateBody,
 } = require("./render");
-const { authoritative, buildIndex, isRegression } = require("./triage");
+const { authoritative, buildIndex, hasSkipLabel, isRegression } = require("./triage");
 
 const GITHUB_API_ROOT = "https://api.github.com";
 const GITHUB_API_VERSION = "2022-11-28";
 
 /** 1ページの件数。GitHub の上限。 */
 const PER_PAGE = 100;
-/** 回帰コメントの重複検査で読むコメントのページ数上限。 */
+/**
+ * 回帰コメントの重複検査で読むコメントのページ数上限。
+ *
+ * 検査は `since=closedAt`（＝マーカーが付き得る範囲）で絞ってから読むので、
+ * ここに当たるのは「close 後に 300 件以上コメントが付いた Issue」だけ（L-1）。
+ */
 const MAX_COMMENT_PAGES = 3;
 /** 親の常駐サマリコメントを探すときのページ数上限。 */
 const MAX_PARENT_COMMENT_PAGES = 20;
@@ -314,15 +319,23 @@ const createGitHubClient = ({
 		},
 
 		/**
-		 * Issue のコメントを取る（新しい順に読みたいので昇順で最大 maxPages ページ）。
+		 * Issue のコメントを**古い順**（API の既定。`sort` / `direction` は受け付けない）に
+		 * 最大 maxPages ページ取る。
 		 *
-		 * @param {{issueNumber:number, maxPages?:number}} params
+		 * ★ L-1（PR #1211 レビュー）: ページ数で頭打ちにすると、取れるのは**最も古い** maxPages×100 件になる。
+		 *   探しているマーカー（回帰コメント）は常に**最新側**にあるので、コメントが多い Issue では
+		 *   マーカーを取り逃がして重複コメント（＝重複通知）になる。
+		 *   回帰コメントのマーカーは必ず `closedAt` より後に付くので、呼び出し側は `since` を渡すこと。
+		 *   `since` を渡せば残るのは close 以降のコメントだけになり、ページ上限に当たらない。
+		 *
+		 * @param {{issueNumber:number, maxPages?:number, since?:string|null}} params
 		 * @returns {Promise<Array<Record<string, any>>>}
 		 */
-		async listIssueComments({ issueNumber, maxPages = MAX_COMMENT_PAGES }) {
+		async listIssueComments({ issueNumber, maxPages = MAX_COMMENT_PAGES, since = null }) {
 			const collected = [];
 			for (let page = 1; page <= maxPages; page += 1) {
 				const params = new URLSearchParams({ per_page: String(PER_PAGE), page: String(page) });
+				if (since) params.set("since", since);
 				const { body } = await request({ path: `/issues/${issueNumber}/comments?${params.toString()}` });
 				const items = Array.isArray(body) ? body : [];
 				collected.push(...items);
@@ -471,6 +484,7 @@ const upsertParentSummaryComment = async ({ client, parentIssue = PARENT_ISSUE_N
  *   parentIssue?: number,
  *   runUrl?: string|null,
  *   dryRun?: boolean,
+ *   parentSummaryDryRun?: boolean,
  *   sleepImpl?: Function,
  *   commitLookups?: number,
  * }} params
@@ -486,6 +500,11 @@ const applyPlan = async ({
 	parentIssue = PARENT_ISSUE_NUMBER,
 	runUrl = null,
 	dryRun = false,
+	// L-3（PR #1211 レビュー）: PANIC / 契約違反は「起票・reopen・body 更新はしないが、
+	// 何が起きたかは親の常駐サマリへ残す」（#1198 G5）。そのため Phase 5 だけは dryRun と別軸で制御する。
+	// 既定は dryRun に追随するので、呼び出し側が何も渡さなければ従来どおり（--dry-run は1バイトも書かない）。
+	// なお `plan.abort`（fpalgo 不一致）はこの関数の入口で return するので、Phase 5 にも到達しない。
+	parentSummaryDryRun = dryRun,
 	sleepImpl = defaultSleep,
 	commitLookups = 0,
 }) => {
@@ -570,7 +589,11 @@ const applyPlan = async ({
 		try {
 			let commented = false;
 			// 同一マーカーのコメントが既にあればコメントは打たない（同日中の再実行を冪等にする）。
-			const comments = dryRun ? [] : await client.listIssueComments({ issueNumber: entry.number });
+			// `since=closedAt` で絞る（L-1）。マーカーは必ず close より後に付くので取りこぼさず、
+			// コメントが数百件ある長寿命 Issue でもページ上限に食われない。
+			const comments = dryRun
+				? []
+				: await client.listIssueComments({ issueNumber: entry.number, since: entry.closedAt });
 			if (!comments.some((comment) => String(comment.body || "").includes(marker))) {
 				const body = renderRegressionComment({
 					group,
@@ -725,6 +748,11 @@ const applyPlan = async ({
 		}
 		const unlinked = [...byNumber.values()]
 			.filter((entry) => !subIssues.ids.has(entry.id))
+			// ★ M-2（PR #1211 レビュー）: `err/skip` は API コールを1回も発行しない（#1198 §6-D）。
+			//   reconcile も例外ではない。恒久無視と決めた Issue を親へぶら下げると、
+			//   sub-issue の 100 件ソフト上限（SUB_ISSUE_SOFT_LIMIT）の枠を食う。
+			//   S11 で自動 DELETE を禁じているため、食った枠は**人手でしか回収できない**。
+			.filter((entry) => !hasSkipLabel(entry))
 			.sort((a, b) => a.number - b.number);
 		if (unlinked.length > SUB_ISSUE_LINK_LIMIT) {
 			result.warnings.push(
@@ -739,7 +767,7 @@ const applyPlan = async ({
 	// ---- 5) 親の常駐サマリコメント（新規作成ではなく更新。通知を出さない） ----
 	try {
 		const body = renderParentSummaryComment({ envelope, plan, applyResult: result });
-		result.parentSummary = dryRun
+		result.parentSummary = parentSummaryDryRun
 			? "dry-run（書き込みなし）"
 			: await upsertParentSummaryComment({ client, parentIssue, body });
 	} catch (error) {

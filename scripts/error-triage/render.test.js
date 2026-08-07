@@ -22,8 +22,10 @@ const {
 	renderRegressionComment,
 	renderRegressionMarker,
 	renderTitle,
+	sanitizeInlineText,
 	shouldUpdateBody,
 } = require("./render");
+const { computeFingerprint } = require("./fingerprint");
 const { buildEnvelope, buildPlan } = require("./triage");
 const { computeWindow } = require("./window");
 
@@ -476,5 +478,142 @@ describe("renderApplySummary()", () => {
 			applyResult: { ...base, failures: [{ stage: "create", target: "fp:abc", message: "HTTP 403" }] },
 		});
 		expect(summary).toContain("| create | fp:abc | HTTP 403 |");
+	});
+});
+
+// ---------------------------------------------------------------------------
+// M-1（PR #1211 レビュー）: messagePattern は本番の任意文字列。markdown へ無escape で埋めない
+// ---------------------------------------------------------------------------
+//
+// `messagePattern` は `rawMessage`（サードパーティ API の文言や外部例外も通る値）を正規化しただけで、
+// 正規化ルールは `` ` `` / `|` / `<` / `>` / `<!-- -->` を一切触りません。
+// レビューが実測した3つの被害をここで固定します。
+
+describe("M-1: messagePattern の無害化（表示直前だけ）", () => {
+	/** レビューの再現ケース: 自動領域の終了マーカーそのものがメッセージに混ざる。 */
+	const INJECTED_END = `Validation failed ${AUTO_END_MARKER}`;
+	const renderOnce = (messagePattern, existingBody = null) =>
+		renderIssueBody({
+			group: { ...backendGroup, messagePattern },
+			window: WINDOW,
+			generatedAt: GENERATED_AT,
+			existingBody,
+		});
+
+	it("`auto:end` を注入した body を6回連続で自己適用しても膨張しない（実測 +717字/run の再現）", () => {
+		let body = renderOnce(INJECTED_END);
+		const lengths = [body.length];
+		for (let run = 0; run < 5; run += 1) {
+			body = renderOnce(INJECTED_END, body);
+			lengths.push(body.length);
+		}
+		// 2 run 目以降は完全に同じ body（＝差分なしで PATCH すら出ない）
+		expect(new Set(lengths).size).toBe(1);
+		// 自動領域は1組だけ。「このIssueの扱い方」も1つだけ
+		expect(body.split(AUTO_START_MARKER)).toHaveLength(2);
+		expect(body.split("### このIssueの扱い方")).toHaveLength(2);
+		// GitHub の body 上限 65,536字に近づかない
+		expect(body.length).toBeLessThan(4000);
+	});
+
+	it("注入されたマーカー文字列はそのまま本文へ出さない（無害化してから埋める）", () => {
+		const body = renderOnce(INJECTED_END);
+		// 生の `<!-- error-triage:auto:end -->` は自動領域の終端の1つだけ
+		const occurrences = body.split(AUTO_END_MARKER).length - 1;
+		expect(occurrences).toBe(1);
+		// メッセージ自体は「読める形」で残る（消してしまわない）
+		expect(body).toContain("Validation failed");
+	});
+
+	it("バックティックを含んでも @ユーザー名 がコードスパンの外へ出ない（通知を飛ばさない）", () => {
+		const body = renderOnce("bad name: ` @Ayato-kosaka ` please fix");
+		const row = body.split("\n").find((line) => line.includes("**何が**"));
+		// 行の中のバックティックはコードスパンの開始・終了の2本だけ（＝閉じない）
+		expect((row.match(/`/g) || []).length).toBe(2);
+		// `@Ayato-kosaka` はコードスパンの内側に留まる
+		expect(row).toMatch(/^\| \*\*何が\*\* \| `[^`]*@Ayato-kosaka[^`]*` \|$/);
+	});
+
+	it("`|` を含んでもテーブルの行が崩れない（セルは2つのまま）", () => {
+		const body = renderOnce("SELECT a | b FROM t WHERE x | y");
+		const row = body.split("\n").find((line) => line.includes("**何が**"));
+		// セル区切りとして解釈される `|` は行頭・区切り・行末の3本だけ。中身は `\|` でエスケープ済み
+		expect(row.replace(/\\\|/g, "")).toBe("| **何が** | `SELECT a  b FROM t WHERE x  y` |");
+		expect(row).toContain("\\|");
+	});
+
+	it("改行を含んでも表の行を割らない", () => {
+		const body = renderOnce("first line\nsecond | line\n<!-- x -->");
+		const rows = body.split("\n").filter((line) => line.includes("**何が**"));
+		expect(rows).toHaveLength(1);
+	});
+
+	it("正規化の出力（`<n>` / `<uuid>`）は読めるまま残す（`<` `>` を潰さない）", () => {
+		expect(renderOnce("location invalid: lat=<n>, lng=<n>")).toContain("lat=<n>, lng=<n>");
+	});
+
+	it("メッセージが無いグループは従来どおり「（メッセージなし）」", () => {
+		expect(renderOnce(null)).toContain("（メッセージなし）");
+	});
+
+	it("無害化は**表示だけ**で、fingerprint の計算入力を変えない（既存 Issue との突合を壊さない）", () => {
+		const group = { ...backendGroup, messagePattern: INJECTED_END };
+		const before = computeFingerprint(group);
+		const body = renderIssueBody({ group, window: WINDOW, generatedAt: GENERATED_AT });
+		// 引数のグループを書き換えていない
+		expect(group.messagePattern).toBe(INJECTED_END);
+		// 同じ入力から同じ fingerprint が出る（render を通しても変わらない）
+		expect(computeFingerprint(group)).toBe(before);
+		// body に載る fp マーカーも group.fingerprint のまま
+		expect(extractFingerprints(body)).toEqual([backendGroup.fingerprint]);
+	});
+
+	it("sanitizeInlineText 単体: 潰すのは `<!--` / `-->` / バックティック / `|` だけ", () => {
+		expect(sanitizeInlineText("a <!-- b --> c")).toBe("a <!- - b - -> c");
+		expect(sanitizeInlineText("a `b` c")).toBe("a 'b' c");
+		expect(sanitizeInlineText("a | b")).toBe("a \\| b");
+		expect(sanitizeInlineText("  a\n\tb  ")).toBe("a b");
+		expect(sanitizeInlineText("lat=<n>")).toBe("lat=<n>");
+		expect(sanitizeInlineText(null)).toBe("");
+		// 変換後に HTML コメントの開始・終了が復活しない
+		expect(sanitizeInlineText("<!--->")).not.toMatch(/<!--|-->/);
+		expect(sanitizeInlineText("--->")).not.toMatch(/-->/);
+	});
+});
+
+describe("M-1: 自動領域マーカーの探索は行アンカー付き（多重防御）", () => {
+	it("行の途中にあるマーカーは境界として拾わない", () => {
+		const body = [
+			`<!-- fp:${backendGroup.fingerprint} -->`,
+			AUTO_START_MARKER,
+			`| **何が** | 混入 ${AUTO_END_MARKER} |`,
+			"自動領域の中身",
+			AUTO_END_MARKER,
+			"",
+			"人間のメモ",
+		].join("\n");
+		const replaced = renderIssueBody({
+			group: backendGroup,
+			window: WINDOW,
+			generatedAt: GENERATED_AT,
+			existingBody: body,
+		});
+		expect(replaced).toContain("人間のメモ");
+		expect(replaced).not.toContain("自動領域の中身");
+		// 行途中の注入も一緒に置き換わって消える（境界を手前で切っていない証拠）
+		expect(replaced).not.toContain("| **何が** | 混入");
+		expect(replaced.split(AUTO_START_MARKER)).toHaveLength(2);
+	});
+
+	it("終了マーカーが開始マーカーより前にしか無ければ作り直す（人間の記述は保全する）", () => {
+		const body = [AUTO_END_MARKER, "人間のメモ", AUTO_START_MARKER].join("\n");
+		const rebuilt = renderIssueBody({
+			group: backendGroup,
+			window: WINDOW,
+			generatedAt: GENERATED_AT,
+			existingBody: body,
+		});
+		expect(rebuilt).toContain(PRESERVED_BODY_NOTICE);
+		expect(rebuilt).toContain("人間のメモ");
 	});
 });

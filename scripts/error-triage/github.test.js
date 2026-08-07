@@ -143,7 +143,16 @@ const makeServer = (initial = {}) => {
 		const commentsMatch = /^\/issues\/(\d+)\/comments$/.exec(path);
 		if (commentsMatch) {
 			const issueNumber = commentsMatch[1];
-			if (method === "GET") return jsonResponse(200, state.comments[issueNumber] || []);
+			if (method === "GET") {
+				// 本物と同じく **古い順**で返し、`page` / `per_page` / `since` を効かせる（L-1 の再現に要る）。
+				// `created_at` を持たないコメント（多くの fixture）は時刻不明として `since` で落とさない。
+				const all = state.comments[issueNumber] || [];
+				const since = url.searchParams.get("since");
+				const page = Number(url.searchParams.get("page") || "1");
+				const perPage = Number(url.searchParams.get("per_page") || "100");
+				const filtered = since ? all.filter((comment) => !comment.created_at || comment.created_at >= since) : all;
+				return jsonResponse(200, filtered.slice((page - 1) * perPage, page * perPage));
+			}
 			state.nextId += 1;
 			const comment = { id: state.nextId, body: body.body };
 			state.comments[issueNumber] = [...(state.comments[issueNumber] || []), comment];
@@ -655,6 +664,121 @@ describe("sub-issue 紐付けは best-effort（横断レビュー §6-2 / S11）
 
 		expect(applyResult.subIssueLinked.length).toBeGreaterThan(1);
 		expect(fetchImpl.calls.every((call) => call.method !== "DELETE")).toBe(true);
+	});
+
+	// ★ M-2（PR #1211 レビュー）: reconcile も「`err/skip` は API コールを1回も発行しない」（#1198 §6-D）の対象。
+	//   恒久無視と決めた Issue を親へぶら下げると 100 件のソフト上限枠を食い、S11 で自動 DELETE を禁じている以上
+	//   その枠は人手でしか回収できない。
+	test("M-2: `err/skip` の Issue は reconcile でも親へ紐付けない（§6-D / 上限枠を食わせない）", async () => {
+		const fetchImpl = makeServer({ issues: existingIssues, subIssues: [] });
+		const { applyResult } = await runApply({ fetchImpl });
+
+		// #1203 = err/skip。他の未紐付け Issue は貼り直されている（reconcile 自体は動いている）
+		expect(applyResult.subIssueLinked.length).toBeGreaterThan(1);
+		expect(applyResult.subIssueLinked.map((entry) => entry.issueNumber)).not.toContain(1203);
+		expect(applyResult.subIssueLinked.map((entry) => entry.issueId)).not.toContain(3000004);
+		// POST /sub_issues にも #1203 の id は載らない
+		const links = fetchImpl.calls.filter(
+			(call) => call.method === "POST" && call.path === `/issues/${PARENT_ISSUE_NUMBER}/sub_issues`,
+		);
+		expect(links.length).toBeGreaterThan(0);
+		expect(links.map((call) => call.body.sub_issue_id)).not.toContain(3000004);
+		// #1203 に対する API コールは（GET も含めて）1本も無い
+		expect(fetchImpl.calls.every((call) => !call.path.startsWith("/issues/1203"))).toBe(true);
+	});
+
+	test("M-2: `err/skip` が sub-issue 索引にも無い状態を何度流しても紐付けは増えない（冪等）", async () => {
+		const fetchImpl = makeServer({ issues: existingIssues, subIssues: [] });
+		await runApply({ fetchImpl });
+		const afterFirst = fetchImpl.calls.filter((call) => call.path.endsWith("/sub_issues") && call.method === "POST");
+		const second = await runApply({ fetchImpl });
+		const afterSecond = fetchImpl.calls.filter((call) => call.path.endsWith("/sub_issues") && call.method === "POST");
+
+		// 2 run 目に増えるのは「1 run 目で起票した Issue」の分だけで、err/skip は何度でも対象外
+		expect(afterSecond.map((call) => call.body.sub_issue_id)).not.toContain(3000004);
+		expect(second.applyResult.subIssueLinked.map((entry) => entry.issueNumber)).not.toContain(1203);
+		expect(afterSecond.length).toBeGreaterThanOrEqual(afterFirst.length);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// L-1（PR #1211 レビュー）: 回帰コメントの重複抑止
+// ---------------------------------------------------------------------------
+//
+// コメントは古い順にしか読めない（issue comments API は `sort` / `direction` を受け付けない）ので、
+// ページ数で頭打ちにすると取れるのは**最も古い 300 件**になる。探しているマーカーは常に**最新側**にある。
+// 回帰コメントは通知が飛ぶ操作なので、取り逃がすと重複通知になる。
+
+describe("回帰コメントの重複抑止（L-1）", () => {
+	/** #1202（closed_at = 2026-08-04T00:00:00Z）に、close より前の古いコメントを N 件積む。 */
+	const oldComments = (count) =>
+		Array.from({ length: count }, (_, index) => ({
+			id: 7100000 + index,
+			body: `古い会話 ${index}`,
+			created_at: "2026-07-01T00:00:00Z",
+		}));
+
+	test("close より後のコメントだけを読む（`since=closedAt` を必ず付ける）", async () => {
+		const fetchImpl = makeServer({ issues: existingIssues, subIssues: linkedSubIssues() });
+		await runApply({ fetchImpl });
+		const get = fetchImpl.calls.find((call) => call.method === "GET" && call.path === "/issues/1202/comments");
+		expect(get.search).toContain(`since=${encodeURIComponent("2026-08-04T00:00:00Z")}`);
+	});
+
+	test("close 前のコメントが 350 件あってもマーカーを見つけ、回帰コメントを重複投稿しない", async () => {
+		const group = buildTestEnvelope().groups.find((entry) => entry.fingerprint === FP.regression);
+		const marker = renderRegressionMarker(FP.regression, group.lastSeenUtc);
+		const fetchImpl = makeServer({
+			issues: existingIssues,
+			subIssues: linkedSubIssues(),
+			comments: {
+				1202: [
+					...oldComments(350),
+					// マーカーは必ず close より後に付く（＝古い順に読むと 351 件目）
+					{ id: 7200001, body: `過去の回帰コメント\n${marker}`, created_at: "2026-08-06T23:00:00Z" },
+				],
+			},
+		});
+		const { applyResult } = await runApply({ fetchImpl });
+
+		expect(applyResult.reopened[0].commented).toBe(false);
+		expect(fetchImpl.calls.some((call) => call.method === "POST" && call.path === "/issues/1202/comments")).toBe(false);
+		// reopen 自体はやり直される（コメント投入後・reopen 前に落ちた run の復旧経路）
+		expect(fetchImpl.calls.some((call) => call.method === "PATCH" && call.path === "/issues/1202")).toBe(true);
+	});
+
+	test("マーカーがまだ無ければ（close 後のコメントが他人のものだけでも）1回だけ投稿する", async () => {
+		const fetchImpl = makeServer({
+			issues: existingIssues,
+			subIssues: linkedSubIssues(),
+			comments: {
+				1202: [...oldComments(350), { id: 7200002, body: "調査中です", created_at: "2026-08-06T23:00:00Z" }],
+			},
+		});
+		const { applyResult } = await runApply({ fetchImpl });
+
+		expect(applyResult.reopened[0].commented).toBe(true);
+		expect(
+			fetchImpl.calls.filter((call) => call.method === "POST" && call.path === "/issues/1202/comments"),
+		).toHaveLength(1);
+	});
+
+	test("同じ run を2回流しても回帰コメントは1回だけ（重複通知にしない）", async () => {
+		const fetchImpl = makeServer({
+			issues: existingIssues,
+			subIssues: linkedSubIssues(),
+			comments: { 1202: oldComments(350) },
+		});
+		await runApply({ fetchImpl });
+		// 1 run 目で reopen されるので、2 run 目は回帰にならない。close されたままの状態で再実行する
+		const reclosed = fetchImpl.state.issues.find((issue) => issue.number === 1202);
+		Object.assign(reclosed, { state: "closed", state_reason: "completed", closed_at: "2026-08-04T00:00:00Z" });
+		// 1 run 目に投稿されたコメントには created_at が無い＝時刻不明なので since で落ちない（本物は close 後に付く）
+		await runApply({ fetchImpl });
+
+		expect(
+			fetchImpl.calls.filter((call) => call.method === "POST" && call.path === "/issues/1202/comments"),
+		).toHaveLength(1);
 	});
 });
 
