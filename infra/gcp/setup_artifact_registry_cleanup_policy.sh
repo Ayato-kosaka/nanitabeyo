@@ -144,46 +144,46 @@ echo
 KEEP_SET_WARNING=0
 if [[ ${#REFERENCED_IMAGES[@]} -gt 0 ]]; then
   echo "--- 参照中イメージが「直近 ${KEEP_COUNT} 個」に入っているかを照合する ---"
-  recent_versions="$(gcloud artifacts docker images list "${REPO_URI}" \
-    --project="${PROJECT_ID}" \
-    --include-tags \
-    --sort-by='~UPDATE_TIME' \
-    --limit="${KEEP_COUNT}" \
-    --format='value(version,tags)' 2>/dev/null || true)"
+  for entry in "${REFERENCED_IMAGES[@]}"; do
+    service="${entry%%=*}"
+    image="${entry#*=}"
+    # Keep の keepCount はパッケージ単位で適用されるため、参照中イメージと同じ
+    # パッケージだけを一覧する。REPO_URI 全体を渡すと別パッケージが混ざり、誤判定する。
+    if [[ "${image}" == *"@"* ]]; then
+      image_uri="${image%%@*}"
+      key="${image##*@}"
+    else
+      image_uri="${image%:*}"
+      key="${image##*:}"
+    fi
+    recent_versions="$(gcloud artifacts docker images list "${image_uri}" \
+      --project="${PROJECT_ID}" \
+      --include-tags \
+      --sort-by='~UPDATE_TIME' \
+      --limit="${KEEP_COUNT}" \
+      --format='value(version,tags)' 2>/dev/null || true)"
 
-  if [[ -z "${recent_versions}" ]]; then
-    echo "  ⚠️ イメージ一覧を取得できなかったため照合できない。手動で確認すること。"
-    KEEP_SET_WARNING=1
-  else
-    for entry in "${REFERENCED_IMAGES[@]}"; do
-      service="${entry%%=*}"
-      image="${entry#*=}"
-      # "<repo>/api:<sha>" なら :<sha> を、"<repo>/api@sha256:..." なら digest を照合キーにする
-      if [[ "${image}" == *"@"* ]]; then
-        key="${image##*@}"
-      else
-        key="${image##*:}"
-      fi
-
-      if grep -qF -- "${key}" <<<"${recent_versions}"; then
-        echo "  ✅ ${service}: 直近 ${KEEP_COUNT} 個に含まれる（Keep で保護される）"
-      else
-        echo "  ⚠️ ${service}: 直近 ${KEEP_COUNT} 個に **見つからない**（${key}）"
-        echo "     この環境を長期間デプロイしていない場合、参照イメージが削除されてロールバックできなくなる。"
-        echo "     KEEP_COUNT か TAGGED_MAX_AGE を上げるか、先に再デプロイしてから apply すること。"
-        KEEP_SET_WARNING=1
-      fi
-    done
-  fi
+    if [[ -z "${recent_versions}" ]]; then
+      echo "  ⚠️ ${service}: イメージ一覧を取得できなかったため照合できない。手動で確認すること。"
+      KEEP_SET_WARNING=1
+    elif grep -qF -- "${key}" <<<"${recent_versions}"; then
+      echo "  ✅ ${service}: 直近 ${KEEP_COUNT} 個に含まれる（Keep で保護される）"
+    else
+      echo "  ⚠️ ${service}: 直近 ${KEEP_COUNT} 個に **見つからない**（${key}）"
+      echo "     この環境を長期間デプロイしていない場合、参照イメージが削除されてロールバックできなくなる。"
+      echo "     KEEP_COUNT か TAGGED_MAX_AGE を上げるか、先に再デプロイしてから apply すること。"
+      KEEP_SET_WARNING=1
+    fi
+  done
   echo
 fi
 
 if [[ "${ACTION}" == "remove" ]]; then
   echo "--- cleanup policy を削除する ---"
-  gcloud artifacts repositories update "${REPO_NAME}" \
+  gcloud artifacts repositories delete-cleanup-policies "${REPO_NAME}" \
     --project="${PROJECT_ID}" \
     --location="${REGION}" \
-    --clear-cleanup-policies
+    --policynames=keep-recent-releases,delete-old-untagged,delete-old-tagged
   echo "完了。既に削除されたイメージは戻らない点に注意。"
   exit 0
 fi
@@ -238,11 +238,11 @@ if [[ "${ACTION}" == "dryrun" ]]; then
   # --dry-run はポリシーを保存し、削除は行わずログにのみ出力するモード。
   # 効果を確かめてから apply へ進むこと。
   echo "--- dry-run で登録する（削除は行われない） ---"
-  gcloud artifacts repositories update "${REPO_NAME}" \
+  gcloud artifacts repositories set-cleanup-policies "${REPO_NAME}" \
     --project="${PROJECT_ID}" \
     --location="${REGION}" \
-    --cleanup-policy-file="${POLICY_FILE}" \
-    --cleanup-policy-dry-run
+    --policy="${POLICY_FILE}" \
+    --dry-run
 
   echo
   echo "dry-run を登録した。何が削除対象になるかは Cloud Logging で確認すること:"
@@ -264,11 +264,11 @@ if [[ "${answer}" != "yes" ]]; then
   exit 1
 fi
 
-gcloud artifacts repositories update "${REPO_NAME}" \
+gcloud artifacts repositories set-cleanup-policies "${REPO_NAME}" \
   --project="${PROJECT_ID}" \
   --location="${REGION}" \
-  --cleanup-policy-file="${POLICY_FILE}" \
-  --no-cleanup-policy-dry-run
+  --policy="${POLICY_FILE}" \
+  --no-dry-run
 
 echo
 echo "完了。反映まで数時間かかることがある。"
