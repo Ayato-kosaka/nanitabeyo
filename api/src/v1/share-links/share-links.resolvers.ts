@@ -148,9 +148,14 @@ export class ShareLinkTargetResolvers {
       // 先頭 ID は target_id にあるので、params には «全 ID の並び» を持つ。
       // アプリは並びをそのまま `?ids=` へ渡すため、ここで順序を崩さない
       targetParams: { ids: uniqueIds },
-      previewTitle: truncatePreviewText(text.title({ dishName, restaurantName }), PREVIEW_TITLE_MAX_LENGTH),
+      // #1194 件数を必ず渡すこと。まとめて共有したときに単品の共有に見えてしまう
+      //（テンプレート側が count > 1 で文言を切り替える）
+      previewTitle: truncatePreviewText(
+        text.title({ dishName, restaurantName, count: uniqueIds.length }),
+        PREVIEW_TITLE_MAX_LENGTH,
+      ),
       previewDescription: truncatePreviewText(
-        text.description({ dishName, restaurantName }),
+        text.description({ dishName, restaurantName, count: uniqueIds.length }),
         PREVIEW_DESCRIPTION_MAX_LENGTH,
       ),
       previewImagePath: head.thumbnail_path,

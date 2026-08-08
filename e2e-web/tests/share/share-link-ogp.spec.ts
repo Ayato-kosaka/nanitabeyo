@@ -82,6 +82,26 @@ test.describe("共有リンクの OGP(#721) @mutation", () => {
 		}
 	});
 
+	// ─ テストケース: 人間はブラウザで対象ページへ自動遷移する（#1194）─
+	// 手順:
+	//   1. 共有リンクを作る
+	//   2. **実ブラウザで** /s/:token を開く
+	//   3. 中間画面に留まらず、対象ページ（/{locale}/posts?ids=...）へ着いていることを検証
+	//
+	// 遷移先には既に OpenInAppBanner があるので、中間画面で「アプリで開く」を再掲するのは
+	// 重複だった（実機フィードバック）。ここは request ではなく **page** で見ること。
+	// 生の HTTP で取ると script が走らないので、この振る舞いは観測できない。
+	test("人間は中間画面に留まらず対象ページへ着く", async ({ appPage, request }) => {
+		const { token } = await createShareLinkViaApi(appPage, request);
+
+		await appPage.goto(`/s/${token}`);
+
+		// 中間画面（/s/...）に留まっていないこと
+		await expect(appPage).not.toHaveURL(new RegExp(`/s/${token}$`), { timeout: 30_000 });
+		// 対象ページ（投稿一覧）へ着いていること
+		await expect(appPage).toHaveURL(/\/posts\?ids=/, { timeout: 30_000 });
+	});
+
 	// ─ テストケース: og:image が実際に取得できる ─
 	// 手順:
 	//   1. 共有リンクを作る

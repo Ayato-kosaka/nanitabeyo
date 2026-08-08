@@ -7,6 +7,12 @@
 //（Google は 2019 年以降これを回避策扱いにしており、cloaking と区別しづらい）。
 // 同じ `200 OK` の HTML を全員へ返し、JS を実行しなくても OGP が読める状態にする。
 //
+// ## 人間だけは対象ページへ自動遷移させる（#1194）
+// 遷移先（posts / 投票画面）には既に `OpenInAppBanner` があるので、この画面で
+// 「アプリで開く」をもう一度出すのは重複でしかない。body 末尾の script で
+// `location.replace` する。**HTML は全員に対して同一**で、クローラは JS を
+// 実行しないため OGP はこれまでどおり読める。出し分けではない。
+//
 // ## テンプレートエンジンを入れない
 // 返す HTML はこの 1 種類だけで、値はすべて属性値かテキストノード。
 // エンジンを足すと「どこがエスケープ済みか」の境界が増えるので、
@@ -26,6 +32,21 @@ export function escapeHtml(value: string): string {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+/**
+ * script ブロックへ埋め込む JS 文字列リテラルを作る。
+ *
+ * ⚠️ **`escapeHtml` を使わないこと。** script の中身は HTML パーサから見て raw text なので
+ * `&quot;` 等の実体参照は復号されず、そのまま JS の文字列に混ざる。
+ * 逆に `</script` が現れると HTML パーサ側が script を閉じてしまうため、
+ * **`<` を `\u003C` へ落とす**必要がある。
+ *
+ * 今の `openInWebUrl` は allowlist されたパス + `encodeURIComponent` なので `<` は入らないが、
+ * 埋め込み先が script である以上、その前提に依存しない形にしておく。
+ */
+function jsStringLiteral(value: string): string {
+  return JSON.stringify(value).replace(/</g, '\\u003C');
 }
 
 export type SharePageParams = {
@@ -107,6 +128,32 @@ a.secondary{background:transparent;color:#111;border:1px solid #ccc}
 <a class="primary" href="${openInAppUrl}">${openInAppLabel}</a>
 <a class="secondary" href="${openInWebUrl}">${openInWebLabel}</a>
 </main>
+<script>
+/* #1194 【設計】人間はそのまま対象ページへ送る（中間画面で 1 タップ挟ませない）。
+ *
+ * 遷移先（posts / 投票画面）には既に OpenInAppBanner があり、「アプリで開く」導線は
+ * そちらが持っている。ここで同じ導線をもう一度出すのは純粋な重複で、
+ * 実機フィードバックで「中間画面は不要では」と指摘された。
+ *
+ * ⚠️ **これは crawler と人間の出し分け（cloaking）ではない。**
+ * 返す HTML は全員に対して 1 バイトも変わらない。OGP は head にあり、
+ * SNS のクローラは JS を実行しないので、この script は human のブラウザでしか動かない。
+ * User-Agent を見て別の HTML を返す Dynamic Rendering とは別物。
+ *
+ * ⚠️ location.href ではなく **replace** を使うこと。href だと履歴に中間画面が残り、
+ * 遷移先から «戻る» を押した瞬間にこの script がまた走って前へ弾き返される。
+ *
+ * 上の main 要素は JS が無い環境（クローラのプレビュー、JS 無効ブラウザ）の
+ * フォールバックとしてそのまま残す。
+ */
+(function () {
+  try {
+    window.location.replace(${jsStringLiteral(params.openInWebUrl)});
+  } catch (e) {
+    /* 失敗しても上のリンクが残っているので、ここで握りつぶしてよい */
+  }
+})();
+</script>
 </body>
 </html>
 `;

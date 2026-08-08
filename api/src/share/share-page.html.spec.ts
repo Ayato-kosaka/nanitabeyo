@@ -26,8 +26,45 @@ describe('#721 共有カードの HTML', () => {
     expect(html).toContain(`<meta property="og:image" content="${BASE_PARAMS.imageUrl}">`);
     expect(html).toContain('<meta property="og:locale" content="ja_JP">');
     expect(html).toContain('<meta name="twitter:card" content="summary_large_image">');
-    // <script> を 1 つも含まない＝ JS 無効でも同じ内容が出る
-    expect(html).not.toContain('<script');
+    // #1194 script は「人間を対象ページへ送る」ためだけに 1 つだけ入る。
+    // ⚠️ OGP がそれに依存していないこと（= JS 無効でも読めること）が本題なので、
+    // 「script が無い」ではなく「OGP が head の静的な meta として出ている」で守る。
+    // 上のアサーションが全部 script より前の head を見ているのはそのため。
+    expect(html.match(/<script/g) ?? []).toHaveLength(1);
+    // head に script を混ぜない（クローラが meta へ到達する前に何かを実行させない）
+    expect(html.indexOf('<script')).toBeGreaterThan(html.indexOf('</head>'));
+  });
+
+  // ─ #1194 中間画面で 1 タップ挟まない ─
+  // 遷移先（posts / 投票画面）には既に OpenInAppBanner があり、この画面で
+  // 「アプリで開く」を再掲するのは重複だった（実機フィードバック）。
+  it('人間は対象ページへ自動遷移する（location.replace）', () => {
+    const html = renderSharePage(BASE_PARAMS);
+
+    // href ではなく replace。href だと履歴に中間画面が残り、遷移先から «戻る» で弾き返される
+    expect(html).toContain('window.location.replace(');
+    expect(html).toContain(JSON.stringify(BASE_PARAMS.openInWebUrl));
+    expect(html).not.toContain('window.location.href');
+  });
+
+  it('JS が無くても導線は残る（クローラ・JS 無効ブラウザのフォールバック）', () => {
+    const html = renderSharePage(BASE_PARAMS);
+
+    expect(html).toContain(`href="${BASE_PARAMS.openInWebUrl}"`);
+    expect(html).toContain(`href="${BASE_PARAMS.openInAppUrl}"`);
+  });
+
+  // script の中身は HTML パーサから見て raw text なので、`</script` が現れると
+  // そこで閉じてしまう。`escapeHtml` は実体参照を作るだけで script 内では復号されず効かない
+  it('script へ埋め込む URL は < を \\u003C へ落とす', () => {
+    const html = renderSharePage({
+      ...BASE_PARAMS,
+      openInWebUrl: 'https://app.nanitabeyo.net/ja-JP/posts?ids=</script><script>alert(1)</script>',
+    });
+
+    // 埋め込んだ側が script を閉じられていないこと（開始タグは元の 1 つだけ）
+    expect(html.match(/<script/g) ?? []).toHaveLength(1);
+    expect(html).toContain('\\u003C');
   });
 
   it('og:url は /s/:token 自身（本体ページへ向けない）', () => {

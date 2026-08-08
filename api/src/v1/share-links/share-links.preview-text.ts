@@ -20,49 +20,63 @@ export type SharePreviewVars = {
   dishName: string;
   /** 店舗名 */
   restaurantName: string;
+  /**
+   * 共有に含まれる投稿の件数。
+   *
+   * ⚠️ **1 件と複数件で文言を変えるために要る。** アプリの共有は「今見ている 1 件」だけでなく
+   * **検索結果をまとめて共有する**経路があり（`idsForShare`）、そこで先頭 1 件の
+   * 「料理名 - 店名」だけを出すと、受け取った側には単品の共有にしか見えない。
+   * 実機フィードバックで「文言が一括シェアに見えない」と指摘された。
+   */
+  count: number;
 };
 
 /**
  * `dish_media` の共有カード文言。
  *
- * タイトルは「料理名 - 店舗名」。SNS のカードはタイトルを 2 行前後で切るので、
+ * 1 件なら「料理名 - 店舗名」。SNS のカードはタイトルを 2 行前後で切るので、
  * 一番情報量の多い 2 つだけを前に置く。
+ *
+ * ⚠️ **複数件（`count > 1`）では必ず件数を出すこと。** 検索結果をまとめて共有する経路が
+ * あり、先頭 1 件の「料理名 - 店舗名」だけを出すと受け取った側には単品の共有に見える。
+ * 店舗名は複数件では外す。共有された投稿が同じ店とは限らず、先頭の店名を代表として
+ * 出すと «その店の話» だと誤解させるため。
  */
 export const DISH_MEDIA_PREVIEW_TEXT: Record<
   PublicLocale,
   { title: (v: SharePreviewVars) => string; description: (v: SharePreviewVars) => string }
 > = {
   'ja-JP': {
-    title: (v) => `${v.dishName} - ${v.restaurantName}`,
-    description: (v) => `${v.restaurantName} の ${v.dishName}。なに食べよ で写真とレビューを見る。`,
+    title: (v) => (v.count > 1 ? `${v.dishName} ほか${v.count - 1}件 - なに食べよ` : `${v.dishName} - ${v.restaurantName}`),
+    description: (v) => (v.count > 1 ? `${v.dishName}（${v.restaurantName}）を含む ${v.count} 件の料理。なに食べよ で写真とレビューを見る。` : `${v.restaurantName} の ${v.dishName}。なに食べよ で写真とレビューを見る。`),
   },
   'en-US': {
-    title: (v) => `${v.dishName} - ${v.restaurantName}`,
-    description: (v) => `${v.dishName} at ${v.restaurantName}. See photos and reviews on CraveCatch.`,
+    title: (v) => (v.count > 1 ? `${v.dishName} and ${v.count - 1} more - CraveCatch` : `${v.dishName} - ${v.restaurantName}`),
+    description: (v) => (v.count > 1 ? `${v.count} dishes including ${v.dishName} at ${v.restaurantName}. See photos and reviews on CraveCatch.` : `${v.dishName} at ${v.restaurantName}. See photos and reviews on CraveCatch.`),
   },
   'fr-FR': {
-    title: (v) => `${v.dishName} - ${v.restaurantName}`,
-    description: (v) => `${v.dishName} chez ${v.restaurantName}. Photos et avis sur CraveCatch.`,
+    title: (v) => (v.count > 1 ? `${v.dishName} et ${v.count - 1} autres - CraveCatch` : `${v.dishName} - ${v.restaurantName}`),
+    description: (v) => (v.count > 1 ? `${v.count} plats dont ${v.dishName} chez ${v.restaurantName}. Photos et avis sur CraveCatch.` : `${v.dishName} chez ${v.restaurantName}. Photos et avis sur CraveCatch.`),
   },
   'zh-CN': {
-    title: (v) => `${v.dishName} - ${v.restaurantName}`,
-    description: (v) => `${v.restaurantName} 的${v.dishName}。在 CraveCatch 查看照片和评价。`,
+    title: (v) => (v.count > 1 ? `${v.dishName} 等 ${v.count} 道菜 - CraveCatch` : `${v.dishName} - ${v.restaurantName}`),
+    description: (v) => (v.count > 1 ? `包含 ${v.restaurantName} 的${v.dishName}在内的 ${v.count} 道菜。在 CraveCatch 查看照片和评价。` : `${v.restaurantName} 的${v.dishName}。在 CraveCatch 查看照片和评价。`),
   },
   'ar-SA': {
-    title: (v) => `${v.dishName} - ${v.restaurantName}`,
-    description: (v) => `${v.dishName} في ${v.restaurantName}. شاهد الصور والمراجعات على CraveCatch.`,
+    title: (v) => (v.count > 1 ? `${v.dishName} و${v.count - 1} أخرى - CraveCatch` : `${v.dishName} - ${v.restaurantName}`),
+    description: (v) => (v.count > 1 ? `${v.count} أطباق منها ${v.dishName} في ${v.restaurantName}. شاهد الصور والمراجعات على CraveCatch.` : `${v.dishName} في ${v.restaurantName}. شاهد الصور والمراجعات على CraveCatch.`),
   },
   'ko-KR': {
-    title: (v) => `${v.dishName} - ${v.restaurantName}`,
-    description: (v) => `${v.restaurantName}의 ${v.dishName}. CraveCatch에서 사진과 리뷰를 확인하세요.`,
+    title: (v) => (v.count > 1 ? `${v.dishName} 외 ${v.count - 1}건 - CraveCatch` : `${v.dishName} - ${v.restaurantName}`),
+    description: (v) => (v.count > 1 ? `${v.restaurantName}의 ${v.dishName}을(를) 포함한 ${v.count}건의 요리. CraveCatch에서 사진과 리뷰를 확인하세요.` : `${v.restaurantName}의 ${v.dishName}. CraveCatch에서 사진과 리뷰를 확인하세요.`),
   },
   'es-ES': {
-    title: (v) => `${v.dishName} - ${v.restaurantName}`,
-    description: (v) => `${v.dishName} en ${v.restaurantName}. Fotos y reseñas en CraveCatch.`,
+    title: (v) => (v.count > 1 ? `${v.dishName} y ${v.count - 1} más - CraveCatch` : `${v.dishName} - ${v.restaurantName}`),
+    description: (v) => (v.count > 1 ? `${v.count} platos incluyendo ${v.dishName} en ${v.restaurantName}. Fotos y reseñas en CraveCatch.` : `${v.dishName} en ${v.restaurantName}. Fotos y reseñas en CraveCatch.`),
   },
   'hi-IN': {
-    title: (v) => `${v.dishName} - ${v.restaurantName}`,
-    description: (v) => `${v.restaurantName} का ${v.dishName}। CraveCatch पर तस्वीरें और समीक्षाएँ देखें।`,
+    title: (v) => (v.count > 1 ? `${v.dishName} और ${v.count - 1} अन्य - CraveCatch` : `${v.dishName} - ${v.restaurantName}`),
+    description: (v) => (v.count > 1 ? `${v.restaurantName} के ${v.dishName} सहित ${v.count} व्यंजन। CraveCatch पर तस्वीरें और समीक्षाएँ देखें।` : `${v.restaurantName} का ${v.dishName}। CraveCatch पर तस्वीरें और समीक्षाएँ देखें।`),
   },
 };
 
