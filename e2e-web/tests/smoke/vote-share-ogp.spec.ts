@@ -1,5 +1,11 @@
-import { test, expect } from "../../fixtures/test";
+// 注: このファイルは «生の HTTP レスポンス» しか見ない（ブラウザを開かない）ため、
+// 例外的に fixtures/test ではなく @playwright/test を直接 import する。
+// fixtures/test の consoleErrors は auto フィクスチャで page に依存しており、
+// 経由するとテストごとに不要なブラウザページが起動する
+// （tests/config/firebase-rewrites.spec.ts と同じ理由）
+import { test, expect } from "@playwright/test";
 import { PUBLIC_LOCALES } from "@shared/api/v1/constants/publicLocales";
+import { metaContent, titleOf } from "../../utils/htmlMeta";
 
 /**
  * 🗳 友達投票の共有 URL が「ロケール別の静的 OGP」を返すこと @smoke
@@ -31,28 +37,30 @@ import { PUBLIC_LOCALES } from "@shared/api/v1/constants/publicLocales";
 /** 実在しないトークン。rewrite が効いていれば、存在有無に関わらず同じ HTML が返る */
 const ANY_TOKEN = "e2e-smoke-vote-token";
 
-const metaContent = (html: string, property: string): string | null => {
-	const patterns = [
-		new RegExp(`<meta\\s+property="${property}"\\s+content="([^"]*)"`, "i"),
-		new RegExp(`<meta\\s+content="([^"]*)"\\s+property="${property}"`, "i"),
-	];
-	for (const re of patterns) {
-		const m = html.match(re);
-		if (m) return m[1];
-	}
-	return null;
-};
-
-const titleOf = (html: string): string | null => {
-	const m = html.match(/<title>([\s\S]*?)<\/title>/i);
-	return m ? m[1].trim() : null;
-};
+/**
+ * rewrite を解釈する配信先を相手にしているか。
+ *
+ * 既定ではローカル（`scripts/serve-dist.mjs`）を skip する。あれは dist を素朴に返すだけで
+ * rewrite が無く、必ず赤くなるため。
+ *
+ * ただし **Firebase Hosting エミュレータは rewrite を解釈する**（本番と同じ superstatic）。
+ * `E2E_HOSTING_REWRITES=1` を付ければローカルでもこのテストを回せる:
+ *
+ *   pnpm --filter app-expo build:web
+ *   npx firebase emulators:start --only hosting --project demo-nanitabeyo
+ *   E2E_HOSTING_REWRITES=1 PLAYWRIGHT_BASE_URL=http://127.0.0.1:5006 \
+ *     pnpm --filter e2e-web exec playwright test tests/smoke/vote-share-ogp.spec.ts
+ *
+ * ⚠️ 自動判定（rewrite が効いていそうなら実行）にはしないこと。本番で rewrite が壊れた
+ * ときに **自動で skip して緑になる**ので、この検査の意味が消える。
+ */
+const shouldSkipLocal = (baseURL: string | undefined): boolean =>
+	process.env.E2E_HOSTING_REWRITES === "1" ? false : !baseURL || /localhost|127\.0\.0\.1/.test(baseURL);
 
 test.describe("友達投票の共有 URL の静的 OGP @smoke", () => {
-	// ローカルの dist 配信には rewrite が無い。ここで skip しないと必ず赤くなる
 	test.skip(
-		({ baseURL }) => !baseURL || /localhost|127\.0\.0\.1/.test(baseURL),
-		"Firebase Hosting の rewrite を見るテストなので、ローカル配信では実行しない",
+		({ baseURL }) => shouldSkipLocal(baseURL),
+		"Firebase Hosting の rewrite を見るテスト。rewrite の無いローカル配信では実行しない（エミュレータで回すなら E2E_HOSTING_REWRITES=1）",
 	);
 
 	// ─ テストケース: rewrite が効いているか（原因切り分け用のプローブ付き）─
@@ -75,16 +83,21 @@ test.describe("友達投票の共有 URL の静的 OGP @smoke", () => {
 		// 対照が壊れていたら、そもそも宛先の選び方が誤っている
 		expect(
 			controlLocale,
-			`対照 /ja-JP/search に og:locale が無い（status=${control.status()} / title=${titleOf(controlHtml)}）`,
+			`対照 /ja-JP/search に og:locale が無い（status=${control.status()} / og:title=${metaContent(controlHtml, "og:title")}）`,
 		).toBe("ja_JP");
 
 		expect(
 			targetLocale,
-			`投票 URL の og:locale が対照と違う。status=${target.status()} / title=${titleOf(targetHtml)} / ` +
+			`投票 URL の og:locale が対照と違う。status=${target.status()} / ` +
 				`og:title=${metaContent(targetHtml, "og:title")} — rewrite が効かず catch-all の index.html に落ちている疑い`,
 		).toBe("ja_JP");
 
-		expect(titleOf(targetHtml), "投票 URL の title が空").toBeTruthy();
+		// catch-all で返る root の index.html は `<title data-rh="true"></title>`（空）なので、
+		// title が埋まっていること自体が「prerender 済みページが返っている」証拠になる。
+		// ⚠️ 抽出は utils/htmlMeta.ts を使うこと。`<title>` 決め打ちの正規表現は
+		// 属性付き出力に一致せず、**全ページ null** に見えて誤診の元になった
+		expect(titleOf(targetHtml), "投票 URL の title が空（SPA シェルに落ちている疑い）").toBeTruthy();
+		expect(metaContent(targetHtml, "og:title"), "投票 URL の og:title が無い").toBeTruthy();
 		expect(metaContent(targetHtml, "og:image"), "投票 URL の og:image が無い").toBeTruthy();
 	});
 
@@ -105,10 +118,10 @@ test.describe("友達投票の共有 URL の静的 OGP @smoke", () => {
 			if (ogLocale !== expected) {
 				// ⚠️ 何が返っているのかを message に出すこと。status と og:locale だけだと
 				// 「rewrite が効いていない」のか「別のページが返っている」のかを切り分けられず、
-				// 実際に 3 往復した
+				// 実際に 3 往復した。og:url は «どの prerender か» を一意に示すので特に有用
 				mismatched.push(
-					`${locale}: status=${response.status()} og:locale=${ogLocale} title=${JSON.stringify(titleOf(html))} ` +
-						`canonical=${JSON.stringify(metaContent(html, "og:url"))}（期待 ${expected}）`,
+					`${locale}: status=${response.status()} og:locale=${ogLocale} ` +
+						`title=${JSON.stringify(titleOf(html))} og:url=${JSON.stringify(metaContent(html, "og:url"))}（期待 ${expected}）`,
 				);
 			}
 		}

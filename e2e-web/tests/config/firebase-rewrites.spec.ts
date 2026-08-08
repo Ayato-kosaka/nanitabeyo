@@ -6,6 +6,7 @@ import * as path from "node:path";
 //  経由するとテストごとに不要なブラウザページが起動してしまう)
 import { test, expect } from "@playwright/test";
 import { PUBLIC_LOCALES } from "@shared/api/v1/constants/publicLocales";
+import { metaContent } from "../../utils/htmlMeta";
 
 /**
  * 🔥 firebase.json rewrite 設定と dist 出力の整合性テスト
@@ -157,14 +158,20 @@ test.describe("firebase.json rewrite 整合性", () => {
 	// スモーク（`tests/smoke/vote-share-ogp.spec.ts`）で og:locale が全ロケール null
 	// になったとき、原因が «rewrite が効いていない» のか «宛先ファイルに OGP が無い» のか
 	// を切り分けられなかった。ここは **ファイルの中身**を見るので前者を排除できる。
+	//
+	// ## ⚠️ 抽出は必ず `utils/htmlMeta.ts` を使うこと（ここが本題）
+	// かつてこの検査は自前の緩い正規表現、スモークは自前の厳しい正規表現を持っていた。
+	// expo export の実際の出力は `<meta data-rh="true" property="og:locale" ...>` で、
+	// スモーク側だけが **一度も一致しない**状態だったため、
+	// 「ファイルには OGP がある / レスポンスには無い」という嘘の食い違いが生まれ、
+	// 無実の rewrite を 3 回書き換えた。共有の抽出器を **実ファイル相手に**通しておけば、
+	// 抽出器が厳しすぎる退行はデプロイ前のこのオフライン検査で落ちる。
 	test("投票 rewrite の宛先ファイルに og:locale が入っている", async () => {
 		const site = readHosting().find((h) => h.site === "app-nanitabeyo-net");
 		const problems: string[] = [];
 
 		for (const locale of PUBLIC_LOCALES) {
-			const rewrite = (site!.rewrites ?? []).find(
-				(r) => r.source === `/${locale}/search/dish-category-group-votes/**`,
-			);
+			const rewrite = (site!.rewrites ?? []).find((r) => r.source === `/${locale}/search/dish-category-group-votes/**`);
 			if (!rewrite?.destination) {
 				problems.push(`${locale}: rewrite が無い`);
 				continue;
@@ -175,10 +182,15 @@ test.describe("firebase.json rewrite 整合性", () => {
 				continue;
 			}
 			const html = fs.readFileSync(file, "utf-8");
-			const m = html.match(/<meta[^>]+property="og:locale"[^>]+content="([^"]*)"/i);
+			const ogLocale = metaContent(html, "og:locale");
 			const expected = locale.replace("-", "_");
-			if (!m) problems.push(`${locale}: ${rewrite.destination} に og:locale が無い`);
-			else if (m[1] !== expected) problems.push(`${locale}: og:locale=${m[1]}（期待 ${expected}）`);
+			if (ogLocale === null) problems.push(`${locale}: ${rewrite.destination} に og:locale が無い`);
+			else if (ogLocale !== expected) problems.push(`${locale}: og:locale=${ogLocale}（期待 ${expected}）`);
+
+			// スモークが実 URL に対して掛けるのと同じアサーションを、宛先ファイルへ先に掛ける。
+			// ここが緑なら「スモークが落ちたら原因は Hosting 側」と断定できる
+			if (!metaContent(html, "og:title")) problems.push(`${locale}: ${rewrite.destination} に og:title が無い`);
+			if (!metaContent(html, "og:image")) problems.push(`${locale}: ${rewrite.destination} に og:image が無い`);
 		}
 
 		expect(problems, "投票 rewrite の宛先ファイルの OGP").toEqual([]);
