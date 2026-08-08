@@ -447,14 +447,21 @@ describe("buildPlan()", () => {
 			affectedUsers: 100 - index,
 			anonymousOccurrences: 0,
 		}));
+		// 上限は明示的に渡す。CREATE_LIMIT の実値（オーナー判断で 5 → 20）を変えても、
+		// 「溢れた分は capped として可視化される」という性質のテストは壊れてはいけない。
 		const capped = buildPlan({
 			envelope: buildEnvelope({ rows: many, runSummary, window: WINDOW, generatedAt: GENERATED_AT, query: QUERY })
 				.envelope,
 			issues: [],
+			limits: { createLimit: 5 },
 		});
-		expect(capped.counts.create).toBe(CREATE_LIMIT);
-		expect(capped.counts.capped).toBe(8 - CREATE_LIMIT);
-		expect(capped.deferred).toHaveLength(8 - CREATE_LIMIT);
+		expect(capped.counts.create).toBe(5);
+		expect(capped.counts.capped).toBe(3);
+		expect(capped.deferred).toHaveLength(3);
+	});
+
+	it("既定の CREATE_LIMIT は 20（オーナー判断。実データの 21 グループを初回20件・翌日1件で捌く）", () => {
+		expect(CREATE_LIMIT).toBe(20);
 	});
 
 	it("未知 fingerprint が PANIC 閾値を超えたら1件も起票しない（#1198 §3）", () => {
@@ -539,5 +546,53 @@ describe("buildPlan()", () => {
 		const envelope = makeEnvelope();
 		const args = { envelope, issues: existingIssues, commitDates: COMMIT_DATES_AFTER_CLOSE };
 		expect(buildPlan(args)).toEqual(buildPlan(args));
+	});
+});
+
+describe("checkAlgoVersions()（#1198 §8-A の安全装置）", () => {
+	const { checkAlgoVersions } = require("./triage");
+
+	it("索引が空（初回）なら不一致にしない", () => {
+		expect(checkAlgoVersions(new Map())).toEqual({ ok: true, versions: [], message: null });
+	});
+
+	it("全部が現行世代なら通す", () => {
+		const { index } = buildIndex(existingIssues);
+		expect(checkAlgoVersions(index).ok).toBe(true);
+	});
+
+	it("1件でも世代が違えば止める（全件再起票を構造的に防ぐ）", () => {
+		const tampered = existingIssues.map((issue) =>
+			issue.number === 1201 ? { ...issue, body: String(issue.body).replace("fpalgo:1", "fpalgo:2") } : issue,
+		);
+		const { index } = buildIndex(tampered);
+		const result = checkAlgoVersions(index);
+		expect(result.ok).toBe(false);
+		expect(result.versions).toEqual([1, 2]);
+		expect(result.message).toContain("移行 run");
+	});
+
+	it("buildPlan は不一致のとき abort を立て、create も reopen も 0 件にする", () => {
+		const tampered = existingIssues.map((issue) =>
+			issue.number === 1202 ? { ...issue, body: String(issue.body).replace("fpalgo:1", "fpalgo:3") } : issue,
+		);
+		const plan = buildPlan({
+			envelope: buildEnvelope({ rows, runSummary, window: WINDOW, generatedAt: GENERATED_AT, query: QUERY }).envelope,
+			issues: tampered,
+		});
+		expect(plan.abort).toBe(true);
+		expect(plan.abortReason).toContain("fpalgo 不一致");
+		expect(plan.counts.create).toBe(0);
+		expect(plan.counts.reopen).toBe(0);
+		expect(plan.warnings.join("\n")).toContain("fpalgo 不一致");
+	});
+
+	it("通常時は abort が立たない", () => {
+		const plan = buildPlan({
+			envelope: buildEnvelope({ rows, runSummary, window: WINDOW, generatedAt: GENERATED_AT, query: QUERY }).envelope,
+			issues: existingIssues,
+		});
+		expect(plan.abort).toBe(false);
+		expect(plan.abortReason).toBeNull();
 	});
 });

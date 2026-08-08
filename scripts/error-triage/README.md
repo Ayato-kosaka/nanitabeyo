@@ -2,7 +2,7 @@
 
 本番ログ（BigQuery）の `error` を日次でトリアージし、未知のエラーグループを [#1196](https://github.com/Ayato-kosaka/nanitabeyo/issues/1196) の Sub Issue として起票する仕組みの実装。
 
-**このディレクトリの現状は PR2 です。** BigQuery からの読み取り（`bq.js`）と、Issue を起票しない dry-run の `plan` 経路までが入っています。GitHub API を叩くコード（`github.js` / `apply` / `triage` Job / `schedule` トリガ）はまだ1行も入っていません。
+**このディレクトリの現状は PR3（最終）です。** BigQuery からの読み取り（`bq.js`）、突合と起票計画（`triage.js`）、GitHub API と適用（`github.js`）まで揃っています。
 
 確定設計は #1196 のコメント「【横断レビュー】#1197 / #1198 / #1199 の統合設計」です。#1197 / #1198 / #1199 の個別設計は参考資料で、レビューと矛盾する箇所はレビューが優先します。
 
@@ -11,28 +11,29 @@
 | PR      | 内容                                                                                         | 状態     |
 | ------- | -------------------------------------------------------------------------------------------- | -------- |
 | PR1     | 純関数群・fixture・ユニットテスト・workspace 登録                                            | マージ済 |
-| **PR2** | `sql/error-triage.sql`（生成物）+ 生成器 + 一致検査、`bq.js`、`plan`（dry-run）Job、WIF 認証 | **これ** |
-| PR3     | `github.js`、`apply` 経路、`triage` Job、`schedule` トリガ、sub-issue 紐付け、親の常駐サマリ | 未着手   |
+| PR2     | `sql/error-triage.sql`（生成物）+ 生成器 + 一致検査、`bq.js`、`plan`（dry-run）Job、WIF 認証 | マージ済 |
+| **PR3** | `github.js`、`apply` 経路、`triage` Job、`schedule` トリガ、sub-issue 紐付け、親の常駐サマリ | **これ** |
 
 唯一の不可逆な副作用（Issue の起票）を最後の PR に隔離し、それ以前に「何が起票されるか」を実データで数日観測できる状態を作るのが、この順序の目的です。
 
 ## ファイル
 
-| ファイル             | 役割                                                                                         | 外部I/O |
-| -------------------- | -------------------------------------------------------------------------------------------- | ------- |
-| `constants.js`       | 契約とガードレールの定数（`SCHEMA_VERSION` / `FP_ALGO_VERSION` / 除外ステータス / 各種上限） | なし    |
-| `normalize-rules.js` | **置換ルール表＋後処理（唯一の正）** と `normalize()`                                        | なし    |
-| `fingerprint.js`     | fingerprint のハッシュ合成、`-- fpalgo: N` の一致検査                                        | なし    |
-| `window.js`          | 25h スライド窓の計算、RFC3339 UTC、clock の注入点                                            | なし    |
-| `triage.js`          | 契約エンベロープの組み立て・検証、索引、状態遷移、優先順位付け、起票計画                     | なし    |
-| `render.js`          | Issue 本文・タイトル・Job Summary・常駐サマリの整形、本文マーカーの読み書き                  | なし    |
-| `sql-generator.js`   | **ルール表から BigQuery SQL を生成する**（純関数。文字列を返すだけ）                         | なし    |
-| `generate-sql.js`    | `sql/error-triage.sql` を書き出す CLI                                                        | ファイル |
-| `sql/error-triage.sql` | **生成物**（直接編集しない）。窓のリテラル2つだけがテンプレート変数                        | —       |
-| `bq.js`              | BigQuery REST `jobs.query` の直叩き、コストガード2層、契約エンベロープの組み立て             | ネットワーク |
-| `main.js`            | 唯一のエントリポイント。`plan`（dry-run）サブコマンドのみ実装（`apply` は PR3）              | 実時刻/ファイル/ネットワーク |
-| `__fixtures__/`      | 固定JSON（正規化ケース / SQL 出力行 / 既存 Issue 一覧 / runSummary）                         | —       |
-| `*.test.js`          | 上記のユニットテスト（実装とコロケート）。BigQuery も GitHub も叩かない                      | なし    |
+| ファイル               | 役割                                                                                         | 外部I/O                      |
+| ---------------------- | -------------------------------------------------------------------------------------------- | ---------------------------- |
+| `constants.js`         | 契約とガードレールの定数（`SCHEMA_VERSION` / `FP_ALGO_VERSION` / 除外ステータス / 各種上限） | なし                         |
+| `normalize-rules.js`   | **置換ルール表＋後処理（唯一の正）** と `normalize()`                                        | なし                         |
+| `fingerprint.js`       | fingerprint のハッシュ合成、`-- fpalgo: N` の一致検査                                        | なし                         |
+| `window.js`            | 25h スライド窓の計算、RFC3339 UTC、clock の注入点                                            | なし                         |
+| `triage.js`            | 契約エンベロープの組み立て・検証、索引、状態遷移、優先順位付け、起票計画                     | なし                         |
+| `render.js`            | Issue 本文・タイトル・Job Summary・常駐サマリの整形、本文マーカーの読み書き                  | なし                         |
+| `sql-generator.js`     | **ルール表から BigQuery SQL を生成する**（純関数。文字列を返すだけ）                         | なし                         |
+| `generate-sql.js`      | `sql/error-triage.sql` を書き出す CLI                                                        | ファイル                     |
+| `sql/error-triage.sql` | **生成物**（直接編集しない）。窓のリテラル2つだけがテンプレート変数                          | —                            |
+| `bq.js`                | BigQuery REST `jobs.query` の直叩き、コストガード2層、契約エンベロープの組み立て             | ネットワーク                 |
+| `github.js`            | GitHub REST（索引・起票・reopen・body 更新・sub-issue 紐付け・常駐サマリ）と `applyPlan`     | ネットワーク                 |
+| `main.js`              | 唯一のエントリポイント。`plan`（dry-run）と `apply`（書き込み）                              | 実時刻/ファイル/ネットワーク |
+| `__fixtures__/`        | 固定JSON（正規化ケース / SQL 出力行 / 既存 Issue 一覧 / runSummary）                         | —                            |
+| `*.test.js`            | 上記のユニットテスト（実装とコロケート）。BigQuery も GitHub も叩かない                      | なし                         |
 
 ## SQL の再生成
 
@@ -94,6 +95,15 @@ CI では `.github/workflows/pr-check.yml` の「error-triage のユニットテ
 
 `window.js` は `Date.now()` / 引数なしの `new Date()` を呼びません。実時刻の入口は `systemClock()` ただ1つで、これを呼ぶのはエントリポイント（PR2/PR3 の `main.js`）だけです。これにより `plan` 出力がバイト単位で再現します。
 
+### `CREATE_LIMIT = 20`（オーナー判断）
+
+#1196 の当初値は 5 でしたが、PR2 の dry-run を本番で回した実データに基づき **20** へ引き上げました。
+25h 窓の除外後エラーグループは **21 件**（backend 10 / frontend 11、保持行 5,575）で、除外前 526 件の
+うち 505 件は `ApiExceptionFilter` / `HttpException` の 404（`wp-login.php` `.env` `wp-json/` 等の
+外部脆弱性スキャナ）── E6 の除外が正しく落としています。5 のままだと 21 件を捌くのに5日かかり、
+その間ずっと「毎日5件ずつ増える」状態になります。20 なら初回 20 件・翌日 1 件で収束します。
+`PANIC_THRESHOLD`（50）には届かず、`GROUP_LIMIT`（500）の切り捨ても起きません。
+
 ### 除外ステータス（レビュー §6-4 / S3）
 
 除外は `401, 403, 404, 408, 425, 426, 429` のみ。**`400` / `409` / `422` は残します。**
@@ -108,16 +118,16 @@ fingerprint 定義は SQL 側の正規化と JS 側の合成に跨がります�
 `sql/error-triage.sql` は `sql-generator.js` の出力です。生成器が守っている制約は次のとおりで、
 どれも `sql-generator.test.js` が機械的に検査します。
 
-| 制約 | なぜ |
-| --- | --- |
-| **単一文**（`CREATE TEMP FUNCTION` を使わない） | multi-statement script になると `dryRun` がバイト見積りを返さず、コストガードの第2層が黙って無効化される（B3） |
-| 正規化式は `UNNEST([...]) WITH OFFSET` で**1回だけ**書く | 5箇所へコピペするとルール表との対応が壊れる。`norm[OFFSET(n)]` で取り出す |
-| `re2Pattern` は**三重引用 `r'''...'''`** で埋め込む | ルール6（url-query）が `'` と `"` を両方含むため、`r'...'` も `r"..."` も構文エラーになる（PR #1200 再レビュー） |
-| `LIMIT` ではなく `QUALIFY ROW_NUMBER() OVER (...) <= 500` | `runSummary.groupCount` を**制限前**の CTE から数えないと、切り捨て検知（G3）が原理的に不能になる |
-| 窓は**リテラル埋め込み**。`CURRENT_TIMESTAMP()` を使わない | パーティション枝刈りが外れた瞬間 22.8GiB のフルスキャンになる |
-| ビュー・`*_legacy` を参照しない / `TO_JSON_STRING(jsonPayload)` を使わない | ビューの `created_at` は計算列で枝刈りが効かず 18.4GB/日。全リーフ読みも同じ爆発を再現する |
-| `GROUP BY` は `fingerprint.js` の `FINGERPRINT_KEY_FIELDS` と**完全一致** | SQL の1行と JS の1グループが 1:1 でないと `affectedUsers` が `occurrences` に退化する（B1） |
-| `ANY_VALUE()` を使わない | fingerprint に含まれない列へ使うと出力が非決定的になり、同じ入力から違う Issue 本文が出る（N4） |
+| 制約                                                                       | なぜ                                                                                                             |
+| -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| **単一文**（`CREATE TEMP FUNCTION` を使わない）                            | multi-statement script になると `dryRun` がバイト見積りを返さず、コストガードの第2層が黙って無効化される（B3）   |
+| 正規化式は `UNNEST([...]) WITH OFFSET` で**1回だけ**書く                   | 5箇所へコピペするとルール表との対応が壊れる。`norm[OFFSET(n)]` で取り出す                                        |
+| `re2Pattern` は**三重引用 `r'''...'''`** で埋め込む                        | ルール6（url-query）が `'` と `"` を両方含むため、`r'...'` も `r"..."` も構文エラーになる（PR #1200 再レビュー） |
+| `LIMIT` ではなく `QUALIFY ROW_NUMBER() OVER (...) <= 500`                  | `runSummary.groupCount` を**制限前**の CTE から数えないと、切り捨て検知（G3）が原理的に不能になる                |
+| 窓は**リテラル埋め込み**。`CURRENT_TIMESTAMP()` を使わない                 | パーティション枝刈りが外れた瞬間 22.8GiB のフルスキャンになる                                                    |
+| ビュー・`*_legacy` を参照しない / `TO_JSON_STRING(jsonPayload)` を使わない | ビューの `created_at` は計算列で枝刈りが効かず 18.4GB/日。全リーフ読みも同じ爆発を再現する                       |
+| `GROUP BY` は `fingerprint.js` の `FINGERPRINT_KEY_FIELDS` と**完全一致**  | SQL の1行と JS の1グループが 1:1 でないと `affectedUsers` が `occurrences` に退化する（B1）                      |
+| `ANY_VALUE()` を使わない                                                   | fingerprint に含まれない列へ使うと出力が非決定的になり、同じ入力から違う Issue 本文が出る（N4）                  |
 
 `jsonPayload.error_message` は **STRUCT に存在しません**（オーナーが `bq show --schema` で確認済み）。
 直接参照するとクエリ全体が `Field name error_message does not exist in STRUCT` で落ちるため、
@@ -143,14 +153,84 @@ REST のリクエストボディに `maximumBytesBilled` と `dryRun` を入れ�
 2. 本クエリの前に `dryRun: true` で見積もり、200MB を超えていたら**本クエリを投げずに fail** します。
    毎日の実スキャン量が Job Summary に残るので、じわじわ増えていることにも気づけます。
 
-### dry-run の回し方（PR2 時点）
+### GitHub 同期（PR3 / `github.js`）
+
+**索引は `list_issues` のラベルフィルタで作ります。`search_issues` は使いません。**
+検索インデックスの反映が遅れるため、起票直後の run で「まだ検索に出てこない」→「未知 fingerprint」→
+**重複起票**が普通に起きます。`GET /repos/{o}/{r}/issues?labels=error-triage&state=all` は
+検索インデックス非依存です。`sort=created&direction=asc` を明示するのは、既定の `created desc` だと
+ページング中に新規 Issue ができた瞬間に全体が後ろへずれて1件読み飛ばすためです。
+
+第2の索引源として `GET /repos/{o}/{r}/issues/1196/sub_issues` を和集合に入れます（レビュー §4）。
+ラベルに一切依存しないので、人間が `error-triage` ラベルを外しても救われます
+（`err/auto` の2枚目ラベルは §4 で却下されました）。**これが失敗しても run は落としません。**
+
+| 状態                    | 条件                                         | アクション                                    | 通知 |
+| ----------------------- | -------------------------------------------- | --------------------------------------------- | ---- |
+| `NEW`                   | 索引に無い                                   | 起票（`CREATE_LIMIT` の枠内）                 | あり |
+| `SKIPPED`               | `err/skip` 付き（open / closed 問わず）      | **API コール0**。reopen もしない              | なし |
+| `KNOWN_OPEN`            | open                                         | body の自動領域だけ更新（スロットリングつき） | なし |
+| `CLOSED_WONTFIX`        | closed(not_planned)                          | reopen しない。body のみ                      | なし |
+| `REGRESSION`            | closed かつ `closedAt + 24h` 以降に 3 件以上 | 回帰コメント → reopen                         | あり |
+| `RECURRENCE_SUPPRESSED` | closed だが猶予内 / 件数不足 / 旧ビルドのみ  | 何もしない                                    | なし |
+| `STALE_OPEN`            | BigQuery に出てこない open                   | **自動 close しない**                         | なし |
+
+通知が飛ぶ操作は**「新規起票」と「回帰 reopen + コメント」の2つだけ**です。既存 open Issue の
+件数更新は body の PATCH で行います（本文編集では通知が飛びません）。
+
+**冪等性の担保**は「状態を持たず、毎回 GitHub の索引から再構成する」ことです。加えて:
+
+- **起票の直前に索引を取り直す**。計画を作ってから今までの間に別 run が起票していたら気づいて飛ばす
+- POST / PATCH は**自動リトライしない**。結果不明になったらバックオフして索引を読み直し、「読めた事実」で判断する
+- 回帰コメントは `<!-- error-triage:regression:{fp}:{YYYY-MM-DD} -->` マーカーで重複投稿を抑止する。
+  マーカー探索は `since=closedAt` で絞る（issue comments API は古い順にしか返さず `sort` / `direction` を
+  受け付けないため、ページ数で頭打ちにすると**最も古い 300 件**しか読めず、最新側にあるマーカーを取り逃がす）
+- 起票が本当に失敗したらその run では起票を打ち切る（二次レート制限を引き当てない）
+- `fpalgo` が既存 Issue と食い違ったら**1バイトも書かずに止める**（#1198 §8-A）
+
+**sub-issue の紐付けは best-effort** です（レビュー §6-2）。起票は単一 POST で原子的に完了させ、
+紐付けはその後。失敗しても run を落とさず、失敗件数を Job Summary へ出します。
+**上限に近づいても古い sub-issue を親から自動 DELETE しません**（S11）。紐付けが不安定な状態で
+付け外しを自動化すると reconcile と競合して振動します。`github.js` に DELETE は1本もありません。
+`err/skip` の Issue は reconcile の対象外です（恒久無視と決めたものを親へぶら下げると、
+自動 DELETE を禁じている以上、100 件のソフト上限枠を人手でしか回収できなくなるため）。
+
+**書き込みを止める理由は2種類あり、止め方が違います。**
+
+| 理由                     | 起票 / reopen / body 更新 | 親の常駐サマリ | 終了コード |
+| ------------------------ | ------------------------- | -------------- | ---------- |
+| `abort`（fpalgo 不一致） | **1バイトも書かない**     | 書かない       | 1          |
+| `panic` / 契約違反       | 書かない                  | **書く**       | 1          |
+| `--dry-run`              | 書かない                  | 書かない       | 0          |
+
+`panic` / 契約違反で常駐サマリだけ残すのは、Job Summary が 90 日で消えるからです（G5）。
+一番あとから振り返りたい run の記録だけが消える、という状態にしません。
+
+**Issue 本文へ載せる `messagePattern` は、埋め込む直前にサニタイズします**（`sanitizeInlineText`）。
+本番の任意のエラーメッセージ（サードパーティ API の文言も通る）を正規化しただけの値で、
+`` ` `` / `|` / `<!-- -->` は正規化ルールが触りません。無escape で埋めると、
+自動領域の終了マーカー注入で body が毎 run 膨張し、バックティックが閉じると `@ユーザー名` が
+コードスパンの外へ出て**実在ユーザーへ通知が飛び**ます。
+サニタイズは**表示直前だけ**で、`fingerprint` の計算入力には持ち込みません（持ち込むと突合が全部外れます）。
+
+### 回し方
 
 ```bash
-gh workflow run error-triage.yml -f lookback_hours=25
-# ブランチで検証する間は --ref を明示（schedule はまだ無く、workflow_dispatch のみ）
-gh workflow run error-triage.yml --ref <branch> -f lookback_hours=25
+# BigQuery だけ見る（issues: read。突合しない）
+gh workflow run error-triage.yml -f mode=plan -f lookback_hours=25
+# 既存 Issue と突合するが1バイトも書かない（issues: read）
+gh workflow run error-triage.yml -f mode=preview
+# 起票する（issues: write）。日次 09:00 JST の schedule と同じ経路
+gh workflow run error-triage.yml -f mode=apply
 ```
 
-`plan` Job は `issues: read` しか持たないため、Issue の起票・reopen・コメントは**権限レベルで不可能**です。
-PR2 の時点ではまだ既存 Issue を読んでいない（`github.js` が PR3）ので、全グループが「未知の fingerprint」
-として扱われます。ここで見るべきは**エラーグループの種類数と `excludedBreakdown` の内訳**です。
+`plan` / `preview` Job は `issues: write` を持たないため、Issue の起票・reopen・コメントは
+**権限レベルで不可能**です。`permissions:` は Job 単位でしか効かないので、フラグ方式（`--dry-run` だけ）に
+頼らず Job を分けています。
+
+ローカルでの確認:
+
+```bash
+GCP_PROJECT_ID=... BQ_ACCESS_TOKEN=... GITHUB_TOKEN=... GITHUB_REPOSITORY=Ayato-kosaka/nanitabeyo \
+  node scripts/error-triage/main.js apply --dry-run --out /tmp/plan.json
+```

@@ -44,8 +44,18 @@ const GROUP_LIMIT = 500;
  */
 const MAX_BYTES_BILLED = 200000000;
 
-/** 1 run あたりの新規起票上限（#1196 で確定）。 */
-const CREATE_LIMIT = 5;
+/**
+ * 1 run あたりの新規起票上限。
+ *
+ * #1196 の当初値は 5 だったが、**オーナー判断で 20 へ引き上げ**た（#1196「オーナー対応・判断結果」）。
+ * 根拠は実データ: PR2 の dry-run を本番で回し、25h 窓の除外後エラーグループは **21 件**
+ * （backend 10 / frontend 11、保持行 5,575）だった。除外前 526 件のうち 505 件は
+ * `ApiExceptionFilter` / `HttpException` の 404（`wp-login.php` `.env` `wp-json/` 等の
+ * 外部脆弱性スキャナ）で、E6 の除外が正しく落としている。
+ * 5 のままだと 21 件を捌くのに5日かかり、その間ずっと「毎日5件ずつ増える」状態になる。
+ * 20 なら初回 20 件・翌日 1 件で収束する。
+ */
+const CREATE_LIMIT = 20;
 /** 1 run あたりの reopen 上限。回帰の一斉 reopen による通知洪水を防ぐ（#1198 §2）。 */
 const REOPEN_LIMIT = 5;
 /** 1 run あたりの body 更新上限（#1198 §2）。 */
@@ -56,6 +66,53 @@ const PANIC_THRESHOLD = 50;
 const GRACE_HOURS = 24;
 /** 猶予後にこの件数以上出ていないと reopen しない（#1198 §5-A(2)）。 */
 const MIN_EVENTS_REOPEN = 3;
+
+// ---------------------------------------------------------------------------
+// PR3: GitHub 同期側の定数
+// ---------------------------------------------------------------------------
+
+/** 起票先の親 Issue。Sub-issue 紐付けと常駐サマリコメントの置き場所（#1196）。 */
+const PARENT_ISSUE_NUMBER = 1196;
+
+/**
+ * 索引に使うラベル。**1枚だけ**（横断レビュー §4 で `err/auto` の追加は却下）。
+ * 冗長化はラベルの枚数ではなく「親の sub_issues を第2の索引源にする」で行う。
+ */
+const TRIAGE_LABEL = "error-triage";
+
+/** 恒久無視のラベル。オーナーが作成済み（色 `#6e7781`）。スクリプトからは作らない。 */
+const SKIP_LABEL = "err/skip";
+
+/**
+ * 索引のページング上限（100件/page × 50 = 5000件）。
+ * 超えたら**1件も書かずに abort** する。部分索引のまま起票すると既存 Issue を重複起票する（#1198 §1-B）。
+ */
+const MAX_INDEX_PAGES = 50;
+
+/** 再発判定 (3) の commit 日時解決に使う API 呼び出しの上限 / run（#1198 §2）。 */
+const COMMIT_LOOKUP_LIMIT = 30;
+
+/** 1 run で貼り直す sub-issue 紐付けの上限。best-effort なので溢れたら次回に回す。 */
+const SUB_ISSUE_LINK_LIMIT = 20;
+
+/**
+ * 親1件あたりの sub-issue 上限（100 と認識。#1198 §10-1 は未確認としている）と、警告を出す閾値。
+ *
+ * ★ S11: **上限接近時に古い sub-issue を親から自動 DELETE してはならない**（#1198 §7-14 は削除）。
+ *   紐付け自体が best-effort な状態で付け外しを自動化すると reconcile と競合して振動する。
+ *   ここでできるのは**警告だけ**で、外すかどうかは人間が決める。
+ */
+const SUB_ISSUE_SOFT_LIMIT = 100;
+const SUB_ISSUE_WARN_THRESHOLD = 80;
+
+/** 自動領域を最後に更新してからこの日数が過ぎたら、変化が無くても body を更新する（#1198 §6-C(2)）。 */
+const BODY_STALE_DAYS = 7;
+
+/** GET のリトライ回数。**POST / PATCH / DELETE はリトライしない**（#1198 §7-4）。 */
+const GET_RETRY_LIMIT = 3;
+
+/** 起票の POST が結果不明で落ちたときに、索引を読み直すまで待つ時間（ms）（#1198 §7-4 / §10-5）。 */
+const CREATE_RECHECK_DELAY_MS = 3000;
 
 /**
  * 一時障害として扱う HTTP ステータス。
@@ -112,6 +169,17 @@ module.exports = Object.freeze({
 	PANIC_THRESHOLD,
 	GRACE_HOURS,
 	MIN_EVENTS_REOPEN,
+	PARENT_ISSUE_NUMBER,
+	TRIAGE_LABEL,
+	SKIP_LABEL,
+	MAX_INDEX_PAGES,
+	COMMIT_LOOKUP_LIMIT,
+	SUB_ISSUE_LINK_LIMIT,
+	SUB_ISSUE_SOFT_LIMIT,
+	SUB_ISSUE_WARN_THRESHOLD,
+	BODY_STALE_DAYS,
+	GET_RETRY_LIMIT,
+	CREATE_RECHECK_DELAY_MS,
 	TRANSIENT_HTTP_STATUSES,
 	EXCLUDED_HTTP_STATUSES,
 	EXCLUSION_REASONS,
