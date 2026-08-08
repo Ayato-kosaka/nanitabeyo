@@ -128,8 +128,10 @@ test.describe("firebase.json rewrite 整合性", () => {
 					missing.push(source);
 					continue;
 				}
-				if (rewrite.destination !== `/${locale}/search/index.html`) {
-					mismatched.push(`${source} -> ${rewrite.destination}`);
+				// ⚠️ `cleanUrls: true` なので destination は clean URL（拡張子なし）で書く。
+				// `/x/index.html` を直接指すと Firebase 側で解決されない
+				if (rewrite.destination !== `/${locale}/search`) {
+					mismatched.push(`${source} -> ${rewrite.destination}（期待 /${locale}/search）`);
 				}
 			}
 
