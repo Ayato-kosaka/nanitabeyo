@@ -162,35 +162,35 @@
 				},
 				{
 					"source": "/ja-JP/search/dish-category-group-votes/**",
-					"destination": "/ja-JP/search/index.html"
+					"destination": "/ja-JP/search"
 				},
 				{
 					"source": "/en-US/search/dish-category-group-votes/**",
-					"destination": "/en-US/search/index.html"
+					"destination": "/en-US/search"
 				},
 				{
 					"source": "/fr-FR/search/dish-category-group-votes/**",
-					"destination": "/fr-FR/search/index.html"
+					"destination": "/fr-FR/search"
 				},
 				{
 					"source": "/zh-CN/search/dish-category-group-votes/**",
-					"destination": "/zh-CN/search/index.html"
+					"destination": "/zh-CN/search"
 				},
 				{
 					"source": "/ar-SA/search/dish-category-group-votes/**",
-					"destination": "/ar-SA/search/index.html"
+					"destination": "/ar-SA/search"
 				},
 				{
 					"source": "/ko-KR/search/dish-category-group-votes/**",
-					"destination": "/ko-KR/search/index.html"
+					"destination": "/ko-KR/search"
 				},
 				{
 					"source": "/es-ES/search/dish-category-group-votes/**",
-					"destination": "/es-ES/search/index.html"
+					"destination": "/es-ES/search"
 				},
 				{
 					"source": "/hi-IN/search/dish-category-group-votes/**",
-					"destination": "/hi-IN/search/index.html"
+					"destination": "/hi-IN/search"
 				},
 				{
 					"source": "**",
@@ -349,35 +349,35 @@
 				},
 				{
 					"source": "/ja-JP/search/dish-category-group-votes/**",
-					"destination": "/ja-JP/search/index.html"
+					"destination": "/ja-JP/search"
 				},
 				{
 					"source": "/en-US/search/dish-category-group-votes/**",
-					"destination": "/en-US/search/index.html"
+					"destination": "/en-US/search"
 				},
 				{
 					"source": "/fr-FR/search/dish-category-group-votes/**",
-					"destination": "/fr-FR/search/index.html"
+					"destination": "/fr-FR/search"
 				},
 				{
 					"source": "/zh-CN/search/dish-category-group-votes/**",
-					"destination": "/zh-CN/search/index.html"
+					"destination": "/zh-CN/search"
 				},
 				{
 					"source": "/ar-SA/search/dish-category-group-votes/**",
-					"destination": "/ar-SA/search/index.html"
+					"destination": "/ar-SA/search"
 				},
 				{
 					"source": "/ko-KR/search/dish-category-group-votes/**",
-					"destination": "/ko-KR/search/index.html"
+					"destination": "/ko-KR/search"
 				},
 				{
 					"source": "/es-ES/search/dish-category-group-votes/**",
-					"destination": "/es-ES/search/index.html"
+					"destination": "/es-ES/search"
 				},
 				{
 					"source": "/hi-IN/search/dish-category-group-votes/**",
-					"destination": "/hi-IN/search/index.html"
+					"destination": "/hi-IN/search"
 				},
 				{
 					"source": "**",

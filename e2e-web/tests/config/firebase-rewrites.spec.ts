@@ -43,6 +43,24 @@ type Rewrite = {
 /** 静的アセットを配信するサイト（dist を public に持つもの） */
 const DIST_SITES = ["app-nanitabeyo-net", "nanitabeyo-dev"] as const;
 
+/**
+ * destination が dist の «何か» に解決できるか。
+ *
+ * ⚠️ **ファイルの存在だけを見ないこと。** この設定は `cleanUrls: true` なので、
+ * Firebase Hosting は `X/index.html` を URL `X` として配信する。したがって
+ * destination には `/ja-JP/search`（拡張子なし）も正当に書ける。
+ * 素朴に `existsSync(destination)` だけを見ると、正しい設定を弾いてしまう。
+ *
+ * @returns 実体のパス。解決できなければ null
+ */
+function resolveDestination(destination: string): string | null {
+	const base = path.join(DIST_DIR, destination.replace(/^\//, ""));
+	for (const candidate of [base, path.join(base, "index.html"), `${base}.html`]) {
+		if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) return candidate;
+	}
+	return null;
+}
+
 const readHosting = (): Array<{ site?: string; rewrites?: Rewrite[] }> =>
 	(
 		JSON.parse(fs.readFileSync(FIREBASE_JSON_PATH, "utf-8")) as {
@@ -69,7 +87,7 @@ test.describe("firebase.json rewrite 整合性", () => {
 
 			const missing = site!
 				.rewrites!.filter((rewrite) => rewrite.destination !== undefined)
-				.filter((rewrite) => !fs.existsSync(path.join(DIST_DIR, rewrite.destination!.replace(/^\//, ""))))
+				.filter((rewrite) => resolveDestination(rewrite.destination!) === null)
 				.map((rewrite) => `${rewrite.source} -> ${rewrite.destination}`);
 
 			expect(
@@ -148,9 +166,9 @@ test.describe("firebase.json rewrite 整合性", () => {
 				problems.push(`${locale}: rewrite が無い`);
 				continue;
 			}
-			const file = path.join(DIST_DIR, rewrite.destination.replace(/^\//, ""));
-			if (!fs.existsSync(file)) {
-				problems.push(`${locale}: ${rewrite.destination} が dist に無い`);
+			const file = resolveDestination(rewrite.destination);
+			if (!file) {
+				problems.push(`${locale}: ${rewrite.destination} が dist に解決できない`);
 				continue;
 			}
 			const html = fs.readFileSync(file, "utf-8");

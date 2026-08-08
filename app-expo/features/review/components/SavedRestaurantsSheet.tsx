@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useCallback, useState, forwardRef, useImperativeHandle } from "react";
 import { View, StyleSheet, Text, TouchableOpacity, useWindowDimensions, Platform } from "react-native";
 import { DetentChangeEvent, TrueSheet } from "@lodev09/react-native-true-sheet";
+import { presentSheetSafely, dismissSheetSafely } from "@/lib/trueSheet";
 import { Carousel, type CarouselRef } from "react-native-reanimated-carousel";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { Image } from "expo-image";
@@ -140,17 +141,17 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 		// 親コンポーネントから present/dismiss を呼び出せるようにする
 		useImperativeHandle(ref, () => ({
 			present: async () => {
-				await sheetRef.current?.present();
+				await presentSheetSafely(sheetRef);
 			},
 			dismiss: async () => {
-				await sheetRef.current?.dismiss();
+				await dismissSheetSafely(sheetRef);
 			},
 		}));
 
 		useEffect(() => {
 			// visible の変化に応じて TrueSheet を開閉
 			if (!visible) {
-				sheetRef.current?.dismiss();
+				void dismissSheetSafely(sheetRef);
 				return;
 			}
 
@@ -162,7 +163,7 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 				raf1 = requestAnimationFrame(() => {
 					raf2 = requestAnimationFrame(async () => {
 						if (cancelled) return;
-						await sheetRef.current?.present();
+						await presentSheetSafely(sheetRef);
 					});
 				});
 			});
@@ -182,7 +183,7 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 					clearTimeout(draggingTimeoutRef.current);
 				}
 				// #644 コンポーネントアンマウント時に確実に閉じておく
-				sheetRef.current?.dismiss();
+				void dismissSheetSafely(sheetRef);
 			};
 		}, []);
 

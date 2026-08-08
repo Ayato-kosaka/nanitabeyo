@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { View, StyleSheet, TouchableOpacity, Text, FlatList, useWindowDimensions } from "react-native";
 import { TrueSheet } from "@lodev09/react-native-true-sheet";
+import { presentSheetSafely, dismissSheetSafely } from "@/lib/trueSheet";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { TutorialPage } from "@/components/TutorialPage";
 import { useContentWidth } from "@/hooks/useContentWidth";
@@ -98,10 +99,16 @@ export function TutorialBottomSheet({
 
 	// #642 【設計】TrueSheet の present/dismiss による表示制御
 	useEffect(() => {
+		// #1194 この effect が «生きているか»。予約した present がネイティブ破棄後に
+		// 消化されるのを止める（下のコメント参照）
+		let isActive = true;
+
 		if (!visible) {
 			didPresentRef.current = false;
-			sheetRef.current?.dismiss();
-			return;
+			void dismissSheetSafely(sheetRef);
+			return () => {
+				isActive = false;
+			};
 		}
 
 		// マウントが済んでから present() するために setTimeout で遅延させる。
@@ -110,9 +117,22 @@ export function TutorialBottomSheet({
 		let timeoutId: ReturnType<typeof setTimeout>;
 
 		const requestPresent = () => {
-			if (didPresentRef.current) return;
+			if (!isActive || didPresentRef.current) return;
 
-			void sheetRef.current?.present();
+			// #1194 【バグ】ここは以前 `void sheetRef.current?.present()` だった。
+			//
+			// ディープリンクでアプリを起動すると、search タブがいったんマウントして
+			// この present を予約 → すぐ投票画面へ遷移してシートのネイティブビューが
+			// 破棄される、という順序になる。破棄済みの tag へ present すると
+			// `No sheet found with tag NNNN` で **reject** し、Promise を捨てていたため
+			// unhandled rejection になって画面が search へ戻っていた
+			//（LINE から共有リンクを開く経路で実機再現）。
+			//
+			// `ref.current?.` では防げない。JS 側の ref はまだ実体を持っていることがある。
+			void presentSheetSafely(sheetRef).then((presented) => {
+				// シートがもう無い＝この画面は用済み。再試行を続けても意味がない
+				if (!presented) isActive = false;
+			});
 			attempts += 1;
 
 			if (attempts < PRESENT_ATTEMPT_LIMIT) {
@@ -122,7 +142,10 @@ export function TutorialBottomSheet({
 
 		timeoutId = setTimeout(requestPresent, 0);
 
-		return () => clearTimeout(timeoutId);
+		return () => {
+			isActive = false;
+			clearTimeout(timeoutId);
+		};
 	}, [visible]);
 
 	/**
@@ -152,7 +175,7 @@ export function TutorialBottomSheet({
 	 */
 	const handleSkip = useCallback(async () => {
 		onCompleted?.();
-		await sheetRef.current?.dismiss();
+		await dismissSheetSafely(sheetRef);
 	}, [onCompleted]);
 
 	/**
@@ -163,7 +186,7 @@ export function TutorialBottomSheet({
 			await onRequestCurrentLocation();
 		} finally {
 			onCompleted?.();
-			await sheetRef.current?.dismiss();
+			await dismissSheetSafely(sheetRef);
 		}
 	}, [onRequestCurrentLocation, onCompleted]);
 
