@@ -5,6 +5,7 @@ import * as path from "node:path";
 // (fixtures/test の consoleErrors は auto フィクスチャで page に依存しており、
 //  経由するとテストごとに不要なブラウザページが起動してしまう)
 import { test, expect } from "@playwright/test";
+import { PUBLIC_LOCALES } from "@shared/api/v1/constants/publicLocales";
 
 /**
  * 🔥 firebase.json rewrite 設定と dist 出力の整合性テスト
@@ -75,6 +76,56 @@ test.describe("firebase.json rewrite 整合性", () => {
 				missing,
 				"dist に存在しない destination を指す rewrite(本番で 404 になる)。firebase.json を dist の実構造に合わせて修正すること",
 			).toEqual([]);
+		});
+	}
+
+	// ─ テストケース: 友達投票の共有 URL がロケール別の静的 OGP を持つ ─
+	// 手順:
+	//   1. dist を配信する各サイトの rewrites を読む
+	//   2. `PUBLIC_LOCALES` すべてに投票 URL の rewrite があることを検証
+	//   3. その destination が **同じロケールの** ページであることを検証
+	//
+	// ## 背景（実機で踏んだ）
+	// 投票の共有 URL は `/{locale}/search/dish-category-group-votes/{token}/vote` で、
+	// `[shareToken]` が動的セグメントのため **expo export は prerender できない**。
+	// rewrite が無いと catch-all（`** -> /index.html`）に落ち、ロケールを持たない
+	// ルートの index.html が返る。その結果、LINE 等へ貼っても
+	// **タイトルが出ず OG 画像も別物**になる（実機フィードバック）。
+	//
+	// ⚠️ **ロケールを取り違えないこと。** Firebase Hosting の rewrite は
+	// destination で `:param` を展開できないため、ロケールごとに 1 本ずつ書く必要がある。
+	// 手で 8 本並べる以上、ja-JP の URL が en-US の HTML を返す事故が起こりうるので、
+	// 「source と destination のロケールが一致する」ところまで機械的に見る。
+	for (const siteName of DIST_SITES) {
+		test(`${siteName}: 友達投票の共有 URL が全ロケールでロケール別 HTML を返す`, async () => {
+			const site = readHosting().find((h) => h.site === siteName);
+			const rewrites = site!.rewrites ?? [];
+
+			const missing: string[] = [];
+			const mismatched: string[] = [];
+			for (const locale of PUBLIC_LOCALES) {
+				const source = `/${locale}/search/dish-category-group-votes/**`;
+				const rewrite = rewrites.find((r) => r.source === source);
+				if (!rewrite) {
+					missing.push(source);
+					continue;
+				}
+				if (rewrite.destination !== `/${locale}/search/index.html`) {
+					mismatched.push(`${source} -> ${rewrite.destination}`);
+				}
+			}
+
+			expect(missing, "投票 URL の rewrite が無いロケール（catch-all に落ちて OGP が壊れる）").toEqual([]);
+			expect(mismatched, "source と destination のロケールが食い違っている rewrite").toEqual([]);
+
+			// catch-all より前に無いと意味がない（後ろだと ** に食われる）
+			const catchAllIndex = rewrites.findIndex((r) => r.source === "**");
+			const lastVoteIndex = rewrites.reduce(
+				(acc, r, i) => (r.source.includes("dish-category-group-votes") ? i : acc),
+				-1,
+			);
+			expect(lastVoteIndex, "投票 URL の rewrite が見つからない").toBeGreaterThanOrEqual(0);
+			expect(lastVoteIndex, "投票 URL の rewrite が catch-all より後ろにある").toBeLessThan(catchAllIndex);
 		});
 	}
 
