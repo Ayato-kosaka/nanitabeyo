@@ -10,15 +10,22 @@ const {
 	PRESERVED_BODY_NOTICE,
 	TITLE_MAX_LENGTH,
 	extractAlgoVersion,
+	extractAutoUpdatedAtUtc,
 	extractFingerprints,
 	extractFirstSeenUtc,
+	extractRenderedOccurrences,
+	findUnrecordedCommit,
+	renderApplySummary,
 	renderIssueBody,
 	renderJobSummary,
 	renderParentSummaryComment,
 	renderRegressionComment,
 	renderRegressionMarker,
 	renderTitle,
+	sanitizeInlineText,
+	shouldUpdateBody,
 } = require("./render");
+const { computeFingerprint } = require("./fingerprint");
 const { buildEnvelope, buildPlan } = require("./triage");
 const { computeWindow } = require("./window");
 
@@ -358,9 +365,255 @@ describe("renderJobSummary() / renderParentSummaryComment()", () => {
 			envelope: buildEnvelope({ rows: many, runSummary, window: WINDOW, generatedAt: GENERATED_AT, query: QUERY })
 				.envelope,
 			issues: [],
+			limits: { createLimit: 5 },
 		});
 		const comment = renderParentSummaryComment({ envelope, plan: cappedPlan });
 		expect(comment).toContain("**繰り越し 3 件**");
 		expect(comment).toMatch(/最古の初観測: `2026-08-0\dT00:00:00Z`/);
+	});
+});
+
+describe("body 更新のスロットリング（#1198 §6-C）", () => {
+	const yesterdayBody = renderIssueBody({ group: backendGroup, window: WINDOW, generatedAt: "2026-08-06T00:05:12Z" });
+
+	it("自動領域から前回の件数と更新時刻を読み戻せる", () => {
+		expect(extractRenderedOccurrences(yesterdayBody)).toBe(backendGroup.occurrences);
+		expect(extractAutoUpdatedAtUtc(yesterdayBody)).toBe("2026-08-06T00:05:12Z");
+	});
+
+	it("件数も commit も変わらず、7日も経っていなければ叩かない", () => {
+		expect(shouldUpdateBody({ existingBody: yesterdayBody, group: backendGroup, generatedAt: GENERATED_AT })).toEqual({
+			update: false,
+			reason: expect.stringContaining("変化なし"),
+		});
+	});
+
+	it("件数が2倍以上になったら更新する（桁が変わったときだけ知らせる）", () => {
+		const surged = { ...backendGroup, occurrences: backendGroup.occurrences * 2 };
+		expect(shouldUpdateBody({ existingBody: yesterdayBody, group: surged, generatedAt: GENERATED_AT }).update).toBe(
+			true,
+		);
+	});
+
+	it("件数が半分以下になっても更新する", () => {
+		const calmed = { ...backendGroup, occurrences: Math.floor(backendGroup.occurrences / 2) };
+		expect(shouldUpdateBody({ existingBody: yesterdayBody, group: calmed, generatedAt: GENERATED_AT }).update).toBe(
+			true,
+		);
+	});
+
+	it("body 未記載の commit が出たら更新する（新しいビルドでも出ている＝直っていない）", () => {
+		const rebuilt = { ...backendGroup, commits: [...backendGroup.commits, { sha: "0123456789ab", count: 3 }] };
+		expect(findUnrecordedCommit(yesterdayBody, rebuilt.commits)).toBe("0123456789ab");
+		expect(shouldUpdateBody({ existingBody: yesterdayBody, group: rebuilt, generatedAt: GENERATED_AT }).update).toBe(
+			true,
+		);
+	});
+
+	it("7日以上経っていれば変化が無くても更新する", () => {
+		expect(
+			shouldUpdateBody({ existingBody: yesterdayBody, group: backendGroup, generatedAt: "2026-08-14T00:05:12Z" })
+				.update,
+		).toBe(true);
+	});
+
+	it("前回値を読めない（人間がマーカーを消した）ときは更新する側へ倒す", () => {
+		expect(shouldUpdateBody({ existingBody: "自由記述だけ", group: backendGroup, generatedAt: GENERATED_AT })).toEqual({
+			update: true,
+			reason: expect.stringContaining("前回値を読めない"),
+		});
+		expect(shouldUpdateBody({ existingBody: null, group: backendGroup, generatedAt: GENERATED_AT }).update).toBe(true);
+	});
+});
+
+describe("renderApplySummary()", () => {
+	const base = {
+		dryRun: false,
+		parentIssue: 1196,
+		created: [{ issueNumber: 1301 }],
+		reopened: [{ issueNumber: 1202 }],
+		bodyUpdated: [{ issueNumber: 1201 }],
+		bodySkipped: [],
+		subIssueLinked: [],
+		subIssueFailures: [],
+		subIssueIndexOk: true,
+		subIssueCount: 5,
+		failures: [],
+		commitLookups: 2,
+		parentSummary: "updated",
+	};
+
+	it("起票・reopen・body 更新の件数を出す", () => {
+		const summary = renderApplySummary({ applyResult: base });
+		expect(summary).toContain("起票: **1** 件 #1301");
+		expect(summary).toContain("reopen: **1** 件 #1202");
+		expect(summary).toContain("body 更新: 1 件");
+	});
+
+	it("sub-issue 紐付けの失敗件数を必ず出す（run は落とさないが黙らない。§6-2）", () => {
+		const summary = renderApplySummary({
+			applyResult: { ...base, subIssueFailures: [{ issueNumber: 1301, message: "HTTP 403" }] },
+		});
+		expect(summary).toContain("失敗 1 件");
+		expect(summary).toContain("| #1301 | HTTP 403 |");
+	});
+
+	it("S11: sub-issue が上限に近づいても「自動で外さない」ことを明示する", () => {
+		const summary = renderApplySummary({ applyResult: { ...base, subIssueCount: 95 } });
+		expect(summary).toContain("95 件");
+		expect(summary).toContain("自動で外すことはしません");
+		expect(summary).not.toMatch(/DELETE|自動削除/);
+	});
+
+	it("sub-issue 索引が取れなかったことを警告として出す", () => {
+		const summary = renderApplySummary({
+			applyResult: { ...base, subIssueIndexOk: false, subIssueIndexError: "HTTP 403" },
+		});
+		expect(summary).toContain("sub-issue 一覧を取得できませんでした");
+		expect(summary).toContain("ラベル1枚だけで突合");
+	});
+
+	it("書き込みの失敗を表に出す（成功したように見えるのが一番まずい）", () => {
+		const summary = renderApplySummary({
+			applyResult: { ...base, failures: [{ stage: "create", target: "fp:abc", message: "HTTP 403" }] },
+		});
+		expect(summary).toContain("| create | fp:abc | HTTP 403 |");
+	});
+});
+
+// ---------------------------------------------------------------------------
+// M-1（PR #1211 レビュー）: messagePattern は本番の任意文字列。markdown へ無escape で埋めない
+// ---------------------------------------------------------------------------
+//
+// `messagePattern` は `rawMessage`（サードパーティ API の文言や外部例外も通る値）を正規化しただけで、
+// 正規化ルールは `` ` `` / `|` / `<` / `>` / `<!-- -->` を一切触りません。
+// レビューが実測した3つの被害をここで固定します。
+
+describe("M-1: messagePattern の無害化（表示直前だけ）", () => {
+	/** レビューの再現ケース: 自動領域の終了マーカーそのものがメッセージに混ざる。 */
+	const INJECTED_END = `Validation failed ${AUTO_END_MARKER}`;
+	const renderOnce = (messagePattern, existingBody = null) =>
+		renderIssueBody({
+			group: { ...backendGroup, messagePattern },
+			window: WINDOW,
+			generatedAt: GENERATED_AT,
+			existingBody,
+		});
+
+	it("`auto:end` を注入した body を6回連続で自己適用しても膨張しない（実測 +717字/run の再現）", () => {
+		let body = renderOnce(INJECTED_END);
+		const lengths = [body.length];
+		for (let run = 0; run < 5; run += 1) {
+			body = renderOnce(INJECTED_END, body);
+			lengths.push(body.length);
+		}
+		// 2 run 目以降は完全に同じ body（＝差分なしで PATCH すら出ない）
+		expect(new Set(lengths).size).toBe(1);
+		// 自動領域は1組だけ。「このIssueの扱い方」も1つだけ
+		expect(body.split(AUTO_START_MARKER)).toHaveLength(2);
+		expect(body.split("### このIssueの扱い方")).toHaveLength(2);
+		// GitHub の body 上限 65,536字に近づかない
+		expect(body.length).toBeLessThan(4000);
+	});
+
+	it("注入されたマーカー文字列はそのまま本文へ出さない（無害化してから埋める）", () => {
+		const body = renderOnce(INJECTED_END);
+		// 生の `<!-- error-triage:auto:end -->` は自動領域の終端の1つだけ
+		const occurrences = body.split(AUTO_END_MARKER).length - 1;
+		expect(occurrences).toBe(1);
+		// メッセージ自体は「読める形」で残る（消してしまわない）
+		expect(body).toContain("Validation failed");
+	});
+
+	it("バックティックを含んでも @ユーザー名 がコードスパンの外へ出ない（通知を飛ばさない）", () => {
+		const body = renderOnce("bad name: ` @Ayato-kosaka ` please fix");
+		const row = body.split("\n").find((line) => line.includes("**何が**"));
+		// 行の中のバックティックはコードスパンの開始・終了の2本だけ（＝閉じない）
+		expect((row.match(/`/g) || []).length).toBe(2);
+		// `@Ayato-kosaka` はコードスパンの内側に留まる
+		expect(row).toMatch(/^\| \*\*何が\*\* \| `[^`]*@Ayato-kosaka[^`]*` \|$/);
+	});
+
+	it("`|` を含んでもテーブルの行が崩れない（セルは2つのまま）", () => {
+		const body = renderOnce("SELECT a | b FROM t WHERE x | y");
+		const row = body.split("\n").find((line) => line.includes("**何が**"));
+		// セル区切りとして解釈される `|` は行頭・区切り・行末の3本だけ。中身は `\|` でエスケープ済み
+		expect(row.replace(/\\\|/g, "")).toBe("| **何が** | `SELECT a  b FROM t WHERE x  y` |");
+		expect(row).toContain("\\|");
+	});
+
+	it("改行を含んでも表の行を割らない", () => {
+		const body = renderOnce("first line\nsecond | line\n<!-- x -->");
+		const rows = body.split("\n").filter((line) => line.includes("**何が**"));
+		expect(rows).toHaveLength(1);
+	});
+
+	it("正規化の出力（`<n>` / `<uuid>`）は読めるまま残す（`<` `>` を潰さない）", () => {
+		expect(renderOnce("location invalid: lat=<n>, lng=<n>")).toContain("lat=<n>, lng=<n>");
+	});
+
+	it("メッセージが無いグループは従来どおり「（メッセージなし）」", () => {
+		expect(renderOnce(null)).toContain("（メッセージなし）");
+	});
+
+	it("無害化は**表示だけ**で、fingerprint の計算入力を変えない（既存 Issue との突合を壊さない）", () => {
+		const group = { ...backendGroup, messagePattern: INJECTED_END };
+		const before = computeFingerprint(group);
+		const body = renderIssueBody({ group, window: WINDOW, generatedAt: GENERATED_AT });
+		// 引数のグループを書き換えていない
+		expect(group.messagePattern).toBe(INJECTED_END);
+		// 同じ入力から同じ fingerprint が出る（render を通しても変わらない）
+		expect(computeFingerprint(group)).toBe(before);
+		// body に載る fp マーカーも group.fingerprint のまま
+		expect(extractFingerprints(body)).toEqual([backendGroup.fingerprint]);
+	});
+
+	it("sanitizeInlineText 単体: 潰すのは `<!--` / `-->` / バックティック / `|` だけ", () => {
+		expect(sanitizeInlineText("a <!-- b --> c")).toBe("a <!- - b - -> c");
+		expect(sanitizeInlineText("a `b` c")).toBe("a 'b' c");
+		expect(sanitizeInlineText("a | b")).toBe("a \\| b");
+		expect(sanitizeInlineText("  a\n\tb  ")).toBe("a b");
+		expect(sanitizeInlineText("lat=<n>")).toBe("lat=<n>");
+		expect(sanitizeInlineText(null)).toBe("");
+		// 変換後に HTML コメントの開始・終了が復活しない
+		expect(sanitizeInlineText("<!--->")).not.toMatch(/<!--|-->/);
+		expect(sanitizeInlineText("--->")).not.toMatch(/-->/);
+	});
+});
+
+describe("M-1: 自動領域マーカーの探索は行アンカー付き（多重防御）", () => {
+	it("行の途中にあるマーカーは境界として拾わない", () => {
+		const body = [
+			`<!-- fp:${backendGroup.fingerprint} -->`,
+			AUTO_START_MARKER,
+			`| **何が** | 混入 ${AUTO_END_MARKER} |`,
+			"自動領域の中身",
+			AUTO_END_MARKER,
+			"",
+			"人間のメモ",
+		].join("\n");
+		const replaced = renderIssueBody({
+			group: backendGroup,
+			window: WINDOW,
+			generatedAt: GENERATED_AT,
+			existingBody: body,
+		});
+		expect(replaced).toContain("人間のメモ");
+		expect(replaced).not.toContain("自動領域の中身");
+		// 行途中の注入も一緒に置き換わって消える（境界を手前で切っていない証拠）
+		expect(replaced).not.toContain("| **何が** | 混入");
+		expect(replaced.split(AUTO_START_MARKER)).toHaveLength(2);
+	});
+
+	it("終了マーカーが開始マーカーより前にしか無ければ作り直す（人間の記述は保全する）", () => {
+		const body = [AUTO_END_MARKER, "人間のメモ", AUTO_START_MARKER].join("\n");
+		const rebuilt = renderIssueBody({
+			group: backendGroup,
+			window: WINDOW,
+			generatedAt: GENERATED_AT,
+			existingBody: body,
+		});
+		expect(rebuilt).toContain(PRESERVED_BODY_NOTICE);
+		expect(rebuilt).toContain("人間のメモ");
 	});
 });
