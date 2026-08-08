@@ -103,7 +103,13 @@ test.describe("友達投票の共有 URL の静的 OGP @smoke", () => {
 			// og:locale は `ja_JP` 形式（BCP 47 のハイフンではなくアンダースコア）
 			const expected = locale.replace("-", "_");
 			if (ogLocale !== expected) {
-				mismatched.push(`${locale}: status=${response.status()} og:locale=${ogLocale}（期待 ${expected}）`);
+				// ⚠️ 何が返っているのかを message に出すこと。status と og:locale だけだと
+				// 「rewrite が効いていない」のか「別のページが返っている」のかを切り分けられず、
+				// 実際に 3 往復した
+				mismatched.push(
+					`${locale}: status=${response.status()} og:locale=${ogLocale} title=${JSON.stringify(titleOf(html))} ` +
+						`canonical=${JSON.stringify(metaContent(html, "og:url"))}（期待 ${expected}）`,
+				);
 			}
 		}
 
