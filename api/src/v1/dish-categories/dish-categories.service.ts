@@ -22,6 +22,7 @@ import {
   DishCategoryPenaltyFeatureSet,
 } from './dish-categories.interface';
 import { shuffle } from 'src/core/utils/backend-utils';
+import { isCanonicalAddress } from '../../core/utils/address-format';
 
 // #533 【定数】候補取得上限数
 const CANDIDATE_LIMIT = 200;
@@ -223,6 +224,27 @@ export class DishCategoriesService {
     dto: QueryDishCategoryRecommendationsDto,
   ): DishCategoryCandidateNormalizedInput {
     // #533 【仕様】addressのパース
+    //
+    // #1196 【仕様】期待する入力形式(クライアントは必ずこの形で送ること)
+    //
+    //   address = "country:JP, administrative_area_level_1:大阪府, locality:大阪市"
+    //
+    // これは `api/src/v1/locations/locations.service.ts` の `buildAddressFromComponents` が
+    // 生成する機械可読なトークン列であり、**表示用の住所文字列ではない**。
+    // ここでカンマ分割して各トークンへ `region:` を前置し、
+    //
+    //   region_tokens = ["region:country:JP", "region:administrative_area_level_1:大阪府", ...]
+    //
+    // を作って dish_category_features(feature_type='gate') の feature_key と照合する
+    // (照合は dish-categories.repository.ts の region_ok_categories を参照)。
+    //
+    // #1196 【重要】この形式が崩れると何が起きるか:
+    // 例えば市区町村名単体の "大阪市" が来ると region_tokens は ["region:大阪市"] になる。
+    // ホワイトリストは国単位(日本向けは 'region:country:JP' のみ)なのでどのゲートにも当たらず、
+    // 候補0件 → fallbackToClaude が発火する。Claude は海外向けの保険であって日本向けの経路ではないため、
+    // 本番では Claude 側のエラーがそのまま失敗になった(1日 1,445件 / 204ユーザー)。
+    // 原因はクライアントの現在地フォールバックが expo の `city` をそのまま address にしていたこと。
+    // 詳細と修正は `app-expo/lib/addressFormat.ts` / `app-expo/hooks/useLocationSearch.ts` を参照。
     const addressTokens = dto.address
       .split(',')
       .map((token) => token.trim())
@@ -230,6 +252,24 @@ export class DishCategoriesService {
 
     if (addressTokens.length === 0) {
       throw new BadRequestException('address must not be empty');
+    }
+
+    // #1196 【防御】期待形式でない address を「黙って Claude へ落とす」のをやめ、検知可能にする。
+    //
+    // 400 で弾かずに warn ログに留める理由:
+    // - 400 にすると、古いビルドを使い続けているユーザーの検索が即エラーになる(degraded から不能へ悪化する)
+    // - address の形式が崩れる原因は常にクライアント側であり、サーバでは値を復元できない
+    //   (「大阪市」から国を推測することはできない)
+    // - 一方でこのイベント名を BigQuery のエラートリアージで拾えば、同じ事故が再発したときに即座に気づける
+    //
+    // このログが日本の住所で出ていたら、それはクライアント側のバグである(仕様上ありえない)。
+    if (!isCanonicalAddress(dto.address)) {
+      this.logger.warn('MalformedAddressFormat', 'normalizeInput', {
+        // 生の address を残す。形式判定を通らない値なので個人特定性は低く、原因追跡には必須
+        address: dto.address,
+        addressTokenCount: addressTokens.length,
+        reason: 'missing_country_token',
+      });
     }
 
     // #533 【仕様】regionTokens生成
@@ -775,6 +815,27 @@ export class DishCategoriesService {
 
   /**
    * #533 【フォールバック】Claude経路（既存実装）
+   *
+   * #1196 【仕様】これはどういうときに発火するのか
+   *
+   * DB 由来の推薦(dish_category_features のゲート + スコアリング)で候補を組めなかったときの保険であり、
+   * 発火条件は 3 つだけ:
+   *   1. 候補0件            … 地域ゲート(region_ok_categories)に 1 件も当たらなかった
+   *   2. 候補6件未満        … ゲートは通ったがスレート(6枚)を構成できなかった
+   *   3. 例外               … getRecommendations 内で想定外の例外が出た
+   *
+   * 【本来の用途】ホワイトリスト未整備の**海外の地点**を救うための経路である。
+   * 日本向けには `region:country:JP` のゲートが投入済みなので、
+   * address が正規形式("country:JP, ...")である限り 1. は起こりえない。
+   *
+   * 【したがって】日本の住所でここが発火したら、それは仕様ではなく**バグ**である。
+   * 実際 #1196 では、クライアントが現在地フォールバックで "大阪市" のような市区町村名単体を
+   * address として送っていたためゲートに当たらず、この経路が 1日 1,445件発火し、
+   * Claude 側の失敗(課金枯渇による 400)でそのまま推薦0件になっていた。
+   *
+   * 【残す理由】海外の地点では今も必要なため、この経路自体は消さない。
+   * 「日本の住所で発火させない」ことで対処する。発火の検知は normalizeInput の
+   * MalformedAddressFormat ログと、下の FallbackToClaude ログ(呼び出し元)で行う。
    */
   private async fallbackToClaude(
     dto: QueryDishCategoryRecommendationsDto,
