@@ -187,9 +187,9 @@ https の URL は WebView 内で完結してしまうため、Android 専用の 
 
 | 対象 | 状態 |
 | --- | --- |
-| `https://nanitabeyo-dev.web.app` | ブランチ `648d7ede`（[run 31311544400](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/31311544400)） |
+| `https://nanitabeyo-dev.web.app` | ブランチ `0c674259`（[run 31327184296](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/31327184296)） |
 | `api-development` | **ブランチ `648d7ede`**（[run 31311543420](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/31311543420)）。オーナー指示により main へ戻していません |
-| dev クライアント | **ブランチを pull して再起動が必要**（下記） |
+| アプリ | **preview チャンネルへ OTA 配信済み**（`382ab164`）。アプリを一度終了して再起動してください |
 
 ⚠️ **どこを直したかで、反映に必要な操作が違います。**
 
@@ -198,20 +198,57 @@ https の URL は WebView 内で完結してしまうため、Android 専用の 
 | 投票 URL の OGP | Web（Hosting） | 無し（デプロイ済み） |
 | Android の `intent://`（`OpenInAppBanner`） | **Web のみ**（このコンポーネントはネイティブでは何も描画しない） | 無し（デプロイ済み） |
 | `/s/:token` の自動遷移・一括共有の文言 | API（Cloud Run） | 無し（デプロイ済み） |
-| TrueSheet / `useLocale` / ログのバッチ分割 | **ネイティブアプリ** | **ブランチを pull して dev クライアントを再起動** |
+| TrueSheet / `useLocale` / ログのバッチ分割 | **ネイティブアプリ** | **preview の OTA 適用**（アプリを終了 → 再起動） |
 
 ⚠️ `API_TESTING.md` の規約では、検証後に api-development を main へ復旧する必要があります。
 実機確認が終わったら声をかけてください（こちらで復旧まで実施します）。
 
-### A. 投票 URL の OGP
+### 2026-08-09 オーナー確認結果と、それに対する修正
+
+| 項目 | 判定 | 対応 |
+| --- | --- | --- |
+| C. Android + Instagram の「アプリで開く」 | **✅ OK** | `intent://` で解決 |
+| G. #1133 iOS の位置情報許可ダイアログ | **✅ OK** | クローズ可能 |
+| A. 投票カードの文言がアプリ紹介文で「友達投票」だと分からない | **❌ NG → 修正済み** | 投票専用の静的 SEO（8 ロケール）を prerender に載せ、rewrite の宛先を投票ページへ変更 |
+| B / E / G#1126 | **未確認**（アプリ側の不具合で到達できず） | preview チャンネルへ OTA 配信済み（下記） |
+
+#### アプリの OTA 配信（B / E / G#1126 の前提）
+
+| | |
+| --- | --- |
+| チャンネル | `preview` |
+| runtime version | `1.13`（ブランチで変えていないので既存の preview ビルドに当たります） |
+| プラットフォーム | iOS / Android 両方 |
+| commit | `382ab164`（[run 31326842465](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/31326842465)） |
+
+アプリを一度終了して再起動すると取り込まれます（起動時にチェック → 次回起動で適用、が Expo Updates の既定）。
+
+⚠️ **preview チャンネルが向いている API は未確認です。** `/s/` の共有（B）は
+`POST /v1/share-links` を持つ **api-development** に向いている必要があります。
+共有したときに `/s/...` ではなく `?ids=...` の URL になる場合は preview が
+api-production を向いているサインなので、そう伝えてください（こちらで向き先を調整します）。
+
+### A. 投票 URL の OGP（文言を直しました）
 
 `https://nanitabeyo-dev.web.app/ja-JP/search/dish-category-group-votes/<token>/vote`
 
-8 ロケールの一致は [run 31266138306](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/31266138306) で自動検証済みなので、
-ここで見るのは **SNS 側でどう見えるか**だけです。
+**2026-08-09 の指摘**: OGP は出るようになったが、タイトルがアプリ紹介文のままで
+「友達投票への招待」だと分からない。
 
-- [ ] LINE に貼るとタイトルとサムネイルが出る
+**原因**: rewrite の宛先が «検索画面» の prerender だった。
+かつ、画面側に `useSeo` を足しても直りません — `useSeo` は `useFocusEffect` の中で push するため
+**expo export の prerender では一切走らない**ためです。
+`[locale]/_layout.tsx` の `seoDefaults`（レンダー時に評価される useMemo）をパス依存にして、
+prerender 済み HTML に投票専用の文言が載るようにし、rewrite の宛先も投票ページへ変えました。
+
+実ホスティングで検証済み（[run 31327184296](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/31327184296) / 9 passed）。
+ja-JP は「友達と投票して、今日食べる料理を決めよう」、en-US は "Vote with friends and decide what to eat" になります。
+
+- [ ] LINE に貼ると **投票への招待だと分かるタイトル**が出る
 - [ ] `/en-US/...` の URL では英語のタイトルになる
+
+⚠️ og:image はロケール既定のブランド画像のままです（投票専用の画像は作っていません）。
+画像も投票用にしたい場合は `app-expo/public/og/` へ 8 枚（1200x630）追加する作業が別途要ります。
 
 ⚠️ **以前貼った URL で試さないでください。** LINE / Facebook は OGP を強くキャッシュするので、
 直っていても古いカードが出ます。**新しい token で新規に貼る**か、各社のデバッガでキャッシュを飛ばしてください。
