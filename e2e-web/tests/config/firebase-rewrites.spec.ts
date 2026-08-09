@@ -45,6 +45,14 @@ type Rewrite = {
 const DIST_SITES = ["app-nanitabeyo-net", "nanitabeyo-dev"] as const;
 
 /**
+ * 投票 URL の rewrite が指すべき宛先。
+ *
+ * `[shareToken]` は **リテラルのディレクトリ名**。expo export は動的セグメントを
+ * 角括弧付きのまま書き出すので、これで実ファイルに当たる（`dist` を見れば確認できる）。
+ */
+const VOTE_DESTINATION = (locale: string) => `/${locale}/search/dish-category-group-votes/[shareToken]/vote.html`;
+
+/**
  * destination が dist の «何か» に解決できるか。
  *
  * ⚠️ **ファイルの存在だけを見ないこと。** この設定は `cleanUrls: true` なので、
@@ -131,9 +139,15 @@ test.describe("firebase.json rewrite 整合性", () => {
 				}
 				// ⚠️ **clean URL（拡張子なし）では 404 になる。** 実測: destination を
 				// `/ja-JP/search` にしたら全ロケール 404（run 31264845849）。
-				// Firebase の rewrite destination は «実ファイルのパス» で書く必要がある
-				if (rewrite.destination !== `/${locale}/search/index.html`) {
-					mismatched.push(`${source} -> ${rewrite.destination}（期待 /${locale}/search/index.html）`);
+				// Firebase の rewrite destination は «実ファイルのパス» で書く必要がある。
+				//
+				// ⚠️ **宛先は検索画面ではなく «投票画面の prerender»。** 検索画面を指していたときは
+				// ロケールは合っていても文言がアプリ紹介文のままで、LINE に貼っても
+				// 「友達投票への招待」だと分からなかった（実機フィードバック）。
+				// `[shareToken]` はディレクトリ名にそのまま出る（expo export が動的セグメントを
+				// リテラルで書き出すため）。角括弧付きで «正しい»
+				if (rewrite.destination !== VOTE_DESTINATION(locale)) {
+					mismatched.push(`${source} -> ${rewrite.destination}（期待 ${VOTE_DESTINATION(locale)}）`);
 				}
 			}
 
@@ -194,6 +208,40 @@ test.describe("firebase.json rewrite 整合性", () => {
 		}
 
 		expect(problems, "投票 rewrite の宛先ファイルの OGP").toEqual([]);
+	});
+
+	// ─ テストケース: 投票カードの文言が «アプリ紹介» のままになっていないか ─
+	//
+	// ## 背景（実機フィードバック）
+	// rewrite が効いて OGP は出るようになったが、宛先が検索画面だったため
+	// タイトルが「なに食べよ ~食べたい料理が見つかる～」というアプリ紹介文で、
+	// 受け取った側は **友達投票への招待だと分からなかった**。
+	//
+	// ⚠️ 文言そのものはここに複製しない。`app-expo/constants/seoLocales.ts` を直したときに
+	// テストも書き換える羽目になり、「テストが実装をなぞるだけ」になるため。
+	// **検索画面と違う文言であること**という構造だけを見る。これは症状の言い換えそのもの。
+	test("投票 rewrite の宛先が、検索画面とは別の文言を持っている", () => {
+		const site = readHosting().find((h) => h.site === "app-nanitabeyo-net");
+		const problems: string[] = [];
+
+		for (const locale of PUBLIC_LOCALES) {
+			const voteFile = resolveDestination(VOTE_DESTINATION(locale));
+			const searchFile = resolveDestination(`/${locale}/search/index.html`);
+			if (!voteFile || !searchFile) {
+				problems.push(`${locale}: dist に解決できない（vote=${!!voteFile} search=${!!searchFile}）`);
+				continue;
+			}
+
+			const voteTitle = metaContent(fs.readFileSync(voteFile, "utf-8"), "og:title");
+			const searchTitle = metaContent(fs.readFileSync(searchFile, "utf-8"), "og:title");
+
+			if (!voteTitle) problems.push(`${locale}: 投票ページに og:title が無い`);
+			else if (voteTitle === searchTitle) {
+				problems.push(`${locale}: 投票ページの og:title がアプリ紹介文のまま（${voteTitle}）`);
+			}
+		}
+
+		expect(problems, "投票 URL の共有カードが «友達投票» だと分かる文言になっていない").toEqual([]);
 	});
 
 	// ─ テストケース: rewrite は destination か run のどちらか一方だけを持つ ─

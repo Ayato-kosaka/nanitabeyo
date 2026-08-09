@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from "react";
-import { Stack, useRootNavigationState, useRouter } from "expo-router";
+import { Stack, useRootNavigationState, useRouter, usePathname } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useFrameworkReady } from "@/hooks/useFrameworkReady";
 import { DialogProvider } from "@/contexts/DialogProvider";
@@ -19,7 +19,7 @@ import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import i18n, { getResolvedLocale } from "@/lib/i18n";
 import { SeoProvider, SeoHeadRenderer, SeoData } from "@/contexts/SeoContext";
-import { DEFAULT_SEO_BY_PUBLIC_LOCALE, resolvePublicLocale } from "@/constants/seoLocales";
+import { resolvePublicLocale, resolveStaticSeoForPath } from "@/constants/seoLocales";
 import { TrueSheetProvider } from "@lodev09/react-native-true-sheet";
 import { buildLocaleStaticParams, type LocaleStaticParam } from "@/lib/seo/localeStaticParams";
 
@@ -78,7 +78,16 @@ export default function RootLayout() {
 	useLocaleFonts(locale);
 
 	// #717 【設計】locale に応じた SEO defaults を生成
-	const seoDefaults: SeoData = useMemo(() => DEFAULT_SEO_BY_PUBLIC_LOCALE[resolvePublicLocale(locale)], [locale]);
+	//
+	// #1194 ⚠️ **パスも見ること。** 友達投票の共有 URL は `[shareToken]` が動的セグメントで
+	// prerender の対象にならず、`useSeo`（useFocusEffect）は prerender で走らないため、
+	// ここで決めた値がそのまま SNS のクローラに読まれる初回 HTML になる。
+	// パスを見ないと「アプリの紹介文」が投票の招待カードとして出てしまう（実機で指摘を受けた）。
+	const seoPathname = usePathname();
+	const seoDefaults: SeoData = useMemo(
+		() => resolveStaticSeoForPath(resolvePublicLocale(locale), seoPathname),
+		[locale, seoPathname],
+	);
 
 	useEffect(() => {
 		// #1027 【バグ】locale は usePathname() の第 1 セグメントなので、遷移の途中経過では

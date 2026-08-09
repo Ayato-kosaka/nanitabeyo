@@ -99,6 +99,15 @@ test.describe("友達投票の共有 URL の静的 OGP @smoke", () => {
 		expect(titleOf(targetHtml), "投票 URL の title が空（SPA シェルに落ちている疑い）").toBeTruthy();
 		expect(metaContent(targetHtml, "og:title"), "投票 URL の og:title が無い").toBeTruthy();
 		expect(metaContent(targetHtml, "og:image"), "投票 URL の og:image が無い").toBeTruthy();
+
+		// ⚠️ **ここが実機フィードバックの本体。** og:locale が合っていても、宛先が検索画面だと
+		// タイトルがアプリ紹介文のままで「友達投票への招待」だと分からない。
+		// 文言そのものは書かない（実装をなぞるだけのテストになる）。«検索画面と違う» ことだけ見る
+		expect(
+			metaContent(targetHtml, "og:title"),
+			`投票 URL の og:title が検索画面と同じ（＝アプリ紹介文のまま）。` +
+				`rewrite の宛先が投票ページの prerender を指しているか確認すること`,
+		).not.toBe(metaContent(controlHtml, "og:title"));
 	});
 
 	// ─ テストケース: ロケールごとに «そのロケールの» OGP が返る ─
