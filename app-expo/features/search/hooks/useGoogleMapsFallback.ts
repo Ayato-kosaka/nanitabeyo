@@ -36,6 +36,15 @@ export function useGoogleMapsFallback({ source }: UseGoogleMapsFallbackParams) {
 				hl: locale.split("-")[0],
 			});
 
+			// #1196 【設計】このログは「ユーザーが行き止まりになった」印ではなく、
+			// **退避導線が正常に提示された**印。次にこのログを見た人が誤解しないように明記する。
+			//
+			// 出る条件は 2 つあり、どちらも warn のままにしている（#1196 で条件は変えていない）:
+			//   (1) 検索結果 0 件（そもそも該当店舗が無い。異常ではない）
+			//   (2) v1/dishes/bulk-import の失敗（#1196 以降は上流クォータ枯渇で 429）。
+			//       store が 0 件のままになるので search/result.tsx が (1) と同じ判定でここへ来る。
+			// 実測（BigQuery）でも (2) の失敗 340 件／125 人に対しこのログが 340 件／125 人と一致し、
+			// うち 115 人（92%）が実際に Google Maps を開いている。**ユーザーは行き止まりになっていない。**
 			logFrontendEvent({
 				event_name: "google_maps_fallback_dialog_shown",
 				error_level: "warn",

@@ -5,18 +5,20 @@
 // ❸ Google Maps API との連携処理
 //
 
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
 import { CreateDishDto, BulkImportDishesDto } from '@shared/v1/dto';
 import {
   CreateDishResponse,
   BulkImportDishesResponse,
   DishMediaEntry,
+  ErrorCode,
 } from '@shared/v1/res';
 
 import { DishesRepository } from './dishes.repository';
 import { AppLoggerService } from '../../core/logger/logger.service';
 import { LocationsService } from '../locations/locations.service';
+import { ExternalApiQuotaExceededError } from '../../core/external-api/external-api.errors';
 import { RemoteConfigService } from '../../core/remote-config/remote-config.service';
 import { CloudTasksService } from '../../core/cloud-tasks/cloud-tasks.service';
 import { DishCategoriesRepository } from '../dish-categories/dish-categories.repository';
@@ -145,15 +147,70 @@ export class DishesService {
     const pageSize = parseInt(restaurantSearchCount, 10) || 5; // デフォルト値
 
     // Google Maps Text Search API を呼び出し
-    const googlePlaces = await this.locationsService.searchRestaurants({
-      location: dto.location,
-      radius: dto.radius,
-      dishCategoryName: dto.categoryName,
-      minRating: dto.minRating,
-      languageCode: dto.languageCode,
-      priceLevels: dto.priceLevels, // Now optional, can be undefined
-      pageSize,
-    });
+    let googlePlaces: Awaited<
+      ReturnType<LocationsService['searchRestaurants']>
+    >;
+    try {
+      googlePlaces = await this.locationsService.searchRestaurants({
+        location: dto.location,
+        radius: dto.radius,
+        dishCategoryName: dto.categoryName,
+        minRating: dto.minRating,
+        languageCode: dto.languageCode,
+        priceLevels: dto.priceLevels, // Now optional, can be undefined
+        pageSize,
+      });
+    } catch (error) {
+      if (error instanceof ExternalApiQuotaExceededError) {
+        // #1196 【設計】上流(Google Places Text Search)の日次クォータ枯渇を 500 で返さない。
+        //
+        // ★ ステータス: 429 を素通しする
+        //   - 500 は「サーバーの予期しない内部異常」の意味。ここは分類済みの想定内の事象なので嘘になる。
+        //   - 503 は **このリポジトリでは使えない**。app-expo/hooks/useAPICall.ts が 503 を
+        //     メンテナンスモードとして扱い、専用ダイアログを出して maintenance_mode を throw する。
+        //     そのダイアログが Google Maps フォールバックダイアログと競合し、
+        //     115 人/日が使っている退避導線を壊す。
+        //   - 502 でもフォールバックは動くが、5xx はこのリポジトリの分類体系
+        //     (app-expo/lib/transientHttpStatus.ts / scripts/error-triage/constants.js) では
+        //     「不具合」側であり、除外ルールを新設しない限りノイズが残る。
+        //     429 は両方の TRANSIENT リストに既に載っている「一時障害」なので、既存の分類に一致する。
+        //
+        // ★ ログレベル: warn
+        //   この失敗を受けたクライアントは必ず Google Maps フォールバックダイアログを出すので、
+        //   **ユーザーは行き止まりにならない**（app-expo/features/search/hooks/useGoogleMapsFallback.ts）。
+        //   実測でも 500 が 340 件／125 人に対し、ダイアログ表示も 340 件／125 人で一致し、
+        //   115 人（92%）が実際に Google Maps を開いている。
+        //   ⚠️ 「クォータが尽きている」という運用上の異常そのものは、
+        //     ExternalApiService.callPlaceSearchText が `GooglePlacesQuotaExceeded` を
+        //     **error** で1件残しているので、ここを warn にしても検知力は落ちない。
+        this.logger.warn(
+          'BulkImportUpstreamQuotaExceeded',
+          'bulkImportFromGoogle',
+          {
+            error_message: error.message,
+            api_name: error.apiName,
+            upstream_status: error.upstreamStatus,
+            location: dto.location,
+            radius: dto.radius,
+            categoryName: dto.categoryName,
+            categoryId: dto.categoryId,
+          },
+        );
+
+        throw new HttpException(
+          {
+            code: ErrorCode.EXTERNAL_SERVICE_ERROR,
+            message:
+              'Upstream place search quota has been exhausted. Please try again later.',
+          },
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
+      }
+
+      // クォータ以外の失敗は分類できていない = 我々のバグの可能性がある。
+      // 従来どおり ApiExceptionFilter まで投げ、500 / error で鳴らす。
+      throw error;
+    }
 
     // #636 【バグ】contextualContents は experimental で返却保証が弱いため、places のみ必須とする
     // 【設計】0件は異常ではなく「その地点・カテゴリに該当店舗が無かった」という正常な結果。

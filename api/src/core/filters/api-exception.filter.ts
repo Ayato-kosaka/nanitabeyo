@@ -15,6 +15,22 @@ import { REQUEST_ID_HEADER } from '../request-id/request-id.constants';
 import { AppLoggerService } from '../logger/logger.service';
 import { maskSensitiveFields } from '../interceptors/response-wrap.utils';
 
+/**
+ * #1196 【設計】「一時障害」として扱う HTTP ステータス。error ではなく warn で記録する。
+ *
+ * 唯一の正は `app-expo/lib/transientHttpStatus.ts` の `TRANSIENT_STATUSES` で、
+ * `scripts/error-triage/constants.js` の `TRANSIENT_HTTP_STATUSES` も同じ集合を持つ。
+ * 3 か所に写経が増えるのは承知のうえで、api は app-expo / scripts のどちらからも
+ * import できないため、ここでも同じ定義を置く。**変更するときは 3 つ揃えること。**
+ *   401 = トークン失効レース / 408 = タイムアウト / 425 = 再送要求 /
+ *   426 = アプリバージョン起因 / 429 = レート制限・上流のクォータ枯渇（#1196）
+ *
+ * ⚠️ 400 / 409 / 422 をここへ入れてはならない。このリポジトリは
+ *   「400/422 は契約が壊れている状態 = 我々の不具合」と定義済みで（logQueue.ts / triage の E6）、
+ *   warn に落とすと error-triage が拾わなくなり、リリース直後の DTO 不整合を検知できなくなる。
+ */
+const TRANSIENT_HTTP_STATUSES: readonly number[] = [401, 408, 425, 426, 429];
+
 @Catch()
 export class ApiExceptionFilter implements ExceptionFilter {
   constructor(
@@ -40,10 +56,18 @@ export class ApiExceptionFilter implements ExceptionFilter {
       error: unknown,
       statusOverride?: number,
     ) => {
-      this.logger.error(eventName, 'ApiExceptionFilter', {
+      const statusCode = statusOverride ?? res?.statusCode;
+      // #1196 【設計】「サーバーが壊れている(error)」と「一時的・想定内(warn)」を分ける。
+      // 例: 上流 Google Places のクォータ枯渇は 429 で返す（DishesService.bulkImportFromGoogle）。
+      // これをここで error にすると、ステータスだけ 429 に直してもログ上は 500 時代と同じ
+      // 「サーバー異常」に見え続け、分類を変えた意味が無くなる。
+      const level = TRANSIENT_HTTP_STATUSES.includes(statusCode)
+        ? 'warn'
+        : 'error';
+      this.logger[level](eventName, 'ApiExceptionFilter', {
         method: req?.method,
         url: req?.url,
-        statusCode: statusOverride ?? res?.statusCode,
+        statusCode,
         payload: maskSensitiveFields(req.body),
         error: error,
       });

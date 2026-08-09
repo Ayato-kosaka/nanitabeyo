@@ -9,6 +9,7 @@ import type { BaseResponse } from "@shared/api/v1/res";
 import { useCdnCookieStore } from "@/stores/useCdnCookieStore";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { toErrorLogMessage } from "@/lib/errorMessage";
+import { isTransientHttpStatus } from "@/lib/transientHttpStatus";
 
 /**
  * #525 【設計】統一されたエラーオブジェクト型
@@ -269,9 +270,29 @@ export const useAPICall = () => {
 				const backendErrorCode = errorPayload.errorCode || errorPayload.code;
 
 				// Log API error
+				//
+				// #1196 【設計】ここは「呼び出し側がフォールバックを持っているか」を知らない層なので、
+				// 経路ごとに手心を加えず、**このリポジトリが既に持っているステータスの分類**でレベルを決める。
+				//   - TRANSIENT_STATUSES (401/408/425/426/429) … 時間や環境で解消する一時障害。warn。
+				//     アプリを直しても消えないものを error で鳴らし続けると、本当の不具合が埋もれる。
+				//   - それ以外（500 を含む） … 従来どおり error。
+				//     ★ ここを一律 warn に落とさないこと。落とすと「フォールバックが無い経路の 500」
+				//       まで見えなくなる。500 は今も error のまま残す。
+				//
+				// ★ 429 を warn にしてよい根拠（ユーザー影響の実測 / #1196）:
+				//   POST v1/dishes/bulk-import が上流 Google Places のクォータ枯渇で失敗すると 429 が返るが、
+				//   **このエラーはフォールバックがあるのでユーザーは行き止まりにならない**。
+				//   検索結果 0 件と同じ扱いで Google Maps フォールバックダイアログが出る
+				//   （features/search/hooks/useGoogleMapsFallback.ts。
+				//     search/result.tsx は「ids 0 件 かつ ロード中でない」で出すため、
+				//     この throw で store が 0 件のままになった場合も同じ導線に入る）。
+				//   実測でも失敗 340 件／125 人に対しダイアログ 340 件／125 人と完全一致し、
+				//   115 人（92%）が実際に Google Maps を開いている。
+				//   ⚠️ クォータ枯渇そのものは運用が直すべき異常なので、api 側が
+				//     `GooglePlacesQuotaExceeded` を error で 1 件残している。ここが warn でも検知できる。
 				logFrontendEvent({
 					event_name: "api_call_error",
-					error_level: "error",
+					error_level: isTransientHttpStatus(response.status) ? "warn" : "error",
 					payload: {
 						endpoint,
 						method,

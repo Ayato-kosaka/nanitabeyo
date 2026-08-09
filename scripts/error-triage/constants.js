@@ -117,15 +117,20 @@ const CREATE_RECHECK_DELAY_MS = 3000;
 /**
  * 一時障害として扱う HTTP ステータス。
  *
- * ★ `app-expo/lib/logQueue.ts` の `TRANSIENT_STATUSES`（同ファイル 60行目付近）と同一定義。
+ * ★ `app-expo/lib/transientHttpStatus.ts` の `TRANSIENT_STATUSES` と同一定義。
+ *   （#1196 以前は `app-expo/lib/logQueue.ts` に直接あった。useAPICall.ts でも同じ判定が要るように
+ *     なったため切り出され、logQueue.ts はそこから import している。
+ *     api 側の写しは `api/src/core/filters/api-exception.filter.ts` にもある = 全部で3か所。）
  *   あちらのコメントを引くと:
  *     「5xx と TRANSIENT_STATUSES は transient、それ以外の4xx（= 400/403/404/422 など、
  *       送信しているDTOやエンドポイントの契約が壊れている状態）だけを rejected とする。」
  *   401=flush中のトークン失効レース / 408=経路タイムアウト / 425=リプレイ懸念の再送要求 /
  *   426=アプリバージョン起因（maintenance.guard） / 429=レート制限。
+ *   #1196 以降、429 には「上流 Google Places のクォータ枯渇を bulk-import が素通しした 429」も含む。
  *
- * 片方だけ書き換えると「このリポジトリが不具合とみなす4xx」の定義が2つに割れるので、
- * 変更するときは必ず app-expo/lib/logQueue.ts と揃えること（相互参照コメントは向こうにも無い点に注意）。
+ * 片方だけ書き換えると「このリポジトリが不具合とみなす4xx」の定義が割れるので、
+ * 変更するときは必ず app-expo/lib/transientHttpStatus.ts と
+ * api/src/core/filters/api-exception.filter.ts の 3 つを揃えること。
  */
 const TRANSIENT_HTTP_STATUSES = Object.freeze([401, 408, 425, 426, 429]);
 
