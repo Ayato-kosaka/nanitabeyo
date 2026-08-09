@@ -181,6 +181,108 @@ https の URL は WebView 内で完結してしまうため、Android 専用の 
 
 ---
 
+## 1-D. 実機確認セッション用まとめ（2026-08-08）
+
+### 環境（この状態で確認してください）
+
+| 対象 | 状態 |
+| --- | --- |
+| `https://nanitabeyo-dev.web.app` | ブランチ `648d7ede`（[run 31311544400](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/31311544400)） |
+| `api-development` | **ブランチ `648d7ede`**（[run 31311543420](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/31311543420)）。オーナー指示により main へ戻していません |
+| dev クライアント | **ブランチを pull して再起動が必要**（下記） |
+
+⚠️ **どこを直したかで、反映に必要な操作が違います。**
+
+| 修正 | 反映先 | 必要な操作 |
+| --- | --- | --- |
+| 投票 URL の OGP | Web（Hosting） | 無し（デプロイ済み） |
+| Android の `intent://`（`OpenInAppBanner`） | **Web のみ**（このコンポーネントはネイティブでは何も描画しない） | 無し（デプロイ済み） |
+| `/s/:token` の自動遷移・一括共有の文言 | API（Cloud Run） | 無し（デプロイ済み） |
+| TrueSheet / `useLocale` / ログのバッチ分割 | **ネイティブアプリ** | **ブランチを pull して dev クライアントを再起動** |
+
+⚠️ `API_TESTING.md` の規約では、検証後に api-development を main へ復旧する必要があります。
+実機確認が終わったら声をかけてください（こちらで復旧まで実施します）。
+
+### A. 投票 URL の OGP
+
+`https://nanitabeyo-dev.web.app/ja-JP/search/dish-category-group-votes/<token>/vote`
+
+8 ロケールの一致は [run 31266138306](https://github.com/Ayato-kosaka/nanitabeyo/actions/runs/31266138306) で自動検証済みなので、
+ここで見るのは **SNS 側でどう見えるか**だけです。
+
+- [ ] LINE に貼るとタイトルとサムネイルが出る
+- [ ] `/en-US/...` の URL では英語のタイトルになる
+
+⚠️ **以前貼った URL で試さないでください。** LINE / Facebook は OGP を強くキャッシュするので、
+直っていても古いカードが出ます。**新しい token で新規に貼る**か、各社のデバッガでキャッシュを飛ばしてください。
+
+### B. `/s/:token` 共有リンク（api-development がブランチになったので今日から通ります）
+
+- [ ] 共有ボタンで `/s/...` の URL が発行される（`?ids=` に戻らない）
+- [ ] **未ログイン（匿名）状態でも共有できる** ← `share_links_created_by_fkey` の回帰確認。ここが最重要
+- [ ] `/s/...` を開くと **中間画面が出ずに** 目的の画面へ自動遷移する
+- [ ] 複数件まとめて共有したとき、文言が「一括共有」に見える（店名ではなく件数が出る）
+- [ ] アプリを入れた端末で `/s/...` を開くと、ホームではなく **目的の画面** に着地する
+
+### C. Android の「アプリで開く」
+
+- [ ] **Instagram のアプリ内ブラウザ**で投票 URL を開き、「アプリで開く」でアプリが起動する
+- [ ] アプリ未インストールの端末では Play ストアへ飛ぶ
+
+巻き添えになっていないこと（`intent://` は Meta 系 IAB のときだけ返します）:
+
+- [ ] **Android + LINE** から従来どおり開く
+- [ ] **通常の Android Chrome** から従来どおり開く
+- [ ] **iOS**（Safari / Instagram）が従来どおり
+
+### D. LINE から起動したときのシート
+
+- [ ] LINE の共有リンクからアプリを起動して、**投票画面に着地する**（search へ戻されない）
+- [ ] `No sheet found with tag …` が出ない
+
+### E. 起動直後の検索（今回直した 400）
+
+- [ ] アプリを**完全終了 → 起動**して、最初の検索が **1 回で成功する**
+- [ ] コンソールに `languageTag must follow IETF BCP 47 format` の 400 が出ない
+
+### F. フロントログ
+
+- [ ] しばらく触っても `⚠️ frontend log batch dropped: kind=transient status=500` が出ない
+
+### G. 前回からの持ち越し
+
+- [ ] #1126 1 スワイプで 1 件だけ送られる（`snapMode="page"`）
+- [ ] #1126 水平から 40〜60° の「横のつもりだが縦にぶれた」スワイプでシートが広がらない
+- [ ] #1133 iOS の位置情報許可ダイアログが `BlurModal` の上に出る
+
+### 1-D-1. 起動直後の検索が 400 になっていた件（原因と修正）
+
+実機のフロントログに証拠がありました。
+
+```
+requestPayload: { address: "…", languageTag: "", localLanguageCode: "ja", … }
+status: 400  languageTag must follow IETF BCP 47 format …, languageTag must be a string
+```
+
+`languageTag` が **空文字**で、`fetchWithAuth` の `toQueryString` が空文字を «未指定» として落とすため、
+サーバからはパラメータ自体が無いように見えて 400 になっていました。
+**0.8 秒後の再実行は成功**しているので、起動直後の自動検索だけが失敗していたことになります
+（ユーザーには一瞬のエラー、こちらには Google Places クォータの無駄消費。実際にこの日クォータ超過の 429 も出ています）。
+
+原因は `useLocale` が `pathname.split("/")[1]` をそのまま返していたことです。
+`usePathname()` は**起動直後やリダイレクトの途中で `"/"` を返します**。
+
+**同じ前提崩れがもう 1 つありました。** `/s/:token` では先頭セグメントが `s` なので
+**ロケールが `"s"` になり**、400 にはならないまま `languageTag=s` が静かにサーバへ飛んでいました。
+
+呼び出し側は 38 箇所あるため、`useLocale` で必ず妥当な値へ寄せる形にしています。
+
+⚠️ 判定は `PUBLIC_LOCALES` の完全一致ではなく **BCP 47 の «形»** で行っています。
+完全一致にすると `/pt-BR/...` のような未対応ロケール URL の挙動まで変わってしまうためです。
+退避先も `ja-JP` 決め打ちではなく端末の言語から解決します（英語端末の起動直後だけ日本語で検索する、を避けるため）。
+
+---
+
 ## 1-B. E2E へ移して実機確認が不要になったもの
 
 **以前このドキュメントで実機確認をお願いしていた項目のうち、次は E2E で守られるようになりました。**
