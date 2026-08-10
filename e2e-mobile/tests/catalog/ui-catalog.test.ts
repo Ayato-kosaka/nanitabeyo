@@ -19,7 +19,7 @@ import { SelectRestaurantScreen } from "../../screens/SelectRestaurantScreen";
 import { SettingsScreen } from "../../screens/SettingsScreen";
 import { TabBar } from "../../screens/TabBar";
 import { TopicsScreen } from "../../screens/TopicsScreen";
-import { captureScreen, captureScreenIfReachable, getScreen, settle } from "../../utils/catalog";
+import { captureScreen, captureScreenIfReachable, getScreen, settle, tolerate } from "../../utils/catalog";
 
 /**
  * 📸 UI カタログ（ネイティブ / Android・iOS）@catalog
@@ -63,7 +63,8 @@ describe("UI カタログ（匿名） @catalog", () => {
 
 		await captureScreenIfReachable("search-form-advanced-open", async () => {
 			await searchScreen.openAdvancedFilters();
-			await waitUntilVisible(searchScreen.distanceSlider);
+			// iOS では距離スライダーが画面外に居ることがある。展開できていれば撮る価値はあるので待ちは緩める
+			await tolerate(() => waitUntilVisible(searchScreen.distanceSlider));
 		});
 
 		// チュートリアルは起動引数で「視聴済み」をシードしているため自動では開かない。
@@ -183,17 +184,27 @@ describe("UI カタログ（匿名） @catalog", () => {
 		await profileScreen.expectGuestViewLoaded();
 		await captureScreen("profile-guest", { settleMs: 2_000 });
 
-		await captureScreenIfReachable("profile-guest-liked", async () => {
-			await tapWhenVisible(by.id("profile-tab-group-liked"));
-			await waitUntilVisible(profileScreen.likedGrid);
-		});
+		await captureScreenIfReachable(
+			"profile-guest-liked",
+			async () => {
+				await tapWhenVisible(by.id("profile-tab-group-liked"));
+				// いいねが 0 件だとグリッドではなく空状態が描画される。タブを切り替えられていれば撮る
+				await tolerate(() => waitUntilVisible(profileScreen.likedGrid));
+			},
+			{ settleMs: 2_000 },
+		);
 
-		await captureScreenIfReachable("profile-guest-saved-topics", async () => {
-			await tapWhenVisible(by.id("profile-tab-group-saved"));
-			// 「保存」グループ内のサブタブ（ja-JP: Profile.tabs.saved-topics = "料理"）には testID が無い
-			await tapWhenVisible(by.text("料理"));
-			await waitUntilVisible(profileScreen.savedTopicsGrid);
-		});
+		await captureScreenIfReachable(
+			"profile-guest-saved-topics",
+			async () => {
+				await tapWhenVisible(by.id("profile-tab-group-saved"));
+				// 「保存」グループ内のサブタブ（ja-JP: Profile.tabs.saved-topics = "料理"）には testID が無い
+				await tapWhenVisible(by.text("料理"));
+				// 保存が 0 件だとグリッドではなく空状態が描画される
+				await tolerate(() => waitUntilVisible(profileScreen.savedTopicsGrid));
+			},
+			{ settleMs: 2_000 },
+		);
 
 		await captureScreenIfReachable("profile-guest-login-modal", async () => {
 			await profileScreen.openLoginModal();
@@ -392,7 +403,8 @@ describeMutation("UI カタログ（レビュー投稿フロー） @catalog @mut
 			"review-post-detail",
 			async () => {
 				await element(reviewScreen.commentInput).typeText("[E2E] UI カタログ収集");
-				await reviewScreen.rate(5);
+				// 星は画面外に居ることがある（iOS で実測）。付けられなくても投稿自体は成立する
+				await tolerate(() => reviewScreen.rate(5));
 				await tapWhenVisible(reviewScreen.submitButton);
 				// 投稿が成功すると /review/post/[id] へ遷移し、いいね等のアクションが並ぶ
 				await waitUntilVisible(by.id("dish-action-like"), 60_000);

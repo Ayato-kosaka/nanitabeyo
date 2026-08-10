@@ -228,6 +228,9 @@ jobs:
 
       # prepare ジョブが解決した Tier のスクリプトを実行する
       - name: 🧪 Run Detox tests (Android)
+        # UI カタログ収集では、到達できない画面があっても「未取得」として一覧に残せば十分で、
+        # ここで run を赤くすると撮れた分の公開（Evidence Collect は成功 run しか受け取らない）まで巻き添えで止まる
+        continue-on-error: ${{ startsWith(inputs.scope, 'catalog') }}
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
@@ -258,7 +261,7 @@ jobs:
       - name: 📋 Generate UI catalog document (Android)
         if: ${{ always() && startsWith(inputs.scope, 'catalog') }}
         run: |
-          pnpm catalog:doc:mobile
+          node ./catalog/generate-catalog.mjs --platform mobile --screenshots e2e-mobile/screenshots --variants android
           {
             echo "## UI catalog (Android)"
             echo
@@ -428,6 +431,8 @@ jobs:
 
       # prepare ジョブが解決した Tier のスクリプトを実行する
       - name: 🧪 Run Detox tests (iOS)
+        # UI カタログ収集では run を赤くしない（理由は Android ジョブの同ステップのコメント参照）
+        continue-on-error: ${{ startsWith(inputs.scope, 'catalog') }}
         # #1027 実行ログを artifacts/ にも残す（ジョブログは末尾しか API で取得できないため）。
         # ソフトウェアキーボードの無効化は **Detox がシミュレータを起こす前**に済ませる必要がある
         run: |
@@ -442,7 +447,7 @@ jobs:
       - name: 📋 Generate UI catalog document (iOS)
         if: ${{ always() && startsWith(inputs.scope, 'catalog') }}
         run: |
-          pnpm catalog:doc:mobile
+          node ./catalog/generate-catalog.mjs --platform mobile --screenshots e2e-mobile/screenshots --variants ios
           {
             echo "## UI catalog (iOS)"
             echo

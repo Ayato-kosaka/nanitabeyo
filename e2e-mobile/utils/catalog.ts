@@ -95,6 +95,23 @@ export async function settle(ms: number): Promise<void> {
 	await new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/**
+ * 待ちの失敗を握りつぶして続行する。
+ *
+ * カタログでは「その画面に居ることを厳密に判定すること」より
+ * **「その画面を撮れること」** の方が価値が高い場面がある
+ * （例: グリッドが空でリストの testID が出ない、iOS で要素が画面外にある等）。
+ * そういう待ちはこれで包み、撮影自体は必ず行う。
+ */
+export async function tolerate(action: () => Promise<void>): Promise<void> {
+	try {
+		await action();
+	} catch (error) {
+		const reason = error instanceof Error ? error.message.split("\n")[0] : String(error);
+		console.log(`ℹ️  UI カタログ: 待ちに失敗したが、そのまま撮影を続けます — ${reason}`);
+	}
+}
+
 export type CaptureOptions = {
 	/** 撮影前に待つ時間 (ms)。画像の読み込みやアニメーションが重い画面では長めにする */
 	settleMs?: number;

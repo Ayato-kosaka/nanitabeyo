@@ -16,6 +16,7 @@
 //
 // オプション:
 //   --platform <web|mobile>  対象プラットフォーム（既定: web）。mobile は android / ios の 2 列になる
+//   --variants <a,b>     mobile で出力する OS を絞る（既定: android,ios）
 //   --out <path>         Markdown の出力先（既定: <screenshots>/UI_CATALOG.md）
 //   --json <path>        機械可読な JSON の出力先（既定: <screenshots>/ui-catalog.json）
 //   --screenshots <dir>  スクリーンショットのディレクトリ（既定: ./screenshots）
@@ -67,8 +68,12 @@ if (platform !== "web" && platform !== "mobile") {
 /**
  * 1 画面につき撮るファイル名の一覧。
  * web は 1 枚、mobile は OS ごとに見た目が違うため android / ios の 2 枚を撮る。
+ *
+ * CI は OS ごとに別ジョブで走り、そのジョブには自分の OS のスクリーンショットしか無い。
+ * そのまま既定値で生成すると、もう片方の OS が全て「未取得」に見えてしまうため、
+ * `--variants android` のように絞れるようにしてある。
  */
-const VARIANTS = platform === "mobile" ? ["android", "ios"] : [""];
+const VARIANTS = platform === "mobile" ? String(options.variants ?? "android,ios").split(",") : [""];
 
 /** 画面 ID とバリアント（android / ios）からファイル名を組み立てる */
 function fileNameOf(id, variant) {
