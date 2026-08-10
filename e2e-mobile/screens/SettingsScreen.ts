@@ -16,7 +16,8 @@ import {
  *   ネイティブでは表示される（#1031 §1-1 の反転分類）。
  *   #1031 【設計確定】M2: 共有 dev 環境・外部ストアへの書き込みを避けるため、このボタンは
  *   **表示のみ検証しタップしない**（タップすると実際に Linking.openURL が走り外部アプリへ遷移してしまう）。
- * - 「ログアウト」はログイン済み（非匿名）ユーザーのみ表示。このワークスペースは匿名固定のテストのみを扱う（別 PR がログイン済みを担当）ため非表示側のみ検証する。
+ * - 「ログアウト」はログイン済み（非匿名）ユーザーのみ表示。
+ *   匿名側（非表示）は tests/profile/settings.test.ts、実行そのものは tests/authenticated/logout.test.ts が検証する。
  */
 export class SettingsScreen {
 	/**
@@ -33,7 +34,10 @@ export class SettingsScreen {
 	readonly feedbackItem = by.id("settings-feedback");
 	/** レビューを書く（ストア誘導）行。ネイティブのみ表示（既存 testID） */
 	readonly leaveReviewItem = by.id("settings-leave-review");
-	/** ブロック済みの料理トピック行（既存 testID） */
+	/**
+	 * ブロック済みの料理カテゴリ行（既存 testID）。
+	 * #1132 で文言は「料理トピック」→「料理カテゴリ」へ変わったが、testID は据え置かれている。
+	 */
 	readonly blockedTopicsItem = by.id("settings-blocked-topics");
 	/** コミュニティガイドライン行（既存 testID） */
 	readonly guidelinesItem = by.id("settings-guidelines");
@@ -45,6 +49,22 @@ export class SettingsScreen {
 	readonly copyrightItem = by.id("settings-copyright");
 	/** ログアウト行（ログイン済みユーザーのみ表示・既存 testID） */
 	readonly logoutItem = by.id("settings-logout");
+	/**
+	 * ログアウト確認ダイアログのタイトル（ja-JP: `Settings.logoutConfirmTitle`）。
+	 * DialogProvider（react-native-paper の Dialog）はタイトルに testID を持たないため文字列で特定する。
+	 * `title` と同じくロケール依存のセレクタなので、翻訳キーを変えたらここも直すこと。
+	 */
+	readonly logoutConfirmTitle = by.text("ログアウトしますか？");
+	/**
+	 * 確認ダイアログの「ログアウト」ボタン（#1131 で DialogProvider に既定 testID を追加）。
+	 *
+	 * ⚠️ `by.text("ログアウト")` は使えない。ダイアログが開いている間は
+	 * **設定画面のログアウト行とダイアログのボタンが同時に存在する**ため matcher が 2 件に一致し、
+	 * Detox は複数一致した要素の操作を例外にする（utils/waits.ts の `target()` 参照）。
+	 */
+	readonly logoutConfirmButton = by.id("dialog-confirm-button");
+	/** 確認ダイアログの「キャンセル」ボタン（#1131 で追加した既定 testID） */
+	readonly logoutCancelButton = by.id("dialog-cancel-button");
 	/**
 	 * リーガルドキュメントのモーダル（#1027 で settings.tsx へ testID を追加）。
 	 *
@@ -67,9 +87,40 @@ export class SettingsScreen {
 		return existsNow(this.logoutItem);
 	}
 
+	/**
+	 * 指定した文言の要素が設定画面に **無い**ことを判定する（待たずに即判定）。
+	 * #1132 の「旧文言が導線側に残っていないこと」の検証に使う。
+	 */
+	async hasText(text: string): Promise<boolean> {
+		return existsNow(by.text(text));
+	}
+
+	/**
+	 * ブロック済みの料理カテゴリ行をタップして一覧画面へ遷移する（#1132）。
+	 * e2e-web は `/ja-JP/profile/blocked-topics` へ URL 直遷移するが、
+	 * ネイティブには代替経路が無いため settings.test.ts と同じく実 UI 導線をタップする。
+	 */
+	async openBlockedTopics(): Promise<void> {
+		await tapWhenVisible(this.blockedTopicsItem);
+	}
+
 	/** プライバシーポリシー行をタップしてリーガルドキュメントのモーダルを開く */
 	async openPrivacyPolicy(): Promise<void> {
 		await tapWhenVisible(this.privacyItem);
+	}
+
+	/**
+	 * ログアウト行をタップし、確認ダイアログを「ログアウト」で確定する（#1131）。
+	 *
+	 * ⚠️ **セッションを破壊する操作。** 共有セッション（globalSetup 発行）で呼んではいけない
+	 * （サーバ側でも失効し、後続の authenticated テストが軒並み落ちる）。
+	 * 呼び出す spec の設計上の注意は tests/authenticated/logout.test.ts の冒頭コメントを参照すること。
+	 */
+	async logout(): Promise<void> {
+		await tapWhenVisible(this.logoutItem);
+		// Portal 経由でマウントされるため、ダイアログの描画完了（タイトル）を待ってから押す
+		await waitUntilVisible(this.logoutConfirmTitle);
+		await tapWhenVisible(this.logoutConfirmButton);
 	}
 
 	/** リーガルドキュメントのモーダルが開いていることを検証する */

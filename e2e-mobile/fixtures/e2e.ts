@@ -12,6 +12,7 @@ import {
 	isMutationEnabled,
 	isProbeEnabled,
 	readSessionFromEnv,
+	type E2ESession,
 	type SessionOwner,
 } from "../utils/sessionEnv";
 import {
@@ -69,7 +70,7 @@ export {
 	waitUntilVisible,
 };
 export { localeDeepLink };
-export type { SessionOwner };
+export type { E2ESession, SessionOwner };
 
 /**
  * アプリの「起動完了」を判定する観測点。
@@ -128,12 +129,47 @@ type LaunchOptions = {
  * CI では e2e-mobile-test.yml の Detox build ステップで設定している。
  *
  * @param opts.as 期待するセッションの持ち主。`authenticated` はテストユーザー、`anon` は匿名
+ * @param opts.session 環境変数の共有セッションではなく、渡したセッションを注入する（#1131）
+ * @param opts.injection 注入の反復ポリシー。既定 `"always"`（#1131）
  * @失敗時 期待するセッションが環境変数に無い場合、日本語メッセージで例外を投げる（fail-loud。#1030 B-1）
  */
-export async function launchAppWithSession(opts: { as: SessionOwner } & LaunchOptions): Promise<void> {
-	const { as, url, resetState = false, waitForReady = true, tutorialSeen = true } = opts;
+export async function launchAppWithSession(
+	opts: {
+		as: SessionOwner;
+		/**
+		 * 注入するセッションを明示する（#1131）。
+		 *
+		 * 省略時は globalSetup が確立した **run 共有**のセッション（環境変数）を使う。
+		 * ⚠️ **セッションを壊す操作（ログアウト）を行う spec は必ず専用セッションを渡すこと。**
+		 * 共有セッションでログアウトすると `POST /auth/v1/logout?scope=local` がサーバ側でも失効させ、
+		 * 後続の `tests/authenticated/` が軒並み落ちる（utils/disposableSession.ts 参照）。
+		 */
+		session?: E2ESession;
+		/**
+		 * 注入の反復ポリシー（#1131）。アプリ側フックの `e2eSessionInjection` へそのまま渡る。
+		 *
+		 * - `"always"`（既定） … 呼ばれるたびに「期待ユーザーと一致するか」で判定して注入する
+		 * - `"once"` … プロセス内で 1 回成立したら以降は素通りする。
+		 *   **ログアウトを検証する spec 専用**。既定のままだと SIGNED_OUT →`runAuthAttempt()`→ 注入 の順で
+		 *   ログイン済みセッションが復活し、「ログアウトしたのにログイン済みに戻る」テストになる
+		 *   （app-expo/lib/e2e/injectTestSession.ts の `E2ESessionInjectionPolicy`）。
+		 *   ⚠️ `"once"` の spec では、ログアウト後の匿名サインインが **実際に 1 回発生する**
+		 *   （30 回/時/IP の枠を 1 消費する）。それ自体が検証対象なので潰さないこと
+		 */
+		injection?: "always" | "once";
+	} & LaunchOptions,
+): Promise<void> {
+	const {
+		as,
+		session: explicitSession,
+		injection = "always",
+		url,
+		resetState = false,
+		waitForReady = true,
+		tutorialSeen = true,
+	} = opts;
 
-	const session = readSessionFromEnv(as);
+	const session = explicitSession ?? readSessionFromEnv(as);
 	if (!session) {
 		// #1030 【設計】B-1: 「注入できなかったので黙って通常起動へフォールバック」は絶対にしない。
 		// 匿名ユーザーのままログイン済みテストが走り、テストは緑なのに検証内容だけが嘘になるため
@@ -167,6 +203,9 @@ export async function launchAppWithSession(opts: { as: SessionOwner } & LaunchOp
 			//（app-expo/lib/e2e/injectTestSession.ts）。トークンと必ずセットで渡すこと
 			e2eSessionOwner: as,
 			e2eExpectedUserId: session.userId,
+			// #1131 既定（"always"）でもキーを明示して渡す。値は文字列のみ（"1"/"true" は
+			// react-native-launch-arguments が JSON.parse で型変換してしまうため使わない。#1027 と同じ理由）
+			e2eSessionInjection: injection,
 			...tutorialLaunchArgs(tutorialSeen),
 		}),
 	});

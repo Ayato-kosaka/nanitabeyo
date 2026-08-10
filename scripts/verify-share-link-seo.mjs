@@ -279,6 +279,53 @@ async function main() {
 		`A:${pages["A(ja-JP)"].html.includes("アプリで開く")} B:${pages["B(en-US)"].html.includes("Open in app")}`,
 	);
 
+	// ── 3-B. まとめて共有したときに «一括だと分かる» 文言になるか（#1194）──
+	// 実機フィードバックで「文言が一括シェアに見えない」と指摘された。
+	// 先頭 1 件の「料理名 - 店名」だけだと、受け取った側には単品の共有にしか見えない。
+	const multi = await createShareLink(accessToken, DISH_MEDIA_IDS.slice(0, 2), "ja-JP");
+	const multiRes = await fetch(`${WEB_BASE_URL}/s/${multi.token}`, { redirect: "manual" });
+	const multiHtml = await multiRes.text();
+	const multiTitle = title(multiHtml);
+
+	check(
+		"複数件の共有はタイトルに件数が出る",
+		Boolean(multiTitle) && /ほか\d+件/.test(multiTitle ?? ""),
+		"「ほかN件」を含む",
+		JSON.stringify(multiTitle),
+	);
+	check(
+		"複数件のタイトルは 1 件のときと別物",
+		Boolean(multiTitle) && multiTitle !== titleA,
+		"1 件共有の title と異なる",
+		`複数=${JSON.stringify(multiTitle)} / 単品=${JSON.stringify(titleA)}`,
+	);
+	check(
+		"複数件の description も件数を含む",
+		/\d+\s*件/.test(meta(multiHtml, "og:description") ?? ""),
+		"件数を含む",
+		JSON.stringify(meta(multiHtml, "og:description")),
+	);
+
+	// ── 3-C. 人間は中間画面に留まらない（#1194）──
+	// ⚠️ ここは «HTML に redirect が入っているか» までしか見られない。
+	// このスクリプトは fetch（JS を実行しない）ので、実際に遷移するかは
+	// e2e-web の `share-link-ogp.spec.ts` が実ブラウザで見ている。
+	//
+	// 逆に言うと、**JS を実行しない経路（＝ SNS のクローラ）では OGP がそのまま読める**
+	// ことを、上の判定群がそのまま証明している（出し分けになっていない）。
+	check(
+		"人間向けの自動遷移が仕込まれている",
+		pages["A(ja-JP)"].html.includes("window.location.replace("),
+		"window.location.replace( を含む",
+		pages["A(ja-JP)"].html.includes("window.location.replace(") ? "含む" : "含まない",
+	);
+	check(
+		"自動遷移の行き先が対象ページ（中間画面へ戻さない）",
+		pages["A(ja-JP)"].html.includes(`${WEB_BASE_URL}/${"ja-JP"}/posts`),
+		"WEB_BASE_URL/ja-JP/posts を指す",
+		pages["A(ja-JP)"].html.includes(`${WEB_BASE_URL}/ja-JP/posts`) ? "対象ページ" : "不明",
+	);
+
 	// ── 4. og:url / canonical が Hosting のドメインを指すか ──
 	// ここが API のドメインになっていると、SNS のカードから API が露出する
 	const ogUrlA = meta(pages["A(ja-JP)"].html, "og:url") ?? "";

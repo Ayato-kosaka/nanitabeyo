@@ -94,6 +94,15 @@ const envSchema = z.object({
     .default('600')
     .transform((v) => Number(v)),
   CDN_PUBLIC_HOST: z.string(),
+  /**
+   * #721 共有リンク（`/s/:token`）の絶対 URL を組み立てるための Web の配信元。
+   *
+   * ⚠️ **development / staging では必ず上書きすること。** 既定のままだと、開発環境で
+   * 作った共有リンクが本番ドメインを指す（開いても対象が存在しない）。
+   * 必須にしない（default を置く）のは、未設定で API が起動不能になる方が害が大きいため。
+   * app 側の `EXPO_PUBLIC_WEB_BASE_URL` と同じ値を入れる。
+   */
+  WEB_BASE_URL: z.string().url().default('https://app.nanitabeyo.net'),
 });
 
 /**

@@ -101,13 +101,15 @@ jobs:
             echo "::error::secrets.POSTGRES_DATABASE_URL が未設定です"
             exit 1
           fi
+          # ⚠️ `set search_path to dev;` を同じ -c に混ぜないこと。psql は文ごとに
+          # 結果を出すので、出力の 1 行目が `SET` になり ID と混ざる（実際に踏んだ）。
+          # スキーマは各テーブルへ明示的に付ける
           IDS=$(psql "${DATABASE_URL}" -tAc "
-            set search_path to dev;
             select string_agg(id::text, ',') from (
               select distinct on (m.dish_id) m.id
-              from dish_media m
-              join dishes d on d.id = m.dish_id
-              where m.thumbnail_path is not null and m.thumbnail_path <> ''
+              from dev.dish_media m
+              join dev.dishes d on d.id = m.dish_id
+              where m.thumbnail_path <> ''
               order by m.dish_id, m.created_at desc
               limit 2
             ) t")
