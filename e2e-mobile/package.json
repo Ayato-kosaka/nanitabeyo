@@ -25,7 +25,13 @@
 		"test:ci:mutation:android": "RUN_MUTATION=1 detox test --configuration android.emu.release --headless --take-screenshots all --artifacts-location artifacts -- --testPathPattern 'tests/mutation/'",
 		"test:ci:mutation:ios": "RUN_MUTATION=1 detox test --configuration ios.sim.release --take-screenshots all --artifacts-location artifacts -- --testPathPattern 'tests/mutation/'",
 		"test:ci:probe:android": "RUN_PROBE=1 detox test --configuration android.emu.release --headless --take-screenshots all --artifacts-location artifacts -- --testPathPattern 'tests/probe/'",
-		"test:ci:probe:ios": "RUN_PROBE=1 detox test --configuration ios.sim.release --take-screenshots all --artifacts-location artifacts -- --testPathPattern 'tests/probe/'"
+		"test:ci:probe:ios": "RUN_PROBE=1 detox test --configuration ios.sim.release --take-screenshots all --artifacts-location artifacts -- --testPathPattern 'tests/probe/'",
+		"test:catalog:android": "RUN_CATALOG=1 detox test --configuration android.emu.release -- --testPathPattern 'tests/catalog/'",
+		"test:catalog:ios": "RUN_CATALOG=1 detox test --configuration ios.sim.release -- --testPathPattern 'tests/catalog/'",
+		"test:ci:catalog:android": "RUN_CATALOG=1 detox test --configuration android.emu.release --headless --artifacts-location artifacts -- --testPathPattern 'tests/catalog/'",
+		"test:ci:catalog:ios": "RUN_CATALOG=1 detox test --configuration ios.sim.release --artifacts-location artifacts -- --testPathPattern 'tests/catalog/'",
+		"test:ci:catalog:mutation:android": "RUN_CATALOG=1 RUN_MUTATION=1 detox test --configuration android.emu.release --headless --artifacts-location artifacts -- --testPathPattern 'tests/catalog/'",
+		"test:ci:catalog:mutation:ios": "RUN_CATALOG=1 RUN_MUTATION=1 detox test --configuration ios.sim.release --artifacts-location artifacts -- --testPathPattern 'tests/catalog/'"
 	},
 	"devDependencies": {
 		"@supabase/supabase-js": "^2.49.4",
