@@ -104,7 +104,9 @@ test.describe("UI カタログ（匿名） @catalog", () => {
 				await topicsPage.chooseFirstTopic();
 				await resultPage.expectLoaded();
 			},
-			{ settleMs: 3_000 },
+			// 地図タイル + 店舗カード（メディアの読み込みを伴う）が埋まるまで待つ。
+			// 短いとスケルトンのまま撮れてしまい、カタログとして使えない
+			{ settleMs: 8_000 },
 		);
 	});
 

@@ -28,12 +28,18 @@ test.describe("UI カタログ（ログイン済み） @catalog", () => {
 
 		await tabBar.gotoProfile();
 		await expect(profilePage.loginButton).toHaveCount(0);
-		await captureScreen(appPage, "profile-authenticated", { settleMs: 1_500 });
+		// グリッドは実 API から取得したメディアを並べるため、待ちが短いとスケルトンのまま撮れてしまう
+		await captureScreen(appPage, "profile-authenticated", { settleMs: 4_000 });
 
-		const reachedReviews = await captureScreenIfReachable(appPage, "profile-authenticated-reviews", async () => {
-			await appPage.getByTestId("profile-tab-group-reviews").click();
-			await expect(profilePage.reviewsGrid).toBeVisible();
-		});
+		const reachedReviews = await captureScreenIfReachable(
+			appPage,
+			"profile-authenticated-reviews",
+			async () => {
+				await appPage.getByTestId("profile-tab-group-reviews").click();
+				await expect(profilePage.reviewsGrid).toBeVisible();
+			},
+			{ settleMs: 4_000 },
+		);
 
 		// 投稿が 1 件も無いテストユーザーではグリッドが空になり到達できない
 		if (reachedReviews) {
@@ -41,15 +47,16 @@ test.describe("UI カタログ（ログイン済み） @catalog", () => {
 				appPage,
 				"profile-food-feed",
 				async () => {
+					// グリッドはデータ取得中スケルトンを出す。実データのセル（画像）が出るまで待つ
 					const firstCell = profilePage.reviewsGrid.locator("img").first();
-					await expect(firstCell).toBeVisible({ timeout: 15_000 });
+					await expect(firstCell).toBeVisible({ timeout: 30_000 });
 					await firstCell.click();
 					// URL では判定しない: タブグループ内のネスト遷移では URL バーが実表示と
 					// 一致しないことがある（pages/ResultPage.ts のコメントと同じ既知の挙動）。
 					// フィード固有のアクションボタンの出現で到達を判定する
 					await expect(appPage.getByTestId("dish-action-like").first()).toBeVisible({ timeout: 20_000 });
 				},
-				{ settleMs: 3_000 },
+				{ settleMs: 6_000 },
 			);
 		}
 	});

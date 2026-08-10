@@ -111,17 +111,24 @@ function listCell(items) {
 function statusOf(screen) {
 	const result = results[screen.id];
 	if (screen.capture === "manual") return "対象外（手動）";
-	if (!useResults) return "未取得";
+	// manifest に載っている = 実際に公開済みなので、ローカルに結果が無くても取得済みと分かる
+	if (publicUrls[`${screen.id}.png`]) return "取得済み（公開済み）";
+	if (!useResults) return "—";
 	if (!result) return "未実行";
 	if (result.captured) return "取得済み";
 	return `失敗: ${cell(result.skipReason ?? "理由不明")}`;
 }
 
-/** スクリーンショットのファイル名（実ファイルが無ければ null） */
+/**
+ * スクリーンショットのファイル名（存在が確認できなければ null）。
+ * 「取得結果 JSON」「ローカルの実ファイル」「公開 manifest」のいずれかで確認できればよい。
+ */
 function fileOf(screen) {
+	if (screen.capture === "manual") return null;
+	const candidate = `${screen.id}.png`;
 	const result = results[screen.id];
 	if (result?.captured && result.file) return result.file;
-	const candidate = `${screen.id}.png`;
+	if (publicUrls[candidate]) return candidate;
 	if (fs.existsSync(path.join(screenshotDir, candidate))) return candidate;
 	return null;
 }
