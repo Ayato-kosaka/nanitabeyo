@@ -36,6 +36,11 @@ import type { BulkImportDishesDto } from '@shared/v1/dto';
 const VIEWER_ID = 'viewer-uuid';
 const CATEGORY_ID = 'category-uuid';
 const PLACE_ID = 'ChIJplace1';
+/** #1223 同期 upsert が返す実 ID（従来レスポンスは 'unknown' だった） */
+const PERSISTED_RESTAURANT_ID = 'persisted-restaurant-uuid';
+const PERSISTED_DISH_ID = 'persisted-dish-uuid';
+/** withTransaction のパススルー用ダミー tx */
+const TX = { __tx: true } as never;
 
 const dto = {
   location: '35.68944,139.69167',
@@ -123,9 +128,13 @@ describe('DishesService.bulkImportFromGoogle', () => {
   let cloudTasks: { enqueueCreateDishMediaEntry: jest.Mock };
   let repo: {
     findReusableGoogleImportDishMediaByPlaceIdsAndCategory: jest.Mock;
+    createOrGetRestaurant: jest.Mock;
+    createOrGetDishForCategory: jest.Mock;
+    createDishMedia: jest.Mock;
   };
   let dishMediaService: { fetchDishMediaEntryItems: jest.Mock };
   let storage: { fileExists: jest.Mock };
+  let prisma: { withTransaction: jest.Mock };
 
   beforeEach(async () => {
     locations = {
@@ -141,11 +150,23 @@ describe('DishesService.bulkImportFromGoogle', () => {
       findReusableGoogleImportDishMediaByPlaceIdsAndCategory: jest
         .fn()
         .mockResolvedValue(new Map()),
+      // #1223 同期 upsert が呼ぶ 3 メソッド。handler が使うのと同一の repository メソッド。
+      createOrGetRestaurant: jest
+        .fn()
+        .mockResolvedValue({ id: PERSISTED_RESTAURANT_ID }),
+      createOrGetDishForCategory: jest
+        .fn()
+        .mockResolvedValue({ id: PERSISTED_DISH_ID }),
+      createDishMedia: jest.fn().mockResolvedValue(undefined),
     };
     dishMediaService = {
       fetchDishMediaEntryItems: jest.fn().mockResolvedValue({ items: [] }),
     };
     storage = { fileExists: jest.fn().mockResolvedValue(false) };
+    // #1223 withTransaction は tx を渡して実行するだけのパススルー。
+    prisma = {
+      withTransaction: jest.fn((exec) => exec(TX)),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -168,7 +189,7 @@ describe('DishesService.bulkImportFromGoogle', () => {
         { provide: CloudTasksService, useValue: cloudTasks },
         { provide: DishCategoriesRepository, useValue: {} },
         { provide: RestaurantsRepository, useValue: {} },
-        { provide: PrismaService, useValue: {} },
+        { provide: PrismaService, useValue: prisma },
         { provide: DishMediaService, useValue: dishMediaService },
         { provide: StorageService, useValue: storage },
       ],
@@ -397,6 +418,119 @@ describe('DishesService.bulkImportFromGoogle', () => {
       await expect(
         service.bulkImportFromGoogle(dto, VIEWER_ID),
       ).resolves.toHaveLength(1);
+    });
+  });
+
+  // #1223 一次対策。レスポンスで返す dish_media.id が必ず DB に存在することを保証する。
+  describe('#1223 同期 upsert', () => {
+    beforeEach(() => {
+      locations.searchRestaurants.mockResolvedValue({
+        places: [buildPlace(PLACE_ID)],
+      });
+    });
+
+    it('レスポンスを返す前に restaurant / dish / dish_media を同期で upsert する', async () => {
+      await service.bulkImportFromGoogle(dto, VIEWER_ID);
+
+      expect(repo.createOrGetRestaurant).toHaveBeenCalledTimes(1);
+      expect(repo.createOrGetDishForCategory).toHaveBeenCalledTimes(1);
+      expect(repo.createDishMedia).toHaveBeenCalledTimes(1);
+    });
+
+    it('同期で作る dish_media.id はレスポンスの dish_media.id と一致する', async () => {
+      const result = await service.bulkImportFromGoogle(dto, VIEWER_ID);
+
+      const expectedId = buildGoogleImportDishMediaId(PLACE_ID, CATEGORY_ID);
+      expect(result[0].dish_media.id).toBe(expectedId);
+      expect(repo.createDishMedia.mock.calls[0][1].id).toBe(expectedId);
+      // 永続化した dish_id を指していること
+      expect(repo.createDishMedia.mock.calls[0][1].dish_id).toBe(
+        PERSISTED_DISH_ID,
+      );
+    });
+
+    // handler の冪等性境界は isDishMediaCompleted なので、completed で入れると
+    // handler が写真の取得・保存・リサイズを永久に skip してしまう
+    it("同期で作る行の status は 'processing' のままにする", async () => {
+      await service.bulkImportFromGoogle(dto, VIEWER_ID);
+
+      const persisted = repo.createDishMedia.mock.calls[0][1];
+      expect(persisted.media_processing_status).toBe('processing');
+      expect(persisted.thumbnail_processing_status).toBe('processing');
+    });
+
+    it('同期 upsert 後も非同期 enqueue は従来どおり行う（写真の取得・保存は非同期のまま）', async () => {
+      await service.bulkImportFromGoogle(dto, VIEWER_ID);
+
+      expect(cloudTasks.enqueueCreateDishMediaEntry).toHaveBeenCalledTimes(1);
+      const payload = cloudTasks.enqueueCreateDishMediaEntry.mock.calls[0][0];
+      expect(payload.photoUri).toEqual(['https://google/photo.jpg']);
+    });
+
+    it('レスポンスの restaurant.id / dish.id が永続化された実 ID になる', async () => {
+      const result = await service.bulkImportFromGoogle(dto, VIEWER_ID);
+
+      expect(result[0].restaurant.id).toBe(PERSISTED_RESTAURANT_ID);
+      expect(result[0].dish.id).toBe(PERSISTED_DISH_ID);
+      expect(result[0].dish_media.dish_id).toBe(PERSISTED_DISH_ID);
+    });
+
+    // 同期 upsert の失敗で place がレスポンスから消えると可用性が下がる。
+    // 従来動作（非同期ハンドラ任せ）へフォールバックすること。
+    it('同期 upsert が失敗しても 500 にせず、従来どおりレスポンスと enqueue を返す', async () => {
+      repo.createOrGetRestaurant.mockRejectedValue(
+        new Error('unique constraint'),
+      );
+
+      const result = await service.bulkImportFromGoogle(dto, VIEWER_ID);
+
+      expect(result).toHaveLength(1);
+      expect(cloudTasks.enqueueCreateDishMediaEntry).toHaveBeenCalledTimes(1);
+    });
+
+    // #829 / #1053 の再利用パスは既に DB に行があるので同期 upsert は不要
+    it('既存 Google import の再利用パスでは同期 upsert を行わない', async () => {
+      repo.findReusableGoogleImportDishMediaByPlaceIdsAndCategory.mockResolvedValue(
+        new Map([
+          [
+            PLACE_ID,
+            {
+              dishMediaId: 'existing-media',
+              reuseKind: 'google-import-non-completed',
+            },
+          ],
+        ]),
+      );
+      dishMediaService.fetchDishMediaEntryItems.mockResolvedValue({
+        items: [buildExistingEntry('existing-media')],
+      });
+
+      await service.bulkImportFromGoogle(dto, VIEWER_ID);
+
+      expect(repo.createDishMedia).not.toHaveBeenCalled();
+      expect(cloudTasks.enqueueCreateDishMediaEntry).toHaveBeenCalledTimes(1);
+    });
+
+    it('completed 再利用パスでも同期 upsert を行わない', async () => {
+      repo.findReusableGoogleImportDishMediaByPlaceIdsAndCategory.mockResolvedValue(
+        new Map([
+          [PLACE_ID, { dishMediaId: 'existing-media', reuseKind: 'completed' }],
+        ]),
+      );
+      dishMediaService.fetchDishMediaEntryItems.mockResolvedValue({
+        items: [
+          buildExistingEntry('existing-media', {
+            dish_media: {
+              media_processing_status: 'completed',
+              thumbnail_processing_status: 'completed',
+            },
+          }),
+        ],
+      });
+
+      await service.bulkImportFromGoogle(dto, VIEWER_ID);
+
+      expect(repo.createDishMedia).not.toHaveBeenCalled();
     });
   });
 });

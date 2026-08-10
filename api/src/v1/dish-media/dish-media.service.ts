@@ -244,27 +244,52 @@ export class DishMediaService {
       throw new Error('View cannot be both completed and skipped');
     }
 
-    const result = await this.prisma.withTransaction(
-      (tx: Prisma.TransactionClient) =>
-        this.repo.createDishMediaView(tx, {
-          impression_id: dto.impression_id,
-          dish_media_id,
-          user_id,
-          started_at: dto.started_at,
-          watch_ms: dto.watch_ms,
-          is_completed: dto.is_completed,
-          is_skipped: dto.is_skipped,
-          rewatch_count: dto.rewatch_count,
-        }),
-    );
+    try {
+      const result = await this.prisma.withTransaction(
+        (tx: Prisma.TransactionClient) =>
+          this.repo.createDishMediaView(tx, {
+            impression_id: dto.impression_id,
+            dish_media_id,
+            user_id,
+            started_at: dto.started_at,
+            watch_ms: dto.watch_ms,
+            is_completed: dto.is_completed,
+            is_skipped: dto.is_skipped,
+            rewatch_count: dto.rewatch_count,
+          }),
+      );
 
-    return {
-      id: result.id,
-      dish_media_id: result.dish_media_id,
-      impression_id: result.impression_id,
-      stored: true,
-      analysis_applied: true,
-    };
+      return {
+        id: result.id,
+        dish_media_id: result.dish_media_id,
+        impression_id: result.impression_id,
+        stored: true,
+        analysis_applied: true,
+      };
+    } catch (error) {
+      const violation = this.resolveDishMediaTimingForeignKeyViolation(error);
+      if (!violation) throw error;
+
+      // #1222 view は #1223 の impression に連鎖して落ちる。impression が
+      // FK 違反で作られなかった以上、そこを参照する view の impression_id も存在しない。
+      this.logger.warn(
+        'DishMediaViewForeignKeyViolation',
+        'createDishMediaView',
+        {
+          dishMediaId: dish_media_id,
+          impressionId: dto.impression_id,
+          userId: user_id,
+          fieldName: violation.fieldName,
+        },
+      );
+      return {
+        id: null,
+        dish_media_id,
+        impression_id: dto.impression_id,
+        stored: false,
+        analysis_applied: false,
+      };
+    }
   }
 
   /* ------------------------------------------------------------------ */
@@ -338,8 +363,68 @@ export class DishMediaService {
     user_id: string,
     dto: DishMediaImpressionBodyDto,
   ) {
-    await this.prisma.withTransaction((tx: Prisma.TransactionClient) =>
-      this.repo.addImpression(tx, { ...dto, dish_media_id, user_id }),
+    try {
+      await this.prisma.withTransaction((tx: Prisma.TransactionClient) =>
+        this.repo.addImpression(tx, { ...dto, dish_media_id, user_id }),
+      );
+    } catch (error) {
+      const violation = this.resolveDishMediaTimingForeignKeyViolation(error);
+      if (!violation) throw error;
+
+      this.logger.warn(
+        'DishMediaImpressionForeignKeyViolation',
+        'addImpression',
+        {
+          dishMediaId: dish_media_id,
+          impressionId: dto.id,
+          userId: user_id,
+          sessionId: dto.session_id,
+          source: dto.source,
+          fieldName: violation.fieldName,
+        },
+      );
+    }
+  }
+
+  /**
+   * #1223 【設計】impression / view のタイミング障害だけを握るための判定。
+   *
+   * これは **二次対策（防御）** であって根本原因ではない。根本は
+   * `POST /v1/dishes/bulk-import` が「まだ DB に無い dish_media.id」を返していたことで、
+   * 一次対策として bulk-import 側が同期で行を upsert するようになった
+   * （dishes.service.ts の upsertGoogleImportRowsSynchronously）。
+   *
+   * よってここで数える warn は **一次対策が効いていれば 0 に収束するはず** の残存分である。
+   * DishMediaImpressionForeignKeyViolation / DishMediaViewForeignKeyViolation が
+   * 増えていたら握りつぶしを疑うのではなく、
+   *   1. bulk-import の BulkImportSyncUpsertError（同期 upsert の失敗）
+   *   2. 同期 upsert を経由しない別経路からの dish_media.id 配布
+   * を先に疑うこと。この warn を消すために閾値を緩めてはいけない。
+   *
+   * 【設計】握るのは P2003（FK 違反）のみ。この 2 経路が書き込むのは
+   * dish_media_impressions / dish_media_views / dish_media_analysis_results の 3 テーブルで、
+   * そこに定義されている FK は dish_media_id と impression_id しか無い（schema.prisma）。
+   * したがって field_name が取れないケースもタイミング障害と断定してよい。
+   * それ以外のエラー（P2002 や接続断など）は従来どおり 500 として伝播させる。
+   *
+   * instanceof ではなく code のダック判定にしているのは、`$transaction` を通した
+   * 再 throw やモジュール実体の二重ロードで instanceof が落ちるのを避けるため。
+   */
+  private resolveDishMediaTimingForeignKeyViolation(
+    error: unknown,
+  ): { fieldName: string } | null {
+    const code = (error as { code?: unknown } | null)?.code;
+    if (code !== 'P2003') return null;
+
+    const meta = (error as { meta?: Record<string, unknown> } | null)?.meta;
+    const rawFieldName = meta?.field_name ?? meta?.constraint;
+    if (typeof rawFieldName !== 'string') {
+      return { fieldName: 'unknown' };
+    }
+
+    const isDishMediaTimingFk = ['dish_media_id', 'impression_id'].some(
+      (column) => rawFieldName.includes(column),
     );
+    return isDishMediaTimingFk ? { fieldName: rawFieldName } : null;
   }
 }

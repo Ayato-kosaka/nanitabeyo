@@ -6,6 +6,7 @@
 //
 
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '../../../../shared/prisma/client';
 
 import { CreateDishDto, BulkImportDishesDto } from '@shared/v1/dto';
 import {
@@ -28,11 +29,18 @@ import { StorageService } from '../../core/storage/storage.service';
 // Import converters
 import {
   convertPrismaToSupabase_Dishes,
+  convertSupabaseToPrisma_Dishes,
   PrismaDishes,
   SupabaseDishes,
 } from '../../../../shared/converters/convert_dishes';
-import { SupabaseRestaurants } from '../../../../shared/converters/convert_restaurants';
-import { SupabaseDishMedia } from '../../../../shared/converters/convert_dish_media';
+import {
+  convertSupabaseToPrisma_Restaurants,
+  SupabaseRestaurants,
+} from '../../../../shared/converters/convert_restaurants';
+import {
+  convertSupabaseToPrisma_DishMedia,
+  SupabaseDishMedia,
+} from '../../../../shared/converters/convert_dish_media';
 import { SupabaseDishReviews } from '../../../../shared/converters/convert_dish_reviews';
 import { CreateDishMediaEntryJobPayload } from '../../internal/dishes/create-dish-media-entry.interface';
 import { buildFullPath, getExt } from 'src/core/storage/storage.utils';
@@ -270,6 +278,11 @@ export class DishesService {
     let newlyCreatedCount = 0;
     let photoMediaCallCount = 0;
     let photoMediaSkippedCount = 0;
+    // #1223 【観測】同期 upsert が成功した件数と、失敗して従来どおり非同期ハンドラ任せに
+    // なった件数。後者が 0 でない限り「レスポンスの ID が DB に無い」窓が残るため、
+    // impression の P2003 warn 件数と突き合わせて評価する。
+    let syncUpsertedCount = 0;
+    let syncUpsertFailedCount = 0;
 
     const seenPlaceIds = new Set<string>();
     const uniquePlaces = googlePlaces.places
@@ -547,6 +560,46 @@ export class DishesService {
           );
         }
 
+        // #1223 【バグ】ここで同期に行を作らないと、レスポンスで返した dish_media.id が
+        // 「まだ DB に存在しない ID」になる。フロントはレスポンス直後にカードを描画して
+        // impression / view / like を送るため、Cloud Task の commit が間に合わないと
+        // dish_media_impressions.dish_media_id の FK 違反（P2003）で 500 になる（#1223/#1222）。
+        // レスポンスが返す ID は必ず DB に存在する、という契約を同期側の責務として守る。
+        //
+        // 【設計】非同期ハンドラと二重に upsert されるが no-op に収束する。根拠:
+        //   - restaurants: `upsert({ where: { google_place_id }, update: {} })`
+        //   - dishes:      `findFirst(restaurant_id, category_id)` して無ければ create
+        //   - dish_media:  `upsert({ where: { id }, update: {} })` かつ id は
+        //                  (placeId, categoryId) から決定論的（#829）なので両者が同じ ID を出す
+        // いずれも handler が使うのと **同一の repository メソッド** を呼んでいる。
+        // ここを個別実装に置き換えると二重実行の安全性が崩れるので分岐させないこと。
+        //
+        // 【設計】status は 'processing' のまま入れる。handler の冪等性境界は
+        // `isDishMediaCompleted(dish_media.id)` なので、ここで completed にすると
+        // handler が「処理済み」と判断して写真の取得・保存・リサイズを永久に skip する。
+        //
+        // 【互換性】失敗しても throw せず従来動作（非同期ハンドラ任せ）へフォールバックする。
+        // 同期 upsert の失敗で place がレスポンスから丸ごと消えると、この修正が
+        // bulk-import の可用性を下げてしまうため。
+        if (!existingGoogleImportEntry) {
+          const persisted = await this.upsertGoogleImportRowsSynchronously({
+            restaurant,
+            dish,
+            dishMedia,
+          });
+          if (persisted) {
+            // handler 側も restaurant / dish の実 ID を引き直すが、レスポンスと
+            // payload の dish_id を実 ID に揃えておく。従来はどちらも 'unknown' だった。
+            restaurant.id = persisted.restaurantId;
+            dish.id = persisted.dishId;
+            dish.restaurant_id = persisted.restaurantId;
+            dishMedia.dish_id = persisted.dishId;
+            syncUpsertedCount++;
+          } else {
+            syncUpsertFailedCount++;
+          }
+        }
+
         const googleReviews: SupabaseDishReviews[] = reviews.map((review) => ({
           // #829 【バグ】review ID も決定論的に導出し、リクエストを跨いだ重複を防ぐ
           id: buildGoogleImportDishReviewId(
@@ -688,9 +741,77 @@ export class DishesService {
       newlyCreatedCount,
       photoMediaCallCount,
       photoMediaSkippedCount,
+      syncUpsertedCount,
+      syncUpsertFailedCount,
     });
 
     return results;
+  }
+
+  /**
+   * #1223 レスポンスを返す前に restaurant / dish / dish_media を同期で永続化する。
+   *
+   * 非同期に残すのは「写真の実体取得・保存・リサイズ」だけで、行の存在保証はこちらの責務。
+   * 呼び出し側の詳細なコメントも参照すること。
+   *
+   * @returns 永続化された restaurant / dish の実 ID。失敗時は null（呼び出し側は従来動作へ）
+   */
+  private async upsertGoogleImportRowsSynchronously({
+    restaurant,
+    dish,
+    dishMedia,
+  }: {
+    restaurant: SupabaseRestaurants;
+    dish: SupabaseDishes;
+    dishMedia: SupabaseDishMedia;
+  }): Promise<{ restaurantId: string; dishId: string } | null> {
+    try {
+      return await this.prisma.withTransaction(
+        async (tx: Prisma.TransactionClient) => {
+          // #1223 【設計】非同期ハンドラ（create-dish-media-entry.service.ts の
+          // upsertDatabaseEntries）と同じ repository メソッド・同じ順序で呼ぶ。
+          // dish_reviews だけは意図的に呼ばない。FK の対象は dish_media だけであり、
+          // レビューを同期化してもレイテンシが増えるだけで解決するものが無いため。
+          const persistedRestaurant = await this.repo.createOrGetRestaurant(
+            tx,
+            {
+              ...convertSupabaseToPrisma_Restaurants(restaurant),
+              address_components:
+                restaurant.address_components as Prisma.InputJsonValue,
+              plus_code: restaurant.plus_code as Prisma.InputJsonValue,
+            },
+            restaurant.google_place_id,
+          );
+
+          const persistedDish = await this.repo.createOrGetDishForCategory(tx, {
+            ...convertSupabaseToPrisma_Dishes(dish),
+            restaurant_id: persistedRestaurant.id,
+          });
+
+          await this.repo.createDishMedia(
+            tx,
+            convertSupabaseToPrisma_DishMedia({
+              ...dishMedia,
+              dish_id: persistedDish.id,
+            }),
+          );
+
+          return {
+            restaurantId: persistedRestaurant.id,
+            dishId: persistedDish.id,
+          };
+        },
+      );
+    } catch (error) {
+      // #1223 【観測】ここが増えると一次対策が効かず、impression の P2003 warn も増える。
+      // 同時実行で同じ google_place_id を insert した場合の P2002 などが典型。
+      this.logger.error('BulkImportSyncUpsertError', 'bulkImportFromGoogle', {
+        googlePlaceId: restaurant.google_place_id,
+        dishMediaId: dishMedia.id,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      return null;
+    }
   }
 
   private buildGoogleImportRetryEntry(
@@ -730,6 +851,16 @@ export class DishesService {
 
   /**
    * 非同期ジョブをキューに投入
+   *
+   * #1223 【設計】このジョブに残っている責務は「写真の実体取得・GCS 保存・リサイズ」だけ。
+   * restaurant / dish / dish_media の **行の存在保証は同期側（upsertGoogleImportRowsSynchronously）
+   * の責務** に移した。handler 側の upsert は消していないが、それは Cloud Tasks retry の
+   * 冪等性境界（isDishMediaCompleted）を維持するためと、同期 upsert が失敗したときの
+   * 最終防衛線として残しているのであって、行の存在をこのジョブに依存してはいけない。
+   *
+   * ここを「行も作るジョブ」と読み替えて同期側の upsert を削ると、レスポンスで返した
+   * dish_media.id が Cloud Task の commit まで DB に存在しない状態に戻り、
+   * #1223 / #1222 の FK 違反（impression / view の 500）が再発する。
    */
   private async enqueueCreateDishMediaEntryJob({
     restaurant,
