@@ -9,6 +9,7 @@ import type { BaseResponse } from "@shared/api/v1/res";
 import { useCdnCookieStore } from "@/stores/useCdnCookieStore";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { toErrorLogMessage } from "@/lib/errorMessage";
+import { isTransientHttpStatus } from "@/lib/transientHttpStatus";
 
 /**
  * #525 【設計】統一されたエラーオブジェクト型
@@ -269,9 +270,43 @@ export const useAPICall = () => {
 				const backendErrorCode = errorPayload.errorCode || errorPayload.code;
 
 				// Log API error
+				//
+				// #1196 【設計】ここは「呼び出し側がフォールバックを持っているか」を知らない層なので、
+				// 経路ごとに手心を加えず、**このリポジトリが既に持っているステータスの分類**でレベルを決める。
+				//   - TRANSIENT_STATUSES (401/408/425/426/429) … 時間や環境で解消する一時障害。warn。
+				//     アプリを直しても消えないものを error で鳴らし続けると、本当の不具合が埋もれる。
+				//   - それ以外（500 を含む） … 従来どおり error。
+				//     ★ ここを一律 warn に落とさないこと。落とすと「フォールバックが無い経路の 500」
+				//       まで見えなくなる。500 は今も error のまま残す。
+				//
+				// ★ 401 だけはサーバと判断が分かれている（#1243 レビュー Minor-1）。
+				//   api/src/core/filters/api-exception.filter.ts の warn 対象は [408,425,426,429] で 401 を含まない。
+				//   あちらの 401 には src/internal/oidc.guard.ts の OIDC 検証失敗（Cloud Tasks / Scheduler）が
+				//   混ざり、refresh では回復せず、放置するとジョブパイプラインが全滞するため。
+				//   一方 app-expo が触るのは公開エンドポイントだけで internal を叩かないので、ここの 401 は
+				//   「flush 中のトークン失効レース」しかない。上の refreshSession + 1 回リトライがその設計で、
+				//   refresh 自体が失敗した場合は `api_call_session_refresh_failed` を **error** で別途出している。
+				//   よってフロントは warn のまま据え置く。
+				//
+				// ★ 429 を warn にしてよい根拠（ユーザー影響の実測 / #1196）:
+				//   POST v1/dishes/bulk-import が上流 Google Places のクォータ枯渇で失敗すると 429 が返るが、
+				//   この経路は Google Maps 退避導線を持っているのでユーザーは行き止まりにならない
+				//   （features/search/hooks/useGoogleMapsFallback.ts）。
+				//   #1243 レビュー Major-1 の grep（2026-08-10 時点）による呼び出し元と退避導線の対応:
+				//     1. features/dishCategoryGroupVotes/hooks/useCandidateDishMediaCache.ts … catch で表示
+				//     2. search/topics.tsx → search/result.tsx … 「ids 0 件 かつ ロード中でない」で表示
+				//        （この throw で store が 0 件のままになるので、検索結果 0 件と同じ導線に入る）
+				//     3. features/profile/tabs/SavedTopicsTab.tsx → profile/search-results.tsx
+				//        … **#1243 で追加**。それ以前はこの経路だけ退避導線が無く、行き止まりだった
+				//   実測でも失敗 340 件／125 人に対しダイアログ 340 件／125 人と完全一致し、
+				//   115 人（92%）が実際に Google Maps を開いている（3 を追加する前の数字）。
+				//   ⚠️ ここはステータスしか見ない層なので、bulk-import の新しい呼び出し元を足す人が
+				//     退避導線を用意したかどうかは検知できない。追加する側が確認すること。
+				//   ⚠️ クォータ枯渇そのものは運用が直すべき異常なので、api 側が
+				//     `GooglePlacesQuotaExceeded` を error で 1 件残している。ここが warn でも検知できる。
 				logFrontendEvent({
 					event_name: "api_call_error",
-					error_level: "error",
+					error_level: isTransientHttpStatus(response.status) ? "warn" : "error",
 					payload: {
 						endpoint,
 						method,

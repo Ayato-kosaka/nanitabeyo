@@ -117,15 +117,23 @@ const CREATE_RECHECK_DELAY_MS = 3000;
 /**
  * 一時障害として扱う HTTP ステータス。
  *
- * ★ `app-expo/lib/logQueue.ts` の `TRANSIENT_STATUSES`（同ファイル 60行目付近）と同一定義。
+ * ★ `app-expo/lib/transientHttpStatus.ts` の `TRANSIENT_STATUSES` と同一定義。
+ *   （#1196 以前は `app-expo/lib/logQueue.ts` に直接あった。useAPICall.ts でも同じ判定が要るように
+ *     なったため切り出され、logQueue.ts はそこから import している。）
+ *   ⚠️ `api/src/core/filters/api-exception.filter.ts` の `WARN_HTTP_STATUSES` は
+ *     **この集合の写しではない**（#1243 レビュー Minor-1 で意図的に分岐させた）。あちらは
+ *     [408,425,426,429] で **401 を含まない**。api の 401 には内部エンドポイントの OIDC 検証失敗
+ *     （src/internal/oidc.guard.ts。refresh では回復せず、ジョブパイプラインが全滞する）が混ざるため。
+ *     ここと app-expo の 401 は「flush 中のトークン失効レース」を指すので定義は変えない。
  *   あちらのコメントを引くと:
  *     「5xx と TRANSIENT_STATUSES は transient、それ以外の4xx（= 400/403/404/422 など、
  *       送信しているDTOやエンドポイントの契約が壊れている状態）だけを rejected とする。」
  *   401=flush中のトークン失効レース / 408=経路タイムアウト / 425=リプレイ懸念の再送要求 /
  *   426=アプリバージョン起因（maintenance.guard） / 429=レート制限。
+ *   #1196 以降、429 には「上流 Google Places のクォータ枯渇を bulk-import が素通しした 429」も含む。
  *
- * 片方だけ書き換えると「このリポジトリが不具合とみなす4xx」の定義が2つに割れるので、
- * 変更するときは必ず app-expo/lib/logQueue.ts と揃えること（相互参照コメントは向こうにも無い点に注意）。
+ * 片方だけ書き換えると「このリポジトリが不具合とみなす4xx」の定義が割れるので、
+ * 変更するときは必ず app-expo/lib/transientHttpStatus.ts と 2 つを揃えること。
  */
 const TRANSIENT_HTTP_STATUSES = Object.freeze([401, 408, 425, 426, 429]);
 
@@ -141,6 +149,18 @@ const TRANSIENT_HTTP_STATUSES = Object.freeze([401, 408, 425, 426, 429]);
  *   スキーマ不整合という最も検知したい事故が丸ごと消える。
  *
  * frontend の E4 と backend の E6 はこの同じ定数を共有する。
+ *
+ * ⚠️ #1243 レビュー Minor-2 / 仕様変更として受け入れた事実:
+ *   #1196 以降、上流 Google Places のクォータ枯渇に由来する 429 は
+ *   （frontend `api_call_error` / backend `HttpException` のどちらも）**warn** で記録される。
+ *   sql-generator.js の `src` CTE は `jsonPayload.error_level = 'error'` で絞っているので、
+ *   これらは **E4 / E6 に到達する前にクエリから落ちる**。
+ *   つまり `runSummary.excludedBreakdown` の `transient_status` / `expected_client_error` は
+ *   この経路について件数が出ない = 「除外が効きすぎて本物のバグを消していないか」を
+ *   数字で見る安全弁が、この経路に関しては実質無効になる。
+ *   受け入れられる理由は、クォータ枯渇そのものが `GooglePlacesQuotaExceeded`（**error**、
+ *   api/src/core/external-api/external-api.service.ts）で独立して見えるから。
+ *   ★ 他の 429 / 401 まで warn へ広げると、この安全弁が広範囲で効かなくなる。広げないこと。
  */
 const EXCLUDED_HTTP_STATUSES = Object.freeze([...TRANSIENT_HTTP_STATUSES, 403, 404].sort((a, b) => a - b));
 
