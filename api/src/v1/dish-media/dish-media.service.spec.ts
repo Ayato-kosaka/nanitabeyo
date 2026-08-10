@@ -62,8 +62,13 @@ const buildForeignKeyViolation = (fieldName?: string) =>
 
 describe('DishMediaService テレメトリの FK 違反ハンドリング', () => {
   let service: DishMediaService;
-  let repo: { addImpression: jest.Mock; createDishMediaView: jest.Mock };
+  let repo: {
+    addImpression: jest.Mock;
+    createDishMediaView: jest.Mock;
+    toggleReaction: jest.Mock;
+  };
   let prisma: { withTransaction: jest.Mock };
+  let cloudTasks: { enqueueNotification: jest.Mock };
   let logger: {
     debug: jest.Mock;
     warn: jest.Mock;
@@ -79,6 +84,10 @@ describe('DishMediaService テレメトリの FK 違反ハンドリング', () =
         dish_media_id: DISH_MEDIA_ID,
         impression_id: IMPRESSION_ID,
       }),
+      toggleReaction: jest.fn().mockResolvedValue(undefined),
+    };
+    cloudTasks = {
+      enqueueNotification: jest.fn().mockResolvedValue(undefined),
     };
     prisma = {
       // withTransaction は tx を渡して実行するだけのパススルー
@@ -101,7 +110,7 @@ describe('DishMediaService テレメトリの FK 違反ハンドリング', () =
         { provide: PrismaService, useValue: prisma },
         { provide: AppLoggerService, useValue: logger },
         { provide: TranscoderService, useValue: {} },
-        { provide: CloudTasksService, useValue: {} },
+        { provide: CloudTasksService, useValue: cloudTasks },
         { provide: ClsService, useValue: { get: jest.fn() } },
       ],
     }).compile();
@@ -263,6 +272,113 @@ describe('DishMediaService テレメトリの FK 違反ハンドリング', () =
         ),
       ).rejects.toThrow('View cannot be both completed and skipped');
       expect(repo.createDishMediaView).not.toHaveBeenCalled();
+    });
+  });
+
+  // #1223 レビュー指摘 Minor-1。
+  // like / save / open_map も「まだ DB に無い dish_media.id」を掴むと落ちる。
+  // dish_media_likes.dish_media_id も dish_media_analysis_results.dish_media_id も
+  // dish_media への FK なので、原因は impression / view とまったく同じ。
+  describe('#1223 reaction', () => {
+    it('正常時は従来どおり toggleReaction を呼ぶ', async () => {
+      await service.addReaction(DISH_MEDIA_ID, 'like', USER_ID, false);
+
+      expect(repo.toggleReaction).toHaveBeenCalledTimes(1);
+      expect(logger.warn).not.toHaveBeenCalled();
+    });
+
+    it('dish_media_id の FK 違反(P2003)で 500 にせず warn で握る', async () => {
+      repo.toggleReaction.mockRejectedValue(
+        buildForeignKeyViolation('dish_media_likes_dish_media_id_fkey (index)'),
+      );
+
+      await expect(
+        service.addReaction(DISH_MEDIA_ID, 'like', USER_ID, false),
+      ).resolves.toBeUndefined();
+      expect(logger.warn).toHaveBeenCalledWith(
+        'DishMediaReactionForeignKeyViolation',
+        'addReaction',
+        expect.objectContaining({
+          dishMediaId: DISH_MEDIA_ID,
+          userId: USER_ID,
+          actionType: 'like',
+        }),
+      );
+    });
+
+    // 行が無い以上リアクションは保存されていない。実体の無い like の通知を飛ばさない。
+    it('FK 違反を握ったときは通知ジョブを積まない', async () => {
+      repo.toggleReaction.mockRejectedValue(
+        buildForeignKeyViolation('dish_media_likes_dish_media_id_fkey (index)'),
+      );
+
+      await service.addReaction(DISH_MEDIA_ID, 'like', USER_ID, false);
+
+      expect(cloudTasks.enqueueNotification).not.toHaveBeenCalled();
+    });
+
+    it('save / open_map（reactions 経由）でも同様に握る', async () => {
+      repo.toggleReaction.mockRejectedValue(
+        buildForeignKeyViolation(
+          'dish_media_analysis_results_dish_media_id_fkey (index)',
+        ),
+      );
+
+      await expect(
+        service.addReaction(DISH_MEDIA_ID, 'open_map', USER_ID, false),
+      ).resolves.toBeUndefined();
+    });
+
+    it('解除側（removeReaction）でも同様に握る', async () => {
+      repo.toggleReaction.mockRejectedValue(
+        buildForeignKeyViolation(
+          'dish_media_analysis_results_dish_media_id_fkey (index)',
+        ),
+      );
+
+      await expect(
+        service.removeReaction(DISH_MEDIA_ID, 'save', USER_ID, false),
+      ).resolves.toBeUndefined();
+      expect(logger.warn).toHaveBeenCalledWith(
+        'DishMediaReactionForeignKeyViolation',
+        'removeReaction',
+        expect.objectContaining({ willReact: false }),
+      );
+    });
+
+    // impression / view と違い dish_media_likes は user_id にも FK を持つ。
+    // field_name 不明を握ると「存在しない user_id」という本物の不整合まで warn に埋まる。
+    it('field_name が取れない P2003 は握らず伝播させる', async () => {
+      const error = buildForeignKeyViolation();
+      repo.toggleReaction.mockRejectedValue(error);
+
+      await expect(
+        service.addReaction(DISH_MEDIA_ID, 'like', USER_ID, false),
+      ).rejects.toBe(error);
+      expect(logger.warn).not.toHaveBeenCalled();
+    });
+
+    it('user_id の FK 違反は握らず伝播させる', async () => {
+      const error = buildForeignKeyViolation(
+        'dish_media_likes_user_id_fkey (index)',
+      );
+      repo.toggleReaction.mockRejectedValue(error);
+
+      await expect(
+        service.addReaction(DISH_MEDIA_ID, 'like', USER_ID, false),
+      ).rejects.toBe(error);
+    });
+
+    // like の二重押下は P2002。握ると「押せているのに保存されていない」状態になる。
+    it('P2003 以外（二重 like の P2002 など）は従来どおり伝播させる', async () => {
+      const error = Object.assign(new Error('Unique constraint failed'), {
+        code: 'P2002',
+      });
+      repo.toggleReaction.mockRejectedValue(error);
+
+      await expect(
+        service.addReaction(DISH_MEDIA_ID, 'like', USER_ID, false),
+      ).rejects.toBe(error);
     });
   });
 });

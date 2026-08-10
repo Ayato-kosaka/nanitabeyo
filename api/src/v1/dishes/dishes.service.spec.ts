@@ -135,6 +135,12 @@ describe('DishesService.bulkImportFromGoogle', () => {
   let dishMediaService: { fetchDishMediaEntryItems: jest.Mock };
   let storage: { fileExists: jest.Mock };
   let prisma: { withTransaction: jest.Mock };
+  let logger: {
+    debug: jest.Mock;
+    warn: jest.Mock;
+    error: jest.Mock;
+    log: jest.Mock;
+  };
 
   beforeEach(async () => {
     locations = {
@@ -167,20 +173,18 @@ describe('DishesService.bulkImportFromGoogle', () => {
     prisma = {
       withTransaction: jest.fn((exec) => exec(TX)),
     };
+    logger = {
+      debug: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+      log: jest.fn(),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         DishesService,
         { provide: DishesRepository, useValue: repo },
-        {
-          provide: AppLoggerService,
-          useValue: {
-            debug: jest.fn(),
-            warn: jest.fn(),
-            error: jest.fn(),
-            log: jest.fn(),
-          },
-        },
+        { provide: AppLoggerService, useValue: logger },
         { provide: LocationsService, useValue: locations },
         {
           provide: RemoteConfigService,
@@ -421,6 +425,72 @@ describe('DishesService.bulkImportFromGoogle', () => {
     });
   });
 
+  // #1223 レビュー指摘 Major-2 の回帰テスト。
+  //
+  // 非同期ハンドラは downloadAndStorePhotos → upsertDatabaseEntries の順で動くため、
+  // 従来は「dish_media 行が見える = GCS に原本がある」という不変条件が成立していた。
+  // 同期 upsert はこれを壊すので、enqueue が失敗した（= 写真を GCS に置く経路が
+  // 一つも無い）ときにまで行を作ってはいけない。作ると 'processing' のまま
+  // 誰にも直せない行が残り、しかも feed の new バケットに優先的に載る。
+  describe('#1223 enqueue と同期 upsert の順序', () => {
+    beforeEach(() => {
+      locations.searchRestaurants.mockResolvedValue({
+        places: [buildPlace(PLACE_ID)],
+      });
+    });
+
+    it('enqueue が失敗したときは同期 upsert を行わない', async () => {
+      cloudTasks.enqueueCreateDishMediaEntry.mockRejectedValue(
+        new Error('Cloud Tasks unavailable'),
+      );
+
+      await service.bulkImportFromGoogle(dto, VIEWER_ID);
+
+      expect(repo.createOrGetRestaurant).not.toHaveBeenCalled();
+      expect(repo.createOrGetDishForCategory).not.toHaveBeenCalled();
+      expect(repo.createDishMedia).not.toHaveBeenCalled();
+    });
+
+    it('enqueue が成功したときは従来どおり同期 upsert する', async () => {
+      await service.bulkImportFromGoogle(dto, VIEWER_ID);
+
+      expect(cloudTasks.enqueueCreateDishMediaEntry).toHaveBeenCalledTimes(1);
+      expect(repo.createDishMedia).toHaveBeenCalledTimes(1);
+    });
+
+    // enqueue を先に呼ぶこと自体が対策の本体なので、順序を直接固定する
+    it('同期 upsert より先に enqueue を呼ぶ', async () => {
+      const callOrder: string[] = [];
+      cloudTasks.enqueueCreateDishMediaEntry.mockImplementation(() => {
+        callOrder.push('enqueue');
+        return Promise.resolve(undefined);
+      });
+      repo.createOrGetRestaurant.mockImplementation(() => {
+        callOrder.push('syncUpsert');
+        return Promise.resolve({ id: PERSISTED_RESTAURANT_ID });
+      });
+
+      await service.bulkImportFromGoogle(dto, VIEWER_ID);
+
+      expect(callOrder).toEqual(['enqueue', 'syncUpsert']);
+    });
+
+    // enqueue 失敗時は #1223 以前の挙動（orphan response）に戻すだけで、
+    // place をレスポンスから丸ごと落として可用性を下げてはいけない
+    it('enqueue が失敗してもレスポンスは従来どおり返す', async () => {
+      cloudTasks.enqueueCreateDishMediaEntry.mockRejectedValue(
+        new Error('Cloud Tasks unavailable'),
+      );
+
+      const result = await service.bulkImportFromGoogle(dto, VIEWER_ID);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].dish_media.id).toBe(
+        buildGoogleImportDishMediaId(PLACE_ID, CATEGORY_ID),
+      );
+    });
+  });
+
   // #1223 一次対策。レスポンスで返す dish_media.id が必ず DB に存在することを保証する。
   describe('#1223 同期 upsert', () => {
     beforeEach(() => {
@@ -509,6 +579,46 @@ describe('DishesService.bulkImportFromGoogle', () => {
 
       expect(repo.createDishMedia).not.toHaveBeenCalled();
       expect(cloudTasks.enqueueCreateDishMediaEntry).toHaveBeenCalledTimes(1);
+    });
+
+    // #1223 レビュー指摘 Minor-2。message だけだと P2002（競合）／接続断／circuit open が
+    // 区別できず、「同期 upsert の失敗をまず疑う」という監視手順が成立しない。
+    it('同期 upsert の失敗ログに Prisma の code と meta を残す', async () => {
+      repo.createOrGetRestaurant.mockRejectedValue(
+        Object.assign(new Error('Unique constraint failed'), {
+          code: 'P2002',
+          meta: { target: ['google_place_id'] },
+        }),
+      );
+
+      await service.bulkImportFromGoogle(dto, VIEWER_ID);
+
+      expect(logger.error).toHaveBeenCalledWith(
+        'BulkImportSyncUpsertError',
+        'bulkImportFromGoogle',
+        expect.objectContaining({
+          code: 'P2002',
+          meta: { target: ['google_place_id'] },
+        }),
+      );
+    });
+
+    it('Prisma 由来でないエラーでも code は null で残す', async () => {
+      repo.createOrGetRestaurant.mockRejectedValue(
+        new Error('DB circuit open (temporarily unavailable)'),
+      );
+
+      await service.bulkImportFromGoogle(dto, VIEWER_ID);
+
+      expect(logger.error).toHaveBeenCalledWith(
+        'BulkImportSyncUpsertError',
+        'bulkImportFromGoogle',
+        expect.objectContaining({
+          code: null,
+          meta: null,
+          error: 'DB circuit open (temporarily unavailable)',
+        }),
+      );
     });
 
     it('completed 再利用パスでも同期 upsert を行わない', async () => {
