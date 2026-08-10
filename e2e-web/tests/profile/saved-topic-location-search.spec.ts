@@ -104,7 +104,9 @@ test.describe("保存料理カテゴリからの地点検索(#1133)", () => {
 			[1, 2, 3, 4, 5].map((n) => ({
 				locationQuery: `テスト地点${n}`,
 				location: { latitude: 35.6 + n / 100, longitude: 139.7 + n / 100 },
-				address: `東京都テスト区${n}`,
+				// ⚠️ 表示用の住所ではなく «推薦 API 用のトークン列»。#1196 以降、正規形式でない
+				// エントリはアプリが読み出し時に捨てるため、ここを崩すとパネルが 0 件になる
+				address: `country:JP, administrative_area_level_1:Tokyo, locality:Test${n}`,
 				localLanguageCode: "ja",
 			})),
 		);
@@ -150,7 +152,10 @@ test.describe("保存料理カテゴリからの地点検索(#1133)", () => {
 		// Card の overflow: hidden で本当にクリップされたら scrollIntoViewIfNeeded では出てこない。
 		const lastItem = profilePage.locationModalRecentLocation(4);
 		await lastItem.scrollIntoViewIfNeeded();
-		await expect(lastItem, "5 件目の「最近使った場所」がスクロールしても見えない（Card に切り取られている）").toBeVisible();
+		await expect(
+			lastItem,
+			"5 件目の「最近使った場所」がスクロールしても見えない（Card に切り取られている）",
+		).toBeVisible();
 
 		const lastItemBox = await lastItem.boundingBox();
 		expect(lastItemBox, "5 件目の「最近使った場所」が描画されていない").not.toBeNull();
