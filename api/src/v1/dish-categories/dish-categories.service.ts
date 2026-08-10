@@ -22,7 +22,6 @@ import {
   DishCategoryPenaltyFeatureSet,
 } from './dish-categories.interface';
 import { shuffle } from 'src/core/utils/backend-utils';
-import { findAddressFormatViolation } from '../../core/utils/address-format';
 
 // #533 【定数】候補取得上限数
 const CANDIDATE_LIMIT = 200;
@@ -246,8 +245,11 @@ export class DishCategoriesService {
     // Claude は海外向けの保険であって日本向けの経路ではないため、
     // 本番では Claude 側のエラーがそのまま失敗になった(1日 1,445件 / 204ユーザー)。
     // なおゲートの照合は Postgres の `=` で**大小文字区別あり**なので、"country:jp" のような
-    // 小文字の国コードも同じ結末になる(詳細と、サーバ側で救済しない判断の理由は
-    // `api/src/core/utils/address-format.ts` を参照)。
+    // 小文字の国コードも同じ結末になる。
+    //
+    // 【サーバ側では直さない】この API は仕様どおりに動いており、バグではない。
+    // address の形式を守るのはクライアントの責務で、サーバでは値を復元できない
+    // (「大阪市」から国を推測することはできない)。よって検証も救済もここには置かない。
     // 原因はクライアントの現在地フォールバックが expo の `city` をそのまま address にしていたこと。
     // 詳細と修正は `app-expo/lib/addressFormat.ts` / `app-expo/hooks/useLocationSearch.ts` を参照。
     const addressTokens = dto.address
@@ -257,29 +259,6 @@ export class DishCategoriesService {
 
     if (addressTokens.length === 0) {
       throw new BadRequestException('address must not be empty');
-    }
-
-    // #1196 【防御】期待形式でない address を「黙って Claude へ落とす」のをやめ、検知可能にする。
-    //
-    // 400 で弾かずに warn ログに留める理由:
-    // - 400 にすると、古いビルドを使い続けているユーザーの検索が即エラーになる(degraded から不能へ悪化する)
-    // - address の形式が崩れる原因は常にクライアント側であり、サーバでは値を復元できない
-    //   (「大阪市」から国を推測することはできない)
-    // - 一方でこのイベント名を BigQuery のエラートリアージで拾えば、同じ事故が再発したときに即座に気づける
-    //
-    // このログが日本の住所で出ていたら、それはクライアント側のバグである(仕様上ありえない)。
-    //
-    // #1196 reason は「country トークンが無い」("大阪市" のような旧フォールバック)と
-    // 「国コードの大小文字が違う」("country:jp")を区別する。原因も直し方も別物なので、
-    // トリアージで一括りにしない。
-    const addressFormatViolation = findAddressFormatViolation(dto.address);
-    if (addressFormatViolation) {
-      this.logger.warn('MalformedAddressFormat', 'normalizeInput', {
-        // 生の address を残す。形式判定を通らない値なので個人特定性は低く、原因追跡には必須
-        address: dto.address,
-        addressTokenCount: addressTokens.length,
-        reason: addressFormatViolation,
-      });
     }
 
     // #533 【仕様】regionTokens生成
@@ -844,8 +823,8 @@ export class DishCategoriesService {
    * Claude 側の失敗(課金枯渇による 400)でそのまま推薦0件になっていた。
    *
    * 【残す理由】海外の地点では今も必要なため、この経路自体は消さない。
-   * 「日本の住所で発火させない」ことで対処する。発火の検知は normalizeInput の
-   * MalformedAddressFormat ログと、下の FallbackToClaude ログ(呼び出し元)で行う。
+   * 「日本の住所で発火させない」ことで対処する。発火の検知は呼び出し元の
+   * FallbackToClaude ログ(reason 付き)で行う。
    */
   private async fallbackToClaude(
     dto: QueryDishCategoryRecommendationsDto,

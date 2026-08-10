@@ -273,8 +273,8 @@ export class DishCategoriesRepository {
       -- region_tokens は service 側の normalizeInput が address をカンマ分割して作る
       -- (address = "country:JP, administrative_area_level_1:..., locality:..." が正規形式)。
       -- なおこの比較は Postgres の '=' なので**大小文字区別あり**であり、"region:country:jp" では
-      -- 当たらない。国コードの大文字化はクライアント側 (app-expo/lib/addressFormat.ts) で担保し、
-      -- 崩れた値が届いた場合は normalizeInput の MalformedAddressFormat で検知する。
+      -- 当たらない。国コードの大文字化はクライアント側 (app-expo/lib/addressFormat.ts) の責務。
+      -- サーバ側で検証・救済はしない(この SQL は仕様どおりで、崩れた値を送る側がバグ)。
       --
       -- 【逆は成り立たない】address が壊れていても、下の OR 分岐にある 'region:scope:global'
       -- (国を問わず出せるカテゴリに付く gate key)を持つ行は残るため、ここが必ず 0 件になるわけではない。
