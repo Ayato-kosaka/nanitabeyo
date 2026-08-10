@@ -263,6 +263,31 @@ export class DishCategoriesRepository {
           ${Math.min(Math.max(scoreJitterRatio, 0), 1)}::numeric AS score_jitter_ratio
       ),
       -- #533 【設計】gate whitelist: region_tokens + 'region:scope:global' でフィルタ
+      --
+      -- #1196 【前提】ホワイトリスト(dish_category_features の feature_type='gate')には
+      -- 国レベルの key しか投入していない。日本向けに入っているのは 'region:country:JP' **だけ**で、
+      -- 'region:administrative_area_level_1:大阪府' や 'region:locality:大阪市' は存在しない。
+      --
+      -- したがって region_tokens に "region:country:JP" が含まれてさえいれば、
+      -- 日本の住所は必ずここでマッチする(十分条件)。
+      -- region_tokens は service 側の normalizeInput が address をカンマ分割して作る
+      -- (address = "country:JP, administrative_area_level_1:..., locality:..." が正規形式)。
+      -- なおこの比較は Postgres の '=' なので**大小文字区別あり**であり、"region:country:jp" では
+      -- 当たらない。国コードの大文字化はクライアント側 (app-expo/lib/addressFormat.ts) で担保し、
+      -- 崩れた値が届いた場合は normalizeInput の MalformedAddressFormat で検知する。
+      --
+      -- 【逆は成り立たない】address が壊れていても、下の OR 分岐にある 'region:scope:global'
+      -- (国を問わず出せるカテゴリに付く gate key)を持つ行は残るため、ここが必ず 0 件になるわけではない。
+      -- 0 件になるのは "region:scope:global" の行が無いか全て score <= 0 の場合に限られる。
+      -- 実例: #1196 では address が市区町村名単体("大阪市")になり region_tokens が ["region:大阪市"]
+      -- となったため、JP 向けのゲートには一切ヒットしなくなった。その結果、
+      --   - ここが 0 件 → 'no_candidates'、または
+      --   - global 分のみ残ったがスレート(6枚)を構成できず → 'insufficient_candidates'
+      -- のいずれかで fallbackToClaude が発火し(発火箇所は dish-categories.service.ts の
+      -- getRecommendations にある no_candidates / insufficient_candidates / 例外時の 3 箇所)、
+      -- Claude 側の失敗がそのまま 1日 1,445件のエラーになった。
+      -- どちらの経路だったかは本番ログから確定していないが、いずれにせよ Claude 経路は
+      -- ホワイトリスト未整備の海外向けの保険であって日本向けの経路ではない。
       region_ok_categories AS (
         SELECT DISTINCT dcf.dish_category_id AS category_id
         FROM dish_category_features dcf, params p

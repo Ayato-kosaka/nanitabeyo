@@ -139,8 +139,6 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 			// Close modal first
 			closeLocationModal();
 
-			const { mediaIdsByKey, isLoadingByKey, upsertDishMediaEntries, updateMediaIdsByKeyAsync } =
-				useDishMediaEntriesStore.getState();
 			const entriesKey = makeDishMediaEntriesKey({
 				categoryId: selectedTopic.id,
 				location: { place_id: location.place_id },
@@ -150,10 +148,26 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 				viewerLanguageCode: locale,
 			});
 
+			// #1243 【設計】search/result.tsx と同じ Google Maps 退避導線を profile/search-results.tsx でも
+			// 出せるようにするため、push の前に座標を解決する。
+			// この画面が握っているのは place_id だけだが、退避先の URL には緯度経度が要る（lib/googleMaps.ts）。
+			// expo-router は push 後に params を足せないので、渡すなら push 前に解決するしかない。
+			//   - 呼び出し回数は増えない。従来も直後の getIds() の中で同じ getLocationDetails を 1 回呼んでいた。
+			//     ここでは同じ Promise を使い回すので、ネットワーク呼び出しは今までどおり 1 回。
+			//   - closeLocationModal() の閉じアニメーションと並走するため、体感の待ちはほぼ増えない。
+			//   - 解決に失敗しても遷移は止めない（従来と同じ挙動）。座標が無ければ退避導線は出せないが、
+			//     それは #1243 以前と同じ状態で、退避導線が減る方向の変化ではない。
+			const locationDetailsPromise = getLocationDetails(location);
+			const locationDetails = await locationDetailsPromise.catch(() => null);
+
+			const { mediaIdsByKey, isLoadingByKey, upsertDishMediaEntries, updateMediaIdsByKeyAsync } =
+				useDishMediaEntriesStore.getState();
+
 			if (mediaIdsByKey[entriesKey] === undefined && !isLoadingByKey[entriesKey]) {
 				const getIds = async () => {
 					// Get location details including coordinates and language code
-					const locationDetails = await getLocationDetails(location);
+					// 失敗していた場合は元のエラーがそのまま伝播し、ストアは「0 件かつ非ロード中」になる（従来と同じ）。
+					const locationDetails = await locationDetailsPromise;
 
 					const dishItems = await createDishItemsPromise(
 						selectedTopic.id,
@@ -175,6 +189,11 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 				params: {
 					locale,
 					entriesKey,
+					// #1243 0 件確定時の Google Maps 退避導線に使う（topics.tsx handleViewDetails と同じ形）。
+					...(locationDetails && { location: JSON.stringify(locationDetails.location) }),
+					// bulk-import に渡しているのと同じ文字列を渡す。表示名（labels[locale]）ではなく
+					// 実際に検索したカテゴリ名を Google Maps のクエリにする（result.tsx の topic.category と同じ考え方）。
+					category: selectedTopic.label_en,
 				},
 			});
 

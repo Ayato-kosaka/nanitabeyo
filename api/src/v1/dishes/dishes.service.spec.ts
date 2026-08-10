@@ -18,7 +18,10 @@ jest.mock('../../core/config/env', () => ({
   ),
 }));
 
+import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { ErrorCode } from '@shared/v1/res';
+import { ExternalApiQuotaExceededError } from '../../core/external-api/external-api.errors';
 import { DishesService } from './dishes.service';
 import { DishesRepository } from './dishes.repository';
 import { AppLoggerService } from '../../core/logger/logger.service';
@@ -143,6 +146,12 @@ describe('DishesService.bulkImportFromGoogle', () => {
   };
 
   beforeEach(async () => {
+    logger = {
+      debug: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+      log: jest.fn(),
+    };
     locations = {
       searchRestaurants: jest.fn(),
       tryGetPhotoMedia: jest
@@ -200,6 +209,93 @@ describe('DishesService.bulkImportFromGoogle', () => {
     }).compile();
 
     service = module.get<DishesService>(DishesService);
+  });
+
+  // #1196 上流(Google Places Text Search)の日次クォータ枯渇の扱い。
+  //
+  // ここで固定したいのは 3 点:
+  //   1. 500 ではなく 429 を返すこと（分類済みの想定内の事象を内部異常として返さない）
+  //   2. **503 にしないこと**。app-expo/hooks/useAPICall.ts は 503 をメンテナンスモードとして扱い、
+  //      専用ダイアログを出して maintenance_mode を throw する。それが Google Maps
+  //      フォールバックダイアログと競合し、115人/日が使っている退避導線を壊す。
+  //   3. ユーザー影響のログは warn（フォールバックがあるので行き止まりにならない）。
+  //      クォータ枯渇そのものの error は ExternalApiService 側が出すので、ここでは出さない。
+  describe('#1196 上流クォータ枯渇', () => {
+    const quotaError = new ExternalApiQuotaExceededError({
+      apiName: 'Google Places Text Search API',
+      upstreamStatus: 429,
+      message:
+        "Google Places Text Search API request failed: 429 Quota exceeded for quota metric 'SearchTextRequest'",
+    });
+
+    it('500 ではなく 429 を返す', async () => {
+      locations.searchRestaurants.mockRejectedValue(quotaError);
+
+      const error = await service.bulkImportFromGoogle(dto, VIEWER_ID).then(
+        () => null,
+        (e: unknown) => e,
+      );
+
+      expect(error).toBeInstanceOf(HttpException);
+      expect((error as HttpException).getStatus()).toBe(
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    });
+
+    it('503(メンテナンスモード)にはしない — フォールバックダイアログを壊すため', async () => {
+      locations.searchRestaurants.mockRejectedValue(quotaError);
+
+      const error = await service.bulkImportFromGoogle(dto, VIEWER_ID).then(
+        () => null,
+        (e: unknown) => e,
+      );
+
+      expect((error as HttpException).getStatus()).not.toBe(
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+    });
+
+    it('errorCode は EXTERNAL_SERVICE_ERROR', async () => {
+      locations.searchRestaurants.mockRejectedValue(quotaError);
+
+      const error = await service.bulkImportFromGoogle(dto, VIEWER_ID).then(
+        () => null,
+        (e: unknown) => e,
+      );
+
+      expect((error as HttpException).getResponse()).toMatchObject({
+        code: ErrorCode.EXTERNAL_SERVICE_ERROR,
+      });
+    });
+
+    it('ユーザー影響は warn で記録し、error は出さない（フォールバックが成立しているため）', async () => {
+      locations.searchRestaurants.mockRejectedValue(quotaError);
+
+      await service.bulkImportFromGoogle(dto, VIEWER_ID).catch(() => undefined);
+
+      expect(logger.warn).toHaveBeenCalledWith(
+        'BulkImportUpstreamQuotaExceeded',
+        'bulkImportFromGoogle',
+        expect.objectContaining({ upstream_status: 429 }),
+      );
+      expect(logger.error).not.toHaveBeenCalled();
+    });
+
+    it('クォータ以外の上流失敗は握りつぶさず、そのまま投げる（= 500 / error のまま）', async () => {
+      const unexpected = new Error(
+        'Google Places Text Search API request failed: 500 ',
+      );
+      locations.searchRestaurants.mockRejectedValue(unexpected);
+
+      await expect(service.bulkImportFromGoogle(dto, VIEWER_ID)).rejects.toBe(
+        unexpected,
+      );
+      expect(logger.warn).not.toHaveBeenCalledWith(
+        'BulkImportUpstreamQuotaExceeded',
+        expect.anything(),
+        expect.anything(),
+      );
+    });
   });
 
   describe('該当店舗なし', () => {
