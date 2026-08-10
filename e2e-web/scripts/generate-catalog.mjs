@@ -83,16 +83,16 @@ function loadPublicUrls() {
 	const manifestPath = options.manifest ? path.resolve(String(options.manifest)) : null;
 	/** @type {Record<string, string>} */
 	const urls = {};
-	if (!manifestPath || !fs.existsSync(manifestPath)) return urls;
+	if (!manifestPath || !fs.existsSync(manifestPath)) return { urls, manifest: null };
 	const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf-8"));
 	for (const image of manifest.images ?? []) {
 		urls[path.basename(image.path)] = image.url;
 	}
-	return urls;
+	return { urls, manifest };
 }
 
 const results = loadResults();
-const publicUrls = loadPublicUrls();
+const { urls: publicUrls, manifest: publishedManifest } = loadPublicUrls();
 
 /** Markdown のテーブルセルを壊さないようにエスケープする */
 function cell(text) {
@@ -215,6 +215,16 @@ lines.push(
 		"その run を `Evidence Collect` に渡すと GCS へ公開され、画面名がそのまま入った公開 URL が manifest に出ます。",
 );
 lines.push("");
+
+if (publishedManifest) {
+	lines.push("この一覧の公開 URL は、次の run で取得・公開されたスクリーンショットを指しています。");
+	lines.push("");
+	lines.push(`- 取得元 run: ${publishedManifest.sourceRunUrl}`);
+	lines.push(`- 対象 commit: \`${publishedManifest.sourceCommitSha}\``);
+	lines.push(`- 公開先（GCS）: \`${publishedManifest.gcsPrefix}\``);
+	lines.push(`- manifest: ${publishedManifest.publicManifestUrl}`);
+	lines.push("");
+}
 
 lines.push("## 画面一覧（自動取得）");
 lines.push("");
