@@ -25,6 +25,7 @@ const {
 	sanitizeInlineText,
 	shouldUpdateBody,
 } = require("./render");
+const { FP_ALGO_VERSION } = require("./constants");
 const { computeFingerprint } = require("./fingerprint");
 const { buildEnvelope, buildPlan } = require("./triage");
 const { computeWindow } = require("./window");
@@ -63,7 +64,7 @@ describe("本文マーカーの抽出", () => {
 	});
 
 	it("fpalgo マーカーが無ければ 1 とみなす", () => {
-		expect(extractAlgoVersion(issue1201.body)).toBe(1);
+		expect(extractAlgoVersion(issue1201.body)).toBe(2);
 		expect(extractAlgoVersion("<!-- fp:aaaaaaaaaaaa -->")).toBe(1);
 		expect(extractAlgoVersion("<!-- fpalgo:2 -->")).toBe(2);
 	});
@@ -108,7 +109,7 @@ describe("renderIssueBody() — 新規起票", () => {
 
 	it("先頭に fp / fpalgo マーカーを置く", () => {
 		expect(body.split("\n")[0]).toBe(`<!-- fp:${backendGroup.fingerprint} -->`);
-		expect(body.split("\n")[1]).toBe("<!-- fpalgo:1 -->");
+		expect(body.split("\n")[1]).toBe(`<!-- fpalgo:${FP_ALGO_VERSION} -->`);
 		expect(extractFingerprints(body)).toEqual([backendGroup.fingerprint]);
 	});
 
@@ -188,7 +189,7 @@ describe("renderIssueBody() — 既存 body の更新", () => {
 
 	it("先頭の fp / fpalgo マーカーを壊さない", () => {
 		expect(extractFingerprints(updated)).toEqual(["799742528a3a"]);
-		expect(extractAlgoVersion(updated)).toBe(1);
+		expect(extractAlgoVersion(updated)).toBe(FP_ALGO_VERSION);
 	});
 
 	it("自動領域が2つに増えない（何度更新しても1つ）", () => {

@@ -12,14 +12,16 @@ const {
 	GROUP_LIMIT,
 	MIN_EVENTS_REOPEN,
 	PANIC_THRESHOLD,
+	REKEY_LIMIT,
 	REOPEN_LIMIT,
 	SCHEMA_VERSION,
 	SKIP_LABEL,
+	SUPPORTED_ALGO_VERSIONS,
 	SURFACES,
 	FP_ALGO_VERSION,
 } = require("./constants");
-const { attachFingerprints, FINGERPRINT_PATTERN } = require("./fingerprint");
-const { isNormalized } = require("./normalize-rules");
+const { attachFingerprints, computeLegacyFingerprints, FINGERPRINT_PATTERN } = require("./fingerprint");
+const { isNormalized, isPathLocaleStripped } = require("./normalize-rules");
 const { extractAlgoVersion, extractFingerprints } = require("./render");
 const { addHours, minTimestamp, toDate } = require("./window");
 
@@ -50,6 +52,8 @@ const GROUP_FIELDS = Object.freeze([
 	"hourlyCounts",
 	"commits",
 	"appVersions",
+	// fpalgo 2: pathName から剥がしたロケールの内訳。剥がした情報をここへ移す（CLUSTERING.md 類型1）。
+	"localeCounts",
 	"representativeCommit",
 ]);
 
@@ -106,6 +110,11 @@ const projectGroup = (row) => {
 	}));
 	group.commits = (row.commits || []).map((commit) => ({ sha: commit.sha, count: commit.count }));
 	group.appVersions = [...(row.appVersions || [])];
+	// ロケール内訳は frontend にしか意味が無い（SQL 側では他 surface も NULL 1件として出てくる）。
+	group.localeCounts =
+		row.surface === "frontend"
+			? (row.localeCounts || []).map((entry) => ({ locale: entry.locale ?? null, count: entry.count ?? 0 }))
+			: [];
 	group.occurrences = row.occurrences ?? 0;
 	group.affectedUsers = row.affectedUsers ?? 0;
 	group.anonymousOccurrences = row.anonymousOccurrences ?? 0;
@@ -221,6 +230,14 @@ const validateEnvelope = (envelope) => {
 		if (!FINGERPRINT_PATTERN.test(String(group.fingerprint))) {
 			errors.push(`fingerprint が 12桁小文字hex ではありません: ${group.fingerprint}`);
 		}
+		// fpalgo 2: pathName は先頭ロケールを剥がした値でなければならない。
+		// SQL 側（PATH_LOCALE_RULES から生成した REGEXP_REPLACE）と JS 側がズレると、
+		// 同じ画面が再びロケールごとに割れて重複起票される（B-1 と同じ事故の再来）。
+		if (group.surface === "frontend" && !isPathLocaleStripped(group.groupKey && group.groupKey.pathName)) {
+			errors.push(
+				`pathName の先頭ロケールが剥がれていません（fpalgo ${FP_ALGO_VERSION}。SQL と normalize-rules.js のズレを疑うこと）: ${JSON.stringify(group.groupKey.pathName)}`,
+			);
+		}
 		const candidates = {
 			messagePattern: group.messagePattern,
 			route: group.groupKey && group.groupKey.route,
@@ -308,14 +325,39 @@ const checkAlgoVersions = (index) => {
 		for (const entry of entries) versions.add(entry.algoVersion);
 	}
 	const sorted = [...versions].sort((a, b) => a - b);
-	if (sorted.length === 0 || (sorted.length === 1 && sorted[0] === FP_ALGO_VERSION)) {
-		return { ok: true, versions: sorted, message: null };
-	}
+	// ★ fpalgo 2 以降: 「現行と違う＝即 abort」ではない。
+	//   SUPPORTED_ALGO_VERSIONS に載っている旧世代は `computeLegacyFingerprints()` が
+	//   旧 fingerprint を復元して突合するので、**重複起票は起きない**（移行の項を参照）。
+	//   abort すべきなのは「復元器を持っていない世代」が混ざったときだけ。
+	//   これを区別せず一律 abort にすると、移行のために fingerprint を変えた瞬間に
+	//   run が永久に止まり、誰も移行できない（＝旧実装の行き止まり）。
+	const unsupported = sorted.filter((version) => !SUPPORTED_ALGO_VERSIONS.includes(version));
+	if (unsupported.length === 0) return { ok: true, versions: sorted, message: null };
 	return {
 		ok: false,
 		versions: sorted,
-		message: `fpalgo 不一致: 既存 Issue は ${sorted.join(", ")} / 現行は ${FP_ALGO_VERSION}。移行 run を先に実行してください（#1198 §8-B）。この run では1件も書き込みません`,
+		message: `fpalgo 不一致: 既存 Issue に未知の世代 ${unsupported.join(", ")} があります（現行は ${FP_ALGO_VERSION} / 移行可能な旧世代は ${SUPPORTED_ALGO_VERSIONS.join(", ")}）。この run では1件も書き込みません（#1198 §8-A）`,
 	};
+};
+
+/**
+ * 索引に残っている旧世代（＝リキー待ち）の一覧。
+ *
+ * `checkAlgoVersions` と違い**止めない**。移行が進行中であることを Job Summary へ出すためだけに使う。
+ *
+ * @param {Map<string, Array<Record<string, any>>>} index
+ * @returns {number[]} 昇順
+ */
+const pendingAlgoVersions = (index) => {
+	const versions = new Set();
+	for (const entries of index.values()) {
+		for (const entry of entries) {
+			if (entry.algoVersion !== FP_ALGO_VERSION && SUPPORTED_ALGO_VERSIONS.includes(entry.algoVersion)) {
+				versions.add(entry.algoVersion);
+			}
+		}
+	}
+	return [...versions].sort((a, b) => a - b);
 };
 
 /**
@@ -330,6 +372,78 @@ const authoritative = (entries) => {
 	const rank = (entry) => (hasSkipLabel(entry) ? 0 : entry.state === "open" ? 1 : 2);
 	return [...entries].sort((a, b) => rank(a) - rank(b) || a.number - b.number)[0];
 };
+
+/**
+ * group に対応する既存 Issue を決める。**旧世代 fingerprint での突合をここで吸収する。**
+ *
+ * ■ これが移行の中核（CLUSTERING.md 末尾「移行方針を決めてから行う」への答え）
+ *   1. まず現行 fingerprint で索引を引く。当たればそれで終わり（定常状態）。
+ *   2. 当たらなければ `computeLegacyFingerprints()` が復元した**旧 fingerprint 全部**で引く。
+ *      ロケールで割れていた既存 Issue（`/ja-JP/...` `/en-US/...` …）はここで見つかる。
+ *   3. 複数見つかったら `authoritative()` で決定的に1件へ寄せる（err/skip > open > closed、次に番号昇順）。
+ *
+ *   **この関数だけで「重複起票しない」は成立する。** マーカーの書き換え（リキー）は
+ *   後片付けであって、失敗しても・上限で溢れても重複起票にはならない。
+ *
+ * ■ 旧世代側の安全弁
+ *   復元した旧 fingerprint で当てにいくのは、**まだ旧世代のマーカーを持っている Issue だけ**
+ *   （`entry.algoVersion < FP_ALGO_VERSION`）。現行世代の Issue を旧 fingerprint で拾わないので、
+ *   万一ハッシュが衝突しても他グループの Issue を奪わない。
+ *
+ * @param {{index:Map<string, Array<Record<string, any>>>, group:Record<string, any>}} params
+ * @returns {{entry:Record<string, any>|null, matchedBy:"current"|"legacy"|"none",
+ *            legacyMatches:Array<{fingerprint:string, locale:string, entry:Record<string, any>}>}}
+ */
+const resolveEntry = ({ index, group }) => {
+	const current = authoritative(index.get(group.fingerprint));
+	if (current) return { entry: current, matchedBy: "current", legacyMatches: [] };
+
+	const legacyMatches = [];
+	const seenNumbers = new Set();
+	for (const legacy of computeLegacyFingerprints(group)) {
+		for (const entry of index.get(legacy.fingerprint) || []) {
+			if (entry.algoVersion >= FP_ALGO_VERSION) continue;
+			if (seenNumbers.has(entry.number)) continue;
+			seenNumbers.add(entry.number);
+			legacyMatches.push({ fingerprint: legacy.fingerprint, locale: legacy.locale, entry });
+		}
+	}
+	if (legacyMatches.length === 0) return { entry: null, matchedBy: "none", legacyMatches: [] };
+	return {
+		entry: authoritative(legacyMatches.map((match) => match.entry)),
+		matchedBy: "legacy",
+		legacyMatches,
+	};
+};
+
+/**
+ * 旧世代マーカーの書き換え（リキー）計画を1グループぶん作る。
+ *
+ * 旧 fingerprint で当たった Issue は**全件**リキー対象にする。1件だけ書き換えて残りを放置すると、
+ *   - 索引に旧世代がいつまでも残って「移行が終わった」が判定できない
+ *   - 放置された側は誰からも参照されない孤児 fingerprint になる
+ * ため。書き換え後は同じ fingerprint を持つ Issue が複数になるが、これは
+ * `authoritative()` が元から扱える状態（#1198 §1-D）で、**そもそも同じエラーなので正しい**。
+ *
+ * @param {{group:Record<string, any>, legacyMatches:ReadonlyArray<Record<string, any>>}} params
+ * @returns {Array<Record<string, any>>}
+ */
+const planRekeys = ({ group, legacyMatches }) =>
+	legacyMatches
+		.map((match) => ({
+			issueNumber: match.entry.number,
+			from: match.fingerprint,
+			to: group.fingerprint,
+			fromAlgoVersion: match.entry.algoVersion,
+			toAlgoVersion: FP_ALGO_VERSION,
+			locale: match.locale,
+			surface: group.surface,
+			// ★ err/skip は「この fingerprint を恒久無視する」宣言。統合先へ引き継ぐと、
+			//   1ロケールぶんの無視がクラスタ全体の無視へ**静かに拡大**する。
+			//   止めはしない（止めると移行が終わらない）が、必ず可視化する。
+			skipLabel: hasSkipLabel(match.entry),
+		}))
+		.sort((a, b) => a.issueNumber - b.issueNumber);
 
 // ---------------------------------------------------------------------------
 // 再発（regression）判定
@@ -514,6 +628,8 @@ const summarizeItem = (group, decision) => ({
 	action: decision.action,
 	reason: decision.reason,
 	fingerprint: group.fingerprint,
+	// 突合が現行 fingerprint / 旧 fingerprint のどちらで成立したか（移行の進み具合が読める）
+	matchedBy: decision.matchedBy ?? "none",
 	surface: group.surface,
 	occurrences: group.occurrences,
 	affectedUsers: group.affectedUsers,
@@ -554,15 +670,35 @@ const buildPlan = ({ envelope, issues = [], commitDates = {}, limits = {} }) => 
 	const algo = checkAlgoVersions(index);
 	if (!algo.ok) warnings.push(algo.message);
 
+	// #1196 CLUSTERING.md 末尾の課題への対処。旧世代が残っているなら、それを見えるようにする。
+	const pendingVersions = pendingAlgoVersions(index);
+	if (pendingVersions.length > 0) {
+		warnings.push(
+			`fpalgo ${pendingVersions.join(", ")} の Issue が索引に残っています（現行 ${FP_ALGO_VERSION}）。旧 fingerprint を復元して突合するので**重複起票にはなりません**。マーカーはこの run のリキーで順次書き換えます`,
+		);
+	}
+
 	const decisions = [];
 	const createCandidates = [];
+	const rekeys = [];
 	for (const group of envelope.groups || []) {
 		if (!SURFACES.includes(group.surface)) {
 			decisions.push({ group, decision: { action: "invalid", reason: "未知の surface", issueNumber: null } });
 			continue;
 		}
-		const entry = authoritative(index.get(group.fingerprint));
-		const decision = classifyGroup({ group, entry, graceHours, minEventsReopen, commitDates });
+		const resolved = resolveEntry({ index, group });
+		if (resolved.matchedBy === "legacy") rekeys.push(...planRekeys({ group, legacyMatches: resolved.legacyMatches }));
+		const decision = classifyGroup({
+			group,
+			entry: resolved.entry,
+			graceHours,
+			minEventsReopen,
+			commitDates,
+		});
+		decision.matchedBy = resolved.matchedBy;
+		if (resolved.matchedBy === "legacy") {
+			decision.reason = `${decision.reason}（旧 fingerprint fp:${resolved.legacyMatches[0].fingerprint} で突合。リキー対象 ${resolved.legacyMatches.length} 件）`;
+		}
 		if (decision.action === "create") createCandidates.push(group);
 		else decisions.push({ group, decision });
 	}
@@ -602,6 +738,24 @@ const buildPlan = ({ envelope, issues = [], commitDates = {}, limits = {} }) => 
 		decision.reason = algo.ok ? `1 run の reopen 上限 ${reopenLimit} 件を超過。次回 run へ繰り越し` : algo.message;
 	});
 
+	// リキーは「マーカーの後片付け」なので、計画としては abort（未知世代）のときだけ落とす。
+	// PANIC / 契約違反のときに実際に PATCH するかどうかは main.js が決める
+	// （`applyPlan({ dryRun: dryRun || blocked })` により、止めた run では1バイトも書かない）。
+	// 上限で抑えるのは、body の PATCH が数十件走ると Issue 一覧の updated_at が一斉に動くため。
+	const rekeyLimit = limits.rekeyLimit ?? REKEY_LIMIT;
+	const plannedRekeys = algo.ok ? rekeys.slice(0, rekeyLimit) : [];
+	const deferredRekeys = algo.ok ? rekeys.slice(rekeyLimit) : [...rekeys];
+	if (deferredRekeys.length > 0) {
+		warnings.push(
+			`fingerprint リキーが 1 run の上限 ${rekeyLimit} 件を超えました（残り ${deferredRekeys.length} 件は次回 run）。重複起票にはなりません（突合は旧 fingerprint の復元で成立しています）`,
+		);
+	}
+	for (const rekey of plannedRekeys.filter((entry) => entry.skipLabel)) {
+		warnings.push(
+			`#${rekey.issueNumber} は \`${SKIP_LABEL}\` 付きのまま fp:${rekey.from} → fp:${rekey.to} へ統合されます。統合先（ロケール横断のクラスタ全体）が恒久無視になります。意図しない場合は \`${SKIP_LABEL}\` を外してください`,
+		);
+	}
+
 	const items = decisions.map(({ group, decision }) => summarizeItem(group, decision));
 
 	const counts = { create: 0, reopen: 0, capped: 0, invalid: 0, noop: 0 };
@@ -621,7 +775,12 @@ const buildPlan = ({ envelope, issues = [], commitDates = {}, limits = {} }) => 
 		abort: !algo.ok,
 		abortReason: algo.ok ? null : algo.message,
 		algoVersions: algo.versions,
-		limits: { createLimit, reopenLimit, panicThreshold, graceHours, minEventsReopen },
+		// 索引に残っている旧世代（＝リキー待ち）。空になったら移行完了。
+		pendingAlgoVersions: pendingVersions,
+		// 旧世代マーカーの書き換え計画。**この run で実際に PATCH するぶんだけ**が rekeys。
+		rekeys: plannedRekeys,
+		deferredRekeys,
+		limits: { createLimit, reopenLimit, panicThreshold, graceHours, minEventsReopen, rekeyLimit },
 		valid: validation.ok,
 		errors: validation.errors,
 		warnings,
@@ -645,7 +804,10 @@ module.exports = Object.freeze({
 	validateEnvelope,
 	buildIndex,
 	checkAlgoVersions,
+	pendingAlgoVersions,
 	authoritative,
+	resolveEntry,
+	planRekeys,
 	hasSkipLabel,
 	isRegression,
 	classifyGroup,

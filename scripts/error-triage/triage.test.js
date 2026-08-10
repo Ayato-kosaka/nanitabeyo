@@ -3,7 +3,7 @@
 const existingIssues = require("./__fixtures__/existing-issues.json");
 const rows = require("./__fixtures__/bq-rows.json");
 const runSummary = require("./__fixtures__/run-summary.json");
-const { CREATE_LIMIT, GRACE_HOURS } = require("./constants");
+const { CREATE_LIMIT, FP_ALGO_VERSION, GRACE_HOURS } = require("./constants");
 const { computeFingerprint } = require("./fingerprint");
 const {
 	authoritative,
@@ -13,6 +13,7 @@ const {
 	classifyGroup,
 	classifyQueue,
 	isRegression,
+	pendingAlgoVersions,
 	pickCreations,
 	validateEnvelope,
 } = require("./triage");
@@ -98,7 +99,7 @@ describe("buildEnvelope()", () => {
 	it("fpAlgoVersion / schemaVersion は JS が注入する（SQL は知らない = 矛盾B）", () => {
 		const envelope = makeEnvelope();
 		expect(envelope.schemaVersion).toBe(1);
-		expect(envelope.fpAlgoVersion).toBe(1);
+		expect(envelope.fpAlgoVersion).toBe(FP_ALGO_VERSION);
 	});
 
 	it("truncated は LIMIT 適用「前」の総グループ数で判定する（G3 / S6）", () => {
@@ -192,7 +193,7 @@ describe("buildIndex() — 既存 Issue の索引", () => {
 			state: "closed",
 			stateReason: "not_planned",
 			closedAt: "2026-07-20T00:00:00Z",
-			algoVersion: 1,
+			algoVersion: FP_ALGO_VERSION,
 		});
 		expect(entry.labels).toContain("err/skip");
 	});
@@ -561,20 +562,32 @@ describe("checkAlgoVersions()（#1198 §8-A の安全装置）", () => {
 		expect(checkAlgoVersions(index).ok).toBe(true);
 	});
 
-	it("1件でも世代が違えば止める（全件再起票を構造的に防ぐ）", () => {
+	it("移行可能な旧世代（SUPPORTED_ALGO_VERSIONS）は止めない — 旧 fingerprint を復元して突合できるため", () => {
 		const tampered = existingIssues.map((issue) =>
-			issue.number === 1201 ? { ...issue, body: String(issue.body).replace("fpalgo:1", "fpalgo:2") } : issue,
+			issue.number === 1201 ? { ...issue, body: String(issue.body).replace("fpalgo:2", "fpalgo:1") } : issue,
+		);
+		const { index } = buildIndex(tampered);
+		const result = checkAlgoVersions(index);
+		expect(result.ok).toBe(true);
+		expect(result.versions).toEqual([1, 2]);
+		// 止めはしないが「移行待ちが残っている」ことは必ず見える
+		expect(pendingAlgoVersions(index)).toEqual([1]);
+	});
+
+	it("復元器を持たない世代（未知の世代）が1件でもあれば止める（全件再起票を構造的に防ぐ）", () => {
+		const tampered = existingIssues.map((issue) =>
+			issue.number === 1201 ? { ...issue, body: String(issue.body).replace("fpalgo:2", "fpalgo:99") } : issue,
 		);
 		const { index } = buildIndex(tampered);
 		const result = checkAlgoVersions(index);
 		expect(result.ok).toBe(false);
-		expect(result.versions).toEqual([1, 2]);
-		expect(result.message).toContain("移行 run");
+		expect(result.versions).toEqual([2, 99]);
+		expect(result.message).toContain("未知の世代 99");
 	});
 
 	it("buildPlan は不一致のとき abort を立て、create も reopen も 0 件にする", () => {
 		const tampered = existingIssues.map((issue) =>
-			issue.number === 1202 ? { ...issue, body: String(issue.body).replace("fpalgo:1", "fpalgo:3") } : issue,
+			issue.number === 1202 ? { ...issue, body: String(issue.body).replace("fpalgo:2", "fpalgo:99") } : issue,
 		);
 		const plan = buildPlan({
 			envelope: buildEnvelope({ rows, runSummary, window: WINDOW, generatedAt: GENERATED_AT, query: QUERY }).envelope,

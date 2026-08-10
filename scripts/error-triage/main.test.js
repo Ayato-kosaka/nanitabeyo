@@ -9,7 +9,7 @@ const { mkdtempSync, readFileSync, writeFileSync } = require("node:fs");
 const { tmpdir } = require("node:os");
 const { join } = require("node:path");
 
-const { MAX_BYTES_BILLED, GROUP_LIMIT } = require("./constants");
+const { MAX_BYTES_BILLED, GROUP_LIMIT, FP_ALGO_VERSION } = require("./constants");
 const { DEFAULT_SQL_PATH, main, parseArgs, requireEnv } = require("./main");
 const { generateErrorTriageSql } = require("./sql-generator");
 
@@ -23,7 +23,7 @@ const GROUP = {
 	surface: "frontend",
 	groupKey: {
 		eventName: "api_call_error",
-		pathName: "/ja/search",
+		pathName: "/search",
 		functionName: null,
 		apiName: null,
 		endpoint: null,
@@ -42,6 +42,11 @@ const GROUP = {
 	hourlyCounts: [{ hourUtc: "2026-08-06T01:00:00Z", count: 12 }],
 	commits: [{ sha: "abc123def456", count: 12 }],
 	appVersions: ["1.4.2"],
+	// fpalgo 2: pathName から剥がしたロケールの内訳（SQL が出す）
+	localeCounts: [
+		{ locale: "ja-JP", count: 7 },
+		{ locale: "en-US", count: 5 },
+	],
 	representativeCommit: "abc123def456",
 };
 
@@ -181,7 +186,11 @@ describe("plan（dry-run）", () => {
 	test("SQL の fpalgo が JS と食い違っていたら BigQuery を叩く前に落ちる", async () => {
 		const workspace = makeWorkspace();
 		const tamperedPath = join(workspace.dir, "tampered.sql");
-		writeFileSync(tamperedPath, generateErrorTriageSql().replace("-- fpalgo: 1", "-- fpalgo: 9"), "utf8");
+		writeFileSync(
+			tamperedPath,
+			generateErrorTriageSql().replace(`-- fpalgo: ${FP_ALGO_VERSION}`, "-- fpalgo: 99"),
+			"utf8",
+		);
 		const fetchImpl = makeFetch();
 
 		await expect(
@@ -417,6 +426,7 @@ const makeApplyFetchWithRows = ({ bqRows, issues = existingIssues }) => {
 
 /**
  * PANIC 閾値（50）を超える 60 グループ。pathName を変えれば fingerprint が変わる。
+ * pathName は**先頭ロケールを剥がした形**にする（fpalgo 2。ロケール付きだと不変条件違反になる）。
  * 数字を混ぜると不変条件 3（正規化済みであること）に引っかかって「契約違反」になってしまうので、
  * **英字だけ**で散らして「PANIC だけが起きている」状態にする。
  */
@@ -425,7 +435,7 @@ const panicRows = () => [
 		...GROUP,
 		groupKey: {
 			...GROUP.groupKey,
-			pathName: `/ja/search/${"abcdefghij"[Math.floor(index / 10)]}${"abcdefghij"[index % 10]}`,
+			pathName: `/search/${"abcdefghij"[Math.floor(index / 10)]}${"abcdefghij"[index % 10]}`,
 		},
 	})),
 	{ ...RUN_SUMMARY, groupCount: 60 },
@@ -518,8 +528,8 @@ describe("L-3: PANIC / 契約違反でも親の常駐サマリは残す", () => 
 	test("abort（fpalgo 不一致）は親の常駐サマリも書かない（1バイトも書かない）", async () => {
 		// 既存 Issue の fpalgo が現行と違う ＝ 状態機械が壊れている
 		const tampered = existingIssues.map((issue) =>
-			String(issue.body).includes("fpalgo:1")
-				? { ...issue, body: String(issue.body).replace("fpalgo:1", "fpalgo:2") }
+			String(issue.body).includes("fpalgo:2")
+				? { ...issue, body: String(issue.body).replace("fpalgo:2", "fpalgo:99") }
 				: issue,
 		);
 		const workspace = makeWorkspace();
