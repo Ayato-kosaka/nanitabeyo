@@ -6,7 +6,8 @@ import { buildAddressFromGeocodedAddress, isCanonicalAddress } from "./addressFo
  * サーバ側の gate whitelist（日本向けは `region:country:JP` のみ）に当たらず候補0件 →
  * Claude フォールバックが常時発火する（本番で 1日 1,445件 / 204ユーザー）。
  *
- * サーバ側の判定 (`api/src/core/utils/address-format.ts`) と対になるテスト。
+ * 形式の担保はクライアント側の責務（サーバは検証しない — #1196）。
+ * 本番で観測された壊れた実例をすべて false 側に固定し、再発を検知する。
  */
 describe("#1196 isCanonicalAddress", () => {
 	it.each([
