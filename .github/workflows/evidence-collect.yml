@@ -38,8 +38,12 @@ jobs:
       SOURCE_RUN_ID: ${{ inputs.run_id }}
       ARTIFACT_NAME: ${{ inputs.artifact_name }}
       SOURCE_SHA: ${{ inputs.source_sha }}
-      # 元runがClaude Workerであることを .path で判定する（.name は run-name のため使えない）
-      EXPECTED_WORKFLOW_PATH: .github/workflows/claude-worker.yml
+      # 元runが信頼できるWorkflowであることを .path で判定する（.name は run-name のため使えない）
+      # - claude-worker.yml: テストエビデンス収集の本来の入力
+      # - e2e-web-test.yml : 手動実行で収集したUIカタログのスクリーンショット
+      EXPECTED_WORKFLOW_PATHS: |
+        .github/workflows/claude-worker.yml
+        .github/workflows/e2e-web-test.yml
 
     steps:
       - name: 入力値を検証
@@ -83,8 +87,18 @@ jobs:
           CONCLUSION="$(jq -r '.conclusion' <<<"$RUN_JSON")"
           SOURCE_URL="$(jq -r '.html_url' <<<"$RUN_JSON")"
 
-          if [[ "$WORKFLOW_PATH" != "$EXPECTED_WORKFLOW_PATH" || "$EVENT" != "workflow_dispatch" ]]; then
-            echo "::error::元runはClaude Workerのworkflow_dispatchではありません（path=$WORKFLOW_PATH, event=$EVENT, run-name=$RUN_NAME）。"
+          # 許可Workflowの完全一致判定（部分一致で別Workflowを通さないよう1行ずつ比較する）
+          IS_ALLOWED_WORKFLOW=false
+          while IFS= read -r allowed_path; do
+            [[ -z "$allowed_path" ]] && continue
+            if [[ "$WORKFLOW_PATH" == "$allowed_path" ]]; then
+              IS_ALLOWED_WORKFLOW=true
+              break
+            fi
+          done <<<"$EXPECTED_WORKFLOW_PATHS"
+
+          if [[ "$IS_ALLOWED_WORKFLOW" != "true" || "$EVENT" != "workflow_dispatch" ]]; then
+            echo "::error::元runは許可されたWorkflowのworkflow_dispatchではありません（path=$WORKFLOW_PATH, event=$EVENT, run-name=$RUN_NAME）。"
             exit 1
           fi
 

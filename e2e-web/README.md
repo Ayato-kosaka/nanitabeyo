@@ -55,6 +55,8 @@ pnpm test:mutation                  # Tier 3(@mutation)のみ ※ dev DB に書�
 pnpm test:all                       # 全件(@mutation 含む)
 pnpm test:ui                        # UI モード(開発時のデバッグに最適)
 pnpm report                         # 直近の HTML レポートを開く
+pnpm test:catalog                   # UI カタログのスクリーンショット収集(後述)
+pnpm catalog:doc                    # 画面一覧ドキュメントを生成(後述)
 ```
 
 - デプロイ済み環境に対して実行する場合: `PLAYWRIGHT_BASE_URL=https://... pnpm test`(ローカルサーバとビルドが不要になる)
@@ -72,10 +74,10 @@ pnpm report                         # 直近の HTML レポートを開く
 
 ## CI(GitHub Actions)
 
-| ワークフロー                  | トリガー                          | 内容                                                                                                                                                                 |
-| ----------------------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `e2e-web-test.yml`            | 毎晩 JST 3:00 + workflow_dispatch | EAS の development 環境変数でビルド → Tier 1+2 を全ブラウザ実行(ubuntu-latest は WebKit も動作)。HTML レポートを artifact として 14 日保存                           |
-| `firebase-hosting-deploy.yml` | (既存のデプロイ時)                | **デプロイ前**: firebase.json の rewrite 先が dist に実在するかの静的ゲート(`--project=config`)。**デプロイ後**: デプロイされた URL への @smoke(本番 404 の即日検知) |
+| ワークフロー                  | トリガー                          | 内容                                                                                                                                                                                                           |
+| ----------------------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `e2e-web-test.yml`            | 毎晩 JST 3:00 + workflow_dispatch | EAS の development 環境変数でビルド → Tier 1+2 を全ブラウザ実行(ubuntu-latest は WebKit も動作)。HTML レポートを artifact として 14 日保存。手動実行時は `capture_ui_catalog` で UI カタログも収集できる(後述) |
+| `firebase-hosting-deploy.yml` | (既存のデプロイ時)                | **デプロイ前**: firebase.json の rewrite 先が dist に実在するかの静的ゲート(`--project=config`)。**デプロイ後**: デプロイされた URL への @smoke(本番 404 の即日検知)                                           |
 
 必要な GitHub Secrets(リポジトリレベル):
 
@@ -119,6 +121,53 @@ Supabase の匿名サインインは **30 回/時/IP** のレート制限があ�
 
 この結果、E2E スイート全体(3 デバイスプロジェクト分)を通しても匿名サインインの消費は実質 1 回(+ boot.spec.ts のフレッシュ分)まで削減される。**新しいテストファイルを追加する際も、匿名ユーザーで十分な内容であれば `appPage` フィクスチャをそのまま使えばよい**(共有 storageState は自動的に効く)。匿名サインイン自体の挙動を検証したい場合のみ、boot.spec.ts のように明示的に `storageState` を上書きすること。
 
+## UI カタログ(全画面のスクリーンショット収集)
+
+「今どんな画面が存在するのか」を、スクリーンショット + 画面名 / URL / 遷移関係の一覧として書き出す仕組み。
+Claude Design などへ渡して UI カタログ・画面遷移図を作る用途を想定している。
+
+**これはテストではない**(アプリの正しさは検証しない)。実データに依存して到達できない画面があっても
+ジョブは赤くせず、「未取得」として一覧に残す。
+
+| 要素                                             | 役割                                                                   |
+| ------------------------------------------------ | ---------------------------------------------------------------------- |
+| `catalog/screens.json`                           | **画面定義の唯一の情報源**(画面名 / URL / 説明 / 遷移元・先 / UI 状態) |
+| `tests/catalog/ui-catalog.spec.ts`               | 匿名ユーザーで到達できる画面の巡回・撮影(`@catalog`)                   |
+| `tests/catalog/ui-catalog-authenticated.spec.ts` | ログイン済みでのみ到達できる画面の巡回・撮影(`@catalog`)               |
+| `utils/catalog.ts`                               | 撮影と結果記録のヘルパ(`captureScreen` / `captureScreenIfReachable`)   |
+| `scripts/generate-catalog.mjs`                   | 定義 × 撮影結果 → `UI_CATALOG.md` / `ui-catalog.json` を生成(依存ゼロ) |
+
+```bash
+# 1. 通常の E2E と同じ前提(dist のビルド + api-development への到達)が必要
+pnpm --filter app-expo build:web
+
+# 2. 収集(screenshots/<画面 ID>.png と screenshots/.results/<画面 ID>.json が出来る)
+pnpm test:catalog
+
+# 3. 一覧生成(screenshots/UI_CATALOG.md)
+pnpm catalog:doc
+```
+
+- `@catalog` タグにより **既定の `pnpm test` からは除外**される(実行時間と目的が違うため)。
+  `RUN_CATALOG=1` を付けた `test:catalog` からのみ実行される
+- **ファイル名は必ず `<画面 ID>.png`**。GCS へ公開したときに URL だけを見て画面が分かるよう、
+  ID は ASCII の英小文字・数字・ハイフンで付けること(`evidence-collect.yml` が
+  `[A-Za-z0-9._-]` 以外を `_` に潰すため、日本語名は公開 URL では読めなくなる)
+- 画面を追加・変更したら **`catalog/screens.json` を更新**する。spec は定義済み ID しか撮れず、
+  未定義 ID を渡すとその場で失敗する(名前・URL・説明の二重管理を防ぐため)
+- リポジトリにコミットしている一覧は `docs/ui-catalog.md`(スクリーンショット本体はコミットしない)
+
+### CI での収集と公開
+
+1. `E2E Web Test` を **`capture_ui_catalog = true`** で手動実行する
+   (スクリーンショットだけ欲しい場合は `run_e2e_tests = false` にすると Tier 1+2 をスキップできる)
+2. Artifact `ui-catalog-screenshots`(PNG 一式 + `UI_CATALOG.md` + `ui-catalog.json`)がダウンロードできる。
+   一覧は Job Summary にも出力される
+3. その run を `Evidence Collect` に渡す(`run_id` / `artifact_name: ui-catalog-screenshots` / `source_sha`)と
+   `nanitabeyo-public` へ公開され、`manifest.json` に画面名入りの公開 URL が並ぶ
+4. 公開 URL 付きの一覧が欲しい場合は、manifest を落として
+   `node ./scripts/generate-catalog.mjs --manifest <manifest.json>` を実行する
+
 ## CORS 運用手順
 
 Web 版は `fetchWithAuth` が `Authorization` ヘッダ + `credentials: "include"` で API を呼ぶため、**テストオリジン(`http://localhost:4173`)が api-development の `CORS_ORIGIN` に含まれている必要がある**。
@@ -142,7 +191,9 @@ gcloud run services update api-development --project food-scroll --region asia-n
 ```
 e2e-web/
 ├── playwright.config.ts   # 設定の中核(プロジェクト定義・3 層構造の安全弁など)
+├── catalog/screens.json   # UI カタログの画面定義(画面名 / URL / 説明 / 遷移関係)
 ├── scripts/serve-dist.mjs # Firebase Hosting の rewrite を模した静的サーバ(依存ゼロ)
+├── scripts/generate-catalog.mjs # UI カタログの一覧ドキュメント生成(依存ゼロ)
 ├── fixtures/
 │   ├── test.ts            # カスタムフィクスチャ(全 spec はここから import すること)
 │   └── assets/            # テスト用アセット(投稿テスト用画像など)
@@ -151,6 +202,7 @@ e2e-web/
 └── tests/
     ├── setup/             # 認証セットアップ(auth.setup.ts: ログイン済み / anon.setup.ts: 匿名共有セッション)
     ├── config/            # 設定整合性チェック(firebase.json rewrite × dist。ブラウザ不要・デプロイ前ゲート)
+    ├── catalog/           # UI カタログ用のスクリーンショット収集(@catalog。既定の test からは除外)
     ├── smoke/             # Tier 1: @smoke(boot.spec.ts のみフレッシュな匿名状態で実行)
     ├── navigation/ search/ review/ profile/ seo/   # Tier 2
     └── authenticated/     # ログイン済みプロジェクト専用(Tier 2 + @mutation)

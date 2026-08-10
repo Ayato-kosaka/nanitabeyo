@@ -7,7 +7,9 @@
 		"module": "ESNext",
 		"moduleResolution": "Bundler",
 		"types": ["node"],
-		"noEmit": true
+		"noEmit": true,
+		// UI カタログの画面定義 (catalog/screens.json) を spec から型付きで読むため
+		"resolveJsonModule": true
 	},
 	"include": ["playwright.config.ts", "tests/**/*.ts", "fixtures/**/*.ts", "pages/**/*.ts", "utils/**/*.ts"]
 }

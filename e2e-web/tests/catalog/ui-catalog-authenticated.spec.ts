@@ -1,0 +1,104 @@
+import { test, expect } from "../../fixtures/test";
+import { TabBar } from "../../pages/TabBar";
+import { ProfilePage } from "../../pages/ProfilePage";
+import { SettingsPage } from "../../pages/SettingsPage";
+import { ReviewPage } from "../../pages/ReviewPage";
+import { captureScreen, captureScreenIfReachable } from "../../utils/catalog";
+
+/**
+ * 📸 UI カタログ（ログイン済みでのみ到達できる画面）@catalog
+ *
+ * 実行プロジェクト: ui-catalog-authenticated（tests/setup/auth.setup.ts の storageState を注入）
+ * 前提: TEST_USER_EMAIL / TEST_USER_PASSWORD が設定されていること。未設定ならスキップする。
+ *
+ * ## 注意
+ * storageState はプロジェクト内で共有されるため、**ログアウトは実行しない**
+ * （設定画面はログアウト行が表示された状態を撮るだけに留める）。
+ * 収集方針は tests/catalog/ui-catalog.spec.ts のコメントを参照。
+ */
+test.skip(
+	() => !process.env.TEST_USER_EMAIL || !process.env.TEST_USER_PASSWORD,
+	"TEST_USER_EMAIL / TEST_USER_PASSWORD(e2e-web/.env)が未設定のためスキップ",
+);
+
+test.describe("UI カタログ（ログイン済み） @catalog", () => {
+	test("マイページ（ログイン済み・レビュータブ・フィード）", async ({ appPage }) => {
+		const tabBar = new TabBar(appPage);
+		const profilePage = new ProfilePage(appPage);
+
+		await tabBar.gotoProfile();
+		await expect(profilePage.loginButton).toHaveCount(0);
+		await captureScreen(appPage, "profile-authenticated", { settleMs: 1_500 });
+
+		const reachedReviews = await captureScreenIfReachable(appPage, "profile-authenticated-reviews", async () => {
+			await appPage.getByTestId("profile-tab-group-reviews").click();
+			await expect(profilePage.reviewsGrid).toBeVisible();
+		});
+
+		// 投稿が 1 件も無いテストユーザーではグリッドが空になり到達できない
+		if (reachedReviews) {
+			await captureScreenIfReachable(
+				appPage,
+				"profile-food-feed",
+				async () => {
+					const firstCell = profilePage.reviewsGrid.locator("img").first();
+					await expect(firstCell).toBeVisible({ timeout: 15_000 });
+					await firstCell.click();
+					// フィードは動画・画像の読み込みが入るため、URL の切り替わりで到達を判定する
+					await appPage.waitForURL(/\/profile\/food/, { timeout: 15_000 });
+				},
+				{ settleMs: 3_000 },
+			);
+		}
+	});
+
+	test("設定（ログイン済み・ログアウト行あり）", async ({ appPage }) => {
+		const settingsPage = new SettingsPage(appPage);
+
+		await settingsPage.goto();
+		await settingsPage.expectLoaded();
+		await expect(settingsPage.logoutItem).toBeVisible();
+		await captureScreen(appPage, "profile-settings-authenticated");
+	});
+
+	test("お知らせ（通知一覧）", async ({ appPage }) => {
+		const tabBar = new TabBar(appPage);
+
+		await captureScreenIfReachable(
+			appPage,
+			"notifications",
+			async () => {
+				await expect(tabBar.notificationsTab).toBeVisible();
+				await tabBar.gotoNotifications();
+				// 通知 0 件なら空状態（ja-JP: Notifications.empty）が出る
+				await expect(appPage.getByText("お知らせ", { exact: true }).first()).toBeVisible({ timeout: 20_000 });
+			},
+			{ settleMs: 2_000 },
+		);
+	});
+
+	test("レビュー投稿導線（レビュータブ・店舗選択）", async ({ appPage }) => {
+		test.setTimeout(120_000);
+
+		const tabBar = new TabBar(appPage);
+		const reviewPage = new ReviewPage(appPage);
+
+		await tabBar.gotoReview();
+		await reviewPage.expectAuthenticatedViewLoaded();
+		await captureScreen(appPage, "review-authenticated");
+
+		await captureScreenIfReachable(
+			appPage,
+			"review-select-restaurant",
+			async () => {
+				await appPage.getByTestId("review-post-button").click();
+				// 地図画面。現在地ボタンの出現をもって到達とみなす
+				await expect(appPage.getByTestId("review-select-restaurant-current-location-button")).toBeVisible({
+					timeout: 30_000,
+				});
+			},
+			// 地図タイル・マーカーの描画待ち
+			{ settleMs: 5_000 },
+		);
+	});
+});

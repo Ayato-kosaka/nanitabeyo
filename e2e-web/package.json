@@ -8,6 +8,8 @@
 		"test:smoke": "playwright test --grep @smoke",
 		"test:mutation": "RUN_MUTATION=1 playwright test --grep @mutation",
 		"test:all": "RUN_MUTATION=1 playwright test",
+		"test:catalog": "RUN_CATALOG=1 playwright test --project=ui-catalog --project=ui-catalog-authenticated",
+		"catalog:doc": "node ./scripts/generate-catalog.mjs",
 		"test:ui": "playwright test --ui",
 		"test:headed": "playwright test --headed",
 		"report": "playwright show-report",
