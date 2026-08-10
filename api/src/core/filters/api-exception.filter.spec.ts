@@ -9,7 +9,11 @@ jest.mock('../config/env', () => ({
   env: new Proxy({}, { get: (_target, key: string) => `test-${key}` }),
 }));
 
-import { HttpException, HttpStatus } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  UnauthorizedException,
+} from '@nestjs/common';
 import type { ArgumentsHost } from '@nestjs/common';
 import { ErrorCode } from '@shared/v1/res';
 import { ApiExceptionFilter } from './api-exception.filter';
@@ -69,10 +73,32 @@ describe('#1196 ApiExceptionFilter のログレベル', () => {
     expect(logger.error).not.toHaveBeenCalled();
   });
 
-  it.each([401, 408, 425, 426, 429])('%i は warn', (status) => {
+  it.each([408, 425, 426, 429])('%i は warn', (status) => {
     throwThrough(status);
     expect(logger.warn).toHaveBeenCalledTimes(1);
     expect(logger.error).not.toHaveBeenCalled();
+  });
+
+  // ★ #1243 レビュー Minor-1: 401 だけは TRANSIENT_STATUSES に入っていても error のまま。
+  //   このフィルタは main.ts の useGlobalFilters で全例外にかかるので、
+  //   src/internal/oidc.guard.ts の UnauthorizedException（Cloud Tasks / Scheduler の
+  //   OIDC 検証失敗）も同じ 401 として通る。audience の設定ミスで internal が全部 401 になると
+  //   非同期ジョブパイプラインが全滞するが、warn にすると error に 1 行も出ない。
+  //   app-expo 側の 401（トークン失効レース。refresh して 1 回だけ再送すれば通る）とは別クラス。
+  it('401 は error のまま（internal の OIDC 検証失敗と同じステータスなので warn に落とさない）', () => {
+    throwThrough(HttpStatus.UNAUTHORIZED);
+
+    expect(logger.error).toHaveBeenCalledTimes(1);
+    expect(logger.warn).not.toHaveBeenCalled();
+  });
+
+  it('OIDCGuard の UnauthorizedException も error で記録される', () => {
+    const { host } = buildHost();
+
+    filter.catch(new UnauthorizedException('Missing authorization header'), host);
+
+    expect(logger.error).toHaveBeenCalledTimes(1);
+    expect(logger.warn).not.toHaveBeenCalled();
   });
 
   // ★ ここが warn に落ちると「フォールバックが無い経路の 500」が見えなくなる。

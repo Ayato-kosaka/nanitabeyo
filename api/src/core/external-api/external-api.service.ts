@@ -302,11 +302,21 @@ export class ExternalApiService {
       //       EXCLUDED_HTTP_STATUSES(429 を含む) として除外してしまう。
       //   (2) ユーザー影響 = この失敗で検索結果が出ないこと。こちらは呼び出し側
       //       (locations.service / dishes.service) が warn で記録する。
-      //       ★ この経路の唯一の入口は POST /v1/dishes/bulk-import で、
-      //         クライアントは 500/429 を受けると必ず Google Maps フォールバックダイアログを出す
-      //         (app-expo/features/search/hooks/useGoogleMapsFallback.ts)。
-      //         実測でも 340 件の失敗に対しダイアログ 340 件・実際に Maps を開いたのが 115 人で、
-      //         **ユーザーは行き止まりになっていない**。
+      //       ★ 退避導線（Google Maps フォールバック）の実態（#1243 レビュー Major-1 で grep 済み。
+      //         2026-08-10 時点。**「唯一の入口」でも「必ず出る」でもない**ので、
+      //         この節を根拠に他の経路まで warn へ広げないこと）:
+      //         この Places 呼び出しに到達する API は POST /v1/dishes/bulk-import で、
+      //         app-expo 側の入口は lib/dishMediaSearch.ts createDishItemsForCategory の呼び出し元 3 つ。
+      //           1. features/dishCategoryGroupVotes/hooks/useCandidateDishMediaCache.ts
+      //              … catch で showGoogleMapsFallbackDialog。退避導線あり
+      //           2. app/[locale]/(tabs)/search/topics.tsx → app/[locale]/(tabs)/search/result.tsx
+      //              … 「0 件かつ非ロード中」で表示。退避導線あり
+      //           3. features/profile/tabs/SavedTopicsTab.tsx
+      //              → app/[locale]/(tabs)/profile/search-results.tsx
+      //              … **#1243 で追加**。それ以前はこの経路だけ退避導線が無く、行き止まりだった
+      //         2 と 3 は緯度経度とカテゴリ名が router の params に揃っているときだけ出る（無条件ではない）。
+      //         実測（#1196 / BigQuery）では 340 件の失敗に対しダイアログ 340 件・
+      //         実際に Maps を開いたのが 115 人だが、これは 3 を追加する前の 1 と 2 だけの数字。
       if (error instanceof ExternalApiQuotaExceededError) {
         this.logger.error('GooglePlacesQuotaExceeded', 'callPlaceSearchText', {
           error_message: error.message,

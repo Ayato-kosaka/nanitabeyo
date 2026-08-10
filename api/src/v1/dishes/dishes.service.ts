@@ -176,10 +176,20 @@ export class DishesService {
         //     429 は両方の TRANSIENT リストに既に載っている「一時障害」なので、既存の分類に一致する。
         //
         // ★ ログレベル: warn
-        //   この失敗を受けたクライアントは必ず Google Maps フォールバックダイアログを出すので、
-        //   **ユーザーは行き止まりにならない**（app-expo/features/search/hooks/useGoogleMapsFallback.ts）。
-        //   実測でも 500 が 340 件／125 人に対し、ダイアログ表示も 340 件／125 人で一致し、
-        //   115 人（92%）が実際に Google Maps を開いている。
+        //   この失敗を受けたクライアントは Google Maps フォールバックダイアログへ逃がすので、
+        //   ユーザーは行き止まりにならない（app-expo/features/search/hooks/useGoogleMapsFallback.ts）。
+        //   ただし **「必ず」ではない**。#1243 レビュー Major-1 の grep 結果（2026-08-10 時点）:
+        //     この 429 を受け取る app-expo 側の呼び出し元は
+        //     lib/dishMediaSearch.ts createDishItemsForCategory の 3 経路。
+        //       1. features/dishCategoryGroupVotes/hooks/useCandidateDishMediaCache.ts（catch で表示）
+        //       2. search/topics.tsx → search/result.tsx（0 件かつ非ロード中で表示）
+        //       3. features/profile/tabs/SavedTopicsTab.tsx → profile/search-results.tsx
+        //          … **#1243 で退避導線を追加**。それ以前はこの経路だけ本当に行き止まりだった
+        //     2 / 3 は緯度経度とカテゴリ名が router の params に揃っているときだけ表示する。
+        //   実測（#1196 / BigQuery、3 を追加する前）では 500 が 340 件／125 人に対し
+        //   ダイアログ表示も 340 件／125 人で一致し、115 人（92%）が実際に Google Maps を開いている。
+        //   ⚠️ 新しい呼び出し元を足すときは、退避導線があるかを必ず確認すること。
+        //     ここが warn なので、無いまま足すと「ユーザーが行き止まりになる失敗」が error に出ない。
         //   ⚠️ 「クォータが尽きている」という運用上の異常そのものは、
         //     ExternalApiService.callPlaceSearchText が `GooglePlacesQuotaExceeded` を
         //     **error** で1件残しているので、ここを warn にしても検知力は落ちない。

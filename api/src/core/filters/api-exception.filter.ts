@@ -16,20 +16,29 @@ import { AppLoggerService } from '../logger/logger.service';
 import { maskSensitiveFields } from '../interceptors/response-wrap.utils';
 
 /**
- * #1196 【設計】「一時障害」として扱う HTTP ステータス。error ではなく warn で記録する。
+ * #1196 【設計】このフィルタが **warn** で記録する HTTP ステータス。それ以外は error。
  *
- * 唯一の正は `app-expo/lib/transientHttpStatus.ts` の `TRANSIENT_STATUSES` で、
- * `scripts/error-triage/constants.js` の `TRANSIENT_HTTP_STATUSES` も同じ集合を持つ。
- * 3 か所に写経が増えるのは承知のうえで、api は app-expo / scripts のどちらからも
- * import できないため、ここでも同じ定義を置く。**変更するときは 3 つ揃えること。**
- *   401 = トークン失効レース / 408 = タイムアウト / 425 = 再送要求 /
- *   426 = アプリバージョン起因 / 429 = レート制限・上流のクォータ枯渇（#1196）
+ *   408 = タイムアウト / 425 = リプレイ懸念の再送要求 /
+ *   426 = アプリバージョン起因（maintenance.guard） /
+ *   429 = レート制限・上流 Google Places のクォータ枯渇（#1196）
+ *
+ * ⚠️ この集合は **意図的に `TRANSIENT_STATUSES` と同一ではない**（#1243 レビュー Minor-1）。
+ *   `app-expo/lib/transientHttpStatus.ts` / `scripts/error-triage/constants.js` の
+ *   一時障害ステータスは 401 を含むが、**ここでは 401 を含めない**。理由:
+ *     - あちらの 401 は「app-expo が flush 中にトークンが失効し、refresh して 1 回だけ再送すれば通る」
+ *       というクライアント固有のレースを指す（useAPICall.ts が実際に refresh + リトライする）。
+ *     - このフィルタは main.ts の useGlobalFilters で **全例外**にかかるので、
+ *       `src/internal/oidc.guard.ts` が投げる UnauthorizedException（Cloud Tasks / Scheduler からの
+ *       OIDC 検証失敗）も同じ 401 として通る。こちらは refresh で回復しない。
+ *       OIDC audience の設定ミスで internal エンドポイントが全部 401 になると
+ *       **非同期ジョブパイプラインが全滞する**が、401 を warn にすると error に 1 行も出ない。
+ *     - #1196 の目的（上流クォータ枯渇を「サーバー異常」から外す）には 429 だけで足りる。
  *
  * ⚠️ 400 / 409 / 422 をここへ入れてはならない。このリポジトリは
  *   「400/422 は契約が壊れている状態 = 我々の不具合」と定義済みで（logQueue.ts / triage の E6）、
  *   warn に落とすと error-triage が拾わなくなり、リリース直後の DTO 不整合を検知できなくなる。
  */
-const TRANSIENT_HTTP_STATUSES: readonly number[] = [401, 408, 425, 426, 429];
+const WARN_HTTP_STATUSES: readonly number[] = [408, 425, 426, 429];
 
 @Catch()
 export class ApiExceptionFilter implements ExceptionFilter {
@@ -61,9 +70,9 @@ export class ApiExceptionFilter implements ExceptionFilter {
       // 例: 上流 Google Places のクォータ枯渇は 429 で返す（DishesService.bulkImportFromGoogle）。
       // これをここで error にすると、ステータスだけ 429 に直してもログ上は 500 時代と同じ
       // 「サーバー異常」に見え続け、分類を変えた意味が無くなる。
-      const level = TRANSIENT_HTTP_STATUSES.includes(statusCode)
-        ? 'warn'
-        : 'error';
+      // ★ 401 はここに含めない（WARN_HTTP_STATUSES のコメント参照。internal の OIDC 検証失敗が
+      //   同じ 401 で通り、警告に落とすとジョブパイプラインの全滞が見えなくなる）。
+      const level = WARN_HTTP_STATUSES.includes(statusCode) ? 'warn' : 'error';
       this.logger[level](eventName, 'ApiExceptionFilter', {
         method: req?.method,
         url: req?.url,

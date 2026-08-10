@@ -4,10 +4,16 @@
 // useAPICall.ts でも同じ判定が要るようになったのでここへ切り出した。
 // logQueue.ts はここから import するだけになり、app-expo 内の定義は 1 つのままになる。
 //
-// ★ 同じ集合が scripts/error-triage/constants.js の `TRANSIENT_HTTP_STATUSES` と
-//   api/src/core/filters/api-exception.filter.ts にもある（別パッケージから import できないため）。
-//   **変更するときは 3 つ揃えること。** 片方だけ書き換えると
-//   「このリポジトリが不具合とみなす 4xx」の定義が割れる。
+// ★ 同じ集合が scripts/error-triage/constants.js の `TRANSIENT_HTTP_STATUSES` にもある
+//   （別パッケージから import できないため）。**変更するときは 2 つ揃えること。**
+//   片方だけ書き換えると「このリポジトリが不具合とみなす 4xx」の定義が割れる。
+//
+// ⚠️ api/src/core/filters/api-exception.filter.ts の `WARN_HTTP_STATUSES` は
+//   **この集合の写しではない**（#1243 レビュー Minor-1）。あちらは 401 を含まない [408,425,426,429]。
+//   ここの 401 は「app-expo が flush 中にトークン失効し、refresh して 1 回だけ再送すれば通る」
+//   というクライアント固有のレースを指すのに対し、api の 401 には
+//   src/internal/oidc.guard.ts の OIDC 検証失敗（refresh では回復せず、ジョブパイプラインが全滞する）
+//   が同じステータスで混ざるため。**揃えないことが意図。**
 
 /**
  * 4xx でも「クライアント側の契約違反」ではないステータス。
