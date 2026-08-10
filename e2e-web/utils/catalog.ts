@@ -197,6 +197,8 @@ export async function captureScreenIfReachable(
 			skipReason: reason,
 		});
 		test.info().annotations.push({ type: "ui-catalog-skipped", description: `${screen.id}: ${reason}` });
+		// CI ログにも残す。撮れなかった理由は Artifact を落とさないと分からない、では調査に手間がかかる
+		console.log(`⚠️  UI カタログ: ${screen.id} を取得できませんでした — ${reason}`);
 		return false;
 	}
 }

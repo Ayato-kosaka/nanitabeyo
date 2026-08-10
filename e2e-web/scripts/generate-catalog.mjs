@@ -314,5 +314,9 @@ console.log(`   自動取得 ${capturedCount}/${automated.length} 件 / 対象�
 
 const missing = automated.filter((screen) => fileOf(screen) === null);
 if (useResults && missing.length > 0) {
-	console.log(`⚠️  未取得: ${missing.map((screen) => screen.id).join(", ")}`);
+	// 理由まで出す（Artifact を落とさずに CI ログだけで原因を追えるようにする）
+	console.log("⚠️  未取得:");
+	for (const screen of missing) {
+		console.log(`   - ${screen.id}: ${results[screen.id]?.skipReason ?? "実行されていません"}`);
+	}
 }

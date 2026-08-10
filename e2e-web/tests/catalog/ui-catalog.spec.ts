@@ -34,7 +34,7 @@ test.describe("UI カタログ（匿名） @catalog", () => {
 	};
 
 	// ─ 検索フォームとその UI 状態 ─
-	test("さがすタブ（フォーム・詳細条件・場所サジェスト・チュートリアル）", async ({ appPage }) => {
+	test("さがすタブ（フォーム・詳細条件・チュートリアル）", async ({ appPage }) => {
 		const searchPage = new SearchPage(appPage);
 
 		await searchPage.expectLoaded();
@@ -46,16 +46,9 @@ test.describe("UI カタログ（匿名） @catalog", () => {
 			await expect(searchPage.distanceSlider).toBeVisible();
 		});
 
-		// 場所オートコンプリート（実 API）。展開状態を引きずらないよう画面を開き直す
-		await captureScreenIfReachable(appPage, "search-form-location-suggestions", async () => {
-			await searchPage.goto();
-			await searchPage.expectLoaded();
-			await searchPage.typeLocation("渋谷");
-			await expect(searchPage.locationSuggestion(0)).toBeVisible();
-		});
-
 		// チュートリアルは初回のみ自動表示される（fixtures が視聴済みをシードしている）ため、
-		// ヘッダーの「？」から開いて同じ UI を撮る
+		// ヘッダーの「？」から開いて同じ UI を撮る。
+		// 展開した詳細条件を引きずらないよう画面を開き直す
 		await captureScreenIfReachable(appPage, "search-tutorial", async () => {
 			await searchPage.goto();
 			await searchPage.expectLoaded();
@@ -71,6 +64,13 @@ test.describe("UI カタログ（匿名） @catalog", () => {
 		const searchPage = new SearchPage(appPage);
 		const topicsPage = new TopicsPage(appPage);
 		const resultPage = new ResultPage(appPage);
+
+		// 場所サジェスト（実 API）は検索フローの一部なので、同じ入力をここでそのまま撮る
+		// （別テストで再入力すると同じ API 呼び出しを二重に踏むうえ、フレークの原因も増える）
+		await captureScreenIfReachable(appPage, "search-form-location-suggestions", async () => {
+			await searchPage.typeLocation("渋谷");
+			await expect(searchPage.locationSuggestion(0)).toBeVisible();
+		});
 
 		const reachedTopics = await captureScreenIfReachable(
 			appPage,

@@ -44,8 +44,10 @@ test.describe("UI カタログ（ログイン済み） @catalog", () => {
 					const firstCell = profilePage.reviewsGrid.locator("img").first();
 					await expect(firstCell).toBeVisible({ timeout: 15_000 });
 					await firstCell.click();
-					// フィードは動画・画像の読み込みが入るため、URL の切り替わりで到達を判定する
-					await appPage.waitForURL(/\/profile\/food/, { timeout: 15_000 });
+					// URL では判定しない: タブグループ内のネスト遷移では URL バーが実表示と
+					// 一致しないことがある（pages/ResultPage.ts のコメントと同じ既知の挙動）。
+					// フィード固有のアクションボタンの出現で到達を判定する
+					await expect(appPage.getByTestId("dish-action-like").first()).toBeVisible({ timeout: 20_000 });
 				},
 				{ settleMs: 3_000 },
 			);
