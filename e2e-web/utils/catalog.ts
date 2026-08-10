@@ -1,7 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { test, type Page } from "@playwright/test";
-import screensJson from "../catalog/screens.json";
 
 /**
  * 📸 UI カタログ用スクリーンショット取得ユーティリティ
@@ -11,7 +10,8 @@ import screensJson from "../catalog/screens.json";
  * 書き出すための仕組み。テストとしての検証はここでは行わない（アサーションは呼び出し側の責務）。
  *
  * ## 設計方針
- * - **画面の定義は catalog/screens.json が唯一の情報源**。ここでは定義を読むだけで増やさない。
+ * - **画面の定義は repo ルートの catalog/screens.json が唯一の情報源**（Web / モバイル共通）。
+ *   ここでは定義を読むだけで増やさない。
  *   spec とドキュメント生成スクリプトが同じ定義を参照するため、名前・URL・説明がズレない。
  * - **ファイル名 = 画面 ID（`<id>.png`）**。公開 URL（GCS）に出たときに、
  *   URL だけを見てどの画面か分かる ASCII 名にすること（evidence-collect.yml が
@@ -30,10 +30,8 @@ export type ScreenDefinition = {
 	route: string;
 	/** 代表的な URL（ja-JP） */
 	url: string;
-	/** どの Playwright プロジェクトで撮るか。none = 自動取得しない */
-	project: "anon" | "authenticated" | "none";
-	/** auto = 必ず撮る / optional = 実データ次第で撮れないことがある / manual = 自動取得の対象外 */
-	capture: "auto" | "optional" | "manual";
+	/** プラットフォームごとの取得方針（このファイルは web を見る） */
+	platforms: Record<"web" | "mobile", { capture: CaptureLevel; session: "anon" | "authenticated"; note?: string }>;
 	/** 同一 URL 内の UI 状態（モーダル・タブ等）。単独画面なら null */
 	state: string | null;
 	/** 画面の簡単な説明 */
@@ -46,13 +44,22 @@ export type ScreenDefinition = {
 	note?: string;
 };
 
+/**
+ * 取得方針。
+ * - auto     … 必ず撮る
+ * - optional … 実データ次第で撮れないことがある（撮れなくてもジョブは失敗させない）
+ * - mutation … dev DB へ書き込むフローのため RUN_MUTATION=1 のときだけ撮る
+ * - manual   … 自動取得の対象外
+ */
+export type CaptureLevel = "auto" | "optional" | "mutation" | "manual";
+
 /** 取得結果（screenshots/.results/<id>.json の中身） */
 export type CaptureResult = {
 	id: string;
 	/** 撮れたかどうか */
 	captured: boolean;
-	/** 撮れた場合のファイル名（`<id>.png`） */
-	file: string | null;
+	/** ファイル名（`<id>.png`）。撮れなかった場合も「撮るはずだった名前」を残す */
+	file: string;
 	/** 撮影時に実際にブラウザが表示していた URL */
 	capturedUrl: string | null;
 	/** Playwright のプロジェクト名 */
@@ -63,9 +70,11 @@ export type CaptureResult = {
 	skipReason?: string;
 };
 
-// JSON からの推論は `project: string` など緩い型になるため、定義済みの型として扱う
-// （値が定義とズレていた場合は getScreen / spec 側で必ず落ちる）
-const catalog = screensJson as unknown as {
+/** 画面定義（repo ルートの catalog/screens.json）。JSON import ではなく実行時読み込みにして
+ *  ワークスペース外のファイルでも tsconfig の設定に依存せず読めるようにする */
+const catalog = JSON.parse(
+	fs.readFileSync(path.resolve(__dirname, "..", "..", "catalog", "screens.json"), "utf-8"),
+) as {
 	schemaVersion: number;
 	defaultLocale: string;
 	screens: ScreenDefinition[];
@@ -190,7 +199,7 @@ export async function captureScreenIfReachable(
 		writeResult({
 			id: screen.id,
 			captured: false,
-			file: null,
+			file: `${screen.id}.png`,
 			capturedUrl: page.url(),
 			project: test.info().project.name,
 			viewport: null,

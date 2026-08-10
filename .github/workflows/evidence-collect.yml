@@ -222,6 +222,8 @@ jobs:
           if not images and not videos:
               raise SystemExit("公開対象の画像・動画がArtifact内にありません。")
 
+          public_base = f"https://storage.googleapis.com/{bucket}/{urllib.parse.quote(prefix, safe='/')}"
+
           manifest = {
               "schemaVersion": 1,
               "generatedAt": datetime.now(timezone.utc).isoformat(),
@@ -232,10 +234,9 @@ jobs:
               "artifactName": artifact_name,
               "bucket": bucket,
               "gcsPrefix": f"gs://{bucket}/{prefix}",
-              "publicManifestUrl": (
-                  f"https://storage.googleapis.com/{bucket}/"
-                  f"{urllib.parse.quote(prefix, safe='/')}/manifest.json"
-              ),
+              "publicManifestUrl": f"{public_base}/manifest.json",
+              # 【設計】人が見るための入口。Artifactを落とさずブラウザ1枚で全エビデンスを確認できるようにする
+              "publicGalleryUrl": f"{public_base}/index.html",
               "images": images,
               "videos": videos,
           }
@@ -246,11 +247,81 @@ jobs:
               encoding="utf-8",
           )
 
+          def render_gallery(manifest):
+              """公開した画像・動画を一覧するHTMLを組み立てる。
+
+              外部依存ゼロの単一ファイル。ファイル名がそのまま見出しになるため、
+              撮影側が「何の画面か分かる名前」を付けていれば、この1ページで用が足りる。
+              """
+              def esc(text):
+                  return (
+                      str(text)
+                      .replace("&", "&amp;")
+                      .replace("<", "&lt;")
+                      .replace(">", "&gt;")
+                      .replace('"', "&quot;")
+                  )
+
+              cards = []
+              for entry in manifest["images"]:
+                  cards.append(
+                      f'<figure><a href="{esc(entry["url"])}" target="_blank" rel="noreferrer">'
+                      f'<img loading="lazy" src="{esc(entry["url"])}" alt="{esc(entry["path"])}"></a>'
+                      f'<figcaption>{esc(entry["path"])}</figcaption></figure>'
+                  )
+              for entry in manifest["videos"]:
+                  cards.append(
+                      f'<figure><video controls preload="metadata" src="{esc(entry["url"])}"></video>'
+                      f'<figcaption>{esc(entry["path"])}</figcaption></figure>'
+                  )
+
+              return f"""<!doctype html>
+          <html lang="ja">
+          <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <meta name="robots" content="noindex">
+          <title>Evidence: {esc(manifest["artifactName"])} (run {esc(manifest["sourceRunId"])})</title>
+          <style>
+            :root {{ color-scheme: light dark; }}
+            body {{ font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0; padding: 24px; line-height: 1.6; }}
+            header {{ margin-bottom: 24px; }}
+            h1 {{ font-size: 1.25rem; margin: 0 0 8px; }}
+            dl {{ display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 0; font-size: 0.875rem; }}
+            dt {{ opacity: 0.7; }}
+            dd {{ margin: 0; word-break: break-all; }}
+            .grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }}
+            figure {{ margin: 0; border: 1px solid rgba(128,128,128,0.35); border-radius: 8px; overflow: hidden; }}
+            img, video {{ display: block; width: 100%; height: auto; background: rgba(128,128,128,0.12); }}
+            figcaption {{ padding: 8px 10px; font-size: 0.8125rem; word-break: break-all; }}
+          </style>
+          </head>
+          <body>
+          <header>
+            <h1>{esc(manifest["artifactName"])}</h1>
+            <dl>
+              <dt>Source run</dt><dd><a href="{esc(manifest["sourceRunUrl"])}">{esc(manifest["sourceRunUrl"])}</a></dd>
+              <dt>Commit</dt><dd><code>{esc(manifest["sourceCommitSha"])}</code></dd>
+              <dt>Generated</dt><dd>{esc(manifest["generatedAt"])}</dd>
+              <dt>Files</dt><dd>images {len(manifest["images"])} / videos {len(manifest["videos"])}</dd>
+              <dt>manifest.json</dt><dd><a href="{esc(manifest["publicManifestUrl"])}">{esc(manifest["publicManifestUrl"])}</a></dd>
+            </dl>
+          </header>
+          <main class="grid">
+          {"".join(cards)}
+          </main>
+          </body>
+          </html>
+          """
+
+          (manifest_dir / "index.html").write_text(render_gallery(manifest), encoding="utf-8")
+
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
               output.write(f"prefix={prefix}\n")
               output.write(f"image_count={len(images)}\n")
               output.write(f"video_count={len(videos)}\n")
               output.write(f"manifest_url={manifest['publicManifestUrl']}\n")
+              output.write(f"gallery_url={manifest['publicGalleryUrl']}\n")
           PY
 
       # ubuntu-24.04 ランナーへの gcloud 同梱は保証されていないため、
@@ -294,11 +365,21 @@ jobs:
             cp /tmp/evidence-manifest/manifest.json \
             "gs://${GCS_BUCKET}/${GCS_PREFIX}/manifest.json"
 
+          # 一覧ページ。画像より後に上げる（先に上げると、画像が揃う前に開かれた場合に
+          # ブラウザ/プロキシが 404 をキャッシュしうる）
+          gsutil \
+            -h "Cache-Control:public,max-age=300" \
+            -h "Content-Type:text/html; charset=utf-8" \
+            cp /tmp/evidence-manifest/index.html \
+            "gs://${GCS_BUCKET}/${GCS_PREFIX}/index.html"
+
       - name: manifestをArtifactとして保存
         uses: actions/upload-artifact@v4
         with:
           name: evidence-manifest-${{ inputs.run_id }}
-          path: /tmp/evidence-manifest/manifest.json
+          path: |
+            /tmp/evidence-manifest/manifest.json
+            /tmp/evidence-manifest/index.html
           if-no-files-found: error
           retention-days: 14
 
@@ -309,11 +390,13 @@ jobs:
           IMAGE_COUNT: ${{ steps.prepare.outputs.image_count }}
           VIDEO_COUNT: ${{ steps.prepare.outputs.video_count }}
           MANIFEST_URL: ${{ steps.prepare.outputs.manifest_url }}
+          GALLERY_URL: ${{ steps.prepare.outputs.gallery_url }}
         shell: bash
         run: |
           {
             echo "## Evidence published"
             echo
+            echo "- 📷 **一覧（写真付き）: $GALLERY_URL**"
             echo "- Source run: $SOURCE_URL"
             echo "- Commit: \`$SOURCE_SHA\`"
             echo "- Images: $IMAGE_COUNT"

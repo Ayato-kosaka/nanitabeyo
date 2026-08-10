@@ -19,6 +19,11 @@ on:
         required: false
         default: false
         type: boolean
+      capture_review_flow:
+        description: "UI カタログにレビュー投稿フロー(店舗詳細/投稿フォーム/レビュー詳細)を含める ※dev DB へ書き込む"
+        required: false
+        default: false
+        type: boolean
   schedule:
     # 毎日 JST 3:00(UTC 18:00)に実行
     - cron: "0 18 * * *"
@@ -125,7 +130,7 @@ jobs:
         # 収集の失敗は「その画面が未取得」として次のステップの一覧に必ず出るため、
         # ここで run を赤くしない(赤くすると撮れた分の Artifact 公開まで巻き添えで止まる)
         continue-on-error: true
-        run: pnpm --filter e2e-web test:catalog
+        run: pnpm --filter e2e-web ${{ inputs.capture_review_flow && 'test:catalog:all' || 'test:catalog' }}
         env:
           TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
           TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
@@ -134,7 +139,7 @@ jobs:
       - name: 📋 Generate UI catalog document
         if: ${{ always() && github.event_name == 'workflow_dispatch' && inputs.capture_ui_catalog }}
         run: |
-          pnpm --filter e2e-web catalog:doc
+          pnpm catalog:doc
           {
             echo "## UI catalog"
             echo

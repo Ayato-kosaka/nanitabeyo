@@ -38,6 +38,7 @@ e2e-web/test-results/
 e2e-web/blob-report/
 # UI カタログのスクリーンショット（CI の Artifact / GCS 公開で配布するためリポジトリには入れない）
 e2e-web/screenshots/
+e2e-mobile/screenshots/
 e2e-web/.auth/
 e2e-web/.env
 

@@ -50,3 +50,4 @@ supabase/.temp/
 supabase/.env
 # --- UI カタログ（生成物）---
 e2e-web/screenshots/
+e2e-mobile/screenshots/

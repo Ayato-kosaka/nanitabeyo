@@ -49,11 +49,31 @@ test.describe("UI カタログ（匿名） @catalog", () => {
 		// チュートリアルは初回のみ自動表示される（fixtures が視聴済みをシードしている）ため、
 		// ヘッダーの「？」から開いて同じ UI を撮る。
 		// 展開した詳細条件を引きずらないよう画面を開き直す
-		await captureScreenIfReachable(appPage, "search-tutorial", async () => {
+		const openedTutorial = await captureScreenIfReachable(appPage, "search-tutorial-page1", async () => {
 			await searchPage.goto();
 			await searchPage.expectLoaded();
 			await searchPage.openTutorial();
 		});
+
+		if (!openedTutorial) return;
+
+		// 2〜4 ページ目。ページ送りは pressTutorialNextIfPresent を使う
+		// （プライマリ CTA は単一ノードで testID が「つぎへ」↔「はじめよう」と入れ替わるため、
+		//   Locator 経由の click では取り違えが起きうる。SearchPage のコメント参照）
+		for (const page of [2, 3, 4] as const) {
+			await captureScreenIfReachable(
+				appPage,
+				`search-tutorial-page${page}`,
+				async () => {
+					const pressed = await searchPage.pressTutorialNextIfPresent();
+					if (!pressed)
+						throw new Error(`チュートリアル ${page} ページ目へ送れませんでした（「つぎへ」が見つかりません）`);
+					await expect(searchPage.tutorialOverlay).toBeVisible();
+				},
+				// ページ送りアニメーションと挿絵の読み込みが終わるのを待つ
+				{ settleMs: 1_500 },
+			);
+		}
 	});
 
 	// ─ 検索フロー（実 API・AI のトピック生成を待つ） ─
@@ -87,10 +107,33 @@ test.describe("UI カタログ（匿名） @catalog", () => {
 
 		if (!reachedTopics) return;
 
-		await captureScreenIfReachable(appPage, "search-topics-tutorial", async () => {
+		// スポットライトチュートリアルは 4 ステップ。全ステップを 1 枚ずつ撮る
+		const tutorialSteps = [
+			{ id: "search-topics-tutorial-swipe", step: topicsPage.tutorialSwipeStep },
+			{ id: "search-topics-tutorial-deep-dive", step: topicsPage.tutorialDeepDiveStep },
+			{ id: "search-topics-tutorial-topic-actions", step: topicsPage.tutorialActionsStep },
+			{ id: "search-topics-tutorial-group-vote", step: topicsPage.tutorialGroupVoteStep },
+		] as const;
+
+		const startedTutorial = await captureScreenIfReachable(appPage, tutorialSteps[0].id, async () => {
 			await topicsPage.tutorialHelpButton.click();
 			await topicsPage.expectTutorialStarted();
 		});
+
+		if (startedTutorial) {
+			for (const { id, step } of tutorialSteps.slice(1)) {
+				await captureScreenIfReachable(
+					appPage,
+					id,
+					async () => {
+						await topicsPage.tutorialNextButton.click();
+						await expect(step).toBeVisible();
+					},
+					// スポットライトの移動アニメーションを待つ
+					{ settleMs: 1_200 },
+				);
+			}
+		}
 
 		await captureScreenIfReachable(
 			appPage,
