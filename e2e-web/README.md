@@ -129,22 +129,27 @@ Claude Design などへ渡して UI カタログ・画面遷移図を作る用�
 **これはテストではない**(アプリの正しさは検証しない)。実データに依存して到達できない画面があっても
 ジョブは赤くせず、「未取得」として一覧に残す。
 
+**画面定義はリポジトリルートの `catalog/` に置き、e2e-mobile(Detox)と共有している**
+(仕組み全体の説明は [`catalog/README.md`](../catalog/README.md))。
+
 | 要素                                             | 役割                                                                   |
 | ------------------------------------------------ | ---------------------------------------------------------------------- |
-| `catalog/screens.json`                           | **画面定義の唯一の情報源**(画面名 / URL / 説明 / 遷移元・先 / UI 状態) |
+| `../catalog/screens.json`                        | **画面定義の唯一の情報源**(Web / モバイル共通)                         |
+| `../catalog/generate-catalog.mjs`                | 定義 × 撮影結果 → `UI_CATALOG.md` / `ui-catalog.json` を生成(依存ゼロ) |
 | `tests/catalog/ui-catalog.spec.ts`               | 匿名ユーザーで到達できる画面の巡回・撮影(`@catalog`)                   |
 | `tests/catalog/ui-catalog-authenticated.spec.ts` | ログイン済みでのみ到達できる画面の巡回・撮影(`@catalog`)               |
+| `tests/catalog/ui-catalog-mutation.spec.ts`      | レビュー投稿フロー(`@catalog @mutation`。dev DB へ書き込む)            |
 | `utils/catalog.ts`                               | 撮影と結果記録のヘルパ(`captureScreen` / `captureScreenIfReachable`)   |
-| `scripts/generate-catalog.mjs`                   | 定義 × 撮影結果 → `UI_CATALOG.md` / `ui-catalog.json` を生成(依存ゼロ) |
 
 ```bash
 # 1. 通常の E2E と同じ前提(dist のビルド + api-development への到達)が必要
 pnpm --filter app-expo build:web
 
-# 2. 収集(screenshots/<画面 ID>.png と screenshots/.results/<画面 ID>.json が出来る)
-pnpm test:catalog
+# 2. 収集(screenshots/<画面 ID>.png と screenshots/.results/<ファイル名>.json が出来る)
+pnpm test:catalog          # レビュー投稿フローを除く
+pnpm test:catalog:all      # レビュー投稿フローも撮る(dev DB へ書き込む)
 
-# 3. 一覧生成(screenshots/UI_CATALOG.md)
+# 3. 一覧生成(screenshots/UI_CATALOG.md) ※リポジトリルートで実行する
 pnpm catalog:doc
 ```
 
@@ -160,13 +165,14 @@ pnpm catalog:doc
 ### CI での収集と公開
 
 1. `E2E Web Test` を **`capture_ui_catalog = true`** で手動実行する
-   (スクリーンショットだけ欲しい場合は `run_e2e_tests = false` にすると Tier 1+2 をスキップできる)
+   - スクリーンショットだけ欲しい場合は `run_e2e_tests = false` にすると Tier 1+2 をスキップできる
+   - レビュー投稿フローまで撮る場合は `capture_review_flow = true`(**dev DB へ書き込む**)
 2. Artifact `ui-catalog-screenshots`(PNG 一式 + `UI_CATALOG.md` + `ui-catalog.json`)がダウンロードできる。
    一覧は Job Summary にも出力される
 3. その run を `Evidence Collect` に渡す(`run_id` / `artifact_name: ui-catalog-screenshots` / `source_sha`)と
-   `nanitabeyo-public` へ公開され、`manifest.json` に画面名入りの公開 URL が並ぶ
-4. 公開 URL 付きの一覧が欲しい場合は、manifest を落として
-   `node ./scripts/generate-catalog.mjs --manifest <manifest.json>` を実行する
+   `nanitabeyo-public` へ公開され、**写真付きの一覧ページ(`index.html`)と公開 URL** が手に入る
+4. 公開 URL 付きの一覧を作り直す場合は、manifest を落として
+   `node ./catalog/generate-catalog.mjs --screenshots e2e-web/screenshots --manifest <manifest.json>` を実行する
 
 ## CORS 運用手順
 
