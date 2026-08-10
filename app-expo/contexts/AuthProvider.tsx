@@ -74,6 +74,17 @@ type AuthContextType = {
 	 * 未確定の間は描画を保留する / スケルトンを出す、という判断に使う。
 	 */
 	isAuthResolved: boolean;
+	/**
+	 * #1194 認証初期化の決着を «待つ»。既に決着していれば即座に解決する。
+	 *
+	 * `isAuthResolved` は render 時点のスナップショットなので、
+	 * 「コールバックの中で、いま決着しているか」を知りたい経路では使えない。
+	 * ディープリンクでの起動直後がまさにそれで、画面のマウントと認証初期化が競合する。
+	 *
+	 * @param timeoutMs 待つ上限。超えたら false（＝決着しなかった）
+	 * @returns 決着したか
+	 */
+	waitForAuthResolved: (timeoutMs?: number) => Promise<boolean>;
 	/** #1089 認証初期化が最終的に失敗している間だけ非 null。成功すると null に戻る */
 	authError: AuthFailure | null;
 	/** #1089 認証初期化をやり直す。429 のクールダウン中は、その時間を待ってから実行される */
@@ -96,6 +107,14 @@ type AuthContextType = {
 	handleOAuthResultUrl: (url?: string | null) => Promise<OAuthCallbackResult>;
 };
 
+/**
+ * #1194 認証初期化の決着を待つ上限（ms）。
+ *
+ * 匿名サインインは通常 1 秒以内に決着する。ここを長くしすぎると、認証が本当に壊れているときに
+ * 「操作しても何も起きない」時間が伸びるだけなので、`API_CALL_TIMEOUT_MS`(30s) より十分短くする。
+ */
+const AUTH_RESOLVE_WAIT_MS = 8_000;
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 /**
@@ -113,6 +132,52 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 	const { locale } = useLocale();
 	const sessionRef = useRef<Session | null>(null);
 	const getSession = useCallback(() => sessionRef.current, []);
+
+	/**
+	 * #1194 認証初期化の決着を待てるようにする deferred。
+	 *
+	 * ## なぜ要るのか（実機で踏んだ）
+	 * LINE から投票の共有リンクを開くと、**時々だけ**「結果を取得できませんでした」になり、
+	 * 再試行すると成功する、という報告があった。原因は起動直後の競合で、
+	 * 画面が `callBackend` を呼んだ時点ではまだ匿名セッションが載っていない。
+	 * `useAPICall` はトークンが無いと **待たずに即 throw** するため、
+	 * 「あと数百ミリ秒待てば成功する」ケースまで失敗にしていた。
+	 *
+	 * ⚠️ `isAuthResolved`（= `!loading`）では代用できない。あれは render 時点の値で、
+	 * コールバックのクロージャに焼き付いてしまう。「いま決着したか」を待つには
+	 * state ではなく **promise** が要る。
+	 */
+	const loadingRef = useRef(true);
+	const authResolvedDeferredRef = useRef<{ promise: Promise<void>; resolve: () => void } | null>(null);
+	if (authResolvedDeferredRef.current === null) {
+		let resolveDeferred!: () => void;
+		const promise = new Promise<void>((resolve) => {
+			resolveDeferred = resolve;
+		});
+		authResolvedDeferredRef.current = { promise, resolve: resolveDeferred };
+	}
+
+	useEffect(() => {
+		loadingRef.current = loading;
+		// Promise は一度しか解決しないが、resolve の再呼び出しは無害（2 回目以降は無視される）
+		if (!loading) authResolvedDeferredRef.current?.resolve();
+	}, [loading]);
+
+	const waitForAuthResolved = useCallback(async (timeoutMs = AUTH_RESOLVE_WAIT_MS): Promise<boolean> => {
+		if (!loadingRef.current) return true;
+
+		let timer: ReturnType<typeof setTimeout> | undefined;
+		const timedOut = new Promise<false>((resolve) => {
+			timer = setTimeout(() => resolve(false), timeoutMs);
+		});
+		try {
+			// ⚠️ 上限を必ず付けること。認証初期化が失敗したまま loading が下りない実装に
+			// なった場合、上限が無いと **全 API 呼び出しが永久に待つ**
+			return await Promise.race([authResolvedDeferredRef.current!.promise.then(() => true as const), timedOut]);
+		} finally {
+			if (timer) clearTimeout(timer);
+		}
+	}, []);
 
 	// #1089 認証初期化の失敗と、そこからの復帰に必要な状態
 	const [authError, setAuthError] = useState<AuthFailure | null>(null);
@@ -762,6 +827,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 			refreshSession,
 			loading,
 			isAuthResolved: !loading,
+			waitForAuthResolved,
 			authError,
 			retryAuth,
 			isRetryingAuth,
@@ -779,6 +845,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 			getSession,
 			refreshSession,
 			loading,
+			waitForAuthResolved,
 			authError,
 			retryAuth,
 			isRetryingAuth,

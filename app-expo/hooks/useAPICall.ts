@@ -70,7 +70,7 @@ const API_CALL_TIMEOUT_MS = 30_000;
 export const useAPICall = () => {
 	const { logFrontendEvent } = useLogger();
 	const { showDialog } = useDialog();
-	const { getSession, refreshSession } = useAuth();
+	const { getSession, refreshSession, waitForAuthResolved } = useAuth();
 
 	/**
 	 * 指定されたエンドポイントに対して API を呼び出す関数
@@ -96,6 +96,25 @@ export const useAPICall = () => {
 		): Promise<R> => {
 			// 🔐 認証トークンの有無をチェック
 			let accessToken = getSession()?.access_token;
+
+			// #1194 【設計】トークンが無いとき、**まず認証初期化の決着を待つ**。
+			//
+			// ## 実機で踏んだ症状
+			// LINE から投票の共有リンクを開くと «時々だけ» 「結果を取得できませんでした」になり、
+			// 再試行すると成功する、という報告があった。ディープリンク起動では
+			// 画面のマウントと匿名サインインが競合し、画面が先に走ることがある。
+			// 従来はここで即 throw していたため、**あと数百ミリ秒待てば成功する呼び出しまで失敗**にしていた。
+			//
+			// ⚠️ この待機は «トークンが無いときだけ»。通常の呼び出し（既にセッションがある）は
+			// 一切待たない。ここに無条件の await を置くと全 API 呼び出しが 1 tick 遅くなる。
+			//
+			// ⚠️ 認証が最終的に失敗している場合、`loading` は既に false なので待機は即座に返り、
+			// 従来どおり `unauthenticated` を投げる。**「待てば直る」と「壊れている」を混ぜない**
+			if (!accessToken) {
+				await waitForAuthResolved();
+				accessToken = getSession()?.access_token;
+			}
+
 			if (!accessToken) {
 				// #1092 【設計】ここは JWT を要求する全経路の単一チョークポイント。
 				// 素の Error を投げていたため、呼び出し側の `error?.code` が undefined になり、
@@ -401,7 +420,7 @@ export const useAPICall = () => {
 			// data のみを返す
 			return json.data;
 		},
-		[logFrontendEvent, getSession, refreshSession, showDialog],
+		[logFrontendEvent, getSession, refreshSession, waitForAuthResolved, showDialog],
 	);
 
 	return { callBackend };
