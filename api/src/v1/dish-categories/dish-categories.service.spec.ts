@@ -39,7 +39,9 @@ import { DishCategoryCandidateWithScores } from './dish-categories.interface';
  *
  * 実際に起きたこと:
  *   クライアントが市区町村名単体("大阪市")を送っていたため region_tokens が ["region:大阪市"] になり、
- *   どのゲートにも当たらず候補0件 → fallbackToClaude が 1日 1,445件発火して失敗していた。
+ *   JP のゲートに一切当たらなくなった('region:scope:global' を持つカテゴリだけが残る)。
+ *   その結果 no_candidates か insufficient_candidates のいずれかで
+ *   fallbackToClaude が 1日 1,445件発火して失敗していた。
  *
  * ここでは (1) 壊れた形式を検知できること (2) 正規形式では Claude へ落ちないこと
  * (3) それでも海外向けの Claude 経路は残っていること、の 3 点を固定する。
@@ -186,6 +188,36 @@ describe('#1196 DishCategoriesService の address 形式ハンドリング', () 
         );
       },
     );
+  });
+
+  describe('#1196 小文字の国コード（旧ビルドから届きうる形）', () => {
+    const LOWERCASE_ADDRESS =
+      'country:jp, administrative_area_level_1:大阪府, locality:大阪市';
+
+    it('region_tokens は大文字化せずそのまま送る（サーバ側で救済しない）', async () => {
+      await service.getRecommendations(buildDto(LOWERCASE_ADDRESS), USER_ID);
+
+      // ゲートの照合は Postgres の `=`(大小文字区別あり)なので、これは 'region:country:JP' に当たらない。
+      // ここで救済すると「クライアントが壊れた値を送っている」事実が観測できなくなるため、値は触らない。
+      expect(repo.findCategoryCandidatesWithScores).toHaveBeenCalledWith(
+        expect.objectContaining({
+          regionTokens: expect.arrayContaining(['region:country:jp']),
+        }),
+      );
+    });
+
+    it('MalformedAddressFormat を malformed_country_code として検知する', async () => {
+      await service.getRecommendations(buildDto(LOWERCASE_ADDRESS), USER_ID);
+
+      expect(logger.warn).toHaveBeenCalledWith(
+        'MalformedAddressFormat',
+        'normalizeInput',
+        expect.objectContaining({
+          address: LOWERCASE_ADDRESS,
+          reason: 'malformed_country_code',
+        }),
+      );
+    });
   });
 
   describe('正規形式の address', () => {

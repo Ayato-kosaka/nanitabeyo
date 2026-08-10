@@ -44,6 +44,11 @@ describe("#1196 isCanonicalAddress", () => {
 		["expo フォールバックの表示用文字列", "現在地 (34.6937, 135.5023)"],
 		["country が無く地域トークンだけ", "administrative_area_level_1:大阪府, locality:大阪市"],
 		["country で始まるだけの別キー", "countryside:JP"],
+		// #1196 Postgres の照合は大小文字区別ありなので `region:country:jp` はゲートに当たらない。
+		// 前置詞だけを見ていると「正規形式なのにゲートに当たらない」という検知不能な穴になる。
+		["小文字の国コード", "country:jp, administrative_area_level_1:Osaka"],
+		["先頭だけ大文字の国コード", "country:Jp"],
+		["alpha-2 でない国名", "country:Japan"],
 	])("非正規形式は false: %s", (_label, address) => {
 		expect(isCanonicalAddress(address)).toBe(false);
 	});
@@ -69,6 +74,23 @@ describe("#1196 buildAddressFromGeocodedAddress", () => {
 		});
 
 		expect(address).not.toBe("大阪市");
+		expect(isCanonicalAddress(address)).toBe(true);
+	});
+
+	it.each([
+		["小文字", "jp"],
+		["先頭だけ大文字", "Jp"],
+		["前後に空白", " jp "],
+	])("#1196 国コードは必ず大文字化する（Postgres の照合が大小文字区別ありのため）: %s", (_label, isoCountryCode) => {
+		const address = buildAddressFromGeocodedAddress({
+			isoCountryCode,
+			region: "大阪府",
+			city: "大阪市",
+		});
+
+		// `region:country:jp` はホワイトリストの `region:country:JP` に当たらないため、
+		// ここが小文字のまま通ると #1196 が検知ログなしで再発する
+		expect(address).toBe("country:JP, administrative_area_level_1:大阪府, locality:大阪市");
 		expect(isCanonicalAddress(address)).toBe(true);
 	});
 

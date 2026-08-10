@@ -22,7 +22,7 @@ import {
   DishCategoryPenaltyFeatureSet,
 } from './dish-categories.interface';
 import { shuffle } from 'src/core/utils/backend-utils';
-import { isCanonicalAddress } from '../../core/utils/address-format';
+import { findAddressFormatViolation } from '../../core/utils/address-format';
 
 // #533 【定数】候補取得上限数
 const CANDIDATE_LIMIT = 200;
@@ -240,9 +240,14 @@ export class DishCategoriesService {
     //
     // #1196 【重要】この形式が崩れると何が起きるか:
     // 例えば市区町村名単体の "大阪市" が来ると region_tokens は ["region:大阪市"] になる。
-    // ホワイトリストは国単位(日本向けは 'region:country:JP' のみ)なのでどのゲートにも当たらず、
-    // 候補0件 → fallbackToClaude が発火する。Claude は海外向けの保険であって日本向けの経路ではないため、
+    // ホワイトリストは国単位(日本向けは 'region:country:JP' のみ)なのでどの JP ゲートにも当たらず、
+    // 'region:scope:global' を持つカテゴリしか残らない。その結果、候補0件('no_candidates')か、
+    // 残ってもスレート(6枚)を組めない('insufficient_candidates')で fallbackToClaude が発火する。
+    // Claude は海外向けの保険であって日本向けの経路ではないため、
     // 本番では Claude 側のエラーがそのまま失敗になった(1日 1,445件 / 204ユーザー)。
+    // なおゲートの照合は Postgres の `=` で**大小文字区別あり**なので、"country:jp" のような
+    // 小文字の国コードも同じ結末になる(詳細と、サーバ側で救済しない判断の理由は
+    // `api/src/core/utils/address-format.ts` を参照)。
     // 原因はクライアントの現在地フォールバックが expo の `city` をそのまま address にしていたこと。
     // 詳細と修正は `app-expo/lib/addressFormat.ts` / `app-expo/hooks/useLocationSearch.ts` を参照。
     const addressTokens = dto.address
@@ -263,12 +268,17 @@ export class DishCategoriesService {
     // - 一方でこのイベント名を BigQuery のエラートリアージで拾えば、同じ事故が再発したときに即座に気づける
     //
     // このログが日本の住所で出ていたら、それはクライアント側のバグである(仕様上ありえない)。
-    if (!isCanonicalAddress(dto.address)) {
+    //
+    // #1196 reason は「country トークンが無い」("大阪市" のような旧フォールバック)と
+    // 「国コードの大小文字が違う」("country:jp")を区別する。原因も直し方も別物なので、
+    // トリアージで一括りにしない。
+    const addressFormatViolation = findAddressFormatViolation(dto.address);
+    if (addressFormatViolation) {
       this.logger.warn('MalformedAddressFormat', 'normalizeInput', {
         // 生の address を残す。形式判定を通らない値なので個人特定性は低く、原因追跡には必須
         address: dto.address,
         addressTokenCount: addressTokens.length,
-        reason: 'missing_country_token',
+        reason: addressFormatViolation,
       });
     }
 

@@ -12,11 +12,23 @@
  * の `feature_key` と照合する。ホワイトリストには `region:country:JP` が入っているので、
  * `country:JP` さえ含まれていれば日本の住所は必ず候補にヒットする。
  *
- * 逆に「大阪市」のような**市区町村名単体**を送ると `region:大阪市` になり、どのゲートにも当たらず
- * 候補0件 → Claude フォールバックへ落ちる（#1196 の本番障害はこれ）。
+ * 逆に「大阪市」のような**市区町村名単体**を送ると `region:大阪市` になり、日本向けのゲートには
+ * 一切当たらなくなる（残るのは `region:scope:global` を持つカテゴリだけ）。その結果、候補0件か
+ * スレート（6枚）不成立で Claude フォールバックへ落ちる（#1196 の本番障害はこれ）。
  */
 
 const COUNTRY_TOKEN_PREFIX = "country:";
+
+/**
+ * #1196 【設計】国コードは ISO 3166-1 alpha-2 の**大文字 2 文字**であること。
+ *
+ * サーバ側の照合は `dcf.feature_key = ANY(p.region_tokens)`（Postgres の `=` = 大小文字区別あり）で、
+ * ホワイトリストに入っている key は `region:country:JP` である。つまり `country:jp` を送ると
+ * `region:country:jp` ≠ `region:country:JP` となり、**ゲートに当たらない**。
+ * 「country トークンさえあればゲートに必ずヒットする」という前提が成り立つのは大文字のときだけなので、
+ * 形式判定でもここまで見る。
+ */
+const COUNTRY_CODE_PATTERN = /^[A-Z]{2}$/;
 
 /** expo-location の `reverseGeocodeAsync` が返す住所のうち、ここで使う項目だけ */
 export type GeocodedAddressLike = {
@@ -34,15 +46,19 @@ export type GeocodedAddressLike = {
  * #1196 【仕様】address が推薦 API の期待する正規形式かどうかを判定する。
  *
  * 判定基準はサーバ側 (`api/src/core/utils/address-format.ts`) と揃えてある:
- * カンマ区切りトークンのいずれかが `country:<値>` であること。
+ * カンマ区切りトークンのいずれかが `country:<大文字 2 文字>` であること。
  * 国コードさえ含まれていれば地域ゲートには必ずヒットするため、これを最小要件とする。
+ * ただしヒットが保証されるのは大文字のときだけなので、大小文字まで見る（→ `COUNTRY_CODE_PATTERN`）。
  */
 export function isCanonicalAddress(address: string | null | undefined): boolean {
 	if (!address) return false;
 	return address
 		.split(",")
 		.map((token) => token.trim())
-		.some((token) => token.startsWith(COUNTRY_TOKEN_PREFIX) && token.length > COUNTRY_TOKEN_PREFIX.length);
+		.some(
+			(token) =>
+				token.startsWith(COUNTRY_TOKEN_PREFIX) && COUNTRY_CODE_PATTERN.test(token.slice(COUNTRY_TOKEN_PREFIX.length)),
+		);
 }
 
 /**
@@ -59,7 +75,14 @@ export function isCanonicalAddress(address: string | null | undefined): boolean 
  * @returns 国コードが取れない場合は `null`（= 正規形式を作れない）。呼び出し側で degraded 扱いすること。
  */
 export function buildAddressFromGeocodedAddress(geocoded: GeocodedAddressLike | null | undefined): string | null {
-	const countryCode = geocoded?.isoCountryCode?.trim();
+	// #1196 【設計】国コードは必ず大文字化する。
+	// expo-location の `isoCountryCode` は ISO 3166-1 alpha-2 だが、大文字で返ることは
+	// 端末/OS 実装に依存し保証されていない。一方サーバ側のゲート照合は
+	// `dcf.feature_key = ANY(p.region_tokens)`(= Postgres の完全一致、大小文字区別あり)なので、
+	// `region:country:jp` はホワイトリストの `region:country:JP` に当たらない。
+	// ここで大文字化しないと #1196 とまったく同じ失敗（ゲート不成立 → Claude フォールバック）が、
+	// しかも `isCanonicalAddress` が前置詞しか見ていなければ検知ログすら出ない状態で再発する。
+	const countryCode = geocoded?.isoCountryCode?.trim().toUpperCase();
 	// #1196 【設計】国コードが無いと地域ゲートに当たらない = 正規形式として成立しない。
 	// ここで無理に他のトークンだけを並べても障害の再発にしかならないため null を返す。
 	if (!countryCode) return null;
