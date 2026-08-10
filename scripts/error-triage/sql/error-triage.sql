@@ -9,7 +9,7 @@
 --
 -- fingerprint 定義（正規化ルール表 + キー構成 + ハッシュ合成）の世代。
 -- constants.js の FP_ALGO_VERSION と一致することをユニットテストで検査する（横断レビュー 1-3）。
--- fpalgo: 1
+-- fpalgo: 2
 --
 -- 設計上の制約（守らないと壊れるもの）:
 --   1. **単一文**であること。CREATE TEMP FUNCTION を使うと multi-statement script になり、
@@ -212,7 +212,21 @@ keyed AS (
     n.eventName,
     n.feErrorCode,
     IF(n.surface IN ('frontend', 'backend'), n.eventName, NULL)     AS keyEventName,
-    IF(n.surface = 'frontend', NULLIF(n.norm[OFFSET(1)], ''), NULL) AS keyPathName,
+    -- ★ fpalgo 2: pathName は「正規化 → 先頭ロケール剥がし」の2段。
+    --   ルール表は normalize-rules.js の PATH_LOCALE_RULES（唯一の正）。
+    --   剥がしたロケールは捨てず localeTag として残し、下で localeCounts に集計する
+    --   （「1ロケールだけなら別物の可能性がある」を人間が確かめられなくなるため / CLUSTERING.md 類型1）。
+    IF(n.surface = 'frontend', NULLIF(
+      REGEXP_REPLACE(
+        REGEXP_REPLACE(
+          n.norm[OFFSET(1)]
+        , r'''^/(?:[a-z]{2,3}(?:-[A-Z][a-z]{3})?-(?:[A-Z]{2}|<n>)|[a-z]{2,3}-[A-Z][a-z]{3}|[a-z]{2}|\[locale\])(?:/\[locale\])*/''', '/')  -- pathLocale(0) path-locale-prefix
+      , r'''^/(?:[a-z]{2,3}(?:-[A-Z][a-z]{3})?-(?:[A-Z]{2}|<n>)|[a-z]{2,3}-[A-Z][a-z]{3}|[a-z]{2}|\[locale\])(?:/\[locale\])*$''', '/')  -- pathLocale(1) path-locale-only
+    , ''), NULL)                                                    AS keyPathName,
+    -- 剥がした先頭ロケール部そのもの（'ja-JP' / '[locale]' / 'es-ES/[locale]'）。
+    -- 旧 fingerprint（fpalgo 1）の pathName は '/' || localeTag || keyPathName で厳密に復元できる。
+    IF(n.surface = 'frontend', REGEXP_EXTRACT(n.norm[OFFSET(1)], r'''^/((?:[a-z]{2,3}(?:-[A-Z][a-z]{3})?-(?:[A-Z]{2}|<n>)|[a-z]{2,3}-[A-Z][a-z]{3}|[a-z]{2}|\[locale\])(?:/\[locale\])*)(?:/|$)'''), NULL)
+                                                                    AS localeTag,
     IF(n.surface = 'backend', n.functionName, NULL)                 AS keyFunctionName,
     IF(n.surface = 'external', n.apiName, NULL)                     AS keyApiName,
     IF(n.surface = 'external', NULLIF(n.norm[OFFSET(4)], ''), NULL) AS keyEndpoint,
@@ -317,7 +331,9 @@ grouped AS (
     ARRAY_AGG(STRUCT(
       TIMESTAMP_TRUNC(ingestedAt, HOUR) AS hourUtc,
       createdCommitId                   AS sha,
-      createdAppVersion                 AS appVersion
+      createdAppVersion                 AS appVersion,
+      -- fpalgo 2: 剥がしたロケール。NULL は「ロケール接頭辞が無かった」（'/store' 等）
+      localeTag                         AS locale
     ))                                                AS samples
   FROM keyed
   WHERE excludedReason IS NULL
@@ -411,6 +427,14 @@ SELECT TO_JSON_STRING(STRUCT(
     SELECT ARRAY_AGG(b.appVersion ORDER BY b.appVersion LIMIT 5)
     FROM (SELECT DISTINCT s.appVersion AS appVersion FROM UNNEST(g.samples) AS s WHERE s.appVersion IS NOT NULL) AS b
   )                      AS appVersions,
+  -- fpalgo 2: 剥がしたロケールの内訳。**pathName から消した情報をここへ移す**。
+  -- 用途は2つ: (1) Issue 本文に「どのロケールで何件」を残す（1ロケールだけなら別物の可能性がある）
+  --            (2) 旧 fingerprint（fpalgo 1）を復元して既存 Issue と突合する（移行）
+  -- locale が NULL の要素は「ロケール接頭辞が無かった」を意味する（frontend 以外は常に NULL）。
+  (
+    SELECT ARRAY_AGG(STRUCT(b.locale AS locale, b.n AS `count`) ORDER BY b.n DESC, b.locale LIMIT 50)
+    FROM (SELECT s.locale AS locale, COUNT(*) AS n FROM UNNEST(g.samples) AS s GROUP BY s.locale) AS b
+  )                      AS localeCounts,
   g.representativeCommit AS representativeCommit
 )) AS triageRow
 FROM limited g
