@@ -40,10 +40,12 @@ jobs:
       SOURCE_SHA: ${{ inputs.source_sha }}
       # 元runが信頼できるWorkflowであることを .path で判定する（.name は run-name のため使えない）
       # - claude-worker.yml: テストエビデンス収集の本来の入力
-      # - e2e-web-test.yml : 手動実行で収集したUIカタログのスクリーンショット
+      # - e2e-web-test.yml    : 手動実行で収集したUIカタログのスクリーンショット（Web）
+      # - e2e-mobile-test.yml : 同上（ネイティブ / Android・iOS）
       EXPECTED_WORKFLOW_PATHS: |
         .github/workflows/claude-worker.yml
         .github/workflows/e2e-web-test.yml
+        .github/workflows/e2e-mobile-test.yml
 
     steps:
       - name: 入力値を検証
