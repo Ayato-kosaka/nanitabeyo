@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useCallback, useState, forwardRef, u
 import { View, StyleSheet, Text, TouchableOpacity, useWindowDimensions, Platform } from "react-native";
 import { DetentChangeEvent, TrueSheet } from "@lodev09/react-native-true-sheet";
 import { presentSheetSafely, dismissSheetSafely } from "@/lib/trueSheet";
+import { SheetGestureRoot } from "@/components/SheetGestureRoot";
 import { Carousel, type CarouselRef } from "react-native-reanimated-carousel";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { Image } from "expo-image";
@@ -286,7 +287,14 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 					</View>
 				}
 				onDetentChange={handleDetentChange}>
-				<View testID="saved-restaurants-sheet" style={[styles.container, detentIndex === 1 ? { flex: 1 } : {}]}>
+				{/* #1126 ⚠️ ここを素の View へ戻さないこと。Android の TrueSheet は中身を
+				    android.R.id.content へ付け替えるため、アプリの GestureHandlerRootView の外へ出る。
+				    RNGH のジェスチャ（カルーセルの Pan）が一切届かなくなり、
+				    「ドラッグしても動かないが、離すとカードが押される」という形で壊れる。
+				    詳細は components/SheetGestureRoot.tsx */}
+				<SheetGestureRoot
+					testID="saved-restaurants-sheet"
+					style={[styles.container, detentIndex === 1 ? { flex: 1 } : {}]}>
 					{/* #644 【UX】ローディング中はスケルトンを表示 */}
 					{isLoadingSavedRestaurants && savedRestaurants.length === 0 ? (
 						<>
@@ -380,7 +388,7 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 						// 空状態（ローディング完了後、データなし）
 						<Text style={styles.emptyStateText}>{i18n.t("Review.selectRestaurant.noSavedRestaurantsInArea")}</Text>
 					)}
-				</View>
+				</SheetGestureRoot>
 			</TrueSheet>
 		);
 	},
