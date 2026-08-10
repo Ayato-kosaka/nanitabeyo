@@ -163,9 +163,6 @@ export default defineConfig({
 			dependencies: ["setup"],
 		},
 
-		// ── モバイル（@smoke のみ） ──────────────────────────────────────
-		// モバイルファーストのフードアプリのため、スマホビューポートでのレイアウト崩れ・導線破壊を検知する。
-		// 実行時間を抑えるため @smoke タグのテストのみに絞る
 		// ── UI カタログ（スクリーンショット収集） ───────────────────────
 		// 全画面のスクリーンショットを撮って catalog/screens.json の定義と突き合わせ、
 		// 画面一覧ドキュメントを生成するための専用プロジェクト（@catalog タグで既定除外）。
@@ -179,7 +176,9 @@ export default defineConfig({
 		{
 			name: "ui-catalog-authenticated",
 			use: { ...devices["Desktop Chrome"], storageState: STORAGE_STATE_PATH },
-			testMatch: /tests\/catalog\/ui-catalog-authenticated\.spec\.ts/,
+			// ログイン済みの収集（ui-catalog-authenticated）と、そこからしか到達できない
+			// レビュー投稿フロー（ui-catalog-mutation。@mutation で既定は除外）の 2 本
+			testMatch: /tests\/catalog\/ui-catalog-(authenticated|mutation)\.spec\.ts/,
 			dependencies: ["setup"],
 		},
 

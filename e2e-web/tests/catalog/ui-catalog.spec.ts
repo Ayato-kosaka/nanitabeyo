@@ -78,8 +78,9 @@ test.describe("UI カタログ（匿名） @catalog", () => {
 
 	// ─ 検索フロー（実 API・AI のトピック生成を待つ） ─
 	test("検索フロー（料理提案・チュートリアル・結果フィード）", async ({ appPage }) => {
-		// トピック生成は実測で 30 秒近くかかることがあるため、既定の 30 秒では足りない
-		test.setTimeout(150_000);
+		// トピック生成は実測で 30 秒近くかかることがあるうえ、
+		// チュートリアル 4 ステップ分の撮影も挟むため、既定の 30 秒では全く足りない
+		test.setTimeout(240_000);
 
 		const searchPage = new SearchPage(appPage);
 		const topicsPage = new TopicsPage(appPage);
@@ -139,9 +140,15 @@ test.describe("UI カタログ（匿名） @catalog", () => {
 			appPage,
 			"search-result-feed",
 			async () => {
-				// チュートリアルを開いていた場合は閉じてからカードを選ぶ
+				// チュートリアルを開いていた場合は閉じてからカードを選ぶ。
+				// ⚠️ 最終ステップでは「スキップ」が消えて CTA が「使ってみる」(finish) に変わるため、
+				// skip だけを待つと閉じられずにテストごとタイムアウトする（run 31383154085 で実測）
 				if (await topicsPage.tutorialOverlay.isVisible()) {
-					await topicsPage.tutorialSkipButton.click();
+					if (await topicsPage.tutorialFinishButton.isVisible()) {
+						await topicsPage.tutorialFinishButton.click();
+					} else if (await topicsPage.tutorialSkipButton.isVisible()) {
+						await topicsPage.tutorialSkipButton.click();
+					}
 					await expect(topicsPage.tutorialOverlay).toBeHidden();
 				}
 				await topicsPage.chooseFirstTopic();
