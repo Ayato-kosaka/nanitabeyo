@@ -197,9 +197,7 @@ gcloud run services update api-development --project food-scroll --region asia-n
 ```
 e2e-web/
 ├── playwright.config.ts   # 設定の中核(プロジェクト定義・3 層構造の安全弁など)
-├── catalog/screens.json   # UI カタログの画面定義(画面名 / URL / 説明 / 遷移関係)
 ├── scripts/serve-dist.mjs # Firebase Hosting の rewrite を模した静的サーバ(依存ゼロ)
-├── scripts/generate-catalog.mjs # UI カタログの一覧ドキュメント生成(依存ゼロ)
 ├── fixtures/
 │   ├── test.ts            # カスタムフィクスチャ(全 spec はここから import すること)
 │   └── assets/            # テスト用アセット(投稿テスト用画像など)
@@ -209,6 +207,7 @@ e2e-web/
     ├── setup/             # 認証セットアップ(auth.setup.ts: ログイン済み / anon.setup.ts: 匿名共有セッション)
     ├── config/            # 設定整合性チェック(firebase.json rewrite × dist。ブラウザ不要・デプロイ前ゲート)
     ├── catalog/           # UI カタログ用のスクリーンショット収集(@catalog。既定の test からは除外)
+    │                      #   画面定義と一覧生成はリポジトリルートの ../catalog/ にある
     ├── smoke/             # Tier 1: @smoke(boot.spec.ts のみフレッシュな匿名状態で実行)
     ├── navigation/ search/ review/ profile/ seo/   # Tier 2
     └── authenticated/     # ログイン済みプロジェクト専用(Tier 2 + @mutation)
