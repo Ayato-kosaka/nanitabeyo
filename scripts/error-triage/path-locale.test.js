@@ -22,8 +22,9 @@ const {
 	restorePathLocale,
 	stripPathLocale,
 } = require("./normalize-rules");
-const { renderIssueBody } = require("./render");
+const { renderIssueBody, renderJobSummary } = require("./render");
 const { RAW_STRING_DELIMITER, generateErrorTriageSql, toRawStringLiteral } = require("./sql-generator");
+const { buildEnvelope, buildPlan, validateEnvelope } = require("./triage");
 const { computeWindow } = require("./window");
 
 const WINDOW = computeWindow({ now: "2026-08-07T00:05:12Z" });
@@ -142,6 +143,101 @@ describe("剥がさない — app-expo のルーティングに実在する形",
 			expect(stripPathLocale(once)).toBe(once);
 			expect(isPathLocaleStripped(once)).toBe(true);
 		}
+	});
+});
+
+// ---------------------------------------------------------------------------
+// 2-b) ★ Minor-2（PR #1256 レビュー）: ロケール2段のパスは冪等にならない
+// ---------------------------------------------------------------------------
+//
+// `stripPathLocale()` は PATH_LOCALE_RULES を各1回しか掛けないため、
+// `/ja/en/foo` は `/en/foo` になり、その結果は「まだ剥がせる」＝ 冪等でない。
+// 発生確率は低い（`app-expo/app/` にロケール直下の2文字小文字セグメントは無い）が、
+// `+not-found.tsx` が任意 URL を拾うのでゼロではない。
+// **この形が1グループ出ただけでその日のトリアージ全体が止まってはいけない。**
+
+describe("ロケール2段のパス — そのグループだけを invalid にし、run 全体は止めない", () => {
+	it.each([
+		["/ja/en/foo", "/en/foo"],
+		["/[locale]/es-ES/search", "/es-ES/search"],
+	])("%s は1回しか剥がれないので冪等でない（既知の限界）", (input, once) => {
+		expect(stripPathLocale(input)).toBe(once);
+		expect(isPathLocaleStripped(stripPathLocale(input))).toBe(false);
+	});
+
+	const rowFor = (pathName) => ({
+		surface: "frontend",
+		groupKey: {
+			eventName: "api_call_error",
+			pathName,
+			functionName: null,
+			apiName: null,
+			endpoint: null,
+			method: null,
+			statusCode: null,
+			httpStatus: 500,
+			route: "/v<n>/dishes/bulk-import",
+			errorCode: null,
+		},
+		messagePattern: "Internal server error",
+		occurrences: 3,
+		affectedUsers: 2,
+		anonymousOccurrences: 0,
+		firstSeenUtc: "2026-08-06T01:00:00Z",
+		lastSeenUtc: "2026-08-06T23:00:00Z",
+		hourlyCounts: [],
+		commits: [],
+		appVersions: [],
+		localeCounts: [{ locale: "ja", count: 3 }],
+		representativeCommit: null,
+	});
+
+	const RUN_SUMMARY = { groupCount: 2, groupLimit: 500, keptRows: 6, excludedRows: 0, excludedBreakdown: [] };
+	const QUERY = { estimatedBytes: 1, maxBytesBilled: 200000000, totalRows: 2 };
+	const envelopeOf = (rows) =>
+		buildEnvelope({ rows, runSummary: RUN_SUMMARY, window: WINDOW, generatedAt: GENERATED_AT, query: QUERY }).envelope;
+
+	// 1件だけ2段ロケール、もう1件は普通のパス
+	const envelope = envelopeOf([rowFor("/en/foo"), rowFor("/search/result")]);
+
+	it("エンベロープ全体は valid のまま（run は止まらない）", () => {
+		const validation = validateEnvelope(envelope);
+		expect(validation.ok).toBe(true);
+		expect(validation.errors).toEqual([]);
+		expect(validation.groupErrors.map((entry) => entry.fingerprint)).toEqual([envelope.groups[0].fingerprint]);
+	});
+
+	it("★ 奇妙なパスのグループだけ invalid になり、他のグループは普通に処理される", () => {
+		const plan = buildPlan({ envelope, issues: [] });
+		expect(plan.valid).toBe(true);
+		expect(plan.errors).toEqual([]);
+		const byFingerprint = Object.fromEntries(plan.items.map((item) => [item.fingerprint, item.action]));
+		expect(byFingerprint[envelope.groups[0].fingerprint]).toBe("invalid");
+		expect(byFingerprint[envelope.groups[1].fingerprint]).toBe("create");
+		expect(plan.counts.create).toBe(1);
+	});
+
+	it("保留したグループは数えられ、理由も残る（黙って落とさない）", () => {
+		const plan = buildPlan({ envelope, issues: [] });
+		expect(plan.counts.invalid).toBe(1);
+		expect(plan.invalidGroups.map((entry) => entry.fingerprint)).toEqual([envelope.groups[0].fingerprint]);
+		expect(plan.warnings.join("\n")).toContain("先頭ロケールが剥がれていません");
+		expect(renderJobSummary({ envelope, plan, mode: "apply" })).toContain("invalid");
+	});
+
+	it("invalid にしたグループは起票も突合もしない（body 更新の対象にもならない）", () => {
+		const plan = buildPlan({ envelope, issues: [] });
+		const item = plan.items.find((entry) => entry.fingerprint === envelope.groups[0].fingerprint);
+		expect(item.issueNumber).toBeNull();
+		expect(item.matchedBy).toBe("none");
+	});
+
+	it("他の envelope 検査は緩めていない（正規化違反は従来どおり run 全体を止める）", () => {
+		const dirty = envelopeOf([rowFor("/search/result")]);
+		dirty.groups[0].messagePattern = "畳まれていない　全角スペース";
+		const validation = validateEnvelope(dirty);
+		expect(validation.ok).toBe(false);
+		expect(buildPlan({ envelope: dirty, issues: [] }).valid).toBe(false);
 	});
 });
 
@@ -356,6 +452,23 @@ describe("剥がしたロケールを捨てない（Issue 本文の内訳）", (
 			generatedAt: GENERATED_AT,
 		});
 		expect(single).toContain("**1ロケールのみ**");
+	});
+
+	// Nit（PR #1256 レビュー）: `/store` のようなロケール配下でない frontend パスは
+	// `(ロケールなし) 5件` の1件だけになる。ここに「1ロケールのみ。ロケール固有の不具合の
+	// 可能性を確認すること」を出すのは、そもそもロケールで分岐し得ない画面なので不適切。
+	it("`(ロケールなし)` 1件だけのときは「1ロケールのみ」の注意書きを出さない", () => {
+		const noLocale = renderIssueBody({
+			group: {
+				...group,
+				groupKey: { ...group.groupKey, pathName: "/store" },
+				localeCounts: [{ locale: null, count: 5 }],
+			},
+			window: WINDOW,
+			generatedAt: GENERATED_AT,
+		});
+		expect(noLocale).toContain("(ロケールなし)` 5件");
+		expect(noLocale).not.toContain("**1ロケールのみ**");
 	});
 
 	it("ロケールが多いときは上位だけ並べ、残りは「他 N 種」に畳む（body を膨らませない）", () => {

@@ -444,7 +444,7 @@ describe("buildPlan()", () => {
 	it("起票上限を超えた分は capped として必ず可視化され、次回 run へ繰り越される", () => {
 		const many = Array.from({ length: 8 }, (_, index) => ({
 			...rows[3],
-			groupKey: { ...rows[3].groupKey, pathName: `/ja/auth/signup/${index}` },
+			groupKey: { ...rows[3].groupKey, pathName: `/auth/signup/${index}` },
 			affectedUsers: 100 - index,
 			anonymousOccurrences: 0,
 		}));
@@ -468,7 +468,7 @@ describe("buildPlan()", () => {
 	it("未知 fingerprint が PANIC 閾値を超えたら1件も起票しない（#1198 §3）", () => {
 		const many = Array.from({ length: 12 }, (_, index) => ({
 			...rows[3],
-			groupKey: { ...rows[3].groupKey, pathName: `/ja/auth/signup/${index}` },
+			groupKey: { ...rows[3].groupKey, pathName: `/auth/signup/${index}` },
 		}));
 		const panicked = buildPlan({
 			envelope: buildEnvelope({ rows: many, runSummary, window: WINDOW, generatedAt: GENERATED_AT, query: QUERY })
@@ -485,7 +485,7 @@ describe("buildPlan()", () => {
 	it("reopen 上限を超えた分も capped になる（回帰は起票より優先だが黙って落とさない）", () => {
 		const regressing = Array.from({ length: 3 }, (_, index) => ({
 			...rows[1],
-			groupKey: { ...rows[1].groupKey, pathName: `/ja/p/${index}` },
+			groupKey: { ...rows[1].groupKey, pathName: `/p/${index}` },
 			affectedUsers: 30 - index,
 		}));
 		const issues = regressing.map((row, index) => ({

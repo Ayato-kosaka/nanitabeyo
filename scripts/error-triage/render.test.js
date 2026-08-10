@@ -357,7 +357,7 @@ describe("renderJobSummary() / renderParentSummaryComment()", () => {
 	it("常駐サマリに繰り越し件数と最古の初観測を出す（starvation を隠さない）", () => {
 		const many = Array.from({ length: 8 }, (_, index) => ({
 			...rows[3],
-			groupKey: { ...rows[3].groupKey, pathName: `/ja/auth/signup/${index}` },
+			groupKey: { ...rows[3].groupKey, pathName: `/auth/signup/${index}` },
 			firstSeenUtc: `2026-08-0${index + 1}T00:00:00Z`,
 			affectedUsers: 100 - index,
 			anonymousOccurrences: 0,

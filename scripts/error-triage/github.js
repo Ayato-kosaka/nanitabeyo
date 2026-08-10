@@ -597,6 +597,9 @@ const applyPlan = async ({
 			to: rekey.to,
 			locale: rekey.locale,
 			fromAlgoVersion: rekey.fromAlgoVersion,
+			// Minor-3: 本文に「どれが代表なのか」を書くために必要（計画側で決定済み）。
+			issueNumber: rekey.issueNumber,
+			authoritativeNumber: rekey.authoritativeNumber ?? null,
 		});
 		if (body === null) {
 			result.rekeySkipped.push({ issueNumber: rekey.issueNumber, reason: "既にリキー済み（冪等）" });

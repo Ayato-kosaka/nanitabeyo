@@ -64,9 +64,15 @@ const GROUP_LIMIT = 500;
  * 1グループあたりに出すロケール内訳（`localeCounts`）の件数上限。
  *
  * ロケールは端末の言語設定そのものなので理論上は数百種になり得る。
- * 上限に当たっても**重複起票にはならない**（突合は新 fingerprint 1本で成立する）。
- * 溢れるのは「旧 Issue のリキー対象を1件取り逃がす」だけで、その Issue は
- * 旧 fingerprint のまま残る＝起票済みなので、やはり重複起票にはならない。
+ *
+ * ⚠️ **移行中（`pendingAlgoVersions` が空でない間）は、ここで溢れたロケールが重複起票を生み得る。**
+ *   `computeLegacyFingerprints()` が復元できる旧 fingerprint は、その run の `localeCounts` に
+ *   載っているロケールぶんだけである。旧 Issue が持つロケールが溢れて載らなかった場合、
+ *   「リキーを取り逃がす」のではなく **突合そのものが外れて `create` になる**（＝旧 Issue が孤児化する）。
+ *   同じ穴は「旧 Issue のロケールがその run の窓に1件も出ていない」ときにも開く。
+ *   → その対処として、移行中は frontend の起票を保留する（`buildPlan()` の `withheld`）。
+ *   REKEY_LIMIT 側の「溢れても重複起票にはならない」は**突合が成立した後**の後片付けの話であって、
+ *   こちらとは別問題。混同しないこと。
  */
 const LOCALE_BREAKDOWN_LIMIT = 50;
 

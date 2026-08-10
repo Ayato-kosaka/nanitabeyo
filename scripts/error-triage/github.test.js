@@ -552,8 +552,8 @@ describe("冪等性", () => {
 	test("起票が本当に失敗したら、その run では起票を打ち切って失敗として記録する", async () => {
 		const many = [
 			...rows,
-			{ ...rows[3], groupKey: { ...rows[3].groupKey, pathName: "/ja/another" } },
-			{ ...rows[3], groupKey: { ...rows[3].groupKey, pathName: "/ja/yet-another" } },
+			{ ...rows[3], groupKey: { ...rows[3].groupKey, pathName: "/another" } },
+			{ ...rows[3], groupKey: { ...rows[3].groupKey, pathName: "/yet-another" } },
 		];
 		const envelope = buildEnvelope({
 			rows: many,

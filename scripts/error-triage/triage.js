@@ -10,6 +10,7 @@ const {
 	CREATE_LIMIT,
 	GRACE_HOURS,
 	GROUP_LIMIT,
+	MIGRATABLE_ALGO_VERSIONS,
 	MIN_EVENTS_REOPEN,
 	PANIC_THRESHOLD,
 	REKEY_LIMIT,
@@ -22,7 +23,7 @@ const {
 } = require("./constants");
 const { attachFingerprints, computeLegacyFingerprints, FINGERPRINT_PATTERN } = require("./fingerprint");
 const { isNormalized, isPathLocaleStripped } = require("./normalize-rules");
-const { extractAlgoVersion, extractFingerprints } = require("./render");
+const { extractAlgoVersion, extractFingerprints, extractSurface } = require("./render");
 const { addHours, minTimestamp, toDate } = require("./window");
 
 /** 契約 §7 の groupKey に載ってよいフィールド（許可リスト）。 */
@@ -201,12 +202,20 @@ const findForbiddenFields = (node, path = "$", found = []) => {
 /**
  * 契約エンベロープを検証する。§7 の不変条件を実行時にも守らせる。
  *
+ * 戻り値は2階建てになっている（PR #1256 レビュー Minor-2）:
+ *   - `errors`      … **エンベロープ全体**が壊れている（run 全体を止める）
+ *   - `groupErrors` … **そのグループだけ**が壊れている（そのグループを `invalid` にして先へ進む）
+ * 後者は「1つの奇妙なパスのためにその日のトリアージ全体（起票も body 更新も）を止める」のを避けるため。
+ * 今のところ groupErrors に落とすのは pathName のロケール剥がし検査だけで、
+ * 他の検査（禁止フィールド / 正規化 / fingerprint 形式 / surface）は従来どおり run 全体を止める。
+ *
  * @param {Record<string, any>} envelope
- * @returns {{ok:boolean, errors:string[], warnings:string[]}}
+ * @returns {{ok:boolean, errors:string[], warnings:string[], groupErrors:Array<{fingerprint:string, reason:string}>}}
  */
 const validateEnvelope = (envelope) => {
 	const errors = [];
 	const warnings = [];
+	const groupErrors = [];
 
 	if (envelope.schemaVersion !== SCHEMA_VERSION) {
 		errors.push(`schemaVersion 不一致: ${envelope.schemaVersion} (期待 ${SCHEMA_VERSION})`);
@@ -233,10 +242,18 @@ const validateEnvelope = (envelope) => {
 		// fpalgo 2: pathName は先頭ロケールを剥がした値でなければならない。
 		// SQL 側（PATH_LOCALE_RULES から生成した REGEXP_REPLACE）と JS 側がズレると、
 		// 同じ画面が再びロケールごとに割れて重複起票される（B-1 と同じ事故の再来）。
+		//
+		// ★ Minor-2（PR #1256 レビュー）: これは**そのグループだけ**の invalid にする。
+		//   `stripPathLocale()` は PATH_LOCALE_RULES を各1回しか掛けないので、ロケール2段のパス
+		//   （`/ja/en/foo` → `/en/foo`）では冪等にならず、この検査が false になる。
+		//   実在確率は低い（`app-expo/app/` にロケール直下の2文字小文字セグメントは無い）が、
+		//   `+not-found.tsx` が任意 URL を拾うのでゼロではない。run 全体を止めると
+		//   **その日のトリアージが丸ごと停止**する（起票も body 更新も 0 件）ので、被害が釣り合わない。
 		if (group.surface === "frontend" && !isPathLocaleStripped(group.groupKey && group.groupKey.pathName)) {
-			errors.push(
-				`pathName の先頭ロケールが剥がれていません（fpalgo ${FP_ALGO_VERSION}。SQL と normalize-rules.js のズレを疑うこと）: ${JSON.stringify(group.groupKey.pathName)}`,
-			);
+			groupErrors.push({
+				fingerprint: String(group.fingerprint),
+				reason: `pathName の先頭ロケールが剥がれていません（fpalgo ${FP_ALGO_VERSION}。SQL と normalize-rules.js のズレ、またはロケール2段のパスを疑うこと）: ${JSON.stringify(group.groupKey.pathName)}`,
+			});
 		}
 		const candidates = {
 			messagePattern: group.messagePattern,
@@ -258,7 +275,7 @@ const validateEnvelope = (envelope) => {
 		}
 	}
 
-	return { ok: errors.length === 0, errors, warnings };
+	return { ok: errors.length === 0, errors, warnings, groupErrors };
 };
 
 // ---------------------------------------------------------------------------
@@ -290,6 +307,9 @@ const buildIndex = (issues) => {
 		const entry = {
 			number: issue.number,
 			id: issue.id,
+			// タイトル先頭の `[err/<surface>]`。読めなければ null（＝不明。安全側へ倒す）。
+			// Major-1 の「移行が終わるまで frontend の起票を保留する」判定に使う。
+			surface: extractSurface(issue.title),
 			state: issue.state,
 			stateReason: issue.state_reason ?? null,
 			labels: (issue.labels || []).map((label) => (typeof label === "string" ? label : label.name)),
@@ -361,6 +381,47 @@ const pendingAlgoVersions = (index) => {
 };
 
 /**
+ * **移行中に frontend の起票を保留すべき理由になっている既存 Issue**（PR #1256 レビュー Major-1）。
+ *
+ * ■ なぜ保留が要るのか
+ *   `computeLegacyFingerprints()` が復元できる旧 fingerprint は、**その run の `localeCounts` に
+ *   載っているロケールぶんだけ**である。旧 Issue が持つロケール（例 #1250 の `ar`）がその窓に
+ *   1件も出ていなければ復元候補が当たらず、`matchedBy: none` → **新規起票**になる。
+ *   起票された瞬間から現行 fingerprint が先に当たるので、**旧 Issue は永久に孤児化する**。
+ *   取りこぼし（起票が1日遅れる）は翌日回復できるが、孤児化は人手でしか回復できない。非対称なので保留する。
+ *
+ * ■ なぜ `pendingAlgoVersions` が空かどうかでは判定できないのか（レビュー提案からの逸脱点）
+ *   backend / external の既存 Issue は `keyPathName` が常に NULL で v1 = v2 なので、
+ *   **現行 fingerprint でそのまま当たり**（`matchedBy: "current"`）、リキー計画に載らない。
+ *   つまりマーカーは fpalgo 1 のまま**永久に残る**。同じことが「もう再発しない frontend の Issue」にも起きる。
+ *   `pendingAlgoVersions` が空になるのを待つと **frontend の起票が永久に止まる**（実データで backend 12 / external 1 が該当）。
+ *
+ * ■ 判定
+ *   「この run で突合できなかった」× 「旧世代」× 「open」× 「backend / external と判っていない」
+ *   の4条件が揃った Issue だけを保留の理由にする。
+ *   - 突合できた旧 Issue は今まさにリキーされるので、もう孤児化しない
+ *   - closed の旧 Issue は、孤児化しても「重複 Issue が1件立つ」だけで人手で close できる。
+ *     これを保留の理由に含めると、二度と再発しない過去の Issue が起票を永久に止める
+ *   - surface が読めない（人間がタイトルを変えた）Issue は frontend 扱い＝安全側
+ *
+ * @param {{index:Map<string, Array<Record<string, any>>>, matchedNumbers?:Set<number>}} params
+ * @returns {Array<Record<string, any>>} issue number 昇順
+ */
+const migrationBlockers = ({ index, matchedNumbers = new Set() }) => {
+	const byNumber = new Map();
+	for (const entries of index.values()) {
+		for (const entry of entries) {
+			if (!MIGRATABLE_ALGO_VERSIONS.includes(entry.algoVersion)) continue;
+			if (matchedNumbers.has(entry.number)) continue;
+			if (entry.state !== "open") continue;
+			if (entry.surface === "backend" || entry.surface === "external") continue;
+			byNumber.set(entry.number, entry);
+		}
+	}
+	return [...byNumber.values()].sort((a, b) => a.number - b.number);
+};
+
+/**
  * 同一 fp に複数 Issue があるとき、決定的に1件を選ぶ（#1198 §1-D）。
  * `err/skip` 付き → open → closed の順。同順位は issue number 昇順（＝古い方）。
  *
@@ -425,10 +486,15 @@ const resolveEntry = ({ index, group }) => {
  * ため。書き換え後は同じ fingerprint を持つ Issue が複数になるが、これは
  * `authoritative()` が元から扱える状態（#1198 §1-D）で、**そもそも同じエラーなので正しい**。
  *
- * @param {{group:Record<string, any>, legacyMatches:ReadonlyArray<Record<string, any>>}} params
+ * ★ Minor-3（PR #1256 レビュー）: 各リキーに**代表 Issue 番号**（`authoritativeNumber`）を載せる。
+ *   これが無いと、統合される全員の本文に同じ「このIssueに統合されます」が出て、
+ *   人間が「duplicate として close せよ」と言われてもどれを残すか判断できない。
+ *   代表は `authoritative()` が決定的に選ぶので、計画の時点で確定できる。
+ *
+ * @param {{group:Record<string, any>, legacyMatches:ReadonlyArray<Record<string, any>>, authoritativeNumber?:number|null}} params
  * @returns {Array<Record<string, any>>}
  */
-const planRekeys = ({ group, legacyMatches }) =>
+const planRekeys = ({ group, legacyMatches, authoritativeNumber = null }) =>
 	legacyMatches
 		.map((match) => ({
 			issueNumber: match.entry.number,
@@ -438,6 +504,8 @@ const planRekeys = ({ group, legacyMatches }) =>
 			toAlgoVersion: FP_ALGO_VERSION,
 			locale: match.locale,
 			surface: group.surface,
+			// 統合先（代表）の Issue 番号。自分自身が代表なら自分の番号が入る。
+			authoritativeNumber,
 			// ★ err/skip は「この fingerprint を恒久無視する」宣言。統合先へ引き継ぐと、
 			//   1ロケールぶんの無視がクラスタ全体の無視へ**静かに拡大**する。
 			//   止めはしない（止めると移行が終わらない）が、必ず可視化する。
@@ -678,16 +746,46 @@ const buildPlan = ({ envelope, issues = [], commitDates = {}, limits = {} }) => 
 		);
 	}
 
+	// そのグループだけを invalid にする検査（Minor-2）。fingerprint → 理由。
+	const groupErrors = new Map((validation.groupErrors || []).map((entry) => [entry.fingerprint, entry.reason]));
+	for (const [fingerprint, reason] of groupErrors) {
+		warnings.push(
+			`fp:${fingerprint} をこの run では invalid として扱います（他のグループは処理を続けます）: ${reason}`,
+		);
+	}
+
+	// --- パス1: 突合と分類。起票するかどうかはまだ決めない ---
+	//     「この run でどの旧 Issue に突合できたか」が全グループを見終わるまで確定しないため、
+	//     保留（Major-1）の判定はパス2へ回す。
+	const resolvedGroups = [];
 	const decisions = [];
-	const createCandidates = [];
 	const rekeys = [];
+	const matchedNumbers = new Set();
 	for (const group of envelope.groups || []) {
 		if (!SURFACES.includes(group.surface)) {
 			decisions.push({ group, decision: { action: "invalid", reason: "未知の surface", issueNumber: null } });
 			continue;
 		}
+		// グループ単位の契約違反。突合も起票も body 更新もせず、可視化だけして次へ進む。
+		if (groupErrors.has(group.fingerprint)) {
+			decisions.push({
+				group,
+				decision: { action: "invalid", reason: groupErrors.get(group.fingerprint), issueNumber: null },
+			});
+			continue;
+		}
 		const resolved = resolveEntry({ index, group });
-		if (resolved.matchedBy === "legacy") rekeys.push(...planRekeys({ group, legacyMatches: resolved.legacyMatches }));
+		if (resolved.entry) matchedNumbers.add(resolved.entry.number);
+		if (resolved.matchedBy === "legacy") {
+			for (const match of resolved.legacyMatches) matchedNumbers.add(match.entry.number);
+			rekeys.push(
+				...planRekeys({
+					group,
+					legacyMatches: resolved.legacyMatches,
+					authoritativeNumber: resolved.entry ? resolved.entry.number : null,
+				}),
+			);
+		}
 		const decision = classifyGroup({
 			group,
 			entry: resolved.entry,
@@ -698,6 +796,33 @@ const buildPlan = ({ envelope, issues = [], commitDates = {}, limits = {} }) => 
 		decision.matchedBy = resolved.matchedBy;
 		if (resolved.matchedBy === "legacy") {
 			decision.reason = `${decision.reason}（旧 fingerprint fp:${resolved.legacyMatches[0].fingerprint} で突合。リキー対象 ${resolved.legacyMatches.length} 件）`;
+		}
+		resolvedGroups.push({ group, decision });
+	}
+
+	// --- パス2: 移行中の起票保留（Major-1）---
+	//     まだ突合できていない旧世代 Issue が残っている間、frontend の起票を止める。
+	//     判定条件の根拠は migrationBlockers() のコメントを参照（`pendingAlgoVersions` では判定できない）。
+	const blockers = migrationBlockers({ index, matchedNumbers });
+	const migrationPending = blockers.length > 0;
+	if (migrationPending) {
+		warnings.push(
+			`移行中のため frontend の新規起票を保留します。この run で突合できなかった fpalgo ${MIGRATABLE_ALGO_VERSIONS.join(", ")} の open Issue が ${blockers.length} 件あります: ${blockers.map((entry) => `#${entry.number}`).join(", ")}。` +
+				`これらのロケールが窓に出ていない状態で起票すると、同じエラーの Issue が二重に立ち、旧 Issue が**永久に孤児化**します。` +
+				`全件がリキーされる（＝\`--dry-run\` のリキー表に載る）か、人間が close すれば自動的に再開します。backend / external は v1 = v2 なので保留しません`,
+		);
+	}
+	const createCandidates = [];
+	// 移行中に保留した起票候補（数えられるようにしておく。人間が「いつ移行が終わったか」を判定する材料）。
+	const withheld = [];
+	for (const { group, decision } of resolvedGroups) {
+		if (decision.action === "create" && migrationPending && group.surface === "frontend") {
+			// PANIC / CREATE_LIMIT と違い「次回 run へ繰り越し」ではなく「移行完了まで保留」。
+			decision.action = "withheld";
+			decision.reason = `fpalgo ${MIGRATABLE_ALGO_VERSIONS.join(", ")} → ${FP_ALGO_VERSION} の移行中のため起票を保留（未突合の旧 Issue ${blockers.map((entry) => `#${entry.number}`).join(", ")} を孤児化させないため）。移行完了後の run で起票されます`;
+			withheld.push(group);
+			decisions.push({ group, decision });
+			continue;
 		}
 		if (decision.action === "create") createCandidates.push(group);
 		else decisions.push({ group, decision });
@@ -758,7 +883,8 @@ const buildPlan = ({ envelope, issues = [], commitDates = {}, limits = {} }) => 
 
 	const items = decisions.map(({ group, decision }) => summarizeItem(group, decision));
 
-	const counts = { create: 0, reopen: 0, capped: 0, invalid: 0, noop: 0 };
+	// `withheld` は「移行中なので起票しない」。0 のときもキーを出す（＝毎 run 数えられる）。
+	const counts = { create: 0, reopen: 0, capped: 0, invalid: 0, noop: 0, withheld: 0 };
 	for (const item of items) {
 		counts[item.action] = (counts[item.action] || 0) + 1;
 		if (item.action.startsWith("noop")) counts.noop += 1;
@@ -777,6 +903,25 @@ const buildPlan = ({ envelope, issues = [], commitDates = {}, limits = {} }) => 
 		algoVersions: algo.versions,
 		// 索引に残っている旧世代（＝リキー待ち）。空になったら移行完了。
 		pendingAlgoVersions: pendingVersions,
+		// 移行中か（＝frontend の起票を保留しているか）。
+		migrationPending,
+		// 保留の理由になっている既存 Issue（Major-1）。空になったら保留は自動的に解除される。
+		migrationBlockers: blockers.map((entry) => ({
+			number: entry.number,
+			state: entry.state,
+			surface: entry.surface,
+			algoVersion: entry.algoVersion,
+		})),
+		// 移行中に保留した起票候補（Major-1）。`counts.withheld` と同じ件数。
+		withheld: withheld.map((group) =>
+			summarizeItem(group, {
+				action: "withheld",
+				reason: `fpalgo ${MIGRATABLE_ALGO_VERSIONS.join(", ")} → ${FP_ALGO_VERSION} の移行中のため保留`,
+				issueNumber: null,
+			}),
+		),
+		// グループ単位の契約違反（Minor-2）。run 全体は止めない。
+		invalidGroups: [...groupErrors].map(([fingerprint, reason]) => ({ fingerprint, reason })),
 		// 旧世代マーカーの書き換え計画。**この run で実際に PATCH するぶんだけ**が rekeys。
 		rekeys: plannedRekeys,
 		deferredRekeys,
@@ -805,6 +950,7 @@ module.exports = Object.freeze({
 	buildIndex,
 	checkAlgoVersions,
 	pendingAlgoVersions,
+	migrationBlockers,
 	authoritative,
 	resolveEntry,
 	planRekeys,
