@@ -140,7 +140,11 @@ export class DishMediaController {
   @UseGuards(AuthAnonGuard)
   @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
   @ApiOperation({ summary: 'DishMedia 視聴記録' })
-  @ApiResponse({ status: 200, description: '記録成功' })
+  @ApiResponse({
+    status: 200,
+    description:
+      '記録成功。ただし #1223 の残存タイミング障害（参照先 dish_media / impression が未登録）では 500 にせず `stored: false` / `id: null` / `analysis_applied: false` を返す。',
+  })
   @ApiResponse({ status: 400, description: 'バリデーションエラー' })
   @ApiResponse({ status: 404, description: 'DishMedia が見つからない' })
   @ApiParam({ name: 'id', required: true })

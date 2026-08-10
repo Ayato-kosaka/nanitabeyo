@@ -1,134 +1,130 @@
-import { act } from "react";
-import TestRenderer from "react-test-renderer";
+import TestRenderer, { act } from "react-test-renderer";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRecentLocations, type RecentLocation } from "./useRecentLocations";
+import { useRecentLocations } from "./useRecentLocations";
+import type { RecentLocation } from "./useRecentLocations";
 
 /**
- * #1129 の感度テスト: **「最近使った場所」は MRU(Most Recently Used)順であること**。
+ * #1196 「最近使った場所」は端末ローカル(AsyncStorage)に保存されるため、
+ * 一度壊れた address が入ると**サーバ側でもコード修正でも救えない**。
  *
- * 「渋谷駅前おおしま皮膚科 / 渋谷駅」の順で並んでいるときに「渋谷駅」を選び直したら
- * 「渋谷駅 / 渋谷駅前おおしま皮膚科」になってほしい、という Issue の要求を固定する。
- * 先頭移動そのものは `addRecentLocation` が担っており、リストからの再選択でも
- * このフックを通ることが前提になる（呼ばれなければ順序は永遠に変わらない）。
+ * 保存経路は「autocomplete で選択 → details API 成功」の 1 箇所だけで、details API は
+ * 正規形式 "country:JP, ..." を返し続けているため、理屈のうえでは壊れた値は入らない。
+ * ただし入ってしまった場合の被害（その地点を選ぶ限り毎回 Claude フォールバックへ落ちる）が
+ * 大きいので、読み出し時に形式を検査して壊れたエントリだけを捨てる。
  *
- * 併せて #953 の不変条件（重複しない・最大5件・AsyncStorage へ永続化）も固定する。
+ * キーのバージョンを上げる（v1 → v2）方式を採らないのは、正常なエントリまで全消しになり
+ * 利便性を落とすため。
  */
+
+jest.mock("@react-native-async-storage/async-storage", () => ({
+	getItem: jest.fn(),
+	setItem: jest.fn(async () => undefined),
+	removeItem: jest.fn(async () => undefined),
+}));
+
+const mockedAsyncStorage = AsyncStorage as unknown as {
+	getItem: jest.Mock;
+	setItem: jest.Mock;
+	removeItem: jest.Mock;
+};
 
 const STORAGE_KEY = "recent_locations_v1";
 
-/** 表示名と座標だけ変えた RecentLocation を作る。他フィールドは #953 の保存形式そのまま */
-const makeLocation = (locationQuery: string, latitude: number, longitude: number): RecentLocation => ({
-	location: { latitude, longitude },
-	address: "country:JP, locality:Tokyo",
-	localLanguageCode: "ja",
-	locationQuery,
-});
+const buildEntry = (address: string, latitude: number, locationQuery: string): RecentLocation =>
+	({
+		location: { latitude, longitude: 135 },
+		address,
+		localLanguageCode: "ja",
+		locationQuery,
+	}) as RecentLocation;
 
-const shibuyaStation = makeLocation("渋谷駅", 35.658, 139.7016);
-const oshimaClinic = makeLocation("渋谷駅前おおしま皮膚科", 35.6591, 139.7023);
+/** 正規形式（details API が返す形） */
+const validEntry = buildEntry("country:JP, administrative_area_level_1:Osaka, locality:Osaka", 34.69, "大阪駅");
+const validEntry2 = buildEntry("country:JP, administrative_area_level_1:Tokyo, locality:Tokyo", 35.68, "東京駅");
+/** #1196 壊れた形式（市区町村名単体） */
+const brokenEntry = buildEntry("大阪市", 34.7, "大阪市");
 
-describe("#1129 最近使った場所は MRU 順に並ぶ", () => {
-	let renderer: TestRenderer.ReactTestRenderer;
-	let hookRef: ReturnType<typeof useRecentLocations>;
-
+/** `useRecentLocations()` をレンダリングして最新の戻り値を読む */
+const renderRecentLocations = async () => {
+	let latest!: ReturnType<typeof useRecentLocations>;
 	const Probe = () => {
-		hookRef = useRecentLocations();
+		latest = useRecentLocations();
 		return null;
 	};
-
-	/** マウントし、AsyncStorage からの初期ロード完了まで待つ */
-	const mount = async () => {
-		await act(async () => {
-			renderer = TestRenderer.create(<Probe />);
-		});
+	let renderer!: TestRenderer.ReactTestRenderer;
+	await act(async () => {
+		renderer = TestRenderer.create(<Probe />);
+	});
+	return {
+		get current() {
+			return latest;
+		},
+		unmount: () =>
+			act(() => {
+				renderer.unmount();
+			}),
 	};
+};
 
-	const add = async (location: RecentLocation) => {
-		await act(async () => {
-			await hookRef.addRecentLocation(location);
-		});
-	};
+describe("#1196 useRecentLocations は壊れた形式の address を読み込まない", () => {
+	it("正規形式のエントリはそのまま復元する", async () => {
+		mockedAsyncStorage.getItem.mockResolvedValue(JSON.stringify([validEntry, validEntry2]));
 
-	/** 実際に AsyncStorage へ書かれた内容を読み戻す（永続化の検証用） */
-	const readPersisted = async (): Promise<RecentLocation[]> => {
-		const raw = await AsyncStorage.getItem(STORAGE_KEY);
-		return raw ? (JSON.parse(raw) as RecentLocation[]) : [];
-	};
+		const probe = await renderRecentLocations();
 
-	beforeEach(async () => {
-		(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-		// jest.setup.js のインメモリ実装は suite 内で状態を共有するため、毎回消す
-		await AsyncStorage.clear();
+		expect(probe.current.recentLocations).toEqual([validEntry, validEntry2]);
+		// 変更が無いので書き戻さない
+		expect(mockedAsyncStorage.setItem).not.toHaveBeenCalled();
+		await probe.unmount();
 	});
 
-	it("既存の地点を再選択すると先頭へ移動し、件数は変わらない", async () => {
-		await mount();
-		// Issue の再現状況: 上から「渋谷駅前おおしま皮膚科」「渋谷駅」
-		await add(shibuyaStation);
-		await add(oshimaClinic);
-		expect(hookRef.recentLocations.map((entry) => entry.locationQuery)).toEqual(["渋谷駅前おおしま皮膚科", "渋谷駅"]);
+	it("#1196 【本丸】市区町村名単体のエントリは破棄し、正常なエントリだけ残す", async () => {
+		mockedAsyncStorage.getItem.mockResolvedValue(JSON.stringify([brokenEntry, validEntry]));
 
-		// 「渋谷駅」を選び直す = リストに載っているものと同一の値が渡ってくる
-		await add(shibuyaStation);
+		const probe = await renderRecentLocations();
 
-		expect(hookRef.recentLocations.map((entry) => entry.locationQuery)).toEqual(["渋谷駅", "渋谷駅前おおしま皮膚科"]);
-		// 件数が増えない = 座標一致の dedupe が効いている
-		expect(hookRef.recentLocations).toHaveLength(2);
+		expect(probe.current.recentLocations).toEqual([validEntry]);
+		await probe.unmount();
 	});
 
-	it("再選択後の並び順も AsyncStorage へ永続化される", async () => {
-		await mount();
-		await add(shibuyaStation);
-		await add(oshimaClinic);
-		await add(shibuyaStation);
+	it("破棄した結果を保存内容にも書き戻す（次回以降も残り続けないこと）", async () => {
+		mockedAsyncStorage.getItem.mockResolvedValue(JSON.stringify([brokenEntry, validEntry]));
 
-		expect((await readPersisted()).map((entry) => entry.locationQuery)).toEqual(["渋谷駅", "渋谷駅前おおしま皮膚科"]);
+		const probe = await renderRecentLocations();
+
+		expect(mockedAsyncStorage.setItem).toHaveBeenCalledWith(STORAGE_KEY, JSON.stringify([validEntry]));
+		await probe.unmount();
 	});
 
-	it("新規地点は先頭へ入り、5件を超えた分は古い順に捨てられる", async () => {
-		await mount();
-		for (let i = 1; i <= 6; i++) {
-			await add(makeLocation(`地点${i}`, 35 + i * 0.01, 139 + i * 0.01));
-		}
+	it("address が欠けているエントリも破棄する", async () => {
+		mockedAsyncStorage.getItem.mockResolvedValue(
+			JSON.stringify([{ location: { latitude: 1, longitude: 2 }, locationQuery: "壊れた保存値" }]),
+		);
 
-		// 直近5件が新しい順。最も古い「地点1」だけが落ちる
-		expect(hookRef.recentLocations.map((entry) => entry.locationQuery)).toEqual([
-			"地点6",
-			"地点5",
-			"地点4",
-			"地点3",
-			"地点2",
-		]);
-		expect(await readPersisted()).toHaveLength(5);
+		const probe = await renderRecentLocations();
+
+		expect(probe.current.recentLocations).toEqual([]);
+		await probe.unmount();
 	});
 
-	it("上限まで埋まった状態で最古の地点を再選択しても、押し出されず先頭へ来る", async () => {
-		await mount();
-		const oldest = makeLocation("最古の地点", 35.1, 139.1);
-		await add(oldest);
-		for (let i = 2; i <= 5; i++) {
-			await add(makeLocation(`地点${i}`, 35 + i * 0.01, 139 + i * 0.01));
-		}
-		expect(hookRef.recentLocations).toHaveLength(5);
+	it("保存が空のときは空配列を返し、書き戻しもしない", async () => {
+		mockedAsyncStorage.getItem.mockResolvedValue(null);
 
-		await add(oldest);
+		const probe = await renderRecentLocations();
 
-		expect(hookRef.recentLocations[0].locationQuery).toBe("最古の地点");
-		expect(hookRef.recentLocations).toHaveLength(5);
+		expect(probe.current.recentLocations).toEqual([]);
+		expect(mockedAsyncStorage.setItem).not.toHaveBeenCalled();
+		await probe.unmount();
 	});
 
-	it("保存済みの並びをマウント時に復元する", async () => {
-		await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify([oshimaClinic, shibuyaStation]));
+	it("保存値が壊れた JSON でも落ちず、空配列にフォールバックする", async () => {
+		mockedAsyncStorage.getItem.mockResolvedValue("{ not json");
+		const consoleError = jest.spyOn(console, "error").mockImplementation(() => undefined);
 
-		await mount();
+		const probe = await renderRecentLocations();
 
-		expect(hookRef.isLoading).toBe(false);
-		expect(hookRef.recentLocations.map((entry) => entry.locationQuery)).toEqual(["渋谷駅前おおしま皮膚科", "渋谷駅"]);
-	});
-
-	afterEach(async () => {
-		await act(async () => {
-			renderer?.unmount();
-		});
+		expect(probe.current.recentLocations).toEqual([]);
+		await probe.unmount();
+		consoleError.mockRestore();
 	});
 });

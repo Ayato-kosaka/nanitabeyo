@@ -156,13 +156,14 @@ describe("attachFingerprints()", () => {
 
 describe("FP_ALGO_VERSION と SQL の一致検査（横断レビュー 1-3）", () => {
 	it("JS 側の定数が単一の数値として公開されている", () => {
-		expect(FP_ALGO_VERSION).toBe(1);
+		// fpalgo 2 = pathName の先頭ロケールを剥がす世代（#1196 CLUSTERING.md 類型1）
+		expect(FP_ALGO_VERSION).toBe(2);
 		expect(Number.isInteger(FP_ALGO_VERSION)).toBe(true);
 	});
 
 	it("SQL 冒頭の `-- fpalgo: N` を読み取れる", () => {
-		const sql = `-- =====================\n-- fpalgo: 1\n-- =====================\nSELECT 1;\n`;
-		expect(parseSqlFpAlgoVersion(sql)).toBe(1);
+		const sql = `-- =====================\n-- fpalgo: ${FP_ALGO_VERSION}\n-- =====================\nSELECT 1;\n`;
+		expect(parseSqlFpAlgoVersion(sql)).toBe(FP_ALGO_VERSION);
 		expect(assertSqlFpAlgoVersion(sql).ok).toBe(true);
 	});
 
@@ -173,10 +174,10 @@ describe("FP_ALGO_VERSION と SQL の一致検査（横断レビュー 1-3）", 
 	});
 
 	it("SQL と JS がずれていたら検出する（片方だけ変えて全件再起票、を構造的に防ぐ）", () => {
-		const result = assertSqlFpAlgoVersion("-- fpalgo: 2\nSELECT 1;");
+		const result = assertSqlFpAlgoVersion(`-- fpalgo: ${FP_ALGO_VERSION + 1}\nSELECT 1;`);
 		expect(result.ok).toBe(false);
-		expect(result.sqlVersion).toBe(2);
-		expect(result.jsVersion).toBe(1);
+		expect(result.sqlVersion).toBe(FP_ALGO_VERSION + 1);
+		expect(result.jsVersion).toBe(FP_ALGO_VERSION);
 	});
 
 	it("行の途中にある `-- fpalgo: 9` は拾わない", () => {

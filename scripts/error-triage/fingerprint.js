@@ -14,6 +14,7 @@
 const { createHash } = require("node:crypto");
 
 const { FP_ALGO_VERSION, SURFACES } = require("./constants");
+const { restorePathLocale } = require("./normalize-rules");
 
 /** fingerprint の桁数（#1196 のマーカー形式 `<!-- fp:xxxxxxxxxxxx -->` に合わせて 12 桁）。 */
 const FINGERPRINT_LENGTH = 12;
@@ -124,6 +125,55 @@ const attachFingerprint = (row) => ({ ...row, fingerprint: computeFingerprint(ro
  */
 const attachFingerprints = (rows) => rows.map(attachFingerprint);
 
+// ---------------------------------------------------------------------------
+// 旧世代 fingerprint の復元（fpalgo 1 → 2 の移行 / #1196 CLUSTERING.md 末尾の未解決課題）
+// ---------------------------------------------------------------------------
+
+/**
+ * この group が **fpalgo 1 のときに持っていたはずの fingerprint** を全て復元する。
+ *
+ * ■ なぜ復元できるのか
+ *   fpalgo 1 → 2 の変更は「`groupKey.pathName` の先頭ロケールを剥がす」の**1点だけ**で、
+ *   ハッシュ合成（`buildFingerprintInput`）もキー構成（`FINGERPRINT_KEY_FIELDS`）も変えていない。
+ *   剥がしたロケールは捨てずに `localeCounts` として出力へ残してあるので、
+ *       v1 の pathName = '/' + locale + (v2 の pathName === '/' ? '' : v2 の pathName)
+ *   でロケールごとに**厳密に**再構成でき、その pathName で同じ合成器を回せば v1 の fingerprint になる。
+ *
+ * ■ なぜ必要なのか
+ *   ロケールで割れていた既存 Issue（`/ja-JP/...` `/en-US/...` …）は v1 の fingerprint を
+ *   マーカーに持っている。ここを復元して索引を引かないと、v2 の fingerprint は
+ *   「未知」に見えて**全部が新規起票**される（CLUSTERING.md 末尾の懸念そのもの）。
+ *
+ * ■ 将来 fpalgo 3 を作るとき
+ *   合成器そのもの（キー構成 / 区切り / ハッシュ）を変える世代を作る場合、この関数は
+ *   「v1 の合成器のスナップショット」を持つ必要がある。**現行の合成器を使い回してよいのは、
+ *   世代差が groupKey の値の作り方だけに閉じている間だけ**。
+ *
+ * @param {{surface:string, groupKey?:Record<string, unknown>, messagePattern?:string|null,
+ *          localeCounts?:ReadonlyArray<{locale?:string|null, count?:number}>}} group
+ * @returns {Array<{fingerprint:string, algoVersion:number, locale:string, pathName:string, count:number}>}
+ *          件数の多いロケール順（同数はロケール名昇順）。現行 fingerprint と一致するものは含まない
+ */
+const computeLegacyFingerprints = (group) => {
+	// pathName を持つのは frontend だけ。backend / external は v1 と v2 で fingerprint が同一。
+	if (!group || group.surface !== "frontend") return [];
+	const groupKey = group.groupKey || {};
+	const current = computeFingerprint(group);
+	const seen = new Set([current]);
+	const out = [];
+	for (const entry of group.localeCounts || []) {
+		const locale = entry && entry.locale;
+		// locale が null の要素は「ロケール接頭辞が無かった」＝ v1 と v2 で pathName が同じ。
+		if (!locale) continue;
+		const pathName = restorePathLocale(locale, groupKey.pathName);
+		const fingerprint = computeFingerprint({ ...group, groupKey: { ...groupKey, pathName } });
+		if (seen.has(fingerprint)) continue;
+		seen.add(fingerprint);
+		out.push({ fingerprint, algoVersion: 1, locale, pathName, count: entry.count ?? 0 });
+	}
+	return out.sort((a, b) => b.count - a.count || a.locale.localeCompare(b.locale));
+};
+
 /** SQL ファイル冒頭に書く fingerprint 世代マーカー。 */
 const SQL_FP_ALGO_MARKER_PATTERN = /^[ \t]*--[ \t]*fpalgo:[ \t]*(\d{1,3})[ \t]*$/m;
 
@@ -181,6 +231,7 @@ module.exports = Object.freeze({
 	encodeField,
 	buildFingerprintInput,
 	computeFingerprint,
+	computeLegacyFingerprints,
 	attachFingerprint,
 	attachFingerprints,
 	parseSqlFpAlgoVersion,
