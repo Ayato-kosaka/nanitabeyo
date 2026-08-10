@@ -184,6 +184,24 @@ const renderTitle = (group) => {
 	return truncate(head, TITLE_MAX_LENGTH - suffix.length) + suffix;
 };
 
+/** `renderTitle()` が必ず先頭へ置く `[err/<surface>]` を読み戻すパターン。 */
+const TITLE_SURFACE_PATTERN = /^\[err\/(frontend|backend|external)\]/;
+
+/**
+ * 既存 Issue のタイトルから surface を読む（Major-1 の移行保留判定で使う）。
+ *
+ * 書式の唯一の正はこのファイル（`renderTitle()`）なので、読み戻しもここへ置く。
+ * 人間がタイトルを書き換えていれば読めない。その場合は **null（＝不明）** を返し、
+ * 呼び出し側が安全側（＝frontend かもしれない）に倒せるようにする。
+ *
+ * @param {string|null|undefined} title
+ * @returns {"frontend"|"backend"|"external"|null}
+ */
+const extractSurface = (title) => {
+	const matched = TITLE_SURFACE_PATTERN.exec(String(title ?? ""));
+	return matched ? matched[1] : null;
+};
+
 const formatCounts = (group) => {
 	const users =
 		group.affectedUsers > 0
@@ -194,6 +212,43 @@ const formatCounts = (group) => {
 
 const formatCommits = (group) =>
 	(group.commits || []).map((commit) => `\`${commit.sha}\` (${commit.count}件)`).join(" / ") || "—";
+
+/** 本文へ並べるロケールの最大数。溢れたぶんは「他 N 種」に畳む。 */
+const LOCALE_ROW_MAX = 8;
+
+/**
+ * ロケール内訳の1行（fpalgo 2）。
+ *
+ * fingerprint から `pathName` の先頭ロケールを剥がした結果、`/ja-JP/search/result` と
+ * `/en-US/search/result` は同じ Issue に畳まれる。**畳んだ事実だけ残して内訳を捨てると、
+ * CLUSTERING.md の「特定ロケールでしか起きないバグは実在する。1ロケールだけなら別物の可能性がある」
+ * を人間が確かめる手段が無くなる。**そのためここへ必ず出す。
+ *
+ * `(ロケールなし)` は expo-router の `[locale]` 配下でないパス（`/store` など）。
+ *
+ * @param {ReadonlyArray<{locale?:string|null, count?:number}>} localeCounts
+ * @returns {string}
+ */
+const formatLocaleCounts = (localeCounts) => {
+	const entries = [...(localeCounts || [])].sort(
+		(a, b) => (b.count ?? 0) - (a.count ?? 0) || String(a.locale ?? "").localeCompare(String(b.locale ?? "")),
+	);
+	if (entries.length === 0) return "—";
+	const head = entries
+		.slice(0, LOCALE_ROW_MAX)
+		.map((entry) => `\`${sanitizeInlineText(entry.locale ?? "(ロケールなし)")}\` ${entry.count ?? 0}件`)
+		.join(" / ");
+	const rest = entries.length - LOCALE_ROW_MAX;
+	const suffix = rest > 0 ? ` / 他 ${rest} 種` : "";
+	// 1ロケールしか出ていないなら「そのロケール固有のバグ」の可能性が残る（CLUSTERING.md 類型1 の注意）。
+	// ただし唯一の要素が `(ロケールなし)`（＝`/store` のようなロケール配下でないパス）なら出さない。
+	// ロケール固有バグを疑わせる文言なのに、そもそもロケールで分岐し得ない画面だから（PR #1256 レビュー Nit）。
+	const note =
+		entries.length === 1 && entries[0].locale
+			? "（**1ロケールのみ**。ロケール固有の不具合の可能性を確認すること）"
+			: "";
+	return `${head}${suffix}${note}`;
+};
 
 /**
  * Issue body の自動領域を組み立てる。
@@ -215,6 +270,10 @@ const renderAutoSection = ({ group, window, generatedAt, firstSeenUtc, parentIss
 		// ★ messagePattern は本番の任意文字列。**必ず sanitizeInlineText を通してから**埋める（M-1）。
 		["何が", group.messagePattern ? `\`${sanitizeInlineText(group.messagePattern)}\`` : "（メッセージなし）"],
 		["どれだけ", formatCounts(group)],
+		// fpalgo 2: pathName から剥がしたロケールの行き先。frontend 以外は常に空なので行ごと出さない。
+		...(group.localeCounts && group.localeCounts.length > 0
+			? [["どのロケール", formatLocaleCounts(group.localeCounts)]]
+			: []),
 		["いつ", `初観測 \`${firstSeenUtc}\` → 最終観測 \`${group.lastSeenUtc}\``],
 		["どのビルド", formatCommits(group)],
 		["どの版", (group.appVersions || []).map((v) => `\`${v}\``).join(" / ") || "—"],
@@ -307,6 +366,110 @@ const renderIssueBody = ({ group, window, generatedAt, existingBody = null, pare
 		return [...head, PRESERVED_BODY_NOTICE, "", existingBody, ""].join("\n");
 	}
 	return [...head, "（ここから下は自由記述。スクリプトは触りません）", ""].join("\n");
+};
+
+// ---------------------------------------------------------------------------
+// fingerprint 世代の移行（リキー）— #1196 CLUSTERING.md 末尾の未解決課題への対処
+// ---------------------------------------------------------------------------
+
+/** リキー済みであることの冪等マーカー。同じ (from, to) で2回書き足さないためのキー。 */
+const renderRekeyMarker = (from, to) => `<!-- error-triage:rekey:${from}:${to} -->`;
+
+/**
+ * リキーの理由書き。**人間向け**。自動領域の外に置くので、以後の body 更新でも消えない。
+ *
+ * `err/skip` の扱いをここへ明記するのが要点。旧 CLUSTERING.md の手順は
+ * 「代表を残し、重複側に `err/skip`」だったが、ロケール差分が**同一 fingerprint に畳まれた後**は
+ * その手順が使えない（重複側に付けた `err/skip` がクラスタ全体を恒久無視にする）。
+ *
+ * ★ Minor-3（PR #1256 レビュー）: **代表 Issue 番号**（`authoritativeNumber`）を必ず書く。
+ *   これが無いと、統合される4件（#1221 / #1226 / #1229 / #1236 など）の全員に同じ
+ *   「このIssueに統合されます」が出て、どれを残すのか本文から判断できない。
+ *   代表は `triage.js` の `authoritative()` が決定的に選ぶので、本文にも決定的に書ける。
+ *
+ * @param {{from:string, to:string, locale?:string|null, fromAlgoVersion?:number,
+ *          issueNumber?:number|null, authoritativeNumber?:number|null}} params
+ * @returns {string}
+ */
+const renderRekeyNote = ({
+	from,
+	to,
+	locale = null,
+	fromAlgoVersion = 1,
+	issueNumber = null,
+	authoritativeNumber = null,
+}) => {
+	const isAuthoritative = authoritativeNumber !== null && issueNumber !== null && authoritativeNumber === issueNumber;
+	const verdict = isAuthoritative
+		? [
+				"> 他ロケールで割れていた同じエラーが**このIssueに統合**されます（#1196 CLUSTERING.md 類型1）。",
+				"> **このIssueが統合先（代表）です。このIssueは残してください。**",
+				"> 同じ `fp` を持つ他のIssueは重複側です。**`err/skip` を付けずに** duplicate として close してください",
+			]
+		: [
+				`> 他ロケールで割れていた同じエラーが${authoritativeNumber !== null ? ` **#${authoritativeNumber}** ` : "1つのIssue"}に統合されます（#1196 CLUSTERING.md 類型1）。`,
+				...(authoritativeNumber !== null
+					? [
+							`> **統合先: #${authoritativeNumber}（代表）。このIssueは重複側です。**`,
+							`> **\`err/skip\` を付けずに** duplicate として close してください`,
+						]
+					: [`> 重複していた側は **\`err/skip\` を付けずに** duplicate として close してください`]),
+			];
+	return [
+		"> [!NOTE]",
+		`> このIssueの fingerprint を \`fp:${from}\` → \`fp:${to}\` へ更新しました（fpalgo ${fromAlgoVersion} → ${FP_ALGO_VERSION}）。`,
+		`> \`pathName\` の先頭ロケール${locale ? ` \`${sanitizeInlineText(locale)}\`` : ""} を fingerprint から外したため、`,
+		...verdict,
+		"> （統合後は1つの fingerprint なので、`err/skip` はクラスタ全体を恒久無視にします）。",
+		renderRekeyMarker(from, to),
+	].join("\n");
+};
+
+/**
+ * Issue body の fingerprint マーカーを新世代へ書き換える（リキー）。
+ *
+ * **冪等**であることが要件。既に書き換わっている body を渡したら `null`（＝書き込み不要）を返す。
+ * 触るのは先頭のマーカー2行と、その直後に足す理由書きだけで、自動領域も人間のメモも読まない。
+ *
+ * @param {{body:string|null|undefined, from:string, to:string, locale?:string|null, fromAlgoVersion?:number,
+ *          issueNumber?:number|null, authoritativeNumber?:number|null}} params
+ * @returns {string|null} 書き換え後の body。書き換え不要／対象マーカーが無ければ null
+ */
+const rekeyIssueBody = ({
+	body,
+	from,
+	to,
+	locale = null,
+	fromAlgoVersion = 1,
+	issueNumber = null,
+	authoritativeNumber = null,
+}) => {
+	const source = String(body ?? "");
+	// 既にリキー済み（同じ run の再実行 / 前回 run の途中クラッシュ後）なら何もしない。
+	if (source.includes(renderRekeyMarker(from, to))) return null;
+	const fromMarkerPattern = new RegExp(`^[ \\t]*<!-- fp:${from} -->[ \\t]*$`, "m");
+	const fromMatch = fromMarkerPattern.exec(source);
+	// 対象の fp マーカーが無い＝この Issue は既に別経路で移行済み、あるいは人間が消した。触らない。
+	if (!fromMatch) return null;
+
+	const note = renderRekeyNote({ from, to, locale, fromAlgoVersion, issueNumber, authoritativeNumber });
+	let out = source.slice(0, fromMatch.index) + renderFpMarker(to) + source.slice(fromMatch.index + fromMatch[0].length);
+
+	const algoMatch = FPALGO_MARKER_PATTERN.exec(out);
+	if (algoMatch) {
+		out = out.slice(0, algoMatch.index) + renderFpAlgoMarker() + out.slice(algoMatch.index + algoMatch[0].length);
+	} else {
+		// マーカーが無い body（#1198 §1-B: 無ければ 1 とみなす）にも、この機に世代を明示しておく。
+		const insertAt = fromMatch.index + renderFpMarker(to).length;
+		out = `${out.slice(0, insertAt)}\n${renderFpAlgoMarker()}${out.slice(insertAt)}`;
+	}
+
+	// 理由書きは fpalgo マーカーの直後（＝自動領域より前）へ置く。自動領域の外なので
+	// 以後の renderIssueBody（自動領域だけを差し替える）で消えない。
+	const marker = renderFpAlgoMarker();
+	const at = out.indexOf(marker);
+	const noteAt = at === -1 ? out.length : at + marker.length;
+	return `${out.slice(0, noteAt)}\n${note}${out.slice(noteAt)}`;
 };
 
 // ---------------------------------------------------------------------------
@@ -445,6 +608,9 @@ const ACTION_ICONS = Object.freeze({
 	"noop-wontfix": "⏸ noop(wontfix)",
 	capped: "⏭ capped",
 	invalid: "⚠️ invalid",
+	// fpalgo 移行中だけ出る（Major-1）。「次回 run へ繰り越し」の capped とは別物で、
+	// 移行が終わるまで起票しない状態を指す。
+	withheld: "🚧 withheld(移行中)",
 });
 
 /**
@@ -463,9 +629,29 @@ const renderJobSummary = ({ envelope, plan, mode = "dry-run" }) => {
 		`- 集計窓: \`${window.startUtc}\` 〜 \`${window.endUtc}\`（${window.lookbackHours}h）`,
 		`- 見積スキャン: **${formatBytes(query.estimatedBytes)}** / 上限 ${formatBytes(query.maxBytesBilled)}`,
 		`- 取得行: ${query.totalRows} / エラーグループ: ${runSummary.groupCount}`,
-		`- 予定: create **${plan.counts.create}** / reopen **${plan.counts.reopen}** / capped ${plan.counts.capped} / noop ${plan.counts.noop} / invalid ${plan.counts.invalid}`,
+		`- 予定: create **${plan.counts.create}** / reopen **${plan.counts.reopen}** / capped ${plan.counts.capped} / withheld ${plan.counts.withheld ?? 0} / noop ${plan.counts.noop} / invalid ${plan.counts.invalid}`,
 		"",
 	];
+
+	// Major-1: 移行中に保留した起票は「今日は起票が 0 件だった」と読み違えられないよう必ず明示する。
+	//   併せて「何を消化すれば保留が解けるのか」（＝未突合の旧 Issue）を必ず出す。
+	if (plan.migrationPending) {
+		const blockers = plan.migrationBlockers || [];
+		lines.push(
+			`> 🚧 **移行中のため frontend の新規起票 ${plan.counts.withheld ?? 0} 件を保留しました**（fpalgo ${(plan.pendingAlgoVersions || []).join(", ") || "?"} → ${FP_ALGO_VERSION}）。`,
+			"> 旧 Issue のロケールがこの窓に出ていないと突合が外れ、重複起票 → 旧 Issue の**永久孤児化**になるためです。",
+			`> 保留の理由になっている未突合の open Issue（${blockers.length} 件）: ${blockers.map((entry) => `#${entry.number}`).join(" / ") || "—"}`,
+			"> これらが下の「fingerprint のリキー」表に全て載る（＝突合できる）か、人間が close すれば自動的に再開します。",
+			"> backend / external は `keyPathName` が常に NULL で v1 = v2 なので保留していません。",
+			"",
+		);
+	}
+	if ((plan.invalidGroups || []).length > 0) {
+		lines.push(
+			`> ⚠️ **グループ単位で invalid にしたものが ${plan.invalidGroups.length} 件あります**（run 全体は止めていません）。`,
+			"",
+		);
+	}
 
 	if (runSummary.truncated) {
 		lines.push(
@@ -487,8 +673,52 @@ const renderJobSummary = ({ envelope, plan, mode = "dry-run" }) => {
 		);
 	});
 
+	// fpalgo 移行中だけ出る節。`--dry-run` で「何が何に統合されるか」を事前に読むための表。
+	lines.push(...renderRekeyPlan(plan));
+
 	lines.push("", "### 除外内訳（上位5）", "", ...renderExcludedBreakdown(runSummary.excludedBreakdown), "");
 	return lines.join("\n");
+};
+
+/**
+ * fingerprint リキー計画の表（移行中だけ出る）。
+ *
+ * `--dry-run` の主目的がこれ。**書き込む前に「どの Issue がどの Issue へ統合されるか」を読む。**
+ *
+ * @param {Record<string, any>} plan
+ * @returns {string[]}
+ */
+const renderRekeyPlan = (plan) => {
+	const rekeys = plan.rekeys || [];
+	const deferred = plan.deferredRekeys || [];
+	if (rekeys.length === 0 && deferred.length === 0) return [];
+	const lines = [
+		"",
+		`### fingerprint のリキー（fpalgo ${(plan.pendingAlgoVersions || []).join(", ") || "?"} → ${FP_ALGO_VERSION}）`,
+		"",
+		"旧世代の fingerprint で突合できた既存 Issue のマーカーを新世代へ書き換えます。",
+		"**この表に載っている Issue は新規起票されません**（突合が旧 fingerprint の復元で成立しているため）。",
+		"",
+		"| # | 旧 fp | 新 fp | ロケール | 統合先 | 注意 |",
+		"|---|---|---|---|---|---|",
+	];
+	for (const rekey of rekeys) {
+		// Minor-3: どれが代表なのかを表でも読めるようにする（人間が duplicate close するときの判断材料）。
+		const authoritativeCell =
+			rekey.authoritativeNumber === null || rekey.authoritativeNumber === undefined
+				? "—"
+				: rekey.authoritativeNumber === rekey.issueNumber
+					? "**このIssueが代表**"
+					: `#${rekey.authoritativeNumber}`;
+		lines.push(
+			`| #${rekey.issueNumber} | \`${rekey.from}\` | \`${rekey.to}\` | \`${sanitizeInlineText(rekey.locale ?? "—")}\` | ${authoritativeCell} | ${rekey.skipLabel ? "⚠️ `err/skip` 付き。統合先クラスタ全体が恒久無視になります" : "—"} |`,
+		);
+	}
+	if (deferred.length > 0) {
+		lines.push("", `> ⏭ 上限超過で ${deferred.length} 件を次回 run へ繰り越しました（重複起票にはなりません）。`);
+	}
+	lines.push("");
+	return lines;
 };
 
 /**
@@ -510,6 +740,7 @@ const renderApplySummary = ({ applyResult }) => {
 		`- 起票: **${(result.created || []).length}** 件 ${list(result.created, (item) => `#${item.issueNumber}`)}`,
 		`- reopen: **${(result.reopened || []).length}** 件 ${list(result.reopened, (item) => `#${item.issueNumber}`)}`,
 		`- body 更新: ${(result.bodyUpdated || []).length} 件 / 抑止 ${(result.bodySkipped || []).length} 件（#1198 §6-C のスロットリング）`,
+		`- fingerprint リキー: **${(result.rekeyed || []).length}** 件 ${list(result.rekeyed, (item) => `#${item.issueNumber}(\`${item.from}\`→\`${item.to}\`)`)} / 冪等スキップ ${(result.rekeySkipped || []).length} 件`,
 		`- sub-issue 紐付け: 成功 ${(result.subIssueLinked || []).length} 件 / **失敗 ${(result.subIssueFailures || []).length} 件**（best-effort。失敗しても run は落としません）`,
 		`- commit 日時の解決: ${result.commitLookups ?? 0} 回`,
 		`- 親の常駐サマリ: ${result.parentSummary ?? "—"}`,
@@ -568,6 +799,24 @@ const renderParentSummaryComment = ({ envelope, plan, applyResult = null }) => {
 		"",
 		`- 起票 ${plan.counts.create} / reopen ${plan.counts.reopen} / skip中 ${plan.counts["noop-skip"] ?? 0}`,
 		`- **繰り越し ${plan.counts.capped} 件**${oldestDeferred ? `（最古の初観測: \`${oldestDeferred}\`）` : ""}`,
+		// Job Summary は 90 日で消えるので、移行の進み具合はここへも残す（G5）。
+		...((plan.pendingAlgoVersions || []).length > 0
+			? [
+					`- 🔁 **fingerprint 世代の移行中**: 索引に fpalgo ${plan.pendingAlgoVersions.join(", ")} の Issue が残っています（現行 ${FP_ALGO_VERSION}）。この run で ${(plan.rekeys || []).length} 件をリキーします（旧 fingerprint を復元して突合しているので**重複起票にはなりません**）`,
+				]
+			: []),
+		// Major-1: 保留件数と「保留の理由になっている Issue」は毎 run ここへ残す。
+		// Job Summary は 90 日で消えるので、移行が終わった日をここで判定できるようにする（G5）。
+		...(plan.migrationPending
+			? [
+					`- 🚧 **移行中のため frontend の新規起票を ${plan.counts.withheld ?? 0} 件保留しました**。未突合の open な旧 Issue: ${(plan.migrationBlockers || []).map((entry) => `#${entry.number}`).join(" / ") || "—"}（これらが突合されるか close されれば自動的に再開します。backend / external は v1 = v2 なので保留していません）`,
+				]
+			: []),
+		...((plan.invalidGroups || []).length > 0
+			? [
+					`- ⚠️ **グループ単位の契約違反 ${plan.invalidGroups.length} 件**（そのグループだけ invalid にし、run 全体は止めていません）: ${plan.invalidGroups.map((entry) => `\`fp:${entry.fingerprint}\``).join(" / ")}`,
+				]
+			: []),
 		// L-3（PR #1211 レビュー）: PANIC / 契約違反こそ、あとから振り返りたい run。
 		// Job Summary は 90 日で消えるので、**何が起きて何を止めたのか**をここへ必ず残す（G5）。
 		// 上の「起票 N / reopen N」は**計画値**なので、止めた run では実際には書いていないことを明示する。
@@ -633,6 +882,10 @@ module.exports = Object.freeze({
 	RENDERED_OCCURRENCES_PATTERN,
 	FINGERPRINT_PATTERN,
 	TITLE_MAX_LENGTH,
+	TITLE_SURFACE_PATTERN,
+	LOCALE_ROW_MAX,
+	extractSurface,
+	formatLocaleCounts,
 	renderFpMarker,
 	renderFpAlgoMarker,
 	renderFirstSeenMarker,
@@ -651,6 +904,10 @@ module.exports = Object.freeze({
 	renderIssueBody,
 	renderRegressionMarker,
 	renderRegressionComment,
+	renderRekeyMarker,
+	renderRekeyNote,
+	rekeyIssueBody,
+	renderRekeyPlan,
 	renderExcludedBreakdown,
 	renderJobSummary,
 	renderApplySummary,

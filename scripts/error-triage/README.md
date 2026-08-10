@@ -21,8 +21,8 @@
 | ファイル               | 役割                                                                                         | 外部I/O                      |
 | ---------------------- | -------------------------------------------------------------------------------------------- | ---------------------------- |
 | `constants.js`         | 契約とガードレールの定数（`SCHEMA_VERSION` / `FP_ALGO_VERSION` / 除外ステータス / 各種上限） | なし                         |
-| `normalize-rules.js`   | **置換ルール表＋後処理（唯一の正）** と `normalize()`                                        | なし                         |
-| `fingerprint.js`       | fingerprint のハッシュ合成、`-- fpalgo: N` の一致検査                                        | なし                         |
+| `normalize-rules.js`   | **置換ルール表＋後処理＋pathName のロケール剥がし（唯一の正）** と `normalize()`             | なし                         |
+| `fingerprint.js`       | fingerprint のハッシュ合成、旧世代 fingerprint の復元、`-- fpalgo: N` の一致検査             | なし                         |
 | `window.js`            | 25h スライド窓の計算、RFC3339 UTC、clock の注入点                                            | なし                         |
 | `triage.js`            | 契約エンベロープの組み立て・検証、索引、状態遷移、優先順位付け、起票計画                     | なし                         |
 | `render.js`            | Issue 本文・タイトル・Job Summary・常駐サマリの整形、本文マーカーの読み書き                  | なし                         |
@@ -111,7 +111,108 @@ CI では `.github/workflows/pr-check.yml` の「error-triage のユニットテ
 
 ### `FP_ALGO_VERSION`（レビュー 1-3）
 
-fingerprint 定義は SQL 側の正規化と JS 側の合成に跨がります。JS の定数1つを正とし、PR2 で SQL 冒頭に `-- fpalgo: 1` を書いて `assertSqlFpAlgoVersion()` で一致検査します。片方だけ変えて全件再起票、を構造的に防ぐためのものです。
+fingerprint 定義は SQL 側の正規化と JS 側の合成に跨がります。JS の定数1つを正とし、SQL 冒頭に `-- fpalgo: N` を書いて `assertSqlFpAlgoVersion()` で一致検査します。片方だけ変えて全件再起票、を構造的に防ぐためのものです。
+
+現行は **`FP_ALGO_VERSION = 2`**。世代の履歴は次のとおりです。
+
+| 世代 | 内容                                                                                |
+| ---- | ----------------------------------------------------------------------------------- |
+| 1    | 初版                                                                                |
+| 2    | `groupKey.pathName` の**先頭ロケールを剥がす**（下の「pathName のロケール正規化」） |
+
+### pathName のロケール正規化（fpalgo 2 / #1196 CLUSTERING.md 類型1）
+
+`path_name` は `app-expo` の `usePathname()` そのもので、`app/[locale]/…` というルーティングの都合上、
+**必ず先頭にロケールが付きます**（`/ja-JP/search/result` / `/en-US/search/result` / …）。
+そのため同じ画面の同じエラーが言語ごとに別 fingerprint へ割れ、初回起票では
+オーナー返信 18 件のうち 13 件が「重複してそう」になりました。
+
+`normalize-rules.js` の `PATH_LOCALE_RULES`（唯一の正。SQL は `sql-generator.js` がここから生成する）で、
+**`normalize()` の後に**先頭ロケールを剥がします。
+
+- 剥がす形: `ja` / `ja-JP` / `zh-Hant` / `zh-Hant-TW` / `es-<n>`（`es-419` が数値ルールを通った姿）/ `[locale]`
+- **剥がさない形**: 素の3文字小文字（`map` `food` …）。`app/[locale]/(tabs)/map.tsx` が実在するため、
+  これを許すと `/ja-JP/map` → `/map` → `/` と2段で画面名まで消えます。素で許すのは2文字言語タグだけです。
+- 剥がしたロケールは**捨てません**。SQL が `localeCounts`（ロケール別件数）を出し、Issue 本文の
+  「どのロケール」行に内訳が載ります。CLUSTERING.md の「1ロケールだけなら別物の可能性がある」を
+  人間が確かめられるようにするためです。1ロケールしか無いときは本文に注意書きが出ます
+  （`(ロケールなし)` だけのとき＝ `/store` のようなロケール配下でないパスには出しません）。
+- **既知の限界**: `stripPathLocale()` は各ルールを1回しか掛けないので、ロケール2段
+  （`/ja/en/foo` → `/en/foo`）では冪等になりません。`app-expo/app/` にロケール直下の2文字小文字
+  セグメントは無いので実データでは起きませんが、`+not-found.tsx` が任意 URL を拾うためゼロではありません。
+  この形を検出したときは**そのグループだけを `invalid`** にし、run 全体は止めません
+  （1つの奇妙なパスでその日のトリアージ（起票も body 更新も）が丸ごと止まる方が被害が大きいため）。
+  件数と fingerprint は `plan.invalidGroups` / Job Summary / 親の常駐サマリに必ず出ます。
+  他の契約検査（禁止フィールド / 正規化 / fingerprint 形式 / 未知 surface）は従来どおり run 全体を止めます。
+
+### fingerprint 世代の移行（fpalgo 1 → 2）— 人間がやること
+
+fingerprint の定義を変えると、既存 Issue のマーカー（`<!-- fp:… -->`）が現行の fingerprint と一致しなくなり、
+放っておくと**全件が新規起票**されます。これを次の3段構えで防いでいます。
+
+1. **突合（自動・止められない）** — `fingerprint.js` の `computeLegacyFingerprints()` が、
+   `localeCounts` を使って「この group が fpalgo 1 のとき持っていたはずの fingerprint」を
+   ロケールごとに**厳密に復元**し、現行 fingerprint で当たらなかったときだけそちらで索引を引きます
+   （`triage.js` の `resolveEntry()`）。**重複起票しないことはこの一段だけで成立します。**
+2. **リキー（自動・後片付け）** — 旧 fingerprint で当たった Issue の body を PATCH して、
+   `<!-- fp:… -->` と `<!-- fpalgo:… -->` を現行世代へ書き換えます（`render.js` の `rekeyIssueBody()`）。
+   本文には「なぜ fingerprint が変わったか」と**統合先（代表）の Issue 番号**の注記が自動で入ります。
+   **これは失敗しても・上限で溢れても重複起票にはなりません。**
+3. **保留（自動・移行中だけ）** — 1. の復元は**その run の `localeCounts` に載っているロケールぶんだけ**
+   当たります。旧 Issue のロケールがその窓に1件も出ていない（`ar` / `hi` のような低頻度ロケール）と
+   突合が外れて新規起票になり、以後は現行 fingerprint が先に当たるので**旧 Issue が永久に孤児化**します。
+   そこで、**まだ突合できていない旧世代の open Issue が残っている間は frontend の起票を保留**します
+   （`triage.js` の `migrationBlockers()` / action `withheld`）。取りこぼしは翌日回復できますが、
+   孤児化は人手でしか回復できないためです。backend / external は `keyPathName` が常に NULL で
+   v1 = v2 なので**保留しません**（不必要に起票を止めない）。
+
+   保留が解ける条件は「未突合の旧世代 open Issue が 0 件になること」で、
+   Job Summary と親 #1196 の常駐サマリに**その Issue 番号が毎 run 出ます**（`plan.migrationBlockers`）。
+   突合されれば自動で消え、二度と再発しないものは人間が close すれば消えます。
+   なお **`pendingAlgoVersions` が空になるのは待ちません**。backend / external の旧 Issue は
+   現行 fingerprint でそのまま当たる（＝リキー計画に載らない）ため、そのマーカーは fpalgo 1 のまま
+   永久に残り、これを保留条件にすると frontend の起票が**永久に止まる**からです。
+
+つまり移行は **`apply` を普通に回すだけで自動的に進みます**。人間がやることは次の3つだけです。
+
+```bash
+# 1. まず影響を読む（GitHub へ1バイトも書かない）
+node scripts/error-triage/main.js apply --dry-run --out /tmp/plan.json
+```
+
+Job Summary に「fingerprint のリキー」の表が出ます。**どの Issue がどの Issue と同じ fingerprint に
+統合されるか**をここで確認してください。表の「統合先」列が代表（残す Issue）です。
+特に `err/skip` 付きの行に ⚠️ が出ていたら、次の 2. を先に行います。
+
+**このとき、リキー表に v1（`fpalgo 1`）の Issue が1件残らず載っていることを必ず確認してください。**
+載っていない v1 Issue は「そのロケールがこの窓に出ていない」＝ 突合できていない Issue で、
+孤児化の候補です。載っていない Issue は Job Summary の 🚧 の行（`plan.migrationBlockers`）に
+番号が出るので、突き合わせて確認できます。1件でも残っている間は frontend の起票が保留されます。
+
+2. **`err/skip` 付きの重複 Issue があれば、先にラベルを外す。**
+   旧 CLUSTERING.md の手順は「代表を残し、重複側に `err/skip`」でしたが、ロケール差分が**同一 fingerprint に
+   畳まれた後**はこの手順が使えません。統合後は1つの fingerprint なので、重複側に付いた `err/skip` が
+   **クラスタ全体を恒久無視**にします。移行後は「重複側は `err/skip` を付けずに duplicate として close」が正です。
+
+3. **`apply` を回す**（日次 schedule でも同じです）。リキーが走り、
+   `plan.migrationBlockers` が空（＝ Job Summary に 🚧 の行が出ない）になったら
+   **frontend の起票が再開**します。ここが実質的な移行完了地点です。
+   統合された重複 Issue は自動では閉じません。**人間が duplicate として close してください**
+   （どれを残すかは各 Issue 本文の「統合先: #NNNN」/「このIssueが統合先（代表）です」で分かります）。
+
+補足:
+
+- **冪等**です。同じ run を何度流しても、2回目以降は API を1回も叩きません（`rekeyIssueBody()` が `null` を返す）。
+  途中でクラッシュして一部だけリキー済みでも、次回は現行 fingerprint で当たるので何も起きません。
+- 1 run のリキー件数は `REKEY_LIMIT`（50）で頭打ちにします。溢れたぶんは次回 run へ回ります
+  （**突合は既に成立している**ので、これは重複起票にはなりません）。
+  一方 `LOCALE_BREAKDOWN_LIMIT`（50）で溢れたロケールは**突合そのものが外れる**（＝ create になる）ので
+  別問題です。そちらは上の 3.（保留）で受け止めます。混同しないこと。
+- `SUPPORTED_ALGO_VERSIONS` に載っていない世代（＝復元器を持たない世代）が索引に混ざったら、
+  従来どおり**1バイトも書かずに abort** します（#1198 §8-A）。
+- 将来 fpalgo 3 を作るときは、`computeLegacyFingerprints()` が使い回している**現行の合成器**が
+  そのままでよいか確認してください。世代差が「groupKey の値の作り方」に閉じている間しか使い回せません。
+  合成器そのもの（キー構成 / 区切り / ハッシュ）を変えるなら、v1 の合成器をスナップショットとして持つ必要があります。
 
 ### SQL は生成物（PR2）
 

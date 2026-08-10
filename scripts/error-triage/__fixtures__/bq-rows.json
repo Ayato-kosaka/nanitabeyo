@@ -31,7 +31,7 @@
 		"surface": "frontend",
 		"groupKey": {
 			"eventName": "api_call_error",
-			"pathName": "/ja/review/restaurant/<placeid>/review",
+			"pathName": "/review/restaurant/<placeid>/review",
 			"functionName": null,
 			"apiName": null,
 			"endpoint": null,
@@ -50,6 +50,11 @@
 		"hourlyCounts": [{ "hourUtc": "2026-08-06T03:00:00Z", "count": 61 }],
 		"commits": [{ "sha": "9f2c1ab4d7e0", "count": 61 }],
 		"appVersions": ["1.4.2", "1.4.3"],
+		"localeCounts": [
+			{ "locale": "ja-JP", "count": 30 },
+			{ "locale": "en-US", "count": 20 },
+			{ "locale": "ja", "count": 11 }
+		],
 		"representativeCommit": "9f2c1ab4d7e0"
 	},
 	{
@@ -81,7 +86,7 @@
 		"surface": "frontend",
 		"groupKey": {
 			"eventName": "signup_failed",
-			"pathName": "/ja/auth/signup",
+			"pathName": "/auth/signup",
 			"functionName": null,
 			"apiName": null,
 			"endpoint": null,
@@ -100,6 +105,7 @@
 		"hourlyCounts": [{ "hourUtc": "2026-08-06T07:00:00Z", "count": 40 }],
 		"commits": [{ "sha": "9f2c1ab4d7e0", "count": 40 }],
 		"appVersions": ["1.4.3"],
+		"localeCounts": [{ "locale": "ja-JP", "count": 40 }],
 		"representativeCommit": "9f2c1ab4d7e0"
 	},
 	{
