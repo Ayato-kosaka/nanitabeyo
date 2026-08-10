@@ -19,7 +19,6 @@ import {
   QueryReverseGeocodingDto,
 } from '@shared/v1/dto';
 import { ExternalApiService } from 'src/core/external-api/external-api.service';
-import { ExternalApiQuotaExceededError } from 'src/core/external-api/external-api.errors';
 import { protos } from '@googlemaps/places';
 
 // Import language dictionaries
@@ -169,11 +168,6 @@ export class LocationsService {
 
   /**
    * Google Maps Text Search API を使用してレストランを検索
-   *
-   * #1196 【設計】この関数の唯一の呼び出し元は DishesService.bulkImportFromGoogle
-   * （= POST /v1/dishes/bulk-import）で、クライアントはこの経路の失敗に対して必ず
-   * Google Maps フォールバックダイアログを出す。だから上流のクォータ枯渇は
-   * 「ユーザーが行き止まりになる障害」ではなく warn で扱う。詳細は下の catch のコメント。
    */
   async searchRestaurants(params: {
     location: string;
@@ -204,10 +198,6 @@ export class LocationsService {
         ...(params.pageSize && { pageSize: params.pageSize }),
         ...(params.languageCode && { languageCode: params.languageCode }),
       };
-
-    // #1196 performSearch の catch が失敗を必ず1回ログしているかどうかの印。
-    // 外側の catch で二重にログしないために持つ（同じ失敗が2つの error 行になっていた）。
-    let loggedInPerformSearch = false;
 
     // Helper function to perform search with given parameters
     const performSearch = async (
@@ -267,38 +257,6 @@ export class LocationsService {
         );
         return {};
       } catch (error) {
-        loggedInPerformSearch = true;
-
-        // #1196 【設計】ユーザー影響の記録はここ1か所。レベルは原因で分ける。
-        //
-        // ★ クォータ枯渇（warn）:
-        //   上流の日次上限が尽きた状態で、我々のコードは正しく動いている。
-        //   この検索が失敗しても、クライアントは Google Maps フォールバックダイアログを出すので
-        //   **ユーザーは行き止まりにならない**（app-expo/features/search/hooks/useGoogleMapsFallback.ts。
-        //   実測で失敗 340 件に対しダイアログ 340 件、うち 115 人が実際に Maps を開いている）。
-        //   したがって「ユーザーが困っているエラー」として error で鳴らす対象ではない。
-        //   ⚠️ 枯渇そのものは運用が直すべき異常なので、ExternalApiService.callPlaceSearchText が
-        //     `GooglePlacesQuotaExceeded` を **error** で1件残している。ここを warn にしても
-        //     クォータ枯渇の可観測性は落ちない。両方 warn にはしないこと。
-        //
-        // ★ それ以外（error）:
-        //   原因が分類できていない = 我々のバグの可能性がある。フォールバックの有無に関わらず残す。
-        if (error instanceof ExternalApiQuotaExceededError) {
-          this.logger.warn(
-            'GoogleMapsTextSearchQuotaExceeded',
-            'searchRestaurants',
-            {
-              error_message: error.message,
-              upstream_status: error.upstreamStatus,
-              location: params.location,
-              radius: params.radius,
-              category: params.dishCategoryName,
-              searchAttempt,
-            },
-          );
-          throw error;
-        }
-
         this.logger.error('GoogleMapsAPICallError', 'searchRestaurants', {
           error_message:
             error instanceof Error ? error.message : 'Unknown error',
@@ -389,19 +347,12 @@ export class LocationsService {
 
       return response;
     } catch (error) {
-      // #1196 【修正】performSearch が既にログ済みの失敗をここで再ログしない。
-      // 以前は 1 回の失敗が `GoogleMapsAPICallError` 2 行（attempt 付き / 無し）になっており、
-      // error-triage 上でも件数が実際の 2 倍に見えていた。
-      // performSearch 以外（引数の解釈など）で落ちた場合だけ、従来どおり error で残す。
-      if (!loggedInPerformSearch) {
-        this.logger.error('GoogleMapsAPICallError', 'searchRestaurants', {
-          error_message:
-            error instanceof Error ? error.message : 'Unknown error',
-          location: params.location,
-          radius: params.radius,
-          category: params.dishCategoryName,
-        });
-      }
+      this.logger.error('GoogleMapsAPICallError', 'searchRestaurants', {
+        error_message: error instanceof Error ? error.message : 'Unknown error',
+        location: params.location,
+        radius: params.radius,
+        category: params.dishCategoryName,
+      });
 
       throw error;
     }

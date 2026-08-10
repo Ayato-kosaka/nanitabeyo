@@ -12,13 +12,6 @@ import {
   PhotoMediaBinary,
   PhotoMediaJson,
 } from 'src/v1/locations/locations.service';
-import {
-  ExternalApiQuotaExceededError,
-  isQuotaExceededUpstreamResponse,
-} from './external-api.errors';
-
-/** #1196 クォータ枯渇ログのグルーピングキー。makeExternalApiCall の api_name と同一文字列にする。 */
-const PLACES_TEXT_SEARCH_API_NAME = 'Google Places Text Search API';
 
 // Wikidata API のレスポンス型
 interface WikidataSearchResponse {
@@ -261,7 +254,7 @@ export class ExternalApiService {
 
     try {
       const response = await this.makeExternalApiCall({
-        api_name: PLACES_TEXT_SEARCH_API_NAME,
+        api_name: 'Google Places Text Search API',
         endpoint,
         method: 'POST',
         request_payload: payload,
@@ -274,60 +267,14 @@ export class ExternalApiService {
 
       if (!response.ok) {
         const errorText = await response.text().catch(() => '');
-        const message = `Google Places Text Search API request failed: ${response.status} ${errorText}`;
-
-        // #1196 【設計】クォータ枯渇だけは型付きのエラーで投げ、上位が
-        // 「予期しない障害」と「上流の容量が尽きた」を message の文字列一致なしで分けられるようにする。
-        if (isQuotaExceededUpstreamResponse(response.status, errorText)) {
-          throw new ExternalApiQuotaExceededError({
-            apiName: PLACES_TEXT_SEARCH_API_NAME,
-            upstreamStatus: response.status,
-            message,
-          });
-        }
-
-        throw new Error(message);
+        throw new Error(
+          `Google Places Text Search API request failed: ${response.status} ${errorText}`,
+        );
       }
 
       const data = await response.json();
       return data;
     } catch (error) {
-      // #1196 【設計】ログレベルを2軸に分ける。
-      //   (1) システム異常 = クォータ枯渇。**error のまま残す**。
-      //       ユーザーは Google Maps フォールバックへ逃げられる（後述）が、
-      //       「1日で Text Search の日次上限が尽きている」こと自体は運用が直すべき異常であり、
-      //       ここを warn に落とすと error-triage（scripts/error-triage）が拾わなくなって
-      //       誰も気づけなくなる。専用の event_name を持たせて独立した fingerprint にする。
-      //       payload に statusCode を入れないこと: 入れると triage の E6 が
-      //       EXCLUDED_HTTP_STATUSES(429 を含む) として除外してしまう。
-      //   (2) ユーザー影響 = この失敗で検索結果が出ないこと。こちらは呼び出し側
-      //       (locations.service / dishes.service) が warn で記録する。
-      //       ★ 退避導線（Google Maps フォールバック）の実態（#1243 レビュー Major-1 で grep 済み。
-      //         2026-08-10 時点。**「唯一の入口」でも「必ず出る」でもない**ので、
-      //         この節を根拠に他の経路まで warn へ広げないこと）:
-      //         この Places 呼び出しに到達する API は POST /v1/dishes/bulk-import で、
-      //         app-expo 側の入口は lib/dishMediaSearch.ts createDishItemsForCategory の呼び出し元 3 つ。
-      //           1. features/dishCategoryGroupVotes/hooks/useCandidateDishMediaCache.ts
-      //              … catch で showGoogleMapsFallbackDialog。退避導線あり
-      //           2. app/[locale]/(tabs)/search/topics.tsx → app/[locale]/(tabs)/search/result.tsx
-      //              … 「0 件かつ非ロード中」で表示。退避導線あり
-      //           3. features/profile/tabs/SavedTopicsTab.tsx
-      //              → app/[locale]/(tabs)/profile/search-results.tsx
-      //              … **#1243 で追加**。それ以前はこの経路だけ退避導線が無く、行き止まりだった
-      //         2 と 3 は緯度経度とカテゴリ名が router の params に揃っているときだけ出る（無条件ではない）。
-      //         実測（#1196 / BigQuery）では 340 件の失敗に対しダイアログ 340 件・
-      //         実際に Maps を開いたのが 115 人だが、これは 3 を追加する前の 1 と 2 だけの数字。
-      if (error instanceof ExternalApiQuotaExceededError) {
-        this.logger.error('GooglePlacesQuotaExceeded', 'callPlaceSearchText', {
-          error_message: error.message,
-          api_name: error.apiName,
-          upstream_status: error.upstreamStatus,
-          fieldMask,
-          request_payload: payload,
-        });
-        throw error;
-      }
-
       this.logger.error('GooglePlacesAPICallError', 'callPlaceSearchText', {
         error_message: error instanceof Error ? error.message : 'Unknown error',
         fieldMask,

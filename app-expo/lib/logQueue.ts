@@ -3,7 +3,6 @@ import type { CreateFrontendLogDto } from "@shared/api/v1/dto";
 import { Env } from "@/constants/Env";
 import { supabase } from "./supabase";
 import { fetchWithAuth } from "./fetchWithAuth";
-import { TRANSIENT_STATUSES } from "./transientHttpStatus";
 
 // #1012 【設計】フロントログ送信のキュー化・バッチ送信(クライアント側)
 // useLogger.logFrontendEvent はここへ enqueue するだけにし、実際の送信は
@@ -53,7 +52,12 @@ type FailureKind = "rejected" | "transient";
 // #1079 4xx でも「クライアント側の契約違反」ではないステータス。
 // droppedByReject は #1076 のような「送っているログのDTOが壊れている」を検知するための数値なので、
 // 直せば消えるわけではない・時間や環境で解消する類の4xxを混ぜるとシグナルが汚れる。
-// #1196 定義そのものは lib/transientHttpStatus.ts へ移した（useAPICall.ts も同じ判定を使うため）。
+//   401 Unauthorized      … flush中のトークン失効レース。次のトークンで送れば通る
+//   408 Request Timeout   … サーバ/経路側のタイムアウト
+//   425 Too Early         … リプレイ懸念による再送要求
+//   426 Upgrade Required  … アプリバージョン起因（maintenance.guard）。ログ本文とは無関係
+//   429 Too Many Requests … レート制限
+const TRANSIENT_STATUSES: readonly number[] = [401, 408, 425, 426, 429];
 
 /**
  * HTTPステータスから失敗の分類を決める。
