@@ -6,6 +6,7 @@ import {
 	element,
 	launchAppWithSession,
 	localeDeepLink,
+	tapWhenPresent,
 	tapWhenVisible,
 	visibleNow,
 	waitUntilVisible,
@@ -67,15 +68,15 @@ describe("UI カタログ（匿名） @catalog", () => {
 			await tolerate(() => waitUntilVisible(searchScreen.distanceSlider));
 		});
 
-		// チュートリアルは起動引数で「視聴済み」をシードしているため自動では開かない。
-		// ヘッダーの「？」から開いて全ページを撮る
+		// チュートリアルは「未視聴」で起動すると初回フォーカスで自動表示される（e2e-web の
+		// ヘルプボタン経由と違い、こちらが native の素直な導線。tests/search/search-tutorial.test.ts と同じ）。
+		// ⚠️ シート内の要素は Detox の toBeVisible（面積 75% 以上）が成立しないことがあるため、
+		//    待ちは expectTutorialOperable、タップは存在ベースの tapWhenPresent を使う（run 31409643139 で実測）
 		const opened = await captureScreenIfReachable(
 			"search-tutorial-page1",
 			async () => {
-				await launchAppWithSession({ as: "anon" });
-				await searchScreen.expectLoaded();
-				await tapWhenVisible(searchScreen.helpButton);
-				await waitUntilVisible(searchScreen.tutorialNextButton, DEFAULT_TIMEOUT, TUTORIAL_INDEX);
+				await launchAppWithSession({ as: "anon", tutorialSeen: false });
+				await searchScreen.expectTutorialOperable();
 			},
 			{ settleMs: 1_500 },
 		);
@@ -87,7 +88,7 @@ describe("UI カタログ（匿名） @catalog", () => {
 				`search-tutorial-page${page}`,
 				async () => {
 					// 最終ページではプライマリ CTA の testID が finish へ入れ替わる
-					await tapWhenVisible(searchScreen.tutorialNextButton, DEFAULT_TIMEOUT, TUTORIAL_INDEX);
+					await tapWhenPresent(searchScreen.tutorialNextButton, DEFAULT_TIMEOUT, TUTORIAL_INDEX);
 				},
 				{ settleMs: 1_500 },
 			);
@@ -321,7 +322,8 @@ describeAuthenticated("UI カタログ（ログイン済み） @catalog", () => 
 			async () => {
 				await launchAppWithSession({ as: "authenticated", url: deepLinkOf("profile-settings-authenticated") });
 				await settingsScreen.expectLoaded();
-				await waitUntilVisible(settingsScreen.logoutItem);
+				// ログアウト行は画面下端にあり、Detox の可視判定（面積 75%）が成立しないことがある
+				await tolerate(() => waitUntilVisible(settingsScreen.logoutItem));
 			},
 			{ settleMs: 1_500 },
 		);
@@ -402,7 +404,9 @@ describeMutation("UI カタログ（レビュー投稿フロー） @catalog @mut
 		await captureScreenIfReachable(
 			"review-post-detail",
 			async () => {
-				await element(reviewScreen.commentInput).typeText("[E2E] UI カタログ収集");
+				// ⚠️ typeText は IME 経由のキーイベントに変換できず日本語で落ちる（Android で実測）。
+				// Detox 公式の回避策どおり replaceText で直接流し込む
+				await element(reviewScreen.commentInput).replaceText("[E2E] UI カタログ収集");
 				// 星は画面外に居ることがある（iOS で実測）。付けられなくても投稿自体は成立する
 				await tolerate(() => reviewScreen.rate(5));
 				await tapWhenVisible(reviewScreen.submitButton);
