@@ -2,7 +2,7 @@
 
 日本全国の初期 restaurant seed 候補について、同じ定義で件数・欠損・重複を測り、現行DBのrestaurant CSVを全件照合する再実行可能なPOCです。本スクリプトはDBを更新しません。
 
-詳細な調査、ライセンス評価、Google place ID・画像・レビュー方針は [REPORT.md](./REPORT.md) を参照してください。固定した取得元は [sources.lock.json](./sources.lock.json)、実測値は [poc_results_2026-08-08.json](./poc_results_2026-08-08.json) にあります。
+詳細な調査、ライセンス評価、Google place ID・画像・レビュー方針は [REPORT.md](./REPORT.md) を参照してください。料理画像の取得、Instagram oEmbed、誤紐付け防止、無料connectorの詳細は [DISH_MEDIA_STRATEGY.md](./DISH_MEDIA_STRATEGY.md) と [比較Excel](./dish_media_strategy_2026-08-10.xlsx) に分離しました。固定した取得元は [sources.lock.json](./sources.lock.json)、実測値は [poc_results_2026-08-08.json](./poc_results_2026-08-08.json) にあります。
 
 ## 結論
 
@@ -10,6 +10,7 @@
 - **食品衛生申請等システム（IFAS）**は補完候補。ただし公開対象は電子申請かつ申請者が公開に同意したものだけで、全国網羅DBではありません。
 - **OpenStreetMap**はODbLの下で営業時間・料理種別等を補完する候補。コア8業態199,798件で、全国seedの主軸には不足します。
 - 行数は真の網羅率ではありません。採用条件は`--reference-csv`による**現行DB全件の100%照合**です。
+- **Instagram oEmbedは料理画像masterにしません。** owner確認済みの支店・exact menu itemへ外部embedとして使い、実画像の主軸はowner/HQ upload、POS連携、署名付き料理QR UGCにします。
 
 ## 実行
 

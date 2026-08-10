@@ -183,6 +183,8 @@ place ID運用:
 
 ## 6. 画像取得
 
+> 2026-08-10追補: Instagram oEmbed、exact `restaurant_id` / `dish_id`紐付け、現行Google bulk import監査、無料connector、hard gateの詳細を [DISH_MEDIA_STRATEGY.md](./DISH_MEDIA_STRATEGY.md) と [比較Excel](./dish_media_strategy_2026-08-10.xlsx) にまとめた。結論は、Instagram oEmbedをmedia masterにせず、owner確認済み外部embedとして補助利用することである。
+
 | 手段 | 判断 | 条件 |
 |---|---|---|
 | owner upload | **推奨** | 権利保証、商用利用許諾、削除/異議申立て、原本証跡 |
