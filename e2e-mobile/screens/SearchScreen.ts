@@ -446,8 +446,18 @@ export class SearchScreen {
 		await tapWhenVisible(this.scene(id));
 	}
 
-	/** 詳細条件（距離・フードスタイル等）を展開する。画面外にある場合はスクロールしてから押す */
+	/**
+	 * 詳細条件（距離・フードスタイル等）を展開する。画面外にある場合はスクロールしてから押す。
+	 *
+	 * ⚠️ **まず先頭へ戻すこと。** `scrollUntilVisible` は «下方向» にしか送らないので、
+	 * 既に詳細条件より下まで進んでいる状態から呼ぶと永久に届かない。
+	 * iOS の Detox がここで落ちて分かった: 直前の地点入力でソフトキーボードが出たまま
+	 * 画面下半分を覆っており、かつ画面は詳細条件の内側まで下がっていた
+	 * （`Unable to scroll down ... does not pass visibility percent threshold (75)`）。
+	 * 先頭へ戻せば、キーボードが残っていてもトグルは上半分に来る。
+	 */
 	async openAdvancedFilters(): Promise<void> {
+		await element(this.scrollView).scrollTo("top");
 		await this.scrollUntilVisible(this.advancedToggle);
 		await tapWhenVisible(this.advancedToggle);
 	}
