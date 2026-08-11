@@ -7,11 +7,7 @@ import {
 import { SavedTopicLocationSearchScreen } from "../../screens/SavedTopicLocationSearchScreen";
 import { SearchScreen } from "../../screens/SearchScreen";
 import { TabBar } from "../../screens/TabBar";
-import {
-	cleanupSeededDishCategory,
-	ensureSavedDishCategory,
-	type SeededDishCategory,
-} from "../../utils/savedDishCategory";
+import { ensureSavedDishCategory } from "../../utils/savedDishCategory";
 
 /**
  * 📌 保存した料理カテゴリからの地点検索（#1133）
@@ -55,10 +51,10 @@ import {
  * ## 書き込みについて（Tier の位置づけ）
  * 「最近使った場所」の追記先は端末の AsyncStorage だけなので本体は Tier 2 のままだが、
  * 上記の前提づくりだけは **dev DB の reactions へ 1 行書く**。ただし
- * - 書くのは **保存が 0 件のときだけ**（元からあれば触らない）
- * - 書いた 1 行は `afterAll` で **自分が入れた分だけ**消す
+ * - 書くのは **保存が 0 件のときだけ**（元からあれば触らない = 2 回目以降は書き込みゼロ）
  * - 対象は RLS で自分の行に限定される（他ユーザー・他テーブルへは影響しない）
- * ため、run をまたいで共有される状態は残さない。`@mutation` タグは付けず tier1-2 に置く。
+ * - 作るのは run ごとの一時データではなく «テストユーザーに保存が 1 件ある» という恒常的な前提
+ * なので `@mutation` タグは付けず tier1-2 に置く。消さない理由は utils/savedDishCategory.ts に書いた。
  */
 describeAuthenticated("保存した料理カテゴリからの地点検索", () => {
 	/**
@@ -71,17 +67,11 @@ describeAuthenticated("保存した料理カテゴリからの地点検索", () 
 	 */
 	const savedTopicsDeepLink = localeDeepLink("profile?tab=saved-topics");
 
-	/** このテストが入れた保存行（元から保存があった場合は null = 後始末不要） */
-	let seeded: SeededDishCategory = null;
-
-	// 推薦 API はスコアリング + 翻訳を挟むため、既定の 120s では足りないことがある
+	// 推薦 API はスコアリング + 翻訳を挟むため、既定の 120s では足りないことがある。
+	// ⚠️ 入れた行は消さない（後始末を «しない» のが正しい理由は utils/savedDishCategory.ts の冒頭）
 	beforeAll(async () => {
-		seeded = await ensureSavedDishCategory();
+		await ensureSavedDishCategory();
 	}, 180_000);
-
-	afterAll(async () => {
-		await cleanupSeededDishCategory(seeded);
-	}, 60_000);
 
 	// #1031 【バグ】beforeAll だと前のテストが残した画面状態（開いたままのモーダル等）を次が引き継ぎ、
 	// タップがオーバーレイに阻まれて落ちる。セッション注入起動は匿名クォータを消費しないため、

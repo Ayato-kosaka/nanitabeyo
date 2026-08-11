@@ -34,12 +34,20 @@ import { readSessionFromEnv } from "./sessionEnv";
  * `GET /v1/dish-categories/recommendations` から取る（アプリの検索画面と同じ API）。
  * 適当な UUID を入れても一覧 API の join で消えるだけなので、**実在の ID である必要がある**。
  *
- * ## 後始末（ここが肝）
- * 入れた行は spec の `afterAll` で **自分が入れた 1 件だけ**消す。
- * 元から保存があった場合は **何も書かない / 何も消さない**。
- * テストが dev DB の状態を恒久的に変えないようにするための約束で、
- * `ensureSavedDishCategory()` の戻り値（= 入れたかどうか）を必ず
- * `cleanupSeededDishCategory()` へ渡すこと。
+ * ## ⚠️ 入れた行は «消さない»（後始末をしない方が正しい理由）
+ * 最初は `afterAll` で自分が入れた 1 件を消す設計にしていたが、これは壊れる。
+ * `e2e-mobile-test.yml` は Android と iOS の 2 ジョブを **同時に**走らせるため、
+ *
+ * - 両方が同じカテゴリを引くと 2 本目の INSERT が UNIQUE 制約に当たる
+ * - 片方の `afterAll` が、まだ走っている **もう片方が使っている行**を消してしまう
+ *
+ * という競合が起きる。そもそもここで作りたいのは「テストユーザーが料理カテゴリを
+ * 1 件以上保存している」という **恒常的な前提**であって、run ごとの一時データではない。
+ * 消さなければ状態は «前提が満たされている» に収束し、2 回目以降の run は
+ * 「元から保存がある」経路を通って **書き込みすら発生しない**。
+ *
+ * 残るのは dev のテストユーザーに保存が 1 件増えることだけで、これは
+ * 以前この spec が «人手でやっておいてください» と依頼していた状態そのものである。
  *
  * ## セキュリティ
  * トークンは **ログへ出さない**（このモジュールは成否と件数しか出力しない）。
@@ -60,7 +68,10 @@ const SAVE_REACTION = {
  */
 const SEED_ADDRESS = "country:JP, administrative_area_level_1:Tokyo, locality:Tokyo";
 
-/** 種まきの結果。`null` は「元から保存があったので何もしなかった」を意味する */
+/** PostgreSQL の unique_violation。「既に保存済み」＝ 前提が満たされている、と読み替える */
+const UNIQUE_VIOLATION = "23505";
+
+/** 種まきの結果。`null` は「元から保存があったので何もしなかった」を意味する（ログ用） */
 export type SeededDishCategory = { categoryId: string } | null;
 
 type SeedEnv = {
@@ -206,41 +217,11 @@ export async function ensureSavedDishCategory(): Promise<SeededDishCategory> {
 		lock_no: 0,
 	});
 
-	if (insertError) {
+	// ⚠️ Android / iOS ジョブが同時に同じカテゴリを引くと UNIQUE (user_id, target_type,
+	// target_id, action_type) に当たる。これは «既に前提が満たされた» と同じ意味なので成功扱いにする
+	if (insertError && insertError.code !== UNIQUE_VIOLATION) {
 		throw new Error(`保存済み料理カテゴリの種まきに失敗しました: ${insertError.message}`);
 	}
 
-	return { categoryId };
-}
-
-/**
- * `ensureSavedDishCategory()` が入れた行を消す。
- *
- * @param seeded `ensureSavedDishCategory()` の戻り値をそのまま渡す。`null` なら何もしない
- * @失敗時 例外を投げずに警告だけ出す。後始末の失敗でテスト結果を赤くすると
- *         **本体の合否が読めなくなる**ため（残っても次回は「元から保存あり」として扱われるだけ）
- */
-export async function cleanupSeededDishCategory(seeded: SeededDishCategory): Promise<void> {
-	if (!seeded) return;
-
-	const session = readSessionFromEnv("authenticated");
-	if (!session) return;
-
-	try {
-		const env = loadSeedEnv();
-		const client = createUserScopedClient(env, session.accessToken);
-		const { error } = await client
-			.from("reactions")
-			.delete()
-			.eq("user_id", session.userId)
-			.eq("target_type", SAVE_REACTION.target_type)
-			.eq("target_id", seeded.categoryId)
-			.eq("action_type", SAVE_REACTION.action_type);
-
-		if (error) {
-			console.warn(`⚠️ 種まきした保存済み料理カテゴリの削除に失敗しました: ${error.message}`);
-		}
-	} catch (error) {
-		console.warn(`⚠️ 種まきした保存済み料理カテゴリの削除に失敗しました: ${(error as Error).message}`);
-	}
+	return insertError ? null : { categoryId };
 }
