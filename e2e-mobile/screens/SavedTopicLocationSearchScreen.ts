@@ -92,7 +92,10 @@ export class SavedTopicLocationSearchScreen {
 	 *   モーダルの入口はこのカードしかないため、ここで素通しにすると
 	 *   「テストは緑だがモーダルを一度も開いていない」という嘘の緑になる（fail-loud の方針）。
 	 *   e2e-web は `stubSavedDishCategories` で一覧 API を固定して同じ問題を回避しているが、
-	 *   Detox にネットワークをスタブする手段は無いため、テストユーザーのデータに依存する。
+	 *   Detox にネットワークをスタブする手段は無いため、spec の `beforeAll` が
+	 *   `utils/savedDishCategory.ts` で **前提そのものを作ってから**ここへ来る。
+	 *   つまりここで落ちたら「種まきはできたのに一覧に出ていない」＝ 保存導線側の異常であり、
+	 *   人手でデータを足して回避してはいけない。
 	 */
 	async openLocationSearchFromFirstTopic(): Promise<void> {
 		await this.expectTabLoaded();
@@ -102,7 +105,9 @@ export class SavedTopicLocationSearchScreen {
 				[
 					"保存した料理カテゴリが 0 件のため、地点検索モーダルを開けませんでした（save-topic-tab-item-0 が存在しない）。",
 					"  このモーダルの入口は保存料理カテゴリのカードだけです。",
-					"  TEST_USER_* のテストユーザーで料理カテゴリを 1 件以上保存しておいてください。",
+					"  spec の beforeAll（utils/savedDishCategory.ts）が reactions へ save を 1 件入れているはずなので、",
+					"  ここで 0 件なら「保存はあるのに一覧に出ない」側の異常です。",
+					"  GET /v1/users/me/saved-dish-categories が dish_categories を join できているか確認してください。",
 				].join("\n"),
 			);
 		}

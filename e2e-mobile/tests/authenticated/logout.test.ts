@@ -122,6 +122,11 @@ describeAuthenticated("ログアウト（ログイン済みユーザー）", () 
 
 		// ログアウト行の表示 ＝ AuthProvider が「ログイン済み(非匿名)」で決着した合図。
 		// ここが出ない場合はセッション注入自体が効いていない（= 検証の前提が崩れている）
+		//
+		// ⚠️ 先にスクロールすること。ログアウト行は最下段のカードにあり、エミュレータの画面高では
+		// **初期表示で画面外**にいる。素の `waitUntilVisible` だと「注入が効いていない」と
+		// 区別が付かない形で 25 秒待って落ちる（CI で実際に踏んだ）
+		await settingsScreen.scrollToLogout();
 		await waitUntilVisible(settingsScreen.logoutItem);
 
 		await settingsScreen.logout();

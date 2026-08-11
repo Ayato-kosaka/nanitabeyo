@@ -1,4 +1,4 @@
-import { by, launchAppWithSession, waitUntilVisible } from "../../fixtures/e2e";
+import { by, device, launchAppWithSession, waitUntilExists, waitUntilVisible } from "../../fixtures/e2e";
 import { APP_SCHEME } from "../../utils/locale";
 
 /**
@@ -38,6 +38,34 @@ describe("共有リンクからの起動 @smoke", () => {
 	 */
 	const WELL_FORMED_TOKEN = "s1_0123456789abcdefghijkl";
 
+	/**
+	 * ⚠️ **解決画面は «消える» 画面である。** ここを踏み外して 1 度 CI を赤くした。
+	 *
+	 * `app/s/[token].tsx` は mount した瞬間に resolve を投げ、返ってきたら即 `router.replace` する。
+	 * つまり `share-link-resolver` が出ているのは **resolve の往復の間だけ**。
+	 * 素直に書くと 2 か所で「往復の完了を待ってから」観測してしまい、必ず取り逃がす:
+	 *
+	 * 1. `launchAppWithSession` の既定 `waitForReady: true` は **タブバー**を待つ。
+	 *    タブバーは解決画面には無く、ホームへ落ちて初めて現れる。
+	 *    → 起動ヘルパを抜けた時点で解決画面は既に無い。だから `waitForReady: false` にする。
+	 * 2. Detox の同期機構は **進行中のネットワーク要求がある間アプリを busy と見なす**ため、
+	 *    matcher の評価を resolve 完了まで待ってしまう。
+	 *    → `setURLBlacklist` で resolve の URL だけ同期対象から外す（要求自体は普通に飛ぶ）。
+	 *
+	 * この 2 つを外して初めて「往復の最中」を観測できる。
+	 * 観測は `toExist` で行う（`toBeVisible` の 75% 面積判定は spinner 1 個の画面では余計な変数になる）。
+	 */
+	const RESOLVE_URL_PATTERN = ".*share-links.*";
+
+	beforeAll(async () => {
+		await device.setURLBlacklist([RESOLVE_URL_PATTERN]);
+	});
+
+	afterAll(async () => {
+		// 他の spec の同期を壊さないよう必ず戻す（Detox のこの設定はデバイス単位で残る）
+		await device.setURLBlacklist([]);
+	});
+
 	// ─ テストケース: /s/:token で起動すると解決画面まで届く ─
 	// 手順:
 	//   1. "nanitabeyo:///s/s1_..." を組み立てる（ロケールセグメントを持たない URL）
@@ -47,9 +75,14 @@ describe("共有リンクからの起動 @smoke", () => {
 	// 修正前はここで検索タブ（ホーム）が出る。つまりこのアサーションが
 	// 「ディープリンクが捨てられていない」ことの直接の証拠になる
 	it("ロケールを持たない /s/:token でもホームへ落ちず、解決画面まで届く", async () => {
-		await launchAppWithSession({ as: "anon", url: `${APP_SCHEME}:///s/${WELL_FORMED_TOKEN}` });
+		// waitForReady: false の理由は RESOLVE_URL_PATTERN のコメントを参照
+		await launchAppWithSession({
+			as: "anon",
+			url: `${APP_SCHEME}:///s/${WELL_FORMED_TOKEN}`,
+			waitForReady: false,
+		});
 
-		await waitUntilVisible(by.id("share-link-resolver"));
+		await waitUntilExists(by.id("share-link-resolver"));
 	});
 
 	// ─ テストケース: 解決に失敗しても白い画面で止まらない ─
@@ -60,10 +93,16 @@ describe("共有リンクからの起動 @smoke", () => {
 	// 共有リンクは «アプリを初めて触る人» が踏む導線なので、
 	// 解決できないときに解決画面で固まるのが一番損失が大きい
 	it("解決できないトークンではホームへ落とす（解決画面で固まらない）", async () => {
-		await launchAppWithSession({ as: "anon", url: `${APP_SCHEME}:///s/${WELL_FORMED_TOKEN}` });
+		await launchAppWithSession({
+			as: "anon",
+			url: `${APP_SCHEME}:///s/${WELL_FORMED_TOKEN}`,
+			waitForReady: false,
+		});
 
-		await waitUntilVisible(by.id("share-link-resolver"));
-		// deep-link.test.ts と同じ観測点。ここへ来ていれば「固まっていない」ことが言える
+		// deep-link.test.ts と同じ観測点。ここへ来ていれば「解決画面で固まっていない」ことが言える。
+		// ⚠️ ここで解決画面を先に待たないこと。1 本目が既にそれを見ており、
+		// このテストが見たいのは «その後ホームへ抜けるか» だけ。
+		// 往復が速い run では解決画面を取り逃がしうるので、待つと理由の無い flaky を足すことになる
 		await waitUntilVisible(by.id("search-header-title"));
 	});
 });

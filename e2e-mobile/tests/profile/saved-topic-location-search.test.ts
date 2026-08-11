@@ -7,6 +7,11 @@ import {
 import { SavedTopicLocationSearchScreen } from "../../screens/SavedTopicLocationSearchScreen";
 import { SearchScreen } from "../../screens/SearchScreen";
 import { TabBar } from "../../screens/TabBar";
+import {
+	cleanupSeededDishCategory,
+	ensureSavedDishCategory,
+	type SeededDishCategory,
+} from "../../utils/savedDishCategory";
 
 /**
  * 📌 保存した料理カテゴリからの地点検索（#1133）
@@ -38,12 +43,22 @@ import { TabBar } from "../../screens/TabBar";
  * 入口は保存した料理カテゴリのカードだけで、匿名ユーザーには保存が無いのでモーダルを開けない。
  * `describeAuthenticated` は TEST_USER_* が無い環境で spec ごと skip する（fixtures/e2e.ts）。
  * さらに **テストユーザーが料理カテゴリを 1 件以上保存している**ことも前提になる。
- * e2e-web は一覧 API をスタブして環境依存を消しているが、Detox にネットワークをスタブする
- * 手段が無いため、0 件のときは Screen Object が前提条件の不足として名指しで落とす（fail-loud）。
+ *
+ * ## 前提を「人」ではなく「テスト」が用意する（CI で赤くなった反省）
+ * 当初この前提は「TEST_USER_* で 1 件保存しておくこと」という *依頼* で表現していた。
+ * 結果、誰かがマイページから保存を外しただけで **コード変更ゼロで CI が赤くなった**。
+ * 環境に前提を置くテストは、いずれ必ずその環境の変化で落ちる。
+ * そこで `beforeAll` で `ensureSavedDishCategory()` を呼び、保存が 0 件なら
+ * 推薦 API から実在のカテゴリを 1 つ取って `reactions` へ save を入れる。
+ * e2e-web が `stubSavedDishCategories` でやっていることの、スタブできない環境版。
  *
  * ## 書き込みについて（Tier の位置づけ）
- * dev DB へは書き込まない。「最近使った場所」の追記先は端末の AsyncStorage だけで、
- * 他のテストと共有する状態ではないため Tier 2（読み取り + 端末ローカル）に収まる。
+ * 「最近使った場所」の追記先は端末の AsyncStorage だけなので本体は Tier 2 のままだが、
+ * 上記の前提づくりだけは **dev DB の reactions へ 1 行書く**。ただし
+ * - 書くのは **保存が 0 件のときだけ**（元からあれば触らない）
+ * - 書いた 1 行は `afterAll` で **自分が入れた分だけ**消す
+ * - 対象は RLS で自分の行に限定される（他ユーザー・他テーブルへは影響しない）
+ * ため、run をまたいで共有される状態は残さない。`@mutation` タグは付けず tier1-2 に置く。
  */
 describeAuthenticated("保存した料理カテゴリからの地点検索", () => {
 	/**
@@ -55,6 +70,18 @@ describeAuthenticated("保存した料理カテゴリからの地点検索", () 
 	 * 実装済みの経路にそのまま乗る（#1031 B4 のディープリンク方針）。
 	 */
 	const savedTopicsDeepLink = localeDeepLink("profile?tab=saved-topics");
+
+	/** このテストが入れた保存行（元から保存があった場合は null = 後始末不要） */
+	let seeded: SeededDishCategory = null;
+
+	// 推薦 API はスコアリング + 翻訳を挟むため、既定の 120s では足りないことがある
+	beforeAll(async () => {
+		seeded = await ensureSavedDishCategory();
+	}, 180_000);
+
+	afterAll(async () => {
+		await cleanupSeededDishCategory(seeded);
+	}, 60_000);
 
 	// #1031 【バグ】beforeAll だと前のテストが残した画面状態（開いたままのモーダル等）を次が引き継ぎ、
 	// タップがオーバーレイに阻まれて落ちる。セッション注入起動は匿名クォータを消費しないため、
