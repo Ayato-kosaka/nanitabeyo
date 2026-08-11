@@ -14,7 +14,8 @@
 |---|---|---|---|
 | Native build/store upload | `.github/workflows/eas-build-submit-prod.yml` | `platform=all|ios|android` | EAS commandは`--no-wait --auto-submit`。Actions完了後もEAS build/submissionを監視する |
 | API | `.github/workflows/api-deploy.yml` | `target=production` | Cloud Runへlatest traffic 100%。DB migrationは含まない |
-| Web | `.github/workflows/firebase-hosting-deploy.yml` | `target=production` | deploy後にPlaywright smokeを実行する |
+| DB migration | `.github/workflows/db-migrate.yml` | `target_schema=public` | **`public`が本番。** 本番と開発は同じDBの別スキーマ。`from_file`は「そのファイル**以降**を辞書順に全部」適用する |
+| Web | `.github/workflows/firebase-hosting-deploy.yml` | `target=production` | deploy後にPlaywright smokeを実行する。`eas-cli env:update`で共有の`EXPO_PUBLIC_COMMIT_ID`を書き換えるため、EAS系と逐次実行する |
 | OTA | `.github/workflows/eas-update.yml` | `channel=production` | platform all。共有EAS envを更新するため逐次実行する |
 
 workflow定義は変更され得る。毎回対象SHA上のYAMLを読み、input、非同期処理、concurrency、post-deploy checkを再確認する。
@@ -89,6 +90,14 @@ WebとAPIのどちらを先にするかはcontract互換性で決める。OTAは
 ## 4. DBとデータ作業
 
 `scripts/apply-migration.sh`は引数省略時に全SQLを適用し、指定ファイルが見つからない場合も全SQLへfallbackする。この挙動のままproductionで曖昧な対象を指定しない。
+
+productionでは`db-migrate.yml`を使う。ローカルから直接流さない。dispatchのログに「いつ・どのファイルまで当たったか」が残るためである。
+
+- `from_file`は開始位置であり、**そのファイル以降が辞書順にすべて適用される**。「1ファイルだけ」の指定はできない。dry runの`適用対象を決める`ステップが出す一覧を読み、承認表に書いたファイルと**完全一致**することを確認してから`dry_run=false`にする。
+- `public`への実適用には`confirm_public=true`が要る。`dry_run=true`では不要。
+- workflowは適用の前後で対象外スキーマ（`public`適用時は`dev`）のオブジェクト一覧ハッシュを比較し、差分があれば失敗する。この検算を「対象を取り違えていない」根拠として記録する。
+- `regenerate_prisma`は`dev`適用時にしか働かない。`public`で`true`にしても何も起きない。
+- 必ず`dry_run=true`で1回、`dry_run=false`で1回の**2回dispatch**する。1回目の出力を承認表へ引用する。
 
 production前に必ず次を確定する。
 

@@ -10,6 +10,7 @@ description: nanitabeyoのリリース担当者として、mainから新しいre
 ## 必須リソース
 
 - フルリリースでは最初に[references/release-policy.md](references/release-policy.md)、[references/deployment-matrix.md](references/deployment-matrix.md)、[references/release-note-style.md](references/release-note-style.md)を最後まで読む。
+- `gh`が無い、cloneがshallowなど実行環境が標準と異なる場合は[references/execution-environments.md](references/execution-environments.md)を読む。
 - OTA判定または旧releaseへの展開では[references/ota-safety-rules.md](references/ota-safety-rules.md)を最後まで読み、すべてのsource/target組で`scripts/audit-ota-inputs.sh`を実行する。
 - production workflowの実行前に、対象SHAを含むGo/No-Go表を提示して明示承認を得る。
 
@@ -39,8 +40,8 @@ description: nanitabeyoのリリース担当者として、mainから新しいre
 
 ## フェーズ0: 現在地を確定する
 
-1. リポジトリ指示、worktree、`git`、`gh`、`python3`、`pnpm`、必要ならEAS CLIの可用性を確認する。
-2. `git fetch --prune origin`と`gh auth status`を実行する。
+1. リポジトリ指示、worktree、`git`、`gh`、`python3`、`pnpm`、必要ならEAS CLIの可用性を確認する。`gh`が無い実行環境がある。その場合の代替は[references/execution-environments.md](references/execution-environments.md)に従う。
+2. `git fetch --prune origin`と`gh auth status`を実行する。**cloneがshallowなら先に`git fetch --unshallow --prune origin`を実行する。** shallow cloneでは`merge-base`、`rev-list --left-right --count`、`log <base>..<head>`がすべて誤った値を返し、リリース差分そのものを取り違える。
 3. source、前release、新release、各remote SHA、merge-base、ahead/behind、app version、runtimeVersionを記録する。
 4. Release Note issue、統合PR、同一SHAのworkflow run、EAS build/updateが既に存在するか確認する。
 5. `full-release`では次を実行して監査材料を得る。
@@ -59,7 +60,7 @@ description: nanitabeyoのリリース担当者として、mainから新しいre
 1. 新releaseがなければ、記録済みの前release SHAと完全一致する`release/X.Y` refを作成する。既にあれば起点と履歴を検証して再利用する。
 2. 記録済みmain SHAを新releaseへ`--no-ff --no-commit`で統合する一時ブランチを作る。
 3. versionが依頼された`X.Y.z`であることを確認する。version以外の競合を独断で解決しない。
-4. lockfile固定でinstallし、影響範囲に応じたformat check、typecheck、test、build/export、必要なnative exportを行う。CPU・メモリ負荷の高い検証は並列実行せず、1件ずつ逐次実行する。`build:e2e-check-native`は標準ローカルゲートから除外し、ユーザーが明示的に求めた場合だけ実行する。
+4. lockfile固定でinstallし、影響範囲に応じたtypecheck、test、build/export、必要なnative exportを行う。実行する具体的なコマンドは[references/execution-environments.md](references/execution-environments.md) §4に従い、`pr-check.yml`と同じ集合へ揃える。CPU・メモリ負荷の高い検証は並列実行せず、1件ずつ逐次実行する。`build:e2e-check-native`は標準ローカルゲートから除外し、ユーザーが明示的に求めた場合だけ実行する。format checkはCIゲートに入っていないため、統合PRのブロッカーにせず差分の有無だけ報告する。
 5. PRを作成し、source/base SHA、version/runtime、差分分類、test、未実行のproduction作業を本文へ記載する。
 6. checksを監視し、remote SHAと最終差分を再確認して`gh pr merge --merge`で統合する。
 
@@ -122,7 +123,7 @@ API/clientの後方互換性から実行順を決める。破壊的DB変更はex
 
 ## フェーズ6: OTA反映
 
-承認されたbranchと、commit/hunkまたはnative neutralization方針だけをPR経由で反映する。各merge後にremote SHA、version/runtime、OTA分類を再確認する。次を順番に実行し、1件の成功後だけ次へ進む。
+承認されたbranchと、commit/hunkまたはnative neutralization方針だけをPR経由で反映する。既定はnative neutralizationであり、その優先手段は**ネイティブ差分を持ち込んだmerge commitの`git revert -m 1`**、複数releaseへ展開する場合は**新しい順のカスケード**である。手順と過去の実績は[references/ota-safety-rules.md](references/ota-safety-rules.md) §6・§8に置いてある。各merge後にremote SHA、version/runtime、OTA分類を再確認する。次を順番に実行し、1件の成功後だけ次へ進む。
 
 ```bash
 .codex/skills/gh-nanitabeyo-release/scripts/dispatch-and-watch-update.sh \
