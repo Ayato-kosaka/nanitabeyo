@@ -139,8 +139,17 @@ function createUserScopedClient(env: SeedEnv, accessToken: string) {
 	});
 }
 
-/** 推薦 API から実在する料理カテゴリ ID を 1 つ取る */
-async function fetchAnyDishCategoryId(env: SeedEnv, accessToken: string): Promise<string> {
+/**
+ * 推薦 API から実在する料理カテゴリ ID を取る。
+ *
+ * ⚠️ `dish_categories` は RLS 有効かつポリシー未定義（anon/authenticated からは 1 件も読めない）ため、
+ * **実在の ID を得る経路はこの API しかない**。共有リンクの spec（utils/shareLink.ts）も
+ * dish_media の検索に categoryId が要るのでこれを使う。だから export している。
+ *
+ * @param max 返す件数の上限。呼び出し側が «当たり» を探して回れるように複数返せるようにしている
+ */
+export async function fetchDishCategoryIds(accessToken: string, max = 5): Promise<string[]> {
+	const env = loadSeedEnv();
 	const url = new URL(`${env.backendBaseUrl}/v1/dish-categories/recommendations`);
 	url.searchParams.set("address", SEED_ADDRESS);
 	url.searchParams.set("languageTag", "ja-JP");
@@ -161,15 +170,18 @@ async function fetchAnyDishCategoryId(env: SeedEnv, accessToken: string): Promis
 	}
 
 	const body = (await response.json()) as { data?: { categoryId?: string }[] };
-	const categoryId = body.data?.find((item) => typeof item.categoryId === "string" && item.categoryId)?.categoryId;
+	const ids = (body.data ?? [])
+		.map((item) => item.categoryId)
+		.filter((id): id is string => typeof id === "string" && id.length > 0)
+		.slice(0, max);
 
-	if (!categoryId) {
+	if (ids.length === 0) {
 		throw new Error(
 			"料理カテゴリの推薦が 0 件でした。dev の dish_categories / dish_category_features が空でないか確認してください。",
 		);
 	}
 
-	return categoryId;
+	return ids;
 }
 
 /**
@@ -204,7 +216,7 @@ export async function ensureSavedDishCategory(): Promise<SeededDishCategory> {
 	}
 	if (existing && existing.length > 0) return null;
 
-	const categoryId = await fetchAnyDishCategoryId(env, session.accessToken);
+	const [categoryId] = await fetchDishCategoryIds(session.accessToken, 1);
 
 	const { error: insertError } = await client.from("reactions").insert({
 		user_id: session.userId,

@@ -73,7 +73,8 @@ describe("共有リンクからの起動 @smoke", () => {
 
 	beforeAll(async () => {
 		realToken = await createShareLinkToken();
-	}, 120_000);
+		// 推薦 + 検索 + 作成の 3 往復。カテゴリが 0 件なら次を試すので長めに取る
+	}, 300_000);
 
 	// ─ テストケース: 実在する /s/:token で起動すると、その行き先まで届く ─
 	// 手順:

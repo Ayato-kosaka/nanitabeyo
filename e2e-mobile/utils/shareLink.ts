@@ -2,6 +2,7 @@ import * as path from "node:path";
 
 import * as dotenv from "dotenv";
 
+import { fetchDishCategoryIds } from "./savedDishCategory";
 import { readSessionFromEnv } from "./sessionEnv";
 
 /**
@@ -51,12 +52,16 @@ function apiBase(): string {
 	return base.replace(/\/+$/, "");
 }
 
+/** 検索の中心。dev にデータが集まっている都心を固定で使う（東京駅） */
+const SEARCH_LOCATION = "35.681236,139.767125";
+/** 検索半径 (m)。狭すぎると 0 件になり、広すぎても API が重くなるだけ */
+const SEARCH_RADIUS = 5000;
+
 /**
  * 検索レスポンスから dish_media の ID を 1 件取り出す。
  *
  * レスポンス形（`data.data[].dish_media.id` か `data[].id` か）は API の版で揺れるので、
- * どちらでも拾えるようにしておく。ここで固定すると、無関係な API 変更でこの spec が落ちる
- * （e2e-web/utils/shareLinks.ts と同じ判断。写しであることを承知で置いている）。
+ * どちらでも拾えるようにしておく。ここで固定すると、無関係な API 変更でこの spec が落ちる。
  */
 function extractFirstDishMediaId(body: unknown): string | null {
 	const data = (body as { data?: unknown }).data;
@@ -65,6 +70,45 @@ function extractFirstDishMediaId(body: unknown): string | null {
 	if (!first || typeof first !== "object") return null;
 	const nested = (first as { dish_media?: { id?: string } }).dish_media?.id;
 	return nested ?? (first as { id?: string }).id ?? null;
+}
+
+/**
+ * 実在する dish_media を 1 件探す。
+ *
+ * ⚠️ `GET /v1/dish-media` は **ids 指定の取得専用**で、`limit` だけ渡すと 400 になる
+ * （`QueryDishMediaByIdsDto.ids` が必須。e2e-web/utils/shareLinks.ts はここを間違えている）。
+ * 一覧は `GET /v1/dish-media/search` で、`location` / `radius` / `categoryId` が必須。
+ *
+ * カテゴリによっては 0 件のことがあるので、推薦の上位いくつかを順に試す。
+ */
+async function findAnyDishMediaId(base: string, headers: Record<string, string>, accessToken: string): Promise<string> {
+	const categoryIds = await fetchDishCategoryIds(accessToken, 5);
+	const tried: string[] = [];
+
+	for (const categoryId of categoryIds) {
+		const url = new URL(`${base}/v1/dish-media/search`);
+		url.searchParams.set("location", SEARCH_LOCATION);
+		url.searchParams.set("radius", String(SEARCH_RADIUS));
+		url.searchParams.set("categoryId", categoryId);
+		url.searchParams.set("limit", "1");
+
+		const response = await fetch(url, { method: "GET", headers, signal: AbortSignal.timeout(60_000) });
+		if (!response.ok) {
+			tried.push(`${categoryId}: status=${response.status}`);
+			continue;
+		}
+		const id = extractFirstDishMediaId(await response.json());
+		if (id) return id;
+		tried.push(`${categoryId}: 0 件`);
+	}
+
+	throw new Error(
+		[
+			"共有リンクの対象にできる dish_media が見つかりませんでした（前提条件の不足であってバグではない）。",
+			`  検索: location=${SEARCH_LOCATION} radius=${SEARCH_RADIUS}`,
+			...tried.map((line) => `  - ${line}`),
+		].join("\n"),
+	);
 }
 
 /**
@@ -88,18 +132,7 @@ export async function createShareLinkToken(): Promise<string> {
 		"Content-Type": "application/json",
 	};
 
-	const searchResponse = await fetch(`${base}/v1/dish-media?limit=1`, {
-		method: "GET",
-		headers,
-		signal: AbortSignal.timeout(60_000),
-	});
-	if (!searchResponse.ok) {
-		throw new Error(`dish_media の取得に失敗しました: status=${searchResponse.status}`);
-	}
-	const dishMediaId = extractFirstDishMediaId(await searchResponse.json());
-	if (!dishMediaId) {
-		throw new Error("dev の dish_media が 0 件のため共有リンクを作れません（前提条件の不足であってバグではない）。");
-	}
+	const dishMediaId = await findAnyDishMediaId(base, headers, session.accessToken);
 
 	const createResponse = await fetch(`${base}/v1/share-links`, {
 		method: "POST",
