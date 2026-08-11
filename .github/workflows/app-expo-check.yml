@@ -1,0 +1,277 @@
+name: App Expo Check
+
+# 🧪 app-expo の静的検査とネイティブビルド検証を、EAS を使わずに無料の GitHub Actions 上で行う。
+#
+# 目的:
+# - EAS Build は 1 ビルドごとに課金が発生する。EAS へ投げる前に落ちる原因をここで潰す。
+# - `expo prebuild` + `./gradlew :app:assembleDebug` は EAS Build の Android 側とほぼ同じ処理を通るため、
+#   config plugin の適用失敗・autolinking の破綻・compileSdk/targetSdk とサードパーティの衝突を
+#   EAS を消費せずに検出できる。
+# - iOS も `pod install` + `xcodebuild`（シミュレータ向け・署名なし）まで通すことで、
+#   `use_frameworks!` 由来のヘッダ問題や Pod の非互換を EAS を消費せずに検出できる。
+#   実機向けの署名・アーカイブは EAS でのみ検証する。
+
+#
+# ⚠️ 【重要】手動実行のみ。pull_request では回さない。
+#
+# もともとは app-expo/** を触る PR で自動実行していたが、#1156 の SDK 54 移行が終わった時点で
+# 「毎 PR 回すには重すぎ、かつ他のワークフローと重複している」ことがはっきりしたため外した。
+#
+# 1. コストが見合わない
+#    ios-build は macos runner を 15〜20 分使う。GitHub Actions の macOS は **課金が 10 倍**なので、
+#    app-expo/** を触る PR 1 本ごとに 200 分近い課金対象時間を消費していた。
+#
+# 2. ネイティブビルドの破壊は日次の Detox が捕まえる
+#    e2e-mobile-test.yml（JST 4:00 の schedule）は `expo prebuild` →
+#    `Detox build (Android release)` / `pod install` → `Detox build (iOS release)` を両 OS で回しており、
+#    **このワークフローの上位互換**（あちらは Android も release 構成）。検知が最大 1 日遅れる代わりに、
+#    より本番へ近い構成で毎日検証される。
+#
+# 3. static-check は PR Check と重複している
+#    pr-check.yml（#1112）が全 PR で typecheck と jest を回すようになったため、
+#    static-check は同じ検査を二重に走らせているだけになった。
+#
+# ## いつ手動で回すか
+#
+# **EAS Build を投げる前**。EAS は 1 ビルドごとに課金されるので、prebuild / config plugin /
+# autolinking / Pod の破綻をここで先に潰しておくと EAS の消費を節約できる。
+# 実際 #1156 では、EAS を消費する前にこのゲートが 2 件のビルド失敗を捕まえている。
+# ネイティブ層（config plugin、依存のメジャー更新、SDK バージョン）を触った PR でも回す価値がある。
+on:
+  workflow_dispatch:
+
+# 同じ ref で連続 dispatch されたら古い方は不要
+concurrency:
+  group: app-expo-check-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  static-check:
+    name: typecheck・テスト
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: リポジトリを取得
+        uses: actions/checkout@v4
+
+      - name: PNPMをセットアップ
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10.8.0
+
+      - name: Node.jsをセットアップ
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: 依存関係をインストール
+        run: pnpm install --frozen-lockfile
+
+      - name: sharedパッケージをビルド
+        # app-expo の typecheck は shared/dist を前提にしている
+        run: pnpm --filter shared build
+
+      - name: typecheck
+        run: pnpm --filter app-expo typecheck
+
+      - name: ユニットテスト
+        run: pnpm --filter app-expo test
+
+  android-build:
+    name: Android ネイティブビルド（EAS の代替検証）
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: リポジトリを取得
+        uses: actions/checkout@v4
+
+      - name: PNPMをセットアップ
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10.8.0
+
+      - name: Node.jsをセットアップ
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: JDKをセットアップ
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Gradleキャッシュ
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      - name: 依存関係をインストール
+        run: pnpm install --frozen-lockfile
+
+      - name: sharedパッケージをビルド
+        run: pnpm --filter shared build
+
+      - name: ネイティブプロジェクトを生成（prebuild）
+        working-directory: app-expo
+        # android/ は Git 管理していないため、EAS Build と同じく毎回生成する。
+        # config plugin の適用失敗はこの時点で検出できる。
+        run: npx expo prebuild --clean --platform android --no-install
+
+      - name: 生成された Android 設定を表示
+        working-directory: app-expo/android
+        # targetSdk / edge-to-edge / 新アーキテクチャが期待どおりかをログへ残す
+        run: |
+          set -euo pipefail
+          echo "--- gradle.properties (抜粋) ---"
+          grep -E "newArchEnabled|edgeToEdgeEnabled|hermesEnabled|reactNativeArchitectures" gradle.properties || true
+          echo "--- 解決された SDK バージョン ---"
+          ./gradlew -q :app:properties --no-daemon 2>/dev/null \
+            | grep -E "^(compileSdkVersion|targetSdkVersion|minSdkVersion)" || true
+
+      - name: ビルド対象 ABI を絞る
+        working-directory: app-expo/android
+        # 検証目的なので全 ABI は要らない。CI 時間を大幅に短縮する。
+        run: sed -i 's/^reactNativeArchitectures=.*/reactNativeArchitectures=arm64-v8a/' gradle.properties
+
+      - name: Android をビルド（assembleDebug）
+        working-directory: app-expo/android
+        # Gradle のスタックトレースは数百行あり、末尾だけ見ても原因が分からない。
+        # 全出力をファイルへ残し、失敗時は次の step で要点だけを抜き出す。
+        run: |
+          set -o pipefail
+          ./gradlew :app:assembleDebug --no-daemon 2>&1 | tee /tmp/gradle-build.log
+
+      - name: 失敗原因を抽出
+        if: failure()
+        run: |
+          echo "===== コンパイルエラー (e: / error: ) ====="
+          grep -nE "^(e:|error:|\s+e:)" /tmp/gradle-build.log | head -60 || echo "(該当なし)"
+          echo
+          echo "===== 失敗したタスク ====="
+          grep -nE "^(FAILURE:|\* What went wrong:|Execution failed for task|> Task .* FAILED)" -A 4 /tmp/gradle-build.log | head -60 || echo "(該当なし)"
+          echo
+          echo "===== warning/deprecation を除いた末尾 120 行 ====="
+          grep -vE "^\s+at (org|java|jdk|kotlin)\." /tmp/gradle-build.log | tail -120
+
+      - name: Gradle ログを保存
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gradle-build-log
+          path: /tmp/gradle-build.log
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: 生成された APK を確認
+        working-directory: app-expo
+        run: find android -name "*.apk" -exec ls -lh {} \;
+
+  ios-build:
+    name: iOS ネイティブビルド（EAS の代替検証）
+    runs-on: macos-15
+    timeout-minutes: 90
+    steps:
+      - name: リポジトリを取得
+        uses: actions/checkout@v4
+
+      # #1156 【重要】このジョブは「EAS の代替検証」を名乗る以上、EAS と同じツールチェインで
+      # 組まなければ意味が無い。macos-15 の既定 Xcode は 16.4 だが、eas.json の iOS プロファイルは
+      # development / preview / production のいずれも `macos-sequoia-15.6-xcode-26.2` を指定している。
+      # 選択しないままだと **Xcode 26.2 でしか出ないネイティブのコンパイル失敗を取りこぼしたまま
+      # success を返す**（＝ EAS を消費してから初めて気付く）。
+      # e2e-mobile-test.yml が同じ runner で明示切り替えしているのと同じ理由・同じバージョンに揃える。
+      - name: Xcode 26.2 を選択
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "26.2"
+
+      - name: PNPMをセットアップ
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10.8.0
+
+      - name: Node.jsをセットアップ
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: 依存関係をインストール
+        run: pnpm install --frozen-lockfile
+
+      - name: sharedパッケージをビルド
+        run: pnpm --filter shared build
+
+      - name: ネイティブプロジェクトを生成（prebuild）
+        working-directory: app-expo
+        # ios/ は Git 管理していないため、EAS Build と同じく毎回生成する。
+        # config plugin（expo-build-properties の useFrameworks、withNonModularHeaders 等）の
+        # 適用失敗はこの時点で検出できる。
+        run: npx expo prebuild --clean --platform ios --no-install
+
+      - name: CocoaPodsキャッシュ
+        uses: actions/cache@v4
+        with:
+          path: app-expo/ios/Pods
+          # #1156 キャッシュ対象は spec リポジトリではなく `pod install` の生成物なので、
+          # Xcode を切り替えると前のツールチェインで生成した Pods を引き当てうる。
+          # キーにも restore-keys にも Xcode バージョンを含めて世代を分ける。
+          key: pods-${{ runner.os }}-xcode26.2-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            pods-${{ runner.os }}-xcode26.2-
+
+      - name: Podをインストール
+        working-directory: app-expo/ios
+        run: pod install
+
+      - name: iOS をビルド（実機向け・署名なし）
+        working-directory: app-expo/ios
+        # EAS の development プロファイルは実機向けビルドである。
+        # シミュレータ向けビルドでは Clang のモジュール解決が異なり、実機でだけ出る
+        # モジュールインポート順のエラーを取り逃がす（実際に #1156 で取り逃がした）。
+        # そのため destination は generic/platform=iOS（実機）に合わせる。
+        # 署名だけは EAS に任せ、ここではコンパイルが通ることを見る。
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -workspace nanitabeyo.xcworkspace \
+            -scheme nanitabeyo \
+            -configuration Debug \
+            -destination 'generic/platform=iOS' \
+            -quiet \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build 2>&1 | tee /tmp/xcodebuild.log
+
+      - name: 失敗原因を抽出
+        if: failure()
+        run: |
+          echo "===== error: 行 ====="
+          grep -nE "^(.*error:|.*\*\* BUILD FAILED)" /tmp/xcodebuild.log | head -60 || echo "(該当なし)"
+          echo
+          echo "===== non-modular header 警告 ====="
+          grep -n "non-modular-include-in-framework-module" /tmp/xcodebuild.log | head -20 || echo "(該当なし)"
+          echo
+          echo "===== 末尾 120 行 ====="
+          tail -120 /tmp/xcodebuild.log
+
+      - name: xcodebuild ログを保存
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-log
+          path: /tmp/xcodebuild.log
+          if-no-files-found: ignore
+          retention-days: 14

@@ -98,6 +98,11 @@ export class SearchScreen {
 	readonly locationClearButton = by.id("search-location-autocomplete-clear");
 	/** 場所サジェストのリスト */
 	readonly locationSuggestions = by.id("search-location-autocomplete-suggestions");
+	/** 「最近使った場所」のリスト（#953。e2e-web の recentLocationsList に対応）。
+	 *  未入力でフォーカスしたときだけ描画される */
+	readonly recentLocationsList = by.id("search-location-autocomplete-recent-locations");
+	/** 「最近使った場所」を全件クリアするボタン（1件以上あるときだけ描画される） */
+	readonly recentLocationsClearButton = by.id("search-location-autocomplete-recent-locations-clear");
 	/** 入力欄右端の「現在地を使う」ボタン */
 	readonly currentLocationButton = by.id("search-current-location-button");
 
@@ -165,6 +170,11 @@ export class SearchScreen {
 	/** n 番目の場所サジェスト（0 始まり） */
 	locationSuggestion(index: number): Detox.NativeMatcher {
 		return by.id(`search-location-autocomplete-suggestion-${index}`);
+	}
+
+	/** n 番目の「最近使った場所」（0 始まり、先頭が最新） */
+	recentLocation(index: number): Detox.NativeMatcher {
+		return by.id(`search-location-autocomplete-recent-location-${index}`);
 	}
 
 	/** 時間帯グリッドの項目（id は app-expo/features/search/constants.ts の timeSlots の値） */
@@ -352,6 +362,80 @@ export class SearchScreen {
 		await tapWhenVisible(this.locationSuggestion(index));
 	}
 
+	/**
+<<<<<<< HEAD
+	 * 場所入力欄をタップしてフォーカスを与える（#528）。
+	 *
+	 * `typeLocation()` から入力操作だけを切り離したもの。`LocationAutocomplete` は
+	 * `showSuggestions = 入力あり && フォーカス中` で候補を出すため、**入力済みの文字列を消さずに
+	 * 候補パネルだけ開き直したい**ときに使う。
+	 */
+	async focusLocationInput(): Promise<void> {
+		await tapWhenVisible(this.locationInput);
+	}
+
+	/**
+	 * 場所入力欄の現在値を読む（#528）。
+	 *
+	 * ⚠️ **アサーションの主観測点にはしないこと。** Detox の `toHaveValue` / `toHaveText` は
+	 * TextInput に対する挙動がプラットフォームで揺れる（location-autocomplete.test.ts の
+	 * ヘッダに既に書いてあるとおり、既存 spec は「クリアボタンの有無」へ置き換えている）。
+	 * ここで `getAttributes()` を使うのは **「入力欄に何かが入った」ことを補助的に見る**ためで、
+	 * 「選択が成立した」の判定は検索が通ること（`submit()` 後に画面が進むこと）で行う。
+	 *
+	 * 戻り値の型が iOS / Android で分かれるため `text` だけを拾う形に絞る
+	 * （`readPreloadProbeDetail()` / ResultScreen.ts の読み取りと同じ扱い）。
+	 *
+	 * @returns 入力欄のテキスト。読めなかった場合は空文字
+	 */
+	async readLocationInputText(): Promise<string> {
+		try {
+			const attributes = (await element(this.locationInput).getAttributes()) as { text?: string };
+			return attributes.text ?? "";
+		} catch {
+			// 「まだ描画されていない」「属性を読めない」はどちらも空扱いにする。
+			// 呼び出し側は「空でないこと」を見るため、読めなければ素直に失敗すればよい
+			return "";
+		}
+	}
+
+	/**
+	 * 場所入力欄のリターンキーを押してキーボードを閉じる（#528 / ベストエフォート）。
+	 *
+	 * `clearLocationIfPresent()` が内部で使っているものと同じ操作を spec から呼べるようにしたもの。
+	 * Detox にプラットフォーム共通の「キーボードを閉じる」API は無く、Android は IME 自体を
+	 * 無効化してある（scripts/setup-android-locale.sh）ためそもそもキーボードが出ない。
+	 * **失敗しても検証を止めない**（環境差で落ちても、その失敗は検証したい事実と無関係なため）。
+	 */
+	async dismissKeyboardIfOpen(): Promise<void> {
+		await this.dismissKeyboard();
+	}
+
+	/**
+	 * 「最近使った場所」パネルを表示する（e2e-web の openRecentLocations に対応）。
+	 *
+	 * `LocationAutocomplete` は「入力が空 && フォーカス中」のときだけこのパネルを出す
+	 * （showRecentLocations の条件）。`clearLocationIfPresent` はクリア後にリターンキーで
+	 * キーボードを閉じてしまう（= blur してパネルが閉じる）ため、そのあとで
+	 * 明示的に入力欄をタップし直してフォーカスを確定させる。
+	 */
+	async openRecentLocations(): Promise<void> {
+		await this.clearLocationIfPresent();
+		await tapWhenVisible(this.locationInput);
+		await waitUntilVisible(this.recentLocationsList);
+	}
+
+	/**
+	 * n 番目の「最近使った場所」の accessibilityLabel（= `RecentLocation.locationQuery`）を読み取る。
+	 *
+	 * 実 API の検索結果は地名も件数も事前に確定できないため、e2e-web のように入力欄の値を
+	 * 直接アサートするのではなく、ResultScreen の likeLabel と同じ「ラベルを読んで比較する」
+	 * 方式に倣う（値そのものではなく、選び直し前後で一致/変化したことを検証する）。
+	 */
+	async recentLocationLabel(index: number): Promise<string> {
+		return readLabel(this.recentLocation(index), 0);
+	}
+
 	/** 時間帯を選択する */
 	async selectTimeSlot(id: "morning" | "lunch" | "dinner" | "late_night"): Promise<void> {
 		await tapWhenVisible(this.timeSlot(id));
@@ -443,23 +527,31 @@ export class SearchScreen {
 	 *
 	 * #1086 「どちらかが見えるまで待つ → 排他を確認する」の順にしている。先に「つぎへ」だけを
 	 * 固定時間待つ書き方だと、連打で最終ページへ到達しているケースで毎回その待ち時間を捨てることになる。
+	 *
+	 * #1156 【バグ】以前は「どちらかが見えた瞬間」の 2 回の読み取りを**そのまま**排他判定に使っていた。
+	 * `nextShown` と `finishShown` は別々の Detox 問い合わせ（各 1 秒）なので、その **間に**
+	 * FlatList のページ送りアニメーションが着地して `currentPage` が進むと、
+	 * 「つぎへ（読み取り時点）」と「はじめよう（読み取り時点）」が両方 true になり、
+	 * アプリが壊れていなくても落ちる（run 31094008189 の iOS がこれ）。
+	 * SDK 54 でアニメーションの着地タイミングが変わり顕在化した。
+	 *
+	 * そこで **排他そのものを待機条件**にする。一過性の二重観測は待ち直して吸収し、
+	 * 「CTA ごと消えた」「本当に二重になっている」場合だけタイムアウトで落ちる。
+	 * 検知できる壊れ方は従来と変わらない。
 	 */
 	async expectTutorialOperable(): Promise<void> {
-		let nextShown = false;
-		let finishShown = false;
-
 		await waitUntil(
 			async () => {
-				nextShown = await visibleNow(this.tutorialNextButton, 1_000, SearchScreen.TUTORIAL_INDEX);
-				finishShown = await visibleNow(this.tutorialFinishButton, 1_000, SearchScreen.TUTORIAL_INDEX);
-				return nextShown || finishShown;
+				const nextShown = await visibleNow(this.tutorialNextButton, 1_000, SearchScreen.TUTORIAL_INDEX);
+				const finishShown = await visibleNow(this.tutorialFinishButton, 1_000, SearchScreen.TUTORIAL_INDEX);
+				return nextShown !== finishShown;
 			},
 			{
-				description: "連打後にチュートリアルのプライマリ CTA（つぎへ / はじめよう）が見えていること",
+				description:
+					"連打後にチュートリアルのプライマリ CTA（つぎへ / はじめよう）がちょうど一方だけ見えていること" +
+					"（両方見えない = CTA ごと消えた / 両方見える = 二重になっている）",
 			},
 		);
-
-		assert.equal(nextShown !== finishShown, true, "連打後にチュートリアルのプライマリ CTA が二重になっている");
 	}
 
 	/**
@@ -555,4 +647,16 @@ export class SearchScreen {
 			.whileElement(this.scrollView)
 			.scroll(pixels, "down", 0.5, 0.5);
 	}
+}
+
+/**
+ * 指定要素の accessibilityLabel を取得する（ResultScreen.ts の readLabel と同じ仕組み）。
+ *
+ * `getAttributes()` の戻り値は iOS / Android・単一 / 複数一致で型が分かれるが、
+ * `atIndex()` で 1 件に絞っているため `label` を持つ形にしかならない。
+ * 型定義がその絞り込みを表現できないので、ここで局所的に吸収する。
+ */
+async function readLabel(matcher: Detox.NativeMatcher, index: number): Promise<string> {
+	const attributes = (await element(matcher).atIndex(index).getAttributes()) as { label?: string };
+	return attributes.label ?? "";
 }

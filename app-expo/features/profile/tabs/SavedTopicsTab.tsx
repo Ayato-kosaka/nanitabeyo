@@ -14,8 +14,9 @@ import { useLocale } from "@/hooks/useLocale";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { useTopicsStore, selectTopicIdsByKey, DishCategory } from "@/stores/useTopicsStore";
 import type { QueryMeSavedDishCategoriesDto } from "@shared/api/v1/dto";
-import type { QueryMeSavedDishCategoriesResponse } from "@shared/api/v1/res";
-import type { AutocompleteLocation } from "@shared/api/v1/res";
+import type { LocationDetailsResponse, QueryMeSavedDishCategoriesResponse } from "@shared/api/v1/res";
+import type { SelectedLocation } from "@/features/search/hooks/useLocationField";
+import { useRecentLocations } from "@/features/search/hooks/useRecentLocations";
 import { shallow } from "zustand/shallow";
 import { makeDishMediaEntriesKey } from "@/features/dishMedia/utils/dishMediaEntriesKey";
 import { DEFAULT_PRICE_LEVELS, DEFAULT_SEARCH_RADIUS } from "@/features/topics/constants";
@@ -34,6 +35,13 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 	const { callBackend } = useAPICall();
 	const { createDishItemsPromise } = useTopicSearch();
 	const { getLocationDetails } = useLocationSearch();
+	// #1133 【設計】「最近使った場所」への登録はここで行う。登録できるのは details が解決した後
+	// (＝遷移後に走る getIds() の中)であり、その時点でモーダル内の LocationSearchForm は
+	// 閉じているため、フォーム側(useLocationField)には置けない。
+	// ストレージはホームと共有する(#953 の recent_locations_v1)ので、キーは増やさない。
+	// ⚠️ この経路の検証は SavedTopicsTab.test.tsx にある。viewport の除去・details を叩くかの分岐は
+	// 型では守れないため、ここを触ったら必ずテストを一緒に見ること。
+	const { addRecentLocation } = useRecentLocations();
 
 	const {
 		ids: topicIds,
@@ -133,7 +141,7 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 
 	// Handle location selection from autocomplete
 	const handleLocationSelect = useCallback(
-		async (location: AutocompleteLocation) => {
+		async (selected: SelectedLocation) => {
 			if (!selectedTopic) return;
 
 			// Close modal first
@@ -143,7 +151,19 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 				useDishMediaEntriesStore.getState();
 			const entriesKey = makeDishMediaEntriesKey({
 				categoryId: selectedTopic.id,
-				location: { place_id: location.place_id },
+				// #1133 【設計】経路によって手元にある情報が違うため、location キーを作り分ける。
+				// サジェストは place_id しか持たず(緯度経度は details API を叩くまで不明)、
+				// 現在地・最近使った場所は緯度経度だけを持ち place_id を持たない。
+				// makeDishMediaEntriesKey(#633) は両形式を受けるので、ここで詰め替えは不要。
+				// ⚠️ 結果として同じ地点でも経路が違えば別キーになる(`pid:` と `ll:`)。これは
+				// ホーム(常に `ll:`)と保存料理(従来 `pid:`)の間に元からある非対称で、今回広げない。
+				location:
+					selected.kind === "prediction"
+						? { place_id: selected.prediction.place_id }
+						: {
+								latitude: selected.location.location.latitude,
+								longitude: selected.location.location.longitude,
+							},
 				radius: DEFAULT_SEARCH_RADIUS,
 				priceLevels: [...DEFAULT_PRICE_LEVELS],
 				// #817 端末言語でレビューの並びが変わるためキーに含める
@@ -152,8 +172,20 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 
 			if (mediaIdsByKey[entriesKey] === undefined && !isLoadingByKey[entriesKey]) {
 				const getIds = async () => {
-					// Get location details including coordinates and language code
-					const locationDetails = await getLocationDetails(location);
+					// #1133 サジェスト経由だけ details を取りに行く。現在地・最近使った場所は緯度経度が
+					// 確定済みなので、遷移前にも遷移後にも API 待ちを増やさない。
+					let locationDetails: Omit<LocationDetailsResponse, "viewport">;
+					if (selected.kind === "prediction") {
+						const details = await getLocationDetails(selected.prediction);
+						// #1133 【仕様】details が取れて初めて緯度経度が判るので、ここで初めて登録できる。
+						// viewport はスプレッドすると型上は Omit していても実行時に残るため明示的に除く。
+						// 最近使った場所経由は既にリストにあり、MRU の先頭移動(#1129)は useLocationField 側が担う。
+						const { viewport: _viewport, ...locationWithoutViewport } = details;
+						addRecentLocation({ ...locationWithoutViewport, locationQuery: selected.locationQuery });
+						locationDetails = locationWithoutViewport;
+					} else {
+						locationDetails = selected.location;
+					}
 
 					const dishItems = await createDishItemsPromise(
 						selectedTopic.id,
@@ -167,6 +199,11 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 				};
 				updateMediaIdsByKeyAsync(entriesKey, getIds(), (_, ids) => ids);
 			}
+
+			// #1133 【既知の制約】getIds() は entriesKey が未取得のときしか走らないため、
+			// 同じカテゴリ×同じ地点で 2 回目に検索したときは「最近使った場所」への登録が起きない。
+			// 解消には遷移前に getLocationDetails を await する必要があり、モーダル上に
+			// ローディングとエラー処理を新設することになるため今回は採らない(別 Issue)。
 
 			// Navigate to result screen (referenced from topics.tsx handleViewDetails)
 			// Stay within profile tab as required
@@ -183,12 +220,22 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 				error_level: "log",
 				payload: {
 					topicId: selectedTopic.id,
-					location: location.text,
+					location: selected.locationQuery,
 					categoryId: selectedTopic.id,
+					// #1133 どの経路で地点が決まったかを出所として残す(サジェスト / 現在地・最近使った場所)
+					source: selected.kind,
 				},
 			});
 		},
-		[selectedTopic, closeLocationModal, createDishItemsPromise, locale, logFrontendEvent, getLocationDetails],
+		[
+			selectedTopic,
+			closeLocationModal,
+			createDishItemsPromise,
+			locale,
+			logFrontendEvent,
+			getLocationDetails,
+			addRecentLocation,
+		],
 	);
 
 	const handleLocationCancel = useCallback(() => {

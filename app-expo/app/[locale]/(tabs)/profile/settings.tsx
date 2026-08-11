@@ -27,6 +27,7 @@ import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useRouter } from "expo-router";
 import { useLocale } from "@/hooks/useLocale";
 import { ScreenHeader } from "@/components/ScreenHeader";
+import { openExternalUrl } from "@/lib/openExternalUrl";
 
 interface SettingsMenuItemProps {
 	label: string;
@@ -189,7 +190,9 @@ export default function SettingsScreen() {
 			const canOpenPrimary = await Linking.canOpenURL(primaryUrl);
 			const urlToOpen = canOpenPrimary ? primaryUrl : fallbackUrl;
 
-			await Linking.openURL(urlToOpen);
+			// #1121 外部遷移は openExternalUrl へ統一する。
+			// ここは上で web を早期 return しているので実行されるのはネイティブのみ
+			await openExternalUrl(urlToOpen);
 
 			logFrontendEvent({
 				event_name: "settings_leave_review_open_store_success",

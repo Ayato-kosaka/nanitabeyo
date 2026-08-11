@@ -104,15 +104,22 @@ const PrimaryButtonComponent: React.FC<PrimaryButtonProps> = ({
 		[style, borderRadius, isDisabled],
 	);
 
+	// #1136 【設計】ボタン内スピナーの testID。web は LoadingIndicator が出す `role="status"` で
+	// 特定できるが、ネイティブには相当する手掛かりが無く「投稿中かどうか」を Detox から観測できない。
+	// 呼び出し側が testID を渡しているボタンでだけ `${testID}-loading` を派生させる（見た目は変わらない）。
+	const loadingTestID = testID ? `${testID}-loading` : undefined;
+
 	const renderLoading = () => {
 		if (!loading) return null;
 
 		if (loadingIndicatorType === "native") {
 			const flattenedLabelStyle = StyleSheet.flatten(labelStyle) as TextStyle | undefined;
 			const defaultNativeColor = flattenedLabelStyle?.color ?? "#FFFFFF";
-			return <ActivityIndicator size={"small"} color={nativeLoadingColor ?? defaultNativeColor} />;
+			return (
+				<ActivityIndicator size={"small"} color={nativeLoadingColor ?? defaultNativeColor} testID={loadingTestID} />
+			);
 		}
-		return <LoadingIndicator size="small" />;
+		return <LoadingIndicator size="small" testID={loadingTestID} />;
 	};
 
 	return (
