@@ -1,4 +1,4 @@
-import { by, device, launchAppWithSession, waitUntilExists, waitUntilVisible } from "../../fixtures/e2e";
+import { by, launchAppWithSession, waitUntilExists, waitUntilVisible } from "../../fixtures/e2e";
 import { APP_SCHEME } from "../../utils/locale";
 
 /**
@@ -39,32 +39,31 @@ describe("共有リンクからの起動 @smoke", () => {
 	const WELL_FORMED_TOKEN = "s1_0123456789abcdefghijkl";
 
 	/**
-	 * ⚠️ **解決画面は «消える» 画面である。** ここを踏み外して 1 度 CI を赤くした。
+	 * ⚠️ **解決画面は «消える» 画面である。** ここを踏み外して 2 度 CI を赤くした。
 	 *
 	 * `app/s/[token].tsx` は mount した瞬間に resolve を投げ、返ってきたら即 `router.replace` する。
 	 * つまり `share-link-resolver` が出ているのは **resolve の往復の間だけ**。
-	 * 素直に書くと 2 か所で「往復の完了を待ってから」観測してしまい、必ず取り逃がす:
 	 *
-	 * 1. `launchAppWithSession` の既定 `waitForReady: true` は **タブバー**を待つ。
-	 *    タブバーは解決画面には無く、ホームへ落ちて初めて現れる。
-	 *    → 起動ヘルパを抜けた時点で解決画面は既に無い。だから `waitForReady: false` にする。
-	 * 2. Detox の同期機構は **進行中のネットワーク要求がある間アプリを busy と見なす**ため、
-	 *    matcher の評価を resolve 完了まで待ってしまう。
-	 *    → `setURLBlacklist` で resolve の URL だけ同期対象から外す（要求自体は普通に飛ぶ）。
+	 * ## 1 度目: `waitForReady` が往復の完了を待っていた
+	 * `launchAppWithSession` の既定 `waitForReady: true` は **タブバー**を待つ。
+	 * タブバーは解決画面には無く、ホームへ落ちて初めて現れる。
+	 * つまり起動ヘルパを抜けた時点で解決画面は既に無く、その後 25 秒待っても出てこない。
+	 * → このファイルでは `waitForReady: false` で起動する。
 	 *
-	 * この 2 つを外して初めて「往復の最中」を観測できる。
+	 * ## 2 度目: `device.setURLBlacklist` を beforeAll で呼んだ
+	 * 「Detox の同期機構が resolve の往復の間アプリを busy と見なすのでは」と考えて
+	 * `beforeAll` で `setURLBlacklist` を呼んだが、**これはアプリへの invoke** であり、
+	 * まだアプリを起動していない `beforeAll` では届かず suite ごと 6 秒で落ちた
+	 * （`The following package could not be delivered: { type: 'invoke' }`）。
+	 *
+	 * そもそもこの心配は不要だった。赤かった run のログで Detox は待機中に
+	 * **「The app seems to be idle」**と出しており（busy ではない）、
+	 * 同期機構は往復をブロックしていない。ブロッカーは `waitForReady` だけだった。
+	 * ⚠️ 同じ発想で `setURLBlacklist` を足し直さないこと。必要なら
+	 * `launchApp` の `detoxURLBlacklistRegex` 起動引数を使う（起動前に効かせられる唯一の口）。
+	 *
 	 * 観測は `toExist` で行う（`toBeVisible` の 75% 面積判定は spinner 1 個の画面では余計な変数になる）。
 	 */
-	const RESOLVE_URL_PATTERN = ".*share-links.*";
-
-	beforeAll(async () => {
-		await device.setURLBlacklist([RESOLVE_URL_PATTERN]);
-	});
-
-	afterAll(async () => {
-		// 他の spec の同期を壊さないよう必ず戻す（Detox のこの設定はデバイス単位で残る）
-		await device.setURLBlacklist([]);
-	});
 
 	// ─ テストケース: /s/:token で起動すると解決画面まで届く ─
 	// 手順:
