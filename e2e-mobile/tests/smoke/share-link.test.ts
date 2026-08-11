@@ -1,5 +1,6 @@
 import { by, launchAppWithSession, waitUntilVisible } from "../../fixtures/e2e";
 import { APP_SCHEME } from "../../utils/locale";
+import { createShareLinkToken } from "../../utils/shareLink";
 
 /**
  * 🔗 共有リンク `/s/:token` からの起動（#721）@smoke
@@ -22,12 +23,18 @@ import { APP_SCHEME } from "../../utils/locale";
  * 判定そのものは `app-expo/lib/deepLinkTarget.test.ts` が純関数として全分岐を固定している。
  * ここで見るのは **その判定が実際の起動経路に効いているか**（ルーティングまで込みの結合）。
  *
- * ## なぜ「実在する共有リンク」を作らないのか
- * 実在トークンを使うには dev DB へ 1 行 INSERT する必要があり、@smoke の階層
- *（読み取りのみ・全ブラウザ相当で回す層）から外れてしまう。
- * ここで守りたい不変条件は「`/s/...` が **捨てられずに解決画面まで届く**」ことなので、
- * 解決に失敗するトークンでも成立する（解決画面は必ず 1 度描画される）。
- * 解決結果の遷移先は `app-expo/lib/shareLinkRoute.test.ts` が固定している。
+ * ## 「実在する共有リンク」を作る（当初は避けていた）
+ * 最初は dev DB への書き込みを避けたくて **解決できないトークン**で書いていたが、
+ * それでは「捨てられた」と「受け取って解決に失敗した」を区別できない（どちらもホームへ着地する）。
+ * 区別できる唯一の観測点だった «途中の解決画面» は速すぎて取り逃がす（下の JSDoc 参照）。
+ *
+ * そこで `POST /v1/share-links` で実在するリンクを 1 本作り、**着地先**を観測する。
+ * 共有リンクは API 経由でしか作れない（`preview_title` / `preview_image_path` を
+ * サーバ側 Resolver が作るため DB を直接いじる代替がない）。e2e-web の
+ * `tests/share/share-link-ogp.spec.ts` も同じことをしている。
+ * 追記されるのは共有リンク 1 行だけで他のテストと共有する状態は作らないため、@smoke に置いたままにする。
+ *
+ * 解決結果 → 遷移先の変換そのものは `app-expo/lib/shareLinkRoute.test.ts` が固定している。
  */
 describe("共有リンクからの起動 @smoke", () => {
 	/**
@@ -38,18 +45,49 @@ describe("共有リンクからの起動 @smoke", () => {
 	 */
 	const WELL_FORMED_TOKEN = "s1_0123456789abcdefghijkl";
 
-	// ─ テストケース: /s/:token で起動すると解決画面まで届く ─
+	/**
+	 * ⚠️ **解決画面を観測点にしないこと。** ここを踏み外して 2 度 CI を赤くした。
+	 *
+	 * `app/s/[token].tsx` は mount した瞬間に resolve を投げ、返ってきたら即 `router.replace` する。
+	 * つまり `share-link-resolver` が出ているのは **resolve の往復の間だけ**で、実測で数秒。
+	 * Detox は「アプリが idle になってから」matcher を評価するため **原理的に取り逃がす**
+	 * （`waitForReady` を外し `toExist` にしても 25 秒待って落ちた）。
+	 *
+	 * ⚠️ `device.setURLBlacklist` で直そうとしないこと。あれは «実行中のアプリへの invoke» なので
+	 * `beforeAll`（まだアプリを起動していない）では届かず suite ごと落ちる。実際に落とした。
+	 * そもそも赤い run のログで Detox は待機中に「The app seems to be idle」と出しており、
+	 * 同期機構は往復をブロックしていない。原因は «速すぎる» ことだけである。
+	 *
+	 * ## だから «実在する共有リンク» を使う
+	 * 解決できないトークンでは「捨てられた」と「受け取って解決に失敗した」を区別できない
+	 * （どちらもホームへ着地する）。実在するリンクなら着地先そのものが変わる:
+	 *
+	 * - 捨てられた → ホーム（検索タブ）
+	 * - 受け取れた → 投稿画面（`posts-screen`）
+	 *
+	 * 着地先は過渡状態ではなく **留まる状態**なので、待てば必ず観測できる。
+	 */
+
+	/** この spec 用に作る実在の共有リンク（dish_media を 1 件指す） */
+	let realToken: string;
+
+	beforeAll(async () => {
+		realToken = await createShareLinkToken();
+		// 推薦 + 検索 + 作成の 3 往復。カテゴリが 0 件なら次を試すので長めに取る
+	}, 300_000);
+
+	// ─ テストケース: 実在する /s/:token で起動すると、その行き先まで届く ─
 	// 手順:
-	//   1. "nanitabeyo:///s/s1_..." を組み立てる（ロケールセグメントを持たない URL）
-	//   2. そのディープリンクから直接起動する
-	//   3. 共有リンク解決画面（share-link-resolver）が描画されることを検証
+	//   1. 実在する dish_media を指す共有リンクを API で作る（beforeAll）
+	//   2. "nanitabeyo:///s/<token>" から直接起動する（ロケールセグメントを持たない URL）
+	//   3. 投稿画面（posts-screen）が表示されることを検証
 	//
 	// 修正前はここで検索タブ（ホーム）が出る。つまりこのアサーションが
 	// 「ディープリンクが捨てられていない」ことの直接の証拠になる
-	it("ロケールを持たない /s/:token でもホームへ落ちず、解決画面まで届く", async () => {
-		await launchAppWithSession({ as: "anon", url: `${APP_SCHEME}:///s/${WELL_FORMED_TOKEN}` });
+	it("ロケールを持たない /s/:token でもホームへ落ちず、共有先まで届く", async () => {
+		await launchAppWithSession({ as: "anon", url: `${APP_SCHEME}:///s/${realToken}` });
 
-		await waitUntilVisible(by.id("share-link-resolver"));
+		await waitUntilVisible(by.id("posts-screen"));
 	});
 
 	// ─ テストケース: 解決に失敗しても白い画面で止まらない ─
@@ -62,8 +100,8 @@ describe("共有リンクからの起動 @smoke", () => {
 	it("解決できないトークンではホームへ落とす（解決画面で固まらない）", async () => {
 		await launchAppWithSession({ as: "anon", url: `${APP_SCHEME}:///s/${WELL_FORMED_TOKEN}` });
 
-		await waitUntilVisible(by.id("share-link-resolver"));
-		// deep-link.test.ts と同じ観測点。ここへ来ていれば「固まっていない」ことが言える
+		// deep-link.test.ts と同じ観測点。ここへ来ていれば「解決画面で固まっていない」ことが言える。
+		// ⚠️ ここで解決画面を先に待たないこと。速すぎて取り逃がすだけで、理由の無い flaky になる
 		await waitUntilVisible(by.id("search-header-title"));
 	});
 });

@@ -107,7 +107,30 @@ export function ProfileTabsLayout() {
 	const tabsContainerRef = useRef<{ jumpToTab?: (name: string) => void } | null>(null);
 	useEffect(() => {
 		if (!requestedTab) return;
-		tabsContainerRef.current?.jumpToTab?.(requestedTab);
+
+		// ⚠️ 1 回呼んで終わりにしないこと。**ディープリンクで直接この画面へ着地した場合**、
+		// この effect が走る時点で ref がまだ埋まっていないことがあり、`?.()` が黙って
+		// 捨てられて二度と再試行されない。結果「?tab= が効く端末と効かない端末がある」
+		// という切り分けの難しい形で壊れる（iOS の Detox が先頭タブのまま止まって捕まえた）。
+		// 効いたかどうかは外から観測できないので、ref が生えるまで短間隔で試し、
+		// 生えたら 1 度だけ呼んで止める。
+		if (tabsContainerRef.current?.jumpToTab) {
+			tabsContainerRef.current.jumpToTab(requestedTab);
+			return;
+		}
+
+		let attempts = 0;
+		const timer = setInterval(() => {
+			attempts += 1;
+			if (tabsContainerRef.current?.jumpToTab) {
+				tabsContainerRef.current.jumpToTab(requestedTab);
+				clearInterval(timer);
+			} else if (attempts >= 20) {
+				// 2 秒待っても生えないのは別の異常。無限に回さない
+				clearInterval(timer);
+			}
+		}, 100);
+		return () => clearInterval(timer);
 	}, [requestedTab, tabRequestParam]);
 
 	const handleHeaderLayout = useCallback((event: LayoutChangeEvent) => {
