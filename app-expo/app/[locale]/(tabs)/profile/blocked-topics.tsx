@@ -244,7 +244,13 @@ export default function BlockedTopicsScreen() {
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
 			<SafeAreaView style={styles.safeArea} edges={[]}>
-				<ScreenHeader title={i18n.t("Settings.blockedTopics.pageTitle")} onPressBack={handleBack} />
+				{/* #1132 【設計】ヘッダーのタイトル文言そのものが検証対象のため testID を付与する
+				    （ScreenHeader はタイトル Text へ `${testID}-title` を付ける。見た目は変わらない） */}
+				<ScreenHeader
+					testID="blocked-topics-header"
+					title={i18n.t("Settings.blockedTopics.pageTitle")}
+					onPressBack={handleBack}
+				/>
 
 				<View style={styles.blockedTopicsContainer}>
 					<View style={styles.sheet}>

@@ -8,6 +8,7 @@ import {
 	ScrollView,
 	Platform,
 	AccessibilityInfo,
+	Keyboard,
 } from "react-native";
 import { useDishCategorySearch } from "@/hooks/useDishCategorySearch";
 import { useHaptics } from "@/hooks/useHaptics";
@@ -149,6 +150,11 @@ export function DishCategoryAutocomplete({
 	const handleSuggestionPress = useCallback(
 		(suggestion: QueryDishCategoryVariantsResponse[number]) => {
 			lightImpact();
+			// #528 【設計】キーボードを閉じる責務は子（＝候補を押されたこのコンポーネント）が持つ。
+			// 以前は親の BlurModal がタップ**開始**時に閉じており、レイアウト再計算で候補リストが
+			// unmount されて onPress が潰れていた。onPress まで来ていればタップは成立済み。
+			// 詳細は LocationAutocomplete.tsx の同じ箇所を参照。
+			Keyboard.dismiss();
 			onSelectSuggestion(suggestion);
 			setShowSuggestions(false);
 

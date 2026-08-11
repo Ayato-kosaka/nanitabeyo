@@ -159,15 +159,22 @@ export function useBlurModal({
 								)}
 							</Pressable>
 
+							{/*
+							  #528 【修正】ここに `onStartShouldSetResponder` を付けてはいけない。
+							  以前は「レスポンダは奪わず（false を返す）副作用として Keyboard.dismiss() だけ行う」
+							  実装だったが、このコールバックはタップ**開始**時に呼ばれるため、
+							    候補タップ開始 → 親が Keyboard.dismiss() → キーボード高の変化でレイアウト再計算
+							    → 候補リストが畳まれて unmount → 子の onPress がキャンセル
+							  となり「キーボードだけ閉じて選択が反応しない」不具合になっていた
+							  （初回起動でだけ再現したのはレイアウトタイミングの揺らぎによるもので原因は同じ）。
+							  キーボードを閉じる責務は、背景タップの `handleBackdropPress` と
+							  子（オートコンプリート側の候補押下）だけが持つ。
+							*/}
 							<KeyboardAvoidingView
 								style={{ flex: 1 }}
 								behavior={Platform.OS === "ios" ? "padding" : "height"}
 								keyboardVerticalOffset={keyboardVerticalOffset}
-								pointerEvents="box-none"
-								onStartShouldSetResponder={() => {
-									Keyboard.dismiss();
-									return false; // ← 自分ではレスポンダを奪わない（子要素にタップを渡す）
-								}}>
+								pointerEvents="box-none">
 								{/* Content (non-blocking layout wrapper) */}
 								<View pointerEvents="box-none" style={[contenContinerWrapperStyle]}>
 									<View pointerEvents="auto" style={contentContainerStyle}>
