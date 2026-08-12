@@ -3,3 +3,7 @@ out/
 cache/
 .venv/
 __pycache__/
+
+# リポジトリ直下の .gitignore が *.csv を除外しているが、
+# 突合してもらう成果物と較正入力は再現性のため追跡する。
+!results/*.csv
