@@ -1,0 +1,948 @@
+{
+  "positive_seeds": 1000,
+  "negative_seeds": 300,
+  "rules": {
+    "strict_unique": {
+      "positive": {
+        "seeds": 1000,
+        "status_counts": {
+          "unmatched": 14,
+          "ineligible": 58,
+          "matched": 556,
+          "ambiguous": 372
+        },
+        "match_rate": 0.556,
+        "matched_geo_counts": {
+          "confirmed": 447,
+          "absent": 109
+        },
+        "matched_geo_confirmed_rate": 0.803957,
+        "detail_counts": {
+          "empty_result": 14,
+          "missing_name_or_address": 58,
+          "strict_unique": 556,
+          "multiple_candidates": 341,
+          "query_disagreement": 31
+        }
+      },
+      "collisions": {
+        "distinct_place_ids": 556,
+        "colliding_place_ids": 0,
+        "colliding_place_ids_over_200m": 0
+      },
+      "negative_control": {
+        "seeds": 300,
+        "false_matches": 34,
+        "false_match_rate": 0.113333,
+        "status_counts": {
+          "unmatched": 32,
+          "matched": 34,
+          "ambiguous": 234
+        }
+      }
+    },
+    "strict_unique+variant": {
+      "positive": {
+        "seeds": 1000,
+        "status_counts": {
+          "unmatched": 14,
+          "ineligible": 58,
+          "matched": 558,
+          "ambiguous": 370
+        },
+        "match_rate": 0.558,
+        "matched_geo_counts": {
+          "confirmed": 448,
+          "absent": 110
+        },
+        "matched_geo_confirmed_rate": 0.802867,
+        "detail_counts": {
+          "empty_result": 14,
+          "missing_name_or_address": 58,
+          "strict_unique": 556,
+          "multiple_candidates": 340,
+          "query_disagreement": 30,
+          "strict_unique+variant": 2
+        }
+      },
+      "collisions": {
+        "distinct_place_ids": 558,
+        "colliding_place_ids": 0,
+        "colliding_place_ids_over_200m": 0
+      },
+      "negative_control": {
+        "seeds": 300,
+        "false_matches": 34,
+        "false_match_rate": 0.113333,
+        "status_counts": {
+          "unmatched": 32,
+          "matched": 34,
+          "ambiguous": 234
+        }
+      }
+    },
+    "top1_agree": {
+      "positive": {
+        "seeds": 1000,
+        "status_counts": {
+          "unmatched": 14,
+          "ineligible": 58,
+          "matched": 772,
+          "ambiguous": 156
+        },
+        "match_rate": 0.772,
+        "matched_geo_counts": {
+          "confirmed": 620,
+          "absent": 152
+        },
+        "matched_geo_confirmed_rate": 0.803109,
+        "detail_counts": {
+          "empty_result": 14,
+          "missing_name_or_address": 58,
+          "top1_agree": 772,
+          "top1_disagreement": 156
+        }
+      },
+      "collisions": {
+        "distinct_place_ids": 771,
+        "colliding_place_ids": 1,
+        "colliding_place_ids_over_200m": 1
+      },
+      "negative_control": {
+        "seeds": 300,
+        "false_matches": 87,
+        "false_match_rate": 0.29,
+        "status_counts": {
+          "unmatched": 32,
+          "matched": 87,
+          "ambiguous": 181
+        }
+      }
+    },
+    "top1_agree+variant": {
+      "positive": {
+        "seeds": 1000,
+        "status_counts": {
+          "unmatched": 14,
+          "ineligible": 58,
+          "matched": 773,
+          "ambiguous": 155
+        },
+        "match_rate": 0.773,
+        "matched_geo_counts": {
+          "confirmed": 620,
+          "absent": 153
+        },
+        "matched_geo_confirmed_rate": 0.80207,
+        "detail_counts": {
+          "empty_result": 14,
+          "missing_name_or_address": 58,
+          "top1_agree": 772,
+          "top1_disagreement": 155,
+          "top1_agree+variant": 1
+        }
+      },
+      "collisions": {
+        "distinct_place_ids": 772,
+        "colliding_place_ids": 1,
+        "colliding_place_ids_over_200m": 1
+      },
+      "negative_control": {
+        "seeds": 300,
+        "false_matches": 87,
+        "false_match_rate": 0.29,
+        "status_counts": {
+          "unmatched": 32,
+          "matched": 87,
+          "ambiguous": 181
+        }
+      }
+    },
+    "intersection_unique": {
+      "positive": {
+        "seeds": 1000,
+        "status_counts": {
+          "unmatched": 14,
+          "ineligible": 58,
+          "matched": 762,
+          "ambiguous": 166
+        },
+        "match_rate": 0.762,
+        "matched_geo_counts": {
+          "confirmed": 604,
+          "absent": 158
+        },
+        "matched_geo_confirmed_rate": 0.792651,
+        "detail_counts": {
+          "empty_result": 14,
+          "missing_name_or_address": 58,
+          "intersection_unique": 762,
+          "no_intersection": 112,
+          "multi_intersection": 54
+        }
+      },
+      "collisions": {
+        "distinct_place_ids": 761,
+        "colliding_place_ids": 1,
+        "colliding_place_ids_over_200m": 1
+      },
+      "negative_control": {
+        "seeds": 300,
+        "false_matches": 101,
+        "false_match_rate": 0.336667,
+        "status_counts": {
+          "unmatched": 32,
+          "matched": 101,
+          "ambiguous": 167
+        }
+      }
+    },
+    "intersection_unique+variant": {
+      "positive": {
+        "seeds": 1000,
+        "status_counts": {
+          "unmatched": 14,
+          "ineligible": 58,
+          "matched": 763,
+          "ambiguous": 165
+        },
+        "match_rate": 0.763,
+        "matched_geo_counts": {
+          "confirmed": 604,
+          "absent": 159
+        },
+        "matched_geo_confirmed_rate": 0.791612,
+        "detail_counts": {
+          "empty_result": 14,
+          "missing_name_or_address": 58,
+          "intersection_unique": 762,
+          "no_intersection": 111,
+          "multi_intersection": 54,
+          "intersection_unique+variant": 1
+        }
+      },
+      "collisions": {
+        "distinct_place_ids": 762,
+        "colliding_place_ids": 1,
+        "colliding_place_ids_over_200m": 1
+      },
+      "negative_control": {
+        "seeds": 300,
+        "false_matches": 101,
+        "false_match_rate": 0.336667,
+        "status_counts": {
+          "unmatched": 32,
+          "matched": 101,
+          "ambiguous": 167
+        }
+      }
+    },
+    "strict_unique_geo_hard": {
+      "positive": {
+        "seeds": 1000,
+        "status_counts": {
+          "unmatched": 14,
+          "ineligible": 58,
+          "matched": 447,
+          "ambiguous": 481
+        },
+        "match_rate": 0.447,
+        "matched_geo_counts": {
+          "confirmed": 447
+        },
+        "matched_geo_confirmed_rate": 1.0,
+        "detail_counts": {
+          "empty_result": 14,
+          "missing_name_or_address": 58,
+          "strict_unique+geo": 447,
+          "strict_unique+geo_absent": 109,
+          "multiple_candidates": 341,
+          "query_disagreement": 31
+        }
+      },
+      "collisions": {
+        "distinct_place_ids": 447,
+        "colliding_place_ids": 0,
+        "colliding_place_ids_over_200m": 0
+      },
+      "negative_control": {
+        "seeds": 300,
+        "false_matches": 0,
+        "false_match_rate": 0.0,
+        "status_counts": {
+          "unmatched": 32,
+          "ambiguous": 268
+        }
+      }
+    },
+    "strict_unique_geo_hard+variant": {
+      "positive": {
+        "seeds": 1000,
+        "status_counts": {
+          "unmatched": 14,
+          "ineligible": 58,
+          "matched": 448,
+          "ambiguous": 480
+        },
+        "match_rate": 0.448,
+        "matched_geo_counts": {
+          "confirmed": 448
+        },
+        "matched_geo_confirmed_rate": 1.0,
+        "detail_counts": {
+          "empty_result": 14,
+          "missing_name_or_address": 58,
+          "strict_unique+geo": 447,
+          "strict_unique+geo_absent": 109,
+          "multiple_candidates": 340,
+          "query_disagreement": 31,
+          "strict_unique+geo+variant": 1
+        }
+      },
+      "collisions": {
+        "distinct_place_ids": 448,
+        "colliding_place_ids": 0,
+        "colliding_place_ids_over_200m": 0
+      },
+      "negative_control": {
+        "seeds": 300,
+        "false_matches": 0,
+        "false_match_rate": 0.0,
+        "status_counts": {
+          "unmatched": 32,
+          "ambiguous": 268
+        }
+      }
+    },
+    "top1_agree_geo_soft": {
+      "positive": {
+        "seeds": 1000,
+        "status_counts": {
+          "unmatched": 14,
+          "ineligible": 58,
+          "matched": 620,
+          "ambiguous": 308
+        },
+        "match_rate": 0.62,
+        "matched_geo_counts": {
+          "confirmed": 620
+        },
+        "matched_geo_confirmed_rate": 1.0,
+        "detail_counts": {
+          "empty_result": 14,
+          "missing_name_or_address": 58,
+          "top1_agree+geo": 620,
+          "top1_agree+geo_absent": 152,
+          "top1_disagreement": 156
+        }
+      },
+      "collisions": {
+        "distinct_place_ids": 620,
+        "colliding_place_ids": 0,
+        "colliding_place_ids_over_200m": 0
+      },
+      "negative_control": {
+        "seeds": 300,
+        "false_matches": 1,
+        "false_match_rate": 0.003333,
+        "status_counts": {
+          "unmatched": 32,
+          "ambiguous": 267,
+          "matched": 1
+        }
+      }
+    },
+    "top1_agree_geo_soft+variant": {
+      "positive": {
+        "seeds": 1000,
+        "status_counts": {
+          "unmatched": 14,
+          "ineligible": 58,
+          "matched": 620,
+          "ambiguous": 308
+        },
+        "match_rate": 0.62,
+        "matched_geo_counts": {
+          "confirmed": 620
+        },
+        "matched_geo_confirmed_rate": 1.0,
+        "detail_counts": {
+          "empty_result": 14,
+          "missing_name_or_address": 58,
+          "top1_agree+geo": 620,
+          "top1_agree+geo_absent": 152,
+          "top1_disagreement": 156
+        }
+      },
+      "collisions": {
+        "distinct_place_ids": 620,
+        "colliding_place_ids": 0,
+        "colliding_place_ids_over_200m": 0
+      },
+      "negative_control": {
+        "seeds": 300,
+        "false_matches": 1,
+        "false_match_rate": 0.003333,
+        "status_counts": {
+          "unmatched": 32,
+          "ambiguous": 267,
+          "matched": 1
+        }
+      }
+    },
+    "top1_agree_geo_hard": {
+      "positive": {
+        "seeds": 1000,
+        "status_counts": {
+          "unmatched": 14,
+          "ineligible": 58,
+          "matched": 620,
+          "ambiguous": 308
+        },
+        "match_rate": 0.62,
+        "matched_geo_counts": {
+          "confirmed": 620
+        },
+        "matched_geo_confirmed_rate": 1.0,
+        "detail_counts": {
+          "empty_result": 14,
+          "missing_name_or_address": 58,
+          "top1_agree+geo": 620,
+          "top1_agree+geo_absent": 152,
+          "top1_disagreement": 156
+        }
+      },
+      "collisions": {
+        "distinct_place_ids": 620,
+        "colliding_place_ids": 0,
+        "colliding_place_ids_over_200m": 0
+      },
+      "negative_control": {
+        "seeds": 300,
+        "false_matches": 1,
+        "false_match_rate": 0.003333,
+        "status_counts": {
+          "unmatched": 32,
+          "ambiguous": 267,
+          "matched": 1
+        }
+      }
+    },
+    "top1_agree_geo_hard+variant": {
+      "positive": {
+        "seeds": 1000,
+        "status_counts": {
+          "unmatched": 14,
+          "ineligible": 58,
+          "matched": 620,
+          "ambiguous": 308
+        },
+        "match_rate": 0.62,
+        "matched_geo_counts": {
+          "confirmed": 620
+        },
+        "matched_geo_confirmed_rate": 1.0,
+        "detail_counts": {
+          "empty_result": 14,
+          "missing_name_or_address": 58,
+          "top1_agree+geo": 620,
+          "top1_agree+geo_absent": 152,
+          "top1_disagreement": 156
+        }
+      },
+      "collisions": {
+        "distinct_place_ids": 620,
+        "colliding_place_ids": 0,
+        "colliding_place_ids_over_200m": 0
+      },
+      "negative_control": {
+        "seeds": 300,
+        "false_matches": 1,
+        "false_match_rate": 0.003333,
+        "status_counts": {
+          "unmatched": 32,
+          "ambiguous": 267,
+          "matched": 1
+        }
+      }
+    },
+    "intersection_unique_geo_soft": {
+      "positive": {
+        "seeds": 1000,
+        "status_counts": {
+          "unmatched": 14,
+          "ineligible": 58,
+          "matched": 604,
+          "ambiguous": 324
+        },
+        "match_rate": 0.604,
+        "matched_geo_counts": {
+          "confirmed": 604
+        },
+        "matched_geo_confirmed_rate": 1.0,
+        "detail_counts": {
+          "empty_result": 14,
+          "missing_name_or_address": 58,
+          "intersection_unique+geo": 604,
+          "intersection_unique+geo_absent": 158,
+          "no_intersection": 112,
+          "multi_intersection": 54
+        }
+      },
+      "collisions": {
+        "distinct_place_ids": 604,
+        "colliding_place_ids": 0,
+        "colliding_place_ids_over_200m": 0
+      },
+      "negative_control": {
+        "seeds": 300,
+        "false_matches": 1,
+        "false_match_rate": 0.003333,
+        "status_counts": {
+          "unmatched": 32,
+          "ambiguous": 267,
+          "matched": 1
+        }
+      }
+    },
+    "intersection_unique_geo_soft+variant": {
+      "positive": {
+        "seeds": 1000,
+        "status_counts": {
+          "unmatched": 14,
+          "ineligible": 58,
+          "matched": 604,
+          "ambiguous": 324
+        },
+        "match_rate": 0.604,
+        "matched_geo_counts": {
+          "confirmed": 604
+        },
+        "matched_geo_confirmed_rate": 1.0,
+        "detail_counts": {
+          "empty_result": 14,
+          "missing_name_or_address": 58,
+          "intersection_unique+geo": 604,
+          "intersection_unique+geo_absent": 158,
+          "no_intersection": 112,
+          "multi_intersection": 54
+        }
+      },
+      "collisions": {
+        "distinct_place_ids": 604,
+        "colliding_place_ids": 0,
+        "colliding_place_ids_over_200m": 0
+      },
+      "negative_control": {
+        "seeds": 300,
+        "false_matches": 1,
+        "false_match_rate": 0.003333,
+        "status_counts": {
+          "unmatched": 32,
+          "ambiguous": 267,
+          "matched": 1
+        }
+      }
+    },
+    "intersection_unique_geo_hard": {
+      "positive": {
+        "seeds": 1000,
+        "status_counts": {
+          "unmatched": 14,
+          "ineligible": 58,
+          "matched": 604,
+          "ambiguous": 324
+        },
+        "match_rate": 0.604,
+        "matched_geo_counts": {
+          "confirmed": 604
+        },
+        "matched_geo_confirmed_rate": 1.0,
+        "detail_counts": {
+          "empty_result": 14,
+          "missing_name_or_address": 58,
+          "intersection_unique+geo": 604,
+          "intersection_unique+geo_absent": 158,
+          "no_intersection": 112,
+          "multi_intersection": 54
+        }
+      },
+      "collisions": {
+        "distinct_place_ids": 604,
+        "colliding_place_ids": 0,
+        "colliding_place_ids_over_200m": 0
+      },
+      "negative_control": {
+        "seeds": 300,
+        "false_matches": 1,
+        "false_match_rate": 0.003333,
+        "status_counts": {
+          "unmatched": 32,
+          "ambiguous": 267,
+          "matched": 1
+        }
+      }
+    },
+    "intersection_unique_geo_hard+variant": {
+      "positive": {
+        "seeds": 1000,
+        "status_counts": {
+          "unmatched": 14,
+          "ineligible": 58,
+          "matched": 604,
+          "ambiguous": 324
+        },
+        "match_rate": 0.604,
+        "matched_geo_counts": {
+          "confirmed": 604
+        },
+        "matched_geo_confirmed_rate": 1.0,
+        "detail_counts": {
+          "empty_result": 14,
+          "missing_name_or_address": 58,
+          "intersection_unique+geo": 604,
+          "intersection_unique+geo_absent": 158,
+          "no_intersection": 112,
+          "multi_intersection": 54
+        }
+      },
+      "collisions": {
+        "distinct_place_ids": 604,
+        "colliding_place_ids": 0,
+        "colliding_place_ids_over_200m": 0
+      },
+      "negative_control": {
+        "seeds": 300,
+        "false_matches": 1,
+        "false_match_rate": 0.003333,
+        "status_counts": {
+          "unmatched": 32,
+          "ambiguous": 267,
+          "matched": 1
+        }
+      }
+    },
+    "layered": {
+      "positive": {
+        "seeds": 1000,
+        "status_counts": {
+          "unmatched": 2,
+          "ineligible": 58,
+          "matched": 647,
+          "ambiguous": 293
+        },
+        "match_rate": 0.647,
+        "matched_geo_counts": {
+          "confirmed": 647
+        },
+        "matched_geo_confirmed_rate": 1.0,
+        "detail_counts": {
+          "empty_result": 2,
+          "missing_name_or_address": 58,
+          "layer1_intersection_in_box": 604,
+          "no_layer_satisfied": 73,
+          "no_candidate_in_box": 220,
+          "layer2_top1_in_box": 19,
+          "layer3_unique_in_box": 24
+        }
+      },
+      "collisions": {
+        "distinct_place_ids": 647,
+        "colliding_place_ids": 0,
+        "colliding_place_ids_over_200m": 0
+      },
+      "negative_control": {
+        "seeds": 300,
+        "false_matches": 3,
+        "false_match_rate": 0.01,
+        "status_counts": {
+          "ambiguous": 297,
+          "matched": 3
+        }
+      }
+    },
+    "layered+variant": {
+      "positive": {
+        "seeds": 1000,
+        "status_counts": {
+          "unmatched": 2,
+          "ineligible": 58,
+          "matched": 647,
+          "ambiguous": 293
+        },
+        "match_rate": 0.647,
+        "matched_geo_counts": {
+          "confirmed": 647
+        },
+        "matched_geo_confirmed_rate": 1.0,
+        "detail_counts": {
+          "empty_result": 2,
+          "missing_name_or_address": 58,
+          "layer1_intersection_in_box": 604,
+          "no_layer_satisfied": 73,
+          "no_candidate_in_box": 220,
+          "layer2_top1_in_box": 19,
+          "layer3_unique_in_box": 24
+        }
+      },
+      "collisions": {
+        "distinct_place_ids": 647,
+        "colliding_place_ids": 0,
+        "colliding_place_ids_over_200m": 0
+      },
+      "negative_control": {
+        "seeds": 300,
+        "false_matches": 3,
+        "false_match_rate": 0.01,
+        "status_counts": {
+          "ambiguous": 297,
+          "matched": 3
+        }
+      }
+    },
+    "layered_strict": {
+      "positive": {
+        "seeds": 1000,
+        "status_counts": {
+          "unmatched": 2,
+          "ineligible": 58,
+          "matched": 623,
+          "ambiguous": 317
+        },
+        "match_rate": 0.623,
+        "matched_geo_counts": {
+          "confirmed": 623
+        },
+        "matched_geo_confirmed_rate": 1.0,
+        "detail_counts": {
+          "empty_result": 2,
+          "missing_name_or_address": 58,
+          "layer1_intersection_in_box": 604,
+          "no_layer_satisfied": 73,
+          "no_candidate_in_box": 220,
+          "layer2_top1_in_box": 19,
+          "layer3_rejected_by_strict_policy": 24
+        }
+      },
+      "collisions": {
+        "distinct_place_ids": 623,
+        "colliding_place_ids": 0,
+        "colliding_place_ids_over_200m": 0
+      },
+      "negative_control": {
+        "seeds": 300,
+        "false_matches": 1,
+        "false_match_rate": 0.003333,
+        "status_counts": {
+          "ambiguous": 299,
+          "matched": 1
+        }
+      }
+    },
+    "layered_strict+variant": {
+      "positive": {
+        "seeds": 1000,
+        "status_counts": {
+          "unmatched": 2,
+          "ineligible": 58,
+          "matched": 623,
+          "ambiguous": 317
+        },
+        "match_rate": 0.623,
+        "matched_geo_counts": {
+          "confirmed": 623
+        },
+        "matched_geo_confirmed_rate": 1.0,
+        "detail_counts": {
+          "empty_result": 2,
+          "missing_name_or_address": 58,
+          "layer1_intersection_in_box": 604,
+          "no_layer_satisfied": 73,
+          "no_candidate_in_box": 220,
+          "layer2_top1_in_box": 19,
+          "layer3_rejected_by_strict_policy": 24
+        }
+      },
+      "collisions": {
+        "distinct_place_ids": 623,
+        "colliding_place_ids": 0,
+        "colliding_place_ids_over_200m": 0
+      },
+      "negative_control": {
+        "seeds": 300,
+        "false_matches": 1,
+        "false_match_rate": 0.003333,
+        "status_counts": {
+          "ambiguous": 299,
+          "matched": 1
+        }
+      }
+    },
+    "layered_wide": {
+      "positive": {
+        "seeds": 1000,
+        "status_counts": {
+          "unmatched": 2,
+          "ineligible": 58,
+          "matched": 690,
+          "ambiguous": 250
+        },
+        "match_rate": 0.69,
+        "matched_geo_counts": {
+          "confirmed": 690
+        },
+        "matched_geo_confirmed_rate": 1.0,
+        "detail_counts": {
+          "empty_result": 2,
+          "missing_name_or_address": 58,
+          "layer1_intersection_in_box": 604,
+          "wide1_strict_in_wide_box": 13,
+          "no_candidate_in_box": 192,
+          "no_layer_satisfied": 58,
+          "layer2_top1_in_box": 19,
+          "wide2_address_box_unique": 23,
+          "layer3_unique_in_box": 24,
+          "wide3_address_box_in_box": 7
+        }
+      },
+      "collisions": {
+        "distinct_place_ids": 690,
+        "colliding_place_ids": 0,
+        "colliding_place_ids_over_200m": 0
+      },
+      "negative_control": {
+        "seeds": 300,
+        "false_matches": 44,
+        "false_match_rate": 0.146667,
+        "status_counts": {
+          "ambiguous": 256,
+          "matched": 44
+        }
+      }
+    },
+    "layered_wide+variant": {
+      "positive": {
+        "seeds": 1000,
+        "status_counts": {
+          "unmatched": 2,
+          "ineligible": 58,
+          "matched": 690,
+          "ambiguous": 250
+        },
+        "match_rate": 0.69,
+        "matched_geo_counts": {
+          "confirmed": 690
+        },
+        "matched_geo_confirmed_rate": 1.0,
+        "detail_counts": {
+          "empty_result": 2,
+          "missing_name_or_address": 58,
+          "layer1_intersection_in_box": 604,
+          "wide1_strict_in_wide_box": 13,
+          "no_candidate_in_box": 192,
+          "no_layer_satisfied": 58,
+          "layer2_top1_in_box": 19,
+          "wide2_address_box_unique": 23,
+          "layer3_unique_in_box": 24,
+          "wide3_address_box_in_box": 7
+        }
+      },
+      "collisions": {
+        "distinct_place_ids": 690,
+        "colliding_place_ids": 0,
+        "colliding_place_ids_over_200m": 0
+      },
+      "negative_control": {
+        "seeds": 300,
+        "false_matches": 44,
+        "false_match_rate": 0.146667,
+        "status_counts": {
+          "ambiguous": 256,
+          "matched": 44
+        }
+      }
+    }
+  },
+  "cross_rule_disagreement": {
+    "intersection_unique vs layered": {
+      "both_matched": 607,
+      "different_place_id": 3,
+      "rate": 0.004942
+    },
+    "intersection_unique vs layered+variant": {
+      "both_matched": 607,
+      "different_place_id": 3,
+      "rate": 0.004942
+    },
+    "intersection_unique vs layered_wide": {
+      "both_matched": 632,
+      "different_place_id": 11,
+      "rate": 0.017405
+    },
+    "intersection_unique vs layered_wide+variant": {
+      "both_matched": 632,
+      "different_place_id": 11,
+      "rate": 0.017405
+    },
+    "intersection_unique+variant vs layered": {
+      "both_matched": 607,
+      "different_place_id": 3,
+      "rate": 0.004942
+    },
+    "intersection_unique+variant vs layered+variant": {
+      "both_matched": 607,
+      "different_place_id": 3,
+      "rate": 0.004942
+    },
+    "intersection_unique+variant vs layered_wide": {
+      "both_matched": 632,
+      "different_place_id": 11,
+      "rate": 0.017405
+    },
+    "intersection_unique+variant vs layered_wide+variant": {
+      "both_matched": 632,
+      "different_place_id": 11,
+      "rate": 0.017405
+    },
+    "layered vs top1_agree": {
+      "both_matched": 621,
+      "different_place_id": 1,
+      "rate": 0.00161
+    },
+    "layered vs top1_agree+variant": {
+      "both_matched": 621,
+      "different_place_id": 1,
+      "rate": 0.00161
+    },
+    "layered+variant vs top1_agree": {
+      "both_matched": 621,
+      "different_place_id": 1,
+      "rate": 0.00161
+    },
+    "layered+variant vs top1_agree+variant": {
+      "both_matched": 621,
+      "different_place_id": 1,
+      "rate": 0.00161
+    },
+    "layered_wide vs top1_agree": {
+      "both_matched": 644,
+      "different_place_id": 6,
+      "rate": 0.009317
+    },
+    "layered_wide vs top1_agree+variant": {
+      "both_matched": 644,
+      "different_place_id": 6,
+      "rate": 0.009317
+    },
+    "layered_wide+variant vs top1_agree": {
+      "both_matched": 644,
+      "different_place_id": 6,
+      "rate": 0.009317
+    },
+    "layered_wide+variant vs top1_agree+variant": {
+      "both_matched": 644,
+      "different_place_id": 6,
+      "rate": 0.009317
+    }
+  }
+}
