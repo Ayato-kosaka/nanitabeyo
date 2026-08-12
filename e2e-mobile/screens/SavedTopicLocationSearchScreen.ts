@@ -86,6 +86,27 @@ export class SavedTopicLocationSearchScreen {
 	}
 
 	/**
+	 * 保存した料理カテゴリのタブを **実 UI で** 開く。
+	 *
+	 * ## ⚠️ `?tab=saved-topics` のディープリンクに頼らないこと
+	 * 当初はマイページへ `?tab=saved-topics` 付きで直リンクしていたが、
+	 * **iOS ではこれが効かず先頭タブ（レビュー）のまま着地する**（失敗時スクリーンショットで確認）。
+	 * `useGlobalSearchParams` の併用でも直らず、原因は未特定のまま残っている。
+	 *
+	 * この spec が守りたいのは «保存料理カテゴリからの地点検索» であって
+	 * ディープリンクではないので、入口は実 UI の導線（タブバー）を辿る。
+	 * タブバーは「保存」グループを押すと `saved-posts` に入り、
+	 * その下にサブタブ（投稿 / 料理カテゴリ）が出る構造なので 2 段で押す。
+	 *
+	 * ⚠️ `?tab=` 自体の不具合はこの spec の対象外。別途追う必要がある
+	 * （ユーザ導線としては「料理カテゴリを保存 → スナックバーの『見る』」が該当する）。
+	 */
+	async openSavedTopicsTab(): Promise<void> {
+		await tapWhenVisible(by.id("profile-tab-group-saved"));
+		await tapWhenVisible(by.id("profile-subtab-saved-topics"));
+	}
+
+	/**
 	 * 先頭の保存料理カテゴリのカードを押して、地点検索モーダルを開く。
 	 *
 	 * @失敗時 保存が 0 件のときは **前提条件の不足**として日本語で名指しで落とす。
@@ -98,6 +119,7 @@ export class SavedTopicLocationSearchScreen {
 	 *   人手でデータを足して回避してはいけない。
 	 */
 	async openLocationSearchFromFirstTopic(): Promise<void> {
+		await this.openSavedTopicsTab();
 		await this.expectTabLoaded();
 
 		if (!(await existsNow(this.topicCard(0)))) {

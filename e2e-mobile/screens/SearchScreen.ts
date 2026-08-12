@@ -457,8 +457,12 @@ export class SearchScreen {
 	 * 先頭へ戻せば、キーボードが残っていてもトグルは上半分に来る。
 	 */
 	async openAdvancedFilters(): Promise<void> {
-		await this.dismissKeyboardIfPresent();
+		// ⚠️ 順序が重要。先頭へ戻して**から**キーボードを閉じること。
+		// Detox のアクションは «可視な» 要素にしか効かないため、画面外にいる入力へ
+		// `tapReturnKey()` を投げても例外になるだけで、キーボードは開いたまま残る
+		// （先に閉じようとして失敗し、握り潰され、原因が見えないまま 1 周無駄にした）。
 		await element(this.scrollView).scrollTo("top");
+		await this.dismissKeyboardIfPresent();
 		await this.scrollUntilVisible(this.advancedToggle);
 		await tapWhenVisible(this.advancedToggle);
 	}
@@ -478,7 +482,9 @@ export class SearchScreen {
 	 * （閉じられなかったこと自体を赤くしても、後続の本来の失敗が読めなくなるだけ）。
 	 */
 	private async dismissKeyboardIfPresent(): Promise<void> {
-		if (!(await existsNow(this.locationInput))) return;
+		// `existsNow`（= toExist）ではなく **可視**で判定する。
+		// アクションは可視な要素にしか効かないので、存在するだけでは意味がない
+		if (!(await visibleNow(this.locationInput))) return;
 		try {
 			await element(this.locationInput).tapReturnKey();
 		} catch {
