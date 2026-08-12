@@ -32,13 +32,34 @@ mkdir -p "${WORK_DIR}"
 
 # 🔬 spec の絞り込み（workflow_dispatch の test_filter）。
 # 修正 1 件の検証のために全 suite（iOS で 90 分超）を回すのは無駄なので、
-# jest の --testPathPattern をそのまま渡せるようにする。空なら従来どおり全件。
+# 対象 spec 名を jest へ渡せるようにする。空なら従来どおり全件。
+#
+# ⚠️ `--testPathPattern 'a|b'` の形にしないこと。detox は受け取った引数を
+# **シェル文字列として** jest コマンドに組み立て直すため、`|` が裸のパイプとして
+# 解釈され `logout` 等がコマンドとして実行された（run 31624910689 で実測:
+# `/bin/sh: line 0: logout: not login shell`）。
+# jest は位置引数を複数の testPathPattern（OR）として解釈するので、
+# `|` や空白で区切った単語を **1 語ずつ位置引数で**渡す。
+#
 # ⚠️ pnpm は最初の `--` を自分で消費するため、detox へ `--`（jest への区切り）を
-# 届けるには二重に書く必要がある（pnpm run script -- -- --testPathPattern ...）
+# 届けるには二重に書く（pnpm run script -- -- word1 word2）
 EXTRA_ARGS=()
 if [[ -n "${DETOX_TEST_FILTER:-}" ]]; then
-  EXTRA_ARGS=(-- -- --testPathPattern "${DETOX_TEST_FILTER}")
-  echo "▶ spec を絞り込みます: --testPathPattern ${DETOX_TEST_FILTER}"
+  IFS='| ' read -r -a FILTER_WORDS <<< "${DETOX_TEST_FILTER}"
+  SAFE_WORDS=()
+  for word in "${FILTER_WORDS[@]}"; do
+    [[ -z "${word}" ]] && continue
+    # detox がシェル経由で再組み立てするため、シェルに安全な文字だけを許す
+    if [[ ! "${word}" =~ ^[A-Za-z0-9._/-]+$ ]]; then
+      echo "::error::test_filter に使えない文字が含まれています: ${word}（英数字と . _ / - のみ、区切りは | か空白）"
+      exit 1
+    fi
+    SAFE_WORDS+=("${word}")
+  done
+  if [[ ${#SAFE_WORDS[@]} -gt 0 ]]; then
+    EXTRA_ARGS=(-- -- "${SAFE_WORDS[@]}")
+    echo "▶ spec を絞り込みます: ${SAFE_WORDS[*]}"
+  fi
 fi
 
 echo "▶ pnpm --filter e2e-mobile run ${SCRIPT_NAME}"
