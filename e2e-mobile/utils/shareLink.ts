@@ -3,7 +3,7 @@ import * as path from "node:path";
 import * as dotenv from "dotenv";
 
 import { fetchDishCategoryIds } from "./savedDishCategory";
-import { readSessionFromEnv } from "./sessionEnv";
+import { ensureFreshSession } from "./freshSession";
 
 /**
  * 🔗 Detox から «実在する共有リンク» を 1 本作る（#721）
@@ -121,7 +121,8 @@ async function findAnyDishMediaId(base: string, headers: Record<string, string>,
  * @失敗時 日本語メッセージで例外を投げる（fail-loud）
  */
 export async function createShareLinkToken(): Promise<string> {
-	const session = readSessionFromEnv("anon");
+	// 鮮度保証つきで読む（実測 401: 料理カテゴリの推薦取得に失敗しました（status=401） @ 確立の 80 分後）
+	const session = await ensureFreshSession("anon");
 	if (!session) {
 		throw new Error("匿名セッションが確立されていません（fixtures/globalSetup.ts を確認してください）。");
 	}

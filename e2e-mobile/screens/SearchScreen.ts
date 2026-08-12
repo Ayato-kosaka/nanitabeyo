@@ -461,35 +461,13 @@ export class SearchScreen {
 		// Detox のアクションは «可視な» 要素にしか効かないため、画面外にいる入力へ
 		// `tapReturnKey()` を投げても例外になるだけで、キーボードは開いたまま残る
 		// （先に閉じようとして失敗し、握り潰され、原因が見えないまま 1 周無駄にした）。
+		// 閉じる手段は clearLocationIfPresent と同じ dismissKeyboard（無条件 + try/catch）。
+		// 可視チェックでガードする版も試したが、ガードが false を返して閉じ損ね、
+		// キーボードが下半分を覆ったまま scrollUntilVisible が 75% 可視を満たせず落ちた
 		await element(this.scrollView).scrollTo("top");
-		await this.dismissKeyboardIfPresent();
+		await this.dismissKeyboard();
 		await this.scrollUntilVisible(this.advancedToggle);
 		await tapWhenVisible(this.advancedToggle);
-	}
-
-	/**
-	 * 地点入力にフォーカスが残っていたら外して、ソフトキーボードを閉じる。
-	 *
-	 * ⚠️ **これを省くと `scrollUntilVisible` が «届かない» 形で落ちる。**
-	 * iOS ではキーボードが画面の下半分を占有するため、目的の要素がその領域を
-	 * 通過する瞬間しか画面に入らず、Detox の「面積の 75% 以上が可視」判定を
-	 * 永久に満たせない（`Unable to scroll down ... threshold (75)`）。
-	 * スクロール方向や開始位置の問題に見えるが、原因はキーボードである。
-	 * 実際 `scrollTo("top")` を足しただけでは直らず、失敗時スクリーンショットで確定した。
-	 *
-	 * 閉じる手段は Detox に無いので、フォーカスされている入力の Return を叩く。
-	 * キーボードが出ていない場合に備えて存在チェックしてから行い、失敗は握り潰す
-	 * （閉じられなかったこと自体を赤くしても、後続の本来の失敗が読めなくなるだけ）。
-	 */
-	private async dismissKeyboardIfPresent(): Promise<void> {
-		// `existsNow`（= toExist）ではなく **可視**で判定する。
-		// アクションは可視な要素にしか効かないので、存在するだけでは意味がない
-		if (!(await visibleNow(this.locationInput))) return;
-		try {
-			await element(this.locationInput).tapReturnKey();
-		} catch {
-			// 閉じられなくても後続の検証は試す
-		}
 	}
 
 	/** おすすめ外の移動時間チップの開閉を切り替える。画面外にある場合はスクロールしてから押す */
