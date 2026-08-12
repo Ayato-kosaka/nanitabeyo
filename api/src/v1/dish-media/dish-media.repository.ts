@@ -52,12 +52,33 @@ export interface DishMediaEntryEntity {
     isSaved: boolean;
     isLiked: boolean;
     likeCount: number;
+    /** BigQuery同期の外部媒体だけに存在する。ユーザー投稿ではnull。 */
+    externalEmbedding: ExternalDishMediaEmbeddingEntity | null;
   };
   dish_reviews: (PrismaDishReviews & {
     username: string;
     isLiked: boolean;
     likeCount: number;
   })[];
+}
+
+export interface ExternalDishMediaEmbeddingEntity {
+  dish_media_id: string;
+  provider: 'instagram' | 'tiktok' | 'x';
+  external_content_id: string;
+  canonical_url: string;
+  embed_html: string;
+  thumbnail_url: string | null;
+  availability_status:
+    | 'available'
+    | 'unavailable'
+    | 'deleted'
+    | 'private'
+    | 'ineligible';
+  rights_basis: string;
+  terms_version: string | null;
+  published_at: Date | null;
+  last_verified_at: Date;
 }
 
 @Injectable()
@@ -186,10 +207,18 @@ export class DishMediaRepository {
       FROM nearby_restaurants nr
       JOIN dishes d      ON d.restaurant_id = nr.restaurant_id
       JOIN dish_media dm ON dm.dish_id      = d.id
+      LEFT JOIN dish_media_external_embeddings external
+        ON external.dish_media_id = dm.id
       -- 価格帯の絞り込みはMVPでは未対応
       WHERE 1=1
         -- カテゴリ
-        AND d.category_id = (SELECT category_id FROM params) 
+        AND d.category_id = (SELECT category_id FROM params)
+        -- 外部投稿は最新観測で公開可能なものだけを検索候補にする。
+        -- 子行が無い既存ユーザー投稿は従来どおり対象。
+        AND (
+          external.dish_media_id IS NULL
+          OR external.availability_status = 'available'
+        )
     ),
     -- 距離計算
     geo AS (
@@ -346,7 +375,7 @@ export class DishMediaRepository {
       ) z
       WHERE z.rn_rest = 1
     ),
-    
+
     -- ========== Gumbel ノイズ付与（Stage5: ページ組成の揺らし） ==========
     noisy AS (
       SELECT
@@ -477,7 +506,13 @@ export class DishMediaRepository {
           ON d.id = dm.dish_id
         LEFT JOIN dish_media_analysis_results dmar
           ON dmar.dish_media_id = dm.id
+        LEFT JOIN dish_media_external_embeddings external
+          ON external.dish_media_id = dm.id
         WHERE d.restaurant_id = ${restaurantId}::uuid
+          AND (
+            external.dish_media_id IS NULL
+            OR external.availability_status = 'available'
+          )
       ),
       ranked AS (
         SELECT
@@ -765,6 +800,38 @@ export class DishMediaRepository {
       },
     });
 
+    // Prisma schemaへ外部媒体固有列を混ぜず、既存dish_media modelを安定させる。
+    // 子テーブルだけをraw SQLで一括取得し、N+1 queryを避ける。
+    // Prisma model外のtableなので、DB_SCHEMAをset_configするtransaction内で参照する。
+    // これを直接prisma.$queryRawするとdev実行時にpublic schemaを読む恐れがある。
+    const externalEmbeddings = await this.prisma.withTransaction(
+      (tx) =>
+        tx.$queryRaw<ExternalDishMediaEmbeddingEntity[]>`
+        SELECT
+          dish_media_id,
+          provider,
+          external_content_id,
+          canonical_url,
+          embed_html,
+          thumbnail_url,
+          availability_status,
+          rights_basis,
+          terms_version,
+          published_at,
+          last_verified_at
+        FROM dish_media_external_embeddings
+        -- JavaScript配列を1 parameterとしてcastするとdriver依存になるため、
+        -- Prisma.joinで各UUIDを個別bindし、文字列連結によるSQL注入も避ける。
+        WHERE dish_media_id IN (${Prisma.join(dishMediaIds)})
+      `,
+    );
+    const externalEmbeddingMap = new Map(
+      externalEmbeddings.map((embedding) => [
+        embedding.dish_media_id,
+        embedding,
+      ]),
+    );
+
     // #817 【設計】優先言語のレビューは created_at 順で reviewLimit 件目より後ろに埋もれている
     // ことがあるため、別クエリで dish ごとに take して補充する。
     // nested take は親 1 件ごとに効くので、取得行数は
@@ -835,6 +902,15 @@ export class DishMediaRepository {
           });
           return false;
         }
+        const external = externalEmbeddingMap.get(dishMediaId);
+        if (external && external.availability_status !== 'available') {
+          this.logger.warn(
+            'ExternalDishMediaUnavailable',
+            'getDishMediaEntriesByIds',
+            { dishMediaId, availability: external.availability_status },
+          );
+          return false;
+        }
         return true;
       }) //
       .map((dishMediaId) => {
@@ -863,6 +939,7 @@ export class DishMediaRepository {
             likeCount: Number(
               dishMedia.dish_media_analysis_results?.like_total ?? 0,
             ), // #292 【設計】likeCount は dish_media_analysis_results.like_total から取得（reactions は含めない）
+            externalEmbedding: externalEmbeddingMap.get(dishMedia.id) ?? null,
           },
           dish_reviews: dishReviews.map((review) => ({
             ...review,

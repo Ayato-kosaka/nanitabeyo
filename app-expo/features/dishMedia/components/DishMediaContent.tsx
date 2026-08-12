@@ -23,6 +23,7 @@ import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming } from 
 import { SkeletonShimmer } from "@/components/SkeletonShimmer";
 import { type DishMediaBackgroundImageState } from "@/features/dishMedia/hooks/useDishMediaBackgroundImageResources";
 import { getDishMediaBackgroundImageUri } from "@/features/dishMedia/utils/backgroundImage";
+import { ExternalDishMediaEmbed } from "./ExternalDishMediaEmbed";
 
 interface DishMediaContentProps {
 	id: string;
@@ -86,6 +87,8 @@ export default function DishMediaContent({
 	const isProcessing = mediaProcessingStatus === "processing";
 	const isFailed = mediaProcessingStatus === "failed";
 	const isVideo = dishMediaEntry.dish_media.media_type === "video";
+	const externalEmbed = dishMediaEntry.dish_media.externalEmbed;
+	const isExternalEmbed = dishMediaEntry.dish_media.renderType === "external_embed" && externalEmbed !== null;
 	const hasMediaUrl = Boolean(dishMediaEntry.dish_media.mediaUrl);
 
 	// #630 【設計】背景画像として使用する URI を統一（動画/画像で分岐）
@@ -108,6 +111,7 @@ export default function DishMediaContent({
 		const mediaId = dishMediaEntry.dish_media.id;
 		const shouldPoll =
 			isActive &&
+			!isExternalEmbed &&
 			dishMediaEntry.dish_media.media_processing_status === "processing" &&
 			!dishMediaEntry.dish_media.mediaUrl;
 
@@ -171,13 +175,17 @@ export default function DishMediaContent({
 		dishMediaEntry.dish_media.id,
 		dishMediaEntry.dish_media.media_processing_status,
 		dishMediaEntry.dish_media.mediaUrl,
+		isExternalEmbed,
 	]);
 
 	// #802 【設計】画像リソース取得に失敗した場合は skeleton を出し続けない。
 	// 既存実装でも画像ロード error 専用 UI はなく、loading 中のみ skeleton を表示していた。
 	// 新実装では ready の ImageRef がある場合だけ背景 Image を mount し、error 時は黒背景/背面背景にフォールバックする。
 	const shouldShowSkeleton =
-		(backgroundImageState.status === "idle" || backgroundImageState.status === "loading") && !isFailed && !isProcessing;
+		(backgroundImageState.status === "idle" || backgroundImageState.status === "loading") &&
+		!isExternalEmbed &&
+		!isFailed &&
+		!isProcessing;
 
 	// #613 TapGesture 用の pressed state
 	const pressed = useSharedValue(0);
@@ -233,16 +241,25 @@ export default function DishMediaContent({
 							accessibilityLabel={dishMediaEntry.dish.name ?? dishMediaEntry.restaurant.name}
 						/>
 					)}
-					{/* #630 【設計】動画の場合のみ VideoPlayer を重ねて表示 */}
-					{isVideo && hasMediaUrl && !isProcessing && !isFailed && dishMediaEntry.dish_media.mediaUrl && (
-						<VideoPlayer
-							uri={dishMediaEntry.dish_media.mediaUrl}
-							style={StyleSheet.absoluteFill}
-							shouldPlay={isActive}
-							onProgress={handleVideoProgress}
-							onLoop={handleVideoLoop}
-						/>
+					{/* 外部embedはactive pageだけmountし、画面外での再生・通信を止める。 */}
+					{isExternalEmbed && externalEmbed && isActive && (
+						<ExternalDishMediaEmbed embed={externalEmbed} isActive={isActive} />
 					)}
+					{/* #630 【設計】動画の場合のみ VideoPlayer を重ねて表示 */}
+					{!isExternalEmbed &&
+						isVideo &&
+						hasMediaUrl &&
+						!isProcessing &&
+						!isFailed &&
+						dishMediaEntry.dish_media.mediaUrl && (
+							<VideoPlayer
+								uri={dishMediaEntry.dish_media.mediaUrl}
+								style={StyleSheet.absoluteFill}
+								shouldPlay={isActive}
+								onProgress={handleVideoProgress}
+								onLoop={handleVideoLoop}
+							/>
+						)}
 				</Animated.View>
 			</GestureDetector>
 

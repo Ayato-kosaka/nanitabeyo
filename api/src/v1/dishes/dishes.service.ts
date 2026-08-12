@@ -640,6 +640,8 @@ export class DishesService {
             thumbnail_processing_status: 'completed',
             mediaUrl: photoMedia!.photoUri,
             thumbnailImageUrl: photoMedia!.photoUri,
+            renderType: 'stored_media',
+            externalEmbed: null,
             isMine: false, // インポートなので自分のものではない
             isSaved: false, // 初期状態では保存されていない
             isLiked: false, // 初期状態ではいいねされていない

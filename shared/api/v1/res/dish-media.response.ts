@@ -12,6 +12,16 @@ import { RestaurantsEntity } from "./restaurants.response";
  */
 export type MediaProcessingStatus = "idle" | "processing" | "completed" | "failed";
 
+export type ExternalDishMediaEmbed = {
+	provider: "instagram" | "tiktok" | "x";
+	externalContentId: string;
+	canonicalUrl: string;
+	embedHtml: string;
+	thumbnailUrl: string | null;
+	publishedAt: string | null;
+	lastVerifiedAt: string;
+};
+
 /** 一つの料理メディア投稿（dish_media）とそれに関連する情報（レストラン、料理、レビュー） */
 export type DishMediaEntry = {
 	restaurant: RestaurantsEntity;
@@ -32,6 +42,10 @@ export type DishMediaEntry = {
 		mediaUrl: string | null;
 		/** 投稿サムネイル画像の署名付きCDN URL（派生サイズ or オリジナル） */
 		thumbnailImageUrl: string;
+		/** GCS媒体か、provider公式embedかをクライアントが明示的に分岐する。 */
+		renderType: "stored_media" | "external_embed";
+		/** renderType=external_embedのときだけ存在する。 */
+		externalEmbed: ExternalDishMediaEmbed | null;
 	};
 	dish_reviews: (SupabaseDishReviews & {
 		username: string;

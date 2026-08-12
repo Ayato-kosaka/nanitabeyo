@@ -58,8 +58,15 @@ export class DishMediaAssembler {
       };
 
       const dishMediaBase = convertPrismaToSupabase_DishMedia(src.dish_media);
-      const { mediaUrl } = this.getMediaUrl(src.dish_media);
-      const thumbnailImageUrl = this.getThumbnailImageUrl(src.dish_media);
+      const external = src.dish_media.externalEmbedding;
+      // 外部URLをGCS pathとして署名・リサイズしてはいけない。子行の存在を境界に、
+      // stored mediaと公式embedを完全に別経路で組み立てる。
+      const { mediaUrl } = external
+        ? { mediaUrl: null }
+        : this.getMediaUrl(src.dish_media);
+      const thumbnailImageUrl = external
+        ? (external.thumbnail_url ?? '')
+        : this.getThumbnailImageUrl(src.dish_media);
       const dish_media = {
         ...dishMediaBase,
         // Explicitly add only the required additional fields for DishMediaEntry.dish_media
@@ -69,6 +76,20 @@ export class DishMediaAssembler {
         likeCount: src.dish_media.likeCount,
         mediaUrl,
         thumbnailImageUrl,
+        renderType: external
+          ? ('external_embed' as const)
+          : ('stored_media' as const),
+        externalEmbed: external
+          ? {
+              provider: external.provider,
+              externalContentId: external.external_content_id,
+              canonicalUrl: external.canonical_url,
+              embedHtml: external.embed_html,
+              thumbnailUrl: external.thumbnail_url,
+              publishedAt: external.published_at?.toISOString() ?? null,
+              lastVerifiedAt: external.last_verified_at.toISOString(),
+            }
+          : null,
       };
 
       const dish_reviews = src.dish_reviews.map((r) => {
@@ -108,7 +129,7 @@ export class DishMediaAssembler {
         // Log error but don't fail the request - videos will be inaccessible but other data can still be returned
         this.logger.error('InvalidVideoUrlForCookie', 'toDishMediaEntry', {
           videoUrl: firstVideoUrl,
-          error: err.message,
+          error: err instanceof Error ? err.message : String(err),
         });
       }
     }

@@ -573,6 +573,8 @@ export function ReviewForm({
 					likeCount: 0,
 					mediaUrl: mediaState.media.uri,
 					thumbnailImageUrl: mediaState.media.type === "video" ? mediaState.media.thumbnailUri! : mediaState.media.uri,
+					renderType: "stored_media",
+					externalEmbed: null,
 					// #511 ローカルの uri をセットして読み込むため、処理済み状態にする
 					media_processing_status: "completed",
 					thumbnail_processing_status: "completed",

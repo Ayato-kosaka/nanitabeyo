@@ -8,6 +8,9 @@ import { DishMediaAssembler } from './dish-media.assembler';
 import { StorageService } from '../../core/storage/storage.service';
 import { RestaurantsAssembler } from '../restaurants/restaurants.assembler';
 import { CookieQueueService } from '../../core/cookie-queue/cookie-queue.service';
+import { AppLoggerService } from '../../core/logger/logger.service';
+import { DishMediaEntryEntity } from './dish-media.repository';
+import { RestaurantsEntity } from '@shared/v1/res';
 
 // Mock environment config before importing anything that depends on it
 jest.mock('src/core/config/env', () => ({
@@ -73,6 +76,10 @@ describe('DishMediaAssembler - Signed Cookie Generation', () => {
           provide: CookieQueueService,
           useValue: mockCookieQueueService,
         },
+        {
+          provide: AppLoggerService,
+          useValue: { error: jest.fn() },
+        },
       ],
     }).compile();
 
@@ -83,6 +90,50 @@ describe('DishMediaAssembler - Signed Cookie Generation', () => {
   });
 
   describe('toDishMediaEntry', () => {
+    it('外部媒体はCDN署名せずexternal_embedとして返す', () => {
+      const dishMediaEntries = [
+        {
+          restaurant: {},
+          dish: { reviewCount: 0, averageRating: 0 },
+          dish_media: {
+            id: 'external-media-1',
+            media_type: 'video',
+            media_path: 'https://www.tiktok.com/@owner/video/1',
+            thumbnail_path: 'https://cdn.example.test/thumb.jpg',
+            isMine: false,
+            isSaved: false,
+            isLiked: false,
+            likeCount: 0,
+            externalEmbedding: {
+              dish_media_id: 'external-media-1',
+              provider: 'tiktok',
+              external_content_id: '1',
+              canonical_url: 'https://www.tiktok.com/@owner/video/1',
+              embed_html: '<blockquote class="tiktok-embed"></blockquote>',
+              thumbnail_url: 'https://cdn.example.test/thumb.jpg',
+              availability_status: 'available',
+              rights_basis: 'official_oembed',
+              terms_version: '2026-08-12',
+              published_at: null,
+              last_verified_at: new Date('2026-08-12T00:00:00Z'),
+            },
+          },
+          dish_reviews: [],
+        },
+      ] as unknown as DishMediaEntryEntity[];
+      mockRestaurantsAssembler.enrichRestaurantsWithImageUrls.mockReturnValue(
+        {} as RestaurantsEntity,
+      );
+
+      const result = assembler.toDishMediaEntry(dishMediaEntries);
+
+      expect(result.items[0].dish_media.renderType).toBe('external_embed');
+      expect(result.items[0].dish_media.mediaUrl).toBeNull();
+      expect(result.items[0].dish_media.externalEmbed?.provider).toBe('tiktok');
+      expect(mockStorage.generateCdnSignedURL.mock.calls).toHaveLength(0);
+      expect(mockStorage.generateCdnSignedCookies.mock.calls).toHaveLength(0);
+    });
+
     it('should enqueue CDN signed cookies for video media', () => {
       // Arrange
       const dishMediaEntries = [
@@ -92,6 +143,8 @@ describe('DishMediaAssembler - Signed Cookie Generation', () => {
           dish_media: {
             id: 'media-1',
             media_type: 'video' as const,
+            media_processing_status: 'completed',
+            thumbnail_processing_status: 'completed',
             media_path: 'user-uploads/user-1/video.mp4',
             thumbnail_path: 'user-uploads/user-1/thumb.jpg',
             isSaved: false,
@@ -169,6 +222,8 @@ describe('DishMediaAssembler - Signed Cookie Generation', () => {
           dish_media: {
             id: 'media-1',
             media_type: 'video' as const,
+            media_processing_status: 'completed',
+            thumbnail_processing_status: 'completed',
             media_path: 'user-uploads/user-1/video1.mp4',
             thumbnail_path: 'user-uploads/user-1/thumb1.jpg',
             isSaved: false,
@@ -183,6 +238,8 @@ describe('DishMediaAssembler - Signed Cookie Generation', () => {
           dish_media: {
             id: 'media-2',
             media_type: 'video' as const,
+            media_processing_status: 'completed',
+            thumbnail_processing_status: 'completed',
             media_path: 'user-uploads/user-1/video2.mp4',
             thumbnail_path: 'user-uploads/user-1/thumb2.jpg',
             isSaved: false,

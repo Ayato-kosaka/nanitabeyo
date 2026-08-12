@@ -26,6 +26,7 @@ type DishMediaBackgroundImageDescriptor = {
 	uri?: string;
 	mediaId?: string;
 	mediaType?: string;
+	renderType?: "stored_media" | "external_embed";
 };
 
 type DishMediaBackgroundImageStates = Record<string, DishMediaBackgroundImageState>;
@@ -82,7 +83,8 @@ export const areDishMediaBackgroundImageDescriptorsEqual = (
 			left.key === right.key &&
 			left.uri === right.uri &&
 			left.mediaId === right.mediaId &&
-			left.mediaType === right.mediaType
+			left.mediaType === right.mediaType &&
+			left.renderType === right.renderType
 		);
 	});
 };
@@ -92,7 +94,11 @@ export const areDishMediaBackgroundImageDescriptorsEqual = (
  * 背景画像 preload に必要な最小 descriptor のみを購読する。
  * restaurant/reviews/likes 等の更新では反応せず、bgUri 変更時だけ preload を走らせる。
  */
-export const useDishMediaBackgroundImageResources = ({ ids, idType, sessionKey }: UseDishMediaBackgroundImageResourcesParams) => {
+export const useDishMediaBackgroundImageResources = ({
+	ids,
+	idType,
+	sessionKey,
+}: UseDishMediaBackgroundImageResourcesParams) => {
 	const { logFrontendEvent } = useLogger();
 	const imageStatesRef = useRef<DishMediaBackgroundImageStates>({});
 	const imageLoadGenerationRef = useRef(0);
@@ -121,6 +127,7 @@ export const useDishMediaBackgroundImageResources = ({ ids, idType, sessionKey }
 							uri,
 							mediaId: entry.dish_media.id,
 							mediaType: entry.dish_media.media_type,
+							renderType: entry.dish_media.renderType,
 						};
 					})
 					.filter((descriptor): descriptor is DishMediaBackgroundImageDescriptor => descriptor !== null),
@@ -129,17 +136,23 @@ export const useDishMediaBackgroundImageResources = ({ ids, idType, sessionKey }
 		areDishMediaBackgroundImageDescriptorsEqual,
 	);
 
-	const keyById = useMemo(() => Object.fromEntries(descriptors.map((descriptor) => [descriptor.id, descriptor.key])), [descriptors]);
+	const keyById = useMemo(
+		() => Object.fromEntries(descriptors.map((descriptor) => [descriptor.id, descriptor.key])),
+		[descriptors],
+	);
 
 	// #802 【設計】表示の真実は Image.loadAsync で取得した ImageRef の ready/error に置く。
 	// 表示側 Image の mount/cache hit/re-render による load イベント欠落は状態決定に使わない。
 	const loadBackgroundImage = useCallback(
 		async (descriptor: DishMediaBackgroundImageDescriptor) => {
-			const { key, uri, mediaId, mediaType } = descriptor;
+			const { key, uri, mediaId, mediaType, renderType } = descriptor;
 			const current = imageStatesRef.current[key];
 			if (current?.status === "loading" || current?.status === "ready" || current?.status === "error") return;
 
 			if (!uri) {
+				// 外部embedはthumbnail任意。iframe/WebView本体を描画するため、
+				// 背景画像なしを障害ログにしない。
+				if (renderType === "external_embed") return;
 				console.warn("[DishMediaBackgroundImageResources] bgUri is undefined", {
 					mediaId,
 					mediaType,

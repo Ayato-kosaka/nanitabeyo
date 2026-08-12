@@ -30,6 +30,8 @@ api/.runtimeconfig.json
 # --- Functional Test Results ---
 test-results/
 *.csv
+# 店舗媒体パイプラインの入力契約を示す、意図的に管理する最小サンプル。
+!scripts/20260808T0000_restaurant/social_media.example.csv
 *.log
 
 # --- E2E / Playwright ---
