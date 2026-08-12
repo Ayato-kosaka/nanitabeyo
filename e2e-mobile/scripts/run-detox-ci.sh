@@ -30,11 +30,22 @@ readonly WORK_DIR="${REPO_ROOT}/e2e-mobile/.detox-ci-logs"
 rm -rf "${WORK_DIR}"
 mkdir -p "${WORK_DIR}"
 
+# 🔬 spec の絞り込み（workflow_dispatch の test_filter）。
+# 修正 1 件の検証のために全 suite（iOS で 90 分超）を回すのは無駄なので、
+# jest の --testPathPattern をそのまま渡せるようにする。空なら従来どおり全件。
+# ⚠️ pnpm は最初の `--` を自分で消費するため、detox へ `--`（jest への区切り）を
+# 届けるには二重に書く必要がある（pnpm run script -- -- --testPathPattern ...）
+EXTRA_ARGS=()
+if [[ -n "${DETOX_TEST_FILTER:-}" ]]; then
+  EXTRA_ARGS=(-- -- --testPathPattern "${DETOX_TEST_FILTER}")
+  echo "▶ spec を絞り込みます: --testPathPattern ${DETOX_TEST_FILTER}"
+fi
+
 echo "▶ pnpm --filter e2e-mobile run ${SCRIPT_NAME}"
 
 # tee でジョブログと収集用ファイルの両方へ出す。冒頭の `set -o pipefail` により
 # tee ではなく pnpm 側の終了コードが $? に残る（`set -e` は付けない。後始末を必ず走らせるため）
-pnpm --filter e2e-mobile run "${SCRIPT_NAME}" 2>&1 | tee "${WORK_DIR}/detox-run.log"
+pnpm --filter e2e-mobile run "${SCRIPT_NAME}" ${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"} 2>&1 | tee "${WORK_DIR}/detox-run.log"
 readonly EXIT_CODE=$?
 
 # ⚠️ 収集物のコピーは **後始末より先に**行う。後続がハングしても実行ログだけは必ず Artifact に残す
