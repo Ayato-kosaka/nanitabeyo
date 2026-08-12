@@ -215,6 +215,28 @@ def rule_layered_strict(seed: Seed, probes: Mapping[str, SearchResult]) -> Decis
     return decision
 
 
+def rule_layered_strict_wide(seed: Seed, probes: Mapping[str, SearchResult]) -> Decision:
+    """``layered_strict`` に、負例で誤りを1件も出さなかった救済層だけを足す。
+
+    救済条件は「A と B がどちらも単一候補で、同じ place_id を指し、それが
+    半辺250mの矩形の中にある」。Overture の座標が数十m ずれている行を拾うための層で、
+    較正では正例 +13件（+1.3pt）に対し負例の誤マッチ 0件だった。
+
+    同じ広い矩形でも、住所つきクエリを使う救済層（``layered_wide`` の wide2・wide3）は
+    負例で 41件の誤マッチを出した。矩形内のText Searchは名称が合わなくても近い候補を
+    返すため、テキスト側の合意を strict に保つことが効いている。
+    """
+
+    decision = rule_layered_strict(seed, probes)
+    if decision.status in {STATUS_MATCHED, STATUS_INELIGIBLE, STATUS_API_ERROR}:
+        return decision
+    a, b = _ids(probes, PROBE_A), _ids(probes, PROBE_B)
+    wide = set(_ids(probes, PROBE_C)) | set(_ids(probes, PROBE_C_WIDE))
+    if len(a) == 1 and len(b) == 1 and a[0] == b[0] and a[0] in wide:
+        return Decision(STATUS_MATCHED, a[0], GEO_CONFIRMED, "wide1_strict_in_wide_box")
+    return decision
+
+
 def rule_layered_wide(seed: Seed, probes: Mapping[str, SearchResult]) -> Decision:
     """狭い矩形で決まらなかった行を、広い矩形と住所つき矩形で救済する。
 
@@ -256,6 +278,7 @@ RULES: dict[str, Callable[[Seed, Mapping[str, SearchResult]], Decision]] = {
     "intersection_unique_geo_hard": with_geo_gate(rule_intersection_unique, require_confirmed=True),
     "layered": rule_layered,
     "layered_strict": rule_layered_strict,
+    "layered_strict_wide": rule_layered_strict_wide,
     # 計測の再現用に残すが、負例での誤マッチ率が高く CSV 出力には使わない。
     "layered_wide": rule_layered_wide,
 }
@@ -271,5 +294,6 @@ EXPORT_SAFE_RULES = frozenset(
         "intersection_unique_geo_hard",
         "layered",
         "layered_strict",
+        "layered_strict_wide",
     }
 )

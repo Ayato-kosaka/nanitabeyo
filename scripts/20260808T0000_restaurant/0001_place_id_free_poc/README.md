@@ -26,13 +26,14 @@ Google の課金はリクエストした fieldMask で決まります。した�
 結果として **Google 由来の店名・住所・座標は1件も取得・保存していません**。
 保存しているのは place_id だけです。
 
-## 4本のクエリ
+## 投げているクエリ
 
 | probe | textQuery | 位置指定 | 役割 |
 | --- | --- | --- | --- |
 | A | 正規化店名 | `locationBias` circle 150m | Issue 記載のクエリA |
 | B | 正規化店名 + 住所文字列 | なし | Issue 記載のクエリB（座標と独立） |
 | C | 正規化店名 | `locationRestriction` rectangle 半辺75m | 座標の裏取り |
+| c_wide | 正規化店名 | `locationRestriction` rectangle 半辺250m | 座標ズレ行の救済 |
 | nearby | （なし） | `locationRestriction` circle 40m | C が使えない場合の代替 |
 
 C を足したのが本 PoC の肝です。`locationRestriction` は `locationBias` と違って
@@ -60,9 +61,11 @@ python place_id_poc.py prepare-negatives \
   --seeds out/seeds.csv --output out/negatives.csv --count 300
 
 # 3. Google へ問い合わせてキャッシュする（--execute が無ければ件数を出すだけ）
+#    採用ルールが使うのは A・B・C・c_wide の4本。--only-probes で d と nearby を外す。
 python place_id_poc.py probe \
   --seeds out/seeds.csv out/negatives.csv \
-  --cache cache/probe.sqlite --skip-nearby --execute --qps 10 --workers 20
+  --cache cache/probe.sqlite --wide-box --only-probes a b c c_wide \
+  --execute --qps 10 --workers 20
 
 # 4. 判定ルールを当てて指標を出す
 python place_id_poc.py evaluate \
@@ -72,16 +75,19 @@ python place_id_poc.py evaluate \
 # 5. 1件に絞れた確定matchだけを CSV へ
 python place_id_poc.py export \
   --seeds out/seeds.csv --cache cache/probe.sqlite \
-  --rule layered_strict --output out/matched_place_ids.csv
+  --rule layered_strict_wide --output out/matched_place_ids.csv
 ```
 
 API の結果は `cache/probe.sqlite` に貯まります。判定ルールを変えても再問い合わせは
 起きないので、`evaluate` と `export` は何度でもやり直せます。`probe` は取得済みの
 組み合わせを飛ばすため、中断しても続きから再開できます。
 
+`--only-probes` は既存キャッシュへ1種類だけ足したいときにも使えます（`c_wide` を
+後から追加する等）。
+
 スループットは実測で 5〜10 req/s でした。`--qps` を15以上にすると 429 が返り、
-バックオフで実効レートがかえって落ちます。全789,612件を回すなら3 probe × 約79万件で
-約237万リクエスト、10 req/s なら約66時間の見積りです（課金は0のままです）。
+バックオフで実効レートがかえって落ちます。全789,612件を回すなら4 probe × 約79万件で
+約316万リクエスト、10 req/s なら約88時間の見積りです（課金は0のままです）。
 
 ## 出力CSVの見かた
 
@@ -93,7 +99,7 @@ API の結果は `cache/probe.sqlite` に貯まります。判定ルールを変
 | `overture_id` | Overture Maps の place id（seed 側のキー） |
 | `google_place_id` | 逆引きできた Google place ID |
 | `name` / `latitude` / `longitude` / `postcode` | すべて **Overture 由来**。Google からは取得していない |
-| `match_detail` | `layer1_intersection_in_box` / `layer2_top1_in_box` |
+| `match_detail` | `layer1_intersection_in_box` / `layer2_top1_in_box` / `wide1_strict_in_wide_box` |
 | `confidence_tier` | `A` = A・B とも単一候補で一致し矩形内。`B` = それ以外の確定層 |
 | `geo_verification` | `confirmed` = 矩形検索で座標近傍に実在を確認 |
 

@@ -342,6 +342,9 @@ def command_probe(arguments: argparse.Namespace) -> None:
         with_nearby=not arguments.skip_nearby,
         with_name_variant=arguments.name_variant,
     )
+    if arguments.only_probes:
+        wanted = set(arguments.only_probes)
+        specs = [spec for spec in specs if spec.probe in wanted]
     cache = ProbeCache(arguments.cache)
     todo = len(specs) - len(cache.existing_keys() & {(spec.seed_id, spec.probe) for spec in specs})
     print(
@@ -580,6 +583,11 @@ def build_parser() -> argparse.ArgumentParser:
     probe.add_argument("--skip-box", action="store_true")
     probe.add_argument("--wide-box-half-side-m", type=float, default=250.0)
     probe.add_argument("--wide-box", action="store_true", help="広い矩形と住所つき矩形も送る")
+    probe.add_argument(
+        "--only-probes",
+        nargs="+",
+        help="指定した probe だけを送る。既存キャッシュへ1種類だけ足すときに使う",
+    )
     probe.add_argument("--flush-every", type=int, default=200)
     probe.add_argument("--skip-nearby", action="store_true")
     probe.add_argument("--name-variant", action="store_true", help="括弧書きを外した再検索も送る")
@@ -596,7 +604,7 @@ def build_parser() -> argparse.ArgumentParser:
     export = subcommands.add_parser("export", help="確定matchのみCSV出力")
     export.add_argument("--seeds", type=Path, nargs="+", required=True)
     export.add_argument("--cache", type=Path, required=True)
-    export.add_argument("--rule", default="layered_strict", choices=sorted(RULES))
+    export.add_argument("--rule", default="layered_strict_wide", choices=sorted(RULES))
     export.add_argument("--name-variant", action="store_true")
     export.add_argument("--output", type=Path, required=True)
     export.set_defaults(function=command_export)

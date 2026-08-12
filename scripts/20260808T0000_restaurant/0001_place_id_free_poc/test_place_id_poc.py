@@ -14,6 +14,7 @@ from matching import (
     PROBE_A,
     PROBE_B,
     PROBE_C,
+    PROBE_C_WIDE,
     PROBE_NEARBY,
     RULES,
     STATUS_AMBIGUOUS,
@@ -233,6 +234,24 @@ class RuleTest(unittest.TestCase):
         self.assertEqual(strict(make_seed(), only_box).status, STATUS_AMBIGUOUS)
         both_agree = self.probes(["A"], ["A"], box=("A",))
         self.assertEqual(strict(make_seed(), both_agree).status, STATUS_MATCHED)
+
+    def test_wide_recovery_needs_single_candidate_agreement(self) -> None:
+        rule = RULES["layered_strict_wide"]
+        # 狭い矩形の外だが、A と B が単一候補で一致し、広い矩形の中にある。
+        probes = {
+            PROBE_A: SearchResult(("A",), 200),
+            PROBE_B: SearchResult(("A",), 200),
+            PROBE_C: SearchResult((), 200),
+            PROBE_C_WIDE: SearchResult(("A", "Z"), 200),
+        }
+        self.assertEqual(rule(make_seed(), probes).detail, "wide1_strict_in_wide_box")
+        # 候補が複数あるなら救済しない（負例で誤マッチを出した緩い層を入れない）。
+        probes[PROBE_A] = SearchResult(("A", "B"), 200)
+        self.assertEqual(rule(make_seed(), probes).status, STATUS_AMBIGUOUS)
+        # 広い矩形の外なら救済しない。
+        probes[PROBE_A] = SearchResult(("A",), 200)
+        probes[PROBE_C_WIDE] = SearchResult(("Z",), 200)
+        self.assertEqual(rule(make_seed(), probes).status, STATUS_AMBIGUOUS)
 
     def test_high_false_match_rules_are_not_exportable(self) -> None:
         # 負例で 14.67% の誤マッチを出したルールを CSV 出力に選べてはいけない。

@@ -778,6 +778,86 @@
         }
       }
     },
+    "layered_strict_wide": {
+      "positive": {
+        "seeds": 1000,
+        "status_counts": {
+          "unmatched": 2,
+          "ineligible": 58,
+          "matched": 636,
+          "ambiguous": 304
+        },
+        "match_rate": 0.636,
+        "matched_geo_counts": {
+          "confirmed": 636
+        },
+        "matched_geo_confirmed_rate": 1.0,
+        "detail_counts": {
+          "empty_result": 2,
+          "missing_name_or_address": 58,
+          "layer1_intersection_in_box": 604,
+          "wide1_strict_in_wide_box": 13,
+          "no_candidate_in_box": 215,
+          "no_layer_satisfied": 65,
+          "layer2_top1_in_box": 19,
+          "layer3_rejected_by_strict_policy": 24
+        }
+      },
+      "collisions": {
+        "distinct_place_ids": 636,
+        "colliding_place_ids": 0,
+        "colliding_place_ids_over_200m": 0
+      },
+      "negative_control": {
+        "seeds": 300,
+        "false_matches": 1,
+        "false_match_rate": 0.003333,
+        "status_counts": {
+          "ambiguous": 299,
+          "matched": 1
+        }
+      }
+    },
+    "layered_strict_wide+variant": {
+      "positive": {
+        "seeds": 1000,
+        "status_counts": {
+          "unmatched": 2,
+          "ineligible": 58,
+          "matched": 636,
+          "ambiguous": 304
+        },
+        "match_rate": 0.636,
+        "matched_geo_counts": {
+          "confirmed": 636
+        },
+        "matched_geo_confirmed_rate": 1.0,
+        "detail_counts": {
+          "empty_result": 2,
+          "missing_name_or_address": 58,
+          "layer1_intersection_in_box": 604,
+          "wide1_strict_in_wide_box": 13,
+          "no_candidate_in_box": 215,
+          "no_layer_satisfied": 65,
+          "layer2_top1_in_box": 19,
+          "layer3_rejected_by_strict_policy": 24
+        }
+      },
+      "collisions": {
+        "distinct_place_ids": 636,
+        "colliding_place_ids": 0,
+        "colliding_place_ids_over_200m": 0
+      },
+      "negative_control": {
+        "seeds": 300,
+        "false_matches": 1,
+        "false_match_rate": 0.003333,
+        "status_counts": {
+          "ambiguous": 299,
+          "matched": 1
+        }
+      }
+    },
     "layered_wide": {
       "positive": {
         "seeds": 1000,
