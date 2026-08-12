@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { View, StyleSheet, LayoutChangeEvent } from "react-native";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useGlobalSearchParams, useLocalSearchParams } from "expo-router";
 import { Tabs } from "@/components/collapsible-tabs";
 import { ProfileHeader } from "../components/ProfileHeader";
 import { ProfileTabsBar } from "../components/ProfileTabsBar";
@@ -91,10 +91,17 @@ export function ProfileTabsLayout() {
 	// 「見る」→ tab=saved-topics)。指定が無い/不正な場合は従来通り先頭タブを表示する。
 	// tabRequest は「同じタブへの2回目以降の遷移」でも必ず切り替えるためのリクエスト識別子
 	// (遷移元が Date.now() 等を渡す。値自体に意味はなく、変化の検知にだけ使う)。
-	const { tab: requestedTabParam, tabRequest: tabRequestParam } = useLocalSearchParams<{
-		tab?: string;
-		tabRequest?: string;
-	}>();
+	// ⚠️ `useLocalSearchParams` **だけ**に頼らないこと。
+	// あれは「そのルートが focus された時点の」パラメータしか返さず、
+	// **ディープリンクでこの画面へ直接着地した場合**に取りこぼすことがある。
+	// 実際 iOS の Detox が「マイページには着いているのに先頭タブのまま」で捕まえた
+	// （Android では同じコードで切り替わるため、端末差として現れて切り分けにくい）。
+	// `useGlobalSearchParams` は URL 全体を追うので、着地直後でも値が入る。
+	// 通常遷移では local が正なので local を優先し、無いときだけ global で補う。
+	const localParams = useLocalSearchParams<{ tab?: string; tabRequest?: string }>();
+	const globalParams = useGlobalSearchParams<{ tab?: string; tabRequest?: string }>();
+	const requestedTabParam = localParams.tab ?? globalParams.tab;
+	const tabRequestParam = localParams.tabRequest ?? globalParams.tabRequest;
 	const requestedTab = useMemo(
 		() => (requestedTabParam && tabRoutes.includes(requestedTabParam as RouteName) ? requestedTabParam : undefined),
 		[requestedTabParam, tabRoutes],

@@ -457,9 +457,33 @@ export class SearchScreen {
 	 * 先頭へ戻せば、キーボードが残っていてもトグルは上半分に来る。
 	 */
 	async openAdvancedFilters(): Promise<void> {
+		await this.dismissKeyboardIfPresent();
 		await element(this.scrollView).scrollTo("top");
 		await this.scrollUntilVisible(this.advancedToggle);
 		await tapWhenVisible(this.advancedToggle);
+	}
+
+	/**
+	 * 地点入力にフォーカスが残っていたら外して、ソフトキーボードを閉じる。
+	 *
+	 * ⚠️ **これを省くと `scrollUntilVisible` が «届かない» 形で落ちる。**
+	 * iOS ではキーボードが画面の下半分を占有するため、目的の要素がその領域を
+	 * 通過する瞬間しか画面に入らず、Detox の「面積の 75% 以上が可視」判定を
+	 * 永久に満たせない（`Unable to scroll down ... threshold (75)`）。
+	 * スクロール方向や開始位置の問題に見えるが、原因はキーボードである。
+	 * 実際 `scrollTo("top")` を足しただけでは直らず、失敗時スクリーンショットで確定した。
+	 *
+	 * 閉じる手段は Detox に無いので、フォーカスされている入力の Return を叩く。
+	 * キーボードが出ていない場合に備えて存在チェックしてから行い、失敗は握り潰す
+	 * （閉じられなかったこと自体を赤くしても、後続の本来の失敗が読めなくなるだけ）。
+	 */
+	private async dismissKeyboardIfPresent(): Promise<void> {
+		if (!(await existsNow(this.locationInput))) return;
+		try {
+			await element(this.locationInput).tapReturnKey();
+		} catch {
+			// 閉じられなくても後続の検証は試す
+		}
 	}
 
 	/** おすすめ外の移動時間チップの開閉を切り替える。画面外にある場合はスクロールしてから押す */
