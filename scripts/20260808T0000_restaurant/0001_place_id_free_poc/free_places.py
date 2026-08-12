@@ -16,6 +16,7 @@ Google の課金は *リクエストしたフィールドマスク* で決まる
 
 from __future__ import annotations
 
+import http.client
 import json
 import random
 import threading
@@ -38,6 +39,17 @@ ALLOWED_PLACE_KEYS = frozenset({"id"})
 ALLOWED_TOP_LEVEL_KEYS = frozenset({"places", "nextPageToken", "routingSummaries"})
 
 RETRYABLE_STATUS = frozenset({429, 500, 502, 503, 504})
+
+# urllib は ``getresponse()`` 中の切断を URLError で包まない。長時間の一括実行では
+# ``http.client.RemoteDisconnected`` が素通りして worker thread を落とし、実行全体が
+# 中断する。到達性の問題は全て再試行対象として扱う。
+RETRYABLE_EXCEPTIONS = (
+    urllib.error.URLError,
+    http.client.HTTPException,
+    OSError,
+    TimeoutError,
+    json.JSONDecodeError,
+)
 
 
 class BillingGuardError(RuntimeError):
@@ -172,7 +184,7 @@ class FreePlacesClient:
                     with self._counter_lock:
                         self.error_count += 1
                     return SearchResult((), status, message[:2000])
-            except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as error:
+            except RETRYABLE_EXCEPTIONS as error:
                 if attempt >= self._max_retries:
                     with self._counter_lock:
                         self.error_count += 1

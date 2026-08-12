@@ -5,7 +5,16 @@ from __future__ import annotations
 
 import unittest
 
-from free_places import ALLOWED_PLACE_KEYS, FIELD_MASK, BillingGuardError, SearchResult, extract_place_ids
+import http.client
+
+from free_places import (
+    ALLOWED_PLACE_KEYS,
+    FIELD_MASK,
+    RETRYABLE_EXCEPTIONS,
+    BillingGuardError,
+    SearchResult,
+    extract_place_ids,
+)
 from matching import (
     EXPORT_SAFE_RULES,
     GEO_ABSENT,
@@ -77,6 +86,14 @@ class BillingGuardTest(unittest.TestCase):
     def test_unexpected_top_level_key_stops_the_run(self) -> None:
         with self.assertRaises(BillingGuardError):
             extract_place_ids({"places": [], "contextualContents": []})
+
+    def test_disconnects_are_retryable(self) -> None:
+        # urllib はこれを URLError で包まないため、素通りすると worker thread ごと
+        # 実行が落ちる。長時間の一括実行で実際に発生した。
+        self.assertIsInstance(
+            http.client.RemoteDisconnected("closed"), RETRYABLE_EXCEPTIONS
+        )
+        self.assertIsInstance(ConnectionResetError(), RETRYABLE_EXCEPTIONS)
 
 
 class QueryBuildingTest(unittest.TestCase):
