@@ -21,7 +21,6 @@ from collections import Counter
 from pathlib import Path
 
 from ground_truth import haversine_m, load_restaurants
-from jp_text import name_similarity
 from seeds import read_seeds
 
 ROOT = Path(__file__).resolve().parent
@@ -32,9 +31,20 @@ def main() -> int:
     parser.add_argument("--restaurants", type=Path, default=ROOT / "out" / "restaurants.csv")
     parser.add_argument("--seeds", type=Path, required=True)
     parser.add_argument("--radius-m", type=float, default=100.0)
-    parser.add_argument("--min-name-similarity", type=float, default=0.78)
+    parser.add_argument("--min-name-similarity", type=float, default=0.9)
+    parser.add_argument(
+        "--matcher",
+        choices=("improved", "legacy"),
+        default="improved",
+        help="店名照合器。legacy は jp_text.name_similarity（しきい値は 0.6 相当）",
+    )
     parser.add_argument("--output", type=Path)
     arguments = parser.parse_args()
+
+    if arguments.matcher == "improved":
+        from jp_name_match import similarity as name_similarity
+    else:
+        from jp_text import name_similarity
 
     restaurants, restaurant_stats = load_restaurants(arguments.restaurants)
     cell = arguments.radius_m / 111_320.0
@@ -78,6 +88,7 @@ def main() -> int:
         "overture_seeds": seed_count,
         "radius_m": arguments.radius_m,
         "min_name_similarity": arguments.min_name_similarity,
+        "matcher": arguments.matcher,
         "verdicts": dict(verdicts),
         "coverage_rate": round(verdicts["covered"] / total, 6) if total else 0.0,
         # 名称一致のしきい値をいくつにするかで網羅率は動く。1回の計算で読み取れるよう、

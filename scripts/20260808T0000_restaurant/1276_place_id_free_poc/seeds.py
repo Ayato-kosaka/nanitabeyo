@@ -224,11 +224,32 @@ def build_address_query(
     return "", "none"
 
 
+# 飲食店として扱う basic_category。taxonomy に food_and_drink が付いていない行でも、
+# これらに該当すれば店として Google に載りうる。
+FOOD_CATEGORIES = (
+    "restaurant", "bar", "cafe", "casual_eatery", "coffee_shop",
+    "food_and_beverage_store", "bakery", "dessert_shop", "pub", "fast_food_restaurant",
+)
+# 日本の座標の範囲。南西諸島から北海道まで。
+JAPAN_BBOX = (122.0, 154.0, 20.0, 46.5)
+
+
 def overture_seed_query(parquet: Path, *, limit: int | None = None) -> str:
-    """Overture parquet から日本の food_and_drink 行を取り出す SQL を返す。"""
+    """Overture parquet から日本の飲食店行を取り出す SQL を返す。
+
+    当初は ``addresses[1].country = 'JP'`` で日本を絞っていたが、これは住所が
+    付いていない行を丸ごと落としていた。実測で 789,612 行に対し、座標で絞ると
+    1,012,263 行あり、**22%を捨てていた**。住所はクエリBを組むのに使うだけで、
+    店名と座標があれば ``box_unique`` は判定できる（B は必須ではない）。
+
+    カテゴリも taxonomy の food_and_drink だけでなく basic_category も見る。
+    パン屋や菓子店は taxonomy が付いていないことがあり、これで 1,081,471 行になる。
+    """
 
     escaped = str(parquet).replace("'", "''")
     tail = f"\nLIMIT {int(limit)}" if limit else ""
+    categories = ", ".join(f"'{name}'" for name in FOOD_CATEGORIES)
+    west, east, south, north = JAPAN_BBOX
     return f"""
         SELECT
           id AS seed_id,
@@ -242,8 +263,12 @@ def overture_seed_query(parquet: Path, *, limit: int | None = None) -> str:
           coalesce(confidence, 0.0) AS confidence,
           coalesce(list_aggregate(websites, 'string_agg', ' '), '') AS websites
         FROM read_parquet('{escaped}')
-        WHERE addresses[1].country = 'JP'
-          AND list_contains(taxonomy.hierarchy, 'food_and_drink')
+        WHERE bbox.xmin BETWEEN {west} AND {east}
+          AND bbox.ymin BETWEEN {south} AND {north}
+          AND (
+            list_contains(taxonomy.hierarchy, 'food_and_drink')
+            OR basic_category IN ({categories})
+          )
           AND names.primary IS NOT NULL
           AND bbox IS NOT NULL{tail}
     """

@@ -1,0 +1,45 @@
+{
+  "restaurants": {
+    "rows": 103440,
+    "with_google_place_id": 103440,
+    "without_google_place_id": 0,
+    "duplicate_place_ids": 0,
+    "distinct_place_ids": 103440
+  },
+  "overture_seeds": 1169886,
+  "radius_m": 100.0,
+  "min_name_similarity": 0.9,
+  "matcher": "improved",
+  "verdicts": {
+    "covered": 75337,
+    "nearby_only": 25104,
+    "absent": 2999
+  },
+  "coverage_rate": 0.728316,
+  "best_similarity_histogram": {
+    "0.0": 10876,
+    "0.1": 3662,
+    "0.2": 2537,
+    "0.3": 2281,
+    "0.4": 2750,
+    "0.5": 869,
+    "0.6": 859,
+    "0.7": 183,
+    "0.8": 76,
+    "0.9": 5665,
+    "1.0": 70683
+  },
+  "coverage_by_threshold": {
+    "0.0": 0.971007,
+    "0.1": 0.865864,
+    "0.2": 0.830462,
+    "0.3": 0.805936,
+    "0.4": 0.783884,
+    "0.5": 0.757299,
+    "0.6": 0.748898,
+    "0.7": 0.740594,
+    "0.8": 0.738824,
+    "0.9": 0.73809
+  },
+  "any_overture_row_within_radius": 0.971007
+}
