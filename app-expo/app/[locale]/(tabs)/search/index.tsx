@@ -463,6 +463,16 @@ export default function SearchScreen() {
 				style={styles.scrollView}
 				contentContainerStyle={styles.scrollContent}
 				keyboardShouldPersistTaps="always"
+				// ⚠️ iOS ではキーボードが画面に «覆いかぶさる»（Android のようにウィンドウが縮まない）。
+				// このフォームは最下部が詳細条件トグル + 100px の余白 + 検索 FAB で終わるため、
+				// キーボードが開いている間は **どこまでスクロールしても詳細条件トグルが画面下半分から出られず**、
+				// 触ることも読むこともできない状態になる。
+				// 地点入力は現在地の取得に失敗すると自動でフォーカスを取る（#932）ので、
+				// 「一度も自分でタップしていないのに詳細条件が押せない」という詰みが実際に起きる。
+				// ドラッグで閉じられるようにして脱出路を用意する（iOS の Detox が
+				// `threshold (75)` で 4 回連続落ちて判明。Android は adjustResize のため無症状だった）。
+				// `keyboardShouldPersistTaps="always"` とは併用可能で、サジェストのタップは従来どおり通る。
+				keyboardDismissMode="on-drag"
 				showsVerticalScrollIndicator={false}>
 				{/* Location Input */}
 				<View style={styles.section}>
