@@ -634,8 +634,9 @@ export class DishesService {
         // レスポンスが返す ID は必ず DB に存在する、という契約を同期側の責務として守る。
         //
         // 【設計】非同期ハンドラと二重に upsert されても安全に収束する。根拠:
-        //   - restaurants: 同期側は `update: {}`。handler 側だけ、GCS 原本を
-        //                  確認した後に `image_path` を更新する
+        //   - restaurants: 同期側は `update: {}`。handler 側だけ、既存 path の
+        //                  原本が GCS から消えているときに限り `image_path` を
+        //                  確認済みの新しい path へ貼り替える（#514）
         //   - dishes:      `findFirst(restaurant_id, category_id)` して無ければ create
         //   - dish_media:  `upsert({ where: { id }, update: {} })` かつ id は
         //                  (placeId, categoryId) から決定論的（#829）なので両者が同じ ID を出す
@@ -646,7 +647,8 @@ export class DishesService {
         // status を 'completed' にする競合が理屈上あり得る。それでも巻き戻らない。
         // dishes / dish_media は「既にあれば何もしない」。restaurants の handler 更新も
         // processing status を持たない image_path だけなので、dish_media の completed を
-        // processing に巻き戻す update 句は無い。
+        // processing に巻き戻す update 句は無い。ここへ status を含む update を
+        // 足してはいけない。
         //
         // 【設計】status は 'processing' のまま入れる。handler の冪等性境界は
         // `isDishMediaCompleted(dish_media.id)` なので、ここで completed にすると

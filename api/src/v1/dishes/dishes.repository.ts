@@ -44,6 +44,21 @@ export class DishesRepository {
   }
 
   /**
+   * #514 既存 restaurant が今どの原本 path を指しているかだけを引く。
+   *
+   * handler が「古い path が壊れているか」を判定するためだけに使う。
+   * 行が無ければ `null`（その場合は upsert の create 側で新しい path が入る）。
+   */
+  async findRestaurantImagePathByGooglePlaceId(
+    google_place_id: string,
+  ): Promise<{ image_path: string | null } | null> {
+    return this.prisma.prisma.restaurants.findUnique({
+      where: { google_place_id },
+      select: { image_path: true },
+    });
+  }
+
+  /**
    * レストランを作成または取得（Google Place データから）
    */
   async createOrGetRestaurant(
@@ -57,9 +72,11 @@ export class DishesRepository {
 
     return await tx.restaurants.upsert({
       where: { google_place_id },
-      // 非同期 handler では、この時点で GCS 原本の存在確認が完了している。
-      // 既存 restaurant が削除済みの古い path を持っていても、新しい有効な
-      // path に収束させる。同期の先行 upsert は従来どおり no-op のままにする。
+      // #514 既存 restaurant が「もう GCS に無い古い path」を握ったままだと、
+      // resize は 404 を繰り返し、画像は永久に表示されない。壊れていると
+      // 判定できたときだけ、存在確認済みの新しい path へ貼り替える。
+      // 判定は呼び出し元（非同期 handler）の責務で、`updateImagePath` に集約する。
+      // 同期の先行 upsert は従来どおり no-op のままにする。
       update:
         options.updateImagePath && createData.image_path
           ? { image_path: createData.image_path }

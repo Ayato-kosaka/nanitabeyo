@@ -260,9 +260,67 @@ export class CreateDishMediaEntryService {
   }
 
   /**
+   * #514 既存 restaurant の `image_path` を新しい原本へ貼り替えてよいかを判定する。
+   *
+   * 貼り替えるのは「今の path が壊れている」ときだけにする。無条件に上書きすると、
+   * 同じ place へ別カテゴリを import するたびに店舗画像が入れ替わり、その都度
+   * resize 完了までの間だけ CDN が 404 を返す（bug を直すついでに UI を揺らす）。
+   *
+   * 貼り替え先として許すのは `dish_media.media_path` と一致する path だけ。
+   * `downloadAndStorePhotos` が GCS 上の存在を確認したのはこの path であり、
+   * 未確認の path を書き込むと #514 と同じ「原本の無い path」を作ってしまう。
+   */
+  private async shouldAdoptNewRestaurantImagePath(
+    payload: CreateDishMediaEntryJobPayload,
+  ): Promise<boolean> {
+    const nextPath = payload.restaurants.image_path;
+    if (!nextPath) return false;
+
+    if (nextPath !== payload.dish_media.media_path) {
+      this.logger.warn(
+        'RestaurantImagePathNotVerified',
+        'shouldAdoptNewRestaurantImagePath',
+        {
+          jobId: payload.jobId,
+          imagePath: nextPath,
+          mediaPath: payload.dish_media.media_path,
+        },
+      );
+      return false;
+    }
+
+    const existing =
+      await this.dishesRepository.findRestaurantImagePathByGooglePlaceId(
+        payload.restaurants.google_place_id,
+      );
+    // 行がまだ無いなら upsert の create 側で新しい path が入る。
+    if (!existing) return false;
+    if (!existing.image_path) return true;
+    if (existing.image_path === nextPath) return false;
+
+    const currentExists = await this.storage.fileExists(existing.image_path);
+    if (currentExists) return false;
+
+    this.logger.log(
+      'RestaurantImagePathRepaired',
+      'shouldAdoptNewRestaurantImagePath',
+      {
+        jobId: payload.jobId,
+        googlePlaceId: payload.restaurants.google_place_id,
+        staleImagePath: existing.image_path,
+        nextImagePath: nextPath,
+      },
+    );
+    return true;
+  }
+
+  /**
    * 4テーブルのUPSERT処理（dishesRepository を使用）
    */
   private async upsertDatabaseEntries(payload: CreateDishMediaEntryJobPayload) {
+    const updateImagePath =
+      await this.shouldAdoptNewRestaurantImagePath(payload);
+
     return await this.prisma.withTransaction(
       async (tx: Prisma.TransactionClient) => {
         // 1. レストラン登録
@@ -275,7 +333,7 @@ export class CreateDishMediaEntryService {
             plus_code: payload.restaurants.plus_code as Prisma.InputJsonValue,
           },
           payload.restaurants.google_place_id,
-          { updateImagePath: true },
+          { updateImagePath },
         );
 
         // 2. 料理登録
