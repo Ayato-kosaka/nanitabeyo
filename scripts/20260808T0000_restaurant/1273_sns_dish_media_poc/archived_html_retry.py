@@ -45,6 +45,8 @@ def retry_index(row):
     """#1273 【設計】1店につき最大3回×2期。429/reset は指数バックオフして必ず判定を確定させる。"""
     p = urllib.parse.urlsplit(row["website"])
     host, path = p.netloc.lower(), p.path
+    # #1273 【設計】まず最新期だけを最大3回引く。0件が確定した店だけ1期前も見る。
+    #             （全店×2期を毎回引くと index.commoncrawl.org の応答待ちで時間が溶ける）
     recs, last_err, confirmed_empty = [], None, False
     for idx in ah.CC_INDEXES[:2]:
         for attempt in range(3):
@@ -56,8 +58,8 @@ def retry_index(row):
                 last_err = None
                 break
             last_err = e
-            time.sleep(1.5 * (2 ** attempt))
-        if len(recs) >= 20:
+            time.sleep(0.8 * (2 ** attempt))
+        if recs or last_err:
             break
     return row["id"], recs, last_err, confirmed_empty
 
@@ -65,7 +67,7 @@ def retry_index(row):
 got = {}
 errs = {}
 empty = set()
-with ThreadPoolExecutor(max_workers=3) as ex:
+with ThreadPoolExecutor(max_workers=6) as ex:
     futs = [ex.submit(retry_index, r) for r in todo]
     done = 0
     for f in as_completed(futs):
@@ -76,7 +78,7 @@ with ThreadPoolExecutor(max_workers=3) as ex:
         if ce:
             empty.add(sid)
         done += 1
-        if done % 40 == 0:
+        if done % 25 == 0:
             print("  retry %d/%d %.0fs" % (done, len(todo), time.time() - t0), flush=True)
 
 newly = {sid: r for sid, r in got.items() if r}
@@ -147,7 +149,7 @@ img_fail = Counter(c.get("reason") or "?" for r in results for c in r["img_check
 
 d["retry_pass"] = {
     "note": "初回の並列10は index.commoncrawl.org にレート制限され、not_in_cc と "
-            "取得失敗が混ざっていた。0件の店を並列3＋指数バックオフで再判定した結果。",
+            "取得失敗が混ざっていた。0件の店を並列6＋指数バックオフで再判定した結果。",
     "retried": len(todo), "newly_found": len(newly), "still_unresolved": n_unresolved,
 }
 d["n_evaluated"] = n
