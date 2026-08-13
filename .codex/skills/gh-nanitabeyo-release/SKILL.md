@@ -26,6 +26,8 @@ description: nanitabeyoのリリース担当者として、mainから新しいre
 - ストアへのbinary uploadと、人間が行う審査提出・公開操作を区別する。審査提出は行わない。
 - Release Note、PR、workflow、branchの既存状態を先に検索し、二重作成・二重dispatchを防ぐ。
 - Issue、PR、Release Control、実行報告などの運用文面は、ユーザーから別言語の指定がない限り日本語で記載する。
+- **残タスクはRelease Note issue本文のチェックボックスで管理し、その場で書き換える。** 工程ごとの実行報告コメントを積まない。コメントはGo/No-Go、人間の判断が要る分岐、失敗、完了報告に限り、1リリースあたり数件へ収める。Release Controlは1つのコメントを更新し続ける。詳細は[references/release-note-style.md](references/release-note-style.md) §4。
+- ユーザーへのチャット報告も同じ基準にする。変わったこと、判断が要ること、確認できていないことだけを短く書き、証跡はIssueへのリンクで渡す。同じ表や一覧を毎回展開しない。
 
 ## モードを選ぶ
 
@@ -138,15 +140,14 @@ API/clientの後方互換性から実行順を決める。破壊的DB変更はex
 
 ## 完了と引き継ぎ
 
-Release Note issueへ実績を追記し、次を最終報告する。
+証跡は**Release Controlコメント1件**へ集約して更新する。branch、変更前後SHA、PR URL、merge commit、native build IDとsubmission状態、migration/data operationの結果、API revision、Web deployとpost-deploy check、各OTAのupdate ID・runtime・branch・Actions URL、未実行/失敗/unknownの項目と理由をここへ置く。
 
-- branch、変更前後SHA、PR URL、merge commit
-- Release Note URL、子Issueへの紐付け結果、採用待ちのWhat’s New案
-- native build ID、submission状態、Actions URL
-- migration/data operationと結果
-- API revision、Web deploy、post-deploy check
-- 各OTAのupdate ID、runtime、branch、Actions URL
-- 未実行、失敗、unknown、人間待ちの項目と理由
-- 人間が行う審査提出・公開確認のチェックリスト
+**残タスクはRelease Note issue本文のチェックボックスへ置き、完了のたびに書き換える。** 人間が行う審査提出・公開確認もここに入れる。同じ一覧をコメントへ複製しない。
+
+最終報告（コメント1件とチャット）は簡潔にする。次だけを書き、それ以外はRelease Controlと本文へのリンクで渡す。
+
+- 完了した工程と、Release SHA
+- 人間へ渡す残タスクがどこにあるか（本文のチェックボックス）
+- 確認できていない項目（`unknown`）と、その理由
 
 すべての自動担当項目が検証済みになるまで「リリース完了」と表現しない。人間の審査が残る場合は「自動リリース作業完了、審査提出待ち」と報告する。
