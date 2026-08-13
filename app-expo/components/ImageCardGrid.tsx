@@ -61,6 +61,7 @@ function _ImageCard<T extends ImageCardItem>({
 	onPress,
 	cardStyle,
 	children,
+	testID,
 }: {
 	item: T;
 	columns?: number;
@@ -70,6 +71,8 @@ function _ImageCard<T extends ImageCardItem>({
 	onPress?: (i: T) => void;
 	cardStyle?: StyleProp<ViewStyle>;
 	children?: ReactNode;
+	/** #1133 E2E から個々のカードを掴むための識別子。未指定なら DOM/ツリーへ何も出ない */
+	testID?: string;
 }) {
 	const { lightImpact } = useHaptics();
 	// #958 【修正】useWindowDimensions はブラウザウィンドウ実幅を返すため、
@@ -105,7 +108,8 @@ function _ImageCard<T extends ImageCardItem>({
 			disabled={!onPress}
 			android_ripple={{ color: "rgba(0,0,0,0.06)" }}
 			accessibilityRole="button"
-			accessibilityLabel={accessibleLabel}>
+			accessibilityLabel={accessibleLabel}
+			testID={testID}>
 			<Image
 				source={source}
 				cachePolicy="memory-disk"

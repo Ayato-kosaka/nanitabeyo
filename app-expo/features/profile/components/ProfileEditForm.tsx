@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import { Text, TextInput, StyleSheet } from "react-native";
 import { Card } from "@/components/Card";
 import { PrimaryButton } from "@/components/PrimaryButton";
@@ -53,6 +53,15 @@ export function ProfileEditForm({ close }: ProfileEditFormProps) {
 	const [bioError, setBioError] = useState("");
 
 	const [isLoading, setIsLoading] = useState(false);
+	/**
+	 * #1205 【修正】プロフィール保存の多重実行を防ぐ同期ガード。
+	 *
+	 * `isLoading`（useState）は保存ボタンを disabled にする表示用途で、判定には使えない。
+	 * 通過すると `uploadFile` が 2 回走り、**署名 URL ごとに別の objectPath が払い出される**ため、
+	 * 実際に使われない孤児のストレージオブジェクトが残る（`POST v1/users/me` 自体は
+	 * 同じペイロードなので最終結果は変わらないが、ゴミだけが増える）。
+	 */
+	const isSavingRef = useRef(false);
 
 	// 入力時にエラーをクリア（FeedbackForm パターン）
 	const handleDisplayNameChange = useCallback(
@@ -105,6 +114,12 @@ export function ProfileEditForm({ close }: ProfileEditFormProps) {
 			setIsLoading(false);
 			return;
 		}
+
+		// #1205 多重実行の判定は ref で行う（useState の isLoading はレースが残る。宣言箇所のコメント参照）。
+		// ⚠️ **バリデーションの early return より後で立てること。** 上の 3 つの return は
+		// finally を通らず抜けるので、手前で立てると解除されず二度と保存できなくなる
+		if (isSavingRef.current) return;
+		isSavingRef.current = true;
 
 		// アバター画像のアップロード
 		// null は「既存アバターを削除」, string は「新規アップロード済みパス」, undefined は「変更なし」
@@ -174,6 +189,8 @@ export function ProfileEditForm({ close }: ProfileEditFormProps) {
 			});
 			showSnackbar(i18n.t("Common.error"));
 		} finally {
+			// #1205 保存失敗後も押し直せるよう、成功・失敗のいずれでも必ず解除する
+			isSavingRef.current = false;
 			setIsLoading(false);
 		}
 	}, [

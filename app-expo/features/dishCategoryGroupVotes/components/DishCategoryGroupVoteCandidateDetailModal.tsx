@@ -33,7 +33,9 @@ export function DishCategoryGroupVoteCandidateDetailModal({
 	const hasEmptyDishMedia = candidate.dishMediaSearchStatus === "empty";
 
 	return (
-		<View style={styles.modal}>
+		// #1122 「モーダルが閉じてから遷移する」を E2E で観測するための識別子。
+		// この要素が DOM から消えること = Portal がアンマウントされたこと。
+		<View style={styles.modal} testID="dish-category-group-vote-candidate-detail">
 			<ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
 				<View style={styles.hero}>
 					<Image source={{ uri: candidate.imageUrl }} style={styles.image} contentFit="cover" />
@@ -70,6 +72,7 @@ export function DishCategoryGroupVoteCandidateDetailModal({
 					disabled={hasEmptyDishMedia || isDishMediaLoading}
 					onPress={() => onPressDishMedia(candidate)}
 					style={styles.viewRestaurantsButton}
+					testID="dish-category-group-vote-detail-dish-media"
 				/>
 				{hasEmptyDishMedia ? (
 					<Text style={styles.emptyText}>{i18n.t("DishCategoryGroupVotes.noRestaurantsFound")}</Text>
