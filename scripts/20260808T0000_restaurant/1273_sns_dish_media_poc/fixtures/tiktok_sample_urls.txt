@@ -1,0 +1,5 @@
+# Public dish-related TikTok video URLs used for Embed feasibility PoC (issue #1273).
+# Discovered via web search on 2026-08-12. No account required, no media downloaded.
+https://www.tiktok.com/@shimayan.ramen/video/7364606200605854992
+https://www.tiktok.com/@rui_hokkaido/video/7388489386582658321
+https://www.tiktok.com/@travel.japan_together/video/7495703749118283026

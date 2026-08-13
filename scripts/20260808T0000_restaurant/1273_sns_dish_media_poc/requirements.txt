@@ -1,0 +1,2 @@
+# Intentionally empty: this POC uses only the Python standard library
+# (urllib, json, argparse) so it stays runnable without network access to PyPI.

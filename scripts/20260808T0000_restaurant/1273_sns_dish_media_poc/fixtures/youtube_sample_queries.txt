@@ -1,0 +1,7 @@
+# Category-oriented Discovery queries (Route B from issue #1273), one 18-category PoC would
+# use ~18 of these; this smoke test uses a small subset to stay well inside the free quota.
+ラーメン 東京
+寿司 大阪
+カレー 名古屋
+焼肉 福岡
+パスタ 札幌
