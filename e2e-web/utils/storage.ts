@@ -68,9 +68,38 @@ export const RECENT_LOCATIONS_STORAGE_KEY = "recent_locations_v1";
 export type SeededRecentLocation = {
 	locationQuery: string;
 	location: { latitude: number; longitude: number };
+	/**
+	 * ⚠️ **推薦 API 用の «機械可読なトークン列»。表示用の住所ではない。**
+	 * 例: `"country:JP, administrative_area_level_1:Tokyo, locality:Shibuya"`
+	 * 詳細と判定の正は `app-expo/lib/addressFormat.ts`（`isCanonicalAddress`）。
+	 */
 	address?: string;
 	localLanguageCode?: string;
 };
+
+/**
+ * シードした address が、アプリに «読み捨てられない» 形式かどうか。
+ *
+ * ## なぜこの検査が要るのか（実際に踏んだ）
+ * #1196 で `useRecentLocations` は読み出し時に `isCanonicalAddress` で検査し、
+ * 正規形式でないエントリを **黙って捨てる**ようになった。
+ * `address: "東京都テスト区1"` のような «表示用に見える» 文字列でシードすると、
+ * 5 件積んだつもりでも 0 件になり、症状は
+ * **「最近使った場所パネルが出てこない」というタイムアウトだけ**になる。
+ * seed 側が原因だと気付けず、実際にマージ後の nightly を 1 回赤くした。
+ *
+ * ⚠️ 判定の正は `app-expo/lib/addressFormat.ts` にある。e2e-web からは app-expo の
+ * モジュールを参照できない（tsconfig の paths は `@shared/*` だけ）ため、
+ * ここでは **最小要件（`country:` + 大文字 2 文字）だけ**を写している。
+ * アプリ側の条件が厳しくなったらここも追随すること。
+ * 写しであっても «黙って 0 件» よりは桁違いにましなので置いている。
+ */
+const hasCanonicalAddress = (address: string | undefined): boolean =>
+	!!address &&
+	address
+		.split(",")
+		.map((token) => token.trim())
+		.some((token) => /^country:[A-Z]{2}$/.test(token));
 
 /**
  * 「最近使った場所」を事前シードする（#1133）。
@@ -84,10 +113,18 @@ export type SeededRecentLocation = {
  * @param context ブラウザコンテキスト（ページ生成前に呼ぶこと）
  * @param locations 新しい順に並べた地点（先頭が最新。アプリ側の上限は5件）
  */
-export async function seedRecentLocations(
-	context: BrowserContext,
-	locations: SeededRecentLocation[],
-): Promise<void> {
+export async function seedRecentLocations(context: BrowserContext, locations: SeededRecentLocation[]): Promise<void> {
+	// アプリが読み捨てる形式でシードしても «パネルが出ない» としか観測できないので、
+	// ここで即座に、原因の分かる形で落とす
+	const discarded = locations.filter((location) => !hasCanonicalAddress(location.address));
+	if (discarded.length > 0) {
+		throw new Error(
+			`seedRecentLocations: address が正規形式でないエントリがあります（アプリ側が読み出し時に捨てるため、` +
+				`パネルは 0 件になります）: ${discarded.map((l) => `${l.locationQuery}=${JSON.stringify(l.address)}`).join(", ")}\n` +
+				`正規形式の例: "country:JP, administrative_area_level_1:Tokyo, locality:Shibuya"（app-expo/lib/addressFormat.ts）`,
+		);
+	}
+
 	await context.addInitScript(
 		([key, value]) => {
 			window.localStorage.setItem(key as string, value as string);

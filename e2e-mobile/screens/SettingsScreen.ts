@@ -4,6 +4,7 @@ import {
 	element,
 	existsNow,
 	tapWhenVisible,
+	waitFor,
 	waitUntilVisible,
 } from "../fixtures/e2e";
 
@@ -110,6 +111,26 @@ export class SettingsScreen {
 	}
 
 	/**
+	 * ログアウト行が **見える位置まで** 設定画面をスクロールする（#1131）。
+	 *
+	 * ## なぜ要るのか（CI で実際に赤くなった）
+	 * ログアウト行は設定画面の最下段のカードにあり、エミュレータの画面高では
+	 * **初期表示で画面外**にいる。Detox の `toBeVisible()` は「面積の 75% 以上が可視」を
+	 * 要求するので、`toExist()` は真でも `toBeVisible()` は永久に偽のまま 25 秒待って落ちる。
+	 * `hasLogoutItem()` が `existsNow`（= `toExist`）なのは匿名側で「無い」ことを見るためで、
+	 * **押せるかどうか**を見るこちらとは要求が違う。
+	 *
+	 * `whileElement(...).scroll()` は「見つかるまでスクロールする」Detox の標準手段で、
+	 * 既に見えている場合は 1 度も動かさずに返る（画面が大きい端末でも安全）。
+	 */
+	async scrollToLogout(): Promise<void> {
+		await waitFor(element(this.logoutItem))
+			.toBeVisible()
+			.whileElement(by.id("settings-scroll"))
+			.scroll(300, "down");
+	}
+
+	/**
 	 * ログアウト行をタップし、確認ダイアログを「ログアウト」で確定する（#1131）。
 	 *
 	 * ⚠️ **セッションを破壊する操作。** 共有セッション（globalSetup 発行）で呼んではいけない
@@ -117,6 +138,7 @@ export class SettingsScreen {
 	 * 呼び出す spec の設計上の注意は tests/authenticated/logout.test.ts の冒頭コメントを参照すること。
 	 */
 	async logout(): Promise<void> {
+		await this.scrollToLogout();
 		await tapWhenVisible(this.logoutItem);
 		// Portal 経由でマウントされるため、ダイアログの描画完了（タイトル）を待ってから押す
 		await waitUntilVisible(this.logoutConfirmTitle);
