@@ -47,7 +47,7 @@ C を必須にすると桁で下がります（[REPORT.md](./REPORT.md) の実�
 Python 3.11以上。
 
 ```bash
-cd scripts/20260808T0000_restaurant/0001_place_id_free_poc
+cd scripts/20260808T0000_restaurant/1276_place_id_free_poc
 python -m pip install -r requirements.txt
 export PLACE_API_TEST=<APIキー>
 
