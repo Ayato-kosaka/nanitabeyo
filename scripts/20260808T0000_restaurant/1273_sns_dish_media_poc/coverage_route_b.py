@@ -66,15 +66,26 @@ MENU_BREADTH_SCENARIOS = [M_MENU_BREADTH_OBSERVED, 2.0, 3.0, 5.0, 10.0]
 # ---------------------------------------------------------------------------
 
 
-def load_restaurants() -> list[tuple[float, float, str]]:
-    """本番 public.restaurants のCSV（name, latitude, longitude）を読み、国内分のみ返す。
+def load_restaurants(population: str) -> tuple[list[tuple[float, float, str]], str]:
+    """店舗母集団のCSVを読み、国内分のみ返す。
+
+    # #1279 【設計】母集団は Overture (#843が用意する789,612件) を既定にする。
+    # public.restaurants (103,528件) は bulk-import 済みの一部にすぎず、これを母集団に
+    # すると店舗密度を約7.7倍過小評価し、§32 KPIの構造的上限を過度に悲観的に見積もる。
+    # 比較のため population='public' で旧母集団も選べるようにしてある。
 
     副作用: なし（読み取りのみ）。
     失敗時: CSVが無ければ SystemExit。
     """
-    path = FIXTURES / "public_restaurants.csv"
+    if population == "overture":
+        path = FIXTURES / "overture_jp_food.csv"
+        label = "Overture Places JP food_and_drink (release 2026-07-22.0)"
+    else:
+        path = FIXTURES / "public_restaurants.csv"
+        label = "public.restaurants (bulk-import済みの現行DB)"
     if not path.exists():
-        raise SystemExit(f"fixture not found: {path}（引き継ぎtar.xzを fixtures/ に展開すること）")
+        raise SystemExit(f"fixture not found: {path}（README のfixtures節を参照して再生成すること）")
+    csv.field_size_limit(10**7)
     lat_min, lat_max, lon_min, lon_max = JP_BBOX
     pts: list[tuple[float, float, str]] = []
     skipped = 0
@@ -92,8 +103,8 @@ def load_restaurants() -> list[tuple[float, float, str]]:
                 skipped += 1
     if not pts:
         raise SystemExit("no domestic restaurants parsed from fixture")
-    print(f"[load] restaurants in JP bbox: {len(pts):,} (skipped {skipped:,})", file=sys.stderr)
-    return pts
+    print(f"[load] {label}: {len(pts):,} in JP bbox (skipped {skipped:,})", file=sys.stderr)
+    return pts, label
 
 
 def load_categories() -> list[dict]:
@@ -198,7 +209,7 @@ def cell_kpi_ceiling(pts: list[tuple[float, float, str]], n_categories: int) -> 
 # ---------------------------------------------------------------------------
 
 
-def query_budget_frontier(n_restaurants_now: int, depth: int) -> list[dict]:
+def query_budget_frontier(n_population: int, depth: int) -> list[dict]:
     """area粒度ごとに、60%カバレッジ達成に必要な『1クエリあたり初出マッチ店舗数 u』を逆算する。
 
     Route Bでは試行単位が店舗ではなくクエリなので、必要 u = (N × target) / queries。
@@ -209,7 +220,9 @@ def query_budget_frontier(n_restaurants_now: int, depth: int) -> list[dict]:
     for name, n_areas in AREA_TIERS:
         queries = n_areas * 134
         slots = queries * depth
-        for label, n_target in (("現状(103k)", n_restaurants_now), ("目標(700k)", N_RESTAURANTS_TARGET)):
+        # #1279 【設計】母集団は #843 が用意する Overture 全件。参考として現行DB規模も併記する。
+        for label, n_target in ((f"母集団({n_population/1000:.0f}k)", n_population),
+                                ("参考:現行DB(103k)", 103_055)):
             needed = n_target * COVERAGE_TARGET
             u = needed / queries
             rows.append(
@@ -302,10 +315,10 @@ def render_markdown(result: dict) -> str:
     lines: list[str] = []
     add = lines.append
     add(f"# Route B カバレッジ再モデル化 ({result['generated_at']})\n")
-    add(f"対象: 国内 {result['inputs']['n_restaurants_jp']:,} 店 / {result['inputs']['n_categories']} カテゴリ / "
-        f"目標カバレッジ {COVERAGE_TARGET:.0%}\n")
+    add(f"母集団: **{result['inputs']['population_label']}** — 国内 {result['inputs']['n_restaurants_jp']:,} 店 / "
+        f"{result['inputs']['n_categories']} カテゴリ / 目標カバレッジ {COVERAGE_TARGET:.0%}\n")
 
-    add("## (A) 探索セルの店舗密度センサス（本番 public.restaurants 実測）\n")
+    add("## (A) 探索セルの店舗密度センサス\n")
     add("| 半径 | 有店舗セル数 | 中央値 | p90 | p99 | 最大 | 5店舗以上のセル | 同(店舗加重) | 上位1%セルの店舗シェア |")
     add("|---|---:|---:|---:|---:|---:|---:|---:|---:|")
     for r in result["density_census"]:
@@ -361,14 +374,17 @@ def render_markdown(result: dict) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser(description="#1279 Route B coverage re-model")
     parser.add_argument("--depth", type=int, default=SEARCH_DEPTH_DEFAULT, help="1クエリあたりの探索深さ(ytsearchN)")
+    parser.add_argument("--population", choices=("overture", "public"), default="overture",
+                        help="店舗母集団。既定は #843 が用意する Overture 全件")
     args = parser.parse_args()
 
-    pts = load_restaurants()
+    pts, population_label = load_restaurants(args.population)
     cats = load_categories()
 
     result = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "inputs": {
+            "population_label": population_label,
             "n_restaurants_jp": len(pts),
             "n_categories": len(cats),
             "n_restaurants_target": N_RESTAURANTS_TARGET,
