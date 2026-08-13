@@ -60,10 +60,10 @@ describeAuthenticated("保存した料理カテゴリからの地点検索", () 
 	/**
 	 * マイページへの直リンク。
 	 *
-	 * ⚠️ `?tab=saved-topics` は付けない。**iOS では効かず先頭タブのまま着地する**ため
-	 * （失敗時スクリーンショットで確認。`useGlobalSearchParams` の併用でも直らなかった）。
-	 * タブの切り替えは Screen Object が実 UI（タブバー）で行う（`openSavedTopicsTab`）。
-	 * `?tab=` 自体の不具合はこの spec の対象外で、別途追う必要がある。
+	 * `?tab=saved-topics` は付けない。iOS で効かなかった問題は #1272 で修正済みだが、
+	 * この spec の主題は «保存料理カテゴリからの地点検索» であってディープリンクではないため、
+	 * タブの切り替えは実 UI（タブバー）で行う（`openSavedTopicsTab`）。
+	 * `?tab=` の到達性そのものは profile-tab-deep-link.test.ts が回帰テストとして守っている。
 	 */
 	const profileDeepLink = localeDeepLink("profile");
 
