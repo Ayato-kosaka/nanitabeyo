@@ -28,6 +28,8 @@ import { isGuestUser } from "@/lib/authGuest";
 import { useProfileStore } from "../stores/useProfileStore";
 import { useEnsureOwnProfileLoaded } from "../hooks/useEnsureOwnProfileLoaded";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
+// #1272 E2E ビルド限定のルートパラメータプローブ。通常ビルドでは metro が noop へ差し替える
+import { e2eRouteParamsProbeElement } from "@/lib/e2e/routeParamsProbe";
 
 export function ProfileTabsLayout() {
 	const { mediumImpact, lightImpact } = useHaptics();
@@ -112,6 +114,10 @@ export function ProfileTabsLayout() {
 	// native は react-native-collapsible-tab-view の CollapsibleRef.jumpToTab、web は
 	// アダプタ(index.web.tsx)に追加した同名の命令的 API で、パラメータ変更のたびに切り替える。
 	const tabsContainerRef = useRef<{ jumpToTab?: (name: string) => void } | null>(null);
+	// #1272 【プローブ】jumpToTab の結末を E2E ビルドで観測できるようにする。
+	// "none"（effect 未発火）/ "direct"（即時に呼べた）/ "retried:<n>"（n 回目のリトライで呼べた）/
+	// "gaveup"（2 秒待っても ref が生えなかった）。通常ビルドでは setState されるだけで描画物は無い
+	const [e2eJumpOutcome, setE2eJumpOutcome] = useState("none");
 	useEffect(() => {
 		if (!requestedTab) return;
 
@@ -123,6 +129,7 @@ export function ProfileTabsLayout() {
 		// 生えたら 1 度だけ呼んで止める。
 		if (tabsContainerRef.current?.jumpToTab) {
 			tabsContainerRef.current.jumpToTab(requestedTab);
+			setE2eJumpOutcome("direct");
 			return;
 		}
 
@@ -131,14 +138,35 @@ export function ProfileTabsLayout() {
 			attempts += 1;
 			if (tabsContainerRef.current?.jumpToTab) {
 				tabsContainerRef.current.jumpToTab(requestedTab);
+				setE2eJumpOutcome(`retried:${attempts}`);
 				clearInterval(timer);
 			} else if (attempts >= 20) {
 				// 2 秒待っても生えないのは別の異常。無限に回さない
+				setE2eJumpOutcome("gaveup");
 				clearInterval(timer);
 			}
 		}, 100);
 		return () => clearInterval(timer);
-	}, [requestedTab, tabRequestParam]);
+		// #1272 【バグ】deps に isAuthResolved が無いと、この effect は **auth 未解決のうちに一度だけ**
+		// 走って終わる。auth 未解決の間は下の早期 return で Tabs.Container がマウントされないため
+		// ref は絶対に生えず、iOS のコールドスタート（セッション注入 + プロフィール取得）が
+		// 2 秒を超えるとリトライが尽きる（probe の実測 `jump=gaveup`。パラメータは届いているのに
+		// タブが切り替わらない）。auth の解決で effect を再実行すれば、その時点で ref は生えており
+		// 即時に跳べる。リトライ間隔を伸ばす方向で直さないこと — 「何 ms 待てば十分か」は
+		// 端末依存で答えが無く、マウントを追いかける形だけが正しい
+	}, [requestedTab, tabRequestParam, isAuthResolved]);
+
+	// #1272 【プローブ】「パラメータがどの段で消えているか」を示す実測値。
+	// local/global が "-" なら expo-router がクエリを届けていない（起動 URL 処理の問題）、
+	// 値があるのに先頭タブなら jumpToTab / initialTabName が効いていない（タブ実装の問題）。
+	// 通常ビルドでは e2eRouteParamsProbeElement が常に null を返すため描画物は増えない
+	const e2eProbe = e2eRouteParamsProbeElement({
+		local: localParams.tab,
+		global: globalParams.tab,
+		requested: requestedTab,
+		auth: isAuthResolved ? "1" : "0",
+		jump: e2eJumpOutcome,
+	});
 
 	const handleHeaderLayout = useCallback((event: LayoutChangeEvent) => {
 		const { height } = event.nativeEvent.layout;
@@ -254,12 +282,16 @@ export function ProfileTabsLayout() {
 		return (
 			<View style={[styles.container, styles.loadingContainer]}>
 				<LoadingIndicator size="large" />
+				{/* #1272 auth 未確定の段階でパラメータが届いているかも観測対象（通常ビルドでは null） */}
+				{e2eProbe}
 			</View>
 		);
 	}
 
 	return (
 		<View style={styles.container}>
+			{/* #1272 E2E ビルド限定のルートパラメータプローブ（通常ビルドでは null） */}
+			{e2eProbe}
 			<Tabs.Container
 				ref={tabsContainerRef as never}
 				headerHeight={headerHeight}

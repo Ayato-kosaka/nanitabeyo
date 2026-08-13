@@ -9,7 +9,8 @@ import { getResolvedLocale } from "@/lib/i18n";
 import { consumeLogoutRedirect } from "@/lib/logoutRedirect";
 import { carriesOAuthResult } from "@/lib/oauthResultUrl";
 // #721 ディープリンクの行き先判定は純関数へ切り出した（分岐をテストで固定するため）
-import { toInAppPath } from "@/lib/deepLinkTarget";
+// #1272 クエリは Linking.parse().path が落とすため、生 URL から別途切り出して行き先へ運ぶ
+import { extractQueryString, toInAppPath } from "@/lib/deepLinkTarget";
 import * as WebBrowser from "expo-web-browser";
 WebBrowser.maybeCompleteAuthSession();
 
@@ -59,6 +60,11 @@ export default function App() {
 	//
 	// `null` は「まだ初期 URL を調べていない」を表し、判定が付くまでリダイレクトを保留する
 	const [initialPath, setInitialPath] = useState<string | null | undefined>(undefined);
+	// #1272 【バグ】`Linking.parse().path` はクエリを落とす。`?tab=saved-topics` のような
+	// 行き先パラメータを保持するため、クエリ文字列は生 URL から別途切り出して持ち回る
+	//（iOS はこの画面のリダイレクトが expo-router の初期 URL 解決に勝つため、ここで落とすと
+	//  端末に届いたクエリが**アプリのどこにも到達しない**。probe の実測 `local=- global=-` で確定）
+	const [initialQuery, setInitialQuery] = useState<string | null>(null);
 
 	useEffect(() => {
 		// #1124 【バグ】2 回目以降のマウントでは初期 URL を採用しない。
@@ -98,6 +104,8 @@ export default function App() {
 					setInitialPath(null);
 					return;
 				}
+				// #1272 パスとクエリを別々に保持する（parse().path がクエリを落とすため）
+				setInitialQuery(extractQueryString(url));
 				setInitialPath(url ? (Linking.parse(url).path ?? null) : null);
 			})
 			.catch(() => {
@@ -116,7 +124,9 @@ export default function App() {
 		const resolvedLocale = getResolvedLocale(Localization.getLocales?.()[0]?.languageTag);
 		// 初期 URL の先頭セグメントがロケールなら、そのパスをそのまま行き先にする。
 		// アプリ内のルートとして解釈できない URL（OAuth コールバック等）は巻き込まない
-		const deepLinkTarget = toInAppPath(initialPath);
+		// #1272 クエリ（?tab= 等）も行き先の一部として運ぶ。落とすとタブ指定つきの
+		// ディープリンクが iOS で先頭タブに化ける（純関数側の doc コメント参照）
+		const deepLinkTarget = toInAppPath(initialPath, initialQuery);
 		const target = logoutRedirectLocale ? `/${logoutRedirectLocale}` : (deepLinkTarget ?? `/${resolvedLocale}`);
 
 		if (Env.NODE_ENV === "development") {

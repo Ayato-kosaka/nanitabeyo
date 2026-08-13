@@ -422,8 +422,48 @@ jobs:
       - name: 🧱 Build Detox framework cache
         run: pnpm --filter e2e-mobile exec detox build-framework-cache
 
+      # 🔑 アプリバイナリのキャッシュキーを算出する。
+      #
+      # xcodebuild は毎 run 約 25 分かかるが、Release シミュレータビルドの成果物（.app）は
+      # **アプリ側の入力が同じなら同一**である。iOS の Detox デバッグは「テストコードだけを
+      # 直して回す」反復が大半で（#1084 の緑化で実測: 8 回の iOS run 中 6 回はテストコードのみの
+      # 変更）、そのたびに 25 分を払うのは純粋な無駄。1 サイクルを 45 分 → 約 20 分へ縮める。
+      #
+      # キーの構成（= バイナリに焼き込まれる入力の全て）:
+      # - HEAD:app-expo / HEAD:shared の git tree hash … JS バンドルとネイティブ設定の実体。
+      #   prebuild が生成する ios/ は app.json 等（tracked）から導出されるため tree hash で覆える
+      # - pnpm-lock.yaml … 依存の版
+      # - ios/Podfile.lock … pod install 直後にしか存在しないため、このステップは pod install の後に置く
+      # - .env（EXPO_PUBLIC_COMMIT_ID の行を除く）… EXPO_PUBLIC_* はバンドルへ焼き込まれる。
+      #   COMMIT_ID を除くのは、含めるとキーが毎コミット変わりキャッシュが一度も当たらないため。
+      #   その代償として **キャッシュヒット時のバイナリ内 COMMIT_ID はビルド元コミットのまま**になる
+      #   （下の cache ステップで警告を出す。E2E のテスト自体は COMMIT_ID を検証しない）
+      - name: 🔑 Compute app binary cache key
+        id: appkey
+        shell: bash
+        run: |
+          grep -v '^EXPO_PUBLIC_COMMIT_ID=' app-expo/.env > app-expo/.env.cachekey
+          echo "app_tree=$(git rev-parse HEAD:app-expo)" >> "$GITHUB_OUTPUT"
+          echo "shared_tree=$(git rev-parse HEAD:shared)" >> "$GITHUB_OUTPUT"
+
+      # ⚠️ restore-keys は付けない（前方一致で別アプリの stale バイナリを掴むと、
+      # 「直したはずのバグで落ち続ける」という最悪のデバッグ体験になる。完全一致のみ）
+      - name: 📥 Cache Detox app binary (iOS)
+        id: appcache
+        uses: actions/cache@v4
+        with:
+          path: app-expo/ios/build/Build/Products/Release-iphonesimulator
+          key: ios-detox-app-${{ runner.os }}-${{ steps.appkey.outputs.app_tree }}-${{ steps.appkey.outputs.shared_tree }}-${{ hashFiles('pnpm-lock.yaml', 'app-expo/ios/Podfile.lock', 'app-expo/.env.cachekey') }}
+
+      - name: ♻️ Report app binary cache hit
+        if: steps.appcache.outputs.cache-hit == 'true'
+        run: |
+          echo "::notice::アプリバイナリをキャッシュから復元したため xcodebuild（約25分）をスキップします。"
+          echo "::warning::バイナリ内の EXPO_PUBLIC_COMMIT_ID はこのバイナリをビルドしたコミットのものです（アプリ側ソースは同一）。"
+
       # シミュレータ用 Release ビルド（署名不要）。ビルド失敗とテスト失敗を切り分けるため独立ステップにする
       - name: 🏗️ Detox build (iOS release)
+        if: steps.appcache.outputs.cache-hit != 'true'
         # #1030 【設計】Android と同じ理由でバンドル時にセッション注入フックを有効化する
         env:
           EXPO_PUBLIC_E2E_AUTH_HOOK: "1"
