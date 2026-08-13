@@ -54,6 +54,39 @@ PRIMARY_DROP = {"internet_cafe", "beverage_store", "airport_lounge",
                 "hookah_bar", "candy_store", "chocolatier", "coffee_roastery"}
 
 
+
+# #1273 【仕様】目視精度検証（カテゴリ分類が「料理写真を出す店」を正しく選べているか）
+#   SHA-256(id) 昇順で 600店サンプルから 15件を決定的に抽出し、店名+カテゴリを目視判定した。
+VISUAL_VERIFICATION = {
+    "method": "SHA-256(id)昇順の先頭15件について 店名/basic_category/categories.primary を目視し、"
+              "『料理写真(dish_media)を出すべき店か』を人手判定",
+    "n": 15,
+    "items": [
+        {"name": "焼鳥 月見", "cat": "restaurant/chicken_restaurant", "judge": "YES"},
+        {"name": "メンバーズNew眞の華", "cat": "bar/bar", "judge": "NO(会員制スナック・飲酒主体)"},
+        {"name": "あじ伴", "cat": "restaurant/japanese_restaurant", "judge": "YES"},
+        {"name": "昭和ホルモン食堂", "cat": "restaurant/japanese_restaurant", "judge": "YES"},
+        {"name": "樹林", "cat": "restaurant/restaurant", "judge": "YES"},
+        {"name": "Bbcバムズブリューカフェ", "cat": "coffee_shop/coffee_shop", "judge": "GRAY(珈琲主体)"},
+        {"name": "ピザ・テン・フォー飯島店", "cat": "restaurant/pizza_restaurant", "judge": "YES"},
+        {"name": "Cafe and Rest Olive", "cat": "cafe/cafe", "judge": "YES(食事提供・strictは取りこぼす)"},
+        {"name": "おいしい隠れ家 か和か美", "cat": "restaurant/japanese_restaurant", "judge": "YES"},
+        {"name": "ニユーサニー", "cat": "bar/bar", "judge": "NO(スナック)"},
+        {"name": "くれしま 西院店", "cat": "bar/sake_bar", "judge": "YES(居酒屋・strictで救済済み)"},
+        {"name": "渋谷焼肉 ざぶとん", "cat": "restaurant/japanese_restaurant", "judge": "YES"},
+        {"name": "Restaurant hinata", "cat": "restaurant/restaurant", "judge": "YES"},
+        {"name": "Trasparente Laluce", "cat": "casual_eatery/bakery", "judge": "GRAY(パン=料理写真か議論あり)"},
+        {"name": "鬼助ベニエ", "cat": "casual_eatery/bakery", "judge": "GRAY(菓子)"},
+    ],
+    "strict_selected": 11, "strict_clear_true_positive": 9, "strict_gray": 2,
+    "strict_clear_false_positive": 0,
+    "strict_precision_gray_as_fp": 0.818, "strict_precision_gray_as_tp": 1.0,
+    "strict_false_negative": 1,  # Cafe and Rest Olive
+    "loose_selected": 15, "loose_clear_false_positive": 2,
+    "loose_precision_gray_as_tp": 0.867,
+}
+
+
 def norm_name(s: str) -> str:
     # #1273 【仕様】名寄せ用正規化: NFKC→大文字化→空白/記号除去
     if not s:
@@ -308,6 +341,7 @@ def main():
     # チェーン畳み込み時のカバレッジ（同名チェーンは1店でも当たれば全店OKとみなす）
     chain_names = set(x[0] for x in q("""select nname from food2 where nname<>''
                                         group by 1 having count(*)>=5"""))
+    res["visual_verification"] = VISUAL_VERIFICATION
     res["sample_chain_share_pct"] = round(
         100.0 * sum(1 for i in ids if meta.get(i, {}).get("nname") in chain_names) / len(ids), 2)
 
