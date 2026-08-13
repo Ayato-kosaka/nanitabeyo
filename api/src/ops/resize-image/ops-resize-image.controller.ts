@@ -29,7 +29,11 @@ export class OpsResizeImageController {
    */
   @Post('re-enqueue')
   @UseGuards(AuthAnonGuard, PermissionGuard)
-  @Permissions('ops.resize-image.re-enqueue')
+  // #514 【注意】permission 名だけ route と語順が逆（`image-resize` / `resize-image`）。
+  // 本番の `permissions` には `ops.image-resize.re-enqueue` の行が既に入っており、
+  // 名前が食い違うと `Missing permission` で 403 になる。route に合わせて
+  // 「直す」場合は、必ず DB 側の行とロール割り当ても同時に張り替えること。
+  @Permissions('ops.image-resize.re-enqueue')
   @ApiOperation({
     summary: 'リサイズジョブの再 enqueue',
     description:
