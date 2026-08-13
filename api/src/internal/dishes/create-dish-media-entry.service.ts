@@ -88,23 +88,36 @@ export class CreateDishMediaEntryService {
   private async downloadAndStorePhotos(
     payload: CreateDishMediaEntryJobPayload,
   ): Promise<void> {
+    // #514 【設計】原本の有無を先に見る。photoUri の有無では分岐しない。
+    //
+    // 保存に成功した後、DB transaction や resize enqueue で落ちると、Cloud Tasks は
+    // 同じ payload で再試行する。そのとき Google の photoUri は既に期限切れや 429 に
+    // なっていることがあり、fetch から始めると「GCS には有効な原本があるのに
+    // ダウンロードだけが永久に失敗する」状態になる（リトライ上限まで消費して
+    // processing の行が残る）。原本があるなら download は要らない。
+    //
     // #1053 【課金】bulk-import が「GCS に実体あり」と判定した再利用パスでは photoUri が空。
-    // その場合 download は不要で、upsert と resize のやり直しだけが目的になる。
-    if (payload.photoUri.length === 0) {
-      const originalExists = await this.storage.fileExists(
-        payload.dish_media.media_path,
-      );
-      if (!originalExists) {
-        throw new Error(
-          `Stored photo is missing: ${payload.dish_media.media_path}`,
-        );
-      }
-
+    // その場合も同じ判定に乗る。実体があるのに Photo Media を取り直して課金しない。
+    //
+    // `uploadFileAtPath` は `overwriteIfExists: false` なので、実体がある状態で
+    // download しても保存は no-op になる。先に確認しても結果は変わらない。
+    const originalExists = await this.storage.fileExists(
+      payload.dish_media.media_path,
+    );
+    if (originalExists) {
       this.logger.debug('PhotoDownloadSkipped', 'downloadAndStorePhotos', {
         jobId: payload.jobId,
         mediaPath: payload.dish_media.media_path,
+        hasPhotoUri: payload.photoUri.length > 0,
       });
       return;
+    }
+
+    // 原本が無く、取りに行く先も無い。DB 登録と resize enqueue へ進めてはいけない。
+    if (payload.photoUri.length === 0) {
+      throw new Error(
+        `Stored photo is missing: ${payload.dish_media.media_path}`,
+      );
     }
 
     const downloadPromises = payload.photoUri.map(async (photoUri, index) => {

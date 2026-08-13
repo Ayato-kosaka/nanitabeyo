@@ -120,6 +120,7 @@ describe('CreateDishMediaEntryService', () => {
   });
 
   it('fails the job on a transient photo download error before writing DB rows', async () => {
+    storage.fileExists.mockResolvedValue(false);
     jest.spyOn(global, 'fetch').mockResolvedValue({
       ok: false,
       status: 429,
@@ -132,6 +133,27 @@ describe('CreateDishMediaEntryService', () => {
     expect(storage.uploadFileAtPath).not.toHaveBeenCalled();
     expect(dishesRepository.createOrGetRestaurant).not.toHaveBeenCalled();
     expect(cloudTasksService.enqueueResizeImage).not.toHaveBeenCalled();
+  });
+
+  it('does not re-fetch an expired photoUri when the original is already stored', async () => {
+    // 保存後に DB や enqueue で落ちた retry。photoUri は期限切れで叩けば必ず失敗する。
+    storage.fileExists.mockResolvedValue(true);
+    const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue({
+      ok: false,
+      status: 429,
+    } as Response);
+    dishesRepository.findRestaurantImagePathByGooglePlaceId.mockResolvedValue({
+      image_path: mediaPath,
+    });
+
+    await service.processAsyncJob({
+      ...fullPayload,
+      photoUri: ['https://example.com/expired.jpg'],
+    } as CreateDishMediaEntryJobPayload);
+
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(dishesRepository.createOrGetRestaurant).toHaveBeenCalled();
+    expect(cloudTasksService.enqueueResizeImage).toHaveBeenCalled();
   });
 
   it('does not skip a download unless the reused original still exists', async () => {
