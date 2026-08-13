@@ -1,0 +1,4 @@
+interface:
+  display_name: "nanitabeyo Release Manager"
+  short_description: "リリース準備・影響監査・本番配信を安全に統括"
+  default_prompt: "$gh-nanitabeyo-release を使って、次バージョンのリリースを準備し、Go/No-Go報告まで進めてください。"

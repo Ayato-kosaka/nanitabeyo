@@ -1,4 +1,4 @@
-import { useAPICall } from "@/hooks/useAPICall";
+import { useAPICall, type ApiError } from "@/hooks/useAPICall";
 import { useAuth } from "@/contexts/AuthProvider";
 import { useLogger } from "@/hooks/useLogger";
 import { toErrorLogMessage } from "@/lib/errorMessage";
@@ -14,6 +14,35 @@ interface HealthData {
 	status: "ok";
 	timestamp: string;
 }
+
+/**
+ * #1234 【設計】ヘルスチェック失敗のログレベルを決める。
+ *
+ * 【バグ】catch が `error_level: "error"` 固定だったため、**サーバーに届いてすらいない失敗**
+ * （地下鉄・機内モード・電波が細い等の回線起因）まで error として記録され、
+ * error-triage が毎日 Issue を起票していた。同じ意味の失敗でも
+ * `api_call_error` の方は SQL の除外ルール E3 `client_network`（status = 0）で既に落ちており、
+ * 「イベント名が違うだけで片方は除外・片方は起票」という不整合になっていた。
+ *
+ * 【修正】**HTTP ステータスを伴わないネットワーク失敗だけ** warn へ落とす。
+ * `useAPICall` が `code: "network_error", status: 0` を投げるのはレスポンスが 1 度も
+ * 返らなかったとき（タイムアウト 30s / fetch 自体の失敗）だけなので、この 2 条件で一意に判別できる。
+ *
+ * ⚠️ 一律 warn 化は絶対にしないこと。このコンポーネントは
+ * **メンテナンスモード(503) と強制アップデート(426) をアプリが知る唯一の経路**であり
+ * （フロントは Remote Config の `is_maintenance` / `minimum_supported_version` を読んでいない）、
+ * その 2 つが検知できなくなったことに気付ける手段がヘルスチェックの error ログしか無い。
+ * 503/426/その他の HTTP エラーは error のまま残す。
+ *
+ * ⚠️ `unauthenticated`（トークン未確立）もここでは触らない。error のままで良い。
+ * こちらは SQL 側の除外ルール E2 `unauthenticated_race` で既に起票対象から外れており、
+ * アプリ側でも下げると同じ事象への二重対応になる。
+ */
+export const resolveHealthCheckErrorLevel = (error: unknown): "warn" | "error" => {
+	const apiError = error as ApiError | undefined;
+	const hasHttpStatus = typeof apiError?.status === "number" && apiError.status > 0;
+	return apiError?.code === "network_error" && !hasHttpStatus ? "warn" : "error";
+};
 
 /**
  * HealthCheckInitializer
@@ -70,7 +99,9 @@ export const HealthCheckInitializer: React.FC<{ children: React.ReactNode }> = (
 		} catch (error: any) {
 			logFrontendEvent({
 				event_name: "health_check_error",
-				error_level: "error",
+				// #1234 回線起因（レスポンス無し）だけ warn。503/426/その他は error のまま。
+				// 判定理由は resolveHealthCheckErrorLevel の JSDoc を参照
+				error_level: resolveHealthCheckErrorLevel(error),
 				payload: {
 					error: toErrorLogMessage(error),
 					code: error?.code,

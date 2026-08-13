@@ -215,6 +215,12 @@ export type role_permissions = $Result.DefaultSelection<Prisma.$role_permissions
  */
 export type roles = $Result.DefaultSelection<Prisma.$rolesPayload>
 /**
+ * Model share_links
+ * This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+ * This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+ */
+export type share_links = $Result.DefaultSelection<Prisma.$share_linksPayload>
+/**
  * Model user_device_tokens
  * This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
  * This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -750,6 +756,16 @@ export class PrismaClient<
   get roles(): Prisma.rolesDelegate<ExtArgs, ClientOptions>;
 
   /**
+   * `prisma.share_links`: Exposes CRUD operations for the **share_links** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Share_links
+    * const share_links = await prisma.share_links.findMany()
+    * ```
+    */
+  get share_links(): Prisma.share_linksDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.user_device_tokens`: Exposes CRUD operations for the **user_device_tokens** model.
     * Example usage:
     * ```ts
@@ -1254,6 +1270,7 @@ export namespace Prisma {
     restaurants: 'restaurants',
     role_permissions: 'role_permissions',
     roles: 'roles',
+    share_links: 'share_links',
     user_device_tokens: 'user_device_tokens',
     user_notification_cursors: 'user_notification_cursors',
     user_roles: 'user_roles',
@@ -1273,7 +1290,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "backend_event_logs" | "config" | "contribution_tasks" | "dish_categories" | "dish_category_features" | "dish_category_group_vote_candidate_votes" | "dish_category_group_vote_candidates" | "dish_category_group_vote_participants" | "dish_category_group_vote_sessions" | "dish_category_localized_text" | "dish_category_variants" | "dish_media" | "dish_media_analysis_results" | "dish_media_impressions" | "dish_media_likes" | "dish_media_views" | "dish_reviews" | "dishes" | "external_api_logs" | "frontend_event_logs" | "notification_recipients" | "notifications" | "payouts" | "permissions" | "prompt_families" | "prompt_usages" | "prompt_variants" | "reactions" | "restaurant_bids" | "restaurants" | "role_permissions" | "roles" | "user_device_tokens" | "user_notification_cursors" | "user_roles" | "users"
+      modelProps: "backend_event_logs" | "config" | "contribution_tasks" | "dish_categories" | "dish_category_features" | "dish_category_group_vote_candidate_votes" | "dish_category_group_vote_candidates" | "dish_category_group_vote_participants" | "dish_category_group_vote_sessions" | "dish_category_localized_text" | "dish_category_variants" | "dish_media" | "dish_media_analysis_results" | "dish_media_impressions" | "dish_media_likes" | "dish_media_views" | "dish_reviews" | "dishes" | "external_api_logs" | "frontend_event_logs" | "notification_recipients" | "notifications" | "payouts" | "permissions" | "prompt_families" | "prompt_usages" | "prompt_variants" | "reactions" | "restaurant_bids" | "restaurants" | "role_permissions" | "roles" | "share_links" | "user_device_tokens" | "user_notification_cursors" | "user_roles" | "users"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -3645,6 +3662,80 @@ export namespace Prisma {
           }
         }
       }
+      share_links: {
+        payload: Prisma.$share_linksPayload<ExtArgs>
+        fields: Prisma.share_linksFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.share_linksFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$share_linksPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.share_linksFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$share_linksPayload>
+          }
+          findFirst: {
+            args: Prisma.share_linksFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$share_linksPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.share_linksFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$share_linksPayload>
+          }
+          findMany: {
+            args: Prisma.share_linksFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$share_linksPayload>[]
+          }
+          create: {
+            args: Prisma.share_linksCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$share_linksPayload>
+          }
+          createMany: {
+            args: Prisma.share_linksCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.share_linksCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$share_linksPayload>[]
+          }
+          delete: {
+            args: Prisma.share_linksDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$share_linksPayload>
+          }
+          update: {
+            args: Prisma.share_linksUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$share_linksPayload>
+          }
+          deleteMany: {
+            args: Prisma.share_linksDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.share_linksUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.share_linksUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$share_linksPayload>[]
+          }
+          upsert: {
+            args: Prisma.share_linksUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$share_linksPayload>
+          }
+          aggregate: {
+            args: Prisma.Share_linksAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateShare_links>
+          }
+          groupBy: {
+            args: Prisma.share_linksGroupByArgs<ExtArgs>
+            result: $Utils.Optional<Share_linksGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.share_linksCountArgs<ExtArgs>
+            result: $Utils.Optional<Share_linksCountAggregateOutputType> | number
+          }
+        }
+      }
       user_device_tokens: {
         payload: Prisma.$user_device_tokensPayload<ExtArgs>
         fields: Prisma.user_device_tokensFieldRefs
@@ -4065,6 +4156,7 @@ export namespace Prisma {
     restaurants?: restaurantsOmit
     role_permissions?: role_permissionsOmit
     roles?: rolesOmit
+    share_links?: share_linksOmit
     user_device_tokens?: user_device_tokensOmit
     user_notification_cursors?: user_notification_cursorsOmit
     user_roles?: user_rolesOmit
@@ -4655,6 +4747,7 @@ export namespace Prisma {
     dish_media_likes: number
     dish_reviews: number
     restaurant_bids: number
+    share_links: number
   }
 
   export type UsersCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -4662,6 +4755,7 @@ export namespace Prisma {
     dish_media_likes?: boolean | UsersCountOutputTypeCountDish_media_likesArgs
     dish_reviews?: boolean | UsersCountOutputTypeCountDish_reviewsArgs
     restaurant_bids?: boolean | UsersCountOutputTypeCountRestaurant_bidsArgs
+    share_links?: boolean | UsersCountOutputTypeCountShare_linksArgs
   }
 
   // Custom InputTypes
@@ -4701,6 +4795,13 @@ export namespace Prisma {
    */
   export type UsersCountOutputTypeCountRestaurant_bidsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: restaurant_bidsWhereInput
+  }
+
+  /**
+   * UsersCountOutputType without action
+   */
+  export type UsersCountOutputTypeCountShare_linksArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: share_linksWhereInput
   }
 
 
@@ -40450,6 +40551,1243 @@ export namespace Prisma {
 
 
   /**
+   * Model share_links
+   */
+
+  export type AggregateShare_links = {
+    _count: Share_linksCountAggregateOutputType | null
+    _avg: Share_linksAvgAggregateOutputType | null
+    _sum: Share_linksSumAggregateOutputType | null
+    _min: Share_linksMinAggregateOutputType | null
+    _max: Share_linksMaxAggregateOutputType | null
+  }
+
+  export type Share_linksAvgAggregateOutputType = {
+    schema_version: number | null
+  }
+
+  export type Share_linksSumAggregateOutputType = {
+    schema_version: number | null
+  }
+
+  export type Share_linksMinAggregateOutputType = {
+    id: string | null
+    token_digest: Bytes | null
+    schema_version: number | null
+    target_type: string | null
+    target_id: string | null
+    preview_locale: string | null
+    preview_title: string | null
+    preview_description: string | null
+    preview_image_path: string | null
+    created_by: string | null
+    status: string | null
+    expires_at: Date | null
+    created_at: Date | null
+    updated_at: Date | null
+  }
+
+  export type Share_linksMaxAggregateOutputType = {
+    id: string | null
+    token_digest: Bytes | null
+    schema_version: number | null
+    target_type: string | null
+    target_id: string | null
+    preview_locale: string | null
+    preview_title: string | null
+    preview_description: string | null
+    preview_image_path: string | null
+    created_by: string | null
+    status: string | null
+    expires_at: Date | null
+    created_at: Date | null
+    updated_at: Date | null
+  }
+
+  export type Share_linksCountAggregateOutputType = {
+    id: number
+    token_digest: number
+    schema_version: number
+    target_type: number
+    target_id: number
+    target_params: number
+    preview_locale: number
+    preview_title: number
+    preview_description: number
+    preview_image_path: number
+    created_by: number
+    status: number
+    expires_at: number
+    created_at: number
+    updated_at: number
+    _all: number
+  }
+
+
+  export type Share_linksAvgAggregateInputType = {
+    schema_version?: true
+  }
+
+  export type Share_linksSumAggregateInputType = {
+    schema_version?: true
+  }
+
+  export type Share_linksMinAggregateInputType = {
+    id?: true
+    token_digest?: true
+    schema_version?: true
+    target_type?: true
+    target_id?: true
+    preview_locale?: true
+    preview_title?: true
+    preview_description?: true
+    preview_image_path?: true
+    created_by?: true
+    status?: true
+    expires_at?: true
+    created_at?: true
+    updated_at?: true
+  }
+
+  export type Share_linksMaxAggregateInputType = {
+    id?: true
+    token_digest?: true
+    schema_version?: true
+    target_type?: true
+    target_id?: true
+    preview_locale?: true
+    preview_title?: true
+    preview_description?: true
+    preview_image_path?: true
+    created_by?: true
+    status?: true
+    expires_at?: true
+    created_at?: true
+    updated_at?: true
+  }
+
+  export type Share_linksCountAggregateInputType = {
+    id?: true
+    token_digest?: true
+    schema_version?: true
+    target_type?: true
+    target_id?: true
+    target_params?: true
+    preview_locale?: true
+    preview_title?: true
+    preview_description?: true
+    preview_image_path?: true
+    created_by?: true
+    status?: true
+    expires_at?: true
+    created_at?: true
+    updated_at?: true
+    _all?: true
+  }
+
+  export type Share_linksAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which share_links to aggregate.
+     */
+    where?: share_linksWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of share_links to fetch.
+     */
+    orderBy?: share_linksOrderByWithRelationInput | share_linksOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: share_linksWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` share_links from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` share_links.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned share_links
+    **/
+    _count?: true | Share_linksCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: Share_linksAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: Share_linksSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: Share_linksMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: Share_linksMaxAggregateInputType
+  }
+
+  export type GetShare_linksAggregateType<T extends Share_linksAggregateArgs> = {
+        [P in keyof T & keyof AggregateShare_links]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateShare_links[P]>
+      : GetScalarType<T[P], AggregateShare_links[P]>
+  }
+
+
+
+
+  export type share_linksGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: share_linksWhereInput
+    orderBy?: share_linksOrderByWithAggregationInput | share_linksOrderByWithAggregationInput[]
+    by: Share_linksScalarFieldEnum[] | Share_linksScalarFieldEnum
+    having?: share_linksScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: Share_linksCountAggregateInputType | true
+    _avg?: Share_linksAvgAggregateInputType
+    _sum?: Share_linksSumAggregateInputType
+    _min?: Share_linksMinAggregateInputType
+    _max?: Share_linksMaxAggregateInputType
+  }
+
+  export type Share_linksGroupByOutputType = {
+    id: string
+    token_digest: Bytes
+    schema_version: number
+    target_type: string
+    target_id: string
+    target_params: JsonValue
+    preview_locale: string
+    preview_title: string
+    preview_description: string
+    preview_image_path: string
+    created_by: string | null
+    status: string
+    expires_at: Date | null
+    created_at: Date
+    updated_at: Date
+    _count: Share_linksCountAggregateOutputType | null
+    _avg: Share_linksAvgAggregateOutputType | null
+    _sum: Share_linksSumAggregateOutputType | null
+    _min: Share_linksMinAggregateOutputType | null
+    _max: Share_linksMaxAggregateOutputType | null
+  }
+
+  type GetShare_linksGroupByPayload<T extends share_linksGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<Share_linksGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof Share_linksGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], Share_linksGroupByOutputType[P]>
+            : GetScalarType<T[P], Share_linksGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type share_linksSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    token_digest?: boolean
+    schema_version?: boolean
+    target_type?: boolean
+    target_id?: boolean
+    target_params?: boolean
+    preview_locale?: boolean
+    preview_title?: boolean
+    preview_description?: boolean
+    preview_image_path?: boolean
+    created_by?: boolean
+    status?: boolean
+    expires_at?: boolean
+    created_at?: boolean
+    updated_at?: boolean
+    users?: boolean | share_links$usersArgs<ExtArgs>
+  }, ExtArgs["result"]["share_links"]>
+
+  export type share_linksSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    token_digest?: boolean
+    schema_version?: boolean
+    target_type?: boolean
+    target_id?: boolean
+    target_params?: boolean
+    preview_locale?: boolean
+    preview_title?: boolean
+    preview_description?: boolean
+    preview_image_path?: boolean
+    created_by?: boolean
+    status?: boolean
+    expires_at?: boolean
+    created_at?: boolean
+    updated_at?: boolean
+    users?: boolean | share_links$usersArgs<ExtArgs>
+  }, ExtArgs["result"]["share_links"]>
+
+  export type share_linksSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    token_digest?: boolean
+    schema_version?: boolean
+    target_type?: boolean
+    target_id?: boolean
+    target_params?: boolean
+    preview_locale?: boolean
+    preview_title?: boolean
+    preview_description?: boolean
+    preview_image_path?: boolean
+    created_by?: boolean
+    status?: boolean
+    expires_at?: boolean
+    created_at?: boolean
+    updated_at?: boolean
+    users?: boolean | share_links$usersArgs<ExtArgs>
+  }, ExtArgs["result"]["share_links"]>
+
+  export type share_linksSelectScalar = {
+    id?: boolean
+    token_digest?: boolean
+    schema_version?: boolean
+    target_type?: boolean
+    target_id?: boolean
+    target_params?: boolean
+    preview_locale?: boolean
+    preview_title?: boolean
+    preview_description?: boolean
+    preview_image_path?: boolean
+    created_by?: boolean
+    status?: boolean
+    expires_at?: boolean
+    created_at?: boolean
+    updated_at?: boolean
+  }
+
+  export type share_linksOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "token_digest" | "schema_version" | "target_type" | "target_id" | "target_params" | "preview_locale" | "preview_title" | "preview_description" | "preview_image_path" | "created_by" | "status" | "expires_at" | "created_at" | "updated_at", ExtArgs["result"]["share_links"]>
+  export type share_linksInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    users?: boolean | share_links$usersArgs<ExtArgs>
+  }
+  export type share_linksIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    users?: boolean | share_links$usersArgs<ExtArgs>
+  }
+  export type share_linksIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    users?: boolean | share_links$usersArgs<ExtArgs>
+  }
+
+  export type $share_linksPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "share_links"
+    objects: {
+      users: Prisma.$usersPayload<ExtArgs> | null
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      token_digest: Prisma.Bytes
+      schema_version: number
+      target_type: string
+      target_id: string
+      target_params: Prisma.JsonValue
+      preview_locale: string
+      preview_title: string
+      preview_description: string
+      preview_image_path: string
+      created_by: string | null
+      status: string
+      expires_at: Date | null
+      created_at: Date
+      updated_at: Date
+    }, ExtArgs["result"]["share_links"]>
+    composites: {}
+  }
+
+  type share_linksGetPayload<S extends boolean | null | undefined | share_linksDefaultArgs> = $Result.GetResult<Prisma.$share_linksPayload, S>
+
+  type share_linksCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<share_linksFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: Share_linksCountAggregateInputType | true
+    }
+
+  export interface share_linksDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['share_links'], meta: { name: 'share_links' } }
+    /**
+     * Find zero or one Share_links that matches the filter.
+     * @param {share_linksFindUniqueArgs} args - Arguments to find a Share_links
+     * @example
+     * // Get one Share_links
+     * const share_links = await prisma.share_links.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends share_linksFindUniqueArgs>(args: SelectSubset<T, share_linksFindUniqueArgs<ExtArgs>>): Prisma__share_linksClient<$Result.GetResult<Prisma.$share_linksPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one Share_links that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {share_linksFindUniqueOrThrowArgs} args - Arguments to find a Share_links
+     * @example
+     * // Get one Share_links
+     * const share_links = await prisma.share_links.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends share_linksFindUniqueOrThrowArgs>(args: SelectSubset<T, share_linksFindUniqueOrThrowArgs<ExtArgs>>): Prisma__share_linksClient<$Result.GetResult<Prisma.$share_linksPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Share_links that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {share_linksFindFirstArgs} args - Arguments to find a Share_links
+     * @example
+     * // Get one Share_links
+     * const share_links = await prisma.share_links.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends share_linksFindFirstArgs>(args?: SelectSubset<T, share_linksFindFirstArgs<ExtArgs>>): Prisma__share_linksClient<$Result.GetResult<Prisma.$share_linksPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Share_links that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {share_linksFindFirstOrThrowArgs} args - Arguments to find a Share_links
+     * @example
+     * // Get one Share_links
+     * const share_links = await prisma.share_links.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends share_linksFindFirstOrThrowArgs>(args?: SelectSubset<T, share_linksFindFirstOrThrowArgs<ExtArgs>>): Prisma__share_linksClient<$Result.GetResult<Prisma.$share_linksPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more Share_links that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {share_linksFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Share_links
+     * const share_links = await prisma.share_links.findMany()
+     * 
+     * // Get first 10 Share_links
+     * const share_links = await prisma.share_links.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const share_linksWithIdOnly = await prisma.share_links.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends share_linksFindManyArgs>(args?: SelectSubset<T, share_linksFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$share_linksPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a Share_links.
+     * @param {share_linksCreateArgs} args - Arguments to create a Share_links.
+     * @example
+     * // Create one Share_links
+     * const Share_links = await prisma.share_links.create({
+     *   data: {
+     *     // ... data to create a Share_links
+     *   }
+     * })
+     * 
+     */
+    create<T extends share_linksCreateArgs>(args: SelectSubset<T, share_linksCreateArgs<ExtArgs>>): Prisma__share_linksClient<$Result.GetResult<Prisma.$share_linksPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many Share_links.
+     * @param {share_linksCreateManyArgs} args - Arguments to create many Share_links.
+     * @example
+     * // Create many Share_links
+     * const share_links = await prisma.share_links.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends share_linksCreateManyArgs>(args?: SelectSubset<T, share_linksCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Share_links and returns the data saved in the database.
+     * @param {share_linksCreateManyAndReturnArgs} args - Arguments to create many Share_links.
+     * @example
+     * // Create many Share_links
+     * const share_links = await prisma.share_links.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Share_links and only return the `id`
+     * const share_linksWithIdOnly = await prisma.share_links.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends share_linksCreateManyAndReturnArgs>(args?: SelectSubset<T, share_linksCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$share_linksPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a Share_links.
+     * @param {share_linksDeleteArgs} args - Arguments to delete one Share_links.
+     * @example
+     * // Delete one Share_links
+     * const Share_links = await prisma.share_links.delete({
+     *   where: {
+     *     // ... filter to delete one Share_links
+     *   }
+     * })
+     * 
+     */
+    delete<T extends share_linksDeleteArgs>(args: SelectSubset<T, share_linksDeleteArgs<ExtArgs>>): Prisma__share_linksClient<$Result.GetResult<Prisma.$share_linksPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one Share_links.
+     * @param {share_linksUpdateArgs} args - Arguments to update one Share_links.
+     * @example
+     * // Update one Share_links
+     * const share_links = await prisma.share_links.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends share_linksUpdateArgs>(args: SelectSubset<T, share_linksUpdateArgs<ExtArgs>>): Prisma__share_linksClient<$Result.GetResult<Prisma.$share_linksPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more Share_links.
+     * @param {share_linksDeleteManyArgs} args - Arguments to filter Share_links to delete.
+     * @example
+     * // Delete a few Share_links
+     * const { count } = await prisma.share_links.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends share_linksDeleteManyArgs>(args?: SelectSubset<T, share_linksDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Share_links.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {share_linksUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Share_links
+     * const share_links = await prisma.share_links.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends share_linksUpdateManyArgs>(args: SelectSubset<T, share_linksUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Share_links and returns the data updated in the database.
+     * @param {share_linksUpdateManyAndReturnArgs} args - Arguments to update many Share_links.
+     * @example
+     * // Update many Share_links
+     * const share_links = await prisma.share_links.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more Share_links and only return the `id`
+     * const share_linksWithIdOnly = await prisma.share_links.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends share_linksUpdateManyAndReturnArgs>(args: SelectSubset<T, share_linksUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$share_linksPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one Share_links.
+     * @param {share_linksUpsertArgs} args - Arguments to update or create a Share_links.
+     * @example
+     * // Update or create a Share_links
+     * const share_links = await prisma.share_links.upsert({
+     *   create: {
+     *     // ... data to create a Share_links
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Share_links we want to update
+     *   }
+     * })
+     */
+    upsert<T extends share_linksUpsertArgs>(args: SelectSubset<T, share_linksUpsertArgs<ExtArgs>>): Prisma__share_linksClient<$Result.GetResult<Prisma.$share_linksPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of Share_links.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {share_linksCountArgs} args - Arguments to filter Share_links to count.
+     * @example
+     * // Count the number of Share_links
+     * const count = await prisma.share_links.count({
+     *   where: {
+     *     // ... the filter for the Share_links we want to count
+     *   }
+     * })
+    **/
+    count<T extends share_linksCountArgs>(
+      args?: Subset<T, share_linksCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], Share_linksCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Share_links.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {Share_linksAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends Share_linksAggregateArgs>(args: Subset<T, Share_linksAggregateArgs>): Prisma.PrismaPromise<GetShare_linksAggregateType<T>>
+
+    /**
+     * Group by Share_links.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {share_linksGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends share_linksGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: share_linksGroupByArgs['orderBy'] }
+        : { orderBy?: share_linksGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, share_linksGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetShare_linksGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the share_links model
+   */
+  readonly fields: share_linksFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for share_links.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__share_linksClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    users<T extends share_links$usersArgs<ExtArgs> = {}>(args?: Subset<T, share_links$usersArgs<ExtArgs>>): Prisma__usersClient<$Result.GetResult<Prisma.$usersPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the share_links model
+   */
+  interface share_linksFieldRefs {
+    readonly id: FieldRef<"share_links", 'String'>
+    readonly token_digest: FieldRef<"share_links", 'Bytes'>
+    readonly schema_version: FieldRef<"share_links", 'Int'>
+    readonly target_type: FieldRef<"share_links", 'String'>
+    readonly target_id: FieldRef<"share_links", 'String'>
+    readonly target_params: FieldRef<"share_links", 'Json'>
+    readonly preview_locale: FieldRef<"share_links", 'String'>
+    readonly preview_title: FieldRef<"share_links", 'String'>
+    readonly preview_description: FieldRef<"share_links", 'String'>
+    readonly preview_image_path: FieldRef<"share_links", 'String'>
+    readonly created_by: FieldRef<"share_links", 'String'>
+    readonly status: FieldRef<"share_links", 'String'>
+    readonly expires_at: FieldRef<"share_links", 'DateTime'>
+    readonly created_at: FieldRef<"share_links", 'DateTime'>
+    readonly updated_at: FieldRef<"share_links", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * share_links findUnique
+   */
+  export type share_linksFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the share_links
+     */
+    select?: share_linksSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the share_links
+     */
+    omit?: share_linksOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: share_linksInclude<ExtArgs> | null
+    /**
+     * Filter, which share_links to fetch.
+     */
+    where: share_linksWhereUniqueInput
+  }
+
+  /**
+   * share_links findUniqueOrThrow
+   */
+  export type share_linksFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the share_links
+     */
+    select?: share_linksSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the share_links
+     */
+    omit?: share_linksOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: share_linksInclude<ExtArgs> | null
+    /**
+     * Filter, which share_links to fetch.
+     */
+    where: share_linksWhereUniqueInput
+  }
+
+  /**
+   * share_links findFirst
+   */
+  export type share_linksFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the share_links
+     */
+    select?: share_linksSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the share_links
+     */
+    omit?: share_linksOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: share_linksInclude<ExtArgs> | null
+    /**
+     * Filter, which share_links to fetch.
+     */
+    where?: share_linksWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of share_links to fetch.
+     */
+    orderBy?: share_linksOrderByWithRelationInput | share_linksOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for share_links.
+     */
+    cursor?: share_linksWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` share_links from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` share_links.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of share_links.
+     */
+    distinct?: Share_linksScalarFieldEnum | Share_linksScalarFieldEnum[]
+  }
+
+  /**
+   * share_links findFirstOrThrow
+   */
+  export type share_linksFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the share_links
+     */
+    select?: share_linksSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the share_links
+     */
+    omit?: share_linksOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: share_linksInclude<ExtArgs> | null
+    /**
+     * Filter, which share_links to fetch.
+     */
+    where?: share_linksWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of share_links to fetch.
+     */
+    orderBy?: share_linksOrderByWithRelationInput | share_linksOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for share_links.
+     */
+    cursor?: share_linksWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` share_links from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` share_links.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of share_links.
+     */
+    distinct?: Share_linksScalarFieldEnum | Share_linksScalarFieldEnum[]
+  }
+
+  /**
+   * share_links findMany
+   */
+  export type share_linksFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the share_links
+     */
+    select?: share_linksSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the share_links
+     */
+    omit?: share_linksOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: share_linksInclude<ExtArgs> | null
+    /**
+     * Filter, which share_links to fetch.
+     */
+    where?: share_linksWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of share_links to fetch.
+     */
+    orderBy?: share_linksOrderByWithRelationInput | share_linksOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing share_links.
+     */
+    cursor?: share_linksWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` share_links from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` share_links.
+     */
+    skip?: number
+    distinct?: Share_linksScalarFieldEnum | Share_linksScalarFieldEnum[]
+  }
+
+  /**
+   * share_links create
+   */
+  export type share_linksCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the share_links
+     */
+    select?: share_linksSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the share_links
+     */
+    omit?: share_linksOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: share_linksInclude<ExtArgs> | null
+    /**
+     * The data needed to create a share_links.
+     */
+    data: XOR<share_linksCreateInput, share_linksUncheckedCreateInput>
+  }
+
+  /**
+   * share_links createMany
+   */
+  export type share_linksCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many share_links.
+     */
+    data: share_linksCreateManyInput | share_linksCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * share_links createManyAndReturn
+   */
+  export type share_linksCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the share_links
+     */
+    select?: share_linksSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the share_links
+     */
+    omit?: share_linksOmit<ExtArgs> | null
+    /**
+     * The data used to create many share_links.
+     */
+    data: share_linksCreateManyInput | share_linksCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: share_linksIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * share_links update
+   */
+  export type share_linksUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the share_links
+     */
+    select?: share_linksSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the share_links
+     */
+    omit?: share_linksOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: share_linksInclude<ExtArgs> | null
+    /**
+     * The data needed to update a share_links.
+     */
+    data: XOR<share_linksUpdateInput, share_linksUncheckedUpdateInput>
+    /**
+     * Choose, which share_links to update.
+     */
+    where: share_linksWhereUniqueInput
+  }
+
+  /**
+   * share_links updateMany
+   */
+  export type share_linksUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update share_links.
+     */
+    data: XOR<share_linksUpdateManyMutationInput, share_linksUncheckedUpdateManyInput>
+    /**
+     * Filter which share_links to update
+     */
+    where?: share_linksWhereInput
+    /**
+     * Limit how many share_links to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * share_links updateManyAndReturn
+   */
+  export type share_linksUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the share_links
+     */
+    select?: share_linksSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the share_links
+     */
+    omit?: share_linksOmit<ExtArgs> | null
+    /**
+     * The data used to update share_links.
+     */
+    data: XOR<share_linksUpdateManyMutationInput, share_linksUncheckedUpdateManyInput>
+    /**
+     * Filter which share_links to update
+     */
+    where?: share_linksWhereInput
+    /**
+     * Limit how many share_links to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: share_linksIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * share_links upsert
+   */
+  export type share_linksUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the share_links
+     */
+    select?: share_linksSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the share_links
+     */
+    omit?: share_linksOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: share_linksInclude<ExtArgs> | null
+    /**
+     * The filter to search for the share_links to update in case it exists.
+     */
+    where: share_linksWhereUniqueInput
+    /**
+     * In case the share_links found by the `where` argument doesn't exist, create a new share_links with this data.
+     */
+    create: XOR<share_linksCreateInput, share_linksUncheckedCreateInput>
+    /**
+     * In case the share_links was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<share_linksUpdateInput, share_linksUncheckedUpdateInput>
+  }
+
+  /**
+   * share_links delete
+   */
+  export type share_linksDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the share_links
+     */
+    select?: share_linksSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the share_links
+     */
+    omit?: share_linksOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: share_linksInclude<ExtArgs> | null
+    /**
+     * Filter which share_links to delete.
+     */
+    where: share_linksWhereUniqueInput
+  }
+
+  /**
+   * share_links deleteMany
+   */
+  export type share_linksDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which share_links to delete
+     */
+    where?: share_linksWhereInput
+    /**
+     * Limit how many share_links to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * share_links.users
+   */
+  export type share_links$usersArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the users
+     */
+    select?: usersSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the users
+     */
+    omit?: usersOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: usersInclude<ExtArgs> | null
+    where?: usersWhereInput
+  }
+
+  /**
+   * share_links without action
+   */
+  export type share_linksDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the share_links
+     */
+    select?: share_linksSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the share_links
+     */
+    omit?: share_linksOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: share_linksInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Model user_device_tokens
    */
 
@@ -43635,6 +44973,7 @@ export namespace Prisma {
     dish_media_likes?: boolean | users$dish_media_likesArgs<ExtArgs>
     dish_reviews?: boolean | users$dish_reviewsArgs<ExtArgs>
     restaurant_bids?: boolean | users$restaurant_bidsArgs<ExtArgs>
+    share_links?: boolean | users$share_linksArgs<ExtArgs>
     _count?: boolean | UsersCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["users"]>
 
@@ -43683,6 +45022,7 @@ export namespace Prisma {
     dish_media_likes?: boolean | users$dish_media_likesArgs<ExtArgs>
     dish_reviews?: boolean | users$dish_reviewsArgs<ExtArgs>
     restaurant_bids?: boolean | users$restaurant_bidsArgs<ExtArgs>
+    share_links?: boolean | users$share_linksArgs<ExtArgs>
     _count?: boolean | UsersCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type usersIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -43695,6 +45035,7 @@ export namespace Prisma {
       dish_media_likes: Prisma.$dish_media_likesPayload<ExtArgs>[]
       dish_reviews: Prisma.$dish_reviewsPayload<ExtArgs>[]
       restaurant_bids: Prisma.$restaurant_bidsPayload<ExtArgs>[]
+      share_links: Prisma.$share_linksPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -44105,6 +45446,7 @@ export namespace Prisma {
     dish_media_likes<T extends users$dish_media_likesArgs<ExtArgs> = {}>(args?: Subset<T, users$dish_media_likesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_media_likesPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     dish_reviews<T extends users$dish_reviewsArgs<ExtArgs> = {}>(args?: Subset<T, users$dish_reviewsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$dish_reviewsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     restaurant_bids<T extends users$restaurant_bidsArgs<ExtArgs> = {}>(args?: Subset<T, users$restaurant_bidsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$restaurant_bidsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    share_links<T extends users$share_linksArgs<ExtArgs> = {}>(args?: Subset<T, users$share_linksArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$share_linksPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -44628,6 +45970,30 @@ export namespace Prisma {
   }
 
   /**
+   * users.share_links
+   */
+  export type users$share_linksArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the share_links
+     */
+    select?: share_linksSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the share_links
+     */
+    omit?: share_linksOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: share_linksInclude<ExtArgs> | null
+    where?: share_linksWhereInput
+    orderBy?: share_linksOrderByWithRelationInput | share_linksOrderByWithRelationInput[]
+    cursor?: share_linksWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: Share_linksScalarFieldEnum | Share_linksScalarFieldEnum[]
+  }
+
+  /**
    * users without action
    */
   export type usersDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -45096,6 +46462,27 @@ export namespace Prisma {
   export type RolesScalarFieldEnum = (typeof RolesScalarFieldEnum)[keyof typeof RolesScalarFieldEnum]
 
 
+  export const Share_linksScalarFieldEnum: {
+    id: 'id',
+    token_digest: 'token_digest',
+    schema_version: 'schema_version',
+    target_type: 'target_type',
+    target_id: 'target_id',
+    target_params: 'target_params',
+    preview_locale: 'preview_locale',
+    preview_title: 'preview_title',
+    preview_description: 'preview_description',
+    preview_image_path: 'preview_image_path',
+    created_by: 'created_by',
+    status: 'status',
+    expires_at: 'expires_at',
+    created_at: 'created_at',
+    updated_at: 'updated_at'
+  };
+
+  export type Share_linksScalarFieldEnum = (typeof Share_linksScalarFieldEnum)[keyof typeof Share_linksScalarFieldEnum]
+
+
   export const User_device_tokensScalarFieldEnum: {
     user_id: 'user_id',
     expo_push_token: 'expo_push_token',
@@ -45362,6 +46749,20 @@ export namespace Prisma {
    * Reference to a field of type 'restaurant_bid_status[]'
    */
   export type ListEnumrestaurant_bid_statusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'restaurant_bid_status[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'Bytes'
+   */
+  export type BytesFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Bytes'>
+    
+
+
+  /**
+   * Reference to a field of type 'Bytes[]'
+   */
+  export type ListBytesFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Bytes[]'>
     
   /**
    * Deep Input Types
@@ -47655,6 +49056,113 @@ export namespace Prisma {
     description?: StringWithAggregatesFilter<"roles"> | string
   }
 
+  export type share_linksWhereInput = {
+    AND?: share_linksWhereInput | share_linksWhereInput[]
+    OR?: share_linksWhereInput[]
+    NOT?: share_linksWhereInput | share_linksWhereInput[]
+    id?: UuidFilter<"share_links"> | string
+    token_digest?: BytesFilter<"share_links"> | Bytes
+    schema_version?: IntFilter<"share_links"> | number
+    target_type?: StringFilter<"share_links"> | string
+    target_id?: StringFilter<"share_links"> | string
+    target_params?: JsonFilter<"share_links">
+    preview_locale?: StringFilter<"share_links"> | string
+    preview_title?: StringFilter<"share_links"> | string
+    preview_description?: StringFilter<"share_links"> | string
+    preview_image_path?: StringFilter<"share_links"> | string
+    created_by?: UuidNullableFilter<"share_links"> | string | null
+    status?: StringFilter<"share_links"> | string
+    expires_at?: DateTimeNullableFilter<"share_links"> | Date | string | null
+    created_at?: DateTimeFilter<"share_links"> | Date | string
+    updated_at?: DateTimeFilter<"share_links"> | Date | string
+    users?: XOR<UsersNullableScalarRelationFilter, usersWhereInput> | null
+  }
+
+  export type share_linksOrderByWithRelationInput = {
+    id?: SortOrder
+    token_digest?: SortOrder
+    schema_version?: SortOrder
+    target_type?: SortOrder
+    target_id?: SortOrder
+    target_params?: SortOrder
+    preview_locale?: SortOrder
+    preview_title?: SortOrder
+    preview_description?: SortOrder
+    preview_image_path?: SortOrder
+    created_by?: SortOrderInput | SortOrder
+    status?: SortOrder
+    expires_at?: SortOrderInput | SortOrder
+    created_at?: SortOrder
+    updated_at?: SortOrder
+    users?: usersOrderByWithRelationInput
+  }
+
+  export type share_linksWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    token_digest?: Bytes
+    AND?: share_linksWhereInput | share_linksWhereInput[]
+    OR?: share_linksWhereInput[]
+    NOT?: share_linksWhereInput | share_linksWhereInput[]
+    schema_version?: IntFilter<"share_links"> | number
+    target_type?: StringFilter<"share_links"> | string
+    target_id?: StringFilter<"share_links"> | string
+    target_params?: JsonFilter<"share_links">
+    preview_locale?: StringFilter<"share_links"> | string
+    preview_title?: StringFilter<"share_links"> | string
+    preview_description?: StringFilter<"share_links"> | string
+    preview_image_path?: StringFilter<"share_links"> | string
+    created_by?: UuidNullableFilter<"share_links"> | string | null
+    status?: StringFilter<"share_links"> | string
+    expires_at?: DateTimeNullableFilter<"share_links"> | Date | string | null
+    created_at?: DateTimeFilter<"share_links"> | Date | string
+    updated_at?: DateTimeFilter<"share_links"> | Date | string
+    users?: XOR<UsersNullableScalarRelationFilter, usersWhereInput> | null
+  }, "id" | "token_digest">
+
+  export type share_linksOrderByWithAggregationInput = {
+    id?: SortOrder
+    token_digest?: SortOrder
+    schema_version?: SortOrder
+    target_type?: SortOrder
+    target_id?: SortOrder
+    target_params?: SortOrder
+    preview_locale?: SortOrder
+    preview_title?: SortOrder
+    preview_description?: SortOrder
+    preview_image_path?: SortOrder
+    created_by?: SortOrderInput | SortOrder
+    status?: SortOrder
+    expires_at?: SortOrderInput | SortOrder
+    created_at?: SortOrder
+    updated_at?: SortOrder
+    _count?: share_linksCountOrderByAggregateInput
+    _avg?: share_linksAvgOrderByAggregateInput
+    _max?: share_linksMaxOrderByAggregateInput
+    _min?: share_linksMinOrderByAggregateInput
+    _sum?: share_linksSumOrderByAggregateInput
+  }
+
+  export type share_linksScalarWhereWithAggregatesInput = {
+    AND?: share_linksScalarWhereWithAggregatesInput | share_linksScalarWhereWithAggregatesInput[]
+    OR?: share_linksScalarWhereWithAggregatesInput[]
+    NOT?: share_linksScalarWhereWithAggregatesInput | share_linksScalarWhereWithAggregatesInput[]
+    id?: UuidWithAggregatesFilter<"share_links"> | string
+    token_digest?: BytesWithAggregatesFilter<"share_links"> | Bytes
+    schema_version?: IntWithAggregatesFilter<"share_links"> | number
+    target_type?: StringWithAggregatesFilter<"share_links"> | string
+    target_id?: StringWithAggregatesFilter<"share_links"> | string
+    target_params?: JsonWithAggregatesFilter<"share_links">
+    preview_locale?: StringWithAggregatesFilter<"share_links"> | string
+    preview_title?: StringWithAggregatesFilter<"share_links"> | string
+    preview_description?: StringWithAggregatesFilter<"share_links"> | string
+    preview_image_path?: StringWithAggregatesFilter<"share_links"> | string
+    created_by?: UuidNullableWithAggregatesFilter<"share_links"> | string | null
+    status?: StringWithAggregatesFilter<"share_links"> | string
+    expires_at?: DateTimeNullableWithAggregatesFilter<"share_links"> | Date | string | null
+    created_at?: DateTimeWithAggregatesFilter<"share_links"> | Date | string
+    updated_at?: DateTimeWithAggregatesFilter<"share_links"> | Date | string
+  }
+
   export type user_device_tokensWhereInput = {
     AND?: user_device_tokensWhereInput | user_device_tokensWhereInput[]
     OR?: user_device_tokensWhereInput[]
@@ -47794,6 +49302,7 @@ export namespace Prisma {
     dish_media_likes?: Dish_media_likesListRelationFilter
     dish_reviews?: Dish_reviewsListRelationFilter
     restaurant_bids?: Restaurant_bidsListRelationFilter
+    share_links?: Share_linksListRelationFilter
   }
 
   export type usersOrderByWithRelationInput = {
@@ -47811,6 +49320,7 @@ export namespace Prisma {
     dish_media_likes?: dish_media_likesOrderByRelationAggregateInput
     dish_reviews?: dish_reviewsOrderByRelationAggregateInput
     restaurant_bids?: restaurant_bidsOrderByRelationAggregateInput
+    share_links?: share_linksOrderByRelationAggregateInput
   }
 
   export type usersWhereUniqueInput = Prisma.AtLeast<{
@@ -47831,6 +49341,7 @@ export namespace Prisma {
     dish_media_likes?: Dish_media_likesListRelationFilter
     dish_reviews?: Dish_reviewsListRelationFilter
     restaurant_bids?: Restaurant_bidsListRelationFilter
+    share_links?: Share_linksListRelationFilter
   }, "id" | "username">
 
   export type usersOrderByWithAggregationInput = {
@@ -50320,6 +51831,131 @@ export namespace Prisma {
     description?: StringFieldUpdateOperationsInput | string
   }
 
+  export type share_linksCreateInput = {
+    id?: string
+    token_digest: Bytes
+    schema_version?: number
+    target_type: string
+    target_id: string
+    target_params?: JsonNullValueInput | InputJsonValue
+    preview_locale: string
+    preview_title: string
+    preview_description: string
+    preview_image_path: string
+    status?: string
+    expires_at?: Date | string | null
+    created_at?: Date | string
+    updated_at?: Date | string
+    users?: usersCreateNestedOneWithoutShare_linksInput
+  }
+
+  export type share_linksUncheckedCreateInput = {
+    id?: string
+    token_digest: Bytes
+    schema_version?: number
+    target_type: string
+    target_id: string
+    target_params?: JsonNullValueInput | InputJsonValue
+    preview_locale: string
+    preview_title: string
+    preview_description: string
+    preview_image_path: string
+    created_by?: string | null
+    status?: string
+    expires_at?: Date | string | null
+    created_at?: Date | string
+    updated_at?: Date | string
+  }
+
+  export type share_linksUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    token_digest?: BytesFieldUpdateOperationsInput | Bytes
+    schema_version?: IntFieldUpdateOperationsInput | number
+    target_type?: StringFieldUpdateOperationsInput | string
+    target_id?: StringFieldUpdateOperationsInput | string
+    target_params?: JsonNullValueInput | InputJsonValue
+    preview_locale?: StringFieldUpdateOperationsInput | string
+    preview_title?: StringFieldUpdateOperationsInput | string
+    preview_description?: StringFieldUpdateOperationsInput | string
+    preview_image_path?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    expires_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    users?: usersUpdateOneWithoutShare_linksNestedInput
+  }
+
+  export type share_linksUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    token_digest?: BytesFieldUpdateOperationsInput | Bytes
+    schema_version?: IntFieldUpdateOperationsInput | number
+    target_type?: StringFieldUpdateOperationsInput | string
+    target_id?: StringFieldUpdateOperationsInput | string
+    target_params?: JsonNullValueInput | InputJsonValue
+    preview_locale?: StringFieldUpdateOperationsInput | string
+    preview_title?: StringFieldUpdateOperationsInput | string
+    preview_description?: StringFieldUpdateOperationsInput | string
+    preview_image_path?: StringFieldUpdateOperationsInput | string
+    created_by?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    expires_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type share_linksCreateManyInput = {
+    id?: string
+    token_digest: Bytes
+    schema_version?: number
+    target_type: string
+    target_id: string
+    target_params?: JsonNullValueInput | InputJsonValue
+    preview_locale: string
+    preview_title: string
+    preview_description: string
+    preview_image_path: string
+    created_by?: string | null
+    status?: string
+    expires_at?: Date | string | null
+    created_at?: Date | string
+    updated_at?: Date | string
+  }
+
+  export type share_linksUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    token_digest?: BytesFieldUpdateOperationsInput | Bytes
+    schema_version?: IntFieldUpdateOperationsInput | number
+    target_type?: StringFieldUpdateOperationsInput | string
+    target_id?: StringFieldUpdateOperationsInput | string
+    target_params?: JsonNullValueInput | InputJsonValue
+    preview_locale?: StringFieldUpdateOperationsInput | string
+    preview_title?: StringFieldUpdateOperationsInput | string
+    preview_description?: StringFieldUpdateOperationsInput | string
+    preview_image_path?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    expires_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type share_linksUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    token_digest?: BytesFieldUpdateOperationsInput | Bytes
+    schema_version?: IntFieldUpdateOperationsInput | number
+    target_type?: StringFieldUpdateOperationsInput | string
+    target_id?: StringFieldUpdateOperationsInput | string
+    target_params?: JsonNullValueInput | InputJsonValue
+    preview_locale?: StringFieldUpdateOperationsInput | string
+    preview_title?: StringFieldUpdateOperationsInput | string
+    preview_description?: StringFieldUpdateOperationsInput | string
+    preview_image_path?: StringFieldUpdateOperationsInput | string
+    created_by?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    expires_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type user_device_tokensCreateInput = {
     user_id: string
     expo_push_token: string
@@ -50446,6 +52082,7 @@ export namespace Prisma {
     dish_media_likes?: dish_media_likesCreateNestedManyWithoutUsersInput
     dish_reviews?: dish_reviewsCreateNestedManyWithoutUsersInput
     restaurant_bids?: restaurant_bidsCreateNestedManyWithoutUsersInput
+    share_links?: share_linksCreateNestedManyWithoutUsersInput
   }
 
   export type usersUncheckedCreateInput = {
@@ -50463,6 +52100,7 @@ export namespace Prisma {
     dish_media_likes?: dish_media_likesUncheckedCreateNestedManyWithoutUsersInput
     dish_reviews?: dish_reviewsUncheckedCreateNestedManyWithoutUsersInput
     restaurant_bids?: restaurant_bidsUncheckedCreateNestedManyWithoutUsersInput
+    share_links?: share_linksUncheckedCreateNestedManyWithoutUsersInput
   }
 
   export type usersUpdateInput = {
@@ -50480,6 +52118,7 @@ export namespace Prisma {
     dish_media_likes?: dish_media_likesUpdateManyWithoutUsersNestedInput
     dish_reviews?: dish_reviewsUpdateManyWithoutUsersNestedInput
     restaurant_bids?: restaurant_bidsUpdateManyWithoutUsersNestedInput
+    share_links?: share_linksUpdateManyWithoutUsersNestedInput
   }
 
   export type usersUncheckedUpdateInput = {
@@ -50497,6 +52136,7 @@ export namespace Prisma {
     dish_media_likes?: dish_media_likesUncheckedUpdateManyWithoutUsersNestedInput
     dish_reviews?: dish_reviewsUncheckedUpdateManyWithoutUsersNestedInput
     restaurant_bids?: restaurant_bidsUncheckedUpdateManyWithoutUsersNestedInput
+    share_links?: share_linksUncheckedUpdateManyWithoutUsersNestedInput
   }
 
   export type usersCreateManyInput = {
@@ -52521,6 +54161,83 @@ export namespace Prisma {
     description?: SortOrder
   }
 
+  export type BytesFilter<$PrismaModel = never> = {
+    equals?: Bytes | BytesFieldRefInput<$PrismaModel>
+    in?: Bytes[] | ListBytesFieldRefInput<$PrismaModel>
+    notIn?: Bytes[] | ListBytesFieldRefInput<$PrismaModel>
+    not?: NestedBytesFilter<$PrismaModel> | Bytes
+  }
+
+  export type share_linksCountOrderByAggregateInput = {
+    id?: SortOrder
+    token_digest?: SortOrder
+    schema_version?: SortOrder
+    target_type?: SortOrder
+    target_id?: SortOrder
+    target_params?: SortOrder
+    preview_locale?: SortOrder
+    preview_title?: SortOrder
+    preview_description?: SortOrder
+    preview_image_path?: SortOrder
+    created_by?: SortOrder
+    status?: SortOrder
+    expires_at?: SortOrder
+    created_at?: SortOrder
+    updated_at?: SortOrder
+  }
+
+  export type share_linksAvgOrderByAggregateInput = {
+    schema_version?: SortOrder
+  }
+
+  export type share_linksMaxOrderByAggregateInput = {
+    id?: SortOrder
+    token_digest?: SortOrder
+    schema_version?: SortOrder
+    target_type?: SortOrder
+    target_id?: SortOrder
+    preview_locale?: SortOrder
+    preview_title?: SortOrder
+    preview_description?: SortOrder
+    preview_image_path?: SortOrder
+    created_by?: SortOrder
+    status?: SortOrder
+    expires_at?: SortOrder
+    created_at?: SortOrder
+    updated_at?: SortOrder
+  }
+
+  export type share_linksMinOrderByAggregateInput = {
+    id?: SortOrder
+    token_digest?: SortOrder
+    schema_version?: SortOrder
+    target_type?: SortOrder
+    target_id?: SortOrder
+    preview_locale?: SortOrder
+    preview_title?: SortOrder
+    preview_description?: SortOrder
+    preview_image_path?: SortOrder
+    created_by?: SortOrder
+    status?: SortOrder
+    expires_at?: SortOrder
+    created_at?: SortOrder
+    updated_at?: SortOrder
+  }
+
+  export type share_linksSumOrderByAggregateInput = {
+    schema_version?: SortOrder
+  }
+
+  export type BytesWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Bytes | BytesFieldRefInput<$PrismaModel>
+    in?: Bytes[] | ListBytesFieldRefInput<$PrismaModel>
+    notIn?: Bytes[] | ListBytesFieldRefInput<$PrismaModel>
+    not?: NestedBytesWithAggregatesFilter<$PrismaModel> | Bytes
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedBytesFilter<$PrismaModel>
+    _max?: NestedBytesFilter<$PrismaModel>
+  }
+
   export type user_device_tokensUser_idExpo_push_tokenCompoundUniqueInput = {
     user_id: string
     expo_push_token: string
@@ -52577,6 +54294,16 @@ export namespace Prisma {
   export type user_rolesMinOrderByAggregateInput = {
     user_id?: SortOrder
     role_id?: SortOrder
+  }
+
+  export type Share_linksListRelationFilter = {
+    every?: share_linksWhereInput
+    some?: share_linksWhereInput
+    none?: share_linksWhereInput
+  }
+
+  export type share_linksOrderByRelationAggregateInput = {
+    _count?: SortOrder
   }
 
   export type usersCountOrderByAggregateInput = {
@@ -54171,6 +55898,26 @@ export namespace Prisma {
     deleteMany?: user_rolesScalarWhereInput | user_rolesScalarWhereInput[]
   }
 
+  export type usersCreateNestedOneWithoutShare_linksInput = {
+    create?: XOR<usersCreateWithoutShare_linksInput, usersUncheckedCreateWithoutShare_linksInput>
+    connectOrCreate?: usersCreateOrConnectWithoutShare_linksInput
+    connect?: usersWhereUniqueInput
+  }
+
+  export type BytesFieldUpdateOperationsInput = {
+    set?: Bytes
+  }
+
+  export type usersUpdateOneWithoutShare_linksNestedInput = {
+    create?: XOR<usersCreateWithoutShare_linksInput, usersUncheckedCreateWithoutShare_linksInput>
+    connectOrCreate?: usersCreateOrConnectWithoutShare_linksInput
+    upsert?: usersUpsertWithoutShare_linksInput
+    disconnect?: usersWhereInput | boolean
+    delete?: usersWhereInput | boolean
+    connect?: usersWhereUniqueInput
+    update?: XOR<XOR<usersUpdateToOneWithWhereWithoutShare_linksInput, usersUpdateWithoutShare_linksInput>, usersUncheckedUpdateWithoutShare_linksInput>
+  }
+
   export type rolesCreateNestedOneWithoutUser_rolesInput = {
     create?: XOR<rolesCreateWithoutUser_rolesInput, rolesUncheckedCreateWithoutUser_rolesInput>
     connectOrCreate?: rolesCreateOrConnectWithoutUser_rolesInput
@@ -54213,6 +55960,13 @@ export namespace Prisma {
     connect?: restaurant_bidsWhereUniqueInput | restaurant_bidsWhereUniqueInput[]
   }
 
+  export type share_linksCreateNestedManyWithoutUsersInput = {
+    create?: XOR<share_linksCreateWithoutUsersInput, share_linksUncheckedCreateWithoutUsersInput> | share_linksCreateWithoutUsersInput[] | share_linksUncheckedCreateWithoutUsersInput[]
+    connectOrCreate?: share_linksCreateOrConnectWithoutUsersInput | share_linksCreateOrConnectWithoutUsersInput[]
+    createMany?: share_linksCreateManyUsersInputEnvelope
+    connect?: share_linksWhereUniqueInput | share_linksWhereUniqueInput[]
+  }
+
   export type dish_mediaUncheckedCreateNestedManyWithoutUsersInput = {
     create?: XOR<dish_mediaCreateWithoutUsersInput, dish_mediaUncheckedCreateWithoutUsersInput> | dish_mediaCreateWithoutUsersInput[] | dish_mediaUncheckedCreateWithoutUsersInput[]
     connectOrCreate?: dish_mediaCreateOrConnectWithoutUsersInput | dish_mediaCreateOrConnectWithoutUsersInput[]
@@ -54239,6 +55993,13 @@ export namespace Prisma {
     connectOrCreate?: restaurant_bidsCreateOrConnectWithoutUsersInput | restaurant_bidsCreateOrConnectWithoutUsersInput[]
     createMany?: restaurant_bidsCreateManyUsersInputEnvelope
     connect?: restaurant_bidsWhereUniqueInput | restaurant_bidsWhereUniqueInput[]
+  }
+
+  export type share_linksUncheckedCreateNestedManyWithoutUsersInput = {
+    create?: XOR<share_linksCreateWithoutUsersInput, share_linksUncheckedCreateWithoutUsersInput> | share_linksCreateWithoutUsersInput[] | share_linksUncheckedCreateWithoutUsersInput[]
+    connectOrCreate?: share_linksCreateOrConnectWithoutUsersInput | share_linksCreateOrConnectWithoutUsersInput[]
+    createMany?: share_linksCreateManyUsersInputEnvelope
+    connect?: share_linksWhereUniqueInput | share_linksWhereUniqueInput[]
   }
 
   export type dish_mediaUpdateManyWithoutUsersNestedInput = {
@@ -54297,6 +56058,20 @@ export namespace Prisma {
     deleteMany?: restaurant_bidsScalarWhereInput | restaurant_bidsScalarWhereInput[]
   }
 
+  export type share_linksUpdateManyWithoutUsersNestedInput = {
+    create?: XOR<share_linksCreateWithoutUsersInput, share_linksUncheckedCreateWithoutUsersInput> | share_linksCreateWithoutUsersInput[] | share_linksUncheckedCreateWithoutUsersInput[]
+    connectOrCreate?: share_linksCreateOrConnectWithoutUsersInput | share_linksCreateOrConnectWithoutUsersInput[]
+    upsert?: share_linksUpsertWithWhereUniqueWithoutUsersInput | share_linksUpsertWithWhereUniqueWithoutUsersInput[]
+    createMany?: share_linksCreateManyUsersInputEnvelope
+    set?: share_linksWhereUniqueInput | share_linksWhereUniqueInput[]
+    disconnect?: share_linksWhereUniqueInput | share_linksWhereUniqueInput[]
+    delete?: share_linksWhereUniqueInput | share_linksWhereUniqueInput[]
+    connect?: share_linksWhereUniqueInput | share_linksWhereUniqueInput[]
+    update?: share_linksUpdateWithWhereUniqueWithoutUsersInput | share_linksUpdateWithWhereUniqueWithoutUsersInput[]
+    updateMany?: share_linksUpdateManyWithWhereWithoutUsersInput | share_linksUpdateManyWithWhereWithoutUsersInput[]
+    deleteMany?: share_linksScalarWhereInput | share_linksScalarWhereInput[]
+  }
+
   export type dish_mediaUncheckedUpdateManyWithoutUsersNestedInput = {
     create?: XOR<dish_mediaCreateWithoutUsersInput, dish_mediaUncheckedCreateWithoutUsersInput> | dish_mediaCreateWithoutUsersInput[] | dish_mediaUncheckedCreateWithoutUsersInput[]
     connectOrCreate?: dish_mediaCreateOrConnectWithoutUsersInput | dish_mediaCreateOrConnectWithoutUsersInput[]
@@ -54351,6 +56126,20 @@ export namespace Prisma {
     update?: restaurant_bidsUpdateWithWhereUniqueWithoutUsersInput | restaurant_bidsUpdateWithWhereUniqueWithoutUsersInput[]
     updateMany?: restaurant_bidsUpdateManyWithWhereWithoutUsersInput | restaurant_bidsUpdateManyWithWhereWithoutUsersInput[]
     deleteMany?: restaurant_bidsScalarWhereInput | restaurant_bidsScalarWhereInput[]
+  }
+
+  export type share_linksUncheckedUpdateManyWithoutUsersNestedInput = {
+    create?: XOR<share_linksCreateWithoutUsersInput, share_linksUncheckedCreateWithoutUsersInput> | share_linksCreateWithoutUsersInput[] | share_linksUncheckedCreateWithoutUsersInput[]
+    connectOrCreate?: share_linksCreateOrConnectWithoutUsersInput | share_linksCreateOrConnectWithoutUsersInput[]
+    upsert?: share_linksUpsertWithWhereUniqueWithoutUsersInput | share_linksUpsertWithWhereUniqueWithoutUsersInput[]
+    createMany?: share_linksCreateManyUsersInputEnvelope
+    set?: share_linksWhereUniqueInput | share_linksWhereUniqueInput[]
+    disconnect?: share_linksWhereUniqueInput | share_linksWhereUniqueInput[]
+    delete?: share_linksWhereUniqueInput | share_linksWhereUniqueInput[]
+    connect?: share_linksWhereUniqueInput | share_linksWhereUniqueInput[]
+    update?: share_linksUpdateWithWhereUniqueWithoutUsersInput | share_linksUpdateWithWhereUniqueWithoutUsersInput[]
+    updateMany?: share_linksUpdateManyWithWhereWithoutUsersInput | share_linksUpdateManyWithWhereWithoutUsersInput[]
+    deleteMany?: share_linksScalarWhereInput | share_linksScalarWhereInput[]
   }
 
   export type NestedStringFilter<$PrismaModel = never> = {
@@ -54803,6 +56592,23 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumrestaurant_bid_statusFilter<$PrismaModel>
     _max?: NestedEnumrestaurant_bid_statusFilter<$PrismaModel>
+  }
+
+  export type NestedBytesFilter<$PrismaModel = never> = {
+    equals?: Bytes | BytesFieldRefInput<$PrismaModel>
+    in?: Bytes[] | ListBytesFieldRefInput<$PrismaModel>
+    notIn?: Bytes[] | ListBytesFieldRefInput<$PrismaModel>
+    not?: NestedBytesFilter<$PrismaModel> | Bytes
+  }
+
+  export type NestedBytesWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Bytes | BytesFieldRefInput<$PrismaModel>
+    in?: Bytes[] | ListBytesFieldRefInput<$PrismaModel>
+    notIn?: Bytes[] | ListBytesFieldRefInput<$PrismaModel>
+    not?: NestedBytesWithAggregatesFilter<$PrismaModel> | Bytes
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedBytesFilter<$PrismaModel>
+    _max?: NestedBytesFilter<$PrismaModel>
   }
 
   export type dish_category_featuresCreateWithoutDish_categoriesInput = {
@@ -55867,6 +57673,7 @@ export namespace Prisma {
     dish_media_likes?: dish_media_likesCreateNestedManyWithoutUsersInput
     dish_reviews?: dish_reviewsCreateNestedManyWithoutUsersInput
     restaurant_bids?: restaurant_bidsCreateNestedManyWithoutUsersInput
+    share_links?: share_linksCreateNestedManyWithoutUsersInput
   }
 
   export type usersUncheckedCreateWithoutDish_mediaInput = {
@@ -55883,6 +57690,7 @@ export namespace Prisma {
     dish_media_likes?: dish_media_likesUncheckedCreateNestedManyWithoutUsersInput
     dish_reviews?: dish_reviewsUncheckedCreateNestedManyWithoutUsersInput
     restaurant_bids?: restaurant_bidsUncheckedCreateNestedManyWithoutUsersInput
+    share_links?: share_linksUncheckedCreateNestedManyWithoutUsersInput
   }
 
   export type usersCreateOrConnectWithoutDish_mediaInput = {
@@ -56095,6 +57903,7 @@ export namespace Prisma {
     dish_media_likes?: dish_media_likesUpdateManyWithoutUsersNestedInput
     dish_reviews?: dish_reviewsUpdateManyWithoutUsersNestedInput
     restaurant_bids?: restaurant_bidsUpdateManyWithoutUsersNestedInput
+    share_links?: share_linksUpdateManyWithoutUsersNestedInput
   }
 
   export type usersUncheckedUpdateWithoutDish_mediaInput = {
@@ -56111,6 +57920,7 @@ export namespace Prisma {
     dish_media_likes?: dish_media_likesUncheckedUpdateManyWithoutUsersNestedInput
     dish_reviews?: dish_reviewsUncheckedUpdateManyWithoutUsersNestedInput
     restaurant_bids?: restaurant_bidsUncheckedUpdateManyWithoutUsersNestedInput
+    share_links?: share_linksUncheckedUpdateManyWithoutUsersNestedInput
   }
 
   export type dish_media_analysis_resultsUpsertWithoutDish_mediaInput = {
@@ -56556,6 +58366,7 @@ export namespace Prisma {
     dish_media?: dish_mediaCreateNestedManyWithoutUsersInput
     dish_reviews?: dish_reviewsCreateNestedManyWithoutUsersInput
     restaurant_bids?: restaurant_bidsCreateNestedManyWithoutUsersInput
+    share_links?: share_linksCreateNestedManyWithoutUsersInput
   }
 
   export type usersUncheckedCreateWithoutDish_media_likesInput = {
@@ -56572,6 +58383,7 @@ export namespace Prisma {
     dish_media?: dish_mediaUncheckedCreateNestedManyWithoutUsersInput
     dish_reviews?: dish_reviewsUncheckedCreateNestedManyWithoutUsersInput
     restaurant_bids?: restaurant_bidsUncheckedCreateNestedManyWithoutUsersInput
+    share_links?: share_linksUncheckedCreateNestedManyWithoutUsersInput
   }
 
   export type usersCreateOrConnectWithoutDish_media_likesInput = {
@@ -56653,6 +58465,7 @@ export namespace Prisma {
     dish_media?: dish_mediaUpdateManyWithoutUsersNestedInput
     dish_reviews?: dish_reviewsUpdateManyWithoutUsersNestedInput
     restaurant_bids?: restaurant_bidsUpdateManyWithoutUsersNestedInput
+    share_links?: share_linksUpdateManyWithoutUsersNestedInput
   }
 
   export type usersUncheckedUpdateWithoutDish_media_likesInput = {
@@ -56669,6 +58482,7 @@ export namespace Prisma {
     dish_media?: dish_mediaUncheckedUpdateManyWithoutUsersNestedInput
     dish_reviews?: dish_reviewsUncheckedUpdateManyWithoutUsersNestedInput
     restaurant_bids?: restaurant_bidsUncheckedUpdateManyWithoutUsersNestedInput
+    share_links?: share_linksUncheckedUpdateManyWithoutUsersNestedInput
   }
 
   export type dish_mediaCreateWithoutDish_media_viewsInput = {
@@ -56856,6 +58670,7 @@ export namespace Prisma {
     dish_media?: dish_mediaCreateNestedManyWithoutUsersInput
     dish_media_likes?: dish_media_likesCreateNestedManyWithoutUsersInput
     restaurant_bids?: restaurant_bidsCreateNestedManyWithoutUsersInput
+    share_links?: share_linksCreateNestedManyWithoutUsersInput
   }
 
   export type usersUncheckedCreateWithoutDish_reviewsInput = {
@@ -56872,6 +58687,7 @@ export namespace Prisma {
     dish_media?: dish_mediaUncheckedCreateNestedManyWithoutUsersInput
     dish_media_likes?: dish_media_likesUncheckedCreateNestedManyWithoutUsersInput
     restaurant_bids?: restaurant_bidsUncheckedCreateNestedManyWithoutUsersInput
+    share_links?: share_linksUncheckedCreateNestedManyWithoutUsersInput
   }
 
   export type usersCreateOrConnectWithoutDish_reviewsInput = {
@@ -56937,6 +58753,7 @@ export namespace Prisma {
     dish_media?: dish_mediaUpdateManyWithoutUsersNestedInput
     dish_media_likes?: dish_media_likesUpdateManyWithoutUsersNestedInput
     restaurant_bids?: restaurant_bidsUpdateManyWithoutUsersNestedInput
+    share_links?: share_linksUpdateManyWithoutUsersNestedInput
   }
 
   export type usersUncheckedUpdateWithoutDish_reviewsInput = {
@@ -56953,6 +58770,7 @@ export namespace Prisma {
     dish_media?: dish_mediaUncheckedUpdateManyWithoutUsersNestedInput
     dish_media_likes?: dish_media_likesUncheckedUpdateManyWithoutUsersNestedInput
     restaurant_bids?: restaurant_bidsUncheckedUpdateManyWithoutUsersNestedInput
+    share_links?: share_linksUncheckedUpdateManyWithoutUsersNestedInput
   }
 
   export type dish_mediaCreateWithoutDishesInput = {
@@ -57771,6 +59589,7 @@ export namespace Prisma {
     dish_media?: dish_mediaCreateNestedManyWithoutUsersInput
     dish_media_likes?: dish_media_likesCreateNestedManyWithoutUsersInput
     dish_reviews?: dish_reviewsCreateNestedManyWithoutUsersInput
+    share_links?: share_linksCreateNestedManyWithoutUsersInput
   }
 
   export type usersUncheckedCreateWithoutRestaurant_bidsInput = {
@@ -57787,6 +59606,7 @@ export namespace Prisma {
     dish_media?: dish_mediaUncheckedCreateNestedManyWithoutUsersInput
     dish_media_likes?: dish_media_likesUncheckedCreateNestedManyWithoutUsersInput
     dish_reviews?: dish_reviewsUncheckedCreateNestedManyWithoutUsersInput
+    share_links?: share_linksUncheckedCreateNestedManyWithoutUsersInput
   }
 
   export type usersCreateOrConnectWithoutRestaurant_bidsInput = {
@@ -57876,6 +59696,7 @@ export namespace Prisma {
     dish_media?: dish_mediaUpdateManyWithoutUsersNestedInput
     dish_media_likes?: dish_media_likesUpdateManyWithoutUsersNestedInput
     dish_reviews?: dish_reviewsUpdateManyWithoutUsersNestedInput
+    share_links?: share_linksUpdateManyWithoutUsersNestedInput
   }
 
   export type usersUncheckedUpdateWithoutRestaurant_bidsInput = {
@@ -57892,6 +59713,7 @@ export namespace Prisma {
     dish_media?: dish_mediaUncheckedUpdateManyWithoutUsersNestedInput
     dish_media_likes?: dish_media_likesUncheckedUpdateManyWithoutUsersNestedInput
     dish_reviews?: dish_reviewsUncheckedUpdateManyWithoutUsersNestedInput
+    share_links?: share_linksUncheckedUpdateManyWithoutUsersNestedInput
   }
 
   export type dishesCreateWithoutRestaurantsInput = {
@@ -58179,6 +60001,90 @@ export namespace Prisma {
     role_id?: UuidFilter<"user_roles"> | string
   }
 
+  export type usersCreateWithoutShare_linksInput = {
+    id?: string
+    display_name?: string | null
+    bio?: string | null
+    last_login_at?: Date | string | null
+    created_at?: Date | string
+    updated_at?: Date | string
+    lock_no?: number
+    username: string
+    preferred_locale: string
+    avatar_path?: string | null
+    dish_media?: dish_mediaCreateNestedManyWithoutUsersInput
+    dish_media_likes?: dish_media_likesCreateNestedManyWithoutUsersInput
+    dish_reviews?: dish_reviewsCreateNestedManyWithoutUsersInput
+    restaurant_bids?: restaurant_bidsCreateNestedManyWithoutUsersInput
+  }
+
+  export type usersUncheckedCreateWithoutShare_linksInput = {
+    id?: string
+    display_name?: string | null
+    bio?: string | null
+    last_login_at?: Date | string | null
+    created_at?: Date | string
+    updated_at?: Date | string
+    lock_no?: number
+    username: string
+    preferred_locale: string
+    avatar_path?: string | null
+    dish_media?: dish_mediaUncheckedCreateNestedManyWithoutUsersInput
+    dish_media_likes?: dish_media_likesUncheckedCreateNestedManyWithoutUsersInput
+    dish_reviews?: dish_reviewsUncheckedCreateNestedManyWithoutUsersInput
+    restaurant_bids?: restaurant_bidsUncheckedCreateNestedManyWithoutUsersInput
+  }
+
+  export type usersCreateOrConnectWithoutShare_linksInput = {
+    where: usersWhereUniqueInput
+    create: XOR<usersCreateWithoutShare_linksInput, usersUncheckedCreateWithoutShare_linksInput>
+  }
+
+  export type usersUpsertWithoutShare_linksInput = {
+    update: XOR<usersUpdateWithoutShare_linksInput, usersUncheckedUpdateWithoutShare_linksInput>
+    create: XOR<usersCreateWithoutShare_linksInput, usersUncheckedCreateWithoutShare_linksInput>
+    where?: usersWhereInput
+  }
+
+  export type usersUpdateToOneWithWhereWithoutShare_linksInput = {
+    where?: usersWhereInput
+    data: XOR<usersUpdateWithoutShare_linksInput, usersUncheckedUpdateWithoutShare_linksInput>
+  }
+
+  export type usersUpdateWithoutShare_linksInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    display_name?: NullableStringFieldUpdateOperationsInput | string | null
+    bio?: NullableStringFieldUpdateOperationsInput | string | null
+    last_login_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    lock_no?: IntFieldUpdateOperationsInput | number
+    username?: StringFieldUpdateOperationsInput | string
+    preferred_locale?: StringFieldUpdateOperationsInput | string
+    avatar_path?: NullableStringFieldUpdateOperationsInput | string | null
+    dish_media?: dish_mediaUpdateManyWithoutUsersNestedInput
+    dish_media_likes?: dish_media_likesUpdateManyWithoutUsersNestedInput
+    dish_reviews?: dish_reviewsUpdateManyWithoutUsersNestedInput
+    restaurant_bids?: restaurant_bidsUpdateManyWithoutUsersNestedInput
+  }
+
+  export type usersUncheckedUpdateWithoutShare_linksInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    display_name?: NullableStringFieldUpdateOperationsInput | string | null
+    bio?: NullableStringFieldUpdateOperationsInput | string | null
+    last_login_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    lock_no?: IntFieldUpdateOperationsInput | number
+    username?: StringFieldUpdateOperationsInput | string
+    preferred_locale?: StringFieldUpdateOperationsInput | string
+    avatar_path?: NullableStringFieldUpdateOperationsInput | string | null
+    dish_media?: dish_mediaUncheckedUpdateManyWithoutUsersNestedInput
+    dish_media_likes?: dish_media_likesUncheckedUpdateManyWithoutUsersNestedInput
+    dish_reviews?: dish_reviewsUncheckedUpdateManyWithoutUsersNestedInput
+    restaurant_bids?: restaurant_bidsUncheckedUpdateManyWithoutUsersNestedInput
+  }
+
   export type rolesCreateWithoutUser_rolesInput = {
     id: string
     name: string
@@ -58373,6 +60279,50 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type share_linksCreateWithoutUsersInput = {
+    id?: string
+    token_digest: Bytes
+    schema_version?: number
+    target_type: string
+    target_id: string
+    target_params?: JsonNullValueInput | InputJsonValue
+    preview_locale: string
+    preview_title: string
+    preview_description: string
+    preview_image_path: string
+    status?: string
+    expires_at?: Date | string | null
+    created_at?: Date | string
+    updated_at?: Date | string
+  }
+
+  export type share_linksUncheckedCreateWithoutUsersInput = {
+    id?: string
+    token_digest: Bytes
+    schema_version?: number
+    target_type: string
+    target_id: string
+    target_params?: JsonNullValueInput | InputJsonValue
+    preview_locale: string
+    preview_title: string
+    preview_description: string
+    preview_image_path: string
+    status?: string
+    expires_at?: Date | string | null
+    created_at?: Date | string
+    updated_at?: Date | string
+  }
+
+  export type share_linksCreateOrConnectWithoutUsersInput = {
+    where: share_linksWhereUniqueInput
+    create: XOR<share_linksCreateWithoutUsersInput, share_linksUncheckedCreateWithoutUsersInput>
+  }
+
+  export type share_linksCreateManyUsersInputEnvelope = {
+    data: share_linksCreateManyUsersInput | share_linksCreateManyUsersInput[]
+    skipDuplicates?: boolean
+  }
+
   export type dish_mediaUpsertWithWhereUniqueWithoutUsersInput = {
     where: dish_mediaWhereUniqueInput
     update: XOR<dish_mediaUpdateWithoutUsersInput, dish_mediaUncheckedUpdateWithoutUsersInput>
@@ -58435,6 +60385,43 @@ export namespace Prisma {
   export type restaurant_bidsUpdateManyWithWhereWithoutUsersInput = {
     where: restaurant_bidsScalarWhereInput
     data: XOR<restaurant_bidsUpdateManyMutationInput, restaurant_bidsUncheckedUpdateManyWithoutUsersInput>
+  }
+
+  export type share_linksUpsertWithWhereUniqueWithoutUsersInput = {
+    where: share_linksWhereUniqueInput
+    update: XOR<share_linksUpdateWithoutUsersInput, share_linksUncheckedUpdateWithoutUsersInput>
+    create: XOR<share_linksCreateWithoutUsersInput, share_linksUncheckedCreateWithoutUsersInput>
+  }
+
+  export type share_linksUpdateWithWhereUniqueWithoutUsersInput = {
+    where: share_linksWhereUniqueInput
+    data: XOR<share_linksUpdateWithoutUsersInput, share_linksUncheckedUpdateWithoutUsersInput>
+  }
+
+  export type share_linksUpdateManyWithWhereWithoutUsersInput = {
+    where: share_linksScalarWhereInput
+    data: XOR<share_linksUpdateManyMutationInput, share_linksUncheckedUpdateManyWithoutUsersInput>
+  }
+
+  export type share_linksScalarWhereInput = {
+    AND?: share_linksScalarWhereInput | share_linksScalarWhereInput[]
+    OR?: share_linksScalarWhereInput[]
+    NOT?: share_linksScalarWhereInput | share_linksScalarWhereInput[]
+    id?: UuidFilter<"share_links"> | string
+    token_digest?: BytesFilter<"share_links"> | Bytes
+    schema_version?: IntFilter<"share_links"> | number
+    target_type?: StringFilter<"share_links"> | string
+    target_id?: StringFilter<"share_links"> | string
+    target_params?: JsonFilter<"share_links">
+    preview_locale?: StringFilter<"share_links"> | string
+    preview_title?: StringFilter<"share_links"> | string
+    preview_description?: StringFilter<"share_links"> | string
+    preview_image_path?: StringFilter<"share_links"> | string
+    created_by?: UuidNullableFilter<"share_links"> | string | null
+    status?: StringFilter<"share_links"> | string
+    expires_at?: DateTimeNullableFilter<"share_links"> | Date | string | null
+    created_at?: DateTimeFilter<"share_links"> | Date | string
+    updated_at?: DateTimeFilter<"share_links"> | Date | string
   }
 
   export type dish_category_featuresCreateManyDish_categoriesInput = {
@@ -59374,6 +61361,23 @@ export namespace Prisma {
     lock_no?: number
   }
 
+  export type share_linksCreateManyUsersInput = {
+    id?: string
+    token_digest: Bytes
+    schema_version?: number
+    target_type: string
+    target_id: string
+    target_params?: JsonNullValueInput | InputJsonValue
+    preview_locale: string
+    preview_title: string
+    preview_description: string
+    preview_image_path: string
+    status?: string
+    expires_at?: Date | string | null
+    created_at?: Date | string
+    updated_at?: Date | string
+  }
+
   export type dish_mediaUpdateWithoutUsersInput = {
     id?: StringFieldUpdateOperationsInput | string
     media_path?: StringFieldUpdateOperationsInput | string
@@ -59531,6 +61535,57 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
+  }
+
+  export type share_linksUpdateWithoutUsersInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    token_digest?: BytesFieldUpdateOperationsInput | Bytes
+    schema_version?: IntFieldUpdateOperationsInput | number
+    target_type?: StringFieldUpdateOperationsInput | string
+    target_id?: StringFieldUpdateOperationsInput | string
+    target_params?: JsonNullValueInput | InputJsonValue
+    preview_locale?: StringFieldUpdateOperationsInput | string
+    preview_title?: StringFieldUpdateOperationsInput | string
+    preview_description?: StringFieldUpdateOperationsInput | string
+    preview_image_path?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    expires_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type share_linksUncheckedUpdateWithoutUsersInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    token_digest?: BytesFieldUpdateOperationsInput | Bytes
+    schema_version?: IntFieldUpdateOperationsInput | number
+    target_type?: StringFieldUpdateOperationsInput | string
+    target_id?: StringFieldUpdateOperationsInput | string
+    target_params?: JsonNullValueInput | InputJsonValue
+    preview_locale?: StringFieldUpdateOperationsInput | string
+    preview_title?: StringFieldUpdateOperationsInput | string
+    preview_description?: StringFieldUpdateOperationsInput | string
+    preview_image_path?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    expires_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type share_linksUncheckedUpdateManyWithoutUsersInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    token_digest?: BytesFieldUpdateOperationsInput | Bytes
+    schema_version?: IntFieldUpdateOperationsInput | number
+    target_type?: StringFieldUpdateOperationsInput | string
+    target_id?: StringFieldUpdateOperationsInput | string
+    target_params?: JsonNullValueInput | InputJsonValue
+    preview_locale?: StringFieldUpdateOperationsInput | string
+    preview_title?: StringFieldUpdateOperationsInput | string
+    preview_description?: StringFieldUpdateOperationsInput | string
+    preview_image_path?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    expires_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
 

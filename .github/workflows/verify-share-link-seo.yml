@@ -1,0 +1,138 @@
+name: Verify Share Link SEO
+
+# ==============================================================================
+# #721 共有リンク `/s/:token` の OGP が «実データから動的に» 出ているかを、
+# デプロイ済みの環境に対して実 HTTP で確認する。
+#
+# ## なぜ独立した workflow なのか
+# この検証は Firebase Hosting の rewrite（`/s/** -> Cloud Run`）が効いているかに
+# 依存する。e2e-web は `scripts/serve-dist.mjs` で dist をローカル配信するため
+# rewrite が存在せず、**構造的にこの経路を検証できない**。
+# 実際にデプロイされた Hosting の URL を叩く必要がある。
+#
+# ## ⚠️ development 専用
+# `web_base_url` の既定は開発環境（nanitabeyo-dev）。**本番 URL を入れないこと。**
+# この workflow は共有リンクを実際に作成する（＝ DB へ書き込む）ので、
+# 本番へ向けると本番 DB に検証用の行が残る。
+# 対象の dish_media も `secrets.POSTGRES_DATABASE_URL`（development Environment）
+# の dev スキーマから拾うため、本番の Hosting へ向けても対象が存在せず
+# 404 になるだけで、意味のある検証にはならない。
+# ==============================================================================
+
+on:
+  workflow_dispatch:
+    inputs:
+      web_base_url:
+        description: "検証する Hosting の URL（開発環境のみ。本番を入れないこと）"
+        required: true
+        default: "https://nanitabeyo-dev.web.app"
+        type: string
+
+concurrency:
+  group: verify-share-link-seo
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: 共有リンクの OGP を実 HTTP で確認
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # POSTGRES_DATABASE_URL（dev スキーマ）と EXPO_TOKEN を使う
+    environment: development
+
+    steps:
+      - name: 本番 URL でないことを確認
+        shell: bash
+        env:
+          WEB_BASE_URL: ${{ inputs.web_base_url }}
+        run: |
+          # 本番ドメインを弾く。既定値のまま流す想定だが、手で書き換えられる以上ここで止める
+          case "${WEB_BASE_URL}" in
+            *app.nanitabeyo.net*|*food-scroll*)
+              echo "::error::この workflow は開発環境専用です（共有リンクを実際に作成するため）。指定: ${WEB_BASE_URL}"
+              exit 1
+              ;;
+          esac
+          echo "検証対象: ${WEB_BASE_URL}"
+
+      - name: リポジトリを取得
+        uses: actions/checkout@v4
+
+      - name: pnpm をセットアップ
+        uses: pnpm/action-setup@v4
+
+      - name: Node をセットアップ
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: 依存関係をインストール
+        run: pnpm install --frozen-lockfile
+
+      - name: Expo & EAS CLI をセットアップ
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      # EXPO_PUBLIC_BACKEND_BASE_URL / SUPABASE_URL / SUPABASE_ANON_KEY を取る。
+      # ここを手書きの secret にしないのは、development の接続先が EAS 側で
+      # 一元管理されており、二重管理するとどちらが正かが分からなくなるため
+      - name: development の環境変数を EAS から取得
+        working-directory: app-expo
+        run: pnpx eas-cli env:pull development --non-interactive --path .env
+
+      - name: psql をインストール
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+
+      # 実データを 2 件拾う。«別内容の 2 本» を突き合わせることが動的性の根拠なので、
+      # 別々の dishes に紐づく行を選ぶ（同じ料理の別カットだと title が同じになりうる）
+      - name: dev から dish_media を 2 件拾う
+        shell: bash
+        env:
+          DATABASE_URL: ${{ secrets.POSTGRES_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "${DATABASE_URL}" ]; then
+            echo "::error::secrets.POSTGRES_DATABASE_URL が未設定です"
+            exit 1
+          fi
+          # ⚠️ `set search_path to dev;` を同じ -c に混ぜないこと。psql は文ごとに
+          # 結果を出すので、出力の 1 行目が `SET` になり ID と混ざる（実際に踏んだ）。
+          # スキーマは各テーブルへ明示的に付ける
+          IDS=$(psql "${DATABASE_URL}" -tAc "
+            select string_agg(id::text, ',') from (
+              select distinct on (m.dish_id) m.id
+              from dev.dish_media m
+              join dev.dishes d on d.id = m.dish_id
+              where m.thumbnail_path <> ''
+              order by m.dish_id, m.created_at desc
+              limit 2
+            ) t")
+          if [ -z "${IDS}" ] || [ "$(echo "${IDS}" | tr -cd ',' | wc -c)" -lt 1 ]; then
+            echo "::error::dev に検証可能な dish_media が 2 件ありません（取得結果: '${IDS}'）"
+            exit 1
+          fi
+          # ID 自体は dev の公開データなので伏せない（後段の判定を追えるようにする）
+          echo "DISH_MEDIA_IDS=${IDS}" >> "$GITHUB_ENV"
+          echo "対象 dish_media: ${IDS}"
+
+      - name: 共有リンクを作って OGP を確認する
+        shell: bash
+        env:
+          WEB_BASE_URL: ${{ inputs.web_base_url }}
+        run: |
+          set -euo pipefail
+          # env:pull が書いた app-expo/.env から必要な 3 つだけを取り出す。
+          # `set -a; source` はしない（.env に想定外のキーがあると環境を汚すため）
+          get() { grep -m1 "^$1=" app-expo/.env | cut -d= -f2- | tr -d '"'; }
+          export BACKEND_BASE_URL="$(get EXPO_PUBLIC_BACKEND_BASE_URL)"
+          export SUPABASE_URL="$(get EXPO_PUBLIC_SUPABASE_URL)"
+          export SUPABASE_ANON_KEY="$(get EXPO_PUBLIC_SUPABASE_ANON_KEY)"
+          # anon key はログへ出さない。値そのものは公開鍵だが、習慣として伏せる
+          echo "::add-mask::${SUPABASE_ANON_KEY}"
+          node scripts/verify-share-link-seo.mjs

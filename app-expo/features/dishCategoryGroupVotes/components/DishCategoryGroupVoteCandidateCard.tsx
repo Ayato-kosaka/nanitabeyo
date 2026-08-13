@@ -32,7 +32,11 @@ export function DishCategoryGroupVoteCandidateCard({
 	const hasEmptyDishMedia = candidate.dishMediaSearchStatus === "empty";
 
 	return (
-		<Pressable style={styles.card} onPress={() => onPressCandidate(candidate)}>
+		<Pressable
+			style={styles.card}
+			onPress={() => onPressCandidate(candidate)}
+			// #1122 E2E から「一覧カード導線」と「詳細モーダル導線」を撃ち分けるための識別子
+			testID={`dish-category-group-vote-candidate-${candidate.id}`}>
 			<Image source={{ uri: candidate.imageUrl }} style={styles.image} contentFit="cover" />
 			<View style={styles.rankBadge}>
 				{/* #941 【仕様】総投票数0はBEが全候補同率rank(=1)で返すため、UI側で「未投票」に統一する */}
@@ -67,7 +71,8 @@ export function DishCategoryGroupVoteCandidateCard({
 					event.stopPropagation();
 					onPressDishMedia(candidate);
 				}}
-				activeOpacity={0.85}>
+				activeOpacity={0.85}
+				testID={`dish-category-group-vote-candidate-dish-media-${candidate.id}`}>
 				<Text style={[styles.secondaryButtonText, hasEmptyDishMedia && styles.disabledButtonText]} numberOfLines={1}>
 					{isDishMediaLoading
 						? i18n.t("DishCategoryGroupVotes.loadingRestaurants")

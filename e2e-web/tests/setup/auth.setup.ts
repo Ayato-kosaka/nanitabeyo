@@ -1,10 +1,9 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import * as dotenv from "dotenv";
-import { createClient } from "@supabase/supabase-js";
 import { test as setup } from "@playwright/test";
 import { STORAGE_STATE_PATH } from "../../playwright.config";
 import { supabaseStorageKey } from "../../utils/auth";
+import { loadTestUserCredentials, signInTestUser } from "../../utils/testUserSession";
 
 /**
  * 🔐 認証セットアップ（Playwright 公式推奨の auth setup project パターン）
@@ -28,21 +27,15 @@ import { supabaseStorageKey } from "../../utils/auth";
  *   （TEST_USER_EMAIL / TEST_USER_PASSWORD。コミット禁止）
  */
 
-// Supabase の接続情報はフロントエンドと同じものを使うため app-expo/.env から読む（重複管理を避ける）
-dotenv.config({ path: path.resolve(__dirname, "../../../app-expo/.env") });
-// テストユーザーの認証情報は e2e-web/.env から読む
-dotenv.config({ path: path.resolve(__dirname, "../../.env") });
-
 setup("テストユーザーでログインし storageState を生成する", async ({}) => {
-	const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
-	const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
-	const email = process.env.TEST_USER_EMAIL;
-	const password = process.env.TEST_USER_PASSWORD;
+	// 環境変数の読み込みとログインは utils/testUserSession.ts に集約している
+	// （ログアウト spec が専用セッションを作るために同じ処理を必要とするため）
+	const credentials = loadTestUserCredentials();
 
 	// 認証情報が未設定の場合: 空の storageState を書き出して skip する。
 	// （storageState ファイル自体が無いと authenticated プロジェクトの起動が失敗するため、
 	//   「匿名状態のファイル」を置いた上で各テスト側の skip 条件に委ねる）
-	if (!supabaseUrl || !supabaseAnonKey || !email || !password) {
+	if (!credentials) {
 		fs.mkdirSync(path.dirname(STORAGE_STATE_PATH), { recursive: true });
 		fs.writeFileSync(STORAGE_STATE_PATH, JSON.stringify({ cookies: [], origins: [] }, null, "\t"));
 		setup.skip(
@@ -52,22 +45,7 @@ setup("テストユーザーでログインし storageState を生成する", as
 		return;
 	}
 
-	// persistSession: false — Node 側でセッションを保存する必要はない（storageState にのみ書き出す）
-	const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-		auth: { persistSession: false, autoRefreshToken: false },
-	});
-
-	const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-	if (error || !data.session) {
-		throw new Error(
-			[
-				`テストユーザーのログインに失敗しました: ${error?.message}`,
-				"確認事項:",
-				"  1. Supabase ダッシュボードで Email provider が ON になっているか（OFF だと 'Email logins are disabled' で失敗する）",
-				"  2. e2e-web/.env の TEST_USER_EMAIL / TEST_USER_PASSWORD が正しいか",
-			].join("\n"),
-		);
-	}
+	const session = await signInTestUser(credentials);
 
 	// テスト対象オリジン（playwright.config.ts の BASE_URL と同じ導出ロジック）
 	const origin = process.env.PLAYWRIGHT_BASE_URL ?? `http://localhost:${process.env.PLAYWRIGHT_PORT ?? 4173}`;
@@ -80,8 +58,8 @@ setup("テストユーザーでログインし storageState を生成する", as
 				origin,
 				localStorage: [
 					{
-						name: supabaseStorageKey(supabaseUrl),
-						value: JSON.stringify(data.session),
+						name: supabaseStorageKey(credentials.supabaseUrl),
+						value: JSON.stringify(session),
 					},
 				],
 			},

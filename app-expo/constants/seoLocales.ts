@@ -1,5 +1,13 @@
 import { Env } from "@/constants/Env";
 import type { SeoData } from "@/contexts/SeoContext";
+import {
+	DEFAULT_PUBLIC_LOCALE,
+	PUBLIC_LOCALES,
+	isPublicLocale,
+	resolvePublicLocale,
+	toOgLocale,
+	type PublicLocale,
+} from "@shared/api/v1/constants/publicLocales";
 
 /**
  * SEO用の公開ロケール定義
@@ -10,20 +18,15 @@ import type { SeoData } from "@/contexts/SeoContext";
  *
  * URL 設計: https://app.nanitabeyo.net/{locale}/...
  * 例: /ja-JP/posts/123, /en-US/posts/123
+ *
+ * ⚠️ #721 ロケール一覧そのものは `shared/api/v1/constants/publicLocales.ts` へ移した。
+ * 共有リンク（`/s/:token`）の `preview_locale` を **API 側で validation する**必要があり、
+ * api は app-expo を import できないため。ここは app 側の import パスを変えないための
+ * 再 export と、app 固有の SEO 文言だけを持つ。
+ * **一覧をこのファイルへ複製し直さないこと**（#281 で sitemap 生成器が 2 本になった事故と同型）。
  */
-
-/**
- * 公開されているロケール一覧（URL prefix として使用される形式）
- */
-export const PUBLIC_LOCALES = ["ja-JP", "en-US", "fr-FR", "zh-CN", "ar-SA", "ko-KR", "es-ES", "hi-IN"] as const;
-
-/**
- * デフォルトの公開ロケール
- * x-default hreflang や、ロケール不明時のフォールバックに使用
- */
-export const DEFAULT_PUBLIC_LOCALE = "ja-JP";
-
-export type PublicLocale = (typeof PUBLIC_LOCALES)[number];
+export { PUBLIC_LOCALES, DEFAULT_PUBLIC_LOCALE, isPublicLocale, resolvePublicLocale, toOgLocale };
+export type { PublicLocale };
 
 const WEB_BASE_URL = Env.WEB_BASE_URL;
 
@@ -105,13 +108,84 @@ export const DEFAULT_SEO_BY_PUBLIC_LOCALE: Record<PublicLocale, SeoData> = {
 	},
 };
 
-export function resolvePublicLocale(locale?: string): PublicLocale {
-	if (!locale) return DEFAULT_PUBLIC_LOCALE;
-	const normalized = locale.trim();
-	if (PUBLIC_LOCALES.includes(normalized as PublicLocale)) {
-		return normalized as PublicLocale;
-	}
-	const lang = normalized.split("-")[0];
-	const matched = PUBLIC_LOCALES.find((l) => l.startsWith(lang));
-	return matched ?? DEFAULT_PUBLIC_LOCALE;
+/**
+ * 🗳 友達投票の共有 URL 用の静的 SEO。
+ *
+ * ## なぜ «別立て» が要るのか（実機フィードバック）
+ * 投票の共有 URL は `[shareToken]` が動的セグメントなので prerender で内容を差し込めず、
+ * `DEFAULT_SEO_BY_PUBLIC_LOCALE`（アプリ全体の紹介文）がそのまま OGP になっていた。
+ * その結果 LINE に貼っても **「なに食べよ ~食べたい料理が見つかる～」というアプリ紹介**が出て、
+ * 受け取った側は «友達投票への招待» だと分からなかった。
+ *
+ * token ごとの動的 OGP（誰が・どの料理で、まで出す）は `/s/:token` の Cloud Run SSR が担当する。
+ * こちらは **静的で良い**というオーナー判断のもと、「投票への招待」だと分かる文言までを持たせる。
+ *
+ * ⚠️ `image` は敢えて持たない。ロケール既定の OG 画像を使い回す。
+ * 投票専用の画像を足すなら `app-expo/public/og/` に 8 枚（1200x630）追加してからにすること。
+ * ここだけ差し替えて画像が 404 になると、**OGP ごと表示されなくなる**（SNS は 1 枚でも欠けると
+ * カード自体を出さないことがある）。
+ */
+export const VOTE_SEO_BY_PUBLIC_LOCALE: Record<PublicLocale, Pick<SeoData, "title" | "description">> = {
+	"ja-JP": {
+		title: "友達と投票して、今日食べる料理を決めよう",
+		description: "候補の料理を見ながらタップで投票するだけ。みんなの投票が集まると、全員の気分に合うお店が決まります。",
+	},
+	"en-US": {
+		title: "Vote with friends and decide what to eat",
+		description:
+			"Just tap to vote on the dishes you like. Once everyone has voted, you get the restaurant that fits the whole group.",
+	},
+	"fr-FR": {
+		title: "Votez entre amis pour choisir quoi manger",
+		description:
+			"Votez d’un simple geste pour les plats qui vous tentent. Une fois tous les votes réunis, le restaurant qui convient à tout le groupe apparaît.",
+	},
+	"zh-CN": {
+		title: "和朋友一起投票，决定今天吃什么",
+		description: "看着菜品照片点一下就能投票。大家投完之后，就会得出适合所有人的餐厅。",
+	},
+	"ar-SA": {
+		title: "صوّت مع أصدقائك لتحديد ما ستأكلونه",
+		description: "صوّت بلمسة واحدة للأطباق التي تعجبك. وبعد تصويت الجميع، يظهر لكم المطعم الذي يناسب المجموعة كلها.",
+	},
+	"ko-KR": {
+		title: "친구들과 투표해서 오늘 먹을 요리를 정해요",
+		description: "마음에 드는 요리를 탭해서 투표하면 끝. 모두의 투표가 모이면 다 같이 갈 만한 가게가 정해집니다.",
+	},
+	"es-ES": {
+		title: "Votad entre amigos y decidid qué comer",
+		description:
+			"Vota con un toque los platos que te apetecen. Cuando todos hayan votado, aparecerá el restaurante que encaja con todo el grupo.",
+	},
+	"hi-IN": {
+		title: "दोस्तों के साथ वोट करके तय करें कि आज क्या खाना है",
+		description:
+			"जो व्यंजन पसंद हों उन्हें टैप करके वोट करें। सबके वोट आने के बाद पूरे ग्रुप के लिए सही रेस्टोरेंट मिल जाएगा।",
+	},
+};
+
+/**
+ * 友達投票の共有 URL か（ロケールの有無に依存しない）。
+ *
+ * 例: `/ja-JP/search/dish-category-group-votes/<token>/vote`
+ */
+const VOTE_PATH_PATTERN = /\/search\/dish-category-group-votes(\/|$)/;
+
+/**
+ * パスに応じた «静的な» SEO 既定値を返す。
+ *
+ * ## ⚠️ これはレンダー時に決まらなければ意味がない
+ * `useSeo` は `useFocusEffect` の中で push するため、**expo export の prerender では一切走らない**。
+ * つまり画面側で `useSeo` を書いても、SNS のクローラが読む初回 HTML には反映されない。
+ * ここを `[locale]/_layout.tsx` の `seoDefaults`（レンダー時に評価される useMemo）から呼ぶことで、
+ * prerender 済み HTML に載る。
+ *
+ * 実行時の上書き（`useSeo`）は従来どおりこの既定値の上に乗る。
+ */
+export function resolveStaticSeoForPath(locale: PublicLocale, pathname: string): SeoData {
+	const base = DEFAULT_SEO_BY_PUBLIC_LOCALE[locale];
+	if (!VOTE_PATH_PATTERN.test(pathname)) return base;
+
+	const vote = VOTE_SEO_BY_PUBLIC_LOCALE[locale];
+	return { ...base, title: vote.title, description: vote.description, imageAlt: vote.title };
 }

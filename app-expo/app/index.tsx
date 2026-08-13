@@ -7,14 +7,14 @@ import * as SplashScreen from "expo-splash-screen";
 import { Env } from "@/constants/Env";
 import { getResolvedLocale } from "@/lib/i18n";
 import { consumeLogoutRedirect } from "@/lib/logoutRedirect";
+import { carriesOAuthResult } from "@/lib/oauthResultUrl";
+// #721 ディープリンクの行き先判定は純関数へ切り出した（分岐をテストで固定するため）
+import { toInAppPath } from "@/lib/deepLinkTarget";
 import * as WebBrowser from "expo-web-browser";
 WebBrowser.maybeCompleteAuthSession();
 
 // 初回表示中はスプラッシュ画面を保持（明示的に後で解除するまで表示）
 SplashScreen.preventAutoHideAsync();
-
-/** BCP 47 言語タグの形式か（app/[locale]/_layout.tsx と同じ判定） */
-const isValidBcp47Tag = (tag: string): boolean => /^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*$/.test(tag);
 
 /**
  * #1124 起動時の URL を «ディープリンクの行き先» として採用済みか。
@@ -24,24 +24,6 @@ const isValidBcp47Tag = (tag: string): boolean => /^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2
  * アプリのプロセス寿命で 1 回だけ採用する（モジュールスコープに置くのはそのため）。
  */
 let hasConsumedInitialUrl = false;
-
-/**
- * ディープリンクのパスを「アプリ内ルート」として解釈できるなら、その絶対パスを返す。
- *
- * #1027 先頭セグメントがロケールであることを条件にする。これによりロケール配下の画面
- *（`ja-JP/profile` 等）だけを行き先として採用し、OAuth コールバックのような
- * ルーティング対象外の URL でリダイレクト先を上書きしてしまう事故を防ぐ。
- *
- * @param path `Linking.parse(url).path`（先頭スラッシュ無し / 無ければ null）
- * @returns 採用できる場合は "/ja-JP/profile" 形式 / それ以外は null
- */
-const toInAppPath = (path: string | null | undefined): string | null => {
-	const normalized = path?.replace(/^\/+/, "") ?? "";
-	if (!normalized) return null;
-	const [firstSegment] = normalized.split("/");
-	if (!firstSegment || !isValidBcp47Tag(firstSegment)) return null;
-	return `/${normalized}`;
-};
 
 /**
  * 🚀 アプリ初回起動時、デバイスのロケールに応じて自動的にリダイレクトする。
@@ -109,6 +91,13 @@ export default function App() {
 		Linking.getInitialURL()
 			.then((url) => {
 				if (cancelled) return;
+				// #1135 認証結果（code / error / access_token）を運んでいる URL は、行き先として採用しない。
+				// `Linking.parse().path` はクエリを落とすため、採用すると `code` ごと捨てて遷移することになる。
+				// 判定は lib/oauthResultUrl.ts の共有ロジック（callback 画面と同じもの）を使う。
+				if (carriesOAuthResult(url)) {
+					setInitialPath(null);
+					return;
+				}
 				setInitialPath(url ? (Linking.parse(url).path ?? null) : null);
 			})
 			.catch(() => {

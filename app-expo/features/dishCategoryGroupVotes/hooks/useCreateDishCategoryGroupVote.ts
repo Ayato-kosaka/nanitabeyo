@@ -6,7 +6,7 @@
  * 画面遷移や snackbar は呼び出し側に返す。API 呼び出しと request payload の
  * 形を固定することで、topics 以外からも同じ作成ロジックを再利用できる。
  */
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { CreateDishCategoryGroupVoteDto } from "@shared/api/v1/dto";
 import type { CreateDishCategoryGroupVoteResponse } from "@shared/api/v1/res";
 import type { SearchParams, Topic } from "@/types/search";
@@ -21,11 +21,36 @@ type CreateGroupVoteInput = {
 
 export function useCreateDishCategoryGroupVote() {
 	const [isCreating, setIsCreating] = useState(false);
+	/**
+	 * #1205 【修正】作成中の多重実行を防ぐ同期ガード。
+	 *
+	 * 表示用の `isCreating`(useState) は多重実行の判定には使えない。React が再レンダリングを
+	 * コミットする前に 2 発目の押下が処理されると、両方が `isCreating === false` を読んで
+	 * 通過しうるためで、通過すると `POST v1/dish-category-group-votes` が二重に走り、
+	 * **別々の shareToken を持つ投票セッションが 2 件作られる**（API 側に冪等化は無い）。
+	 *
+	 * ref への代入は同期的に確定するため、同一 JS タスク内の連続呼び出しでもレースしない。
+	 * search/index.tsx の `isSearchingRef`、map/components/ReviewForm.tsx の `isSubmittingRef` と同じ方式。
+	 *
+	 * 解除は下の try..finally で行うため、成功・失敗のどちらでも必ず落ちる
+	 * （try 側へ散らすと例外経路で解除漏れが起き、一度失敗すると二度と作成できなくなる）。
+	 */
+	const isCreatingRef = useRef(false);
 	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
 
+	/**
+	 * 投票セッションを作成する。
+	 *
+	 * @returns 作成できたレスポンス。**作成中の 2 発目として抑止された場合は `null`**。
+	 *          呼び出し側は `null` のとき画面遷移を行わないこと（遷移すると結果画面が二重に開く）。
+	 */
 	const createGroupVote = useCallback(
-		async ({ searchParams, topics }: CreateGroupVoteInput) => {
+		async ({ searchParams, topics }: CreateGroupVoteInput): Promise<CreateDishCategoryGroupVoteResponse | null> => {
+			// #1205 作成中の 2 発目は「失敗」ではないので throw せず null で返す。
+			// throw にすると呼び出し側のエラー表示（Snackbar）が連打のたびに出てしまう。
+			if (isCreatingRef.current) return null;
+
 			const visibleTopics = topics.filter((topic) => !topic.isHidden);
 			if (visibleTopics.length === 0) {
 				throw new Error("No visible topics to create a group vote");
@@ -49,6 +74,8 @@ export function useCreateDishCategoryGroupVote() {
 				})),
 			};
 
+			// #1205 ここより後に API 呼び出しを書くこと（ガードより手前へ出すと連打で二重に走る）。
+			isCreatingRef.current = true;
 			setIsCreating(true);
 			try {
 				logFrontendEvent({
@@ -86,6 +113,8 @@ export function useCreateDishCategoryGroupVote() {
 				});
 				throw error;
 			} finally {
+				// #1205 失敗時も必ず解除する。ここを try 側へ移すと「1 回失敗したら二度と押せない」になる。
+				isCreatingRef.current = false;
 				setIsCreating(false);
 			}
 		},

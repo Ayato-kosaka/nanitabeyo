@@ -3,6 +3,7 @@ import type { CreateFrontendLogDto } from "@shared/api/v1/dto";
 import { Env } from "@/constants/Env";
 import { supabase } from "./supabase";
 import { fetchWithAuth } from "./fetchWithAuth";
+import { splitLogBatchesByByteSize } from "./logBatchSize";
 
 // #1012 【設計】フロントログ送信のキュー化・バッチ送信(クライアント側)
 // useLogger.logFrontendEvent はここへ enqueue するだけにし、実際の送信は
@@ -42,6 +43,12 @@ const stats = {
 	droppedByTransient: 0,
 	/** 2xx だがサーバが要素単位で棄却した件数（#1079 部分受理） */
 	partiallyRejected: 0,
+	/**
+	 * #1194 1 件だけでボディ上限を超えており、送信せずに捨てた件数。
+	 * 送れば必ず 413 になり、内容が同じである限り何度でも失敗するため送らない。
+	 * ここが増えていたら「ログの payload が大きすぎる」＝ 呼び出し側を直すべきサイン。
+	 */
+	droppedByOversize: 0,
 	/** 直近の失敗の要約。ログ本文は含めない */
 	lastFailure: undefined as { status: number | null; kind: string; count: number; at: string } | undefined,
 };
@@ -167,7 +174,19 @@ export const flushLogQueue = (): void => {
 
 	const logs = queue;
 	queue = [];
-	void sendBatch(logs);
+
+	// #1194 件数（20件）で区切るだけではボディ上限を超えうる。
+	// 超えると body-parser が Nest へ到達する前に落ちて 500 になり、バッチごと消える
+	// （実機で `kind=transient status=500 count=17` として観測）。送る前に必ずバイト数で割る
+	const { batches, oversized } = splitLogBatchesByByteSize(logs);
+
+	if (oversized.length > 0) {
+		stats.droppedByOversize += oversized.length;
+		// ⚠️ ログ本文（payload / path_name）は出さない。件数だけで十分に気付ける
+		console.warn(`⚠️ frontend log dropped: kind=oversize count=${oversized.length}`);
+	}
+
+	for (const batch of batches) void sendBatch(batch);
 };
 
 /**

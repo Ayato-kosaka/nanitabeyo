@@ -64,7 +64,9 @@ export function SaveTopicTab({
 						imageUrl: wikimediaThumbFromOriginal(topic.image_url, cardWidth),
 						title: topicLabel,
 					}}
-					onPress={() => onItemPress?.(topic, index)}>
+					onPress={() => onItemPress?.(topic, index)}
+					// #1133 E2E から地点検索モーダルを開くための入口。見た目には影響しない
+					testID={`save-topic-tab-item-${index}`}>
 					<View style={styles.topicCardOverlay}>
 						<Text style={styles.topicName}>{topicLabel}</Text>
 					</View>
