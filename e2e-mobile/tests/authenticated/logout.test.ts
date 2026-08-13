@@ -5,6 +5,7 @@ import {
 	launchAppWithSession,
 	visibleNow,
 	waitUntil,
+	waitUntilExists,
 	waitUntilGone,
 	waitUntilVisible,
 	type E2ESession,
@@ -185,8 +186,15 @@ describeAuthenticated("ログアウト（ログイン済みユーザー）", () 
 		// ── [症状3] 純クライアント操作も受け付け続けている ────────────────
 		// API を一切伴わない操作（詳細条件の展開 → 距離スライダーの描画）まで通ることで、
 		// 「API は返るがレンダリングが止まっている」種類のフリーズも排除する。
+		//
+		// ⚠️ スライダーは **可視ではなく存在**で見る。詳細条件を開いた直後の距離セクションは
+		// 画面下部（iOS では画面下端に固定された検索 FAB / ホームインジケータの領域）へ来るため、
+		// `toBeVisible`（既定 75% 以上の露出が必要）はスクロール位置に左右されて落ちる。
+		// tests/search/search-form.test.ts が同じ理由で先に `waitUntilExists` へ移しており
+		//（run 30470033327 の iOS で実測）、こちらだけ可視判定のまま残っていた（run 31677355367）。
+		// ここで検証したいのは「タップに反応して再描画された」ことなので、存在で過不足ない。
 		await searchScreen.openAdvancedFilters();
-		await waitUntilVisible(searchScreen.distanceSlider);
+		await waitUntilExists(searchScreen.distanceSlider);
 
 		// 使い捨てセッションを発行できていたことの明示（beforeAll が fail-loud なので通常は自明だが、
 		// 「共有セッションで走ってしまった」状態を後から読めるようにしておく）
