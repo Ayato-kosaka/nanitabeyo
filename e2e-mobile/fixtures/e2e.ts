@@ -1,5 +1,6 @@
 import { by, device, element, expect as detoxExpect, waitFor } from "detox";
 
+import { ensureFreshSession } from "../utils/freshSession";
 import {
 	E2E_LOCALE,
 	getAndroidSystemLocale,
@@ -169,7 +170,11 @@ export async function launchAppWithSession(
 		tutorialSeen = true,
 	} = opts;
 
-	const session = explicitSession ?? readSessionFromEnv(as);
+	// ⚠️ 生の readSessionFromEnv ではなく **鮮度保証つき**で読むこと。
+	// iOS の run は 90 分を超え、run 冒頭に確立した access token（寿命 1 時間）が
+	// 途中で切れる。期限切れのペアを注入するとアプリ側の setSession がローテーションを
+	// 起こし、以降の起動が全滅する（utils/freshSession.ts に経緯）
+	const session = explicitSession ?? (await ensureFreshSession(as));
 	if (!session) {
 		// #1030 【設計】B-1: 「注入できなかったので黙って通常起動へフォールバック」は絶対にしない。
 		// 匿名ユーザーのままログイン済みテストが走り、テストは緑なのに検証内容だけが嘘になるため

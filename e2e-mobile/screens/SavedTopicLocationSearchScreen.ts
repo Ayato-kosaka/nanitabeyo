@@ -86,15 +86,40 @@ export class SavedTopicLocationSearchScreen {
 	}
 
 	/**
+	 * 保存した料理カテゴリのタブを **実 UI で** 開く。
+	 *
+	 * ## ⚠️ `?tab=saved-topics` のディープリンクに頼らないこと
+	 * 当初はマイページへ `?tab=saved-topics` 付きで直リンクしていたが、
+	 * **iOS ではこれが効かず先頭タブ（レビュー）のまま着地する**（失敗時スクリーンショットで確認）。
+	 * `useGlobalSearchParams` の併用でも直らず、原因は未特定のまま残っている。
+	 *
+	 * この spec が守りたいのは «保存料理カテゴリからの地点検索» であって
+	 * ディープリンクではないので、入口は実 UI の導線（タブバー）を辿る。
+	 * タブバーは「保存」グループを押すと `saved-posts` に入り、
+	 * その下にサブタブ（投稿 / 料理カテゴリ）が出る構造なので 2 段で押す。
+	 *
+	 * ⚠️ `?tab=` 自体の不具合はこの spec の対象外。別途追う必要がある
+	 * （ユーザ導線としては「料理カテゴリを保存 → スナックバーの『見る』」が該当する）。
+	 */
+	async openSavedTopicsTab(): Promise<void> {
+		await tapWhenVisible(by.id("profile-tab-group-saved"));
+		await tapWhenVisible(by.id("profile-subtab-saved-topics"));
+	}
+
+	/**
 	 * 先頭の保存料理カテゴリのカードを押して、地点検索モーダルを開く。
 	 *
 	 * @失敗時 保存が 0 件のときは **前提条件の不足**として日本語で名指しで落とす。
 	 *   モーダルの入口はこのカードしかないため、ここで素通しにすると
 	 *   「テストは緑だがモーダルを一度も開いていない」という嘘の緑になる（fail-loud の方針）。
 	 *   e2e-web は `stubSavedDishCategories` で一覧 API を固定して同じ問題を回避しているが、
-	 *   Detox にネットワークをスタブする手段は無いため、テストユーザーのデータに依存する。
+	 *   Detox にネットワークをスタブする手段は無いため、spec の `beforeAll` が
+	 *   `utils/savedDishCategory.ts` で **前提そのものを作ってから**ここへ来る。
+	 *   つまりここで落ちたら「種まきはできたのに一覧に出ていない」＝ 保存導線側の異常であり、
+	 *   人手でデータを足して回避してはいけない。
 	 */
 	async openLocationSearchFromFirstTopic(): Promise<void> {
+		await this.openSavedTopicsTab();
 		await this.expectTabLoaded();
 
 		if (!(await existsNow(this.topicCard(0)))) {
@@ -102,7 +127,9 @@ export class SavedTopicLocationSearchScreen {
 				[
 					"保存した料理カテゴリが 0 件のため、地点検索モーダルを開けませんでした（save-topic-tab-item-0 が存在しない）。",
 					"  このモーダルの入口は保存料理カテゴリのカードだけです。",
-					"  TEST_USER_* のテストユーザーで料理カテゴリを 1 件以上保存しておいてください。",
+					"  spec の beforeAll（utils/savedDishCategory.ts）が reactions へ save を 1 件入れているはずなので、",
+					"  ここで 0 件なら「保存はあるのに一覧に出ない」側の異常です。",
+					"  GET /v1/users/me/saved-dish-categories が dish_categories を join できているか確認してください。",
 				].join("\n"),
 			);
 		}

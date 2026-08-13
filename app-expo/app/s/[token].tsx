@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
-import { useAPICall } from "@/hooks/useAPICall";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { useLocale } from "@/hooks/useLocale";
 import { resolvePublicLocale } from "@/constants/seoLocales";
 import { toShareLinkHref } from "@/lib/shareLinkRoute";
@@ -28,11 +28,24 @@ import type { ResolveShareLinkResponse } from "@shared/api/v1/res";
  * revoked / 期限切れ / 未知の target / 通信失敗のいずれでも、**この画面に留まらない**。
  * 共有リンクは «アプリを初めて触る人» が踏む導線なので、
  * 白い画面で止まるのが一番損失が大きい。
+ *
+ * ## ⚠️ `useAPICall` を使ってはいけない（Detox が捕まえた実バグ）
+ * この画面は `app/[locale]/` の **外**にあり、`AuthProvider` / `DialogProvider` は
+ * `app/[locale]/_layout.tsx` の中にある。`useAPICall` は内部で `useAuth()` と
+ * `useDialog()` を呼ぶため、ここで使うと **レンダー時に例外**になる。
+ *
+ * 症状は「共有リンクでアプリに着地した瞬間に落ちる」で、#721 の核心そのもの。
+ * dev では App Links が本番ドメインにしか紐付いておらず **実機で踏めない**経路なので、
+ * Detox（`tests/smoke/share-link.test.ts`）でしか検出できない。
+ *
+ * `GET /v1/share-links/:token/resolve` は `AuthAnonGuard` を持たない **公開エンドポイント**
+ * なので、認証は不要。`fetchWithAuth` を素の関数として直接呼ぶ
+ * （`x-app-version` を付ける必要があるので素の `fetch` にはしない。
+ *  グローバルの `MaintenanceGuard` がこのヘッダを見る）。
  */
 export default function ShareLinkResolverScreen() {
 	const { token } = useLocalSearchParams<{ token?: string | string[] }>();
 	const router = useRouter();
-	const { callBackend } = useAPICall();
 	const { locale } = useLocale();
 	// #1027 と同じ理由でナビゲータの準備を待つ必要はないが、
 	// resolve が二重に走らないよう「1 回だけ実行した」ことは持つ
@@ -51,10 +64,15 @@ export default function ShareLinkResolverScreen() {
 			if (!cancelled) router.replace(`/${fallbackLocale}`);
 		};
 
-		callBackend<Record<string, never>, ResolveShareLinkResponse>(
-			`v1/share-links/${encodeURIComponent(rawToken)}/resolve`,
-			{ method: "GET", requestPayload: {} },
-		)
+		// 認証不要の公開エンドポイント。accessToken は空文字で良い
+		// （このルートに AuthAnonGuard は付いていないため Authorization は参照されない）
+		fetchWithAuth(`v1/share-links/${encodeURIComponent(rawToken)}/resolve`, { method: "GET", requestPayload: {} }, "")
+			.then(async ({ response }) => {
+				if (!response.ok) throw new Error(`resolve failed: ${response.status}`);
+				const body = (await response.json()) as { data?: ResolveShareLinkResponse };
+				if (!body?.data) throw new Error("resolve returned no data");
+				return body.data;
+			})
 			.then((resolved) => {
 				if (cancelled) return;
 				// 遷移先の組み立てはアプリ側の allowlist で行う。
@@ -72,7 +90,7 @@ export default function ShareLinkResolverScreen() {
 		return () => {
 			cancelled = true;
 		};
-	}, [token, callBackend, router, locale, fallbackLocale]);
+	}, [token, router, locale, fallbackLocale]);
 
 	// resolve は 1 往復で終わるので、専用のエラー画面は作らない（失敗時はホームへ落とす）
 	return (

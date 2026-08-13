@@ -22,6 +22,11 @@ on:
         description: "オーケストレーターが照合済みのテスト対象commit SHA"
         required: true
         type: string
+      allow_failed_run:
+        description: "失敗した元runからも収集する（原因調査用。既定は success のみ）"
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -38,6 +43,7 @@ jobs:
       SOURCE_RUN_ID: ${{ inputs.run_id }}
       ARTIFACT_NAME: ${{ inputs.artifact_name }}
       SOURCE_SHA: ${{ inputs.source_sha }}
+      ALLOW_FAILED_RUN: ${{ inputs.allow_failed_run }}
       # 元runが信頼できるWorkflowであることを .path で判定する（.name は run-name のため使えない）
       # - claude-worker.yml: テストエビデンス収集の本来の入力
       # - e2e-web-test.yml    : 手動実行で収集したUIカタログのスクリーンショット（Web）
@@ -104,9 +110,26 @@ jobs:
             exit 1
           fi
 
-          if [[ "$STATUS" != "completed" || "$CONCLUSION" != "success" ]]; then
-            echo "::error::元runが成功完了していません（status=$STATUS, conclusion=$CONCLUSION）。"
+          # 【設計】既定では success の元runだけを通す。
+          # 「緑の run から採ったエビデンス」であることが、このワークフローの出力の意味そのものだから。
+          #
+          # ただし **赤い run の原因調査**にはスクリーンショットが要る（Artifact の直リンクは
+          # 署名付き blob storage で、環境によっては到達できない）。そこで allow_failed_run で
+          # 明示的にオプトインしたときだけ、完了済みの失敗runも許す。
+          # ⚠️ このとき出力は «エビデンス» ではなく «調査用» である。ログに警告を残し、
+          # PR へ貼るときは必ず「失敗runのスクリーンショット」と明記すること。
+          if [[ "$STATUS" != "completed" ]]; then
+            echo "::error::元runが完了していません（status=$STATUS）。"
             exit 1
+          fi
+
+          if [[ "$CONCLUSION" != "success" ]]; then
+            if [[ "$ALLOW_FAILED_RUN" != "true" ]]; then
+              echo "::error::元runが成功完了していません（status=$STATUS, conclusion=$CONCLUSION）。"
+              echo "::error::原因調査で失敗runから収集したい場合は allow_failed_run=true を指定してください。"
+              exit 1
+            fi
+            echo "::warning::元runは $CONCLUSION です。この出力は «合格エビデンス» ではなく原因調査用です。"
           fi
 
           echo "sha=${SOURCE_SHA,,}" >> "$GITHUB_OUTPUT"

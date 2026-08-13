@@ -307,7 +307,12 @@ export default function SettingsScreen() {
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
 			<SafeAreaView style={styles.safeArea} edges={[]}>
 				<ScreenHeader title={i18n.t("Settings.title")} onPressBack={handleBack} />
-				<ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+				{/* #1131 E2E から「ログアウト行まで送る」ためのスクロール対象。見た目には影響しない。
+				    ログアウト行は最下段のカードにあり、端末によっては初期表示で画面外にいる */}
+				<ScrollView
+					style={styles.scrollView}
+					contentContainerStyle={styles.scrollContent}
+					testID="settings-scroll">
 					{/* Card 1: フィードバック・レビュー・ブロック済みトピック */}
 					<Card style={styles.card}>
 						<SettingsMenuItem
