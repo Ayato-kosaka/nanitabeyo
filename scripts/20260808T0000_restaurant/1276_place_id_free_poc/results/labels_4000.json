@@ -1,0 +1,149 @@
+{
+  "labelled_seeds": 2541,
+  "recall_ceiling": 0.999213,
+  "rules": {
+    "layered_strict_wide": {
+      "matched": 2493,
+      "match_rate": 0.98111,
+      "correct": 2489,
+      "wrong": 4,
+      "precision": 0.998396,
+      "precision_95_lower": 0.995882,
+      "layers": {
+        "layer1_intersection_in_box": {
+          "matched": 2460,
+          "correct": 2457,
+          "wrong": 3,
+          "precision": 0.99878,
+          "precision_95_lower": 0.99642
+        },
+        "layer2_top1_in_box": {
+          "matched": 21,
+          "correct": 20,
+          "wrong": 1,
+          "precision": 0.952381,
+          "precision_95_lower": 0.773306
+        },
+        "wide1_strict_in_wide_box": {
+          "matched": 12,
+          "correct": 12,
+          "wrong": 0,
+          "precision": 1.0,
+          "precision_95_lower": 0.757506
+        }
+      },
+      "mistakes": [
+        {
+          "overture_id": "283c1114-17ff-4db6-a88c-cd95f941af26",
+          "name": "鮨かんどころ",
+          "layer": "layer1_intersection_in_box",
+          "chosen": "ChIJOdlqqcfAQzUROIfP5uqdhkE",
+          "truth": "ChIJZTgUqcfAQzURRzb2dKFNJmE"
+        },
+        {
+          "overture_id": "a2e78c0f-353f-4d87-9150-06127338bdfb",
+          "name": "阿づ満庵",
+          "layer": "layer2_top1_in_box",
+          "chosen": "ChIJ4zqTlcqEImARdXCC8syi4m8",
+          "truth": "ChIJqbeghsqEImARZ_9DmW4aKPg"
+        },
+        {
+          "overture_id": "d1124fd0-9886-4e1f-8542-396aadf9821e",
+          "name": "そば辰",
+          "layer": "layer1_intersection_in_box",
+          "chosen": "ChIJRwqsIVfyAGARBeqL3cyVswo",
+          "truth": "ChIJ7aorIFfyAGARLRJhIfsyy_E"
+        },
+        {
+          "overture_id": "d23ffe30-2b34-4548-a509-66f0183c3d18",
+          "name": "Little Napoli NOOV",
+          "layer": "layer1_intersection_in_box",
+          "chosen": "ChIJq8uq7GOhA2ARCjZkxsoE5GI",
+          "truth": "ChIJl6ARFsygA2AR35GCnlPdu1w"
+        }
+      ]
+    },
+    "layered_v2": {
+      "matched": 2512,
+      "match_rate": 0.988587,
+      "correct": 2507,
+      "wrong": 5,
+      "precision": 0.99801,
+      "precision_95_lower": 0.995349,
+      "layers": {
+        "layer1_intersection_in_box": {
+          "matched": 2460,
+          "correct": 2457,
+          "wrong": 3,
+          "precision": 0.99878,
+          "precision_95_lower": 0.99642
+        },
+        "layer2_top1_in_box": {
+          "matched": 21,
+          "correct": 20,
+          "wrong": 1,
+          "precision": 0.952381,
+          "precision_95_lower": 0.773306
+        },
+        "v2_b_in_box": {
+          "matched": 14,
+          "correct": 14,
+          "wrong": 0,
+          "precision": 1.0,
+          "precision_95_lower": 0.784689
+        },
+        "v2_common_in_box": {
+          "matched": 4,
+          "correct": 3,
+          "wrong": 1,
+          "precision": 0.75,
+          "precision_95_lower": 0.300642
+        },
+        "v2_top1_in_wide_box": {
+          "matched": 13,
+          "correct": 13,
+          "wrong": 0,
+          "precision": 1.0,
+          "precision_95_lower": 0.771905
+        }
+      },
+      "mistakes": [
+        {
+          "overture_id": "283c1114-17ff-4db6-a88c-cd95f941af26",
+          "name": "鮨かんどころ",
+          "layer": "layer1_intersection_in_box",
+          "chosen": "ChIJOdlqqcfAQzUROIfP5uqdhkE",
+          "truth": "ChIJZTgUqcfAQzURRzb2dKFNJmE"
+        },
+        {
+          "overture_id": "858a0750-ef07-472d-85f5-04005c07acef",
+          "name": "ロペ",
+          "layer": "v2_common_in_box",
+          "chosen": "ChIJpep_ck8kImARXRJawnPUii4",
+          "truth": "ChIJubVmcU8kImARVs_6adA5Idg"
+        },
+        {
+          "overture_id": "a2e78c0f-353f-4d87-9150-06127338bdfb",
+          "name": "阿づ満庵",
+          "layer": "layer2_top1_in_box",
+          "chosen": "ChIJ4zqTlcqEImARdXCC8syi4m8",
+          "truth": "ChIJqbeghsqEImARZ_9DmW4aKPg"
+        },
+        {
+          "overture_id": "d1124fd0-9886-4e1f-8542-396aadf9821e",
+          "name": "そば辰",
+          "layer": "layer1_intersection_in_box",
+          "chosen": "ChIJRwqsIVfyAGARBeqL3cyVswo",
+          "truth": "ChIJ7aorIFfyAGARLRJhIfsyy_E"
+        },
+        {
+          "overture_id": "d23ffe30-2b34-4548-a509-66f0183c3d18",
+          "name": "Little Napoli NOOV",
+          "layer": "layer1_intersection_in_box",
+          "chosen": "ChIJq8uq7GOhA2ARCjZkxsoE5GI",
+          "truth": "ChIJl6ARFsygA2AR35GCnlPdu1w"
+        }
+      ]
+    }
+  }
+}

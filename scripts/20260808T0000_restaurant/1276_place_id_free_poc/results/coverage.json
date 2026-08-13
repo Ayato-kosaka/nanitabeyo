@@ -1,0 +1,19 @@
+{
+  "restaurants": {
+    "rows": 103440,
+    "with_google_place_id": 103440,
+    "without_google_place_id": 0,
+    "duplicate_place_ids": 0,
+    "distinct_place_ids": 103440
+  },
+  "overture_seeds": 789612,
+  "radius_m": 100.0,
+  "min_name_similarity": 0.78,
+  "verdicts": {
+    "nearby_only": 55890,
+    "covered": 43342,
+    "absent": 4208
+  },
+  "coverage_rate": 0.419006,
+  "coverage_rate_including_nearby": 0.959319
+}
