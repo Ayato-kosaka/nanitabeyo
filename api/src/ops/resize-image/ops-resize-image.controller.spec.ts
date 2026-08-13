@@ -22,6 +22,6 @@ describe('OpsResizeImageController', () => {
         PERMISSIONS_KEY,
         OpsResizeImageController.prototype.reEnqueue,
       ),
-    ).toEqual(['ops.resize-image.re-enqueue']);
+    ).toEqual(['ops.image-resize.re-enqueue']);
   });
 });

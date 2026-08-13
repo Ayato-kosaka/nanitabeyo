@@ -134,12 +134,12 @@ Cache-Control: public, max-age=31536000, immutable
 Cloud Tasks は **2xx を成功、それ以外をリトライ対象**として扱う。
 リトライしても決して成功しない失敗は 204 で終端し、無駄な Cloud Run 起動を止める。
 
-| 失敗                                            | 例外                                               | HTTP | Cloud Tasks    |
-| ----------------------------------------------- | -------------------------------------------------- | ---- | -------------- |
-| 原本が **404 / 410**                            | `PermanentImageError` / `ORIGINAL_IMAGE_NOT_FOUND` | 204  | リトライしない |
-| 再エンコードしても読めない画像                  | `PermanentImageError` / `RESIZE_PERMANENT_FAILURE` | 204  | リトライしない |
+| 失敗                                              | 例外                                               | HTTP | Cloud Tasks    |
+| ------------------------------------------------- | -------------------------------------------------- | ---- | -------------- |
+| 原本が **404 / 410**                              | `PermanentImageError` / `ORIGINAL_IMAGE_NOT_FOUND` | 204  | リトライしない |
+| 再エンコードしても読めない画像                    | `PermanentImageError` / `RESIZE_PERMANENT_FAILURE` | 204  | リトライしない |
 | 原本取得がその他の 4xx / 5xx / ネットワークエラー | `Error`                                            | 500  | リトライする   |
-| GCS アップロード失敗など                        | `Error`                                            | 500  | リトライする   |
+| GCS アップロード失敗など                          | `Error`                                            | 500  | リトライする   |
 
 ⚠️ **恒久扱いを「4xx 全般」へ広げないこと。** 署名付き URL は試行のたびに発行し直すため、
 403（署名の期限切れ・クロックスキュー）、408 / 425（一時的なタイムアウト）、429（レート制限）は
@@ -151,7 +151,7 @@ recordId を明示指定して行う。全件再実行はできない（1 リク
 
 #### 実行前に必要な権限付与（**デプロイしただけでは使えません**）
 
-この endpoint は `PermissionGuard` で `ops.resize-image.re-enqueue` を要求する。
+この endpoint は `PermissionGuard` で `ops.image-resize.re-enqueue` を要求する。
 このリポジトリでは `permissions` / `role_permissions` の**行をマイグレーションで管理していない**
 （既存の `tools.dish-categories.popular-with-media` も同様）ため、デプロイしただけでは
 **全ユーザーが `Missing permission` になる**。実行前に次を流すこと。
@@ -161,7 +161,7 @@ recordId を明示指定して行う。全件再実行はできない（1 リク
 INSERT INTO permissions (id, name, description)
 VALUES (
   gen_random_uuid(),
-  'ops.resize-image.re-enqueue',
+  'ops.image-resize.re-enqueue',
   '#514 恒久失敗としてキューから取り除いたリサイズジョブを再 enqueue する'
 )
 ON CONFLICT (name) DO NOTHING;
@@ -171,7 +171,7 @@ INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id
 FROM roles r, permissions p
 WHERE r.name = '<role-name>'
-  AND p.name = 'ops.resize-image.re-enqueue'
+  AND p.name = 'ops.image-resize.re-enqueue'
 ON CONFLICT DO NOTHING;
 ```
 
@@ -184,7 +184,7 @@ SELECT r.name AS role, p.name AS permission
 FROM role_permissions rp
 JOIN roles r ON r.id = rp.role_id
 JOIN permissions p ON p.id = rp.permission_id
-WHERE p.name = 'ops.resize-image.re-enqueue';
+WHERE p.name = 'ops.image-resize.re-enqueue';
 ```
 
 ### 壊れた JPEG への耐性 (#514)
