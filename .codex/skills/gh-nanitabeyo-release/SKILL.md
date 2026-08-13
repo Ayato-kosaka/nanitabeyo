@@ -132,7 +132,9 @@ API/clientの後方互換性から実行順を決める。破壊的DB変更はex
   --confirm-production CONFIRM_PRODUCTION
 ```
 
-新native buildと同一bundleしかない新runtimeへ、理由なく即時OTAを重複配信しない。build後に修正が入った場合だけ新runtimeへのOTA要否を判定する。
+新native buildと同一bundleしかない新runtimeへ、理由なく即時OTAを重複配信しない。
+
+**build/submit後にJS修正が入った場合は、新runtimeへのOTAで済ませず、native build/submitを流し直す。** ストアのbinaryに入るbundleは、そのbuildを作った時点のものである。OTAで補うと**新規インストール直後の初回起動だけ古いbundleで動く**ため、審査もインストール直後のユーザーも修正前の挙動を踏む。この運用ではストアへ出すbinaryが常に正しいmoduleを持つことを優先する。詳しくは[references/deployment-matrix.md](references/deployment-matrix.md) §2のOTA節を読む。
 
 ## 完了と引き継ぎ
 

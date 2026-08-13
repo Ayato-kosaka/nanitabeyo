@@ -55,7 +55,20 @@ Web route、`.web.*`、shared UI/API contract、Firebase config、sitemap、stat
 
 ### OTA
 
-新releaseのnative buildと同一JSを即時再配信する必要は通常ない。build後に修正が入った場合、新runtime OTAを検討する。旧runtimeは実配布済みnative buildとの互換性をreleaseごと、platformごとに判定する。
+新releaseのnative buildと同一JSを即時再配信する必要は通常ない。旧runtimeは実配布済みnative buildとの互換性をreleaseごと、platformごとに判定する。
+
+### build/submit後にJS修正が入った場合は、buildを流し直す
+
+**新runtimeへのOTAで代替しない。** ストアのbinaryが埋め込むbundleは、そのbuildを作った時点で確定する。OTAは既にインストール済みの端末を後から更新する仕組みなので、
+
+- ストア審査でレビュアーが触るのは**修正前のbundle**である。
+- リリース後に**新規インストールしたユーザーの初回起動も修正前のbundle**で動く。更新が当たるのは早くても次回起動である。
+
+ネイティブ入力に差が無くても、`app-expo/**`のJSが1行でも動いたなら`eas-build-submit-prod.yml`を流し直す。**新規インストール時に正しいmoduleが渡ることを優先する運用**であり、OTAで済ませる判断はしない。
+
+流し直した後は、新buildと同一bundleになるため**新runtimeへのOTAは`N/A`**へ戻る。Release Controlには「buildを流し直したのでN/A」と根拠を書き、旧runtimeへのOTAは新しいbuild SHAを起点に再監査する。
+
+`eas.json`のversionSourceがremoteなら、流し直しでbuild number / versionCodeが自動で1つ上がる。ストア側には前回のbinaryが残るので、**どちらを審査へ出すかを人間が選べる状態**になることも記録する。
 
 ## 3. 実行順
 
