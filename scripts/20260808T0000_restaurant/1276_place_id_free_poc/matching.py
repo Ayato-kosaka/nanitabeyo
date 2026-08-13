@@ -24,6 +24,7 @@ from seeds import Seed
 PROBE_A = "a"
 PROBE_B = "b"
 PROBE_C = "c"
+PROBE_C_TIGHT = "c_tight"
 PROBE_C_WIDE = "c_wide"
 PROBE_D = "d"
 PROBE_NEARBY = "nearby"
@@ -232,6 +233,13 @@ def rule_layered_v2(seed: Seed, probes: Mapping[str, SearchResult]) -> Decision:
     common_in_box = [place_id for place_id in common if place_id in c]
     if len(common_in_box) == 1:
         return _matched(common_in_box[0], probes, "v2_common_in_box")
+
+    # 新1b: 矩形を縮めて絞る。locationRestriction は矩形外を実際に切り落とすので、
+    # ±25m まで縮めて同名が1件しか残らなければ、その1件は座標のほぼ真上にある。
+    # A か B のどちらかがそれを挙げていれば、テキストと幾何の両方が支持している。
+    tight = _ids(probes, PROBE_C_TIGHT)
+    if len(tight) == 1 and (tight[0] in a or tight[0] in b):
+        return _matched(tight[0], probes, "v2_tight_box_unique")
 
     # 新2: A に正解が出てこない行がある（住所クエリBのほうが当たる場合）。
     # B と狭い矩形の共通集合が1件なら、座標とテキストの両方が支持している。

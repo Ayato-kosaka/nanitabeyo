@@ -31,6 +31,7 @@ from matching import (
     PROBE_A,
     PROBE_B,
     PROBE_C,
+    PROBE_C_TIGHT,
     PROBE_C_WIDE,
     PROBE_D,
     PROBE_NEARBY,
@@ -97,6 +98,8 @@ def build_specs(
     with_box: bool,
     wide_box_half_side_m: float,
     with_wide_box: bool,
+    tight_box_half_side_m: float,
+    with_tight_box: bool,
     with_nearby: bool,
     with_name_variant: bool,
 ) -> list[ProbeSpec]:
@@ -113,6 +116,15 @@ def build_specs(
                     PROBE_C,
                     "text",
                     body_query_c(seed, half_side_m=box_half_side_m),
+                )
+            )
+        if with_tight_box:
+            specs.append(
+                ProbeSpec(
+                    seed.seed_id,
+                    PROBE_C_TIGHT,
+                    "text",
+                    body_query_c(seed, half_side_m=tight_box_half_side_m),
                 )
             )
         if with_wide_box:
@@ -339,6 +351,8 @@ def command_probe(arguments: argparse.Namespace) -> None:
         with_box=not arguments.skip_box,
         wide_box_half_side_m=arguments.wide_box_half_side_m,
         with_wide_box=arguments.wide_box,
+        tight_box_half_side_m=arguments.tight_box_half_side_m,
+        with_tight_box=arguments.tight_box,
         with_nearby=not arguments.skip_nearby,
         with_name_variant=arguments.name_variant,
     )
@@ -585,6 +599,8 @@ def build_parser() -> argparse.ArgumentParser:
     probe.add_argument("--skip-box", action="store_true")
     probe.add_argument("--wide-box-half-side-m", type=float, default=250.0)
     probe.add_argument("--wide-box", action="store_true", help="広い矩形と住所つき矩形も送る")
+    probe.add_argument("--tight-box-half-side-m", type=float, default=25.0)
+    probe.add_argument("--tight-box", action="store_true", help="狭く絞った矩形も送る")
     probe.add_argument(
         "--only-probes",
         nargs="+",
