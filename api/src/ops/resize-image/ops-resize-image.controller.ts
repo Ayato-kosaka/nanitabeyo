@@ -29,7 +29,7 @@ export class OpsResizeImageController {
    */
   @Post('re-enqueue')
   @UseGuards(AuthAnonGuard, PermissionGuard)
-  @Permissions('ops.resize-image.re-enqueue')
+  @Permissions('ops.image-resize.re-enqueue')
   @ApiOperation({
     summary: 'リサイズジョブの再 enqueue',
     description:

@@ -91,6 +91,15 @@ export class CreateDishMediaEntryService {
     // #1053 【課金】bulk-import が「GCS に実体あり」と判定した再利用パスでは photoUri が空。
     // その場合 download は不要で、upsert と resize のやり直しだけが目的になる。
     if (payload.photoUri.length === 0) {
+      const originalExists = await this.storage.fileExists(
+        payload.dish_media.media_path,
+      );
+      if (!originalExists) {
+        throw new Error(
+          `Stored photo is missing: ${payload.dish_media.media_path}`,
+        );
+      }
+
       this.logger.debug('PhotoDownloadSkipped', 'downloadAndStorePhotos', {
         jobId: payload.jobId,
         mediaPath: payload.dish_media.media_path,
@@ -128,12 +137,13 @@ export class CreateDishMediaEntryService {
           photoUri,
           error: error instanceof Error ? error.message : 'Unknown error',
         });
-        // エラーでもフォールバックとして元のURIを返す
-        return photoUri;
+        // Cloud Tasks に失敗を返し、429 や一時的な GCS 障害を再試行させる。
+        // 原本が無いまま DB 登録と resize enqueue を続けてはいけない。
+        throw error;
       }
     });
 
-    await Promise.allSettled(downloadPromises);
+    await Promise.all(downloadPromises);
   }
 
   /**
@@ -265,6 +275,7 @@ export class CreateDishMediaEntryService {
             plus_code: payload.restaurants.plus_code as Prisma.InputJsonValue,
           },
           payload.restaurants.google_place_id,
+          { updateImagePath: true },
         );
 
         // 2. 料理登録

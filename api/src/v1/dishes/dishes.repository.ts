@@ -50,13 +50,20 @@ export class DishesRepository {
     tx: Prisma.TransactionClient,
     restaurant: Prisma.restaurantsCreateInput,
     google_place_id: string,
+    options: { updateImagePath?: boolean } = {},
   ) {
     this.logger.debug('createOrGetRestaurant', 'DishesRepository', restaurant);
     const { id: _omitId, ...createData } = restaurant;
 
     return await tx.restaurants.upsert({
       where: { google_place_id },
-      update: {},
+      // 非同期 handler では、この時点で GCS 原本の存在確認が完了している。
+      // 既存 restaurant が削除済みの古い path を持っていても、新しい有効な
+      // path に収束させる。同期の先行 upsert は従来どおり no-op のままにする。
+      update:
+        options.updateImagePath && createData.image_path
+          ? { image_path: createData.image_path }
+          : {},
       create: createData,
     });
   }
