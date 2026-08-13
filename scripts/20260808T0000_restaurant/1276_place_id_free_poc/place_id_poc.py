@@ -346,7 +346,9 @@ def command_probe(arguments: argparse.Namespace) -> None:
         wanted = set(arguments.only_probes)
         specs = [spec for spec in specs if spec.probe in wanted]
     cache = ProbeCache(arguments.cache)
-    todo = len(specs) - len(cache.existing_keys() & {(spec.seed_id, spec.probe) for spec in specs})
+    todo = len(specs) - len(
+        cache.existing_keys() & {(spec.seed_id, spec.probe, spec.fingerprint) for spec in specs}
+    )
     print(
         f"seeds={len(seeds)} probes={len(specs)} pending={todo} "
         f"qps={arguments.qps} workers={arguments.workers} (すべて無料SKU)",

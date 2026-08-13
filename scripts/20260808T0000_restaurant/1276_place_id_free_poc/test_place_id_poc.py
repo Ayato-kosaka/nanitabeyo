@@ -41,6 +41,7 @@ from seeds import (
     body_query_c,
     build_address_query,
     format_postcode,
+    normalize_postcode_digits,
     normalize_name_for_query,
     strip_bracket_tail,
 )
@@ -112,15 +113,51 @@ class QueryBuildingTest(unittest.TestCase):
         self.assertEqual(strip_bracket_tail("Mermaid Cafe（マーメイドカフェ）"), "Mermaid Cafe")
         self.assertEqual(strip_bracket_tail("龍月"), "龍月")
 
-    def test_address_query_prefers_prefecture_then_postcode(self) -> None:
+    def test_address_query_is_built_from_the_most_reliable_geography(self) -> None:
+        # freeform に都道府県が入っていれば、それだけで住所は一意に定まる。
         self.assertEqual(
-            build_address_query("東京都中央区日本橋1-1", "1030021"),
-            ("〒103-0021 東京都中央区日本橋1-1", "prefecture_and_postcode"),
+            build_address_query("東京都中央区日本橋1-1", "1030021", "中央区"),
+            ("東京都中央区日本橋1-1", "prefecture_in_freeform"),
         )
-        self.assertEqual(build_address_query("東京都中央区日本橋1-1", None), ("東京都中央区日本橋1-1", "prefecture_only"))
-        self.assertEqual(build_address_query("徳延758-1", "2540902"), ("〒254-0902 徳延758-1", "postcode_and_partial"))
-        self.assertEqual(build_address_query("", "2540902"), ("〒254-0902", "postcode_only"))
+        # 都道府県が無い行は郵便番号から作り直す。Overture の locality が誤って
+        # いても（この郵便番号の行は locality=Ogasawara-mura だった）正しくなる。
+        self.assertEqual(
+            build_address_query("志茂2-48-10", "1150042", "Ogasawara-mura"),
+            ("東京都北区志茂2-48-10", "postcode_expanded_and_partial"),
+        )
+        # freeform が空なら町域名まで補う。
+        self.assertEqual(
+            build_address_query("", "1002101", ""), ("東京都小笠原村父島", "postcode_expanded")
+        )
+        # 郵便番号の町域と freeform の町名が食い違っても、矛盾した住所を作らない。
+        self.assertEqual(
+            build_address_query("田村町235-1", "5150073", "松阪市"),
+            ("三重県松阪市田村町235-1", "postcode_expanded_and_partial"),
+        )
         self.assertEqual(build_address_query(None, None), ("", "none"))
+
+    def test_postcode_digits_survive_real_world_formatting(self) -> None:
+        # 全角や、ハイフンの代わりに長音記号が入った行が実データに存在する。
+        self.assertEqual(normalize_postcode_digits("１５０ｰ００４４"), "1500044")
+        self.assertEqual(normalize_postcode_digits("542ー0083"), "5420083")
+        self.assertEqual(normalize_postcode_digits("103-0021"), "1030021")
+        self.assertIsNone(normalize_postcode_digits("103-002"))
+        self.assertIsNone(normalize_postcode_digits(""))
+
+    def test_locality_is_used_only_when_nothing_better_exists(self) -> None:
+        # 住所も郵便番号も無い行では、locality が唯一の地理情報になる。
+        self.assertEqual(build_address_query("", None, "東大阪市"), ("東大阪市", "locality_only"))
+        self.assertEqual(
+            build_address_query("港北区新横浜2丁目6-17", None, "横浜市"),
+            ("横浜市 港北区新横浜2丁目6-17", "locality_and_partial"),
+        )
+        # ローマ字の locality は検索の役に立たず誤りも多いので使わない。
+        self.assertEqual(build_address_query("", None, "Chiyoda-ku"), ("", "none"))
+
+    def test_page_size_is_twenty(self) -> None:
+        # IDs Only は件数に依らず $0.00 なので、曖昧さを取りこぼさない上限を使う。
+        self.assertEqual(body_query_a(make_seed())["pageSize"], 20)
+        self.assertEqual(body_query_b(make_seed())["pageSize"], 20)
 
     def test_query_bodies_stay_within_free_sku_shape(self) -> None:
         seed = make_seed()

@@ -18,6 +18,8 @@ from pathlib import Path
 from typing import Any, Iterator
 
 PREFECTURE_PATTERN = re.compile(r"(北海道|東京都|京都府|大阪府|..県)")
+# 仮名・漢字を含むかどうか。locality がローマ字表記の行を弾くために使う。
+JAPANESE_PATTERN = re.compile(r"[぀-ヿ一-鿿]")
 POSTCODE_PATTERN = re.compile(r"^\s*(\d{3})-?(\d{4})\s*$")
 CORPORATE_PREFIX = re.compile(
     r"^(株式会社|有限会社|合同会社|合資会社|一般社団法人|公益社団法人|\(株\)|\(有\))\s*"
@@ -102,25 +104,84 @@ def format_postcode(value: str | None) -> str:
     return f"{match.group(1)}-{match.group(2)}"
 
 
-def build_address_query(freeform: str | None, postcode: str | None) -> tuple[str, str]:
+def expand_postcode(postcode: str | None) -> tuple[str, str, str] | None:
+    """郵便番号を 都道府県・市区町村・町域 へ展開する。
+
+    Overture の ``freeform`` は 62% しか都道府県を含まず、``locality`` は誤りが
+    混ざる（郵便番号 115-0042 の「志茂」の行が locality=Ogasawara-mura になっていた）。
+    郵便番号は 89% の行にあり、posuto が同梱する日本郵便由来のDBで完全にオフラインで
+    引ける。したがって、住所文字列の地理は郵便番号から作り直すのが最も確かである。
+    """
+
+    digits = normalize_postcode_digits(postcode)
+    if not digits:
+        return None
+    try:
+        import posuto
+    except ImportError as error:  # pragma: no cover - 環境依存
+        raise SystemExit("posuto が必要。python -m pip install -r requirements.txt") from error
+    try:
+        record = posuto.get(digits)
+    except Exception:
+        # 郵便番号が実在しない・廃止済みの行。地理は他の手段へ委ねる。
+        return None
+    return (record.prefecture or "", record.city or "", record.neighborhood or "")
+
+
+def normalize_postcode_digits(value: str | None) -> str | None:
+    """郵便番号から数字7桁を取り出す。
+
+    全角（１５０ｰ００４４）や、ハイフンの代わりに長音記号が入った 542ー0083 の
+    ような行が実データに存在するため、NFKC のあとで区切り文字を潰してから抜く。
+    """
+
+    if not value:
+        return None
+    text = unicodedata.normalize("NFKC", value)
+    text = text.replace("ー", "-").replace("−", "-").replace("‐", "-")
+    digits = re.sub(r"\D", "", text)
+    return digits if len(digits) == 7 else None
+
+
+def build_address_query(
+    freeform: str | None, postcode: str | None, locality: str | None = None
+) -> tuple[str, str]:
     """住所クエリ文字列と、その地理的な確からしさのラベルを返す。
 
-    ``locality`` はローマ字かつ誤りが混ざるため使わない。都道府県が本文に無い場合は
-    郵便番号で地理を固定する。どちらも無い行は Query B を成立させられない。
+    当初は ``locality`` を「ローマ字で誤りが混ざる」として捨てていたが、実測すると
+    日本語の市区町村名が 789,612行中 776,351行（98.3%）に入っている。捨てていたのは
+    過剰反応で、住所も郵便番号も無い行にとって locality は唯一の地理情報である。
+    そこで、都道府県・郵便番号がある行では従来どおりそれらを優先し、どちらも無い
+    行に限って locality を補う。ローマ字や誤りが混ざる分は、この順序で吸収する。
     """
 
     text = unicodedata.normalize("NFKC", (freeform or "")).strip()
     text = re.sub(r"\s+", " ", text)
-    zipcode = format_postcode(postcode)
+    city = unicodedata.normalize("NFKC", (locality or "")).strip()
+    # ローマ字の locality は Google 検索の役に立たないうえ誤りも多いので使わない。
+    if not JAPANESE_PATTERN.search(city):
+        city = ""
     has_prefecture = bool(PREFECTURE_PATTERN.search(text))
-    if has_prefecture and zipcode:
-        return f"〒{zipcode} {text}", "prefecture_and_postcode"
     if has_prefecture:
-        return text, "prefecture_only"
-    if zipcode and text:
-        return f"〒{zipcode} {text}", "postcode_and_partial"
-    if zipcode:
-        return f"〒{zipcode}", "postcode_only"
+        return text, "prefecture_in_freeform"
+
+    # 郵便番号から都道府県・市区町村・町域を作り直す。生の〒番号をそのまま投げるより、
+    # 展開した住所文字列のほうが Text Search の手掛かりになる。
+    expanded = expand_postcode(postcode)
+    if expanded:
+        prefecture, municipality, neighborhood = expanded
+        head = f"{prefecture}{municipality}"
+        # freeform がある行では町域名を足さない。郵便番号の町域と freeform の町名は
+        # 食い違うことがあり（「殿町」+「田村町235-1」）、両方並べると矛盾した住所に
+        # なる。市区町村までを冠すれば住所は一意に定まるので、そこで止める。
+        if text:
+            return f"{head}{text}", "postcode_expanded_and_partial"
+        return f"{head}{neighborhood}", "postcode_expanded"
+
+    if city and text:
+        return f"{city} {text}", "locality_and_partial"
+    if city:
+        return city, "locality_only"
     return "", "none"
 
 
@@ -150,7 +211,9 @@ def overture_seed_query(parquet: Path, *, limit: int | None = None) -> str:
 
 
 def row_to_seed(row: dict[str, Any]) -> Seed:
-    address_query, quality = build_address_query(row.get("freeform"), row.get("postcode"))
+    address_query, quality = build_address_query(
+        row.get("freeform"), row.get("postcode"), row.get("locality")
+    )
     return Seed(
         seed_id=str(row["seed_id"]),
         name=str(row["name"]),
@@ -202,8 +265,9 @@ def read_seeds(path: Path) -> Iterator[Seed]:
 COMMON_TEXT_BODY: dict[str, Any] = {
     "languageCode": "ja",
     "regionCode": "JP",
-    # 曖昧判定に必要なのは「2件以上あるか」なので上限20件は要らない。
-    "pageSize": 5,
+    # 上限20件は5件と同じ1回分の課金イベントで、料金は変わらない（IDs Only は $0.00）。
+    # 5件だと「候補がちょうど5件」と「60件」を区別できず、曖昧さを取りこぼす。
+    "pageSize": 20,
     "includePureServiceAreaBusinesses": False,
 }
 
