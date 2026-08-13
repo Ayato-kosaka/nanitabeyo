@@ -391,7 +391,8 @@ describe("契約 §7: 出力フィールドが揃っている（camelCase で統
 describe("不変条件 3 / 4: 生値と禁止フィールドを契約へ出さない", () => {
 	test("route / endpoint / pathName / messagePattern は全て正規化後の norm[] 由来", () => {
 		expect(generated).toContain("NULLIF(n.norm[OFFSET(0)], '')");
-		expect(generated).toContain("NULLIF(n.norm[OFFSET(1)], '')");
+		// OFFSET(1)（pathName）は norm[] のあとに先頭ロケール剥がしを1段挟むので NULLIF が離れる（fpalgo 2）
+		expect(generated).toContain("n.norm[OFFSET(1)]");
 		expect(generated).toContain("NULLIF(n.norm[OFFSET(2)], '')");
 		expect(generated).toContain("NULLIF(n.norm[OFFSET(3)], '')");
 		expect(generated).toContain("NULLIF(n.norm[OFFSET(4)], '')");

@@ -46,6 +46,7 @@ const {
 } = require("./constants");
 const {
 	PARENT_SUMMARY_MARKER,
+	rekeyIssueBody,
 	renderIssueBody,
 	renderParentSummaryComment,
 	renderRegressionComment,
@@ -53,7 +54,7 @@ const {
 	renderTitle,
 	shouldUpdateBody,
 } = require("./render");
-const { authoritative, buildIndex, hasSkipLabel, isRegression } = require("./triage");
+const { authoritative, buildIndex, hasSkipLabel, isRegression, resolveEntry } = require("./triage");
 
 const GITHUB_API_ROOT = "https://api.github.com";
 const GITHUB_API_VERSION = "2022-11-28";
@@ -513,6 +514,8 @@ const applyPlan = async ({
 		parentIssue,
 		created: [],
 		reopened: [],
+		rekeyed: [],
+		rekeySkipped: [],
 		bodyUpdated: [],
 		bodySkipped: [],
 		subIssueLinked: [],
@@ -537,7 +540,14 @@ const applyPlan = async ({
 	const { index } = buildIndex(issues);
 	const groupsByFingerprint = new Map((envelope.groups || []).map((group) => [group.fingerprint, group]));
 	const { window, generatedAt } = envelope;
-	const entryOf = (fingerprint) => authoritative(index.get(fingerprint));
+	// 現行 fingerprint で引けなければ旧世代 fingerprint の復元で引く（移行中はこちらで当たる）。
+	// buildPlan と同じ resolveEntry を使うので、計画と適用で違う Issue を触ることがない。
+	const entryOf = (fingerprint) => {
+		const direct = authoritative(index.get(fingerprint));
+		if (direct) return direct;
+		const group = groupsByFingerprint.get(fingerprint);
+		return group ? resolveEntry({ index, group }).entry : null;
+	};
 
 	/** sub-issue の紐付け。best-effort（失敗しても例外を投げない）。 */
 	const linkSubIssue = async ({ issueNumber, issueId }) => {
@@ -565,6 +575,54 @@ const applyPlan = async ({
 			return false;
 		}
 	};
+
+	// ---- 0) fingerprint のリキー（旧世代マーカーの書き換え / #1196 CLUSTERING.md 末尾の課題） ----
+	//
+	// ★ これは**後片付け**であって、突合そのものではない。
+	//   「重複起票しない」は triage.js の resolveEntry（旧 fingerprint の復元）だけで既に成立している。
+	//   ここが1件も成功しなくても、失敗しても、上限で溢れても、重複起票は起きない。
+	//   だからこそ**起票より先**に置ける（body の PATCH なので通知は飛ばない）。
+	//
+	// 冪等性: `rekeyIssueBody()` が「既にリキー済み」「対象 fp マーカーが無い」で null を返すので、
+	//   同じ run を何度流しても2回目以降は API を1回も叩かない。
+	for (const rekey of plan.rekeys || []) {
+		const entry = [...index.values()].flat().find((candidate) => candidate.number === rekey.issueNumber);
+		if (!entry) {
+			result.rekeySkipped.push({ issueNumber: rekey.issueNumber, reason: "索引に見つかりません" });
+			continue;
+		}
+		const body = rekeyIssueBody({
+			body: entry.body,
+			from: rekey.from,
+			to: rekey.to,
+			locale: rekey.locale,
+			fromAlgoVersion: rekey.fromAlgoVersion,
+			// Minor-3: 本文に「どれが代表なのか」を書くために必要（計画側で決定済み）。
+			issueNumber: rekey.issueNumber,
+			authoritativeNumber: rekey.authoritativeNumber ?? null,
+		});
+		if (body === null) {
+			result.rekeySkipped.push({ issueNumber: rekey.issueNumber, reason: "既にリキー済み（冪等）" });
+			continue;
+		}
+		try {
+			if (!dryRun) await client.updateIssueBody({ issueNumber: rekey.issueNumber, body });
+			// 後続フェーズ（body 更新など）が同じ run 内で読む索引にも反映しておく。
+			entry.body = body;
+			result.rekeyed.push({ issueNumber: rekey.issueNumber, from: rekey.from, to: rekey.to, locale: rekey.locale });
+			if (rekey.skipLabel) {
+				result.warnings.push(
+					`#${rekey.issueNumber} は \`err/skip\` 付きのまま fp:${rekey.to} へ統合しました。統合先のクラスタ全体が恒久無視になります`,
+				);
+			}
+		} catch (error) {
+			result.failures.push({ stage: "rekey", target: `#${rekey.issueNumber}`, message: error.message });
+			if (isRateLimited(error)) {
+				result.rateLimited = true;
+				break;
+			}
+		}
+	}
 
 	// ---- 1) 回帰（reopen）: コメント → reopen の順（#1198 §5-D） ----
 	for (const item of plan.items.filter((entry) => entry.action === "reopen")) {

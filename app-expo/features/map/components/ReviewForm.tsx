@@ -183,6 +183,17 @@ export function ReviewForm({
 	 * search/index.tsx の `isSearchingRef`、search/topics.tsx の `isSelectingTopicRef` と同じ方式。
 	 */
 	const isSubmittingRef = useRef(false);
+	/**
+	 * #1136 【設計】「レビュー投稿中」であることを表示するための state。
+	 *
+	 * `isProcessing` は投稿以外（料理カテゴリの新規作成 = `onDishCategoryModalUnmmount`）でも立つため、
+	 * これをそのままボタンのスピナーに使うと「投稿していないのに投稿中に見える」誤表示になる。
+	 * 表示は投稿フロー（`handleSubmit` の try..finally）だけに限定したいので専用の state を持つ。
+	 *
+	 * 多重実行の判定にはこれも `isProcessing` も使わないこと（レースが残る。`isSubmittingRef` 参照）。
+	 * 解除は `handleSubmit` の finally で行うため、成功・失敗のどちらでも必ず落ちる。
+	 */
+	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [price, setPrice] = useState(initialPrice);
 	const [reviewText, setReviewText] = useState(initialReviewText);
 	const [rating, setRating] = useState(initialRating);
@@ -504,6 +515,8 @@ export function ReviewForm({
 
 		mediumImpact();
 		setIsProcessing(true);
+		// #1136 アップロードと 3 本の API 呼び出しで数秒〜数十秒かかりうるため、投稿中を可視化する
+		setIsSubmitting(true);
 		setDishCategoryError(null);
 
 		try {
@@ -644,8 +657,11 @@ export function ReviewForm({
 			showSnackbar(i18n.t("Map.errors.reviewSubmitFailed"));
 		} finally {
 			// #1090 失敗時に再投稿できるよう、表示用 state と同じタイミングで同期ガードも解除する
+			// #1136 ローディング表示の解除もここに置くこと。成功・失敗・例外のいずれでも必ず通る唯一の場所で、
+			// try 側の各 return 直前に散らすと解除漏れ（スピナー固着で二度と投稿できない）を作る
 			isSubmittingRef.current = false;
 			setIsProcessing(false);
+			setIsSubmitting(false);
 		}
 	}, [
 		reviewText,
@@ -861,6 +877,10 @@ export function ReviewForm({
 						testID="review-submit-button"
 						label={i18n.t("Common.postReview")}
 						onPress={handleSubmit}
+						// #1136 【設計】投稿中はボタン内に既存の LoadingIndicator（Lottie）を出す。
+						// PrimaryButton 側で loading は disabled も兼ねる（`isDisabled = disabled || loading`）ため、
+						// 表示と操作可否がズレない。進捗率は取得できないので不定形スピナーで十分とする
+						loading={isSubmitting}
 						disabled={isProcessing || !isValid}
 						shadowColor="transparent"
 						style={{ marginHorizontal: 16 }}

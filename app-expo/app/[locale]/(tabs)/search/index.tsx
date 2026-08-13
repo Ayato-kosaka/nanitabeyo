@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform } from "react-native";
 import {
 	MapPin,
 	Search,
@@ -109,6 +109,11 @@ export default function SearchScreen() {
 	// #932 【設計】現在地取得の恒久的な失敗(権限拒否・未対応)時に手入力へ誘導するため
 	const locationInputRef = useRef<LocationAutocompleteHandle>(null);
 
+	// #953 【仕様】直近5件の地点をローカル保存し、地点未入力でのフォーカス時に再選択候補として出す
+	// #1129 【設計】handleSelectRecentLocation が addRecentLocation を依存配列で参照するため、
+	// 宣言はハンドラ定義より前に置く必要がある(useCallback の依存配列は定義時に評価されるため)
+	const { recentLocations, addRecentLocation, clearRecentLocations } = useRecentLocations();
+
 	// #958 【修正】中央カラム幅に追従する4列グリッドのアイテムサイズ
 	const contentWidth = useContentWidth();
 	const itemWidth = useMemo(
@@ -203,8 +208,12 @@ export default function SearchScreen() {
 			});
 			setLocation(recent);
 			setLocationQuery(recent.locationQuery);
+			// #1129 【仕様】再選択した地点を MRU(Most Recently Used)順で先頭へ引き上げる。
+			// addRecentLocation は同一地点を除去してから先頭へ積むため、件数は増えない。
+			// 保存タイミングはオートコンプリート選択時(handleLocationSelect)と揃えて「選択した瞬間」とする。
+			addRecentLocation(recent);
 		},
-		[logFrontendEvent],
+		[logFrontendEvent, addRecentLocation],
 	);
 
 	const handleUseCurrentLocation = async () => {
@@ -337,9 +346,6 @@ export default function SearchScreen() {
 		setShowAdvancedFilters(!showAdvancedFilters);
 	};
 
-	// #953 【仕様】直近5件の地点をローカル保存し、地点未入力でのフォーカス時に再選択候補として出す
-	const { recentLocations, addRecentLocation, clearRecentLocations } = useRecentLocations();
-
 	// #973【設計】検索ボタンをdisabledにすると handleSearch 内のバリデーションスナックバーが
 	// 発火しなくなるため、常にタップ可能にしたうえで見た目だけ「未充足」を伝える
 	const isSearchReady = !!location && !!timeSlot && !!scene;
@@ -457,6 +463,29 @@ export default function SearchScreen() {
 				style={styles.scrollView}
 				contentContainerStyle={styles.scrollContent}
 				keyboardShouldPersistTaps="always"
+				// ⚠️ iOS ではキーボードが画面に «覆いかぶさる»（Android のようにウィンドウが縮まない）。
+				// このフォームは最下部が詳細条件トグル + 100px の余白 + 検索 FAB で終わるため、
+				// キーボードが開いている間は **どこまでスクロールしても詳細条件トグルが画面下半分から出られず**、
+				// 触ることも読むこともできない状態になる。
+				// 地点入力は現在地の取得に失敗すると自動でフォーカスを取る（#932）ので、
+				// 「一度も自分でタップしていないのに詳細条件が押せない」という詰みが実際に起きる。
+				// ドラッグで閉じられるようにして脱出路を用意する（iOS の Detox が
+				// `threshold (75)` で 4 回連続落ちて判明。Android は adjustResize のため無症状だった）。
+				// `keyboardShouldPersistTaps="always"` とは併用可能で、サジェストのタップは従来どおり通る。
+				//
+				// 補足: `LocationAutocomplete` のサジェスト / 最近使った場所は `isFocused` で出し分けているため、
+				// キーボードを閉じるとパネルも閉じる。ネイティブで閉じるのは **このフォームをドラッグしたとき**だけで、
+				// パネル自身は内側に own ScrollView を持っている（keyboardShouldPersistTaps="handled"）ので、
+				// 候補一覧をスクロールして読む操作では閉じない。
+				//
+				// ⚠️ **iOS 限定にすること。** react-native-web の ScrollView は `on-drag` を
+				// 「ドラッグ開始時」ではなく **scroll イベントのたびに** `dismissKeyboard()` する実装で
+				// （react-native-web/dist/exports/ScrollView/index.js の `_handleScroll`）、
+				// プログラム的なスクロールやレイアウト変化でも入力欄が blur される。
+				// その結果 web では地名を打ってもサジェストが出た瞬間に消える。
+				// 実際に e2e-web の logout.spec.ts が 3 回リトライして落ちた（run 31677888461）。
+				// Android はキーボードでウィンドウが縮む（adjustResize）ため、そもそもこの詰みが起きない。
+				keyboardDismissMode={Platform.OS === "ios" ? "on-drag" : undefined}
 				showsVerticalScrollIndicator={false}>
 				{/* Location Input */}
 				<View style={styles.section}>

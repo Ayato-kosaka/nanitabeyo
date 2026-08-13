@@ -18,8 +18,31 @@ const SCHEMA_VERSION = 1;
  * 「JS の定数1つ」を唯一の正とし、SQL ファイル冒頭の `-- fpalgo: N` と一致することを
  * ユニットテストで検査する（一致検査の実装は fingerprint.js の parseSqlFpAlgoVersion）。
  * 片方だけ変えて既存 Issue と全件突合が外れる事故を構造的に防ぐ。
+ *
+ * 世代の履歴:
+ *   1 … 初版（#1196 / PR2）
+ *   2 … `pathName` の先頭ロケールを剥がす（#1196 CLUSTERING.md 類型1）。
+ *       `/ja-JP/search/result` と `/en-US/search/result` が同じ fingerprint になる。
+ *       **移行方法は MIGRATABLE_ALGO_VERSIONS と README.md「fingerprint 世代の移行」を参照。**
  */
-const FP_ALGO_VERSION = 1;
+const FP_ALGO_VERSION = 2;
+
+/**
+ * 「旧 fingerprint を復元して既存 Issue と突合できる」世代の一覧（＝リキー可能な世代）。
+ *
+ * ここに載っている世代の Issue は、`fingerprint.js` の `computeLegacyFingerprints()` が
+ * 旧 fingerprint を復元して突合するので、**新 fingerprint で重複起票されない**。
+ * ここに載っていない世代（未来の世代 / 復元器を捨てた過去の世代）が索引に混ざったら
+ * その run は1件も書かずに abort する（#1198 §8-A）。
+ *
+ * v1 → v2 の復元が可能なのは、v2 が「v1 の pathName から先頭ロケールを剥がす」だけの変更で、
+ * 剥がしたロケールの内訳（`localeCounts`）を SQL が出力に残しているため
+ * （`/` + locale + newPathName で v1 の pathName が**厳密に**再構成できる）。
+ */
+const MIGRATABLE_ALGO_VERSIONS = Object.freeze([1]);
+
+/** 索引に載っていてよい世代（現行 + 復元可能な旧世代）。 */
+const SUPPORTED_ALGO_VERSIONS = Object.freeze([...MIGRATABLE_ALGO_VERSIONS, FP_ALGO_VERSION].sort((a, b) => a - b));
 
 /** surface の既知3値。これ以外は契約違反として破棄する（不変条件 6）。 */
 const SURFACES = Object.freeze(["frontend", "backend", "external"]);
@@ -36,6 +59,22 @@ const DEFAULT_LOOKBACK_HOURS = 25;
 
 /** 1 run で SQL から受け取るグループ数の上限。超過は runSummary.truncated で必ず可視化する（G3）。 */
 const GROUP_LIMIT = 500;
+
+/**
+ * 1グループあたりに出すロケール内訳（`localeCounts`）の件数上限。
+ *
+ * ロケールは端末の言語設定そのものなので理論上は数百種になり得る。
+ *
+ * ⚠️ **移行中（`pendingAlgoVersions` が空でない間）は、ここで溢れたロケールが重複起票を生み得る。**
+ *   `computeLegacyFingerprints()` が復元できる旧 fingerprint は、その run の `localeCounts` に
+ *   載っているロケールぶんだけである。旧 Issue が持つロケールが溢れて載らなかった場合、
+ *   「リキーを取り逃がす」のではなく **突合そのものが外れて `create` になる**（＝旧 Issue が孤児化する）。
+ *   同じ穴は「旧 Issue のロケールがその run の窓に1件も出ていない」ときにも開く。
+ *   → その対処として、移行中は frontend の起票を保留する（`buildPlan()` の `withheld`）。
+ *   REKEY_LIMIT 側の「溢れても重複起票にはならない」は**突合が成立した後**の後片付けの話であって、
+ *   こちらとは別問題。混同しないこと。
+ */
+const LOCALE_BREAKDOWN_LIMIT = 50;
 
 /**
  * BigQuery ジョブのスキャン上限（バイト）。200MB。
@@ -60,6 +99,14 @@ const CREATE_LIMIT = 20;
 const REOPEN_LIMIT = 5;
 /** 1 run あたりの body 更新上限（#1198 §2）。 */
 const BODY_UPDATE_LIMIT = 20;
+/**
+ * 1 run あたりの fingerprint リキー（旧世代マーカーの書き換え）上限。
+ *
+ * リキーは body の PATCH なので通知は飛ばないが、`updated_at` は動く。
+ * 上限で溢れても**重複起票にはならない**（突合は旧 fingerprint の復元で成立しており、
+ * リキーはマーカーの後片付けにすぎない）ので、次回 run へ繰り越して構わない。
+ */
+const REKEY_LIMIT = 50;
 /** 未知 fingerprint がこれを超えたら1件も起票せず abort（#1198 §3 の PANIC ブレーカー）。 */
 const PANIC_THRESHOLD = 50;
 /** 再発判定の猶予時間。close 直前ログの遅延取り込みを吸収する（#1198 §5-A）。 */
@@ -158,14 +205,18 @@ const EXCLUSION_REASONS = Object.freeze([
 module.exports = Object.freeze({
 	SCHEMA_VERSION,
 	FP_ALGO_VERSION,
+	MIGRATABLE_ALGO_VERSIONS,
+	SUPPORTED_ALGO_VERSIONS,
 	SURFACES,
 	MESSAGE_PATTERN_MAX_LENGTH,
 	DEFAULT_LOOKBACK_HOURS,
 	GROUP_LIMIT,
+	LOCALE_BREAKDOWN_LIMIT,
 	MAX_BYTES_BILLED,
 	CREATE_LIMIT,
 	REOPEN_LIMIT,
 	BODY_UPDATE_LIMIT,
+	REKEY_LIMIT,
 	PANIC_THRESHOLD,
 	GRACE_HOURS,
 	MIN_EVENTS_REOPEN,

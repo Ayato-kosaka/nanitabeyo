@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, Platform } from "react-native";
 import Constants from "expo-constants";
 import { Card } from "@/components/Card";
@@ -46,6 +46,20 @@ export function FeedbackForm({
 	const [feedbackMessage, setFeedbackMessage] = useState(initialMessage);
 	const [submitError, setSubmitError] = useState("");
 	const [isSubmitting, setIsSubmitting] = useState(false);
+	/**
+	 * #1205 【修正】フィードバック送信の多重実行を防ぐ同期ガード。
+	 *
+	 * `isSubmitting`（useState）は **送信ボタンを disabled にする表示用途**であって、
+	 * 多重実行の判定には使えない。React が再レンダリングをコミットする前に 2 発目の押下が
+	 * 処理されると、両方が `isSubmitting === false`（＝`canSubmit === true`）を読んで通過しうるためで、
+	 * 通過すると `v1/feedback/issue` の POST が 2 回走り、
+	 * **GitHub Issue が 2 件立つ**（`api/src/v1/feedback/feedback.service.ts` の `createIssue` に重複排除は無い）。
+	 * 外部サービスへ出てしまうため取り消しが効かず、運用側の手作業になる。
+	 *
+	 * ref への代入は同期的に確定するため、同一 JS タスク内の連続呼び出しでもレースしない。
+	 * ReviewForm.tsx の `isSubmittingRef` と同じ方式。
+	 */
+	const isSubmittingRef = useRef(false);
 	// #951 【仕様】送信ボタンをdisabledにする(=押下自体ができなくなる)ため、押下をトリガーにした
 	// 事後バリデーションでは有効範囲を利用者に伝えられない。フィールドを一度離れたことをトリガーに、
 	// 現在値が範囲外ならエラーを表示するリアルタイムバリデーションに変更する。
@@ -73,6 +87,12 @@ export function FeedbackForm({
 	const handleSubmit = useCallback(async () => {
 		// #951 【仕様】ボタンは範囲外の間disabledで押下自体ができないため、ここに到達する時点で
 		// タイトル・本文は必ず有効範囲内(canSubmitがtrueの状態でしか呼ばれない)。
+
+		// #1205 多重送信の判定は ref で行う（useState の isSubmitting はレースが残る。宣言箇所のコメント参照）。
+		// ここより後に送信処理を書くこと
+		if (isSubmittingRef.current) return;
+		isSubmittingRef.current = true;
+
 		Keyboard.dismiss();
 		setSubmitError("");
 		setIsSubmitting(true);
@@ -136,6 +156,10 @@ export function FeedbackForm({
 			});
 			setSubmitError(i18n.t("Feedback.errors.submitFailed"));
 		} finally {
+			// #1205 送信失敗後も送り直せるよう、表示用 state と同じタイミングで同期ガードも解除する。
+			// 成功・失敗・例外のいずれでも必ず通る唯一の場所で、try 側の各 return 直前に散らすと
+			// 解除漏れ（＝一度失敗したら二度と送信できない）を作る
+			isSubmittingRef.current = false;
 			setIsSubmitting(false);
 		}
 	}, [feedbackType, feedbackTitle, feedbackMessage, mediumImpact, logFrontendEvent, callBackend, onSubmit]);

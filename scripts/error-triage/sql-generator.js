@@ -25,8 +25,14 @@
 
 "use strict";
 
-const { EXCLUDED_HTTP_STATUSES, FP_ALGO_VERSION, GROUP_LIMIT } = require("./constants");
-const { NORMALIZE_RULES, POST_RULE_STEPS, SQL_EXPR_PLACEHOLDER } = require("./normalize-rules");
+const { EXCLUDED_HTTP_STATUSES, FP_ALGO_VERSION, GROUP_LIMIT, LOCALE_BREAKDOWN_LIMIT } = require("./constants");
+const {
+	NORMALIZE_RULES,
+	PATH_LOCALE_EXTRACT,
+	PATH_LOCALE_RULES,
+	POST_RULE_STEPS,
+	SQL_EXPR_PLACEHOLDER,
+} = require("./normalize-rules");
 
 /** 読み取り対象（#1196 確定事項: 生 Sink テーブル直読み。ビューも `*_legacy` も使わない）。 */
 const BQ_PROJECT = "food-scroll";
@@ -142,6 +148,32 @@ const buildNormalizeExpression = ({ innerExpr, baseLevel = 0 }) => {
 	return lines.join("\n");
 };
 
+/**
+ * pathName の先頭ロケールを剥がす式を組み立てる（**ルール表からの生成物。手書きしない**）。
+ *
+ * `PATH_LOCALE_RULES` は `NORMALIZE_RULES` と違って pathName スロットにしか掛けないので、
+ * UNNEST の中ではなく `keyed` CTE で `norm[OFFSET(1)]` へ後掛けする。
+ * 掛ける順序（normalize → ロケール剥がし）は normalize-rules.js のコメントを参照。
+ *
+ * @param {{innerExpr:string, baseLevel:number}} params
+ * @returns {string} 複数行の SQL 式
+ */
+const buildPathLocaleExpression = ({ innerExpr, baseLevel = 0 }) => {
+	const lines = [];
+	for (let depth = 0; depth < PATH_LOCALE_RULES.length; depth += 1) {
+		lines.push(`${indent(baseLevel + depth)}REGEXP_REPLACE(`);
+	}
+	lines.push(`${indent(baseLevel + PATH_LOCALE_RULES.length)}${innerExpr}`);
+	// 表の先頭が最初に掛かる ＝ 最も内側。閉じるのは逆順。
+	for (let depth = PATH_LOCALE_RULES.length - 1; depth >= 0; depth -= 1) {
+		const rule = PATH_LOCALE_RULES[PATH_LOCALE_RULES.length - 1 - depth];
+		lines.push(
+			`${indent(baseLevel + depth)}, ${toRawStringLiteral(rule.re2Pattern)}, ${toStringLiteral(rule.replacement)})  -- pathLocale(${rule.id}) ${rule.name}`,
+		);
+	}
+	return lines.join("\n");
+};
+
 /** 除外対象 HTTP ステータスの SQL リスト（`constants.js` が唯一の正）。 */
 const excludedStatusList = () => EXCLUDED_HTTP_STATUSES.join(", ");
 
@@ -155,6 +187,8 @@ const excludedStatusList = () => EXCLUDED_HTTP_STATUSES.join(", ");
  */
 const generateErrorTriageSql = () => {
 	const normalizeExpression = buildNormalizeExpression({ innerExpr: "v", baseLevel: 4 });
+	const pathLocaleExpression = buildPathLocaleExpression({ innerExpr: "n.norm[OFFSET(1)]", baseLevel: 3 });
+	const pathLocaleExtract = toRawStringLiteral(PATH_LOCALE_EXTRACT.re2Pattern);
 	const slotComments = NORMALIZED_SLOTS.map(
 		(slot) => `${indent(4)}IFNULL(${slot.source}, '')${slot.offset === NORMALIZED_SLOTS.length - 1 ? "" : ","}`.padEnd(
 			44,
@@ -344,7 +378,17 @@ keyed AS (
     n.eventName,
     n.feErrorCode,
     IF(n.surface IN ('frontend', 'backend'), n.eventName, NULL)     AS keyEventName,
-    IF(n.surface = 'frontend', NULLIF(n.norm[OFFSET(1)], ''), NULL) AS keyPathName,
+    -- ★ fpalgo 2: pathName は「正規化 → 先頭ロケール剥がし」の2段。
+    --   ルール表は normalize-rules.js の PATH_LOCALE_RULES（唯一の正）。
+    --   剥がしたロケールは捨てず localeTag として残し、下で localeCounts に集計する
+    --   （「1ロケールだけなら別物の可能性がある」を人間が確かめられなくなるため / CLUSTERING.md 類型1）。
+    IF(n.surface = 'frontend', NULLIF(
+${pathLocaleExpression}
+    , ''), NULL)                                                    AS keyPathName,
+    -- 剥がした先頭ロケール部そのもの（'ja-JP' / '[locale]' / 'es-ES/[locale]'）。
+    -- 旧 fingerprint（fpalgo 1）の pathName は '/' || localeTag || keyPathName で厳密に復元できる。
+    IF(n.surface = 'frontend', REGEXP_EXTRACT(n.norm[OFFSET(1)], ${pathLocaleExtract}), NULL)
+                                                                    AS localeTag,
     IF(n.surface = 'backend', n.functionName, NULL)                 AS keyFunctionName,
     IF(n.surface = 'external', n.apiName, NULL)                     AS keyApiName,
     IF(n.surface = 'external', NULLIF(n.norm[OFFSET(4)], ''), NULL) AS keyEndpoint,
@@ -449,7 +493,9 @@ grouped AS (
     ARRAY_AGG(STRUCT(
       TIMESTAMP_TRUNC(ingestedAt, HOUR) AS hourUtc,
       createdCommitId                   AS sha,
-      createdAppVersion                 AS appVersion
+      createdAppVersion                 AS appVersion,
+      -- fpalgo 2: 剥がしたロケール。NULL は「ロケール接頭辞が無かった」（'/store' 等）
+      localeTag                         AS locale
     ))                                                AS samples
   FROM keyed
   WHERE excludedReason IS NULL
@@ -543,6 +589,14 @@ SELECT TO_JSON_STRING(STRUCT(
     SELECT ARRAY_AGG(b.appVersion ORDER BY b.appVersion LIMIT 5)
     FROM (SELECT DISTINCT s.appVersion AS appVersion FROM UNNEST(g.samples) AS s WHERE s.appVersion IS NOT NULL) AS b
   )                      AS appVersions,
+  -- fpalgo 2: 剥がしたロケールの内訳。**pathName から消した情報をここへ移す**。
+  -- 用途は2つ: (1) Issue 本文に「どのロケールで何件」を残す（1ロケールだけなら別物の可能性がある）
+  --            (2) 旧 fingerprint（fpalgo 1）を復元して既存 Issue と突合する（移行）
+  -- locale が NULL の要素は「ロケール接頭辞が無かった」を意味する（frontend 以外は常に NULL）。
+  (
+    SELECT ARRAY_AGG(STRUCT(b.locale AS locale, b.n AS \`count\`) ORDER BY b.n DESC, b.locale LIMIT ${LOCALE_BREAKDOWN_LIMIT})
+    FROM (SELECT s.locale AS locale, COUNT(*) AS n FROM UNNEST(g.samples) AS s GROUP BY s.locale) AS b
+  )                      AS localeCounts,
   g.representativeCommit AS representativeCommit
 )) AS triageRow
 FROM limited g
@@ -583,5 +637,6 @@ module.exports = Object.freeze({
 	toRawStringLiteral,
 	toStringLiteral,
 	buildNormalizeExpression,
+	buildPathLocaleExpression,
 	generateErrorTriageSql,
 });

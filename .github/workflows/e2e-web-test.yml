@@ -5,8 +5,25 @@ name: E2E Web Test
 # - dev 環境の静的ビルド(EAS の development 環境変数を焼き込み)をローカル配信し、
 #   Cloud Run api-development に接続してテストする(ローカル実行と同一構成)
 # - Tier 3 (@mutation) は dev DB へ書き込むため CI では実行しない(手動実行のみ)
+# - 手動実行では UI カタログ(全画面のスクリーンショット + 画面一覧)も収集できる
 on:
   workflow_dispatch:
+    inputs:
+      run_e2e_tests:
+        description: "Tier 1 + 2 の Playwright テストを実行する"
+        required: false
+        default: true
+        type: boolean
+      capture_ui_catalog:
+        description: "UI カタログ(全画面のスクリーンショットと画面一覧)を収集して Artifact に上げる"
+        required: false
+        default: false
+        type: boolean
+      capture_review_flow:
+        description: "UI カタログにレビュー投稿フロー(店舗詳細/投稿フォーム/レビュー詳細)を含める ※dev DB へ書き込む"
+        required: false
+        default: false
+        type: boolean
   schedule:
     # 毎日 JST 3:00(UTC 18:00)に実行
     - cron: "0 18 * * *"
@@ -20,7 +37,8 @@ jobs:
   e2e-web:
     name: Playwright E2E (development)
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # UI カタログ収集(手動実行時のみ)を含めても収まる長さにしてある
+    timeout-minutes: 45
 
     steps:
       - name: ⏬ Checkout repository
@@ -84,8 +102,12 @@ jobs:
       # 既定値は「CDN へ到達できない端末が使う値」なので、乖離するとその端末だけ挙動が変わり、
       # かつリポジトリ内からは検知できない（テストの期待値も実装と同じ手書き値の複製のため、
       # 両方が同時に間違っていても緑になる）。実物と突き合わせられるのは CI だけなのでここで守る。
-      # 上の env:pull で app-expo/.env が出来ているため CDN の URL を組み立てられる。
-      # 環境変数が無い環境では skip して成功扱いになるが、skip したことは必ず出力される。
+      # このゲートは 2 段構え（#1116）。
+      #   4-1: remoteConfigSchema のキー集合 ≡ DEFAULT_REMOTE_CONFIG のキー集合。
+      #        env にも CDN の到達性にも依存しないため、どの環境でも必ず実行される。
+      #   4-2: schema 既知キーの値を実際の config.json と突き合わせる。EAS の env と CDN 到達性が要る。
+      #        この job では上の env:pull で app-expo/.env が出来ているので 4-2 も実行される。
+      # env が無い環境（ローカル等）で skip されるのは 4-2 だけであり、skip した旨は必ず出力される。
       - name: 🔎 Assert Remote Config defaults are not drifted
         run: pnpm --filter app-expo assert:remote-config-defaults
 
@@ -95,11 +117,51 @@ jobs:
 
       # Tier 1 + 2 を全プロジェクトで実行(@mutation は playwright.config.ts の grepInvert で除外済み)
       # TEST_USER_* 未設定の場合、authenticated 系は自動スキップされる(テスト側の skip 条件)
+      # 定期実行では inputs が空になるため、workflow_dispatch 以外では常に実行する
       - name: 🧪 Run Playwright tests (Tier 1 + 2)
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.run_e2e_tests }}
         run: pnpm --filter e2e-web test
         env:
           TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
           TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+
+      # 📸 UI カタログ: 全画面を巡回してスクリーンショットを撮る(@catalog)
+      # - 検証ではなく収集が目的。到達できない画面があっても失敗させず、一覧に「未取得」として残す
+      #   (詳細は e2e-web/tests/catalog/ui-catalog.spec.ts のコメント)
+      # - 上のテストが落ちてもカタログは取れる(ビルド成果物は出来ている)ため always() で実行する
+      - name: 📸 Capture UI catalog screenshots
+        if: ${{ always() && github.event_name == 'workflow_dispatch' && inputs.capture_ui_catalog }}
+        # 収集の失敗は「その画面が未取得」として次のステップの一覧に必ず出るため、
+        # ここで run を赤くしない(赤くすると撮れた分の Artifact 公開まで巻き添えで止まる)
+        continue-on-error: true
+        run: pnpm --filter e2e-web ${{ inputs.capture_review_flow && 'test:catalog:all' || 'test:catalog' }}
+        env:
+          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+
+      # スクリーンショットと画面定義(catalog/screens.json)を突き合わせて一覧を生成する
+      - name: 📋 Generate UI catalog document
+        if: ${{ always() && github.event_name == 'workflow_dispatch' && inputs.capture_ui_catalog }}
+        run: |
+          pnpm catalog:doc
+          {
+            echo "## UI catalog"
+            echo
+            cat e2e-web/screenshots/UI_CATALOG.md
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # evidence-collect.yml がこの Artifact を GCS へ公開する(公開 URL はファイル名がそのまま画面名になる)
+      - name: 📤 Upload UI catalog artifact
+        if: ${{ always() && github.event_name == 'workflow_dispatch' && inputs.capture_ui_catalog }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-catalog-screenshots
+          path: |
+            e2e-web/screenshots/**/*.png
+            e2e-web/screenshots/UI_CATALOG.md
+            e2e-web/screenshots/ui-catalog.json
+          if-no-files-found: error
+          retention-days: 14
 
       # 動画・スクリーンショット・トレース付きの HTML レポートを保存する
       # (ダウンロード後に `npx playwright show-report <展開先>` で閲覧)
