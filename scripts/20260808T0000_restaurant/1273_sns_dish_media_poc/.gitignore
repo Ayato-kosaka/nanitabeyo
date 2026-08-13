@@ -16,3 +16,4 @@ out/idea_verification/*.err
 out/idea_verification/_*
 out/idea_verification/verify.py
 out/idea_verification/verify_results.json
+out/*.log
