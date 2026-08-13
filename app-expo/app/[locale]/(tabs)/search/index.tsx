@@ -472,6 +472,11 @@ export default function SearchScreen() {
 				// ドラッグで閉じられるようにして脱出路を用意する（iOS の Detox が
 				// `threshold (75)` で 4 回連続落ちて判明。Android は adjustResize のため無症状だった）。
 				// `keyboardShouldPersistTaps="always"` とは併用可能で、サジェストのタップは従来どおり通る。
+				//
+				// 補足: `LocationAutocomplete` のサジェスト / 最近使った場所は `isFocused` で出し分けているため、
+				// ここでキーボードを閉じるとパネルも閉じる。ただし閉じるのは **このフォームをドラッグしたとき**だけで、
+				// パネル自身は内側に own ScrollView を持っている（keyboardShouldPersistTaps="handled"）ので、
+				// 候補一覧をスクロールして読む操作では閉じない。
 				keyboardDismissMode="on-drag"
 				showsVerticalScrollIndicator={false}>
 				{/* Location Input */}
