@@ -49,6 +49,16 @@ QUERIES_PER_DAY_CONSERVATIVE = 6_400  # 800クエリ/セッション × 3時間�
 
 SEARCH_DEPTH_DEFAULT = 20  # ytsearch20 相当。1クエリが返す動画スロット数
 
+# #1279 【実測 2026-08-13】measure_supply_ceiling.py による S の実測値
+# (Overture母集団789,612件から層化600件、yt-dlp、エラー0件)。
+# S_RAW は店名がタイトル/チャンネル名に出現しただけの緩い判定。
+# S_BRANCH は #1273 §23 に従い、チェーン店(同名が2件以上)は地名の裏取りが取れた場合のみ
+# 採用し、施設列挙型タイトルを除いたもの。dish_media は支店単位で必要なので S_BRANCH が実効値。
+S_MEASURED_RAW = 0.265
+S_MEASURED_BRANCH = 0.179
+# depth 5->20 の再試行で追加回収できたのは miss の 3.3% のみ。探索深さは律速ではない。
+S_DEPTH_RECOVERY = 0.033
+
 # #1273 【仕様】検索クエリに使える「地名の語彙」の粒度。Route Bのクエリ本数はここで決まる。
 AREA_TIERS = [
     ("都道府県", 47),
@@ -251,6 +261,9 @@ def supply_ceiling_breakeven() -> dict:
     R_eff: 供給が存在する店舗のうち、掃引のtop-Dに実際に浮上して逆引きできる割合
     R_eff <= 1 なので coverage <= S。したがって60%目標は S >= 0.60 を必要条件として要求する。
     """
+    # 探索深さ不足で取りこぼしていた分を戻した上限側の推定
+    s_branch_depth_adjusted = S_MEASURED_BRANCH + (1 - S_MEASURED_BRANCH) * S_DEPTH_RECOVERY
+    s_raw_depth_adjusted = S_MEASURED_RAW + (1 - S_MEASURED_RAW) * S_DEPTH_RECOVERY
     return {
         "model": "coverage = S(supply ceiling) x R_eff(retrieval efficiency)",
         "r_eff_upper_bound": 1.0,
@@ -259,6 +272,15 @@ def supply_ceiling_breakeven() -> dict:
             "R_eff<=1 のため coverage<=S。60%目標は『日本の飲食店の60%以上が、"
             "店名を識別できる形のYouTube動画を1本以上持つ』ことを必要条件として要求する。"
         ),
+        "measured": {
+            "s_raw": S_MEASURED_RAW,
+            "s_branch_resolvable": S_MEASURED_BRANCH,
+            "s_raw_depth_adjusted": s_raw_depth_adjusted,
+            "s_branch_depth_adjusted": s_branch_depth_adjusted,
+            "verdict_60pct": "到達不可能（必要条件 S>=0.60 を満たさない）",
+            "max_reachable_coverage": s_branch_depth_adjusted,
+            "restaurants_reachable_at_perfect_retrieval": round(789_612 * s_branch_depth_adjusted),
+        },
         # S を仮定した場合の到達可能カバレッジ（R_eff は掃引設計で決まる係数）
         "scenarios": [
             {
@@ -351,6 +373,15 @@ def render_markdown(result: dict) -> str:
     sc = result["supply_ceiling"]
     add(f"`{sc['model']}`\n")
     add(f"{sc['note']}\n")
+    ms = sc["measured"]
+    add("### 実測値（measure_supply_ceiling.py, 2026-08-13, n=600, エラー0）\n")
+    add(f"- S(生, 店名がタイトル/チャンネル名に出現) = **{ms['s_raw']:.1%}**")
+    add(f"- S(支店確定可能, #1273 §23準拠) = **{ms['s_branch_resolvable']:.1%}**")
+    add(f"- 探索深さ補正後(depth5→20の再試行で回収できたのはmissの3.3%のみ) = "
+        f"**{ms['s_branch_depth_adjusted']:.1%}**")
+    add(f"- したがって到達可能カバレッジの上限 = {ms['max_reachable_coverage']:.1%} "
+        f"(= 約 {ms['restaurants_reachable_at_perfect_retrieval']:,} 店)")
+    add(f"- 60%目標: **{ms['verdict_60pct']}**\n")
     add("| 供給上限 S | R_eff=100% | R_eff=70% | R_eff=40% | 完全retrievalでも60%到達 |")
     add("|---:|---:|---:|---:|---|")
     for s in sc["scenarios"]:
