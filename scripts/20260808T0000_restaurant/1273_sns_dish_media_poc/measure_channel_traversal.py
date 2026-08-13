@@ -94,6 +94,8 @@ class NameMatcher:
         freq_ja: collections.Counter = collections.Counter()
         freq_la: collections.Counter = collections.Counter()
         self.original: dict[str, str] = {}
+        # #1273 §22 【設計】地名の裏取りに使う。名前が一意な行しか辞書に残さないので1対1で持てる。
+        self.area: dict[str, tuple[str, str]] = {}
         rows = 0
         with (FIXTURES / "overture_jp_food.csv").open(encoding="utf-8") as fh:
             for r in csv.DictReader(fh):
@@ -108,6 +110,8 @@ class NameMatcher:
                     key = normalize_latin(name).strip()
                     freq_la[key] += 1
                 self.original.setdefault(key, name)
+                self.area.setdefault(key, (normalize_ja(r.get("locality") or ""),
+                                           normalize_ja(r.get("region") or "")))
 
         stop_ja = {normalize_ja(s) for s in STOPWORD_NAMES}
         stop_la = {normalize_latin(s).strip() for s in STOPWORD_NAMES}
@@ -131,20 +135,41 @@ class NameMatcher:
               f"ラテン名 {self.n_la:,} (>={MIN_NAME_LEN_LATIN}字, 語境界必須)", file=sys.stderr)
 
     def match(self, text: str) -> set[str]:
+        """店名の生一致だけを返す（地名の裏取りは match_corroborated で課す）。"""
         hits: set[str] = set()
         tja = normalize_ja(text)
         if tja:
             hits |= {found for _, found in self.auto_ja.iter(tja)}
             # 「麺屋武蔵」と「麺屋武」が両方辞書にある場合、包含される短い方を落とす
             hits = {h for h in hits if not any(h != o and h in o for o in hits)}
-        tla = normalize_latin(text)
-        if tla.strip():
-            for end, found in self.auto_la.iter(tla):
+        # #1273 【バグ】複数語のラテン名が句読点をまたいで一致してしまう
+        # （"Mother Coffee" が "mother!? [Coffee shops" に一致）。句読点で区切った
+        # セグメント単位でしか一致させないことで防ぐ。
+        for segment in re.split(r"[^0-9a-z]{2,}|[\[\]()（）【】!！?？,、。:：]", normalize_latin(text)):
+            seg = " " + segment.strip() + " "
+            if len(seg) <= 2:
+                continue
+            for end, found in self.auto_la.iter(seg):
                 start = end - len(found) + 1
-                # 語境界の検査。normalize_latin は前後を空白で囲んであるので範囲外参照は起きない
-                if tla[start - 1] == " " and tla[end + 1] == " ":
+                if seg[start - 1] == " " and seg[end + 1] == " ":
                     hits.add(found)
         return hits
+
+    def match_corroborated(self, text: str) -> set[str]:
+        """店名一致に加えて、その店の locality か region が同じテキストに出ることを要求する。
+
+        # #1273 §22 【設計】店名だけの一致は「Value」「Bento」「ブレンド」「四天王寺」のような
+        # 一般語・地名が店名になっている場合に偽陽性を量産する（実測 precision 30〜40%）。
+        # S の実測が信頼できたのは地名の裏取りを課していたためで、同じ規律をここでも課す。
+        # 取りこぼし（地名を書かない動画）は出るが、そちらは下限側に倒れるので許容する。
+        """
+        tja = normalize_ja(text)
+        out = set()
+        for key in self.match(text):
+            loc, region = self.area.get(key, ("", ""))
+            if (loc and loc in tja) or (region and region in tja):
+                out.add(key)
+        return out
 
 
 def yt_json(target: str, extra: list[str], timeout: int) -> tuple[dict | None, str | None]:
@@ -207,7 +232,7 @@ def main() -> None:
         row["found"] = [
             {"channel_id": e["channel_id"], "channel": e["channel"], "names": sorted(names)}
             for e in row["entries"]
-            if e.get("channel_id") and (names := matcher.match(e.get("title") or ""))
+            if e.get("channel_id") and (names := matcher.match_corroborated(e.get("title") or ""))
         ]
 
     channels: dict[str, dict] = {}
@@ -244,7 +269,7 @@ def main() -> None:
     for c in raw_channels:
         found: dict[str, list[str]] = {}
         for v in c["videos"]:
-            for n in matcher.match(v.get("title") or ""):
+            for n in matcher.match_corroborated(v.get("title") or ""):
                 found.setdefault(n, []).append(v.get("id"))
         ch_rows.append({
             "channel_id": c["channel_id"], "channel": c["channel"],
