@@ -181,3 +181,98 @@ restaurant_external_ids (
 - **UX の劣化幅**: place_id が無い店で Google Maps を開いたときのピン精度。座標クエリでの実測を Step 1 で確認したい
 - **`address_components` / `image_url` の必須制約**: REPORT §4 が指摘するとおり、これらも Place Details 前提の必須列である。`google_place_id` と同じ理由で見直し対象になる（open data 由来行は `address_components` を空配列、`image_url` を空文字で埋めており、実質的に制約が形骸化している）
 - **列を残すか外部IDテーブルへ全面移行するか**: Step 3 完了時点で再判断する
+
+---
+
+# 付録A: `google_place_id` の登録経路と参照箇所（棚卸し）
+
+## A-1. 登録（書き込み）経路
+
+`restaurants` 行を作る関数は実質 **`dishes.repository.ts:49 createOrGetRestaurant`（`upsert where: { google_place_id }`）** と **`9_1_sync_restaurants.py` の生SQL** の2つだけである。前者を呼ぶ経路が2つあるため、書き込み経路は計3系統になる。
+
+### (1) `POST /v1/restaurants` — ユーザーが Google の地点を選んだとき
+
+| 段 | 実装 |
+|---|---|
+| 入口A: 地図の POI 押下 | `app-expo/app/[locale]/(tabs)/map.tsx:172` `event.nativeEvent.placeId` → `createAndOpenRestaurant` |
+| 入口B: レビュー投稿の店選択で POI 押下 | `.../review/selectRestaurant.tsx:126` |
+| 入口C: 店名オートコンプリートの候補選択 | `.../review/selectRestaurant.tsx:390` `prediction.place_id`（`locations.service.ts:522` `callPlacesAutocomplete` → `:529` `place_id`） |
+| API | `restaurants.controller.ts` `POST /v1/restaurants` → `restaurants.service.ts:375-` `createRestaurant` |
+| 既存チェック | `:378` `findRestaurantByGooglePlaceId` |
+| Google 呼び出し | `:110` `callPlaceDetails`（言語判定 `addressComponents,types`）→ `:177` `callPlaceDetails`（`id,displayName,location,addressComponents,plusCode,photos`）→ **課金SKU** |
+| 書き込み | `:255` `google_place_id: googlePlaceId` → `:274` `createOrGetRestaurant` |
+
+**この経路の place_id は Google 由来で 100% 確定**（#1261 Step 3 の「需要駆動」に相当）。
+
+### (2) `POST /v1/dishes/bulk-import` — DB に結果が無いときの Google 補完
+
+| 段 | 実装 |
+|---|---|
+| 入口 | `app-expo/lib/dishMediaSearch.ts:78-` `dish-media/search` が0件のときだけ実行 |
+| Google 呼び出し | `dishes.service.ts:148` `locationsService.searchRestaurants` → Text Search |
+| place_id 取得 | `dishes.service.ts:195` `places[].id` / `:459` `google_place_id: place.id!` |
+| 実際のDB書き込み | Cloud Tasks 経由の非同期ジョブ `internal/dishes/create-dish-media-entry.service.ts:259` `createOrGetRestaurant(tx, ..., payload.restaurants.google_place_id)` |
+
+### (3) 店提案パイプライン `9_1_sync_restaurants.py`（BigQuery catalog → PostgreSQL）
+
+| 段 | 実装 |
+|---|---|
+| 既存PG値の引き継ぎ | `3_1_seed_existing_google_place_ids.py`（検索せず confidence 1.0 で移植） |
+| 逆引き | `3_2_search_google_place_ids.py`（Text Search IDs Only を seed ごとに複数回、FieldMask は `places.id` 固定） |
+| 採否判定 | `3_3_build_google_place_match_catalog.py` + `restaurant_google_place_match_overrides`（人手修正） |
+| publish gate | `3_4_build_restaurant_catalog.py:82` `AND m.google_place_id IS NOT NULL` ← **確定できなかった約40%はここで落ちる** |
+| 挿入 | `9_1:198-212` `INSERT ... ON CONFLICT (google_place_id) DO NOTHING` |
+| 既存行の place_id 変更 | `9_1:169-176` `match_method = 'manual_override'` のときだけ UPDATE。`validate_staging`（`:130-160`）が暗黙変更と衝突を事前に止める |
+
+補足: `1_2_import_existing_pg_restaurants.py:50` は逆方向（PG → BigQuery raw）の読み出しで、書き込みではない。
+
+### 現状の含意
+
+アプリからの登録経路 (1)(2) は**いずれも Google から place_id を受け取ることが起点**になっており、place_id 無しで `restaurants` 行を作る経路は存在しない。open data 由来の (3) だけが唯一の非 Google 経路だが、`3_4` の gate により結局 place_id 必須になっている。
+
+## A-2. 参照（読み取り）箇所
+
+### (a) 同一性キー / 重複排除 — NULL 化で最も影響を受ける
+
+| 箇所 | 用途 |
+|---|---|
+| `dishes.repository.ts:57` `upsert where: { google_place_id }` | 全書き込みの冪等キー |
+| `restaurants.repository.ts:296-300` `findRestaurantByGooglePlaceId` | `GET /v1/restaurants/by-google-place-id` と `POST /v1/restaurants` の既存判定 |
+| `app-expo/lib/dishMediaSearch.ts:103` | DB 結果と Google import 結果のフロント側 dedupe |
+| `9_1:120 / 212 / 233 / 252` | 同期の join key と `ON CONFLICT` |
+| `8_1_validate_catalogs.py:209 / 214` | catalog の place_id 一意性検証 |
+
+### (b) Google import の冪等性 — Google 由来経路のみ、NULL 化の影響なし
+
+| 箇所 | 用途 |
+|---|---|
+| `dishes.repository.ts:147` `findReusableGoogleImportDishMediaByPlaceIdsAndCategory` | `place_id IN (...)` で再利用可能な media を探す |
+| `dishes/deterministic-id.ts:70` `buildGoogleImportDishMediaId` | place_id + category_id から **UUID v5 で `dish_media.id` を導出**。`media_path` もここから決まる |
+
+### (c) 外部リンク（UX）
+
+| 箇所 | 用途 |
+|---|---|
+| `app-expo/lib/googlePlaces.ts:632` `getGoogleMapsLink` | `query_place_id=` で Google Maps を開く |
+| 呼び出し元: `useDishMediaActions.ts:47`（地図ピン押下）、`SelectedRestaurantDetails.tsx:127` | |
+
+### (d) ストレージのキー
+
+| 箇所 | 用途 |
+|---|---|
+| `restaurants.service.ts:233` `storage.uploadFile({ identifier: googlePlaceId })` | 店舗画像の GCS パスに place_id が含まれる |
+
+### (e) 表示・ログ・単なる列の受け渡し
+
+- `DishMediaMap.tsx:376` marker の React key
+- ログ payload: `map.tsx:159`、`selectRestaurant.tsx:113`、`SelectedRestaurantDetails.tsx:122/144`、`useDishMediaActions.ts:40/64`
+- SELECT 列・型変換: `restaurants.repository.ts:81/126/175/215/234`、`shared/converters/convert_restaurants.ts:17/39`、各 DTO
+- モック: `app-expo/data/searchMockData.ts`
+
+### (f) 参照していないもの（重要）
+
+- `dishes` / `dish_media` / `dish_reviews` / `reactions` / `restaurant_bids` の外部キーは**すべて `restaurants.id`（UUID）**であり、place_id には依存しない
+- 共有リンク・sitemap（`scripts/gen-sitemap.mjs`、`scripts/verify-share-link-seo.mjs`）は place_id を使わない
+- 画面遷移の URL は `restaurantId`（`selectRestaurant.tsx:395` 付近）
+
+つまり **place_id は「同一性キー」として使われているだけで、「参照キー」としては使われていない**。この非対称性が、属性へ降格しても既存データが壊れない根拠である。
