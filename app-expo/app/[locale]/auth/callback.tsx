@@ -28,6 +28,7 @@ import { useProfile } from "@/features/profile/hooks/useProfile";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { Card } from "@/components/Card";
 import { describeOAuthUrl, pickOAuthResultUrl, type OAuthUrlCandidate } from "@/lib/oauthResultUrl";
+import { toErrorLogMessage } from "@/lib/errorMessage";
 
 /**
  * router のパラメータを URL の形に載せるための器。
@@ -148,7 +149,20 @@ export default function AuthCallbackScreen() {
 					event_name: "oauth_callback_error",
 					error_level: "error",
 					payload: {
-						error: error instanceof Error ? error.message : String(error),
+						// #1249 【バグ】旧実装は `error instanceof Error ? error.message : String(error)` で、
+						// message が空の Error / plain object が来ると本文に何も残らず、
+						// 「サインインが失敗したのに理由が永久に分からない」ログが本番に出ていた。
+						// toErrorLogMessage(#1092) は message → String(error) の順に拾うので最低でも名前が残る。
+						error: toErrorLogMessage(error),
+						// #1249 【観測】message が空でも原因を辿れるよう、Supabase AuthError / ApiError が
+						// 持つ構造化フィールドを個別に残す（無ければ null）。
+						error_name: typeof err?.name === "string" ? err.name : null,
+						error_code: err?.error_code ?? err?.code ?? null,
+						status: err?.status ?? null,
+						// どのログイン動線か。兄弟ログ(oauth_callback_no_result / oauth_link_conflict)は
+						// 以前から積んでおり、ここだけ欠けていた。
+						intent: rest.intent ?? null,
+						provider: rest.provider ?? null,
 						// #1062 【設計】生の URL は code / access_token を含むため記録しない
 						source: picked.source,
 						url_shape: describeOAuthUrl(picked.url),

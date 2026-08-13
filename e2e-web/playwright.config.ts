@@ -47,6 +47,21 @@ export const STORAGE_STATE_PATH = path.resolve(__dirname, ".auth/user.json");
  */
 export const ANON_STORAGE_STATE_PATH = path.resolve(__dirname, ".auth/anon.json");
 
+/**
+ * 既定の実行から除外するタグの正規表現を組み立てる。
+ *
+ * `grepInvert` は 1 つしか指定できないため、除外したいタグが増えても
+ * 「どのタグを外したか」を見失わないようここで一括管理する。
+ *
+ * @returns 除外タグの正規表現（除外なしなら undefined）
+ */
+function buildExcludedTags(): RegExp | undefined {
+	const excluded: string[] = [];
+	if (!process.env.RUN_MUTATION) excluded.push("@mutation");
+	if (!process.env.RUN_CATALOG) excluded.push("@catalog");
+	return excluded.length > 0 ? new RegExp(excluded.join("|")) : undefined;
+}
+
 export default defineConfig({
 	testDir: "./tests",
 
@@ -65,9 +80,11 @@ export default defineConfig({
 	// HTML レポート（`pnpm report` で閲覧）+ コンソールの list 表示
 	reporter: [["html", { open: "never" }], ["list"]],
 
-	// Tier 3 (@mutation) は既定で除外し、RUN_MUTATION=1 のときだけ実行可能にする
-	// （共有 dev 環境の DB への書き込みを「意図した時だけ」に限定するための安全弁）
-	grepInvert: process.env.RUN_MUTATION ? undefined : /@mutation/,
+	// 既定では実行しないタグ。
+	// - @mutation (Tier 3): 共有 dev 環境の DB へ書き込むため「意図した時だけ」に限定する安全弁
+	// - @catalog: UI カタログ用のスクリーンショット収集。検証ではないうえ実行が重いので、
+	//   夜間 CI の Tier 1+2 とは切り離して RUN_CATALOG=1（= pnpm test:catalog）でのみ回す
+	grepInvert: buildExcludedTags(),
 
 	expect: {
 		// 実 API (Cloud Run) を叩くため、既定の 5 秒では初回リクエストやコールドスタートで不安定になる。
@@ -130,7 +147,7 @@ export default defineConfig({
 		{
 			name: "desktop-chrome",
 			use: { ...devices["Desktop Chrome"], storageState: ANON_STORAGE_STATE_PATH },
-			testIgnore: [/tests\/setup\//, /tests\/authenticated\//, /tests\/config\//],
+			testIgnore: [/tests\/setup\//, /tests\/authenticated\//, /tests\/config\//, /tests\/catalog\//],
 			dependencies: ["anon-setup"],
 		},
 
@@ -146,9 +163,25 @@ export default defineConfig({
 			dependencies: ["setup"],
 		},
 
-		// ── モバイル（@smoke のみ） ──────────────────────────────────────
-		// モバイルファーストのフードアプリのため、スマホビューポートでのレイアウト崩れ・導線破壊を検知する。
-		// 実行時間を抑えるため @smoke タグのテストのみに絞る
+		// ── UI カタログ（スクリーンショット収集） ───────────────────────
+		// 全画面のスクリーンショットを撮って catalog/screens.json の定義と突き合わせ、
+		// 画面一覧ドキュメントを生成するための専用プロジェクト（@catalog タグで既定除外）。
+		// 匿名 / ログイン済みで見える画面が異なるため、storageState 違いの 2 本に分けている。
+		{
+			name: "ui-catalog",
+			use: { ...devices["Desktop Chrome"], storageState: ANON_STORAGE_STATE_PATH },
+			testMatch: /tests\/catalog\/ui-catalog\.spec\.ts/,
+			dependencies: ["anon-setup"],
+		},
+		{
+			name: "ui-catalog-authenticated",
+			use: { ...devices["Desktop Chrome"], storageState: STORAGE_STATE_PATH },
+			// ログイン済みの収集（ui-catalog-authenticated）と、そこからしか到達できない
+			// レビュー投稿フロー（ui-catalog-mutation。@mutation で既定は除外）の 2 本
+			testMatch: /tests\/catalog\/ui-catalog-(authenticated|mutation)\.spec\.ts/,
+			dependencies: ["setup"],
+		},
+
 		{
 			name: "mobile-chrome",
 			use: { ...devices["Pixel 7"], storageState: ANON_STORAGE_STATE_PATH },

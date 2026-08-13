@@ -313,7 +313,7 @@
 		"hiddenMessage": "{{title}}を非表示にしました",
 		"BlockTopicModal": {
 			"title": "この料理をブロックしますか？",
-			"description": "ブロックした料理トピックは、今後おすすめに表示されません。",
+			"description": "ブロックした料理カテゴリは、今後おすすめに表示されません。",
 			"note": "設定画面からいつでも解除できます。",
 			"confirm": "ブロックする"
 		},
@@ -714,14 +714,14 @@
 		"logoutConfirmTitle": "ログアウトしますか？",
 		"logoutConfirmMessage": "再度ログインするまで、投稿やレビューの管理ができなくなります。",
 		"blockedTopics": {
-			"navigationLabel": "ブロック済みの料理トピック",
-			"pageTitle": "ブロック済みの料理トピック",
+			"navigationLabel": "ブロック済みの料理カテゴリ",
+			"pageTitle": "ブロック済みの料理カテゴリ",
 			"title": "ブロックしている料理",
 			"empty": "ブロックしている料理はありません",
 			"loading": "読み込み中...",
 			"unblockButton": "ブロックを解除",
 			"unblockTitle": "ブロックを解除しますか？",
-			"unblockMessage": "この料理トピックをおすすめ対象に戻します。",
+			"unblockMessage": "この料理カテゴリをおすすめ対象に戻します。",
 			"unblockConfirm": "解除する",
 			"unblocked": "ブロックを解除しました"
 		}

@@ -5,7 +5,7 @@
  * 最後の候補まで到達したら完了モーダルへ送り、送信完了まではこの画面内で完結させる。
  */
 import { router } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AccessibilityInfo, SafeAreaView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import type { SubmitDishCategoryGroupVoteDto } from "@shared/api/v1/dto";
 import type { DishCategoryGroupVoteReaction } from "@shared/api/v1/res";
@@ -47,6 +47,21 @@ export function DishCategoryGroupVoteVoteScreen({ shareToken }: Props) {
 	const [index, setIndex] = useState(0);
 	const [votes, setVotes] = useState<DishCategoryGroupVoteDraftVote[]>([]);
 	const [isSubmitting, setIsSubmitting] = useState(false);
+	/**
+	 * #1205 【修正】投票送信の多重実行を防ぐ同期ガード。
+	 *
+	 * `isSubmitting`（useState）は完了モーダルのボタンを disabled にする表示用途で、
+	 * 多重実行の判定には使えない。React が再レンダリングをコミットする前に 2 発目が
+	 * 処理されると、両方が `isSubmitting === false` を読んで通過しうる。
+	 *
+	 * サーバは `ConflictException('Already voted')` で二重登録自体は防ぐが、
+	 * **1 発目が成功して `router.replace` した直後に 2 発目が 409 で返ってくる**ため、
+	 * 結果画面の上に「送信に失敗しました」のスナックバーが出る。
+	 * 投票は成功しているのに失敗表示になる、いちばん紛らわしい壊れ方になる。
+	 *
+	 * 解除は finally の 1 箇所（成功・失敗のどちらでも通る）。
+	 */
+	const isSubmittingRef = useRef(false);
 
 	const voteCandidates = useMemo(() => {
 		// #856 【設計】投票開始時点の未削除候補だけを対象にする。
@@ -103,6 +118,11 @@ export function DishCategoryGroupVoteVoteScreen({ shareToken }: Props) {
 	};
 
 	const handleSubmit = async ({ displayName, comment }: { displayName: string; comment?: string }) => {
+		// #1205 多重実行の判定は ref で行う（宣言箇所のコメント参照）。
+		// ここより後に submitVote / router.replace を書くこと
+		if (isSubmittingRef.current) return;
+		isSubmittingRef.current = true;
+
 		const dto: SubmitDishCategoryGroupVoteDto = {
 			displayName,
 			comment,
@@ -138,6 +158,8 @@ export function DishCategoryGroupVoteVoteScreen({ shareToken }: Props) {
 			});
 			showSnackbar(i18n.t("DishCategoryGroupVotes.submitFailed"));
 		} finally {
+			// #1205 送信失敗後も押し直せるよう、成功・失敗のいずれでも必ず解除する
+			isSubmittingRef.current = false;
 			setIsSubmitting(false);
 		}
 	};
