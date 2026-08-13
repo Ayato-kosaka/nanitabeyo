@@ -201,6 +201,59 @@ def with_geo_gate(
     return wrapped
 
 
+def rule_layered_v2(seed: Seed, probes: Mapping[str, SearchResult]) -> Decision:
+    """候補集合に正解が入っているのに条件が硬くて落としている行を拾う。
+
+    ラベル付きデータで「未確定だが正解が候補に含まれる」34件の内訳を見ると、
+    取りこぼしは3種類に分かれた。層はその内訳に対応して足してある。
+    各層の精度はラベルで個別に測り、100%に届かない層は採用しない前提で並べている。
+    """
+
+    failure = _preflight(seed, probes)
+    if failure:
+        return failure
+    a, b = _ids(probes, PROBE_A), _ids(probes, PROBE_B)
+    c = _ids(probes, PROBE_C)
+    wide = set(c) | set(_ids(probes, PROBE_C_WIDE))
+    if not a and not b:
+        return Decision(STATUS_UNMATCHED, None, GEO_INCONCLUSIVE, "empty_result")
+
+    common = [place_id for place_id in a if place_id in set(b)]
+
+    # 既存の層。狭い矩形の中で A と B が合意している。
+    if len(common) == 1 and common[0] in c:
+        return _matched(common[0], probes, "layer1_intersection_in_box")
+    if a and b and a[0] == b[0] and a[0] in c:
+        return _matched(a[0], probes, "layer2_top1_in_box")
+
+    # 新1: A と B の共通集合が複数でも、狭い矩形に居るものが1件なら決まる。
+    # 「共通集合がちょうど1件」という条件は、候補が増えるほど成立しにくくなる。
+    # 矩形が地理を保証しているので、共通集合の中から矩形内を選べば十分である。
+    common_in_box = [place_id for place_id in common if place_id in c]
+    if len(common_in_box) == 1:
+        return _matched(common_in_box[0], probes, "v2_common_in_box")
+
+    # 新2: A に正解が出てこない行がある（住所クエリBのほうが当たる場合）。
+    # B と狭い矩形の共通集合が1件なら、座標とテキストの両方が支持している。
+    b_in_box = [place_id for place_id in b if place_id in c]
+    if len(b_in_box) == 1:
+        return _matched(b_in_box[0], probes, "v2_b_in_box")
+
+    # 新3: 狭い矩形が空でも、広い矩形の中で A と B の最上位が一致していれば拾う。
+    # Overture の座標が数十〜250m ずれている行を救う。
+    if a and b and a[0] == b[0] and a[0] in wide:
+        return _matched(a[0], probes, "v2_top1_in_wide_box")
+
+    # 新4: 広い矩形の中で A と B の共通集合が1件。
+    common_in_wide = [place_id for place_id in common if place_id in wide]
+    if len(common_in_wide) == 1:
+        return _matched(common_in_wide[0], probes, "v2_common_in_wide_box")
+
+    if not c:
+        return Decision(STATUS_AMBIGUOUS, None, GEO_ABSENT, "no_candidate_in_box")
+    return Decision(STATUS_AMBIGUOUS, None, GEO_INCONCLUSIVE, "no_layer_satisfied")
+
+
 def rule_layered_strict(seed: Seed, probes: Mapping[str, SearchResult]) -> Decision:
     """``rule_layered`` から層3を外した、最も誤りに強い運用ルール。
 
@@ -278,6 +331,7 @@ RULES: dict[str, Callable[[Seed, Mapping[str, SearchResult]], Decision]] = {
     "intersection_unique_geo_hard": with_geo_gate(rule_intersection_unique, require_confirmed=True),
     "layered": rule_layered,
     "layered_strict": rule_layered_strict,
+    "layered_v2": rule_layered_v2,
     "layered_strict_wide": rule_layered_strict_wide,
     # 計測の再現用に残すが、負例での誤マッチ率が高く CSV 出力には使わない。
     "layered_wide": rule_layered_wide,
@@ -295,5 +349,6 @@ EXPORT_SAFE_RULES = frozenset(
         "layered",
         "layered_strict",
         "layered_strict_wide",
+        "layered_v2",
     }
 )
