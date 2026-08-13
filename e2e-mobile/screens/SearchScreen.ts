@@ -655,6 +655,28 @@ export class SearchScreen {
 	 *
 	 * @param maxPages ページ送りの上限（無限ループ防止。現在のページ数は 4）
 	 */
+	/**
+	 * チュートリアルのシートが **まだ開いているか** を返す（連打テスト用）。
+	 *
+	 * ## なぜ «閉じていること» を失敗にできないのか
+	 * プライマリ CTA は単一ボタンで、最終ページでは「はじめよう」へ変わる。
+	 * ページは 4 枚しかないので `multiTap(3)` の 3 回目が
+	 * **最終ページの「はじめよう」に当たり得る**。その場合チュートリアルはその場で完了して閉じる。
+	 * つまり «連打後にシートが閉じている» のは **アプリが壊れた結果ではなく正常な結末**である。
+	 *
+	 * これを考慮せずに「連打後も CTA が見えていること」を要求すると、
+	 * アプリは正しいのに 25 秒のタイムアウトで落ちる（run 31684453333 の iOS で実測）。
+	 * 連打テストが守りたいのは「連打でシートやアプリが壊れないこと」なので、
+	 * 開いたままなら描画の健全性（CTA がちょうど一方だけ）を、閉じていれば
+	 * 検索画面が操作できることを見る、という 2 択にする。
+	 */
+	async tutorialStillOpen(): Promise<boolean> {
+		return (
+			(await visibleNow(this.tutorialNextButton, 3_000, SearchScreen.TUTORIAL_INDEX)) ||
+			(await visibleNow(this.tutorialFinishButton, 3_000, SearchScreen.TUTORIAL_INDEX))
+		);
+	}
+
 	async completeTutorial(maxPages = 10): Promise<void> {
 		await waitUntil(
 			async () =>
