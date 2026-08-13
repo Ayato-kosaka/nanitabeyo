@@ -63,6 +63,20 @@ class BillingGuardError(RuntimeError):
     """無料SKUを外れた可能性を検知したときに送出する。処理は継続しない。"""
 
 
+class DailyQuotaExhausted(RuntimeError):
+    """1日あたりのリクエスト上限に当たったときに送出する。
+
+    課金ではなく回数の上限である（IDs Only SKU は $0.00 のままで、
+    places.googleapis.com の SearchTextRequestPerDayPerProject が効く）。
+    日付が変わるまで回復しないので、再試行せずに実行ごと止める。
+    """
+
+
+# 429 の本文に含まれる、1日上限であることを示す文字列。
+# 分あたりの上限（こちらは待てば回復する）と区別するために本文を見る。
+DAILY_QUOTA_MARKER = "PerDayPerProject"
+
+
 @dataclass(frozen=True)
 class SearchResult:
     """1回の検索の結果。place_id 以外は保持しない。"""
@@ -89,6 +103,8 @@ class RateLimiter:
     qps: float
     max_penalty_seconds: float = 0.2
     successes_before_recovery: int = 25
+    # 予約が現在時刻からどれだけ先まで伸びてよいかの上限。
+    max_lookahead_seconds: float = 5.0
     _lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
     _next_at: float = 0.0
     _penalty: float = 0.0
@@ -96,10 +112,20 @@ class RateLimiter:
     _throttle_events: int = 0
 
     def acquire(self) -> None:
+        """次に送ってよい時刻まで待つ。
+
+        予約時刻 ``_next_at`` は acquire のたびに interval だけ先へ進む。上限を
+        設けないと、要求が interval より速く来る限り予約が未来へ伸び続け、
+        全スレッドが数分の sleep に入って実行が止まる（実際に12スレッドで
+        3分以上完了0になった）。現在時刻からの先読みを頭打ちにして、
+        遅れは切り捨てる。捨てた分だけ送信間隔は詰まるが、429 は penalize が
+        受け止めるので、止まるより速く回復する。
+        """
+
         with self._lock:
             interval = 1.0 / max(self.qps, 0.01) + self._penalty
             now = time.monotonic()
-            start = max(now, self._next_at)
+            start = min(max(now, self._next_at), now + self.max_lookahead_seconds)
             self._next_at = start + interval
         delay = start - time.monotonic()
         if delay > 0:
@@ -207,6 +233,11 @@ class FreePlacesClient:
                 status = int(error.code)
                 message = error.read(4096).decode("utf-8", errors="replace")
                 if status == 429:
+                    # 1日あたりの上限に当たった場合は、待っても今日は回復しない。
+                    # 再試行を重ねても 429 を積むだけで、どのスレッドも進まなくなる
+                    # （実測で全8スレッドが完了0のまま数分止まった）。即座に止める。
+                    if DAILY_QUOTA_MARKER in message:
+                        raise DailyQuotaExhausted(message[:2000])
                     self._rate_limiter.penalize()
                 if status not in RETRYABLE_STATUS or attempt >= self._max_retries:
                     with self._counter_lock:

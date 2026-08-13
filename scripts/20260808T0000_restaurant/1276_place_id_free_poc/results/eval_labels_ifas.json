@@ -1,0 +1,31 @@
+{
+  "labelled_seeds": 2000,
+  "recall_ceiling": 0.006,
+  "rules": {
+    "box_unique": {
+      "matched": 12,
+      "match_rate": 0.006,
+      "correct": 12,
+      "wrong": 0,
+      "precision": 1.0,
+      "precision_95_lower": 0.757506,
+      "layers": {
+        "tight_unique_in_ab": {
+          "matched": 9,
+          "correct": 9,
+          "wrong": 0,
+          "precision": 1.0,
+          "precision_95_lower": 0.700855
+        },
+        "wide_unique_in_ab": {
+          "matched": 3,
+          "correct": 3,
+          "wrong": 0,
+          "precision": 1.0,
+          "precision_95_lower": 0.438503
+        }
+      },
+      "mistakes": []
+    }
+  }
+}

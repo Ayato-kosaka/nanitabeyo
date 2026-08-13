@@ -3,11 +3,20 @@
 
 from __future__ import annotations
 
+import io
+import json
+import time
 import unittest
+import urllib.error
+import urllib.request
+from unittest import mock
 
 import http.client
 
 from free_places import (
+    DailyQuotaExhausted,
+    FreePlacesClient,
+    RateLimiter,
     ALLOWED_PLACE_KEYS,
     DETAILS_FIELD_MASK,
     FIELD_MASK,
@@ -440,6 +449,72 @@ class BoxUniqueRuleTest(unittest.TestCase):
     def test_registered_as_export_safe(self) -> None:
         self.assertIn("box_unique", RULES)
         self.assertIn("box_unique", EXPORT_SAFE_RULES)
+
+
+
+
+class RateLimiterLookaheadTest(unittest.TestCase):
+    """予約が未来へ伸び続けないことを固定する。
+
+    上限が無いと、要求が interval より速く来る限り _next_at が伸び続け、
+    全スレッドが数分の sleep に入って実行が止まる。実際に12スレッドの実行が
+    3分以上完了0になった。
+    """
+
+    def test_reservation_does_not_run_away(self) -> None:
+        limiter = RateLimiter(qps=1.0, max_lookahead_seconds=2.0)
+        # sleep せずに予約だけを進める（acquire は待つので、内部状態を直接見る）。
+        start = time.monotonic()
+        for _ in range(100):
+            with limiter._lock:
+                interval = 1.0 / limiter.qps + limiter._penalty
+                now = time.monotonic()
+                begin = min(max(now, limiter._next_at), now + limiter.max_lookahead_seconds)
+                limiter._next_at = begin + interval
+        # 100回まわしても、予約は現在時刻 + 先読み上限 + interval を超えない。
+        self.assertLessEqual(limiter._next_at - time.monotonic(), 2.0 + 1.0 + 0.5)
+        self.assertLess(time.monotonic() - start, 1.0)
+
+    def test_spacing_is_still_applied(self) -> None:
+        limiter = RateLimiter(qps=50.0)
+        began = time.monotonic()
+        for _ in range(5):
+            limiter.acquire()
+        self.assertGreater(time.monotonic() - began, 0.05)
+
+
+class DailyQuotaTest(unittest.TestCase):
+    """1日上限の 429 は再試行せずに止める。
+
+    待っても日付が変わるまで回復しないので、再試行を重ねると 429 を積むだけで
+    全スレッドが完了0のまま止まる。実測でその状態に陥ったので固定する。
+    """
+
+    def _client_raising(self, body: str):
+        client = FreePlacesClient("k", rate_limiter=RateLimiter(qps=1000.0))
+
+        def fake_open(request, timeout=None):
+            raise urllib.error.HTTPError(
+                "https://places.googleapis.com", 429, "Too Many Requests", {},
+                io.BytesIO(body.encode("utf-8")),
+            )
+
+        return client, fake_open
+
+    def test_per_day_quota_stops_the_run(self) -> None:
+        body = json.dumps({"error": {"message": "Quota exceeded ... SearchTextRequestPerDayPerProject"}})
+        client, fake_open = self._client_raising(body)
+        with mock.patch("urllib.request.urlopen", fake_open):
+            with self.assertRaises(DailyQuotaExhausted):
+                client.search_text({"textQuery": "x"})
+
+    def test_per_minute_quota_is_retried(self) -> None:
+        body = json.dumps({"error": {"message": "Quota exceeded ... SearchTextRequestPerMinute"}})
+        client, fake_open = self._client_raising(body)
+        client._max_retries = 0
+        with mock.patch("urllib.request.urlopen", fake_open):
+            result = client.search_text({"textQuery": "x"})
+        self.assertEqual(result.http_status, 429)
 
 
 if __name__ == "__main__":
