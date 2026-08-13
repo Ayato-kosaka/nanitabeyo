@@ -56,7 +56,7 @@ def normalize(value: str, *, drop_brackets: bool = True) -> str:
     括弧の中こそが相手と一致する側である。呼び出し側で両方を試す。
     """
 
-    text = unicodedata.normalize("NFKC", value or "").lower()
+    text = unicodedata.normalize("NFKC", value or "").lower().translate(OLD_KANJI)
     if drop_brackets:
         text = BRACKETS.sub("", text)
     text = SEPARATORS.sub("", text)
@@ -248,3 +248,107 @@ def similarity(left: str, right: str) -> float:
             scores.append(_containment(core_left, core_right) * 0.95)
 
     return max(scores)
+
+
+# 旧字体と異体字。店名は看板の表記をそのまま入れるので、同じ店でも
+# `長壽庵` と `長寿庵`、`そば處` と `そば処` のように割れる。
+OLD_KANJI = str.maketrans({
+    "壽": "寿", "處": "処", "與": "与", "萬": "万", "澤": "沢", "齋": "斎", "齊": "斉",
+    "邊": "辺", "邉": "辺", "櫻": "桜", "淺": "浅", "藏": "蔵", "驛": "駅", "廣": "広",
+    "國": "国", "圓": "円", "會": "会", "學": "学", "體": "体", "醫": "医", "區": "区",
+    "濱": "浜", "嶋": "島", "槇": "牧", "瀨": "瀬", "籠": "篭", "菴": "庵", "龍": "竜",
+    "藝": "芸", "禮": "礼", "德": "徳", "髙": "高", "﨑": "崎", "曻": "昇",
+})
+
+# カタカナ -> ローマ字。外来語の店名は `ソルティシュガー` と `Salty Sugar` のように
+# 両方の表記で流通する。読みを介さないと同じ店だと分からない。
+KANA_ROMAJI = {
+    "キャ": "kya", "キュ": "kyu", "キョ": "kyo", "シャ": "sha", "シュ": "shu", "ショ": "sho",
+    "チャ": "cha", "チュ": "chu", "チョ": "cho", "ニャ": "nya", "ニュ": "nyu", "ニョ": "nyo",
+    "ヒャ": "hya", "ヒュ": "hyu", "ヒョ": "hyo", "ミャ": "mya", "ミュ": "myu", "ミョ": "myo",
+    "リャ": "rya", "リュ": "ryu", "リョ": "ryo", "ギャ": "gya", "ギュ": "gyu", "ギョ": "gyo",
+    "ジャ": "ja", "ジュ": "ju", "ジョ": "jo", "ビャ": "bya", "ビュ": "byu", "ビョ": "byo",
+    "ピャ": "pya", "ピュ": "pyu", "ピョ": "pyo", "ファ": "fa", "フィ": "fi", "フェ": "fe",
+    "フォ": "fo", "ヴァ": "va", "ヴィ": "vi", "ヴェ": "ve", "ヴォ": "vo", "ティ": "ti",
+    "ディ": "di", "デュ": "du", "ウィ": "wi", "ウェ": "we", "ウォ": "wo", "ツァ": "tsa",
+    "ツィ": "tsi", "ツェ": "tse", "ツォ": "tso", "シェ": "she", "ジェ": "je", "チェ": "che",
+    "ア": "a", "イ": "i", "ウ": "u", "エ": "e", "オ": "o",
+    "カ": "ka", "キ": "ki", "ク": "ku", "ケ": "ke", "コ": "ko",
+    "サ": "sa", "シ": "shi", "ス": "su", "セ": "se", "ソ": "so",
+    "タ": "ta", "チ": "chi", "ツ": "tsu", "テ": "te", "ト": "to",
+    "ナ": "na", "ニ": "ni", "ヌ": "nu", "ネ": "ne", "ノ": "no",
+    "ハ": "ha", "ヒ": "hi", "フ": "fu", "ヘ": "he", "ホ": "ho",
+    "マ": "ma", "ミ": "mi", "ム": "mu", "メ": "me", "モ": "mo",
+    "ヤ": "ya", "ユ": "yu", "ヨ": "yo",
+    "ラ": "ra", "リ": "ri", "ル": "ru", "レ": "re", "ロ": "ro",
+    "ワ": "wa", "ヲ": "o", "ン": "n",
+    "ガ": "ga", "ギ": "gi", "グ": "gu", "ゲ": "ge", "ゴ": "go",
+    "ザ": "za", "ジ": "ji", "ズ": "zu", "ゼ": "ze", "ゾ": "zo",
+    "ダ": "da", "ヂ": "ji", "ヅ": "zu", "デ": "de", "ド": "do",
+    "バ": "ba", "ビ": "bi", "ブ": "bu", "ベ": "be", "ボ": "bo",
+    "パ": "pa", "ピ": "pi", "プ": "pu", "ペ": "pe", "ポ": "po",
+    "ヴ": "vu", "ッ": "", "ー": "",
+}
+LATIN = re.compile(r"[a-z]")
+KATAKANA = re.compile(r"[ァ-ヴ]")
+
+
+def romanize(value: str) -> str:
+    """カタカナをローマ字へ。カタカナ以外はそのまま残す。"""
+
+    text = kana_folded(value)
+    out, index = [], 0
+    while index < len(text):
+        pair = text[index : index + 2]
+        if pair in KANA_ROMAJI:
+            out.append(KANA_ROMAJI[pair]); index += 2; continue
+        out.append(KANA_ROMAJI.get(text[index], text[index]))
+        index += 1
+    return "".join(out)
+
+
+def _skeleton(value: str) -> str:
+    """ローマ字表記の揺れを潰した骨格。
+
+    日本語を経由した外来語は母音が増減し、l と r、b と v が入れ替わる。
+    `Salty Sugar` は `ソルティシュガー`（sorutishuga）になる。母音を落として
+    l/r と b/v を寄せると、両者は同じ骨格になる。
+    """
+
+    text = "".join(character for character in value if character.isascii() and character.isalpha())
+    text = text.replace("l", "r").replace("v", "b")
+    for double in ("sh", "ch", "ts"):
+        text = text.replace(double, double[0])
+    return "".join(character for character in text if character not in "aiueoyhn")
+
+
+def latin_kana_similarity(left: str, right: str) -> float:
+    """片方がローマ字、片方がカタカナのときだけ効く比較。**採用していない。**
+
+    `ソルティシュガー` ⇔ `Salty Sugar` のような組を拾う狙いで作ったが、評価セットで
+    測ると割に合わなかった。骨格（母音を落とし l/r と b/v を寄せた形）は情報を
+    落としすぎていて、無関係な短い名前どうしが当たる。
+
+        骨格の最小長 3: 正例 +11 / 誤り +38
+        骨格の最小長 5: 正例  +7 / 誤り +16
+        骨格の最小長 6: 正例  +6 / 誤り  +7
+        骨格の最小長 8: 正例  +3 / 誤り  +2
+
+    どの設定でも利得が誤りを上回らない。`similarity` からは呼んでいない。
+    ローマ字の組を拾うには、読みを推測するのではなく Google 側に問い合わせて
+    「その名前でその place_id が返るか」を見るほうが確実である（矩形 + Text Search）。
+
+    残してあるのは、同じ案を再検討するときに測り直せるようにするためである。
+    """
+
+    folded = (kana_folded(left), kana_folded(right))
+    latin_side = [bool(LATIN.search(text)) for text in folded]
+    kana_side = [bool(KATAKANA.search(text)) for text in folded]
+    if not ((latin_side[0] and kana_side[1]) or (kana_side[0] and latin_side[1])):
+        return 0.0
+    skeletons = [_skeleton(romanize(text)) for text in folded]
+    if not all(len(skeleton) >= 3 for skeleton in skeletons):
+        return 0.0
+    ratio = difflib.SequenceMatcher(None, *skeletons).ratio()
+    # 骨格は情報を落としているので、高く一致したときだけ採る。
+    return ratio * 0.95 if ratio >= 0.8 else 0.0

@@ -45,12 +45,29 @@ def tiles(step: float) -> Iterator[tuple[float, float, float, float]]:
         latitude += step
 
 
-def build_query(bbox: tuple[float, float, float, float], timeout_seconds: int) -> str:
-    pattern = "|".join(CORE_AMENITIES)
+# パン屋・菓子店・惣菜店は amenity ではなく shop 側に付く。Google Maps には
+# これらも店として載るので、seed に入れないと取りこぼす。
+FOOD_SHOPS = (
+    "bakery", "confectionery", "pastry", "deli", "chocolate", "ice_cream",
+    "coffee", "tea", "beverages", "alcohol", "seafood", "butcher", "greengrocer",
+)
+
+
+def build_query(
+    bbox: tuple[float, float, float, float],
+    timeout_seconds: int,
+    *,
+    include_shops: bool = False,
+) -> str:
     south, west, north, east = bbox
+    amenity = "|".join(CORE_AMENITIES)
+    clauses = [f'nwr["amenity"~"^({amenity})$"]({south},{west},{north},{east});']
+    if include_shops:
+        shop = "|".join(FOOD_SHOPS)
+        clauses.append(f'nwr["shop"~"^({shop})$"]({south},{west},{north},{east});')
     return (
         f"[out:json][timeout:{timeout_seconds}];"
-        f'(nwr["amenity"~"^({pattern})$"]({south},{west},{north},{east}););'
+        f"({''.join(clauses)});"
         "out center tags;"
     )
 
@@ -103,12 +120,14 @@ class Collector:
     事前にタイル幅を決め打ちできないので、落ちたものだけ細かくする。
     """
 
-    def __init__(self, endpoint: str, cache_dir: Path, *, query_timeout: int, pause: float, max_depth: int):
+    def __init__(self, endpoint: str, cache_dir: Path, *, query_timeout: int, pause: float,
+                 max_depth: int, include_shops: bool = False):
         self._endpoint = endpoint
         self._cache_dir = cache_dir
         self._query_timeout = query_timeout
         self._pause = pause
         self._max_depth = max_depth
+        self._include_shops = include_shops
         self._lock = threading.Lock()
         self.rows: dict[str, dict[str, str]] = {}
         self.done = 0
@@ -135,7 +154,7 @@ class Collector:
         try:
             document = fetch_tile(
                 self._endpoint,
-                build_query(bbox, self._query_timeout),
+                build_query(bbox, self._query_timeout, include_shops=self._include_shops),
                 timeout=self._query_timeout + 120,
             )
         except Exception as error:  # noqa: BLE001 - 分割して取り直すため型を問わない
@@ -183,7 +202,7 @@ def element_to_row(element: dict[str, Any]) -> dict[str, str] | None:
         "locality": tags.get("addr:city") or "",
         "latitude": f"{float(latitude):.7f}",
         "longitude": f"{float(longitude):.7f}",
-        "category": tags.get("amenity") or "",
+        "category": tags.get("amenity") or tags.get("shop") or "",
         "website": tags.get("website") or tags.get("contact:website") or "",
     }
 
@@ -198,6 +217,11 @@ def main() -> int:
     parser.add_argument("--query-timeout", type=int, default=180)
     parser.add_argument("--workers", type=int, default=4, help="Overpass への同時接続数")
     parser.add_argument("--max-depth", type=int, default=3, help="重いタイルを分割する深さの上限")
+    parser.add_argument(
+        "--include-shops",
+        action="store_true",
+        help="パン屋・菓子店など shop 側の業態も取る",
+    )
     parser.add_argument(
         "--occupied-cells",
         type=Path,
@@ -226,6 +250,7 @@ def main() -> int:
         query_timeout=arguments.query_timeout,
         pause=arguments.pause_seconds,
         max_depth=arguments.max_depth,
+        include_shops=arguments.include_shops,
     )
     with ThreadPoolExecutor(max_workers=arguments.workers) as pool:
         list(pool.map(lambda bbox: collector.collect(bbox, arguments.step), boxes))
