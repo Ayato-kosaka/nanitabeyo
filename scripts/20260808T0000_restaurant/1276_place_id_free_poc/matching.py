@@ -63,9 +63,17 @@ def geo_status(place_id: str | None, probes: Mapping[str, SearchResult]) -> str:
 
     if place_id is None:
         return GEO_INCONCLUSIVE
-    result_c = probes.get(PROBE_C)
-    if result_c is not None and result_c.ok:
-        return GEO_CONFIRMED if place_id in result_c.place_ids else GEO_ABSENT
+    # ±75m を第一に見るが、送っていない実行もある。矩形はどれも同じ性質（外を
+    # 実際に切り落とす）なので、狭い方から順に、送られているものを使う。
+    for probe in (PROBE_C, PROBE_C_TIGHT, PROBE_C_WIDE):
+        result = probes.get(probe)
+        if result is not None and result.ok:
+            if place_id in result.place_ids:
+                return GEO_CONFIRMED
+            # 狭い矩形に居なくても、広い矩形には居るかもしれない。まだ断定しない。
+            if probe is not PROBE_C_WIDE and probes.get(PROBE_C_WIDE) is not None:
+                continue
+            return GEO_ABSENT
     nearby = probes.get(PROBE_NEARBY)
     if nearby is None or not nearby.ok:
         return GEO_INCONCLUSIVE

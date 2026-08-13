@@ -500,10 +500,16 @@ def command_export(arguments: argparse.Namespace) -> None:
     decisions = apply_rule(
         arguments.rule, seeds, probes, use_variant_fallback=arguments.name_variant
     )
-    # 一番厳しいルール（A/B が単一候補で一致し、かつ矩形内）でも取れた行に tier A を付ける。
-    # 突合時に「どの強さの証拠なら正しかったか」を段階で測れるようにするためである。
-    tier_a = apply_rule(
-        "strict_unique_geo_hard", seeds, probes, use_variant_fallback=arguments.name_variant
+    # 突合時に「どの強さの証拠なら正しかったか」を段階で測れるよう、確定行に tier を振る。
+    # box_unique は層そのものが証拠の強さなので、層をそのまま tier にする。それ以外の
+    # ルールでは、一番厳しいルール（A/B が単一候補で一致し、かつ矩形内）でも取れたかで見る。
+    box_unique_tiers = {"tight_unique_in_ab": "A", "wide_unique_in_ab": "B"}
+    tier_a = (
+        {}
+        if arguments.rule == "box_unique"
+        else apply_rule(
+            "strict_unique_geo_hard", seeds, probes, use_variant_fallback=arguments.name_variant
+        )
     )
     index = {seed.seed_id: seed for seed in seeds}
 
@@ -538,10 +544,14 @@ def command_export(arguments: argparse.Namespace) -> None:
                 "match_rule": arguments.rule,
                 "match_detail": decision.detail,
                 "confidence_tier": (
-                    "A"
-                    if tier_a[seed_id].status == STATUS_MATCHED
-                    and tier_a[seed_id].place_id == decision.place_id
-                    else "B"
+                    box_unique_tiers.get(decision.detail, "B")
+                    if arguments.rule == "box_unique"
+                    else (
+                        "A"
+                        if tier_a[seed_id].status == STATUS_MATCHED
+                        and tier_a[seed_id].place_id == decision.place_id
+                        else "B"
+                    )
                 ),
                 "geo_verification": decision.geo,
             }
