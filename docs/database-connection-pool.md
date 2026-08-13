@@ -19,8 +19,8 @@ API起動時に `api/src/core/config/env.ts` で検証し、`api/src/prisma/pris
 | 環境変数 | 初期値 | 許容範囲 | `pg.Pool` 設定 |
 | --- | ---: | ---: | --- |
 | `DB_POOL_MAX` | `1` | `1`〜`10` | `max` |
-| `DB_POOL_CONNECTION_TIMEOUT_MS` | `10000` | `1000`〜`60000` | `connectionTimeoutMillis` |
-| `DB_POOL_IDLE_TIMEOUT_MS` | `30000` | `1000`〜`300000` | `idleTimeoutMillis` |
+| `DB_POOL_CONNECTION_TIMEOUT_MS` | `60000` | `1000`〜`60000` | `connectionTimeoutMillis` |
+| `DB_POOL_IDLE_TIMEOUT_MS` | `300000` | `1000`〜`300000` | `idleTimeoutMillis` |
 | `DB_POOL_MAX_LIFETIME_SECONDS` | `0` | `0`〜`3600` | `maxLifetimeSeconds` |
 
 `DB_POOL_MAX_LIFETIME_SECONDS=0` は接続寿命による強制ローテーションを無効にする。変更する場合は、接続再生成の頻度とレイテンシを本番メトリクスで確認する。

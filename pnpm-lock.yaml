@@ -561,6 +561,12 @@ importers:
         specifier: ^5.4.3
         version: 5.8.3
 
+  scripts/error-triage:
+    devDependencies:
+      jest:
+        specifier: ~29.7.0
+        version: 29.7.0(@types/node@22.19.1)(ts-node@10.9.2(@swc/core@1.15.3)(@types/node@22.19.1)(typescript@5.8.3))
+
   shared:
     devDependencies:
       '@types/json2csv':

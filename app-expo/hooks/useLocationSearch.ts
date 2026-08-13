@@ -25,6 +25,8 @@ import type {
 } from "@shared/api/v1/res";
 import { SearchParams } from "@/types/search";
 import i18n from "@/lib/i18n";
+// #1196 【設計】address は推薦 API の地域ゲート照合キーなので、生成・検証を 1 箇所に集約する
+import { buildAddressFromGeocodedAddress, isCanonicalAddress } from "@/lib/addressFormat";
 
 // #931 【設計】地点候補検索の状態を明示的に分離する。
 // "debouncing" は呼び出し元(LocationAutocomplete)がデバウンス待機中に採用する値で、
@@ -276,12 +278,18 @@ export const useLocationSearch = () => {
 						},
 					});
 
+					// #1196 【修正】ここで組み立てる address は表示用ではなく、料理カテゴリ推薦 API が
+					// 地域ゲートの照合に使う機械可読なトークン列である(表示は locationQuery が担当する)。
+					// 旧実装は expo の逆ジオコーディング結果の `city`(= "大阪市")をそのまま入れていたため、
+					// サーバ側で `region:大阪市` となりホワイトリスト(`region:country:JP`)に当たらず候補0件、
+					// そのまま Claude フォールバックへ落ちていた(本番で 1日 1,445件 / 204ユーザー)。
+					// buildAddressFromGeocodedAddress で "country:JP, ..." の正規形式へ組み立て直す。
 					let address = `${i18n.t("Search.currentLocation")} (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`;
 					try {
 						const results = await Location.reverseGeocodeAsync({ latitude, longitude });
 						if (results && results.length > 0) {
 							const r = results[0];
-							address = r.city || address;
+							address = buildAddressFromGeocodedAddress(r) || address;
 						}
 					} catch {
 						logFrontendEvent({
@@ -297,11 +305,22 @@ export const useLocationSearch = () => {
 						localLanguageCode: locale.split("-")[0],
 					};
 
-					// Cache the fallback result
-					currentLocationCache.current = {
-						...fallbackResult,
-						timestamp: now,
-					};
+					// #1196 【設計】正規形式を作れなかった場合(国コードが取れない / expo も失敗)は
+					// キャッシュしない。5分間 TTL のキャッシュに壊れた address が載ると、その間の検索が
+					// すべて Claude フォールバックへ落ちて課金と失敗を増やすため、次回は再度バックエンドを試す。
+					// 併せて warn ログを残し、この経路が本番でどれだけ踏まれているかを検知できるようにする。
+					if (isCanonicalAddress(address)) {
+						currentLocationCache.current = {
+							...fallbackResult,
+							timestamp: now,
+						};
+					} else {
+						logFrontendEvent({
+							event_name: "current_location_address_format_degraded",
+							error_level: "warn",
+							payload: { latitude, longitude, address },
+						});
+					}
 
 					return fallbackResult;
 				}
