@@ -48,6 +48,62 @@ async function readAccessToken(page: Page): Promise<string> {
 	return token;
 }
 
+/** 検索の中心。dev にデータが集まっている都心を固定で使う（東京駅） */
+const SEARCH_LOCATION = "35.681236,139.767125";
+/** 検索半径 (m)。狭すぎると 0 件になり、広すぎても API が重くなるだけ */
+const SEARCH_RADIUS = 5000;
+/** 推薦 API へ渡す住所トークン（QueryDishCategoryRecommendationsDto の doc コメントに準拠） */
+const SEED_ADDRESS = "country:JP, administrative_area_level_1:Tokyo, locality:Tokyo";
+
+/**
+ * 実在する dish_media を 1 件探す。
+ *
+ * ⚠️ ID をハードコードしないこと。dev DB の中身は入れ替わるため、
+ * 固定 ID は「ある日突然 404 で落ちる」テストになる。
+ */
+async function findAnyDishMediaId(request: APIRequestContext, headers: Record<string, string>): Promise<string> {
+	const recommendationsUrl = new URL(`${apiBase()}/v1/dish-categories/recommendations`);
+	recommendationsUrl.searchParams.set("address", SEED_ADDRESS);
+	recommendationsUrl.searchParams.set("languageTag", "ja-JP");
+	recommendationsUrl.searchParams.set("localLanguageCode", "ja");
+
+	const recommendations = await request.get(recommendationsUrl.toString(), { headers });
+	if (!recommendations.ok()) {
+		throw new Error(`料理カテゴリの推薦取得に失敗しました: ${recommendations.status()}`);
+	}
+	const recommendationsBody = (await recommendations.json()) as { data?: { categoryId?: string }[] };
+	const categoryIds = (recommendationsBody.data ?? [])
+		.map((item) => item.categoryId)
+		.filter((id): id is string => typeof id === "string" && id.length > 0)
+		.slice(0, 5);
+
+	const tried: string[] = [];
+	for (const categoryId of categoryIds) {
+		const searchUrl = new URL(`${apiBase()}/v1/dish-media/search`);
+		searchUrl.searchParams.set("location", SEARCH_LOCATION);
+		searchUrl.searchParams.set("radius", String(SEARCH_RADIUS));
+		searchUrl.searchParams.set("categoryId", categoryId);
+		searchUrl.searchParams.set("limit", "1");
+
+		const response = await request.get(searchUrl.toString(), { headers });
+		if (!response.ok()) {
+			tried.push(`${categoryId}: status=${response.status()}`);
+			continue;
+		}
+		const id = extractFirstDishMediaId(await response.json());
+		if (id) return id;
+		tried.push(`${categoryId}: 0 件`);
+	}
+
+	throw new Error(
+		[
+			"共有リンクの対象にできる dish_media が見つかりませんでした（前提条件の不足であってバグではない）。",
+			`  検索: location=${SEARCH_LOCATION} radius=${SEARCH_RADIUS}`,
+			...tried.map((line) => `  - ${line}`),
+		].join("\n"),
+	);
+}
+
 /**
  * 実在する dish_media を 1 件拾って共有リンクを作る。
  *
@@ -68,20 +124,16 @@ export async function createShareLinkViaApi(
 
 	// 検索結果から実在する dish_media を 1 件拾う。
 	// 画面操作で取ると、チュートリアルや位置情報の許可など本題と無関係な理由で落ちる
-	const searchResponse = await request.get(`${apiBase()}/v1/dish-media?limit=1`, { headers });
-	if (!searchResponse.ok()) {
-		throw new Error(`dish_media の取得に失敗しました: ${searchResponse.status()}`);
-	}
-	const searchBody = (await searchResponse.json()) as {
-		data?: { data?: Array<{ dish_media?: { id?: string }; id?: string }> } | Array<{ id?: string }>;
-	};
-	const dishMediaId = extractFirstDishMediaId(searchBody);
-	if (!dishMediaId) {
-		throw new Error(
-			"dev の dish_media が 0 件のため共有リンクを作れません（前提条件の不足であってバグではない）",
-		);
-	}
-
+	//
+	// ⚠️ `GET /v1/dish-media?limit=1` を使わないこと。**必ず 400 になる**。
+	// あちらは «ids 指定の取得» 専用で `QueryDishMediaByIdsDto.ids` が必須（api の dish-media.controller）。
+	// 一覧は `GET /v1/dish-media/search` で、`location` / `radius` / `categoryId` が必須。
+	// 実際 e2e-mobile 側で同じ呼び方をして 400 を踏んだ（run 31489515281）。
+	//
+	// `categoryId` は `dish_categories` が RLS ポリシー未定義で supabase から読めないため、
+	// 推薦 API（アプリの検索画面と同じ経路）から取る。カテゴリによっては 0 件になりうるので
+	// 上位いくつかを順に試す。
+	const dishMediaId = await findAnyDishMediaId(request, headers);
 	const createResponse = await request.post(`${apiBase()}/v1/share-links`, {
 		headers,
 		data: { target: { type: "dish_media", params: { ids: [dishMediaId] } }, locale: "ja-JP" },

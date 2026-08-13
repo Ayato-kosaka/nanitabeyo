@@ -3,7 +3,7 @@ import * as path from "node:path";
 import { createClient } from "@supabase/supabase-js";
 import * as dotenv from "dotenv";
 
-import { readSessionFromEnv } from "./sessionEnv";
+import { ensureFreshSession } from "./freshSession";
 
 /**
  * 🍽 「テストユーザーが料理カテゴリを 1 件以上保存している」という前提を **テスト自身が作る**（#1133）
@@ -192,7 +192,8 @@ export async function fetchDishCategoryIds(accessToken: string, max = 5): Promis
  *         「保存が 0 件」と同じ分かりにくい失敗になるだけなので、ここで止める
  */
 export async function ensureSavedDishCategory(): Promise<SeededDishCategory> {
-	const session = readSessionFromEnv("authenticated");
+	// 鮮度保証つきで読む（iOS の長時間 run で期限切れ 401 になった。utils/freshSession.ts）
+	const session = await ensureFreshSession("authenticated");
 	if (!session) {
 		throw new Error(
 			"認証済みセッションが確立されていません。TEST_USER_EMAIL / TEST_USER_PASSWORD を設定してください（describeAuthenticated で skip されるはずの経路です）。",

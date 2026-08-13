@@ -451,38 +451,49 @@ export class SearchScreen {
 	 *
 	 * ⚠️ **まず先頭へ戻すこと。** `scrollUntilVisible` は «下方向» にしか送らないので、
 	 * 既に詳細条件より下まで進んでいる状態から呼ぶと永久に届かない。
-	 * iOS の Detox がここで落ちて分かった: 直前の地点入力でソフトキーボードが出たまま
-	 * 画面下半分を覆っており、かつ画面は詳細条件の内側まで下がっていた
-	 * （`Unable to scroll down ... does not pass visibility percent threshold (75)`）。
-	 * 先頭へ戻せば、キーボードが残っていてもトグルは上半分に来る。
+	 *
+	 * ## ここで 4 連続で赤くなった本当の理由（テストではなくアプリの不具合だった）
+	 * iOS で `Unable to scroll down ... does not pass visibility percent threshold (75)` が
+	 * 出続けた（run 31607285195 / 31624910689 / 31644130515 / 31675500414）。
+	 * 「スクロールが足りない」ではなく **どこまでスクロールしても届かない**状態だった:
+	 *
+	 * - 詳細条件トグルは検索フォームの **最後の要素**で、その下は 100px の余白と検索 FAB しかない
+	 * - つまりトグルが到達できる一番上の位置でも、画面の下から 150px 程度のところまでしか上がらない
+	 * - iOS のキーボードは画面に **覆いかぶさる**（Android の adjustResize と違い画面が縮まない）ので、
+	 *   下半分が潰れている間はトグルが可視領域に入る «スクロール量が存在しない»
+	 *
+	 * これは E2E だけの話ではなく、実ユーザーも同じ壁に当たる。現在地の取得に失敗すると
+	 * `LocationAutocomplete` が手入力へ誘導するため自動で `focus()` する（#932）ので、
+	 * 「自分では何も触っていないのに詳細条件が押せない」という詰みが起きていた。
+	 * 直したのはアプリ側（search/index.tsx に `keyboardDismissMode="on-drag"`）で、
+	 * ドラッグすればキーボードが閉じる = スクロールすれば必ず届くようになった。
 	 */
 	async openAdvancedFilters(): Promise<void> {
-		await this.dismissKeyboardIfPresent();
-		await element(this.scrollView).scrollTo("top");
-		await this.scrollUntilVisible(this.advancedToggle);
-		await tapWhenVisible(this.advancedToggle);
-	}
-
-	/**
-	 * 地点入力にフォーカスが残っていたら外して、ソフトキーボードを閉じる。
-	 *
-	 * ⚠️ **これを省くと `scrollUntilVisible` が «届かない» 形で落ちる。**
-	 * iOS ではキーボードが画面の下半分を占有するため、目的の要素がその領域を
-	 * 通過する瞬間しか画面に入らず、Detox の「面積の 75% 以上が可視」判定を
-	 * 永久に満たせない（`Unable to scroll down ... threshold (75)`）。
-	 * スクロール方向や開始位置の問題に見えるが、原因はキーボードである。
-	 * 実際 `scrollTo("top")` を足しただけでは直らず、失敗時スクリーンショットで確定した。
-	 *
-	 * 閉じる手段は Detox に無いので、フォーカスされている入力の Return を叩く。
-	 * キーボードが出ていない場合に備えて存在チェックしてから行い、失敗は握り潰す
-	 * （閉じられなかったこと自体を赤くしても、後続の本来の失敗が読めなくなるだけ）。
-	 */
-	private async dismissKeyboardIfPresent(): Promise<void> {
-		if (!(await existsNow(this.locationInput))) return;
-		try {
-			await element(this.locationInput).tapReturnKey();
-		} catch {
-			// 閉じられなくても後続の検証は試す
+		// アプリ側の `keyboardDismissMode="on-drag"` により、下の `scrollTo` / `scroll` が
+		// そのままキーボードを閉じる。それでも明示的に閉じておくのは、
+		// **キーボードが «あとから開き直る»** ため（現在地取得の失敗は非同期に来る。#932）。
+		// 「閉じる → スクロールして探す」を 1 回だけやると、その間に開き直されて詰む可能性が残る。
+		const ATTEMPTS = 3;
+		for (let attempt = 1; attempt <= ATTEMPTS; attempt += 1) {
+			await element(this.scrollView).scrollTo("top");
+			await this.dismissKeyboard();
+			try {
+				await this.scrollUntilVisible(this.advancedToggle);
+				await tapWhenVisible(this.advancedToggle);
+				return;
+			} catch (error) {
+				if (attempt === ATTEMPTS) {
+					throw new Error(
+						[
+							`詳細条件トグル（search-advanced-toggle）を ${ATTEMPTS} 回試しても押せませんでした。`,
+							"  ソフトキーボードがトグルを覆っている可能性が高いです（iOS では画面下半分を占有します）。",
+							"  トグルはフォームの最後の要素なので、覆われている間は «届くスクロール量が存在しません»。",
+							"  アプリ側の search/index.tsx から keyboardDismissMode が消えていないか確認してください。",
+							`  元の失敗: ${error instanceof Error ? error.message : String(error)}`,
+						].join("\n"),
+					);
+				}
+			}
 		}
 	}
 
@@ -535,6 +546,29 @@ export class SearchScreen {
 	 * チュートリアルが自動表示されていることを検証する。
 	 * ja-JP かつ未視聴（AsyncStorage の `search_tutorial_seen_v1` が未設定）のときだけ成立する。
 	 */
+	/**
+	 * ヘルプボタン（?）からチュートリアルを **明示的に** 開く。
+	 *
+	 * ## なぜ「起動引数のシード + 自動表示」に頼らない経路が要るのか
+	 * 自動表示は `isFocused && !isLoading && hasSeenTutorial === false` が揃った **マウント 1 回きり**で、
+	 * しかも `hasSeenTutorial` は起動引数のシード → AsyncStorage の順で決まる。
+	 * つまり «開くための前提» が多く、spec の途中で 2 度目を開こうとすると条件が揃わないことがある。
+	 * 実際 iOS で `tutorialSeen: false` を渡して起動し直しても開かず、2 分待って落ちた
+	 *（run 31677355367。失敗時スクリーンショットは «チュートリアルの無い検索画面» で、
+	 *  シートが出ていないことまでは確定。なぜシードが効かなかったかは未特定）。
+	 *
+	 * ヘルプボタンの `onPress` は `setShowTutorial(true)` を直接呼ぶだけで、
+	 * 視聴済みフラグにも once ガードにも依存しない。**実ユーザーの導線**でもあるため、
+	 * 「開いた状態を作る」ことが目的の検証はこちらを使う方が素直で安定する。
+	 *
+	 * ⚠️ 「初回起動で自動表示される」こと自体の検証は **1 本目のテストの責務**。
+	 * こちらへ寄せ替えて自動表示の検証まで失わないこと。
+	 */
+	async openTutorialFromHelp(): Promise<void> {
+		await tapWhenVisible(this.helpButton);
+		await this.expectTutorialShown();
+	}
+
 	async expectTutorialShown(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
 		// #1027 観測点は overlay ではなく **1 ページ目の「つぎへ」ボタン**にする。
 		// overlay は「シートの内容を包むだけの View」で面積や重なりの扱いがプラットフォームで揺れ、

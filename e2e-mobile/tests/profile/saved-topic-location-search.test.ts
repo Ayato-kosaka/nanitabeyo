@@ -58,14 +58,14 @@ import { ensureSavedDishCategory } from "../../utils/savedDishCategory";
  */
 describeAuthenticated("保存した料理カテゴリからの地点検索", () => {
 	/**
-	 * 保存した料理カテゴリタブへの直リンク。
+	 * マイページへの直リンク。
 	 *
-	 * マイページのタブバー（ProfileTabsBar）は「グループ」単位の testID しか持っておらず、
-	 * グループ内の個別タブを Detox から名指しで押せない。`ProfileTabsLayout` は
-	 * クエリ `?tab=` を `initialTabName` へ渡して該当タブで開く実装なので、
-	 * 実装済みの経路にそのまま乗る（#1031 B4 のディープリンク方針）。
+	 * ⚠️ `?tab=saved-topics` は付けない。**iOS では効かず先頭タブのまま着地する**ため
+	 * （失敗時スクリーンショットで確認。`useGlobalSearchParams` の併用でも直らなかった）。
+	 * タブの切り替えは Screen Object が実 UI（タブバー）で行う（`openSavedTopicsTab`）。
+	 * `?tab=` 自体の不具合はこの spec の対象外で、別途追う必要がある。
 	 */
-	const savedTopicsDeepLink = localeDeepLink("profile?tab=saved-topics");
+	const profileDeepLink = localeDeepLink("profile");
 
 	// 推薦 API はスコアリング + 翻訳を挟むため、既定の 120s では足りないことがある。
 	// ⚠️ 入れた行は消さない（後始末を «しない» のが正しい理由は utils/savedDishCategory.ts の冒頭）
@@ -89,7 +89,7 @@ describeAuthenticated("保存した料理カテゴリからの地点検索", () 
 	it("カードを押すと地点検索モーダルが開き、現在地ボタンがある", async () => {
 		const modal = new SavedTopicLocationSearchScreen();
 
-		await launchAppWithSession({ as: "authenticated", url: savedTopicsDeepLink });
+		await launchAppWithSession({ as: "authenticated", url: profileDeepLink });
 
 		await modal.openLocationSearchFromFirstTopic();
 
@@ -123,7 +123,7 @@ describeAuthenticated("保存した料理カテゴリからの地点検索", () 
 		// 未完了のリクエストの間は次の操作をブロックするため、この直後の遷移は完了後に走る
 		await search.selectLocationSuggestion(0);
 
-		await launchAppWithSession({ as: "authenticated", url: savedTopicsDeepLink });
+		await launchAppWithSession({ as: "authenticated", url: profileDeepLink });
 		await modal.openLocationSearchFromFirstTopic();
 		await modal.focusLocationInput();
 
