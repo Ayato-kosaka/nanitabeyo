@@ -222,7 +222,23 @@ release/1.13 → release/1.12（ここでnative neutralization）
 
 各段でPRを作り、`--no-ff`のmerge commitで統合する。古いreleaseほど、さらに前のreleaseで既に除外済みのネイティブ機能（過去のneutralization commit）がブランチ側に残っているため、modify/delete conflictが出る。**その競合はdelete側（＝過去に除外した判断）を維持する**のが既定で、sourceがそのファイルを実質的に変更している場合だけ再判断する。
 
-各段のマージ後に、version、runtimeVersion、ネイティブ入力差分を**毎回**取り直す。1本前がsafeでも次がsafeとは限らない。
+各段のマージ後に、version、runtimeVersion、ネイティブ入力差分を**毎回**取り直す。1本前がsafeでも次がsafeとは限らない。次を毎段の確認項目にする。
+
+- app versionとruntimeVersionが対象releaseの値のままか
+- `app-expo/package.json`の**dependenciesに差が無い**か（scriptsだけの差は無害として記録する）
+- 過去のneutralizationで除外したファイルが復活していないか（例: `app-expo/hooks/useScreenTrace*`、`app-expo/lib/e2e/`）
+- `app.config.*`に、対象バイナリへ入っていないconfig plugin（例: `@react-native-firebase/*`）が戻っていないか
+
+#### テストが「除外した機能」を掴んでいることがある
+
+新しいreleaseから流れてきたテストが、neutralizationで除外したmoduleを`jest.mock`していて、suiteごと`Could not locate module`で落ちる。
+
+**まずproductionコードが同じmoduleを参照していないかをgrepで確定させる。**
+
+- productionが参照している → **bundleが壊れる**。neutralizationの範囲が誤っているので、除外セットから見直す。
+- 参照が`jest.mock`の行だけ → bundleは安全。**mock行だけを外し、テスト本体は残す**。除外した機能とは無関係な回帰テスト（レイアウトや並び順など）まで消さない。
+
+どちらの結論でも、判断の根拠にしたgrep結果をPRへ書く。
 
 ### 最小バックポート
 

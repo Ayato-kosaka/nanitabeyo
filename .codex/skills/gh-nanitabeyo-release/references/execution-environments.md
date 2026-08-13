@@ -47,6 +47,28 @@ git fetch --unshallow --prune origin
 
 MCPを使う場合も、スキル本体の不変ルール（並列実行しない、失敗時は後続停止、Actions greenを外部systemの成功と言い換えない）はそのまま適用する。
 
+### ⚠️ MCPでmergeしたcommitはlocalに存在しない
+
+`merge_pull_request`はGitHub側でmerge commitを作るだけで、**localのrefは一切動かない**。カスケードのように「前段のmerge commitを次段でmergeする」流れでは、次のmergeの前に必ず`git fetch --prune origin`を実行する。
+
+忘れると`git merge <SHA>`が次で落ちる。
+
+```text
+merge: <SHA> - not something we can merge
+```
+
+**このエラーを握り潰さない。** `git merge ... >/dev/null 2>&1`のように出力を捨てると、mergeが起きていないのにHEADが動いていないだけの状態で先へ進み、**「差分ゼロだから安全」という誤った監査結果**になる。実際に1段分がno-opのまま「競合なし・ネイティブ差分なし」と読み違えた。
+
+各段のmerge後は、HEADが対象releaseのSHAから**動いていること**を必ず確認する。
+
+```bash
+git fetch --prune origin
+git merge --no-ff --no-edit "$SOURCE_SHA"     # 出力を捨てない
+[ "$(git rev-parse HEAD)" != "$(git rev-parse "origin/release/$TARGET")" ] || {
+  echo "mergeが起きていない"; exit 1;
+}
+```
+
 ## 3. GitHub MCP の応答サイズ
 
 次の呼び出しは応答が巨大になり、そのままでは読めずファイルへ退避される。
