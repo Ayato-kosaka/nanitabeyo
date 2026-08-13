@@ -1,0 +1,727 @@
+{
+  "labelled_seeds": 2541,
+  "with_candidate": 2535,
+  "candidate_correct": 2527,
+  "by_origin": {
+    "tight_unique": {
+      "n": 2327,
+      "correct": 2325,
+      "precision": 0.9991,
+      "precision_lower": 0.9969
+    },
+    "ab_in_box": {
+      "n": 168,
+      "correct": 165,
+      "precision": 0.9821,
+      "precision_lower": 0.9488
+    },
+    "ab_only": {
+      "n": 32,
+      "correct": 30,
+      "precision": 0.9375,
+      "precision_lower": 0.7985
+    },
+    "ab_top1": {
+      "n": 5,
+      "correct": 5,
+      "precision": 1.0,
+      "precision_lower": 0.5655
+    },
+    "b_in_box": {
+      "n": 2,
+      "correct": 2,
+      "precision": 1.0,
+      "precision_lower": 0.3424
+    },
+    "a_in_box": {
+      "n": 1,
+      "correct": 0,
+      "precision": 0.0,
+      "precision_lower": 0.0
+    }
+  },
+  "gates": [
+    {
+      "features": [
+        "has_address"
+      ],
+      "origin": null,
+      "n": 2535,
+      "correct": 2527,
+      "precision": 0.99684,
+      "precision_lower": 0.99378
+    },
+    {
+      "features": [
+        "in_b"
+      ],
+      "origin": null,
+      "n": 2531,
+      "correct": 2525,
+      "precision": 0.99763,
+      "precision_lower": 0.99484
+    },
+    {
+      "features": [
+        "has_address",
+        "in_b"
+      ],
+      "origin": null,
+      "n": 2531,
+      "correct": 2525,
+      "precision": 0.99763,
+      "precision_lower": 0.99484
+    },
+    {
+      "features": [
+        "top1_b"
+      ],
+      "origin": null,
+      "n": 2525,
+      "correct": 2520,
+      "precision": 0.99802,
+      "precision_lower": 0.99537
+    },
+    {
+      "features": [
+        "in_b",
+        "top1_b"
+      ],
+      "origin": null,
+      "n": 2525,
+      "correct": 2520,
+      "precision": 0.99802,
+      "precision_lower": 0.99537
+    },
+    {
+      "features": [
+        "has_address",
+        "top1_b"
+      ],
+      "origin": null,
+      "n": 2525,
+      "correct": 2520,
+      "precision": 0.99802,
+      "precision_lower": 0.99537
+    },
+    {
+      "features": [
+        "has_address",
+        "in_b",
+        "top1_b"
+      ],
+      "origin": null,
+      "n": 2525,
+      "correct": 2520,
+      "precision": 0.99802,
+      "precision_lower": 0.99537
+    },
+    {
+      "features": [
+        "in_a"
+      ],
+      "origin": null,
+      "n": 2521,
+      "correct": 2513,
+      "precision": 0.99683,
+      "precision_lower": 0.99375
+    },
+    {
+      "features": [
+        "has_address",
+        "in_a"
+      ],
+      "origin": null,
+      "n": 2521,
+      "correct": 2513,
+      "precision": 0.99683,
+      "precision_lower": 0.99375
+    },
+    {
+      "features": [
+        "in_a",
+        "in_b"
+      ],
+      "origin": null,
+      "n": 2517,
+      "correct": 2511,
+      "precision": 0.99762,
+      "precision_lower": 0.99481
+    },
+    {
+      "features": [
+        "has_address",
+        "in_a",
+        "in_b"
+      ],
+      "origin": null,
+      "n": 2517,
+      "correct": 2511,
+      "precision": 0.99762,
+      "precision_lower": 0.99481
+    },
+    {
+      "features": [
+        "in_w"
+      ],
+      "origin": null,
+      "n": 2516,
+      "correct": 2510,
+      "precision": 0.99762,
+      "precision_lower": 0.99481
+    },
+    {
+      "features": [
+        "has_address",
+        "in_w"
+      ],
+      "origin": null,
+      "n": 2516,
+      "correct": 2510,
+      "precision": 0.99762,
+      "precision_lower": 0.99481
+    },
+    {
+      "features": [
+        "in_b",
+        "in_w"
+      ],
+      "origin": null,
+      "n": 2512,
+      "correct": 2508,
+      "precision": 0.99841,
+      "precision_lower": 0.99591
+    },
+    {
+      "features": [
+        "has_address",
+        "in_b",
+        "in_w"
+      ],
+      "origin": null,
+      "n": 2512,
+      "correct": 2508,
+      "precision": 0.99841,
+      "precision_lower": 0.99591
+    },
+    {
+      "features": [
+        "in_a",
+        "top1_b"
+      ],
+      "origin": null,
+      "n": 2511,
+      "correct": 2506,
+      "precision": 0.99801,
+      "precision_lower": 0.99535
+    },
+    {
+      "features": [
+        "in_a",
+        "in_b",
+        "top1_b"
+      ],
+      "origin": null,
+      "n": 2511,
+      "correct": 2506,
+      "precision": 0.99801,
+      "precision_lower": 0.99535
+    },
+    {
+      "features": [
+        "has_address",
+        "in_a",
+        "top1_b"
+      ],
+      "origin": null,
+      "n": 2511,
+      "correct": 2506,
+      "precision": 0.99801,
+      "precision_lower": 0.99535
+    },
+    {
+      "features": [
+        "top1_a"
+      ],
+      "origin": null,
+      "n": 2510,
+      "correct": 2504,
+      "precision": 0.99761,
+      "precision_lower": 0.99479
+    },
+    {
+      "features": [
+        "in_a",
+        "top1_a"
+      ],
+      "origin": null,
+      "n": 2510,
+      "correct": 2504,
+      "precision": 0.99761,
+      "precision_lower": 0.99479
+    },
+    {
+      "features": [
+        "has_address",
+        "top1_a"
+      ],
+      "origin": null,
+      "n": 2510,
+      "correct": 2504,
+      "precision": 0.99761,
+      "precision_lower": 0.99479
+    },
+    {
+      "features": [
+        "has_address",
+        "in_a",
+        "top1_a"
+      ],
+      "origin": null,
+      "n": 2510,
+      "correct": 2504,
+      "precision": 0.99761,
+      "precision_lower": 0.99479
+    },
+    {
+      "features": [
+        "in_b",
+        "top1_a"
+      ],
+      "origin": null,
+      "n": 2507,
+      "correct": 2502,
+      "precision": 0.99801,
+      "precision_lower": 0.99534
+    },
+    {
+      "features": [
+        "in_a",
+        "in_b",
+        "top1_a"
+      ],
+      "origin": null,
+      "n": 2507,
+      "correct": 2502,
+      "precision": 0.99801,
+      "precision_lower": 0.99534
+    },
+    {
+      "features": [
+        "has_address",
+        "in_b",
+        "top1_a"
+      ],
+      "origin": null,
+      "n": 2507,
+      "correct": 2502,
+      "precision": 0.99801,
+      "precision_lower": 0.99534
+    },
+    {
+      "features": [
+        "in_w",
+        "top1_b"
+      ],
+      "origin": null,
+      "n": 2506,
+      "correct": 2503,
+      "precision": 0.9988,
+      "precision_lower": 0.99649
+    },
+    {
+      "features": [
+        "in_b",
+        "in_w",
+        "top1_b"
+      ],
+      "origin": null,
+      "n": 2506,
+      "correct": 2503,
+      "precision": 0.9988,
+      "precision_lower": 0.99649
+    },
+    {
+      "features": [
+        "has_address",
+        "in_w",
+        "top1_b"
+      ],
+      "origin": null,
+      "n": 2506,
+      "correct": 2503,
+      "precision": 0.9988,
+      "precision_lower": 0.99649
+    },
+    {
+      "features": [
+        "top1_ab"
+      ],
+      "origin": null,
+      "n": 2504,
+      "correct": 2499,
+      "precision": 0.998,
+      "precision_lower": 0.99533
+    },
+    {
+      "features": [
+        "in_a",
+        "top1_ab"
+      ],
+      "origin": null,
+      "n": 2504,
+      "correct": 2499,
+      "precision": 0.998,
+      "precision_lower": 0.99533
+    },
+    {
+      "features": [
+        "in_b",
+        "top1_ab"
+      ],
+      "origin": null,
+      "n": 2504,
+      "correct": 2499,
+      "precision": 0.998,
+      "precision_lower": 0.99533
+    },
+    {
+      "features": [
+        "top1_a",
+        "top1_b"
+      ],
+      "origin": null,
+      "n": 2504,
+      "correct": 2499,
+      "precision": 0.998,
+      "precision_lower": 0.99533
+    },
+    {
+      "features": [
+        "top1_a",
+        "top1_ab"
+      ],
+      "origin": null,
+      "n": 2504,
+      "correct": 2499,
+      "precision": 0.998,
+      "precision_lower": 0.99533
+    },
+    {
+      "features": [
+        "top1_ab",
+        "top1_b"
+      ],
+      "origin": null,
+      "n": 2504,
+      "correct": 2499,
+      "precision": 0.998,
+      "precision_lower": 0.99533
+    },
+    {
+      "features": [
+        "has_address",
+        "top1_ab"
+      ],
+      "origin": null,
+      "n": 2504,
+      "correct": 2499,
+      "precision": 0.998,
+      "precision_lower": 0.99533
+    },
+    {
+      "features": [
+        "in_a",
+        "in_b",
+        "top1_ab"
+      ],
+      "origin": null,
+      "n": 2504,
+      "correct": 2499,
+      "precision": 0.998,
+      "precision_lower": 0.99533
+    },
+    {
+      "features": [
+        "in_a",
+        "top1_a",
+        "top1_b"
+      ],
+      "origin": null,
+      "n": 2504,
+      "correct": 2499,
+      "precision": 0.998,
+      "precision_lower": 0.99533
+    },
+    {
+      "features": [
+        "in_a",
+        "top1_a",
+        "top1_ab"
+      ],
+      "origin": null,
+      "n": 2504,
+      "correct": 2499,
+      "precision": 0.998,
+      "precision_lower": 0.99533
+    },
+    {
+      "features": [
+        "in_a",
+        "top1_ab",
+        "top1_b"
+      ],
+      "origin": null,
+      "n": 2504,
+      "correct": 2499,
+      "precision": 0.998,
+      "precision_lower": 0.99533
+    },
+    {
+      "features": [
+        "has_address",
+        "in_a",
+        "top1_ab"
+      ],
+      "origin": null,
+      "n": 2504,
+      "correct": 2499,
+      "precision": 0.998,
+      "precision_lower": 0.99533
+    },
+    {
+      "features": [
+        "in_b",
+        "top1_a",
+        "top1_b"
+      ],
+      "origin": null,
+      "n": 2504,
+      "correct": 2499,
+      "precision": 0.998,
+      "precision_lower": 0.99533
+    },
+    {
+      "features": [
+        "in_b",
+        "top1_a",
+        "top1_ab"
+      ],
+      "origin": null,
+      "n": 2504,
+      "correct": 2499,
+      "precision": 0.998,
+      "precision_lower": 0.99533
+    },
+    {
+      "features": [
+        "in_b",
+        "top1_ab",
+        "top1_b"
+      ],
+      "origin": null,
+      "n": 2504,
+      "correct": 2499,
+      "precision": 0.998,
+      "precision_lower": 0.99533
+    },
+    {
+      "features": [
+        "has_address",
+        "in_b",
+        "top1_ab"
+      ],
+      "origin": null,
+      "n": 2504,
+      "correct": 2499,
+      "precision": 0.998,
+      "precision_lower": 0.99533
+    },
+    {
+      "features": [
+        "top1_a",
+        "top1_ab",
+        "top1_b"
+      ],
+      "origin": null,
+      "n": 2504,
+      "correct": 2499,
+      "precision": 0.998,
+      "precision_lower": 0.99533
+    },
+    {
+      "features": [
+        "has_address",
+        "top1_a",
+        "top1_b"
+      ],
+      "origin": null,
+      "n": 2504,
+      "correct": 2499,
+      "precision": 0.998,
+      "precision_lower": 0.99533
+    },
+    {
+      "features": [
+        "has_address",
+        "top1_a",
+        "top1_ab"
+      ],
+      "origin": null,
+      "n": 2504,
+      "correct": 2499,
+      "precision": 0.998,
+      "precision_lower": 0.99533
+    },
+    {
+      "features": [
+        "has_address",
+        "top1_ab",
+        "top1_b"
+      ],
+      "origin": null,
+      "n": 2504,
+      "correct": 2499,
+      "precision": 0.998,
+      "precision_lower": 0.99533
+    },
+    {
+      "features": [
+        "in_c"
+      ],
+      "origin": null,
+      "n": 2503,
+      "correct": 2497,
+      "precision": 0.9976,
+      "precision_lower": 0.99478
+    },
+    {
+      "features": [
+        "in_c",
+        "in_w"
+      ],
+      "origin": null,
+      "n": 2503,
+      "correct": 2497,
+      "precision": 0.9976,
+      "precision_lower": 0.99478
+    },
+    {
+      "features": [
+        "has_address",
+        "in_c"
+      ],
+      "origin": null,
+      "n": 2503,
+      "correct": 2497,
+      "precision": 0.9976,
+      "precision_lower": 0.99478
+    },
+    {
+      "features": [
+        "has_address",
+        "in_c",
+        "in_w"
+      ],
+      "origin": null,
+      "n": 2503,
+      "correct": 2497,
+      "precision": 0.9976,
+      "precision_lower": 0.99478
+    },
+    {
+      "features": [
+        "in_a",
+        "in_w"
+      ],
+      "origin": null,
+      "n": 2502,
+      "correct": 2496,
+      "precision": 0.9976,
+      "precision_lower": 0.99478
+    },
+    {
+      "features": [
+        "has_address",
+        "in_a",
+        "in_w"
+      ],
+      "origin": null,
+      "n": 2502,
+      "correct": 2496,
+      "precision": 0.9976,
+      "precision_lower": 0.99478
+    },
+    {
+      "features": [
+        "in_b",
+        "in_c"
+      ],
+      "origin": null,
+      "n": 2499,
+      "correct": 2495,
+      "precision": 0.9984,
+      "precision_lower": 0.99589
+    },
+    {
+      "features": [
+        "in_b",
+        "in_c",
+        "in_w"
+      ],
+      "origin": null,
+      "n": 2499,
+      "correct": 2495,
+      "precision": 0.9984,
+      "precision_lower": 0.99589
+    },
+    {
+      "features": [
+        "has_address",
+        "in_b",
+        "in_c"
+      ],
+      "origin": null,
+      "n": 2499,
+      "correct": 2495,
+      "precision": 0.9984,
+      "precision_lower": 0.99589
+    },
+    {
+      "features": [
+        "in_a",
+        "in_b",
+        "in_w"
+      ],
+      "origin": null,
+      "n": 2498,
+      "correct": 2494,
+      "precision": 0.9984,
+      "precision_lower": 0.99589
+    },
+    {
+      "features": [
+        "in_c",
+        "top1_b"
+      ],
+      "origin": null,
+      "n": 2493,
+      "correct": 2490,
+      "precision": 0.9988,
+      "precision_lower": 0.99647
+    },
+    {
+      "features": [
+        "in_b",
+        "in_c",
+        "top1_b"
+      ],
+      "origin": null,
+      "n": 2493,
+      "correct": 2490,
+      "precision": 0.9988,
+      "precision_lower": 0.99647
+    }
+  ],
+  "gate_count": 596
+}

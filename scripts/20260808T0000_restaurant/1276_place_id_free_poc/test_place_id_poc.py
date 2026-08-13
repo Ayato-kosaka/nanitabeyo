@@ -24,6 +24,7 @@ from matching import (
     PROBE_A,
     PROBE_B,
     PROBE_C,
+    PROBE_C_TIGHT,
     PROBE_C_WIDE,
     PROBE_NEARBY,
     RULES,
@@ -363,6 +364,64 @@ class NameComparisonTest(unittest.TestCase):
         # 店名がチェーン名のままの行だけが同名多数として束ねられる。
         self.assertEqual(chain_key("マクドナルド"), chain_key("マクドナルド店"))
         self.assertNotEqual(chain_key("マクドナルド"), chain_key("モスバーガー"))
+
+
+
+
+class BoxUniqueRuleTest(unittest.TestCase):
+    """``rule_box_unique`` は「矩形内で一意」だけを根拠にする。
+
+    合意ではなく一意性を見るルールなので、A と B が揃って間違えている場合でも
+    矩形内に複数居れば確定しない、という性質を確かめる。
+    """
+
+    def probes(self, a, b, tight=(), wide=()) -> dict:
+        return {
+            PROBE_A: SearchResult(tuple(a), 200),
+            PROBE_B: SearchResult(tuple(b), 200),
+            PROBE_C_TIGHT: SearchResult(tuple(tight), 200),
+            PROBE_C_WIDE: SearchResult(tuple(wide), 200),
+        }
+
+    def decide(self, **kwargs):
+        return RULES["box_unique"](make_seed(), self.probes(**kwargs))
+
+    def test_tight_box_unique_and_supported_matches(self) -> None:
+        decision = self.decide(a=("A", "B"), b=("A", "C"), tight=("A",))
+        self.assertEqual(decision.status, STATUS_MATCHED)
+        self.assertEqual(decision.place_id, "A")
+        self.assertEqual(decision.detail, "tight_unique_in_ab")
+
+    def test_tight_box_unique_without_text_support_is_rejected(self) -> None:
+        """矩形内で一意でも、店名クエリがその place を挙げていなければ別の店である。
+
+        この裏取りを外すとラベル実測で精度が 99.9% から 5.8% へ落ちた。
+        """
+
+        decision = self.decide(a=("B",), b=("C",), tight=("A",))
+        self.assertEqual(decision.status, STATUS_AMBIGUOUS)
+        self.assertIsNone(decision.place_id)
+
+    def test_multiple_in_tight_box_falls_through_to_wide(self) -> None:
+        decision = self.decide(a=("A", "B"), b=("A", "B"), tight=("A", "B"), wide=("A",))
+        self.assertEqual(decision.status, STATUS_MATCHED)
+        self.assertEqual(decision.detail, "wide_unique_in_ab")
+
+    def test_agreement_alone_does_not_match(self) -> None:
+        """A と B が完全一致していても、矩形内が一意でなければ確定させない。"""
+
+        decision = self.decide(a=("A",), b=("A",), tight=("A", "B"), wide=("A", "B"))
+        self.assertEqual(decision.status, STATUS_AMBIGUOUS)
+        self.assertEqual(decision.detail, "box_not_unique")
+
+    def test_empty_boxes_report_absent(self) -> None:
+        decision = self.decide(a=("A",), b=("A",), tight=(), wide=())
+        self.assertEqual(decision.status, STATUS_AMBIGUOUS)
+        self.assertEqual(decision.geo, GEO_ABSENT)
+
+    def test_registered_as_export_safe(self) -> None:
+        self.assertIn("box_unique", RULES)
+        self.assertIn("box_unique", EXPORT_SAFE_RULES)
 
 
 if __name__ == "__main__":

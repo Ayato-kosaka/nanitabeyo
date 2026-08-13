@@ -262,6 +262,53 @@ def rule_layered_v2(seed: Seed, probes: Mapping[str, SearchResult]) -> Decision:
     return Decision(STATUS_AMBIGUOUS, None, GEO_INCONCLUSIVE, "no_layer_satisfied")
 
 
+def rule_box_unique(seed: Seed, probes: Mapping[str, SearchResult]) -> Decision:
+    """矩形内で同名店が「1件しかない」ことだけを根拠にする、2層だけのルール。
+
+    層を手で足しては測る進め方をやめ、2,541件の正解ラベルに対して候補の選び方と
+    証拠の連言を総当たりで採点し直した結果、残ったのがこの2層である
+    （``gate_analysis.py`` と ``results/gate_report.json``）。
+
+    要点は「一意性」であって「合意」ではなかった。A と B の合意を根拠にする層は
+    どれも 99.7〜99.8% で頭打ちになる。合意していても、その店が Google に無ければ
+    両クエリが揃って隣の店を返すからである。対して矩形内に同名が1件しか無いことは、
+    取り違える相手が存在しないことを意味する。
+
+    - 層1: ±25m の矩形に同名が1件だけ。座標のほぼ真上にある。
+    - 層2: ±250m の矩形に広げても同名が1件だけ。座標が数百mずれていても、
+      その範囲に同名店が1つしか無いなら取り違えようがない。
+
+    どちらも「A か B がその place_id を挙げている」ことを要求する。この裏取りを
+    外すと層1の精度は 99.9% から 5.8% へ落ちる（矩形内で唯一でも、店名クエリが
+    その店を指していなければ別の店だからである）。
+
+    ラベル2,541件での実測は 確定 2,484件 (97.76%)、DB不一致 2件。その2件は
+    どちらも「自分の place_id は ±25m 矩形に居るが、DB の place_id は ±100m
+    矩形にも居ない」もので、DB 側が古い可能性が高い（``dupcheck`` の記録を参照）。
+    seed_id のハッシュで2分割した交差検証でも、両半分とも 99.92% で一致した。
+    """
+
+    failure = _preflight(seed, probes)
+    if failure:
+        return failure
+    a, b = _ids(probes, PROBE_A), _ids(probes, PROBE_B)
+    if not a and not b:
+        return Decision(STATUS_UNMATCHED, None, GEO_INCONCLUSIVE, "empty_result")
+    supported = set(a) | set(b)
+
+    tight = set(_ids(probes, PROBE_C_TIGHT))
+    if len(tight) == 1 and (tight & supported):
+        return _matched(next(iter(tight)), probes, "tight_unique_in_ab")
+
+    wide = set(_ids(probes, PROBE_C_WIDE))
+    if len(wide) == 1 and (wide & supported):
+        return _matched(next(iter(wide)), probes, "wide_unique_in_ab")
+
+    if not tight and not wide:
+        return Decision(STATUS_AMBIGUOUS, None, GEO_ABSENT, "no_candidate_in_box")
+    return Decision(STATUS_AMBIGUOUS, None, GEO_INCONCLUSIVE, "box_not_unique")
+
+
 def rule_layered_strict(seed: Seed, probes: Mapping[str, SearchResult]) -> Decision:
     """``rule_layered`` から層3を外した、最も誤りに強い運用ルール。
 
@@ -340,6 +387,7 @@ RULES: dict[str, Callable[[Seed, Mapping[str, SearchResult]], Decision]] = {
     "layered": rule_layered,
     "layered_strict": rule_layered_strict,
     "layered_v2": rule_layered_v2,
+    "box_unique": rule_box_unique,
     "layered_strict_wide": rule_layered_strict_wide,
     # 計測の再現用に残すが、負例での誤マッチ率が高く CSV 出力には使わない。
     "layered_wide": rule_layered_wide,
@@ -358,5 +406,6 @@ EXPORT_SAFE_RULES = frozenset(
         "layered_strict",
         "layered_strict_wide",
         "layered_v2",
+        "box_unique",
     }
 )

@@ -1,0 +1,21 @@
+{
+  "overture_rows": 789612,
+  "ifas": {
+    "total": 1089349,
+    "not_a_restaurant": 610022,
+    "kept": 323457,
+    "no_name": 127253,
+    "closed": 2975,
+    "no_coordinates": 25618,
+    "bad_coordinates": 24
+  },
+  "dedupe": {
+    "overture_kept": 789190,
+    "overture_duplicate": 421,
+    "overture_no_name_key": 1,
+    "ifas_kept": 253065,
+    "ifas_duplicate": 70379,
+    "ifas_no_name_key": 13
+  },
+  "merged_rows": 1042255
+}
