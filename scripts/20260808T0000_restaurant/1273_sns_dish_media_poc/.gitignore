@@ -1,0 +1,18 @@
+.env
+out/*.json
+!out/.gitkeep
+.venv/
+__pycache__/
+.ruff_cache/
+
+# #1273 【設計】ワークフローのverifyエージェントが検証中に取得した生データ(HTML/画像/JSONL)。
+# 「画像・動画バイナリは取得・保存しない」というPoCの方針上、コミットしない。
+# 判定結果を要約したMarkdownレポート(out/idea_verification/*.md)だけをコミット対象にする。
+out/idea_verification/raw/
+out/idea_verification/thumbs/
+out/idea_verification/handle_test/
+out/idea_verification/*.jsonl
+out/idea_verification/*.err
+out/idea_verification/_*
+out/idea_verification/verify.py
+out/idea_verification/verify_results.json

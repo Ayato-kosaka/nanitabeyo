@@ -1,0 +1,28 @@
+# Stage 1相当の18カテゴリ(High/Mid/Long-tail 各6件)スモークテスト。
+# dev.dish_category_features(feature_type='market_salience', feature_key='region:country:JP')
+# のスコア順に134件のgateカテゴリを並べ替え、上位/中位/下位から6件ずつ抽出。
+# 都市部と地方の両方を見るため、issue本文の6地域タイプを一巡させて付与。
+#
+# High frequency (score 0.97-0.98)
+寿司 東京
+うどん 大阪
+ラーメン 名古屋
+焼き鳥 福岡
+ピザ 札幌
+パスタ 仙台
+#
+# Middle frequency (score 0.72)
+串カツ 東京
+もんじゃ焼き 大阪
+ソフトクリーム 名古屋
+チーズバーガー 福岡
+ケーキ 札幌
+カレーうどん 仙台
+#
+# Long tail (score 0.42)
+アクアパッツァ 東京
+四川料理 大阪
+プリンアラモード 名古屋
+韓国料理 福岡
+居酒屋 札幌
+トースト 仙台

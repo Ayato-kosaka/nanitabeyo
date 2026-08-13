@@ -1,0 +1,25 @@
+{
+  "sources": [
+    {
+      "name": "municipality-pre-2021-example",
+      "path": "data/legacy/municipality-pre-2021-geocoded.csv",
+      "encoding": "utf-8-sig",
+      "snapshot": "YYYY-MM-DD",
+      "license": "Record the municipality dataset license and source URL here",
+      "columns": {
+        "id": "許可番号",
+        "name": "施設の名称",
+        "address": "施設所在地",
+        "latitude": "緯度",
+        "longitude": "経度"
+      },
+      "filters": {
+        "business_type_column": "業種",
+        "business_type_contains": [
+          "飲食",
+          "喫茶"
+        ]
+      }
+    }
+  ]
+}
