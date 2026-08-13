@@ -29,7 +29,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
 
-from jp_text import name_similarity
+from jp_text import name_similarity, normalize_for_comparison
 from seeds import read_seeds
 
 EARTH_RADIUS_M = 6_371_000.0
@@ -42,6 +42,38 @@ DEFAULT_MAX_DISTANCE_M = 200.0
 DEFAULT_MIN_NAME_SIMILARITY = 0.34
 # この距離以内なら、店名が全く違って見えても同一店舗として扱う（同居店舗・改称）。
 DEFAULT_NAME_WAIVER_DISTANCE_M = 30.0
+# 同じ名前を持つ行がこの数以上あれば、その名前はチェーン名とみなす。
+DEFAULT_CHAIN_THRESHOLD = 5
+# チェーン行の合格条件。店名は支店を区別しないので、幾何のほうを締める。
+CHAIN_MAX_DISTANCE_M = 75.0
+CHAIN_MIN_NAME_SIMILARITY = 0.5
+
+
+def chain_key(name: str) -> str:
+    """同名判定に使うキー。
+
+    支店名まで落として「マクドナルド渋谷店」と「マクドナルド」を同じ束にはしない。
+    支店名が付いている行は名前そのものが支店を特定しており、判定を厳しくする必要が
+    無いからである。危ないのは店名がチェーン名のままの行（Overture には「マクドナルド」
+    という名前だけの行が 2,741件ある）で、それは同名多数として自然に検出される。
+    """
+
+    return normalize_for_comparison(name)
+
+
+def build_chain_frequency(seeds_paths: Iterable[Path]) -> Counter:
+    """コーパス全体で、支店名を除いた店名がいくつあるかを数える。
+
+    チェーン店は店名だけでは支店を区別できない。実測では Overture 日本の飲食店の
+    21.7% が他の行と同名で、「マクドナルド」だけで 2,741行ある。こういう行は
+    「名前が似ている」ことが正しさの証拠にならないので、判定条件を変える必要がある。
+    """
+
+    frequency: Counter = Counter()
+    for path in seeds_paths:
+        for seed in read_seeds(path):
+            frequency[chain_key(seed.name)] += 1
+    return frequency
 
 
 def haversine_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
@@ -122,6 +154,7 @@ def percentile(values: list[float], fraction: float) -> float:
 def command_verify(arguments: argparse.Namespace) -> None:
     restaurants, restaurant_stats = load_restaurants(arguments.restaurants)
     rows = list(csv.DictReader(arguments.matched.open(encoding="utf-8", newline="")))
+    frequency = build_chain_frequency(arguments.seeds) if arguments.seeds else Counter()
 
     judged: list[dict[str, Any]] = []
     for row in rows:
@@ -132,11 +165,19 @@ def command_verify(arguments: argparse.Namespace) -> None:
             float(row["latitude"]), float(row["longitude"]), truth.latitude, truth.longitude
         )
         similarity = name_similarity(row["name"], truth.name)
-        distance_ok = distance <= arguments.max_distance_m
-        name_ok = (
-            similarity >= arguments.min_name_similarity
-            or distance <= arguments.name_waiver_distance_m
-        )
+        siblings = frequency.get(chain_key(row["name"]), 1)
+        is_chain = siblings >= arguments.chain_threshold
+        if is_chain:
+            # 同名の支店が並ぶ行では、店名が合っていても隣の支店かもしれない。
+            # 名前による免除を外し、距離を締めることでしか正しさを主張できない。
+            distance_ok = distance <= CHAIN_MAX_DISTANCE_M
+            name_ok = similarity >= CHAIN_MIN_NAME_SIMILARITY
+        else:
+            distance_ok = distance <= arguments.max_distance_m
+            name_ok = (
+                similarity >= arguments.min_name_similarity
+                or distance <= arguments.name_waiver_distance_m
+            )
         judged.append(
             {
                 "overture_id": row["overture_id"],
@@ -148,6 +189,8 @@ def command_verify(arguments: argparse.Namespace) -> None:
                 "restaurant_id": truth.restaurant_id,
                 "distance_m": round(distance, 1),
                 "name_similarity": round(similarity, 3),
+                "same_name_siblings": siblings,
+                "is_chain": is_chain,
                 "verdict": "pass" if (distance_ok and name_ok) else "fail",
                 "fail_reason": (
                     "" if (distance_ok and name_ok)
@@ -195,11 +238,26 @@ def command_verify(arguments: argparse.Namespace) -> None:
             }
             for detail, total in Counter(e["match_detail"] for e in judged).items()
         },
+        "chain_rows": {
+            "judged": sum(1 for e in judged if e["is_chain"]),
+            "pass": sum(1 for e in judged if e["is_chain"] and e["verdict"] == "pass"),
+        },
         "thresholds": {
             "max_distance_m": arguments.max_distance_m,
             "min_name_similarity": arguments.min_name_similarity,
             "name_waiver_distance_m": arguments.name_waiver_distance_m,
+            "chain_threshold": arguments.chain_threshold,
+            "chain_max_distance_m": CHAIN_MAX_DISTANCE_M,
+            "chain_min_name_similarity": CHAIN_MIN_NAME_SIMILARITY,
+            "chain_frequency_source": [str(path) for path in (arguments.seeds or [])],
         },
+        # この正解率は「既存DBに載っている place_id」に限った値である。既存DBは
+        # ユーザーが実際に検索した実績のある店なので、Google 側の情報が充実した
+        # 簡単な母集団に偏る。出力CSV全体やOverture全体の正しさには外挿できない。
+        "caveat": (
+            "accuracy は google_place_id が既存DBに存在した行のみで計算しており、"
+            "既存DBに無い行の正しさは測れていない"
+        ),
     }
 
     if arguments.detail_output:
@@ -313,6 +371,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     verify = subcommands.add_parser("verify", help="名寄せ結果CSVの正解率を出す")
     verify.add_argument("--matched", type=Path, default=ROOT / "results" / "matched_place_ids.csv")
+    verify.add_argument(
+        "--seeds",
+        type=Path,
+        nargs="*",
+        help="チェーン判定用の店名頻度を数える seed CSV。省略するとチェーン判定を行わない",
+    )
+    verify.add_argument("--chain-threshold", type=int, default=DEFAULT_CHAIN_THRESHOLD)
     verify.add_argument("--restaurants", type=Path, default=ROOT / "out" / "restaurants.csv")
     verify.add_argument("--max-distance-m", type=float, default=DEFAULT_MAX_DISTANCE_M)
     verify.add_argument("--min-name-similarity", type=float, default=DEFAULT_MIN_NAME_SIMILARITY)

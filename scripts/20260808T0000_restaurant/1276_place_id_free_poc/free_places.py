@@ -36,7 +36,9 @@ FIELD_MASK = "places.id"
 ALLOWED_PLACE_KEYS = frozenset({"id"})
 
 # 応答トップレベルで許容するキー（いずれも IDs Only SKU の範囲）。
-ALLOWED_TOP_LEVEL_KEYS = frozenset({"places", "nextPageToken", "routingSummaries"})
+# ``routingSummaries`` は routingParameters を送ったときだけ現れる Pro 機能であり、
+# こちらからは送らない。許可する理由が無いのでガードを狭く保つ。
+ALLOWED_TOP_LEVEL_KEYS = frozenset({"places", "nextPageToken"})
 
 RETRYABLE_STATUS = frozenset({429, 500, 502, 503, 504})
 

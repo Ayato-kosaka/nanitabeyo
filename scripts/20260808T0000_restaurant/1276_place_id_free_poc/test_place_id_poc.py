@@ -33,6 +33,8 @@ from matching import (
     STATUS_UNMATCHED,
     geo_status,
 )
+from ground_truth import chain_key
+from jp_text import name_similarity, normalize_for_comparison
 from seeds import (
     Seed,
     body_nearby,
@@ -321,6 +323,36 @@ class RuleTest(unittest.TestCase):
             PROBE_B: SearchResult(("A",), 200),
         }
         self.assertEqual(RULES["strict_unique"](make_seed(), probes).status, STATUS_API_ERROR)
+
+
+class NameComparisonTest(unittest.TestCase):
+    """正解検証の店名比較。ここが緩いと 99% は自動的に達成されてしまう。"""
+
+    def test_category_words_are_not_erased(self) -> None:
+        # 業態語を文字列中どこでも落とすと「カフェ」「居酒屋」が空になり、
+        # その行は店名で一切判定できなくなる。末尾の支店語だけ落とす。
+        self.assertEqual(normalize_for_comparison("カフェ"), "カフェ")
+        self.assertEqual(normalize_for_comparison("居酒屋"), "居酒屋")
+        self.assertEqual(normalize_for_comparison("ラーメン二郎三田本店"), "ラーメン二郎三田")
+
+    def test_bare_chain_name_does_not_auto_pass(self) -> None:
+        # 以前は包含関係だけで 0.85 を返しており、Overture に 2,741行ある
+        # 「マクドナルド」がどの支店とも無条件で一致してしまっていた。
+        self.assertLess(name_similarity("マクドナルド", "マクドナルド渋谷店"), 0.85)
+        self.assertLess(name_similarity("マクドナルド渋谷店", "マクドナルド道玄坂店"), 0.7)
+
+    def test_real_variants_still_match(self) -> None:
+        self.assertGreater(name_similarity("百万石うどんこのみ小中店", "このみ百万石うどん 小中店"), 0.5)
+        self.assertGreater(name_similarity("株式会社ドミノ・ピザ 渋谷店", "ドミノ・ピザ 渋谷店"), 0.9)
+        # 実際に別店舗である例は落ちること。
+        self.assertLess(name_similarity("栗雲丹", "海鮮料理 雲丹しゃぶしゃぶ 工藤"), 0.2)
+
+    def test_chain_key_separates_branch_qualified_names(self) -> None:
+        # 支店名が付いている行は名前が支店を特定しているので、別扱いでよい。
+        self.assertNotEqual(chain_key("マクドナルド渋谷店"), chain_key("マクドナルド"))
+        # 店名がチェーン名のままの行だけが同名多数として束ねられる。
+        self.assertEqual(chain_key("マクドナルド"), chain_key("マクドナルド店"))
+        self.assertNotEqual(chain_key("マクドナルド"), chain_key("モスバーガー"))
 
 
 if __name__ == "__main__":

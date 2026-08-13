@@ -20,10 +20,10 @@ CORPORATE_FORMS = (
 )
 # 末尾の括弧書き（読み仮名・英字併記）。「Mermaid Cafe（マーメイドカフェ）」等。
 BRACKET_TAIL = re.compile(r"[（(【\[][^（()）【】\[\]]{1,40}[)）】\]]\s*$")
-# 比較時にだけ落とす業態・支店の語。クエリでは落とさない（支店の取り違えを招くため）。
-COMPARISON_NOISE = re.compile(
-    r"(店|本店|支店|駅前店|営業所|フードコート|レストラン|居酒屋|カフェ|食堂)"
-)
+# 比較時にだけ落とす、末尾の業態・支店の語。文字列のどこでも落とすと「カフェ」や
+# 「居酒屋」がまるごと消えて空文字になり、その行は名前で判定できなくなる。
+# 末尾に限り、かつ削って空になるなら削らない。
+COMPARISON_TAIL_NOISE = re.compile(r"(本店|支店|駅前店|営業所|店)$")
 
 
 def normalize_for_query(value: str) -> str:
@@ -53,8 +53,9 @@ def normalize_for_comparison(value: str) -> str:
     text = unicodedata.normalize("NFKC", value or "").casefold()
     for form in CORPORATE_FORMS:
         text = text.replace(unicodedata.normalize("NFKC", form).casefold(), "")
-    text = COMPARISON_NOISE.sub("", text)
-    return "".join(character for character in text if character.isalnum())
+    compact = "".join(character for character in text if character.isalnum())
+    trimmed = COMPARISON_TAIL_NOISE.sub("", compact)
+    return trimmed or compact
 
 
 def character_bigrams(value: str) -> set[str]:
@@ -77,7 +78,11 @@ def name_similarity(left: str, right: str) -> float:
     if a == b:
         return 1.0
     if a in b or b in a:
-        return max(0.85, min(len(a), len(b)) / max(len(a), len(b)))
+        # 長さ比のみで返す。以前は 0.85 を下限にしていたが、それでは「マクドナルド」と
+        # 「マクドナルド渋谷店」が無条件で合格してしまう。Overture には店名がチェーン名
+        # そのままの行が大量にあり（マクドナルド 2,741行）、支店の取り違えを名前側で
+        # 一切検出できなくなる。
+        return min(len(a), len(b)) / max(len(a), len(b))
     left_grams, right_grams = character_bigrams(a), character_bigrams(b)
     union = left_grams | right_grams
     if not union:

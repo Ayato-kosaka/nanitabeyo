@@ -60,8 +60,23 @@ class ProbeCache:
         self._connection = sqlite3.connect(str(path), check_same_thread=False)
         self._connection.execute("PRAGMA journal_mode=WAL")
         self._connection.executescript(SCHEMA)
+        self._migrate()
         self._connection.commit()
         self._lock = threading.Lock()
+
+    def _migrate(self) -> None:
+        """既存キャッシュに不足している列を足す。
+
+        ``CREATE TABLE IF NOT EXISTS`` は列を追加しないため、fingerprint 導入前の
+        キャッシュを開くと読み出しで落ちる。中断・再開できることが売りの仕組みなので、
+        古いキャッシュもそのまま開けるようにしておく。
+        """
+
+        columns = {row[1] for row in self._connection.execute("PRAGMA table_info(probe)")}
+        if "fingerprint" not in columns:
+            self._connection.execute(
+                "ALTER TABLE probe ADD COLUMN fingerprint TEXT NOT NULL DEFAULT ''"
+            )
 
     def existing_keys(self) -> set[tuple[str, str, str]]:
         with self._lock:

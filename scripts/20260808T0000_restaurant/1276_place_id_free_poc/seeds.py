@@ -143,6 +143,25 @@ def normalize_postcode_digits(value: str | None) -> str | None:
     return digits if len(digits) == 7 else None
 
 
+def strip_leading_geography(text: str, municipality: str) -> str:
+    """freeform の先頭にある市区町村名や都道府県の残骸を落とす。
+
+    freeform は「大阪市鶴見区横堤1丁目11-126」のように市区町村から始まる行が多く、
+    郵便番号から作った「大阪府大阪市鶴見区」を前置すると市区町村が二重になる。
+    「県神戸市東灘区…」のように都道府県の末尾一文字だけが残っている行もある。
+    """
+
+    cleaned = text.lstrip("都道府県 ")
+    if municipality and cleaned.startswith(municipality):
+        cleaned = cleaned[len(municipality) :]
+    else:
+        # 政令市は「大阪市」+「鶴見区」の二段。市までしか一致しない行にも対応する。
+        city_head = re.split(r"(?<=市)", municipality, maxsplit=1)[0] if municipality else ""
+        if city_head and city_head != municipality and cleaned.startswith(city_head):
+            cleaned = cleaned[len(city_head) :]
+    return cleaned.lstrip() or text
+
+
 def build_address_query(
     freeform: str | None, postcode: str | None, locality: str | None = None
 ) -> tuple[str, str]:
@@ -175,7 +194,8 @@ def build_address_query(
         # 食い違うことがあり（「殿町」+「田村町235-1」）、両方並べると矛盾した住所に
         # なる。市区町村までを冠すれば住所は一意に定まるので、そこで止める。
         if text:
-            return f"{head}{text}", "postcode_expanded_and_partial"
+            trimmed = strip_leading_geography(text, municipality)
+            return f"{head}{trimmed}", "postcode_expanded_and_partial"
         return f"{head}{neighborhood}", "postcode_expanded"
 
     if city and text:
