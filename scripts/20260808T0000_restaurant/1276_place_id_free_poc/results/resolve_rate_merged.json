@@ -1,21 +1,21 @@
 {
   "rule": "box_unique",
-  "skipped_unprobed": 99,
+  "skipped_unprobed": 135,
   "resolve_rate": {
     "all": {
-      "denominator": 2901,
+      "denominator": 2865,
       "matched": 1943,
-      "rate": 0.669769
+      "rate": 0.678185
     },
     "text_hit": {
-      "denominator": 2866,
+      "denominator": 2861,
       "matched": 1943,
-      "rate": 0.677948
+      "rate": 0.679133
     },
     "in_wide_box": {
-      "denominator": 2278,
+      "denominator": 2277,
       "matched": 1940,
-      "rate": 0.851624
+      "rate": 0.851998
     },
     "in_box": {
       "denominator": 339,
@@ -23,9 +23,9 @@
       "rate": 0.887906
     },
     "in_tight_box": {
-      "denominator": 1857,
+      "denominator": 1854,
       "matched": 1709,
-      "rate": 0.920302
+      "rate": 0.921791
     }
   },
   "decision_detail": {
@@ -33,25 +33,24 @@
     "no_candidate_in_box": 580,
     "box_not_unique": 338,
     "wide_unique_in_ab": 280,
-    "http_error": 36,
     "empty_result": 4
   },
   "by_source": {
     "ifas": {
       "all": {
-        "denominator": 690,
+        "denominator": 681,
         "matched": 423,
-        "rate": 0.613043
+        "rate": 0.621145
       },
       "text_hit": {
-        "denominator": 679,
+        "denominator": 678,
         "matched": 423,
-        "rate": 0.622975
+        "rate": 0.623894
       },
       "in_wide_box": {
-        "denominator": 491,
+        "denominator": 490,
         "matched": 421,
-        "rate": 0.857434
+        "rate": 0.859184
       },
       "in_box": {
         "denominator": 61,
@@ -59,21 +58,21 @@
         "rate": 0.901639
       },
       "in_tight_box": {
-        "denominator": 383,
+        "denominator": 381,
         "matched": 350,
-        "rate": 0.913838
+        "rate": 0.918635
       }
     },
     "overture": {
       "all": {
-        "denominator": 2211,
+        "denominator": 2184,
         "matched": 1520,
-        "rate": 0.687472
+        "rate": 0.695971
       },
       "text_hit": {
-        "denominator": 2187,
+        "denominator": 2183,
         "matched": 1520,
-        "rate": 0.695016
+        "rate": 0.69629
       },
       "in_wide_box": {
         "denominator": 1787,
@@ -86,9 +85,9 @@
         "rate": 0.884892
       },
       "in_tight_box": {
-        "denominator": 1474,
+        "denominator": 1473,
         "matched": 1359,
-        "rate": 0.921981
+        "rate": 0.922607
       }
     }
   }
