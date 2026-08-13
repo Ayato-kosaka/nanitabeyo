@@ -60,7 +60,6 @@ jest.mock("expo-router", () => ({
 }));
 jest.mock("@/hooks/useHaptics", () => ({ useHaptics: () => ({ lightImpact: jest.fn() }) }));
 jest.mock("@/hooks/useLocale", () => ({ useLocale: () => ({ locale: "ja-JP", isJapanese: true }) }));
-jest.mock("@/hooks/useScreenTrace", () => ({ useScreenTrace: () => {} }));
 jest.mock("@/lib/image", () => ({ getCacheKeyForImage: () => "cache-key" }));
 jest.mock("@/lib/frontend-utils", () => ({ dateStringToTimestamp: () => "1分前" }));
 jest.mock("@/stores/useDishMediaEntriesStore", () => ({ useDishMediaEntriesStore: { getState: () => ({}) } }));

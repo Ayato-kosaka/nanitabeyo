@@ -34,9 +34,9 @@ jest.mock("expo-image-picker", () => ({
 // サムネイル生成は画像では走らないが、import 時に native module を触らせないためスタブ化する
 jest.mock("expo-video-thumbnails", () => ({ getThumbnailAsync: jest.fn() }));
 
-// E2E スタブは通常ビルドでは metro の resolver が noop へ差し替える。
-// jest は resolver を通らないので、ここで明示的に「素通り（null）」へ寄せる。
-jest.mock("@/lib/e2e/selectMediaStub", () => ({ selectMediaForE2E: jest.fn(async () => null) }));
+// ⚠️ release/1.11 では E2E スタブ（lib/e2e/**）を neutralization で除外しているため、
+// 上流にある `jest.mock("@/lib/e2e/selectMediaStub", ...)` は入れていない。
+// 実装側も参照していないので、このテストは実ピッカー経路をそのまま検証する。
 
 const mockedPicker = ImagePicker as jest.Mocked<typeof ImagePicker>;
 

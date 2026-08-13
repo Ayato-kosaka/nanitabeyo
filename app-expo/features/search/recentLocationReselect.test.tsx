@@ -35,7 +35,6 @@ jest.mock("@/lib/i18n", () => ({ __esModule: true, default: { t: (key: string) =
 jest.mock("@/hooks/useLocale", () => ({ useLocale: () => ({ locale: "ja-JP", isJapanese: true }) }));
 jest.mock("@/hooks/useHaptics", () => ({ useHaptics: () => ({ lightImpact: jest.fn(), mediumImpact: jest.fn() }) }));
 jest.mock("@/hooks/useLogger", () => ({ useLogger: () => ({ logFrontendEvent: jest.fn() }) }));
-jest.mock("@/hooks/useScreenTrace", () => ({ useScreenTrace: jest.fn() }));
 jest.mock("@/hooks/useContentWidth", () => ({ useContentWidth: () => 390 }));
 jest.mock("@/contexts/AuthProvider", () => ({ useAuth: () => ({ user: null }) }));
 jest.mock("@/hooks/useLocationSearch", () => ({
