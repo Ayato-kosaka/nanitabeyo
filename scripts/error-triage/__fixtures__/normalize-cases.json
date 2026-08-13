@@ -1,0 +1,128 @@
+[
+	{
+		"id": "1197-3-4-1",
+		"note": "#1197 §3-4 例1 UUID と件数",
+		"input": "Error: Failed to fetch dish media 3f1a9c22-9b41-4d0e-8f6a-1c2b3d4e5f60 (attempt 3)",
+		"expected": "Error: Failed to fetch dish media <uuid> (attempt <n>)"
+	},
+	{
+		"id": "1197-3-4-2",
+		"note": "#1197 §3-4 例2 スタックトレースは1行目だけ残す",
+		"input": "Wikidata API request failed: 429\n    at ExternalApiService.searchWikidata (/app/dist/core/external-api/external-api.service.js:139:15)",
+		"expected": "Wikidata API request failed: <n>"
+	},
+	{
+		"id": "1197-3-4-3",
+		"note": "#1197 §3-4 例3 URL クエリ部（Google Custom Search の APIキーごと落とす）",
+		"input": "https://www.googleapis.com/customsearch/v1?key=AIzaSyD_REDACTED&cx=017abc&q=%E3%83%A9%E3%83%BC%E3%83%A1%E3%83%B3",
+		"expected": "https://www.googleapis.com/customsearch/v<n>?"
+	},
+	{
+		"id": "1197-3-4-4",
+		"note": "#1197 §3-4 例4 share_token（randomUUID().replace(/-/g,'') = 32桁hex）",
+		"input": "/ja/search/dish-category-group-votes/8d4f2a1b9c3e4d5a6b7c8d9e0f1a2b3c",
+		"expected": "/ja/search/dish-category-group-votes/<hex>"
+	},
+	{
+		"id": "1197-3-4-5",
+		"note": "#1197 §3-4 例5 認証確立前レースのメッセージ",
+		"input": "User is not authenticated: Supabase access_token is missing (endpoint: /v1/dish-media/9c1e77aa-2b31-41d0-9f2e-77aa2b3141d0/likes).",
+		"expected": "User is not authenticated: Supabase access_token is missing (endpoint: /v<n>/dish-media/<uuid>/likes)."
+	},
+	{
+		"id": "1197-3-4-6",
+		"note": "#1197 §3-4 例6 Google Place ID",
+		"input": "/ja/review/restaurant/ChIJN1t_tDeuEmsRUsoyG83frY4",
+		"expected": "/ja/review/restaurant/<placeid>"
+	},
+	{
+		"id": "1197-3-4-7",
+		"note": "#1197 §3-4 例7 位置番号",
+		"input": "Invalid JSON format: Unexpected token } in JSON at position 1042",
+		"expected": "Invalid JSON format: Unexpected token } in JSON at position <n>"
+	},
+	{
+		"id": "1197-3-4-8",
+		"note": "#1197 §3-4 例8 ★S1: LocationPermissionError(23文字) を <token> に潰さないこと",
+		"input": "LocationPermissionError: Location permission denied at 2026-08-06T04:12:33.918Z",
+		"expected": "LocationPermissionError: Location permission denied at <ts>"
+	},
+	{
+		"id": "1197-3-4-9",
+		"note": "#1197 §3-4 例9 変化なし＝原因情報を保持できている例",
+		"input": "getaddrinfo EAI_AGAIN api.anthropic.com",
+		"expected": "getaddrinfo EAI_AGAIN api.anthropic.com"
+	},
+	{
+		"id": "1197-3-4-10",
+		"note": "#1197 §3-4 例10 status は groupKey.httpStatus 側で保持されるので message 側は潰してよい",
+		"input": "API call to /v1/dishes/bulk-import failed with status 500 (requestId: 4c2f9b1e-3a5d-4c7e-9b2f-1e3a5d7c9b2f)",
+		"expected": "API call to /v<n>/dishes/bulk-import failed with status <n> (requestId: <uuid>)"
+	},
+	{
+		"id": "s1-camelcase-long",
+		"note": "★S1: 39文字の英字のみ CamelCase 識別子も保護される（長さではなく「数字を含むか」で切る）",
+		"input": "UnhandledRejectionErrorInBackgroundTask: boom",
+		"expected": "UnhandledRejectionErrorInBackgroundTask: boom"
+	},
+	{
+		"id": "s1-opaque-token-32",
+		"note": "★S1: 32文字・数字を含む base64url 系トークンは <token> へ潰す",
+		"input": "cursor=Xy7Kd0pQ2sVb8nMr4tZa6cJf1hLw3eGu failed",
+		"expected": "cursor=<token> failed"
+	},
+	{
+		"id": "s1-opaque-token-28-boundary",
+		"note": "★S1: ちょうど28文字・数字ありは潰す（閾値の境界）",
+		"input": "id Ab1cdefghijklmnopqrstuvwxyzZ end",
+		"expected": "id <token> end"
+	},
+	{
+		"id": "jwt",
+		"note": "JWT は秘密値なので Issue 本文に出さない",
+		"input": "auth failed: eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NSJ9.dBjftJeZ4CVPmB92K27uhbUJU1p1r_wW1gFWFOEjXk",
+		"expected": "auth failed: <jwt>"
+	},
+	{
+		"id": "email",
+		"note": "PII",
+		"input": "user taro.yamada+test@example.co.jp not found",
+		"expected": "user <email> not found"
+	},
+	{
+		"id": "null",
+		"note": "null は null のまま（SQL の NULL に対応）",
+		"input": null,
+		"expected": null
+	},
+	{
+		"id": "empty",
+		"note": "空文字でも例外にならない",
+		"input": "",
+		"expected": ""
+	},
+	{
+		"id": "whitespace-collapse",
+		"note": "整形差の吸収",
+		"input": "  too\t\tmany   spaces  ",
+		"expected": "too many spaces"
+	},
+	{
+		"id": "b1-fullwidth-space",
+		"note": "★B-1: 全角スペース U+3000。RE2 の \\s は含まないので、ショートハンドのままだと SQL と JS で結果が割れる",
+		"input": "Validation failed: name=\"すし\u3000太郎\" is too long",
+		"expected": "Validation failed: name=\"すし 太郎\" is too long"
+	},
+	{
+		"id": "b1-unicode-spaces",
+		"note": "★B-1: NBSP / FIGURE SPACE / BOM / 垂直タブ（RE2 の \\s には \\v すら入らない）も畳む",
+		"input": "a\u00a0b\u2007c\ufeffd\u000be",
+		"expected": "a b c d e"
+	},
+	{
+		"id": "b1-url-query-stops-at-fullwidth-space",
+		"note": "★B-1: ルール6 は全角スペースで止まる（止まらないと SQL 側だけが日本語本文まで巻き込んで消す）",
+		"input": "GET /a?k=v\u3000続きの説明文です",
+		"expected": "GET /a? 続きの説明文です"
+	}
+]

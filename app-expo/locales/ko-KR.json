@@ -313,7 +313,7 @@
 		"hiddenMessage": "{{title}} 이(가) 숨겨졌습니다",
 		"BlockTopicModal": {
 			"title": "이 요리를 차단할까요?",
-			"description": "차단된 요리 토픽은 추천에 더 이상 표시되지 않습니다.",
+			"description": "차단된 요리 카테고리는 추천에 더 이상 표시되지 않습니다.",
 			"note": "설정에서 언제든지 차단을 해제할 수 있어요.",
 			"confirm": "차단하기"
 		},
@@ -714,14 +714,14 @@
 		"logoutConfirmTitle": "로그아웃하시겠어요?",
 		"logoutConfirmMessage": "다시 로그인해야 게시물과 리뷰를 관리할 수 있습니다.",
 		"blockedTopics": {
-			"navigationLabel": "차단된 요리 주제",
-			"pageTitle": "차단된 요리 주제",
+			"navigationLabel": "차단된 요리 카테고리",
+			"pageTitle": "차단된 요리 카테고리",
 			"title": "차단된 요리",
 			"empty": "차단된 요리가 없습니다",
 			"loading": "로딩 중...",
 			"unblockButton": "차단 해제",
-			"unblockTitle": "이 주제를 차단 해제하시겠습니까?",
-			"unblockMessage": "이 요리 주제가 추천에 다시 추가됩니다.",
+			"unblockTitle": "이 요리 카테고리를 차단 해제하시겠습니까?",
+			"unblockMessage": "이 요리 카테고리가 추천에 다시 추가됩니다.",
 			"unblockConfirm": "차단 해제",
 			"unblocked": "차단 해제됨"
 		}

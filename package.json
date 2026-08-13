@@ -7,7 +7,8 @@
 		"api",
 		"shared",
 		"e2e-web",
-		"e2e-mobile"
+		"e2e-mobile",
+		"scripts/error-triage"
 	],
 	"scripts": {
 		"dev": "turbo run dev",
@@ -21,7 +22,9 @@
 		"db:migration": "bash scripts/apply-migration.sh",
 		"db:pull": "bash scripts/db-pull.sh",
 		"db:reset": "bash scripts/reset-schema.sh",
-		"deploy:storage": "pnpm firebase deploy --only storage"
+		"deploy:storage": "pnpm firebase deploy --only storage",
+		"catalog:doc": "node ./catalog/generate-catalog.mjs --screenshots e2e-web/screenshots",
+		"catalog:doc:mobile": "node ./catalog/generate-catalog.mjs --platform mobile --screenshots e2e-mobile/screenshots"
 	},
 	"devDependencies": {
 		"firebase-tools": "^14.1.0",
