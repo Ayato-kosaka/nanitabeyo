@@ -457,17 +457,42 @@ export class SearchScreen {
 	 * 先頭へ戻せば、キーボードが残っていてもトグルは上半分に来る。
 	 */
 	async openAdvancedFilters(): Promise<void> {
-		// ⚠️ 順序が重要。先頭へ戻して**から**キーボードを閉じること。
-		// Detox のアクションは «可視な» 要素にしか効かないため、画面外にいる入力へ
-		// `tapReturnKey()` を投げても例外になるだけで、キーボードは開いたまま残る
-		// （先に閉じようとして失敗し、握り潰され、原因が見えないまま 1 周無駄にした）。
-		// 閉じる手段は clearLocationIfPresent と同じ dismissKeyboard（無条件 + try/catch）。
-		// 可視チェックでガードする版も試したが、ガードが false を返して閉じ損ね、
-		// キーボードが下半分を覆ったまま scrollUntilVisible が 75% 可視を満たせず落ちた
-		await element(this.scrollView).scrollTo("top");
-		await this.dismissKeyboard();
-		await this.scrollUntilVisible(this.advancedToggle);
-		await tapWhenVisible(this.advancedToggle);
+		// ⚠️ **1 回閉じるだけでは足りない。** キーボードは «あとから開き直る»。
+		//
+		// 詳細条件トグルは「食事にかける時間」の直下、つまり iOS のソフトキーボードが
+		// occupies する下半分のちょうど境目に来る。隠れていると Detox の
+		// 「面積の 75% 以上が可視」を満たせず `Unable to scroll down ... threshold (75)` で落ちる。
+		//
+		// 厄介なのは、閉じても **アプリ側が非同期に開き直す**こと。
+		// `LocationAutocomplete` は現在地取得に失敗したとき手入力へ誘導するため `focus()` を呼ぶ
+		//（#932）。CI では位置情報が取れないので、チュートリアル完了の数秒後にこれが必ず発火する。
+		// 「閉じる → スクロールして探す」を 1 回だけやると、その間に開き直されて詰む。
+		//
+		// ⚠️ 単発の `dismissKeyboard()` に戻さないこと。実際に 3 回作り直して 3 回とも
+		// 同じ `threshold (75)` で落ちた（run 31607285195 / 31624910689 / 31644130515）。
+		// 開き直りが収まるまで「閉じて探す」を繰り返すのが唯一安定した形。
+		const ATTEMPTS = 3;
+		for (let attempt = 1; attempt <= ATTEMPTS; attempt += 1) {
+			await element(this.scrollView).scrollTo("top");
+			await this.dismissKeyboard();
+			try {
+				await this.scrollUntilVisible(this.advancedToggle);
+				await tapWhenVisible(this.advancedToggle);
+				return;
+			} catch (error) {
+				if (attempt === ATTEMPTS) {
+					throw new Error(
+						[
+							`詳細条件トグル（search-advanced-toggle）を ${ATTEMPTS} 回試しても押せませんでした。`,
+							"  ソフトキーボードがトグルを覆っている可能性が高いです（iOS では画面下半分を占有します）。",
+							"  アプリ側が現在地取得の失敗後に入力欄へ focus() を戻す（#932）ため、",
+							"  閉じた直後に開き直されているかもしれません。artifacts のスクリーンショットで確認してください。",
+							`  元の失敗: ${error instanceof Error ? error.message : String(error)}`,
+						].join("\n"),
+					);
+				}
+			}
+		}
 	}
 
 	/** おすすめ外の移動時間チップの開閉を切り替える。画面外にある場合はスクロールしてから押す */
