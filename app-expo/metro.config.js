@@ -67,6 +67,9 @@ const E2E_TUTORIAL_SEED_NOOP = path.resolve(projectRoot, "lib/e2e/tutorialSeed.n
 // 新しいフラグを増やさず EXPO_PUBLIC_E2E_TUTORIAL_HOOK に相乗りする（判定は上の E2E_TUTORIAL_HOOK_ENABLED）
 const E2E_PRELOAD_PROBE_IMPL = path.resolve(projectRoot, "lib/e2e/preloadProbe.tsx");
 const E2E_PRELOAD_PROBE_NOOP = path.resolve(projectRoot, "lib/e2e/preloadProbe.noop.tsx");
+// #1272 ルートパラメータのプローブも同じく EXPO_PUBLIC_E2E_TUTORIAL_HOOK に相乗りする
+const E2E_ROUTE_PARAMS_PROBE_IMPL = path.resolve(projectRoot, "lib/e2e/routeParamsProbe.tsx");
+const E2E_ROUTE_PARAMS_PROBE_NOOP = path.resolve(projectRoot, "lib/e2e/routeParamsProbe.noop.tsx");
 const E2E_LAUNCH_ARGS_PACKAGE = "react-native-launch-arguments";
 
 config.resolver.resolveRequest = (context, moduleName, platform) => {
@@ -116,6 +119,11 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
 		// #1087 先読み画像のロード枚数プローブも同じ「解決後の実ファイルパス」で判定する
 		if (excludeE2ETutorialHook && resolvedPath === E2E_PRELOAD_PROBE_IMPL) {
 			return { type: "sourceFile", filePath: E2E_PRELOAD_PROBE_NOOP };
+		}
+
+		// #1272 ルートパラメータのプローブも同じ「解決後の実ファイルパス」で判定する
+		if (excludeE2ETutorialHook && resolvedPath === E2E_ROUTE_PARAMS_PROBE_IMPL) {
+			return { type: "sourceFile", filePath: E2E_ROUTE_PARAMS_PROBE_NOOP };
 		}
 	}
 
