@@ -89,29 +89,44 @@ class NameMatcher:
     ラテン名は語境界を要求するため、英単語の内部に一致する偽陽性が出ない。
     """
 
-    def __init__(self) -> None:
+    # #1273 【仕様】母集団は Overture + IFAS + OSM の3ソース。OSM は egress ポリシーで
+    # download.geofabrik.de / overpass-api.de / taginfo.geofabrik.de がいずれも
+    # 到達不可のため、現時点では Overture + IFAS のみを読む。
+    DEFAULT_SOURCES = ("overture_jp_food.csv", "ifas_jp_food.csv")
+
+    def __init__(self, sources: tuple[str, ...] | None = None) -> None:
         csv.field_size_limit(10**7)
         freq_ja: collections.Counter = collections.Counter()
         freq_la: collections.Counter = collections.Counter()
         self.original: dict[str, str] = {}
         # #1273 §22 【設計】地名の裏取りに使う。名前が一意な行しか辞書に残さないので1対1で持てる。
         self.area: dict[str, tuple[str, str]] = {}
+        self.source_of: dict[str, str] = {}
         rows = 0
-        with (FIXTURES / "overture_jp_food.csv").open(encoding="utf-8") as fh:
-            for r in csv.DictReader(fh):
-                name = (r.get("name") or "").strip()
-                if not name:
-                    continue
-                rows += 1
-                if has_cjk(name):
-                    key = normalize_ja(name)
-                    freq_ja[key] += 1
-                else:
-                    key = normalize_latin(name).strip()
-                    freq_la[key] += 1
-                self.original.setdefault(key, name)
-                self.area.setdefault(key, (normalize_ja(r.get("locality") or ""),
-                                           normalize_ja(r.get("region") or "")))
+        used = []
+        for filename in (sources or self.DEFAULT_SOURCES):
+            path = FIXTURES / filename
+            if not path.exists():
+                print(f"[dict] skip (not found): {filename}", file=sys.stderr)
+                continue
+            used.append(filename)
+            with path.open(encoding="utf-8") as fh:
+                for r in csv.DictReader(fh):
+                    name = (r.get("name") or "").strip()
+                    if not name:
+                        continue
+                    rows += 1
+                    if has_cjk(name):
+                        key = normalize_ja(name)
+                        freq_ja[key] += 1
+                    else:
+                        key = normalize_latin(name).strip()
+                        freq_la[key] += 1
+                    self.original.setdefault(key, name)
+                    self.area.setdefault(key, (normalize_ja(r.get("locality") or ""),
+                                               normalize_ja(r.get("region") or "")))
+                    self.source_of.setdefault(key, filename)
+        self.sources_used = used
 
         stop_ja = {normalize_ja(s) for s in STOPWORD_NAMES}
         stop_la = {normalize_latin(s).strip() for s in STOPWORD_NAMES}
@@ -131,7 +146,8 @@ class NameMatcher:
         self.auto_ja.make_automaton()
         self.auto_la.make_automaton()
         self.rows = rows
-        print(f"[dict] {rows:,} rows -> 日本語名 {self.n_ja:,} (>={MIN_NAME_LEN_NATIONAL}字) + "
+        print(f"[dict] {'+'.join(self.sources_used)}: {rows:,} rows -> "
+              f"日本語名 {self.n_ja:,} (>={MIN_NAME_LEN_NATIONAL}字) + "
               f"ラテン名 {self.n_la:,} (>={MIN_NAME_LEN_LATIN}字, 語境界必須)", file=sys.stderr)
 
     def match(self, text: str) -> set[str]:
