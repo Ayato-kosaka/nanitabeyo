@@ -29,7 +29,7 @@ PARQUET = "/tmp/overture-jp.parquet"
 OUT = os.path.join(BASE, "out", "own-website-images.json")
 
 UA = "nanitabeyo-research/0.1 (restaurant dish-image feasibility PoC; contact: sharess117@gmail.com)"
-TIMEOUT = 12
+TIMEOUT = 10
 HTML_MAX = 1_500_000
 IMG_MAX = 600_000
 
@@ -350,14 +350,22 @@ def process(rec):
     if url.startswith("http://"):
         tries = ["https://" + url[len("http://"):], url]
     html = err = final = None
+    errs = []
     for t in tries:
-        html, err, final = get_page(t)
+        html, e1, final = get_page(t)
+        errs.append(e1)
         if html is not None:
+            err = None
             break
     if html is None:
-        if err == "http_403" and url.startswith("http://"):
-            err = "env_http_blocked_or_403"
+        # #1273 【バグ】最初(https)の失敗理由を主因として残す。以前は最後(http)の403で
+        #             上書きしてしまい、原因分類が「環境の:80遮断」に偏っていた。
+        err = errs[0]
+        if len(errs) > 1 and errs[1] == "http_403":
+            # https も駄目で http が403 = この実行環境の平文HTTP遮断で判定不能
+            err = "env_http80_blocked(https_err=%s)" % errs[0]
         res["fail_reason"] = err
+        res["attempt_errors"] = errs
         return res
     res["pages"].append(final or url)
     cands, soup = extract_candidates(html, final or url)
@@ -436,6 +444,16 @@ def main():
     if limit:
         targets = targets[:limit]
 
+    # #1273 【設計】retryモード: 既存 out/own-website-images.json のうち失敗した店だけ再実行し、
+    #             成功分は据え置いてマージする（全件やり直すと相手サーバに無駄な負荷をかける）。
+    prev = {}
+    if os.environ.get("RETRY_FAILED") == "1" and os.path.exists(OUT):
+        old = json.load(open(OUT))
+        prev = {r["id"]: r for r in old["results"]}
+        keep = [r for r in old["results"] if not r.get("fail_reason")]
+        targets = [t for t in targets if prev.get(t["id"], {}).get("fail_reason")]
+        print("retry mode: keep=%d retry=%d" % (len(keep), len(targets)), flush=True)
+
     print("sample=600 with_website=%d" % len(targets), flush=True)
     results = []
     done = [0]
@@ -456,8 +474,12 @@ def main():
                 print("progress %d/%d" % (done[0], len(targets)), flush=True)
         return r
 
-    with ThreadPoolExecutor(max_workers=24) as ex:
+    with ThreadPoolExecutor(max_workers=48) as ex:
         list(ex.map(work, targets))
+
+    if prev:
+        got = {r["id"] for r in results}
+        results += [r for r in prev.values() if r["id"] not in got]
 
     n_cov = sum(1 for r in results if r["n_verified_dish"] >= 1)
     fails = defaultdict(int)

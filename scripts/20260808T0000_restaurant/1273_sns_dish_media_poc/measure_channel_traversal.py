@@ -89,10 +89,11 @@ class NameMatcher:
     ラテン名は語境界を要求するため、英単語の内部に一致する偽陽性が出ない。
     """
 
-    # #1273 【仕様】母集団は Overture + IFAS + OSM の3ソース。OSM は egress ポリシーで
-    # download.geofabrik.de / overpass-api.de / taginfo.geofabrik.de がいずれも
-    # 到達不可のため、現時点では Overture + IFAS のみを読む。
-    DEFAULT_SOURCES = ("overture_jp_food.csv", "ifas_jp_food.csv")
+    # #1273 【仕様】母集団は #843 の3ソース（Overture + IFAS + OSM）。
+    # OSM は #1306 で「画像ソースとしては却下（image タグ充足率0.080%、実体の94%がリンク切れ）、
+    # 逆引き辞書としては採用（新規店名 +63,091件 = +7.62%）」と判定したため辞書としてのみ読む。
+    # OSM は ODbL のため内部照合に限る（母集団CSVそのものの外部配布は share-alike に抵触しうる）。
+    DEFAULT_SOURCES = ("overture_jp_food.csv", "ifas_jp_food.csv", "osm_jp_food.csv")
 
     def __init__(self, sources: tuple[str, ...] | None = None) -> None:
         csv.field_size_limit(10**7)

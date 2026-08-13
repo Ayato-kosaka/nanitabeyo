@@ -64,8 +64,27 @@ DISH_WORDS = ["料理", "ラーメン", "麺", "丼", "寿司", "鮨", "そば",
               "meal", "cake", "coffee", "beer", "lunch", "dinner", "bento", "tempura", "donburi"]
 
 
-def http_json(url: str, retries: int = 3) -> dict:
+# #1273 【バグ】workers=10 で回したら Commons API が 429 を返し、600店中286件が
+# geo 未取得になった。単純なスレッド並列では駄目なので、プロセス全体で
+# 1リクエストあたり最小間隔を強制するグローバルなレートリミッタを噛ませる。
+import threading  # noqa: E402
+
+_RATE_LOCK = threading.Lock()
+_LAST_CALL = [0.0]
+MIN_INTERVAL_S = 0.35
+
+
+def _throttle() -> None:
+    with _RATE_LOCK:
+        wait = MIN_INTERVAL_S - (time.time() - _LAST_CALL[0])
+        if wait > 0:
+            time.sleep(wait)
+        _LAST_CALL[0] = time.time()
+
+
+def http_json(url: str, retries: int = 5) -> dict:
     for i in range(retries):
+        _throttle()
         try:
             req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "application/json"})
             with urllib.request.urlopen(req, timeout=45) as resp:
@@ -73,7 +92,7 @@ def http_json(url: str, retries: int = 3) -> dict:
         except Exception as exc:  # noqa: BLE001
             if i == retries - 1:
                 return {"__error__": f"{type(exc).__name__}: {exc}"}
-            time.sleep(1.5 * (i + 1))
+            time.sleep(2.0 * (i + 1) ** 2)
     return {"__error__": "unreachable"}
 
 
@@ -221,7 +240,8 @@ def looks_like_dish(text: str) -> bool:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--limit", type=int, default=600)
-    ap.add_argument("--workers", type=int, default=10)
+    ap.add_argument("--workers", type=int, default=4)
+    ap.add_argument("--resume", action="store_true")
     args = ap.parse_args()
 
     sample = json.load(SAMPLE.open(encoding="utf-8"))["results"]
@@ -269,9 +289,22 @@ def main() -> int:
                 res["wd_hits"].append(e)
         return res
 
+    # #1273 【設計】429 で欠測した店だけを再試行できるよう、前回の out を読んで
+    # 成功済み（geo_error/text_error が None）はそのまま引き継ぐ。
+    prev: dict[str, dict] = {}
+    outp = OUT / "wikimedia-commons.json"
+    if args.resume and outp.exists():
+        for r in json.loads(outp.read_text(encoding="utf-8")).get("results", []):
+            if not r.get("geo_error") and not r.get("text_error"):
+                prev[r["id"]] = r
+        print(f"[resume] 成功済み {len(prev)} 店を引き継ぐ", file=sys.stderr)
+
+    todo = [rec for rec in sample if rec["restaurant"]["id"] not in prev]
     t0 = time.time()
     with ThreadPoolExecutor(max_workers=args.workers) as ex:
-        results = list(ex.map(work, sample))
+        fresh = list(ex.map(work, todo))
+    by_id = {**prev, **{r["id"]: r for r in fresh}}
+    results = [by_id[rec["restaurant"]["id"]] for rec in sample]
     print(f"[commons] {len(results)} 店 / {time.time()-t0:.0f}s", file=sys.stderr)
 
     # ヒットしたファイルのライセンス・説明を引く
@@ -330,7 +363,6 @@ def main() -> int:
         "inspect_list": inspect,
         "results": results,
     }
-    outp = OUT / "wikimedia-commons.json"
     outp.write_text(json.dumps(payload, ensure_ascii=False, indent=1), encoding="utf-8")
     print(json.dumps({k: payload[k] for k in
                       ("sample_size", "counts", "pct", "license_breakdown_of_matched_files",
@@ -342,3 +374,22 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+
+# #1273 【仕様】目視検証の結果（2026-08-13 実施）。store_matched となった18店の代表画像を
+# サムネイルで人が見て分類した。自動判定を実測として報告しないための固定記録。
+#   真陽性(その店の写真)      : 民宿青塚食堂 / 夢を語れ別府 / 和風レストラン扉 … 3件
+#   うち料理写真              : 民宿青塚食堂 のみ … 1件
+#   チェーン止まり(支店不明)  : かつや … 1件（味噌カツ丼等の料理写真はあるが別店舗）
+#   曖昧                      : 長沢茶屋（笹寿司の写真だが Nagasawa は地名一致）… 1件
+#   偽陽性                    : 残り13件（駐車場・街並み・郵便局・湧水・ロゴ・国会図書館スキャン等）
+# → store_matched の店レベル precision は 3/18 = 16.7%。
+#   600店に対する検証済みカバレッジは 店一致 0.50%、料理写真 0.17%。
+MANUAL_VERIFICATION_2026_08_13 = {
+    "n_inspected_stores": 18,
+    "true_store_match": 3,
+    "dish_photo_of_that_store": 1,
+    "precision_store_level": 3 / 18,
+    "coverage_pct_store_matched_verified": 0.50,
+    "coverage_pct_dish_photo_verified": 0.17,
+}
