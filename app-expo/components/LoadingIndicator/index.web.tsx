@@ -20,7 +20,7 @@ import { dualBallLottie, SIZE_MAP, LoadingIndicatorProps } from "./shared";
  * <LoadingIndicator size="large" style={{ marginTop: 20 }} />
  */
 export const LoadingIndicator: React.FC<LoadingIndicatorProps> = React.memo(
-	({ size = "large", style, accessibilityLabel = "Loading" }) => {
+	({ size = "large", style, accessibilityLabel = "Loading", testID }) => {
 		const dimension = SIZE_MAP[size];
 
 		const dualBallData = JSON.stringify(dualBallLottie);
@@ -28,6 +28,7 @@ export const LoadingIndicator: React.FC<LoadingIndicatorProps> = React.memo(
 		return (
 			<View
 				style={[styles.container, style]}
+				testID={testID}
 				{...(Platform.OS === "web"
 					? {
 							// #690 【設計】Web アクセシビリティ対応 - role="status" / aria-live="polite"

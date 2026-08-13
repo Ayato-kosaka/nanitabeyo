@@ -47,7 +47,13 @@ export default function ProfileSearchResultScreen() {
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
 			{/* Header with Back Button */}
 			<View style={{ ...styles.closeButtonContainer, top: Platform.OS === "ios" ? 40 : 0 }}>
-				<TouchableOpacity style={styles.closeButton} onPress={handleCloseWithHaptic}>
+				{/* #1133 この画面には testID を持つ要素が 1 つも無く、E2E から「ここへ着いた」ことを
+				    観測できなかった。地図やリストは読み込み状態で見た目が変わるため、常に描画される
+				    閉じるボタンを到達判定の観測点にする（見た目は変わらない） */}
+				<TouchableOpacity
+					style={styles.closeButton}
+					onPress={handleCloseWithHaptic}
+					testID="profile-search-result-close-button">
 					<X size={24} color="#000" />
 				</TouchableOpacity>
 			</View>

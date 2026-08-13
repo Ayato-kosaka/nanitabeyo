@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, LayoutChangeEvent } from "react-native";
 import { Image } from "expo-image";
 import { Heart, Bookmark, Share, MapPinned, User, Calendar } from "lucide-react-native";
@@ -88,7 +88,25 @@ function ActionButtonsContent({
 		close: closeMenuModal,
 	} = useBlurModal({ intensity: 100, closeOnBackdropPress: true });
 
+	/**
+	 * #1205 【修正】いいね / 保存の多重実行を防ぐ同期ガード（アクション種別ごと）。
+	 *
+	 * このボタンには `disabled` すら無く、`isLiked` / `isSaved` は props 由来なので、
+	 * 連打すると **stale なトグル値を両方が読んで同じ action を 2 回 POST** する。
+	 * サーバ側は `dish_media_likes` / `reactions` の一意制約で 2 行目を弾くため
+	 * データは壊れないが、失敗リクエストと warn ログが積まれる。
+	 *
+	 * 表示用の state を足さないのは、楽観更新（`updateEntry`）で見た目は即座に変わり、
+	 * ローディングを出す必要が無いため。判定だけを ref で持つ。
+	 */
+	const inFlightActionsRef = useRef<Set<"like" | "save">>(new Set());
+
 	const handleLike = useCallback(async () => {
+		// #1205 進行中なら何もしない（宣言箇所のコメント参照）。楽観更新より前に弾くこと。
+		// ここを楽観更新の後にすると、2 発目がトグルを戻してから弾かれ、表示だけ巻き戻る
+		if (inFlightActionsRef.current.has("like")) return;
+		inFlightActionsRef.current.add("like");
+
 		lightImpact();
 		const willLike = !isLiked;
 		// #259 【バグ】いいね数が0未満にならないよう下限0を保証
@@ -142,10 +160,17 @@ function ActionButtonsContent({
 					newLikeCount: newLikeCount,
 				},
 			});
+		} finally {
+			// #1205 失敗しても押し直せるよう、成功・失敗のいずれでも必ず解除する
+			inFlightActionsRef.current.delete("like");
 		}
 	}, [callBackend, dishMediaId, isLiked, likeCount, lightImpact, logFrontendEvent]);
 
 	const handleSave = useCallback(async () => {
+		// #1205 進行中なら何もしない（宣言箇所のコメント参照）。楽観更新より前に弾くこと
+		if (inFlightActionsRef.current.has("save")) return;
+		inFlightActionsRef.current.add("save");
+
 		lightImpact();
 		const willSave = !isSaved;
 		const { updateEntry, updateMediaIdsByKey } = useDishMediaEntriesStore.getState();
@@ -196,6 +221,9 @@ function ActionButtonsContent({
 					willReact: willSave,
 				},
 			});
+		} finally {
+			// #1205 失敗しても押し直せるよう、成功・失敗のいずれでも必ず解除する
+			inFlightActionsRef.current.delete("save");
 		}
 	}, [callBackend, dishMediaId, isSaved, lightImpact, logFrontendEvent]);
 

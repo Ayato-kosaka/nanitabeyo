@@ -460,6 +460,24 @@ exports.Prisma.RolesScalarFieldEnum = {
   description: 'description'
 };
 
+exports.Prisma.Share_linksScalarFieldEnum = {
+  id: 'id',
+  token_digest: 'token_digest',
+  schema_version: 'schema_version',
+  target_type: 'target_type',
+  target_id: 'target_id',
+  target_params: 'target_params',
+  preview_locale: 'preview_locale',
+  preview_title: 'preview_title',
+  preview_description: 'preview_description',
+  preview_image_path: 'preview_image_path',
+  created_by: 'created_by',
+  status: 'status',
+  expires_at: 'expires_at',
+  created_at: 'created_at',
+  updated_at: 'updated_at'
+};
+
 exports.Prisma.User_device_tokensScalarFieldEnum = {
   user_id: 'user_id',
   expo_push_token: 'expo_push_token',
@@ -583,6 +601,7 @@ exports.Prisma.ModelName = {
   restaurants: 'restaurants',
   role_permissions: 'role_permissions',
   roles: 'roles',
+  share_links: 'share_links',
   user_device_tokens: 'user_device_tokens',
   user_notification_cursors: 'user_notification_cursors',
   user_roles: 'user_roles',
