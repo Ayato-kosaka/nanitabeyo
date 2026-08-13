@@ -7,3 +7,8 @@ __pycache__/
 # リポジトリ直下の .gitignore が *.csv を除外しているが、
 # 突合してもらう成果物と較正入力は再現性のため追跡する。
 !results/*.csv
+
+# probe キャッシュは Text Search の1日上限（75,000）を使って取ったもので、
+# 取り直しに日数がかかる。実行環境は使い捨てなので、圧縮して追跡する。
+# 中身は place_id と HTTP status だけで、Google 由来の店名・住所・座標は含まない。
+!results/probe_cache.csv.gz
