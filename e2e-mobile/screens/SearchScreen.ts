@@ -546,6 +546,29 @@ export class SearchScreen {
 	 * チュートリアルが自動表示されていることを検証する。
 	 * ja-JP かつ未視聴（AsyncStorage の `search_tutorial_seen_v1` が未設定）のときだけ成立する。
 	 */
+	/**
+	 * ヘルプボタン（?）からチュートリアルを **明示的に** 開く。
+	 *
+	 * ## なぜ「起動引数のシード + 自動表示」に頼らない経路が要るのか
+	 * 自動表示は `isFocused && !isLoading && hasSeenTutorial === false` が揃った **マウント 1 回きり**で、
+	 * しかも `hasSeenTutorial` は起動引数のシード → AsyncStorage の順で決まる。
+	 * つまり «開くための前提» が多く、spec の途中で 2 度目を開こうとすると条件が揃わないことがある。
+	 * 実際 iOS で `tutorialSeen: false` を渡して起動し直しても開かず、2 分待って落ちた
+	 *（run 31677355367。失敗時スクリーンショットは «チュートリアルの無い検索画面» で、
+	 *  シートが出ていないことまでは確定。なぜシードが効かなかったかは未特定）。
+	 *
+	 * ヘルプボタンの `onPress` は `setShowTutorial(true)` を直接呼ぶだけで、
+	 * 視聴済みフラグにも once ガードにも依存しない。**実ユーザーの導線**でもあるため、
+	 * 「開いた状態を作る」ことが目的の検証はこちらを使う方が素直で安定する。
+	 *
+	 * ⚠️ 「初回起動で自動表示される」こと自体の検証は **1 本目のテストの責務**。
+	 * こちらへ寄せ替えて自動表示の検証まで失わないこと。
+	 */
+	async openTutorialFromHelp(): Promise<void> {
+		await tapWhenVisible(this.helpButton);
+		await this.expectTutorialShown();
+	}
+
 	async expectTutorialShown(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
 		// #1027 観測点は overlay ではなく **1 ページ目の「つぎへ」ボタン**にする。
 		// overlay は「シートの内容を包むだけの View」で面積や重なりの扱いがプラットフォームで揺れ、
