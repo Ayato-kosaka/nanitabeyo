@@ -1,6 +1,11 @@
 import React, { useCallback } from "react";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView } from "react-native";
+import { View, Text, StyleSheet, FlatList, TouchableOpacity } from "react-native";
+// #1130 【修正】react-native の SafeAreaView は iOS 専用（Android では素の View に等しく inset を
+// 一切足さない）ため、Android だけヘッダーがステータスバーへ食い込んでいた。
+// ブロック済み料理一覧（profile/blocked-topics.tsx）や検索・プロフィールのタブ直下画面と同じく
+// react-native-safe-area-context の SafeAreaView を使う。
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Image } from "expo-image";
 import i18n from "@/lib/i18n";
 import { Heart, Bookmark } from "lucide-react-native";
@@ -200,7 +205,7 @@ export default function NotificationsScreen() {
 	// #1092 PR4b 判定は共通化（lib/authGuest.ts）。タブの表示可否と同じ式にしておく
 	if (isGuestUser(user)) {
 		return (
-			<SafeAreaView style={styles.container}>
+			<SafeAreaView style={styles.container} edges={["top"]}>
 				<View style={styles.header}>
 					<Text style={styles.headerTitle}>{i18n.t("Notifications.title")}</Text>
 				</View>
@@ -212,10 +217,17 @@ export default function NotificationsScreen() {
 	}
 
 	return (
-		<SafeAreaView style={styles.container}>
+		// #1130 edges は "top" のみ。下端はタブバー側（app/[locale]/(tabs)/_layout.tsx の
+		// `safeAreaInsets`）が面倒を見ているので、ここで bottom を足すと二重に余白が入る。
+		<SafeAreaView style={styles.container} edges={["top"]}>
 			{/* Header */}
 			<View style={styles.header}>
-				<Text style={styles.headerTitle}>{i18n.t("Notifications.title")}</Text>
+				{/* #1130 【テスト】ヘッダーの上端 y 座標を Detox から実測するための testID。
+				    SafeArea へ食い込んでいないことは描画ツリー（__tests__/notificationsSafeArea.test.tsx）
+				    では判定できず、実座標を読む必要があるため。見た目には影響しない */}
+				<Text testID="notifications-header-title" style={styles.headerTitle}>
+					{i18n.t("Notifications.title")}
+				</Text>
 				{unreadCount > 0 && (
 					<View style={styles.unreadBadge}>
 						<Text style={styles.unreadBadgeText}>{unreadCount}</Text>

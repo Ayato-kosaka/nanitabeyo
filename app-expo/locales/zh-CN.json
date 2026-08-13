@@ -313,7 +313,7 @@
 		"hiddenMessage": "{{title}}已被隐藏",
 		"BlockTopicModal": {
 			"title": "要屏蔽这道菜吗？",
-			"description": "被屏蔽的菜品话题将不再出现在推荐中。",
+			"description": "被屏蔽的菜品类别将不再出现在推荐中。",
 			"note": "您可以随时在设置中取消屏蔽。",
 			"confirm": "屏蔽"
 		},
@@ -714,14 +714,14 @@
 		"logoutConfirmTitle": "要退出登录吗？",
 		"logoutConfirmMessage": "再次登录后才能管理你的帖子和评论。",
 		"blockedTopics": {
-			"navigationLabel": "已屏蔽的菜品主题",
-			"pageTitle": "已屏蔽的菜品主题",
+			"navigationLabel": "已屏蔽的菜品类别",
+			"pageTitle": "已屏蔽的菜品类别",
 			"title": "已屏蔽的菜品",
 			"empty": "没有已屏蔽的菜品",
 			"loading": "加载中...",
 			"unblockButton": "取消屏蔽",
-			"unblockTitle": "取消屏蔽此主题？",
-			"unblockMessage": "此菜品主题将重新添加到推荐中。",
+			"unblockTitle": "取消屏蔽此菜品类别？",
+			"unblockMessage": "此菜品类别将重新添加到推荐中。",
 			"unblockConfirm": "取消屏蔽",
 			"unblocked": "已取消屏蔽"
 		}

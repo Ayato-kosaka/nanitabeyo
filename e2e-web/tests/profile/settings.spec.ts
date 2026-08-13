@@ -14,7 +14,7 @@ test.describe("設定画面(匿名ユーザー)", () => {
 	//      - ご意見・不具合(settings-feedback)
 	//      - 利用規約(settings-terms)
 	//      - プライバシーポリシー(settings-privacy)
-	//      - ブロック済みの料理トピック(settings-blocked-topics)
+	//      - ブロック済みの料理カテゴリ(settings-blocked-topics) ← #1132 で「トピック」から改称
 	//   3. 「レビューを書く」(ストア誘導)は Web では表示されないことを検証
 	test("設定メニューの各項目が表示される", async ({ appPage }) => {
 		const settingsPage = new SettingsPage(appPage);
