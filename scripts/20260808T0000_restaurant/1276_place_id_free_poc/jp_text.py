@@ -58,6 +58,25 @@ def normalize_for_comparison(value: str) -> str:
     return trimmed or compact
 
 
+LATIN_PATTERN = re.compile(r"[A-Za-z]")
+JAPANESE_PATTERN = re.compile(r"[぀-ヿ一-鿿]")
+
+
+def scripts_differ(left: str, right: str) -> bool:
+    """片方がローマ字表記、もう片方が日本語表記かを判定する。
+
+    Overture の店名は 14.6% がローマ字のみで、Google 側は日本語であることが多い
+    （`Torikizoku` と `鳥貴族`、`Yakiniku King` と `焼肉きんぐ`）。この組み合わせでは
+    文字列の一致・不一致はどちらの証拠にもならないので、名前で判定してはいけない。
+    """
+
+    left_latin = bool(LATIN_PATTERN.search(left)) and not JAPANESE_PATTERN.search(left)
+    right_latin = bool(LATIN_PATTERN.search(right)) and not JAPANESE_PATTERN.search(right)
+    left_japanese = bool(JAPANESE_PATTERN.search(left))
+    right_japanese = bool(JAPANESE_PATTERN.search(right))
+    return (left_latin and right_japanese) or (right_latin and left_japanese)
+
+
 def character_bigrams(value: str) -> set[str]:
     if len(value) < 2:
         return {value} if value else set()
@@ -78,11 +97,13 @@ def name_similarity(left: str, right: str) -> float:
     if a == b:
         return 1.0
     if a in b or b in a:
-        # 長さ比のみで返す。以前は 0.85 を下限にしていたが、それでは「マクドナルド」と
-        # 「マクドナルド渋谷店」が無条件で合格してしまう。Overture には店名がチェーン名
-        # そのままの行が大量にあり（マクドナルド 2,741行）、支店の取り違えを名前側で
-        # 一切検出できなくなる。
-        return min(len(a), len(b)) / max(len(a), len(b))
+        # 片方が他方を完全に含むのは強い証拠。「こめらく」と「こめらく 海鮮茶漬けと…」
+        # のように、Google 側だけ説明が長い行が実際に多い。
+        # チェーン名そのままの行（Overture に「マクドナルド」だけの行が 2,741件ある）は
+        # 呼び出し側で同名多数として別扱いにするので、ここで下限を置いても
+        # 支店の取り違えを見逃すことにはならない。
+        ratio = min(len(a), len(b)) / max(len(a), len(b))
+        return max(0.6, ratio) if min(len(a), len(b)) >= 2 else ratio
     left_grams, right_grams = character_bigrams(a), character_bigrams(b)
     union = left_grams | right_grams
     if not union:

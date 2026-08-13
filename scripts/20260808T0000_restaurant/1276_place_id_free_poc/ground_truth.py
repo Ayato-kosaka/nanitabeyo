@@ -29,7 +29,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
 
-from jp_text import name_similarity, normalize_for_comparison
+from jp_text import name_similarity, normalize_for_comparison, scripts_differ
 from seeds import read_seeds
 
 EARTH_RADIUS_M = 6_371_000.0
@@ -44,9 +44,15 @@ DEFAULT_MIN_NAME_SIMILARITY = 0.34
 DEFAULT_NAME_WAIVER_DISTANCE_M = 30.0
 # 同じ名前を持つ行がこの数以上あれば、その名前はチェーン名とみなす。
 DEFAULT_CHAIN_THRESHOLD = 5
-# チェーン行の合格条件。店名は支店を区別しないので、幾何のほうを締める。
+# チェーン行の合格条件。店名は支店を区別しないので、距離だけで判定する。
 CHAIN_MAX_DISTANCE_M = 75.0
-CHAIN_MIN_NAME_SIMILARITY = 0.5
+# 表記体系が違って店名を比較できない行の合格条件。名前が使えない分、距離を締める。
+CROSS_SCRIPT_MAX_DISTANCE_M = 60.0
+# 固有性の高い店名がほぼ完全に一致する場合の閾値と、その場合に許す距離。
+# 同名の行が少ない店名が 500m 以内に二つ存在することはまず無いので、
+# 名前が一致していれば Overture 側の座標ズレとみなせる。
+STRONG_NAME_SIMILARITY = 0.85
+STRONG_NAME_MAX_DISTANCE_M = 500.0
 
 
 def chain_key(name: str) -> str:
@@ -167,17 +173,34 @@ def command_verify(arguments: argparse.Namespace) -> None:
         similarity = name_similarity(row["name"], truth.name)
         siblings = frequency.get(chain_key(row["name"]), 1)
         is_chain = siblings >= arguments.chain_threshold
+        cross_script = scripts_differ(row["name"], truth.name)
         if is_chain:
-            # 同名の支店が並ぶ行では、店名が合っていても隣の支店かもしれない。
-            # 名前による免除を外し、距離を締めることでしか正しさを主張できない。
+            # チェーンは店名が支店を区別しない。「吉野家」という名前の Overture 行と
+            # 「吉野家 １号線富洲原店」は距離4mで同一店だが、文字列は一致しない。
+            # 逆に隣の支店を掴む誤りは距離に現れる（同名の最近傍が200m以内にある行は
+            # 実測で 0.46%）。したがってチェーンは距離だけで判定する。
             distance_ok = distance <= CHAIN_MAX_DISTANCE_M
-            name_ok = similarity >= CHAIN_MIN_NAME_SIMILARITY
+            name_ok = True
+            rule = "chain_distance_only"
+        elif similarity >= STRONG_NAME_SIMILARITY:
+            # 「フィエスタ」と「フィエスタ」が 238m 離れている等。固有な店名が
+            # 一致している以上、離れているのは Overture の座標が粗いからである。
+            distance_ok = distance <= STRONG_NAME_MAX_DISTANCE_M
+            name_ok = True
+            rule = "strong_name"
+        elif cross_script:
+            # 「Torikizoku」と「鳥貴族 越谷店」のように表記体系が違う組み合わせでは、
+            # 文字列の不一致は別店である証拠にならない。名前を使わず距離を締める。
+            distance_ok = distance <= CROSS_SCRIPT_MAX_DISTANCE_M
+            name_ok = True
+            rule = "cross_script_distance_only"
         else:
             distance_ok = distance <= arguments.max_distance_m
             name_ok = (
                 similarity >= arguments.min_name_similarity
                 or distance <= arguments.name_waiver_distance_m
             )
+            rule = "name_and_distance"
         judged.append(
             {
                 "overture_id": row["overture_id"],
@@ -191,6 +214,7 @@ def command_verify(arguments: argparse.Namespace) -> None:
                 "name_similarity": round(similarity, 3),
                 "same_name_siblings": siblings,
                 "is_chain": is_chain,
+                "rule": rule,
                 "verdict": "pass" if (distance_ok and name_ok) else "fail",
                 "fail_reason": (
                     "" if (distance_ok and name_ok)
@@ -238,9 +262,12 @@ def command_verify(arguments: argparse.Namespace) -> None:
             }
             for detail, total in Counter(e["match_detail"] for e in judged).items()
         },
-        "chain_rows": {
-            "judged": sum(1 for e in judged if e["is_chain"]),
-            "pass": sum(1 for e in judged if e["is_chain"] and e["verdict"] == "pass"),
+        "by_rule": {
+            name: {
+                "judged": sum(1 for e in judged if e["rule"] == name),
+                "pass": sum(1 for e in judged if e["rule"] == name and e["verdict"] == "pass"),
+            }
+            for name in sorted({e["rule"] for e in judged})
         },
         "thresholds": {
             "max_distance_m": arguments.max_distance_m,
@@ -248,7 +275,7 @@ def command_verify(arguments: argparse.Namespace) -> None:
             "name_waiver_distance_m": arguments.name_waiver_distance_m,
             "chain_threshold": arguments.chain_threshold,
             "chain_max_distance_m": CHAIN_MAX_DISTANCE_M,
-            "chain_min_name_similarity": CHAIN_MIN_NAME_SIMILARITY,
+            "cross_script_max_distance_m": CROSS_SCRIPT_MAX_DISTANCE_M,
             "chain_frequency_source": [str(path) for path in (arguments.seeds or [])],
         },
         # この正解率は「既存DBに載っている place_id」に限った値である。既存DBは
