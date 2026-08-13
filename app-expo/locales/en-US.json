@@ -313,7 +313,7 @@
 		"hiddenMessage": "{{title}} has been hidden",
 		"BlockTopicModal": {
 			"title": "Block this dish?",
-			"description": "Blocked dish topics will no longer appear in recommendations.",
+			"description": "Blocked dish categories will no longer appear in recommendations.",
 			"note": "You can unblock it anytime from Settings.",
 			"confirm": "Block"
 		},
@@ -714,14 +714,14 @@
 		"logoutConfirmTitle": "Log out?",
 		"logoutConfirmMessage": "You'll need to log in again to manage your posts and reviews.",
 		"blockedTopics": {
-			"navigationLabel": "Blocked dish topics",
-			"pageTitle": "Blocked dish topics",
+			"navigationLabel": "Blocked dish categories",
+			"pageTitle": "Blocked dish categories",
 			"title": "Blocked dishes",
 			"empty": "No blocked dishes",
 			"loading": "Loading...",
 			"unblockButton": "Unblock",
-			"unblockTitle": "Unblock this topic?",
-			"unblockMessage": "This dish topic will be added back to recommendations.",
+			"unblockTitle": "Unblock this dish category?",
+			"unblockMessage": "This dish category will be added back to recommendations.",
 			"unblockConfirm": "Unblock",
 			"unblocked": "Unblocked"
 		}

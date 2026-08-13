@@ -2,6 +2,7 @@ import {
 	DEFAULT_TIMEOUT,
 	by,
 	element,
+	existsNow,
 	tapWhenVisible,
 	waitUntilGone,
 	waitUntilVisible,
@@ -61,6 +62,15 @@ export class ReviewScreen {
 	readonly priceInput = by.id("review-price-input");
 	/** 投稿ボタン（`ReviewForm.tsx:706`） */
 	readonly submitButton = by.id("review-submit-button");
+	/**
+	 * 投稿ボタン内のローディングスピナー（#1136）。
+	 *
+	 * `PrimaryButton` は `testID` を渡されたとき、内側の `LoadingIndicator` へ `${testID}-loading` を
+	 * 派生させる（app-expo/components/PrimaryButton.tsx）。**`loading` が false の間は
+	 * そもそもレンダリングされない**ため、この要素の有無がそのまま `isSubmitting` の観測点になる。
+	 * e2e-web が `role="status"` で見ているものと同じ実体を指す。
+	 */
+	readonly submitLoadingIndicator = by.id("review-submit-button-loading");
 
 	/**
 	 * 星評価ボタン（`ReviewForm.tsx:671`）。1〜5 の整数を渡す。
@@ -138,6 +148,32 @@ export class ReviewScreen {
 	/** 投稿ボタンをタップする */
 	async submit(): Promise<void> {
 		await tapWhenVisible(this.submitButton);
+	}
+
+	/**
+	 * 投稿ボタンにスピナーが出ている（= `isSubmitting` が true）かを **待たずに** 判定する（#1136）。
+	 * 「出るまで待つ」側は `waitUntil` と組み合わせて spec 側で行う。
+	 */
+	async isSubmitting(): Promise<boolean> {
+		return existsNow(this.submitLoadingIndicator, 1_000);
+	}
+
+	/**
+	 * 投稿ボタンが押下可能かを `getAttributes()` で読み取る（#1136）。
+	 *
+	 * Detox には `accessibilityState` を直接検証するマッチャが無い（utils/waits.ts の `waitUntil` 参照）。
+	 * `PrimaryButton` は `disabled={isDisabled}` を `Pressable` へ渡しており、React Native は
+	 * これを各プラットフォームのネイティブな「無効」状態へ落とすため、`enabled` 属性として観測できる。
+	 *
+	 * @returns 押下可能なら true / 無効なら false / **属性自体が取れなかった場合は null**
+	 *          （プラットフォーム差で欠ける可能性があるため、呼び出し側が「観測できなかった」と
+	 *          「押せてしまう」を区別できるようにする）
+	 */
+	async isSubmitButtonEnabled(): Promise<boolean | null> {
+		// getAttributes() の戻り値は iOS / Android・単一 / 複数一致で型が分かれるため、
+		// SearchScreen / ResultScreen と同じく必要なキーだけに絞ってキャストする
+		const attributes = (await element(this.submitButton).getAttributes()) as { enabled?: boolean };
+		return attributes.enabled ?? null;
 	}
 
 	/**

@@ -19,7 +19,7 @@ import {
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { HelpCircle, CheckCircle2, Circle } from "lucide-react-native";
-import Carousel from "react-native-reanimated-carousel";
+import { Carousel } from "react-native-reanimated-carousel";
 import { generateUUID } from "@/lib/uuid";
 
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
@@ -411,17 +411,19 @@ export default function DishCopySurveyPage() {
 
 					{/* カルーセル */}
 					<View style={styles.carouselContainer}>
+						{/* #1156 carousel v5: width/height は style へ、mode/modeConfig は layout へ移行。
+						    v5 は loop の既定が false になったため、v4 の挙動を保つよう明示する。 */}
 						<Carousel
-							width={carouselWidth}
-							height={carouselHeight}
 							data={dishes}
 							renderItem={({ item }) => renderCard(item)}
 							onSnapToItem={setCurrentIndex}
-							mode="parallax"
-							modeConfig={{
-								parallaxScrollingScale: 0.9,
-								parallaxScrollingOffset: 100,
+							loop
+							layout={{
+								type: "parallax",
+								scale: 0.9,
+								offset: 100,
 							}}
+							style={{ width: carouselWidth, height: carouselHeight }}
 						/>
 					</View>
 

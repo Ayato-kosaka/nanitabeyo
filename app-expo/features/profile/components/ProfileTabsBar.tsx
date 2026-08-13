@@ -104,6 +104,9 @@ export function ProfileTabsBar({ tabNames, index, onTabPress, availableTabs }: P
 							<TouchableOpacity
 								key={route}
 								style={[styles.subTab, isActive && styles.activeSubTab]}
+								// #1133 E2E がサブタブを名指しで押せるようにする。見た目には影響しない。
+								// ディープリンク（?tab=）は iOS で効かないことがあり、E2E の入口として当てにできない
+								testID={`profile-subtab-${route}`}
 								onPress={() => pressRoute(route)}>
 								<Text style={[styles.subTabText, isActive && styles.activeSubTabText]}>
 									{i18n.t(`Profile.tabs.${route}`)}

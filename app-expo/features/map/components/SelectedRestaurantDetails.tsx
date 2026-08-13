@@ -1,7 +1,6 @@
 import React, { useState, useCallback } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, LayoutChangeEvent, Platform } from "react-native";
 import { Camera, DollarSign, ExternalLink } from "lucide-react-native";
-import * as Linking from "expo-linking";
 import { Card } from "@/components/Card";
 import Stars from "@/components/Stars";
 import { PrimaryButton } from "@/components/PrimaryButton";
@@ -18,6 +17,7 @@ import { useSharedValueState } from "@/hooks/useSharedValueState";
 import type { QueryRestaurantsResponse } from "@shared/api/v1/res";
 import { useLogger } from "@/hooks/useLogger";
 import { getGoogleMapsLink } from "@/lib/googlePlaces";
+import { openExternalUrl } from "@/lib/openExternalUrl";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useSafeAreaFrame } from "react-native-safe-area-context";
 import { Image } from "expo-image";
@@ -125,15 +125,13 @@ export function SelectedRestaurantDetails({ restaurant, meta: restaurantMeta }: 
 
 		try {
 			const { mapUrl, canOpen } = await getGoogleMapsLink(restaurant);
-			if (Platform.OS === "web") {
-				window.open(mapUrl, "_blank", "noopener,noreferrer");
+			// #1121 Web の別タブ起動は openExternalUrl へ寄せた。
+			// canOpen（Linking.canOpenURL）はネイティブのハンドラ有無の判定なので Web では見ない
+			if (Platform.OS !== "web" && !canOpen) {
+				showSnackbar(i18n.t("DishMediaContent.errors.mapOpenFailed"));
 				return;
 			}
-			if (canOpen) {
-				await Linking.openURL(mapUrl);
-			} else {
-				showSnackbar(i18n.t("DishMediaContent.errors.mapOpenFailed"));
-			}
+			await openExternalUrl(mapUrl);
 		} catch (error) {
 			showSnackbar(i18n.t("DishMediaContent.errors.mapOpenFailed"));
 			logFrontendEvent({

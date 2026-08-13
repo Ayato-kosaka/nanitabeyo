@@ -63,8 +63,8 @@ describeJapaneseLocale("検索チュートリアル（初回起動）", () => {
 
 	// ─ テストケース: 「つぎへ」を連打してもチュートリアルが壊れない（#1084 P3） ─
 	// 手順:
-	//   1. 「未視聴」を起動引数でシードして起動し直す（直前のテストが完了フラグを立てているため、
-	//      beforeAll の起動をそのまま引き継ぐとチュートリアルが出ない）
+	//   1. 起動し直し、ヘルプボタン（?）からチュートリアルを開く（直前のテストが完了フラグを
+	//      立てているため自動表示は使えない。視聴済みフラグに依存しない実ユーザー導線を使う）
 	//   2. 1 ページ目で「つぎへ」を 3 連打する（multiTap = 待機を挟まない 1 アクション）
 	//   3. シートが開いたままで、プライマリ CTA が「つぎへ」「はじめよう」のちょうど一方だけである
 	//      ことを検証（= 連打でシートが閉じたり、CTA ごと描画が壊れたりしていない）
@@ -83,8 +83,18 @@ describeJapaneseLocale("検索チュートリアル（初回起動）", () => {
 	//       また最終ページのプライマリ CTA は「現在地を利用する」で、押すと現在地取得を伴い
 	//       シートを閉じるため、設計の「最終ページで multiTap(3) → finish が出たまま」は成立しない
 	it("「つぎへ」を連打してもチュートリアルが壊れない", async () => {
-		await launchAppWithSession({ as: "anon", tutorialSeen: false, waitForReady: false });
-		await search.expectTutorialShown(LAUNCH_TIMEOUT);
+		// ⚠️ ここで «起動引数で未視聴をシードして開き直す» をしないこと。
+		// 直前のテストが視聴済みフラグを立てているため 2 度目の自動表示が必要になるが、
+		// 自動表示は `isFocused && !isLoading && hasSeenTutorial === false` が揃った
+		// **マウント 1 回きり**で、iOS では `tutorialSeen: false` で起動し直しても開かず
+		// 2 分待って落ちた（run 31677355367。失敗時スクリーンショットは «シートの無い検索画面»）。
+		//
+		// このテストが見たいのは **開いたシートを連打しても壊れないこと**であって自動表示ではない。
+		// 自動表示と永続化は 1 本目が担保しているので、ここは実ユーザーの導線であり
+		// 視聴済みフラグに依存しないヘルプボタン（?）から開く。起動が 1 回減る分だけ速くもなる。
+		await launchAppWithSession({ as: "anon" });
+		await search.expectLoaded();
+		await search.openTutorialFromHelp();
 
 		await search.tutorialNextRapid(3);
 		await search.expectTutorialOperable();

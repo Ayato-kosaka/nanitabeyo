@@ -10,6 +10,7 @@ import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-nativ
 import { useAuth } from "@/contexts/AuthProvider";
 import { isGuestUser } from "@/lib/authGuest";
 import i18n from "@/lib/i18n";
+import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { useEnsureOwnProfileLoaded } from "@/features/profile/hooks/useEnsureOwnProfileLoaded";
 import { useProfileStore } from "@/features/profile/stores/useProfileStore";
@@ -22,8 +23,8 @@ type Props = {
 };
 
 export function DishCategoryGroupVoteCompletionModal({ usedDisplayNames, isSubmitting, onSubmit }: Props) {
-	const { user } = useAuth();
-	useEnsureOwnProfileLoaded();
+	const { user, isAuthResolved } = useAuth();
+	const { isProfileResolved } = useEnsureOwnProfileLoaded();
 	const profile = useProfileStore((state) => state.profile);
 	const usedDisplayNamesKey = useMemo(() => usedDisplayNames.join("\u0000"), [usedDisplayNames]);
 	const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -33,13 +34,31 @@ export function DishCategoryGroupVoteCompletionModal({ usedDisplayNames, isSubmi
 	// #1092 PR4b 【修正】`user?.is_anonymous === false` から共通判定（lib/authGuest.ts）へ寄せた。
 	// 旧式は is_anonymous が undefined のときもゲスト扱いになり、ログイン済みなのに表示名が
 	// 初期入力されない（他画面ではログイン済みとして扱われている）という食い違いになる
-	const loggedInDisplayName = !isGuestUser(user)
+	const isGuest = isGuestUser(user);
+
+	// #1120 【設計】「ゲスト向けの絵文字候補」と「ログインユーザーの nickname 初期入力」の分岐に必要な
+	// 材料がそろったか。そろう前に描くと、ログイン済みユーザーに一瞬だけ絵文字候補が出てから
+	// nickname へ差し替わる（Issue #1120）。
+	//
+	// - `isAuthResolved === false` … ゲストかログイン済みかがまだ決まっていない。
+	//   `isGuestUser(null)` は「ゲスト」へ倒れる仕様（lib/authGuest.ts）なので、
+	//   ここを待たないと必ずゲスト向け UI を先に描いてしまう。
+	// - ログイン済みで `isProfileResolved === false` … display_name の取得が終わっていない。
+	//   このモーダルは BlurModal が open した瞬間に初めてマウントされる = プロフィール取得も
+	//   そこから始まるため、`profile === null` の窓を毎回必ず通る。
+	//
+	// ゲスト確定なら profile を参照しないので、プロフィール取得を待たずに描いてよい。
+	const isIdentityResolved = isAuthResolved && (isGuest || isProfileResolved);
+
+	const loggedInDisplayName = !isGuest
 		? Array.from(profile?.display_name ?? "")
 				.slice(0, 8)
 				.join("")
 		: "";
 
 	useEffect(() => {
+		// #1120 未確定のスナップショットで入力欄を初期化しない（確定してから一度だけ初期化する）
+		if (!isIdentityResolved) return;
 		const nextUsedDisplayNames = usedDisplayNamesKey ? usedDisplayNamesKey.split("\u0000") : [];
 		const nextSuggestions = buildDishCategoryGroupVoteNameSuggestions(nextUsedDisplayNames);
 		setSuggestions(nextSuggestions);
@@ -48,7 +67,7 @@ export function DishCategoryGroupVoteCompletionModal({ usedDisplayNames, isSubmi
 		setIsManualName(Boolean(loggedInDisplayName));
 		setDisplayName(defaultDisplayName);
 		setComment("");
-	}, [loggedInDisplayName, usedDisplayNamesKey]);
+	}, [isIdentityResolved, loggedInDisplayName, usedDisplayNamesKey]);
 
 	useEffect(() => {
 		if (displayName.trim().length === 0) {
@@ -65,10 +84,24 @@ export function DishCategoryGroupVoteCompletionModal({ usedDisplayNames, isSubmi
 
 	const canSubmit = displayName.trim().length > 0 && !isSubmitting;
 
+	// #1120 【設計】確定するまではどちらの分岐も描かない。
+	// 「ゲスト向けを出しておいて後から差し替える」も「遅延で隠す」もしない ＝ ちらつきの原因を消す。
+	if (!isIdentityResolved) {
+		return (
+			<View style={styles.modal}>
+				<Text style={styles.title}>{i18n.t("DishCategoryGroupVotes.completionTitle")}</Text>
+				<View testID="dish-category-group-vote-completion-loading" style={styles.identityLoading}>
+					<LoadingIndicator size="large" />
+				</View>
+			</View>
+		);
+	}
+
 	return (
-		<View style={styles.modal}>
+		<View testID="dish-category-group-vote-completion-form" style={styles.modal}>
 			<Text style={styles.title}>{i18n.t("DishCategoryGroupVotes.completionTitle")}</Text>
 			<TextInput
+				testID="dish-category-group-vote-display-name-input"
 				style={styles.input}
 				value={displayName}
 				onChangeText={(text) => {
@@ -80,12 +113,19 @@ export function DishCategoryGroupVoteCompletionModal({ usedDisplayNames, isSubmi
 				maxLength={8}
 			/>
 			{suggestions.length > 0 && (!isManualName || displayName.trim().length === 0) ? (
-				<View style={styles.suggestions}>
+				<View testID="dish-category-group-vote-name-suggestions" style={styles.suggestions}>
 					<Text style={styles.suggestionLabel}>{i18n.t("DishCategoryGroupVotes.nameSuggestionLabel")}</Text>
 					<View style={styles.suggestionRow}>
 						{suggestions.map((suggestion) => (
+							// 【a11y】押せるのに role が無いと、web では `<div tabindex="0">` として描画され、
+							// 支援技術からはボタンだと分からない。`accessibilityState.selected` まで出して
+							// 「どれを選んでいるか」も読み上げ側へ伝える（見た目は色でしか示していないため）。
 							<TouchableOpacity
 								key={suggestion}
+								testID="dish-category-group-vote-name-suggestion"
+								accessibilityRole="button"
+								accessibilityLabel={suggestion}
+								accessibilityState={{ selected: displayName === suggestion }}
 								style={[styles.suggestionButton, displayName === suggestion && styles.suggestionButtonActive]}
 								onPress={() => {
 									setIsManualName(false);
@@ -134,6 +174,13 @@ const styles = StyleSheet.create({
 	suggestions: {
 		marginTop: 14,
 		gap: 8,
+	},
+	// #1120 ログイン判定の確定待ち。確定後のフォームとおおよそ同じ高さにして、
+	// 差し替わったときにモーダルが大きく伸縮しないようにする
+	identityLoading: {
+		minHeight: 220,
+		alignItems: "center",
+		justifyContent: "center",
 	},
 	suggestionLabel: {
 		fontSize: 12,

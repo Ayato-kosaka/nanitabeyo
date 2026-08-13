@@ -10,7 +10,21 @@
 		<noscript>JavaScript を有効にしてください。</noscript>
 
 		<script>
-			const ALLOW_ORIGIN = "https://app.nanitabeyo.net";
+			/**
+			 * 転送を許可するオリジン。**open redirect を防ぐ唯一の砦**なので、
+			 * ここへ外部のホストを足さないこと。
+			 *
+			 * ⚠️ **配列であることに意味がある。** この relay は `oia-relay` サイト 1 つに
+			 * デプロイされ、**本番と開発の両方から使われる**。以前は本番オリジンの
+			 * 決め打ちだったため、開発環境（nanitabeyo-dev）から踏むと
+			 * `target.origin !== ALLOW_ORIGIN` で弾かれ、**黙って本番のトップへ**
+			 * 飛んでいた（実機で「アプリで開く」を押しても目的の画面に着かない、
+			 * という形で表面化した）。
+			 *
+			 * 先頭が既定のフォールバック先。
+			 */
+			const ALLOW_ORIGINS = ["https://app.nanitabeyo.net", "https://nanitabeyo-dev.web.app"];
+			const DEFAULT_ORIGIN = ALLOW_ORIGINS[0];
 
 			const url = new URL(location.href);
 			const u = url.searchParams.get("u");
@@ -32,11 +46,13 @@
 					return null;
 				}
 
-				if (target.origin !== ALLOW_ORIGIN) return null;
+				if (!ALLOW_ORIGINS.includes(target.origin)) return null;
 				return target.toString();
 			}
 
-			const target = safeTarget(u) || ALLOW_ORIGIN + "/";
+			// 弾かれた場合は既定オリジンのトップへ。開発環境から踏んだリンクが
+			// ここへ落ちると «本番へ飛ばされた» ように見えるので、上の allowlist を絞りすぎないこと
+			const target = safeTarget(u) || DEFAULT_ORIGIN + "/";
 
 			// ✅ 履歴に Relay を残しにくくする
 			window.location.replace(target);

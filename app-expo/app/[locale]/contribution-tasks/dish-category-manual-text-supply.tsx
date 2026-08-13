@@ -98,6 +98,14 @@ export default function DishCategoryManualTextSupplyScreen() {
 	// #749 【状態】ローディング
 	const [isLoadingCandidates, setIsLoadingCandidates] = useState(true);
 	const [isSubmitting, setIsSubmitting] = useState(false);
+	/**
+	 * #1205 【修正】貢献タスク送信の多重実行を防ぐ同期ガード。
+	 *
+	 * `isSubmitting`（useState）は送信ボタンを disabled にする表示用途で、判定には使えない。
+	 * 通過すると `POST v1/contribution-tasks` が二重に走る。この API のリポジトリ実装は
+	 * 素の `create` で一意制約も無いため、**同じ内容の contribution_tasks 行が 2 件できる**。
+	 */
+	const isSubmittingRef = useRef(false);
 
 	// #749 【状態】エラー
 	const [loadError, setLoadError] = useState<string | null>(null);
@@ -397,6 +405,11 @@ export default function DishCategoryManualTextSupplyScreen() {
 		if (!editingItem) return;
 		if (!validateEdit()) return;
 
+		// #1205 多重実行の判定は ref で行う（宣言箇所のコメント参照）。
+		// バリデーションの early return より後に立てること（手前だと解除されない）
+		if (isSubmittingRef.current) return;
+		isSubmittingRef.current = true;
+
 		setIsSubmitting(true);
 		mediumImpact();
 
@@ -460,6 +473,8 @@ export default function DishCategoryManualTextSupplyScreen() {
 				},
 			});
 		} finally {
+			// #1205 送信失敗後も押し直せるよう、成功・失敗のいずれでも必ず解除する
+			isSubmittingRef.current = false;
 			setIsSubmitting(false);
 		}
 	}, [

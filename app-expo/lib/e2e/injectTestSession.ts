@@ -22,6 +22,12 @@ import { supabase } from "@/lib/supabase";
  * 一致していれば何もしない（= 同一セッションの二重注入による refresh token ローテーション衝突を避ける）、
  * 不一致なら注入する、**不一致なのに注入もできない場合は例外を投げる（fail-loud）**。
  *
+ * ## 反復ポリシー（#1131）
+ * 上記の判定は「呼ばれるたび」に行われる（既定 = `e2eSessionInjection: "always"`）。
+ * ログアウトを検証する spec だけは `"once"` を渡し、**プロセス内で 1 回成立したら以降は素通り**させる。
+ * そうしないと SIGNED_OUT → `runAuthAttempt()` → 本関数、の順でログイン済みセッションが注入し直され、
+ * ログアウトそのものを検証できない（詳細は `E2ESessionInjectionPolicy`）。
+ *
  * ## 副作用
  * - 成功時は supabase-js が AsyncStorage(`sb-<projectRef>-auth-token`) にセッションを保存し `SIGNED_IN` を発火する
  *   → AuthProvider の onAuthStateChange がストアクリアまで面倒を見るため、呼び出し側での追加処理は不要
@@ -46,6 +52,27 @@ export const E2E_TEST_SESSION_SENTINEL = "__E2E_TEST_SESSION_HOOK__";
 export type E2ESessionOwner = "anon" | "authenticated";
 
 /**
+ * 注入をアプリのプロセス内で何回まで行うか（#1131）。
+ *
+ * - `always`（既定・従来の挙動） … 呼ばれるたびに「期待ユーザーと一致するか」で判定して注入する
+ * - `once` … **プロセス内で 1 回成立したら、以降は何もしない**（= 通常起動と同じ経路へ合流する）
+ *
+ * ## なぜ `once` が要るのか（ログアウトの E2E）
+ * `AuthProvider` の SIGNED_OUT ハンドラは `runAuthAttempt()` を呼び直し、その先頭がこの関数になる。
+ * 既定の `always` では「現在セッション=無し ≠ 期待ユーザー」となって **ログアウトした直後に
+ * ログイン済みセッションを注入し直してしまう**ため、ログアウトの検証が成立しない
+ *（「ログアウトしたのにログイン済みへ戻る」テストになる）。
+ *
+ * `once` を渡した spec では、ログアウト後の 2 回目以降が素通りし、アプリは本番と同じ
+ * `signInAnonymously()` の経路へ進む。**その匿名サインインの成立こそが #1124 の検証対象**なので、
+ * ここを潰してはいけない（= 30 回/時/IP の枠を 1 消費することは織り込み済み）。
+ *
+ * ⚠️ 既定を `once` にしてはいけない。トークンリフレッシュの失効などで SIGNED_OUT が来た他の spec が、
+ * 意図せず匿名ユーザーへ落ちたまま緑になる（= B-1 が防いでいる「サイレントに誤ったユーザーで走る」）。
+ */
+export type E2ESessionInjectionPolicy = "always" | "once";
+
+/**
  * 注入処理の結果。
  * - `skipped`: E2E ビルドでない / 期待値も資格情報も渡されていない（= 通常起動）
  * - `already-matched`: 現在のセッションが既に期待ユーザーと一致していたため何もしなかった
@@ -67,7 +94,21 @@ type E2ELaunchArgs = {
 	e2eAccessToken?: string;
 	/** 同 refresh_token */
 	e2eRefreshToken?: string;
+	/**
+	 * 注入の反復ポリシー（"always" | "once"）。省略時は "always"（従来どおり）。
+	 * #1131 ログアウトの spec だけが "once" を渡す（E2ESessionInjectionPolicy のコメント参照）。
+	 */
+	e2eSessionInjection?: string;
 };
+
+/**
+ * このプロセスで既に注入が成立したか（#1131）。
+ *
+ * `device.launchApp({ newInstance: true })` はアプリのプロセスごと作り直すため、
+ * モジュールスコープのこのフラグも起動のたびに false へ戻る（= spec 間で漏れない）。
+ * `app/index.tsx` の `hasConsumedInitialUrl` と同じ寿命の持たせ方。
+ */
+let hasInjectedInThisProcess = false;
 
 // #1030 【設計】instanceof はトランスパイル設定によって壊れうるため、マーカープロパティで判別する
 const INJECTION_ERROR_FLAG = "__e2eTestSessionInjectionError";
@@ -143,7 +184,7 @@ export const injectTestSession = async (): Promise<InjectTestSessionResult> => {
 	// ⚠️ EXPO_PUBLIC_NODE_ENV が未設定だと undefined で素通りする（fail-open）ため、これは主ガードではない（レビュー m-3）
 	if (Env.NODE_ENV === "production") return "skipped";
 
-	const { e2eSessionOwner, e2eExpectedUserId, e2eAccessToken, e2eRefreshToken } = readLaunchArgs();
+	const { e2eSessionOwner, e2eExpectedUserId, e2eAccessToken, e2eRefreshToken, e2eSessionInjection } = readLaunchArgs();
 
 	// #1030 【設計】期待値も資格情報も渡されていない = 通常起動（アプリ本来の匿名サインインを検証する boot smoke 等）。
 	// この経路では本フックは完全に無害で、通常ビルドと 1 バイトも挙動が変わらない（ガード第 3 層）
@@ -162,6 +203,20 @@ export const injectTestSession = async (): Promise<InjectTestSessionResult> => {
 			`launchArgs の e2eSessionOwner が不正です（"anon" | "authenticated" のいずれかを渡すこと）: ${String(e2eSessionOwner)}`,
 		);
 	}
+	// #1131 未指定は "always"（従来の挙動）。誤記を黙って "always" に丸めると
+	// 「ログアウトの spec だけ緑なのに検証内容が嘘」になるため、不正値は fail-loud にする
+	if (e2eSessionInjection !== undefined && e2eSessionInjection !== "always" && e2eSessionInjection !== "once") {
+		throw createInjectionError(
+			`launchArgs の e2eSessionInjection が不正です（"always" | "once" のいずれかを渡すこと）: ${String(e2eSessionInjection)}`,
+		);
+	}
+	const injectionPolicy: E2ESessionInjectionPolicy = e2eSessionInjection === "once" ? "once" : "always";
+
+	// #1131 【設計】`once` はログアウト後の再注入を止めるためだけの経路。
+	// ここで «期待ユーザーとの一致判定より前に» 抜けるのが要点で、こうしないと
+	// 「セッション無し ≠ 期待ユーザー」で必ず注入されてしまう（= ログアウトを検証できない）。
+	// 以降はアプリ本来の匿名サインインへ合流する（tests/authenticated/logout.test.ts）。
+	if (injectionPolicy === "once" && hasInjectedInThisProcess) return "skipped";
 
 	const { data: currentData, error: currentError } = await supabase.auth.getSession();
 	if (currentError) {
@@ -174,6 +229,9 @@ export const injectTestSession = async (): Promise<InjectTestSessionResult> => {
 	//（reuse 検知によるセッションファミリ失効）を防ぐため
 	if (currentUser && currentUser.id === e2eExpectedUserId) {
 		assertSessionOwner(e2eSessionOwner, currentUser.id, currentUser.is_anonymous);
+		// #1131 「既に期待ユーザーだった」も注入が成立した状態に含める。`newInstance: true` は
+		// AsyncStorage を消さないため、2 回目以降の起動はこちらの分岐で期待ユーザーになる
+		hasInjectedInThisProcess = true;
 		return "already-matched";
 	}
 
@@ -203,6 +261,9 @@ export const injectTestSession = async (): Promise<InjectTestSessionResult> => {
 		);
 	}
 	assertSessionOwner(e2eSessionOwner, data.session.user.id, data.session.user.is_anonymous);
+
+	// #1131 `once` のときに 2 回目以降を素通りさせるための記録（`always` では読まれない）
+	hasInjectedInThisProcess = true;
 
 	return "injected";
 };

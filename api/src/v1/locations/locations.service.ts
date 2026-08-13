@@ -566,18 +566,31 @@ export class LocationsService {
   }
 
   /**
-   * #952 【設計】Autocomplete 候補の「同一地点の粒度違い重複」を除去する。
+   * #1176 【設計】Autocomplete 候補の重複除去は「表示が完全に同一のもの」だけに限定する。
    *
-   * ルール(PR #980 レビュー指摘を受けた改訂版):
-   * 1. mainText を正規化(NFKC + 空白除去)したものを同名判定のキーにする。
-   *    「渋谷駅」と「渋谷駅前」のような別名は別キーになり残る。
-   * 2. 落とすのは「同名の establishment(実在施設)が存在する場合の非 establishment 候補」
-   *    だけに限定する。これが「渋谷駅(駅)と 渋谷駅(番地レベル geocode)」のような
-   *    同一地点の粒度違い重複に相当する。
-   * 3. 同名でも establishment 同士(例: 同名チェーンの別店舗。place_id・secondaryText が
-   *    異なる別の実在地点)は全て残す。表示名だけで別地点を消してはならない。
-   * 4. 完全重複(mainText と secondaryText の両方が一致)だけは同名同士でも1件に畳む。
-   * 5. 返却順は Google の関連度順(元の配列順)を維持する。
+   * かつては #952(同名の非 establishment を落とす)と #1123(同名の鉄道駅を1件に畳む)の
+   * ルールを持っていたが、いずれも **mainText(表示名)が同じなら同一地点とみなす**
+   * 前提に立っていた。この前提は成立しない。
+   *
+   * `autocompleteLocations` のリクエストには locationBias / locationRestriction が無く、
+   * 全国の候補が同一レスポンスに並び得る。日本には同名の別駅・別施設が多数実在する
+   * (大久保駅 = 東京都新宿区 / 兵庫県明石市 / 京都府宇治市 / 秋田市 など)。
+   * 名前ベースで畳むと、ユーザーが選びたい地点が候補から消えて **選択不能** になる(#1176)。
+   *
+   * 重複表示は「わずらわしい」だけだが、選択不能は「目的を達成できない」であり、
+   * 損害の非対称性が大きい。したがって Google の返す候補は原則そのまま通す。
+   *
+   * 残す唯一の例外がルール2(完全重複)である。mainText と secondaryText の**両方**が
+   * 一致する候補は、UI 上まったく区別が付かず、ユーザーはどちらを選んでも同じ体験になる。
+   * この場合だけは畳んでも選択肢を奪わない。
+   *
+   * ルール:
+   * 1. mainText / secondaryText を正規化(NFKC + 空白除去)する。
+   * 2. mainText と secondaryText が**両方**一致する候補だけを1件に畳む。
+   * 3. 返却順は Google の関連度順(元の配列順)を維持する。並び替えは行わない。
+   *
+   * 将来 locationBias を入れて候補が地理的に絞られるようになれば、名前ベースの
+   * 畳み込みを再検討する余地はある。それまでは通す側に倒す。
    */
   private dedupeAutocompletePlaces(
     places: AutocompleteLocationsResponse,
@@ -585,33 +598,17 @@ export class LocationsService {
     const normalizeKey = (text: string): string =>
       text.normalize('NFKC').replace(/\s+/g, '');
 
-    const isEstablishment = (place: { types: string[] }): boolean =>
-      place.types.includes('establishment');
-
-    // 同名の establishment が1件でも存在する mainText キーの集合
-    const establishmentNameKeys = new Set(
-      places
-        .filter((place) => isEstablishment(place))
-        .map((place) => normalizeKey(place.mainText)),
-    );
-
     const seenExactKeys = new Set<string>();
 
     return places.filter((place) => {
-      const nameKey = normalizeKey(place.mainText);
-
-      // ルール4: mainText + secondaryText まで完全一致する候補は同一表示になるため1件に畳む
-      const exactKey = `${nameKey}\u0000${normalizeKey(place.secondaryText)}`;
+      // ルール2: mainText + secondaryText まで完全一致する候補は同一表示になるため1件に畳む
+      const exactKey = `${normalizeKey(place.mainText)}\u0000${normalizeKey(
+        place.secondaryText,
+      )}`;
       if (seenExactKeys.has(exactKey)) {
         return false;
       }
       seenExactKeys.add(exactKey);
-
-      // ルール2: 同名の establishment が存在するなら、非 establishment(番地レベルの
-      // geocode / street_address / premise 等)は同一地点の粒度違いとみなして落とす
-      if (!isEstablishment(place) && establishmentNameKeys.has(nameKey)) {
-        return false;
-      }
 
       return true;
     });

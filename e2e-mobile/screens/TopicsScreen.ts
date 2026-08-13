@@ -2,6 +2,7 @@ import {
 	DEFAULT_TIMEOUT,
 	by,
 	existsNow,
+	multiTapWhenPresent,
 	tapWhenVisible,
 	visibleNow,
 	waitUntilGone,
@@ -104,6 +105,24 @@ export class TopicsScreen {
 	/** ヘッダーの戻るボタンで検索画面へ戻る */
 	async goBack(): Promise<void> {
 		await tapWhenVisible(this.backButton);
+	}
+
+	/** ヘッダーの「友達投票開始」を押して投票結果画面へ進む */
+	async openGroupVote(): Promise<void> {
+		await tapWhenVisible(this.groupVoteButton);
+	}
+
+	/**
+	 * 「友達投票開始」を **待機を挟まずに** 連打する（#1205）。
+	 *
+	 * `tap()` の連続では連打にならない理由は `multiTapWhenPresent` の JSDoc を参照
+	 *（Android は Detox の同期機構が 1 発目の遷移とネットワーク完了まで待たせるため、
+	 *  事故があっても緑になる）。
+	 *
+	 * @param times 連打回数
+	 */
+	async openGroupVoteRapid(times = 2): Promise<void> {
+		await multiTapWhenPresent(this.groupVoteButton, times);
 	}
 
 	/**

@@ -50,6 +50,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		package: "com.nanitabeyo",
 		versionCode: 1,
 		adaptiveIcon: {
+			// Adaptive icon の前景は 108dp キャンバスのうち内側 72dp しか表示されず、さらにランチャーのマスク
+			// （円 / squircle）で切り抜かれる。icon.png（フチまで絵柄がある全面画像）をそのまま使うと端が欠けるため、
+			// adaptive-icon.png は絵柄をセーフゾーン（中央 68dp 相当の円）内に収めた専用アセットにしている。
+			// icon.png で置き換えないこと。
 			foregroundImage: "./assets/images/adaptive-icon.png",
 			backgroundColor: "#ffffff",
 		},
@@ -196,6 +200,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 				],
 			},
 		],
+		// #1156 【設計】use_frameworks! 環境で React Native Core の非モジュラーヘッダ include が
+		// -Werror になるのを抑止する（react-native-maps が SDK 54 で踏んだ）。詳細はプラグイン内のコメント参照。
+		"./plugins/withNonModularHeaders",
+		// #1156 【設計】release ビルドの lint が metaspace 不足で OOM になるのを防ぐ。
+		// EAS の development は debug ビルドなので踏まないが、Detox E2E と preview/production は踏む。
+		"./plugins/withAndroidGradleMemory",
 		[
 			"expo-build-properties",
 			{
