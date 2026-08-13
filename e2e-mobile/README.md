@@ -102,24 +102,25 @@ pnpm --filter e2e-mobile test:ios             # Android と同じく :smoke / :m
 
 ### Screen Object を書くときの必須ルール(#1027 で実測した落とし穴)
 
-| ルール | 理由 |
-| --- | --- |
-| **タップは `tapWhenVisible()` を使う**。`element(...).tap()` を直接呼ばない | iOS は同期機構を切っているため、描画完了前にタップが飛んで "No elements found" になる(run 30432596949 の `profile-settings-button`)。Android は同期機構が吸収するので**片方でしか出ない** |
-| **`FlatList` の testID は `toExist` で見る**。`toBeVisible` を使わない | `toBeVisible` は「面積の 75% 以上が可視」を要求する。データ 0 件のリストは面積を持たず、**描画されていても不可視と判定される**(iOS の `save-post-tab-grid` / `review-tab-grid`) |
-| **「包むだけの View」を観測点にしない**。実体のあるボタン等を見る | `search-tutorial-overlay` は Android で常に 2 view に一致し(TrueSheet の二重マウント)、iOS では表示中でも `toBeVisible` が成立しなかった |
-| **複数一致しうる要素は index を明示する**。ただし `atIndex(0)` = 見えているものとは限らない | カルーセルは前後のカードも同時にマウントするため、添字 0 が画面外のカードになりうる(`topics-choose-button`)。可視な添字を走査して選ぶこと |
-| **スクロールは `whileElement(...).scroll()`**。要素を掴んだ `swipe` に頼らない | `swipe` は掴んだ要素の高さの範囲内でしか指を動かせず、小さなタイルを起点にすると何回スワイプしても画面下部へ届かない |
-| **文字入力の後は端末のキーボードが邪魔をしうる** | Android は IME をまとめて無効化(`scripts/setup-android-locale.sh`)、iOS はハードウェアキーボード接続扱いにしてソフトウェアキーボードを出さない(`scripts/setup-ios-simulator.sh`)。入力は一貫して `replaceText` なのでキーボードは 1 つも要らない |
-| **入れ子の `<Text>` に付けた testID はネイティブでは消える** | React Native は入れ子 Text を親の TextView へ畳み込むため、対応するネイティブ View が存在しない(`login-privacy-link`)。web では span として実在するので e2e-web 側では使える |
+| ルール                                                                                      | 理由                                                                                                                                                                                                                                             |
+| ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **タップは `tapWhenVisible()` を使う**。`element(...).tap()` を直接呼ばない                 | iOS は同期機構を切っているため、描画完了前にタップが飛んで "No elements found" になる(run 30432596949 の `profile-settings-button`)。Android は同期機構が吸収するので**片方でしか出ない**                                                        |
+| **`FlatList` の testID は `toExist` で見る**。`toBeVisible` を使わない                      | `toBeVisible` は「面積の 75% 以上が可視」を要求する。データ 0 件のリストは面積を持たず、**描画されていても不可視と判定される**(iOS の `save-post-tab-grid` / `review-tab-grid`)                                                                  |
+| **「包むだけの View」を観測点にしない**。実体のあるボタン等を見る                           | `search-tutorial-overlay` は Android で常に 2 view に一致し(TrueSheet の二重マウント)、iOS では表示中でも `toBeVisible` が成立しなかった                                                                                                         |
+| **複数一致しうる要素は index を明示する**。ただし `atIndex(0)` = 見えているものとは限らない | カルーセルは前後のカードも同時にマウントするため、添字 0 が画面外のカードになりうる(`topics-choose-button`)。可視な添字を走査して選ぶこと                                                                                                        |
+| **スクロールは `whileElement(...).scroll()`**。要素を掴んだ `swipe` に頼らない              | `swipe` は掴んだ要素の高さの範囲内でしか指を動かせず、小さなタイルを起点にすると何回スワイプしても画面下部へ届かない                                                                                                                             |
+| **文字入力の後は端末のキーボードが邪魔をしうる**                                            | Android は IME をまとめて無効化(`scripts/setup-android-locale.sh`)、iOS はハードウェアキーボード接続扱いにしてソフトウェアキーボードを出さない(`scripts/setup-ios-simulator.sh`)。入力は一貫して `replaceText` なのでキーボードは 1 つも要らない |
+| **入れ子の `<Text>` に付けた testID はネイティブでは消える**                                | React Native は入れ子 Text を親の TextView へ畳み込むため、対応するネイティブ View が存在しない(`login-privacy-link`)。web では span として実在するので e2e-web 側では使える                                                                     |
 
 ## テスト 3 層構造(CI との棲み分け)
 
-| 層     | ディレクトリ                                                                                | 内容                                       | 実行タイミング                                        |
-| ------ | ------------------------------------------------------------------------------------------- | ------------------------------------------ | ----------------------------------------------------- |
-| Tier 1 | `tests/smoke/`                                                                              | 起動・タブ導線の最小確認                   | 夜間 CI + 手動実行。将来の PR ゲート候補              |
-| Tier 2 | `tests/navigation/` `tests/search/` `tests/review/` `tests/profile/` `tests/authenticated/` | 機能テスト全般(実 API 読み取り)            | 夜間 CI                                               |
-| Tier 3 | `tests/mutation/`                                                                           | dev DB への書き込み(いいね/保存・レビュー投稿) | **既定では実行されない**。`RUN_MUTATION=1` で明示実行 |
-| 番外   | `tests/probe/`                                                                              | 不具合の存在を数値で示すプローブ(`@probe`)。**現在は空** | **既定では実行されない**。`RUN_PROBE=1` で明示実行 |
+| 層     | ディレクトリ                                                                                | 内容                                                          | 実行タイミング                                        |
+| ------ | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------- | ----------------------------------------------------- |
+| Tier 1 | `tests/smoke/`                                                                              | 起動・タブ導線の最小確認                                      | 夜間 CI + 手動実行。将来の PR ゲート候補              |
+| Tier 2 | `tests/navigation/` `tests/search/` `tests/review/` `tests/profile/` `tests/authenticated/` | 機能テスト全般(実 API 読み取り)                               | 夜間 CI                                               |
+| Tier 3 | `tests/mutation/`                                                                           | dev DB への書き込み(いいね/保存・レビュー投稿)                | **既定では実行されない**。`RUN_MUTATION=1` で明示実行 |
+| 番外   | `tests/probe/`                                                                              | 不具合の存在を数値で示すプローブ(`@probe`)。**現在は空**      | **既定では実行されない**。`RUN_PROBE=1` で明示実行    |
+| 番外   | `tests/catalog/`                                                                            | UI カタログ(全画面のスクリーンショット収集。**検証ではない**) | **既定では実行されない**。`RUN_CATALOG=1` で明示実行  |
 
 > **`@probe`(tests/probe/)は「落ちるのが正しい」spec を置く場所。現在は意図的に空**(#1087)
 > アプリ側の不具合を **客観的な数値** で示すための spec 置き場で、そこに置かれた spec は
@@ -230,7 +231,8 @@ Tier 3 の安全弁は **2 段構え**(#1028 §6-3 / #1030 レビュー M-3):
 `workflow_dispatch` の入力:
 
 - `platform`: `all`(既定)/ `android` / `ios`
-- `scope`: `tier1-2`(既定)/ `tier1`(smoke のみ)/ `mutation`(**dev DB へ書き込む**)
+- `scope`: `tier1-2`(既定)/ `tier1`(smoke のみ)/ `mutation`(**dev DB へ書き込む**)/ `probe` /
+  `catalog`(UI カタログ収集)/ `catalog-with-review-flow`(UI カタログ + レビュー投稿フロー。**dev DB へ書き込む**)
 
 夜間 cron は入力が空になるため `platform=all` / `scope=tier1-2` へフォールバックする。
 
@@ -398,6 +400,43 @@ e2e-mobile/
 | `screens/`   | 1 画面のセレクタ定義と、その画面固有の操作 / 検証。testID を外へ漏らさない  | テストの意図を書かない。`device.launchApp` を直接呼ばない        |
 | `utils/`     | 画面に紐づかない横断ヘルパ(Supabase 直叩き・adb 操作・待機)                 | `screens/` を import しない(依存方向は screens → utils の一方向) |
 | `tests/`     | ユーザー視点の 1 シナリオ = 1 `it()`                                        | `by.id(...)` の直書き(必ず Screen Object 経由)                   |
+
+## UI カタログ(全画面のスクリーンショット収集)
+
+「今どんな画面が存在するのか」を、端末サイズのスクリーンショット + 画面名 / ルート / 遷移関係の一覧として
+書き出す仕組み。**画面定義はリポジトリルートの [`catalog/`](../catalog/README.md) に置き、e2e-web と共有している**
+(画面名・URL・説明の二重管理を防ぐため)。
+
+**これはテストではない**(アプリの正しさは検証しない)。到達できない画面があってもジョブは赤くせず、
+「未取得」として一覧に残す。
+
+| 要素                               | 役割                                                                 |
+| ---------------------------------- | -------------------------------------------------------------------- |
+| `../catalog/screens.json`          | **画面定義の唯一の情報源**(Web / モバイル共通)                       |
+| `tests/catalog/ui-catalog.test.ts` | 巡回・撮影(`@catalog`。匿名 / ログイン済み / レビュー投稿フロー)     |
+| `utils/catalog.ts`                 | 撮影と結果記録のヘルパ(`captureScreen` / `captureScreenIfReachable`) |
+
+```bash
+# 収集(screenshots/<画面 ID>-<android|ios>.png が出来る)
+pnpm test:catalog:android
+pnpm test:catalog:ios
+
+# 一覧生成(screenshots/UI_CATALOG.md) ※リポジトリルートで実行する
+pnpm catalog:doc:mobile
+```
+
+- `jest.config.js` が `tests/catalog/` を既定の探索から外しているため、`RUN_CATALOG=1` のときだけ読み込まれる
+  (`@mutation` / `@probe` と同じ方式)
+- **ファイル名は `<画面 ID>-<android|ios>.png`**。同じ画面でも OS で見た目が変わるため OS 名を付ける。
+  公開 URL だけを見て画面が分かるよう、ID は ASCII の英小文字・数字・ハイフンで付けること
+- 直リンクは `localeDeepLink()` で `nanitabeyo:///ja-JP/...` を組み立てる。タブバーを持たない画面
+  (運営ツール等)は `waitForReady: false` で起動し、描画が落ち着くのを時間で待ってから撮る
+- レビュー投稿フロー(店舗詳細 / 投稿フォーム / レビュー詳細)は実際に投稿しないと到達できないため
+  `describeMutation` 配下に置いている。`RUN_MUTATION=1`(= `scope: catalog-with-review-flow`)のときだけ走る
+
+CI では `E2E Mobile Test` を `scope = catalog` で手動実行すると Artifact
+`ui-catalog-screenshots-android` / `-ios` が保存される。その run を `Evidence Collect` に渡すと
+GCS へ公開され、写真付きの一覧ページ(`index.html`)と公開 URL が手に入る。
 
 ## テスト追加ガイドライン
 

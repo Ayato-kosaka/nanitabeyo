@@ -1,10 +1,10 @@
 import { useCallback } from "react";
-import * as Linking from "expo-linking";
 import { useDialog } from "@/contexts/DialogProvider";
 import { useLogger } from "@/hooks/useLogger";
 import i18n from "@/lib/i18n";
 import { toErrorLogMessage } from "@/lib/errorMessage";
 import { buildGoogleMapsSearchUrl } from "@/lib/googleMaps";
+import { openExternalUrl } from "@/lib/openExternalUrl";
 
 type GoogleMapsFallbackArgs = {
 	entriesKey?: string;
@@ -53,7 +53,8 @@ export function useGoogleMapsFallback({ source }: UseGoogleMapsFallbackParams) {
 				cancelLabel: i18n.t("Search.googleMapsFallback.cancel"),
 				onConfirm: async () => {
 					try {
-						await Linking.openURL(url);
+						// #1121 Web は別タブで開く。同一タブ遷移だと SPA を離脱し、戻ったときに画面が壊れる
+						await openExternalUrl(url);
 						logFrontendEvent({
 							event_name: "google_maps_fallback_opened",
 							error_level: "log",

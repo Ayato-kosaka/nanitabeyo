@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef, forwardRef, useImperativeHandle } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Keyboard } from "react-native";
 import { useLocationSearch, type LocationSearchStatus } from "@/hooks/useLocationSearch";
 import { useHaptics } from "@/hooks/useHaptics";
 import i18n from "@/lib/i18n";
@@ -213,10 +213,16 @@ export const LocationAutocomplete = forwardRef<LocationAutocompleteHandle, Locat
 		const handleSuggestionPress = useCallback(
 			(suggestion: AutocompleteLocation) => {
 				lightImpact();
+				// #528 【設計】キーボードを閉じる責務は子（＝候補を押されたこのコンポーネント）が持つ。
+				// 以前は親の BlurModal がタップ**開始**時に閉じており、レイアウト再計算で候補リストが
+				// unmount されて onPress が潰れていた。onPress まで来ていればタップは成立済みなので、
+				// ここで閉じても選択は失われない。
+				Keyboard.dismiss();
 				onSelectSuggestion(suggestion);
 				setShowSuggestions(false);
 
 				// Delay blur to allow parent state update to complete
+				// （web では Keyboard.dismiss が実質何もしないため、blur はこちらで担保する）
 				setTimeout(() => {
 					inputRef.current?.blur();
 				}, BLUR_AFTER_SELECT_DELAY_MS);
@@ -228,6 +234,8 @@ export const LocationAutocomplete = forwardRef<LocationAutocompleteHandle, Locat
 		const handleRecentLocationPress = useCallback(
 			(recent: RecentLocation) => {
 				lightImpact();
+				// #528 候補と同じく、閉じるのは押下成立後（onPress）にこの子が自分で行う
+				Keyboard.dismiss();
 				onSelectRecentLocation?.(recent);
 				setIsFocused(false);
 

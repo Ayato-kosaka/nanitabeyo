@@ -1,0 +1,93 @@
+[
+	{
+		"number": 1196,
+		"id": 3000001,
+		"state": "open",
+		"state_reason": null,
+		"labels": [{ "name": "error-triage" }],
+		"closed_at": null,
+		"updated_at": "2026-08-06T00:00:00Z",
+		"body": "## 概要\n\n親 Issue。`error-triage` ラベルは持つが fp マーカーを持たないので索引には載らない（#1198 §7-10）。"
+	},
+	{
+		"number": 1201,
+		"id": 3000002,
+		"state": "open",
+		"state_reason": null,
+		"labels": [{ "name": "error-triage" }],
+		"closed_at": null,
+		"updated_at": "2026-08-06T00:00:00Z",
+		"body": "<!-- fp:799742528a3a -->\n<!-- fpalgo:2 -->\n<!-- error-triage:auto:start -->\n<!-- firstSeen:2026-07-01T05:00:00Z -->\n\n|  |  |\n|---|---|\n| **どれだけ** | **9000 件** / 影響ユーザー 900 人 |\n<!-- error-triage:auto:end -->\n\n---\n\n人間のメモ: 調査中。ここは絶対に消さないでほしい。"
+	},
+	{
+		"number": 1202,
+		"id": 3000003,
+		"state": "closed",
+		"state_reason": "completed",
+		"labels": [{ "name": "error-triage" }],
+		"closed_at": "2026-08-04T00:00:00Z",
+		"updated_at": "2026-08-04T00:00:00Z",
+		"body": "<!-- fp:4faaf5be346b -->\n<!-- fpalgo:2 -->\n<!-- error-triage:auto:start -->\n<!-- firstSeen:2026-08-01T09:00:00Z -->\n<!-- error-triage:auto:end -->"
+	},
+	{
+		"number": 1203,
+		"id": 3000004,
+		"state": "closed",
+		"state_reason": "not_planned",
+		"labels": [{ "name": "error-triage" }, { "name": "err/skip" }],
+		"closed_at": "2026-07-20T00:00:00Z",
+		"updated_at": "2026-07-20T00:00:00Z",
+		"body": "<!-- fp:b44a1734803c -->\n<!-- fpalgo:2 -->\n\nClaude API の 529 は恒久無視。"
+	},
+	{
+		"number": 1204,
+		"id": 3000005,
+		"state": "closed",
+		"state_reason": "completed",
+		"labels": [{ "name": "error-triage" }],
+		"closed_at": "2026-08-06T12:00:00Z",
+		"updated_at": "2026-08-06T12:00:00Z",
+		"body": "<!-- fp:297b01d8b53f -->\n<!-- fpalgo:2 -->"
+	},
+	{
+		"number": 1205,
+		"id": 3000006,
+		"state": "closed",
+		"state_reason": "not_planned",
+		"labels": [{ "name": "error-triage" }],
+		"closed_at": "2026-07-10T00:00:00Z",
+		"updated_at": "2026-07-10T00:00:00Z",
+		"body": "<!-- fp:c0f546d23818 -->\n<!-- fpalgo:2 -->\n\n外部DNSの一時障害。直しようがない。"
+	},
+	{
+		"number": 1210,
+		"id": 3000007,
+		"state": "open",
+		"state_reason": null,
+		"labels": [{ "name": "error-triage" }],
+		"closed_at": null,
+		"updated_at": "2026-08-06T00:00:00Z",
+		"pull_request": { "url": "https://api.github.com/repos/o/r/pulls/1210" },
+		"body": "<!-- fp:799742528a3a -->\n\nPR は REST の list issues が返してくるが索引には入れない（#1198 §1-B）。"
+	},
+	{
+		"number": 1211,
+		"id": 3000008,
+		"state": "open",
+		"state_reason": null,
+		"labels": [{ "name": "error-triage" }],
+		"closed_at": null,
+		"updated_at": "2026-08-06T00:00:00Z",
+		"body": "手動起票の Issue。本文に fp:799742528a3a と散文で書いてあるが HTML コメント形式ではない。\n\n```\n<!-- fp:ZZZZZZZZZZZZ -->\n<!-- fp:799742528a3 -->\n<!-- FP:799742528A3A -->\n```\n\n<!-- fp:799742528a3a --> 同じ行に他の文字があるものも拾わない\n\nいずれも索引には載らない。"
+	},
+	{
+		"number": 1212,
+		"id": 3000009,
+		"state": "open",
+		"state_reason": null,
+		"labels": [{ "name": "error-triage" }],
+		"closed_at": null,
+		"updated_at": "2026-08-06T00:00:00Z",
+		"body": "<!-- fp:aaaaaaaaaaaa -->\n<!-- fp:bbbbbbbbbbbb -->\n<!-- fpalgo:2 -->\n\n人手コピペで fp が2つある。全ての fp の索引に登録して警告する（安全側＝起票しない側）。"
+	}
+]

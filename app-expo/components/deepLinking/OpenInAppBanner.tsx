@@ -1,11 +1,30 @@
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { Image } from "expo-image";
+import Constants from "expo-constants";
 
 import i18n from "@/lib/i18n";
 import { resolvePublicLocale, SITE_NAME_BY_PUBLIC_LOCALE } from "@/constants/seoLocales";
 import { Env } from "@/constants/Env";
 import { useLocale } from "@/hooks/useLocale";
+import { openExternalUrl } from "@/lib/openExternalUrl";
+// ⚠️ `isInAppBrowser` は同名の state があるので別名で入れる（そのまま入れると state に隠され、
+// `setIsInAppBrowser(isInAppBrowser(ua))` が boolean の呼び出しになって実行時に落ちる）
+import {
+	isAndroidUserAgent,
+	isInAppBrowser as detectInAppBrowser,
+	isIOSUserAgent,
+	resolveOpenInAppHref,
+} from "@/lib/openInAppUrl";
+
+/**
+ * Android の applicationId。`intent://…;package=…` に載せる。
+ *
+ * app.config.ts の `android.package` を単一の出所とし、万一読めなかったときだけ
+ * リテラルへ退避する（ここがズレると intent が «何も起きない» で終わり、
+ * 原因が非常に分かりにくい）。
+ */
+const ANDROID_PACKAGE = Constants.expoConfig?.android?.package ?? "com.nanitabeyo";
 
 export interface OpenInAppBannerProps {
 	/** 現在のパス（例: "posts"） */
@@ -124,15 +143,11 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 	}, [urlToGo]);
 
 	// プラットフォーム判定（UAベース）
-	const { isIOS, isAndroid } = useMemo(() => {
-		const ua = navigator.userAgent || "";
-		return {
-			isIOS: /iPhone|iPad|iPod/i.test(ua),
-			isAndroid: /Android/i.test(ua),
-		};
-	}, []);
-	// 実際にユーザーに踏ませるURL（原則 relay、無ければ直UL）
-	const primaryHref = isIOS ? (oiaRelayUrl ?? urlToGo) : urlToGo;
+	const userAgent = useMemo(() => (isBrowser ? navigator.userAgent || "" : ""), [isBrowser]);
+	const { isIOS, isAndroid } = useMemo(
+		() => ({ isIOS: isIOSUserAgent(userAgent), isAndroid: isAndroidUserAgent(userAgent) }),
+		[userAgent],
+	);
 
 	const storeUrl = useMemo(() => {
 		// “自動遷移”はしない方針なので、ボタン用にURLを返すだけ
@@ -143,6 +158,26 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 		if (isAndroid) return Env.PLAY_STORE_URL || undefined;
 		return undefined;
 	}, [isBrowser, isIOS, isAndroid]);
+
+	/**
+	 * 実際にユーザーに踏ませる URL。
+	 *
+	 * ⚠️ **https 一択にしないこと。** Android + Meta 系アプリ内ブラウザ（Instagram / Facebook）は
+	 * https のナビゲーションを WebView 内で処理してしまい App Links が発火しないため、
+	 * 「アプリで開く」を押しても **その場から出られない**（実機で確認）。
+	 * この分岐の根拠と、あえて対象を広げていない理由は `lib/openInAppUrl.ts` に書いてある。
+	 */
+	const primaryHref = useMemo(
+		() =>
+			resolveOpenInAppHref({
+				universalUrl: urlToGo,
+				userAgent,
+				relayUrl: oiaRelayUrl,
+				storeUrl,
+				androidPackage: ANDROID_PACKAGE,
+			}),
+		[urlToGo, userAgent, oiaRelayUrl, storeUrl],
+	);
 
 	useEffect(() => {
 		if (!isBrowser) return;
@@ -163,23 +198,10 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 			}
 		};
 
-		// In-App Browser 判定（完全ではないが実務上はかなり効く）
-		const checkInApp = () => {
-			const ua = navigator.userAgent || "";
-			// Instagram / Facebook / Messenger / LINE / TikTok などの典型
-			const inApp =
-				/Instagram/i.test(ua) ||
-				/\bFBAN\b/i.test(ua) ||
-				/\bFBAV\b/i.test(ua) ||
-				/FB_IAB/i.test(ua) ||
-				/Line/i.test(ua) ||
-				/TikTok/i.test(ua);
-
-			setIsInAppBrowser(inApp);
-		};
-
 		checkMobile();
-		checkInApp();
+		// In-App Browser 判定（完全ではないが実務上はかなり効く）。
+		// 判定は lib/openInAppUrl.ts に集約している（href の決定と同じ基準を使うため）
+		setIsInAppBrowser(detectInAppBrowser(navigator.userAgent || ""));
 	}, [isBrowser]);
 
 	useEffect(() => {
@@ -275,9 +297,10 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 					{!!storeUrl && (
 						<Pressable
 							style={styles.storeButton}
-							// target="_blank" 相当：RNW の Pressable では a タグじゃないので window.open する
+							// target="_blank" 相当：RNW の Pressable では a タグじゃないので別タブで開く
 							// ただし “クリック同期” なのでブロックされにくい
-							onPress={() => window.open(storeUrl, "_blank", "noopener,noreferrer")}>
+							// #1121 window.open 直書きをやめ、外部遷移の共通ヘルパーへ寄せた（Web 専用コンポーネントなので挙動は同じ）
+							onPress={() => void openExternalUrl(storeUrl)}>
 							<Text style={styles.storeButtonText}>{i18n.t("DeepLinking.getApp")}</Text>
 						</Pressable>
 					)}

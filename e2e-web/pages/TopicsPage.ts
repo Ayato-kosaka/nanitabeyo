@@ -25,6 +25,8 @@ export class TopicsPage {
 	private readonly chooseThisButtons: Locator;
 	/** ヘッダーの「？」再表示ボタン */
 	readonly tutorialHelpButton: Locator;
+	/** ヘッダーの「友達投票開始」ボタン（#1205 の連打対象） */
+	readonly groupVoteButton: Locator;
 	/** スポットライトを含む最前面オーバーレイ */
 	readonly tutorialOverlay: Locator;
 	readonly tutorialNextButton: Locator;
@@ -41,6 +43,7 @@ export class TopicsPage {
 		this.chooseThisButtons = page.getByText("この料理にする！", { exact: true });
 		this.chooseThisButton = this.chooseThisButtons.first();
 		this.tutorialHelpButton = page.getByTestId("topics-tutorial-help");
+		this.groupVoteButton = page.getByTestId("topics-group-vote");
 		this.tutorialOverlay = page.getByTestId("topics-tutorial-overlay");
 		this.tutorialNextButton = page.getByTestId("topics-tutorial-next");
 		this.tutorialFinishButton = page.getByTestId("topics-tutorial-finish");
