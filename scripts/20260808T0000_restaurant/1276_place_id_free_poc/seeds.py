@@ -68,7 +68,26 @@ class Seed:
 
     @property
     def eligible(self) -> bool:
+        """住所テキストのクエリ（B）まで組める行。
+
+        住所が無くても座標があれば矩形の証拠は作れるので、これは「A と B の
+        両方を投げられるか」であって「名寄せできるか」ではない。
+        ``rule_box_unique`` は B を必須にしていないため、判定側は
+        ``eligible_by_coordinates`` を見る。
+        """
+
         return bool(self.name_query) and bool(self.address_query)
+
+    @property
+    def eligible_by_coordinates(self) -> bool:
+        """座標だけで矩形の証拠を作れる行。
+
+        OSM は住所タグが付いている行が実測で 15.6% しかない。住所が無いという
+        理由でこれらを丸ごと落とすと、そもそも OSM を足した意味が無くなる。
+        店名と座標さえあれば A と矩形は投げられる。
+        """
+
+        return bool(self.name_query)
 
 
 def normalize_name_for_query(value: str) -> str:

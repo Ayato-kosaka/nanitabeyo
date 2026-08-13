@@ -419,6 +419,24 @@ class BoxUniqueRuleTest(unittest.TestCase):
         self.assertEqual(decision.status, STATUS_AMBIGUOUS)
         self.assertEqual(decision.geo, GEO_ABSENT)
 
+
+    def test_missing_address_probe_b_is_not_required(self) -> None:
+        """住所が無い行（OSM に多い）でも、A と矩形だけで判定できる。"""
+
+        seed = make_seed(address_query="", address_quality="none")
+        probes = {
+            PROBE_A: SearchResult(("A",), 200),
+            PROBE_C_TIGHT: SearchResult(("A",), 200),
+            PROBE_C_WIDE: SearchResult(("A",), 200),
+        }
+        decision = RULES["box_unique"](seed, probes)
+        self.assertEqual(decision.status, STATUS_MATCHED)
+        self.assertEqual(decision.place_id, "A")
+
+    def test_missing_name_is_ineligible(self) -> None:
+        decision = RULES["box_unique"](make_seed(name_query=""), self.probes(a=("A",), b=("A",), tight=("A",)))
+        self.assertEqual(decision.status, STATUS_INELIGIBLE)
+
     def test_registered_as_export_safe(self) -> None:
         self.assertIn("box_unique", RULES)
         self.assertIn("box_unique", EXPORT_SAFE_RULES)

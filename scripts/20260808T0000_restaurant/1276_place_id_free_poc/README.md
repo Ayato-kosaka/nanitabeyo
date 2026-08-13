@@ -1,8 +1,21 @@
 # 完全無料SKUだけで google_place_id を逆引きする PoC（Issue #1261 Step 1）
 
-Overture Maps Places の日本の飲食店 789,612 件に対して、Google Places API (New) の
-**課金されないSKUだけ**で `google_place_id` を逆引きできるかを実測した PoC です。
-BigQuery へは投入せず、ローカルで完結します。
+日本のオープンデータ上の飲食店に対して、Google Places API (New) の**課金されない
+SKUだけ**で `google_place_id` を逆引きできるかを実測した PoC です。BigQuery へは
+投入せず、ローカルで完結します。
+
+seed は `0000_open_data_poc` で調べた3ソースを統合して作ります。
+
+| ソース | 生の件数 | 採用 | ライセンス |
+| --- | ---: | ---: | --- |
+| Overture Maps Places `2026-07-22.0` 日本 `food_and_drink` | 789,612 | 789,190 | CDLA-Permissive 2.0 |
+| IFAS（食品衛生申請等システム、157自治体） | 1,089,349 | 253,065 | 各自治体のオープンデータ |
+| OpenStreetMap（Overpass、コア8業態） | — | — | **ODbL** |
+
+IFAS は営業許可のデータなので、飲食店以外（製造所・給食施設など）と廃業済みを外して
+から使います。3ソースを座標60mグリッドと正規化店名で寄せた結果が seed です。
+OSM だけライセンスが違う（ODbL は継承条項がある）ので、成果物の扱いを分けられるよう
+`seed_id` の接頭辞でソースが分かるようにしてあります。
 
 実測結果と作戦の変遷は [REPORT.md](./REPORT.md) を参照してください。
 
@@ -33,14 +46,31 @@ Google の課金はリクエストした fieldMask で決まります。した�
 | A | 正規化店名 | `locationBias` circle 150m | Issue 記載のクエリA |
 | B | 正規化店名 + 住所文字列 | なし | Issue 記載のクエリB（座標と独立） |
 | C | 正規化店名 | `locationRestriction` rectangle 半辺75m | 座標の裏取り |
-| c_wide | 正規化店名 | `locationRestriction` rectangle 半辺250m | 座標ズレ行の救済 |
+| c_tight | 正規化店名 | `locationRestriction` rectangle 半辺25m | 一意性の確認（採用ルールの層1） |
+| c_wide | 正規化店名 | `locationRestriction` rectangle 半辺250m | 座標ズレ行の救済（採用ルールの層2） |
 | nearby | （なし） | `locationRestriction` circle 40m | C が使えない場合の代替 |
 
-C を足したのが本 PoC の肝です。`locationRestriction` は `locationBias` と違って
+C 系（矩形）を足したのが本 PoC の肝です。`locationRestriction` は `locationBias` と違って
 矩形の外を実際に切り落とします（大阪の店名を東京の矩形で検索すると0件になることを
 確認済み）。つまり「その place_id が Google 側でもこの座標の近くにある」ことを、
 座標フィールドを買わずに確かめられます。A/B だけの判定は誤マッチ率が高く、
 C を必須にすると桁で下がります（[REPORT.md](./REPORT.md) の実測表）。
+
+## 判定ルール `box_unique`
+
+正解ラベル2,541件に対して、候補の選び方と証拠の連言を総当たりで採点し直した結果
+（`gate_analysis.py`）、効いていたのは **「A と B の合意」ではなく「矩形内の一意性」**
+でした。合意を根拠にする層はどれも 99.7〜99.8% で頭打ちになります。店が Google に
+無ければ、A も B も揃って隣の店を返すからです。
+
+`box_unique` は2層だけです。
+
+1. `tight_unique_in_ab` — ±25m の矩形に同名が**1件だけ**で、A か B もそれを挙げている
+2. `wide_unique_in_ab` — ±250m まで広げても同名が**1件だけ**で、A か B もそれを挙げている
+
+「A か B が挙げている」という裏取りは必須です。これを外すと層1の精度は
+99.9% から 5.8% へ落ちます（矩形内で唯一でも、店名クエリがその店を指していなければ
+別の店だからです）。
 
 ## 実行
 
@@ -61,10 +91,11 @@ python place_id_poc.py prepare-negatives \
   --seeds out/seeds.csv --output out/negatives.csv --count 300
 
 # 3. Google へ問い合わせてキャッシュする（--execute が無ければ件数を出すだけ）
-#    採用ルールが使うのは A・B・C・c_wide の4本。--only-probes で d と nearby を外す。
+#    採用ルール box_unique が使うのは A・B・c_tight・c_wide の4本。
 python place_id_poc.py probe \
   --seeds out/seeds.csv out/negatives.csv \
-  --cache cache/probe.sqlite --wide-box --only-probes a b c c_wide \
+  --cache cache/probe.sqlite --tight-box --wide-box \
+  --only-probes a b c_tight c_wide \
   --execute --qps 10 --workers 20
 
 # 4. 判定ルールを当てて指標を出す
@@ -75,7 +106,7 @@ python place_id_poc.py evaluate \
 # 5. 1件に絞れた確定matchだけを CSV へ
 python place_id_poc.py export \
   --seeds out/seeds.csv --cache cache/probe.sqlite \
-  --rule layered_strict_wide --output out/matched_place_ids.csv
+  --rule box_unique --output out/matched_place_ids.csv
 ```
 
 API の結果は `cache/probe.sqlite` に貯まります。判定ルールを変えても再問い合わせは
@@ -96,10 +127,10 @@ API の結果は `cache/probe.sqlite` に貯まります。判定ルールを変
 
 | 列 | 内容 |
 | --- | --- |
-| `overture_id` | Overture Maps の place id（seed 側のキー） |
+| `overture_id` | seed 側のキー。Overture は UUID、IFAS は `ifas:自治体コード:行番号`、OSM は `osm:type/id` |
 | `google_place_id` | 逆引きできた Google place ID |
-| `name` / `latitude` / `longitude` / `postcode` | すべて **Overture 由来**。Google からは取得していない |
-| `match_detail` | `layer1_intersection_in_box` / `layer2_top1_in_box` / `wide1_strict_in_wide_box` |
+| `name` / `latitude` / `longitude` / `postcode` | すべて **オープンデータ由来**。Google からは取得していない |
+| `match_detail` | `tight_unique_in_ab` / `wide_unique_in_ab` |
 | `confidence_tier` | `A` = A・B とも単一候補で一致し矩形内。`B` = それ以外の確定層 |
 | `geo_verification` | `confirmed` = 矩形検索で座標近傍に実在を確認 |
 

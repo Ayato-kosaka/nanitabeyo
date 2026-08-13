@@ -105,10 +105,12 @@ def build_specs(
 ) -> list[ProbeSpec]:
     specs: list[ProbeSpec] = []
     for seed in seeds:
-        if not seed.eligible:
+        if not seed.eligible_by_coordinates:
             continue
         specs.append(ProbeSpec(seed.seed_id, PROBE_A, "text", body_query_a(seed, radius_m=radius_m)))
-        specs.append(ProbeSpec(seed.seed_id, PROBE_B, "text", body_query_b(seed)))
+        # 住所が無い行（OSM に多い）では B は A と同じクエリになってしまうので投げない。
+        if seed.eligible:
+            specs.append(ProbeSpec(seed.seed_id, PROBE_B, "text", body_query_b(seed)))
         if with_box:
             specs.append(
                 ProbeSpec(

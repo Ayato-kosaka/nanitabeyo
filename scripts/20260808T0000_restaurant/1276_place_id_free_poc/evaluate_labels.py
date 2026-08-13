@@ -56,6 +56,11 @@ def main() -> int:
     parser.add_argument("--cache", type=Path, required=True)
     parser.add_argument("--rules", nargs="+", default=sorted(RULES))
     parser.add_argument("--output", type=Path)
+    parser.add_argument(
+        "--mismatches-output",
+        type=Path,
+        help="ラベルと食い違った対を adjudicate.py に渡せる形で書き出す。--rules は1つに絞ること",
+    )
     arguments = parser.parse_args()
 
     labels = {
@@ -126,9 +131,32 @@ def main() -> int:
                 }
                 for layer, counts in sorted(per_layer.items())
             },
+            # JSON は読むためのものなので切るが、裁定に回す全件は別に持つ。
             "mistakes": mistakes[:40],
+            "all_mistakes": mistakes,
         }
 
+    if arguments.mismatches_output:
+        if len(arguments.rules) != 1:
+            raise SystemExit("--mismatches-output は --rules を1つに絞ったときだけ書き出せる")
+        rows = report["rules"][arguments.rules[0]]["all_mistakes"]
+        arguments.mismatches_output.parent.mkdir(parents=True, exist_ok=True)
+        with arguments.mismatches_output.open("w", encoding="utf-8", newline="") as stream:
+            writer = csv.DictWriter(stream, fieldnames=["seed_id", "name", "layer", "mine", "theirs"])
+            writer.writeheader()
+            for row in rows:
+                writer.writerow(
+                    {
+                        "seed_id": row["overture_id"],
+                        "name": row["name"],
+                        "layer": row["layer"],
+                        "mine": row["chosen"],
+                        "theirs": row["truth"],
+                    }
+                )
+
+    for entry in report["rules"].values():
+        entry.pop("all_mistakes", None)
     if arguments.output:
         arguments.output.parent.mkdir(parents=True, exist_ok=True)
         arguments.output.write_text(

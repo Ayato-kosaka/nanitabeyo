@@ -288,9 +288,17 @@ def rule_box_unique(seed: Seed, probes: Mapping[str, SearchResult]) -> Decision:
     seed_id のハッシュで2分割した交差検証でも、両半分とも 99.92% で一致した。
     """
 
-    failure = _preflight(seed, probes)
-    if failure:
-        return failure
+    # このルールは住所テキストのクエリ B を必須にしない。B は「A か B が挙げている」
+    # の片方でしかなく、住所が無くても A と矩形だけで判定は成立する。OSM は住所タグが
+    # 付いている行が実測で 15.6% しかないので、B の有無で足切りすると使えなくなる。
+    if not seed.name_query:
+        return Decision(STATUS_INELIGIBLE, None, GEO_INCONCLUSIVE, "missing_name")
+    result_a = probes.get(PROBE_A)
+    if result_a is None:
+        return Decision(STATUS_API_ERROR, None, GEO_INCONCLUSIVE, "probe_missing")
+    if not result_a.ok:
+        return Decision(STATUS_API_ERROR, None, GEO_INCONCLUSIVE, "http_error")
+
     a, b = _ids(probes, PROBE_A), _ids(probes, PROBE_B)
     if not a and not b:
         return Decision(STATUS_UNMATCHED, None, GEO_INCONCLUSIVE, "empty_result")
