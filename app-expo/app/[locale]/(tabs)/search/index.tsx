@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform } from "react-native";
 import {
 	MapPin,
 	Search,
@@ -474,10 +474,18 @@ export default function SearchScreen() {
 				// `keyboardShouldPersistTaps="always"` とは併用可能で、サジェストのタップは従来どおり通る。
 				//
 				// 補足: `LocationAutocomplete` のサジェスト / 最近使った場所は `isFocused` で出し分けているため、
-				// ここでキーボードを閉じるとパネルも閉じる。ただし閉じるのは **このフォームをドラッグしたとき**だけで、
+				// キーボードを閉じるとパネルも閉じる。ネイティブで閉じるのは **このフォームをドラッグしたとき**だけで、
 				// パネル自身は内側に own ScrollView を持っている（keyboardShouldPersistTaps="handled"）ので、
 				// 候補一覧をスクロールして読む操作では閉じない。
-				keyboardDismissMode="on-drag"
+				//
+				// ⚠️ **iOS 限定にすること。** react-native-web の ScrollView は `on-drag` を
+				// 「ドラッグ開始時」ではなく **scroll イベントのたびに** `dismissKeyboard()` する実装で
+				// （react-native-web/dist/exports/ScrollView/index.js の `_handleScroll`）、
+				// プログラム的なスクロールやレイアウト変化でも入力欄が blur される。
+				// その結果 web では地名を打ってもサジェストが出た瞬間に消える。
+				// 実際に e2e-web の logout.spec.ts が 3 回リトライして落ちた（run 31677888461）。
+				// Android はキーボードでウィンドウが縮む（adjustResize）ため、そもそもこの詰みが起きない。
+				keyboardDismissMode={Platform.OS === "ios" ? "on-drag" : undefined}
 				showsVerticalScrollIndicator={false}>
 				{/* Location Input */}
 				<View style={styles.section}>
