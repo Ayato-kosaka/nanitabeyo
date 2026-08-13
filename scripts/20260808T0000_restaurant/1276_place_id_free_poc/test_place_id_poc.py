@@ -395,7 +395,7 @@ class BoxUniqueRuleTest(unittest.TestCase):
     def test_tight_box_unique_without_text_support_is_rejected(self) -> None:
         """矩形内で一意でも、店名クエリがその place を挙げていなければ別の店である。
 
-        この裏取りを外すとラベル実測で精度が 99.9% から 5.8% へ落ちた。
+        この裏取りを外すと新たに通る49件のうち、ラベルと一致したのは1件だけだった。
         """
 
         decision = self.decide(a=("B",), b=("C",), tight=("A",))
