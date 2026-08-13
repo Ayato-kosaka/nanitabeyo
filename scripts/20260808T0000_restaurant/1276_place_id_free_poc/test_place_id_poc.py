@@ -9,6 +9,7 @@ import http.client
 
 from free_places import (
     ALLOWED_PLACE_KEYS,
+    DETAILS_FIELD_MASK,
     FIELD_MASK,
     RETRYABLE_EXCEPTIONS,
     BillingGuardError,
@@ -73,6 +74,15 @@ class BillingGuardTest(unittest.TestCase):
     def test_field_mask_is_ids_only(self) -> None:
         self.assertEqual(FIELD_MASK, "places.id")
         self.assertEqual(set(ALLOWED_PLACE_KEYS), {"id"})
+
+    def test_details_field_mask_is_ids_only(self) -> None:
+        # ID Refresh も Essentials (IDs Only) SKU に留める。単一 place を引くので
+        # 接頭辞 places. が付かない点だけが検索と違う。
+        self.assertEqual(DETAILS_FIELD_MASK, "id")
+
+    def test_single_place_response_is_accepted(self) -> None:
+        # Place Details は places 配列ではなく place 単体を返す。
+        self.assertEqual(extract_place_ids({"id": "A"}), ("A",))
 
     def test_extract_ids_deduplicates_in_order(self) -> None:
         document = {"places": [{"id": "A"}, {"id": "B"}, {"id": "A"}]}

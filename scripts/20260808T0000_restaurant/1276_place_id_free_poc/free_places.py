@@ -22,15 +22,20 @@ import random
 import threading
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
 from typing import Any, Mapping
 
 TEXT_SEARCH_URL = "https://places.googleapis.com/v1/places:searchText"
 NEARBY_SEARCH_URL = "https://places.googleapis.com/v1/places:searchNearby"
+PLACE_DETAILS_URL = "https://places.googleapis.com/v1/places/"
 
 # 無料SKUを維持する唯一のフィールドマスク。変更禁止。
 FIELD_MASK = "places.id"
+# Place Details の ID Refresh 用。単一 place を引くので接頭辞 places. が付かない。
+# これも Essentials (IDs Only) SKU で $0.00。
+DETAILS_FIELD_MASK = "id"
 
 # 応答の place オブジェクトに現れてよいキー。これ以外が来たら課金SKUを踏んだ疑い。
 ALLOWED_PLACE_KEYS = frozenset({"id"})
@@ -153,6 +158,24 @@ class FreePlacesClient:
     def search_nearby(self, body: Mapping[str, Any]) -> SearchResult:
         return self._post(NEARBY_SEARCH_URL, body)
 
+    def refresh_place_id(self, place_id: str) -> SearchResult:
+        """place_id が今も有効かを確かめる（ID Refresh）。
+
+        生きていれば 200 で同じ id（統合された場合は新しい id）が返り、無効な
+        place_id は 400 が返る。fieldMask は ``id`` だけなので $0.00 のままである。
+        既存DBに死んだ place_id が混ざっていないかを、課金せずに全件検査できる。
+        """
+
+        request = urllib.request.Request(
+            PLACE_DETAILS_URL + urllib.parse.quote(place_id, safe=""),
+            method="GET",
+            headers={
+                "X-Goog-Api-Key": self._api_key,
+                "X-Goog-FieldMask": DETAILS_FIELD_MASK,
+            },
+        )
+        return self._send(request)
+
     # -- internals ----------------------------------------------------------
 
     def _post(self, url: str, body: Mapping[str, Any]) -> SearchResult:
@@ -168,6 +191,9 @@ class FreePlacesClient:
                 "X-Goog-FieldMask": FIELD_MASK,
             },
         )
+        return self._send(request)
+
+    def _send(self, request: urllib.request.Request) -> SearchResult:
         for attempt in range(self._max_retries + 1):
             self._rate_limiter.acquire()
             with self._counter_lock:
@@ -203,6 +229,10 @@ def extract_place_ids(document: Mapping[str, Any]) -> tuple[str, ...]:
     実験を止めて人間に判断させる。
     """
 
+    # Place Details は places 配列ではなく単一 place を返す。
+    if set(document) <= ALLOWED_PLACE_KEYS:
+        identifier = document.get("id")
+        return (identifier,) if identifier else ()
     unexpected_top = set(document) - ALLOWED_TOP_LEVEL_KEYS
     if unexpected_top:
         raise BillingGuardError(
