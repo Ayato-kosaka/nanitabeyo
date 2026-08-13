@@ -1,187 +1,124 @@
 # `restaurants.google_place_id` を必須にすべきか
 
-検討日: 2026-08-13
+検討日: 2026-08-13（同日改訂: 結論を反転）
 関連: [#843](https://github.com/Ayato-kosaka/nanitabeyo/issues/843) / [#1276](https://github.com/Ayato-kosaka/nanitabeyo/issues/1276) / [#1261](https://github.com/Ayato-kosaka/nanitabeyo/issues/1261) / [#821](https://github.com/Ayato-kosaka/nanitabeyo/issues/821)
 
 ## 結論
 
-**非必須にする（`NOT NULL` を外す）。** ただし「NULL を許す」だけでは重複と同期が壊れるため、以下を同時に満たすことが条件である。
+**必須のまま（`NOT NULL` 維持）でよい。** 初版は「非必須にすべき」と結論したが、次の指摘を受けて反転した。
 
-1. `UNIQUE` は残す（PostgreSQL の `UNIQUE` は複数 NULL を許すため、部分ユニークとして機能する）
-2. seed 由来行の重複防止は `restaurants_source_seed_id_uq`（既に存在）で担保する
-3. `9_1_sync_restaurants.py` の join key を `google_place_id` から `source_seed_id` / `existing_restaurant_id` へ移す
-4. クライアント・API の NULL 安全化（Google Maps deep link、bulk-import dedupe、型）
+> Google Map に存在せず、オープンデータにだけ存在する店舗はほぼ無い。Google Map を基準に、オープンデータはその一部と考えるべき。
 
-`google_place_id` は「店舗の同一性」ではなく「後付けの外部ID属性」へ降格させる。最終形は #843 §3 の `restaurant_external_ids` である。
+この前提は正しく、そして**「オープンデータ側の在庫を守る」ことは `NOT NULL` を外す理由にならない**。
+
+1. 逆引きできなかった約40%は BigQuery の `restaurant_seed_catalog` に残る。PostgreSQL へ入らないだけで資産は失われない。回収手段は「スキーマを緩める」ではなく「無料の逆引きを改善して再実行する」である
+2. 逆引きの成立は、同時に**座標の裏取り**になっている。必須化はコストではなく品質ゲートとして機能している
+3. 初版の「必須にすると重複が増える」は**誤り**。Google 起点の同一性を採るなら、必須化はむしろ重複を防ぐ
+
+ただし `NOT NULL` を外すべき状況は将来必ず来る。§5 にトリガーを定義した。`DROP NOT NULL` は即時に実行できるため、その時点で外せばよい。
 
 ---
 
-## 1. 判断の前提となる実測値（#1276 PoC）
+## 1. 必須化のメリット
 
-無料SKU（Text Search Essentials IDs Only）のみで Overture 店舗に `google_place_id` を逆引きした結果。
+「必須化のメリットがわからない」への直接の回答。実測ベースで4つある。
 
-| 項目 | 実測値 |
-|---|---:|
-| 本番規模（10,000件）での確定率 | **60.47%** |
-| 較正セット（1,000件）での確定率 | 63.60% |
-| 採用ルール `layered_strict_wide` の誤マッチ率（負例300件） | 0.33% |
-| tier A の誤マッチ率 | 0.00%（0/300） |
-| 課金額 | 0円（GCP 請求コンソールで実額確認済み） |
-| place_id 衝突（同一 place_id を複数 seed が取得） | 6/10,000 = 0.06%、200m以上離れた衝突は0件 |
-| 既存 `restaurants` との突合（1,031件 join） | 距離 p50 5.9m / p90 30.9m / 最大 258.4m、km単位の誤マッチ0件 |
+### 1.1 座標の裏取りが同時に成立する（最大のメリット）
 
-**確定できなかった約 39.5% の内訳（10,000件中）**
+採用ルール `layered_strict_wide` はクエリC（店名 + 半辺75mの矩形 `locationRestriction`）を必須にしている。`locationRestriction` は矩形外を実際に切り落とすため、**逆引きの成立 = Google 側にも同名店がその座標の75m以内に存在する、が確認済み**という意味になる。
 
-| 理由 | 件数 |
-|---|---:|
-| `no_candidate_in_box`（Overture の座標ズレ or 閉店） | 2,242 |
-| `missing_name_or_address`（Overture に住所も郵便番号も無い） | 692 |
-| `no_layer_satisfied`（矩形内に候補はあるが合意が取れない） | 678 |
-| `layer3_rejected_by_strict_policy`（精度優先で棄却） | 331 |
+これが効く理由は、`searchNearbyRestaurants` / `searchNearbySavedRestaurants` が**緯度経度で店を出す**（`restaurants.repository.ts` の球面三角法フィルタ）ためである。座標が狂った行は「違う場所に店が出る」という形で UX を直接壊す。しかも座標精度は Overture の測定済みの弱点である。
 
-読み方が重要である。**未確定の主因は「店が存在しない」ではなく「Overture 側の座標精度・住所欠損」と「精度を優先して自分から棄却した」**である。全789,612件に外挿すると、必須のままでは **約31万件の実在店舗が「Google が ID を確認してくれなかった」という理由だけで自社DBに存在できない**。
+既存DB突合の実測（1,031件 join）は中央値 5.9m / p90 30.9m / 最大 258.4m。**必須化は、この精度を全行に強制する仕組みになっている。**
 
-## 2. 必須にすることの意味
+### 1.2 閉店・幽霊店の一次フィルタになる
 
-`google_place_id TEXT UNIQUE NOT NULL` は、DB制約として次を宣言している。
+Overture の `operating_status` は **789,612行中 789,609行が null** で、営業中判定にまったく使えない。IFAS の廃業・期限情報は地域偏在が極端で全国には使えない。
 
-> Google が place ID を発行し、かつ我々がそれを無料で逆引きできた店だけが、自社の店舗マスターに存在してよい。
+つまり現状、「その店が今もあるか」の証拠は**逆引きが成立したこと以外に存在しない**。必須化はこの唯一の生存確認を投入条件にすることと等しい。
 
-これは #843 の目的（Google Places を店舗マスターの仕入れ先にしない／`google_place_id` を後付けの external ID として扱う）と**正面から矛盾する**。#1276 の PoC は「後付け逆引きは無料で 60% までしか届かない」ことを数値で確定させた。必須を維持する場合、残り 40% の扱いは次の3択しかない。
+### 1.3 同一性キーが1本で済む
 
-| 選択肢 | 帰結 |
-|---|---|
-| (a) 40% を捨てる | seed が 78.9万→約47.7万に縮小。#843 の「現行DB保全 100%」ゲートとも整合しない |
-| (b) 課金SKU（Text Search Pro / Place Details）で埋める | #821 の高額課金の再来。#1276 の制約「絶対に課金しない」を破る |
-| (c) place_id なしの店を別テーブルへ隔離する | `dishes` / `dish_media` / `restaurant_bids` から参照できない二級市民テーブルが生まれる。nullable と同じ複雑さを、より悪い形で払う |
+Google 起点の同一性を採るなら、POI 押下で作られる行と seed 由来の行が最初から同じキーを持つ。座標 + 名称の後付け突合を本番 API に実装する必要がなくなる。
 
-(a)(b)(c) いずれも、nullable 化のコスト（後述、実装数箇所）より高い。
+### 1.4 Google 機能に分岐が要らない
 
-## 3. 必須が引き起こす具体的な事故
+deep link（`getGoogleMapsLink`）、将来の Place Details 取得、写真、オーナー確認。place_id が無い行のフォールバックを書かなくてよい。
 
-### 3.1 誤った place_id が同一性に焼き付く
+## 2. 逆引きできなかった40%の正体
 
-`UNIQUE NOT NULL` は「place_id = 店の同一性」を意味する。逆引き精度は tier A で 0/300、全体 0.33% と優秀だが 0 ではない。789,612件へ展開すれば tier B 側で誤りが数千件規模で残る。
+指摘は「座標がバグっているか廃業店のはず」。**半分は当たっているが、半分は違う。** 内訳（10,000件中3,943件）は次のとおり。
 
-さらに深刻なのは衝突時の挙動である。`9_1_sync_restaurants.py:212` は
+| 理由 | 件数 | 割合 | Google に存在するか |
+|---|---:|---:|---|
+| `no_candidate_in_box` | 2,242 | 22.4% | **不明**。座標ズレ・閉店に加え、表記差（「(株)」の有無、支店名の語順、英字表記）でも同じ結果になる |
+| `missing_name_or_address` | 692 | 6.9% | **おそらく存在する**。Overture に住所も郵便番号も無くクエリBを組めなかった＝こちら側の入力不足 |
+| `no_layer_satisfied` | 678 | 6.8% | **ほぼ存在する**。矩形内に候補はあった。A・B の合意が取れなかっただけ |
+| `layer3_rejected_by_strict_policy` | 331 | 3.3% | **ほぼ存在する**。候補はあったが片側支持のみのため、精度優先で自分から棄却した |
 
-```sql
-ON CONFLICT (google_place_id) DO NOTHING
-```
+下2つ（1,009件 = 10.1%）は**矩形内に候補が居た**、つまり Google 側にその店がある可能性が高い。`missing_name_or_address` も店の非存在ではなく Overture の欠損である。
 
-で、**衝突した行を黙って落とす**。PoC の衝突率 0.06% を 789,612件へ外挿すると約470件が無言で消える。nullable にして place_id を属性へ降格すれば、誤りは「リンクを外す」だけで回復でき、`restaurants.id`（bids / dishes / dish_media / reactions が参照する UUID）は一切動かさずに済む。
+表記差については実証がある。既存DB突合の目視確認で、同一店なのに `百万石うどんこのみ小中店` ⇔ `このみ百万石うどん 小中店`、`風来坊 近鉄四日市店` ⇔ `居酒屋 風来坊 四日市店` のような差が観測されている。この種の差は `no_candidate_in_box` を量産する。
 
-### 3.2 必須にすると、むしろ重複が増える（最大の逆説）
+**ただしこの事実は結論を変えない。** 回収対象が「実在するのに紐付かなかった約17%」だとしても、その回収手段は**正規化ルールを直して無料の逆引きを再実行すること**であって、place_id 無しで PostgreSQL へ入れることではない。逆引きは0円かつ再開可能（`cache/probe.sqlite`）なので、何度でも回せる。
 
-#843 §4 と #1261 Step 3 の需要駆動フローはこうである。
+## 3. 初版の訂正
 
-1. ユーザーが Google Map の POI を押す → place_id を 100% 確定で取得
-2. 既存 restaurant を検索して見つかれば紐付け
+### 3.1 「必須にすると重複が増える」は誤り
 
-必須のままだと、**まだ place_id が付いていない Overture 由来の店は DB に存在できない**。したがって手順2で突合する相手がそもそも居らず、`POST /v1/restaurants` が Google Place Details から新規行を作る。同じ店について「Overture 由来の行（存在できない）」と「Google 由来の行」が並ぶのではなく、Overture 側が丸ごと欠落したまま Google 由来行だけが増え続ける。40% の店については Google 依存が 100% のまま残る。
+初版の主張は「place_id 無しの Overture 行が DB に存在できないため、POI 押下時に突合相手が居らず Google 由来の重複行が増える」だった。これは**「行が存在しないこと」を「重複」と呼んだ誤り**である。正しくはこうなる。
 
-nullable にして初めて、「押された瞬間に既存の Overture 行へ後付けリンクする」＝ 無料の 60% を 100% へ育てる動線が成立する。
-
-### 3.3 place ID は失効・変更する外部識別子である
-
-`0000_open_data_poc/REPORT.md` §4 の運用方針は「place ID の変更・廃止に備え、失敗時に再検索し `last_verified_at` を更新する。core ID は変えない」である。この運用は **NULL 許容が前提**で、`NOT NULL` のままでは失効を検知しても行を維持できない（暫定的に空文字を入れる等の回避策は、`UNIQUE` と衝突して破綻する）。
-
-## 4. 非必須にしたときに壊れるもの（実装コスト）
-
-`google_place_id` / `googlePlaceId` の参照は TS だけで 109 箇所あるが、**値の存在を前提にしているのは以下だけ**である。大半は select して詰め替えるだけで、型を `string | null` にすれば通る。
-
-| 箇所 | 影響 | 対応 |
+| | POI 押下時の挙動 | 重複 |
 |---|---|---|
-| `app-expo/lib/googlePlaces.ts:632` `getGoogleMapsLink` | place_id で Google Maps を開く | NULL 時は `?api=1&query=<lat>,<lng>` + 店名にフォールバック。ピン精度がやや落ちるだけ |
-| `app-expo/lib/dishMediaSearch.ts:103` | DB 結果と Google import 結果の dedupe | `google_place_id != null &&` を条件に追加（NULL 同士を同一視しない） |
-| `api/src/v1/dishes/dishes.service.ts` `bulkImportFromGoogle` | Google 由来店の取り込み | **対応不要**。Google 由来の経路なので place_id は必ず存在する |
-| `api/src/v1/dishes/dishes.repository.ts:147` `findReusableGoogleImportDishMediaByPlaceIdsAndCategory` | 同上 | **対応不要**（`in: placeIds` は NULL 行にヒットしない） |
-| `api/src/v1/dishes/deterministic-id.ts` `buildGoogleImportDishMediaId` | place_id から UUID v5 を導出 | **対応不要**（Google import 専用） |
-| `POST /v1/restaurants` / `GET /v1/restaurants/by-google-place-id` | place_id 起点の作成・取得 | **対応不要**（引数として place_id を受ける API） |
-| `shared/converters/convert_restaurants.ts`、各 DTO / Response 型 | 型 | `string` → `string \| null` |
-| `scripts/.../3_4_build_restaurant_catalog.py:82` `AND m.google_place_id IS NOT NULL` | publish gate | 撤去。place_id 無しでも公開する |
-| `scripts/.../9_1_sync_restaurants.py` | join key・`ON CONFLICT` | `source_seed_id` / `existing_restaurant_id` ベースへ変更（後述） |
+| **`NOT NULL` 維持** | 未確定の店は PG に無い → Place Details から1行作られる | **起きない**（1店1行） |
+| **nullable** | place_id が NULL の Overture 行が既にある → 後付け突合に失敗すると Google 由来の行が別に作られる | **起きうる**（同一店2行） |
 
-つまり**実質的な作り替えは deep link 1 箇所、dedupe 1 箇所、同期スクリプト、型**である。40% の在庫を捨てる／課金する／別テーブルを作る、のいずれよりも安い。
+指摘のとおり、Google 起点の同一性を採るなら「POI 押下 → Place Details から作る」が正しい挙動であり、オープンデータは**後から紐付ける注釈**として使うのが筋である。この設計では **`NOT NULL` の方が重複に強い**。
 
-### 重複防止をどう担保するか
+### 3.2 「40%を捨てることになる」は誇張
 
-現在、`restaurants` の重複防止は `UNIQUE(google_place_id)` **だけ**に依存している。NULL を許すと NULL 行同士は衝突しないため、この一本足では seed 由来行の重複を止められない。ただし既に
+`3_4_build_restaurant_catalog.py:82` の gate が落とすのは **BigQuery catalog → PostgreSQL の publish** だけである。seed 自体は `restaurant_seed_catalog` に全件残り、逆引き試行は `*_attempts` に残る。ルールを改善して再実行すれば、確定した分から publish される。**捨てているのではなく保留している。**
 
-```sql
-CREATE UNIQUE INDEX restaurants_source_seed_id_uq
-  ON restaurants(source_seed_id) WHERE source_seed_id IS NOT NULL;
-```
+### 3.3 生き残る論点
 
-が `20260812T0100_add_restaurant_recommendation_sync_metadata.sql` で入っている。**seed 側の同一性はこちらで担保済み**であり、これが nullable 化の技術的前提条件を既に満たしている。結果として重複防止は次の二本立てになる。
+初版の主張のうち指摘後も変わらないのは「place ID は失効・変更・統合する外部識別子である」の一点だけである。これは在庫カバレッジの話ではなく**表現可能な状態**の話なので、§4 / §5 へ切り出した。
 
-- `UNIQUE(google_place_id)`（NULL を除く部分ユニーク）: Google 側の同一性
-- `UNIQUE(source_seed_id) WHERE NOT NULL`: open data seed 側の同一性
+## 4. 必須維持で残るデメリット
 
-## 5. 推奨する段階的移行
+いずれも今すぐ困るものではない。
 
-### Step 0（9_1 の本番投入より前に必須）
+| 論点 | 内容 | 今困るか |
+|---|---|---|
+| place ID の失効 | 失効を検知しても NULL にできない。行を消すしかないが、`dishes` / `dish_media` / `reactions` / `restaurant_bids` が `restaurants.id` を参照しているため実質消せない | 失効検知が未実装なので**困らない** |
+| place ID の統合 | Google が2つの place を統合すると、我々の2行が同じ place_id を要求する。`UNIQUE` がこれを禁じるため同期が刺さる | 同上 |
+| オーナー登録 / UGC 登録 | Google 未収録の新規開店・移動販売を登録できない | オーナー登録が未実装なので**困らない** |
+| 誤 place_id の焼き付き | `9_1:212` の `ON CONFLICT (google_place_id) DO NOTHING` が衝突行を無言で落とす（実測 0.06%、789k換算で約470件） | **困る**。ただし `NOT NULL` とは独立の問題 |
 
-```sql
-ALTER TABLE restaurants ALTER COLUMN google_place_id DROP NOT NULL;
-COMMENT ON COLUMN restaurants.google_place_id IS
-  '後付けの外部ID。未確定・失効時はNULL。店舗の同一性はidが担う。';
-```
+最後の1つだけは `NOT NULL` の維持とは無関係に手を打つ価値がある。
 
-`UNIQUE` はそのまま残す。順序が重要で、**先に seed を投入してから nullable 化することはできない**（3_4 の gate が 40% を捨てた状態で publish 済みになるため）。
+## 5. `NOT NULL` を外すトリガー
 
-### Step 1: NULL 安全化
+次のいずれかに着手する時点で `ALTER TABLE restaurants ALTER COLUMN google_place_id DROP NOT NULL;` を実行する。それまでは維持でよい。
 
-上表の deep link / dedupe / 型を対応する。API レスポンスの `google_place_id` は `string | null` になる。
+1. **place ID の失効・統合のハンドリングを実装するとき**（`0000_open_data_poc/REPORT.md` §4 の `last_verified_at` 運用）
+2. **オーナー登録 / ユーザーによる店舗登録を実装するとき**（Google 未収録の店を受け入れる必要が出る）
+3. **Google 以外のプロバイダへ deep link するとき**（`restaurant_external_ids` への移行）
 
-### Step 2: パイプライン側の join key 移行
+後戻りコストが非対称なので、この順序で困らない。`DROP NOT NULL` はカタログ更新のみで即時に完了する。逆に `SET NOT NULL` は全行スキャンと backfill を要する。**「後で外す」は安く「後で付ける」は高い**ため、迷ったら維持側に倒すのが正しい。
 
-- `3_4_build_restaurant_catalog.py`: `AND m.google_place_id IS NOT NULL` を撤去
-- `9_1_sync_restaurants.py`: `ON CONFLICT (google_place_id)` と `WHERE r.google_place_id = s.google_place_id` を `source_seed_id` ベースへ変更。place_id は「一致したら更新する属性」として扱い、衝突時は同期を止めるのではなく **place_id だけ NULL のまま publish** する（`validate_staging` の既存 place_id 変更ガードは維持）
+## 6. 必須維持の場合にやること
 
-### Step 3: `restaurant_external_ids` への移行（#843 §3 / REPORT §4）
+スキーマ変更は不要。運用として次を固定する。
 
-```sql
-restaurant_external_ids (
-  restaurant_id uuid not null,
-  provider text not null,          -- google | overture | osm | ...
-  external_id text not null,
-  match_status text not null,
-  match_method text,               -- poi_click | auto_match | manual | legacy_pg
-  match_confidence numeric,
-  matched_at timestamptz,
-  last_verified_at timestamptz,
-  primary key (provider, external_id)
-);
-```
-
-`restaurants.google_place_id` は当面 `provider='google'` 行の denormalized cache として残し、既存の `by-google-place-id` 検索と bulk-import dedupe をそのまま動かす。移行完了後に列を落とすかは別判断でよい。
-
-### Step 4: 投入ポリシー（PoC の tier をそのまま使う）
-
-| tier | 件数 | 実測 | 扱い |
-|---|---:|---|---|
-| A | 4,342 | 負例誤マッチ 0/300、既存DB突合で全件250m以内 | `match_confidence` 高で自動リンク |
-| B | 1,693 | 250m超3件、最大258.4m | 保存するが confidence を下げ、POI 押下 / owner claim で昇格 |
-| 未確定 | 約40% | — | place_id NULL のまま**通常どおり公開する** |
-
-未確定行は #1261 Step 3（POI 押下時の 100% 確定 place_id）で需要順に埋まっていく。よく使われる店から埋まるので、埋まる順序としても正しい。
-
-## 6. 必須化を選ぶ場合の条件（対称的な整理）
-
-以下がすべて成立するなら必須維持も合理的だが、現時点ではいずれも成立していない。
-
-- [ ] 逆引き確定率が実用上 100% に近い → **実測 60.47%**。無料の範囲でこれ以上は誤マッチが跳ねる（`layered_wide` で確定率 +5.4pt に対し誤マッチ 0.33%→14.67%）
-- [ ] place_id 無しの店に事業上の価値がない → 成立しない。SNS 由来の権利処理済み媒体（4_2）は place_id の有無と独立に紐付く。画像も #843 §6 で Google Photos を使わない方針
-- [ ] place_id が安定した永続識別子である → 成立しない。変更・失効前提の運用が REPORT §4 に明記されている
-- [ ] 課金してでも全件に付ける予算がある → #821 の経緯と #1276 の制約により成立しない
+1. `3_4_build_restaurant_catalog.py:82` の gate は**維持**する。`restaurants` は「Google が知っている店」の集合と定義し、パイプライン README に明記する
+2. 未確定 seed は BigQuery に保留し、正規化ルールを改善するたびに `3_2` を再実行する（0円・再開可能）。特に表記差（「(株)」、支店名の語順、英字表記）の正規化は `no_candidate_in_box` 2,242件へ直接効く見込み
+3. `9_1_sync_restaurants.py` の `ON CONFLICT (google_place_id) DO NOTHING` を**無言にしない**。衝突件数と対象 seed をログ・レポートへ出す（現状は約470件が黙って消える見積り）
+4. tier B（1,693件、最大258.4m）を publish に含めるかは別途判断する。tier A（4,342件）は既存DB突合で全件250m以内であり、そのまま投入してよい
 
 ## 7. 残る論点
 
-- **UX の劣化幅**: place_id が無い店で Google Maps を開いたときのピン精度。座標クエリでの実測を Step 1 で確認したい
-- **`address_components` / `image_url` の必須制約**: REPORT §4 が指摘するとおり、これらも Place Details 前提の必須列である。`google_place_id` と同じ理由で見直し対象になる（open data 由来行は `address_components` を空配列、`image_url` を空文字で埋めており、実質的に制約が形骸化している）
-- **列を残すか外部IDテーブルへ全面移行するか**: Step 3 完了時点で再判断する
-
+- `address_components` / `image_url` の `NOT NULL`: open data 由来行は空配列・空文字で埋めており制約が形骸化している。`google_place_id` とは別の話として整理が要る
+- 全789,612件への展開（#1276 の残タスク）: 約88時間・0円。§6-2 の正規化改善を入れてから回すか、先に回して差分で回すか
 ---
 
 # 付録A: `google_place_id` の登録経路と参照箇所（棚卸し）
