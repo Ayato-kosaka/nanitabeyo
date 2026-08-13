@@ -313,7 +313,7 @@
 		"hiddenMessage": "{{title}} se ha ocultado",
 		"BlockTopicModal": {
 			"title": "¿Bloquear este plato?",
-			"description": "Los temas de platos bloqueados ya no aparecerán en las recomendaciones.",
+			"description": "Las categorías de platos bloqueadas ya no aparecerán en las recomendaciones.",
 			"note": "Puedes desbloquearlo en cualquier momento desde Configuración.",
 			"confirm": "Bloquear"
 		},
@@ -714,14 +714,14 @@
 		"logoutConfirmTitle": "¿Cerrar sesión?",
 		"logoutConfirmMessage": "Deberás iniciar sesión de nuevo para gestionar tus publicaciones y reseñas.",
 		"blockedTopics": {
-			"navigationLabel": "Temas de platos bloqueados",
-			"pageTitle": "Temas de platos bloqueados",
+			"navigationLabel": "Categorías de platos bloqueadas",
+			"pageTitle": "Categorías de platos bloqueadas",
 			"title": "Platos bloqueados",
 			"empty": "No hay platos bloqueados",
 			"loading": "Cargando...",
 			"unblockButton": "Desbloquear",
-			"unblockTitle": "¿Desbloquear este tema?",
-			"unblockMessage": "Este tema de plato se volverá a añadir a las recomendaciones.",
+			"unblockTitle": "¿Desbloquear esta categoría de plato?",
+			"unblockMessage": "Esta categoría de plato se volverá a añadir a las recomendaciones.",
 			"unblockConfirm": "Desbloquear",
 			"unblocked": "Desbloqueado"
 		}

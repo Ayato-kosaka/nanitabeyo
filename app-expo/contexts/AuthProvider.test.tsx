@@ -263,6 +263,188 @@ describe("AuthProvider の 429 クールダウン（#1097）", () => {
 		expect(authValue.user?.id).toBe("anon-1");
 	});
 
+	/**
+	 * #1135 「認証初期化は、その最中に確立された新しいセッションを上書きしない」という不変条件のテスト。
+	 *
+	 * Web の OAuth は全画面リダイレクトなので、コールバックのページロードでは
+	 * 認証初期化（runAuthAttempt）と `exchangeCodeForSession()` が同時に走る。
+	 * GoTrueClient._acquireLock はロック保持中に来た呼び出しを pendingInLock へ積み、
+	 * **外側の保持者はそれを drain し終わるまで解決しない**（@supabase/auth-js GoTrueClient.js:1123-1129）。
+	 * そのため `getSession()` は「交換前の匿名セッション」を読んだまま、**交換が終わった後に**解決する。
+	 * その戻り値を無条件に書き戻すと、確立済みの OAuth セッションを匿名ユーザーへ巻き戻す
+	 * （localStorage は OAuth なのに画面はゲストのまま = 「1 回目のログインで入れない」）。
+	 *
+	 * ここでは getSession() の解決を保留したまま SIGNED_IN を流すことで、その順序を直接再現する。
+	 */
+	it("復元中に OAuth の SIGNED_IN が入ったら、後から匿名セッションで上書きしない（#1135）", async () => {
+		// ロックの drain を再現する: getSession() は「交換前の匿名セッション」を読み終えているが、まだ解決しない
+		let resolveGetSession!: (result: unknown) => void;
+		auth.getSession.mockReturnValue(
+			new Promise((resolve) => {
+				resolveGetSession = resolve;
+			}),
+		);
+
+		await mountProvider();
+
+		// OAuth の code 交換が完了し、SIGNED_IN が届く（callback 画面の exchangeCodeForSession 由来）
+		await act(async () => {
+			await emitAuthStateChange("SIGNED_IN", fakeSession("oauth-1"));
+		});
+		expect(authValue.user?.id).toBe("oauth-1");
+
+		// ★ ここでようやく getSession() が「交換前の匿名セッション」で解決する
+		await act(async () => {
+			resolveGetSession({ data: { session: fakeSession("anon-1") }, error: null });
+		});
+
+		// 古い読み取り結果で巻き戻してはいけない
+		expect(authValue.user?.id).toBe("oauth-1");
+		expect(authValue.getSession()?.user.id).toBe("oauth-1");
+		// 復元経路を通っているので匿名サインインは走らない（OAuth セッションを潰す経路）
+		expect(auth.signInAnonymously).not.toHaveBeenCalled();
+	});
+
+	/**
+	 * #1135 「セッションが無い」と読んだ後に OAuth セッションが載った場合、匿名サインインを叩かないこと。
+	 *
+	 * `signInAnonymously()` は `_saveSession` で storage を書き換えるため、ここで叩くと
+	 * 確立済みの OAuth セッションを **storage ごと** 潰す（React state だけの巻き戻しより重い破壊）。
+	 * 匿名セッションが残っていない状態で Web のコールバックに戻った場合に到達しうる経路。
+	 */
+	it("セッション無しと読んだ後に OAuth の SIGNED_IN が入ったら、匿名サインインを叩かない（#1135）", async () => {
+		let resolveGetSession!: (result: unknown) => void;
+		auth.getSession.mockReturnValue(
+			new Promise((resolve) => {
+				resolveGetSession = resolve;
+			}),
+		);
+		auth.signInAnonymously.mockResolvedValue({ data: { session: fakeSession("anon-1") }, error: null });
+
+		await mountProvider();
+
+		await act(async () => {
+			await emitAuthStateChange("SIGNED_IN", fakeSession("oauth-1"));
+		});
+
+		// getSession() は「交換前 = セッション無し」を読んだまま、交換完了後に解決する
+		await act(async () => {
+			resolveGetSession({ data: { session: null }, error: null });
+		});
+
+		expect(auth.signInAnonymously).not.toHaveBeenCalled();
+		expect(authValue.user?.id).toBe("oauth-1");
+		// #1089 の事後条件（どの経路でも loading は false / 認証確立時は authError は null）は維持される
+		expect(authValue.isAuthResolved).toBe(true);
+		expect(authValue.authError).toBeNull();
+	});
+
+	/**
+	 * #1135 匿名サインインの **完了後** の書き戻しも、その間に載った別セッションを巻き戻さないこと。
+	 *
+	 * 上 2 つのテストは「`getSession()` の解決が code 交換より後になる」インターリーブを見ているが、
+	 * `getSession()` が «交換が始まる前» に「セッション無し」で解決した場合は分岐ガードを通り抜け、
+	 * `retry(signInAnonymously)` の await をまたいだ区間が無防備になる。この区間では
+	 *   1. 匿名サインインが `_saveSession` → SIGNED_IN(匿名) を流す
+	 *   2. pendingInLock に積まれていた `exchangeCodeForSession()` が完了し SIGNED_IN(OAuth) を流す
+	 *   3. その後で `signInAnonymously()` の Promise が解決する
+	 * という順序が起こりうる。3 で無条件に書き戻すと、確立済みの OAuth セッションを匿名へ巻き戻す
+	 * （storage は OAuth のまま = 本 Issue と同型の症状）。
+	 *
+	 * ⚠️ ここを世代カウンタで守ることはできない。1 の SIGNED_IN も世代を進めるため、
+	 *    「自分が作った匿名セッション」と「別経路の OAuth セッション」を区別できず、
+	 *    正常な匿名サインインまで書き戻しをスキップしてしまう。
+	 *    そのため `sessionRef` が保持しているセッションの同一性（access_token）で判定する。
+	 */
+	it("匿名サインインの完了前に OAuth の SIGNED_IN が入ったら、後から匿名セッションで巻き戻さない（#1135）", async () => {
+		// getSession() は「交換開始前」に解決する = 世代ガードを通り抜けて匿名サインイン経路へ進む
+		auth.getSession.mockResolvedValue({ data: { session: null }, error: null });
+		// 匿名サインインは、下で明示的に解決するまで pending のまま
+		let completeSignIn!: (result: unknown) => void;
+		auth.signInAnonymously.mockReturnValue(
+			new Promise((resolve) => {
+				completeSignIn = resolve;
+			}),
+		);
+
+		await mountProvider();
+		expect(auth.signInAnonymously).toHaveBeenCalledTimes(1);
+
+		// 1. 匿名サインイン自身の SIGNED_IN（auth-js は _saveSession の後に必ず流す）
+		await act(async () => {
+			await emitAuthStateChange("SIGNED_IN", fakeSession("anon-1"));
+		});
+		expect(authValue.user?.id).toBe("anon-1");
+
+		// 2. pendingInLock に積まれていた code 交換が完了し、OAuth の SIGNED_IN が届く
+		await act(async () => {
+			await emitAuthStateChange("SIGNED_IN", fakeSession("oauth-1"));
+		});
+		expect(authValue.user?.id).toBe("oauth-1");
+
+		// 3. ★ ここでようやく signInAnonymously() が解決する
+		await act(async () => {
+			completeSignIn({ data: { session: fakeSession("anon-1") }, error: null });
+		});
+
+		// 既に OAuth セッションが載っているので、匿名セッションで書き戻してはいけない
+		expect(authValue.user?.id).toBe("oauth-1");
+		expect(authValue.getSession()?.user.id).toBe("oauth-1");
+		// #1089 の事後条件（loading は false / 認証確立時は authError は null）は維持される
+		expect(authValue.isAuthResolved).toBe(true);
+		expect(authValue.authError).toBeNull();
+	});
+
+	/**
+	 * #1135 上の巻き戻しガードが、正常な匿名サインインまで止めてしまわないこと。
+	 *
+	 * 世代カウンタで守ろうとすると、匿名サインイン自身の SIGNED_IN で世代が進むため
+	 * この経路が丸ごとスキップされる（＝匿名ユーザーが載らない）。同一性で判定していることを固定する。
+	 */
+	it("自分が作った匿名セッションの SIGNED_IN では、書き戻しをスキップしない（#1135）", async () => {
+		auth.getSession.mockResolvedValue({ data: { session: null }, error: null });
+		let completeSignIn!: (result: unknown) => void;
+		auth.signInAnonymously.mockReturnValue(
+			new Promise((resolve) => {
+				completeSignIn = resolve;
+			}),
+		);
+
+		await mountProvider();
+
+		// 匿名サインイン自身の SIGNED_IN だけが流れる（別経路は無い）
+		await act(async () => {
+			await emitAuthStateChange("SIGNED_IN", fakeSession("anon-1"));
+		});
+
+		await act(async () => {
+			completeSignIn({ data: { session: fakeSession("anon-1") }, error: null });
+		});
+
+		expect(authValue.user?.id).toBe("anon-1");
+		expect(authValue.getSession()?.user.id).toBe("anon-1");
+		expect(authValue.isAuthResolved).toBe(true);
+		expect(authValue.authError).toBeNull();
+	});
+
+	/**
+	 * #1135 復元経路で `setSession()` を呼ばないこと。
+	 *
+	 * `getSession()` は storage からの復元（必要ならリフレッシュ）まで済ませており、その直後に
+	 * 同じトークンで `setSession()` するのは `GET /auth/v1/user` を 1 往復増やすだけ。
+	 * その往復時間がまるごと上のテストの競合ウィンドウになるため、呼ばないことを固定する。
+	 */
+	it("復元経路では setSession を呼ばない（#1135 競合ウィンドウを作らない）", async () => {
+		auth.getSession.mockResolvedValueOnce({ data: { session: fakeSession("user-1") }, error: null });
+
+		await mountProvider();
+
+		// 復元自体はこれまでどおり成立する（sessionRef / setUser は残す）
+		expect(authValue.user?.id).toBe("user-1");
+		expect(authValue.getSession()?.user.id).toBe("user-1");
+		expect(auth.setSession).not.toHaveBeenCalled();
+	});
+
 	it("SIGNED_OUT が連続しても匿名サインインは 1 回にまとまる（枠を無駄に消費しない）", async () => {
 		auth.getSession.mockResolvedValueOnce({ data: { session: fakeSession("user-1") }, error: null });
 		auth.signInAnonymously.mockResolvedValue({ data: { session: fakeSession("anon-1") }, error: null });

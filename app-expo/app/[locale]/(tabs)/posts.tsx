@@ -56,8 +56,10 @@ export default function PostsScreen() {
 		};
 	}, [callBackend, entriesKey, ids]);
 
+	// #721 testID は共有リンク（/s/:token）が «捨てられず投稿画面へ着地したか» を E2E から見るための目印。
+	// 解決画面は resolve の往復の間しか出ず観測できないため、着地先そのものを観測点にしている。見た目には影響しない
 	return (
-		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
+		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container} testID="posts-screen">
 			{/* #688 【設計】Web Deep Linking バナー（アプリ未インストール時の導線） */}
 			<OpenInAppBanner path="posts" params={{ ids, entriesKey }} />
 			<DishMediaMap entriesKey={entriesKey} idType="dish_media" />

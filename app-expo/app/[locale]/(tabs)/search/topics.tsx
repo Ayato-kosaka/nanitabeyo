@@ -98,6 +98,19 @@ export default function TopicsScreen() {
 	// #907 【設計】サムネイルによるプログラム移動だけを識別し、スワイプ分析へ混在させない。
 	const thumbnailNavigationTargetRef = useRef<number | null>(null);
 	const createdGroupVoteRef = useRef<CreateDishCategoryGroupVoteResponse | null>(null);
+	/**
+	 * #1205 【修正】友達投票ボタンの連打を同期的に止めるガード。
+	 *
+	 * ボタンは `isCreating`(useState) で `disabled` になるが、state が画面へ反映される前の
+	 * 2 発目は素通りする。素通りすると作成 API が二重に走るうえ、作成済み（`createdGroupVoteRef`）の
+	 * 再訪時には **同期的に `router.push` が 2 回**走って結果画面が 2 枚積み上がる。
+	 * ref への代入は同期的に確定するため、同一 JS タスク内の連続押下でもレースしない
+	 *（この画面の `isSelectingTopicRef` と同じ方式）。
+	 *
+	 * 解除は「失敗時は即時（catch）」「遷移した場合は結果画面から戻った時（useFocusEffect）」の 2 箇所。
+	 * 成功後にその場で解除すると、遷移アニメーション中の押下で結果画面が二重に開きうる。
+	 */
+	const isOpeningGroupVoteRef = useRef(false);
 	// #907 【設計】描画ライフサイクルと閲覧実績を分離し、検索セッション内のtopic単位で重複を防ぐ。
 	const impressedTopicIdsRef = useRef<Set<string>>(new Set());
 	/**
@@ -124,10 +137,12 @@ export default function TopicsScreen() {
 	const { selectionChanged } = useHaptics();
 
 	// 結果画面から戻った時は再選択できるようにし、遷移中だけ連打を抑止する。
+	// #1205 友達投票の同期ガードも同じ理由でここで解除する（投票結果画面から戻ったら再度開けること）。
 	useFocusEffect(
 		useCallback(() => {
 			isSelectingTopicRef.current = false;
 			setIsSelectingTopic(false);
+			isOpeningGroupVoteRef.current = false;
 		}, []),
 	);
 
@@ -269,6 +284,10 @@ export default function TopicsScreen() {
 			return;
 		}
 
+		// #1205 state の反映を待たずに立つガード。ここより後に push / 作成 API を書くこと。
+		if (isOpeningGroupVoteRef.current) return;
+		isOpeningGroupVoteRef.current = true;
+
 		const cachedResponse = createdGroupVoteRef.current;
 		if (cachedResponse) {
 			logFrontendEvent({
@@ -288,6 +307,15 @@ export default function TopicsScreen() {
 
 		try {
 			const response = await createGroupVote({ searchParams: params, topics: visibleTopics });
+			// #1205 作成中の 2 発目として抑止された場合は null が返る。遷移すると結果画面が二重に開くため遷移しない。
+			//（通常は上の ref で先に弾かれるので、ここは他の呼び出し経路からの多重実行に備えた保険）
+			//
+			// ⚠️ **解除を忘れないこと。** ここは «遷移しない» 唯一の成功経路なので、
+			// ref を立てたまま抜けると useFocusEffect も走らず、**ボタンが二度と押せなくなる**。
+			if (!response) {
+				isOpeningGroupVoteRef.current = false;
+				return;
+			}
 			createdGroupVoteRef.current = response;
 			router.push({
 				pathname: "/[locale]/(tabs)/search/dish-category-group-votes/[shareToken]",
@@ -297,6 +325,8 @@ export default function TopicsScreen() {
 				},
 			});
 		} catch {
+			// #1205 失敗時は必ず解除する。ここを省くと「1 回失敗したら二度と開けない」になる。
+			isOpeningGroupVoteRef.current = false;
 			showSnackbar(i18n.t("Topics.errors.fetchFailed"));
 		}
 	}, [createGroupVote, locale, logFrontendEvent, params, showSnackbar, visibleTopics]);

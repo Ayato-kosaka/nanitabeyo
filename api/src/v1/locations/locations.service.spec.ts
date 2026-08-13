@@ -419,14 +419,14 @@ describe('LocationsService', () => {
       },
     });
 
-    it('should dedupe same-name candidates keeping the establishment one', async () => {
-      // #952 【テスト】渋谷駅が「駅(establishment)」と「番地レベル(geocode)」で重複するケース。
-      // 関連度順では番地レベルが後だが、establishment が優先されて1件に畳まれること。
+    it('should keep same-name candidates that differ in secondaryText', async () => {
+      // #1176 【テスト】表示名が同じでも secondaryText が違えば別地点として区別できる。
+      // かつての #952 ルール2 は「同名の establishment がいれば非 establishment を落とす」
+      // だったが、地理的な絞り込みが無い以上その前提は成立しない。全件残すこと。
       mockExternalApiService.callPlacesAutocomplete.mockResolvedValue({
         suggestions: [
           buildSuggestion('place-station', '渋谷駅', '日本、東京都渋谷区', [
             'train_station',
-            'transit_station',
             'point_of_interest',
             'establishment',
           ]),
@@ -447,37 +447,97 @@ describe('LocationsService', () => {
 
       const result = await service.autocompleteLocations(mockQuery);
 
-      expect(result).toHaveLength(2);
-      expect(result[0].place_id).toBe('place-station');
-      expect(result[1].place_id).toBe('place-mark-city');
+      expect(result.map((place) => place.place_id)).toEqual([
+        'place-station',
+        'place-address',
+        'place-mark-city',
+      ]);
     });
 
-    it('should prefer the establishment even when the address-level candidate comes first', async () => {
-      // #952 【テスト】関連度順で番地レベルが先頭に来ても、駅(establishment)が残ること。
-      // 返却順は先勝ちの位置(先頭)を維持する。
+    it('should keep same-name stations in different prefectures', async () => {
+      // #1176 【テスト】これがこの変更の主目的。日本には同名の別駅が実在する。
+      // 名前ベースで畳むと、明石の大久保駅を選びたいユーザーが選択不能になる。
       mockExternalApiService.callPlacesAutocomplete.mockResolvedValue({
         suggestions: [
           buildSuggestion(
-            'place-address',
-            '渋谷駅',
-            '日本、東京都渋谷区２丁目２４',
-            ['geocode'],
+            'place-okubo-tokyo',
+            '大久保駅',
+            '日本、東京都新宿区百人町',
+            [
+              'train_station',
+              'transit_station',
+              'transportation_service',
+              'point_of_interest',
+              'establishment',
+            ],
           ),
-          buildSuggestion('place-station', '渋谷駅', '日本、東京都渋谷区', [
-            'train_station',
-            'establishment',
-          ]),
+          buildSuggestion(
+            'place-okubo-hyogo',
+            '大久保駅',
+            '日本、兵庫県明石市大久保町',
+            [
+              'train_station',
+              'transit_station',
+              'transportation_service',
+              'point_of_interest',
+              'establishment',
+            ],
+          ),
         ],
       } as never);
 
       const result = await service.autocompleteLocations(mockQuery);
 
-      expect(result).toHaveLength(1);
-      expect(result[0].place_id).toBe('place-station');
+      expect(result.map((place) => place.place_id)).toEqual([
+        'place-okubo-tokyo',
+        'place-okubo-hyogo',
+      ]);
+    });
+
+    it('should keep the granularity duplicates of the same station', async () => {
+      // #1176 【テスト】#1123 で畳んでいた「同一駅の粒度違い重複」も、今後は残す。
+      // これは意図的な譲歩である: 重複表示のわずらわしさより、
+      // 別地点が選択不能になる方が損害が大きい(#1176)。
+      // types は development 実環境の実測値(Issue #1123 の検証コメント)。
+      mockExternalApiService.callPlacesAutocomplete.mockResolvedValue({
+        suggestions: [
+          buildSuggestion(
+            'ChIJz8MVLFiLGGARXP0DqqhoDow',
+            '渋谷駅',
+            '日本、東京都渋谷区',
+            [
+              'point_of_interest',
+              'transportation_service',
+              'establishment',
+              'transit_station',
+            ],
+          ),
+          buildSuggestion(
+            'ChIJnxAAO1aLGGARJqvi8d4oczM',
+            '渋谷駅',
+            '日本、東京都渋谷区渋谷２丁目２４',
+            [
+              'transportation_service',
+              'point_of_interest',
+              'train_station',
+              'transit_station',
+              'establishment',
+              'subway_station',
+            ],
+          ),
+        ],
+      } as never);
+
+      const result = await service.autocompleteLocations(mockQuery);
+
+      expect(result.map((place) => place.place_id)).toEqual([
+        'ChIJz8MVLFiLGGARXP0DqqhoDow',
+        'ChIJnxAAO1aLGGARJqvi8d4oczM',
+      ]);
     });
 
     it('should keep distinct names untouched', async () => {
-      // #952 【テスト】「渋谷駅」と「渋谷駅前」は別地点なので dedup 対象外であること
+      // 「渋谷駅」と「渋谷駅前」は別地点なので当然残る。
       mockExternalApiService.callPlacesAutocomplete.mockResolvedValue({
         suggestions: [
           buildSuggestion('place-station', '渋谷駅', '日本、東京都渋谷区', [
@@ -496,34 +556,53 @@ describe('LocationsService', () => {
       expect(result).toHaveLength(2);
     });
 
-    it('should dedupe full-width/half-width and spacing variants of the same name', async () => {
-      // #952 【テスト】NFKC 正規化 + 空白除去により表記ゆれの同名も1件に畳まれること
+    it('should keep same-name bus stops', async () => {
+      // #1176 【テスト】同名の別バス停(進行方向・のりば違い)が残ること。
+      // 以前は deny-list(bus_station 等)で守っていたが、実環境には
+      // types が establishment / point_of_interest だけのバス停が存在し
+      // (八景島駅前 バス停)、type ベースの保護では守り切れなかった。
+      // 名前で畳まなくなったため、type に依存せず守られる。
       mockExternalApiService.callPlacesAutocomplete.mockResolvedValue({
         suggestions: [
+          buildSuggestion('place-bus-a', '市役所前', '日本、福岡県久留米市中央町', [
+            'bus_stop',
+            'transit_station',
+            'point_of_interest',
+            'establishment',
+          ]),
+          buildSuggestion('place-bus-b', '市役所前', '日本、福岡県柳川市本町', [
+            'bus_stop',
+            'transit_station',
+            'point_of_interest',
+            'establishment',
+          ]),
           buildSuggestion(
-            'place-1',
-            'ＡＢＣマート 渋谷',
-            '日本、東京都渋谷区',
-            ['establishment'],
+            'place-bus-no-type-a',
+            '八景島駅前 バス停',
+            '日本、神奈川県横浜市金沢区海の公園１０',
+            ['establishment', 'point_of_interest'],
           ),
           buildSuggestion(
-            'place-2',
-            'ABCマート渋谷',
-            '日本、東京都渋谷区２丁目',
-            ['geocode'],
+            'place-bus-no-type-b',
+            '八景島駅前 バス停',
+            '日本、神奈川県横浜市金沢区海の公園４０',
+            ['establishment', 'point_of_interest'],
           ),
         ],
       } as never);
 
       const result = await service.autocompleteLocations(mockQuery);
 
-      expect(result).toHaveLength(1);
-      expect(result[0].place_id).toBe('place-1');
+      expect(result.map((place) => place.place_id)).toEqual([
+        'place-bus-a',
+        'place-bus-b',
+        'place-bus-no-type-a',
+        'place-bus-no-type-b',
+      ]);
     });
 
     it('should keep multiple same-name establishments (e.g. chain branches)', async () => {
-      // #952 【テスト】PR #980 レビュー指摘: 同名チェーンの別店舗(establishment 同士、
-      // place_id・secondaryText が異なる)は表示名が同じでも別地点なので全て残ること
+      // 同名チェーンの別店舗はもともと残す仕様。回帰させないこと。
       mockExternalApiService.callPlacesAutocomplete.mockResolvedValue({
         suggestions: [
           buildSuggestion(
@@ -538,44 +617,35 @@ describe('LocationsService', () => {
             '日本、東京都渋谷区宇田川町',
             ['cafe', 'establishment'],
           ),
-          buildSuggestion(
-            'place-sbux-addr',
-            'スターバックス',
-            '日本、東京都渋谷区２丁目',
-            ['geocode'],
-          ),
         ],
       } as never);
 
       const result = await service.autocompleteLocations(mockQuery);
 
-      // establishment 2店舗は残り、同名の番地レベル geocode だけが落ちる
       expect(result).toHaveLength(2);
-      expect(result.map((place) => place.place_id)).toEqual([
-        'place-sbux-1',
-        'place-sbux-2',
-      ]);
     });
 
-    it('should keep non-establishment candidates when no same-name establishment exists', async () => {
-      // #952 【テスト】同名の establishment が無い場合、住所系候補はそのまま残ること
-      // (住所そのものを検索したいケースを壊さない)
+    it('should collapse exact duplicates even with full-width/spacing variants', async () => {
+      // #1176 【テスト】残した唯一の畳み込み(ルール2)は NFKC 正規化 + 空白除去を経ること。
+      // mainText と secondaryText の両方が一致するので UI 上まったく区別が付かない。
       mockExternalApiService.callPlacesAutocomplete.mockResolvedValue({
         suggestions: [
-          buildSuggestion('place-addr-1', '渋谷２丁目', '日本、東京都渋谷区', [
-            'geocode',
-          ]),
-          buildSuggestion('place-town', '渋谷区', '日本、東京都', [
-            'locality',
-            'political',
-            'geocode',
+          buildSuggestion(
+            'place-1',
+            'ＡＢＣマート 渋谷',
+            '日本、東京都渋谷区',
+            ['establishment'],
+          ),
+          buildSuggestion('place-2', 'ABCマート渋谷', '日本、東京都渋谷区', [
+            'establishment',
           ]),
         ],
       } as never);
 
       const result = await service.autocompleteLocations(mockQuery);
 
-      expect(result).toHaveLength(2);
+      expect(result).toHaveLength(1);
+      expect(result[0].place_id).toBe('place-1');
     });
 
     it('should collapse exact duplicates (same mainText and secondaryText)', async () => {

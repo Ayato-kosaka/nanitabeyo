@@ -33,10 +33,16 @@ const isMutationEnabled = process.env.RUN_MUTATION === "1";
 //    仕組みだけを次の「落ちるのが正しい spec」のために残している（README.md 参照）。
 const isProbeEnabled = process.env.RUN_PROBE === "1";
 
+// #UIカタログ 【設計】tests/catalog/ は「検証」ではなく「全画面のスクリーンショット収集」で、
+// 実行にも時間がかかる。@mutation / @probe と同じ方式で既定の探索から外し、
+// RUN_CATALOG=1（= pnpm test:catalog:*）のときだけ読み込む
+const isCatalogEnabled = process.env.RUN_CATALOG === "1";
+
 /** 既定値（node_modules の除外）を失わないよう、除外パターンは必ず一緒に列挙する */
 const testPathIgnorePatterns = ["/node_modules/"];
 if (!isMutationEnabled) testPathIgnorePatterns.push("<rootDir>/tests/mutation/");
 if (!isProbeEnabled) testPathIgnorePatterns.push("<rootDir>/tests/probe/");
+if (!isCatalogEnabled) testPathIgnorePatterns.push("<rootDir>/tests/catalog/");
 
 /** @type {import('ts-jest').JestConfigWithTsJest} */
 module.exports = {
