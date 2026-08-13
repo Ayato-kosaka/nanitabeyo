@@ -82,6 +82,14 @@ def normalize(text: str) -> str:
     return normalize_ja(text)
 
 
+def _coarse_coord(row: dict) -> tuple:
+    """座標を小数2桁(≒1km)に丸めて場所の識別子にする。ソース間で座標が微妙にずれても同一視できる。"""
+    try:
+        return (round(float(row.get("latitude")), 2), round(float(row.get("longitude")), 2))
+    except (TypeError, ValueError):
+        return ()
+
+
 class NameMatcher:
     """全国店名の逆引き。日本語名とラテン名で別のオートマトンと別の一致規則を持つ。
 
@@ -97,8 +105,8 @@ class NameMatcher:
 
     def __init__(self, sources: tuple[str, ...] | None = None) -> None:
         csv.field_size_limit(10**7)
-        freq_ja: collections.Counter = collections.Counter()
-        freq_la: collections.Counter = collections.Counter()
+        places_ja: dict[str, set] = {}
+        places_la: dict[str, set] = {}
         self.original: dict[str, str] = {}
         # #1273 §22 【設計】地名の裏取りに使う。名前が一意な行しか辞書に残さないので1対1で持てる。
         self.area: dict[str, tuple[str, str]] = {}
@@ -117,29 +125,50 @@ class NameMatcher:
                     if not name:
                         continue
                     rows += 1
+                    # #1273 【バグ】チェーン判定を「同名の行数 > 1」でやると、3ソース統合後は
+                    # **同一店舗が Overture/IFAS/OSM に重複して載っているだけ**でチェーン扱いになり
+                    # 辞書から落ちる（実測: 「麺屋 牛神」が原本にあるのにオートマトン未登録）。
+                    # 行数ではなく「異なる場所の数」で数える。場所は locality と座標(小数2桁≒1km)で識別する。
+                    # 場所の識別は座標を優先する。locality はソースによって空だったり
+                    # 表記が違ったりするため、これを混ぜると同一店舗が別場所に割れる。
+                    loc_key = _coarse_coord(r) or (normalize_ja(r.get("locality") or ""),)
                     if has_cjk(name):
                         key = normalize_ja(name)
-                        freq_ja[key] += 1
+                        places_ja.setdefault(key, set()).add(loc_key)
                     else:
                         key = normalize_latin(name).strip()
-                        freq_la[key] += 1
+                        places_la.setdefault(key, set()).add(loc_key)
                     self.original.setdefault(key, name)
                     self.area.setdefault(key, (normalize_ja(r.get("locality") or ""),
                                                normalize_ja(r.get("region") or "")))
                     self.source_of.setdefault(key, filename)
         self.sources_used = used
 
+        # #1273 【バグ】3ソースの name 列には住所文字列がそのまま入っている行がある
+        # （「中区中町」「久留米市」「福岡市中央区」「岡山市中区円山」等）。これが辞書に残ると
+        # match_corroborated の locality 裏取りを**自分自身で満たしてしまう**ため、
+        # 地名を書いただけの動画が必ず店舗一致になる。Round5 の実測で Shorts のヒット243件中
+        # 70件(28.8%)がこの型だった。地名そのものと地名で終わる名前を辞書から除外する。
+        area_vocab = {v for pair in self.area.values() for v in pair if v}
+        addr_tail = re.compile(r"(都|道|府|県|市|区|町|村|丁目|番地)$")
+        dropped_geo = 0
         stop_ja = {normalize_ja(s) for s in STOPWORD_NAMES}
         stop_la = {normalize_latin(s).strip() for s in STOPWORD_NAMES}
         self.auto_ja = ahocorasick.Automaton()
         self.auto_la = ahocorasick.Automaton()
         self.n_ja = self.n_la = 0
-        for key, count in freq_ja.items():
+        for key, locs in places_ja.items():
+            count = len(locs)
             if len(key) < MIN_NAME_LEN_NATIONAL or count > 1 or key in stop_ja:
+                continue
+            # 住所文字列そのもの、および地名で終わる名前は除外する（上記【バグ】参照）
+            if key in area_vocab or addr_tail.search(key):
+                dropped_geo += 1
                 continue
             self.auto_ja.add_word(key, key)
             self.n_ja += 1
-        for key, count in freq_la.items():
+        for key, locs in places_la.items():
+            count = len(locs)
             if len(key) < MIN_NAME_LEN_LATIN or count > 1 or key in stop_la:
                 continue
             self.auto_la.add_word(key, key)
@@ -149,7 +178,8 @@ class NameMatcher:
         self.rows = rows
         print(f"[dict] {'+'.join(self.sources_used)}: {rows:,} rows -> "
               f"日本語名 {self.n_ja:,} (>={MIN_NAME_LEN_NATIONAL}字) + "
-              f"ラテン名 {self.n_la:,} (>={MIN_NAME_LEN_LATIN}字, 語境界必須)", file=sys.stderr)
+              f"ラテン名 {self.n_la:,} (>={MIN_NAME_LEN_LATIN}字, 語境界必須) "
+              f"/ 地名として除外 {dropped_geo:,}", file=sys.stderr)
 
     def match(self, text: str) -> set[str]:
         """店名の生一致だけを返す（地名の裏取りは match_corroborated で課す）。"""
