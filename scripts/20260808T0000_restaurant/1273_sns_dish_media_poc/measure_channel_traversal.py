@@ -50,55 +50,101 @@ STOPWORD_NAMES = {
 MAX_VIDEOS_PER_CHANNEL = 400  # 巨大チャンネルで時間が爆発しないよう上限を置く
 
 
-def normalize(text: str) -> str:
+# #1273 【バグ】初版は空白を除去してから全国辞書に部分一致させていたため、ラテン文字の
+# 店名が英単語の内部に一致する偽陽性が支配的だった（"form"→perform、"ATER"→water、
+# "TOBE"→October、"JA・PAN"→japan 等）。日本語名とラテン名で正規化とマッチ規則を分ける。
+CJK_RE = re.compile(r"[぀-ヿ㐀-䶿一-鿿ｦ-ﾟ]")
+MIN_NAME_LEN_LATIN = 5  # ラテン名は語境界を課した上でさらに長さを要求する
+
+
+def has_cjk(text: str) -> bool:
+    return bool(CJK_RE.search(text))
+
+
+def normalize_ja(text: str) -> str:
+    """日本語向け: 語境界が存在しないので空白と記号を全部落とす。"""
     if not text:
         return ""
     text = unicodedata.normalize("NFKC", text).lower()
     return re.sub(r"[\s　\-‐－—–_,.、。・/／\\|｜!！?？\"'“”'']+", "", text)
 
 
-def build_national_automaton() -> tuple[ahocorasick.Automaton, dict[str, str], int]:
-    """全国の店名から Aho-Corasick オートマトンを組む。
+def normalize_latin(text: str) -> str:
+    """ラテン文字向け: 語境界を残すため、英数字以外は単一の空白に潰す。"""
+    if not text:
+        return ""
+    text = unicodedata.normalize("NFKC", text).lower()
+    return " " + re.sub(r"[^0-9a-z]+", " ", text).strip() + " "
 
-    同名が複数店舗ある名前（チェーン）は #1273 §23 のとおり支店を確定できないので除外する。
-    戻り値: (automaton, 正規化名 -> 元の名前, 除外件数)
+
+def normalize(text: str) -> str:
+    """後方互換用（既存の呼び出し元が使う日本語向け正規化）。"""
+    return normalize_ja(text)
+
+
+class NameMatcher:
+    """全国店名の逆引き。日本語名とラテン名で別のオートマトンと別の一致規則を持つ。
+
+    #1273 §23 に従い、同名が2件以上ある名前（チェーン）は支店を確定できないため除外する。
+    ラテン名は語境界を要求するため、英単語の内部に一致する偽陽性が出ない。
     """
-    csv.field_size_limit(10**7)
-    freq: collections.Counter = collections.Counter()
-    original: dict[str, str] = {}
-    rows = 0
-    with (FIXTURES / "overture_jp_food.csv").open(encoding="utf-8") as fh:
-        for r in csv.DictReader(fh):
-            name = (r.get("name") or "").strip()
-            if not name:
+
+    def __init__(self) -> None:
+        csv.field_size_limit(10**7)
+        freq_ja: collections.Counter = collections.Counter()
+        freq_la: collections.Counter = collections.Counter()
+        self.original: dict[str, str] = {}
+        rows = 0
+        with (FIXTURES / "overture_jp_food.csv").open(encoding="utf-8") as fh:
+            for r in csv.DictReader(fh):
+                name = (r.get("name") or "").strip()
+                if not name:
+                    continue
+                rows += 1
+                if has_cjk(name):
+                    key = normalize_ja(name)
+                    freq_ja[key] += 1
+                else:
+                    key = normalize_latin(name).strip()
+                    freq_la[key] += 1
+                self.original.setdefault(key, name)
+
+        stop_ja = {normalize_ja(s) for s in STOPWORD_NAMES}
+        stop_la = {normalize_latin(s).strip() for s in STOPWORD_NAMES}
+        self.auto_ja = ahocorasick.Automaton()
+        self.auto_la = ahocorasick.Automaton()
+        self.n_ja = self.n_la = 0
+        for key, count in freq_ja.items():
+            if len(key) < MIN_NAME_LEN_NATIONAL or count > 1 or key in stop_ja:
                 continue
-            rows += 1
-            nn = normalize(name)
-            freq[nn] += 1
-            original.setdefault(nn, name)
+            self.auto_ja.add_word(key, key)
+            self.n_ja += 1
+        for key, count in freq_la.items():
+            if len(key) < MIN_NAME_LEN_LATIN or count > 1 or key in stop_la:
+                continue
+            self.auto_la.add_word(key, key)
+            self.n_la += 1
+        self.auto_ja.make_automaton()
+        self.auto_la.make_automaton()
+        self.rows = rows
+        print(f"[dict] {rows:,} rows -> 日本語名 {self.n_ja:,} (>={MIN_NAME_LEN_NATIONAL}字) + "
+              f"ラテン名 {self.n_la:,} (>={MIN_NAME_LEN_LATIN}字, 語境界必須)", file=sys.stderr)
 
-    stop = {normalize(s) for s in STOPWORD_NAMES}
-    automaton = ahocorasick.Automaton()
-    kept = 0
-    for nn, count in freq.items():
-        if len(nn) < MIN_NAME_LEN_NATIONAL or count > 1 or nn in stop:
-            continue
-        automaton.add_word(nn, nn)
-        kept += 1
-    automaton.make_automaton()
-    print(f"[dict] {rows:,} rows -> {kept:,} unique non-chain names "
-          f"(>= {MIN_NAME_LEN_NATIONAL} chars)", file=sys.stderr)
-    return automaton, original, rows - kept
-
-
-def match_names(automaton: ahocorasick.Automaton, text: str) -> set[str]:
-    """タイトル中に出現する店名を全部拾う。最長一致のみ採る（部分名の重複計上を避ける）。"""
-    t = normalize(text)
-    if not t:
-        return set()
-    hits = {found for _, found in automaton.iter(t)}
-    # 「麺屋武蔵」と「麺屋武」の両方が辞書にあるとき、包含される短い方は落とす
-    return {h for h in hits if not any(h != o and h in o for o in hits)}
+    def match(self, text: str) -> set[str]:
+        hits: set[str] = set()
+        tja = normalize_ja(text)
+        if tja:
+            hits |= {found for _, found in self.auto_ja.iter(tja)}
+            # 「麺屋武蔵」と「麺屋武」が両方辞書にある場合、包含される短い方を落とす
+            hits = {h for h in hits if not any(h != o and h in o for o in hits)}
+        tla = normalize_latin(text)
+        if tla.strip():
+            for end, found in self.auto_la.iter(tla):
+                start = end - len(found) + 1
+                # 語境界の検査。normalize_latin は前後を空白で囲んであるので範囲外参照は起きない
+                if tla[start - 1] == " " and tla[end + 1] == " ":
+                    hits.add(found)
+        return hits
 
 
 def yt_json(target: str, extra: list[str], timeout: int) -> tuple[dict | None, str | None]:
@@ -121,9 +167,18 @@ def main() -> None:
     ap.add_argument("--max-channels", type=int, default=25)
     ap.add_argument("--concurrency", type=int, default=3)
     ap.add_argument("--out", type=Path, default=HERE / "out" / "channel_traversal.json")
+    ap.add_argument("--cache", type=Path, default=HERE / "out" / "channel_titles_cache.json",
+                    help="列挙した動画タイトルのキャッシュ。あればYouTubeを再度叩かずに再集計する")
     args = ap.parse_args()
 
-    automaton, original, _ = build_national_automaton()
+    matcher = NameMatcher()
+
+    # #1273 【設計】マッチャの判定規則は繰り返し直すことになるので、YouTubeから取った
+    # 生タイトルをキャッシュして、再集計時にネットワークを一切使わないようにする。
+    cache: dict = {}
+    if args.cache.exists():
+        cache = json.loads(args.cache.read_text(encoding="utf-8"))
+        print(f"[cache] {args.cache.name} を使用（YouTubeへの再アクセスなし）", file=sys.stderr)
 
     # --- 1. 種取り: カテゴリ×エリア検索で、店名を名指しした動画のチャンネルを集める ---
     cats = list(csv.DictReader((FIXTURES / "public_dish_categories_134_gate.csv").open(encoding="utf-8")))
@@ -137,17 +192,23 @@ def main() -> None:
     def seed_work(s: dict) -> dict:
         data, err = yt_json(f"ytsearch10:{s['query']}", [], 120)
         entries = [e for e in ((data or {}).get("entries") or []) if e]
-        found = []
-        for e in entries:
-            names = match_names(automaton, e.get("title") or "")
-            if names and e.get("channel_id"):
-                found.append({"channel_id": e["channel_id"],
-                              "channel": e.get("channel") or e.get("uploader"),
-                              "names": sorted(names)})
-        return {**s, "error": err, "n_entries": len(entries), "found": found}
+        return {**s, "error": err,
+                "entries": [{"title": e.get("title"), "channel_id": e.get("channel_id"),
+                             "channel": e.get("channel") or e.get("uploader")} for e in entries]}
 
-    with ThreadPoolExecutor(max_workers=args.concurrency) as pool:
-        seed_rows = list(pool.map(seed_work, seeds))
+    if "seeds" in cache:
+        seed_rows = cache["seeds"]
+    else:
+        with ThreadPoolExecutor(max_workers=args.concurrency) as pool:
+            seed_rows = list(pool.map(seed_work, seeds))
+        cache["seeds"] = seed_rows
+
+    for row in seed_rows:
+        row["found"] = [
+            {"channel_id": e["channel_id"], "channel": e["channel"], "names": sorted(names)}
+            for e in row["entries"]
+            if e.get("channel_id") and (names := matcher.match(e.get("title") or ""))
+        ]
 
     channels: dict[str, dict] = {}
     for row in seed_rows:
@@ -161,27 +222,36 @@ def main() -> None:
           f"{len(seed_distinct)} distinct restaurants", file=sys.stderr)
 
     # --- 2. 各チャンネルの過去動画を全列挙して逆引き ---
-    def channel_work(item: tuple[str, dict]) -> dict:
+    def channel_fetch(item: tuple[str, dict]) -> dict:
         cid, meta = item
         url = f"https://www.youtube.com/channel/{cid}/videos"
         data, err = yt_json(url, ["--playlist-end", str(MAX_VIDEOS_PER_CHANNEL)], 300)
         entries = [e for e in ((data or {}).get("entries") or []) if e]
-        found: dict[str, list[str]] = {}
-        for e in entries:
-            for n in match_names(automaton, e.get("title") or ""):
-                found.setdefault(n, []).append(e.get("id"))
-        return {
-            "channel_id": cid,
-            "channel": meta["channel"],
-            "seed_hits": meta["seed_hits"],
-            "error": err,
-            "n_videos": len(entries),
-            "n_distinct_restaurants": len(found),
-            "restaurants": {original.get(k, k): v[:3] for k, v in list(found.items())[:200]},
-        }
+        return {"channel_id": cid, "channel": meta["channel"], "seed_hits": meta["seed_hits"],
+                "error": err,
+                "videos": [{"id": e.get("id"), "title": e.get("title")} for e in entries]}
 
-    with ThreadPoolExecutor(max_workers=args.concurrency) as pool:
-        ch_rows = list(pool.map(channel_work, ranked))
+    if "channels" in cache:
+        raw_channels = cache["channels"]
+    else:
+        with ThreadPoolExecutor(max_workers=args.concurrency) as pool:
+            raw_channels = list(pool.map(channel_fetch, ranked))
+        cache["channels"] = raw_channels
+        args.cache.parent.mkdir(parents=True, exist_ok=True)
+        args.cache.write_text(json.dumps(cache, ensure_ascii=False), encoding="utf-8")
+
+    ch_rows = []
+    for c in raw_channels:
+        found: dict[str, list[str]] = {}
+        for v in c["videos"]:
+            for n in matcher.match(v.get("title") or ""):
+                found.setdefault(n, []).append(v.get("id"))
+        ch_rows.append({
+            "channel_id": c["channel_id"], "channel": c["channel"],
+            "seed_hits": c["seed_hits"], "error": c["error"],
+            "n_videos": len(c["videos"]), "n_distinct_restaurants": len(found),
+            "restaurants": {matcher.original.get(k, k): v[:3] for k, v in found.items()},
+        })
 
     ok = [c for c in ch_rows if c["error"] is None and c["n_videos"] > 0]
     all_found: set[str] = set()
