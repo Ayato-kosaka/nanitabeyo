@@ -595,31 +595,23 @@ export class SearchScreen {
 	 *
 	 * #1086 「どちらかが見えるまで待つ → 排他を確認する」の順にしている。先に「つぎへ」だけを
 	 * 固定時間待つ書き方だと、連打で最終ページへ到達しているケースで毎回その待ち時間を捨てることになる。
-	 *
-	 * #1156 【バグ】以前は「どちらかが見えた瞬間」の 2 回の読み取りを**そのまま**排他判定に使っていた。
-	 * `nextShown` と `finishShown` は別々の Detox 問い合わせ（各 1 秒）なので、その **間に**
-	 * FlatList のページ送りアニメーションが着地して `currentPage` が進むと、
-	 * 「つぎへ（読み取り時点）」と「はじめよう（読み取り時点）」が両方 true になり、
-	 * アプリが壊れていなくても落ちる（run 31094008189 の iOS がこれ）。
-	 * SDK 54 でアニメーションの着地タイミングが変わり顕在化した。
-	 *
-	 * そこで **排他そのものを待機条件**にする。一過性の二重観測は待ち直して吸収し、
-	 * 「CTA ごと消えた」「本当に二重になっている」場合だけタイムアウトで落ちる。
-	 * 検知できる壊れ方は従来と変わらない。
 	 */
 	async expectTutorialOperable(): Promise<void> {
+		let nextShown = false;
+		let finishShown = false;
+
 		await waitUntil(
 			async () => {
-				const nextShown = await visibleNow(this.tutorialNextButton, 1_000, SearchScreen.TUTORIAL_INDEX);
-				const finishShown = await visibleNow(this.tutorialFinishButton, 1_000, SearchScreen.TUTORIAL_INDEX);
-				return nextShown !== finishShown;
+				nextShown = await visibleNow(this.tutorialNextButton, 1_000, SearchScreen.TUTORIAL_INDEX);
+				finishShown = await visibleNow(this.tutorialFinishButton, 1_000, SearchScreen.TUTORIAL_INDEX);
+				return nextShown || finishShown;
 			},
 			{
-				description:
-					"連打後にチュートリアルのプライマリ CTA（つぎへ / はじめよう）がちょうど一方だけ見えていること" +
-					"（両方見えない = CTA ごと消えた / 両方見える = 二重になっている）",
+				description: "連打後にチュートリアルのプライマリ CTA（つぎへ / はじめよう）が見えていること",
 			},
 		);
+
+		assert.equal(nextShown !== finishShown, true, "連打後にチュートリアルのプライマリ CTA が二重になっている");
 	}
 
 	/**

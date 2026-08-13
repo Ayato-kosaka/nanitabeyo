@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { StyleSheet, View, Dimensions, Text } from "react-native";
-import { Carousel } from "react-native-reanimated-carousel";
+import Carousel from "react-native-reanimated-carousel";
 import MapView, { Region } from "@/components/MapView";
 import DishMediaContent from "./DishMediaContent";
 import { AvatarBubbleMarker } from "@/features/mapMarkers";
@@ -406,22 +406,21 @@ export default function DishMediaMap({
 				</GestureDetector>
 
 				{/* Carousel - Bottom 4/5 of screen, overlapping map */}
-				{/* #1156 carousel v5: width/height は style へ、mode/modeConfig は layout へ、
-				    containerStyle は contentContainerStyle へ移行。loop の既定が false になったため明示する。 */}
 				<Carousel
 					ref={carouselRef}
+					width={contentWidth}
+					height={CAROUSEL_HEIGHT}
 					data={ids}
 					renderItem={renderCarouselItem}
 					onSnapToItem={handleIndexChange}
 					defaultIndex={initialIndex}
-					loop
-					layout={{
-						type: "parallax",
-						scale: PARALLAX_SCALE,
-						offset: 75,
+					mode="parallax"
+					modeConfig={{
+						parallaxScrollingScale: PARALLAX_SCALE,
+						parallaxScrollingOffset: 75,
 					}}
-					style={[styles.carousel, { width: contentWidth, height: CAROUSEL_HEIGHT }]}
-					contentContainerStyle={styles.carouselContainer}
+					style={styles.carousel}
+					containerStyle={styles.carouselContainer}
 				/>
 			</Animated.View>
 		</View>

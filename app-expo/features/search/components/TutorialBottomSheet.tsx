@@ -1,29 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { View, StyleSheet, TouchableOpacity, Text, FlatList, useWindowDimensions } from "react-native";
+import { View, StyleSheet, TouchableOpacity, Text, FlatList } from "react-native";
 import { TrueSheet } from "@lodev09/react-native-true-sheet";
-import { presentSheetSafely, dismissSheetSafely } from "@/lib/trueSheet";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { TutorialPage } from "@/components/TutorialPage";
 import { useContentWidth } from "@/hooks/useContentWidth";
 import i18n from "@/lib/i18n";
 
 const SHEET_MAX_HEIGHT = 580;
-
-/**
- * #1156 【バグ】iOS では、アプリ起動直後に `present()` を呼ぶと表示要求が黙って捨てられる。
- * ルートの UIViewController がまだウィンドウ階層に載っておらず、モーダル表示が成立しないため。
- *
- * 起動から `visible` が立つまでが速いほど踏みやすい。E2E は起動引数で視聴済みフラグを
- * **同期的に**シードするので AsyncStorage の往復が無く、初回描画の 100ms 後には
- * `present()` へ到達する。実際 run 31103373607 の iOS では
- * `search_tutorial_auto_opened` がログに残っている（＝ アプリは表示を要求している）のに
- * シートが最後まで現れず、`expectTutorialShown` が 2 分待って落ちた。
- * 本番でも AsyncStorage が即座に返れば同じ窓に入りうる。
- *
- * `onDidPresent` が返るまで、短い間隔で有限回だけ要求し直して取りこぼしを埋める。
- */
-const PRESENT_RETRY_INTERVAL_MS = 400;
-const PRESENT_ATTEMPT_LIMIT = 6;
 
 export type TutorialBottomSheetProps = {
 	visible: boolean;
@@ -74,19 +56,6 @@ export function TutorialBottomSheet({
 	// なって崩れていた。中央カラム対応の useContentWidth でカラム幅に合わせる
 	// (native では従来通り画面幅が返るため挙動は変わらない)
 	const contentWidth = useContentWidth();
-	// #1156 【バグ】Expo SDK 54 で Android の edge-to-edge が強制になり、アプリのウィンドウが
-	// ナビゲーションバーの下まで広がるようになった。footer は paddingBottom を固定値で持っていたため、
-	// 最下段の「あとで」がナビゲーションバーに隠れて操作できなくなっていた
-	// （E2E: android search-tutorial が completeTutorial のタップ待ちで安定して失敗）。
-	const insets = useSafeAreaInsets();
-	const { height: windowHeight } = useWindowDimensions();
-	// #1156 【バグ】コンテンツ側の高さを明示しないと、`detents={["auto"]}` の測定結果が
-	// 「中身の自然な高さ」になり、シートの表示領域より高いレイアウトがそのまま組まれる。
-	// その状態では container の `flex: 1` も FlatList の `flex: 1` も配分する土台を持たないため、
-	// 下端の固定フッター（CTA と「あとで」）がシートの外へはみ出して操作できなくなっていた。
-	// safe-area inset と flexShrink の修正がレイアウトを 1px も動かさなかったのはこのためである。
-	// 高さを確定させることで FlatList が縮み、フッターは必ずシート内へ収まる。
-	const sheetContentHeight = Math.min(SHEET_MAX_HEIGHT + insets.bottom, windowHeight * 0.85);
 
 	// ページング用 FlatList の ref
 	const listRef = useRef<FlatList<TutorialPageConfig> | null>(null);
@@ -94,74 +63,26 @@ export function TutorialBottomSheet({
 	// 今どのページにいるか（インジケータ & CTA 用）
 	const [currentPage, setCurrentPage] = useState(0);
 
-	// シートが実際に表示され切ったか（present() の取りこぼし再試行を止める条件）
-	const didPresentRef = useRef(false);
-
 	// #642 【設計】TrueSheet の present/dismiss による表示制御
 	useEffect(() => {
-		// #1194 この effect が «生きているか»。予約した present がネイティブ破棄後に
-		// 消化されるのを止める（下のコメント参照）
-		let isActive = true;
-
 		if (!visible) {
-			didPresentRef.current = false;
-			void dismissSheetSafely(sheetRef);
-			return () => {
-				isActive = false;
-			};
+			sheetRef.current?.dismiss();
+			return;
 		}
 
-		// マウントが済んでから present() するために setTimeout で遅延させる。
-		// #1156 iOS では 1 回目が捨てられることがあるため、表示され切るまで有限回だけ要求し直す。
-		let attempts = 0;
-		let timeoutId: ReturnType<typeof setTimeout>;
+		// マウントが済んでから present() するために setTimeout で遅延させる
+		const timeoutId = setTimeout(() => {
+			sheetRef.current?.present();
+		}, 0);
 
-		const requestPresent = () => {
-			if (!isActive || didPresentRef.current) return;
-
-			// #1194 【バグ】ここは以前 `void sheetRef.current?.present()` だった。
-			//
-			// ディープリンクでアプリを起動すると、search タブがいったんマウントして
-			// この present を予約 → すぐ投票画面へ遷移してシートのネイティブビューが
-			// 破棄される、という順序になる。破棄済みの tag へ present すると
-			// `No sheet found with tag NNNN` で **reject** し、Promise を捨てていたため
-			// unhandled rejection になって画面が search へ戻っていた
-			//（LINE から共有リンクを開く経路で実機再現）。
-			//
-			// `ref.current?.` では防げない。JS 側の ref はまだ実体を持っていることがある。
-			void presentSheetSafely(sheetRef).then((presented) => {
-				// シートがもう無い＝この画面は用済み。再試行を続けても意味がない
-				if (!presented) isActive = false;
-			});
-			attempts += 1;
-
-			if (attempts < PRESENT_ATTEMPT_LIMIT) {
-				timeoutId = setTimeout(requestPresent, PRESENT_RETRY_INTERVAL_MS);
-			}
-		};
-
-		timeoutId = setTimeout(requestPresent, 0);
-
-		return () => {
-			isActive = false;
-			clearTimeout(timeoutId);
-		};
+		return () => clearTimeout(timeoutId);
 	}, [visible]);
-
-	/**
-	 * TrueSheet の onDidPresent イベント
-	 * - 表示され切った時点で再試行を止める
-	 */
-	const handleDidPresent = useCallback(() => {
-		didPresentRef.current = true;
-	}, []);
 
 	/**
 	 * TrueSheet の onDidDismiss イベント
 	 * - ユーザー操作 or dismiss() 呼び出しで閉じきったタイミング
 	 */
 	const handleDidDismiss = useCallback(() => {
-		didPresentRef.current = false;
 		setCurrentPage(0);
 		listRef.current?.scrollToIndex({
 			index: 0,
@@ -175,7 +96,7 @@ export function TutorialBottomSheet({
 	 */
 	const handleSkip = useCallback(async () => {
 		onCompleted?.();
-		await dismissSheetSafely(sheetRef);
+		await sheetRef.current?.dismiss();
 	}, [onCompleted]);
 
 	/**
@@ -186,7 +107,7 @@ export function TutorialBottomSheet({
 			await onRequestCurrentLocation();
 		} finally {
 			onCompleted?.();
-			await dismissSheetSafely(sheetRef);
+			await sheetRef.current?.dismiss();
 		}
 	}, [onRequestCurrentLocation, onCompleted]);
 
@@ -251,32 +172,22 @@ export function TutorialBottomSheet({
 		<TrueSheet
 			ref={sheetRef}
 			detents={["auto"]}
-			// #1156 true-sheet 3.11 で maxHeight は maxContentHeight へ改名された。
-			// inset ぶん footer が伸びるので、上限も同じだけ広げて中身が潰れないようにする
-			maxContentHeight={SHEET_MAX_HEIGHT + insets.bottom}
+			maxHeight={SHEET_MAX_HEIGHT}
 			style={{ height: "100%" }}
 			cornerRadius={24}
 			backgroundColor="#FFFFFF"
 			grabber
 			dimmed
 			dismissible
-			onDidPresent={handleDidPresent}
 			onDidDismiss={handleDidDismiss}>
 			{/* #1031 【設計】Detox からチュートリアル表示を検証できるよう testID を追加 */}
-			<View
-				testID="search-tutorial-overlay"
-				style={[styles.container, { width: contentWidth, height: sheetContentHeight }]}>
+			<View testID="search-tutorial-overlay" style={[styles.container, { width: contentWidth }]}>
 				{/* 上：横スワイプで動くコンテンツ */}
 				<FlatList
 					ref={listRef}
 					data={tutorialPages}
 					keyExtractor={(_: TutorialPageConfig, index: number) => `tutorial-page-${index}`}
-					// #1156 【バグ】`flexGrow: 1` だけだと React Native の既定 `flexShrink: 0` が効き、
-					// ページ内容がシートの高さに収まらないときにリストが縮まず、下の固定フッターごと
-					// シートの外へ押し出される。結果 CTA と「あとで」が画面外になり操作できなくなる
-					// （E2E: android search-tutorial が completeTutorial のタップ待ちで失敗）。
-					// `flex: 1` にして「余った分だけ伸び、足りなければ縮む」ようにし、フッターを常に残す。
-					style={{ flex: 1 }}
+					style={{ flexGrow: 1 }}
 					renderItem={({ item }: { item: TutorialPageConfig }) => (
 						<View style={{ width: contentWidth }}>
 							<TutorialPage image={item.image} title={item.title} bodyLines={item.bodyLines} />
@@ -295,7 +206,7 @@ export function TutorialBottomSheet({
 				/>
 
 				{/* 下：固定フッター（インジケータ + CTA） */}
-				<View style={[styles.footer, { paddingBottom: styles.footer.paddingBottom + insets.bottom }]}>
+				<View style={styles.footer}>
 					{/* ページインジケータ */}
 					<View style={styles.indicatorContainer}>
 						{tutorialPages.map((_, index) => (
@@ -336,13 +247,10 @@ export function TutorialBottomSheet({
 const styles = StyleSheet.create({
 	// Sheet 内コンテンツラッパー(width は contentWidth をインラインで指定)
 	container: {
-		// #1156 高さは sheetContentHeight をインラインで指定する（flex: 1 では親が
-		// 自然高さのため土台にならない）
+		flex: 1,
 		alignSelf: "center",
 	},
 	footer: {
-		// #1156 コンテンツが多いページでもフッターだけは縮ませない
-		flexShrink: 0,
 		paddingHorizontal: 24,
 		paddingBottom: 24,
 		paddingTop: 8,

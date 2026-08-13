@@ -4,9 +4,7 @@ import { useAPICall } from "@/hooks/useAPICall";
 import { useLogger } from "@/hooks/useLogger";
 import type { CreateUserUploadSignedUrlDto } from "@shared/api/v1/dto";
 import type { CreateUserUploadSignedUrlResponse } from "@shared/api/v1/res";
-// #1156 Expo SDK 54 で expo-file-system は新 API が既定になった。
-// 旧 API(cacheDirectory / EncodingType / FileSystemUploadType 等)は legacy サブパスへ移動している。
-import * as FileSystem from "expo-file-system/legacy";
+import * as FileSystem from "expo-file-system";
 
 export interface UploadProgress {
 	loaded: number;

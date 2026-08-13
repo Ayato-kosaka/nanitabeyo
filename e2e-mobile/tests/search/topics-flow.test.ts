@@ -55,28 +55,11 @@ describe("検索フロー（実 API）", () => {
 	//   2. 結果フィード画面（result-close-button）が表示されることを検証
 	//   3. 閉じるボタンを押す
 	//   4. 履歴は 検索 → トピック → 結果 と積まれているため、戻り先はトピック画面であることを検証
-	// #1156 【設計】このフィードは dev の実 API を叩くため、選んだ料理カテゴリに
-	// 表示できる店舗が 1 件も無いことがある。その場合 search/result.tsx は
-	// Google Maps 退避ダイアログを出したうえで即座にトピック画面へ戻す（#828）ため、
-	// `result-close-button` は永久に可視にならない。
-	//
-	// 以前はその結末を想定しておらず、0 件を引いた run だけ 90 秒タイムアウトで
-	// 落ちていた（run 31074793886 の Android。同一 commit の別 run は成功）。
-	// 「結果が返る日は緑・返らない日は赤」は回帰検知の役に立たないので、
-	// **どちらの結末になったかを判別し、それぞれ正しい後続挙動を検証する**形にする。
 	it("トピックを選ぶと結果フィードが表示され、閉じるとトピック画面へ戻る", async () => {
 		await topics.expectLoaded();
 
 		await topics.chooseFirstTopic();
-		const outcome = await result.waitForResultOrFallback();
-
-		if (outcome === "fallback") {
-			// 0 件確定。アプリは退避ダイアログを出してトピック画面へ戻すのが正しい挙動（#828）。
-			// ダイアログを閉じたあとトピック画面に居ることまでを検証して終える。
-			await result.dismissGoogleMapsFallback();
-			await topics.expectLoaded();
-			return;
-		}
+		await result.expectLoaded();
 
 		await result.close();
 		await topics.expectLoaded();
