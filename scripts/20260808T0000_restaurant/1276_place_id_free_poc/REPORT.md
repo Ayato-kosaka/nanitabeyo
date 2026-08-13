@@ -157,19 +157,20 @@ Google の課金はリクエストした fieldMask で決まる。したがっ�
 ## ① 名寄せ確定率（統合コーパスの比例標本）
 
 Overture + IFAS の 1,042,255 行から、`seed_id` のハッシュで比例抽出した 3,000 件
-（うち probe 完了 2,865 件）に `box_unique` を当てた結果。
+（うち probe 完了 2,866 件）に `box_unique` を当てた結果
+（`results/resolve_rate_merged.json`）。
 
 | 分母の定義 | 分母 | 確定 | ① |
 | --- | ---: | ---: | ---: |
-| seed 全件 | 2,865 | 1,943 | 67.82% |
-| **±250m 矩形に候補あり（Google に存在しうる行）** | **2,277** | **1,940** | **85.20%** |
-| ±25m 矩形に候補あり | 1,854 | 1,709 | 92.18% |
+| seed 全件 | 2,866 | 1,944 | 67.83% |
+| **±250m 矩形に候補あり（Google に存在しうる行）** | **2,278** | **1,941** | **85.21%** |
+| ±25m 矩形に候補あり | 1,855 | 1,710 | 92.18% |
 
 ソース別。
 
 | ソース | 全件 | 存在しうる行 |
 | --- | ---: | ---: |
-| Overture | 1,520/2,184 = 69.60% | 1,519/1,787 = **85.00%** |
+| Overture | 1,521/2,185 = 69.61% | 1,520/1,788 = **85.01%** |
 | IFAS | 423/681 = 62.11% | 421/490 = **85.92%** |
 
 IFAS は全件の確定率が低い（62.11%）。営業許可のデータなので、Google に載らない
@@ -182,7 +183,7 @@ IFAS は全件の確定率が低い（62.11%）。営業許可のデータなの
 
 | 判定 | 件数 |
 | --- | ---: |
-| `tight_unique_in_ab`（確定） | 1,663 |
+| `tight_unique_in_ab`（確定） | 1,664 |
 | `wide_unique_in_ab`（確定） | 280 |
 | `no_candidate_in_box`（矩形内に同名店なし＝Google に無い） | 580 |
 | `box_not_unique`（矩形内に同名が複数） | 338 |
@@ -226,8 +227,8 @@ Text Search が 429 を返す。日付が変わるまで回復しない。
 約468万リクエスト、上限が 75,000/日なら **63日**かかる。上限の引き上げを
 申請するか、Issue の Step 3（需要駆動で必要な行だけ引く）に寄せるかの判断が要る。
 
-なお「Google に存在しうる行」は seed 全体の約 79%（2,277/2,865）、そのうち確定するのが
-85.20% なので、全件を引いても確定するのは seed 全体の約 68% である。残りに
+なお「Google に存在しうる行」は seed 全体の約 79%（2,278/2,866）、そのうち確定するのが
+85.21% なので、全件を引いても確定するのは seed 全体の約 68% である。残りに
 リクエストを使うより、必要になった行だけ引くほうが上限の使い方としては合理的である。
 
 なお当初の実装は 429 を4回まで再試行していたため、1日上限に当たると全スレッドが
@@ -282,6 +283,27 @@ Text Search が 429 を返す。日付が変わるまで回復しない。
 - OSM は ODbL で、Overture の CDLA-Permissive とは継承条項の有無が違う。
   成果物のライセンス上の扱いを分けられるよう、`seed_id` の接頭辞で
   ソースが分かるようにしてある（`osm:type/id`）。
+
+## 再現方法
+
+数字は全て、コミットしてある成果物だけから再計算できる。Overture の parquet や
+IFAS の157ファイルを取り直す必要はない。
+
+```bash
+mkdir -p out cache
+for n in sample_3sources_3000 sample_ifas_labeled_2000 sample_merged_3000 \
+         seeds_labeled_4000 seeds_v3_2500 labels_merged_all labels_strict; do
+  gunzip -c results/inputs/$n.csv.gz > out/$n.csv
+done
+python3 cache_io.py load --archive results/probe_cache.csv.gz --cache cache/probe_all.sqlite
+
+python3 resolve_rate.py --seeds out/sample_merged_3000.csv \
+  --cache cache/probe_all.sqlite --rule box_unique --by-source
+python3 evaluate_labels.py --labels out/labels_strict.csv \
+  --seeds out/seeds_labeled_4000.csv --cache cache/probe_all.sqlite --rules box_unique
+```
+
+未取得分を取り切って①②を出し直すには `./resume.sh`（`PLACE_API_TEST` が要る）。
 
 ## 制約と、測れていないこと
 

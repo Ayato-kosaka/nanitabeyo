@@ -1,35 +1,35 @@
 {
   "rule": "box_unique",
-  "skipped_unprobed": 135,
+  "skipped_unprobed": 134,
   "resolve_rate": {
     "all": {
-      "denominator": 2865,
-      "matched": 1943,
-      "rate": 0.678185
+      "denominator": 2866,
+      "matched": 1944,
+      "rate": 0.678297
     },
     "text_hit": {
-      "denominator": 2861,
-      "matched": 1943,
-      "rate": 0.679133
+      "denominator": 2862,
+      "matched": 1944,
+      "rate": 0.679245
     },
     "in_wide_box": {
-      "denominator": 2277,
-      "matched": 1940,
-      "rate": 0.851998
+      "denominator": 2278,
+      "matched": 1941,
+      "rate": 0.852063
     },
     "in_box": {
-      "denominator": 339,
-      "matched": 301,
-      "rate": 0.887906
+      "denominator": 352,
+      "matched": 314,
+      "rate": 0.892045
     },
     "in_tight_box": {
-      "denominator": 1854,
-      "matched": 1709,
-      "rate": 0.921791
+      "denominator": 1855,
+      "matched": 1710,
+      "rate": 0.921833
     }
   },
   "decision_detail": {
-    "tight_unique_in_ab": 1663,
+    "tight_unique_in_ab": 1664,
     "no_candidate_in_box": 580,
     "box_not_unique": 338,
     "wide_unique_in_ab": 280,
@@ -65,29 +65,29 @@
     },
     "overture": {
       "all": {
-        "denominator": 2184,
-        "matched": 1520,
-        "rate": 0.695971
+        "denominator": 2185,
+        "matched": 1521,
+        "rate": 0.69611
       },
       "text_hit": {
-        "denominator": 2183,
-        "matched": 1520,
-        "rate": 0.69629
+        "denominator": 2184,
+        "matched": 1521,
+        "rate": 0.696429
       },
       "in_wide_box": {
-        "denominator": 1787,
-        "matched": 1519,
-        "rate": 0.850028
+        "denominator": 1788,
+        "matched": 1520,
+        "rate": 0.850112
       },
       "in_box": {
-        "denominator": 278,
-        "matched": 246,
-        "rate": 0.884892
+        "denominator": 291,
+        "matched": 259,
+        "rate": 0.890034
       },
       "in_tight_box": {
-        "denominator": 1473,
-        "matched": 1359,
-        "rate": 0.922607
+        "denominator": 1474,
+        "matched": 1360,
+        "rate": 0.922659
       }
     }
   }
