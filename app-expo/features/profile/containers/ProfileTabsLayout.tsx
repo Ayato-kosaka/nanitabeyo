@@ -147,7 +147,14 @@ export function ProfileTabsLayout() {
 			}
 		}, 100);
 		return () => clearInterval(timer);
-	}, [requestedTab, tabRequestParam]);
+		// #1272 【バグ】deps に isAuthResolved が無いと、この effect は **auth 未解決のうちに一度だけ**
+		// 走って終わる。auth 未解決の間は下の早期 return で Tabs.Container がマウントされないため
+		// ref は絶対に生えず、iOS のコールドスタート（セッション注入 + プロフィール取得）が
+		// 2 秒を超えるとリトライが尽きる（probe の実測 `jump=gaveup`。パラメータは届いているのに
+		// タブが切り替わらない）。auth の解決で effect を再実行すれば、その時点で ref は生えており
+		// 即時に跳べる。リトライ間隔を伸ばす方向で直さないこと — 「何 ms 待てば十分か」は
+		// 端末依存で答えが無く、マウントを追いかける形だけが正しい
+	}, [requestedTab, tabRequestParam, isAuthResolved]);
 
 	// #1272 【プローブ】「パラメータがどの段で消えているか」を示す実測値。
 	// local/global が "-" なら expo-router がクエリを届けていない（起動 URL 処理の問題）、
