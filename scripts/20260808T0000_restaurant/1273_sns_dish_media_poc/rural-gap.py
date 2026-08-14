@@ -376,5 +376,83 @@ def main():
                      ensure_ascii=False, indent=1)[:6000])
 
 
+
+
+# ---------------------------------------------------------------------------
+# 追加分析（実行済み。out/rural-gap.json に統合済み）
+#   python3 rural-gap.py ceiling  … 母集団100%発見時の構造上限
+#   python3 rural-gap.py probe    … rural志向クエリのYouTube探索収率
+#   python3 rural-gap.py verify   … rural判定の目視精度サンプル
+# ---------------------------------------------------------------------------
+
+def sub_ceiling():
+    """# #1273 【設計】「rural店を100%発見できたら埋まるのか」を測る構造上限。
+    実測 dish_media のカテゴリ出現分布(1.474 pair/店)を母集団789,612店すべてに割り当てる。
+    これ以上は原理的に埋まらない上限であり、発見努力では超えられない。"""
+    import random
+    pop = load_population(); tier_of = tier_of_factory(pop); anchors = build_anchors(pop, tier_of)
+    rec = reconstruct(tier_of)
+    catfreq = collections.Counter(c for _, _, c in rec["rows"])
+    cats = list(catfreq); wts = [catfreq[c] for c in cats]
+    k = len(rec["rows"]) / len({(a, b) for a, b, _ in rec["rows"]})
+    random.seed(7)
+    sim = []
+    for r in pop:
+        n = int(k) + (1 if random.random() < k - int(k) else 0)
+        for c in random.choices(cats, weights=wts, k=n):
+            sim.append((r["lat"], r["lon"], c))
+    fills, _ = fill_rates(anchors, sim)
+    print(json.dumps(fills, ensure_ascii=False, indent=1))
+
+
+def sub_probe():
+    """# #1273 【仕様】rural志向クエリ12本 x ytsearch60 の結果TSV(/tmp/ruralq_*.tsv)を
+    同定にかけ、既存400ch(rural店シェア16.58%)と比べて rural に寄るかを測る。
+    yt-dlp の --print 出力は改行が \\t リテラルなので split('\\t') ではなく split(chr(92)+'t')。"""
+    import glob
+    pop = load_population(); tier_of = tier_of_factory(pop); coords = build_name_coords()
+    m = NameMatcher(); load_categories()
+    known = set(json.loads((HERE / "out" / "snowball_crawl_state.json").read_text())["channels"])
+    vids = {}; chans = collections.Counter()
+    for f in sorted(glob.glob("/tmp/ruralq_*.tsv")):
+        for line in open(f, encoding="utf-8"):
+            p = line.rstrip("\n").split(chr(92) + "t")
+            if len(p) < 4:
+                continue
+            vids[p[0]] = (p[1], p[2]); chans[p[2]] += 1
+    tc = collections.Counter()
+    for _, (title, ch) in vids.items():
+        for r in m.match_corroborated(title):
+            pos = coords.get(r)
+            if pos:
+                tc[tier_of(*pos)] += 1
+    print({"videos": len(vids), "channels": len(chans),
+           "new_channels": len([c for c in chans if c not in known]), "tier": dict(tc)})
+
+
+def sub_verify():
+    """# #1273 【仕様】rural 判定の目視精度検証。無作為シャッフルした動画から rural 判定の
+    店舗を13件取り出し、タイトルと突き合わせられる形で出す。"""
+    import random
+    pop = load_population(); tier_of = tier_of_factory(pop); coords = build_name_coords()
+    m = NameMatcher(); load_categories(); cm = CategoryMatcher()
+    st = json.loads((HERE / "out" / "snowball_crawl_state.json").read_text())
+    vids = [v["title"] for c in st["channels"].values() for v in c.get("videos", [])
+            if v.get("id") and v.get("title")]
+    random.seed(11); random.shuffle(vids)
+    out = []; seen = set()
+    for t in vids:
+        for r in m.match_corroborated(t):
+            pos = coords.get(r)
+            if pos and tier_of(*pos) == "rural" and r not in seen:
+                seen.add(r)
+                out.append({"title": t[:90], "store": r,
+                            "cats": [c["dish_category_id"] for c in cm.match(t)][:3]})
+        if len(out) >= 13:
+            break
+    print(json.dumps(out, ensure_ascii=False, indent=1))
+
+
 if __name__ == "__main__":
-    main()
+    cmd = sys.argv[1] if len(sys.argv) > 1 else "main"
+    {"ceiling": sub_ceiling, "probe": sub_probe, "verify": sub_verify}.get(cmd, main)()

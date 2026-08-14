@@ -120,6 +120,11 @@ def main() -> None:
     if fit400:
         pred["from_fit400"] = fit400["a"] * n_ch ** fit400["b"]
     pred["from_reported_law"] = BASELINE_LAW[0] * n_ch ** BASELINE_LAW[1]
+    # #1273 【設計】係数aの当てはめ誤差を除いた純粋な指数の検証。400ch の実測点 (400, 7575) に
+    # 曲線を固定し、指数bだけで到達点を予測する。これが「スケール則が保っているか」の本命。
+    pred["anchored_reported_b"] = BASELINE_DISTINCT * (n_ch / BASELINE_CH) ** BASELINE_LAW[1]
+    if fit400:
+        pred["anchored_fit400_b"] = BASELINE_DISTINCT * (n_ch / BASELINE_CH) ** fit400["b"]
     actual = cum[-1] if cum else 0
     errs = {k: (actual - v) / v for k, v in pred.items()}
 
