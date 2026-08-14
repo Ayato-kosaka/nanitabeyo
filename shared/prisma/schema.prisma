@@ -203,28 +203,28 @@ model dish_category_variants {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model dish_media {
-  id                          String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  dish_id                     String                       @db.Uuid
-  user_id                     String?                      @db.Uuid
-  media_path                  String
-  media_type                  String
-  thumbnail_path              String
-  created_at                  DateTime                     @default(now()) @db.Timestamptz(6)
-  updated_at                  DateTime                     @default(now()) @db.Timestamptz(6)
-  lock_no                     Int                          @default(0)
-  video_duration_ms           Int?
-  media_processing_status     String
-  thumbnail_processing_status String
-  /// #1273 §40 stored=media_path の自社GCSを配信 / external_embed=外部埋め込みで描画
-  render_type                 String                       @default("stored")
-  dishes                      dishes                       @relation(fields: [dish_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  users                       users?                       @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  dish_media_analysis_results dish_media_analysis_results?
-  dish_media_impressions      dish_media_impressions[]
-  dish_media_likes            dish_media_likes[]
-  dish_media_views            dish_media_views[]
+  id                             String                          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  dish_id                        String                          @db.Uuid
+  user_id                        String?                         @db.Uuid
+  media_path                     String
+  media_type                     String
+  thumbnail_path                 String
+  created_at                     DateTime                        @default(now()) @db.Timestamptz(6)
+  updated_at                     DateTime                        @default(now()) @db.Timestamptz(6)
+  lock_no                        Int                             @default(0)
+  video_duration_ms              Int?
+  media_processing_status        String
+  thumbnail_processing_status    String
+  /// #1273 §40 stored_media=media_path の自社GCSを配信 / external_embed=外部埋め込みで描画
+  render_type                    String                          @default("stored_media")
+  dishes                         dishes                          @relation(fields: [dish_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users                          users?                          @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  dish_media_analysis_results    dish_media_analysis_results?
+  dish_media_impressions         dish_media_impressions[]
+  dish_media_likes               dish_media_likes[]
+  dish_media_views               dish_media_views[]
   dish_media_external_embeddings dish_media_external_embeddings?
-  payouts                     payouts[]
+  payouts                        payouts[]
 
   @@index([dish_id], map: "idx_dish_media_dish")
   @@schema("dev")

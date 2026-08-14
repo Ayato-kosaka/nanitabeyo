@@ -28,20 +28,26 @@ BEGIN;
 -- -----------------------------------------------------------------------------
 -- 1. dish_media.render_type
 -- -----------------------------------------------------------------------------
--- #1273 §40 【設計】'stored' = media_path の自社GCSオブジェクトを配信する既存経路、
+-- #1273 §40 【設計】'stored_media' = media_path の自社GCSオブジェクトを配信する既存経路、
 -- 'external_embed' = dish_media_external_embeddings 側の埋め込みHTML/iframeで描画する経路。
--- 既存行は全て 'stored' 相当なのでdefaultで埋め、NOT NULL にしても後方互換を壊さない。
+-- 既存行は全て 'stored_media' 相当なのでdefaultで埋め、NOT NULL にしても後方互換を壊さない。
+--
+-- 【仕様】値は API 既存の規約 shared/api/v1/res/dish-media.response.ts:46
+-- ('stored_media' | 'external_embed') に揃える。現状 dish-media.assembler.ts:79 は
+-- external_embeddings 行の有無から renderType を**導出**しているが、
+-- この列があれば join なしで external_embed だけを絞り込める。
+-- 導出と列が食い違わないよう、書き込み側で両者を必ず同時に更新すること。
 ALTER TABLE dish_media
-  ADD COLUMN IF NOT EXISTS render_type TEXT NOT NULL DEFAULT 'stored';
+  ADD COLUMN IF NOT EXISTS render_type TEXT NOT NULL DEFAULT 'stored_media';
 
 ALTER TABLE dish_media
   DROP CONSTRAINT IF EXISTS dish_media_render_type_check;
 ALTER TABLE dish_media
   ADD CONSTRAINT dish_media_render_type_check
-  CHECK (render_type IN ('stored', 'external_embed'));
+  CHECK (render_type IN ('stored_media', 'external_embed'));
 
 COMMENT ON COLUMN dish_media.render_type IS
-  'stored=media_path の自社GCSを配信、external_embed=dish_media_external_embeddings の埋め込みで描画。#1273 §40。';
+  'stored_media=media_path の自社GCSを配信、external_embed=dish_media_external_embeddings の埋め込みで描画。値は shared/api/v1/res/dish-media.response.ts と同一。#1273 §40。';
 
 -- #1273 【設計】external_embed の行だけを引くクエリが多くなるため部分indexを張る。
 -- 既存の stored 行（大多数）はindexに載せないのでサイズが増えない。
