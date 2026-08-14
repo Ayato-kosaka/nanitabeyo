@@ -122,6 +122,28 @@ class ProbeCache:
             )
         return result
 
+    def get(self, seed_id: str, probe: str) -> SearchResult | None:
+        """1件だけ引く。必要な probe だけを順に取る使い方（`adaptive_probe`）で使う。"""
+
+        with self._lock:
+            row = self._connection.execute(
+                "SELECT status, ids, error FROM probe WHERE seed_id = ? AND probe = ?",
+                (seed_id, probe),
+            ).fetchone()
+        if row is None:
+            return None
+        return SearchResult(tuple(json.loads(row[1])), row[0], row[2])
+
+    def put(self, seed_id: str, probe: str, result: SearchResult, body: dict) -> None:
+        fingerprint = hashlib.sha256(
+            json.dumps(body, ensure_ascii=False, sort_keys=True).encode("utf-8")
+        ).hexdigest()[:16]
+        self.put_many([(seed_id, probe, fingerprint, result)])
+
+    def flush(self) -> None:
+        with self._lock:
+            self._connection.commit()
+
     def close(self) -> None:
         with self._lock:
             self._connection.close()

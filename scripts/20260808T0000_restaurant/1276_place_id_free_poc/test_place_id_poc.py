@@ -517,5 +517,66 @@ class DailyQuotaTest(unittest.TestCase):
         self.assertEqual(result.http_status, 429)
 
 
+class AdaptiveProbeTest(unittest.TestCase):
+    """必要な probe だけを送っても、box_unique と同じ判定になることを固定する。"""
+
+    class FakeCache:
+        def __init__(self): self.stored = {}
+        def get(self, seed_id, probe): return None
+        def put(self, seed_id, probe, result, body): self.stored[(seed_id, probe)] = result
+
+    def prober(self, responses):
+        """probe の種類は本文の形で見分ける。
+
+        A は locationBias、B は位置指定なし、C 系は locationRestriction を持つ。
+        C 系は矩形の半辺で tight と wide を分ける。
+        """
+
+        from adaptive_probe import AdaptiveProber
+
+        def classify(body):
+            restriction = body.get("locationRestriction")
+            if restriction:
+                rect = restriction["rectangle"]
+                half = (rect["high"]["latitude"] - rect["low"]["latitude"]) * 111_320.0 / 2
+                return "c_wide" if half > 100 else "c_tight"
+            return "a" if body.get("locationBias") else "b"
+
+        class FakeClient:
+            def __init__(self): self.sent = []
+            def search_text(self, body):
+                kind = classify(body)
+                self.sent.append(kind)
+                return SearchResult(tuple(responses.get(kind, ())), 200)
+
+        client = FakeClient()
+        return AdaptiveProber(client, self.FakeCache()), client
+
+    def test_tight_unique_stops_after_two_requests(self) -> None:
+        prober, client = self.prober({"c_tight": ("A",), "a": ("A",)})
+        outcome = prober.run(make_seed(address_query="東京都港区1-1"))
+        self.assertEqual(outcome.place_id, "A")
+        self.assertEqual(outcome.detail, "tight_unique_in_ab")
+        # c_tight と a の2本だけ。c_wide も b も送らない。
+        self.assertEqual(outcome.requests, 2)
+
+    def test_no_candidate_skips_name_queries(self) -> None:
+        """矩形がどちらも空なら、A も B も送らない（確定しえないため）。"""
+
+        prober, client = self.prober({})
+        outcome = prober.run(make_seed(address_query="東京都港区1-1"))
+        self.assertIsNone(outcome.place_id)
+        self.assertEqual(outcome.detail, "no_candidate_in_box")
+        self.assertEqual(outcome.requests, 2)
+
+    def test_missing_address_never_sends_b(self) -> None:
+        prober, client = self.prober({"c_tight": ("A",), "a": ("Z",), "c_wide": ("A",)})
+        outcome = prober.run(make_seed(address_query="", address_quality="none"))
+        self.assertIsNone(outcome.place_id)
+        # 住所が無いので B は一度も送られない。
+        self.assertNotIn("b", client.sent)
+        self.assertEqual(outcome.requests, 3)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
