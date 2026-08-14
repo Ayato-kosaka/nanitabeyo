@@ -33,7 +33,26 @@ PORTAL_DOMAINS = {
     "hitosara.com", "instagram.com", "twitter.com", "facebook.com", "ameblo.jp",
     "localplace.jp", "goo.gl", "linktr.ee",
 }
-OWN_DOMAIN_MAX_SHARED = 3  # 同一ドメインを共有する店舗数がこれ以下なら「自社サイト」とみなす
+# #1273 【バグ】当初は「同一ドメイン共有が3店以下」を自社サイトの条件にしていた
+# （OWN_DOMAIN_MAX_SHARED = 3）。600店の標本ではチェーンの支店が1〜2件しか入らないので
+# 妥当に見えたが、**全国で数えたら除外していた層が最大だった**:
+#
+#   1店(独立)  151,692ドメイン 151,692店 / 2-3店 23,886d 52,864店
+#   4-10店       6,706d  38,014店 / 11-50店 2,211d 45,131店
+#   51-200店       389d  36,974店 / 201店以上 159d 117,596店
+#
+# ポータル/SNS を除いた**本物のチェーン本部は 9,350ドメイン 184,905店 = Overture の23.42%**。
+# チェーンの料理は全支店で同一なので、本部サイトのメニュー写真はその支店で実際に
+# 食べられる料理の写真であり、dish_media として妥当性がある。
+#
+# 上位30チェーンを実取得した実測（measure_chain_sites.py）:
+#   料理画像が取れたチェーン 17/30、店舗数ベース 60.3%
+#   料理画像8枚を目視して TP 6 / FP 2 = **precision 75.0%**（独立店サイトは 46.7%）
+#
+# よって共有数による除外はやめ、**ポータル/SNS かどうかだけで判定する**。
+# 根拠: out/chain_sites.json, out/chain_visual_labels.json
+EXCLUDE_CHAINS_BY_SHARE_COUNT = False
+OWN_DOMAIN_MAX_SHARED = 3  # EXCLUDE_CHAINS_BY_SHARE_COUNT=True のときだけ使う（旧挙動の再現用）
 
 
 def main() -> None:
@@ -68,8 +87,15 @@ def main() -> None:
     """).fetchall()
 
     def is_own_site(has_web: bool, dom: str | None) -> bool:
-        return bool(has_web and dom and dom not in PORTAL_DOMAINS
-                    and freq.get(dom, 0) <= OWN_DOMAIN_MAX_SHARED)
+        """店が持つ website が「使える自社/本部サイト」か。
+
+        ポータル/SNS だけを除外する。チェーン本部は**除外しない**（上の定数コメント参照）。
+        """
+        if not (has_web and dom and dom not in PORTAL_DOMAINS):
+            return False
+        if EXCLUDE_CHAINS_BY_SHARE_COUNT:
+            return freq.get(dom, 0) <= OWN_DOMAIN_MAX_SHARED
+        return True
 
     n = len(rows)
     flags = []
@@ -104,7 +130,9 @@ def main() -> None:
             "sample": f"S測定と同一の無作為 {n} 店（Overture母集団から層化抽出）",
             "caveat": "測っているのは『経路が存在するか』であり『使える料理画像が取れるか』ではない。"
                       "したがって上限であり、funnelで必ず目減りする。",
-            "own_domain_rule": f"ポータル/SNSドメインを除き、同一ドメイン共有が{OWN_DOMAIN_MAX_SHARED}店以下",
+            "own_domain_rule": ("ポータル/SNSドメインのみ除外。チェーン本部は採用する"
+                                if not EXCLUDE_CHAINS_BY_SHARE_COUNT else
+                                f"ポータル/SNSを除き、同一ドメイン共有が{OWN_DOMAIN_MAX_SHARED}店以下"),
             "youtube_flag": "生判定(店名がタイトル/チャンネル名に出現)。支店確定可能ベースだと更に下がる",
         },
         "n": n,
