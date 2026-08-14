@@ -43,10 +43,23 @@ PORTAL_RE = re.compile(
 )
 
 # #1273 【仕様】ロゴ・アイコン・装飾画像を落とすためのURL/クラス由来の否定パターン。
+#
+# 【追加】目視で FP と判定した15枚・TP 7枚の URL を突き合わせて安全なものだけ足した
+# （out/nofoodword_visual_labels.json, out/dimgate_visual_labels.json）。
+# 効果: FP 3件を落とし、**TP の巻き添えは 0件**。
+#   /movies?/ , poster        -> 映画『ショーシャンクの空に』のポスターを配信していた店
+#   photo-\d{9,}-[0-9a-f]{10,} -> Unsplash のストック写真のファイル名形式（ソファ・医師）
+#   /nav/ , /common/ , /themes?/ -> サイト共通パーツ（握手のストック写真＝FC事業ページ）
+#
+# 【注意】これ以上 URL パターンを足しても効かない。FP の残り（店内の内装・スタッフ写真・
+# 杉林・装飾バッジ）は URL 上 TP と区別できない。実際 TP の「コース料理」は
+# `bnr_top_3.png`（banner を含む）で、FP の「装飾バッジ」は `index_menu03.png`
+# （menu を含む）である。**URL による分離はここで限界。**
 NEG_RE = re.compile(
     r"(logo|icon|favicon|sprite|banner|btn|button|arrow|bg[_-]|_bg\.|header|footer|"
     r"nav[_-]|sns|share|qr|map|access|line[_-]|blank|spacer|dummy|loading|"
-    r"placeholder|badge|ribbon|title[_-]|ttl[_-]|h1[_-]|copyright)",
+    r"placeholder|badge|ribbon|title[_-]|ttl[_-]|h1[_-]|copyright|"
+    r"/movies?/|poster|/nav/|/common/|/themes?/|photo-\d{9,}-[0-9a-f]{10,})",
     re.I,
 )
 # #1273 【仕様】料理画像とみなす最小辺(px)。当初 300 だったが、目視検証で下げた。
