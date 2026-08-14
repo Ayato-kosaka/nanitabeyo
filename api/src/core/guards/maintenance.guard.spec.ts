@@ -61,6 +61,20 @@ describe('MaintenanceGuard', () => {
       expect(remoteConfigService.getRemoteConfigValue).not.toHaveBeenCalled();
     });
 
+    // 外形監視 (uptime check) が叩くパス。メンテ中に 503 を返したり、
+    // RemoteConfig(GCS) を読みに行ったりするようになると監視が誤検知する。
+    it('should allow /livez without reading remote config, even during maintenance', async () => {
+      remoteConfigService.getRemoteConfigValue.mockResolvedValue('true'); // is_maintenance
+
+      const request = createMockRequest('/livez');
+      const context = createMockContext(request);
+
+      const result = await guard.canActivate(context);
+
+      expect(result).toBe(true);
+      expect(remoteConfigService.getRemoteConfigValue).not.toHaveBeenCalled();
+    });
+
     it('should allow access when maintenance is false and version is supported', async () => {
       remoteConfigService.getRemoteConfigValue
         .mockResolvedValueOnce('false') // is_maintenance
