@@ -1,20 +1,31 @@
 # RUNBOOK — 実行スクリプト
 
-`ec2-sandbox` 環境の新規セッションに、**このスクリプトを1通のメッセージとして丸ごと**送る。`__PROMPT__` は事前にユーザーの指示文へ置き換えること（プロンプト自体に `'` や改行が含まれても壊れないよう、下のスクリプトはヒアドキュメントで受け取る想定）。
+`ec2-sandbox` 環境の新規セッションに、**このスクリプトを1通のメッセージとして丸ごと**送る。プロンプトは `/tmp/ec2_chrome_prompt.txt` に別途 Write させる（スクリプトに埋め込ませない — 引用符やバッククォートで壊れるため。[SKILL.md](./SKILL.md) の「既知の落とし穴」参照）。
 
 途中でどのステップが失敗しても、`trap cleanup EXIT INT TERM` により最後は必ず `stop-instances` が呼ばれる。個々の AWS 呼び出しに `timeout` を付けているのは、「ハングして trap が永久に発火しない」状態を作らないため（[SKILL.md](./SKILL.md) の「保証設計」参照）。
 
-```bash
-cat <<'PROMPT_EOF' > /tmp/ec2_chrome_prompt.txt
-__PROMPT__
-PROMPT_EOF
+## 送るメッセージの構成
 
+1. 「Write ツールで `/tmp/ec2_chrome_prompt.txt` に以下を逐語で保存」＋ユーザーのプロンプト本文
+2. 「Write ツールで `/tmp/run.sh` に以下を逐語で保存」＋下のスクリプト
+3. 「`nohup bash /tmp/run.sh > /tmp/run.out 2>&1 &` でバックグラウンド起動」
+4. 「完了条件は `/tmp/ec2_chrome_run.log` に `=== RUN FINISHED` が出ること。60〜90秒おきに `tail`/`wc -l` で行数が増えているのを確認しながら待つ。締め切り25分」
+5. 「`/tmp/ec2_chrome_run.log` の全文と `final state:` の値を省略せず報告」
+
+**3 と 4 を省くと詰む**。全体所要は 10〜20 分で、リモートセッション側の Bash ツール上限（600秒）を超える。フォアグラウンド実行させるとツールのタイムアウトでスクリプトごと切られる。
+
+## スクリプト
+
+```bash
+#!/bin/bash
 set -uo pipefail
 
 INSTANCE_ID="${EC2_CHROME_INSTANCE_ID:-i-0684d39b0c1b1abb6}"
 REGION="${EC2_CHROME_REGION:-ap-northeast-1}"
 AWSP="aws --profile sandbox --region $REGION"
 LOG="/tmp/ec2_chrome_run.log"
+PROMPT_FILE="/tmp/ec2_chrome_prompt.txt"
+CLAUDE_TIMEOUT="${EC2_CHROME_CLAUDE_TIMEOUT:-900}"
 : > "$LOG"
 log() { echo "[$(date -u +%H:%M:%S)] $*" | tee -a "$LOG"; }
 
@@ -25,7 +36,7 @@ cleanup() {
     STOP_DONE=1
     log "cleanup: stopping $INSTANCE_ID (trigger: exit code $exit_code)"
     timeout 60 $AWSP ec2 stop-instances --instance-ids "$INSTANCE_ID" >>"$LOG" 2>&1
-    timeout 180 $AWSP ec2 wait instance-stopped --instance-ids "$INSTANCE_ID" >>"$LOG" 2>&1
+    timeout 300 $AWSP ec2 wait instance-stopped --instance-ids "$INSTANCE_ID" >>"$LOG" 2>&1
     final_state=$(timeout 30 $AWSP ec2 describe-instances --instance-ids "$INSTANCE_ID" \
       --query 'Reservations[0].Instances[0].State.Name' --output text 2>>"$LOG")
     log "final state: $final_state"
@@ -33,17 +44,18 @@ cleanup() {
       log "*** WARNING: 停止確認に失敗。AWSコンソールで手動確認・停止すること: $INSTANCE_ID ***"
     fi
   fi
-  echo "----- $LOG -----"
-  cat "$LOG"
+  log "=== RUN FINISHED (exit $exit_code) ==="
   exit "$exit_code"
 }
 trap cleanup EXIT INT TERM
+
+[ -s "$PROMPT_FILE" ] || { log "prompt file $PROMPT_FILE is missing or empty"; exit 1; }
 
 log "=== start-instances ==="
 timeout 60 $AWSP ec2 start-instances --instance-ids "$INSTANCE_ID" >>"$LOG" 2>&1 || { log "start-instances failed"; exit 1; }
 
 log "=== waiting for running ==="
-timeout 180 $AWSP ec2 wait instance-running --instance-ids "$INSTANCE_ID" >>"$LOG" 2>&1 || { log "never reached running"; exit 1; }
+timeout 300 $AWSP ec2 wait instance-running --instance-ids "$INSTANCE_ID" >>"$LOG" 2>&1 || { log "never reached running"; exit 1; }
 
 log "=== polling SSM Online (max 5min) ==="
 ONLINE=0
@@ -58,10 +70,10 @@ if [ "$ONLINE" -ne 1 ]; then
   log "SSM agent never came online -- ec2-ssm-role が外れていないか確認 (SKILL.md 前提リソース表)"
   exit 1
 fi
-log "SSM online after ~$((i*10))s"
+log "SSM online after ~$((i * 10))s"
 
-log "=== sending prompt to claude --chrome via SSM ==="
-PROMPT_B64=$(base64 -w0 /tmp/ec2_chrome_prompt.txt)
+log "=== sending prompt to claude --chrome via SSM (claude timeout ${CLAUDE_TIMEOUT}s) ==="
+PROMPT_B64=$(base64 -w0 "$PROMPT_FILE")
 
 read -r -d '' REMOTE_SCRIPT_TMPL <<'REMOTE'
 set -uo pipefail
@@ -73,14 +85,16 @@ fi
 if [ -z "$CLAUDE_BIN" ]; then
   echo "claude CLI not found on instance"; exit 1
 fi
-sudo -u ubuntu -i -- bash -lc "timeout 150 '$CLAUDE_BIN' --chrome --dangerously-skip-permissions -p \"\$(cat /tmp/prompt.txt)\""
+sudo -u ubuntu -i -- bash -lc "timeout __CTIMEOUT__ '$CLAUDE_BIN' --chrome --dangerously-skip-permissions -p \"\$(cat /tmp/prompt.txt)\""
 REMOTE
 REMOTE_SCRIPT="${REMOTE_SCRIPT_TMPL/__B64__/$PROMPT_B64}"
+REMOTE_SCRIPT="${REMOTE_SCRIPT/__CTIMEOUT__/$CLAUDE_TIMEOUT}"
 
 CMD_ID=$(timeout 30 $AWSP ssm send-command \
   --instance-ids "$INSTANCE_ID" \
   --document-name AWS-RunShellScript \
-  --parameters "commands=[$(printf '%s' "$REMOTE_SCRIPT" | jq -Rs .)]" \
+  --timeout-seconds 600 \
+  --parameters "commands=[$(printf '%s' "$REMOTE_SCRIPT" | jq -Rs .)],executionTimeout=[\"$((CLAUDE_TIMEOUT + 300))\"]" \
   --query 'Command.CommandId' --output text 2>>"$LOG")
 log "command id: $CMD_ID"
 if [ -z "$CMD_ID" ] || [ "$CMD_ID" = "None" ]; then
@@ -88,17 +102,37 @@ if [ -z "$CMD_ID" ] || [ "$CMD_ID" = "None" ]; then
   exit 1
 fi
 
-timeout 200 $AWSP ssm wait command-executed \
-  --command-id "$CMD_ID" --instance-id "$INSTANCE_ID" >>"$LOG" 2>&1
-WAIT_RC=$?
-[ "$WAIT_RC" -ne 0 ] && log "wait command-executed exited $WAIT_RC (下の invocation 結果を見て判断)"
+# `ssm wait command-executed` は 20回 x 5秒 ≒ 100秒で諦めるため、長いブラウザ操作には使えない。
+# （旧版はここで必ず打ち切られ、InProgress のまま停止フェーズへ進んでいた。）自前でポーリングする。
+log "=== polling command status (max ~20min) ==="
+INV_STATUS="Pending"
+for i in $(seq 1 120); do
+  INV_STATUS=$(timeout 30 $AWSP ssm get-command-invocation \
+    --command-id "$CMD_ID" --instance-id "$INSTANCE_ID" \
+    --query 'Status' --output text 2>/dev/null)
+  case "${INV_STATUS:-Pending}" in
+    Success | Failed | Cancelled | TimedOut) break ;;
+    *) sleep 10 ;;
+  esac
+done
+log "invocation status: $INV_STATUS after ~$((i * 10))s"
 
 log "=== command-invocation result ==="
 timeout 30 $AWSP ssm get-command-invocation \
-  --command-id "$CMD_ID" --instance-id "$INSTANCE_ID" | tee -a "$LOG"
+  --command-id "$CMD_ID" --instance-id "$INSTANCE_ID" 2>&1 | tee -a "$LOG"
 
 log "=== main flow done, cleanup (stop) will run now ==="
 ```
+
+## タイムアウトの目安
+
+| 値 | 既定 | 根拠 |
+| --- | --- | --- |
+| `CLAUDE_TIMEOUT` | 900s | 1ページ開いて読むだけなら 150s で足りるが、コンソールの設定変更のような多段操作は 5〜10分かかる。短すぎると「途中で切られたのに Success 扱い」になり一番タチが悪い |
+| SSM `executionTimeout` | `CLAUDE_TIMEOUT + 300` | claude 側の `timeout` より必ず長くする。逆転すると SSM が先に殺して出力が取れない |
+| SSM `--timeout-seconds` | 600 | これは「実行開始までの待ち時間」であって実行時間ではない。混同しないこと |
+| 状態ポーリング | 10s × 120回 | `ssm wait` は使わない（上記コメント参照） |
+| `ec2 wait instance-stopped` | 300s | 180s だと停止確認前に打ち切られることがある |
 
 ## スクリーンショット等の成果物を目視回収したいとき（任意）
 
@@ -113,10 +147,10 @@ LOCAL_FILE="$LOCAL_DIR/xxx.png"
 SIZE=$(timeout 20 $AWSP ssm send-command --instance-ids "$INSTANCE_ID" \
   --document-name AWS-RunShellScript \
   --parameters "commands=[\"wc -c < $REMOTE_FILE\"]" --query 'Command.CommandId' --output text)
-# ↑ 実際は send-command → wait → get-command-invocation の3手順が要る（本文中のパターンを流用）
+# ↑ 実際は send-command → ポーリング → get-command-invocation の3手順が要る（本文中のパターンを流用）
 
 # チャンクごとに base64 で取り出して結合し、最後に md5sum をリモート・ローカル双方で取って一致確認する。
 # 大きいファイルは SSM の1回の出力上限（24000文字程度）に収まるようチャンク分割すること。
 ```
 
-厳密な手順は SKILL.md の「既知の落とし穴・Tips」にある通り、**リモートの md5sum とローカルの md5sum を突き合わせる**のが要点。中身を見るだけで十分なら、`file` コマンドで寸法・種別だけ確認する軽量版でも足りる。
+厳密な手順は SKILL.md の「既知の落とし穴・Tips」にある通り、**リモートの md5sum とローカルの md5sum を突き合わせる**のが要点。中身を見るだけで十分なら、`file` コマンドで寸法・種別だけ確認する軽量版でも足りる。コンソール画面のスクショは数百KB になりチャンク数が嵩むので、「実接続を厳密に証明したい」とき以外は、プロンプト側で**画面上の文字列を読み上げさせる**ほうが安上がりで済む。
