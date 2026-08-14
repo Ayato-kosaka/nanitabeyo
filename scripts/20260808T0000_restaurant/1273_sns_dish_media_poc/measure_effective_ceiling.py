@@ -54,9 +54,26 @@ OWN_SITE_PRECISION_HIGH = 0.750  # チェーン本部サイトの目視 precisio
 OWN_SITE_CATEGORY = 0.767
 
 YT_PATH = 0.335
-YT_CATEGORY = 0.754
+# #1273 【訂正】当初は 0.754（dish_media_yield_after_fix.json の category_given_restaurant）を
+# 使っていたが、あれは**クロールした食べ歩き動画**で測った値で、母集団が違う。
+# 店名検索でヒットした動画に CategoryMatcher を当て直した実測値はこちら:
+#     リンク層 20/40 = 50.0% / リンク無し層 15/39 = 38.5%
+# 全79件のタイトルを目視したところ、カテゴリが付かなかったものの大半は
+# **店名マッチ自体の誤爆**だった（四万十演歌王=演歌発表会 / Cockapoo=犬種 /
+# Grand café=シャンソン / マナカムナ=ネパールの寺院 / いじげん=ポケモン /
+# ムーラン=Disney映画 / uouo=GTA実況 / あかつき=漫画 など）。
+# つまりカテゴリ判定器が事実上の誤爆フィルタとして働いており、
+# **カテゴリ付与率 ≒ 店名マッチの精度**である。根拠: out/yt_name_match_review.json
+YT_CATEGORY = 0.500          # リンク層（実測）
+YT_CATEGORY_LINKLESS = 0.385  # リンク無し層（実測）
+YT_PATH_LINKLESS = 0.260
+FEDI_PATH_LINKLESS = 0.1667
+FEDI_CATEGORY_LINKLESS = 0.520
 
-LINKLESS_EFFECTIVE = 0.1993
+# #1273 リンク無し層も経路ごとに実測値で組み直す（独立仮定の union は上限側）。
+LINKLESS_EFFECTIVE = 1 - (1 - YT_PATH_LINKLESS * YT_CATEGORY_LINKLESS) * (
+    1 - FEDI_PATH_LINKLESS * FEDI_CATEGORY_LINKLESS
+)
 LINKLESS_PATH = 0.3833
 LINK_PATH = 0.625
 OWNER_TARGET = 0.70
