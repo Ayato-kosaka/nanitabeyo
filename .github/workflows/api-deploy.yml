@@ -190,7 +190,11 @@ jobs:
       # -------------------------------------------
 
       # ---------- 検証を通した候補を 100% へ昇格 ----------
-      - name: 🚦 Promote candidate
+      # 【設計】昇格と tag 剥がしはステップを分ける。1 つに束ねると、tag 剥がしが
+      # 落ちただけで「昇格していない」と読める失敗になり、障害対応で本番の状態を
+      # 逆に伝えてしまう。ステップが別なら outcome も別に判定できる。
+      - id: promote
+        name: 🚦 Promote candidate
         env:
           REVISION: ${{ steps.candidate.outputs.revision }}
         run: |
@@ -202,17 +206,34 @@ jobs:
           gcloud run services update-traffic "${SERVICE_NAME}" \
             --region "${REGION}" --to-revisions "${REVISION}=100"
 
-          # tag を残すとそのリビジョンがピン留めされ、古い世代が GC されずに溜まる。
-          # 昇格が成功した後にだけ剥がす。1 コマンドに束ねないのは、
-          # 昇格そのものの失敗と tag 剥がしの失敗を切り分けるため。
+          echo "✅ Deployed: ${{ steps.deploy.outputs.url }}（revision: ${REVISION}）"
+
+      # 【設計】tag 剥がしの失敗で job を落とさない（continue-on-error）。
+      # この時点で昇格は済んでおり、本番は新リビジョンが正常に捌いている。
+      # 残った tag が指すのも「今動いているリビジョン」なので実害は小さく、
+      # 次のデプロイで tag は新しい候補へ移る。ここで job を赤くすると
+      # 「デプロイ失敗」と読めてしまい、実態と食い違う。
+      - id: cleanup_tag
+        name: 🧹 Remove candidate tag
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          # tag を残し続けるとそのリビジョンがピン留めされ、古い世代が GC されない。
           gcloud run services update-traffic "${SERVICE_NAME}" \
             --region "${REGION}" --remove-tags "${CANDIDATE_TAG}"
 
-          echo "✅ Deployed: ${{ steps.deploy.outputs.url }}（revision: ${REVISION}）"
+      - name: ⚠️ Warn on leftover tag
+        if: steps.cleanup_tag.outcome == 'failure'
+        run: |
+          echo "::warning::昇格は成功したが tag '${CANDIDATE_TAG}' を剥がせなかった。\
+          本番は revision ${{ steps.candidate.outputs.revision }} が捌いている。\
+          tag は次のデプロイで新しい候補へ移るが、気になる場合は手動で剥がすこと。"
 
-      # スモークが落ちたときに、調査先を最後に出しておく。
+      # スモークが落ちたとき（= 昇格していないとき）だけ、調査先を出す。
+      # 条件に promote の outcome を入れているのは、昇格後の失敗でこの
+      # メッセージが出ると本番の状態を誤って伝えることになるため。
       - name: 🧭 Candidate left for investigation
-        if: failure() && steps.candidate.outputs.url != ''
+        if: failure() && steps.promote.outcome != 'success' && steps.candidate.outputs.url != ''
         run: |
           echo "⚠️ 昇格していない。本番は旧リビジョンのまま。"
           echo "   candidate revision: ${{ steps.candidate.outputs.revision }}"
