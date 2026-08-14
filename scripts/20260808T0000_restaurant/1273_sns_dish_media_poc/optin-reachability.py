@@ -143,14 +143,13 @@ def main():
                   "wixsite|amebaownd|ameblo|hatenablog|localplace|navitime|mapion|epark|"
                   "toreta|tablecheck|autoreserve|yahoo|google)")
     for key, extra in (("D0_all_food", ""), ("D2_dish_strict", f"and {DISH_STRICT}")):
+        # #1273 【バグ】list_bool_or は集約関数ではない。unnest+group by を使わず
+        #   list_filter でリスト内に自社ドメインが1つでもあるかを判定する。
         n_free = q(f"""
-            select count(*) from (
-              select id, len(coalesce(emails,[]))>0 as has_mail,
-                     coalesce(list_bool_or(not regexp_matches(lower(w),'{PORTAL_SQL}')), false) as own_web
-              from (select id, emails, unnest(coalesce(websites,[null])) as w
-                    from '{PARQUET}' {FOOD_WHERE} {extra})
-              group by id, has_mail
-            ) where has_mail or own_web""")[0][0]
+            select count(*) from '{PARQUET}' {FOOD_WHERE} {extra}
+            and (len(coalesce(emails,[]))>0
+                 or len(list_filter(coalesce(websites,[]),
+                        w -> not regexp_matches(lower(w),'{PORTAL_SQL}')))>0)""")[0][0]
         nn = res["reachability"][key]["n"]
         res["reachability"][key]["n_free_outreach_email_or_own_site"] = int(n_free)
         res["reachability"][key]["n_free_outreach_pct"] = round(100.0 * n_free / nn, 2)
@@ -177,31 +176,43 @@ def main():
     yt_hit = {r["restaurant"]["id"]: bool(r.get("hit")) for r in sample}
     ids = list(yt_hit.keys())
 
+    # #1273 【仕様】own_site は measure_multisource_ceiling.py / population-audit.py と同一規則。
+    #   ポータル/SNSドメイン除外 かつ 同一ドメインを共有する店が3店以下(=チェーン本部を除く)。
+    #   この規則でのみ union が既報の 48.0% を再現する。
+    PORTAL_DOMAINS = {"tabelog.com", "s.tabelog.com", "r.tabelog.com", "r.gnavi.co.jp",
+                      "hotpepper.jp", "hitosara.com", "instagram.com", "twitter.com",
+                      "facebook.com", "ameblo.jp", "localplace.jp", "goo.gl", "linktr.ee"}
+    con.execute(f"create or replace view food2 as select * from '{PARQUET}' {FOOD_WHERE}")
+    freq = dict(q(r"""select regexp_extract(websites[1],'https?://(?:www\.)?([^/]+)',1), count(*)
+                       from food2 where len(coalesce(websites,[]))>0 group by 1"""))
+
     own = json.load(open(OWNSITE))["results"]
     # #1273 【バグ】既知の合算天井 48.0% は「経路ベース」(YouTube生 ∪ 自社ドメイン保有)。
     #   検証済み画像ベース(15.33%)で数えると union は 43.0% になり、22ptの分母とズレる。
     #   gap を 48.0 起点で計算している以上、重複表も経路ベースで揃える。
-    own_path = {r["id"]: (not r.get("is_portal", True)) for r in own}
     own_verified = {r["id"]: (r.get("n_verified_dish", 0) or 0) > 0 for r in own}
 
     # 600店の連絡先を parquet から引く
     idlist = ",".join("'" + i.replace("'", "''") + "'" for i in ids)
-    rows = q(f"""
+    rows = q(r"""
         select id,
                len(coalesce(phones,[]))>0, len(coalesce(emails,[]))>0,
                len(coalesce(websites,[]))>0, len(coalesce(socials,[]))>0,
-               {DISH_STRICT}, coalesce(websites,[])
-        from '{PARQUET}' where id in ({idlist})""")
+               """ + DISH_STRICT + r""",
+               regexp_extract(websites[1],'https?://(?:www\.)?([^/]+)',1)
+        from food2 where id in (""" + idlist + ")")
     contact = {}
+    own_path = {}
     for r in rows:
-        ws = list(r[6] or [])
+        dom = r[6]
+        # #1273 【設計】ポータル/SNSドメインは「オプトイン依頼を届ける導線」にならない。
+        #   ポータルは #1303 で営利目的アクセス自体が禁止。自社ドメインのみを数える。
+        web_own = bool(r[3] and dom and dom not in PORTAL_DOMAINS and freq.get(dom, 0) <= 3)
+        own_path[r[0]] = web_own
         contact[r[0]] = {
             "phone": bool(r[1]), "email": bool(r[2]),
             "web": bool(r[3]), "social": bool(r[4]),
-            "dish_strict": bool(r[5]),
-            # #1273 【設計】ポータル/SNSドメインは「オプトイン依頼を届ける導線」にならない。
-            #   ポータルは #1303 で営利目的アクセス自体が禁止。自社ドメインのみを数える。
-            "web_own": any(not PORTAL_RE.search(w or "") for w in ws),
+            "dish_strict": bool(r[5]), "web_own": web_own,
         }
     res["sample_matched_in_parquet"] = len(contact)
 
@@ -245,6 +256,33 @@ def main():
             tab[reach_key]["complementarity_ratio"] = round(
                 (cnt["uncovered_and_reach"] / unc) / (cnt["covered_and_reach"] / cov), 3)
     res["overlap_600"] = tab
+
+    # #1273 【設計】上の free_outreach 行は循環している。48.0%の union に
+    #   「自社ドメインサイト保有」が経路として入っており、free_outreach の定義にも
+    #   同じ条件が入るため、未カバー側に自社サイト保有店がほぼ残らないのは自明である。
+    #   循環を切るため、カバー判定を YouTube 単独(33.5%)にした表も出す。
+    #   こちらは Overture の連絡先と独立に測られており、真の補完性を示す。
+    tab_yt = {}
+    for reach_key, fn in (
+        ("free_outreach_email_or_own_site", lambda c: c["email"] or c["web_own"]),
+        ("phone_or_email", lambda c: c["phone"] or c["email"]),
+        ("any_incl_social", lambda c: c["phone"] or c["email"] or c["web"] or c["social"]),
+    ):
+        cnt = {"yt_and_reach": 0, "yt_not_reach": 0, "noyt_and_reach": 0, "noyt_not_reach": 0}
+        for i in ids:
+            k = ("yt" if yt_hit[i] else "noyt") + ("_and_reach" if fn(cflags(i)) else "_not_reach")
+            cnt[k] += 1
+        yt = cnt["yt_and_reach"] + cnt["yt_not_reach"]
+        no = cnt["noyt_and_reach"] + cnt["noyt_not_reach"]
+        tab_yt[reach_key] = {
+            **cnt, "n": len(ids),
+            "reach_pct_among_youtube_hit": round(100.0 * cnt["yt_and_reach"] / yt, 2),
+            "reach_pct_among_youtube_miss": round(100.0 * cnt["noyt_and_reach"] / no, 2),
+            "complementarity_ratio": round(
+                (cnt["noyt_and_reach"] / no) / (cnt["yt_and_reach"] / yt), 3)
+            if cnt["yt_and_reach"] else None,
+        }
+    res["overlap_600_youtube_only_noncircular"] = tab_yt
 
     # ---------------------------------------------------------------
     # 3. 必要オプトイン率の逆算
@@ -343,6 +381,79 @@ def main():
         },
         "note_reply_vs_signup": "reply rate は『返信率』であり、実際に連携作業まで完了する率(=オプトイン成立率)は "
                                 "その一部にすぎない。SMB向けセルフサーブ登録の完了率は通常 reply rate を下回る。",
+        "jp_restaurant_telesales_appointment_rate_pct": {
+            "vendor_claimed": 16.0,
+            "note": "営業代行ベンダーが自社事例として掲げる『アポ率』。アポ=面談約束であり成約でもオプトインでもない。"
+                    "上限として扱ってもなお必要率に届かない。",
+            "sources": ["https://asulever.com/2025/08/06/529/",
+                        "https://threegood.net/column/restaurant-wholesale-bdr/"],
+        },
+    }
+
+    # ---------------------------------------------------------------
+    # 結論ブロック
+    # ---------------------------------------------------------------
+    best = optin["D2_dish_strict"]["any_incl_social"]["required_optin_rate_pct"]
+    free = optin["D2_dish_strict"]["free_outreach_email_or_own_site"]["required_optin_rate_pct"]
+    res["verdict"] = {
+        "headline_metric": "22ptを埋めるのに必要なオプトイン率(%)",
+        "required_optin_rate_most_generous_pct": best,
+        "required_optin_rate_free_channel_only_pct": free,
+        "ratio_vs_cold_email_typical_5pct": round(best / 5.0, 1),
+        "ratio_vs_jp_restaurant_telesales_16pct": round(best / 16.0, 1),
+        "reject_reason": "無料導線(email/自社サイト)だけでは必要率が100%を超え数学的に到達不能。"
+                         "電話・FacebookDMまで全て無料と仮定する最も甘い前提でも42.31%が必要で、"
+                         "業界のコールドアウトリーチ実績(返信1〜5%/日本の飲食テレアポのアポ率16%)の8.5〜42倍。",
+    }
+
+    # ---------------------------------------------------------------
+    # 目視精度検証（鉄則3）: 「連絡可能」が本当にオプトイン依頼を届けられる導線か
+    # ---------------------------------------------------------------
+    # #1273 【仕様】SHA-256(id)昇順の先頭12件について、Overture の
+    #   phones/emails/websites/socials の実値を目視し、
+    #   「この店に無料でオプトイン依頼を届けられるか」を人手判定した。
+    res["visual_verification"] = {
+        "method": "SHA-256(id)昇順 先頭12件の phones/emails/websites/socials 実値を目視判定",
+        "n": 12,
+        "items": [
+            {"name": "焼鳥 月見", "phone": "+81364161173(03=渋谷 一致)",
+             "email": "toritonkitchen.shibuya@gmail.com", "web": "s.tabelog.com(ポータル)",
+             "social": "facebook.com/294501913896234", "free_channel": True, "why": "店舗メールあり"},
+            {"name": "メンバーズNew眞の華", "phone": "+81935311155", "email": None, "web": None,
+             "social": "facebook 数値ID", "free_channel": False, "why": "電話のみ=テレアポ"},
+            {"name": "あじ伴", "phone": "+81294333984", "email": None, "web": "ajihan.com(自社)",
+             "social": "facebook 数値ID", "free_channel": True, "why": "自社ドメイン"},
+            {"name": "昭和ホルモン食堂", "phone": "+81926265755", "email": None,
+             "web": "horumonshokudou.com(自社)", "social": "facebook 数値ID",
+             "free_channel": True, "why": "自社ドメイン"},
+            {"name": "樹林", "phone": "+81452632020", "email": None, "web": None,
+             "social": "facebook 数値ID", "free_channel": False, "why": "電話のみ"},
+            {"name": "Bbcバムズブリューカフェ", "phone": "+81582157550", "email": None,
+             "web": "bhm-s.com(自社)", "social": "facebook 数値ID", "free_channel": True,
+             "why": "自社ドメイン"},
+            {"name": "ピザ・テン・フォー飯島店", "phone": "018-847-3884", "email": None,
+             "web": "pizza104.biz/store/store_info.php(チェーン本部)", "social": None,
+             "free_channel": True, "why": "自社ドメインだがチェーン本部宛(店舗単位の同意は別問題)"},
+            {"name": "Cafe and Rest Olive", "phone": "+818087311775(携帯)", "email": None,
+             "web": None, "social": "facebook 数値ID", "free_channel": False, "why": "電話のみ"},
+            {"name": "おいしい隠れ家 か和か美", "phone": "+81758018799", "email": None, "web": None,
+             "social": "facebook 数値ID", "free_channel": False, "why": "電話のみ"},
+            {"name": "ニユーサニー", "phone": "+81334697166", "email": None, "web": None,
+             "social": "facebook 数値ID", "free_channel": False, "why": "電話のみ"},
+            {"name": "くれしま 西院店", "phone": "+81753123321", "email": None, "web": None,
+             "social": "facebook 数値ID", "free_channel": False, "why": "電話のみ"},
+            {"name": "渋谷焼肉 ざぶとん", "phone": "+81354573210", "email": None,
+             "web": "yakiniku-zabuton.jp(自社)", "social": "facebook 数値ID",
+             "free_channel": True, "why": "自社ドメイン"},
+        ],
+        "phone_present": 12, "phone_store_specific_plausible": 12,
+        "email_present": 1, "own_domain_site_present": 5,
+        "free_channel_true": 6, "free_channel_precision": round(6 / 12, 3),
+        "socials_all_facebook_numeric_id": 11,
+        "finding": "socials 90.4% の実体は全て facebook.com/<数値ID>。ユーザー名でもなく、"
+                   "ページが現存/認証済みかは不明。Meta の DM 送信は #1314 の App Review ゲート下にあり、"
+                   "『無料の連絡導線』として数えられない。phone は 12/12 で店舗固有だが、"
+                   "13万店へのテレアポは無料施策ではない。",
     }
 
     json.dump(res, open(OUT, "w"), ensure_ascii=False, indent=1)
