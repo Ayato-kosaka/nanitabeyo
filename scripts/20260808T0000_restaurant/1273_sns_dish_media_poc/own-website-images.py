@@ -49,6 +49,21 @@ NEG_RE = re.compile(
     r"placeholder|badge|ribbon|title[_-]|ttl[_-]|h1[_-]|copyright)",
     re.I,
 )
+# #1273 【仕様】料理画像とみなす最小辺(px)。当初 300 だったが、目視検証で下げた。
+#
+# 300 で落ちていた「食語を持つ」画像 28枚(11店)から SHA-256 順に決定的抽出して
+# 12枚を実ダウンロードし目視分類した結果:
+#     TP 6 / 境界 2 / FP 4 → 厳密 precision 50.0%
+# これは現行パイプライン全体の目視 precision 46.7% より**高い**ので、
+# 200 まで下げても品質は落ちない。600店標本での実質増分は +0.92pt
+# (自社サイト経路 7.16% -> 8.08%)。根拠: out/dimgate_visual_labels.json
+#
+# 【注意】food_word ゲートのほうは外してはいけない。外すと名目 +4.33pt だが、
+# そちらの層の目視 precision は 7.1% で、映画『ショーシャンクの空に』のポスターや
+# 医療クリニックのバスが混入する。実質増分は +0.31pt しかない。
+# 根拠: out/nofoodword_visual_labels.json
+MIN_DISH_IMAGE_PX = 200
+
 # #1273 【仕様】料理を示す語（URL・alt・周辺テキスト）。日本語/英語の両方を見る。
 FOOD_RE = re.compile(
     r"(料理|メニュー|menu|dish|food|cuisine|コース|course|ランチ|lunch|ディナー|dinner|"
@@ -406,8 +421,12 @@ def process(rec):
         v["score"] = c["score"]
         v["food_word"] = c["food_word"]
         res["verified"].append(v)
-        # #1273 【仕様】「料理画像」判定: 実取得成功 かつ 300x300以上 かつ 料理語ヒット
-        if v.get("ok") and min(v.get("w", 0), v.get("h", 0)) >= 300 and c["food_word"]:
+        # #1273 【仕様】「料理画像」判定: 実取得成功 かつ MIN_DISH_IMAGE_PX 以上 かつ 料理語ヒット
+        if (
+            v.get("ok")
+            and min(v.get("w", 0), v.get("h", 0)) >= MIN_DISH_IMAGE_PX
+            and c["food_word"]
+        ):
             res["n_verified_dish"] += 1
     return res
 
