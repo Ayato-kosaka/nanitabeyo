@@ -69,12 +69,38 @@ setup の経緯・検証結果は Issue [#1327](https://github.com/Ayato-kosaka/
 - **`nohup ... &` を自分で書くと classifier に止められることがある**。実際に「Blocked by classifier」で拒否された。ツール側のバックグラウンド機能を使えば通る。
 - **`ssm:ListCommands` は権限が無い**（IAM ポリシーが1インスタンスに絞られているため）。過去のコマンド一覧は引けないので、`CommandId` はその場でログに残して追う。使えるのは `send-command` / `get-command-invocation` / `describe-instance-information` / `ec2 start|stop|describe|wait`。
 
+### 最重要 — `claude --chrome` はローカル接続ではない
+
+`claude --chrome` は、インスタンス内の Unix ソケットで Chrome と話すのではなく、**クラウド中継 `wss://bridge.claudeusercontent.com/chrome/<アカウントUUID>` に繋ぎ、そこへ Chrome 拡張が自分で接続してくるのを待つ**。`--debug --debug-file` を付けると経路が見える。
+
+```
+[Claude in Chrome] Connecting to bridge: wss://bridge.claudeusercontent.com/chrome/<uuid>
+[Claude in Chrome] Connection successful
+[Claude in Chrome] Bridge received: {"type":"extensions_list","extensions":[]}   ← 拡張が繋がっていない
+```
+
+**EC2 は起動直後 Chrome が動いていない。**（動いているのは Chrome Remote Desktop の Xorg `:20` だけ。）そのため拡張は 0 件で、`claude` は**エラーを出さず正常終了したまま「ブラウザ0件」を返す** — 一番気づきにくい失敗の形。ローカルの `/tmp/claude-mcp-browser-bridge-ubuntu/<pid>.sock` と Native Host はちゃんと動いていて `ping`/`get_status` も流れるので、そこを見ていると原因を取り違える（実際に取り違えた）。
+
+成立させるには2つとも要る。
+
+1. **Chrome を `https://claude.ai/` を開いた状態で `DISPLAY=:20` で起動する。** 拡張は claude.ai のセッションでブリッジに認証するため、`example.com` を開いただけでは何分待っても `extensions:[]` のままだった。
+2. **拡張がブリッジに登録されるまで待つ。** 実測で Chrome 起動から約85秒。固定 sleep ではなく、`list_connected_browsers` を投げて `"extensions":[{` が出るまで繰り返すプローブループにする（RUNBOOK.md 参照）。繋がる前に本命のプロンプトを流すと、丸ごと無駄になる。
+
+```sh
+sudo -u ubuntu -i -- bash -lc 'export DISPLAY=:20; nohup google-chrome --no-first-run --no-default-browser-check https://claude.ai/ >/tmp/chrome.log 2>&1 & sleep 60; echo launched'
+```
+
+拡張は `fcoeoabgfenejglbffodgkkbkcdhcgfn`（Claude Code Browser Extension、v1.0.85）。プロファイルは `/home/ubuntu/.config/google-chrome/Default`。**Chrome プロファイルが claude.ai にサインイン済みであることが前提**なので、サインアウトされたら Chrome Remote Desktop で一度手動サインインするしかない。
+
 ### リモート実行側（EC2 / SSM / `claude --chrome`）
 
 - **`claude` CLI はデフォルト PATH に無い**。`ubuntu` ユーザーの nvm 配下（`/home/ubuntu/.nvm/versions/node/*/bin/claude`）にインストールされている。SSM の `AWS-RunShellScript` はデフォルト root・非ログインシェルで動くため、素の `claude` 呼び出しは `command not found` になる。RUNBOOK.md ではパスを動的に解決している。
 - **非対話（`-p`）実行は権限確認プロンプトでブロックされ、`exit 0` のまま何もせず終わることがある**。無人実行では `--dangerously-skip-permissions` を付けること（安全性とのトレードオフはあるが、このフローでは全許可する方針で確定済み）。付け忘れると「成功したように見えて実は何もしていない」という一番気づきにくい失敗になる。
 - **`claude --chrome -p` の1回の呼び出しで「開く→操作する→説明する」まで一括指示できる**。対話的なキャッチボールはできないので、プロンプト側に必要な手順を全部書き込む（例:「〇〇を開いて、△△をクリックし、結果を1〜2文で説明して」）。
 - **プロンプトはファイル経由・base64 で渡す**。SSM の `send-command` パラメータに直接ユーザー文字列を埋め込むと、引用符やバッククォートを含むプロンプトでシェルクォーティングが壊れる。RUNBOOK.md は base64 化して埋め込み、リモート側で decode する方式にしてある。
+- **多行の文字列を `bash -lc "..."` に直接埋めると改行が失われる**。python のヒアドキュメントを流し込もうとして `syntax error near unexpected token` で全滅した。ヘルパーは `cat > /tmp/x.sh <<EOF` でファイルに書いてから `bash /tmp/x.sh` で実行する（この形なら壊れない）。
+- **`-d` / `--debug` だけでは何も出ない。`--debug-file <path>` を付ける**。`-p` 実行では stderr が空のままなので「デバッグが効いていない」と誤解する。ブリッジ接続の可否はこのログでしか分からない。
+- **`--dangerously-skip-permissions` を付けても外部宛の送信は agent 側の判断で止まる**（今回、GCP のクォータ増加申請フォームで「申請理由を創作して owner 名義で送信することになる」として停止した）。無人実行で承認・申請・投稿のような外部行為まで通したいなら、**文面や判断基準をプロンプトに明示**しておくこと。書いていなければ止まるのが正しい挙動。
 - **視覚的な証跡が要る場合**（スクリーンショットの中身を自分の目で確認したいとき）は、SSM の出力に直接バイナリを流さず、base64 チャンク転送 + ローカル/リモート双方の MD5 一致確認で改ざん・欠損なく回収する。今回はこれで「本当に Chrome がレンダリングしたか」を、モデルの説明文の言葉遣い（学習データにある旧版の文言ではなく現行版の文言だったこと）と合わせて二重に立証できた。この手法が要るのは「実接続を厳密に証明したい」ときだけで、通常の1回実行では過剰。
 - **`claude --chrome` 実行時に `jpeg-js` / `pngjs` が npm でインストールされる副作用がある**。インスタンスに軽微な永続変更が残ることは許容範囲として扱う。
 - **`aws ssm wait command-executed` を長時間コマンドに使わない**。この waiter は 20回 × 5秒 ≒ **100秒**で `Max attempts exceeded` になる。ブラウザ操作は数分かかるので必ず打ち切られ、その後の `get-command-invocation` が `InProgress` を返したまま停止フェーズへ進んでしまう（＝claude の出力を取り逃す）。`get-command-invocation --query Status` を自前で 10秒間隔ポーリングし、`Success|Failed|Cancelled|TimedOut` を待つこと。RUNBOOK.md は修正済み。

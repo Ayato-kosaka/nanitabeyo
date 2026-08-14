@@ -101,7 +101,67 @@ timeout 30 $AWSP ssm get-command-invocation --command-id "$CMD_ID" --instance-id
 log "=== done, cleanup (stop) will run now ==="
 ```
 
-## 本編スクリプト（`claude --chrome` 特化版）
+## リモート側スクリプト（Chrome 起動 → 接続待ち → 本命プロンプト）
+
+`ec2_exec.sh` に渡すリモートスクリプトの本体。**`__B64__` は `base64 -w0 <プロンプトファイル>` の出力に置換して生成する**（呼び出し側で python 等を使って書き出すのが安全）。
+
+Chrome を起動しただけでは拡張がブリッジに繋がっていないので、**繋がるまでプローブしてから本命を流す**。ここを固定 sleep にすると、繋がる前に本命が走って丸ごと無駄になる（[SKILL.md](./SKILL.md) の「最重要」節）。
+
+```sh
+set -u
+CLAUDE_BIN=$(ls -d /home/ubuntu/.nvm/versions/node/*/bin/claude 2>/dev/null | head -1)
+[ -n "$CLAUDE_BIN" ] || { echo "claude CLI not found"; exit 1; }
+
+echo "__B64__" | base64 -d > /tmp/prompt.txt
+chmod 644 /tmp/prompt.txt
+
+# Chrome は claude.ai を開いた状態で起動する。拡張は claude.ai のセッションを使って
+# wss://bridge.claudeusercontent.com へ繋ぎに行くため、このタブが無いと接続しない。
+sudo -u ubuntu -i -- bash -lc 'export DISPLAY=:20; nohup google-chrome --no-first-run --no-default-browser-check https://claude.ai/ >/tmp/chrome.log 2>&1 & sleep 60; echo launched'
+
+# 多行を bash -lc "..." に直接埋めると改行が失われるので、必ずファイルに書いてから実行する。
+cat > /tmp/probe.sh <<PEOF
+export DISPLAY=:20
+"$CLAUDE_BIN" --chrome --debug --debug-file /tmp/probe.log --dangerously-skip-permissions -p 'list_connected_browsers を呼び結果だけ出力' >/dev/null 2>&1
+PEOF
+chmod 755 /tmp/probe.sh
+
+CONNECTED=0
+i=1
+while [ $i -le 5 ]; do
+  rm -f /tmp/probe.log
+  timeout 150 sudo -u ubuntu -i -- bash /tmp/probe.sh
+  if grep -q '"extensions":\[{' /tmp/probe.log 2>/dev/null; then
+    CONNECTED=1; echo "probe $i: extension CONNECTED"
+    grep -o '"extensions_list".*' /tmp/probe.log | head -1
+    break
+  fi
+  echo "probe $i: extensions still empty"
+  sleep 20
+  i=$((i + 1))
+done
+
+if [ "$CONNECTED" -ne 1 ]; then
+  echo "=== EXTENSION NEVER CONNECTED — aborting before the real run ==="
+  tail -15 /tmp/probe.log 2>/dev/null
+  exit 1
+fi
+
+echo "===== REAL RUN ====="
+cat > /tmp/real.sh <<REOF
+export DISPLAY=:20
+timeout 780 "$CLAUDE_BIN" --chrome --dangerously-skip-permissions -p "\$(cat /tmp/prompt.txt)"
+REOF
+chmod 755 /tmp/real.sh
+sudo -u ubuntu -i -- bash /tmp/real.sh
+echo "===== real run exit: $? ====="
+```
+
+実測の所要（2026-08-14、GCP コンソールでクォータ画面を読み取らせた場合）: Chrome 起動60秒 → プローブ1回目で接続 → 本命 約9分。`ec2_exec.sh` には 1800 秒程度を渡しておけば足りる。
+
+## 参考: 旧・本編スクリプト（Chrome 起動を含まない版）
+
+以下は Chrome 起動と接続待ちが無いため、**単体では必ず「ブラウザ0件」で終わる**。SSM 呼び出しの骨組みとしてのみ参照すること。
 
 ```bash
 #!/bin/bash
