@@ -23,8 +23,16 @@ import { CLS_KEY_APP_VERSION } from '../cls/cls.constants';
  */
 @Injectable()
 export class MaintenanceGuard implements CanActivate {
-  /** 許可するパス（メンテナンス・バージョンチェックを行わない） */
-  private readonly allowedPaths = ['/metrics'];
+  /**
+   * 許可するパス（メンテナンス・バージョンチェックを行わない）
+   *
+   * `/livez` は外形監視専用の liveness エンドポイント。ここから外すと 2 つ壊れる。
+   *   1. 計画メンテのたびに 503 になり、本番障害としてページャが鳴る
+   *   2. この guard が毎回読む RemoteConfig（GCS）に監視が依存してしまい、
+   *      GCS の一時障害を「API 停止」と誤検知する
+   * 「正常に配信できるか」を見たい用途は `/health`（= ガード対象）を使うこと。
+   */
+  private readonly allowedPaths = ['/metrics', '/livez'];
 
   constructor(
     private readonly remoteConfigService: RemoteConfigService,
