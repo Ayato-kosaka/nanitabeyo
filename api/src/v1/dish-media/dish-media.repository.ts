@@ -64,7 +64,9 @@ export interface DishMediaEntryEntity {
 
 export interface ExternalDishMediaEmbeddingEntity {
   dish_media_id: string;
-  provider: 'instagram' | 'tiktok' | 'x';
+  // #1273 【仕様】youtube を追加（migration 20260814T0000）。①で確立した無料の発見手法は
+  // YouTube 由来で、実測でも embeddable 98.8% / 生存率100% と埋め込みの土台が最も健全。
+  provider: 'instagram' | 'tiktok' | 'x' | 'youtube';
   external_content_id: string;
   canonical_url: string;
   embed_html: string;

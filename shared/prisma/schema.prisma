@@ -215,15 +215,45 @@ model dish_media {
   video_duration_ms           Int?
   media_processing_status     String
   thumbnail_processing_status String
+  /// #1273 §40 stored=media_path の自社GCSを配信 / external_embed=外部埋め込みで描画
+  render_type                 String                       @default("stored")
   dishes                      dishes                       @relation(fields: [dish_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   users                       users?                       @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   dish_media_analysis_results dish_media_analysis_results?
   dish_media_impressions      dish_media_impressions[]
   dish_media_likes            dish_media_likes[]
   dish_media_views            dish_media_views[]
+  dish_media_external_embeddings dish_media_external_embeddings?
   payouts                     payouts[]
 
   @@index([dish_id], map: "idx_dish_media_dish")
+  @@schema("dev")
+}
+
+/// #1273 §40 SNS等の外部埋め込み情報。dish_media 本体は既存検索・reaction との互換層として残し、
+/// media固有の項目はこの 1:0..1 の子テーブルへ隔離する。
+/// 実体は 20260812T0100_add_restaurant_recommendation_sync_metadata.sql で作成済みだったが
+/// Prisma schema に未反映で raw SQL からしか触れなかったため、20260814T0000 で取り込んだ。
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model dish_media_external_embeddings {
+  dish_media_id       String     @id @db.Uuid
+  provider            String
+  external_content_id String
+  canonical_url       String
+  embed_html          String
+  thumbnail_url       String?
+  availability_status String
+  rights_basis        String
+  terms_version       String?
+  published_at        DateTime?  @db.Timestamptz(6)
+  last_verified_at    DateTime   @db.Timestamptz(6)
+  source_row_hash     String
+  created_at          DateTime   @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime   @default(now()) @db.Timestamptz(6)
+  dish_media          dish_media @relation(fields: [dish_media_id], references: [id], onDelete: Cascade)
+
+  @@unique([provider, external_content_id], map: "dish_media_external_provider_content_uq")
+  @@index([availability_status, last_verified_at(sort: Desc)], map: "dish_media_external_availability_idx")
   @@schema("dev")
 }
 
