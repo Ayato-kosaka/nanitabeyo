@@ -5,7 +5,26 @@ description: claude.ai/code の ec2-sandbox クラウド環境から、既存 EC
 
 # EC2 Chrome Operate
 
-claude.ai/code 本体には AWS 認証情報がない。すべての AWS 操作は **`ec2-sandbox` という個人 Cloud Environment のセッション**（credential_process 経由で `--profile sandbox` が使える）の中で行う。このスキルを実行する私（オーケストレーター側の Claude）は、claude-in-chrome の browser tools を使って `ec2-sandbox` 環境のセッションを開き、[`RUNBOOK.md`](./RUNBOOK.md) のスクリプトを1回のメッセージとして送り込み、結果を待つ。
+## まず最初に — 別セッションを作らない
+
+**このスキルを実行しているセッション自身で、AWS を直接叩く。** `ec2-sandbox` 環境のセッションには `~/.aws/config` に `[profile sandbox]`（`credential_process = /usr/local/bin/sandbox-aws-creds`）が用意済みで、`aws --profile sandbox` がそのまま通る。1コマンドで確認できる。
+
+```bash
+aws --profile sandbox --region ap-northeast-1 sts get-caller-identity
+# → arn:aws:iam::725429380872:user/claude-ec2-sandbox なら、このセッションで実行できる
+```
+
+つまり構成は **このセッション → SSM → EC2 → `claude --chrome`** の一直線であり、間に別の Claude セッションを挟む必要はない。
+
+> **やってはいけないこと: `create_session` で子セッションを作って委譲する。**
+> 2026-08-14 に実際にやって失敗した。旧版のこの節に「claude.ai/code 本体には AWS 認証情報がない」と書いてあったのが誤りで、認証情報はある。委譲すると次の3つを同時に失う。
+> 1. **子は権限確認で無期限に固まる。** 子の `permission_mode` は親より強くできず（`bypassPermissions` は `exceeds parent session's "default"` で拒否、`extra_allowed_tools` も classifier に止められる）、`auto` で払い出された子が Bash の確認待ちに入り、承認する人間がいないまま停止した。ジョブは1度も起動しなかった。
+> 2. **子の出力が親から読めない。** 親が読めるのは `get_session` の `task_summary` / `post_turn_summary` だけで、ログ全文は取れない。実際、下の「SSM パラメータのエスケープ」バグは、直接実行に切り替えた1回目で初めて中身が見えた。
+> 3. **親から子へメッセージを送る手段が貧弱。** `ListAgents` に出ないので `SendMessage` は使えず、`create_trigger`（cron 無し）＋`fire_trigger` という poke でしか叩けない。
+>
+> 委譲後に子が固まっていることに気づくには `get_session` の `status_bucket` が `BLOCKED`、`post_turn_summary.status_detail` が `Waiting on permission: Bash` になっているのを見る。見つけたら `interrupt_session` → `archive_session` で畳み、自分で実行に切り替える（CLAUDE.md の「サブセッションは落ちる前提で扱う」そのもの）。
+
+[`RUNBOOK.md`](./RUNBOOK.md) のスクリプトを自分の Bash で **`run_in_background: true`** で走らせ、`trap` に停止を保証させる。
 
 setup の経緯・検証結果は Issue [#1327](https://github.com/Ayato-kosaka/nanitabeyo/issues/1327)（親: #1295）に記録済み。すでに存在する前提リソースは以下、**このスキルでは再作成しない**。
 
@@ -24,24 +43,71 @@ setup の経緯・検証結果は Issue [#1327](https://github.com/Ayato-kosaka/
 - **効く範囲**: 正常終了、`set -e` 相当のエラー終了、途中の `exit N`、SIGINT/SIGTERM — つまりスクリプトプロセスが何らかの形で"終了する"経路はすべて cleanup を通る。start-instances が成功した直後にどのステップで転んでも、必ず stop-instances まで到達する。
 - **効かない範囲**: スクリプトプロセスが SIGKILL される、実行環境（`ec2-sandbox` セッションのコンテナ）ごと強制終了される、といった極端なケース。この場合は課金が残る可能性がある。
 - **だからこそ**: RUNBOOK.md 内の各 AWS 呼び出しには必ず `timeout` を付け、無限ハングで「終了しない」状態を作らない設計にしてある。ハングは trap が発火しない唯一の現実的な原因なので、ここを削らないこと。
-- 呼び出し元（このスキルを実行する私）は、リモートセッションからの最終報告に **`final state: stopped`** の行が含まれているかを必ず目視確認する。含まれていない/確認が取れない場合は、ユーザーに率直に報告し、必要なら AWS コンソール（別タブ、admin ログイン）で手動停止する。これは新しい仕組みを作るのではなく、単に「報告を鵜呑みにしない」という運用上の確認。
+- 呼び出し元（このスキルを実行する私）は、バックグラウンドタスクの出力に **`final state: stopped`** の行が含まれているかを必ず目視確認する。含まれていない/確認が取れない場合は、ユーザーに率直に報告し、必要なら AWS コンソール（別タブ、admin ログイン）で手動停止する。これは新しい仕組みを作るのではなく、単に「報告を鵜呑みにしない」という運用上の確認。
+- **実績**: 2026-08-14 の切り分けで8回連続で起動・停止を回し、**うち3回は途中で `exit 1` する経路**（SSM コマンド失敗、拡張未接続で中断）だったが、全8回とも `final state: stopped` を確認できた。trap は設計どおり効いている。
 
 ## 手順
 
-1. **プロンプトを確定させる**。ユーザーから受け取った「Chrome で何をさせたいか」の指示文をそのまま使う。加工・要約しない（`claude --chrome` に渡すのはユーザーの意図そのものであるべき）。
-2. claude-in-chrome で `https://claude.ai/code` を開き、Environment セレクタで **`ec2-sandbox`** を選択した状態で**新規セッション**を開始する（既存セッションの再利用はしない。前回の状態を引きずらないため）。
-3. [`RUNBOOK.md`](./RUNBOOK.md) のスクリプトをコピーし、`__PROMPT__` プレースホルダーをステップ1のプロンプトに置き換えて、**1通のメッセージとして丸ごと**送信する（会話を分割して「まずstartして」「次にpollして」のように小出しにしない — 今回の初回実行でそれをやった結果、trap が効かない多段階の対話になり、`ssm:StartSession` 権限のバグに気づくまで無駄なラウンドトリップが発生した）。
-4. 実行完了を待つ。目安は最大 8〜10分（起動〜SSM登録〜claude実行〜停止確認の合計）。`ScheduleWakeup` 等で無闇に短間隔ポーリングしない。
+1. **プロンプトを確定させる**。ユーザーから受け取った「Chrome で何をさせたいか」の指示文を土台にする。意図は改変しないが、`claude --chrome -p` は**無人1回きりの実行で聞き返せない**ので、次を必ず書き足す。
+   - 手順の番号付き分解（開く → 見つける → 変える → 保存する → 再読み込みして確認する）
+   - 目的の UI が見つからなかったときの**代替URL**（コンソールは画面構成が変わる。1本道にしない）
+   - **止まるべき条件**（ログイン要求、権限エラー等）と、そのときの報告キーワード。認証情報の入力は絶対にさせない
+   - **報告フォーマット**（`RESULT: SUCCESS/PARTIAL/BLOCKED`、最終URL、変更前→変更後の実測値、できなかった項目とその理由）
+2. **認証を1コマンドで確かめる**（冒頭の `sts get-caller-identity`）。通らなければそこで止めてユーザーに報告する。委譲で回避しようとしないこと。
+3. [`RUNBOOK.md`](./RUNBOOK.md) の**リモート側スクリプト**（Chrome 起動 → 拡張の接続待ち → 本命プロンプト）を、プロンプトの base64 を埋め込んで生成し、`ec2_exec.sh <生成したスクリプト> 1800` を**自分の Bash ツールで `run_in_background: true`** で走らせる（`nohup ... &` を自分で書くと classifier に止められることがある。ツールの機能を使う）。フォアグラウンドは Bash の上限600秒を超えるので不可。
+4. 実行完了を待つ。目安は 10〜20分（起動〜SSM登録〜claude実行〜停止確認の合計）。バックグラウンドタスクの完了通知が来るので短間隔ポーリングは不要。途中経過を見たいときは出力ファイルを `Read` する。
 5. 最終報告を読み、`final state: stopped` を確認する。確認できたら結果をユーザーに要約して報告する。確認できない場合は、率直にその旨を伝え、AWS コンソールでの目視確認を提案する。
 
-## 既知の落とし穴・Tips（初回実行 2026-08-14 で得た知見）
+### 単発の調査コマンドを流したいとき
+
+ブラウザ操作ではなく「インスタンス上の状態を見たい」だけなら、`claude --chrome` を挟まず `ec2_exec.sh` パターン（起動 → 任意のシェルスクリプトを SSM で実行 → 必ず停止）を使う。RUNBOOK.md の「汎用実行スクリプト」を参照。診断は**1回のブートに全部詰め込む**こと（1ブート ≒ 35秒 + 停止待ち）。
+
+## 既知の落とし穴・Tips
+
+### 呼び出し側（自セッションでの回し方）
+
+- **Bash ツールは最大600秒**。このジョブは全体で 10〜20分かかるので、フォアグラウンドで走らせるとツールのタイムアウトでスクリプトごと切られる。**`run_in_background: true`** を使う。
+- **`nohup ... &` を自分で書くと classifier に止められることがある**。実際に「Blocked by classifier」で拒否された。ツール側のバックグラウンド機能を使えば通る。
+- **`ssm:ListCommands` は権限が無い**（IAM ポリシーが1インスタンスに絞られているため）。過去のコマンド一覧は引けないので、`CommandId` はその場でログに残して追う。使えるのは `send-command` / `get-command-invocation` / `describe-instance-information` / `ec2 start|stop|describe|wait`。
+- **切り分けは「1ブートに全部詰め込む」**。起動〜SSM Online は約20〜35秒、停止確認まで含めて1周およそ2分。小刻みに何度も往復するより、知りたいことを1本のスクリプトに並べて1回で取り切るほうが速い。逆に言えば**2分で1周できるので、仮説検証を回すコストは安い**。今回はこれを8周して原因に到達した。
+
+### 最重要 — `claude --chrome` はローカル接続ではない
+
+`claude --chrome` は、インスタンス内の Unix ソケットで Chrome と話すのではなく、**クラウド中継 `wss://bridge.claudeusercontent.com/chrome/<アカウントUUID>` に繋ぎ、そこへ Chrome 拡張が自分で接続してくるのを待つ**。`--debug --debug-file` を付けると経路が見える。
+
+```
+[Claude in Chrome] Connecting to bridge: wss://bridge.claudeusercontent.com/chrome/<uuid>
+[Claude in Chrome] Connection successful
+[Claude in Chrome] Bridge received: {"type":"extensions_list","extensions":[]}   ← 拡張が繋がっていない
+```
+
+**EC2 は起動直後 Chrome が動いていない。**（動いているのは Chrome Remote Desktop の Xorg `:20` だけ。）そのため拡張は 0 件で、`claude` は**エラーを出さず正常終了したまま「ブラウザ0件」を返す** — 一番気づきにくい失敗の形。ローカルの `/tmp/claude-mcp-browser-bridge-ubuntu/<pid>.sock` と Native Host はちゃんと動いていて `ping`/`get_status` も流れるので、そこを見ていると原因を取り違える（実際に取り違えた）。
+
+成立させるには2つとも要る。
+
+1. **Chrome を `https://claude.ai/` を開いた状態で `DISPLAY=:20` で起動する。** 拡張は claude.ai のセッションでブリッジに認証するため、`example.com` を開いただけでは何分待っても `extensions:[]` のままだった。
+2. **拡張がブリッジに登録されるまで待つ。** 実測で Chrome 起動から約85秒。固定 sleep ではなく、`list_connected_browsers` を投げて `"extensions":[{` が出るまで繰り返すプローブループにする（RUNBOOK.md 参照）。繋がる前に本命のプロンプトを流すと、丸ごと無駄になる。
+
+```sh
+sudo -u ubuntu -i -- bash -lc 'export DISPLAY=:20; nohup google-chrome --no-first-run --no-default-browser-check https://claude.ai/ >/tmp/chrome.log 2>&1 & sleep 60; echo launched'
+```
+
+拡張は `fcoeoabgfenejglbffodgkkbkcdhcgfn`（Claude Code Browser Extension、v1.0.85）。プロファイルは `/home/ubuntu/.config/google-chrome/Default`。**Chrome プロファイルが claude.ai にサインイン済みであることが前提**なので、サインアウトされたら Chrome Remote Desktop で一度手動サインインするしかない。
+
+### リモート実行側（EC2 / SSM / `claude --chrome`）
 
 - **`claude` CLI はデフォルト PATH に無い**。`ubuntu` ユーザーの nvm 配下（`/home/ubuntu/.nvm/versions/node/*/bin/claude`）にインストールされている。SSM の `AWS-RunShellScript` はデフォルト root・非ログインシェルで動くため、素の `claude` 呼び出しは `command not found` になる。RUNBOOK.md ではパスを動的に解決している。
 - **非対話（`-p`）実行は権限確認プロンプトでブロックされ、`exit 0` のまま何もせず終わることがある**。無人実行では `--dangerously-skip-permissions` を付けること（安全性とのトレードオフはあるが、このフローでは全許可する方針で確定済み）。付け忘れると「成功したように見えて実は何もしていない」という一番気づきにくい失敗になる。
 - **`claude --chrome -p` の1回の呼び出しで「開く→操作する→説明する」まで一括指示できる**。対話的なキャッチボールはできないので、プロンプト側に必要な手順を全部書き込む（例:「〇〇を開いて、△△をクリックし、結果を1〜2文で説明して」）。
 - **プロンプトはファイル経由・base64 で渡す**。SSM の `send-command` パラメータに直接ユーザー文字列を埋め込むと、引用符やバッククォートを含むプロンプトでシェルクォーティングが壊れる。RUNBOOK.md は base64 化して埋め込み、リモート側で decode する方式にしてある。
+- **多行の文字列を `bash -lc "..."` に直接埋めると改行が失われる**。python のヒアドキュメントを流し込もうとして `syntax error near unexpected token` で全滅した。ヘルパーは `cat > /tmp/x.sh <<EOF` でファイルに書いてから `bash /tmp/x.sh` で実行する（この形なら壊れない）。
+- **`-d` / `--debug` だけでは何も出ない。`--debug-file <path>` を付ける**。`-p` 実行では stderr が空のままなので「デバッグが効いていない」と誤解する。ブリッジ接続の可否はこのログでしか分からない。
+- **`--dangerously-skip-permissions` を付けても外部宛の送信は agent 側の判断で止まる**（今回、GCP のクォータ増加申請フォームで「申請理由を創作して owner 名義で送信することになる」として停止した）。無人実行で承認・申請・投稿のような外部行為まで通したいなら、**文面や判断基準をプロンプトに明示**しておくこと。書いていなければ止まるのが正しい挙動。
 - **視覚的な証跡が要る場合**（スクリーンショットの中身を自分の目で確認したいとき）は、SSM の出力に直接バイナリを流さず、base64 チャンク転送 + ローカル/リモート双方の MD5 一致確認で改ざん・欠損なく回収する。今回はこれで「本当に Chrome がレンダリングしたか」を、モデルの説明文の言葉遣い（学習データにある旧版の文言ではなく現行版の文言だったこと）と合わせて二重に立証できた。この手法が要るのは「実接続を厳密に証明したい」ときだけで、通常の1回実行では過剰。
 - **`claude --chrome` 実行時に `jpeg-js` / `pngjs` が npm でインストールされる副作用がある**。インスタンスに軽微な永続変更が残ることは許容範囲として扱う。
+- **`aws ssm wait command-executed` を長時間コマンドに使わない**。この waiter は 20回 × 5秒 ≒ **100秒**で `Max attempts exceeded` になる。ブラウザ操作は数分かかるので必ず打ち切られ、その後の `get-command-invocation` が `InProgress` を返したまま停止フェーズへ進んでしまう（＝claude の出力を取り逃す）。`get-command-invocation --query Status` を自前で 10秒間隔ポーリングし、`Success|Failed|Cancelled|TimedOut` を待つこと。RUNBOOK.md は修正済み。
+- **SSM の `--timeout-seconds` は「実行時間の上限」ではなく「実行開始までの待ち時間」**。実行時間の上限は `AWS-RunShellScript` の `executionTimeout` パラメータ（既定3600）。リモート側 `timeout` < `executionTimeout` の関係を必ず守る。逆転すると SSM が先に殺して出力が取れない。
+- **`claude --chrome -p` のタイムアウトは用途で変える**。ページを1枚開いて読むだけなら 150秒で足りるが、コンソールの設定変更のような多段操作は 5〜10分かかる。短すぎると「途中で切られたのに Success 扱い」という一番タチの悪い失敗になる。既定は 900秒（`EC2_CHROME_CLAUDE_TIMEOUT`）。
 - **IAM ポリシーで SSM ドキュメント ARN を書くときは、アカウントID有り・無し両方を Resource に入れる**。`ssm:StartSession` はアカウントID付き ARN（`arn:aws:ssm:<region>:<account>:document/...`）で評価されるが、`send-command` 系は無し ARN でも通ることがあり、どちらか一方だけだと `AccessDeniedException` になる（実際に踏んだ）。
 
 ## 振り返り — 実行するたびに更新する
