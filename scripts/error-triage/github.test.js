@@ -14,7 +14,7 @@
 const existingIssues = require("./__fixtures__/existing-issues.json");
 const rows = require("./__fixtures__/bq-rows.json");
 const runSummary = require("./__fixtures__/run-summary.json");
-const { PARENT_ISSUE_NUMBER, SKIP_LABEL, TRIAGE_LABEL } = require("./constants");
+const { FP_ALGO_VERSION, PARENT_ISSUE_NUMBER, SKIP_LABEL, TRIAGE_LABEL } = require("./constants");
 const {
 	GitHubApiError,
 	applyPlan,
@@ -39,9 +39,9 @@ const QUERY = { estimatedBytes: 665800, maxBytesBilled: 200000000, totalRows: 7 
 /** fixture の各行がどの fingerprint になるかは triage.test.js と同じ（1行 ⇔ 1グループ）。 */
 const FP = Object.freeze({
 	openBackend: "799742528a3a", // #1201 open        → noop-open（body 更新の候補）
-	regression: "dae4acba0ed1", // #1202 closed(completed) → 回帰
+	regression: "4faaf5be346b", // #1202 closed(completed) → 回帰
 	skipped: "b44a1734803c", // #1203 err/skip     → 恒久無視（API コール0）
-	unknown: "e3b6df34de55", // 索引に無い          → 新規起票
+	unknown: "77016f1e5b17", // 索引に無い          → 新規起票
 	cooldown: "297b01d8b53f", // #1204 closed 直後   → 猶予内なので reopen しない
 	wontfix: "c0f546d23818", // #1205 not_planned    → reopen しない。body だけ更新
 });
@@ -344,7 +344,7 @@ describe("applyPlan: 状態遷移ごとの書き込み", () => {
 		expect(posts).toHaveLength(1);
 		expect(posts[0].body.labels).toEqual([TRIAGE_LABEL]);
 		expect(posts[0].body.body).toContain(`<!-- fp:${FP.unknown} -->`);
-		expect(posts[0].body.body).toContain("<!-- fpalgo:1 -->");
+		expect(posts[0].body.body).toContain(`<!-- fpalgo:${FP_ALGO_VERSION} -->`);
 		expect(posts[0].body.title).toContain(`(fp:${FP.unknown})`);
 	});
 
@@ -497,7 +497,7 @@ describe("冪等性", () => {
 			labels: [{ name: TRIAGE_LABEL }],
 			closed_at: null,
 			updated_at: GENERATED_AT,
-			body: `<!-- fp:${FP.unknown} -->\n<!-- fpalgo:1 -->`,
+			body: `<!-- fp:${FP.unknown} -->\n<!-- fpalgo:${FP_ALGO_VERSION} -->`,
 		});
 
 		const applyResult = await applyPlan({
@@ -552,8 +552,8 @@ describe("冪等性", () => {
 	test("起票が本当に失敗したら、その run では起票を打ち切って失敗として記録する", async () => {
 		const many = [
 			...rows,
-			{ ...rows[3], groupKey: { ...rows[3].groupKey, pathName: "/ja/another" } },
-			{ ...rows[3], groupKey: { ...rows[3].groupKey, pathName: "/ja/yet-another" } },
+			{ ...rows[3], groupKey: { ...rows[3].groupKey, pathName: "/another" } },
+			{ ...rows[3], groupKey: { ...rows[3].groupKey, pathName: "/yet-another" } },
 		];
 		const envelope = buildEnvelope({
 			rows: many,
@@ -600,7 +600,7 @@ describe("冪等性", () => {
 
 	test("fpalgo が既存 Issue と食い違ったら1バイトも書かない（#1198 §8-A）", async () => {
 		const issues = existingIssues.map((issue) =>
-			issue.number === 1201 ? { ...issue, body: String(issue.body).replace("fpalgo:1", "fpalgo:2") } : issue,
+			issue.number === 1201 ? { ...issue, body: String(issue.body).replace("fpalgo:2", "fpalgo:99") } : issue,
 		);
 		const fetchImpl = makeServer({ issues, subIssues: linkedSubIssues() });
 		const { plan, applyResult } = await runApply({ fetchImpl });

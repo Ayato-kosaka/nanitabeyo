@@ -1,0 +1,9 @@
+# Public dish-related X (Twitter) post URLs used for Embed feasibility PoC (issue #1273).
+# Discovered via web search on 2026-08-12. No account required, no media downloaded.
+# First three are official restaurant-brand accounts (restaurant-aware Route A example);
+# remaining are general/consumer posts (Route B example).
+https://x.com/mutenkurasushi/status/1707234985613447357
+https://x.com/kappasushi_jp/status/1658970659878502400
+https://x.com/hamasushi_jp/status/1745657674497483022
+https://x.com/jiro_kame/status/1645341149677371392
+https://x.com/rui_moulin2/status/2076222728387043819

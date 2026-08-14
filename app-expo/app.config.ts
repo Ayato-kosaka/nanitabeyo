@@ -50,6 +50,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		package: "com.nanitabeyo",
 		versionCode: 1,
 		adaptiveIcon: {
+			// Adaptive icon の前景は 108dp キャンバスのうち内側 72dp しか表示されず、さらにランチャーのマスク
+			// （円 / squircle）で切り抜かれる。icon.png（フチまで絵柄がある全面画像）をそのまま使うと端が欠けるため、
+			// adaptive-icon.png は絵柄をセーフゾーン（中央 68dp 相当の円）内に収めた専用アセットにしている。
+			// icon.png で置き換えないこと。
 			foregroundImage: "./assets/images/adaptive-icon.png",
 			backgroundColor: "#ffffff",
 		},

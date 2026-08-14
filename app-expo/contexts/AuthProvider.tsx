@@ -74,6 +74,17 @@ type AuthContextType = {
 	 * 未確定の間は描画を保留する / スケルトンを出す、という判断に使う。
 	 */
 	isAuthResolved: boolean;
+	/**
+	 * #1194 認証初期化の決着を «待つ»。既に決着していれば即座に解決する。
+	 *
+	 * `isAuthResolved` は render 時点のスナップショットなので、
+	 * 「コールバックの中で、いま決着しているか」を知りたい経路では使えない。
+	 * ディープリンクでの起動直後がまさにそれで、画面のマウントと認証初期化が競合する。
+	 *
+	 * @param timeoutMs 待つ上限。超えたら false（＝決着しなかった）
+	 * @returns 決着したか
+	 */
+	waitForAuthResolved: (timeoutMs?: number) => Promise<boolean>;
 	/** #1089 認証初期化が最終的に失敗している間だけ非 null。成功すると null に戻る */
 	authError: AuthFailure | null;
 	/** #1089 認証初期化をやり直す。429 のクールダウン中は、その時間を待ってから実行される */
@@ -96,6 +107,14 @@ type AuthContextType = {
 	handleOAuthResultUrl: (url?: string | null) => Promise<OAuthCallbackResult>;
 };
 
+/**
+ * #1194 認証初期化の決着を待つ上限（ms）。
+ *
+ * 匿名サインインは通常 1 秒以内に決着する。ここを長くしすぎると、認証が本当に壊れているときに
+ * 「操作しても何も起きない」時間が伸びるだけなので、`API_CALL_TIMEOUT_MS`(30s) より十分短くする。
+ */
+const AUTH_RESOLVE_WAIT_MS = 8_000;
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 /**
@@ -114,6 +133,52 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 	const sessionRef = useRef<Session | null>(null);
 	const getSession = useCallback(() => sessionRef.current, []);
 
+	/**
+	 * #1194 認証初期化の決着を待てるようにする deferred。
+	 *
+	 * ## なぜ要るのか（実機で踏んだ）
+	 * LINE から投票の共有リンクを開くと、**時々だけ**「結果を取得できませんでした」になり、
+	 * 再試行すると成功する、という報告があった。原因は起動直後の競合で、
+	 * 画面が `callBackend` を呼んだ時点ではまだ匿名セッションが載っていない。
+	 * `useAPICall` はトークンが無いと **待たずに即 throw** するため、
+	 * 「あと数百ミリ秒待てば成功する」ケースまで失敗にしていた。
+	 *
+	 * ⚠️ `isAuthResolved`（= `!loading`）では代用できない。あれは render 時点の値で、
+	 * コールバックのクロージャに焼き付いてしまう。「いま決着したか」を待つには
+	 * state ではなく **promise** が要る。
+	 */
+	const loadingRef = useRef(true);
+	const authResolvedDeferredRef = useRef<{ promise: Promise<void>; resolve: () => void } | null>(null);
+	if (authResolvedDeferredRef.current === null) {
+		let resolveDeferred!: () => void;
+		const promise = new Promise<void>((resolve) => {
+			resolveDeferred = resolve;
+		});
+		authResolvedDeferredRef.current = { promise, resolve: resolveDeferred };
+	}
+
+	useEffect(() => {
+		loadingRef.current = loading;
+		// Promise は一度しか解決しないが、resolve の再呼び出しは無害（2 回目以降は無視される）
+		if (!loading) authResolvedDeferredRef.current?.resolve();
+	}, [loading]);
+
+	const waitForAuthResolved = useCallback(async (timeoutMs = AUTH_RESOLVE_WAIT_MS): Promise<boolean> => {
+		if (!loadingRef.current) return true;
+
+		let timer: ReturnType<typeof setTimeout> | undefined;
+		const timedOut = new Promise<false>((resolve) => {
+			timer = setTimeout(() => resolve(false), timeoutMs);
+		});
+		try {
+			// ⚠️ 上限を必ず付けること。認証初期化が失敗したまま loading が下りない実装に
+			// なった場合、上限が無いと **全 API 呼び出しが永久に待つ**
+			return await Promise.race([authResolvedDeferredRef.current!.promise.then(() => true as const), timedOut]);
+		} finally {
+			if (timer) clearTimeout(timer);
+		}
+	}, []);
+
 	// #1089 認証初期化の失敗と、そこからの復帰に必要な状態
 	const [authError, setAuthError] = useState<AuthFailure | null>(null);
 	const [isRetryingAuth, setIsRetryingAuth] = useState(false);
@@ -131,6 +196,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 	/** SIGNED_OUT 後の root 遷移。匿名セッションの再確立を開始してから実行する。 */
 	const signedOutNavigationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	/**
+	 * #1135 「今アプリに載っているセッションの世代」。`onAuthStateChange` が新しいセッションを
+	 * 載せるたびに 1 つ進む。認証初期化（runAuthAttempt）は await をまたぐ前にこの値を控え、
+	 * 書き戻す直前に変わっていないことを確認する。
+	 *
+	 * なぜ必要か:
+	 * GoTrueClient._acquireLock はロック保持中に来た呼び出しを pendingInLock へ積み、
+	 * **外側の保持者はそれを drain し終わるまで解決しない**（@supabase/auth-js GoTrueClient.js:1123-1129）。
+	 * そのため Web の OAuth コールバックでは、`getSession()` が «交換前» の匿名セッションを読んだまま、
+	 * `exchangeCodeForSession()` が終わった «後» に解決する。その戻り値を無条件に書き戻すと、
+	 * 確立済みの OAuth セッションを匿名ユーザーへ巻き戻してしまう
+	 * （＝ localStorage は OAuth なのに画面はゲストのまま。「1 回目のログインで入れない」）。
+	 *
+	 * ⚠️ SIGNED_OUT では進めない。SIGNED_OUT 経路は「新しいセッションを載せる」のではなく
+	 *    «セッションを消して runAuthAttempt を予約し直す» 経路であり（#1124）、そこで世代を進めると
+	 *    予約された再認証が自分の書き戻しを取りこぼす方向へ効きうる。
+	 */
+	const sessionGenerationRef = useRef(0);
+	/**
 	 * 401 を受けたリクエストが、新しい access token で即時再試行できるようにする。
 	 * Supabase の自動更新は後続リクエストには効くが、既に失敗した通信は再送しないため、
 	 * 更新済み Session を呼び出し元へ返しつつ、同期参照する sessionRef も先に更新する。
@@ -143,6 +226,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 		if (refreshedSession) {
 			sessionRef.current = refreshedSession;
 			setUser(refreshedSession.user);
+			// #1135 sessionRef を直接書く経路なので、ここでも世代を進める。
+			// （refreshSession() は TOKEN_REFRESHED も発火させるため二重に進みうるが、
+			//   判定は「変化したか」だけなので問題にならない）
+			sessionGenerationRef.current += 1;
 		}
 
 		return refreshedSession;
@@ -188,6 +275,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 			isAuthenticatingRef.current = true;
 
+			// #1135 これ以降の await をまたいで「その間に新しいセッションが載ったか」を判定するための基準。
+			// 必ず最初の await より前で控えること（injectTestSession / getSession の最中こそが競合ウィンドウ）。
+			const generation = sessionGenerationRef.current;
+			/** #1135 この試行を始めてから、別経路（OAuth の code 交換など）が新しいセッションを載せたか */
+			const hasNewerSession = () => sessionGenerationRef.current !== generation;
+
 			try {
 				// #1030 【設計】E2E(Detox) 実行時のみ、起動引数で渡されたセッションを注入して匿名サインインを回避する
 				//（Supabase の匿名サインインは 30 回/時/IP 制限があり、dev/prod で同一プロジェクトを共有しているため）。
@@ -203,19 +296,44 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 				const restoredSession = sessionData?.session;
 
 				if (restoredSession) {
-					await supabase.auth.setSession({
-						access_token: restoredSession.access_token,
-						refresh_token: restoredSession.refresh_token,
-					});
+					// #1135 【バグ】以前はここで `supabase.auth.setSession({ access_token, refresh_token })` を
+					// await していたが、これは冗長なうえに有害だった。
+					// - 冗長: `getSession()` が既に storage からの復元（必要ならリフレッシュ）まで済ませている。
+					// - 有害: `_setSession` は `GET /auth/v1/user` を 1 往復叩いてから `_saveSession` +
+					//   `_notifyAllSubscribers('SIGNED_IN')` する（GoTrueClient.js:1344-1390）。
+					//   その往復時間がまるごと競合ウィンドウになり、Web の OAuth コールバックでは
+					//   `exchangeCodeForSession()` がそこへ着地して、下の書き戻しが必ず後勝ちしていた。
+					//   さらに `_saveSession` により **storage 上の OAuth セッションまで匿名で上書き** されうる。
+					// `sessionRestored` ログ・`sessionRef` 更新・`setUser` は下にそのまま残している。
+					if (hasNewerSession()) {
+						// #1135 読み取りの最中に別経路が新しいセッションを載せた（Web の OAuth code 交換など）。
+						// 古い読み取り結果で巻き戻さない。state は onAuthStateChange 側で既に更新済みなので、
+						// 「認証が確立している」という事後条件はここで何もしなくても満たされる。
+						logFrontendEvent({
+							event_name: "sessionRestoreSuperseded",
+							error_level: "log",
+							payload: { stale_user_id: restoredSession.user.id, current_user_id: sessionRef.current?.user.id },
+						});
+					} else {
+						logFrontendEvent({
+							event_name: "sessionRestored",
+							error_level: "log",
+							payload: { user_id: restoredSession.user.id },
+						});
 
+						sessionRef.current = restoredSession;
+						setUser(restoredSession.user);
+					}
+				} else if (hasNewerSession()) {
+					// #1135 セッションが無いと «読んだ» 後に、別経路が新しいセッションを載せた場合。
+					// ここで匿名サインインを叩くと `_saveSession` が storage 上の OAuth セッションを
+					// 完全に潰す（React state だけの巻き戻しより重い破壊になる）ため、絶対に叩かない。
+					// 事後条件は onAuthStateChange 側の setUser で満たされている。
 					logFrontendEvent({
-						event_name: "sessionRestored",
+						event_name: "anonymousSignInSuperseded",
 						error_level: "log",
-						payload: { user_id: restoredSession.user.id },
+						payload: { current_user_id: sessionRef.current?.user.id },
 					});
-
-					sessionRef.current = restoredSession;
-					setUser(restoredSession.user);
 				} else {
 					// #1089 匿名サインインはオフラインや 5xx といった一時的な理由で簡単に落ちるため、有限回リトライする。
 					// ⚠️ 429（レート制限）はここではリトライしない（isRetryableAuthError が false を返す）。
@@ -246,8 +364,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 						payload: { user_id: anonSession.user.id },
 					});
 
-					sessionRef.current = anonSession;
-					setUser(anonSession.user);
+					// #1135 匿名サインインの await をまたぐ区間も、別経路が載せたセッションを巻き戻さない。
+					// `getSession()` が «code 交換が始まる前» に「セッション無し」で解決すると、上の
+					// hasNewerSession() 分岐は素通りする。その後この await の最中に
+					//   1. 匿名サインインが `_saveSession` → SIGNED_IN(匿名)
+					//   2. pendingInLock の `exchangeCodeForSession()` が完了 → SIGNED_IN(OAuth)
+					// の順で流れると、無条件の書き戻しは確立済みの OAuth セッションを匿名へ巻き戻す
+					// （storage は OAuth のまま = 本 Issue と同型の症状）。
+					//
+					// ⚠️ ここを世代カウンタ（hasNewerSession）で守ることはできない。1 の SIGNED_IN でも
+					//    世代は進むため、「自分が作った匿名セッション」と「別経路のセッション」を区別できず、
+					//    競合が無い正常な匿名サインインまで書き戻しをスキップして user=null で固着する。
+					//    そこで «今 sessionRef に載っているのが自分以外のセッションか» を同一性で判定する。
+					const currentSession = sessionRef.current;
+					if (currentSession && currentSession.access_token !== anonSession.access_token) {
+						// 別経路が先にセッションを確立していた。state は onAuthStateChange 側で更新済みなので、
+						// 「認証が確立している」という事後条件はここで何もしなくても満たされる。
+						// （作ってしまった匿名ユーザーは storage 上も既に上書きされている＝ auth-js の管理下。
+						//   ここで消しに行くと確立済みセッションを触ることになるため、記録だけに留める）
+						logFrontendEvent({
+							event_name: "anonymousSignInDiscarded",
+							error_level: "log",
+							payload: { stale_user_id: anonSession.user.id, current_user_id: currentSession.user.id },
+						});
+					} else {
+						sessionRef.current = anonSession;
+						setUser(anonSession.user);
+					}
 				}
 
 				nextAttemptAllowedAtRef.current = 0;
@@ -368,6 +511,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 				}
 				setUser(session.user);
 				sessionRef.current = session;
+				// #1135 新しいセッションを載せた。実行中の認証初期化が、これより前に読んだ古いセッションで
+				// 巻き戻すのを防ぐ（runAuthAttempt の hasNewerSession() が見る）。
+				sessionGenerationRef.current += 1;
 				// router.replace('/');
 			} else if (event === "SIGNED_OUT") {
 				sessionRef.current = null;
@@ -433,6 +579,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 				if (!session) return;
 				setUser(session.user);
 				sessionRef.current = session;
+				// #1135 SIGNED_IN と同じ理由で世代を進める（リフレッシュ済みトークンを古い値で潰さない）
+				sessionGenerationRef.current += 1;
 			} else if (event === "USER_UPDATED") {
 				// setUser(session.user);
 				// setSession(session);
@@ -679,6 +827,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 			refreshSession,
 			loading,
 			isAuthResolved: !loading,
+			waitForAuthResolved,
 			authError,
 			retryAuth,
 			isRetryingAuth,
@@ -696,6 +845,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 			getSession,
 			refreshSession,
 			loading,
+			waitForAuthResolved,
 			authError,
 			retryAuth,
 			isRetryingAuth,

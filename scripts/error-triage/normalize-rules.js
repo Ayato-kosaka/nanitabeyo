@@ -299,6 +299,114 @@ const NORMALIZE_RULES = Object.freeze(
 const RULES_BY_NAME = Object.freeze(Object.fromEntries(NORMALIZE_RULES.map((rule) => [rule.name, rule])));
 
 // ---------------------------------------------------------------------------
+// pathName 専用の後段ルール — 先頭ロケールを剥がす（#1196 CLUSTERING.md 類型1 / fpalgo 2）
+// ---------------------------------------------------------------------------
+//
+// なぜ NORMALIZE_RULES に入れないのか:
+//   NORMALIZE_RULES は messagePattern / pathName / route(fe) / route(be) / endpoint の
+//   **5スロット全部**に同じ式が掛かる（sql-generator.js の UNNEST + WITH OFFSET）。
+//   ロケール剥がしは `pathName`（＝ app-expo の画面パス）にだけ意味があり、
+//   backend の route（`/v<n>/dishes/bulk-import`）や external の endpoint へ掛けると
+//   別物を潰しかねない。**掛ける対象を絞るために別の表**にする。
+//
+// なぜ NORMALIZE_RULES の**あと**に掛けるのか（順序は逆にしない）:
+//   旧 fingerprint（fpalgo 1）の pathName は `normalize(raw)` そのものだった。
+//   ロケール剥がしを normalize の**後**に置けば
+//       v1 の pathName = '/' + localeTag + (v2 の pathName === '/' ? '' : v2 の pathName)
+//   が**厳密に**成り立ち、v2 の出力だけから v1 の fingerprint を復元できる（＝移行できる）。
+//   先に剥がすと、後段の切り出し（SUBSTR 200文字）がロケールの有無で違う位置を切るため
+//   この等式が壊れ、既存 Issue との突合が復元不能になる。
+//
+// この順序の帰結として、**入力は既に normalize 済み**である。つまり数値ルール（ルール9）が
+// 先に効いているので、UN M.49 の数値リージョン `es-419` は `es-<n>` の形で到達する。
+// ロケールの文法にリテラル `<n>` を含めているのはそのため。
+//
+// ★ app-expo のルーティング（`app-expo/app/[locale]/…`）を確認した結果:
+//   - 画面は**全て** `app/[locale]/` 配下にある。したがって path_name の第1セグメントは
+//     原則としてロケール。例外は root（`/`）と `app/store.tsx`（`/store`）だけ。
+//   - 実データには `[locale]` が**未解決のまま**載ったパスが実在する
+//     （`/es-ES/[locale]/contribution-tasks/…`）。同じ画面なので同じく剥がす。
+//   - 剥がしすぎの実害を避けるため、**素の3文字言語タグ（`fil` 等）は剥がさない**。
+//     `app/[locale]/(tabs)/map.tsx` の `map` が「3文字の小文字」に当たるので、
+//     これを許すと `/ja-JP/map` → `/map` → `/` と2段で画面名まで消える（＝冪等でなくなる）。
+//     素で許すのは2文字言語タグだけにし、3文字はリージョン/スクリプト付きのみ許す。
+//     ルート配下に「ちょうど2文字の小文字」セグメントは1つも無いので、これは安全側。
+
+/**
+ * ロケール1セグメントの文法（BCP-47 の先頭部分の**保守的な部分集合**）。
+ *
+ * 受け付ける形:
+ *   `ja` `en`                        … 2文字言語タグ（素で許すのはここだけ）
+ *   `ja-JP` `en-IE` `fil-PH`         … 言語 + 2文字リージョン
+ *   `es-<n>`                         … 言語 + 数値リージョン（`es-419` がルール9 を通った姿）
+ *   `zh-Hant` `zh-Hant-TW`           … 言語 + スクリプト（+ リージョン）
+ *   `[locale]`                       … expo-router の未解決の動的セグメント
+ *
+ * 受け付けない形（＝剥がさない）:
+ *   `map` `food` `post` `auth` `store` … 実在する画面名。3文字素通しを許さないので当たらない
+ *   `ja-jp` `JA-JP`                    … 正準でない大小文字。畳み損ねるだけで壊さない（安全側）
+ *
+ * ASCII だけで構成されるので JS 表記と RE2 表記は同一。
+ */
+const LOCALE_SEGMENT_PATTERN =
+	"(?:[a-z]{2,3}(?:-[A-Z][a-z]{3})?-(?:[A-Z]{2}|<n>)|[a-z]{2,3}-[A-Z][a-z]{3}|[a-z]{2}|\\[locale\\])";
+
+/** ロケールの直後に続く、未解決の `[locale]` セグメントの繰り返し（`/es-ES/[locale]/…` 対策）。 */
+const LOCALE_TAIL_PATTERN = "(?:/\\[locale\\])*";
+
+/** 剥がす対象の先頭ロケール部（スラッシュを除いた本体）。 */
+const LOCALE_PREFIX_PATTERN = `${LOCALE_SEGMENT_PATTERN}${LOCALE_TAIL_PATTERN}`;
+
+/**
+ * pathName の先頭ロケールを剥がす置換ルール（適用順）。
+ *
+ * 2本に分けてあるのは、置換文字列に後方参照を使わない（RE2 / JS の方言差を持ち込まない）ため。
+ * 「ロケール + `/`」と「ロケールだけ（＝パスがロケールで終わる）」を別のルールにすれば
+ * どちらも置換後は `/` 固定になり、後方参照が要らない。
+ *
+ * 順序も重要で、先に**接頭辞**（末尾に `/` があるもの）を処理する。
+ * 逆にすると `/ja-JP/map` に対して「全体がロケール列」の解釈を試すことになり、
+ * `map` を巻き込む余地が生まれる。
+ *
+ * @type {ReadonlyArray<{id:number,name:string,pattern:string,re2Pattern:string,replacement:string,why:string}>}
+ */
+const PATH_LOCALE_RULES = Object.freeze(
+	[
+		{
+			id: 0,
+			name: "path-locale-prefix",
+			pattern: `^/${LOCALE_PREFIX_PATTERN}/`,
+			replacement: "/",
+			why: "`/ja-JP/search/result` と `/en-US/search/result` を同じ画面として畳む（CLUSTERING.md 類型1）",
+		},
+		{
+			id: 1,
+			name: "path-locale-only",
+			pattern: `^/${LOCALE_PREFIX_PATTERN}$`,
+			replacement: "/",
+			why: "`/ja-JP` `/ja` `/en-US`（ロケールだけのパス＝トップ画面）を `/` に畳む",
+		},
+	].map((rule) => Object.freeze({ ...rule, re2Pattern: rule.re2Pattern ?? rule.pattern })),
+);
+
+/**
+ * 剥がしたロケール部を取り出す正規表現（`localeCounts` の集計キー）。
+ *
+ * 捕獲するのは**剥がした部分そのもの**（`ja-JP` / `[locale]` / `es-ES/[locale]`）。
+ * 「どのロケールで何件出ているか」を Issue 本文へ残すためと、
+ * v1 fingerprint を復元して既存 Issue と突合するための2用途がある。
+ * 捕獲グループは RE2 / JS 双方にあるので使ってよい（禁止しているのは**後方参照**）。
+ */
+const PATH_LOCALE_EXTRACT = Object.freeze({
+	name: "path-locale-extract",
+	pattern: `^/(${LOCALE_PREFIX_PATTERN})(?:/|$)`,
+	re2Pattern: `^/(${LOCALE_PREFIX_PATTERN})(?:/|$)`,
+	why: "ロケール内訳（localeCounts）と、旧 fingerprint 復元のためのロケール名",
+});
+
+// 実装（stripPathLocale / extractPathLocale / …）は normalize() のあとに置く。
+
+// ---------------------------------------------------------------------------
 // 置換ルールのあとに掛ける後処理（S-1: これも「唯一の正」に含める）
 // ---------------------------------------------------------------------------
 
@@ -433,6 +541,74 @@ const isNormalized = (value) => {
 	return normalize(value) === String(value);
 };
 
+// ---------------------------------------------------------------------------
+// pathName 専用ルールの実装（表は上の PATH_LOCALE_RULES / PATH_LOCALE_EXTRACT）
+// ---------------------------------------------------------------------------
+
+/**
+ * pathName から先頭ロケールを剥がす。**入力は normalize() 済みであることが前提**。
+ *
+ * @param {string|null|undefined} value
+ * @returns {string|null}
+ */
+const stripPathLocale = (value) => {
+	if (value === null || value === undefined) return null;
+	let out = String(value);
+	for (const rule of PATH_LOCALE_RULES) {
+		out = out.replace(compileRule(rule), rule.replacement);
+	}
+	return out;
+};
+
+/**
+ * pathName の先頭ロケール部を取り出す。ロケールが無ければ null。
+ *
+ * @param {string|null|undefined} value
+ * @returns {string|null}
+ */
+const extractPathLocale = (value) => {
+	if (value === null || value === undefined) return null;
+	const matched = new RegExp(PATH_LOCALE_EXTRACT.pattern).exec(String(value));
+	return matched ? matched[1] : null;
+};
+
+/**
+ * ロケール部と剥がしたあとの pathName から、剥がす前の pathName を**厳密に**復元する。
+ *
+ * 移行（fpalgo 1 → 2）の要。`stripPathLocale` の逆写像であることを
+ * テストが往復で検査する（path-locale.test.js）。
+ *
+ * @param {string|null|undefined} locale 例 `ja-JP` / `[locale]` / `es-ES/[locale]`
+ * @param {string|null|undefined} strippedPathName 例 `/search/result` / `/`
+ * @returns {string|null} 例 `/ja-JP/search/result` / `/ja-JP`
+ */
+const restorePathLocale = (locale, strippedPathName) => {
+	if (locale === null || locale === undefined || locale === "") return strippedPathName ?? null;
+	const rest = strippedPathName === null || strippedPathName === undefined ? "" : String(strippedPathName);
+	return `/${locale}${rest === "/" ? "" : rest}`;
+};
+
+/**
+ * pathName 用の完全な正規化（SQL 側の `keyPathName` と等価）。
+ *
+ * `normalize()` → 先頭ロケール剥がし、の順。順序の理由は PATH_LOCALE_RULES のコメントを参照。
+ *
+ * @param {string|null|undefined} value
+ * @returns {string|null}
+ */
+const normalizePathName = (value) => stripPathLocale(normalize(value));
+
+/**
+ * 先頭ロケールが既に剥がされているか（＝もう一度剥がしても変わらないか）。
+ *
+ * @param {string|null|undefined} value
+ * @returns {boolean}
+ */
+const isPathLocaleStripped = (value) => {
+	if (value === null || value === undefined) return true;
+	return stripPathLocale(value) === String(value);
+};
+
 module.exports = Object.freeze({
 	OPAQUE_TOKEN_MIN_LENGTH,
 	WHITESPACE_CODE_POINTS,
@@ -442,6 +618,11 @@ module.exports = Object.freeze({
 	SQL_EXPR_PLACEHOLDER,
 	SQL_WHITESPACE_LITERAL,
 	RULES_BY_NAME,
+	LOCALE_SEGMENT_PATTERN,
+	LOCALE_TAIL_PATTERN,
+	LOCALE_PREFIX_PATTERN,
+	PATH_LOCALE_RULES,
+	PATH_LOCALE_EXTRACT,
 	buildCharClass,
 	buildOpaqueTokenPattern,
 	compileRule,
@@ -449,4 +630,9 @@ module.exports = Object.freeze({
 	truncateByCodePoints,
 	normalize,
 	isNormalized,
+	stripPathLocale,
+	extractPathLocale,
+	restorePathLocale,
+	normalizePathName,
+	isPathLocaleStripped,
 });

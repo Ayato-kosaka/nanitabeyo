@@ -98,6 +98,11 @@ export class SearchScreen {
 	readonly locationClearButton = by.id("search-location-autocomplete-clear");
 	/** 場所サジェストのリスト */
 	readonly locationSuggestions = by.id("search-location-autocomplete-suggestions");
+	/** 「最近使った場所」のリスト（#953。e2e-web の recentLocationsList に対応）。
+	 *  未入力でフォーカスしたときだけ描画される */
+	readonly recentLocationsList = by.id("search-location-autocomplete-recent-locations");
+	/** 「最近使った場所」を全件クリアするボタン（1件以上あるときだけ描画される） */
+	readonly recentLocationsClearButton = by.id("search-location-autocomplete-recent-locations-clear");
 	/** 入力欄右端の「現在地を使う」ボタン */
 	readonly currentLocationButton = by.id("search-current-location-button");
 
@@ -165,6 +170,11 @@ export class SearchScreen {
 	/** n 番目の場所サジェスト（0 始まり） */
 	locationSuggestion(index: number): Detox.NativeMatcher {
 		return by.id(`search-location-autocomplete-suggestion-${index}`);
+	}
+
+	/** n 番目の「最近使った場所」（0 始まり、先頭が最新） */
+	recentLocation(index: number): Detox.NativeMatcher {
+		return by.id(`search-location-autocomplete-recent-location-${index}`);
 	}
 
 	/** 時間帯グリッドの項目（id は app-expo/features/search/constants.ts の timeSlots の値） */
@@ -352,6 +362,80 @@ export class SearchScreen {
 		await tapWhenVisible(this.locationSuggestion(index));
 	}
 
+	/**
+<<<<<<< HEAD
+	 * 場所入力欄をタップしてフォーカスを与える（#528）。
+	 *
+	 * `typeLocation()` から入力操作だけを切り離したもの。`LocationAutocomplete` は
+	 * `showSuggestions = 入力あり && フォーカス中` で候補を出すため、**入力済みの文字列を消さずに
+	 * 候補パネルだけ開き直したい**ときに使う。
+	 */
+	async focusLocationInput(): Promise<void> {
+		await tapWhenVisible(this.locationInput);
+	}
+
+	/**
+	 * 場所入力欄の現在値を読む（#528）。
+	 *
+	 * ⚠️ **アサーションの主観測点にはしないこと。** Detox の `toHaveValue` / `toHaveText` は
+	 * TextInput に対する挙動がプラットフォームで揺れる（location-autocomplete.test.ts の
+	 * ヘッダに既に書いてあるとおり、既存 spec は「クリアボタンの有無」へ置き換えている）。
+	 * ここで `getAttributes()` を使うのは **「入力欄に何かが入った」ことを補助的に見る**ためで、
+	 * 「選択が成立した」の判定は検索が通ること（`submit()` 後に画面が進むこと）で行う。
+	 *
+	 * 戻り値の型が iOS / Android で分かれるため `text` だけを拾う形に絞る
+	 * （`readPreloadProbeDetail()` / ResultScreen.ts の読み取りと同じ扱い）。
+	 *
+	 * @returns 入力欄のテキスト。読めなかった場合は空文字
+	 */
+	async readLocationInputText(): Promise<string> {
+		try {
+			const attributes = (await element(this.locationInput).getAttributes()) as { text?: string };
+			return attributes.text ?? "";
+		} catch {
+			// 「まだ描画されていない」「属性を読めない」はどちらも空扱いにする。
+			// 呼び出し側は「空でないこと」を見るため、読めなければ素直に失敗すればよい
+			return "";
+		}
+	}
+
+	/**
+	 * 場所入力欄のリターンキーを押してキーボードを閉じる（#528 / ベストエフォート）。
+	 *
+	 * `clearLocationIfPresent()` が内部で使っているものと同じ操作を spec から呼べるようにしたもの。
+	 * Detox にプラットフォーム共通の「キーボードを閉じる」API は無く、Android は IME 自体を
+	 * 無効化してある（scripts/setup-android-locale.sh）ためそもそもキーボードが出ない。
+	 * **失敗しても検証を止めない**（環境差で落ちても、その失敗は検証したい事実と無関係なため）。
+	 */
+	async dismissKeyboardIfOpen(): Promise<void> {
+		await this.dismissKeyboard();
+	}
+
+	/**
+	 * 「最近使った場所」パネルを表示する（e2e-web の openRecentLocations に対応）。
+	 *
+	 * `LocationAutocomplete` は「入力が空 && フォーカス中」のときだけこのパネルを出す
+	 * （showRecentLocations の条件）。`clearLocationIfPresent` はクリア後にリターンキーで
+	 * キーボードを閉じてしまう（= blur してパネルが閉じる）ため、そのあとで
+	 * 明示的に入力欄をタップし直してフォーカスを確定させる。
+	 */
+	async openRecentLocations(): Promise<void> {
+		await this.clearLocationIfPresent();
+		await tapWhenVisible(this.locationInput);
+		await waitUntilVisible(this.recentLocationsList);
+	}
+
+	/**
+	 * n 番目の「最近使った場所」の accessibilityLabel（= `RecentLocation.locationQuery`）を読み取る。
+	 *
+	 * 実 API の検索結果は地名も件数も事前に確定できないため、e2e-web のように入力欄の値を
+	 * 直接アサートするのではなく、ResultScreen の likeLabel と同じ「ラベルを読んで比較する」
+	 * 方式に倣う（値そのものではなく、選び直し前後で一致/変化したことを検証する）。
+	 */
+	async recentLocationLabel(index: number): Promise<string> {
+		return readLabel(this.recentLocation(index), 0);
+	}
+
 	/** 時間帯を選択する */
 	async selectTimeSlot(id: "morning" | "lunch" | "dinner" | "late_night"): Promise<void> {
 		await tapWhenVisible(this.timeSlot(id));
@@ -362,10 +446,55 @@ export class SearchScreen {
 		await tapWhenVisible(this.scene(id));
 	}
 
-	/** 詳細条件（距離・フードスタイル等）を展開する。画面外にある場合はスクロールしてから押す */
+	/**
+	 * 詳細条件（距離・フードスタイル等）を展開する。画面外にある場合はスクロールしてから押す。
+	 *
+	 * ⚠️ **まず先頭へ戻すこと。** `scrollUntilVisible` は «下方向» にしか送らないので、
+	 * 既に詳細条件より下まで進んでいる状態から呼ぶと永久に届かない。
+	 *
+	 * ## ここで 4 連続で赤くなった本当の理由（テストではなくアプリの不具合だった）
+	 * iOS で `Unable to scroll down ... does not pass visibility percent threshold (75)` が
+	 * 出続けた（run 31607285195 / 31624910689 / 31644130515 / 31675500414）。
+	 * 「スクロールが足りない」ではなく **どこまでスクロールしても届かない**状態だった:
+	 *
+	 * - 詳細条件トグルは検索フォームの **最後の要素**で、その下は 100px の余白と検索 FAB しかない
+	 * - つまりトグルが到達できる一番上の位置でも、画面の下から 150px 程度のところまでしか上がらない
+	 * - iOS のキーボードは画面に **覆いかぶさる**（Android の adjustResize と違い画面が縮まない）ので、
+	 *   下半分が潰れている間はトグルが可視領域に入る «スクロール量が存在しない»
+	 *
+	 * これは E2E だけの話ではなく、実ユーザーも同じ壁に当たる。現在地の取得に失敗すると
+	 * `LocationAutocomplete` が手入力へ誘導するため自動で `focus()` する（#932）ので、
+	 * 「自分では何も触っていないのに詳細条件が押せない」という詰みが起きていた。
+	 * 直したのはアプリ側（search/index.tsx に `keyboardDismissMode="on-drag"`）で、
+	 * ドラッグすればキーボードが閉じる = スクロールすれば必ず届くようになった。
+	 */
 	async openAdvancedFilters(): Promise<void> {
-		await this.scrollUntilVisible(this.advancedToggle);
-		await tapWhenVisible(this.advancedToggle);
+		// アプリ側の `keyboardDismissMode="on-drag"` により、下の `scrollTo` / `scroll` が
+		// そのままキーボードを閉じる。それでも明示的に閉じておくのは、
+		// **キーボードが «あとから開き直る»** ため（現在地取得の失敗は非同期に来る。#932）。
+		// 「閉じる → スクロールして探す」を 1 回だけやると、その間に開き直されて詰む可能性が残る。
+		const ATTEMPTS = 3;
+		for (let attempt = 1; attempt <= ATTEMPTS; attempt += 1) {
+			await element(this.scrollView).scrollTo("top");
+			await this.dismissKeyboard();
+			try {
+				await this.scrollUntilVisible(this.advancedToggle);
+				await tapWhenVisible(this.advancedToggle);
+				return;
+			} catch (error) {
+				if (attempt === ATTEMPTS) {
+					throw new Error(
+						[
+							`詳細条件トグル（search-advanced-toggle）を ${ATTEMPTS} 回試しても押せませんでした。`,
+							"  ソフトキーボードがトグルを覆っている可能性が高いです（iOS では画面下半分を占有します）。",
+							"  トグルはフォームの最後の要素なので、覆われている間は «届くスクロール量が存在しません»。",
+							"  アプリ側の search/index.tsx から keyboardDismissMode が消えていないか確認してください。",
+							`  元の失敗: ${error instanceof Error ? error.message : String(error)}`,
+						].join("\n"),
+					);
+				}
+			}
+		}
 	}
 
 	/** おすすめ外の移動時間チップの開閉を切り替える。画面外にある場合はスクロールしてから押す */
@@ -503,6 +632,28 @@ export class SearchScreen {
 	 *
 	 * @param maxPages ページ送りの上限（無限ループ防止。現在のページ数は 4）
 	 */
+	/**
+	 * チュートリアルのシートが **まだ開いているか** を返す（連打テスト用）。
+	 *
+	 * ## なぜ «閉じていること» を失敗にできないのか
+	 * プライマリ CTA は単一ボタンで、最終ページでは「はじめよう」へ変わる。
+	 * ページは 4 枚しかないので `multiTap(3)` の 3 回目が
+	 * **最終ページの「はじめよう」に当たり得る**。その場合チュートリアルはその場で完了して閉じる。
+	 * つまり «連打後にシートが閉じている» のは **アプリが壊れた結果ではなく正常な結末**である。
+	 *
+	 * これを考慮せずに「連打後も CTA が見えていること」を要求すると、
+	 * アプリは正しいのに 25 秒のタイムアウトで落ちる（run 31684453333 の iOS で実測）。
+	 * 連打テストが守りたいのは「連打でシートやアプリが壊れないこと」なので、
+	 * 開いたままなら描画の健全性（CTA がちょうど一方だけ）を、閉じていれば
+	 * 検索画面が操作できることを見る、という 2 択にする。
+	 */
+	async tutorialStillOpen(): Promise<boolean> {
+		return (
+			(await visibleNow(this.tutorialNextButton, 3_000, SearchScreen.TUTORIAL_INDEX)) ||
+			(await visibleNow(this.tutorialFinishButton, 3_000, SearchScreen.TUTORIAL_INDEX))
+		);
+	}
+
 	async completeTutorial(maxPages = 10): Promise<void> {
 		await waitUntil(
 			async () =>
@@ -563,4 +714,16 @@ export class SearchScreen {
 			.whileElement(this.scrollView)
 			.scroll(pixels, "down", 0.5, 0.5);
 	}
+}
+
+/**
+ * 指定要素の accessibilityLabel を取得する（ResultScreen.ts の readLabel と同じ仕組み）。
+ *
+ * `getAttributes()` の戻り値は iOS / Android・単一 / 複数一致で型が分かれるが、
+ * `atIndex()` で 1 件に絞っているため `label` を持つ形にしかならない。
+ * 型定義がその絞り込みを表現できないので、ここで局所的に吸収する。
+ */
+async function readLabel(matcher: Detox.NativeMatcher, index: number): Promise<string> {
+	const attributes = (await element(matcher).atIndex(index).getAttributes()) as { label?: string };
+	return attributes.label ?? "";
 }

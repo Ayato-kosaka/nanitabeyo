@@ -244,27 +244,52 @@ export class DishMediaService {
       throw new Error('View cannot be both completed and skipped');
     }
 
-    const result = await this.prisma.withTransaction(
-      (tx: Prisma.TransactionClient) =>
-        this.repo.createDishMediaView(tx, {
-          impression_id: dto.impression_id,
-          dish_media_id,
-          user_id,
-          started_at: dto.started_at,
-          watch_ms: dto.watch_ms,
-          is_completed: dto.is_completed,
-          is_skipped: dto.is_skipped,
-          rewatch_count: dto.rewatch_count,
-        }),
-    );
+    try {
+      const result = await this.prisma.withTransaction(
+        (tx: Prisma.TransactionClient) =>
+          this.repo.createDishMediaView(tx, {
+            impression_id: dto.impression_id,
+            dish_media_id,
+            user_id,
+            started_at: dto.started_at,
+            watch_ms: dto.watch_ms,
+            is_completed: dto.is_completed,
+            is_skipped: dto.is_skipped,
+            rewatch_count: dto.rewatch_count,
+          }),
+      );
 
-    return {
-      id: result.id,
-      dish_media_id: result.dish_media_id,
-      impression_id: result.impression_id,
-      stored: true,
-      analysis_applied: true,
-    };
+      return {
+        id: result.id,
+        dish_media_id: result.dish_media_id,
+        impression_id: result.impression_id,
+        stored: true,
+        analysis_applied: true,
+      };
+    } catch (error) {
+      const violation = this.resolveDishMediaTimingForeignKeyViolation(error);
+      if (!violation) throw error;
+
+      // #1222 view は #1223 の impression に連鎖して落ちる。impression が
+      // FK 違反で作られなかった以上、そこを参照する view の impression_id も存在しない。
+      this.logger.warn(
+        'DishMediaViewForeignKeyViolation',
+        'createDishMediaView',
+        {
+          dishMediaId: dish_media_id,
+          impressionId: dto.impression_id,
+          userId: user_id,
+          fieldName: violation.fieldName,
+        },
+      );
+      return {
+        id: null,
+        dish_media_id,
+        impression_id: dto.impression_id,
+        stored: false,
+        analysis_applied: false,
+      };
+    }
   }
 
   /* ------------------------------------------------------------------ */
@@ -276,13 +301,36 @@ export class DishMediaService {
     userId: string,
     isAnonymous: boolean,
   ) {
-    await this.prisma.withTransaction((tx: Prisma.TransactionClient) =>
-      this.repo.toggleReaction(tx, true, isAnonymous, {
-        target_id: dishMediaId,
-        action_type: actionType,
-        user_id: userId,
-      }),
-    );
+    try {
+      await this.prisma.withTransaction((tx: Prisma.TransactionClient) =>
+        this.repo.toggleReaction(tx, true, isAnonymous, {
+          target_id: dishMediaId,
+          action_type: actionType,
+          user_id: userId,
+        }),
+      );
+    } catch (error) {
+      // dish_media_likes は user_id にも FK があるため、列名が確認できたときだけ握る。
+      const violation = this.resolveDishMediaTimingForeignKeyViolation(error, {
+        allowUnknownFieldName: false,
+      });
+      if (!violation) throw error;
+
+      // #1223 like / save / open_map も impression と同じ理由で落ちる。
+      // dish_media_likes.dish_media_id も dish_media_analysis_results.dish_media_id も
+      // dish_media への FK なので、bulk-import の行がまだ無ければ P2003 になる。
+      // 握るスコープを impression / view と揃える。
+      this.logger.warn('DishMediaReactionForeignKeyViolation', 'addReaction', {
+        dishMediaId,
+        userId,
+        actionType,
+        willReact: true,
+        fieldName: violation.fieldName,
+      });
+      // 行が無い以上リアクションは保存されていない。通知だけ飛ばすと
+      // 「実体の無い like の通知」になるのでここで打ち切る。
+      return;
+    }
 
     // #通知機能 【設計】like/save 成功時に Cloud Tasks にジョブ投入（匿名ユーザーは除外）
     if (!isAnonymous && (actionType === 'like' || actionType === 'save')) {
@@ -321,13 +369,34 @@ export class DishMediaService {
     userId: string,
     isAnonymous: boolean,
   ) {
-    await this.prisma.withTransaction((tx: Prisma.TransactionClient) =>
-      this.repo.toggleReaction(tx, false, isAnonymous, {
-        target_id: dishMediaId,
-        action_type: actionType,
-        user_id: userId,
-      }),
-    );
+    try {
+      await this.prisma.withTransaction((tx: Prisma.TransactionClient) =>
+        this.repo.toggleReaction(tx, false, isAnonymous, {
+          target_id: dishMediaId,
+          action_type: actionType,
+          user_id: userId,
+        }),
+      );
+    } catch (error) {
+      const violation = this.resolveDishMediaTimingForeignKeyViolation(error, {
+        allowUnknownFieldName: false,
+      });
+      if (!violation) throw error;
+
+      // #1223 解除側でも dish_media_analysis_results の upsert が create に倒れると
+      // 同じ FK 違反になる。追加側と挙動を揃える。
+      this.logger.warn(
+        'DishMediaReactionForeignKeyViolation',
+        'removeReaction',
+        {
+          dishMediaId,
+          userId,
+          actionType,
+          willReact: false,
+          fieldName: violation.fieldName,
+        },
+      );
+    }
   }
 
   /* ------------------------------------------------------------------ */
@@ -338,8 +407,77 @@ export class DishMediaService {
     user_id: string,
     dto: DishMediaImpressionBodyDto,
   ) {
-    await this.prisma.withTransaction((tx: Prisma.TransactionClient) =>
-      this.repo.addImpression(tx, { ...dto, dish_media_id, user_id }),
+    try {
+      await this.prisma.withTransaction((tx: Prisma.TransactionClient) =>
+        this.repo.addImpression(tx, { ...dto, dish_media_id, user_id }),
+      );
+    } catch (error) {
+      const violation = this.resolveDishMediaTimingForeignKeyViolation(error);
+      if (!violation) throw error;
+
+      this.logger.warn(
+        'DishMediaImpressionForeignKeyViolation',
+        'addImpression',
+        {
+          dishMediaId: dish_media_id,
+          impressionId: dto.id,
+          userId: user_id,
+          sessionId: dto.session_id,
+          source: dto.source,
+          fieldName: violation.fieldName,
+        },
+      );
+    }
+  }
+
+  /**
+   * #1223 【設計】impression / view / reaction のタイミング障害だけを握るための判定。
+   *
+   * これは **二次対策（防御）** であって根本原因ではない。根本は
+   * `POST /v1/dishes/bulk-import` が「まだ DB に無い dish_media.id」を返していたことで、
+   * 一次対策として bulk-import 側が同期で行を upsert するようになった
+   * （dishes.service.ts の upsertGoogleImportRowsSynchronously）。
+   *
+   * よってここで数える warn は **一次対策が効いていれば 0 に収束するはず** の残存分である。
+   * DishMediaImpressionForeignKeyViolation / DishMediaViewForeignKeyViolation /
+   * DishMediaReactionForeignKeyViolation が増えていたら握りつぶしを疑うのではなく、
+   *   1. bulk-import の BulkImportSyncUpsertError（同期 upsert の失敗。code / meta を見る）
+   *   2. bulk-import の AsyncJobEnqueueError（enqueue 失敗で同期 upsert を skip した分）
+   *   3. 同期 upsert を経由しない別経路からの dish_media.id 配布
+   * を先に疑うこと。この warn を消すために閾値を緩めてはいけない。
+   *
+   * 【設計】握るのは P2003（FK 違反）のみ。それ以外のエラー（P2002 や接続断など）は
+   * 従来どおり 500 として伝播させる。とくに like の二重押下は P2002 なので握らない。
+   *
+   * 【設計】`allowUnknownFieldName` で経路ごとにスコープを分けている。
+   * - impression / view（既定 true）: 書き込み先は dish_media_impressions /
+   *   dish_media_views / dish_media_analysis_results の 3 テーブルで、そこに定義されている
+   *   FK は dish_media_id と impression_id しか無い（schema.prisma）。どちらも user_id に
+   *   FK が無いため、field_name が取れなくてもタイミング障害と断定してよい。
+   * - reaction（false を渡す）: like の書き込み先である **dish_media_likes は user_id にも
+   *   FK を持つ**（`users` への参照）。field_name 不明を握ると、存在しない user_id という
+   *   本物のデータ不整合まで warn に埋めてしまう。ここは列名が確認できたときだけ握る。
+   *
+   * instanceof ではなく code のダック判定にしているのは、`$transaction` を通した
+   * 再 throw やモジュール実体の二重ロードで instanceof が落ちるのを避けるため。
+   */
+  private resolveDishMediaTimingForeignKeyViolation(
+    error: unknown,
+    options: { allowUnknownFieldName?: boolean } = {},
+  ): { fieldName: string } | null {
+    const { allowUnknownFieldName = true } = options;
+    const code = (error as { code?: unknown } | null)?.code;
+    if (code !== 'P2003') return null;
+
+    const meta = (error as { meta?: Record<string, unknown> } | null)?.meta;
+    const rawFieldName = meta?.field_name ?? meta?.constraint;
+    if (typeof rawFieldName !== 'string') {
+      return allowUnknownFieldName ? { fieldName: 'unknown' } : null;
+    }
+
+    const isDishMediaTimingFk = ['dish_media_id', 'impression_id'].some(
+      (column) => rawFieldName.includes(column),
     );
+    return isDishMediaTimingFk ? { fieldName: rawFieldName } : null;
   }
 }

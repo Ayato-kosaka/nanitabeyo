@@ -68,7 +68,28 @@ BigQuery MCPが利用可能なら、read-only queryで`nanitabeyo_logs_dev`を�
 - request ID、trace ID、correlation ID
 - severity、HTTP status、例外種別
 
-大量scanになり得るqueryはdry runを先に行う。ログ報告には、query条件、対象時間帯、件数、代表例、テストとの因果関係、未確認事項を含める。
+### スキャン量のゲート（例外なし）
+
+**すべてのqueryで、本実行の前に必ずdry runを行う。「大きそうなときだけ」ではない。** BigQueryは課金対象であり、スキャン量はクエリを見ただけでは判断できない。`WHERE created_at >= ...` を書いても、テーブルがその列でパーティションされていなければ枝刈りされず全走査になる。
+
+手順は次のとおり。
+
+1. **dry runでスキャン量を見積もる。** BigQuery MCPなら `dryRun: true`、CLIなら `bq query --dry_run`
+2. **1 GB以上なら、実行せずユーザーへ確認する。** 見積り値と、そのクエリで何を知りたいのかを添えて聞く
+3. 1 GB未満なら実行してよい
+
+この規定は `.codex/bigquery/safety-policy.md`、`access.md`、`event-catalog.md`、`query-patterns.md` の4箇所に明記されている。**リーダーはBigQueryを触る前にこれらを読むこと。**
+
+スキャン量を減らす手段を先に尽くすこと。
+
+- `SELECT *` や `TO_JSON_STRING(payload)` を避ける。**payloadのような巨大なJSON列は、読むだけで数GBになる**
+- 必要な列だけを選ぶ。集計で足りるなら生レコードを引かない
+- 期間を絞る。90日ではなく7日で足りないかを先に考える
+- 同じ結果を得られるなら、`stg_` などの小さいテーブルを使えないか確認する
+
+**実測例（この規定を破った結果）**: `TO_JSON_STRING(payload)` を含むクエリ1本で **12.5 GB** をスキャンした。列を絞って集計に変えた同等のクエリは 970 MB だった。**13倍の差が「何を選ぶか」だけで生じる。**
+
+ログ報告には、query条件、**dry runの見積りスキャン量**、対象時間帯、件数、代表例、テストとの因果関係、未確認事項を含める。
 
 秘密値、token、cookie、authorization header、個人情報をIssue、PR、prompt、ログ要約、Artifactへ含めない。必要なログはマスクし、代表例は最小限だけ引用する。
 

@@ -68,7 +68,13 @@ export type CreateDishMediaResponse = SupabaseDishMedia;
 
 /** POST /v1/dish-media/view のレスポンス型 */
 export type CreateDishMediaViewResponse = {
-	id: string;
+	/**
+	 * #1222 保存できなかった場合は null。
+	 *
+	 * view は解析用テレメトリなので、参照先 dish_media / impression がまだ存在しない
+	 * タイミング障害では 500 ではなく `stored: false` の成功系で返す。
+	 */
+	id: string | null;
 	dish_media_id: string;
 	impression_id: string | null;
 	stored: boolean;

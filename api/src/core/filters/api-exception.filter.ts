@@ -15,6 +15,30 @@ import { REQUEST_ID_HEADER } from '../request-id/request-id.constants';
 import { AppLoggerService } from '../logger/logger.service';
 import { maskSensitiveFields } from '../interceptors/response-wrap.utils';
 
+/**
+ * `http-errors`（body-parser / raw-body が使う）が投げたエラーか。
+ *
+ * Nest の HttpException とは別系統で、`status` / `expose` を持つ素の Error として飛んでくる。
+ * ⚠️ `status` を持つだけで判定しないこと。任意のライブラリのエラーが
+ * たまたま `status` を持っていた場合に «そのまま返す» と、意図しないステータスや
+ * 内部メッセージの露出につながる。`expose` の有無まで見て http-errors 形状に限定する。
+ */
+function isHttpError(
+  exception: unknown,
+): exception is Error & { status: number } {
+  if (!(exception instanceof Error)) return false;
+  const candidate = exception as Error & {
+    status?: unknown;
+    expose?: unknown;
+  };
+  return (
+    typeof candidate.status === 'number' &&
+    candidate.status >= 400 &&
+    candidate.status < 600 &&
+    typeof candidate.expose === 'boolean'
+  );
+}
+
 @Catch()
 export class ApiExceptionFilter implements ExceptionFilter {
   constructor(
@@ -121,6 +145,22 @@ export class ApiExceptionFilter implements ExceptionFilter {
       }
 
       logException(`HttpException`, exception.stack, status);
+    } else if (isHttpError(exception)) {
+      // #1194 body-parser / raw-body が投げる http-errors 系。
+      // これらは **Nest のルータへ到達する前** に発生するため HttpException ではなく、
+      // ここが無いと下の `instanceof Error` に落ちて «未処理例外 = 500» になる。
+      //
+      // 実害があった: フロントログのバッチが 100 kB（express の既定上限）を超えると
+      // PayloadTooLargeError → 500 になり、クライアントは 5xx を «一時障害» と分類して
+      // バッチごと破棄していた（実機で status=500 count=17 として観測）。
+      // 413 を返せば「送り方が悪い」とクライアント側で正しく分類できる。
+      status = exception.status;
+      code =
+        status === HttpStatus.PAYLOAD_TOO_LARGE
+          ? ErrorCode.INVALID_REQUEST_BODY
+          : ErrorCode.INTERNAL_ERROR;
+      message = exception.message;
+      logException('HttpError', exception.stack, status);
     } else if (exception instanceof Error) {
       message = exception.message;
       logException(`UnhandledException`, exception.stack, status);

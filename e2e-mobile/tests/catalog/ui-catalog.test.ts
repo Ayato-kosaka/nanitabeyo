@@ -1,0 +1,419 @@
+import {
+	by,
+	describeAuthenticated,
+	describeMutation,
+	DEFAULT_TIMEOUT,
+	element,
+	launchAppWithSession,
+	localeDeepLink,
+	tapWhenPresent,
+	tapWhenVisible,
+	visibleNow,
+	waitUntilVisible,
+} from "../../fixtures/e2e";
+import { LoginModal } from "../../screens/LoginModal";
+import { ProfileScreen } from "../../screens/ProfileScreen";
+import { ResultScreen } from "../../screens/ResultScreen";
+import { ReviewScreen } from "../../screens/ReviewScreen";
+import { SearchScreen } from "../../screens/SearchScreen";
+import { SelectRestaurantScreen } from "../../screens/SelectRestaurantScreen";
+import { SettingsScreen } from "../../screens/SettingsScreen";
+import { TabBar } from "../../screens/TabBar";
+import { TopicsScreen } from "../../screens/TopicsScreen";
+import { captureScreen, captureScreenIfReachable, getScreen, settle, tolerate } from "../../utils/catalog";
+
+/**
+ * 📸 UI カタログ（ネイティブ / Android・iOS）@catalog
+ *
+ * ## これは「テスト」ではない
+ * 目的は UI カタログ用のスクリーンショット収集であり、アプリの正しさの検証ではない
+ * （検証は tests/ 配下の既存 spec が担う）。したがって:
+ * - アサーションは「その画面が表示されている」ことを確定させる最小限だけ置く
+ * - 実データ・端末状態に依存する画面は captureScreenIfReachable で「撮れたら撮る」にし、
+ *   撮れなかった事実を一覧へ残す（ジョブは赤くしない）
+ *
+ * ## 実行方法
+ * `jest.config.js` が既定の探索から tests/catalog/ を外しているため、
+ * `pnpm test:catalog:android` / `pnpm test:catalog:ios`（RUN_CATALOG=1）でのみ実行される。
+ *
+ * ## 画面の定義
+ * 画面名・URL・説明・遷移関係は **repo ルートの catalog/screens.json**（Web と共通）。
+ * ここでは「その画面へどう到達するか」だけを書く。
+ */
+
+/**
+ * TrueSheet（チュートリアル）の中身は Android で必ず 2 つの View に一致するため、
+ * シート内の要素を触るときは常に index を指定する（fixtures/e2e.ts の TUTORIAL_INDEX と同じ理由）。
+ */
+const TUTORIAL_INDEX = 0;
+
+/** カタログ定義の URL からロケール付きディープリンクを組み立てる（URL の二重管理を防ぐ） */
+function deepLinkOf(id: string): string {
+	// 定義側は "/ja-JP/profile/settings" 形式なので、先頭のロケールセグメントを外して渡す
+	const pathname = getScreen(id).url.replace(/^\/[a-zA-Z-]+\//, "");
+	return localeDeepLink(pathname);
+}
+
+describe("UI カタログ（匿名） @catalog", () => {
+	it("さがすタブ（フォーム・詳細条件・チュートリアル 4 ページ）", async () => {
+		const searchScreen = new SearchScreen();
+
+		await launchAppWithSession({ as: "anon" });
+		await searchScreen.expectLoaded();
+		await captureScreen("search-form");
+
+		await captureScreenIfReachable("search-form-advanced-open", async () => {
+			await searchScreen.openAdvancedFilters();
+			// iOS では距離スライダーが画面外に居ることがある。展開できていれば撮る価値はあるので待ちは緩める
+			await tolerate(() => waitUntilVisible(searchScreen.distanceSlider));
+		});
+
+		// チュートリアルは「未視聴」で起動すると初回フォーカスで自動表示される（e2e-web の
+		// ヘルプボタン経由と違い、こちらが native の素直な導線。tests/search/search-tutorial.test.ts と同じ）。
+		// ⚠️ シート内の要素は Detox の toBeVisible（面積 75% 以上）が成立しないことがあるため、
+		//    待ちは expectTutorialOperable、タップは存在ベースの tapWhenPresent を使う（run 31409643139 で実測）
+		const opened = await captureScreenIfReachable(
+			"search-tutorial-page1",
+			async () => {
+				await launchAppWithSession({ as: "anon", tutorialSeen: false });
+				await searchScreen.expectTutorialOperable();
+			},
+			{ settleMs: 1_500 },
+		);
+
+		if (!opened) return;
+
+		for (const page of [2, 3, 4]) {
+			await captureScreenIfReachable(
+				`search-tutorial-page${page}`,
+				async () => {
+					// 最終ページではプライマリ CTA の testID が finish へ入れ替わる
+					await tapWhenPresent(searchScreen.tutorialNextButton, DEFAULT_TIMEOUT, TUTORIAL_INDEX);
+				},
+				{ settleMs: 1_500 },
+			);
+		}
+	});
+
+	it("検索フロー（場所サジェスト・料理提案・チュートリアル 4 ステップ・結果フィード）", async () => {
+		const searchScreen = new SearchScreen();
+		const topicsScreen = new TopicsScreen();
+		const resultScreen = new ResultScreen();
+
+		await launchAppWithSession({ as: "anon" });
+		await searchScreen.expectLoaded();
+
+		await captureScreenIfReachable("search-form-location-suggestions", async () => {
+			await searchScreen.typeLocation("渋谷");
+			await waitUntilVisible(searchScreen.locationSuggestions);
+		});
+
+		const reachedTopics = await captureScreenIfReachable(
+			"search-topics",
+			async () => {
+				await searchScreen.selectLocationSuggestion(0);
+				await searchScreen.submit();
+				await topicsScreen.expectLoaded();
+			},
+			{ settleMs: 3_000 },
+		);
+
+		if (!reachedTopics) return;
+
+		const tutorialSteps = [
+			["search-topics-tutorial-swipe", "swipeAndDecide"],
+			["search-topics-tutorial-deep-dive", "deepDive"],
+			["search-topics-tutorial-topic-actions", "topicActions"],
+			["search-topics-tutorial-group-vote", "groupVote"],
+		] as const;
+
+		const startedTutorial = await captureScreenIfReachable(
+			tutorialSteps[0][0],
+			async () => {
+				await tapWhenVisible(topicsScreen.tutorialHelpButton);
+				await waitUntilVisible(by.id(`topics-tutorial-step-${tutorialSteps[0][1]}`));
+			},
+			{ settleMs: 1_500 },
+		);
+
+		if (startedTutorial) {
+			for (const [id, step] of tutorialSteps.slice(1)) {
+				await captureScreenIfReachable(
+					id,
+					async () => {
+						await tapWhenVisible(topicsScreen.tutorialNextButton);
+						await waitUntilVisible(by.id(`topics-tutorial-step-${step}`));
+					},
+					{ settleMs: 1_200 },
+				);
+			}
+			// スポットライトを閉じてからカードを選ぶ
+			if (await visibleNow(topicsScreen.tutorialFinishButton, 2_000)) {
+				await tapWhenVisible(topicsScreen.tutorialFinishButton);
+			}
+		}
+
+		await captureScreenIfReachable(
+			"search-result-feed",
+			async () => {
+				await topicsScreen.chooseFirstTopic();
+				await resultScreen.expectLoaded();
+			},
+			// 地図タイルと店舗カード（メディア読み込みを伴う）が埋まるまで待つ
+			{ settleMs: 8_000 },
+		);
+	});
+
+	it("レビュータブ・マイページ（ゲスト）", async () => {
+		const tabBar = new TabBar();
+		const reviewScreen = new ReviewScreen();
+		const profileScreen = new ProfileScreen();
+		const loginModal = new LoginModal();
+
+		await launchAppWithSession({ as: "anon" });
+		await tabBar.gotoReview();
+		await reviewScreen.expectGuestViewLoaded();
+		await captureScreen("review-guest");
+
+		await captureScreenIfReachable("review-guest-login-modal", async () => {
+			await reviewScreen.tapGuestLogin();
+			await loginModal.expectOpened();
+		});
+
+		await launchAppWithSession({ as: "anon" });
+		await tabBar.gotoProfile();
+		await profileScreen.expectGuestViewLoaded();
+		await captureScreen("profile-guest", { settleMs: 2_000 });
+
+		await captureScreenIfReachable(
+			"profile-guest-liked",
+			async () => {
+				await tapWhenVisible(by.id("profile-tab-group-liked"));
+				// いいねが 0 件だとグリッドではなく空状態が描画される。タブを切り替えられていれば撮る
+				await tolerate(() => waitUntilVisible(profileScreen.likedGrid));
+			},
+			{ settleMs: 2_000 },
+		);
+
+		await captureScreenIfReachable(
+			"profile-guest-saved-topics",
+			async () => {
+				await tapWhenVisible(by.id("profile-tab-group-saved"));
+				// 「保存」グループ内のサブタブ（ja-JP: Profile.tabs.saved-topics = "料理"）には testID が無い
+				await tapWhenVisible(by.text("料理"));
+				// 保存が 0 件だとグリッドではなく空状態が描画される
+				await tolerate(() => waitUntilVisible(profileScreen.savedTopicsGrid));
+			},
+			{ settleMs: 2_000 },
+		);
+
+		await captureScreenIfReachable("profile-guest-login-modal", async () => {
+			await profileScreen.openLoginModal();
+			await loginModal.expectOpened();
+		});
+	});
+
+	it("設定とその配下", async () => {
+		const settingsScreen = new SettingsScreen();
+
+		await launchAppWithSession({ as: "anon", url: deepLinkOf("profile-settings") });
+		await settingsScreen.expectLoaded();
+		await captureScreen("profile-settings");
+
+		await captureScreenIfReachable("profile-settings-terms-modal", async () => {
+			await tapWhenVisible(settingsScreen.termsItem);
+			await waitUntilVisible(settingsScreen.legalDocumentModal);
+		});
+
+		await captureScreenIfReachable("profile-settings-privacy-modal", async () => {
+			// モーダルを閉じる導線に testID が無いため、画面を開き直して別の文書を開く
+			await launchAppWithSession({ as: "anon", url: deepLinkOf("profile-settings") });
+			await settingsScreen.expectLoaded();
+			await settingsScreen.openPrivacyPolicy();
+			await settingsScreen.expectLegalDocumentOpened();
+		});
+	});
+
+	it("直リンクのみで到達する画面", async () => {
+		// タブバーを持たない画面（運営ツール等）は waitForAppReady が成立しないため、
+		// 起動完了待ちを切り、描画が落ち着くのを時間で待ってから撮る
+		const directLinkScreens = [
+			{ id: "profile-feedback", waitForReady: true, settleMs: 1_500 },
+			{ id: "profile-blocked-topics", waitForReady: true, settleMs: 2_500 },
+			{ id: "map", waitForReady: true, settleMs: 5_000 },
+			{ id: "contribution-dish-category-image-optimizer", waitForReady: false, settleMs: 6_000 },
+			{ id: "contribution-dish-category-image-review", waitForReady: false, settleMs: 6_000 },
+			{ id: "contribution-dish-category-manual-image-supply", waitForReady: false, settleMs: 6_000 },
+			{ id: "contribution-dish-category-manual-text-supply", waitForReady: false, settleMs: 6_000 },
+			{ id: "contribution-dish-copy-survey", waitForReady: false, settleMs: 6_000 },
+			{ id: "contribution-dish-ranking-summary", waitForReady: false, settleMs: 6_000 },
+			// ネイティブの NotFound 画面には testID が無いため、到達判定はせず撮るだけ
+			{ id: "not-found", waitForReady: false, settleMs: 3_000 },
+		] as const;
+
+		for (const { id, waitForReady, settleMs } of directLinkScreens) {
+			await captureScreenIfReachable(
+				id,
+				async () => {
+					const url = id === "not-found" ? localeDeepLink("this-route-does-not-exist") : deepLinkOf(id);
+					await launchAppWithSession({ as: "anon", url, waitForReady });
+				},
+				{ settleMs },
+			);
+		}
+	});
+
+	it("みんなで投票（無効な共有トークンのエラー状態）", async () => {
+		// 実データの shareToken が無いため、無効トークン時のエラー状態のみ記録する
+		// （投票の新規作成は dev DB への書き込みになるため行わない）
+		const invalidToken = "e2e-ui-catalog-invalid-token";
+		const targets = [
+			{ id: "search-group-vote-result", path: `search/dish-category-group-votes/${invalidToken}` },
+			{ id: "search-group-vote-vote", path: `search/dish-category-group-votes/${invalidToken}/vote` },
+		] as const;
+
+		for (const { id, path } of targets) {
+			await captureScreenIfReachable(
+				id,
+				async () => {
+					await launchAppWithSession({ as: "anon", url: localeDeepLink(path), waitForReady: false });
+					// ja-JP: DishCategoryGroupVotes.loadFailed
+					await waitUntilVisible(by.text("投票を読み込めませんでした"), 30_000);
+				},
+				{ settleMs: 1_000 },
+			);
+		}
+	});
+});
+
+describeAuthenticated("UI カタログ（ログイン済み） @catalog", () => {
+	it("マイページ・設定・お知らせ", async () => {
+		const tabBar = new TabBar();
+		const profileScreen = new ProfileScreen();
+		const settingsScreen = new SettingsScreen();
+
+		await launchAppWithSession({ as: "authenticated" });
+		await tabBar.gotoProfile();
+		await captureScreen("profile-authenticated", { settleMs: 4_000 });
+
+		const reachedReviews = await captureScreenIfReachable(
+			"profile-authenticated-reviews",
+			async () => {
+				await tapWhenVisible(by.id("profile-tab-group-reviews"));
+				await waitUntilVisible(profileScreen.reviewsGrid);
+			},
+			{ settleMs: 4_000 },
+		);
+
+		if (reachedReviews) {
+			await captureScreenIfReachable(
+				"profile-food-feed",
+				async () => {
+					// グリッドのセルに testID が無いため、フィード固有のアクションボタンで到達を判定する
+					await element(by.id("review-tab-grid")).tap();
+					await waitUntilVisible(by.id("dish-action-like"), DEFAULT_TIMEOUT);
+				},
+				{ settleMs: 5_000 },
+			);
+		}
+
+		await captureScreenIfReachable(
+			"profile-settings-authenticated",
+			async () => {
+				await launchAppWithSession({ as: "authenticated", url: deepLinkOf("profile-settings-authenticated") });
+				await settingsScreen.expectLoaded();
+				// ログアウト行は画面下端にあり、Detox の可視判定（面積 75%）が成立しないことがある
+				await tolerate(() => waitUntilVisible(settingsScreen.logoutItem));
+			},
+			{ settleMs: 1_500 },
+		);
+
+		await captureScreenIfReachable(
+			"notifications",
+			async () => {
+				await launchAppWithSession({ as: "authenticated" });
+				await tabBar.gotoNotifications();
+				await settle(2_000);
+			},
+			{ settleMs: 2_000 },
+		);
+	});
+
+	it("レビュー投稿導線（レビュータブ・店舗選択）", async () => {
+		const tabBar = new TabBar();
+		const reviewScreen = new ReviewScreen();
+		const selectRestaurantScreen = new SelectRestaurantScreen();
+
+		await launchAppWithSession({ as: "authenticated" });
+		await tabBar.gotoReview();
+		await waitUntilVisible(reviewScreen.postButton);
+		await captureScreen("review-authenticated");
+
+		await captureScreenIfReachable(
+			"review-select-restaurant",
+			async () => {
+				await reviewScreen.gotoPostReview();
+				await selectRestaurantScreen.expectLoaded();
+			},
+			// 地図タイル・マーカーの描画待ち
+			{ settleMs: 6_000 },
+		);
+	});
+});
+
+/**
+ * レビュー投稿フロー（dev DB へ書き込むため RUN_MUTATION=1 のときだけ実行される）。
+ * 店舗詳細・投稿フォーム・投稿完了後のレビュー詳細は、実際に投稿しないと到達できない画面。
+ * コメントは識別できるよう必ず `[E2E]` プレフィックスを付ける（tests/mutation/review-post.test.ts と同じ規約）。
+ */
+describeMutation("UI カタログ（レビュー投稿フロー） @catalog @mutation", () => {
+	it("店舗詳細 → 投稿フォーム → レビュー詳細", async () => {
+		const tabBar = new TabBar();
+		const reviewScreen = new ReviewScreen();
+		const selectRestaurantScreen = new SelectRestaurantScreen();
+
+		await launchAppWithSession({ as: "authenticated" });
+		await tabBar.gotoReview();
+		await reviewScreen.gotoPostReview();
+		await selectRestaurantScreen.expectLoaded();
+
+		const reachedDetail = await captureScreenIfReachable(
+			"review-restaurant-detail",
+			async () => {
+				await selectRestaurantScreen.searchRestaurant("スターバックス");
+				await selectRestaurantScreen.selectSuggestion(0);
+				await waitUntilVisible(selectRestaurantScreen.postPhotoButton, 30_000);
+			},
+			{ settleMs: 3_000 },
+		);
+
+		if (!reachedDetail) return;
+
+		// メディア選択は E2E ビルドの固定画像スタブ（EXPO_PUBLIC_E2E_MEDIA_HOOK）で通る
+		const reachedForm = await captureScreenIfReachable(
+			"review-post-form",
+			async () => {
+				await selectRestaurantScreen.gotoReviewForm();
+				await waitUntilVisible(reviewScreen.commentInput, 30_000);
+			},
+			{ settleMs: 2_000 },
+		);
+
+		if (!reachedForm) return;
+
+		await captureScreenIfReachable(
+			"review-post-detail",
+			async () => {
+				// ⚠️ typeText は IME 経由のキーイベントに変換できず日本語で落ちる（Android で実測）。
+				// Detox 公式の回避策どおり replaceText で直接流し込む
+				await element(reviewScreen.commentInput).replaceText("[E2E] UI カタログ収集");
+				// 星は画面外に居ることがある（iOS で実測）。付けられなくても投稿自体は成立する
+				await tolerate(() => reviewScreen.rate(5));
+				await tapWhenVisible(reviewScreen.submitButton);
+				// 投稿が成功すると /review/post/[id] へ遷移し、いいね等のアクションが並ぶ
+				await waitUntilVisible(by.id("dish-action-like"), 60_000);
+			},
+			{ settleMs: 4_000 },
+		);
+	});
+});

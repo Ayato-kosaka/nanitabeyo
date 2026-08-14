@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useRef } from "react";
 import { Text, TouchableOpacity, StyleSheet, View } from "react-native";
 import { router } from "expo-router";
 import { Bookmark, Ban } from "lucide-react-native";
@@ -78,7 +78,30 @@ export const TopicCard = ({
 	// #973【設計】3件表示時は折り返さず1行に収める。1〜2件は内容幅で主CTAより確実に小さく見せる
 	const isThreeDeepDiveChips = deepDiveOptions.length >= 3;
 
+	/**
+	 * #1205 【修正】トピック保存/解除の多重実行を防ぐ同期ガード。
+	 *
+	 * 保存ボタンには `disabled` が無く、あっても `isSaved`（store 購読の state）は
+	 * **ブックマークの見た目を切り替える表示用途**であって多重実行の判定には使えない。
+	 * React が再レンダリングをコミットする前に 2 発目の押下が処理されると、両方が同じ
+	 * `isSaved` を読んで通過するためで、通過すると `insertReaction`（`lib/reactions.ts` の素の
+	 * insert）が 2 回走り、2 発目は `reactions` の一意制約で失敗する。すると catch の
+	 * `setTopicSaved(item.categoryId, !willSave)` が発火して、**保存できているのに
+	 * 表示が保存解除へ巻き戻る**（解除側も同様に「解除できているのに保存済み表示へ戻る」）。
+	 *
+	 * ref への代入は同期的に確定するため、同一 JS タスク内の連続呼び出しでもレースしない。
+	 * `features/map/components/ReviewForm.tsx:173-185` の `isSubmittingRef` と同じ方式。
+	 * 解除は `handleSave` の finally だけで行うため、失敗しても次の押下は通る。
+	 */
+	const isSavingRef = useRef(false);
+
 	const handleSave = async () => {
+		// #1205 判定は同期的に確定する ref で行う（宣言のコメント参照）。
+		// 楽観更新（setTopicSaved）とハプティクスより **前** に弾くこと。後ろに置くと、
+		// 弾いた 2 発目でも表示だけが書き換わる／振動だけが 2 回鳴る。
+		if (isSavingRef.current) return;
+		isSavingRef.current = true;
+
 		const willSave = !isSaved;
 		lightImpact();
 
@@ -141,6 +164,9 @@ export const TopicCard = ({
 				},
 			});
 			showSnackbar(i18n.t("Common.error"));
+		} finally {
+			// #1205 成功・失敗のどちらでも必ず通る、唯一の解除箇所（失敗しても再試行できる）
+			isSavingRef.current = false;
 		}
 	};
 
