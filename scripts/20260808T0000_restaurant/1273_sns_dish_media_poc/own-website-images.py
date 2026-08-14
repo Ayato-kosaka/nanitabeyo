@@ -77,6 +77,20 @@ NEG_RE = re.compile(
 # 根拠: out/nofoodword_visual_labels.json
 MIN_DISH_IMAGE_PX = 200
 
+# #1273 【仕様】1サイトあたり実取得して検証する画像の上限。
+# 当初はインラインの cands[:5] で、独立店には十分だったが、メニュー写真が数十枚ある
+# チェーン本部サイトではここが天井になっていた（実測でチェーンの多くが dish=5 ちょうど）。
+# カバレッジ（店舗数）は変わらないが、**1店あたりのカテゴリ数**が増えるので
+# #1273 §32 の area×category セル充足に効く。相手サーバへの負荷は
+# 1ホスト同時1接続・1秒間隔で抑えている。
+#
+# 実測（ヒットしたチェーン8件、上限 5 vs 30。根拠: out/chain_depth.json）:
+#     料理画像        29 -> 93 枚      (3.21x)
+#     distinctカテゴリ  4 -> 14        (3.50x)
+#     1チェーンあたり  0.50 -> 1.75 カテゴリ
+# 候補が30枚無いサイトは影響を受けない（独立店はそもそも5枚に届かないことが多い）。
+MAX_VERIFY_PER_SITE = 30
+
 # #1273 【仕様】料理を示す語（URL・alt・周辺テキスト）。日本語/英語の両方を見る。
 FOOD_RE = re.compile(
     r"(料理|メニュー|menu|dish|food|cuisine|コース|course|ランチ|lunch|ディナー|dinner|"
@@ -424,7 +438,7 @@ def process(rec):
     res["candidates"] = cands[:40]
 
     # #1273 【パフォーマンス】検証の実取得は上位5枚まで。相手サーバへの負荷を抑える。
-    for c in cands[:5]:
+    for c in cands[:MAX_VERIFY_PER_SITE]:
         if c["score"] < 0:
             continue
         v = verify_image(c["url"])
