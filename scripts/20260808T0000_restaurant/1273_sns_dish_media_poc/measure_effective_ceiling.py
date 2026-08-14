@@ -53,7 +53,17 @@ OWN_SITE_PRECISION_LOW = 0.467   # 独立店サイトの目視 precision
 OWN_SITE_PRECISION_HIGH = 0.750  # チェーン本部サイトの目視 precision
 OWN_SITE_CATEGORY = 0.767
 
-YT_PATH = 0.335
+# #1273 【訂正】0.335 は Overture 600店標本の値。seed 標本（分母が正しい）では 27.33%。
+# さらにこの 27.33% は誤爆込みで、2つの独立した方法が同じ水準を指した:
+#   (a) 厳格版 judge（全店名に地名の裏取りを要求）: 24/148 = 16.22%
+#   (b) 緩い判定 27.33% × 目視/カテゴリ精度 50.0%  = 13.67%
+# リンク無し層も同様: 厳格版 5/100 = 5.00% / 緩い 25.33% × 38.5% = 9.75%
+# 【バグ】厳格版の第1版は locality を丸ごと要求し、かつ「大府市」の"府"を文字クラスで
+# 弾いていたため 2.67% という測定不能な値を出した。都道府県・郡を落として最後の
+# 市区町村トークンを取る方式に直してある（measure_seed_youtube_ceiling.py）。
+YT_PATH = 0.2733
+YT_PATH_STRICT = 0.1622
+YT_PATH_LINKLESS_STRICT = 0.0500
 # #1273 【訂正】当初は 0.754（dish_media_yield_after_fix.json の category_given_restaurant）を
 # 使っていたが、あれは**クロールした食べ歩き動画**で測った値で、母集団が違う。
 # 店名検索でヒットした動画に CategoryMatcher を当て直した実測値はこちら:
@@ -66,7 +76,7 @@ YT_PATH = 0.335
 # **カテゴリ付与率 ≒ 店名マッチの精度**である。根拠: out/yt_name_match_review.json
 YT_CATEGORY = 0.500          # リンク層（実測）
 YT_CATEGORY_LINKLESS = 0.385  # リンク無し層（実測）
-YT_PATH_LINKLESS = 0.260
+YT_PATH_LINKLESS = 0.2533
 FEDI_PATH_LINKLESS = 0.1667
 FEDI_CATEGORY_LINKLESS = 0.520
 

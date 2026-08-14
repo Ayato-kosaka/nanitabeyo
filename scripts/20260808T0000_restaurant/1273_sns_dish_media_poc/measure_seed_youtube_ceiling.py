@@ -36,6 +36,7 @@ from __future__ import annotations
 import argparse
 import csv
 import hashlib
+import re
 import json
 import sys
 import time
@@ -46,7 +47,77 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from entity_resolution import EntityResolver, SourceRecord  # noqa: E402
 
-from measure_supply_ceiling import Restaurant, judge, wilson_interval, yt_search  # noqa: E402
+from measure_supply_ceiling import (  # noqa: E402
+    MIN_NAME_LEN_FOR_SUBSTRING,
+    Restaurant,
+    core_name,
+    judge,
+    normalize,
+    wilson_interval,
+    yt_search,
+)
+
+
+# #1273 【バグ】厳格版の第1版は locality を丸ごと要求していたため測定不能だった。
+# seed の canonical_address は "北海道札幌市中央区" のような region+locality の連結で、
+# 動画タイトルにその文字列が丸ごと出ることはまず無い。さらにリンク無し層は
+# 150店中49店が locality 空で、構造的に必ず不ヒットになっていた。
+# 結果 2.67% という数字が出たが、これは実態ではなく測定の不備である。
+#
+# 修正: 連結文字列から**最も具体的な行政区画トークン**（市/区/町/村）を1つ取り出し、
+# それを裏取りの手がかりにする。locality が取れない店は「判定不能」として
+# 分母から外す（不ヒットに数えない）。
+# 【バグ】最初は [^都道府県市区町村]{1,8}[市区町村] で書いたが、
+# 「大府市」の"府"を文字クラスで弾いてしまい空になった。
+# 都道府県 → 郡 の順に接頭辞を落としてから、最後の市区町村トークンを取る方式にする。
+_PREF = re.compile(r"^.{2,4}?[都道府県]")
+_GUN = re.compile(r"^.{1,4}?郡")
+_ADMIN_TOKEN = re.compile(r"\S{1,6}?[市区町村]")
+
+
+def locality_needle(raw: str) -> str:
+    """"北海道札幌市中央区" -> "中央区" のように、最も具体的なトークンを返す。"""
+    text = _PREF.sub("", raw or "", count=1)
+    text = _GUN.sub("", text, count=1)
+    tokens = _ADMIN_TOKEN.findall(text)
+    return tokens[-1] if tokens else text
+
+
+def judge_strict(rest, entries: list[dict]) -> dict:
+    """#1273 【バグ】既存の judge は**3文字未満の店名にしか地名の裏取りを要求しない**。
+
+    そのせいで「Cockapoo」(犬種) 「マナカムナ」(ネパールの寺院) 「ムーラン」(Disney映画)
+    「いじげん」(ポケモン) のような、長いが一般名詞に近い店名が無関係な動画を拾っていた。
+    店名検索でヒットした79件を目視した結果、リンク無し層では 23/39 が店と無関係だった
+    （精度 41.0%。根拠: out/yt_name_match_review.json）。
+
+    こちらは**全ての店名に地名の裏取りを要求する**。経路存在率は下がるが、
+    下がった分は取りこぼしではなく混入の除去である。
+    地名が取れない店は判定不能を返す（不ヒットには数えない）。
+    """
+    nm = normalize(rest.name)
+    core = normalize(core_name(rest.name))
+    loc = normalize(locality_needle(rest.locality))
+    if not loc:
+        return {"hit": None, "best_match": None, "n_results": len(entries)}
+    best = None
+    for e in entries:
+        title = normalize(e.get("title") or "")
+        channel = normalize(e.get("channel") or e.get("uploader") or "")
+        desc = normalize(e.get("description") or "")
+        if loc not in title and loc not in desc and loc not in channel:
+            continue
+        for needle, kind in ((nm, "full_name"), (core, "core_name")):
+            if not needle:
+                continue
+            for field, fname in ((title, "title"), (channel, "channel")):
+                if needle in field:
+                    best = best or {
+                        "video_id": e.get("id"), "title": e.get("title"),
+                        "evidence": f"{kind}_in_{fname}_with_{loc}",
+                    }
+    return {"hit": best is not None, "best_match": best, "n_results": len(entries)}
+
 
 HERE = Path(__file__).resolve().parent
 OUT_DIR = HERE / "out"
@@ -168,13 +239,22 @@ def main() -> None:
             query = f"{item['name']} {item['locality']}".strip()
             entries, err = yt_search(query, args.depth)
             verdict = judge(rest, entries)
+            strict = judge_strict(rest, entries)
             return {"seed_id": item["seed_id"], "name": item["name"],
-                    "sources": item["sources"], "query": query, "error": err, **verdict}
+                    "sources": item["sources"], "query": query, "error": err,
+                    "hit_strict": strict["hit"], "best_match_strict": strict["best_match"],
+                    **verdict}
 
         with ThreadPoolExecutor(max_workers=args.workers) as pool:
             results[stratum] = list(pool.map(probe, items))
         ok = [r for r in results[stratum] if r["error"] is None]
         hit = [r for r in ok if r["hit"]]
+        # 厳格版は地名が取れない店を判定不能(None)にしているので、分母から外す。
+        ok_s = [r for r in ok if r["hit_strict"] is not None]
+        hit_s = [r for r in ok_s if r["hit_strict"]]
+        print(f"  【厳格版・全店名に地名の裏取りを要求】判定できた {len(ok_s)}/{len(ok)} / "
+              f"ヒット {len(hit_s)} "
+              f"({len(hit_s) / len(ok_s) * 100 if ok_s else 0:.2f}%)", file=sys.stderr)
         print(
             f"  判定できた {len(ok)}/{len(items)} / ヒット {len(hit)} "
             f"({len(hit) / len(ok) * 100 if ok else 0:.2f}%) / {time.time() - started:.0f}s",
