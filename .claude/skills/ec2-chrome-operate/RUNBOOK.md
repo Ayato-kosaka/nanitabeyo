@@ -47,6 +47,19 @@ trap cleanup EXIT INT TERM
 
 [ -s "$REMOTE_FILE" ] || { log "remote script $REMOTE_FILE is missing or empty"; exit 1; }
 
+# 直前の回の stop がまだ進行中だと start-instances は IncorrectInstanceState で即死する。
+# 起動可能な状態になるまで待ってから始める（最大5分）。
+log "=== pre-flight: waiting for a startable state ==="
+for i in $(seq 1 30); do
+  CUR=$(timeout 30 $AWSP ec2 describe-instances --instance-ids "$INSTANCE_ID" \
+    --query 'Reservations[0].Instances[0].State.Name' --output text 2>>"$LOG")
+  case "${CUR:-unknown}" in
+    stopped | running) break ;;
+    *) log "current state: $CUR -- waiting"; sleep 10 ;;
+  esac
+done
+log "pre-flight state: $CUR"
+
 log "=== start-instances ==="
 timeout 60 $AWSP ec2 start-instances --instance-ids "$INSTANCE_ID" >>"$LOG" 2>&1 || { log "start failed"; exit 1; }
 timeout 300 $AWSP ec2 wait instance-running --instance-ids "$INSTANCE_ID" >>"$LOG" 2>&1 || { log "never running"; exit 1; }
@@ -78,9 +91,9 @@ CMD_ID=$(timeout 30 $AWSP ssm send-command \
 log "command id: $CMD_ID"
 [ -n "$CMD_ID" ] && [ "$CMD_ID" != "None" ] || { log "send-command failed"; exit 1; }
 
-log "=== polling command status ==="
+log "=== polling command status (max ~50min) ==="
 INV_STATUS="Pending"
-for i in $(seq 1 120); do
+for i in $(seq 1 300); do
   INV_STATUS=$(timeout 30 $AWSP ssm get-command-invocation \
     --command-id "$CMD_ID" --instance-id "$INSTANCE_ID" \
     --query 'Status' --output text 2>/dev/null)
@@ -147,17 +160,66 @@ if [ "$CONNECTED" -ne 1 ]; then
   exit 1
 fi
 
+# 本命は stream-json でファイルに落とす。-p のテキスト出力は最後にまとめて出るため、
+# timeout に殺されると出力がゼロになる（実際に25分の回を丸ごと取り逃した）。
 echo "===== REAL RUN ====="
+date -u
 cat > /tmp/real.sh <<REOF
 export DISPLAY=:20
-timeout 780 "$CLAUDE_BIN" --chrome --dangerously-skip-permissions -p "\$(cat /tmp/prompt.txt)"
+timeout 1200 "$CLAUDE_BIN" --chrome --dangerously-skip-permissions \
+  --verbose --output-format stream-json \
+  --debug-file /tmp/real_debug.log \
+  -p "\$(cat /tmp/prompt.txt)" > /tmp/real_stream.jsonl 2>/tmp/real_stderr.log
+echo "claude exit: \$?"
 REOF
 chmod 755 /tmp/real.sh
 sudo -u ubuntu -i -- bash /tmp/real.sh
-echo "===== real run exit: $? ====="
+echo "===== real run wrapper exit: $? ====="
+date -u
+# /tmp は再起動で消えるので、次のブートでも読めるように退避しておく
+cp -f /tmp/real_stream.jsonl /home/ubuntu/last_stream.jsonl 2>/dev/null
+
+echo "===== TRACE: tool calls in order ====="
+python3 - <<'PYEOF'
+import json, re
+lines = open('/tmp/real_stream.jsonl', errors='replace').read().splitlines()
+print("stream lines:", len(lines))
+out = []
+for ln in lines:
+    try:
+        ev = json.loads(ln)
+    except Exception:
+        continue
+    msg = ev.get('message')
+    # content は list とは限らない。ここで守らないと整形ごと落ちて報告が消える。
+    content = msg.get('content') if isinstance(msg, dict) else None
+    if not isinstance(content, list):
+        content = []
+    for c in content:
+        if not isinstance(c, dict):
+            continue
+        if c.get('type') == 'text' and c.get('text', '').strip():
+            out.append('TEXT: ' + c['text'].strip()[:2500])
+        elif c.get('type') == 'tool_use':
+            out.append('TOOL: %s %s' % (c.get('name'), json.dumps(c.get('input', {}), ensure_ascii=False)[:220]))
+        elif c.get('type') == 'tool_result':
+            body = c.get('content')
+            if isinstance(body, list):
+                body = ' '.join(x.get('text', '') for x in body if isinstance(x, dict))
+            out.append('RES : ' + re.sub(r'\s+', ' ', str(body))[:200])
+for t in out[-70:]:
+    print(t)
+PYEOF
+
+echo "===== STDERR (tail) ====="
+tail -c 1200 /tmp/real_stderr.log 2>/dev/null
 ```
 
-実測の所要（2026-08-14、GCP コンソールでクォータ画面を読み取らせた場合）: Chrome 起動60秒 → プローブ1回目で接続 → 本命 約9分。`ec2_exec.sh` には 1800 秒程度を渡しておけば足りる。
+実測の所要（2026-08-14）: Chrome 起動60秒 → プローブ1回目で接続 → 本命は内容次第で 2〜10分。`ec2_exec.sh` には 1600〜1900 秒を渡す。
+
+**1回の実行は3〜4手順まで。** 5手順（プロジェクト作成→課金→API有効化→キー作成→別サイトの環境変数更新）を1本に詰めた回は 25 分でも終わらなかった。分割し、各手順を「完了済みならスキップ」と書いて冪等にすると、途中で切れても次の回が続きから進む。
+
+証跡スクショを撮らせる回では、`apt-get install -y xdotool imagemagick xclip` を**リモートスクリプトの先頭で1回流しておく**（素の instance には入っていない。入れれば以後は残る）。保存先は `/tmp` ではなく `/home/ubuntu/evidence/`。
 
 ## 参考: 旧・本編スクリプト（Chrome 起動を含まない版）
 
@@ -275,7 +337,9 @@ log "=== main flow done, cleanup (stop) will run now ==="
 
 | 値 | 既定 | 根拠 |
 | --- | --- | --- |
-| `CLAUDE_TIMEOUT` | 900s | 1ページ開いて読むだけなら 150s で足りるが、コンソールの設定変更のような多段操作は 5〜10分かかる。短すぎると「途中で切られたのに Success 扱い」になり一番タチが悪い |
+| `CLAUDE_TIMEOUT` | 1200s | 1ページ開いて読むだけなら 150s で足りるが、コンソールの設定変更のような多段操作は 5〜10分かかる。短すぎると「途中で切られたのに Success 扱い」になり一番タチが悪い。**延ばすより手順を分ける**ほうが確実（25分でも足りなかった実績あり） |
+| 状態ポーリング回数 | 300回 × 10s | 120回（20分）だと本命が終わる前に打ち切られる |
+| pre-flight 待ち | 30回 × 10s | 直前の回が `stopping` のうちは `start-instances` が失敗するため |
 | SSM `executionTimeout` | `CLAUDE_TIMEOUT + 300` | claude 側の `timeout` より必ず長くする。逆転すると SSM が先に殺して出力が取れない |
 | SSM `--timeout-seconds` | 600 | これは「実行開始までの待ち時間」であって実行時間ではない。混同しないこと |
 | 状態ポーリング | 10s × 120回 | `ssm wait` は使わない（上記コメント参照） |
