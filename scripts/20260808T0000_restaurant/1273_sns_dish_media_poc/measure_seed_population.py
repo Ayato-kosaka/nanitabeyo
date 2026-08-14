@@ -130,6 +130,32 @@ def main() -> None:
     print(f"  method 内訳    : {dict(sorted(methods.items(), key=lambda kv: -kv[1]))}",
           file=sys.stderr)
 
+    # #1273 【設計】最終表に残った唯一の幅（他経路の合算 33.5%〜48.0%）を詰める。
+    # 48.0% は Overture 母集団の600店標本で測った値なので、Overture を含まない seed
+    # （＝IFAS/OSMだけが知っている店）に他経路が届くかどうかが幅の正体。
+    # IFAS の fixture は websites/socials が全行 0 なので、その seed には
+    # 「店舗自社サイト」も「socials」も**出発点そのものが無い**。それを数える。
+    composition: dict[str, int] = {}
+    without_overture = 0
+    for seed in seeds:
+        key = "+".join(sorted(seed.source_names)) or "(none)"
+        composition[key] = composition.get(key, 0) + 1
+        if "overture" not in seed.source_names:
+            without_overture += 1
+    print(
+        f"\n=== seed のソース構成 ===\n"
+        f"  {dict(sorted(composition.items(), key=lambda kv: -kv[1]))}",
+        file=sys.stderr,
+    )
+    print(
+        f"  Overture を含まない seed: {without_overture:,} "
+        f"({without_overture / len(seeds) * 100:.2f}%)\n"
+        f"  → この層には Overture の websites/socials が無い。IFAS の fixture は\n"
+        f"    websites/socials が全行0、OSM も socials 1.12% / websites 7.83% しかないので、\n"
+        f"    店舗自社サイト経路も Meta 経路も**出発点が無い**。",
+        file=sys.stderr,
+    )
+
     ambiguous = methods.get("ambiguous_new_seed", 0)
     print(
         f"\n住所欠落で救えなかった上限（ambiguous_new_seed）: {ambiguous:,}\n"
@@ -145,6 +171,8 @@ def main() -> None:
         "methods": methods,
         "ambiguous_new_seed": ambiguous,
         "seeds_lower_bound_if_address_present": len(seeds) - ambiguous,
+        "seed_composition": composition,
+        "seeds_without_overture": without_overture,
         "elapsed_s": elapsed,
         "limit": args.limit,
     }
