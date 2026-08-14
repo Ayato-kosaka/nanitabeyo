@@ -29,6 +29,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 import time
@@ -76,7 +77,7 @@ def chain_domains(min_stores: int) -> list[dict]:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description="#1273 チェーン本部サイトの実測")
-    ap.add_argument("--top", type=int, default=30, help="上位いくつのチェーンを実取得するか")
+    ap.add_argument("--per-band", type=int, default=20, help="規模帯ごとに何件実取得するか")
     ap.add_argument("--min-shared", type=int, default=MIN_SHARED)
     args = ap.parse_args()
 
@@ -102,10 +103,38 @@ def main() -> None:
     print(f"  **本物のチェーン本部**: {len(real):,} ドメイン / {real_stores:,} 店 "
           f"({real_stores / total_food * 100:.2f}%)", file=sys.stderr)
 
-    targets = real[: args.top]
-    print(f"\n=== 上位 {len(targets)} チェーンを実取得して料理画像を探す ===", file=sys.stderr)
-    print(f"（この {len(targets)} 件だけで "
-          f"{sum(d['n_stores'] for d in targets):,} 店に相当）", file=sys.stderr)
+    # #1273 【設計】上位だけを測ると大手の整ったサイトばかり見ることになり、
+    # 下位チェーン（4-10店など）の歩留まりが分からないまま全体に外挿してしまう。
+    # 規模帯ごとに決定的抽出（SHA-256順）して、帯別のヒット率を出す。
+    bands = [
+        ("201+", 201, 10**9),
+        ("51-200", 51, 200),
+        ("11-50", 11, 50),
+        ("4-10", 4, 10),
+    ]
+    band_of: dict[str, str] = {}
+    targets: list[dict] = []
+    band_pop: dict[str, dict] = {}
+    for label, lo, hi in bands:
+        pool = [d for d in real if lo <= d["n_stores"] <= hi]
+        band_pop[label] = {
+            "n_domains": len(pool),
+            "n_stores": sum(d["n_stores"] for d in pool),
+        }
+        pool.sort(key=lambda d: hashlib.sha256(d["domain"].encode()).hexdigest())
+        picked = pool[: args.per_band]
+        for d in picked:
+            band_of[d["domain"]] = label
+        targets.extend(picked)
+
+    print("\n=== 規模帯ごとの母数 ===", file=sys.stderr)
+    for label, _, _ in bands:
+        p = band_pop[label]
+        print(f"  {label:>8}: {p['n_domains']:>6,} ドメイン / {p['n_stores']:>8,} 店 "
+              f"({p['n_stores'] / total_food * 100:5.2f}%)", file=sys.stderr)
+
+    print(f"\n=== 各帯 {args.per_band} 件ずつ計 {len(targets)} チェーンを実取得 ===",
+          file=sys.stderr)
 
     results = []
     for i, d in enumerate(targets):
@@ -128,6 +157,38 @@ def main() -> None:
             f"{time.time() - started:.0f}s",
             file=sys.stderr,
         )
+
+    for r in results:
+        r["band"] = band_of.get(r["domain"], "?")
+
+    print("\n=== 規模帯別のヒット率 ===", file=sys.stderr)
+    print("  帯        測定  ヒット  ドメイン基準  店舗数基準", file=sys.stderr)
+    band_rates = {}
+    for label, _, _ in bands:
+        rows = [r for r in results if r["band"] == label]
+        if not rows:
+            continue
+        h = [r for r in rows if r["n_verified_dish"] >= 1]
+        hs = sum(r["n_stores"] for r in h)
+        ts = sum(r["n_stores"] for r in rows)
+        band_rates[label] = {
+            "n_measured": len(rows), "n_hit": len(h),
+            "domain_rate": len(h) / len(rows),
+            "store_rate": hs / ts if ts else 0.0,
+        }
+        print(f"  {label:>8}  {len(rows):>4}  {len(h):>5}   {len(h) / len(rows) * 100:>8.1f}%"
+              f"   {hs / ts * 100 if ts else 0:>8.1f}%", file=sys.stderr)
+
+    # #1273 【設計】全体の寄与は帯ごとに重み付けして足す。上位30だけで外挿すると
+    # 大手の整ったサイトの率を下位帯にも当ててしまい、過大評価になる。
+    weighted = 0.0
+    for label, _, _ in bands:
+        if label in band_rates:
+            weighted += band_pop[label]["n_stores"] * band_rates[label]["store_rate"]
+    print(f"\n  帯別に重み付けした到達店舗数: {weighted:,.0f} 店 "
+          f"= 母集団の {weighted / total_food * 100:.2f}%", file=sys.stderr)
+    print(f"  （目視 precision 75.0% を掛けると {weighted * 0.75 / total_food * 100:.2f}%）",
+          file=sys.stderr)
 
     hit = [r for r in results if r["n_verified_dish"] >= 1]
     hit_stores = sum(r["n_stores"] for r in hit)
@@ -164,6 +225,10 @@ def main() -> None:
                 "n_domains_real_chain": len(real),
                 "n_stores_real_chain": real_stores,
                 "total_food_places": total_food,
+                "band_population": band_pop,
+                "band_rates": band_rates,
+                "weighted_reach_stores": weighted,
+                "weighted_reach_pct": weighted / total_food * 100,
                 "n_fetched": len(results),
                 "n_hit": len(hit),
                 "hit_stores": hit_stores,
