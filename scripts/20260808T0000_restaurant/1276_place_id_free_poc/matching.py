@@ -301,15 +301,16 @@ def rule_box_unique(seed: Seed, probes: Mapping[str, SearchResult]) -> Decision:
     # 付いている行が実測で 15.6% しかないので、B の有無で足切りすると使えなくなる。
     if not seed.name_query:
         return Decision(STATUS_INELIGIBLE, None, GEO_INCONCLUSIVE, "missing_name")
-    result_a = probes.get(PROBE_A)
-    if result_a is None:
+    # 必要な probe だけを送る運用（adaptive_probe）では、矩形が一意にならなかった
+    # seed に A も B も存在しない。確定しえないと分かって送らなかっただけなので、
+    # 取得漏れとは区別する。判断の起点は矩形のほうである。
+    if PROBE_C_TIGHT not in probes and PROBE_A not in probes:
         return Decision(STATUS_API_ERROR, None, GEO_INCONCLUSIVE, "probe_missing")
-    if not result_a.ok:
+    result_a = probes.get(PROBE_A)
+    if result_a is not None and not result_a.ok:
         return Decision(STATUS_API_ERROR, None, GEO_INCONCLUSIVE, "http_error")
 
     a, b = _ids(probes, PROBE_A), _ids(probes, PROBE_B)
-    if not a and not b:
-        return Decision(STATUS_UNMATCHED, None, GEO_INCONCLUSIVE, "empty_result")
     supported = set(a) | set(b)
 
     tight = set(_ids(probes, PROBE_C_TIGHT))

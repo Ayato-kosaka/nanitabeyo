@@ -80,7 +80,8 @@ def main() -> int:
     for path in arguments.seeds:
         for seed in read_seeds(path):
             probe = probes.get(seed.seed_id)
-            if not probe or PROBE_A not in probe:
+            # 遅延取得では矩形だけ送って終わる seed がある。A の有無では判定しない。
+            if not probe or (PROBE_C_TIGHT not in probe and PROBE_A not in probe):
                 skipped_unprobed += 1
                 continue
             a, b = ids(probe, PROBE_A), ids(probe, PROBE_B)
