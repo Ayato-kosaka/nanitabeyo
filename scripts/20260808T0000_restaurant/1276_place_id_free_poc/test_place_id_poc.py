@@ -578,5 +578,33 @@ class AdaptiveProbeTest(unittest.TestCase):
         self.assertEqual(outcome.requests, 3)
 
 
+class BillableEndpointTest(unittest.TestCase):
+    """Nearby Search を呼べないことを固定する。
+
+    fieldMask を絞れば無料、という前提は Text Search と Place Details にしか
+    当てはまらない。Nearby Search (New) は IDs Only でも課金される。
+    実際にこれを無料と誤認して約3,700リクエストを発生させたので、
+    構造的に呼べないようにしてある。
+    """
+
+    def test_search_nearby_is_refused(self) -> None:
+        from free_places import BillableEndpointError
+
+        client = FreePlacesClient("k", rate_limiter=RateLimiter(qps=1000.0))
+        with self.assertRaises(BillableEndpointError):
+            client.search_nearby({"maxResultCount": 1})
+
+    def test_refused_before_any_network_call(self) -> None:
+        """送信前に落ちること。落ちる前に1リクエストでも出たら意味がない。"""
+
+        from free_places import BillableEndpointError
+
+        client = FreePlacesClient("k", rate_limiter=RateLimiter(qps=1000.0))
+        with mock.patch("urllib.request.urlopen", side_effect=AssertionError("送信された")):
+            with self.assertRaises(BillableEndpointError):
+                client.search_nearby({"maxResultCount": 1})
+        self.assertEqual(client.request_count, 0)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

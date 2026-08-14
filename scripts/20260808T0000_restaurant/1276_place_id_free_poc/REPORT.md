@@ -1,10 +1,13 @@
 # 実測レポート: 無料SKUだけの google_place_id 逆引き（Issue #1261 Step 1）
 
 - 測定日: 2026-08-12 〜 2026-08-13
-- 呼んだSKU: Text Search Essentials (IDs Only) / Nearby Search Essentials (IDs Only) /
-  Place Details Essentials (IDs Only)
-- **課金額: 0円**。fieldMask は `places.id`（Place Details は `id`）固定で、応答に
-  他フィールドが来たら `BillingGuardError` で停止する。Google 由来の店名・住所・座標は
+- 呼んだSKU: Text Search Essentials (IDs Only) / Place Details Essentials (IDs Only)
+- **例外あり**: 途中で Nearby Search を「IDs Only なら無料」と誤認して使った。
+  Nearby Search (New) に IDs Only の無料枠は無く、fieldMask を絞っても
+  Nearby Search Pro として課金される（Google サポートの回答、#1331）。
+  発生量はおよそ **3,700 リクエスト**。詳細は「課金してしまった箇所」を参照。
+- **課金: Text Search と Place Details は 0円**（fieldMask 固定＋応答検査で構造的に保証）。
+  **Nearby Search 約3,700リクエストは課金対象**だった。Google 由来の店名・住所・座標は
   1件も取得していない。
 
 ## seed（オープンデータ側）
@@ -255,8 +258,8 @@ Text Search が 429 を返す。日付が変わるまで回復しない。
 ここまでの網羅率は既存DB 103,440行を分母にしていた。しかし既存DBは Google の
 飲食店の1割程度しか持っておらず（後述）、分母として小さすぎた。
 
-Nearby Search Essentials (IDs Only) は $0.00 で、しかも Text Search とは
-**別の日次クォータ**を持つ。半径を小さくすれば「返ってきた place_id はその半径
+Nearby Search は Text Search とは**別の日次クォータ**を持つ。
+**ただしこの SKU は課金対象である**（当時は無料だと誤認していた。#1331）。半径を小さくすれば「返ってきた place_id はその半径
 以内にある」ことが分かるので、座標を買わずに Google 側の店を位置つきで列挙できる。
 
 ### 密度（600点、`results/density_600.json`）
@@ -332,6 +335,60 @@ Google が返した place_id のうち既存DBに在ったのは **9.11%**。行
   `box_unique` は「Google に存在しうる行」の 85.21% を確定し、裁定後の誤りは
   0/2,716 だった。位置ベースの対応率 90% と掛け合わせると、
   **Google の飲食店の 3/4 程度には無料で place_id を付けられる**見込みになる。
+
+
+## 課金してしまった箇所
+
+この PoC の第一制約は「絶対に課金しない」だった。Text Search と Place Details は
+守れているが、**Nearby Search で守れていない**。経緯と量を残す。
+
+### 何を誤ったか
+
+「課金は fieldMask で決まるので、`places.id` だけにすれば無料」という前提を、
+Places API の全 endpoint に当てはめてしまった。**この前提が成り立つのは Text Search と
+Place Details だけ**である。Nearby Search (New) には IDs Only の無料枠が無く、
+fieldMask を `places.id` に絞っても Nearby Search Pro として課金される。
+
+Google のサポートから明示的に指摘を受けて判明した（#1331 のクォータ増量申請への回答）。
+
+> please be aware that Nearby Search (New) does not offer a free "IDs Only" tier.
+> Any Nearby Search request, even if the field mask is strictly limited to places.id,
+> will automatically trigger the billable Nearby Search Pro SKU.
+
+### 発生量
+
+| 用途 | リクエスト |
+| --- | ---: |
+| 初期の probe に入れていた `nearby`（`cache/probe.sqlite`） | 1,242 |
+| 密度測定 150点（`density.py`） | 246 |
+| 密度測定 600点（`density.py`） | 1,042 |
+| Google 側の網羅率・区画敷き詰め（`google_coverage.py`） | 1,000 |
+| 型フィルタの妥当性検証など（記録を残していない実行） | 約 180 |
+| **合計** | **約 3,710** |
+
+実際の請求額は請求コンソールで確認が要る。SKU ごとの月次無料枠に収まっていれば
+0円だが、こちらから断定はできない。
+
+### 何が防げなかったか
+
+課金ガードは fieldMask と応答のキーだけを見ていた。**課金性は endpoint ごとに
+決まる**という視点が抜けていたので、「fieldMask は `places.id` だけ」という条件を
+満たす Nearby Search は素通りした。
+
+### 直したこと
+
+`FreePlacesClient.search_nearby` は呼ばれた時点で `BillableEndpointError` を送出する。
+送信前に落ちること（`request_count` が増えないこと）を単体テストで固定した。
+`density.py` と `google_coverage.py` は冒頭に警告を書いたうえで残す。測定結果自体は
+有効なので捨てないが、**再実行してはならない**。
+
+### この誤りで得た結果の扱い
+
+Nearby Search を使って出した数字（密度、Google 側から見た網羅率）は測定として有効で、
+「オープンデータは Google の飲食店の約90%以上に対応行を持つ」という結論の根拠に
+なっている。ただし**この結論はもう無料では再現できない**。同じことを無料で測るなら、
+Text Search の矩形（`locationRestriction`）で店名を指定して引く方法しかなく、
+店名なしで円の中を列挙する手段は無料SKUには存在しない。
 
 ## 棄却した作戦
 

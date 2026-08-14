@@ -8,14 +8,20 @@
   Google が持っている店を全部は持っていない。
 - 店名照合器の出来に左右される。実際、照合器を直しただけで 48.76% が 72.83% になった。
 
-Nearby Search Essentials (IDs Only) は $0.00 で、しかも Text Search とは別の
-日次クォータを持つ。円の中の place_id を店名なしで列挙できるので、
+Nearby Search は Text Search とは別の日次クォータを持つ。円の中の place_id を店名なしで列挙できるので、
 **同じ円の中で Google が何件持ち、オープンデータが何件持つか**を直接数えられる。
 名前を一切使わないので、照合器の出来に影響されない。
 
 20件で打ち切られる制約があるので、20件ちょうどなら半径を半分にして数え直す。
 打ち切られたまま数えると Google 側を過小評価してしまう。
 """
+
+# **このスクリプトは課金される。** Nearby Search (New) には IDs Only の無料枠が無く、
+# fieldMask を places.id だけにしても Nearby Search Pro として課金される
+# （Google サポートの回答、#1331）。当初これを無料だと誤認して実行した。
+# `FreePlacesClient.search_nearby` は現在 BillableEndpointError を送出するので、
+# このスクリプトはそのままでは動かない。測定結果は残すが、再実行してはならない。
+
 
 from __future__ import annotations
 
@@ -185,7 +191,7 @@ def main() -> int:
         "radius_histogram": dict(Counter(round(probe.radius_m) for probe in probes)),
         "requests": client.request_count,
         "http_errors": client.error_count,
-        "sku": "Nearby Search (IDs Only) のみ = $0.00",
+        "sku": "Nearby Search Pro (New) — 課金対象。#1331 参照",
     }
     if arguments.output:
         arguments.output.parent.mkdir(parents=True, exist_ok=True)

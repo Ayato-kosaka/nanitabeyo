@@ -7,11 +7,20 @@ Google の課金は *リクエストしたフィールドマスク* で決まる
 ``id`` 以外のキーが混入していないことを検査し、混入していれば即座に停止する。
 
 使用する無料SKU:
-- Text Search Essentials (IDs Only): FieldMask ``places.id`` のみ。$0.00 / 無制限。
-- Nearby Search Essentials (IDs Only): FieldMask ``places.id`` のみ。$0.00 / 無制限。
+- Text Search Essentials (IDs Only): FieldMask ``places.id`` のみ。$0.00。
+- Place Details Essentials (IDs Only): FieldMask ``id`` のみ。$0.00。
 
 ``places.displayName`` や ``places.location`` 等を1つでも足すと Pro SKU に切り替わり
 課金されるため、FIELD_MASK は定数であり引数化しない。
+
+**Nearby Search は使えない。** 「fieldMask を絞れば無料」という性質は Text Search と
+Place Details にしかない。Nearby Search (New) には IDs Only の無料枠が無く、
+fieldMask を ``places.id`` だけにしても Nearby Search Pro として課金される
+（Google サポートの回答、#1331）。当初これを無料だと誤認して密度測定と網羅率測定に
+使い、およそ3,700リクエストを発生させた。
+
+この誤りは fieldMask だけを見る課金ガードでは防げなかった。**課金性は endpoint ごとに
+決まる**ので、``search_nearby`` は呼ばれた時点で ``BillableEndpointError`` を送出する。
 """
 
 from __future__ import annotations
@@ -61,6 +70,19 @@ RETRYABLE_EXCEPTIONS = (
 
 class BillingGuardError(RuntimeError):
     """無料SKUを外れた可能性を検知したときに送出する。処理は継続しない。"""
+
+
+class BillableEndpointError(RuntimeError):
+    """課金される endpoint を呼ぼうとしたときに送出する。
+
+    fieldMask を絞れば無料になる、という前提は Text Search と Place Details に
+    しか当てはまらない。**Nearby Search (New) には IDs Only の無料枠が無く、
+    fieldMask を places.id だけにしても Nearby Search Pro として課金される。**
+    Google のサポートから明示的に指摘を受けた（#1331）。
+
+    fieldMask だけを見る課金ガードでは、この誤りを防げなかった。endpoint 自体の
+    課金性を検査する。
+    """
 
 
 class DailyQuotaExhausted(RuntimeError):
@@ -182,7 +204,21 @@ class FreePlacesClient:
         return self._post(TEXT_SEARCH_URL, body)
 
     def search_nearby(self, body: Mapping[str, Any]) -> SearchResult:
-        return self._post(NEARBY_SEARCH_URL, body)
+        """**呼べない。** Nearby Search には IDs Only の無料枠が存在しない。
+
+        fieldMask を ``places.id`` だけにしても Nearby Search Pro として課金される
+        （Google サポートの回答、#1331）。この PoC の第一制約は「絶対に課金しない」
+        なので、呼び出せないようにする。
+
+        以前この関数を無料だと誤認して使い、密度測定と網羅率測定で合計およそ
+        3,700 リクエストを発生させた。同じ誤りを二度と起こさないため、
+        署名を残したまま常に送出する。
+        """
+
+        raise BillableEndpointError(
+            "Nearby Search には IDs Only の無料枠が無く、fieldMask を絞っても "
+            "Nearby Search Pro として課金される。この PoC からは呼び出さない。"
+        )
 
     def refresh_place_id(self, place_id: str) -> SearchResult:
         """place_id が今も有効かを確かめる（ID Refresh）。

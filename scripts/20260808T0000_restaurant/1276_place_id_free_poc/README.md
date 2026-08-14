@@ -25,12 +25,17 @@ Google の課金はリクエストした fieldMask で決まります。した�
 呼び出し側の引数にせず、`free_places.FIELD_MASK = "places.id"` として定数で固定し、
 さらに応答側でも `id` 以外のキーが来たら `BillingGuardError` で**処理を止めます**。
 
-使っているSKUは次の2つで、いずれも $0.00・無制限です。
+使っているSKUは次の2つで、いずれも $0.00 です。
+
+**Nearby Search は使いません。** 「fieldMask を絞れば無料」という性質は Text Search と
+Place Details にしかなく、Nearby Search (New) には IDs Only の無料枠がありません。
+fieldMask を `places.id` だけにしても Nearby Search Pro として課金されます
+（Google サポートの回答、#1331）。`search_nearby` は呼ばれた時点で例外を投げます。
 
 | SKU | 呼び出し | fieldMask |
 | --- | --- | --- |
 | Text Search Essentials (IDs Only) | `places:searchText` | `places.id` |
-| Nearby Search Essentials (IDs Only) | `places:searchNearby` | `places.id` |
+| Place Details Essentials (IDs Only) | `places/{id}` | `id` |
 
 `displayName` や `location` を1つでも足すと Pro SKU に切り替わって課金されるため、
 このリポジトリのコードからは足せないようにしてあります。単体テストでも

@@ -5,8 +5,7 @@
 飲食店の 12.75% しか持っていない（`density.py` の実測）。つまり分母が小さすぎて、
 「オープンデータが Google をどれだけ覆えているか」を測れていなかった。
 
-Nearby Search Essentials (IDs Only) は $0.00 で、円の中の place_id を店名なしで
-返す。半径を十分小さくすれば、**返ってきた place_id はその半径以内にある**ことが
+Nearby Search は円の中の place_id を店名なしで返す。半径を十分小さくすれば、**返ってきた place_id はその半径以内にある**ことが
 分かる。座標フィールドを買わずに位置を絞れる。
 
 そこで小さい円で区画を敷き詰め、
@@ -20,6 +19,13 @@ Google Maps を置き換えられるかの、最も直接的な答えになる�
 打ち切り（20件）に当たった円は、そこに20件以上あるという事実だけが分かる。
 位置の推定が甘くなるので、集計から外して件数だけ記録する。
 """
+
+# **このスクリプトは課金される。** Nearby Search (New) には IDs Only の無料枠が無く、
+# fieldMask を places.id だけにしても Nearby Search Pro として課金される
+# （Google サポートの回答、#1331）。当初これを無料だと誤認して実行した。
+# `FreePlacesClient.search_nearby` は現在 BillableEndpointError を送出するので、
+# このスクリプトはそのままでは動かない。測定結果は残すが、再実行してはならない。
+
 
 from __future__ import annotations
 
@@ -164,7 +170,7 @@ def main() -> int:
         },
         "requests": client.request_count,
         "http_errors": client.error_count,
-        "sku": "Nearby Search (IDs Only) のみ = $0.00",
+        "sku": "Nearby Search Pro (New) — 課金対象。#1331 参照",
     }
     if arguments.output:
         arguments.output.parent.mkdir(parents=True, exist_ok=True)
