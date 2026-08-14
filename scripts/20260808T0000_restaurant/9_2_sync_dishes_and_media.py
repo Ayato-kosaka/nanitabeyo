@@ -223,7 +223,7 @@ def apply_sync(connection: Any) -> None:
             INSERT INTO dish_media AS target (
               id, dish_id, user_id, media_path, media_type, thumbnail_path,
               created_at, updated_at, lock_no, video_duration_ms,
-              media_processing_status, thumbnail_processing_status
+              media_processing_status, thumbnail_processing_status, render_type
             )
             SELECT
               staging.dish_media_id,
@@ -237,7 +237,11 @@ def apply_sync(connection: Any) -> None:
               0,
               NULL,
               'completed',
-              'completed'
+              'completed',
+              -- #1273 §40 この経路が作るのは全て外部埋め込み行。列の既定値は 'stored_media' なので
+              -- ここで明示しないと、API が子テーブルから導出する renderType と列が食い違う
+              -- (migration 20260814T0000 のコメント参照)。
+              'external_embed'
             FROM media_sync_staging staging
             JOIN restaurants restaurant USING (google_place_id)
             JOIN dishes dish
@@ -248,6 +252,7 @@ def apply_sync(connection: Any) -> None:
               media_path = EXCLUDED.media_path,
               media_type = EXCLUDED.media_type,
               thumbnail_path = EXCLUDED.thumbnail_path,
+              render_type = EXCLUDED.render_type,
               updated_at = CURRENT_TIMESTAMP
             """
         )
