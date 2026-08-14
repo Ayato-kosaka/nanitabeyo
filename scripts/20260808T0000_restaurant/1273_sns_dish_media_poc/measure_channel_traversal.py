@@ -49,6 +49,49 @@ STOPWORD_NAMES = {
 
 MAX_VIDEOS_PER_CHANNEL = 400  # 巨大チャンネルで時間が爆発しないよう上限を置く
 
+# #1273 【バグ】地名を辞書から除外する処理（area_vocab / addr_tail）は**日本語名にしか
+# 効いていなかった**。ラテン名は normalize_latin を通るので area_vocab と綴りが合わず、
+# ローマ字の地名がそのまま店名として登録されていた。実測 21語（tokyo, hyogo, ginza,
+# shinjuku, roppongi ...）。動画タイトル末尾の "(kobe hyogo japan food life)" のような
+# 定型ハッシュタグ列に一致し、地名の裏取りも同じ行で満たしてしまうため誤爆が確定する。
+# 根拠: out/locality_token_recall.json の目視で「Hyogo」の誤爆を1件確認した。
+LATIN_GEO_NAMES = {
+    # 都道府県（ローマ字）
+    "hokkaido", "aomori", "iwate", "miyagi", "akita", "yamagata", "fukushima", "ibaraki",
+    "tochigi", "gunma", "saitama", "chiba", "tokyo", "kanagawa", "niigata", "toyama",
+    "ishikawa", "fukui", "yamanashi", "nagano", "gifu", "shizuoka", "aichi", "mie",
+    "shiga", "kyoto", "osaka", "hyogo", "nara", "wakayama", "tottori", "shimane",
+    "okayama", "hiroshima", "yamaguchi", "tokushima", "kagawa", "ehime", "kochi",
+    "fukuoka", "saga", "nagasaki", "kumamoto", "oita", "miyazaki", "kagoshima", "okinawa",
+    # 政令市・著名な地名（ローマ字）
+    "sapporo", "sendai", "yokohama", "kawasaki", "nagoya", "kobe", "kitakyushu",
+    "hamamatsu", "sakai", "sagamihara", "shibuya", "shinjuku", "ginza", "asakusa",
+    "ueno", "ikebukuro", "akihabara", "nakameguro", "daikanyama", "roppongi", "odaiba",
+    "naha", "ishigaki", "miyakojima", "hakodate", "otaru", "nikko", "kamakura",
+    "hakone", "karuizawa", "kanazawa", "takayama", "uji", "kurashiki", "matsuyama",
+    "beppu", "yufuin",
+}
+
+# #1273 【バグ】`area` は locality を**丸ごと**持ち、match_corroborated は丸ごと一致を
+# 要求していた。Overture の locality は「札幌市中央区」「下都賀郡壬生町」のように
+# 上位行政区が連結しているため、タイトルに「中央区」「壬生町」とだけ書いてあると
+# 裏取りが通らない。measure_seed_youtube_ceiling.py の judge_strict で先に直した罠と同型。
+# 実測: キャッシュ 194,315本で distinct 店舗 11,141 -> 12,204（+9.54%）。
+# 根拠: out/locality_token_recall.json
+_PREF_RE = re.compile(r"^.{2,4}?[都道府県]")
+_GUN_RE = re.compile(r"^.{1,4}?郡")
+_ADMIN_TOKEN_RE = re.compile(r"\S{1,6}?[市区町村]")
+
+
+def locality_needle(raw: str) -> str:
+    """「北海道札幌市中央区」-> 「中央区」。取れなければ空文字（丸ごと一致に委ねる）。"""
+    if not raw:
+        return ""
+    s = _PREF_RE.sub("", raw, count=1)
+    s = _GUN_RE.sub("", s, count=1)
+    tokens = _ADMIN_TOKEN_RE.findall(s)
+    return tokens[-1] if tokens else ""
+
 
 # #1273 【バグ】初版は空白を除去してから全国辞書に部分一致させていたため、ラテン文字の
 # 店名が英単語の内部に一致する偽陽性が支配的だった（"form"→perform、"ATER"→water、
@@ -167,14 +210,22 @@ class NameMatcher:
                 continue
             self.auto_ja.add_word(key, key)
             self.n_ja += 1
+        dropped_geo_la = 0
         for key, locs in places_la.items():
             count = len(locs)
             if len(key) < MIN_NAME_LEN_LATIN or count > 1 or key in stop_la:
                 continue
+            # 上記【バグ】: ローマ字の地名は辞書から落とす（日本語側と同じ規律）
+            if key in LATIN_GEO_NAMES:
+                dropped_geo_la += 1
+                continue
             self.auto_la.add_word(key, key)
             self.n_la += 1
+        dropped_geo += dropped_geo_la
         self.auto_ja.make_automaton()
         self.auto_la.make_automaton()
+        # 裏取り用の市区町村トークン（上記【バグ】参照）。
+        self.needle = {k: locality_needle(loc) for k, (loc, _) in self.area.items()}
         self.rows = rows
         print(f"[dict] {'+'.join(self.sources_used)}: {rows:,} rows -> "
               f"日本語名 {self.n_ja:,} (>={MIN_NAME_LEN_NATIONAL}字) + "
@@ -214,7 +265,12 @@ class NameMatcher:
         out = set()
         for key in self.match(text):
             loc, region = self.area.get(key, ("", ""))
-            if (loc and loc in tja) or (region and region in tja):
+            # 【設計】「丸ごと」と「市区町村トークン」の和集合で裏取りする。
+            # トークンだけにすると locality から市区町村を取れない店（「〇〇村大字△△」等）が
+            # 裏取り手段を失うため、丸ごと一致も残す。上記【バグ】参照。
+            needle = self.needle.get(key, "")
+            if ((loc and loc in tja) or (needle and needle in tja)
+                    or (region and region in tja)):
                 out.add(key)
         return out
 
