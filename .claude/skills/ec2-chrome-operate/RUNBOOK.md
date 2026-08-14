@@ -221,6 +221,33 @@ tail -c 1200 /tmp/real_stderr.log 2>/dev/null
 
 証跡スクショを撮らせる回では、`apt-get install -y xdotool imagemagick xclip` を**リモートスクリプトの先頭で1回流しておく**（素の instance には入っていない。入れれば以後は残る）。保存先は `/tmp` ではなく `/home/ubuntu/evidence/`。
 
+### 複数手順を1ブートで回す（所要を縮める本命）
+
+Chrome 起動 + プローブの約2.5分と、起動・停止の約2分は**ブートごとに必ずかかる**。手順を分けたいがブート数は増やしたくない場合、**プロンプトを複数用意して `claude -p` を順番に呼ぶ**。1つの巨大プロンプトにするのと違い、各回の報告が独立して残り、コンテキストも毎回リセットされる。
+
+```sh
+# プロンプトは呼び出し側で /tmp/prompt1.txt, /tmp/prompt2.txt ... として base64 で送り込む
+n=1
+for P in /tmp/prompt1.txt /tmp/prompt2.txt /tmp/prompt3.txt; do
+  [ -s "$P" ] || continue
+  echo "===== STEP $n: $P ====="
+  date -u
+  cat > /tmp/real_$n.sh <<REOF
+export DISPLAY=:20
+timeout 900 "$CLAUDE_BIN" --chrome --dangerously-skip-permissions \
+  --verbose --output-format stream-json -p "\$(cat $P)" > /tmp/real_stream_$n.jsonl 2>&1
+echo "claude exit: \$?"
+REOF
+  chmod 755 /tmp/real_$n.sh
+  sudo -u ubuntu -i -- bash /tmp/real_$n.sh
+  cp -f /tmp/real_stream_$n.jsonl /home/ubuntu/last_stream_$n.jsonl 2>/dev/null
+  n=$((n + 1))
+done
+# 整形は各 /tmp/real_stream_$n.jsonl に対して同じ python を回す
+```
+
+`ec2_exec.sh` に渡す timeout は「全ステップ合計 + 起動待ち」で見積もること（例: 900s × 3 + 300s ≒ 3000s）。SSM の `executionTimeout` はそれより長くなる（`ec2_exec.sh` が +120 する）。
+
 ## 参考: 旧・本編スクリプト（Chrome 起動を含まない版）
 
 以下は Chrome 起動と接続待ちが無いため、**単体では必ず「ブラウザ0件」で終わる**。SSM 呼び出しの骨組みとしてのみ参照すること。
