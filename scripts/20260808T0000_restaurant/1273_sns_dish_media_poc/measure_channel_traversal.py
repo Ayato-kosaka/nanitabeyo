@@ -192,6 +192,29 @@ class NameMatcher:
         # match_corroborated の locality 裏取りを**自分自身で満たしてしまう**ため、
         # 地名を書いただけの動画が必ず店舗一致になる。Round5 の実測で Shorts のヒット243件中
         # 70件(28.8%)がこの型だった。地名そのものと地名で終わる名前を辞書から除外する。
+        # #1273 【バグ】STOPWORD_NAMES は手書きの20語しか無く、**料理カテゴリ語そのものが
+        # 店名として登録されている**型を取り逃していた。実測 29語（ハンバーグ / ステーキ /
+        # しゃぶしゃぶ / 味噌ラーメン / 沖縄料理 ...）。動画タイトルにはその料理名が必ず出るので、
+        # 地名の裏取りが通れば必ず誤爆する。実例:
+        #   「ハンバーグ」← 【札幌 中央区】大きなハンバーグのスープカレーに感激！
+        # 134カテゴリの変種辞書（dish_category_matcher）をそのまま除外語に使う。
+        # 根拠: out/backfill_recall.json の目視で2件の誤爆を確認した。
+        try:
+            from dish_category_matcher import CategoryMatcher as _CM
+            _cm = _CM()
+            dish_vocab = {k for k in getattr(_cm, "auto", {}) } if False else set()
+            for _attr in ("by_label",):
+                _d = getattr(_cm, _attr, None)
+                if isinstance(_d, dict):
+                    for _label, _vars in _d.items():
+                        dish_vocab.add(_label)
+                        if isinstance(_vars, (list, tuple, set)):
+                            dish_vocab |= {v for v in _vars if isinstance(v, str)}
+            dish_vocab = {normalize_ja(v) if has_cjk(v) else normalize_latin(v).strip()
+                          for v in dish_vocab if v}
+        except Exception:  # 判定器が無い環境でも辞書は作れるようにする
+            dish_vocab = set()
+
         area_vocab = {v for pair in self.area.values() for v in pair if v}
         addr_tail = re.compile(r"(都|道|府|県|市|区|町|村|丁目|番地)$")
         dropped_geo = 0
@@ -203,6 +226,9 @@ class NameMatcher:
         for key, locs in places_ja.items():
             count = len(locs)
             if len(key) < MIN_NAME_LEN_NATIONAL or count > 1 or key in stop_ja:
+                continue
+            if key in dish_vocab:   # 料理カテゴリ語そのもの（上記【バグ】参照）
+                dropped_geo += 1
                 continue
             # 住所文字列そのもの、および地名で終わる名前は除外する（上記【バグ】参照）
             if key in area_vocab or addr_tail.search(key):
@@ -216,7 +242,7 @@ class NameMatcher:
             if len(key) < MIN_NAME_LEN_LATIN or count > 1 or key in stop_la:
                 continue
             # 上記【バグ】: ローマ字の地名は辞書から落とす（日本語側と同じ規律）
-            if key in LATIN_GEO_NAMES:
+            if key in LATIN_GEO_NAMES or key in dish_vocab:
                 dropped_geo_la += 1
                 continue
             self.auto_la.add_word(key, key)
