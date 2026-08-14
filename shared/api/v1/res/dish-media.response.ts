@@ -13,7 +13,12 @@ import { RestaurantsEntity } from "./restaurants.response";
 export type MediaProcessingStatus = "idle" | "processing" | "completed" | "failed";
 
 export type ExternalDishMediaEmbed = {
-	provider: "instagram" | "tiktok" | "x";
+	/**
+	 * #1273 youtube を追加（migration 20260814T0000）。
+	 * ①で確立した無料の発見手法は YouTube 由来で、実測でも embeddable 98.8% / 生存率100% と
+	 * 4プロバイダの中で埋め込みの土台が最も健全。
+	 */
+	provider: "instagram" | "tiktok" | "x" | "youtube";
 	externalContentId: string;
 	canonicalUrl: string;
 	embedHtml: string;
