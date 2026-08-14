@@ -17,3 +17,8 @@ out/idea_verification/_*
 out/idea_verification/verify.py
 out/idea_verification/verify_results.json
 out/*.log
+
+# #1273 施設テナントの目視検証で落としたテナント画像とコンタクトシート。
+# 上と同じ理由（画像バイナリはコミットしない）。目視の結果は REPORT.md に書く。
+out/facility_photo_images/
+out/contact_*.jpg
