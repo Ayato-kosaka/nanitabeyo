@@ -116,6 +116,8 @@ jobs:
                   '.status.traffic[]? | select(.tag == $t) | .url' | head -1)
           revision=$(echo "$traffic" | jq -r --arg t "${CANDIDATE_TAG}" \
                   '.status.traffic[]? | select(.tag == $t) | .revisionName' | head -1)
+          # 昇格後に案内する恒常 URL。tag 付き URL は tag を剥がすと死ぬので使えない。
+          service_url=$(echo "$traffic" | jq -r '.status.url')
 
           if [ -z "$url" ] || [ "$url" = "null" ] ||
              [ -z "$revision" ] || [ "$revision" = "null" ]; then
@@ -126,6 +128,7 @@ jobs:
 
           echo "url=${url}" >> "$GITHUB_OUTPUT"
           echo "revision=${revision}" >> "$GITHUB_OUTPUT"
+          echo "service_url=${service_url}" >> "$GITHUB_OUTPUT"
           echo "🔍 candidate: ${revision} → ${url}"
 
       # ---------- 候補リビジョンへのスモークテスト（切替のゲート） ----------
@@ -206,7 +209,11 @@ jobs:
           gcloud run services update-traffic "${SERVICE_NAME}" \
             --region "${REGION}" --to-revisions "${REVISION}=100"
 
-          echo "✅ Deployed: ${{ steps.deploy.outputs.url }}（revision: ${REVISION}）"
+          # deploy の outputs.url は使わない。action.yml の説明は "The URL of the
+          # Cloud Run service" だが、`tag` を渡すと **tag 付き URL** が返ることを
+          # 2026-08-14 の本番デプロイ（run 31804486694）で実測した。次の
+          # ステップで tag を剥がすため、それを案内すると死んだ URL を渡すことになる。
+          echo "✅ Deployed: ${{ steps.candidate.outputs.service_url }}（revision: ${REVISION}）"
 
       # 【設計】tag 剥がしの失敗で job を落とさない（continue-on-error）。
       # この時点で昇格は済んでおり、本番は新リビジョンが正常に捌いている。
