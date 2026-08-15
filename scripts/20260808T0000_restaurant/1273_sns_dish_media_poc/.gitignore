@@ -22,3 +22,4 @@ out/*.log
 # 上と同じ理由（画像バイナリはコミットしない）。目視の結果は REPORT.md に書く。
 out/facility_photo_images/
 out/contact_*.jpg
+out/_blog_text/
