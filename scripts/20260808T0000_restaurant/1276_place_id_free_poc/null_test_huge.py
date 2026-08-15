@@ -52,6 +52,15 @@ PROBE_A_NULL = "a_null"
 PROBE_HUGE_NULL = "c_huge_null"
 PROBE_CA_HUGE_NULL = "ca_huge_null"
 PROBE_500_NULL = "c_500_null"
+PROBE_TIGHT_NULL = "c_tight_null"
+PROBE_WIDE_NULL = "c_wide_null"
+
+PROBE_BODIES = {
+    PROBE_TIGHT_NULL: 25.0,
+    PROBE_WIDE_NULL: 250.0,
+    PROBE_500_NULL: 500.0,
+    PROBE_HUGE_NULL: 1000.0,
+}
 
 
 def haversine_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
@@ -96,7 +105,14 @@ def main() -> int:
     parser.add_argument("--cache", type=Path, default=ROOT / "cache" / "null_huge.sqlite")
     parser.add_argument("--qps", type=float, default=8.0)
     parser.add_argument("--workers", type=int, default=8)
+    parser.add_argument(
+        "--probes",
+        nargs="+",
+        default=[PROBE_HUGE_NULL, PROBE_500_NULL, PROBE_CA_HUGE_NULL],
+        help="帰無側で送る矩形 probe。A（150m bias）は常に送る",
+    )
     arguments = parser.parse_args()
+    wanted_probes = list(arguments.probes)
 
     api_key = os.environ.get("PLACE_API_TEST")
     if not api_key:
@@ -124,13 +140,14 @@ def main() -> int:
     state = {"requests": 0, "errors": 0, "finished": 0}
 
     def work(seed: Seed) -> None:
-        bodies = [
-            (PROBE_HUGE_NULL, body_query_c(seed, half_side_m=HUGE_HALF_SIDE_M)),
-            (PROBE_A_NULL, body_query_a(seed, radius_m=BIAS_RADIUS_M)),
-            (PROBE_500_NULL, body_query_c(seed, half_side_m=500.0)),
-        ]
-        if seed.address_query:
-            bodies.append((PROBE_CA_HUGE_NULL, body_query_ca(seed, half_side_m=HUGE_HALF_SIDE_M)))
+        bodies = [(PROBE_A_NULL, body_query_a(seed, radius_m=BIAS_RADIUS_M))]
+        for probe in wanted_probes:
+            if probe in PROBE_BODIES:
+                bodies.append((probe, body_query_c(seed, half_side_m=PROBE_BODIES[probe])))
+            elif probe == PROBE_CA_HUGE_NULL and seed.address_query:
+                bodies.append(
+                    (probe, body_query_ca(seed, half_side_m=HUGE_HALF_SIDE_M))
+                )
         for probe, body in bodies:
             if (seed.seed_id, probe) in done:
                 continue
