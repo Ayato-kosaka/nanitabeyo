@@ -242,6 +242,27 @@ describe("#1196 検索実行前の地点ガード", () => {
 		expect(mockRouterPush).not.toHaveBeenCalled();
 	});
 
+	it("告知が reject されても unhandled rejection にならず、ガードは解放される", async () => {
+		// DialogProvider は unmount 時に未解決の confirm を reject する（「unmount 時の掃除」の effect）。
+		// `.finally` は理由をそのまま通すので、受けないと画面遷移のたびに unhandled rejection になる
+		mockConfirm.mockImplementationOnce(() => Promise.reject(new Error("DialogProvider unmounted")));
+
+		tree = selectLocationAndSearch("country:US, administrative_area_level_1:CA");
+		expect(mockConfirm).toHaveBeenCalledTimes(1);
+
+		// reject の伝播（.finally → .catch）を流し切る
+		await TestRenderer.act(async () => {
+			await Promise.resolve();
+		});
+
+		// ガードが解放されているので、押し直せば再び告知が出る
+		TestRenderer.act(() => {
+			onPressSearch!();
+		});
+		expect(mockConfirm).toHaveBeenCalledTimes(2);
+		expect(mockRouterPush).not.toHaveBeenCalled();
+	});
+
 	it("小文字の国コードは JP 扱いにせず、壊れた address として止める", () => {
 		// #1196 サーバの照合は `dcf.feature_key = ANY(...)`（Postgres の完全一致 = 大小文字区別あり）で、
 		// `region:country:jp` はホワイトリストの `region:country:JP` に当たらない。

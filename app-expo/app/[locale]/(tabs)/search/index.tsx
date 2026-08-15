@@ -357,10 +357,16 @@ export default function SearchScreen() {
 				message: i18n.t("Search.unsupportedRegion.message"),
 				confirmLabel: i18n.t("Search.unsupportedRegion.confirm"),
 				showCancel: false,
-			}).finally(() => {
-				// 閉じたら次の告知を許可する（地点を変えずに押し直したときは再度出したい）
-				isUnsupportedRegionNoticeOpenRef.current = false;
-			});
+			})
+				.finally(() => {
+					// 閉じたら次の告知を許可する（地点を変えずに押し直したときは再度出したい）
+					isUnsupportedRegionNoticeOpenRef.current = false;
+				})
+				// #1196 【設計】この catch は必須。DialogProvider は unmount 時に未解決の confirm を
+				// **reject** する（「unmount 時の掃除」の effect）。`.finally` は理由をそのまま
+				// 通すので、ここで受けないと画面遷移のたびに unhandled rejection になる。
+				// ref の解放は `.finally` が済ませているため、ここは握り潰すだけでよい。
+				.catch(() => undefined);
 			return;
 		}
 
