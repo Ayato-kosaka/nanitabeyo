@@ -49,12 +49,24 @@ POP = POP_LINK + POP_NOLINK
 W_L, W_N = POP_LINK / POP, POP_NOLINK / POP
 TARGET = 0.70
 
-# 実測済みのリンク無し層への到達（経路存在率）
+# 実測済みのリンク無し層への到達（**経路存在率**）
+# 【追記】同名グループ経由を入れ忘れていた。out/samename_groups.json に
+# reachable_nolink = 91,297（同名グループに1店でもリンク有りが居るリンク無し店）が
+# 既に測ってあったのに、恒等式へ接続していなかった。**これが最大の経路である。**
 NOLINK_ROUTES = {
+    "同名グループ経由（1店でもリンク有り）": 91_297,
     "施設テナント（屋号に施設名）": 5_837,
     "YouTube ①（純増分）": 1_475,
     "街路画像 Panoramax（0.68% × 343,247）": round(0.0068 * POP_NOLINK),
 }
+
+# 経路存在率から実効へ落とすときに掛かる段（すべて実測値）
+# 同名グループ: 目視 brand 率 50.0%（n=60）× 自社サイトの料理写真率 29.09%
+#               × 目視 precision 46.7%
+SAMENAME_STAGES = (("目視 brand 率", 0.500),
+                   ("自社サイトの料理写真率", 0.2909),
+                   ("目視 precision", 0.467))
+FACILITY_PHOTO_RATE = 0.741   # 目視 20/27
 
 
 def main() -> None:
@@ -91,6 +103,28 @@ def main() -> None:
     print(f"\n  この r_N = {tot/POP_NOLINK*100:.2f}% のとき、"
           f"必要な r_L は **{need_l_at_measured*100:.2f}%**", file=sys.stderr)
 
+    # --- 経路存在率 -> 実効 -------------------------------------------------
+    print(f"\n=== 最大の経路（同名グループ）を経路存在率から実効へ落とす ===",
+          file=sys.stderr)
+    v = float(NOLINK_ROUTES["同名グループ経由（1店でもリンク有り）"])
+    print(f"  {'経路存在率':28} {v:>8,.0f} = {v/POP_NOLINK*100:>5.2f}%", file=sys.stderr)
+    for label, f in SAMENAME_STAGES:
+        v *= f
+        print(f"  × {label:26} {v:>8,.0f} = {v/POP_NOLINK*100:>5.2f}%", file=sys.stderr)
+    samename_eff = v
+    print(f"  **26.60% -> {v/POP_NOLINK*100:.2f}%（{91_297/max(v,1):.1f}倍に縮む）**",
+          file=sys.stderr)
+
+    eff_total = samename_eff + 5_837 * FACILITY_PHOTO_RATE + 1_475
+    print(f"\n=== 実効ベースのリンク無し層への到達（重ならないと仮定した上限）===",
+          file=sys.stderr)
+    print(f"  同名グループ {samename_eff:,.0f} + 施設テナント "
+          f"{5_837*FACILITY_PHOTO_RATE:,.0f} + YouTube 1,475 "
+          f"= {eff_total:,.0f} = **{eff_total/POP_NOLINK*100:.2f}%**", file=sys.stderr)
+    need_eff = (TARGET - W_N * (eff_total / POP_NOLINK)) / W_L
+    print(f"  このとき必要な r_L は **{need_eff*100:.2f}%**", file=sys.stderr)
+    print(f"  ※ Panoramax は写り込みを測っていないので実効には入れない。", file=sys.stderr)
+
     print(f"\n=== いまの実効天井を当てはめる ===", file=sys.stderr)
     for label, ceil in (("下端 19.26%", 0.1926), ("上端 25.63%", 0.2563)):
         print(f"  全体 {label} のとき、恒等式を満たす組は無数にあるが、"
@@ -123,6 +157,10 @@ def main() -> None:
          "nolink_reach_pct": tot / POP_NOLINK * 100,
          "required_rl_at_measured_rn": need_l_at_measured,
          "gap_pt": [gap_lo * 100, gap_hi * 100],
+         "samename_effective": samename_eff,
+         "nolink_effective_total": eff_total,
+         "nolink_effective_pct": eff_total / POP_NOLINK * 100,
+         "required_rl_effective": need_eff,
          "required_rl_vs_ceiling": {"vs_25_63": need_l_at_measured / 0.2563,
                                     "vs_19_26": need_l_at_measured / 0.1926},
          "caveat": "リンク無し層への到達は**経路存在率**であって実効ではない。"
