@@ -1,0 +1,13 @@
+{
+  "rows_written": 48497,
+  "rows_read": 73925,
+  "needs_geocoding": 29701,
+  "has_coordinates": 18796,
+  "not_a_restaurant": 14915,
+  "duplicate": 6017,
+  "no_name": 4264,
+  "files_used": 192,
+  "address_without_prefecture": 177,
+  "closed": 55,
+  "no_name_or_address_column": 1
+}

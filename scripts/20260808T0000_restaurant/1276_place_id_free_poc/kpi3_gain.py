@@ -35,6 +35,27 @@ csv.field_size_limit(min(sys.maxsize, 2**31 - 1))
 CELL_DEGREES = 0.004
 
 
+def read_seeds_lenient(path: Path):
+    """座標が空の行を飛ばして seed を読む。"""
+
+    import tempfile
+
+    with path.open(encoding="utf-8", newline="") as handle:
+        reader = csv.DictReader(handle)
+        rows = [row for row in reader if row.get("latitude") and row.get("longitude")]
+        fields = reader.fieldnames or []
+    with tempfile.NamedTemporaryFile("w", encoding="utf-8", newline="", suffix=".csv",
+                                     delete=False) as sink:
+        writer = csv.DictWriter(sink, fieldnames=fields)
+        writer.writeheader()
+        writer.writerows(rows)
+        temporary = Path(sink.name)
+    try:
+        yield from read_seeds(temporary)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
 def load_probes(path: Path) -> dict[str, dict[str, SearchResult]]:
     connection = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
     probes: dict[str, dict[str, SearchResult]] = defaultdict(dict)
@@ -93,7 +114,9 @@ def main() -> int:
         hit: set[str] = set()
         probed = matched = 0
         for path in paths:
-            for seed in read_seeds(path):
+            # 追加ソースには座標がまだ付いていない行が混ざる。read_seeds は座標を
+            # float で読むので、先に落としてから渡す。
+            for seed in read_seeds_lenient(path):
                 if seed.seed_id not in probes:
                     continue
                 probed += 1

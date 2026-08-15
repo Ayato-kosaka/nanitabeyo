@@ -32,7 +32,10 @@ ENCODINGS = ("utf-8-sig", "cp932", "utf-8", "euc-jp")
 
 NAME_HINTS = ("名称", "屋号", "商号", "施設名", "店名")
 NAME_EXCLUDE = ("営業者", "申請者", "法人番号", "代表者", "業種", "種別", "分類")
-ADDRESS_HINTS = ("所在地", "住所", "設置場所")
+ADDRESS_HINTS = ("営業施設所在地", "所在地", "住所", "設置場所")
+# 「所在地郵便番号」を住所列と誤認して、郵便番号を住所として読んでいた
+# （大分県のファイルで 18,732 行が落ちた）。番号系の列は住所ではない。
+ADDRESS_EXCLUDE = ("郵便番号", "電話", "ｆａｘ", "fax", "コード", "番号")
 TYPE_HINTS = ("営業の種類", "業種", "許可業種", "種別")
 CLOSED_HINTS = ("廃業", "失効")
 LATITUDE_HINTS = ("緯度", "latitude")
@@ -42,6 +45,35 @@ LONGITUDE_HINTS = ("経度", "longitude")
 KEEP_KEYWORDS = ("飲食店", "喫茶店", "菓子製造", "そうざい製造", "アイスクリーム")
 
 PREFECTURE = re.compile(r"^(東京都|北海道|(?:京都|大阪)府|.{2,3}県)")
+# 台帳の住所は都道府県から始まらないことが多い（「中央区銀座1-1-1」など）。
+# 実測で 18,384 行がこれで落ちていた。市区町村名から都道府県を補って救う。
+MUNICIPALITY_HEAD = re.compile(r"^(.{1,6}?市.{1,5}?区|.{1,8}?[市区町村])")
+
+
+def load_prefecture_map(path: Path) -> dict[str, str]:
+    if not path.exists():
+        return {}
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def with_prefecture(address: str, prefectures: dict[str, str], hint: str) -> str:
+    """都道府県から始まらない住所に、市区町村名から都道府県を補う。
+
+    同じ市区町村名が複数県にあるとき（府中市・伊達市・東村）は、公開元の
+    自治体名（ファイル名の頭）を手がかりにする。
+    """
+
+    if PREFECTURE.match(address):
+        return address
+    match = MUNICIPALITY_HEAD.match(address)
+    if not match:
+        return address
+    municipality = match.group(1)
+    prefecture = prefectures.get(municipality)
+    hinted = PREFECTURE.match(hint)
+    if hinted:
+        prefecture = hinted.group(1)
+    return f"{prefecture}{address}" if prefecture else address
 
 
 def normalise_header(value: str) -> str:
@@ -58,7 +90,67 @@ def pick(headers: list[str], hints: tuple[str, ...], exclude: tuple[str, ...] = 
     return None
 
 
+def read_xlsx(path: Path) -> list[dict]:
+    """xlsx を1枚目のシートだけ読む。台帳の xlsx は 168 件あり、無視できない。"""
+
+    try:
+        import openpyxl
+    except ImportError:
+        return []
+    try:
+        book = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    except Exception:  # noqa: BLE001 - 自治体の xlsx は壊れていることがある
+        return []
+    sheet = book[book.sheetnames[0]]
+    rows = sheet.iter_rows(values_only=True)
+    header: list[str] = []
+    out: list[dict] = []
+    for values in rows:
+        cells = ["" if value is None else str(value).strip() for value in values]
+        if not header:
+            # 先頭に表題行が入っていることがある。列名らしい行まで読み飛ばす。
+            if sum(1 for cell in cells if cell) >= 3:
+                header = cells
+            continue
+        if not any(cells):
+            continue
+        out.append(dict(zip(header, cells)))
+    book.close()
+    return out
+
+
+def read_xls(path: Path) -> list[dict]:
+    """古い xls。台帳には 102 件あった。openpyxl では読めないので xlrd を使う。"""
+
+    try:
+        import xlrd
+    except ImportError:
+        return []
+    try:
+        book = xlrd.open_workbook(str(path))
+    except Exception:  # noqa: BLE001
+        return []
+    sheet = book.sheet_by_index(0)
+    header: list[str] = []
+    out: list[dict] = []
+    for index in range(sheet.nrows):
+        cells = [str(value).strip() for value in sheet.row_values(index)]
+        if not header:
+            if sum(1 for cell in cells if cell) >= 3:
+                header = cells
+            continue
+        if not any(cells):
+            continue
+        out.append(dict(zip(header, cells)))
+    return out
+
+
 def read_rows(path: Path) -> tuple[list[dict], str]:
+    if path.suffix.lower() == ".xls":
+        return read_xls(path), "xls"
+    if path.suffix.lower() in (".xlsx", ".xlsm"):
+        rows = read_xlsx(path)
+        return rows, "xlsx"
     for encoding in ENCODINGS:
         try:
             with path.open(encoding=encoding, newline="") as handle:
@@ -78,6 +170,8 @@ def main() -> int:
     parser.add_argument("--addresses-output", type=Path,
                         default=ROOT / "out" / "permit_addresses.txt")
     parser.add_argument("--report", type=Path, default=ROOT / "results" / "permits_report.json")
+    parser.add_argument("--prefecture-map", type=Path,
+                        default=ROOT / "data" / "municipality_prefecture.json")
     arguments = parser.parse_args()
 
     coordinates: dict[str, tuple[float, float, str]] = {}
@@ -89,14 +183,15 @@ def main() -> int:
             coordinates[address] = (latitude, longitude, level)
         connection.close()
 
+    prefectures = load_prefecture_map(arguments.prefecture_map)
     stats: Counter = Counter()
     seen: set[tuple[str, str]] = set()
     rows_out: list[dict] = []
     addresses: list[str] = []
 
     for path in sorted(arguments.input_dir.glob("*")):
-        if path.suffix.lower() not in (".csv",):
-            stats["skipped_not_csv"] += 1
+        if path.suffix.lower() not in (".csv", ".xlsx", ".xlsm", ".xls"):
+            stats["skipped_unsupported_format"] += 1
             continue
         rows, encoding = read_rows(path)
         if not rows:
@@ -104,7 +199,7 @@ def main() -> int:
             continue
         headers = list(rows[0].keys())
         name_column = pick(headers, NAME_HINTS, NAME_EXCLUDE)
-        address_column = pick(headers, ADDRESS_HINTS)
+        address_column = pick(headers, ADDRESS_HINTS, ADDRESS_EXCLUDE)
         if not name_column or not address_column:
             stats["no_name_or_address_column"] += 1
             continue
@@ -125,6 +220,7 @@ def main() -> int:
                 continue
             name = unicodedata.normalize("NFKC", (row.get(name_column) or "").strip())
             address = unicodedata.normalize("NFKC", (row.get(address_column) or "").strip())
+            address = with_prefecture(address, prefectures, path.stem)
             if not name:
                 stats["no_name"] += 1
                 continue
