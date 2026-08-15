@@ -23,6 +23,8 @@ import unicodedata
 from collections import Counter
 from pathlib import Path
 
+from seeds import build_address_query, normalize_name_for_query
+
 ROOT = Path(__file__).resolve().parent
 csv.field_size_limit(min(sys.maxsize, 2**31 - 1))
 
@@ -151,16 +153,25 @@ def main() -> int:
                 stats["needs_geocoding"] += 1
             else:
                 stats["has_coordinates"] += 1
+            address_query, address_quality = build_address_query(address, "", "")
             rows_out.append(
                 {
-                    "seed_id": f"permit:{len(rows_out)}",
+                    "seed_id": f"permit:{path.stem[:24]}:{len(rows_out)}",
                     "name": name,
-                    "address": address,
-                    "business": business,
+                    "name_query": normalize_name_for_query(name),
+                    "address_query": address_query,
+                    "address_quality": address_quality,
+                    # 座標が無い行も落とさずに出す。ジオコーディングは別工程なので、
+                    # ここで捨てると「まだ座標が付いていないだけ」の行が消える。
                     "latitude": "" if latitude is None else f"{latitude:.7f}",
                     "longitude": "" if longitude is None else f"{longitude:.7f}",
+                    "postcode": "",
+                    "freeform": address,
+                    "locality": "",
+                    "basic_category": business,
+                    "confidence": "1.0",
+                    "websites": "",
                     "geocode_level": level,
-                    "source_file": path.name,
                 }
             )
 

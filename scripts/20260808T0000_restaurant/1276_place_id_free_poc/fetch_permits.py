@@ -39,8 +39,16 @@ PORTALS = {
 
 QUERIES = ("食品営業許可", "食品等営業許可", "営業許可施設", "食品関係営業施設")
 WANTED_FORMATS = {"CSV", "XLSX", "XLS"}
+# CKAN の全文検索は語をばらして当てるので、「食品」「営業」だけで無関係な
+# データセットが大量に釣れる（実測で 29,722 リソース、その大半が別物だった）。
+# タイトルで許可台帳そのものに絞り込む。
+KEEP = re.compile(r"(食品(等)?(関係)?(営業)?(許可|届出)|営業許可施設|飲食店営業|食品衛生.*(許可|台帳|施設))")
 # 許可台帳ではないものを弾く。旅館・理美容・クリーニングも同じ「営業許可」で出てくる。
-EXCLUDE = re.compile(r"旅館|理容|美容|クリーニング|興行場|公衆浴場|水道|プール|建築|墓地|産業廃棄物")
+# 「〜施設数」のような統計表も落とす。件数だけで施設一覧ではない。
+EXCLUDE = re.compile(
+    r"旅館|理容|美容|クリーニング|興行場|公衆浴場|水道|プール|建築|墓地|産業廃棄物"
+    r"|温泉|動物|薬局|医療|統計|件数|数$"
+)
 USER_AGENT = "nanitabeyo-open-data-poc/1.0 (+https://github.com/Ayato-kosaka/nanitabeyo)"
 
 
@@ -83,10 +91,15 @@ def main() -> int:
     parser.add_argument("--municipalities", nargs="*",
                         help="指定するとその自治体名を含むものだけ落とす")
     parser.add_argument("--list-only", action="store_true")
+    parser.add_argument("--from-manifest", type=Path,
+                        help="列挙をやり直さず、既存の manifest から落とす")
     parser.add_argument("--max-bytes", type=int, default=200_000_000)
     arguments = parser.parse_args()
 
     seen: dict[str, dict] = {}
+    if arguments.from_manifest:
+        seen = {entry["url"]: entry for entry in json.loads(arguments.from_manifest.read_text())}
+        arguments.portals = []
     for name in arguments.portals:
         portal = PORTALS.get(name, name)
         for query in QUERIES:
@@ -94,7 +107,7 @@ def main() -> int:
             print(f"  [{name}] {query}: {len(packages)} データセット", flush=True)
             for package in packages:
                 title = package.get("title", "")
-                if EXCLUDE.search(title):
+                if not KEEP.search(title) or EXCLUDE.search(title):
                     continue
                 organisation = (package.get("organization") or {}).get("title", "")
                 if arguments.municipalities and not any(

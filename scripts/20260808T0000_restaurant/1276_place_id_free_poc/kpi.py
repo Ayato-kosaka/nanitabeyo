@@ -73,7 +73,7 @@ def main() -> int:
     parser.add_argument("--label-seeds", type=Path, help="② 用の seed CSV")
     parser.add_argument("--adjudication", type=Path, help="② 用の裁定結果 CSV")
     parser.add_argument("--google-pairs", type=Path, help="③ 用の place_id -> seed_id")
-    parser.add_argument("--google-seeds", type=Path, help="③ 用の seed CSV")
+    parser.add_argument("--google-seeds", type=Path, nargs="+", help="③ 用の seed CSV（複数可）")
     parser.add_argument("--output", type=Path, default=ROOT / "results" / "kpi.json")
     arguments = parser.parse_args()
 
@@ -161,15 +161,15 @@ def main() -> int:
     if arguments.google_pairs and arguments.google_seeds:
         pairs = json.loads(arguments.google_pairs.read_text())
         resolved: dict[str, str] = {}
-        for seed in read_seeds(arguments.google_seeds):
-            decision = rule(seed, probes.get(seed.seed_id, {}))
-            if decision.status == STATUS_MATCHED and decision.place_id:
-                resolved[seed.seed_id] = decision.place_id
-        reached = sum(
-            1
-            for place_id, seed_ids in pairs.items()
-            if any(resolved.get(seed_id) == place_id for seed_id in seed_ids)
-        )
+        for path in arguments.google_seeds:
+            for seed in read_seeds(path):
+                decision = rule(seed, probes.get(seed.seed_id, {}))
+                if decision.status == STATUS_MATCHED and decision.place_id:
+                    resolved[seed.seed_id] = decision.place_id
+        # pairs は「その place の近くにある seed」の表だが、追加ソースは pairs に
+        # 載っていない。place_id が一致した seed があればどれでも到達とみなす。
+        hit = set(resolved.values())
+        reached = sum(1 for place_id in pairs if place_id in hit)
         low, high = wilson(reached, len(pairs))
         report["kpi3_google_reach"] = {
             "enumerated_google_places": len(pairs),
