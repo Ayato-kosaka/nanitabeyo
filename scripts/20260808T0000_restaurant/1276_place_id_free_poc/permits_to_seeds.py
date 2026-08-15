@@ -32,10 +32,19 @@ ENCODINGS = ("utf-8-sig", "cp932", "utf-8", "euc-jp")
 
 NAME_HINTS = ("名称", "屋号", "商号", "施設名", "店名")
 NAME_EXCLUDE = ("営業者", "申請者", "法人番号", "代表者", "業種", "種別", "分類")
-ADDRESS_HINTS = ("営業施設所在地", "所在地", "住所", "設置場所")
+# 施設側の住所を優先する。営業者（法人）の住所と取り違えると、空欄だらけの列を
+# 住所として読んでしまう（鹿児島県のファイルで 14,123 行が落ちた）。
+ADDRESS_HINTS = (
+    "営業施設所在地", "営業所所在地", "施設所在地", "店舗所在地",
+    "所在地", "施設住所", "営業所住所", "住所", "設置場所",
+)
 # 「所在地郵便番号」を住所列と誤認して、郵便番号を住所として読んでいた
 # （大分県のファイルで 18,732 行が落ちた）。番号系の列は住所ではない。
-ADDRESS_EXCLUDE = ("郵便番号", "電話", "ｆａｘ", "fax", "コード", "番号")
+ADDRESS_EXCLUDE = (
+    "郵便番号", "電話", "ｆａｘ", "fax", "コード", "番号",
+    # 営業者・申請者の住所は施設の住所ではない
+    "営業者", "申請者", "法人", "代表者", "届出者", "許可者",
+)
 TYPE_HINTS = ("営業の種類", "業種", "許可業種", "種別")
 CLOSED_HINTS = ("廃業", "失効")
 LATITUDE_HINTS = ("緯度", "latitude")
@@ -57,23 +66,36 @@ def load_prefecture_map(path: Path) -> dict[str, str]:
 
 
 def with_prefecture(address: str, prefectures: dict[str, str], hint: str) -> str:
-    """都道府県から始まらない住所に、市区町村名から都道府県を補う。
+    """都道府県から始まらない住所を、公開元の自治体名で補完する。
 
-    同じ市区町村名が複数県にあるとき（府中市・伊達市・東村）は、公開元の
-    自治体名（ファイル名の頭）を手がかりにする。
+    台帳の住所は3通りある。
+
+    1. 「鹿児島県鹿児島市新栄町14番2号」— そのまま使える
+    2. 「中央区銀座1-1-1」— 市区町村からは始まる。都道府県だけ補う
+    3. 「新宿1-1-1」— 自分の区の中なので区名すら書かない。公開元の自治体名
+       （ファイル名の頭）から「東京都新宿区」を丸ごと前置する
+
+    3 を拾わないと東京23区の台帳がまるごと落ちる（実測で 17,044 行）。
+    同じ市区町村名が複数県にあるとき（府中市・伊達市・東村）も、公開元の
+    自治体名が優先される。
     """
 
     if PREFECTURE.match(address):
         return address
+    source = hint.split("__")[0].strip()
     match = MUNICIPALITY_HEAD.match(address)
-    if not match:
-        return address
-    municipality = match.group(1)
-    prefecture = prefectures.get(municipality)
-    hinted = PREFECTURE.match(hint)
-    if hinted:
-        prefecture = hinted.group(1)
-    return f"{prefecture}{address}" if prefecture else address
+    if match:
+        municipality = match.group(1)
+        prefecture = prefectures.get(municipality)
+        hinted = PREFECTURE.match(source)
+        if hinted:
+            prefecture = hinted.group(1)
+        return f"{prefecture}{address}" if prefecture else address
+    # 住所が市区町村からも始まらない。公開元が市区町村なら丸ごと前置する。
+    prefecture = prefectures.get(source)
+    if prefecture and address:
+        return f"{prefecture}{source}{address}"
+    return address
 
 
 def normalise_header(value: str) -> str:

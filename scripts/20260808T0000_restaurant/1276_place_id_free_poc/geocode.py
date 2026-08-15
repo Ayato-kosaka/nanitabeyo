@@ -53,7 +53,9 @@ TRIM_PATTERNS = (
 class GeocodeCache:
     def __init__(self, path: Path) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
-        self._connection = sqlite3.connect(str(path), check_same_thread=False)
+        # 複数プロセスで同じキャッシュへ書くので、ロック待ちを許す。
+        # timeout を付けないと "database is locked" で落ちる（実際に落ちた）。
+        self._connection = sqlite3.connect(str(path), check_same_thread=False, timeout=60.0)
         self._connection.execute("PRAGMA journal_mode=WAL")
         self._connection.executescript(SCHEMA)
         self._connection.commit()

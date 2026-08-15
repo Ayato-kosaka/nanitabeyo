@@ -33,6 +33,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 
 PORTALS = {
+    # 全国のオープンデータを束ねる国のカタログ。「食品営業許可」で 18,141 件出る。
+    "egov": "https://data.e-gov.go.jp/data",
     "bodik": "https://data.bodik.jp",
     "tokyo": "https://catalog.data.metro.tokyo.lg.jp",
 }
