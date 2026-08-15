@@ -314,16 +314,126 @@ def stage_coverage(args) -> None:
     print(f"-> {p2.name}", file=sys.stderr)
 
 
+_LOC = re.compile(rb"<loc>\s*([^<\s]+)\s*</loc>", re.I)
+
+
+def stage_deep(args) -> None:
+    """**1ブログの真の店舗数**をサイトマップ全走査で測る。
+
+    coverage は1ブログ25記事しか見ておらず、2.42店/ブログ という値は**下限**である。
+    ブロガーは数百〜数千記事書くので、全記事を辿れば桁が変わりうる。
+    ここを測らないと「何ブログ必要か」が出せない。
+    """
+    sys.path.insert(0, str(HERE))
+    from measure_channel_traversal import NameMatcher, has_cjk, normalize_ja, normalize_latin
+    import csv, gzip
+    csv.field_size_limit(10**7)
+
+    link_of: dict[str, bool] = {}
+    for fn in ("overture_jp_food.csv", "ifas_jp_food.csv", "osm_jp_food.csv"):
+        fp = HERE / "fixtures" / fn
+        if not fp.exists():
+            continue
+        with fp.open(encoding="utf-8") as fh:
+            for r in csv.DictReader(fh):
+                nm = (r.get("name") or "").strip()
+                if not nm:
+                    continue
+                k = normalize_ja(nm) if has_cjk(nm) else normalize_latin(nm).strip()
+                if k:
+                    link_of[k] = link_of.get(k, False) or (
+                        int(r.get("n_socials") or 0) > 0
+                        or int(r.get("n_websites") or 0) > 0)
+
+    d = json.loads((OUT_DIR / "food_blogs_discover.json").read_text(encoding="utf-8"))
+    PLATFORM = {"note.com", "ameblo.jp", "plaza.rakuten.co.jp", "blog.livedoor.jp",
+                "blog.goo.ne.jp", "minkara.carview.co.jp", "hatenablog.com",
+                "blog.fc2.com", "seesaa.net", "exblog.jp", "blogspot.com"}
+    items = [(h, v) for h, v in d["domains"].items() if h not in PLATFORM]
+    items.sort(key=lambda kv: (len(kv[1]["categories"]) > 1, -kv[1]["n_articles"]))
+    doms = [h for h, _ in items][: args.blogs]
+
+    m = NameMatcher()
+    rows = []
+    for host in doms:
+        # サイトマップから記事URLを全部集める
+        urls: set[str] = set()
+        queue = [f"https://{host}/sitemap.xml", f"https://{host}/sitemap_index.xml",
+                 f"https://{host}/wp-sitemap.xml"]
+        seen_sm = set()
+        while queue and len(urls) < args.max_articles * 3 and len(seen_sm) < 25:
+            sm = queue.pop(0)
+            if sm in seen_sm:
+                continue
+            seen_sm.add(sm)
+            body = get(sm, timeout=20)
+            time.sleep(DELAY)
+            if not body:
+                continue
+            if body[:2] == b"\x1f\x8b":
+                try:
+                    body = gzip.decompress(body)
+                except Exception:
+                    continue
+            for loc in _LOC.findall(body):
+                u = loc.decode("utf-8", "replace")
+                if u.endswith(".xml") or u.endswith(".xml.gz"):
+                    queue.append(u)
+                elif host in u:
+                    urls.add(u)
+        arts = sorted(urls)[: args.max_articles]
+        stores: set[str] = set()
+        n_ok = 0
+        for a in arts:
+            ab = get(a, timeout=18)
+            time.sleep(0.8)
+            if not ab:
+                continue
+            n_ok += 1
+            text = _TAG.sub(" ", ab.decode("utf-8", "replace"))
+            stores |= m.match_corroborated(text[:25000])
+        nolink = sum(1 for s in stores if link_of.get(s) is False)
+        rows.append({"domain": host, "n_sitemap_urls": len(urls),
+                     "n_articles_ok": n_ok, "n_stores": len(stores),
+                     "n_nolink": nolink, "stores": sorted(stores)[:80]})
+        print(f"  {host[:34]:36} sitemap {len(urls):>5} → 記事 {n_ok:>4} → "
+              f"distinct 店 {len(stores):>4}（リンク無し {nolink:>3}）", file=sys.stderr)
+
+    act = [r for r in rows if r["n_articles_ok"] > 0]
+    tot_s = sum(r["n_stores"] for r in act)
+    tot_n = sum(r["n_nolink"] for r in act)
+    tot_a = sum(r["n_articles_ok"] for r in act)
+    print(f"\n=== 全アーカイブ走査（1ブログ最大 {args.max_articles} 記事）===",
+          file=sys.stderr)
+    print(f"  ブログ {len(act)} / 記事 {tot_a:,}", file=sys.stderr)
+    print(f"  **1ブログあたり distinct 店舗 {tot_s/max(len(act),1):.1f}店**"
+          f"（25記事版は 2.42店 / YouTube 1ch は 15.85店）", file=sys.stderr)
+    print(f"  1記事あたり {tot_s/max(tot_a,1):.3f}店", file=sys.stderr)
+    print(f"  リンク無し層比 {tot_n}/{tot_s} = {tot_n/max(tot_s,1)*100:.2f}%"
+          f"（基準 30.92%）", file=sys.stderr)
+
+    p2 = OUT_DIR / "food_blogs_deep.json"
+    p2.write_text(json.dumps({"n_blogs": len(act), "n_articles": tot_a,
+                              "sum_stores": tot_s, "nolink": tot_n,
+                              "stores_per_blog": tot_s / max(len(act), 1),
+                              "rows": rows,
+                              "caveat": "サイトマップがあるブログのみ。経路存在率。"},
+                             ensure_ascii=False, indent=2), encoding="utf-8")
+    print(f"-> {p2.name}", file=sys.stderr)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--stage", choices=("discover", "license", "coverage"), required=True)
+    ap.add_argument("--stage", choices=("discover", "license", "coverage", "deep"),
+                    required=True)
+    ap.add_argument("--max-articles", type=int, default=150)
     ap.add_argument("--blogs", type=int, default=12)
     ap.add_argument("--articles", type=int, default=25)
     ap.add_argument("--pages", type=int, default=3)
     ap.add_argument("--top", type=int, default=60)
     args = ap.parse_args()
     {"discover": stage_discover, "license": stage_license,
-     "coverage": stage_coverage}[args.stage](args)
+     "coverage": stage_coverage, "deep": stage_deep}[args.stage](args)
 
 
 if __name__ == "__main__":
