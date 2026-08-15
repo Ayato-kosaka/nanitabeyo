@@ -43,23 +43,38 @@ export type GeocodedAddressLike = {
 };
 
 /**
- * #1196 【仕様】address が推薦 API の期待する正規形式かどうかを判定する。
+ * #1196 【仕様】address から ISO 3166-1 alpha-2 の国コードを取り出す。正規形式でなければ `null`。
+ *
+ * 「どの国の地点か」は**この関数だけが答えを持つ**。検索画面の海外ガード（`country:JP` 以外は
+ * 推薦 API を呼ばずにダイアログで案内する）も、形式チェック（`isCanonicalAddress`）も、
+ * 判定基準がズレると片方だけ通り抜ける穴になるため、ここへ一本化している。
  *
  * 判定はクライアント側だけで行う。サーバは address を検証しない
  * （API は仕様どおりに動いており、形式を守るのはクライアントの責務 — #1196）。
- * 判定基準: カンマ区切りトークンのいずれかが `country:<大文字 2 文字>` であること。
+ * 抽出基準: カンマ区切りトークンのいずれかが `country:<大文字 2 文字>` であること。
  * 国コードさえ含まれていれば地域ゲートには必ずヒットするため、これを最小要件とする。
  * ただしヒットが保証されるのは大文字のときだけなので、大小文字まで見る（→ `COUNTRY_CODE_PATTERN`）。
  */
+export function getAddressCountryCode(address: string | null | undefined): string | null {
+	if (!address) return null;
+	for (const rawToken of address.split(",")) {
+		const token = rawToken.trim();
+		if (!token.startsWith(COUNTRY_TOKEN_PREFIX)) continue;
+		const countryCode = token.slice(COUNTRY_TOKEN_PREFIX.length);
+		// #1196 【設計】小文字・3文字以上は「正規形式でない」として弾く（ゲートに当たらないため）。
+		// ここで大小文字を素通しすると、ゲート不成立が検知ログなしで起きる。
+		if (COUNTRY_CODE_PATTERN.test(countryCode)) return countryCode;
+	}
+	return null;
+}
+
+/**
+ * #1196 【仕様】address が推薦 API の期待する正規形式かどうかを判定する。
+ *
+ * 「国コードを取り出せること」と等価。判定基準は `getAddressCountryCode` のコメントを参照。
+ */
 export function isCanonicalAddress(address: string | null | undefined): boolean {
-	if (!address) return false;
-	return address
-		.split(",")
-		.map((token) => token.trim())
-		.some(
-			(token) =>
-				token.startsWith(COUNTRY_TOKEN_PREFIX) && COUNTRY_CODE_PATTERN.test(token.slice(COUNTRY_TOKEN_PREFIX.length)),
-		);
+	return getAddressCountryCode(address) !== null;
 }
 
 /**

@@ -118,12 +118,18 @@
 			"noLocationSelected": "検索場所を選択してください",
 			"noTimeSlotSelected": "時間帯を選択してください",
 			"noSceneSelected": "シーンを選択してください",
+			"malformedAddress": "検索場所をもう一度選び直してください",
 			"searchFailed": "検索に失敗しました"
 		},
 		"googleMapsFallback": {
 			"message": "条件に合うお店を Googleマップ上でご確認頂けます。",
 			"confirm": "Google マップで開く",
 			"cancel": "閉じる"
+		},
+		"unsupportedRegion": {
+			"title": "日本国内のみ対応しています",
+			"message": "現在このアプリは日本国内のみ対応しています。日本国内の地点を選択してください。",
+			"confirm": "OK"
 		},
 		"sections": {
 			"location": "どのあたりで探す？",

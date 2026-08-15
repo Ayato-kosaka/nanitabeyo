@@ -118,12 +118,18 @@
 			"noLocationSelected": "يرجى اختيار موقع",
 			"noTimeSlotSelected": "يرجى اختيار فترة زمنية",
 			"noSceneSelected": "يرجى اختيار مشهد",
+			"malformedAddress": "يرجى اختيار موقع البحث مرة أخرى",
 			"searchFailed": "فشل البحث"
 		},
 		"googleMapsFallback": {
 			"message": "يمكنك الاطلاع على المطاعم التي تطابق شروطك على خرائط Google.",
 			"confirm": "فتح خرائط Google",
 			"cancel": "إغلاق"
+		},
+		"unsupportedRegion": {
+			"title": "الدعم متاح داخل اليابان فقط",
+			"message": "يدعم هذا التطبيق حاليًا المواقع داخل اليابان فقط. يرجى اختيار موقع داخل اليابان.",
+			"confirm": "حسنًا"
 		},
 		"sections": {
 			"location": "أين تبحث؟",

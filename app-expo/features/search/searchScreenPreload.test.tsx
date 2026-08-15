@@ -65,6 +65,9 @@ jest.mock("@/hooks/useLocationSearch", () => ({
 	}),
 }));
 jest.mock("@/contexts/SnackbarProvider", () => ({ useSnackbar: () => ({ showSnackbar: jest.fn() }) }));
+// #1196 検索画面は海外未対応の案内(ダイアログ)のため useDialog を使う。Provider 無しで
+// レンダリングすると useDialog が throw して suite ごと落ちるため、他の context と同様スタブ化する
+jest.mock("@/contexts/DialogProvider", () => ({ useDialog: () => ({ showDialog: jest.fn() }) }));
 // #1087 【修正】このモックが無いと suite ごとロードに失敗する。
 // useAutoCurrentLocation → AuthProvider → lib/supabase → constants/Env と芋づるに読み込まれ、
 // Env が `Constants.expoConfig.extra.eas.projectId` を触るが、jest-expo は app.config.ts を

@@ -118,12 +118,18 @@
 			"noLocationSelected": "请选择位置",
 			"noTimeSlotSelected": "请选择时间段",
 			"noSceneSelected": "请选择场景",
+			"malformedAddress": "请重新选择搜索地点",
 			"searchFailed": "搜索失败"
 		},
 		"googleMapsFallback": {
 			"message": "您可以在 Google 地图上查看符合条件的餐厅。",
 			"confirm": "打开 Google 地图",
 			"cancel": "关闭"
+		},
+		"unsupportedRegion": {
+			"title": "仅支持日本境内",
+			"message": "本应用目前仅支持日本境内。请选择日本境内的地点。",
+			"confirm": "确定"
 		},
 		"sections": {
 			"location": "在哪里搜索？",

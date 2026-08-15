@@ -20,6 +20,8 @@ import type { AutocompleteLocation, LocationDetailsResponse } from "@shared/api/
 import { useLocationSearch } from "@/hooks/useLocationSearch";
 import { LocationPermissionError, type LocationPermissionErrorKind } from "@/hooks/locationPermissionError";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
+import { useDialog } from "@/contexts/DialogProvider";
+import { getAddressCountryCode } from "@/lib/addressFormat";
 import { toErrorLogString } from "@/lib/errorMessage";
 import {
 	LocationAutocomplete,
@@ -66,6 +68,19 @@ const BORDER_WIDTH = 2;
 const ITEM_GAP = 2;
 const NUM_COLUMNS = 4;
 
+// #1196 【仕様】推薦 API を呼んでよい唯一の国。
+//
+// 料理カテゴリ推薦 API (`GET /v1/dish-categories/recommendations`) は address を
+// カンマ分割して `region:` を前置し、`dish_category_features(feature_type='gate')` の
+// `feature_key` と照合する。そのホワイトリストに入っている国は `region:country:JP` **だけ**
+// （他は国に依らない `region:scope:global` のみ）。つまり海外の地点で呼ぶと候補が痩せて
+// ほぼ 0 件になり、Claude フォールバックへ落ちる — 課金が発生するのに結果は返せない。
+//
+// ⚠️ **これを増やしたり分岐ロジックにしたりしないこと。** 対応国が増えるのは
+// サーバ側の gate に `region:country:XX` が積まれたときだけで、その判断はサーバの
+// マスタデータが持つ。クライアント側に国ごとの設定機構を作ると両者が必ずズレる。
+const SUPPORTED_COUNTRY_CODE = "JP";
+
 // #934 【設計】各セクション見出し。accessibilityRole="header" を持たせ、必須バッジは
 // 別要素として視覚表示しつつスクリーンリーダー向けには見出しの accessibilityLabel に合成する
 // (別々に読み上げられるより「(必須)」まで一続きで聞こえた方が分かりやすいため)
@@ -106,6 +121,10 @@ export default function SearchScreen() {
 
 	const { getCurrentLocation, getLocationDetails } = useLocationSearch();
 	const { showSnackbar } = useSnackbar();
+	// #1196 【設計】海外未対応の案内はスナックバーではなくダイアログで出す。
+	// 「この地点では検索できない」は再入力を促す確定的な通知なので、数秒で消える表示だと
+	// ユーザーは何も起きなかったように見え、同じ地点で押し続けることになる。
+	const { showDialog } = useDialog();
 	// #932 【設計】現在地取得の恒久的な失敗(権限拒否・未対応)時に手入力へ誘導するため
 	const locationInputRef = useRef<LocationAutocompleteHandle>(null);
 
@@ -263,6 +282,67 @@ export default function SearchScreen() {
 			return;
 		}
 
+		// #1196 【設計】ここから 2 段のガード。どちらも `router.push` へ進ませない
+		// （= 推薦 API を一切呼ばない）。API は仕様どおり動いているので、呼ぶ／呼ばないの
+		// 判断はクライアントの責務であり、サーバ側は 1 行も変更していない。
+		const countryCode = getAddressCountryCode(location.address);
+
+		// #1196 【仕様】ガード1: address が正規形式でない（`country:XX` トークンを持たない）。
+		//
+		// この address は表示用の文字列ではなく、推薦 API が地域ゲートの照合に使う機械可読な
+		// トークン列である（詳細は lib/addressFormat.ts）。"大阪市" のような市区町村名単体を送ると
+		// `region:大阪市` になってどのゲートにも当たらず、候補 0 件 → Claude フォールバックが
+		// 常時発火する（本番で 1日 1,445件 / 204ユーザー）。呼ぶ前に止める。
+		//
+		// error レベルにする理由: 正規形式でない address は **自クライアントが壊れた値を作った**
+		// ということで、設計上は起きてはならない。ユーザー操作では回復せずエンジニアの対応が
+		// 必要なので ERROR。生成元（lib/addressFormat.ts の buildAddressFromGeocodedAddress）は
+		// 修正済みなので、このログが出たら別の生成経路が壊れている。
+		if (countryCode === null) {
+			logFrontendEvent({
+				event_name: "search_blocked_malformed_address",
+				error_level: "error",
+				payload: {
+					address: location.address,
+					locationQuery,
+					latitude: location.location.latitude,
+					longitude: location.location.longitude,
+				},
+			});
+			showSnackbar(i18n.t("Search.errors.malformedAddress"));
+			// #932 と同じ導線。手入力で選び直してもらうため地点入力へフォーカスを戻す
+			locationInputRef.current?.focus();
+			return;
+		}
+
+		// #1196 【仕様】ガード2: 国コードが JP 以外（= 本サービスが未対応の海外）。
+		//
+		// warn レベルにする理由: 海外からの利用は想定内であり、ダイアログで設計どおり案内できて
+		// いる（= 回復済み）ので ERROR ではない。ただし「新しいビルドで海外アクセスがどれだけ
+		// 来ているか」を可視化したいので、握り潰さず必ず記録する。
+		if (countryCode !== SUPPORTED_COUNTRY_CODE) {
+			logFrontendEvent({
+				event_name: "search_blocked_unsupported_country",
+				error_level: "warn",
+				payload: {
+					country_code: countryCode,
+					address: location.address,
+					locationQuery,
+					latitude: location.location.latitude,
+					longitude: location.location.longitude,
+				},
+			});
+			// #1196 【設計】OK を押しても何も起きない告知専用ダイアログにする（onConfirm を渡さない）。
+			// showDialog は custom request として必ず Cancel / OK の 2 ボタンを描画する実装なので、
+			// OK のみにはできない（cancelLabel を省いても Common.cancel が入る）。どちらを押しても
+			// 検索は実行されないため、告知としては成立する。
+			showDialog(i18n.t("Search.unsupportedRegion.message"), {
+				title: i18n.t("Search.unsupportedRegion.title"),
+				okLabel: i18n.t("Search.unsupportedRegion.confirm"),
+			});
+			return;
+		}
+
 		if (isSearchingRef.current) return; // 多重検索防止
 
 		mediumImpact();
@@ -311,6 +391,7 @@ export default function SearchScreen() {
 		mediumImpact,
 		logFrontendEvent,
 		showSnackbar,
+		showDialog,
 		locale,
 	]);
 	// Wrapper functions for haptic feedback
