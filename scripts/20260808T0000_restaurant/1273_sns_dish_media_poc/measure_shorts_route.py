@@ -195,18 +195,19 @@ def stage_channels(args) -> None:
                 vids.append(json.loads(line))
             except json.JSONDecodeError:
                 continue
+        # 【今回の改善】タイトルを保存する。照合規則を変えたときに
+        # 再クロールせず測り直せるようにする（#1349 の比較でこれが無くて困った）。
+        titles = [(v.get("title") or "").strip() for v in vids]
+        titles = [t for t in titles if t]
         stores: set[str] = set()
         cats: set[str] = set()
-        for v in vids:
-            t = (v.get("title") or "").strip()
-            if not t:
-                continue
+        for t in titles:
             stores |= m.match_corroborated(t)
             cats |= {x["dish_category_id"] for x in cm.match(t)}
         all_stores |= stores
         rows.append({"channel": c["channel"], "ok": True, "n_videos": len(vids),
                      "n_stores": len(stores), "n_cats": len(cats),
-                     "stores": sorted(stores)})
+                     "stores": sorted(stores), "titles": titles})
         print(f"  {c['channel'][:30]:32} Shorts {len(vids):>4} 本 → "
               f"distinct 店 {len(stores):>3} / カテゴリ {len(cats):>2}", file=sys.stderr)
 

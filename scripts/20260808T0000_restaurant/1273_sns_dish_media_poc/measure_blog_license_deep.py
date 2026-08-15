@@ -43,6 +43,7 @@ from __future__ import annotations
 
 import argparse
 import collections
+import hashlib
 import json
 import re
 import sys
@@ -53,6 +54,7 @@ from urllib.parse import urljoin, urlparse
 
 HERE = Path(__file__).resolve().parent
 OUT_DIR = HERE / "out"
+PAGE_DIR = OUT_DIR / "_blog_policy_text"   # 取得した規約ページ本文（再分類用）
 UA = "Mozilla/5.0 (compatible; nanitabeyo-research/1.0)"
 _TAG = re.compile(r"<[^>]+>")
 _SCRIPT = re.compile(r"(?is)<(script|style)[^>]*>.*?</\1>")
@@ -72,17 +74,22 @@ POLICY_ORDER = [
     ("条件付きで可", re.compile(
         r"((出典|引用元|リンク|クレジット)[^。\n]{0,14}(明記|記載|表示|付けて)[^。\n]{0,20}"
         r"(転載|引用|利用|使用)[^。\n]{0,10}(可|OK|構いません|大丈夫)|"
-        r"(転載|引用|利用)[^。\n]{0,20}(の場合|する際|される際)[^。\n]{0,20}"
-        r"(出典|リンク|明記)[^。\n]{0,14}(お願い|ください))", re.I)),
+        r"(転載|引用|利用|使用)[^。\n]{0,24}(の場合|する際|される際|の際)[^。\n]{0,30}"
+        r"(出典|引用元|リンク|明記|クレジット)[^。\n]{0,20}"
+        r"(お願い|ください|掲載|明記))", re.I)),
     ("要問い合わせ", re.compile(
         r"((写真|画像|記事|コンテンツ)[^。\n]{0,20}"
         r"(利用|使用|転載|掲載)[^。\n]{0,20}(ご連絡|お問い?合わせ|ご一報|許可|承諾)|"
         r"(ご連絡|お問い?合わせ|ご一報)[^。\n]{0,16}(の上|いただ|ください)[^。\n]{0,16}"
         r"(転載|利用|使用))", re.I)),
+    # 【自戒】最初の版はここに `all rights reserved` を入れていた。
+    # これはブログテンプレのフッターに常時入る定型句で、**画像の利用方針ではない**。
+    # 実際に転載禁止と判定した21件を取得し直したところ、
+    # **明示は5件、残り16件は `all rights reserved` だけ**だった。外す。
     ("転載禁止", re.compile(
-        r"(無断(転載|複製|使用|引用|転用)[^。\n]{0,10}(禁|お断り|不可|厳禁)|"
-        r"(転載|複製|二次利用)[^。\n]{0,8}(を)?(固く)?(禁じ|禁止|お断り)|"
-        r"all rights reserved)", re.I)),
+        r"(無断(転載|複製|使用|引用|転用|掲載)[^。\n]{0,12}(禁|お断り|不可|厳禁)|"
+        r"(転載|複製|転用|盗用|二次利用)[^。\n]{0,12}(を)?(固く)?(禁じ|禁止|お断り))",
+        re.I)),
 ]
 
 
@@ -160,6 +167,10 @@ def main() -> None:
                 pages.append((u, text_of(h2)))
 
         joined = "\n".join(p[1] for p in pages)
+        # 【今回の改善】本文を保存する。分類規則を直すたびに再クロールしないで済む。
+        PAGE_DIR.mkdir(parents=True, exist_ok=True)
+        (PAGE_DIR / f"{hashlib.sha256(home.encode()).hexdigest()[:20]}.txt").write_text(
+            home + "\n" + joined[:120_000], encoding="utf-8")
         label = classify(joined)
         # どのページで当たったか（規約はトップに無い、という仮説の検証）
         where = ""
