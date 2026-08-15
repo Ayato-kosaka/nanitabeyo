@@ -1,31 +1,67 @@
 {
   "labelled_seeds": 2000,
-  "recall_ceiling": 0.006,
+  "recall_ceiling": 0.995,
   "rules": {
     "box_unique": {
-      "matched": 12,
-      "match_rate": 0.006,
-      "correct": 12,
-      "wrong": 0,
-      "precision": 1.0,
-      "precision_95_lower": 0.757506,
+      "matched": 1961,
+      "match_rate": 0.9805,
+      "correct": 1956,
+      "wrong": 5,
+      "precision": 0.99745,
+      "precision_95_lower": 0.994045,
       "layers": {
         "tight_unique_in_ab": {
-          "matched": 9,
-          "correct": 9,
-          "wrong": 0,
-          "precision": 1.0,
-          "precision_95_lower": 0.700855
+          "matched": 1675,
+          "correct": 1670,
+          "wrong": 5,
+          "precision": 0.997015,
+          "precision_95_lower": 0.993031
         },
         "wide_unique_in_ab": {
-          "matched": 3,
-          "correct": 3,
+          "matched": 286,
+          "correct": 286,
           "wrong": 0,
           "precision": 1.0,
-          "precision_95_lower": 0.438503
+          "precision_95_lower": 0.986746
         }
       },
-      "mistakes": []
+      "mistakes": [
+        {
+          "overture_id": "ifas:038000:fBiz00000179480000000008",
+          "name": "唐揚げ食堂 ごいち ぷらす",
+          "layer": "tight_unique_in_ab",
+          "chosen": "ChIJ40aEUgA7UDURSHgAHswVL5s",
+          "truth": "ChIJCyiyPAA7UDURfhvsvnDJzU8"
+        },
+        {
+          "overture_id": "ifas:029201:fBiz00001951730000000008",
+          "name": "大起水産　海鮮丼と干物定食専門店",
+          "layer": "tight_unique_in_ab",
+          "chosen": "ChIJjZD__Ts7AWARV2D3_we17iU",
+          "truth": "ChIJx3eiAE46AWAR4qiG7V0wVLI"
+        },
+        {
+          "overture_id": "ifas:023000:fBiz00000113080000000158",
+          "name": "MEGAドン・キホーテUNY小牧店",
+          "layer": "tight_unique_in_ab",
+          "chosen": "ChIJr79P4LEMA2ARXA4nVcqAR_Q",
+          "truth": "ChIJZa5b4LEMA2ARp4fUuaMVVYU"
+        },
+        {
+          "overture_id": "ifas:012204:fBiz00003507190000000002",
+          "name": "ゼッテリア北習志野店",
+          "layer": "tight_unique_in_ab",
+          "chosen": "ChIJP0gs4XWAImARSWxXJWVlhyE",
+          "truth": "ChIJJZ0OTF6BImARtzXJaNAHnA0"
+        },
+        {
+          "overture_id": "ifas:023000:fBiz00000113080000000152",
+          "name": "MEGAドン・キホーテUNY大口店",
+          "layer": "tight_unique_in_ab",
+          "chosen": "ChIJOfBJKXQMA2ARDPcxeUI0gjQ",
+          "truth": "ChIJOfBJKXQMA2ARghlcRlXvvyg"
+        }
+      ]
     }
   }
 }
