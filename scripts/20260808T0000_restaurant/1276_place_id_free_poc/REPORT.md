@@ -6,9 +6,10 @@
   Nearby Search (New) に IDs Only の無料枠は無く、fieldMask を絞っても
   Nearby Search Pro として課金される（Google サポートの回答、#1331）。
   発生量はおよそ **3,700 リクエスト**。詳細は「課金してしまった箇所」を参照。
-- **課金: Text Search と Place Details は 0円**（fieldMask 固定＋応答検査で構造的に保証）。
-  **Nearby Search 約3,700リクエストは課金対象**だった。Google 由来の店名・住所・座標は
-  1件も取得していない。
+- **請求額: ¥0**。ただし内訳に注意が要る。Text Search と Place Details は無料SKUで
+  構造的に0円。**Nearby Search 3,750件は課金対象SKUを叩いていた**が、月次無料枠に
+  収まり Usage cost の時点で ¥0 だった（クレジット相殺ではない）。
+  Google 由来の店名・住所・座標は1件も取得していない。
 
 ## seed（オープンデータ側）
 
@@ -364,10 +365,19 @@ Google のサポートから明示的に指摘を受けて判明した（#1331 �
 | 密度測定 600点（`density.py`） | 1,042 |
 | Google 側の網羅率・区画敷き詰め（`google_coverage.py`） | 1,000 |
 | 型フィルタの妥当性検証など（記録を残していない実行） | 約 180 |
-| **合計** | **約 3,710** |
+| **見積り合計** | **約 3,710** |
+| **請求コンソールの実測** | **3,750** |
 
-実際の請求額は請求コンソールで確認が要る。SKU ごとの月次無料枠に収まっていれば
-0円だが、こちらから断定はできない。
+### 請求額は ¥0 だった
+
+| SKU | Usage | Usage cost |
+| --- | ---: | ---: |
+| Places API Nearby Search Pro | 3,750 | **¥0** |
+| Places API Text Search Essentials (IDs Only) | 132,384 | ¥0 |
+| Places API Place Details Essentials (IDs Only) | 44 | ¥0 |
+
+**クレジットで相殺されたのではなく、割引前の Usage cost の時点で ¥0** である。
+月次の無料枠に収まっていた。運が良かっただけで、量が一桁多ければ課金されていた。
 
 ### 何が防げなかったか
 
