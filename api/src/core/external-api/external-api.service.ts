@@ -374,7 +374,13 @@ export class ExternalApiService {
         return { buffer, contentType, byteLength: buffer.length };
       }
     } catch (error) {
-      this.logger.error('GooglePlacesPhotosAPICallError', 'getPhotoMedia', {
+      // #1320 【設計】唯一の呼び出し元 locations.service.ts の tryGetPhotoMedia は
+      // 写真候補を順に試すフォールバックを持っており、ここでの失敗は設計上回復可能。
+      // 回復しきれなかった最終的な失敗は呼び出し元側（dishes.service.ts の
+      // bulk-import の per-place catch）で error として記録されるため、ここを
+      // error にすると、フォールバックが成功しているケースまで人間の対応が
+      // 必要な事象として自動起票されてしまう。
+      this.logger.warn('GooglePlacesPhotosAPICallError', 'getPhotoMedia', {
         error_message: error instanceof Error ? error.message : 'Unknown error',
         photoRef,
         widthPx,
