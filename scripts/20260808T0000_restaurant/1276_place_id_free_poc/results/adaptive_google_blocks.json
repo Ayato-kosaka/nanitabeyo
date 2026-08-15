@@ -1,0 +1,10 @@
+{
+  "seeds": 3018,
+  "matched": 2033,
+  "match_rate": 0.673625,
+  "requests": 0,
+  "requests_per_seed": 0.0,
+  "http_errors": 0,
+  "interrupted_by_quota": false,
+  "sku": "Text Search (IDs Only) のみ = $0.00"
+}
