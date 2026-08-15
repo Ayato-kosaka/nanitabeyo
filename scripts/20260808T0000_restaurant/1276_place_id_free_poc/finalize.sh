@@ -30,7 +30,7 @@ echo
 echo "=== ①②③ ==="
 python3 kpi.py \
   --cache "$CACHE" --rule "$RULE" \
-  --sample out/sample_merged5_10000.csv \
+  --sample out/sample_merged5_probed.csv \
   --labels out/labels_union.csv \
   --label-seeds out/seeds_labeled_6000.csv \
   --adjudication results/adjudication_6000.csv \
@@ -56,8 +56,9 @@ PY
 echo
 echo "=== 提出用 CSV ==="
 python3 place_id_poc.py export \
-  --seeds out/sample_merged5_10000.csv out/seeds_labeled_6000.csv \
+  --seeds out/sample_merged5_probed.csv out/seeds_labeled_6000.csv \
           out/sample_3sources_3000.csv out/seeds_google_blocks.csv \
+          out/sample_ifas_labeled_2000.csv \
   --cache "$CACHE" --rule "$RULE" \
   --output results/matched_place_ids.csv
 
