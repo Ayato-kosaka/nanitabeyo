@@ -1,0 +1,11 @@
+{
+  "radius_m": 40,
+  "denominator": 1747,
+  "breakdown": {
+    "rows_resolved_to_other_places": 685,
+    "reached": 1037,
+    "no_open_data_row": 11,
+    "rows_exist_but_unresolved": 14
+  },
+  "note": "C（別の place_id を出力）が最大。その Google 店に対応するオープンデータ行が、半径40m内に存在しないという意味である。半径200mでの再測定を実施中"
+}
