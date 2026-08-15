@@ -118,12 +118,18 @@
 			"noLocationSelected": "Seleccione una ubicación",
 			"noTimeSlotSelected": "Seleccione un horario",
 			"noSceneSelected": "Seleccione una escena",
+			"malformedAddress": "Vuelva a seleccionar el lugar de búsqueda.",
 			"searchFailed": "La búsqueda falló"
 		},
 		"googleMapsFallback": {
 			"message": "Puedes consultar en Google Maps los restaurantes que cumplen tus criterios.",
 			"confirm": "Abrir Google Maps",
 			"cancel": "Cerrar"
+		},
+		"unsupportedRegion": {
+			"title": "Disponible solo en Japón",
+			"message": "Actualmente esta aplicación solo admite ubicaciones en Japón. Seleccione un lugar dentro de Japón.",
+			"confirm": "Aceptar"
 		},
 		"sections": {
 			"location": "¿Dónde buscar?",

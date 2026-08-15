@@ -118,12 +118,18 @@
 			"noLocationSelected": "कृपया एक स्थान चुनें",
 			"noTimeSlotSelected": "कृपया एक समय स्लॉट चुनें",
 			"noSceneSelected": "कृपया एक दृश्य चुनें",
+			"malformedAddress": "कृपया खोज स्थान फिर से चुनें",
 			"searchFailed": "खोज विफल हुई"
 		},
 		"googleMapsFallback": {
 			"message": "आप अपनी शर्तों से मेल खाने वाले रेस्तरां Google Maps पर देख सकते हैं।",
 			"confirm": "Google Maps खोलें",
 			"cancel": "बंद करें"
+		},
+		"unsupportedRegion": {
+			"title": "फ़िलहाल केवल जापान में उपलब्ध",
+			"message": "यह ऐप फ़िलहाल केवल जापान के स्थानों का समर्थन करता है। कृपया जापान में कोई स्थान चुनें।",
+			"confirm": "ठीक है"
 		},
 		"sections": {
 			"location": "कहां खोजें?",

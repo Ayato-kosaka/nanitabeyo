@@ -43,23 +43,59 @@ export type GeocodedAddressLike = {
 };
 
 /**
- * #1196 【仕様】address が推薦 API の期待する正規形式かどうかを判定する。
+ * #1196 【仕様】address から ISO 3166-1 alpha-2 の国コードを取り出す。正規形式でなければ `null`。
+ *
+ * 「どの国の地点か」は**この関数だけが答えを持つ**。検索画面の海外ガード（`country:JP` 以外は
+ * 推薦 API を呼ばずにダイアログで案内する）も、形式チェック（`isCanonicalAddress`）も、
+ * 判定基準がズレると片方だけ通り抜ける穴になるため、ここへ一本化している。
  *
  * 判定はクライアント側だけで行う。サーバは address を検証しない
  * （API は仕様どおりに動いており、形式を守るのはクライアントの責務 — #1196）。
- * 判定基準: カンマ区切りトークンのいずれかが `country:<大文字 2 文字>` であること。
+ * 抽出基準: カンマ区切りトークンのいずれかが `country:<大文字 2 文字>` であること。
  * 国コードさえ含まれていれば地域ゲートには必ずヒットするため、これを最小要件とする。
  * ただしヒットが保証されるのは大文字のときだけなので、大小文字まで見る（→ `COUNTRY_CODE_PATTERN`）。
+ *
+ * #1196 【設計】alpha-2 だけを通すのは fail-closed であることを承知のうえで選んでいる。
+ *
+ * サーバの `buildAddressFromComponents` は `(c.shortText || c.longText)` の順で値を採るため、
+ * Google Places が country の `shortText` を欠いた場合は理論上 `country:Japan` を組み立てうる
+ * （`api/src/v1/locations/locations.service.spec.ts` にそのフォールバックのテストがある）。
+ * その値はここで `null` になり、検索画面では「壊れた address」として弾かれる。
+ *
+ * それでも alpha-2 に絞るのは:
+ *
+ * - `region:country:Japan` はゲートのホワイトリスト（`region:country:JP`）に**当たらない**。
+ *   通したところで候補 0 件 → Claude フォールバックへ落ちるだけで、課金だけが発生する。
+ *   つまり「通す」も「弾く」も検索は成立せず、弾くほうが安い。
+ * - 実測で発生していない。`search_started` の address を 2026-08-08〜08-16 で集計したところ、
+ *   `country:<alpha-2 以外>` は **0 件 / 7,632 件**（`country:AA` 3,782 / broken 3,850）。
+ *   country の `shortText` が欠けた例は本番に 1 件も無い。
+ * - 万一出た場合は `search_blocked_malformed_address` が **error** で記録され、#1196 の
+ *   トリアージが翌日には Issue を立てる。気づけないまま放置される形にはならない。
+ *
+ * したがって、もしこのログが立ったら**直す場所はここではなくサーバの producer 側**
+ * （country を alpha-2 に正規化する）である。ここに国名テーブルを持ち込まないこと。
+ */
+export function getAddressCountryCode(address: string | null | undefined): string | null {
+	if (!address) return null;
+	for (const rawToken of address.split(",")) {
+		const token = rawToken.trim();
+		if (!token.startsWith(COUNTRY_TOKEN_PREFIX)) continue;
+		const countryCode = token.slice(COUNTRY_TOKEN_PREFIX.length);
+		// #1196 【設計】小文字・3文字以上は「正規形式でない」として弾く（ゲートに当たらないため）。
+		// ここで大小文字を素通しすると、ゲート不成立が検知ログなしで起きる。
+		if (COUNTRY_CODE_PATTERN.test(countryCode)) return countryCode;
+	}
+	return null;
+}
+
+/**
+ * #1196 【仕様】address が推薦 API の期待する正規形式かどうかを判定する。
+ *
+ * 「国コードを取り出せること」と等価。判定基準は `getAddressCountryCode` のコメントを参照。
  */
 export function isCanonicalAddress(address: string | null | undefined): boolean {
-	if (!address) return false;
-	return address
-		.split(",")
-		.map((token) => token.trim())
-		.some(
-			(token) =>
-				token.startsWith(COUNTRY_TOKEN_PREFIX) && COUNTRY_CODE_PATTERN.test(token.slice(COUNTRY_TOKEN_PREFIX.length)),
-		);
+	return getAddressCountryCode(address) !== null;
 }
 
 /**

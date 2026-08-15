@@ -118,12 +118,18 @@
 			"noLocationSelected": "위치를 선택해 주세요",
 			"noTimeSlotSelected": "시간대를 선택해 주세요",
 			"noSceneSelected": "장면을 선택해 주세요",
+			"malformedAddress": "검색 장소를 다시 선택해 주세요",
 			"searchFailed": "검색에 실패했습니다"
 		},
 		"googleMapsFallback": {
 			"message": "조건에 맞는 음식점을 Google 지도에서 확인할 수 있습니다.",
 			"confirm": "Google 지도 열기",
 			"cancel": "닫기"
+		},
+		"unsupportedRegion": {
+			"title": "일본 국내만 지원합니다",
+			"message": "현재 이 앱은 일본 국내만 지원합니다. 일본 국내의 장소를 선택해 주세요.",
+			"confirm": "확인"
 		},
 		"sections": {
 			"location": "어디에서 찾을까요?",
