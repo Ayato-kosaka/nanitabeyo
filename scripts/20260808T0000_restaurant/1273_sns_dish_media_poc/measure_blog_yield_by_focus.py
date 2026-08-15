@@ -157,6 +157,26 @@ def main() -> None:
                      for h, v in multi_hosts[: args.per_group * 4]]
 
     m = NameMatcher()
+    # 【自戒・重要】#1349 で緩めた裏取り（市名・区名から行政区画語を落とした形）は
+    # **短文（動画タイトル）では 95% の precision が出たが、長文では破綻する**。
+    # 実測: umai-net.com の 134記事で 11店 → **96店**に増えたが、目視すると
+    # 『新宿御苑』が全記事に付く（サイドバーに地名があるため、ページ内のどこかに
+    # 「新宿」があれば裏取りが通ってしまう）。近傍±120字に限っても 35店で、
+    # 『横浜スタジアム』『クリーム』『スペース』が残った。
+    # **ブログ本文では緩めない。** 比較のため両方数えるが、採用するのは strict 側。
+    strict = {k: frozenset(x for x in (loc, m.needle.get(k, ""), reg) if x)
+              for k, (loc, reg) in m.area.items()}
+
+    def match_strict(text: str) -> set[str]:
+        tja = normalize_ja(text)
+        out = set()
+        for k in m.match(text):
+            for w in strict.get(k, ()):
+                if w in tja:
+                    out.add(k)
+                    break
+        return out
+
     link_of = load_link_map()
     TEXT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -169,6 +189,7 @@ def main() -> None:
             if not arts:
                 continue
             stores: set[str] = set()
+            stores_relaxed: set[str] = set()
             n_ok = 0
             for a in arts:
                 b = get(a)
@@ -181,7 +202,8 @@ def main() -> None:
                 # 【今回の改善】本文を保存する。次に照合規則を変えたとき再クロール不要
                 fp = TEXT_DIR / f"{hashlib.sha256(a.encode()).hexdigest()[:20]}.txt"
                 fp.write_text(f"{a}\n{text}", encoding="utf-8")
-                stores |= m.match_corroborated(text)
+                stores |= match_strict(text)
+                stores_relaxed |= m.match_corroborated(text)
             if n_ok == 0:
                 continue
             done += 1
@@ -189,9 +211,11 @@ def main() -> None:
             nol = [s for s in known if not link_of[s]]
             rows.append({"group": label, "domain": host, "cat": cat,
                          "n_articles": n_ok, "n_stores": len(stores),
+                         "n_stores_relaxed": len(stores_relaxed),
                          "n_known": len(known), "n_nolink": len(nol),
                          "stores": sorted(stores)[:120]})
             print(f"  [{label}] {host[:30]:32} 記事 {n_ok:>4} → 店 {len(stores):>4}"
+                  f"(緩め {len(stores_relaxed):>4})"
                   f"  リンク無し {len(nol):>3}/{len(known):<4}"
                   f" = {len(nol)/max(len(known),1)*100:5.2f}%", file=sys.stderr)
         return rows
