@@ -110,9 +110,28 @@ def main() -> int:
     parser.add_argument("--qps", type=float, default=5.0)
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--limit", type=int)
+    parser.add_argument("--load", type=Path,
+                        help="results/geocode_cache.csv.gz を読み込んでから始める")
     arguments = parser.parse_args()
 
     cache = GeocodeCache(arguments.cache)
+    if arguments.load and arguments.load.exists():
+        import csv
+        import gzip
+
+        with gzip.open(arguments.load, "rt", encoding="utf-8", newline="") as handle:
+            loaded = 0
+            for row in csv.DictReader(handle):
+                cache.put(
+                    row["address"],
+                    float(row["latitude"]) if row["latitude"] else None,
+                    float(row["longitude"]) if row["longitude"] else None,
+                    "",
+                    row["level"],
+                )
+                loaded += 1
+        cache.flush()
+        print(f"キャッシュを {loaded:,} 件読み込んだ", flush=True)
     done = cache.known()
     addresses = [
         line.strip()
