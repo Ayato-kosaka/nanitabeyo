@@ -80,9 +80,15 @@ jest.mock("@/hooks/useLogger", () => ({ useLogger: () => ({ logFrontendEvent: mo
 const mockShowSnackbar = jest.fn();
 jest.mock("@/contexts/SnackbarProvider", () => ({ useSnackbar: () => ({ showSnackbar: mockShowSnackbar }) }));
 
-const mockShowDialog = jest.fn();
+// 海外未対応の案内は confirm（OK 単独ボタン）で出す。showCancel: false を渡していることまで見る
+const mockConfirm = jest.fn(() => Promise.resolve(true));
 jest.mock("@/contexts/DialogProvider", () => ({
-	useDialog: () => ({ showDialog: mockShowDialog, confirm: jest.fn(), prompt: jest.fn(), hideDialog: jest.fn() }),
+	useDialog: () => ({
+		showDialog: jest.fn(),
+		confirm: (...args: unknown[]) => mockConfirm(...(args as [])),
+		prompt: jest.fn(),
+		hideDialog: jest.fn(),
+	}),
 }));
 
 // 検索画面から渡されたハンドラを直接掴む（コンポーネント内部の表示条件には依存させない）:
@@ -167,7 +173,7 @@ describe("#1196 検索実行前の地点ガード", () => {
 		// 正常系でガードのログ・案内が漏れ出していないこと
 		expect(findLoggedEvent("search_blocked_malformed_address")).toBeUndefined();
 		expect(findLoggedEvent("search_blocked_unsupported_country")).toBeUndefined();
-		expect(mockShowDialog).not.toHaveBeenCalled();
+		expect(mockConfirm).not.toHaveBeenCalled();
 	});
 
 	it("country:US の地点では推薦 API を呼ばず、ダイアログで海外未対応を案内して warn で記録する", () => {
@@ -178,13 +184,16 @@ describe("#1196 検索実行前の地点ガード", () => {
 		expect(findLoggedEvent("search_started")).toBeUndefined();
 
 		// 数秒で消えるスナックバーではなく、確実に読めるダイアログで案内する
-		expect(mockShowDialog).toHaveBeenCalledTimes(1);
-		expect(mockShowDialog).toHaveBeenCalledWith(
-			"Search.unsupportedRegion.message",
-			expect.objectContaining({ title: "Search.unsupportedRegion.title" }),
+		expect(mockConfirm).toHaveBeenCalledTimes(1);
+		expect(mockConfirm).toHaveBeenCalledWith(
+			expect.objectContaining({
+				title: "Search.unsupportedRegion.title",
+				message: "Search.unsupportedRegion.message",
+				// 選択肢の無い告知なので OK 単独。ここが true（既定値）に戻ると
+				// 「キャンセル」が並び、何を選ばせたいのか分からないダイアログになる
+				showCancel: false,
+			}),
 		);
-		// OK 押下で何も起きない告知専用ダイアログであること（onConfirm を渡さない）
-		expect(mockShowDialog.mock.calls[0][1]).not.toHaveProperty("onConfirm");
 
 		// 海外からの利用は想定内で、案内できている（= 回復済み）ため warn。
 		// ただし新しいビルドでの海外アクセス量を可視化したいので、握り潰さず必ず記録する
@@ -210,7 +219,7 @@ describe("#1196 検索実行前の地点ガード", () => {
 		});
 
 		// 海外案内のダイアログは出さない（原因が違うので文言も導線も別）
-		expect(mockShowDialog).not.toHaveBeenCalled();
+		expect(mockConfirm).not.toHaveBeenCalled();
 		expect(mockShowSnackbar).toHaveBeenCalledWith("Search.errors.malformedAddress");
 	});
 

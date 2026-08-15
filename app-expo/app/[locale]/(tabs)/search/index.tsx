@@ -124,7 +124,14 @@ export default function SearchScreen() {
 	// #1196 【設計】海外未対応の案内はスナックバーではなくダイアログで出す。
 	// 「この地点では検索できない」は再入力を促す確定的な通知なので、数秒で消える表示だと
 	// ユーザーは何も起きなかったように見え、同じ地点で押し続けることになる。
-	const { showDialog } = useDialog();
+	//
+	// showDialog ではなく confirm を使うのは、**OK 単独のボタンにするため**。
+	// showDialog は kind:"custom" として Cancel / OK を無条件で 2 つ積む実装で、
+	// 選択肢が無い告知なのに「キャンセル」が並んでしまう（DialogProvider.tsx の renderedActions）。
+	// confirm は `showCancel: false` を解釈するので、告知専用の 1 ボタンにできる
+	// （型定義のコメントにも「『確認』ではなく単なる通知にしたい場合など」とある）。
+	// 返り値の Promise<boolean> は押されたボタンを表すだけで、ここでは分岐しないので捨てる。
+	const { confirm } = useDialog();
 	// #932 【設計】現在地取得の恒久的な失敗(権限拒否・未対応)時に手入力へ誘導するため
 	const locationInputRef = useRef<LocationAutocompleteHandle>(null);
 
@@ -332,13 +339,13 @@ export default function SearchScreen() {
 					longitude: location.location.longitude,
 				},
 			});
-			// #1196 【設計】OK を押しても何も起きない告知専用ダイアログにする（onConfirm を渡さない）。
-			// showDialog は custom request として必ず Cancel / OK の 2 ボタンを描画する実装なので、
-			// OK のみにはできない（cancelLabel を省いても Common.cancel が入る）。どちらを押しても
-			// 検索は実行されないため、告知としては成立する。
-			showDialog(i18n.t("Search.unsupportedRegion.message"), {
+			// #1196 【設計】選択肢の無い告知なので OK 単独のボタンにする（showCancel: false）。
+			// 押しても閉じるだけで、検索は実行されない。
+			void confirm({
 				title: i18n.t("Search.unsupportedRegion.title"),
-				okLabel: i18n.t("Search.unsupportedRegion.confirm"),
+				message: i18n.t("Search.unsupportedRegion.message"),
+				confirmLabel: i18n.t("Search.unsupportedRegion.confirm"),
+				showCancel: false,
 			});
 			return;
 		}
@@ -391,7 +398,7 @@ export default function SearchScreen() {
 		mediumImpact,
 		logFrontendEvent,
 		showSnackbar,
-		showDialog,
+		confirm,
 		locale,
 	]);
 	// Wrapper functions for haptic feedback
