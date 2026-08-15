@@ -241,8 +241,19 @@ def stage_coverage(args) -> None:
 
     src = OUT_DIR / "food_blogs_discover.json"
     d = json.loads(src.read_text(encoding="utf-8"))
-    doms = sorted(d["domains"].items(), key=lambda kv: -kv[1]["n_articles"])
-    doms = [x for x in doms if x[0] not in ("note.com", "ameblo.jp")][: args.blogs]
+    # 【自戒】plaza.rakuten.co.jp / blog.livedoor.jp / blog.goo.ne.jp / minkara.carview.co.jp を
+    # 「1ブログ」として数えていた。**多数のブロガーが同居するプラットフォーム**なので、
+    # 1ブログあたりの収量を測る対象から外す。独自ドメインだけを見る。
+    PLATFORM = {"note.com", "ameblo.jp", "plaza.rakuten.co.jp", "blog.livedoor.jp",
+                "blog.goo.ne.jp", "minkara.carview.co.jp", "blog.jp", "hatenablog.com",
+                "blog.fc2.com", "seesaa.net", "exblog.jp", "cocolog-nifty.com",
+                "yahoo.co.jp", "jugem.jp", "blogspot.com", "wordpress.com"}
+    def own_domain(h: str) -> bool:
+        return h not in PLATFORM
+    items = [x for x in d["domains"].items() if own_domain(x[0])]
+    # カテゴリ特化（1カテゴリだけに出る）を優先し、その中で記事数順
+    items.sort(key=lambda kv: (len(kv[1]["categories"]) > 1, -kv[1]["n_articles"]))
+    doms = items[: args.blogs]
 
     m = NameMatcher()
     rows = []
