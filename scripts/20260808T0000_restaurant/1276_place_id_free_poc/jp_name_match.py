@@ -352,3 +352,32 @@ def latin_kana_similarity(left: str, right: str) -> float:
     ratio = difflib.SequenceMatcher(None, *skeletons).ratio()
     # 骨格は情報を落としているので、高く一致したときだけ採る。
     return ratio * 0.95 if ratio >= 0.8 else 0.0
+
+
+def search_variant(value: str) -> str:
+    """検索に投げ直すための「読める短縮形」。
+
+    ``core`` は比較用の鍵なのでカナに畳んでしまい、検索クエリには使えない。
+    こちらは表記を保ったまま、Google 側の表記と食い違いやすい部分だけを落とす。
+
+    - 括弧の中（読み仮名・注記）を落とす
+    - 末尾の支店語（〜店 など）を1語ぶん落とす
+    - 全角スペースを半角に均す
+
+    元の店名で ±250m の矩形が空になった行にだけ使う。矩形と A/B の裏取りは
+    元のまま効くので、当たる範囲が広がるだけで判定の強さは変わらない。
+    """
+
+    text = unicodedata.normalize("NFKC", value or "").strip()
+    text = BRACKETS.sub("", text).strip()
+    tail = BRANCH_TAIL.search(text)
+    if tail and tail.start() > 0:
+        head = text[: tail.start()].rstrip("　 ・-")
+        # 「〜店」を落とす前に、直前の地名らしき1語も一緒に落とす。
+        # 「神戸屋レストラン 浜田山店」→「神戸屋レストラン」
+        parts = SEPARATORS.split(head)
+        if len(parts) > 1 and parts[-1]:
+            head = " ".join(parts[:-1])
+        if head:
+            text = head
+    return re.sub(r"\s+", " ", text).strip()

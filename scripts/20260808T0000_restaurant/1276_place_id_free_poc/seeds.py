@@ -360,6 +360,41 @@ def body_query_b(seed: Seed, *, name_query: str | None = None) -> dict[str, Any]
     }
 
 
+def rectangle(seed: Seed, half_side_m: float) -> dict[str, Any]:
+    """座標を中心にした一辺 2×half_side_m の矩形。"""
+
+    latitude_delta = half_side_m / 111_320.0
+    longitude_delta = half_side_m / (111_320.0 * max(math.cos(math.radians(seed.latitude)), 0.01))
+    return {
+        "rectangle": {
+            "low": {
+                "latitude": seed.latitude - latitude_delta,
+                "longitude": seed.longitude - longitude_delta,
+            },
+            "high": {
+                "latitude": seed.latitude + latitude_delta,
+                "longitude": seed.longitude + longitude_delta,
+            },
+        }
+    }
+
+
+def body_query_ca(seed: Seed, *, half_side_m: float = 1000.0) -> dict[str, Any]:
+    """店名 + 住所文字列を、座標矩形の locationRestriction の中で引く。
+
+    B（店名+住所、bias なし）は座標と独立に効く強い証拠だが、同名チェーンの
+    別店舗を引くことがある。矩形で囲えば「住所文字列でも一致し、かつ座標の
+    近くにある」を1回のリクエストで確かめられる。座標がずれている行を救うため、
+    矩形は広め（既定 ±1km）に取る。
+    """
+
+    return {
+        **COMMON_TEXT_BODY,
+        "textQuery": f"{seed.name_query} {seed.address_query}".strip(),
+        "locationRestriction": rectangle(seed, half_side_m),
+    }
+
+
 def body_query_c(
     seed: Seed, *, half_side_m: float = 75.0, name_query: str | None = None
 ) -> dict[str, Any]:

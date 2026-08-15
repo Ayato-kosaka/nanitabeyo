@@ -26,6 +26,8 @@ PROBE_B = "b"
 PROBE_C = "c"
 PROBE_C_TIGHT = "c_tight"
 PROBE_C_WIDE = "c_wide"
+PROBE_C_HUGE = "c_huge"
+PROBE_CA_HUGE = "ca_huge"
 PROBE_D = "d"
 PROBE_NEARBY = "nearby"
 
@@ -326,6 +328,51 @@ def rule_box_unique(seed: Seed, probes: Mapping[str, SearchResult]) -> Decision:
     return Decision(STATUS_AMBIGUOUS, None, GEO_INCONCLUSIVE, "box_not_unique")
 
 
+def rule_box_unique_huge(seed: Seed, probes: Mapping[str, SearchResult]) -> Decision:
+    """``rule_box_unique`` に ±1km の層を1つだけ足す。
+
+    ±250m の矩形に候補が1件も出ない seed が、未確定の 62.7%（990件中621件）を
+    占める。その多くは「Google に無い」のではなく「オープンデータ側の座標が
+    数百m ずれている」である。実際、A（店名+150m bias）と B（店名+住所）は
+    どちらも1件を返しているのに矩形だけが空、という形が並ぶ。
+
+    そこで矩形を ±1km まで広げる。同名の別店舗が1km 以内にあれば一意にならず
+    発火しないので、「取り違える相手が居ない」という ``box_unique`` の性質は保つ。
+
+    裏取りに **A を使わない**のが要点である。座標を同密度の別地点へ入れ替える
+    帰無検定（``null_test_huge.py``、990件）で、本当の店が矩形の外に居ることが
+    確実な条件下での発火率を測ったところ、
+
+    - 裏取りを A∪B にすると 4.44%（44件）が空撃ちする
+    - 裏取りを B だけにすると 0.20%（2件）に落ちる
+
+    A は 150m の locationBias でしかなく、矩形の外に本当の店が居ても座標の近所の
+    別店舗を返す。±25m や ±250m ならその「近所」が矩形とほぼ重なるので害が無いが、
+    ±1km ではただの騒音になる。B は座標と独立な住所テキストなので、矩形を広げても
+    独立な証拠であり続ける。
+
+    実測（3ソース標本3,000件）: 現行 67.00% → 70.00%（+90件）。
+
+    **ただしこのルールは採用していない。** ①は 70.00% に届くが、②が落ちる。
+    ラベル側でこの層が発火したのは2件で、うち1件（`らーめん工房いちにぃさん`、
+    ラベル距離 6.5m・名前類似度 1.00）が誤りだった。座標は正しいのに Google 側の
+    表記が違って矩形が空になる形では、±1km に広げると同名の別支店を掴む。
+    帰無検定は「本当の店が矩形の外に居る」場合しか測れないため、この失敗の型を
+    捉えられない。①と②の取引を数字で示すために残してあるだけで、
+    `EXPORT_SAFE_RULES` には入れない。
+    """
+
+    decision = rule_box_unique(seed, probes)
+    if decision.status == STATUS_MATCHED:
+        return decision
+    if decision.detail not in ("no_candidate_in_box", "box_not_unique"):
+        return decision
+    huge = set(_ids(probes, PROBE_C_HUGE))
+    if len(huge) == 1 and (huge & set(_ids(probes, PROBE_B))):
+        return _matched(next(iter(huge)), probes, "huge_unique_in_b")
+    return decision
+
+
 def rule_layered_strict(seed: Seed, probes: Mapping[str, SearchResult]) -> Decision:
     """``rule_layered`` から層3を外した、最も誤りに強い運用ルール。
 
@@ -405,6 +452,7 @@ RULES: dict[str, Callable[[Seed, Mapping[str, SearchResult]], Decision]] = {
     "layered_strict": rule_layered_strict,
     "layered_v2": rule_layered_v2,
     "box_unique": rule_box_unique,
+    "box_unique_huge": rule_box_unique_huge,
     "layered_strict_wide": rule_layered_strict_wide,
     # 計測の再現用に残すが、負例での誤マッチ率が高く CSV 出力には使わない。
     "layered_wide": rule_layered_wide,

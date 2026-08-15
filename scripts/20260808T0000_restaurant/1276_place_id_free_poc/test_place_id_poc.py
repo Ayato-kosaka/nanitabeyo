@@ -33,6 +33,7 @@ from matching import (
     PROBE_A,
     PROBE_B,
     PROBE_C,
+    PROBE_C_HUGE,
     PROBE_C_TIGHT,
     PROBE_C_WIDE,
     PROBE_NEARBY,
@@ -45,6 +46,8 @@ from matching import (
     geo_status,
 )
 from ground_truth import chain_key
+from jp_name_match import search_variant
+from null_test_huge import displace, haversine_m
 from jp_text import name_similarity, normalize_for_comparison
 from seeds import (
     Seed,
@@ -52,6 +55,7 @@ from seeds import (
     body_query_a,
     body_query_b,
     body_query_c,
+    body_query_ca,
     build_address_query,
     format_postcode,
     normalize_postcode_digits,
@@ -604,6 +608,88 @@ class BillableEndpointTest(unittest.TestCase):
             with self.assertRaises(BillableEndpointError):
                 client.search_nearby({"maxResultCount": 1})
         self.assertEqual(client.request_count, 0)
+
+
+class AddressBoxQueryTest(unittest.TestCase):
+    """``body_query_ca`` は「店名+住所」を矩形の中で引く。"""
+
+    def test_query_and_rectangle_are_both_present(self) -> None:
+        seed = make_seed(name_query="山田屋", address_query="東京都千代田区1-1")
+        body = body_query_ca(seed, half_side_m=1000.0)
+        self.assertEqual(body["textQuery"], "山田屋 東京都千代田区1-1")
+        self.assertIn("rectangle", body["locationRestriction"])
+        self.assertNotIn("locationBias", body)
+
+    def test_field_mask_stays_ids_only(self) -> None:
+        # 課金の前提が壊れていないこと。fieldMask はクライアント側の定数である。
+        from free_places import FIELD_MASK
+
+        self.assertEqual(FIELD_MASK, "places.id")
+
+
+class SearchVariantTest(unittest.TestCase):
+    """検索し直すための短縮形。比較用の ``core`` と違い、表記は保つ。"""
+
+    def test_branch_suffix_and_its_place_name_are_dropped(self) -> None:
+        self.assertEqual(search_variant("神戸屋レストラン 浜田山店"), "神戸屋レストラン")
+
+    def test_bracketed_reading_is_dropped(self) -> None:
+        self.assertEqual(search_variant("FURUBO（フルボ）"), "FURUBO")
+
+    def test_name_without_branch_is_unchanged(self) -> None:
+        self.assertEqual(search_variant("らーめん工房いちにぃさん"), "らーめん工房いちにぃさん")
+
+    def test_result_is_not_kana_folded(self) -> None:
+        # ``core`` はカナに畳むのでクエリに使えない。こちらは畳まない。
+        self.assertIn("神戸屋", search_variant("神戸屋レストラン 浜田山店"))
+
+
+class HugeRuleIsNotExportSafeTest(unittest.TestCase):
+    """±1km の層は①を上げるが②を落とす。提出用CSVには使わせない。"""
+
+    def test_registered_but_excluded_from_export(self) -> None:
+        self.assertIn("box_unique_huge", RULES)
+        self.assertNotIn("box_unique_huge", EXPORT_SAFE_RULES)
+
+    def test_huge_layer_requires_b_not_a(self) -> None:
+        seed = make_seed()
+        probes = {
+            PROBE_A: SearchResult(("X",), 200),
+            PROBE_B: SearchResult(("Y",), 200),
+            PROBE_C_TIGHT: SearchResult((), 200),
+            PROBE_C_WIDE: SearchResult((), 200),
+            PROBE_C_HUGE: SearchResult(("X",), 200),
+        }
+        # A しか挙げていない候補では発火しない（帰無検定で空撃ち率 4.44%）。
+        self.assertNotEqual(RULES["box_unique_huge"](seed, probes).status, STATUS_MATCHED)
+        probes[PROBE_C_HUGE] = SearchResult(("Y",), 200)
+        decision = RULES["box_unique_huge"](seed, probes)
+        self.assertEqual(decision.status, STATUS_MATCHED)
+        self.assertEqual(decision.detail, "huge_unique_in_b")
+
+
+class DisplacementTest(unittest.TestCase):
+    """帰無検定は座標を「同じ密度帯の別地点」へ十分遠くに動かす。"""
+
+    def test_every_seed_moves_at_least_three_kilometres(self) -> None:
+        seeds = [
+            make_seed(seed_id=str(index), latitude=35.0 + index * 0.02, longitude=139.0)
+            for index in range(8)
+        ]
+        moved = displace(seeds)
+        for before, after in zip(seeds, moved):
+            distance = haversine_m(
+                before.latitude, before.longitude, after.latitude, after.longitude
+            )
+            self.assertGreaterEqual(distance, 3000.0)
+
+    def test_names_are_kept(self) -> None:
+        seeds = [
+            make_seed(seed_id=str(index), latitude=35.0 + index * 0.02, longitude=139.0)
+            for index in range(4)
+        ]
+        for before, after in zip(seeds, displace(seeds)):
+            self.assertEqual(before.name_query, after.name_query)
 
 
 if __name__ == "__main__":

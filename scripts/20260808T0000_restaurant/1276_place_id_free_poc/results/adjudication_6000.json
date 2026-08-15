@@ -1,0 +1,12 @@
+{
+  "pairs": 24,
+  "verdicts": {
+    "inconclusive": 8,
+    "db_stale": 16
+  },
+  "counted_as_matching_error": 8,
+  "not_a_matching_error": 16,
+  "requests": 120,
+  "http_errors": 0,
+  "sku": "Text Search (IDs Only) / Place Details (IDs Only) のみ = $0.00"
+}
