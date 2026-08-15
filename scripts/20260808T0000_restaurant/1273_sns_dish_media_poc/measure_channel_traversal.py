@@ -324,6 +324,18 @@ class NameMatcher:
         self.auto_la.make_automaton()
         # 裏取り用の市区町村トークン（上記【バグ】参照）。
         self.needle = {k: locality_needle(loc) for k, (loc, _) in self.area.items()}
+        # #1273 【修正】裏取りキーが政令指定都市と特別区で壊れていた。
+        # locality_needle は行政区画トークンの**最後**を返すので
+        #   「大阪市中央区」-> 「中央区」 / 「静岡市葵区」-> 「葵区」
+        # となり、本文に書かれる「大阪」「静岡」と一致しない。特別区も
+        #   「新宿区」-> 「新宿区」 で、本文の「新宿」と一致しない。
+        # 母集団の 24.82%（287,730店）が政令市型で、最多の needle「中央区」は
+        # 10市にまたがるうえ本文には稀にしか出ない。
+        # 実測（`measure_needle_fix.py`）: 未目視の第2標本で distinct 34店 -> 161店 = 4.74倍、
+        # 増分の目視 precision 15/17 = 88%。開発標本でも 3.88倍 / 16/18 = 89% で再現した。
+        # ここでは「市トークン」と「末尾の行政区画語を落とした形」を裏取り語に足す。
+        self.corro = {k: self._corroborators(loc, reg, self.needle.get(k, ""))
+                      for k, (loc, reg) in self.area.items()}
         self.rows = rows
         print(f"[dict] {'+'.join(self.sources_used)}: {rows:,} rows -> "
               f"日本語名 {self.n_ja:,} (>={MIN_NAME_LEN_NATIONAL}字) + "
@@ -352,6 +364,36 @@ class NameMatcher:
                     hits.add(found)
         return hits
 
+    _CITY_WARD_RE = re.compile(r"^(?:北海道|京都府|大阪府|東京都|.{2,3}県)?(.+?市)(.+?区)$")
+    _ADMIN_TAIL_RE = re.compile(r"(市|区|町|村)$")
+    # 行政区画語を落とすと一般語・他地名になってしまうものは足さない
+    _BARE_STOP = frozenset({"中央", "北", "南", "東", "西", "港", "緑", "旭", "青葉",
+                            "大和", "山手", "本", "新", "上", "下", "中", "白", "泉"})
+
+    @classmethod
+    def _bare(cls, token: str) -> str:
+        """「新宿区」->「新宿」、「高松市」->「高松」。落とせなければ空文字。"""
+        if not token:
+            return ""
+        b = cls._ADMIN_TAIL_RE.sub("", token, count=1)
+        return "" if (len(b) < 2 or b == token or b in cls._BARE_STOP) else b
+
+    @classmethod
+    def _corroborators(cls, loc: str, region: str, needle: str) -> frozenset:
+        """裏取りに使える語の集合。丸ごと・区名・市名・市名から市を落とした形。"""
+        out = {x for x in (loc, needle, region) if x}
+        m = cls._CITY_WARD_RE.match(loc or "")
+        if m:
+            out.add(m.group(1))                     # 「大阪市」
+            b = cls._bare(m.group(1))
+            if b:
+                out.add(b)                          # 「大阪」
+        for tok in (loc or "", needle):
+            b = cls._bare(tok)
+            if b:
+                out.add(b)                          # 「新宿区」->「新宿」
+        return frozenset(out)
+
     def match_corroborated(self, text: str) -> set[str]:
         """店名一致に加えて、その店の locality か region が同じテキストに出ることを要求する。
 
@@ -363,14 +405,14 @@ class NameMatcher:
         tja = normalize_ja(text)
         out = set()
         for key in self.match(text):
-            loc, region = self.area.get(key, ("", ""))
             # 【設計】「丸ごと」と「市区町村トークン」の和集合で裏取りする。
             # トークンだけにすると locality から市区町村を取れない店（「〇〇村大字△△」等）が
             # 裏取り手段を失うため、丸ごと一致も残す。上記【バグ】参照。
-            needle = self.needle.get(key, "")
-            if ((loc and loc in tja) or (needle and needle in tja)
-                    or (region and region in tja)):
-                out.add(key)
+            # 政令市・特別区の扱いは `_corroborators` の注記を参照。
+            for w in self.corro.get(key, ()):
+                if w in tja:
+                    out.add(key)
+                    break
         return out
 
 
