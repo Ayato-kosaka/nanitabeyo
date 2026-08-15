@@ -218,6 +218,60 @@ class NameMatcher:
         area_vocab = {v for pair in self.area.values() for v in pair if v}
         addr_tail = re.compile(r"(都|道|府|県|市|区|町|村|丁目|番地)$")
         dropped_geo = 0
+        dropped_venue = 0
+
+        # #1273 【バグ】目視80対で見つけた誤りのうち2類型が、既存の除外を通り抜けていた。
+        #   (1) 容器（施設・場所）を屋号として持つ行
+        #       「国際通りのれん街」「唐戸はれて横丁」「アルプス公園」
+        #       → 容器の中のテナントの動画に必ず当たる
+        #   (2) 住所文字列が屋号になっている行のうち、**末尾が行政区画で終わらない**もの
+        #       「港区新橋」「中央区大名」「北区赤羽」「那覇市安里」
+        #       → 既存の addr_tail は**末尾しか見ていない**ので通り抜けていた
+        # (2) は support の大きい誤り生成源に集中していた
+        # （北区赤羽 support 67 / 中央区大名 32 / 那覇市安里 25 / 港区新橋 16）。
+        # 「support が厚い店ほど precision が低い」の正体がこれである。
+        #
+        # 規則は3版書き直した。経過は out/matcher_exclusion_labels.json に残す。
+        #   v1 `[市区町村]`1文字で判定 → 誤爆 5/40（「西村麺業」の村を行政区画と誤認）
+        #   v2 実在地名と突合に直したが業態語の番人を外した → 誤爆 7件に増加
+        #      （町田市が実在するのでチェーン「町田商店」が丸ごと落ちた）
+        #   v3 両方同時。未目視40件で 39/40 = 97.5%
+        venue_tail = re.compile(
+            r"(横丁|のれん街|暖簾街|商店街|フードコート|地下街|公園|百貨店|デパート|"
+            r"ショッピングセンター|ショッピングモール|アウトレット|サービスエリア|"
+            r"パーキングエリア|道の駅|市場|センター街|銀座街|飲食街|屋台村|"
+            r"ターミナル|バスセンター|物産館|直売所)$")
+        # 番人は**住所を剥がした残り**にだけ当てる。名前全体に当てると
+        # 「名古屋市中区栄」の屋、「尾道市土堂」の堂で誤作動する。裸の「堂」は入れない。
+        biz_word = re.compile(
+            r"(店|屋|亭|軒|房|舎|庵|苑|館|坊|処|荘|食堂|酒場|居酒屋|寿司|鮨|丼|麺|"
+            r"そば|うどん|ラーメン|らーめん|中華|洋食|和食|カフェ|cafe|バル|バー|"
+            r"レストラン|キッチン|kitchen|ダイニング|ベーカリー|パン|菓子|珈琲|喫茶)",
+            re.I)
+        pref_head = re.compile(r"^.{2,4}?[都道府県]")
+        # 実在の市区町村名。**1文字の前置を入れない**（「町田市」から「町」が入ると
+        # 「町田商店」が落ちる）。
+        known_admin: set[str] = set()
+        for _loc, _reg in self.area.values():
+            if not _loc:
+                continue
+            _s = pref_head.sub("", _loc, count=1)
+            for _m in re.finditer(r"[市区町村]", _s):
+                if _m.end() >= 2:
+                    known_admin.add(_s[: _m.end()])
+            if len(_s) >= 2:
+                known_admin.add(_s)
+
+        def is_address_row(name: str) -> bool:
+            s = pref_head.sub("", name, count=1)
+            best = 0
+            for m in re.finditer(r"[市区町村]", s):
+                if s[: m.end()] in known_admin:
+                    best = m.end()          # 最長一致
+            if best == 0:
+                return False
+            return not biz_word.search(s[best:])
+
         stop_ja = {normalize_ja(s) for s in STOPWORD_NAMES}
         stop_la = {normalize_latin(s).strip() for s in STOPWORD_NAMES}
         self.auto_ja = ahocorasick.Automaton()
@@ -233,6 +287,10 @@ class NameMatcher:
             # 住所文字列そのもの、および地名で終わる名前は除外する（上記【バグ】参照）
             if key in area_vocab or addr_tail.search(key):
                 dropped_geo += 1
+                continue
+            # 容器（施設・場所）と、末尾が行政区画で終わらない住所行（上記【バグ】参照）
+            if venue_tail.search(key) or is_address_row(key):
+                dropped_venue += 1
                 continue
             self.auto_ja.add_word(key, key)
             self.n_ja += 1
@@ -256,7 +314,8 @@ class NameMatcher:
         print(f"[dict] {'+'.join(self.sources_used)}: {rows:,} rows -> "
               f"日本語名 {self.n_ja:,} (>={MIN_NAME_LEN_NATIONAL}字) + "
               f"ラテン名 {self.n_la:,} (>={MIN_NAME_LEN_LATIN}字, 語境界必須) "
-              f"/ 地名として除外 {dropped_geo:,}", file=sys.stderr)
+              f"/ 地名として除外 {dropped_geo:,}"
+              f" / 容器・住所行として除外 {dropped_venue:,}", file=sys.stderr)
 
     def match(self, text: str) -> set[str]:
         """店名の生一致だけを返す（地名の裏取りは match_corroborated で課す）。"""
