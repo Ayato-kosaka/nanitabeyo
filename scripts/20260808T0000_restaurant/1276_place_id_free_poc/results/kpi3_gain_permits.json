@@ -7,12 +7,12 @@
     "rate": 0.621637
   },
   "with_extra": {
-    "seeds_probed": 3050,
-    "seeds_matched": 2102,
-    "reached": 1128,
-    "rate": 0.645678
+    "seeds_probed": 319,
+    "seeds_matched": 256,
+    "reached": 1101,
+    "rate": 0.630223
   },
-  "gain_points": 2.404,
-  "extra_only_reached": 42,
-  "selected_for_probing": 0
+  "gain_points": 0.859,
+  "extra_only_reached": 15,
+  "selected_for_probing": 2046
 }

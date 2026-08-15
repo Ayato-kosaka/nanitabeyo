@@ -45,8 +45,12 @@ ADDRESS_EXCLUDE = (
     # 営業者・申請者の住所は施設の住所ではない
     "営業者", "申請者", "法人", "代表者", "届出者", "許可者",
 )
-TYPE_HINTS = ("営業の種類", "業種", "許可業種", "種別")
+TYPE_HINTS = ("営業の種類", "営業の種類もしくは営業の形態", "業種", "許可業種", "種別", "業態")
 CLOSED_HINTS = ("廃業", "失効")
+# 「廃業日」のような列ではなく、「営業ステータス」列に「廃業」と書く形式もある。
+# 渋谷区の 39,106 行は 22,122 行が廃業で、これを落とさないと半分が死んだ店になる。
+STATUS_HINTS = ("営業ステータス", "ステータス", "状態", "許可状況")
+CLOSED_VALUES = ("廃業", "失効", "取消", "取り消", "抹消")
 LATITUDE_HINTS = ("緯度", "latitude")
 LONGITUDE_HINTS = ("経度", "longitude")
 
@@ -227,6 +231,7 @@ def main() -> int:
             continue
         type_column = pick(headers, TYPE_HINTS)
         closed_column = pick(headers, CLOSED_HINTS)
+        status_column = pick(headers, STATUS_HINTS)
         latitude_column = pick(headers, LATITUDE_HINTS)
         longitude_column = pick(headers, LONGITUDE_HINTS)
         stats["files_used"] += 1
@@ -235,6 +240,11 @@ def main() -> int:
             stats["rows_read"] += 1
             if closed_column and (row.get(closed_column) or "").strip():
                 stats["closed"] += 1
+                continue
+            if status_column and any(
+                word in (row.get(status_column) or "") for word in CLOSED_VALUES
+            ):
+                stats["closed_by_status"] += 1
                 continue
             business = (row.get(type_column) or "") if type_column else ""
             if type_column and not any(word in business for word in KEEP_KEYWORDS):
