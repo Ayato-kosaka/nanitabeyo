@@ -61,6 +61,26 @@ expo の `city` をそのまま入れていた）。**サーバ側に形式検�
 
 一度サーバ側に検証モジュール（`api/src/core/utils/address-format.ts`）を新設して差し戻された。
 
+### 検証結果（2026-08-15、BigQuery 実測）
+
+`app-expo/lib/addressFormat.ts` の修正が効いているかを、`address` の形と `created_commit_id` の
+両方から確認した。**修正は 100% 効いており、残っているのは旧ビルドの残存だけ**だった。
+
+| 送られた address | Claude フォールバック |
+|---|---|
+| `country:JP` で始まる（正規形式） | **0 件** / 613 リクエスト・275 ユーザー |
+| 壊れた形式（`大阪市` など） | **673 件 / 673 件（全件）** / 123 ユーザー |
+| `country:XX`（海外） | 4 件 / 2 ユーザー（**仕様どおり**） |
+
+`dish_category_recommendations_empty_retry` をビルド別に割ると、`addressFormat.ts` を**含む**ビルド
+（`92f77562` / `19a4422d`、いずれも 08-13）は **0 件**、**含まない**ビルド（`c217a35e` 08-01 ほか）が
+338 件すべてを出していた。含む/含まないは
+`git ls-tree -r --name-only <sha> -- app-expo/lib/addressFormat.ts` で確定できる（→ FORENSICS.md §6）。
+
+したがって Claude 系の Issue は **`err/skip`（旧ビルド残存）** で畳んでよい。
+ただし**海外ユーザーの `country:XX` は最新ビルドでも必ず出る**ので、
+「呼ぶ前にクライアントで止める」ガードを別途入れている（#1196 / `handleSearch` の 2 段ガード）。
+
 ## 2. エラーが出ている ≠ ユーザーが詰んでいる
 
 Google Places Text Search の 429（日次クォータ枯渇）→ backend 500 → frontend `api_call_error`
