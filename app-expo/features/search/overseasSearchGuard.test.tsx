@@ -223,6 +223,25 @@ describe("#1196 検索実行前の地点ガード", () => {
 		expect(mockShowSnackbar).toHaveBeenCalledWith("Search.errors.malformedAddress");
 	});
 
+	it("海外の地点で連打しても、告知ダイアログとログは 1 回ずつしか積まれない", () => {
+		// 多重検索防止の isSearchingRef はガードより後段にあり、この経路には効かない。
+		// DialogProvider はキューなので、素通しすると連打した回数だけ同じ告知を閉じさせることになる
+		tree = selectLocationAndSearch("country:US, administrative_area_level_1:CA");
+
+		TestRenderer.act(() => {
+			onPressSearch!();
+			onPressSearch!();
+		});
+
+		expect(mockConfirm).toHaveBeenCalledTimes(1);
+		expect(
+			mockLogFrontendEvent.mock.calls
+				.map(([arg]) => arg)
+				.filter((arg) => arg?.event_name === "search_blocked_unsupported_country"),
+		).toHaveLength(1);
+		expect(mockRouterPush).not.toHaveBeenCalled();
+	});
+
 	it("小文字の国コードは JP 扱いにせず、壊れた address として止める", () => {
 		// #1196 サーバの照合は `dcf.feature_key = ANY(...)`（Postgres の完全一致 = 大小文字区別あり）で、
 		// `region:country:jp` はホワイトリストの `region:country:JP` に当たらない。

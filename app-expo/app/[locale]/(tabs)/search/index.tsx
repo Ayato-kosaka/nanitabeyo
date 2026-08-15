@@ -115,6 +115,13 @@ export default function SearchScreen() {
 	const [coreIngredient, setCoreIngredient] = useState<SearchParams["coreIngredient"] | undefined>(undefined);
 	const [diningPace, setDiningPace] = useState<SearchParams["diningPace"] | undefined>(undefined);
 	const isSearchingRef = useRef(false);
+	// #1196 【設計】海外未対応の告知が二重に積まれるのを防ぐ。
+	// 多重検索防止の `isSearchingRef` はガードより後段にあるため、この経路には効かない
+	// （ガードは早期 return するのでそこまで到達しない）。DialogProvider はキューなので、
+	// 最初のダイアログが描画される前に連打されるとその回数だけ積まれ、同じ告知を何度も
+	// 閉じさせることになる。confirm の Promise は OK / Cancel / Dismiss のいずれでも解決するので、
+	// それを閉じた合図として使う。
+	const isUnsupportedRegionNoticeOpenRef = useRef(false);
 	const [distance, setDistance] = useState<number>(DEFAULT_SEARCH_RADIUS);
 	const [priceLevels, setPriceLevels] = useState<(typeof priceLevelOptions)[number]["value"][]>([]);
 	const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
@@ -328,6 +335,10 @@ export default function SearchScreen() {
 		// いる（= 回復済み）ので ERROR ではない。ただし「新しいビルドで海外アクセスがどれだけ
 		// 来ているか」を可視化したいので、握り潰さず必ず記録する。
 		if (countryCode !== SUPPORTED_COUNTRY_CODE) {
+			// 既に告知が出ている間の連打は、ログもダイアログも積まない
+			if (isUnsupportedRegionNoticeOpenRef.current) return;
+			isUnsupportedRegionNoticeOpenRef.current = true;
+
 			logFrontendEvent({
 				event_name: "search_blocked_unsupported_country",
 				error_level: "warn",
@@ -346,6 +357,9 @@ export default function SearchScreen() {
 				message: i18n.t("Search.unsupportedRegion.message"),
 				confirmLabel: i18n.t("Search.unsupportedRegion.confirm"),
 				showCancel: false,
+			}).finally(() => {
+				// 閉じたら次の告知を許可する（地点を変えずに押し直したときは再度出したい）
+				isUnsupportedRegionNoticeOpenRef.current = false;
 			});
 			return;
 		}

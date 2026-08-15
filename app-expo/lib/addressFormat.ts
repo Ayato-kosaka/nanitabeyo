@@ -54,6 +54,27 @@ export type GeocodedAddressLike = {
  * 抽出基準: カンマ区切りトークンのいずれかが `country:<大文字 2 文字>` であること。
  * 国コードさえ含まれていれば地域ゲートには必ずヒットするため、これを最小要件とする。
  * ただしヒットが保証されるのは大文字のときだけなので、大小文字まで見る（→ `COUNTRY_CODE_PATTERN`）。
+ *
+ * #1196 【設計】alpha-2 だけを通すのは fail-closed であることを承知のうえで選んでいる。
+ *
+ * サーバの `buildAddressFromComponents` は `(c.shortText || c.longText)` の順で値を採るため、
+ * Google Places が country の `shortText` を欠いた場合は理論上 `country:Japan` を組み立てうる
+ * （`api/src/v1/locations/locations.service.spec.ts` にそのフォールバックのテストがある）。
+ * その値はここで `null` になり、検索画面では「壊れた address」として弾かれる。
+ *
+ * それでも alpha-2 に絞るのは:
+ *
+ * - `region:country:Japan` はゲートのホワイトリスト（`region:country:JP`）に**当たらない**。
+ *   通したところで候補 0 件 → Claude フォールバックへ落ちるだけで、課金だけが発生する。
+ *   つまり「通す」も「弾く」も検索は成立せず、弾くほうが安い。
+ * - 実測で発生していない。`search_started` の address を 2026-08-08〜08-16 で集計したところ、
+ *   `country:<alpha-2 以外>` は **0 件 / 7,632 件**（`country:AA` 3,782 / broken 3,850）。
+ *   country の `shortText` が欠けた例は本番に 1 件も無い。
+ * - 万一出た場合は `search_blocked_malformed_address` が **error** で記録され、#1196 の
+ *   トリアージが翌日には Issue を立てる。気づけないまま放置される形にはならない。
+ *
+ * したがって、もしこのログが立ったら**直す場所はここではなくサーバの producer 側**
+ * （country を alpha-2 に正規化する）である。ここに国名テーブルを持ち込まないこと。
  */
 export function getAddressCountryCode(address: string | null | undefined): string | null {
 	if (!address) return null;
