@@ -59,6 +59,10 @@ SP_UNDER_4MIN = "EgIYAQ%3D%3D"
 
 CATEGORIES = ["ラーメン", "焼肉", "寿司", "カレー", "そば", "定食"]
 AREAS = ["新宿", "大阪", "福岡", "札幌", "仙台", "高松"]
+# 【規律】規則を作った標本での成績は過大評価になる。裏取りキーの改修（B/C/D 案）を
+# **未目視の別標本**で検証するために、カテゴリもエリアも重ならない第2セットを置く。
+CATEGORIES2 = ["うどん", "天ぷら", "居酒屋", "パスタ", "ステーキ", "餃子"]
+AREAS2 = ["名古屋", "横浜", "京都", "神戸", "広島", "金沢"]
 
 
 def search(query: str, limit: int, shorts_filter: bool) -> list[dict]:
@@ -94,8 +98,10 @@ def stage_search(args) -> None:
     ch_short: collections.Counter = collections.Counter()
     ch_url: dict[str, str] = {}
 
-    for cat in CATEGORIES:
-        for area in AREAS:
+    cats = CATEGORIES2 if getattr(args, "fresh", False) else CATEGORIES
+    areas = AREAS2 if getattr(args, "fresh", False) else AREAS
+    for cat in cats:
+        for area in areas:
             q = f"{cat} {area}"
             vids = search(q, args.per_query, shorts_filter=True)
             n_sh = sum(1 for v in vids if is_short(v))
@@ -146,7 +152,8 @@ def stage_search(args) -> None:
         print(f"  {c[:34]:36} Shorts {k:>3} / 全 {ch_counter[c]:>3}", file=sys.stderr)
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    p = OUT_DIR / "shorts_route_search.json"
+    p = OUT_DIR / ("shorts_route_search_fresh.json" if getattr(args, "fresh", False)
+                   else "shorts_route_search.json")
     p.write_text(json.dumps(
         {"n": n, "n_short": n_sh, "short_hit": sh_hit, "n_short_rows": len(sh_rows),
          "long_hit": lg_hit, "n_long_rows": len(lg_rows),
@@ -232,6 +239,8 @@ def main() -> None:
     ap.add_argument("--max-channels", type=int, default=20)
     ap.add_argument("--per-channel", type=int, default=200)
     ap.add_argument("--per-query", type=int, default=30)
+    ap.add_argument("--fresh", action="store_true",
+                    help="未目視の第2標本（別カテゴリ×別エリア）で取る")
     args = ap.parse_args()
     {"search": stage_search, "channels": stage_channels}[args.stage](args)
 

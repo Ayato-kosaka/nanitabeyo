@@ -103,10 +103,12 @@ def main() -> None:
     args = ap.parse_args()
 
     deep = json.loads((OUT_DIR / "food_blogs_deep.json").read_text(encoding="utf-8"))
-    hosts = [r["domain"] for r in deep["rows"] if r["n_articles_ok"] > 0][: args.blogs]
-    # 記事の多いブログから見たいので、サイトマップ本数の多い順に
-    hosts.sort(key=lambda h: -next(r["n_sitemap_urls"] for r in deep["rows"]
-                                   if r["domain"] == h))
+    # 【自戒】最初の版は「先に上位N件を切ってから並べ替え」ていたため、
+    # サイトマップ 2,000本の umai-net.com が外れ、43本のブログを走らせていた。
+    # **並べ替えてから切る。**
+    cand = [r for r in deep["rows"] if r["n_articles_ok"] > 0]
+    cand.sort(key=lambda r: -r["n_sitemap_urls"])
+    hosts = [r["domain"] for r in cand][: args.blogs]
     m = NameMatcher()
     rows = []
 
