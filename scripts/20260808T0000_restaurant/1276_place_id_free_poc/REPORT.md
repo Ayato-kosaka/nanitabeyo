@@ -365,6 +365,9 @@ probe 済みの seed 19,868 件に `box_unique` を当てて確定した行だ�
 | A | 9,553 | ±25m の矩形に同名が1件だけ（`tight_unique_in_ab`） |
 | B | 1,292 | ±250m まで広げて同名が1件だけ（`wide_unique_in_ab`） |
 
+全 10,845 行で `geo_verification` が `confirmed`（矩形の中に実在を確認済み）である。
+ソース内訳は Overture 7,702 / IFAS 2,732 / OSM 411。
+
 ## 1日あたりのリクエスト上限
 
 `places.googleapis.com` の `SearchTextRequestPerDayPerProject` は **75,000/日**である。
@@ -562,9 +565,10 @@ A は 150m の `locationBias` でしかなく、矩形の外に本当の店が�
 
 ### この物差しの限界
 
-採用中の `box_unique`（±25m / ±250m ∧ A∪B）を、**確定した** seed 800 件で
-同じように測ると空撃ち率は **1.46%** だった。上の 0.10〜0.20% より高い。
+採用中の `box_unique`（±25m / ±250m ∧ A∪B）を、**確定した** seed 779 件で
+同じように測ると空撃ち率は **1.54%**（12件）だった。上の 0.10〜0.20% より高い。
 これは採用ルールのほうが危ういという意味ではない。母集団が違う。
+（測定値は `results/null_test.json`）
 
 - 確定した seed は「Google が名前で引ける店」なので、どこへ動かしても
   同名の何かが見つかりやすい
