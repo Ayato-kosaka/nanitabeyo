@@ -1,14 +1,14 @@
 {
-  "rows_written": 166005,
-  "rows_read": 405252,
-  "needs_geocoding": 122441,
-  "not_a_restaurant": 99122,
-  "duplicate": 90281,
+  "rows_written": 174828,
+  "rows_read": 441783,
+  "needs_geocoding": 131264,
+  "not_a_restaurant": 126978,
+  "duplicate": 90133,
   "has_coordinates": 43564,
   "closed": 23381,
   "address_without_prefecture": 20273,
   "no_name": 6190,
-  "files_used": 562,
-  "no_name_or_address_column": 8,
+  "files_used": 567,
+  "no_name_or_address_column": 3,
   "unreadable": 1
 }
