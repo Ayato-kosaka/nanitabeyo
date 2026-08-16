@@ -153,8 +153,21 @@ def main() -> None:
             focus_hosts.append((h, t["cat"]))
         if len(focus_hosts) >= args.per_group * 4:
             break
+    # 【自戒】最初の版は非特化群にブログサービスのドメインをそのまま入れていた。
+    # `ameblo.jp` を1ブログとして扱うと、サイトマップ走査が**食べ物と無関係な
+    # 個人ブログまで拾う**（雨宮留菜オフィシャルブログ・女将asuka 等が入った）。
+    # 出た数字（150記事→47店・リンク無し53.19%）は目視すると
+    # 『today s』『デザート』『アップデート』『ログイン』『イオン江別店』のような
+    # 誤爆ばかりで、**無効**だった。ブログサービスのドメインは除く。
+    PLATFORM = {"ameblo.jp", "note.com", "plaza.rakuten.co.jp", "blog.livedoor.jp",
+                "blog.goo.ne.jp", "minkara.carview.co.jp", "blog.fc2.com",
+                "hatenablog.com", "seesaa.net", "exblog.jp", "blogspot.com",
+                "blog.jp", "livedoor.blog", "muragon.com", "jugem.jp",
+                "hatenablog.jp", "hateblo.jp", "hatenadiary.jp", "fc2.com",
+                "cocolog-nifty.com", "wordpress.com", "ti-da.net"}
     general_hosts = [(h, "+".join(v["categories"][:3]))
-                     for h, v in multi_hosts[: args.per_group * 4]]
+                     for h, v in multi_hosts
+                     if h not in PLATFORM][: args.per_group * 4]
 
     m = NameMatcher()
     # 【自戒・重要】#1349 で緩めた裏取り（市名・区名から行政区画語を落とした形）は
