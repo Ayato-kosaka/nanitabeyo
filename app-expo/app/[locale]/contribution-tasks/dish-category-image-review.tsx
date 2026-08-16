@@ -20,7 +20,7 @@ import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Check, Circle, CheckCircle2, ArrowRight } from "lucide-react-native";
 
-import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
+import { useLegacyBlurModal } from "@/features/contributionTasks/legacyBlurModal/useLegacyBlurModal";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
@@ -1592,10 +1592,10 @@ export default function DishCategoryImageReviewPage() {
 	const [hideDiffImages, setHideDiffImages] = useState(false);
 
 	const {
-		BlurModal,
+		LegacyBlurModal,
 		open: openModal,
 		close: closeModal,
-	} = useBlurModal({
+	} = useLegacyBlurModal({
 		intensity: 80,
 		closeOnBackdropPress: false,
 	});
@@ -1906,7 +1906,7 @@ export default function DishCategoryImageReviewPage() {
 			</View>
 
 			{/* 理由入力モーダル */}
-			<BlurModal contentContainerStyle={styles.modalContent}>
+			<LegacyBlurModal contentContainerStyle={styles.modalContent}>
 				{activeCategory && (
 					<ScrollView
 						style={{ maxHeight: screenHeight - 150 }}
@@ -1995,7 +1995,7 @@ export default function DishCategoryImageReviewPage() {
 						</View>
 					</ScrollView>
 				)}
-			</BlurModal>
+			</LegacyBlurModal>
 		</View>
 	);
 }

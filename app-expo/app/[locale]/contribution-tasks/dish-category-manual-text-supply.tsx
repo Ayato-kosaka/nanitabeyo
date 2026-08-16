@@ -30,7 +30,7 @@ import Animated, {
 	Extrapolate,
 } from "react-native-reanimated";
 
-import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
+import { useLegacyBlurModal } from "@/features/contributionTasks/legacyBlurModal/useLegacyBlurModal";
 import { useLogger } from "@/hooks/useLogger";
 import { useAPICall } from "@/hooks/useAPICall";
 import { PrimaryButton } from "@/components/PrimaryButton";
@@ -127,14 +127,14 @@ export default function DishCategoryManualTextSupplyScreen() {
 	const translateX = useSharedValue(0);
 	const translateY = useSharedValue(0);
 
-	/* ---- BlurModal（チュートリアル用） ---- */
-	const tutorialModal = useBlurModal({
+	/* ---- LegacyBlurModal（チュートリアル用） ---- */
+	const tutorialModal = useLegacyBlurModal({
 		intensity: 80,
 		closeOnBackdropPress: false,
 	});
 
-	/* ---- BlurModal（編集モーダル用） ---- */
-	const editModal = useBlurModal({
+	/* ---- LegacyBlurModal（編集モーダル用） ---- */
+	const editModal = useLegacyBlurModal({
 		intensity: 70,
 		closeOnBackdropPress: false,
 	});
@@ -625,7 +625,7 @@ export default function DishCategoryManualTextSupplyScreen() {
 
 			{/* チュートリアルモーダル */}
 			{showTutorial && (
-				<tutorialModal.BlurModal contentContainerStyle={styles.modalContent}>
+				<tutorialModal.LegacyBlurModal contentContainerStyle={styles.modalContent}>
 					<View style={styles.tutorialContainer}>
 						<Text style={styles.tutorialTitle}>文言改善にご協力ください</Text>
 						<Text style={styles.tutorialText}>
@@ -636,12 +636,12 @@ export default function DishCategoryManualTextSupplyScreen() {
 						</Text>
 						<PrimaryButton label="始める" onPress={closeTutorial} style={{ marginTop: 30 }} />
 					</View>
-				</tutorialModal.BlurModal>
+				</tutorialModal.LegacyBlurModal>
 			)}
 
 			{/* 編集モーダル */}
 			{editingItem && (
-				<editModal.BlurModal contentContainerStyle={styles.modalContent} showCloseButton={false}>
+				<editModal.LegacyBlurModal contentContainerStyle={styles.modalContent} showCloseButton={false}>
 					<View style={{ height }}>
 						<ScrollView
 							style={styles.editContainer}
@@ -705,7 +705,7 @@ export default function DishCategoryManualTextSupplyScreen() {
 							</View>
 						</ScrollView>
 					</View>
-				</editModal.BlurModal>
+				</editModal.LegacyBlurModal>
 			)}
 		</View>
 	);

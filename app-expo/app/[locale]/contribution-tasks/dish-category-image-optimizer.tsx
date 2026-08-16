@@ -22,7 +22,7 @@ import { Check } from "lucide-react-native";
 
 import { useAPICall } from "@/hooks/useAPICall";
 import { useWithLoading } from "@/hooks/useWithLoading";
-import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
+import { useLegacyBlurModal } from "@/features/contributionTasks/legacyBlurModal/useLegacyBlurModal";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
@@ -65,7 +65,7 @@ export default function DishCategoryImageOptimizerPage() {
 	// #494 【設計】説明文表示フラグ
 	const [showDescription, setShowDescription] = useState(false);
 
-	const { BlurModal, open: openModal, close: closeModal } = useBlurModal({ intensity: 80 });
+	const { LegacyBlurModal, open: openModal, close: closeModal } = useLegacyBlurModal({ intensity: 80 });
 
 	// #494 【設計】カテゴリグリッドの列数とサイズ計算
 	const COLUMNS = 3;
@@ -379,7 +379,7 @@ export default function DishCategoryImageOptimizerPage() {
 			)}
 
 			{/* 候補画像選択モーダル */}
-			<BlurModal contentContainerStyle={styles.modalContent}>
+			<LegacyBlurModal contentContainerStyle={styles.modalContent}>
 				{activeCategory && (
 					<View style={{ flex: 1 }}>
 						<Text style={styles.modalTitle}>{activeCategory.dishCategory.name}</Text>
@@ -396,7 +396,7 @@ export default function DishCategoryImageOptimizerPage() {
 						)}
 					</View>
 				)}
-			</BlurModal>
+			</LegacyBlurModal>
 		</View>
 	);
 }

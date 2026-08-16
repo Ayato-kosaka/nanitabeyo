@@ -52,7 +52,7 @@ Features:
   - Empty fields not allowed
   - Must differ from original
   - Shows error messages
-- Blur background modal using `useBlurModal` hook
+- Blur background modal using `useLegacyBlurModal` hook
 - Submit and close buttons
 
 ### 4. Tutorial/Help Modal
@@ -179,7 +179,7 @@ Key libraries used:
 
 Hooks:
 
-- `useBlurModal` - Modal with blur background
+- `useLegacyBlurModal` - Modal with blur background (frozen copy, contribution-tasks only)
 - `useLogger` - Event logging
 - `useAPICall` - Backend API calls
 - `useHaptics` - Haptic feedback
@@ -275,7 +275,7 @@ Potential improvements (not in scope):
 ## Related Files
 
 - `/app-expo/features/topics/components/TopicCard.tsx` - Reference card design
-- `/app-expo/features/blurModal/hooks/useBlurModal.tsx` - Modal implementation
+- `/app-expo/features/contributionTasks/legacyBlurModal/useLegacyBlurModal.tsx` - Modal implementation (frozen copy)
 - `/shared/api/v1/dto/contribution-tasks/create-contribution-task.dto.ts` - API DTO
 - `/app-expo/app/[locale]/contribution-tasks/dish-category-manual-image-supply.tsx` - Similar pattern for image supply
 

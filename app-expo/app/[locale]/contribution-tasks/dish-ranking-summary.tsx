@@ -26,7 +26,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { HelpCircle, ChevronDown, MessageCircle } from "lucide-react-native";
 import { generateUUID } from "@/lib/uuid";
 
-import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
+import { useLegacyBlurModal } from "@/features/contributionTasks/legacyBlurModal/useLegacyBlurModal";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useLogger } from "@/hooks/useLogger";
 import { PrimaryButton } from "@/components/PrimaryButton";
@@ -124,36 +124,36 @@ export default function DishRankingSummaryScreen() {
 	const sessionId = useMemo(() => generateUUID(), []);
 	const startedAt = useMemo(() => new Date().toISOString(), []);
 
-	/* ---- BlurModal ---- */
+	/* ---- LegacyBlurModal ---- */
 	const {
-		BlurModal: SummaryModal,
+		LegacyBlurModal: SummaryModal,
 		open: openSummaryModal,
 		close: closeSummaryModal,
-	} = useBlurModal({
+	} = useLegacyBlurModal({
 		closeOnBackdropPress: false,
 	});
 
 	const {
-		BlurModal: DishModal,
+		LegacyBlurModal: DishModal,
 		open: openDishModal,
 		close: closeDishModal,
-	} = useBlurModal({
+	} = useLegacyBlurModal({
 		closeOnBackdropPress: false,
 	});
 
 	const {
-		BlurModal: ConditionPickerModal,
+		LegacyBlurModal: ConditionPickerModal,
 		open: openConditionPickerModal,
 		close: closeConditionPickerModal,
-	} = useBlurModal({
+	} = useLegacyBlurModal({
 		closeOnBackdropPress: true,
 	});
 
 	const {
-		BlurModal: HelpModal,
+		LegacyBlurModal: HelpModal,
 		open: openHelpModal,
 		close: closeHelpModal,
-	} = useBlurModal({
+	} = useLegacyBlurModal({
 		closeOnBackdropPress: true,
 	});
 
@@ -987,7 +987,7 @@ const styles = StyleSheet.create({
 	pickerInner: {
 		width: "100%",
 		maxWidth: 400,
-		// BlurModal では % で高さ指定すると画面全体の % になるため、Dimensions API から計算して指定
+		// LegacyBlurModal では % で高さ指定すると画面全体の % になるため、Dimensions API から計算して指定
 		maxHeight: SCREEN_HEIGHT * 0.7,
 		backgroundColor: "#fff",
 		borderRadius: 16,

@@ -22,7 +22,7 @@ import { HelpCircle, CheckCircle2, AlertTriangle, Loader2 } from "lucide-react-n
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Clipboard from "expo-clipboard";
 
-import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
+import { useLegacyBlurModal } from "@/features/contributionTasks/legacyBlurModal/useLegacyBlurModal";
 import { useLogger } from "@/hooks/useLogger";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useFileUploader } from "@/hooks/useFileUploader";
@@ -162,14 +162,14 @@ export default function DishCategoryManualImageSupplyScreen() {
 	// #703 【状態】詳細モーダルで選択中のアイテム
 	const [selectedItem, setSelectedItem] = useState<CandidateItem | null>(null);
 
-	/* ---- BlurModal（チュートリアル用） ---- */
-	const tutorialModal = useBlurModal({
+	/* ---- LegacyBlurModal（チュートリアル用） ---- */
+	const tutorialModal = useLegacyBlurModal({
 		intensity: 80,
 		closeOnBackdropPress: false,
 	});
 
-	/* ---- BlurModal（詳細モーダル用） ---- */
-	const detailModal = useBlurModal({
+	/* ---- LegacyBlurModal（詳細モーダル用） ---- */
+	const detailModal = useLegacyBlurModal({
 		intensity: 70,
 		closeOnBackdropPress: false,
 	});
@@ -710,7 +710,7 @@ export default function DishCategoryManualImageSupplyScreen() {
 			</View>
 
 			{/* チュートリアルモーダル */}
-			<tutorialModal.BlurModal showCloseButton={true}>
+			<tutorialModal.LegacyBlurModal showCloseButton={true}>
 				<View style={styles.tutorialModal}>
 					{/* #703 【表示】ページ化されたチュートリアル（横スワイプ） */}
 					<FlatList
@@ -752,11 +752,11 @@ export default function DishCategoryManualImageSupplyScreen() {
 						style={styles.tutorialButton}
 					/>
 				</View>
-			</tutorialModal.BlurModal>
+			</tutorialModal.LegacyBlurModal>
 
 			{/* 詳細モーダル */}
 			{selectedItem && (
-				<detailModal.BlurModal showCloseButton={true}>
+				<detailModal.LegacyBlurModal showCloseButton={true}>
 					<View style={styles.detailModal}>
 						{/* 画像 */}
 						<View style={styles.detailImageContainer}>
@@ -814,7 +814,7 @@ export default function DishCategoryManualImageSupplyScreen() {
 							)}
 						</View>
 					</View>
-				</detailModal.BlurModal>
+				</detailModal.LegacyBlurModal>
 			)}
 		</View>
 	);

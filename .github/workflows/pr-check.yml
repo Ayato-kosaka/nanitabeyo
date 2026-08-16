@@ -2,12 +2,14 @@ name: PR Check
 
 # 🔎 pull_request で回る軽量ゲート（#1112）
 # - このリポジトリ初の pull_request トリガー。既存 12 本はすべて workflow_dispatch / schedule。
-# - 検査は 4 つ。いずれも secrets もネットワークも不要なので、fork からの PR でも実行できる。
+# - 検査は 5 つ。いずれも secrets もネットワークも不要なので、fork からの PR でも実行できる。
 #     1. 4-1: remoteConfigSchema のキー集合 ≡ DEFAULT_REMOTE_CONFIG のキー集合（#1116）
 #     2. error-triage の jest（#1196。外部I/Oゼロの純関数群 + SQL 生成物の一致検査。
 #        他のどの workflow からも実行されていない）
 #     3. app-expo の typecheck（どの workflow でも実行されていなかった）
 #     4. app-expo の jest（同上。2026-08-01 時点で 21 suites / 167 tests・全 green を実測済み）
+#     5. legacyBlurModal の import 境界（#1363。ESLint にも同じ境界があるが CI で lint を
+#        回していないため、依存ゼロの assert スクリプトで独立に守る）
 # - 4-2（実際の config.json との値の突き合わせ）は EAS の env が要るのでここでは SKIP される。
 #   SKIP した旨は必ずログへ出る。4-2 は引き続き nightly の e2e-web-test.yml が担当する。
 # - api は入れていない。pnpm --filter api test は api/.env（secrets）を要求し、
@@ -64,6 +66,15 @@ jobs:
       # AST として読むだけなので、shared build より前に置いて最速で赤にできる。
       - name: Remote Config 既定値のドリフトを検査
         run: pnpm --filter app-expo assert:remote-config-defaults
+
+      # #1363 legacyBlurModal（社内タスク画面専用の凍結コピー）が公開アプリから import されて
+      # いないことを検査する。同じ境界は app-expo/.eslintrc.js の no-restricted-imports にも
+      # 書いてあるが、**このリポジトリは CI で lint を回していない**（回そうにも既存違反が
+      # 48 件あり、その解消は別課題）。lint に頼ると境界は「書いてあるが誰も評価しない」状態に
+      # なるため、依存ゼロの assert スクリプトを最後の砦として独立に走らせる。
+      # 凍結の価値は利用者が社内タスク画面だけに閉じていることに全面的に依存している（#1350 §7）。
+      - name: legacyBlurModal の import 境界を検査
+        run: pnpm --filter app-expo assert:legacy-blur-modal-boundary
 
       # #1196 エラートリアージの純関数群。外部I/Oゼロ（node:crypto のみ）で shared/dist にも
       # 依存しないため、shared build より前・最速の位置に置ける。
