@@ -131,6 +131,8 @@ describe("ログイン画面", () => {
 	// #1031 B2 のリーガルリンク検証は #1027 でこの spec から外した。
 	// 同意文言のリンクは `<Text>` の入れ子で、React Native は入れ子 Text を親の TextView へ畳み込むため
 	// **ネイティブ View が存在せず testID(login-privacy-link) では到達できない**（run 30432596949 で実測）。
-	// 代替として、実体のある行を持つ設定画面から同じ legal-document-modal を開く検証を
+	// 代替として、実体のある行を持つ設定画面から同じリーガル導線をたどる検証を
 	// tests/profile/settings.test.ts に置いている。
+	// #1368 その導線は BlurModal（legal-document-modal）から `/[locale]/legal/<doc>` ルートへ変わった。
+	// 戻る導線まで含めた検証は tests/profile/legal.test.ts が持つ。
 });
