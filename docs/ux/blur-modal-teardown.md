@@ -7,6 +7,9 @@
 > grep 1 本だけで「全部」としていたため、**BlurModal 以外のオーバーレイ機構**（RN `<Modal>` /
 > TrueSheet / `showDialog` / ActionSheet / `transparentModal` ルート / 自前フルスクリーン層）を
 > 数えていなかった。§2 を機械的に再集計し、§3 に全機構のマップを追加。§4 に死にコード 2 件を追記。
+>
+> **改訂 3**: D 群の店詳細を「TrueSheet」としていたのを **ルート**へ訂正（§2-D）。背景の地図が
+> 実際には見えていないこと、入れ子が解けないこと、既に同じ店詳細のルート実装が存在することが理由。
 
 ---
 
@@ -117,6 +120,26 @@ map.tsx  RestaurantBlurModal (z1100)
   └ SelectedRestaurantDetails  ReviewBlurModal (z1200)
       └ ReviewForm  DishCategoryModal (z1100 ← 親より下)
 ```
+
+**店詳細を TrueSheet にしない理由（改訂3で訂正）。** 改訂2までは「地図を見せたまま出したいので
+店詳細は TrueSheet」としていたが、根拠が成り立たない。
+
+- `intensity: 100` + `height: "90%"` で **背景の地図はほぼ見えていない**（Android は α=0.9 の白ベタ）
+- 前例にした `SavedRestaurantsSheet` は detents + draggable で高さを変えながら地図を操作する用途。
+  店詳細は 90% 固定・ドラッグなしで性質が違う
+- 店詳細をシートにすると、その中の レビュー投稿(z1200) / 入札(z1300) / ログイン(z1400) が
+  **ネイティブシートの上に載る**という一番難しい形が残る
+- **既にルート版が存在する**: `app/[locale]/(tabs)/review/restaurant/[restaurantId].tsx` が
+  `features/review/components/SelectedRestaurantDetails`（241行）をフルスクリーンで描いている。
+  map 版（`features/map/components/SelectedRestaurantDetails`, 353行）と **店詳細が2実装ある**
+
+したがって **D 群は全部ルート**とし、map の店詳細は既存ルートへ統合する。
+「下から出るシートの見た目」を残したい場合は `presentation: "formSheet"`
+（`react-native-screens` 4.16 で利用可、Web はフルスクリーンにフォールバック）を使えば、
+**URL と履歴を Stack に持たせたまま**見た目だけシートにできる。
+`app/[locale]/(tabs)/search/_layout.tsx:14` に `transparentModal` の前例がある。
+
+要点は「シートに見えるか」ではなく **誰が履歴と重なり順を持つか**。
 
 #### E. 料理カードのメニュー（1）— **到達不能な死にコード**
 
@@ -247,7 +270,7 @@ B は 1 を完全に満たし、2 も満たす。凍結後は利用者が社内�
 | A 認証 | 6 | `/[locale]/auth/login` を1本作り `?next=` で復帰。4複製を1本化。OTP は同ルート内のステップ。競合告知もルート |
 | B 法務 | 3 | `/[locale]/legal/[doc]` ルート |
 | C プロフィール | 2 | `/profile/edit` ルート。保存トピックの地点検索も専用ルート |
-| D 地図・投稿 | 6 | 店詳細は **TrueSheet**（地図を見せたいので）。レビュー投稿・入札・フィードは**ルート**。料理カテゴリ選択は投稿ルート内のステップ → 3段入れ子と手動 `zIndex` が消える |
+| D 地図・投稿 | 6 | **全部ルート。** 店詳細は既存の `/review/restaurant/[restaurantId]` へ統合（見た目を残すなら `presentation: "formSheet"`）。レビュー投稿・入札・フィードもルート。料理カテゴリ選択は投稿ルート内のステップ → 3段入れ子と手動 `zIndex` が消える |
 | E カード操作 | 1 | **削除のみ**（死にコード） |
 | F 友達投票 | 2 | 完了は**画面のインライン終端状態**へ。候補詳細はルートかインライン展開 → #1122 が構造的に再発しない |
 | G 社内タスク | 11 | §7-B で凍結移設 |
