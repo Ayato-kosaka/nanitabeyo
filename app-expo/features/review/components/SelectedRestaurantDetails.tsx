@@ -5,7 +5,6 @@ import { Card } from "@/components/Card";
 import Stars from "@/components/Stars";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
-import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { useHaptics } from "@/hooks/useHaptics";
 import { RestaurantReviewsTab } from "@/features/map/components/tabs/RestaurantReviewsTab";
 import { Tabs } from "@/components/collapsible-tabs";
@@ -18,7 +17,6 @@ import { Image } from "expo-image";
 import { getCacheKeyForImage } from "@/lib/image";
 import { useAuth } from "@/contexts/AuthProvider";
 import { isGuestUser } from "@/lib/authGuest";
-import { LoginbackModal } from "@/features/profile/components/LoginbackModal";
 import { RestaurantEntry } from "../stores/useRestaurantStore";
 import { useLocale } from "@/hooks/useLocale";
 import { useRouter } from "expo-router";
@@ -58,13 +56,6 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 	const frame = useSafeAreaFrame(); // Safe Area を除いたフレームの高さ
 	const { user } = useAuth();
 
-	// Modals
-	const {
-		BlurModal: LoginBlurModal,
-		open: openLoginModal,
-		close: closeLoginModal,
-	} = useBlurModal({ intensity: 100, zIndex: 1400 });
-
 	// #644 【設計】写真・動画を投稿するボタン押下時の処理（メディア選択ありモード）
 	const handleReviewButtonPress = useCallback(async () => {
 		lightImpact();
@@ -76,12 +67,22 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 			},
 		});
 
-		// #477【設計】匿名ユーザーの場合は LoginbackModal を表示、非匿名ユーザーの場合は ReviewForm を表示
+		// #477【設計】匿名ユーザーの場合はログイン導線へ、非匿名ユーザーの場合は ReviewForm を表示
 		// #1092 PR4b 【修正】`user?.is_anonymous !== false` から共通判定（lib/authGuest.ts）へ寄せた。
 		// 旧式は is_anonymous が undefined のときもゲストへ倒れ、レビュータブの CTA は投稿導線なのに
 		// ここではログイン導線が出る、という画面間の食い違いになる
 		if (isGuestUser(user)) {
-			openLoginModal();
+			// #1359 【設計】`next` は «戻り先» ではなく «行き先» として使う。
+			// このボタンは非ゲストなら投稿フォームへ進む導線なので、ゲストの `next` も同じ先へ向ければ
+			// ログイン後にそのまま投稿へ進める。店は restaurantId として URL に載るため、
+			// 履歴を持たない着地（コールドロード / web の OAuth 全画面リダイレクト）でも成立する
+			router.push({
+				pathname: "/[locale]/auth/login",
+				params: {
+					locale,
+					next: `/${locale}/review/restaurant/${restaurantEntry.restaurant.id}/review`,
+				},
+			});
 		} else {
 			// ReviewForm に遷移すると同時にメディア選択が行われる
 			router.push({
@@ -89,7 +90,7 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 				params: { locale, restaurantId: restaurantEntry.restaurant.id },
 			});
 		}
-	}, [lightImpact, openLoginModal, router, locale, restaurantEntry, user]);
+	}, [lightImpact, logFrontendEvent, router, locale, restaurantEntry, user]);
 
 	// #644 【設計】「みんなの投稿」のレビューアイテム押下時の処理
 	const onPressPostReview = useCallback(
@@ -172,9 +173,6 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 					<RestaurantReviewsTab restaurantId={restaurantEntry.restaurant.id} onItemPress={onPressPostReview} />
 				</Tabs.Tab>
 			</Tabs.Container>
-
-			{/* Login Modal */}
-			<LoginBlurModal>{({ close }) => <LoginbackModal onClose={close} />}</LoginBlurModal>
 		</View>
 	);
 }

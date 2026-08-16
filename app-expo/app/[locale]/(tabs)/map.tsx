@@ -39,11 +39,8 @@ export default function MapScreen() {
 	const [restaurants, setRestaurants] = useState<QueryRestaurantsResponse>([]);
 	const [isLoadingNearbyRestaurants, setIsLoadingNearbyRestaurants] = useState(false);
 	const [isLoadingRestaurantCreation, setIsLoadingRestaurantCreation] = useState(false);
-	const {
-		BlurModal: RestaurantBlurModal,
-		open: openRestaurantModal,
-		close: closeRestaurantModal,
-	} = useBlurModal({ intensity: 100 });
+	// #1359 閉じる側は render-prop の `close` で店詳細へ渡すため、ここでは受け取らない
+	const { BlurModal: RestaurantBlurModal, open: openRestaurantModal } = useBlurModal({ intensity: 100 });
 
 	const { getLocationDetails, getCurrentLocation } = useLocationSearch();
 
@@ -292,8 +289,21 @@ export default function MapScreen() {
 				/>
 			</View>
 
+			{/* #1359 【設計】render-prop で `close` を受けて店詳細へ渡す。店詳細の中にログイン «ルート» への
+			    導線があり、そこは push の前にこのシートを閉じないとログイン画面が portal の下へ潜る
+			    （理由は features/map/components/SelectedRestaurantDetails.tsx の handleReviewButtonPress）。
+			    閉じる責務はシートの持ち主（＝ useBlurModal を呼んだこの画面）に残したいので、
+			    店詳細に close を自前で持たせるのではなく render-prop 経由で渡す。 */}
 			<RestaurantBlurModal contentContainerStyle={{ height: "90%" }}>
-				{selectedPlace && <SelectedRestaurantDetails restaurant={selectedPlace.restaurant} meta={selectedPlace.meta} />}
+				{({ close }) =>
+					selectedPlace && (
+						<SelectedRestaurantDetails
+							restaurant={selectedPlace.restaurant}
+							meta={selectedPlace.meta}
+							onRequestClose={close}
+						/>
+					)
+				}
 			</RestaurantBlurModal>
 		</View>
 	);

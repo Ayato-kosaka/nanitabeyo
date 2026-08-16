@@ -1,5 +1,5 @@
 import { element, expect, launchAppWithSession } from "../../fixtures/e2e";
-import { LoginModal } from "../../screens/LoginModal";
+import { LoginScreen } from "../../screens/LoginScreen";
 import { ReviewScreen } from "../../screens/ReviewScreen";
 import { TabBar } from "../../screens/TabBar";
 
@@ -15,10 +15,11 @@ import { TabBar } from "../../screens/TabBar";
  *   初期スコープ外（#1031 B6）。そもそもこの画面（お店選択・投稿フォーム）へは
  *   匿名ユーザーが到達する UI 導線自体が無い（`ReviewScreen.postButton` はログイン済みのみ表示）。
  *
- * ## ログインモーダルの検証について
- * `LoginModal` の Screen Object（`login-modal` / `login-google-button` / `login-apple-button`）は
- * 別 PR（PR-4: profile+settings 系）が所有するファイルのため、この PR ではファイルを増やさず
- * `by.id(...)` を直接使って最小限の検証だけ行う。
+ * ## ログイン導線の検証について
+ * 判定は `LoginScreen`（`login-google-button` / `login-apple-button`）に集約してある。
+ * #1359 でログインは BlurModal からルート（`/[locale]/auth/login`）へ移ったため、
+ * 「同じ画面へ着く」ことの確認はここでは最小限にとどめ、戻る導線を含む本体の検証は
+ * tests/profile/login-screen.test.ts が持つ。
  */
 describe("レビュータブ（匿名ユーザー）", () => {
 	const tabBar = new TabBar();
@@ -44,20 +45,18 @@ describe("レビュータブ（匿名ユーザー）", () => {
 		await expect(element(reviewScreen.guestDescription)).toBeVisible();
 	});
 
-	// ─ テストケース: ログイン CTA タップでログインモーダルが開く ─
+	// ─ テストケース: ログイン CTA タップでログイン画面へ遷移する ─
 	// 手順:
 	//   1. レビュータブのゲスト表示を開く
 	//   2. ログイン CTA をタップする
-	//   3. ログインモーダル（testID: login-modal）が開き、Google/Apple ボタンが表示されることを検証
-	it("ログイン CTA タップでログインモーダルが開く", async () => {
+	//   3. ログイン画面が開き、Google/Apple ボタンが表示されることを検証
+	it("ログイン CTA タップでログイン画面へ遷移する", async () => {
 		await tabBar.gotoReview();
 		await reviewScreen.expectGuestViewLoaded();
 
 		await reviewScreen.tapGuestLogin();
 
-		// #1027 コンテナ（login-modal）は観測点に使えない。ぼかし背景の構成のため iOS の可視判定を
-		// 満たせず、モーダルが完全に開いていてもタイムアウトする（screens/LoginModal.ts のコメント参照）。
-		// 判定は Screen Object に集約してあるので、ここでもそれを使う
-		await new LoginModal().expectOpened();
+		// #1027 観測点には実体のあるボタンを使う。判定は Screen Object に集約してあるのでそれを使う
+		await new LoginScreen().expectOpened();
 	});
 });

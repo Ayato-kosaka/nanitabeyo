@@ -69,9 +69,10 @@ export class SettingsScreen {
 	/**
 	 * リーガルドキュメントのモーダル（#1027 で settings.tsx へ testID を追加）。
 	 *
-	 * ログインモーダル内の同意文言リンク（`login-privacy-link`）でも同じモーダルが開くが、
-	 * あちらは `<Text>` の入れ子でネイティブ View を持たず Detox から到達できない。
-	 * ネイティブでのリーガルモーダル検証はこの経路に集約している（screens/LoginModal.ts 参照）。
+	 * ログイン画面（`/[locale]/auth/login`）の同意文言リンク（`login-privacy-link`）でも
+	 * 同じモーダルが開くが、あちらは `<Text>` の入れ子でネイティブ View を持たず Detox から到達できない。
+	 * （#1359 でログインはモーダルから «ルート» になったが、到達できない理由はこれで変わっていない）
+	 * ネイティブでのリーガルモーダル検証はこの経路に集約している（screens/LoginScreen.ts 参照）。
 	 */
 	readonly legalDocumentModal = by.id("legal-document-modal");
 

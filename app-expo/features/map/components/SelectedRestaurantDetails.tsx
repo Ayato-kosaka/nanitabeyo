@@ -24,7 +24,8 @@ import { Image } from "expo-image";
 import { getCacheKeyForImage } from "@/lib/image";
 import { useAuth } from "@/contexts/AuthProvider";
 import { isGuestUser } from "@/lib/authGuest";
-import { LoginbackModal } from "@/features/profile/components/LoginbackModal";
+import { useLocale } from "@/hooks/useLocale";
+import { router } from "expo-router";
 
 function RestaurantTabsBar({ tabNames, index, onTabPress }: TabBarProps<string>) {
 	const currentIndex = useSharedValueState(index);
@@ -46,12 +47,28 @@ function RestaurantTabsBar({ tabNames, index, onTabPress }: TabBarProps<string>)
 	);
 }
 
-export function SelectedRestaurantDetails({ restaurant, meta: restaurantMeta }: QueryRestaurantsResponse[number]) {
+type SelectedRestaurantDetailsProps = QueryRestaurantsResponse[number] & {
+	/**
+	 * この画面を載せている店詳細シート（app/[locale]/(tabs)/map.tsx の `RestaurantBlurModal`）を閉じる。
+	 *
+	 * #1359 【設計】ここから «ルート» へ push する導線があるため必須にしてある。理由は
+	 * `handleReviewButtonPress` のコメントを参照。呼び出し側は BlurModal の render-prop が渡す
+	 * `close` をそのまま流すこと（閉じる責務をシートの持ち主に残すため）。
+	 */
+	onRequestClose: () => void;
+};
+
+export function SelectedRestaurantDetails({
+	restaurant,
+	meta: restaurantMeta,
+	onRequestClose,
+}: SelectedRestaurantDetailsProps) {
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { showSnackbar } = useSnackbar();
 	const frame = useSafeAreaFrame(); // Safe Area を除いたフレームの高さ
 	const { user } = useAuth();
+	const { locale } = useLocale();
 
 	// Modals
 	const {
@@ -64,11 +81,6 @@ export function SelectedRestaurantDetails({ restaurant, meta: restaurantMeta }: 
 		open: openBidModal,
 		close: closeBidModal,
 	} = useBlurModal({ intensity: 100, zIndex: 1300 });
-	const {
-		BlurModal: LoginBlurModal,
-		open: openLoginModal,
-		close: closeLoginModal,
-	} = useBlurModal({ intensity: 100, zIndex: 1400 });
 
 	// Processing state for submit actions
 	const [isProcessing, setIsProcessing] = useState(false);
@@ -98,12 +110,30 @@ export function SelectedRestaurantDetails({ restaurant, meta: restaurantMeta }: 
 
 	const handleReviewButtonPress = async () => {
 		lightImpact();
-		// #477【設計】匿名ユーザーの場合は LoginbackModal を表示、非匿名ユーザーの場合は ReviewForm を表示
+		// #477【設計】匿名ユーザーの場合はログイン導線へ、非匿名ユーザーの場合は ReviewForm を表示
 		// #1092 PR4b 【修正】`user?.is_anonymous !== false` から共通判定（lib/authGuest.ts）へ寄せた。
 		// 旧式は is_anonymous が undefined のときもゲストへ倒れ、レビュータブでは投稿できるのに
 		// ここではログイン導線が出る、という画面間の食い違いになる
 		if (isGuestUser(user)) {
-			openLoginModal();
+			// #1359 【修正】⚠️ push «より先に» 店詳細シートを閉じること。順序を入れ替えてはいけない。
+			// この画面は BlurModal の中身で、BlurModal は react-native-paper の `<Portal>` に
+			// 全画面レイヤ（dim + backdrop の Pressable）を描く（features/blurModal/hooks/useBlurModal.tsx）。
+			// `Portal.Host` は `<Stack>` を **包んでいる**（app/[locale]/_layout.tsx）ので、
+			// portal レイヤは常にナビゲータより «上» にある。つまりシートを開いたまま login ルートへ
+			// push すると、ログイン画面は portal の下に潜って見えず触れない。
+			// 旧実装が成立していたのは login 自身も portal（zIndex 1400）だったからで、ルート化で前提が変わった。
+			// ハードウェアバックも同様で、開いたままだと useBlurModal の BackHandler が先に食う（#498 と同じ症状に見える）。
+			// 同種の «portal とナビゲータは別レイヤの兄弟» という実測は app/[locale]/(tabs)/search/result.tsx にもある。
+			// 「閉じてから遷移する」順序自体は #1122 で確立した形。
+			onRequestClose();
+
+			// #1359 【設計】シートを閉じる以上、戻ってきても «シートが開いた状態» は復元されない
+			//（店の選択そのもの = map.tsx の `selectedPlace` は残るが、シートは閉じたまま）。
+			// 選択中の店は URL にも zustand にも無いため `next` でも復元できず、地図タブへ戻すのが限界になる
+			//（現行の web も OAuth の全画面リダイレクトで選択を失っているので、後退ではない）。
+			// 通常導線では push が履歴を残すので戻る導線は canGoBack 側に倒れ、`next` は
+			// 履歴を持たない着地でしか使われない（lib/authNext.ts の resolvePostLoginTarget）。
+			router.push({ pathname: "/[locale]/auth/login", params: { locale, next: `/${locale}/map` } });
 		} else {
 			// ReviewForm を開くと同時にメディア選択が行われる
 			openReviewModal();
@@ -202,6 +232,7 @@ export function SelectedRestaurantDetails({ restaurant, meta: restaurantMeta }: 
 
 				<View style={styles.actionButtons}>
 					<PrimaryButton
+						testID="map-restaurant-post-review-button"
 						onPress={handleReviewButtonPress}
 						label={i18n.t("Map.buttons.postReview")}
 						icon={<Camera size={20} color="#FFF" />}
@@ -256,9 +287,6 @@ export function SelectedRestaurantDetails({ restaurant, meta: restaurantMeta }: 
 			<BidBlurModal>
 				{({ close }) => <BidForm onSubmit={handleBid} onCancel={close} isProcessing={isProcessing} />}
 			</BidBlurModal>
-
-			{/* Login Modal */}
-			<LoginBlurModal>{({ close }) => <LoginbackModal onClose={close} />}</LoginBlurModal>
 		</View>
 	);
 }

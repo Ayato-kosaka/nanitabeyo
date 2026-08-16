@@ -13,8 +13,8 @@ import { SavedTopicsTab } from "../tabs/SavedTopicsTab";
 // Tabs.Tab のコメントと合わせて戻す)。
 // import { DepositsTab } from "../tabs/wallet/DepositsTab";
 // import { EarningsTab } from "../tabs/wallet/EarningsTab";
-import { LoginbackModal } from "../components/LoginbackModal";
 import { useHaptics } from "@/hooks/useHaptics";
+import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 // #1071 【リリース差分】同上。constants.ts の mockBids / mockEarnings 自体は将来の
@@ -34,6 +34,7 @@ import { e2eRouteParamsProbeElement } from "@/lib/e2e/routeParamsProbe";
 export function ProfileTabsLayout() {
 	const { mediumImpact, lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
+	const { locale } = useLocale();
 	const { user, isAuthResolved } = useAuth();
 
 	// #467 【設計】プロフィールをグローバルストアから取得し、自動ロードを実行
@@ -41,7 +42,6 @@ export function ProfileTabsLayout() {
 	const profile = useProfileStore((state) => state.profile);
 
 	const { BlurModal: ProfileEditModal, open: openEditModal, close: closeEditModal } = useBlurModal({ intensity: 100 });
-	const { BlurModal: LoginModal, open: openLoginModal, close: closeLoginModal } = useBlurModal({ intensity: 100 });
 
 	const [headerHeight, setHeaderHeight] = useState(0);
 	const [isFollowing, setIsFollowing] = useState(false);
@@ -212,15 +212,21 @@ export function ProfileTabsLayout() {
 		});
 	}, [lightImpact, openEditModal, logFrontendEvent]);
 
+	// #1359 【設計】ログインは BlurModal のオーバーレイではなく «画面» へ push する。
+	// 通常はこの push が履歴を残すので、戻る導線（ScreenHeader / ハードウェアバック）で
+	// タブの選択ごとこの画面に復帰できる。`next` は履歴を持たない着地
+	// （コールドロード / web の OAuth 全画面リダイレクト）でしか使わない保険。
+	// マイページの選択タブは URL パラメータで表現できるので、指定があればそれも載せる。
 	const handleLogin = useCallback(() => {
 		lightImpact();
-		openLoginModal();
+		const next = requestedTab ? `/${locale}/profile?tab=${requestedTab}` : `/${locale}/profile`;
+		router.push({ pathname: "/[locale]/auth/login", params: { locale, next } });
 		logFrontendEvent({
-			event_name: "login_modal_opened",
+			event_name: "login_screen_opened",
 			error_level: "log",
-			payload: { userId: user?.id },
+			payload: { userId: user?.id, from: "profile" },
 		});
-	}, [lightImpact, openLoginModal, logFrontendEvent, user?.id]);
+	}, [lightImpact, logFrontendEvent, user?.id, locale, requestedTab]);
 
 	const handleTabChange = useCallback(
 		(index: number) => {
@@ -361,8 +367,6 @@ export function ProfileTabsLayout() {
 			{profile && (
 				<ProfileEditModal>{({ close }) => <ProfileEditForm close={close} onCancel={close} />}</ProfileEditModal>
 			)}
-
-			<LoginModal>{({ close }) => <LoginbackModal onClose={close} />}</LoginModal>
 		</View>
 	);
 }

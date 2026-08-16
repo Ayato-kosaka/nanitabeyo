@@ -27,10 +27,12 @@ export function useProfile() {
 	 * @param displayName - 表示名（オプション）
 	 * @param avatar - プロバイダーから取得したアバター画像のURI（オプション）
 	 *
-	 * #1233 【設計】この関数はサインイン直後に **3 箇所から並走して呼ばれる**:
+	 * #1233 【設計】この関数はサインイン直後に **複数箇所から並走して呼ばれる**:
 	 * - `app/[locale]/auth/callback.tsx`（OAuth 復帰。displayName / avatar を持つ）
-	 * - `features/profile/components/OtpModal.tsx`（SMS ログイン。displayName のみ）
 	 * - `features/profile/hooks/useEnsureOwnProfileLoaded.ts`（404 を見て作成。引数なし）
+	 *
+	 * #1359 かつては SMS ログイン（displayName のみ）も呼び出し元だったが、電話番号ログインの
+	 * 削除に伴い無くなった。復活させる場合は 3 つ目の並走元として戻ることになる。
 	 *
 	 * 【バグ】そのため「SELECT で無いことを確認 → INSERT」の間に別の呼び出しが INSERT を
 	 * 通してしまい、後発が `duplicate key value violates unique constraint "users_pkey"` で

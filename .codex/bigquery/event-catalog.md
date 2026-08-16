@@ -255,7 +255,8 @@ rg -o 'event_name:\s*"[^"]+"' app-expo --glob '!**/node_modules/**'
 - `user_profile_created`
 - `user_profile_creation_error`
 - `load_own_profile_error`
-- `login_modal_opened`
+- `login_screen_opened`
+- `login_screen_back_pressed`
 - `settings_screen_opened`
 - `settings_blocked_topics_pressed`
 - `settings_leave_review_pressed`

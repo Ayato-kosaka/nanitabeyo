@@ -56,6 +56,29 @@ const withCurrentLocale = (path: string, locale: string): string => {
 };
 
 /**
+ * `next` がログイン画面«自身»を指しているか。
+ *
+ * #1359 【設計】`?next=/ja-JP/auth/login` を «ログイン済みで» 開くと、login.tsx の自動離脱が
+ * 同じルートへ replace する。params が変わるだけで再マウントされない場合、離脱を 1 回に閉じる
+ * `hasLeftRef` が true のまま残り、**ログイン済みなのにログイン画面に留まる**。
+ * 通常導線（4 箇所）はこの値を組まないので、実際に踏めるのは自作 URL / ディープリンクだけだが、
+ * 「行き先として採用してよいか」を判定するこの層で閉じておく。
+ *
+ * ロケールの有無は問わない（`/auth/login` も `/ja-JP/auth/login` も同じ画面）。
+ * `withCurrentLocale` と同じく、先頭セグメントがロケールの形をしているときだけ 1 つ読み飛ばす。
+ */
+const isLoginRoutePath = (path: string): boolean => {
+	const suffixIndex = path.search(/[?#]/);
+	const pathname = suffixIndex < 0 ? path : path.slice(0, suffixIndex);
+
+	// 先頭の空文字（"/" 始まりのため）と末尾スラッシュ由来の空文字を落とす
+	const segments = pathname.split("/").filter(Boolean);
+	const rest = segments.length > 0 && isValidBcp47Tag(segments[0]) ? segments.slice(1) : segments;
+
+	return rest.length === 2 && rest[0] === "auth" && rest[1] === "login";
+};
+
+/**
  * 🔒 `?next=` を «アプリ内の遷移先» として採用できるかを判定し、採用できるなら
  * 現在の locale へ寄せた絶対パスを返す。
  *
@@ -73,6 +96,7 @@ const withCurrentLocale = (path: string, locale: string): string => {
  * | `/\evil.com` | ブラウザは `\` を `/` として解釈するため `//evil.com` と同じ |
  * | 空文字 / `undefined` / 配列 | 指定なしと同じ扱い（呼び出し側が既定の行き先へ倒す） |
  * | 改行等の制御文字を含む | ログや URL 組み立てを壊すだけで、正当な用途が無い |
+ * | `/ja-JP/auth/login`（ログイン画面自身） | 自ルートへの遷移。`isLoginRoutePath` のコメント参照 |
  *
  * @param next `useLocalSearchParams()` から受け取った生の値
  * @param locale 現在のロケール（`useLocale().locale`）
@@ -88,6 +112,7 @@ export const resolveNextPath = (next: unknown, locale: string): string | null =>
 	if (HAS_SCHEME.test(candidate)) return null;
 	if (!candidate.startsWith("/")) return null;
 	if (candidate.startsWith("//") || candidate.startsWith("/\\")) return null;
+	if (isLoginRoutePath(candidate)) return null;
 
 	return withCurrentLocale(candidate, locale);
 };

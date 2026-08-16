@@ -1,7 +1,7 @@
 import { test, expect } from "../../fixtures/test";
 import { TabBar } from "../../pages/TabBar";
 import { ReviewPage } from "../../pages/ReviewPage";
-import { LoginModal } from "../../pages/LoginModal";
+import { LoginPage } from "../../pages/LoginPage";
 
 /**
  * ✏️ レビュータブ(匿名ユーザー)のテスト
@@ -23,18 +23,22 @@ test.describe("レビュータブ(匿名ユーザー)", () => {
 		await expect(reviewPage.guestLoginButton).toBeVisible();
 	});
 
-	// ─ テストケース: CTA タップでログインモーダルが開く ─
+	// ─ テストケース: CTA タップでログイン画面へ遷移する ─
 	// 手順:
 	//   1. レビュータブのゲスト表示を開く
 	//   2. 「ログインする」ボタンをタップする
-	//   3. ログインモーダル(login-modal)が開き、Google/Apple ボタンが表示されることを検証
-	test("ログイン CTA タップでログインモーダルが開く", async ({ appPage }) => {
+	//   3. URL が /auth/login へ変わり、Google/Apple ボタンが表示されることを検証
+	//   4. #1359 ブラウザバックでレビュータブへ戻れることを検証(モーダルへ戻す変更を止める)
+	test("ログイン CTA タップでログイン画面へ遷移する", async ({ appPage }) => {
 		const tabBar = new TabBar(appPage);
 		const reviewPage = new ReviewPage(appPage);
-		const loginModal = new LoginModal(appPage);
+		const loginPage = new LoginPage(appPage);
 
 		await tabBar.gotoReview();
 		await reviewPage.guestLoginButton.click();
-		await loginModal.expectOpened();
+		await loginPage.expectOpened();
+
+		await appPage.goBack();
+		await reviewPage.expectGuestViewLoaded();
 	});
 });

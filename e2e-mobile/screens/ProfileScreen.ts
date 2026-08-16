@@ -69,8 +69,8 @@ export class ProfileScreen {
 		return existsNow(this.loginButton);
 	}
 
-	/** ログインボタンをタップしてログインモーダルを開く（匿名ユーザーのみ） */
-	async openLoginModal(): Promise<void> {
+	/** ログインボタンをタップしてログイン画面（/[locale]/auth/login）へ遷移する（匿名ユーザーのみ） */
+	async openLogin(): Promise<void> {
 		await tapWhenVisible(this.loginButton);
 	}
 

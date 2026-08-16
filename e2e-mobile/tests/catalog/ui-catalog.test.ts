@@ -11,7 +11,7 @@ import {
 	visibleNow,
 	waitUntilVisible,
 } from "../../fixtures/e2e";
-import { LoginModal } from "../../screens/LoginModal";
+import { LoginScreen } from "../../screens/LoginScreen";
 import { ProfileScreen } from "../../screens/ProfileScreen";
 import { ResultScreen } from "../../screens/ResultScreen";
 import { ReviewScreen } from "../../screens/ReviewScreen";
@@ -168,18 +168,15 @@ describe("UI カタログ（匿名） @catalog", () => {
 		const tabBar = new TabBar();
 		const reviewScreen = new ReviewScreen();
 		const profileScreen = new ProfileScreen();
-		const loginModal = new LoginModal();
+		const loginScreen = new LoginScreen();
 
 		await launchAppWithSession({ as: "anon" });
 		await tabBar.gotoReview();
 		await reviewScreen.expectGuestViewLoaded();
 		await captureScreen("review-guest");
 
-		await captureScreenIfReachable("review-guest-login-modal", async () => {
-			await reviewScreen.tapGuestLogin();
-			await loginModal.expectOpened();
-		});
-
+		// #1359 レビュータブのログイン CTA もマイページと同じ /auth/login へ遷移するため、
+		// カタログの ID は auth-login 1 つに統合した。撮影は下のマイページの導線で 1 回だけ行う
 		await launchAppWithSession({ as: "anon" });
 		await tabBar.gotoProfile();
 		await profileScreen.expectGuestViewLoaded();
@@ -207,9 +204,9 @@ describe("UI カタログ（匿名） @catalog", () => {
 			{ settleMs: 2_000 },
 		);
 
-		await captureScreenIfReachable("profile-guest-login-modal", async () => {
-			await profileScreen.openLoginModal();
-			await loginModal.expectOpened();
+		await captureScreenIfReachable("auth-login", async () => {
+			await profileScreen.openLogin();
+			await loginScreen.expectOpened();
 		});
 	});
 

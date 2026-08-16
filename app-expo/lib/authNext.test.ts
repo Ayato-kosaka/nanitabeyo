@@ -92,6 +92,33 @@ describe("resolveNextPath", () => {
 			expect(resolveNextPath(next, "ja-JP")).toBe(next);
 		});
 	});
+
+	// #1359 【設計】ログイン画面自身を指す next を弾く。
+	// ログイン済みで `?next=/ja-JP/auth/login` を開くと login.tsx の自動離脱が同一ルートへ replace し、
+	// 再マウントされない場合は hasLeftRef が true のまま残って「ログイン済みなのにログイン画面に留まる」。
+	// 通常導線（4 箇所）はこの値を組まないので、踏めるのは自作 URL / ディープリンクだけ
+	describe("ログイン画面自身への遷移は採用しない", () => {
+		it.each([
+			["ロケール付き", "/ja-JP/auth/login"],
+			["別ロケール（差し替え後に自ルートになる）", "/en-US/auth/login"],
+			["ロケール無し", "/auth/login"],
+			["クエリ付き（next の入れ子）", "/ja-JP/auth/login?next=%2Fja-JP%2Fprofile"],
+			["末尾スラッシュ", "/ja-JP/auth/login/"],
+		])("%s → null", (_label, next) => {
+			expect(resolveNextPath(next, "ja-JP")).toBeNull();
+		});
+
+		// 同じ auth 配下でも login «以外» は通す。ここまで弾くと callback からの復帰を塞ぐ
+		it.each([
+			["/ja-JP/auth/callback", "/ja-JP/auth/callback"],
+			["/ja-JP/auth/login/otp", "/ja-JP/auth/login/otp"],
+			["/ja-JP/auth", "/ja-JP/auth"],
+			// 先頭がロケールでないので login と «別の» ルート。ロケールも足さない
+			["/auth/login/extra", "/auth/login/extra"],
+		])("%s は採用する", (next, expected) => {
+			expect(resolveNextPath(next, "ja-JP")).toBe(expected);
+		});
+	});
 });
 
 describe("resolvePostLoginTarget", () => {

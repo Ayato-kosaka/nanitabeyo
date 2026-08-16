@@ -100,8 +100,8 @@ export class ProfilePage {
 		await expect(this.loginButton).toBeVisible();
 	}
 
-	/** ログインボタンを押してログインモーダルを開く（匿名ユーザーのみ） */
-	async openLoginModal(): Promise<void> {
+	/** ログインボタンを押してログイン画面（/[locale]/auth/login）へ遷移する（匿名ユーザーのみ） */
+	async openLogin(): Promise<void> {
 		await this.loginButton.click();
 	}
 
