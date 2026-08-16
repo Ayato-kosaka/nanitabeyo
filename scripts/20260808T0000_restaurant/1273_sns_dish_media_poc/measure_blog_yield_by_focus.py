@@ -138,10 +138,29 @@ def main() -> None:
     # 【運用】特化群は既に完走している（6ブログ・636記事・29店）。
     # 非特化群だけ測り直したいときに、特化群の再クロールで1時間浪費しないための口。
     ap.add_argument("--group", choices=("both", "focused", "general"), default="both")
+    # 【自戒】「1カテゴリだけ」を特化の定義にしたのが誤りだった。ブログ村のカテゴリには
+    #   `tokyogourmet` `kantogourmet` `zenkokugourmet` のような**地域タグ**や
+    #   `coffee` `cafe` が混ざっており、記事数の多い順に取ると特化群が
+    #   「東京グルメ」「コーヒー」のブログで埋まった。実際に選ばれた6件に
+    #   **ラーメン専門ブロガーは1人も居ない**（`sample-nautical-chart.com` まで入った）。
+    #   オーナーが聞いているのは**料理カテゴリ特化**（ラーメン専門・焼肉専門）なので、
+    #   カテゴリを指定できるようにする。指定しなければ従来どおり。
+    ap.add_argument("--cats", default="",
+                    help="料理カテゴリのタグをカンマ区切りで指定（例: ramen,bkyu）")
+    ap.add_argument("--out-suffix", default="")
     args = ap.parse_args()
 
     sup = json.loads((OUT_DIR / "blogger_supply.json").read_text(encoding="utf-8"))
     focused = [t for t in sup["top_focused"]]
+    if args.cats:
+        want = {c.strip() for c in args.cats.split(",") if c.strip()}
+        focused = [t for t in focused if t.get("cat") in want]
+        if not focused:
+            print(f"**{sorted(want)} に該当するブロガーが 0 人。数字を出さない。**",
+                  file=sys.stderr)
+            raise SystemExit(2)
+        print(f"料理カテゴリ {sorted(want)} に絞った特化群: {len(focused)} 人",
+              file=sys.stderr)
     # 非特化群は blogger_supply に入っていないので discover から作る
     disc = json.loads((OUT_DIR / "food_blogs_discover.json").read_text(encoding="utf-8"))
     multi_hosts = [(h, v) for h, v in disc["domains"].items()
@@ -274,8 +293,9 @@ def main() -> None:
               file=sys.stderr)
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    p = OUT_DIR / (f"blog_yield_by_focus_{args.group}.json" if args.group != "both"
-                   else "blog_yield_by_focus.json")
+    p = OUT_DIR / (f"blog_yield_by_focus_{args.group}{args.out_suffix}.json"
+                   if args.group != "both"
+                   else f"blog_yield_by_focus{args.out_suffix}.json")
     p.write_text(json.dumps(
         {"focused": sf, "general": sg, "rows": rows_f + rows_g,
          "nolink_base": NOLINK_BASE,
