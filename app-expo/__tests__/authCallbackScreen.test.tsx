@@ -1,7 +1,8 @@
-// #1370 【設計】auth コールバック（app/[locale]/auth/callback.tsx）のプロバイダ競合の扱いを固定する。
+// #1370 【設計】auth コールバック（app/[locale]/auth/callback.tsx）の 2 つの不変条件を固定する。
+// いずれも «実機の OAuth を通さないと踏めない» 経路にあり、E2E でも気付けない。
 //
-// 競合の告知は BlurModal のオーバーレイから DialogProvider の confirm() へ移した（設計 #1359 §6）。
-// ここで固定するのは次の 3 点で、いずれも «実機の OAuth を通さないと踏めない» 経路にある。
+// ## 1. プロバイダ競合の告知（設計 #1359 §6）
+// BlurModal のオーバーレイから DialogProvider の confirm() へ移した。固定するのは次の 3 点。
 //
 // 1. 告知は **選ぶまで閉じない**（`dismissable: false` / `backHandlerEnabled: false`）。
 //    旧実装は useBlurModal をオプション無しで使っており `backHandlerEnabled` の既定が true だった。
@@ -12,6 +13,12 @@
 // 3. 遷移に渡す href の «形»。lib/logoutRedirect.ts:1-7 に「Android では認証イベント直後の
 //    router.replace に query 付き文字列や object href を渡すとフリーズした」実測が残っているため、
 //    形が黙って変わったことを検知できるようにしておく。
+//
+// ## 2. `next`（ログイン後の行き先）の扱い（設計 #1359 §3 / §4-3）
+// `next` は OAuth の redirectTo に載って URL を一往復して戻ってくる = 外から書き換えられる値なので、
+// **必ず lib/authNext.ts の resolveNextPath を通してから** router へ渡す（open redirect 対策）。
+// 競合から「切り替える」を選んだ 2 周目にも next を載せる。載せないと、昇格を諦めたユーザーだけが
+// マイページに着地して元の画面へ戻れない。
 //
 // `app/` 配下に置いたテストは expo-router がルートとして拾ってしまうため、ここに置いている
 // （__tests__/loginScreenAuthGate.test.tsx と同じ理由）。
@@ -182,5 +189,107 @@ describe("#1370 プロバイダ競合の告知（DialogProvider の confirm）",
 		expect(mockConfirm).not.toHaveBeenCalled();
 		expect(mockReplace).toHaveBeenCalledWith({ pathname: "/[locale]/profile", params: { locale: "ja-JP" } });
 		expect(loggedEventNames()).toContain("oauth_callback_error");
+	});
+});
+
+/** 認証に成功したときの handleOAuthResultUrl の返り値 */
+const authenticatedResult = {
+	status: "authenticated",
+	via: "code",
+	user: { id: "user-1", is_anonymous: false, user_metadata: {}, identities: [] },
+};
+
+/** next を採用しなかったときの行き先。#1370 以前からの形（object href）を維持していること */
+const PROFILE_HREF = { pathname: "/[locale]/profile", params: { locale: "ja-JP" } };
+
+describe("#1370 next（ログイン後の行き先）", () => {
+	// ⚠️ href の «形» もここで固定している。lib/logoutRedirect.ts:1-7 の実測（Android では認証直後の
+	// replace に query 付き文字列や object href を渡すとフリーズした）があるため、
+	// 文字列 / object のどちらを渡しているかが黙って変わると Android 実機の確認結果が無効になる
+	it("採用できる next には «文字列» の href で replace する", async () => {
+		mockParams = { ...mockParams, next: "/ja-JP/(tabs)/review" };
+		mockHandleOAuthResultUrl.mockResolvedValue(authenticatedResult);
+
+		await render();
+
+		expect(mockReplace).toHaveBeenCalledWith("/ja-JP/(tabs)/review");
+	});
+
+	it("next が無ければ従来どおり object href でマイページへ", async () => {
+		mockHandleOAuthResultUrl.mockResolvedValue(authenticatedResult);
+
+		await render();
+
+		expect(mockReplace).toHaveBeenCalledWith(PROFILE_HREF);
+	});
+
+	// 🔒 next は URL を一往復して戻ってくる = 外から書き換えられる。resolveNextPath を素通りさせると
+	// web では open redirect、native ではディープリンク経由で任意の行き先へ飛ばせる
+	it.each([
+		["プロトコル相対 URL", "//evil.com"],
+		["スキーム付き URL", "https://evil.com/steal"],
+		["バックスラッシュ", "/\\evil.com"],
+		["相対パス", "evil"],
+	])("外部を指す next（%s）は採用せずマイページへ倒す", async (_label, next) => {
+		mockParams = { ...mockParams, next };
+		mockHandleOAuthResultUrl.mockResolvedValue(authenticatedResult);
+
+		await render();
+
+		expect(mockReplace).toHaveBeenCalledWith(PROFILE_HREF);
+	});
+
+	// resolveNextPath を通していれば、別ロケールで組まれた next は現在の locale へ寄る
+	// （通していない実装では "/en-US/review" がそのまま出るので、この 1 件で «通っているか» が分かる）
+	it("別ロケールの next は現在の locale へ寄せる", async () => {
+		mockParams = { ...mockParams, next: "/en-US/(tabs)/review" };
+		mockHandleOAuthResultUrl.mockResolvedValue(authenticatedResult);
+
+		await render();
+
+		expect(mockReplace).toHaveBeenCalledWith("/ja-JP/(tabs)/review");
+	});
+
+	// 認証に失敗した経路（oauth_callback_no_result）でも、元居た画面へ戻せる方が親切。
+	// 「行き先を知っているのはこの画面だけ」なので、成功時と同じ行き先判定を通す
+	it("認証結果が取れなかった場合も next へ戻す", async () => {
+		mockParams = { locale: "ja-JP", intent: "signin", next: "/ja-JP/(tabs)/review" };
+
+		await render();
+
+		expect(loggedEventNames()).toContain("oauth_callback_no_result");
+		expect(mockReplace).toHaveBeenCalledWith("/ja-JP/(tabs)/review");
+	});
+
+	// 設計 #1359 §4-3: ここは callback へもう一度戻ってくる経路。next を落とすと
+	// «昇格を諦めて既存アカウントへ切り替えた人だけ» が元の画面へ戻れなくなる
+	it("競合から「切り替える」を選んだ 2 周目にも next を載せる", async () => {
+		mockParams = { ...mockParams, next: "/ja-JP/(tabs)/review" };
+		mockHandleOAuthResultUrl.mockRejectedValue(identityConflictError);
+		mockConfirm.mockResolvedValue(true);
+
+		await render();
+
+		expect(mockSignInWithOAuth).toHaveBeenCalledWith("google", { next: "/ja-JP/(tabs)/review" });
+	});
+
+	it("競合の 2 周目でも、採用できない next は載せない", async () => {
+		mockParams = { ...mockParams, next: "//evil.com" };
+		mockHandleOAuthResultUrl.mockRejectedValue(identityConflictError);
+		mockConfirm.mockResolvedValue(true);
+
+		await render();
+
+		expect(mockSignInWithOAuth).toHaveBeenCalledWith("google", { next: undefined });
+	});
+
+	it("競合を「キャンセル」したときも next へ戻す", async () => {
+		mockParams = { ...mockParams, next: "/ja-JP/(tabs)/review" };
+		mockHandleOAuthResultUrl.mockRejectedValue(identityConflictError);
+		mockConfirm.mockResolvedValue(false);
+
+		await render();
+
+		expect(mockReplace).toHaveBeenCalledWith("/ja-JP/(tabs)/review");
 	});
 });

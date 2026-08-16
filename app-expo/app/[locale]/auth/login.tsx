@@ -21,7 +21,7 @@ presentation を指定していない（＝既定の card）のは意図的:
 そのため `getByTestId("login-screen")` の配下に戻るボタンは入らない。戻る導線を検証するときは
 `screen-header-back`（components/ScreenHeader.tsx）か URL（`toHaveURL(/\/auth\/login/)`）を使うこと。
 */
-import React, { useCallback, useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -48,6 +48,11 @@ export default function LoginScreen() {
 	// lib/authNext.ts で検証する。ここでは生のまま受け取るだけにする
 	const { next } = useLocalSearchParams<{ next?: string }>();
 
+	// #1370 【設計】OAuth の redirectTo に載せる行き先。**検証を通した値だけ**を LoginForm へ渡す。
+	// web の OAuth は全画面リダイレクトなので、URL に載せる以外に callback へ引き継ぐ手段が無い。
+	// 生の `next` を渡すと、検証されない値が URL を一往復して戻ってくる経路ができる
+	const nextPath = useMemo(() => resolveNextPath(next, locale) ?? undefined, [next, locale]);
+
 	/**
 	 * #1359 【設計】自動離脱を 1 回に限るための記録。
 	 *
@@ -72,14 +77,14 @@ export default function LoginScreen() {
 
 		// ここは back を使わない。back は「ログイン導線を出した画面」へ戻す動きで、
 		// ログイン済みで着地したこの経路では «行き先» を指す next の方が意図に合う
-		const href = resolveNextPath(next, locale) ?? `/${locale}/profile`;
+		const href = nextPath ?? `/${locale}/profile`;
 		logFrontendEvent({
 			event_name: "login_screen_already_authenticated",
 			error_level: "log",
 			payload: { href },
 		});
 		router.replace(href as ExternalPathString);
-	}, [isAuthResolved, user, next, locale, logFrontendEvent]);
+	}, [isAuthResolved, user, nextPath, locale, logFrontendEvent]);
 
 	const handleBack = useCallback(() => {
 		lightImpact();
@@ -122,7 +127,7 @@ export default function LoginScreen() {
 						style={styles.scrollView}
 						contentContainerStyle={styles.scrollContent}
 						keyboardShouldPersistTaps="handled">
-						<LoginForm testID="login-screen" />
+						<LoginForm testID="login-screen" next={nextPath} />
 					</ScrollView>
 				)}
 			</SafeAreaView>

@@ -94,15 +94,17 @@ type AuthContextType = {
 	loginWithEmail: (email: string, password: string) => Promise<void>;
 	logout: (options?: SignOut) => Promise<void>;
 	signUpWithEmail: (email: string, password: string) => Promise<void>;
+	/** #1370 `options.next` はログイン後の行き先。`lib/authNext.ts` の `resolveNextPath` を通した内部パスのみ渡すこと */
 	signInWithOAuth: (
 		provider: Provider,
-		options?: { queryParams?: { [key: string]: string } },
+		options?: { queryParams?: { [key: string]: string }; next?: string },
 	) => Promise<OAuthLaunchOutcome>;
 	signInWithOtp: (phone: string) => Promise<void>;
 	verifyOtp: (phone: string, token: string) => Promise<void>;
+	/** #1370 `options.next` はログイン後の行き先。`lib/authNext.ts` の `resolveNextPath` を通した内部パスのみ渡すこと */
 	linkIdentity: (
 		provider: Provider,
-		options?: { queryParams?: { [key: string]: string } },
+		options?: { queryParams?: { [key: string]: string }; next?: string },
 	) => Promise<OAuthLaunchOutcome>;
 	handleOAuthResultUrl: (url?: string | null) => Promise<OAuthCallbackResult>;
 };
@@ -114,6 +116,24 @@ type AuthContextType = {
  * 「操作しても何も起きない」時間が伸びるだけなので、`API_CALL_TIMEOUT_MS`(30s) より十分短くする。
  */
 const AUTH_RESOLVE_WAIT_MS = 8_000;
+
+/**
+ * #1370 【設計】OAuth の `redirectTo` に載せる callback のパス（クエリ込み）を組む。
+ *
+ * `next`（ログイン後の行き先）を **URL に載せる** のは、web の OAuth が全画面リダイレクトで
+ * ページごと作り直され、履歴にも JS の state にも「どこから来たか」が残らないためである。
+ * native は同一セッションなので履歴で戻れるが、経路ごとに引き継ぎ方を変えると callback 側の
+ * 読み取りが 2 通りになるので、web / native で同じ形に揃える。
+ *
+ * 🔒 ここでは検証しない。渡してよいのは呼び出し側で `lib/authNext.ts` の `resolveNextPath` を
+ * 通した «先頭 / の内部パス» だけであり、受け取る `app/[locale]/auth/callback.tsx` でも同じ検証を
+ * 通してから遷移する（URL は外から書き換えられるため、最終的な砦は受け取り側にある）。
+ * この関数は運ぶだけで、Supabase 呼び出しの意味は変えない。
+ *
+ * @param query `intent=signin` のような、この経路を識別する既存のクエリ
+ */
+const buildAuthCallbackPath = (locale: string, query: string, next?: string): string =>
+	`${locale}/auth/callback?${query}${next ? `&next=${encodeURIComponent(next)}` : ""}`;
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -628,12 +648,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 	 * OAuthプロバイダーでログインする。
 	 * 新規ユーザー作成 または 既存ユーザー へのログインを行う。
 	 * @param provider - 'google' などのOAuthプロバイダー名
+	 * @param options.next - ログイン後の行き先。`resolveNextPath` を通した内部パスのみ（#1370）
 	 */
 	const signInWithOAuth = async (
 		provider: Provider,
-		options?: { queryParams?: { [key: string]: string } },
+		options?: { queryParams?: { [key: string]: string }; next?: string },
 	): Promise<OAuthLaunchOutcome> => {
-		const { queryParams = {} } = options || {};
+		const { queryParams = {}, next } = options || {};
 
 		// Google のときはデフォルトで毎回アカウント選択を出す
 		const defaultQueryParamsForProvider: Record<Provider, { [k: string]: string }> = {
@@ -646,10 +667,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 			...queryParams, // 呼び出し側で上書きしたければこちらが優先
 		};
 
+		const callbackPath = buildAuthCallbackPath(locale, "intent=signin", next);
 		const redirectTo =
 			Platform.OS === "web"
-				? `${window.location.origin}/${locale}/auth/callback?intent=signin`
-				: AuthSession.makeRedirectUri({ scheme: "nanitabeyo", path: `${locale}/auth/callback?intent=signin` });
+				? `${window.location.origin}/${callbackPath}`
+				: AuthSession.makeRedirectUri({ scheme: "nanitabeyo", path: callbackPath });
 		const { data, error } = await supabase.auth.signInWithOAuth({
 			provider,
 			options: {
@@ -694,12 +716,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 	 * 成功時は 同一 auth.users.id を維持して昇格可能。
 	 * ただし、既に他のユーザーにリンク済みの OAuth であれば失敗する。
 	 * @param provider - 'google' などのOAuthプロバイダー名
+	 * @param options.next - ログイン後の行き先。`resolveNextPath` を通した内部パスのみ（#1370）
 	 */
 	const linkIdentity = async (
 		provider: Provider,
-		options?: { queryParams?: { [key: string]: string } },
+		options?: { queryParams?: { [key: string]: string }; next?: string },
 	): Promise<OAuthLaunchOutcome> => {
-		const { queryParams = {} } = options || {};
+		const { queryParams = {}, next } = options || {};
 
 		// Google のときはデフォルトで毎回アカウント選択を出す
 		const defaultQueryParamsForProvider: Record<Provider, { [k: string]: string }> = {
@@ -712,14 +735,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 			...queryParams, // 呼び出し側で上書きしたければこちらが優先
 		};
 
+		// linkIdentity の場合は、 匿名アップグレード由来のリダイレクトであることを示すために `?intent=link` を付与
+		const callbackPath = buildAuthCallbackPath(locale, `intent=link&provider=${provider}`, next);
 		const redirectTo =
 			Platform.OS === "web"
-				? // linkIdentity の場合は、 匿名アップグレード由来のリダイレクトであることを示すために `?intent=link` を付与
-					`${window.location.origin}/${locale}/auth/callback?intent=link&provider=${provider}`
-				: AuthSession.makeRedirectUri({
-						scheme: "nanitabeyo",
-						path: `${locale}/auth/callback?intent=link&provider=${provider}`,
-					});
+				? `${window.location.origin}/${callbackPath}`
+				: AuthSession.makeRedirectUri({ scheme: "nanitabeyo", path: callbackPath });
 		const { data, error } = await supabase.auth.linkIdentity({
 			provider,
 			options: {

@@ -18,9 +18,15 @@
   Android の development build を QR 起動すると Linking.getInitialURL() が dev launcher の起動 URL を
   返し続けるため、出所で優先すると code を取り落とします（実機で QR 起動＝失敗 / アイコン起動＝成功 を確認）。
 
+ログイン後の行き先（#1370 / 設計 #1359 §3）
+- `?next=` は OAuth の redirectTo（contexts/AuthProvider.tsx）に載って URL を一往復して戻ってきます。
+  web の OAuth は全画面リダイレクトでページごと作り直されるため、これが唯一の引き継ぎ手段です。
+- 受け取った `next` は必ず lib/authNext.ts の resolveNextPath を通してから遷移します（open redirect 対策）。
+  採用できない場合は従来どおり /[locale]/profile です。
+
 補足
 - セッションを確立できなかった場合は oauth_callback_no_result を error レベルで記録し、
-  成功ログもプロフィール作成も行いません。いずれの場合も /[locale]/profile に遷移します。
+  成功ログもプロフィール作成も行いません。いずれの場合も next（無ければ /[locale]/profile）に遷移します。
 */
 import { useCallback, useEffect, useRef } from "react";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
@@ -33,7 +39,9 @@ import i18n from "@/lib/i18n";
 import { Provider } from "@supabase/supabase-js";
 import { useProfile } from "@/features/profile/hooks/useProfile";
 import { describeOAuthUrl, pickOAuthResultUrl, type OAuthUrlCandidate } from "@/lib/oauthResultUrl";
+import { resolveNextPath } from "@/lib/authNext";
 import { toErrorLogMessage } from "@/lib/errorMessage";
+import type { ExternalPathString } from "expo-router";
 
 /**
  * router のパラメータを URL の形に載せるための器。
@@ -58,10 +66,35 @@ export default function AuthCallbackScreen() {
 	// 同じ code を二度交換しないためのラッチ（effect が再実行されても処理は一度きり）
 	const hasHandledRef = useRef(false);
 
-	const goToProfile = useCallback(
-		() => router.replace({ pathname: "/[locale]/profile", params: { locale } }),
-		[router, locale],
-	);
+	/**
+	 * 🔒 #1370 ログイン後の行き先。**この画面で `next` を読むのはここ 1 箇所だけ**にしてある。
+	 *
+	 * `next` は OAuth の redirectTo（contexts/AuthProvider.tsx）に載って URL を一往復して戻ってくる値で、
+	 * 途中で第三者が書き換えられる。web なら open redirect、native ならディープリンク
+	 * （`nanitabeyo://ja-JP/auth/callback?next=...`）経由で任意画面へ飛ばす経路になるため、
+	 * router へ渡す前に必ず `resolveNextPath`（先頭 / の内部パスだけを通す）を通す。
+	 * 生の `rest.next` を別の場所で読むと、その検証を迂回する経路ができる。
+	 */
+	const nextPath = resolveNextPath(rest.next, locale);
+
+	/**
+	 * 認証結果の «行き先»。`next` を採用できるならそこへ、無ければ従来どおりマイページへ。
+	 *
+	 * ⚠️ #1370 【バグ】渡す href の «形» に注意すること。lib/logoutRedirect.ts:1-7 に
+	 * 「Android では認証イベント直後の router.replace に query 付き文字列や object href を渡すと
+	 * フリーズした」実測が残っており、この replace はまさにその形（認証直後 / next はクエリを含みうる）。
+	 * next が無いときは従来と同じ object href のままにしてあるので、既存経路の挙動は変えていない。
+	 * next 経路は Android 実機での確認が必須（#1370 の PR 本文参照）。
+	 */
+	const goAfterCallback = useCallback(() => {
+		if (nextPath) {
+			// resolveNextPath が「先頭 / の内部パス」まで絞り込んだ後の値なので、typed routes の
+			// 型と一致しないことを承知でキャストする（app/[locale]/auth/login.tsx と同じ扱い）
+			router.replace(nextPath as ExternalPathString);
+			return;
+		}
+		router.replace({ pathname: "/[locale]/profile", params: { locale } });
+	}, [router, nextPath, locale]);
 
 	/**
 	 * プロバイダ競合（identity_already_exists）を告知し、選ばれた方へ決着させる。
@@ -92,7 +125,7 @@ export default function AuthCallbackScreen() {
 					error_level: "log",
 					payload: { provider },
 				});
-				goToProfile();
+				goAfterCallback();
 				return;
 			}
 
@@ -103,8 +136,11 @@ export default function AuthCallbackScreen() {
 					payload: { provider },
 				});
 
-				// 既存アカウントに切り替え（prompt=none でサイレント認証）
-				const launch = await signInWithOAuth(provider);
+				// 既存アカウントに切り替え（prompt=none でサイレント認証）。
+				// #1370 【設計】2 周目の redirectTo にも next を載せる。ここは callback へもう一度
+				// 戻ってくる経路なので、載せないと «昇格を諦めて既存アカウントへ切り替えた人だけ»
+				// マイページに着地して元の画面へ戻れない（設計 #1359 §4-3）
+				const launch = await signInWithOAuth(provider, { next: nextPath ?? undefined });
 
 				// #1062 【設計】結末は記録するだけで、ここでは画面遷移しない。
 				// Android の dismiss は「ユーザーが閉じた」を意味しない（deep link 成功時にも起こる）。
@@ -129,10 +165,10 @@ export default function AuthCallbackScreen() {
 					error_level: "error",
 					payload: { provider, error: (error as Error).message },
 				});
-				goToProfile();
+				goAfterCallback();
 			}
 		},
-		[confirm, goToProfile, logFrontendEvent, signInWithOAuth],
+		[confirm, goAfterCallback, logFrontendEvent, nextPath, signInWithOAuth],
 	);
 
 	useEffect(() => {
@@ -166,7 +202,7 @@ export default function AuthCallbackScreen() {
 						})),
 					},
 				});
-				goToProfile();
+				goAfterCallback();
 				return;
 			}
 
@@ -184,7 +220,7 @@ export default function AuthCallbackScreen() {
 							url_shape: describeOAuthUrl(picked.url),
 						},
 					});
-					goToProfile();
+					goAfterCallback();
 					return;
 				}
 
@@ -207,7 +243,7 @@ export default function AuthCallbackScreen() {
 					displayName: user.user_metadata?.name ?? user.identities?.[0]?.identity_data?.name,
 					avatar: user.user_metadata?.avatar_url ?? user.identities?.[0]?.identity_data?.avatar_url,
 				});
-				goToProfile();
+				goAfterCallback();
 			} catch (error: unknown) {
 				// linkIdentity による identity_already_exists エラーの場合は警告ダイアログを表示
 				const err = error as any;
@@ -218,11 +254,11 @@ export default function AuthCallbackScreen() {
 						payload: { provider: err.provider, error_code: err.error_code },
 					});
 					// #1370 【設計】await して決着（切り替える / キャンセル）まで見届ける。
-					// 遷移はその決着の中で行うので、ここでは goToProfile を «呼ばない»
+					// 遷移はその決着の中で行うので、ここでは goAfterCallback を «呼ばない»
 					await handleIdentityConflict(err.provider as Provider);
 					return;
 				} else {
-					goToProfile();
+					goAfterCallback();
 				}
 
 				logFrontendEvent({
