@@ -1,0 +1,552 @@
+{
+  "n": 60,
+  "n_correct": 59,
+  "precision": 0.9833333333333333,
+  "wilson_ci95": [
+    0.9114466177322051,
+    0.9970519161391262
+  ],
+  "method": "SHA-256 順で決定的に選んだ増分60件を全件目視。タイトルに店名と市区町村名の両方が現れているかを確認した。",
+  "rows": [
+    {
+      "n": 1,
+      "restaurant": "北海屋国谷支店",
+      "title": "【栃木グルメ】気になる店!!「北海屋　国谷支店」栃木県壬生町を初訪問!!　唐揚げ・ヒレカツ・焼鳥・もつ炒めのボリューム旨さにリピート確定!!",
+      "locality_raw": "下都賀郡壬生町",
+      "locality_needle": "壬生町",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 2,
+      "restaurant": "麺場田所商店札幌平岸店",
+      "title": "札幌豊平区にある濃厚味噌と大きなチャーシューが堪らない/蔵出し味噌麺場 田所商店 札幌平岸店【北海道札幌グルメ】",
+      "locality_raw": "札幌市豊平区",
+      "locality_needle": "豊平区",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 3,
+      "restaurant": "中華飯店幡龍藤崎店",
+      "title": "青森県藤崎町【中華飯店　幡龍藤崎店】次回激辛対決のために試食からの日曜日を満喫しました❤️",
+      "locality_raw": "南津軽郡藤崎町",
+      "locality_needle": "藤崎町",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 4,
+      "restaurant": "麺Buildersあり蔵",
+      "title": "群馬県明和町【麺Builder's あり蔵】女性店員さんの気配りと、鶏白湯らーめんの旨さが、体に染み渡ります。美味しかった！！#群馬らーめん",
+      "locality_raw": "邑楽郡明和町",
+      "locality_needle": "明和町",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 5,
+      "restaurant": "ラムグチカズヤ",
+      "title": "【中央区ディナー】こんなラムの食べ方が！？特別な味に有名人も集う店！『札幌ジンギスカン　ラムグチカズヤ』",
+      "locality_raw": "札幌市中央区",
+      "locality_needle": "中央区",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 6,
+      "restaurant": "あじろや",
+      "title": "【お食事処あじろや】マダムおすすめ定食ベスト3前編【鳥取県岩美町】",
+      "locality_raw": "岩美郡岩美町",
+      "locality_needle": "岩美町",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 7,
+      "restaurant": "ぬいどう食堂",
+      "title": "【グルメ青森】下北半島佐井村の超有名な美味い老舗、『ぬいどう食堂』に行って、ネタがデカくて新鮮な、海鮮の丼頂きました♪♪。【青森県】",
+      "locality_raw": "下北郡佐井村",
+      "locality_needle": "佐井村",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 8,
+      "restaurant": "とりから一番",
+      "title": "カリッ！ジュワッ！がたまらない「とりから一番」イオンモール沖縄ライカム（北中城村）",
+      "locality_raw": "中頭郡北中城村",
+      "locality_needle": "北中城村",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 9,
+      "restaurant": "おふくろ弁当 もみじコロッケ店",
+      "title": "「おふくろ弁当もみじコロッケ店」（広島県安芸太田町）リテイク３",
+      "locality_raw": "山県郡安芸太田町",
+      "locality_needle": "安芸太田町",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 10,
+      "restaurant": "グルマンヴィタル",
+      "title": "【グルマンヴィタル パンの森 垂井本店】〜岐阜県垂井町で食べる！紅茶の生ドーナツ〜",
+      "locality_raw": "不破郡垂井町",
+      "locality_needle": "垂井町",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 11,
+      "restaurant": "定助そばや",
+      "title": "山形らー旅⭐︎４食目《河北町の老舗であり名店》山形県河北町「定助そばや」ざる中華【自家製麺の美味しさダイレクト！！】ざるの和出汁が冷えた麺の美味しさを際立たせる一杯🙃",
+      "locality_raw": "西村山郡河北町",
+      "locality_needle": "河北町",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 12,
+      "restaurant": "手打ち讃岐うどん 洸香",
+      "title": "【東区ランチ】札幌東区で本格的な讃岐うどんが食べられる！1玉追加140円！手打ち讃岐うどん洸香",
+      "locality_raw": "札幌市東区",
+      "locality_needle": "東区",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 13,
+      "restaurant": "ラーメンとまや",
+      "title": "【東区ランチ】札幌のソウルフード「肉チャー」の系譜を受け継ぐ東苗穂の人気ラーメン店「ラーメンとまや」",
+      "locality_raw": "札幌市東区",
+      "locality_needle": "東区",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 14,
+      "restaurant": "軽食喫茶 プリティ",
+      "title": "【福島探求グルメ】お腹すいたからどうしよう？　福島県会津坂下町 軽食喫茶 プリティさん",
+      "locality_raw": "河沼郡会津坂下町",
+      "locality_needle": "会津坂下町",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 15,
+      "restaurant": "クラスノ",
+      "title": "大阪下町グルメファイル177【創業73年‼️下町情緒に浸れる名店】「大正区　三軒家東　クラスノ」#japan #osaka #gourmet #グルメ #recommended #おすすめ",
+      "locality_raw": "大阪市大正区",
+      "locality_needle": "大正区",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 16,
+      "restaurant": "食事処高松",
+      "title": "群馬県、邑楽町【食事処高松】さんにて、天丼 #ぼっち飯 #孤独のグルメ #邑楽町 #高松",
+      "locality_raw": "邑楽郡邑楽町",
+      "locality_needle": "邑楽町",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 17,
+      "restaurant": "屋台ラーメン た紅",
+      "title": "《独特の濃厚節系清湯醤油！！此処でしか味わえない旨さがあります！！》宮城県宮城野区「屋台ラーメン た紅」ラーメン【辛みそ】清湯なのに野蛮、独特の屋台風ラーメン😀トッピング豊かなのも嬉しい",
+      "locality_raw": "仙台市宮城野区",
+      "locality_needle": "宮城野区",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 18,
+      "restaurant": "麺ハウス こもれ美",
+      "title": "宮城県大衡村「麺ハウス こもれ美」鶏塩そば【2021年8月8日】３連続こもれ美！地元足繁く通う東北最愛ホーム店😃ジンワリ伸びのある深い鶏塩！進化し続ける東北トップクラスの濃厚鶏塩清湯と認識してます😀",
+      "locality_raw": "黒川郡大衡村",
+      "locality_needle": "大衡村",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 19,
+      "restaurant": "食事処清田",
+      "title": "【手稲区ランチ】2枚重ねの豚塩ステーキにタルタルぶっかけ唐揚げ定食の店「食事処 清田」",
+      "locality_raw": "札幌市手稲区",
+      "locality_needle": "手稲区",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 20,
+      "restaurant": "ホルモン焼胡桃",
+      "title": "ハゲが町を救う青森県鶴田町【ホルモン焼　胡桃】鶴田町の人気店！ランチ！焼き鳥は即完売！",
+      "locality_raw": "北津軽郡鶴田町",
+      "locality_needle": "鶴田町",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 21,
+      "restaurant": "ふくむら食堂",
+      "title": "【ふくむら食堂】【大食い】店構えからは想像出来ないくらいに不思議&ヤバウマなオムライス★【島根県川本町】",
+      "locality_raw": "邑智郡川本町",
+      "locality_needle": "川本町",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 22,
+      "restaurant": "大衆酒場半立呑処 マイキー",
+      "title": "【札幌 中央区】夕方5時から朝の5時まで休まず営業！おかわりし放題のお味噌汁や沢山のお酒を明け方まで楽しめる、最強の酒場！/大衆酒場半立呑処 マイキー",
+      "locality_raw": "札幌市中央区",
+      "locality_needle": "中央区",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 23,
+      "restaurant": "清水森食堂",
+      "title": "濃厚チーズな手作りピザ！山形県遊佐町の美味しいお店【清水森食堂】",
+      "locality_raw": "飽海郡遊佐町",
+      "locality_needle": "遊佐町",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 24,
+      "restaurant": "牛屋江戸八",
+      "title": "【清田区ランチ】全国選りすぐりの黒毛和牛が食べられる、北海道最大級の和牛専門店、その豪華ランチとは！「牛屋江戸八」",
+      "locality_raw": "札幌市清田区",
+      "locality_needle": "清田区",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 25,
+      "restaurant": "小さな食堂 ヒロ",
+      "title": "【ぶらぶらりイン広島】#537 ランチ 広島 西区 草津港 小さな食堂ヒロ",
+      "locality_raw": "広島市西区",
+      "locality_needle": "西区",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 26,
+      "restaurant": "ガーデンレストラン 風舎",
+      "title": "【神戸　兵庫区グルメ】超穴場！神戸絶景グルメ！バーベキュー、ブルーベリー狩り、乗馬もできるオススメスポットの紹介！　ガーデンレストラン風舎[Kobe japanes food]",
+      "locality_raw": "神戸市兵庫区",
+      "locality_needle": "兵庫区",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 27,
+      "restaurant": "あじろや",
+      "title": "【鳥取県岩美町】マダムと愉快な船長たち～港カフェ&あじろやメニュー紹介編～",
+      "locality_raw": "岩美郡岩美町",
+      "locality_needle": "岩美町",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 28,
+      "restaurant": "集いドライブイン",
+      "title": "【栃木グルメ】チャーシューの大輪!?【栃木県高根沢町】集いドライブイン",
+      "locality_raw": "塩谷郡高根沢町",
+      "locality_needle": "高根沢町",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 29,
+      "restaurant": "カレー屋 テラコッタ",
+      "title": "【北区ランチ】漆黒のルウカレーとスパイシー感満載の無水カレーの店「カレー屋テラコッタ」",
+      "locality_raw": "札幌市北区",
+      "locality_needle": "北区",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 30,
+      "restaurant": "お食事処やちよ",
+      "title": "長南町の人気のお店、お食事処やちよでとんかつ定食！",
+      "locality_raw": "長生郡長南町",
+      "locality_needle": "長南町",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 31,
+      "restaurant": "じいとばあ",
+      "title": "群馬県、下仁田町【じいとばあ】さんにて、下仁田ねぎそばと、みそおでん　#ぼっち飯 #孤独のグルメ #飯テロ #じいとばあ",
+      "locality_raw": "甘楽郡下仁田町",
+      "locality_needle": "下仁田町",
+      "correct": false,
+      "note": "「Hyogo」は兵庫県のローマ字。タイトル末尾の \"(kobe hyogo japan food life)\" に一致しただけで店舗ではない。ラテン辞書に地名除外が効いていなかったことによる誤爆"
+    },
+    {
+      "n": 32,
+      "restaurant": "榮川酒造",
+      "title": "《会津若松市》《磐梯町》《榮川酒造さん》えいせん酒造《日本酒》《立春朝搾り》《👉下平酒店さん販売店》《限定》#日本酒 #会津#立春 #限定品 #飲み歩き #酒蔵",
+      "locality_raw": "耶麻郡磐梯町",
+      "locality_needle": "磐梯町",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 33,
+      "restaurant": "狸COMICHI",
+      "title": "札幌中央区狸小路にある山盛りの新鮮な海鮮丼を楽しめるお店/シハチ鮮魚店 狸COMICHI店【北海道札幌グルメ】",
+      "locality_raw": "札幌市中央区",
+      "locality_needle": "中央区",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 34,
+      "restaurant": "サウスヴィラ",
+      "title": "札幌東区にあるからあげの有名店でいただく大きくアツアツサクサクなからあげ定食/中華食堂サウスヴィラ(南苑)【北海道札幌グルメ】",
+      "locality_raw": "札幌市東区",
+      "locality_needle": "東区",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 35,
+      "restaurant": "いけすや",
+      "title": "いけすや「活あじお造りと活あじのわさび葉寿司」【静岡県沼津市内浦の漁協直営食堂】",
+      "locality_raw": "沼津市内浦小海30103",
+      "locality_needle": "沼津市",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 36,
+      "restaurant": "どぶろく上代",
+      "title": "【中継】鳥取県伯耆町にある酒蔵ではどぶろく造りの最終盤を迎えています。現在はどのような作業をしているのか紹介。　　　伯耆町「どぶろく上代」",
+      "locality_raw": "西伯郡伯耆町",
+      "locality_needle": "伯耆町",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 37,
+      "restaurant": "裕次郎そば",
+      "title": "遂に『裕次郎そば』で「沖縄そば」じゃなく「ラーメン」にチャレンジしてみた！（北谷町）",
+      "locality_raw": "中頭郡北谷町",
+      "locality_needle": "北谷町",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 38,
+      "restaurant": "泉蕎庵とみた",
+      "title": "【秩父そば／泉蕎庵とみた】また絶品蕎麦店を見つけた／埼玉・小鹿野町",
+      "locality_raw": "秩父郡小鹿野町",
+      "locality_needle": "小鹿野町",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 39,
+      "restaurant": "焼肉園花牛",
+      "title": "札幌清田区にあるランチもできる口コミで人気の焼肉屋さん/焼肉園花牛【北海道札幌グルメ】yakiniku japan",
+      "locality_raw": "札幌市清田区",
+      "locality_needle": "清田区",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 40,
+      "restaurant": "ダイナーズ",
+      "title": "札幌東区にある総重量1.3キロのゴリランチを楽しめるお店/DINERS(ダイナーズ)【北海道札幌グルメ】",
+      "locality_raw": "札幌市東区",
+      "locality_needle": "東区",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 41,
+      "restaurant": "和出汁中華Soba 山わさび",
+      "title": "【札幌　豊平区】山わさびが主役！和食出身の店主が織りなす唯一のラーメン！/和出汁中華SOBA 山わさび",
+      "locality_raw": "札幌市豊平区",
+      "locality_needle": "豊平区",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 42,
+      "restaurant": "住吉飯店",
+      "title": "鋸南町の人気のお店住吉飯店でお昼ご飯。",
+      "locality_raw": "安房郡鋸南町",
+      "locality_needle": "鋸南町",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 43,
+      "restaurant": "しあわせキッチン",
+      "title": "【スバルR2】しあわせキッチンな日　就労継続支援B型事業所 ムーヴメントしわ　紫波町ランチ",
+      "locality_raw": "紫波郡紫波町",
+      "locality_needle": "紫波町",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 44,
+      "restaurant": "かねなか 中島食堂",
+      "title": "【厚真町】手打ちそばと天丼で1000円！ボリューム満点で地元で愛される、100年以上の歴史がある老舗蕎麦屋さん！/かねなか　中島食堂",
+      "locality_raw": "勇払郡厚真町",
+      "locality_needle": "厚真町",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 45,
+      "restaurant": "道の駅 ビオスおおがた",
+      "title": "道の駅ビオスおおがた→名勝・入野松原｜高知県黒潮町 入野の浜・サーフィンの聖地を散策（4.56km）",
+      "locality_raw": "幡多郡黒潮町",
+      "locality_needle": "黒潮町",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 46,
+      "restaurant": "やすた食堂",
+      "title": "【やすた食堂　鶴田町】味噌ラーメン",
+      "locality_raw": "北津軽郡鶴田町",
+      "locality_needle": "鶴田町",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 47,
+      "restaurant": "レストラン&コーヒーソルト",
+      "title": "若林区にある老舗コスパ最高ランチレストラン&コーヒーソルト【仙台グルメ】",
+      "locality_raw": "仙台市若林区",
+      "locality_needle": "若林区",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 48,
+      "restaurant": "ギャラリー有田",
+      "title": "【佐賀県有田町】コーヒーカップの世界「ギャラリー有田」さんのご紹介【muchuTV】【佐賀県伊万里市、武雄市、唐津市、嬉野市、鹿島市、長崎県佐世保市】",
+      "locality_raw": "西松浦郡有田町",
+      "locality_needle": "有田町",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 49,
+      "restaurant": "都幾の丘 高柳屋",
+      "title": "【埼玉県観光】本日！ときがわ町に行って来ましたー！明覚駅～ときがわ花菖蒲園～都幾の丘 高柳屋～都幾川！【日帰り旅】爽快でサイコーでした！",
+      "locality_raw": "比企郡ときがわ町",
+      "locality_needle": "ときがわ町",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 50,
+      "restaurant": "カフェ エストラーダ",
+      "title": "【札幌　豊平区】カフェ・エストラーダ/築40年の古民家を改築したカフェで食べるゴーヤチャンプル！体が喜ぶランチに一目惚れ…(cafe Estrada)",
+      "locality_raw": "札幌市豊平区",
+      "locality_needle": "豊平区",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 51,
+      "restaurant": "Satouya",
+      "title": "おっさんの休日【伊豆旅行4軒】マジで永遠に味わいたい悶絶グルメ紹介/鮎の茶屋/飴屋菊水/はんばた市場/Satouya/西伊豆町/松崎町/伊東温泉/Travel Japan Izu Shizuoka",
+      "locality_raw": "賀茂郡西伊豆町",
+      "locality_needle": "西伊豆町",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 52,
+      "restaurant": "ごっつりラーメン",
+      "title": "【その一】ごっつりラーメンさんで、初っ端からねこまんまして来ました🍚 #プチ大食い　オープニングで「青森県　南部町」が「青森市　南部町」になってました🙇‍♂️",
+      "locality_raw": "三戸郡南部町",
+      "locality_needle": "南部町",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 53,
+      "restaurant": "洋食にし",
+      "title": "大阪下町グルメファイル198【旨いお店は商店街の路地に多い❓❗️】「住之江区　東加賀屋　洋食にし」#japan #osaka #gourmet #洋食 #グルメ #recommended #おすすめ",
+      "locality_raw": "大阪市住之江区",
+      "locality_needle": "住之江区",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 54,
+      "restaurant": "ニャムニャム食堂",
+      "title": "大阪下町グルメファイル194【初潜入‼️大阪で唯一のカンボジア料理店】「阿倍野区　ニャムニャム食堂」#japan #osaka #gourmet #recommended #travel #グルメ",
+      "locality_raw": "大阪市阿倍野区",
+      "locality_needle": "阿倍野区",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 55,
+      "restaurant": "焼き小屋 さと",
+      "title": "まちのコイン_香川県多度津町 焼き小屋さと 体験動画",
+      "locality_raw": "仲多度郡多度津町",
+      "locality_needle": "多度津町",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 56,
+      "restaurant": "麺食房わたなべ",
+      "title": "秋葉区！ 麺食房 わたなべ！新潟ラーメン巡り！第三十五弾！",
+      "locality_raw": "新潟市秋葉区",
+      "locality_needle": "秋葉区",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 57,
+      "restaurant": "大石家 諏訪店",
+      "title": "【大石家 諏訪店】【下諏訪町】【ラーメン】【下諏訪町　ラーメン】",
+      "locality_raw": "諏訪郡下諏訪町",
+      "locality_needle": "下諏訪町",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 58,
+      "restaurant": "アジャンタ インドカリ店 中の島",
+      "title": "【札幌 豊平区】これがスープカレーの原点！薬膳が効いたスープカレーを、どうぞ召し上がれ！/アジャンタインドカリ店 中の島",
+      "locality_raw": "札幌市豊平区",
+      "locality_needle": "豊平区",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 59,
+      "restaurant": "運玉食堂",
+      "title": "【閉店】西原町「運玉食堂」5月末で閉店！閉店が惜しい穴場の食堂！【沖縄孤独のグルメ・クロスカブ】",
+      "locality_raw": "中頭郡西原町",
+      "locality_needle": "西原町",
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 60,
+      "restaurant": "麺処 暁商店",
+      "title": "#304 栃木県壬生町　ずっと気になっていたらーめん屋に行ってみた　#らーめん　#餃子　#チャーシュー　麺処　暁商店",
+      "locality_raw": "下都賀郡壬生町",
+      "locality_needle": "壬生町",
+      "correct": true,
+      "note": ""
+    }
+  ]
+}

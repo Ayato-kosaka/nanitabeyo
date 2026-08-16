@@ -1,0 +1,173 @@
+{
+  "n": 20,
+  "n_brand": 17,
+  "rate": 0.85,
+  "wilson_ci95": [
+    0.6395767041130426,
+    0.9476322080405041
+  ],
+  "rule": "key_len>=5 and spread_km<100",
+  "method": "規則を全数に当てて通ったグループのうち、SHA-256順 121-220番の先頭20件を全件目視。規則の作成には使っていない第3の標本。",
+  "rows": [
+    {
+      "name": "霧降高原 レストハウス",
+      "n_places": 2,
+      "key_len": 10,
+      "spread_km": 8.5,
+      "n": 1,
+      "verdict": "brand"
+    },
+    {
+      "name": "ＬＵＣＹ　ＣＲＥＰＥ",
+      "n_places": 2,
+      "key_len": 10,
+      "spread_km": 4.3,
+      "n": 2,
+      "verdict": "brand"
+    },
+    {
+      "name": "唐揚げの大善",
+      "n_places": 2,
+      "key_len": 6,
+      "spread_km": 19.9,
+      "n": 3,
+      "verdict": "brand"
+    },
+    {
+      "name": "レストラン藤観光",
+      "n_places": 2,
+      "key_len": 8,
+      "spread_km": 0.8,
+      "n": 4,
+      "verdict": "brand"
+    },
+    {
+      "name": "Hibio",
+      "n_places": 2,
+      "key_len": 5,
+      "spread_km": 1.1,
+      "n": 5,
+      "verdict": "brand"
+    },
+    {
+      "name": "伝丸 6号石岡大橋店",
+      "n_places": 2,
+      "key_len": 9,
+      "spread_km": 1.4,
+      "n": 6,
+      "verdict": "brand"
+    },
+    {
+      "name": "中国料理 黒龍",
+      "n_places": 2,
+      "key_len": 6,
+      "spread_km": 23.9,
+      "n": 7,
+      "verdict": "brand"
+    },
+    {
+      "name": "Ｃａｆｅ　Ｂａｒ　ＴＡＴＳＵ",
+      "n_places": 2,
+      "key_len": 14,
+      "spread_km": 75.5,
+      "n": 8,
+      "verdict": "generic"
+    },
+    {
+      "name": "オロチョンラーメン利しり",
+      "n_places": 3,
+      "key_len": 12,
+      "spread_km": 8.6,
+      "n": 9,
+      "verdict": "brand"
+    },
+    {
+      "name": "ゴールデン酒場おさけや",
+      "n_places": 3,
+      "key_len": 11,
+      "spread_km": 50.7,
+      "n": 10,
+      "verdict": "brand"
+    },
+    {
+      "name": "AND BURGER",
+      "n_places": 2,
+      "key_len": 10,
+      "spread_km": 70.4,
+      "n": 11,
+      "verdict": "brand"
+    },
+    {
+      "name": "創作居酒屋用木くんの店",
+      "n_places": 2,
+      "key_len": 11,
+      "spread_km": 1.1,
+      "n": 12,
+      "verdict": "brand"
+    },
+    {
+      "name": "大和の台所 弥栄",
+      "n_places": 2,
+      "key_len": 7,
+      "spread_km": 2.2,
+      "n": 13,
+      "verdict": "brand"
+    },
+    {
+      "name": "Coco Santé",
+      "n_places": 2,
+      "key_len": 9,
+      "spread_km": 5.2,
+      "n": 14,
+      "verdict": "brand"
+    },
+    {
+      "name": "アルペンローゼ本店",
+      "n_places": 2,
+      "key_len": 9,
+      "spread_km": 81.1,
+      "n": 15,
+      "verdict": "generic"
+    },
+    {
+      "name": "Atlantis",
+      "n_places": 2,
+      "key_len": 8,
+      "spread_km": 99.9,
+      "n": 16,
+      "verdict": "generic"
+    },
+    {
+      "name": "美味工房みちよ",
+      "n_places": 2,
+      "key_len": 7,
+      "spread_km": 10.2,
+      "n": 17,
+      "verdict": "brand"
+    },
+    {
+      "name": "らー麺 藤平",
+      "n_places": 4,
+      "key_len": 5,
+      "spread_km": 44.7,
+      "n": 18,
+      "verdict": "brand"
+    },
+    {
+      "name": "元町珈琲岡山青江の離れ",
+      "n_places": 3,
+      "key_len": 11,
+      "spread_km": 4.5,
+      "n": 19,
+      "verdict": "brand"
+    },
+    {
+      "name": "サンセットプラザ堂ヶ島",
+      "n_places": 2,
+      "key_len": 11,
+      "spread_km": 4.3,
+      "n": 20,
+      "verdict": "brand"
+    }
+  ]
+}

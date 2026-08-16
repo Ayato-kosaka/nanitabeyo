@@ -1,0 +1,432 @@
+{
+  "n": 60,
+  "n_brand": 30,
+  "brand_rate": 0.5,
+  "wilson_ci95": [
+    0.37734812427246284,
+    0.6226518757275372
+  ],
+  "method": "SHA-256順の60件を全件目視。brand=商標性のある固有名、generic=一般語で無関係の店が同名になりうる。",
+  "rows": [
+    {
+      "n": 1,
+      "name": "うさぎ食堂",
+      "n_places": 3,
+      "n_nolink_places": 1,
+      "kind": "brand"
+    },
+    {
+      "n": 2,
+      "name": "居酒屋一",
+      "n_places": 16,
+      "n_nolink_places": 5,
+      "kind": "generic"
+    },
+    {
+      "n": 3,
+      "name": "自由が丘蔭山",
+      "n_places": 2,
+      "n_nolink_places": 0,
+      "kind": "brand"
+    },
+    {
+      "n": 4,
+      "name": "天豊",
+      "n_places": 3,
+      "n_nolink_places": 0,
+      "kind": "generic"
+    },
+    {
+      "n": 5,
+      "name": "ピザタイム",
+      "n_places": 3,
+      "n_nolink_places": 2,
+      "kind": "brand"
+    },
+    {
+      "n": 6,
+      "name": "インド・ネパール料理ヒマラヤ",
+      "n_places": 2,
+      "n_nolink_places": 0,
+      "kind": "generic"
+    },
+    {
+      "n": 7,
+      "name": "ラ・フェット",
+      "n_places": 2,
+      "n_nolink_places": 0,
+      "kind": "brand"
+    },
+    {
+      "n": 8,
+      "name": "いろり堂",
+      "n_places": 2,
+      "n_nolink_places": 0,
+      "kind": "generic"
+    },
+    {
+      "n": 9,
+      "name": "ディッパーダン",
+      "n_places": 18,
+      "n_nolink_places": 6,
+      "kind": "brand"
+    },
+    {
+      "n": 10,
+      "name": "仕事人",
+      "n_places": 4,
+      "n_nolink_places": 0,
+      "kind": "generic"
+    },
+    {
+      "n": 11,
+      "name": "トゥールドール",
+      "n_places": 2,
+      "n_nolink_places": 0,
+      "kind": "brand"
+    },
+    {
+      "n": 12,
+      "name": "ちくあん",
+      "n_places": 2,
+      "n_nolink_places": 0,
+      "kind": "generic"
+    },
+    {
+      "n": 13,
+      "name": "九十九堂本舗",
+      "n_places": 2,
+      "n_nolink_places": 0,
+      "kind": "brand"
+    },
+    {
+      "n": 14,
+      "name": "花とく",
+      "n_places": 2,
+      "n_nolink_places": 0,
+      "kind": "generic"
+    },
+    {
+      "n": 15,
+      "name": "やきとり安兵衛 天神店",
+      "n_places": 2,
+      "n_nolink_places": 0,
+      "kind": "brand"
+    },
+    {
+      "n": 16,
+      "name": "monkey",
+      "n_places": 6,
+      "n_nolink_places": 4,
+      "kind": "generic"
+    },
+    {
+      "n": 17,
+      "name": "Eimy Sandwich",
+      "n_places": 2,
+      "n_nolink_places": 0,
+      "kind": "brand"
+    },
+    {
+      "n": 18,
+      "name": "bocchi",
+      "n_places": 2,
+      "n_nolink_places": 1,
+      "kind": "generic"
+    },
+    {
+      "n": 19,
+      "name": "末広本店",
+      "n_places": 2,
+      "n_nolink_places": 0,
+      "kind": "generic"
+    },
+    {
+      "n": 20,
+      "name": "Bar Angel",
+      "n_places": 2,
+      "n_nolink_places": 0,
+      "kind": "generic"
+    },
+    {
+      "n": 21,
+      "name": "バンブーハウス",
+      "n_places": 3,
+      "n_nolink_places": 0,
+      "kind": "generic"
+    },
+    {
+      "n": 22,
+      "name": "すなっく舞",
+      "n_places": 3,
+      "n_nolink_places": 2,
+      "kind": "generic"
+    },
+    {
+      "n": 23,
+      "name": "酒彩 縁",
+      "n_places": 2,
+      "n_nolink_places": 0,
+      "kind": "brand"
+    },
+    {
+      "n": 24,
+      "name": "大原",
+      "n_places": 5,
+      "n_nolink_places": 1,
+      "kind": "generic"
+    },
+    {
+      "n": 25,
+      "name": "レストランくれそん",
+      "n_places": 2,
+      "n_nolink_places": 1,
+      "kind": "brand"
+    },
+    {
+      "n": 26,
+      "name": "マジック",
+      "n_places": 4,
+      "n_nolink_places": 0,
+      "kind": "generic"
+    },
+    {
+      "n": 27,
+      "name": "わらび餅専門店門藤",
+      "n_places": 3,
+      "n_nolink_places": 0,
+      "kind": "brand"
+    },
+    {
+      "n": 28,
+      "name": "とんこつ・牛骨ラーメン　龍瞳",
+      "n_places": 2,
+      "n_nolink_places": 1,
+      "kind": "brand"
+    },
+    {
+      "n": 29,
+      "name": "もんじゃ月島",
+      "n_places": 2,
+      "n_nolink_places": 0,
+      "kind": "brand"
+    },
+    {
+      "n": 30,
+      "name": "餃子のラスベガス",
+      "n_places": 2,
+      "n_nolink_places": 0,
+      "kind": "brand"
+    },
+    {
+      "n": 31,
+      "name": "ほろ酔",
+      "n_places": 7,
+      "n_nolink_places": 3,
+      "kind": "generic"
+    },
+    {
+      "n": 32,
+      "name": "フラットファイブ",
+      "n_places": 3,
+      "n_nolink_places": 2,
+      "kind": "brand"
+    },
+    {
+      "n": 33,
+      "name": "民俗村",
+      "n_places": 11,
+      "n_nolink_places": 3,
+      "kind": "generic"
+    },
+    {
+      "n": 34,
+      "name": "Pub",
+      "n_places": 2,
+      "n_nolink_places": 0,
+      "kind": "generic"
+    },
+    {
+      "n": 35,
+      "name": "月鳥",
+      "n_places": 3,
+      "n_nolink_places": 3,
+      "kind": "generic"
+    },
+    {
+      "n": 36,
+      "name": "Griffon",
+      "n_places": 2,
+      "n_nolink_places": 0,
+      "kind": "brand"
+    },
+    {
+      "n": 37,
+      "name": "日光霧降高原 チロリン村",
+      "n_places": 2,
+      "n_nolink_places": 1,
+      "kind": "brand"
+    },
+    {
+      "n": 38,
+      "name": "giggi",
+      "n_places": 2,
+      "n_nolink_places": 1,
+      "kind": "brand"
+    },
+    {
+      "n": 39,
+      "name": "博多らーめんＳｈｉｎ－Ｓｈｉｎ",
+      "n_places": 2,
+      "n_nolink_places": 2,
+      "kind": "brand"
+    },
+    {
+      "n": 40,
+      "name": "ボルガ",
+      "n_places": 4,
+      "n_nolink_places": 0,
+      "kind": "generic"
+    },
+    {
+      "n": 41,
+      "name": "Bar Moon Walk",
+      "n_places": 7,
+      "n_nolink_places": 0,
+      "kind": "brand"
+    },
+    {
+      "n": 42,
+      "name": "上原製麺所",
+      "n_places": 3,
+      "n_nolink_places": 0,
+      "kind": "brand"
+    },
+    {
+      "n": 43,
+      "name": "八竹",
+      "n_places": 3,
+      "n_nolink_places": 1,
+      "kind": "generic"
+    },
+    {
+      "n": 44,
+      "name": "豊浜サービスエリア　下り線",
+      "n_places": 2,
+      "n_nolink_places": 2,
+      "kind": "generic"
+    },
+    {
+      "n": 45,
+      "name": "風の里",
+      "n_places": 2,
+      "n_nolink_places": 0,
+      "kind": "generic"
+    },
+    {
+      "n": 46,
+      "name": "はくが",
+      "n_places": 2,
+      "n_nolink_places": 0,
+      "kind": "generic"
+    },
+    {
+      "n": 47,
+      "name": "みつばちや",
+      "n_places": 2,
+      "n_nolink_places": 0,
+      "kind": "brand"
+    },
+    {
+      "n": 48,
+      "name": "STARBOARD",
+      "n_places": 2,
+      "n_nolink_places": 0,
+      "kind": "brand"
+    },
+    {
+      "n": 49,
+      "name": "やき鳥信玄",
+      "n_places": 3,
+      "n_nolink_places": 1,
+      "kind": "brand"
+    },
+    {
+      "n": 50,
+      "name": "まねきそば",
+      "n_places": 2,
+      "n_nolink_places": 0,
+      "kind": "brand"
+    },
+    {
+      "n": 51,
+      "name": "末広寿司",
+      "n_places": 17,
+      "n_nolink_places": 5,
+      "kind": "generic"
+    },
+    {
+      "n": 52,
+      "name": "そば茶屋華元",
+      "n_places": 2,
+      "n_nolink_places": 1,
+      "kind": "brand"
+    },
+    {
+      "n": 53,
+      "name": "すきやばし次郎",
+      "n_places": 2,
+      "n_nolink_places": 0,
+      "kind": "brand"
+    },
+    {
+      "n": 54,
+      "name": "アスペン",
+      "n_places": 3,
+      "n_nolink_places": 0,
+      "kind": "generic"
+    },
+    {
+      "n": 55,
+      "name": "ゆ",
+      "n_places": 4,
+      "n_nolink_places": 1,
+      "kind": "generic"
+    },
+    {
+      "n": 56,
+      "name": "Convivio",
+      "n_places": 2,
+      "n_nolink_places": 0,
+      "kind": "brand"
+    },
+    {
+      "n": 57,
+      "name": "有限会社豊味うどん",
+      "n_places": 2,
+      "n_nolink_places": 2,
+      "kind": "brand"
+    },
+    {
+      "n": 58,
+      "name": "パンジー",
+      "n_places": 14,
+      "n_nolink_places": 4,
+      "kind": "generic"
+    },
+    {
+      "n": 59,
+      "name": "ピアニッシモ",
+      "n_places": 3,
+      "n_nolink_places": 0,
+      "kind": "generic"
+    },
+    {
+      "n": 60,
+      "name": "焼肉美味",
+      "n_places": 2,
+      "n_nolink_places": 0,
+      "kind": "generic"
+    }
+  ]
+}

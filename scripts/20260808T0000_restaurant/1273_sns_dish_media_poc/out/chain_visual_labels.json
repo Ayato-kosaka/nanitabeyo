@@ -1,0 +1,53 @@
+{
+  "n_labeled": 8,
+  "TP": 6,
+  "precision": 0.75,
+  "hit_rate_by_stores": 0.6034251675353686,
+  "chain_domains": 9350,
+  "chain_stores": 184905,
+  "contribution_overture_pct_optimistic": 10.597894656153336,
+  "contribution_seed_pct_optimistic": 7.389278412579227,
+  "contribution_seed_pct_conservative": 4.699438004411276,
+  "labels": {
+    "05": {
+      "label": "TP",
+      "chain": "hottomotto",
+      "note": "牛プレミアムカレー（文字焼き込みあるが主題は料理）"
+    },
+    "06": {
+      "label": "TP",
+      "chain": "skylark",
+      "note": "ステーキ重（同上）"
+    },
+    "03": {
+      "label": "TP",
+      "chain": "sukiya",
+      "note": "なす牛丼（背景抜きの商品写真、高品質）"
+    },
+    "01": {
+      "label": "TP",
+      "chain": "matsuyafoods",
+      "note": "オレンジソース唐揚げ定食"
+    },
+    "04": {
+      "label": "TP",
+      "chain": "torikizoku",
+      "note": "焼鳥の盛り皿"
+    },
+    "12": {
+      "label": "TP",
+      "chain": "mcdonalds",
+      "note": "鉄板上のパティ（調理工程だが明確に食品）"
+    },
+    "02": {
+      "label": "FP",
+      "chain": "ichibanya",
+      "note": "ブランドロゴ"
+    },
+    "13": {
+      "label": "FP",
+      "chain": "hottomotto",
+      "note": "公式アプリのダウンロードバナー"
+    }
+  }
+}
