@@ -10,13 +10,19 @@ import { TabBar } from "../../screens/TabBar";
 import { ensureSavedDishCategory } from "../../utils/savedDishCategory";
 
 /**
- * 📌 保存した料理カテゴリからの地点検索（#1133）
+ * 📌 保存した料理カテゴリからの地点検索（#1133 / #1369）
  *
  * 目的: 「保存した料理カテゴリのカードから開く地点検索が、ホーム（さがすタブ）と地続きであること」を保証する。
  *       対応する e2e-web: e2e-web/tests/profile/saved-topic-location-search.spec.ts
  *
+ * ## #1369 でモーダルからルートになった
+ * 器が BlurModal から «画面»（/[locale]/profile/saved-topic-location）へ変わった。
+ * 中身（LocationSearchForm）と testID は据え置きなので下の 2 本はそのまま通るが、
+ * 到達判定に画面ヘッダーを足し（SavedTopicLocationSearchScreen.screenTitle）、
+ * #528 の観点を 3 本目として **この画面に** 足してある（理由はそのテストのコメント）。
+ *
  * ## なぜこのテストが要るか
- * #1133 以前、このモーダルは **素のテキスト入力だけ**だった。ホームには「現在地」も
+ * #1133 以前、この地点検索は **素のテキスト入力だけ**だった。ホームには「現在地」も
  * 「最近使った場所」もあるのに、保存料理から検索するときだけ毎回地名を打ち直す必要があり、
  * 「保存した料理を近所で食べたい」という一番自然な導線が一番面倒だった。
  * #1133（PR #1168）はホームと同じ `LocationAutocomplete` を使い、履歴も
@@ -25,7 +31,7 @@ import { ensureSavedDishCategory } from "../../utils/savedDishCategory";
  * ここで守りたいのは個々の部品の存在ではなく、その**共有**そのものである。
  * 部品は共有せず見た目だけ似せる実装（= 履歴が別キーに積まれる）でも
  * 「現在地ボタンがある」「最近使った場所パネルがある」は緑になってしまうため、
- * 2 本目のテストは履歴をシードせず **実際にホームで地点を選んでから**モーダルを開く。
+ * 2 本目のテストは履歴をシードせず **実際にホームで地点を選んでから**この画面を開く。
  * これが #1133 の設計上の肝を唯一検知できる観測になっている。
  *
  * ## 検証しないこと
@@ -36,7 +42,7 @@ import { ensureSavedDishCategory } from "../../utils/savedDishCategory";
  * - **パネルのはみ出し**（web の優先2）: Detox にビューポートを縮める API が無い。
  *
  * ## ログイン済み前提である理由
- * 入口は保存した料理カテゴリのカードだけで、匿名ユーザーには保存が無いのでモーダルを開けない。
+ * 入口は保存した料理カテゴリのカードだけで、匿名ユーザーには保存が無いのでこの画面を開けない。
  * `describeAuthenticated` は TEST_USER_* が無い環境で spec ごと skip する（fixtures/e2e.ts）。
  * さらに **テストユーザーが料理カテゴリを 1 件以上保存している**ことも前提になる。
  *
@@ -73,27 +79,27 @@ describeAuthenticated("保存した料理カテゴリからの地点検索", () 
 		await ensureSavedDishCategory();
 	}, 180_000);
 
-	// #1031 【バグ】beforeAll だと前のテストが残した画面状態（開いたままのモーダル等）を次が引き継ぎ、
+	// #1031 【バグ】beforeAll だと前のテストが残した画面状態（開いたままの画面等）を次が引き継ぎ、
 	// タップがオーバーレイに阻まれて落ちる。セッション注入起動は匿名クォータを消費しないため、
 	// テストごとに起動し直して独立性を担保する。
 	// ⚠️ `resetState` は付けない。2 本目は 1 本目の続きではなく **同一テスト内で**履歴を積むが、
 	// アプリのデータを消すと注入済みセッション以外のローカル状態も落ちるため触らない方針にする
 
-	// ─ テストケース 1: カードを押すと地点検索モーダルが開き、現在地ボタンがある ─
+	// ─ テストケース 1: カードを押すと地点検索画面が開き、現在地ボタンがある ─
 	// 手順:
 	//   1. 保存した料理カテゴリタブへ直リンクで起動する
 	//   2. 先頭のカード（save-topic-tab-item-0）を押す
 	//   3. 地点検索の入力欄（saved-topic-location-search-input）が表示されることを検証
 	//   4. 現在地ボタン（saved-topic-current-location-button）が表示されることを検証
 	//      → #1133 の本体。以前はここに素のテキスト入力しか無かった
-	it("カードを押すと地点検索モーダルが開き、現在地ボタンがある", async () => {
-		const modal = new SavedTopicLocationSearchScreen();
+	it("カードを押すと地点検索画面が開き、現在地ボタンがある", async () => {
+		const locationSearch = new SavedTopicLocationSearchScreen();
 
 		await launchAppWithSession({ as: "authenticated", url: profileDeepLink });
 
-		await modal.openLocationSearchFromFirstTopic();
+		await locationSearch.openLocationSearchFromFirstTopic();
 
-		await waitUntilVisible(modal.currentLocationButton);
+		await waitUntilVisible(locationSearch.currentLocationButton);
 	});
 
 	// ─ テストケース 2: ホームで選んだ地点が「最近使った場所」に出て、押すと検索が確定する ─
@@ -109,7 +115,7 @@ describeAuthenticated("保存した料理カテゴリからの地点検索", () 
 	it("ホームで選んだ地点が最近使った場所に出て、押すと検索が確定する", async () => {
 		const search = new SearchScreen();
 		const tabBar = new TabBar();
-		const modal = new SavedTopicLocationSearchScreen();
+		const locationSearch = new SavedTopicLocationSearchScreen();
 
 		await launchAppWithSession({ as: "authenticated" });
 		await tabBar.gotoSearch();
@@ -124,14 +130,53 @@ describeAuthenticated("保存した料理カテゴリからの地点検索", () 
 		await search.selectLocationSuggestion(0);
 
 		await launchAppWithSession({ as: "authenticated", url: profileDeepLink });
-		await modal.openLocationSearchFromFirstTopic();
-		await modal.focusLocationInput();
+		await locationSearch.openLocationSearchFromFirstTopic();
+		await locationSearch.focusLocationInput();
 
-		await waitUntilVisible(modal.recentLocations);
-		await waitUntilVisible(modal.recentLocation(0));
+		await waitUntilVisible(locationSearch.recentLocations);
+		await waitUntilVisible(locationSearch.recentLocation(0));
 
-		await modal.selectRecentLocation(0);
+		await locationSearch.selectRecentLocation(0);
 
-		await modal.expectSearchResultShown();
+		await locationSearch.expectSearchResultShown();
+	});
+
+	// ─ テストケース 3: 候補をタップすると地点が確定し、検索結果へ進む（#528 / #1369） ─
+	// 手順:
+	//   1. 保存した料理カテゴリタブへ直リンクで起動し、先頭のカードを押して地点検索画面へ
+	//   2. 「渋谷」を入力し、候補リストと先頭項目の表示を待つ
+	//   3. 先頭の候補をタップする ← #528 の再現操作
+	//   4. マイページ配下の検索結果画面へ遷移することを検証（＝ 地点が «検索条件として» 確定した）
+	//
+	// ## なぜこの spec に足したのか（#528 の担保先がここへ移った）
+	// #528 は「候補をタップしたのにキーボードだけ閉じて選択が反応しない」不具合で、原因は
+	// **地点オートコンプリートを BlurModal の中に置いていたこと**だった
+	//（親の KeyboardAvoidingView がタップ開始時に Keyboard.dismiss() を呼び、キーボード高の変化による
+	//  レイアウト再計算で候補リストが unmount され、子の onPress が潰れる。詳細は
+	//  tests/search/location-suggestion-tap.test.ts のヘッダ）。
+	//
+	// その «唯一の» 該当画面がこの地点検索で、#1369 のルート化で BlurModal ごと無くなっている。
+	// tests/search/location-suggestion-tap.test.ts は当時「ここは保存カテゴリのシードが無く
+	// 触れない」と書き残していたが、その前提は `utils/savedDishCategory.ts`（保存を 1 件作る）と
+	// `save-topic-tab-item-<n>` の testID が入った時点で解消済み。**元の当事者の画面で、
+	// 候補タップが選択として成立する**ことをここで直接押さえる。
+	//
+	// 観測点を入力欄の値ではなく遷移にしているのは location-suggestion-tap.test.ts と同じ理由
+	//（Detox の toHaveValue / toHaveText は TextInput でプラットフォーム差が大きい）。
+	// 遷移先はデータ読み込み中でも常に描画される閉じるボタンで判定する。
+	it("候補をタップすると地点が確定し、検索結果画面へ進む", async () => {
+		const locationSearch = new SavedTopicLocationSearchScreen();
+
+		await launchAppWithSession({ as: "authenticated", url: profileDeepLink });
+		await locationSearch.openLocationSearchFromFirstTopic();
+
+		await locationSearch.typeLocation("渋谷");
+		await waitUntilVisible(locationSearch.suggestions);
+		await waitUntilVisible(locationSearch.suggestion(0));
+
+		await locationSearch.selectSuggestion(0);
+
+		// #528 が再発すると onPress が走らず地点が確定しないため、ここへは到達できない
+		await locationSearch.expectSearchResultShown();
 	});
 });

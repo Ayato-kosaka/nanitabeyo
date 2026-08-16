@@ -45,6 +45,29 @@ test.describe("マイページ(ログイン済み)", () => {
 		await expect(tabBar.notificationsTab).toBeVisible();
 	});
 
+	// ─ テストケース: プロフィール編集がルートとして開き、戻るとマイページへ帰る ─
+	// 手順:
+	//   1. マイページへ遷移する(ログイン済みなので編集ボタンが出る)
+	//   2. 編集ボタンを押し、URL が /profile/edit になることを検証
+	//   3. ScreenHeader の戻るを押し、マイページへ帰ることを検証
+	//
+	// ## なぜ URL を見るのか(#1369)
+	// 編集フォームは長らく BlurModal で、URL に何も現れなかった。ルート化の目的は
+	// 「編集 UI の寿命 = ルートの寿命」にすることなので、**同じ URL のまま重なって開く**
+	// 旧実装へ戻ったらここが赤くなる必要がある。戻る導線まで見るのは、モーダル時代に
+	// 「閉じられない」(#498 型)が繰り返し起きた箇所だから。
+	test("プロフィール編集がルートとして開き、戻るとマイページへ帰る", async ({ appPage }) => {
+		const tabBar = new TabBar(appPage);
+		const profilePage = new ProfilePage(appPage);
+
+		await tabBar.gotoProfile();
+		await profilePage.openEdit();
+
+		// ScreenHeader は編集画面のコンテナの外側にあるため、testID は共通の screen-header-back
+		await appPage.getByTestId("screen-header-back").click();
+		await expect(appPage).toHaveURL(/\/profile(\?|$)/);
+	});
+
 	// ─ テストケース: 設定にログアウトが表示される(実行はしない) ─
 	// 手順:
 	//   1. ログイン済みで設定画面へ遷移する

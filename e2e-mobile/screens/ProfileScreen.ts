@@ -24,6 +24,8 @@ import {
 export class ProfileScreen {
 	/** 匿名ユーザーに表示されるログインボタン（既存 testID） */
 	readonly loginButton = by.id("profile-login-button");
+	/** ログイン済みユーザーに表示される「プロフィールを編集」ボタン（#1369 で testID を追加） */
+	readonly editButton = by.id("profile-edit-button");
 	/**
 	 * 設定画面への唯一の UI 導線（歯車ボタン）。
 	 * #1031 【設計確定】B2 に関連する実装メモ: e2e-web の ProfilePage.gotoSettings() は
@@ -72,6 +74,17 @@ export class ProfileScreen {
 	/** ログインボタンをタップしてログイン画面（/[locale]/auth/login）へ遷移する（匿名ユーザーのみ） */
 	async openLogin(): Promise<void> {
 		await tapWhenVisible(this.loginButton);
+	}
+
+	/**
+	 * 「プロフィールを編集」をタップして編集画面（/[locale]/profile/edit）へ遷移する。
+	 *
+	 * #1369 でモーダルからルートへ移した際に testID を付けた（それまでこのボタンには
+	 * testID が無く、E2E から «押した先» を観測できなかった）。ログイン済みのときだけ
+	 * 描画される（ゲストには同じ位置にログインボタンが出る）ので、匿名セッションでは押せない。
+	 */
+	async openEdit(): Promise<void> {
+		await tapWhenVisible(this.editButton);
 	}
 
 	/** 歯車ボタンをタップして設定画面へ遷移する（#1031 確定: URL 直遷移ではなく実 UI 導線のタップ） */

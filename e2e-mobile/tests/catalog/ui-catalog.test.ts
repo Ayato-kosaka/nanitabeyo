@@ -236,6 +236,9 @@ describe("UI カタログ（匿名） @catalog", () => {
 		// 起動完了待ちを切り、描画が落ち着くのを時間で待ってから撮る
 		const directLinkScreens = [
 			{ id: "profile-feedback", waitForReady: true, settleMs: 1_500 },
+			// #1369 保存料理カテゴリの地点検索。本来の入口はカードのタップだが、匿名では保存が 0 件で
+			// 入口が無い。見た目は topicId / topicLabelEn の有無で変わらないので直リンクで撮る
+			{ id: "profile-saved-topic-location", waitForReady: true, settleMs: 1_500 },
 			{ id: "profile-blocked-topics", waitForReady: true, settleMs: 2_500 },
 			{ id: "map", waitForReady: true, settleMs: 5_000 },
 			{ id: "contribution-dish-category-image-optimizer", waitForReady: false, settleMs: 6_000 },
@@ -313,6 +316,20 @@ describeAuthenticated("UI カタログ（ログイン済み） @catalog", () => 
 				{ settleMs: 5_000 },
 			);
 		}
+
+		// #1369 プロフィール編集はモーダルからルートへ移ったため、1 画面として撮る。
+		// 編集ボタンはログイン済みのときだけ描画されるので、この（ログイン済み）側に置く
+		await captureScreenIfReachable(
+			"profile-edit",
+			async () => {
+				await launchAppWithSession({ as: "authenticated" });
+				await tabBar.gotoProfile();
+				await profileScreen.openEdit();
+				await waitUntilVisible(by.id("profile-edit-screen-title"));
+			},
+			// アバター画像の読み込みを待つ（スケルトンのまま撮らない）
+			{ settleMs: 2_000 },
+		);
 
 		await captureScreenIfReachable(
 			"profile-settings-authenticated",

@@ -105,6 +105,7 @@ rg -o 'event_name:\s*"[^"]+"' app-expo --glob '!**/node_modules/**'
 - `topic_image_manual_retry`
 - `saved_topic_selected`
 - `saved_topic_location_selected`
+- `saved_topic_location_screen_back_pressed`
 
 ### Dish Media Flow
 
@@ -248,6 +249,7 @@ rg -o 'event_name:\s*"[^"]+"' app-expo --glob '!**/node_modules/**'
 - `oauth_signin_error`
 - `profile_shared`
 - `profile_edit_started`
+- `profile_edit_screen_back_pressed`
 - `profile_edit_saved`
 - `profile_update_failed`
 - `profile_avatar_upload_failed`
