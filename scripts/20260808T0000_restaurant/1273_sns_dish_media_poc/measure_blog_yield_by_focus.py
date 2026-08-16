@@ -135,6 +135,9 @@ def main() -> None:
     ap.add_argument("--per-group", type=int, default=6)
     ap.add_argument("--max-articles", type=int, default=150)
     ap.add_argument("--delay", type=float, default=0.7)
+    # 【運用】特化群は既に完走している（6ブログ・636記事・29店）。
+    # 非特化群だけ測り直したいときに、特化群の再クロールで1時間浪費しないための口。
+    ap.add_argument("--group", choices=("both", "focused", "general"), default="both")
     args = ap.parse_args()
 
     sup = json.loads((OUT_DIR / "blogger_supply.json").read_text(encoding="utf-8"))
@@ -233,10 +236,14 @@ def main() -> None:
                   f" = {len(nol)/max(len(known),1)*100:5.2f}%", file=sys.stderr)
         return rows
 
-    print(f"=== カテゴリ特化群（1カテゴリだけ）===", file=sys.stderr)
-    rows_f = run_group(focus_hosts, "特化")
-    print(f"\n=== 非特化群（2カテゴリ以上）===", file=sys.stderr)
-    rows_g = run_group(general_hosts, "非特化")
+    rows_f, rows_g = [], []
+    if args.group in ("both", "focused"):
+        print(f"=== カテゴリ特化群（1カテゴリだけ）===", file=sys.stderr)
+        rows_f = run_group(focus_hosts, "特化")
+    if args.group in ("both", "general"):
+        print(f"\n=== 非特化群（2カテゴリ以上・ブログサービスのドメインは除く）===",
+              file=sys.stderr)
+        rows_g = run_group(general_hosts, "非特化")
 
     def summarize(rows, label):
         if not rows:
@@ -267,7 +274,8 @@ def main() -> None:
               file=sys.stderr)
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    p = OUT_DIR / "blog_yield_by_focus.json"
+    p = OUT_DIR / (f"blog_yield_by_focus_{args.group}.json" if args.group != "both"
+                   else "blog_yield_by_focus.json")
     p.write_text(json.dumps(
         {"focused": sf, "general": sg, "rows": rows_f + rows_g,
          "nolink_base": NOLINK_BASE,
