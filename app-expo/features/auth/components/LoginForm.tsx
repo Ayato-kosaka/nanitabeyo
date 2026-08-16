@@ -230,7 +230,12 @@ export function LoginForm({ testID }: LoginFormProps) {
 			<View style={styles.consentContainer}>
 				<Text style={styles.consentText}>
 					{i18n.t("auth.consent_login_prefix")}
-					<Text style={styles.consentLink} onPress={() => handleOpenLegalDocument("terms")}>
+					{/* #1368 プライバシーポリシー側（login-privacy-link）だけ testID があり、
+					    利用規約側は「押した先」を機械的に検証できなかったので揃えた */}
+					<Text
+						testID="login-terms-link"
+						style={styles.consentLink}
+						onPress={() => handleOpenLegalDocument("terms")}>
 						{i18n.t("auth.consent_login_terms")}
 					</Text>
 					{i18n.t("auth.consent_login_and")}

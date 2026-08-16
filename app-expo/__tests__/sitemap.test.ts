@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 
 import { PUBLIC_LOCALES } from "@/constants/seoLocales";
+import { LEGAL_DOCUMENT_TYPES, LEGAL_SITEMAP_ROUTES } from "@/lib/legalRoute";
 import {
 	buildPageUrl,
 	buildSitemapXml,
@@ -190,6 +191,27 @@ describe("buildSitemapXml", () => {
 		for (const loc of locs) {
 			expect(forbidden.some((suffix) => loc.endsWith(suffix))).toBe(false);
 		}
+	});
+
+	// #1368 逆に「載っていて欲しい URL」も固定する。法務ページは `auth/login` と逆の判断で、
+	// ストア審査・問い合わせ・外部サイト・検索結果から **人間が入口として踏む** URL だから載せる。
+	// 落ちた場合に疑うのは 2 つ: SITEMAP_ROUTES から外れた / LEGAL_DOCUMENT_TYPES が減った
+	it("法務ページ（legal/*）を全文書 × 全ロケール分だけ載せる", () => {
+		expect(LEGAL_SITEMAP_ROUTES).toHaveLength(4);
+
+		for (const route of LEGAL_SITEMAP_ROUTES) {
+			expect(SITEMAP_ROUTES).toContain(route);
+			for (const locale of PUBLIC_LOCALES) {
+				expect(locs).toContain(buildPageUrl(SITEMAP_DEFAULT_BASE_URL, locale, route));
+			}
+		}
+	});
+
+	// ⚠️ sitemap に載る以上、その URL には «実体の HTML» が要る。動的セグメント `[doc]` は
+	// `app/[locale]/legal/[doc].tsx` の generateStaticParams が展開して初めて prerender される。
+	// 展開漏れがあると、載せた URL が空の SPA シェルとしてクローラへ提出される（#721 の症状 b）
+	it("sitemap の legal/* と prerender される doc が一致する", () => {
+		expect([...LEGAL_SITEMAP_ROUTES]).toEqual(LEGAL_DOCUMENT_TYPES.map((doc) => `legal/${doc}`));
 	});
 
 	it("各 URL に全ロケールの hreflang を相互参照させる", () => {
