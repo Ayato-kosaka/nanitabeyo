@@ -3,9 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, LayoutChangeEvent } from "rea
 import { Image } from "expo-image";
 import { Heart, Bookmark, Share, MapPinned } from "lucide-react-native";
 import i18n from "@/lib/i18n";
-import { useRouter } from "expo-router";
 import { formatLikeCount } from "../utils/text";
-import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useAPICall } from "@/hooks/useAPICall";
@@ -70,8 +68,6 @@ function ActionButtonsContent({
 	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
 	const { lightImpact } = useHaptics();
-	const router = useRouter();
-	const { locale } = useLocale();
 	const { isSaved, isLiked, likeCount } = entry.dish_media;
 	const dishMediaId = entry.dish_media.id;
 	const { restaurant } = entry;
@@ -230,27 +226,6 @@ function ActionButtonsContent({
 			payload: {
 				restaurantId: restaurant.id,
 				restaurantName: restaurant.name,
-				fromDishMediaId: dishMediaId,
-			},
-		});
-	};
-
-	const handleViewCreator = () => {
-		lightImpact();
-		// Navigate to creator's profile
-		router.push({
-			pathname: `/[locale]/profile`,
-			params: {
-				locale,
-				userId: "123",
-			},
-		});
-
-		logFrontendEvent({
-			event_name: "creator_profile_clicked",
-			error_level: "log",
-			payload: {
-				creatorUserId: "123",
 				fromDishMediaId: dishMediaId,
 			},
 		});
