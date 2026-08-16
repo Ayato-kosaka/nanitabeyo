@@ -1,0 +1,67 @@
+{
+  "purpose": "#1345 Bluesky 層別測定（out/bluesky_ceiling.json）のヒット全件を目視ラベル。機械判定はリンク無し 13.33% / リンクあり 2.67% と非対称で、YouTube と同じ偽陽性が疑われた。",
+  "labeled_at": "2026-08-16",
+  "labeler": "Claude（投稿本文と添付枚数を読んで判定。画像そのものは見ていない）",
+  "label_definition": {
+    "strict": "サンプルした**その店**の飲食に関する投稿で、画像が付いている",
+    "loose": "その屋号の店の料理が写っていそうな投稿（チェーンの別店舗を含む）",
+    "FP": "店の投稿ではない（同名の人物・曲・品種・街道・番組など）"
+  },
+  "without_overture": {
+    "n_sample": 150,
+    "n_hit_machine": 20,
+    "strict_tp": [
+      {"name": "大和水産", "why": "ネギトロ丼の写真に #大和水産"},
+      {"name": "甲州屋", "why": "田原町の甲州屋で献杯。店の飲食"},
+      {"name": "串カツ田中", "why": "サンプルは名古屋市、投稿は名古屋市千種区の千種店で一致"}
+    ],
+    "loose_only_tp": [
+      {"name": "吉野家", "why": "肉定を食べた写真。チェーンで店舗特定なし"},
+      {"name": "松のや", "why": "ロースカツ白麻婆ライスの写真。店舗特定なし"},
+      {"name": "恵比寿屋", "why": "武蔵増戸の和菓子屋の紹介。サンプルの恵比寿屋と同一か不明"}
+    ],
+    "false_positive": [
+      {"name": "鳥まさ", "why": "『#やき鳥まさ吉』への部分一致"},
+      {"name": "くら寿司", "why": "五山送り火の写真。店の前から撮っただけ"},
+      {"name": "Cockapoo", "why": "英語圏のカップリング名"},
+      {"name": "Grand café", "why": "フランス語の内装解説"},
+      {"name": "いじげん", "why": "落書きの投稿"},
+      {"name": "浜田家", "why": "墓とタケノコの投稿。本文に店の言及なし"},
+      {"name": "マクドナルド", "why": "ビッグマック指数の物価比較"},
+      {"name": "ムーラン", "why": "ムーラン・ルージュ"},
+      {"name": "世界の山ちゃん", "why": "金券の使い道の話。料理写真なし"},
+      {"name": "uouo", "why": "フランス語の海洋保護記事"},
+      {"name": "Hira", "why": "人名（Hira Peracha）"},
+      {"name": "あかつき", "why": "桃の品種"},
+      {"name": "Three Suns", "why": "Futurama のエピソード名"},
+      {"name": "木曽路", "why": "街道としての木曽路"}
+    ],
+    "counts": {"strict_tp": 3, "loose_tp": 6, "fp": 14, "n_hit": 20},
+    "precision_strict": 0.15,
+    "precision_loose": 0.30,
+    "rate_machine": 0.1333,
+    "rate_corrected_strict": 0.0200,
+    "rate_corrected_loose": 0.0400
+  },
+  "with_overture": {
+    "n_sample": 150,
+    "n_hit_machine": 4,
+    "true_positive": [
+      {"name": "立飲み つうこん", "why": "Swarm チェックイン（港区で一致）"},
+      {"name": "麺むすび", "why": "天丼セットの写真 + #高松市"},
+      {"name": "Pronto", "why": "Swarm チェックイン（渋谷区で一致）"}
+    ],
+    "false_positive": [
+      {"name": "サーティワンアイスクリーム", "why": "『近場に無い』という投稿。画像は絵文字"}
+    ],
+    "counts": {"tp": 3, "fp": 1, "n_hit": 4},
+    "precision": 0.75,
+    "rate_machine": 0.0267,
+    "rate_corrected": 0.0200
+  },
+  "cross_platform_finding": {
+    "note": "YouTube と Bluesky の**両方**で誤爆した屋号が 11 件あった。プラットフォームではなく**店名辞書側**が原因であることの独立した証拠である。",
+    "names": ["Cockapoo", "Grand café", "Hira", "Three Suns", "uouo", "あかつき", "いじげん", "マクドナルド", "ムーラン", "世界の山ちゃん", "木曽路"]
+  },
+  "caveat": "本文と添付枚数だけで判定しており、画像そのものは見ていない。したがって『料理が写っているか』は確認できていない（経路存在率であって実効ではない）。"
+}
