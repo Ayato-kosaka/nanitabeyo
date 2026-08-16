@@ -68,10 +68,18 @@ jest.mock("@/hooks/useLogger", () => ({ useLogger: () => ({ logFrontendEvent: je
 // 「描かれたか / 描かれていないか」だけを観測したいのでスタブに差し替える。
 // ⚠️ ゲートを消すとこのスタブが描画されて下のテストが赤くなる、という向きで効かせている
 const LOGIN_FORM_TEST_ID = "login-form-stub";
+// #1370 受け取った props も観測する。`next` は OAuth の redirectTo へそのまま載る値なので、
+// 「検証済みのものだけが渡っているか」を LoginForm の中身と切り離して見たい
+let loginFormProps: { next?: string } | null = null;
 jest.mock("@/features/auth/components/LoginForm", () => {
 	const { View } = jest.requireActual("react-native");
 	const ReactActual = jest.requireActual("react");
-	return { LoginForm: () => ReactActual.createElement(View, { testID: LOGIN_FORM_TEST_ID }) };
+	return {
+		LoginForm: (props: { next?: string }) => {
+			loginFormProps = props;
+			return ReactActual.createElement(View, { testID: LOGIN_FORM_TEST_ID });
+		},
+	};
 });
 
 import LoginScreen from "../app/[locale]/auth/login";
@@ -105,6 +113,7 @@ beforeEach(() => {
 	mockCanGoBack = false;
 	mockReplace.mockClear();
 	mockBack.mockClear();
+	loginFormProps = null;
 });
 
 describe("#1359 ログイン画面の auth ゲート", () => {
@@ -253,5 +262,31 @@ describe("#1359 ログイン画面の戻る導線", () => {
 		await pressBack(tree);
 
 		expect(mockBack).toHaveBeenCalledTimes(1);
+	});
+});
+
+// #1370 【設計】OAuth の redirectTo に載せる `next` は LoginForm 経由で AuthProvider へ渡る。
+// web の OAuth は全画面リダイレクトでページごと作り直されるため、URL に載せる以外に
+// 「どこから来たか」を callback まで運ぶ手段が無い。載せる値は **検証済みのものだけ**にする
+// （生の値を渡すと、検証されない行き先が URL を一往復して戻ってくる経路ができる）。
+describe("#1370 LoginForm へ渡す next", () => {
+	it("採用できる next は現在の locale に寄せた形で渡す", async () => {
+		mockIsAuthResolved = true;
+		mockUser = { id: "guest-1", is_anonymous: true };
+		mockNext = "/en-US/review";
+
+		await render();
+
+		expect(loginFormProps?.next).toBe("/ja-JP/review");
+	});
+
+	it("外部を指す next は渡さない", async () => {
+		mockIsAuthResolved = true;
+		mockUser = { id: "guest-1", is_anonymous: true };
+		mockNext = "https://evil.com/steal";
+
+		await render();
+
+		expect(loginFormProps?.next).toBeUndefined();
 	});
 });

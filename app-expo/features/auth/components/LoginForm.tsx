@@ -30,6 +30,16 @@ import { useSnackbar } from "@/contexts/SnackbarProvider";
 interface LoginFormProps {
 	/** E2E の可視判定に使う testID。呼び出し側で明示する（ルート: `login-screen`） */
 	testID: string;
+
+	/**
+	 * #1370 ログイン後の行き先。OAuth の `redirectTo` に載せて callback へ引き継ぐ。
+	 *
+	 * 🔒 **検証済みの内部パスだけ**を受け取る。生の `?next=` を渡さないこと。
+	 * 呼び出し元（app/[locale]/auth/login.tsx）が `lib/authNext.ts` の `resolveNextPath` を通す。
+	 * web の OAuth は全画面リダイレクトでページごと作り直されるため、URL に載せる以外に
+	 * 「どこから来たか」を callback まで運ぶ手段が無い。
+	 */
+	next?: string;
 }
 
 /*
@@ -41,7 +51,7 @@ interface LoginFormProps {
 - `showTitle`: 唯一の呼び出し元（app/[locale]/auth/login.tsx）は ScreenHeader が同じタイトルを
   出すため常に false だった。見出しはヘッダーが持つ。
 */
-export function LoginForm({ testID }: LoginFormProps) {
+export function LoginForm({ testID, next }: LoginFormProps) {
 	const [isLoading, setIsLoading] = useState(false);
 	const [hasExistingAccount, setHasExistingAccount] = useState(false);
 	const [selectedLegalDocument, setSelectedLegalDocument] = useState<"terms" | "privacy" | null>(null);
@@ -81,11 +91,13 @@ export function LoginForm({ testID }: LoginFormProps) {
 				const isAnonymous = isGuestUser(user);
 				const isUpgrade = isAnonymous && !hasExistingAccount;
 
+				// #1370 【設計】どちらの経路にも `next` を載せる。載せないと web の全画面リダイレクトから
+				// 戻ったときに callback が行き先を知らず、全員マイページに着地して元の画面へ戻れない
 				const launch = isUpgrade
 					? // 未チェック（昇格狙い）: 匿名セッションのまま OAuth を追加(linkIdentity)を試みる。
-						await linkIdentity(provider)
+						await linkIdentity(provider, { next })
 					: // チェック済み（既存ログイン狙い）または既にログイン済みなら、通常の OAuth サインインを行う。
-						await signInWithOAuth(provider);
+						await signInWithOAuth(provider, { next });
 
 				// #1062 【設計】ブラウザセッションの結末を記録する。ただし **これで成否を判定してはいけない**。
 				// Android の openAuthSessionAsync は「AppState が active に戻ったこと」と
@@ -118,7 +130,7 @@ export function LoginForm({ testID }: LoginFormProps) {
 				setIsLoading(false);
 			}
 		},
-		[user, linkIdentity, signInWithOAuth, logFrontendEvent, showSnackbar, hasExistingAccount],
+		[user, linkIdentity, signInWithOAuth, logFrontendEvent, showSnackbar, hasExistingAccount, next],
 	);
 
 	// Legal ドキュメント表示用のハンドラ
