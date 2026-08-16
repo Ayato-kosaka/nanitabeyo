@@ -266,6 +266,87 @@ Overture が持っている店＝ネット上で言及される店＝SNS でも�
 
 ---
 
+## 【未評価の経路が1本あった】socials のみの層は **98.97% が Facebook** だった
+
+前節で「リンク有り層の 43.25% は website を持たず、自社サイト経路が構造的に届かない」
+と結論した。**その層が何を持っているのかを、私は確かめていなかった。**
+Instagram だろうと決めつけて、#1284（Instagram 直接アクセス）と
+#1345（PPCA）の却下を理由に片付けていた。
+
+BigQuery の Overture 公開データ（`bigquery-public-data.overture_maps.place`）で
+直接数えた。
+
+### 日本の飲食店 665,600 の内訳
+
+| | 店 | |
+|---|---:|---:|
+| **socials のみ（website 無し）** | **302,941** | **45.51%** |
+| **└ うち Facebook** | **299,825** | **98.97%** |
+| └ うち Instagram | 2,715 | 0.90% |
+| website あり | 362,659 | 54.49% |
+| Facebook を持つ（website の有無を問わず） | 599,987 | 90.14% |
+
+**socials のみの層は、ほぼ全部が Facebook ページである。Instagram ではない。**
+
+### 【自戒】この直前に、自分で書いたクエリのバグで 0件 と出していた
+
+最初のクエリは `ARRAY_LENGTH(websites.list) = 0` で数えており、
+**列が NULL のとき `ARRAY_LENGTH` は 0 ではなく NULL を返す**ので
+条件が偽になり、socials のみが **0件**と出た。
+手元の fixture では 43.82% なので**明らかに矛盾**しており、そこで気づいた。
+`IFNULL(..., 0)` に直すと 45.51% で、fixture の 43.82% と 2pt 差に収まった
+（別リリースなので完全一致はしない）。
+
+**矛盾に気づけたのは、先に fixture 側で同じ量を測ってあったからである。**
+
+### Page Public Content Access は Instagram と**許可用途が違う**
+
+Meta の Features Reference（一次情報）:
+
+> **Instagram** Public Content Access
+> Allowed Usage: Discover content associated with its current campaign /
+> Provide customer support / Identify entrants to its contests /
+> Understand public sentiment around brand / Understand and manage their audience
+
+> **Page** Public Content Access
+> The allowed usage for this feature is to **analyze and/or display posts and
+> engagement on Pages.**
+> **Allowed Usage: Analyze and/or display posts and engagement on Pages.**
+
+**Instagram の許可用途は閉じた5項目で当該用途が無かったが、
+Page 側は「Pages の投稿を表示する」である。** 文言の広さが明らかに違う。
+
+`/page/photos` に `type=uploaded` を付けると、**そのページが自分で上げた写真**が返る
+（＝店が自分で撮った料理写真）。要件は App Review と business verification で、
+オーナーが聞いていた**法人登記6万円の先にあるのはこちら**である。
+
+### 規模
+
+    socials のみ × Facebook = 299,825店 = 母集団の **25.87pt**（経路存在率）
+
+    実効係数 20% なら  5.17pt
+    実効係数 40% なら 10.35pt
+    実効係数 60% なら 15.52pt
+
+**比較: SNS/ブログ経路の実効合計は 3.97%、自社サイト経路は 19.26〜25.63%。**
+経路存在率だけで見れば、**これまで測ったどの単独経路よりも大きい。**
+
+### ただし未評価である。決めつけない
+
+以下はまだ確かめていない。**「使える」とは言っていない。**
+
+  1. **Meta Platform Terms の保存・キャッシュ規定**（Instagram oEmbed は persist を
+     明示禁止していた。Graph API 側がどうかは未確認）
+  2. **App Review が通るか**（用途文言が広くても審査は別）
+  3. **`/page/photos` に実際に料理写真があるか**（自社サイト経路は 67.32% だった）
+  4. **Overture の Facebook URL が生きているか**（リンク切れ率は未測定）
+  5. Pages Search API での**発見**が要るのか、Overture の URL で足りるのか
+
+**#1273 の「到達可能な最大 28.45%」は、この経路を勘定に入れていない値である。**
+ここが通れば数字は変わる。**通るかどうかは、上の5点を潰さないと言えない。**
+
+---
+
 ## 【構造の答え】r_L が 98.35% に届かない理由: **リンク有り層の 43.25% は website を持たない**
 
 恒等式は `0.6908 × r_L + 0.3092 × r_N = 0.70` で、
