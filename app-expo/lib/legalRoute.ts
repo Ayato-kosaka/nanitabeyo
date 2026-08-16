@@ -63,5 +63,4 @@ export const isLegalDocumentType = (value: unknown): value is LegalDocumentType 
  * @param doc `useLocalSearchParams<{ doc?: string }>()` から受け取った生の値
  * @returns 公開中の文書なら型の付いた値 / それ以外は null
  */
-export const resolveLegalDocument = (doc: unknown): LegalDocumentType | null =>
-	isLegalDocumentType(doc) ? doc : null;
+export const resolveLegalDocument = (doc: unknown): LegalDocumentType | null => (isLegalDocumentType(doc) ? doc : null);

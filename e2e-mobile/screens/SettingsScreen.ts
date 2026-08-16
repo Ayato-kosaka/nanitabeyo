@@ -1,12 +1,10 @@
-import {
-	DEFAULT_TIMEOUT,
-	by,
-	element,
-	existsNow,
-	tapWhenVisible,
-	waitFor,
-	waitUntilVisible,
-} from "../fixtures/e2e";
+import { DEFAULT_TIMEOUT, by, element, existsNow, tapWhenVisible, waitFor, waitUntilVisible } from "../fixtures/e2e";
+
+/**
+ * 設定画面から開ける法務ドキュメント（#1368）。
+ * 値は `app-expo/lib/legalRoute.ts` の `LEGAL_DOCUMENT_TYPES` と対応する（URL の `doc` セグメント）。
+ */
+export type LegalDocumentKey = "guidelines" | "terms" | "privacy" | "copyright";
 
 /**
  * ⚙️ 設定画面の Screen Object（e2e-web の pages/SettingsPage.ts に対応）
@@ -19,6 +17,8 @@ import {
  *   **表示のみ検証しタップしない**（タップすると実際に Linking.openURL が走り外部アプリへ遷移してしまう）。
  * - 「ログアウト」はログイン済み（非匿名）ユーザーのみ表示。
  *   匿名側（非表示）は tests/profile/settings.test.ts、実行そのものは tests/authenticated/logout.test.ts が検証する。
+ * - #1368 リーガル 4 行はモーダル起動ではなく `/[locale]/legal/<doc>` への画面遷移になった。
+ *   遷移先の検証は screens/LegalScreen.ts が持つ。
  */
 export class SettingsScreen {
 	/**
@@ -67,14 +67,21 @@ export class SettingsScreen {
 	/** 確認ダイアログの「キャンセル」ボタン（#1131 で追加した既定 testID） */
 	readonly logoutCancelButton = by.id("dialog-cancel-button");
 	/**
-	 * リーガルドキュメントのモーダル（#1027 で settings.tsx へ testID を追加）。
+	 * #1368 リーガル 4 行は **モーダルではなく画面遷移**（`/[locale]/legal/<doc>`）になった。
+	 * 遷移先の検証は `screens/LegalScreen.ts` が持つ。
 	 *
-	 * ログイン画面（`/[locale]/auth/login`）の同意文言リンク（`login-privacy-link`）でも
-	 * 同じモーダルが開くが、あちらは `<Text>` の入れ子でネイティブ View を持たず Detox から到達できない。
-	 * （#1359 でログインはモーダルから «ルート» になったが、到達できない理由はこれで変わっていない）
-	 * ネイティブでのリーガルモーダル検証はこの経路に集約している（screens/LoginScreen.ts 参照）。
+	 * ログイン画面（`/[locale]/auth/login`）の同意文言リンク（`login-privacy-link` /
+	 * `login-terms-link`）からも同じ画面へ遷移できるが、あちらは `<Text>` の入れ子で
+	 * ネイティブ View を持たず Detox から到達できない（理由は #1027 から変わっていない）。
+	 * ネイティブでのリーガル導線の検証はこの実体のある行に集約している
+	 *（screens/LoginScreen.ts 参照）。
 	 */
-	readonly legalDocumentModal = by.id("legal-document-modal");
+	private readonly legalItemByDoc = {
+		guidelines: this.guidelinesItem,
+		terms: this.termsItem,
+		privacy: this.privacyItem,
+		copyright: this.copyrightItem,
+	} as const;
 
 	/** 設定画面が表示されていることを検証する */
 	async expectLoaded(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
@@ -106,9 +113,19 @@ export class SettingsScreen {
 		await tapWhenVisible(this.blockedTopicsItem);
 	}
 
-	/** プライバシーポリシー行をタップしてリーガルドキュメントのモーダルを開く */
+	/** プライバシーポリシー行をタップして法務ドキュメント画面へ遷移する（#1368 でモーダル起動から変更） */
 	async openPrivacyPolicy(): Promise<void> {
 		await tapWhenVisible(this.privacyItem);
+	}
+
+	/**
+	 * 指定した法務ドキュメントの行をタップして `/[locale]/legal/<doc>` へ遷移する（#1368）。
+	 *
+	 * 4 行はアプリ側で同じハンドラを通るため、`doc` の取り違え（規約を押したら著作権が開く）は
+	 * **行ごとに**踏まないと見つからない。行の指定をここで引けるようにしておく。
+	 */
+	async openLegalDocument(doc: LegalDocumentKey): Promise<void> {
+		await tapWhenVisible(this.legalItemByDoc[doc]);
 	}
 
 	/**
@@ -125,10 +142,7 @@ export class SettingsScreen {
 	 * 既に見えている場合は 1 度も動かさずに返る（画面が大きい端末でも安全）。
 	 */
 	async scrollToLogout(): Promise<void> {
-		await waitFor(element(this.logoutItem))
-			.toBeVisible()
-			.whileElement(by.id("settings-scroll"))
-			.scroll(300, "down");
+		await waitFor(element(this.logoutItem)).toBeVisible().whileElement(by.id("settings-scroll")).scroll(300, "down");
 	}
 
 	/**
@@ -144,10 +158,5 @@ export class SettingsScreen {
 		// Portal 経由でマウントされるため、ダイアログの描画完了（タイトル）を待ってから押す
 		await waitUntilVisible(this.logoutConfirmTitle);
 		await tapWhenVisible(this.logoutConfirmButton);
-	}
-
-	/** リーガルドキュメントのモーダルが開いていることを検証する */
-	async expectLegalDocumentOpened(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
-		await waitUntilVisible(this.legalDocumentModal, timeout);
 	}
 }

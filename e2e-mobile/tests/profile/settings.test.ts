@@ -4,6 +4,7 @@ import { launchAppWithSession, waitUntilVisible } from "../../fixtures/e2e";
 import { TabBar } from "../../screens/TabBar";
 import { ProfileScreen } from "../../screens/ProfileScreen";
 import { SettingsScreen } from "../../screens/SettingsScreen";
+import { LegalScreen } from "../../screens/LegalScreen";
 
 /**
  * ⚙️ 設定画面（匿名ユーザー）のテスト（e2e-web の tests/profile/settings.spec.ts に対応）
@@ -49,26 +50,29 @@ describe("設定画面（匿名ユーザー）", () => {
 		await waitUntilVisible(settingsScreen.privacyItem);
 	});
 
-	// ─ テストケース: プライバシーポリシー行でリーガルモーダルが開く ─
+	// ─ テストケース: プライバシーポリシー行で法務ドキュメント画面へ遷移する ─
 	// 手順:
 	//   1. 設定画面を表示する
 	//   2. プライバシーポリシー行（settings-privacy）をタップする
-	//   3. リーガルドキュメントモーダル（legal-document-modal）が表示されることを検証
+	//   3. 法務ドキュメント画面（legal-screen-document）が表示されることを検証
 	//
 	// #1027 この検証はもともと #1031 B2 でログインモーダルの同意文言リンクに置く予定だったが、
 	// リンクは `<Text>` の入れ子でネイティブ View を持たず Detox から到達できないことが実測で判明した
 	// （screens/LoginScreen.ts のコメント参照）。実体のある行を持つこちらの画面へ移してある。
-	it("プライバシーポリシー行でリーガルモーダルが開く", async () => {
+	// #1368 遷移先は BlurModal（legal-document-modal）から `/[locale]/legal/privacy` ルートへ変わった。
+	// 戻る導線まで含めた検証は tests/profile/legal.test.ts が持つ。
+	it("プライバシーポリシー行で法務ドキュメント画面へ遷移する", async () => {
 		const tabBar = new TabBar();
 		const profileScreen = new ProfileScreen();
 		const settingsScreen = new SettingsScreen();
+		const legalScreen = new LegalScreen();
 
 		await tabBar.gotoProfile();
 		await profileScreen.gotoSettings();
 		await settingsScreen.expectLoaded();
 
 		await settingsScreen.openPrivacyPolicy();
-		await settingsScreen.expectLegalDocumentOpened();
+		await legalScreen.expectOpened();
 	});
 
 	// ─ テストケース: 匿名時はログアウトが表示されない ─

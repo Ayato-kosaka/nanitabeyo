@@ -12,17 +12,19 @@ import { DEFAULT_TIMEOUT, by, element, expect, tapWhenVisible, waitUntilVisible 
  * ログイン画面に進むため E2E テストの対象外とする（bot 検知・利用規約の観点でもアンチパターン。
  * e2e-web の LoginPage と同じ判断）。この画面では「表示・ボタンの存在・戻る導線」までを検証する。
  *
- * ## #1031 B2 → #1027 で方針変更: リーガルモーダルの検証はこの画面では行わない
- * e2e-web（`login-screen.spec.ts`）は同意文言内のリンクをクリックしてリーガルモーダルを開く検証をしている。
+ * ## #1031 B2 → #1027 で方針変更: リーガル導線の検証はこの画面では行わない
+ * e2e-web（`login-screen.spec.ts`）は同意文言内のリンクをクリックして法務ドキュメントへ遷移する検証をしている。
  * ネイティブでも同じことをしようと `login-privacy-link` を app-expo に追加したが、**この testID は
  * ネイティブでは効かない**。同意文言はリンク部分を `<Text>` の入れ子で表現しており、React Native は
  * 入れ子の `<Text>` を仮想ノード（Android: ReactVirtualTextShadowNode）として親の TextView に畳み込むため、
  * **リンクに対応するネイティブ View が存在しない**（run 30432596949 の Espresso は
  * "No views in hierarchy found matching: view.getTag() is \"login-privacy-link\"" を返した）。
  * web では span + data-testid として実在するので e2e-web 側の検証は有効なまま。
+ * #1368 で `login-terms-link` も追加したが、同じ理由でネイティブからは到達できない。
  *
  * ネイティブでは代わりに **設定画面のリーガル行**（`settings-privacy` = 実体のある行）から
- * 同じ `legal-document-modal` を開く経路で検証する（tests/profile/settings.test.ts）。
+ * 同じ `/[locale]/legal/<doc>` へ遷移する経路で検証する
+ *（tests/profile/settings.test.ts / tests/profile/legal.test.ts）。
  */
 export class LoginScreen {
 	/**

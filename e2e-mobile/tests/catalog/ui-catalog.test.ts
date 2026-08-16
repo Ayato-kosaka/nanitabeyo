@@ -11,6 +11,7 @@ import {
 	visibleNow,
 	waitUntilVisible,
 } from "../../fixtures/e2e";
+import { LegalScreen } from "../../screens/LegalScreen";
 import { LoginScreen } from "../../screens/LoginScreen";
 import { ProfileScreen } from "../../screens/ProfileScreen";
 import { ResultScreen } from "../../screens/ResultScreen";
@@ -210,24 +211,36 @@ describe("UI カタログ（匿名） @catalog", () => {
 		});
 	});
 
+	// #1368 リーガル文書はモーダルではなく `/[locale]/legal/<doc>` ルートになったため、
+	// カタログの ID も URL 準拠（legal-terms / legal-privacy / legal-not-found）へ張り替えてある
 	it("設定とその配下", async () => {
 		const settingsScreen = new SettingsScreen();
+		const legalScreen = new LegalScreen();
 
 		await launchAppWithSession({ as: "anon", url: deepLinkOf("profile-settings") });
 		await settingsScreen.expectLoaded();
 		await captureScreen("profile-settings");
 
-		await captureScreenIfReachable("profile-settings-terms-modal", async () => {
-			await tapWhenVisible(settingsScreen.termsItem);
-			await waitUntilVisible(settingsScreen.legalDocumentModal);
+		// 実導線（設定の行）から遷移する。ディープリンクでも同じ画面に着くが、
+		// 「設定から開ける」ことまでカタログの撮影経路に含めておく
+		await captureScreenIfReachable("legal-terms", async () => {
+			await settingsScreen.openLegalDocument("terms");
+			await legalScreen.expectOpened();
 		});
 
-		await captureScreenIfReachable("profile-settings-privacy-modal", async () => {
-			// モーダルを閉じる導線に testID が無いため、画面を開き直して別の文書を開く
-			await launchAppWithSession({ as: "anon", url: deepLinkOf("profile-settings") });
+		await captureScreenIfReachable("legal-privacy", async () => {
+			// #1368 モーダル時代は閉じる導線に testID が無く起動し直していたが、
+			// ルート化でヘッダーの戻るボタン（screen-header-back）から設定へ帰れるようになった
+			await legalScreen.goBack();
 			await settingsScreen.expectLoaded();
-			await settingsScreen.openPrivacyPolicy();
-			await settingsScreen.expectLegalDocumentOpened();
+			await settingsScreen.openLegalDocument("privacy");
+			await legalScreen.expectOpened();
+		});
+
+		// 公開していない doc の落とし所（既定の文書へ倒さない）も 1 枚残す
+		await captureScreenIfReachable("legal-not-found", async () => {
+			await launchAppWithSession({ as: "anon", url: deepLinkOf("legal-not-found"), waitForReady: false });
+			await legalScreen.expectNotFound();
 		});
 	});
 
