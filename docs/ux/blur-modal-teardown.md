@@ -10,6 +10,11 @@
 >
 > **改訂 3**: D 群の店詳細を「TrueSheet」としていたのを **ルート**へ訂正（§2-D）。背景の地図が
 > 実際には見えていないこと、入れ子が解けないこと、既に同じ店詳細のルート実装が存在することが理由。
+>
+> **改訂 4**: 実装着手後、認証ルート化の設計 run（#1359）が調査の誤りを 2 件見つけたので訂正する。
+> (1) **OTP モーダルも死にコードだった**（死にコードは 1 件ではなく 2 件）。§4 に追記。
+> (2) **E2E は `Common.close`（右上の X）を掴んでいない**。§9 の依存の書き方が誤りだった。
+> あわせて、電話番号 / SMS ログインの扱いがオーナー判断で「削除」に確定した（§4）。
 
 ---
 
@@ -189,10 +194,21 @@ map.tsx  RestaurantBlurModal (z1100)
 
 ## 4. 死にコード（撤去のついでに消せるもの）
 
-| 対象 | 状態 |
-| --- | --- |
-| `features/dishMedia/components/ActionButtons.tsx` のメニュー | 起動ボタンがコメントアウト、`handleMenuOpen` の参照ゼロ → **開けない** |
-| `features/profile/components/CreateAccountModal.tsx` | **import している箇所がゼロ** |
+| 対象 | 状態 | 根拠 |
+| --- | --- | --- |
+| `features/dishMedia/components/ActionButtons.tsx` のメニュー | 起動ボタンがコメントアウト、`handleMenuOpen` の参照ゼロ → **開けない** | 起動ボタンは 412–417 行でコメントアウト |
+| `features/profile/components/CreateAccountModal.tsx` | **import している箇所がゼロ** | リポジトリ全体の grep |
+| `features/profile/components/OtpModal.tsx`（A 群 5 番） | **UI から到達できない** | `openOtpModal()` の呼び元 `handleSubmit` を参照しているのは**コメントアウトされた** `PrimaryButton` だけ。電話番号の `TextInput` も divider もコメントアウト済み |
+
+**OTP は改訂 2 までの調査で見落としていた。** A 群 6 件のうち 1 件は「認証のルート化で移す対象」では
+なく「消す対象」だった。**電話番号 / SMS ログインの削除はオーナー判断として確定**している（#1359）。
+
+削除で一緒に失われるものを記録しておく（復活時は git から設計コメントごと復元すること）:
+
+- #1205 で入れた OTP 再送・検証の二重実行ガードと、その回帰テスト `OtpModal.test.tsx`
+
+復活させる場合は**別ルート**（`/[locale]/auth/login/otp?phone=...`）にする。番号入力と OTP 入力は
+「やり直したくなる 2 段階」で、戻る手段を Navigator に持たせないと自前の戻るボタンを抱えることになる。
 
 ---
 
@@ -295,10 +311,18 @@ P1〜P3 で **14/31（45%）** が消え、再発源だった認証・投票が�
 
 ### 付随して触る必要があるもの
 
+- **`catalog/screens.json`** — 画面定義の唯一の情報源。ログインは現在 `review-guest-login-modal` と
+  `profile-guest-login-modal` の **2 エントリ**あり、ルート化で 1 つへ統合される。`flow` セクションの
+  参照も張り替えが要る。`docs/ui-catalog.md` / `docs/ui-catalog-mobile.md` は
+  `catalog/generate-catalog.mjs` の生成物なので手で書き換えないこと
 - `features/blurModal/components/KeyboardAwareForm.tsx` — 利用者は `ProfileEditForm` のみ
 - E2E: `e2e-mobile/screens/LoginModal.ts` / `e2e-web/pages/LoginModal.ts` /
-  `e2e-mobile/screens/DishCategoryGroupVoteResultScreen.ts` と3本のテストが
-  BlurModal の描画前提（paper の `Portal`、右上 X = `Common.close`）に依存
+  `e2e-mobile/screens/DishCategoryGroupVoteResultScreen.ts` と3本のテストが BlurModal の描画に依存。
+  **依存の中身は改訂 3 まで誤って書いていた**（訂正）:
+  - 誤: 「右上の X（`Common.close`）を前提にしている」→ **どの Screen/Page Object も X を掴んでいない**
+  - 正: (1) web は `getByTestId("login-modal")` を可視判定に使う (2) mobile には「ぼかし背景で iOS の
+    75% 可視判定を満たせないためコンテナを観測点にできない」という **BlurModal 固有の回避策**が
+    埋まっている (3) 両方とも「開いても画面は変わらない」前提で並んでいる
 
 ---
 
