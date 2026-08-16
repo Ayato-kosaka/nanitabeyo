@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback } from "react";
 import {
 	View,
 	Text,
@@ -16,8 +16,7 @@ import { Card } from "@/components/Card";
 import i18n from "@/lib/i18n";
 import { useAuth } from "@/contexts/AuthProvider";
 import { isGuestUser } from "@/lib/authGuest";
-import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
-import { LegalDocument } from "@/features/settings/components/LegalDocument";
+import type { LegalDocumentType } from "@/lib/legalRoute";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import { useDialog } from "@/contexts/DialogProvider";
@@ -76,16 +75,10 @@ export default function SettingsScreen() {
 	const { locale } = useLocale();
 	const { showDialog, confirm } = useDialog();
 	const { showSnackbar } = useSnackbar();
-	const [selectedLegalDocument, setSelectedLegalDocument] = useState<
-		"guidelines" | "terms" | "privacy" | "copyright" | null
-	>(null);
 	// #951 【設計】フィードバックは useBlurModal をやめ、専用画面(profile/feedback)へ遷移する
 	// (レビュー指摘: #949 の ScreenHeader による戻る導線と統一するため)
-	const {
-		BlurModal: LegalDocumentModal,
-		open: openLegalDocumentModal,
-		close: closeLegalDocumentModal,
-	} = useBlurModal({ intensity: 100 });
+	// #1368 【設計】リーガル 4 件も同じ理由で useBlurModal をやめ、/[locale]/legal/[doc] へ遷移する。
+	// この画面から useBlurModal は無くなった
 
 	// #949 【設計】設定画面は Stack で push されるため戻る導線が存在せず、
 	// ハードウェア/スワイプバックが使えない Web ではロックアウトになっていた。ScreenHeader で解消する。
@@ -233,9 +226,17 @@ export default function SettingsScreen() {
 		});
 	}, [lightImpact, logFrontendEvent, showDialog, openStoreReviewPage]);
 
-	// Legal ドキュメント閲覧をモーダルで表示
+	/*
+	#1368 【設計】Legal ドキュメントは BlurModal をやめて `/[locale]/legal/[doc]` へ遷移する。
+
+	⚠️ ここで «閉じてから push» が要らないのは、この時点で開いている BlurModal が 1 つも無いからである
+	（この画面は BlurModal の中身ではなくルートそのもので、リーガル行を押せる状態＝どのモーダルも
+	 開いていない状態）。BlurModal の中から push すると、遷移先が portal の下に潜って見えず触れなくなる
+	 （`Portal.Host` が `<Stack>` を包んでいるため。#1364 で実測。
+	 features/map/components/SelectedRestaurantDetails.tsx のコメント参照）。
+	*/
 	const handleLegalDocument = useCallback(
-		(documentType: "guidelines" | "terms" | "privacy" | "copyright") => {
+		(documentType: LegalDocumentType) => {
 			lightImpact();
 			logFrontendEvent({
 				event_name: "settings_legal_document_pressed",
@@ -243,10 +244,9 @@ export default function SettingsScreen() {
 				payload: { documentType },
 			});
 
-			setSelectedLegalDocument(documentType);
-			openLegalDocumentModal();
+			router.push({ pathname: "/[locale]/legal/[doc]", params: { locale, doc: documentType } });
 		},
-		[lightImpact, logFrontendEvent, openLegalDocumentModal],
+		[lightImpact, logFrontendEvent, router, locale],
 	);
 
 	// ログアウト処理を実行
@@ -343,30 +343,31 @@ export default function SettingsScreen() {
 
 					{/* Card 2: Legal ＋ Logout */}
 					<Card style={styles.card}>
+						{/* #1368 【仕様】モーダル起動から画面遷移(router.push)に変わったため link に変更(#950 の規約) */}
 						<SettingsMenuItem
 							label={i18n.t("Settings.communityGuidelines")}
 							onPress={() => handleLegalDocument("guidelines")}
 							testID="settings-guidelines"
-							accessibilityRole="button"
+							accessibilityRole="link"
 						/>
 						<SettingsMenuItem
 							label={i18n.t("Settings.terms")}
 							onPress={() => handleLegalDocument("terms")}
 							testID="settings-terms"
-							accessibilityRole="button"
+							accessibilityRole="link"
 						/>
 						<SettingsMenuItem
 							label={i18n.t("Settings.privacy")}
 							onPress={() => handleLegalDocument("privacy")}
 							testID="settings-privacy"
-							accessibilityRole="button"
+							accessibilityRole="link"
 						/>
 						<SettingsMenuItem
 							label={i18n.t("Settings.copyright")}
 							onPress={() => handleLegalDocument("copyright")}
 							isLast={isGuest}
 							testID="settings-copyright"
-							accessibilityRole="button"
+							accessibilityRole="link"
 						/>
 						{!isGuest && (
 							<SettingsMenuItem
@@ -384,16 +385,6 @@ export default function SettingsScreen() {
 					</Card>
 				</ScrollView>
 			</SafeAreaView>
-
-			{/* Legal ドキュメントモーダル */}
-			{/* #1027 【設計】Detox からモーダル表示を検証できるよう testID を追加（LoginForm と同じ形） */}
-			<LegalDocumentModal>
-				{selectedLegalDocument && (
-					<View testID="legal-document-modal">
-						<LegalDocument documentType={selectedLegalDocument} />
-					</View>
-				)}
-			</LegalDocumentModal>
 		</LinearGradient>
 	);
 }

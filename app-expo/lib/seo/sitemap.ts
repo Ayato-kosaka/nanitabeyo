@@ -1,4 +1,5 @@
 import { PUBLIC_LOCALES } from "@/constants/seoLocales";
+import { LEGAL_SITEMAP_ROUTES } from "@/lib/legalRoute";
 
 /**
  * 🗺️ sitemap.xml の生成ロジック（#281）。
@@ -41,8 +42,22 @@ import { PUBLIC_LOCALES } from "@/constants/seoLocales";
  *    `search` のため）。`/` からのリダイレクト先が `/{locale}` であり、サイトの入口として
  *    落とせないので両方載せている。canonical はどちらも自分自身を指すので、
  *    どちらを正とするかは検索エンジン側の判断に委ねる。
+ *
+ * #1368 `legal/*`（ガイドライン / 利用規約 / プライバシーポリシー / 著作権）は **載せる**。
+ * `auth/login` を外したのと逆の判断で、理由は「人間が入口として踏むか」の一点。
+ * 法務ページはストア審査・問い合わせ・外部サイトからのリンク先として直接踏まれ、
+ * 検索でも「<アプリ名> プライバシーポリシー」で探される。クエリにもログイン状態にも依存せず、
+ * 8 ロケール分の実体が prerender される（`app/[locale]/legal/[doc].tsx` の generateStaticParams）。
+ * 一覧を手で書かず `LEGAL_SITEMAP_ROUTES` から展開しているのは、文書を増やしたときに
+ * ルートだけ増えて sitemap が置いていかれるのを防ぐため（このファイル冒頭の方針と同じ）。
  */
-export const SITEMAP_ROUTES = ["search", "map", "review", "review/selectRestaurant"] as const;
+export const SITEMAP_ROUTES: readonly string[] = [
+	"search",
+	"map",
+	"review",
+	"review/selectRestaurant",
+	...LEGAL_SITEMAP_ROUTES,
+];
 
 /**
  * #721 【重要】ロケールのトップ（`""` = `/en-US` など）は**意図的に外している**。
