@@ -1,16 +1,23 @@
-// #1122 【設計】候補詳細モーダルの「店を見る」が、"モーダルを閉じてから" 遷移することを固定するテスト。
+// #1122 【設計】候補詳細の「店を見る」が、"詳細レイヤーを閉じてから" 遷移することを固定するテスト。
 //
 // 背景（Issue #1122）:
-// 旧実装の handleOpenCandidateDishMedia は BlurModal を閉じずに router.push していた。
-// BlurModal の中身は react-native-paper の Portal 経由で Portal.Host 直下（= Stack より上のレイヤー）
-// へ描かれるため、遷移しても StyleSheet.absoluteFill のバックドロップが遷移先の上に残り続け、
+// 旧実装の handleOpenCandidateDishMedia は詳細レイヤーを閉じずに router.push していた。
+// 当時の詳細レイヤーは react-native-paper の Portal 経由で Portal.Host 直下（= Stack より上のレイヤー）
+// へ描かれたため、遷移しても StyleSheet.absoluteFill のバックドロップが遷移先の上に残り続け、
 // Web / Android では遷移先（DishMediaMap）をタップできなかった。
 // iOS だけ無事だったのは、遷移先 /search/result が presentation:"transparentModal"
 // （= ネイティブ modal presentation）で Portal.Host より上に載るため。
 //
-// このテストは「router.push の時点で Portal が既にアンマウントされている」ことを
-// イベント列で固定する。close を消す / close と push の順序を入れ替えると赤になる。
-// setTimeout での先送りに戻した場合も、fake timer を進めずに push が来ないため赤になる。
+// #1358 で詳細レイヤーは画面の子（DishCategoryGroupVoteInlineOverlay）へ移り、Portal を通らなくなった。
+// そこでこのテストが固定する不変条件も 2 本立てになっている:
+//   1. 【構造】結果画面は Portal を一切マウントしない（＝ 画面スタックの外側にレイヤーを積まない）。
+//      Portal へ戻すと "portal-mounted" が観測されて赤になる。
+//   2. 【順序】router.push の時点で詳細レイヤーが既にアンマウントされている。
+//      close を消す / close と push の順序を入れ替えると赤になる。
+//      setTimeout での先送りに戻した場合も、fake timer を進めずに push が来ないため赤になる。
+//
+// 順序（2）は Portal をやめた今も残す。web は遷移しても前画面の DOM が残るため、
+// 「開いたまま遷移してよい」を仕様として許すと #1122 と同じ経路が復活しうる（実装側コメント参照）。
 import React, { act } from "react";
 import TestRenderer, { type ReactTestInstance } from "react-test-renderer";
 
@@ -49,7 +56,8 @@ jest.mock("expo-blur", () => ({
 		return null;
 	},
 }));
-// Portal は「どのレイヤーに描かれるか」ではなく「マウント/アンマウントの瞬間」だけ観測できれば足りる
+// #1358 Portal は「使っていないこと」の見張りとして残す。結果画面（配下のコンポーネント含む）が
+// Portal を描いた瞬間に "portal-mounted" が積まれるので、Portal 実装へ戻すと下のアサーションが赤くなる
 jest.mock("react-native-paper", () => {
 	const ReactModule = require("react");
 	return {
@@ -61,6 +69,23 @@ jest.mock("react-native-paper", () => {
 				};
 			}, []);
 			return children;
+		},
+	};
+});
+// #1358 詳細レイヤーは**本物のまま**描いたうえで、マウント/アンマウントの瞬間だけ観測する。
+// （中身をスタブに置き換えると、右上の X などクローズ導線そのものを検証できなくなる）
+jest.mock("./DishCategoryGroupVoteInlineOverlay", () => {
+	const ReactModule = require("react");
+	const actual = jest.requireActual("./DishCategoryGroupVoteInlineOverlay");
+	return {
+		DishCategoryGroupVoteInlineOverlay: function ObservedInlineOverlay(props: Record<string, unknown>) {
+			ReactModule.useEffect(() => {
+				mockEvents.push("overlay-mounted");
+				return () => {
+					mockEvents.push("overlay-unmounted");
+				};
+			}, []);
+			return ReactModule.createElement(actual.DishCategoryGroupVoteInlineOverlay, props);
 		},
 	};
 });
@@ -263,7 +288,8 @@ const press = (root: ReactTestInstance, testID: string) => {
 	});
 };
 
-// モーダル右上の X。BlurModal が実物のまま描画されるので accessibilityLabel で引く
+// 詳細レイヤー右上の X。レイヤーは実物のまま描画されるので accessibilityLabel で引く
+// （e2e-web / e2e-mobile も同じ accessibilityLabel = Common.close を観測点にしている）
 const pressModalCloseButton = (root: ReactTestInstance) => {
 	const target = root.findAllByProps({ accessibilityLabel: "Common.close" })[0];
 	act(() => {
@@ -300,6 +326,27 @@ describe("DishCategoryGroupVoteResultScreen の「店を見る」", () => {
 		});
 	});
 
+	// #1358 【構造】#1122 の根本原因（画面スタックの外側 = Portal へレイヤーを積むこと）を直接禁じる。
+	// useBlurModal ベースへ戻すと Portal がマウントされ、このテストが赤くなる。
+	it("候補詳細は Portal を使わず、結果画面の内側へ描かれる", () => {
+		let renderer!: TestRenderer.ReactTestRenderer;
+		act(() => {
+			renderer = TestRenderer.create(<DishCategoryGroupVoteResultScreen shareToken="share-token-1" />);
+		});
+		const root = renderer.root;
+
+		press(root, `list-open-detail:${CANDIDATE.id}`);
+
+		// 詳細（testID は候補詳細本体。e2e も同じ id を観測点にしている）が結果画面のツリー内に居る
+		expect(root.findAllByProps({ testID: "dish-category-group-vote-candidate-detail" }).length).toBeGreaterThan(0);
+		expect(mockEvents).toEqual(["overlay-mounted"]);
+		expect(mockEvents).not.toContain("portal-mounted");
+
+		act(() => {
+			renderer.unmount();
+		});
+	});
+
 	it("詳細モーダルから押すと、遷移より先にモーダルが閉じる", () => {
 		let renderer!: TestRenderer.ReactTestRenderer;
 		act(() => {
@@ -307,16 +354,16 @@ describe("DishCategoryGroupVoteResultScreen の「店を見る」", () => {
 		});
 		const root = renderer.root;
 
-		// 詳細モーダルを開く（= Portal がマウントされる）
+		// 詳細モーダルを開く（= 詳細レイヤーがマウントされる）
 		press(root, `list-open-detail:${CANDIDATE.id}`);
-		expect(mockEvents).toEqual(["portal-mounted"]);
+		expect(mockEvents).toEqual(["overlay-mounted"]);
 
 		// 詳細モーダル内の「店を見る」
 		press(root, "primary-button:DishCategoryGroupVotes.viewRestaurants");
 
-		// 遷移は 1 回だけ、かつ Portal のアンマウント（= モーダルのクローズ完了）より後
+		// 遷移は 1 回だけ、かつ詳細レイヤーのアンマウント（= クローズ完了）より後
 		expect(mockRouterPush).toHaveBeenCalledTimes(1);
-		expect(mockEvents).toEqual(["portal-mounted", "portal-unmounted", "router.push"]);
+		expect(mockEvents).toEqual(["overlay-mounted", "overlay-unmounted", "router.push"]);
 		expect(mockRouterPush.mock.calls[0][0]).toMatchObject({
 			pathname: "/[locale]/(tabs)/search/result",
 			params: { entriesKey: `dish-category-group-votes:share-token-1:${CANDIDATE.id}`, category: "ラーメン" },
@@ -362,7 +409,7 @@ describe("DishCategoryGroupVoteResultScreen の「店を見る」", () => {
 
 		// 検索完了前にユーザーが X でモーダルを閉じる
 		pressModalCloseButton(root);
-		expect(mockEvents).toEqual(["portal-mounted", "portal-unmounted"]);
+		expect(mockEvents).toEqual(["overlay-mounted", "overlay-unmounted"]);
 
 		// 検索が完了する。ユーザーが自分で閉じた以上、勝手に遷移してはならない
 		await resolveSearch([{ dish_media: { id: "dish-media-2" } }]);
@@ -373,7 +420,7 @@ describe("DishCategoryGroupVoteResultScreen の「店を見る」", () => {
 		pressModalCloseButton(root);
 
 		expect(mockRouterPush).not.toHaveBeenCalled();
-		expect(mockEvents).toEqual(["portal-mounted", "portal-unmounted", "portal-mounted", "portal-unmounted"]);
+		expect(mockEvents).toEqual(["overlay-mounted", "overlay-unmounted", "overlay-mounted", "overlay-unmounted"]);
 
 		act(() => {
 			renderer.unmount();
@@ -395,7 +442,7 @@ describe("DishCategoryGroupVoteResultScreen の「店を見る」", () => {
 		await resolveSearch([{ dish_media: { id: "dish-media-2" } }]);
 
 		expect(mockRouterPush).toHaveBeenCalledTimes(1);
-		expect(mockEvents).toEqual(["portal-mounted", "portal-unmounted", "router.push"]);
+		expect(mockEvents).toEqual(["overlay-mounted", "overlay-unmounted", "router.push"]);
 		expect(mockRouterPush.mock.calls[0][0]).toMatchObject({
 			pathname: "/[locale]/(tabs)/search/result",
 			params: {

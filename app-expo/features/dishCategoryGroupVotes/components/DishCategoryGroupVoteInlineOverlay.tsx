@@ -2,7 +2,8 @@
  * #1358 【責務】
  * 友達投票の全画面レイヤー（投票完了の入力・候補詳細）を、**呼び出した画面のツリーの内側**へ描く器。
  *
- * #1350 【設計】以前は `useBlurModal`（react-native-paper の `Portal`）を使っていた。Portal は
+ * #1350 【設計】以前は共通の BlurModal フック（`features/blurModal` = react-native-paper の `Portal`）を
+ * 使っていた。Portal は
  * `Portal.Host` 直下 ＝ 画面スタックの外側へ描かれるため、開いたまま遷移すると遷移先の上に
  * バックドロップ（`StyleSheet.absoluteFill` の Pressable）が残り、遷移先を一切タップできない
  * （#1122。web / Android で再現し、iOS だけ遷移先が `presentation:"transparentModal"` のため無事だった）。
@@ -31,7 +32,7 @@ import { X } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import i18n from "@/lib/i18n";
 
-/** useBlurModal の既定値をそのまま踏襲する（見た目を変えないため） */
+/** 移行前の BlurModal の既定値をそのまま踏襲する（見た目を変えないため） */
 const BLUR_INTENSITY = 50;
 const CLOSE_ICON_SIZE = 28;
 const CLOSE_ICON_COLOR = "#666666";
