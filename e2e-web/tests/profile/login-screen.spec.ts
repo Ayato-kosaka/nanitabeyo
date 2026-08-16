@@ -2,6 +2,7 @@ import { test, expect } from "../../fixtures/test";
 import { TabBar } from "../../pages/TabBar";
 import { ProfilePage } from "../../pages/ProfilePage";
 import { LoginPage } from "../../pages/LoginPage";
+import { LegalPage } from "../../pages/LegalPage";
 
 /**
  * 🔑 ログイン画面のテスト
@@ -36,31 +37,50 @@ test.describe("ログイン画面", () => {
 		await expect(loginPage.title).toHaveText("ログイン");
 	});
 
-	// ─ テストケース: プライバシーポリシーリンクでリーガルモーダルが開く ─
+	// ─ テストケース: 同意文言のリンクで法務ドキュメント画面へ «遷移» する ─
+	// #1368 【設計】ここはモーダル→ルートの乗り換えを守る検証。
+	// かつては「プライバシーポリシー」というテキストの出現数が 1 → 3 に増えること
+	// (① 同意文言のリンク ② モーダルのタイトル ③ Markdown の見出し) で
+	// «オーバーレイが重なった» ことを見ていた。ルート化後は URL が変わるので、
+	// 出現数ではなく URL と本文コンテナで見る。モーダルへ戻すと URL が変わらず落ちる。
 	// 手順:
 	//   1. ログイン画面を開く
-	//   2. 同意文言内の「プライバシーポリシー」リンクをタップする
-	//      (「利用規約」はリーガルモーダルのタイトルとしても表示され曖昧になるため、
-	//      一意にセレクトできる「プライバシーポリシー」で検証する)
-	//   3. 「プライバシーポリシー」の出現数が増える(リーガルモーダルが開く)ことを検証
-	//      開いた後は 3 箇所に出現する: ① 同意文言内のリンク自身
-	//      ② LegalDocument コンポーネントのタイトル
-	//      ③ プライバシーポリシー本文(Markdown)の見出し(# プライバシーポリシー)
-	//      #1359 LegalDocumentModal は BlurModal のまま(B 群は別 Issue)なので内訳は変わらない
-	test("プライバシーポリシーリンクでリーガルモーダルが開く", async ({ appPage }) => {
+	//   2. 同意文言内の「プライバシーポリシー」リンクをクリックする
+	//   3. URL が /legal/privacy へ変わり、本文が表示されることを検証
+	//   4. 戻るボタンでログイン画面へ帰れることを検証（同意文言から離脱したまま戻れないと投稿導線が詰まる）
+	test("プライバシーポリシーリンクで法務ドキュメント画面へ遷移し、戻れる", async ({ appPage }) => {
 		const tabBar = new TabBar(appPage);
 		const profilePage = new ProfilePage(appPage);
 		const loginPage = new LoginPage(appPage);
+		const legalPage = new LegalPage(appPage);
 
 		await tabBar.gotoProfile();
 		await profilePage.openLogin();
 		await loginPage.expectOpened();
 
-		const privacyText = appPage.getByText("プライバシーポリシー", { exact: true });
-		await expect(privacyText).toHaveCount(1);
+		await loginPage.privacyLink.click();
+		await legalPage.expectOpened("privacy");
 
-		await loginPage.container.getByText("プライバシーポリシー", { exact: true }).click();
-		await expect(privacyText).toHaveCount(3);
+		await legalPage.goBack();
+
+		await loginPage.expectOpened();
+	});
+
+	// ─ テストケース: 利用規約リンクも同じルートの別 doc へ遷移する ─
+	// #1368 2 つのリンクは同じハンドラを通るため、doc の取り違えは «リンクごと» に見ないと分からない
+	// 手順:
+	//   1. ログイン画面を開く
+	//   2. 同意文言内の「利用規約」リンクをクリックする
+	//   3. URL が /legal/terms へ変わることを検証
+	test("利用規約リンクは /legal/terms へ遷移する", async ({ appPage }) => {
+		const loginPage = new LoginPage(appPage);
+		const legalPage = new LegalPage(appPage);
+
+		await loginPage.goto();
+		await loginPage.expectOpened();
+
+		await loginPage.termsLink.click();
+		await legalPage.expectOpened("terms");
 	});
 
 	// ─ テストケース: ブラウザバックでマイページへ戻り、タブの選択が保たれる ─

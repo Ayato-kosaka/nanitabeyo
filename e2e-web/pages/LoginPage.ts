@@ -22,6 +22,10 @@ import { expect, type Locator, type Page } from "@playwright/test";
  * ログイン画面に進むため E2E テストの対象外とする（bot 検知・利用規約の観点でもアンチパターン）。
  * この画面では「表示・ボタンの存在・リーガルリンク・戻る導線」までを検証し、
  * ログイン済み状態のテストはセッション注入（tests/setup/auth.setup.ts）で実現する。
+ *
+ * ## #1368 同意文言のリンクはモーダルではなく «遷移»
+ * リーガル文書は `/[locale]/legal/<doc>` ルートへ push する。遷移先の検証は
+ * `pages/LegalPage.ts` が持つ。
  */
 export class LoginPage {
 	readonly page: Page;
@@ -35,6 +39,15 @@ export class LoginPage {
 	readonly googleButton: Locator;
 	/** Apple ログインボタン */
 	readonly appleButton: Locator;
+	/**
+	 * 同意文言内の「利用規約」リンク（#1368 で testID を追加）。
+	 *
+	 * ⚠️ テキストで探さないこと。遷移先の法務ドキュメント画面ではタイトルと Markdown の見出しが
+	 * 同じ文字列になるため、`getByText("利用規約")` は複数ノードへ一致する。
+	 */
+	readonly termsLink: Locator;
+	/** 同意文言内の「プライバシーポリシー」リンク（#1031 で追加） */
+	readonly privacyLink: Locator;
 
 	constructor(page: Page) {
 		this.page = page;
@@ -43,6 +56,8 @@ export class LoginPage {
 		this.backButton = page.getByTestId("screen-header-back");
 		this.googleButton = page.getByTestId("login-google-button");
 		this.appleButton = page.getByTestId("login-apple-button");
+		this.termsLink = page.getByTestId("login-terms-link");
+		this.privacyLink = page.getByTestId("login-privacy-link");
 	}
 
 	/**
