@@ -1,15 +1,19 @@
 /*
 責務:
 - ログイン UI の «実体»。OAuth サインイン、同意文言、匿名→本登録の昇格チェックボックスを提供する。
-- 電話番号によるログイン入力と E.164 形式のバリデーションを行う（現在 UI からは到達しない。下記参照）。
-- OTP送信を開始し、onOAuthSignIn で各種OAuthサインインをトリガーする。
-- ローディング/エラー状態、i18n、キーボード回避、アラート通知を扱う。
+- ローディング/エラー状態、i18n、アラート通知を扱う。
 
-#1359 【設計】features/profile/components/LoginbackModal.tsx から «そのまま» 移設したもの。
-ログイン UI が BlurModal（features/blurModal のフック）に埋まっていて画面として扱えなかったため、
-描画の実体をここへ切り出し、モーダル（LoginbackModal）とルート（app/[locale]/auth/login.tsx）の
-両方から同じものを描けるようにする。この PR では **ロジックを一切変えていない**。
-表示位置の違い（モーダルか画面か）は testID と showTitle の 2 つの prop だけで吸収する。
+#1359 【設計】唯一の呼び出し元は app/[locale]/auth/login.tsx。
+かつては features/profile 配下のラッパが BlurModal の中身としてこれを描いていたが、
+「ログイン UI の表示状態が遷移と無関係な boolean」であることが #498（OAuth 成功後もモーダルが
+閉じない）の根だったため、ルートへ移してモーダル側は削除した（履歴は git を参照）。
+
+【リリース差分】電話番号 / SMS ログイン（入力欄・E.164 検証・OTP モーダル）はここから削除した。
+コメントアウトされた入力 UI からしか到達できない死にコードで、オーナー判断により削除が確定している
+（#1359 の確定事項コメント）。復活させるときは OTP を **別ルート**（`/[locale]/auth/login/otp?phone=...`）
+にすること。番号入力と OTP 入力は「やり直したくなる 2 段階」で、戻る手段を Navigator に持たせないと
+自前の戻るボタンを抱えることになる。#1205 の二重実行ガードとその回帰テストも一緒に消えているので、
+**git から設計コメントごと復元**すること。
 */
 import React, { useState, useCallback } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
@@ -19,42 +23,34 @@ import { useLogger } from "@/hooks/useLogger";
 import { useAuth } from "@/contexts/AuthProvider";
 import { isGuestUser } from "@/lib/authGuest";
 import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
-import { OtpModal } from "@/features/profile/components/OtpModal";
 import { LegalDocument } from "@/features/settings/components/LegalDocument";
 import { Image } from "expo-image";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 
 interface LoginFormProps {
 	/**
-	 * OAuth ブラウザの起動後に呼ばれる。モーダルから使うときは «自分を閉じる» ために必須。
+	 * OAuth ブラウザの起動後に呼ばれる。
 	 *
 	 * #1359 【設計】ルートから使うときは閉じる相手が居ないので optional にしてある。
 	 * ルート化後は「ログイン UI の寿命 = ルートの寿命」になり、閉じる責務は Navigator が持つ。
 	 */
 	onClose?: () => void;
-	/**
-	 * ルート側の testID。E2E の可視判定に使うため、呼び出し側で明示する。
-	 * モーダル: `login-modal` / ルート: `login-screen`
-	 */
+	/** E2E の可視判定に使う testID。呼び出し側で明示する（ルート: `login-screen`） */
 	testID: string;
 	/**
 	 * 見出し（`auth.login_title`）をこのコンポーネント自身が描くか。
 	 *
 	 * #1359 【設計】ルートでは ScreenHeader が同じタイトルを出すため false にして重複を避ける。
-	 * 既定を true にしてあるのは、モーダル側の見た目を変えないため。
 	 */
 	showTitle?: boolean;
 }
 
 export function LoginForm({ onClose, testID, showTitle = true }: LoginFormProps) {
-	const [phone, setPhone] = useState("");
 	const [isLoading, setIsLoading] = useState(false);
-	const [errors, setErrors] = useState<{ phone?: string }>({});
 	const [hasExistingAccount, setHasExistingAccount] = useState(false);
 	const [selectedLegalDocument, setSelectedLegalDocument] = useState<"terms" | "privacy" | null>(null);
 
-	const { signInWithOAuth, signInWithOtp, linkIdentity, user } = useAuth();
-	const { BlurModal: OtpModalComponent, open: openOtpModal, close: closeOtpModal } = useBlurModal({ intensity: 100 });
+	const { signInWithOAuth, linkIdentity, user } = useAuth();
 	const {
 		BlurModal: LegalDocumentModal,
 		open: openLegalDocumentModal,
@@ -62,54 +58,6 @@ export function LoginForm({ onClose, testID, showTitle = true }: LoginFormProps)
 	} = useBlurModal({ intensity: 100 });
 	const { logFrontendEvent } = useLogger();
 	const { showSnackbar } = useSnackbar();
-
-	const validatePhone = useCallback((phoneNumber: string): boolean => {
-		// E.164 format validation (simplified)
-		const e164Pattern = /^\+[1-9]\d{1,14}$/;
-		return e164Pattern.test(phoneNumber);
-	}, []);
-
-	const handleSubmit = useCallback(async () => {
-		const newErrors: { phone?: string } = {};
-
-		if (!phone.trim()) {
-			newErrors.phone = i18n.t("auth.error_required");
-		} else if (!validatePhone(phone.trim())) {
-			newErrors.phone = i18n.t("auth.error_invalid_phone");
-		}
-
-		setErrors(newErrors);
-
-		if (Object.keys(newErrors).length > 0) {
-			return;
-		}
-
-		setIsLoading(true);
-		try {
-			try {
-				await signInWithOtp(phone);
-				onClose?.();
-				openOtpModal();
-
-				logFrontendEvent({
-					event_name: "otp_sent",
-					error_level: "log",
-					payload: { phone, flow: "login" },
-				});
-			} catch (error) {
-				logFrontendEvent({
-					event_name: "otp_send_error",
-					error_level: "error",
-					payload: { phone, error: (error as Error).message },
-				});
-				throw error;
-			}
-		} catch (error: unknown) {
-			showSnackbar(i18n.t("Common.error"));
-		} finally {
-			setIsLoading(false);
-		}
-	}, [phone, validatePhone, logFrontendEvent, onClose, openOtpModal, showSnackbar, signInWithOtp]);
 
 	const handleOAuthSignIn = useCallback(
 		async (provider: "google" | "facebook" | "twitter" | "apple") => {
@@ -149,8 +97,7 @@ export function LoginForm({ onClose, testID, showTitle = true }: LoginFormProps)
 				// dismiss が勝つことがある（実測: 成功と同一試行で dismiss が記録される）。
 				// 成否は callback 画面の oauth_callback_success / oauth_callback_no_result を正とする。
 				logFrontendEvent({
-					event_name:
-						launch.outcome === "cancelled" ? "oauth_signin_browser_dismissed" : "oauth_signin_success",
+					event_name: launch.outcome === "cancelled" ? "oauth_signin_browser_dismissed" : "oauth_signin_success",
 					error_level: "log",
 					payload: {
 						provider,
@@ -158,7 +105,10 @@ export function LoginForm({ onClose, testID, showTitle = true }: LoginFormProps)
 						hasExistingAccount,
 						outcome: launch.outcome,
 						...(launch.outcome === "cancelled" ? { browser_result_type: launch.browserResultType } : {}),
-						context: "login_modal",
+						// #1359 かつては "login_modal" 固定だった。ログイン UI がルートになった今、
+						// モーダル時代のログと同じ値のままだと #498（Android で OAuth 成功後もモーダルが
+						// 閉じない）の再発を BigQuery で見分けられない
+						context: "login_screen",
 					},
 				});
 
@@ -196,46 +146,6 @@ export function LoginForm({ onClose, testID, showTitle = true }: LoginFormProps)
 					<Text style={styles.title}>{i18n.t("auth.login_title")}</Text>
 				</View>
 			)}
-
-			{/* <View style={styles.form}> */}
-			{/* Phone Input */}
-			{/* <View style={styles.inputContainer}>
-						<Text style={styles.label}>{i18n.t("auth.field_phone")}</Text>
-						<View style={[styles.inputWrapper, errors.phone && styles.inputError]}>
-							<Phone size={20} color="#6B7280" style={styles.inputIcon} />
-							<TextInput
-								style={styles.input}
-								value={phone}
-								onChangeText={setPhone}
-								placeholder="+81..."
-								placeholderTextColor="#9CA3AF"
-								keyboardType="phone-pad"
-								autoCorrect={false}
-								autoComplete="tel"
-								editable={!isLoading}
-							/>
-						</View>
-						{errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
-					</View> */}
-
-			{/* SMS Hint */}
-			{/* <Text style={styles.hint}>{i18n.t("auth.hint_sms")}</Text> */}
-
-			{/* Login Button */}
-			{/* <PrimaryButton
-						onPress={handleSubmit}
-						label={i18n.t("auth.btn_login")}
-						disabled={isLoading}
-						loading={isLoading}
-						style={styles.loginButton}
-					/> */}
-
-			{/* Divider */}
-			{/* <View style={styles.divider}>
-						<View style={styles.dividerLine} />
-						<Text style={styles.dividerText}>{i18n.t("auth.divider_or")}</Text>
-						<View style={styles.dividerLine} />
-					</View> */}
 
 			{/* Existing Account Checkbox - Show only for anonymous users */}
 			{/* #1092 PR4b ここは `isGuestUser(user)` へ丸ごと寄せない。isGuestUser は user === null（認証未確定）を
@@ -320,7 +230,6 @@ export function LoginForm({ onClose, testID, showTitle = true }: LoginFormProps)
 					nativeLoadingColor={"#1A1A1A"}
 				/>
 			</View>
-			{/* </View> */}
 
 			{/* 同意メッセージ */}
 			<View style={styles.consentContainer}>
@@ -340,18 +249,6 @@ export function LoginForm({ onClose, testID, showTitle = true }: LoginFormProps)
 					{i18n.t("auth.consent_login_suffix")}
 				</Text>
 			</View>
-
-			<OtpModalComponent>
-				{({ close }) => (
-					<OtpModal
-						onClose={() => {
-							close();
-							setPhone("");
-						}}
-						phone={phone}
-					/>
-				)}
-			</OtpModalComponent>
 
 			{/* Legal ドキュメントモーダル */}
 			{/* #1031 【設計】Detox からモーダル表示を検証できるよう testID を追加 */}
@@ -380,69 +277,6 @@ const styles = StyleSheet.create({
 		fontWeight: "700",
 		color: "#1A1A1A",
 		textAlign: "center",
-	},
-	form: {
-		flex: 1,
-	},
-	inputContainer: {
-		marginBottom: 20,
-	},
-	label: {
-		fontSize: 16,
-		fontWeight: "600",
-		color: "#1A1A1A",
-		marginBottom: 8,
-	},
-	inputWrapper: {
-		flexDirection: "row",
-		alignItems: "center",
-		borderWidth: 1,
-		borderColor: "#D1D5DB",
-		borderRadius: 12,
-		paddingHorizontal: 16,
-		backgroundColor: "#F9FAFB",
-	},
-	inputError: {
-		borderColor: "#EF4444",
-	},
-	inputIcon: {
-		marginRight: 12,
-	},
-	input: {
-		flex: 1,
-		fontSize: 16,
-		color: "#1A1A1A",
-		paddingVertical: 16,
-	},
-	errorText: {
-		fontSize: 14,
-		color: "#EF4444",
-		marginTop: 4,
-	},
-	hint: {
-		fontSize: 14,
-		color: "#6B7280",
-		textAlign: "center",
-		marginBottom: 24,
-		lineHeight: 20,
-	},
-	loginButton: {
-		marginBottom: 32,
-	},
-	divider: {
-		flexDirection: "row",
-		alignItems: "center",
-		marginBottom: 24,
-	},
-	dividerLine: {
-		flex: 1,
-		height: 1,
-		backgroundColor: "#C9C9C9",
-	},
-	dividerText: {
-		fontSize: 14,
-		color: "#6B7280",
-		marginHorizontal: 16,
 	},
 	oauthContainer: {
 		flexWrap: "wrap",

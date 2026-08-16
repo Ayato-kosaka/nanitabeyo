@@ -5,7 +5,7 @@ import { useProfile } from "./useProfile";
 /**
  * #1233 プロフィール作成の check-then-insert 競合のテスト。
  *
- * `createUserProfile` はサインイン直後に 3 箇所（auth/callback.tsx / OtpModal.tsx /
+ * `createUserProfile` はサインイン直後に複数箇所（auth/callback.tsx /
  * useEnsureOwnProfileLoaded.ts）から並走して呼ばれる。「SELECT で無いことを確認 → INSERT」の
  * 間に別の呼び出しが割り込むと後発が users_pkey で落ち、**その回のアバター反映が
  * catch へ落ちて丸ごとスキップ**されていた（レコード自体は先着が作っているので気付きにくい）。

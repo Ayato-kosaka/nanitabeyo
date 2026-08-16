@@ -386,7 +386,7 @@ export default function SettingsScreen() {
 			</SafeAreaView>
 
 			{/* Legal ドキュメントモーダル */}
-			{/* #1027 【設計】Detox からモーダル表示を検証できるよう testID を追加（LoginbackModal と同じ形） */}
+			{/* #1027 【設計】Detox からモーダル表示を検証できるよう testID を追加（LoginForm と同じ形） */}
 			<LegalDocumentModal>
 				{selectedLegalDocument && (
 					<View testID="legal-document-modal">
