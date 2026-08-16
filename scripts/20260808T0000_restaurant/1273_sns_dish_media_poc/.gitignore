@@ -30,4 +30,8 @@ out/contact_*.jpg
 out/_blog_text/
 out/_blog_policy_text/
 out/_shorts_thumbs/
+# #1273 【事故】自社サイト画像の目視検証で落とした 14 枚を、cwd を間違えたまま
+#   `git add -A` して**コミットしてしまった**（画像バイナリはコミットしない方針）。
+#   目視の結果は out/own_site_dish_image_labels.json と REPORT.md に残す。
+out/_own_site_imgs/
 out/_blog_imgs/
