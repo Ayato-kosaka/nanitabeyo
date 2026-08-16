@@ -1,16 +1,13 @@
 import React, { useCallback, useEffect, useRef } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, LayoutChangeEvent } from "react-native";
 import { Image } from "expo-image";
-import { Heart, Bookmark, Share, MapPinned, User, Calendar } from "lucide-react-native";
+import { Heart, Bookmark, Share, MapPinned } from "lucide-react-native";
 import i18n from "@/lib/i18n";
-import { useRouter } from "expo-router";
 import { formatLikeCount } from "../utils/text";
-import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useAPICall } from "@/hooks/useAPICall";
 import type { DishMediaReactionBodyDto } from "@shared/api/v1/dto";
-import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { getCacheKeyForImage } from "@/lib/image";
 import {
 	DishMediaEntriesStore,
@@ -71,8 +68,6 @@ function ActionButtonsContent({
 	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
 	const { lightImpact } = useHaptics();
-	const router = useRouter();
-	const { locale } = useLocale();
 	const { isSaved, isLiked, likeCount } = entry.dish_media;
 	const dishMediaId = entry.dish_media.id;
 	const { restaurant } = entry;
@@ -81,12 +76,6 @@ function ActionButtonsContent({
 	const { openInGoogleMaps, shareRestaurant } = useDishMediaActions({
 		source: "ActionButtons", // #613 【設計】呼び出し元を明示
 	});
-
-	const {
-		BlurModal,
-		open: openMenuModal,
-		close: closeMenuModal,
-	} = useBlurModal({ intensity: 100, closeOnBackdropPress: true });
 
 	/**
 	 * #1205 【修正】いいね / 保存の多重実行を防ぐ同期ガード（アクション種別ごと）。
@@ -242,41 +231,6 @@ function ActionButtonsContent({
 		});
 	};
 
-	const handleViewCreator = () => {
-		lightImpact();
-		// Navigate to creator's profile
-		router.push({
-			pathname: `/[locale]/profile`,
-			params: {
-				locale,
-				userId: "123",
-			},
-		});
-
-		logFrontendEvent({
-			event_name: "creator_profile_clicked",
-			error_level: "log",
-			payload: {
-				creatorUserId: "123",
-				fromDishMediaId: dishMediaId,
-			},
-		});
-	};
-
-	const handleMenuOpen = () => {
-		lightImpact();
-		openMenuModal();
-
-		logFrontendEvent({
-			event_name: "dish_menu_opened",
-			error_level: "log",
-			payload: {
-				dishMediaId: dishMediaId,
-				restaurantId: restaurant.id,
-			},
-		});
-	};
-
 	const handleMapPinPress = useCallback(() => {
 		return openInGoogleMaps({
 			dishMediaId,
@@ -284,40 +238,12 @@ function ActionButtonsContent({
 		});
 	}, [dishMediaId, restaurant, openInGoogleMaps]);
 
-	const handleMenuOptionPress = (onPress: () => void) => {
-		lightImpact();
-		closeMenuModal();
-		onPress();
-
-		logFrontendEvent({
-			event_name: "dish_menu_option_selected",
-			error_level: "log",
-			payload: {
-				dishMediaId: dishMediaId,
-				restaurantId: restaurant.id,
-			},
-		});
-	};
-
 	const handleSharePress = useCallback(() => {
 		return shareRestaurant({
 			dishMediaId,
 			restaurant,
 		});
 	}, [dishMediaId, restaurant, shareRestaurant]);
-
-	const menuOptions = [
-		{
-			icon: User,
-			label: i18n.t("DishMediaContent.menuOptions.viewCreatorProfile"),
-			onPress: handleViewCreator,
-		},
-		{
-			icon: Calendar,
-			label: i18n.t("DishMediaContent.menuOptions.reservation"),
-			onPress: () => console.log("Reservation"),
-		},
-	];
 
 	const handleLayout = useCallback(
 		(event: LayoutChangeEvent) => onLayout?.(event.nativeEvent.layout.width),
@@ -408,32 +334,6 @@ function ActionButtonsContent({
 					</TouchableOpacity>
 					<Text style={styles.actionText}>{i18n.t("DishMediaContent.actions.openMap")}</Text>
 				</View>
-
-				{/* <TouchableOpacity
-                  style={styles.actionButton}
-                  onPress={onOpenMenu}
-                >
-                  <EllipsisVertical size={28} color="#FFFFFF" />
-                </TouchableOpacity> */}
-				{/* Menu Modal */}
-				<BlurModal contentContainerStyle={styles.modalOverlay}>
-					<View style={styles.menuContainer}>
-						{menuOptions.map((option, index) => (
-							<TouchableOpacity
-								key={index}
-								style={styles.menuItem}
-								onPress={() => {
-									option.onPress();
-									closeMenuModal();
-								}}
-								accessibilityRole="button"
-								accessibilityLabel={option.label}>
-								<option.icon size={20} color="#FFFFFF" />
-								<Text style={styles.menuItemText}>{option.label}</Text>
-							</TouchableOpacity>
-						))}
-					</View>
-				</BlurModal>
 			</View>
 		</GestureDetector>
 	);
@@ -460,36 +360,6 @@ const styles = StyleSheet.create({
 		fontWeight: "500",
 		color: "#FFFFFF",
 		marginTop: 4,
-		letterSpacing: 0.2,
-	},
-
-	modalOverlay: {
-		justifyContent: "center",
-		alignItems: "center",
-	},
-	menuContainer: {
-		backgroundColor: "rgba(0, 0, 0, 0.95)",
-		borderRadius: 20,
-		padding: 12,
-		minWidth: 200,
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 0 },
-		shadowOpacity: 0.3,
-		shadowRadius: 16,
-		elevation: 8,
-	},
-	menuItem: {
-		flexDirection: "row",
-		alignItems: "center",
-		paddingVertical: 16,
-		paddingHorizontal: 16,
-		borderRadius: 12,
-	},
-	menuItemText: {
-		fontSize: 17,
-		color: "#FFFFFF",
-		marginLeft: 12,
-		fontWeight: "500",
 		letterSpacing: 0.2,
 	},
 });
