@@ -6,7 +6,7 @@
 - ローディング/エラー状態、i18n、キーボード回避、アラート通知を扱う。
 
 #1359 【設計】features/profile/components/LoginbackModal.tsx から «そのまま» 移設したもの。
-ログイン UI が BlurModal（`useBlurModal`）に埋まっていて画面として扱えなかったため、
+ログイン UI が BlurModal（features/blurModal のフック）に埋まっていて画面として扱えなかったため、
 描画の実体をここへ切り出し、モーダル（LoginbackModal）とルート（app/[locale]/auth/login.tsx）の
 両方から同じものを描けるようにする。この PR では **ロジックを一切変えていない**。
 表示位置の違い（モーダルか画面か）は testID と showTitle の 2 つの prop だけで吸収する。
