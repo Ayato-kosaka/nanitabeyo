@@ -327,7 +327,7 @@ describe("DishCategoryGroupVoteResultScreen の「店を見る」", () => {
 	});
 
 	// #1358 【構造】#1122 の根本原因（画面スタックの外側 = Portal へレイヤーを積むこと）を直接禁じる。
-	// useBlurModal ベースへ戻すと Portal がマウントされ、このテストが赤くなる。
+	// 共通の BlurModal フック（features/blurModal）へ戻すと Portal がマウントされ、このテストが赤くなる。
 	it("候補詳細は Portal を使わず、結果画面の内側へ描かれる", () => {
 		let renderer!: TestRenderer.ReactTestRenderer;
 		act(() => {
