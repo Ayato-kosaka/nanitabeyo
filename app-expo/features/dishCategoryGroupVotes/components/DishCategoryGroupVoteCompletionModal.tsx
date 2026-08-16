@@ -2,8 +2,8 @@
  * #856 【責務】
  * 投票完了時の名前・コメント入力 UI をまとめる。
  *
- * BlurModal の開閉は親画面で管理し、このコンポーネントは内容表示だけに絞る。
- * これにより、最後の候補への投票直後に確実にモーダルを表示できる。
+ * 表示するかどうかは親画面（#1358 以降は投票完了状態の state）が管理し、このコンポーネントは
+ * 内容表示だけに絞る。これにより、最後の候補への投票直後に確実に完了入力を表示できる。
  */
 import { useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
@@ -44,7 +44,7 @@ export function DishCategoryGroupVoteCompletionModal({ usedDisplayNames, isSubmi
 	//   `isGuestUser(null)` は「ゲスト」へ倒れる仕様（lib/authGuest.ts）なので、
 	//   ここを待たないと必ずゲスト向け UI を先に描いてしまう。
 	// - ログイン済みで `isProfileResolved === false` … display_name の取得が終わっていない。
-	//   このモーダルは BlurModal が open した瞬間に初めてマウントされる = プロフィール取得も
+	//   この UI は投票完了状態になった瞬間に初めてマウントされる = プロフィール取得も
 	//   そこから始まるため、`profile === null` の窓を毎回必ず通る。
 	//
 	// ゲスト確定なら profile を参照しないので、プロフィール取得を待たずに描いてよい。
