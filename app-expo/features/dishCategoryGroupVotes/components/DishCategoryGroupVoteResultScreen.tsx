@@ -328,63 +328,73 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 
 	return (
 		<SafeAreaView style={styles.safeArea} edges={[]}>
-			<ScreenHeader title={i18n.t("DishCategoryGroupVotes.resultTitle")} onPressBack={() => router.back()} />
-			<ScrollView contentContainerStyle={styles.content}>
-				<DishCategoryGroupVoteResultHeader
-					session={detail.session}
-					participants={detail.participants}
-					onCopyShareLink={handleCopyShareLink}
-				/>
-				{!detail.session.hasVoted ? (
-					<View style={styles.voteCtaContainer}>
-						<PrimaryButton
-							label={i18n.t("DishCategoryGroupVotes.voteCta")}
-							style={styles.voteButton}
-							onPress={() => {
-								logFrontendEvent({
-									event_name: "dish_category_group_vote_vote_opened",
-									error_level: "log",
-									payload: { shareToken },
-								});
-								router.replace({
-									pathname: `/[locale]/(tabs)/search/dish-category-group-votes/[shareToken]/vote`,
-									params: {
-										locale,
-										shareToken,
-									},
-								});
-							}}
-						/>
-					</View>
-				) : shouldShowStoreCta ? (
-					<View style={styles.voteCtaContainer}>
-						<PrimaryButton
-							label={i18n.t("DeepLinking.downloadApp")}
-							style={styles.voteButton}
-							onPress={() => {
-								logFrontendEvent({
-									event_name: "dish_category_group_vote_store_opened",
-									error_level: "log",
-									payload: { shareToken },
-								});
-								router.push("/store");
-							}}
-						/>
-					</View>
-				) : null}
-				<DishCategoryGroupVoteCandidateList
-					candidates={detail.candidates}
-					isHost={detail.session.isHost}
-					hasVotes={hasVotes}
-					loadingCandidateId={loadingCandidateId}
-					onPressCandidate={handlePressCandidate}
-					onPressDishMedia={handleOpenCandidateDishMedia}
-					onDeleteCandidate={handleDeleteCandidate}
-				/>
-				<DishCategoryGroupVoteComments participants={detail.participants} />
-			</ScrollView>
-			{/* #1358 詳細レイヤーは ScrollView の兄弟かつ**最後の子**として置く。
-			    RN / RN Web とも兄弟の描画順は子の順序で決まるので、これだけで一覧の上に載る（zIndex は積まない） */}
+			{/* #1358 【設計】ヘッダーと本文は 1 枚の View で包み、詳細レイヤーの兄弟から外す。
+			    ScreenHeader は container に zIndex:100 と不透明な白背景を持つため、詳細レイヤーと
+			    兄弟のままだと**ヘッダー帯だけレイヤーの上**に残る（= X が押せず、戻るボタンだけ生きて
+			    「閉じてから遷移する」順序を迂回できてしまう）。View は RN Web でも
+			    position:relative / zIndex:0 が既定なので、包めばその zIndex はこの中に閉じ込められる。
+			    ここを外すと DishCategoryGroupVoteResultScreen.test.tsx の兄弟 zIndex 検査が赤くなる。 */}
+			<View style={styles.body}>
+				<ScreenHeader title={i18n.t("DishCategoryGroupVotes.resultTitle")} onPressBack={() => router.back()} />
+				<ScrollView contentContainerStyle={styles.content}>
+					<DishCategoryGroupVoteResultHeader
+						session={detail.session}
+						participants={detail.participants}
+						onCopyShareLink={handleCopyShareLink}
+					/>
+					{!detail.session.hasVoted ? (
+						<View style={styles.voteCtaContainer}>
+							<PrimaryButton
+								label={i18n.t("DishCategoryGroupVotes.voteCta")}
+								style={styles.voteButton}
+								onPress={() => {
+									logFrontendEvent({
+										event_name: "dish_category_group_vote_vote_opened",
+										error_level: "log",
+										payload: { shareToken },
+									});
+									router.replace({
+										pathname: `/[locale]/(tabs)/search/dish-category-group-votes/[shareToken]/vote`,
+										params: {
+											locale,
+											shareToken,
+										},
+									});
+								}}
+							/>
+						</View>
+					) : shouldShowStoreCta ? (
+						<View style={styles.voteCtaContainer}>
+							<PrimaryButton
+								label={i18n.t("DeepLinking.downloadApp")}
+								style={styles.voteButton}
+								onPress={() => {
+									logFrontendEvent({
+										event_name: "dish_category_group_vote_store_opened",
+										error_level: "log",
+										payload: { shareToken },
+									});
+									router.push("/store");
+								}}
+							/>
+						</View>
+					) : null}
+					<DishCategoryGroupVoteCandidateList
+						candidates={detail.candidates}
+						isHost={detail.session.isHost}
+						hasVotes={hasVotes}
+						loadingCandidateId={loadingCandidateId}
+						onPressCandidate={handlePressCandidate}
+						onPressDishMedia={handleOpenCandidateDishMedia}
+						onDeleteCandidate={handleDeleteCandidate}
+					/>
+					<DishCategoryGroupVoteComments participants={detail.participants} />
+				</ScrollView>
+			</View>
+			{/* #1358 詳細レイヤーは本文ラッパーの兄弟かつ**最後の子**として置く。
+			    RN / RN Web とも兄弟の描画順は子の順序で決まるので、zIndex を積まずにこれだけで上に載る。
+			    ただし成立条件は「兄弟に zIndex を持つ要素が居ないこと」なので、zIndex を持つ要素
+			    （ScreenHeader など）をここへ並べてはいけない（上のラッパーのコメント参照） */}
 			{isCandidateDetailVisible && selectedCandidate ? (
 				<DishCategoryGroupVoteInlineOverlay
 					contentContainerStyle={styles.detailContent}
@@ -407,6 +417,10 @@ const styles = StyleSheet.create({
 	safeArea: {
 		flex: 1,
 		backgroundColor: "#F9FAFB",
+	},
+	// #1358 ヘッダー + 本文のラッパー。ScreenHeader の zIndex をここへ閉じ込めるためだけに存在する
+	body: {
+		flex: 1,
 	},
 	content: {
 		paddingBottom: 28,
@@ -436,5 +450,8 @@ const styles = StyleSheet.create({
 	},
 	detailContent: {
 		padding: 18,
+		// #1358 上下は 32（移行元 BlurModal の paddingVertical 既定値）に揃える。
+		// 18 のままだと候補名や投票者名が長い小型端末でカードが画面上下端に接する
+		paddingVertical: 32,
 	},
 });

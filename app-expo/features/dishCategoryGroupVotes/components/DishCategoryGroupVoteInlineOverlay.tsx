@@ -13,7 +13,20 @@
  *
  * ⚠️ 【バグ】ここに zIndex を積んではいけない。web では親（画面コンテナ）が stacking context を
  * 作っているとは限らず、大きな zIndex を置くと兄弟の画面より上へ抜けうる ＝ Portal と同じ壊れ方に戻る。
- * RN / RN Web はどちらも兄弟の描画順が子の順序で決まるため、**画面の最後の子として置くだけ**で足りる。
+ *
+ * 代わりに、**呼び出し側**が次の 2 つを満たすこと（このレイヤー自身では守れない前提）:
+ *   1. 画面の**最後の子**として置く（RN / RN Web とも兄弟の描画順は子の順序で決まる）
+ *   2. 兄弟に **zIndex を持つ要素を置かない**
+ * 2 が要るのは、zIndex を持つ兄弟が居るとその兄弟だけがこのレイヤーより後に描かれるため
+ * （CSS は「zIndex:auto/0 の配置済み子孫」→「zIndex>0 の配置済み子孫」の順、RN も zIndex で
+ * 兄弟を並べ替える）。実際 ScreenHeader は `zIndex: 100` を持つので、結果画面では
+ * ScreenHeader と本文を 1 枚の View で包んでこのレイヤーの兄弟から外している
+ * （DishCategoryGroupVoteResultScreen 参照。ヘッダー帯だけレイヤーの上に残ると X が押せない）。
+ * View は RN Web でも `position:relative; z-index:0` が既定なので、包むだけで
+ * 内側の zIndex はその View の stacking context に閉じ込められる。
+ *
+ * 上記 2 の不変条件は DishCategoryGroupVoteResultScreen.test.tsx が
+ * `INLINE_OVERLAY_TEST_ID`（下記 testID）の兄弟を検査して固定している。
  */
 import { type ReactNode, useCallback, useEffect, useRef } from "react";
 import {
@@ -31,6 +44,13 @@ import { BlurView } from "expo-blur";
 import { X } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import i18n from "@/lib/i18n";
+
+/**
+ * レイヤー根の testID。
+ * 「このレイヤーの兄弟に zIndex を持つ要素が居ない」という上記の前提を
+ * ユニットテスト（DishCategoryGroupVoteResultScreen.test.tsx）から検査するための目印。
+ */
+export const INLINE_OVERLAY_TEST_ID = "dish-category-group-vote-inline-overlay";
 
 /** 移行前の BlurModal の既定値をそのまま踏襲する（見た目を変えないため） */
 const BLUR_INTENSITY = 50;
@@ -70,12 +90,18 @@ export function DishCategoryGroupVoteInlineOverlay({ children, contentContainerS
 
 	// 【設計】キーボードが出ているときは、まずキーボードだけ閉じる。
 	// 入力中に背景を触った / 戻るキーを押しただけでレイヤーごと消えると、入力内容を失う。
+	//
+	// ⚠️ この判定は onRequestClose の有無より**前**に置くこと。移行元の BlurModal は
+	// dismissKeyboardFirst 既定 true / closeOnBackdropPress 別扱いで、「閉じられないモーダル」でも
+	// 背景タップでキーボードだけは引っ込んだ。投票完了入力（onRequestClose 無し・TextInput 2 つ）は
+	// 閉じる導線が無く、Android の behavior="height" でせり上がると送信ボタンがキーボードに
+	// 隠れうるため、ここを先に返してしまうと小型端末で戻す手段が無くなる。
 	const requestClose = useCallback(() => {
-		if (!onRequestClose) return false;
 		if (isKeyboardVisibleRef.current) {
 			Keyboard.dismiss();
 			return true;
 		}
+		if (!onRequestClose) return false;
 		onRequestClose();
 		return true;
 	}, [onRequestClose]);
@@ -87,7 +113,7 @@ export function DishCategoryGroupVoteInlineOverlay({ children, contentContainerS
 	}, [onRequestClose, requestClose]);
 
 	return (
-		<View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+		<View testID={INLINE_OVERLAY_TEST_ID} style={StyleSheet.absoluteFill} pointerEvents="box-none">
 			{/* 背景。押下で閉じる（onRequestClose を渡した場合のみ） */}
 			<Pressable
 				onPress={() => requestClose()}
