@@ -2,11 +2,18 @@
  * #856 【責務】
  * 投票フローの本体を扱う。
  *
- * 最後の候補まで到達したら完了モーダルへ送り、送信完了まではこの画面内で完結させる。
+ * 最後の候補まで到達したら完了入力へ切り替え、送信完了まではこの画面内で完結させる。
+ * #1358 その完了入力も Portal ではなく同画面内のレイヤーとして描く（DishCategoryGroupVoteInlineOverlay）。
  */
 import { router } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AccessibilityInfo, SafeAreaView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { AccessibilityInfo, StyleSheet, Text, View } from "react-native";
+// #1358 【修正】react-native の SafeAreaView は iOS だけ padding を入れる（Android / web では素の View）。
+// Yoga は絶対配置の子を親の padding の内側へ置くため、完了レイヤー（StyleSheet.absoluteFill）が
+// iOS でだけセーフエリアの内側までしか広がらず、ステータスバー帯とホームインジケータ帯に
+// ブラーが届かなかった。#1130 と同じく react-native-safe-area-context のものへ揃え、
+// レイヤーを載せる外枠は edges={[]}（padding を入れない）、inset は内側の本文へ明示的に当てる。
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import type { SubmitDishCategoryGroupVoteDto } from "@shared/api/v1/dto";
 import type { DishCategoryGroupVoteReaction } from "@shared/api/v1/res";
 import i18n from "@/lib/i18n";
@@ -15,11 +22,11 @@ import { PrimaryButton } from "@/components/PrimaryButton";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useLogger } from "@/hooks/useLogger";
 import { useLocale } from "@/hooks/useLocale";
-import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { useDishCategoryGroupVoteActions } from "../hooks/useDishCategoryGroupVoteActions";
 import { useDishCategoryGroupVoteDetail } from "../hooks/useDishCategoryGroupVoteDetail";
 import type { DishCategoryGroupVoteDraftVote } from "../types";
 import { DishCategoryGroupVoteCompletionModal } from "./DishCategoryGroupVoteCompletionModal";
+import { DishCategoryGroupVoteInlineOverlay } from "./DishCategoryGroupVoteInlineOverlay";
 import { DishCategoryGroupVoteVoteCard } from "./DishCategoryGroupVoteVoteCard";
 
 type Props = {
@@ -27,23 +34,24 @@ type Props = {
 };
 
 export function DishCategoryGroupVoteVoteScreen({ shareToken }: Props) {
+	const insets = useSafeAreaInsets();
 	const { showSnackbar } = useSnackbar();
 	const { locale } = useLocale();
 	const { logFrontendEvent } = useLogger();
-	const { height: windowHeight } = useWindowDimensions();
 	const { detail, isLoading, error, refresh } = useDishCategoryGroupVoteDetail(shareToken);
 	const { submitVote } = useDishCategoryGroupVoteActions({
 		sessionId: detail?.session.id,
 		refresh,
 	});
-	const {
-		BlurModal: CompletionBlurModal,
-		open: openCompletionModal,
-		close: closeCompletionModal,
-	} = useBlurModal({
-		closeOnBackdropPress: false,
-		backHandlerEnabled: false,
-	});
+	/**
+	 * #1358 【設計】最後の候補まで投票し終えた状態。完了入力は「この画面の最終ステップ」であって
+	 * 別レイヤーではないため、状態変数 1 つで同画面内へ描き分ける。
+	 *
+	 * 以前は共通の BlurModal フック（Portal）で載せていたが、閉じるボタン無し・背景タップ無効・全画面という
+	 * 指定だった時点で実質は画面であり、Portal に置く理由が無かった。ナビゲーション履歴の外に
+	 * 絶対配置レイヤーを積むと、遷移・戻る・URL と噛み合わない（#1350 / 具体的な破綻は #1122）。
+	 */
+	const [isCompleted, setIsCompleted] = useState(false);
 	const [index, setIndex] = useState(0);
 	const [votes, setVotes] = useState<DishCategoryGroupVoteDraftVote[]>([]);
 	const [isSubmitting, setIsSubmitting] = useState(false);
@@ -111,7 +119,7 @@ export function DishCategoryGroupVoteVoteScreen({ shareToken }: Props) {
 		setVotes(nextVotes);
 
 		if (index >= voteCandidates.length - 1) {
-			openCompletionModal();
+			setIsCompleted(true);
 			return;
 		}
 		setIndex((current) => current + 1);
@@ -137,7 +145,7 @@ export function DishCategoryGroupVoteVoteScreen({ shareToken }: Props) {
 				payload: { shareToken, voteCount: dto.votes.length },
 			});
 			await submitVote(dto);
-			closeCompletionModal();
+			setIsCompleted(false);
 			router.replace({
 				pathname: "/[locale]/(tabs)/search/dish-category-group-votes/[shareToken]",
 				params: {
@@ -184,43 +192,61 @@ export function DishCategoryGroupVoteVoteScreen({ shareToken }: Props) {
 	const currentCandidate = voteCandidates[index];
 
 	return (
-		<SafeAreaView style={styles.safeArea}>
-			<View style={styles.header}>
-				<View style={styles.progressSegments}>
-					{voteCandidates.map((candidate, segmentIndex) => (
-						<View
-							key={candidate.id}
-							style={[
-								styles.progressSegment,
-								segmentIndex < getFilledProgressSegments(index, voteCandidates.length) && styles.progressSegmentActive,
-							]}
-						/>
-					))}
+		<SafeAreaView style={styles.safeArea} edges={[]}>
+			{/* #1358 【設計】inset はこのラッパーが持つ（外枠は完了レイヤーを全面に敷くため padding を持てない）。
+			    完了レイヤーはこのラッパーの兄弟かつ最後の子に置く。ここに zIndex を持つ要素を並べると
+			    レイヤーの上に残ってしまう（DishCategoryGroupVoteInlineOverlay の前提を参照） */}
+			<View
+				style={[
+					styles.body,
+					{
+						paddingTop: insets.top,
+						paddingBottom: insets.bottom,
+						// 横向きのノッチ機で本文が切り欠きへ潜らないよう、旧 SafeAreaView と同じく左右も見る
+						paddingLeft: insets.left,
+						paddingRight: insets.right,
+					},
+				]}>
+				<View style={styles.header}>
+					<View style={styles.progressSegments}>
+						{voteCandidates.map((candidate, segmentIndex) => (
+							<View
+								key={candidate.id}
+								style={[
+									styles.progressSegment,
+									segmentIndex < getFilledProgressSegments(index, voteCandidates.length) &&
+										styles.progressSegmentActive,
+								]}
+							/>
+						))}
+					</View>
+					<Text style={styles.progress}>
+						{i18n.t("DishCategoryGroupVotes.voteProgress", {
+							current: Math.min(index + 1, voteCandidates.length),
+							total: voteCandidates.length,
+						})}
+					</Text>
 				</View>
-				<Text style={styles.progress}>
-					{i18n.t("DishCategoryGroupVotes.voteProgress", {
-						current: Math.min(index + 1, voteCandidates.length),
-						total: voteCandidates.length,
-					})}
-				</Text>
+				{currentCandidate ? (
+					<DishCategoryGroupVoteVoteCard candidate={currentCandidate} onVote={handleVote} />
+				) : (
+					<View style={styles.center}>
+						<Text style={styles.errorText}>{i18n.t("DishCategoryGroupVotes.noVoteCandidates")}</Text>
+					</View>
+				)}
 			</View>
-			{currentCandidate ? (
-				<DishCategoryGroupVoteVoteCard candidate={currentCandidate} onVote={handleVote} />
-			) : (
-				<View style={styles.center}>
-					<Text style={styles.errorText}>{i18n.t("DishCategoryGroupVotes.noVoteCandidates")}</Text>
-				</View>
-			)}
-			<CompletionBlurModal
-				showCloseButton={false}
-				contentContainerStyle={[styles.completionBackdrop, { minHeight: windowHeight }]}
-				paddingVertical={0}>
-				<DishCategoryGroupVoteCompletionModal
-					usedDisplayNames={usedDisplayNames}
-					isSubmitting={isSubmitting}
-					onSubmit={handleSubmit}
-				/>
-			</CompletionBlurModal>
+			{isCompleted ? (
+				// #1358 閉じる導線を持たせない（＝ onRequestClose を渡さない）のは旧実装の
+				// closeOnBackdropPress:false / backHandlerEnabled:false / showCloseButton:false と同じ意図。
+				// 投票を全部終えた後に戻れる先はこの画面には無く、送信するかタブを離れるかしかない
+				<DishCategoryGroupVoteInlineOverlay contentContainerStyle={styles.completionContent}>
+					<DishCategoryGroupVoteCompletionModal
+						usedDisplayNames={usedDisplayNames}
+						isSubmitting={isSubmitting}
+						onSubmit={handleSubmit}
+					/>
+				</DishCategoryGroupVoteInlineOverlay>
+			) : null}
 		</SafeAreaView>
 	);
 }
@@ -229,6 +255,10 @@ const styles = StyleSheet.create({
 	safeArea: {
 		flex: 1,
 		backgroundColor: "#F9FAFB",
+	},
+	// #1358 inset を当てる本文ラッパー。完了レイヤーを外枠直下の全面に敷くために外枠から分離している
+	body: {
+		flex: 1,
 	},
 	header: {
 		paddingHorizontal: 20,
@@ -262,10 +292,8 @@ const styles = StyleSheet.create({
 		padding: 24,
 		backgroundColor: "#F9FAFB",
 	},
-	completionBackdrop: {
+	completionContent: {
 		padding: 20,
-		justifyContent: "center",
-		alignItems: "center",
 	},
 	errorText: {
 		fontSize: 15,

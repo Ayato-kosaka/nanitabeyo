@@ -7,16 +7,7 @@
 import * as Clipboard from "expo-clipboard";
 import { router } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-	AppState,
-	type AppStateStatus,
-	Platform,
-	ScrollView,
-	StyleSheet,
-	Text,
-	View,
-	useWindowDimensions,
-} from "react-native";
+import { AppState, type AppStateStatus, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useIsFocused } from "@react-navigation/native";
 import type { DishCategoryGroupVoteCandidate } from "@shared/api/v1/res";
@@ -34,7 +25,6 @@ import { useAPICall } from "@/hooks/useAPICall";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import { ScreenHeader } from "@/components/ScreenHeader";
-import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { useDishCategoryGroupVoteActions } from "../hooks/useDishCategoryGroupVoteActions";
 import { useDishCategoryGroupVoteDetail } from "../hooks/useDishCategoryGroupVoteDetail";
 import { useDishCategoryGroupVotePolling } from "../hooks/useDishCategoryGroupVotePolling";
@@ -42,6 +32,7 @@ import { useCandidateDishMediaCache } from "../hooks/useCandidateDishMediaCache"
 import { DishCategoryGroupVoteCandidateList } from "./DishCategoryGroupVoteCandidateList";
 import { DishCategoryGroupVoteComments } from "./DishCategoryGroupVoteComments";
 import { DishCategoryGroupVoteCandidateDetailModal } from "./DishCategoryGroupVoteCandidateDetailModal";
+import { DishCategoryGroupVoteInlineOverlay } from "./DishCategoryGroupVoteInlineOverlay";
 import { DishCategoryGroupVoteResultHeader } from "./DishCategoryGroupVoteResultHeader";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { toErrorLogMessage } from "@/lib/errorMessage";
@@ -57,20 +48,21 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 	const { logFrontendEvent } = useLogger();
 	const { confirm } = useDialog();
 	const { showSnackbar } = useSnackbar();
-	const { height: windowHeight } = useWindowDimensions();
 	const [appState, setAppState] = useState<AppStateStatus>(AppState.currentState);
 	const [selectedCandidate, setSelectedCandidate] = useState<DishCategoryGroupVoteCandidate | null>(null);
-	// #1122 【修正】候補詳細モーダルは react-native-paper の Portal 経由で Portal.Host 直下
-	// (= Stack より後ろ・上のレイヤー)へ描かれる。開いたまま遷移すると、遷移先の画面の上に
-	// バックドロップ(StyleSheet.absoluteFill の Pressable)が残り続けるため、
-	// 遷移先の DishMediaMap をタップできない。
-	// iOS だけ無事だったのは、遷移先 /search/result が presentation:"transparentModal"
-	// (= ネイティブの modal presentation)で、Portal.Host より上に載るから。
-	// Web / Android では screens が同じ View 階層内に積まれるので Portal 側が勝つ。
+	// #1358 【設計】候補詳細は共通の BlurModal フック(= react-native-paper の Portal)をやめ、この画面の子として描く
+	// (DishCategoryGroupVoteInlineOverlay)。#1122 の「開いたまま遷移すると遷移先の上に
+	// バックドロップが残って一切タップできない」は Portal.Host が画面スタックの外側に
+	// あることが原因だったので、画面の内側へ戻した時点で**構造として起こせなくなった**。
 	//
-	// そこで「閉じてから遷移する」を setTimeout ではなく因果で書く:
-	// クローズ後に実行したい処理を ref へ積み、BlurModal 自身の onClose
-	// (visible=false のコミット後に発火 = Portal がアンマウント済み)で取り出して実行する。
+	// #1122 【修正】それでも「閉じてから遷移する」順序は残す。理由は 2 つある:
+	//   1. 遷移先から戻ったときに詳細が開きっぱなしだと、押した覚えのない詳細が復活して見える。
+	//   2. web は遷移しても前の画面の DOM が残るため、レイヤーを開いたまま積み増す設計に
+	//      戻すと #1122 と同じ「上に残る」経路が再びありうる。順序を仕様として固定しておく。
+	//
+	// 順序は setTimeout ではなく因果で書く: クローズ後に実行したい処理を ref へ積み、
+	// 可視状態の変化を見る useEffect(= visible=false のコミット後 ＝ レイヤーがアンマウント済み)
+	// で取り出して実行する。
 	const pendingAfterCandidateDetailCloseRef = useRef<(() => void) | null>(null);
 	// #1122 【追補】未検索(not_searched)の候補では openCandidateDishMedia が非同期検索を await して
 	// から遷移を要求してくる。その待ち時間にユーザーが X / バックドロップでモーダルを閉じられるため、
@@ -99,16 +91,15 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 		pendingAfterCandidateDetailCloseRef.current = null;
 		pending?.();
 	}, []);
-	const {
-		BlurModal: CandidateDetailBlurModal,
-		open: openCandidateDetail,
-		close: closeCandidateDetail,
-	} = useBlurModal({
-		closeOnBackdropPress: true,
-		// onOpen / onClose は useBlurModal 内の useEffect の依存に入るため、必ず安定参照を渡すこと
-		onOpen: handleCandidateDetailOpened,
-		onClose: handleCandidateDetailClosed,
-	});
+	const [isCandidateDetailVisible, setIsCandidateDetailVisible] = useState(false);
+	const openCandidateDetail = useCallback(() => setIsCandidateDetailVisible(true), []);
+	const closeCandidateDetail = useCallback(() => setIsCandidateDetailVisible(false), []);
+	// #1122 開閉の副作用は「コミット後」に走る useEffect でだけ起こす。
+	// close の呼び出し直後（＝まだレイヤーがツリーに居る時点）で pending を実行すると、
+	// 「閉じてから遷移する」が崩れる。onOpen / onClose は依存に入るので安定参照であること
+	useEffect(() => {
+		isCandidateDetailVisible ? handleCandidateDetailOpened() : handleCandidateDetailClosed();
+	}, [isCandidateDetailVisible, handleCandidateDetailOpened, handleCandidateDetailClosed]);
 
 	// #1122 モーダルが開いていれば閉じ、閉じ終わってから navigate を実行する。
 	// 既に閉じている(一覧カードからの導線)ときは待つものが無いのでそのまま実行する。
@@ -337,63 +328,77 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 
 	return (
 		<SafeAreaView style={styles.safeArea} edges={[]}>
-			<ScreenHeader title={i18n.t("DishCategoryGroupVotes.resultTitle")} onPressBack={() => router.back()} />
-			<ScrollView contentContainerStyle={styles.content}>
-				<DishCategoryGroupVoteResultHeader
-					session={detail.session}
-					participants={detail.participants}
-					onCopyShareLink={handleCopyShareLink}
-				/>
-				{!detail.session.hasVoted ? (
-					<View style={styles.voteCtaContainer}>
-						<PrimaryButton
-							label={i18n.t("DishCategoryGroupVotes.voteCta")}
-							style={styles.voteButton}
-							onPress={() => {
-								logFrontendEvent({
-									event_name: "dish_category_group_vote_vote_opened",
-									error_level: "log",
-									payload: { shareToken },
-								});
-								router.replace({
-									pathname: `/[locale]/(tabs)/search/dish-category-group-votes/[shareToken]/vote`,
-									params: {
-										locale,
-										shareToken,
-									},
-								});
-							}}
-						/>
-					</View>
-				) : shouldShowStoreCta ? (
-					<View style={styles.voteCtaContainer}>
-						<PrimaryButton
-							label={i18n.t("DeepLinking.downloadApp")}
-							style={styles.voteButton}
-							onPress={() => {
-								logFrontendEvent({
-									event_name: "dish_category_group_vote_store_opened",
-									error_level: "log",
-									payload: { shareToken },
-								});
-								router.push("/store");
-							}}
-						/>
-					</View>
-				) : null}
-				<DishCategoryGroupVoteCandidateList
-					candidates={detail.candidates}
-					isHost={detail.session.isHost}
-					hasVotes={hasVotes}
-					loadingCandidateId={loadingCandidateId}
-					onPressCandidate={handlePressCandidate}
-					onPressDishMedia={handleOpenCandidateDishMedia}
-					onDeleteCandidate={handleDeleteCandidate}
-				/>
-				<DishCategoryGroupVoteComments participants={detail.participants} />
-			</ScrollView>
-			<CandidateDetailBlurModal contentContainerStyle={[styles.detailBackdrop, { minHeight: windowHeight }]}>
-				{selectedCandidate ? (
+			{/* #1358 【設計】ヘッダーと本文は 1 枚の View で包み、詳細レイヤーの兄弟から外す。
+			    ScreenHeader は container に zIndex:100 と不透明な白背景を持つため、詳細レイヤーと
+			    兄弟のままだと**ヘッダー帯だけレイヤーの上**に残る（= X が押せず、戻るボタンだけ生きて
+			    「閉じてから遷移する」順序を迂回できてしまう）。View は RN Web でも
+			    position:relative / zIndex:0 が既定なので、包めばその zIndex はこの中に閉じ込められる。
+			    ここを外すと DishCategoryGroupVoteResultScreen.test.tsx の兄弟 zIndex 検査が赤くなる。 */}
+			<View style={styles.body}>
+				<ScreenHeader title={i18n.t("DishCategoryGroupVotes.resultTitle")} onPressBack={() => router.back()} />
+				<ScrollView contentContainerStyle={styles.content}>
+					<DishCategoryGroupVoteResultHeader
+						session={detail.session}
+						participants={detail.participants}
+						onCopyShareLink={handleCopyShareLink}
+					/>
+					{!detail.session.hasVoted ? (
+						<View style={styles.voteCtaContainer}>
+							<PrimaryButton
+								label={i18n.t("DishCategoryGroupVotes.voteCta")}
+								style={styles.voteButton}
+								onPress={() => {
+									logFrontendEvent({
+										event_name: "dish_category_group_vote_vote_opened",
+										error_level: "log",
+										payload: { shareToken },
+									});
+									router.replace({
+										pathname: `/[locale]/(tabs)/search/dish-category-group-votes/[shareToken]/vote`,
+										params: {
+											locale,
+											shareToken,
+										},
+									});
+								}}
+							/>
+						</View>
+					) : shouldShowStoreCta ? (
+						<View style={styles.voteCtaContainer}>
+							<PrimaryButton
+								label={i18n.t("DeepLinking.downloadApp")}
+								style={styles.voteButton}
+								onPress={() => {
+									logFrontendEvent({
+										event_name: "dish_category_group_vote_store_opened",
+										error_level: "log",
+										payload: { shareToken },
+									});
+									router.push("/store");
+								}}
+							/>
+						</View>
+					) : null}
+					<DishCategoryGroupVoteCandidateList
+						candidates={detail.candidates}
+						isHost={detail.session.isHost}
+						hasVotes={hasVotes}
+						loadingCandidateId={loadingCandidateId}
+						onPressCandidate={handlePressCandidate}
+						onPressDishMedia={handleOpenCandidateDishMedia}
+						onDeleteCandidate={handleDeleteCandidate}
+					/>
+					<DishCategoryGroupVoteComments participants={detail.participants} />
+				</ScrollView>
+			</View>
+			{/* #1358 詳細レイヤーは本文ラッパーの兄弟かつ**最後の子**として置く。
+			    RN / RN Web とも兄弟の描画順は子の順序で決まるので、zIndex を積まずにこれだけで上に載る。
+			    ただし成立条件は「兄弟に zIndex を持つ要素が居ないこと」なので、zIndex を持つ要素
+			    （ScreenHeader など）をここへ並べてはいけない（上のラッパーのコメント参照） */}
+			{isCandidateDetailVisible && selectedCandidate ? (
+				<DishCategoryGroupVoteInlineOverlay
+					contentContainerStyle={styles.detailContent}
+					onRequestClose={closeCandidateDetail}>
 					<DishCategoryGroupVoteCandidateDetailModal
 						candidate={selectedCandidate}
 						isHost={detail.session.isHost}
@@ -402,8 +407,8 @@ export function DishCategoryGroupVoteResultScreen({ shareToken }: Props) {
 						onPressDishMedia={handleOpenCandidateDishMedia}
 						onDeleteCandidate={handleDeleteCandidate}
 					/>
-				) : null}
-			</CandidateDetailBlurModal>
+				</DishCategoryGroupVoteInlineOverlay>
+			) : null}
 		</SafeAreaView>
 	);
 }
@@ -412,6 +417,10 @@ const styles = StyleSheet.create({
 	safeArea: {
 		flex: 1,
 		backgroundColor: "#F9FAFB",
+	},
+	// #1358 ヘッダー + 本文のラッパー。ScreenHeader の zIndex をここへ閉じ込めるためだけに存在する
+	body: {
+		flex: 1,
 	},
 	content: {
 		paddingBottom: 28,
@@ -439,9 +448,10 @@ const styles = StyleSheet.create({
 	voteButton: {
 		width: "100%",
 	},
-	detailBackdrop: {
-		alignItems: "center",
-		justifyContent: "center",
+	detailContent: {
 		padding: 18,
+		// #1358 上下は 32（移行元 BlurModal の paddingVertical 既定値）に揃える。
+		// 18 のままだと候補名や投票者名が長い小型端末でカードが画面上下端に接する
+		paddingVertical: 32,
 	},
 });

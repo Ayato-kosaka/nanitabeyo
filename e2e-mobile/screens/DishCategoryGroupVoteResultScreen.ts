@@ -12,9 +12,14 @@ import { by, tapWhenVisible, waitUntilGone, waitUntilVisible } from "../fixtures
  * - 詳細モーダル本体: `dish-category-group-vote-candidate-detail`
  * - モーダル内「店を見る」: `dish-category-group-vote-detail-dish-media`
  *
- * 詳細モーダルは `useBlurModal`（react-native-paper の Portal）で描かれるため、
- * **モーダル本体の testID が消えたこと = Portal がアンマウントされたこと**になる。
+ * #1358 詳細モーダルは Portal（react-native-paper）ではなく、**結果画面の子として** 描かれる
+ * （app-expo/features/dishCategoryGroupVotes/components/DishCategoryGroupVoteInlineOverlay.tsx）。
+ * 観測点（testID）は移行前後で変えていないので、この Screen Object の使い方も変わらない。
+ * 意味だけが変わる: **モーダル本体の testID が消えたこと = 詳細レイヤーがアンマウントされたこと**。
  * #1122 の「閉じてから遷移する」はこの観測点で検証する。
+ *
+ * 対応する e2e-web 側の変更: `e2e-web/tests/search/dish-category-group-vote-navigation.spec.ts`
+ * （web も同じ testID / 右上 X の accessibilityLabel を観測点にしている。片方だけ直さないこと）
  */
 export class DishCategoryGroupVoteResultScreen {
 	/** 候補カード（押下で詳細モーダルを開く） */
@@ -86,7 +91,7 @@ export class DishCategoryGroupVoteResultScreen {
 		await tapWhenVisible(this.detailDishMediaButton);
 	}
 
-	/** 詳細モーダルが閉じ切る（Portal がアンマウントされる）まで待つ */
+	/** 詳細モーダルが閉じ切る（詳細レイヤーがアンマウントされる）まで待つ */
 	async expectDetailClosed(): Promise<void> {
 		await waitUntilGone(this.detailModal);
 	}
