@@ -30,6 +30,8 @@ import { PUBLIC_LOCALES } from "@/constants/seoLocales";
  * 足すときはここのコメントと合わせて更新すること。
  *
  * - `auth/callback` … OAuth のコールバック。人間が入口として踏む URL ではない
+ * - `auth/login` … アプリ内のログイン導線から `?next=` 付きで push される画面（#1359）。
+ *   `auth/callback` と同じく、人間が検索結果から入口として踏む URL ではない
  * - `contribution-tasks/*` … 内部作業用の画面
  * - `profile/*` / `notifications/*` … ログイン後の個人ページ（未ログインでは中身が無い）
  * - `posts` … `?ids=` のクエリ前提のページで、クエリ無しでは表示する対象が決まらない（#721）。

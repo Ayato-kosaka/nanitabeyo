@@ -1,6 +1,7 @@
 /*
 このファイルの責務
 - ログイン UI（features/auth/components/LoginForm）を «画面» として提供する。
+- 認証が未確定の間は OAuth ボタンを描かず、確定後にログイン済みなら自動で離脱する。
 - 戻る導線（ScreenHeader / ハードウェアバック）から、履歴または `?next=` に沿って離脱する。
 
 #1359 【設計】ログインは長らく BlurModal のオーバーレイで、呼び出し 4 箇所に複製されていた。
@@ -16,19 +17,23 @@ presentation を指定していない（＝既定の card）のは意図的:
 `app/[locale]/_layout.tsx` への Stack.Screen 追加が不要なのも、presentation を変えないため
 （兄弟の `auth/callback.tsx` も列挙されていないが動いている）。
 
-⚠️ この PR の時点では、まだどこからもこのルートへ遷移してこない。
-呼び出し 4 箇所を `router.push` へ切り替えるのは次の PR で、E2E と catalog/screens.json も同時に更新する。
+⚠️ E2E の注意: `ScreenHeader` は `login-screen` コンテナ（LoginForm 側の View）の **外側**にある。
+そのため `getByTestId("login-screen")` の配下に戻るボタンは入らない。戻る導線を検証するときは
+`screen-header-back`（components/ScreenHeader.tsx）か URL（`toHaveURL(/\/auth\/login/)`）を使うこと。
 */
-import React, { useCallback } from "react";
-import { ScrollView, StyleSheet } from "react-native";
+import React, { useCallback, useEffect, useRef } from "react";
+import { ScrollView, StyleSheet, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import type { ExternalPathString } from "expo-router";
 
+import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { ScreenHeader } from "@/components/ScreenHeader";
+import { useAuth } from "@/contexts/AuthProvider";
 import { LoginForm } from "@/features/auth/components/LoginForm";
-import { resolvePostLoginTarget } from "@/lib/authNext";
+import { isGuestUser } from "@/lib/authGuest";
+import { resolveNextPath, resolvePostLoginTarget } from "@/lib/authNext";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
@@ -38,9 +43,43 @@ export default function LoginScreen() {
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { locale } = useLocale();
+	const { user, isAuthResolved } = useAuth();
 	// `next` は外部（URL / ディープリンク）から来る値。行き先として採用してよいかは
 	// lib/authNext.ts で検証する。ここでは生のまま受け取るだけにする
 	const { next } = useLocalSearchParams<{ next?: string }>();
+
+	/**
+	 * #1359 【設計】自動離脱を 1 回に限るための記録。
+	 *
+	 * `router.replace` を呼んでもこの画面が即座に unmount されるとは限らず、その間に user が
+	 * 更新されると effect が再実行されて replace が二重に走る。ref は同期的に確定するので、
+	 * 同一 JS タスク内の再入も含めて 1 回に閉じられる。
+	 */
+	const hasLeftRef = useRef(false);
+
+	// #1359 【設計】ログイン済みになった瞬間にこの画面から離脱する保険（設計 §4）。
+	// 通常は native なら AuthProvider が callback へ replace し、web ならページごと消えるため
+	// ここは発火しない。発火するのは「ログイン済みなのに login ルートに居る」状態
+	//（ログイン済みのまま URL 直叩き / ディープリンク、あるいは replace が走る前にセッションが
+	// 確立した場合）で、#498 型の「ログインできたのにログイン UI が残る」に対する二重の防波堤になる。
+	//
+	// `isGuestUser` は user === null（認証未確定）をゲストへ倒す（lib/authGuest.ts）ので、
+	// 未確定の間は発火しない。それでも isAuthResolved を明示的に見るのは、この不変条件を
+	// authGuest 側の実装に依存させないため。
+	useEffect(() => {
+		if (!isAuthResolved || isGuestUser(user) || hasLeftRef.current) return;
+		hasLeftRef.current = true;
+
+		// ここは back を使わない。back は「ログイン導線を出した画面」へ戻す動きで、
+		// ログイン済みで着地したこの経路では «行き先» を指す next の方が意図に合う
+		const href = resolveNextPath(next, locale) ?? `/${locale}/profile`;
+		logFrontendEvent({
+			event_name: "login_screen_already_authenticated",
+			error_level: "log",
+			payload: { href },
+		});
+		router.replace(href as ExternalPathString);
+	}, [isAuthResolved, user, next, locale, logFrontendEvent]);
 
 	const handleBack = useCallback(() => {
 		lightImpact();
@@ -69,12 +108,23 @@ export default function LoginScreen() {
 			<SafeAreaView style={styles.safeArea} edges={[]}>
 				{/* タイトルはヘッダー側が持つため、LoginForm 自身の見出しは出さない */}
 				<ScreenHeader title={i18n.t("auth.login_title")} onPressBack={handleBack} testID="login-screen" />
-				<ScrollView
-					style={styles.scrollView}
-					contentContainerStyle={styles.scrollContent}
-					keyboardShouldPersistTaps="handled">
-					<LoginForm testID="login-screen" showTitle={false} />
-				</ScrollView>
+				{/* #1359 【設計】auth 未確定（user === null）の間は OAuth ボタンを «描かない»（設計 §4）。
+				    未確定のまま押させると LoginForm 側のガードで「押しても何も起きない + Snackbar」になり、
+				    さらに昇格チェックボックスが一瞬だけ出て消える。モーダル時代はこれを避けられなかったが、
+				    画面なら ProfileTabsLayout と同じくスピナーで待てる。
+				    ⚠️ 戻る導線は待たせないこと。ヘッダーはこのゲートの外に置いてある */}
+				{!isAuthResolved ? (
+					<View style={styles.loadingContainer}>
+						<LoadingIndicator size="large" />
+					</View>
+				) : (
+					<ScrollView
+						style={styles.scrollView}
+						contentContainerStyle={styles.scrollContent}
+						keyboardShouldPersistTaps="handled">
+						<LoginForm testID="login-screen" showTitle={false} />
+					</ScrollView>
+				)}
 			</SafeAreaView>
 		</LinearGradient>
 	);
@@ -89,6 +139,11 @@ const styles = StyleSheet.create({
 	},
 	scrollView: {
 		flex: 1,
+	},
+	loadingContainer: {
+		flex: 1,
+		justifyContent: "center",
+		alignItems: "center",
 	},
 	scrollContent: {
 		paddingVertical: 16,
