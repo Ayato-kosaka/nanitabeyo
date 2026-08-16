@@ -1,0 +1,11 @@
+Platform Terms - Meta for Developers
+Platform Terms
+1. Platform terms 3e
+Last updated February 3, 2025
+Platform Terms Section 3.e Exceptions
+Sections 3.a-d of the Platform Terms do not apply to your Processing of the following Platform Data:
+Messenger Communication Content: the content of your communications with Users via Messenger Platform.
+Lead Data: the data Users elect to send to you via any lead form features we make available to you as a method lead capture to let Users share their information with you to show their interest in a product or service (for example, through the Lead Retrieval API or the Marketplace Platform). Please review the Lead Ad Terms for additional terms applicable to your use of lead form features.
+Shops User Data: the data Users elect to send to you to facilitate a transaction with you or receive marketing and/or promotional opportunities from you from your Facebook or Instagram shop (for example, by making a purchase or signing up for your e-mail list). Please review the Commerce Seller Agreement for additional terms applicable to your use of commerce features.
+For the avoidance of doubt, all other sections of the Platform Terms (including Section 4) and all other applicable terms and policies still apply to your Processing of the above Platform Data.
+ -->

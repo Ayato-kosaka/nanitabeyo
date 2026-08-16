@@ -8,6 +8,117 @@
 
 ---
 
+## 【Facebook 経路の未確認5点を潰した】保存は禁止されていない。ただし**歩留まりは承認前に測れない**
+
+`verify_meta_platform_terms_storage.py` / `out/meta_platform_terms_storage.json`
+
+前節で「socials のみの層は 98.97% が Facebook = 経路存在率 25.87pt」と規模を出し、
+**未確認を5点**挙げた。そのうち3点は**私が既に測ってあったのに数えていなかった**。
+残り2点のうち1点を今回一次資料で確定させた。**結果として、残る未知は1点だけになった。**
+
+| # | 昨日「未確認」と書いたもの | 現在 |
+|---|---|---|
+| 1 | Platform Terms の保存・キャッシュ規定 | **今回確定。保存は禁止されていない（条件付き）** |
+| 2 | App Review が通るか | **未確定。申請しないと分からない唯一の点** |
+| 3 | `/page/photos` の料理写真率 | **承認前は原理的に測れない**（8/14 に逐語確定済み） |
+| 4 | Facebook URL の生存率 | **測定済み 98.0%**（294/300、8/14） |
+| 5 | 発見に Pages Search API が要るか | **不要**。Overture の Page ID は 100% が数値ID（8/14） |
+
+### 1. 保存規定（今回の測定）
+
+Platform Terms 全文（44,207文字）を逐語で取り、
+**「保存・キャッシュ・persist を一律に禁じる条項」を機械的に探した。一致は0件。**
+
+代わりにあるのは **Section 3.d（Retention, Deletion, and Accessibility）** の
+条件付き保持義務である。逐語:
+
+> **3.d.i.2** Delete all Platform Data as soon as reasonably possible in the following cases:
+> a. When retaining the Platform Data is **no longer necessary for a legitimate business purpose** …
+> b. When you **stop operating** the product or service through which the Platform Data was acquired;
+> c. When **we request** you delete the Platform Data for the protection of Users (which we will determine at our sole discretion);
+> d. When a **User requests** their Platform Data be deleted …
+
+> **3.d.i.1** Update or delete Platform Data promptly after receiving a request from us or the User to do so and
+> **give Users an easily accessible and clearly marked way** to ask for their Platform Data to be modified or deleted.
+
+**同じ Meta でも Instagram oEmbed は真逆だった**（8/15 取得・逐語）:
+
+> Using metadata and page, post, or video content (or their derivations) from the endpoint for any purpose
+> other than providing a front-end view … is **strictly prohibited**. This prohibition encompasses consuming,
+> manipulating, extracting, or **persisting** the metadata and content …
+
+**oEmbed は「持つな」、Platform Terms は「用が済んだら消せ・言われたら消せ」である。**
+`dish_media` に URL と写真を持つことは、後者の下では**条件付きで成立しうる**。
+
+付随する義務も逐語で押さえた:
+
+  - **3.a.viii** Processing Platform Data for purposes other than the applicable permitted purposes
+    set forth in Meta's Developer Docs.（→ 許可用途は PPCA の
+    "analyze and/or display posts and engagement on Pages" に縛られる）
+  - **4.b** privacy policy に処理内容と**削除要求の方法**を明記すること
+  - **3.e** の例外は Messenger / Lead / Shops の3つだけで、
+    **Page の公開コンテンツは例外に入らない**（3.a-d がそのまま適用される）
+
+> **これは法的助言ではない。原文にこう書いてある、という事実だけである。**
+
+### 2. 【自戒】3点は既に自分で測ってあった
+
+昨日の節で「未確認」と並べた5点のうち、**3点は 8/14 に自分で測って
+`out/` に書いてあった**。新しい発見に興奮して、自分の測定結果を確認せずに
+「未確認」と書いた。オーナーに渡す TODO を3項目ぶん水増ししたことになる。
+
+  - **生存率**: `out/overture_facebook_link.json` に **live 294 / dead 6 = 98.0%**。
+    存在しない Page ID 3件を負性対照に混ぜ、**3件とも dead** と出ている（判定器は効いている）
+  - **発見手段**: 同ファイルに `numeric_page_id_pct: 100.0`。
+    Overture の Facebook リンクは**全部が数値 Page ID** なので、Pages Search API は要らない
+  - **料理写真率**: `out/ppca-application-spec.json` に Meta の逐語がある（下記）
+
+**新しい発見の周りほど、自分の過去の測定を先に読み直すこと。**
+
+### 3. 歩留まりは承認前に測れない（これが判断の形を決める）
+
+Meta の逐語（8/14 取得）:
+
+> While you are testing your app and before you submit it for review, your app can only access content on a Page
+> for which the following is true: **The person who holds the admin role for the Page also holds an admin,
+> developer, or tester role on the app.** … Once you set your app to live mode, it will not be able to see any
+> Page public content without this feature.
+
+**任意の飲食店ページを1つ借りて先行実測する、ができない。**
+読めるのは「その店の Page 管理者がアプリの tester を引き受けてくれた店」だけである。
+
+無認証側も閉じている。**2つとも実測で確定済み**:
+
+  - Page Plugin（`/plugins/page.php`、公式埋め込み）の応答 38,335 バイトに
+    **画像0 / 投稿パーマリンク0**（8/13 実測）
+  - `https://www.facebook.com/robots.txt` の `User-agent: *` ブロックは
+    **`Disallow: /`**。全パスが対象なので、**写真タブを直接引くのは制約(c) 規約遵守に反する**。
+    だから今回それは**叩いていない**
+
+### 4. したがってオーナー判断はこの形になる
+
+    経路存在率        299,825店 = 25.87pt
+    × URL 生存率 98.0% = 25.35pt（ここまでは実測で確定）
+    × 料理写真率 ?      = **承認前には測れない**
+    × 料理カテゴリ付与率 ?
+
+参考として、既に測ってある近い量:
+
+  - 店舗自社サイトの画像が料理写真だった率 **67.32%**
+  - ブログ本文の画像が料理写真だった率 **28.6%**
+
+**この幅（28.6%〜67.32%）を当てはめると 7.25pt〜17.06pt。**
+これは推定であって実測ではない。**確定させるには App Review を通すしかない。**
+
+> ### オーナー判断
+> **法人登記（¥60,000）+ App Review を、歩留まり未知のまま先に払うかどうか。**
+> 払わないと測れず、測れないと払う判断ができない、という構造になっている。
+> 規約(c)と無料(b)は**ここまでは満たしている**（Overture は CDLA-Permissive-2.0、
+> Graph API 自体は無料、保存は 3.d の条件下で可）。
+> 引っかかるのは **¥60,000 が「無料でないものは使わない」に当たるか**である。
+
+---
+
 ## KPI② の律速は coverage ではなく k。そして k の律速は「1店1動画」
 
 `measure_k_ceiling.py` / `out/k_ceiling.json`
