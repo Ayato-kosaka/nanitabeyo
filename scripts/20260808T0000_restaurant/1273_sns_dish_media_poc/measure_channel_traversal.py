@@ -290,20 +290,30 @@ class NameMatcher:
         self.auto_ja = ahocorasick.Automaton()
         self.auto_la = ahocorasick.Automaton()
         self.n_ja = self.n_la = 0
+        # #1273 【診断】辞書から落ちた理由を鍵ごとに残す。
+        #   「名前で探せない店が層ごとに何%か」を測るのに要る（measure_name_searchability.py）。
+        #   判定そのものには一切使わない。**理由を後から書き直さない**ための記録である。
+        self.drop_reason: dict[str, str] = {}
         for key, locs in places_ja.items():
             count = len(locs)
             if len(key) < MIN_NAME_LEN_NATIONAL or count > 1 or key in stop_ja:
+                self.drop_reason[key] = (
+                    "短すぎる" if len(key) < MIN_NAME_LEN_NATIONAL
+                    else "同名が2箇所以上" if count > 1 else "除外語")
                 continue
             if key in dish_vocab:   # 料理カテゴリ語そのもの（上記【バグ】参照）
+                self.drop_reason[key] = "料理カテゴリ語"
                 dropped_geo += 1
                 continue
             # 住所文字列そのもの、および地名で終わる名前は除外する（上記【バグ】参照）
             if key in area_vocab or addr_tail.search(key):
+                self.drop_reason[key] = "地名・住所"
                 dropped_geo += 1
                 continue
             # 容器（施設・場所）と、末尾が行政区画で終わらない住所行（上記【バグ】参照）
             if (venue_tail.search(key) or venue_any.search(key)
                     or is_address_row(key)):
+                self.drop_reason[key] = "容器・住所行"
                 dropped_venue += 1
                 continue
             self.auto_ja.add_word(key, key)
@@ -312,9 +322,13 @@ class NameMatcher:
         for key, locs in places_la.items():
             count = len(locs)
             if len(key) < MIN_NAME_LEN_LATIN or count > 1 or key in stop_la:
+                self.drop_reason[key] = (
+                    "短すぎる" if len(key) < MIN_NAME_LEN_LATIN
+                    else "同名が2箇所以上" if count > 1 else "除外語")
                 continue
             # 上記【バグ】: ローマ字の地名は辞書から落とす（日本語側と同じ規律）
             if key in LATIN_GEO_NAMES or key in dish_vocab:
+                self.drop_reason[key] = "地名・料理語(ラテン)"
                 dropped_geo_la += 1
                 continue
             self.auto_la.add_word(key, key)
