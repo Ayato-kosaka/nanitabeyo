@@ -19,14 +19,16 @@ useBlurModal 側と二重掛けになっていた状態（#1350 が IME 系不�
 そのまま作り直すことになる。
 */
 import React, { useCallback } from "react";
-import { StyleSheet } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 
+import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { ProfileEditForm } from "@/features/profile/components/ProfileEditForm";
 import { useEnsureOwnProfileLoaded } from "@/features/profile/hooks/useEnsureOwnProfileLoaded";
+import { useProfileStore } from "@/features/profile/stores/useProfileStore";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
@@ -41,6 +43,7 @@ export default function ProfileEditScreen() {
 	// そのまま覗いていたが、ルートは URL 直リンク・web のリロードで «単独で» 着地しうる。
 	// このフックは既にストアへ載っていれば API を叩かないので、通常導線では何も増えない
 	useEnsureOwnProfileLoaded();
+	const profile = useProfileStore((state) => state.profile);
 
 	/**
 	 * この画面から離れる。
@@ -81,7 +84,18 @@ export default function ProfileEditScreen() {
 					onPressBack={handleBack}
 					testID="profile-edit-screen"
 				/>
-				<ProfileEditForm onSaved={handleSaved} />
+				{/* #1369 【バグ】profile が載る前にフォームを mount しないこと。
+				    ProfileEditForm は表示名・自己紹介の初期値を useState の初期値として «mount 時に 1 回だけ»
+				    読む（IME 対策で親から流し込まない設計）ため、後から profile が届いても空欄のままになる。
+				    モーダル時代は `{profile && <ProfileEditModal>}` がこの前提を保証していた。
+				    ⚠️ 戻る導線はこのゲートの外に置くこと（ヘッダーは上にある）。auth/login.tsx と同じ形 */}
+				{!profile ? (
+					<View style={styles.loadingContainer}>
+						<LoadingIndicator size="large" />
+					</View>
+				) : (
+					<ProfileEditForm onSaved={handleSaved} />
+				)}
 			</SafeAreaView>
 		</LinearGradient>
 	);
@@ -93,5 +107,10 @@ const styles = StyleSheet.create({
 	},
 	safeArea: {
 		flex: 1,
+	},
+	loadingContainer: {
+		flex: 1,
+		justifyContent: "center",
+		alignItems: "center",
 	},
 });

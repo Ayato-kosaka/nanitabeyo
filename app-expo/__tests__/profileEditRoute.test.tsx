@@ -101,10 +101,13 @@ jest.mock("@/features/profile/tabs/ReviewTab", () => ({ ReviewTab: () => null })
 jest.mock("@/features/profile/tabs/LikeTab", () => ({ LikeTab: () => null }));
 jest.mock("@/features/profile/tabs/SavedPostsTab", () => ({ SavedPostsTab: () => null }));
 jest.mock("@/features/profile/tabs/SavedTopicsTab", () => ({ SavedTopicsTab: () => null }));
-jest.mock("@/features/profile/hooks/useEnsureOwnProfileLoaded", () => ({ useEnsureOwnProfileLoaded: () => ({}) }));
+jest.mock("@/features/profile/hooks/useEnsureOwnProfileLoaded", () => ({
+	useEnsureOwnProfileLoaded: () => ({ isProfileResolved: true }),
+}));
+// プロフィールの «有無» で編集画面の描画が変わる（下の「未ロードの間は…」のテスト）ので差し替え可能にする
+let mockProfile: unknown = { id: "profile-1", username: "tester" };
 jest.mock("@/features/profile/stores/useProfileStore", () => ({
-	useProfileStore: (selector: (state: { profile: unknown }) => unknown) =>
-		selector({ profile: { id: "profile-1", username: "tester" } }),
+	useProfileStore: (selector: (state: { profile: unknown }) => unknown) => selector({ profile: mockProfile }),
 }));
 
 // フォームの中身（バリデーション・アップロード・API）は ProfileEditForm の関心。
@@ -151,6 +154,7 @@ const press = async (tree: TestRenderer.ReactTestRenderer, testID: string): Prom
 };
 
 beforeEach(() => {
+	mockProfile = { id: "profile-1", username: "tester" };
 	mockPush.mockClear();
 	mockReplace.mockClear();
 	mockBack.mockClear();
@@ -204,6 +208,17 @@ describe("#1369 プロフィール編集画面の離脱", () => {
 
 		// モーダル時代の `close()` に相当する。保存したのに画面が残る（#498 型）を作らない
 		expect(mockBack).toHaveBeenCalledTimes(1);
+	});
+
+	it("プロフィールが未ロードの間はフォームを描かない（戻る導線は残す）", async () => {
+		// ProfileEditForm は初期値を mount 時に 1 回だけ読む。空のまま mount すると
+		// 後から profile が届いても表示名・自己紹介が空欄のままになる
+		mockProfile = null;
+		const tree = await render(<ProfileEditScreen />);
+
+		expect(tree.root.findAll((node) => node.props?.testID === "profile-edit-form-saved")).toHaveLength(0);
+		// 待っている間も離脱できること（ゲートの外にヘッダーがある）
+		expect(tree.root.findAll((node) => node.props?.testID === "screen-header-back").length).toBeGreaterThan(0);
 	});
 
 	it("保存が成功したとき履歴が無ければマイページへ replace する", async () => {
