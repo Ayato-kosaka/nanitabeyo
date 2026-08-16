@@ -24,7 +24,8 @@ import { Image } from "expo-image";
 import { getCacheKeyForImage } from "@/lib/image";
 import { useAuth } from "@/contexts/AuthProvider";
 import { isGuestUser } from "@/lib/authGuest";
-import { LoginbackModal } from "@/features/profile/components/LoginbackModal";
+import { useLocale } from "@/hooks/useLocale";
+import { router } from "expo-router";
 
 function RestaurantTabsBar({ tabNames, index, onTabPress }: TabBarProps<string>) {
 	const currentIndex = useSharedValueState(index);
@@ -52,6 +53,7 @@ export function SelectedRestaurantDetails({ restaurant, meta: restaurantMeta }: 
 	const { showSnackbar } = useSnackbar();
 	const frame = useSafeAreaFrame(); // Safe Area を除いたフレームの高さ
 	const { user } = useAuth();
+	const { locale } = useLocale();
 
 	// Modals
 	const {
@@ -64,11 +66,6 @@ export function SelectedRestaurantDetails({ restaurant, meta: restaurantMeta }: 
 		open: openBidModal,
 		close: closeBidModal,
 	} = useBlurModal({ intensity: 100, zIndex: 1300 });
-	const {
-		BlurModal: LoginBlurModal,
-		open: openLoginModal,
-		close: closeLoginModal,
-	} = useBlurModal({ intensity: 100, zIndex: 1400 });
 
 	// Processing state for submit actions
 	const [isProcessing, setIsProcessing] = useState(false);
@@ -98,12 +95,18 @@ export function SelectedRestaurantDetails({ restaurant, meta: restaurantMeta }: 
 
 	const handleReviewButtonPress = async () => {
 		lightImpact();
-		// #477【設計】匿名ユーザーの場合は LoginbackModal を表示、非匿名ユーザーの場合は ReviewForm を表示
+		// #477【設計】匿名ユーザーの場合はログイン導線へ、非匿名ユーザーの場合は ReviewForm を表示
 		// #1092 PR4b 【修正】`user?.is_anonymous !== false` から共通判定（lib/authGuest.ts）へ寄せた。
 		// 旧式は is_anonymous が undefined のときもゲストへ倒れ、レビュータブでは投稿できるのに
 		// ここではログイン導線が出る、という画面間の食い違いになる
 		if (isGuestUser(user)) {
-			openLoginModal();
+			// #1359 【設計】この画面は地図（app/[locale]/(tabs)/map.tsx）の useState で選ばれた店を
+			// BlurModal で重ねたもので、**選択中の店は URL にも zustand にも無い**。
+			// そのため `next` では店の選択まで復元できず、地図タブへ戻すのが限界になる
+			//（現行の web も OAuth の全画面リダイレクトで選択を失っているので、後退ではない）。
+			// 通常導線では push が履歴を残すため、戻る導線が canGoBack 側に倒れて
+			// 画面内 state ごと復帰できる（lib/authNext.ts の resolvePostLoginTarget）。
+			router.push({ pathname: "/[locale]/auth/login", params: { locale, next: `/${locale}/map` } });
 		} else {
 			// ReviewForm を開くと同時にメディア選択が行われる
 			openReviewModal();
@@ -256,9 +259,6 @@ export function SelectedRestaurantDetails({ restaurant, meta: restaurantMeta }: 
 			<BidBlurModal>
 				{({ close }) => <BidForm onSubmit={handleBid} onCancel={close} isProcessing={isProcessing} />}
 			</BidBlurModal>
-
-			{/* Login Modal */}
-			<LoginBlurModal>{({ close }) => <LoginbackModal onClose={close} />}</LoginBlurModal>
 		</View>
 	);
 }

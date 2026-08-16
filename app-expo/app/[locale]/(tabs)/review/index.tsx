@@ -4,8 +4,6 @@ import { Image } from "expo-image";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { useAuth } from "@/contexts/AuthProvider";
 import { isGuestUser } from "@/lib/authGuest";
-import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
-import { LoginbackModal } from "@/features/profile/components/LoginbackModal";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import { useScreenTrace } from "@/hooks/useScreenTrace";
@@ -21,12 +19,6 @@ export default function ReviewScreen() {
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { locale } = useLocale();
-
-	const {
-		BlurModal: LoginBlurModal,
-		open: openLoginModal,
-		close: closeLoginModal,
-	} = useBlurModal({ intensity: 100, zIndex: 1400 });
 
 	useEffect(() => {
 		// #644 【設計】Screen view logging
@@ -55,10 +47,12 @@ export default function ReviewScreen() {
 	// );
 
 	// #644 【設計】ゲストユーザー用：ログイン導線
-	const handleLoginPress = () => {
+	// #1359 【設計】BlurModal ではなくログイン画面へ push する。この画面は URL だけで再現できるので、
+	// 履歴を持たない着地（コールドロード / web の OAuth 全画面リダイレクト）用の `next` もここを指す
+	const handleLoginPress = useCallback(() => {
 		lightImpact();
-		openLoginModal();
-	};
+		router.push({ pathname: "/[locale]/auth/login", params: { locale, next: `/${locale}/review` } });
+	}, [lightImpact, locale]);
 
 	// #644 【設計】ログイン済みユーザー用：店舗選択画面に遷移
 	const handlePostReviewPress = useCallback(() => {
@@ -128,9 +122,6 @@ export default function ReviewScreen() {
 					)}
 				</View>
 			</View>
-
-			{/* Login Modal */}
-			<LoginBlurModal>{({ close }) => <LoginbackModal onClose={close} />}</LoginBlurModal>
 		</SafeAreaView>
 	);
 }
