@@ -1,6 +1,6 @@
 // app-expo/app/[locale]/contribution-tasks/dish-copy-survey.tsx
 //
-// #559 料理コピー調査アンケート（10枚カルーセル＋BlurModal）実装
+// #559 料理コピー調査アンケート（10枚カルーセル＋LegacyBlurModal）実装
 // 運営用ツール - 各料理画像にタイトル+タグラインを選択してもらう
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
@@ -22,7 +22,7 @@ import { HelpCircle, CheckCircle2, Circle } from "lucide-react-native";
 import { Carousel } from "react-native-reanimated-carousel";
 import { generateUUID } from "@/lib/uuid";
 
-import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
+import { useLegacyBlurModal } from "@/features/contributionTasks/legacyBlurModal/useLegacyBlurModal";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
@@ -157,10 +157,10 @@ export default function DishCopySurveyPage() {
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const {
-		BlurModal: AnswerBlurModal,
+		LegacyBlurModal: AnswerBlurModal,
 		open: answerOpen,
 		close: answerClose,
-	} = useBlurModal({
+	} = useLegacyBlurModal({
 		intensity: 80,
 		closeOnBackdropPress: false,
 	});
