@@ -25,7 +25,12 @@ import { DEFAULT_TIMEOUT, by, element, expect, tapWhenVisible, waitUntilVisible 
  * 同じ `legal-document-modal` を開く経路で検証する（tests/profile/settings.test.ts）。
  */
 export class LoginScreen {
-	/** ログインフォームのコンテナ（`LoginForm` の testID） */
+	/**
+	 * ログインフォームのコンテナ（`LoginForm` の testID）。
+	 *
+	 * ⚠️ `expectOpened()` では使わない。コンテナは中身が空でも「見えている」ため、
+	 * 可視判定の観測点としては実体のあるボタン / タイトルの方が壊れにくい（#1027）。
+	 */
 	readonly container = by.id("login-screen");
 	/** 画面タイトル（ScreenHeader が `${testID}-title` として付ける） */
 	readonly title = by.id("login-screen-title");
@@ -43,10 +48,18 @@ export class LoginScreen {
 	 * BlurModal 時代はぼかし背景で iOS の 75% 可視判定を満たせないという固有の事情もあったが、
 	 * ルート化でその制約は消えた。それでもボタンを見るのは、
 	 * 検証したいのが「ログイン導線が使える状態か」であり、実体のある要素を見るのが最も壊れにくいため。
+	 *
+	 * #1359 【設計】ボタンに加えて `title` も見る。これは **「ルートであること」を守るための固定**。
+	 * `login-screen-title` は ScreenHeader（`app-expo/components/ScreenHeader.tsx`）が
+	 * `${testID}-title` として出すもので、**BlurModal 実装には存在しない**。
+	 * ボタンだけを見ていると、ログイン UI をオーバーレイへ戻す変更を通してしまう
+	 *（#498 の再発）。e2e-web は `toHaveURL(/\/auth\/login/)`（pages/LoginPage.ts）が
+	 * 同じ役目を負っていて、mobile 側にだけその固定が無かった。
 	 */
 	async expectOpened(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
 		await waitUntilVisible(this.googleButton, timeout);
 		await expect(element(this.appleButton)).toBeVisible();
+		await expect(element(this.title)).toBeVisible();
 	}
 
 	/** ヘッダーの戻るボタンをタップして離脱する */

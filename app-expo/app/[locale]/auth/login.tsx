@@ -106,7 +106,7 @@ export default function LoginScreen() {
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
 			<SafeAreaView style={styles.safeArea} edges={[]}>
-				{/* タイトルはヘッダー側が持つため、LoginForm 自身の見出しは出さない */}
+				{/* #1359 タイトルはこのヘッダーだけが持つ（LoginForm 側の見出しは削除済み） */}
 				<ScreenHeader title={i18n.t("auth.login_title")} onPressBack={handleBack} testID="login-screen" />
 				{/* #1359 【設計】auth 未確定（user === null）の間は OAuth ボタンを «描かない»（設計 §4）。
 				    未確定のまま押させると LoginForm 側のガードで「押しても何も起きない + Snackbar」になり、
@@ -122,7 +122,7 @@ export default function LoginScreen() {
 						style={styles.scrollView}
 						contentContainerStyle={styles.scrollContent}
 						keyboardShouldPersistTaps="handled">
-						<LoginForm testID="login-screen" showTitle={false} />
+						<LoginForm testID="login-screen" />
 					</ScrollView>
 				)}
 			</SafeAreaView>

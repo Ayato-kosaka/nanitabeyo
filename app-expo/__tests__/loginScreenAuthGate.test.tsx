@@ -1,4 +1,4 @@
-// #1359 【設計】ログイン画面（app/[locale]/auth/login.tsx）の 2 つの不変条件を固定する。
+// #1359 【設計】ログイン画面（app/[locale]/auth/login.tsx）の 3 つの不変条件を固定する。
 //
 // 1. auth が未確定（`isAuthResolved === false`）の間は **OAuth ボタンを描かない**。
 //    モーダル時代はこれができず、「押しても何も起きない + Snackbar」と「昇格チェックボックスが
@@ -6,6 +6,9 @@
 // 2. ログイン済み（`!isGuestUser(user)`）になったら `next` へ replace して離脱する。
 //    #498（Android で OAuth 成功後もログイン UI が残る）に対する二重の防波堤で、
 //    replace が二重に走らないことも併せて固定する。
+// 3. 戻る導線は `resolvePostLoginTarget` の判定に従って `router.back()` / `router.replace()` を
+//    呼び分ける（設計 §2）。判定そのものは lib/authNext.test.ts、«画面がその判定を使っているか»
+//    はここが唯一の検知手段になる。
 //
 // どちらも「実機でしか出ない経路の保険」なので、壊れても E2E では気付きにくい。
 // ここが赤くなることが唯一の検知手段になる。
@@ -22,15 +25,17 @@ jest.mock("@/contexts/AuthProvider", () => ({
 }));
 
 let mockNext: string | undefined;
+let mockCanGoBack = false;
 const mockReplace = jest.fn();
+const mockBack = jest.fn();
 // ⚠️ `replace: mockReplace` と直接束縛しないこと。import 文は const 宣言より前へ巻き上げられるため、
 // このファクトリが走る時点では mockReplace がまだ未初期化で `is not a function` になる。
 // 呼び出し時に解決する形にして、宣言順に依存しないようにする
 jest.mock("expo-router", () => ({
 	router: {
 		replace: (href: string) => mockReplace(href),
-		back: () => {},
-		canGoBack: () => false,
+		back: () => mockBack(),
+		canGoBack: () => mockCanGoBack,
 	},
 	useLocalSearchParams: () => ({ next: mockNext }),
 }));
@@ -85,11 +90,21 @@ const render = async () => {
 const has = (tree: TestRenderer.ReactTestRenderer, testID: string): boolean =>
 	tree.root.findAll((node) => node.props?.testID === testID).length > 0;
 
+/** ヘッダーの戻るボタンを押す（ScreenHeader が `screen-header-back` を付けている） */
+const pressBack = async (tree: TestRenderer.ReactTestRenderer): Promise<void> => {
+	const backButton = tree.root.find((node) => node.props?.testID === "screen-header-back");
+	await act(async () => {
+		backButton.props.onPress();
+	});
+};
+
 beforeEach(() => {
 	mockUser = null;
 	mockIsAuthResolved = false;
 	mockNext = undefined;
+	mockCanGoBack = false;
 	mockReplace.mockClear();
+	mockBack.mockClear();
 });
 
 describe("#1359 ログイン画面の auth ゲート", () => {
@@ -142,6 +157,32 @@ describe("#1359 ログイン画面の auth ゲート", () => {
 		expect(mockReplace).not.toHaveBeenCalled();
 	});
 
+	// ⚠️ 上のケースは `isGuestUser(null) === true` でも通ってしまうため、`isAuthResolved` の寄与を
+	// 固定できていない（レビュー実測: `!isAuthResolved ||` を落としても緑のままだった）。
+	// 「user は非匿名だが auth はまだ未確定」という、isAuthResolved でしか止められない組み合わせを置く。
+	// これは lib/authGuest.ts が null をどう扱うかに依存しない保険であることの証明でもある
+	it("user が非匿名でも auth 未確定の間は replace しない", async () => {
+		mockIsAuthResolved = false;
+		mockUser = { id: "user-1", is_anonymous: false };
+		mockNext = "/ja-JP/review";
+
+		await render();
+
+		expect(mockReplace).not.toHaveBeenCalled();
+	});
+
+	// #1359 【設計】自ルートを指す next は lib/authNext.ts で弾く（自動離脱が同一ルートへ replace すると、
+	// 再マウントされない場合に hasLeftRef が残って「ログイン済みなのにログイン画面に留まる」）
+	it("next がログイン画面自身なら採用せずマイページへ倒す", async () => {
+		mockIsAuthResolved = true;
+		mockUser = { id: "user-1", is_anonymous: false };
+		mockNext = "/ja-JP/auth/login";
+
+		await render();
+
+		expect(mockReplace).toHaveBeenCalledWith("/ja-JP/profile");
+	});
+
 	it("再レンダリングされても replace は 1 回だけ", async () => {
 		mockIsAuthResolved = true;
 		mockUser = { id: "user-1", is_anonymous: false };
@@ -155,5 +196,62 @@ describe("#1359 ログイン画面の auth ゲート", () => {
 		});
 
 		expect(mockReplace).toHaveBeenCalledTimes(1);
+	});
+});
+
+// #1359 【設計】戻る導線（設計 §2）を画面側で固定する。
+// lib/authNext.test.ts は `resolvePostLoginTarget` の «判定» を固定しているが、
+// 画面がその判定を «使っているか» は誰も見ていなかった（レビュー実測: login.tsx の
+// `const target = resolvePostLoginTarget(...)` を `{ type: "back" }` へ置換しても 532 件すべて緑）。
+// canGoBack の両側を通して、判定結果が router の呼び分けに繋がっていることをここで閉じる。
+describe("#1359 ログイン画面の戻る導線", () => {
+	it("履歴があれば back。next が指定されていても back が勝つ", async () => {
+		mockIsAuthResolved = true;
+		mockUser = { id: "guest-1", is_anonymous: true };
+		mockCanGoBack = true;
+		mockNext = "/ja-JP/review";
+
+		const tree = await render();
+		await pressBack(tree);
+
+		expect(mockBack).toHaveBeenCalledTimes(1);
+		expect(mockReplace).not.toHaveBeenCalled();
+	});
+
+	it("履歴が無ければ next へ replace する", async () => {
+		mockIsAuthResolved = true;
+		mockUser = { id: "guest-1", is_anonymous: true };
+		mockCanGoBack = false;
+		mockNext = "/ja-JP/review";
+
+		const tree = await render();
+		await pressBack(tree);
+
+		expect(mockReplace).toHaveBeenCalledWith("/ja-JP/review");
+		expect(mockBack).not.toHaveBeenCalled();
+	});
+
+	it("履歴が無く next も無ければマイページへ倒す", async () => {
+		mockIsAuthResolved = true;
+		mockUser = { id: "guest-1", is_anonymous: true };
+		mockCanGoBack = false;
+		mockNext = undefined;
+
+		const tree = await render();
+		await pressBack(tree);
+
+		expect(mockReplace).toHaveBeenCalledWith("/ja-JP/profile");
+		expect(mockBack).not.toHaveBeenCalled();
+	});
+
+	// auth 未確定（スピナー表示中）でも戻れること。ヘッダーはゲートの «外» に置いてある
+	it("auth 未確定の間も戻る導線は機能する", async () => {
+		mockIsAuthResolved = false;
+		mockCanGoBack = true;
+
+		const tree = await render();
+		await pressBack(tree);
+
+		expect(mockBack).toHaveBeenCalledTimes(1);
 	});
 });

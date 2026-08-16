@@ -28,24 +28,20 @@ import { Image } from "expo-image";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 
 interface LoginFormProps {
-	/**
-	 * OAuth ブラウザの起動後に呼ばれる。
-	 *
-	 * #1359 【設計】ルートから使うときは閉じる相手が居ないので optional にしてある。
-	 * ルート化後は「ログイン UI の寿命 = ルートの寿命」になり、閉じる責務は Navigator が持つ。
-	 */
-	onClose?: () => void;
 	/** E2E の可視判定に使う testID。呼び出し側で明示する（ルート: `login-screen`） */
 	testID: string;
-	/**
-	 * 見出し（`auth.login_title`）をこのコンポーネント自身が描くか。
-	 *
-	 * #1359 【設計】ルートでは ScreenHeader が同じタイトルを出すため false にして重複を避ける。
-	 */
-	showTitle?: boolean;
 }
 
-export function LoginForm({ onClose, testID, showTitle = true }: LoginFormProps) {
+/*
+#1359 【設計】`onClose` / `showTitle` は削除した。
+- `onClose`: 「OAuth ブラウザの結末によらず呼び出し側が UI を閉じる」ためのフックで、#498
+  （Android で OAuth 成功後もログイン UI が残る）の «根» そのものだった。ルート化で
+  「ログイン UI の寿命 = ルートの寿命」になり、閉じる責務は Navigator が持つ。prop を残すと
+  「閉じる責務は呼び出し側にある」という壊れた前提を再び配線できてしまうので、no-op でも置かない。
+- `showTitle`: 唯一の呼び出し元（app/[locale]/auth/login.tsx）は ScreenHeader が同じタイトルを
+  出すため常に false だった。見出しはヘッダーが持つ。
+*/
+export function LoginForm({ testID }: LoginFormProps) {
 	const [isLoading, setIsLoading] = useState(false);
 	const [hasExistingAccount, setHasExistingAccount] = useState(false);
 	const [selectedLegalDocument, setSelectedLegalDocument] = useState<"terms" | "privacy" | null>(null);
@@ -111,11 +107,6 @@ export function LoginForm({ onClose, testID, showTitle = true }: LoginFormProps)
 						context: "login_screen",
 					},
 				});
-
-				// ⚠️ 結末によらず必ず閉じる。dismiss でモーダルを開いたままにすると、
-				// Android では「ログインできたのにモーダルが残る」状態になる（上記 race のため）。
-				// #1359 ルートから使う場合は閉じる相手が居ない（Navigator が replace する）ので no-op。
-				onClose?.();
 			} catch (error: unknown) {
 				logFrontendEvent({
 					event_name: "oauth_signin_error",
@@ -127,7 +118,7 @@ export function LoginForm({ onClose, testID, showTitle = true }: LoginFormProps)
 				setIsLoading(false);
 			}
 		},
-		[user, linkIdentity, signInWithOAuth, logFrontendEvent, showSnackbar, hasExistingAccount, onClose],
+		[user, linkIdentity, signInWithOAuth, logFrontendEvent, showSnackbar, hasExistingAccount],
 	);
 
 	// Legal ドキュメント表示用のハンドラ
@@ -141,12 +132,6 @@ export function LoginForm({ onClose, testID, showTitle = true }: LoginFormProps)
 
 	return (
 		<View style={styles.container} testID={testID}>
-			{showTitle && (
-				<View style={styles.header}>
-					<Text style={styles.title}>{i18n.t("auth.login_title")}</Text>
-				</View>
-			)}
-
 			{/* Existing Account Checkbox - Show only for anonymous users */}
 			{/* #1092 PR4b ここは `isGuestUser(user)` へ丸ごと寄せない。isGuestUser は user === null（認証未確定）を
 			    ゲストへ倒すため、そのまま置くと未確定の一瞬だけチェックボックスが出て消える。
@@ -267,16 +252,6 @@ const styles = StyleSheet.create({
 	container: {
 		paddingHorizontal: 24,
 		paddingVertical: 32,
-	},
-	header: {
-		alignItems: "center",
-		marginBottom: 32,
-	},
-	title: {
-		fontSize: 28,
-		fontWeight: "700",
-		color: "#1A1A1A",
-		textAlign: "center",
 	},
 	oauthContainer: {
 		flexWrap: "wrap",

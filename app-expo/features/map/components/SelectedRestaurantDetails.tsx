@@ -47,7 +47,22 @@ function RestaurantTabsBar({ tabNames, index, onTabPress }: TabBarProps<string>)
 	);
 }
 
-export function SelectedRestaurantDetails({ restaurant, meta: restaurantMeta }: QueryRestaurantsResponse[number]) {
+type SelectedRestaurantDetailsProps = QueryRestaurantsResponse[number] & {
+	/**
+	 * この画面を載せている店詳細シート（app/[locale]/(tabs)/map.tsx の `RestaurantBlurModal`）を閉じる。
+	 *
+	 * #1359 【設計】ここから «ルート» へ push する導線があるため必須にしてある。理由は
+	 * `handleReviewButtonPress` のコメントを参照。呼び出し側は BlurModal の render-prop が渡す
+	 * `close` をそのまま流すこと（閉じる責務をシートの持ち主に残すため）。
+	 */
+	onRequestClose: () => void;
+};
+
+export function SelectedRestaurantDetails({
+	restaurant,
+	meta: restaurantMeta,
+	onRequestClose,
+}: SelectedRestaurantDetailsProps) {
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { showSnackbar } = useSnackbar();
@@ -100,12 +115,24 @@ export function SelectedRestaurantDetails({ restaurant, meta: restaurantMeta }: 
 		// 旧式は is_anonymous が undefined のときもゲストへ倒れ、レビュータブでは投稿できるのに
 		// ここではログイン導線が出る、という画面間の食い違いになる
 		if (isGuestUser(user)) {
-			// #1359 【設計】この画面は地図（app/[locale]/(tabs)/map.tsx）の useState で選ばれた店を
-			// BlurModal で重ねたもので、**選択中の店は URL にも zustand にも無い**。
-			// そのため `next` では店の選択まで復元できず、地図タブへ戻すのが限界になる
+			// #1359 【修正】⚠️ push «より先に» 店詳細シートを閉じること。順序を入れ替えてはいけない。
+			// この画面は BlurModal の中身で、BlurModal は react-native-paper の `<Portal>` に
+			// 全画面レイヤ（dim + backdrop の Pressable）を描く（features/blurModal/hooks/useBlurModal.tsx）。
+			// `Portal.Host` は `<Stack>` を **包んでいる**（app/[locale]/_layout.tsx）ので、
+			// portal レイヤは常にナビゲータより «上» にある。つまりシートを開いたまま login ルートへ
+			// push すると、ログイン画面は portal の下に潜って見えず触れない。
+			// 旧実装が成立していたのは login 自身も portal（zIndex 1400）だったからで、ルート化で前提が変わった。
+			// ハードウェアバックも同様で、開いたままだと useBlurModal の BackHandler が先に食う（#498 と同じ症状に見える）。
+			// 同種の «portal とナビゲータは別レイヤの兄弟» という実測は app/[locale]/(tabs)/search/result.tsx にもある。
+			// 「閉じてから遷移する」順序自体は #1122 で確立した形。
+			onRequestClose();
+
+			// #1359 【設計】シートを閉じる以上、戻ってきても «シートが開いた状態» は復元されない
+			//（店の選択そのもの = map.tsx の `selectedPlace` は残るが、シートは閉じたまま）。
+			// 選択中の店は URL にも zustand にも無いため `next` でも復元できず、地図タブへ戻すのが限界になる
 			//（現行の web も OAuth の全画面リダイレクトで選択を失っているので、後退ではない）。
-			// 通常導線では push が履歴を残すため、戻る導線が canGoBack 側に倒れて
-			// 画面内 state ごと復帰できる（lib/authNext.ts の resolvePostLoginTarget）。
+			// 通常導線では push が履歴を残すので戻る導線は canGoBack 側に倒れ、`next` は
+			// 履歴を持たない着地でしか使われない（lib/authNext.ts の resolvePostLoginTarget）。
 			router.push({ pathname: "/[locale]/auth/login", params: { locale, next: `/${locale}/map` } });
 		} else {
 			// ReviewForm を開くと同時にメディア選択が行われる
@@ -205,6 +232,7 @@ export function SelectedRestaurantDetails({ restaurant, meta: restaurantMeta }: 
 
 				<View style={styles.actionButtons}>
 					<PrimaryButton
+						testID="map-restaurant-post-review-button"
 						onPress={handleReviewButtonPress}
 						label={i18n.t("Map.buttons.postReview")}
 						icon={<Camera size={20} color="#FFF" />}
