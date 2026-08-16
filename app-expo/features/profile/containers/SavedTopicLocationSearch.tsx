@@ -137,15 +137,7 @@ export function SavedTopicLocationSearch({ topicId, topicLabelEn }: SavedTopicLo
 				},
 			});
 		},
-		[
-			topicId,
-			topicLabelEn,
-			createDishItemsPromise,
-			locale,
-			logFrontendEvent,
-			getLocationDetails,
-			addRecentLocation,
-		],
+		[topicId, topicLabelEn, createDishItemsPromise, locale, logFrontendEvent, getLocationDetails, addRecentLocation],
 	);
 
 	return (
