@@ -57,7 +57,7 @@ describe("設定画面（匿名ユーザー）", () => {
 	//
 	// #1027 この検証はもともと #1031 B2 でログインモーダルの同意文言リンクに置く予定だったが、
 	// リンクは `<Text>` の入れ子でネイティブ View を持たず Detox から到達できないことが実測で判明した
-	// （screens/LoginModal.ts のコメント参照）。実体のある行を持つこちらの画面へ移してある。
+	// （screens/LoginScreen.ts のコメント参照）。実体のある行を持つこちらの画面へ移してある。
 	it("プライバシーポリシー行でリーガルモーダルが開く", async () => {
 		const tabBar = new TabBar();
 		const profileScreen = new ProfileScreen();

@@ -5,7 +5,7 @@ import { ResultPage } from "../../pages/ResultPage";
 import { ReviewPage } from "../../pages/ReviewPage";
 import { ProfilePage } from "../../pages/ProfilePage";
 import { SettingsPage } from "../../pages/SettingsPage";
-import { LoginModal } from "../../pages/LoginModal";
+import { LoginPage } from "../../pages/LoginPage";
 import { TabBar } from "../../pages/TabBar";
 import { captureScreen, captureScreenIfReachable, getScreen } from "../../utils/catalog";
 
@@ -176,26 +176,22 @@ test.describe("UI カタログ（匿名） @catalog", () => {
 	});
 
 	// ─ レビュータブ（ゲスト） ─
-	test("レビュータブ（ゲスト表示・ログインモーダル）", async ({ appPage }) => {
+	// #1359 ログイン画面は 2 タブから同じ URL へ遷移するため、カタログの ID は auth-login 1 つに
+	// 統合した（撮影はマイページの導線で 1 回だけ行う）
+	test("レビュータブ（ゲスト表示）", async ({ appPage }) => {
 		const tabBar = new TabBar(appPage);
 		const reviewPage = new ReviewPage(appPage);
-		const loginModal = new LoginModal(appPage);
 
 		await tabBar.gotoReview();
 		await reviewPage.expectGuestViewLoaded();
 		await captureScreen(appPage, "review-guest");
-
-		await captureScreenIfReachable(appPage, "review-guest-login-modal", async () => {
-			await appPage.getByTestId("review-guest-login-button").click();
-			await loginModal.expectOpened();
-		});
 	});
 
 	// ─ マイページ（ゲスト） ─
-	test("マイページ（ゲスト表示・保存トピック・いいね・ログインモーダル）", async ({ appPage }) => {
+	test("マイページ（ゲスト表示・保存トピック・いいね・ログイン画面）", async ({ appPage }) => {
 		const tabBar = new TabBar(appPage);
 		const profilePage = new ProfilePage(appPage);
-		const loginModal = new LoginModal(appPage);
+		const loginPage = new LoginPage(appPage);
 
 		await tabBar.gotoProfile();
 		await profilePage.expectGuestViewLoaded();
@@ -213,9 +209,9 @@ test.describe("UI カタログ（匿名） @catalog", () => {
 			await expect(profilePage.likedGrid).toBeVisible();
 		});
 
-		await captureScreenIfReachable(appPage, "profile-guest-login-modal", async () => {
-			await profilePage.openLoginModal();
-			await loginModal.expectOpened();
+		await captureScreenIfReachable(appPage, "auth-login", async () => {
+			await profilePage.openLogin();
+			await loginPage.expectOpened();
 		});
 	});
 

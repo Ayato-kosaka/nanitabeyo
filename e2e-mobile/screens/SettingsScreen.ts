@@ -71,7 +71,7 @@ export class SettingsScreen {
 	 *
 	 * ログインモーダル内の同意文言リンク（`login-privacy-link`）でも同じモーダルが開くが、
 	 * あちらは `<Text>` の入れ子でネイティブ View を持たず Detox から到達できない。
-	 * ネイティブでのリーガルモーダル検証はこの経路に集約している（screens/LoginModal.ts 参照）。
+	 * ネイティブでのリーガルモーダル検証はこの経路に集約している（screens/LoginScreen.ts 参照）。
 	 */
 	readonly legalDocumentModal = by.id("legal-document-modal");
 

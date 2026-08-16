@@ -323,27 +323,7 @@
 			"state": "匿名ユーザー向け。ログイン誘導のみでレビュー投稿の導線は出ない",
 			"description": "レビュー投稿タブの未ログイン時表示。ログインするとレビュー投稿の導線に切り替わる。",
 			"from": ["タブバー「レビュー」"],
-			"to": ["ログインモーダル"]
-		},
-		{
-			"id": "review-guest-login-modal",
-			"name": "ログインモーダル（レビュータブ）",
-			"route": "/[locale]/review",
-			"url": "/ja-JP/review",
-			"platforms": {
-				"web": {
-					"capture": "auto",
-					"session": "anon"
-				},
-				"mobile": {
-					"capture": "auto",
-					"session": "anon"
-				}
-			},
-			"state": "BlurModal で表示されるログインモーダル（Google / Apple のみ）",
-			"description": "同一 URL 内の UI 状態。マイページから開くものと同一コンポーネント（LoginbackModal）。",
-			"from": ["レビュータブ（ゲスト）"],
-			"to": ["外部 IdP（Google / Apple OAuth）", "利用規約・プライバシーポリシーのモーダル"]
+			"to": ["ログイン"]
 		},
 		{
 			"id": "profile-guest",
@@ -363,7 +343,7 @@
 			"state": "匿名ユーザー。タブは保存系（保存した投稿／保存したトピック／いいね）のみ",
 			"description": "プロフィールタブ。匿名時はゲスト表示＋ログインボタンで、投稿・ウォレット系タブは出ない。",
 			"from": ["タブバー「マイページ」", "URL 直リンク"],
-			"to": ["設定", "ログインモーダル", "保存/いいねした投稿のフィード"]
+			"to": ["設定", "ログイン", "保存/いいねした投稿のフィード"]
 		},
 		{
 			"id": "profile-guest-saved-topics",
@@ -407,10 +387,10 @@
 			"to": ["料理メディアフィード"]
 		},
 		{
-			"id": "profile-guest-login-modal",
-			"name": "ログインモーダル（マイページ）",
-			"route": "/[locale]/profile",
-			"url": "/ja-JP/profile",
+			"id": "auth-login",
+			"name": "ログイン",
+			"route": "/[locale]/auth/login",
+			"url": "/ja-JP/auth/login",
 			"platforms": {
 				"web": {
 					"capture": "auto",
@@ -421,9 +401,14 @@
 					"session": "anon"
 				}
 			},
-			"state": "ログインボタン（profile-login-button）から開いた BlurModal",
-			"description": "同一 URL 内の UI 状態。Google / Apple の OAuth ボタンとリーガルリンクを持つ。",
-			"from": ["マイページ（ゲスト）"],
+			"state": null,
+			"description": "ログインの唯一の実体（#1359）。Google / Apple の OAuth ボタンとリーガルリンクを持つ。かつては呼び出し 4 箇所それぞれで BlurModal として重ねていたが、1 つのルートへ統合した。`?next=` は履歴を持たない着地（コールドロード / web の OAuth 全画面リダイレクト）用の戻り先。",
+			"from": [
+				"マイページ（ゲスト）",
+				"レビュータブ（ゲスト）",
+				"レビューのお店詳細（ゲスト）",
+				"地図のお店詳細（ゲスト）"
+			],
 			"to": ["外部 IdP（Google / Apple OAuth）", "利用規約・プライバシーポリシーのモーダル"]
 		},
 		{
@@ -487,7 +472,7 @@
 			},
 			"state": "設定の「プライバシーポリシー」から開く legal-document-modal",
 			"description": "同一 URL 内の UI 状態。利用規約と同じモーダルで内容だけが異なる。",
-			"from": ["設定", "ログインモーダルのリンク"],
+			"from": ["設定", "ログイン画面の同意文言のリンク"],
 			"to": ["設定（閉じる）"]
 		},
 		{
@@ -1202,11 +1187,11 @@
 		},
 		{
 			"from": "review-guest",
-			"to": "review-guest-login-modal",
+			"to": "auth-login",
 			"label": "ログイン"
 		},
 		{
-			"from": "review-guest-login-modal",
+			"from": "auth-login",
 			"to": "external-idp",
 			"label": "Google / Apple"
 		},
@@ -1222,13 +1207,8 @@
 		},
 		{
 			"from": "profile-guest",
-			"to": "profile-guest-login-modal",
+			"to": "auth-login",
 			"label": "ログイン"
-		},
-		{
-			"from": "profile-guest-login-modal",
-			"to": "external-idp",
-			"label": "Google / Apple"
 		},
 		{
 			"from": "profile-guest",
