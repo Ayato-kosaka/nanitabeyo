@@ -5,6 +5,12 @@
 - linkIdentity の衝突時に警告ダイアログを表示し、ユーザーの確認後に切替/キャンセルを選択可能にする。
 - 処理中はスピナーのみを表示し、ユーザー操作は不要（ダイアログ表示時を除く）。
 
+衝突の告知をどこに出すか（#1370 / 設計 #1359 §6）
+- ルートにはしない。この状態は「直前の OAuth 試行の結果」で、リロード・共有・ディープリンクでは
+  再現できない。ルート化すると provider と error を params で運ぶ必要が出て、この画面の状態機械が増える。
+- 入力欄なし・2 択なので DialogProvider の confirm() で足りる。confirm() は Promise なので
+  «決着させてから遷移» が 1 本の流れで書ける（旧実装は close() と router.replace を手で並べていた）。
+
 認証結果 URL の選び方について（#1062）
 - ネイティブでは expo-router のパラメータ（signInWithOAuth の router.replace / OS のディープリンク）で、
   Web では現在の URL として、認証結果が届きます。
@@ -16,17 +22,16 @@
 - セッションを確立できなかった場合は oauth_callback_no_result を error レベルで記録し、
   成功ログもプロフィール作成も行いません。いずれの場合も /[locale]/profile に遷移します。
 */
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
-import { View, Text, StyleSheet, Linking, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, Linking } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useAuth } from "@/contexts/AuthProvider";
+import { useDialog } from "@/contexts/DialogProvider";
 import { useLogger } from "@/hooks/useLogger";
 import i18n from "@/lib/i18n";
 import { Provider } from "@supabase/supabase-js";
 import { useProfile } from "@/features/profile/hooks/useProfile";
-import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
-import { Card } from "@/components/Card";
 import { describeOAuthUrl, pickOAuthResultUrl, type OAuthUrlCandidate } from "@/lib/oauthResultUrl";
 import { toErrorLogMessage } from "@/lib/errorMessage";
 
@@ -47,12 +52,88 @@ export default function AuthCallbackScreen() {
 	const { handleOAuthResultUrl, signInWithOAuth } = useAuth();
 	const { createUserProfile } = useProfile();
 	const { logFrontendEvent } = useLogger();
+	const { confirm } = useDialog();
 	const { locale, ...rest } = useLocalSearchParams<{ locale: string; [k: string]: string }>();
-	const { BlurModal: ConflictModal, open: openConflictModal, close: closeConflictModal } = useBlurModal();
-	const [conflictProvider, setConflictProvider] = useState<Provider | null>(null);
 
 	// 同じ code を二度交換しないためのラッチ（effect が再実行されても処理は一度きり）
 	const hasHandledRef = useRef(false);
+
+	const goToProfile = useCallback(
+		() => router.replace({ pathname: "/[locale]/profile", params: { locale } }),
+		[router, locale],
+	);
+
+	/**
+	 * プロバイダ競合（identity_already_exists）を告知し、選ばれた方へ決着させる。
+	 *
+	 * #1370 【設計】告知が閉じるまで «待つ» のが要点。DialogProvider は app/[locale]/_layout.tsx で
+	 * ナビゲータの «外側» にあるため、先に遷移してもダイアログだけが次の画面に残る。
+	 * confirm() の Promise を await して決着させてから router を触ること。
+	 *
+	 * #1370 【バグ】`dismissable` / `backHandlerEnabled` を false にするのは、旧実装（useBlurModal を
+	 * オプション無しで使用 = 戻るキーで閉じる）では **Android の戻るキーで告知«だけ»が消え、
+	 * 「処理中…」のスピナーが残る** ためである。この画面は hasHandledRef で処理を一度きりに
+	 * しているので再実行もされず、そこから先へ進めなくなる。選ぶまで閉じない、が正しい契約。
+	 */
+	const handleIdentityConflict = useCallback(
+		async (provider: Provider) => {
+			const switched = await confirm({
+				title: i18n.t("auth.conflict_dialog_title"),
+				message: i18n.t("auth.conflict_dialog_message"),
+				confirmLabel: i18n.t("auth.conflict_dialog_switch"),
+				cancelLabel: i18n.t("auth.conflict_dialog_cancel"),
+				dismissable: false,
+				backHandlerEnabled: false,
+			});
+
+			if (!switched) {
+				logFrontendEvent({
+					event_name: "oauth_conflict_cancel",
+					error_level: "log",
+					payload: { provider },
+				});
+				goToProfile();
+				return;
+			}
+
+			try {
+				logFrontendEvent({
+					event_name: "oauth_conflict_switch_existing",
+					error_level: "log",
+					payload: { provider },
+				});
+
+				// 既存アカウントに切り替え（prompt=none でサイレント認証）
+				const launch = await signInWithOAuth(provider);
+
+				// #1062 【設計】結末は記録するだけで、ここでは画面遷移しない。
+				// Android の dismiss は「ユーザーが閉じた」を意味しない（deep link 成功時にも起こる）。
+				// ここでプロフィールへ戻すと、成功時に expo-router の callback 遷移と競合して
+				// code を処理できないまま離脱しうる。成否の判断と遷移は callback 画面へ一本化する。
+				// 本当にユーザーが閉じた場合にスピナーが残るのは修正前からの挙動で、本 PR では変えない。
+				if (launch.outcome === "cancelled") {
+					logFrontendEvent({
+						event_name: "oauth_signin_browser_dismissed",
+						error_level: "log",
+						payload: {
+							provider,
+							outcome: launch.outcome,
+							browser_result_type: launch.browserResultType,
+							context: "conflict_switch",
+						},
+					});
+				}
+			} catch (error) {
+				logFrontendEvent({
+					event_name: "oauth_conflict_switch_error",
+					error_level: "error",
+					payload: { provider, error: (error as Error).message },
+				});
+				goToProfile();
+			}
+		},
+		[confirm, goToProfile, logFrontendEvent, signInWithOAuth],
+	);
 
 	useEffect(() => {
 		if (hasHandledRef.current) return;
@@ -70,8 +151,6 @@ export default function AuthCallbackScreen() {
 				{ source: "initial_url", url: initialUrl },
 			];
 			const picked = pickOAuthResultUrl(candidates);
-
-			const goToProfile = () => router.replace({ pathname: "/[locale]/profile", params: { locale } });
 
 			if (!picked) {
 				// ここが従来の「無言の失敗」の出口。成功ログもプロフィール作成も行わない。
@@ -138,8 +217,9 @@ export default function AuthCallbackScreen() {
 						error_level: "warn",
 						payload: { provider: err.provider, error_code: err.error_code },
 					});
-					setConflictProvider(err.provider);
-					openConflictModal();
+					// #1370 【設計】await して決着（切り替える / キャンセル）まで見届ける。
+					// 遷移はその決着の中で行うので、ここでは goToProfile を «呼ばない»
+					await handleIdentityConflict(err.provider as Provider);
 					return;
 				} else {
 					goToProfile();
@@ -174,79 +254,10 @@ export default function AuthCallbackScreen() {
 		handleAuthCallback();
 	}, [router, logFrontendEvent]);
 
-	const handleSwitchToExisting = async () => {
-		if (!conflictProvider) return;
-
-		closeConflictModal();
-
-		try {
-			logFrontendEvent({
-				event_name: "oauth_conflict_switch_existing",
-				error_level: "log",
-				payload: { provider: conflictProvider },
-			});
-
-			// 既存アカウントに切り替え（prompt=none でサイレント認証）
-			const launch = await signInWithOAuth(conflictProvider);
-
-			// #1062 【設計】結末は記録するだけで、ここでは画面遷移しない。
-			// Android の dismiss は「ユーザーが閉じた」を意味しない（deep link 成功時にも起こる）。
-			// ここでプロフィールへ戻すと、成功時に expo-router の callback 遷移と競合して
-			// code を処理できないまま離脱しうる。成否の判断と遷移は callback 画面へ一本化する。
-			// 本当にユーザーが閉じた場合にスピナーが残るのは修正前からの挙動で、本 PR では変えない。
-			if (launch.outcome === "cancelled") {
-				logFrontendEvent({
-					event_name: "oauth_signin_browser_dismissed",
-					error_level: "log",
-					payload: {
-						provider: conflictProvider,
-						outcome: launch.outcome,
-						browser_result_type: launch.browserResultType,
-						context: "conflict_switch",
-					},
-				});
-			}
-		} catch (error) {
-			logFrontendEvent({
-				event_name: "oauth_conflict_switch_error",
-				error_level: "error",
-				payload: { provider: conflictProvider, error: (error as Error).message },
-			});
-			router.replace({ pathname: "/[locale]/profile", params: { locale } });
-		}
-	};
-
-	const handleCancelSwitch = () => {
-		logFrontendEvent({
-			event_name: "oauth_conflict_cancel",
-			error_level: "log",
-			payload: { provider: conflictProvider },
-		});
-
-		closeConflictModal();
-		router.replace({ pathname: "/[locale]/profile", params: { locale } });
-	};
-
 	return (
 		<View style={styles.container}>
 			<LoadingIndicator size="large" />
 			<Text style={styles.text}>{i18n.t("auth.callback_processing")}</Text>
-
-			{/* Conflict Warning Dialog */}
-			<ConflictModal>
-				<Card>
-					<Text style={styles.dialogTitle}>{i18n.t("auth.conflict_dialog_title")}</Text>
-					<Text style={styles.dialogMessage}>{i18n.t("auth.conflict_dialog_message")}</Text>
-					<View style={styles.dialogButtons}>
-						<TouchableOpacity style={styles.secondaryButton} onPress={handleCancelSwitch}>
-							<Text style={styles.secondaryButtonText}>{i18n.t("auth.conflict_dialog_cancel")}</Text>
-						</TouchableOpacity>
-						<TouchableOpacity style={styles.primaryButton} onPress={handleSwitchToExisting}>
-							<Text style={styles.primaryButtonText}>{i18n.t("auth.conflict_dialog_switch")}</Text>
-						</TouchableOpacity>
-					</View>
-				</Card>
-			</ConflictModal>
 		</View>
 	);
 }
@@ -264,47 +275,5 @@ const styles = StyleSheet.create({
 		fontSize: 16,
 		color: "#6B7280",
 		textAlign: "center",
-	},
-	dialogTitle: {
-		fontSize: 20,
-		fontWeight: "700",
-		color: "#1A1A1A",
-		marginBottom: 12,
-		textAlign: "center",
-	},
-	dialogMessage: {
-		fontSize: 16,
-		color: "#6B7280",
-		lineHeight: 24,
-		marginBottom: 24,
-		textAlign: "center",
-	},
-	dialogButtons: {
-		flexDirection: "row",
-		gap: 12,
-	},
-	primaryButton: {
-		flex: 1,
-		backgroundColor: "#F05537",
-		paddingVertical: 14,
-		borderRadius: 12,
-		alignItems: "center",
-	},
-	primaryButtonText: {
-		fontSize: 16,
-		fontWeight: "600",
-		color: "#FFFFFF",
-	},
-	secondaryButton: {
-		flex: 1,
-		backgroundColor: "#F3F4F6",
-		paddingVertical: 14,
-		borderRadius: 12,
-		alignItems: "center",
-	},
-	secondaryButtonText: {
-		fontSize: 16,
-		fontWeight: "600",
-		color: "#6B7280",
 	},
 });
