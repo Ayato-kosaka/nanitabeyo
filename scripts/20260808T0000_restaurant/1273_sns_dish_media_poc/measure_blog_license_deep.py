@@ -126,11 +126,27 @@ def main() -> None:
     ap.add_argument("--n", type=int, default=150)
     ap.add_argument("--max-pages", type=int, default=5)
     ap.add_argument("--delay", type=float, default=0.8)
+    # #1344 【設計】オーナーが聞いているのは**料理カテゴリ特化**（ラーメン専門・
+    #   焼肉専門）の許諾状況である。`top_focused` にはブログ村の**地域タグ**
+    #   （tokyogourmet / kantogourmet / zenkokugourmet）も混ざっているので、
+    #   料理カテゴリだけに絞れる口を用意する。指定しなければ従来どおり全部。
+    ap.add_argument("--cats", default="",
+                    help="料理カテゴリのタグをカンマ区切り（例: ramen,bkyu）")
+    ap.add_argument("--out-suffix", default="")
     args = ap.parse_args()
 
     sup = json.loads((OUT_DIR / "blogger_supply.json").read_text(encoding="utf-8"))
-    cand = sup["top_focused"][: args.n]
-    print(f"対象 {len(cand)} 人（カテゴリ集中ブロガー・記事数の多い順）", file=sys.stderr)
+    pool = sup["top_focused"]
+    if args.cats:
+        want = {c.strip() for c in args.cats.split(",") if c.strip()}
+        pool = [t for t in pool if t.get("cat") in want]
+        if not pool:
+            print(f"**{sorted(want)} に該当するブロガーが 0 人。数字を出さない。**",
+                  file=sys.stderr)
+            raise SystemExit(2)
+    cand = pool[: args.n]
+    print(f"対象 {len(cand)} 人（カテゴリ集中ブロガー・記事数の多い順"
+          f"{'・' + args.cats if args.cats else ''}）", file=sys.stderr)
 
     cnt: collections.Counter = collections.Counter()
     by_cat: dict[str, collections.Counter] = collections.defaultdict(collections.Counter)
@@ -215,7 +231,7 @@ def main() -> None:
               " ".join(f"{k}={v}" for k, v in cc.most_common(3)), file=sys.stderr)
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    p = OUT_DIR / "blog_license_deep.json"
+    p = OUT_DIR / f"blog_license_deep{args.out_suffix}.json"
     p.write_text(json.dumps(
         {"n_target": len(cand), "n_ok": ok, "counts": dict(cnt),
          "usable": usable, "negotiable": negoti,
