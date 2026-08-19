@@ -101,8 +101,12 @@ jest.mock("@/features/profile/tabs/ReviewTab", () => ({ ReviewTab: () => null })
 jest.mock("@/features/profile/tabs/LikeTab", () => ({ LikeTab: () => null }));
 jest.mock("@/features/profile/tabs/SavedPostsTab", () => ({ SavedPostsTab: () => null }));
 jest.mock("@/features/profile/tabs/SavedTopicsTab", () => ({ SavedTopicsTab: () => null }));
+// #1387 「まだ読んでいない」と「読んだが取れなかった」を分けるため、決着状態も差し替え可能にする。
+// profile === null だけでは両者を区別できず、後者でスピナーが回り続けていた
+let mockIsProfileResolved = true;
+const mockRetry = jest.fn();
 jest.mock("@/features/profile/hooks/useEnsureOwnProfileLoaded", () => ({
-	useEnsureOwnProfileLoaded: () => ({ isProfileResolved: true }),
+	useEnsureOwnProfileLoaded: () => ({ isProfileResolved: mockIsProfileResolved, retry: mockRetry }),
 }));
 // プロフィールの «有無» で編集画面の描画が変わる（下の「未ロードの間は…」のテスト）ので差し替え可能にする
 let mockProfile: unknown = { id: "profile-1", username: "tester" };
@@ -155,6 +159,8 @@ const press = async (tree: TestRenderer.ReactTestRenderer, testID: string): Prom
 
 beforeEach(() => {
 	mockProfile = { id: "profile-1", username: "tester" };
+	mockIsProfileResolved = true;
+	mockRetry.mockClear();
 	mockPush.mockClear();
 	mockReplace.mockClear();
 	mockBack.mockClear();
@@ -214,9 +220,13 @@ describe("#1369 プロフィール編集画面の離脱", () => {
 		// ProfileEditForm は初期値を mount 時に 1 回だけ読む。空のまま mount すると
 		// 後から profile が届いても表示名・自己紹介が空欄のままになる
 		mockProfile = null;
+		// #1387 «まだ読んでいない» 側。決着していないのでエラーではなくスピナー
+		mockIsProfileResolved = false;
 		const tree = await render(<ProfileEditScreen />);
 
 		expect(tree.root.findAll((node) => node.props?.testID === "profile-edit-form-saved")).toHaveLength(0);
+		// 読み込み中にエラーを出さないこと（出すと «一瞬エラーが見えて消える» になる）
+		expect(tree.root.findAll((node) => node.props?.testID === "profile-edit-error")).toHaveLength(0);
 		// 待っている間も離脱できること（ゲートの外にヘッダーがある）
 		expect(tree.root.findAll((node) => node.props?.testID === "screen-header-back").length).toBeGreaterThan(0);
 	});
@@ -231,5 +241,58 @@ describe("#1369 プロフィール編集画面の離脱", () => {
 			pathname: "/[locale]/(tabs)/profile",
 			params: { locale: "ja-JP" },
 		});
+	});
+});
+
+/*
+#1387 【バグ】プロフィール取得が 404 «以外» で失敗（通信断・500 など）すると、
+`useEnsureOwnProfileLoaded` は profile を null のまま `isProfileResolved` だけ true にして終わる。
+編集画面は profile だけを見ていたため、その人の画面は **スピナーが永久に回り続けていた**。
+
+⚠️ ここが赤くなったら、決着済みの失敗を «読み込み中» と同じ見た目で出している。
+ユーザーには終わらない読み込みにしか見えないので、待っても何も起きない。
+*/
+describe("#1387 プロフィール取得に失敗したときの編集画面", () => {
+	/** 「決着したが取れなかった」= 失敗が確定した状態 */
+	const arrangeFailed = () => {
+		mockProfile = null;
+		mockIsProfileResolved = true;
+	};
+
+	it("スピナーではなくエラーと再試行を出す", async () => {
+		arrangeFailed();
+		const tree = await render(<ProfileEditScreen />);
+
+		expect(tree.root.findAll((node) => node.props?.testID === "profile-edit-error").length).toBeGreaterThan(0);
+		expect(
+			tree.root.findAll((node) => node.props?.testID === "profile-edit-retry-button").length,
+		).toBeGreaterThan(0);
+		// 空のフォームを mount しないことは «未ロード» のときと同じく守る
+		expect(tree.root.findAll((node) => node.props?.testID === "profile-edit-form-saved")).toHaveLength(0);
+	});
+
+	it("再試行を押すとフックの retry が呼ばれる", async () => {
+		arrangeFailed();
+		const tree = await render(<ProfileEditScreen />);
+
+		await press(tree, "profile-edit-retry-button");
+
+		expect(mockRetry).toHaveBeenCalledTimes(1);
+	});
+
+	// 失敗表示は «行き止まり» にしないこと。再試行が通らない環境でも離脱はできる必要がある
+	it("失敗表示のままでも戻れる", async () => {
+		arrangeFailed();
+		const tree = await render(<ProfileEditScreen />);
+
+		expect(tree.root.findAll((node) => node.props?.testID === "screen-header-back").length).toBeGreaterThan(0);
+	});
+
+	// プロフィールが取れているときにエラーが出ないこと（対照）
+	it("取得できていればエラーは出ない", async () => {
+		const tree = await render(<ProfileEditScreen />);
+
+		expect(tree.root.findAll((node) => node.props?.testID === "profile-edit-error")).toHaveLength(0);
+		expect(tree.root.findAll((node) => node.props?.testID === "profile-edit-form-saved").length).toBeGreaterThan(0);
 	});
 });

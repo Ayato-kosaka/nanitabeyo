@@ -19,12 +19,13 @@ useBlurModal 側と二重掛けになっていた状態（#1350 が IME 系不�
 そのまま作り直すことになる。
 */
 import React, { useCallback } from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 
 import { LoadingIndicator } from "@/components/LoadingIndicator";
+import { PrimaryButton } from "@/components/PrimaryButton";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { ProfileEditForm } from "@/features/profile/components/ProfileEditForm";
 import { useEnsureOwnProfileLoaded } from "@/features/profile/hooks/useEnsureOwnProfileLoaded";
@@ -42,8 +43,13 @@ export default function ProfileEditScreen() {
 	// #1369 【設計】モーダル時代はマイページ（ProfileTabsLayout）が読み込んだ profile を
 	// そのまま覗いていたが、ルートは URL 直リンク・web のリロードで «単独で» 着地しうる。
 	// このフックは既にストアへ載っていれば API を叩かないので、通常導線では何も増えない
-	useEnsureOwnProfileLoaded();
+	const { isProfileResolved, retry } = useEnsureOwnProfileLoaded();
 	const profile = useProfileStore((state) => state.profile);
+
+	// #1387 【バグ】取得が 404 «以外» で失敗（通信断・500 など）すると profile は null のまま
+	// 決着する。`profile` だけを見ていると、その人の画面はスピナーが永久に回り続けていた。
+	// 「まだ読んでいない」と「読んだが取れなかった」を分けるために isProfileResolved を見る
+	const hasFailed = isProfileResolved && !profile;
 
 	/**
 	 * この画面から離れる。
@@ -76,6 +82,18 @@ export default function ProfileEditScreen() {
 		leave();
 	}, [leave]);
 
+	// #1387 再試行。押せるのは決着後（= エラー表示が出ているとき）だけなので、
+	// 読み込み中の二重取得にはならない（フックの JSDoc 参照）
+	const handleRetry = useCallback(() => {
+		lightImpact();
+		logFrontendEvent({
+			event_name: "profile_edit_load_retry_pressed",
+			error_level: "log",
+			payload: {},
+		});
+		retry();
+	}, [lightImpact, logFrontendEvent, retry]);
+
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
 			<SafeAreaView style={styles.safeArea} edges={[]}>
@@ -89,8 +107,15 @@ export default function ProfileEditScreen() {
 				    読む（IME 対策で親から流し込まない設計）ため、後から profile が届いても空欄のままになる。
 				    モーダル時代は `{profile && <ProfileEditModal>}` がこの前提を保証していた。
 				    ⚠️ 戻る導線はこのゲートの外に置くこと（ヘッダーは上にある）。auth/login.tsx と同じ形 */}
-				{!profile ? (
-					<View style={styles.loadingContainer}>
+				{hasFailed ? (
+					/* #1387 決着済みで取れなかった状態。ここを出さないとスピナーのままになる。
+					   離脱はヘッダーの戻る（このゲートの外）で足りるので、ここには «やり直す» 手段だけを置く */
+					<View style={styles.messageContainer} testID="profile-edit-error">
+						<Text style={styles.errorText}>{i18n.t("Common.errors.unexpected")}</Text>
+						<PrimaryButton label={i18n.t("Common.retry")} onPress={handleRetry} testID="profile-edit-retry-button" />
+					</View>
+				) : !profile ? (
+					<View style={styles.messageContainer}>
 						<LoadingIndicator size="large" />
 					</View>
 				) : (
@@ -108,9 +133,16 @@ const styles = StyleSheet.create({
 	safeArea: {
 		flex: 1,
 	},
-	loadingContainer: {
+	messageContainer: {
 		flex: 1,
 		justifyContent: "center",
 		alignItems: "center",
+		gap: 16,
+		paddingHorizontal: 32,
+	},
+	errorText: {
+		fontSize: 15,
+		color: "#6B7280",
+		textAlign: "center",
 	},
 });

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthProvider";
 import { isGuestUser } from "@/lib/authGuest";
 import { ApiError, useAPICall } from "@/hooks/useAPICall";
@@ -30,8 +30,17 @@ import { useProfile } from "./useProfile";
  * `profile === null` は「まだ読んでいない」と「読んだが取れなかった」の両方を意味するため、
  * これだけを見て UI を分岐すると、ログイン済みユーザーにも数百 ms だけゲスト向け UI が出て
  * 消える（= ちらつき）。未決着の間は分岐そのものを保留する用途に使う。
+ *
+ * #1387 【設計】戻り値の `retry` は「決着したが取れなかった」状態からやり直すための唯一の手段。
+ * このフックは `hasLoadedRef` で «一度きり» を保証しており、失敗しても finally で立ててしまうので、
+ * 再レンダーしても二度と API を叩かない。呼び出し側が明示的に `retry()` を呼んだときだけ
+ * その封印を解く。
+ *
+ * ⚠️ `retry()` は «決着済み» のときに押させること（`isProfileResolved === false` の間は
+ * まだ読み込み中なので、押せると同じ取得が二重に走る）。エラー表示を
+ * 「`isProfileResolved && profile === null`」で出せば、ボタンは自然に決着後だけ現れる。
  */
-export function useEnsureOwnProfileLoaded(): { isProfileResolved: boolean } {
+export function useEnsureOwnProfileLoaded(): { isProfileResolved: boolean; retry: () => void } {
 	const { user } = useAuth();
 	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
@@ -40,10 +49,24 @@ export function useEnsureOwnProfileLoaded(): { isProfileResolved: boolean } {
 	const hasLoadedRef = useRef(false);
 	// #1120 ref は再レンダーを起こさないため、呼び出し側へ返す決着状態は state で持つ
 	const [isProfileResolved, setIsProfileResolved] = useState(false);
+	// #1387 再試行の世代。下のロード effect の依存に入れてあり、増えると «もう一度» 走る
+	const [attempt, setAttempt] = useState(0);
 
 	// #1092 PR4b タブの表示判定（lib/authGuest.ts）と同じ式にしておく。
 	// ここだけ判定がずれると「reviews タブは出ているのにプロフィールはダミーのまま」になる
 	const isGuest = isGuestUser(user);
+
+	/**
+	 * #1387 取得に失敗した状態からやり直す。
+	 *
+	 * `hasLoadedRef` を倒さないとロード effect が即 return するので、ここで «一度きり» の封印を解く。
+	 * `attempt` を増やすのは effect を «実際に» 走らせるため（ref の書き換えは再レンダーを起こさない）。
+	 */
+	const retry = useCallback(() => {
+		hasLoadedRef.current = false;
+		setIsProfileResolved(false);
+		setAttempt((current) => current + 1);
+	}, []);
 
 	// ★セッション（userId / isGuest）が変わったらキャッシュをリセット
 	useEffect(() => {
@@ -116,7 +139,9 @@ export function useEnsureOwnProfileLoaded(): { isProfileResolved: boolean } {
 		};
 
 		loadProfile();
-	}, [callBackend, isGuest, logFrontendEvent, user?.id, createUserProfile]);
+		// #1387 `attempt` は «再試行のたびにこの effect を回す» ためだけの依存。
+		// 値そのものは中で使わないが、外すと retry() が効かなくなる
+	}, [callBackend, isGuest, logFrontendEvent, user?.id, createUserProfile, attempt]);
 
-	return { isProfileResolved };
+	return { isProfileResolved, retry };
 }
