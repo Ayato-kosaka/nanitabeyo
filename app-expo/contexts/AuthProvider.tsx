@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useRef, useCallback, useMemo } from "react";
 import { supabase, consumeAuthRetryAfterHeader } from "@/lib/supabase";
+import { readOAuthResultQuery } from "@/lib/oauthResultUrl";
 // #1030 【設計】E2E(Detox) 専用のセッション注入フック。
 // 通常ビルドでは metro.config.js が noop 実装（lib/e2e/injectTestSession.noop.ts）へ解決し直すため、
 // 本番バンドルにはこの実装コードも react-native-launch-arguments も一切含まれない。
@@ -806,7 +807,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 		const parsed = Linking.parse(result.url);
 		const parsedLocale = (parsed.hostname ?? "ja-JP") as string;
-		const qp = Object.fromEntries(Object.entries(parsed.queryParams ?? {}).map(([k, v]) => [k, String(v)])); // queryParams は string | number | boolean | null などが来るので文字列化
+		// #1374 クエリは «デコード 1 回» で読む（lib/oauthResultUrl.ts の JSDoc 参照）。
+		// Linking.parse の queryParams は 2 回デコードなので、redirectTo を 1 回エンコードへ直した
+		// 今は過剰になる。読めなかったときだけ従来の経路へ倒す
+		const qp =
+			readOAuthResultQuery(result.url) ??
+			Object.fromEntries(Object.entries(parsed.queryParams ?? {}).map(([k, v]) => [k, String(v)]));
 		const href: Href = {
 			pathname: "/[locale]/auth/callback",
 			params: { locale: parsedLocale, ...qp },
@@ -824,12 +830,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 		if (!url) return { status: "no_result" };
 
 		const parsed = Linking.parse(url);
-		const code = parsed.queryParams?.code as string | undefined;
-		const intent = parsed.queryParams?.intent as string | undefined;
-		const provider = parsed.queryParams?.provider as Provider | undefined;
-		const error = parsed.queryParams?.error as string | undefined;
-		const error_code = parsed.queryParams?.error_code as string | undefined;
-		const error_description = parsed.queryParams?.error_description as string | undefined;
+		// #1374 同上。ここが 2 回デコードのままだと、next に裸の `%` が入っただけで
+		// URIError が起き、Linking.parse の catch がそれを飲んで **code まで消える**
+		const queryParams =
+			readOAuthResultQuery(url) ??
+			(parsed.queryParams as Record<string, string | undefined> | undefined) ??
+			{};
+		const code = queryParams.code as string | undefined;
+		const intent = queryParams.intent as string | undefined;
+		const provider = queryParams.provider as Provider | undefined;
+		const error = queryParams.error as string | undefined;
+		const error_code = queryParams.error_code as string | undefined;
+		const error_description = queryParams.error_description as string | undefined;
 
 		// エラーがある場合は、そのまま例外として throw する
 		// callback.tsx 側で処理するため、ここでは自動フォールバックしない

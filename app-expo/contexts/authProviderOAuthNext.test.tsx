@@ -17,6 +17,8 @@ import { act } from "react";
 import TestRenderer from "react-test-renderer";
 import * as AuthSession from "expo-auth-session";
 import { Platform } from "react-native";
+import * as WebBrowser from "expo-web-browser";
+import { readOAuthResultQuery } from "@/lib/oauthResultUrl";
 import { supabase } from "@/lib/supabase";
 import { AuthProvider, useAuth } from "./AuthProvider";
 
@@ -43,12 +45,25 @@ jest.mock("@/hooks/useLogger", () => {
 	return { useLogger: () => ({ logFrontendEvent }) };
 });
 jest.mock("@/hooks/useLocale", () => ({ useLocale: () => ({ locale: "ja-JP" }) }));
-jest.mock("expo-router", () => {
-	const replace = jest.fn();
-	return { useRouter: () => ({ replace }) };
-});
+const mockRouterReplace = jest.fn();
+jest.mock("expo-router", () => ({ useRouter: () => ({ replace: mockRouterReplace }) }));
 jest.mock("@/lib/logoutRedirect", () => ({ requestLogoutRedirect: jest.fn() }));
-jest.mock("expo-linking", () => ({ parse: jest.fn() }));
+// #1374 ロケールの復元にだけ使う（クエリは readOAuthResultQuery が読む）。
+// 本物と同じく «ホスト部» を返し、queryParams は 2 回デコードする形にしておく
+jest.mock("expo-linking", () => ({
+	parse: jest.fn((url: string) => {
+		const parsed = new URL(url);
+		const queryParams: Record<string, string> = {};
+		try {
+			parsed.searchParams.forEach((value, key) => {
+				queryParams[key] = decodeURIComponent(value);
+			});
+		} catch {
+			// 本物（createURL.js:137-139）と同じく URIError を握り潰す
+		}
+		return { hostname: parsed.hostname, queryParams };
+	}),
+}));
 // ⚠️ 既定の戻り値は使い捨ての文字列だが、#1374 の describe では
 // «expo-linking の createURL と同じ規約» を実装した版に差し替える（下の buildLikeCreateURL）
 jest.mock("expo-auth-session", () => ({ makeRedirectUri: jest.fn(() => "nanitabeyo://redirect") }));
@@ -193,9 +208,14 @@ describe("#1374 redirectTo が二重エンコードされない", () => {
 	/**
 	 * expo-linking の `createURL` と同じ規約で URL を組む。
 	 *
-	 * 本物（build/createURL.js:113-114）は
-	 *   `encodeURI(scheme + "://" + path)` に、`URLSearchParams(queryParams)` の結果を **後から** 足す。
-	 * つまり path だけが `encodeURI` を通り、クエリは 1 回だけエンコードされる。
+	 * 本物（build/createURL.js:111-114、独自スキーム・非 Expo-hosted の場合）はこうである。
+	 *   hostUri = ensureLeadingSlash("", true)                    // → "/"
+	 *   encodeURI(`${scheme}:/${hostUri}${path}`)                 // → "nanitabeyo://ja-JP/auth/callback"
+	 *   + `?${new URLSearchParams(queryParams)}`                  // ← encodeURI の «後» に足す
+	 *
+	 * つまり **スラッシュは 2 本**で、`path` の先頭セグメント（ロケール）がホストになる。
+	 * `openOAuthBrowserSession` が `Linking.parse(url).hostname` からロケールを復元するのは
+	 * この形が前提なので、ここも本物と同じ形にしておく（PR #1393 のレビュー 4）。
 	 */
 	const buildLikeCreateURL = ({
 		path,
@@ -205,7 +225,20 @@ describe("#1374 redirectTo が二重エンコードされない", () => {
 		queryParams?: Record<string, string>;
 	}): string => {
 		const query = new URLSearchParams(queryParams ?? {}).toString();
-		return `${encodeURI(`nanitabeyo:///${path}`)}${query ? `?${query}` : ""}`;
+		return `${encodeURI(`nanitabeyo://${path}`)}${query ? `?${query}` : ""}`;
+	};
+
+	/** 経路A の読み取り。`Linking.parse` と同じく searchParams のうえに decodeURIComponent を重ねる */
+	const readNextLikeRouteALegacy = (url: string): string | undefined => {
+		const queryParams: Record<string, string> = {};
+		try {
+			new URL(url).searchParams.forEach((value, key) => {
+				queryParams[key] = decodeURIComponent(value);
+			});
+		} catch {
+			// Linking.parse は URIError を握り潰す（createURL.js:137-139）。ここも同じにする
+		}
+		return queryParams.next;
 	};
 
 	/** 経路B の読み取り。expo-router と同じく searchParams で «1 回だけ» デコードする */
@@ -250,6 +283,20 @@ describe("#1374 redirectTo が二重エンコードされない", () => {
 		expect(redirectTo).not.toContain("%25");
 	});
 
+	// レビュー 4: 従来この形をテストが一切カバーしていなかった。
+	// `openOAuthBrowserSession` はここからロケールを復元する
+	it("ロケールはホスト部に載る（Linking.parse の hostname から復元できる）", async () => {
+		await act(async () => {
+			await authValue.signInWithOAuth("google", { next: "/ja-JP/(tabs)/review" });
+		});
+
+		const redirectTo = makeRedirectUri.mock.results[0].value as string;
+
+		// 独自スキームは «special scheme» ではないので、ホスト部の大文字小文字は保たれる
+		expect(new URL(redirectTo).hostname).toBe("ja-JP");
+		expect(new URL(redirectTo).pathname).toBe("/auth/callback");
+	});
+
 	it("linkIdentity でも同じ", async () => {
 		await act(async () => {
 			await authValue.linkIdentity("google", { next: "/ja-JP/(tabs)/review" });
@@ -261,18 +308,54 @@ describe("#1374 redirectTo が二重エンコードされない", () => {
 		expect(redirectTo).not.toContain("%25");
 	});
 
-	// 経路A（2 回デコード）を壊していないこと。ここが «たまたま動いていた» 側なので、
-	// 直したことで逆に壊れていないかを対で見る
-	it("経路A（Linking.parse 相当の 2 回デコード）でも壊れない", async () => {
+	/*
+	経路A も «1 回デコード» で読むようになったことの確認（PR #1393 のレビュー 2）。
+
+	以前の経路A は `Linking.parse`（searchParams + decodeURIComponent = 2 回）だった。
+	redirectTo が二重エンコードだったので «たまたま» 釣り合っていたが、エンコードを 1 回へ
+	直した時点でこちらが過剰になる。`readOAuthResultQuery` で読む側も 1 回へ揃えた。
+
+	⚠️ 下の 3 ケース目が本命。裸の `%` は 2 回デコードで URIError を起こし、
+	`Linking.parse` の catch がそれを飲むため **code まで消えてログイン自体が失敗する**。
+	*/
+	it.each([
+		["/ja-JP/(tabs)/review", "%XX を含まない通常の行き先"],
+		["/ja-JP/search?q=%E3%83%A9%E3%83%BC%E3%83%A1%E3%83%B3", "値に %XX を含む行き先"],
+		["/ja-JP/x?q=50%", "裸の % を含む行き先"],
+	])("経路A（1 回デコード）でも next が元のパスに戻る: %s", async (next) => {
 		await act(async () => {
-			await authValue.signInWithOAuth("google", { next: "/ja-JP/(tabs)/review" });
+			await authValue.signInWithOAuth("google", { next });
 		});
 
 		const redirectTo = makeRedirectUri.mock.results[0].value as string;
-		const once = readNextLikeRouteB(redirectTo);
 
-		// 経路A は decodeURIComponent をもう 1 回掛ける。エンコードが 1 回なら «もう変わらない»
-		expect(decodeURIComponent(once as string)).toBe("/ja-JP/(tabs)/review");
+		expect(readOAuthResultQuery(redirectTo)?.next).toBe(next);
+	});
+
+	// 旧い読み方（2 回デコード）だと «直っていない» ことを対で残す。
+	// これが緑になったら、揃えた意味が無くなっている
+	it("旧い 2 回デコードのままなら経路A は壊れる（対照）", async () => {
+		await act(async () => {
+			await authValue.signInWithOAuth("google", { next: "/ja-JP/x?q=50%" });
+		});
+
+		const redirectTo = makeRedirectUri.mock.results[0].value as string;
+
+		expect(readNextLikeRouteALegacy(redirectTo)).toBeUndefined();
+	});
+
+	// レビュー 2 の最重要点: 裸の % が入っても code は生き残る
+	it("next に裸の % が入っても code は落ちない", async () => {
+		await act(async () => {
+			await authValue.signInWithOAuth("google", { next: "/ja-JP/x?q=50%" });
+		});
+
+		const redirectTo = makeRedirectUri.mock.results[0].value as string;
+		// Supabase が付ける code を模して足す
+		const withCode = `${redirectTo}&code=AUTHCODE`;
+
+		expect(readOAuthResultQuery(withCode)?.code).toBe("AUTHCODE");
+		expect(readNextLikeRouteALegacy(withCode)).toBeUndefined();
 	});
 });
 
@@ -334,5 +417,81 @@ describe("#1374 web の redirectTo も 1 回だけエンコードする", () => 
 		expect(new URL(redirectTo).pathname).toBe("/ja-JP/auth/callback");
 		// web では makeRedirectUri（native 用）を通らない
 		expect(makeRedirectUri).not.toHaveBeenCalled();
+	});
+});
+
+/*
+#1374 経路A の «実際の入口» を通す（PR #1393 のレビュー 2 / N1 の取りこぼし）。
+
+`readOAuthResultQuery` 単体と «組み立てた URL» のテストだけでは、
+`openOAuthBrowserSession` が `Linking.parse(...).queryParams`（2 回デコード）へ戻されても
+気付けなかった。ここはブラウザからの戻り URL を実際に流し、
+**callback へ渡る params** を観測する。
+
+⚠️ これが赤くなったら、経路A が 2 回デコードへ逆戻りしている。裸の `%` を含む `next` で
+`code` が消え、ログインそのものが失敗する。
+*/
+describe("#1374 ブラウザ復帰（経路A）が callback へ渡す params", () => {
+	let authValue: ReturnType<typeof useAuth>;
+
+	const Probe = () => {
+		authValue = useAuth();
+		return null;
+	};
+
+	beforeEach(async () => {
+		(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+		auth.getSession.mockResolvedValue({ data: { session: null }, error: null });
+		auth.setSession.mockResolvedValue({ data: { session: null }, error: null });
+		auth.signInAnonymously.mockResolvedValue({
+			data: { session: { access_token: "a", refresh_token: "r", user: { id: "anon-1" } } },
+			error: null,
+		});
+		auth.onAuthStateChange.mockImplementation(() => ({ data: { subscription: { unsubscribe: jest.fn() } } }));
+		// ブラウザを開く経路へ入るため data.url を返す
+		auth.signInWithOAuth.mockResolvedValue({ data: { url: "https://provider.example/auth" }, error: null });
+		makeRedirectUri.mockReturnValue("nanitabeyo://ja-JP/auth/callback");
+		await act(async () => {
+			TestRenderer.create(
+				<AuthProvider>
+					<Probe />
+				</AuthProvider>,
+			);
+		});
+	});
+
+	/** ブラウザが返してくる URL（Supabase が code を付けた形） */
+	const returnUrlWith = (next: string): string =>
+		`nanitabeyo://ja-JP/auth/callback?intent=signin&next=${encodeURIComponent(next)}&code=AUTHCODE`;
+
+	it("裸の % を含む next でも code が callback へ届く", async () => {
+		(WebBrowser.openAuthSessionAsync as unknown as jest.Mock).mockResolvedValue({
+			type: "success",
+			url: returnUrlWith("/ja-JP/x?q=50%"),
+		});
+
+		await act(async () => {
+			await authValue.signInWithOAuth("google", { next: "/ja-JP/x?q=50%" });
+		});
+
+		const href = mockRouterReplace.mock.calls.at(-1)?.[0];
+		expect(href.params.code).toBe("AUTHCODE");
+		expect(href.params.next).toBe("/ja-JP/x?q=50%");
+		// ロケールはホスト部から復元する（Linking.parse の担当。ここは変えていない）
+		expect(href.params.locale).toBe("ja-JP");
+	});
+
+	it("値に %XX を含む next が化けない", async () => {
+		const next = "/ja-JP/search?q=%E3%83%A9%E3%83%BC%E3%83%A1%E3%83%B3";
+		(WebBrowser.openAuthSessionAsync as unknown as jest.Mock).mockResolvedValue({
+			type: "success",
+			url: returnUrlWith(next),
+		});
+
+		await act(async () => {
+			await authValue.signInWithOAuth("google", { next });
+		});
+
+		expect(mockRouterReplace.mock.calls.at(-1)?.[0].params.next).toBe(next);
 	});
 });
