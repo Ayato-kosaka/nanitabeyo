@@ -7,7 +7,13 @@
 今回、r_N（リンク無し層）と r_L（リンク層）の両方を目視監査した。
 
     r_N: 3面すべてのヒットを目視 → 34.79% → **3.12%**（名前で一意に特定できる店のみ）
-    r_L: 自社サイトの「料理画像」を実際に表示 → **店単位 precision 75.0%**（6/8）
+    r_L: 自社サイトの「料理画像」を実際に表示 → **店単位 precision 54.84%**（17/31）
+
+**【訂正 8/19】** 以前ここに書いていた 75.0% は **n=8** の値だった。天井の幅
+（12.22〜19.52%）を決めていたのがこの CI（40.9〜92.9%）だったので、標本を
+32 店に広げて測り直したところ **54.84%（17/31、95%CI 37.8〜70.8%）** になった。
+前8件（75.0%）と新23件（47.8%）は CI が大きく重なるので**差があるとは言えず**、
+75.0% は小標本の上振れだったと見るのが素直である。定数と本文の両方を直した。
 
 **片側だけ厳しく見ると天井が歪む**ので、両方を入れて引き直す。
 
@@ -17,13 +23,13 @@
 次の2点だけを監査後の値に差し替える。
 
   1. リンク無し層の実効: 19.93% → **3.12%**（監査後の経路存在率。実効はこれ以下）
-  2. 自社サイトの料理画像率に**店単位 precision 75.0%** を掛ける
+  2. 自社サイトの料理画像率に**店単位 precision 54.84%** を掛ける
 
 4通り（監査前/後 × 補正あり/なし）を並べて、**どちらの監査がどれだけ効いたか**を出す。
 
 ## この計算が言えないこと
 
-  - 店単位 precision は **n=8**（95%CI 40.9〜92.9%）。**幅は極めて広い**
+  - 店単位 precision は **n=31**（95%CI 37.8〜70.8%）。まだ幅は広い
   - r_N は経路存在率であって実効ではないので、3.12% を実効として使うのは**甘い側**
   - 独立仮定の union を含むので上限側
 
@@ -49,8 +55,13 @@ OWNER_TARGET = 0.70
 
 R_N_BEFORE = 0.1993                      # 従来モデルの「リンク無し層の実効」
 R_N_AFTER = 0.0312                       # 監査後の経路存在率（out/rn_decomposition.json）
-STORE_PRECISION = 0.750                  # 店単位の目視 precision（6/8）
-STORE_PRECISION_CI = (0.409, 0.929)
+# #1273 【訂正 8/19】n=8 の 0.750 から n=31 の 0.5484 に差し替えた。
+#   標本を4倍にしたら点推定が 20.2pt 下がった（out/own_site_by_store_labels_n32.json）。
+#   偽 12 件のうち **6 件は『別主体のサイト』**（乃が美・Francfranc・弘前観光協会など）で、
+#   これは画像判定ではなく **website 列の質**の問題である。
+STORE_PRECISION = 0.5484                 # 店単位の目視 precision（17/31）
+STORE_PRECISION_CI = (0.378, 0.708)
+STORE_PRECISION_OLD = 0.750              # 旧値（6/8）。比較のために残す
 
 
 def ceiling(own_img_of600: float, r_n: float) -> tuple[float, float]:
@@ -75,7 +86,7 @@ def main() -> None:
     rows = []
     print("=== 天井（4通り）===", file=sys.stderr)
     for rn_label, rn in (("監査前 19.93%", R_N_BEFORE), ("**監査後 3.12%**", R_N_AFTER)):
-        for sp_label, sp in (("補正なし", 1.0), ("**店単位 75.0%**", STORE_PRECISION)):
+        for sp_label, sp in (("補正なし", 1.0), ("**店単位 54.8%**", STORE_PRECISION)):
             vals = []
             for d_after in (den_a, den_c + got):
                 of600 = (n_dish + got_dish) / d_after * (n_site / n_sample) * sp
@@ -97,10 +108,11 @@ def main() -> None:
           f"{(OWNER_TARGET-full['low'])*100:.2f}pt**", file=sys.stderr)
 
     # 店単位 precision の CI を振ったときの幅
-    print(f"\n=== 店単位 precision の CI で振る（n=8 なので幅が広い）===", file=sys.stderr)
-    for lab, sp in (("CI 下端 40.9%", STORE_PRECISION_CI[0]),
-                    ("点推定 75.0%", STORE_PRECISION),
-                    ("CI 上端 92.9%", STORE_PRECISION_CI[1])):
+    print(f"\n=== 店単位 precision の CI で振る（n=31。旧 n=8 の値も並べる）===", file=sys.stderr)
+    for lab, sp in (("CI 下端 37.8%", STORE_PRECISION_CI[0]),
+                    ("点推定 54.8%", STORE_PRECISION),
+                    ("CI 上端 70.8%", STORE_PRECISION_CI[1]),
+                    ("旧 n=8 の 75.0%", STORE_PRECISION_OLD)):
         vals = []
         for d_after in (den_a, den_c + got):
             of600 = (n_dish + got_dish) / d_after * (n_site / n_sample) * sp
@@ -118,7 +130,9 @@ def main() -> None:
                              (OWNER_TARGET - full["low"]) * 100],
         "r_n_before": R_N_BEFORE, "r_n_after": R_N_AFTER,
         "store_precision": STORE_PRECISION, "store_precision_ci": STORE_PRECISION_CI,
-        "caveat": "店単位 precision は n=8（95%CI 40.9〜92.9%）で幅が極めて広い。"
+        "store_precision_n": 31,
+        "store_precision_old_n8": STORE_PRECISION_OLD,
+        "caveat": "店単位 precision は n=31（95%CI 37.8〜70.8%）。旧値は n=8 の 75.0%。"
                   "r_N は経路存在率であって実効ではないので 3.12% を実効に使うのは甘い側。"
                   "独立仮定の union を含むので上限側である。",
     }, ensure_ascii=False, indent=2), encoding="utf-8")
