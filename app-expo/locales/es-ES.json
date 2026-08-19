@@ -641,7 +641,26 @@
 				"asian": "Asiática",
 				"other": "Otra"
 			}
+		},
+		"review": {
+			"title": "Publicar una Reseña"
+		},
+		"emptyState": {
+			"noReviews": "Aún no hay reseñas.\nSé el primero en reseñar este restaurante."
+		},
+		"everybodyPostsTitle": "Elige un plato para reseñar",
+		"characterCount": "{{current}}/{{max}}",
+		"detail": {
+			"title": "Detalles del restaurante"
 		}
+	},
+	"SelectRestaurant": {
+		"title": "Selecciona el restaurante a reseñar",
+		"searchThisArea": "Buscar en esta área",
+		"savedRestaurantList": "Restaurantes Guardados",
+		"postPhotoVideo": "Publicar Foto/Video",
+		"fetchSavedRestaurantsError": "Error al obtener restaurantes guardados",
+		"noSavedRestaurantsInArea": "No se encontraron restaurantes guardados en esta área. Amplíe el área y busque nuevamente."
 	},
 	"Feedback": {
 		"title": "Enviar Comentarios/Reporte de Errores",
@@ -762,7 +781,6 @@
 		"cancel": "Cancelar"
 	},
 	"Review": {
-		"title": "Publicar una Reseña",
 		"hero": {
 			"title": "Escribe reseñas de restaurantes recomendados\ny publica los platos que comiste"
 		},
@@ -772,22 +790,6 @@
 		},
 		"authenticated": {
 			"postButton": "✏️ Publicar una reseña de restaurante"
-		},
-		"selectRestaurant": {
-			"title": "Selecciona el restaurante a reseñar",
-			"searchThisArea": "Buscar en esta área",
-			"savedRestaurantList": "Restaurantes Guardados",
-			"postPhotoVideo": "Publicar Foto/Video",
-			"fetchSavedRestaurantsError": "Error al obtener restaurantes guardados",
-			"noSavedRestaurantsInArea": "No se encontraron restaurantes guardados en esta área. Amplíe el área y busque nuevamente."
-		},
-		"emptyState": {
-			"noReviews": "Aún no hay reseñas.\nSé el primero en reseñar este restaurante."
-		},
-		"everybodyPostsTitle": "Elige un plato para reseñar",
-		"characterCount": "{{current}}/{{max}}",
-		"restaurantDetail": {
-			"title": "Detalles del restaurante"
 		}
 	}
 }

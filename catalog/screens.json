@@ -925,8 +925,8 @@
 		{
 			"id": "review-restaurant-detail",
 			"name": "店舗詳細",
-			"route": "/[locale]/review/restaurant/[restaurantId]",
-			"url": "/ja-JP/review/restaurant/<restaurantId>",
+			"route": "/[locale]/restaurant/[restaurantId]",
+			"url": "/ja-JP/restaurant/<restaurantId>",
 			"platforms": {
 				"web": {
 					"capture": "mutation",
@@ -951,8 +951,8 @@
 		{
 			"id": "review-restaurant-bid",
 			"name": "入札（店舗詳細）",
-			"route": "/[locale]/review/restaurant/[restaurantId]/bid",
-			"url": "/ja-JP/review/restaurant/e2e-catalog-restaurant/bid",
+			"route": "/[locale]/restaurant/[restaurantId]/bid",
+			"url": "/ja-JP/restaurant/e2e-catalog-restaurant/bid",
 			"platforms": {
 				"web": {
 					"capture": "auto",
@@ -972,8 +972,8 @@
 		{
 			"id": "review-post-form",
 			"name": "レビュー投稿フォーム",
-			"route": "/[locale]/review/restaurant/[restaurantId]/review",
-			"url": "/ja-JP/review/restaurant/<restaurantId>/review",
+			"route": "/[locale]/restaurant/[restaurantId]/review",
+			"url": "/ja-JP/restaurant/<restaurantId>/review",
 			"platforms": {
 				"web": {
 					"capture": "mutation",
@@ -987,14 +987,14 @@
 			"state": "マウント時に端末のメディア選択（ファイルピッカー）が起動する",
 			"description": "写真・動画とコメント・評価を入力してレビューを投稿するフォーム。",
 			"from": ["店舗詳細"],
-			"to": ["投稿完了後のレビュー詳細（review/post/[id]）"],
+			"to": ["投稿完了後のレビュー詳細（post/[id]）"],
 			"note": "メディア選択は web はファイル入力、native は E2E ビルドの固定画像スタブで通す。"
 		},
 		{
 			"id": "review-dish-category",
 			"name": "料理カテゴリ選択（レビュー投稿）",
-			"route": "/[locale]/review/restaurant/[restaurantId]/dish-category",
-			"url": "/ja-JP/review/restaurant/e2e-catalog-restaurant/dish-category",
+			"route": "/[locale]/restaurant/[restaurantId]/dish-category",
+			"url": "/ja-JP/restaurant/e2e-catalog-restaurant/dish-category",
 			"platforms": {
 				"web": {
 					"capture": "auto",
@@ -1014,8 +1014,8 @@
 		{
 			"id": "review-restaurant-feed",
 			"name": "店舗のレビューフィード",
-			"route": "/[locale]/review/restaurant/[restaurantId]/feed",
-			"url": "/ja-JP/review/restaurant/<restaurantId>/feed?initialIndex=0",
+			"route": "/[locale]/restaurant/[restaurantId]/feed",
+			"url": "/ja-JP/restaurant/<restaurantId>/feed?initialIndex=0",
 			"platforms": {
 				"web": {
 					"capture": "manual",
@@ -1035,8 +1035,8 @@
 		{
 			"id": "review-from-media",
 			"name": "既存メディアからのレビュー投稿",
-			"route": "/[locale]/review/restaurant/[restaurantId]/review-from-media/[dishMediaId]",
-			"url": "/ja-JP/review/restaurant/<restaurantId>/review-from-media/<dishMediaId>",
+			"route": "/[locale]/restaurant/[restaurantId]/review-from-media/[dishMediaId]",
+			"url": "/ja-JP/restaurant/<restaurantId>/review-from-media/<dishMediaId>",
 			"platforms": {
 				"web": {
 					"capture": "manual",
@@ -1050,14 +1050,14 @@
 			"state": null,
 			"description": "既に登録されている料理メディアに対して自分のレビューを追加するフォーム。",
 			"from": ["店舗のレビューフィード（この料理にレビューを書く）"],
-			"to": ["投稿完了後のレビュー詳細（review/post/[id]）"],
+			"to": ["投稿完了後のレビュー詳細（post/[id]）"],
 			"note": "#1386 で入口が «店舗詳細のグリッド直押し» から «フィードの CTA» へ変わった。実在する restaurantId と dishMediaId が必要なため自動取得の対象外。"
 		},
 		{
 			"id": "review-post-detail",
 			"name": "レビュー詳細（投稿直後）",
-			"route": "/[locale]/review/post/[id]",
-			"url": "/ja-JP/review/post/<id>",
+			"route": "/[locale]/post/[id]",
+			"url": "/ja-JP/post/<id>",
 			"platforms": {
 				"web": {
 					"capture": "mutation",

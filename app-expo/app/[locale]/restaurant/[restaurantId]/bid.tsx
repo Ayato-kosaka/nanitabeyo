@@ -48,7 +48,7 @@ export default function RestaurantBidScreen() {
 			return;
 		}
 		router.replace({
-			pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]",
+			pathname: "/[locale]/restaurant/[restaurantId]",
 			params: { locale, restaurantId },
 		});
 	}, [locale, restaurantId]);

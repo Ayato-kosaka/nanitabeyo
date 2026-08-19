@@ -495,7 +495,7 @@ export function ReviewForm({
 		setDishCategoryError(null);
 		useDishCategorySelectionStore.getState().clear();
 		router.push({
-			pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]/dish-category",
+			pathname: "/[locale]/restaurant/[restaurantId]/dish-category",
 			params: { locale, restaurantId: restaurant.id },
 		});
 	}, [router, locale, restaurant.id]);
@@ -796,7 +796,7 @@ export function ReviewForm({
 							maxLength={100}
 						/>
 						<Text style={styles.characterCount}>
-							{i18n.t("Review.characterCount", { current: reviewText.length, max: 100 })}
+							{i18n.t("Restaurant.characterCount", { current: reviewText.length, max: 100 })}
 						</Text>
 					</View>
 

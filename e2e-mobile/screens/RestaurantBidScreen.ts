@@ -1,11 +1,11 @@
 import { DEFAULT_TIMEOUT, by, element, expect, tapWhenVisible, waitUntilVisible } from "../fixtures/e2e";
 
 /**
- * 💰 入札画面（`/[locale]/review/restaurant/[restaurantId]/bid`）の Screen Object
+ * 💰 入札画面（`/[locale]/restaurant/[restaurantId]/bid`）の Screen Object
  *（e2e-web の pages/RestaurantDetailPage.ts の入札部分に対応）
  *
  * 対応コンポーネント:
- * - `app-expo/app/[locale]/(tabs)/review/restaurant/[restaurantId]/bid.tsx`（ルート本体）
+ * - `app-expo/app/[locale]/restaurant/[restaurantId]/bid.tsx`（ルート本体）
  * - `app-expo/features/map/components/BidForm.tsx`（入力欄・入札ボタンの実体）
  *
  * ## #1386 モーダルからルートへ移した

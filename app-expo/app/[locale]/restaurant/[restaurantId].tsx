@@ -2,8 +2,8 @@ import React, { useCallback, useEffect, useState } from "react";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { View, StyleSheet, Text } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
-import { SelectedRestaurantDetails } from "@/features/review/components/SelectedRestaurantDetails";
-import { useRestaurantStore, type RestaurantEntry } from "@/features/review/stores/useRestaurantStore";
+import { SelectedRestaurantDetails } from "@/features/restaurant/components/SelectedRestaurantDetails";
+import { useRestaurantStore, type RestaurantEntry } from "@/stores/useRestaurantStore";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
@@ -23,7 +23,7 @@ import { useLocale } from "@/hooks/useLocale";
  * #1386 【設計】この画面は «レビュー投稿導線の一部» から «店舗詳細そのもの» になった。
  * 以前は地図タブ（`app/[locale]/(tabs)/map.tsx`）が `RestaurantBlurModal` の中に
  * 別実装の店舗詳細（353 行）を持っており、同じ画面が 2 つあった。統合の詳細は
- * `features/review/components/SelectedRestaurantDetails.tsx` の冒頭コメントを参照。
+ * `features/restaurant/components/SelectedRestaurantDetails.tsx` の冒頭コメントを参照。
  *
  * 到達経路は 3 つ: 店舗選択（レビュー投稿）/ 地図のマーカー・POI・場所検索 / URL 直リンク。
  * どれも `restaurantId` だけで成立する（実体はストアのキャッシュ優先で、無ければ API を引く）。
@@ -128,7 +128,7 @@ export default function RestaurantDetailScreen() {
 	return (
 		<View style={styles.container}>
 			<ScreenHeader
-				title={i18n.t("Review.restaurantDetail.title")}
+				title={i18n.t("Restaurant.detail.title")}
 				onPressBack={handleBack}
 				testID="restaurant-detail-screen"
 			/>

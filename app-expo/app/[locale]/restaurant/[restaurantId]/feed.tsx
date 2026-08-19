@@ -77,7 +77,7 @@ export default function RestaurantFeedScreen() {
 		}
 		// 履歴が無い着地（URL 直リンク / リロード）の保険。出発点は店詳細だけ
 		router.replace({
-			pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]",
+			pathname: "/[locale]/restaurant/[restaurantId]",
 			params: { locale, restaurantId },
 		});
 	}, [lightImpact, logFrontendEvent, locale, restaurantId]);

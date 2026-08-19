@@ -8,7 +8,7 @@
 綴りは見るが、locale や «どのルートを選んだか» の意味までは見ない）。
 
 ## 順序が意味を持つ
-遷移先（`app/[locale]/(tabs)/review/restaurant/[restaurantId].tsx`）は
+遷移先（`app/[locale]/restaurant/[restaurantId].tsx`）は
 `useRestaurantStore` のキャッシュ優先で描く。地図は `POST v1/restaurants` /
 `GET v1/restaurants/search` の応答として **店の実体をすでに持っている**ので、
 push より先にストアへ入れておけば遷移先は API を引かずに即描ける。
@@ -54,7 +54,7 @@ jest.mock("expo-router", () => {
 	};
 });
 
-jest.mock("@/features/review/stores/useRestaurantStore", () => ({
+jest.mock("@/stores/useRestaurantStore", () => ({
 	useRestaurantStore: { getState: () => ({ upsert: (entry: unknown) => mockUpsert(entry), getById: () => undefined }) },
 }));
 
@@ -177,7 +177,7 @@ beforeEach(() => {
 
 /** 期待する push の引数（3 経路すべてで同じ形になること） */
 const EXPECTED_PUSH = {
-	pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]",
+	pathname: "/[locale]/restaurant/[restaurantId]",
 	params: { locale: "ja-JP", restaurantId: RESTAURANT_ID },
 };
 

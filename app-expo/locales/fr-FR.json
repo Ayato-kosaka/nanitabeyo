@@ -641,7 +641,26 @@
 				"asian": "Asiatique",
 				"other": "Autre"
 			}
+		},
+		"review": {
+			"title": "Publier un Avis"
+		},
+		"emptyState": {
+			"noReviews": "Pas encore d'avis.\nSoyez le premier à évaluer ce restaurant."
+		},
+		"everybodyPostsTitle": "Choisir un plat à évaluer",
+		"characterCount": "{{current}}/{{max}}",
+		"detail": {
+			"title": "Détails du restaurant"
 		}
+	},
+	"SelectRestaurant": {
+		"title": "Sélectionner un restaurant",
+		"searchThisArea": "Rechercher à nouveau dans cette zone",
+		"savedRestaurantList": "Liste des restaurants enregistrés",
+		"postPhotoVideo": "Publier une photo/vidéo",
+		"fetchSavedRestaurantsError": "Échec de la récupération des restaurants enregistrés",
+		"noSavedRestaurantsInArea": "Aucun restaurant enregistré trouvé dans la zone affichée. Agrandissez la zone et relancez la recherche."
 	},
 	"Feedback": {
 		"title": "Envoyer Commentaires/Rapport de Bug",
@@ -762,7 +781,6 @@
 		"cancel": "Annuler"
 	},
 	"Review": {
-		"title": "Publier un Avis",
 		"hero": {
 			"title": "Rédige des avis sur des restaurants recommandés\net publie les plats que tu as mangés"
 		},
@@ -772,22 +790,6 @@
 		},
 		"authenticated": {
 			"postButton": "✏️ Publier un avis de restaurant"
-		},
-		"selectRestaurant": {
-			"title": "Sélectionner un restaurant",
-			"searchThisArea": "Rechercher à nouveau dans cette zone",
-			"savedRestaurantList": "Liste des restaurants enregistrés",
-			"postPhotoVideo": "Publier une photo/vidéo",
-			"fetchSavedRestaurantsError": "Échec de la récupération des restaurants enregistrés",
-			"noSavedRestaurantsInArea": "Aucun restaurant enregistré trouvé dans la zone affichée. Agrandissez la zone et relancez la recherche."
-		},
-		"emptyState": {
-			"noReviews": "Pas encore d'avis.\nSoyez le premier à évaluer ce restaurant."
-		},
-		"everybodyPostsTitle": "Choisir un plat à évaluer",
-		"characterCount": "{{current}}/{{max}}",
-		"restaurantDetail": {
-			"title": "Détails du restaurant"
 		}
 	}
 }

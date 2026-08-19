@@ -3,7 +3,7 @@ import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { View, StyleSheet, Text } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { ReviewForm } from "@/features/map/components/ReviewForm";
-import { useRestaurantStore, type RestaurantEntry } from "@/features/review/stores/useRestaurantStore";
+import { useRestaurantStore, type RestaurantEntry } from "@/stores/useRestaurantStore";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
@@ -25,7 +25,7 @@ export default function ReviewScreen() {
 	const [error, setError] = useState<string | null>(null);
 	const [restaurant, setRestaurant] = useState<RestaurantEntry | undefined>(undefined);
 
-	// #644 【設計】レビュー投稿成功時に /review/post/:id に遷移
+	// #644 【設計】レビュー投稿成功時に /post/:id に遷移
 	// #1127 【修正】ReviewForm へ渡すコールバックは必ず参照を安定させること。
 	// ReviewForm はマウント時にメディア選択を走らせており、毎レンダー新しい関数を渡すと
 	// （ReviewForm 側の ref 化が失われた場合に）effect が張り替わって選択結果が捨てられる。多層防御。
@@ -34,7 +34,7 @@ export default function ReviewScreen() {
 			// /review までスタックを掃除（なければ現在画面を /review に置き換え）
 			router.dismissTo(`/${locale}/(tabs)/review`);
 			router.push({
-				pathname: `/[locale]/(tabs)/review/post/[id]`,
+				pathname: `/[locale]/post/[id]`,
 				params: {
 					locale,
 					id: dishReviewId,
@@ -112,7 +112,7 @@ export default function ReviewScreen() {
 		return (
 			<View style={styles.container}>
 				<ScreenHeader
-					title={i18n.t("Review.title")}
+					title={i18n.t("Restaurant.review.title")}
 					onPressBack={() => {
 						lightImpact();
 						router.back();
@@ -130,7 +130,7 @@ export default function ReviewScreen() {
 		return (
 			<View style={styles.container}>
 				<ScreenHeader
-					title={i18n.t("Review.title")}
+					title={i18n.t("Restaurant.review.title")}
 					onPressBack={() => {
 						lightImpact();
 						router.back();
@@ -150,7 +150,7 @@ export default function ReviewScreen() {
 	return (
 		<View style={styles.container}>
 			<ScreenHeader
-				title={i18n.t("Review.title")}
+				title={i18n.t("Restaurant.review.title")}
 				onPressBack={() => {
 					lightImpact();
 					router.back();

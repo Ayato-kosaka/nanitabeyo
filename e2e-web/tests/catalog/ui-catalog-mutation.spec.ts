@@ -89,8 +89,8 @@ test.describe("UI カタログ（レビュー投稿フロー） @catalog @mutati
 				await appPage.getByTestId("review-star-5").click();
 				await appPage.getByTestId("review-submit-button").click();
 
-				// 投稿成功後は /review/post/[id] へ遷移する
-				await appPage.waitForURL(/\/review\/post\//, { timeout: 60_000 });
+				// 投稿成功後は /post/[id] へ遷移する
+				await appPage.waitForURL(/\/post\//, { timeout: 60_000 });
 			},
 			{ settleMs: 4_000 },
 		);

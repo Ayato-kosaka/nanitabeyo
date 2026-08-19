@@ -442,7 +442,7 @@ describeMutation("UI カタログ（レビュー投稿フロー） @catalog @mut
 				// 星は画面外に居ることがある（iOS で実測）。付けられなくても投稿自体は成立する
 				await tolerate(() => reviewScreen.rate(5));
 				await tapWhenVisible(reviewScreen.submitButton);
-				// 投稿が成功すると /review/post/[id] へ遷移し、いいね等のアクションが並ぶ
+				// 投稿が成功すると /post/[id] へ遷移し、いいね等のアクションが並ぶ
 				await waitUntilVisible(by.id("dish-action-like"), 60_000);
 			},
 			{ settleMs: 4_000 },

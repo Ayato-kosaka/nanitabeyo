@@ -641,7 +641,26 @@
 				"asian": "아시아 요리",
 				"other": "기타"
 			}
+		},
+		"review": {
+			"title": "리뷰 게시"
+		},
+		"emptyState": {
+			"noReviews": "아직 리뷰가 없습니다.\n이 레스토랑의 첫 리뷰를 작성해보세요."
+		},
+		"everybodyPostsTitle": "리뷰할 요리 선택",
+		"characterCount": "{{current}}/{{max}}",
+		"detail": {
+			"title": "레스토랑 상세"
 		}
+	},
+	"SelectRestaurant": {
+		"title": "리뷰할 가게 선택",
+		"searchThisArea": "이 지역에서 검색",
+		"savedRestaurantList": "저장된 레스토랑",
+		"postPhotoVideo": "사진/동영상 게시",
+		"fetchSavedRestaurantsError": "저장된 레스토랑을 가져오지 못했습니다",
+		"noSavedRestaurantsInArea": "이 지역에서 저장된 레스토랑을 찾을 수 없습니다. 지역을 확대하고 다시 검색하세요."
 	},
 	"Feedback": {
 		"title": "피드백/버그 신고 보내기",
@@ -762,7 +781,6 @@
 		"cancel": "취소"
 	},
 	"Review": {
-		"title": "리뷰 게시",
 		"hero": {
 			"title": "추천하는 맛집 리뷰를 작성하고\n먹은 음식을 올려주세요"
 		},
@@ -772,22 +790,6 @@
 		},
 		"authenticated": {
 			"postButton": "✏️ 레스토랑 리뷰 게시하기"
-		},
-		"selectRestaurant": {
-			"title": "리뷰할 가게 선택",
-			"searchThisArea": "이 지역에서 검색",
-			"savedRestaurantList": "저장된 레스토랑",
-			"postPhotoVideo": "사진/동영상 게시",
-			"fetchSavedRestaurantsError": "저장된 레스토랑을 가져오지 못했습니다",
-			"noSavedRestaurantsInArea": "이 지역에서 저장된 레스토랑을 찾을 수 없습니다. 지역을 확대하고 다시 검색하세요."
-		},
-		"emptyState": {
-			"noReviews": "아직 리뷰가 없습니다.\n이 레스토랑의 첫 리뷰를 작성해보세요."
-		},
-		"everybodyPostsTitle": "리뷰할 요리 선택",
-		"characterCount": "{{current}}/{{max}}",
-		"restaurantDetail": {
-			"title": "레스토랑 상세"
 		}
 	}
 }

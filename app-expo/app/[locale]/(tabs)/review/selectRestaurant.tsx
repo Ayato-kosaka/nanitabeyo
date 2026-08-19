@@ -22,9 +22,12 @@ import { isFoodAndDrinkPlaceForUser } from "@shared/utils/google_places_restaura
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { AvatarBubbleMarker } from "@/features/mapMarkers";
 import { router, useFocusEffect, useNavigation } from "expo-router";
-import { SavedRestaurantsSheet, SavedRestaurantsSheetHandle } from "@/features/review/components/SavedRestaurantsSheet";
+import {
+	SavedRestaurantsSheet,
+	SavedRestaurantsSheetHandle,
+} from "@/features/restaurantPicker/components/SavedRestaurantsSheet";
 import { PrimaryButton } from "@/components/PrimaryButton";
-import { useRestaurantStore } from "@/features/review/stores/useRestaurantStore";
+import { useRestaurantStore } from "@/stores/useRestaurantStore";
 import { useLocale } from "@/hooks/useLocale";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { INITIAL_REGION, REGION_JP } from "@/features/map/constants";
@@ -81,7 +84,7 @@ export default function SelectRestaurantScreen() {
 				});
 
 				router.push({
-					pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]",
+					pathname: "/[locale]/restaurant/[restaurantId]",
 					params: { locale, restaurantId: response.restaurant.id },
 				});
 			} catch (rawError: unknown) {
@@ -217,7 +220,7 @@ export default function SelectRestaurantScreen() {
 				setSavedRestaurants(response.data);
 				setActiveRestaurantId(null);
 			} catch (error) {
-				showSnackbar(i18n.t("Review.selectRestaurant.fetchSavedRestaurantsError"));
+				showSnackbar(i18n.t("SelectRestaurant.fetchSavedRestaurantsError"));
 				logFrontendEvent({
 					event_name: "saved_restaurants_search_error",
 					error_level: "error",
@@ -248,7 +251,7 @@ export default function SelectRestaurantScreen() {
 				});
 
 				router.push({
-					pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]",
+					pathname: "/[locale]/restaurant/[restaurantId]",
 					params: { locale, restaurantId: restaurant.restaurant.id },
 				});
 				return;
@@ -274,7 +277,7 @@ export default function SelectRestaurantScreen() {
 			});
 
 			router.push({
-				pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]",
+				pathname: "/[locale]/restaurant/[restaurantId]",
 				params: { locale, restaurantId: restaurant.restaurant.id },
 			});
 
@@ -301,7 +304,7 @@ export default function SelectRestaurantScreen() {
 
 			// レビュー投稿画面へ直接遷移
 			router.push({
-				pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]/review",
+				pathname: "/[locale]/restaurant/[restaurantId]/review",
 				params: { locale, restaurantId: restaurant.restaurant.id },
 			});
 
@@ -455,7 +458,7 @@ export default function SelectRestaurantScreen() {
 			>
 				{/* #644 【設計】画面タイトル with 戻るボタン */}
 				<ScreenHeader
-					title={i18n.t("Review.selectRestaurant.title")}
+					title={i18n.t("SelectRestaurant.title")}
 					onPressBack={() => {
 						lightImpact();
 						router.back();
@@ -488,7 +491,7 @@ export default function SelectRestaurantScreen() {
 				<View style={styles.searchButtonContainer}>
 					<PrimaryButton
 						onPress={() => searchSavedRestaurants(currentRegion.current)}
-						label={i18n.t("Review.selectRestaurant.searchThisArea")}
+						label={i18n.t("SelectRestaurant.searchThisArea")}
 						icon={<RotateCw size={16} color="#357AFF" />}
 						colors={["#ffffff", "#ffffff"]}
 						shadowColor={"transparent"}

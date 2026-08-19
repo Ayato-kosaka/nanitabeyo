@@ -1,6 +1,6 @@
 /*
 このファイルの責務
-- 店舗詳細（`app/[locale]/(tabs)/review/restaurant/[restaurantId].tsx` の中身）を描く。
+- 店舗詳細（`app/[locale]/restaurant/[restaurantId].tsx` の中身）を描く。
 - 「レビューを投稿」「入札する」「Google マップで開く」の 3 導線と、レビュー / 入札の 2 タブを持つ。
 - 遷移はすべて «ルート» への push で行う（この画面はオーバーレイを 1 つも持たない）。
 
@@ -9,7 +9,7 @@
 | 旧実装 | 描かれ方 | 持っていた機能 |
 | --- | --- | --- |
 | `features/map/components/SelectedRestaurantDetails.tsx`（353 行・削除） | map.tsx の `RestaurantBlurModal`（z1100）の中 | 入札タブ / 入札ボタン / 現在の入札額 / Google マップ / レビュー一覧はフィードを重ねて表示 |
-| `features/review/components/SelectedRestaurantDetails.tsx`（このファイル） | `/review/restaurant/[restaurantId]` ルート | 投稿ボタン / レビュー一覧は既存メディアへのレビュー投稿へ push |
+| `features/restaurant/components/SelectedRestaurantDetails.tsx`（このファイル） | `/restaurant/[restaurantId]` ルート | 投稿ボタン / レビュー一覧は既存メディアへのレビュー投稿へ push |
 
 同じ「店の詳細」を 2 つ持つと、片方だけ直る（#1092 の is_anonymous 判定がまさにそれで、
 2 ファイルへ同じ修正を入れている）。ルート側を残して map 側を畳み、**両方の機能の和**にした。
@@ -24,7 +24,7 @@ map 側にしか無かったものは 1 つも落としていない:
 レビュー投稿（`review-from-media`）へ直行していたが、統合後は map 側と同じくフィードを開き、
 フィードの「この料理にレビューを書く」から `review-from-media` へ進む。どちらの機能も残っており、
 「どの料理か」を見てから書ける分だけ経路として素直になる（フィードは
-`app/[locale]/(tabs)/review/restaurant/[restaurantId]/feed.tsx`）。
+`app/[locale]/restaurant/[restaurantId]/feed.tsx`）。
 
 ⚠️ この画面に BlurModal / 手動 zIndex を戻さないこと。`Portal.Host` は `<Stack>` を包んでいる
 （`app/[locale]/_layout.tsx`）ので portal レイヤは常にナビゲータより «上» にある。オーバーレイを
@@ -53,7 +53,7 @@ import { Image } from "expo-image";
 import { getCacheKeyForImage } from "@/lib/image";
 import { useAuth } from "@/contexts/AuthProvider";
 import { isGuestUser } from "@/lib/authGuest";
-import { RestaurantEntry } from "../stores/useRestaurantStore";
+import { RestaurantEntry } from "@/stores/useRestaurantStore";
 import { useLocale } from "@/hooks/useLocale";
 import { useRouter } from "expo-router";
 
@@ -120,13 +120,13 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 				pathname: "/[locale]/auth/login",
 				params: {
 					locale,
-					next: `/${locale}/review/restaurant/${restaurant.id}/review`,
+					next: `/${locale}/restaurant/${restaurant.id}/review`,
 				},
 			});
 		} else {
 			// ReviewForm に遷移すると同時にメディア選択が行われる
 			router.push({
-				pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]/review",
+				pathname: "/[locale]/restaurant/[restaurantId]/review",
 				params: { locale, restaurantId: restaurant.id },
 			});
 		}
@@ -137,7 +137,7 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 	const handleBidButtonPress = useCallback(() => {
 		lightImpact();
 		router.push({
-			pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]/bid",
+			pathname: "/[locale]/restaurant/[restaurantId]/bid",
 			params: { locale, restaurantId: restaurant.id },
 		});
 	}, [lightImpact, router, locale, restaurant.id]);
@@ -195,7 +195,7 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 				},
 			});
 			router.push({
-				pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]/feed",
+				pathname: "/[locale]/restaurant/[restaurantId]/feed",
 				params: { locale, restaurantId: restaurant.id, initialIndex: String(index) },
 			});
 		},
@@ -266,7 +266,7 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 					<PrimaryButton
 						testID="restaurant-detail-post-photo-button"
 						onPress={handleReviewButtonPress}
-						label={i18n.t("Review.selectRestaurant.postPhotoVideo")}
+						label={i18n.t("SelectRestaurant.postPhotoVideo")}
 						icon={<Camera size={20} color="#FFF" />}
 						borderRadius={8}
 						style={{ flex: 1 }}
