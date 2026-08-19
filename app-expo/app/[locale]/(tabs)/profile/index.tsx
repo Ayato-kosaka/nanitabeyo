@@ -76,7 +76,14 @@ interface ProfileMenuItemProps {
 	accessibilityRole?: "link" | "button";
 }
 
-function ProfileMenuItem({ label, onPress, isLast, textStyle, testID, accessibilityRole = "button" }: ProfileMenuItemProps) {
+function ProfileMenuItem({
+	label,
+	onPress,
+	isLast,
+	textStyle,
+	testID,
+	accessibilityRole = "button",
+}: ProfileMenuItemProps) {
 	return (
 		<>
 			<TouchableOpacity

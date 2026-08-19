@@ -65,14 +65,34 @@ export class ProfilePage {
 	}
 
 	/**
-	 * 「保存した料理カテゴリ」タブを開く（#1133）。
+	 * 「保存した料理カテゴリ」の一覧を開く（#1133 / #1402）。
 	 *
-	 * タブは `?tab=` で直接指定できる（#954。ProfileTabsLayout の requestedTab）。
-	 * タブヘッダには testID が無く、ラベル文言もロケール依存なのでクリックでは選ばない。
+	 * #1402 でタブから «単独のルート» になったので、`?tab=` ではなく URL 直遷移で開く。
+	 * 実 UI 導線（マイページの行をクリック）を通したい場合は `openSavedTopics()` を使うこと。
 	 */
 	async gotoSavedTopics(locale = "ja-JP"): Promise<void> {
-		await this.page.goto(`/${locale}/profile?tab=saved-topics`);
+		await this.page.goto(`/${locale}/profile/saved-topics`);
 		await expect(this.savedTopicsGrid).toBeVisible();
+	}
+
+	/** マイページの「保存した料理カテゴリ」行をクリックして一覧へ遷移する（実 UI 導線・#1402） */
+	async openSavedTopics(): Promise<void> {
+		await this.savedTopicsItem.click();
+		await expect(this.page).toHaveURL(/\/profile\/saved-topics/);
+		await expect(this.savedTopicsGrid).toBeVisible();
+	}
+
+	/** 「いいねした投稿」の一覧を開く（#1402。URL 直遷移） */
+	async gotoLiked(locale = "ja-JP"): Promise<void> {
+		await this.page.goto(`/${locale}/profile/liked`);
+		await expect(this.likedGrid).toBeVisible();
+	}
+
+	/** マイページの「いいねした投稿」行をクリックして一覧へ遷移する（実 UI 導線・#1402） */
+	async openLiked(): Promise<void> {
+		await this.likedItem.click();
+		await expect(this.page).toHaveURL(/\/profile\/liked/);
+		await expect(this.likedGrid).toBeVisible();
 	}
 
 	/** n 番目の保存料理カテゴリカードの Locator を返す（0 始まり） */
