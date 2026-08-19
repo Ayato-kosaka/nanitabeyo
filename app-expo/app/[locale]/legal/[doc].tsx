@@ -19,11 +19,10 @@ Android の戻る・ブラウザバック・URL 共有をすべて Navigator の
 移行済みの 2 箇所（`features/auth/components/LoginForm.tsx` = /auth/login ルートの中身、
 `app/[locale]/(tabs)/profile/settings.tsx` = ルートそのもの）は、押した時点で開いている
 BlurModal を持たないため «閉じてから push» は不要である。
-一方 `features/map/components/ReviewForm.tsx` は `ReviewBlurModal` /  `ReviewFormModal` の
-中身として描かれる経路を持つ（features/map/components/SelectedRestaurantDetails.tsx /
-FeedDishMediaViewer.tsx）。あちらは «閉じてから push» にすると選択済みメディア・入力中の
-レビュー本文が失われる（フォームの state ごと消える）ため、#1368 では移行を見送り、
-ReviewForm 自体をルート化する地図・投稿群の Issue へ引き渡してある。
+#1386 で引き渡し先（地図・投稿群）も完了し、**呼び出し元は 3 箇所とも portal を持たない**。
+`features/map/components/ReviewForm.tsx` は `ReviewBlurModal` / `ReviewFormModal` の中身ではなく
+`/review/restaurant/[restaurantId]/review`（と `review-from-media`）ルートの中身になったので、
+«閉じてから push» も要らず、法務文書を読んで戻っても入力中のレビューと mediaState が残る。
 
 ⚠️ E2E の注意: `ScreenHeader` は `legal-screen` コンテナの **外側**にある。
 戻る導線を検証するときは `screen-header-back`（components/ScreenHeader.tsx）か
@@ -75,7 +74,12 @@ export default function LegalDocumentScreen() {
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
 			<SafeAreaView style={styles.safeArea} edges={[]}>
-				{/* #1368 タイトルはこのヘッダーだけが持つ（LegalDocument 側の見出しは layout="screen" で落ちる） */}
+				{/* #1368 / #1386 タイトルはこのヘッダーだけが持つ（LegalDocument 側は見出しを描かない）。
+				    ⚠️ LegalDocument に高さを持たせないこと。ここがヘッダーを敷くので、本文が画面高を
+				    自分で敷くと «ヘッダーの分だけ» はみ出して末尾が永久に見えなくなる。
+				    #1386 でこれを prop（`layout="screen"`）から «唯一の実装» へ格上げした
+				    ——「落としても全緑になる prop」を残さないため（PR #1372 のレビュー指摘 4）。
+				    検証は `__tests__/legalEntryPoints.test.tsx` の «ルートに載る形» の describe */}
 				<ScreenHeader
 					title={documentType ? getLegalDocumentTitle(documentType) : i18n.t("NotFound.title")}
 					onPressBack={handleBack}
@@ -86,7 +90,7 @@ export default function LegalDocumentScreen() {
 				    ⚠️ 戻る導線はこの分岐の外に置くこと。ここで詰まると Web は戻る手段を失う */}
 				{documentType ? (
 					<View style={styles.body} testID="legal-screen-document">
-						<LegalDocument documentType={documentType} layout="screen" />
+						<LegalDocument documentType={documentType} />
 					</View>
 				) : (
 					<View style={styles.notFound} testID="legal-screen-not-found">

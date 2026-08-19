@@ -20,6 +20,15 @@ push の «引数» を見ているのは Playwright / Detox だけ、という�
 1 度も呼ばれないことを固定する。将来この UI を再びオーバーレイの中へ入れる変更が入れば、
 `useBlurModal` の呼び出しが復活した時点でここが赤くなる。
 
+## #1386 で足したもの
+1. **レビュー投稿フォームの 2 リンク**（#1368 から引き渡された最後の 1 件）は
+   `__tests__/reviewFormRoutes.test.tsx` が持つ（あちらはフォームの他の導線と一緒に見る）。
+2. **「ルートに載る形」の固定**（PR #1372 のレビュー指摘 4）。
+   `[doc].tsx` は以前 `layout="screen"` を渡していたが、**それを落としても全緑のまま**だった。
+   #1386 で prop 自体を畳んで «唯一の実装» にしたので、ここでは
+   「本文が自分で高さを敷かない」「見出しを二重に描かない」を実物の `LegalDocument` で見る。
+   ⚠️ そのため下の describe だけは Markdown 以外をスタブしない（スタブすると何も検証できない）。
+
 ## 方針
 各導線の «押した先» だけを観測したいので、周辺（画像・下位コンポーネント・Markdown）は
 すべてスタブへ差し替える。testID とボタンの結線そのものは E2E が見ている。
@@ -107,6 +116,7 @@ import { LoginForm } from "@/features/auth/components/LoginForm";
 import SettingsScreen from "../app/[locale]/(tabs)/profile/settings";
 import LegalDocumentScreen from "../app/[locale]/legal/[doc]";
 import { LEGAL_DOCUMENT_TYPES } from "@/lib/legalRoute";
+import { getLegalDocumentTitle } from "@/features/settings/components/LegalDocument";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -266,5 +276,38 @@ describe("#1368 /[locale]/legal/[doc] の doc 検証", () => {
 			pathname: "/[locale]/(tabs)/profile/settings",
 			params: { locale: "ja-JP" },
 		});
+	});
+});
+
+describe("#1386 法務ドキュメントは «ルートに載る形» で描かれる", () => {
+	/*
+	⚠️ ここが赤くなったら、本文が «モーダル用の描き方»（画面高を自分で敷く / 見出しを自分で描く）へ
+	戻っている。ルートは上に ScreenHeader を敷くので、画面高をそのまま敷くと
+	ヘッダーの分だけ下へはみ出し、本文の末尾がスクロールしても永久に見えなくなる。
+	PR #1372 のレビュー指摘 4（`layout="screen"` を守るテストが 0 件）への回答がこの describe。
+	*/
+	it("本文コンテナは高さを親に委ねる（自分で height を敷かない）", async () => {
+		mockLocalParams = { doc: "terms" };
+
+		const tree = await render(<LegalDocumentScreen />);
+
+		// LegalDocument の最外 View。flatten して height 指定が «無い» ことを見る
+		const body = tree.root.find((node) => node.props?.testID === "legal-document-body");
+		const styles = ([] as unknown[]).concat(body.props.style).filter(Boolean) as Record<string, unknown>[];
+		expect(styles.some((style) => style.flex === 1)).toBe(true);
+		expect(styles.some((style) => style.height !== undefined)).toBe(false);
+	});
+
+	it("タイトルは ScreenHeader だけが描く（本文側は見出しを持たない）", async () => {
+		mockLocalParams = { doc: "terms" };
+
+		const tree = await render(<LegalDocumentScreen />);
+
+		// i18n はスタブしていないので実文言。同じ文字列を描くノードがヘッダーの 1 つだけであること。
+		// 合成コンポーネント（react-native の Text）と host 要素の両方が一致するため host だけを数える
+		const title = getLegalDocumentTitle("terms");
+		const titleNodes = tree.root.findAll((node) => typeof node.type === "string" && node.props?.children === title);
+		expect(titleNodes).toHaveLength(1);
+		expect(titleNodes[0].props.testID).toBe("legal-screen-title");
 	});
 });

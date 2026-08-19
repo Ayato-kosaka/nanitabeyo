@@ -1,10 +1,9 @@
 import React, { useMemo } from "react";
-import { View, Text, ScrollView, StyleSheet } from "react-native";
+import { View, ScrollView, StyleSheet } from "react-native";
 import Markdown from "react-native-markdown-display";
 import i18n from "@/lib/i18n";
 import { legalDocuments } from "@/features/settings/assets/legal/legalDocuments";
 import { useLocale } from "@/hooks/useLocale";
-import { useSafeAreaFrame } from "react-native-safe-area-context";
 import type { LegalDocumentType } from "@/lib/legalRoute";
 
 type LegalLocale = "ja-JP" | "en-US";
@@ -36,40 +35,35 @@ export function getLegalDocumentTitle(documentType: DocumentType): string {
 
 interface LegalDocumentProps {
 	documentType: DocumentType;
-	/**
-	 * #1368 どの «器» に載っているか。既定は従来どおり BlurModal。
-	 *
-	 * - `"modal"`: 画面いっぱいの高さを自分で確保し、見出しも自分で描く（BlurModal は
-	 *   高さを与えないので、`frame.height` を自分で敷かないと中身が潰れる）
-	 * - `"screen"`: 高さは親（ルート）の flex に従い、見出しは `ScreenHeader` が持つ。
-	 *   ここで `frame.height` を敷くと **ヘッダーの分だけ画面外へはみ出し、
-	 *   本文の末尾がスクロールしても永久に見えなくなる**
-	 *
-	 * ⚠️ 既定値を `"screen"` に変えないこと。ReviewForm（`features/map/components/ReviewForm.tsx`）は
-	 * まだ BlurModal でこれを描いている（#1368 では移行を見送った。理由は `[doc].tsx` のコメント）。
-	 */
-	layout?: "modal" | "screen";
 }
 
-export function LegalDocument({ documentType, layout = "modal" }: LegalDocumentProps) {
+/**
+ * 法務文書の本文。
+ *
+ * #1386 【設計】`layout`（`"modal"` | `"screen"`）prop を廃止し、**ルートに載る形だけ**にした。
+ *
+ * #1368 でこの prop を入れたのは、当時 `features/map/components/ReviewForm.tsx` が
+ * まだ BlurModal でこれを描いていたからである。BlurModal は中身に高さを与えないので、
+ * モーダル用の分岐は `frame.height` を自分で敷き、見出しも自分で描いていた。
+ * #1386 で ReviewForm の法務導線が `/[locale]/legal/[doc]` への push へ変わり、
+ * **このコンポーネントの呼び出し元はそのルート 1 箇所だけ**になったため、分岐そのものを畳んだ。
+ *
+ * ⚠️ ここに `height: frame.height` を戻さないこと。ルートは上に `ScreenHeader` を敷くため、
+ * 画面高をそのまま敷くと **ヘッダーの分だけ下へはみ出し、本文の末尾が永久に見えなくなる**。
+ * 高さは親の flex に従わせる。見出しも描かないこと（タイトルは `ScreenHeader` が持つ。
+ * 両方が描くと同じ文字列が 2 行並ぶ）。この 2 つは
+ * `__tests__/legalEntryPoints.test.tsx` の «ルートに載る形» の describe が固定している。
+ */
+export function LegalDocument({ documentType }: LegalDocumentProps) {
 	const { locale } = useLocale();
-
-	const title = useMemo(() => getLegalDocumentTitle(documentType), [documentType]);
 
 	const markdownContent = useMemo(() => {
 		const localeData = locale in legalDocuments ? legalDocuments[locale as LegalLocale] : legalDocuments["en-US"];
 		return localeData[documentType as DocumentType] || legalDocuments["en-US"][documentType as DocumentType] || "";
 	}, [documentType, locale]);
 
-	const frame = useSafeAreaFrame();
 	return (
-		<View style={layout === "screen" ? styles.screenContainer : { height: frame.height }}>
-			{layout === "modal" && (
-				<View style={styles.header}>
-					<Text style={styles.title}>{title}</Text>
-				</View>
-			)}
-
+		<View style={styles.screenContainer} testID="legal-document-body">
 			<ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
 				<View style={styles.contentContainer}>
 					<Markdown style={markdownStyles}>{markdownContent}</Markdown>
@@ -80,25 +74,9 @@ export function LegalDocument({ documentType, layout = "modal" }: LegalDocumentP
 }
 
 const styles = StyleSheet.create({
-	// #1368 ルートに載せるときは高さを親に委ねる（`layout` prop のコメント参照）
+	// #1368 / #1386 高さは «必ず» 親に委ねる（コンポーネントの JSDoc 参照）
 	screenContainer: {
 		flex: 1,
-	},
-	header: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "center",
-		paddingHorizontal: 16,
-		paddingVertical: 12,
-		borderBottomWidth: 1,
-		borderBottomColor: "#F3F4F6",
-	},
-	title: {
-		fontSize: 20,
-		fontWeight: "700",
-		color: "#1A1A1A",
-		letterSpacing: -0.5,
-		textAlign: "center",
 	},
 	scrollView: {
 		flex: 1,
