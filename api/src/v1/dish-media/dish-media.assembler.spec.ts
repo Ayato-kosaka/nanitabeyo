@@ -228,7 +228,7 @@ describe('DishMediaAssembler - Signed Cookie Generation', () => {
   /* ------------------------------------------------------------------ */
   /*        #1395 external_embed とサムネイル URL の分岐                */
   /* ------------------------------------------------------------------ */
-  describe('#1395 render_type / thumbnail_external_url', () => {
+  describe('#1395 render_type とサムネイル URL', () => {
     const baseEntry = (dishMedia: Record<string, unknown>) => [
       {
         restaurant: {} as any,
@@ -282,27 +282,28 @@ describe('DishMediaAssembler - Signed Cookie Generation', () => {
       expect(result.items[0].dish_media.mediaUrl).toBeNull();
     });
 
-    it('thumbnail_external_url があれば provider の CDN URL をそのまま返す', () => {
-      const externalUrl = 'https://i.ytimg.com/vi/abc123/hqdefault.jpg';
+    it('external_embed でもサムネイルは自ストレージ（thumbnail_path）から組む', () => {
+      // #1395 仕様追補: サムネイルは全 provider を自ストレージへ保存する統一キャッシュ方式。
+      // 外部 CDN の URL をそのまま返す経路は存在しない（thumbnail_external_url は撤回済み）。
       const result = assembler.toDishMediaEntry(
         baseEntry({
           render_type: 'external_embed',
           media_path: null,
           media_processing_status: 'idle',
           thumbnail_processing_status: 'processing',
-          thumbnail_external_url: externalUrl,
         }) as any,
       );
 
-      // 自 CDN を経由しない = 署名もしない
-      expect(result.items[0].dish_media.thumbnailImageUrl).toBe(externalUrl);
+      const url = result.items[0].dish_media.thumbnailImageUrl;
+      // 自 CDN の署名付き URL であること（provider の CDN へ素通しにしない）
+      expect(url).toContain('test-cdn.example.com');
+      expect(url).toContain('user-uploads/user-1/thumb.jpg');
+      expect(url).toContain('Signature=');
       // 戻り値は string のままなので DishMediaEntry.thumbnailImageUrl: string は破壊されない
-      expect(typeof result.items[0].dish_media.thumbnailImageUrl).toBe(
-        'string',
-      );
+      expect(typeof url).toBe('string');
     });
 
-    it('thumbnail_external_url が無ければ従来どおり thumbnail_path から組む', () => {
+    it('stored でも従来どおり thumbnail_path から組む', () => {
       const result = assembler.toDishMediaEntry(
         baseEntry({
           render_type: 'stored',

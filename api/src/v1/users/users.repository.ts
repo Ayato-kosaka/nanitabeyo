@@ -52,7 +52,6 @@ export type MyDishPinEntity = {
     id: string;
     thumbnail_path: string;
     thumbnail_processing_status: string;
-    thumbnail_external_url: string | null;
   } | null;
 };
 
@@ -103,7 +102,6 @@ type MyDishPinRawRow = RestaurantColumns & {
   media_id: string | null;
   media_thumbnail_path: string | null;
   media_thumbnail_processing_status: string | null;
-  media_thumbnail_external_url: string | null;
 };
 
 const toRestaurant = (row: RestaurantColumns): PrismaRestaurants => ({
@@ -247,7 +245,6 @@ export class UsersRepository {
                 thumbnail_path: row.media_thumbnail_path,
                 thumbnail_processing_status:
                   row.media_thumbnail_processing_status ?? 'idle',
-                thumbnail_external_url: row.media_thumbnail_external_url,
               }
             : null,
       })),

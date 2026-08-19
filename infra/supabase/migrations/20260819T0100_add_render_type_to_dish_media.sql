@@ -4,9 +4,8 @@
 -- ==============================================================================
 -- 【目的】
 --   1) dish_media.render_type（'stored' / 'external_embed'）を追加する
---   2) dish_media.thumbnail_external_url（外部 CDN サムネイル URL）を追加する
---   3) dish_media.media_path の NOT NULL を解除する（external_embed には実体が無い）
---   4) 上記を破らないための CHECK 制約を張る
+--   2) dish_media.media_path の NOT NULL を解除する（external_embed には実体が無い）
+--   3) 上記を破らないための CHECK 制約を張る
 --
 -- 【背景】
 --   - #1375 の設計の正本 §6:「動画本体は保存しない（公式埋め込みを使う）。
@@ -15,12 +14,11 @@
 --     一方 thumbnail_path は NOT NULL を維持する（nullable 化すると
 --     DishMediaEntry.thumbnailImageUrl: string が破壊的変更になり、
 --     リスト・Map・Calendar・検索フィードの全読み取り経路へ波及するため）。
---   - ただし #1399 の調査により、YouTube / Instagram / X は規約上サムネイルを
---     自ストレージへ保存できないことが判明している。保存できない provider では
---     thumbnail_path にプレースホルダを入れ、**実際の表示は
---     thumbnail_external_url（provider の CDN URL）を使う**。
---     これが thumbnail_external_url を今回同時に足す理由である
---     （後から足すと本番マイグレーションがもう 1 回必要になる）。
+--   - サムネイルは **全 provider について取り込み時に自ストレージへ保存する**
+--     （統一キャッシュ方式。#1395 の仕様追補で確定）。よってサムネイルの置き場は
+--     thumbnail_path 一本であり、外部 CDN URL を持つ列は追加しない。
+--     1 つの概念の置き場を 2 列に分けると読み取り分岐が全経路へ波及するため。
+--     YouTube の 30 日ルールは「30 日 TTL で再取得するバッチ」で準拠する（#1399）。
 --
 -- 【media_path に canonical_url を入れる案を却下した理由】
 --   dish-media.assembler.ts の buildCdnUrlFromPath() が
@@ -55,7 +53,6 @@
 --   ALTER TABLE dish_media DROP CONSTRAINT IF EXISTS dish_media_media_path_required_for_stored;
 --   ALTER TABLE dish_media DROP CONSTRAINT IF EXISTS dish_media_render_type_check;
 --   ALTER TABLE dish_media ALTER COLUMN media_path SET NOT NULL;   -- external_embed 行が入る前に限る
---   ALTER TABLE dish_media DROP COLUMN IF EXISTS thumbnail_external_url;
 --   ALTER TABLE dish_media DROP COLUMN IF EXISTS render_type;
 -- ==============================================================================
 
@@ -77,22 +74,7 @@ ALTER TABLE dish_media
 ALTER TABLE dish_media VALIDATE CONSTRAINT dish_media_render_type_check;
 
 -- ------------------------------------------------------------------
--- 2) thumbnail_external_url
---    thumbnail_path は NOT NULL のまま維持する。規約上サムネイルを自ストレージへ
---    保存できない provider（YouTube / Instagram / X）では、thumbnail_path に
---    プレースホルダを入れたうえで、この列に provider の CDN URL を入れる。
---    getThumbnailImageUrl() は「この列があればそれを返し、無ければ従来どおり
---    thumbnail_path から組む」に変更する。戻り値は string のままなので
---    DishMediaEntry.thumbnailImageUrl: string は破壊的変更にならない。
--- ------------------------------------------------------------------
-ALTER TABLE dish_media
-  ADD COLUMN IF NOT EXISTS thumbnail_external_url text NULL;
-
-COMMENT ON COLUMN dish_media.thumbnail_external_url IS
-  '外部 provider の CDN 上にあるサムネイル URL（例 https://i.ytimg.com/vi/<id>/hqdefault.jpg）。規約上サムネイルを自ストレージへ保存できない provider 向け。NULL のときは thumbnail_path から自 CDN URL を組む。#1395 / #1399';
-
--- ------------------------------------------------------------------
--- 3) media_path の NOT NULL 解除 + stored のときだけ必須にする CHECK
+-- 2) media_path の NOT NULL 解除 + stored のときだけ必須にする CHECK
 -- ------------------------------------------------------------------
 ALTER TABLE dish_media ALTER COLUMN media_path DROP NOT NULL;
 
@@ -107,7 +89,7 @@ ALTER TABLE dish_media
 ALTER TABLE dish_media VALIDATE CONSTRAINT dish_media_media_path_required_for_stored;
 
 -- ------------------------------------------------------------------
--- 4) 既存の NOT NULL 列に対する external_embed 時の規約を DB に記録する
+-- 3) 既存の NOT NULL 列に対する external_embed 時の規約を DB に記録する
 --    （#1395 レビュー M-3。列定義は変更しない）
 -- ------------------------------------------------------------------
 COMMENT ON COLUMN dish_media.media_processing_status IS

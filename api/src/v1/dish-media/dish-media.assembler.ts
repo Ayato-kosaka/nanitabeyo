@@ -38,16 +38,19 @@ function buildCdnUrlFromPath(gcsPath: string): string {
 type DishMediaRenderColumns = {
   /** 'stored' | 'external_embed' */
   render_type?: string | null;
-  /** 外部 provider の CDN 上にあるサムネイル URL */
-  thumbnail_external_url?: string | null;
 };
 
-/** サムネイル URL の組み立てに必要な最小限の列 */
+/**
+ * サムネイル URL の組み立てに必要な最小限の列。
+ *
+ * #1395 サムネイルは全 provider について取り込み時に自ストレージへ保存する
+ * （統一キャッシュ方式）ので、`render_type` によらず必要な列はこの 3 つだけである。
+ */
 export type ThumbnailUrlSource = {
   id: string;
   thumbnail_path: string;
   thumbnail_processing_status: string;
-} & DishMediaRenderColumns;
+};
 
 @Injectable()
 export class DishMediaAssembler {
@@ -218,21 +221,11 @@ export class DishMediaAssembler {
    * thumbnail_processing_status が 'completed' の場合はリサイズ済みパスを返す
    * それ以外はオリジナルパスを返す
    *
-   * #1395 M-2: `thumbnail_external_url` があれば **それをそのまま返す**。
-   * YouTube / Instagram / X は規約上サムネイルを自ストレージへ保存できず
-   * provider の CDN URL を表示のたびに参照する必要があるため（#1399 §6・§8）。
-   * `thumbnail_path` は NOT NULL のままなので **戻り値は string** であり、
-   * `DishMediaEntry.thumbnailImageUrl: string` は破壊的変更にならない。
-   *
-   * Map ピンのように `DishMediaEntry` を丸ごと組み立てない経路からも
-   * 同じ規則を使えるよう public にしてある（サムネイル URL の分岐を 2 箇所に持たない）。
+   * #1395 Map ピンのように `DishMediaEntry` を丸ごと組み立てない経路からも
+   * 同じ規則を使えるよう public にしてある（サムネイル URL の組み立てを 2 箇所に持たない）。
+   * ロジック自体は無改修である（サムネイルは全 provider が自ストレージ持ちのため）。
    */
   public getThumbnailImageUrl(dishMedia: ThumbnailUrlSource): string {
-    // #1395 外部 provider の CDN サムネイルは自 CDN を経由しない
-    if (dishMedia.thumbnail_external_url) {
-      return dishMedia.thumbnail_external_url;
-    }
-
     const status =
       dishMedia.thumbnail_processing_status as MediaProcessingStatus | null;
 

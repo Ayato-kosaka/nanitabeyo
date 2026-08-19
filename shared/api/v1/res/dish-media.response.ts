@@ -20,8 +20,13 @@ export type MediaProcessingStatus = "idle" | "processing" | "completed" | "faile
  */
 export type DishMediaRenderType = "stored" | "external_embed";
 
-/** #1273 §14 埋め込み元 SNS */
-export type ExternalEmbedProvider = "x" | "instagram" | "tiktok" | "threads" | "youtube";
+/**
+ * #1273 §14 埋め込み元 SNS。
+ *
+ * #1395 の仕様追補で SNS import の対象は **TikTok / YouTube Shorts / Instagram の 3 つ**に
+ * 確定した（X・threads は対象外）。DB 側も `dmee_provider_check` で同じ 3 値に制限している。
+ */
+export type ExternalEmbedProvider = "instagram" | "tiktok" | "youtube";
 
 /** #1273 §39 埋め込みの死活 */
 export type ExternalEmbedStatus = "unknown" | "available" | "unavailable";
@@ -53,12 +58,7 @@ export type DishMediaEntry = {
 		 * - 画像の場合: media_processing_status に応じてオリジナル or リサイズ済みパス
 		 */
 		mediaUrl: string | null;
-		/**
-		 * 投稿サムネイル画像の URL。
-		 * - `thumbnail_external_url` があればその値（provider の CDN。規約上サムネイルを
-		 *   自ストレージへ保存できない YouTube / Instagram / X 向け。#1395 M-2）
-		 * - 無ければ従来どおり `thumbnail_path` から組んだ署名付き CDN URL（派生サイズ or オリジナル）
-		 */
+		/** 投稿サムネイル画像の署名付きCDN URL（派生サイズ or オリジナル） */
 		thumbnailImageUrl: string;
 		/**
 		 * #1395 `render_type='external_embed'` のときの埋め込み情報。

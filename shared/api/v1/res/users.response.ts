@@ -89,8 +89,31 @@ export type MyDishItem = {
 	 */
 	dishMedia: DishMediaEntry["dish_media"] | null;
 
-	/** eaten のときの自分のレビュー（★n はここから引く）。want 行では null */
-	myReview: (SupabaseDishReviews & { username: string; isLiked: boolean; likeCount: number }) | null;
+	/**
+	 * eaten のときの自分のレビュー（★n はここから引く）。want 行では null。
+	 *
+	 * ⚠️ `created_dish_media_id` を **`string | null` へ上書きしている**（#1395 レビュー m-d）。
+	 * 20260819T0000 で `dish_reviews.created_dish_media_id` の NOT NULL を解除した
+	 * （写真なしの「食べた」記録を許すため）が、`SupabaseDishReviews` は
+	 * `prisma db pull` の生成物から作られており、**`pnpm db:pull` を回すまで
+	 * `created_dish_media_id: string`（non-null）のまま**である。
+	 * そのまま埋めるとクライアントには「必ず値がある」という嘘の契約が見え、
+	 * `String(review.created_dish_media_id)` が `"null"` を作る事故を招く
+	 * （`useDishMediaEntriesStore.ts` で実際に 1 度起きた形）。
+	 *
+	 * **`pnpm db:pull` を commit したら、この `Omit` を外して素の
+	 * `SupabaseDishReviews` に戻すこと。** 生成物側が `string | null` になるため、
+	 * この上書きは不要になる（残っていても同じ型だが、二重管理になる）。
+	 */
+	myReview:
+		| (Omit<SupabaseDishReviews, "created_dish_media_id"> & {
+				/** 写真なしの「食べた」記録では null（20260819T0000 で NOT NULL 解除済み） */
+				created_dish_media_id: string | null;
+				username: string;
+				isLiked: boolean;
+				likeCount: number;
+		  })
+		| null;
 
 	/** `lat` / `lng` 指定時のみ。未指定なら null */
 	distanceMeters: number | null;
