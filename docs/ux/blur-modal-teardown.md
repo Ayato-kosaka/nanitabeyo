@@ -433,11 +433,19 @@ main で手動実行したところ 5 failed で、原因は 2 つとも «ル�
 
 ### 人手でしか確認できないこと
 
-自動テストでは踏めない経路が 3 つ残っている。**この 3 つは実施していない**。
+自動テストでは踏めない経路が 3 つ残っている。
 
 1. **#1371 の Android 実機確認** — 認証イベント直後の `router.replace` に query 付き href を
    渡す形。`lib/logoutRedirect.ts` にフリーズの実測が残っている
-2. **地図のログイン導線と新ルート**を Android / iOS / web で通す
+   → **実施済み**。書きかけの保持（投稿フォーム → 料理カテゴリ選択 / 法務画面 → 戻る）と
+   プロフィール編集の再試行（#1387）は Android 実機で確認できた
+2. ~~**カスタムスキームの直リンク着地**（`nanitabeyo:///ja-JP/legal/terms`）を実機で踏む~~
+   → **スキップ**。Android 実機で試したが、メモ / Google Keep / Instagram / Chrome の
+   アドレスバーのいずれからも **リンクとして開けなかった**。カスタムスキームをリンク化する
+   アプリがほぼ無いためで、**普通に使っていて踏める経路ではない**。
+   実際に踏めるのは App Links（`https://app.nanitabeyo.net/*` / `app.config.ts` の
+   `intentFilters` で `autoVerify: true`）の側で、そちらは «履歴なし着地» にはならない。
+   直リンク着地から親へ倒れることの検証は E2E Web（素の `page` フィクスチャ）が持っている
 3. ~~**`/legal/[doc]` の `expo export` 成果物**の確認~~
    → **確認済み**。`e2e-web-test.yml`（`eas env:pull` で本物の環境変数を用意してから
    `pnpm --filter app-expo build:web` を実行する）を main で手動実行し、
