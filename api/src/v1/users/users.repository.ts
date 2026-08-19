@@ -202,7 +202,9 @@ export class UsersRepository {
     if (!includeWant && !includeEaten) return null;
 
     const hasArea =
-      dto.lat !== undefined && dto.lng !== undefined && dto.radius !== undefined;
+      dto.lat !== undefined &&
+      dto.lng !== undefined &&
+      dto.radius !== undefined;
 
     // エリア絞り込みは ST_DWithin + 既存の GIST 索引（idx_restaurants_location）を使う。
     // 既存 searchNearbySavedRestaurants のバウンディングボックス + acos は

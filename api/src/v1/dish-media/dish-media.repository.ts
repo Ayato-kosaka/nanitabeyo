@@ -25,7 +25,11 @@ import {
 } from '@shared/v1/dto';
 
 import { PrismaService } from '../../prisma/prisma.service';
-import { roundToOneDecimal, shuffle } from '../../core/utils/backend-utils';
+import {
+  roundToOneDecimal,
+  shuffle,
+  toNullableId,
+} from '../../core/utils/backend-utils';
 import { CLS_KEY_APP_VERSION } from 'src/core/cls/cls.constants';
 import { ClsService } from 'nestjs-cls';
 import { normalizePreferredLanguageCodes } from '../../../../shared/utils/languageCode';
@@ -571,7 +575,11 @@ export class DishMediaRepository {
 
     const { reactionSet, reviewLikeCountMap } =
       await this.buildReactionAggregates(
-        reviewsToReturn.map((review) => review.created_dish_media_id),
+        // #1395 写真なしの「食べた」記録では created_dish_media_id が NULL になる。
+        // 落としておかないと集計キーが 'dish_media:null:save' になり、無意味な IN 句が増える
+        reviewsToReturn
+          .map((review) => toNullableId(review.created_dish_media_id))
+          .filter((id): id is string => id !== null),
         reviewsToReturn.map((review) => review.id),
         userId,
       );
@@ -981,6 +989,32 @@ export class DishMediaRepository {
       where: { id: dishId },
     });
     return cnt > 0;
+  }
+
+  /**
+   * #1395 dish ごとの「最新メディア」を引く。
+   *
+   * 写真なしの「食べた」記録（`created_dish_media_id` が NULL）を
+   * 代表メディアへ落とし込むために使う。選び方は my-dishes と揃える
+   * （`created_at DESC, id DESC` の先頭 1 件。ページを取り直しても変わらない）。
+   *
+   * @returns dish_id → dish_media.id の Map（メディアが 1 件も無い dish は含まれない）
+   */
+  async findLatestDishMediaIdsByDishIds(
+    dishIds: string[],
+  ): Promise<Map<string, string>> {
+    if (dishIds.length === 0) return new Map();
+
+    const rows = await this.prisma.prisma.$queryRaw<
+      { dish_id: string; id: string }[]
+    >`
+      SELECT DISTINCT ON (dm.dish_id) dm.dish_id, dm.id
+      FROM dish_media dm
+      WHERE dm.dish_id = ANY(${dishIds}::uuid[])
+      ORDER BY dm.dish_id, dm.created_at DESC, dm.id DESC
+    `;
+
+    return new Map(rows.map((row) => [row.dish_id, row.id]));
   }
 
   /* ------------------------------------------------------------------ */

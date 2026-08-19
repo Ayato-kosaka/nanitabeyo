@@ -27,6 +27,28 @@ function buildCdnUrlFromPath(gcsPath: string): string {
   return `https://${env.CDN_HOST}/${gcsPath}`;
 }
 
+/**
+ * #1395 `dish_media` に増える列。
+ *
+ * マイグレーション（20260819T0100）適用後に `prisma db pull` で
+ * `PrismaDishMedia` へ生えるが、それまでは型に存在しない。
+ * 生成物の再生成タイミングに実装を縛られないよう、**optional** の構造型として重ねる。
+ * 再生成後もそのまま代入互換なので、この宣言は消さなくてよい。
+ */
+type DishMediaRenderColumns = {
+  /** 'stored' | 'external_embed' */
+  render_type?: string | null;
+  /** 外部 provider の CDN 上にあるサムネイル URL */
+  thumbnail_external_url?: string | null;
+};
+
+/** サムネイル URL の組み立てに必要な最小限の列 */
+export type ThumbnailUrlSource = {
+  id: string;
+  thumbnail_path: string;
+  thumbnail_processing_status: string;
+} & DishMediaRenderColumns;
+
 @Injectable()
 export class DishMediaAssembler {
   constructor(
@@ -126,10 +148,26 @@ export class DishMediaAssembler {
    * 画像の場合:
    *   - media_processing_status が 'completed' の場合はリサイズ済みパスの Signed URL を返す
    *   - それ以外はオリジナルパスの Signed URL を返す
+   *
+   * #1395 render_type が 'external_embed' のときは自ストレージに実体が無いので
+   * 署名 URL を作らず null を返す。`mediaUrl` は既に nullable なのでレスポンス型は壊れない。
    */
-  private getMediaUrl(dishMedia: DishMediaEntryEntity['dish_media']): {
+  private getMediaUrl(
+    dishMedia: DishMediaEntryEntity['dish_media'] & DishMediaRenderColumns,
+  ): {
     mediaUrl: string | null;
   } {
+    // #1395 external_embed は自ストレージに実体が無いので署名 URL を作らない。
+    // 表示は provider 別コンポーネントが canonical_url から行う（#1273 §14）
+    if (dishMedia.render_type === 'external_embed') {
+      return { mediaUrl: null };
+    }
+    // #1395 media_path は nullable 化される（render_type='stored' のときだけ CHECK で必須）。
+    // 万一 stored なのに欠けていたら URL を作らない
+    if (!dishMedia.media_path) {
+      return { mediaUrl: null };
+    }
+
     const status =
       dishMedia.media_processing_status as MediaProcessingStatus | null;
 
@@ -179,10 +217,22 @@ export class DishMediaAssembler {
    *
    * thumbnail_processing_status が 'completed' の場合はリサイズ済みパスを返す
    * それ以外はオリジナルパスを返す
+   *
+   * #1395 M-2: `thumbnail_external_url` があれば **それをそのまま返す**。
+   * YouTube / Instagram / X は規約上サムネイルを自ストレージへ保存できず
+   * provider の CDN URL を表示のたびに参照する必要があるため（#1399 §6・§8）。
+   * `thumbnail_path` は NOT NULL のままなので **戻り値は string** であり、
+   * `DishMediaEntry.thumbnailImageUrl: string` は破壊的変更にならない。
+   *
+   * Map ピンのように `DishMediaEntry` を丸ごと組み立てない経路からも
+   * 同じ規則を使えるよう public にしてある（サムネイル URL の分岐を 2 箇所に持たない）。
    */
-  private getThumbnailImageUrl(
-    dishMedia: DishMediaEntryEntity['dish_media'],
-  ): string {
+  public getThumbnailImageUrl(dishMedia: ThumbnailUrlSource): string {
+    // #1395 外部 provider の CDN サムネイルは自 CDN を経由しない
+    if (dishMedia.thumbnail_external_url) {
+      return dishMedia.thumbnail_external_url;
+    }
+
     const status =
       dishMedia.thumbnail_processing_status as MediaProcessingStatus | null;
 

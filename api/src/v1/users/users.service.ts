@@ -21,6 +21,9 @@ import {
   UpdateUserProfileDto,
   QuerySavedRestaurantsDto,
   QueryMeBlockedDishCategoriesDto,
+  QueryMyDishesDto,
+  MyDishSort,
+  MyDishStatus,
 } from '@shared/v1/dto';
 
 import { UsersRepository } from './users.repository';
@@ -32,9 +35,18 @@ import { RestaurantsRepository } from '../restaurants/restaurants.repository';
 import { isValidUserUploadedPath } from 'src/core/storage/storage.utils';
 import { CloudTasksService } from 'src/core/cloud-tasks/cloud-tasks.service';
 import { UsersAssembler } from './users.assembler';
-import { DishMediaEntry } from '@shared/v1/res';
+import {
+  DishMediaEntry,
+  MyDishItem,
+  QueryMeDishMapPinsResponse,
+  QueryMyDishesResponse,
+} from '@shared/v1/res';
 import { convertPrismaToSupabase_DishReviews } from '../../../../shared/converters/convert_dish_reviews';
+import { convertPrismaToSupabase_Dishes } from '../../../../shared/converters/convert_dishes';
 import { RestaurantsAssembler } from '../restaurants/restaurants.assembler';
+import { DishMediaAssembler } from '../dish-media/dish-media.assembler';
+import { toNullableId } from '../../core/utils/backend-utils';
+import { decodeMyDishCursor, encodeMyDishCursor } from './my-dishes.query';
 
 @Injectable()
 export class UsersService {
@@ -48,6 +60,7 @@ export class UsersService {
     private readonly cloudTasks: CloudTasksService,
     private readonly restaurantsRepo: RestaurantsRepository,
     private readonly restaurantsAssembler: RestaurantsAssembler,
+    private readonly dishMediaAssembler: DishMediaAssembler,
   ) {}
 
   async getUserByIds(userId: string[]) {
@@ -75,8 +88,31 @@ export class UsersService {
         cursor: dto.cursor,
       });
 
+    // #1395 写真なしの「食べた」記録では created_dish_media_id が NULL になる。
+    // ここで単純に Map を引くと、その行が **警告ログだけ残して黙って消える**。
+    // 代表メディアの選び方を my-dishes と揃え、「その dish の最新メディア」へ落とす。
+    // それでもメディアが 1 件も無い dish は、このエンドポイントの型
+    // （DishMediaEntry = メディア 1 件が主語）では表現できないため返せない。
+    // 写真なし記録を落とさずに見せるのは GET /v1/users/me/dishes?status=eaten の役目である。
+    const reviewsWithoutMedia = reviews.filter(
+      (r) => toNullableId(r.created_dish_media_id) === null,
+    );
+    const fallbackMediaIdByDishId =
+      await this.dishMediaRepo.findLatestDishMediaIdsByDishIds(
+        Array.from(new Set(reviewsWithoutMedia.map((r) => r.dish_id))),
+      );
+
+    const resolveMediaId = (review: (typeof reviews)[number]): string | null =>
+      toNullableId(review.created_dish_media_id) ??
+      fallbackMediaIdByDishId.get(review.dish_id) ??
+      null;
+
     const uniqueDishMediaIds = Array.from(
-      new Set(reviews.map((r) => r.created_dish_media_id)),
+      new Set(
+        reviews
+          .map((r) => resolveMediaId(r))
+          .filter((id): id is string => id !== null),
+      ),
     );
     const dishMediaEntryItemsResult =
       await this.dishMediaService.fetchDishMediaEntryItems(uniqueDishMediaIds, {
@@ -93,21 +129,27 @@ export class UsersService {
     this.logger.debug('GetUserDishReviewsResult', 'getUserDishReviews', {
       count: reviews.length,
       nextCursor,
+      withoutMedia: reviewsWithoutMedia.length,
     });
 
     return {
       data: reviews
         .map((review) => {
-          const dishMediaEntryItem = dishMediaMap.get(
-            review.created_dish_media_id,
-          );
+          const mediaId = resolveMediaId(review);
+          const dishMediaEntryItem =
+            mediaId === null ? undefined : dishMediaMap.get(mediaId);
           if (!dishMediaEntryItem) {
             this.logger.warn(
               'DishMediaEntryItem not found for review',
               'getUserDishReviews',
               {
                 reviewId: review.id,
-                dishMediaId: review.created_dish_media_id,
+                dishId: review.dish_id,
+                dishMediaId: mediaId,
+                // #1395 写真なし記録かつ dish にメディアが 1 件も無い場合はここに来る。
+                // GET /v1/users/me/dishes?status=eaten へ移行すれば落ちなくなる
+                reason:
+                  mediaId === null ? 'no_media_for_dish' : 'media_not_fetched',
               },
             );
             return undefined;
@@ -339,6 +381,185 @@ export class UsersService {
         },
       })),
       nextCursor,
+    };
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*                    GET /v1/users/me/dishes                         */
+  /* ------------------------------------------------------------------ */
+  // #1395 「食べたい/食べた」の一覧（リスト / Calendar が共有する）
+  async getMyDishes(
+    userId: string,
+    dto: QueryMyDishesDto,
+  ): Promise<QueryMyDishesResponse> {
+    const sort: MyDishSort = dto.sort ?? '-occurredAt';
+    const cursor = dto.cursor ? decodeMyDishCursor(sort, dto.cursor) : null;
+
+    this.logger.debug('GetMyDishes', 'getMyDishes', {
+      userId,
+      sort,
+      status: dto.status,
+      limit: dto.limit,
+      hasCursor: cursor !== null,
+    });
+
+    const { items, hasMore } = await this.repo.findMyDishes(
+      userId,
+      dto,
+      cursor,
+    );
+
+    // 代表メディアの詳細（署名 URL・isLiked 等）は既存の組み立て経路を再利用する
+    const mediaIds = Array.from(
+      new Set(
+        items
+          .map((item) => item.mediaId)
+          .filter((id): id is string => id !== null),
+      ),
+    );
+    const { items: dishMediaEntries } =
+      await this.dishMediaService.fetchDishMediaEntryItems(mediaIds, {
+        userId,
+      });
+    const dishMediaById = new Map(
+      dishMediaEntries.map((entry) => [entry.dish_media.id, entry.dish_media]),
+    );
+
+    // 自分のレビュー（★n はここから引く）
+    const reviewIds = items
+      .map((item) => item.reviewId)
+      .filter((id): id is string => id !== null);
+    const { items: myReviews } = reviewIds.length
+      ? await this.dishMediaRepo.findDishReviewsByUser(userId, {
+          type: 'ids',
+          ids: reviewIds,
+        })
+      : {
+          items: [] as Awaited<
+            ReturnType<typeof this.dishMediaRepo.findDishReviewsByUser>
+          >['items'],
+        };
+    const myReviewById = new Map(
+      myReviews.map((review) => [review.id, review]),
+    );
+
+    const data: MyDishItem[] = items.map((item) => {
+      const review = item.reviewId
+        ? myReviewById.get(item.reviewId)
+        : undefined;
+      return {
+        key: item.key,
+        status: item.status,
+        occurredAt: item.occurredAt.toISOString(),
+        savedAt: item.savedAt ? item.savedAt.toISOString() : null,
+        eatenAt: item.eatenAt ? item.eatenAt.toISOString() : null,
+        restaurant: this.restaurantsAssembler.enrichRestaurantsWithImageUrls(
+          item.restaurant,
+        ),
+        dish: {
+          ...convertPrismaToSupabase_Dishes(item.dish),
+          reviewCount: item.dish.reviewCount,
+          averageRating: item.dish.averageRating,
+        },
+        dishMedia:
+          (item.mediaId ? dishMediaById.get(item.mediaId) : undefined) ?? null,
+        myReview: review
+          ? {
+              ...convertPrismaToSupabase_DishReviews(review),
+              username: review.username,
+              isLiked: review.isLiked,
+              likeCount: review.likeCount,
+            }
+          : null,
+        distanceMeters: item.distanceMeters,
+      };
+    });
+
+    const nextCursor =
+      hasMore && items.length > 0
+        ? encodeMyDishCursor(sort, items[items.length - 1].cursorSource)
+        : null;
+
+    const oldestOccurredAt = await this.resolveOldestOccurredAt(userId, dto);
+
+    this.logger.debug('GetMyDishesResult', 'getMyDishes', {
+      count: data.length,
+      hasMore,
+      oldestOccurredAt,
+    });
+
+    return { data, nextCursor, meta: { oldestOccurredAt } };
+  }
+
+  /**
+   * #1395 Calendar 用の最古 `occurredAt`。
+   *
+   * **初回ページ（cursor 未指定）かつ status 以外のフィルタが無いときだけ**算出する。
+   * フィルタが付くと索引で順序を保てず `dish_reviews`（約 964MB）のユーザー全行走査になり、
+   * それが**フィルタを変えるたび**に走ってしまうため。
+   * null のときクライアントは `nextCursor === null` による終端検出のみに頼る。
+   */
+  private async resolveOldestOccurredAt(
+    userId: string,
+    dto: QueryMyDishesDto,
+  ): Promise<string | null> {
+    const hasFilterBeyondStatus =
+      dto.lat !== undefined ||
+      dto.lng !== undefined ||
+      dto.radius !== undefined ||
+      (dto.categoryIds?.length ?? 0) > 0 ||
+      dto.minRating !== undefined ||
+      (dto.ratings?.length ?? 0) > 0 ||
+      dto.from !== undefined ||
+      dto.to !== undefined;
+
+    if (dto.cursor || hasFilterBeyondStatus) return null;
+
+    const statuses: MyDishStatus[] = dto.status?.length
+      ? dto.status
+      : ['want', 'eaten'];
+    const oldest = await this.repo.findMyDishesOldestOccurredAt(
+      userId,
+      statuses,
+    );
+    return oldest ? oldest.toISOString() : null;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*                GET /v1/users/me/dishes/map-pins                    */
+  /* ------------------------------------------------------------------ */
+  // #1395 Map ビュー。一覧と同じ QueryMyDishesDto を取り、投影だけが違う
+  async getMyDishMapPins(
+    userId: string,
+    dto: QueryMyDishesDto,
+  ): Promise<QueryMeDishMapPinsResponse> {
+    this.logger.debug('GetMyDishMapPins', 'getMyDishMapPins', {
+      userId,
+      status: dto.status,
+      hasArea: dto.lat !== undefined,
+    });
+
+    const { items, truncated } = await this.repo.findMyDishMapPins(userId, dto);
+
+    this.logger.debug('GetMyDishMapPinsResult', 'getMyDishMapPins', {
+      count: items.length,
+      truncated,
+    });
+
+    return {
+      data: items.map((pin) => ({
+        restaurant: this.restaurantsAssembler.enrichRestaurantsWithImageUrls(
+          pin.restaurant,
+        ),
+        counts: pin.counts,
+        latestOccurredAt: pin.latestOccurredAt.toISOString(),
+        representativeThumbnailUrl: pin.representativeMedia
+          ? this.dishMediaAssembler.getThumbnailImageUrl(
+              pin.representativeMedia,
+            )
+          : null,
+      })),
+      truncated,
     };
   }
 
