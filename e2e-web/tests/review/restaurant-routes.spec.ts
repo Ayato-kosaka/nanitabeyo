@@ -99,37 +99,35 @@ test.describe("店舗詳細のルート（#1386）", () => {
 	// 戻るは店舗詳細への replace に倒れる。
 	//
 	// ⚠️ `appPage` フィクスチャは使わないこと（#1404）。あれは起動確認のために `goto("/")` を
-	// 済ませており、**ブラウザの履歴が 1 つ積まれている**。その状態では `canGoBack()` が true に
-	// なり、戻るは «直前に見ていた検索画面» へ帰る（それはそれで正しい挙動）。
-	// ここで守りたいのは «共有リンクを新しいタブで開いた» 側なので、履歴を持たないページを自分で作る。
+	// 済ませているので、そこから子ルートへ行くと **アプリ内の履歴が 1 つ積まれている**。
+	// その状態では `canGoBack()` が true になり、戻るは «直前に見ていた検索画面» へ帰る
+	//（それはそれで正しい挙動）。ここで守りたいのは «共有リンクを新しいタブで開いた» 側。
 	// 実際 E2E Web run 32243079269 では、これを混同していたため /ja-JP/search へ倒れて落ちた。
 	//
-	// ⚠️ `browser.newContext()` ではなく **`context.newPage()`** を使うこと。
-	// desktop-chrome プロジェクトは `storageState: ANON_STORAGE_STATE_PATH`（匿名セッション）を
-	// 使う設定で、`browser.newContext()` はそれを引き継がない。新しいコンテキストは
-	// localStorage が空なので、着地のたびに匿名サインインからやり直すことになる
-	//（`waitForAnonymousSession` も通らない）。同じコンテキストの新しいページなら
-	// **storageState はそのまま・履歴だけが空** になる。
+	// ⚠️ これは `(tabs)` 配下のルートに限った話である。同 run で `legal.spec.ts` の
+	// 「直リンク着地から戻ると設定画面へ倒れる」は `appPage` のまま緑だった。
+	// `/legal/[doc]` は `(tabs)` の外にあるため `canGoBack()` が false になるからで、
+	// あちらを同じように書き換える必要は無い。
+	//
+	// ⚠️ 素の `page` フィクスチャを使うこと。あれは `context.newPage()` そのもので、
+	// **`goto` を一度もしていない**ので目的を満たす。`browser.newContext()` で自作すると、
+	// `fixtures/test.ts` の `context` が張る `addInitScript`（チュートリアル既読のシード）と
+	// `page` に張った `consoleErrors` の収集が両方とも外れる（PR #1405 のレビューで実測）。
 	//
 	// 手順:
 	//   1. 新しいページ（履歴なし）で /ja-JP/review/restaurant/<id>/bid へ直接着地する
 	//   2. ヘッダーの戻るボタンを押す
 	//   3. 店舗詳細へ着地することを検証
-	test("入札へ直リンク着地から戻ると店舗詳細へ倒れる", async ({ context }) => {
-		const freshPage = await context.newPage();
-		try {
-			const detailPage = new RestaurantDetailPage(freshPage);
-			await mockRestaurantDetail(freshPage);
+	test("入札へ直リンク着地から戻ると店舗詳細へ倒れる", async ({ page }) => {
+		const detailPage = new RestaurantDetailPage(page);
+		await mockRestaurantDetail(page);
 
-			await detailPage.gotoSub("bid");
-			await detailPage.expectBidOpened();
+		await detailPage.gotoSub("bid");
+		await detailPage.expectBidOpened();
 
-			await detailPage.goBackFromBid();
-			await expect(freshPage).toHaveURL(new RegExp(`${restaurantDetailPath()}(\\?.*)?$`));
-			await expect(detailPage.title).toBeVisible();
-		} finally {
-			await freshPage.close();
-		}
+		await detailPage.goBackFromBid();
+		await expect(page).toHaveURL(new RegExp(`${restaurantDetailPath()}(\\?.*)?$`));
+		await expect(detailPage.title).toBeVisible();
 	});
 
 	// ─ テストケース: 料理カテゴリ選択がルートで開ける ─
@@ -156,23 +154,18 @@ test.describe("店舗詳細のルート（#1386）", () => {
 	//   2. フィード画面が開き、«見るものが無い» 表示になることを検証
 	//      （0 件でもスピナーで固着しないこと自体が検証対象）
 	//   3. × で閉じると、履歴が無いので店舗詳細へ倒れることを検証
-	// ⚠️ 3 も «履歴なし» が前提なので、直リンクのテストと同じく同一コンテキストの新しいページを使う（#1404）
-	test("フィードは独立したルートで、閉じると店舗詳細へ倒れる", async ({ context }) => {
-		const freshPage = await context.newPage();
-		try {
-			const detailPage = new RestaurantDetailPage(freshPage);
-			await mockRestaurantDetail(freshPage);
+	// ⚠️ 3 も «履歴なし» が前提なので、直リンクのテストと同じく素の `page` を使う（#1404）
+	test("フィードは独立したルートで、閉じると店舗詳細へ倒れる", async ({ page }) => {
+		const detailPage = new RestaurantDetailPage(page);
+		await mockRestaurantDetail(page);
 
-			await detailPage.gotoSub("feed");
-			await detailPage.expectFeedOpened();
-			await expect(detailPage.feedEmpty).toBeVisible();
+		await detailPage.gotoSub("feed");
+		await detailPage.expectFeedOpened();
+		await expect(detailPage.feedEmpty).toBeVisible();
 
-			await detailPage.feedCloseButton.click();
-			await expect(freshPage).toHaveURL(new RegExp(`${restaurantDetailPath()}(\\?.*)?$`));
-			await expect(detailPage.title).toBeVisible();
-		} finally {
-			await freshPage.close();
-		}
+		await detailPage.feedCloseButton.click();
+		await expect(page).toHaveURL(new RegExp(`${restaurantDetailPath()}(\\?.*)?$`));
+		await expect(detailPage.title).toBeVisible();
 	});
 
 	// ─ テストケース: ゲストの投稿導線はログイン画面へ、next は投稿フォーム ─

@@ -51,12 +51,22 @@ export class RestaurantDetailPage {
 	readonly feedEmpty: Locator;
 	/** フィードの閉じる ×（ヘッダーを持たない画面なので浮かせてある） */
 	readonly feedCloseButton: Locator;
-	/** ヘッダーの戻るボタン（`app-expo/components/ScreenHeader.tsx`） */
-	/** 店舗詳細のヘッダー戻る。#1404 で画面ごとの id になった */
+	/**
+	 * 店舗詳細のヘッダー戻る。#1404 で画面ごとの id（`${testID}-back`）になった。
+	 *
+	 * ⚠️ 子ルート（入札 / 料理カテゴリ選択）を開いている間はこれを押さないこと。
+	 * 背面の店舗詳細も DOM に残っているので «押せてしまう» が、押しているのは背面の画面である。
+	 * 子ルートから戻るときは `goBackFromBid` / `goBackFromDishCategory` を使う。
+	 */
 	readonly backButton: Locator;
 	/** 入札画面のヘッダー戻る */
 	readonly bidBackButton: Locator;
-	/** 料理カテゴリ選択画面のヘッダー戻る */
+	/**
+	 * 料理カテゴリ選択画面のヘッダー戻る。
+	 *
+	 * 現在の spec は「ルートとして開ける」ところまでしか見ていないため未使用だが、
+	 * 入札と対になる導線なので «片方だけ揃っていない» 状態にしないために置いてある。
+	 */
 	readonly dishCategoryBackButton: Locator;
 
 	constructor(page: Page) {
@@ -115,7 +125,11 @@ export class RestaurantDetailPage {
 		await expect(this.feed).toBeVisible();
 	}
 
-	/** 店舗詳細のヘッダー戻るで離脱する */
+	/**
+	 * 店舗詳細のヘッダー戻るで離脱する。
+	 *
+	 * ⚠️ 子ルートを開いている状態では使わないこと（`backButton` の注意書きを参照）。
+	 */
 	async goBack(): Promise<void> {
 		await this.backButton.click();
 	}
