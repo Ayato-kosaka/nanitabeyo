@@ -63,8 +63,9 @@ test.describe("マイページ(ログイン済み)", () => {
 		await tabBar.gotoProfile();
 		await profilePage.openEdit();
 
-		// ScreenHeader は編集画面のコンテナの外側にあるため、testID は共通の screen-header-back
-		await appPage.getByTestId("screen-header-back").click();
+		// #1404 ScreenHeader の戻るボタンは `${testID}-back`。共通 id だった頃は、push で背面に残る
+		// 画面のヘッダーと 2 件に当たって strict mode violation になった
+		await appPage.getByTestId("profile-edit-screen-back").click();
 		await expect(appPage).toHaveURL(/\/profile(\?|$)/);
 	});
 

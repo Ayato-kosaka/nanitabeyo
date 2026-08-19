@@ -71,7 +71,7 @@ test.describe("店舗詳細のルート（#1386）", () => {
 		await detailPage.placeBidButton.click();
 		await detailPage.expectBidOpened();
 
-		await detailPage.goBack();
+		await detailPage.goBackFromBid();
 		await detailPage.expectOpened();
 	});
 
@@ -97,20 +97,33 @@ test.describe("店舗詳細のルート（#1386）", () => {
 	// ─ テストケース: 入札へ直リンクで着地しても行き止まりにならない ─
 	// #1386 【設計】履歴が無い着地では `router.back()` が «何も起きない» ので、
 	// 戻るは店舗詳細への replace に倒れる。
+	//
+	// ⚠️ `appPage` フィクスチャは使わないこと（#1404）。あれは起動確認のために `goto("/")` を
+	// 済ませており、**ブラウザの履歴が 1 つ積まれている**。その状態では `canGoBack()` が true に
+	// なり、戻るは «直前に見ていた検索画面» へ帰る（それはそれで正しい挙動）。
+	// ここで守りたいのは «共有リンクを新しいタブで開いた» 側なので、履歴を持たないページを自分で作る。
+	// 実際 E2E Web run 32243079269 では、これを混同していたため /ja-JP/search へ倒れて落ちた。
+	//
 	// 手順:
-	//   1. /ja-JP/review/restaurant/<id>/bid へ直接着地する（履歴なし）
+	//   1. 新しいページ（履歴なし）で /ja-JP/review/restaurant/<id>/bid へ直接着地する
 	//   2. ヘッダーの戻るボタンを押す
 	//   3. 店舗詳細へ着地することを検証
-	test("入札へ直リンク着地から戻ると店舗詳細へ倒れる", async ({ appPage }) => {
-		const detailPage = new RestaurantDetailPage(appPage);
-		await mockRestaurantDetail(appPage);
+	test("入札へ直リンク着地から戻ると店舗詳細へ倒れる", async ({ browser }) => {
+		const context = await browser.newContext();
+		const freshPage = await context.newPage();
+		try {
+			const detailPage = new RestaurantDetailPage(freshPage);
+			await mockRestaurantDetail(freshPage);
 
-		await detailPage.gotoSub("bid");
-		await detailPage.expectBidOpened();
+			await detailPage.gotoSub("bid");
+			await detailPage.expectBidOpened();
 
-		await detailPage.goBack();
-		await expect(appPage).toHaveURL(new RegExp(`${restaurantDetailPath()}(\\?.*)?$`));
-		await expect(detailPage.title).toBeVisible();
+			await detailPage.goBackFromBid();
+			await expect(freshPage).toHaveURL(new RegExp(`${restaurantDetailPath()}(\\?.*)?$`));
+			await expect(detailPage.title).toBeVisible();
+		} finally {
+			await context.close();
+		}
 	});
 
 	// ─ テストケース: 料理カテゴリ選択がルートで開ける ─
@@ -137,17 +150,24 @@ test.describe("店舗詳細のルート（#1386）", () => {
 	//   2. フィード画面が開き、«見るものが無い» 表示になることを検証
 	//      （0 件でもスピナーで固着しないこと自体が検証対象）
 	//   3. × で閉じると、履歴が無いので店舗詳細へ倒れることを検証
-	test("フィードは独立したルートで、閉じると店舗詳細へ倒れる", async ({ appPage }) => {
-		const detailPage = new RestaurantDetailPage(appPage);
-		await mockRestaurantDetail(appPage);
+	// ⚠️ 3 も «履歴なし» が前提なので、直リンクのテストと同じく新しいページを使う（#1404）
+	test("フィードは独立したルートで、閉じると店舗詳細へ倒れる", async ({ browser }) => {
+		const context = await browser.newContext();
+		const freshPage = await context.newPage();
+		try {
+			const detailPage = new RestaurantDetailPage(freshPage);
+			await mockRestaurantDetail(freshPage);
 
-		await detailPage.gotoSub("feed");
-		await detailPage.expectFeedOpened();
-		await expect(detailPage.feedEmpty).toBeVisible();
+			await detailPage.gotoSub("feed");
+			await detailPage.expectFeedOpened();
+			await expect(detailPage.feedEmpty).toBeVisible();
 
-		await detailPage.feedCloseButton.click();
-		await expect(appPage).toHaveURL(new RegExp(`${restaurantDetailPath()}(\\?.*)?$`));
-		await expect(detailPage.title).toBeVisible();
+			await detailPage.feedCloseButton.click();
+			await expect(freshPage).toHaveURL(new RegExp(`${restaurantDetailPath()}(\\?.*)?$`));
+			await expect(detailPage.title).toBeVisible();
+		} finally {
+			await context.close();
+		}
 	});
 
 	// ─ テストケース: ゲストの投稿導線はログイン画面へ、next は投稿フォーム ─

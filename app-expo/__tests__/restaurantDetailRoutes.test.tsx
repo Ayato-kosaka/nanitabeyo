@@ -237,7 +237,7 @@ describe("#1388 店詳細ルートのヘッダーは取得結果に依存しな�
 		expect(
 			tree.root.findAll((node) => node.props?.testID === "restaurant-detail-screen-title", { deep: false }),
 		).toHaveLength(1);
-		expect(tree.root.findAll((node) => node.props?.testID === "screen-header-back", { deep: false })).toHaveLength(1);
+		expect(tree.root.findAll((node) => node.props?.testID === "restaurant-detail-screen-back", { deep: false })).toHaveLength(1);
 	};
 
 	it("取得に成功したとき", async () => {

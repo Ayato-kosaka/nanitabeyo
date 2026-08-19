@@ -24,7 +24,9 @@ export class ProfileEditScreen {
 	/** 画面タイトル（ScreenHeader が `${testID}-title` として付ける） */
 	readonly title = by.id("profile-edit-screen-title");
 	/** ヘッダーの戻るボタン（`components/ScreenHeader.tsx`） */
-	readonly backButton = by.id("screen-header-back");
+	// #1404 ScreenHeader の戻るボタンは `${testID}-back`。共通 id だった頃は、push で背面に残る
+	// 画面のヘッダーと同じ id になり «背面を押していた»
+	readonly backButton = by.id("profile-edit-screen-back");
 
 	/** 編集画面が開いていることを検証する */
 	async expectOpened(timeout: number = DEFAULT_TIMEOUT): Promise<void> {

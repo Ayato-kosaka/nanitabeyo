@@ -230,7 +230,7 @@ describe("UI カタログ（匿名） @catalog", () => {
 
 		await captureScreenIfReachable("legal-privacy", async () => {
 			// #1368 モーダル時代は閉じる導線に testID が無く起動し直していたが、
-			// ルート化でヘッダーの戻るボタン（screen-header-back）から設定へ帰れるようになった
+			// ルート化でヘッダーの戻るボタン（#1404 で legal-screen-back）から設定へ帰れるようになった
 			await legalScreen.goBack();
 			await settingsScreen.expectLoaded();
 			await settingsScreen.openLegalDocument("privacy");

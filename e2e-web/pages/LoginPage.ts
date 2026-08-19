@@ -15,7 +15,7 @@ import { expect, type Locator, type Page } from "@playwright/test";
  * ## 戻る導線をコンテナ配下から探さないこと
  * `login-screen` は `LoginForm` の `View` に付いており、`ScreenHeader`（戻るボタン）は
  * **その外側**にある（`app/[locale]/auth/login.tsx`）。戻る導線は `backButton`
- *（`screen-header-back`）か `toHaveURL` で検証する。
+ *（`login-screen-back`）か `toHaveURL` で検証する。
  *
  * ## テスト範囲の注意
  * ログイン手段は Google/Apple OAuth のみ。実際の OAuth 遷移は外部 IdP（Google/Apple）の
@@ -53,7 +53,7 @@ export class LoginPage {
 		this.page = page;
 		this.container = page.getByTestId("login-screen");
 		this.title = page.getByTestId("login-screen-title");
-		this.backButton = page.getByTestId("screen-header-back");
+		this.backButton = page.getByTestId("login-screen-back");
 		this.googleButton = page.getByTestId("login-google-button");
 		this.appleButton = page.getByTestId("login-apple-button");
 		this.termsLink = page.getByTestId("login-terms-link");

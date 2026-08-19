@@ -21,9 +21,13 @@ import { restaurantDetailPath, restaurantSubPath } from "../utils/restaurantDeta
  *（`pages/LegalPage.ts` / `pages/LoginPage.ts` と同じ役割）。
  *
  * ## 戻る導線をコンテナ配下から探さないこと
- * `ScreenHeader`（戻るボタン）は画面のコンテナの外にある。戻る導線は `backButton`
- *（`screen-header-back`）か URL で検証する。フィードだけはヘッダーを持たず、
+ * `ScreenHeader`（戻るボタン）は画面のコンテナの外にある。戻る導線は画面ごとの back ロケータ
+ *（`${testID}-back`）か URL で検証する。フィードだけはヘッダーを持たず、
  * `search/result.tsx` と同じ «浮かせた ×» なので `feedCloseButton` を使う。
+ *
+ * ⚠️ 共通の `screen-header-back` を使わないこと（#1404）。ルート化で push した画面と背面の画面が
+ * 同時に DOM へ居る（Stack は下の画面を unmount しない）ため、共通 id では 2 件に当たり
+ * Playwright が strict mode violation で落ちる。実際に E2E Web run 32243079269 で 4 件落ちた。
  */
 export class RestaurantDetailPage {
 	readonly page: Page;
@@ -48,7 +52,12 @@ export class RestaurantDetailPage {
 	/** フィードの閉じる ×（ヘッダーを持たない画面なので浮かせてある） */
 	readonly feedCloseButton: Locator;
 	/** ヘッダーの戻るボタン（`app-expo/components/ScreenHeader.tsx`） */
+	/** 店舗詳細のヘッダー戻る。#1404 で画面ごとの id になった */
 	readonly backButton: Locator;
+	/** 入札画面のヘッダー戻る */
+	readonly bidBackButton: Locator;
+	/** 料理カテゴリ選択画面のヘッダー戻る */
+	readonly dishCategoryBackButton: Locator;
 
 	constructor(page: Page) {
 		this.page = page;
@@ -62,7 +71,9 @@ export class RestaurantDetailPage {
 		this.feed = page.getByTestId("restaurant-feed-screen");
 		this.feedEmpty = page.getByTestId("restaurant-feed-empty");
 		this.feedCloseButton = page.getByTestId("restaurant-feed-close-button");
-		this.backButton = page.getByTestId("screen-header-back");
+		this.backButton = page.getByTestId("restaurant-detail-screen-back");
+		this.bidBackButton = page.getByTestId("restaurant-bid-screen-back");
+		this.dishCategoryBackButton = page.getByTestId("dish-category-screen-back");
 	}
 
 	/** 店舗詳細へ直接遷移する（locale プレフィックス必須） */
@@ -104,8 +115,23 @@ export class RestaurantDetailPage {
 		await expect(this.feed).toBeVisible();
 	}
 
-	/** ヘッダーの戻るボタンで離脱する */
+	/** 店舗詳細のヘッダー戻るで離脱する */
 	async goBack(): Promise<void> {
 		await this.backButton.click();
+	}
+
+	/**
+	 * 入札画面のヘッダー戻るで離脱する。
+	 *
+	 * ⚠️ ここで `goBack()`（店舗詳細の戻る）を押さないこと。入札を push すると背面の店舗詳細も
+	 * DOM に残るので、押せてしまうが «押しているのは背面の画面» になる（#1404）。
+	 */
+	async goBackFromBid(): Promise<void> {
+		await this.bidBackButton.click();
+	}
+
+	/** 料理カテゴリ選択画面のヘッダー戻るで離脱する */
+	async goBackFromDishCategory(): Promise<void> {
+		await this.dishCategoryBackButton.click();
 	}
 }

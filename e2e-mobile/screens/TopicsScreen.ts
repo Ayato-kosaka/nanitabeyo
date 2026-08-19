@@ -36,7 +36,9 @@ export class TopicsScreen {
 	/** 画面ヘッダのタイトル（ScreenHeader の testID 由来。i18n: Topics.headerTitle） */
 	readonly headerTitle = by.id("topics-header-title");
 	/** ヘッダーの戻るボタン */
-	readonly backButton = by.id("screen-header-back");
+	// #1404 ScreenHeader の戻るボタンは `${testID}-back`。共通 id だった頃は、push で背面に残る
+	// 画面のヘッダーと同じ id になり «背面を押していた»
+	readonly backButton = by.id("topics-header-back");
 	/**
 	 * 「この料理にする！」ボタンを包む、**アクティブなカードにだけ存在する** View。
 	 * app-expo の `TopicCard.tsx` が `tutorialTargetRefs`（= `isActiveCard` のときだけ渡る）を
