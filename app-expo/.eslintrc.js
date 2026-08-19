@@ -48,9 +48,10 @@ module.exports = {
 			  直書きすると許可範囲が空になり社内タスク画面まで巻き添えで落ちる。
 			  凍結モジュール自身の内部 import を塞がないよう features/contributionTasks 配下も許可する。
 
-			  #1363 【設計】逆向き（公開アプリから features/blurModal を使うこと）は制限しない。
-			  他の画面群の移行が終わるまでは正規の利用であり、禁止すると移行途中の全画面が落ちる。
-			  features/blurModal の削除は #1350 の P6 で行う。
+			  #1350 P6 で features/blurModal は撤去済み。したがって「逆向き（公開アプリから
+			  features/blurModal を使う）」という状態はもう存在せず、ここで制限する対象も無い。
+			  復活していないことは scripts/assert-legacy-blur-modal-boundary.mjs が CI で見ている
+			  （lint は CI で走っていないため。#1366）。
 			*/
 			files: ["app/**/contribution-tasks/**", "features/contributionTasks/**"],
 			rules: {
