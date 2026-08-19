@@ -34,7 +34,9 @@ export class RestaurantDetailScreen {
 	/** 「入札する」ボタン（#1386 で地図側から移設。実データがあるときだけ描かれる） */
 	readonly placeBidButton = by.id("restaurant-detail-place-bid-button");
 	/** ヘッダーの戻るボタン（`app-expo/components/ScreenHeader.tsx`） */
-	readonly backButton = by.id("screen-header-back");
+	// #1394 ScreenHeader の戻るボタンは `${testID}-back`。共通 id だった頃は、push で背面に残る
+	// 画面のヘッダーと同じ id になり «背面を押していた»
+	readonly backButton = by.id("restaurant-detail-screen-back");
 
 	/** 店舗詳細画面が開いていることを検証する */
 	async expectOpened(timeout: number = DEFAULT_TIMEOUT): Promise<void> {

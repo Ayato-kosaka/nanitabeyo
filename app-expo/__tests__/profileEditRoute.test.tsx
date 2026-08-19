@@ -180,7 +180,7 @@ describe("#1369 プロフィール編集画面の離脱", () => {
 		mockCanGoBack = true;
 		const tree = await render(<ProfileEditScreen />);
 
-		await press(tree, "screen-header-back");
+		await press(tree, "profile-edit-screen-back");
 
 		expect(mockBack).toHaveBeenCalledTimes(1);
 		expect(mockReplace).not.toHaveBeenCalled();
@@ -190,7 +190,7 @@ describe("#1369 プロフィール編集画面の離脱", () => {
 		mockCanGoBack = false;
 		const tree = await render(<ProfileEditScreen />);
 
-		await press(tree, "screen-header-back");
+		await press(tree, "profile-edit-screen-back");
 
 		// URL 直リンク・web のリロードで着地した場合。back すると «アプリの外» へ出てしまう
 		expect(mockBack).not.toHaveBeenCalled();
@@ -218,7 +218,7 @@ describe("#1369 プロフィール編集画面の離脱", () => {
 
 		expect(tree.root.findAll((node) => node.props?.testID === "profile-edit-form-saved")).toHaveLength(0);
 		// 待っている間も離脱できること（ゲートの外にヘッダーがある）
-		expect(tree.root.findAll((node) => node.props?.testID === "screen-header-back").length).toBeGreaterThan(0);
+		expect(tree.root.findAll((node) => node.props?.testID === "profile-edit-screen-back").length).toBeGreaterThan(0);
 	});
 
 	it("保存が成功したとき履歴が無ければマイページへ replace する", async () => {

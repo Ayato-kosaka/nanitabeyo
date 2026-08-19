@@ -15,7 +15,7 @@ import { expect, type Locator, type Page } from "@playwright/test";
  *
  * ## 戻る導線をコンテナ配下から探さないこと
  * `legal-screen-document` は本文のコンテナで、`ScreenHeader`（戻るボタン）は **その外側**にある。
- * 戻る導線は `backButton`（`screen-header-back`）か URL で検証する。
+ * 戻る導線は `backButton`（`legal-screen-back`）か URL で検証する。
  *
  * ## 「利用規約」をテキストで探さないこと
  * 文書のタイトル・Markdown の見出し・遷移元のリンク文言がすべて同じ文字列になるため、
@@ -37,7 +37,7 @@ export class LegalPage {
 		this.document = page.getByTestId("legal-screen-document");
 		this.notFound = page.getByTestId("legal-screen-not-found");
 		this.title = page.getByTestId("legal-screen-title");
-		this.backButton = page.getByTestId("screen-header-back");
+		this.backButton = page.getByTestId("legal-screen-back");
 	}
 
 	/** 指定した文書へ直接遷移する（locale プレフィックス必須） */

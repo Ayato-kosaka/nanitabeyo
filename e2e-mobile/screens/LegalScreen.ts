@@ -36,7 +36,9 @@ export class LegalScreen {
 	 */
 	readonly title = by.id("legal-screen-title");
 	/** ヘッダーの戻るボタン（`app-expo/components/ScreenHeader.tsx`） */
-	readonly backButton = by.id("screen-header-back");
+	// #1394 ScreenHeader の戻るボタンは `${testID}-back`。共通 id だった頃は、push で背面に残る
+	// 画面のヘッダーと同じ id になり «背面を押していた»
+	readonly backButton = by.id("legal-screen-back");
 
 	/** 法務ドキュメント画面が開いていることを検証する */
 	async expectOpened(timeout: number = DEFAULT_TIMEOUT): Promise<void> {

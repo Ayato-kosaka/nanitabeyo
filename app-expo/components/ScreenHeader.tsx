@@ -18,7 +18,8 @@ export type ScreenHeaderProps = {
 	containerStyle?: StyleProp<ViewStyle>;
 	/** タイトルの追加スタイル（必要であれば） */
 	titleStyle?: StyleProp<TextStyle>;
-	// #1031 【設計】画面ごとにタイトル表示を検証できるよう testID を付与できるようにする（`${testID}-title` をタイトル Text に付与）
+	// #1031 【設計】画面ごとにタイトル表示を検証できるよう testID を付与できるようにする
+	//（`${testID}-title` をタイトル Text、`${testID}-back` を戻るボタンに付与）
 	testID?: string;
 };
 
@@ -31,6 +32,19 @@ export function ScreenHeader({
 	testID,
 }: ScreenHeaderProps) {
 	const insets = useSafeAreaInsets();
+	/**
+	 * #1394 【バグ】戻るボタンの testID を画面ごとに分ける。
+	 *
+	 * 以前は全画面が固定の `screen-header-back` を持っていた。オーバーレイ時代は「背面の画面は
+	 * 覆われている」前提で済んでいたが、#1350 でモーダルをルートへ移した結果、
+	 * **push した画面と背面の画面が同時に DOM に居る**（Stack は下の画面を unmount しない）。
+	 * その状態で `getByTestId("screen-header-back")` を引くと 2 件に当たり、
+	 * Playwright は strict mode violation で落ちる（E2E Web run 32243079269 で 4 件が実際に落ちた）。
+	 *
+	 * `${testID}-title` と同じ規約に揃え、testID を渡している画面は自分専用の id を持つ。
+	 * 渡していない画面は従来どおり `screen-header-back` のまま（後方互換）。
+	 */
+	const backTestID = testID ? `${testID}-back` : "screen-header-back";
 	return (
 		<View style={[{ paddingTop: insets.top + 8 }, styles.container, containerStyle]}>
 			<TouchableOpacity
@@ -39,7 +53,7 @@ export function ScreenHeader({
 				accessibilityRole="button"
 				accessibilityLabel={i18n.t("Common.back")}
 				hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
-				testID="screen-header-back">
+				testID={backTestID}>
 				<ChevronLeft size={24} color="#1A1A1A" />
 			</TouchableOpacity>
 

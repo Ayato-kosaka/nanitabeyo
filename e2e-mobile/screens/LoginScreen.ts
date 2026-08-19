@@ -37,7 +37,9 @@ export class LoginScreen {
 	/** 画面タイトル（ScreenHeader が `${testID}-title` として付ける） */
 	readonly title = by.id("login-screen-title");
 	/** ヘッダーの戻るボタン（`components/ScreenHeader.tsx`） */
-	readonly backButton = by.id("screen-header-back");
+	// #1394 ScreenHeader の戻るボタンは `${testID}-back`。共通 id だった頃は、push で背面に残る
+	// 画面のヘッダーと同じ id になり «背面を押していた»
+	readonly backButton = by.id("login-screen-back");
 	/** Google ログインボタン */
 	readonly googleButton = by.id("login-google-button");
 	/** Apple ログインボタン */
