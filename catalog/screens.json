@@ -430,7 +430,7 @@
 				"レビューのお店詳細（ゲスト）",
 				"地図のお店詳細（ゲスト）"
 			],
-			"to": ["外部 IdP（Google / Apple OAuth）", "利用規約・プライバシーポリシーのモーダル"]
+			"to": ["外部 IdP（Google / Apple OAuth）", "利用規約・プライバシーポリシー（/legal/[doc]）"]
 		},
 		{
 			"id": "profile-settings",
@@ -448,19 +448,19 @@
 				}
 			},
 			"state": "匿名ユーザー。ログアウト行は出ない（Web では「レビューを書く」も非表示）",
-			"description": "設定メニュー。フィードバック・ブロック済みトピック・各種リーガル文書への導線を持つ。",
+			"description": "設定メニュー。フィードバック・ブロック済みトピック・各種リーガル文書への導線を持つ。#1368 でリーガル 4 行はモーダル起動から画面遷移（/[locale]/legal/[doc]）へ変わった。",
 			"from": ["マイページ（歯車アイコン）", "URL 直リンク"],
 			"to": [
 				"ご意見・不具合",
 				"ブロック済みの料理トピック",
-				"利用規約/プライバシーポリシー/ガイドライン/著作権のモーダル"
+				"利用規約/プライバシーポリシー/ガイドライン/著作権（/legal/[doc]）"
 			]
 		},
 		{
-			"id": "profile-settings-terms-modal",
-			"name": "利用規約（リーガルモーダル）",
-			"route": "/[locale]/profile/settings",
-			"url": "/ja-JP/profile/settings",
+			"id": "legal-terms",
+			"name": "利用規約",
+			"route": "/[locale]/legal/[doc]",
+			"url": "/ja-JP/legal/terms",
 			"platforms": {
 				"web": {
 					"capture": "auto",
@@ -471,16 +471,16 @@
 					"session": "anon"
 				}
 			},
-			"state": "設定の「利用規約」から開く legal-document-modal",
-			"description": "同一 URL 内の UI 状態。Markdown のリーガル文書をモーダルで表示する（プライバシーポリシー等も同一コンポーネント）。",
-			"from": ["設定"],
-			"to": ["設定（閉じる）"]
+			"state": null,
+			"description": "Markdown の法務文書を表示する単独ページ（#1368）。`[doc]` は guidelines / terms / privacy / copyright の 4 値で、UI は 4 文書とも同一・中身だけが異なるため代表 2 本を撮っている。かつては設定とログインがそれぞれ BlurModal で重ねていたが、共有・ブックマーク・ストア審査・SEO のために URL で指せるルートへ移した（sitemap 掲載対象）。",
+			"from": ["設定", "URL 直リンク（ストア審査・問い合わせ・検索結果）"],
+			"to": ["設定（戻る）", "呼び出し元の画面（戻る）"]
 		},
 		{
-			"id": "profile-settings-privacy-modal",
-			"name": "プライバシーポリシー（リーガルモーダル）",
-			"route": "/[locale]/profile/settings",
-			"url": "/ja-JP/profile/settings",
+			"id": "legal-privacy",
+			"name": "プライバシーポリシー",
+			"route": "/[locale]/legal/[doc]",
+			"url": "/ja-JP/legal/privacy",
 			"platforms": {
 				"web": {
 					"capture": "auto",
@@ -491,10 +491,30 @@
 					"session": "anon"
 				}
 			},
-			"state": "設定の「プライバシーポリシー」から開く legal-document-modal",
-			"description": "同一 URL 内の UI 状態。利用規約と同じモーダルで内容だけが異なる。",
-			"from": ["設定", "ログイン画面の同意文言のリンク"],
-			"to": ["設定（閉じる）"]
+			"state": null,
+			"description": "利用規約と同じルート（`/[locale]/legal/[doc]`）で `doc` だけが異なるページ。ログイン画面の同意文言からもここへ遷移する。",
+			"from": ["設定", "ログイン画面の同意文言のリンク", "URL 直リンク"],
+			"to": ["設定（戻る）", "ログイン（戻る）"]
+		},
+		{
+			"id": "legal-not-found",
+			"name": "法務ドキュメント（公開していない doc）",
+			"route": "/[locale]/legal/[doc]",
+			"url": "/ja-JP/legal/tos",
+			"platforms": {
+				"web": {
+					"capture": "auto",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "auto",
+					"session": "anon"
+				}
+			},
+			"state": "公開していない `doc`（例: /legal/tos）で着地した状態",
+			"description": "同一ルートのエラー状態。既定の文書へ倒すと `/legal/<任意の文字列>` が全部同じ文書の複製として 200 を返すため、not-found を出す（app-expo/lib/legalRoute.ts）。戻る導線はこの分岐の外にあり、行き止まりにはならない。",
+			"from": ["URL 直リンク（誤ったリンク・古いブックマーク）"],
+			"to": ["設定（戻る）"]
 		},
 		{
 			"id": "profile-feedback",
@@ -1279,13 +1299,18 @@
 		},
 		{
 			"from": "profile-settings",
-			"to": "profile-settings-terms-modal",
+			"to": "legal-terms",
 			"label": "利用規約"
 		},
 		{
 			"from": "profile-settings",
-			"to": "profile-settings-privacy-modal",
+			"to": "legal-privacy",
 			"label": "プライバシーポリシー"
+		},
+		{
+			"from": "auth-login",
+			"to": "legal-privacy",
+			"label": "同意文言のプライバシーポリシー"
 		},
 		{
 			"from": "profile-settings",
@@ -1371,6 +1396,16 @@
 			"from": "direct-link",
 			"to": "not-found",
 			"label": "不正な URL"
+		},
+		{
+			"from": "direct-link",
+			"to": "legal-terms",
+			"label": "/[locale]/legal/terms（sitemap 掲載）"
+		},
+		{
+			"from": "direct-link",
+			"to": "legal-not-found",
+			"label": "公開していない /legal/<doc>"
 		},
 		{
 			"from": "direct-link",

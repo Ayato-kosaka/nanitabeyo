@@ -7,6 +7,8 @@ import { expect, type Locator, type Page } from "@playwright/test";
  *
  * - 「レビューを書く」（ストア誘導）は Web では非表示（Platform.OS !== "web" 条件）
  * - 「ログアウト」はログイン済み（非匿名）ユーザーのみ表示
+ * - #1368 リーガル 4 行はモーダルではなく `/[locale]/legal/<doc>` へ遷移する。
+ *   遷移先の検証は `pages/LegalPage.ts` が持つ
  */
 export class SettingsPage {
 	readonly page: Page;
@@ -14,10 +16,14 @@ export class SettingsPage {
 	readonly title: Locator;
 	/** ご意見・不具合（フィードバック）行 */
 	readonly feedbackItem: Locator;
+	/** コミュニティガイドライン行 */
+	readonly guidelinesItem: Locator;
 	/** 利用規約行 */
 	readonly termsItem: Locator;
 	/** プライバシーポリシー行 */
 	readonly privacyItem: Locator;
+	/** 著作権行 */
+	readonly copyrightItem: Locator;
 	/** ブロック済みの料理トピック行 */
 	readonly blockedTopicsItem: Locator;
 	/** ログアウト行（ログイン済みユーザーのみ表示） */
@@ -42,8 +48,10 @@ export class SettingsPage {
 		this.page = page;
 		this.title = page.getByText("設定", { exact: true });
 		this.feedbackItem = page.getByTestId("settings-feedback");
+		this.guidelinesItem = page.getByTestId("settings-guidelines");
 		this.termsItem = page.getByTestId("settings-terms");
 		this.privacyItem = page.getByTestId("settings-privacy");
+		this.copyrightItem = page.getByTestId("settings-copyright");
 		this.blockedTopicsItem = page.getByTestId("settings-blocked-topics");
 		this.logoutItem = page.getByTestId("settings-logout");
 		this.logoutConfirmDialog = page.getByTestId("modal-surface");

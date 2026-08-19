@@ -22,10 +22,11 @@ import i18n from "@/lib/i18n";
 import { useLogger } from "@/hooks/useLogger";
 import { useAuth } from "@/contexts/AuthProvider";
 import { isGuestUser } from "@/lib/authGuest";
-import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
-import { LegalDocument } from "@/features/settings/components/LegalDocument";
 import { Image } from "expo-image";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
+import { router } from "expo-router";
+import { useLocale } from "@/hooks/useLocale";
+import type { LegalDocumentType } from "@/lib/legalRoute";
 
 interface LoginFormProps {
 	/** E2E の可視判定に使う testID。呼び出し側で明示する（ルート: `login-screen`） */
@@ -54,16 +55,11 @@ interface LoginFormProps {
 export function LoginForm({ testID, next }: LoginFormProps) {
 	const [isLoading, setIsLoading] = useState(false);
 	const [hasExistingAccount, setHasExistingAccount] = useState(false);
-	const [selectedLegalDocument, setSelectedLegalDocument] = useState<"terms" | "privacy" | null>(null);
 
 	const { signInWithOAuth, linkIdentity, user } = useAuth();
-	const {
-		BlurModal: LegalDocumentModal,
-		open: openLegalDocumentModal,
-		close: closeLegalDocumentModal,
-	} = useBlurModal({ intensity: 100 });
 	const { logFrontendEvent } = useLogger();
 	const { showSnackbar } = useSnackbar();
+	const { locale } = useLocale();
 
 	const handleOAuthSignIn = useCallback(
 		async (provider: "google" | "facebook" | "twitter" | "apple") => {
@@ -133,13 +129,27 @@ export function LoginForm({ testID, next }: LoginFormProps) {
 		[user, linkIdentity, signInWithOAuth, logFrontendEvent, showSnackbar, hasExistingAccount, next],
 	);
 
-	// Legal ドキュメント表示用のハンドラ
+	/*
+	#1368 【設計】法務文書は BlurModal をやめて `/[locale]/legal/[doc]` ルートへ push する。
+	規約・プライバシーポリシーは URL で指せるべき対象で、モーダルである必然性が無かった
+	（同じモーダルが 3 箇所に複製されていた）。
+
+	⚠️ ここで «閉じてから push» が要らないのは、この時点で開いている BlurModal が
+	 1 つも無いからである。LoginForm の唯一の呼び出し元は `app/[locale]/auth/login.tsx`
+	（ルートそのもの）で、portal レイヤには何も載っていない。
+	 BlurModal の中から push すると遷移先が portal の下に潜って触れなくなる（#1364 で実測）ので、
+	 将来この UI を再びオーバーレイの中へ入れるなら、その時点で «閉じてから push» が必須になる。
+	*/
 	const handleOpenLegalDocument = useCallback(
-		(documentType: "terms" | "privacy") => {
-			setSelectedLegalDocument(documentType);
-			openLegalDocumentModal();
+		(documentType: Extract<LegalDocumentType, "terms" | "privacy">) => {
+			logFrontendEvent({
+				event_name: "login_legal_document_pressed",
+				error_level: "log",
+				payload: { documentType },
+			});
+			router.push({ pathname: "/[locale]/legal/[doc]", params: { locale, doc: documentType } });
 		},
-		[openLegalDocumentModal],
+		[logFrontendEvent, locale],
 	);
 
 	return (
@@ -232,11 +242,17 @@ export function LoginForm({ testID, next }: LoginFormProps) {
 			<View style={styles.consentContainer}>
 				<Text style={styles.consentText}>
 					{i18n.t("auth.consent_login_prefix")}
-					<Text style={styles.consentLink} onPress={() => handleOpenLegalDocument("terms")}>
+					{/* #1368 プライバシーポリシー側（login-privacy-link）だけ testID があり、
+					    利用規約側は「押した先」を機械的に検証できなかったので揃えた */}
+					<Text testID="login-terms-link" style={styles.consentLink} onPress={() => handleOpenLegalDocument("terms")}>
 						{i18n.t("auth.consent_login_terms")}
 					</Text>
 					{i18n.t("auth.consent_login_and")}
-					{/* #1031 【設計】Detox からリーガルモーダルへの導線をタップできるよう testID を追加 */}
+					{/* #1031 【設計】E2E からリーガル導線をタップできるよう testID を追加。
+					    #1368 遷移先は BlurModal から `/[locale]/legal/privacy` ルートへ変わった。
+					    ⚠️ この testID が効くのは web だけ。入れ子 `<Text>` はネイティブ View を持たないため
+					    Detox からは到達できず、mobile 側のリーガル導線検証は設定画面に集約している
+					    （e2e-mobile/screens/LoginScreen.ts のコメント参照） */}
 					<Text
 						testID="login-privacy-link"
 						style={styles.consentLink}
@@ -246,16 +262,6 @@ export function LoginForm({ testID, next }: LoginFormProps) {
 					{i18n.t("auth.consent_login_suffix")}
 				</Text>
 			</View>
-
-			{/* Legal ドキュメントモーダル */}
-			{/* #1031 【設計】Detox からモーダル表示を検証できるよう testID を追加 */}
-			<LegalDocumentModal>
-				{selectedLegalDocument && (
-					<View testID="legal-document-modal">
-						<LegalDocument documentType={selectedLegalDocument} />
-					</View>
-				)}
-			</LegalDocumentModal>
 		</View>
 	);
 }

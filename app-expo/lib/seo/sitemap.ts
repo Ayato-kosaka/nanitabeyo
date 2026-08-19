@@ -1,4 +1,5 @@
 import { PUBLIC_LOCALES } from "@/constants/seoLocales";
+import { LEGAL_SITEMAP_ROUTES } from "@/lib/legalRoute";
 
 /**
  * 🗺️ sitemap.xml の生成ロジック（#281）。
@@ -41,8 +42,30 @@ import { PUBLIC_LOCALES } from "@/constants/seoLocales";
  *    `search` のため）。`/` からのリダイレクト先が `/{locale}` であり、サイトの入口として
  *    落とせないので両方載せている。canonical はどちらも自分自身を指すので、
  *    どちらを正とするかは検索エンジン側の判断に委ねる。
+ *
+ * #1368 `legal/*`（ガイドライン / 利用規約 / プライバシーポリシー / 著作権）は **載せる**。
+ * `auth/login` を外したのと逆の判断で、理由は「人間が入口として踏むか」の一点。
+ * 法務ページはストア審査・問い合わせ・外部サイトからのリンク先として直接踏まれ、
+ * 検索でも「<アプリ名> プライバシーポリシー」で探される。クエリにもログイン状態にも依存せず、
+ * 8 ロケール分の実体が prerender される（`app/[locale]/legal/[doc].tsx` の generateStaticParams）。
+ * 一覧を手で書かず `LEGAL_SITEMAP_ROUTES` から展開しているのは、文書を増やしたときに
+ * ルートだけ増えて sitemap が置いていかれるのを防ぐため（このファイル冒頭の方針と同じ）。
+ *
+ * #1368 【既知の状態】**文書の実体は ja-JP と en-US の 2 ロケールだけ**で、他の 6 ロケールは
+ * 英語へフォールバックする（features/settings/components/LegalDocument.tsx の `locale in
+ * legalDocuments ? ... : legalDocuments["en-US"]`）。つまりここで展開している 32 URL のうち
+ * 24 本は en-US と同一本文を返しつつ、hreflang では「ko-KR 版だ」と宣言することになる。
+ * 翻訳が入るまでの既知の不一致として記録しておく（Search Console では
+ * "Duplicate without user-selected canonical" として出る見込み）。
+ * 翻訳を入れるか、実体のあるロケールへ展開を絞るかは、翻訳の予定が決まってから判断する。
  */
-export const SITEMAP_ROUTES = ["search", "map", "review", "review/selectRestaurant"] as const;
+export const SITEMAP_ROUTES: readonly string[] = [
+	"search",
+	"map",
+	"review",
+	"review/selectRestaurant",
+	...LEGAL_SITEMAP_ROUTES,
+];
 
 /**
  * #721 【重要】ロケールのトップ（`""` = `/en-US` など）は**意図的に外している**。

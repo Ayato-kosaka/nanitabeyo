@@ -6,6 +6,7 @@ import { ReviewPage } from "../../pages/ReviewPage";
 import { ProfilePage } from "../../pages/ProfilePage";
 import { SettingsPage } from "../../pages/SettingsPage";
 import { LoginPage } from "../../pages/LoginPage";
+import { LegalPage } from "../../pages/LegalPage";
 import { TabBar } from "../../pages/TabBar";
 import { captureScreen, captureScreenIfReachable, getScreen } from "../../utils/catalog";
 
@@ -227,24 +228,34 @@ test.describe("UI カタログ（匿名） @catalog", () => {
 	});
 
 	// ─ 設定とその配下 ─
-	test("設定（メニュー・リーガルモーダル・フィードバック・ブロック済みトピック）", async ({ appPage }) => {
+	// #1368 リーガル文書はモーダルではなく `/[locale]/legal/<doc>` ルートになったため、
+	// カタログの ID も URL 準拠（legal-terms / legal-privacy）へ張り替えてある
+	test("設定（メニュー・法務ドキュメント・フィードバック・ブロック済みトピック）", async ({ appPage }) => {
 		const settingsPage = new SettingsPage(appPage);
+		const legalPage = new LegalPage(appPage);
 
 		await settingsPage.goto();
 		await settingsPage.expectLoaded();
 		await captureScreen(appPage, "profile-settings");
 
-		await captureScreenIfReachable(appPage, "profile-settings-terms-modal", async () => {
+		// 実導線（設定の行）から遷移する。URL 直リンクでも同じ画面に着くが、
+		// 「設定から開ける」ことまでカタログの撮影経路に含めておく
+		await captureScreenIfReachable(appPage, "legal-terms", async () => {
 			await settingsPage.termsItem.click();
-			await expect(appPage.getByTestId("legal-document-modal")).toBeVisible();
+			await legalPage.expectOpened("terms");
 		});
 
-		await captureScreenIfReachable(appPage, "profile-settings-privacy-modal", async () => {
-			// モーダルを閉じる導線に testID が無いため、画面を開き直して別の文書を開く
-			await settingsPage.goto();
+		await captureScreenIfReachable(appPage, "legal-privacy", async () => {
+			await legalPage.goBack();
 			await settingsPage.expectLoaded();
 			await settingsPage.privacyItem.click();
-			await expect(appPage.getByTestId("legal-document-modal")).toBeVisible();
+			await legalPage.expectOpened("privacy");
+		});
+
+		// 公開していない doc の落とし所（既定の文書へ倒さない）も 1 枚残す
+		await captureScreenIfReachable(appPage, "legal-not-found", async () => {
+			await gotoScreen(appPage, "legal-not-found");
+			await legalPage.expectNotFound();
 		});
 
 		await gotoScreen(appPage, "profile-feedback");

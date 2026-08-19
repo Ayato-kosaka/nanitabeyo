@@ -227,7 +227,22 @@ export function ReviewForm({
 		dismissKeyboardFirst: true,
 	});
 
-	// useBlurModal for legal documents
+	/*
+	  #1368 【設計】この 1 件だけ BlurModal のまま意図的に残してある。B 群の他 2 件
+	  （LoginForm / settings）は `/[locale]/legal/[doc]` ルートへ移したが、ここだけ移せない。
+
+	  理由: `Portal.Host` は `<Stack>` を包んでいる（app/[locale]/_layout.tsx）ので portal レイヤは
+	  常にナビゲータより «上» にある。この ReviewForm は `ReviewBlurModal` / `ReviewFormModal`
+	  （features/map/components/SelectedRestaurantDetails.tsx, FeedDishMediaViewer.tsx）の中で
+	  描かれる = portal の中なので、ここから法務ルートへ push すると遷移先が下に潜って触れない。
+	  かといって push 前にシートを閉じると、この画面は unmount され **入力中のレビューと
+	  `mediaState`（#1127 の実行世代つき）が丸ごと消える**。法務文書を読んで戻ってきたら
+	  書きかけが失われる、という退行になる。
+
+	  引き渡し先: ReviewForm 自体をルート化する D 群（地図・投稿）。**そのとき同時に
+	  `/[locale]/legal/[doc]` への push へ切り替えること。** ルートになれば親が portal ではなく
+	  なるので、上記の制約は両方とも消える。
+	*/
 	const {
 		BlurModal: LegalDocumentModal,
 		open: openLegalDocumentModal,
