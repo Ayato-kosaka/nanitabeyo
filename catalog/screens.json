@@ -938,36 +938,15 @@
 				}
 			},
 			"state": null,
-			"description": "アプリ唯一の店舗詳細（#1386 で地図タブの BlurModal 実装と統合）。「写真・動画を投稿」でレビュー投稿フォームへ、「入札する」で入札へ、レビュー / 入札の 2 タブと Google マップ導線を持つ。",
+			"description": "アプリ唯一の店舗詳細（#1386 で地図タブの BlurModal 実装と統合）。「写真・動画を投稿」でレビュー投稿フォームへ進み、レビュータブと Google マップ導線を持つ。#1411 で入札の導線（ボタン / タブ / 現在の入札額 / bid ルート）は決済が入るまで出さないことにした。",
 			"from": [
 				"店舗選択（レビュー投稿）",
 				"マップ（マーカー / POI / 場所検索）",
 				"検索結果フィードの店舗導線",
 				"URL 直リンク・共有リンク"
 			],
-			"to": ["レビュー投稿フォーム", "入札", "店舗のレビューフィード", "ログイン（ゲストが投稿を押したとき）"],
+			"to": ["レビュー投稿フォーム", "店舗のレビューフィード", "ログイン（ゲストが投稿を押したとき）"],
 			"note": "レストラン選択で POST /v1/restaurants が走る（同一 Place は upsert のため重複しない）。#1386 でルート化そのものの検証は e2e-web の tests/review/restaurant-routes.spec.ts / e2e-mobile の tests/review/restaurant-routes.test.ts が API モック・ディープリンクで持つ。"
-		},
-		{
-			"id": "review-restaurant-bid",
-			"name": "入札（店舗詳細）",
-			"route": "/[locale]/review/restaurant/[restaurantId]/bid",
-			"url": "/ja-JP/review/restaurant/e2e-catalog-restaurant/bid",
-			"platforms": {
-				"web": {
-					"capture": "auto",
-					"session": "anon"
-				},
-				"mobile": {
-					"capture": "auto",
-					"session": "anon"
-				}
-			},
-			"state": null,
-			"description": "店舗への入札金額を入れる画面（#1386 でモーダル z1300 からルートへ）。決済は未実装で、送信は成功ログのみのダミー。",
-			"from": ["店舗詳細"],
-			"to": ["店舗詳細（戻る / 送信後）"],
-			"note": "この画面は店舗データを読まない（restaurantId はログと戻り先にだけ使う）ため、カタログはダミー id の直リンクで撮る。"
 		},
 		{
 			"id": "review-post-form",
@@ -1028,9 +1007,9 @@
 			},
 			"state": null,
 			"description": "店舗詳細のレビュー一覧（グリッド）から開く全画面フィード（#1386 でモーダル z1100 からルートへ）。ログイン済みなら「この料理にレビューを書く」から既存メディアへのレビュー投稿へ進む。",
-			"from": ["店舗詳細（レビュー一覧のグリッド）"],
+			"from": ["URL 直リンク（#1418 でアプリ内の導線からは外した）"],
 			"to": ["既存メディアからのレビュー投稿", "店舗詳細（×）"],
-			"note": "実在する restaurantId と、その店舗に紐づく料理メディアが必要なため自動取得の対象外（0 件だと «見るものが無い» 表示になる）。"
+			"note": "実在する restaurantId と、その店舗に紐づく料理メディアが必要なため自動取得の対象外（0 件だと «見るものが無い» 表示になる）。#1418 でアプリ内の導線からは外したため、いまは URL 直リンクでしか着地しない。"
 		},
 		{
 			"id": "review-from-media",
@@ -1049,7 +1028,7 @@
 			},
 			"state": null,
 			"description": "既に登録されている料理メディアに対して自分のレビューを追加するフォーム。",
-			"from": ["店舗のレビューフィード（この料理にレビューを書く）"],
+			"from": ["店舗詳細（レビュー一覧のグリッド）", "店舗のレビューフィード（この料理にレビューを書く）"],
 			"to": ["投稿完了後のレビュー詳細（review/post/[id]）"],
 			"note": "#1386 で入口が «店舗詳細のグリッド直押し» から «フィードの CTA» へ変わった。実在する restaurantId と dishMediaId が必要なため自動取得の対象外。"
 		},
@@ -1427,12 +1406,7 @@
 		},
 		{
 			"from": "review-restaurant-detail",
-			"to": "review-restaurant-bid",
-			"label": "入札する"
-		},
-		{
-			"from": "review-restaurant-detail",
-			"to": "review-restaurant-feed",
+			"to": "review-from-media",
 			"label": "レビューのグリッドを押す"
 		},
 		{

@@ -7,14 +7,16 @@
 **bid と feed の `pathname` を入れ替えても 648 件すべて緑のまま**であることが実測された。
 「入札するを押すとフィードが開き、料理を押すと入札画面が開く」状態を誰も見ていない。
 
-`restaurant-detail-place-bid-button` は e2e-web が `toHaveURL(/\/bid$/)` で拾うので実質守られて
-いたが、**グリッド押下 → フィード**は web / mobile とも直リンク着地でしか触っておらず、
-`initialIndex` を渡す経路は完全に無防備だった。ここは本 PR で唯一 «意味が変わった» 導線
+**グリッド押下 → フィード**は web / mobile とも直リンク着地でしか触っておらず、
+`initialIndex` を渡す経路は完全に無防備だった。ここは #1386 で唯一 «意味が変わった» 導線
 （旧レビュー側はグリッド押下で `review-from-media` へ直行していた）なので、
 変わった先をユニットで固定する。
 
+#1411 で入札の導線は削除した（下の «入札の導線を描かない» を参照）ので、
+残る行き先はレビュー投稿とフィードの 2 本である。
+
 ログイン導線（ゲストの `next`）は `__tests__/loginEntryPoints.test.tsx` が持っているので、
-このファイルは非ゲストの 3 本に絞る。
+このファイルは非ゲストに絞る。
 
 ## 方針
 `router.push` の引数だけを観測する。周辺（タブの中身・画像・API）はすべてスタブへ落とし、
@@ -114,7 +116,6 @@ jest.mock("@/features/map/components/tabs/RestaurantReviewsTab", () => {
 			}),
 	};
 });
-jest.mock("@/features/map/components/tabs/RestaurantBidsTab", () => ({ RestaurantBidsTab: () => null }));
 
 // ルート本体の検証で使う。API の応答をテストごとに差し替える
 const mockCallBackend = jest.fn();
@@ -168,39 +169,50 @@ beforeEach(() => {
 });
 
 describe("#1388 店詳細ルートの push 先", () => {
-	it("「入札する」は bid ルートへ push する", async () => {
+	/*
+	#1411 【バグ】入札の導線は公開アプリに出してはいけない。
+
+	#1386 の統合で map 側から持ち込んだが、map タブは `href: null` で到達不能だったため
+	入札は事実上出ていなかった。統合先のレビュー側は到達可能なので «復活» させてしまっていた。
+	決済は未実装（bid.tsx の送信は 2 秒待つダミー）。
+
+	⚠️ ここが赤くなったら入札ボタンが復活している。リリースブランチには出せない。
+	*/
+	it("入札の導線を描かない（決済が未実装のため出してはいけない）", async () => {
 		const tree = await render(<SelectedRestaurantDetails restaurantEntry={restaurantEntry} />);
 
-		await press(tree, "restaurant-detail-place-bid-button");
-
-		expect(mockPush).toHaveBeenCalledWith({
-			pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]/bid",
-			params: { locale: "ja-JP", restaurantId: RESTAURANT_ID },
-		});
+		expect(tree.root.findAll((node) => node.props?.testID === "restaurant-detail-place-bid-button")).toHaveLength(0);
 	});
 
-	// #1386 で «意味が変わった» 唯一の導線。旧レビュー側はここから review-from-media へ直行していた
-	it("レビューのグリッド押下は feed ルートへ push する", async () => {
+	/*
+	#1418 【バグ】グリッド押下は `review-from-media` へ **直行**する。
+
+	#1386 で feed を挟んだが、それは «押下 1 回» を «押下 2 回» にする劣化だった。
+	さらに feed の「この料理にレビューを書く」は `!isGuestUser(user)` で出ないので、
+	**ゲストはこの機能へ到達する手段を完全に失っていた**。
+
+	⚠️ ここが `feed` に戻ったら、ゲストの導線がもう一度消える。
+	*/
+	it("レビューのグリッド押下は review-from-media ルートへ直行する", async () => {
 		const tree = await render(<SelectedRestaurantDetails restaurantEntry={restaurantEntry} />);
 
 		await press(tree, "reviews-tab-item");
 
-		expect(mockPush).toHaveBeenCalledWith(
+		expect(mockPush).toHaveBeenCalledWith({
+			pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]/review-from-media/[dishMediaId]",
+			params: { locale: "ja-JP", restaurantId: RESTAURANT_ID, dishMediaId: "dish-media-7" },
+		});
+	});
+
+	// ⚠️ アプリ内から feed を開かないこと（#1414 B-3）。直リンクでしか着地しない画面である
+	it("グリッド押下で feed ルートへは行かない", async () => {
+		const tree = await render(<SelectedRestaurantDetails restaurantEntry={restaurantEntry} />);
+
+		await press(tree, "reviews-tab-item");
+
+		expect(mockPush).not.toHaveBeenCalledWith(
 			expect.objectContaining({ pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]/feed" }),
 		);
-	});
-
-	// ⚠️ initialIndex を落とすと «押した料理» ではなく先頭から開く。
-	// 押下位置は onItemPress の第 1 引数でしか伝わらないので、文字列化まで含めて固定する
-	it("feed へは押した位置を initialIndex として渡す", async () => {
-		const tree = await render(<SelectedRestaurantDetails restaurantEntry={restaurantEntry} />);
-
-		await press(tree, "reviews-tab-item");
-
-		expect(mockPush).toHaveBeenCalledWith({
-			pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]/feed",
-			params: { locale: "ja-JP", restaurantId: RESTAURANT_ID, initialIndex: "3" },
-		});
 	});
 
 	// 非ゲストの投稿導線。ゲストの `next` は loginEntryPoints.test.tsx が持つ
@@ -237,7 +249,9 @@ describe("#1388 店詳細ルートのヘッダーは取得結果に依存しな�
 		expect(
 			tree.root.findAll((node) => node.props?.testID === "restaurant-detail-screen-title", { deep: false }),
 		).toHaveLength(1);
-		expect(tree.root.findAll((node) => node.props?.testID === "restaurant-detail-screen-back", { deep: false })).toHaveLength(1);
+		expect(
+			tree.root.findAll((node) => node.props?.testID === "restaurant-detail-screen-back", { deep: false }),
+		).toHaveLength(1);
 	};
 
 	it("取得に成功したとき", async () => {

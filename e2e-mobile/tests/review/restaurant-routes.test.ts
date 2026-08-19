@@ -3,7 +3,6 @@ import { strict as assert } from "node:assert";
 import { device, launchAppWithSession, localeDeepLink } from "../../fixtures/e2e";
 import { DishCategorySelectScreen } from "../../screens/DishCategorySelectScreen";
 import { ReviewScreen } from "../../screens/ReviewScreen";
-import { RestaurantBidScreen } from "../../screens/RestaurantBidScreen";
 import { RestaurantDetailScreen } from "../../screens/RestaurantDetailScreen";
 import { RestaurantFeedScreen } from "../../screens/RestaurantFeedScreen";
 
@@ -67,34 +66,6 @@ describe("店舗詳細のルート（#1386）", () => {
 		// 履歴が無い着地なので、戻る導線はレビュータブ（このスタックの根）への replace に倒れる。
 		// 匿名セッションなのでゲスト表示になる
 		await reviewScreen.expectGuestViewLoaded();
-	});
-
-	// ─ テストケース: 入札はルートで、戻る操作で店舗詳細へ帰る ─
-	// #1386 旧実装は `BidBlurModal`（手動 zIndex 1300）。ハードウェアバックは
-	// useBlurModal の BackHandler が食っていた。
-	// 手順:
-	//   1. nanitabeyo:///ja-JP/review/restaurant/<id>/bid へ直接着地する
-	//   2. 入札画面のタイトルが出ることを検証
-	//   3. Android はハードウェアバック / iOS はヘッダーの戻るボタンで離脱する
-	//   4. 履歴が無いので店舗詳細へ倒れることを検証
-	it("入札はディープリンクで着地でき、戻ると店舗詳細へ倒れる", async () => {
-		const bidScreen = new RestaurantBidScreen();
-		const detailScreen = new RestaurantDetailScreen();
-
-		await launchAppWithSession({
-			as: "anon",
-			url: localeDeepLink(`review/restaurant/${UNKNOWN_RESTAURANT_ID}/bid`),
-			waitForReady: false,
-		});
-		await bidScreen.expectOpened();
-
-		if (device.getPlatform() === "android") {
-			await device.pressBack();
-		} else {
-			await bidScreen.goBack();
-		}
-
-		await detailScreen.expectOpened();
 	});
 
 	// ─ テストケース: 料理カテゴリ選択がルートで開け、戻る操作で離脱できる ─

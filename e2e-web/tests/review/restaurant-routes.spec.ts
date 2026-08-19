@@ -40,94 +40,47 @@ test.describe("店舗詳細のルート（#1386）", () => {
 	// 手順:
 	//   1. 店舗取得 API をモックして /ja-JP/review/restaurant/<id> へ直接遷移する
 	//   2. URL が店舗詳細のままで、タイトルと 3 つの導線が表示されることを検証
-	test("直リンクで開き、統合後の 3 導線がすべて出る", async ({ appPage }) => {
+	test("直リンクで開き、統合後の 2 導線が出る（入札は出ない）", async ({ appPage }) => {
 		const detailPage = new RestaurantDetailPage(appPage);
 		await mockRestaurantDetail(appPage);
 
 		await detailPage.goto();
 		await detailPage.expectOpened();
 
-		// #1386 統合で «地図側にしか無かった» 2 つ（入札・Google マップ）が
-		// レビュー側の投稿ボタンと同じ画面に並ぶ。落とすとここで気付ける
+		// #1386 統合で «地図側にしか無かった» Google マップがレビュー側の投稿ボタンと同じ画面に並ぶ
 		await expect(detailPage.postPhotoButton).toBeVisible();
-		await expect(detailPage.placeBidButton).toBeVisible();
 		await expect(detailPage.googleMapsButton).toBeVisible();
 		await expect(appPage.getByText(MOCK_RESTAURANT_NAME)).toBeVisible();
-	});
 
-	// ─ テストケース: 入札はルートで、戻ると店舗詳細へ帰る ─
-	// #1386 旧実装は BidBlurModal（手動 zIndex 1300）。URL は変わらなかった。
-	// 手順:
-	//   1. 店舗詳細を開く
-	//   2. 「入札する」を押し、URL が /bid へ変わることを検証
-	//   3. ヘッダーの戻るボタンで店舗詳細へ帰ることを検証
-	test("入札はルートへ push され、戻ると店舗詳細へ帰る", async ({ appPage }) => {
-		const detailPage = new RestaurantDetailPage(appPage);
-		await mockRestaurantDetail(appPage);
-
-		await detailPage.goto();
-		await detailPage.expectOpened();
-
-		await detailPage.placeBidButton.click();
-		await detailPage.expectBidOpened();
-
-		await detailPage.goBackFromBid();
-		await detailPage.expectOpened();
+		// #1411 【バグ】入札の導線は決済が未実装なので **出してはいけない**。
+		// #1386 の統合で地図側から «機能を落とさない» つもりで持ち込んだが、地図タブは
+		// `href: null` で到達不能だったため、これは復活であって移設ではなかった。
+		await expect(detailPage.placeBidButton).toHaveCount(0);
 	});
 
 	// ─ テストケース: ブラウザバックでも店舗詳細へ戻る ─
 	// #1386 【設計】戻る責務を Navigator へ渡したこと自体の検証。モーダル時代は
 	// ブラウザバックがモーダルを閉じずにタブごと戻していた（URL が変わらないため）。
+	// #1411 で入札の導線を落としたので、店舗詳細から «アプリ内 push» で出る唯一の経路である
+	// ゲストの投稿導線（→ ログイン）で見る。ここで欲しいのは「push した先からブラウザバックで
+	// 戻れる」ことなので、行き先が入札である必要は無い。
 	// 手順:
-	//   1. 店舗詳細から入札を開く
+	//   1. 店舗詳細からログイン画面へ push する
 	//   2. ブラウザバックする
 	//   3. 店舗詳細へ戻ることを検証
-	test("ブラウザバックで入札から店舗詳細へ戻る", async ({ appPage }) => {
+	test("ブラウザバックで push 先から店舗詳細へ戻る", async ({ appPage }) => {
 		const detailPage = new RestaurantDetailPage(appPage);
+		const loginPage = new LoginPage(appPage);
 		await mockRestaurantDetail(appPage);
 
 		await detailPage.goto();
-		await detailPage.placeBidButton.click();
-		await detailPage.expectBidOpened();
+		await detailPage.expectOpened();
+
+		await detailPage.postPhotoButton.click();
+		await loginPage.expectOpened();
 
 		await appPage.goBack();
 		await detailPage.expectOpened();
-	});
-
-	// ─ テストケース: 入札へ直リンクで着地しても行き止まりにならない ─
-	// #1386 【設計】履歴が無い着地では `router.back()` が «何も起きない» ので、
-	// 戻るは店舗詳細への replace に倒れる。
-	//
-	// ⚠️ `appPage` フィクスチャは使わないこと（#1404）。あれは起動確認のために `goto("/")` を
-	// 済ませているので、そこから子ルートへ行くと **アプリ内の履歴が 1 つ積まれている**。
-	// その状態では `canGoBack()` が true になり、戻るは «直前に見ていた検索画面» へ帰る
-	//（それはそれで正しい挙動）。ここで守りたいのは «共有リンクを新しいタブで開いた» 側。
-	// 実際 E2E Web run 32243079269 では、これを混同していたため /ja-JP/search へ倒れて落ちた。
-	//
-	// ⚠️ これは `(tabs)` 配下のルートに限った話である。同 run で `legal.spec.ts` の
-	// 「直リンク着地から戻ると設定画面へ倒れる」は `appPage` のまま緑だった。
-	// `/legal/[doc]` は `(tabs)` の外にあるため `canGoBack()` が false になるからで、
-	// あちらを同じように書き換える必要は無い。
-	//
-	// ⚠️ 素の `page` フィクスチャを使うこと。あれは `context.newPage()` そのもので、
-	// **`goto` を一度もしていない**ので目的を満たす。`browser.newContext()` で自作すると、
-	// `fixtures/test.ts` の `context` が張る `addInitScript`（チュートリアル既読のシード）と
-	// `page` に張った `consoleErrors` の収集が両方とも外れる（PR #1405 のレビューで実測）。
-	//
-	// 手順:
-	//   1. 新しいページ（履歴なし）で /ja-JP/review/restaurant/<id>/bid へ直接着地する
-	//   2. ヘッダーの戻るボタンを押す
-	//   3. 店舗詳細へ着地することを検証
-	test("入札へ直リンク着地から戻ると店舗詳細へ倒れる", async ({ page }) => {
-		const detailPage = new RestaurantDetailPage(page);
-		await mockRestaurantDetail(page);
-
-		await detailPage.gotoSub("bid");
-		await detailPage.expectBidOpened();
-
-		await detailPage.goBackFromBid();
-		await expect(page).toHaveURL(new RegExp(`${restaurantDetailPath()}(\\?.*)?$`));
-		await expect(detailPage.title).toBeVisible();
 	});
 
 	// ─ テストケース: 料理カテゴリ選択がルートで開ける ─
@@ -149,12 +102,38 @@ test.describe("店舗詳細のルート（#1386）", () => {
 
 	// ─ テストケース: フィードがルートで開け、閉じると店舗詳細へ倒れる ─
 	// #1386 旧実装は RestaurantReviewsTab の DishMediaModal（既定 z1100 = 親と同値）。
+	//
+	// #1411 【設計】これは «履歴が無い着地では router.back() が何も起きないので、
+	// 離脱は親への replace に倒れる» ことを見る唯一のテストでもある。
+	// #1411 まではこれを入札ルートでも見ていたが、入札を消したのでここ 1 本になった。
+	//
+	// ⚠️ 料理カテゴリ選択（dish-category）へ移してはいけない。あの画面の replace 先は
+	// **投稿フォーム**（`.../review`）で、投稿フォームはマウント時にメディア選択を開き、
+	// 選ばれなければそのまま離脱する。結果 URL は検索タブへ流れる（実測: E2E Web run
+	// 32307163377 で `/ja-JP/search` を受け取って落ちた）。倒れ先が店舗詳細なのは
+	// **フィードだけ**である。
+	//
 	// 手順:
 	//   1. /ja-JP/review/restaurant/<id>/feed へ直接遷移する（料理メディアは 0 件のモック）
 	//   2. フィード画面が開き、«見るものが無い» 表示になることを検証
 	//      （0 件でもスピナーで固着しないこと自体が検証対象）
 	//   3. × で閉じると、履歴が無いので店舗詳細へ倒れることを検証
-	// ⚠️ 3 も «履歴なし» が前提なので、直リンクのテストと同じく素の `page` を使う（#1404）
+	// ⚠️ 3 は «履歴なし» が前提なので、`appPage` フィクスチャは使わないこと（#1404）。
+	// あれは起動確認のために `goto("/")` を済ませているので、そこから子ルートへ行くと
+	// **アプリ内の履歴が 1 つ積まれている**。その状態では `canGoBack()` が true になり、
+	// 戻るは «直前に見ていた検索画面» へ帰る（それはそれで正しい挙動）。ここで守りたいのは
+	// «共有リンクを新しいタブで開いた» 側。実際 E2E Web run 32243079269 では、これを混同して
+	// いたため /ja-JP/search へ倒れて落ちた。
+	//
+	// ⚠️ これは `(tabs)` 配下のルートに限った話である。同 run で `legal.spec.ts` の
+	// 「直リンク着地から戻ると設定画面へ倒れる」は `appPage` のまま緑だった。
+	// `/legal/[doc]` は `(tabs)` の外にあるため `canGoBack()` が false になるからで、
+	// あちらを同じように書き換える必要は無い。
+	//
+	// ⚠️ 素の `page` フィクスチャを使うこと。あれは `context.newPage()` そのもので、
+	// **`goto` を一度もしていない**ので目的を満たす。`browser.newContext()` で自作すると、
+	// `fixtures/test.ts` の `context` が張る `addInitScript`（チュートリアル既読のシード）と
+	// `page` に張った `consoleErrors` の収集が両方とも外れる（PR #1405 のレビューで実測）。
 	test("フィードは独立したルートで、閉じると店舗詳細へ倒れる", async ({ page }) => {
 		const detailPage = new RestaurantDetailPage(page);
 		await mockRestaurantDetail(page);

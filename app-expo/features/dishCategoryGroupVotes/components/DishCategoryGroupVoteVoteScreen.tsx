@@ -239,7 +239,12 @@ export function DishCategoryGroupVoteVoteScreen({ shareToken }: Props) {
 				// #1358 閉じる導線を持たせない（＝ onRequestClose を渡さない）のは旧実装の
 				// closeOnBackdropPress:false / backHandlerEnabled:false / showCloseButton:false と同じ意図。
 				// 投票を全部終えた後に戻れる先はこの画面には無く、送信するかタブを離れるかしかない
-				<DishCategoryGroupVoteInlineOverlay contentContainerStyle={styles.completionContent}>
+				// #1415 この画面は «背景» がほとんど無く（カードが全面を占める）、閉じる導線も持たない。
+				// 名前とコメントを打った後にキーボードを引っ込める手段が «送信を押す» しか無かったので、
+				// カードを押したらキーボードだけ閉じるようにする
+				<DishCategoryGroupVoteInlineOverlay
+					contentContainerStyle={styles.completionContent}
+					dismissKeyboardOnContentPress>
 					<DishCategoryGroupVoteCompletionModal
 						usedDisplayNames={usedDisplayNames}
 						isSubmitting={isSubmitting}
