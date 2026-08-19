@@ -213,8 +213,109 @@ describe('buildMyDishesPageQuery が組み立てる SQL', () => {
     });
 
     expect(sql).toContain('AND d.category_id = ANY(');
-    expect(sql).toContain('AND sd.saved_at >=');
+    // eaten は dish_reviews 実体に対して絞る
+    expect(sql).toContain('AND dr.created_at >=');
     expect(sql).toContain('AND dr.created_at <=');
+    // want は reactions 実体（my_save_ids）に対して絞る（M-a）
+    const fence = sql.slice(
+      sql.indexOf('my_save_ids AS MATERIALIZED ('),
+      sql.indexOf('my_saved_dishes AS MATERIALIZED ('),
+    );
+    expect(fence).toContain('AND created_at >=');
+    expect(fence).toContain('AND created_at <=');
+  });
+
+  /* ---------------- M-a: want 枝も reactions 実体の側で削る ---------------- */
+
+  it('want 枝にも keyset と LIMIT が入る（マージ後だけに頼らない）', () => {
+    const cursor = decodeMyDishCursor(
+      '-occurredAt',
+      encodeMyDishCursor('-occurredAt', {
+        row_key: 'dish:33333333-3333-3333-3333-333333333333',
+        occurred_at: new Date('2026-08-17T09:30:00.000Z'),
+        rating: null,
+        distance_meters: null,
+        feature_score: null,
+      }),
+    );
+
+    const sql = buildSql({ limit: 10 }, cursor);
+    const [wantBranch] = sql.split('UNION ALL');
+
+    // want 枝の内側に keyset 述語がある
+    expect(wantBranch).toContain(') w WHERE (occurred_at, row_key) <');
+    // want 枝の内側で ORDER BY + LIMIT まで済ませる
+    expect(wantBranch).toContain('ORDER BY occurred_at DESC, row_key DESC LIMIT');
+    // want / eaten / page の 3 箇所に limit+1 を渡す
+    expect(lastQuery!.values.filter((v) => v === 11)).toHaveLength(3);
+  });
+
+  it('昇順ページングの keyset は my_save_ids（reactions 実体）へ押し込む', () => {
+    const cursor = decodeMyDishCursor(
+      'occurredAt',
+      encodeMyDishCursor('occurredAt', {
+        row_key: 'dish:33333333-3333-3333-3333-333333333333',
+        occurred_at: new Date('2026-08-17T09:30:00.000Z'),
+        rating: null,
+        distance_meters: null,
+        feature_score: null,
+      }),
+    );
+
+    const sql = buildSql({ sort: 'occurredAt' }, cursor);
+    const fence = sql.slice(
+      sql.indexOf('my_save_ids AS MATERIALIZED ('),
+      sql.indexOf('my_saved_dishes AS MATERIALIZED ('),
+    );
+
+    // idx_reactions_profile_cursor (user_id, target_type, action_type, created_at DESC, id) に
+    // 範囲を食わせる。ここで削らないと毎ページ save 全件のソートが走る
+    expect(fence).toContain('AND created_at >=');
+  });
+
+  it('降順ページングの上限は my_save_ids へ押し込まない（代表 save がずれて行が重複するため）', () => {
+    const cursor = decodeMyDishCursor(
+      '-occurredAt',
+      encodeMyDishCursor('-occurredAt', {
+        row_key: 'dish:33333333-3333-3333-3333-333333333333',
+        occurred_at: new Date('2026-08-17T09:30:00.000Z'),
+        rating: null,
+        distance_meters: null,
+        feature_score: null,
+      }),
+    );
+
+    const sql = buildSql({}, cursor);
+    const fence = sql.slice(
+      sql.indexOf('my_save_ids AS MATERIALIZED ('),
+      sql.indexOf('my_saved_dishes AS MATERIALIZED ('),
+    );
+
+    // DISTINCT ON が選ぶ代表 save は「その dish の最新 save」なので、
+    // 上限を押し込むと 2 ページ目で代表が古い save に化け、同じ dish が再び出てしまう
+    expect(fence).not.toContain('AND created_at <=');
+  });
+
+  it('status=eaten だけなら save 全件の CTE を組み立てない', () => {
+    const sql = buildSql({ status: ['eaten'] });
+
+    // my_save_ids / my_saved_dishes を実体化しない（毎ページの全件ソートが消える）
+    expect(sql).not.toContain('my_save_ids AS MATERIALIZED (');
+    expect(sql).not.toContain('my_saved_dishes AS MATERIALIZED (');
+    expect(sql).not.toContain('FROM my_saved_dishes');
+    expect(sql).toContain('WITH page AS (');
+  });
+
+  it('savedAt はページ内の dish に限定した LATERAL で引く', () => {
+    const sql = buildSql({});
+
+    const afterPage = sql.slice(sql.indexOf('FROM page p'));
+    // my_saved_dishes 全体との join にすると status=eaten のときにも全件走査になる
+    expect(afterPage).not.toContain('LEFT JOIN my_saved_dishes');
+    expect(afterPage).toContain('SELECT MAX(sv.created_at) AS saved_at');
+    expect(afterPage).toContain('WHERE dsv.dish_id = p.dish_id');
+    // uuid -> text の向きにだけキャストする（text -> uuid は M-1 の事故）
+    expect(afterPage).toContain('sv.target_id = dsv.id::text');
   });
 
   it('scene / timeSlot は既存 dish_category_features のスコアで並び替える（絞り込まない）', () => {

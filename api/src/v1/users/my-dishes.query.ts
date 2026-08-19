@@ -331,12 +331,19 @@ export const RESTAURANT_COLUMNS_SQL = Prisma.sql`
  * **(4) ブロックは効かせない（m-6）**
  * `reactions(action_type='block')` は「勧めてくるな」であって「自分の記録を消せ」ではないので、
  * 推薦クエリの `blocked_categories` CTE をここへコピーしない。
+ *
+ * **(5) want 枝も `reactions` 実体の側で削る（M-a）**
+ * `my_save_ids` は `MATERIALIZED` なので、絞り込みを外側に置くと
+ * **毎ページ save 全件の読み出しと `DISTINCT ON` のソート**が走る。
+ * `from`/`to` と（押し込める向きの）カーソルを `my_save_ids` の内側へ移し、
+ * `idx_reactions_profile_cursor (user_id, target_type, action_type, created_at DESC, id)` に
+ * 範囲を食わせる。want 枝を組まないときは **CTE 自体を出力しない**（`ctes === null`）。
  */
 export function buildMyDishesCandidates(
   userId: string,
   dto: QueryMyDishesDto,
   options: { cursor: MyDishCursor | null; branchLimit: number | null },
-): { ctes: Prisma.Sql; candidates: Prisma.Sql } | null {
+): { ctes: Prisma.Sql | null; candidates: Prisma.Sql } | null {
   const sort: MyDishSort = dto.sort ?? '-occurredAt';
   const statuses: MyDishStatus[] = dto.status?.length
     ? dto.status
@@ -425,7 +432,46 @@ export function buildMyDishesCandidates(
       ? Prisma.empty
       : Prisma.sql`ORDER BY ${buildMyDishOrderBy(sort)} LIMIT ${options.branchLimit}`;
 
-  const ctes = Prisma.sql`
+  // ------------------------------------------------------------------
+  // #1395 M-a: want 枝の絞り込みを `reactions` 実体（フェンスの内側）へ押し込む。
+  //
+  // `my_save_ids` は `MATERIALIZED` なので、ここで削らなかったぶんは
+  // **毎ページ丸ごと読み出されて `DISTINCT ON` のソートに掛かる**。
+  //
+  // 押し込めるのは **`created_at` の下限側と、ページ間で動かない `to` の上限**だけである。
+  // `DISTINCT ON` が選ぶ代表 save は「その dish の最新 save」であり、
+  // - 下限（`from` / 昇順カーソル）は古い行しか落とさないので代表は動かない（落ちるのは dish ごと消える場合だけ）
+  // - `to` はページ間で動かないので、代表が「期間内の最新 save」に変わっても 1 回のページングの中で一貫する
+  //   （「期間内に save した dish を、その期間内の save 日で出す」という Calendar 向きの意味になる）
+  // 一方 **降順カーソルの上限（`-occurredAt` / `-rating`）は押し込めない**。
+  // 例: dish D を t=10 と t=5 の 2 メディアで save 済み。1 ページ目は代表 10 で D を返す。
+  // 2 ページ目でカーソル 7 を上限に押し込むと代表が 5 に化け、`(5) < (7)` を満たして **D が再び出る**。
+  // これを防ぐには「この dish に 7 より新しい save が無いか」を引く必要があり、
+  // 結局スキップしたはずの行を全部読むので、削減にならない。よって押し込まず、
+  // 降順の絞り込みは従来どおり枝の内側（`WHERE ${keyset} ... LIMIT`）で行う。
+  const saveBounds: Prisma.Sql[] = [];
+  if (dto.from) {
+    saveBounds.push(
+      Prisma.sql`AND created_at >= ${new Date(dto.from)}::timestamptz`,
+    );
+  }
+  if (dto.to) {
+    saveBounds.push(
+      Prisma.sql`AND created_at <= ${new Date(dto.to)}::timestamptz`,
+    );
+  }
+  if (options.cursor?.sort === 'occurredAt') {
+    // 昇順ページングの keyset は `(occurred_at, row_key) > (X, K)` なので `created_at >= X` が下限になる
+    saveBounds.push(
+      Prisma.sql`AND created_at >= ${options.cursor.occurredAt}::timestamptz`,
+    );
+  }
+  const saveBoundsSql = saveBounds.length
+    ? Prisma.join(saveBounds, ' ')
+    : Prisma.empty;
+
+  const ctes = includeWant
+    ? Prisma.sql`
     -- (1) 最適化フェンス。ここから外へ出るまで target_id は text のまま扱う
     my_save_ids AS MATERIALIZED (
       SELECT target_id, created_at
@@ -433,6 +479,7 @@ export function buildMyDishesCandidates(
       WHERE user_id = ${userId}::uuid
         AND target_type = 'dish_media'
         AND action_type = 'save'
+        ${saveBoundsSql}
     ),
     -- want 行は dish 単位に畳む。代表メディアは「最新の save 対象メディア」に固定する（m-7）
     my_saved_dishes AS MATERIALIZED (
@@ -443,7 +490,8 @@ export function buildMyDishesCandidates(
       FROM my_save_ids s
       JOIN dish_media dm ON dm.id = s.target_id::uuid
       ORDER BY dm.dish_id, s.created_at DESC, dm.id DESC
-    )`;
+    )`
+    : null;
 
   const wantBranch = Prisma.sql`
     SELECT * FROM (
@@ -468,7 +516,7 @@ export function buildMyDishesCandidates(
       )
       ${categoryFilter}
       ${areaFilter}
-      ${rangeFilter(Prisma.sql`sd.saved_at`)}
+      -- from/to は my_save_ids へ押し込み済み（M-a）。ここで重ねて絞らない
     ) w
     WHERE ${keyset}
     ${branchTail}`;
@@ -533,9 +581,11 @@ export function buildMyDishesPageQuery(
   if (!built) return null;
 
   const orderBy = buildMyDishOrderBy(sort);
+  // want 枝を組まないときは my_save_ids / my_saved_dishes を出力しない（M-a）
+  const cteHead = built.ctes ? Prisma.sql`${built.ctes},` : Prisma.empty;
 
   return Prisma.sql`
-  WITH ${built.ctes},
+  WITH ${cteHead}
   page AS (
     SELECT * FROM (${built.candidates}) u
     ORDER BY ${orderBy}
@@ -566,7 +616,23 @@ export function buildMyDishesPageQuery(
   JOIN dishes d      ON d.id = p.dish_id
   JOIN restaurants r ON r.id = d.restaurant_id
   -- 食べたい登録日は「食べた」行にも載せる（save reaction を消さないため保持できる）
-  LEFT JOIN my_saved_dishes ms ON ms.dish_id = p.dish_id
+  --
+  -- #1395 M-a: ここを my_saved_dishes 全体との join にすると、
+  -- **status=eaten だけを見ているときでも** ユーザーの save 全件が実体化される。
+  -- ページ内の dish（最大 limit+1 件）に限定した LATERAL で引き、
+  -- idx_reactions_user_target_id (user_id, target_id) と idx_dish_media_dish (dish_id) に載せる。
+  -- 値は my_saved_dishes.saved_at と同じ「その dish の最新 save 日時」で、
+  -- from/to の押し込みに引きずられない（表示用の値なので期間で切ってはいけない）。
+  LEFT JOIN LATERAL (
+    SELECT MAX(sv.created_at) AS saved_at
+    FROM dish_media dsv
+    JOIN reactions sv
+      ON sv.target_id = dsv.id::text
+     AND sv.user_id = ${userId}::uuid
+     AND sv.target_type = 'dish_media'
+     AND sv.action_type = 'save'
+    WHERE dsv.dish_id = p.dish_id
+  ) ms ON TRUE
   -- eaten で created_dish_media_id が NULL のときだけ、その dish の最新メディアへ落とす（m-7）
   LEFT JOIN LATERAL (
     SELECT dm2.id
@@ -603,8 +669,10 @@ export function buildMyDishMapPinsQuery(
   });
   if (!built) return null;
 
+  const cteHead = built.ctes ? Prisma.sql`${built.ctes},` : Prisma.empty;
+
   return Prisma.sql`
-  WITH ${built.ctes},
+  WITH ${cteHead}
   candidates AS MATERIALIZED (
     SELECT * FROM (${built.candidates}) u
   ),
@@ -627,8 +695,7 @@ export function buildMyDishMapPinsQuery(
     p.latest_occurred_at,
     dm.id                          AS media_id,
     dm.thumbnail_path              AS media_thumbnail_path,
-    dm.thumbnail_processing_status AS media_thumbnail_processing_status,
-    dm.thumbnail_external_url      AS media_thumbnail_external_url
+    dm.thumbnail_processing_status AS media_thumbnail_processing_status
   FROM pins p
   JOIN restaurants r ON r.id = p.restaurant_id
   -- ピンの代表メディアは「その店舗で最も新しい行」の代表メディアに固定する（m-7）
