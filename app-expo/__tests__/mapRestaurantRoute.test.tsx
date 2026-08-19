@@ -18,8 +18,9 @@ push より先にストアへ入れておけば遷移先は API を引かずに�
 ## portal を持たないこと
 `Portal.Host` は `<Stack>` を包んでいる（app/[locale]/_layout.tsx）ので、BlurModal を
 開いたまま push すると遷移先は portal の下に潜って見えず触れない（#1364 で実測）。
-地図がオーバーレイを 1 つも持たないことを `useBlurModal` の呼び出し有無で固定する
-（`__tests__/legalEntryPoints.test.tsx` と同じ形）。
+地図がオーバーレイを 1 つも持たないことを、react-native-paper の `<Portal>` が描かれるか否かで
+固定する（`__tests__/legalEntryPoints.test.tsx` と同じ形）。#1350 P6 で `features/blurModal` は
+撤去済みなので、観測点はモジュール名ではなく機構そのものに置いてある。
 
 `app/` 配下に置いたテストは expo-router がルートとして拾ってしまうため、ここに置いている。
 */
@@ -105,15 +106,28 @@ jest.mock("@/components/LoadingIndicator", () => ({ LoadingIndicator: () => null
 jest.mock("lucide-react-native", () => new Proxy({}, { get: () => () => null }));
 
 /**
- * useBlurModal のスタブ。
+ * `<Portal>` のスタブ。
  *
- * ⚠️ 呼ばれたこと «自体» が検証対象（ファイル冒頭のコメント参照）。
+ * ⚠️ 描かれたこと «自体» が検証対象。#1350 P6 で `features/blurModal` を撤去したので、
+ * この検査は «消えたモジュール名» ではなく BlurModal が使っていた **機構そのもの**
+ * （react-native-paper の `<Portal>`）を見る。
+ *
+ * ⚠️ ここが守るのは «**開いた** オーバーレイを持たないこと» だけである（#1389 のレビューで実測）。
+ * `{visible && <Portal>…}` のように閉じたまま置かれた Portal は描かれないので記録されない。
+ * «そもそも Portal を import しないこと» は静的検査
+ * （`scripts/assert-legacy-blur-modal-boundary.mjs` の許可リスト）が受け持つ。2 つで 1 組。
  */
-const mockUseBlurModal = jest.fn();
-jest.mock("@/features/blurModal/hooks/useBlurModal", () => ({
-	useBlurModal: () => {
-		mockUseBlurModal();
-		return { BlurModal: () => null, open: jest.fn(), close: jest.fn(), visible: false };
+const mockPortal = jest.fn();
+jest.mock("react-native-paper", () => ({
+	// Portal 以外は本物のまま通す。テーマ（constants/PaperTheme.ts の MD3DarkTheme）など、
+	// この画面が «今は» 使っていないだけの export を undefined にすると、将来 useThemeColor を
+	// 1 つ足しただけで «Portal と無関係な» TypeError で落ちるため
+	...jest.requireActual("react-native-paper"),
+	// children を返すのは #1358 の先例（DishCategoryGroupVoteResultScreen.test.tsx）に揃えたもの。
+	// null を返すと、将来 Portal の中身へアサーションを置いたときに «赤くならずに要素が消える» 側へ倒れる
+	Portal: ({ children }: { children?: unknown }) => {
+		mockPortal();
+		return children ?? null;
 	},
 }));
 
@@ -155,7 +169,7 @@ beforeEach(() => {
 	callOrder.length = 0;
 	mockPush.mockClear();
 	mockUpsert.mockClear();
-	mockUseBlurModal.mockClear();
+	mockPortal.mockClear();
 	// 周辺検索（GET v1/restaurants/search）は配列、店の作成（POST v1/restaurants）は単体を返す
 	mockCallBackend.mockReset();
 	mockCallBackend.mockImplementation((path: string) => Promise.resolve(path === "v1/restaurants" ? ENTRY : [ENTRY]));
@@ -200,11 +214,11 @@ describe("#1386 地図から店詳細ルートへの遷移", () => {
 	});
 
 	// #1386 地図がオーバーレイを持たなくなったこと自体の固定（ファイル冒頭のコメント参照）
-	it("地図は useBlurModal を呼ばない", async () => {
+	it("地図は Portal を 1 つも描かない", async () => {
 		const tree = await render(<MapScreen />);
 
 		await press(tree, "map-marker");
 
-		expect(mockUseBlurModal).not.toHaveBeenCalled();
+		expect(mockPortal).not.toHaveBeenCalled();
 	});
 });

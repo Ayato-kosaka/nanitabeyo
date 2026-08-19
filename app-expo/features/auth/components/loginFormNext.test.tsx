@@ -24,9 +24,6 @@ jest.mock("@/contexts/AuthProvider", () => ({
 
 jest.mock("@/hooks/useLogger", () => ({ useLogger: () => ({ logFrontendEvent: jest.fn() }) }));
 jest.mock("@/contexts/SnackbarProvider", () => ({ useSnackbar: () => ({ showSnackbar: jest.fn() }) }));
-jest.mock("@/features/blurModal/hooks/useBlurModal", () => ({
-	useBlurModal: () => ({ BlurModal: () => null, open: jest.fn(), close: jest.fn() }),
-}));
 jest.mock("@/features/settings/components/LegalDocument", () => ({ LegalDocument: () => null }));
 jest.mock("expo-image", () => ({ Image: () => null }));
 

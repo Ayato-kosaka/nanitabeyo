@@ -16,9 +16,13 @@ push の «引数» を見ているのは Playwright / Detox だけ、という�
 一方 #1368 で移した 2 箇所は、押した時点で開いている BlurModal を 1 つも持たない
 （LoginForm は /auth/login ルートの中身、settings はルートそのもの）。つまり守るべき不変条件は
 「順序」ではなく **「この 2 画面は portal を一切持たない」** ことである。
-そこで `useBlurModal` のスタブを «呼ばれたら記録する» 形にして、レンダー〜押下の間に
-1 度も呼ばれないことを固定する。将来この UI を再びオーバーレイの中へ入れる変更が入れば、
-`useBlurModal` の呼び出しが復活した時点でここが赤くなる。
+そこで react-native-paper の `<Portal>` のスタブを «描かれたら記録する» 形にして、
+レンダー〜押下の間に 1 度も描かれないことを固定する。#1350 P6 で `features/blurModal` は
+撤去済みなので、観測点は «消えたモジュール名» ではなくオーバーレイの **機構そのもの** に置いてある。
+将来この UI を再びオーバーレイの中へ入れる変更が入れば、その時点でここが赤くなる。
+ただし赤くなるのは «開いた» オーバーレイだけで、`{visible && <Portal>…}` のように
+閉じたまま置かれたものは描かれず捕まらない（#1389 のレビューで実測）。
+そこは `scripts/assert-legacy-blur-modal-boundary.mjs` が Portal の import を静的に見て塞いでいる。
 
 ## #1386 で足したもの
 1. **レビュー投稿フォームの 2 リンク**（#1368 から引き渡された最後の 1 件）は
@@ -99,16 +103,28 @@ jest.mock("lucide-react-native", () => new Proxy({}, { get: () => () => null }))
 jest.mock("react-native-markdown-display", () => "Markdown");
 
 /**
- * useBlurModal のスタブ。
+ * `<Portal>` のスタブ。
  *
- * ⚠️ 呼ばれたこと «自体» が検証対象。#1368 で移した 2 画面は portal を 1 つも持たない前提で
- * «閉じてから push» を省いているので、ここが呼ばれ始めたら前提が崩れている（冒頭のコメント参照）。
+ * ⚠️ 描かれたこと «自体» が検証対象。#1350 P6 で `features/blurModal` を撤去したので、
+ * この検査は «消えたモジュール名» ではなく BlurModal が使っていた **機構そのもの**
+ * （react-native-paper の `<Portal>`）を見る。
+ *
+ * ⚠️ ここが守るのは «**開いた** オーバーレイを持たないこと» だけである（#1389 のレビューで実測）。
+ * `{visible && <Portal>…}` のように閉じたまま置かれた Portal は描かれないので記録されない。
+ * «そもそも Portal を import しないこと» は静的検査
+ * （`scripts/assert-legacy-blur-modal-boundary.mjs` の許可リスト）が受け持つ。2 つで 1 組。
  */
-const mockUseBlurModal = jest.fn();
-jest.mock("@/features/blurModal/hooks/useBlurModal", () => ({
-	useBlurModal: () => {
-		mockUseBlurModal();
-		return { BlurModal: () => null, open: jest.fn(), close: jest.fn(), visible: false };
+const mockPortal = jest.fn();
+jest.mock("react-native-paper", () => ({
+	// Portal 以外は本物のまま通す。テーマ（constants/PaperTheme.ts の MD3DarkTheme）など、
+	// この画面が «今は» 使っていないだけの export を undefined にすると、将来 useThemeColor を
+	// 1 つ足しただけで «Portal と無関係な» TypeError で落ちるため
+	...jest.requireActual("react-native-paper"),
+	// children を返すのは #1358 の先例（DishCategoryGroupVoteResultScreen.test.tsx）に揃えたもの。
+	// null を返すと、将来 Portal の中身へアサーションを置いたときに «赤くならずに要素が消える» 側へ倒れる
+	Portal: ({ children }: { children?: unknown }) => {
+		mockPortal();
+		return children ?? null;
 	},
 }));
 
@@ -152,7 +168,7 @@ beforeEach(() => {
 	mockPush.mockClear();
 	mockReplace.mockClear();
 	mockBack.mockClear();
-	mockUseBlurModal.mockClear();
+	mockPortal.mockClear();
 	mockCanGoBack = true;
 	mockLocalParams = {};
 });
@@ -213,22 +229,23 @@ describe("#1368 リーガル導線を持つ 2 画面は portal を 1 つも持�
 	BlurModal は react-native-paper の `<Portal>` に全画面レイヤを描き、`Portal.Host` は
 	`<Stack>` を包んでいる（app/[locale]/_layout.tsx）ので、開いたまま push すると
 	法務ページは portal の下に潜って見えず触れない（#1364 で実測）。Android の戻るキーも
-	useBlurModal 側の BackHandler に食われる。
-	対処は features/map/components/SelectedRestaurantDetails.tsx と同じく
-	「close() を push より先に呼び、その順序をテストで固定する」こと。
+	オーバーレイ側の BackHandler に食われる。
+	対処は「close() を push より先に呼び、その順序をテストで固定する」こと（#1386 以前の
+	地図の店詳細がその形だった）。ただし今は push 元がどれもルートの中身なので、
+	そもそも portal を持ち込まないほうが正しい。
 	*/
-	it("設定画面は useBlurModal を呼ばない", async () => {
+	it("設定画面は Portal を 1 つも描かない", async () => {
 		const tree = await render(<SettingsScreen />);
 		await press(tree, "settings-terms");
 
-		expect(mockUseBlurModal).not.toHaveBeenCalled();
+		expect(mockPortal).not.toHaveBeenCalled();
 	});
 
-	it("ログインフォームは useBlurModal を呼ばない", async () => {
+	it("ログインフォームは Portal を 1 つも描かない", async () => {
 		const tree = await render(<LoginForm testID="login-screen" />);
 		await press(tree, "login-privacy-link");
 
-		expect(mockUseBlurModal).not.toHaveBeenCalled();
+		expect(mockPortal).not.toHaveBeenCalled();
 	});
 });
 

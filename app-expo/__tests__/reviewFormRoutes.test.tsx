@@ -20,8 +20,9 @@ BlurModal 時代、この 3 つはどれも `open()` という boolean の切り
 push すると遷移先は portal の下に潜って見えず触れない（#1364 で実測）。#1368 がこの 1 件を
 移せなかったのはそれが理由で、逆に «先に閉じる» と入力中のレビューと `mediaState`（#1127）が
 丸ごと消えた。つまりこのフォームで守るべき不変条件は **「オーバーレイを 1 つも持たない」** こと。
-`useBlurModal` のスタブを «呼ばれたら記録する» 形にして、それを固定する
-（`__tests__/legalEntryPoints.test.tsx` と同じ形）。
+react-native-paper の `<Portal>` のスタブを «描かれたら記録する» 形にして、それを固定する
+（`__tests__/legalEntryPoints.test.tsx` と同じ形）。#1350 P6 で `features/blurModal` は
+撤去済みなので、観測点はモジュール名ではなく機構そのものに置いてある。
 
 ## 料理カテゴリの «戻り値»
 選択画面はルートなので、結果はストア 1 件経由で戻る
@@ -126,15 +127,28 @@ jest.mock("@/stores/useDishMediaEntriesStore", () => ({
 jest.mock("@/features/dishMedia/components/DishMediaFeed", () => ({ __esModule: true, default: () => null }));
 
 /**
- * useBlurModal のスタブ。
+ * `<Portal>` のスタブ。
  *
- * ⚠️ 呼ばれたこと «自体» が検証対象（ファイル冒頭のコメント参照）。
+ * ⚠️ 描かれたこと «自体» が検証対象。#1350 P6 で `features/blurModal` を撤去したので、
+ * この検査は «消えたモジュール名» ではなく BlurModal が使っていた **機構そのもの**
+ * （react-native-paper の `<Portal>`）を見る。
+ *
+ * ⚠️ ここが守るのは «**開いた** オーバーレイを持たないこと» だけである（#1389 のレビューで実測）。
+ * `{visible && <Portal>…}` のように閉じたまま置かれた Portal は描かれないので記録されない。
+ * «そもそも Portal を import しないこと» は静的検査
+ * （`scripts/assert-legacy-blur-modal-boundary.mjs` の許可リスト）が受け持つ。2 つで 1 組。
  */
-const mockUseBlurModal = jest.fn();
-jest.mock("@/features/blurModal/hooks/useBlurModal", () => ({
-	useBlurModal: () => {
-		mockUseBlurModal();
-		return { BlurModal: () => null, open: jest.fn(), close: jest.fn(), visible: false };
+const mockPortal = jest.fn();
+jest.mock("react-native-paper", () => ({
+	// Portal 以外は本物のまま通す。テーマ（constants/PaperTheme.ts の MD3DarkTheme）など、
+	// この画面が «今は» 使っていないだけの export を undefined にすると、将来 useThemeColor を
+	// 1 つ足しただけで «Portal と無関係な» TypeError で落ちるため
+	...jest.requireActual("react-native-paper"),
+	// children を返すのは #1358 の先例（DishCategoryGroupVoteResultScreen.test.tsx）に揃えたもの。
+	// null を返すと、将来 Portal の中身へアサーションを置いたときに «赤くならずに要素が消える» 側へ倒れる
+	Portal: ({ children }: { children?: unknown }) => {
+		mockPortal();
+		return children ?? null;
 	},
 }));
 
@@ -178,7 +192,7 @@ const exists = (tree: TestRenderer.ReactTestRenderer, testID: string): boolean =
 
 beforeEach(() => {
 	mockPush.mockClear();
-	mockUseBlurModal.mockClear();
+	mockPortal.mockClear();
 	mockCreateDishCategoryVariant.mockClear();
 	useDishCategorySelectionStore.getState().clear();
 });
@@ -296,19 +310,19 @@ describe("#1386 投稿フローは portal を 1 つも持たない", () => {
 	そしてこのフォームでは «閉じてから push» が採れない（入力と mediaState が消える）。
 	つまり赤くなった時点で、設計をどちらかへ倒し直す判断が必要になる。
 	*/
-	it("レビュー投稿フォームは useBlurModal を呼ばない", async () => {
+	it("レビュー投稿フォームは Portal を 1 つも描かない", async () => {
 		const tree = await render(<ReviewForm restaurant={restaurant} onCancel={jest.fn()} />);
 		await press(tree, "review-dish-category-row");
 
-		expect(mockUseBlurModal).not.toHaveBeenCalled();
+		expect(mockPortal).not.toHaveBeenCalled();
 	});
 
-	it("フィードは useBlurModal を呼ばない", async () => {
+	it("フィードは Portal を 1 つも描かない", async () => {
 		const tree = await render(
 			<FeedDishMediaViewer initialIndex={0} entriesKey="mapReviews::restaurant-42" restaurantId={RESTAURANT_ID} />,
 		);
 		await press(tree, "restaurant-feed-write-review-button");
 
-		expect(mockUseBlurModal).not.toHaveBeenCalled();
+		expect(mockPortal).not.toHaveBeenCalled();
 	});
 });

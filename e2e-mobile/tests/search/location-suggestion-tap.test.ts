@@ -29,8 +29,10 @@ import { TopicsScreen } from "../../screens/TopicsScreen";
  * 修正はこの副作用を親から外し、キーボードを閉じる責務を **候補を押された子側**
  *（`LocationAutocomplete` / `DishCategoryAutocomplete` の `handleSuggestionPress`）へ移したもの。
  *
- * ⚠️ アプリ側の単体テスト（app-expo の `useBlurModal.test.tsx` / `LocationAutocomplete.test.tsx`）は
- * 「親がレスポンダを奪わない」「子が `Keyboard.dismiss()` を呼ぶ」という**実装の形**を固定している。
+ * ⚠️ アプリ側の単体テスト（app-expo の `LocationAutocomplete.test.tsx`）は
+ * 「子が `Keyboard.dismiss()` を呼ぶ」という**実装の形**を固定している。
+ *（対になっていた `useBlurModal.test.tsx` の「親がレスポンダを奪わない」ぶんは、
+ * #1350 P6 で BlurModal ごと撤去された。親そのものが居なくなったので固定対象も消えている）
  * ここで守るのはその 1 段上、**「ユーザーが候補を押したら地点が本当に確定する」**という結果である。
  * 実装の形が変わっても（例えば別の方法でキーボードを閉じるようになっても）、
  * 結果が壊れたときにだけ赤くなるのがこの spec の役割。
