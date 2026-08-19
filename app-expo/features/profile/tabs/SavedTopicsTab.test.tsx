@@ -76,7 +76,7 @@ describe("#1369 保存料理カテゴリのカードから地点検索へ", () =
 
 	it("カードを押すと地点検索ルートへ locale とトピックを載せて push する", async () => {
 		await act(async () => {
-			renderer = TestRenderer.create(<SavedTopicsTab isOwnProfile={true} />);
+			renderer = TestRenderer.create(<SavedTopicsTab />);
 		});
 
 		await act(async () => {
@@ -89,13 +89,5 @@ describe("#1369 保存料理カテゴリのカードから地点検索へ", () =
 			// label_en は遷移先が推薦 API へ渡す検索語。id だけにすると画面は開くが検索が成立しない
 			params: { locale: "ja-JP", topicId: "cat-1", topicLabelEn: "ramen" },
 		});
-	});
-
-	it("他人のプロフィールでは非公開表示になり、地点検索の入口を出さない", async () => {
-		await act(async () => {
-			renderer = TestRenderer.create(<SavedTopicsTab isOwnProfile={false} />);
-		});
-
-		expect(captured.onItemPress).toBeUndefined();
 	});
 });

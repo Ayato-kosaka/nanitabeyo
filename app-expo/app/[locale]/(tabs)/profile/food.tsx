@@ -1,24 +1,31 @@
-import React, { useMemo } from "react";
+import React from "react";
 import { useLocalSearchParams } from "expo-router";
 import DishMediaFeed from "@/features/dishMedia/components/DishMediaFeed";
-import { GroupName } from "@/features/profile/components/ProfileTabsBar";
-import { DishMediaEntry } from "@shared/api/v1/res";
+import { profileLikesEntriesKey } from "@/features/profile/tabs/LikeTab";
 import { IdType } from "@/stores/useDishMediaEntriesStore";
-// import { mockDishItems } from "@/data/searchMockData";
 
-// #519 【設計】フィルタ済みレビュー用のキー型を追加
-type FilteredReviewKey = "profile-filtered-reviews";
+/**
+ * マイページ由来のグリッドから開く全画面フィード。
+ *
+ * #1402 【設計】このルートへ push するのは «いいねした投稿»（features/profile/tabs/LikeTab）だけになった。
+ * 旧 ReviewTab（自分のレビュー）・SavedPostsTab（保存した投稿）からの導線は 4 グリッドタブごと廃止された。
+ *
+ * それに伴い #519 の `idType` 分岐（`tabName` が "reviews" / "profile-filtered-reviews" なら
+ * `dish_reviews`）も落としている。残った唯一の呼び出し元が積むキーは `profileLikes` で、
+ * これは `dish_media` 側のリストだから。ここへ `dish_reviews` 起点のグリッドを増やすときは、
+ * 分岐ごと戻すのではなく «キーと idType の対応表» を持たせること（取り違えると
+ * ストアから空の配列を引いて「開いたのに何も無い」になる）。
+ */
+type ProfileFeedKey = typeof profileLikesEntriesKey;
 
 export default function ProfileFoodScreen() {
 	const { startIndex, tabName } = useLocalSearchParams<{
 		startIndex?: string;
-		tabName?: GroupName | FilteredReviewKey;
+		tabName?: ProfileFeedKey;
 	}>();
 	const initialIndex = startIndex ? parseInt(String(startIndex), 10) : 0;
 
-	// #519 【設計】tabName に応じて idType を決定（"reviews" または "profile-filtered-reviews" は dish_reviews を使用）
-	const idType: IdType =
-		tabName === "reviews" || tabName === "profile-filtered-reviews" ? "dish_reviews" : "dish_media";
+	const idType: IdType = "dish_media";
 
 	return (
 		<DishMediaFeed
