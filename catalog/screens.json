@@ -1433,7 +1433,7 @@
 		{
 			"from": "review-restaurant-detail",
 			"to": "review-restaurant-feed",
-			"label": "みんなの投稿を開く"
+			"label": "レビューのグリッドを押す"
 		},
 		{
 			"from": "review-restaurant-feed",

@@ -114,45 +114,38 @@ export default function RestaurantDetailScreen() {
 		fetchRestaurant();
 	}, [restaurantId, callBackend, showSnackbar, logFrontendEvent]);
 
-	// #644 【設計】ローディング表示（キャッシュがない場合のみ）
-	if (isLoading && !restaurant) {
-		return (
-			<View style={styles.container}>
-				<ScreenHeader title={i18n.t("Review.restaurantDetail.title")} onPressBack={handleBack} />
-				<View style={styles.loadingContainer}>
-					<LoadingIndicator size="large" />
-				</View>
-			</View>
-		);
-	}
-
-	// #644 【設計】エラー表示（レストランが見つからない場合など）
-	if (error && !restaurant) {
-		return (
-			<View style={styles.container}>
-				<ScreenHeader title={i18n.t("Review.restaurantDetail.title")} onPressBack={handleBack} />
-				<View style={styles.errorContainer}>
-					<Text style={styles.errorText}>{i18n.t("Common.errors.notFound")}</Text>
-				</View>
-			</View>
-		);
-	}
-
-	if (!restaurant) {
-		return null;
-	}
-
+	// #1386 【設計】ヘッダーは «データの分岐の外» に 1 つだけ置く。
+	//
+	// 分岐ごとに ScreenHeader を書くと、戻る導線と観測点が取得結果に依存してしまう。
+	// 実際 #1388 のレビューで、loading / error 分岐にだけ testID が無く、
+	// e2e-mobile が「存在しない id で直リンクして器を見る」戦略（API モックが無いため
+	// そうするしかない。screens/RestaurantDetailScreen.ts 参照）を取れなくなっていた。
+	// 404 でも「戻れること」と「ここが店詳細ルートであること」は成り立つべきなので、
+	// ヘッダーを括り出して本文だけを差し替える。
+	//
+	// testID は e2e（web: pages/RestaurantDetailPage.ts / mobile: screens/RestaurantDetailScreen.ts）が
+	// 「ルートであること」を見るために使う。ScreenHeader は `${testID}-title` をタイトルへ付ける
 	return (
 		<View style={styles.container}>
-			{/* #1386 testID は e2e（web: pages/RestaurantDetailPage.ts / mobile: screens/RestaurantDetailScreen.ts）が
-			    「ルートであること」を見るために使う。ScreenHeader は `${testID}-title` をタイトルへ付ける */}
 			<ScreenHeader
 				title={i18n.t("Review.restaurantDetail.title")}
 				onPressBack={handleBack}
 				testID="restaurant-detail-screen"
 			/>
 
-			<SelectedRestaurantDetails restaurantEntry={restaurant} />
+			{/* #644 【設計】ローディング表示（キャッシュがない場合のみ） */}
+			{isLoading && !restaurant ? (
+				<View style={styles.loadingContainer}>
+					<LoadingIndicator size="large" />
+				</View>
+			) : /* #644 【設計】エラー表示（レストランが見つからない場合など） */
+			error && !restaurant ? (
+				<View style={styles.errorContainer}>
+					<Text style={styles.errorText}>{i18n.t("Common.errors.notFound")}</Text>
+				</View>
+			) : restaurant ? (
+				<SelectedRestaurantDetails restaurantEntry={restaurant} />
+			) : null}
 		</View>
 	);
 }

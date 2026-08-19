@@ -35,7 +35,7 @@ export function RestaurantReviewsTab({ restaurantId, onItemPress }: RestaurantRe
 	const entriesKey = useMemo(() => mapReviewsKey(restaurantId), [restaurantId]);
 	const fetchInitialByKey = useDishMediaEntriesStore((s) => s.fetchInitialByKey);
 	const fetchMoreByKey = useDishMediaEntriesStore((s) => s.fetchMoreByKey);
-	const { ids, isLoading, hasFetchedInitial } = useDishMediaEntriesStore(
+	const { ids, isLoading, hasFetchedInitial, error } = useDishMediaEntriesStore(
 		selectIdsByKey(entriesKey, "dish_media"),
 		shallow,
 	);
@@ -45,11 +45,18 @@ export function RestaurantReviewsTab({ restaurantId, onItemPress }: RestaurantRe
 	const fetcher = useRestaurantDishMediaFetcher(restaurantId);
 
 	// コンポーネントのマウント時、またはレストランIDが変更された時にデータを初期読み込み
+	//
+	// ⚠️ `!error` を必ず条件へ入れること。取得が失敗したときストアは `hasFetchedInitial` を
+	// false のまま `isLoading` を false へ戻すので（stores/useDishMediaEntriesStore.ts の
+	// handleAsyncAction）、error を見ないと **失敗するたびに再取得して無限ループする**。
+	// #1388 のレビュー指摘: 同じ entriesKey・同じ fetcher を使う feed ルート
+	// （app/[locale]/(tabs)/review/restaurant/[restaurantId]/feed.tsx）にはこのガードが
+	// 入っていたが、こちら側だけ抜けていた。«同じものが 2 つあって片方だけ直る» 形なので揃える
 	useEffect(() => {
-		if (restaurantId && !hasFetchedInitial && !isLoading) {
+		if (restaurantId && !hasFetchedInitial && !isLoading && !error) {
 			fetchInitialByKey(entriesKey, {}, fetcher);
 		}
-	}, [restaurantId, entriesKey, fetchInitialByKey, fetcher, hasFetchedInitial, isLoading]);
+	}, [restaurantId, entriesKey, fetchInitialByKey, fetcher, hasFetchedInitial, isLoading, error]);
 
 	// クリーンアップ用（entriesKey が変わる/アンマウント時だけ）
 	useEffect(() => {

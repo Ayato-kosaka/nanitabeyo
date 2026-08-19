@@ -199,7 +199,11 @@ describe("#1386 レビュー投稿フォームの料理カテゴリ選択", () =
 	// BlurModal 時代の `onMount`（開いた時点で選び直しになる）と同じ挙動を保つ。
 	// ⚠️ ここを落とすと「選択済みの名前が残ったまま別のカテゴリを選ぶ画面へ行く」ことになり、
 	// 何も選ばずに戻ったときに «古い名前 + 新しくは選んでいない» という食い違いが残る。
-	// 受け渡し箱も一緒に空にする（何も選ばずに戻ったときに前回の結果が蘇らないように）
+	//
+	// 受け渡し箱の `clear()` は «ここでは観測できない» ので検査しない（#1388 のレビュー）。
+	// consume effect が結果を受け取った瞬間に箱を空にするため、押下時点で常に null であり、
+	// ReviewForm 側の `clear()` を落としても緑のままだった。常に真のアサーションは
+	// 「守っているつもり」を作るだけなので置かない。理由は ReviewForm.tsx の宣言箇所に書いた
 	it("開くと選択中のカテゴリを空へ戻す", async () => {
 		const tree = await render(<ReviewForm restaurant={restaurant} onCancel={jest.fn()} />);
 		await act(async () => {
@@ -212,7 +216,6 @@ describe("#1386 レビュー投稿フォームの料理カテゴリ選択", () =
 		await press(tree, "review-dish-category-row");
 
 		expect(tree.root.findAll((node) => node.props?.children === "味噌ラーメン")).toHaveLength(0);
-		expect(useDishCategorySelectionStore.getState().result).toBeNull();
 	});
 
 	it("候補を選んで戻ると、その ID と表示名がフォームへ入る", async () => {
