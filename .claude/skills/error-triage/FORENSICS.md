@@ -177,6 +177,35 @@ kind=null       commit 2f159544 / 24e95bcf /
 | `frontend_event_logs` ビュー（`created_at` 絞り） | **18.4 GB** |
 | 生テーブル（`timestamp` 絞り、3系統まとめて） | **約 77 MB** |
 
+## スキャン上限に当たったら、上げる前に「増えたのは何か」を切り分ける
+
+`dry-run の見積り … が上限 … を超えています` で run が落ちたら、**上限を上げる前に
+error 率を見る**。ログ量が増えた理由が利用者増なのか障害なのかで、やることが正反対になる。
+
+```sql
+SELECT DATE(timestamp) AS d,
+       COUNT(DISTINCT jsonPayload.user_id)                       AS users,
+       COUNTIF(jsonPayload.error_level = 'error')                AS err_n,
+       ROUND(COUNTIF(jsonPayload.error_level = 'error') / COUNT(1) * 100, 2) AS err_pct
+FROM `food-scroll.nanitabeyo_logs_prod.run_googleapis_com_stdout`
+WHERE timestamp >= TIMESTAMP '{{WINDOW_START}}'
+  AND timestamp <  TIMESTAMP '{{WINDOW_END}}'
+GROUP BY 1 ORDER BY 1 DESC
+```
+
+- **error 率が横ばい** → 利用者が増えただけ。上限を上げる。
+- **error 率が跳ねている** → 障害。上限を上げてはいけない（上げると障害を課金で吸収するだけになる）。
+
+実例（2026-08-19）: 上限 200MB に対し見積り 249,701,781 バイトで abort。
+ユーザーが 394 → **1,478 人/日**（3.75倍）に増えた一方 error 率は 4.17% → 4.48% で横ばいだったので、
+利用者増と判断して上限を 1GB へ引き上げた。
+
+**クエリ側で削れる余地はほぼ無い**ことも実測済み。同じ窓の dry-run で
+全列 382MB / `jsonPayload.payload` を除くと 59MB、つまり **85% が `payload` の 1 列**で、
+これは messagePattern の素材なので落とせない。さらに Sink テーブルは `timestamp` の
+DAY パーティションのみで**クラスタリングが無い**ため、`error_level = 'error'`（全行の約 4%）で
+絞ってもスキャンバイトは減らない。**「WHERE で絞れば安くなる」は BigQuery では成り立たない。**
+
 ## `jsonPayload.error_message` は存在しない
 
 STRUCT に無いので**直接参照するとクエリ全体が失敗する**（NULL が返るのではない）。

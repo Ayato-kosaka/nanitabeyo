@@ -34,9 +34,9 @@ name: Error Triage
 #   この方式なら `setup-gcloud` も `bq` も要らない。
 #
 # ■ コストガードは2層（#1199 §5）
-#   (Ⅰ) `maximumBytesBilled = 200MB` を常にリクエストへ載せる。`scripts/error-triage/bq.js` に
+#   (Ⅰ) `maximumBytesBilled = 1GB` を常にリクエストへ載せる。`scripts/error-triage/bq.js` に
 #        ハードコードしてあり、**この Workflow の env / inputs からは渡せない**。上限が可変なら上限ではない。
-#   (Ⅱ) 本クエリの前に `dryRun: true` で見積もり、200MB を超えていたら本クエリを投げずに fail する。
+#   (Ⅱ) 本クエリの前に `dryRun: true` で見積もり、1GB を超えていたら本クエリを投げずに fail する。
 #   どちらも `scripts/error-triage/bq.js` 側の責務で、YAML から `bq` を直接叩かない。
 
 on:
