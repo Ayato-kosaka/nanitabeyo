@@ -52,7 +52,14 @@ export interface ImageCardGridProps<T extends ImageCardItem = ImageCardItem> {
 /*                              Card 内部実装                                 */
 /* -------------------------------------------------------------------------- */
 
-function _ImageCard<T extends ImageCardItem>({
+/*
+  #1366 【設計】名前を `_` で始めてはいけない。react-hooks/rules-of-hooks は「大文字で始まる関数」を
+  コンポーネントと見なすため、`_ImageCard` はコンポーネントとして認識されず、中のフック呼び出しが
+  «コンポーネントでもフックでもない関数からの呼び出し» として一律 error になる（＝ルールがこの
+  ファイルのフック順序を一切検査できない状態だった）。memo でラップした公開名と衝突させずに
+  大文字始まりにするため `Impl` 接尾辞にしている。
+*/
+function ImageCardImpl<T extends ImageCardItem>({
 	item,
 	columns = 3,
 	gap = 1,
@@ -135,7 +142,7 @@ function _ImageCard<T extends ImageCardItem>({
 /*                               Grid 本体                                    */
 /* -------------------------------------------------------------------------- */
 
-function _ImageCardGrid<T extends ImageCardItem>({
+function ImageCardGridImpl<T extends ImageCardItem>({
 	data,
 	columns = 3,
 	gap = 1,
@@ -150,9 +157,9 @@ function _ImageCardGrid<T extends ImageCardItem>({
 }: ImageCardGridProps<T>) {
 	const renderItem = useCallback(
 		(info: ListRenderItemInfo<T>) => (
-			<_ImageCard item={info.item} aspectRatio={aspectRatio} gap={gap} onPress={onPress} cardStyle={cardStyle}>
+			<ImageCardImpl item={info.item} aspectRatio={aspectRatio} gap={gap} onPress={onPress} cardStyle={cardStyle}>
 				{renderOverlay?.(info.item)}
-			</_ImageCard>
+			</ImageCardImpl>
 		),
 		[aspectRatio, gap, onPress, renderOverlay, cardStyle],
 	);
@@ -176,8 +183,8 @@ function _ImageCardGrid<T extends ImageCardItem>({
 	);
 }
 
-export const ImageCardGrid = memo(_ImageCardGrid) as typeof _ImageCardGrid;
-export const ImageCard = memo(_ImageCard) as typeof _ImageCard;
+export const ImageCardGrid = memo(ImageCardGridImpl) as typeof ImageCardGridImpl;
+export const ImageCard = memo(ImageCardImpl) as typeof ImageCardImpl;
 
 /* -------------------------------------------------------------------------- */
 /*                               スタイル定義                                 */
