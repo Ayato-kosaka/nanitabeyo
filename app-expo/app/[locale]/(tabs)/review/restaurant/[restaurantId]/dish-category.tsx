@@ -46,8 +46,27 @@ export default function DishCategorySelectScreen() {
 	const setResult = useDishCategorySelectionStore((state) => state.setResult);
 
 	/** 履歴があれば back。無い着地（URL 直リンク / リロード）だけ投稿フォームへ倒す */
+	/**
+	 * #1404 【バグ】`canGoBack()` ではなく **`canDismiss()`** を見ること。
+	 *
+	 * `canGoBack()` は React Navigation のナビゲーション状態を «親までさかのぼって» 見る。
+	 * `(tabs)/_layout.tsx` は `initialRouteName="search"` を指定しているので、この画面へ
+	 * URL 直リンクで着地すると **タブナビゲータが «検索へ戻れる»** と答え、`canGoBack()` は true になる。
+	 * その結果、下の replace（親へ倒す保険）が一度も働かず、戻るは検索タブへ飛ぶ。
+	 *
+	 * `canDismiss()` は «スタックが 2 枚以上あるか» だけを見る（expo-router の
+	 * build/global-state/routing.js: `state.type === 'stack' && state.routes.length > 1`）。
+	 * タブ履歴もブラウザ履歴も数えないので、
+	 *   - 通常導線（親から push）→ true → back で親へ戻る
+	 *   - 直リンク着地（スタックは自分 1 枚）→ false → 親へ replace
+	 * のどちらも意図どおりになる。
+	 *
+	 * ⚠️ `(tabs)` の外にあるルート（`/legal/[doc]` / `/auth/login`）はルート Stack が 1 枚なので
+	 * `canGoBack()` でも同じ答えになる。実際 E2E Web run 32243079269 で落ちたのは
+	 * `(tabs)` 配下の 2 件だけで、legal の同型テストは緑だった。
+	 */
 	const leave = useCallback(() => {
-		if (router.canGoBack()) {
+		if (router.canDismiss()) {
 			router.back();
 			return;
 		}

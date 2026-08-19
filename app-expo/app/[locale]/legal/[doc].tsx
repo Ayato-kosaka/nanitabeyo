@@ -25,7 +25,7 @@ BlurModal を持たないため «閉じてから push» は不要である。
 «閉じてから push» も要らず、法務文書を読んで戻っても入力中のレビューと mediaState が残る。
 
 ⚠️ E2E の注意: `ScreenHeader` は `legal-screen` コンテナの **外側**にある。
-戻る導線を検証するときは `screen-header-back`（components/ScreenHeader.tsx）か
+戻る導線を検証するときは `legal-screen-back`（#1404 で ScreenHeader は `${testID}-back` を付ける）か
 URL（`toHaveURL(/\/legal\/terms/)`）を使うこと（login.tsx と同じ）。
 */
 import React, { useCallback } from "react";

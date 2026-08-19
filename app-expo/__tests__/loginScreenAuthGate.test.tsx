@@ -98,9 +98,9 @@ const render = async () => {
 const has = (tree: TestRenderer.ReactTestRenderer, testID: string): boolean =>
 	tree.root.findAll((node) => node.props?.testID === testID).length > 0;
 
-/** ヘッダーの戻るボタンを押す（ScreenHeader が `screen-header-back` を付けている） */
+/** ヘッダーの戻るボタンを押す（#1404 で ScreenHeader は `${testID}-back` を付ける） */
 const pressBack = async (tree: TestRenderer.ReactTestRenderer): Promise<void> => {
-	const backButton = tree.root.find((node) => node.props?.testID === "screen-header-back");
+	const backButton = tree.root.find((node) => node.props?.testID === "login-screen-back");
 	await act(async () => {
 		backButton.props.onPress();
 	});
@@ -122,7 +122,7 @@ describe("#1359 ログイン画面の auth ゲート", () => {
 
 		expect(has(tree, LOGIN_FORM_TEST_ID)).toBe(false);
 		// 戻る導線はゲートの外。待っている間も離脱できること
-		expect(has(tree, "screen-header-back")).toBe(true);
+		expect(has(tree, "login-screen-back")).toBe(true);
 	});
 
 	it("auth が確定してゲストなら LoginForm を描画する", async () => {

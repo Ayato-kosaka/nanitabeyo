@@ -68,10 +68,10 @@ export default function RestaurantFeedScreen() {
 		logFrontendEvent({
 			event_name: "restaurant_feed_closed",
 			error_level: "log",
-			payload: { restaurantId, canGoBack: router.canGoBack() },
+			payload: { restaurantId, canDismiss: router.canDismiss() },
 		});
 
-		if (router.canGoBack()) {
+		if (router.canDismiss()) {
 			router.back();
 			return;
 		}

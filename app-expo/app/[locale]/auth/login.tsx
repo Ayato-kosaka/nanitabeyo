@@ -19,7 +19,8 @@ presentation を指定していない（＝既定の card）のは意図的:
 
 ⚠️ E2E の注意: `ScreenHeader` は `login-screen` コンテナ（LoginForm 側の View）の **外側**にある。
 そのため `getByTestId("login-screen")` の配下に戻るボタンは入らない。戻る導線を検証するときは
-`screen-header-back`（components/ScreenHeader.tsx）か URL（`toHaveURL(/\/auth\/login/)`）を使うこと。
+`login-screen-back`（#1404 で ScreenHeader は `${testID}-back` を付ける）か
+URL（`toHaveURL(/\/auth\/login/)`）を使うこと。
 */
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";

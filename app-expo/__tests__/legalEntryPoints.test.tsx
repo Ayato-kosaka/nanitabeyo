@@ -275,7 +275,7 @@ describe("#1368 /[locale]/legal/[doc] の doc 検証", () => {
 		mockLocalParams = { doc: "tos" };
 
 		const tree = await render(<LegalDocumentScreen />);
-		await press(tree, "screen-header-back");
+		await press(tree, "legal-screen-back");
 
 		expect(mockBack).toHaveBeenCalledTimes(1);
 	});
@@ -286,7 +286,7 @@ describe("#1368 /[locale]/legal/[doc] の doc 検証", () => {
 		mockLocalParams = { doc: "terms" };
 
 		const tree = await render(<LegalDocumentScreen />);
-		await press(tree, "screen-header-back");
+		await press(tree, "legal-screen-back");
 
 		expect(mockBack).not.toHaveBeenCalled();
 		expect(mockReplace).toHaveBeenCalledWith({
