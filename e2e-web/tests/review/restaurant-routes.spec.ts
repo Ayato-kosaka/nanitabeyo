@@ -83,43 +83,6 @@ test.describe("店舗詳細のルート（#1386）", () => {
 		await detailPage.expectOpened();
 	});
 
-	// ─ テストケース: 子ルートへ直リンクで着地しても行き止まりにならない ─
-	// #1386 【設計】履歴が無い着地では `router.back()` が «何も起きない» ので、
-	// 戻るは店舗詳細への replace に倒れる。
-	// #1411 まではこれを入札ルートで見ていた（入札を消したので料理カテゴリ選択へ移した）。
-	//
-	// ⚠️ `appPage` フィクスチャは使わないこと（#1404）。あれは起動確認のために `goto("/")` を
-	// 済ませているので、そこから子ルートへ行くと **アプリ内の履歴が 1 つ積まれている**。
-	// その状態では `canGoBack()` が true になり、戻るは «直前に見ていた検索画面» へ帰る
-	//（それはそれで正しい挙動）。ここで守りたいのは «共有リンクを新しいタブで開いた» 側。
-	// 実際 E2E Web run 32243079269 では、これを混同していたため /ja-JP/search へ倒れて落ちた。
-	//
-	// ⚠️ これは `(tabs)` 配下のルートに限った話である。同 run で `legal.spec.ts` の
-	// 「直リンク着地から戻ると設定画面へ倒れる」は `appPage` のまま緑だった。
-	// `/legal/[doc]` は `(tabs)` の外にあるため `canGoBack()` が false になるからで、
-	// あちらを同じように書き換える必要は無い。
-	//
-	// ⚠️ 素の `page` フィクスチャを使うこと。あれは `context.newPage()` そのもので、
-	// **`goto` を一度もしていない**ので目的を満たす。`browser.newContext()` で自作すると、
-	// `fixtures/test.ts` の `context` が張る `addInitScript`（チュートリアル既読のシード）と
-	// `page` に張った `consoleErrors` の収集が両方とも外れる（PR #1405 のレビューで実測）。
-	//
-	// 手順:
-	//   1. 新しいページ（履歴なし）で /ja-JP/review/restaurant/<id>/dish-category へ直接着地する
-	//   2. ヘッダーの戻るボタンを押す
-	//   3. 店舗詳細へ着地することを検証
-	test("子ルートへ直リンク着地から戻ると店舗詳細へ倒れる", async ({ page }) => {
-		const detailPage = new RestaurantDetailPage(page);
-		await mockRestaurantDetail(page);
-
-		await detailPage.gotoSub("dish-category");
-		await detailPage.expectDishCategoryOpened();
-
-		await detailPage.goBackFromDishCategory();
-		await expect(page).toHaveURL(new RegExp(`${restaurantDetailPath()}(\\?.*)?$`));
-		await expect(detailPage.title).toBeVisible();
-	});
-
 	// ─ テストケース: 料理カテゴリ選択がルートで開ける ─
 	// #1386 旧実装は ReviewForm の中の DishCategoryModal で、**親（1200）より小さい既定 z1100**。
 	// ⚠️ ここは «投稿フォーム経由» では検証しない。投稿フォーム（`.../review`）はマウント時に
@@ -139,12 +102,38 @@ test.describe("店舗詳細のルート（#1386）", () => {
 
 	// ─ テストケース: フィードがルートで開け、閉じると店舗詳細へ倒れる ─
 	// #1386 旧実装は RestaurantReviewsTab の DishMediaModal（既定 z1100 = 親と同値）。
+	//
+	// #1411 【設計】これは «履歴が無い着地では router.back() が何も起きないので、
+	// 離脱は親への replace に倒れる» ことを見る唯一のテストでもある。
+	// #1411 まではこれを入札ルートでも見ていたが、入札を消したのでここ 1 本になった。
+	//
+	// ⚠️ 料理カテゴリ選択（dish-category）へ移してはいけない。あの画面の replace 先は
+	// **投稿フォーム**（`.../review`）で、投稿フォームはマウント時にメディア選択を開き、
+	// 選ばれなければそのまま離脱する。結果 URL は検索タブへ流れる（実測: E2E Web run
+	// 32307163377 で `/ja-JP/search` を受け取って落ちた）。倒れ先が店舗詳細なのは
+	// **フィードだけ**である。
+	//
 	// 手順:
 	//   1. /ja-JP/review/restaurant/<id>/feed へ直接遷移する（料理メディアは 0 件のモック）
 	//   2. フィード画面が開き、«見るものが無い» 表示になることを検証
 	//      （0 件でもスピナーで固着しないこと自体が検証対象）
 	//   3. × で閉じると、履歴が無いので店舗詳細へ倒れることを検証
-	// ⚠️ 3 も «履歴なし» が前提なので、上の直リンク着地テストと同じく素の `page` を使う（#1404）
+	// ⚠️ 3 は «履歴なし» が前提なので、`appPage` フィクスチャは使わないこと（#1404）。
+	// あれは起動確認のために `goto("/")` を済ませているので、そこから子ルートへ行くと
+	// **アプリ内の履歴が 1 つ積まれている**。その状態では `canGoBack()` が true になり、
+	// 戻るは «直前に見ていた検索画面» へ帰る（それはそれで正しい挙動）。ここで守りたいのは
+	// «共有リンクを新しいタブで開いた» 側。実際 E2E Web run 32243079269 では、これを混同して
+	// いたため /ja-JP/search へ倒れて落ちた。
+	//
+	// ⚠️ これは `(tabs)` 配下のルートに限った話である。同 run で `legal.spec.ts` の
+	// 「直リンク着地から戻ると設定画面へ倒れる」は `appPage` のまま緑だった。
+	// `/legal/[doc]` は `(tabs)` の外にあるため `canGoBack()` が false になるからで、
+	// あちらを同じように書き換える必要は無い。
+	//
+	// ⚠️ 素の `page` フィクスチャを使うこと。あれは `context.newPage()` そのもので、
+	// **`goto` を一度もしていない**ので目的を満たす。`browser.newContext()` で自作すると、
+	// `fixtures/test.ts` の `context` が張る `addInitScript`（チュートリアル既読のシード）と
+	// `page` に張った `consoleErrors` の収集が両方とも外れる（PR #1405 のレビューで実測）。
 	test("フィードは独立したルートで、閉じると店舗詳細へ倒れる", async ({ page }) => {
 		const detailPage = new RestaurantDetailPage(page);
 		await mockRestaurantDetail(page);
