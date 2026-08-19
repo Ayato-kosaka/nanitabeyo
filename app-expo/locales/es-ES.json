@@ -695,7 +695,6 @@
 		"consent_login_suffix": "."
 	},
 	"Settings": {
-		"title": "Configuración",
 		"sendFeedback": "Enviar comentarios",
 		"leaveReview": "Dejar reseña",
 		"rateDialogTitle": "¿Te gusta la aplicación?",
