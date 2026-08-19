@@ -50,6 +50,14 @@ import { LEGAL_SITEMAP_ROUTES } from "@/lib/legalRoute";
  * 8 ロケール分の実体が prerender される（`app/[locale]/legal/[doc].tsx` の generateStaticParams）。
  * 一覧を手で書かず `LEGAL_SITEMAP_ROUTES` から展開しているのは、文書を増やしたときに
  * ルートだけ増えて sitemap が置いていかれるのを防ぐため（このファイル冒頭の方針と同じ）。
+ *
+ * #1368 【既知の状態】**文書の実体は ja-JP と en-US の 2 ロケールだけ**で、他の 6 ロケールは
+ * 英語へフォールバックする（features/settings/components/LegalDocument.tsx の `locale in
+ * legalDocuments ? ... : legalDocuments["en-US"]`）。つまりここで展開している 32 URL のうち
+ * 24 本は en-US と同一本文を返しつつ、hreflang では「ko-KR 版だ」と宣言することになる。
+ * 翻訳が入るまでの既知の不一致として記録しておく（Search Console では
+ * "Duplicate without user-selected canonical" として出る見込み）。
+ * 翻訳を入れるか、実体のあるロケールへ展開を絞るかは、翻訳の予定が決まってから判断する。
  */
 export const SITEMAP_ROUTES: readonly string[] = [
 	"search",
