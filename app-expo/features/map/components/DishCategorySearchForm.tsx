@@ -16,8 +16,14 @@ interface DishCategorySearchFormProps {
 	onUnmount?: (dishCategoryName: string) => void;
 	/** Placeholder text for the autocomplete input */
 	placeholder?: string;
-	/** Modal title */
-	title?: string;
+	/**
+	 * 見出し。`null` を渡すと描かない。
+	 *
+	 * #1386 ルート（`app/[locale]/(tabs)/review/restaurant/[restaurantId]/dish-category.tsx`）に
+	 * 載せるときは `ScreenHeader` がタイトルを持つため `null` を渡す。
+	 * `features/profile/components/LocationSearchForm.tsx` と同じ形。
+	 */
+	title?: string | null;
 	/** Test ID for the autocomplete input */
 	testID?: string;
 }
@@ -78,7 +84,7 @@ export function DishCategorySearchForm({
 
 	return (
 		<Card>
-			<Text style={styles.modalTitle}>{title}</Text>
+			{title ? <Text style={styles.modalTitle}>{title}</Text> : null}
 			<View style={styles.autocompleteContainer}>
 				<DishCategoryAutocomplete
 					value={dishCategoryName}

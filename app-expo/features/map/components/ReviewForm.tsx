@@ -37,17 +37,16 @@ import type {
 	DishMediaEntry,
 } from "@shared/api/v1/res";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
-import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
-import { LegalDocument } from "@/features/settings/components/LegalDocument";
 import { Dimensions } from "react-native";
 import { MediaData, selectMedia } from "@/lib/mediaSelection";
-import { DishCategorySearchForm } from "./DishCategorySearchForm";
 import { Image } from "expo-image";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { useProfileStore } from "@/features/profile/stores/useProfileStore";
 import { useEnsureOwnProfileLoaded } from "@/features/profile/hooks/useEnsureOwnProfileLoaded";
 import { mapReviewsKey } from "../constants";
+import { useDishCategorySelectionStore } from "../stores/useDishCategorySelectionStore";
 import { ScrollView } from "react-native-gesture-handler";
+import { useRouter } from "expo-router";
 
 interface ReviewFormProps {
 	restaurant: SupabaseRestaurants;
@@ -186,7 +185,7 @@ export function ReviewForm({
 	/**
 	 * #1136 【設計】「レビュー投稿中」であることを表示するための state。
 	 *
-	 * `isProcessing` は投稿以外（料理カテゴリの新規作成 = `onDishCategoryModalUnmmount`）でも立つため、
+	 * `isProcessing` は投稿以外（料理カテゴリの新規作成 = `applyTypedDishCategory`）でも立つため、
 	 * これをそのままボタンのスピナーに使うと「投稿していないのに投稿中に見える」誤表示になる。
 	 * 表示は投稿フロー（`handleSubmit` の try..finally）だけに限定したいので専用の state を持つ。
 	 *
@@ -197,9 +196,9 @@ export function ReviewForm({
 	const [price, setPrice] = useState(initialPrice);
 	const [reviewText, setReviewText] = useState(initialReviewText);
 	const [rating, setRating] = useState(initialRating);
-	const [selectedLegalDocument, setSelectedLegalDocument] = useState<"guidelines" | "copyright" | null>(null);
 
 	const { locale } = useLocale();
+	const router = useRouter();
 
 	const currencyCode = useMemo(() => getCurrencyCodeFromRestaurant(restaurant), [restaurant]);
 	const currencySymbol = useMemo(() => resolveCurrencySymbol(currencyCode, locale), [currencyCode, locale]);
@@ -217,37 +216,36 @@ export function ReviewForm({
 		dishCategoryName.trim() &&
 		!!dishCategoryId;
 
-	// useBlurModal for dish category selection
-	const {
-		BlurModal: DishCategoryModal,
-		open: openDishCategoryModal,
-		close: closeDishCategoryModal,
-	} = useBlurModal({
-		keyboardVerticalOffset: Platform.OS === "ios" ? 0 : 0,
-		dismissKeyboardFirst: true,
-	});
-
 	/*
-	  #1368 【設計】この 1 件だけ BlurModal のまま意図的に残してある。B 群の他 2 件
-	  （LoginForm / settings）は `/[locale]/legal/[doc]` ルートへ移したが、ここだけ移せない。
+	  #1386 【設計】このフォームはもうオーバーレイを 1 つも持たない。
 
-	  理由: `Portal.Host` は `<Stack>` を包んでいる（app/[locale]/_layout.tsx）ので portal レイヤは
-	  常にナビゲータより «上» にある。この ReviewForm は `ReviewBlurModal` / `ReviewFormModal`
-	  （features/map/components/SelectedRestaurantDetails.tsx, FeedDishMediaViewer.tsx）の中で
-	  描かれる = portal の中なので、ここから法務ルートへ push すると遷移先が下に潜って触れない。
-	  かといって push 前にシートを閉じると、この画面は unmount され **入力中のレビューと
-	  `mediaState`（#1127 の実行世代つき）が丸ごと消える**。法務文書を読んで戻ってきたら
-	  書きかけが失われる、という退行になる。
+	  以前は 2 つの BlurModal を自分の中に抱えていた。
+	  - `DishCategoryModal`（料理カテゴリ選択・**既定 zIndex 1100**）: 親のレビュー投稿モーダルは
+	    1200 なので «子の方が数字が小さい» 逆転を抱えていた（#1350 §D）
+	  - `LegalDocumentModal`（ガイドライン / 著作権）: #1368 で B 群の他 2 件が
+	    `/[locale]/legal/[doc]` ルートへ移った後も、ここだけ移せず引き渡されていた 1 件
 
-	  引き渡し先: ReviewForm 自体をルート化する D 群（地図・投稿）。**そのとき同時に
-	  `/[locale]/legal/[doc]` への push へ切り替えること。** ルートになれば親が portal ではなく
-	  なるので、上記の制約は両方とも消える。
+	  #1368 が移せなかった理由は 2 つあり、どちらもこのフォームが «portal の中» に描かれていたことに
+	  由来する。`Portal.Host` は `<Stack>` を包んでいる（app/[locale]/_layout.tsx）ので、
+	  (1) portal の中から法務ルートへ push すると遷移先が下に潜って触れない、
+	  (2) かといって push の前に親シートを閉じるとこのフォームごと unmount され、
+	  **入力中のレビューと `mediaState`（#1127 の実行世代つき）が丸ごと消える**。
+
+	  #1386 でこのフォームの呼び出し元が 2 つのルート（`review` /`review-from-media`）だけになり、
+	  «portal の中» という前提が消えたので、両方とも push へ切り替えた。フォームはスタックに
+	  残るため、法務文書を読んで戻っても・カテゴリを選んで戻っても書きかけはそのまま続く。
+
+	  ⚠️ このフォームを再びオーバーレイの中へ入れないこと。入れると上の 2 つの制約が同時に戻る。
+	  「呼び出し元が portal を持たない」ことは `__tests__/reviewFormRoutes.test.tsx` が固定している。
 	*/
-	const {
-		BlurModal: LegalDocumentModal,
-		open: openLegalDocumentModal,
-		close: closeLegalDocumentModal,
-	} = useBlurModal({ intensity: 100 });
+
+	/**
+	 * #1386 料理カテゴリ選択画面（ルート）からの «戻り値»。
+	 *
+	 * expo-router に画面の戻り値の仕組みは無いため、1 件だけの受け渡し箱を経由する
+	 *（`features/map/stores/useDishCategorySelectionStore.ts`）。読んだら必ず消すこと。
+	 */
+	const dishCategoryResult = useDishCategorySelectionStore((state) => state.result);
 
 	/**
 	 * #1127 【修正】メディア選択の実行本体。マウント時 effect と再試行ボタンで共有する。
@@ -477,15 +475,33 @@ export function ReviewForm({
 		};
 	}, []);
 
-	// DishCategoryModal が開かれたときの初期化処理
-	const onDishCategoryModalMount = useCallback(() => {
+	/**
+	 * #1386 料理カテゴリ選択画面へ進む。
+	 *
+	 * 選択中のカテゴリを先に空へ戻すのは BlurModal 時代の `onMount` と同じ挙動
+	 *（開いた時点で選び直しになる）。
+	 *
+	 * ⚠️ `clear()` は «現在の経路からは観測できない» 防御である（#1388 のレビューで判明）。
+	 * 下の consume effect が結果を受け取った瞬間に消すので、この行に来る時点で箱は常に空。
+	 * 落としてもテストは全緑になる。それでも残すのは、箱に結果が残ったままフォームへ入る
+	 * 経路が理屈の上では存在するため（dish-category へ直リンク → 選択 → 履歴が無いので
+	 * 親へ replace → フォームは一度も描かれない、の後にフォームを開く）。
+	 * ただしその経路は «mount 時の consume» が先に走るので、この行では防げない。
+	 * 箱を店舗単位にする等の本対応は #1390 へ切り出した。
+	 */
+	const handleOpenDishCategory = useCallback(() => {
 		setDishCategoryId(null);
 		setDishCategoryName("");
 		setDishCategoryError(null);
-	}, []);
+		useDishCategorySelectionStore.getState().clear();
+		router.push({
+			pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]/dish-category",
+			params: { locale, restaurantId: restaurant.id },
+		});
+	}, [router, locale, restaurant.id]);
 
-	// DishCategoryModal が閉じられたときの処理: dishCategoryNameを受け取り、存在しなければ新規作成
-	const onDishCategoryModalUnmmount = useCallback(
+	// 候補に無い名前を入れて戻ってきたときの処理: 新規カテゴリとして作成し dishCategoryId を確定する
+	const applyTypedDishCategory = useCallback(
 		async (dishCategoryName: string) => {
 			if (!dishCategoryName.trim()) return;
 			setIsProcessing(true);
@@ -502,23 +518,28 @@ export function ReviewForm({
 				setIsProcessing(false);
 			}
 		},
-		[dishCategoryName, createDishCategoryVariant],
+		[createDishCategoryVariant],
 	);
 
-	// DishCategoryAutocomplete 候補選択時のハンドラ: dishCategoryIdを設定
-	const handleDishCategorySelect = useCallback(
-		(suggestion: { dishCategoryId: string; label: string }) => {
-			setDishCategoryId(suggestion.dishCategoryId);
-			setDishCategoryName(suggestion.label);
-			logFrontendEvent({
-				event_name: "dish_category_selected",
-				error_level: "log",
-				payload: { dishCategoryId: suggestion.dishCategoryId, label: suggestion.label },
-			});
-			closeDishCategoryModal();
-		},
-		[logFrontendEvent, closeDishCategoryModal],
-	);
+	/**
+	 * #1386 料理カテゴリ選択画面の «戻り値» を受け取る。
+	 *
+	 * 読んだら必ず消す（consume）。消すと `dishCategoryResult` は null になり、この effect は
+	 * 次の行の早期 return で止まるので二重適用にならない。
+	 */
+	useEffect(() => {
+		if (!dishCategoryResult) return;
+		useDishCategorySelectionStore.getState().clear();
+
+		if (dishCategoryResult.status === "selected") {
+			setDishCategoryId(dishCategoryResult.dishCategoryId);
+			setDishCategoryName(dishCategoryResult.label);
+			return;
+		}
+		// 候補に無い名前 = 新規作成。POST の失敗はインラインエラーで出す（この画面の UI なので
+		// 選択画面側では扱えない。ストアのコメント参照）
+		applyTypedDishCategory(dishCategoryResult.name);
+	}, [dishCategoryResult, applyTypedDishCategory]);
 
 	const handleSubmit = useCallback(async () => {
 		if (!isValid || isProcessing || mediaState.status !== "success") return;
@@ -699,13 +720,17 @@ export function ReviewForm({
 		showSnackbar,
 	]);
 
-	// Legal ドキュメント表示用のハンドラ
+	/**
+	 * #1386 法務ドキュメントは `/[locale]/legal/[doc]` ルートへ push する（#1368 からの引き渡し）。
+	 *
+	 * 重ねるのをやめても書きかけは消えない。このフォームはスタックに残り、
+	 * 読み終えて戻れば入力中のレビューと `mediaState` がそのまま続く。
+	 */
 	const handleOpenLegalDocument = useCallback(
-		(documentType: "guidelines" | "copyright") => {
-			setSelectedLegalDocument(documentType);
-			openLegalDocumentModal();
+		(doc: "guidelines" | "copyright") => {
+			router.push({ pathname: "/[locale]/legal/[doc]", params: { locale, doc } });
 		},
-		[openLegalDocumentModal],
+		[router, locale],
 	);
 
 	const handleCancel = useCallback(() => {
@@ -779,7 +804,7 @@ export function ReviewForm({
 					<Pressable
 						testID="review-dish-category-row"
 						style={styles.dishCategorySelectRow}
-						onPress={openDishCategoryModal}
+						onPress={handleOpenDishCategory}
 						disabled={!!prefilledMedia} // #400 【設計】prefilledMedia が指定されている場合は、料理カテゴリ選択を無効化
 						accessibilityRole="button"
 						accessibilityLabel={i18n.t("Map.actions.selectDishCategory")}>
@@ -871,11 +896,17 @@ export function ReviewForm({
 					{/* 同意メッセージ */}
 					<Text style={styles.consentText}>
 						{i18n.t("Map.consent_review_prefix")}
-						<Text style={styles.consentLink} onPress={() => handleOpenLegalDocument("guidelines")}>
+						<Text
+							testID="review-consent-guidelines-link"
+							style={styles.consentLink}
+							onPress={() => handleOpenLegalDocument("guidelines")}>
 							{i18n.t("Map.consent_review_guidelines")}
 						</Text>
 						{i18n.t("Map.consent_review_and")}
-						<Text style={styles.consentLink} onPress={() => handleOpenLegalDocument("copyright")}>
+						<Text
+							testID="review-consent-copyright-link"
+							style={styles.consentLink}
+							onPress={() => handleOpenLegalDocument("copyright")}>
 							{i18n.t("Map.consent_review_copyright")}
 						</Text>
 						{i18n.t("Map.consent_review_suffix")}
@@ -900,21 +931,6 @@ export function ReviewForm({
 					/>
 				</View>
 			)}
-
-			{/* DishCategoryAutocomplete Modal */}
-			<DishCategoryModal>
-				<DishCategorySearchForm
-					onSuggestionSelect={handleDishCategorySelect}
-					onMount={onDishCategoryModalMount}
-					onUnmount={onDishCategoryModalUnmmount}
-					testID="dish-category-search"
-				/>
-			</DishCategoryModal>
-
-			{/* Legal ドキュメントモーダル */}
-			<LegalDocumentModal>
-				{selectedLegalDocument && <LegalDocument documentType={selectedLegalDocument} />}
-			</LegalDocumentModal>
 		</KeyboardAvoidingView>
 	);
 }

@@ -68,11 +68,13 @@ jest.mock("react-native-gesture-handler", () => {
 	return { ScrollView: RNScrollView };
 });
 jest.mock("@/features/map/components/InitialMediaPreview", () => ({ InitialMediaPreview: () => null }));
-jest.mock("@/features/map/components/DishCategorySearchForm", () => ({ DishCategorySearchForm: () => null }));
-jest.mock("@/features/settings/components/LegalDocument", () => ({ LegalDocument: () => null }));
-jest.mock("@/features/blurModal/hooks/useBlurModal", () => ({
-	useBlurModal: () => ({ BlurModal: () => null, open: jest.fn(), close: jest.fn() }),
-}));
+// #1386 ReviewForm はもう BlurModal も LegalDocument も持たない（料理カテゴリ選択と法務ドキュメントは
+// ルートへ push する）。押した先の検証は __tests__/reviewFormRoutes.test.tsx が持つので、
+// ここでは router を «何もしないスタブ» へ落として遷移を起こさないだけにする
+jest.mock("expo-router", () => {
+	const stub = { push: () => {}, replace: () => {}, back: () => {}, canGoBack: () => true };
+	return { router: stub, useRouter: () => stub, useLocalSearchParams: () => ({}), useGlobalSearchParams: () => ({}) };
+});
 jest.mock("@/lib/googlePlaces", () => ({
 	getCurrencyCodeFromRestaurant: () => "JPY",
 	resolveCurrencySymbol: () => "¥",
