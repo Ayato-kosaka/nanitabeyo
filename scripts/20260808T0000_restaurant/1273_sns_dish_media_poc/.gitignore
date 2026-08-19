@@ -41,3 +41,4 @@ out/_blog_imgs/
 # SQL は measure_website_column_structure.py の末尾に丸ごと入れてあるので、
 # BigQuery が使える環境では引き直せる。
 !out/website_column_structure.json
+!out/platform_link_coverage.json

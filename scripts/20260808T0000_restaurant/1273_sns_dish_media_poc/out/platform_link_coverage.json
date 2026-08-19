@@ -1,0 +1,25 @@
+{
+  "measured_at": "2026-08-19",
+  "source": "BigQuery `bigquery-public-data.overture_maps.place`（release 2026-07-22_0）",
+  "scope": "日本の飲食 15 カテゴリ。socials と websites の**全要素**を対象に文字列一致で数えた",
+  "n_food_jp": 786948,
+  "n_any_social": 711788,
+  "n_any_website": 442003,
+  "n_link_layer": 786258,
+  "platforms": [
+    {"platform": "facebook", "n_stores": 698978, "pct_food": 88.82, "pct_population": 61.72},
+    {"platform": "instagram", "n_stores": 22046, "pct_food": 2.80, "pct_population": 1.95},
+    {"platform": "x/twitter", "n_stores": 12468, "pct_food": 1.58, "pct_population": 1.10},
+    {"platform": "youtube", "n_stores": 364, "pct_food": 0.046, "pct_population": 0.032},
+    {"platform": "tiktok", "n_stores": 45, "pct_food": 0.0057, "pct_population": 0.0040}
+  ],
+  "facebook_socials_only": 340598,
+  "notes": [
+    "**TikTok は 786,948 店中 45 店（0.0057%）。** 店→TikTok アカウントの対応が**構造化データとして存在しない**。クローリングの可否を論じる以前に、辿る起点が無い。",
+    "**Instagram は 22,046 店（2.80%、母集団比 1.95%）。** 法人登記を済ませて PPCA を取っても、アカウントが分かる店はこの範囲にとどまる。70% とは2桁違う。",
+    "Facebook が 698,978 店（88.82%）で突出している。Facebook 経路だけが天井を動かしうる理由はここにある。",
+    "**【差分】** 以前 REPORT に載せた『Facebook 層 299,825 店（socials のみ×facebook）』は**古いリリースでの実測**である。今回のリリース 2026-07-22_0 では同じ定義（website が無く socials に facebook）で **340,598 店**になった。定義は同じで、データが更新された分の差である。",
+    "母集団比は 1,132,482（#843 の3ソース）を分母にした。Overture 単独では飲食 786,948 店で、fixtures の 789,612 行とはリリース差で 2,664 行ずれる。"
+  ],
+  "caveat": "Overture のみ。socials/websites に載っていないだけで実際にはアカウントを持つ店があるので、これは**データ上の経路存在率の下限**であって、実効ではない。"
+}
