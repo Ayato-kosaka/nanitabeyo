@@ -50,7 +50,7 @@ const TUTORIAL_INDEX = 0;
 
 /** カタログ定義の URL からロケール付きディープリンクを組み立てる（URL の二重管理を防ぐ） */
 function deepLinkOf(id: string): string {
-	// 定義側は "/ja-JP/profile/settings" 形式なので、先頭のロケールセグメントを外して渡す
+	// 定義側は "/ja-JP/profile/saved-topics" 形式なので、先頭のロケールセグメントを外して渡す
 	const pathname = getScreen(id).url.replace(/^\/[a-zA-Z-]+\//, "");
 	return localeDeepLink(pathname);
 }
