@@ -5,7 +5,6 @@ export default function ReviewStackLayout() {
 		<Stack screenOptions={{ headerShown: false }}>
 			<Stack.Screen name="index" />
 			<Stack.Screen name="selectRestaurant" />
-			<Stack.Screen name="post/[id]" />
 		</Stack>
 	);
 }
