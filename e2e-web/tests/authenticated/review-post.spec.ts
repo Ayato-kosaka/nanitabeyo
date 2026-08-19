@@ -54,7 +54,7 @@ test.describe("レビュー投稿 @mutation", () => {
 	//   2. サジェスト先頭を選択する
 	//      (飲食店カテゴリの場合、選択と同時に POST v1/restaurants でレストランが作成/upsert され、
 	//      レストラン詳細画面へ遷移する)
-	//   3. レストラン詳細画面の投稿ボタン(Review.selectRestaurant.postPhotoVideo:「写真・動画を投稿」)
+	//   3. レストラン詳細画面の投稿ボタン(SelectRestaurant.postPhotoVideo:「写真・動画を投稿」)
 	//      が表示されることを検証
 	test("レストラン検索でレストラン詳細画面が開く", async ({ appPage }) => {
 		const tabBar = new TabBar(appPage);
