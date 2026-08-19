@@ -261,6 +261,8 @@ export class UsersRepository {
    * カテゴリ・エリア・評価・期間が付くと索引で順序を保てず、
    * `dish_reviews`（約 964MB）に対するユーザー全行走査が
    * **フィルタを変えるたびに** 1 回走ってしまうため、その場合は算出しない（B-2）。
+   *
+   * want 側だけは「もう食べた dish の save」を除くため `reactions` を 1 度舐める（m-b）。
    */
   async findMyDishesOldestOccurredAt(
     userId: string,
@@ -278,16 +280,37 @@ export class UsersRepository {
     }
 
     if (statuses.includes('want')) {
-      const oldestSave = await this.prisma.prisma.reactions.findFirst({
-        where: {
-          user_id: userId,
-          target_type: 'dish_media',
-          action_type: 'save',
-        },
-        orderBy: { created_at: 'asc' },
-        select: { created_at: true },
-      });
-      if (oldestSave) candidates.push(oldestSave.created_at);
+      // #1395 m-b: 一覧の want 行は「その dish に自分の dish_reviews が 1 件も無い」ものだけ
+      // （my-dishes.query.ts の NOT EXISTS）。reactions の最古 save をそのまま返すと、
+      // **既に食べ終えた dish の save まで数えて** Calendar が
+      // 「実際には want 行が 1 件も無い月まで遡れる」と表示してしまう。
+      //
+      // ⚠️ target_id::uuid は MATERIALIZED フェンスの外側でだけ行う（M-1 と同じ理由。
+      //    dish_categories.id は TEXT なので `::uuid` にすると落ちる target_id が実在する）。
+      // フェンスがあるので save 全件を 1 度読むが、この算出は
+      // 「初回ページかつ status 以外のフィルタ無し」のときだけ走る（resolveOldestOccurredAt）。
+      const rows = await this.prisma.prisma.$queryRaw<
+        { oldest: Date | null }[]
+      >(Prisma.sql`
+        WITH my_save_ids AS MATERIALIZED (
+          SELECT target_id, created_at
+          FROM reactions
+          WHERE user_id = ${userId}::uuid
+            AND target_type = 'dish_media'
+            AND action_type = 'save'
+        )
+        SELECT MIN(s.created_at) AS oldest
+        FROM my_save_ids s
+        JOIN dish_media dm ON dm.id = s.target_id::uuid
+        WHERE NOT EXISTS (
+          SELECT 1
+          FROM dish_reviews dr
+          WHERE dr.user_id = ${userId}::uuid
+            AND dr.dish_id = dm.dish_id
+        )
+      `);
+      const oldestSave = rows[0]?.oldest ?? null;
+      if (oldestSave) candidates.push(oldestSave);
     }
 
     if (candidates.length === 0) return null;
