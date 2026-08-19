@@ -190,28 +190,29 @@ test.describe("UI カタログ（匿名） @catalog", () => {
 	});
 
 	// ─ マイページ（ゲスト） ─
-	test("マイページ（ゲスト表示・保存トピック・いいね・ログイン画面）", async ({ appPage }) => {
+	// #1402 で 4 グリッドタブが廃止され、いいね／保存は «独立したルート» になった。
+	// タブ切り替え（文言タップ・profile-tab-group-*）ではなく縦リストの行から遷移する。
+	test("マイページ（ゲスト表示・保存した料理カテゴリ・いいね・ログイン画面）", async ({ appPage }) => {
 		const tabBar = new TabBar(appPage);
 		const profilePage = new ProfilePage(appPage);
 		const loginPage = new LoginPage(appPage);
 
 		await tabBar.gotoProfile();
 		await profilePage.expectGuestViewLoaded();
-		await expect(profilePage.savedPostsGrid).toBeVisible();
+		await profilePage.expectLoaded();
 		await captureScreen(appPage, "profile-guest");
 
-		// 「保存」グループ内のサブタブ（ja-JP: Profile.tabs.saved-topics = "料理"）
-		await captureScreenIfReachable(appPage, "profile-guest-saved-topics", async () => {
-			await appPage.getByText("料理", { exact: true }).click();
-			await expect(profilePage.savedTopicsGrid).toBeVisible();
+		await captureScreenIfReachable(appPage, "profile-saved-topics", async () => {
+			await profilePage.openSavedTopics();
 		});
 
-		await captureScreenIfReachable(appPage, "profile-guest-liked", async () => {
-			await appPage.getByTestId("profile-tab-group-liked").click();
-			await expect(profilePage.likedGrid).toBeVisible();
+		await captureScreenIfReachable(appPage, "profile-liked", async () => {
+			await tabBar.gotoProfile();
+			await profilePage.openLiked();
 		});
 
 		await captureScreenIfReachable(appPage, "auth-login", async () => {
+			await tabBar.gotoProfile();
 			await profilePage.openLogin();
 			await loginPage.expectOpened();
 		});
@@ -228,19 +229,20 @@ test.describe("UI カタログ（匿名） @catalog", () => {
 		});
 	});
 
-	// ─ 設定とその配下 ─
+	// ─ 設定項目とその配下 ─
 	// #1368 リーガル文書はモーダルではなく `/[locale]/legal/<doc>` ルートになったため、
-	// カタログの ID も URL 準拠（legal-terms / legal-privacy）へ張り替えてある
-	test("設定（メニュー・法務ドキュメント・フィードバック・ブロック済みトピック）", async ({ appPage }) => {
+	// カタログの ID も URL 準拠（legal-terms / legal-privacy）へ張り替えてある。
+	// #1402 設定は独立した画面ではなくマイページの縦リストになったので、
+	// «設定画面» のカタログ ID（profile-settings）は無くなった（profile-guest が兼ねる）。
+	test("設定項目（法務ドキュメント・フィードバック・ブロック済みトピック）", async ({ appPage }) => {
 		const settingsPage = new SettingsPage(appPage);
 		const legalPage = new LegalPage(appPage);
 
 		await settingsPage.goto();
 		await settingsPage.expectLoaded();
-		await captureScreen(appPage, "profile-settings");
 
-		// 実導線（設定の行）から遷移する。URL 直リンクでも同じ画面に着くが、
-		// 「設定から開ける」ことまでカタログの撮影経路に含めておく
+		// 実導線（マイページの行）から遷移する。URL 直リンクでも同じ画面に着くが、
+		// 「マイページから開ける」ことまでカタログの撮影経路に含めておく
 		await captureScreenIfReachable(appPage, "legal-terms", async () => {
 			await settingsPage.termsItem.click();
 			await legalPage.expectOpened("terms");
