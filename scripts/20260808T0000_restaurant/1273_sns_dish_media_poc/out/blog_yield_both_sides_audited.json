@@ -1,0 +1,40 @@
+{
+  "focused": {
+    "n_blogs": 8,
+    "raw": 250,
+    "precision": 0.7766,
+    "corrected": 194.14999999999998,
+    "per_blogger": 24.268749999999997
+  },
+  "general": {
+    "n_blogs": 6,
+    "raw": 75,
+    "per_blog_precision": {
+      "kiyosuke.blog.jp": 0.25,
+      "aktryman.blogspot.com": 0.8235
+    },
+    "unmeasured_stores": 5,
+    "corrected": 32.2495,
+    "per_blogger": 5.374916666666667
+  },
+  "ratio_before": 2.5,
+  "ratio_after": 4.51518628195786,
+  "general_precision_pooled": {
+    "tp": 21,
+    "n": 45,
+    "p": 0.4666666666666667,
+    "ci": [
+      0.3293490394201473,
+      0.6092279113758954
+    ]
+  },
+  "nolink_among_tp": {
+    "k": 2,
+    "n": 17
+  },
+  "nolink_among_fp": {
+    "k": 6,
+    "n": 24
+  },
+  "caveat": "経路存在率。非特化の残り4ブログ（5店）は目視していないので補正せずそのまま足した（非特化に甘い側）。特化も4/8ブログしか目視していない。"
+}

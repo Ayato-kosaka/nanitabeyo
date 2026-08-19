@@ -43,3 +43,4 @@ out/_blog_imgs/
 !out/website_column_structure.json
 !out/platform_link_coverage.json
 !out/blog_contact_route.json
+!out/blog_yield_both_sides_audited.json
