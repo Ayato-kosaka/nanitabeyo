@@ -130,10 +130,36 @@ const AUTH_RESOLVE_WAIT_MS = 8_000;
  * 通してから遷移する（URL は外から書き換えられるため、最終的な砦は受け取り側にある）。
  * この関数は運ぶだけで、Supabase 呼び出しの意味は変えない。
  *
- * @param query `intent=signin` のような、この経路を識別する既存のクエリ
+ * #1374 【バグ】ここで «クエリを文字列に組み立てない» こと。
+ *
+ * 以前は `?intent=signin&next=${encodeURIComponent(next)}` まで含めた 1 本の文字列を作り、
+ * それを `makeRedirectUri({ path })` に渡していた。`makeRedirectUri` は中で
+ * `Linking.createURL(path, …)` を呼び、`createURL` は **path 部分だけに `encodeURI()` を掛ける**
+ *（expo-linking の build/createURL.js:113）。そのため `%2F` が `%252F` へ二重エンコードされる。
+ *
+ * 二重になると、デコード回数が経路によって食い違う。
+ *   経路A: WebBrowser.openAuthSessionAsync 成功 → Linking.parse → searchParams + decodeURIComponent の 2 回
+ *          → たまたま元に戻り、動く
+ *   経路B: OS のディープリンクで callback へ直接着地（アプリがコールドスタートし
+ *          Linking.getInitialURL() から拾う経路）→ expo-router は searchParams の 1 回だけ
+ *          → `"%2Fja-JP%2F…"` のままで先頭が `/` にならず、resolveNextPath が null を返して
+ *            next が黙って捨てられる
+ *
+ * `createURL` は `queryParams` を **`encodeURI` の後に** `URLSearchParams` で 1 回だけ
+ * エンコードして連結する（同ファイル :113-114）。だからクエリは «構造のまま» 渡す。
+ *
+ * @param params `{ intent: "signin" }` のような、この経路を識別する既存のクエリ
  */
-const buildAuthCallbackPath = (locale: string, query: string, next?: string): string =>
-	`${locale}/auth/callback?${query}${next ? `&next=${encodeURIComponent(next)}` : ""}`;
+const buildAuthCallbackPath = (locale: string): string => `${locale}/auth/callback`;
+
+const buildAuthCallbackQueryParams = (
+	params: Record<string, string>,
+	next?: string,
+): Record<string, string> => (next ? { ...params, next } : { ...params });
+
+/** web の redirectTo。`encodeURI` を通らないので、ここは自分で 1 回だけエンコードする */
+const buildWebAuthCallbackUrl = (locale: string, params: Record<string, string>): string =>
+	`${window.location.origin}/${buildAuthCallbackPath(locale)}?${new URLSearchParams(params).toString()}`;
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -667,11 +693,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 			...queryParams, // 呼び出し側で上書きしたければこちらが優先
 		};
 
-		const callbackPath = buildAuthCallbackPath(locale, "intent=signin", next);
+		const callbackQueryParams = buildAuthCallbackQueryParams({ intent: "signin" }, next);
 		const redirectTo =
 			Platform.OS === "web"
-				? `${window.location.origin}/${callbackPath}`
-				: AuthSession.makeRedirectUri({ scheme: "nanitabeyo", path: callbackPath });
+				? buildWebAuthCallbackUrl(locale, callbackQueryParams)
+				: AuthSession.makeRedirectUri({
+						scheme: "nanitabeyo",
+						path: buildAuthCallbackPath(locale),
+						queryParams: callbackQueryParams,
+					});
 		const { data, error } = await supabase.auth.signInWithOAuth({
 			provider,
 			options: {
@@ -736,11 +766,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 		};
 
 		// linkIdentity の場合は、 匿名アップグレード由来のリダイレクトであることを示すために `?intent=link` を付与
-		const callbackPath = buildAuthCallbackPath(locale, `intent=link&provider=${provider}`, next);
+		const callbackQueryParams = buildAuthCallbackQueryParams({ intent: "link", provider }, next);
 		const redirectTo =
 			Platform.OS === "web"
-				? `${window.location.origin}/${callbackPath}`
-				: AuthSession.makeRedirectUri({ scheme: "nanitabeyo", path: callbackPath });
+				? buildWebAuthCallbackUrl(locale, callbackQueryParams)
+				: AuthSession.makeRedirectUri({
+						scheme: "nanitabeyo",
+						path: buildAuthCallbackPath(locale),
+						queryParams: callbackQueryParams,
+					});
 		const { data, error } = await supabase.auth.linkIdentity({
 			provider,
 			options: {
