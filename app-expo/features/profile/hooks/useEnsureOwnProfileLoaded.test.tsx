@@ -39,7 +39,7 @@ import { useProfileStore } from "../stores/useProfileStore";
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 /** フックの戻り値を毎レンダー記録するだけのハーネス */
-let latest: { isProfileResolved: boolean; retry: () => void };
+let latest: { isProfileResolved: boolean; hasLoadFailed: boolean; retry: () => void };
 function Harness() {
 	latest = useEnsureOwnProfileLoaded();
 	return null;
@@ -152,5 +152,89 @@ describe("#1387 useEnsureOwnProfileLoaded の retry", () => {
 		expect(mockCallBackend).toHaveBeenCalledTimes(2);
 		expect(latest.isProfileResolved).toBe(true);
 		expect(useProfileStore.getState().profile).toBeNull();
+	});
+});
+
+/*
+#1387 【設計】`hasLoadFailed` の契約（PR #1392 のレビュー B-1）。
+
+呼び出し側が `isProfileResolved && !profile` から «失敗» を推論すると、共有ストアを第三者が
+空にした瞬間に «失敗していないのに失敗» と読めてしまう。フックが実際の失敗だけを持つ。
+
+⚠️ 下の「ストアを外から空にしても失敗にはならない」が赤くなったら、推論に戻っている。
+*/
+describe("#1387 hasLoadFailed は «実際に落ちたか» だけを持つ", () => {
+	it("成功したら false のまま", async () => {
+		mockUser = { id: "user-5", is_anonymous: false };
+
+		await act(async () => {
+			TestRenderer.create(<Harness />);
+		});
+		await act(async () => {
+			mockResolveProfile({ display_name: "成功太郎", avatarUrls: undefined });
+		});
+
+		expect(latest.hasLoadFailed).toBe(false);
+	});
+
+	it("404 以外で落ちたら true", async () => {
+		mockUser = { id: "user-6", is_anonymous: false };
+		mockCallBackend.mockImplementationOnce(() => Promise.reject({ status: 500, message: "boom" }) as never);
+
+		await act(async () => {
+			TestRenderer.create(<Harness />);
+		});
+
+		expect(latest.hasLoadFailed).toBe(true);
+	});
+
+	it("ゲストは決着しても false", async () => {
+		mockUser = { id: "guest-2", is_anonymous: true };
+
+		await act(async () => {
+			TestRenderer.create(<Harness />);
+		});
+
+		expect(latest.isProfileResolved).toBe(true);
+		expect(latest.hasLoadFailed).toBe(false);
+	});
+
+	// ⚠️ これが «推論をやめた» ことの核心。AuthProvider のセッション切替や、別画面のフックの
+	// mount がストアを空にする（どちらも実在する経路）
+	it("ストアを外から空にしても失敗にはならない", async () => {
+		mockUser = { id: "user-7", is_anonymous: false };
+
+		await act(async () => {
+			TestRenderer.create(<Harness />);
+		});
+		await act(async () => {
+			mockResolveProfile({ display_name: "成功太郎", avatarUrls: undefined });
+		});
+		expect(latest.hasLoadFailed).toBe(false);
+
+		await act(async () => {
+			useProfileStore.getState().resetProfile();
+		});
+
+		// 決着済み × profile なし。推論していた頃はここで «失敗» になっていた
+		expect(useProfileStore.getState().profile).toBeNull();
+		expect(latest.isProfileResolved).toBe(true);
+		expect(latest.hasLoadFailed).toBe(false);
+	});
+
+	it("retry を呼ぶと失敗フラグは下りる", async () => {
+		mockUser = { id: "user-8", is_anonymous: false };
+		mockCallBackend.mockImplementationOnce(() => Promise.reject({ status: 500, message: "boom" }) as never);
+
+		await act(async () => {
+			TestRenderer.create(<Harness />);
+		});
+		expect(latest.hasLoadFailed).toBe(true);
+
+		await act(async () => {
+			latest.retry();
+		});
+
+		expect(latest.hasLoadFailed).toBe(false);
 	});
 });

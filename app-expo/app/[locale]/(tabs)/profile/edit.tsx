@@ -42,14 +42,22 @@ export default function ProfileEditScreen() {
 
 	// #1369 【設計】モーダル時代はマイページ（ProfileTabsLayout）が読み込んだ profile を
 	// そのまま覗いていたが、ルートは URL 直リンク・web のリロードで «単独で» 着地しうる。
-	// このフックは既にストアへ載っていれば API を叩かないので、通常導線では何も増えない
-	const { isProfileResolved, retry } = useEnsureOwnProfileLoaded();
+	//
+	// ⚠️ 「既にストアへ載っていれば API を叩かない」ではない（PR #1392 のレビュー S-2 で実測）。
+	// このフックはセッション変更 effect が **mount 時に無条件で** resetProfile() するため、
+	// この画面へ入るたびに必ず 1 回は取得が走る。«変わったときだけリセット» へ絞る話は別 Issue
+	const { hasLoadFailed, retry } = useEnsureOwnProfileLoaded();
 	const profile = useProfileStore((state) => state.profile);
 
 	// #1387 【バグ】取得が 404 «以外» で失敗（通信断・500 など）すると profile は null のまま
 	// 決着する。`profile` だけを見ていると、その人の画面はスピナーが永久に回り続けていた。
-	// 「まだ読んでいない」と「読んだが取れなかった」を分けるために isProfileResolved を見る
-	const hasFailed = isProfileResolved && !profile;
+	//
+	// ⚠️ `isProfileResolved && !profile` で «失敗» を推論しないこと（PR #1392 のレビュー B-1）。
+	// `isProfileResolved` はフック固有の state だが `profile` は共有ストアなので、第三者が
+	// ストアを空にした瞬間（セッション切替 / 別画面のフックの mount）に «失敗していないのに
+	// エラー画面» が出る。しかもこの画面は元がスピナーだったので、推論のままだと
+	// 「一瞬スピナー」が「一瞬エラー」へ悪化する。フックが持つ実際の失敗だけを見る
+	const hasFailed = hasLoadFailed;
 
 	/**
 	 * この画面から離れる。
@@ -84,15 +92,16 @@ export default function ProfileEditScreen() {
 
 	// #1387 再試行。押せるのは決着後（= エラー表示が出ているとき）だけなので、
 	// 読み込み中の二重取得にはならない（フックの JSDoc 参照）
+	// ⚠️ ここで lightImpact() を呼ばないこと（PR #1392 のレビュー T-1）。PrimaryButton は
+	// handlePress の中で自分で鳴らすので、二重になる。ScreenHeader は鳴らさないため handleBack 側は必要
 	const handleRetry = useCallback(() => {
-		lightImpact();
 		logFrontendEvent({
 			event_name: "profile_edit_load_retry_pressed",
 			error_level: "log",
 			payload: {},
 		});
 		retry();
-	}, [lightImpact, logFrontendEvent, retry]);
+	}, [logFrontendEvent, retry]);
 
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>

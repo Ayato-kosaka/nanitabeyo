@@ -37,10 +37,25 @@ import { useProfile } from "./useProfile";
  * その封印を解く。
  *
  * ⚠️ `retry()` は «決着済み» のときに押させること（`isProfileResolved === false` の間は
- * まだ読み込み中なので、押せると同じ取得が二重に走る）。エラー表示を
- * 「`isProfileResolved && profile === null`」で出せば、ボタンは自然に決着後だけ現れる。
+ * まだ読み込み中なので、押せると同じ取得が二重に走る）。エラー表示を `hasLoadFailed` で出せば、
+ * ボタンは自然に決着後だけ現れる。
+ *
+ * #1387 【設計】戻り値の `hasLoadFailed` は「**このフックの取得が実際に落ちた**」ことを持つ。
+ *
+ * ⚠️ 呼び出し側で `isProfileResolved && !profile` から «失敗» を推論しないこと（PR #1392 のレビュー）。
+ * `isProfileResolved` はこのフックインスタンス固有の state だが、`profile` は **共有ストア**なので、
+ * 第三者がストアを空にすると「失敗していないのに失敗」と読めてしまう。実際に 2 経路ある。
+ *   1. `AuthProvider` の `onAuthStateChange` が `resetProfile()` と `setUser()` を同じコールバックで
+ *      呼ぶため、1 コミットだけ «決着済み × profile なし» になる（#1120 が潰した «出てから消える»）
+ *   2. 別の消費者（ReviewForm 等）が新しく mount するとそのセッション effect が `resetProfile()` し、
+ *      決着済みの画面は **その取得が終わるまで** 失敗表示に落ちる
+ * どちらも自己回復するが、その間ユーザーには «予期しないエラー» が見えている。
  */
-export function useEnsureOwnProfileLoaded(): { isProfileResolved: boolean; retry: () => void } {
+export function useEnsureOwnProfileLoaded(): {
+	isProfileResolved: boolean;
+	hasLoadFailed: boolean;
+	retry: () => void;
+} {
 	const { user } = useAuth();
 	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
@@ -51,6 +66,8 @@ export function useEnsureOwnProfileLoaded(): { isProfileResolved: boolean; retry
 	const [isProfileResolved, setIsProfileResolved] = useState(false);
 	// #1387 再試行の世代。下のロード effect の依存に入れてあり、増えると «もう一度» 走る
 	const [attempt, setAttempt] = useState(0);
+	// #1387 «このフックの取得が落ちた» ことを明示的に持つ（ストアの状態から推論しない）
+	const [hasLoadFailed, setHasLoadFailed] = useState(false);
 
 	// #1092 PR4b タブの表示判定（lib/authGuest.ts）と同じ式にしておく。
 	// ここだけ判定がずれると「reviews タブは出ているのにプロフィールはダミーのまま」になる
@@ -65,6 +82,7 @@ export function useEnsureOwnProfileLoaded(): { isProfileResolved: boolean; retry
 	const retry = useCallback(() => {
 		hasLoadedRef.current = false;
 		setIsProfileResolved(false);
+		setHasLoadFailed(false);
 		setAttempt((current) => current + 1);
 	}, []);
 
@@ -74,6 +92,8 @@ export function useEnsureOwnProfileLoaded(): { isProfileResolved: boolean; retry
 		hasLoadedRef.current = false;
 		// #1120 セッションが変わればロードもやり直しになるので、決着状態も未決着へ戻す
 		setIsProfileResolved(false);
+		// #1387 前のセッションの失敗を引きずらない
+		setHasLoadFailed(false);
 	}, [user?.id, isGuest]);
 
 	useEffect(() => {
@@ -107,6 +127,7 @@ export function useEnsureOwnProfileLoaded(): { isProfileResolved: boolean; retry
 				const avatarUrl = data.avatarUrls?.md;
 				avatarUrl && (await Image.prefetch(avatarUrl));
 				setProfile(data);
+				setHasLoadFailed(false);
 			} catch (rawError: unknown) {
 				const error = rawError as ApiError;
 				if (error.status === 404) {
@@ -122,9 +143,11 @@ export function useEnsureOwnProfileLoaded(): { isProfileResolved: boolean; retry
 					const avatarUrl = data.avatarUrls?.md;
 					avatarUrl && (await Image.prefetch(avatarUrl));
 					setProfile(data);
+					setHasLoadFailed(false);
 					return;
 				}
 				// その他のエラーはログに記録
+				setHasLoadFailed(true);
 				logFrontendEvent({
 					event_name: "load_own_profile_error",
 					error_level: "error",
@@ -138,10 +161,14 @@ export function useEnsureOwnProfileLoaded(): { isProfileResolved: boolean; retry
 			}
 		};
 
-		loadProfile();
+		// #1387 404 分岐の中（createUserProfile / 再取得）で投げると、その reject は catch の外へ抜ける。
+		// finally は走るので UI は正しく失敗表示になるが、拾わないと未処理の rejection が残り、
+		// retry() で «押すたびに» 再発できる。決着済みであることは finally が保証しているので、
+		// ここでは «失敗した» ことだけを立てて握り潰す（PR #1392 のレビュー S-1）
+		loadProfile().catch(() => setHasLoadFailed(true));
 		// #1387 `attempt` は «再試行のたびにこの effect を回す» ためだけの依存。
 		// 値そのものは中で使わないが、外すと retry() が効かなくなる
 	}, [callBackend, isGuest, logFrontendEvent, user?.id, createUserProfile, attempt]);
 
-	return { isProfileResolved, retry };
+	return { isProfileResolved, hasLoadFailed, retry };
 }

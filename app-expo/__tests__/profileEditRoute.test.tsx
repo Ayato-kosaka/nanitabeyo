@@ -42,9 +42,13 @@ jest.mock("@/contexts/AuthProvider", () => ({
 	useAuth: () => ({ user: { id: "user-1", is_anonymous: false }, isAuthResolved: true }),
 }));
 jest.mock("@/hooks/useLocale", () => ({ useLocale: () => ({ locale: "ja-JP", isJapanese: true }) }));
-jest.mock("@/hooks/useHaptics", () => ({
-	useHaptics: () => ({ lightImpact: jest.fn(), mediumImpact: jest.fn() }),
-}));
+// ⚠️ 毎レンダー新しい jest.fn() を返さないこと。呼び出し回数を数えられなくなるうえ、
+// 依存に入っている effect が勝手に再実行される（#1387 のフックテストで同じ罠を踏んだ）
+const mockLightImpact = jest.fn();
+jest.mock("@/hooks/useHaptics", () => {
+	const mediumImpact = jest.fn();
+	return { useHaptics: () => ({ lightImpact: mockLightImpact, mediumImpact }) };
+});
 jest.mock("@/hooks/useLogger", () => ({ useLogger: () => ({ logFrontendEvent: jest.fn() }) }));
 jest.mock("@/lib/i18n", () => ({ __esModule: true, default: { t: (key: string) => key } }));
 
@@ -104,9 +108,14 @@ jest.mock("@/features/profile/tabs/SavedTopicsTab", () => ({ SavedTopicsTab: () 
 // #1387 「まだ読んでいない」と「読んだが取れなかった」を分けるため、決着状態も差し替え可能にする。
 // profile === null だけでは両者を区別できず、後者でスピナーが回り続けていた
 let mockIsProfileResolved = true;
+let mockHasLoadFailed = false;
 const mockRetry = jest.fn();
 jest.mock("@/features/profile/hooks/useEnsureOwnProfileLoaded", () => ({
-	useEnsureOwnProfileLoaded: () => ({ isProfileResolved: mockIsProfileResolved, retry: mockRetry }),
+	useEnsureOwnProfileLoaded: () => ({
+		isProfileResolved: mockIsProfileResolved,
+		hasLoadFailed: mockHasLoadFailed,
+		retry: mockRetry,
+	}),
 }));
 // プロフィールの «有無» で編集画面の描画が変わる（下の「未ロードの間は…」のテスト）ので差し替え可能にする
 let mockProfile: unknown = { id: "profile-1", username: "tester" };
@@ -160,6 +169,7 @@ const press = async (tree: TestRenderer.ReactTestRenderer, testID: string): Prom
 beforeEach(() => {
 	mockProfile = { id: "profile-1", username: "tester" };
 	mockIsProfileResolved = true;
+	mockHasLoadFailed = false;
 	mockRetry.mockClear();
 	mockPush.mockClear();
 	mockReplace.mockClear();
@@ -257,6 +267,7 @@ describe("#1387 プロフィール取得に失敗したときの編集画面", (
 	const arrangeFailed = () => {
 		mockProfile = null;
 		mockIsProfileResolved = true;
+		mockHasLoadFailed = true;
 	};
 
 	it("スピナーではなくエラーと再試行を出す", async () => {
@@ -280,6 +291,65 @@ describe("#1387 プロフィール取得に失敗したときの編集画面", (
 		expect(mockRetry).toHaveBeenCalledTimes(1);
 	});
 
+	/*
+	触覚は PrimaryButton 自身が handlePress の中で鳴らす（components/PrimaryButton.tsx）。
+	画面側の onPress でも鳴らすと 1 タップで 2 回になる（PR #1392 のレビュー T-1）。
+
+	⚠️ `press()` が呼ぶのは «画面が PrimaryButton へ渡した onPress»（合成要素の props）であって、
+	PrimaryButton 内部の handlePress ではない。だからここで数えているのは «画面側の分» だけで、
+	0 回であることが正しい。1 になったら画面側でも鳴らしている。
+	ヘッダーの戻る（handleBack）は ScreenHeader が鳴らさないので、あちらは鳴らして正しい。
+	*/
+	it("再試行では画面側が触覚を鳴らさない（PrimaryButton が鳴らすので二重になる）", async () => {
+		arrangeFailed();
+		const tree = await render(<ProfileEditScreen />);
+
+		await press(tree, "profile-edit-retry-button");
+
+		expect(mockLightImpact).not.toHaveBeenCalled();
+	});
+
+	// ⚠️ «決着済み × profile なし» でも、フックが失敗と言っていなければエラーを出さないこと。
+	// 共有ストアは第三者（セッション切替 / 別画面のフックの mount）が空にする。
+	// ここが赤くなったら «失敗の推論» に戻っている（PR #1392 のレビュー B-1）
+	it("ストアが空でもフックが失敗と言わなければエラーを出さない", async () => {
+		mockProfile = null;
+		mockIsProfileResolved = true;
+		mockHasLoadFailed = false;
+
+		const tree = await render(<ProfileEditScreen />);
+
+		expect(tree.root.findAll((node) => node.props?.testID === "profile-edit-error")).toHaveLength(0);
+		// 取得し直しを待っている状態なのでスピナー側へ倒れる
+		expect(tree.root.findAll((node) => node.props?.testID === "profile-edit-form-saved")).toHaveLength(0);
+	});
+
+	// ⚠️ 押下のテストが 1 本だと «回数» のアサーションが意味を持たない（PR #1392 のレビュー T-2）。
+	// なお beforeEach の mockClear 自体は jest.config.js の clearMocks: true と重複している
+	it("2 回押せば 2 回呼ばれる（前のテストの回数を持ち越さない）", async () => {
+		arrangeFailed();
+		const tree = await render(<ProfileEditScreen />);
+
+		await press(tree, "profile-edit-retry-button");
+		await press(tree, "profile-edit-retry-button");
+
+		expect(mockRetry).toHaveBeenCalledTimes(2);
+	});
+
+	// i18n キーの typo は «描かれている» だけでは気付けない（PR #1392 のレビュー S-3）。
+	// このファイルの i18n スタブは `t: (key) => key` なので、描画結果がそのままキーになる
+	it("文言は Common.errors.unexpected / Common.retry を使う", async () => {
+		arrangeFailed();
+		const tree = await render(<ProfileEditScreen />);
+
+		const texts = tree.root
+			.findAll((node) => typeof node.props?.children === "string", { deep: false })
+			.map((node) => node.props.children as string);
+
+		expect(texts).toContain("Common.errors.unexpected");
+		expect(texts).toContain("Common.retry");
+	});
+
 	// 失敗表示は «行き止まり» にしないこと。再試行が通らない環境でも離脱はできる必要がある
 	it("失敗表示のままでも戻れる", async () => {
 		arrangeFailed();
@@ -288,8 +358,11 @@ describe("#1387 プロフィール取得に失敗したときの編集画面", (
 		expect(tree.root.findAll((node) => node.props?.testID === "screen-header-back").length).toBeGreaterThan(0);
 	});
 
-	// プロフィールが取れているときにエラーが出ないこと（対照）
+	// プロフィールが取れているときにエラーが出ないこと（対照）。
+	// ⚠️ 前提は直前のテストの残りに頼らず自分で置くこと（PR #1392 のレビュー T-2）
 	it("取得できていればエラーは出ない", async () => {
+		mockIsProfileResolved = true;
+		mockHasLoadFailed = false;
 		const tree = await render(<ProfileEditScreen />);
 
 		expect(tree.root.findAll((node) => node.props?.testID === "profile-edit-error")).toHaveLength(0);
