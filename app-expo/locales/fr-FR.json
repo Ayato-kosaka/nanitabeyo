@@ -420,20 +420,6 @@
 		}
 	},
 	"Profile": {
-		"tabGroups": {
-			"reviews": "Avis",
-			"saved": "Enregistré",
-			"liked": "J'aime",
-			"wallet": "Portefeuille"
-		},
-		"tabs": {
-			"deposits": "Dépôts",
-			"earnings": "Revenus",
-			"saved-posts": "Publications",
-			"saved-topics": "Plats",
-			"wallet-deposit": "Dépôts",
-			"wallet-earning": "Revenus"
-		},
 		"numberSuffix": {
 			"million": "M",
 			"thousand": "K"
@@ -463,6 +449,10 @@
 			"refunded": "Remboursé",
 			"paid": "Payé",
 			"pending": "En attente"
+		},
+		"menu": {
+			"likedPosts": "Publications aimées",
+			"savedDishCategories": "Catégories de plats enregistrées"
 		},
 		"buttons": {
 			"editProfile": "Modifier le profil",

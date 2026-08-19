@@ -144,6 +144,10 @@ export function LikeTab() {
 			onEndReached={handleLoadMore}
 			ListEmptyComponent={renderEmptyState}
 			testID="like-tab-grid"
+			// #1402 このグリッドはもう «マイページのタブのペイン» ではなく
+			// «独立したルート（/[locale]/profile/liked）の中身» なので、collapsible-tabs の
+			// コンテキストが無い。Tabs.FlatList のままだと実行時に落ちる
+			standalone
 		/>
 	);
 }

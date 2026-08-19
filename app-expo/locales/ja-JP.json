@@ -420,20 +420,6 @@
 		}
 	},
 	"Profile": {
-		"tabGroups": {
-			"reviews": "レビュー",
-			"saved": "保存",
-			"liked": "いいね",
-			"wallet": "ウォレット"
-		},
-		"tabs": {
-			"deposits": "入札",
-			"earnings": "収益",
-			"saved-posts": "投稿",
-			"saved-topics": "料理",
-			"wallet-deposit": "入札",
-			"wallet-earning": "収益"
-		},
 		"numberSuffix": {
 			"million": "M",
 			"thousand": "K"
@@ -463,6 +449,10 @@
 			"refunded": "返金済み",
 			"paid": "支払済み",
 			"pending": "保留中"
+		},
+		"menu": {
+			"likedPosts": "いいねした投稿",
+			"savedDishCategories": "保存した料理カテゴリ"
 		},
 		"buttons": {
 			"editProfile": "プロフィールを編集",
