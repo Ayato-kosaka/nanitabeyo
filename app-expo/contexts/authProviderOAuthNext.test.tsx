@@ -32,6 +32,7 @@ jest.mock("@/lib/supabase", () => ({
 			refreshSession: jest.fn(),
 			signInWithOAuth: jest.fn(),
 			linkIdentity: jest.fn(),
+			exchangeCodeForSession: jest.fn(),
 		},
 	},
 	consumeAuthRetryAfterHeader: jest.fn(() => null),
@@ -86,6 +87,7 @@ const auth = supabase.auth as unknown as {
 	onAuthStateChange: jest.Mock;
 	signInWithOAuth: jest.Mock;
 	linkIdentity: jest.Mock;
+	exchangeCodeForSession: jest.Mock;
 };
 const makeRedirectUri = AuthSession.makeRedirectUri as unknown as jest.Mock;
 
@@ -493,5 +495,65 @@ describe("#1374 ブラウザ復帰（経路A）が callback へ渡す params", (
 		});
 
 		expect(mockRouterReplace.mock.calls.at(-1)?.[0].params.next).toBe(next);
+	});
+});
+
+/*
+#1374 `handleOAuthResultUrl` 側も «デコード 1 回» で読む（PR #1393 の再レビュー N1）。
+
+openOAuthBrowserSession だけ直しても、callback 画面が実際に認証を成立させるのはこちらである。
+Linking.parse（2 回デコード）のままだと、next に裸の `%` が入った瞬間に URIError が
+forEach を止め、**code が queryParams に入らない**。エラーにもならず no_result になるので、
+ユーザーには «ログインが黙って失敗した» としか見えない。
+*/
+describe("#1374 handleOAuthResultUrl のクエリ読み取り", () => {
+	let authValue: ReturnType<typeof useAuth>;
+	const Probe = () => {
+		authValue = useAuth();
+		return null;
+	};
+
+	beforeEach(async () => {
+		(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+		auth.getSession.mockResolvedValue({ data: { session: null }, error: null });
+		auth.setSession.mockResolvedValue({ data: { session: null }, error: null });
+		auth.signInAnonymously.mockResolvedValue({
+			data: { session: { access_token: "a", refresh_token: "r", user: { id: "anon-1" } } },
+			error: null,
+		});
+		auth.onAuthStateChange.mockImplementation(() => ({ data: { subscription: { unsubscribe: jest.fn() } } }));
+		auth.exchangeCodeForSession.mockResolvedValue({ data: { user: { id: "user-1" } }, error: null });
+		await act(async () => {
+			TestRenderer.create(
+				<AuthProvider>
+					<Probe />
+				</AuthProvider>,
+			);
+		});
+	});
+
+	// ⚠️ 本命。2 回デコードへ戻すと code が消えて no_result になる
+	it("next に裸の % が入っていても code を取り出して認証を成立させる", async () => {
+		const url =
+			"nanitabeyo://ja-JP/auth/callback?intent=signin&next=%2Fja-JP%2Fx%3Fq%3D50%25&code=AUTHCODE";
+
+		let result!: Awaited<ReturnType<typeof authValue.handleOAuthResultUrl>>;
+		await act(async () => {
+			result = await authValue.handleOAuthResultUrl(url);
+		});
+
+		expect(auth.exchangeCodeForSession).toHaveBeenCalledWith("AUTHCODE");
+		expect(result.status).toBe("authenticated");
+	});
+
+	// error 系のクエリが従来どおり読めること（読み取りを差し替えたので対で見る）
+	it("error クエリは従来どおり例外として投げる", async () => {
+		const url = "nanitabeyo://ja-JP/auth/callback?intent=signin&error=access_denied&error_code=403";
+
+		await expect(
+			act(async () => {
+				await authValue.handleOAuthResultUrl(url);
+			}),
+		).rejects.toThrow();
 	});
 });
