@@ -26,10 +26,10 @@ jest.mock("@/hooks/useLogger", () => {
 	const logFrontendEvent = jest.fn();
 	return { useLogger: () => ({ logFrontendEvent }) };
 });
-jest.mock("@/features/profile/hooks/useProfile", () => {
-	const createUserProfile = jest.fn();
-	return { useProfile: () => ({ createUserProfile }) };
-});
+const mockCreateUserProfile = jest.fn();
+jest.mock("@/features/profile/hooks/useProfile", () => ({
+	useProfile: () => ({ createUserProfile: mockCreateUserProfile }),
+}));
 jest.mock("expo-image", () => ({ Image: { prefetch: jest.fn(() => Promise.resolve(true)) } }));
 jest.mock("@/data/profileData", () => ({ userProfile: { display_name: "guest" } }));
 
@@ -219,6 +219,66 @@ describe("#1387 hasLoadFailed は «実際に落ちたか» だけを持つ", ()
 		// 決着済み × profile なし。推論していた頃はここで «失敗» になっていた
 		expect(useProfileStore.getState().profile).toBeNull();
 		expect(latest.isProfileResolved).toBe(true);
+		expect(latest.hasLoadFailed).toBe(false);
+	});
+
+	/*
+	404 分岐（プロフィール新規作成）の中で投げたとき。
+
+	catch の «中» で throw すると、その reject は同じ try の catch には捕まらず外へ抜ける。
+	finally は走るので isProfileResolved は true になるが、hasLoadFailed を立てているのは
+	catch の中なので、拾わないと **決着済みなのに失敗していないことになる**。
+	loadProfile().catch(...) がそこを受け止めている（PR #1392 のレビュー S-1 / N-2）。
+
+	⚠️ ここが赤くなったら .catch が外れている。画面は «失敗したのにスピナー» へ戻る。
+	*/
+	it("404 → 新規作成が失敗しても hasLoadFailed が立つ", async () => {
+		mockUser = { id: "user-9", is_anonymous: false };
+		mockCallBackend.mockImplementationOnce(() => Promise.reject({ status: 404, message: "not found" }) as never);
+		mockCreateUserProfile.mockImplementationOnce(() => Promise.reject(new Error("create failed")) as never);
+
+		await act(async () => {
+			TestRenderer.create(<Harness />);
+		});
+
+		expect(latest.isProfileResolved).toBe(true);
+		expect(latest.hasLoadFailed).toBe(true);
+		expect(useProfileStore.getState().profile).toBeNull();
+	});
+
+	it("404 → 新規作成は成功したが再取得が失敗しても hasLoadFailed が立つ", async () => {
+		mockUser = { id: "user-10", is_anonymous: false };
+		mockCallBackend
+			.mockImplementationOnce(() => Promise.reject({ status: 404, message: "not found" }) as never)
+			.mockImplementationOnce(() => Promise.reject({ status: 500, message: "boom" }) as never);
+		mockCreateUserProfile.mockImplementationOnce(() => Promise.resolve() as never);
+
+		await act(async () => {
+			TestRenderer.create(<Harness />);
+		});
+
+		expect(latest.isProfileResolved).toBe(true);
+		expect(latest.hasLoadFailed).toBe(true);
+	});
+
+	// ⚠️ セッションが変わったら前のセッションの失敗を引きずらないこと（レビュー N-2 の M5）。
+	// 引きずると、別アカウントでログインし直した人が «前の人の失敗» のエラー画面から始まる
+	it("セッションが変わると失敗フラグは下りる", async () => {
+		mockUser = { id: "user-11", is_anonymous: false };
+		mockCallBackend.mockImplementationOnce(() => Promise.reject({ status: 500, message: "boom" }) as never);
+
+		let tree!: TestRenderer.ReactTestRenderer;
+		await act(async () => {
+			tree = TestRenderer.create(<Harness />);
+		});
+		expect(latest.hasLoadFailed).toBe(true);
+
+		// 別ユーザーへ切り替える（セッション変更 effect が走る）
+		mockUser = { id: "user-12", is_anonymous: false };
+		await act(async () => {
+			tree.update(<Harness />);
+		});
+
 		expect(latest.hasLoadFailed).toBe(false);
 	});
 

@@ -358,6 +358,27 @@ describe("#1387 プロフィール取得に失敗したときの編集画面", (
 		expect(tree.root.findAll((node) => node.props?.testID === "screen-header-back").length).toBeGreaterThan(0);
 	});
 
+	/*
+	B-1 の «裏返し»（PR #1392 の再レビュー N-1）。
+
+	hasLoadFailed は «他者がプロフィールを載せた» ことでは下りない。失敗したあとに別の消費者が
+	取得に成功すると、**データが store にあるのにエラー画面** が残りうる。
+	画面側で `&& !profile` を掛けて、データがあるなら失敗表示を取り消す。
+
+	⚠️ これは «ストアから失敗を推論する»（B-1 でやめた形）とは逆向きである。
+	失敗の判定は hasLoadFailed が持ち、profile はそれを取り消す方向にしか効かない。
+	*/
+	it("失敗フラグが立っていても、プロフィールが載っていればフォームを描く", async () => {
+		mockProfile = { id: "profile-1", username: "tester" };
+		mockIsProfileResolved = true;
+		mockHasLoadFailed = true;
+
+		const tree = await render(<ProfileEditScreen />);
+
+		expect(tree.root.findAll((node) => node.props?.testID === "profile-edit-error")).toHaveLength(0);
+		expect(tree.root.findAll((node) => node.props?.testID === "profile-edit-form-saved").length).toBeGreaterThan(0);
+	});
+
 	// プロフィールが取れているときにエラーが出ないこと（対照）。
 	// ⚠️ 前提は直前のテストの残りに頼らず自分で置くこと（PR #1392 のレビュー T-2）
 	it("取得できていればエラーは出ない", async () => {

@@ -127,6 +127,10 @@ export function useEnsureOwnProfileLoaded(): {
 				const avatarUrl = data.avatarUrls?.md;
 				avatarUrl && (await Image.prefetch(avatarUrl));
 				setProfile(data);
+				// ⚠️ 防御的に置いている。ここへ来る時点で hasLoadFailed は必ず false である
+				//（true になれるのは «決着した失敗» の後だけで、そこから再取得へ戻る経路
+				//   ＝ retry() とセッション effect は、どちらも先に false を書いている）。
+				// 落としてもテストは緑のままだが、将来 «失敗のまま再取得» の経路が増えたときの保険
 				setHasLoadFailed(false);
 			} catch (rawError: unknown) {
 				const error = rawError as ApiError;
@@ -143,6 +147,7 @@ export function useEnsureOwnProfileLoaded(): {
 					const avatarUrl = data.avatarUrls?.md;
 					avatarUrl && (await Image.prefetch(avatarUrl));
 					setProfile(data);
+					// 上と同じ理由の防御。到達時点では false である
 					setHasLoadFailed(false);
 					return;
 				}

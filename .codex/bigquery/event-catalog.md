@@ -250,6 +250,7 @@ rg -o 'event_name:\s*"[^"]+"' app-expo --glob '!**/node_modules/**'
 - `profile_shared`
 - `profile_edit_started`
 - `profile_edit_screen_back_pressed`
+- `profile_edit_load_retry_pressed`
 - `profile_edit_saved`
 - `profile_update_failed`
 - `profile_avatar_upload_failed`
