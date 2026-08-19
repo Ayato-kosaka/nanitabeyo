@@ -158,6 +158,9 @@ export function ProfileHeader({
 					<View style={styles.actionButtons}>
 						{isOwnProfile && !isGuest ? (
 							<PrimaryButton
+								// #1369 編集はモーダルではなくルート（/[locale]/profile/edit）になった。
+								// 「押した先」を E2E から検証できるよう、ログインボタンと同じく testID を持たせる
+								testID="profile-edit-button"
 								style={{ flex: 1 }}
 								onPress={onEditProfile || (() => {})}
 								label={i18n.t("Profile.buttons.editProfile")}

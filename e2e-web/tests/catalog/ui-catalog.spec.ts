@@ -215,6 +215,17 @@ test.describe("UI カタログ（匿名） @catalog", () => {
 		});
 	});
 
+	// ─ 保存料理カテゴリの地点検索（#1369 でモーダルからルートへ） ─
+	// カードから開くのが本来の導線だが、匿名ユーザーには保存が 0 件で入口が無い。
+	// 画面の見た目は topicId / topicLabelEn の有無で変わらない（フォームだけ）ので、
+	// カタログは直リンクで撮る（実際の検索は保存トピックからの遷移でのみ成立する）
+	test("保存料理カテゴリの地点検索", async ({ appPage }) => {
+		await captureScreenIfReachable(appPage, "profile-saved-topic-location", async () => {
+			await gotoScreen(appPage, "profile-saved-topic-location");
+			await expect(appPage.getByTestId("saved-topic-location-search-input")).toBeVisible();
+		});
+	});
+
 	// ─ 設定とその配下 ─
 	test("設定（メニュー・リーガルモーダル・フィードバック・ブロック済みトピック）", async ({ appPage }) => {
 		const settingsPage = new SettingsPage(appPage);

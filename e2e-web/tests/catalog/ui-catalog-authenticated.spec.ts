@@ -61,6 +61,24 @@ test.describe("UI カタログ（ログイン済み） @catalog", () => {
 		}
 	});
 
+	// #1369 プロフィール編集はモーダルからルートへ移ったため、カタログでも 1 画面として撮る。
+	// 編集ボタンはログイン済みのときだけ描画されるので、この（authenticated）spec 側に置く
+	test("プロフィール編集（ログイン済み）", async ({ appPage }) => {
+		const tabBar = new TabBar(appPage);
+		const profilePage = new ProfilePage(appPage);
+
+		await tabBar.gotoProfile();
+		await captureScreenIfReachable(
+			appPage,
+			"profile-edit",
+			async () => {
+				await profilePage.openEdit();
+			},
+			// アバター画像の読み込みを待つ（スケルトンのまま撮らない）
+			{ settleMs: 2_000 },
+		);
+	});
+
 	test("設定（ログイン済み・ログアウト行あり）", async ({ appPage }) => {
 		const settingsPage = new SettingsPage(appPage);
 

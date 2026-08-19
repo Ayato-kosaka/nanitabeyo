@@ -362,9 +362,30 @@
 				}
 			},
 			"state": "プロフィール内タブ「保存したトピック」を選択した状態",
-			"description": "同一 URL 内の UI 状態。保存した料理トピックの一覧。",
+			"description": "同一 URL 内の UI 状態。保存した料理トピックの一覧。カードを押すと地点検索の画面へ進む。",
 			"from": ["マイページ"],
-			"to": ["検索結果フィード（保存トピックから再検索）"]
+			"to": ["保存料理カテゴリの地点検索"]
+		},
+		{
+			"id": "profile-saved-topic-location",
+			"name": "保存料理カテゴリの地点検索",
+			"route": "/[locale]/profile/saved-topic-location",
+			"url": "/ja-JP/profile/saved-topic-location",
+			"platforms": {
+				"web": {
+					"capture": "auto",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "auto",
+					"session": "anon"
+				}
+			},
+			"state": null,
+			"description": "保存した料理カテゴリのカードから開く地点検索（#1369 でモーダルからルートへ）。ホーム（さがすタブ）と同じ LocationAutocomplete・同じ履歴（recent_locations_v1）を使う。地点を確定すると検索結果マップへ進む。",
+			"from": ["マイページ（保存したトピック）"],
+			"to": ["マイページ由来の検索結果マップ", "マイページ（戻る）"],
+			"note": "本来の入口は保存済みカテゴリのカードで、検索には topicId / topicLabelEn のパラメータが要る。画面の見た目はパラメータの有無で変わらないため、カタログは直リンクで撮る。"
 		},
 		{
 			"id": "profile-guest-liked",
@@ -735,9 +756,30 @@
 				}
 			},
 			"state": "ログイン済み。保存系に加えて投稿（レビュー）・ウォレット系タブが増える",
-			"description": "ログイン済みのプロフィール。匿名時との差分はタブ構成とヘッダー（ログインボタンが消える）。",
+			"description": "ログイン済みのプロフィール。匿名時との差分はタブ構成とヘッダー（ログインボタンが「プロフィールを編集」に変わる）。",
 			"from": ["タブバー「マイページ」"],
-			"to": ["設定", "自分のレビューのフィード", "ウォレット（入札・収益）"]
+			"to": ["設定", "プロフィール編集", "自分のレビューのフィード", "ウォレット（入札・収益）"]
+		},
+		{
+			"id": "profile-edit",
+			"name": "プロフィール編集",
+			"route": "/[locale]/profile/edit",
+			"url": "/ja-JP/profile/edit",
+			"platforms": {
+				"web": {
+					"capture": "auto",
+					"session": "authenticated"
+				},
+				"mobile": {
+					"capture": "auto",
+					"session": "authenticated"
+				}
+			},
+			"state": null,
+			"description": "表示名・自己紹介・アバターを編集して保存する画面（#1369 でモーダルからルートへ）。保存に成功すると元の画面へ戻る。",
+			"from": ["マイページ（ログイン済み）"],
+			"to": ["マイページ（戻る / 保存後）"],
+			"note": "編集ボタンはログイン済みのときだけ描画される（匿名時は同じ位置にログインボタンが出る）。E2E は保存を実行しない（共有 dev DB のテストユーザーを書き換えるため）。"
 		},
 		{
 			"id": "profile-authenticated-reviews",
@@ -1004,7 +1046,7 @@
 			},
 			"state": null,
 			"description": "マイページの保存トピックなどから開く、地図付きの料理メディア一覧。",
-			"from": ["マイページ（保存したトピック）"],
+			"from": ["保存料理カテゴリの地点検索"],
 			"to": ["マイページ（閉じる）"],
 			"note": "entriesKey に紐づくストア状態が必要（URL 直リンクでは復元されない）ため自動取得の対象外。"
 		},
@@ -1227,8 +1269,13 @@
 		},
 		{
 			"from": "profile-guest-saved-topics",
-			"to": "profile-search-results",
+			"to": "profile-saved-topic-location",
 			"label": "保存トピックを開く"
+		},
+		{
+			"from": "profile-saved-topic-location",
+			"to": "profile-search-results",
+			"label": "地点を確定"
 		},
 		{
 			"from": "profile-settings",
@@ -1254,6 +1301,11 @@
 			"from": "profile-authenticated",
 			"to": "profile-authenticated-reviews",
 			"label": "レビュータブ"
+		},
+		{
+			"from": "profile-authenticated",
+			"to": "profile-edit",
+			"label": "プロフィールを編集"
 		},
 		{
 			"from": "profile-authenticated",

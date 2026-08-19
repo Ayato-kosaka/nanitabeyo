@@ -17,14 +17,21 @@ interface LocationSearchFormProps {
 	onSubmit: (selected: SelectedLocation) => void;
 	/**
 	 * Called when user cancels.
-	 * ⚠️ 現状この JSX にキャンセル操作の要素が無く、呼ばれることはない（`BlurModal` 側の
-	 * 背景タップで閉じる）。導入時からの未参照 props で、削除の可否は判断待ちのため optional に留める。
+	 * ⚠️ 現状この JSX にキャンセル操作の要素が無く、呼ばれることはない。#1369 でモーダルを
+	 * やめた後は、キャンセル（＝離脱）の導線も画面側の ScreenHeader が持つ。
+	 * 導入時からの未参照 props で、削除の可否は判断待ちのため optional に留める。
 	 */
 	onCancel?: () => void;
 	/** Placeholder text for the location input */
 	placeholder?: string;
-	/** Modal title */
-	title?: string;
+	/**
+	 * フォーム上部の見出し。
+	 *
+	 * #1369 `null` を渡すと描画しない。ルート化した保存料理カテゴリの地点検索
+	 * （app/[locale]/(tabs)/profile/saved-topic-location.tsx）は同じ文言を ScreenHeader が
+	 * 持つため、二重に出さないための逃げ道。既定（未指定）は従来どおり見出しを描く。
+	 */
+	title?: string | null;
 	/** Test ID for the autocomplete input */
 	testID?: string;
 }
@@ -67,7 +74,7 @@ export function LocationSearchForm({
 
 	return (
 		<Card>
-			<Text style={styles.modalTitle}>{title}</Text>
+			{title ? <Text style={styles.modalTitle}>{title}</Text> : null}
 			<View style={styles.locationSection}>
 				<LocationAutocomplete
 					ref={inputRef}

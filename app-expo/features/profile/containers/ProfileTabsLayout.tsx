@@ -16,11 +16,9 @@ import { SavedTopicsTab } from "../tabs/SavedTopicsTab";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
-import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 // #1071 【リリース差分】同上。constants.ts の mockBids / mockEarnings 自体は将来の
 // 復活のために残してあるため、import だけを落とす。
 // import { mockBids, mockEarnings } from "../constants";
-import { ProfileEditForm } from "../components/ProfileEditForm";
 import type { TabBarProps } from "react-native-collapsible-tab-view";
 import type { GroupName, RouteName } from "../components/ProfileTabsBar";
 import { useAuth } from "@/contexts/AuthProvider";
@@ -40,8 +38,6 @@ export function ProfileTabsLayout() {
 	// #467 【設計】プロフィールをグローバルストアから取得し、自動ロードを実行
 	useEnsureOwnProfileLoaded();
 	const profile = useProfileStore((state) => state.profile);
-
-	const { BlurModal: ProfileEditModal, open: openEditModal, close: closeEditModal } = useBlurModal({ intensity: 100 });
 
 	const [headerHeight, setHeaderHeight] = useState(0);
 	const [isFollowing, setIsFollowing] = useState(false);
@@ -202,15 +198,20 @@ export function ProfileTabsLayout() {
 		});
 	}, [mediumImpact, isFollowing, logFrontendEvent, profile]);
 
+	// #1369 【設計】プロフィール編集も BlurModal のオーバーレイではなく «画面» へ push する。
+	// この画面に開きっぱなしの BlurModal はもう 1 つも無い（保存料理の地点検索も #1369 でルート化した）ので、
+	// push の前に閉じるものは無い。Portal.Host が <Stack> を包む（app/[locale]/_layout.tsx）関係上、
+	// «開いている BlurModal がある状態で push すると遷移先が portal の下に潜る»（#1359 で地図が踏んだ）。
+	// ここへ BlurModal を戻すときは、その前提ごと壊れることを思い出すこと。
 	const handleEditProfile = useCallback(() => {
 		lightImpact();
-		openEditModal();
+		router.push({ pathname: "/[locale]/(tabs)/profile/edit", params: { locale } });
 		logFrontendEvent({
 			event_name: "profile_edit_started",
 			error_level: "log",
 			payload: {},
 		});
-	}, [lightImpact, openEditModal, logFrontendEvent]);
+	}, [lightImpact, locale, logFrontendEvent]);
 
 	// #1359 【設計】ログインは BlurModal のオーバーレイではなく «画面» へ push する。
 	// 通常はこの push が履歴を残すので、戻る導線（ScreenHeader / ハードウェアバック）で
@@ -363,10 +364,6 @@ export function ProfileTabsLayout() {
 				) : null}
 				*/}
 			</Tabs.Container>
-
-			{profile && (
-				<ProfileEditModal>{({ close }) => <ProfileEditForm close={close} onCancel={close} />}</ProfileEditModal>
-			)}
 		</View>
 	);
 }

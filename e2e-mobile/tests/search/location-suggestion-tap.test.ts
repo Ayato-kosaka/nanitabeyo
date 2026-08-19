@@ -136,18 +136,23 @@ describe("場所オートコンプリートの候補タップ（実 API / #528�
 	//   - Detox にキーボードの可視状態を読む API が無く、iOS でも「閉じたこと」を直接は言えない
 	// そのため観測できるのは **「キーボード都合の操作を挟んでも、候補のタップが潰れない」** という結果になる。
 	//
-	// ## 「背景タップでキーボードを閉じる」経路を検証していない理由
-	// #528 の修正対象である `useBlurModal` の背景タップ（`handleBackdropPress`）は、
+	// ## 「背景タップでキーボードを閉じる」経路を検証していない理由（#1369 で前提が変わった）
+	// #528 の修正対象だった `useBlurModal` の背景タップ（`handleBackdropPress`）は、
 	// 地点オートコンプリートを **BlurModal の中に置いている画面**でしか触れない。
-	// 現在それに該当するのはマイページの「保存した料理カテゴリ」→ 地点検索モーダル
-	//（`features/profile/tabs/SavedTopicsTab.tsx` ＋ `LocationSearchForm`）だけで、到達には
-	//   - ログイン済みセッション（`describeAuthenticated`）
-	//   - **テストユーザーに保存済みカテゴリが 1 件以上あること**（現在シードされておらず、
-	//     用意するには共有 dev DB への書き込み ＝ Tier 3 @mutation の領分になる）
-	//   - グリッド項目ごとの testID（`save/SaveTopicTab.tsx` には現在グリッド全体の testID しか無い）
-	// が必要になる。データのシードが入ったら、この spec の隣に @mutation として移植すること。
-	// 検索タブ側は `keyboardShouldPersistTaps="always"`（search/index.tsx の ScrollView）なので、
-	// 背景タップでは候補もキーボードも閉じない ＝ 同じ検証をここへ寄せることはできない。
+	// 該当していたのはマイページの「保存した料理カテゴリ」→ 地点検索モーダルだけだったが、
+	// **#1369 でその画面はルート（`/[locale]/profile/saved-topic-location`）になり、
+	// BlurModal ごと無くなった**。つまりアプリ内に「背景タップで閉じるオーバーレイの中の
+	// オートコンプリート」はもう 1 つも存在せず、検証する経路自体が消えている。
+	//
+	// 消えたのは «背景タップ» という閉じ方だけで、#528 の本体（候補を押したら地点が本当に
+	// 確定するか）は元の当事者の画面で守る。`tests/profile/saved-topic-location-search.test.ts` の
+	// 「候補をタップすると地点が確定し、検索結果画面へ進む」がそれで、当時ここに書いていた
+	// 「保存カテゴリがシードされていない / グリッド項目に testID が無い」という障害は
+	// `utils/savedDishCategory.ts` と `save-topic-tab-item-<n>` の追加で解消済み。
+	// この spec（検索タブ）は、器に依らない «キーボード都合の操作を挟んでもタップが潰れない»
+	// 側を引き続き守る。検索タブ側は `keyboardShouldPersistTaps="always"`
+	//（search/index.tsx の ScrollView）なので、背景タップでは候補もキーボードも閉じない
+	// ＝ 同じ検証をここへ寄せることはできない。
 	it("キーボードを閉じる操作を挟んでも候補のタップが潰れない", async () => {
 		await search.clearLocationIfPresent();
 

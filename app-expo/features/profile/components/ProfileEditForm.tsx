@@ -4,7 +4,7 @@ import { Card } from "@/components/Card";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { KeyboardAwareForm } from "@/features/blurModal/components/KeyboardAwareForm";
+import { KeyboardAwareForm } from "@/components/KeyboardAwareForm";
 import { AvatarImageCard } from "./AvatarImageCard";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
@@ -21,17 +21,22 @@ const BIO_MAX_LENGTH = 150;
 
 const FIELD = ["display_name", "avatar", "bio"] as const;
 interface ProfileEditFormProps {
-	/** Called when user cancels (usually to close modal) */
-	onCancel: () => void;
-	/** Called to close the modal */
-	close: () => void;
+	/**
+	 * 保存が成功したときに呼ばれる。
+	 *
+	 * #1369 モーダル時代の `close` / `onCancel` を置き換えたもの。呼び出し元は
+	 * `app/[locale]/(tabs)/profile/edit.tsx` の 1 箇所で、「閉じる」ではなく
+	 * 「保存できたので画面を離れる」という意味になった。キャンセルの導線は
+	 * 画面側の ScreenHeader（戻る）が持つため、このフォームは受け取らない。
+	 */
+	onSaved: () => void;
 }
 
 /**
  * Profile edit form component that manages its own internal state to prevent
  * Japanese IME composition issues. Only communicates final values back to parent.
  */
-export function ProfileEditForm({ close }: ProfileEditFormProps) {
+export function ProfileEditForm({ onSaved }: ProfileEditFormProps) {
 	const { mediumImpact } = useHaptics();
 	// #467 【設計】プロフィール更新はストア経由で行う
 	const updateProfile = useProfileStore((state) => state.updateProfile);
@@ -171,7 +176,7 @@ export function ProfileEditForm({ close }: ProfileEditFormProps) {
 						}
 					: null,
 			);
-			close();
+			onSaved();
 			logFrontendEvent({
 				event_name: "profile_edit_saved",
 				error_level: "log",
@@ -202,7 +207,7 @@ export function ProfileEditForm({ close }: ProfileEditFormProps) {
 		callBackend,
 		display_name,
 		bio,
-		close,
+		onSaved,
 		showSnackbar,
 		profile,
 	]);

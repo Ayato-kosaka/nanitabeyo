@@ -1,3 +1,18 @@
+/*
+#1369 【設計】`features/blurModal/components/` から中立な置き場（components/）へ «移設だけ» した。
+実装は当時のまま変えていない。
+
+利用者は `features/profile/components/ProfileEditForm.tsx` の 1 つだけで、blurModal の配下に
+在り続けると #1350 の最終目的（BlurModal の削除）でこのファイルの行き場を都度考えることになる。
+
+## ルート化後もキーボード回避が要る理由
+モーダル時代は useBlurModal 側の KeyboardAvoidingView と «二重» に掛かっていたが、
+#1369 で編集画面をルートへ移した結果、ツリーに残る KeyboardAvoidingView はここの 1 つだけになった。
+`app/[locale]/(tabs)/profile/edit.tsx` は KeyboardAvoidingView も ScrollView も持たない
+（両方をこのコンポーネントが持つため）。つまりここを外すと «回避が 0 個» になるので、
+不要になったわけではない。加えてフォーカスした入力欄まで運ぶスクロール（scrollToField）は
+KeyboardAvoidingView では代替できない、このコンポーネント固有の役割である。
+*/
 import React, { useCallback, useRef } from "react";
 import { Keyboard } from "react-native";
 import { StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
