@@ -233,7 +233,8 @@ describe("#1386 レビュー投稿フォームの料理カテゴリ選択", () =
 	});
 
 	it("候補に無い名前で戻ると、新規カテゴリとして作成する", async () => {
-		const tree = await render(<ReviewForm restaurant={restaurant} onCancel={jest.fn()} />);
+		// 観測するのは «POST が走ったか» なのでツリーは触らない（描画されていることは他のケースが見ている）
+		await render(<ReviewForm restaurant={restaurant} onCancel={jest.fn()} />);
 
 		await act(async () => {
 			useDishCategorySelectionStore.getState().setResult({ status: "typed", name: "  謎の麺  " });
