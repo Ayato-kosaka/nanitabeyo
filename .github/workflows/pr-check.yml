@@ -2,14 +2,15 @@ name: PR Check
 
 # 🔎 pull_request で回る軽量ゲート（#1112）
 # - このリポジトリ初の pull_request トリガー。既存 12 本はすべて workflow_dispatch / schedule。
-# - 検査は 5 つ。いずれも secrets もネットワークも不要なので、fork からの PR でも実行できる。
+# - 検査は 6 つ。いずれも secrets もネットワークも不要なので、fork からの PR でも実行できる。
 #     1. 4-1: remoteConfigSchema のキー集合 ≡ DEFAULT_REMOTE_CONFIG のキー集合（#1116）
 #     2. error-triage の jest（#1196。外部I/Oゼロの純関数群 + SQL 生成物の一致検査。
 #        他のどの workflow からも実行されていない）
 #     3. app-expo の typecheck（どの workflow でも実行されていなかった）
 #     4. app-expo の jest（同上。2026-08-01 時点で 21 suites / 167 tests・全 green を実測済み）
-#     5. legacyBlurModal の import 境界（#1363。ESLint にも同じ境界があるが CI で lint を
-#        回していないため、依存ゼロの assert スクリプトで独立に守る）
+#     5. legacyBlurModal の import 境界（#1363。ESLint にも同じ境界があるが、あちらが見ていない
+#        features/blurModal の復活と Portal の許可リストもここで守る）
+#     6. app-expo の lint（#1366。既存 48 errors を解消したうえで新規に追加した）
 # - 4-2（実際の config.json との値の突き合わせ）は EAS の env が要るのでここでは SKIP される。
 #   SKIP した旨は必ずログへ出る。4-2 は引き続き nightly の e2e-web-test.yml が担当する。
 # - api は入れていない。pnpm --filter api test は api/.env（secrets）を要求し、
@@ -69,9 +70,10 @@ jobs:
 
       # #1363 legacyBlurModal（社内タスク画面専用の凍結コピー）が公開アプリから import されて
       # いないことを検査する。同じ境界は app-expo/.eslintrc.js の no-restricted-imports にも
-      # 書いてあるが、**このリポジトリは CI で lint を回していない**（回そうにも既存違反が
-      # 48 件あり、その解消は別課題）。lint に頼ると境界は「書いてあるが誰も評価しない」状態に
-      # なるため、依存ゼロの assert スクリプトを最後の砦として独立に走らせる。
+      # 書いてあり、#1366 で下の lint step が入ったことで **そちらも CI で評価される**ように
+      # なった。それでもこの step を残すのは、依存ゼロで速いことに加え、ESLint が見ていない
+      # 2 つ（撤去した features/blurModal の再出現、react-native-paper の Portal の許可リスト）を
+      # このスクリプトだけが検査しているためである。
       # 凍結の価値は利用者が社内タスク画面だけに閉じていることに全面的に依存している（#1350 §7）。
       - name: legacyBlurModal の import 境界を検査
         run: pnpm --filter app-expo assert:legacy-blur-modal-boundary
@@ -84,6 +86,20 @@ jobs:
       # ルール表は SQL の生成元でもあるので、CI で回っていないと PR1 の価値が保全されない。
       - name: error-triage のユニットテスト
         run: pnpm --filter error-triage test
+
+      # #1366 これまで lint はどの workflow でも実行されていなかった。載せられなかったのは
+      # 既存 48 errors（react-hooks/rules-of-hooks 45 / no-undef 3）で落ちていたためで、
+      # #1366 でその全件を解消したうえでここへ入れている。
+      #
+      # ⚠️ warning は素通りする（--max-warnings は付けていない）。2026-08-19 時点で 234 件あり、
+      #    ここで 0 を要求すると無関係な PR まで巻き添えで落ちる。error だけを強制する。
+      #    warning の削減は別途。逆に、**新しいルールを error で足すときはこの step が本当に
+      #    強制する**ので、追加時は全件解消してから入れること。
+      #
+      # shared/dist を要求しないので shared build より前に置ける（型情報を使う
+      # typed-linting は有効にしていない）。ローカル実測で約 23 秒。
+      - name: app-expo の lint
+        run: pnpm --filter app-expo lint
 
       # app-expo/tsconfig.dev.json は @shared/* を ../shared/dist/* へ向けているため、
       # typecheck の前に shared を build しておかないと解決できない。

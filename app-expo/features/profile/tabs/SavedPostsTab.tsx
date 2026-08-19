@@ -21,6 +21,29 @@ interface SavedPostsTabProps {
 
 export const profileSavedPostsEntriesKey = "profileSavedPosts";
 
+/**
+ * #1366 【修正】`isOwnProfile` による «早期 return» の後ろにフックを並べない。
+ *
+ * この形が何を招くかは react-test-renderer で React 19 の実挙動を測って確かめた。
+ *   - フック 0 本 → 15 本（非公開 → 自分）: 直前のレンダーが memoizedState を持たないので
+ *     React は mount 側のディスパッチャを使う。**throw しない**。
+ *   - フック 15 本 → 0 本（自分 → 非公開）: throw しないが、**effect の cleanup が呼ばれない**。
+ *     フックを 1 本も呼ばなかったレンダーは updateQueue ごと捨てられるため、購読やタイマーを
+ *     張っていたらそのまま残る。
+ *   - 早期 return の «前» にフックが 1 本でもある場合: 「Rendered more hooks than during the
+ *     previous render」で throw する。
+ *
+ * したがって現時点のこのファイルに観測できる不具合は無い（useEffect が cleanup を返しておらず、
+ * 呼び出し元の ProfileTabsLayout も `isOwnProfile` を定数 true にしているため）。危険なのは、
+ * この形のまま «早期 return の前にフックを 1 本足す» か «effect に cleanup を足す» だけで
+ * 上の 3 番目・2 番目へ落ちる点である。
+ *
+ * 直し方として、フックを無条件化して早期 return を後ろへ動かすのは **誤り**。
+ * `useEffect` が保存投稿を fetch するので、他人のプロフィールで自分の保存投稿を取りに行く。
+ * そこで «出し分ける外側» と «フックを持つ内側» に分け、非公開時は内側を **マウントしない**
+ * ことで、フックの本数がコンポーネントごとに一定になるようにしてある。
+ * この «誤った直し方» への退行は SavedPostsTab.test.tsx が検知する。
+ */
 export function SavedPostsTab({ isOwnProfile }: SavedPostsTabProps) {
 	if (!isOwnProfile) {
 		return (
@@ -32,6 +55,11 @@ export function SavedPostsTab({ isOwnProfile }: SavedPostsTabProps) {
 		);
 	}
 
+	return <OwnSavedPostsTab />;
+}
+
+/** 自分のプロフィールのときだけマウントされる本体。フックはすべてここに閉じている。 */
+function OwnSavedPostsTab() {
 	const { callBackend } = useAPICall();
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
