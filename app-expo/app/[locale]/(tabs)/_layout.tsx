@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { MapPinned, Bell, User, Search, Pencil } from "lucide-react-native";
+import { Bell, User, Search, Pencil } from "lucide-react-native";
 import i18n from "@/lib/i18n";
 import { useAuth } from "@/contexts/AuthProvider";
 import { isGuestUser } from "@/lib/authGuest";
@@ -48,20 +48,6 @@ export default function TabLayout() {
 					tabBarIcon: ({ color }) => (
 						<View style={{ marginVertical: 4 }}>
 							<Search size={ICON_SIZE} color={color} />
-						</View>
-					),
-				}}
-			/>
-			<Tabs.Screen
-				name="map"
-				options={{
-					href: null,
-					title: i18n.t("Tabs.map"),
-					tabBarLabel: i18n.t("Tabs.labels.map"),
-					tabBarButtonTestID: "tab-map",
-					tabBarIcon: ({ color }) => (
-						<View style={{ marginVertical: 4 }}>
-							<MapPinned size={ICON_SIZE} color={color} />
 						</View>
 					),
 				}}

@@ -12,8 +12,10 @@
 #1386 で地図の店詳細シートそのものが無くなり（店詳細は
 `/[locale]/(tabs)/review/restaurant/[restaurantId]` ルート 1 本へ統合）、
 ログイン導線も店詳細 1 箇所に減ったため、順序の固定は «この画面は portal を持たない» という
-不変条件へ置き換えた（下の describe）。地図がその店詳細ルートへ push すること自体は
-`__tests__/mapRestaurantRoute.test.tsx` が見ている。
+不変条件へ置き換えた（下の describe）。
+
+#1419 で地図タブごと削除したので、地図側の push を見ていた
+`__tests__/mapRestaurantRoute.test.tsx` も消えている。
 
 ## 方針
 各導線の «押した先» だけを観測したいので、周辺（タブ・画像・API・下位コンポーネント）は

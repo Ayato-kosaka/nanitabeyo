@@ -24,7 +24,7 @@ import {
  *   この例外で匿名クォータを 1 消費することは #1030 3-1 の見積に織り込み済み）
  *
  * 注意: tabBarButtonTestID は app-expo/app/[locale]/(tabs)/_layout.tsx で定義されている。
- * tab-notifications は匿名ユーザーには非表示、tab-map は常に非表示（内部遷移専用）のため、
+ * tab-notifications は匿名ユーザーには非表示のため、
  * ここでは匿名ユーザーでも必ず表示される 3 タブのみを検証する。
  */
 describe("起動 @smoke", () => {

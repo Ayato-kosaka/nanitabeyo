@@ -557,27 +557,6 @@
 			"to": ["設定（戻る）"]
 		},
 		{
-			"id": "map",
-			"name": "マップ（隠しルート）",
-			"route": "/[locale]/map",
-			"url": "/ja-JP/map",
-			"platforms": {
-				"web": {
-					"capture": "auto",
-					"session": "anon"
-				},
-				"mobile": {
-					"capture": "auto",
-					"session": "anon"
-				}
-			},
-			"state": "タブバーには出ない（href: null）。URL 直リンクでのみ到達する",
-			"description": "地図上で店舗を探す画面。現在はタブから導線が無く、内部遷移・直リンク用に残っている。",
-			"from": ["URL 直リンク"],
-			"to": ["店舗詳細"],
-			"note": "スクリーンショットでは地図が空に見えるが不具合ではない。ヘッドレスブラウザには位置情報が無く、初期表示の中心が決まらないため（アプリ側にフォールバックがある）。"
-		},
-		{
 			"id": "not-found",
 			"name": "NotFound（404）",
 			"route": "/[locale]/+not-found",
@@ -938,13 +917,8 @@
 				}
 			},
 			"state": null,
-			"description": "アプリ唯一の店舗詳細（#1386 で地図タブの BlurModal 実装と統合）。「写真・動画を投稿」でレビュー投稿フォームへ進み、レビュータブと Google マップ導線を持つ。#1411 で入札の導線（ボタン / タブ / 現在の入札額 / bid ルート）は決済が入るまで出さないことにした。",
-			"from": [
-				"店舗選択（レビュー投稿）",
-				"マップ（マーカー / POI / 場所検索）",
-				"検索結果フィードの店舗導線",
-				"URL 直リンク・共有リンク"
-			],
+			"description": "アプリ唯一の店舗詳細。「写真・動画を投稿」でレビュー投稿フォームへ、レビュー一覧のグリッド押下で «その料理へのレビュー投稿» へ進む。#1411 で入札の導線（ボタン / タブ / 現在の入札額 / bid ルート）を、#1419 で Google マップ導線を落とした。どちらも #1386 の統合で到達不能だった地図タブから持ち込まれたもので、地図タブ自体も #1419 で削除した。",
+			"from": ["店舗選択（レビュー投稿）", "検索結果フィードの店舗導線", "URL 直リンク・共有リンク"],
 			"to": ["レビュー投稿フォーム", "店舗のレビューフィード", "ログイン（ゲストが投稿を押したとき）"],
 			"note": "レストラン選択で POST /v1/restaurants が走る（同一 Place は upsert のため重複しない）。#1386 でルート化そのものの検証は e2e-web の tests/review/restaurant-routes.spec.ts / e2e-mobile の tests/review/restaurant-routes.test.ts が API モック・ディープリンクで持つ。"
 		},
@@ -1433,16 +1407,6 @@
 			"from": "notifications",
 			"to": "notifications-feed",
 			"label": "通知をタップ"
-		},
-		{
-			"from": "direct-link",
-			"to": "map",
-			"label": "/[locale]/map"
-		},
-		{
-			"from": "map",
-			"to": "review-restaurant-detail",
-			"label": "マーカー / POI / 場所検索"
 		},
 		{
 			"from": "direct-link",

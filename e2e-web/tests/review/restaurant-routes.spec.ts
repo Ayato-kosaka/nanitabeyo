@@ -29,11 +29,11 @@ import {
  * ルーティングの検証はモックで閉じる。実データを通す経路は
  * `tests/authenticated/review-post.spec.ts` と `tests/catalog/ui-catalog-mutation.spec.ts` が持つ。
  *
- * ## 地図からの導線はここでは見ない
- * 地図（`/[locale]/map`）のマーカー押下は、ヘッドレスブラウザに位置情報が無く初期表示の中心が
- * 決まらないため到達できない（`catalog/screens.json` の map の note と同じ理由）。
- * 「地図が upsert してから push する」ことは app-expo の `__tests__/mapRestaurantRoute.test.tsx` が
- * 呼び出し順ごと固定している。
+ * ## 店舗選択からの導線はここでは見ない
+ * 店舗選択（`/[locale]/review/selectRestaurant`）のマーカー押下は、ヘッドレスブラウザに
+ * 位置情報が無く初期表示の中心が決まらないため到達できない。
+ * ⚠️ あの画面の «ストアへ upsert してから push する» 順序は、#1419 で地図タブを消した時点で
+ * どのテストにも守られていない（旧 `__tests__/mapRestaurantRoute.test.tsx` は地図側だけを見ていた）。
  */
 test.describe("店舗詳細のルート（#1386）", () => {
 	// ─ テストケース: 店舗詳細へ直リンクで到達できる ─

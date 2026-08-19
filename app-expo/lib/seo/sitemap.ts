@@ -61,7 +61,7 @@ import { LEGAL_SITEMAP_ROUTES } from "@/lib/legalRoute";
  */
 export const SITEMAP_ROUTES: readonly string[] = [
 	"search",
-	"map",
+	// #1419 "map" は外した。マップタブは `href: null` で到達不能なまま sitemap にだけ出ていた
 	"review",
 	"review/selectRestaurant",
 	...LEGAL_SITEMAP_ROUTES,

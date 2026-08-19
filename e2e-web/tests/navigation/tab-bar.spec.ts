@@ -15,15 +15,13 @@ test.describe("タブバー(匿名ユーザー)", () => {
 	// 手順:
 	//   1. appPage で起動(匿名状態)
 	//   2. tab-search / tab-review / tab-profile が表示されることを検証
-	//   3. tab-notifications(匿名時は href: null)と tab-map(常時非表示)が
-	//      存在しないことを検証
+	//   3. tab-notifications(匿名時は href: null)が存在しないことを検証
 	test("匿名時に表示されるタブが正しい", async ({ appPage }) => {
 		const tabBar = new TabBar(appPage);
 		await expect(tabBar.searchTab).toBeVisible();
 		await expect(tabBar.reviewTab).toBeVisible();
 		await expect(tabBar.profileTab).toBeVisible();
 		await expect(tabBar.notificationsTab).toHaveCount(0);
-		await expect(tabBar.mapTab).toHaveCount(0);
 	});
 
 	// ─ テストケース: タブ遷移で各画面が表示される ─
