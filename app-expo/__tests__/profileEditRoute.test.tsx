@@ -385,11 +385,15 @@ describe("#1387 プロフィール取得に失敗したときの編集画面", (
 	});
 
 	// 失敗表示は «行き止まり» にしないこと。再試行が通らない環境でも離脱はできる必要がある
+	// ⚠️ 戻るの testID は #1404 で画面ごと（${testID}-back）になった。
+	// 共通 id のままにすると «存在しない id を探して常に緑» になる
 	it("失敗表示のままでも戻れる", async () => {
 		arrangeFailed();
 		const tree = await render(<ProfileEditScreen />);
 
-		expect(tree.root.findAll((node) => node.props?.testID === "screen-header-back").length).toBeGreaterThan(0);
+		expect(
+			tree.root.findAll((node) => node.props?.testID === "profile-edit-screen-back").length,
+		).toBeGreaterThan(0);
 	});
 
 	/*
