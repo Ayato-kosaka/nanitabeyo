@@ -49,7 +49,7 @@ export default function RestaurantDetailScreen() {
 	 */
 	const handleBack = useCallback(() => {
 		lightImpact();
-		if (router.canGoBack()) {
+		if (router.canDismiss()) {
 			router.back();
 			return;
 		}

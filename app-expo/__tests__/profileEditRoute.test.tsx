@@ -19,7 +19,12 @@ import TestRenderer from "react-test-renderer";
 const mockPush = jest.fn();
 const mockReplace = jest.fn();
 const mockBack = jest.fn();
-let mockCanGoBack = false;
+// #1404 離脱の判定は canGoBack ではなく canDismiss（スタックが 2 枚以上か）を見る。
+// canGoBack はタブナビゲータまでさかのぼるため、(tabs) 配下へ直リンク着地しても
+// initialRouteName="search" のぶん true になり、親へ倒す保険が働かない
+let mockCanDismiss = false;
+// 「canGoBack は true だが canDismiss は false」を作れるように別々に持つ
+let mockCanGoBack = true;
 // ⚠️ スタブ本体をファクトリの «外» に置かないこと。import 文はこのファイルの const 宣言より前へ
 // 巻き上げられるため、ファクトリが走る時点では外の変数がまだ undefined になる。
 // 中身の参照は «呼び出し時» に解決されるので問題ない（loginEntryPoints.test.tsx と同じ注意）
@@ -29,6 +34,7 @@ jest.mock("expo-router", () => {
 		replace: (href: unknown) => mockReplace(href),
 		back: () => mockBack(),
 		canGoBack: () => mockCanGoBack,
+		canDismiss: () => mockCanDismiss,
 	};
 	return {
 		router: stub,
@@ -158,7 +164,8 @@ beforeEach(() => {
 	mockPush.mockClear();
 	mockReplace.mockClear();
 	mockBack.mockClear();
-	mockCanGoBack = false;
+	mockCanDismiss = false;
+	mockCanGoBack = true;
 });
 
 describe("#1369 マイページから編集画面への導線", () => {
@@ -177,7 +184,7 @@ describe("#1369 マイページから編集画面への導線", () => {
 
 describe("#1369 プロフィール編集画面の離脱", () => {
 	it("戻るを押すと、履歴があれば back で戻る", async () => {
-		mockCanGoBack = true;
+		mockCanDismiss = true;
 		const tree = await render(<ProfileEditScreen />);
 
 		await press(tree, "profile-edit-screen-back");
@@ -186,8 +193,35 @@ describe("#1369 プロフィール編集画面の離脱", () => {
 		expect(mockReplace).not.toHaveBeenCalled();
 	});
 
+	/*
+	#1404 【バグ】判定に `canGoBack()` を使うと、**この画面へ URL 直リンクで着地したときに
+	親へ倒す保険が働かない**。
+
+	`canGoBack()` は React Navigation のナビゲーション状態を親までさかのぼって見る。
+	`(tabs)/_layout.tsx` が `initialRouteName="search"` を指定しているため、`(tabs)` 配下の
+	ルートへ直接着地するとタブナビゲータが «検索へ戻れる» と答え、true になる。
+	その結果、戻るはマイページではなく **検索タブ** へ飛ぶ。
+
+	`canDismiss()` は «スタックが 2 枚以上あるか» だけを見るので、タブ履歴に影響されない。
+
+	⚠️ ここが赤くなったら `canGoBack()` へ戻っている。実機・E2E でしか気付けない形になる。
+	*/
+	it("canGoBack が true でも、スタックが 1 枚ならマイページへ replace する", async () => {
+		mockCanGoBack = true;
+		mockCanDismiss = false;
+		const tree = await render(<ProfileEditScreen />);
+
+		await press(tree, "profile-edit-screen-back");
+
+		expect(mockBack).not.toHaveBeenCalled();
+		expect(mockReplace).toHaveBeenCalledWith({
+			pathname: "/[locale]/(tabs)/profile",
+			params: { locale: "ja-JP" },
+		});
+	});
+
 	it("戻るを押したとき履歴が無ければマイページへ replace する", async () => {
-		mockCanGoBack = false;
+		mockCanDismiss = false;
 		const tree = await render(<ProfileEditScreen />);
 
 		await press(tree, "profile-edit-screen-back");
@@ -201,7 +235,7 @@ describe("#1369 プロフィール編集画面の離脱", () => {
 	});
 
 	it("保存が成功したら、戻ると同じ判定で離脱する", async () => {
-		mockCanGoBack = true;
+		mockCanDismiss = true;
 		const tree = await render(<ProfileEditScreen />);
 
 		await press(tree, "profile-edit-form-saved");
@@ -222,7 +256,7 @@ describe("#1369 プロフィール編集画面の離脱", () => {
 	});
 
 	it("保存が成功したとき履歴が無ければマイページへ replace する", async () => {
-		mockCanGoBack = false;
+		mockCanDismiss = false;
 		const tree = await render(<ProfileEditScreen />);
 
 		await press(tree, "profile-edit-form-saved");
