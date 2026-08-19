@@ -50,8 +50,9 @@ export default function SavedTopicLocationScreen() {
 			router.back();
 			return;
 		}
-		// 履歴が無い着地（URL 直リンク / リロード）の保険。出発点は保存した料理カテゴリのタブだけ
-		router.replace({ pathname: "/[locale]/(tabs)/profile", params: { locale, tab: "saved-topics" } });
+		// 履歴が無い着地（URL 直リンク / リロード）の保険。出発点は保存した料理カテゴリの一覧だけ。
+		// #1402 マイページの 4 グリッドタブ廃止により `?tab=saved-topics` は «単独のルート» になった
+		router.replace({ pathname: "/[locale]/(tabs)/profile/saved-topics", params: { locale } });
 	}, [lightImpact, logFrontendEvent, locale, topicId]);
 
 	return (

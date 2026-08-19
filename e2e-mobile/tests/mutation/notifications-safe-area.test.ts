@@ -94,7 +94,12 @@ describeMutation("お知らせ一覧の SafeArea @mutation", () => {
 	const settings = new SettingsScreen();
 	const notifications = new NotificationsScreen();
 
-	/** ScreenHeader の戻るボタン（設定・ブロック済み一覧のどちらのヘッダーにも存在する既存 testID） */
+	/**
+	 * ScreenHeader の戻るボタン（ブロック済み一覧のヘッダーに存在する既存 testID）。
+	 *
+	 * #1402 まではここに «設定画面» のヘッダーも重なって 2 枚一致していたが、
+	 * 設定はマイページ本体（ScreenHeader を持たない）へ統合されたので 1 枚になった。
+	 */
 	const screenHeaderBack = by.id("screen-header-back");
 
 	beforeEach(async () => {
@@ -105,15 +110,16 @@ describeMutation("お知らせ一覧の SafeArea @mutation", () => {
 
 	// ─ テストケース: お知らせ一覧のヘッダーがステータスバー領域へ食い込まない ─
 	// 手順:
-	//   1. マイページ → 歯車 → ブロック済み料理カテゴリ一覧 と実導線で遷移する
-	//      （ネイティブには URL 直遷移の代替経路が無いため。settings.test.ts と同方針）
+	//   1. マイページ → ブロック済み料理カテゴリ一覧 と実導線で遷移する
+	//      （ネイティブには URL 直遷移の代替経路が無いため。settings.test.ts と同方針。
+	//       #1402 で歯車の 1 階層が無くなった）
 	//   2. 見本画面のヘッダー（screen-header-back）の上端 y を基準値として読む
 	//   3. お知らせタブへ切り替え、ヘッダータイトル（notifications-header-title）の上端 y を読む
 	//   4. 「お知らせの上端 y >= 見本の上端 y - 許容差」を検証する
 	//      修正前は inset ぶん（最小でも 24dp）上へずれるため必ず落ちる
 	it("ヘッダーの上端がブロック済み料理カテゴリ一覧と同じ高さ以下にある", async () => {
 		await tabBar.gotoProfile();
-		await profile.gotoSettings();
+		await profile.expectLoaded();
 		await settings.expectLoaded();
 		// SettingsScreen に遷移ヘルパを足さず、ここで行を直接タップしている。
 		// この spec が必要とするのは「見本画面のヘッダー座標」だけで、
@@ -121,14 +127,18 @@ describeMutation("お知らせ一覧の SafeArea @mutation", () => {
 		await tapWhenVisible(settings.blockedTopicsItem);
 
 		// ブロック済み一覧は 0 件時に空表示、1 件以上でリストと描画が分かれ、
-		// ロケール非依存で待てる共通の観測点が「ヘッダーが 2 枚（設定 + ブロック済み）になること」しかない。
-		// Stack push なので遷移前の設定画面はマウントされたまま残り、遷移が完了すると 2 枚一致する。
-		await waitUntil(async () => (await framesOf(screenHeaderBack)).length >= 2, {
-			description: "ブロック済み料理カテゴリ一覧への遷移（ScreenHeader が 2 枚になること）",
+		// ロケール非依存で待てる共通の観測点が「ScreenHeader が現れること」しかない。
+		//
+		// #1402 【変更】旧実装は «2 枚（設定 + ブロック済み）» を待っていた。遷移元が
+		// ScreenHeader を持つ設定画面で、Stack push により両方がマウントされたままだったため。
+		// 設定はマイページ本体へ統合され、マイページは ScreenHeader を持たない（タブの直下だから
+		// 戻る導線が要らない）ので、遷移が完了しても **1 枚しか一致しない**。
+		await waitUntil(async () => (await framesOf(screenHeaderBack)).length >= 1, {
+			description: "ブロック済み料理カテゴリ一覧への遷移（ScreenHeader が現れること）",
 		});
 
 		const baselineFrames = await framesOf(screenHeaderBack);
-		// 2 枚とも同じ ScreenHeader（`paddingTop: insets.top + 8`）なので座標は一致するはずだが、
+		// 同じ ScreenHeader（`paddingTop: insets.top + 8`）なので複数一致しても座標は揃うはずだが、
 		// 万一ずれた場合は **下側（y が大きい方）** を採る。基準値が小さいほどアサーションは
 		// 甘くなるため、「読み違いで緑になる」より「厳しく見て落ちる」side へ倒しておく
 		const baselineTop = Math.max(...baselineFrames.map((frame) => frame.y));

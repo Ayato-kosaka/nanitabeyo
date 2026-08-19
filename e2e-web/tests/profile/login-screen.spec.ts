@@ -83,16 +83,20 @@ test.describe("ログイン画面", () => {
 		await legalPage.expectOpened("terms");
 	});
 
-	// ─ テストケース: ブラウザバックでマイページへ戻り、タブの選択が保たれる ─
+	// ─ テストケース: ブラウザバックでマイページへ戻る ─
 	// #1359 【設計】§1 の「未確認」を CI で固定する唯一の手段。
-	// 「`(tabs)` の上に push しても React ツリーから外れないのでタブの選択は保たれる」は
-	// native-stack の構造からの推論でしかなく、実ブラウザで確かめていない。ここで固定する。
+	// 「`(tabs)` の上に push しても React ツリーから外れない」は native-stack の構造からの
+	// 推論でしかなく、実ブラウザで確かめていない。ここで固定する。
+	//
+	// #1402 【変更】旧版は «いいねタブへ切り替えてから push し、戻ってもタブの選択が残ること» を
+	// 見ていた。4 グリッドタブが廃止され «選択タブ» という状態自体が無くなったので、
+	// 戻り先がマイページであることと、その中身（縦リスト）が描かれ直していることを見る。
 	// 手順:
-	//   1. マイページで「いいね」タブへ切り替える
+	//   1. マイページを開く
 	//   2. ログインボタンでログイン画面へ push する
 	//   3. ブラウザバックする
-	//   4. URL が /ja-JP/profile へ戻り、「いいね」タブの内容が出たままであることを検証
-	test("ブラウザバックでマイページへ戻り、選択していたタブが保たれる", async ({ appPage }) => {
+	//   4. URL が /ja-JP/profile へ戻り、縦リストが出たままであることを検証
+	test("ブラウザバックでマイページへ戻る", async ({ appPage }) => {
 		const tabBar = new TabBar(appPage);
 		const profilePage = new ProfilePage(appPage);
 		const loginPage = new LoginPage(appPage);
@@ -100,16 +104,14 @@ test.describe("ログイン画面", () => {
 		await tabBar.gotoProfile();
 		await profilePage.expectGuestViewLoaded();
 
-		await appPage.getByTestId("profile-tab-group-liked").click();
-		await expect(profilePage.likedGrid).toBeVisible();
-
 		await profilePage.openLogin();
 		await loginPage.expectOpened();
 
 		await appPage.goBack();
 
 		await expect(appPage).toHaveURL(/\/ja-JP\/profile/);
-		await expect(profilePage.likedGrid).toBeVisible();
+		await profilePage.expectLoaded();
+		await expect(profilePage.loginButton).toBeVisible();
 	});
 
 	// ─ テストケース: ?next= 付き URL へ直接着地しても戻る導線が効く ─

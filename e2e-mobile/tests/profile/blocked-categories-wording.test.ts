@@ -21,8 +21,8 @@ import { TabBar } from "../../screens/TabBar";
  *
  * ## Web 版からの変更点
  * - **導線**: e2e-web は `page.goto("/ja-JP/profile/blocked-topics")` で URL 直遷移するが、
- *   ネイティブには代替経路が無いため、マイページ → 歯車 → ブロック済み行、と実 UI をタップして遷移する
- *   （tests/profile/settings.test.ts と同じ方針）。
+ *   ネイティブには代替経路が無いため、マイページ → ブロック済み行、と実 UI をタップして遷移する
+ *   （tests/profile/settings.test.ts と同じ方針）。#1402 で歯車の 1 階層が無くなった。
  * - **旧文言の残存チェック**: Playwright の `getByText("トピック")` は部分一致で
  *   「含む要素が 0 件」を直接書けるが、Detox の `by.text()` は **完全一致しか無い**。
  *   そのため #1132 以前の locales の値（`OLD_*`）を定数として持ち、
@@ -54,7 +54,7 @@ describeJapaneseLocale("ブロック済み料理カテゴリの文言(#1132)", (
 
 	// ─ テストケース: ja-JP で新文言が出て、旧文言が残っていない ─
 	// 手順:
-	//   1. マイページタブ → 歯車 → ブロック済み行、の実導線で一覧画面へ遷移する
+	//   1. マイページタブ → ブロック済み行、の実導線で一覧画面へ遷移する
 	//   2. ScreenHeader のタイトル（blocked-topics-header-title）が
 	//      「ブロック済みの料理カテゴリ」であることを検証
 	//   3. 画面に旧文言「ブロック済みの料理トピック」が残っていないことを検証（これが #1132 の本体）
@@ -65,7 +65,6 @@ describeJapaneseLocale("ブロック済み料理カテゴリの文言(#1132)", (
 		const blockedTopicsScreen = new BlockedTopicsScreen();
 
 		await tabBar.gotoProfile();
-		await profileScreen.gotoSettings();
 		await settingsScreen.expectLoaded();
 		await settingsScreen.openBlockedTopics();
 
@@ -80,9 +79,11 @@ describeJapaneseLocale("ブロック済み料理カテゴリの文言(#1132)", (
 
 	// ─ テストケース: 設定メニューの導線も新文言になっている ─
 	// 手順:
-	//   1. マイページタブ → 歯車ボタンで設定画面へ遷移する
+	//   1. マイページタブを開く（#1402 で歯車の 1 階層が無くなった）
 	//   2. ブロック済み項目（settings-blocked-topics）が表示されることを検証
-	//   3. 設定画面にも旧文言が残っていないことを検証
+	//   3. マイページにも旧文言が残っていないことを検証
+	//      ⚠️ #1402 でこの検査の守備範囲が広がった。設定はマイページへ統合されたので、
+	//      #1402 が足した「保存した料理カテゴリ」の行もここで «カテゴリ» に揃っていることが担保される
 	//      （pageTitle だけ直して navigationLabel を直し漏れる事故を防ぐ）
 	it("設定メニューの導線にも旧文言が残っていない", async () => {
 		const tabBar = new TabBar();
@@ -90,12 +91,11 @@ describeJapaneseLocale("ブロック済み料理カテゴリの文言(#1132)", (
 		const settingsScreen = new SettingsScreen();
 
 		await tabBar.gotoProfile();
-		await profileScreen.gotoSettings();
 		await settingsScreen.expectLoaded();
 
 		await waitUntilVisible(settingsScreen.blockedTopicsItem);
 
 		const hasOldWording = await settingsScreen.hasText(OLD_WORDING);
-		assert.equal(hasOldWording, false, `設定メニューの導線に旧文言「${OLD_WORDING}」が残っている`);
+		assert.equal(hasOldWording, false, `マイページの導線に旧文言「${OLD_WORDING}」が残っている`);
 	});
 });

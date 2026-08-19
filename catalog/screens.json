@@ -327,7 +327,7 @@
 		},
 		{
 			"id": "profile-guest",
-			"name": "マイページ（ゲスト・保存した投稿）",
+			"name": "マイページ（ゲスト）",
 			"route": "/[locale]/profile",
 			"url": "/ja-JP/profile",
 			"platforms": {
@@ -340,31 +340,37 @@
 					"session": "anon"
 				}
 			},
-			"state": "匿名ユーザー。タブは保存系（保存した投稿／保存したトピック／いいね）のみ",
-			"description": "プロフィールタブ。匿名時はゲスト表示＋ログインボタンで、投稿・ウォレット系タブは出ない。",
+			"state": "匿名ユーザー。プロフィール要約＋縦リスト（いいね／保存した料理カテゴリ／旧設定画面の項目）",
+			"description": "プロフィールタブ。#1402 で 4 グリッドタブを廃止し、独立していた設定画面の項目もここへ統合した。匿名時はゲスト表示＋ログインボタンで、ログアウト行は出ない（Web では「レビューを書く」も非表示）。",
 			"from": ["タブバー「マイページ」", "URL 直リンク"],
-			"to": ["設定", "ログイン", "保存/いいねした投稿のフィード"]
+			"to": [
+				"いいねした投稿",
+				"保存した料理カテゴリ",
+				"ログイン",
+				"ご意見・不具合",
+				"ブロック済みの料理カテゴリ",
+				"利用規約/プライバシーポリシー/ガイドライン/著作権（/legal/[doc]）"
+			]
 		},
 		{
-			"id": "profile-guest-saved-topics",
-			"name": "マイページ（保存したトピック）",
-			"route": "/[locale]/profile",
-			"url": "/ja-JP/profile",
+			"id": "profile-saved-topics",
+			"name": "保存した料理カテゴリ",
+			"route": "/[locale]/profile/saved-topics",
+			"url": "/ja-JP/profile/saved-topics",
 			"platforms": {
 				"web": {
 					"capture": "auto",
 					"session": "anon"
 				},
 				"mobile": {
-					"capture": "optional",
-					"session": "anon",
-					"note": "「保存」グループ内のサブタブに testID が無く、文言タップに依存するため取得できないことがある。"
+					"capture": "auto",
+					"session": "anon"
 				}
 			},
-			"state": "プロフィール内タブ「保存したトピック」を選択した状態",
-			"description": "同一 URL 内の UI 状態。保存した料理トピックの一覧。カードを押すと地点検索の画面へ進む。",
-			"from": ["マイページ"],
-			"to": ["保存料理カテゴリの地点検索"]
+			"state": null,
+			"description": "保存した料理カテゴリの一覧。#1402 でマイページ内のサブタブから «単独のルート» になった（グリッドの実装 SavedTopicsTab はそのまま流用）。カードを押すと地点検索の画面へ進む。",
+			"from": ["マイページ（「保存した料理カテゴリ」の行）", "URL 直リンク"],
+			"to": ["保存料理カテゴリの地点検索", "マイページ（戻る）"]
 		},
 		{
 			"id": "profile-saved-topic-location",
@@ -383,15 +389,15 @@
 			},
 			"state": null,
 			"description": "保存した料理カテゴリのカードから開く地点検索（#1369 でモーダルからルートへ）。ホーム（さがすタブ）と同じ LocationAutocomplete・同じ履歴（recent_locations_v1）を使う。地点を確定すると検索結果マップへ進む。",
-			"from": ["マイページ（保存したトピック）"],
+			"from": ["保存した料理カテゴリ"],
 			"to": ["マイページ由来の検索結果マップ", "マイページ（戻る）"],
 			"note": "本来の入口は保存済みカテゴリのカードで、検索には topicId / topicLabelEn のパラメータが要る。画面の見た目はパラメータの有無で変わらないため、カタログは直リンクで撮る。"
 		},
 		{
-			"id": "profile-guest-liked",
-			"name": "マイページ（いいね）",
-			"route": "/[locale]/profile",
-			"url": "/ja-JP/profile",
+			"id": "profile-liked",
+			"name": "いいねした投稿",
+			"route": "/[locale]/profile/liked",
+			"url": "/ja-JP/profile/liked",
 			"platforms": {
 				"web": {
 					"capture": "auto",
@@ -402,10 +408,10 @@
 					"session": "anon"
 				}
 			},
-			"state": "プロフィール内タブ「いいね」を選択した状態",
-			"description": "同一 URL 内の UI 状態。いいねした料理メディアの一覧。",
-			"from": ["マイページ"],
-			"to": ["料理メディアフィード"]
+			"state": null,
+			"description": "いいねした料理メディアの一覧。#1402 でマイページ内のタブから «単独のルート» になった（グリッドの実装 LikeTab はそのまま流用）。",
+			"from": ["マイページ（「いいねした投稿」の行）", "URL 直リンク"],
+			"to": ["料理メディアフィード（profile/food）", "マイページ（戻る）"]
 		},
 		{
 			"id": "auth-login",
@@ -431,30 +437,6 @@
 				"地図のお店詳細（ゲスト）"
 			],
 			"to": ["外部 IdP（Google / Apple OAuth）", "利用規約・プライバシーポリシー（/legal/[doc]）"]
-		},
-		{
-			"id": "profile-settings",
-			"name": "設定",
-			"route": "/[locale]/profile/settings",
-			"url": "/ja-JP/profile/settings",
-			"platforms": {
-				"web": {
-					"capture": "auto",
-					"session": "anon"
-				},
-				"mobile": {
-					"capture": "auto",
-					"session": "anon"
-				}
-			},
-			"state": "匿名ユーザー。ログアウト行は出ない（Web では「レビューを書く」も非表示）",
-			"description": "設定メニュー。フィードバック・ブロック済みトピック・各種リーガル文書への導線を持つ。#1368 でリーガル 4 行はモーダル起動から画面遷移（/[locale]/legal/[doc]）へ変わった。",
-			"from": ["マイページ（歯車アイコン）", "URL 直リンク"],
-			"to": [
-				"ご意見・不具合",
-				"ブロック済みの料理トピック",
-				"利用規約/プライバシーポリシー/ガイドライン/著作権（/legal/[doc]）"
-			]
 		},
 		{
 			"id": "legal-terms",
@@ -775,10 +757,17 @@
 					"session": "authenticated"
 				}
 			},
-			"state": "ログイン済み。保存系に加えて投稿（レビュー）・ウォレット系タブが増える",
-			"description": "ログイン済みのプロフィール。匿名時との差分はタブ構成とヘッダー（ログインボタンが「プロフィールを編集」に変わる）。",
+			"state": "ログイン済み。匿名時との差分は「プロフィールを編集」ボタンと「ログアウト」行の有無",
+			"description": "ログイン済みのマイページ。#1402 で 4 グリッドタブと独立した設定画面が無くなり、匿名時との差分はヘッダーのボタン（ログイン→プロフィールを編集）と縦リスト末尾のログアウト行だけになった。",
 			"from": ["タブバー「マイページ」"],
-			"to": ["設定", "プロフィール編集", "自分のレビューのフィード", "ウォレット（入札・収益）"]
+			"to": [
+				"プロフィール編集",
+				"いいねした投稿",
+				"保存した料理カテゴリ",
+				"ご意見・不具合",
+				"ブロック済みの料理カテゴリ",
+				"起動（ログアウト）"
+			]
 		},
 		{
 			"id": "profile-edit",
@@ -802,50 +791,10 @@
 			"note": "編集ボタンはログイン済みのときだけ描画される（匿名時は同じ位置にログインボタンが出る）。E2E は保存を実行しない（共有 dev DB のテストユーザーを書き換えるため）。"
 		},
 		{
-			"id": "profile-authenticated-reviews",
-			"name": "マイページ（投稿したレビュー）",
-			"route": "/[locale]/profile",
-			"url": "/ja-JP/profile",
-			"platforms": {
-				"web": {
-					"capture": "auto",
-					"session": "authenticated"
-				},
-				"mobile": {
-					"capture": "auto",
-					"session": "authenticated"
-				}
-			},
-			"state": "プロフィール内タブ「レビュー」を選択した状態（ログイン済みのみ）",
-			"description": "同一 URL 内の UI 状態。自分が投稿したレビューのグリッド。",
-			"from": ["マイページ（ログイン済み）"],
-			"to": ["料理メディアフィード（profile/food）"]
-		},
-		{
-			"id": "profile-settings-authenticated",
-			"name": "設定（ログイン済み）",
-			"route": "/[locale]/profile/settings",
-			"url": "/ja-JP/profile/settings",
-			"platforms": {
-				"web": {
-					"capture": "auto",
-					"session": "authenticated"
-				},
-				"mobile": {
-					"capture": "auto",
-					"session": "authenticated"
-				}
-			},
-			"state": "ログイン済み。匿名時との差分は「ログアウト」行の有無",
-			"description": "ログイン済みで開いた設定画面。",
-			"from": ["マイページ（ログイン済み）"],
-			"to": ["ご意見・不具合", "ブロック済みの料理トピック", "起動（ログアウト）"]
-		},
-		{
 			"id": "profile-food-feed",
 			"name": "料理メディアフィード（マイページ由来）",
 			"route": "/[locale]/profile/food",
-			"url": "/ja-JP/profile/food?tabName=reviews&startIndex=0",
+			"url": "/ja-JP/profile/food?tabName=profileLikes&startIndex=0",
 			"platforms": {
 				"web": {
 					"capture": "optional",
@@ -857,10 +806,10 @@
 				}
 			},
 			"state": null,
-			"description": "マイページのグリッドから開く縦フィード。tabName に応じて保存/いいね/レビューのどれを表示するかが決まる。",
-			"from": ["マイページの各グリッド"],
+			"description": "「いいねした投稿」のグリッドから開く縦フィード。#1402 で 4 グリッドタブが廃止され、このルートへ来る導線は «いいね» だけになった。",
+			"from": ["いいねした投稿"],
 			"to": ["マイページ（戻る）"],
-			"note": "グリッドに 1 件以上の実データが必要。テストユーザーのデータ次第で取得できないことがある。"
+			"note": "いいねが 1 件以上必要。テストユーザーのデータ次第で取得できないことがある。"
 		},
 		{
 			"id": "notifications",
@@ -1342,21 +1291,21 @@
 		},
 		{
 			"from": "profile-guest",
-			"to": "profile-guest-saved-topics",
-			"label": "保存＞料理"
+			"to": "profile-saved-topics",
+			"label": "保存した料理カテゴリ"
 		},
 		{
 			"from": "profile-guest",
-			"to": "profile-guest-liked",
-			"label": "いいね"
+			"to": "profile-liked",
+			"label": "いいねした投稿"
 		},
 		{
-			"from": "profile-guest",
-			"to": "profile-settings",
-			"label": "歯車"
+			"from": "profile-liked",
+			"to": "profile-food-feed",
+			"label": "グリッドを開く"
 		},
 		{
-			"from": "profile-guest-saved-topics",
+			"from": "profile-saved-topics",
 			"to": "profile-saved-topic-location",
 			"label": "保存トピックを開く"
 		},
@@ -1366,12 +1315,12 @@
 			"label": "地点を確定"
 		},
 		{
-			"from": "profile-settings",
+			"from": "profile-guest",
 			"to": "legal-terms",
 			"label": "利用規約"
 		},
 		{
-			"from": "profile-settings",
+			"from": "profile-guest",
 			"to": "legal-privacy",
 			"label": "プライバシーポリシー"
 		},
@@ -1381,19 +1330,14 @@
 			"label": "同意文言のプライバシーポリシー"
 		},
 		{
-			"from": "profile-settings",
+			"from": "profile-guest",
 			"to": "profile-feedback",
 			"label": "ご意見・不具合"
 		},
 		{
-			"from": "profile-settings",
+			"from": "profile-guest",
 			"to": "profile-blocked-topics",
 			"label": "ブロック済みトピック"
-		},
-		{
-			"from": "profile-authenticated",
-			"to": "profile-authenticated-reviews",
-			"label": "レビュータブ"
 		},
 		{
 			"from": "profile-authenticated",
@@ -1402,13 +1346,13 @@
 		},
 		{
 			"from": "profile-authenticated",
-			"to": "profile-settings-authenticated",
-			"label": "歯車"
+			"to": "profile-liked",
+			"label": "いいねした投稿"
 		},
 		{
-			"from": "profile-authenticated-reviews",
-			"to": "profile-food-feed",
-			"label": "グリッドを開く"
+			"from": "profile-authenticated",
+			"to": "profile-saved-topics",
+			"label": "保存した料理カテゴリ"
 		},
 		{
 			"from": "review-authenticated",

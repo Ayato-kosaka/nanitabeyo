@@ -19,7 +19,7 @@ import {
 } from "@/stores/useDishMediaEntriesStore";
 import { shallow } from "zustand/shallow";
 import { profileLikesEntriesKey } from "@/features/profile/tabs/LikeTab";
-import { profileSavedPostsEntriesKey } from "@/features/profile/tabs/SavedPostsTab";
+import { profileSavedPostsEntriesKey } from "@/features/profile/entriesKeys";
 import { useDishMediaActions } from "../hooks/useDishMediaActions";
 import { GestureDetector } from "react-native-gesture-handler";
 import type { GestureType } from "react-native-gesture-handler";

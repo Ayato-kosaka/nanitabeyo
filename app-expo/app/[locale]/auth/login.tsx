@@ -116,7 +116,7 @@ export default function LoginScreen() {
 				{/* #1359 【設計】auth 未確定（user === null）の間は OAuth ボタンを «描かない»（設計 §4）。
 				    未確定のまま押させると LoginForm 側のガードで「押しても何も起きない + Snackbar」になり、
 				    さらに昇格チェックボックスが一瞬だけ出て消える。モーダル時代はこれを避けられなかったが、
-				    画面なら ProfileTabsLayout と同じくスピナーで待てる。
+				    画面ならマイページ（app/[locale]/(tabs)/profile/index.tsx）と同じくスピナーで待てる。
 				    ⚠️ 戻る導線は待たせないこと。ヘッダーはこのゲートの外に置いてある */}
 				{!isAuthResolved ? (
 					<View style={styles.loadingContainer}>

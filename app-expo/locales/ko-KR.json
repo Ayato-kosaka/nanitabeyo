@@ -420,20 +420,6 @@
 		}
 	},
 	"Profile": {
-		"tabGroups": {
-			"reviews": "리뷰",
-			"saved": "저장됨",
-			"liked": "좋아요",
-			"wallet": "지갑"
-		},
-		"tabs": {
-			"deposits": "예치금",
-			"earnings": "수익",
-			"saved-posts": "게시물",
-			"saved-topics": "요리",
-			"wallet-deposit": "예치금",
-			"wallet-earning": "수익"
-		},
 		"numberSuffix": {
 			"million": "M",
 			"thousand": "K"
@@ -463,6 +449,10 @@
 			"refunded": "환불됨",
 			"paid": "지불됨",
 			"pending": "보류 중"
+		},
+		"menu": {
+			"likedPosts": "좋아요한 게시물",
+			"savedDishCategories": "저장한 요리 카테고리"
 		},
 		"buttons": {
 			"editProfile": "프로필 편집",
@@ -705,7 +695,6 @@
 		"consent_login_suffix": "에 동의하는 것으로 간주됩니다."
 	},
 	"Settings": {
-		"title": "설정",
 		"sendFeedback": "피드백 보내기",
 		"leaveReview": "리뷰 남기기",
 		"rateDialogTitle": "앱이 마음에 드시나요?",

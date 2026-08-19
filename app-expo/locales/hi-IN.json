@@ -420,20 +420,6 @@
 		}
 	},
 	"Profile": {
-		"tabGroups": {
-			"reviews": "समीक्षाएं",
-			"saved": "सेव किया गया",
-			"liked": "पसंदीदा",
-			"wallet": "वॉलेट"
-		},
-		"tabs": {
-			"deposits": "जमा",
-			"earnings": "आय",
-			"saved-posts": "पोस्ट",
-			"saved-topics": "व्यंजन",
-			"wallet-deposit": "जमा",
-			"wallet-earning": "आय"
-		},
 		"numberSuffix": {
 			"million": "M",
 			"thousand": "K"
@@ -463,6 +449,10 @@
 			"refunded": "धनवापसी",
 			"paid": "भुगतान किया गया",
 			"pending": "लंबित"
+		},
+		"menu": {
+			"likedPosts": "पसंद की गई पोस्ट",
+			"savedDishCategories": "सहेजी गई व्यंजन श्रेणियाँ"
 		},
 		"buttons": {
 			"editProfile": "प्रोफ़ाइल संपादित करें",
@@ -705,7 +695,6 @@
 		"consent_login_suffix": " से सहमत होते हैं।"
 	},
 	"Settings": {
-		"title": "सेटिंग्स",
 		"sendFeedback": "प्रतिक्रिया भेजें",
 		"leaveReview": "समीक्षा छोड़ें",
 		"rateDialogTitle": "क्या आपको ऐप पसंद है?",

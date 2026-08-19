@@ -84,7 +84,7 @@ test.describe("ログアウト(ログイン済み)", () => {
 		// #1124 の「ホームへ戻らない」症状のうち 1 つは、app/index.tsx が
 		// «起動時 URL»（= Linking.getInitialURL()。web ではモジュール読み込み時の
 		// window.location.href に束縛される）をディープリンクとして採り直し、
-		// ログアウト後にまた設定画面へ送り返す、というものだった。
+		// ログアウト後にまたマイページ（旧・設定画面）へ送り返す、というものだった。
 		// "/" から開始すると index.tsx が起動時に一度マウントされて `hasConsumedInitialUrl` を
 		// 消費してしまい、この経路が再現しなくなる。深い URL の直開き（実ユーザーの
 		// ブックマーク・共有リンク・リロード）から始めることで、ログアウト時の
@@ -116,7 +116,9 @@ test.describe("ログアウト(ログイン済み)", () => {
 		// 検索画面で、タブバーも「さがす」が選択された正しい状態なので、
 		// 「どの画面が出ているか」で判定し、URL は「設定画面に留まっていないこと」だけを見る。
 		await searchPage.expectLoaded();
-		await expect(page).not.toHaveURL(/\/profile\/settings/);
+		// #1402 設定は独立した画面ではなくマイページの縦リストになったので、
+		// 「留まっていないこと」を見る URL も /profile/settings → /profile になった
+		await expect(page).not.toHaveURL(/\/profile(\?|$)/);
 		await expect(settingsPage.logoutItem).toHaveCount(0);
 
 		// ── [症状3] 画面が固まらない ────────────────────────────────

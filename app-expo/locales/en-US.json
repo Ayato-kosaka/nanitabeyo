@@ -420,20 +420,6 @@
 		}
 	},
 	"Profile": {
-		"tabGroups": {
-			"reviews": "Reviews",
-			"saved": "Saved",
-			"liked": "Liked",
-			"wallet": "Wallet"
-		},
-		"tabs": {
-			"deposits": "Deposits",
-			"earnings": "Earnings",
-			"saved-posts": "Posts",
-			"saved-topics": "Dishes",
-			"wallet-deposit": "Deposits",
-			"wallet-earning": "Earnings"
-		},
 		"numberSuffix": {
 			"million": "M",
 			"thousand": "K"
@@ -463,6 +449,10 @@
 			"refunded": "Refunded",
 			"paid": "Paid",
 			"pending": "Pending"
+		},
+		"menu": {
+			"likedPosts": "Liked posts",
+			"savedDishCategories": "Saved dish categories"
 		},
 		"buttons": {
 			"editProfile": "Edit Profile",
@@ -705,7 +695,6 @@
 		"consent_login_suffix": "."
 	},
 	"Settings": {
-		"title": "Settings",
 		"sendFeedback": "Send Feedback",
 		"leaveReview": "Leave Review",
 		"rateDialogTitle": "Are you enjoying the app?",

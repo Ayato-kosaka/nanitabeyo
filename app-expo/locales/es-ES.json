@@ -420,20 +420,6 @@
 		}
 	},
 	"Profile": {
-		"tabGroups": {
-			"reviews": "Reseñas",
-			"saved": "Guardado",
-			"liked": "Me gusta",
-			"wallet": "Cartera"
-		},
-		"tabs": {
-			"deposits": "Depósitos",
-			"earnings": "Ganancias",
-			"saved-posts": "Publicaciones",
-			"saved-topics": "Platos",
-			"wallet-deposit": "Depósitos",
-			"wallet-earning": "Ganancias"
-		},
 		"numberSuffix": {
 			"million": "M",
 			"thousand": "K"
@@ -463,6 +449,10 @@
 			"refunded": "Reembolsado",
 			"paid": "Pagado",
 			"pending": "Pendiente"
+		},
+		"menu": {
+			"likedPosts": "Publicaciones que te gustan",
+			"savedDishCategories": "Categorías de platos guardadas"
 		},
 		"buttons": {
 			"editProfile": "Editar Perfil",
@@ -705,7 +695,6 @@
 		"consent_login_suffix": "."
 	},
 	"Settings": {
-		"title": "Configuración",
 		"sendFeedback": "Enviar comentarios",
 		"leaveReview": "Dejar reseña",
 		"rateDialogTitle": "¿Te gusta la aplicación?",

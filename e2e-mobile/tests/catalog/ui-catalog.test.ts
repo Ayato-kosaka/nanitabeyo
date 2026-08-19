@@ -50,7 +50,7 @@ const TUTORIAL_INDEX = 0;
 
 /** カタログ定義の URL からロケール付きディープリンクを組み立てる（URL の二重管理を防ぐ） */
 function deepLinkOf(id: string): string {
-	// 定義側は "/ja-JP/profile/settings" 形式なので、先頭のロケールセグメントを外して渡す
+	// 定義側は "/ja-JP/profile/saved-topics" 形式なので、先頭のロケールセグメントを外して渡す
 	const pathname = getScreen(id).url.replace(/^\/[a-zA-Z-]+\//, "");
 	return localeDeepLink(pathname);
 }
@@ -183,22 +183,24 @@ describe("UI カタログ（匿名） @catalog", () => {
 		await profileScreen.expectGuestViewLoaded();
 		await captureScreen("profile-guest", { settleMs: 2_000 });
 
+		// #1402 4 グリッドタブが廃止され、いいね／保存は «独立した画面» になった。
+		// タブグループ・サブタブ（文言タップ）ではなく縦リストの行 1 回で開ける
 		await captureScreenIfReachable(
-			"profile-guest-liked",
+			"profile-liked",
 			async () => {
-				await tapWhenVisible(by.id("profile-tab-group-liked"));
-				// いいねが 0 件だとグリッドではなく空状態が描画される。タブを切り替えられていれば撮る
+				await profileScreen.openLiked();
+				// いいねが 0 件だとグリッドではなく空状態が描画される。遷移できていれば撮る
 				await tolerate(() => waitUntilVisible(profileScreen.likedGrid));
 			},
 			{ settleMs: 2_000 },
 		);
 
 		await captureScreenIfReachable(
-			"profile-guest-saved-topics",
+			"profile-saved-topics",
 			async () => {
-				await tapWhenVisible(by.id("profile-tab-group-saved"));
-				// 「保存」グループ内のサブタブ（ja-JP: Profile.tabs.saved-topics = "料理"）には testID が無い
-				await tapWhenVisible(by.text("料理"));
+				await launchAppWithSession({ as: "anon" });
+				await tabBar.gotoProfile();
+				await profileScreen.openSavedTopics();
 				// 保存が 0 件だとグリッドではなく空状態が描画される
 				await tolerate(() => waitUntilVisible(profileScreen.savedTopicsGrid));
 			},
@@ -206,23 +208,26 @@ describe("UI カタログ（匿名） @catalog", () => {
 		);
 
 		await captureScreenIfReachable("auth-login", async () => {
+			await launchAppWithSession({ as: "anon" });
+			await tabBar.gotoProfile();
 			await profileScreen.openLogin();
 			await loginScreen.expectOpened();
 		});
 	});
 
 	// #1368 リーガル文書はモーダルではなく `/[locale]/legal/<doc>` ルートになったため、
-	// カタログの ID も URL 準拠（legal-terms / legal-privacy / legal-not-found）へ張り替えてある
-	it("設定とその配下", async () => {
+	// カタログの ID も URL 準拠（legal-terms / legal-privacy / legal-not-found）へ張り替えてある。
+	// #1402 設定は独立した画面ではなくマイページの縦リストになったので、
+	// カタログ ID «profile-settings» は無くなった（profile-guest が兼ねる）
+	it("設定項目とその配下", async () => {
 		const settingsScreen = new SettingsScreen();
 		const legalScreen = new LegalScreen();
 
-		await launchAppWithSession({ as: "anon", url: deepLinkOf("profile-settings") });
+		await launchAppWithSession({ as: "anon", url: deepLinkOf("profile-guest") });
 		await settingsScreen.expectLoaded();
-		await captureScreen("profile-settings");
 
-		// 実導線（設定の行）から遷移する。ディープリンクでも同じ画面に着くが、
-		// 「設定から開ける」ことまでカタログの撮影経路に含めておく
+		// 実導線（マイページの行）から遷移する。ディープリンクでも同じ画面に着くが、
+		// 「マイページから開ける」ことまでカタログの撮影経路に含めておく
 		await captureScreenIfReachable("legal-terms", async () => {
 			await settingsScreen.openLegalDocument("terms");
 			await legalScreen.expectOpened();
@@ -230,7 +235,7 @@ describe("UI カタログ（匿名） @catalog", () => {
 
 		await captureScreenIfReachable("legal-privacy", async () => {
 			// #1368 モーダル時代は閉じる導線に testID が無く起動し直していたが、
-			// ルート化でヘッダーの戻るボタン（screen-header-back）から設定へ帰れるようになった
+			// ルート化でヘッダーの戻るボタン（screen-header-back）からマイページへ帰れるようになった
 			await legalScreen.goBack();
 			await settingsScreen.expectLoaded();
 			await settingsScreen.openLegalDocument("privacy");
@@ -305,7 +310,7 @@ describe("UI カタログ（匿名） @catalog", () => {
 });
 
 describeAuthenticated("UI カタログ（ログイン済み） @catalog", () => {
-	it("マイページ・設定・お知らせ", async () => {
+	it("マイページ・いいね一覧・お知らせ", async () => {
 		const tabBar = new TabBar();
 		const profileScreen = new ProfileScreen();
 		const settingsScreen = new SettingsScreen();
@@ -314,21 +319,23 @@ describeAuthenticated("UI カタログ（ログイン済み） @catalog", () => 
 		await tabBar.gotoProfile();
 		await captureScreen("profile-authenticated", { settleMs: 4_000 });
 
-		const reachedReviews = await captureScreenIfReachable(
-			"profile-authenticated-reviews",
+		// #1402 4 グリッドタブが廃止され、レビュータブ（profile-authenticated-reviews）は無くなった。
+		// profile/food への導線は «いいねした投稿» だけになったので、フィードもそこから撮る
+		const reachedLiked = await captureScreenIfReachable(
+			"profile-liked",
 			async () => {
-				await tapWhenVisible(by.id("profile-tab-group-reviews"));
-				await waitUntilVisible(profileScreen.reviewsGrid);
+				await profileScreen.openLiked();
+				await waitUntilVisible(profileScreen.likedGrid);
 			},
 			{ settleMs: 4_000 },
 		);
 
-		if (reachedReviews) {
+		if (reachedLiked) {
 			await captureScreenIfReachable(
 				"profile-food-feed",
 				async () => {
 					// グリッドのセルに testID が無いため、フィード固有のアクションボタンで到達を判定する
-					await element(by.id("review-tab-grid")).tap();
+					await element(by.id("like-tab-grid")).tap();
 					await waitUntilVisible(by.id("dish-action-like"), DEFAULT_TIMEOUT);
 				},
 				{ settleMs: 5_000 },
@@ -349,16 +356,10 @@ describeAuthenticated("UI カタログ（ログイン済み） @catalog", () => 
 			{ settleMs: 2_000 },
 		);
 
-		await captureScreenIfReachable(
-			"profile-settings-authenticated",
-			async () => {
-				await launchAppWithSession({ as: "authenticated", url: deepLinkOf("profile-settings-authenticated") });
-				await settingsScreen.expectLoaded();
-				// ログアウト行は画面下端にあり、Detox の可視判定（面積 75%）が成立しないことがある
-				await tolerate(() => waitUntilVisible(settingsScreen.logoutItem));
-			},
-			{ settleMs: 1_500 },
-		);
+		// #1402 設定は独立した画面ではなくマイページの縦リストになったので、
+		// カタログ ID «profile-settings-authenticated» は無くなった（profile-authenticated が兼ねる）。
+		// ログアウト行まで写した 1 枚が要る場合は profile-authenticated を撮り直す前に
+		// scrollToLogout() を挟むこと（行は縦リストの最下段にある）
 
 		await captureScreenIfReachable(
 			"notifications",
