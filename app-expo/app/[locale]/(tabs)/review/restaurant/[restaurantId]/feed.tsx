@@ -44,7 +44,7 @@ export default function RestaurantFeedScreen() {
 	// #1386 レビュータブと同じ画面用途キー。タブが先に読んでいればそのまま使える
 	const entriesKey = useMemo(() => mapReviewsKey(restaurantId), [restaurantId]);
 	const fetchInitialByKey = useDishMediaEntriesStore((s) => s.fetchInitialByKey);
-	const { ids, isLoading, hasFetchedInitial } = useDishMediaEntriesStore(
+	const { ids, isLoading, hasFetchedInitial, error } = useDishMediaEntriesStore(
 		selectIdsByKey(entriesKey, "dish_media"),
 		shallow,
 	);
@@ -53,12 +53,15 @@ export default function RestaurantFeedScreen() {
 	// #1386 【設計】ストアが空のときだけ引く。店詳細から来た通常導線ではレビュータブが
 	// 既に読み込んでおり（キーが同じ）、ここで引き直すと同じページを 2 回叩くことになる。
 	// ⚠️ `clearByKey` はレビュータブの unmount で走る。店詳細はスタックに残るため、
-	// このフィードが開いている間にキーが消えることはない
+	// このフィードが開いている間にキーが消えることはない。
+	// ⚠️ `!error` を必ず条件へ入れること。取得が失敗したときストアは
+	// `hasFetchedInitial` を false のまま `isLoading` を false へ戻すので（stores/useDishMediaEntriesStore.ts
+	// の handleAsyncAction）、error を見ないと **失敗するたびに再取得して無限ループする**
 	useEffect(() => {
-		if (restaurantId && !hasFetchedInitial && !isLoading) {
+		if (restaurantId && !hasFetchedInitial && !isLoading && !error) {
 			fetchInitialByKey(entriesKey, {}, fetcher);
 		}
-	}, [restaurantId, entriesKey, fetchInitialByKey, fetcher, hasFetchedInitial, isLoading]);
+	}, [restaurantId, entriesKey, fetchInitialByKey, fetcher, hasFetchedInitial, isLoading, error]);
 
 	const handleClose = useCallback(() => {
 		lightImpact();
@@ -99,11 +102,14 @@ export default function RestaurantFeedScreen() {
 					entriesKey={entriesKey}
 					restaurantId={restaurantId}
 				/>
-			) : isLoading || !hasFetchedInitial ? (
+			) : isLoading || (!hasFetchedInitial && !error) ? (
 				<View style={styles.centered} testID="restaurant-feed-loading">
 					<LoadingIndicator size="large" />
 				</View>
 			) : (
+				/* 取得できたが 0 件 / 取得に失敗した、のどちらも «見るものが無い» なので同じ表示にする。
+				   ⚠️ ここを loading へ倒さないこと。失敗時は hasFetchedInitial が false のままなので、
+				   error を見ないとスピナーで固着する */
 				<View style={styles.centered} testID="restaurant-feed-empty">
 					<Text style={styles.emptyText}>{i18n.t("Common.errors.notFound")}</Text>
 				</View>

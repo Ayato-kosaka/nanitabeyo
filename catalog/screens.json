@@ -924,7 +924,7 @@
 		},
 		{
 			"id": "review-restaurant-detail",
-			"name": "店舗詳細（レビュー投稿導線）",
+			"name": "店舗詳細",
 			"route": "/[locale]/review/restaurant/[restaurantId]",
 			"url": "/ja-JP/review/restaurant/<restaurantId>",
 			"platforms": {
@@ -938,10 +938,36 @@
 				}
 			},
 			"state": null,
-			"description": "選択した店舗の詳細。「写真・動画を投稿する」からレビュー投稿フォームへ進む。",
-			"from": ["店舗選択（レビュー投稿）", "検索結果フィードの店舗導線"],
-			"to": ["レビュー投稿フォーム", "既存メディアからのレビュー投稿"],
-			"note": "レストラン選択で POST /v1/restaurants が走る（同一 Place は upsert のため重複しない）。"
+			"description": "アプリ唯一の店舗詳細（#1386 で地図タブの BlurModal 実装と統合）。「写真・動画を投稿」でレビュー投稿フォームへ、「入札する」で入札へ、レビュー / 入札の 2 タブと Google マップ導線を持つ。",
+			"from": [
+				"店舗選択（レビュー投稿）",
+				"マップ（マーカー / POI / 場所検索）",
+				"検索結果フィードの店舗導線",
+				"URL 直リンク・共有リンク"
+			],
+			"to": ["レビュー投稿フォーム", "入札", "店舗のレビューフィード", "ログイン（ゲストが投稿を押したとき）"],
+			"note": "レストラン選択で POST /v1/restaurants が走る（同一 Place は upsert のため重複しない）。#1386 でルート化そのものの検証は e2e-web の tests/review/restaurant-routes.spec.ts / e2e-mobile の tests/review/restaurant-routes.test.ts が API モック・ディープリンクで持つ。"
+		},
+		{
+			"id": "review-restaurant-bid",
+			"name": "入札（店舗詳細）",
+			"route": "/[locale]/review/restaurant/[restaurantId]/bid",
+			"url": "/ja-JP/review/restaurant/e2e-catalog-restaurant/bid",
+			"platforms": {
+				"web": {
+					"capture": "auto",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "auto",
+					"session": "anon"
+				}
+			},
+			"state": null,
+			"description": "店舗への入札金額を入れる画面（#1386 でモーダル z1300 からルートへ）。決済は未実装で、送信は成功ログのみのダミー。",
+			"from": ["店舗詳細"],
+			"to": ["店舗詳細（戻る / 送信後）"],
+			"note": "この画面は店舗データを読まない（restaurantId はログと戻り先にだけ使う）ため、カタログはダミー id の直リンクで撮る。"
 		},
 		{
 			"id": "review-post-form",
@@ -965,6 +991,48 @@
 			"note": "メディア選択は web はファイル入力、native は E2E ビルドの固定画像スタブで通す。"
 		},
 		{
+			"id": "review-dish-category",
+			"name": "料理カテゴリ選択（レビュー投稿）",
+			"route": "/[locale]/review/restaurant/[restaurantId]/dish-category",
+			"url": "/ja-JP/review/restaurant/e2e-catalog-restaurant/dish-category",
+			"platforms": {
+				"web": {
+					"capture": "auto",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "auto",
+					"session": "anon"
+				}
+			},
+			"state": null,
+			"description": "レビュー投稿フォームから開く料理カテゴリの検索・選択（#1386 でモーダル z1100 からルートへ）。候補に無い名前はそのまま新規カテゴリとして作られる。",
+			"from": ["レビュー投稿フォーム"],
+			"to": ["レビュー投稿フォーム（選択して戻る）"],
+			"note": "この画面も店舗データを読まないため、カタログはダミー id の直リンクで撮る。候補の取得は入力後に走るので、撮影時は空の入力欄が写る。"
+		},
+		{
+			"id": "review-restaurant-feed",
+			"name": "店舗のレビューフィード",
+			"route": "/[locale]/review/restaurant/[restaurantId]/feed",
+			"url": "/ja-JP/review/restaurant/<restaurantId>/feed?initialIndex=0",
+			"platforms": {
+				"web": {
+					"capture": "manual",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "manual",
+					"session": "anon"
+				}
+			},
+			"state": null,
+			"description": "店舗詳細のレビュー一覧（グリッド）から開く全画面フィード（#1386 でモーダル z1100 からルートへ）。ログイン済みなら「この料理にレビューを書く」から既存メディアへのレビュー投稿へ進む。",
+			"from": ["店舗詳細（レビュー一覧のグリッド）"],
+			"to": ["既存メディアからのレビュー投稿", "店舗詳細（×）"],
+			"note": "実在する restaurantId と、その店舗に紐づく料理メディアが必要なため自動取得の対象外（0 件だと «見るものが無い» 表示になる）。"
+		},
+		{
 			"id": "review-from-media",
 			"name": "既存メディアからのレビュー投稿",
 			"route": "/[locale]/review/restaurant/[restaurantId]/review-from-media/[dishMediaId]",
@@ -981,9 +1049,9 @@
 			},
 			"state": null,
 			"description": "既に登録されている料理メディアに対して自分のレビューを追加するフォーム。",
-			"from": ["店舗詳細の料理メディア一覧"],
+			"from": ["店舗のレビューフィード（この料理にレビューを書く）"],
 			"to": ["投稿完了後のレビュー詳細（review/post/[id]）"],
-			"note": "店舗詳細に並ぶ既存の料理メディアに testID が無く、アプリ側を変更しない方針のため自動取得の対象外（restaurantId と dishMediaId の実データも必要）。"
+			"note": "#1386 で入口が «店舗詳細のグリッド直押し» から «フィードの CTA» へ変わった。実在する restaurantId と dishMediaId が必要なため自動取得の対象外。"
 		},
 		{
 			"id": "review-post-detail",
@@ -1359,8 +1427,23 @@
 		},
 		{
 			"from": "review-restaurant-detail",
+			"to": "review-restaurant-bid",
+			"label": "入札する"
+		},
+		{
+			"from": "review-restaurant-detail",
+			"to": "review-restaurant-feed",
+			"label": "みんなの投稿を開く"
+		},
+		{
+			"from": "review-restaurant-feed",
 			"to": "review-from-media",
-			"label": "既存メディアを選ぶ"
+			"label": "この料理にレビューを書く"
+		},
+		{
+			"from": "review-post-form",
+			"to": "review-dish-category",
+			"label": "料理カテゴリを選ぶ"
 		},
 		{
 			"from": "review-post-form",
@@ -1381,6 +1464,11 @@
 			"from": "direct-link",
 			"to": "map",
 			"label": "/[locale]/map"
+		},
+		{
+			"from": "map",
+			"to": "review-restaurant-detail",
+			"label": "マーカー / POI / 場所検索"
 		},
 		{
 			"from": "direct-link",

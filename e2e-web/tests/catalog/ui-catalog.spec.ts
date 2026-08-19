@@ -7,6 +7,7 @@ import { ProfilePage } from "../../pages/ProfilePage";
 import { SettingsPage } from "../../pages/SettingsPage";
 import { LoginPage } from "../../pages/LoginPage";
 import { LegalPage } from "../../pages/LegalPage";
+import { RestaurantDetailPage } from "../../pages/RestaurantDetailPage";
 import { TabBar } from "../../pages/TabBar";
 import { captureScreen, captureScreenIfReachable, getScreen } from "../../utils/catalog";
 
@@ -279,6 +280,21 @@ test.describe("UI カタログ（匿名） @catalog", () => {
 		await gotoScreen(appPage, "search-form-en-US");
 		await expect(appPage.getByTestId("search-submit-button")).toBeVisible({ timeout: 30_000 });
 		await captureScreen(appPage, "search-form-en-US");
+	});
+
+	// ─ 店舗詳細の子ルート（#1386 でモーダルからルートへ移した 2 画面） ─
+	// どちらも店舗データを読まないので、ダミー id の直リンクで撮れる
+	//（`catalog/screens.json` の note 参照）。フィードは実データが要るため manual。
+	test("入札・料理カテゴリ選択（店舗詳細の子ルート）", async ({ appPage }) => {
+		const detailPage = new RestaurantDetailPage(appPage);
+
+		await gotoScreen(appPage, "review-restaurant-bid");
+		await expect(detailPage.bidTitle).toBeVisible({ timeout: 30_000 });
+		await captureScreen(appPage, "review-restaurant-bid");
+
+		await gotoScreen(appPage, "review-dish-category");
+		await expect(detailPage.dishCategoryInput).toBeVisible({ timeout: 30_000 });
+		await captureScreen(appPage, "review-dish-category");
 	});
 
 	// ─ 運営・協力タスク用ツール（アプリ内導線が無い直リンク専用画面） ─
