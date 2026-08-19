@@ -115,6 +115,10 @@ jest.mock("lucide-react-native", () => new Proxy({}, { get: () => () => null }))
  */
 const mockPortal = jest.fn();
 jest.mock("react-native-paper", () => ({
+	// Portal 以外は本物のまま通す。テーマ（constants/PaperTheme.ts の MD3DarkTheme）など、
+	// この画面が «今は» 使っていないだけの export を undefined にすると、将来 useThemeColor を
+	// 1 つ足しただけで «Portal と無関係な» TypeError で落ちるため
+	...jest.requireActual("react-native-paper"),
 	Portal: () => {
 		mockPortal();
 		return null;
