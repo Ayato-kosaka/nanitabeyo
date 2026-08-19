@@ -42,3 +42,4 @@ out/_blog_imgs/
 # BigQuery が使える環境では引き直せる。
 !out/website_column_structure.json
 !out/platform_link_coverage.json
+!out/blog_contact_route.json
