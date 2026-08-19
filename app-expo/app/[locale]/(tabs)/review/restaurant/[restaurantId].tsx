@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { View, StyleSheet, Text } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
@@ -11,12 +11,22 @@ import { useLogger } from "@/hooks/useLogger";
 import type { GetRestaurantByIdResponse } from "@shared/api/v1/res";
 import i18n from "@/lib/i18n";
 import { ScreenHeader } from "@/components/ScreenHeader";
+import { useLocale } from "@/hooks/useLocale";
 
 /*
- * レビュー投稿画面から遷移するレストラン詳細画面
+ * 店舗詳細画面（アプリ唯一の店舗詳細）
  * - レストランの詳細情報を表示
- * - 「写真・動画を投稿する」ボタンでメディア選択モードでレビュー投稿画面へ遷移
- * - レストランのレビュー（料理メディア）押下でレビュー投稿画面へ遷移
+ * - 「写真・動画を投稿」ボタンでメディア選択モードでレビュー投稿画面へ遷移
+ * - 「入札する」で入札画面へ遷移
+ * - レストランのレビュー（料理メディア）押下でフィード画面へ遷移
+ *
+ * #1386 【設計】この画面は «レビュー投稿導線の一部» から «店舗詳細そのもの» になった。
+ * 以前は地図タブ（`app/[locale]/(tabs)/map.tsx`）が `RestaurantBlurModal` の中に
+ * 別実装の店舗詳細（353 行）を持っており、同じ画面が 2 つあった。統合の詳細は
+ * `features/review/components/SelectedRestaurantDetails.tsx` の冒頭コメントを参照。
+ *
+ * 到達経路は 3 つ: 店舗選択（レビュー投稿）/ 地図のマーカー・POI・場所検索 / URL 直リンク。
+ * どれも `restaurantId` だけで成立する（実体はストアのキャッシュ優先で、無ければ API を引く）。
  */
 export default function RestaurantDetailScreen() {
 	const { restaurantId } = useLocalSearchParams<{ restaurantId: string }>();
@@ -24,10 +34,27 @@ export default function RestaurantDetailScreen() {
 	const { callBackend } = useAPICall();
 	const { showSnackbar } = useSnackbar();
 	const { logFrontendEvent } = useLogger();
+	const { locale } = useLocale();
 
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [restaurant, setRestaurant] = useState<RestaurantEntry | undefined>(undefined);
+
+	/**
+	 * #1386 【設計】戻る導線。履歴があれば back（出発点の地図・店舗選択がマウントされたまま
+	 * 残っているので、URL に出ていない画面内 state ごと復帰できる）。
+	 * 履歴が無い着地（URL 直リンク / リロード / UI カタログの直遷移）だけが例外で、そこは
+	 * 戻る先が存在しないため `router.back()` が «何も起きない行き止まり» になる。
+	 * レビュータブへ倒すのは、この画面が置かれているスタックの根がそこだから。
+	 */
+	const handleBack = useCallback(() => {
+		lightImpact();
+		if (router.canGoBack()) {
+			router.back();
+			return;
+		}
+		router.replace({ pathname: "/[locale]/(tabs)/review", params: { locale } });
+	}, [lightImpact, locale]);
 
 	// #644 【設計】restaurant.id でレストラン詳細を取得（ストアキャッシュ優先）
 	useEffect(() => {
@@ -91,13 +118,7 @@ export default function RestaurantDetailScreen() {
 	if (isLoading && !restaurant) {
 		return (
 			<View style={styles.container}>
-				<ScreenHeader
-					title={i18n.t("Review.restaurantDetail.title")}
-					onPressBack={() => {
-						lightImpact();
-						router.back();
-					}}
-				/>
+				<ScreenHeader title={i18n.t("Review.restaurantDetail.title")} onPressBack={handleBack} />
 				<View style={styles.loadingContainer}>
 					<LoadingIndicator size="large" />
 				</View>
@@ -109,13 +130,7 @@ export default function RestaurantDetailScreen() {
 	if (error && !restaurant) {
 		return (
 			<View style={styles.container}>
-				<ScreenHeader
-					title={i18n.t("Review.restaurantDetail.title")}
-					onPressBack={() => {
-						lightImpact();
-						router.back();
-					}}
-				/>
+				<ScreenHeader title={i18n.t("Review.restaurantDetail.title")} onPressBack={handleBack} />
 				<View style={styles.errorContainer}>
 					<Text style={styles.errorText}>{i18n.t("Common.errors.notFound")}</Text>
 				</View>
@@ -129,12 +144,12 @@ export default function RestaurantDetailScreen() {
 
 	return (
 		<View style={styles.container}>
+			{/* #1386 testID は e2e（web: pages/RestaurantDetailPage.ts / mobile: screens/RestaurantDetailScreen.ts）が
+			    「ルートであること」を見るために使う。ScreenHeader は `${testID}-title` をタイトルへ付ける */}
 			<ScreenHeader
 				title={i18n.t("Review.restaurantDetail.title")}
-				onPressBack={() => {
-					lightImpact();
-					router.back();
-				}}
+				onPressBack={handleBack}
+				testID="restaurant-detail-screen"
 			/>
 
 			<SelectedRestaurantDetails restaurantEntry={restaurant} />

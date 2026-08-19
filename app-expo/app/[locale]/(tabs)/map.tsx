@@ -15,9 +15,10 @@ import {
 } from "@shared/api/v1/res";
 import type { QueryRestaurantsDto, CreateRestaurantDto } from "@shared/api/v1/dto";
 import { AvatarBubbleMarker } from "@/features/mapMarkers";
-import { useBlurModal } from "@/features/blurModal/hooks/useBlurModal";
 import { useHaptics } from "@/hooks/useHaptics";
-import { SelectedRestaurantDetails } from "@/features/map/components/SelectedRestaurantDetails";
+import { useLocale } from "@/hooks/useLocale";
+import { useRestaurantStore } from "@/features/review/stores/useRestaurantStore";
+import { router } from "expo-router";
 import i18n from "@/lib/i18n";
 import { useLogger } from "@/hooks/useLogger";
 import { useScreenTrace } from "@/hooks/useScreenTrace";
@@ -34,15 +35,41 @@ export default function MapScreen() {
 	const { logFrontendEvent } = useLogger();
 	const { callBackend } = useAPICall();
 	const { showSnackbar } = useSnackbar();
-	const [selectedPlace, setSelectedPlace] = useState<QueryRestaurantsResponse[number] | null>(null);
+	const { locale } = useLocale();
 	const [searchQuery, setSearchQuery] = useState("");
 	const [restaurants, setRestaurants] = useState<QueryRestaurantsResponse>([]);
 	const [isLoadingNearbyRestaurants, setIsLoadingNearbyRestaurants] = useState(false);
 	const [isLoadingRestaurantCreation, setIsLoadingRestaurantCreation] = useState(false);
-	// #1359 閉じる側は render-prop の `close` で店詳細へ渡すため、ここでは受け取らない
-	const { BlurModal: RestaurantBlurModal, open: openRestaurantModal } = useBlurModal({ intensity: 100 });
 
 	const { getLocationDetails, getCurrentLocation } = useLocationSearch();
+
+	/**
+	 * 🏪 #1386 【設計】選択した店の詳細 «ルート» へ進む。
+	 *
+	 * かつては `selectedPlace`（この画面の useState）＋ `RestaurantBlurModal`（手動 zIndex 1100）で
+	 * 店詳細を «この画面の中に» 描いていた。選択中の店は URL にも zustand にも無く、
+	 * リロード・共有・ディープリンクのどれでも復元できない状態だった（#1350 §2）。
+	 *
+	 * いま渡すのは `restaurantId` だけで、これは URL に載る。店の実体は
+	 * `useRestaurantStore` へ先に入れておくので、遷移先は API を引き直さずに即描ける
+	 *（`app/[locale]/(tabs)/review/restaurant/[restaurantId].tsx` はストアのキャッシュ優先）。
+	 *
+	 * ⚠️ **upsert は push «より先に» 行うこと。順序を入れ替えてはいけない。**
+	 * 逆順にすると、遷移先がマウントされた時点ではストアが空なので
+	 * `GET v1/restaurants/:id` を 1 本余計に叩き、その間ローディングが出る
+	 *（地図の POI 経由は `POST v1/restaurants` の応答で既に全部手元にあるのに、である）。
+	 * この順序は `__tests__/mapRestaurantRoute.test.tsx` が固定している。
+	 */
+	const openRestaurantDetail = useCallback(
+		(entry: QueryRestaurantsResponse[number]) => {
+			useRestaurantStore.getState().upsert({ restaurant: entry.restaurant, meta: entry.meta });
+			router.push({
+				pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]",
+				params: { locale, restaurantId: entry.restaurant.id },
+			});
+		},
+		[locale],
+	);
 
 	// MapView のアニメーションを制御するための ref
 	const mapRef = useRef<MapViewClass>(null);
@@ -105,17 +132,16 @@ export default function MapScreen() {
 		currentRegion.current = region;
 	}, []);
 
-	// 独自のマーカー押下時にレストラン詳細モーダルを表示
+	// 独自のマーカー押下時にレストラン詳細画面へ遷移
 	const handleMarkerPress = useCallback(
 		(pressedPlace: QueryRestaurantsResponse[number]) => {
 			lightImpact();
-			setSelectedPlace(pressedPlace);
-			openRestaurantModal();
+			openRestaurantDetail(pressedPlace);
 		},
-		[lightImpact, openRestaurantModal],
+		[lightImpact, openRestaurantDetail],
 	);
 
-	// レストラン作成＆詳細モーダル表示を行う関数
+	// レストラン作成＆詳細画面表示を行う関数
 	// #525 【設計】エラーハンドリングを整備し、422/404/network_error 等を適切にスナックバーで通知
 	const createAndOpenRestaurant = useCallback(
 		async (googlePlaceId: string) => {
@@ -125,8 +151,7 @@ export default function MapScreen() {
 					method: "POST",
 					requestPayload: { googlePlaceId },
 				});
-				setSelectedPlace(response);
-				openRestaurantModal();
+				openRestaurantDetail(response);
 			} catch (rawError: unknown) {
 				const error = rawError as ApiError;
 
@@ -159,10 +184,10 @@ export default function MapScreen() {
 				setIsLoadingRestaurantCreation(false);
 			}
 		},
-		[callBackend, logFrontendEvent, openRestaurantModal, showSnackbar],
+		[callBackend, logFrontendEvent, openRestaurantDetail, showSnackbar],
 	);
 
-	// POI押下時にレストラン情報を取得してモーダル表示
+	// POI押下時にレストラン情報を取得して詳細画面へ遷移
 	const handlePoiPress = useCallback(
 		async (event: PoiClickEvent) => {
 			lightImpact();
@@ -289,22 +314,10 @@ export default function MapScreen() {
 				/>
 			</View>
 
-			{/* #1359 【設計】render-prop で `close` を受けて店詳細へ渡す。店詳細の中にログイン «ルート» への
-			    導線があり、そこは push の前にこのシートを閉じないとログイン画面が portal の下へ潜る
-			    （理由は features/map/components/SelectedRestaurantDetails.tsx の handleReviewButtonPress）。
-			    閉じる責務はシートの持ち主（＝ useBlurModal を呼んだこの画面）に残したいので、
-			    店詳細に close を自前で持たせるのではなく render-prop 経由で渡す。 */}
-			<RestaurantBlurModal contentContainerStyle={{ height: "90%" }}>
-				{({ close }) =>
-					selectedPlace && (
-						<SelectedRestaurantDetails
-							restaurant={selectedPlace.restaurant}
-							meta={selectedPlace.meta}
-							onRequestClose={close}
-						/>
-					)
-				}
-			</RestaurantBlurModal>
+			{/* #1386 【設計】店詳細はこの画面の中に描かない。マーカー / POI / オートコンプリートは
+			    すべて `openRestaurantDetail` を通って «ルート» へ push する（宣言箇所のコメント参照）。
+			    この画面が BlurModal を 1 つも持たなくなったことで、店詳細から先（ログイン・レビュー投稿・
+			    入札・法務）へ push しても遷移先が portal の下へ潜らない。 */}
 		</View>
 	);
 }

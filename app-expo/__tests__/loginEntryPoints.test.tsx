@@ -7,12 +7,13 @@
 地図・レビュー店詳細の 2 経路には E2E が無い。実際、PR2 のレビューでは
 **4 箇所の `next` を全部別の値へ書き換えても 532 件すべて緑のまま**だった。
 
-## 地図だけ「閉じてから push」まで見る理由
-地図の店詳細は BlurModal（= react-native-paper の `<Portal>`）の中身で、`Portal.Host` は
-`<Stack>` を包んでいる（app/[locale]/_layout.tsx）。つまり portal レイヤは常にナビゲータより «上»。
-シートを開いたまま login ルートへ push すると、ログイン画面は portal の下に潜って見えず触れない。
-Android のハードウェアバックも useBlurModal 側の BackHandler に食われ、#498 と同じ症状に見える。
-順序を逆にすると赤くなるように、呼び出し «順» まで固定する（#1122 の回帰テストと同じ発想）。
+## #1386 で「地図の店詳細」が消えた
+以前はここに «地図の店詳細（BlurModal の中身）は close してから push する» という順序の固定があった。
+#1386 で地図の店詳細シートそのものが無くなり（店詳細は
+`/[locale]/(tabs)/review/restaurant/[restaurantId]` ルート 1 本へ統合）、
+ログイン導線も店詳細 1 箇所に減ったため、順序の固定は «この画面は portal を持たない» という
+不変条件へ置き換えた（下の describe）。地図がその店詳細ルートへ push すること自体は
+`__tests__/mapRestaurantRoute.test.tsx` が見ている。
 
 ## 方針
 各導線の «押した先» だけを観測したいので、周辺（タブ・画像・API・下位コンポーネント）は
@@ -21,7 +22,6 @@ testID とボタンの結線そのものは E2E（e2e-mobile / e2e-web）が見�
 */
 import React, { act } from "react";
 import TestRenderer from "react-test-renderer";
-import type { QueryRestaurantsResponse } from "@shared/api/v1/res";
 import type { RestaurantEntry } from "@/features/review/stores/useRestaurantStore";
 
 const mockPush = jest.fn();
@@ -105,19 +105,16 @@ jest.mock("@/features/map/components/BidForm", () => ({ BidForm: () => null }));
 /**
  * useBlurModal のスタブ。
  *
- * ⚠️ 地図の店詳細が «自前で» 開くモーダル（レビュー / 入札）用。`close` は呼び出し順の観測に使う。
- * 店詳細シート自身の close は map.tsx から render-prop で降ってくる別物なので、
- * こちらは混ぜないこと。
+ * ⚠️ #1386 以降、**呼ばれたこと自体が検証対象**である（`__tests__/legalEntryPoints.test.tsx` と同じ形）。
+ * ログイン導線を持つ 3 画面はどれも portal を 1 つも持たない前提で «閉じてから push» を省いている。
+ * ここが呼ばれ始めたら、その前提が崩れている（ファイル冒頭のコメント参照）。
  */
-const mockBlurModalOpen = jest.fn();
-const mockBlurModalClose = jest.fn();
+const mockUseBlurModal = jest.fn();
 jest.mock("@/features/blurModal/hooks/useBlurModal", () => ({
-	useBlurModal: () => ({
-		BlurModal: () => null,
-		open: () => mockBlurModalOpen(),
-		close: () => mockBlurModalClose(),
-		visible: false,
-	}),
+	useBlurModal: () => {
+		mockUseBlurModal();
+		return { BlurModal: () => null, open: jest.fn(), close: jest.fn(), visible: false };
+	},
 }));
 
 // マイページ: 導線ボタンは ProfileHeader が描く。ここで見たいのは
@@ -143,7 +140,6 @@ jest.mock("@/features/profile/stores/useProfileStore", () => ({
 		selector({ profile: { id: "profile-1", username: "tester" } }),
 }));
 
-import { SelectedRestaurantDetails as MapRestaurantDetails } from "@/features/map/components/SelectedRestaurantDetails";
 import { SelectedRestaurantDetails as ReviewRestaurantDetails } from "@/features/review/components/SelectedRestaurantDetails";
 import ReviewScreen from "../app/[locale]/(tabs)/review/index";
 import { ProfileTabsLayout } from "@/features/profile/containers/ProfileTabsLayout";
@@ -154,13 +150,12 @@ const GUEST = { id: "guest-1", is_anonymous: true };
 const MEMBER = { id: "user-1", is_anonymous: false };
 
 const RESTAURANT_ID = "restaurant-42";
-// 店詳細 2 種は同じ形（restaurant + meta）を受け取る。描画に必要な最小限だけ埋め、
+// #1386 店詳細は 1 実装になった（restaurant + meta を受け取る）。描画に必要な最小限だけ埋め、
 // 型は «押した先» の検証に関係しないのでキャストで通す
 const restaurantEntry = {
 	restaurant: { id: RESTAURANT_ID, name: "テスト食堂", imageUrls: undefined, google_place_id: "place-1" },
 	meta: { averageRating: 4.2, reviewCount: 12, totalCents: 0, maxEndDate: null },
 };
-const mapRestaurantEntry = restaurantEntry as unknown as QueryRestaurantsResponse[number];
 const reviewRestaurantEntry = restaurantEntry as unknown as RestaurantEntry;
 
 // ⚠️ 描画したツリーは必ず unmount すること。ProfileTabsLayout は ?tab= 指定があると
@@ -192,13 +187,12 @@ const press = async (tree: TestRenderer.ReactTestRenderer, testID: string): Prom
 
 beforeEach(() => {
 	mockPush.mockClear();
-	mockBlurModalOpen.mockClear();
-	mockBlurModalClose.mockClear();
+	mockUseBlurModal.mockClear();
 	mockUser = GUEST;
 	mockLocalParams = {};
 });
 
-describe("#1359 ログイン導線 4 箇所の push 先と next", () => {
+describe("#1359 ログイン導線の push 先と next（#1386 で 4 箇所 → 3 箇所）", () => {
 	it("マイページ: next はマイページ", async () => {
 		const tree = await render(<ProfileTabsLayout />);
 
@@ -237,7 +231,7 @@ describe("#1359 ログイン導線 4 箇所の push 先と next", () => {
 		});
 	});
 
-	it("レビュー店詳細: next は «戻り先» ではなく投稿フォームという «行き先»", async () => {
+	it("店詳細: next は «戻り先» ではなく投稿フォームという «行き先»", async () => {
 		const tree = await render(<ReviewRestaurantDetails restaurantEntry={reviewRestaurantEntry} />);
 
 		await press(tree, "restaurant-detail-post-photo-button");
@@ -249,27 +243,18 @@ describe("#1359 ログイン導線 4 箇所の push 先と next", () => {
 		});
 	});
 
-	it("地図の店詳細: next は地図タブ（選択中の店は URL に無いのでここが限界）", async () => {
-		const tree = await render(<MapRestaurantDetails {...mapRestaurantEntry} onRequestClose={jest.fn()} />);
+	// #1386 地図から来た場合もこの店詳細を通るので、地図専用の `next`（旧: /ja-JP/map）は無くなった。
+	// 店が URL に載っている以上、投稿フォームまで戻せるこちらの方が忠実に復帰できる
 
-		await press(tree, "map-restaurant-post-review-button");
-
-		expect(mockPush).toHaveBeenCalledTimes(1);
-		expect(mockPush).toHaveBeenCalledWith({
-			pathname: "/[locale]/auth/login",
-			params: { locale: "ja-JP", next: "/ja-JP/map" },
-		});
-	});
-
-	// 4 箇所とも isGuestUser ゲートの内側にあること。ログイン済みで押しても login へは飛ばさない
+	// 3 箇所とも isGuestUser ゲートの内側にあること。ログイン済みで押しても login へは飛ばさない
 	it("ログイン済みならどの導線もログイン画面へは push しない", async () => {
 		mockUser = MEMBER;
 
 		const reviewTree = await render(<ReviewScreen />);
 		await press(reviewTree, "review-post-button");
 
-		const mapTree = await render(<MapRestaurantDetails {...mapRestaurantEntry} onRequestClose={jest.fn()} />);
-		await press(mapTree, "map-restaurant-post-review-button");
+		const detailTree = await render(<ReviewRestaurantDetails restaurantEntry={reviewRestaurantEntry} />);
+		await press(detailTree, "restaurant-detail-post-photo-button");
 
 		const pushedToLogin = mockPush.mock.calls.filter(
 			([href]) => (href as { pathname?: string })?.pathname === "/[locale]/auth/login",
@@ -278,34 +263,34 @@ describe("#1359 ログイン導線 4 箇所の push 先と next", () => {
 	});
 });
 
-describe("#1359 地図の店詳細は «閉じてから» ログイン画面へ push する", () => {
-	// ⚠️ この順序が逆になると、ログイン画面が BlurModal の portal の下に潜って «見えず触れない»。
-	// 症状としては #498（OAuth 成功後もログイン UI が残る）と見分けが付かない
-	it("onRequestClose が push より先に呼ばれる", async () => {
-		const order: string[] = [];
-		const onRequestClose = jest.fn(() => {
-			order.push("close");
-		});
-		mockPush.mockImplementation(() => {
-			order.push("push");
-		});
+describe("#1386 ログイン導線を持つ画面は portal を 1 つも持たない", () => {
+	/*
+	⚠️ これが赤くなったら «閉じてから push» が必要になったということ。
+	BlurModal は react-native-paper の `<Portal>` に全画面レイヤを描き、`Portal.Host` は
+	`<Stack>` を包んでいる（app/[locale]/_layout.tsx）ので、開いたまま push すると
+	ログイン画面は portal の下に潜って見えず触れない（#1364 で実測）。Android の戻るキーも
+	useBlurModal 側の BackHandler に食われ、#498 と見分けが付かない症状になる。
+	#1386 より前は地図の店詳細がまさにこれで、`onRequestClose()` を push より先に呼ぶ順序を
+	ここで固定していた。シートごと無くなったので、守るべきは «そもそも portal を持たない» ことになった。
+	*/
+	it("店詳細は useBlurModal を呼ばない", async () => {
+		const tree = await render(<ReviewRestaurantDetails restaurantEntry={reviewRestaurantEntry} />);
+		await press(tree, "restaurant-detail-post-photo-button");
 
-		const tree = await render(<MapRestaurantDetails {...mapRestaurantEntry} onRequestClose={onRequestClose} />);
-		await press(tree, "map-restaurant-post-review-button");
-
-		expect(onRequestClose).toHaveBeenCalledTimes(1);
-		expect(order).toEqual(["close", "push"]);
+		expect(mockUseBlurModal).not.toHaveBeenCalled();
 	});
 
-	it("ログイン済み（＝シートの中でレビューフォームを開く）ときは閉じない", async () => {
-		mockUser = MEMBER;
-		const onRequestClose = jest.fn();
+	it("レビュータブは useBlurModal を呼ばない", async () => {
+		const tree = await render(<ReviewScreen />);
+		await press(tree, "review-guest-login-button");
 
-		const tree = await render(<MapRestaurantDetails {...mapRestaurantEntry} onRequestClose={onRequestClose} />);
-		await press(tree, "map-restaurant-post-review-button");
+		expect(mockUseBlurModal).not.toHaveBeenCalled();
+	});
 
-		expect(onRequestClose).not.toHaveBeenCalled();
-		// シートは開いたまま、その中でレビューフォームの BlurModal を開く
-		expect(mockBlurModalOpen).toHaveBeenCalled();
+	it("マイページは useBlurModal を呼ばない", async () => {
+		const tree = await render(<ProfileTabsLayout />);
+		await press(tree, "profile-login-button");
+
+		expect(mockUseBlurModal).not.toHaveBeenCalled();
 	});
 });
