@@ -63,16 +63,22 @@ jest.mock("@/hooks/useLogger", () => ({
 
 // #1370 A 群の完了条件（callback がオーバーレイを持たないこと）を «描かれたら分かる» 形で置く。
 // #1350 P6 で features/blurModal を撤去したので、観測点は消えたモジュール名ではなく
-// BlurModal が使っていた機構そのもの（react-native-paper の `<Portal>`）にしてある
+// BlurModal が使っていた機構そのもの（react-native-paper の `<Portal>`）にしてある。
+//
+// ⚠️ 見ているのは «描かれたか» なので、`{visible && <Portal>}` のように閉じたままの Portal は
+// 捕まらない（#1389 のレビューで実測）。そこは
+// scripts/assert-legacy-blur-modal-boundary.mjs の import 検査が受け持つ。2 つで 1 組
 const mockPortal = jest.fn();
 jest.mock("react-native-paper", () => ({
 	// Portal 以外は本物のまま通す。テーマ（constants/PaperTheme.ts の MD3DarkTheme）など、
 	// この画面が «今は» 使っていないだけの export を undefined にすると、将来 useThemeColor を
 	// 1 つ足しただけで «Portal と無関係な» TypeError で落ちるため
 	...jest.requireActual("react-native-paper"),
-	Portal: () => {
+	// children を返すのは #1358 の先例（DishCategoryGroupVoteResultScreen.test.tsx）に揃えたもの。
+	// null を返すと、将来 Portal の中身へアサーションを置いたときに «赤くならずに要素が消える» 側へ倒れる
+	Portal: ({ children }: { children?: unknown }) => {
 		mockPortal();
-		return null;
+		return children ?? null;
 	},
 }));
 

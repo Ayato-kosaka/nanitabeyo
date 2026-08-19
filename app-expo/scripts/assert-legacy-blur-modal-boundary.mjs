@@ -3,11 +3,23 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 /**
- * 🛡️ BlurModal の境界を守る CI ゲート。2 つを検査する。
+ * 🛡️ BlurModal の境界を守る CI ゲート。3 つを検査する。
  *
  * 1. `features/contributionTasks/legacyBlurModal`（#1363 で新設した凍結コピー）が
  *    社内タスク画面の外から import されていないこと（#1363 PR レビュー）
- * 2. #1350 P6 で撤去した `features/blurModal` が復活していないこと
+ * 2. #1350 P6 で撤去した `features/blurModal` が復活していないこと（再出現と import の両方を見る）
+ * 3. `react-native-paper` の `Portal` を import してよいのが許可リストの中だけであること
+ *
+ * ## なぜ 3 が要るのか（jest のガードでは足りない）
+ * 各画面には「この画面は Portal を 1 つも描かない」という jest のガードが 9 件ある
+ * （`__tests__/loginEntryPoints.test.tsx` ほか）。だがあれが見ているのは **描かれたかどうか** で、
+ * オーバーレイの定番の書き方である `{visible && <Portal>…</Portal>}` は
+ * 閉じている限り描かれない。#1389 のレビューで実測され、`{false && <Portal/>}` を
+ * 設定画面へ足しても 21 件すべて緑のままだった。
+ *
+ * import は «閉じていても» 書いてある。だから «描画» ではなく «import» を静的に見る。
+ * これで「BlurModal を別名で作り直す」経路も塞がる — どんな実装であれ全画面レイヤを
+ * 出すには `Portal` が要るためである。
  *
  * 使い方:
  *   pnpm --filter app-expo assert:legacy-blur-modal-boundary
@@ -61,6 +73,25 @@ const FROZEN_DIR = "features/contributionTasks/legacyBlurModal";
  * （#1350 §6 の構造的欠陥）へ逆戻りする。ディレクトリの再出現をここで落とす。
  */
 const REMOVED_DIR = "features/blurModal";
+
+/**
+ * `react-native-paper` の `Portal` を import してよいファイル（appRoot 相対 posix パス）。
+ *
+ * - `app/**​/_layout.tsx` … `Portal.Host` を 1 つだけ置く場所。これがアプリの portal 層そのもの
+ * - `contexts/DialogProvider.tsx` … `confirm()` / `showDialog()` の実体。移行先の 1 つ（#1350 §8）
+ * - `features/contributionTasks/legacyBlurModal/**` … 社内タスク専用の凍結コピー（#1363）
+ *
+ * ⚠️ ここへ足すのは «アプリ全体で 1 つだけ持つべき層» を実装するときだけにすること。
+ * 画面から足したくなったら、それは #1350 で全廃したオーバーレイを作り直そうとしている。
+ */
+const PORTAL_ALLOWED = [
+	/^app\/(.+\/)?_layout\.tsx$/,
+	/^contexts\/DialogProvider\.tsx$/,
+	/^features\/contributionTasks\/legacyBlurModal\/.+/,
+];
+
+/** `import { A, B } from "react-native-paper"` の名前付き束縛を拾う */
+const PAPER_NAMED_IMPORT = /import\s*\{([^}]*)\}\s*from\s*["']react-native-paper["']/g;
 
 /**
  * `legacyBlurModal` を import してよい範囲。`.eslintrc.js` の overrides.files と同じ意味を持たせる。
@@ -119,6 +150,14 @@ const frozenDirAbsolute = path.resolve(appRoot, FROZEN_DIR);
 const isFrozenModule = (absolute) =>
 	absolute === frozenDirAbsolute || absolute.startsWith(frozenDirAbsolute + path.sep);
 
+/** 解決後の絶対パスが «撤去済みの» モジュール自身、またはその配下かどうか（拡張子は問わない） */
+const removedModuleAbsolute = path.resolve(appRoot, REMOVED_DIR);
+const isRemovedModule = (absolute) =>
+	absolute === removedModuleAbsolute || absolute.startsWith(removedModuleAbsolute + path.sep);
+
+/** ファイル（appRoot 相対 posix パス）が `Portal` を import してよい範囲にあるか */
+const isPortalAllowed = (relativePosix) => PORTAL_ALLOWED.some((pattern) => pattern.test(relativePosix));
+
 /** ファイル（appRoot 相対 posix パス）が import を許された範囲にあるか */
 const isAllowedImporter = (relativePosix) => ALLOWED_PATTERNS.some((pattern) => pattern.test(relativePosix));
 
@@ -139,6 +178,22 @@ if (!existsSync(frozenDirAbsolute) || !statSync(frozenDirAbsolute).isDirectory()
 }
 
 // ── 1-b. 撤去済みディレクトリが復活していないことを確認する ──────────────────
+// ⚠️ 「存在しないこと」の検査は、対象を書き間違えても «常に緑» になる（#1389 のレビュー）。
+//    せめて親ディレクトリの実在は確かめて、REMOVED_DIR が丸ごと空振りする事故を落とす。
+//    ディレクトリではなくファイル（features/blurModal.tsx）での復活は下の走査が拾い、
+//    «別名で作り直す» 経路は Portal の import 検査（3）が受け持つ。
+const removedParentAbsolute = path.resolve(appRoot, path.dirname(REMOVED_DIR));
+if (!existsSync(removedParentAbsolute)) {
+	console.error(
+		[
+			`❌ REMOVED_DIR の親が見つかりません: ${path.dirname(REMOVED_DIR)}`,
+			"   綴りが誤っていると «存在しないこと» の検査は永久に緑になります。",
+			"   ディレクトリを移動したのなら REMOVED_DIR を追従させてください。",
+		].join("\n"),
+	);
+	process.exit(1);
+}
+
 const removedDirAbsolute = path.resolve(appRoot, REMOVED_DIR);
 if (existsSync(removedDirAbsolute)) {
 	console.error(
@@ -167,6 +222,11 @@ if (sources.length === 0) {
 
 /** 圏外からの import（違反） */
 const offenders = [];
+/** 撤去済みモジュールへの import（違反）。features/blurModal.tsx のような «ファイルでの復活» は
+ *  ディレクトリ存在検査では拾えないので、指定子の解決結果でも見る */
+const removedImporters = [];
+/** 許可リスト外からの `Portal` import（違反） */
+const portalOffenders = [];
 /** 許可範囲からの import（ログ用。件数が 0 に落ちたら凍結コピーが未使用になったということ） */
 const allowed = [];
 
@@ -183,7 +243,11 @@ for (const file of sources) {
 		while ((match = pattern.exec(contents)) !== null) {
 			const specifier = match[1];
 			const resolved = resolveSpecifier(specifier, file);
-			if (!resolved || !isFrozenModule(resolved)) continue;
+			if (!resolved) continue;
+
+			const frozen = isFrozenModule(resolved);
+			const removed = isRemovedModule(resolved);
+			if (!frozen && !removed) continue;
 
 			const line = contents.slice(0, match.index).split("\n").length;
 			const lineText = contents.split("\n")[line - 1] ?? "";
@@ -192,13 +256,66 @@ for (const file of sources) {
 			if (trimmed.startsWith("//") || trimmed.startsWith("*")) continue;
 
 			const entry = { file: relativePosix, line, specifier };
-			if (isAllowedImporter(relativePosix)) allowed.push(entry);
+			if (removed) removedImporters.push(entry);
+			else if (isAllowedImporter(relativePosix)) allowed.push(entry);
 			else offenders.push(entry);
 		}
+	}
+
+	// `import { Portal } from "react-native-paper"` を静的に見る。
+	// 描画ではなく import を見るので、`{visible && <Portal>…}` のように «閉じている» 実装も捕まる
+	PAPER_NAMED_IMPORT.lastIndex = 0;
+	let paperMatch;
+	while ((paperMatch = PAPER_NAMED_IMPORT.exec(contents)) !== null) {
+		const bindings = paperMatch[1]
+			.split(",")
+			// `Portal as X` は «元の名前» で判定する
+			.map((part) => part.trim().split(/\s+as\s+/)[0].trim())
+			.filter(Boolean);
+		if (!bindings.includes("Portal")) continue;
+		if (isPortalAllowed(relativePosix)) continue;
+
+		const line = contents.slice(0, paperMatch.index).split("\n").length;
+		portalOffenders.push({ file: relativePosix, line });
 	}
 }
 
 // ── 3. 判定 ──────────────────────────────────────────────────────────────────
+
+if (removedImporters.length > 0) {
+	removedImporters.sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line);
+	console.error(
+		[
+			`❌ 撤去済みの ${REMOVED_DIR} を import しています（${removedImporters.length}件）。`,
+			"",
+			...removedImporters.map(({ file, line, specifier }) => `  - ${file}:${line} … ${specifier}`),
+			"",
+			"   ディレクトリではなくファイル（features/blurModal.tsx）で作り直した場合も、ここで落ちます。",
+		].join("\n"),
+	);
+	process.exit(1);
+}
+
+if (portalOffenders.length > 0) {
+	portalOffenders.sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line);
+	console.error(
+		[
+			`❌ 許可されていない場所から react-native-paper の Portal を import しています（${portalOffenders.length}件）。`,
+			"",
+			...portalOffenders.map(({ file, line }) => `  - ${file}:${line}`),
+			"",
+			"   Portal はアプリ全体で 1 つだけ持つ層のための道具です（app/**/_layout.tsx の Portal.Host）。",
+			"   画面から使うと #1350 で全廃したオーバーレイを作り直すことになります。行き先は 3 つです:",
+			"     - 画面を分ける   … expo-router のルート（app/**）",
+			"     - 問い合わせる … DialogProvider の confirm() / showDialog()",
+			"     - 同じ画面に出す … インライン描画（#1358 の友達投票が例）",
+			"",
+			"   ⚠️ jest 側の «Portal を 1 つも描かない» ガード 9 件では、`{visible && <Portal>}` のように",
+			"      閉じたまま置かれた Portal は捕まりません（#1389 のレビューで実測）。この検査が最後の砦です。",
+		].join("\n"),
+	);
+	process.exit(1);
+}
 
 if (offenders.length > 0) {
 	// 同じ import を複数の正規表現が拾うことはないが、行番号順に並べて読みやすくする
@@ -221,7 +338,10 @@ if (offenders.length > 0) {
 
 console.log(
 	[
-		`✅ legacyBlurModal の import は社内タスク画面に閉じています（走査 ${sources.length} ファイル / 正当な import ${allowed.length} 件）`,
+		`✅ BlurModal の境界は保たれています（走査 ${sources.length} ファイル）`,
+		`   ・撤去済み ${REMOVED_DIR} … 再出現なし / import 0 件`,
+		`   ・react-native-paper の Portal … 許可リスト外からの import 0 件`,
+		`   ・legacyBlurModal … 社内タスク画面に閉じている（正当な import ${allowed.length} 件）`,
 		// 0 件でも必ず出す。「正当な import: 0 件」という行があって初めて、
 		// 凍結コピーが誰からも使われなくなったこと（= 撤去できる状態）をログから読み取れる
 		...(allowed.length > 0
