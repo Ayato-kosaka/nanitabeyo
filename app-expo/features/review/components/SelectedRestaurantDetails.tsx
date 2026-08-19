@@ -15,7 +15,6 @@
 2 ファイルへ同じ修正を入れている）。ルート側を残して map 側を畳み、**両方の機能の和**にした。
 map 側にしか無かったものは 1 つも落としていない:
 
-- 入札タブ（`RestaurantBidsTab`）と入札ボタン → 入札は `bid` ルートへ
 - 現在の入札額 / 残り日数の表示（`meta.maxEndDate` があるときだけ出る）
 - Google マップで開く（#1121 の openExternalUrl 経由）
 - レビュー一覧の «フィード表示» → `feed` ルートへ
@@ -31,16 +30,31 @@ map 側にしか無かったものは 1 つも落としていない:
 開いたまま push すると遷移先が下に潜って見えず触れない（#1364 で実測）。この画面が
 オーバーレイを 1 つも持たないことは `__tests__/mapRestaurantRoute.test.tsx` が固定している。
 */
+/*
+#1411 【バグ】入札の導線は **公開アプリに出してはいけない**。
+
+#1386 で店詳細の 2 実装（map 側 353 行 / レビュー側）を統合したとき、map 側にあった
+入札ボタン・入札タブ・現在の入札額を «機能を落とさない» つもりで持ち込んだ。しかし
+**map タブは `href: null`（app/[locale]/(tabs)/_layout.tsx）でタブバーに出ない** ため、
+map 側の店詳細は本番から到達不能で、入札の導線は事実上出ていなかった。
+統合先のレビュー側は到達可能なので、これを «復活» させてしまっていた。
+
+独立レビューは「map 側の機能が落ちていないか」を 353 行ぶん突き合わせたが、
+逆方向（**そもそも出てはいけないものを持ち込んでいないか**）は誰も見ていなかった。
+
+入札そのものは決済が未実装で、`bid.tsx` の送信は 2 秒待つダミーである。
+導線を出す判断は決済が入ってからにする。
+*/
+
 import React, { useState, useCallback } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, LayoutChangeEvent, Platform } from "react-native";
-import { Camera, DollarSign } from "lucide-react-native";
+import { Camera } from "lucide-react-native";
 import { Card } from "@/components/Card";
 import Stars from "@/components/Stars";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
 import { useHaptics } from "@/hooks/useHaptics";
 import { RestaurantReviewsTab } from "@/features/map/components/tabs/RestaurantReviewsTab";
-import { RestaurantBidsTab } from "@/features/map/components/tabs/RestaurantBidsTab";
 import { Tabs } from "@/components/collapsible-tabs";
 import type { TabBarProps } from "react-native-collapsible-tab-view";
 import { useSharedValueState } from "@/hooks/useSharedValueState";
@@ -63,9 +77,8 @@ function RestaurantTabsBar({ tabNames, index, onTabPress }: TabBarProps<string>)
 		<View style={styles.tabContainer}>
 			{tabNames.map((name, i) => {
 				const isActive = currentIndex === i;
-				// #1386 2 実装の統合でタブは «レビュー / 入札» の 2 本になった。旧レビュー側は
-				// 1 本だけで「みんなの投稿」と出していたが、対になる入札が並ぶため map 側の対語へ寄せる
-				const label = name === "reviews" ? i18n.t("Map.tabs.reviews") : i18n.t("Map.tabs.bids");
+				// #1411 入札タブを外したのでタブは «レビュー» の 1 本に戻った
+				const label = i18n.t("Map.tabs.reviews");
 				return (
 					<TouchableOpacity
 						key={name}
@@ -131,16 +144,6 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 			});
 		}
 	}, [lightImpact, logFrontendEvent, router, locale, restaurant, user]);
-
-	// #1386 【設計】入札。旧 map 実装では `BidBlurModal`（z1300）だった。
-	// 入札額の入力とその後の決済は «フローの一段» なのでルートへ移す（#1350 の振り分け表）
-	const handleBidButtonPress = useCallback(() => {
-		lightImpact();
-		router.push({
-			pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]/bid",
-			params: { locale, restaurantId: restaurant.id },
-		});
-	}, [lightImpact, router, locale, restaurant.id]);
 
 	// #1386 旧 map 実装から移設（機能を落とさないため）
 	const handleOpenGoogleMaps = useCallback(async () => {
@@ -241,25 +244,6 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 					</View>
 				</Card>
 
-				{/* #1386 旧 map 実装から移設。入札が動いている店だけに出る */}
-				{meta.maxEndDate && (
-					<View style={styles.bidAmountContainer}>
-						<Text style={styles.bidAmountLabel}>{i18n.t("Map.labels.currentBidAmount")}</Text>
-						<Text style={styles.bidAmount}>
-							{i18n.t("Search.currencySuffix")}
-							{(meta.totalCents ?? 0).toLocaleString()}
-						</Text>
-						<Text style={styles.remainingDays}>
-							{i18n.t("Common.daysRemaining", {
-								count: Math.max(
-									0,
-									Math.ceil((new Date(meta.maxEndDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)),
-								),
-							})}
-						</Text>
-					</View>
-				)}
-
 				<View style={styles.actionButtons}>
 					{/* #644 【設計】自分の投稿ボタン「写真・動画を投稿」
 					    ⚠️ testID は e2e（review-post / review-double-submit / ui-catalog-mutation）が見ている */}
@@ -271,19 +255,10 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 						borderRadius={8}
 						style={{ flex: 1 }}
 					/>
-					{/* #1386 旧 map 実装から移設 */}
-					<PrimaryButton
-						testID="restaurant-detail-place-bid-button"
-						onPress={handleBidButtonPress}
-						label={i18n.t("Map.buttons.placeBid")}
-						icon={<DollarSign size={20} color="#FFF" />}
-						borderRadius={8}
-						style={{ flex: 1 }}
-					/>
 				</View>
 			</View>
 		),
-		[handleHeaderLayout, restaurant, meta, handleReviewButtonPress, handleBidButtonPress, handleOpenGoogleMaps],
+		[handleHeaderLayout, restaurant, meta, handleReviewButtonPress, handleOpenGoogleMaps],
 	);
 
 	const renderTabBar = useCallback((props: TabBarProps<string>) => <RestaurantTabsBar {...props} />, []);
@@ -301,12 +276,6 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 				*/}
 				<Tabs.Tab name="reviews">
 					<RestaurantReviewsTab restaurantId={restaurant.id} onItemPress={handleDishMediaPress} />
-				</Tabs.Tab>
-				{/*
-					#1386 入札タブ: 旧 map 実装から移設。useCursorPagination で入札履歴を取得する
-				*/}
-				<Tabs.Tab name="bids">
-					<RestaurantBidsTab restaurantId={restaurant.id} />
 				</Tabs.Tab>
 			</Tabs.Container>
 		</View>
@@ -347,30 +316,6 @@ const styles = StyleSheet.create({
 	},
 	reviewCount: {
 		fontSize: 12,
-		color: "#666",
-	},
-	// #1386 旧 map 実装から移設（現在の入札額）
-	bidAmountContainer: {
-		backgroundColor: "#F0F8FF",
-		padding: 16,
-		borderRadius: 12,
-		alignItems: "center",
-		marginVertical: 12,
-		marginHorizontal: 16,
-	},
-	bidAmountLabel: {
-		fontSize: 12,
-		color: "#666",
-		marginBottom: 4,
-	},
-	bidAmount: {
-		fontSize: 28,
-		fontWeight: "bold",
-		color: "#F05537",
-		marginBottom: 4,
-	},
-	remainingDays: {
-		fontSize: 14,
 		color: "#666",
 	},
 	actionButtons: {

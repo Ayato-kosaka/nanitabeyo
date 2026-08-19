@@ -254,10 +254,10 @@ describe("UI カタログ（匿名） @catalog", () => {
 			{ id: "profile-saved-topic-location", waitForReady: true, settleMs: 1_500 },
 			{ id: "profile-blocked-topics", waitForReady: true, settleMs: 2_500 },
 			{ id: "map", waitForReady: true, settleMs: 5_000 },
-			// #1386 店舗詳細の子ルート 2 枚（旧: モーダル z1300 / z1100）。どちらも店舗データを読まないので
+			// #1386 店舗詳細の子ルート（旧: モーダル z1100）。店舗データを読まないので
 			// ダミー id の直リンクで撮れる（catalog/screens.json の note 参照）。
-			// タブバーは下に居ないため起動完了待ちは切る。フィードは実データが要るため manual
-			{ id: "review-restaurant-bid", waitForReady: false, settleMs: 2_000 },
+			// タブバーは下に居ないため起動完了待ちは切る。フィードは実データが要るため manual。
+			// #1411 で入札ルートを消したのでここは 1 枚になった
 			{ id: "review-dish-category", waitForReady: false, settleMs: 2_000 },
 			{ id: "contribution-dish-category-image-optimizer", waitForReady: false, settleMs: 6_000 },
 			{ id: "contribution-dish-category-image-review", waitForReady: false, settleMs: 6_000 },

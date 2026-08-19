@@ -31,8 +31,6 @@ export class RestaurantDetailScreen {
 	readonly title = by.id("restaurant-detail-screen-title");
 	/** 「写真・動画を投稿」ボタン（実データがあるときだけ描かれる） */
 	readonly postPhotoButton = by.id("restaurant-detail-post-photo-button");
-	/** 「入札する」ボタン（#1386 で地図側から移設。実データがあるときだけ描かれる） */
-	readonly placeBidButton = by.id("restaurant-detail-place-bid-button");
 	/** ヘッダーの戻るボタン（`app-expo/components/ScreenHeader.tsx`） */
 	// #1404 ScreenHeader の戻るボタンは `${testID}-back`。共通 id だった頃は、push で背面に残る
 	// 画面のヘッダーと同じ id になり «背面を押していた»

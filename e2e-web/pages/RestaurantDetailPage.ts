@@ -3,12 +3,11 @@ import { expect, type Locator, type Page } from "@playwright/test";
 import { restaurantDetailPath, restaurantSubPath } from "../utils/restaurantDetail";
 
 /**
- * 🏪 店舗詳細とその配下 3 画面（#1386 でルート化）の Page Object
+ * 🏪 店舗詳細とその配下 2 画面（#1386 でルート化）の Page Object
  *
  * 対応コンポーネント:
  * - `app-expo/app/[locale]/(tabs)/review/restaurant/[restaurantId].tsx`（店舗詳細・アプリ唯一）
  * - `app-expo/features/review/components/SelectedRestaurantDetails.tsx`（中身）
- * - `.../[restaurantId]/bid.tsx`（入札）
  * - `.../[restaurantId]/dish-category.tsx`（料理カテゴリ選択）
  * - `.../[restaurantId]/feed.tsx`（レビューのフィード）
  *
@@ -35,12 +34,13 @@ export class RestaurantDetailPage {
 	readonly title: Locator;
 	/** 「写真・動画を投稿」ボタン（ゲストならログイン画面へ、ログイン済みなら投稿フォームへ） */
 	readonly postPhotoButton: Locator;
-	/** 「入札する」ボタン（#1386 で地図側から移設） */
+	/**
+	 * 「入札する」ボタン。#1411 で **出さない** ことにしたので、これは «無いこと» を
+	 * 検証するためだけに残している（決済が入るまで復活させない）
+	 */
 	readonly placeBidButton: Locator;
 	/** 「Google マップで開く」ボタン（#1386 で地図側から移設） */
 	readonly googleMapsButton: Locator;
-	/** 入札画面のタイトル */
-	readonly bidTitle: Locator;
 	/** 料理カテゴリ選択画面のタイトル */
 	readonly dishCategoryTitle: Locator;
 	/** 料理カテゴリの検索入力欄（`DishCategoryAutocomplete` の既定 testID 接頭辞 + `-input`） */
@@ -54,18 +54,16 @@ export class RestaurantDetailPage {
 	/**
 	 * 店舗詳細のヘッダー戻る。#1404 で画面ごとの id（`${testID}-back`）になった。
 	 *
-	 * ⚠️ 子ルート（入札 / 料理カテゴリ選択）を開いている間はこれを押さないこと。
+	 * ⚠️ 子ルート（料理カテゴリ選択 / フィード）を開いている間はこれを押さないこと。
 	 * 背面の店舗詳細も DOM に残っているので «押せてしまう» が、押しているのは背面の画面である。
-	 * 子ルートから戻るときは `goBackFromBid` / `goBackFromDishCategory` を使う。
+	 * 子ルートから戻るときは `goBackFromDishCategory` を使う。
 	 */
 	readonly backButton: Locator;
-	/** 入札画面のヘッダー戻る */
-	readonly bidBackButton: Locator;
 	/**
 	 * 料理カテゴリ選択画面のヘッダー戻る。
 	 *
 	 * 現在の spec は「ルートとして開ける」ところまでしか見ていないため未使用だが、
-	 * 入札と対になる導線なので «片方だけ揃っていない» 状態にしないために置いてある。
+	 * 子ルートの戻る導線を «片方だけ揃っていない» 状態にしないために置いてある。
 	 */
 	readonly dishCategoryBackButton: Locator;
 
@@ -75,14 +73,12 @@ export class RestaurantDetailPage {
 		this.postPhotoButton = page.getByTestId("restaurant-detail-post-photo-button");
 		this.placeBidButton = page.getByTestId("restaurant-detail-place-bid-button");
 		this.googleMapsButton = page.getByTestId("restaurant-detail-google-maps-button");
-		this.bidTitle = page.getByTestId("restaurant-bid-screen-title");
 		this.dishCategoryTitle = page.getByTestId("dish-category-screen-title");
 		this.dishCategoryInput = page.getByTestId("dish-category-search-input");
 		this.feed = page.getByTestId("restaurant-feed-screen");
 		this.feedEmpty = page.getByTestId("restaurant-feed-empty");
 		this.feedCloseButton = page.getByTestId("restaurant-feed-close-button");
 		this.backButton = page.getByTestId("restaurant-detail-screen-back");
-		this.bidBackButton = page.getByTestId("restaurant-bid-screen-back");
 		this.dishCategoryBackButton = page.getByTestId("dish-category-screen-back");
 	}
 
@@ -91,8 +87,8 @@ export class RestaurantDetailPage {
 		await this.page.goto(restaurantDetailPath(restaurantId));
 	}
 
-	/** 子ルート（入札 / 料理カテゴリ選択 / フィード）へ直接遷移する */
-	async gotoSub(segment: "bid" | "dish-category" | "feed", restaurantId?: string): Promise<void> {
+	/** 子ルート（料理カテゴリ選択 / フィード）へ直接遷移する */
+	async gotoSub(segment: "dish-category" | "feed", restaurantId?: string): Promise<void> {
 		await this.page.goto(restaurantSubPath(segment, restaurantId));
 	}
 
@@ -104,12 +100,6 @@ export class RestaurantDetailPage {
 	async expectOpened(): Promise<void> {
 		await expect(this.page).toHaveURL(/\/review\/restaurant\/[^/]+(\?.*)?$/);
 		await expect(this.title).toBeVisible();
-	}
-
-	/** 入札画面が開いていることを検証する */
-	async expectBidOpened(): Promise<void> {
-		await expect(this.page).toHaveURL(/\/review\/restaurant\/[^/]+\/bid(\?.*)?$/);
-		await expect(this.bidTitle).toBeVisible();
 	}
 
 	/** 料理カテゴリ選択画面が開いていることを検証する */
@@ -132,16 +122,6 @@ export class RestaurantDetailPage {
 	 */
 	async goBack(): Promise<void> {
 		await this.backButton.click();
-	}
-
-	/**
-	 * 入札画面のヘッダー戻るで離脱する。
-	 *
-	 * ⚠️ ここで `goBack()`（店舗詳細の戻る）を押さないこと。入札を push すると背面の店舗詳細も
-	 * DOM に残るので、押せてしまうが «押しているのは背面の画面» になる（#1404）。
-	 */
-	async goBackFromBid(): Promise<void> {
-		await this.bidBackButton.click();
 	}
 
 	/** 料理カテゴリ選択画面のヘッダー戻るで離脱する */

@@ -938,36 +938,15 @@
 				}
 			},
 			"state": null,
-			"description": "アプリ唯一の店舗詳細（#1386 で地図タブの BlurModal 実装と統合）。「写真・動画を投稿」でレビュー投稿フォームへ、「入札する」で入札へ、レビュー / 入札の 2 タブと Google マップ導線を持つ。",
+			"description": "アプリ唯一の店舗詳細（#1386 で地図タブの BlurModal 実装と統合）。「写真・動画を投稿」でレビュー投稿フォームへ進み、レビュータブと Google マップ導線を持つ。#1411 で入札の導線（ボタン / タブ / 現在の入札額 / bid ルート）は決済が入るまで出さないことにした。",
 			"from": [
 				"店舗選択（レビュー投稿）",
 				"マップ（マーカー / POI / 場所検索）",
 				"検索結果フィードの店舗導線",
 				"URL 直リンク・共有リンク"
 			],
-			"to": ["レビュー投稿フォーム", "入札", "店舗のレビューフィード", "ログイン（ゲストが投稿を押したとき）"],
+			"to": ["レビュー投稿フォーム", "店舗のレビューフィード", "ログイン（ゲストが投稿を押したとき）"],
 			"note": "レストラン選択で POST /v1/restaurants が走る（同一 Place は upsert のため重複しない）。#1386 でルート化そのものの検証は e2e-web の tests/review/restaurant-routes.spec.ts / e2e-mobile の tests/review/restaurant-routes.test.ts が API モック・ディープリンクで持つ。"
-		},
-		{
-			"id": "review-restaurant-bid",
-			"name": "入札（店舗詳細）",
-			"route": "/[locale]/review/restaurant/[restaurantId]/bid",
-			"url": "/ja-JP/review/restaurant/e2e-catalog-restaurant/bid",
-			"platforms": {
-				"web": {
-					"capture": "auto",
-					"session": "anon"
-				},
-				"mobile": {
-					"capture": "auto",
-					"session": "anon"
-				}
-			},
-			"state": null,
-			"description": "店舗への入札金額を入れる画面（#1386 でモーダル z1300 からルートへ）。決済は未実装で、送信は成功ログのみのダミー。",
-			"from": ["店舗詳細"],
-			"to": ["店舗詳細（戻る / 送信後）"],
-			"note": "この画面は店舗データを読まない（restaurantId はログと戻り先にだけ使う）ため、カタログはダミー id の直リンクで撮る。"
 		},
 		{
 			"id": "review-post-form",
@@ -1424,11 +1403,6 @@
 			"from": "review-restaurant-detail",
 			"to": "review-post-form",
 			"label": "写真・動画を投稿する"
-		},
-		{
-			"from": "review-restaurant-detail",
-			"to": "review-restaurant-bid",
-			"label": "入札する"
 		},
 		{
 			"from": "review-restaurant-detail",
