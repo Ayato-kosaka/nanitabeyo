@@ -17,13 +17,10 @@ map 側にしか無かったものは 1 つも落としていない:
 
 - 現在の入札額 / 残り日数の表示（`meta.maxEndDate` があるときだけ出る）
 - Google マップで開く（#1121 の openExternalUrl 経由）
-- レビュー一覧の «フィード表示» → `feed` ルートへ
 
-レビュー一覧の押下先だけは統合で意味が変わっている。旧レビュー側は既存メディアへの
-レビュー投稿（`review-from-media`）へ直行していたが、統合後は map 側と同じくフィードを開き、
-フィードの「この料理にレビューを書く」から `review-from-media` へ進む。どちらの機能も残っており、
-「どの料理か」を見てから書ける分だけ経路として素直になる（フィードは
-`app/[locale]/(tabs)/review/restaurant/[restaurantId]/feed.tsx`）。
+レビュー一覧の押下先は #1386 で «feed を挟む» へ変えたが、**#1418 で直行へ戻した**
+（下の `handleDishMediaPress` を参照）。`feed` ルート自体は残っているが、
+アプリ内からは開かない（直リンクのみ）。
 
 ⚠️ この画面に BlurModal / 手動 zIndex を戻さないこと。`Portal.Host` は `<Stack>` を包んでいる
 （`app/[locale]/_layout.tsx`）ので portal レイヤは常にナビゲータより «上» にある。オーバーレイを
@@ -77,8 +74,10 @@ function RestaurantTabsBar({ tabNames, index, onTabPress }: TabBarProps<string>)
 		<View style={styles.tabContainer}>
 			{tabNames.map((name, i) => {
 				const isActive = currentIndex === i;
-				// #1411 入札タブを外したのでタブは «レビュー» の 1 本に戻った
-				const label = i18n.t("Map.tabs.reviews");
+				// #1418 タブは 1 本に戻り、押下先も «その料理のレビューを書く» に戻ったので、
+				// 文言も旧レビュー側（Review.everybodyPostsTitle）へ戻す。
+				// #1386 で入札タブと対にするため map 側の «レビュー» へ寄せていた
+				const label = i18n.t("Review.everybodyPostsTitle");
 				return (
 					<TouchableOpacity
 						key={name}
@@ -182,12 +181,19 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 		}
 	}, [lightImpact, logFrontendEvent, restaurant, showSnackbar]);
 
-	// #1386 【設計】レビュー一覧の押下でフィードを開く。
-	// 旧 map 実装はここで `DishMediaModal`（既定 z1100 = 親と同値）を重ねていた。
-	// 旧レビュー側が直行していた `review-from-media` へは、フィードの
-	// 「この料理にレビューを書く」から進む（ファイル冒頭のコメント参照）
+	/*
+	#1418 【バグ】レビュー一覧の押下は `review-from-media` へ **直行**すること。
+
+	#1386 で map 側（`DishMediaModal` を重ねる）へ寄せて `feed` を挟んだが、それは
+	«押下 1 回» を «押下 2 回» にする劣化だった。しかも feed の「この料理にレビューを書く」は
+	`!isGuestUser(user)` で出ないので、**ゲストは «他人の投稿に文字だけのレビューを書く» へ
+	到達する手段を完全に失っていた**（旧レビュー側の直行にゲスト判定は無い）。
+
+	map 側は `href: null` で到達不能だったので、寄せる先として «正しい» 実装ではない。
+	feed ルート自体は残すが、アプリ内の導線からは外す（#1414 の B-3）。
+	*/
 	const handleDishMediaPress = useCallback(
-		(index: number, dishMediaId: string) => {
+		(_index: number, dishMediaId: string) => {
 			lightImpact();
 			logFrontendEvent({
 				event_name: "review_from_media_navigate",
@@ -198,8 +204,8 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 				},
 			});
 			router.push({
-				pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]/feed",
-				params: { locale, restaurantId: restaurant.id, initialIndex: String(index) },
+				pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]/review-from-media/[dishMediaId]",
+				params: { locale, restaurantId: restaurant.id, dishMediaId },
 			});
 		},
 		[lightImpact, logFrontendEvent, router, locale, restaurant.id],
@@ -272,7 +278,7 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 				headerContainerStyle={{ shadowColor: "transparent", backgroundColor: "transparent" }}>
 				{/*
 					レビュータブ: RestaurantReviewsTab を使用。
-					グリッド押下でフィード（feed ルート）へ進む
+					グリッド押下で «その料理へのレビュー投稿»（review-from-media ルート）へ直行する（#1418）
 				*/}
 				<Tabs.Tab name="reviews">
 					<RestaurantReviewsTab restaurantId={restaurant.id} onItemPress={handleDishMediaPress} />

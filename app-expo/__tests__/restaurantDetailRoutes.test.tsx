@@ -116,7 +116,6 @@ jest.mock("@/features/map/components/tabs/RestaurantReviewsTab", () => {
 			}),
 	};
 });
-jest.mock("@/features/map/components/tabs/RestaurantBidsTab", () => ({ RestaurantBidsTab: () => null }));
 
 // ルート本体の検証で使う。API の応答をテストごとに差し替える
 const mockCallBackend = jest.fn();
@@ -185,28 +184,35 @@ describe("#1388 店詳細ルートの push 先", () => {
 		expect(tree.root.findAll((node) => node.props?.testID === "restaurant-detail-place-bid-button")).toHaveLength(0);
 	});
 
-	// #1386 で «意味が変わった» 唯一の導線。旧レビュー側はここから review-from-media へ直行していた
-	it("レビューのグリッド押下は feed ルートへ push する", async () => {
-		const tree = await render(<SelectedRestaurantDetails restaurantEntry={restaurantEntry} />);
+	/*
+	#1418 【バグ】グリッド押下は `review-from-media` へ **直行**する。
 
-		await press(tree, "reviews-tab-item");
+	#1386 で feed を挟んだが、それは «押下 1 回» を «押下 2 回» にする劣化だった。
+	さらに feed の「この料理にレビューを書く」は `!isGuestUser(user)` で出ないので、
+	**ゲストはこの機能へ到達する手段を完全に失っていた**。
 
-		expect(mockPush).toHaveBeenCalledWith(
-			expect.objectContaining({ pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]/feed" }),
-		);
-	});
-
-	// ⚠️ initialIndex を落とすと «押した料理» ではなく先頭から開く。
-	// 押下位置は onItemPress の第 1 引数でしか伝わらないので、文字列化まで含めて固定する
-	it("feed へは押した位置を initialIndex として渡す", async () => {
+	⚠️ ここが `feed` に戻ったら、ゲストの導線がもう一度消える。
+	*/
+	it("レビューのグリッド押下は review-from-media ルートへ直行する", async () => {
 		const tree = await render(<SelectedRestaurantDetails restaurantEntry={restaurantEntry} />);
 
 		await press(tree, "reviews-tab-item");
 
 		expect(mockPush).toHaveBeenCalledWith({
-			pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]/feed",
-			params: { locale: "ja-JP", restaurantId: RESTAURANT_ID, initialIndex: "3" },
+			pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]/review-from-media/[dishMediaId]",
+			params: { locale: "ja-JP", restaurantId: RESTAURANT_ID, dishMediaId: "dish-media-7" },
 		});
+	});
+
+	// ⚠️ アプリ内から feed を開かないこと（#1414 B-3）。直リンクでしか着地しない画面である
+	it("グリッド押下で feed ルートへは行かない", async () => {
+		const tree = await render(<SelectedRestaurantDetails restaurantEntry={restaurantEntry} />);
+
+		await press(tree, "reviews-tab-item");
+
+		expect(mockPush).not.toHaveBeenCalledWith(
+			expect.objectContaining({ pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]/feed" }),
+		);
 	});
 
 	// 非ゲストの投稿導線。ゲストの `next` は loginEntryPoints.test.tsx が持つ
