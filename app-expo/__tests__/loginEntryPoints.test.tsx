@@ -103,17 +103,18 @@ jest.mock("@/features/map/components/ReviewForm", () => ({ ReviewForm: () => nul
 jest.mock("@/features/map/components/BidForm", () => ({ BidForm: () => null }));
 
 /**
- * useBlurModal のスタブ。
+ * `<Portal>` のスタブ。
  *
- * ⚠️ #1386 以降、**呼ばれたこと自体が検証対象**である（`__tests__/legalEntryPoints.test.tsx` と同じ形）。
- * ログイン導線を持つ 3 画面はどれも portal を 1 つも持たない前提で «閉じてから push» を省いている。
- * ここが呼ばれ始めたら、その前提が崩れている（ファイル冒頭のコメント参照）。
+ * ⚠️ 描かれたこと «自体» が検証対象。#1350 P6 で `features/blurModal` を撤去したので、
+ * この検査は «消えたモジュール名» ではなく BlurModal が使っていた **機構そのもの**
+ * （react-native-paper の `<Portal>`）を見る。直に `<Portal>` を書いても、凍結コピーの
+ * `useLegacyBlurModal` を持ち込んでも、同じようにここが赤くなる。
  */
-const mockUseBlurModal = jest.fn();
-jest.mock("@/features/blurModal/hooks/useBlurModal", () => ({
-	useBlurModal: () => {
-		mockUseBlurModal();
-		return { BlurModal: () => null, open: jest.fn(), close: jest.fn(), visible: false };
+const mockPortal = jest.fn();
+jest.mock("react-native-paper", () => ({
+	Portal: () => {
+		mockPortal();
+		return null;
 	},
 }));
 
@@ -187,7 +188,7 @@ const press = async (tree: TestRenderer.ReactTestRenderer, testID: string): Prom
 
 beforeEach(() => {
 	mockPush.mockClear();
-	mockUseBlurModal.mockClear();
+	mockPortal.mockClear();
 	mockUser = GUEST;
 	mockLocalParams = {};
 });
@@ -269,28 +270,28 @@ describe("#1386 ログイン導線を持つ画面は portal を 1 つも持た�
 	BlurModal は react-native-paper の `<Portal>` に全画面レイヤを描き、`Portal.Host` は
 	`<Stack>` を包んでいる（app/[locale]/_layout.tsx）ので、開いたまま push すると
 	ログイン画面は portal の下に潜って見えず触れない（#1364 で実測）。Android の戻るキーも
-	useBlurModal 側の BackHandler に食われ、#498 と見分けが付かない症状になる。
+	オーバーレイ側の BackHandler に食われ、#498 と見分けが付かない症状になる。
 	#1386 より前は地図の店詳細がまさにこれで、`onRequestClose()` を push より先に呼ぶ順序を
 	ここで固定していた。シートごと無くなったので、守るべきは «そもそも portal を持たない» ことになった。
 	*/
-	it("店詳細は useBlurModal を呼ばない", async () => {
+	it("店詳細は Portal を 1 つも描かない", async () => {
 		const tree = await render(<ReviewRestaurantDetails restaurantEntry={reviewRestaurantEntry} />);
 		await press(tree, "restaurant-detail-post-photo-button");
 
-		expect(mockUseBlurModal).not.toHaveBeenCalled();
+		expect(mockPortal).not.toHaveBeenCalled();
 	});
 
-	it("レビュータブは useBlurModal を呼ばない", async () => {
+	it("レビュータブは Portal を 1 つも描かない", async () => {
 		const tree = await render(<ReviewScreen />);
 		await press(tree, "review-guest-login-button");
 
-		expect(mockUseBlurModal).not.toHaveBeenCalled();
+		expect(mockPortal).not.toHaveBeenCalled();
 	});
 
-	it("マイページは useBlurModal を呼ばない", async () => {
+	it("マイページは Portal を 1 つも描かない", async () => {
 		const tree = await render(<ProfileTabsLayout />);
 		await press(tree, "profile-login-button");
 
-		expect(mockUseBlurModal).not.toHaveBeenCalled();
+		expect(mockPortal).not.toHaveBeenCalled();
 	});
 });

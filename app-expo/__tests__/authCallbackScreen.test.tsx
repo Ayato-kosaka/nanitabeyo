@@ -61,13 +61,15 @@ jest.mock("@/hooks/useLogger", () => ({
 	useLogger: () => ({ logFrontendEvent: (event: unknown) => mockLogFrontendEvent(event) }),
 }));
 
-// #1370 A 群の完了条件（callback から useBlurModal が消えていること）を «呼ばれたら分かる» 形で置く。
-// 復活させると下の not.toHaveBeenCalled() が赤くなる
-const mockUseBlurModal = jest.fn(() => {
-	throw new Error("callback.tsx must not use useBlurModal (#1370)");
-});
-jest.mock("@/features/blurModal/hooks/useBlurModal", () => ({
-	useBlurModal: () => mockUseBlurModal(),
+// #1370 A 群の完了条件（callback がオーバーレイを持たないこと）を «描かれたら分かる» 形で置く。
+// #1350 P6 で features/blurModal を撤去したので、観測点は消えたモジュール名ではなく
+// BlurModal が使っていた機構そのもの（react-native-paper の `<Portal>`）にしてある
+const mockPortal = jest.fn();
+jest.mock("react-native-paper", () => ({
+	Portal: () => {
+		mockPortal();
+		return null;
+	},
 }));
 
 jest.mock("lottie-react-native", () => "LottieView");
@@ -115,12 +117,12 @@ beforeEach(() => {
 });
 
 describe("#1370 プロバイダ競合の告知（DialogProvider の confirm）", () => {
-	it("useBlurModal を使わない", async () => {
+	it("Portal を 1 つも描かない", async () => {
 		mockHandleOAuthResultUrl.mockRejectedValue(identityConflictError);
 
 		await render();
 
-		expect(mockUseBlurModal).not.toHaveBeenCalled();
+		expect(mockPortal).not.toHaveBeenCalled();
 	});
 
 	// #1370 【バグ】Android の戻るキーで告知だけが消え、スピナーが残る状態を作らせない

@@ -3,8 +3,11 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 /**
- * 🛡️ `features/contributionTasks/legacyBlurModal`（#1363 で新設した凍結コピー）が
- * 社内タスク画面の外から import されていないことを検証する CI ゲート（#1363 PR レビュー）。
+ * 🛡️ BlurModal の境界を守る CI ゲート。2 つを検査する。
+ *
+ * 1. `features/contributionTasks/legacyBlurModal`（#1363 で新設した凍結コピー）が
+ *    社内タスク画面の外から import されていないこと（#1363 PR レビュー）
+ * 2. #1350 P6 で撤去した `features/blurModal` が復活していないこと
  *
  * 使い方:
  *   pnpm --filter app-expo assert:legacy-blur-modal-boundary
@@ -49,6 +52,15 @@ const appRoot = path.resolve(scriptDir, "..");
 
 /** 凍結コピーの位置（appRoot からの相対 posix パス） */
 const FROZEN_DIR = "features/contributionTasks/legacyBlurModal";
+
+/**
+ * #1350 P6 で撤去した公開アプリ側の BlurModal。**復活していないこと**を検査する。
+ *
+ * 撤去できたのは 31 箇所すべてをルート / DialogProvider / インラインへ移し切ったからで、
+ * 1 箇所でも「とりあえず戻す」が入ると、共有オーバーレイが全画面を人質に取る元の状態
+ * （#1350 §6 の構造的欠陥）へ逆戻りする。ディレクトリの再出現をここで落とす。
+ */
+const REMOVED_DIR = "features/blurModal";
 
 /**
  * `legacyBlurModal` を import してよい範囲。`.eslintrc.js` の overrides.files と同じ意味を持たせる。
@@ -126,6 +138,23 @@ if (!existsSync(frozenDirAbsolute) || !statSync(frozenDirAbsolute).isDirectory()
 	process.exit(1);
 }
 
+// ── 1-b. 撤去済みディレクトリが復活していないことを確認する ──────────────────
+const removedDirAbsolute = path.resolve(appRoot, REMOVED_DIR);
+if (existsSync(removedDirAbsolute)) {
+	console.error(
+		[
+			`❌ 撤去済みの ${REMOVED_DIR} が復活しています。`,
+			"   公開アプリのオーバーレイは #1350 で全廃しました。行き先は次の 3 つです:",
+			"     - 画面を分ける   … expo-router のルート（app/**）",
+			"     - 問い合わせる … DialogProvider の confirm() / showDialog()",
+			"     - 同じ画面に出す … インライン描画（#1358 の友達投票が例）",
+			"   意図して復活させるのなら、この検査の REMOVED_DIR を外し、",
+			"   docs/ux/blur-modal-teardown.md に理由を残してください。",
+		].join("\n"),
+	);
+	process.exit(1);
+}
+
 // ── 2. 走査 ──────────────────────────────────────────────────────────────────
 
 const sources = collectSources(appRoot);
@@ -180,9 +209,9 @@ if (offenders.length > 0) {
 			"",
 			...offenders.map(({ file, line, specifier }) => `  - ${file}:${line} … ${specifier}`),
 			"",
-			"   legacyBlurModal は社内タスク画面専用の凍結コピーです（#1363）。公開アプリからは",
-			"   features/blurModal（移行完了までの正規経路）を使ってください。",
-			"   import してよいのは次の範囲だけです:",
+			"   legacyBlurModal は社内タスク画面専用の凍結コピーです（#1363）。公開アプリ側の",
+			"   features/blurModal は #1350 P6 で撤去済みで、代替はルート / DialogProvider /",
+			"   インライン描画です。import してよいのは次の範囲だけです:",
 			"     - app/**/contribution-tasks/**",
 			"     - features/contributionTasks/**",
 		].join("\n"),
