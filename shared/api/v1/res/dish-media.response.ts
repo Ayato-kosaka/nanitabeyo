@@ -12,6 +12,29 @@ import { RestaurantsEntity } from "./restaurants.response";
  */
 export type MediaProcessingStatus = "idle" | "processing" | "completed" | "failed";
 
+/**
+ * #1273 §40 / #1395 メディアの実体をどこから描画するか
+ * - 'stored'        : 自ストレージ（`media_path` 必須）。従来の投稿はすべてこれ
+ * - 'external_embed': SNS の公式埋め込み。`media_path` は NULL で `mediaUrl` も null になる。
+ *                     表示は `externalEmbed.canonicalUrl` から provider 別コンポーネントが行う
+ */
+export type DishMediaRenderType = "stored" | "external_embed";
+
+/** #1273 §14 埋め込み元 SNS */
+export type ExternalEmbedProvider = "x" | "instagram" | "tiktok" | "threads" | "youtube";
+
+/** #1273 §39 埋め込みの死活 */
+export type ExternalEmbedStatus = "unknown" | "available" | "unavailable";
+
+/** #1395 `render_type='external_embed'` の dish_media が指す外部投稿 */
+export type DishMediaExternalEmbed = {
+	provider: ExternalEmbedProvider;
+	externalContentId: string;
+	canonicalUrl: string;
+	embedStatus: ExternalEmbedStatus;
+	lastVerifiedAt: string | null;
+};
+
 /** 一つの料理メディア投稿（dish_media）とそれに関連する情報（レストラン、料理、レビュー） */
 export type DishMediaEntry = {
 	restaurant: RestaurantsEntity;
@@ -30,8 +53,18 @@ export type DishMediaEntry = {
 		 * - 画像の場合: media_processing_status に応じてオリジナル or リサイズ済みパス
 		 */
 		mediaUrl: string | null;
-		/** 投稿サムネイル画像の署名付きCDN URL（派生サイズ or オリジナル） */
+		/**
+		 * 投稿サムネイル画像の URL。
+		 * - `thumbnail_external_url` があればその値（provider の CDN。規約上サムネイルを
+		 *   自ストレージへ保存できない YouTube / Instagram / X 向け。#1395 M-2）
+		 * - 無ければ従来どおり `thumbnail_path` から組んだ署名付き CDN URL（派生サイズ or オリジナル）
+		 */
 		thumbnailImageUrl: string;
+		/**
+		 * #1395 `render_type='external_embed'` のときの埋め込み情報。
+		 * 既存の組み立て箇所を壊さないため optional。未取得・stored のときは undefined か null
+		 */
+		externalEmbed?: DishMediaExternalEmbed | null;
 	};
 	dish_reviews: (SupabaseDishReviews & {
 		username: string;
