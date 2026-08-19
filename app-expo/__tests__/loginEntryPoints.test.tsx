@@ -57,6 +57,11 @@ jest.mock("@/hooks/useHaptics", () => ({
 jest.mock("@/hooks/useLogger", () => ({ useLogger: () => ({ logFrontendEvent: jest.fn() }) }));
 jest.mock("@/hooks/useScreenTrace", () => ({ useScreenTrace: () => {} }));
 jest.mock("@/contexts/SnackbarProvider", () => ({ useSnackbar: () => ({ showSnackbar: jest.fn() }) }));
+// #1402 マイページ本体がログアウトの確認ダイアログを持つようになった（旧設定画面から移動）。
+// このテストで見たいのは «押した先» だけなので、プロバイダごと潰す
+jest.mock("@/contexts/DialogProvider", () => ({
+	useDialog: () => ({ showDialog: jest.fn(), confirm: jest.fn().mockResolvedValue(false) }),
+}));
 
 jest.mock("react-native-safe-area-context", () => {
 	const ReactActual = jest.requireActual("react");
