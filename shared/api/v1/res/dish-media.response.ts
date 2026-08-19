@@ -62,7 +62,13 @@ export type DishMediaEntry = {
 		thumbnailImageUrl: string;
 		/**
 		 * #1395 `render_type='external_embed'` のときの埋め込み情報。
-		 * 既存の組み立て箇所を壊さないため optional。未取得・stored のときは undefined か null
+		 * 既存の組み立て箇所を壊さないため optional。未取得・stored のときは undefined か null。
+		 *
+		 * ⚠️ **現状どの経路もこの値を詰めていない。**
+		 * `dish_media_external_embeddings` に行を作るのは SNS import（#1399）であり、
+		 * 本 Issue の範囲はスキーマと契約の確定まで。読み取り経路への join は
+		 * 書き込み側が入るのと同じ PR で足すこと（今入れると、行が 0 件のテーブルへの
+		 * join を全読み取り経路に増やすだけになる）。
 		 */
 		externalEmbed?: DishMediaExternalEmbed | null;
 	};
