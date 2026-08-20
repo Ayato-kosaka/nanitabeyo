@@ -405,7 +405,12 @@ jobs:
           set -euo pipefail
           POST_SHA=$(git rev-parse HEAD)
           if [[ "$PRE_SHA" == "$POST_SHA" ]]; then
-            echo "::error::作業ブランチ '$BRANCH_NAME' に新しいcommitがありません（実行前後でHEADが変化していません）。Claude Codeが権限不足・turn切れ・その他の理由で変更を確定できなかった可能性があります。"
+            # ⚠️ 原因の切り分けに要る値をこの1行へ必ず載せること。
+            # リーダーはStep Summaryを読めない（GitHubのAPIが公開していない）ので、
+            # ここが「commitが無い」だけだと «上限» / «権限拒否» / «promptの不備» を区別できず、
+            # 同じ失敗を何度も再実行することになる（実際に4回繰り返した）。
+            # 値は summarize-claude-output.sh がGITHUB_ENVへ入れた集計値のみで、引数値は含まない。
+            echo "::error::作業ブランチ '$BRANCH_NAME' に新しいcommitがありません（実行前後でHEADが変化していません）。Claude Codeが権限不足・turn切れ・その他の理由で変更を確定できなかった可能性があります。 [subtype=${CLAUDE_SUBTYPE:-unknown} is_error=${CLAUDE_IS_ERROR:-unknown} turns=${CLAUDE_NUM_TURNS:-unknown} permission_denials=${CLAUDE_DENIALS:-unknown}] 拒否されたツール名はjobログの 'claude-denial:' 行を見ること。"
             exit 1
           fi
           echo "✓ HEADが変化: $PRE_SHA -> $POST_SHA"
