@@ -39,7 +39,10 @@ export class RestaurantDetailPage {
 	 * 検証するためだけに残している（決済が入るまで復活させない）
 	 */
 	readonly placeBidButton: Locator;
-	/** 「Google マップで開く」ボタン（#1386 で地図側から移設） */
+	/**
+	 * 「Google マップで開く」ボタン。#1419 で **出さない** ことにしたので、これは «無いこと» を
+	 * 検証するためだけに残している（`placeBidButton` と同じ扱い）
+	 */
 	readonly googleMapsButton: Locator;
 	/** 料理カテゴリ選択画面のタイトル */
 	readonly dishCategoryTitle: Locator;
