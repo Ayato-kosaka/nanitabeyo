@@ -654,7 +654,16 @@
 		"savedRestaurantList": "Restaurantes Guardados",
 		"postPhotoVideo": "Publicar Foto/Video",
 		"fetchSavedRestaurantsError": "Error al obtener restaurantes guardados",
-		"noSavedRestaurantsInArea": "No se encontraron restaurantes guardados en esta área. Amplíe el área y busque nuevamente."
+		"noSavedRestaurantsInArea": "No se encontraron restaurantes guardados en esta área. Amplíe el área y busque nuevamente.",
+		"nameSearch": {
+			"placeholder": "Buscar por nombre del restaurante",
+			"searching": "Buscando…",
+			"noResults": "No se encontraron restaurantes coincidentes. Toca un restaurante en el mapa para añadirlo.",
+			"error": "Error en la búsqueda. Inténtalo de nuevo."
+		},
+		"accessibility": {
+			"clearNameSearch": "Borrar búsqueda por nombre de restaurante"
+		}
 	},
 	"Feedback": {
 		"title": "Enviar Comentarios/Reporte de Errores",
