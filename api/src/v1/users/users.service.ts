@@ -46,7 +46,11 @@ import { convertPrismaToSupabase_Dishes } from '../../../../shared/converters/co
 import { RestaurantsAssembler } from '../restaurants/restaurants.assembler';
 import { DishMediaAssembler } from '../dish-media/dish-media.assembler';
 import { toNullableId } from '../../core/utils/backend-utils';
-import { decodeMyDishCursor, encodeMyDishCursor } from './my-dishes.query';
+import {
+  decodeMyDishCursor,
+  encodeMyDishCursor,
+  hasMyDishesFilterBeyondStatus,
+} from './my-dishes.query';
 
 @Injectable()
 export class UsersService {
@@ -504,17 +508,7 @@ export class UsersService {
     userId: string,
     dto: QueryMyDishesDto,
   ): Promise<string | null> {
-    const hasFilterBeyondStatus =
-      dto.lat !== undefined ||
-      dto.lng !== undefined ||
-      dto.radius !== undefined ||
-      (dto.categoryIds?.length ?? 0) > 0 ||
-      dto.minRating !== undefined ||
-      (dto.ratings?.length ?? 0) > 0 ||
-      dto.from !== undefined ||
-      dto.to !== undefined;
-
-    if (dto.cursor || hasFilterBeyondStatus) return null;
+    if (dto.cursor || hasMyDishesFilterBeyondStatus(dto)) return null;
 
     const statuses: MyDishStatus[] = dto.status?.length
       ? dto.status

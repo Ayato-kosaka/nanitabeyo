@@ -44,8 +44,9 @@ describe('QueryMyDishesDto', () => {
   /* ---- lat / lng / radius は 3 点セット。部分指定は 400 にする ---- */
 
   it('3 点そろっていれば通る', () => {
-    expect(validate({ lat: '35.68', lng: '139.76', radius: '1000' }).errors)
-      .toEqual([]);
+    expect(
+      validate({ lat: '35.68', lng: '139.76', radius: '1000' }).errors,
+    ).toEqual([]);
   });
 
   it.each([
@@ -123,6 +124,25 @@ describe('QueryMyDishesDto', () => {
     const ids = Array.from({ length: 51 }, (_, i) => `Q${i}`);
     expect(propertiesWithErrors({ categoryIds: ids.join(',') })).toEqual([
       'categoryIds',
+    ]);
+  });
+
+  /* ---- #1397: restaurantId ---- */
+
+  it('restaurantId は未指定でも通る', () => {
+    expect(validate({}).errors).toEqual([]);
+    expect(validate({}).dto.restaurantId).toBeUndefined();
+  });
+
+  it('restaurantId は UUID なら通る', () => {
+    expect(
+      validate({ restaurantId: '4b6b3b7a-2f1a-4c3e-8b1a-2f1a4c3e8b1a' }).errors,
+    ).toEqual([]);
+  });
+
+  it('restaurantId が UUID でなければ弾く', () => {
+    expect(propertiesWithErrors({ restaurantId: 'not-a-uuid' })).toEqual([
+      'restaurantId',
     ]);
   });
 });
