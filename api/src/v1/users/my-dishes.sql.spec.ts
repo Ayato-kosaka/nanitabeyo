@@ -1,5 +1,6 @@
 import {
   buildMyDishMapPinsQuery,
+  buildMyDishesCandidates,
   buildMyDishesOldestWantSaveQuery,
   buildMyDishesPageQuery,
   decodeMyDishCursor,
@@ -164,6 +165,43 @@ describe('buildMyDishesPageQuery が組み立てる SQL', () => {
     expect(sql).not.toContain('GROUP BY dr3.dish_id');
   });
 
+  /* ---------------- #1398 PR1: dish_categories.image_url をページ内 dish に限定した join で取る ---------------- */
+
+  it('d_category_image_url を SELECT し、dish_categories の join を page CTE より後（ページ内 dish 限定）に置く', () => {
+    const sql = buildSql({});
+
+    expect(sql).toContain('dc.image_url AS d_category_image_url');
+
+    // join 自体は 1 箇所だけで、page CTE の外（= 既に LIMIT された p.dish_id に対して）にあること。
+    // buildMyDishesCandidates（UNION ALL の各枝、964MB の dish_reviews を含む候補集合全体）側に
+    // 置くと B-2 の事故（毎ページ全件読み）が再発するため、位置を固定する。
+    const joins =
+      sql.match(/JOIN dish_categories dc ON dc\.id = d\.category_id/g) ?? [];
+    expect(joins).toHaveLength(1);
+
+    const fromPageIndex = sql.indexOf('FROM page p');
+    const joinIndex = sql.indexOf(
+      'JOIN dish_categories dc ON dc.id = d.category_id',
+    );
+    expect(fromPageIndex).toBeGreaterThan(-1);
+    // join は `FROM page p` より後（= page CTE で既に LIMIT 済みの行に対してだけ）にあること
+    expect(joinIndex).toBeGreaterThan(fromPageIndex);
+    // page CTE 自体（`u` エイリアスの候補集合、LIMIT 前）には現れないこと
+    const pageCte = sql.slice(sql.indexOf('page AS ('), fromPageIndex);
+    expect(pageCte).not.toContain('dish_categories');
+
+    // 候補行を組み立てる buildMyDishesCandidates 側（want / eaten 枝）には現れないこと
+    const { candidates } = buildMyDishesCandidates(
+      USER_ID,
+      {},
+      {
+        cursor: null,
+        branchLimit: 11,
+      },
+    )!;
+    expect(normalize(candidates.sql)).not.toContain('dish_categories');
+  });
+
   /* ---------------- m-6: ブロックは効かせない ---------------- */
 
   it('ブロック（action_type=block）を自分の食事ログに効かせない', () => {
@@ -246,7 +284,9 @@ describe('buildMyDishesPageQuery が組み立てる SQL', () => {
     // want 枝の内側に keyset 述語がある
     expect(wantBranch).toContain(') w WHERE (occurred_at, row_key) <');
     // want 枝の内側で ORDER BY + LIMIT まで済ませる
-    expect(wantBranch).toContain('ORDER BY occurred_at DESC, row_key DESC LIMIT');
+    expect(wantBranch).toContain(
+      'ORDER BY occurred_at DESC, row_key DESC LIMIT',
+    );
     // want / eaten / page の 3 箇所に limit+1 を渡す
     expect(lastQuery!.values.filter((v) => v === 11)).toHaveLength(3);
   });

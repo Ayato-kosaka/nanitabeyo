@@ -82,6 +82,14 @@ export type MyDishItem = {
 		/** ページ内の dish に限定した LATERAL で取る（候補集合全体の GROUP BY はしない）*/
 		reviewCount: number;
 		averageRating: number;
+		/**
+		 * `dish_categories.image_url`（NOT NULL）。#1398 PR1 で追加。
+		 *
+		 * `dishMedia === null`（写真なしの記録）のとき、クライアントは灰色プレースホルダーではなく
+		 * `categoryImageUrl` → （それも無ければ）`restaurant.image_url` の順で実画像を表示すること
+		 * （#1375 追補2 決定3）。表示側の実装は PR5 のスコープで、この PR は契約を通すだけ。
+		 */
+		categoryImageUrl: string;
 	};
 
 	/**
