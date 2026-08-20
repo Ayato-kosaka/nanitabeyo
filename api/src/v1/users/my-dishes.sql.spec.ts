@@ -1,5 +1,6 @@
 import {
   buildMyDishMapPinsQuery,
+  buildMyDishesOldestWantSaveQuery,
   buildMyDishesPageQuery,
   decodeMyDishCursor,
   encodeMyDishCursor,
@@ -331,6 +332,48 @@ describe('buildMyDishesPageQuery が組み立てる SQL', () => {
     const leftJoins = sql.match(/LEFT JOIN dish_category_features/g) ?? [];
     expect(allJoins.length).toBeGreaterThan(0);
     expect(leftJoins.length).toBe(allJoins.length);
+  });
+});
+
+describe('buildMyDishesOldestWantSaveQuery が組み立てる SQL', () => {
+  /* ---------------- m-e: oldestOccurredAt は dish ごとの最新 save の MIN ---------------- */
+
+  it('dish ごとに MAX(created_at) を取ってから MIN する（単純な MIN(created_at) には戻らない）', () => {
+    const sql = normalize(buildMyDishesOldestWantSaveQuery(USER_ID).sql);
+
+    // 一覧の DISTINCT ON ... ORDER BY created_at DESC と同じ代表（dish ごとの最新 save）に揃える
+    expect(sql).toContain('SELECT MIN(latest) AS oldest FROM (');
+    expect(sql).toContain('SELECT dm.dish_id, MAX(s.created_at) AS latest');
+    expect(sql).toContain('GROUP BY dm.dish_id');
+
+    // 素朴な MIN(created_at) には戻っていないこと
+    expect(sql).not.toContain('MIN(s.created_at) AS oldest');
+  });
+
+  it('既に食べた dish の save は dish ごとの集約の内側で NOT EXISTS で除く（m-b）', () => {
+    const sql = normalize(buildMyDishesOldestWantSaveQuery(USER_ID).sql);
+    const grouped = sql.slice(
+      sql.indexOf('SELECT dm.dish_id, MAX(s.created_at)'),
+      sql.indexOf('GROUP BY dm.dish_id') + 'GROUP BY dm.dish_id'.length,
+    );
+
+    expect(grouped).toContain('WHERE NOT EXISTS (');
+    expect(grouped).toContain('FROM dish_reviews dr');
+    expect(grouped).toContain('AND dr.dish_id = dm.dish_id');
+  });
+
+  it('target_id::uuid は MATERIALIZED フェンスの外側でだけ行う（M-1 と同じ理由）', () => {
+    const sql = normalize(buildMyDishesOldestWantSaveQuery(USER_ID).sql);
+    const fence = sql.slice(
+      sql.indexOf('my_save_ids AS MATERIALIZED ('),
+      sql.indexOf(')'),
+    );
+
+    expect(sql).toContain('my_save_ids AS MATERIALIZED (');
+    expect(fence).not.toContain('target_id::uuid');
+    expect(sql).toContain(
+      'FROM my_save_ids s JOIN dish_media dm ON dm.id = s.target_id::uuid',
+    );
   });
 });
 

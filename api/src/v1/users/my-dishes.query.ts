@@ -718,3 +718,42 @@ export function buildMyDishMapPinsQuery(
   ORDER BY p.latest_occurred_at DESC
 `;
 }
+
+/**
+ * #1395 m-e: want 側の `meta.oldestOccurredAt` を求める SQL。
+ *
+ * 一覧の want 行の `occurredAt` は `DISTINCT ON (dish_id) ... ORDER BY created_at DESC` で
+ * 選ぶ「その dish の最新 save」なので、最古を出すときも **dish ごとに最新 save を畳んでから
+ * MIN を取る**必要がある。単純な `MIN(reactions.created_at)` だと、同じ dish を古い日付と
+ * 新しい日付の 2 回 save したとき、一覧には新しい日付で出るのに oldestOccurredAt は古い日付を
+ * 返し、Calendar が「一覧に無い月まで遡れる」と表示してしまう。
+ *
+ * 「既に食べた dish の save」を除く NOT EXISTS（m-b）は dish ごとの集約の内側で効かせる。
+ *
+ * ⚠️ target_id::uuid は MATERIALIZED フェンスの外側でだけ行う（M-1 と同じ理由。
+ *    dish_categories.id は TEXT なので `::uuid` にすると落ちる target_id が実在する）。
+ */
+export function buildMyDishesOldestWantSaveQuery(userId: string): Prisma.Sql {
+  return Prisma.sql`
+    WITH my_save_ids AS MATERIALIZED (
+      SELECT target_id, created_at
+      FROM reactions
+      WHERE user_id = ${userId}::uuid
+        AND target_type = 'dish_media'
+        AND action_type = 'save'
+    )
+    SELECT MIN(latest) AS oldest
+    FROM (
+      SELECT dm.dish_id, MAX(s.created_at) AS latest
+      FROM my_save_ids s
+      JOIN dish_media dm ON dm.id = s.target_id::uuid
+      WHERE NOT EXISTS (
+        SELECT 1
+        FROM dish_reviews dr
+        WHERE dr.user_id = ${userId}::uuid
+          AND dr.dish_id = dm.dish_id
+      )
+      GROUP BY dm.dish_id
+    ) t
+  `;
+}
