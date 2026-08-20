@@ -564,6 +564,11 @@ export function buildMyDishesCandidates(
  * **LIMIT を掛けた後のページ内 dish に限定した LATERAL** で取る（m-5）。
  * 候補集合全体への `GROUP BY` は B-2 と同じ事故になる。
  *
+ * #1398 PR1: `dish_categories` への JOIN も同じ理由で `page` CTE より後（`d` は
+ * 既に `p.dish_id` = ページ内 dish に絞られている）に置く。`buildMyDishesCandidates`
+ * の候補集合側（UNION ALL の各枝）へ置くと、964MB の `dish_reviews` を含む候補集合
+ * 全体に対して毎回 join することになり B-2 の事故が再発する。
+ *
  * @returns 該当しうる行が構造的に 0 件のときは null（SQL を投げる必要が無い）
  */
 export function buildMyDishesPageQuery(
@@ -610,11 +615,15 @@ export function buildMyDishesPageQuery(
     d.created_at    AS d_created_at,
     d.updated_at    AS d_updated_at,
     d.lock_no       AS d_lock_no,
+    dc.image_url    AS d_category_image_url,
     st.review_count,
     st.average_rating
   FROM page p
-  JOIN dishes d      ON d.id = p.dish_id
-  JOIN restaurants r ON r.id = d.restaurant_id
+  JOIN dishes d           ON d.id = p.dish_id
+  JOIN restaurants r      ON r.id = d.restaurant_id
+  -- #1398 PR1: カテゴリ画像 URL。page CTE で既に LIMIT 済みの d に対する join なので、
+  -- 全候補集合ではなく**ページ内 dish（最大 limit+1 件）にだけ**効く（B-2 の再発防止）。
+  JOIN dish_categories dc ON dc.id = d.category_id
   -- 食べたい登録日は「食べた」行にも載せる（save reaction を消さないため保持できる）
   --
   -- #1395 M-a: ここを my_saved_dishes 全体との join にすると、

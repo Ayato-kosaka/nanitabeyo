@@ -32,7 +32,12 @@ export type MyDishRowEntity = {
   mediaId: string | null;
   distanceMeters: number | null;
   restaurant: PrismaRestaurants;
-  dish: PrismaDishes & { reviewCount: number; averageRating: number };
+  dish: PrismaDishes & {
+    reviewCount: number;
+    averageRating: number;
+    /** #1398 PR1: `dish_categories.image_url`（NOT NULL）。写真なし行のフォールバック画像に使う */
+    categoryImageUrl: string;
+  };
   /** カーソル生成用（sort ごとに必要な要素だけ使う） */
   cursorSource: {
     row_key: string;
@@ -78,6 +83,7 @@ type DishColumns = {
   d_created_at: Date;
   d_updated_at: Date;
   d_lock_no: number;
+  d_category_image_url: string;
 };
 
 type MyDishRawRow = RestaurantColumns &
@@ -191,6 +197,7 @@ export class UsersRepository {
           lock_no: row.d_lock_no,
           reviewCount: row.review_count,
           averageRating: roundToOneDecimal(row.average_rating),
+          categoryImageUrl: row.d_category_image_url,
         },
         cursorSource: {
           row_key: row.row_key,

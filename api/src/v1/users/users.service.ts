@@ -460,6 +460,7 @@ export class UsersService {
           ...convertPrismaToSupabase_Dishes(item.dish),
           reviewCount: item.dish.reviewCount,
           averageRating: item.dish.averageRating,
+          categoryImageUrl: item.dish.categoryImageUrl,
         },
         dishMedia:
           (item.mediaId ? dishMediaById.get(item.mediaId) : undefined) ?? null,
