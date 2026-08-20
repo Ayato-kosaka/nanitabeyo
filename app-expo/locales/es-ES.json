@@ -788,6 +788,20 @@
 			"list": "Lista",
 			"calendar": "Calendario"
 		},
+		"calendar": {
+			"monthLabel": "{{month}}/{{year}}",
+			"weekdays": {
+				"sun": "Dom",
+				"mon": "Lun",
+				"tue": "Mar",
+				"wed": "Mié",
+				"thu": "Jue",
+				"fri": "Vie",
+				"sat": "Sáb"
+			},
+			"dayA11yLabel": "{{date}} ({{count}} registros)",
+			"reachedOldest": "Has llegado al registro más antiguo"
+		},
 		"map": {
 			"truncated": "Solo se muestran algunos pines. Reduce el área de búsqueda.",
 			"zoomInHint": "Acerca el mapa antes de buscar en esta zona",
