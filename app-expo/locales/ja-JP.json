@@ -783,7 +783,11 @@
 			"loginButton": "ログインする"
 		},
 		"record": {
-			"cta": "記録する"
+			"cta": "記録する",
+			"noPhotoTitle": "写真を追加",
+			"noPhotoHint": "写真なしでも記録できます",
+			"publicReviewNotice": "記録は公開レビューとして店舗ページに表示されます",
+			"postNotFoundNoPhoto": "この記録には写真がありません"
 		},
 		"filters": {
 			"title": "絞り込み・並び替え",

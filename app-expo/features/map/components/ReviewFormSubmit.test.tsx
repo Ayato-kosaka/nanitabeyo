@@ -105,17 +105,24 @@ jest.mock("@/features/profile/hooks/useEnsureOwnProfileLoaded", () => ({ useEnsu
 jest.mock("@/features/profile/stores/useProfileStore", () => ({
 	useProfileStore: (selector: (state: unknown) => unknown) => selector({ profile: { display_name: "テスト太郎" } }),
 }));
+// #1398 R2 「写真なしではストアを触らない」を観測するため、呼び出しごとに作り直さず
+// モジュールスコープの安定した jest.fn() を返す（jest.mock のファクトリからは `mock` 始まりだけ参照できる）
+const mockUpsertDishMediaEntries = jest.fn();
+const mockUpdateReviewIdsByKey = jest.fn();
+const mockUpdateMediaIdsByKey = jest.fn();
 jest.mock("@/stores/useDishMediaEntriesStore", () => ({
 	useDishMediaEntriesStore: {
 		getState: () => ({
-			upsertDishMediaEntries: jest.fn(),
-			updateReviewIdsByKey: jest.fn(),
-			updateMediaIdsByKey: jest.fn(),
+			upsertDishMediaEntries: mockUpsertDishMediaEntries,
+			updateReviewIdsByKey: mockUpdateReviewIdsByKey,
+			updateMediaIdsByKey: mockUpdateMediaIdsByKey,
 		}),
 	},
 }));
 
 import { ReviewForm } from "./ReviewForm";
+import { selectMedia } from "@/lib/mediaSelection";
+import { useDishCategorySelectionStore } from "../stores/useDishCategorySelectionStore";
 
 // React 19 では初期描画がスケジューラのタスクへ回されるため、act() で包む必要がある
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -272,5 +279,156 @@ describe("ReviewForm のレビュー投稿中ローディング（#1136）", () 
 		expect(mockCallBackend).toHaveBeenCalledTimes(1);
 
 		await submit.resolve({ id: "dish-review-1" });
+	});
+});
+
+// #1398 【設計】写真なし（status:"none"）での投稿を固定するテスト。
+//
+// 背景（Issue #1398 / 設計 §1 (c-2)・§2 B4・R2）:
+// 完全新規の「食べた」記録には写真が無いことがある。写真なしのときは
+//   POST /v1/dishes（get-or-create） → POST /v1/dish-reviews
+// の **2 本だけ**を叩き、アップロードと POST /v1/dish-media は丸ごと飛ばす。
+// `createdDishMediaId` は送らない（DTO 上すでに任意で、API は未指定なら NULL を書く）。
+//
+// さらに R2 が本丸で、**ストアを 1 つも触らないこと**を固定する。`useDishMediaEntriesStore` の
+// エントリは dish_media が在ることを前提にしているため、写真なしで upsert すると
+// 不正なエントリが入り全画面 Feed が壊れる。
+describe("ReviewForm の写真なし投稿（#1398 B4 / R2）", () => {
+	let tree: TestRenderer.ReactTestRenderer;
+	const onSuccess = jest.fn();
+
+	/**
+	 * 写真なし（status:"none"）かつ入力が揃った状態でマウントする。
+	 *
+	 * 到達経路は実物と同じ「マウント時のピッカーをキャンセル」だけ（設計 B2）。
+	 * 料理カテゴリは選択画面からの «戻り値» の箱（#1386）経由で確定させる。
+	 */
+	const mountNoMediaReadyToSubmit = async () => {
+		(selectMedia as jest.Mock).mockResolvedValue({ success: false, error: "cancelled" });
+		await act(async () => {
+			tree = TestRenderer.create(
+				<ReviewForm
+					restaurant={restaurant}
+					allowNoMedia
+					onCancel={noop}
+					onSuccess={onSuccess}
+					initialPrice="1000"
+					initialReviewText="とてもおいしかった"
+					initialRating={5}
+				/>,
+			);
+		});
+		await act(async () => {
+			useDishCategorySelectionStore
+				.getState()
+				.setResult({ status: "selected", dishCategoryId: "dish-category-1", label: "からあげ" });
+		});
+	};
+
+	const pressSubmit = () => {
+		const pressable = tree.root
+			.findAllByProps({ testID: "review-submit-button" })
+			.find((node) => node.props.android_ripple !== undefined && typeof node.props.onPress === "function");
+		if (!pressable) throw new Error("投稿ボタンの Pressable が見つかりません");
+		act(() => pressable.props.onPress({}));
+	};
+
+	/** callBackend が叩かれたエンドポイントの列（順序込み） */
+	const calledEndpoints = () => mockCallBackend.mock.calls.map(([endpoint]) => endpoint);
+	/** 指定エンドポイントへ渡された requestPayload */
+	const payloadOf = (endpoint: string) =>
+		mockCallBackend.mock.calls.find(([called]) => called === endpoint)?.[1]?.requestPayload;
+
+	/** 写真なしの投稿を最後まで流す（v1/dishes → /v1/dish-reviews の 2 本が解決する） */
+	const submitNoMedia = async () => {
+		mockCallBackend.mockResolvedValueOnce({
+			id: "dish-1",
+			restaurant_id: "restaurant-1",
+			category_id: "dish-category-1",
+		});
+		mockCallBackend.mockResolvedValueOnce({ id: "dish-review-1" });
+		pressSubmit();
+		await act(async () => {});
+	};
+
+	afterEach(() => {
+		act(() => tree?.unmount());
+		useDishCategorySelectionStore.getState().clear();
+	});
+
+	it("写真なしでも投稿ボタンが押せる（isValid は写真の有無に依存しない）", async () => {
+		await mountNoMediaReadyToSubmit();
+
+		const submitButton = tree.root
+			.findAllByProps({ testID: "review-submit-button" })
+			.filter((node) => typeof node.type === "string");
+		expect(submitButton[submitButton.length - 1].props.accessibilityState).toEqual({ disabled: false, busy: false });
+	});
+
+	it("POST /v1/dishes → POST /v1/dish-reviews の 2 本だけを叩き、v1/dish-media は叩かない", async () => {
+		await mountNoMediaReadyToSubmit();
+		await submitNoMedia();
+
+		// #1398 (c-2) dish が無いとレビューが書けないので v1/dishes だけは写真ありと同じく必要
+		expect(calledEndpoints()).toEqual(["v1/dishes", "/v1/dish-reviews"]);
+		expect(calledEndpoints()).not.toContain("v1/dish-media");
+		expect(payloadOf("v1/dishes")).toEqual({ restaurantId: "restaurant-1", dishCategoryId: "dish-category-1" });
+	});
+
+	it("createdDishMediaId を送らない（API 側で created_dish_media_id = NULL になる）", async () => {
+		await mountNoMediaReadyToSubmit();
+		await submitNoMedia();
+
+		const payload = payloadOf("/v1/dish-reviews");
+		// キーごと載せない。undefined を明示的に載せる実装だと、将来 JSON 化の都合で null が飛びうる
+		expect(Object.keys(payload)).not.toContain("createdDishMediaId");
+		// レビューは get-or-create で得た dish に紐づく
+		expect(payload.dishId).toBe("dish-1");
+		expect(payload).toMatchObject({ comment: "とてもおいしかった", priceCents: 1000, rating: 5 });
+	});
+
+	it("R2 ストアを 1 つも触らない（不正なエントリが入ると全画面 Feed が壊れる）", async () => {
+		await mountNoMediaReadyToSubmit();
+		await submitNoMedia();
+
+		expect(mockUpsertDishMediaEntries).not.toHaveBeenCalled();
+		expect(mockUpdateMediaIdsByKey).not.toHaveBeenCalled();
+		// 実体の無いレビュー id を一覧へ積むだけなので、これも呼ばない
+		expect(mockUpdateReviewIdsByKey).not.toHaveBeenCalled();
+	});
+
+	it("allowNoMedia を渡さない従来経路（prefilledMedia）は、これまでどおりストアへ反映する", async () => {
+		// R2 の «呼ばない» 側だけを固定すると、丸ごと呼ばなくしても緑になってしまう。
+		// 既存経路がストアを更新し続けることを対で押さえる
+		await act(async () => {
+			tree = TestRenderer.create(
+				<ReviewForm
+					restaurant={restaurant}
+					onCancel={noop}
+					prefilledMedia={prefilledMedia}
+					initialPrice="1000"
+					initialReviewText="とてもおいしかった"
+					initialRating={5}
+				/>,
+			);
+		});
+
+		mockCallBackend.mockResolvedValueOnce({ id: "dish-review-1" });
+		pressSubmit();
+		await act(async () => {});
+
+		expect(calledEndpoints()).toEqual(["/v1/dish-reviews"]);
+		expect(payloadOf("/v1/dish-reviews").createdDishMediaId).toBe("dish-media-1");
+		expect(mockUpsertDishMediaEntries).toHaveBeenCalledTimes(1);
+		expect(mockUpdateReviewIdsByKey).toHaveBeenCalledTimes(1);
+		// prefilledMedia のときは元から呼ばない（既存挙動）
+		expect(mockUpdateMediaIdsByKey).not.toHaveBeenCalled();
+	});
+
+	it("onSuccess へ dishMedia: null を渡す（呼び出し元が /post/[id] への遷移を抑止できる）", async () => {
+		await mountNoMediaReadyToSubmit();
+		await submitNoMedia();
+
+		expect(onSuccess).toHaveBeenCalledWith({ dishMedia: null, dishReviewId: "dish-review-1" });
 	});
 });
