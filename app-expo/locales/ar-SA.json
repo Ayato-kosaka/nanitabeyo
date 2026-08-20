@@ -386,6 +386,7 @@
 			"likeInactive": "الإعجاب بـ {{name}}",
 			"saveActive": "إزالة {{name}} من «أريد تجربته»",
 			"saveInactive": "إضافة {{name}} إلى «أريد تجربته»",
+			"recordEaten": "تسجيل {{name}} كأنك تناولته",
 			"share": "مشاركة {{name}}",
 			"openMap": "فتح خريطة {{name}}",
 			"reviewLike": "الإعجاب بمراجعة {{username}}"
@@ -515,7 +516,7 @@
 		},
 		"actions": {
 			"selectDishCategory": "اختر فئة الطبق",
-			"writeReviewForThisDish": "اكتب مراجعة لهذا الطبق"
+			"writeReviewForThisDish": "سجّل أنك تناولته"
 		},
 		"inputs": {
 			"price": "السعر",

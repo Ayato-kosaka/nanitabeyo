@@ -386,6 +386,7 @@
 			"likeInactive": "点赞{{name}}",
 			"saveActive": "将{{name}}从想吃中移除",
 			"saveInactive": "将{{name}}保存到想吃",
+			"recordEaten": "将{{name}}记录为吃过",
 			"share": "分享{{name}}",
 			"openMap": "打开{{name}}的地图",
 			"reviewLike": "为{{username}}的点评点赞"
@@ -514,7 +515,7 @@
 		},
 		"actions": {
 			"selectDishCategory": "选择菜品类别",
-			"writeReviewForThisDish": "为这道菜写评论"
+			"writeReviewForThisDish": "记录为吃过"
 		},
 		"inputs": {
 			"price": "价格",

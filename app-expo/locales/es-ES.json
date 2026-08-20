@@ -386,6 +386,7 @@
 			"likeInactive": "Me gusta {{name}}",
 			"saveActive": "Quitar {{name}} de Quiero comer",
 			"saveInactive": "Añadir {{name}} a Quiero comer",
+			"recordEaten": "Registrar {{name}} como comido",
 			"share": "Compartir {{name}}",
 			"openMap": "Abrir el mapa de {{name}}",
 			"reviewLike": "Me gusta la reseña de {{username}}"
@@ -515,7 +516,7 @@
 		},
 		"actions": {
 			"selectDishCategory": "Seleccionar categoría de plato",
-			"writeReviewForThisDish": "Escribir una reseña de este plato"
+			"writeReviewForThisDish": "Registrar como comido"
 		},
 		"inputs": {
 			"price": "Precio",

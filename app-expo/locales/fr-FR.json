@@ -386,6 +386,7 @@
 			"likeInactive": "Aimer {{name}}",
 			"saveActive": "Retirer {{name}} de Envie d'essayer",
 			"saveInactive": "Ajouter {{name}} à Envie d'essayer",
+			"recordEaten": "Enregistrer {{name}} comme goûté",
 			"share": "Partager {{name}}",
 			"openMap": "Ouvrir la carte de {{name}}",
 			"reviewLike": "Aimer l'avis de {{username}}"
@@ -515,7 +516,7 @@
 		},
 		"actions": {
 			"selectDishCategory": "Sélectionner la catégorie du plat",
-			"writeReviewForThisDish": "Écrire un avis sur ce plat"
+			"writeReviewForThisDish": "Enregistrer comme goûté"
 		},
 		"inputs": {
 			"price": "Prix",

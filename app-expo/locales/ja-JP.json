@@ -386,6 +386,7 @@
 			"likeInactive": "{{name}}にいいね",
 			"saveActive": "{{name}}の食べたいを解除",
 			"saveInactive": "{{name}}を食べたいに保存",
+			"recordEaten": "{{name}}の食べたを記録",
 			"share": "{{name}}をシェア",
 			"openMap": "{{name}}の地図を開く",
 			"reviewLike": "{{username}}の口コミにいいね"
@@ -515,7 +516,7 @@
 		},
 		"actions": {
 			"selectDishCategory": "料理カテゴリを選択",
-			"writeReviewForThisDish": "この料理にレビューを書く"
+			"writeReviewForThisDish": "食べたを記録"
 		},
 		"inputs": {
 			"price": "料金",
