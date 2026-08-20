@@ -362,10 +362,6 @@
 			"million": "M",
 			"thousand": "K"
 		},
-		"menuOptions": {
-			"viewCreatorProfile": "Ver perfil del creador",
-			"reservation": "Reserva"
-		},
 		"actions": {
 			"share": "Compartir",
 			"seeMore": "ver más",
@@ -513,7 +509,6 @@
 		"buttons": {
 			"postReview": "Publicar Reseña",
 			"postPhotoVideoReview": "Publicar Foto/Video",
-			"placeBid": "Hacer Oferta",
 			"bid": "Ofertar",
 			"searchNearby": "Buscar en esta área",
 			"openInGoogle": "Abrir en Google"
@@ -541,13 +536,11 @@
 		"labels": {
 			"endDate": "Fecha de fin:",
 			"paymentProcessing": "Procesando pago...",
-			"currentBidAmount": "Monto de oferta actual",
 			"restaurant": "Restaurante",
 			"dishCategory": "Categoría del plato"
 		},
 		"tabs": {
-			"reviews": "Reseñas",
-			"bids": "Ofertas"
+			"reviews": "Reseñas"
 		},
 		"emptyState": {
 			"noBidsForStatus": "No hay ofertas para el estado seleccionado"
@@ -671,9 +664,7 @@
 	"auth": {
 		"login_title": "Iniciar Sesión",
 		"create_title": "Crear Cuenta",
-		"field_phone": "Teléfono",
 		"field_name": "Nombre",
-		"hint_sms": "Te enviaremos un código único por SMS para iniciar sesión.",
 		"btn_login": "Iniciar Sesión",
 		"btn_create": "Crear una Cuenta",
 		"divider_or": "O Inicia sesión con",
@@ -682,13 +673,8 @@
 		"provider_facebook": "Facebook",
 		"provider_twitter": "Twitter",
 		"provider_apple": "Apple",
-		"otp_title": "Introducir Código",
-		"otp_resending": "Reenviando el código...",
-		"otp_send_again": "Reenviar Código",
-		"otp_enter_all_digits": "Por favor ingresa los 6 dígitos",
 		"login_success": "¡Inicio de sesión exitoso!",
 		"error_required": "Este campo es obligatorio",
-		"error_invalid_phone": "Número de teléfono inválido",
 		"tos_link_text": "Términos de Servicio",
 		"existing_account_checkbox": "¿Ya tienes una cuenta?",
 		"conflict_dialog_title": "Cuenta Existente Encontrada",

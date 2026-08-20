@@ -362,10 +362,6 @@
 			"million": "M",
 			"thousand": "K"
 		},
-		"menuOptions": {
-			"viewCreatorProfile": "Go to creator profile",
-			"reservation": "Reservation"
-		},
 		"actions": {
 			"share": "Share",
 			"seeMore": "see more",
@@ -512,7 +508,6 @@
 		"buttons": {
 			"postReview": "Post Review",
 			"postPhotoVideoReview": "Post Photo/Video",
-			"placeBid": "Place Bid",
 			"bid": "Bid",
 			"searchNearby": "Search in this area",
 			"openInGoogle": "Open in Google"
@@ -540,13 +535,11 @@
 		"labels": {
 			"endDate": "End date:",
 			"paymentProcessing": "Processing payment...",
-			"currentBidAmount": "Current bid amount",
 			"restaurant": "Restaurant",
 			"dishCategory": "Dish category"
 		},
 		"tabs": {
-			"reviews": "Reviews",
-			"bids": "Bids"
+			"reviews": "Reviews"
 		},
 		"emptyState": {
 			"noBidsForStatus": "No bids for the selected status"
@@ -671,9 +664,7 @@
 	"auth": {
 		"login_title": "Log In",
 		"create_title": "Create Account",
-		"field_phone": "Phone",
 		"field_name": "Name",
-		"hint_sms": "We will send you a one-time code via SMS to log in.",
 		"btn_login": "Login",
 		"btn_create": "Create an Account",
 		"divider_or": "Or Sign in with",
@@ -682,13 +673,8 @@
 		"provider_facebook": "Facebook",
 		"provider_twitter": "Twitter",
 		"provider_apple": "Apple",
-		"otp_title": "Enter Code",
-		"otp_resending": "Resending code...",
-		"otp_send_again": "Resend Code",
-		"otp_enter_all_digits": "Please enter all 6 digits",
 		"login_success": "Successfully logged in!",
 		"error_required": "This field is required",
-		"error_invalid_phone": "Invalid phone number",
 		"tos_link_text": "Terms of Service",
 		"existing_account_checkbox": "Do you already have an account?",
 		"conflict_dialog_title": "Existing Account Found",

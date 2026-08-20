@@ -497,7 +497,35 @@ map タブは **`href: null`** でタブバーに出ない。地図側の店詳�
 「写真・動画を投稿」の意匠も #1386 以前のレビュー側（カード内・淡色アウトライン）へ戻した。
 #1386 は入札ボタンと横並びにするためカード下のアクション行へ出していた。
 
-> ⚠️ **`app/[locale]/(tabs)/review/selectRestaurant.tsx` の «ストアへ upsert してから push する»
-> 順序は、いまどのテストにも守られていない。** 旧 `__tests__/mapRestaurantRoute.test.tsx` は
-> 同じ不変条件を **地図側だけ**で見ていたため、マップタブと一緒に消えた。
-> あちらは 3 箇所（Place 作成 / マーカー押下 / カード押下）で同じ順序を踏んでいる。
+`app/[locale]/(tabs)/review/selectRestaurant.tsx` の «ストアへ upsert してから push する»
+順序は、旧 `__tests__/mapRestaurantRoute.test.tsx` が **地図側だけ**で見ていたため、
+マップタブと一緒に消えた。**到達可能なあちらは、最初から 1 度も守られていなかった。**
+
+> 「到達不能な側にだけ検査が付いている」は #1411 / #1418 とまったく同じ形の見落としである。
+> 検査を書くときは «その画面が本番から到達できるか» を先に確かめること。
+
+#1451 で `__tests__/selectRestaurantRoute.test.tsx` を新設し、**4 経路すべて**
+（Place 作成 / マーカー押下 / カード押下 / 投稿ボタン）を `["upsert", "push"]` という
+**呼び出し順の列**で固定した。変異テストで 5 種類すべてが赤くなることを実測してある。
+
+⚠️ アサーションを «push されたこと» に置かないこと。それだと順序を入れ替えても緑のままになる
+（それが今まさに無防備だった形）。
+
+### 孤児化した i18n キーの片付け（#1451）
+
+撤去で参照が 0 件になったキーを 8 ロケールから消した（521 キーへ）。
+**コード参照が実際に 0 件であることを 1 件ずつ実測してから**消している。
+
+| 消したキー | 出どころ |
+| --- | --- |
+| `DishMediaContent.menuOptions.*` | #1357 到達不能だった料理カードのメニュー |
+| `auth.field_phone` / `hint_sms` / `otp_*` / `error_invalid_phone` | #1359 削除した電話番号 / SMS ログイン |
+| `Map.buttons.placeBid` / `Map.tabs.bids` / `Map.labels.currentBidAmount` | #1411 落とした入札の «導線» 3 つ |
+
+**残したもの**: `Map.buttons.openInGoogle`（`DishMediaMap` がまだ使う）、
+`Review.everybodyPostsTitle`（#1418 で復活）、入札 *そのもの* の文言
+（`RestaurantBidsTab` / `BidForm` がコードとして残っており決済実装時に使う）。
+
+> ⚠️ 「`i18n.t("<key>")` の grep が 0 件」だけで消さないこと。この repo には
+> `i18n.t(option.label)` のような **動的参照**が検索画面に多数ある。
+> 実際、機械的に数えると «直接参照が無いキー» は 197 件出るが、そのほとんどは生きている。
