@@ -411,12 +411,10 @@
 	"Tabs": {
 		"home": "Home",
 		"search": "Search",
-		"map": "Map",
 		"notifications": "Notifications",
 		"profile": "Profile",
 		"labels": {
 			"search": "Search",
-			"map": "Map",
 			"notifications": "Notifications",
 			"profile": "Profile",
 			"myDishes": "My Dishes"

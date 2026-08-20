@@ -19,7 +19,12 @@ import TestRenderer from "react-test-renderer";
 const mockPush = jest.fn();
 const mockReplace = jest.fn();
 const mockBack = jest.fn();
-let mockCanGoBack = false;
+// #1404 離脱の判定は canGoBack ではなく canDismiss（スタックが 2 枚以上か）を見る。
+// canGoBack はタブナビゲータまでさかのぼるため、(tabs) 配下へ直リンク着地しても
+// initialRouteName="search" のぶん true になり、親へ倒す保険が働かない
+let mockCanDismiss = false;
+// 「canGoBack は true だが canDismiss は false」を作れるように別々に持つ
+let mockCanGoBack = true;
 // ⚠️ スタブ本体をファクトリの «外» に置かないこと。import 文はこのファイルの const 宣言より前へ
 // 巻き上げられるため、ファクトリが走る時点では外の変数がまだ undefined になる。
 // 中身の参照は «呼び出し時» に解決されるので問題ない（loginEntryPoints.test.tsx と同じ注意）
@@ -29,6 +34,7 @@ jest.mock("expo-router", () => {
 		replace: (href: unknown) => mockReplace(href),
 		back: () => mockBack(),
 		canGoBack: () => mockCanGoBack,
+		canDismiss: () => mockCanDismiss,
 	};
 	return {
 		router: stub,
@@ -42,9 +48,13 @@ jest.mock("@/contexts/AuthProvider", () => ({
 	useAuth: () => ({ user: { id: "user-1", is_anonymous: false }, isAuthResolved: true }),
 }));
 jest.mock("@/hooks/useLocale", () => ({ useLocale: () => ({ locale: "ja-JP", isJapanese: true }) }));
-jest.mock("@/hooks/useHaptics", () => ({
-	useHaptics: () => ({ lightImpact: jest.fn(), mediumImpact: jest.fn() }),
-}));
+// ⚠️ 毎レンダー新しい jest.fn() を返さないこと。呼び出し回数を数えられなくなるうえ、
+// 依存に入っている effect が勝手に再実行される（#1387 のフックテストで同じ罠を踏んだ）
+const mockLightImpact = jest.fn();
+jest.mock("@/hooks/useHaptics", () => {
+	const mediumImpact = jest.fn();
+	return { useHaptics: () => ({ lightImpact: mockLightImpact, mediumImpact }) };
+});
 jest.mock("@/hooks/useLogger", () => ({ useLogger: () => ({ logFrontendEvent: jest.fn() }) }));
 // #1402 マイページ本体が旧設定画面の項目（ログアウト確認ダイアログ・スナックバー・画面トレース）を
 // 抱えるようになったため、押した先だけを見たいこのテストではまとめて潰す
@@ -88,8 +98,20 @@ jest.mock("@/features/profile/components/ProfileHeader", () => {
 			ReactActual.createElement(RNView, { testID: "profile-edit-button", onPress: onEditProfile }),
 	};
 });
+// #1402 【設計】ProfileTabsBar / ReviewTab / SavedPostsTab は 4 グリッドタブごと廃止したので
+// main にあった jest.mock は落とす（モジュールが存在せず module not found になる）。
+// LikeTab / SavedTopicsTab は単独ルートへ移り、マイページ本体はもう描かないのでモック不要。
+// #1387 「まだ読んでいない」と「読んだが取れなかった」を分けるため、決着状態も差し替え可能にする。
+// profile === null だけでは両者を区別できず、後者でスピナーが回り続けていた
+let mockIsProfileResolved = true;
+let mockHasLoadFailed = false;
+const mockRetry = jest.fn();
 jest.mock("@/features/profile/hooks/useEnsureOwnProfileLoaded", () => ({
-	useEnsureOwnProfileLoaded: () => ({ isProfileResolved: true }),
+	useEnsureOwnProfileLoaded: () => ({
+		isProfileResolved: mockIsProfileResolved,
+		hasLoadFailed: mockHasLoadFailed,
+		retry: mockRetry,
+	}),
 }));
 // プロフィールの «有無» で編集画面の描画が変わる（下の「未ロードの間は…」のテスト）ので差し替え可能にする
 let mockProfile: unknown = { id: "profile-1", username: "tester" };
@@ -141,10 +163,14 @@ const press = async (tree: TestRenderer.ReactTestRenderer, testID: string): Prom
 
 beforeEach(() => {
 	mockProfile = { id: "profile-1", username: "tester" };
+	mockIsProfileResolved = true;
+	mockHasLoadFailed = false;
+	mockRetry.mockClear();
 	mockPush.mockClear();
 	mockReplace.mockClear();
 	mockBack.mockClear();
-	mockCanGoBack = false;
+	mockCanDismiss = false;
+	mockCanGoBack = true;
 });
 
 describe("#1369 マイページから編集画面への導線", () => {
@@ -163,20 +189,47 @@ describe("#1369 マイページから編集画面への導線", () => {
 
 describe("#1369 プロフィール編集画面の離脱", () => {
 	it("戻るを押すと、履歴があれば back で戻る", async () => {
-		mockCanGoBack = true;
+		mockCanDismiss = true;
 		const tree = await render(<ProfileEditScreen />);
 
-		await press(tree, "screen-header-back");
+		await press(tree, "profile-edit-screen-back");
 
 		expect(mockBack).toHaveBeenCalledTimes(1);
 		expect(mockReplace).not.toHaveBeenCalled();
 	});
 
-	it("戻るを押したとき履歴が無ければマイページへ replace する", async () => {
-		mockCanGoBack = false;
+	/*
+	#1404 【バグ】判定に `canGoBack()` を使うと、**この画面へ URL 直リンクで着地したときに
+	親へ倒す保険が働かない**。
+
+	`canGoBack()` は React Navigation のナビゲーション状態を親までさかのぼって見る。
+	`(tabs)/_layout.tsx` が `initialRouteName="search"` を指定しているため、`(tabs)` 配下の
+	ルートへ直接着地するとタブナビゲータが «検索へ戻れる» と答え、true になる。
+	その結果、戻るはマイページではなく **検索タブ** へ飛ぶ。
+
+	`canDismiss()` は «スタックが 2 枚以上あるか» だけを見るので、タブ履歴に影響されない。
+
+	⚠️ ここが赤くなったら `canGoBack()` へ戻っている。実機・E2E でしか気付けない形になる。
+	*/
+	it("canGoBack が true でも、スタックが 1 枚ならマイページへ replace する", async () => {
+		mockCanGoBack = true;
+		mockCanDismiss = false;
 		const tree = await render(<ProfileEditScreen />);
 
-		await press(tree, "screen-header-back");
+		await press(tree, "profile-edit-screen-back");
+
+		expect(mockBack).not.toHaveBeenCalled();
+		expect(mockReplace).toHaveBeenCalledWith({
+			pathname: "/[locale]/(tabs)/profile",
+			params: { locale: "ja-JP" },
+		});
+	});
+
+	it("戻るを押したとき履歴が無ければマイページへ replace する", async () => {
+		mockCanDismiss = false;
+		const tree = await render(<ProfileEditScreen />);
+
+		await press(tree, "profile-edit-screen-back");
 
 		// URL 直リンク・web のリロードで着地した場合。back すると «アプリの外» へ出てしまう
 		expect(mockBack).not.toHaveBeenCalled();
@@ -187,7 +240,7 @@ describe("#1369 プロフィール編集画面の離脱", () => {
 	});
 
 	it("保存が成功したら、戻ると同じ判定で離脱する", async () => {
-		mockCanGoBack = true;
+		mockCanDismiss = true;
 		const tree = await render(<ProfileEditScreen />);
 
 		await press(tree, "profile-edit-form-saved");
@@ -200,15 +253,19 @@ describe("#1369 プロフィール編集画面の離脱", () => {
 		// ProfileEditForm は初期値を mount 時に 1 回だけ読む。空のまま mount すると
 		// 後から profile が届いても表示名・自己紹介が空欄のままになる
 		mockProfile = null;
+		// #1387 «まだ読んでいない» 側。決着していないのでエラーではなくスピナー
+		mockIsProfileResolved = false;
 		const tree = await render(<ProfileEditScreen />);
 
 		expect(tree.root.findAll((node) => node.props?.testID === "profile-edit-form-saved")).toHaveLength(0);
+		// 読み込み中にエラーを出さないこと（出すと «一瞬エラーが見えて消える» になる）
+		expect(tree.root.findAll((node) => node.props?.testID === "profile-edit-error")).toHaveLength(0);
 		// 待っている間も離脱できること（ゲートの外にヘッダーがある）
-		expect(tree.root.findAll((node) => node.props?.testID === "screen-header-back").length).toBeGreaterThan(0);
+		expect(tree.root.findAll((node) => node.props?.testID === "profile-edit-screen-back").length).toBeGreaterThan(0);
 	});
 
 	it("保存が成功したとき履歴が無ければマイページへ replace する", async () => {
-		mockCanGoBack = false;
+		mockCanDismiss = false;
 		const tree = await render(<ProfileEditScreen />);
 
 		await press(tree, "profile-edit-form-saved");
@@ -217,5 +274,146 @@ describe("#1369 プロフィール編集画面の離脱", () => {
 			pathname: "/[locale]/(tabs)/profile",
 			params: { locale: "ja-JP" },
 		});
+	});
+});
+
+/*
+#1387 【バグ】プロフィール取得が 404 «以外» で失敗（通信断・500 など）すると、
+`useEnsureOwnProfileLoaded` は profile を null のまま `isProfileResolved` だけ true にして終わる。
+編集画面は profile だけを見ていたため、その人の画面は **スピナーが永久に回り続けていた**。
+
+⚠️ ここが赤くなったら、決着済みの失敗を «読み込み中» と同じ見た目で出している。
+ユーザーには終わらない読み込みにしか見えないので、待っても何も起きない。
+*/
+describe("#1387 プロフィール取得に失敗したときの編集画面", () => {
+	/** 「決着したが取れなかった」= 失敗が確定した状態 */
+	const arrangeFailed = () => {
+		mockProfile = null;
+		mockIsProfileResolved = true;
+		mockHasLoadFailed = true;
+	};
+
+	it("スピナーではなくエラーと再試行を出す", async () => {
+		arrangeFailed();
+		const tree = await render(<ProfileEditScreen />);
+
+		expect(tree.root.findAll((node) => node.props?.testID === "profile-edit-error").length).toBeGreaterThan(0);
+		expect(
+			tree.root.findAll((node) => node.props?.testID === "profile-edit-retry-button").length,
+		).toBeGreaterThan(0);
+		// 空のフォームを mount しないことは «未ロード» のときと同じく守る
+		expect(tree.root.findAll((node) => node.props?.testID === "profile-edit-form-saved")).toHaveLength(0);
+	});
+
+	it("再試行を押すとフックの retry が呼ばれる", async () => {
+		arrangeFailed();
+		const tree = await render(<ProfileEditScreen />);
+
+		await press(tree, "profile-edit-retry-button");
+
+		expect(mockRetry).toHaveBeenCalledTimes(1);
+	});
+
+	/*
+	触覚は PrimaryButton 自身が handlePress の中で鳴らす（components/PrimaryButton.tsx）。
+	画面側の onPress でも鳴らすと 1 タップで 2 回になる（PR #1392 のレビュー T-1）。
+
+	⚠️ `press()` が呼ぶのは «画面が PrimaryButton へ渡した onPress»（合成要素の props）であって、
+	PrimaryButton 内部の handlePress ではない。だからここで数えているのは «画面側の分» だけで、
+	0 回であることが正しい。1 になったら画面側でも鳴らしている。
+	ヘッダーの戻る（handleBack）は ScreenHeader が鳴らさないので、あちらは鳴らして正しい。
+	*/
+	it("再試行では画面側が触覚を鳴らさない（PrimaryButton が鳴らすので二重になる）", async () => {
+		arrangeFailed();
+		const tree = await render(<ProfileEditScreen />);
+
+		await press(tree, "profile-edit-retry-button");
+
+		expect(mockLightImpact).not.toHaveBeenCalled();
+	});
+
+	// ⚠️ «決着済み × profile なし» でも、フックが失敗と言っていなければエラーを出さないこと。
+	// 共有ストアは第三者（セッション切替 / 別画面のフックの mount）が空にする。
+	// ここが赤くなったら «失敗の推論» に戻っている（PR #1392 のレビュー B-1）
+	it("ストアが空でもフックが失敗と言わなければエラーを出さない", async () => {
+		mockProfile = null;
+		mockIsProfileResolved = true;
+		mockHasLoadFailed = false;
+
+		const tree = await render(<ProfileEditScreen />);
+
+		expect(tree.root.findAll((node) => node.props?.testID === "profile-edit-error")).toHaveLength(0);
+		// 取得し直しを待っている状態なのでスピナー側へ倒れる
+		expect(tree.root.findAll((node) => node.props?.testID === "profile-edit-form-saved")).toHaveLength(0);
+	});
+
+	// ⚠️ 押下のテストが 1 本だと «回数» のアサーションが意味を持たない（PR #1392 のレビュー T-2）。
+	// なお beforeEach の mockClear 自体は jest.config.js の clearMocks: true と重複している
+	it("2 回押せば 2 回呼ばれる（前のテストの回数を持ち越さない）", async () => {
+		arrangeFailed();
+		const tree = await render(<ProfileEditScreen />);
+
+		await press(tree, "profile-edit-retry-button");
+		await press(tree, "profile-edit-retry-button");
+
+		expect(mockRetry).toHaveBeenCalledTimes(2);
+	});
+
+	// i18n キーの typo は «描かれている» だけでは気付けない（PR #1392 のレビュー S-3）。
+	// このファイルの i18n スタブは `t: (key) => key` なので、描画結果がそのままキーになる
+	it("文言は Common.errors.unexpected / Common.retry を使う", async () => {
+		arrangeFailed();
+		const tree = await render(<ProfileEditScreen />);
+
+		const texts = tree.root
+			.findAll((node) => typeof node.props?.children === "string", { deep: false })
+			.map((node) => node.props.children as string);
+
+		expect(texts).toContain("Common.errors.unexpected");
+		expect(texts).toContain("Common.retry");
+	});
+
+	// 失敗表示は «行き止まり» にしないこと。再試行が通らない環境でも離脱はできる必要がある
+	// ⚠️ 戻るの testID は #1404 で画面ごと（${testID}-back）になった。
+	// 共通 id のままにすると «存在しない id を探して常に緑» になる
+	it("失敗表示のままでも戻れる", async () => {
+		arrangeFailed();
+		const tree = await render(<ProfileEditScreen />);
+
+		expect(
+			tree.root.findAll((node) => node.props?.testID === "profile-edit-screen-back").length,
+		).toBeGreaterThan(0);
+	});
+
+	/*
+	B-1 の «裏返し»（PR #1392 の再レビュー N-1）。
+
+	hasLoadFailed は «他者がプロフィールを載せた» ことでは下りない。失敗したあとに別の消費者が
+	取得に成功すると、**データが store にあるのにエラー画面** が残りうる。
+	画面側で `&& !profile` を掛けて、データがあるなら失敗表示を取り消す。
+
+	⚠️ これは «ストアから失敗を推論する»（B-1 でやめた形）とは逆向きである。
+	失敗の判定は hasLoadFailed が持ち、profile はそれを取り消す方向にしか効かない。
+	*/
+	it("失敗フラグが立っていても、プロフィールが載っていればフォームを描く", async () => {
+		mockProfile = { id: "profile-1", username: "tester" };
+		mockIsProfileResolved = true;
+		mockHasLoadFailed = true;
+
+		const tree = await render(<ProfileEditScreen />);
+
+		expect(tree.root.findAll((node) => node.props?.testID === "profile-edit-error")).toHaveLength(0);
+		expect(tree.root.findAll((node) => node.props?.testID === "profile-edit-form-saved").length).toBeGreaterThan(0);
+	});
+
+	// プロフィールが取れているときにエラーが出ないこと（対照）。
+	// ⚠️ 前提は直前のテストの残りに頼らず自分で置くこと（PR #1392 のレビュー T-2）
+	it("取得できていればエラーは出ない", async () => {
+		mockIsProfileResolved = true;
+		mockHasLoadFailed = false;
+		const tree = await render(<ProfileEditScreen />);
+
+		expect(tree.root.findAll((node) => node.props?.testID === "profile-edit-error")).toHaveLength(0);
+		expect(tree.root.findAll((node) => node.props?.testID === "profile-edit-form-saved").length).toBeGreaterThan(0);
 	});
 });

@@ -95,12 +95,16 @@ describeMutation("お知らせ一覧の SafeArea @mutation", () => {
 	const notifications = new NotificationsScreen();
 
 	/**
-	 * ScreenHeader の戻るボタン（ブロック済み一覧のヘッダーに存在する既存 testID）。
+	 * 見本画面（ブロック済み料理カテゴリ一覧）のヘッダー戻るボタン。
 	 *
-	 * #1402 まではここに «設定画面» のヘッダーも重なって 2 枚一致していたが、
-	 * 設定はマイページ本体（ScreenHeader を持たない）へ統合されたので 1 枚になった。
+	 * #1404 以前は共通の `screen-header-back` を引き、「設定とブロック済み一覧で 2 枚になること」を
+	 * 遷移完了の合図にしていた。ScreenHeader の戻るが画面ごとの id（`${testID}-back`）になったので、
+	 * **見本画面そのものを直接観測する**形へ変えた。合図としても «2 枚に増えるまで待つ» より正確である。
+	 *
+	 * #1402 の «設定をマイページ本体へ統合» とも噛み合う。統合後は遷移元が ScreenHeader を
+	 * 持たないので共通 id は 1 枚しか一致せず、«2 枚» を合図にはもう使えない。
 	 */
-	const screenHeaderBack = by.id("screen-header-back");
+	const blockedTopicsBack = by.id("blocked-topics-header-back");
 
 	beforeEach(async () => {
 		// #1031 【バグ】beforeAll だと前のテストが残した画面状態を次が引き継ぎ、タップがオーバーレイに阻まれる。
@@ -113,7 +117,7 @@ describeMutation("お知らせ一覧の SafeArea @mutation", () => {
 	//   1. マイページ → ブロック済み料理カテゴリ一覧 と実導線で遷移する
 	//      （ネイティブには URL 直遷移の代替経路が無いため。settings.test.ts と同方針。
 	//       #1402 で歯車の 1 階層が無くなった）
-	//   2. 見本画面のヘッダー（screen-header-back）の上端 y を基準値として読む
+	//   2. 見本画面のヘッダー（blocked-topics-header-back）の上端 y を基準値として読む
 	//   3. お知らせタブへ切り替え、ヘッダータイトル（notifications-header-title）の上端 y を読む
 	//   4. 「お知らせの上端 y >= 見本の上端 y - 許容差」を検証する
 	//      修正前は inset ぶん（最小でも 24dp）上へずれるため必ず落ちる
@@ -126,21 +130,16 @@ describeMutation("お知らせ一覧の SafeArea @mutation", () => {
 		// ブロック済み一覧そのものの検証（文言など）は別 spec の担当だから
 		await tapWhenVisible(settings.blockedTopicsItem);
 
-		// ブロック済み一覧は 0 件時に空表示、1 件以上でリストと描画が分かれ、
-		// ロケール非依存で待てる共通の観測点が「ScreenHeader が現れること」しかない。
-		//
-		// #1402 【変更】旧実装は «2 枚（設定 + ブロック済み）» を待っていた。遷移元が
-		// ScreenHeader を持つ設定画面で、Stack push により両方がマウントされたままだったため。
-		// 設定はマイページ本体へ統合され、マイページは ScreenHeader を持たない（タブの直下だから
-		// 戻る導線が要らない）ので、遷移が完了しても **1 枚しか一致しない**。
-		await waitUntil(async () => (await framesOf(screenHeaderBack)).length >= 1, {
-			description: "ブロック済み料理カテゴリ一覧への遷移（ScreenHeader が現れること）",
+		// ブロック済み一覧は 0 件時に空表示、1 件以上でリストと描画が分かれるため、ロケール非依存で
+		// 待てる観測点はヘッダーしかない。#1404 でヘッダーの戻るが画面ごとの id になったので、
+		// «見本画面のヘッダーが出ること» をそのまま待てる（以前は共通 id が 2 枚になるのを待っていた）
+		await waitUntil(async () => (await framesOf(blockedTopicsBack)).length >= 1, {
+			description: "ブロック済み料理カテゴリ一覧への遷移（そのヘッダーが描かれること）",
 		});
 
-		const baselineFrames = await framesOf(screenHeaderBack);
-		// 同じ ScreenHeader（`paddingTop: insets.top + 8`）なので複数一致しても座標は揃うはずだが、
-		// 万一ずれた場合は **下側（y が大きい方）** を採る。基準値が小さいほどアサーションは
-		// 甘くなるため、「読み違いで緑になる」より「厳しく見て落ちる」side へ倒しておく
+		const baselineFrames = await framesOf(blockedTopicsBack);
+		// 通常は 1 枚だが、万一複数取れた場合は **下側（y が大きい方）** を採る。基準値が小さいほど
+		// アサーションは甘くなるため、「読み違いで緑になる」より「厳しく見て落ちる」side へ倒しておく
 		const baselineTop = Math.max(...baselineFrames.map((frame) => frame.y));
 		assert.ok(
 			baselineTop > 0,

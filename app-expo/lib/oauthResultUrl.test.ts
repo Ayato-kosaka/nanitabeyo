@@ -1,4 +1,4 @@
-import { carriesOAuthResult, describeOAuthUrl, pickOAuthResultUrl, type OAuthUrlCandidate } from "./oauthResultUrl";
+import { carriesOAuthResult, describeOAuthUrl, pickOAuthResultUrl, type OAuthUrlCandidate, readOAuthResultQuery } from "./oauthResultUrl";
 
 /** Android の development build を QR / `a` キーで起動したときに getInitialURL() が返す URL（#1062 の元凶） */
 const DEV_LAUNCHER_URL = "nanitabeyo://expo-development-client/?url=https%3A%2F%2Fabc.exp.direct";
@@ -124,5 +124,62 @@ describe("describeOAuthUrl", () => {
 			expect(serialized).not.toContain("tok123");
 			expect(serialized).not.toContain("ref456");
 		}
+	});
+});
+
+/*
+#1374 【バグ】認証結果 URL のクエリを «デコード 1 回» で読む。
+
+`Linking.parse` は searchParams（1 回）に decodeURIComponent をもう 1 回重ねる。
+redirectTo のエンコードを 1 回へ直した以上、読む側も 1 回に揃えないと経路 A だけ過剰にデコードする。
+
+⚠️ 一番重いのは「裸の `%`」で、2 回デコードだと URIError が Linking.parse の catch に飲まれ、
+**code まで queryParams から消えてログイン自体が失敗する**。ここはその再発を止める番人である。
+*/
+describe("#1374 readOAuthResultQuery", () => {
+	const CALLBACK = "nanitabeyo://ja-JP/auth/callback";
+
+	it("クエリを 1 回だけデコードする", () => {
+		const url = `${CALLBACK}?intent=signin&next=%2Fja-JP%2F(tabs)%2Freview&code=AUTHCODE`;
+
+		expect(readOAuthResultQuery(url)).toEqual({
+			intent: "signin",
+			next: "/ja-JP/(tabs)/review",
+			code: "AUTHCODE",
+		});
+	});
+
+	// 2 回デコードすると `%E3%83%A9…` がさらに «ラーメン» へ化ける
+	it("next の値に含まれる %XX は «そのまま» 残す", () => {
+		const url = `${CALLBACK}?next=%2Fja-JP%2Fsearch%3Fq%3D%25E3%2583%25A9%25E3%2583%25BC`;
+
+		expect(readOAuthResultQuery(url)?.next).toBe("/ja-JP/search?q=%E3%83%A9%E3%83%BC");
+	});
+
+	// ⚠️ ここが本命。2 回デコードだと URIError で code ごと落ちる
+	it("next に裸の % が入っていても code を落とさない", () => {
+		const url = `${CALLBACK}?intent=signin&next=%2Fja-JP%2Fx%3Fq%3D50%25&code=AUTHCODE`;
+
+		const params = readOAuthResultQuery(url);
+
+		expect(params?.code).toBe("AUTHCODE");
+		expect(params?.next).toBe("/ja-JP/x?q=50%");
+	});
+
+	it("linkIdentity の provider も従来どおり読める", () => {
+		const url = `${CALLBACK}?intent=link&provider=google&code=AUTHCODE`;
+
+		expect(readOAuthResultQuery(url)).toEqual({ intent: "link", provider: "google", code: "AUTHCODE" });
+	});
+
+	it("クエリが無ければ空", () => {
+		expect(readOAuthResultQuery(CALLBACK)).toEqual({});
+	});
+
+	// 呼び出し側は null のとき従来の Linking.parse へ倒す
+	it("URL として読めなければ null", () => {
+		expect(readOAuthResultQuery("not a url")).toBeNull();
+		expect(readOAuthResultQuery(null)).toBeNull();
+		expect(readOAuthResultQuery(undefined)).toBeNull();
 	});
 });

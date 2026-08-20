@@ -68,7 +68,7 @@ describe("resolveNextPath", () => {
 			["/en-US/profile", "/ja-JP/profile"],
 			["/en-US/restaurant/abc/review", "/ja-JP/restaurant/abc/review"],
 			["/ja/posts", "/ja-JP/posts"],
-			["/zh-Hant-TW/map", "/ja-JP/map"],
+			["/zh-Hant-TW/search", "/ja-JP/search"],
 		])("%s → %s（locale を差し替える）", (next, expected) => {
 			expect(resolveNextPath(next, "ja-JP")).toBe(expected);
 		});

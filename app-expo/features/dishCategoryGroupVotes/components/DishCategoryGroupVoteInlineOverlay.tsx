@@ -52,6 +52,9 @@ import i18n from "@/lib/i18n";
  */
 export const INLINE_OVERLAY_TEST_ID = "dish-category-group-vote-inline-overlay";
 
+/** #1415 カード押下でキーボードを閉じる包み（`dismissKeyboardOnContentPress` のときだけ出る）。 */
+export const CONTENT_KEYBOARD_DISMISS_TEST_ID = "dish-category-group-vote-inline-overlay-content";
+
 /** 移行前の BlurModal の既定値をそのまま踏襲する（見た目を変えないため） */
 const BLUR_INTENSITY = 50;
 const CLOSE_ICON_SIZE = 28;
@@ -69,9 +72,28 @@ type Props = {
 	 * 実質そこが 1 枚の画面であって離脱導線を持たせたくない用途を想定している。
 	 */
 	onRequestClose?: () => void;
+	/**
+	 * #1415 中身（白いカード）を押したときに **キーボードだけ** 閉じるか。
+	 *
+	 * 【設計】既定は false。閉じる導線を持たない投票完了入力のように、カードが画面の
+	 * ほぼ全面を占めていて «背景» を押す余地がほとんど無い用途で true にする。
+	 *
+	 * ⚠️ 実装は `Pressable` の `onPress`（タップ **終了**）であること。
+	 * `onStartShouldSetResponder`（タップ **開始**）で同じことをして #528 を踏んでいる:
+	 *   候補タップ開始 → 親が Keyboard.dismiss() → キーボード高の変化でレイアウト再計算
+	 *   → 候補リストが畳まれて unmount → 子の onPress がキャンセル
+	 * となり「キーボードだけ閉じて選択が反応しない」になった。`onPress` は子が
+	 * レスポンダを取れば発火しないので、この経路は作れない。
+	 */
+	dismissKeyboardOnContentPress?: boolean;
 };
 
-export function DishCategoryGroupVoteInlineOverlay({ children, contentContainerStyle, onRequestClose }: Props) {
+export function DishCategoryGroupVoteInlineOverlay({
+	children,
+	contentContainerStyle,
+	onRequestClose,
+	dismissKeyboardOnContentPress = false,
+}: Props) {
 	const insets = useSafeAreaInsets();
 	const isKeyboardVisibleRef = useRef(false);
 
@@ -106,6 +128,13 @@ export function DishCategoryGroupVoteInlineOverlay({ children, contentContainerS
 		return true;
 	}, [onRequestClose]);
 
+	// #1415 カード押下は «キーボードだけ» 閉じる。レイヤーは閉じない
+	//（閉じる導線を持たない用途で使うので、ここで閉じたら離脱手段になってしまう）
+	const dismissKeyboardOnly = useCallback(() => {
+		if (!isKeyboardVisibleRef.current) return;
+		Keyboard.dismiss();
+	}, []);
+
 	useEffect(() => {
 		if (!onRequestClose) return;
 		const sub = BackHandler.addEventListener("hardwareBackPress", () => requestClose());
@@ -139,7 +168,19 @@ export function DishCategoryGroupVoteInlineOverlay({ children, contentContainerS
 				pointerEvents="box-none">
 				{/* 【設計】包み側は box-none。中身の外側をタップしたときは背景の Pressable まで届かせる */}
 				<View pointerEvents="box-none" style={[styles.content, contentContainerStyle]}>
-					{children}
+					{dismissKeyboardOnContentPress ? (
+						// #1415 カードの余白を押したときにキーボードを引っ込める。
+						// accessible={false} で «押せる何か» としては読み上げさせない
+						<Pressable
+							testID={CONTENT_KEYBOARD_DISMISS_TEST_ID}
+							accessible={false}
+							style={styles.contentPressable}
+							onPress={dismissKeyboardOnly}>
+							{children}
+						</Pressable>
+					) : (
+						children
+					)}
 				</View>
 			</KeyboardAvoidingView>
 
@@ -167,6 +208,11 @@ const styles = StyleSheet.create({
 		flex: 1,
 		alignItems: "center",
 		justifyContent: "center",
+	},
+	// #1415 包んでもレイアウトが変わらないようにする（中身は width:"100%" + maxWidth で効いている）
+	contentPressable: {
+		width: "100%",
+		alignItems: "center",
 	},
 	closeButton: {
 		position: "absolute",

@@ -46,7 +46,7 @@ export default function SavedTopicLocationScreen() {
 			payload: { topicId },
 		});
 
-		if (router.canGoBack()) {
+		if (router.canDismiss()) {
 			router.back();
 			return;
 		}

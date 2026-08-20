@@ -411,12 +411,10 @@
 	"Tabs": {
 		"home": "होम",
 		"search": "खोज",
-		"map": "मानचित्र",
 		"notifications": "सूचनाएँ",
 		"profile": "प्रोफ़ाइल",
 		"labels": {
 			"search": "खोज",
-			"map": "मानचित्र",
 			"notifications": "सूचनाएँ",
 			"profile": "प्रोफ़ाइल",
 			"myDishes": "मेरे व्यंजन"

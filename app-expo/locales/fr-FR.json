@@ -411,12 +411,10 @@
 	"Tabs": {
 		"home": "Accueil",
 		"search": "Recherche",
-		"map": "Carte",
 		"notifications": "Notifications",
 		"profile": "Profil",
 		"labels": {
 			"search": "Recherche",
-			"map": "Carte",
 			"notifications": "Notifications",
 			"profile": "Profil",
 			"myDishes": "Mes plats"

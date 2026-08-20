@@ -411,12 +411,10 @@
 	"Tabs": {
 		"home": "ホーム",
 		"search": "検索",
-		"map": "マップ",
 		"notifications": "お知らせ",
 		"profile": "プロフィール",
 		"labels": {
 			"search": "さがす",
-			"map": "マップ",
 			"notifications": "お知らせ",
 			"profile": "マイページ",
 			"myDishes": "食べたい/食べた"
