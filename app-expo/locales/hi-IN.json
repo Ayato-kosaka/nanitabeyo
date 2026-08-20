@@ -631,7 +631,26 @@
 				"asian": "एशियाई",
 				"other": "अन्य"
 			}
+		},
+		"review": {
+			"title": "समीक्षा पोस्ट करें"
+		},
+		"emptyState": {
+			"noReviews": "अभी तक कोई समीक्षा नहीं।\nइस रेस्तरां की समीक्षा करने वाले पहले बनें।"
+		},
+		"everybodyPostsTitle": "समीक्षा करने के लिए व्यंजन चुनें",
+		"characterCount": "{{current}}/{{max}}",
+		"detail": {
+			"title": "रेस्टोरेंट विवरण"
 		}
+	},
+	"SelectRestaurant": {
+		"title": "रीव्यू करने के लिए रेस्टोरेंट चुनें",
+		"searchThisArea": "इस क्षेत्र में खोजें",
+		"savedRestaurantList": "सहेजे गए रेस्तरां",
+		"postPhotoVideo": "फोटो/वीडियो पोस्ट करें",
+		"fetchSavedRestaurantsError": "सहेजे गए रेस्तरां प्राप्त करने में विफल",
+		"noSavedRestaurantsInArea": "इस क्षेत्र में कोई सहेजे गए रेस्तरां नहीं मिले। कृपया क्षेत्र का विस्तार करें और फिर से खोजें।"
 	},
 	"Feedback": {
 		"title": "फीडबैक/बग रिपोर्ट भेजें",
@@ -751,7 +770,6 @@
 		"cancel": "रद्द करें"
 	},
 	"Review": {
-		"title": "समीक्षा पोस्ट करें",
 		"hero": {
 			"title": "अनुशंसित रेस्तरां की समीक्षा लिखें\nऔर आपने जो व्यंजन खाए उन्हें पोस्ट करें"
 		},
@@ -761,22 +779,6 @@
 		},
 		"authenticated": {
 			"postButton": "✏️ रेस्तरां की समीक्षा पोस्ट करें"
-		},
-		"selectRestaurant": {
-			"title": "रीव्यू करने के लिए रेस्टोरेंट चुनें",
-			"searchThisArea": "इस क्षेत्र में खोजें",
-			"savedRestaurantList": "सहेजे गए रेस्तरां",
-			"postPhotoVideo": "फोटो/वीडियो पोस्ट करें",
-			"fetchSavedRestaurantsError": "सहेजे गए रेस्तरां प्राप्त करने में विफल",
-			"noSavedRestaurantsInArea": "इस क्षेत्र में कोई सहेजे गए रेस्तरां नहीं मिले। कृपया क्षेत्र का विस्तार करें और फिर से खोजें।"
-		},
-		"emptyState": {
-			"noReviews": "अभी तक कोई समीक्षा नहीं।\nइस रेस्तरां की समीक्षा करने वाले पहले बनें।"
-		},
-		"everybodyPostsTitle": "समीक्षा करने के लिए व्यंजन चुनें",
-		"characterCount": "{{current}}/{{max}}",
-		"restaurantDetail": {
-			"title": "रेस्टोरेंट विवरण"
 		}
 	}
 }

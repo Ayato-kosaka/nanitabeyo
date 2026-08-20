@@ -631,7 +631,26 @@
 				"asian": "亚洲菜",
 				"other": "其他"
 			}
+		},
+		"review": {
+			"title": "发布评论"
+		},
+		"emptyState": {
+			"noReviews": "还没有评论。\n成为第一个评论这家餐厅的人。"
+		},
+		"everybodyPostsTitle": "选择要评论的菜品",
+		"characterCount": "{{current}}/{{max}}",
+		"detail": {
+			"title": "餐厅详情"
 		}
+	},
+	"SelectRestaurant": {
+		"title": "选择要点评的餐厅",
+		"searchThisArea": "搜索此区域",
+		"savedRestaurantList": "已保存的餐厅",
+		"postPhotoVideo": "发布照片/视频",
+		"fetchSavedRestaurantsError": "获取已保存的餐厅失败",
+		"noSavedRestaurantsInArea": "在此区域未找到已保存的餐厅。请扩大区域并重新搜索。"
 	},
 	"Feedback": {
 		"title": "发送反馈/错误报告",
@@ -751,7 +770,6 @@
 		"cancel": "取消"
 	},
 	"Review": {
-		"title": "发布评论",
 		"hero": {
 			"title": "写推荐餐厅的点评\n并发布你吃过的菜品"
 		},
@@ -761,22 +779,6 @@
 		},
 		"authenticated": {
 			"postButton": "✏️ 发布餐厅评论"
-		},
-		"selectRestaurant": {
-			"title": "选择要点评的餐厅",
-			"searchThisArea": "搜索此区域",
-			"savedRestaurantList": "已保存的餐厅",
-			"postPhotoVideo": "发布照片/视频",
-			"fetchSavedRestaurantsError": "获取已保存的餐厅失败",
-			"noSavedRestaurantsInArea": "在此区域未找到已保存的餐厅。请扩大区域并重新搜索。"
-		},
-		"emptyState": {
-			"noReviews": "还没有评论。\n成为第一个评论这家餐厅的人。"
-		},
-		"everybodyPostsTitle": "选择要评论的菜品",
-		"characterCount": "{{current}}/{{max}}",
-		"restaurantDetail": {
-			"title": "餐厅详情"
 		}
 	}
 }

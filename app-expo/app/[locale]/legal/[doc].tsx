@@ -22,7 +22,7 @@ Android の戻る・ブラウザバック・URL 共有をすべて Navigator の
 «閉じてから push» は不要である。
 #1386 で引き渡し先（地図・投稿群）も完了し、**呼び出し元は 3 箇所とも portal を持たない**。
 `features/map/components/ReviewForm.tsx` は `ReviewBlurModal` / `ReviewFormModal` の中身ではなく
-`/review/restaurant/[restaurantId]/review`（と `review-from-media`）ルートの中身になったので、
+`/restaurant/[restaurantId]/review`（と `review-from-media`）ルートの中身になったので、
 «閉じてから push» も要らず、法務文書を読んで戻っても入力中のレビューと mediaState が残る。
 
 ⚠️ E2E の注意: `ScreenHeader` は `legal-screen` コンテナの **外側**にある。

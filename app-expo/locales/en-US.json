@@ -631,7 +631,26 @@
 				"asian": "Asian",
 				"other": "Other"
 			}
+		},
+		"review": {
+			"title": "Post a Review"
+		},
+		"emptyState": {
+			"noReviews": "No reviews yet.\nBe the first to review this restaurant."
+		},
+		"everybodyPostsTitle": "Choose a dish to review",
+		"characterCount": "{{current}}/{{max}}",
+		"detail": {
+			"title": "Restaurant Details"
 		}
+	},
+	"SelectRestaurant": {
+		"title": "Select a restaurant to review",
+		"searchThisArea": "Search this area",
+		"savedRestaurantList": "Saved Restaurants",
+		"postPhotoVideo": "Post Photo/Video",
+		"fetchSavedRestaurantsError": "Failed to fetch saved restaurants",
+		"noSavedRestaurantsInArea": "No saved restaurants found in this area. Please expand the area and search again."
 	},
 	"Feedback": {
 		"title": "Send Feedback/Bug Report",
@@ -751,7 +770,6 @@
 		"cancel": "Cancel"
 	},
 	"Review": {
-		"title": "Post a Review",
 		"hero": {
 			"title": "Write reviews of recommended restaurants\nand post the dishes you ate"
 		},
@@ -761,22 +779,6 @@
 		},
 		"authenticated": {
 			"postButton": "✏️ Post a restaurant review"
-		},
-		"selectRestaurant": {
-			"title": "Select a restaurant to review",
-			"searchThisArea": "Search this area",
-			"savedRestaurantList": "Saved Restaurants",
-			"postPhotoVideo": "Post Photo/Video",
-			"fetchSavedRestaurantsError": "Failed to fetch saved restaurants",
-			"noSavedRestaurantsInArea": "No saved restaurants found in this area. Please expand the area and search again."
-		},
-		"emptyState": {
-			"noReviews": "No reviews yet.\nBe the first to review this restaurant."
-		},
-		"everybodyPostsTitle": "Choose a dish to review",
-		"characterCount": "{{current}}/{{max}}",
-		"restaurantDetail": {
-			"title": "Restaurant Details"
 		}
 	}
 }

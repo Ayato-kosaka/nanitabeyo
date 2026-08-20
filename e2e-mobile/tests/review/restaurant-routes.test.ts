@@ -42,7 +42,7 @@ describe("店舗詳細のルート（#1386）", () => {
 	// #1386 【設計】以前この画面は地図タブの BlurModal の中身で、**URL を持たなかった**。
 	// ルート化で共有・リロード・ディープリンクが成立する。
 	// 手順:
-	//   1. nanitabeyo:///ja-JP/review/restaurant/<id> へ直接着地する
+	//   1. nanitabeyo:///ja-JP/restaurant/<id> へ直接着地する
 	//   2. 画面タイトル（ScreenHeader = BlurModal 実装には無い観測点）が出ることを検証
 	//   3. Android はハードウェアバック / iOS はヘッダーの戻るボタンで離脱する
 	//   4. 履歴が無いのでレビュータブ（ゲスト表示）へ倒れることを検証
@@ -52,7 +52,7 @@ describe("店舗詳細のルート（#1386）", () => {
 
 		await launchAppWithSession({
 			as: "anon",
-			url: localeDeepLink(`review/restaurant/${UNKNOWN_RESTAURANT_ID}`),
+			url: localeDeepLink(`restaurant/${UNKNOWN_RESTAURANT_ID}`),
 			// タブバー（tab-search）は店舗詳細の下に居ないため、既定の起動完了待ちは使えない
 			waitForReady: false,
 		});
@@ -73,7 +73,7 @@ describe("店舗詳細のルート（#1386）", () => {
 	// #1386 旧実装は `BidBlurModal`（手動 zIndex 1300）。ハードウェアバックは
 	// useBlurModal の BackHandler が食っていた。
 	// 手順:
-	//   1. nanitabeyo:///ja-JP/review/restaurant/<id>/bid へ直接着地する
+	//   1. nanitabeyo:///ja-JP/restaurant/<id>/bid へ直接着地する
 	//   2. 入札画面のタイトルが出ることを検証
 	//   3. Android はハードウェアバック / iOS はヘッダーの戻るボタンで離脱する
 	//   4. 履歴が無いので店舗詳細へ倒れることを検証
@@ -83,7 +83,7 @@ describe("店舗詳細のルート（#1386）", () => {
 
 		await launchAppWithSession({
 			as: "anon",
-			url: localeDeepLink(`review/restaurant/${UNKNOWN_RESTAURANT_ID}/bid`),
+			url: localeDeepLink(`restaurant/${UNKNOWN_RESTAURANT_ID}/bid`),
 			waitForReady: false,
 		});
 		await bidScreen.expectOpened();
@@ -101,7 +101,7 @@ describe("店舗詳細のルート（#1386）", () => {
 	// #1386 旧実装は投稿フォームの中の `DishCategoryModal`（既定 z1100 = 親 z1200 より小さい）。
 	// オートコンプリートを BlurModal の中に置いた唯一の残りで、#528 の当事者でもある。
 	// 手順:
-	//   1. nanitabeyo:///ja-JP/review/restaurant/<id>/dish-category へ直接着地する
+	//   1. nanitabeyo:///ja-JP/restaurant/<id>/dish-category へ直接着地する
 	//   2. タイトルと検索入力欄が出ることを検証（= 独立した画面になっている）
 	//   3. Android はハードウェアバック / iOS はヘッダーの戻るボタンで離脱する
 	//   4. この画面から離れたことを検証
@@ -110,7 +110,7 @@ describe("店舗詳細のルート（#1386）", () => {
 
 		await launchAppWithSession({
 			as: "anon",
-			url: localeDeepLink(`review/restaurant/${UNKNOWN_RESTAURANT_ID}/dish-category`),
+			url: localeDeepLink(`restaurant/${UNKNOWN_RESTAURANT_ID}/dish-category`),
 			waitForReady: false,
 		});
 		await dishCategoryScreen.expectOpened();
@@ -132,7 +132,7 @@ describe("店舗詳細のルート（#1386）", () => {
 	//    （取得失敗時はストアが hasFetchedInitial を false のまま返すため、
 	//     error を見ないと永久にローディングになる。feed.tsx のコメント参照）
 	// 手順:
-	//   1. nanitabeyo:///ja-JP/review/restaurant/<id>/feed へ直接着地する
+	//   1. nanitabeyo:///ja-JP/restaurant/<id>/feed へ直接着地する
 	//   2. フィード画面が開き、«見るものが無い» 表示になることを検証
 	//   3. × で閉じると、履歴が無いので店舗詳細へ倒れることを検証
 	it("フィードはディープリンクで着地でき、× で店舗詳細へ倒れる", async () => {
@@ -141,7 +141,7 @@ describe("店舗詳細のルート（#1386）", () => {
 
 		await launchAppWithSession({
 			as: "anon",
-			url: localeDeepLink(`review/restaurant/${UNKNOWN_RESTAURANT_ID}/feed`),
+			url: localeDeepLink(`restaurant/${UNKNOWN_RESTAURANT_ID}/feed`),
 			waitForReady: false,
 		});
 		await feedScreen.expectOpened();

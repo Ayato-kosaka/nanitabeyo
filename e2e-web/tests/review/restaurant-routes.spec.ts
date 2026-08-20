@@ -38,7 +38,7 @@ import {
 test.describe("店舗詳細のルート（#1386）", () => {
 	// ─ テストケース: 店舗詳細へ直リンクで到達できる ─
 	// 手順:
-	//   1. 店舗取得 API をモックして /ja-JP/review/restaurant/<id> へ直接遷移する
+	//   1. 店舗取得 API をモックして /ja-JP/restaurant/<id> へ直接遷移する
 	//   2. URL が店舗詳細のままで、タイトルと 3 つの導線が表示されることを検証
 	test("直リンクで開き、統合後の 3 導線がすべて出る", async ({ appPage }) => {
 		const detailPage = new RestaurantDetailPage(appPage);
@@ -98,7 +98,7 @@ test.describe("店舗詳細のルート（#1386）", () => {
 	// #1386 【設計】履歴が無い着地では `router.back()` が «何も起きない» ので、
 	// 戻るは店舗詳細への replace に倒れる。
 	// 手順:
-	//   1. /ja-JP/review/restaurant/<id>/bid へ直接着地する（履歴なし）
+	//   1. /ja-JP/restaurant/<id>/bid へ直接着地する（履歴なし）
 	//   2. ヘッダーの戻るボタンを押す
 	//   3. 店舗詳細へ着地することを検証
 	test("入札へ直リンク着地から戻ると店舗詳細へ倒れる", async ({ appPage }) => {
@@ -120,7 +120,7 @@ test.describe("店舗詳細のルート（#1386）", () => {
 	//    行（`review-dish-category-row`）からこのルートへ push することは
 	//    app-expo の `__tests__/reviewFormRoutes.test.tsx` が push 引数ごと固定している。
 	// 手順:
-	//   1. /ja-JP/review/restaurant/<id>/dish-category へ直接遷移する
+	//   1. /ja-JP/restaurant/<id>/dish-category へ直接遷移する
 	//   2. URL・タイトル・検索入力欄が出ることを検証
 	test("料理カテゴリ選択は独立したルートとして開ける", async ({ appPage }) => {
 		const detailPage = new RestaurantDetailPage(appPage);
@@ -133,7 +133,7 @@ test.describe("店舗詳細のルート（#1386）", () => {
 	// ─ テストケース: フィードがルートで開け、閉じると店舗詳細へ倒れる ─
 	// #1386 旧実装は RestaurantReviewsTab の DishMediaModal（既定 z1100 = 親と同値）。
 	// 手順:
-	//   1. /ja-JP/review/restaurant/<id>/feed へ直接遷移する（料理メディアは 0 件のモック）
+	//   1. /ja-JP/restaurant/<id>/feed へ直接遷移する（料理メディアは 0 件のモック）
 	//   2. フィード画面が開き、«見るものが無い» 表示になることを検証
 	//      （0 件でもスピナーで固着しないこと自体が検証対象）
 	//   3. × で閉じると、履歴が無いので店舗詳細へ倒れることを検証
@@ -170,6 +170,6 @@ test.describe("店舗詳細のルート（#1386）", () => {
 
 		// `next` はエンコードされて URL に載るので、生の文字列比較ではなく searchParams で読む
 		const next = new URL(appPage.url()).searchParams.get("next");
-		expect(next).toBe(`/ja-JP/review/restaurant/${MOCK_RESTAURANT_ID}/review`);
+		expect(next).toBe(`/ja-JP/restaurant/${MOCK_RESTAURANT_ID}/review`);
 	});
 });

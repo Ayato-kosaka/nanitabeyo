@@ -11,8 +11,8 @@ import {
  *
  * 対応画面:
  * - `app-expo/app/[locale]/(tabs)/review/selectRestaurant.tsx`（地図 + 検索でお店を選ぶ画面）
- * - `app-expo/app/[locale]/(tabs)/review/restaurant/[restaurantId].tsx`
- *   （`features/review/components/SelectedRestaurantDetails.tsx`。選択後の詳細画面）
+ * - `app-expo/app/[locale]/restaurant/[restaurantId].tsx`
+ *   （`features/restaurant/components/SelectedRestaurantDetails.tsx`。選択後の詳細画面）
  *
  * ## この PR（PR-5）では定義のみ（#1031 B6 レビュー指摘の反映）
  * この画面へ到達する唯一の UI 導線は `ReviewScreen.postButton`（レビュータブの投稿 CTA）で、

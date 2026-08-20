@@ -10,7 +10,7 @@
 ## #1386 で「地図の店詳細」が消えた
 以前はここに «地図の店詳細（BlurModal の中身）は close してから push する» という順序の固定があった。
 #1386 で地図の店詳細シートそのものが無くなり（店詳細は
-`/[locale]/(tabs)/review/restaurant/[restaurantId]` ルート 1 本へ統合）、
+`/[locale]/restaurant/[restaurantId]` ルート 1 本へ統合）、
 ログイン導線も店詳細 1 箇所に減ったため、順序の固定は «この画面は portal を持たない» という
 不変条件へ置き換えた（下の describe）。地図がその店詳細ルートへ push すること自体は
 `__tests__/mapRestaurantRoute.test.tsx` が見ている。
@@ -22,7 +22,7 @@ testID とボタンの結線そのものは E2E（e2e-mobile / e2e-web）が見�
 */
 import React, { act } from "react";
 import TestRenderer from "react-test-renderer";
-import type { RestaurantEntry } from "@/features/review/stores/useRestaurantStore";
+import type { RestaurantEntry } from "@/stores/useRestaurantStore";
 
 const mockPush = jest.fn();
 let mockUser: { id: string; is_anonymous?: boolean } | null = null;
@@ -152,7 +152,7 @@ jest.mock("@/features/profile/stores/useProfileStore", () => ({
 		selector({ profile: { id: "profile-1", username: "tester" } }),
 }));
 
-import { SelectedRestaurantDetails as ReviewRestaurantDetails } from "@/features/review/components/SelectedRestaurantDetails";
+import { SelectedRestaurantDetails as ReviewRestaurantDetails } from "@/features/restaurant/components/SelectedRestaurantDetails";
 import ReviewScreen from "../app/[locale]/(tabs)/review/index";
 import ProfileScreen from "../app/[locale]/(tabs)/profile/index";
 
@@ -253,7 +253,7 @@ describe("#1359 ログイン導線の push 先と next（#1386 で 4 箇所 → 
 		expect(mockPush).toHaveBeenCalledTimes(1);
 		expect(mockPush).toHaveBeenCalledWith({
 			pathname: "/[locale]/auth/login",
-			params: { locale: "ja-JP", next: `/ja-JP/review/restaurant/${RESTAURANT_ID}/review` },
+			params: { locale: "ja-JP", next: `/ja-JP/restaurant/${RESTAURANT_ID}/review` },
 		});
 	});
 

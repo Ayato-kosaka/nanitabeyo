@@ -17,7 +17,7 @@ import type { QueryRestaurantsDto, CreateRestaurantDto } from "@shared/api/v1/dt
 import { AvatarBubbleMarker } from "@/features/mapMarkers";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
-import { useRestaurantStore } from "@/features/review/stores/useRestaurantStore";
+import { useRestaurantStore } from "@/stores/useRestaurantStore";
 import { router } from "expo-router";
 import i18n from "@/lib/i18n";
 import { useLogger } from "@/hooks/useLogger";
@@ -52,7 +52,7 @@ export default function MapScreen() {
 	 *
 	 * いま渡すのは `restaurantId` だけで、これは URL に載る。店の実体は
 	 * `useRestaurantStore` へ先に入れておくので、遷移先は API を引き直さずに即描ける
-	 *（`app/[locale]/(tabs)/review/restaurant/[restaurantId].tsx` はストアのキャッシュ優先）。
+	 *（`app/[locale]/restaurant/[restaurantId].tsx` はストアのキャッシュ優先）。
 	 *
 	 * ⚠️ **upsert は push «より先に» 行うこと。順序を入れ替えてはいけない。**
 	 * 逆順にすると、遷移先がマウントされた時点ではストアが空なので
@@ -64,7 +64,7 @@ export default function MapScreen() {
 		(entry: QueryRestaurantsResponse[number]) => {
 			useRestaurantStore.getState().upsert({ restaurant: entry.restaurant, meta: entry.meta });
 			router.push({
-				pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]",
+				pathname: "/[locale]/restaurant/[restaurantId]",
 				params: { locale, restaurantId: entry.restaurant.id },
 			});
 		},

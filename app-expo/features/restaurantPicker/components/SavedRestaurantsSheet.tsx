@@ -283,7 +283,7 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 					<View style={styles.header}>
 						{/* #1126 ネイティブのグラバーは draggable の切り替えで点滅するため、Android では自前で描画する */}
 						{GATES_SHEET_DRAG ? <View style={styles.grabber} /> : null}
-						<Text style={styles.savedRestaurantsTitle}>{i18n.t("Review.selectRestaurant.savedRestaurantList")}</Text>
+						<Text style={styles.savedRestaurantsTitle}>{i18n.t("SelectRestaurant.savedRestaurantList")}</Text>
 					</View>
 				}
 				onDetentChange={handleDetentChange}>
@@ -386,7 +386,7 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 						</>
 					) : (
 						// 空状態（ローディング完了後、データなし）
-						<Text style={styles.emptyStateText}>{i18n.t("Review.selectRestaurant.noSavedRestaurantsInArea")}</Text>
+						<Text style={styles.emptyStateText}>{i18n.t("SelectRestaurant.noSavedRestaurantsInArea")}</Text>
 					)}
 				</SheetGestureRoot>
 			</TrueSheet>
@@ -418,7 +418,7 @@ function PrimaryCard({
 				</Text>
 				<PrimaryButton
 					onPress={onReview}
-					label={i18n.t("Review.selectRestaurant.postPhotoVideo")}
+					label={i18n.t("SelectRestaurant.postPhotoVideo")}
 					colors={["#F05537", "#F05537"]}
 					shadowColor={"transparent"}
 					labelStyle={{ color: "#FFF", fontSize: 12 }}

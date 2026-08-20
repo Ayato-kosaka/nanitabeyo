@@ -631,7 +631,26 @@
 				"asian": "アジア料理",
 				"other": "その他"
 			}
+		},
+		"review": {
+			"title": "レビューを投稿する"
+		},
+		"emptyState": {
+			"noReviews": "まだ投稿がありません。\nこのお店の最初のレビューを投稿しましょう。"
+		},
+		"everybodyPostsTitle": "レビューする料理を選択",
+		"characterCount": "{{current}}/{{max}}",
+		"detail": {
+			"title": "レストラン詳細"
 		}
+	},
+	"SelectRestaurant": {
+		"title": "レビューするお店を選択",
+		"searchThisArea": "このエリアで再検索",
+		"savedRestaurantList": "保存したお店リスト",
+		"postPhotoVideo": "写真・動画を投稿",
+		"fetchSavedRestaurantsError": "保存したお店の取得に失敗しました",
+		"noSavedRestaurantsInArea": "ご指定の表示領域に保存したお店が見つかりませんでした。エリアを拡大して再度検索を行ってください。"
 	},
 	"Feedback": {
 		"title": "ご意見・不具合を送る",
@@ -751,7 +770,6 @@
 		"cancel": "キャンセル"
 	},
 	"Review": {
-		"title": "レビューを投稿する",
 		"hero": {
 			"title": "おすすめのお店のレビューを書いて\n食べた料理を投稿しよう"
 		},
@@ -761,22 +779,6 @@
 		},
 		"authenticated": {
 			"postButton": "✏️ お店のレビューを投稿しよう"
-		},
-		"selectRestaurant": {
-			"title": "レビューするお店を選択",
-			"searchThisArea": "このエリアで再検索",
-			"savedRestaurantList": "保存したお店リスト",
-			"postPhotoVideo": "写真・動画を投稿",
-			"fetchSavedRestaurantsError": "保存したお店の取得に失敗しました",
-			"noSavedRestaurantsInArea": "ご指定の表示領域に保存したお店が見つかりませんでした。エリアを拡大して再度検索を行ってください。"
-		},
-		"emptyState": {
-			"noReviews": "まだ投稿がありません。\nこのお店の最初のレビューを投稿しましょう。"
-		},
-		"everybodyPostsTitle": "レビューする料理を選択",
-		"characterCount": "{{current}}/{{max}}",
-		"restaurantDetail": {
-			"title": "レストラン詳細"
 		}
 	}
 }

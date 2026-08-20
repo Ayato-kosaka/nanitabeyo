@@ -3,7 +3,7 @@ import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { View, StyleSheet, Text } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { ReviewForm } from "@/features/map/components/ReviewForm";
-import { useRestaurantStore, type RestaurantEntry } from "@/features/review/stores/useRestaurantStore";
+import { useRestaurantStore, type RestaurantEntry } from "@/stores/useRestaurantStore";
 import {
 	NormalizedDishMediaEntry,
 	selectEntryByMediaId,
@@ -32,14 +32,14 @@ export default function ReviewFromMediaScreen() {
 	const [restaurantEntry, setRestaurantEntry] = useState<RestaurantEntry | undefined>(undefined);
 	const [dishMedia, setDishMedia] = useState<NormalizedDishMediaEntry | null>(null);
 
-	// #644 【設計】レビュー投稿成功時に /review/post/:id に遷移
+	// #644 【設計】レビュー投稿成功時に /post/:id に遷移
 	// #1127 【修正】ReviewForm へ渡すコールバックは参照を安定させる（review.tsx と同じ多層防御）
 	const handleReviewSuccess = useCallback(
 		({ dishReviewId }: { dishReviewId: string }) => {
 			// /review までスタックを掃除（なければ現在画面を /review に置き換え）
 			router.dismissTo(`/${locale}/(tabs)/review`);
 			router.push({
-				pathname: `/[locale]/(tabs)/review/post/[id]`,
+				pathname: `/[locale]/post/[id]`,
 				params: {
 					locale,
 					id: dishReviewId,
@@ -143,7 +143,7 @@ export default function ReviewFromMediaScreen() {
 		return (
 			<View style={styles.container}>
 				<ScreenHeader
-					title={i18n.t("Review.title")}
+					title={i18n.t("Restaurant.review.title")}
 					onPressBack={() => {
 						lightImpact();
 						router.back();
@@ -161,7 +161,7 @@ export default function ReviewFromMediaScreen() {
 		return (
 			<View style={styles.container}>
 				<ScreenHeader
-					title={i18n.t("Review.title")}
+					title={i18n.t("Restaurant.review.title")}
 					onPressBack={() => {
 						lightImpact();
 						router.back();

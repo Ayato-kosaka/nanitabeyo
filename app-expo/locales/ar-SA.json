@@ -631,7 +631,26 @@
 				"asian": "آسيوي",
 				"other": "آخر"
 			}
+		},
+		"review": {
+			"title": "نشر مراجعة"
+		},
+		"emptyState": {
+			"noReviews": "لا توجد مراجعات بعد.\nكن أول من يراجع هذا المطعم."
+		},
+		"everybodyPostsTitle": "اختر طبقًا لمراجعته",
+		"characterCount": "{{current}}/{{max}}",
+		"detail": {
+			"title": "تفاصيل المطعم"
 		}
+	},
+	"SelectRestaurant": {
+		"title": "اختر مطعمًا للمراجعة",
+		"searchThisArea": "ابحث في هذه المنطقة",
+		"savedRestaurantList": "المطاعم المحفوظة",
+		"postPhotoVideo": "نشر صورة/فيديو",
+		"fetchSavedRestaurantsError": "فشل في جلب المطاعم المحفوظة",
+		"noSavedRestaurantsInArea": "لم يتم العثور على مطاعم محفوظة في هذه المنطقة. يرجى توسيع المنطقة والبحث مرة أخرى."
 	},
 	"Feedback": {
 		"title": "إرسال ملاحظات/تقرير خطأ",
@@ -751,7 +770,6 @@
 		"cancel": "إلغاء"
 	},
 	"Review": {
-		"title": "نشر مراجعة",
 		"hero": {
 			"title": "اكتب مراجعات للمطاعم الموصى بها\nوانشر الأطباق التي تناولتها"
 		},
@@ -761,22 +779,6 @@
 		},
 		"authenticated": {
 			"postButton": "✏️ نشر مراجعة مطعم"
-		},
-		"selectRestaurant": {
-			"title": "اختر مطعمًا للمراجعة",
-			"searchThisArea": "ابحث في هذه المنطقة",
-			"savedRestaurantList": "المطاعم المحفوظة",
-			"postPhotoVideo": "نشر صورة/فيديو",
-			"fetchSavedRestaurantsError": "فشل في جلب المطاعم المحفوظة",
-			"noSavedRestaurantsInArea": "لم يتم العثور على مطاعم محفوظة في هذه المنطقة. يرجى توسيع المنطقة والبحث مرة أخرى."
-		},
-		"emptyState": {
-			"noReviews": "لا توجد مراجعات بعد.\nكن أول من يراجع هذا المطعم."
-		},
-		"everybodyPostsTitle": "اختر طبقًا لمراجعته",
-		"characterCount": "{{current}}/{{max}}",
-		"restaurantDetail": {
-			"title": "تفاصيل المطعم"
 		}
 	}
 }

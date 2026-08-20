@@ -1,12 +1,12 @@
 import { DEFAULT_TIMEOUT, by, element, existsNow, expect, tapWhenVisible, waitUntilVisible } from "../fixtures/e2e";
 
 /**
- * 🏪 店舗詳細（`/[locale]/review/restaurant/[restaurantId]`）の Screen Object
+ * 🏪 店舗詳細（`/[locale]/restaurant/[restaurantId]`）の Screen Object
  *（e2e-web の pages/RestaurantDetailPage.ts に対応）
  *
  * 対応コンポーネント:
- * - `app-expo/app/[locale]/(tabs)/review/restaurant/[restaurantId].tsx`（ルート本体）
- * - `app-expo/features/review/components/SelectedRestaurantDetails.tsx`（中身・#1386 で 2 実装を統合）
+ * - `app-expo/app/[locale]/restaurant/[restaurantId].tsx`（ルート本体）
+ * - `app-expo/features/restaurant/components/SelectedRestaurantDetails.tsx`（中身・#1386 で 2 実装を統合）
  *
  * ## #1386 店舗詳細は 1 つになった
  * 以前は地図タブの `RestaurantBlurModal`（手動 zIndex 1100）の中に別実装（353 行）があり、
@@ -17,7 +17,7 @@ import { DEFAULT_TIMEOUT, by, element, existsNow, expect, tapWhenVisible, waitUn
  * これは `ScreenHeader`（`app-expo/components/ScreenHeader.tsx`）だけが出す testID で、
  * **BlurModal 実装には存在しない**。投稿ボタンだけを見ていると、店舗詳細をオーバーレイへ戻す
  * 変更を通してしまう（`screens/LoginScreen.ts` / `screens/ProfileEditScreen.ts` と同じ発想）。
- * e2e-web は `toHaveURL(/\/review\/restaurant\//)` が同じ役目を負う。
+ * e2e-web は `toHaveURL(/\/restaurant\//)` が同じ役目を負う。
  *
  * ## データを用意しないこと
  * 実在する restaurantId を用意するには dev DB へ店舗を作る（`POST /v1/restaurants`）必要があり、

@@ -13,7 +13,7 @@ import {
  *
  * 対応画面:
  * - `app-expo/app/[locale]/(tabs)/review/index.tsx`（タブ本体。ログイン状態で表示が分岐する）
- * - `app-expo/app/[locale]/(tabs)/review/restaurant/[restaurantId]/review.tsx`
+ * - `app-expo/app/[locale]/restaurant/[restaurantId]/review.tsx`
  *   （`features/map/components/ReviewForm.tsx`。レビュー投稿フォーム本体）
  *
  * 表示内容はログイン状態で分岐する（index.tsx）:

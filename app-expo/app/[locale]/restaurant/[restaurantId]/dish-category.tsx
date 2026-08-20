@@ -52,7 +52,7 @@ export default function DishCategorySelectScreen() {
 			return;
 		}
 		router.replace({
-			pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]/review",
+			pathname: "/[locale]/restaurant/[restaurantId]/review",
 			params: { locale, restaurantId },
 		});
 	}, [locale, restaurantId]);
