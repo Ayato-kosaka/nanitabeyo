@@ -13,6 +13,7 @@ import { useLogger } from "@/hooks/useLogger";
 import { getCacheKeyForImage } from "@/lib/image";
 import i18n from "@/lib/i18n";
 import type { MyDishItem } from "@shared/api/v1/res";
+import { resolveMyDishThumbnailUrl } from "../thumbnail";
 import { useMyDishesQuery } from "../hooks/useMyDishesQuery";
 
 /**
@@ -20,9 +21,10 @@ import { useMyDishesQuery } from "../hooks/useMyDishesQuery";
  *
  * - **料理画像主体のグリッド**。3 ビューのうち一番単純なので、共有フィルタ store の
  *   挙動（フィルタ変更で取り直す / ビュー切替では取り直さない）をここで固定する。
- * - `dishMedia === null` は**プレースホルダー**を描く。写真なしの「食べた」記録が実際に来る
- *   （#1395 で `dish_reviews.created_dish_media_id` の NOT NULL を解除済み）。
- *   ここを `thumbnailImageUrl` の直参照にすると、写真なし記録で落ちる。
+ * - `dishMedia === null`（写真なしの「食べた」記録）は**灰色プレースホルダーにしない**。
+ *   `resolveMyDishThumbnailUrl`（`categoryImageUrl` → `restaurant.image_url` の順）で実画像へ
+ *   フォールバックしつつ、「写真なし」であること自体は `MyDishes.list.noPhoto` バッジで示す
+ *   （#1398 PR5 / #1375 追補2 決定3）。3 つとも無いときだけ従来どおりの無地プレースホルダー。
  */
 
 const COLUMNS = 3;
@@ -42,7 +44,10 @@ const MyDishCard = memo(function MyDishCard({ item, onPress }: { item: MyDishIte
 	);
 	const height = width / ASPECT_RATIO;
 
-	const thumbnailUrl = item.dishMedia?.thumbnailImageUrl ?? null;
+	// #1398 PR5 写真なし（dishMedia === null）でも categoryImageUrl → restaurant.image_url へ
+	// フォールバックする。3 つとも無いときだけ null（= 無地プレースホルダー）
+	const thumbnailUrl = resolveMyDishThumbnailUrl(item);
+	const isNoPhoto = item.dishMedia === null;
 	const source = useMemo(
 		() => (thumbnailUrl ? { uri: thumbnailUrl, cacheKey: getCacheKeyForImage(thumbnailUrl) } : null),
 		[thumbnailUrl],
@@ -76,7 +81,9 @@ const MyDishCard = memo(function MyDishCard({ item, onPress }: { item: MyDishIte
 					importantForAccessibility="no"
 				/>
 			) : (
-				// #1396 【仕様】写真なしの「食べた」記録（dishMedia === null）のプレースホルダー
+				// #1398 PR5 【仕様】categoryImageUrl / restaurant.image_url も無い異常系だけがここに来る
+				// （dishMedia === null というだけではこの分岐に来ない。#1396 当時の「写真なし記録＝この
+				// プレースホルダー」という前提は変わったが、testID は e2e から未参照のため残している）
 				<View testID="my-dishes-list-item-placeholder" style={[StyleSheet.absoluteFill, styles.placeholder]}>
 					<ImageOff size={20} color="#9CA3AF" />
 					<Text style={styles.placeholderText} numberOfLines={2}>
@@ -93,6 +100,13 @@ const MyDishCard = memo(function MyDishCard({ item, onPress }: { item: MyDishIte
 					<View style={[styles.statusBadge, item.status === "want" ? styles.statusWant : styles.statusEaten]}>
 						<Text style={styles.statusBadgeText}>{i18n.t(`MyDishes.filters.status.${item.status}`)}</Text>
 					</View>
+					{/* #1398 PR5 実画像へフォールバックしても「写真なし」自体は分かるようにする */}
+					{source && isNoPhoto && (
+						<View style={styles.noPhotoBadge} testID="my-dishes-list-item-no-photo-badge">
+							<ImageOff size={10} color="#FFFFFF" />
+							<Text style={styles.noPhotoBadgeText}>{i18n.t("MyDishes.list.noPhoto")}</Text>
+						</View>
+					)}
 				</View>
 				<View style={styles.footer}>
 					{rating !== null && <Text style={styles.ratingText}>{`★${rating}`}</Text>}
@@ -201,11 +215,26 @@ const styles = StyleSheet.create({
 	badgeRow: {
 		flexDirection: "row",
 		padding: 6,
+		gap: 4,
 	},
 	statusBadge: {
 		paddingHorizontal: 6,
 		paddingVertical: 2,
 		borderRadius: 10,
+	},
+	noPhotoBadge: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 2,
+		paddingHorizontal: 6,
+		paddingVertical: 2,
+		borderRadius: 10,
+		backgroundColor: "rgba(17,24,39,0.6)",
+	},
+	noPhotoBadgeText: {
+		fontSize: 9,
+		fontWeight: "700",
+		color: "#FFFFFF",
 	},
 	statusWant: {
 		backgroundColor: "rgba(59,130,246,0.9)",
