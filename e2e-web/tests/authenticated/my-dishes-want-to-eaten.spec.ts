@@ -203,7 +203,11 @@ test.describe("食べたい → 食べた（#1398）", () => {
 		// **重複の有無はアプリが受け取った応答（上の ①）が唯一ズレない証拠**であり、
 		// ここは «記録後の一覧が壊れずに描けている» ことの確認とスクリーンショットに徹する。
 		await expect(appPage).toHaveURL(/\/post\//, { timeout: 20_000 });
-		await tabBar.gotoMyDishes();
+		// ⚠️ ここでタブバーは押せない。`/post/[id]` は全画面のルートでタブバーを出さないので、
+		// `TabBar.gotoMyDishes()` は «見えない要素» を待ち続けて必ずタイムアウトする（実測）。
+		// 直前の `dismissTo` で 1 つ下が my-dishes になっているのでブラウザバックで戻る
+		await appPage.goBack();
+		await expect(appPage).toHaveURL(/\/my-dishes(\?.*)?$/, { timeout: 20_000 });
 		await myDishesPage.expectAuthenticatedViewLoaded();
 		await expect(appPage.getByTestId("my-dishes-list")).toBeVisible();
 		await captureEvidence(appPage, testInfo, "1398-pr7-want-list-after");

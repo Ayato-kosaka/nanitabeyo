@@ -27,5 +27,6 @@ cd e2e-web && RUN_MUTATION=1 E2E_EVIDENCE_DIR=/tmp/claude-artifacts \
 | `feed-eaten-review-from-media.png` | 全画面 Feed の「食べた」→ `review-from-media`（料理カテゴリは確定済みで行が disabled）                                                 | 実 API で成功                                                                                                        |
 | `feed-eaten-posted.png`            | 投稿成功のスナックバーと `/post/[id]` への遷移                                                                                         | 実 API で成功                                                                                                        |
 | `want-card-cta-mocked.png`         | 一覧の「食べたい」カードにだけ「食べたを記録」CTA が出る（「食べた」カードには出ない）                                                 | **`GET /v1/users/me/dishes` をモックした確認**。同 API が api-development へ未デプロイのため実データでは撮れていない |
+| `want-to-eaten-after-mocked.png`   | 記録した料理が「食べた」になり CTA が消え、もう 1 品の「食べたい」だけが CTA を持つ（①の見え方）                                       | 同上（`GET /v1/users/me/dishes` のみモック。レビュー投稿自体は実 API）                                               |
 
-`want-card-cta-mocked.png` だけは実データではない。理由と再開手順は PR 本文を参照。
+末尾 2 枚だけは実データではない。理由と再開手順は PR 本文を参照。
