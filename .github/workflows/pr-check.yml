@@ -101,6 +101,17 @@ jobs:
       - name: app-expo の lint
         run: pnpm --filter app-expo lint
 
+      # #1399 SNS の URL をルールベースで解釈する純関数（`shared/utils/snsUrl.ts`）。
+      # 外部I/Oゼロで shared/dist にも依存しないため、shared build より前に置ける。
+      #
+      # ここが守っているのは主に 2 つで、どちらも落ちると静かに壊れる種類のものである。
+      #   1. provider の判定をホスト名の完全一致で行うこと。`includes` / `endsWith` へ緩めると
+      #      `tiktok.com.evil.example` のような同形異字ドメインを取り込んでしまう
+      #   2. canonicalUrl からクエリとフラグメントを落とすこと。残すと `?igsh=` 等が付いた
+      #      同じ投稿が別行になり、自然キー `(provider, external_content_id, dish_id)` が割れる
+      - name: shared のユニットテスト
+        run: pnpm --filter shared test
+
       # app-expo/tsconfig.dev.json は @shared/* を ../shared/dist/* へ向けているため、
       # typecheck の前に shared を build しておかないと解決できない。
       - name: sharedパッケージをビルド
