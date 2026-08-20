@@ -1,4 +1,5 @@
 import type { MyDishItem } from "@shared/api/v1/res";
+import { resolveMyDishThumbnailUrl } from "./thumbnail";
 
 /**
  * #1396 Calendar ビュー（設計書 (2/2) §4）の純ロジック。
@@ -99,12 +100,11 @@ export const toDayRange = (dateKey: string): { from: string; to: string } => {
 /**
  * 日セルのサムネイル URL。
  *
- * `dishMedia === null`（写真なしの「食べた」記録）でも**灰色プレースホルダーにしない**。
- * `dish.categoryImageUrl`（`dish_categories.image_url`。NOT NULL・#1398 PR1 でマージ済み）
- * → `restaurant.image_url` の順で実画像へフォールバックする（#1375 追補2 決定3）。
+ * #1398 PR5 でロジック本体を `thumbnail.ts` の `resolveMyDishThumbnailUrl` へ切り出し、
+ * list ビューと共有した。ここでは Calendar からの既存の呼び出し名を変えないための re-export
+ * （挙動・テストは変えていない）。
  */
-export const resolveDayThumbnailUrl = (item: MyDishItem): string | null =>
-	item.dishMedia?.thumbnailImageUrl ?? item.dish?.categoryImageUrl ?? item.restaurant?.image_url ?? null;
+export const resolveDayThumbnailUrl = resolveMyDishThumbnailUrl;
 
 /** 月グリッドのセル（先頭の空白 + 1..末日 + 末尾の空白）を組む */
 const buildMonthCells = (ym: string, itemsByDate: Map<string, MyDishItem[]>): CalendarMonth => {
