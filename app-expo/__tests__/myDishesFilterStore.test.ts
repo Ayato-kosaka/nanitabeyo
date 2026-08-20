@@ -22,7 +22,9 @@ import {
 	isRatingFilterEnabled,
 	resolveSort,
 	selectFilterQueryKey,
+	selectRestaurantQueryKey,
 	toMyDishesQueryParams,
+	toMyDishesRestaurantQueryParams,
 	useMyDishesFilterStore,
 	type MyDishesFilter,
 } from "../features/myDishes/stores/useMyDishesFilterStore";
@@ -209,6 +211,61 @@ describe("#1396 patch / reset", () => {
 		expect(params.cursor).toBeUndefined();
 		expect(params.limit).toBeUndefined();
 		expect((getState().filter as Partial<Record<string, unknown>>).view).toBeUndefined();
+	});
+});
+
+/*
+#1397 §8-1 / Q5: 料理メディア Sheet 用の派生クエリ（`toMyDishesRestaurantQueryParams` /
+`selectRestaurantQueryKey`）。
+
+⚠️ `restaurantId` は共有フィルタ（`MyDishesFilter`）には絶対に入れない。上の
+「filter のフィールドは «ユーザーが選んだもの» だけ」テストがそれを固定しているので、
+ここでは派生クエリ側（filter の外）だけを見る。
+*/
+describe("#1397 Sheet 用派生クエリ（toMyDishesRestaurantQueryParams / selectRestaurantQueryKey）", () => {
+	const RESTAURANT_ID = "22222222-2222-2222-2222-000000000002";
+
+	it("restaurantId を含み、sort / sceneKey / timeSlotKey を持たない", () => {
+		getState().patch({ sort: "-sceneScore", sceneKey: "date", timeSlotKey: "dinner" });
+
+		const params = toMyDishesRestaurantQueryParams(getState().filter, RESTAURANT_ID) as Record<string, unknown>;
+		expect(params.restaurantId).toBe(RESTAURANT_ID);
+		expect(params.sort).toBeUndefined();
+		expect(params.sceneKey).toBeUndefined();
+		expect(params.timeSlotKey).toBeUndefined();
+	});
+
+	it("sort 以外のフィルタ（status / minRating 等）は base と同じものを引き継ぐ", () => {
+		getState().patch({ status: ["eaten"], minRating: 4 });
+
+		const params = toMyDishesRestaurantQueryParams(getState().filter, RESTAURANT_ID);
+		expect(params.status).toEqual(["eaten"]);
+		expect(params.minRating).toBe(4);
+	});
+
+	it("派生 queryKey は base の queryKey とは別のキーになる", () => {
+		getState().patch({ status: ["eaten"], minRating: 4 });
+
+		const baseKey = queryKey();
+		const restaurantKey = selectRestaurantQueryKey(RESTAURANT_ID)(getState());
+		expect(restaurantKey).not.toBe(baseKey);
+		expect(restaurantKey).toContain(`restaurantId=${RESTAURANT_ID}`);
+	});
+
+	it("distance / -sceneScore / -timeSlotScore を選んでいても、派生 queryKey には出てこない（Q5）", () => {
+		getState().commitArea({ lat: 35.68, lng: 139.76, radius: 1200 });
+		getState().patch({ sort: "distance" });
+
+		const restaurantKey = selectRestaurantQueryKey(RESTAURANT_ID)(getState());
+		expect(restaurantKey).not.toMatch(/sort=/);
+		// area（lat/lng/radius）は絞り込みそのものなので、派生クエリでも引き継がれる
+		expect(restaurantKey).toContain("lat=35.68");
+	});
+
+	it("restaurantId が違えば別の queryKey になる（店舗ごとに別スライスへ落ちる）", () => {
+		const a = selectRestaurantQueryKey(RESTAURANT_ID)(getState());
+		const b = selectRestaurantQueryKey("33333333-3333-3333-3333-000000000003")(getState());
+		expect(a).not.toBe(b);
 	});
 });
 

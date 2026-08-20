@@ -112,68 +112,79 @@ describe("#1395 §6 追加取得は nextCursor === null で終端", () => {
 	});
 });
 
-describe("#1396 古い queryKey は LRU で 3 本だけ残す", () => {
-	it("4 本目を取ると最も古い 1 本のスライスが消える", async () => {
-		expect(MY_DISHES_QUERY_LRU_SIZE).toBe(3);
-		for (const key of ["q1", "q2", "q3", "q4"]) {
+describe("#1396 古い queryKey は LRU で MY_DISHES_QUERY_LRU_SIZE 本だけ残す", () => {
+	// #1397 §8-2 / R2: 3 → 6 に増やした。「3 本」に固定するのではなく定数から本数を作ることで、
+	// このテストがサイズ変更それ自体で腐らないようにする
+	const keysUpToLimit = Array.from({ length: MY_DISHES_QUERY_LRU_SIZE }, (_, i) => `q${i + 1}`);
+
+	it("LRU 容量+1 本目を取ると最も古い 1 本のスライスが消える", async () => {
+		const keys = [...keysUpToLimit, "extra"];
+		for (const key of keys) {
 			await getState().fetchInitial(key, async () => page([`review:${key}`]));
 		}
 
-		expect(getState().recentQueryKeys).toEqual(["q4", "q3", "q2"]);
-		expect(getState().itemKeysByQuery.q1).toBeUndefined();
-		expect(getState().nextCursorByQuery.q1).toBeUndefined();
-		expect(getState().hasFetchedInitialByQuery.q1).toBeUndefined();
+		const oldest = keys[0];
+		const newest = keys[keys.length - 1];
+		expect(getState().recentQueryKeys).toEqual([...keys].reverse().slice(0, MY_DISHES_QUERY_LRU_SIZE));
+		expect(getState().itemKeysByQuery[oldest]).toBeUndefined();
+		expect(getState().nextCursorByQuery[oldest]).toBeUndefined();
+		expect(getState().hasFetchedInitialByQuery[oldest]).toBeUndefined();
 		// 追い出したキーだけが参照していた行は itemByKey からも消す
-		expect(getState().itemByKey["review:q1"]).toBeUndefined();
-		expect(getState().itemByKey["review:q4"]).toBeDefined();
+		expect(getState().itemByKey[`review:${oldest}`]).toBeUndefined();
+		expect(getState().itemByKey[`review:${newest}`]).toBeDefined();
 	});
 
-	it("往復しても 3 本以内なら再取得しない（hasFetchedInitial が残る）", async () => {
-		for (const key of ["q1", "q2", "q3"]) {
+	it("往復しても LRU 容量以内なら再取得しない（hasFetchedInitial が残る）", async () => {
+		for (const key of keysUpToLimit) {
 			await getState().fetchInitial(key, async () => page([`review:${key}`]));
 		}
-		expect(selectMyDishesByQuery("q1")(getState()).hasFetchedInitial).toBe(true);
+		expect(selectMyDishesByQuery(keysUpToLimit[0])(getState()).hasFetchedInitial).toBe(true);
 	});
 
 	it("再訪した queryKey は LRU の先頭へ上がる（次の追い出し対象にならない）", async () => {
-		for (const key of ["q1", "q2", "q3"]) {
+		for (const key of keysUpToLimit) {
 			await getState().fetchInitial(key, async () => page([`review:${key}`]));
 		}
-		await getState().fetchInitial("q1", async () => page(["review:q1"]));
-		await getState().fetchInitial("q4", async () => page(["review:q4"]));
+		await getState().fetchInitial(keysUpToLimit[0], async () => page([`review:${keysUpToLimit[0]}`]));
+		await getState().fetchInitial("extra", async () => page(["review:extra"]));
 
-		expect(getState().recentQueryKeys).toEqual(["q4", "q1", "q3"]);
-		expect(getState().itemKeysByQuery.q2).toBeUndefined();
-		expect(getState().itemKeysByQuery.q1).toEqual(["review:q1"]);
+		// 再訪した keysUpToLimit[0] ではなく、再訪していない keysUpToLimit[1] が追い出される
+		expect(getState().recentQueryKeys[0]).toBe("extra");
+		expect(getState().recentQueryKeys).toContain(keysUpToLimit[0]);
+		expect(getState().itemKeysByQuery[keysUpToLimit[1]]).toBeUndefined();
+		expect(getState().itemKeysByQuery[keysUpToLimit[0]]).toEqual([`review:${keysUpToLimit[0]}`]);
 	});
 
 	it("複数キーが同じ行を参照していれば、片方が追い出されても行は残る", async () => {
-		for (const key of ["q1", "q2", "q3"]) {
+		for (const key of keysUpToLimit) {
 			await getState().fetchInitial(key, async () => page(["review:shared"]));
 		}
-		await getState().fetchInitial("q4", async () => page(["review:shared"]));
+		await getState().fetchInitial("extra", async () => page(["review:shared"]));
 		expect(getState().itemByKey["review:shared"]).toBeDefined();
 	});
 });
 
 describe("#1396 m-1 touchQuery はキャッシュヒット（fetchInitial を呼ばない経路）でも LRU を touch する", () => {
+	const keysUpToLimit = Array.from({ length: MY_DISHES_QUERY_LRU_SIZE }, (_, i) => `q${i + 1}`);
+
 	it("fetchInitial を伴わない touchQuery だけで LRU の先頭へ上がる", async () => {
-		for (const key of ["q1", "q2", "q3"]) {
+		for (const key of keysUpToLimit) {
 			await getState().fetchInitial(key, async () => page([`review:${key}`]));
 		}
-		expect(getState().recentQueryKeys).toEqual(["q3", "q2", "q1"]);
+		expect(getState().recentQueryKeys).toEqual([...keysUpToLimit].reverse());
 
 		// 実フックは queryKey が変わるたびに touchQuery を呼ぶ（キャッシュヒットでも）。
 		// fetchInitial を経由しない再訪でも LRU の先頭へ上がることを固定する
-		getState().touchQuery("q1");
-		expect(getState().recentQueryKeys).toEqual(["q1", "q3", "q2"]);
+		getState().touchQuery(keysUpToLimit[0]);
+		expect(getState().recentQueryKeys[0]).toBe(keysUpToLimit[0]);
 
-		await getState().fetchInitial("q4", async () => page(["review:q4"]));
+		await getState().fetchInitial("extra", async () => page(["review:extra"]));
 
-		// touch していた q1 ではなく、touch していない q2 が追い出される
-		expect(getState().recentQueryKeys).toEqual(["q4", "q1", "q3"]);
-		expect(getState().itemKeysByQuery.q2).toBeUndefined();
-		expect(getState().itemKeysByQuery.q1).toEqual(["review:q1"]);
+		// touch していた keysUpToLimit[0] ではなく、touch していない keysUpToLimit[1] が追い出される
+		expect(getState().recentQueryKeys[0]).toBe("extra");
+		expect(getState().recentQueryKeys).toContain(keysUpToLimit[0]);
+		expect(getState().itemKeysByQuery[keysUpToLimit[1]]).toBeUndefined();
+		expect(getState().itemKeysByQuery[keysUpToLimit[0]]).toEqual([`review:${keysUpToLimit[0]}`]);
 	});
 
 	it("touchQuery だけでは再取得しない（LRU の並び順だけを動かす）", async () => {
@@ -266,14 +277,16 @@ describe("#1396 pinsByQuery（Map ピン）", () => {
 	});
 
 	it("一覧と同じ LRU を共有し、queryKey が追い出されるとピンも一緒に消える", async () => {
-		for (const key of ["q1", "q2", "q3"]) {
+		const keys = Array.from({ length: MY_DISHES_QUERY_LRU_SIZE + 1 }, (_, i) => `q${i + 1}`);
+		for (const key of keys) {
 			await getState().fetchPins(key, async () => pinsPage([`r-${key}`]));
 		}
-		await getState().fetchPins("q4", async () => pinsPage(["r-q4"]));
 
-		expect(getState().recentQueryKeys).toEqual(["q4", "q3", "q2"]);
-		expect(getState().pinsByQuery.q1).toBeUndefined();
-		expect(getState().hasFetchedInitialPinsByQuery.q1).toBeUndefined();
-		expect(getState().pinsByQuery.q4?.map((p) => p.restaurant.id)).toEqual(["r-q4"]);
+		const oldest = keys[0];
+		const newest = keys[keys.length - 1];
+		expect(getState().recentQueryKeys).toEqual([...keys].reverse().slice(0, MY_DISHES_QUERY_LRU_SIZE));
+		expect(getState().pinsByQuery[oldest]).toBeUndefined();
+		expect(getState().hasFetchedInitialPinsByQuery[oldest]).toBeUndefined();
+		expect(getState().pinsByQuery[newest]?.map((p) => p.restaurant.id)).toEqual([`r-${newest}`]);
 	});
 });

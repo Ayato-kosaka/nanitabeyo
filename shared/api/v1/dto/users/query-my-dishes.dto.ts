@@ -8,6 +8,7 @@ import {
 	IsNumber,
 	IsOptional,
 	IsString,
+	IsUUID,
 	Max,
 	MaxLength,
 	Min,
@@ -176,6 +177,22 @@ export class QueryMyDishesDto {
 	@IsString()
 	@MaxLength(64)
 	timeSlotKey?: string;
+
+	/**
+	 * #1397 店舗で絞る。Map のピン（`MyDishPin`）をタップして開く料理メディア Sheet 専用。
+	 *
+	 * `MyDishPin` は店舗単位で `dish_media.id` を持たない（`users.response.ts` の `MyDishPin`）ため、
+	 * Sheet は「その店舗の自分の記録」をここで引き直す。
+	 *
+	 * ⚠️ **これは共有フィルタ（#1396 の `useMyDishesFilterStore`）に入れてはいけない。**
+	 * 3 ビューが共有するフィルタへ店舗を混ぜると、Sheet を開いた瞬間に一覧・Map まで
+	 * 1 店舗に絞られる。クライアントは Sheet 用の派生クエリとしてのみ付与すること。
+	 *
+	 * `map-pins` では無視される（400 にはしない。共有 DTO に片側だけの必須／禁止を持ち込まない）。
+	 */
+	@IsOptional()
+	@IsUUID()
+	restaurantId?: string;
 
 	/**
 	 * keyset カーソル。`sort` ごとに構成要素が変わる（`MyDishCursor` 参照）。

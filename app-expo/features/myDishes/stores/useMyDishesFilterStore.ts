@@ -191,6 +191,38 @@ export const serializeMyDishesQueryParams = (params: MyDishesQueryParams): strin
 export const selectFilterQueryKey = (s: MyDishesFilterStore): string =>
 	serializeMyDishesQueryParams(toMyDishesQueryParams(s.filter));
 
+/**
+ * #1397 料理メディア Sheet 用の派生クエリ。base の実効クエリ（`toMyDishesQueryParams`）へ
+ * `restaurantId` を足し、`sort` / `sceneKey` / `timeSlotKey` を落とす（設計 (2/2) §8-1 / Q5）。
+ *
+ * `distance` は 1 店舗内で全行同値、`-sceneScore` / `-timeSlotScore` も同カテゴリばかりで
+ * 差が出ないため、Sheet 内は常に `-occurredAt` に固定する（リーダー判断 Q5）。
+ *
+ * ⚠️ `restaurantId` は共有フィルタ（`MyDishesFilter`）には入れない。入れた瞬間、
+ * Sheet を開いただけで一覧・Map まで 1 店舗に絞られる（設計 (2/2) §7-1）。
+ * 呼び出し側（Sheet）が引数として渡す派生値としてのみ扱う。
+ */
+export type MyDishesRestaurantQueryParams = Omit<MyDishesQueryParams, "sort" | "sceneKey" | "timeSlotKey"> & {
+	restaurantId: string;
+};
+
+export const toMyDishesRestaurantQueryParams = (
+	filter: MyDishesFilter,
+	restaurantId: string,
+): MyDishesRestaurantQueryParams => {
+	const params = { ...toMyDishesQueryParams(filter) };
+	delete params.sort;
+	delete params.sceneKey;
+	delete params.timeSlotKey;
+	return { ...params, restaurantId };
+};
+
+/** base とは別キーになる（`restaurantId` を含む）Sheet 用の queryKey */
+export const selectRestaurantQueryKey =
+	(restaurantId: string) =>
+	(s: MyDishesFilterStore): string =>
+		serializeMyDishesQueryParams(toMyDishesRestaurantQueryParams(s.filter, restaurantId));
+
 export const useMyDishesFilterStore = createWithEqualityFn<MyDishesFilterStore>()((set) => ({
 	filter: DEFAULT_MY_DISHES_FILTER,
 
