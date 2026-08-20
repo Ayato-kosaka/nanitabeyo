@@ -5,6 +5,7 @@ import {
   buildMyDishesPageQuery,
   decodeMyDishCursor,
   encodeMyDishCursor,
+  hasMyDishesFilterBeyondStatus,
   MyDishCursor,
 } from './my-dishes.query';
 import { QueryMyDishesDto } from '@shared/v1/dto';
@@ -224,6 +225,97 @@ describe('buildMyDishesPageQuery が組み立てる SQL', () => {
     // eaten: created_dish_media_id。NULL のときだけ dish の最新メディアへ落とす
     expect(sql).toContain('dr.created_dish_media_id AS own_media_id');
     expect(sql).toContain('fb ON p.own_media_id IS NULL');
+  });
+
+  /* ---------------- #1397: restaurantId ---------------- */
+
+  const RESTAURANT_ID = '44444444-4444-4444-4444-444444444444';
+
+  it('restaurantId 未指定時は SQL が 1 文字も変わらない（既存挙動の不変）', () => {
+    const withoutFilter = buildSql({});
+    const withUndefined = buildSql({ restaurantId: undefined });
+
+    expect(withUndefined).toEqual(withoutFilter);
+  });
+
+  it('restaurantId 指定時、eaten 枝は categoryFilter の隣（枝の内側）に述語が出る', () => {
+    const sql = buildSql({
+      categoryIds: ['Q1338822'],
+      restaurantId: RESTAURANT_ID,
+    });
+    const [, eatenBranch] = sql.split('UNION ALL');
+
+    // categoryFilter の直後に restaurantFilter が続く（同じ WHERE 節の中、areaFilter の手前）
+    const categoryIdx = eatenBranch.indexOf('AND d.category_id = ANY(');
+    const restaurantIdx = eatenBranch.indexOf('AND d.restaurant_id =');
+    expect(categoryIdx).toBeGreaterThan(-1);
+    expect(restaurantIdx).toBeGreaterThan(categoryIdx);
+  });
+
+  it('restaurantId 指定時、eaten 枝に AND d.restaurant_id = $n::uuid が出る', () => {
+    const sql = buildSql({ restaurantId: RESTAURANT_ID });
+    const [, eatenBranch] = sql.split('UNION ALL');
+
+    expect(eatenBranch).toContain('AND d.restaurant_id =');
+    expect(eatenBranch).toContain('::uuid');
+    expect(lastQuery!.values).toContain(RESTAURANT_ID);
+  });
+
+  it('restaurantId 指定時、want 枝には述語を置かず my_saved_dishes CTE の JOIN dishes 側へ押し込む', () => {
+    const sql = buildSql({ restaurantId: RESTAURANT_ID });
+
+    // my_saved_dishes CTE の JOIN dishes 側に出る
+    const cte = sql.slice(
+      sql.indexOf('my_saved_dishes AS MATERIALIZED ('),
+      sql.indexOf('page AS ('),
+    );
+    expect(cte).toContain(
+      'JOIN dishes d ON d.id = dm.dish_id AND d.restaurant_id =',
+    );
+    // DISTINCT ON (dm.dish_id) の代表選択（m-7）は変えていない
+    expect(cte).toContain('ORDER BY dm.dish_id, s.created_at DESC, dm.id DESC');
+
+    // want 枝本体（page CTE 内、my_saved_dishes を読む SELECT）には述語を置かない
+    // （NOT EXISTS より後、categoryFilter と同じ位置には出さない）
+    const wantSelect = sql.slice(
+      sql.indexOf('page AS ('),
+      sql.indexOf('UNION ALL'),
+    );
+    expect(wantSelect).not.toContain('AND d.restaurant_id =');
+  });
+
+  it('restaurantId 指定時も my_save_ids（MATERIALIZED フェンス）の内側には現れない（M-1 と同じ理由）', () => {
+    const sql = buildSql({ restaurantId: RESTAURANT_ID });
+    const fence = sql.slice(
+      sql.indexOf('my_save_ids AS MATERIALIZED ('),
+      sql.indexOf('my_saved_dishes AS MATERIALIZED ('),
+    );
+
+    expect(fence).not.toContain('restaurant_id');
+  });
+
+  it('meta.oldestOccurredAt の算出条件（hasMyDishesFilterBeyondStatus）は restaurantId 指定時にフィルタありと判定する', () => {
+    // #1397: restaurantId を取りこぼすと、Sheet を開くたびに #1395 B-2 の全行走査が走る
+    expect(hasMyDishesFilterBeyondStatus({})).toBe(false);
+    expect(hasMyDishesFilterBeyondStatus({ restaurantId: RESTAURANT_ID })).toBe(
+      true,
+    );
+    // status だけの指定では引き続きフィルタなし扱い（既存挙動）
+    expect(hasMyDishesFilterBeyondStatus({ restaurantId: undefined })).toBe(
+      false,
+    );
+  });
+
+  it('map-pins は restaurantId を無視する（枝にも CTE にも現れない）', () => {
+    const query = buildMyDishMapPinsQuery(USER_ID, {
+      restaurantId: RESTAURANT_ID,
+    });
+    expect(query).not.toBeNull();
+    const sql = normalize(query!.sql);
+
+    expect(sql).not.toContain('d.restaurant_id =');
+    expect(sql).not.toContain(RESTAURANT_ID);
+    expect(query!.values).not.toContain(RESTAURANT_ID);
   });
 
   /* ---------------- エリア / カテゴリ / 期間 / 特徴量 ---------------- */

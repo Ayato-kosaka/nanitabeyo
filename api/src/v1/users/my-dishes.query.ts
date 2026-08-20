@@ -288,6 +288,40 @@ export function hasRatingFilter(dto: {
   return dto.minRating !== undefined || (dto.ratings?.length ?? 0) > 0;
 }
 
+/**
+ * #1395 Calendar 用 `meta.oldestOccurredAt` を算出してよいか（`status` 以外のフィルタが無いか）。
+ *
+ * status 以外のフィルタが 1 つでもあると索引で順序を保てず、`dish_reviews`
+ * （約 964MB）に対するユーザー全行走査になる（B-2）。それが**フィルタを変えるたび**に
+ * 走ってしまうため、フィルタが付いているときは算出しない。
+ *
+ * #1397: `restaurantId` もここでいう「フィルタ」に数える。取りこぼすと、
+ * Map のピン → Sheet を開くたびに B-2 の全行走査が走ってしまう。
+ */
+export function hasMyDishesFilterBeyondStatus(dto: {
+  lat?: number;
+  lng?: number;
+  radius?: number;
+  categoryIds?: string[];
+  minRating?: number;
+  ratings?: number[];
+  from?: string;
+  to?: string;
+  restaurantId?: string;
+}): boolean {
+  return (
+    dto.lat !== undefined ||
+    dto.lng !== undefined ||
+    dto.radius !== undefined ||
+    (dto.categoryIds?.length ?? 0) > 0 ||
+    dto.minRating !== undefined ||
+    (dto.ratings?.length ?? 0) > 0 ||
+    dto.from !== undefined ||
+    dto.to !== undefined ||
+    dto.restaurantId !== undefined
+  );
+}
+
 /** レストランの列を SELECT に展開する（生 SQL を 2 本で共有する） */
 export const RESTAURANT_COLUMNS_SQL = Prisma.sql`
   r.id                 AS r_id,
@@ -380,6 +414,14 @@ export function buildMyDishesCandidates(
     ? Prisma.sql`AND d.category_id = ANY(${dto.categoryIds}::text[])`
     : Prisma.empty;
 
+  // #1397: 店舗フィルタ（Map ピン → Sheet 専用）。
+  // eaten 枝は categoryFilter と同じ位置（枝の内側）へ置く。
+  // want 枝は `my_saved_dishes` CTE の JOIN dishes 側（下の restaurantJoin）へ押し込むので、
+  // ここは eaten 枝専用。
+  const restaurantFilter = dto.restaurantId
+    ? Prisma.sql`AND d.restaurant_id = ${dto.restaurantId}::uuid`
+    : Prisma.empty;
+
   // #1375 追補「時間帯・シチュエーションは絞り込みではなく並び替え」。
   // 既存 dish-categories.repository.ts と同じく dish_category_features を
   // LEFT JOIN して COALESCE(score, 0) を使う（新しいスコアリングを作らない）。
@@ -470,6 +512,14 @@ export function buildMyDishesCandidates(
     ? Prisma.join(saveBounds, ' ')
     : Prisma.empty;
 
+  // #1397 M-a と同じ話: want 枝の店舗絞り込みは `my_save_ids`（MATERIALIZED）の外へは置けない
+  // （target_id は dish_media を指すので restaurant まで 2 ジョイン先）。
+  // `my_saved_dishes` の JOIN dishes 側へ押し込む。`dishes.restaurant_id` は `dish_id` から
+  // 一意に決まるため、この絞り込みは DISTINCT ON (dm.dish_id) が選ぶ代表メディアを変えない（m-7）。
+  const restaurantJoin = dto.restaurantId
+    ? Prisma.sql`JOIN dishes d ON d.id = dm.dish_id AND d.restaurant_id = ${dto.restaurantId}::uuid`
+    : Prisma.empty;
+
   const ctes = includeWant
     ? Prisma.sql`
     -- (1) 最適化フェンス。ここから外へ出るまで target_id は text のまま扱う
@@ -489,6 +539,7 @@ export function buildMyDishesCandidates(
         s.created_at         AS saved_at
       FROM my_save_ids s
       JOIN dish_media dm ON dm.id = s.target_id::uuid
+      ${restaurantJoin}
       ORDER BY dm.dish_id, s.created_at DESC, dm.id DESC
     )`
     : null;
@@ -539,6 +590,7 @@ export function buildMyDishesCandidates(
       ${featureJoin}
       WHERE dr.user_id = ${userId}::uuid
       ${categoryFilter}
+      ${restaurantFilter}
       ${areaFilter}
       ${minRatingFilter}
       ${ratingsFilter}
@@ -672,10 +724,14 @@ export function buildMyDishMapPinsQuery(
   userId: string,
   dto: QueryMyDishesDto,
 ): Prisma.Sql | null {
-  const built = buildMyDishesCandidates(userId, dto, {
-    cursor: null,
-    branchLimit: null,
-  });
+  // #1397: `restaurantId` は一覧（Sheet）専用のフィルタ。map-pins では無視する
+  // （1 店舗のピンを 1 つ返しても意味が無い。共有 DTO に片側だけの必須／禁止を
+  // 持ち込むと、以後フィールドを足すたびに分岐が増えるので 400 にもしない）。
+  const built = buildMyDishesCandidates(
+    userId,
+    { ...dto, restaurantId: undefined },
+    { cursor: null, branchLimit: null },
+  );
   if (!built) return null;
 
   const cteHead = built.ctes ? Prisma.sql`${built.ctes},` : Prisma.empty;
