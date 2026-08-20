@@ -2,7 +2,7 @@ import { test, expect } from "../../fixtures/test";
 import { SearchPage } from "../../pages/SearchPage";
 import { SettingsPage } from "../../pages/SettingsPage";
 import { TabBar } from "../../pages/TabBar";
-import { ReviewPage } from "../../pages/ReviewPage";
+import { MyDishesPage } from "../../pages/MyDishesPage";
 import { readStoredSessionUser, supabaseStorageKey } from "../../utils/auth";
 import { loadTestUserCredentials, signInTestUser } from "../../utils/testUserSession";
 
@@ -69,7 +69,7 @@ test.describe("ログアウト(ログイン済み)", () => {
 		const settingsPage = new SettingsPage(page);
 		const searchPage = new SearchPage(page);
 		const tabBar = new TabBar(page);
-		const reviewPage = new ReviewPage(page);
+		const myDishesPage = new MyDishesPage(page);
 
 		// このテスト専用のセッションを注入する（page.addInitScript は以降の遷移すべてで評価される）
 		const session = await signInTestUser(credentials);
@@ -157,8 +157,8 @@ test.describe("ログアウト(ログイン済み)", () => {
 		}
 
 		// ── [症状3] タブ導線も生きている ───────────────────────────────
-		// 併せて「ゲスト扱いに戻っている」ことも確認する（レビュータブは匿名だとログイン CTA 表示）。
-		await tabBar.gotoReview();
-		await reviewPage.expectGuestViewLoaded();
+		// 併せて「ゲスト扱いに戻っている」ことも確認する（食べたい/食べたタブは匿名だとログイン CTA 表示）。
+		await tabBar.gotoMyDishes();
+		await myDishesPage.expectGuestViewLoaded();
 	});
 });

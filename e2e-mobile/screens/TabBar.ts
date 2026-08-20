@@ -25,8 +25,8 @@ import {
 export class TabBar {
 	/** さがすタブ */
 	readonly searchTab = by.id("tab-search");
-	/** レビュータブ */
-	readonly reviewTab = by.id("tab-review");
+	/** 食べたい/食べたタブ（#1396 でレビュータブから差し替え） */
+	readonly myDishesTab = by.id("tab-my-dishes");
 	/** マイページタブ */
 	readonly profileTab = by.id("tab-profile");
 	/** お知らせタブ（ログイン済みユーザーのみ表示） */
@@ -39,9 +39,9 @@ export class TabBar {
 		await tapWhenVisible(this.searchTab);
 	}
 
-	/** レビュータブへ遷移する */
-	async gotoReview(): Promise<void> {
-		await tapWhenVisible(this.reviewTab);
+	/** 食べたい/食べたタブへ遷移する */
+	async gotoMyDishes(): Promise<void> {
+		await tapWhenVisible(this.myDishesTab);
 	}
 
 	/** マイページタブへ遷移する */
@@ -60,7 +60,7 @@ export class TabBar {
 	 */
 	async expectLoaded(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
 		await waitUntilVisible(this.searchTab, timeout);
-		await waitUntilVisible(this.reviewTab, timeout);
+		await waitUntilVisible(this.myDishesTab, timeout);
 		await waitUntilVisible(this.profileTab, timeout);
 	}
 

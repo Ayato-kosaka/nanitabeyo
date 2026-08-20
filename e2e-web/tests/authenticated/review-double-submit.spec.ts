@@ -1,7 +1,7 @@
 import * as path from "node:path";
 import { test, expect } from "../../fixtures/test";
 import { TabBar } from "../../pages/TabBar";
-import { ReviewPage } from "../../pages/ReviewPage";
+import { MyDishesPage } from "../../pages/MyDishesPage";
 import { countRequests } from "../../utils/network";
 import { clickRapid } from "../../utils/rapid-click";
 
@@ -57,7 +57,7 @@ test.describe("レビュー投稿ボタンの連打耐性 @mutation", () => {
 
 	// ─ テストケース: 投稿ボタンを連打してもレビューは 1 件しか登録されない ─
 	// 手順:
-	//   1. ログイン済みで起動し、レビュータブ → 投稿 CTA → 店名検索 → レストラン詳細へ
+	//   1. ログイン済みで起動し、食べたい/食べたタブ → 記録 CTA → 店名検索 → レストラン詳細へ
 	//   2. 「写真・動画を投稿」でレビューフォームへ入り、filechooser にテスト画像を渡す
 	//   3. コメント・料理カテゴリ・価格・評価を埋めて `isValid` を成立させる
 	//   4. 投稿ボタンを **5 連打**する(同一 JS タスク内の合成 pointer 連打)
@@ -66,10 +66,10 @@ test.describe("レビュー投稿ボタンの連打耐性 @mutation", () => {
 	//   7. POST `v1/dish-reviews` がちょうど 1 回であることを検証(= レビューが 1 件だけ)
 	test("投稿ボタンを連打してもレビューは 1 件しか登録されない", async ({ appPage }) => {
 		const tabBar = new TabBar(appPage);
-		const reviewPage = new ReviewPage(appPage);
+		const myDishesPage = new MyDishesPage(appPage);
 
-		await tabBar.gotoReview();
-		await reviewPage.postReviewButton.click();
+		await tabBar.gotoMyDishes();
+		await myDishesPage.recordButton.click();
 		await appPage.getByTestId("location-autocomplete-input").fill("スターバックス");
 		await appPage.getByTestId("location-autocomplete-suggestions").waitFor({ state: "visible" });
 		await appPage.getByTestId("location-autocomplete-suggestion-0").click();

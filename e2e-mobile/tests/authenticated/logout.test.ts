@@ -11,7 +11,7 @@ import {
 	type E2ESession,
 } from "../../fixtures/e2e";
 import { ProfileScreen } from "../../screens/ProfileScreen";
-import { ReviewScreen } from "../../screens/ReviewScreen";
+import { MyDishesScreen } from "../../screens/MyDishesScreen";
 import { SearchScreen } from "../../screens/SearchScreen";
 import { SettingsScreen } from "../../screens/SettingsScreen";
 import { TabBar } from "../../screens/TabBar";
@@ -115,7 +115,7 @@ describeAuthenticated("ログアウト（ログイン済みユーザー）", () 
 		const profileScreen = new ProfileScreen();
 		const settingsScreen = new SettingsScreen();
 		const searchScreen = new SearchScreen();
-		const reviewScreen = new ReviewScreen();
+		const myDishesScreen = new MyDishesScreen();
 
 		await tabBar.gotoProfile();
 		await profileScreen.expectLoaded();
@@ -149,9 +149,9 @@ describeAuthenticated("ログアウト（ログイン済みユーザー）", () 
 		// 区別できるようにしている。
 		//
 		// 併せて **ゲスト表示へ戻っていること**（= ログイン済みセッションが再注入されていないこと）も見る。
-		// 再注入が起きていればレビュータブは投稿 CTA（review-post-button）になり、ここが赤くなる。
-		await tabBar.gotoReview();
-		await reviewScreen.expectGuestViewLoaded();
+		// 再注入が起きていれば食べたい/食べたタブは記録 CTA（my-dishes-record-button）になり、ここが赤くなる。
+		await tabBar.gotoMyDishes();
+		await myDishesScreen.expectGuestViewLoaded();
 
 		await tabBar.gotoSearch();
 		await searchScreen.expectLoaded();

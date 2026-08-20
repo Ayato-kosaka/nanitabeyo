@@ -15,7 +15,7 @@ import { LegalScreen } from "../../screens/LegalScreen";
 import { LoginScreen } from "../../screens/LoginScreen";
 import { ProfileScreen } from "../../screens/ProfileScreen";
 import { ResultScreen } from "../../screens/ResultScreen";
-import { ReviewScreen } from "../../screens/ReviewScreen";
+import { MyDishesScreen } from "../../screens/MyDishesScreen";
 import { SearchScreen } from "../../screens/SearchScreen";
 import { SelectRestaurantScreen } from "../../screens/SelectRestaurantScreen";
 import { SettingsScreen } from "../../screens/SettingsScreen";
@@ -165,18 +165,18 @@ describe("UI カタログ（匿名） @catalog", () => {
 		);
 	});
 
-	it("レビュータブ・マイページ（ゲスト）", async () => {
+	it("食べたい/食べたタブ・マイページ（ゲスト）", async () => {
 		const tabBar = new TabBar();
-		const reviewScreen = new ReviewScreen();
+		const myDishesScreen = new MyDishesScreen();
 		const profileScreen = new ProfileScreen();
 		const loginScreen = new LoginScreen();
 
 		await launchAppWithSession({ as: "anon" });
-		await tabBar.gotoReview();
-		await reviewScreen.expectGuestViewLoaded();
-		await captureScreen("review-guest");
+		await tabBar.gotoMyDishes();
+		await myDishesScreen.expectGuestViewLoaded();
+		await captureScreen("my-dishes-guest");
 
-		// #1359 レビュータブのログイン CTA もマイページと同じ /auth/login へ遷移するため、
+		// #1359 食べたい/食べたタブのログイン CTA もマイページと同じ /auth/login へ遷移するため、
 		// カタログの ID は auth-login 1 つに統合した。撮影は下のマイページの導線で 1 回だけ行う
 		await launchAppWithSession({ as: "anon" });
 		await tabBar.gotoProfile();
@@ -372,20 +372,20 @@ describeAuthenticated("UI カタログ（ログイン済み） @catalog", () => 
 		);
 	});
 
-	it("レビュー投稿導線（レビュータブ・店舗選択）", async () => {
+	it("レビュー投稿導線（食べたい/食べたタブ・店舗選択）", async () => {
 		const tabBar = new TabBar();
-		const reviewScreen = new ReviewScreen();
+		const myDishesScreen = new MyDishesScreen();
 		const selectRestaurantScreen = new SelectRestaurantScreen();
 
 		await launchAppWithSession({ as: "authenticated" });
-		await tabBar.gotoReview();
-		await waitUntilVisible(reviewScreen.postButton);
-		await captureScreen("review-authenticated");
+		await tabBar.gotoMyDishes();
+		await waitUntilVisible(myDishesScreen.recordButton);
+		await captureScreen("my-dishes-authenticated");
 
 		await captureScreenIfReachable(
-			"review-select-restaurant",
+			"my-dishes-select-restaurant",
 			async () => {
-				await reviewScreen.gotoPostReview();
+				await myDishesScreen.gotoRecordDish();
 				await selectRestaurantScreen.expectLoaded();
 			},
 			// 地図タイル・マーカーの描画待ち
@@ -402,12 +402,12 @@ describeAuthenticated("UI カタログ（ログイン済み） @catalog", () => 
 describeMutation("UI カタログ（レビュー投稿フロー） @catalog @mutation", () => {
 	it("店舗詳細 → 投稿フォーム → レビュー詳細", async () => {
 		const tabBar = new TabBar();
-		const reviewScreen = new ReviewScreen();
+		const myDishesScreen = new MyDishesScreen();
 		const selectRestaurantScreen = new SelectRestaurantScreen();
 
 		await launchAppWithSession({ as: "authenticated" });
-		await tabBar.gotoReview();
-		await reviewScreen.gotoPostReview();
+		await tabBar.gotoMyDishes();
+		await myDishesScreen.gotoRecordDish();
 		await selectRestaurantScreen.expectLoaded();
 
 		const reachedDetail = await captureScreenIfReachable(
@@ -427,7 +427,7 @@ describeMutation("UI カタログ（レビュー投稿フロー） @catalog @mut
 			"review-post-form",
 			async () => {
 				await selectRestaurantScreen.gotoReviewForm();
-				await waitUntilVisible(reviewScreen.commentInput, 30_000);
+				await waitUntilVisible(myDishesScreen.commentInput, 30_000);
 			},
 			{ settleMs: 2_000 },
 		);
@@ -439,10 +439,10 @@ describeMutation("UI カタログ（レビュー投稿フロー） @catalog @mut
 			async () => {
 				// ⚠️ typeText は IME 経由のキーイベントに変換できず日本語で落ちる（Android で実測）。
 				// Detox 公式の回避策どおり replaceText で直接流し込む
-				await element(reviewScreen.commentInput).replaceText("[E2E] UI カタログ収集");
+				await element(myDishesScreen.commentInput).replaceText("[E2E] UI カタログ収集");
 				// 星は画面外に居ることがある（iOS で実測）。付けられなくても投稿自体は成立する
-				await tolerate(() => reviewScreen.rate(5));
-				await tapWhenVisible(reviewScreen.submitButton);
+				await tolerate(() => myDishesScreen.rate(5));
+				await tapWhenVisible(myDishesScreen.submitButton);
 				// 投稿が成功すると /post/[id] へ遷移し、いいね等のアクションが並ぶ
 				await waitUntilVisible(by.id("dish-action-like"), 60_000);
 			},

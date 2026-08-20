@@ -2,14 +2,14 @@ import { strict as assert } from "node:assert";
 
 import { device, launchAppWithSession, localeDeepLink } from "../../fixtures/e2e";
 import { DishCategorySelectScreen } from "../../screens/DishCategorySelectScreen";
-import { ReviewScreen } from "../../screens/ReviewScreen";
+import { MyDishesScreen } from "../../screens/MyDishesScreen";
 import { RestaurantBidScreen } from "../../screens/RestaurantBidScreen";
 import { RestaurantDetailScreen } from "../../screens/RestaurantDetailScreen";
 import { RestaurantFeedScreen } from "../../screens/RestaurantFeedScreen";
 
 /**
  * 🏪 店舗詳細とその配下 3 画面のルーティングテスト（#1386）
- *（e2e-web の tests/review/restaurant-routes.spec.ts に対応）
+ *（e2e-web の tests/my-dishes/restaurant-routes.spec.ts に対応）
  *
  * ## ネイティブで最も重要なのはハードウェアバック
  * #1359 のログイン・#1368 の法務ドキュメントと同じ構図。BlurModal は自前の BackHandler
@@ -45,10 +45,10 @@ describe("店舗詳細のルート（#1386）", () => {
 	//   1. nanitabeyo:///ja-JP/restaurant/<id> へ直接着地する
 	//   2. 画面タイトル（ScreenHeader = BlurModal 実装には無い観測点）が出ることを検証
 	//   3. Android はハードウェアバック / iOS はヘッダーの戻るボタンで離脱する
-	//   4. 履歴が無いのでレビュータブ（ゲスト表示）へ倒れることを検証
-	it("ディープリンクで着地でき、戻る操作でレビュータブへ倒れる", async () => {
+	//   4. 履歴が無いので食べたい/食べたタブ（ゲスト表示）へ倒れることを検証
+	it("ディープリンクで着地でき、戻る操作で食べたい/食べたタブへ倒れる", async () => {
 		const detailScreen = new RestaurantDetailScreen();
-		const reviewScreen = new ReviewScreen();
+		const myDishesScreen = new MyDishesScreen();
 
 		await launchAppWithSession({
 			as: "anon",
@@ -64,9 +64,9 @@ describe("店舗詳細のルート（#1386）", () => {
 			await detailScreen.goBack();
 		}
 
-		// 履歴が無い着地なので、戻る導線はレビュータブ（このスタックの根）への replace に倒れる。
+		// 履歴が無い着地なので、戻る導線は食べたい/食べたタブ（このスタックの根）への replace に倒れる。
 		// 匿名セッションなのでゲスト表示になる
-		await reviewScreen.expectGuestViewLoaded();
+		await myDishesScreen.expectGuestViewLoaded();
 	});
 
 	// ─ テストケース: 入札はルートで、戻る操作で店舗詳細へ帰る ─

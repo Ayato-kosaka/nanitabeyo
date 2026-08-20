@@ -2,7 +2,7 @@ import { test, expect } from "../../fixtures/test";
 import { SearchPage } from "../../pages/SearchPage";
 import { TopicsPage } from "../../pages/TopicsPage";
 import { ResultPage } from "../../pages/ResultPage";
-import { ReviewPage } from "../../pages/ReviewPage";
+import { MyDishesPage } from "../../pages/MyDishesPage";
 import { ProfilePage } from "../../pages/ProfilePage";
 import { SettingsPage } from "../../pages/SettingsPage";
 import { LoginPage } from "../../pages/LoginPage";
@@ -177,16 +177,16 @@ test.describe("UI カタログ（匿名） @catalog", () => {
 		}
 	});
 
-	// ─ レビュータブ（ゲスト） ─
+	// ─ 食べたい/食べたタブ（ゲスト） ─
 	// #1359 ログイン画面は 2 タブから同じ URL へ遷移するため、カタログの ID は auth-login 1 つに
 	// 統合した（撮影はマイページの導線で 1 回だけ行う）
-	test("レビュータブ（ゲスト表示）", async ({ appPage }) => {
+	test("食べたい/食べたタブ（ゲスト表示）", async ({ appPage }) => {
 		const tabBar = new TabBar(appPage);
-		const reviewPage = new ReviewPage(appPage);
+		const myDishesPage = new MyDishesPage(appPage);
 
-		await tabBar.gotoReview();
-		await reviewPage.expectGuestViewLoaded();
-		await captureScreen(appPage, "review-guest");
+		await tabBar.gotoMyDishes();
+		await myDishesPage.expectGuestViewLoaded();
+		await captureScreen(appPage, "my-dishes-guest");
 	});
 
 	// ─ マイページ（ゲスト） ─

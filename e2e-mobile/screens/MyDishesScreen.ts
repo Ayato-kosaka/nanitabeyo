@@ -9,22 +9,22 @@ import {
 } from "../fixtures/e2e";
 
 /**
- * ✏️ 「レビュー」タブの Screen Object（e2e-web の pages/ReviewPage.ts に対応）
+ * 🍽️ 「食べたい/食べた」タブの Screen Object（e2e-web の pages/MyDishesPage.ts に対応）
+ * （#1396 でレビュータブから差し替え）
  *
  * 対応画面:
- * - `app-expo/app/[locale]/(tabs)/review/index.tsx`（タブ本体。ログイン状態で表示が分岐する）
+ * - `app-expo/app/[locale]/(tabs)/my-dishes/index.tsx`（タブ本体。ログイン状態で表示が分岐する）
  * - `app-expo/app/[locale]/restaurant/[restaurantId]/review.tsx`
- *   （`features/map/components/ReviewForm.tsx`。レビュー投稿フォーム本体）
+ *   （`features/map/components/ReviewForm.tsx`。レビュー投稿フォーム本体。#1396 でも中身は不変）
  *
  * 表示内容はログイン状態で分岐する（index.tsx）:
- * - 匿名ユーザー: ゲスト向け説明 + ログイン CTA（`Review.guest.*`）
- * - ログイン済み: レビュー投稿 CTA（`Review.authenticated.postButton`）→ SelectRestaurantScreen へ
+ * - 匿名ユーザー: ゲスト向け説明 + ログイン CTA（`MyDishes.guest.*`）
+ * - ログイン済み: 3 ビュー（Map/リスト/Calendar）の shell + 記録 CTA（`MyDishes.record.cta`）→ SelectRestaurantScreen へ
  *
- * ## このクラスがカバーする範囲（#1031 B6 確定 / このリーダー指示の範囲）
- * この PR（PR-5）で実際にテストから使うのは **ゲスト向け表示 2 要素のみ**。
- * フォーム部分（comment/dishCategory/price/star/submit）は認証済み前提のため、
- * この PR のテストからは使わない。**将来のレビュー投稿テスト（別 PR・認証済みセッション利用）が
- * 迷わず使えるよう、実在する testID を調べたうえで定義だけ用意する**（#1031 B6 レビュー指摘の反映）。
+ * ## このクラスがカバーする範囲
+ * ゲスト向け表示と記録 CTA（旧 `postButton`）に加え、認証済み専用のレビュー投稿フォーム
+ * （comment/dishCategory/price/star/submit）の定義も引き続き持つ
+ * （`features/map/components/ReviewForm.tsx` 由来で #1396 では変更していない）。
  *
  * ## 写真付きレビュー投稿の扱い（#1031 B6 → #1027 で解決）
  * フォトピッカーは OS のアプリ外プロセスで動作するため Detox からは操作できない。
@@ -33,7 +33,7 @@ import {
  * tests/mutation/review-post.test.ts から使われている。
  * **`EXPO_PUBLIC_E2E_MEDIA_HOOK=1` を立ててビルドしていないとフォームが開かない**点に注意。
  */
-export class ReviewScreen {
+export class MyDishesScreen {
 	/**
 	 * レビュー投稿フォーム関連の待機に使うタイムアウト (ms)。
 	 * 店舗レコードの作成・メディアのアップロード・レビュー登録がいずれもバックエンド往復を伴うため、
@@ -41,15 +41,15 @@ export class ReviewScreen {
 	 */
 	static readonly FORM_TIMEOUT = 90_000;
 
-	// ── ゲスト向け表示（この PR のテストで実際に使う） ──────────────────────────
-	/** ゲスト向け説明文（ja-JP: `Review.guest.description` = "ログインしてレビューを書こう"） */
-	readonly guestDescription = by.id("review-guest-description");
-	/** ゲスト向けログイン CTA（ja-JP: `Review.guest.loginButton` = "ログインする"） */
-	readonly guestLoginButton = by.id("review-guest-login-button");
+	// ── ゲスト向け表示 ──────────────────────────────────────────────────
+	/** ゲスト向け説明文（testID: my-dishes-guest-description） */
+	readonly guestDescription = by.id("my-dishes-guest-description");
+	/** ゲスト向けログイン CTA（testID: my-dishes-guest-login-button） */
+	readonly guestLoginButton = by.id("my-dishes-guest-login-button");
 
-	// ── ログイン済み向け表示（#1031 B6: 定義のみ。認証済みセッションが前提のため別 PR で使用） ──
-	/** レビュー投稿 CTA（ja-JP: `Review.authenticated.postButton`）。タップで SelectRestaurantScreen へ遷移 */
-	readonly postButton = by.id("review-post-button");
+	// ── ログイン済み向け表示 ────────────────────────────────────────────
+	/** 記録 CTA（testID: my-dishes-record-button）。タップで SelectRestaurantScreen へ遷移 */
+	readonly recordButton = by.id("my-dishes-record-button");
 
 	// ── レビュー投稿フォーム（#1031 B6: 定義のみ。`ReviewForm.tsx` 由来、認証済み専用） ──────
 	/** レビュー本文入力欄（`ReviewForm.tsx:578`） */
@@ -100,10 +100,10 @@ export class ReviewScreen {
 		return by.id(`dish-category-search-suggestion-${index}`);
 	}
 
-	/** レビュー投稿 CTA をタップして「お店選択」画面へ進む（ログイン済みのみ表示） */
-	async gotoPostReview(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
-		await waitUntilVisible(this.postButton, timeout);
-		await tapWhenVisible(this.postButton);
+	/** 記録 CTA をタップして「お店選択」画面へ進む（ログイン済みのみ表示） */
+	async gotoRecordDish(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
+		await waitUntilVisible(this.recordButton, timeout);
+		await tapWhenVisible(this.recordButton);
 	}
 
 	/**
