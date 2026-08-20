@@ -783,7 +783,10 @@
 			"loginButton": "登录"
 		},
 		"record": {
-			"cta": "记录"
+			"cta": "记录",
+			"noPhotoTitle": "添加照片",
+			"noPhotoHint": "没有照片也可以记录",
+			"publicReviewNotice": "该记录将作为公开评价显示在餐厅页面上"
 		}
 	}
 }

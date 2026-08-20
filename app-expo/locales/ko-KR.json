@@ -783,7 +783,10 @@
 			"loginButton": "로그인"
 		},
 		"record": {
-			"cta": "기록하기"
+			"cta": "기록하기",
+			"noPhotoTitle": "사진 추가",
+			"noPhotoHint": "사진 없이도 기록할 수 있습니다",
+			"publicReviewNotice": "기록은 공개 리뷰로 음식점 페이지에 표시됩니다"
 		}
 	}
 }

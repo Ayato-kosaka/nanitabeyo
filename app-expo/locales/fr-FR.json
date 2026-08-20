@@ -783,7 +783,10 @@
 			"loginButton": "Se Connecter"
 		},
 		"record": {
-			"cta": "Enregistrer"
+			"cta": "Enregistrer",
+			"noPhotoTitle": "Ajouter une photo",
+			"noPhotoHint": "Vous pouvez enregistrer sans photo",
+			"publicReviewNotice": "Votre enregistrement apparaîtra comme un avis public sur la page du restaurant"
 		}
 	}
 }

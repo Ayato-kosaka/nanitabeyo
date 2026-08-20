@@ -30,9 +30,18 @@ export default function ReviewScreen() {
 	// ReviewForm はマウント時にメディア選択を走らせており、毎レンダー新しい関数を渡すと
 	// （ReviewForm 側の ref 化が失われた場合に）effect が張り替わって選択結果が捨てられる。多層防御。
 	const handleReviewSuccess = useCallback(
-		({ dishReviewId }: { dishReviewId: string }) => {
+		({ dishMedia, dishReviewId }: { dishMedia: DishMediaEntry["dish_media"] | null; dishReviewId: string }) => {
 			// /my-dishes までスタックを掃除（なければ現在画面を /my-dishes に置き換え）
 			router.dismissTo(`/${locale}/(tabs)/my-dishes`);
+			/**
+			 * #1398 (c-2) 【設計】写真なしで記録したときは `/post/[id]` へ遷移しない。
+			 *
+			 * `/post/[id]` は `useDishMediaEntriesStore` にエントリがあることを前提に描いている。
+			 * 写真なしの記録は R2（不正なエントリで全画面 Feed が壊れるのを避ける）によって
+			 * ストアを 1 つも触らないため、遷移するとローディングのまま固着する。
+			 * 記録自体は成功しており、遷移先の `/my-dishes` に「食べた」として現れる。
+			 */
+			if (!dishMedia) return;
 			router.push({
 				pathname: `/[locale]/post/[id]`,
 				params: {
@@ -157,8 +166,19 @@ export default function ReviewScreen() {
 				}}
 			/>
 
-			{/* #644 【設計】ReviewForm をメディア選択ありモードで表示 */}
-			<ReviewForm restaurant={restaurant.restaurant} onCancel={handleReviewCancel} onSuccess={handleReviewSuccess} />
+			{/*
+				#644 【設計】ReviewForm をメディア選択ありモードで表示
+				#1398 B2/B3 【設計】この経路だけ写真なしを許可する（`allowNoMedia`）。
+				着地時にピッカーが自動で開くのは従来どおりで、キャンセルすると画面が閉じる代わりに
+				「写真を追加」プレースホルダの付いたフォームへ留まる。退出は上の ScreenHeader の戻るで行う。
+				`review-from-media` 経路は allowNoMedia を渡さないので挙動が変わらない
+			*/}
+			<ReviewForm
+				restaurant={restaurant.restaurant}
+				allowNoMedia
+				onCancel={handleReviewCancel}
+				onSuccess={handleReviewSuccess}
+			/>
 		</View>
 	);
 }

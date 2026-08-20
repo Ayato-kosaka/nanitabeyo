@@ -783,7 +783,10 @@
 			"loginButton": "Iniciar Sesión"
 		},
 		"record": {
-			"cta": "Registrar"
+			"cta": "Registrar",
+			"noPhotoTitle": "Añadir una foto",
+			"noPhotoHint": "También puedes registrarlo sin foto",
+			"publicReviewNotice": "Tu registro aparecerá como reseña pública en la página del restaurante"
 		}
 	}
 }
