@@ -362,10 +362,6 @@
 			"million": "M",
 			"thousand": "K"
 		},
-		"menuOptions": {
-			"viewCreatorProfile": "投稿者プロフィールへ",
-			"reservation": "予約"
-		},
 		"actions": {
 			"share": "シェア",
 			"seeMore": "もっと見る",
@@ -507,7 +503,6 @@
 		"buttons": {
 			"postReview": "レビュー投稿",
 			"postPhotoVideoReview": "写真・動画を投稿する",
-			"placeBid": "入札する",
 			"bid": "入札",
 			"searchNearby": "このエリアで探す",
 			"openInGoogle": "Google で開く"
@@ -535,13 +530,11 @@
 		"labels": {
 			"endDate": "終了日:",
 			"paymentProcessing": "決済処理中...",
-			"currentBidAmount": "現在の入札額",
 			"restaurant": "お店",
 			"dishCategory": "料理カテゴリ"
 		},
 		"tabs": {
-			"reviews": "レビュー",
-			"bids": "入札"
+			"reviews": "レビュー"
 		},
 		"emptyState": {
 			"noBidsForStatus": "選択したステータスの入札がありません"
@@ -693,9 +686,7 @@
 	"auth": {
 		"login_title": "ログイン",
 		"create_title": "アカウント作成",
-		"field_phone": "電話番号",
 		"field_name": "名前",
-		"hint_sms": "SMSでワンタイムコードを送信します。",
 		"btn_login": "ログイン",
 		"btn_create": "アカウントを作成",
 		"divider_or": "または次でサインイン",
@@ -704,13 +695,8 @@
 		"provider_facebook": "Facebook",
 		"provider_twitter": "Twitter",
 		"provider_apple": "Apple",
-		"otp_title": "コードを入力",
-		"otp_resending": "コードを再送信中...",
-		"otp_send_again": "コードを再送",
-		"otp_enter_all_digits": "6桁すべてを入力してください",
 		"login_success": "ログインに成功しました！",
 		"error_required": "必須項目です",
-		"error_invalid_phone": "電話番号が正しくありません",
 		"tos_link_text": "利用規約",
 		"existing_account_checkbox": "既にアカウントをお持ちですか？",
 		"conflict_dialog_title": "既存アカウントが見つかりました",
