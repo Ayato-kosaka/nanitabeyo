@@ -788,6 +788,21 @@
 			"list": "List",
 			"calendar": "Calendar"
 		},
+		"calendar": {
+			"monthLabel": "{{month}}/{{year}}",
+			"weekdays": {
+				"sun": "Sun",
+				"mon": "Mon",
+				"tue": "Tue",
+				"wed": "Wed",
+				"thu": "Thu",
+				"fri": "Fri",
+				"sat": "Sat"
+			},
+			"dayA11yLabel": "{{date}} ({{count}} records)",
+			"periodActive": "Filtered by date",
+			"reachedOldest": "You've reached the oldest record"
+		},
 		"map": {
 			"truncated": "Only some pins are shown. Narrow the area to see the rest.",
 			"zoomInHint": "Zoom in before you search this area",

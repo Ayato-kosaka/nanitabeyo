@@ -788,6 +788,21 @@
 			"list": "列表",
 			"calendar": "日历"
 		},
+		"calendar": {
+			"monthLabel": "{{year}}年{{month}}月",
+			"weekdays": {
+				"sun": "日",
+				"mon": "一",
+				"tue": "二",
+				"wed": "三",
+				"thu": "四",
+				"fri": "五",
+				"sat": "六"
+			},
+			"dayA11yLabel": "{{date}}（{{count}}条）",
+			"periodActive": "已按日期筛选",
+			"reachedOldest": "已经是最早的记录了"
+		},
 		"map": {
 			"truncated": "地图上仅显示部分标记，请缩小搜索范围。",
 			"zoomInHint": "请先放大地图，再重新搜索该区域",
