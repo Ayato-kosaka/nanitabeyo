@@ -788,6 +788,51 @@
 			"noPhotoHint": "写真なしでも記録できます",
 			"publicReviewNotice": "記録は公開レビューとして店舗ページに表示されます",
 			"postNotFoundNoPhoto": "この記録には写真がありません"
-		}
+		},
+		"filters": {
+			"title": "絞り込み・並び替え",
+			"apply": "適用する",
+			"reset": "リセット",
+			"status": {
+				"title": "状態",
+				"want": "食べたい",
+				"eaten": "食べた"
+			},
+			"rating": {
+				"title": "評価",
+				"min": "★{{count}}以上",
+				"disabledByWant": "「食べたい」は評価を持たないため、状態を「食べた」だけにすると評価で絞り込めます。"
+			},
+			"sort": {
+				"title": "並び替え",
+				"occurredAtDesc": "新しい順",
+				"occurredAtAsc": "古い順",
+				"ratingDesc": "評価の高い順",
+				"distance": "近い順",
+				"timeSlotScoreDesc": "時間帯に合う順",
+				"sceneScoreDesc": "シチュエーションに合う順",
+				"timeSlotKey": "時間帯",
+				"sceneKey": "シチュエーション",
+				"distanceRequiresArea": "近い順にはエリアの指定が必要です。マップで「このエリアで再検索」してください。"
+			},
+			"area": {
+				"title": "エリア",
+				"none": "指定なし（すべて）",
+				"clear": "エリアを解除",
+				"hint": "エリアはマップの「このエリアで再検索」で確定します。"
+			},
+			"period": {
+				"title": "期間",
+				"none": "指定なし（すべて）",
+				"clear": "期間を解除"
+			}
+		},
+		"empty": {
+			"description": "気になるお店の料理を保存したり、食べた記録をつけるとここに並びます。"
+		},
+		"list": {
+			"noPhoto": "写真なし"
+		},
+		"searchThisArea": "このエリアで再検索"
 	}
 }

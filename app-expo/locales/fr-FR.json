@@ -788,6 +788,51 @@
 			"noPhotoHint": "Vous pouvez enregistrer sans photo",
 			"publicReviewNotice": "Votre enregistrement apparaîtra comme un avis public sur la page du restaurant",
 			"postNotFoundNoPhoto": "Cet enregistrement n'a pas de photo"
-		}
+		},
+		"filters": {
+			"title": "Filtrer et trier",
+			"apply": "Appliquer",
+			"reset": "Réinitialiser",
+			"status": {
+				"title": "Statut",
+				"want": "À goûter",
+				"eaten": "Goûté"
+			},
+			"rating": {
+				"title": "Note",
+				"min": "{{count}} étoiles et plus",
+				"disabledByWant": "Les plats « À goûter » n'ont pas de note. Choisissez uniquement « Goûté » pour filtrer par note."
+			},
+			"sort": {
+				"title": "Trier par",
+				"occurredAtDesc": "Plus récents d'abord",
+				"occurredAtAsc": "Plus anciens d'abord",
+				"ratingDesc": "Les mieux notés",
+				"distance": "Les plus proches",
+				"timeSlotScoreDesc": "Selon le moment de la journée",
+				"sceneScoreDesc": "Selon l'occasion",
+				"timeSlotKey": "Moment de la journée",
+				"sceneKey": "Occasion",
+				"distanceRequiresArea": "Le tri par distance nécessite une zone. Utilisez « Rechercher dans cette zone » sur la carte."
+			},
+			"area": {
+				"title": "Zone",
+				"none": "Partout",
+				"clear": "Effacer la zone",
+				"hint": "La zone se définit avec « Rechercher dans cette zone » sur la carte."
+			},
+			"period": {
+				"title": "Période",
+				"none": "Toutes les dates",
+				"clear": "Effacer la période"
+			}
+		},
+		"empty": {
+			"description": "Les plats que vous enregistrez ou marquez comme goûtés apparaîtront ici."
+		},
+		"list": {
+			"noPhoto": "Sans photo"
+		},
+		"searchThisArea": "Rechercher dans cette zone"
 	}
 }
