@@ -374,6 +374,9 @@
 		"share": {
 			"title": "اطّلع على {{dishName}}"
 		},
+		"save": {
+			"savedMessage": "تم الحفظ في «أريد تجربته»"
+		},
 		"buttons": {
 			"viewRestaurant": "عرض المطعم"
 		},
@@ -381,8 +384,8 @@
 			"viewRestaurant": "عرض تفاصيل مطعم {{name}}",
 			"likeActive": "إلغاء الإعجاب بـ {{name}}",
 			"likeInactive": "الإعجاب بـ {{name}}",
-			"saveActive": "إلغاء حفظ {{name}}",
-			"saveInactive": "حفظ {{name}}",
+			"saveActive": "إزالة {{name}} من «أريد تجربته»",
+			"saveInactive": "إضافة {{name}} إلى «أريد تجربته»",
 			"share": "مشاركة {{name}}",
 			"openMap": "فتح خريطة {{name}}",
 			"reviewLike": "الإعجاب بمراجعة {{username}}"

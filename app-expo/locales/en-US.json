@@ -374,6 +374,9 @@
 		"share": {
 			"title": "Check out {{dishName}}"
 		},
+		"save": {
+			"savedMessage": "Saved to Want to Eat"
+		},
 		"buttons": {
 			"viewRestaurant": "View restaurant"
 		},
@@ -381,8 +384,8 @@
 			"viewRestaurant": "View {{name}}'s restaurant details",
 			"likeActive": "Unlike {{name}}",
 			"likeInactive": "Like {{name}}",
-			"saveActive": "Unsave {{name}}",
-			"saveInactive": "Save {{name}}",
+			"saveActive": "Remove {{name}} from Want to Eat",
+			"saveInactive": "Add {{name}} to Want to Eat",
 			"share": "Share {{name}}",
 			"openMap": "Open map for {{name}}",
 			"reviewLike": "Like {{username}}'s review"

@@ -374,6 +374,9 @@
 		"share": {
 			"title": "{{dishName}} देखें"
 		},
+		"save": {
+			"savedMessage": "\"खाना है\" में सेव किया गया"
+		},
 		"buttons": {
 			"viewRestaurant": "रेस्टोरेंट देखें"
 		},
@@ -381,8 +384,8 @@
 			"viewRestaurant": "{{name}} के रेस्तरां का विवरण देखें",
 			"likeActive": "{{name}} की पसंद हटाएं",
 			"likeInactive": "{{name}} को पसंद करें",
-			"saveActive": "{{name}} को सेव से हटाएं",
-			"saveInactive": "{{name}} सेव करें",
+			"saveActive": "{{name}} को \"खाना है\" से हटाएं",
+			"saveInactive": "{{name}} को \"खाना है\" में सेव करें",
 			"share": "{{name}} शेयर करें",
 			"openMap": "{{name}} का मानचित्र खोलें",
 			"reviewLike": "{{username}} की समीक्षा को पसंद करें"
