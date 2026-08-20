@@ -821,7 +821,6 @@
 			}
 		},
 		"empty": {
-			"title": "Nothing here yet",
 			"description": "Dishes you save or record as eaten will show up here."
 		},
 		"list": {

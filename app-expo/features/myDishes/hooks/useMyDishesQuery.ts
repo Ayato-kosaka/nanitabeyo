@@ -52,6 +52,7 @@ export const useMyDishesQuery = (options?: { enabled?: boolean }): UseMyDishesQu
 	const filter = useMyDishesFilterStore((s) => s.filter);
 	const queryKey = useMyDishesFilterStore(selectFilterQueryKey);
 
+	const touchQuery = useMyDishesStore((s) => s.touchQuery);
 	const fetchInitial = useMyDishesStore((s) => s.fetchInitial);
 	const fetchMore = useMyDishesStore((s) => s.fetchMore);
 	const itemByKey = useMyDishesStore((s) => s.itemByKey);
@@ -78,11 +79,22 @@ export const useMyDishesQuery = (options?: { enabled?: boolean }): UseMyDishesQu
 		};
 	}, [callBackend, filter]);
 
+	// #1396 m-1: キャッシュヒット（下の effect が fetchInitial を呼ばない経路）でも LRU を touch する。
+	// touchAndEvict を fetchInitial の副作用にだけ任せると、フィルタを往復してもキャッシュヒットでは
+	// 一度も touch されず、直前に見ていた queryKey が「見ていないもの」として先に追い出されてしまう
 	useEffect(() => {
 		if (!enabled) return;
-		if (hasFetchedInitial || isLoading) return;
+		touchQuery(queryKey);
+	}, [enabled, queryKey, touchQuery]);
+
+	// ⚠️ `!error` を必ず条件へ入れること。取得が失敗したときストアは
+	// `hasFetchedInitial` を false のまま `isLoading` を false へ戻すので（stores/useMyDishesStore.ts
+	// の fetchInitial）、error を見ないと **失敗するたびに再取得して無限ループする**
+	useEffect(() => {
+		if (!enabled) return;
+		if (hasFetchedInitial || isLoading || error) return;
 		void fetchInitial(queryKey, fetcher);
-	}, [enabled, fetchInitial, fetcher, hasFetchedInitial, isLoading, queryKey]);
+	}, [enabled, error, fetchInitial, fetcher, hasFetchedInitial, isLoading, queryKey]);
 
 	const items = useMemo(
 		() => itemKeys.map((key) => itemByKey[key]).filter((item): item is MyDishItem => Boolean(item)),

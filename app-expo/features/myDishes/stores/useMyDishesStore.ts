@@ -67,6 +67,13 @@ export type MyDishesStore = {
 	/** 参照が新しい順に並んだ `queryKey`。先頭が最新（LRU の管理用） */
 	recentQueryKeys: string[];
 
+	/**
+	 * `queryKey` を LRU の先頭へ touch する。キャッシュヒット（`fetchInitial` を呼ばない経路）でも
+	 * 呼ぶ必要があるため、`fetchInitial` の副作用から独立させている（#1396 m-1）。
+	 * `useMyDishesQuery` がマウント・`queryKey` 変化のたびに毎回呼ぶ。
+	 */
+	touchQuery: (queryKey: string) => void;
+
 	/** 初回取得（`cursor` を捨てて先頭から） */
 	fetchInitial: (queryKey: string, fetcher: MyDishesFetcher) => Promise<void>;
 
@@ -173,20 +180,19 @@ export const useMyDishesStore = createWithEqualityFn<MyDishesStore>()((set, get)
 	errorByQuery: {},
 	recentQueryKeys: [],
 
+	touchQuery: (queryKey) => set((state) => touchAndEvict(state, queryKey)),
+
 	fetchInitial: async (queryKey, fetcher) => {
 		// 同一キーの初回取得が走っている間は二重に投げない（964MB のテーブルを二度叩かない）
 		if (get().isLoadingByQuery[queryKey]) return;
 
-		set((state) => {
-			// LRU の追い出しを先に済ませ、その結果のマップへローディングを載せる
-			// （先に載せると、追い出したはずのキーが残ったマップで上書きされて復活する）
-			const evicted = touchAndEvict(state, queryKey);
-			return {
-				...evicted,
-				isLoadingByQuery: { ...(evicted.isLoadingByQuery ?? state.isLoadingByQuery), [queryKey]: true },
-				errorByQuery: { ...(evicted.errorByQuery ?? state.errorByQuery), [queryKey]: null },
-			};
-		});
+		// LRU の追い出しを先に済ませ、その結果のマップへローディングを載せる
+		// （先に載せると、追い出したはずのキーが残ったマップで上書きされて復活する）
+		get().touchQuery(queryKey);
+		set((state) => ({
+			isLoadingByQuery: { ...state.isLoadingByQuery, [queryKey]: true },
+			errorByQuery: { ...state.errorByQuery, [queryKey]: null },
+		}));
 
 		try {
 			// #1396 【設計】フィルタ変更時は cursor を捨てて先頭から取り直す（#1395 §6）
@@ -226,6 +232,10 @@ export const useMyDishesStore = createWithEqualityFn<MyDishesStore>()((set, get)
 
 		try {
 			const response = await fetcher({ cursor });
+			// n-1（見送り・申し送り）: ここで `queryKey` がまだ `recentQueryKeys` に生きているかは見ていない。
+			// 飛行中に他の 4 本目の queryKey で LRU から追い出されると、この結果は誰も参照しない
+			// itemByKey の行として残り続ける（次の追い出しまで）。到達には「追加取得中に他の
+			// queryKey へ 3 回以上切り替える」必要があり、実害は小さいと判断して見送った（#1439 レビュー）。
 			set((s) => {
 				const itemPatch: Record<string, MyDishItem> = {};
 				for (const item of response.data) itemPatch[item.key] = item;

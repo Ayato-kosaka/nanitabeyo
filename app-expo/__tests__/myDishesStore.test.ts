@@ -156,6 +156,34 @@ describe("#1396 古い queryKey は LRU で 3 本だけ残す", () => {
 	});
 });
 
+describe("#1396 m-1 touchQuery はキャッシュヒット（fetchInitial を呼ばない経路）でも LRU を touch する", () => {
+	it("fetchInitial を伴わない touchQuery だけで LRU の先頭へ上がる", async () => {
+		for (const key of ["q1", "q2", "q3"]) {
+			await getState().fetchInitial(key, async () => page([`review:${key}`]));
+		}
+		expect(getState().recentQueryKeys).toEqual(["q3", "q2", "q1"]);
+
+		// 実フックは queryKey が変わるたびに touchQuery を呼ぶ（キャッシュヒットでも）。
+		// fetchInitial を経由しない再訪でも LRU の先頭へ上がることを固定する
+		getState().touchQuery("q1");
+		expect(getState().recentQueryKeys).toEqual(["q1", "q3", "q2"]);
+
+		await getState().fetchInitial("q4", async () => page(["review:q4"]));
+
+		// touch していた q1 ではなく、touch していない q2 が追い出される
+		expect(getState().recentQueryKeys).toEqual(["q4", "q1", "q3"]);
+		expect(getState().itemKeysByQuery.q2).toBeUndefined();
+		expect(getState().itemKeysByQuery.q1).toEqual(["review:q1"]);
+	});
+
+	it("touchQuery だけでは再取得しない（LRU の並び順だけを動かす）", async () => {
+		const fetcher = jest.fn(async () => page(["review:q1"]));
+		await getState().fetchInitial("q1", fetcher);
+		getState().touchQuery("q1");
+		expect(fetcher).toHaveBeenCalledTimes(1);
+	});
+});
+
 describe("#1396 取得結果 store にも viewport を置かない（§3-2）", () => {
 	it("トップレベルのスライスは «取得結果» だけ", () => {
 		expect(Object.keys(getState()).sort()).toEqual(
@@ -172,6 +200,7 @@ describe("#1396 取得結果 store にも viewport を置かない（§3-2）", 
 				"nextCursorByQuery",
 				"oldestOccurredAtByQuery",
 				"recentQueryKeys",
+				"touchQuery",
 			].sort(),
 		);
 	});

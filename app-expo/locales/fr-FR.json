@@ -821,7 +821,6 @@
 			}
 		},
 		"empty": {
-			"title": "Rien pour l'instant",
 			"description": "Les plats que vous enregistrez ou marquez comme goûtés apparaîtront ici."
 		},
 		"list": {

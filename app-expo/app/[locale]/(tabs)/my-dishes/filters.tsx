@@ -131,28 +131,22 @@ export default function MyDishesFiltersScreen() {
 	const selectSort = useCallback(
 		(sort: MyDishesSort) => {
 			lightImpact();
-			setDraft((prev) => {
-				const next: MyDishesFilter = { ...prev, sort };
-				// sort の同伴パラメータ（sceneKey / timeSlotKey）が未選択なら既定値を入れておく。
-				// 未選択のまま送ると QueryMyDishesDto の ValidateIf で 400 になる（#1395 §4-3）
-				if (sort === "-sceneScore" && !next.sceneKey) next.sceneKey = sceneOptions[0].id;
-				if (sort === "-timeSlotScore" && !next.timeSlotKey) next.timeSlotKey = timeSlots[0].id;
-				return next;
-			});
+			// #1396 m-4: 同伴キー（sceneKey / timeSlotKey）を勝手に埋めない。
+			// キーを選ぶまでこのソートは適用しない（UI 上も「選択済み」に見せない）
+			patchDraft({ sort });
 		},
-		[lightImpact],
+		[lightImpact, patchDraft],
 	);
 
 	const handleClearArea = useCallback(() => {
 		lightImpact();
-		// 確定済みエリアの解除は即時に store へ反映する（Map 側の表示と食い違わせない）
-		clearArea();
+		// #1396 m-2: 確定済みエリアの解除も「適用」で 1 回だけ反映する。ここでは draft を更新するだけ
 		setDraft((prev) => ({
 			...prev,
 			area: null,
 			sort: prev.sort === "distance" ? DEFAULT_MY_DISHES_FILTER.sort : prev.sort,
 		}));
-	}, [clearArea, lightImpact]);
+	}, [lightImpact]);
 
 	const handleClearPeriod = useCallback(() => {
 		lightImpact();
@@ -168,7 +162,14 @@ export default function MyDishesFiltersScreen() {
 	const handleApply = useCallback(() => {
 		lightImpact();
 		// #1396 【設計】ここが唯一 store を書く場所。queryKey が変わったビューだけが取り直す（§3-3）
-		patch(draft);
+		// m-3: area はここに含めない。PR4 以降 Map の commitArea が確定した area を、
+		// この画面が開いている間のスナップショット（draft）で黙って巻き戻さないため
+		const { area: _draftArea, ...patchWithoutArea } = draft;
+		patch(patchWithoutArea);
+		// m-2: エリア解除（handleClearArea）も「適用」まで反映しない。ここで初めて 1 回だけ store を書く
+		if (draft.area === null && filter.area !== null) {
+			clearArea();
+		}
 		logFrontendEvent({
 			event_name: "my_dishes_filter_applied",
 			error_level: "log",
@@ -181,7 +182,7 @@ export default function MyDishesFiltersScreen() {
 			},
 		});
 		router.back();
-	}, [draft, lightImpact, logFrontendEvent, patch]);
+	}, [clearArea, draft, filter.area, lightImpact, logFrontendEvent, patch]);
 
 	const handleBack = useCallback(() => {
 		lightImpact();
@@ -233,17 +234,23 @@ export default function MyDishesFiltersScreen() {
 				)}
 
 				<Section title={i18n.t("MyDishes.filters.sort.title")}>
-					{SORT_CHOICES.map(({ sort, labelKey }) => (
-						<Chip
-							key={sort}
-							testID={`my-dishes-filter-sort-${sort}`}
-							label={i18n.t(labelKey)}
-							selected={draft.sort === sort}
-							// distance はエリア（lat/lng/radius）が必須。未確定なら選ばせない（#1395 §4-3）
-							disabled={sort === "distance" && !draft.area}
-							onPress={() => selectSort(sort)}
-						/>
-					))}
+					{SORT_CHOICES.map(({ sort, labelKey }) => {
+						// #1396 m-4: 同伴キー（sceneKey / timeSlotKey）が無い間は「選択済み」に見せない。
+						// 既定値を勝手に入れないので、キーを選ぶまでこのソートは実質未適用のままである
+						const missingSceneKey = sort === "-sceneScore" && !draft.sceneKey;
+						const missingTimeSlotKey = sort === "-timeSlotScore" && !draft.timeSlotKey;
+						return (
+							<Chip
+								key={sort}
+								testID={`my-dishes-filter-sort-${sort}`}
+								label={i18n.t(labelKey)}
+								selected={draft.sort === sort && !missingSceneKey && !missingTimeSlotKey}
+								// distance はエリア（lat/lng/radius）が必須。未確定なら選ばせない（#1395 §4-3）
+								disabled={sort === "distance" && !draft.area}
+								onPress={() => selectSort(sort)}
+							/>
+						);
+					})}
 				</Section>
 				{draft.sort === "distance" && !draft.area && (
 					<Text style={styles.hint}>{i18n.t("MyDishes.filters.sort.distanceRequiresArea")}</Text>

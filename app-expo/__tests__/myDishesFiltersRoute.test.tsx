@@ -95,7 +95,10 @@ const exists = (tree: TestRenderer.ReactTestRenderer, testID: string): boolean =
  * 押せるかどうかは «実際に押される要素» の accessibilityState で見る。
  * testID は Chip（composite）にも渡っているので、`accessibilityState` を持つ側を選ぶ。
  */
-const accessibilityStateOf = (tree: TestRenderer.ReactTestRenderer, testID: string): { disabled?: boolean } =>
+const accessibilityStateOf = (
+	tree: TestRenderer.ReactTestRenderer,
+	testID: string,
+): { disabled?: boolean; selected?: boolean } =>
 	tree.root.findAll((node) => node.props?.testID === testID && !!node.props?.accessibilityState, { deep: true })[0]
 		.props.accessibilityState;
 
@@ -165,13 +168,35 @@ describe("#1396 my-dishes フィルタ編集ルート", () => {
 		expect(accessibilityStateOf(tree, "my-dishes-filter-sort-distance").disabled).toBe(true);
 	});
 
-	it("エリアは確定済みの表示と解除だけ（この画面からは viewport を触らない）", async () => {
+	// #1396 m-2: エリア解除も「適用」で 1 回だけ反映する（チップと同じ扱いに揃える）
+	it("エリア解除は「適用」まで反映しない（この画面からは viewport を触らない）", async () => {
 		useMyDishesFilterStore.getState().commitArea({ lat: 35.68, lng: 139.76, radius: 1200 });
 		const tree = await render(<MyDishesFiltersScreen />);
 
 		expect(exists(tree, "my-dishes-filter-area-clear")).toBe(true);
 		await press(tree, "my-dishes-filter-area-clear");
+		// 「適用」を押すまでは store に反映されない
+		expect(useMyDishesFilterStore.getState().filter.area).toEqual({ lat: 35.68, lng: 139.76, radius: 1200 });
+
+		await press(tree, "my-dishes-filter-apply");
 		expect(useMyDishesFilterStore.getState().filter.area).toBeNull();
+	});
+
+	// #1396 m-3: patch(draft) は area を含まない。エリアは commitArea / clearArea だけが触る
+	it("エリアを解除していなければ、適用してもエリアは巻き戻らない（外部の commitArea を上書きしない）", async () => {
+		useMyDishesFilterStore.getState().commitArea({ lat: 35.68, lng: 139.76, radius: 1200 });
+		const tree = await render(<MyDishesFiltersScreen />);
+
+		// 画面が開いている間に Map（PR4 の commitArea 相当）でエリアが変わっても…
+		await act(async () => {
+			useMyDishesFilterStore.getState().commitArea({ lat: 1, lng: 2, radius: 500 });
+		});
+
+		await press(tree, "my-dishes-filter-status-eaten");
+		await press(tree, "my-dishes-filter-apply");
+
+		// draft のスナップショット（古いエリア）で黙って巻き戻さない
+		expect(useMyDishesFilterStore.getState().filter.area).toEqual({ lat: 1, lng: 2, radius: 500 });
 	});
 
 	// #1396 確定B: 時間帯・シチュエーションは絞り込みではなく «並び替え» として出す
@@ -181,11 +206,26 @@ describe("#1396 my-dishes フィルタ編集ルート", () => {
 		expect(exists(tree, "my-dishes-filter-sort--timeSlotScore")).toBe(true);
 		expect(exists(tree, "my-dishes-filter-sort--sceneScore")).toBe(true);
 
-		// ソートを選んだ時点で同伴キーの既定値が入る（未選択のまま送ると 400 になる）
+		// #1396 m-4: キーを選ぶまで「選択済み」に見せない（同伴キーの既定同伴は廃止）
 		await press(tree, "my-dishes-filter-sort--timeSlotScore");
+		expect(accessibilityStateOf(tree, "my-dishes-filter-sort--timeSlotScore").selected).toBe(false);
+		expect(useMyDishesFilterStore.getState().filter.timeSlotKey).toBeNull();
+
+		await press(tree, "my-dishes-filter-time-slot-morning");
+		expect(accessibilityStateOf(tree, "my-dishes-filter-sort--timeSlotScore").selected).toBe(true);
+
 		await press(tree, "my-dishes-filter-apply");
 		expect(useMyDishesFilterStore.getState().filter.sort).toBe("-timeSlotScore");
 		expect(useMyDishesFilterStore.getState().filter.timeSlotKey).toBe("morning");
+	});
+
+	it("キーを選ばずに適用しても同伴キーへ既定値を入れない（m-4）", async () => {
+		const tree = await render(<MyDishesFiltersScreen />);
+
+		await press(tree, "my-dishes-filter-sort--sceneScore");
+		await press(tree, "my-dishes-filter-apply");
+
+		expect(useMyDishesFilterStore.getState().filter.sceneKey).toBeNull();
 	});
 
 	it("「リセット」は確定済みエリアを残す（意図せず全国検索へ戻さない）", async () => {
