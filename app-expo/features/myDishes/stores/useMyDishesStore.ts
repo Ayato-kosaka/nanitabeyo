@@ -20,8 +20,17 @@ import type { MyDishItem, MyDishPin } from "@shared/api/v1/res";
  * 入るのは「取得結果」だけである。
  */
 
-/** 保持する `queryKey` の本数。これを超えた分は LRU で捨てる（設計書 (2/2) §3-3） */
-export const MY_DISHES_QUERY_LRU_SIZE = 3;
+/**
+ * 保持する `queryKey` の本数。これを超えた分は LRU で捨てる（設計書 (2/2) §3-3）。
+ *
+ * #1397 §8-2 / R2: 3 のままだと、料理メディア Sheet 用の派生 queryKey（`restaurantId` 付き）が
+ * base（一覧・Map 共有）と同じ `recentQueryKeys` を食い合い、ピンを 3 つ開いた時点で base の
+ * スライスが LRU から落ちる。落ちた直後に一覧へ戻ると 964MB の `dish_reviews` を叩き直す。
+ * 6 へ増やす（1 スライス最大 42 行なのでメモリ影響は小さい）。
+ * 本質的な対処は `useMyDishesRestaurantQuery` が Sheet を開くたびに base の `queryKey` も
+ * `touchQuery` すること（base を常に MRU に留める）で、このサイズ増加はその補強である。
+ */
+export const MY_DISHES_QUERY_LRU_SIZE = 6;
 
 /** 1 ページの件数。#1395 の既定（42）に合わせる */
 export const MY_DISHES_PAGE_SIZE = 42;
