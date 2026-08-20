@@ -59,14 +59,18 @@ export type { MyDishStatus };
  * - 「食べた」行 = `dish_reviews` 1 件（`key = "review:<uuid>"`）。
  *   `dish_reviews` に `(dish_id, user_id)` の一意制約が無いため、同じ料理の再訪は別行として出る。
  * - 「食べたい」行 = dish 1 件（`key = "dish:<uuid>"`）。同じ dish の複数メディアを save していても
- *   1 行に畳む（`savedAt` は `MAX(reactions.created_at)`）。
+ *   1 行に畳む（`savedAt` は `MAX(reactions.created_at)`、期間で切らない表示用の値）。
  *   **その dish に自分の `dish_reviews` が 1 件でもあれば want 行は出さない**（状態の導出）。
  */
 export type MyDishItem = {
 	/** `"review:<uuid>"` | `"dish:<uuid>"`。カーソルの tiebreaker と React の key を兼ねる */
 	key: string;
 	status: MyDishStatus;
-	/** 並び替え・Calendar のバケット用に正規化した日時。eaten なら `eatenAt`、want なら `savedAt` */
+	/**
+	 * 並び替え・Calendar のバケット用に正規化した日時。eaten なら `eatenAt`、want なら基本 `savedAt` と一致するが、
+	 * `to` 指定時の want 行は「期間内の最新 save」になるため `savedAt`（期間で切らない）と食い違うことがある。
+	 * `occurredAt === savedAt` を前提にしないこと。
+	 */
 	occurredAt: string;
 	/** 食べたい登録日。食べた状態でも保持する（save reaction を消さないため） */
 	savedAt: string | null;

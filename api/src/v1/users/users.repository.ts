@@ -16,6 +16,7 @@ import { roundToOneDecimal } from '../../core/utils/backend-utils';
 import {
   MyDishCursor,
   buildMyDishMapPinsQuery,
+  buildMyDishesOldestWantSaveQuery,
   buildMyDishesPageQuery,
 } from './my-dishes.query';
 
@@ -280,35 +281,18 @@ export class UsersRepository {
     }
 
     if (statuses.includes('want')) {
-      // #1395 m-b: 一覧の want 行は「その dish に自分の dish_reviews が 1 件も無い」ものだけ
-      // （my-dishes.query.ts の NOT EXISTS）。reactions の最古 save をそのまま返すと、
-      // **既に食べ終えた dish の save まで数えて** Calendar が
-      // 「実際には want 行が 1 件も無い月まで遡れる」と表示してしまう。
+      // #1395 m-b / m-e: 一覧の want 行は「その dish に自分の dish_reviews が 1 件も無い」
+      // ものだけ（NOT EXISTS）で、`occurredAt` は dish ごとの「最新 save」
+      // （DISTINCT ON ... ORDER BY created_at DESC）。ここも dish ごとに畳んでから
+      // MIN を取らないと、一覧に出ない月まで Calendar が遡れると表示してしまう。
+      // SQL の形は my-dishes.query.ts（PrismaService に依存しない純関数）に置き、
+      // DB 無しで単体テストできるようにしている。
       //
-      // ⚠️ target_id::uuid は MATERIALIZED フェンスの外側でだけ行う（M-1 と同じ理由。
-      //    dish_categories.id は TEXT なので `::uuid` にすると落ちる target_id が実在する）。
       // フェンスがあるので save 全件を 1 度読むが、この算出は
       // 「初回ページかつ status 以外のフィルタ無し」のときだけ走る（resolveOldestOccurredAt）。
       const rows = await this.prisma.prisma.$queryRaw<
         { oldest: Date | null }[]
-      >(Prisma.sql`
-        WITH my_save_ids AS MATERIALIZED (
-          SELECT target_id, created_at
-          FROM reactions
-          WHERE user_id = ${userId}::uuid
-            AND target_type = 'dish_media'
-            AND action_type = 'save'
-        )
-        SELECT MIN(s.created_at) AS oldest
-        FROM my_save_ids s
-        JOIN dish_media dm ON dm.id = s.target_id::uuid
-        WHERE NOT EXISTS (
-          SELECT 1
-          FROM dish_reviews dr
-          WHERE dr.user_id = ${userId}::uuid
-            AND dr.dish_id = dm.dish_id
-        )
-      `);
+      >(buildMyDishesOldestWantSaveQuery(userId));
       const oldestSave = rows[0]?.oldest ?? null;
       if (oldestSave) candidates.push(oldestSave);
     }
