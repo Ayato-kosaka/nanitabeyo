@@ -362,10 +362,6 @@
 			"million": "M",
 			"thousand": "K"
 		},
-		"menuOptions": {
-			"viewCreatorProfile": "查看创作者资料",
-			"reservation": "预订"
-		},
 		"actions": {
 			"share": "分享",
 			"seeMore": "查看更多",
@@ -512,7 +508,6 @@
 		"buttons": {
 			"postReview": "发布评论",
 			"postPhotoVideoReview": "发布照片/视频",
-			"placeBid": "出价",
 			"bid": "出价",
 			"searchNearby": "在此区域搜索",
 			"openInGoogle": "在 Google 中打开"
@@ -540,13 +535,11 @@
 		"labels": {
 			"endDate": "结束日期:",
 			"paymentProcessing": "付款处理中...",
-			"currentBidAmount": "当前出价金额",
 			"restaurant": "餐厅",
 			"dishCategory": "菜品类别"
 		},
 		"tabs": {
-			"reviews": "评论",
-			"bids": "出价"
+			"reviews": "评论"
 		},
 		"emptyState": {
 			"noBidsForStatus": "所选状态没有出价"
@@ -671,9 +664,7 @@
 	"auth": {
 		"login_title": "登录",
 		"create_title": "创建账户",
-		"field_phone": "电话",
 		"field_name": "姓名",
-		"hint_sms": "我们将通过短信向您发送一次性验证码以进行登录。",
 		"btn_login": "登录",
 		"btn_create": "创建账户",
 		"divider_or": "或使用以下方式登录",
@@ -682,13 +673,8 @@
 		"provider_facebook": "Facebook",
 		"provider_twitter": "Twitter",
 		"provider_apple": "Apple",
-		"otp_title": "输入验证码",
-		"otp_resending": "正在重新发送验证码...",
-		"otp_send_again": "重新发送验证码",
-		"otp_enter_all_digits": "请输入全部6位数字",
 		"login_success": "登录成功！",
 		"error_required": "此字段为必填项",
-		"error_invalid_phone": "无效的电话号码",
 		"tos_link_text": "服务条款",
 		"existing_account_checkbox": "您已经有账户了吗？",
 		"conflict_dialog_title": "找到现有账户",

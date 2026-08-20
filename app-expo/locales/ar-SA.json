@@ -362,10 +362,6 @@
 			"million": "M",
 			"thousand": "K"
 		},
-		"menuOptions": {
-			"viewCreatorProfile": "انتقل إلى ملف المُنشئ",
-			"reservation": "حجز"
-		},
 		"actions": {
 			"share": "مشاركة",
 			"seeMore": "عرض المزيد",
@@ -513,7 +509,6 @@
 		"buttons": {
 			"postReview": "نشر مراجعة",
 			"postPhotoVideoReview": "نشر صورة/فيديو",
-			"placeBid": "تقديم عرض",
 			"bid": "عرض",
 			"searchNearby": "ابحث في هذه المنطقة",
 			"openInGoogle": "فتح في Google"
@@ -541,13 +536,11 @@
 		"labels": {
 			"endDate": "تاريخ الانتهاء:",
 			"paymentProcessing": "معالجة الدفع...",
-			"currentBidAmount": "مبلغ العرض الحالي",
 			"restaurant": "مطعم",
 			"dishCategory": "فئة الطبق"
 		},
 		"tabs": {
-			"reviews": "المراجعات",
-			"bids": "العروض"
+			"reviews": "المراجعات"
 		},
 		"emptyState": {
 			"noBidsForStatus": "لا توجد عروض للحالة المحددة"
@@ -671,9 +664,7 @@
 	"auth": {
 		"login_title": "تسجيل الدخول",
 		"create_title": "إنشاء حساب",
-		"field_phone": "الهاتف",
 		"field_name": "الاسم",
-		"hint_sms": "سنرسل لك رمز لمرة واحدة عبر الرسائل النصية لتسجيل الدخول.",
 		"btn_login": "تسجيل الدخول",
 		"btn_create": "إنشاء حساب",
 		"divider_or": "أو تسجيل الدخول باستخدام",
@@ -682,13 +673,8 @@
 		"provider_facebook": "Facebook",
 		"provider_twitter": "Twitter",
 		"provider_apple": "Apple",
-		"otp_title": "أدخل الرمز",
-		"otp_resending": "جارٍ إعادة إرسال الرمز...",
-		"otp_send_again": "إعادة إرسال الرمز",
-		"otp_enter_all_digits": "يرجى إدخال الأرقام الستة كاملة",
 		"login_success": "تم تسجيل الدخول بنجاح!",
 		"error_required": "هذا الحقل مطلوب",
-		"error_invalid_phone": "رقم الهاتف غير صحيح",
 		"tos_link_text": "شروط الخدمة",
 		"existing_account_checkbox": "هل لديك حساب بالفعل؟",
 		"conflict_dialog_title": "تم العثور على حساب موجود",
