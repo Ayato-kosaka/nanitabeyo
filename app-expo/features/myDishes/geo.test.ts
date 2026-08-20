@@ -2,6 +2,8 @@ import {
 	MAX_AREA_RADIUS_M,
 	METERS_PER_DEGREE_LATITUDE,
 	MIN_AREA_RADIUS_M,
+	boundingRegionForCoordinates,
+	isRegionTooWide,
 	regionToArea,
 	type MapRegionLike,
 } from "./geo";
@@ -97,5 +99,87 @@ describe("#1396 regionToArea", () => {
 			expect(area!.radius).toBeLessThanOrEqual(MAX_AREA_RADIUS_M);
 			expect(Number.isInteger(area!.radius)).toBe(true);
 		}
+	});
+});
+
+/**
+ * #1396 レビュー M-2: `regionToArea` が `MAX_AREA_RADIUS_M` で clamp するかどうかを
+ * 事前に判定できないと、「このエリアで再検索」がボタンのラベルと大きくずれた範囲を確定してしまう
+ * （既定の `REGION_JP` = 日本全体から半径 50km に丸められ、東京・大阪の記録が全部圏外になる）。
+ */
+describe("#1396 isRegionTooWide", () => {
+	it("日本全体が入るくらいの region（REGION_JP 相当）は too wide", () => {
+		expect(isRegionTooWide({ latitude: 36.2048, longitude: 138.2529, latitudeDelta: 20, longitudeDelta: 20 })).toBe(
+			true,
+		);
+	});
+
+	it("ズームインした region（半径が 50km を超えない）は too wide ではない", () => {
+		expect(
+			isRegionTooWide({ latitude: 35.681236, longitude: 139.767125, latitudeDelta: 0.02, longitudeDelta: 0.02 }),
+		).toBe(false);
+	});
+
+	it("regionToArea が clamp する境界と一致する", () => {
+		// 対角線の半分がちょうど MAX_AREA_RADIUS_M を超えない region
+		const justUnder: MapRegionLike = { latitude: 0, longitude: 0, latitudeDelta: 0.6, longitudeDelta: 0 };
+		const areaUnder = regionToArea(justUnder);
+		expect(areaUnder?.radius).toBeLessThan(MAX_AREA_RADIUS_M);
+		expect(isRegionTooWide(justUnder)).toBe(false);
+
+		// 対角線の半分が MAX_AREA_RADIUS_M を超え、regionToArea 側で丸められる region
+		const over: MapRegionLike = { latitude: 0, longitude: 0, latitudeDelta: 2, longitudeDelta: 0 };
+		const areaOver = regionToArea(over);
+		expect(areaOver?.radius).toBe(MAX_AREA_RADIUS_M);
+		expect(isRegionTooWide(over)).toBe(true);
+	});
+
+	it("NaN / Infinity を含む region は too wide 扱い（regionToArea が null を返すのと対）", () => {
+		expect(isRegionTooWide({ latitude: NaN, longitude: 0, latitudeDelta: 0.01, longitudeDelta: 0.01 })).toBe(true);
+		expect(isRegionTooWide({ latitude: 0, longitude: Infinity, latitudeDelta: 0.01, longitudeDelta: 0.01 })).toBe(
+			true,
+		);
+	});
+
+	it("null / undefined は too wide 扱い（ボタンを無効化する安全側に倒す）", () => {
+		expect(isRegionTooWide(null)).toBe(true);
+		expect(isRegionTooWide(undefined)).toBe(true);
+	});
+});
+
+/**
+ * #1396 m-1: 取得したピンの外接矩形へ寄せるための region 計算。
+ */
+describe("#1396 boundingRegionForCoordinates", () => {
+	it("座標が 0 件なら null を返す", () => {
+		expect(boundingRegionForCoordinates([])).toBeNull();
+	});
+
+	it("複数座標の中心を latitude/longitude として返す", () => {
+		const region = boundingRegionForCoordinates([
+			{ latitude: 35.0, longitude: 139.0 },
+			{ latitude: 36.0, longitude: 140.0 },
+		]);
+		expect(region?.latitude).toBeCloseTo(35.5);
+		expect(region?.longitude).toBeCloseTo(139.5);
+	});
+
+	it("単一座標でも delta が 0 にならない（最低幅を確保する）", () => {
+		const region = boundingRegionForCoordinates([{ latitude: 35.0, longitude: 139.0 }]);
+		expect(region?.latitudeDelta).toBeGreaterThan(0);
+		expect(region?.longitudeDelta).toBeGreaterThan(0);
+	});
+
+	it("座標の広がりに応じて delta が広がる（余白込み）", () => {
+		const narrow = boundingRegionForCoordinates([
+			{ latitude: 35.0, longitude: 139.0 },
+			{ latitude: 35.01, longitude: 139.01 },
+		]);
+		const wide = boundingRegionForCoordinates([
+			{ latitude: 30.0, longitude: 130.0 },
+			{ latitude: 40.0, longitude: 145.0 },
+		]);
+		expect(wide!.latitudeDelta).toBeGreaterThan(narrow!.latitudeDelta);
+		expect(wide!.longitudeDelta).toBeGreaterThan(narrow!.longitudeDelta);
 	});
 });

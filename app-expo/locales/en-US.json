@@ -778,6 +778,11 @@
 			"list": "List",
 			"calendar": "Calendar"
 		},
+		"map": {
+			"truncated": "Only some pins are shown. Narrow the area to see the rest.",
+			"zoomInHint": "Zoom in before you search this area",
+			"areaActive": "Filtering by area"
+		},
 		"guest": {
 			"description": "Log in to start recording dishes you want to try and have eaten",
 			"loginButton": "Log In"

@@ -778,6 +778,11 @@
 			"list": "列表",
 			"calendar": "日历"
 		},
+		"map": {
+			"truncated": "地图上仅显示部分标记，请缩小搜索范围。",
+			"zoomInHint": "请先放大地图，再重新搜索该区域",
+			"areaActive": "正在按区域筛选"
+		},
 		"guest": {
 			"description": "登录后记录你想吃和吃过的美食",
 			"loginButton": "登录"

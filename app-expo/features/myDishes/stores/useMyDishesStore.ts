@@ -1,7 +1,7 @@
 import { createWithEqualityFn } from "zustand/traditional";
 import i18n from "@/lib/i18n";
 import { toErrorLogMessage } from "@/lib/errorMessage";
-import type { MyDishItem } from "@shared/api/v1/res";
+import type { MyDishItem, MyDishPin } from "@shared/api/v1/res";
 
 /**
  * #1396 my-dishes の取得結果を置く store（設計書 (2/2) §3-3）。
@@ -36,6 +36,15 @@ export type MyDishesFetchResult = {
 /** `cursor` を受け取ってページを返す関数。実体は `useMyDishesQuery` が `callBackend` で組む */
 export type MyDishesFetcher = (params: { cursor?: string | null }) => Promise<MyDishesFetchResult>;
 
+/** #1396 Map ピン取得結果。`GET /v1/users/me/dishes/map-pins` はページングしない（店舗単位に集約済み） */
+export type MyDishesPinsFetchResult = {
+	data: MyDishPin[];
+	truncated: boolean;
+};
+
+/** ピンを返す関数。実体は `useMyDishesMapPinsQuery` が `callBackend` で組む */
+export type MyDishesPinsFetcher = () => Promise<MyDishesPinsFetchResult>;
+
 export type MyDishesStore = {
 	/**
 	 * `MyDishItem.key`（`"review:<uuid>"` / `"dish:<uuid>"`。#1395 §4-4）をキーにした正規化テーブル。
@@ -64,13 +73,34 @@ export type MyDishesStore = {
 	/** `queryKey` ごとのエラーメッセージ */
 	errorByQuery: Record<string, string | null>;
 
+	/**
+	 * `queryKey` ごとの Map ピン（`GET /v1/users/me/dishes/map-pins`。#1396 設計書 (2/2) §3-3）。
+	 *
+	 * 一覧（`itemKeysByQuery` 等）とは別スライスだが、**`queryKey` は一覧と同じもの**を使う。
+	 * リストで絞った結果が Map にも即反映され、かつ LRU（`recentQueryKeys`）と
+	 * ビュー切替時の「再取得しない」挙動を一覧と共有できる。
+	 */
+	pinsByQuery: Record<string, MyDishPin[]>;
+
+	/** `queryKey` ごとのピン取得中フラグ */
+	isLoadingPinsByQuery: Record<string, boolean>;
+
+	/** `queryKey` ごとのピン初回取得完了フラグ */
+	hasFetchedInitialPinsByQuery: Record<string, boolean>;
+
+	/** `queryKey` ごとのピン取得エラーメッセージ */
+	errorPinsByQuery: Record<string, string | null>;
+
+	/** `queryKey` ごとに `MY_DISH_MAP_PINS_LIMIT` で切られたか */
+	truncatedByQuery: Record<string, boolean>;
+
 	/** 参照が新しい順に並んだ `queryKey`。先頭が最新（LRU の管理用） */
 	recentQueryKeys: string[];
 
 	/**
 	 * `queryKey` を LRU の先頭へ touch する。キャッシュヒット（`fetchInitial` を呼ばない経路）でも
 	 * 呼ぶ必要があるため、`fetchInitial` の副作用から独立させている（#1396 m-1）。
-	 * `useMyDishesQuery` がマウント・`queryKey` 変化のたびに毎回呼ぶ。
+	 * `useMyDishesQuery` / `useMyDishesMapPinsQuery` がマウント・`queryKey` 変化のたびに毎回呼ぶ。
 	 */
 	touchQuery: (queryKey: string) => void;
 
@@ -80,11 +110,15 @@ export type MyDishesStore = {
 	/** 追加ページ取得。`nextCursor === null` なら何もしない */
 	fetchMore: (queryKey: string, fetcher: MyDishesFetcher) => Promise<void>;
 
+	/** Map ピンの取得（ページングしない。同一キーの取得が飛行中なら二重に投げない） */
+	fetchPins: (queryKey: string, fetcher: MyDishesPinsFetcher) => Promise<void>;
+
 	/** `queryKey` を指定するとそのスライスだけ、省略すると全部を破棄する */
 	clearQuery: (queryKey?: string) => void;
 };
 
 const EMPTY_KEYS: string[] = [];
+const EMPTY_PINS: MyDishPin[] = [];
 
 /** `queryKey` に紐づく一覧の状態をまとめて取り出すセレクタ（`useTopicsStore` の作法に合わせる） */
 export const selectMyDishesByQuery =
@@ -109,6 +143,25 @@ export const selectMyDishesByQuery =
 		oldestOccurredAt: state.oldestOccurredAtByQuery[queryKey] ?? null,
 	});
 
+/** `queryKey` に紐づく Map ピンの状態をまとめて取り出すセレクタ */
+export const selectMyDishesPinsByQuery =
+	(queryKey: string) =>
+	(
+		state: MyDishesStore,
+	): {
+		pins: MyDishPin[];
+		isLoading: boolean;
+		error: string | null;
+		hasFetchedInitial: boolean;
+		truncated: boolean;
+	} => ({
+		pins: state.pinsByQuery[queryKey] ?? EMPTY_PINS,
+		isLoading: state.isLoadingPinsByQuery[queryKey] ?? false,
+		error: state.errorPinsByQuery[queryKey] ?? null,
+		hasFetchedInitial: state.hasFetchedInitialPinsByQuery[queryKey] ?? false,
+		truncated: state.truncatedByQuery[queryKey] ?? false,
+	});
+
 /**
  * `queryKey` を LRU の先頭へ持ち上げ、`MY_DISHES_QUERY_LRU_SIZE` 本を超えた分のスライスを捨てる。
  *
@@ -131,6 +184,11 @@ const touchAndEvict = (state: MyDishesStore, queryKey: string): Partial<MyDishes
 	const nextOldestOccurredAtByQuery = { ...state.oldestOccurredAtByQuery };
 	const nextHasFetchedInitialByQuery = { ...state.hasFetchedInitialByQuery };
 	const nextErrorByQuery = { ...state.errorByQuery };
+	const nextPinsByQuery = { ...state.pinsByQuery };
+	const nextIsLoadingPinsByQuery = { ...state.isLoadingPinsByQuery };
+	const nextHasFetchedInitialPinsByQuery = { ...state.hasFetchedInitialPinsByQuery };
+	const nextErrorPinsByQuery = { ...state.errorPinsByQuery };
+	const nextTruncatedByQuery = { ...state.truncatedByQuery };
 
 	for (const key of evicted) {
 		delete nextItemKeysByQuery[key];
@@ -140,6 +198,11 @@ const touchAndEvict = (state: MyDishesStore, queryKey: string): Partial<MyDishes
 		delete nextOldestOccurredAtByQuery[key];
 		delete nextHasFetchedInitialByQuery[key];
 		delete nextErrorByQuery[key];
+		delete nextPinsByQuery[key];
+		delete nextIsLoadingPinsByQuery[key];
+		delete nextHasFetchedInitialPinsByQuery[key];
+		delete nextErrorPinsByQuery[key];
+		delete nextTruncatedByQuery[key];
 	}
 
 	// 残ったスライスから参照されている行だけを itemByKey に残す
@@ -163,6 +226,11 @@ const touchAndEvict = (state: MyDishesStore, queryKey: string): Partial<MyDishes
 		oldestOccurredAtByQuery: nextOldestOccurredAtByQuery,
 		hasFetchedInitialByQuery: nextHasFetchedInitialByQuery,
 		errorByQuery: nextErrorByQuery,
+		pinsByQuery: nextPinsByQuery,
+		isLoadingPinsByQuery: nextIsLoadingPinsByQuery,
+		hasFetchedInitialPinsByQuery: nextHasFetchedInitialPinsByQuery,
+		errorPinsByQuery: nextErrorPinsByQuery,
+		truncatedByQuery: nextTruncatedByQuery,
 	};
 };
 
@@ -178,6 +246,11 @@ export const useMyDishesStore = createWithEqualityFn<MyDishesStore>()((set, get)
 	oldestOccurredAtByQuery: {},
 	hasFetchedInitialByQuery: {},
 	errorByQuery: {},
+	pinsByQuery: {},
+	isLoadingPinsByQuery: {},
+	hasFetchedInitialPinsByQuery: {},
+	errorPinsByQuery: {},
+	truncatedByQuery: {},
 	recentQueryKeys: [],
 
 	touchQuery: (queryKey) => set((state) => touchAndEvict(state, queryKey)),
@@ -257,6 +330,30 @@ export const useMyDishesStore = createWithEqualityFn<MyDishesStore>()((set, get)
 		}
 	},
 
+	fetchPins: async (queryKey, fetcher) => {
+		// 同一キーのピン取得が飛行中なら二重に投げない
+		if (get().isLoadingPinsByQuery[queryKey]) return;
+
+		get().touchQuery(queryKey);
+		set((state) => ({
+			isLoadingPinsByQuery: { ...state.isLoadingPinsByQuery, [queryKey]: true },
+			errorPinsByQuery: { ...state.errorPinsByQuery, [queryKey]: null },
+		}));
+
+		try {
+			const response = await fetcher();
+			set((state) => ({
+				pinsByQuery: { ...state.pinsByQuery, [queryKey]: response.data },
+				truncatedByQuery: { ...state.truncatedByQuery, [queryKey]: response.truncated },
+				hasFetchedInitialPinsByQuery: { ...state.hasFetchedInitialPinsByQuery, [queryKey]: true },
+			}));
+		} catch (err) {
+			set((state) => ({ errorPinsByQuery: { ...state.errorPinsByQuery, [queryKey]: toErrorMessage(err) } }));
+		} finally {
+			set((state) => ({ isLoadingPinsByQuery: { ...state.isLoadingPinsByQuery, [queryKey]: false } }));
+		}
+	},
+
 	clearQuery: (queryKey) =>
 		set((state) => {
 			if (!queryKey) {
@@ -269,6 +366,11 @@ export const useMyDishesStore = createWithEqualityFn<MyDishesStore>()((set, get)
 					oldestOccurredAtByQuery: {},
 					hasFetchedInitialByQuery: {},
 					errorByQuery: {},
+					pinsByQuery: {},
+					isLoadingPinsByQuery: {},
+					hasFetchedInitialPinsByQuery: {},
+					errorPinsByQuery: {},
+					truncatedByQuery: {},
 					recentQueryKeys: [],
 				};
 			}
@@ -280,6 +382,11 @@ export const useMyDishesStore = createWithEqualityFn<MyDishesStore>()((set, get)
 			const nextOldestOccurredAtByQuery = { ...state.oldestOccurredAtByQuery };
 			const nextHasFetchedInitialByQuery = { ...state.hasFetchedInitialByQuery };
 			const nextErrorByQuery = { ...state.errorByQuery };
+			const nextPinsByQuery = { ...state.pinsByQuery };
+			const nextIsLoadingPinsByQuery = { ...state.isLoadingPinsByQuery };
+			const nextHasFetchedInitialPinsByQuery = { ...state.hasFetchedInitialPinsByQuery };
+			const nextErrorPinsByQuery = { ...state.errorPinsByQuery };
+			const nextTruncatedByQuery = { ...state.truncatedByQuery };
 
 			delete nextItemKeysByQuery[queryKey];
 			delete nextNextCursorByQuery[queryKey];
@@ -288,6 +395,11 @@ export const useMyDishesStore = createWithEqualityFn<MyDishesStore>()((set, get)
 			delete nextOldestOccurredAtByQuery[queryKey];
 			delete nextHasFetchedInitialByQuery[queryKey];
 			delete nextErrorByQuery[queryKey];
+			delete nextPinsByQuery[queryKey];
+			delete nextIsLoadingPinsByQuery[queryKey];
+			delete nextHasFetchedInitialPinsByQuery[queryKey];
+			delete nextErrorPinsByQuery[queryKey];
+			delete nextTruncatedByQuery[queryKey];
 
 			const referenced = new Set<string>();
 			for (const keys of Object.values(nextItemKeysByQuery)) {
@@ -308,6 +420,11 @@ export const useMyDishesStore = createWithEqualityFn<MyDishesStore>()((set, get)
 				oldestOccurredAtByQuery: nextOldestOccurredAtByQuery,
 				hasFetchedInitialByQuery: nextHasFetchedInitialByQuery,
 				errorByQuery: nextErrorByQuery,
+				pinsByQuery: nextPinsByQuery,
+				isLoadingPinsByQuery: nextIsLoadingPinsByQuery,
+				hasFetchedInitialPinsByQuery: nextHasFetchedInitialPinsByQuery,
+				errorPinsByQuery: nextErrorPinsByQuery,
+				truncatedByQuery: nextTruncatedByQuery,
 				recentQueryKeys: state.recentQueryKeys.filter((k) => k !== queryKey),
 			};
 		}),

@@ -11,6 +11,7 @@ import { useLogger } from "@/hooks/useLogger";
 import { useScreenTrace } from "@/hooks/useScreenTrace";
 import { useLocale } from "@/hooks/useLocale";
 import { MyDishesListView } from "@/features/myDishes/components/MyDishesListView";
+import { MyDishesMapView } from "@/features/myDishes/components/MyDishesMapView";
 import i18n from "@/lib/i18n";
 
 // #1396 【設計】Map / リスト / Calendar は 3 ルートに分けず、1 ルート + `?view=` 切替にする。
@@ -158,7 +159,9 @@ export default function MyDishesScreen() {
 					// `pointerEvents="none"` と `accessibilityElementsHidden` /
 					// `importantForAccessibility="no-hide-descendants"` で非表示ビューをタッチと
 					// 読み上げから除外する。この器の形は PR4（Map）・PR5（Calendar）がそのまま踏襲する。
-					// Map / Calendar の中身自体は本 PR のスコープ外（引き続き空のプレースホルダー）。
+					// Calendar の中身自体は本 PR のスコープ外（引き続き空のプレースホルダー）。PR4 で
+					// Map（`MyDishesMapView`）が入ったことで、keep-alive の器があって初めて
+					// 内部の viewport `useRef` が意味を持つ（ビュー切替のたびにアンマウントされない）。
 					<>
 						{MY_DISHES_VIEWS.map((v) => {
 							if (!visitedViews.has(v)) return null;
@@ -172,6 +175,7 @@ export default function MyDishesScreen() {
 									accessibilityElementsHidden={!isActive}
 									importantForAccessibility={isActive ? "auto" : "no-hide-descendants"}>
 									{v === "list" && <MyDishesListView />}
+									{v === "map" && <MyDishesMapView />}
 								</View>
 							);
 						})}
