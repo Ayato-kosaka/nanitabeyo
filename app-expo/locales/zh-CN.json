@@ -653,7 +653,16 @@
 		"savedRestaurantList": "已保存的餐厅",
 		"postPhotoVideo": "发布照片/视频",
 		"fetchSavedRestaurantsError": "获取已保存的餐厅失败",
-		"noSavedRestaurantsInArea": "在此区域未找到已保存的餐厅。请扩大区域并重新搜索。"
+		"noSavedRestaurantsInArea": "在此区域未找到已保存的餐厅。请扩大区域并重新搜索。",
+		"nameSearch": {
+			"placeholder": "按店名搜索",
+			"searching": "搜索中…",
+			"noResults": "未找到匹配的店铺。请点击地图上的店铺进行添加。",
+			"error": "搜索失败，请重试。"
+		},
+		"accessibility": {
+			"clearNameSearch": "清除店名搜索"
+		}
 	},
 	"Feedback": {
 		"title": "发送反馈/错误报告",

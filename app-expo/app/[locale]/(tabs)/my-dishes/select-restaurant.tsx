@@ -11,9 +11,11 @@ import {
 	type AutocompleteLocation,
 	type CreateRestaurantResponse,
 	type QueryMeSavedRestaurantsResponse,
+	type QueryRestaurantsResponse,
 	ErrorCode,
 } from "@shared/api/v1/res";
 import type { CreateRestaurantDto, QuerySavedRestaurantsDto } from "@shared/api/v1/dto";
+import { RestaurantNameSearch } from "@/features/restaurantPicker/components/RestaurantNameSearch";
 import { useHaptics } from "@/hooks/useHaptics";
 import i18n from "@/lib/i18n";
 import { useLogger } from "@/hooks/useLogger";
@@ -317,6 +319,30 @@ export default function SelectRestaurantScreen() {
 		[lightImpact, logFrontendEvent, locale],
 	);
 
+	// #1398 (PR6) 店名検索（自前 restaurants テーブル。Google Places は呼ばない）結果の押下時の処理
+	// （ストア upsert → 遷移）。地図の POI 経路・保存店経路と同じ形に揃える
+	const handleNameSearchResultPress = useCallback(
+		(result: QueryRestaurantsResponse[number]) => {
+			const { upsert } = useRestaurantStore.getState();
+			upsert({
+				restaurant: result.restaurant,
+				meta: result.meta,
+			});
+
+			router.push({
+				pathname: "/[locale]/restaurant/[restaurantId]",
+				params: { locale, restaurantId: result.restaurant.id },
+			});
+
+			logFrontendEvent({
+				event_name: "restaurant_name_search_result_press",
+				error_level: "log",
+				payload: { restaurant_id: result.restaurant.id },
+			});
+		},
+		[locale, logFrontendEvent],
+	);
+
 	// Map ready 後に pendingRegionRef に保存された region があれば移動させる
 	const [mapReady, setMapReady] = useState(false);
 	const pendingRegionRef = useRef<Region | null>(null);
@@ -464,6 +490,16 @@ export default function SelectRestaurantScreen() {
 						router.back();
 					}}
 				/>
+
+				{/* #1398 (PR6) 店名検索（自前 restaurants テーブルのみ。Google Places Text Search /
+				    Autocomplete は呼ばない）。見つからない場合は既存の Map POI タップ経路（下）を使う */}
+				<View style={styles.searchContainer}>
+					<RestaurantNameSearch
+						regionRef={currentRegion}
+						onSelectRestaurant={handleNameSearchResultPress}
+						testID="select-restaurant-name-search"
+					/>
+				</View>
 
 				{/* #644 【設計】Search Bar - placeholder: "店名やエリアで検索" */}
 				<View style={styles.searchContainer}>

@@ -653,7 +653,16 @@
 		"savedRestaurantList": "المطاعم المحفوظة",
 		"postPhotoVideo": "نشر صورة/فيديو",
 		"fetchSavedRestaurantsError": "فشل في جلب المطاعم المحفوظة",
-		"noSavedRestaurantsInArea": "لم يتم العثور على مطاعم محفوظة في هذه المنطقة. يرجى توسيع المنطقة والبحث مرة أخرى."
+		"noSavedRestaurantsInArea": "لم يتم العثور على مطاعم محفوظة في هذه المنطقة. يرجى توسيع المنطقة والبحث مرة أخرى.",
+		"nameSearch": {
+			"placeholder": "البحث باسم المطعم",
+			"searching": "جارٍ البحث…",
+			"noResults": "لم يتم العثور على مطاعم مطابقة. اضغط على مطعم في الخريطة لإضافته.",
+			"error": "فشل البحث. يرجى المحاولة مرة أخرى."
+		},
+		"accessibility": {
+			"clearNameSearch": "مسح بحث اسم المطعم"
+		}
 	},
 	"Feedback": {
 		"title": "إرسال ملاحظات/تقرير خطأ",

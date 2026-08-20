@@ -653,7 +653,16 @@
 		"savedRestaurantList": "Saved Restaurants",
 		"postPhotoVideo": "Post Photo/Video",
 		"fetchSavedRestaurantsError": "Failed to fetch saved restaurants",
-		"noSavedRestaurantsInArea": "No saved restaurants found in this area. Please expand the area and search again."
+		"noSavedRestaurantsInArea": "No saved restaurants found in this area. Please expand the area and search again.",
+		"nameSearch": {
+			"placeholder": "Search by restaurant name",
+			"searching": "Searching…",
+			"noResults": "No matching restaurants found. Tap a restaurant on the map to add it.",
+			"error": "Search failed. Please try again."
+		},
+		"accessibility": {
+			"clearNameSearch": "Clear restaurant name search"
+		}
 	},
 	"Feedback": {
 		"title": "Send Feedback/Bug Report",

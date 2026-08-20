@@ -653,7 +653,16 @@
 		"savedRestaurantList": "保存したお店リスト",
 		"postPhotoVideo": "写真・動画を投稿",
 		"fetchSavedRestaurantsError": "保存したお店の取得に失敗しました",
-		"noSavedRestaurantsInArea": "ご指定の表示領域に保存したお店が見つかりませんでした。エリアを拡大して再度検索を行ってください。"
+		"noSavedRestaurantsInArea": "ご指定の表示領域に保存したお店が見つかりませんでした。エリアを拡大して再度検索を行ってください。",
+		"nameSearch": {
+			"placeholder": "店名で検索",
+			"searching": "検索中…",
+			"noResults": "該当するお店が見つかりませんでした。地図の店舗をタップしてお店を登録してください。",
+			"error": "検索に失敗しました。もう一度お試しください。"
+		},
+		"accessibility": {
+			"clearNameSearch": "店名検索の入力をクリア"
+		}
 	},
 	"Feedback": {
 		"title": "ご意見・不具合を送る",
