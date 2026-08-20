@@ -873,6 +873,15 @@
 			"seeAllInList": "Tout voir dans la liste",
 			"noPhotoHint": "Cet enregistrement n'a pas de photo. Touchez pour ouvrir la page du restaurant."
 		},
+		"feed": {
+			"chips": {
+				"filterCategory": "Filtrer par {{name}}",
+				"filterStatusEaten": "Filtrer par « Goûté »",
+				"filterStatusWant": "Filtrer par « À goûter »",
+				"filterMinRating": "Filtrer par {{count}} étoiles et plus",
+				"applied": "Filtres mis à jour"
+			}
+		},
 		"searchThisArea": "Rechercher dans cette zone"
 	}
 }

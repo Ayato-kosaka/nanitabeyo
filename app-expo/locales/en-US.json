@@ -873,6 +873,15 @@
 			"seeAllInList": "See all in list",
 			"noPhotoHint": "This record has no photo. Tap to open the restaurant page."
 		},
+		"feed": {
+			"chips": {
+				"filterCategory": "Filter by {{name}}",
+				"filterStatusEaten": "Filter by Eaten",
+				"filterStatusWant": "Filter by Want to eat",
+				"filterMinRating": "Filter by {{count}} stars & up",
+				"applied": "Filters updated"
+			}
+		},
 		"searchThisArea": "Search this area"
 	}
 }

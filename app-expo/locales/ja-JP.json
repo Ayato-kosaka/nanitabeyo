@@ -873,6 +873,15 @@
 			"seeAllInList": "一覧で見る",
 			"noPhotoHint": "写真がない記録です。タップすると店舗ページを開きます"
 		},
+		"feed": {
+			"chips": {
+				"filterCategory": "{{name}} で絞る",
+				"filterStatusEaten": "食べたで絞る",
+				"filterStatusWant": "食べたいで絞る",
+				"filterMinRating": "★{{count}}以上で絞る",
+				"applied": "絞り込みを更新しました"
+			}
+		},
 		"searchThisArea": "このエリアで再検索"
 	}
 }

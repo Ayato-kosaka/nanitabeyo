@@ -873,6 +873,15 @@
 			"seeAllInList": "सूची में सब देखें",
 			"noPhotoHint": "इस रिकॉर्ड में फ़ोटो नहीं है। टैप करने पर रेस्टोरेंट पेज खुलेगा।"
 		},
+		"feed": {
+			"chips": {
+				"filterCategory": "{{name}} से फ़िल्टर करें",
+				"filterStatusEaten": "«खा लिया» से फ़िल्टर करें",
+				"filterStatusWant": "«खाना है» से फ़िल्टर करें",
+				"filterMinRating": "{{count}} स्टार और ऊपर से फ़िल्टर करें",
+				"applied": "फ़िल्टर अपडेट हो गए"
+			}
+		},
 		"searchThisArea": "इस क्षेत्र में फिर खोजें"
 	}
 }

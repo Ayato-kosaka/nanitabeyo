@@ -873,6 +873,15 @@
 			"seeAllInList": "在列表中查看",
 			"noPhotoHint": "该记录没有照片。点按可打开店铺页面。"
 		},
+		"feed": {
+			"chips": {
+				"filterCategory": "按{{name}}筛选",
+				"filterStatusEaten": "按「吃过」筛选",
+				"filterStatusWant": "按「想吃」筛选",
+				"filterMinRating": "按★{{count}} 以上筛选",
+				"applied": "已更新筛选条件"
+			}
+		},
 		"searchThisArea": "在此区域重新搜索"
 	}
 }

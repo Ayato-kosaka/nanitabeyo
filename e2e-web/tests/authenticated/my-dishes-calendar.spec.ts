@@ -32,6 +32,8 @@ import { loadTestUserCredentials } from "../../utils/testUserSession";
  * ⚠️ `route.fulfill()` を使うときは **`BaseResponse` の封筒 `{ success, data }` を外さないこと**。
  * `useAPICall` は `json.data` だけを取り出すので、封筒を忘れると画面がエラー表示になる
  * （utils/dishCategoryGroupVote.ts の mockVoteDetail に同じ注意書きがある）。
+ * このエンドポイントは中身が `PaginatedResponse` なので封筒は **2 段**になる
+ * （`{ success, data: { data, nextCursor, meta } }`）。詳細は `mockMyDishesPages` のコメント。
  *
  * ## Tier
  * Tier 2（無タグ）。`desktop-chrome-authenticated` のみで実行し、dev DB へは一切書き込まない
@@ -108,18 +110,27 @@ async function mockMyDishesPages(page: Page): Promise<() => number> {
 			requestCount += 1;
 			const hasCursor = new URL(route.request().url()).searchParams.has("cursor");
 
+			// ⚠️ 封筒は **2 段**（`BaseResponse<PaginatedResponse<MyDishItem>>`）。
+			// `useAPICall` が返すのは `json.data` **だけ**（hooks/useAPICall.ts の「data のみを返す」）で、
+			// その中身を `useMyDishesQuery` が `response.data` / `response.nextCursor` /
+			// `response.meta.oldestOccurredAt` と読む。1 段で包むと `response.data` が
+			// `undefined` になり、**行が 0 件のまま静かに緑になる**（実際にこの spec がそうなっていた）
 			const body = hasCursor
 				? {
 						success: true,
-						data: [buildItem("review:oldest", OLDEST.iso)],
-						nextCursor: null,
-						meta: { oldestOccurredAt: null },
+						data: {
+							data: [buildItem("review:oldest", OLDEST.iso)],
+							nextCursor: null,
+							meta: { oldestOccurredAt: null },
+						},
 					}
 				: {
 						success: true,
-						data: [buildItem("review:recent", RECENT.iso), buildItem("review:middle", MIDDLE.iso)],
-						nextCursor: "cursor-page-2",
-						meta: { oldestOccurredAt: null },
+						data: {
+							data: [buildItem("review:recent", RECENT.iso), buildItem("review:middle", MIDDLE.iso)],
+							nextCursor: "cursor-page-2",
+							meta: { oldestOccurredAt: null },
+						},
 					};
 
 			await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
@@ -151,9 +162,10 @@ test.describe("my-dishes Calendar ビュー（web / ログイン済み）", () =
 	// 手順:
 	//   1. `v1/users/me/dishes` を決定論的な 2 ページへ差し替える
 	//   2. `/ja-JP/my-dishes?view=calendar` へ直接着地する
-	//   3. 1 ページ目の月グリッド（1 か月前 / 4 か月前）が描かれることを検証
+	//   3. 直近の月グリッド（1 か月前）が描かれ、**記録がある日のセルが実際に出ている**ことを検証
 	//   4. まだ 2 ページ目は読まれていない（9 か月前のグリッドが無い）ことを検証
-	//   5. ホイールを「上」へ回して、9 か月前のグリッドが現れることを検証（★本命）
+	//   5. ホイールを「上」へ回して、1 ページ目の範囲（4 か月前）→ 2 ページ目（9 か月前）の順に
+	//      グリッドが現れることを検証（★本命）
 	//   6. 終端表示（reachedOldest）が出て、取得が 2 回で止まっていることを検証
 	test("?view=calendar に着地し、上へスクロールすると過去の月が増える", async ({ appPage }) => {
 		const requestCount = await mockMyDishesPages(appPage);
@@ -163,16 +175,29 @@ test.describe("my-dishes Calendar ビュー（web / ログイン済み）", () =
 		const list = appPage.getByTestId("my-dishes-calendar-list");
 		await expect(list).toBeVisible();
 
-		// 1 ページ目で読めた範囲の月グリッドが描かれている（0 件の月も繋げて描く）
-		await expect(appPage.getByTestId(`my-dishes-calendar-month-${RECENT.ym}`)).toBeAttached();
-		await expect(appPage.getByTestId(`my-dishes-calendar-month-${MIDDLE.ym}`)).toBeAttached();
+		// ⚠️ **描かれた月グリッドの数と «月の配列» の数は一致しない。** `FlatList` は仮想化されており
+		// （`initialNumToRender={2}` / `windowSize={5}`）、着地直後に DOM にあるのは下端＝最新の
+		// 数か月ぶんだけである。1 ページ目に含まれる 4 か月前のグリッドも、遡って初めて生える。
+		// ここで «着地直後に» 4 か月前を待つと、仮想化のせいで «実装は正しいのに» 落ちる。
+		const recentMonth = appPage.getByTestId(`my-dishes-calendar-month-${RECENT.ym}`);
+		await expect(recentMonth).toBeAttached();
+		// 封筒が正しく解けていること（= 行が本当に届いていること）を «記録がある日» で確かめる。
+		// 1 段の封筒に戻すとここは 0 件になり、0 件表示へ落ちてこのテストは落ちる。
+		// ⚠️ 数える範囲を «その月のグリッド» に閉じること。ページ全体で数えると、仮想化が
+		// 何か月ぶんを DOM に載せるかで期待値が変わってしまう
+		await expect(recentMonth.getByTestId("my-dishes-calendar-day")).toHaveCount(1);
 
 		// まだ読んでいない月は先に生やさない（#1396 §4-4）
 		const oldestMonth = appPage.getByTestId(`my-dishes-calendar-month-${OLDEST.ym}`);
 		await expect(oldestMonth).toHaveCount(0);
 		expect(requestCount()).toBe(1);
 
-		// ★ 本命: 上（過去）方向へスクロールすると次ページが読まれ、より古い月が足される
+		// ★ 本命 1: 上（過去）方向へスクロールすると、1 ページ目で読めている範囲の古い月が生える
+		const middleMonth = appPage.getByTestId(`my-dishes-calendar-month-${MIDDLE.ym}`);
+		await wheelUpUntilVisible(appPage, middleMonth);
+		await expect(middleMonth).toBeAttached();
+
+		// ★ 本命 2: さらに遡ると次ページが読まれ、1 ページ目には無かった月が足される
 		await wheelUpUntilVisible(appPage, oldestMonth);
 		await expect(oldestMonth).toBeAttached();
 
