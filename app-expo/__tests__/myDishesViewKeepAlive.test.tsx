@@ -65,7 +65,7 @@ jest.mock("@/components/PrimaryButton", () => {
 	};
 });
 
-/** list ビューが «マウントされた回数» を数えるためのスタブ（keep-alive = 再マウントされない） */
+/** list / map ビューが «マウントされた回数» を数えるためのスタブ（keep-alive = 再マウントされない） */
 const mockListMount = jest.fn();
 jest.mock("@/features/myDishes/components/MyDishesListView", () => {
 	const ReactActual = jest.requireActual("react");
@@ -73,6 +73,19 @@ jest.mock("@/features/myDishes/components/MyDishesListView", () => {
 		MyDishesListView: () => {
 			ReactActual.useEffect(() => {
 				mockListMount();
+			}, []);
+			return null;
+		},
+	};
+});
+
+const mockMapMount = jest.fn();
+jest.mock("@/features/myDishes/components/MyDishesMapView", () => {
+	const ReactActual = jest.requireActual("react");
+	return {
+		MyDishesMapView: () => {
+			ReactActual.useEffect(() => {
+				mockMapMount();
 			}, []);
 			return null;
 		},
@@ -116,6 +129,7 @@ beforeEach(() => {
 	mockParams = {};
 	mockSetParams.mockClear();
 	mockListMount.mockClear();
+	mockMapMount.mockClear();
 });
 
 afterEach(async () => {
@@ -148,12 +162,19 @@ describe("#1439 M-1 ビュー切替は keep-alive（毎回アンマウントし�
 		// （再マウントされていれば mockListMount が 2 回目を数える）
 		expect(mockListMount).toHaveBeenCalledTimes(1);
 		expect(findAll(tree, "my-dishes-list-view").length).toBeGreaterThan(0);
+		// PR4: map ビューは初訪問でマウントされる。この ref がここで初期化されて初めて
+		// §3-2 の「viewport は useRef に置く」が keep-alive の恩恵を受ける
+		expect(mockMapMount).toHaveBeenCalledTimes(1);
 
 		// map -> list に戻る
 		await press(tree, "my-dishes-view-list");
 		await rerender(tree);
 
 		expect(mockListMount).toHaveBeenCalledTimes(1);
+		// PR4: list に戻っても map は display:none で隠れているだけ（再マウントされない）。
+		// 再マウントされれば MyDishesMapView 内の currentRegionRef が初期化し直され、
+		// 「Map の viewport が毎回飛ぶ」（M-1 が防いだはずの挙動）が Map にも再発する
+		expect(mockMapMount).toHaveBeenCalledTimes(1);
 	});
 
 	it("非表示ビューは pointerEvents と accessibility でタッチ・読み上げから除外される", async () => {

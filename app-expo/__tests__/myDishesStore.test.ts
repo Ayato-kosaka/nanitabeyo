@@ -185,23 +185,95 @@ describe("#1396 m-1 touchQuery はキャッシュヒット（fetchInitial を呼
 });
 
 describe("#1396 取得結果 store にも viewport を置かない（§3-2）", () => {
-	it("トップレベルのスライスは «取得結果» だけ", () => {
+	it("トップレベルのスライスは «取得結果»（一覧 + PR4 の Map ピン）だけ", () => {
 		expect(Object.keys(getState()).sort()).toEqual(
 			[
 				"clearQuery",
 				"errorByQuery",
+				"errorPinsByQuery",
 				"fetchInitial",
 				"fetchMore",
+				"fetchPins",
 				"hasFetchedInitialByQuery",
+				"hasFetchedInitialPinsByQuery",
 				"isLoadingByQuery",
 				"isLoadingMoreByQuery",
+				"isLoadingPinsByQuery",
 				"itemByKey",
 				"itemKeysByQuery",
 				"nextCursorByQuery",
 				"oldestOccurredAtByQuery",
+				"pinsByQuery",
 				"recentQueryKeys",
 				"touchQuery",
+				"truncatedByQuery",
 			].sort(),
 		);
+	});
+});
+
+/*
+#1396 PR4: `pinsByQuery`（Map ピン）の不変条件。一覧（`itemKeysByQuery` 等）と同じ形で、
+- 同一 `queryKey` の飛行中は二重に投げない
+- 失敗しても他のキーを壊さない
+- 一覧と同じ LRU（`recentQueryKeys`）を共有し、追い出されたキーのピンも一緒に消える
+ことを見る。`useMyDishesMapPinsQuery.test.tsx` が持つ B-1 型の無限ループ回避は
+フック側のガードなのでそちらの責務。ここでは store 単体の不変条件だけを見る。
+*/
+describe("#1396 pinsByQuery（Map ピン）", () => {
+	const pinsPage = (ids: string[], truncated = false) =>
+		({
+			data: ids.map((id) => ({ restaurant: { id } }) as unknown as import("@shared/api/v1/res").MyDishPin),
+			truncated,
+		}) as const;
+
+	it("成功すると pinsByQuery / truncatedByQuery / hasFetchedInitialPinsByQuery に反映する", async () => {
+		await getState().fetchPins("q1", async () => pinsPage(["r1", "r2"], true));
+
+		expect(getState().pinsByQuery.q1?.map((p) => p.restaurant.id)).toEqual(["r1", "r2"]);
+		expect(getState().truncatedByQuery.q1).toBe(true);
+		expect(getState().hasFetchedInitialPinsByQuery.q1).toBe(true);
+		expect(getState().errorPinsByQuery.q1 ?? null).toBeNull();
+	});
+
+	it("失敗しても他のキーを壊さず、errorPinsByQuery に入る", async () => {
+		await getState().fetchPins("q1", async () => pinsPage(["r1"]));
+		await getState().fetchPins("q2", async () => {
+			throw new Error("boom");
+		});
+
+		expect(getState().pinsByQuery.q1?.map((p) => p.restaurant.id)).toEqual(["r1"]);
+		expect(getState().errorPinsByQuery.q2).toContain("failedToLoad");
+		expect(getState().isLoadingPinsByQuery.q2).toBe(false);
+		expect(getState().hasFetchedInitialPinsByQuery.q2 ?? false).toBe(false);
+	});
+
+	it("同一キーの取得が飛行中は二重に投げない", async () => {
+		let resolvePins: ((value: ReturnType<typeof pinsPage>) => void) | undefined;
+		const fetcher = jest.fn(
+			() =>
+				new Promise<ReturnType<typeof pinsPage>>((resolve) => {
+					resolvePins = resolve;
+				}),
+		);
+
+		const first = getState().fetchPins("q1", fetcher);
+		const second = getState().fetchPins("q1", fetcher);
+		resolvePins?.(pinsPage(["r1"]));
+		await Promise.all([first, second]);
+
+		expect(fetcher).toHaveBeenCalledTimes(1);
+	});
+
+	it("一覧と同じ LRU を共有し、queryKey が追い出されるとピンも一緒に消える", async () => {
+		for (const key of ["q1", "q2", "q3"]) {
+			await getState().fetchPins(key, async () => pinsPage([`r-${key}`]));
+		}
+		await getState().fetchPins("q4", async () => pinsPage(["r-q4"]));
+
+		expect(getState().recentQueryKeys).toEqual(["q4", "q3", "q2"]);
+		expect(getState().pinsByQuery.q1).toBeUndefined();
+		expect(getState().hasFetchedInitialPinsByQuery.q1).toBeUndefined();
+		expect(getState().pinsByQuery.q4?.map((p) => p.restaurant.id)).toEqual(["r-q4"]);
 	});
 });

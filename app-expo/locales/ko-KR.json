@@ -778,6 +778,9 @@
 			"list": "리스트",
 			"calendar": "캘린더"
 		},
+		"map": {
+			"truncated": "핀이 많아 일부만 표시하고 있어요. 지역을 좁혀보세요."
+		},
 		"guest": {
 			"description": "로그인하여 먹고 싶은/먹은 음식을 기록해보세요",
 			"loginButton": "로그인"
