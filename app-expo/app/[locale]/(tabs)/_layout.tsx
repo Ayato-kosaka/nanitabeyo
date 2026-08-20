@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { MapPinned, Bell, User, Search, Pencil } from "lucide-react-native";
+import { MapPinned, Bell, User, Search, UtensilsCrossed } from "lucide-react-native";
 import i18n from "@/lib/i18n";
 import { useAuth } from "@/contexts/AuthProvider";
 import { isGuestUser } from "@/lib/authGuest";
@@ -67,14 +67,14 @@ export default function TabLayout() {
 				}}
 			/>
 			<Tabs.Screen
-				name="review"
+				name="my-dishes"
 				options={{
-					title: i18n.t("Tabs.review"),
-					tabBarLabel: i18n.t("Tabs.labels.review"),
-					tabBarButtonTestID: "tab-review",
+					title: i18n.t("Tabs.myDishes"),
+					tabBarLabel: i18n.t("Tabs.labels.myDishes"),
+					tabBarButtonTestID: "tab-my-dishes",
 					tabBarIcon: ({ color }) => (
 						<View style={{ marginVertical: 4 }}>
-							<Pencil size={ICON_SIZE} color={color} />
+							<UtensilsCrossed size={ICON_SIZE} color={color} />
 						</View>
 					),
 				}}

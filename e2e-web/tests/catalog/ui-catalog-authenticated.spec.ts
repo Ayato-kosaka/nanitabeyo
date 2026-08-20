@@ -2,7 +2,7 @@ import { test, expect } from "../../fixtures/test";
 import { TabBar } from "../../pages/TabBar";
 import { ProfilePage } from "../../pages/ProfilePage";
 import { SettingsPage } from "../../pages/SettingsPage";
-import { ReviewPage } from "../../pages/ReviewPage";
+import { MyDishesPage } from "../../pages/MyDishesPage";
 import { captureScreen, captureScreenIfReachable } from "../../utils/catalog";
 
 /**
@@ -105,21 +105,21 @@ test.describe("UI カタログ（ログイン済み） @catalog", () => {
 		);
 	});
 
-	test("レビュー投稿導線（レビュータブ・店舗選択）", async ({ appPage }) => {
+	test("レビュー投稿導線（食べたい/食べたタブ・店舗選択）", async ({ appPage }) => {
 		test.setTimeout(120_000);
 
 		const tabBar = new TabBar(appPage);
-		const reviewPage = new ReviewPage(appPage);
+		const myDishesPage = new MyDishesPage(appPage);
 
-		await tabBar.gotoReview();
-		await reviewPage.expectAuthenticatedViewLoaded();
-		await captureScreen(appPage, "review-authenticated");
+		await tabBar.gotoMyDishes();
+		await myDishesPage.expectAuthenticatedViewLoaded();
+		await captureScreen(appPage, "my-dishes-authenticated");
 
 		await captureScreenIfReachable(
 			appPage,
-			"review-select-restaurant",
+			"my-dishes-select-restaurant",
 			async () => {
-				await appPage.getByTestId("review-post-button").click();
+				await appPage.getByTestId("my-dishes-record-button").click();
 				// 地図画面。現在地ボタンの出現をもって到達とみなす
 				await expect(appPage.getByTestId("review-select-restaurant-current-location-button")).toBeVisible({
 					timeout: 30_000,

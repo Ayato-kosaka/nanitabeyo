@@ -1,0 +1,227 @@
+import React, { useCallback, useEffect } from "react";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { CalendarDays, LayoutGrid, MapPinned, Plus } from "lucide-react-native";
+import { router, useLocalSearchParams } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { PrimaryButton } from "@/components/PrimaryButton";
+import { useAuth } from "@/contexts/AuthProvider";
+import { isGuestUser } from "@/lib/authGuest";
+import { useHaptics } from "@/hooks/useHaptics";
+import { useLogger } from "@/hooks/useLogger";
+import { useScreenTrace } from "@/hooks/useScreenTrace";
+import { useLocale } from "@/hooks/useLocale";
+import i18n from "@/lib/i18n";
+
+// #1396 【設計】Map / リスト / Calendar は 3 ルートに分けず、1 ルート + `?view=` 切替にする。
+// ルートを分けるとビュー切替のたびにアンマウントが起き、Map の viewport・各ビューのスクロール
+// 位置が毎回飛ぶ（設計 issue #1396 コメント (1/2) §2-2）。ここでは view の shell だけを持ち、
+// 各ビューの中身は PR3〜PR5（共有フィルタ store・Map・Calendar）が実装する。
+const MY_DISHES_VIEWS = ["map", "list", "calendar"] as const;
+type MyDishesView = (typeof MY_DISHES_VIEWS)[number];
+
+function isMyDishesView(value: unknown): value is MyDishesView {
+	return typeof value === "string" && (MY_DISHES_VIEWS as readonly string[]).includes(value);
+}
+
+const VIEW_ICONS: Record<MyDishesView, typeof MapPinned> = {
+	map: MapPinned,
+	list: LayoutGrid,
+	calendar: CalendarDays,
+};
+
+export default function MyDishesScreen() {
+	useScreenTrace("MyDishes");
+	const { user } = useAuth();
+	const { lightImpact } = useHaptics();
+	const { logFrontendEvent } = useLogger();
+	const { locale } = useLocale();
+	const { view } = useLocalSearchParams<{ view?: string }>();
+	const activeView: MyDishesView = isMyDishesView(view) ? view : "map";
+	const isGuest = isGuestUser(user);
+
+	useEffect(() => {
+		logFrontendEvent({
+			event_name: "screen_view",
+			error_level: "log",
+			payload: { screen: "my_dishes" },
+		});
+	}, [logFrontendEvent]);
+
+	// #1396 【設計】ビュー切替では取得し直さない（設計書 (2/2) §3-3）。URL の `view` だけを
+	// 履歴を積まずに書き換える（`router.setParams`）。3 ビューは同じフィルタ状態を共有する前提。
+	const handleSelectView = useCallback(
+		(next: MyDishesView) => {
+			if (next === activeView) return;
+			lightImpact();
+			router.setParams({ view: next });
+		},
+		[activeView, lightImpact],
+	);
+
+	const handleLoginPress = useCallback(() => {
+		lightImpact();
+		router.push({ pathname: "/[locale]/auth/login", params: { locale, next: `/${locale}/my-dishes` } });
+	}, [lightImpact, locale]);
+
+	// #1396 【設計】旧レビュータブの投稿導線（`review-post-button`）の後継。
+	// 押下先は既存 `selectRestaurant.tsx` の移設先（店名検索は別 Sub-issue で組み替え予定、挙動不変）
+	const handleRecordPress = useCallback(() => {
+		lightImpact();
+		logFrontendEvent({
+			event_name: "my_dishes_record_button_clicked",
+			error_level: "log",
+			payload: {},
+		});
+		router.push({
+			pathname: "/[locale]/(tabs)/my-dishes/select-restaurant",
+			params: { locale },
+		});
+	}, [lightImpact, logFrontendEvent, locale]);
+
+	return (
+		<SafeAreaView edges={["top", "bottom"]} style={styles.container} testID="my-dishes-screen">
+			<View style={styles.header}>
+				<Text style={styles.title}>{i18n.t("Tabs.myDishes")}</Text>
+				<View style={styles.viewSwitch}>
+					{MY_DISHES_VIEWS.map((v) => {
+						const Icon = VIEW_ICONS[v];
+						const isActive = activeView === v;
+						return (
+							<TouchableOpacity
+								key={v}
+								testID={`my-dishes-view-${v}`}
+								onPress={() => handleSelectView(v)}
+								style={[styles.viewButton, isActive && styles.viewButtonActive]}
+								accessibilityRole="button"
+								accessibilityState={{ selected: isActive }}>
+								<Icon size={18} color={isActive ? "#F05537" : "#6B7280"} />
+								<Text style={[styles.viewButtonLabel, isActive && styles.viewButtonLabelActive]}>
+									{i18n.t(`MyDishes.views.${v}`)}
+								</Text>
+							</TouchableOpacity>
+						);
+					})}
+				</View>
+			</View>
+
+			<View style={styles.body}>
+				{isGuest ? (
+					<View style={styles.guestContainer}>
+						<Text testID="my-dishes-guest-description" style={styles.guestDescription}>
+							{i18n.t("MyDishes.guest.description")}
+						</Text>
+						<PrimaryButton
+							testID="my-dishes-guest-login-button"
+							onPress={handleLoginPress}
+							label={i18n.t("MyDishes.guest.loginButton")}
+							style={styles.guestButton}
+						/>
+					</View>
+				) : (
+					// #1396 【設計】3 ビューの中身は本 PR のスコープ外（PR3: リスト / PR4: Map / PR5: Calendar）。
+					// ここでは view ごとに空のプレースホルダーを描き分けるだけに留める
+					<View testID={`my-dishes-${activeView}-view`} style={styles.viewPlaceholder} />
+				)}
+			</View>
+
+			{!isGuest && (
+				<TouchableOpacity
+					testID="my-dishes-record-button"
+					onPress={handleRecordPress}
+					style={styles.fab}
+					accessibilityRole="button"
+					accessibilityLabel={i18n.t("MyDishes.record.cta")}>
+					<Plus size={20} color="#FFFFFF" />
+					<Text style={styles.fabLabel}>{i18n.t("MyDishes.record.cta")}</Text>
+				</TouchableOpacity>
+			)}
+		</SafeAreaView>
+	);
+}
+
+const styles = StyleSheet.create({
+	container: {
+		flex: 1,
+		backgroundColor: "#FFFFFF",
+	},
+	header: {
+		paddingHorizontal: 16,
+		paddingTop: 8,
+		paddingBottom: 12,
+		borderBottomWidth: 1,
+		borderBottomColor: "#EEE",
+	},
+	title: {
+		fontSize: 18,
+		fontWeight: "700",
+		color: "#1A1A1A",
+		marginBottom: 12,
+	},
+	viewSwitch: {
+		flexDirection: "row",
+		gap: 8,
+	},
+	viewButton: {
+		flex: 1,
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "center",
+		gap: 6,
+		paddingVertical: 8,
+		borderRadius: 8,
+		backgroundColor: "#F3F4F6",
+	},
+	viewButtonActive: {
+		backgroundColor: "#FDE7E1",
+	},
+	viewButtonLabel: {
+		fontSize: 12,
+		color: "#6B7280",
+	},
+	viewButtonLabelActive: {
+		color: "#F05537",
+		fontWeight: "700",
+	},
+	body: {
+		flex: 1,
+	},
+	viewPlaceholder: {
+		flex: 1,
+	},
+	guestContainer: {
+		flex: 1,
+		justifyContent: "center",
+		paddingHorizontal: 24,
+	},
+	guestDescription: {
+		fontSize: 16,
+		color: "#666",
+		textAlign: "center",
+		marginBottom: 16,
+	},
+	guestButton: {
+		width: "100%",
+	},
+	fab: {
+		position: "absolute",
+		right: 16,
+		bottom: 16,
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 8,
+		paddingHorizontal: 16,
+		paddingVertical: 12,
+		borderRadius: 24,
+		backgroundColor: "#F05537",
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 2 },
+		shadowOpacity: 0.2,
+		shadowRadius: 8,
+		elevation: 6,
+	},
+	fabLabel: {
+		color: "#FFFFFF",
+		fontWeight: "700",
+		fontSize: 14,
+	},
+});

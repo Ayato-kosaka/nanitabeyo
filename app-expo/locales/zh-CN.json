@@ -408,16 +408,16 @@
 		"home": "首页",
 		"search": "搜索",
 		"map": "地图",
-		"review": "评论",
 		"notifications": "通知",
 		"profile": "个人资料",
 		"labels": {
 			"search": "搜索",
 			"map": "地图",
-			"review": "评论",
 			"notifications": "通知",
-			"profile": "个人资料"
-		}
+			"profile": "个人资料",
+			"myDishes": "我的美食"
+		},
+		"myDishes": "我的美食"
 	},
 	"Profile": {
 		"numberSuffix": {
@@ -769,16 +769,18 @@
 		"shareWithFriends": "与朋友分享",
 		"cancel": "取消"
 	},
-	"Review": {
-		"hero": {
-			"title": "写推荐餐厅的点评\n并发布你吃过的菜品"
+	"MyDishes": {
+		"views": {
+			"map": "地图",
+			"list": "列表",
+			"calendar": "日历"
 		},
 		"guest": {
-			"description": "登录以撰写评论",
+			"description": "登录后记录你想吃和吃过的美食",
 			"loginButton": "登录"
 		},
-		"authenticated": {
-			"postButton": "✏️ 发布餐厅评论"
+		"record": {
+			"cta": "记录"
 		}
 	}
 }

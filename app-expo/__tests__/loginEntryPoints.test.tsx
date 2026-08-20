@@ -153,7 +153,7 @@ jest.mock("@/features/profile/stores/useProfileStore", () => ({
 }));
 
 import { SelectedRestaurantDetails as ReviewRestaurantDetails } from "@/features/restaurant/components/SelectedRestaurantDetails";
-import ReviewScreen from "../app/[locale]/(tabs)/review/index";
+import MyDishesScreen from "../app/[locale]/(tabs)/my-dishes/index";
 import ProfileScreen from "../app/[locale]/(tabs)/profile/index";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -233,15 +233,15 @@ describe("#1359 ログイン導線の push 先と next（#1386 で 4 箇所 → 
 		});
 	});
 
-	it("レビュータブ: next はレビュータブ自身（この画面は URL だけで再現できる）", async () => {
-		const tree = await render(<ReviewScreen />);
+	it("食べたい/食べたタブ: next はこのタブ自身（この画面は URL だけで再現できる）", async () => {
+		const tree = await render(<MyDishesScreen />);
 
-		await press(tree, "review-guest-login-button");
+		await press(tree, "my-dishes-guest-login-button");
 
 		expect(mockPush).toHaveBeenCalledTimes(1);
 		expect(mockPush).toHaveBeenCalledWith({
 			pathname: "/[locale]/auth/login",
-			params: { locale: "ja-JP", next: "/ja-JP/review" },
+			params: { locale: "ja-JP", next: "/ja-JP/my-dishes" },
 		});
 	});
 
@@ -264,8 +264,8 @@ describe("#1359 ログイン導線の push 先と next（#1386 で 4 箇所 → 
 	it("ログイン済みならどの導線もログイン画面へは push しない", async () => {
 		mockUser = MEMBER;
 
-		const reviewTree = await render(<ReviewScreen />);
-		await press(reviewTree, "review-post-button");
+		const myDishesTree = await render(<MyDishesScreen />);
+		await press(myDishesTree, "my-dishes-record-button");
 
 		const detailTree = await render(<ReviewRestaurantDetails restaurantEntry={reviewRestaurantEntry} />);
 		await press(detailTree, "restaurant-detail-post-photo-button");
@@ -294,9 +294,9 @@ describe("#1386 ログイン導線を持つ画面は portal を 1 つも持た�
 		expect(mockPortal).not.toHaveBeenCalled();
 	});
 
-	it("レビュータブは Portal を 1 つも描かない", async () => {
-		const tree = await render(<ReviewScreen />);
-		await press(tree, "review-guest-login-button");
+	it("食べたい/食べたタブは Portal を 1 つも描かない", async () => {
+		const tree = await render(<MyDishesScreen />);
+		await press(tree, "my-dishes-guest-login-button");
 
 		expect(mockPortal).not.toHaveBeenCalled();
 	});

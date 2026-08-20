@@ -119,18 +119,18 @@ test.describe("ログイン画面", () => {
 	// `router.canGoBack()` が false になり、`?next=` が行き先になる。
 	// OAuth を通さずに next を検証できる唯一の形。
 	// 手順:
-	//   1. /ja-JP/auth/login?next=%2Fja-JP%2Freview へ直接遷移する
+	//   1. /ja-JP/auth/login?next=%2Fja-JP%2Fmy-dishes へ直接遷移する
 	//   2. ログイン画面が表示されることを検証
 	//   3. ヘッダーの戻るボタンを押す
-	//   4. レビュータブ(/ja-JP/review)へ着地することを検証
+	//   4. 食べたい/食べたタブ(/ja-JP/my-dishes)へ着地することを検証
 	test("?next= 付きで直接着地し、戻る導線で next の画面へ進む", async ({ appPage }) => {
 		const loginPage = new LoginPage(appPage);
 
-		await loginPage.goto("ja-JP", "/ja-JP/review");
+		await loginPage.goto("ja-JP", "/ja-JP/my-dishes");
 		await loginPage.expectOpened();
 
 		await loginPage.goBack();
 
-		await expect(appPage).toHaveURL(/\/ja-JP\/review/);
+		await expect(appPage).toHaveURL(/\/ja-JP\/my-dishes/);
 	});
 });

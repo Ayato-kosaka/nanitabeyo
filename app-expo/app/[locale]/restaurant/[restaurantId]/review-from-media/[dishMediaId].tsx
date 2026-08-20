@@ -36,8 +36,8 @@ export default function ReviewFromMediaScreen() {
 	// #1127 【修正】ReviewForm へ渡すコールバックは参照を安定させる（review.tsx と同じ多層防御）
 	const handleReviewSuccess = useCallback(
 		({ dishReviewId }: { dishReviewId: string }) => {
-			// /review までスタックを掃除（なければ現在画面を /review に置き換え）
-			router.dismissTo(`/${locale}/(tabs)/review`);
+			// /my-dishes までスタックを掃除（なければ現在画面を /my-dishes に置き換え）
+			router.dismissTo(`/${locale}/(tabs)/my-dishes`);
 			router.push({
 				pathname: `/[locale]/post/[id]`,
 				params: {

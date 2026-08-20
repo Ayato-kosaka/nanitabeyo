@@ -2,7 +2,7 @@ import * as path from "node:path";
 import { test, expect } from "../../fixtures/test";
 import type { Locator, Page } from "@playwright/test";
 import { TabBar } from "../../pages/TabBar";
-import { ReviewPage } from "../../pages/ReviewPage";
+import { MyDishesPage } from "../../pages/MyDishesPage";
 
 /**
  * ⏳ レビュー投稿中のローディング表示テスト @mutation(#1136 / PR #1166)
@@ -63,10 +63,10 @@ const SUBMIT_FAILED_MESSAGE = "レビューの投稿に失敗しました";
  */
 async function openFilledReviewForm(appPage: Page, comment: string): Promise<Locator> {
 	const tabBar = new TabBar(appPage);
-	const reviewPage = new ReviewPage(appPage);
+	const myDishesPage = new MyDishesPage(appPage);
 
-	await tabBar.gotoReview();
-	await reviewPage.postReviewButton.click();
+	await tabBar.gotoMyDishes();
+	await myDishesPage.recordButton.click();
 	await appPage.getByTestId("location-autocomplete-input").fill("スターバックス");
 	await appPage.getByTestId("location-autocomplete-suggestions").waitFor({ state: "visible" });
 	await appPage.getByTestId("location-autocomplete-suggestion-0").click();
