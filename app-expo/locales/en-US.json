@@ -786,7 +786,8 @@
 			"cta": "Record",
 			"noPhotoTitle": "Add a photo",
 			"noPhotoHint": "You can record without a photo",
-			"publicReviewNotice": "Your record appears as a public review on the restaurant page"
+			"publicReviewNotice": "Your record appears as a public review on the restaurant page",
+			"postNotFoundNoPhoto": "This record has no photo"
 		}
 	}
 }

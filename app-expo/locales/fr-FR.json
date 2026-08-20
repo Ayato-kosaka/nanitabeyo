@@ -786,7 +786,8 @@
 			"cta": "Enregistrer",
 			"noPhotoTitle": "Ajouter une photo",
 			"noPhotoHint": "Vous pouvez enregistrer sans photo",
-			"publicReviewNotice": "Votre enregistrement apparaîtra comme un avis public sur la page du restaurant"
+			"publicReviewNotice": "Votre enregistrement apparaîtra comme un avis public sur la page du restaurant",
+			"postNotFoundNoPhoto": "Cet enregistrement n'a pas de photo"
 		}
 	}
 }

@@ -827,9 +827,22 @@ export function ReviewForm({
 		[router, locale],
 	);
 
+	/**
+	 * #1441 M-1 【レビュー対応】エラーカードの「閉じる」。
+	 *
+	 * `allowNoMedia` のときにここで `onCancel()`（= 画面を閉じる）へ倒すと、★・コメント・価格・
+	 * カテゴリを入力済みでも「写真を追加」の再選択が失敗しただけで入力が丸ごと消える
+	 *（フォーム自体は unmount される）。写真なしはそもそも許可されているモードなので、
+	 * `setMediaState({ status: "none" })` でフォームへ戻せば入力は生き残る。
+	 * `allowNoMedia` でないとき（既定・`review-from-media` を含む）は従来どおり `onCancel()`。
+	 */
 	const handleCancel = useCallback(() => {
+		if (allowNoMedia) {
+			setMediaState({ status: "none" });
+			return;
+		}
 		onCancel();
-	}, [onCancel]);
+	}, [allowNoMedia, onCancel]);
 
 	// Error state
 	if (mediaState.status === "error") {
@@ -878,9 +891,13 @@ export function ReviewForm({
 							onPress={handleRetry}
 							accessibilityRole="button"
 							accessibilityLabel={i18n.t("MyDishes.record.noPhotoTitle")}>
-							<ImagePlus size={40} color="#9CA3AF" />
-							<Text style={styles.noMediaTitle}>{i18n.t("MyDishes.record.noPhotoTitle")}</Text>
-							<Text style={styles.noMediaHint}>{i18n.t("MyDishes.record.noPhotoHint")}</Text>
+							<ImagePlus size={28} color="#9CA3AF" style={styles.noMediaIcon} />
+							<Text style={styles.noMediaTitle} numberOfLines={1}>
+								{i18n.t("MyDishes.record.noPhotoTitle")}
+							</Text>
+							<Text style={styles.noMediaHint} numberOfLines={1}>
+								{i18n.t("MyDishes.record.noPhotoHint")}
+							</Text>
 						</Pressable>
 					) : (
 						<InitialMediaPreview media={mediaState.media} />
@@ -1025,18 +1042,17 @@ export function ReviewForm({
 					</Text>
 
 					{/*
-						#1398 R4 【設計】写真なしの記録は「非公開の食事ログ」に見えやすいが、実際は公開レビューであり
+						#1398 R4 【設計】記録は「非公開の食事ログ」に見えやすいが、実際は公開レビューであり
 						店舗の平均評価にも載る（#1375 追補 決定1）。誤解を招く UI のまま出さないため、同意文言の
 						直下に 1 行足す。
 
-						`allowNoMedia` のときだけ出すのは、写真なしを選べる画面が誤解の起きる唯一の入口であり、
-						かつ `review-from-media` 経路の描画を 1 つも変えないため（既定 false）。
+						#1441 N-2 【レビュー対応】以前は `allowNoMedia` のときだけ描画していたが、
+						リーダー判断の R4 は描画画面を限定していない。`review-from-media` 経路（prefilledMedia）
+						も同じく公開レビューになるので常時表示へ変更した。
 					*/}
-					{allowNoMedia && (
-						<Text testID="review-public-notice" style={styles.publicNoticeText}>
-							{i18n.t("MyDishes.record.publicReviewNotice")}
-						</Text>
-					)}
+					<Text testID="review-public-notice" style={styles.publicNoticeText}>
+						{i18n.t("MyDishes.record.publicReviewNotice")}
+					</Text>
 				</View>
 			</ScrollView>
 
@@ -1276,11 +1292,15 @@ const styles = StyleSheet.create({
 		marginTop: 8,
 	},
 	// #1398 B3 写真なし（status: "none"）のプレビュー枠
+	// #1441 N-1 【レビュー対応】window 高 667pt（iPhone SE 等）では枠の高さが 81px しか無く、
+	// 旧サイズ（アイコン 40 + gap 8 + 16px タイトル + gap 8 + 13px ヒント ≒ 91px）だとはみ出していた。
+	// アイコンと余白を縮め、`flexShrink` も添えて小型端末でも収まるようにする
 	noMediaPlaceholder: {
 		flex: 1,
+		flexShrink: 1,
 		justifyContent: "center",
 		alignItems: "center",
-		gap: 8,
+		gap: 4,
 		marginHorizontal: 16,
 		borderRadius: 12,
 		borderWidth: 1,
@@ -1288,14 +1308,19 @@ const styles = StyleSheet.create({
 		borderColor: "#D1D5DB",
 		backgroundColor: "#F9FAFB",
 	},
+	noMediaIcon: {
+		flexShrink: 1,
+	},
 	noMediaTitle: {
-		fontSize: 16,
+		fontSize: 14,
 		fontWeight: "600",
 		color: "#374151",
+		flexShrink: 1,
 	},
 	noMediaHint: {
-		fontSize: 13,
+		fontSize: 12,
 		color: "#6B7280",
+		flexShrink: 1,
 	},
 	characterCount: {
 		fontSize: 12,

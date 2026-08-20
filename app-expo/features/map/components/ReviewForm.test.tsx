@@ -417,6 +417,49 @@ describe("ReviewForm の写真なしモード（#1398 B2 / B3）", () => {
 		expect(tree.root.findByProps({ testID: "initial-media-preview" }).props.children).toBe(stubMedia.uri);
 		expect(hasPlaceholder()).toBe(false);
 	});
+
+	// #1441 M-1 【レビュー対応】写真なしで ★・コメント・価格・カテゴリを入力した後にプレースホルダから
+	// 再選択して失敗すると、以前はエラーカードの「閉じる」しか押せず、それが onCancel（= 画面を閉じる）
+	// を呼んでいたため入力が丸ごと消えていた。allowNoMedia のときは「閉じる」でフォームへ戻し、
+	// 入力を残す。allowNoMedia でないときの挙動（従来どおり onCancel）は変えていないことも対で固定する
+	it("allowNoMedia のときはエラーカードの「閉じる」でフォームへ戻り、入力を残す", async () => {
+		const onCancel = jest.fn();
+		const resolveSelection = deferSelectMedia();
+		mount({ onCancel, allowNoMedia: true });
+
+		await resolveSelection({ success: false, error: "cancelled" });
+		expect(hasPlaceholder()).toBe(true);
+
+		const commentInput = tree.root.findByProps({ testID: "review-comment-input" });
+		act(() => commentInput.props.onChangeText("美味しかった"));
+
+		const retry = deferSelectMedia();
+		pressPlaceholder();
+		await retry({ success: false, error: "permission_denied" });
+		expect(findTextNodes(tree.root, "Map.media.permissionDenied")).toHaveLength(1);
+
+		act(() => findPressHandler(tree.root, "Common.close")());
+
+		// 画面は閉じない（従来は onCancel → router.back() で入力が丸ごと消えていた）
+		expect(onCancel).not.toHaveBeenCalled();
+		// 写真なしのフォームへ戻る
+		expect(hasPlaceholder()).toBe(true);
+		// 入力済みのコメントは消えない
+		expect(tree.root.findByProps({ testID: "review-comment-input" }).props.value).toBe("美味しかった");
+	});
+
+	it("allowNoMedia を渡さないときのエラーカードの「閉じる」は、従来どおり onCancel を呼ぶ", async () => {
+		const onCancel = jest.fn();
+		const resolveSelection = deferSelectMedia();
+		mount({ onCancel });
+
+		await resolveSelection({ success: false, error: "permission_denied" });
+		expect(findTextNodes(tree.root, "Map.media.permissionDenied")).toHaveLength(1);
+
+		act(() => findPressHandler(tree.root, "Common.close")());
+
+		expect(onCancel).toHaveBeenCalledTimes(1);
+	});
 });
 
 // #1127 【設計】プレビュー専用モード（prefilledMedia）のテスト。

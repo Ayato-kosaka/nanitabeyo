@@ -33,7 +33,14 @@ export default function ReviewPostScreen() {
 	const [isResolved, setIsResolved] = useState(false);
 
 	useEffect(() => {
-		if (!dishReviewId) return;
+		/**
+		 * #1441 M-3 【レビュー対応】`id` が取れない（不正な直リンク等）ときも `isResolved` を立てる。
+		 * 立てずに抜けると `isResolved` が false のまま固着し、Q3 の趣旨（固着を作らない）に反する。
+		 */
+		if (!dishReviewId) {
+			setIsResolved(true);
+			return;
+		}
 
 		// #644 【設計】ストアから DishMedia を取得（存在しない場合は API フェッチ）
 		const entry = selectEntryByReviewId(dishReviewId)(useDishMediaEntriesStore.getState());
@@ -89,8 +96,12 @@ export default function ReviewPostScreen() {
 				) : isResolved ? (
 					// #1398 Q3 引き当て済みで見つからなかった場合（写真なしのレビューへ直リンク等）。
 					// スピナーのまま固着させず、空表示と戻る導線に倒す
+					//
+					// #1441 M-4 【レビュー対応】この画面がストアに引き当てられないのは主に写真なしの
+					// 記録（この画面はメディア前提の Feed しか描けない）であり、レビュー自体は存在する。
+					// 汎用の「見つかりません」だと「記録が消えた」ように読めて誤解を招くため専用文言にする
 					<View testID="post-not-found" style={styles.emptyContainer}>
-						<Text style={styles.emptyText}>{i18n.t("Common.errors.notFound")}</Text>
+						<Text style={styles.emptyText}>{i18n.t("MyDishes.record.postNotFoundNoPhoto")}</Text>
 						<Pressable testID="post-not-found-back-button" onPress={handleBack} accessibilityRole="button">
 							<Text style={styles.emptyBackText}>{i18n.t("Common.back")}</Text>
 						</Pressable>

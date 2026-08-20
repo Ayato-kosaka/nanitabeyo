@@ -786,7 +786,8 @@
 			"cta": "Registrar",
 			"noPhotoTitle": "Añadir una foto",
 			"noPhotoHint": "También puedes registrarlo sin foto",
-			"publicReviewNotice": "Tu registro aparecerá como reseña pública en la página del restaurante"
+			"publicReviewNotice": "Tu registro aparecerá como reseña pública en la página del restaurante",
+			"postNotFoundNoPhoto": "Este registro no tiene foto"
 		}
 	}
 }
