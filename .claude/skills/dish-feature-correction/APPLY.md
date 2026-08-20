@@ -95,7 +95,11 @@ dev で問題ないことを確認し、5節の記録が済んだら、`args` �
 この対話確認をスキップするだけで、他の安全策（GCSバックアップ、dry-runでの
 件数確認）は変わらない。詳細は `manual/README.md` の「production 反映手順」を参照。
 
-recommendation regression（4節）を省略したまま production へ進める判断は、
-このスキル自身では下さない。Issueのオーナー等、判断できる人間の明示的な指示が
-あった場合のみ、5節の記録に「regression未実施のまま production へ進めた」ことを
-明記した上で進める。
+recommendation regression（4節）は production 反映前に**必ず完了させる**。
+「エージェントがlive APIへアクセスできないから省略する」は許容しない。
+このスキル/エージェント自身がlive API regressionを実行できない環境では、
+Issueのオーナー等、人間に regression を実施してもらい、「誰が・何を確認し・
+問題なしと判断したか」を Issue に記録してもらってから production へ進める。
+確認の実行者が人間に変わるだけで、確認そのものを省略してよいことには
+ならない。5節の記録には、regression をエージェントが実行したか人間が実行したかを
+明記し、「未実施のまま進めた」という記録は残さない。
