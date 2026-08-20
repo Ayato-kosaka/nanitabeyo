@@ -861,6 +861,13 @@
 		"list": {
 			"noPhoto": "Sans photo"
 		},
+		"sheet": {
+			"title": "Vos enregistrements chez {{restaurant}}",
+			"counts": "À goûter {{want}} · Goûtés {{eaten}}",
+			"openRestaurant": "Ouvrir la page du restaurant",
+			"seeAllInList": "Tout voir dans la liste",
+			"noPhotoHint": "Cet enregistrement n'a pas de photo. Touchez pour ouvrir la page du restaurant."
+		},
 		"searchThisArea": "Rechercher dans cette zone"
 	}
 }

@@ -861,6 +861,13 @@
 		"list": {
 			"noPhoto": "بدون صورة"
 		},
+		"sheet": {
+			"title": "سجلّاتك في {{restaurant}}",
+			"counts": "أريد تجربته {{want}} · تناولته {{eaten}}",
+			"openRestaurant": "فتح صفحة المطعم",
+			"seeAllInList": "عرض الكل في القائمة",
+			"noPhotoHint": "هذا السجل بلا صورة. اضغط لفتح صفحة المطعم."
+		},
 		"searchThisArea": "ابحث في هذه المنطقة"
 	}
 }

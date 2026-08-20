@@ -861,6 +861,13 @@
 		"list": {
 			"noPhoto": "无照片"
 		},
+		"sheet": {
+			"title": "{{restaurant}} 的记录",
+			"counts": "想吃 {{want}} · 吃过 {{eaten}}",
+			"openRestaurant": "打开店铺页面",
+			"seeAllInList": "在列表中查看",
+			"noPhotoHint": "该记录没有照片。点按可打开店铺页面。"
+		},
 		"searchThisArea": "在此区域重新搜索"
 	}
 }

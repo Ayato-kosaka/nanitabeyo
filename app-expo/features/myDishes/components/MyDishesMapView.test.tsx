@@ -67,6 +67,23 @@ jest.mock("@/features/mapMarkers", () => {
 	};
 });
 
+// #1397 Sheet 本体は専用 suite（MyDishesRestaurantSheet.test.tsx）で見る。ここでは
+// 「ピンタップで Sheet が開く（= pin が渡る）」ことと「店舗詳細へ push しない」ことだけを見たいので、
+// Sheet はスタブへ差し替えて取得フック（useAPICall）を巻き込まない
+const sheetPins: Array<unknown> = [];
+let sheetDismiss: (() => void) | undefined;
+jest.mock("./MyDishesRestaurantSheet", () => {
+	const ReactActual = jest.requireActual("react");
+	const { View: RNView } = jest.requireActual("react-native");
+	return {
+		MyDishesRestaurantSheet: ({ pin, onDismissed }: { pin: unknown; onDismissed: () => void }) => {
+			sheetPins.push(pin);
+			sheetDismiss = onDismissed;
+			return pin ? ReactActual.createElement(RNView, { testID: "my-dishes-sheet" }) : null;
+		},
+	};
+});
+
 jest.mock("@/components/PrimaryButton", () => {
 	const ReactActual = jest.requireActual("react");
 	const { View: RNView } = jest.requireActual("react-native");
@@ -134,6 +151,8 @@ beforeEach(() => {
 	mockAnimateToRegion.mockClear();
 	pinPresses.length = 0;
 	pinUris.length = 0;
+	sheetPins.length = 0;
+	sheetDismiss = undefined;
 	mockUseMyDishesMapPinsQuery.mockReturnValue({
 		pins: [],
 		queryKey: "default",
@@ -193,8 +212,42 @@ describe("#1396 viewport（pan/zoom）は filter store に一切触れない（�
 	});
 });
 
-describe("#1396 ピンタップは既存の店舗詳細ルートへ push する（Sheet/Feed は #1397 のスコープ）", () => {
-	it("ピン押下で /[locale]/restaurant/[restaurantId] へ push する", async () => {
+/**
+ * #1397 (PR3/5) ピンタップの差し替え。#1396 の時点では店舗詳細ルートへ push していたが、
+ * `MyDishPin` が `dish_media.id` を 1 つも持たないため全画面 Feed へは直行できない
+ * （設計 (1/2) §0-1 / リーダー判断 Q1）。**ピンタップは常に Sheet を開く**で確定している。
+ *
+ * 店舗詳細への導線は Sheet のヘッダ（店名タップ）へ移った（Q6）ので、ここから push は起きない。
+ */
+describe("#1397 ピンタップは料理メディア Sheet を開く（店舗詳細へ push しない）", () => {
+	it("ピン押下で Sheet が開き、router.push は一度も呼ばれない", async () => {
+		mockUseMyDishesMapPinsQuery.mockReturnValue({
+			pins: [mockPin],
+			queryKey: "default",
+			isLoading: false,
+			error: null,
+			hasFetchedInitial: true,
+			truncated: false,
+			refresh: jest.fn(),
+		});
+		const tree = await render();
+
+		// 開く前は Sheet に pin が渡っていない（= 取得も走らない）
+		expect(sheetPins.at(-1)).toBeNull();
+		expect(tree.root.findAll((node) => node.props?.testID === "my-dishes-sheet").length).toBe(0);
+
+		expect(pinPresses).toHaveLength(1);
+		act(() => {
+			pinPresses[0]();
+		});
+
+		expect(sheetPins.at(-1)).toBe(mockPin);
+		expect(tree.root.findAll((node) => node.props?.testID === "my-dishes-sheet").length).toBeGreaterThan(0);
+		// ⚠️ 差し替えの本体。ここが push へ戻ると Map が unmount され、hasFitPinsRef が二度走る（§9-1）
+		expect(mockPush).not.toHaveBeenCalled();
+	});
+
+	it("Sheet を開いても共有フィルタ（filter）のオブジェクト参照と queryKey が変わらない", async () => {
 		mockUseMyDishesMapPinsQuery.mockReturnValue({
 			pins: [mockPin],
 			queryKey: "default",
@@ -206,15 +259,44 @@ describe("#1396 ピンタップは既存の店舗詳細ルートへ push する�
 		});
 		await render();
 
-		expect(pinPresses).toHaveLength(1);
+		const filterBefore = useMyDishesFilterStore.getState().filter;
+		const queryKeyBefore = selectFilterQueryKey(useMyDishesFilterStore.getState());
+
 		act(() => {
 			pinPresses[0]();
 		});
-
-		expect(mockPush).toHaveBeenCalledWith({
-			pathname: "/[locale]/restaurant/[restaurantId]",
-			params: { locale: "ja-JP", restaurantId: "restaurant-1" },
+		act(() => {
+			sheetDismiss?.();
 		});
+
+		// zustand の set() は新しいオブジェクトを作る。参照が同じ = 一度も set() されていない。
+		// ここが崩れると、Sheet を開いただけで一覧と Map まで 1 店舗に絞られる（設計 (2/2) §7-1）
+		expect(useMyDishesFilterStore.getState().filter).toBe(filterBefore);
+		expect(selectFilterQueryKey(useMyDishesFilterStore.getState())).toBe(queryKeyBefore);
+		expect(useMyDishesFilterStore.getState().filter).not.toHaveProperty("restaurantId");
+	});
+
+	it("Sheet を閉じ切る（onDismissed）と pin が null に戻る", async () => {
+		mockUseMyDishesMapPinsQuery.mockReturnValue({
+			pins: [mockPin],
+			queryKey: "default",
+			isLoading: false,
+			error: null,
+			hasFetchedInitial: true,
+			truncated: false,
+			refresh: jest.fn(),
+		});
+		await render();
+
+		act(() => {
+			pinPresses[0]();
+		});
+		expect(sheetPins.at(-1)).toBe(mockPin);
+
+		act(() => {
+			sheetDismiss?.();
+		});
+		expect(sheetPins.at(-1)).toBeNull();
 	});
 
 	it("representativeThumbnailUrl が null のとき restaurant.image_url へ落ちる", async () => {
@@ -498,6 +580,45 @@ describe("#1396 m-1 初回取得後に一度だけピンへ viewport を寄せ�
 		const [region] = mockAnimateToRegion.mock.calls[0];
 		expect(region.latitude).toBeCloseTo(35.5);
 		expect(region.longitude).toBeCloseTo(139.5);
+	});
+
+	/**
+	 * #1397 絶対条件3: Sheet の開閉で `hasFitPinsRef` の «一度きり» のフィットが再発火しないこと。
+	 *
+	 * Sheet をルートにすると（§9-1 が避けた形）Map が push/pop で再マウントされ、ref が初期化されて
+	 * 二度目のフィットが走る。内部 state で開閉している限り、再レンダーは起きても ref は残る。
+	 */
+	it("Sheet を開いて閉じても animateToRegion は増えない（内部 state なので Map は再マウントしない）", async () => {
+		mockUseMyDishesMapPinsQuery.mockReturnValue({
+			pins: [mockPin],
+			queryKey: "default",
+			isLoading: false,
+			error: null,
+			hasFetchedInitial: true,
+			truncated: false,
+			refresh: jest.fn(),
+		});
+		await render();
+		expect(mockAnimateToRegion).toHaveBeenCalledTimes(1);
+
+		act(() => {
+			pinPresses[0]();
+		});
+		expect(mockAnimateToRegion).toHaveBeenCalledTimes(1);
+
+		act(() => {
+			sheetDismiss?.();
+		});
+		expect(mockAnimateToRegion).toHaveBeenCalledTimes(1);
+
+		// もう一度開いても同じ
+		act(() => {
+			pinPresses[0]();
+		});
+		act(() => {
+			sheetDismiss?.();
+		});
+		expect(mockAnimateToRegion).toHaveBeenCalledTimes(1);
 	});
 
 	it("pins が 0 件の初回取得では animateToRegion を呼ばない", async () => {
