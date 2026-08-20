@@ -10,22 +10,28 @@
 
 `DATABASE_URL` や GCP サービスアカウント資格情報を対話セッションに置かない運用のため、
 `manual/1_insert_feature_scores.py` / `manual/2_merge_feature_scores.py` /
-`9_2_sync_dish_category_features.py` は
-`.github/workflows/manual-feature-correction.yml` の workflow_dispatch から実行する。
+`9_2_sync_dish_category_features.py` は、`scripts/` 配下の Python スクリプトを汎用的に
+実行できる `.github/workflows/db-script-run.yml` の workflow_dispatch から実行する
+（特定スクリプト専用のworkflowではない。`script_path` + `args` で対象を指定する）。
+
+**重要**: `workflow_dispatch` は GitHub の仕様上、**default branch（main）上に存在する
+workflow ファイルしか dispatch できない**。作業ブランチにしか無い workflow は
+（`ref` に作業ブランチを指定しても）404 になる。新しい workflow を追加/変更した場合は、
+先にそのPRをマージしてから dispatch すること。
 
 このセッションから直接実行したい場合は、GitHub の Actions API 経由で
 workflow_dispatch を dispatch し、run のログ（または Job Summary）で結果を確認する。
-`ref` には作業ブランチを指定できる（そのブランチに workflow ファイルさえ push 済みなら、
-main へマージする前でも dispatch できる）。
 
 inputs は以下（詳細は workflow ファイルのコメントおよび `manual/README.md` を参照）:
 
 ```text
-step: insert | merge | sync-dev
-run_id: 対象run_id（insert/mergeで必須。命名は例: 20260820_manual_dining_pace_yakitori）
-corrections_jsonl: insertで投入するJSONL本文（1行1件）
-dry_run: true/false（既定true。まずtrueで実行し、出力を人間が確認してからfalseで再実行する）
+script_path: 実行対象スクリプト（例: .../manual/2_merge_feature_scores.py）
+args: スクリプトへ渡すCLI引数（例: --run-id <id> --dry-run）
+input_file_path / input_file_content: --input-jsonl 等でファイル入力が要る場合のみ使う
 ```
+
+まず `args` に `--dry-run` を付けて実行し、出力を人間が確認してから
+`--dry-run` を外して（merge は `--apply` に差し替えて）再実行する。
 
 ## 1. run_id の命名
 

@@ -43,11 +43,10 @@ BigQuery: wikidata_food_llm_feature_scores (append)
 10. before / after を記録し、Issue にレビュー結果・判断根拠を残す
 11. 問題なければ production（`--schema public`）へ反映
 
-このリポジトリでは、DB に影響する操作の実行記録を残すため、5〜8 は
-ローカルではなく GitHub Actions（`.github/workflows/manual-feature-correction.yml`）
-の workflow_dispatch から実行することを既定とする。3〜4（insert）も同じ workflow の
-`insert` step から実行できる。理由は `db-migrate.yml` と同じで、「誰かのローカルから
-流す」と、いつ・何を適用したかが記録に残らないため。
+このリポジトリでは、DB に影響する操作の実行記録を残すため、3〜8 は
+ローカルではなく GitHub Actions（`.github/workflows/db-script-run.yml`、汎用スクリプト
+ランナー）の workflow_dispatch から実行することを既定とする。理由は `db-migrate.yml` と
+同じで、「誰かのローカルから流す」と、いつ・何を適用したかが記録に残らないため。
 ```
 
 ## `1_insert_feature_scores.py`
@@ -189,24 +188,37 @@ rubric 修正（例: `866_dining_pace/dining_pace_prompt.md` の更新）とセ�
 「仕様は直したがデータは直していない」「データは直したが仕様に反映していない」という
 不整合を残さないこと。
 
-## GitHub Actions（`manual-feature-correction.yml`）
+## GitHub Actions（`db-script-run.yml`）
 
 `DATABASE_URL` や GCP サービスアカウント資格情報をローカル/対話セッションに置かない運用のため、
-insert / merge / 9_2 sync dev は `.github/workflows/manual-feature-correction.yml` の
-workflow_dispatch からも実行できる。inputs は各ステップに対応する:
+insert / merge / 9_2 sync dev は `.github/workflows/db-script-run.yml` の
+workflow_dispatch から実行する。このworkflowは特定のスクリプト専用ではなく、
+`scripts/` 配下の Python スクリプトを `script_path` + `args` で指定して実行する汎用ランナー
+（`secrets.GCP_SA_KEY` / `secrets.POSTGRES_DATABASE_URL` を使う点は
+`db-migrate.yml` / `pg-table-export.yml` 等の既存workflowと同じ）。
 
 ```text
-step: insert | merge | sync-dev
-run_id: 対象run_id（insert/mergeで必須）
-corrections_jsonl: insertで投入するJSONL本文（複数行貼り付け可）
-dry_run: true/false（既定 true）
-expected_row_count / expected_item_count: mergeの事故防止チェック（任意）
+script_path: scripts/20251213T0000_wikidata_food_graph/581_relevance_scoring/manual/1_insert_feature_scores.py
+args: --run-id 20260820_manual_dining_pace_izakaya_skewers --input-jsonl /tmp/corrections.jsonl --dry-run
+input_file_path: /tmp/corrections.jsonl          # args内の --input-jsonl と同じパスにする
+input_file_content: |
+  {"item_qid": "Q483163", ...}
+  {"item_qid": "Q11280254", ...}
 ```
 
-`dry_run: true` のまま実行して出力（Job Summary / ログ）を確認し、問題なければ
-`dry_run: false` で再実行する。`step: sync-dev` は内部で
-`9_2_sync_dish_category_features.py --schema dev` を呼ぶ（`--schema public` はこの
-workflow からは実行できない。本番反映は別途 `db-migrate.yml` 相当の承認フローに従うこと）。
+`2_merge_feature_scores.py` を実行する場合は `input_file_path` / `input_file_content` は不要で、
+`args` に `--run-id <id> --dry-run`（確認後 `--apply`）を渡すだけでよい。
+`9_2_sync_dish_category_features.py` を実行する場合は
+`script_path: scripts/20251213T0000_wikidata_food_graph/9_2_sync_dish_category_features.py`、
+`args: --schema dev --dry-run`（確認後 `--schema dev`）を渡す。
+`--schema public`（本番）を指定すること自体はこのworkflowでは止めていないが、
+`validate_schema(require_confirmation=True)` が対話入力を要求するため、
+CI上では標準入力が無く失敗する。本番反映は別途 `db-migrate.yml` 相当の承認フローを
+用意し、非対話で完了できるようにしてから行うこと。
+
+まず `args` に `--dry-run` を付けて実行して出力（Job Summary / ログ）を確認し、
+問題なければ `--dry-run` を外して（`2_merge_feature_scores.py` は `--apply` に差し替えて）
+再実行する。
 
 ## rollback
 
