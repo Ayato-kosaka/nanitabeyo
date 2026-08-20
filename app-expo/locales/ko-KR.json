@@ -873,6 +873,15 @@
 			"seeAllInList": "목록에서 보기",
 			"noPhotoHint": "사진이 없는 기록입니다. 탭하면 가게 페이지가 열립니다."
 		},
+		"feed": {
+			"chips": {
+				"filterCategory": "{{name}}(으)로 좁히기",
+				"filterStatusEaten": "먹었어요로 좁히기",
+				"filterStatusWant": "먹고 싶어요로 좁히기",
+				"filterMinRating": "★{{count}} 이상으로 좁히기",
+				"applied": "필터를 업데이트했습니다"
+			}
+		},
 		"searchThisArea": "이 지역에서 재검색"
 	}
 }

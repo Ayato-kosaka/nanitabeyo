@@ -873,6 +873,15 @@
 			"seeAllInList": "عرض الكل في القائمة",
 			"noPhotoHint": "هذا السجل بلا صورة. اضغط لفتح صفحة المطعم."
 		},
+		"feed": {
+			"chips": {
+				"filterCategory": "التصفية حسب {{name}}",
+				"filterStatusEaten": "التصفية حسب «تناولته»",
+				"filterStatusWant": "التصفية حسب «أريد تجربته»",
+				"filterMinRating": "التصفية حسب {{count}} نجوم فأكثر",
+				"applied": "تم تحديث عوامل التصفية"
+			}
+		},
 		"searchThisArea": "ابحث في هذه المنطقة"
 	}
 }

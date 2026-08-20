@@ -18,7 +18,13 @@
 `app/` 配下に置いたテストは expo-router がルートとして拾ってしまうため、ここに置いている
 （`__tests__/myDishesFiltersRoute.test.tsx` と同じ理由）。
 */
-jest.mock("@/lib/i18n", () => ({ __esModule: true, default: { t: (key: string) => key } }));
+// #1397 (PR5/5) chips のラベルは «キー + 補間値» で見る（実文言はロケール依存なので見ない）
+jest.mock("@/lib/i18n", () => ({
+	__esModule: true,
+	default: {
+		t: (key: string, params?: Record<string, unknown>) => (params ? `${key}:${JSON.stringify(params)}` : key),
+	},
+}));
 jest.mock("@/hooks/useHaptics", () => ({ useHaptics: () => ({ lightImpact: jest.fn(), mediumImpact: jest.fn() }) }));
 jest.mock("@/hooks/useLocale", () => ({ useLocale: () => ({ locale: "ja-JP", isJapanese: true }) }));
 jest.mock("@/hooks/useLogger", () => ({ useLogger: () => ({ logFrontendEvent: jest.fn() }) }));
@@ -41,6 +47,11 @@ jest.mock("expo-router", () => ({
 
 const mockCallBackend = jest.fn();
 jest.mock("@/hooks/useAPICall", () => ({ useAPICall: () => ({ callBackend: mockCallBackend }) }));
+
+// #1397 (PR5/5) chips は「元に戻す」をスナックバーで出す（`SnackbarProvider` は
+// `app/[locale]/_layout.tsx` でアプリ全体に載っているが、ルート単体の描画では入らない）
+const mockShowSnackbar = jest.fn();
+jest.mock("@/contexts/SnackbarProvider", () => ({ useSnackbar: () => ({ showSnackbar: mockShowSnackbar }) }));
 
 // `DishMediaFeed` は **1 行も変えない**（絶対条件1）。ここでは受け取った props をそのまま
 // 覗けるスタブに差し替え、entriesKey / idType / initialIndex を検証する
@@ -86,9 +97,10 @@ const makeRow = (key: string, mediaId: string | null): MyDishItem =>
 		myReview: null,
 	}) as unknown as MyDishItem;
 
-const makeEntry = (mediaId: string, isSaved = false) => ({
+const makeEntry = (mediaId: string, isSaved = false, categoryId = "karaage", dishName = "唐揚げ定食") => ({
 	restaurant: { id: RESTAURANT_ID, name: "テスト食堂" },
-	dish: { id: "dish-1", name: "唐揚げ定食" },
+	// #1397 (PR5/5) chips はここの `category_id` で絞り、`name` をラベルにする
+	dish: { id: "dish-1", category_id: categoryId, name: dishName },
 	dish_media: { id: mediaId, isMine: false, isSaved, isLiked: false, likeCount: 0, mediaUrl: null, thumbnailImageUrl: "" },
 	dish_reviews: [],
 });
@@ -511,5 +523,114 @@ describe("#1397 m-2 canDismiss が false の着地（直リンク / リロード
 			pathname: "/[locale]/(tabs)/my-dishes",
 			params: { locale: "ja-JP" },
 		});
+	});
+});
+
+describe("#1397 (PR5/5) contextual filter chips（§10）", () => {
+	/** chip の Pressable（testID は固定。動的 ID は作らない。§11-2） */
+	const chipNodes = (tree: TestRenderer.ReactTestRenderer) =>
+		tree.root.findAll(
+			(node) => node.props?.testID === "my-dishes-feed-chip" && typeof node.props?.onPress === "function",
+		);
+
+	it("Feed の上に chips が出る。並び替えの chip は 1 つも無い（リーダー判断 Q3）", async () => {
+		respond([makeRow("review:a", "media-a")], [makeEntry("media-a")]);
+
+		const tree = await render();
+
+		const labels = chipNodes(tree).map((node) => node.props.accessibilityLabel);
+		expect(labels).toEqual([
+			'MyDishes.feed.chips.filterCategory:{"name":"唐揚げ定食"}',
+			"MyDishes.feed.chips.filterStatusEaten",
+			"MyDishes.feed.chips.filterStatusWant",
+		]);
+		// 「〜順に並べる」系のキーは i18n にも UI にも存在しない
+		expect(labels.some((label: string) => label.includes("sort"))).toBe(false);
+	});
+
+	it("chip を押すと共有フィルタが変わり、3 ビュー共有の base queryKey が変わる", async () => {
+		respond([makeRow("review:a", "media-a")], [makeEntry("media-a")]);
+
+		const tree = await render();
+		const keyBefore = baseQueryKey();
+
+		await act(async () => {
+			chipNodes(tree)[0].props.onPress();
+		});
+
+		// list / Map / Calendar が読む唯一のキーが変わる = 3 ビューすべてに反映される
+		expect(useMyDishesFilterStore.getState().filter.categoryIds).toEqual(["karaage"]);
+		expect(baseQueryKey()).not.toBe(keyBefore);
+		expect(baseQueryKey()).toContain("categoryIds=karaage");
+	});
+
+	it("§10-3 chip を押しても足元の Feed の並びは崩れない（ids はそのまま）", async () => {
+		respond(
+			[makeRow("review:a", "media-a"), makeRow("review:b", "media-b")],
+			[makeEntry("media-a"), makeEntry("media-b")],
+		);
+
+		const tree = await render();
+		const idsBefore = useDishMediaEntriesStore.getState().mediaIdsByKey[myDishesFeedKey(RESTAURANT_ID)];
+
+		await act(async () => {
+			chipNodes(tree)[1].props.onPress();
+		});
+		await act(async () => {});
+
+		expect(useDishMediaEntriesStore.getState().mediaIdsByKey[myDishesFeedKey(RESTAURANT_ID)]).toEqual(idsBefore);
+		// Feed 自身も同じ entriesKey / initialIndex のまま描かれ続ける
+		expect(feedProps(tree)!.entriesKey).toBe(myDishesFeedKey(RESTAURANT_ID));
+	});
+
+	it("スワイプで見ている料理が変わると、カテゴリ chip もその料理のものになる", async () => {
+		respond(
+			[makeRow("review:a", "media-a"), makeRow("review:b", "media-b")],
+			[makeEntry("media-a", false, "karaage", "唐揚げ定食"), makeEntry("media-b", false, "ramen", "味玉つけ麺")],
+		);
+
+		const tree = await render();
+		expect(chipNodes(tree)[0].props.accessibilityLabel).toBe(
+			'MyDishes.feed.chips.filterCategory:{"name":"唐揚げ定食"}',
+		);
+
+		// `DishMediaFeed` の既存 prop `onIndexChange`（この経路のためだけに 1 行も改造していない）
+		await act(async () => {
+			feedProps(tree)!.onIndexChange(1);
+		});
+
+		expect(chipNodes(tree)[0].props.accessibilityLabel).toBe(
+			'MyDishes.feed.chips.filterCategory:{"name":"味玉つけ麺"}',
+		);
+		await act(async () => {
+			chipNodes(tree)[0].props.onPress();
+		});
+		expect(useMyDishesFilterStore.getState().filter.categoryIds).toEqual(["ramen"]);
+	});
+
+	it("スワイプが 1 度も起きなくても、開いた位置の料理の chip が出る（onIndexChange は変化時しか来ない）", async () => {
+		respond(
+			[makeRow("review:a", "media-a"), makeRow("review:b", "media-b")],
+			[makeEntry("media-a", false, "karaage", "唐揚げ定食"), makeEntry("media-b", false, "ramen", "味玉つけ麺")],
+		);
+		mockParams = { ...mockParams, itemKey: "review:b", dishMediaId: "media-b" };
+
+		const tree = await render();
+
+		expect(feedProps(tree)!.initialIndex).toBe(1);
+		expect(chipNodes(tree)[0].props.accessibilityLabel).toBe(
+			'MyDishes.feed.chips.filterCategory:{"name":"味玉つけ麺"}',
+		);
+	});
+
+	it("行もメディアも取れていない間は chips を出さない（押す対象が無い）", async () => {
+		respond([makeRow("review:no-photo", null)], []);
+
+		const tree = await render();
+
+		expect(chipNodes(tree)).toHaveLength(0);
+		expect(
+			tree.root.findAll((node) => typeof node.type === "string" && node.props?.testID === "my-dishes-feed-empty"),
+		).toHaveLength(1);
 	});
 });
