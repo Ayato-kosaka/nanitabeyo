@@ -278,9 +278,12 @@ python3 scripts/20251213T0000_wikidata_food_graph/9_2_sync_dish_category_feature
    自体は dev/public で分かれていない（catalog は共通の採用版）ため、
    BigQuery側のMERGEは dev/prod 反映より前に完了している）
 
-recommendation regression（手順1）を省略したまま production へ進めるのは、
-Issueのオーナー等、判断できる人間の明示的な指示がある場合に限る。その場合も
-「regression未実施のまま反映した」ことを Issue に明記すること。
+recommendation regression（手順1）は production 反映前に**必ず完了させる**。
+「実行エージェントがlive APIへアクセスできないから省略する」は許容しない。
+エージェント自身がlive API regressionを実行できない環境では、Issueのオーナー等の
+人間に regression を実施してもらい、「誰が・何を確認し・問題なしと判断したか」を
+Issue に記録してもらってから production へ進める。確認の実行者が人間に変わるだけで、
+確認そのものを省略してよいことにはならない。
 
 ## recommendationへの影響確認
 
