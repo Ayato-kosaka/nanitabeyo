@@ -251,6 +251,11 @@ test.describe("#1397 Map のピン → 料理メディア Sheet → 全画面 Fe
 		// ② 行タップ → 全画面 Feed
 		await myDishes.sheetItems.first().tap();
 		await myDishes.expectFeedOpened();
+		// ⚠️ `my-dishes-feed-screen` は «読み込み中»・«0 件»・«失敗» でも描かれる器なので、それだけでは
+		// 「Feed が開いた」の証跡にならない。chips のカテゴリラベルは «いま表示しているエントリ» の
+		// `dish.name` から作られる（`MyDishesFeedChips`）ので、これが出ていることで
+		// **タップした行（先頭 = ラーメン）の料理が実際に表示されている**ことまで確かめられる（R1）
+		await expect(myDishes.chipWithText(RAMEN.name)).toBeVisible();
 
 		// ③ 閉じる → 元の画面へ戻り、Sheet は残らない（#644 の再発防止）
 		await myDishes.feedCloseButton.tap();
@@ -274,6 +279,9 @@ test.describe("#1397 Map のピン → 料理メディア Sheet → 全画面 Fe
 
 		await myDishes.sheetExpand.tap();
 		await myDishes.expectFeedOpened();
+		// 「全画面で見る」の開始位置は **先頭の写真あり行**（`MyDishesRestaurantSheet.firstPhotoItem`）。
+		// 器が出たことではなく、その料理が実際に表示されていることまで見る（1 本目と同じ理由）
+		await expect(myDishes.chipWithText(RAMEN.name)).toBeVisible();
 	});
 });
 

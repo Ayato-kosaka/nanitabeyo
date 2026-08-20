@@ -131,13 +131,32 @@ export class MyDishesPage {
 	}
 
 	/**
+	 * ピンの «実際に面積を持つ» 子要素を返す。
+	 *
+	 * ⚠️ `testID` が付いた要素そのものは web で **幅 0** になる。Google Maps の `OverlayView`
+	 * （`components/MapView.web.tsx`）が中身を「幅 0 の絶対配置 div」の中へ描くため、その中の
+	 * react-native-web の `TouchableOpacity`（= `my-dishes-map-pin`）も幅 0 に潰れる。
+	 * 見えている丸い吹き出しは、その 2 つ内側の «幅 48px / 高さ 52px を明示した View»
+	 * （`AvatarBubbleMarker` の `container`）で、これが親からはみ出して描画されている。
+	 *
+	 * 面積 0 の要素は Playwright では `hidden` 扱いなので、`toBeVisible()` も `tap()` も
+	 * testID の要素へは使えない。**実測した DOM の形は
+	 * `[data-testid=my-dishes-map-pin] > div(translate) > div(48x52)`** なので、ここを指す。
+	 * タップは子から親（`TouchableOpacity`）へ伝播するので、押下の意味は変わらない。
+	 */
+	pinTapTarget(index = 0): Locator {
+		return this.mapPins.nth(index).locator("> div > div").first();
+	}
+
+	/**
 	 * Map の先頭のピンをタップして Sheet を開く。
 	 *
 	 * ⚠️ `click()` ではなく `tap()`。TrueSheet はタッチのジェスチャで動くので、この画面の操作は
 	 * 実タッチで通すことに統一している（spec 側で `test.use({ hasTouch: true })` が必要）。
 	 */
 	async tapFirstPin(): Promise<void> {
-		const pin = this.mapPins.first();
+		// 面積を持つのは testID の要素ではなく中の吹き出し（`pinTapTarget` のコメント参照）
+		const pin = this.pinTapTarget(0);
 		await expect(pin).toBeVisible();
 		await pin.tap();
 	}
