@@ -781,6 +781,10 @@
 		"cancel": "Cancelar"
 	},
 	"MyDishes": {
+		"actions": {
+			"markAsEaten": "Registrar comido",
+			"markAsEatenA11y": "Registrar este plato como comido"
+		},
 		"views": {
 			"map": "Mapa",
 			"list": "Lista",

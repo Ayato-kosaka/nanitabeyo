@@ -14,7 +14,9 @@ import i18n from "@/lib/i18n";
 import { dismissSheetSafely, presentSheetSafely } from "@/lib/trueSheet";
 import type { MyDishItem, MyDishPin } from "@shared/api/v1/res";
 import { useMyDishesRestaurantQuery } from "../hooks/useMyDishesRestaurantQuery";
+import { buildMarkAsEatenRoute } from "../markAsEaten";
 import {
+	MyDishEatenButton,
 	MyDishStatusBadge,
 	formatMyDishOccurredAt,
 	resolveMyDishTitle,
@@ -86,10 +88,12 @@ const MyDishSheetRow = memo(function MyDishSheetRow({
 	item,
 	locale,
 	onPress,
+	onPressMarkAsEaten,
 }: {
 	item: MyDishItem;
 	locale: string;
 	onPress: (item: MyDishItem) => void;
+	onPressMarkAsEaten: (item: MyDishItem) => void;
 }) {
 	// #1375 追補2 決定3: 写真なしの記録も **実画像**（categoryImageUrl → restaurant.image_url）で並べる。
 	// 灰色プレースホルダーにしない（一覧ビューとの意図的な非対称。myDishCard.tsx 参照）
@@ -140,6 +144,8 @@ const MyDishSheetRow = memo(function MyDishSheetRow({
 					{rating !== null && <Text style={styles.rowRating}>{`★${rating}`}</Text>}
 					{occurredAt !== null && <Text style={styles.rowDate}>{occurredAt}</Text>}
 				</View>
+				{/* #1398 PR4: want 行だけ。押しても行タップ（= Feed / 店舗詳細）は走らない */}
+				<MyDishEatenButton item={item} onPress={onPressMarkAsEaten} testID="my-dishes-sheet-mark-as-eaten" />
 				{!hasPhoto && (
 					// タップ先が Feed ではなく店舗詳細であることを明示する（設計 (1/2) §3）
 					<Text style={styles.rowHint} numberOfLines={2}>
@@ -268,6 +274,27 @@ export function MyDishesRestaurantSheet({ pin, onDismissed }: MyDishesRestaurant
 		[lightImpact, locale, logFrontendEvent],
 	);
 
+	// #1398 (PR4/7) want 行の「食べたを記録」。遷移先は一覧ビューと同一（`buildMarkAsEatenRoute`）。
+	//
+	// ⚠️ Sheet を閉じる処理をここに **足さない**。閉じるのは既に 3 本立てで担保されている
+	// （`useFocusEffect` の cleanup / `navigation.beforeRemove` / unmount 時の保険。#644 の先例）。
+	// 行タップ（`handlePressItem`）も同じ作法で push だけしている。ここだけ独自に dismiss を
+	// 挟むと、閉じるアニメーションと push が競合して «閉じ切る前に画面が変わる» 挙動になる
+	const handleMarkAsEaten = useCallback(
+		(item: MyDishItem) => {
+			const route = buildMarkAsEatenRoute(item, locale);
+			if (route === null) return;
+			lightImpact();
+			logFrontendEvent({
+				event_name: "my_dishes_mark_as_eaten_pressed",
+				error_level: "log",
+				payload: { itemKey: item.key, from: "sheet" },
+			});
+			router.push(route);
+		},
+		[lightImpact, locale, logFrontendEvent],
+	);
+
 	/**
 	 * #1397 (PR4/5)「全画面で見る」。Feed には写真ありの行しか入れられないので、
 	 * **その店の記録が全部写真なしのときは出さない**（設計 (1/2) §3）。
@@ -310,8 +337,15 @@ export function MyDishesRestaurantSheet({ pin, onDismissed }: MyDishesRestaurant
 	}, [onDismissed]);
 
 	const renderItem = useCallback(
-		({ item }: { item: MyDishItem }) => <MyDishSheetRow item={item} locale={locale} onPress={handlePressItem} />,
-		[handlePressItem, locale],
+		({ item }: { item: MyDishItem }) => (
+			<MyDishSheetRow
+				item={item}
+				locale={locale}
+				onPress={handlePressItem}
+				onPressMarkAsEaten={handleMarkAsEaten}
+			/>
+		),
+		[handleMarkAsEaten, handlePressItem, locale],
 	);
 
 	const keyExtractor = useCallback((item: MyDishItem) => item.key, []);

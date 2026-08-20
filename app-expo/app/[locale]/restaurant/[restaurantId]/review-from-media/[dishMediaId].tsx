@@ -18,6 +18,7 @@ import i18n from "@/lib/i18n";
 import type { QueryDishMediaByIdsDto } from "@shared/api/v1/dto";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { useLocale } from "@/hooks/useLocale";
+import { bumpMyDishesRevision } from "@/features/myDishes/stores/useMyDishesRevisionStore";
 
 export default function ReviewFromMediaScreen() {
 	const { restaurantId, dishMediaId } = useLocalSearchParams<{ restaurantId: string; dishMediaId: string }>();
@@ -36,6 +37,12 @@ export default function ReviewFromMediaScreen() {
 	// #1127 【修正】ReviewForm へ渡すコールバックは参照を安定させる（review.tsx と同じ多層防御）
 	const handleReviewSuccess = useCallback(
 		({ dishReviewId }: { dishReviewId: string }) => {
+			// #1398 (PR4/7) 設計 §3「唯一の実務上の落とし穴：クライアントキャッシュ」。
+			// サーバ側は want 枝の `NOT EXISTS (SELECT 1 FROM dish_reviews …)` で正しく畳むが、
+			// クライアントが取り直さないと **記録した直後の一覧に「食べたい」カードが残って見える**。
+			// ここでキャッシュを捨てる（`bump` が `clearQuery()` を呼ぶ）。
+			// ⚠️ `ReviewForm` 側には置かない。ReviewForm を my-dishes に結合させないため（設計 §3）
+			bumpMyDishesRevision();
 			// /my-dishes までスタックを掃除（なければ現在画面を /my-dishes に置き換え）
 			router.dismissTo(`/${locale}/(tabs)/my-dishes`);
 			router.push({

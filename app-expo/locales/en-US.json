@@ -781,6 +781,10 @@
 		"cancel": "Cancel"
 	},
 	"MyDishes": {
+		"actions": {
+			"markAsEaten": "Log as eaten",
+			"markAsEatenA11y": "Log this dish as eaten"
+		},
 		"views": {
 			"map": "Map",
 			"list": "List",

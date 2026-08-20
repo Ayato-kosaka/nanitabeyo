@@ -1,5 +1,6 @@
-import React, { memo, useMemo } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import React, { memo, useCallback, useMemo } from "react";
+import { Pressable, StyleSheet, Text, View, type GestureResponderEvent } from "react-native";
+import { Utensils } from "lucide-react-native";
 import i18n from "@/lib/i18n";
 import { getCacheKeyForImage } from "@/lib/image";
 import type { MyDishItem } from "@shared/api/v1/res";
@@ -77,6 +78,69 @@ export const MyDishStatusBadge = memo(function MyDishStatusBadge({ status }: { s
 	);
 });
 
+/**
+ * #1398 (PR4/7) want 行から「食べたを記録」へ送る CTA。一覧のカードと Sheet の行で共有する。
+ *
+ * ## いつ出すか
+ *
+ * `status === "want"` の行だけ。eaten 行には出さない。再訪の記録は全画面 Feed の
+ * `ActionButtons` 側（常時活性）で足りる（設計 (1/2) §1(b)）。
+ *
+ * want 行の `dishMedia` は契約上必ず非 null（want の定義が dish_media への save である以上、
+ * 保存対象のメディアが必ず在る。#1395 m-7）。それでも `null` を弾く形にしてあるのは、
+ * 呼び出し側で `dishMedia.id` を触るために型を絞る必要があるからで、防御であって仕様ではない。
+ *
+ * ## ⚠️ 親のタップを起こさないこと
+ *
+ * カード・行の全体は #1397 PR4 で全画面 Feed への遷移になっている。この CTA を押したときに
+ * Feed が開いてはいけない。
+ *
+ * - **native**: RN のタッチレスポンダは 1 つしか勝たない。子の `Pressable` が responder を取るので
+ *   親の `onPress` は発火しない。
+ * - **web（react-native-web）**: DOM の click がそのまま親へ **バブルする**。`stopPropagation()` を
+ *   自分で呼ばないと親の `onPress` まで走り、CTA を押しただけで Feed が開く。
+ *
+ * よって `onPress` で受け取ったイベントに対して必ず `stopPropagation()` を呼ぶ。
+ * RN 側の `GestureResponderEvent` にも `stopPropagation` は生えているので分岐は要らないが、
+ * 実装差を踏まないよう optional call にしてある。この挙動は
+ * `myDishCard.test.tsx` が «イベントを渡した場合 / 渡さない場合» の両方で固定している。
+ */
+export const MyDishEatenButton = memo(function MyDishEatenButton({
+	item,
+	onPress,
+	testID = "my-dishes-mark-as-eaten",
+}: {
+	item: MyDishItem;
+	onPress: (item: MyDishItem) => void;
+	testID?: string;
+}) {
+	const handlePress = useCallback(
+		(event?: GestureResponderEvent) => {
+			// web ではここで止めないと親（カード / 行）の onPress まで走る
+			event?.stopPropagation?.();
+			onPress(item);
+		},
+		[item, onPress],
+	);
+
+	if (item.status !== "want" || item.dishMedia === null) return null;
+
+	return (
+		<Pressable
+			testID={testID}
+			style={styles.eatenButton}
+			onPress={handlePress}
+			hitSlop={6}
+			accessibilityRole="button"
+			accessibilityLabel={i18n.t("MyDishes.actions.markAsEatenA11y")}>
+			<Utensils size={11} color="#FFFFFF" />
+			<Text style={styles.eatenButtonText} numberOfLines={1}>
+				{i18n.t("MyDishes.actions.markAsEaten")}
+			</Text>
+		</Pressable>
+	);
+});
+
 const styles = StyleSheet.create({
 	statusBadge: {
 		paddingHorizontal: 6,
@@ -90,6 +154,20 @@ const styles = StyleSheet.create({
 		backgroundColor: "rgba(240,85,55,0.9)",
 	},
 	statusBadgeText: {
+		fontSize: 10,
+		fontWeight: "700",
+		color: "#FFFFFF",
+	},
+	eatenButton: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 3,
+		paddingHorizontal: 8,
+		paddingVertical: 4,
+		borderRadius: 12,
+		backgroundColor: "rgba(240,85,55,0.95)",
+	},
+	eatenButtonText: {
 		fontSize: 10,
 		fontWeight: "700",
 		color: "#FFFFFF",

@@ -13,6 +13,8 @@ import { useLogger } from "@/hooks/useLogger";
 import { getCacheKeyForImage } from "@/lib/image";
 import i18n from "@/lib/i18n";
 import type { MyDishItem } from "@shared/api/v1/res";
+import { MyDishEatenButton } from "./myDishCard";
+import { buildMarkAsEatenRoute } from "../markAsEaten";
 import { resolveMyDishThumbnailUrl } from "../thumbnail";
 import { useMyDishesQuery } from "../hooks/useMyDishesQuery";
 
@@ -34,7 +36,15 @@ const ASPECT_RATIO = 9 / 16;
 
 type MyDishGridItem = { id: string; item: MyDishItem };
 
-const MyDishCard = memo(function MyDishCard({ item, onPress }: { item: MyDishItem; onPress: (i: MyDishItem) => void }) {
+const MyDishCard = memo(function MyDishCard({
+	item,
+	onPress,
+	onPressMarkAsEaten,
+}: {
+	item: MyDishItem;
+	onPress: (i: MyDishItem) => void;
+	onPressMarkAsEaten: (i: MyDishItem) => void;
+}) {
 	const { lightImpact } = useHaptics();
 	// #958 と同じ理由で useWindowDimensions ではなく CenteredAppShell の中央カラム幅を使う
 	const contentWidth = useContentWidth();
@@ -113,6 +123,8 @@ const MyDishCard = memo(function MyDishCard({ item, onPress }: { item: MyDishIte
 					<Text style={styles.footerText} numberOfLines={1}>
 						{dishName ?? item.restaurant.name ?? ""}
 					</Text>
+					{/* #1398 PR4: want 行だけ。押しても親（= 全画面 Feed への遷移）は走らない */}
+					<MyDishEatenButton item={item} onPress={onPressMarkAsEaten} />
 				</View>
 			</LinearGradient>
 		</Pressable>
@@ -121,6 +133,7 @@ const MyDishCard = memo(function MyDishCard({ item, onPress }: { item: MyDishIte
 
 export function MyDishesListView() {
 	const { locale } = useLocale();
+	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { items, isLoading, isLoadingMore, error, hasNextPage, loadMore, refresh } = useMyDishesQuery();
 
@@ -161,9 +174,28 @@ export function MyDishesListView() {
 		[locale, logFrontendEvent],
 	);
 
+	// #1398 (PR4/7) want カードの「食べたを記録」。カード全体のタップ（= 全画面 Feed）とは別経路。
+	// 押しても Feed が開かないことは `MyDishEatenButton` 側の stopPropagation が担保する
+	const handleMarkAsEaten = useCallback(
+		(item: MyDishItem) => {
+			const route = buildMarkAsEatenRoute(item, locale);
+			if (route === null) return;
+			lightImpact();
+			logFrontendEvent({
+				event_name: "my_dishes_mark_as_eaten_pressed",
+				error_level: "log",
+				payload: { itemKey: item.key, from: "list" },
+			});
+			router.push(route);
+		},
+		[lightImpact, locale, logFrontendEvent],
+	);
+
 	const renderItem = useCallback(
-		({ item }: { item: MyDishGridItem }) => <MyDishCard item={item.item} onPress={handlePressItem} />,
-		[handlePressItem],
+		({ item }: { item: MyDishGridItem }) => (
+			<MyDishCard item={item.item} onPress={handlePressItem} onPressMarkAsEaten={handleMarkAsEaten} />
+		),
+		[handleMarkAsEaten, handlePressItem],
 	);
 
 	const renderEmpty = useCallback(

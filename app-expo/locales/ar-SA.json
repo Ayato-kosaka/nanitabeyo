@@ -781,6 +781,10 @@
 		"cancel": "إلغاء"
 	},
 	"MyDishes": {
+		"actions": {
+			"markAsEaten": "تسجيل كمأكول",
+			"markAsEatenA11y": "تسجيل هذا الطبق كمأكول"
+		},
 		"views": {
 			"map": "الخريطة",
 			"list": "القائمة",

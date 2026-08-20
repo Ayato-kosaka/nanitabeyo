@@ -9,6 +9,10 @@ import {
 	useMyDishesFilterStore,
 } from "../stores/useMyDishesFilterStore";
 import {
+	selectMyDishesRevision,
+	useMyDishesRevisionStore,
+} from "../stores/useMyDishesRevisionStore";
+import {
 	selectMyDishesPinsByQuery,
 	useMyDishesStore,
 	type MyDishesPinsFetcher,
@@ -46,6 +50,7 @@ export const useMyDishesMapPinsQuery = (options?: { enabled?: boolean }): UseMyD
 	const queryKey = useMyDishesFilterStore(selectFilterQueryKey);
 
 	const touchQuery = useMyDishesStore((s) => s.touchQuery);
+	const revision = useMyDishesRevisionStore(selectMyDishesRevision);
 	const fetchPins = useMyDishesStore((s) => s.fetchPins);
 	const { pins, isLoading, error, hasFetchedInitial, truncated } = useMyDishesStore(
 		selectMyDishesPinsByQuery(queryKey),
@@ -77,11 +82,17 @@ export const useMyDishesMapPinsQuery = (options?: { enabled?: boolean }): UseMyD
 	// false のまま `isLoadingPinsByQuery` を false へ戻すので（stores/useMyDishesStore.ts の fetchPins）、
 	// error を見ないと **失敗するたびに再取得して無限ループする**（#1439 レビュー B-1 と同じバグ型。
 	// `useMyDishesQuery.ts` / `feed.tsx` / `RestaurantReviewsTab.tsx` と同じ申し送り）
+	// #1398 (PR4/7) `revision` を依存に入れる。実際にキャッシュを捨てるのは
+	// `useMyDishesRevisionStore.bump()`（`clearQuery()`）で、ここは «版が動いた» ことを
+	// この effect へ伝えるためだけに持つ。
+	// ⚠️ `error` を条件から外さないこと。外すと失敗のたびに叩き直して無限ループする（#1439 B-1）。
+	// 版が動いたときはスライスごと消えていて `error` も `hasFetchedInitial` も落ちているので、
+	// このガードを保ったまま «版が動いたときだけ» 取り直す形になる
 	useEffect(() => {
 		if (!enabled) return;
 		if (hasFetchedInitial || isLoading || error) return;
 		void fetchPins(queryKey, fetcher);
-	}, [enabled, error, fetchPins, fetcher, hasFetchedInitial, isLoading, queryKey]);
+	}, [enabled, error, fetchPins, fetcher, hasFetchedInitial, isLoading, queryKey, revision]);
 
 	const refresh = useCallback(() => {
 		void fetchPins(queryKey, fetcher);
