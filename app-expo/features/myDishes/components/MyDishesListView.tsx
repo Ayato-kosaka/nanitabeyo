@@ -126,13 +126,28 @@ export function MyDishesListView() {
 
 	const data = useMemo<MyDishGridItem[]>(() => items.map((item) => ({ id: item.key, item })), [items]);
 
+	// #1397 (PR4/5) Q2 確定: リスト項目のタップ先は **その項目の店舗スコープの Feed**。
+	// 代案（フィルタ済み一覧全体を縦スクロールする Feed）は ids を URL に積むか store 前提にするしか
+	// なく、**web のリロード・直リンクで壊れる**ので採らない（設計 (2/2) §9-3 / Q2）。
+	//
+	// ⚠️ **index ではなく `itemKey` を渡す**（R1）。一覧の並びは写真なしの行を含み、Feed の並びは
+	// 含まないので、index を渡すと写真なしが 1 件混ざった瞬間に別の料理が開く。
+	// 写真なしの行（`dishMedia === null`）は Feed に入れられないので従来どおり店舗詳細へ。
 	const handlePressItem = useCallback(
 		(item: MyDishItem) => {
+			const hasPhoto = item.dishMedia !== null;
 			logFrontendEvent({
 				event_name: "my_dishes_list_item_selected",
 				error_level: "log",
-				payload: { itemKey: item.key, status: item.status },
+				payload: { itemKey: item.key, status: item.status, hasPhoto },
 			});
+			if (hasPhoto) {
+				router.push({
+					pathname: "/[locale]/(tabs)/my-dishes/feed",
+					params: { locale, restaurantId: item.restaurant.id, itemKey: item.key },
+				});
+				return;
+			}
 			router.push({
 				pathname: "/[locale]/restaurant/[restaurantId]",
 				params: { locale, restaurantId: item.restaurant.id },

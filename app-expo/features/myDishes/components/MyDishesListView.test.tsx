@@ -181,3 +181,65 @@ describe("#1398 PR5 dishMedia === null の写真なしフォールバック", ()
 		expect(tree.root.findAll((node) => node.props?.testID === "my-dishes-list-item-image")).toHaveLength(0);
 	});
 });
+
+describe("#1397 (PR4/5) Q2 リスト項目のタップ先は «その項目の店舗スコープの Feed»", () => {
+	const pressFirstItem = async (tree: TestRenderer.ReactTestRenderer) => {
+		const nodes = tree.root.findAll(
+			(node) => node.props?.testID === "my-dishes-list-item" && typeof node.props?.onPress === "function",
+		);
+		expect(nodes.length).toBeGreaterThan(0);
+		await act(async () => {
+			nodes[0].props.onPress();
+		});
+	};
+
+	it("写真ありの項目は my-dishes/feed へ push する。渡すのは index ではなく itemKey（R1）", async () => {
+		mockUseMyDishesQuery.mockReturnValue({
+			items: [
+				// R1: 一覧の並びは写真なしを含むので、index を渡すと Feed 側とずれる
+				makeItem("review:no-photo"),
+				makeItem("review:with-photo", { thumbnailImageUrl: "https://example.com/media.jpg" }),
+			],
+			isLoading: false,
+			isLoadingMore: false,
+			error: null,
+			hasNextPage: false,
+			loadMore: jest.fn(),
+			refresh: jest.fn(),
+		});
+		const tree = await render();
+
+		const nodes = tree.root.findAll(
+			(node) => node.props?.testID === "my-dishes-list-item" && typeof node.props?.onPress === "function",
+		);
+		await act(async () => {
+			nodes[nodes.length - 1].props.onPress();
+		});
+
+		expect(mockPush).toHaveBeenCalledWith({
+			pathname: "/[locale]/(tabs)/my-dishes/feed",
+			params: { locale: "ja-JP", restaurantId: "restaurant-1", itemKey: "review:with-photo" },
+		});
+		expect(Object.keys(mockPush.mock.calls[0][0].params)).not.toContain("initialIndex");
+	});
+
+	it("写真なしの項目は従来どおり店舗詳細へ push する（Feed に入れられない）", async () => {
+		mockUseMyDishesQuery.mockReturnValue({
+			items: [makeItem("review:no-photo", { categoryImageUrl: "https://example.com/category.jpg" })],
+			isLoading: false,
+			isLoadingMore: false,
+			error: null,
+			hasNextPage: false,
+			loadMore: jest.fn(),
+			refresh: jest.fn(),
+		});
+		const tree = await render();
+
+		await pressFirstItem(tree);
+
+		expect(mockPush).toHaveBeenCalledWith({
+			pathname: "/[locale]/restaurant/[restaurantId]",
+			params: { locale: "ja-JP", restaurantId: "restaurant-1" },
+		});
+	});
+});
