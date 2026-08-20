@@ -205,6 +205,9 @@ describe("#1396 取得結果 store にも viewport を置かない（§3-2）", 
 				"fetchInitial",
 				"fetchMore",
 				"fetchPins",
+				// #1398 (PR4/7) 破棄の世代。viewport の類ではなく «飛行中の取得を捨てるための版数» なので
+				// このガードの趣旨（Map の pan/zoom を store へ流し込ませない）には反しない
+				"generation",
 				"hasFetchedInitialByQuery",
 				"hasFetchedInitialPinsByQuery",
 				"isLoadingByQuery",

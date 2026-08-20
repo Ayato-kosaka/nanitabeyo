@@ -17,7 +17,7 @@ import {
 	useMyDishesFilterStore,
 } from "./useMyDishesFilterStore";
 import { useMyDishesRevisionStore } from "./useMyDishesRevisionStore";
-import { useMyDishesStore } from "./useMyDishesStore";
+import { useMyDishesStore, type MyDishesFetcher } from "./useMyDishesStore";
 
 const QUERY_KEY = "default";
 const OTHER_KEY = "restaurantId=restaurant-9";
@@ -93,5 +93,77 @@ describe("useMyDishesRevisionStore", () => {
 		useMyDishesFilterStore.setState({ filter: { ...DEFAULT_MY_DISHES_FILTER, status: ["eaten"] } });
 		useMyDishesRevisionStore.getState().bump();
 		expect(useMyDishesFilterStore.getState().filter.status).toEqual(["eaten"]);
+	});
+});
+
+/*
+飛行中の取得が «捨てた世代» の行を書き戻さないこと。
+
+この一覧の取得は平均 4.48 秒・最大 11.23 秒（#1395 §0(A) の実測）なので、
+「一覧を開いた直後に want カードの CTA を押して記録する」という普通の操作で、
+取得が飛行中のまま `bump()` が走る。世代を見ずに書き戻すと **記録前の行が
+`hasFetchedInitial: true` 付きで復活し、`!error` ガード付きの effect はもう取り直さない**。
+つまりこの PR が消しに来た「記録直後に食べたいカードが残る」がそのまま出る。
+*/
+describe("bump と飛行中の取得の競合", () => {
+	const fetcherFor = (resolve: { current?: (v: unknown) => void }) =>
+		jest.fn(
+			() =>
+				new Promise((res) => {
+					resolve.current = res as (v: unknown) => void;
+				}),
+		) as unknown as MyDishesFetcher;
+
+	it("飛行中に bump したら、遅れて返ってきた «記録前» の行を書き戻さない", async () => {
+		const resolve: { current?: (v: unknown) => void } = {};
+		const fetcher = fetcherFor(resolve);
+
+		const inFlight = useMyDishesStore.getState().fetchInitial(QUERY_KEY, fetcher);
+		expect(useMyDishesStore.getState().isLoadingByQuery[QUERY_KEY]).toBe(true);
+
+		// 記録が成功した（= 一覧を捨てた）
+		useMyDishesRevisionStore.getState().bump();
+
+		// 取得が «あとから» 返る
+		resolve.current?.({ data: [makeItem("dish:1")], nextCursor: null, oldestOccurredAt: null });
+		await inFlight;
+
+		const state = useMyDishesStore.getState();
+		expect(state.itemKeysByQuery[QUERY_KEY]).toBeUndefined();
+		expect(state.hasFetchedInitialByQuery[QUERY_KEY]).toBeUndefined();
+		// ここが残ると、新しい世代の取得が «二重投げ防止» に引っかかって永久に走らない
+		expect(state.isLoadingByQuery[QUERY_KEY]).toBeUndefined();
+	});
+
+	it("飛行中に bump したら、遅れて返ってきた失敗も error として書き戻さない", async () => {
+		const resolve: { current?: (v: unknown) => void } = {};
+		const fetcher = jest.fn(
+			() =>
+				new Promise((_res, rej) => {
+					resolve.current = () => rej(new Error("boom"));
+				}),
+		) as unknown as MyDishesFetcher;
+
+		const inFlight = useMyDishesStore.getState().fetchInitial(QUERY_KEY, fetcher);
+		useMyDishesRevisionStore.getState().bump();
+		resolve.current?.(undefined);
+		await inFlight;
+
+		// error が生えると `!error` ガードが «取り直すべきときに取り直さない» 側へ倒れる
+		expect(useMyDishesStore.getState().errorByQuery[QUERY_KEY]).toBeUndefined();
+	});
+
+	it("bump が無ければ従来どおり書き戻す（世代ガードが普通の取得を殺していない）", async () => {
+		const resolve: { current?: (v: unknown) => void } = {};
+		const fetcher = fetcherFor(resolve);
+
+		const inFlight = useMyDishesStore.getState().fetchInitial(QUERY_KEY, fetcher);
+		resolve.current?.({ data: [makeItem("dish:1")], nextCursor: null, oldestOccurredAt: null });
+		await inFlight;
+
+		const state = useMyDishesStore.getState();
+		expect(state.itemKeysByQuery[QUERY_KEY]).toEqual(["dish:1"]);
+		expect(state.hasFetchedInitialByQuery[QUERY_KEY]).toBe(true);
+		expect(state.isLoadingByQuery[QUERY_KEY]).toBe(false);
 	});
 });

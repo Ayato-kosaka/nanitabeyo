@@ -107,6 +107,21 @@ export type MyDishesStore = {
 	recentQueryKeys: string[];
 
 	/**
+	 * #1398 (PR4/7) 破棄の世代。`clearQuery` を呼ぶたびに 1 つ進む。
+	 *
+	 * 取得は `await` を挟むので、**飛行中に `clearQuery` が走ることがある**
+	 * （記録成功時の `useMyDishesRevisionStore.bump()` / Feed を閉じるときの Q4 invalidate）。
+	 * 世代を見ずに書き戻すと、**捨てたはずの «記録前» の行が `hasFetchedInitial: true` 付きで
+	 * 復活し、`!error` ガード付きの effect はもう取り直さない**。つまり記録直後の一覧に
+	 * 「食べたい」カードが残る — この PR が消しに来たはずの症状がそのまま出る。
+	 * この一覧の取得は平均 4.48 秒・最大 11.23 秒（#1395 §0(A) の実測）なので、
+	 * 窓はミリ秒ではなく**秒の幅**で開いている。
+	 *
+	 * 各 fetch は開始時に世代を控え、`await` の後で変わっていたら **1 バイトも書かずに捨てる**。
+	 */
+	generation: number;
+
+	/**
 	 * `queryKey` を LRU の先頭へ touch する。キャッシュヒット（`fetchInitial` を呼ばない経路）でも
 	 * 呼ぶ必要があるため、`fetchInitial` の副作用から独立させている（#1396 m-1）。
 	 * `useMyDishesQuery` / `useMyDishesMapPinsQuery` がマウント・`queryKey` 変化のたびに毎回呼ぶ。
@@ -261,6 +276,7 @@ export const useMyDishesStore = createWithEqualityFn<MyDishesStore>()((set, get)
 	errorPinsByQuery: {},
 	truncatedByQuery: {},
 	recentQueryKeys: [],
+	generation: 0,
 
 	touchQuery: (queryKey) => set((state) => touchAndEvict(state, queryKey)),
 
@@ -276,9 +292,15 @@ export const useMyDishesStore = createWithEqualityFn<MyDishesStore>()((set, get)
 			errorByQuery: { ...state.errorByQuery, [queryKey]: null },
 		}));
 
+		// 世代は «ローディングを立てた後・await の前» に控える
+		const generation = get().generation;
+
 		try {
 			// #1396 【設計】フィルタ変更時は cursor を捨てて先頭から取り直す（#1395 §6）
 			const response = await fetcher({ cursor: null });
+		// #1398 (PR4/7) 飛行中に clearQuery が走ったら、この結果は «捨てた世代» のものなので
+		// 1 バイトも書かない（書くと «記録前» の行が hasFetchedInitial 付きで復活する）
+			if (get().generation !== generation) return;
 			set((state) => {
 				const itemPatch: Record<string, MyDishItem> = {};
 				for (const item of response.data) itemPatch[item.key] = item;
@@ -294,9 +316,15 @@ export const useMyDishesStore = createWithEqualityFn<MyDishesStore>()((set, get)
 				};
 			});
 		} catch (err) {
+			if (get().generation !== generation) return;
 			set((state) => ({ errorByQuery: { ...state.errorByQuery, [queryKey]: toErrorMessage(err) } }));
 		} finally {
-			set((state) => ({ isLoadingByQuery: { ...state.isLoadingByQuery, [queryKey]: false } }));
+			// ⚠️ 世代が変わっていたら **ローディングも触らない**。触ると、消えたキーへ
+			// `false` が生えるだけでなく、新しい世代で既に飛んでいる取得の «二重投げ防止» を
+			// 解除してしまう
+			if (get().generation === generation) {
+				set((state) => ({ isLoadingByQuery: { ...state.isLoadingByQuery, [queryKey]: false } }));
+			}
 		}
 	},
 
@@ -312,8 +340,13 @@ export const useMyDishesStore = createWithEqualityFn<MyDishesStore>()((set, get)
 			errorByQuery: { ...s.errorByQuery, [queryKey]: null },
 		}));
 
+		const generation = get().generation;
+
 		try {
 			const response = await fetcher({ cursor });
+		// #1398 (PR4/7) 飛行中に clearQuery が走ったら、この結果は «捨てた世代» のものなので
+		// 1 バイトも書かない（書くと «記録前» の行が hasFetchedInitial 付きで復活する）
+			if (get().generation !== generation) return;
 			// n-1（見送り・申し送り）: ここで `queryKey` がまだ `recentQueryKeys` に生きているかは見ていない。
 			// 飛行中に他の 4 本目の queryKey で LRU から追い出されると、この結果は誰も参照しない
 			// itemByKey の行として残り続ける（次の追い出しまで）。到達には「追加取得中に他の
@@ -333,9 +366,12 @@ export const useMyDishesStore = createWithEqualityFn<MyDishesStore>()((set, get)
 				};
 			});
 		} catch (err) {
+			if (get().generation !== generation) return;
 			set((s) => ({ errorByQuery: { ...s.errorByQuery, [queryKey]: toErrorMessage(err) } }));
 		} finally {
-			set((s) => ({ isLoadingMoreByQuery: { ...s.isLoadingMoreByQuery, [queryKey]: false } }));
+			if (get().generation === generation) {
+				set((s) => ({ isLoadingMoreByQuery: { ...s.isLoadingMoreByQuery, [queryKey]: false } }));
+			}
 		}
 	},
 
@@ -349,17 +385,25 @@ export const useMyDishesStore = createWithEqualityFn<MyDishesStore>()((set, get)
 			errorPinsByQuery: { ...state.errorPinsByQuery, [queryKey]: null },
 		}));
 
+		const generation = get().generation;
+
 		try {
 			const response = await fetcher();
+			// #1398 (PR4/7) 飛行中に clearQuery が走ったら、この結果は «捨てた世代» のものなので
+			// 1 バイトも書かない（書くと «記録前» のピンが hasFetchedInitial 付きで復活する）
+			if (get().generation !== generation) return;
 			set((state) => ({
 				pinsByQuery: { ...state.pinsByQuery, [queryKey]: response.data },
 				truncatedByQuery: { ...state.truncatedByQuery, [queryKey]: response.truncated },
 				hasFetchedInitialPinsByQuery: { ...state.hasFetchedInitialPinsByQuery, [queryKey]: true },
 			}));
 		} catch (err) {
+			if (get().generation !== generation) return;
 			set((state) => ({ errorPinsByQuery: { ...state.errorPinsByQuery, [queryKey]: toErrorMessage(err) } }));
 		} finally {
-			set((state) => ({ isLoadingPinsByQuery: { ...state.isLoadingPinsByQuery, [queryKey]: false } }));
+			if (get().generation === generation) {
+				set((state) => ({ isLoadingPinsByQuery: { ...state.isLoadingPinsByQuery, [queryKey]: false } }));
+			}
 		}
 	},
 
@@ -381,6 +425,8 @@ export const useMyDishesStore = createWithEqualityFn<MyDishesStore>()((set, get)
 					errorPinsByQuery: {},
 					truncatedByQuery: {},
 					recentQueryKeys: [],
+					// 飛行中の取得を «捨てた世代» にする（下の単一キー破棄でも同じ）
+					generation: state.generation + 1,
 				};
 			}
 
@@ -435,6 +481,9 @@ export const useMyDishesStore = createWithEqualityFn<MyDishesStore>()((set, get)
 				errorPinsByQuery: nextErrorPinsByQuery,
 				truncatedByQuery: nextTruncatedByQuery,
 				recentQueryKeys: state.recentQueryKeys.filter((k) => k !== queryKey),
+				// 単一キーの破棄でも世代を進める。飛行中の取得がこのキーを書き戻すと、
+				// 捨てたはずの行が hasFetchedInitial 付きで復活する（全破棄と同じ理由）
+				generation: state.generation + 1,
 			};
 		}),
 }));
