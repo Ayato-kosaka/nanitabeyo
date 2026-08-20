@@ -609,10 +609,22 @@ claude-denial: 17 tool=Bash    parameters=[command, dangerouslyDisableSandbox, d
 Claude は作業できず、`subtype=success` のまま引き返すしかなかった。turn 切れ（150 に対して 76）でも
 利用上限でもない。
 
-対処: `claude-worker.yml` の書き込みワーカーへ `--permission-mode acceptEdits` と
+対処: `claude-worker.yml` の書き込みワーカーへ `--permission-mode bypassPermissions` と
 `--allowedTools` を明示した。**Action のバージョンはコミットで固定していても、Action が
 実行時に入れる Claude Code CLI は固定されていない。** CLI 側の既定（permission mode /
 sandbox）が変わると、ワーカーは黙って作業不能になる。**既定に頼らないこと。**
+
+`acceptEdits` では足りない。あれが自動承認するのは **ファイル編集だけ**で、`Bash` は確認を求める。
+非対話実行では確認する人が居ないので、確認 = 拒否である。さらに `dangerouslyDisableSandbox` の
+存在が示すとおり «サンドボックス外への昇格» という別の承認軸があり、`git push` も `pnpm install` も
+ネットワークが要るので必ずそこへ来る。`--allowedTools Bash` は «Bash というツール» を許すだけで、
+この昇格までは前もって承認できない。
+
+そして `--allowedTools Bash` を入れた時点で **任意の Bash を許している**のだから、
+`acceptEdits` と `bypassPermissions` の差は実質的にセキュリティの差ではなく信頼性の差でしかない。
+**非対話のワーカーでは、中途半端な権限モードを選ぶと «黙って何もせず帰ってくる» に倒れる。**
+影響範囲は「使い捨てランナー」「job の `permissions:`」「`CLAUDE_BRANCH` による作業ブランチ固定」の
+3 つで閉じているので、そちらで縛るのが正しい。
 
 教訓として一般化できるのは次の 1 点である。
 **「ワーカーが同じ形で 2 本続けて手ぶらで帰ってきたら、プロンプトを疑う前に権限を疑う。」**
