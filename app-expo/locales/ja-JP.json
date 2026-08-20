@@ -848,6 +848,13 @@
 		"list": {
 			"noPhoto": "写真なし"
 		},
+		"sheet": {
+			"title": "{{restaurant}} の記録",
+			"counts": "食べたい {{want}}・食べた {{eaten}}",
+			"openRestaurant": "店舗ページを開く",
+			"seeAllInList": "一覧で見る",
+			"noPhotoHint": "写真がない記録です。タップすると店舗ページを開きます"
+		},
 		"searchThisArea": "このエリアで再検索"
 	}
 }

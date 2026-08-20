@@ -1,0 +1,307 @@
+/*
+#1397 (PR3/5) 料理メディア Sheet 本体。
+
+見るのは 5 つ。
+
+1. `pin === null` の間は取得を 1 本も投げず、中身も描かない（ピンをタップするまで走らせない。§5-1）
+2. **Sheet を開いても共有フィルタ（`useMyDishesFilterStore`）を一切書かない**（絶対条件1 / §7-1）。
+   ここが崩れると、Sheet を開いただけで一覧と Map まで 1 店舗に絞られる。
+3. **写真なし（`dishMedia === null`）も並べ、`dish.categoryImageUrl` を実画像として使う**
+   （#1375 追補2 決定3）。灰色プレースホルダーにしない。
+4. §8-3: Sheet の中に無限スクロールを持ち込まない。`hasNextPage` のときだけ「一覧で見る」を出し、
+   押下は `router.setParams({ view: "list" })`（= ルートを push しない）。
+5. R6: 中身は `SheetGestureRoot` で包み、TrueSheet には `scrollable` を渡す
+   （縦 FlatList がシートの可視領域に収まる唯一のスイッチ。native は content へ flex:1、
+   web は overflowY:auto の器を足す）。
+*/
+jest.mock("@/lib/i18n", () => ({ __esModule: true, default: { t: (key: string) => key } }));
+jest.mock("@/hooks/useHaptics", () => ({ useHaptics: () => ({ lightImpact: jest.fn(), mediumImpact: jest.fn() }) }));
+jest.mock("@/hooks/useLocale", () => ({ useLocale: () => ({ locale: "ja-JP", isJapanese: true }) }));
+jest.mock("@/hooks/useLogger", () => ({ useLogger: () => ({ logFrontendEvent: jest.fn() }) }));
+jest.mock("@/components/LoadingIndicator", () => ({ LoadingIndicator: () => null }));
+jest.mock("lucide-react-native", () => new Proxy({}, { get: () => () => null }));
+
+const mockPush = jest.fn();
+const mockSetParams = jest.fn();
+jest.mock("expo-router", () => ({
+	router: {
+		push: (...args: unknown[]) => mockPush(...args),
+		setParams: (...args: unknown[]) => mockSetParams(...args),
+	},
+}));
+
+// 画像の解決順（thumbnail → categoryImageUrl → restaurant.image_url）をアサートするために
+// `source.uri` をそのまま props へ出すスタブにする
+jest.mock("expo-image", () => {
+	const ReactActual = jest.requireActual("react");
+	const { View: RNView } = jest.requireActual("react-native");
+	return {
+		Image: ({ source, style }: { source?: { uri?: string }; style?: unknown }) =>
+			ReactActual.createElement(RNView, { testID: "sheet-image", uri: source?.uri, style }),
+	};
+});
+
+const mockCallBackend = jest.fn();
+jest.mock("@/hooks/useAPICall", () => ({ useAPICall: () => ({ callBackend: mockCallBackend }) }));
+
+import React, { act } from "react";
+import { FlatList } from "react-native";
+import TestRenderer from "react-test-renderer";
+import { TrueSheet } from "@lodev09/react-native-true-sheet";
+import type { MyDishItem, MyDishPin } from "@shared/api/v1/res";
+import { MyDishesRestaurantSheet } from "./MyDishesRestaurantSheet";
+import { selectFilterQueryKey, useMyDishesFilterStore } from "../stores/useMyDishesFilterStore";
+import { useMyDishesStore } from "../stores/useMyDishesStore";
+
+(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+
+const RESTAURANT_ID = "11111111-1111-1111-1111-000000000001";
+
+const mockPin = {
+	restaurant: {
+		id: RESTAURANT_ID,
+		name: "テスト食堂",
+		latitude: 35.5,
+		longitude: 139.5,
+		image_url: "https://example.com/restaurant.jpg",
+	},
+	counts: { want: 1, eaten: 2 },
+	latestOccurredAt: "2026-08-01T00:00:00.000Z",
+	representativeThumbnailUrl: null,
+} as unknown as MyDishPin;
+
+const makeItem = (overrides: Partial<MyDishItem> & { key: string }): MyDishItem =>
+	({
+		status: "eaten",
+		occurredAt: "2026-08-01T00:00:00.000Z",
+		savedAt: null,
+		eatenAt: "2026-08-01T00:00:00.000Z",
+		restaurant: mockPin.restaurant,
+		dish: {
+			id: "dish-1",
+			name: "唐揚げ定食",
+			restaurant_id: RESTAURANT_ID,
+			reviewCount: 1,
+			averageRating: 4,
+			categoryImageUrl: "https://example.com/category.jpg",
+		},
+		dishMedia: null,
+		myReview: null,
+		distanceMeters: null,
+		...overrides,
+	}) as unknown as MyDishItem;
+
+/** 写真なしの記録（#1395 で `created_dish_media_id` の NOT NULL を解除済み） */
+const itemWithoutPhoto = makeItem({ key: "review:no-photo" });
+/** 写真ありの記録 */
+const itemWithPhoto = makeItem({
+	key: "review:with-photo",
+	dishMedia: { id: "media-1", thumbnailImageUrl: "https://example.com/media.jpg" } as MyDishItem["dishMedia"],
+	myReview: { rating: 4 } as MyDishItem["myReview"],
+});
+
+const mountedTrees: TestRenderer.ReactTestRenderer[] = [];
+
+const render = async (pin: MyDishPin | null, onDismissed = jest.fn()): Promise<TestRenderer.ReactTestRenderer> => {
+	let tree!: TestRenderer.ReactTestRenderer;
+	await act(async () => {
+		tree = TestRenderer.create(<MyDishesRestaurantSheet pin={pin} onDismissed={onDismissed} />);
+	});
+	mountedTrees.push(tree);
+	return tree;
+};
+
+const respondWith = (data: MyDishItem[], nextCursor: string | null = null) => {
+	mockCallBackend.mockResolvedValue({ data, nextCursor, meta: { oldestOccurredAt: null } });
+};
+
+/**
+ * `testID` でホスト要素だけを拾う。
+ *
+ * ⚠️ `findAll` は **合成コンポーネントも数える**ので、`Pressable` のように testID を
+ * そのまま下へ流す要素は 1 つの見た目に対して複数ヒットする（実測で 1 行が 3 件になった）。
+ * ホスト要素（`typeof type === "string"`）へ絞ると «画面に出ている数» と一致する。
+ */
+const findAllByTestID = (tree: TestRenderer.ReactTestRenderer, testID: string) =>
+	tree.root.findAll((node) => typeof node.type === "string" && node.props?.testID === testID);
+
+/** `onPress` を持つノード（= 合成コンポーネント側の Pressable）を押す */
+const pressByTestID = async (tree: TestRenderer.ReactTestRenderer, testID: string) => {
+	const nodes = tree.root.findAll(
+		(node) => node.props?.testID === testID && typeof node.props?.onPress === "function",
+	);
+	expect(nodes.length).toBeGreaterThan(0);
+	await act(async () => {
+		nodes[0].props.onPress();
+	});
+};
+
+beforeEach(() => {
+	useMyDishesFilterStore.getState().reset();
+	useMyDishesStore.getState().clearQuery();
+	mockCallBackend.mockReset();
+	mockPush.mockClear();
+	mockSetParams.mockClear();
+	respondWith([]);
+});
+
+afterEach(async () => {
+	await act(async () => {
+		mountedTrees.splice(0).forEach((tree) => tree.unmount());
+	});
+});
+
+describe("#1397 §5-1 ピンをタップするまで 1 本も投げない", () => {
+	it("pin === null の間は callBackend を呼ばず、中身も描かない", async () => {
+		const tree = await render(null);
+
+		expect(mockCallBackend).not.toHaveBeenCalled();
+		expect(findAllByTestID(tree, "my-dishes-sheet-item")).toHaveLength(0);
+		// SheetGestureRoot 自体は常にマウントされている（present/dismiss を ref で制御するため）
+		expect(findAllByTestID(tree, "my-dishes-sheet").length).toBeGreaterThan(0);
+	});
+
+	it("pin が渡ると restaurantId 付きで GET /v1/users/me/dishes を 1 回だけ投げる", async () => {
+		respondWith([itemWithPhoto]);
+		await render(mockPin);
+
+		expect(mockCallBackend).toHaveBeenCalledTimes(1);
+		const [path, options] = mockCallBackend.mock.calls[0];
+		expect(path).toBe("v1/users/me/dishes");
+		expect(options.requestPayload.restaurantId).toBe(RESTAURANT_ID);
+	});
+});
+
+describe("#1397 絶対条件1 Sheet は共有フィルタ store を一切書かない（§7-1）", () => {
+	it("開いても filter のオブジェクト参照と base の queryKey が変わらない", async () => {
+		respondWith([itemWithPhoto, itemWithoutPhoto]);
+
+		const filterBefore = useMyDishesFilterStore.getState().filter;
+		const queryKeyBefore = selectFilterQueryKey(useMyDishesFilterStore.getState());
+
+		await render(mockPin);
+
+		// zustand の set() は新しいオブジェクトを作る。参照が同じ = 一度も set() されていない
+		expect(useMyDishesFilterStore.getState().filter).toBe(filterBefore);
+		expect(selectFilterQueryKey(useMyDishesFilterStore.getState())).toBe(queryKeyBefore);
+		expect(Object.keys(useMyDishesFilterStore.getState().filter)).not.toContain("restaurantId");
+	});
+});
+
+describe("#1397 §3 写真なしの記録も並べ、実画像へ落とす（#1375 追補2 決定3）", () => {
+	it("dishMedia === null の行も並び、dish.categoryImageUrl を使う（灰色プレースホルダーにしない）", async () => {
+		// R1 の並び（写真なしを先頭に含む）をそのまま固定する
+		respondWith([itemWithoutPhoto, itemWithPhoto]);
+		const tree = await render(mockPin);
+
+		const rows = findAllByTestID(tree, "my-dishes-sheet-item");
+		expect(rows).toHaveLength(2);
+
+		const images = findAllByTestID(tree, "sheet-image");
+		expect(images.map((n) => n.props.uri)).toEqual([
+			"https://example.com/category.jpg",
+			"https://example.com/media.jpg",
+		]);
+
+		// 写真なしの行だけ E2E 用の目印が付く（動的 ID は作らない。nth() で指す）
+		expect(findAllByTestID(tree, "my-dishes-sheet-item-placeholder")).toHaveLength(1);
+	});
+
+	it("categoryImageUrl が空なら restaurant.image_url へ落ちる", async () => {
+		respondWith([
+			makeItem({
+				key: "review:no-category-image",
+				dish: { ...itemWithoutPhoto.dish, categoryImageUrl: "" } as MyDishItem["dish"],
+			}),
+		]);
+		const tree = await render(mockPin);
+
+		const images = findAllByTestID(tree, "sheet-image");
+		expect(images.map((n) => n.props.uri)).toEqual(["https://example.com/restaurant.jpg"]);
+	});
+});
+
+describe("#1397 Q6 店舗詳細への導線はヘッダ（店名タップ）だけ", () => {
+	it("ヘッダの店名タップで /[locale]/restaurant/[restaurantId] へ push する", async () => {
+		respondWith([itemWithPhoto]);
+		const tree = await render(mockPin);
+
+		expect(findAllByTestID(tree, "my-dishes-sheet-title").length).toBeGreaterThan(0);
+		await pressByTestID(tree, "my-dishes-sheet-title");
+
+		expect(mockPush).toHaveBeenCalledWith({
+			pathname: "/[locale]/restaurant/[restaurantId]",
+			params: { locale: "ja-JP", restaurantId: RESTAURANT_ID },
+		});
+	});
+
+	it("「この店の全レビューを見る」（店舗フィード）への導線は置かない", async () => {
+		respondWith([itemWithPhoto]);
+		const tree = await render(mockPin);
+
+		const pushed = tree.root
+			.findAll((node) => typeof node.props?.onPress === "function")
+			.map((node) => node.props.testID);
+		expect(pushed).not.toContain("my-dishes-sheet-all-reviews");
+		// PR4 の「全画面で見る」もこの PR ではまだ置かない
+		expect(findAllByTestID(tree, "my-dishes-sheet-expand")).toHaveLength(0);
+	});
+});
+
+describe("#1397 §8-3 Sheet の中に無限スクロールを持ち込まない", () => {
+	it("nextCursor が null なら「一覧で見る」を出さない", async () => {
+		respondWith([itemWithPhoto], null);
+		const tree = await render(mockPin);
+
+		expect(findAllByTestID(tree, "my-dishes-sheet-see-all-in-list")).toHaveLength(0);
+	});
+
+	it("nextCursor があるときだけ「一覧で見る」を出し、押下はルートを push せず view=list へ切り替える", async () => {
+		respondWith([itemWithPhoto], "cursor-1");
+		const tree = await render(mockPin);
+
+		expect(findAllByTestID(tree, "my-dishes-sheet-see-all-in-list").length).toBeGreaterThan(0);
+		await pressByTestID(tree, "my-dishes-sheet-see-all-in-list");
+
+		expect(mockSetParams).toHaveBeenCalledWith({ view: "list" });
+		// ⚠️ push すると Map が再マウントされ hasFitPinsRef が二度走る（§9-1）
+		expect(mockPush).not.toHaveBeenCalled();
+	});
+
+	it("FlatList に onEndReached を渡さない（追加読み込みは Sheet の責務ではない）", async () => {
+		respondWith([itemWithPhoto], "cursor-1");
+		const tree = await render(mockPin);
+
+		const lists = tree.root.findAllByType(FlatList);
+		expect(lists.length).toBeGreaterThan(0);
+		expect(lists.every((node) => node.props.onEndReached === undefined)).toBe(true);
+	});
+});
+
+describe("#1397 R6/R7 TrueSheet の使い方", () => {
+	it("scrollable を渡す（縦 FlatList をシートの可視領域に収める唯一のスイッチ）", async () => {
+		respondWith([itemWithPhoto]);
+		const tree = await render(mockPin);
+
+		const sheet = tree.root.findByType(TrueSheet);
+		expect(sheet.props.scrollable).toBe(true);
+	});
+
+	it("中身は SheetGestureRoot（testID: my-dishes-sheet）で包む", async () => {
+		respondWith([itemWithPhoto]);
+		const tree = await render(mockPin);
+
+		const sheet = tree.root.findByType(TrueSheet);
+		expect(sheet.findAll((node) => node.props?.testID === "my-dishes-sheet").length).toBeGreaterThan(0);
+	});
+});
+
+describe("#1397 取得失敗時は再試行の口を残す（一覧・Map と揃える）", () => {
+	it("error のとき EmptyState と再試行ボタンが出る", async () => {
+		mockCallBackend.mockRejectedValue(new Error("boom"));
+		const tree = await render(mockPin);
+
+		expect(findAllByTestID(tree, "my-dishes-sheet-empty").length).toBeGreaterThan(0);
+		expect(findAllByTestID(tree, "my-dishes-sheet-empty-retry").length).toBeGreaterThan(0);
+	});
+});

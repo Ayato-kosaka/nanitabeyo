@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { RotateCw, X } from "lucide-react-native";
-import { router } from "expo-router";
 import MapViewClass from "react-native-maps";
 import MapView, { type Region } from "@/components/MapView";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
@@ -17,6 +16,7 @@ import type { MyDishPin } from "@shared/api/v1/res";
 import { boundingRegionForCoordinates, isRegionTooWide, regionToArea } from "../geo";
 import { useMyDishesFilterStore } from "../stores/useMyDishesFilterStore";
 import { useMyDishesMapPinsQuery } from "../hooks/useMyDishesMapPinsQuery";
+import { MyDishesRestaurantSheet } from "./MyDishesRestaurantSheet";
 
 /**
  * #1396 my-dishes の Map ビュー（設計書 (2/2) §7 の PR4）。
@@ -30,9 +30,21 @@ import { useMyDishesMapPinsQuery } from "../hooks/useMyDishesMapPinsQuery";
  *
  * ピンは一覧ビューと**同じ `queryKey`**（`useMyDishesMapPinsQuery` 内部）を使うので、
  * フィルタ変更は一覧・Map の両方に同時に効き、ビュー切替では取り直さない。
+ *
+ * ## #1397 ピンタップは «料理メディア Sheet» を開く（ルートにしない。設計 (2/2) §9-1）
+ *
+ * 選択中の店舗は下の `selectedPin`（このコンポーネントの内部 state）だけが持つ。
+ *
+ * - **ルートにしない。** push / pop で Map が再マウントされると、`hasFitPinsRef` の
+ *   «一度きり» のフィットが二度目も走る（= 開閉のたびに viewport が飛ぶ）。
+ * - **`useMyDishesFilterStore` に `restaurantId` を入れない**（設計 (2/2) §7-1）。
+ *   共有フィルタへ店舗を混ぜた瞬間、Sheet を開いただけで一覧と Map まで 1 店舗に絞られる。
+ *   Sheet が使うのは `useMyDishesRestaurantQuery` の **派生 queryKey** だけである。
+ * - ピンタップで全画面 Feed へ直行することはできない（`MyDishPin` が `dish_media.id` を
+ *   1 つも持たないため。設計 (1/2) §0-1 / リーダー判断 Q1）。**常に Sheet を開く**。
  */
 export function MyDishesMapView() {
-	const { locale, isJapanese } = useLocale();
+	const { isJapanese } = useLocale();
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const area = useMyDishesFilterStore((s) => s.filter.area);
@@ -102,6 +114,9 @@ export function MyDishesMapView() {
 		mapRef.current?.animateToRegion(region, 1000);
 	}, [hasFetchedInitial, pins]);
 
+	// #1397 §9-1: 選択中のピンはここ（内部 state）だけが持つ。filter store には絶対に書かない
+	const [selectedPin, setSelectedPin] = useState<MyDishPin | null>(null);
+
 	const handlePinPress = useCallback(
 		(pin: MyDishPin) => {
 			lightImpact();
@@ -110,13 +125,14 @@ export function MyDishesMapView() {
 				error_level: "log",
 				payload: { restaurantId: pin.restaurant.id },
 			});
-			router.push({
-				pathname: "/[locale]/restaurant/[restaurantId]",
-				params: { locale, restaurantId: pin.restaurant.id },
-			});
+			// ⚠️ ここで router.push しないこと。店舗詳細への導線は Sheet のヘッダ（店名タップ）にある（Q6）
+			setSelectedPin(pin);
 		},
-		[lightImpact, locale, logFrontendEvent],
+		[lightImpact, logFrontendEvent],
 	);
+
+	// 閉じ切ってから state を戻す（アニメーション中に中身が空になるのを避ける）
+	const handleSheetDismissed = useCallback(() => setSelectedPin(null), []);
 
 	const showInitialLoading = isLoading && !hasFetchedInitial && !error;
 	// #1396 M-1: 取得失敗時（hasFetchedInitial === false のまま）でも EmptyState を出し、
@@ -207,6 +223,9 @@ export function MyDishesMapView() {
 					/>
 				</View>
 			)}
+
+			{/* #1397 料理メディア Sheet。ルートではなく Map の内部 state で開閉する（§9-1） */}
+			<MyDishesRestaurantSheet pin={selectedPin} onDismissed={handleSheetDismissed} />
 		</View>
 	);
 }

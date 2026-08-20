@@ -848,6 +848,13 @@
 		"list": {
 			"noPhoto": "Sin foto"
 		},
+		"sheet": {
+			"title": "Tus registros en {{restaurant}}",
+			"counts": "Quiero comer {{want}} · Comidos {{eaten}}",
+			"openRestaurant": "Abrir la página del restaurante",
+			"seeAllInList": "Ver todo en la lista",
+			"noPhotoHint": "Este registro no tiene foto. Toca para abrir la página del restaurante."
+		},
 		"searchThisArea": "Buscar en esta zona"
 	}
 }

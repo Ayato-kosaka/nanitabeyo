@@ -848,6 +848,13 @@
 		"list": {
 			"noPhoto": "No photo"
 		},
+		"sheet": {
+			"title": "Your records at {{restaurant}}",
+			"counts": "Want to eat {{want}} · Eaten {{eaten}}",
+			"openRestaurant": "Open restaurant page",
+			"seeAllInList": "See all in list",
+			"noPhotoHint": "This record has no photo. Tap to open the restaurant page."
+		},
 		"searchThisArea": "Search this area"
 	}
 }

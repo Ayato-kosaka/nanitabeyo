@@ -848,6 +848,13 @@
 		"list": {
 			"noPhoto": "사진 없음"
 		},
+		"sheet": {
+			"title": "{{restaurant}}의 기록",
+			"counts": "먹고 싶어요 {{want}} · 먹었어요 {{eaten}}",
+			"openRestaurant": "가게 페이지 열기",
+			"seeAllInList": "목록에서 보기",
+			"noPhotoHint": "사진이 없는 기록입니다. 탭하면 가게 페이지가 열립니다."
+		},
 		"searchThisArea": "이 지역에서 재검색"
 	}
 }
