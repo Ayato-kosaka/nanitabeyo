@@ -32,7 +32,11 @@ export const PRELOAD_ASSET_PATTERNS = {
 	"search-page3": "/assets/assets/images/tutorial/search-page3\\.[^/]+\\.webp$",
 	"search-page4": "/assets/assets/images/tutorial/search-page4\\.[^/]+\\.webp$",
 	icon: "/assets/assets/images/icon\\.[^/]+\\.webp$",
-	"review-hero": "/assets/features/review/assets/review-hero\\.[^/]+\\.webp$",
+	// #1403 (PR1) `review-hero` はここから外した。レビュータブと一緒に
+	// `features/review/assets/review-hero.webp` ごと削除され、`PRELOAD_IMAGES`
+	// （app-expo/features/search/constants.ts）からも消えている。
+	// 残しておくと «取得完了したアセット» の集合に永遠に現れず、
+	// tests/search/tutorial-preload.spec.ts が **アプリのバグではない理由で赤くなる**
 	logo_apple_icon: "/assets/assets/images/logo_apple_icon\\.[^/]+\\.png$",
 	logo_google_g_icon: "/assets/assets/images/logo_google_g_icon\\.[^/]+\\.png$",
 } as const;

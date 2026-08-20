@@ -59,16 +59,20 @@ import {
  * 先読み対象の枚数（#1087）。
  *
  * ⚠️ `app-expo/features/search/constants.ts` の `PRELOAD_IMAGES` と必ず対応させること
- * （チュートリアル 4 枚 + アプリアイコン + レビューのヒーロー画像 + Apple / Google のロゴ = 8 枚）。
+ * （チュートリアル 4 枚 + アプリアイコン + Apple / Google のロゴ = 7 枚）。
  * e2e-web の `utils/preload-assets.ts` の `PRELOAD_ASSET_KEYS` と同じ位置づけ。
+ *
+ * #1403 (PR1) 8 → 7。レビュータブと一緒に `features/review/assets/review-hero.webp` が
+ * 削除され、`PRELOAD_IMAGES` からも外れた。8 のままだとプローブが `loaded=7/7` で
+ * 止まるため、**アプリのバグではない理由でこの spec が赤くなる**。
  */
-export const PRELOAD_IMAGE_COUNT = 8;
+export const PRELOAD_IMAGE_COUNT = 7;
 
 /**
  * 先読み完了を待つ上限 (ms)。
  *
- * #1087 の修正後、Android エミュレータでの実測は **1873ms**（8 枚すべて `onLoad` まで）。
- * 8 枚はバンドル同梱のローカルアセットで、実 API もネットワークも介さないため、
+ * #1087 の修正後、Android エミュレータでの実測は **1873ms**（当時の 8 枚すべて `onLoad` まで）。
+ * 各画像はバンドル同梱のローカルアセットで、実 API もネットワークも介さないため、
  * 実測とランナーの当たり外れを吸収できれば足りる。実測の約 5 倍を上限にしている:
  * - 短すぎると、エミュレータが冷えている初回実行（ディスク I/O が効く）でフレークする
  * - 長すぎると、再発時に赤くなるまで無駄に待たされる（当初の 20 秒はこちらの理由で縮めた）

@@ -13,6 +13,12 @@ import { expect, type Locator, type Page } from "@playwright/test";
  * 3 ビューの中身は shell（空のプレースホルダー）のため、ここではゲスト表示と
  * 記録 CTA（旧 `ReviewPage.postReviewButton` の後継。#1396 でクラスごと差し替え）のみを扱う。
  *
+ * ## #1403 (PR1) で足したもの
+ * 3 ビュー（Map / リスト / Calendar）の切替と、3 ビューが共有するフィルタの入口。
+ * `index.tsx` は 1 ルート + `?view=` の切替で、**一度訪問したビューはアンマウントしない**
+ * （keep-alive）。そのため「見えているビュー」の判定に `toBeVisible` を使うこと
+ * （`display: none` で隠れているだけの兄弟ビューは DOM に残り続けるので、
+ *   `toBeAttached` では区別が付かない）。
  * ## #1397 (PR5/5) で足したもの
  * Map のピン → 料理メディア Sheet → 全画面 Feed（contextual filter chips 付き）の locator。
  * **ゲスト用の locator は 1 つも変えていない**（既存 spec が落ちないことが「既存で出来たことを
@@ -24,9 +30,6 @@ import { expect, type Locator, type Page } from "@playwright/test";
  * 「通ったように見えて何も検証していない」テストになる。
  */
 
-/** 3 ビューの識別子（`app/[locale]/(tabs)/my-dishes/index.tsx` の `MY_DISHES_VIEWS`） */
-export type MyDishesViewName = "map" | "list" | "calendar";
-
 export class MyDishesPage {
 	readonly page: Page;
 	/** 匿名ユーザー向けのゲスト説明文（testID: my-dishes-guest-description） */
@@ -35,7 +38,12 @@ export class MyDishesPage {
 	readonly guestLoginButton: Locator;
 	/** ログイン済みユーザー向けの記録 CTA（testID: my-dishes-record-button） */
 	readonly recordButton: Locator;
-
+	/** 3 ビュー共有フィルタを開くボタン（testID: my-dishes-filter-button。ログイン済みのみ表示） */
+	readonly filterButton: Locator;
+	/** フィルタ編集画面の本体（testID: my-dishes-filter-screen。BlurModal ではなくルート。#1396 §8-5） */
+	readonly filterScreen: Locator;
+	/** フィルタ編集画面の「適用する」（testID: my-dishes-filter-apply）。ここだけが store を書く */
+	readonly filterApplyButton: Locator;
 	// ── 3 ビュー（keep-alive。非表示側は display:none で DOM に残るため、必ず器で絞ること） ──
 	/** Map ビューの器（testID: my-dishes-map-view） */
 	readonly mapView: Locator;
@@ -75,6 +83,9 @@ export class MyDishesPage {
 		this.guestDescription = page.getByTestId("my-dishes-guest-description");
 		this.guestLoginButton = page.getByTestId("my-dishes-guest-login-button");
 		this.recordButton = page.getByTestId("my-dishes-record-button");
+		this.filterButton = page.getByTestId("my-dishes-filter-button");
+		this.filterScreen = page.getByTestId("my-dishes-filter-screen");
+		this.filterApplyButton = page.getByTestId("my-dishes-filter-apply");
 
 		this.mapView = page.getByTestId("my-dishes-map-view");
 		this.listView = page.getByTestId("my-dishes-list-view");
@@ -130,6 +141,54 @@ export class MyDishesPage {
 		await expect(this.recordButton).toBeVisible();
 	}
 
+	// ── #1403 (PR1) 3 ビューの切替 ──────────────────────────────────
+	/** ビュー切替ボタン（testID: my-dishes-view-<view>） */
+	viewButton(view: MyDishesViewName): Locator {
+		return this.page.getByTestId(`my-dishes-view-${view}`);
+	}
+	/** ビューの器（testID: my-dishes-<view>-view）。未訪問のビューはまだマウントされていない */
+	view(view: MyDishesViewName): Locator {
+		return this.page.getByTestId(`my-dishes-${view}-view`);
+	}
+	/**
+	 * 指定ビューだけが見えていることを検証する。
+	 *
+	 * keep-alive（#1396 M-1）で非表示ビューも DOM には残るため、「他が消えたこと」ではなく
+	 * **「他が見えていないこと」** で判定する。
+	 */
+	async expectOnlyViewVisible(active: MyDishesViewName): Promise<void> {
+		await expect(this.view(active)).toBeVisible();
+		for (const other of MY_DISHES_VIEW_NAMES) {
+			if (other === active) continue;
+			await expect(this.view(other)).toBeHidden();
+		}
+	}
+	// ── #1403 (PR1) 3 ビュー共有フィルタ ────────────────────────────
+	/** フィルタの状態チップ（testID: my-dishes-filter-status-<status>） */
+	filterStatusChip(status: "want" | "eaten"): Locator {
+		return this.page.getByTestId(`my-dishes-filter-status-${status}`);
+	}
+	/** フィルタ編集画面を開く（ルートへ push されるので URL も変わる） */
+	async openFilters(): Promise<void> {
+		await this.filterButton.click();
+		await expect(this.filterScreen).toBeVisible();
+	}
+	/**
+	 * フィルタ編集画面で状態チップを選び、「適用する」で確定して元のビューへ戻る。
+	 *
+	 * ⚠️ チップ押下は **ドラフト**を書くだけで、store（= 3 ビュー共有の `queryKey`）を書くのは
+	 * 「適用する」だけである（#1396 filters.tsx）。ここを分けて呼べるようにしない
+	 * （押すたびに再取得が走る形をテストから作らないため）。
+	 */
+	async applyStatusFilter(status: "want" | "eaten"): Promise<void> {
+		await this.openFilters();
+		await this.filterStatusChip(status).click();
+		await this.filterApplyButton.click();
+		await expect(this.filterScreen).toBeHidden();
+	}
+
+	// ── #1397 (PR5/5) Map のピン → Sheet → 全画面 Feed ──────────────
+
 	/**
 	 * ピンの «実際に面積を持つ» 子要素を返す。
 	 *
@@ -183,3 +242,8 @@ export class MyDishesPage {
 		return this.feedChips.filter({ hasText: text });
 	}
 }
+
+/** 3 ビューの名前（app-expo/app/[locale]/(tabs)/my-dishes/index.tsx の `MY_DISHES_VIEWS` と対応） */
+export const MY_DISHES_VIEW_NAMES = ["map", "list", "calendar"] as const;
+
+export type MyDishesViewName = (typeof MY_DISHES_VIEW_NAMES)[number];

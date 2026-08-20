@@ -5,6 +5,7 @@ import {
 	existsNow,
 	tapWhenVisible,
 	waitUntilGone,
+	waitUntilNotVisible,
 	waitUntilVisible,
 } from "../fixtures/e2e";
 
@@ -14,17 +15,20 @@ import {
  *
  * 対応画面:
  * - `app-expo/app/[locale]/(tabs)/my-dishes/index.tsx`（タブ本体。ログイン状態で表示が分岐する）
+ * - `app-expo/app/[locale]/(tabs)/my-dishes/filters.tsx`（3 ビュー共有フィルタの編集画面。#1403 で追加）
  * - `app-expo/app/[locale]/restaurant/[restaurantId]/review.tsx`
  *   （`features/map/components/ReviewForm.tsx`。レビュー投稿フォーム本体。#1396 でも中身は不変）
  *
  * 表示内容はログイン状態で分岐する（index.tsx）:
  * - 匿名ユーザー: ゲスト向け説明 + ログイン CTA（`MyDishes.guest.*`）
- * - ログイン済み: 3 ビュー（Map/リスト/Calendar）の shell + 記録 CTA（`MyDishes.record.cta`）→ SelectRestaurantScreen へ
+ * - ログイン済み: 3 ビュー（Map/リスト/Calendar）+ 共有フィルタ + 記録 CTA（`MyDishes.record.cta`）→ SelectRestaurantScreen へ
  *
  * ## このクラスがカバーする範囲
  * ゲスト向け表示と記録 CTA（旧 `postButton`）に加え、認証済み専用のレビュー投稿フォーム
  * （comment/dishCategory/price/star/submit）の定義も引き続き持つ
  * （`features/map/components/ReviewForm.tsx` 由来で #1396 では変更していない）。
+ * #1403 (PR1) で **3 ビューの切替**（`selectView` / `expectOnlyViewVisible`）と
+ * **3 ビュー共有フィルタ**（`applyStatusFilter` / `isFilterStatusSelected`）を足した。
  *
  * ## 写真付きレビュー投稿の扱い（#1031 B6 → #1027 で解決）
  * フォトピッカーは OS のアプリ外プロセスで動作するため Detox からは操作できない。
@@ -219,4 +223,106 @@ export class MyDishesScreen {
 	async expectFormClosed(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
 		await waitUntilGone(this.submitButton, timeout);
 	}
+
+	// ── #1403 (PR1) 3 ビュー（Map / リスト / Calendar）の切替 ──────────────────
+	//
+	// `index.tsx` は 3 ルートに分けず **1 ルート + `?view=`** で切り替える（#1396 §2-2）。
+	// さらに一度訪問したビューはアンマウントせず `display: "none"` で隠すだけである（M-1）。
+	// そのため「今どのビューか」は **存在（toExist）ではなく可視（toBeVisible）** で見ること。
+	// `waitUntilGone`（= not.toExist）を使うと keep-alive されたビューを検出できず、
+	// 「切り替わっていないのに緑」になる。
+
+	/** ビュー切替ボタン（testID: my-dishes-view-<view>） */
+	viewButton(view: MyDishesViewName): Detox.NativeMatcher {
+		return by.id(`my-dishes-view-${view}`);
+	}
+
+	/** ビューの器（testID: my-dishes-<view>-view）。未訪問のビューはまだマウントされていない */
+	view(view: MyDishesViewName): Detox.NativeMatcher {
+		return by.id(`my-dishes-${view}-view`);
+	}
+
+	/** ビュー切替ボタンをタップして、そのビューが見えるようになるまで待つ */
+	async selectView(view: MyDishesViewName, timeout: number = DEFAULT_TIMEOUT): Promise<void> {
+		await tapWhenVisible(this.viewButton(view), timeout);
+		await waitUntilVisible(this.view(view), timeout);
+	}
+
+	/** 指定ビューだけが見えていることを検証する（隠れている兄弟ビューは DOM に残る前提） */
+	async expectOnlyViewVisible(active: MyDishesViewName, timeout: number = DEFAULT_TIMEOUT): Promise<void> {
+		await waitUntilVisible(this.view(active), timeout);
+		for (const other of MY_DISHES_VIEW_NAMES) {
+			if (other === active) continue;
+			await waitUntilNotVisible(this.view(other), timeout);
+		}
+	}
+
+	// ── #1403 (PR1) 3 ビュー共有フィルタ ──────────────────────────────────────
+
+	/** 3 ビュー共有フィルタを開くボタン（testID: my-dishes-filter-button。ログイン済みのみ表示） */
+	readonly filterButton = by.id("my-dishes-filter-button");
+	/** フィルタ編集画面の本体（testID: my-dishes-filter-screen。BlurModal ではなくルート。#1396 §8-5） */
+	readonly filterScreen = by.id("my-dishes-filter-screen");
+	/** フィルタ編集画面の「適用する」（testID: my-dishes-filter-apply）。ここだけが store を書く */
+	readonly filterApplyButton = by.id("my-dishes-filter-apply");
+	/** フィルタ編集画面の戻る（`ScreenHeader` が `${testID}-back` を派生させる） */
+	readonly filterBackButton = by.id("my-dishes-filter-screen-back");
+
+	/** フィルタの状態チップ（testID: my-dishes-filter-status-<status>） */
+	filterStatusChip(status: MyDishStatusName): Detox.NativeMatcher {
+		return by.id(`my-dishes-filter-status-${status}`);
+	}
+
+	/** フィルタ編集画面を開く（ルートへ push される。オーバーレイではない） */
+	async openFilters(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
+		await tapWhenVisible(this.filterButton, timeout);
+		await waitUntilVisible(this.filterScreen, timeout);
+	}
+
+	/** フィルタ編集画面を「適用する」を押さずに閉じる（ドラフトは破棄される） */
+	async closeFiltersWithoutApplying(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
+		await tapWhenVisible(this.filterBackButton, timeout);
+		await waitUntilGone(this.filterScreen, timeout);
+	}
+
+	/**
+	 * フィルタ編集画面で状態チップを選び、「適用する」で確定して元のビューへ戻る。
+	 *
+	 * ⚠️ チップ押下は **ドラフト**を書くだけで、3 ビュー共有の store を書くのは
+	 * 「適用する」だけである（#1396 filters.tsx）。ここを分けて呼べるようにしない
+	 * （押すたびに約 964MB の `dish_reviews` へクエリが飛ぶ形をテストから作らないため）。
+	 */
+	async applyStatusFilter(status: MyDishStatusName, timeout: number = DEFAULT_TIMEOUT): Promise<void> {
+		await this.openFilters(timeout);
+		await tapWhenVisible(this.filterStatusChip(status), timeout);
+		await tapWhenVisible(this.filterApplyButton, timeout);
+		await waitUntilGone(this.filterScreen, timeout);
+	}
+
+	/**
+	 * フィルタ編集画面を開き直して、状態チップが選択済みのままかを読む。
+	 *
+	 * Detox には `accessibilityState` を直接検証するマッチャが無い（utils/waits.ts の `waitUntil` 参照）ため、
+	 * `getAttributes()` から `selected` を読む。`Chip`（filters.tsx）は
+	 * `accessibilityState={{ selected }}` を `TouchableOpacity` へ渡しており、
+	 * React Native がこれを各プラットフォームのネイティブな「選択」状態へ落とす。
+	 *
+	 * @returns 選択済みなら true / 未選択なら false / **属性自体が取れなかった場合は null**
+	 *          （プラットフォーム差で欠ける可能性があるため、呼び出し側が「観測できなかった」と
+	 *          「選択が消えた」を区別できるようにする）
+	 */
+	async isFilterStatusSelected(status: MyDishStatusName): Promise<boolean | null> {
+		// getAttributes() の戻り値は iOS / Android・単一 / 複数一致で型が分かれるため、
+		// isSubmitButtonEnabled と同じく必要なキーだけに絞ってキャストする
+		const attributes = (await element(this.filterStatusChip(status)).getAttributes()) as { selected?: boolean };
+		return attributes.selected ?? null;
+	}
 }
+
+/** 3 ビューの名前（app-expo/app/[locale]/(tabs)/my-dishes/index.tsx の `MY_DISHES_VIEWS` と対応） */
+export const MY_DISHES_VIEW_NAMES = ["map", "list", "calendar"] as const;
+
+export type MyDishesViewName = (typeof MY_DISHES_VIEW_NAMES)[number];
+
+/** `MyDishStatus`（shared/api/v1/dto）と対応する状態フィルタの値 */
+export type MyDishStatusName = "want" | "eaten";

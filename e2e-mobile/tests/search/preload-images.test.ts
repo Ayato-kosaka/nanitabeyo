@@ -18,13 +18,13 @@ import { TabBar } from "../../screens/TabBar";
  * 「1×1 では足りなくなる」「`opacity: 0` で早期 return されるようになる」といった
  * **expo-image 側の振る舞いの変化を緑のまま見逃す**。今回の不具合が数ヶ月見つからなかったのは
  * まさにその種類の見逃しだった。
- * この spec は **native で実際にロード要求が発行され、8 枚とも完了すること**を end-to-end で確かめる、
+ * この spec は **native で実際にロード要求が発行され、全枚数が完了すること**を end-to-end で確かめる、
  * その層の唯一のテスト。
  *
  * ## 観測の仕組み
  * アプリ側（app-expo/lib/e2e/preloadProbe.tsx）が、先読みブロックの各 `<Image>` の
  * `onLoad` / `onError` を数え、`loaded=<n>/<total>` を持つ `search-preload-probe` を描画する。
- * この spec はそれが `loaded=8/8` になるのを待つだけ。
+ * この spec はそれが `loaded=<total>/<total>`（枚数は `PRELOAD_IMAGE_COUNT`）になるのを待つだけ。
  * **時間ではなく状態を見ている**ので「ランナーが遅い」では赤くならない
  *（e2e-web の tests/search/tutorial-preload.spec.ts と同じ観測原則）。
  *
@@ -54,7 +54,7 @@ describe("先読み画像のロード", () => {
 	// 手順:
 	//   1. さがすタブを開く（先読みブロックは検索画面のマウントで描画される）
 	//   2. 検索画面の描画完了を待つ
-	//   3. プローブが `loaded=8/8` になるまで待つ（実測 1873ms に対して上限 10 秒）
+	//   3. プローブが `loaded=<total>/<total>` になるまで待つ（実測 1873ms に対して上限 10 秒）
 	it("検索タブを開くと先読み画像が全枚数ロードされる", async () => {
 		await tabBar.gotoSearch();
 		await search.expectLoaded();
