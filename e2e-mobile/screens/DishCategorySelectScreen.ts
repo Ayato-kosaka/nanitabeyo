@@ -35,7 +35,9 @@ export class DishCategorySelectScreen {
 	/** 料理カテゴリの検索入力欄（`DishCategoryAutocomplete` が `${testID}-input` として出す） */
 	readonly searchInput = by.id("dish-category-search-input");
 	/** ヘッダーの戻るボタン（`app-expo/components/ScreenHeader.tsx`） */
-	readonly backButton = by.id("screen-header-back");
+	// #1404 ScreenHeader の戻るボタンは `${testID}-back`。共通 id だった頃は、push で背面に残る
+	// 画面のヘッダーと同じ id になり «背面を押していた»
+	readonly backButton = by.id("dish-category-screen-back");
 
 	/** 料理カテゴリ選択画面が開いていることを検証する */
 	async expectOpened(timeout: number = DEFAULT_TIMEOUT): Promise<void> {

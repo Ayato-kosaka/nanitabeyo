@@ -411,12 +411,10 @@
 	"Tabs": {
 		"home": "الصفحة الرئيسية",
 		"search": "البحث",
-		"map": "الخريطة",
 		"notifications": "الإشعارات",
 		"profile": "الملف الشخصي",
 		"labels": {
 			"search": "البحث",
-			"map": "الخريطة",
 			"notifications": "الإشعارات",
 			"profile": "الملف الشخصي",
 			"myDishes": "أطباقي"

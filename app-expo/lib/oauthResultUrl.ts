@@ -79,3 +79,42 @@ export const describeOAuthUrl = (url: string | null | undefined): OAuthUrlShape 
 		error_code: query.get("error_code") ?? null,
 	};
 };
+
+/**
+ * 認証結果 URL の «クエリ» を、デコード 1 回で読む（#1374 / PR #1393 のレビュー 2）。
+ *
+ * ## なぜ `Linking.parse` を使わないのか
+ * `expo-linking` の `parse` は `new URL(...).searchParams`（1 回デコード）の結果へ、さらに
+ * `decodeURIComponent` を掛ける（build/createURL.js:129-132）。**合計 2 回**である。
+ * 一方 expo-router 側（OS のディープリンク着地＝経路 B）は `searchParams` の **1 回だけ**
+ *（build/fork/getStateFromPath-forks.js）。経路によって回数が違う。
+ *
+ * #1374 以前は redirectTo を二重エンコードしていたので、経路 A ではその 2 回と釣り合って
+ * «たまたま» 元に戻っていた。エンコードを 1 回に直した以上、読む側も 1 回に揃える必要がある。
+ * 揃えないと経路 A が過剰にデコードし、次の 2 つが起きる。
+ *
+ *   1. `next` に `%XX` を含む行き先（例 `?q=%E3%83%A9…`）が別の文字列になる
+ *   2. `next` に **裸の `%`** が含まれると `decodeURIComponent` が URIError を投げ、
+ *      `Linking.parse` の `catch {}` がそれを飲む。`forEach` の途中で止まるため
+ *      **`code` まで queryParams に入らず、ログイン自体が失敗する**
+ *
+ * ## ホスト部は触らない
+ * ロケールは `Linking.parse(url).hostname` から取り続ける。Expo Go の `exp://host/--/path` を
+ * `expo-linking` が正規化してくれるためで、`new URL` に置き換えると開発ビルドで
+ * ホスト（IP）をロケールとして拾ってしまう。ここで直したいのはクエリのデコード回数だけである。
+ *
+ * @returns 読めなければ null（呼び出し側は従来どおりのフォールバックへ倒す）
+ */
+export const readOAuthResultQuery = (url: string | null | undefined): Record<string, string> | null => {
+	if (!url) return null;
+	try {
+		const params: Record<string, string> = {};
+		new URL(url).searchParams.forEach((value, key) => {
+			params[key] = value;
+		});
+		return params;
+	} catch {
+		// スキームが URL として解釈できない等。呼び出し側のフォールバックに任せる
+		return null;
+	}
+};

@@ -65,7 +65,9 @@ import { LEGAL_SITEMAP_ROUTES } from "@/lib/legalRoute";
  */
 export const SITEMAP_ROUTES: readonly string[] = [
 	"search",
-	"map",
+	// #1419 "map" は外した。マップタブは `href: null` で到達不能なまま sitemap にだけ出ていた
+	// #1375 "review" / "review/selectRestaurant" も外した。レビュータブは my-dishes タブへ置き換わり、
+	// 店選択は `(tabs)` の外（`/restaurant/**`）へ移設されて locale トップ直下のルートではなくなった
 	"my-dishes",
 	...LEGAL_SITEMAP_ROUTES,
 ];

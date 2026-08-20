@@ -269,11 +269,8 @@ test.describe("UI カタログ（匿名） @catalog", () => {
 	});
 
 	// ─ 直リンクのみで到達する画面 ─
-	test("直リンク画面（マップ・NotFound・en-US ロケール）", async ({ appPage }) => {
-		// マップはタブに出ない隠しルート（href: null）。地図タイルの読み込みを待つ
-		await gotoScreen(appPage, "map");
-		await captureScreen(appPage, "map", { settleMs: 4_000 });
-
+	// #1419 マップは削除したのでここから外した
+	test("直リンク画面（NotFound・en-US ロケール）", async ({ appPage }) => {
 		await gotoScreen(appPage, "not-found");
 		await expect(appPage.getByText("この画面は存在しません。")).toBeVisible();
 		await captureScreen(appPage, "not-found");
@@ -284,15 +281,12 @@ test.describe("UI カタログ（匿名） @catalog", () => {
 		await captureScreen(appPage, "search-form-en-US");
 	});
 
-	// ─ 店舗詳細の子ルート（#1386 でモーダルからルートへ移した 2 画面） ─
-	// どちらも店舗データを読まないので、ダミー id の直リンクで撮れる
+	// ─ 店舗詳細の子ルート（#1386 でモーダルからルートへ移した画面） ─
+	// 店舗データを読まないので、ダミー id の直リンクで撮れる
 	//（`catalog/screens.json` の note 参照）。フィードは実データが要るため manual。
-	test("入札・料理カテゴリ選択（店舗詳細の子ルート）", async ({ appPage }) => {
+	// #1411 で入札ルートを消したので、ここは料理カテゴリ選択の 1 枚になった。
+	test("料理カテゴリ選択（店舗詳細の子ルート）", async ({ appPage }) => {
 		const detailPage = new RestaurantDetailPage(appPage);
-
-		await gotoScreen(appPage, "review-restaurant-bid");
-		await expect(detailPage.bidTitle).toBeVisible({ timeout: 30_000 });
-		await captureScreen(appPage, "review-restaurant-bid");
 
 		await gotoScreen(appPage, "review-dish-category");
 		await expect(detailPage.dishCategoryInput).toBeVisible({ timeout: 30_000 });

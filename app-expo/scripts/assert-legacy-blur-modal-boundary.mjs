@@ -25,24 +25,26 @@ import { fileURLToPath } from "node:url";
  *   pnpm --filter app-expo assert:legacy-blur-modal-boundary
  *
  * ## なぜ必要か（ESLint の `no-restricted-imports` だけでは足りない理由）
- * 同じ境界は `.eslintrc.js` の `no-restricted-imports` でも張っているが、**その lint は CI で
- * 一度も実行されていない**。
- * - `.github/workflows/pr-check.yml` が回すのは remoteConfig キー検査 / error-triage jest /
- *   app-expo typecheck / app-expo jest の 4 つだけで、`pnpm --filter app-expo lint` は含まれない。
- *   他の workflow にも無い。
- * - そのうえ `pnpm --filter app-expo lint` は現状 **48 errors で落ちる**
- *   （`react-hooks/rules-of-hooks` 45 / `no-undef` 3。いずれも #1363 以前からの既存違反で、
- *   `no-restricted-imports` 由来は 0 件）。既存違反の解消は別 Issue なので、
- *   **lint 全体を今すぐ CI に載せることはできない**。
+ * このスクリプトを書いた時点（#1363）では `.eslintrc.js` の `no-restricted-imports` に同じ境界が
+ * ありながら、**その lint が CI で一度も実行されていなかった**（`pnpm --filter app-expo lint` は
+ * どの workflow にも無く、そのうえ既存 48 errors で落ちる状態だった）。
+ * #1366 で既存違反を解消し、`pnpm --filter app-expo lint` を pr-check.yml へ載せたので、
+ * この前提は変わっている。**lint も CI で評価される**。
  *
- * つまり lint に任せたままだと、公開アプリから `legacyBlurModal` を import しても CI では誰も
- * 気付かない。凍結の価値は「利用者が社内タスク画面だけに閉じていること」に全面的に依存しており、
+ * それでもこのスクリプトを残すのは、検査している範囲が ESLint と重ならないためである。
+ * - 2（`features/blurModal` が復活していないこと）と 3（`Portal` の import 許可リスト）は
+ *   `.eslintrc.js` に対応するルールが無く、ここにしか無い。
+ * - 1 は ESLint と重複するが、二重防御として残す。ESLint 側の許可範囲はグロブで書かれており
+ *   （`[locale]` の角括弧の件は `.eslintrc.js` のコメント参照）、書き方ひとつで許可範囲が
+ *   意図せず広がりうる。こちらは解決後の絶対パスで見るため、同じ間違いをしない。
+ *
+ * 凍結の価値は「利用者が社内タスク画面だけに閉じていること」に全面的に依存しており、
  * 1 箇所でも外から import された時点で、共有部品が全画面を人質に取る元の状態（#1350 §7）へ
- * 逆戻りする。この検査は**既存 48 errors とは独立に単体で走る**ので、今日から CI で強制できる。
+ * 逆戻りする。
  *
  * ## 役割分担
- * - **ESLint**: エディタ上で書いた瞬間に赤くする（速いが CI では評価されない）
- * - **このスクリプト**: CI の最後の砦。lint が回っていなくても機械的に落とす
+ * - **ESLint**: エディタ上で書いた瞬間に赤くする。#1366 以降は CI でも評価される
+ * - **このスクリプト**: CI の最後の砦。ESLint が見ていない 2・3 も含めて機械的に落とす
  *
  * ## 検出方法
  * import 指定子の文字列そのものではなく、**解決後の絶対パス**が凍結ディレクトリ配下かどうかで

@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useRef, useCallback, useMemo } from "react";
 import { supabase, consumeAuthRetryAfterHeader } from "@/lib/supabase";
+import { readOAuthResultQuery } from "@/lib/oauthResultUrl";
 // #1030 【設計】E2E(Detox) 専用のセッション注入フック。
 // 通常ビルドでは metro.config.js が noop 実装（lib/e2e/injectTestSession.noop.ts）へ解決し直すため、
 // 本番バンドルにはこの実装コードも react-native-launch-arguments も一切含まれない。
@@ -130,10 +131,36 @@ const AUTH_RESOLVE_WAIT_MS = 8_000;
  * 通してから遷移する（URL は外から書き換えられるため、最終的な砦は受け取り側にある）。
  * この関数は運ぶだけで、Supabase 呼び出しの意味は変えない。
  *
- * @param query `intent=signin` のような、この経路を識別する既存のクエリ
+ * #1374 【バグ】ここで «クエリを文字列に組み立てない» こと。
+ *
+ * 以前は `?intent=signin&next=${encodeURIComponent(next)}` まで含めた 1 本の文字列を作り、
+ * それを `makeRedirectUri({ path })` に渡していた。`makeRedirectUri` は中で
+ * `Linking.createURL(path, …)` を呼び、`createURL` は **path 部分だけに `encodeURI()` を掛ける**
+ *（expo-linking の build/createURL.js:113）。そのため `%2F` が `%252F` へ二重エンコードされる。
+ *
+ * 二重になると、デコード回数が経路によって食い違う。
+ *   経路A: WebBrowser.openAuthSessionAsync 成功 → Linking.parse → searchParams + decodeURIComponent の 2 回
+ *          → たまたま元に戻り、動く
+ *   経路B: OS のディープリンクで callback へ直接着地（アプリがコールドスタートし
+ *          Linking.getInitialURL() から拾う経路）→ expo-router は searchParams の 1 回だけ
+ *          → `"%2Fja-JP%2F…"` のままで先頭が `/` にならず、resolveNextPath が null を返して
+ *            next が黙って捨てられる
+ *
+ * `createURL` は `queryParams` を **`encodeURI` の後に** `URLSearchParams` で 1 回だけ
+ * エンコードして連結する（同ファイル :113-114）。だからクエリは «構造のまま» 渡す。
+ *
+ * @param params `{ intent: "signin" }` のような、この経路を識別する既存のクエリ
  */
-const buildAuthCallbackPath = (locale: string, query: string, next?: string): string =>
-	`${locale}/auth/callback?${query}${next ? `&next=${encodeURIComponent(next)}` : ""}`;
+const buildAuthCallbackPath = (locale: string): string => `${locale}/auth/callback`;
+
+const buildAuthCallbackQueryParams = (
+	params: Record<string, string>,
+	next?: string,
+): Record<string, string> => (next ? { ...params, next } : { ...params });
+
+/** web の redirectTo。`encodeURI` を通らないので、ここは自分で 1 回だけエンコードする */
+const buildWebAuthCallbackUrl = (locale: string, params: Record<string, string>): string =>
+	`${window.location.origin}/${buildAuthCallbackPath(locale)}?${new URLSearchParams(params).toString()}`;
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -667,11 +694,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 			...queryParams, // 呼び出し側で上書きしたければこちらが優先
 		};
 
-		const callbackPath = buildAuthCallbackPath(locale, "intent=signin", next);
+		const callbackQueryParams = buildAuthCallbackQueryParams({ intent: "signin" }, next);
 		const redirectTo =
 			Platform.OS === "web"
-				? `${window.location.origin}/${callbackPath}`
-				: AuthSession.makeRedirectUri({ scheme: "nanitabeyo", path: callbackPath });
+				? buildWebAuthCallbackUrl(locale, callbackQueryParams)
+				: AuthSession.makeRedirectUri({
+						scheme: "nanitabeyo",
+						path: buildAuthCallbackPath(locale),
+						queryParams: callbackQueryParams,
+					});
 		const { data, error } = await supabase.auth.signInWithOAuth({
 			provider,
 			options: {
@@ -736,11 +767,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 		};
 
 		// linkIdentity の場合は、 匿名アップグレード由来のリダイレクトであることを示すために `?intent=link` を付与
-		const callbackPath = buildAuthCallbackPath(locale, `intent=link&provider=${provider}`, next);
+		const callbackQueryParams = buildAuthCallbackQueryParams({ intent: "link", provider }, next);
 		const redirectTo =
 			Platform.OS === "web"
-				? `${window.location.origin}/${callbackPath}`
-				: AuthSession.makeRedirectUri({ scheme: "nanitabeyo", path: callbackPath });
+				? buildWebAuthCallbackUrl(locale, callbackQueryParams)
+				: AuthSession.makeRedirectUri({
+						scheme: "nanitabeyo",
+						path: buildAuthCallbackPath(locale),
+						queryParams: callbackQueryParams,
+					});
 		const { data, error } = await supabase.auth.linkIdentity({
 			provider,
 			options: {
@@ -772,7 +807,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 		const parsed = Linking.parse(result.url);
 		const parsedLocale = (parsed.hostname ?? "ja-JP") as string;
-		const qp = Object.fromEntries(Object.entries(parsed.queryParams ?? {}).map(([k, v]) => [k, String(v)])); // queryParams は string | number | boolean | null などが来るので文字列化
+		// #1374 クエリは «デコード 1 回» で読む（lib/oauthResultUrl.ts の JSDoc 参照）。
+		// Linking.parse の queryParams は 2 回デコードなので、redirectTo を 1 回エンコードへ直した
+		// 今は過剰になる。読めなかったときだけ従来の経路へ倒す
+		const qp =
+			readOAuthResultQuery(result.url) ??
+			Object.fromEntries(Object.entries(parsed.queryParams ?? {}).map(([k, v]) => [k, String(v)]));
 		const href: Href = {
 			pathname: "/[locale]/auth/callback",
 			params: { locale: parsedLocale, ...qp },
@@ -790,12 +830,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 		if (!url) return { status: "no_result" };
 
 		const parsed = Linking.parse(url);
-		const code = parsed.queryParams?.code as string | undefined;
-		const intent = parsed.queryParams?.intent as string | undefined;
-		const provider = parsed.queryParams?.provider as Provider | undefined;
-		const error = parsed.queryParams?.error as string | undefined;
-		const error_code = parsed.queryParams?.error_code as string | undefined;
-		const error_description = parsed.queryParams?.error_description as string | undefined;
+		// #1374 同上。ここが 2 回デコードのままだと、next に裸の `%` が入っただけで
+		// URIError が起き、Linking.parse の catch がそれを飲んで **code まで消える**
+		const queryParams =
+			readOAuthResultQuery(url) ??
+			(parsed.queryParams as Record<string, string | undefined> | undefined) ??
+			{};
+		const code = queryParams.code as string | undefined;
+		const intent = queryParams.intent as string | undefined;
+		const provider = queryParams.provider as Provider | undefined;
+		const error = queryParams.error as string | undefined;
+		const error_code = queryParams.error_code as string | undefined;
+		const error_description = queryParams.error_description as string | undefined;
 
 		// エラーがある場合は、そのまま例外として throw する
 		// callback.tsx 側で処理するため、ここでは自動フォールバックしない

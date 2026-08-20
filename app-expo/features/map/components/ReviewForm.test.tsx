@@ -87,10 +87,17 @@ jest.mock("@/hooks/useHaptics", () => {
 	const mediumImpact = jest.fn();
 	return { useHaptics: () => ({ lightImpact, mediumImpact }) };
 });
-jest.mock("@/hooks/useLogger", () => {
-	const logFrontendEvent = jest.fn();
-	return { useLogger: () => ({ logFrontendEvent }) };
-});
+/*
+  #1366 jest.fn をファクトリの内側に閉じ込めると、テストから取り出す手段が `useLogger()` を
+  呼ぶことしか無くなる。差し替え後の useLogger は «毎回同じ jest.fn を返すただの関数» であって
+  フックではないのだが、名前が use で始まるため rules-of-hooks は
+  «トップレベルでのフック呼び出し» として error にする（この 1 件がまさにそれだった）。
+  jest.fn をモジュールスコープへ出せば呼ぶ必要そのものが消える。
+  変数名の `mock` 接頭辞は必須。babel-plugin-jest-hoist が jest.mock の巻き上げ後も
+  参照を許すのはこの命名だけで、外すと «out-of-scope variables» で落ちる。
+*/
+const mockLogFrontendEvent = jest.fn();
+jest.mock("@/hooks/useLogger", () => ({ useLogger: () => ({ logFrontendEvent: mockLogFrontendEvent }) }));
 jest.mock("@/hooks/useAPICall", () => ({ useAPICall: () => ({ callBackend: jest.fn() }) }));
 jest.mock("@/hooks/useDishCategorySearch", () => ({
 	useDishCategorySearch: () => ({ createDishCategoryVariant: jest.fn() }),
@@ -113,7 +120,7 @@ import { useLogger } from "@/hooks/useLogger";
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const selectMediaMock = selectMedia as jest.MockedFunction<typeof selectMedia>;
-const logFrontendEventMock = useLogger().logFrontendEvent as jest.MockedFunction<
+const logFrontendEventMock = mockLogFrontendEvent as jest.MockedFunction<
 	ReturnType<typeof useLogger>["logFrontendEvent"]
 >;
 

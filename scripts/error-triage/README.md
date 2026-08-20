@@ -249,9 +249,9 @@ REST のリクエストボディに `maximumBytesBilled` と `dryRun` を入れ�
 
 コストガードは2層です。
 
-1. `maximumBytesBilled = 200MB` を**常に**リクエストへ載せる。`buildQueryRequest()` は引数で渡された値を
+1. `maximumBytesBilled = 1GB` を**常に**リクエストへ載せる。`buildQueryRequest()` は引数で渡された値を
    **無視して**定数を使うので、Workflow の `env` / `inputs` からはバイパスできません（テストで固定）。
-2. 本クエリの前に `dryRun: true` で見積もり、200MB を超えていたら**本クエリを投げずに fail** します。
+2. 本クエリの前に `dryRun: true` で見積もり、1GB を超えていたら**本クエリを投げずに fail** します。
    毎日の実スキャン量が Job Summary に残るので、じわじわ増えていることにも気づけます。
 
 ### GitHub 同期（PR3 / `github.js`）

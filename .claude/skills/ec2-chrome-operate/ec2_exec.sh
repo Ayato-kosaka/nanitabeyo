@@ -41,7 +41,7 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-[ -s "$REMOTE_FILE" ] || { log "remote script $REMOTE_FILE is missing or empty"; exit 1; }
+[ -e "$REMOTE_FILE" ] || { log "remote script/dir $REMOTE_FILE is missing"; exit 1; }
 
 # 直前の回の stop がまだ進行中だと start-instances は IncorrectInstanceState で即死する。
 log "=== pre-flight: waiting for a startable state ==="
@@ -71,38 +71,70 @@ done
 [ "$ONLINE" -eq 1 ] || { log "SSM never came online -- ec2-ssm-role が外れていないか確認"; exit 1; }
 log "SSM online after ~$((i * 10))s"
 
-# --parameters のショートハンド (commands=[...]) は JSON エスケープを壊すので必ず file:// で渡す。
-jq -n --rawfile s "$REMOTE_FILE" --arg t "$((EXEC_TIMEOUT + 120))" \
-  '{commands: [$s], executionTimeout: [$t]}' > "$PARAMS_FILE"
-
-log "=== send-command ==="
-CMD_ID=$(timeout 30 $AWSP ssm send-command \
-  --instance-ids "$INSTANCE_ID" \
-  --document-name AWS-RunShellScript \
-  --timeout-seconds 600 \
-  --parameters "file://$PARAMS_FILE" \
-  --query 'Command.CommandId' --output text 2>>"$LOG")
-log "command id: $CMD_ID"
-[ -n "$CMD_ID" ] && [ "$CMD_ID" != "None" ] || { log "send-command failed"; exit 1; }
-
-log "=== polling command status (max ~60min) ==="
-INV_STATUS="Pending"
-for i in $(seq 1 360); do
-  INV_STATUS=$(timeout 30 $AWSP ssm get-command-invocation \
-    --command-id "$CMD_ID" --instance-id "$INSTANCE_ID" \
-    --query 'Status' --output text 2>/dev/null)
-  case "${INV_STATUS:-Pending}" in
-    Success | Failed | Cancelled | TimedOut) break ;;
-    *) sleep 10 ;;
+run_one_command() {
+  # $1 = script file for this single SSM command; その1行目が "#TIMEOUT=<sec>" ならそれを EXEC_TIMEOUT として使う
+  local SCRIPT_FILE="$1"
+  local THIS_TIMEOUT="$EXEC_TIMEOUT"
+  local FIRST_LINE
+  FIRST_LINE=$(head -1 "$SCRIPT_FILE")
+  case "$FIRST_LINE" in
+    '#TIMEOUT='*) THIS_TIMEOUT="${FIRST_LINE#'#TIMEOUT='}"; tail -n +2 "$SCRIPT_FILE" > "${SCRIPT_FILE}.body"; SCRIPT_FILE="${SCRIPT_FILE}.body" ;;
   esac
-done
-log "invocation status: $INV_STATUS after ~$((i * 10))s"
 
-log "=== STDOUT ==="
-timeout 30 $AWSP ssm get-command-invocation --command-id "$CMD_ID" --instance-id "$INSTANCE_ID" \
-  --query 'StandardOutputContent' --output text 2>&1 | tee -a "$LOG"
-log "=== STDERR ==="
-timeout 30 $AWSP ssm get-command-invocation --command-id "$CMD_ID" --instance-id "$INSTANCE_ID" \
-  --query 'StandardErrorContent' --output text 2>&1 | tee -a "$LOG"
+  jq -n --rawfile s "$SCRIPT_FILE" --arg t "$((THIS_TIMEOUT + 120))" \
+    '{commands: [$s], executionTimeout: [$t]}' > "$PARAMS_FILE"
+
+  log "--- send-command (timeout ${THIS_TIMEOUT}s): $1 ---"
+  local CMD_ID
+  CMD_ID=$(timeout 30 $AWSP ssm send-command \
+    --instance-ids "$INSTANCE_ID" \
+    --document-name AWS-RunShellScript \
+    --timeout-seconds 600 \
+    --parameters "file://$PARAMS_FILE" \
+    --query 'Command.CommandId' --output text 2>>"$LOG")
+  log "command id: $CMD_ID"
+  if [ -z "$CMD_ID" ] || [ "$CMD_ID" = "None" ]; then log "send-command failed for $1"; return 1; fi
+
+  local INV_STATUS="Pending" i
+  for i in $(seq 1 $(( (THIS_TIMEOUT + 120) / 10 + 30 ))); do
+    INV_STATUS=$(timeout 30 $AWSP ssm get-command-invocation \
+      --command-id "$CMD_ID" --instance-id "$INSTANCE_ID" \
+      --query 'Status' --output text 2>/dev/null)
+    case "${INV_STATUS:-Pending}" in
+      Success | Failed | Cancelled | TimedOut) break ;;
+      *) sleep 10 ;;
+    esac
+  done
+  log "invocation status: $INV_STATUS after ~$((i * 10))s"
+
+  log "=== STDOUT ($1) ==="
+  timeout 30 $AWSP ssm get-command-invocation --command-id "$CMD_ID" --instance-id "$INSTANCE_ID" \
+    --query 'StandardOutputContent' --output text 2>&1 | tee -a "$LOG"
+  log "=== STDERR ($1) ==="
+  timeout 30 $AWSP ssm get-command-invocation --command-id "$CMD_ID" --instance-id "$INSTANCE_ID" \
+    --query 'StandardErrorContent' --output text 2>&1 | tee -a "$LOG"
+  [ "$INV_STATUS" = "Success" ]
+}
+
+if [ -d "$REMOTE_FILE" ]; then
+  log "=== directory mode: running each *.sh in $REMOTE_FILE as a separate SSM command (same boot) ==="
+  shopt -s nullglob
+  CHUNK_FILES=("$REMOTE_FILE"/*.sh)
+  shopt -u nullglob
+  log "chunk count: ${#CHUNK_FILES[@]}"
+  CHUNK_OK=0
+  CHUNK_FAIL=0
+  for CF in "${CHUNK_FILES[@]}"; do
+    if run_one_command "$CF"; then
+      CHUNK_OK=$((CHUNK_OK + 1))
+    else
+      CHUNK_FAIL=$((CHUNK_FAIL + 1))
+      log "*** chunk failed/non-success, continuing to next chunk: $CF ***"
+    fi
+  done
+  log "=== directory mode done: ok=$CHUNK_OK fail=$CHUNK_FAIL ==="
+else
+  run_one_command "$REMOTE_FILE" || log "*** single command did not succeed ***"
+fi
 
 log "=== done, cleanup (stop) will run now ==="
