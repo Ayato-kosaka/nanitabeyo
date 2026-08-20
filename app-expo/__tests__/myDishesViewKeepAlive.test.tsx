@@ -92,6 +92,19 @@ jest.mock("@/features/myDishes/components/MyDishesMapView", () => {
 	};
 });
 
+const mockCalendarMount = jest.fn();
+jest.mock("@/features/myDishes/components/MyDishesCalendarView", () => {
+	const ReactActual = jest.requireActual("react");
+	return {
+		MyDishesCalendarView: () => {
+			ReactActual.useEffect(() => {
+				mockCalendarMount();
+			}, []);
+			return null;
+		},
+	};
+});
+
 import MyDishesScreen from "../app/[locale]/(tabs)/my-dishes/index";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -130,6 +143,7 @@ beforeEach(() => {
 	mockSetParams.mockClear();
 	mockListMount.mockClear();
 	mockMapMount.mockClear();
+	mockCalendarMount.mockClear();
 });
 
 afterEach(async () => {
@@ -207,5 +221,25 @@ describe("#1439 M-1 ビュー切替は keep-alive（毎回アンマウントし�
 
 		// map から離れても、一度訪問した map ビューは残り続ける（隠れているだけ）
 		expect(findAll(tree, "my-dishes-map-view").length).toBeGreaterThan(0);
+	});
+
+	// PR5: Calendar も同じ器に乗る。再マウントされると inverted リストのスクロール位置
+	// （どこまで過去へ遡ったか）が毎回最新月へ戻ってしまう
+	it("一度訪問した calendar ビューは、他のビューへ切り替えてもアンマウントされない", async () => {
+		const tree = await render(<MyDishesScreen />);
+		expect(mockCalendarMount).toHaveBeenCalledTimes(0);
+
+		await press(tree, "my-dishes-view-calendar");
+		await rerender(tree);
+		expect(mockCalendarMount).toHaveBeenCalledTimes(1);
+
+		// calendar -> list -> calendar と往復しても再マウントされない
+		await press(tree, "my-dishes-view-list");
+		await rerender(tree);
+		expect(mockCalendarMount).toHaveBeenCalledTimes(1);
+
+		await press(tree, "my-dishes-view-calendar");
+		await rerender(tree);
+		expect(mockCalendarMount).toHaveBeenCalledTimes(1);
 	});
 });

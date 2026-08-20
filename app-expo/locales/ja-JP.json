@@ -788,6 +788,21 @@
 			"list": "リスト",
 			"calendar": "カレンダー"
 		},
+		"calendar": {
+			"monthLabel": "{{year}}年{{month}}月",
+			"weekdays": {
+				"sun": "日",
+				"mon": "月",
+				"tue": "火",
+				"wed": "水",
+				"thu": "木",
+				"fri": "金",
+				"sat": "土"
+			},
+			"dayA11yLabel": "{{date}}（{{count}}件）",
+			"periodActive": "期間で絞り込み中",
+			"reachedOldest": "これ以上さかのぼれません"
+		},
 		"map": {
 			"truncated": "件数が多いため一部のピンのみ表示しています。エリアを絞り込んでください。",
 			"zoomInHint": "ズームインしてから「このエリアで再検索」を押してください",

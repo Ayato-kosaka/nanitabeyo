@@ -12,16 +12,17 @@ import type { MyDishItem } from "@shared/api/v1/res";
  * 同じ寸法・同じ並びを共有できるのはバッジ・★・日付・画像の «決め方» だけである。
  * ここを 1 つのコンポーネントに畳むと、片方の都合で prop が増え続ける形になる。
  *
- * ## ⚠️ 画像のフォールバックは呼び出し側で変わる（意図的な非対称）
+ * ## ⚠️ 画像のフォールバックは呼び出し側で変わる
  *
- * | ビュー | `dishMedia === null` のとき |
- * | --- | --- |
- * | 一覧（既存） | 灰色プレースホルダー（`my-dishes-list-item-placeholder`）。#1396 PR3 の挙動をそのまま維持する |
- * | Sheet（本 PR） | `dish.categoryImageUrl` → `restaurant.image_url` の順で **実画像**（#1375 追補2 決定3） |
+ * この Sheet は `dish.categoryImageUrl` → `restaurant.image_url` の順で **実画像**
+ * （#1375 追補2 決定3）を使う（`fallback: "category"`）。
  *
- * 一覧側を実画像へ変えるのは本 PR のスコープ外なので、`MyDishImageFallback` で明示的に
- * 切り替える。既定値を持たせず必ず書かせるのは、次に増えるビューで «どちらの規約か» を
- * 黙って選ばせないためである。
+ * 一覧ビュー（`MyDishesListView`）は本 PR（#1397 PR3）の時点では灰色プレースホルダーの
+ * ままだったが、その後 #1398 PR5（`claude/review-tab-removal-shop-tab-put0bd` 統合ブランチ）が
+ * 独立に一覧側も実画像フォールバックへ揃えた。ただし一覧はこの `MyDishImageFallback`
+ * ではなく `../thumbnail.ts` の `resolveMyDishThumbnailUrl`（list / calendar 共有）を使っており、
+ * この関数の呼び出し側は現状 Sheet のみである。`"none"` は将来また灰色プレースホルダーの
+ * ビューが増えたときのための選択肢として残してある。
  */
 
 /** 写真なし（`dishMedia === null`）のときに何へ落とすか */

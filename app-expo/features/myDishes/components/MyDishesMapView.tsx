@@ -156,6 +156,10 @@ export function MyDishesMapView() {
 						testID="my-dishes-map-pin"
 						coordinate={{ latitude: pin.restaurant.latitude, longitude: pin.restaurant.longitude }}
 						onPress={() => handlePinPress(pin)}
+						// #1398 PR5 写真なし（representativeThumbnailUrl === null）でも灰色プレースホルダーに
+						// しない（#1375 追補2 決定3）。`MyDishPin` はピン＝店舗単位で `dish` を持たないため、
+						// list / calendar と違い `categoryImageUrl` の段は無く `restaurant.image_url` へ直接
+						// 落ちる（設計書 (2/2) §5-2 で確定。GET .../map-pins のレスポンスは変えない）
 						uri={pin.representativeThumbnailUrl ?? pin.restaurant.image_url ?? undefined}
 					/>
 				))}

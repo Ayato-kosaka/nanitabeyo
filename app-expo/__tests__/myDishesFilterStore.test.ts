@@ -21,8 +21,10 @@ import {
 	DEFAULT_MY_DISHES_FILTER,
 	isRatingFilterEnabled,
 	resolveSort,
+	selectCalendarQueryKey,
 	selectFilterQueryKey,
 	selectRestaurantQueryKey,
+	toMyDishesCalendarQueryParams,
 	toMyDishesQueryParams,
 	toMyDishesRestaurantQueryParams,
 	useMyDishesFilterStore,
@@ -266,6 +268,70 @@ describe("#1397 Sheet 用派生クエリ（toMyDishesRestaurantQueryParams / sel
 		const a = selectRestaurantQueryKey(RESTAURANT_ID)(getState());
 		const b = selectRestaurantQueryKey("33333333-3333-3333-3333-000000000003")(getState());
 		expect(a).not.toBe(b);
+	});
+});
+
+/*
+#1446 M-2: Calendar 用の派生クエリ（`toMyDishesCalendarQueryParams` / `selectCalendarQueryKey`）。
+
+Calendar は「上へスクロールして過去へ遡る」UI なので、ページが日付の降順で届くことを前提にしている。
+`sort` が `-rating` / `distance` / `-sceneScore` / `-timeSlotScore` だと空の月が数十個並び、
+上へ遡っても何も増えない。`sort: "occurredAt"` に至っては向きそのものが逆になる。
+
+⚠️ `MyDishesFilter` のキー集合は増やさない（上の「filter のフィールドは «ユーザーが選んだもの» だけ」
+テストが固定している）。派生値は filter の外で作る。#1397 PR2 と同じ作法である。
+*/
+describe("#1446 Calendar 用派生クエリ（toMyDishesCalendarQueryParams / selectCalendarQueryKey）", () => {
+	// ★ ここが本命。共有 sort が既定なら派生キーは base と «完全に一致» するので、
+	//   常用ケースでは追加の取得も LRU の追加消費も一切起きない
+	it("共有 sort が既定（-occurredAt）なら、派生 queryKey は base の queryKey と完全に一致する", () => {
+		expect(selectCalendarQueryKey(getState())).toBe(queryKey());
+
+		// フィルタが載っていても一致する（落とすのは並び順だけ）
+		getState().patch({ status: ["eaten"], minRating: 4, categoryIds: ["c2", "c1"] });
+		expect(selectCalendarQueryKey(getState())).toBe(queryKey());
+
+		getState().commitArea({ lat: 35.68, lng: 139.76, radius: 1200 });
+		expect(selectCalendarQueryKey(getState())).toBe(queryKey());
+	});
+
+	it("sort / sceneKey / timeSlotKey を持たない", () => {
+		getState().patch({ sort: "-sceneScore", sceneKey: "date", timeSlotKey: "dinner" });
+
+		const params = toMyDishesCalendarQueryParams(getState().filter) as Record<string, unknown>;
+		expect(params.sort).toBeUndefined();
+		expect(params.sceneKey).toBeUndefined();
+		expect(params.timeSlotKey).toBeUndefined();
+	});
+
+	it("sort 以外のフィルタ（status / minRating / area / 期間）は base と同じものを引き継ぐ", () => {
+		getState().patch({ status: ["eaten"], minRating: 4, from: "2026-08-10T00:00:00.000Z" });
+		getState().commitArea({ lat: 35.68, lng: 139.76, radius: 1200 });
+		getState().patch({ sort: "distance" });
+
+		const params = toMyDishesCalendarQueryParams(getState().filter);
+		expect(params.status).toEqual(["eaten"]);
+		expect(params.minRating).toBe(4);
+		expect(params.from).toBe("2026-08-10T00:00:00.000Z");
+		// area（lat/lng/radius）は絞り込みそのものなので引き継ぐ。落とすのは sort だけ
+		expect(params.lat).toBe(35.68);
+	});
+
+	it("共有 sort が日付順以外のときだけ base と別キーになる（そのときも sort は出てこない）", () => {
+		getState().patch({ sort: "-rating", status: ["eaten"] });
+
+		const calendarKey = selectCalendarQueryKey(getState());
+		expect(calendarKey).not.toBe(queryKey());
+		expect(calendarKey).not.toMatch(/sort=/);
+		expect(queryKey()).toMatch(/sort=-rating/);
+	});
+
+	it("sort だけが違う 2 つの filter は、Calendar から見ると同じキーになる（無駄な取り直しをしない）", () => {
+		getState().patch({ sort: "-rating" });
+		const a = selectCalendarQueryKey(getState());
+		getState().patch({ sort: "occurredAt" });
+		const b = selectCalendarQueryKey(getState());
+		expect(a).toBe(b);
 	});
 });
 
