@@ -8,9 +8,10 @@ name: DB/BigQuery Script Run
 # 当初 dining_pace の manual correction 専用workflow（insert/merge/sync-devの3step）
 # として作ったが、「対象スクリプトが増えるたびに専用workflowを増やす」のは
 # スケールしない。db-migrate.yml / pg-table-export.yml / pg-table-import.yml と同じ
-# 資格情報（secrets.GCP_SA_KEY, secrets.POSTGRES_DATABASE_URL）を使い、
+# PostgreSQL 資格情報（secrets.POSTGRES_DATABASE_URL）を使い、
 # 「どのスクリプトを・どの引数で・dry-runかどうか」を dispatch 時に指定できる
-# 汎用ランナーに一般化した。
+# 汎用ランナーに一般化した（BigQuery 認証は #1458 で専用SA・WIF方式に変更済み。
+# 下記「BigQuery 認証」節を参照）。
 #
 # manual/1_insert_feature_scores.py / manual/2_merge_feature_scores.py /
 # 9_2_sync_dish_category_features.py はいずれもこのworkflowから実行できる
@@ -19,6 +20,16 @@ name: DB/BigQuery Script Run
 # ## なぜ Actions でやるのか（db-migrate.yml と同じ理由）
 # 資格情報をローカル/対話セッションに置かず、「いつ・誰が・どのスクリプトを
 # どの引数で実行したか」を dispatch のログとして残す。
+#
+# ## BigQuery 認証（#1458）
+# 4本のworkflowで共用されている静的キー secrets.GCP_SA_KEY には
+# bigquery.jobUser が無く、BigQueryへのクエリ実行はできない（付与もしない。
+# 共有キーの影響範囲を広げないため）。代わりに、error-triage.yml と同じ
+# WIF（google-github-actions/auth, workload_identity_provider + service_account）
+# 方式で、このworkflow専用のSA feature-correction-writer@food-scroll.iam.gserviceaccount.com
+# を借用する。このSAは roles/bigquery.jobUser（プロジェクト food-scroll）と、
+# wikidata_food_graph データセットのみへの roles/bigquery.dataEditor（データセット単位）
+# だけを持つ。PostgreSQL `public` への書き込み権限はこのSAには無い（対象はBigQueryのみ）。
 #
 # ## このworkflowが扱わないもの
 # - PostgreSQL `public`（本番）への書き込みを行うスクリプトの実行は、このworkflow
@@ -63,6 +74,7 @@ concurrency:
 
 permissions:
   contents: read
+  id-token: write # WIF（OIDC）に必須
 
 jobs:
   run:
@@ -71,8 +83,6 @@ jobs:
     environment: development
     env:
       DATABASE_URL: ${{ secrets.POSTGRES_DATABASE_URL }}
-      GCP_KEY: ${{ secrets.GCP_SA_KEY }}
-      GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcp-key.json
 
     steps:
       - name: リポジトリを取得
@@ -112,9 +122,18 @@ jobs:
             echo "::warning::requirements_path が空か存在しないため、依存関係のインストールをスキップしました。"
           fi
 
-      - name: Google Cloud サービスアカウントで認証
-        shell: bash
-        run: echo "$GCP_KEY" > "$GOOGLE_APPLICATION_CREDENTIALS"
+      # 専用の書き込みSA（feature-correction-writer@food-scroll.iam.gserviceaccount.com、
+      # #1458）を借用する。roles/bigquery.jobUser（プロジェクト）と wikidata_food_graph
+      # データセットのみへの roles/bigquery.dataEditor だけを持つ。他の3本のworkflowと
+      # 共用されている GCP_SA_KEY は使わない。
+      # token_format は指定しない（デフォルトで認証情報ファイルが作成され、後続ステップの
+      # GOOGLE_APPLICATION_CREDENTIALS に自動でセットされる。python の google-cloud
+      # クライアントはこれをそのままADCとして拾う）。
+      - name: Google Cloud へ認証（WIF）
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_FEATURE_CORRECTION_SERVICE_ACCOUNT }}
 
       - name: input_file_content を書き出す
         if: ${{ inputs.input_file_path != '' }}
