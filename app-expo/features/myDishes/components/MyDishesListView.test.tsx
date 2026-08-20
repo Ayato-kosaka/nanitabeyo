@@ -218,7 +218,7 @@ describe("#1397 (PR4/5) Q2 リスト項目のタップ先は «その項目の�
 
 		expect(mockPush).toHaveBeenCalledWith({
 			pathname: "/[locale]/(tabs)/my-dishes/feed",
-			params: { locale: "ja-JP", restaurantId: "restaurant-1", itemKey: "review:with-photo" },
+			params: { locale: "ja-JP", restaurantId: "restaurant-1", itemKey: "review:with-photo", dishMediaId: "media-1" },
 		});
 		expect(Object.keys(mockPush.mock.calls[0][0].params)).not.toContain("initialIndex");
 	});

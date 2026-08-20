@@ -248,10 +248,15 @@ export function MyDishesRestaurantSheet({ pin, onDismissed }: MyDishesRestaurant
 				error_level: "log",
 				payload: { itemKey: item.key, status: item.status, hasPhoto },
 			});
-			if (hasPhoto) {
+			if (hasPhoto && item.dishMedia !== null) {
 				router.push({
 					pathname: "/[locale]/(tabs)/my-dishes/feed",
-					params: { locale, restaurantId: item.restaurant.id, itemKey: item.key },
+					params: {
+						locale,
+						restaurantId: item.restaurant.id,
+						itemKey: item.key,
+						dishMediaId: String(item.dishMedia.id),
+					},
 				});
 				return;
 			}
@@ -271,7 +276,7 @@ export function MyDishesRestaurantSheet({ pin, onDismissed }: MyDishesRestaurant
 	const firstPhotoItem = useMemo(() => items.find((item) => item.dishMedia !== null) ?? null, [items]);
 
 	const handleExpand = useCallback(() => {
-		if (firstPhotoItem === null || restaurantId === null) return;
+		if (firstPhotoItem === null || firstPhotoItem.dishMedia === null || restaurantId === null) return;
 		lightImpact();
 		logFrontendEvent({
 			event_name: "my_dishes_sheet_expanded",
@@ -280,7 +285,12 @@ export function MyDishesRestaurantSheet({ pin, onDismissed }: MyDishesRestaurant
 		});
 		router.push({
 			pathname: "/[locale]/(tabs)/my-dishes/feed",
-			params: { locale, restaurantId, itemKey: firstPhotoItem.key },
+			params: {
+				locale,
+				restaurantId,
+				itemKey: firstPhotoItem.key,
+				dishMediaId: String(firstPhotoItem.dishMedia.id),
+			},
 		});
 	}, [firstPhotoItem, lightImpact, locale, logFrontendEvent, restaurantId]);
 
@@ -309,10 +319,11 @@ export function MyDishesRestaurantSheet({ pin, onDismissed }: MyDishesRestaurant
 	const showInitialLoading = isLoading && !hasFetchedInitial && !error;
 	// 一覧ビュー / Map ビューと揃える: 取得に失敗したときも EmptyState を出して再試行の口を残す
 	// n-2（#1450 からの申し送り。PR4 で対応）: `items.length === 0` を条件へ足した。
-	// PR4 の Q4（Feed を閉じるときに店舗スコープの Sheet スライスだけ invalidate する）が入り、
-	// 「行があるのに error が立つ」が到達可能になったため。これが無いと、**保存を外して戻った
-	// ときに通信が一瞬こけただけで、記録が全部消えたように見える**（読めているリストごと
-	// EmptyState に差し替わる）。行が 1 行でもあるなら、それを出したまま黙って耐えるのが正しい
+	// n-1（レビュー訂正）: PR4 の Q4 が invalidate するとき呼ぶ `clearQuery` は
+	// `itemKeysByQuery[key]` ごとスライスを消すので、invalidate 直後は必ず `items.length === 0`
+	// になる（「行があるのに error が立つ」状態には到達しない）。このガード自体は無害な防御として
+	// 残す: `items.length === 0` を明示することで、将来 invalidate を「消す」ではなく「stale 印を
+	// 付ける」方式へ変えたときにも、行が残っているあいだは EmptyState へ差し替えない意図が保たれる
 	const showEmpty = !isLoading && items.length === 0 && (error !== null || hasFetchedInitial);
 
 	const header = useMemo(

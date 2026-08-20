@@ -141,10 +141,15 @@ export function MyDishesListView() {
 				error_level: "log",
 				payload: { itemKey: item.key, status: item.status, hasPhoto },
 			});
-			if (hasPhoto) {
+			if (hasPhoto && item.dishMedia !== null) {
 				router.push({
 					pathname: "/[locale]/(tabs)/my-dishes/feed",
-					params: { locale, restaurantId: item.restaurant.id, itemKey: item.key },
+					params: {
+						locale,
+						restaurantId: item.restaurant.id,
+						itemKey: item.key,
+						dishMediaId: String(item.dishMedia.id),
+					},
 				});
 				return;
 			}

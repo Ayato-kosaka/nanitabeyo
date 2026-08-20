@@ -65,12 +65,22 @@ import type { QueryDishMediaByIdsResponse } from "@shared/api/v1/res";
 const MAX_FEED_IDS = MY_DISHES_PAGE_SIZE;
 
 export default function MyDishesFeedScreen() {
-	const { restaurantId: restaurantIdParam, itemKey: itemKeyParam } = useLocalSearchParams<{
+	const {
+		restaurantId: restaurantIdParam,
+		itemKey: itemKeyParam,
+		dishMediaId: dishMediaIdParam,
+	} = useLocalSearchParams<{
 		restaurantId?: string | string[];
 		itemKey?: string | string[];
+		dishMediaId?: string | string[];
 	}>();
 	const restaurantId = typeof restaurantIdParam === "string" && restaurantIdParam.length > 0 ? restaurantIdParam : null;
 	const itemKey = typeof itemKeyParam === "string" && itemKeyParam.length > 0 ? itemKeyParam : null;
+	// M-2: 1 店舗 43 件以上だと itemKey が指す行が取得済みの 1 ページ（42 件）に無いことがある。
+	// 呼び出し元は必ず item.dishMedia.id を持っているので、そちらを同一性の根拠にする
+	// （itemKey は残すが、位置は index ではなくこの id で決める）
+	const dishMediaIdFromParams =
+		typeof dishMediaIdParam === "string" && dishMediaIdParam.length > 0 ? dishMediaIdParam : null;
 
 	const { locale } = useLocale();
 	const { lightImpact } = useHaptics();
@@ -86,6 +96,7 @@ export default function MyDishesFeedScreen() {
 		queryKey: sheetQueryKey,
 		error: rowsError,
 		hasFetchedInitial: hasFetchedRows,
+		refresh: refreshRows,
 	} = useMyDishesRestaurantQuery(restaurantId);
 
 	const entriesKey = useMemo(() => (restaurantId ? myDishesFeedKey(restaurantId) : null), [restaurantId]);
@@ -94,23 +105,38 @@ export default function MyDishesFeedScreen() {
 	// ⚠️ 文字列へ畳んでから配列に戻すことで «中身が同じなら同じ参照» にしている。
 	// `items` は `itemByKey` が更新されるたびに新しい配列になるため、そのまま effect の依存へ
 	// 渡すと取得が何度も走る
-	const mediaIdsSignature = useMemo(
-		() =>
-			items
-				.map((item) => (item.dishMedia ? String(item.dishMedia.id) : null))
-				.filter((id): id is string => id !== null)
-				.slice(0, MAX_FEED_IDS)
-				.join(","),
-		[items],
-	);
+	//
+	// M-2: `dishMediaIdFromParams` がこのページの中に無ければ（1 店舗 43 件以上でページ外の記録を
+	// タップした場面）先頭へ積む。位置（index）ではなく id そのものを ids に含めることで、
+	// タップした料理を必ず取得できるようにする
+	// ⚠️ `hasFetchedRows` を待つこと。待たずに `dishMediaIdFromParams` だけで signature を作ると、
+	// 行がまだ 0 件のうちに «その 1 件だけ» で GET /v1/dish-media が飛び、行が届いたあとの
+	// 本来の signature でもう一度飛ぶ（2 回叩く）
+	const mediaIdsSignature = useMemo(() => {
+		if (!hasFetchedRows) return "";
+		const pageIds = items
+			.map((item) => (item.dishMedia ? String(item.dishMedia.id) : null))
+			.filter((id): id is string => id !== null)
+			.slice(0, MAX_FEED_IDS);
+		const ids =
+			dishMediaIdFromParams !== null && !pageIds.includes(dishMediaIdFromParams)
+				? [dishMediaIdFromParams, ...pageIds]
+				: pageIds;
+		return ids.join(",");
+	}, [items, dishMediaIdFromParams, hasFetchedRows]);
 	const mediaIds = useMemo(() => (mediaIdsSignature ? mediaIdsSignature.split(",") : []), [mediaIdsSignature]);
 
-	/** R1: `itemKey` から «開くべき `dish_media.id`» を引く。index は URL から受け取らない */
+	/**
+	 * R1 / M-2: «開くべき `dish_media.id`» を決める。index は URL から受け取らない。
+	 * `dishMediaId` が渡っていればそれを直接使う（呼び出し元は必ず持っている）。無い呼び出し元
+	 * （旧リンク等）だけ `itemKey` から取得済みページ内を探すフォールバックへ回す
+	 */
 	const targetMediaId = useMemo(() => {
+		if (dishMediaIdFromParams !== null) return dishMediaIdFromParams;
 		if (itemKey === null) return null;
 		const target = items.find((item) => item.key === itemKey);
 		return target?.dishMedia ? String(target.dishMedia.id) : null;
-	}, [itemKey, items]);
+	}, [dishMediaIdFromParams, itemKey, items]);
 
 	const { ids: feedIds, isLoading: isLoadingMedia, error: mediaError } = useDishMediaEntriesStore(
 		selectIdsByKey(entriesKey ?? "", "dish_media"),
@@ -146,6 +172,9 @@ export default function MyDishesFeedScreen() {
 	// 閉じるときに読む値。クリーンアップを `entriesKey` だけの依存に保つためミラーする
 	const sheetQueryKeyRef = useRef<string | null>(null);
 	sheetQueryKeyRef.current = sheetQueryKey;
+	// m-3: 食べた記録の反映（ActionButtons → review-from-media）はここでは拾わない。
+	// `items` はこの画面が取得した時点のスナップショットなので stale で、安く検知できない。
+	// 正しい機構は #1398 PR4 が入れる `revision` bump 側で拾うこと（この PR のスコープ外）
 
 	// §9-2 手順 3: `GET /v1/dish-media?ids=...` → `upsertDishMediaEntries` + `updateMediaIdsByKeyAsync`
 	// （`posts.tsx` の作法）。
@@ -160,34 +189,46 @@ export default function MyDishesFeedScreen() {
 
 		let cancelled = false;
 		const { upsertDishMediaEntries, updateMediaIdsByKeyAsync } = useDishMediaEntriesStore.getState();
-		const idsPromise = callBackend<QueryDishMediaByIdsDto, QueryDishMediaByIdsResponse>("v1/dish-media", {
+
+		callBackend<QueryDishMediaByIdsDto, QueryDishMediaByIdsResponse>("v1/dish-media", {
 			method: "GET",
 			requestPayload: { ids: mediaIds },
-		}).then((res) => {
-			upsertDishMediaEntries(res.items);
-			// Q4: 取得直後のサーバ値を dirty 判定の基準に取る
-			const snapshot: Record<string, boolean> = {};
-			for (const item of res.items) snapshot[String(item.dish_media.id)] = Boolean(item.dish_media.isSaved);
-			initialSavedRef.current = snapshot;
-			return res.items.map((item) => String(item.dish_media.id));
-		});
+		}).then(
+			(res) => {
+				// M-1: 決着前に unmount されていたら、ストアには一切書かない。下の unmount 側の
+				// `clearByKey` より «後» に決着すると、ここで書いたものが誰にも消されず残ってしまい、
+				// 次に同じ店を開いたとき古い並びのまま固定される
+				if (cancelled) return;
+				upsertDishMediaEntries(res.items);
+				// Q4: 取得直後のサーバ値を dirty 判定の基準に取る
+				const snapshot: Record<string, boolean> = {};
+				for (const item of res.items) snapshot[String(item.dish_media.id)] = Boolean(item.dish_media.isSaved);
+				initialSavedRef.current = snapshot;
 
-		idsPromise.then(
-			() => {
-				if (!cancelled) setSettledKey(hydrationKey);
+				const fetchedIds = res.items.map((item) => String(item.dish_media.id));
+				// ⚠️ 並び順は **Sheet / リストで見えている順**（= `mediaIds`）に揃える。API の戻り順に
+				// 任せると、`itemKey` / `dishMediaId` から引いた index が指す料理と実際の並びがずれる
+				void updateMediaIdsByKeyAsync(entriesKey, Promise.resolve(fetchedIds), (_prev, ids) => {
+					const fetched = new Set(ids);
+					return mediaIds.filter((id) => fetched.has(id));
+				}).then(() => {
+					if (!cancelled) setSettledKey(hydrationKey);
+				});
 			},
 			() => {
+				if (cancelled) return;
 				// 失敗は «未取得» に戻す。次に叩くかどうかは `!error` ガードだけが決める
 				requestedKeyRef.current = null;
+				// m-1: ストアの error 状態へも反映する（`mediaError` を非 null にして、再取得ループと
+				// スピナー固着の両方を防ぐ）。専用の setError が無いので、失敗した promise を渡して
+				// 既存のエラー経路（`handleAsyncAction` の catch）に載せる
+				void updateMediaIdsByKeyAsync(
+					entriesKey,
+					Promise.reject(new Error("dish-media fetch failed")),
+					(prevIds) => prevIds,
+				).catch(() => {});
 			},
 		);
-
-		// ⚠️ 並び順は **Sheet / リストで見えている順**（= `mediaIds`）に揃える。API の戻り順に
-		// 任せると、`itemKey` から引いた index が指す料理と実際の並びがずれる
-		void updateMediaIdsByKeyAsync(entriesKey, idsPromise, (_prev, fetchedIds) => {
-			const fetched = new Set(fetchedIds);
-			return mediaIds.filter((id) => fetched.has(id));
-		});
 
 		return () => {
 			cancelled = true;
@@ -237,13 +278,31 @@ export default function MyDishesFeedScreen() {
 		router.replace({ pathname: "/[locale]/(tabs)/my-dishes", params: { locale } });
 	}, [itemKey, lightImpact, locale, logFrontendEvent, restaurantId]);
 
+	// m-1: 失敗と 0 件を区別し、失敗のほうにだけ再試行を出す。どちらの取得が失敗したかで
+	// 叩き直す先を変える（行の取得なら `refreshRows`、メディアの取得なら該当キーの
+	// エラー状態を消して effect の `!error` ガードを解く）
+	const handleRetry = useCallback(() => {
+		if (rowsError !== null) {
+			refreshRows();
+			return;
+		}
+		if (entriesKey !== null) {
+			useDishMediaEntriesStore.getState().clearByKey(entriesKey);
+			requestedKeyRef.current = null;
+			setSettledKey(null);
+		}
+	}, [entriesKey, refreshRows, rowsError]);
+
 	// ⚠️ ローディングは «まだ結果が出ていない» ときだけに絞ること。失敗しても止まる形にしないと
 	// スピナーで固着する（`restaurant/[restaurantId]/feed.tsx` と同じ判断）
 	const isFetchingRows = restaurantId !== null && !hasFetchedRows && rowsError === null;
 	const isHydratingMedia = mediaIds.length > 0 && settledKey !== hydrationKey && mediaError === null;
 	const showLoading = feedIds.length === 0 && (isFetchingRows || isHydratingMedia);
-	// 「行は読めたが写真ありが 1 件も無い」「取得に失敗した」のどちらも «見るものが無い» なので同じ表示
-	const showEmpty = !showLoading && feedIds.length === 0;
+	const hasError = rowsError !== null || mediaError !== null;
+	// 「行は読めたが写真ありが 1 件も無い」は再試行の口を出さない 0 件表示
+	const showEmpty = !showLoading && feedIds.length === 0 && !hasError;
+	// m-1: 失敗はこちらだけ。「見つかりません」の 1 行で終わらせず再試行を出す
+	const showError = !showLoading && feedIds.length === 0 && hasError;
 
 	return (
 		<View style={styles.container} testID="my-dishes-feed-screen">
@@ -267,6 +326,18 @@ export default function MyDishesFeedScreen() {
 			) : showLoading ? (
 				<View style={styles.centered} testID="my-dishes-feed-loading">
 					<LoadingIndicator size="large" />
+				</View>
+			) : showError ? (
+				<View style={styles.centered} testID="my-dishes-feed-error">
+					<Text style={styles.emptyText}>{i18n.t("Common.errors.unexpected")}</Text>
+					<TouchableOpacity
+						testID="my-dishes-feed-retry"
+						style={styles.retryButton}
+						onPress={handleRetry}
+						accessibilityRole="button"
+						accessibilityLabel={i18n.t("Common.retry")}>
+						<Text style={styles.retryText}>{i18n.t("Common.retry")}</Text>
+					</TouchableOpacity>
 				</View>
 			) : showEmpty ? (
 				<View style={styles.centered} testID="my-dishes-feed-empty">
@@ -292,6 +363,18 @@ const styles = StyleSheet.create({
 		fontSize: 16,
 		color: "#FFF",
 		textAlign: "center",
+	},
+	retryButton: {
+		marginTop: 16,
+		paddingHorizontal: 20,
+		paddingVertical: 10,
+		borderRadius: 20,
+		backgroundColor: "#357AFF",
+	},
+	retryText: {
+		fontSize: 14,
+		fontWeight: "600",
+		color: "#FFF",
 	},
 	// search/result.tsx / restaurant/[restaurantId]/feed.tsx と同じ形（フィードの上に浮かせる）
 	closeButtonContainer: {

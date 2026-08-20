@@ -28,11 +28,13 @@ jest.mock("lucide-react-native", () => new Proxy({}, { get: () => () => null }))
 let mockParams: Record<string, string> = {};
 const mockBack = jest.fn();
 const mockReplace = jest.fn();
+// m-2: `canDismiss` を可変にして、履歴が無い着地（直リンク / リロード）の枝も通せるようにする
+let mockCanDismiss = true;
 jest.mock("expo-router", () => ({
 	router: {
 		back: (...args: unknown[]) => mockBack(...args),
 		replace: (...args: unknown[]) => mockReplace(...args),
-		canDismiss: () => true,
+		canDismiss: () => mockCanDismiss,
 	},
 	useLocalSearchParams: () => mockParams,
 }));
@@ -130,6 +132,7 @@ beforeEach(() => {
 	mockCallBackend.mockReset();
 	mockBack.mockClear();
 	mockReplace.mockClear();
+	mockCanDismiss = true;
 	respond([], []);
 });
 
@@ -267,9 +270,9 @@ describe("#1397 絶対条件6 !error ガード（失敗しても 2 回目を叩�
 		});
 
 		expect(callsTo("v1/dish-media")).toHaveLength(1);
-		// 見るものが無いので EmptyState（スピナーで固着させない）
+		// m-1: 失敗と 0 件は区別する。スピナーで固着させず、再試行の口がある失敗表示へ落ちる
 		expect(
-			tree.root.findAll((node) => typeof node.type === "string" && node.props?.testID === "my-dishes-feed-empty"),
+			tree.root.findAll((node) => typeof node.type === "string" && node.props?.testID === "my-dishes-feed-error"),
 		).toHaveLength(1);
 	});
 });
@@ -380,5 +383,133 @@ describe("#1397 §7-1 共有フィルタ store を一切書かない", () => {
 		expect(useMyDishesFilterStore.getState().filter).toBe(filterBefore);
 		expect(baseQueryKey()).toBe(keyBefore);
 		expect(Object.keys(useMyDishesFilterStore.getState().filter)).not.toContain("restaurantId");
+	});
+});
+
+describe("#1397 M-2 dishMediaId でページ外の記録も開ける", () => {
+	it("itemKey がページ内に無くても、dishMediaId を渡せばその料理が開く", async () => {
+		// 1 店舗 43 件以上の場面を模す: タップした行（dishMediaId="media-old"）はページ
+		// （`items` = review:a / review:b の 2 件だけ）に含まれない。呼び出し元は必ず
+		// `item.dishMedia.id` を持っているので、itemKey が見つからなくても dishMediaId で開ける
+		respond(
+			[makeRow("review:a", "media-a"), makeRow("review:b", "media-b")],
+			[makeEntry("media-old"), makeEntry("media-a"), makeEntry("media-b")],
+		);
+		mockParams = { ...mockParams, itemKey: "review:old", dishMediaId: "media-old" };
+
+		const tree = await render();
+
+		// ページ内に無ければ ids の先頭へ積む
+		const mediaCalls = callsTo("v1/dish-media");
+		expect(mediaCalls).toHaveLength(1);
+		expect(mediaCalls[0][1].requestPayload.ids).toEqual(["media-old", "media-a", "media-b"]);
+
+		// index ではなく id で開始位置を決めるので、先頭に積んだ media-old が index 0 になる
+		expect(feedProps(tree)!.initialIndex).toBe(0);
+	});
+
+	it("dishMediaId がページ内に既にあれば、そのまま従来どおりの位置を使う（重複して積まない）", async () => {
+		respond(
+			[makeRow("review:a", "media-a"), makeRow("review:b", "media-b")],
+			[makeEntry("media-a"), makeEntry("media-b")],
+		);
+		mockParams = { ...mockParams, itemKey: "review:b", dishMediaId: "media-b" };
+
+		const tree = await render();
+
+		expect(callsTo("v1/dish-media")[0][1].requestPayload.ids).toEqual(["media-a", "media-b"]);
+		expect(feedProps(tree)!.initialIndex).toBe(1);
+	});
+});
+
+describe("#1397 M-1 取得が返る前に unmount しても残骸が復活しない", () => {
+	it("メディア取得が決着する前に unmount すると、決着後も mediaIdsByKey / entriesByMediaId が復活しない", async () => {
+		let resolveMedia!: (value: { items: ReturnType<typeof makeEntry>[] }) => void;
+		mockCallBackend.mockImplementation(async (path: string) => {
+			if (path === "v1/users/me/dishes") {
+				return { data: [makeRow("review:a", "media-a")], nextCursor: null, meta: { oldestOccurredAt: null } };
+			}
+			if (path === "v1/dish-media") {
+				return new Promise((resolve) => {
+					resolveMedia = resolve;
+				});
+			}
+			throw new Error(`unexpected path: ${path}`);
+		});
+		mockParams = { ...mockParams, itemKey: "review:a" };
+
+		let tree!: TestRenderer.ReactTestRenderer;
+		await act(async () => {
+			tree = TestRenderer.create(<MyDishesFeedScreen />);
+		});
+		// 行の取得は終わり、メディア取得（GET /v1/dish-media）は飛行中のまま unmount する
+		await act(async () => {
+			tree.unmount();
+		});
+
+		// unmount 後に決着する（電波の細いところで戻った場面の再現）
+		await act(async () => {
+			resolveMedia({ items: [makeEntry("media-a")] });
+		});
+
+		const key = myDishesFeedKey(RESTAURANT_ID);
+		expect(useDishMediaEntriesStore.getState().mediaIdsByKey[key]).toBeUndefined();
+		expect(useDishMediaEntriesStore.getState().entriesByMediaId["media-a"]).toBeUndefined();
+	});
+});
+
+describe("#1397 m-1 失敗と 0 件を区別し、再試行で叩き直す", () => {
+	it("行の取得が失敗したら再試行の口が出て、押すと v1/users/me/dishes の 2 回目が飛ぶ", async () => {
+		let rowCallCount = 0;
+		mockCallBackend.mockImplementation(async (path: string) => {
+			if (path === "v1/users/me/dishes") {
+				rowCallCount += 1;
+				if (rowCallCount === 1) throw new Error("boom");
+				return { data: [makeRow("review:a", "media-a")], nextCursor: null, meta: { oldestOccurredAt: null } };
+			}
+			if (path === "v1/dish-media") return { items: [makeEntry("media-a")] };
+			throw new Error(`unexpected path: ${path}`);
+		});
+		mockParams = { ...mockParams, itemKey: "review:a" };
+
+		const tree = await render();
+
+		expect(
+			tree.root.findAll((node) => typeof node.type === "string" && node.props?.testID === "my-dishes-feed-error"),
+		).toHaveLength(1);
+		expect(callsTo("v1/users/me/dishes")).toHaveLength(1);
+
+		const retryButton = tree.root.findAll(
+			(node) => node.props?.testID === "my-dishes-feed-retry" && typeof node.props?.onPress === "function",
+		)[0];
+		await act(async () => {
+			retryButton.props.onPress();
+		});
+		await act(async () => {});
+
+		expect(callsTo("v1/users/me/dishes")).toHaveLength(2);
+		expect(feedProps(tree)).not.toBeNull();
+	});
+});
+
+describe("#1397 m-2 canDismiss が false の着地（直リンク / リロード）", () => {
+	it("戻れない着地で閉じると router.back ではなく router.replace で my-dishes タブへ逃がす", async () => {
+		respond([makeRow("review:a", "media-a")], [makeEntry("media-a")]);
+		mockCanDismiss = false;
+
+		const tree = await render();
+
+		const closeButton = tree.root.findAll(
+			(node) => node.props?.testID === "my-dishes-feed-close-button" && typeof node.props?.onPress === "function",
+		)[0];
+		await act(async () => {
+			closeButton.props.onPress();
+		});
+
+		expect(mockBack).not.toHaveBeenCalled();
+		expect(mockReplace).toHaveBeenCalledWith({
+			pathname: "/[locale]/(tabs)/my-dishes",
+			params: { locale: "ja-JP" },
+		});
 	});
 });

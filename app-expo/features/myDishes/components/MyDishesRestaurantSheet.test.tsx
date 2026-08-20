@@ -364,7 +364,7 @@ describe("#1397 (PR4/5) 行タップの遷移先は写真の有無で分かれ�
 
 		expect(mockPush).toHaveBeenCalledWith({
 			pathname: "/[locale]/(tabs)/my-dishes/feed",
-			params: { locale: "ja-JP", restaurantId: RESTAURANT_ID, itemKey: "review:with-photo" },
+			params: { locale: "ja-JP", restaurantId: RESTAURANT_ID, itemKey: "review:with-photo", dishMediaId: "media-1" },
 		});
 		// URL に index は載せない（載せると写真なしが 1 件混ざった瞬間にずれる）
 		expect(Object.keys(mockPush.mock.calls[0][0].params)).not.toContain("initialIndex");
@@ -393,7 +393,7 @@ describe("#1397 (PR4/5)「全画面で見る」", () => {
 
 		expect(mockPush).toHaveBeenCalledWith({
 			pathname: "/[locale]/(tabs)/my-dishes/feed",
-			params: { locale: "ja-JP", restaurantId: RESTAURANT_ID, itemKey: "review:with-photo" },
+			params: { locale: "ja-JP", restaurantId: RESTAURANT_ID, itemKey: "review:with-photo", dishMediaId: "media-1" },
 		});
 	});
 
