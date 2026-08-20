@@ -2,7 +2,7 @@ import React, { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import { FlatList, InteractionManager, Pressable, StyleSheet, Text, View } from "react-native";
 import { TrueSheet } from "@lodev09/react-native-true-sheet";
 import { Image } from "expo-image";
-import { router } from "expo-router";
+import { router, useFocusEffect, useNavigation } from "expo-router";
 import { ChevronRight } from "lucide-react-native";
 import { EmptyState } from "@/components/EmptyState";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
@@ -112,7 +112,8 @@ const MyDishSheetRow = memo(function MyDishSheetRow({
 			accessibilityLabel={title ?? i18n.t("ImageCardGrid.openItemDetails")}>
 			<View
 				// 写真なしの行を E2E から指せるようにする。**灰色の箱ではなく実画像が入っている**
-				testID={hasPhoto ? undefined : "my-dishes-sheet-item-placeholder"}
+				// （n-1: 一覧ビューの `my-dishes-list-item-placeholder` とは逆の意味なので同じ名前にしない）
+				testID={hasPhoto ? undefined : "my-dishes-sheet-item-no-photo"}
 				style={styles.thumbnailWrapper}>
 				{source ? (
 					<Image
@@ -156,6 +157,7 @@ export function MyDishesRestaurantSheet({ pin, onDismissed }: MyDishesRestaurant
 	const { locale } = useLocale();
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
+	const navigation = useNavigation();
 	const sheetRef = useRef<TrueSheet>(null);
 
 	const restaurantId = pin?.restaurant.id ?? null;
@@ -192,7 +194,28 @@ export function MyDishesRestaurantSheet({ pin, onDismissed }: MyDishesRestaurant
 		};
 	}, [restaurantId]);
 
-	// 画面から外れるときに開きっぱなしにしない（#644 と同じ理由）
+	// レビュー M-1: `/[locale]/restaurant/[restaurantId]` への push は root stack への push なので
+	// my-dishes/index.tsx はアンマウントされない（#1439 M-1 の keep-alive でビュー切替でも残る）。
+	// つまり unmount 頼みのクリーンアップは一度も走らず、この Sheet が提供する唯一の遷移（行タップ・
+	// ヘッダの店名タップ）の遷移先が、自分が開いた Sheet に覆われる。
+	// 先例 #644（select-restaurant.tsx）と同じ 2 本で閉じる:
+	// 1. フォーカスを失ったとき（他画面へ push した瞬間）に dismiss する
+	useFocusEffect(
+		useCallback(() => {
+			return () => {
+				void dismissSheetSafely(sheetRef);
+			};
+		}, []),
+	);
+	// 2. 画面を離れる直前（戻る操作の開始時）にも dismiss する
+	useEffect(() => {
+		const unsubscribe = navigation.addListener("beforeRemove", () => {
+			void dismissSheetSafely(sheetRef);
+		});
+		return unsubscribe;
+	}, [navigation]);
+
+	// 上の 2 本の上に載る保険。#644 の対策はこれだけでは一度も走らないことが今回の Major だった
 	useEffect(() => {
 		return () => {
 			void dismissSheetSafely(sheetRef);
@@ -253,6 +276,10 @@ export function MyDishesRestaurantSheet({ pin, onDismissed }: MyDishesRestaurant
 
 	const showInitialLoading = isLoading && !hasFetchedInitial && !error;
 	// 一覧ビュー / Map ビューと揃える: 取得に失敗したときも EmptyState を出して再試行の口を残す
+	// n-2: 行が既にあるのに error が立つと、読めていたリストごと EmptyState に差し替わる。今は
+	// 到達不能（成功後は hasFetchedInitial で再取得が止まり、再試行は error 状態からしか押せない）
+	// だが、PR4 が「Feed を閉じるときに店舗スコープの Sheet スライスだけ invalidate する」を入れると
+	// 到達可能になる。PR4 で `items.length === 0` をこの条件へ足すこと
 	const showEmpty = !isLoading && (error !== null || (hasFetchedInitial && items.length === 0));
 
 	const header = useMemo(

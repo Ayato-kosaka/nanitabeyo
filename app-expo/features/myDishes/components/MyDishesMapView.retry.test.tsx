@@ -14,7 +14,14 @@ jest.mock("@/hooks/useLocale", () => ({ useLocale: () => ({ locale: "ja-JP", isJ
 jest.mock("@/hooks/useLogger", () => ({ useLogger: () => ({ logFrontendEvent: jest.fn() }) }));
 jest.mock("@/components/LoadingIndicator", () => ({ LoadingIndicator: () => null }));
 jest.mock("lucide-react-native", () => new Proxy({}, { get: () => () => null }));
-jest.mock("expo-router", () => ({ router: { push: jest.fn() } }));
+jest.mock("expo-router", () => ({
+	router: { push: jest.fn() },
+	// #1450 M-1: MyDishesRestaurantSheet が useFocusEffect / useNavigation を呼ぶようになったため、
+	// このファイルは Sheet をスタブせず実物のまま描画する（実物のまま fetchPins まで届かせたい）ので
+	// 最小限のノーオップを足す。挙動そのものは MyDishesRestaurantSheet.test.tsx で見ている
+	useFocusEffect: () => {},
+	useNavigation: () => ({ addListener: () => () => {} }),
+}));
 
 jest.mock("@/components/MapView", () => {
 	const ReactActual = jest.requireActual("react");

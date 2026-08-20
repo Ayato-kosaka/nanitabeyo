@@ -23,11 +23,26 @@ jest.mock("lucide-react-native", () => new Proxy({}, { get: () => () => null }))
 
 const mockPush = jest.fn();
 const mockSetParams = jest.fn();
+// M-1: #644（select-restaurant.tsx）と同じ 2 本を固定するため、useFocusEffect / useNavigation を
+// 実際に動く最小限のスタブへ差し替える。useFocusEffect は「フォーカスされている間」を模す必要は
+// なく、effect を 1 回実行してその cleanup を捕まえられれば十分（ここではその cleanup を
+// 「フォーカスを失った」の代わりに呼ぶ）
+let focusEffectCleanup: (() => void) | undefined;
+let beforeRemoveHandler: (() => void) | undefined;
+const mockAddListener = jest.fn((event: string, handler: () => void) => {
+	if (event === "beforeRemove") beforeRemoveHandler = handler;
+	return () => {};
+});
 jest.mock("expo-router", () => ({
 	router: {
 		push: (...args: unknown[]) => mockPush(...args),
 		setParams: (...args: unknown[]) => mockSetParams(...args),
 	},
+	useFocusEffect: (effect: () => (() => void) | void) => {
+		const cleanup = effect();
+		focusEffectCleanup = typeof cleanup === "function" ? cleanup : undefined;
+	},
+	useNavigation: () => ({ addListener: mockAddListener }),
 }));
 
 // 画像の解決順（thumbnail → categoryImageUrl → restaurant.image_url）をアサートするために
@@ -142,6 +157,9 @@ beforeEach(() => {
 	mockCallBackend.mockReset();
 	mockPush.mockClear();
 	mockSetParams.mockClear();
+	mockAddListener.mockClear();
+	focusEffectCleanup = undefined;
+	beforeRemoveHandler = undefined;
 	respondWith([]);
 });
 
@@ -157,7 +175,9 @@ describe("#1397 §5-1 ピンをタップするまで 1 本も投げない", () =
 
 		expect(mockCallBackend).not.toHaveBeenCalled();
 		expect(findAllByTestID(tree, "my-dishes-sheet-item")).toHaveLength(0);
-		// SheetGestureRoot 自体は常にマウントされている（present/dismiss を ref で制御するため）
+		// SheetGestureRoot 自体は常にマウントされている（present/dismiss を ref で制御するため）。
+		// n-3: これは jest.setup.js のモックが children を常に描く仕様の言い換えであって、実際の
+		// web 実装は閉じている間 Portal 自体を描かない。E2E は「閉じていても DOM にある」を前提にしないこと
 		expect(findAllByTestID(tree, "my-dishes-sheet").length).toBeGreaterThan(0);
 	});
 
@@ -204,7 +224,9 @@ describe("#1397 §3 写真なしの記録も並べ、実画像へ落とす（#13
 		]);
 
 		// 写真なしの行だけ E2E 用の目印が付く（動的 ID は作らない。nth() で指す）
-		expect(findAllByTestID(tree, "my-dishes-sheet-item-placeholder")).toHaveLength(1);
+		// n-1: 一覧ビューの my-dishes-list-item-placeholder（本物の灰色プレースホルダー）とは
+		// 逆の意味（＝実画像が入っている行）なので、同じ接尾辞 -placeholder は使わない
+		expect(findAllByTestID(tree, "my-dishes-sheet-item-no-photo")).toHaveLength(1);
 	});
 
 	it("categoryImageUrl が空なら restaurant.image_url へ落ちる", async () => {
@@ -303,5 +325,86 @@ describe("#1397 取得失敗時は再試行の口を残す（一覧・Map と揃
 
 		expect(findAllByTestID(tree, "my-dishes-sheet-empty").length).toBeGreaterThan(0);
 		expect(findAllByTestID(tree, "my-dishes-sheet-empty-retry").length).toBeGreaterThan(0);
+	});
+
+	// m-1: #1442 / #1446 と同じ回帰ガード。「描かれること」だけでなく「押下が実取得へ届くこと」まで
+	// 固定する。このファイルは useMyDishesRestaurantQuery をモックしていないので、mockCallBackend の
+	// 呼び出し回数を数えるだけで足りる
+	it("再試行ボタン押下で callBackend の 2 回目が実際に飛ぶ", async () => {
+		mockCallBackend.mockRejectedValueOnce(new Error("boom"));
+		const tree = await render(mockPin);
+
+		// 初回取得が失敗している
+		expect(mockCallBackend).toHaveBeenCalledTimes(1);
+
+		mockCallBackend.mockResolvedValueOnce({ data: [], nextCursor: null, meta: { oldestOccurredAt: null } });
+		await pressByTestID(tree, "my-dishes-sheet-empty-retry");
+
+		expect(mockCallBackend).toHaveBeenCalledTimes(2);
+		const [path, options] = mockCallBackend.mock.calls[1];
+		expect(path).toBe("v1/users/me/dishes");
+		expect(options.requestPayload.restaurantId).toBe(RESTAURANT_ID);
+	});
+});
+
+describe("#1450 M-1 画面遷移で開いたままにしない（#644 対策）", () => {
+	it("フォーカスを失うと dismiss が呼ばれる（unmount を待たない）", async () => {
+		respondWith([itemWithPhoto]);
+		const tree = await render(mockPin);
+
+		const sheet = tree.root.findByType(TrueSheet);
+		expect(sheet.instance.dismiss).not.toHaveBeenCalled();
+
+		// 遷移直後にフォーカスを失う場面を模す。my-dishes/index.tsx は push 先の root stack から
+		// アンマウントされないため、unmount クリーンアップだけでは一度も走らない
+		expect(focusEffectCleanup).toBeDefined();
+		act(() => {
+			focusEffectCleanup?.();
+		});
+
+		expect(sheet.instance.dismiss).toHaveBeenCalled();
+	});
+
+	it("戻る操作の開始（beforeRemove）でも dismiss が呼ばれる", async () => {
+		respondWith([itemWithPhoto]);
+		const tree = await render(mockPin);
+
+		const sheet = tree.root.findByType(TrueSheet);
+		expect(beforeRemoveHandler).toBeDefined();
+		act(() => {
+			beforeRemoveHandler?.();
+		});
+
+		expect(sheet.instance.dismiss).toHaveBeenCalled();
+	});
+
+	it("onDidDismiss 経由で onDismissed が呼ばれ、戻ってきて同じピンを再び開ける", async () => {
+		respondWith([itemWithPhoto]);
+		const onDismissed = jest.fn();
+		const tree = await render(mockPin, onDismissed);
+
+		const sheet = tree.root.findByType(TrueSheet);
+		// dismiss は「閉じ切った」ことそのものではない。ネイティブ / web は dismiss 完了時に
+		// onDidDismiss を呼ぶので、それを模して呼ぶ（呼び出し側はここで selectedPin を null に戻す）
+		act(() => {
+			sheet.props.onDidDismiss();
+		});
+
+		expect(onDismissed).toHaveBeenCalledTimes(1);
+
+		// selectedPin が null に戻らないと（= このコミット前の不具合）、呼び出し側が同じ pin を
+		// 再び渡しても setSelectedPin が同一参照のため state が変わらず、restaurantId も変化しない
+		// ので present 用 effect（:167-193）が再発火せず、行が二度と描かれない。
+		// ここでは MyDishesMapView と同じ手順（一度 null を経由してから同じ pin を渡す）を再現し、
+		// 行が再び描かれる（＝ Sheet を再び開ける）ことを固定する
+		await act(async () => {
+			tree.update(<MyDishesRestaurantSheet pin={null} onDismissed={onDismissed} />);
+		});
+		expect(findAllByTestID(tree, "my-dishes-sheet-item")).toHaveLength(0);
+
+		await act(async () => {
+			tree.update(<MyDishesRestaurantSheet pin={mockPin} onDismissed={onDismissed} />);
+		});
+		expect(findAllByTestID(tree, "my-dishes-sheet-item")).toHaveLength(1);
 	});
 });
