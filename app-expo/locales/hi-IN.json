@@ -781,6 +781,10 @@
 		"cancel": "रद्द करें"
 	},
 	"MyDishes": {
+		"actions": {
+			"markAsEaten": "खाया दर्ज करें",
+			"markAsEatenA11y": "इस व्यंजन को खाया हुआ दर्ज करें"
+		},
 		"views": {
 			"map": "मानचित्र",
 			"list": "सूची",

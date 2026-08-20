@@ -12,6 +12,7 @@ import type { GetRestaurantByIdResponse, DishMediaEntry } from "@shared/api/v1/r
 import i18n from "@/lib/i18n";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { useLocale } from "@/hooks/useLocale";
+import { bumpMyDishesRevision } from "@/features/myDishes/stores/useMyDishesRevisionStore";
 
 export default function ReviewScreen() {
 	const { restaurantId } = useLocalSearchParams<{ restaurantId: string }>();
@@ -31,6 +32,12 @@ export default function ReviewScreen() {
 	// （ReviewForm 側の ref 化が失われた場合に）effect が張り替わって選択結果が捨てられる。多層防御。
 	const handleReviewSuccess = useCallback(
 		({ dishMedia, dishReviewId }: { dishMedia: DishMediaEntry["dish_media"] | null; dishReviewId: string }) => {
+			// #1398 (PR4/7) 設計 §3「唯一の実務上の落とし穴：クライアントキャッシュ」。
+			// サーバ側は want 枝の `NOT EXISTS (SELECT 1 FROM dish_reviews …)` で正しく畳むが、
+			// クライアントが取り直さないと **記録した直後の一覧に「食べたい」カードが残って見える**。
+			// ここでキャッシュを捨てる（`bump` が `clearQuery()` を呼ぶ）。
+			// ⚠️ `ReviewForm` 側には置かない。ReviewForm を my-dishes に結合させないため（設計 §3）
+			bumpMyDishesRevision();
 			// /my-dishes までスタックを掃除（なければ現在画面を /my-dishes に置き換え）
 			router.dismissTo(`/${locale}/(tabs)/my-dishes`);
 			/**

@@ -781,6 +781,10 @@
 		"cancel": "Annuler"
 	},
 	"MyDishes": {
+		"actions": {
+			"markAsEaten": "Noter comme mangé",
+			"markAsEatenA11y": "Noter ce plat comme mangé"
+		},
 		"views": {
 			"map": "Carte",
 			"list": "Liste",

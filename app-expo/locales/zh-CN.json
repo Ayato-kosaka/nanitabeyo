@@ -781,6 +781,10 @@
 		"cancel": "取消"
 	},
 	"MyDishes": {
+		"actions": {
+			"markAsEaten": "记录已吃",
+			"markAsEatenA11y": "将这道菜记录为已吃"
+		},
 		"views": {
 			"map": "地图",
 			"list": "列表",

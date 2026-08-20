@@ -9,6 +9,10 @@ import {
 	useMyDishesFilterStore,
 } from "../stores/useMyDishesFilterStore";
 import {
+	selectMyDishesRevision,
+	useMyDishesRevisionStore,
+} from "../stores/useMyDishesRevisionStore";
+import {
 	MY_DISHES_PAGE_SIZE,
 	selectMyDishesByQuery,
 	useMyDishesStore,
@@ -55,6 +59,7 @@ export const useMyDishesQuery = (options?: { enabled?: boolean }): UseMyDishesQu
 	const touchQuery = useMyDishesStore((s) => s.touchQuery);
 	const fetchInitial = useMyDishesStore((s) => s.fetchInitial);
 	const fetchMore = useMyDishesStore((s) => s.fetchMore);
+	const revision = useMyDishesRevisionStore(selectMyDishesRevision);
 	const itemByKey = useMyDishesStore((s) => s.itemByKey);
 	const { itemKeys, isLoading, isLoadingMore, error, hasFetchedInitial, hasNextPage, oldestOccurredAt } =
 		useMyDishesStore(selectMyDishesByQuery(queryKey), shallow);
@@ -90,11 +95,17 @@ export const useMyDishesQuery = (options?: { enabled?: boolean }): UseMyDishesQu
 	// ⚠️ `!error` を必ず条件へ入れること。取得が失敗したときストアは
 	// `hasFetchedInitial` を false のまま `isLoading` を false へ戻すので（stores/useMyDishesStore.ts
 	// の fetchInitial）、error を見ないと **失敗するたびに再取得して無限ループする**
+	// #1398 (PR4/7) `revision` を依存に入れる。実際にキャッシュを捨てるのは
+	// `useMyDishesRevisionStore.bump()`（`clearQuery()`）で、ここは «版が動いた» ことを
+	// この effect へ伝えるためだけに持つ。
+	// ⚠️ `error` を条件から外さないこと。外すと失敗のたびに叩き直して無限ループする（#1439 B-1）。
+	// 版が動いたときはスライスごと消えていて `error` も `hasFetchedInitial` も落ちているので、
+	// このガードを保ったまま «版が動いたときだけ» 取り直す形になる
 	useEffect(() => {
 		if (!enabled) return;
 		if (hasFetchedInitial || isLoading || error) return;
 		void fetchInitial(queryKey, fetcher);
-	}, [enabled, error, fetchInitial, fetcher, hasFetchedInitial, isLoading, queryKey]);
+	}, [enabled, error, fetchInitial, fetcher, hasFetchedInitial, isLoading, queryKey, revision]);
 
 	const items = useMemo(
 		() => itemKeys.map((key) => itemByKey[key]).filter((item): item is MyDishItem => Boolean(item)),

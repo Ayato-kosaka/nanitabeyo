@@ -243,3 +243,60 @@ describe("#1397 (PR4/5) Q2 リスト項目のタップ先は «その項目の�
 		});
 	});
 });
+
+describe("#1398 (PR4/7) want カードの「食べたを記録」CTA", () => {
+	const wantItem = () =>
+		({
+			...makeItem("dish:dish-1", { thumbnailImageUrl: "https://example.com/media.jpg" }),
+			status: "want",
+		}) as unknown as MyDishItem;
+
+	const findCta = (tree: TestRenderer.ReactTestRenderer) =>
+		tree.root.findAll(
+			(node) =>
+				node.props?.testID === "my-dishes-mark-as-eaten" && typeof node.props?.onPress === "function",
+		);
+
+	const renderWith = async (items: MyDishItem[]) => {
+		mockUseMyDishesQuery.mockReturnValue({
+			items,
+			isLoading: false,
+			isLoadingMore: false,
+			error: null,
+			hasNextPage: false,
+			loadMore: jest.fn(),
+			refresh: jest.fn(),
+		});
+		return render();
+	};
+
+	it("want カードの CTA は既存の review-from-media へ push する（新ルートを作らない）", async () => {
+		const tree = await renderWith([wantItem()]);
+
+		await act(async () => {
+			findCta(tree)[0].props.onPress({ stopPropagation: jest.fn() });
+		});
+
+		expect(mockPush).toHaveBeenCalledWith({
+			pathname: "/[locale]/restaurant/[restaurantId]/review-from-media/[dishMediaId]",
+			params: { locale: "ja-JP", restaurantId: "restaurant-1", dishMediaId: "media-1" },
+		});
+	});
+
+	// ここが崩れると CTA を押しただけで #1397 PR4 の全画面 Feed が開く
+	it("CTA を押してもカードの Feed 遷移は起きない（push は 1 回だけ）", async () => {
+		const tree = await renderWith([wantItem()]);
+
+		await act(async () => {
+			findCta(tree)[0].props.onPress({ stopPropagation: jest.fn() });
+		});
+
+		expect(mockPush).toHaveBeenCalledTimes(1);
+		expect(mockPush.mock.calls[0][0].pathname).not.toBe("/[locale]/(tabs)/my-dishes/feed");
+	});
+
+	it("eaten カードには CTA を出さない", async () => {
+		const tree = await renderWith([makeItem("review:eaten", { thumbnailImageUrl: "https://example.com/m.jpg" })]);
+		expect(findCta(tree)).toHaveLength(0);
+	});
+});

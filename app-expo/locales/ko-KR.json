@@ -781,6 +781,10 @@
 		"cancel": "취소"
 	},
 	"MyDishes": {
+		"actions": {
+			"markAsEaten": "먹었어요 기록",
+			"markAsEatenA11y": "이 음식을 먹었다고 기록하기"
+		},
 		"views": {
 			"map": "지도",
 			"list": "리스트",
