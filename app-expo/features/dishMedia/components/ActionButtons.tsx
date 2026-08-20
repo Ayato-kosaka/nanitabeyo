@@ -2,11 +2,14 @@ import React, { useCallback, useEffect, useRef } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, LayoutChangeEvent } from "react-native";
 import { Image } from "expo-image";
 import { Heart, Bookmark, Share, MapPinned } from "lucide-react-native";
+import { router } from "expo-router";
 import i18n from "@/lib/i18n";
 import { formatLikeCount } from "../utils/text";
 import { useLogger } from "@/hooks/useLogger";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useAPICall } from "@/hooks/useAPICall";
+import { useLocale } from "@/hooks/useLocale";
+import { useSnackbar } from "@/contexts/SnackbarProvider";
 import type { DishMediaReactionBodyDto } from "@shared/api/v1/dto";
 import { getCacheKeyForImage } from "@/lib/image";
 import {
@@ -68,6 +71,8 @@ function ActionButtonsContent({
 	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
 	const { lightImpact } = useHaptics();
+	const { showSnackbar } = useSnackbar();
+	const { locale } = useLocale();
 	const { isSaved, isLiked, likeCount } = entry.dish_media;
 	const dishMediaId = entry.dish_media.id;
 	const { restaurant } = entry;
@@ -192,6 +197,18 @@ function ActionButtonsContent({
 					const without = prev.filter((id) => id !== String(dishMediaId));
 					return [String(dishMediaId), ...without];
 				});
+				// #1401 【仕様】保存操作のみ完了フィードバックを出す(解除は状態変化が見た目で分かるため省略)。
+				// TopicCard の「見る」導線(#954)と同じ作法で、遷移先だけ my-dishes タブに変える。
+				showSnackbar(i18n.t("DishMediaContent.save.savedMessage"), {
+					action: {
+						label: i18n.t("Common.view"),
+						onPress: () =>
+							router.push({
+								pathname: "/[locale]/(tabs)/my-dishes",
+								params: { locale },
+							}),
+					},
+				});
 			} else {
 				await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${dishMediaId}/reaction`, {
 					method: "DELETE",
@@ -214,7 +231,7 @@ function ActionButtonsContent({
 			// #1205 失敗しても押し直せるよう、成功・失敗のいずれでも必ず解除する
 			inFlightActionsRef.current.delete("save");
 		}
-	}, [callBackend, dishMediaId, isSaved, lightImpact, logFrontendEvent]);
+	}, [callBackend, dishMediaId, isSaved, lightImpact, locale, logFrontendEvent, showSnackbar]);
 
 	const handleViewRestaurant = () => {
 		lightImpact();

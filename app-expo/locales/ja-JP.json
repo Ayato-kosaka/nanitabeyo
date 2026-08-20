@@ -374,6 +374,9 @@
 		"share": {
 			"title": "{{dishName}}をチェック"
 		},
+		"save": {
+			"savedMessage": "食べたいに保存しました"
+		},
 		"buttons": {
 			"viewRestaurant": "店を見る"
 		},
@@ -381,8 +384,8 @@
 			"viewRestaurant": "{{name}}の店舗詳細を見る",
 			"likeActive": "{{name}}のいいねを解除",
 			"likeInactive": "{{name}}にいいね",
-			"saveActive": "{{name}}の保存を解除",
-			"saveInactive": "{{name}}を保存",
+			"saveActive": "{{name}}の食べたいを解除",
+			"saveInactive": "{{name}}を食べたいに保存",
 			"share": "{{name}}をシェア",
 			"openMap": "{{name}}の地図を開く",
 			"reviewLike": "{{username}}の口コミにいいね"

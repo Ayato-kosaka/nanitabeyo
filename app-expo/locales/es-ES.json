@@ -374,6 +374,9 @@
 		"share": {
 			"title": "Mira {{dishName}}"
 		},
+		"save": {
+			"savedMessage": "Guardado en Quiero comer"
+		},
 		"buttons": {
 			"viewRestaurant": "Ver restaurante"
 		},
@@ -381,8 +384,8 @@
 			"viewRestaurant": "Ver detalles del restaurante de {{name}}",
 			"likeActive": "Quitar me gusta de {{name}}",
 			"likeInactive": "Me gusta {{name}}",
-			"saveActive": "Quitar {{name}} de guardados",
-			"saveInactive": "Guardar {{name}}",
+			"saveActive": "Quitar {{name}} de Quiero comer",
+			"saveInactive": "Añadir {{name}} a Quiero comer",
 			"share": "Compartir {{name}}",
 			"openMap": "Abrir el mapa de {{name}}",
 			"reviewLike": "Me gusta la reseña de {{username}}"

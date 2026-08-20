@@ -374,6 +374,9 @@
 		"share": {
 			"title": "{{dishName}} 확인해 보세요"
 		},
+		"save": {
+			"savedMessage": "먹고 싶어요에 저장했습니다"
+		},
 		"buttons": {
 			"viewRestaurant": "가게 보기"
 		},
@@ -381,8 +384,8 @@
 			"viewRestaurant": "{{name}} 매장 상세 보기",
 			"likeActive": "{{name}} 좋아요 취소",
 			"likeInactive": "{{name}} 좋아요",
-			"saveActive": "{{name}} 저장 취소",
-			"saveInactive": "{{name}} 저장",
+			"saveActive": "{{name}} 먹고 싶어요에서 삭제",
+			"saveInactive": "{{name}} 먹고 싶어요에 추가",
 			"share": "{{name}} 공유",
 			"openMap": "{{name}} 지도 열기",
 			"reviewLike": "{{username}}님의 리뷰에 좋아요"

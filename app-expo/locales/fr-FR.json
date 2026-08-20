@@ -374,6 +374,9 @@
 		"share": {
 			"title": "Découvrez {{dishName}}"
 		},
+		"save": {
+			"savedMessage": "Ajouté à Envie d'essayer"
+		},
 		"buttons": {
 			"viewRestaurant": "Voir le restaurant"
 		},
@@ -381,8 +384,8 @@
 			"viewRestaurant": "Voir les détails du restaurant {{name}}",
 			"likeActive": "Ne plus aimer {{name}}",
 			"likeInactive": "Aimer {{name}}",
-			"saveActive": "Retirer {{name}} des enregistrements",
-			"saveInactive": "Enregistrer {{name}}",
+			"saveActive": "Retirer {{name}} de Envie d'essayer",
+			"saveInactive": "Ajouter {{name}} à Envie d'essayer",
 			"share": "Partager {{name}}",
 			"openMap": "Ouvrir la carte de {{name}}",
 			"reviewLike": "Aimer l'avis de {{username}}"
