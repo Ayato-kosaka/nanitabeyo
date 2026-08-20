@@ -408,16 +408,16 @@
 		"home": "الصفحة الرئيسية",
 		"search": "البحث",
 		"map": "الخريطة",
-		"review": "المراجعة",
 		"notifications": "الإشعارات",
 		"profile": "الملف الشخصي",
 		"labels": {
 			"search": "البحث",
 			"map": "الخريطة",
-			"review": "المراجعة",
 			"notifications": "الإشعارات",
-			"profile": "الملف الشخصي"
-		}
+			"profile": "الملف الشخصي",
+			"myDishes": "أطباقي"
+		},
+		"myDishes": "أطباقي"
 	},
 	"Profile": {
 		"numberSuffix": {
@@ -769,16 +769,18 @@
 		"shareWithFriends": "مشاركة مع الأصدقاء",
 		"cancel": "إلغاء"
 	},
-	"Review": {
-		"hero": {
-			"title": "اكتب مراجعات للمطاعم الموصى بها\nوانشر الأطباق التي تناولتها"
+	"MyDishes": {
+		"views": {
+			"map": "الخريطة",
+			"list": "القائمة",
+			"calendar": "التقويم"
 		},
 		"guest": {
-			"description": "سجل الدخول لكتابة المراجعات",
+			"description": "سجّل الدخول لتسجيل الأطباق التي تريد تجربتها والتي تناولتها",
 			"loginButton": "تسجيل الدخول"
 		},
-		"authenticated": {
-			"postButton": "✏️ نشر مراجعة مطعم"
+		"record": {
+			"cta": "تسجيل"
 		}
 	}
 }

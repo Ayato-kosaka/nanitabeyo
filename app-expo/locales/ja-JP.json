@@ -408,16 +408,16 @@
 		"home": "ホーム",
 		"search": "検索",
 		"map": "マップ",
-		"review": "レビュー",
 		"notifications": "お知らせ",
 		"profile": "プロフィール",
 		"labels": {
 			"search": "さがす",
 			"map": "マップ",
-			"review": "レビュー",
 			"notifications": "お知らせ",
-			"profile": "マイページ"
-		}
+			"profile": "マイページ",
+			"myDishes": "食べたい/食べた"
+		},
+		"myDishes": "食べたい/食べた"
 	},
 	"Profile": {
 		"numberSuffix": {
@@ -769,16 +769,18 @@
 		"shareWithFriends": "友人に共有する",
 		"cancel": "キャンセル"
 	},
-	"Review": {
-		"hero": {
-			"title": "おすすめのお店のレビューを書いて\n食べた料理を投稿しよう"
+	"MyDishes": {
+		"views": {
+			"map": "マップ",
+			"list": "リスト",
+			"calendar": "カレンダー"
 		},
 		"guest": {
-			"description": "ログインしてレビューを書こう",
+			"description": "ログインして食べたい/食べたを記録しよう",
 			"loginButton": "ログインする"
 		},
-		"authenticated": {
-			"postButton": "✏️ お店のレビューを投稿しよう"
+		"record": {
+			"cta": "記録する"
 		}
 	}
 }

@@ -408,16 +408,16 @@
 		"home": "Accueil",
 		"search": "Recherche",
 		"map": "Carte",
-		"review": "Avis",
 		"notifications": "Notifications",
 		"profile": "Profil",
 		"labels": {
 			"search": "Recherche",
 			"map": "Carte",
-			"review": "Avis",
 			"notifications": "Notifications",
-			"profile": "Profil"
-		}
+			"profile": "Profil",
+			"myDishes": "Mes plats"
+		},
+		"myDishes": "Mes plats"
 	},
 	"Profile": {
 		"numberSuffix": {
@@ -769,16 +769,18 @@
 		"shareWithFriends": "Partager avec des amis",
 		"cancel": "Annuler"
 	},
-	"Review": {
-		"hero": {
-			"title": "Rédige des avis sur des restaurants recommandés\net publie les plats que tu as mangés"
+	"MyDishes": {
+		"views": {
+			"map": "Carte",
+			"list": "Liste",
+			"calendar": "Calendrier"
 		},
 		"guest": {
-			"description": "Connectez-vous pour écrire des avis",
+			"description": "Connectez-vous pour enregistrer les plats que vous voulez essayer et ceux que vous avez mangés",
 			"loginButton": "Se Connecter"
 		},
-		"authenticated": {
-			"postButton": "✏️ Publier un avis de restaurant"
+		"record": {
+			"cta": "Enregistrer"
 		}
 	}
 }

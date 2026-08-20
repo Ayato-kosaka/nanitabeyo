@@ -408,16 +408,16 @@
 		"home": "홈",
 		"search": "검색",
 		"map": "지도",
-		"review": "리뷰",
 		"notifications": "알림",
 		"profile": "프로필",
 		"labels": {
 			"search": "검색",
 			"map": "지도",
-			"review": "리뷰",
 			"notifications": "알림",
-			"profile": "프로필"
-		}
+			"profile": "프로필",
+			"myDishes": "내 음식"
+		},
+		"myDishes": "내 음식"
 	},
 	"Profile": {
 		"numberSuffix": {
@@ -769,16 +769,18 @@
 		"shareWithFriends": "친구와 공유하기",
 		"cancel": "취소"
 	},
-	"Review": {
-		"hero": {
-			"title": "추천하는 맛집 리뷰를 작성하고\n먹은 음식을 올려주세요"
+	"MyDishes": {
+		"views": {
+			"map": "지도",
+			"list": "리스트",
+			"calendar": "캘린더"
 		},
 		"guest": {
-			"description": "로그인하여 리뷰 작성하기",
+			"description": "로그인하여 먹고 싶은/먹은 음식을 기록해보세요",
 			"loginButton": "로그인"
 		},
-		"authenticated": {
-			"postButton": "✏️ 레스토랑 리뷰 게시하기"
+		"record": {
+			"cta": "기록하기"
 		}
 	}
 }

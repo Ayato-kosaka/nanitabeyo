@@ -408,16 +408,16 @@
 		"home": "Inicio",
 		"search": "Buscar",
 		"map": "Mapa",
-		"review": "Reseña",
 		"notifications": "Notificaciones",
 		"profile": "Perfil",
 		"labels": {
 			"search": "Buscar",
 			"map": "Mapa",
-			"review": "Reseña",
 			"notifications": "Notificaciones",
-			"profile": "Perfil"
-		}
+			"profile": "Perfil",
+			"myDishes": "Mis platos"
+		},
+		"myDishes": "Mis platos"
 	},
 	"Profile": {
 		"numberSuffix": {
@@ -769,16 +769,18 @@
 		"shareWithFriends": "Compartir con amigos",
 		"cancel": "Cancelar"
 	},
-	"Review": {
-		"hero": {
-			"title": "Escribe reseñas de restaurantes recomendados\ny publica los platos que comiste"
+	"MyDishes": {
+		"views": {
+			"map": "Mapa",
+			"list": "Lista",
+			"calendar": "Calendario"
 		},
 		"guest": {
-			"description": "Inicia sesión para escribir reseñas",
+			"description": "Inicia sesión para registrar los platos que quieres probar y los que ya comiste",
 			"loginButton": "Iniciar Sesión"
 		},
-		"authenticated": {
-			"postButton": "✏️ Publicar una reseña de restaurante"
+		"record": {
+			"cta": "Registrar"
 		}
 	}
 }

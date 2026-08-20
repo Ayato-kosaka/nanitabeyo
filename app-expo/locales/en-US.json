@@ -408,16 +408,16 @@
 		"home": "Home",
 		"search": "Search",
 		"map": "Map",
-		"review": "Review",
 		"notifications": "Notifications",
 		"profile": "Profile",
 		"labels": {
 			"search": "Search",
 			"map": "Map",
-			"review": "Review",
 			"notifications": "Notifications",
-			"profile": "Profile"
-		}
+			"profile": "Profile",
+			"myDishes": "My Dishes"
+		},
+		"myDishes": "My Dishes"
 	},
 	"Profile": {
 		"numberSuffix": {
@@ -769,16 +769,18 @@
 		"shareWithFriends": "Share with friends",
 		"cancel": "Cancel"
 	},
-	"Review": {
-		"hero": {
-			"title": "Write reviews of recommended restaurants\nand post the dishes you ate"
+	"MyDishes": {
+		"views": {
+			"map": "Map",
+			"list": "List",
+			"calendar": "Calendar"
 		},
 		"guest": {
-			"description": "Log in to write reviews",
+			"description": "Log in to start recording dishes you want to try and have eaten",
 			"loginButton": "Log In"
 		},
-		"authenticated": {
-			"postButton": "✏️ Post a restaurant review"
+		"record": {
+			"cta": "Record"
 		}
 	}
 }
