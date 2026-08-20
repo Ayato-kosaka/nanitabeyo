@@ -65,7 +65,11 @@ import TestRenderer from "react-test-renderer";
 import { TrueSheet } from "@lodev09/react-native-true-sheet";
 import type { MyDishItem, MyDishPin } from "@shared/api/v1/res";
 import { MyDishesRestaurantSheet } from "./MyDishesRestaurantSheet";
-import { selectFilterQueryKey, useMyDishesFilterStore } from "../stores/useMyDishesFilterStore";
+import {
+	selectFilterQueryKey,
+	selectRestaurantQueryKey,
+	useMyDishesFilterStore,
+} from "../stores/useMyDishesFilterStore";
 import { useMyDishesStore } from "../stores/useMyDishesStore";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -265,8 +269,6 @@ describe("#1397 Q6 店舗詳細への導線はヘッダ（店名タップ）だ�
 			.findAll((node) => typeof node.props?.onPress === "function")
 			.map((node) => node.props.testID);
 		expect(pushed).not.toContain("my-dishes-sheet-all-reviews");
-		// PR4 の「全画面で見る」もこの PR ではまだ置かない
-		expect(findAllByTestID(tree, "my-dishes-sheet-expand")).toHaveLength(0);
 	});
 });
 
@@ -344,6 +346,94 @@ describe("#1397 取得失敗時は再試行の口を残す（一覧・Map と揃
 		const [path, options] = mockCallBackend.mock.calls[1];
 		expect(path).toBe("v1/users/me/dishes");
 		expect(options.requestPayload.restaurantId).toBe(RESTAURANT_ID);
+	});
+});
+
+describe("#1397 (PR4/5) 行タップの遷移先は写真の有無で分かれる（設計 (1/2) §3）", () => {
+	it("写真ありの行は全画面 Feed へ push する。渡すのは index ではなく itemKey（R1）", async () => {
+		// R1 の並び（写真なしが先頭）。index を渡す実装なら、ここで 1 が渡って別の料理が開く
+		respondWith([itemWithoutPhoto, itemWithPhoto]);
+		const tree = await render(mockPin);
+
+		const rows = tree.root.findAll(
+			(node) => node.props?.testID === "my-dishes-sheet-item" && typeof node.props?.onPress === "function",
+		);
+		await act(async () => {
+			rows[rows.length - 1].props.onPress();
+		});
+
+		expect(mockPush).toHaveBeenCalledWith({
+			pathname: "/[locale]/(tabs)/my-dishes/feed",
+			params: { locale: "ja-JP", restaurantId: RESTAURANT_ID, itemKey: "review:with-photo", dishMediaId: "media-1" },
+		});
+		// URL に index は載せない（載せると写真なしが 1 件混ざった瞬間にずれる）
+		expect(Object.keys(mockPush.mock.calls[0][0].params)).not.toContain("initialIndex");
+	});
+
+	it("写真なしの行は従来どおり店舗詳細へ push する（Feed に入れられない）", async () => {
+		respondWith([itemWithoutPhoto]);
+		const tree = await render(mockPin);
+
+		await pressByTestID(tree, "my-dishes-sheet-item");
+
+		expect(mockPush).toHaveBeenCalledWith({
+			pathname: "/[locale]/restaurant/[restaurantId]",
+			params: { locale: "ja-JP", restaurantId: RESTAURANT_ID },
+		});
+	});
+});
+
+describe("#1397 (PR4/5)「全画面で見る」", () => {
+	it("写真ありの記録があるときだけ出て、先頭の写真あり行の itemKey で Feed を開く", async () => {
+		respondWith([itemWithoutPhoto, itemWithPhoto]);
+		const tree = await render(mockPin);
+
+		expect(findAllByTestID(tree, "my-dishes-sheet-expand").length).toBeGreaterThan(0);
+		await pressByTestID(tree, "my-dishes-sheet-expand");
+
+		expect(mockPush).toHaveBeenCalledWith({
+			pathname: "/[locale]/(tabs)/my-dishes/feed",
+			params: { locale: "ja-JP", restaurantId: RESTAURANT_ID, itemKey: "review:with-photo", dishMediaId: "media-1" },
+		});
+	});
+
+	it("その店の記録が全部写真なしなら出さない（Feed に入れるものが無い）", async () => {
+		respondWith([itemWithoutPhoto]);
+		const tree = await render(mockPin);
+
+		expect(findAllByTestID(tree, "my-dishes-sheet-item")).toHaveLength(1);
+		expect(findAllByTestID(tree, "my-dishes-sheet-expand")).toHaveLength(0);
+	});
+});
+
+describe("#1450 n-2 行があるのに error が立っても、読めているリストを消さない", () => {
+	// PR4 の Q4（Feed を閉じるときに店舗スコープの Sheet スライスだけ invalidate する）を入れると
+	// この状態が到達可能になる。ここが崩れると「保存を外して戻ったら通信が一瞬こけただけで
+	// 記録が全部消えたように見える」
+	it("items があるうちは error が立っても EmptyState に差し替えない", async () => {
+		respondWith([itemWithPhoto, itemWithoutPhoto]);
+		const tree = await render(mockPin);
+		expect(findAllByTestID(tree, "my-dishes-sheet-item")).toHaveLength(2);
+
+		const queryKey = selectRestaurantQueryKey(RESTAURANT_ID)(useMyDishesFilterStore.getState());
+		await act(async () => {
+			useMyDishesStore.setState((s) => ({ errorByQuery: { ...s.errorByQuery, [queryKey]: "boom" } }));
+		});
+
+		expect(findAllByTestID(tree, "my-dishes-sheet-item")).toHaveLength(2);
+		expect(findAllByTestID(tree, "my-dishes-sheet-empty")).toHaveLength(0);
+	});
+
+	it("行が 0 件のときは従来どおり EmptyState（再試行の口）を出す", async () => {
+		respondWith([]);
+		const tree = await render(mockPin);
+
+		const queryKey = selectRestaurantQueryKey(RESTAURANT_ID)(useMyDishesFilterStore.getState());
+		await act(async () => {
+			useMyDishesStore.setState((s) => ({ errorByQuery: { ...s.errorByQuery, [queryKey]: "boom" } }));
+		});
+
+		expect(findAllByTestID(tree, "my-dishes-sheet-empty").length).toBeGreaterThan(0);
 	});
 });
 

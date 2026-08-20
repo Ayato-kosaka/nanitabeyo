@@ -3,7 +3,7 @@ import { FlatList, InteractionManager, Pressable, StyleSheet, Text, View } from 
 import { TrueSheet } from "@lodev09/react-native-true-sheet";
 import { Image } from "expo-image";
 import { router, useFocusEffect, useNavigation } from "expo-router";
-import { ChevronRight } from "lucide-react-native";
+import { ChevronRight, Maximize2 } from "lucide-react-native";
 import { EmptyState } from "@/components/EmptyState";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { SheetGestureRoot } from "@/components/SheetGestureRoot";
@@ -234,16 +234,32 @@ export function MyDishesRestaurantSheet({ pin, onDismissed }: MyDishesRestaurant
 		router.push({ pathname: "/[locale]/restaurant/[restaurantId]", params: { locale, restaurantId } });
 	}, [lightImpact, locale, logFrontendEvent, restaurantId]);
 
-	// #1397 PR3 の時点では、写真の有無にかかわらず店舗詳細へ push する（= 一覧ビューと同じ現行遷移先）。
-	// 写真ありの行を全画面 Feed へ向けるのは PR4 の担当で、この PR では先取りしない
+	// #1397 (PR4/5) 行タップの遷移先は写真の有無で分かれる（設計 (1/2) §3）。
+	// - 写真あり … 全画面 Feed へ。**index ではなく `itemKey` を渡す**（R1）。
+	//   Sheet の並びは写真なしを含み Feed の並びは含まないので、index を渡すと
+	//   写真なしが 1 件混ざった瞬間に別の料理が開く
+	// - 写真なし … `dish_media.id` が無く Feed に入れられないので、従来どおり店舗詳細へ
 	const handlePressItem = useCallback(
 		(item: MyDishItem) => {
 			lightImpact();
+			const hasPhoto = item.dishMedia !== null;
 			logFrontendEvent({
 				event_name: "my_dishes_sheet_item_selected",
 				error_level: "log",
-				payload: { itemKey: item.key, status: item.status, hasPhoto: item.dishMedia !== null },
+				payload: { itemKey: item.key, status: item.status, hasPhoto },
 			});
+			if (hasPhoto && item.dishMedia !== null) {
+				router.push({
+					pathname: "/[locale]/(tabs)/my-dishes/feed",
+					params: {
+						locale,
+						restaurantId: item.restaurant.id,
+						itemKey: item.key,
+						dishMediaId: String(item.dishMedia.id),
+					},
+				});
+				return;
+			}
 			router.push({
 				pathname: "/[locale]/restaurant/[restaurantId]",
 				params: { locale, restaurantId: item.restaurant.id },
@@ -251,6 +267,32 @@ export function MyDishesRestaurantSheet({ pin, onDismissed }: MyDishesRestaurant
 		},
 		[lightImpact, locale, logFrontendEvent],
 	);
+
+	/**
+	 * #1397 (PR4/5)「全画面で見る」。Feed には写真ありの行しか入れられないので、
+	 * **その店の記録が全部写真なしのときは出さない**（設計 (1/2) §3）。
+	 * 開始位置は先頭の写真あり行を `itemKey` で指す（R1: index は渡さない）。
+	 */
+	const firstPhotoItem = useMemo(() => items.find((item) => item.dishMedia !== null) ?? null, [items]);
+
+	const handleExpand = useCallback(() => {
+		if (firstPhotoItem === null || firstPhotoItem.dishMedia === null || restaurantId === null) return;
+		lightImpact();
+		logFrontendEvent({
+			event_name: "my_dishes_sheet_expanded",
+			error_level: "log",
+			payload: { restaurantId, itemKey: firstPhotoItem.key },
+		});
+		router.push({
+			pathname: "/[locale]/(tabs)/my-dishes/feed",
+			params: {
+				locale,
+				restaurantId,
+				itemKey: firstPhotoItem.key,
+				dishMediaId: String(firstPhotoItem.dishMedia.id),
+			},
+		});
+	}, [firstPhotoItem, lightImpact, locale, logFrontendEvent, restaurantId]);
 
 	/**
 	 * §8-3: Sheet の中に無限スクロールを持ち込まない。1 ページ（42 件）を超えるぶんは
@@ -276,11 +318,13 @@ export function MyDishesRestaurantSheet({ pin, onDismissed }: MyDishesRestaurant
 
 	const showInitialLoading = isLoading && !hasFetchedInitial && !error;
 	// 一覧ビュー / Map ビューと揃える: 取得に失敗したときも EmptyState を出して再試行の口を残す
-	// n-2: 行が既にあるのに error が立つと、読めていたリストごと EmptyState に差し替わる。今は
-	// 到達不能（成功後は hasFetchedInitial で再取得が止まり、再試行は error 状態からしか押せない）
-	// だが、PR4 が「Feed を閉じるときに店舗スコープの Sheet スライスだけ invalidate する」を入れると
-	// 到達可能になる。PR4 で `items.length === 0` をこの条件へ足すこと
-	const showEmpty = !isLoading && (error !== null || (hasFetchedInitial && items.length === 0));
+	// n-2（#1450 からの申し送り。PR4 で対応）: `items.length === 0` を条件へ足した。
+	// n-1（レビュー訂正）: PR4 の Q4 が invalidate するとき呼ぶ `clearQuery` は
+	// `itemKeysByQuery[key]` ごとスライスを消すので、invalidate 直後は必ず `items.length === 0`
+	// になる（「行があるのに error が立つ」状態には到達しない）。このガード自体は無害な防御として
+	// 残す: `items.length === 0` を明示することで、将来 invalidate を「消す」ではなく「stale 印を
+	// 付ける」方式へ変えたときにも、行が残っているあいだは EmptyState へ差し替えない意図が保たれる
+	const showEmpty = !isLoading && items.length === 0 && (error !== null || hasFetchedInitial);
 
 	const header = useMemo(
 		() => (
@@ -303,9 +347,22 @@ export function MyDishesRestaurantSheet({ pin, onDismissed }: MyDishesRestaurant
 						eaten: pin?.counts.eaten ?? 0,
 					})}
 				</Text>
+				{/* 写真ありの記録が 1 件も無い店舗では出さない（Feed に入れるものが無い） */}
+				{firstPhotoItem !== null && (
+					<Pressable
+						testID="my-dishes-sheet-expand"
+						onPress={handleExpand}
+						accessibilityRole="button"
+						accessibilityLabel={i18n.t("MyDishes.sheet.expand")}
+						style={styles.expand}
+						hitSlop={8}>
+						<Maximize2 size={14} color="#357AFF" />
+						<Text style={styles.expandText}>{i18n.t("MyDishes.sheet.expand")}</Text>
+					</Pressable>
+				)}
 			</View>
 		),
-		[handlePressRestaurant, pin],
+		[firstPhotoItem, handleExpand, handlePressRestaurant, pin],
 	);
 
 	return (
@@ -392,6 +449,18 @@ const styles = StyleSheet.create({
 	headerCounts: {
 		fontSize: 12,
 		color: "#6B7280",
+	},
+	expand: {
+		flexDirection: "row",
+		alignItems: "center",
+		alignSelf: "flex-start",
+		gap: 4,
+		marginTop: 6,
+	},
+	expandText: {
+		fontSize: 13,
+		fontWeight: "600",
+		color: "#357AFF",
 	},
 	centered: {
 		paddingVertical: 32,

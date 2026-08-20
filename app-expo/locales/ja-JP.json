@@ -865,6 +865,7 @@
 			"title": "{{restaurant}} の記録",
 			"counts": "食べたい {{want}}・食べた {{eaten}}",
 			"openRestaurant": "店舗ページを開く",
+			"expand": "全画面で見る",
 			"seeAllInList": "一覧で見る",
 			"noPhotoHint": "写真がない記録です。タップすると店舗ページを開きます"
 		},

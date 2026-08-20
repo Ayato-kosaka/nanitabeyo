@@ -865,6 +865,7 @@
 			"title": "Your records at {{restaurant}}",
 			"counts": "Want to eat {{want}} · Eaten {{eaten}}",
 			"openRestaurant": "Open restaurant page",
+			"expand": "View fullscreen",
 			"seeAllInList": "See all in list",
 			"noPhotoHint": "This record has no photo. Tap to open the restaurant page."
 		},
