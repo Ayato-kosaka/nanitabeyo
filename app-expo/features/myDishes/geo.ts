@@ -73,3 +73,61 @@ export function regionToArea(region: MapRegionLike | null | undefined): AreaFrom
 
 	return { lat, lng, radius };
 }
+
+/**
+ * #1396 レビュー M-2: 「このエリアで再検索」を押したとき、`regionToArea` が `MAX_AREA_RADIUS_M`
+ * で clamp してしまう（= 実際に確定する円が viewport よりはるかに広い）かどうかを事前に判定する。
+ *
+ * `regionToArea` 自体は clamp 後の値しか返さないため、呼び出し側（`MyDishesMapView`）は
+ * 「ボタンのラベルと確定する範囲が大きくずれる」ケースを検知できなかった。ここで
+ * 判定手段を切り出し、呼び出し側はズームレベルが粗すぎる間ボタンを無効化できるようにする。
+ *
+ * 非有限値の region は「確定に使えない」= too wide 扱いにする（`regionToArea` が null を返すのと対）。
+ */
+export function isRegionTooWide(region: MapRegionLike | null | undefined): boolean {
+	if (!region) return true;
+	const { latitude, longitude, latitudeDelta, longitudeDelta } = region;
+	if (
+		!isFiniteNumber(latitude) ||
+		!isFiniteNumber(longitude) ||
+		!isFiniteNumber(latitudeDelta) ||
+		!isFiniteNumber(longitudeDelta)
+	) {
+		return true;
+	}
+
+	const lat = clamp(latitude, -90, 90);
+	const latSpanMeters = Math.abs(latitudeDelta) * METERS_PER_DEGREE_LATITUDE;
+	const lngSpanMeters = Math.abs(longitudeDelta) * METERS_PER_DEGREE_LATITUDE * Math.cos((lat * Math.PI) / 180);
+	const halfDiagonal = Math.sqrt(latSpanMeters ** 2 + lngSpanMeters ** 2) / 2;
+
+	return halfDiagonal > MAX_AREA_RADIUS_M;
+}
+
+/** #1396 m-1: ピンの外接矩形を表す最小の座標の形 */
+export type CoordinateLike = { latitude: number; longitude: number };
+
+/**
+ * #1396 m-1: ピン群の外接矩形へ寄せるための `Region` を計算する純関数（`DishMediaMap.tsx` の
+ * `getMapRegion` と同じ考え方。余白 20%、最小 delta 0.02 度でズームインしすぎを避ける）。
+ *
+ * 呼び出し元（`MyDishesMapView`）は初回取得後に一度だけこれを `animateToRegion` へ渡す。
+ * store には触れない・queryKey も変えないので、二度目以降の取得では呼ばない（呼び出し側の責務）。
+ */
+export function boundingRegionForCoordinates(coordinates: CoordinateLike[]): MapRegionLike | null {
+	if (coordinates.length === 0) return null;
+
+	const latitudes = coordinates.map((c) => c.latitude);
+	const longitudes = coordinates.map((c) => c.longitude);
+	const minLat = Math.min(...latitudes);
+	const maxLat = Math.max(...latitudes);
+	const minLng = Math.min(...longitudes);
+	const maxLng = Math.max(...longitudes);
+
+	const latitude = (minLat + maxLat) / 2;
+	const longitude = (minLng + maxLng) / 2;
+	const latitudeDelta = Math.max((maxLat - minLat) * 1.2, 0.02);
+	const longitudeDelta = Math.max((maxLng - minLng) * 1.2, 0.02);
+
+	return { latitude, longitude, latitudeDelta, longitudeDelta };
+}

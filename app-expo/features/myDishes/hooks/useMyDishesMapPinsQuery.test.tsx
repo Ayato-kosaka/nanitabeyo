@@ -83,3 +83,42 @@ describe("#1396 一覧ビューと同じ queryKey を共有する", () => {
 		expect(latest.queryKey).toBe("default");
 	});
 });
+
+/**
+ * #1396 PR4 レビュー m-2（設計 §8-4 リスク2 の本丸）: `MyDishesMapView.test.tsx` は
+ * `useMyDishesMapPinsQuery` ごとモックしているため、`fetchPins` の依存配列や `fetcher` の
+ * `useMemo` に viewport（`Region`）由来の値が将来混ざっても検知できない。
+ *
+ * ここではフックをモックせず、`filter` / `queryKey` を変えない再レンダー（Map の pan は
+ * `onRegionChangeComplete` が `useRef` に書くだけなので、親コンポーネントが再レンダーされる
+ * ことはあっても `filter` は一切変わらない — その状況を模す）を何度繰り返しても
+ * `callBackend` の呼び出し回数が増えないことを直接固定する。
+ */
+describe("#1396 m-2 pan 相当の再レンダーでは fetch が走らない", () => {
+	it("filter / queryKey を変えない再レンダーを繰り返しても callBackend は 1 回のまま", async () => {
+		mockCallBackend.mockResolvedValue({ data: [], truncated: false });
+
+		let tree!: TestRenderer.ReactTestRenderer;
+		await act(async () => {
+			tree = TestRenderer.create(<Harness />);
+		});
+		expect(mockCallBackend).toHaveBeenCalledTimes(1);
+		const queryKeyAfterMount = latest.queryKey;
+
+		// pan 相当: MyDishesMapView 側の viewport ローカル state（isTooWide 等）が変わるたびに
+		// 親は再レンダーされるが、filter store には一切触れない。ここでは同じ Harness を
+		// 何度も re-render して、その状況を直接シミュレートする。
+		for (let i = 0; i < 5; i++) {
+			await act(async () => {
+				tree.update(<Harness />);
+			});
+		}
+
+		expect(mockCallBackend).toHaveBeenCalledTimes(1);
+		expect(latest.queryKey).toBe(queryKeyAfterMount);
+
+		await act(async () => {
+			tree.unmount();
+		});
+	});
+});

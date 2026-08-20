@@ -779,7 +779,9 @@
 			"calendar": "Calendrier"
 		},
 		"map": {
-			"truncated": "Seuls certains repères sont affichés. Réduisez la zone de recherche."
+			"truncated": "Seuls certains repères sont affichés. Réduisez la zone de recherche.",
+			"zoomInHint": "Zoomez avant de rechercher dans cette zone",
+			"areaActive": "Filtré par zone"
 		},
 		"guest": {
 			"description": "Connectez-vous pour enregistrer les plats que vous voulez essayer et ceux que vous avez mangés",

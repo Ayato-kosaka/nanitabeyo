@@ -779,7 +779,9 @@
 			"calendar": "Calendario"
 		},
 		"map": {
-			"truncated": "Solo se muestran algunos pines. Reduce el área de búsqueda."
+			"truncated": "Solo se muestran algunos pines. Reduce el área de búsqueda.",
+			"zoomInHint": "Acerca el mapa antes de buscar en esta zona",
+			"areaActive": "Filtrando por zona"
 		},
 		"guest": {
 			"description": "Inicia sesión para registrar los platos que quieres probar y los que ya comiste",
