@@ -386,6 +386,7 @@
 			"likeInactive": "Like {{name}}",
 			"saveActive": "Remove {{name}} from Want to Eat",
 			"saveInactive": "Add {{name}} to Want to Eat",
+			"recordEaten": "Record {{name}} as eaten",
 			"share": "Share {{name}}",
 			"openMap": "Open map for {{name}}",
 			"reviewLike": "Like {{username}}'s review"
@@ -514,7 +515,7 @@
 		},
 		"actions": {
 			"selectDishCategory": "Select dish category",
-			"writeReviewForThisDish": "Write a review for this dish"
+			"writeReviewForThisDish": "Record as eaten"
 		},
 		"inputs": {
 			"price": "Price",

@@ -386,6 +386,7 @@
 			"likeInactive": "{{name}} 좋아요",
 			"saveActive": "{{name}} 먹고 싶어요에서 삭제",
 			"saveInactive": "{{name}} 먹고 싶어요에 추가",
+			"recordEaten": "{{name}} 먹었어요로 기록",
 			"share": "{{name}} 공유",
 			"openMap": "{{name}} 지도 열기",
 			"reviewLike": "{{username}}님의 리뷰에 좋아요"
@@ -515,7 +516,7 @@
 		},
 		"actions": {
 			"selectDishCategory": "요리 카테고리 선택",
-			"writeReviewForThisDish": "이 요리에 대한 리뷰 작성"
+			"writeReviewForThisDish": "먹었어요로 기록"
 		},
 		"inputs": {
 			"price": "가격",
