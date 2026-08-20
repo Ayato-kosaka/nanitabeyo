@@ -19,6 +19,7 @@ import {
 	isoToLocalDateKey,
 	isoToYearMonth,
 	resolveDayThumbnailUrl,
+	shouldIgnoreEndReached,
 	toDayRange,
 	toYearMonth,
 } from "./calendar";
@@ -207,8 +208,10 @@ describe("buildCalendarMonths", () => {
 	});
 
 	describe("meta.oldestOccurredAt を遡りの終端として使う（§4-4）", () => {
-		it("oldestOccurredAt より古い月は生成しない", () => {
-			// 読み込み済みの最古行が終端より古い（サーバ側の不整合や TZ 境界）でも、終端より古い月は作らない
+		it("読み込んだ行が oldestOccurredAt より古いときは、切り捨てずに終端のほうを伸ばす（#1446 m-3）", () => {
+			// サーバの終端（2026-05）と実データ（2020-01 の行）が食い違うケース。
+			// ⚠️ 旧仕様は 2026-05 で切って 2020-01 の記録を**黙って消して**いた。
+			// 記録が UI から消えるより、余分な空月が並ぶほうが安全側なので終端を伸ばす
 			const months = buildCalendarMonths({
 				items: [
 					makeItem({ key: "a", occurredAt: localNoonIso(2026, 8, 1) }),
@@ -217,8 +220,24 @@ describe("buildCalendarMonths", () => {
 				nowYm: "2026-08",
 				oldestOccurredAt: localNoonIso(2026, 5, 1),
 			});
-			expect(monthKeys(months)).toEqual(["2026-08", "2026-07", "2026-06", "2026-05"]);
-			expect(months.some((m) => m.ym < "2026-05")).toBe(false);
+			expect(monthKeys(months)[0]).toBe("2026-08");
+			expect(monthKeys(months)[months.length - 1]).toBe("2020-01");
+			// 実際に行がある月が UI から消えていないこと（これが本命のアサーション）
+			const january2020 = months.find((m) => m.ym === "2020-01");
+			expect(january2020?.itemCount).toBe(1);
+		});
+
+		it("終端より古い行が無ければ、oldestOccurredAt より古い月は生成しない", () => {
+			const months = buildCalendarMonths({
+				items: [
+					makeItem({ key: "a", occurredAt: localNoonIso(2026, 8, 1) }),
+					makeItem({ key: "b", occurredAt: localNoonIso(2026, 6, 5) }),
+				],
+				nowYm: "2026-08",
+				oldestOccurredAt: localNoonIso(2026, 5, 1),
+			});
+			expect(monthKeys(months)).toEqual(["2026-08", "2026-07", "2026-06"]);
+			expect(months.some((m) => m.ym < "2026-06")).toBe(false);
 		});
 
 		it("oldestOccurredAt が null なら、読み込み済みの最古の月で止まる（無限に生成しない）", () => {
@@ -253,15 +272,38 @@ describe("buildCalendarMonths", () => {
 });
 
 describe("canLoadOlderMonths（§4-4: 終了条件は nextCursor === null だけ）", () => {
-	it("次ページがあり、追加取得中でなければ読める", () => {
-		expect(canLoadOlderMonths({ hasNextPage: true, isLoadingMore: false })).toBe(true);
+	it("次ページがあり、追加取得中でなく、エラーも無ければ読める", () => {
+		expect(canLoadOlderMonths({ hasNextPage: true, isLoadingMore: false, error: null })).toBe(true);
 	});
 
 	it("終端（nextCursor === null）では読まない", () => {
-		expect(canLoadOlderMonths({ hasNextPage: false, isLoadingMore: false })).toBe(false);
+		expect(canLoadOlderMonths({ hasNextPage: false, isLoadingMore: false, error: null })).toBe(false);
 	});
 
 	it("追加取得中は二重に投げない（42 件が同一月に収まっても連投しない）", () => {
-		expect(canLoadOlderMonths({ hasNextPage: true, isLoadingMore: true })).toBe(false);
+		expect(canLoadOlderMonths({ hasNextPage: true, isLoadingMore: true, error: null })).toBe(false);
+	});
+
+	// ⚠️ #1439 B-1 / #1446 B-1 と同じバグ型（!error ガードの欠落による自動再取得ループ）の再発防止。
+	// `onEndReached` は contentLength が変わるだけで再発火し、`fetchMore` は errorByQuery を
+	// null に戻してから投げるため、ここで止めないと失敗のたびに即再送され続ける
+	it("エラー中は onEndReached が来ても読まない（再取得の入口は再試行ボタンだけ）", () => {
+		expect(canLoadOlderMonths({ hasNextPage: true, isLoadingMore: false, error: "boom" })).toBe(false);
+	});
+});
+
+describe("shouldIgnoreEndReached（#1446 M-1: フッタ高の往復による自動連投を止める）", () => {
+	it("まだ loadMore を投げていなければ無視しない", () => {
+		expect(shouldIgnoreEndReached({ monthCountAtLastLoad: null, monthCount: 3 })).toBe(false);
+	});
+
+	it("直前の loadMore で月が増えていれば無視しない（ユーザーがさらに遡れる）", () => {
+		expect(shouldIgnoreEndReached({ monthCountAtLastLoad: 3, monthCount: 5 })).toBe(false);
+	});
+
+	// 42 件が全部同じ月に収まったケース。月グリッドの高さは記録件数に依らず一定なので
+	// contentLength が増えず、フッタ高の往復だけで onEndReached が再発火しうる
+	it("直前の loadMore で月が 1 つも増えなかったら無視する", () => {
+		expect(shouldIgnoreEndReached({ monthCountAtLastLoad: 3, monthCount: 3 })).toBe(true);
 	});
 });

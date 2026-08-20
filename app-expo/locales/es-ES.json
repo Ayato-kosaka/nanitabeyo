@@ -800,6 +800,7 @@
 				"sat": "Sáb"
 			},
 			"dayA11yLabel": "{{date}} ({{count}} registros)",
+			"periodActive": "Filtrado por fecha",
 			"reachedOldest": "Has llegado al registro más antiguo"
 		},
 		"map": {

@@ -223,6 +223,38 @@ export const selectRestaurantQueryKey =
 	(s: MyDishesFilterStore): string =>
 		serializeMyDishesQueryParams(toMyDishesRestaurantQueryParams(s.filter, restaurantId));
 
+/**
+ * #1396 PR5 レビュー M-2: Calendar ビュー用の派生クエリ。
+ *
+ * Calendar は「上へスクロールして過去へ遡る」UI なので、**ページが日付の降順で届くこと**を
+ * 前提にしている（`buildCalendarMonths` は読み込み済みの最古の月を下端に取る）。共有 `sort` が
+ * `-rating` / `distance` / `-sceneScore` / `-timeSlotScore` のときは 1 ページ目が何年にも散らばり、
+ * 空の月が数十個並んだうえに上へ遡っても何も増えない（= カレンダーとして成立しない）。
+ * `sort: "occurredAt"`（古い順）に至っては「上へ遡る」の向きそのものが逆になる。
+ *
+ * そこで Calendar は `sort` / `sceneKey` / `timeSlotKey` を落とし、常に既定の `-occurredAt` で読む。
+ * 落とし方も落とす対象も `toMyDishesRestaurantQueryParams`（#1397 PR2）と同じ作法である。
+ *
+ * ⚠️ 共有 `sort` が既定の `-occurredAt` のときは、`toMyDishesQueryParams` が `sort` をそもそも
+ * 積まないため、**派生キーは base の queryKey と完全に一致する**。つまり常用ケースでは追加の
+ * 取得も LRU の追加消費も一切起きない（`__tests__/myDishesFilterStore.test.ts` が固定）。
+ *
+ * ⚠️ `MyDishesFilter` のキー集合は増やさない。Calendar 固有の値は filter の外で作る（#1397 PR2 と同じ）。
+ */
+export type MyDishesCalendarQueryParams = Omit<MyDishesQueryParams, "sort" | "sceneKey" | "timeSlotKey">;
+
+export const toMyDishesCalendarQueryParams = (filter: MyDishesFilter): MyDishesCalendarQueryParams => {
+	const params = { ...toMyDishesQueryParams(filter) };
+	delete params.sort;
+	delete params.sceneKey;
+	delete params.timeSlotKey;
+	return params;
+};
+
+/** Calendar 用の queryKey。共有 `sort` が既定なら base（`selectFilterQueryKey`）と同じ文字列になる */
+export const selectCalendarQueryKey = (s: MyDishesFilterStore): string =>
+	serializeMyDishesQueryParams(toMyDishesCalendarQueryParams(s.filter));
+
 export const useMyDishesFilterStore = createWithEqualityFn<MyDishesFilterStore>()((set) => ({
 	filter: DEFAULT_MY_DISHES_FILTER,
 

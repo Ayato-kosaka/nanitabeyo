@@ -800,6 +800,7 @@
 				"sat": "Sat"
 			},
 			"dayA11yLabel": "{{date}} ({{count}} records)",
+			"periodActive": "Filtered by date",
 			"reachedOldest": "You've reached the oldest record"
 		},
 		"map": {

@@ -800,6 +800,7 @@
 				"sat": "六"
 			},
 			"dayA11yLabel": "{{date}}（{{count}}条）",
+			"periodActive": "已按日期筛选",
 			"reachedOldest": "已经是最早的记录了"
 		},
 		"map": {

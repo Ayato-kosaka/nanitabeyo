@@ -16,6 +16,7 @@ jest.mock("@/hooks/useHaptics", () => ({ useHaptics: () => ({ lightImpact: jest.
 jest.mock("@/hooks/useLogger", () => ({ useLogger: () => ({ logFrontendEvent: jest.fn() }) }));
 jest.mock("@/components/LoadingIndicator", () => ({ LoadingIndicator: () => null }));
 jest.mock("expo-router", () => ({ router: { setParams: jest.fn() } }));
+jest.mock("lucide-react-native", () => new Proxy({}, { get: () => () => null }));
 jest.mock("expo-image", () => {
 	const ReactActual = jest.requireActual("react");
 	const { View: RNView } = jest.requireActual("react-native");
@@ -110,6 +111,49 @@ describe("#1442 M-1 再試行ボタン押下で実際に取得が走る", () => 
 			tree.update(<MyDishesCalendarView />);
 		});
 		expect(mockCallBackend).toHaveBeenCalledTimes(1);
+
+		await act(async () => {
+			tree.unmount();
+		});
+	});
+});
+
+/*
+#1446 M-2: `sort` が日付順以外だと Calendar が成立しない（空の月が並び、上へ遡っても増えない）。
+Calendar は自分の派生 queryKey を使い、`sort` / `sceneKey` / `timeSlotKey` を落として
+常に既定の `-occurredAt` で読む（#1397 PR2 の `toMyDishesRestaurantQueryParams` と同じ作法）。
+*/
+describe("#1446 M-2 Calendar は sort を -occurredAt に固定して読む", () => {
+	it("共有 sort が -rating でも、Calendar は sort / sceneKey / timeSlotKey を送らない", async () => {
+		mockCallBackend.mockResolvedValue({ data: [], nextCursor: null, meta: { oldestOccurredAt: null } });
+		useMyDishesFilterStore.getState().patch({ sort: "-rating", status: ["eaten"], minRating: 4 });
+
+		let tree!: TestRenderer.ReactTestRenderer;
+		await act(async () => {
+			tree = TestRenderer.create(<MyDishesCalendarView />);
+		});
+
+		const [, options] = mockCallBackend.mock.calls[0];
+		// 評価フィルタ（ユーザーが選んだ絞り込み）は落とさない。落とすのは並び順だけ
+		expect(options.requestPayload).toEqual({ status: ["eaten"], minRating: 4, limit: 42 });
+		expect(options.requestPayload.sort).toBeUndefined();
+
+		await act(async () => {
+			tree.unmount();
+		});
+	});
+
+	it("共有 sort が -sceneScore でも sceneKey ごと落とす（Sheet と同じ扱い）", async () => {
+		mockCallBackend.mockResolvedValue({ data: [], nextCursor: null, meta: { oldestOccurredAt: null } });
+		useMyDishesFilterStore.getState().patch({ sort: "-sceneScore", sceneKey: "date" });
+
+		let tree!: TestRenderer.ReactTestRenderer;
+		await act(async () => {
+			tree = TestRenderer.create(<MyDishesCalendarView />);
+		});
+
+		const [, options] = mockCallBackend.mock.calls[0];
+		expect(options.requestPayload).toEqual({ limit: 42 });
 
 		await act(async () => {
 			tree.unmount();

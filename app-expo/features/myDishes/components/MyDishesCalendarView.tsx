@@ -1,7 +1,8 @@
-import React, { memo, useCallback, useMemo } from "react";
+import React, { memo, useCallback, useMemo, useRef } from "react";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { router } from "expo-router";
+import { X } from "lucide-react-native";
 import { EmptyState } from "@/components/EmptyState";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { PrimaryButton } from "@/components/PrimaryButton";
@@ -14,13 +15,14 @@ import {
 	buildCalendarMonths,
 	canLoadOlderMonths,
 	resolveDayThumbnailUrl,
+	shouldIgnoreEndReached,
 	toDayRange,
 	toYearMonth,
 	type CalendarDayCell,
 	type CalendarMonth,
 } from "../calendar";
 import { useMyDishesFilterStore } from "../stores/useMyDishesFilterStore";
-import { useMyDishesQuery } from "../hooks/useMyDishesQuery";
+import { useMyDishesCalendarQuery } from "../hooks/useMyDishesCalendarQuery";
 
 /**
  * #1396 my-dishes の Calendar ビュー（設計書 (2/2) §4 / §7 の PR5）。
@@ -44,6 +46,24 @@ import { useMyDishesQuery } from "../hooks/useMyDishesQuery";
  * `limit` 既定 42 は「件数」であって「月数」ではない。42 件が全部同じ月に入ると 1 ページ読んでも
  * 月が 1 つも増えないので、「一番古い月が完成するまで読む」ようなループを書くと暴走する。
  * ページ 1 回 = `onEndReached` 1 回に対応させ、終了条件は `nextCursor === null` だけにする。
+ *
+ * ⚠️ **`isLoadingMore` ガードだけでは足りない**（#1446 B-1 / M-1）。`onEndReached` は
+ * 「contentLength が前回発火時と違う」だけで再発火し、スクロール以外（`_onContentSizeChange` /
+ * `_onLayout`）からも判定が走る。したがって
+ *
+ * 1. `error === null` を `canLoadOlderMonths` の条件に入れる（エラー中の入口は再試行ボタンだけ）
+ * 2. **フッタの高さを状態に依らず一定にする**（スピナー枠を常に確保する）
+ * 3. **直前の `loadMore` で月が 1 つも増えなかったら次の `onEndReached` を無視する**
+ *
+ * の 3 つを揃えて初めて「指を離したままの自動連投」が止まる。1 と 3 の判定は
+ * `../calendar.ts`（`canLoadOlderMonths` / `shouldIgnoreEndReached`）に純ロジックとして置いてある。
+ *
+ * ## 取得は Calendar 専用の派生 queryKey（#1446 M-2）
+ *
+ * `sort` が `-occurredAt` 以外だとページが日付順で届かず、Calendar として成立しない。
+ * `useMyDishesCalendarQuery` が `sort` / `sceneKey` / `timeSlotKey` を落として読む
+ * （#1397 PR2 の `selectRestaurantQueryKey` と同じ作法）。共有 `sort` が既定なら
+ * base と同一キーなので、常用ケースでは追加の取得も LRU 消費も起きない。
  *
  * ## 副作用の申し送り（§4-5）
  *
@@ -118,7 +138,9 @@ const MonthGrid = memo(function MonthGrid({
 	}, [month.cells]);
 
 	return (
-		<View style={styles.month}>
+		// testID に ym を持たせるのは e2e-web（Playwright）が「上へ遡ると古い月が増える」ことを
+		// 月単位で確かめるため（#1446 M-3）
+		<View style={styles.month} testID={`my-dishes-calendar-month-${month.ym}`}>
 			{/* #1396 §4-5: sticky にしない（inverted で web の scaleY(-1) と噛み合わない） */}
 			<Text style={styles.monthLabel}>
 				{i18n.t("MyDishes.calendar.monthLabel", { year: month.year, month: month.month })}
@@ -149,6 +171,8 @@ export function MyDishesCalendarView() {
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const patch = useMyDishesFilterStore((s) => s.patch);
+	const from = useMyDishesFilterStore((s) => s.filter.from);
+	const to = useMyDishesFilterStore((s) => s.filter.to);
 	const {
 		items,
 		isLoading,
@@ -159,22 +183,38 @@ export function MyDishesCalendarView() {
 		oldestOccurredAt,
 		loadMore,
 		refresh,
-	} = useMyDishesQuery();
+	} = useMyDishesCalendarQuery();
 
-	// 「今月」はマウント時に 1 度だけ決める（毎レンダー new Date() すると months が作り直される）
+	// 「今月」はマウント時に 1 度だけ決める（毎レンダー new Date() すると months が作り直される）。
+	// ⚠️ #1446 m-4（申し送り・本 PR では直さない）: keep-alive でアンマウントされないため、
+	// アプリを開いたまま日付が変わっても「今月」は更新されない。その月に記録が入れば
+	// `newestItemYm` 経由で救われるので実害は小さいと判断してリーダーが見送りとした。
+	// 直すなら `nowYm` を state にして「日付が変わったときだけ」更新する（毎レンダー new Date() はしない）
 	const nowYm = useMemo(() => toYearMonth(new Date()), []);
 	const months = useMemo(
 		() => buildCalendarMonths({ items, nowYm, oldestOccurredAt }),
 		[items, nowYm, oldestOccurredAt],
 	);
 
+	// #1446 M-1: 直前に `loadMore` を投げた時点の月数。次の `onEndReached` の判定にだけ使う。
+	// state にすると再レンダーを増やすだけなので ref で持つ（描画には一切使わない）
+	const monthCountAtLastLoadRef = useRef<number | null>(null);
+
 	// #1396 §4-4: 自動ループを書かない。`onEndReached` 1 回につきページ 1 回で、
 	// 終了条件は `nextCursor === null`（`hasNextPage === false`）だけ。
 	// 足りなければユーザーがもう一度スクロールしたときに次が発火する
 	const handleEndReached = useCallback(() => {
-		if (!canLoadOlderMonths({ hasNextPage, isLoadingMore })) return;
+		// #1446 B-1: エラー中は握り潰す。再取得の入口はフッタの再試行ボタンだけ
+		if (!canLoadOlderMonths({ hasNextPage, isLoadingMore, error })) return;
+		// #1446 M-1: 直前の loadMore で月が 1 つも増えなかったら、この 1 回は無視する。
+		// （42 件が同一月に収まると月グリッドの高さが増えないため、フッタ高の往復だけで連投しうる）
+		if (shouldIgnoreEndReached({ monthCountAtLastLoad: monthCountAtLastLoadRef.current, monthCount: months.length })) {
+			monthCountAtLastLoadRef.current = null;
+			return;
+		}
+		monthCountAtLastLoadRef.current = months.length;
 		loadMore();
-	}, [hasNextPage, isLoadingMore, loadMore]);
+	}, [error, hasNextPage, isLoadingMore, loadMore, months.length]);
 
 	// #1396 §4-5: 日セルタップで期間（from / to）を確定し、リストビューへ切り替える。
 	// 3 ビューが同じフィルタ状態を共有していることの、そのままのデモになる
@@ -194,10 +234,25 @@ export function MyDishesCalendarView() {
 		[lightImpact, logFrontendEvent, patch],
 	);
 
+	// #1446 m-1: 日セルを押すと 1 日フィルタ（from / to）が立ったまま Calendar が生き続ける
+	// （keep-alive でアンマウントされない）。Calendar 側にも解除の口を置かないと、
+	// 「1 か月ぶんのグリッドに 1 日だけ記録がある画面」から filters を開かずには戻れない。
+	// PR4 で Map に入れた「エリアで絞り込み中 + 解除」の帯と同じ形にしてある
+	const isPeriodFiltered = from !== null || to !== null;
+	const handleClearPeriod = useCallback(() => {
+		lightImpact();
+		patch({ from: null, to: null });
+		logFrontendEvent({ event_name: "my_dishes_calendar_period_cleared", error_level: "log", payload: {} });
+	}, [lightImpact, logFrontendEvent, patch]);
+
 	// #1396 PR4 レビュー M-1: 失敗をユーザーに伝え、手動リトライの出口を必ず UI に出す。
 	// `hasFetchedInitial` は成功時にしか立たないので、これでガードすると
 	// 「失敗したことが伝わらないまま復帰不能」になる（Map ビューで実際に踏んだ形）。
 	// error があれば `hasFetchedInitial` に関係なくエラー + 再試行を出す。
+	//
+	// #1446 m-2【意図】`hasNextPage === false` なのにフッタへエラーが出るのは
+	// 「既に月が読めている状態で refresh（= fetchInitial）が失敗した」ときだけなので、
+	// その場合は先頭ページから取り直す `refresh()` が正しい復帰手段である（非対称だが意図的）。
 	const retryOlder = useCallback(() => {
 		if (hasNextPage) loadMore();
 		else refresh();
@@ -208,42 +263,65 @@ export function MyDishesCalendarView() {
 		[handlePressDay],
 	);
 
-	// inverted なので ListFooterComponent は**視覚的な最上部**（= 一番古い月の上）に出る
-	const renderFooter = useCallback(() => {
-		if (error !== null) {
-			return (
-				<View style={styles.footer} testID="my-dishes-calendar-load-error">
-					<Text style={styles.footerErrorText}>{error}</Text>
-					<PrimaryButton
-						label={i18n.t("Profile.tabError.retry")}
-						onPress={retryOlder}
-						testID="my-dishes-calendar-load-error-retry"
-					/>
+	// inverted なので ListFooterComponent は**視覚的な最上部**（= 一番古い月の上）に出る。
+	//
+	// ⚠️ #1446 M-1: **フッタは常に描き、スピナー枠の高さを状態に依らず一定にする。**
+	// 「スピナー（高さあり）↔ null（高さ 0）」で往復すると contentLength が往復し、
+	// `contentLength !== _sentEndForContentLength` が成立し続けて `onEndReached` が
+	// 指を離したまま再発火する（= 自動連投）。空の View を返して枠を確保するのが肝で、
+	// 「読み込み中だけ描く」に戻してはいけない。
+	const renderFooter = useCallback(
+		() => (
+			<View style={styles.footer} testID="my-dishes-calendar-footer">
+				<View style={styles.footerSpinnerSlot}>
+					{isLoadingMore ? (
+						<View testID="my-dishes-calendar-loading-more">
+							<LoadingIndicator size="small" />
+						</View>
+					) : null}
 				</View>
-			);
-		}
-		if (isLoadingMore) {
-			return (
-				<View style={styles.footer} testID="my-dishes-calendar-loading-more">
-					<LoadingIndicator size="small" />
-				</View>
-			);
-		}
-		if (!hasNextPage && hasFetchedInitial) {
-			return (
-				<View style={styles.footer} testID="my-dishes-calendar-reached-oldest">
-					<Text style={styles.footerText}>{i18n.t("MyDishes.calendar.reachedOldest")}</Text>
-				</View>
-			);
-		}
-		return null;
-	}, [error, hasFetchedInitial, hasNextPage, isLoadingMore, retryOlder]);
+				{error !== null ? (
+					<View style={styles.footerBlock} testID="my-dishes-calendar-load-error">
+						<Text style={styles.footerErrorText}>{error}</Text>
+						<PrimaryButton
+							label={i18n.t("Profile.tabError.retry")}
+							onPress={retryOlder}
+							testID="my-dishes-calendar-load-error-retry"
+						/>
+					</View>
+				) : null}
+				{error === null && !hasNextPage && hasFetchedInitial ? (
+					<View style={styles.footerBlock} testID="my-dishes-calendar-reached-oldest">
+						<Text style={styles.footerText}>{i18n.t("MyDishes.calendar.reachedOldest")}</Text>
+					</View>
+				) : null}
+			</View>
+		),
+		[error, hasFetchedInitial, hasNextPage, isLoadingMore, retryOlder],
+	);
+
+	// #1446 m-1: どの状態（読み込み中・空・エラー・通常）でも解除の口を出す。
+	// 1 日フィルタが効いた結果 0 件になっているときこそ、この帯が唯一の戻り道になる
+	const periodBanner = isPeriodFiltered ? (
+		<View style={styles.periodActiveBanner} testID="my-dishes-calendar-period-active">
+			<Text style={styles.periodActiveText}>{i18n.t("MyDishes.calendar.periodActive")}</Text>
+			<Pressable
+				testID="my-dishes-calendar-period-clear"
+				onPress={handleClearPeriod}
+				accessibilityRole="button"
+				accessibilityLabel={i18n.t("MyDishes.filters.period.clear")}
+				hitSlop={8}>
+				<X size={14} color="#FFFFFF" />
+			</Pressable>
+		</View>
+	) : null;
 
 	// 1 行も読めていない状態での失敗は、月グリッドを出しても意味が無いので全面をエラーにする。
 	// ここも `hasFetchedInitial` では判定しない（成功時にしか立たないため）
 	if (error !== null && items.length === 0) {
 		return (
 			<View style={styles.container} testID="my-dishes-calendar">
+				{periodBanner}
 				<EmptyState
 					message={i18n.t("MyDishes.empty.description")}
 					error={error}
@@ -256,8 +334,11 @@ export function MyDishesCalendarView() {
 
 	if (isLoading && !hasFetchedInitial) {
 		return (
-			<View style={[styles.container, styles.centered]} testID="my-dishes-calendar">
-				<LoadingIndicator size="large" />
+			<View style={styles.container} testID="my-dishes-calendar">
+				{periodBanner}
+				<View style={[styles.container, styles.centered]}>
+					<LoadingIndicator size="large" />
+				</View>
 			</View>
 		);
 	}
@@ -265,6 +346,7 @@ export function MyDishesCalendarView() {
 	if (hasFetchedInitial && items.length === 0) {
 		return (
 			<View style={styles.container} testID="my-dishes-calendar">
+				{periodBanner}
 				<EmptyState message={i18n.t("MyDishes.empty.description")} testID="my-dishes-calendar-empty" />
 			</View>
 		);
@@ -272,6 +354,7 @@ export function MyDishesCalendarView() {
 
 	return (
 		<View style={styles.container} testID="my-dishes-calendar">
+			{periodBanner}
 			<FlatList
 				testID="my-dishes-calendar-list"
 				// ★ ここが本ビューの肝。data[0] が画面下端（最新月）になり、
@@ -347,6 +430,8 @@ const styles = StyleSheet.create({
 		color: "#FFFFFF",
 		fontWeight: "700",
 		textShadowColor: "rgba(0,0,0,0.6)",
+		// #1446 n-2: offset は既定値（{0,0}）でも、明示しないと web / native で解釈が揃う保証が無い
+		textShadowOffset: { width: 0, height: 1 },
 		textShadowRadius: 3,
 	},
 	countBadge: {
@@ -366,8 +451,19 @@ const styles = StyleSheet.create({
 	},
 	footer: {
 		alignItems: "center",
-		gap: 12,
 		paddingVertical: 16,
+	},
+	// #1446 M-1: スピナーの有無で高さを変えないための固定枠。
+	// ここを可変にすると contentLength が往復し、`onEndReached` が自動連投になる
+	footerSpinnerSlot: {
+		height: 24,
+		alignItems: "center",
+		justifyContent: "center",
+	},
+	footerBlock: {
+		alignItems: "center",
+		gap: 12,
+		paddingTop: 8,
 	},
 	footerText: {
 		fontSize: 12,
@@ -377,6 +473,24 @@ const styles = StyleSheet.create({
 	footerErrorText: {
 		fontSize: 13,
 		color: "#B91C1C",
+		textAlign: "center",
+	},
+	// #1446 m-1: PR4 で Map に入れた「エリアで絞り込み中 + 解除」の帯と同じ形
+	periodActiveBanner: {
+		marginTop: 8,
+		marginHorizontal: 24,
+		paddingHorizontal: 12,
+		paddingVertical: 8,
+		borderRadius: 8,
+		backgroundColor: "rgba(53, 122, 255, 0.9)",
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "center",
+		gap: 8,
+	},
+	periodActiveText: {
+		fontSize: 12,
+		color: "#FFFFFF",
 		textAlign: "center",
 	},
 });

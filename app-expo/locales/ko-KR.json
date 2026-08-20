@@ -800,6 +800,7 @@
 				"sat": "토"
 			},
 			"dayA11yLabel": "{{date}} ({{count}}건)",
+			"periodActive": "기간으로 필터링 중",
 			"reachedOldest": "가장 오래된 기록입니다"
 		},
 		"map": {

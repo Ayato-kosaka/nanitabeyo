@@ -800,6 +800,7 @@
 				"sat": "سبت"
 			},
 			"dayA11yLabel": "{{date}} ({{count}} سجلات)",
+			"periodActive": "تمت التصفية حسب التاريخ",
 			"reachedOldest": "لقد وصلت إلى أقدم سجل"
 		},
 		"map": {

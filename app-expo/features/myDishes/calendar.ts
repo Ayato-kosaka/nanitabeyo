@@ -169,9 +169,14 @@ export const buildCalendarMonths = ({ items, nowYm, oldestOccurredAt }: BuildCal
 
 	// #1396 【設計】`oldestOccurredAt` は遡りの終端。これより古い月は 1 つも作らない（§4-4）。
 	// ただし終端が今月より新しくても今月は落とさない
+	//
+	// #1396 PR5 レビュー m-3: サーバの終端と実データが食い違い、`oldestOccurredAt` より古い行が
+	// 実際に読み込まれているときは、その月を**切り捨てず終端のほうを伸ばす**。
+	// 切り捨てると記録が UI から黙って消える（消える > 余分な空月が出る、の順で危険）ため。
 	const oldestBoundYm = isoToYearMonth(oldestOccurredAt);
 	if (oldestBoundYm !== null && floorYm < oldestBoundYm) {
-		floorYm = oldestBoundYm > nowYm ? nowYm : oldestBoundYm;
+		const boundYm = oldestBoundYm > nowYm ? nowYm : oldestBoundYm;
+		floorYm = oldestItemYm !== null && oldestItemYm < boundYm ? oldestItemYm : boundYm;
 	}
 	if (floorYm > newestYm) floorYm = newestYm;
 
@@ -190,6 +195,45 @@ export const buildCalendarMonths = ({ items, nowYm, oldestOccurredAt }: BuildCal
  * ⚠️ 正の終了条件は `nextCursor === null`（= `hasNextPage === false`）**だけ**である（§4-4）。
  * `oldestOccurredAt` は「終端がどこか」を UI に出すための補助でしかなく、
  * これを終了条件に使うと、42 件が同じ月に収まったページの直後に誤って打ち切ってしまう。
+ *
+ * ## ⚠️ `error === null` を必ず条件へ入れること（#1439 B-1 / #1446 B-1。同じバグ型の 3 回目）
+ *
+ * `onEndReached` の再発火条件は「**contentLength が前回発火時と違うこと**」であり、
+ * スクロールだけでなく `_onContentSizeChange` / `_onLayout` からも判定が走る
+ * （`react-native-web/dist/vendor/react-native/VirtualizedList/index.js:1351` /
+ * `@react-native/virtualized-lists/Lists/VirtualizedList.js:1582-1587`）。
+ * 一方 `fetchMore`（`stores/useMyDishesStore.ts`）は冒頭で `errorByQuery` を null に戻すので、
+ * `error` を見ないと「失敗 → フッタの高さが変わる → 再発火 → 再送 → 失敗」で
+ * **ユーザーが指一本動かさないまま 964MB の `dish_reviews` を叩き続ける**。
+ *
+ * エラー中の再取得の入口は**フッタの再試行ボタン押下だけ**にする。
  */
-export const canLoadOlderMonths = (params: { hasNextPage: boolean; isLoadingMore: boolean }): boolean =>
-	params.hasNextPage && !params.isLoadingMore;
+export const canLoadOlderMonths = (params: {
+	hasNextPage: boolean;
+	isLoadingMore: boolean;
+	error: string | null;
+}): boolean => params.hasNextPage && !params.isLoadingMore && params.error === null;
+
+/**
+ * 直前の `loadMore` の結果を見て、次の `onEndReached` を握り潰すか（#1446 M-1）。
+ *
+ * Calendar は**コンテンツ高（月グリッド数）と件数が切り離されている**唯一のビューである。
+ * 42 件が全部同じ月に収まると、1 ページ読んでも月が 1 つも増えず contentLength が変わらない
+ * ……はずだが、フッタが「スピナー（高さあり）↔ null（高さ 0）」で往復すると contentLength が
+ * `L → L+S → L` と往復し、`contentLength !== _sentEndForContentLength` が成立し続ける。
+ * その結果、指を離したまま次ページ・また次ページと自動で読み続ける
+ * （= 設計書 §4-4 / 確定事項2 が名指しで警告したケース）。
+ *
+ * 対処は 2 つ入れてある。
+ * 1. フッタの高さを状態に依らず一定にする（`MyDishesCalendarView` の `styles.footer`）
+ * 2. **直前の `loadMore` で月が 1 つも増えなかったら、次の 1 回を無視する**（この関数）
+ *
+ * `isLoadingMore` は同時実行を 1 本に絞るだけで、**逐次の連投は止めない**ことに注意。
+ *
+ * @param monthCountAtLastLoad 直前に `loadMore` を投げた時点の月数。まだ投げていなければ null
+ * @param monthCount 現在の月数
+ */
+export const shouldIgnoreEndReached = (params: {
+	monthCountAtLastLoad: number | null;
+	monthCount: number;
+}): boolean => params.monthCountAtLastLoad !== null && params.monthCount <= params.monthCountAtLastLoad;

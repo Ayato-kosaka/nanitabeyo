@@ -45,10 +45,13 @@ jest.mock("@/components/PrimaryButton", () => {
 	};
 });
 
-const mockUseMyDishesQuery = jest.fn();
-jest.mock("../hooks/useMyDishesQuery", () => ({
-	useMyDishesQuery: () => mockUseMyDishesQuery(),
+// #1446 M-2: Calendar は sort を `-occurredAt` に固定した派生 queryKey で読む（`useMyDishesCalendarQuery`）
+const mockUseMyDishesCalendarQuery = jest.fn();
+jest.mock("../hooks/useMyDishesCalendarQuery", () => ({
+	useMyDishesCalendarQuery: () => mockUseMyDishesCalendarQuery(),
 }));
+
+jest.mock("lucide-react-native", () => new Proxy({}, { get: () => () => null }));
 
 import React, { act } from "react";
 import TestRenderer from "react-test-renderer";
@@ -86,7 +89,7 @@ const mockLoadMore = jest.fn();
 const mockRefresh = jest.fn();
 
 const setQueryResult = (overrides: Partial<ReturnType<typeof baseResult>> = {}) => {
-	mockUseMyDishesQuery.mockReturnValue({ ...baseResult(), ...overrides });
+	mockUseMyDishesCalendarQuery.mockReturnValue({ ...baseResult(), ...overrides });
 };
 
 const baseResult = () => ({
@@ -228,7 +231,20 @@ describe("#1396 §4-4 meta.oldestOccurredAt より古い月を生成しない（
 
 	it("oldestOccurredAt より古い月は 1 つも作らない（上へ無限に伸びない）", async () => {
 		setQueryResult({
-			// 終端より古い行が混ざっていても、終端より古い月は生成しない
+			items: [makeItem("a", localNoonIso(2026, 8, 1)), makeItem("b", localNoonIso(2026, 7, 5))],
+			hasNextPage: false,
+			oldestOccurredAt: localNoonIso(2026, 6, 1),
+		});
+		const tree = await render();
+
+		const ymList = monthsOf(tree).map((m) => m.ym);
+		expect(ymList).toEqual(["2026-08", "2026-07"]);
+		expect(ymList.some((ym) => ym < "2026-07")).toBe(false);
+	});
+
+	// #1446 m-3: 終端の不一致は「消す」ではなく「伸ばす」
+	it("終端より古い行が実際にあるときは、その月を切り捨てずに終端を伸ばす", async () => {
+		setQueryResult({
 			items: [makeItem("a", localNoonIso(2026, 8, 1)), makeItem("old", localNoonIso(2019, 1, 1))],
 			hasNextPage: false,
 			oldestOccurredAt: localNoonIso(2026, 6, 1),
@@ -236,8 +252,166 @@ describe("#1396 §4-4 meta.oldestOccurredAt より古い月を生成しない（
 		const tree = await render();
 
 		const ymList = monthsOf(tree).map((m) => m.ym);
-		expect(ymList).toEqual(["2026-08", "2026-07", "2026-06"]);
-		expect(ymList.some((ym) => ym < "2026-06")).toBe(false);
+		// 記録が UI から黙って消えない（旧仕様は 2026-06 で切って 2019-01 の行を捨てていた）
+		expect(ymList[ymList.length - 1]).toBe("2019-01");
+		expect(monthsOf(tree).find((m) => m.ym === "2019-01")?.itemCount).toBe(1);
+	});
+});
+
+/*
+#1446 B-1 / M-1: `onEndReached` は「contentLength が前回発火時と違う」だけで再発火し、
+スクロール以外（`_onContentSizeChange` / `_onLayout`）からも判定される。
+`isLoadingMore` ガードは**同時実行を 1 本に絞るだけ**で、逐次の連投は止めない。
+*/
+describe("#1446 B-1 / M-1 指を離したままの自動連投を止める", () => {
+	// ⚠️ #1439 B-1 と同じバグ型の 3 回目。初回取得側（useMyDishesQuery の !error）は直っていたが
+	// loadMore 側に残っていた。エラー中の再取得の入口はフッタの再試行ボタンだけにする
+	it("エラー表示中に onEndReached が来ても loadMore を呼ばない（B-1）", async () => {
+		setQueryResult({
+			items: [makeItem("a", localNoonIso(2026, 8, 10))],
+			hasNextPage: true,
+			isLoadingMore: false,
+			error: "boom",
+		});
+		const tree = await render();
+
+		await act(async () => {
+			findList(tree).props.onEndReached?.({ distanceFromEnd: 0 });
+			findList(tree).props.onEndReached?.({ distanceFromEnd: 0 });
+			findList(tree).props.onEndReached?.({ distanceFromEnd: 0 });
+		});
+
+		expect(mockLoadMore).not.toHaveBeenCalled();
+
+		// 入口は再試行ボタンだけ。押せばちゃんと走る（復帰不能にはしない）
+		const retry = findAll(tree, "my-dishes-calendar-load-error-retry");
+		await act(async () => {
+			retry[0].props.onPress?.();
+		});
+		expect(mockLoadMore).toHaveBeenCalledTimes(1);
+	});
+
+	// M-1 対処 1: フッタの高さを状態に依らず一定にする（スピナー枠を常に確保する）
+	it("フッタは状態に依らず常に描かれ、スピナー枠の高さが変わらない（M-1）", async () => {
+		setQueryResult({ items: [makeItem("a", localNoonIso(2026, 8, 10))], hasNextPage: true, isLoadingMore: false });
+		const tree = await render();
+
+		const idleFooter = findAllHosts(tree, "my-dishes-calendar-footer");
+		expect(idleFooter).toHaveLength(1);
+		// ⚠️ rerender すると古いノードは参照できなくなるので、style をここで取り出しておく
+		const idleFooterStyle = idleFooter[0].props.style;
+		const idleChildCount = idleFooter[0].props.children.length;
+		// 読み込み中でなくてもスピナー枠は確保されている（= null を返して高さ 0 にしない）
+		expect(findAll(tree, "my-dishes-calendar-loading-more")).toHaveLength(0);
+
+		setQueryResult({ items: [makeItem("a", localNoonIso(2026, 8, 10))], hasNextPage: true, isLoadingMore: true });
+		await rerender(tree);
+
+		const loadingFooter = findAllHosts(tree, "my-dishes-calendar-footer");
+		expect(loadingFooter).toHaveLength(1);
+		expect(findAll(tree, "my-dishes-calendar-loading-more").length).toBeGreaterThan(0);
+		// スピナーの有無で footer の style（= 高さを決める要素）が変わらないこと
+		expect(loadingFooter[0].props.style).toEqual(idleFooterStyle);
+		// フッタの構造（スピナー枠 / エラー / 終端）の並びも変わらない
+		expect(loadingFooter[0].props.children.length).toBe(idleChildCount);
+	});
+
+	// M-1 対処 2: 42 件が同一月に収まると月グリッドの高さが増えないため、
+	// フッタ高の往復だけで onEndReached が再発火して連投になりうる
+	it("直前の loadMore で月が 1 つも増えなかったら、次の onEndReached を無視する（M-1）", async () => {
+		const page1 = [makeItem("a", localNoonIso(2026, 8, 10))];
+		setQueryResult({ items: page1, hasNextPage: true });
+		const tree = await render();
+		expect(monthsOf(tree).map((m) => m.ym)).toEqual(["2026-08"]);
+
+		await act(async () => {
+			findList(tree).props.onEndReached?.({ distanceFromEnd: 0 });
+		});
+		expect(mockLoadMore).toHaveBeenCalledTimes(1);
+
+		// 次ページが「同じ月にしか行を足さない」で返る（月数は 1 のまま）
+		setQueryResult({ items: [...page1, makeItem("b", localNoonIso(2026, 8, 11))], hasNextPage: true });
+		await rerender(tree);
+		expect(monthsOf(tree).map((m) => m.ym)).toEqual(["2026-08"]);
+
+		// フッタ高の往復で再発火しても、月が増えていないので握り潰す
+		await act(async () => {
+			findList(tree).props.onEndReached?.({ distanceFromEnd: 0 });
+		});
+		expect(mockLoadMore).toHaveBeenCalledTimes(1);
+	});
+
+	it("月が増えていれば次の onEndReached はそのまま通る（遡れなくならない）", async () => {
+		const page1 = [makeItem("a", localNoonIso(2026, 8, 10))];
+		setQueryResult({ items: page1, hasNextPage: true });
+		const tree = await render();
+
+		await act(async () => {
+			findList(tree).props.onEndReached?.({ distanceFromEnd: 0 });
+		});
+		expect(mockLoadMore).toHaveBeenCalledTimes(1);
+
+		setQueryResult({ items: [...page1, makeItem("b", localNoonIso(2026, 5, 2))], hasNextPage: true });
+		await rerender(tree);
+		expect(monthsOf(tree).map((m) => m.ym)).toEqual(["2026-08", "2026-07", "2026-06", "2026-05"]);
+
+		await act(async () => {
+			findList(tree).props.onEndReached?.({ distanceFromEnd: 0 });
+		});
+		expect(mockLoadMore).toHaveBeenCalledTimes(2);
+	});
+});
+
+/*
+#1446 m-1: 日セルを押すと 1 日フィルタ（from / to）が立ち、keep-alive で Calendar は生きたまま。
+戻ったときに解除の口が無いと filters 画面を開くまで抜け出せない。
+PR4 で Map に入れた「エリアで絞り込み中 + 解除」の帯と同じ形を Calendar にも置く。
+*/
+describe("#1446 m-1 期間で絞り込み中の表示と解除", () => {
+	it("from / to が立っていると帯が出て、解除ボタンで from / to が消える", async () => {
+		setQueryResult({ items: [makeItem("a", localNoonIso(2026, 8, 10))] });
+		const tree = await render();
+
+		// 日セルを押して 1 日フィルタを立てる（= 実際にユーザーが踏む経路）
+		const day = findAll(tree, "my-dishes-calendar-day").find((node) =>
+			String(node.props.accessibilityLabel ?? "").includes("2026-08-10"),
+		);
+		await act(async () => {
+			day?.props.onPress?.();
+		});
+		expect(useMyDishesFilterStore.getState().filter.from).not.toBeNull();
+
+		await rerender(tree);
+		expect(findAllHosts(tree, "my-dishes-calendar-period-active")).toHaveLength(1);
+
+		const clear = findAll(tree, "my-dishes-calendar-period-clear");
+		expect(clear.length).toBeGreaterThan(0);
+		await act(async () => {
+			clear[0].props.onPress?.();
+		});
+
+		const { filter } = useMyDishesFilterStore.getState();
+		expect(filter.from).toBeNull();
+		expect(filter.to).toBeNull();
+
+		await rerender(tree);
+		expect(findAllHosts(tree, "my-dishes-calendar-period-active")).toHaveLength(0);
+	});
+
+	it("1 日フィルタの結果 0 件になっても、帯（= 唯一の戻り道）は出る", async () => {
+		useMyDishesFilterStore.getState().patch({ from: "2026-08-10T00:00:00.000Z", to: "2026-08-10T23:59:59.999Z" });
+		setQueryResult({ items: [], hasFetchedInitial: true });
+		const tree = await render();
+
+		expect(findAll(tree, "my-dishes-calendar-empty").length).toBeGreaterThan(0);
+		expect(findAllHosts(tree, "my-dishes-calendar-period-active")).toHaveLength(1);
+	});
+
+	it("期間が未指定なら帯は出ない", async () => {
+		setQueryResult({ items: [makeItem("a", localNoonIso(2026, 8, 10))] });
+		const tree = await render();
+
+		expect(findAllHosts(tree, "my-dishes-calendar-period-active")).toHaveLength(0);
 	});
 });
 

@@ -800,6 +800,7 @@
 				"sat": "Sam"
 			},
 			"dayA11yLabel": "{{date}} ({{count}} enregistrements)",
+			"periodActive": "Filtré par date",
 			"reachedOldest": "Vous avez atteint le plus ancien enregistrement"
 		},
 		"map": {
