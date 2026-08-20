@@ -27,7 +27,8 @@ Issue #1383（`dining_pace:quick` で焼き鳥が過大評価されていた件�
 | APPLY.md | manual/ scripts・GitHub Actions の使い方、検証、rollback | 判断基準そのもの |
 
 補正が必要な行の実データ書き込みは、このリポジトリの他の DB 変更と同様
-GitHub Actions（`.github/workflows/manual-feature-correction.yml`）から行う。
+GitHub Actions（`.github/workflows/db-script-run.yml`、`scripts/` 配下の任意の
+Python スクリプトを `script_path` + `args` で実行できる汎用ランナー）から行う。
 ローカル/対話セッションから直接 BigQuery Python client や `DATABASE_URL` を叩く運用は
 想定していない（資格情報を対話セッションに置かないため）。
 
@@ -64,6 +65,17 @@ Issue に調査結果・判断根拠・before/after を記録する（次回の�
   **scripts側の詳細な運用ルール（phase=manualの優先順位、rollback、production反映）は
   `manual/README.md` が正なので、そちらを読むこと。APPLY.md はそこに無い
   「スキルとしての判断ポイント」だけを補う。**
+- `9_1〜9_4` の sync scripts は `--schema public`（本番）実行時に対話確認（y/N）を
+  要求するが、`db-script-run.yml`（GitHub Actions、非対話環境）では `input()` が
+  即 `EOFError` になり実行できない。`--yes` を明示的に渡した場合のみ確認をスキップする
+  （#1383 で追加。デフォルトの対話確認は変更していない）。production 反映は
+  `args: --schema public --yes` を指定する。
+- `9_2_sync_dish_category_features.py`（および他の `9_X` sync scripts）は反映前に
+  必ず GCS（`gs://nanitabeyo-private/system/PostgreSQL/csv_export/`）へバックアップを
+  取る安全設計になっている。manual correction 専用の書き込みSAには、BigQueryの権限
+  （`roles/bigquery.jobUser` + 対象datasetの `dataEditor`）だけでなく、この GCS
+  パスへの書き込み権限（`roles/storage.objectCreator` 等）も必要（#1458 で判明・対応済み）。
+  新しい書き込みSAを作る場合はこの2種類の権限を両方付与すること。
 - feature score を変えても最終表示は同じ比率で動かない
   （`rel_score × market_salience補正 × dine_out_orderability補正 = final_score`、
   `× jitter = order_score`、2〜6枚目はさらに diversity penalty がかかる）。

@@ -52,10 +52,8 @@ input_file_path / input_file_content: --input-jsonl 等でファイル入力が�
 
 ## 3. dev sync まで
 
-`step: sync-dev`（内部で `9_2_sync_dish_category_features.py --schema dev`）を
-dry-run → 本実行の順で行う。`--schema public`（本番）はこの workflow からは
-実行できない。本番反映は `manual/README.md` の「production 反映手順」を参照し、
-別途 `db-migrate.yml` に準じた承認フローを用意してから行う。
+`script_path: .../9_2_sync_dish_category_features.py`, `args: --schema dev` を
+dry-run → 本実行の順で行う。
 
 ## 4. recommendation regression
 
@@ -87,3 +85,17 @@ BigQuery/DB への直接アクセスしか無い環境では、少なくとも
 - BigQuery / PostgreSQL dev への反映が完了したか（run_id、workflow run のリンク）
 - recommendation regression をどこまで確認できたか（できなかった場合はその理由も明記）
 - production 反映がまだの場合、それも明記する（「完了した」と書かない）
+
+## 6. production 反映
+
+dev で問題ないことを確認し、5節の記録が済んだら、`args` に
+`--schema public --dry-run --yes` → `--schema public --yes` の順で実行する。
+`--yes` を付けないと `validate_schema` の対話確認（y/N）で `input()` が
+`EOFError` になり失敗する（GitHub Actionsに標準入力が無いため）。`--yes` は
+この対話確認をスキップするだけで、他の安全策（GCSバックアップ、dry-runでの
+件数確認）は変わらない。詳細は `manual/README.md` の「production 反映手順」を参照。
+
+recommendation regression（4節）を省略したまま production へ進める判断は、
+このスキル自身では下さない。Issueのオーナー等、判断できる人間の明示的な指示が
+あった場合のみ、5節の記録に「regression未実施のまま production へ進めた」ことを
+明記した上で進める。
