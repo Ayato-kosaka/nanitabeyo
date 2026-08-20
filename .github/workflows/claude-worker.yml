@@ -346,6 +346,22 @@ jobs:
         # 実装ファイルとテストエビデンスを分離し、誤commitを防ぐ。
         run: mkdir -p /tmp/claude-artifacts
 
+      # ⚠️ 使えるツールを明示すること。既定に頼らない。
+      #
+      # 2026-08-20、書き込みワーカーが5本続けて «何もcommitせずに正常終了» した。
+      # 原因は Bash / Write / Edit / WebFetch が軒並み権限拒否されていたこと
+      # （1本で permission_denials=22。subtype=success・turns=76 で、上限でもturn切れでもない）。
+      # **ファイルを書く手段が1つも無い状態で走らせていた**ので、Claudeは作業できずに
+      # 引き返すしかなかった。
+      #
+      # Actionのバージョンはコミットで固定しているが、Actionが実行時に入れる
+      # Claude Code CLI は固定されていない。CLI側の既定（permission mode・sandbox）が
+      # 変わるとワーカーが黙って作業不能になる。ここを明示しておけば、CLIの既定が
+      # 何であっても書き込みワーカーは動く。
+      #
+      # `observe` 側は読み取り専用のままにする（あちらへは付けない）。ここで許可するのは
+      # 「runner上の作業ツリーを触る」ことだけで、GitHubへの権限は下の
+      # `additional_permissions` と job の `permissions:` が引き続き決める。
       - name: Claude Codeを実行
         id: claude
         uses: anthropics/claude-code-action@be7b93b1907a4abad570368f3c74b6fe3807510b # v1
@@ -362,6 +378,8 @@ jobs:
           claude_args: |
             --model ${{ inputs.model }}
             --max-turns ${{ inputs.max_turns }}
+            --permission-mode acceptEdits
+            --allowedTools Bash,Edit,Write,Read,Glob,Grep,TodoWrite,WebFetch,WebSearch,Task
             ${{ inputs.extra_claude_args }}
           # 使用権限をWorkflow上にも列挙し、動的promptから権限を拡張させない。
           additional_permissions: |

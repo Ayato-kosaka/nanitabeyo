@@ -592,6 +592,32 @@ mcp__github__get_job_logs  job_id=<書き込みワーカーのjob_id>  return_co
 実際は `permission_denials=7` で、成功した run のログには同じ警告が 1 行も無かった。
 **最初に `list_workflow_jobs` を見ていれば 1 本目で分かった。**
 
+### 実例: 「ファイルを書く手段が無い」ワーカーを 5 本走らせた（2026-08-20）
+
+書き込みワーカーが 5 本続けて **何も commit せずに正常終了**した。最終的に読めた診断は:
+
+```
+subtype=success is_error=false turns=76 permission_denials=22
+claude-denial: 10 tool=WebFetch parameters=[prompt, url]
+claude-denial: 12 tool=Write   parameters=[content, file_path]
+claude-denial: 13 tool=Edit    parameters=[file_path, new_string, old_string, replace_all]
+claude-denial: 17 tool=Bash    parameters=[command, dangerouslyDisableSandbox, description]
+（残りはほぼ Bash）
+```
+
+`Write` と `Edit` が拒否されている = **ファイルを書く手段が 1 つも無い状態で走らせていた**。
+Claude は作業できず、`subtype=success` のまま引き返すしかなかった。turn 切れ（150 に対して 76）でも
+利用上限でもない。
+
+対処: `claude-worker.yml` の書き込みワーカーへ `--permission-mode acceptEdits` と
+`--allowedTools` を明示した。**Action のバージョンはコミットで固定していても、Action が
+実行時に入れる Claude Code CLI は固定されていない。** CLI 側の既定（permission mode /
+sandbox）が変わると、ワーカーは黙って作業不能になる。**既定に頼らないこと。**
+
+教訓として一般化できるのは次の 1 点である。
+**「ワーカーが同じ形で 2 本続けて手ぶらで帰ってきたら、プロンプトを疑う前に権限を疑う。」**
+プロンプトを書き直して再実行しても、ツールが拒否されている限り何度でも同じ場所で止まる。
+
 ### 落ちた run はトークンをそのまま捨てる
 
 失敗した run も、Claude が動いた分のトークンは消費している。**盲目的な再実行は二重の浪費**である。
