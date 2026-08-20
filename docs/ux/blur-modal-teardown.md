@@ -471,7 +471,7 @@ map タブは **`href: null`** でタブバーに出ない。地図側の店詳�
 
 #1411 では入札の導線（ボタン / タブ / 現在の入札額 / `bid` ルートと E2E・カタログの参照）を
 すべて削除した。`__tests__/restaurantDetailRoutes.test.tsx` と
-`e2e-web/tests/review/restaurant-routes.spec.ts` に «出ないこと» のアサーションを置いてある。
+`e2e-web/tests/my-dishes/restaurant-routes.spec.ts`（#1375 で `tests/review/` から移設）に «出ないこと» のアサーションを置いてある。
 
 ### #1419 マップタブを丸ごと削除した
 
