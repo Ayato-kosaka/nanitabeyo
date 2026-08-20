@@ -27,6 +27,31 @@ function buildCdnUrlFromPath(gcsPath: string): string {
   return `https://${env.CDN_HOST}/${gcsPath}`;
 }
 
+/**
+ * #1395 `dish_media` に増える列。
+ *
+ * マイグレーション（20260819T0100）適用後に `prisma db pull` で
+ * `PrismaDishMedia` へ生えるが、それまでは型に存在しない。
+ * 生成物の再生成タイミングに実装を縛られないよう、**optional** の構造型として重ねる。
+ * 再生成後もそのまま代入互換なので、この宣言は消さなくてよい。
+ */
+type DishMediaRenderColumns = {
+  /** 'stored' | 'external_embed' */
+  render_type?: string | null;
+};
+
+/**
+ * サムネイル URL の組み立てに必要な最小限の列。
+ *
+ * #1395 サムネイルは全 provider について取り込み時に自ストレージへ保存する
+ * （統一キャッシュ方式）ので、`render_type` によらず必要な列はこの 3 つだけである。
+ */
+export type ThumbnailUrlSource = {
+  id: string;
+  thumbnail_path: string;
+  thumbnail_processing_status: string;
+};
+
 @Injectable()
 export class DishMediaAssembler {
   constructor(
@@ -126,10 +151,26 @@ export class DishMediaAssembler {
    * 画像の場合:
    *   - media_processing_status が 'completed' の場合はリサイズ済みパスの Signed URL を返す
    *   - それ以外はオリジナルパスの Signed URL を返す
+   *
+   * #1395 render_type が 'external_embed' のときは自ストレージに実体が無いので
+   * 署名 URL を作らず null を返す。`mediaUrl` は既に nullable なのでレスポンス型は壊れない。
    */
-  private getMediaUrl(dishMedia: DishMediaEntryEntity['dish_media']): {
+  private getMediaUrl(
+    dishMedia: DishMediaEntryEntity['dish_media'] & DishMediaRenderColumns,
+  ): {
     mediaUrl: string | null;
   } {
+    // #1395 external_embed は自ストレージに実体が無いので署名 URL を作らない。
+    // 表示は provider 別コンポーネントが canonical_url から行う（#1273 §14）
+    if (dishMedia.render_type === 'external_embed') {
+      return { mediaUrl: null };
+    }
+    // #1395 media_path は nullable 化される（render_type='stored' のときだけ CHECK で必須）。
+    // 万一 stored なのに欠けていたら URL を作らない
+    if (!dishMedia.media_path) {
+      return { mediaUrl: null };
+    }
+
     const status =
       dishMedia.media_processing_status as MediaProcessingStatus | null;
 
@@ -179,10 +220,12 @@ export class DishMediaAssembler {
    *
    * thumbnail_processing_status が 'completed' の場合はリサイズ済みパスを返す
    * それ以外はオリジナルパスを返す
+   *
+   * #1395 Map ピンのように `DishMediaEntry` を丸ごと組み立てない経路からも
+   * 同じ規則を使えるよう public にしてある（サムネイル URL の組み立てを 2 箇所に持たない）。
+   * ロジック自体は無改修である（サムネイルは全 provider が自ストレージ持ちのため）。
    */
-  private getThumbnailImageUrl(
-    dishMedia: DishMediaEntryEntity['dish_media'],
-  ): string {
+  public getThumbnailImageUrl(dishMedia: ThumbnailUrlSource): string {
     const status =
       dishMedia.thumbnail_processing_status as MediaProcessingStatus | null;
 

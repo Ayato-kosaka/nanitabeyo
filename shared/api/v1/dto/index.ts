@@ -43,6 +43,13 @@ export { QueryMeSavedDishCategoriesDto } from "./users/query-me-saved-dish-categ
 export { QueryMeSavedDishMediaDto } from "./users/query-me-saved-dish-media.dto";
 export { QuerySavedRestaurantsDto } from "./users/query-saved-restaurants.dto";
 export { QueryMeBlockedDishCategoriesDto } from "./users/query-me-blocked-dish-categories.dto";
+export {
+	QueryMyDishesDto,
+	MY_DISH_STATUSES,
+	MY_DISH_SORTS,
+	type MyDishStatus,
+	type MyDishSort,
+} from "./users/query-my-dishes.dto";
 export { UnblockDishCategoryParamsDto } from "./users/unblock-dish-category-params.dto";
 
 export { CreateFeedbackDto } from "./feedback/create-feedback.dto";
