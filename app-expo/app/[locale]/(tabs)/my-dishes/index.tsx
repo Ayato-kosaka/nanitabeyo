@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { CalendarDays, LayoutGrid, MapPinned, Plus } from "lucide-react-native";
+import { CalendarDays, LayoutGrid, MapPinned, Plus, SlidersHorizontal } from "lucide-react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { PrimaryButton } from "@/components/PrimaryButton";
@@ -10,6 +10,7 @@ import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import { useScreenTrace } from "@/hooks/useScreenTrace";
 import { useLocale } from "@/hooks/useLocale";
+import { MyDishesListView } from "@/features/myDishes/components/MyDishesListView";
 import i18n from "@/lib/i18n";
 
 // #1396 【設計】Map / リスト / Calendar は 3 ルートに分けず、1 ルート + `?view=` 切替にする。
@@ -63,6 +64,12 @@ export default function MyDishesScreen() {
 		router.push({ pathname: "/[locale]/auth/login", params: { locale, next: `/${locale}/my-dishes` } });
 	}, [lightImpact, locale]);
 
+	// #1396 【設計】フィルタ編集はルート（`my-dishes/filters`）へ push する。BlurModal は使わない（§8-5）
+	const handleFilterPress = useCallback(() => {
+		lightImpact();
+		router.push({ pathname: "/[locale]/(tabs)/my-dishes/filters", params: { locale } });
+	}, [lightImpact, locale]);
+
 	// #1396 【設計】旧レビュータブの投稿導線（`review-post-button`）の後継。
 	// 押下先は既存 `selectRestaurant.tsx` の移設先（店名検索は別 Sub-issue で組み替え予定、挙動不変）
 	const handleRecordPress = useCallback(() => {
@@ -81,7 +88,19 @@ export default function MyDishesScreen() {
 	return (
 		<SafeAreaView edges={["top", "bottom"]} style={styles.container} testID="my-dishes-screen">
 			<View style={styles.header}>
-				<Text style={styles.title}>{i18n.t("Tabs.myDishes")}</Text>
+				<View style={styles.titleRow}>
+					<Text style={styles.title}>{i18n.t("Tabs.myDishes")}</Text>
+					{!isGuest && (
+						<TouchableOpacity
+							testID="my-dishes-filter-button"
+							onPress={handleFilterPress}
+							style={styles.filterButton}
+							accessibilityRole="button"
+							accessibilityLabel={i18n.t("MyDishes.filters.title")}>
+							<SlidersHorizontal size={18} color="#374151" />
+						</TouchableOpacity>
+					)}
+				</View>
 				<View style={styles.viewSwitch}>
 					{MY_DISHES_VIEWS.map((v) => {
 						const Icon = VIEW_ICONS[v];
@@ -118,9 +137,13 @@ export default function MyDishesScreen() {
 						/>
 					</View>
 				) : (
-					// #1396 【設計】3 ビューの中身は本 PR のスコープ外（PR3: リスト / PR4: Map / PR5: Calendar）。
-					// ここでは view ごとに空のプレースホルダーを描き分けるだけに留める
-					<View testID={`my-dishes-${activeView}-view`} style={styles.viewPlaceholder} />
+					// #1396 【設計】ビュー切替では再取得しない（設計書 (2/2) §3-3）。3 ビューは
+					// `useMyDishesFilterStore` の `queryKey` を共有しており、切り替えても
+					// `queryKey` が変わらないので、既に読んだページをそのまま描く。
+					// Map（PR4）/ Calendar（PR5）の中身は本 PR のスコープ外。
+					<View testID={`my-dishes-${activeView}-view`} style={styles.viewPlaceholder}>
+						{activeView === "list" && <MyDishesListView />}
+					</View>
 				)}
 			</View>
 
@@ -151,11 +174,21 @@ const styles = StyleSheet.create({
 		borderBottomWidth: 1,
 		borderBottomColor: "#EEE",
 	},
+	titleRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+		marginBottom: 12,
+	},
 	title: {
 		fontSize: 18,
 		fontWeight: "700",
 		color: "#1A1A1A",
-		marginBottom: 12,
+	},
+	filterButton: {
+		padding: 8,
+		borderRadius: 8,
+		backgroundColor: "#F3F4F6",
 	},
 	viewSwitch: {
 		flexDirection: "row",
