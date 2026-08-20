@@ -788,7 +788,11 @@
 			"loginButton": "تسجيل الدخول"
 		},
 		"record": {
-			"cta": "تسجيل"
+			"cta": "تسجيل",
+			"noPhotoTitle": "إضافة صورة",
+			"noPhotoHint": "يمكنك التسجيل بدون صورة",
+			"publicReviewNotice": "سيظهر سجلك كمراجعة عامة في صفحة المطعم",
+			"postNotFoundNoPhoto": "لا يحتوي هذا السجل على صورة"
 		},
 		"filters": {
 			"title": "التصفية والترتيب",
