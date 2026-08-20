@@ -177,8 +177,6 @@ export const PRELOAD_IMAGES = [
 	...TUTORIAL_PAGES.map((page) => page.image),
 	// アプリアイコン画像
 	require("@/assets/images/icon.webp"),
-	// レビュー機能のヒーロー画像
-	require("@/features/review/assets/review-hero.webp"),
 	// Apple アイコン画像
 	require("@/assets/images/logo_apple_icon.png"),
 	// Google アイコン画像

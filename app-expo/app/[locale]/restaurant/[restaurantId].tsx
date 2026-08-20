@@ -45,7 +45,8 @@ export default function RestaurantDetailScreen() {
 	 * 残っているので、URL に出ていない画面内 state ごと復帰できる）。
 	 * 履歴が無い着地（URL 直リンク / リロード / UI カタログの直遷移）だけが例外で、そこは
 	 * 戻る先が存在しないため `router.back()` が «何も起きない行き止まり» になる。
-	 * レビュータブへ倒すのは、この画面が置かれているスタックの根がそこだから。
+	 * #1396 【設計】倒す先はレビュータブから my-dishes タブへ差し替わった
+	 * （この画面が置かれているスタックの根がそこだから）。
 	 */
 	const handleBack = useCallback(() => {
 		lightImpact();
@@ -53,7 +54,7 @@ export default function RestaurantDetailScreen() {
 			router.back();
 			return;
 		}
-		router.replace({ pathname: "/[locale]/(tabs)/review", params: { locale } });
+		router.replace({ pathname: "/[locale]/(tabs)/my-dishes", params: { locale } });
 	}, [lightImpact, locale]);
 
 	// #644 【設計】restaurant.id でレストラン詳細を取得（ストアキャッシュ優先）

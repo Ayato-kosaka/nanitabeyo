@@ -31,8 +31,8 @@ export default function ReviewScreen() {
 	// （ReviewForm 側の ref 化が失われた場合に）effect が張り替わって選択結果が捨てられる。多層防御。
 	const handleReviewSuccess = useCallback(
 		({ dishReviewId }: { dishReviewId: string }) => {
-			// /review までスタックを掃除（なければ現在画面を /review に置き換え）
-			router.dismissTo(`/${locale}/(tabs)/review`);
+			// /my-dishes までスタックを掃除（なければ現在画面を /my-dishes に置き換え）
+			router.dismissTo(`/${locale}/(tabs)/my-dishes`);
 			router.push({
 				pathname: `/[locale]/post/[id]`,
 				params: {
