@@ -191,11 +191,19 @@ rubric 修正（例: `866_dining_pace/dining_pace_prompt.md` の更新）とセ�
 ## GitHub Actions（`db-script-run.yml`）
 
 `DATABASE_URL` や GCP サービスアカウント資格情報をローカル/対話セッションに置かない運用のため、
-insert / merge / 9_2 sync dev は `.github/workflows/db-script-run.yml` の
+insert / merge / 9_2 sync（dev・public とも）は `.github/workflows/db-script-run.yml` の
 workflow_dispatch から実行する。このworkflowは特定のスクリプト専用ではなく、
-`scripts/` 配下の Python スクリプトを `script_path` + `args` で指定して実行する汎用ランナー
-（`secrets.GCP_SA_KEY` / `secrets.POSTGRES_DATABASE_URL` を使う点は
-`db-migrate.yml` / `pg-table-export.yml` 等の既存workflowと同じ）。
+`scripts/` 配下の Python スクリプトを `script_path` + `args` で指定して実行する汎用ランナー。
+
+BigQuery 認証は、4本のworkflowで共用されている静的キー `secrets.GCP_SA_KEY` ではなく、
+`error-triage.yml` と同じ WIF（`google-github-actions/auth`）方式で、このworkflow専用の
+`feature-correction-writer@food-scroll.iam.gserviceaccount.com`（`secrets.GCP_WIF_PROVIDER` +
+`secrets.GCP_FEATURE_CORRECTION_SERVICE_ACCOUNT`）を使う（#1458）。このSAには
+`roles/bigquery.jobUser`（プロジェクト）と `wikidata_food_graph` データセットのみへの
+`roles/bigquery.dataEditor` に加えて、`9_X` sync scripts が反映前に必ず行う GCS バックアップ
+（`gs://nanitabeyo-private/system/PostgreSQL/csv_export/`）のための
+`roles/storage.objectCreator`（同バケットの当該prefixへの条件付き付与）も必要。
+PostgreSQL 側は `secrets.POSTGRES_DATABASE_URL`（`db-migrate.yml` 等と共通）を使う。
 
 ```text
 script_path: scripts/20251213T0000_wikidata_food_graph/581_relevance_scoring/manual/1_insert_feature_scores.py
@@ -208,13 +216,16 @@ input_file_content: |
 
 `2_merge_feature_scores.py` を実行する場合は `input_file_path` / `input_file_content` は不要で、
 `args` に `--run-id <id> --dry-run`（確認後 `--apply`）を渡すだけでよい。
-`9_2_sync_dish_category_features.py` を実行する場合は
-`script_path: scripts/20251213T0000_wikidata_food_graph/9_2_sync_dish_category_features.py`、
-`args: --schema dev --dry-run`（確認後 `--schema dev`）を渡す。
-`--schema public`（本番）を指定すること自体はこのworkflowでは止めていないが、
-`validate_schema(require_confirmation=True)` が対話入力を要求するため、
-CI上では標準入力が無く失敗する。本番反映は別途 `db-migrate.yml` 相当の承認フローを
-用意し、非対話で完了できるようにしてから行うこと。
+`9_1〜9_4` の sync scripts を実行する場合は
+`script_path: scripts/20251213T0000_wikidata_food_graph/9_2_sync_dish_category_features.py`
+（他の`9_X`も同様）、`args: --schema dev --dry-run`（確認後 `--schema dev`）を渡す。
+
+`--schema public`（本番）は `validate_schema(require_confirmation=True)` により既定で
+対話確認（y/N）を要求するが、GitHub Actions には標準入力が無いため `input()` が即
+`EOFError` になり実行できない。明示的に `--yes` を渡した場合のみこの確認をスキップする
+（例: `args: --schema public --dry-run --yes` → `args: --schema public --yes`）。
+`--yes` を付けなければ従来どおり対話確認が必須のままなので、誤って `public` を
+指定しただけでは実行されない。
 
 まず `args` に `--dry-run` を付けて実行して出力（Job Summary / ログ）を確認し、
 問題なければ `--dry-run` を外して（`2_merge_feature_scores.py` は `--apply` に差し替えて）
@@ -258,12 +269,18 @@ python3 scripts/20251213T0000_wikidata_food_graph/9_2_sync_dish_category_feature
 
 1. dev で `9. API / recommendation の accuracy regression` を通し、問題がないことを確認する
 2. Issue に before/after・判断根拠を記録する（このrunbookの受入条件）
-3. `9_2_sync_dish_category_features.py --schema public` を実行する
-   （このリポジトリでは `public` = 本番。実行は対話確認 `y` の入力を要求される。
-   `manual-feature-correction.yml` の `step: sync-dev` は public を意図的にサポートしない。
-   本番反映は `db-migrate.yml` に準じた承認フロー・別途の workflow を用意してから行うこと。
-   BigQuery `dish_category_features_catalog` 自体は dev/public で分かれていない
-   （catalog は共通の採用版）ため、BigQuery側のMERGEは dev/prod 反映より前に完了している）
+3. `db-script-run.yml` で `script_path: .../9_2_sync_dish_category_features.py`、
+   `args: --schema public --dry-run --yes` を実行し、件数が期待どおりか確認する
+4. 問題なければ同じ `script_path` で `args: --schema public --yes` を実行する
+   （`--yes` を付けないと対話確認で `EOFError` になり失敗する。GCSバックアップ→
+   全削除→全INSERTという安全策自体は dev と同じ）
+   （このリポジトリでは `public` = 本番。BigQuery `dish_category_features_catalog`
+   自体は dev/public で分かれていない（catalog は共通の採用版）ため、
+   BigQuery側のMERGEは dev/prod 反映より前に完了している）
+
+recommendation regression（手順1）を省略したまま production へ進めるのは、
+Issueのオーナー等、判断できる人間の明示的な指示がある場合に限る。その場合も
+「regression未実施のまま反映した」ことを Issue に明記すること。
 
 ## recommendationへの影響確認
 
