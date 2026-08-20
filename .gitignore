@@ -69,5 +69,6 @@ e2e-mobile/.detox-ci-logs/
 # スクラッチパッドに置くと権限クラシファイアに拒否されるためリポジトリ配下に置くが、
 # コミットはしない（SKILL.md「呼び出し方には、通る形と通らない形がある」）。
 .claude/skills/ec2-chrome-operate/remote-run.local.sh
+.claude/skills/ec2-chrome-operate/remote-run.local.sh.body
 .claude/skills/ec2-chrome-operate/chunks/
 .claude/skills/ec2-chrome-operate/chunks_hold/
