@@ -1,0 +1,264 @@
+/*
+#1451 【設計】店舗選択 → 店詳細 «ルート» の結び目を固定する。
+
+## なぜ必要か
+遷移先（`app/[locale]/restaurant/[restaurantId].tsx`）は `useRestaurantStore` の
+キャッシュ優先で描く。この画面は `POST v1/restaurants` /
+`GET v1/users/me/saved-restaurants` の応答として **店の実体をすでに持っている**ので、
+push より先にストアへ入れておけば遷移先は API を引かずに即描ける。
+逆順にすると、遷移先のマウント時点ではストアが空なので `GET v1/restaurants/:id` を
+1 本余計に叩き、その間ローディングが出る。**順序を入れ替えると赤くなる**ようにしてある。
+
+## この検査が無かった経緯（同じ轍を踏まないために）
+同じ不変条件は `__tests__/mapRestaurantRoute.test.tsx` が持っていたが、**あれは地図タブ側
+だけを見ていた**。その地図タブは `_layout.tsx` で `href: null` ＝ 本番から到達不能で、
+#1419 で丸ごと削除した。**到達可能なこの画面は、最初から 1 度も守られていなかった。**
+
+「到達不能な側にだけ検査が付いている」は #1411 / #1418 と同じ形の見落としである
+（`docs/ux/blur-modal-teardown.md` の «#1419 マップタブを丸ごと削除した» を参照）。
+
+## 4 経路すべてを見る
+`upsert → push` は 1 箇所ではなく **4 箇所**にある。1 つだけ直しても他が壊れうるので全部固定する。
+
+| 経路 | ハンドラ |
+| --- | --- |
+| 地図の POI 押下（＝ Place から店を作る） | `createAndOpenRestaurant` |
+| 保存した店のマーカー押下（アクティブなものをもう一度） | `handleSavedRestaurantMarkerPress` |
+| 保存した店のカード押下 | `handleSavedRestaurantCardPress` |
+| 保存した店の「写真・動画を投稿」 | `handleSavedRestaurantReviewPress` |
+
+## 方針
+`router.push` と `useRestaurantStore.upsert` の «呼び出し順» を 1 本の列で観測する。
+周辺（地図・位置情報・シート・画像）はすべてスタブへ落とす。
+
+`app/` 配下に置いたテストは expo-router がルートとして拾ってしまうため、ここに置いている。
+*/
+import React, { act } from "react";
+import TestRenderer from "react-test-renderer";
+
+/** push と upsert の «呼び出し順» を 1 本の列で観測する（この 2 つの順序が検証対象） */
+const callOrder: string[] = [];
+const mockPush = jest.fn((_href: unknown) => {
+	callOrder.push("push");
+});
+const mockUpsert = jest.fn((_entry: unknown) => {
+	callOrder.push("upsert");
+});
+
+// ⚠️ スタブ本体をファクトリの «外» に置かないこと。import 文はこのファイルの const 宣言より前へ
+// 巻き上げられるため、ファクトリが走る時点では外の変数がまだ undefined になる
+// （loginEntryPoints.test.tsx と同じ注意）
+jest.mock("expo-router", () => {
+	const stub = {
+		push: (href: unknown) => mockPush(href),
+		replace: () => {},
+		back: () => {},
+		canGoBack: () => true,
+	};
+	return {
+		router: stub,
+		useRouter: () => stub,
+		useLocalSearchParams: () => ({}),
+		useGlobalSearchParams: () => ({}),
+		useFocusEffect: () => {},
+		useNavigation: () => ({ addListener: () => () => {} }),
+	};
+});
+
+jest.mock("@/stores/useRestaurantStore", () => ({
+	useRestaurantStore: { getState: () => ({ upsert: (entry: unknown) => mockUpsert(entry), getById: () => undefined }) },
+}));
+
+jest.mock("@/hooks/useLocale", () => ({ useLocale: () => ({ locale: "ja-JP", isJapanese: false }) }));
+jest.mock("@/hooks/useHaptics", () => ({
+	useHaptics: () => ({ lightImpact: jest.fn(), mediumImpact: jest.fn() }),
+}));
+jest.mock("@/hooks/useLogger", () => ({ useLogger: () => ({ logFrontendEvent: jest.fn() }) }));
+jest.mock("@/contexts/SnackbarProvider", () => ({ useSnackbar: () => ({ showSnackbar: jest.fn() }) }));
+jest.mock("@/lib/i18n", () => ({ __esModule: true, default: { t: (key: string) => key } }));
+
+const mockCallBackend = jest.fn();
+jest.mock("@/hooks/useAPICall", () => ({
+	useAPICall: () => ({ callBackend: mockCallBackend }),
+	ApiError: class ApiError extends Error {},
+}));
+jest.mock("@/hooks/useLocationSearch", () => ({
+	useLocationSearch: () => ({
+		getLocationDetails: jest.fn(),
+		// マウント時 effect が現在地の周辺検索まで走り、保存した店のマーカーが描かれるところまで進む
+		getCurrentLocation: () => Promise.resolve({ location: { latitude: 35, longitude: 139 } }),
+	}),
+}));
+jest.mock("@/components/MapView", () => {
+	const ReactActual = jest.requireActual("react");
+	const { View: RNView } = jest.requireActual("react-native");
+	return {
+		__esModule: true,
+		// POI 押下（onPoiClick）をテストから起動できるよう、ハンドラを testID 付きで露出する
+		default: ReactActual.forwardRef(
+			(
+				{ children, onPoiClick }: { children?: React.ReactNode; onPoiClick?: (event: unknown) => void },
+				_ref: unknown,
+			) => ReactActual.createElement(RNView, { testID: "map-view", onPress: onPoiClick }, children),
+		),
+	};
+});
+jest.mock("react-native-maps", () => ({ __esModule: true, default: () => null }));
+jest.mock("@/features/mapMarkers", () => {
+	const ReactActual = jest.requireActual("react");
+	const { View: RNView } = jest.requireActual("react-native");
+	return {
+		// マーカーは「押せる何か」としてだけ必要。押下ハンドラを testID 付きで露出する
+		AvatarBubbleMarker: ({ onPress }: { onPress?: () => void }) =>
+			ReactActual.createElement(RNView, { testID: "map-marker", onPress }),
+	};
+});
+// シートの中身は要らない。カード押下 / 投稿ボタン押下の 2 経路だけを押せる形で露出する
+jest.mock("@/features/restaurantPicker/components/SavedRestaurantsSheet", () => {
+	const ReactActual = jest.requireActual("react");
+	const { View: RNView } = jest.requireActual("react-native");
+	return {
+		SavedRestaurantsSheet: ReactActual.forwardRef(
+			(
+				{
+					savedRestaurants,
+					onRestaurantCardPress,
+					onRestaurantReviewPress,
+				}: {
+					savedRestaurants: { restaurant: { id: string } }[];
+					onRestaurantCardPress?: (r: { restaurant: { id: string } }) => void;
+					onRestaurantReviewPress?: (r: { restaurant: { id: string } }) => void;
+				},
+				ref: { current?: unknown },
+			) => {
+				ReactActual.useImperativeHandle(ref, () => ({ present: () => {}, dismiss: () => {} }));
+				const first = savedRestaurants?.[0];
+				return ReactActual.createElement(
+					RNView,
+					null,
+					ReactActual.createElement(RNView, {
+						key: "card",
+						testID: "saved-restaurant-card",
+						onPress: () => first && onRestaurantCardPress?.(first),
+					}),
+					ReactActual.createElement(RNView, {
+						key: "review",
+						testID: "saved-restaurant-review",
+						onPress: () => first && onRestaurantReviewPress?.(first),
+					}),
+				);
+			},
+		),
+	};
+});
+jest.mock("@/components/LocationAutocomplete", () => ({ LocationAutocomplete: () => null }));
+jest.mock("@/components/PrimaryButton", () => ({ PrimaryButton: () => null }));
+jest.mock("@/components/LoadingIndicator", () => ({ LoadingIndicator: () => null }));
+jest.mock("@/components/ScreenHeader", () => ({ ScreenHeader: () => null }));
+jest.mock("lucide-react-native", () => new Proxy({}, { get: () => () => null }));
+
+import SelectRestaurantScreen from "../app/[locale]/(tabs)/my-dishes/select-restaurant";
+
+(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+
+const RESTAURANT_ID = "restaurant-42";
+const SAVED = {
+	restaurant: { id: RESTAURANT_ID, name: "テスト食堂", latitude: 35, longitude: 139, imageUrls: undefined },
+	meta: { averageRating: 4.2, reviewCount: 12, totalCents: 0, maxEndDate: null },
+};
+/** POI 押下で作られる店（`POST v1/restaurants` の応答） */
+const CREATED = { restaurant: SAVED.restaurant, meta: SAVED.meta };
+
+const mountedTrees: TestRenderer.ReactTestRenderer[] = [];
+const render = async (element: React.ReactElement) => {
+	let tree!: TestRenderer.ReactTestRenderer;
+	await act(async () => {
+		tree = TestRenderer.create(element);
+	});
+	mountedTrees.push(tree);
+	return tree;
+};
+
+afterEach(async () => {
+	await act(async () => {
+		mountedTrees.splice(0).forEach((tree) => tree.unmount());
+	});
+});
+
+/** 指定 testID の要素を押す（引数はハンドラへそのまま渡す） */
+const press = async (tree: TestRenderer.ReactTestRenderer, testID: string, arg?: unknown): Promise<void> => {
+	const target = tree.root.find((node) => node.props?.testID === testID);
+	await act(async () => {
+		await target.props.onPress(arg);
+	});
+};
+
+beforeEach(() => {
+	callOrder.length = 0;
+	mockCallBackend.mockReset();
+	// 保存した店の検索（GET）は { data } を、店の作成（POST v1/restaurants）は単体を返す
+	mockCallBackend.mockImplementation((path: string) =>
+		Promise.resolve(path === "v1/restaurants" ? CREATED : { data: [SAVED] }),
+	);
+});
+
+describe("#1451 店舗選択から店詳細へ push する 4 経路", () => {
+	/*
+	⚠️ アサーションは «push されたこと» ではなく **`["upsert", "push"]` という列**に置くこと。
+	push だけを見ていると、順序を入れ替えても緑のままになる（それが今まさに無防備だった形）。
+	*/
+	it("地図の POI 押下: 店を作ってから upsert → push の順で遷移する", async () => {
+		const tree = await render(<SelectRestaurantScreen />);
+
+		await press(tree, "map-view", {
+			nativeEvent: { placeId: "place-1", name: "テスト食堂", coordinate: { latitude: 35, longitude: 139 } },
+		});
+
+		expect(mockCallBackend).toHaveBeenCalledWith("v1/restaurants", expect.objectContaining({ method: "POST" }));
+		expect(callOrder).toEqual(["upsert", "push"]);
+		expect(mockPush).toHaveBeenCalledWith({
+			pathname: "/[locale]/restaurant/[restaurantId]",
+			params: { locale: "ja-JP", restaurantId: RESTAURANT_ID },
+		});
+	});
+
+	it("保存した店のカード押下: upsert → push の順で遷移する", async () => {
+		const tree = await render(<SelectRestaurantScreen />);
+
+		await press(tree, "saved-restaurant-card");
+
+		expect(callOrder).toEqual(["upsert", "push"]);
+		expect(mockPush).toHaveBeenCalledWith({
+			pathname: "/[locale]/restaurant/[restaurantId]",
+			params: { locale: "ja-JP", restaurantId: RESTAURANT_ID },
+		});
+	});
+
+	it("保存した店の「写真・動画を投稿」: upsert → push の順で投稿フォームへ進む", async () => {
+		const tree = await render(<SelectRestaurantScreen />);
+
+		await press(tree, "saved-restaurant-review");
+
+		expect(callOrder).toEqual(["upsert", "push"]);
+		expect(mockPush).toHaveBeenCalledWith(
+			expect.objectContaining({
+				pathname: "/[locale]/restaurant/[restaurantId]/review",
+			}),
+		);
+	});
+
+	/*
+	マーカーは «2 度押し» が仕様である。1 度目はアクティブにするだけで遷移しない
+	（シートのスクロールを同期させるため）。ここを 1 度目で遷移させると、
+	地図を触っただけで画面が飛ぶ。
+	*/
+	it("保存した店のマーカー押下: 1 度目は遷移せず、2 度目に upsert → push する", async () => {
+		const tree = await render(<SelectRestaurantScreen />);
+
+		await press(tree, "map-marker");
+		expect(callOrder).toEqual([]);
+
+		await press(tree, "map-marker");
+		expect(callOrder).toEqual(["upsert", "push"]);
+	});
+});

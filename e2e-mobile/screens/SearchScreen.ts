@@ -367,7 +367,6 @@ export class SearchScreen {
 	}
 
 	/**
-<<<<<<< HEAD
 	 * 場所入力欄をタップしてフォーカスを与える（#528）。
 	 *
 	 * `typeLocation()` から入力操作だけを切り離したもの。`LocationAutocomplete` は

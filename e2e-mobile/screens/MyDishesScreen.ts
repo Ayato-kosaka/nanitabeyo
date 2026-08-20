@@ -55,6 +55,39 @@ export class MyDishesScreen {
 	/** 記録 CTA（testID: my-dishes-record-button）。タップで SelectRestaurantScreen へ遷移 */
 	readonly recordButton = by.id("my-dishes-record-button");
 
+	// ── #1397 Map のピン → 料理メディア Sheet → 全画面 Feed（定義のみ） ──────────────
+	/**
+	 * ⚠️ **ここから下は定義のみで、まだ spec から使っていない。**
+	 *
+	 * Detox には Playwright の `page.route()` に相当する «API を差し替える» 仕組みが無く、
+	 * この導線はテストアカウントの実データ（どの店に何件の記録があるか）に丸ごと依存する。
+	 * 実データは変動するので、Detox 側で「ピンをタップして Sheet を開く」を書くと
+	 * **落ちるときに «実装が壊れた» のか «データが変わった» のか区別できない**テストになる。
+	 * e2e-mobile の my-dishes がゲスト向けだけに留まっているのと同じ理由である
+	 * （`tests/my-dishes/my-dishes-guest.test.ts` のスコープ）。
+	 *
+	 * web 側の証跡は `e2e-web/tests/authenticated/my-dishes-sheet-feed.spec.ts` が持つ。
+	 * native で固定するときは、記録を作る `@mutation` 相当のセットアップとセットで書くこと。
+	 */
+	/** Map の店舗ピン（`MyDishesMapView.tsx`。同一店舗につき 1 つ） */
+	readonly mapPin = by.id("my-dishes-map-pin");
+	/** 料理メディア Sheet 本体（`MyDishesRestaurantSheet.tsx`） */
+	readonly sheet = by.id("my-dishes-sheet");
+	/** Sheet のヘッダ（店名タップで店舗詳細へ） */
+	readonly sheetTitle = by.id("my-dishes-sheet-title");
+	/** Sheet の行。動的 testID は作らないので `atIndex()` で指す（#1396 §6-1） */
+	readonly sheetItem = by.id("my-dishes-sheet-item");
+	/** Sheet の「全画面で見る」 */
+	readonly sheetExpand = by.id("my-dishes-sheet-expand");
+	/** 全画面 Feed（`app/[locale]/(tabs)/my-dishes/feed.tsx`） */
+	readonly feedScreen = by.id("my-dishes-feed-screen");
+	/** 全画面 Feed の閉じるボタン */
+	readonly feedCloseButton = by.id("my-dishes-feed-close-button");
+	/** contextual filter chips の帯（#1397 PR5） */
+	readonly feedChipsBar = by.id("my-dishes-feed-chips");
+	/** chip 1 つ 1 つ。`atIndex()` で指す（同上） */
+	readonly feedChip = by.id("my-dishes-feed-chip");
+
 	// ── レビュー投稿フォーム（#1031 B6: 定義のみ。`ReviewForm.tsx` 由来、認証済み専用） ──────
 	/** レビュー本文入力欄（`ReviewForm.tsx:578`） */
 	readonly commentInput = by.id("review-comment-input");

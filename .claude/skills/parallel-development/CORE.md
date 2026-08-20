@@ -536,6 +536,106 @@ dispatchしたrunが `pending` のまま動かないときは、ランナー不�
 
 ## 失敗と再実行
 
+### ⚠️ 「ワーカーが落ちた」の 9 割は「Claude が commit せずに正常終了した」である
+
+**まずここを読む。`::error::` の 1 行だけを見て原因を決めない。**
+
+`claude-worker.yml` の失敗の大半は、最後から 2 番目のステップ
+**「commit・pushされたことを検証」** で落ちている。このステップが落ちたということは:
+
+- **「Claude Codeを実行」ステップは `success` で終わっている**（死んでいない）
+- 実行前後で HEAD が変わらなかった = **Claude が何も commit しなかった**
+
+つまり «ワーカーが落ちた» のではなく «ワーカーが手ぶらで帰ってきた» である。
+ここを取り違えると、直すべき場所（プロンプト・権限）ではなく、関係の無い場所
+（利用上限・再実行のタイミング）を疑い続けることになる。
+
+### 診断は 3 つの数字で機械的にやる
+
+再実行する前に、**必ず**次を取る。
+
+```
+mcp__github__actions_list  method=list_workflow_jobs  resource_id=<run_id>
+  → どのステップが failure か。「Claude Codeを実行」自体が success なら上記のケース
+  → 「Claude Codeを実行」の所要時間も見る
+mcp__github__get_job_logs  job_id=<書き込みワーカーのjob_id>  return_content=true  tail_lines=120
+  → `claude-summary: subtype=... turns=... permission_denials=...` の行
+  → `claude-denial: N tool=... parameters=[...]` の行（拒否されたツール名）
+```
+
+判定表:
+
+| 見えるもの | 意味 | 直す場所 |
+| --- | --- | --- |
+| `subtype=error_max_turns` | ターン切れ | 下の「ターン切れは…」節。**max_turnsを上げるだけでは直らない** |
+| `permission_denials>0` + `claude-denial:` にツール名 | 権限で弾かれて作業できなかった | プロンプト側でそのツールを使わせない、または `extra_claude_args` の `--allowedTools` |
+| `subtype=success` かつ `permission_denials=0` なのに commit 無し | プロンプトの不備（何をcommitすべきか伝わっていない） | プロンプトへ「push まで完了させること」を明示 |
+| ジョブが「Claude Codeを実行」の途中で failure | 本当に異常終了・認証・上限 | 認証と利用枠を確認 |
+
+**所要時間も判断材料になる。** 実装runが正常に走り切ると **15〜20分**かかる（依存install〜typecheck〜test〜push）。
+**8分前後で「commitが無い」で終わる run は、走り切っていない**（作業に入れず引き返している）合図である。
+
+### 「利用上限」と決めつけない
+
+利用上限を疑ってよいのは、**上限であることがログに出ているとき**だけである。
+次はいずれも上限の証拠にならない。
+
+- 複数の run が同じ時刻付近で落ちた（同じプロンプトの不備を共有しているだけのことが多い）
+- 所要時間が揃っている
+- 何も push されていない
+
+ワーカーは**リーダーのセッションと同じ枠**を使う。**リーダーが動いているなら枠は生きている。**
+「上限だから待つ」と判断する前に、自分のセッションが動いていないかを確かめること。
+
+実例（#1375 の作業中）: 2 本同時 dispatch → 両方 8 分で「commitが無い」で失敗。
+これを上限と誤診し、間隔を空けて 2 回再実行して**さらに 2 本無駄にした**。
+実際は `permission_denials=7` で、成功した run のログには同じ警告が 1 行も無かった。
+**最初に `list_workflow_jobs` を見ていれば 1 本目で分かった。**
+
+### 実例: 「ファイルを書く手段が無い」ワーカーを 5 本走らせた（2026-08-20）
+
+書き込みワーカーが 5 本続けて **何も commit せずに正常終了**した。最終的に読めた診断は:
+
+```
+subtype=success is_error=false turns=76 permission_denials=22
+claude-denial: 10 tool=WebFetch parameters=[prompt, url]
+claude-denial: 12 tool=Write   parameters=[content, file_path]
+claude-denial: 13 tool=Edit    parameters=[file_path, new_string, old_string, replace_all]
+claude-denial: 17 tool=Bash    parameters=[command, dangerouslyDisableSandbox, description]
+（残りはほぼ Bash）
+```
+
+`Write` と `Edit` が拒否されている = **ファイルを書く手段が 1 つも無い状態で走らせていた**。
+Claude は作業できず、`subtype=success` のまま引き返すしかなかった。turn 切れ（150 に対して 76）でも
+利用上限でもない。
+
+対処: `claude-worker.yml` の書き込みワーカーへ `--permission-mode bypassPermissions` と
+`--allowedTools` を明示した。**Action のバージョンはコミットで固定していても、Action が
+実行時に入れる Claude Code CLI は固定されていない。** CLI 側の既定（permission mode /
+sandbox）が変わると、ワーカーは黙って作業不能になる。**既定に頼らないこと。**
+
+`acceptEdits` では足りない。あれが自動承認するのは **ファイル編集だけ**で、`Bash` は確認を求める。
+非対話実行では確認する人が居ないので、確認 = 拒否である。さらに `dangerouslyDisableSandbox` の
+存在が示すとおり «サンドボックス外への昇格» という別の承認軸があり、`git push` も `pnpm install` も
+ネットワークが要るので必ずそこへ来る。`--allowedTools Bash` は «Bash というツール» を許すだけで、
+この昇格までは前もって承認できない。
+
+そして `--allowedTools Bash` を入れた時点で **任意の Bash を許している**のだから、
+`acceptEdits` と `bypassPermissions` の差は実質的にセキュリティの差ではなく信頼性の差でしかない。
+**非対話のワーカーでは、中途半端な権限モードを選ぶと «黙って何もせず帰ってくる» に倒れる。**
+影響範囲は「使い捨てランナー」「job の `permissions:`」「`CLAUDE_BRANCH` による作業ブランチ固定」の
+3 つで閉じているので、そちらで縛るのが正しい。
+
+教訓として一般化できるのは次の 1 点である。
+**「ワーカーが同じ形で 2 本続けて手ぶらで帰ってきたら、プロンプトを疑う前に権限を疑う。」**
+プロンプトを書き直して再実行しても、ツールが拒否されている限り何度でも同じ場所で止まる。
+
+### 落ちた run はトークンをそのまま捨てる
+
+失敗した run も、Claude が動いた分のトークンは消費している。**盲目的な再実行は二重の浪費**である。
+原因が「プロンプトの不備」なら、直さずに再実行しても同じ場所で止まる。
+上の表で直す場所を決めてから、1 本だけ再実行して確かめる。
+
 - 失敗ログを確認して、コード・指示・認証・利用上限・一時障害を区別する。
 - 同じrunを盲目的に繰り返さない。prompt、base ref、権限、モデル、残り作業を更新する。
 - 一時障害またはレート制限なら、重複branchやPRがないことを確認してから再実行する。

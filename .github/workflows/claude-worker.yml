@@ -346,6 +346,40 @@ jobs:
         # 実装ファイルとテストエビデンスを分離し、誤commitを防ぐ。
         run: mkdir -p /tmp/claude-artifacts
 
+      # ⚠️ 使えるツールを明示すること。既定に頼らない。
+      #
+      # 2026-08-20、書き込みワーカーが5本続けて «何もcommitせずに正常終了» した。
+      # 原因は Bash / Write / Edit / WebFetch が軒並み権限拒否されていたこと
+      # （1本で permission_denials=22。subtype=success・turns=76 で、上限でもturn切れでもない）。
+      # **ファイルを書く手段が1つも無い状態で走らせていた**ので、Claudeは作業できずに
+      # 引き返すしかなかった。
+      #
+      # Actionのバージョンはコミットで固定しているが、Actionが実行時に入れる
+      # Claude Code CLI は固定されていない。CLI側の既定（permission mode・sandbox）が
+      # 変わるとワーカーが黙って作業不能になる。ここを明示しておけば、CLIの既定が
+      # 何であっても書き込みワーカーは動く。
+      #
+      # なぜ `acceptEdits` ではなく `bypassPermissions` なのか。
+      # 拒否 22 件のうち大半は `Bash` で、1 件は `dangerouslyDisableSandbox` 付きだった。
+      #   - `acceptEdits` が自動承認するのは **ファイル編集だけ**。`Bash` は確認を求めるので、
+      #     非対話実行（確認する人が居ない）では結局すべて拒否になる。
+      #   - `dangerouslyDisableSandbox` の存在は «サンドボックス外への昇格» という
+      #     別の承認軸があることを示す。`git push` も `pnpm install` もネットワークが要るので
+      #     必ずここへ来る。`--allowedTools Bash` は «Bash というツール» を許すだけで、
+      #     この昇格までは前もって承認できない。
+      # なお `--allowedTools Bash` を入れた時点で **任意の Bash を許している**ので、
+      # `acceptEdits` との差は実質的にセキュリティの差ではなく信頼性の差でしかない。
+      # `--allowedTools` は、CLI が `--permission-mode` の綴りを変えたときの保険として残す。
+      #
+      # 影響範囲は次の 3 つで閉じている。
+      #   1. 使い捨ての GitHub ホストランナー上でしか動かない
+      #   2. GitHub 側でできることは job の `permissions:` と `additional_permissions` が決める
+      #      （ここは 1 行も緩めていない。`contents: write` は元から付いている）
+      #   3. 触れるブランチは `CLAUDE_BRANCH` で作業ブランチに固定している
+      #
+      # `observe` 側は読み取り専用のままにする（あちらへは付けない）。ここで許可するのは
+      # 「runner上の作業ツリーを触る」ことだけで、GitHubへの権限は下の
+      # `additional_permissions` と job の `permissions:` が引き続き決める。
       - name: Claude Codeを実行
         id: claude
         uses: anthropics/claude-code-action@be7b93b1907a4abad570368f3c74b6fe3807510b # v1
@@ -362,6 +396,8 @@ jobs:
           claude_args: |
             --model ${{ inputs.model }}
             --max-turns ${{ inputs.max_turns }}
+            --permission-mode bypassPermissions
+            --allowedTools Bash,Edit,Write,Read,Glob,Grep,TodoWrite,WebFetch,WebSearch,Task
             ${{ inputs.extra_claude_args }}
           # 使用権限をWorkflow上にも列挙し、動的promptから権限を拡張させない。
           additional_permissions: |
@@ -405,7 +441,12 @@ jobs:
           set -euo pipefail
           POST_SHA=$(git rev-parse HEAD)
           if [[ "$PRE_SHA" == "$POST_SHA" ]]; then
-            echo "::error::作業ブランチ '$BRANCH_NAME' に新しいcommitがありません（実行前後でHEADが変化していません）。Claude Codeが権限不足・turn切れ・その他の理由で変更を確定できなかった可能性があります。"
+            # ⚠️ 原因の切り分けに要る値をこの1行へ必ず載せること。
+            # リーダーはStep Summaryを読めない（GitHubのAPIが公開していない）ので、
+            # ここが「commitが無い」だけだと «上限» / «権限拒否» / «promptの不備» を区別できず、
+            # 同じ失敗を何度も再実行することになる（実際に4回繰り返した）。
+            # 値は summarize-claude-output.sh がGITHUB_ENVへ入れた集計値のみで、引数値は含まない。
+            echo "::error::作業ブランチ '$BRANCH_NAME' に新しいcommitがありません（実行前後でHEADが変化していません）。Claude Codeが権限不足・turn切れ・その他の理由で変更を確定できなかった可能性があります。 [subtype=${CLAUDE_SUBTYPE:-unknown} is_error=${CLAUDE_IS_ERROR:-unknown} turns=${CLAUDE_NUM_TURNS:-unknown} permission_denials=${CLAUDE_DENIALS:-unknown}] 拒否されたツール名はjobログの 'claude-denial:' 行を見ること。"
             exit 1
           fi
           echo "✓ HEADが変化: $PRE_SHA -> $POST_SHA"

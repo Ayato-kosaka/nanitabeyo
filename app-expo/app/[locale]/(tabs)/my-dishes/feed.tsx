@@ -33,9 +33,11 @@ index を URL に載せると、写真なしが 1 件混ざった瞬間に別の
 
 ## `DishMediaFeed` は 1 行も変えない（設計 (2/2) §10-1）
 
-PR5 の contextual filter chips も、このルート側のオーバーレイとして載せる方針である。
-`DishMediaFeed` を触らないことが「店舗フィード・通知フィード・投稿フィードの振る舞いが不変」
-であることの証明になる。
+PR5 の contextual filter chips も、このルート側のオーバーレイとして載せている
+（`features/myDishes/components/MyDishesFeedChips.tsx`）。現在表示中のエントリは
+`DishMediaFeed` の既存 prop `onIndexChange` で拾うだけなので、`DishMediaFeed` は 1 行も
+変わらない。これが「店舗フィード・通知フィード・投稿フィードの振る舞いが不変」であることの
+証明になる。
 */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -45,6 +47,7 @@ import { shallow } from "zustand/shallow";
 
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import DishMediaFeed from "@/features/dishMedia/components/DishMediaFeed";
+import { MyDishesFeedChips } from "@/features/myDishes/components/MyDishesFeedChips";
 import { myDishesFeedKey } from "@/features/myDishes/constants";
 import { useMyDishesRestaurantQuery } from "@/features/myDishes/hooks/useMyDishesRestaurantQuery";
 import { MY_DISHES_PAGE_SIZE, useMyDishesStore } from "@/features/myDishes/stores/useMyDishesStore";
@@ -53,7 +56,7 @@ import { useAPICall } from "@/hooks/useAPICall";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import i18n from "@/lib/i18n";
-import { selectIdsByKey, useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
+import { selectEntryByMediaId, selectIdsByKey, useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import type { QueryDishMediaByIdsDto } from "@shared/api/v1/dto";
 import type { QueryDishMediaByIdsResponse } from "@shared/api/v1/res";
 
@@ -262,6 +265,28 @@ export default function MyDishesFeedScreen() {
 		return index >= 0 ? index : 0;
 	}, [feedIds, targetMediaId]);
 
+	/**
+	 * #1397 (PR5/5) chips が読む「いま見ているエントリ」。
+	 *
+	 * `DishMediaFeed` の既存 prop `onIndexChange` で index だけを受け取り、`feedIds` を引いて
+	 * `dish_media.id` へ変換する（先例: `features/map/components/FeedDishMediaViewer.tsx` の
+	 * 「現在の index からエントリを snapshot 読みする」形）。**`DishMediaFeed` は 1 行も変えない**。
+	 *
+	 * ⚠️ 初期値を `0` にしないこと。`onIndexChange` は viewability が **変化したとき**にしか
+	 * 発火しないので（`DishMediaFeed.tsx` の `v.index === prev` ガード）、`initialIndex` の位置で
+	 * 開いてそのまま何もスワイプしなかった場合は 1 度も呼ばれない。`null` を初期値にして
+	 * 「まだ通知が来ていない間は `initialIndex` を見る」形にすると、開いた瞬間から
+	 * **実際に見ている料理**の chip が出る。
+	 *
+	 * ⚠️ `DishMediaFeed` は最初に届いた非空の ids を内部 state に固定する。ここで引いている
+	 * `feedIds` はストアの生値だが、ハイドレーション後にこのキーの ids を書き換える経路は
+	 * unmount 時の `clearByKey` しか無いので、両者は同じ並びのままである。
+	 */
+	const [viewedIndex, setViewedIndex] = useState<number | null>(null);
+	const currentIndex = viewedIndex ?? initialIndex;
+	const currentMediaId = feedIds.length > 0 ? (feedIds[Math.min(currentIndex, feedIds.length - 1)] ?? null) : null;
+	const currentEntry = useDishMediaEntriesStore(selectEntryByMediaId(currentMediaId ?? ""));
+
 	const handleClose = useCallback(() => {
 		lightImpact();
 		logFrontendEvent({
@@ -320,9 +345,23 @@ export default function MyDishesFeedScreen() {
 			</View>
 
 			{entriesKey !== null && feedIds.length > 0 ? (
-				// ⚠️ `initialIndex` は «ids が確定してから» 渡す。DishMediaFeed は最初に届いた
-				// 非空の ids で並びを固定するので、ここで描き始める時点の index が最終値になる
-				<DishMediaFeed entriesKey={entriesKey} idType="dish_media" initialIndex={initialIndex} />
+				<>
+					{/* ⚠️ `initialIndex` は «ids が確定してから» 渡す。DishMediaFeed は最初に届いた
+					    非空の ids で並びを固定するので、ここで描き始める時点の index が最終値になる */}
+					<DishMediaFeed
+						entriesKey={entriesKey}
+						idType="dish_media"
+						initialIndex={initialIndex}
+						onIndexChange={setViewedIndex}
+					/>
+					{/* #1397 (PR5/5) contextual filter chips。**`DishMediaFeed` の外側**に重ねるので、
+					    店舗フィード・通知フィード・投稿フィードの振る舞いは一切変わらない（§10-1） */}
+					<View
+						style={{ ...styles.chipsContainer, top: Platform.OS === "ios" ? 40 : 0 }}
+						pointerEvents="box-none">
+						<MyDishesFeedChips entry={currentEntry} />
+					</View>
+				</>
 			) : showLoading ? (
 				<View style={styles.centered} testID="my-dishes-feed-loading">
 					<LoadingIndicator size="large" />
@@ -384,5 +423,13 @@ const styles = StyleSheet.create({
 	},
 	closeButton: {
 		padding: 12,
+	},
+	// chips の帯。閉じるボタン（zIndex: 10）と同じ高さに置き、重ならないよう
+	// chips 側で右に余白を取っている（MyDishesFeedChips.tsx の `container`）
+	chipsContainer: {
+		position: "absolute",
+		left: 0,
+		right: 0,
+		zIndex: 9,
 	},
 });

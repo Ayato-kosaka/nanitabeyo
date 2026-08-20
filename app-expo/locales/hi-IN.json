@@ -362,10 +362,6 @@
 			"million": "M",
 			"thousand": "K"
 		},
-		"menuOptions": {
-			"viewCreatorProfile": "निर्माता की प्रोफ़ाइल पर जाएँ",
-			"reservation": "आरक्षण"
-		},
 		"actions": {
 			"share": "साझा करें",
 			"seeMore": "और देखें",
@@ -506,7 +502,6 @@
 		"buttons": {
 			"postReview": "समीक्षा पोस्ट करें",
 			"postPhotoVideoReview": "फोटो/वीडियो पोस्ट करें",
-			"placeBid": "बोली लगाएं",
 			"bid": "बोली",
 			"searchNearby": "इस क्षेत्र में खोजें",
 			"openInGoogle": "Google में खोलें"
@@ -534,13 +529,11 @@
 		"labels": {
 			"endDate": "समाप्ति तिथि:",
 			"paymentProcessing": "भुगतान प्रसंस्करण...",
-			"currentBidAmount": "वर्तमान बोली राशि",
 			"restaurant": "रेस्टोरेंट",
 			"dishCategory": "व्यंजन श्रेणी"
 		},
 		"tabs": {
-			"reviews": "समीक्षाएँ",
-			"bids": "बोली"
+			"reviews": "समीक्षाएँ"
 		},
 		"emptyState": {
 			"noBidsForStatus": "चयनित स्थिति के लिए कोई बोली नहीं"
@@ -693,9 +686,7 @@
 	"auth": {
 		"login_title": "लॉग इन करें",
 		"create_title": "खाता बनाएं",
-		"field_phone": "फोन",
 		"field_name": "नाम",
-		"hint_sms": "हम आपको लॉग इन करने के लिए SMS के माध्यम से एक वन-टाइम कोड भेजेंगे।",
 		"btn_login": "लॉग इन करें",
 		"btn_create": "खाता बनाएं",
 		"divider_or": "या इसके साथ साइन इन करें",
@@ -704,13 +695,8 @@
 		"provider_facebook": "Facebook",
 		"provider_twitter": "Twitter",
 		"provider_apple": "Apple",
-		"otp_title": "कोड दर्ज करें",
-		"otp_resending": "कोड दोबारा भेजा जा रहा है...",
-		"otp_send_again": "कोड पुनः भेजें",
-		"otp_enter_all_digits": "कृपया सभी 6 अंक दर्ज करें",
 		"login_success": "सफलतापूर्वक लॉग इन हो गया!",
 		"error_required": "यह फ़ील्ड आवश्यक है",
-		"error_invalid_phone": "अमान्य फोन नंबर",
 		"tos_link_text": "सेवा की शर्तें",
 		"existing_account_checkbox": "क्या आपके पास पहले से खाता है?",
 		"conflict_dialog_title": "मौजूदा खाता मिला",
@@ -872,6 +858,15 @@
 			"expand": "फ़ुल स्क्रीन में देखें",
 			"seeAllInList": "सूची में सब देखें",
 			"noPhotoHint": "इस रिकॉर्ड में फ़ोटो नहीं है। टैप करने पर रेस्टोरेंट पेज खुलेगा।"
+		},
+		"feed": {
+			"chips": {
+				"filterCategory": "{{name}} से फ़िल्टर करें",
+				"filterStatusEaten": "«खा लिया» से फ़िल्टर करें",
+				"filterStatusWant": "«खाना है» से फ़िल्टर करें",
+				"filterMinRating": "{{count}} स्टार और ऊपर से फ़िल्टर करें",
+				"applied": "फ़िल्टर अपडेट हो गए"
+			}
 		},
 		"searchThisArea": "इस क्षेत्र में फिर खोजें"
 	}
