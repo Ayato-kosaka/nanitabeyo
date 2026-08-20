@@ -162,31 +162,32 @@ def fetch_existing_run_keys(client: bigquery.Client, run_id: str) -> set:
 def fetch_current_catalog_scores(
     client: bigquery.Client, keys: List[tuple]
 ) -> Dict[tuple, Dict[str, Any]]:
-    """(item_qid, feature_type, feature_key) をキーに、現行 catalog の score/run_id/source を返す。"""
+    """(item_qid, feature_type, feature_key) をキーに、現行 catalog の score/run_id/source を返す。
+
+    google-cloud-bigquery の ArrayQueryParameter は STRUCT 要素型を素の dict では
+    受け付けない（400 Invalid value for type: STRUCT<...> is not a valid value）ため、
+    item_qid だけを配列パラメータで絞り込み、(feature_type, feature_key) の一致は
+    Python側でフィルタする。manual correctionは少数件のバッチが前提のため、
+    この程度の絞り込み不足は問題にならない。
+    """
     if not keys:
         return {}
+    item_qids = sorted({qid for qid, _, _ in keys})
     query = f"""
         SELECT item_qid, feature_type, feature_key, score, source, run_id, updated_at
         FROM `{CATALOG_FEATURES_TABLE}`
-        WHERE (item_qid, feature_type, feature_key) IN (
-            SELECT AS STRUCT * FROM UNNEST(@keys)
-        )
+        WHERE item_qid IN UNNEST(@qids)
     """
-    struct_keys = [
-        {"item_qid": qid, "feature_type": ft, "feature_key": fk} for qid, ft, fk in keys
-    ]
     job_config = bigquery.QueryJobConfig(
-        query_parameters=[
-            bigquery.ArrayQueryParameter(
-                "keys",
-                "STRUCT<item_qid STRING, feature_type STRING, feature_key STRING>",
-                struct_keys,
-            )
-        ]
+        query_parameters=[bigquery.ArrayQueryParameter("qids", "STRING", item_qids)]
     )
+    wanted = set(keys)
     result: Dict[tuple, Dict[str, Any]] = {}
     for row in client.query(query, job_config=job_config).result():
-        result[(row.item_qid, row.feature_type, row.feature_key)] = {
+        key = (row.item_qid, row.feature_type, row.feature_key)
+        if key not in wanted:
+            continue
+        result[key] = {
             "score": row.score,
             "source": row.source,
             "run_id": row.run_id,
