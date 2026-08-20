@@ -253,7 +253,6 @@ describe("UI カタログ（匿名） @catalog", () => {
 			// 入口が無い。見た目は topicId / topicLabelEn の有無で変わらないので直リンクで撮る
 			{ id: "profile-saved-topic-location", waitForReady: true, settleMs: 1_500 },
 			{ id: "profile-blocked-topics", waitForReady: true, settleMs: 2_500 },
-			{ id: "map", waitForReady: true, settleMs: 5_000 },
 			// #1386 店舗詳細の子ルート（旧: モーダル z1100）。店舗データを読まないので
 			// ダミー id の直リンクで撮れる（catalog/screens.json の note 参照）。
 			// タブバーは下に居ないため起動完了待ちは切る。フィードは実データが要るため manual。

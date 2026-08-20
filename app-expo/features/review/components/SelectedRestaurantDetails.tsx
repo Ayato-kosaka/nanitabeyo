@@ -16,7 +16,6 @@
 map 側にしか無かったものは 1 つも落としていない:
 
 - 現在の入札額 / 残り日数の表示（`meta.maxEndDate` があるときだけ出る）
-- Google マップで開く（#1121 の openExternalUrl 経由）
 
 レビュー一覧の押下先は #1386 で «feed を挟む» へ変えたが、**#1418 で直行へ戻した**
 （下の `handleDishMediaPress` を参照）。`feed` ルート自体は残っているが、
@@ -25,7 +24,8 @@ map 側にしか無かったものは 1 つも落としていない:
 ⚠️ この画面に BlurModal / 手動 zIndex を戻さないこと。`Portal.Host` は `<Stack>` を包んでいる
 （`app/[locale]/_layout.tsx`）ので portal レイヤは常にナビゲータより «上» にある。オーバーレイを
 開いたまま push すると遷移先が下に潜って見えず触れない（#1364 で実測）。この画面が
-オーバーレイを 1 つも持たないことは `__tests__/mapRestaurantRoute.test.tsx` が固定している。
+オーバーレイを 1 つも持たないことは `__tests__/loginEntryPoints.test.tsx` が
+（react-native-paper の `<Portal>` が描かれるか否かで）固定している。
 */
 /*
 #1411 【バグ】入札の導線は **公開アプリに出してはいけない**。
@@ -44,7 +44,7 @@ map 側の店詳細は本番から到達不能で、入札の導線は事実上�
 */
 
 import React, { useState, useCallback } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, LayoutChangeEvent, Platform } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, LayoutChangeEvent } from "react-native";
 import { Camera } from "lucide-react-native";
 import { Card } from "@/components/Card";
 import Stars from "@/components/Stars";
@@ -56,9 +56,6 @@ import { Tabs } from "@/components/collapsible-tabs";
 import type { TabBarProps } from "react-native-collapsible-tab-view";
 import { useSharedValueState } from "@/hooks/useSharedValueState";
 import { useLogger } from "@/hooks/useLogger";
-import { getGoogleMapsLink } from "@/lib/googlePlaces";
-import { openExternalUrl } from "@/lib/openExternalUrl";
-import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useSafeAreaFrame } from "react-native-safe-area-context";
 import { Image } from "expo-image";
 import { getCacheKeyForImage } from "@/lib/image";
@@ -99,7 +96,6 @@ type SelectedRestaurantDetailsProps = {
 export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestaurantDetailsProps) {
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
-	const { showSnackbar } = useSnackbar();
 	const router = useRouter();
 	const { locale } = useLocale();
 	const frame = useSafeAreaFrame(); // Safe Area を除いたフレームの高さ
@@ -126,7 +122,7 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 			// このボタンは非ゲストなら投稿フォームへ進む導線なので、ゲストの `next` も同じ先へ向ければ
 			// ログイン後にそのまま投稿へ進める。店は restaurantId として URL に載るため、
 			// 履歴を持たない着地（コールドロード / web の OAuth 全画面リダイレクト）でも成立する。
-			// #1386 map から来た場合もここを通る。旧 map 実装は `next` を «地図タブ» にしていたが、
+			// #1386 旧 map 実装は `next` を «地図タブ» にしていたが（#1419 でタブごと削除）、
 			// 店が URL に載った以上、投稿フォームまで戻せるこちらの方が忠実に復帰できる
 			router.push({
 				pathname: "/[locale]/auth/login",
@@ -143,43 +139,6 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 			});
 		}
 	}, [lightImpact, logFrontendEvent, router, locale, restaurant, user]);
-
-	// #1386 旧 map 実装から移設（機能を落とさないため）
-	const handleOpenGoogleMaps = useCallback(async () => {
-		lightImpact();
-
-		logFrontendEvent({
-			event_name: "restaurant_google_maps_clicked",
-			error_level: "log",
-			payload: {
-				restaurantId: restaurant.id,
-				restaurantName: restaurant.name,
-				googlePlaceId: restaurant.google_place_id,
-			},
-		});
-
-		try {
-			const { mapUrl, canOpen } = await getGoogleMapsLink(restaurant);
-			// #1121 Web の別タブ起動は openExternalUrl へ寄せた。
-			// canOpen（Linking.canOpenURL）はネイティブのハンドラ有無の判定なので Web では見ない
-			if (Platform.OS !== "web" && !canOpen) {
-				showSnackbar(i18n.t("DishMediaContent.errors.mapOpenFailed"));
-				return;
-			}
-			await openExternalUrl(mapUrl);
-		} catch (error) {
-			showSnackbar(i18n.t("DishMediaContent.errors.mapOpenFailed"));
-			logFrontendEvent({
-				event_name: "restaurant_google_maps_open_failed",
-				error_level: "error",
-				payload: {
-					restaurantId: restaurant.id,
-					googlePlaceId: restaurant.google_place_id,
-					error: error instanceof Error ? error.message : "Unknown error",
-				},
-			});
-		}
-	}, [lightImpact, logFrontendEvent, restaurant, showSnackbar]);
 
 	/*
 	#1418 【バグ】レビュー一覧の押下は `review-from-media` へ **直行**すること。
@@ -236,35 +195,26 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 								<Text style={styles.ratingText}>{meta.averageRating}</Text>
 								<Text style={styles.reviewCount}>({meta.reviewCount})</Text>
 							</View>
-							{/* #1386 旧 map 実装から移設 */}
+							{/* #644 【設計】自分の投稿ボタン「写真・動画を投稿」
+							    ⚠️ testID は e2e（review-post / review-double-submit / ui-catalog-mutation）が見ている。
+							    #1419 意匠と位置は #1386 以前のレビュー側へ戻した（カード内・淡色アウトライン）。
+							    #1386 は入札ボタンと横並びにするためカード下のアクション行へ出していた */}
 							<PrimaryButton
-								testID="restaurant-detail-google-maps-button"
-								onPress={handleOpenGoogleMaps}
-								label={i18n.t("Map.buttons.openInGoogle")}
-								labelStyle={{ color: "#5EA2FF" }}
-								colors={["#F0F8FF", "#F0F8FF"]}
+								testID="restaurant-detail-post-photo-button"
+								onPress={handleReviewButtonPress}
+								label={i18n.t("Review.selectRestaurant.postPhotoVideo")}
+								icon={<Camera size={20} color="#F05537" />}
+								labelStyle={{ color: "#F05537" }}
+								colors={["#FDEBE7", "#FDEBE7"]}
 								shadowColor="transparent"
 								borderRadius={8}
 							/>
 						</View>
 					</View>
 				</Card>
-
-				<View style={styles.actionButtons}>
-					{/* #644 【設計】自分の投稿ボタン「写真・動画を投稿」
-					    ⚠️ testID は e2e（review-post / review-double-submit / ui-catalog-mutation）が見ている */}
-					<PrimaryButton
-						testID="restaurant-detail-post-photo-button"
-						onPress={handleReviewButtonPress}
-						label={i18n.t("Review.selectRestaurant.postPhotoVideo")}
-						icon={<Camera size={20} color="#FFF" />}
-						borderRadius={8}
-						style={{ flex: 1 }}
-					/>
-				</View>
 			</View>
 		),
-		[handleHeaderLayout, restaurant, meta, handleReviewButtonPress, handleOpenGoogleMaps],
+		[handleHeaderLayout, restaurant, meta, handleReviewButtonPress],
 	);
 
 	const renderTabBar = useCallback((props: TabBarProps<string>) => <RestaurantTabsBar {...props} />, []);
@@ -323,11 +273,6 @@ const styles = StyleSheet.create({
 	reviewCount: {
 		fontSize: 12,
 		color: "#666",
-	},
-	actionButtons: {
-		flexDirection: "row",
-		gap: 12,
-		margin: 16,
 	},
 	tabContainer: {
 		flexDirection: "row",

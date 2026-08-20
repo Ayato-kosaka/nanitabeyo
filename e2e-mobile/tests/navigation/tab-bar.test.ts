@@ -27,12 +27,10 @@ describe("タブバー(匿名ユーザー)", () => {
 	//   2. さがす/レビュー/マイページの 3 タブが表示されることを検証
 	//   3. お知らせタブ(tab-notifications)が存在しないことを検証
 	//      (app-expo/app/[locale]/(tabs)/_layout.tsx で匿名時 href: null のため非マウント)
-	//   4. マップタブ(tab-map)が存在しないことを検証(内部遷移専用の隠しルートで常時非表示)
 	it("匿名時に表示されるタブが正しい", async () => {
 		await tabBar.expectLoaded();
 		// #1031 【設計】existsNow は「待たない・分岐用」のため、確定的なアサートには waitUntilGone を使う
 		await waitUntilGone(tabBar.notificationsTab);
-		await waitUntilGone(tabBar.mapTab);
 	});
 
 	// ─ テストケース: タブ遷移で各画面が表示される ─

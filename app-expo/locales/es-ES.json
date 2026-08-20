@@ -407,13 +407,11 @@
 	"Tabs": {
 		"home": "Inicio",
 		"search": "Buscar",
-		"map": "Mapa",
 		"review": "Reseña",
 		"notifications": "Notificaciones",
 		"profile": "Perfil",
 		"labels": {
 			"search": "Buscar",
-			"map": "Mapa",
 			"review": "Reseña",
 			"notifications": "Notificaciones",
 			"profile": "Perfil"

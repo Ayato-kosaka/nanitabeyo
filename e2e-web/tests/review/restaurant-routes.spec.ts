@@ -29,33 +29,39 @@ import {
  * ルーティングの検証はモックで閉じる。実データを通す経路は
  * `tests/authenticated/review-post.spec.ts` と `tests/catalog/ui-catalog-mutation.spec.ts` が持つ。
  *
- * ## 地図からの導線はここでは見ない
- * 地図（`/[locale]/map`）のマーカー押下は、ヘッドレスブラウザに位置情報が無く初期表示の中心が
- * 決まらないため到達できない（`catalog/screens.json` の map の note と同じ理由）。
- * 「地図が upsert してから push する」ことは app-expo の `__tests__/mapRestaurantRoute.test.tsx` が
- * 呼び出し順ごと固定している。
+ * ## 店舗選択からの導線はここでは見ない
+ * 店舗選択（`/[locale]/review/selectRestaurant`）のマーカー押下は、ヘッドレスブラウザに
+ * 位置情報が無く初期表示の中心が決まらないため到達できない。
+ * ⚠️ あの画面の «ストアへ upsert してから push する» 順序は、#1419 で地図タブを消した時点で
+ * どのテストにも守られていない（旧 `__tests__/mapRestaurantRoute.test.tsx` は地図側だけを見ていた）。
  */
 test.describe("店舗詳細のルート（#1386）", () => {
 	// ─ テストケース: 店舗詳細へ直リンクで到達できる ─
 	// 手順:
 	//   1. 店舗取得 API をモックして /ja-JP/review/restaurant/<id> へ直接遷移する
-	//   2. URL が店舗詳細のままで、タイトルと 3 つの導線が表示されることを検証
-	test("直リンクで開き、統合後の 2 導線が出る（入札は出ない）", async ({ appPage }) => {
+	//   2. URL が店舗詳細のままで、タイトルと投稿導線が出ることを検証
+	//   3. 地図タブから持ち込んだ 2 つ（入札 / Google マップ）が **出ない** ことを検証
+	test("直リンクで開き、投稿導線だけが出る（入札と Google マップは出ない）", async ({ appPage }) => {
 		const detailPage = new RestaurantDetailPage(appPage);
 		await mockRestaurantDetail(appPage);
 
 		await detailPage.goto();
 		await detailPage.expectOpened();
 
-		// #1386 統合で «地図側にしか無かった» Google マップがレビュー側の投稿ボタンと同じ画面に並ぶ
 		await expect(detailPage.postPhotoButton).toBeVisible();
-		await expect(detailPage.googleMapsButton).toBeVisible();
 		await expect(appPage.getByText(MOCK_RESTAURANT_NAME)).toBeVisible();
 
-		// #1411 【バグ】入札の導線は決済が未実装なので **出してはいけない**。
-		// #1386 の統合で地図側から «機能を落とさない» つもりで持ち込んだが、地図タブは
-		// `href: null` で到達不能だったため、これは復活であって移設ではなかった。
+		/*
+		#1386 の統合で、到達不能だった地図タブ（`href: null`）から «機能を落とさない» つもりで
+		2 つ持ち込んだ。どちらも移設ではなく «公開» であり、#1419 で地図タブごと削除した。
+
+		- 入札: 決済が未実装（#1411）。`344fb47b` でリリース前に意図的に隠されていたもの
+		- Google マップ: 害は無いが «誰も出すと決めていない機能» だった（#1414 表 B-2）
+
+		⚠️ ここが赤くなったら、どちらかが復活している。
+		*/
 		await expect(detailPage.placeBidButton).toHaveCount(0);
+		await expect(detailPage.googleMapsButton).toHaveCount(0);
 	});
 
 	// ─ テストケース: ブラウザバックでも店舗詳細へ戻る ─

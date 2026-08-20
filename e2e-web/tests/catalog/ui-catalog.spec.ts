@@ -267,11 +267,8 @@ test.describe("UI カタログ（匿名） @catalog", () => {
 	});
 
 	// ─ 直リンクのみで到達する画面 ─
-	test("直リンク画面（マップ・NotFound・en-US ロケール）", async ({ appPage }) => {
-		// マップはタブに出ない隠しルート（href: null）。地図タイルの読み込みを待つ
-		await gotoScreen(appPage, "map");
-		await captureScreen(appPage, "map", { settleMs: 4_000 });
-
+	// #1419 マップは削除したのでここから外した
+	test("直リンク画面（NotFound・en-US ロケール）", async ({ appPage }) => {
 		await gotoScreen(appPage, "not-found");
 		await expect(appPage.getByText("この画面は存在しません。")).toBeVisible();
 		await captureScreen(appPage, "not-found");
