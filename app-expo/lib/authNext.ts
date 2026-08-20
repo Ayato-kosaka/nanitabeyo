@@ -17,7 +17,7 @@ import { isValidBcp47Tag } from "./deepLinkTarget";
  * ログイン後の行き先。
  *
  * - `back`: 直前の画面へ戻る。元画面はマウントされたままなので、URL に出ていない
- *   画面内 state（例: 地図の選択中の店 = app/[locale]/(tabs)/map.tsx の useState）ごと復帰できる。
+ *   画面内 state（例: 店舗選択で選んでいる店 = review/selectRestaurant.tsx の useState）ごと復帰できる。
  * - `replace`: 履歴が無い（コールドロード / web の OAuth 全画面リダイレクト）ときの保険。
  *   URL だけで再現できる行き先へ置き換える。
  */

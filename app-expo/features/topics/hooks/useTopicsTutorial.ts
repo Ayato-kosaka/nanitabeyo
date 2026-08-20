@@ -56,7 +56,7 @@ export function useTopicsTutorial({ canAutoOpen }: UseTopicsTutorialOptions) {
 			// これが無いと、料理提案画面へ入る spec は毎回スポットライトチュートリアルと競合する。
 			// 実際 Expo SDK 54 化（#1156）で Carousel の高さ確定タイミングが変わった結果、
 			// canAutoOpen が成立する瞬間がずれ、iOS の search-double-tap / topics-flow が
-			// 「チュートリアルがヘッダーを覆って screen-header-back を押せない」で落ちるようになった。
+			// 「チュートリアルがヘッダーを覆って topics-header-back を押せない」で落ちるようになった。
 			//
 			// 通常ビルドでは metro の resolver が noop 実装へ差し替えるため、この関数は常に null を返す
 			// （= 以下の AsyncStorage 読み込みへそのまま進み、本番と 1 バイトも挙動が変わらない）。

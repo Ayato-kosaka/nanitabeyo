@@ -44,16 +44,16 @@ export function restaurantDetailPath(restaurantId: string = MOCK_RESTAURANT_ID, 
 	return `/${locale}/restaurant/${restaurantId}`;
 }
 
-/** 店舗詳細配下の子ルート（`bid` / `dish-category` / `feed`）の URL */
+/** 店舗詳細配下の子ルート（`dish-category` / `feed`）の URL */
 export function restaurantSubPath(
-	segment: "bid" | "dish-category" | "feed",
+	segment: "dish-category" | "feed",
 	restaurantId: string = MOCK_RESTAURANT_ID,
 	locale = "ja-JP",
 ): string {
 	return `${restaurantDetailPath(restaurantId, locale)}/${segment}`;
 }
 
-/** 固定の店舗詳細レスポンス。入札の «現在の入札額» ブロックが出ない状態（maxEndDate: null）にしてある */
+/** 固定の店舗詳細レスポンス */
 function buildRestaurantDetail(): GetRestaurantByIdResponse {
 	return {
 		restaurant: {

@@ -21,7 +21,7 @@ import { useLocale } from "@/hooks/useLocale";
  * - レストランのレビュー（料理メディア）押下でフィード画面へ遷移
  *
  * #1386 【設計】この画面は «レビュー投稿導線の一部» から «店舗詳細そのもの» になった。
- * 以前は地図タブ（`app/[locale]/(tabs)/map.tsx`）が `RestaurantBlurModal` の中に
+ * 以前は地図タブ（#1419 で削除）が `RestaurantBlurModal` の中に
  * 別実装の店舗詳細（353 行）を持っており、同じ画面が 2 つあった。統合の詳細は
  * `features/restaurant/components/SelectedRestaurantDetails.tsx` の冒頭コメントを参照。
  *
@@ -50,7 +50,7 @@ export default function RestaurantDetailScreen() {
 	 */
 	const handleBack = useCallback(() => {
 		lightImpact();
-		if (router.canGoBack()) {
+		if (router.canDismiss()) {
 			router.back();
 			return;
 		}

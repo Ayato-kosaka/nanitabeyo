@@ -1,7 +1,8 @@
 /*
 このファイルの責務
 - 店舗詳細（`app/[locale]/restaurant/[restaurantId].tsx` の中身）を描く。
-- 「レビューを投稿」「入札する」「Google マップで開く」の 3 導線と、レビュー / 入札の 2 タブを持つ。
+- 「レビューを投稿」の 1 導線と、レビューの 1 タブを持つ。
+  （#1386 で入札 / Google マップを持ち込んだが、#1411 #1418 で «出してはいけないもの» として畳んだ。下記参照）
 - 遷移はすべて «ルート» への push で行う（この画面はオーバーレイを 1 つも持たない）。
 
 #1386 【設計】店舗詳細は長らく «2 実装» あった。
@@ -12,42 +13,53 @@
 | `features/restaurant/components/SelectedRestaurantDetails.tsx`（このファイル） | `/restaurant/[restaurantId]` ルート | 投稿ボタン / レビュー一覧は既存メディアへのレビュー投稿へ push |
 
 同じ「店の詳細」を 2 つ持つと、片方だけ直る（#1092 の is_anonymous 判定がまさにそれで、
-2 ファイルへ同じ修正を入れている）。ルート側を残して map 側を畳み、**両方の機能の和**にした。
-map 側にしか無かったものは 1 つも落としていない:
+2 ファイルへ同じ修正を入れている）。ルート側を残して map 側を畳み、いったん **両方の機能の和**にした。
+ただし «和» にしたこと自体が誤りだった機能があり、#1411 #1418 で以下は畳み直している:
 
-- 入札タブ（`RestaurantBidsTab`）と入札ボタン → 入札は `bid` ルートへ
-- 現在の入札額 / 残り日数の表示（`meta.maxEndDate` があるときだけ出る）
-- Google マップで開く（#1121 の openExternalUrl 経由）
-- レビュー一覧の «フィード表示» → `feed` ルートへ
+- 入札タブ（`RestaurantBidsTab`）/ 入札ボタン / 現在の入札額（`meta.maxEndDate`）→ #1411 で撤去
+- Google マップで開く → #1411 で撤去
+- レビュー一覧の «フィード表示» → #1418 で直行へ戻した
 
-レビュー一覧の押下先だけは統合で意味が変わっている。旧レビュー側は既存メディアへの
-レビュー投稿（`review-from-media`）へ直行していたが、統合後は map 側と同じくフィードを開き、
-フィードの「この料理にレビューを書く」から `review-from-media` へ進む。どちらの機能も残っており、
-「どの料理か」を見てから書ける分だけ経路として素直になる（フィードは
-`app/[locale]/restaurant/[restaurantId]/feed.tsx`）。
+レビュー一覧の押下先は #1386 で «feed を挟む» へ変えたが、**#1418 で直行へ戻した**
+（下の `handleDishMediaPress` を参照）。`feed` ルート自体は残っているが
+（#1375 の移設で `app/[locale]/restaurant/[restaurantId]/feed.tsx`）、アプリ内からは開かない（直リンクのみ）。
 
 ⚠️ この画面に BlurModal / 手動 zIndex を戻さないこと。`Portal.Host` は `<Stack>` を包んでいる
 （`app/[locale]/_layout.tsx`）ので portal レイヤは常にナビゲータより «上» にある。オーバーレイを
 開いたまま push すると遷移先が下に潜って見えず触れない（#1364 で実測）。この画面が
-オーバーレイを 1 つも持たないことは `__tests__/mapRestaurantRoute.test.tsx` が固定している。
+オーバーレイを 1 つも持たないことは `__tests__/loginEntryPoints.test.tsx` が
+（react-native-paper の `<Portal>` が描かれるか否かで）固定している。
 */
+/*
+#1411 【バグ】入札の導線は **公開アプリに出してはいけない**。
+
+#1386 で店詳細の 2 実装（map 側 353 行 / レビュー側）を統合したとき、map 側にあった
+入札ボタン・入札タブ・現在の入札額を «機能を落とさない» つもりで持ち込んだ。しかし
+**map タブは `href: null`（app/[locale]/(tabs)/_layout.tsx）でタブバーに出ない** ため
+（そのタブ自体 #1419 で削除された）、
+map 側の店詳細は本番から到達不能で、入札の導線は事実上出ていなかった。
+統合先のレビュー側は到達可能なので、これを «復活» させてしまっていた。
+
+独立レビューは「map 側の機能が落ちていないか」を 353 行ぶん突き合わせたが、
+逆方向（**そもそも出てはいけないものを持ち込んでいないか**）は誰も見ていなかった。
+
+入札そのものは決済が未実装で、`bid.tsx` の送信は 2 秒待つダミーである。
+導線を出す判断は決済が入ってからにする。
+*/
+
 import React, { useState, useCallback } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, LayoutChangeEvent, Platform } from "react-native";
-import { Camera, DollarSign } from "lucide-react-native";
+import { View, Text, StyleSheet, TouchableOpacity, LayoutChangeEvent } from "react-native";
+import { Camera } from "lucide-react-native";
 import { Card } from "@/components/Card";
 import Stars from "@/components/Stars";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
 import { useHaptics } from "@/hooks/useHaptics";
 import { RestaurantReviewsTab } from "@/features/map/components/tabs/RestaurantReviewsTab";
-import { RestaurantBidsTab } from "@/features/map/components/tabs/RestaurantBidsTab";
 import { Tabs } from "@/components/collapsible-tabs";
 import type { TabBarProps } from "react-native-collapsible-tab-view";
 import { useSharedValueState } from "@/hooks/useSharedValueState";
 import { useLogger } from "@/hooks/useLogger";
-import { getGoogleMapsLink } from "@/lib/googlePlaces";
-import { openExternalUrl } from "@/lib/openExternalUrl";
-import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useSafeAreaFrame } from "react-native-safe-area-context";
 import { Image } from "expo-image";
 import { getCacheKeyForImage } from "@/lib/image";
@@ -63,9 +75,10 @@ function RestaurantTabsBar({ tabNames, index, onTabPress }: TabBarProps<string>)
 		<View style={styles.tabContainer}>
 			{tabNames.map((name, i) => {
 				const isActive = currentIndex === i;
-				// #1386 2 実装の統合でタブは «レビュー / 入札» の 2 本になった。旧レビュー側は
-				// 1 本だけで「みんなの投稿」と出していたが、対になる入札が並ぶため map 側の対語へ寄せる
-				const label = name === "reviews" ? i18n.t("Map.tabs.reviews") : i18n.t("Map.tabs.bids");
+				// #1418 タブは 1 本に戻り、押下先も «その料理のレビューを書く» に戻ったので、
+				// 文言も旧レビュー側（#1375 の移設で `Restaurant.everybodyPostsTitle`）へ戻す。
+				// #1386 で入札タブと対にするため map 側の «レビュー» へ寄せていた
+				const label = i18n.t("Restaurant.everybodyPostsTitle");
 				return (
 					<TouchableOpacity
 						key={name}
@@ -87,7 +100,6 @@ type SelectedRestaurantDetailsProps = {
 export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestaurantDetailsProps) {
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
-	const { showSnackbar } = useSnackbar();
 	const router = useRouter();
 	const { locale } = useLocale();
 	const frame = useSafeAreaFrame(); // Safe Area を除いたフレームの高さ
@@ -114,7 +126,7 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 			// このボタンは非ゲストなら投稿フォームへ進む導線なので、ゲストの `next` も同じ先へ向ければ
 			// ログイン後にそのまま投稿へ進める。店は restaurantId として URL に載るため、
 			// 履歴を持たない着地（コールドロード / web の OAuth 全画面リダイレクト）でも成立する。
-			// #1386 map から来た場合もここを通る。旧 map 実装は `next` を «地図タブ» にしていたが、
+			// #1386 旧 map 実装は `next` を «地図タブ» にしていたが（#1419 でタブごと削除）、
 			// 店が URL に載った以上、投稿フォームまで戻せるこちらの方が忠実に復帰できる
 			router.push({
 				pathname: "/[locale]/auth/login",
@@ -132,59 +144,19 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 		}
 	}, [lightImpact, logFrontendEvent, router, locale, restaurant, user]);
 
-	// #1386 【設計】入札。旧 map 実装では `BidBlurModal`（z1300）だった。
-	// 入札額の入力とその後の決済は «フローの一段» なのでルートへ移す（#1350 の振り分け表）
-	const handleBidButtonPress = useCallback(() => {
-		lightImpact();
-		router.push({
-			pathname: "/[locale]/restaurant/[restaurantId]/bid",
-			params: { locale, restaurantId: restaurant.id },
-		});
-	}, [lightImpact, router, locale, restaurant.id]);
+	/*
+	#1418 【バグ】レビュー一覧の押下は `review-from-media` へ **直行**すること。
 
-	// #1386 旧 map 実装から移設（機能を落とさないため）
-	const handleOpenGoogleMaps = useCallback(async () => {
-		lightImpact();
+	#1386 で map 側（`DishMediaModal` を重ねる）へ寄せて `feed` を挟んだが、それは
+	«押下 1 回» を «押下 2 回» にする劣化だった。しかも feed の「この料理にレビューを書く」は
+	`!isGuestUser(user)` で出ないので、**ゲストは «他人の投稿に文字だけのレビューを書く» へ
+	到達する手段を完全に失っていた**（旧レビュー側の直行にゲスト判定は無い）。
 
-		logFrontendEvent({
-			event_name: "restaurant_google_maps_clicked",
-			error_level: "log",
-			payload: {
-				restaurantId: restaurant.id,
-				restaurantName: restaurant.name,
-				googlePlaceId: restaurant.google_place_id,
-			},
-		});
-
-		try {
-			const { mapUrl, canOpen } = await getGoogleMapsLink(restaurant);
-			// #1121 Web の別タブ起動は openExternalUrl へ寄せた。
-			// canOpen（Linking.canOpenURL）はネイティブのハンドラ有無の判定なので Web では見ない
-			if (Platform.OS !== "web" && !canOpen) {
-				showSnackbar(i18n.t("DishMediaContent.errors.mapOpenFailed"));
-				return;
-			}
-			await openExternalUrl(mapUrl);
-		} catch (error) {
-			showSnackbar(i18n.t("DishMediaContent.errors.mapOpenFailed"));
-			logFrontendEvent({
-				event_name: "restaurant_google_maps_open_failed",
-				error_level: "error",
-				payload: {
-					restaurantId: restaurant.id,
-					googlePlaceId: restaurant.google_place_id,
-					error: error instanceof Error ? error.message : "Unknown error",
-				},
-			});
-		}
-	}, [lightImpact, logFrontendEvent, restaurant, showSnackbar]);
-
-	// #1386 【設計】レビュー一覧の押下でフィードを開く。
-	// 旧 map 実装はここで `DishMediaModal`（既定 z1100 = 親と同値）を重ねていた。
-	// 旧レビュー側が直行していた `review-from-media` へは、フィードの
-	// 「この料理にレビューを書く」から進む（ファイル冒頭のコメント参照）
+	map 側は `href: null` で到達不能だったので、寄せる先として «正しい» 実装ではない。
+	feed ルート自体は残すが、アプリ内の導線からは外す（#1414 の B-3）。
+	*/
 	const handleDishMediaPress = useCallback(
-		(index: number, dishMediaId: string) => {
+		(_index: number, dishMediaId: string) => {
 			lightImpact();
 			logFrontendEvent({
 				event_name: "review_from_media_navigate",
@@ -195,8 +167,10 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 				},
 			});
 			router.push({
-				pathname: "/[locale]/restaurant/[restaurantId]/feed",
-				params: { locale, restaurantId: restaurant.id, initialIndex: String(index) },
+				// #1375 移設先。main の `/[locale]/(tabs)/review/restaurant/...` はこちらでは
+				// `/[locale]/restaurant/...` へ出ている（レビュータブ廃止に伴う移設）
+				pathname: "/[locale]/restaurant/[restaurantId]/review-from-media/[dishMediaId]",
+				params: { locale, restaurantId: restaurant.id, dishMediaId },
 			});
 		},
 		[lightImpact, logFrontendEvent, router, locale, restaurant.id],
@@ -227,63 +201,26 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 								<Text style={styles.ratingText}>{meta.averageRating}</Text>
 								<Text style={styles.reviewCount}>({meta.reviewCount})</Text>
 							</View>
-							{/* #1386 旧 map 実装から移設 */}
+							{/* #644 【設計】自分の投稿ボタン「写真・動画を投稿」
+							    ⚠️ testID は e2e（review-post / review-double-submit / ui-catalog-mutation）が見ている。
+							    #1419 意匠と位置は #1386 以前のレビュー側へ戻した（カード内・淡色アウトライン）。
+							    #1386 は入札ボタンと横並びにするためカード下のアクション行へ出していた */}
 							<PrimaryButton
-								testID="restaurant-detail-google-maps-button"
-								onPress={handleOpenGoogleMaps}
-								label={i18n.t("Map.buttons.openInGoogle")}
-								labelStyle={{ color: "#5EA2FF" }}
-								colors={["#F0F8FF", "#F0F8FF"]}
+								testID="restaurant-detail-post-photo-button"
+								onPress={handleReviewButtonPress}
+								label={i18n.t("SelectRestaurant.postPhotoVideo")}
+								icon={<Camera size={20} color="#F05537" />}
+								labelStyle={{ color: "#F05537" }}
+								colors={["#FDEBE7", "#FDEBE7"]}
 								shadowColor="transparent"
 								borderRadius={8}
 							/>
 						</View>
 					</View>
 				</Card>
-
-				{/* #1386 旧 map 実装から移設。入札が動いている店だけに出る */}
-				{meta.maxEndDate && (
-					<View style={styles.bidAmountContainer}>
-						<Text style={styles.bidAmountLabel}>{i18n.t("Map.labels.currentBidAmount")}</Text>
-						<Text style={styles.bidAmount}>
-							{i18n.t("Search.currencySuffix")}
-							{(meta.totalCents ?? 0).toLocaleString()}
-						</Text>
-						<Text style={styles.remainingDays}>
-							{i18n.t("Common.daysRemaining", {
-								count: Math.max(
-									0,
-									Math.ceil((new Date(meta.maxEndDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)),
-								),
-							})}
-						</Text>
-					</View>
-				)}
-
-				<View style={styles.actionButtons}>
-					{/* #644 【設計】自分の投稿ボタン「写真・動画を投稿」
-					    ⚠️ testID は e2e（review-post / review-double-submit / ui-catalog-mutation）が見ている */}
-					<PrimaryButton
-						testID="restaurant-detail-post-photo-button"
-						onPress={handleReviewButtonPress}
-						label={i18n.t("SelectRestaurant.postPhotoVideo")}
-						icon={<Camera size={20} color="#FFF" />}
-						borderRadius={8}
-						style={{ flex: 1 }}
-					/>
-					{/* #1386 旧 map 実装から移設 */}
-					<PrimaryButton
-						testID="restaurant-detail-place-bid-button"
-						onPress={handleBidButtonPress}
-						label={i18n.t("Map.buttons.placeBid")}
-						icon={<DollarSign size={20} color="#FFF" />}
-						borderRadius={8}
-						style={{ flex: 1 }}
-					/>
-				</View>
 			</View>
 		),
-		[handleHeaderLayout, restaurant, meta, handleReviewButtonPress, handleBidButtonPress, handleOpenGoogleMaps],
+		[handleHeaderLayout, restaurant, meta, handleReviewButtonPress],
 	);
 
 	const renderTabBar = useCallback((props: TabBarProps<string>) => <RestaurantTabsBar {...props} />, []);
@@ -297,16 +234,10 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 				headerContainerStyle={{ shadowColor: "transparent", backgroundColor: "transparent" }}>
 				{/*
 					レビュータブ: RestaurantReviewsTab を使用。
-					グリッド押下でフィード（feed ルート）へ進む
+					グリッド押下で «その料理へのレビュー投稿»（review-from-media ルート）へ直行する（#1418）
 				*/}
 				<Tabs.Tab name="reviews">
 					<RestaurantReviewsTab restaurantId={restaurant.id} onItemPress={handleDishMediaPress} />
-				</Tabs.Tab>
-				{/*
-					#1386 入札タブ: 旧 map 実装から移設。useCursorPagination で入札履歴を取得する
-				*/}
-				<Tabs.Tab name="bids">
-					<RestaurantBidsTab restaurantId={restaurant.id} />
 				</Tabs.Tab>
 			</Tabs.Container>
 		</View>
@@ -348,35 +279,6 @@ const styles = StyleSheet.create({
 	reviewCount: {
 		fontSize: 12,
 		color: "#666",
-	},
-	// #1386 旧 map 実装から移設（現在の入札額）
-	bidAmountContainer: {
-		backgroundColor: "#F0F8FF",
-		padding: 16,
-		borderRadius: 12,
-		alignItems: "center",
-		marginVertical: 12,
-		marginHorizontal: 16,
-	},
-	bidAmountLabel: {
-		fontSize: 12,
-		color: "#666",
-		marginBottom: 4,
-	},
-	bidAmount: {
-		fontSize: 28,
-		fontWeight: "bold",
-		color: "#F05537",
-		marginBottom: 4,
-	},
-	remainingDays: {
-		fontSize: 14,
-		color: "#666",
-	},
-	actionButtons: {
-		flexDirection: "row",
-		gap: 12,
-		margin: 16,
 	},
 	tabContainer: {
 		flexDirection: "row",

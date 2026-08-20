@@ -52,15 +52,12 @@ export interface OpenInAppBannerProps {
  * - OIA relay はサーバ側で許可ホストを固定し open redirect を防ぐ
  * - JSで遷移をいじらない（ULはリンクタップが最強）
  */
-const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
+const OpenInAppBannerWeb: React.FC<OpenInAppBannerProps> = ({
 	path,
 	params,
 	universalBaseUrl = Env.WEB_BASE_URL /* 例: https://app.nanitabeyo.net を想定。違うなら差し替え */,
 	scheme = "nanitabeyo",
 }) => {
-	// ネイティブアプリでは不要（Web deep linking 導線専用）
-	if (Platform.OS !== "web") return null;
-
 	const { locale } = useLocale();
 
 	// SSR/Prerender 対策：window が無い環境では何もしない
@@ -342,6 +339,30 @@ const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = ({
 			)}
 		</View>
 	);
+};
+
+/*
+  #1366 【修正】`Platform.OS !== "web"` の早期 return を、その後ろに続く 22 個のフックより
+  前に置いたままにしない。react-hooks/rules-of-hooks が «条件付きのフック呼び出し» として
+  一律 error にしていたのはこの形である。
+
+  `Platform.OS` はモジュール定数で同一プロセス内では変化しないため、この 1 件に限れば
+  観測できる不具合は無い。ただし «早期 return の後ろにフックがある» という形そのものが
+  壊れやすい。React 19 の実挙動を測った結果は SavedPostsTab.tsx のコメントに書いたとおりで、
+  早期 return の «前» にフックが 1 本でも入った瞬間に
+  「Rendered more hooks than during the previous render」で throw する。
+  ここは特に危ない: 下の内側コンポーネントは visibilitychange のリスナと setTimeout を
+  張っており、フック 0 本のレンダーへ切り替わる形になると **cleanup が呼ばれず両方残る**。
+
+  フックを無条件化して早期 return を後ろへ動かす直し方は採れない。内側は window / document /
+  navigator を触るので、ネイティブでも評価されるようになると壊れる。
+  そこで判定だけを持つ外側と、フックを持つ内側（OpenInAppBannerWeb）に分けてある。
+*/
+const OpenInAppBannerComponent: React.FC<OpenInAppBannerProps> = (props) => {
+	// ネイティブアプリでは不要（Web deep linking 導線専用）
+	if (Platform.OS !== "web") return null;
+
+	return <OpenInAppBannerWeb {...props} />;
 };
 
 export const OpenInAppBanner = memo(OpenInAppBannerComponent);
