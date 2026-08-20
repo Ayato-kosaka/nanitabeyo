@@ -784,6 +784,51 @@
 		},
 		"record": {
 			"cta": "Registrar"
-		}
+		},
+		"filters": {
+			"title": "Filtrar y ordenar",
+			"apply": "Aplicar",
+			"reset": "Restablecer",
+			"status": {
+				"title": "Estado",
+				"want": "Quiero comer",
+				"eaten": "Comido"
+			},
+			"rating": {
+				"title": "Valoración",
+				"min": "{{count}} estrellas o más",
+				"disabledByWant": "Los platos de \"Quiero comer\" no tienen valoración. Deja el estado solo en \"Comido\" para filtrar por valoración."
+			},
+			"sort": {
+				"title": "Ordenar por",
+				"occurredAtDesc": "Más recientes primero",
+				"occurredAtAsc": "Más antiguos primero",
+				"ratingDesc": "Mejor valorados",
+				"distance": "Más cercanos",
+				"timeSlotScoreDesc": "Según la franja horaria",
+				"sceneScoreDesc": "Según la ocasión",
+				"timeSlotKey": "Franja horaria",
+				"sceneKey": "Ocasión",
+				"distanceRequiresArea": "Ordenar por cercanía requiere un área. Usa \"Buscar en esta zona\" en el mapa."
+			},
+			"area": {
+				"title": "Zona",
+				"none": "Cualquier zona",
+				"clear": "Quitar zona",
+				"hint": "La zona se fija con \"Buscar en esta zona\" en el mapa."
+			},
+			"period": {
+				"title": "Periodo",
+				"none": "Cualquier fecha",
+				"clear": "Quitar periodo"
+			}
+		},
+		"empty": {
+			"description": "Los platos que guardes o registres como comidos aparecerán aquí."
+		},
+		"list": {
+			"noPhoto": "Sin foto"
+		},
+		"searchThisArea": "Buscar en esta zona"
 	}
 }

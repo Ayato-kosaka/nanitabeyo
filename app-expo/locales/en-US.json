@@ -784,6 +784,51 @@
 		},
 		"record": {
 			"cta": "Record"
-		}
+		},
+		"filters": {
+			"title": "Filter & sort",
+			"apply": "Apply",
+			"reset": "Reset",
+			"status": {
+				"title": "Status",
+				"want": "Want to eat",
+				"eaten": "Eaten"
+			},
+			"rating": {
+				"title": "Rating",
+				"min": "{{count}} stars & up",
+				"disabledByWant": "\"Want to eat\" entries have no rating. Set the status to \"Eaten\" only to filter by rating."
+			},
+			"sort": {
+				"title": "Sort by",
+				"occurredAtDesc": "Newest first",
+				"occurredAtAsc": "Oldest first",
+				"ratingDesc": "Highest rated",
+				"distance": "Nearest",
+				"timeSlotScoreDesc": "Best for the time of day",
+				"sceneScoreDesc": "Best for the occasion",
+				"timeSlotKey": "Time of day",
+				"sceneKey": "Occasion",
+				"distanceRequiresArea": "Sorting by distance needs an area. Use \"Search this area\" on the map."
+			},
+			"area": {
+				"title": "Area",
+				"none": "Anywhere",
+				"clear": "Clear area",
+				"hint": "The area is set with \"Search this area\" on the map."
+			},
+			"period": {
+				"title": "Period",
+				"none": "Any time",
+				"clear": "Clear period"
+			}
+		},
+		"empty": {
+			"description": "Dishes you save or record as eaten will show up here."
+		},
+		"list": {
+			"noPhoto": "No photo"
+		},
+		"searchThisArea": "Search this area"
 	}
 }

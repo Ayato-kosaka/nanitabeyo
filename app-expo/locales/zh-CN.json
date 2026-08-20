@@ -784,6 +784,51 @@
 		},
 		"record": {
 			"cta": "记录"
-		}
+		},
+		"filters": {
+			"title": "筛选与排序",
+			"apply": "应用",
+			"reset": "重置",
+			"status": {
+				"title": "状态",
+				"want": "想吃",
+				"eaten": "吃过"
+			},
+			"rating": {
+				"title": "评分",
+				"min": "★{{count}} 以上",
+				"disabledByWant": "“想吃”没有评分。将状态设为仅“吃过”后即可按评分筛选。"
+			},
+			"sort": {
+				"title": "排序",
+				"occurredAtDesc": "最新优先",
+				"occurredAtAsc": "最早优先",
+				"ratingDesc": "评分从高到低",
+				"distance": "距离最近",
+				"timeSlotScoreDesc": "按时段匹配度",
+				"sceneScoreDesc": "按场景匹配度",
+				"timeSlotKey": "时段",
+				"sceneKey": "场景",
+				"distanceRequiresArea": "按距离排序需要指定区域。请在地图上点击“在此区域重新搜索”。"
+			},
+			"area": {
+				"title": "区域",
+				"none": "不限（全部）",
+				"clear": "清除区域",
+				"hint": "区域通过地图上的“在此区域重新搜索”确定。"
+			},
+			"period": {
+				"title": "时间范围",
+				"none": "不限（全部）",
+				"clear": "清除时间范围"
+			}
+		},
+		"empty": {
+			"description": "你收藏或记录为已吃过的美食会显示在这里。"
+		},
+		"list": {
+			"noPhoto": "无照片"
+		},
+		"searchThisArea": "在此区域重新搜索"
 	}
 }
