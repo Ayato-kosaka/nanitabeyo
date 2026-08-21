@@ -30,10 +30,13 @@
 // `text/plain` として書いた方が狭く正確、後者は **Expo の既定テンプレートが既に `singleTask`**
 // （prebuild 出力で確認済み）だからである。二重に intent-filter を生やす方が害が大きい。
 //
-// ⚠️ PR3（iOS）は逆に plugin が必要になる（Share Extension のターゲット生成）。そのときは
-// `["expo-share-intent", { disableAndroid: true, iosAppGroupIdentifier: ... }]` の形で足し、
-// Android 側は引き続きこのファイルと `android.intentFilters` が担当すること。
-// なお iOS 側は `patch-package` による xcode パッチが要る（README の Installation）。**Android には不要**。
+// PR3（iOS）は逆に plugin が必要だった（Share Extension のターゲット生成）。`app.config.ts` へ
+// `["expo-share-intent", { disableAndroid: true, iosAppGroupIdentifier: ..., iosShareExtensionBundleIdentifier: ... }]`
+// の形で足してあり、Android 側は引き続きこのファイルと `android.intentFilters` が担当する。
+// なお iOS 側の Xcode ターゲット生成には `xcode@3.0.1` のバグ回避パッチが要った（README の
+// `patch-package` 案内は古く、このリポジトリでは pnpm 標準の patch 機構
+// （`pnpm-workspace.yaml` の `patchedDependencies` / `patches/xcode@3.0.1.patch`）で当てている。
+// postinstall スクリプトは不要 — pnpm が install 時に自動適用する）。**Android には不要**。
 //
 // ## 同じ共有を 2 回流さないための構造
 //

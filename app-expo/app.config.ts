@@ -234,6 +234,25 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		"expo-font",
 		"expo-web-browser",
 		"expo-localization",
+		[
+			// #1400（親 #1375）PR3: iOS の共有シートから nanitabeyo へ取り込むための Share Extension。
+			// Android は android.intentFilters（ACTION_SEND）が別に担当しており、ここでは iOS だけ有効化する
+			// （disableAndroid: true）。識別子は #1472 でオーナーが Apple Developer 側に登録済みの値
+			// と一致させること — ずれると Share Extension のプロビジョニングが解決できない。
+			"expo-share-intent",
+			{
+				disableAndroid: true,
+				iosAppGroupIdentifier: "group.com.nanitabeyo",
+				iosShareExtensionBundleIdentifier: "com.nanitabeyo.ShareExtension",
+				// 既定は Web URL/Web ページのみ。SNS アプリの共有シートはプレーンテキスト（キャプション等）で
+				// 渡してくることも多いため、text も受け付ける（Android の text/plain と同じ対象範囲に揃える）
+				iosActivationRules: {
+					NSExtensionActivationSupportsWebURLWithMaxCount: 1,
+					NSExtensionActivationSupportsWebPageWithMaxCount: 1,
+					NSExtensionActivationSupportsText: true,
+				},
+			},
+		],
 		...(process.env.EXPO_PUBLIC_FACEBOOK_APP_ID && process.env.EXPO_PUBLIC_FACEBOOK_CLIENT_TOKEN
 			? [
 				[

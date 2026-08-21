@@ -7,3 +7,6 @@ packages:
   # #1196 本番ログ（BigQuery）エラーの定期トリアージ。
   # scripts/ 配下で唯一の workspace package。テストを走らせるために載せている。
   - scripts/error-triage
+
+patchedDependencies:
+  xcode@3.0.1: patches/xcode@3.0.1.patch
