@@ -1,0 +1,656 @@
+// api/src/v1/dish-media-imports/dish-media-imports.service.spec.ts
+//
+// #1399 `POST /v1/dish-media/imports/resolve` の縮退の作りを固定する。
+//
+// **外部 HTTP は `FakeSafeFetchTransport` に差し替えてある。**
+// SafeFetchService / SnsOembedService は本物を使うので、ガードと縮退の判断は本番と同じ経路を通る。
+//
+// ここで固定していること:
+//  - 短縮 URL が展開されて provider が確定する
+//  - リダイレクトがプライベート IP へ向いたら «候補ゼロ＋理由» になる（例外を投げっぱなしにしない）
+//  - リダイレクト上限超過も同じく «候補ゼロ＋理由»
+//  - oEmbed が 4xx / 5xx / タイムアウトでも «候補ゼロ＋理由»
+//  - Instagram は oEmbed が取れなくても縮退して返る
+//  - lat/lng/radius が渡されたときだけ店舗候補を探す
+//  - **DB へ 1 行も書かない**
+
+jest.mock('src/core/config/env', () => ({
+  env: {
+    API_COMMIT_ID: 'test',
+    API_NODE_ENV: 'test',
+  },
+}));
+
+import { AppLoggerService } from '../../core/logger/logger.service';
+import { PrismaService } from '../../prisma/prisma.service';
+import { SafeFetchService } from '../../core/safe-fetch/safe-fetch.service';
+import { FakeSafeFetchTransport } from '../../core/safe-fetch/testing/fake-safe-fetch.transport';
+import { DishCategoriesRepository } from '../dish-categories/dish-categories.repository';
+import { RestaurantsRepository } from '../restaurants/restaurants.repository';
+import { DishCategoryVariantDictionaryService } from './dish-category-variant-dictionary.service';
+import { DishMediaImportsService } from './dish-media-imports.service';
+import { SnsOembedService } from './sns-oembed.service';
+import { buildDishCategoryVariantIndex } from '../../../../shared/utils/dishCategoryMatch';
+
+const TIKTOK_OEMBED = 'https://www.tiktok.com/oembed';
+const YOUTUBE_OEMBED = 'https://www.youtube.com/oembed';
+
+const TIKTOK_SHORTLINK = 'https://vm.tiktok.com/ZMhqRBmXW/';
+const TIKTOK_VIDEO_URL =
+  'https://www.tiktok.com/@scout2015/video/6718335390845095173';
+
+/** 照合辞書。実 DB を読まずに済ませるための最小セット */
+const DICTIONARY_INDEX = buildDishCategoryVariantIndex([
+  { dishCategoryId: 'Q1', surfaceForm: 'ラーメン', source: 'wikidata-label' },
+  {
+    dishCategoryId: 'Q2',
+    surfaceForm: '味噌ラーメン',
+    source: 'wikidata-label',
+  },
+  { dishCategoryId: 'Q3', surfaceForm: 'sushi', source: 'canonical-label-en' },
+]);
+
+/** `restaurants` の 1 行（照合と表示に使う列だけ） */
+function restaurantRow(id: string, name: string) {
+  return {
+    restaurant: {
+      id,
+      google_place_id: `place_${id}`,
+      name,
+      name_language_code: 'ja',
+      latitude: 35.65,
+      longitude: 139.7,
+      image_url: '',
+      image_path: null,
+      address_components: null,
+      plus_code: null,
+      created_at: new Date('2026-01-01T00:00:00Z'),
+    },
+    meta: { reviewCount: 0, averageRating: 0, totalCents: 0, maxEndDate: null },
+  };
+}
+
+function createLogger(): AppLoggerService {
+  return {
+    verbose: jest.fn(),
+    debug: jest.fn(),
+    log: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    externalApi: jest.fn().mockResolvedValue(undefined),
+  } as unknown as AppLoggerService;
+}
+
+type Harness = {
+  service: DishMediaImportsService;
+  transport: FakeSafeFetchTransport;
+  searchNearbyRestaurants: jest.Mock;
+  findDishCategoriesByIds: jest.Mock;
+  withTransaction: jest.Mock;
+};
+
+function createHarness(options?: {
+  restaurants?: ReturnType<typeof restaurantRow>[];
+}): Harness {
+  const transport = new FakeSafeFetchTransport();
+  const logger = createLogger();
+  const safeFetch = new SafeFetchService(transport, logger);
+  const oembed = new SnsOembedService(safeFetch, logger);
+
+  const dictionary = {
+    getIndex: jest.fn().mockResolvedValue(DICTIONARY_INDEX),
+  } as unknown as DishCategoryVariantDictionaryService;
+
+  const findDishCategoriesByIds = jest.fn().mockResolvedValue([
+    {
+      id: 'Q1',
+      label_en: 'ramen',
+      labels: { ja: 'ラーメン', en: 'ramen' },
+      image_url: 'https://cdn/ramen.jpg',
+    },
+    {
+      id: 'Q2',
+      label_en: 'miso ramen',
+      labels: { ja: '味噌ラーメン' },
+      image_url: 'https://cdn/miso.jpg',
+    },
+  ]);
+  const dishCategoriesRepo = {
+    findDishCategoriesByIds,
+  } as unknown as DishCategoriesRepository;
+
+  const searchNearbyRestaurants = jest
+    .fn()
+    .mockResolvedValue(options?.restaurants ?? []);
+  const restaurantsRepo = {
+    searchNearbyRestaurants,
+  } as unknown as RestaurantsRepository;
+
+  const withTransaction = jest.fn((callback: (tx: unknown) => unknown) =>
+    callback({}),
+  );
+  const prisma = { withTransaction } as unknown as PrismaService;
+
+  const service = new DishMediaImportsService(
+    safeFetch,
+    oembed,
+    dictionary,
+    dishCategoriesRepo,
+    restaurantsRepo,
+    prisma,
+    logger,
+  );
+
+  return {
+    service,
+    transport,
+    searchNearbyRestaurants,
+    findDishCategoriesByIds,
+    withTransaction,
+  };
+}
+
+/** TikTok の oEmbed（実測どおり `title` にキャプション＋ハッシュタグが入る形） */
+function tiktokOembedBody(title: string): string {
+  return JSON.stringify({
+    title,
+    author_name: 'Scout, Suki & Stella',
+    author_url: 'https://www.tiktok.com/@scout2015',
+    thumbnail_url:
+      'https://p16-common-sign.tiktokcdn-us.com/x.jpeg?x-expires=1787328000',
+    // **`html` は返ってくるが、こちらは読まないし返さない**
+    html: '<blockquote class="tiktok-embed"><script src="https://www.tiktok.com/embed.js"></script>',
+  });
+}
+
+describe('DishMediaImportsService — 対応外の URL', () => {
+  it('null を返さず «候補ゼロ＋理由» を返す', async () => {
+    const { service } = createHarness();
+
+    const result = await service.resolve({
+      url: 'https://x.com/foo/status/1234567890',
+    });
+
+    expect(result).not.toBeNull();
+    expect(result.status).toBe('unsupported');
+    expect(result.reason).toBe('unsupported_url');
+    expect(result.candidates.dishCategories).toEqual([]);
+    expect(result.candidates.restaurants).toEqual([]);
+    expect(result.source.provider).toBeNull();
+  });
+
+  it('URL ですらない文字列でも同じ形で返す', async () => {
+    const { service } = createHarness();
+
+    const result = await service.resolve({ url: 'こんど食べたい' });
+
+    expect(result.status).toBe('unsupported');
+    expect(result.reason).toBe('unsupported_url');
+  });
+});
+
+describe('DishMediaImportsService — 短縮 URL の展開', () => {
+  it('展開して provider と external_content_id が確定する', async () => {
+    const { service, transport } = createHarness();
+
+    transport
+      .route(TIKTOK_SHORTLINK, {
+        status: 302,
+        headers: {
+          location: `${TIKTOK_VIDEO_URL}?_r=1&share_item_id=6718335390845095173`,
+        },
+      })
+      .route(TIKTOK_OEMBED, {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+        body: tiktokOembedBody('今日の一杯 #ラーメン'),
+      });
+
+    const result = await service.resolve({ url: TIKTOK_SHORTLINK });
+
+    expect(result.status).toBe('ok');
+    expect(result.source.provider).toBe('tiktok');
+    expect(result.source.externalContentId).toBe('6718335390845095173');
+    // トラッキングパラメータは canonical から落ちている
+    expect(result.source.canonicalUrl).toBe(TIKTOK_VIDEO_URL);
+    expect(result.source.expandedFromShortlink).toBe(true);
+  });
+
+  it('共有テキストに混ざった短縮 URL も拾う', async () => {
+    const { service, transport } = createHarness();
+
+    transport
+      .route(TIKTOK_SHORTLINK, {
+        status: 302,
+        headers: { location: TIKTOK_VIDEO_URL },
+      })
+      .route(TIKTOK_OEMBED, {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+        body: tiktokOembedBody('#ラーメン'),
+      });
+
+    const result = await service.resolve({
+      url: `この店やばい ${TIKTOK_SHORTLINK} 見て。`,
+    });
+
+    expect(result.source.provider).toBe('tiktok');
+    expect(result.source.expandedFromShortlink).toBe(true);
+  });
+
+  it('リダイレクトがプライベート IP へ向いたら «候補ゼロ＋理由» を返す（例外を投げない）', async () => {
+    const { service, transport } = createHarness();
+
+    // vm.tiktok.com → www.tiktok.com/t/{code}（まだ短縮）→ さらに追おうとする、という形。
+    // 解決先が投稿 URL だと `stopAt` で打ち切ってしまい、2 ホップ目の名前解決まで届かない
+    transport
+      .route(TIKTOK_SHORTLINK, {
+        status: 302,
+        headers: { location: 'https://www.tiktok.com/t/ZMabcdef/' },
+      })
+      // ホスト名は取り込み対象なのに、A レコードがループバックを指している（DNS rebinding）
+      .resolveHost('www.tiktok.com', [{ address: '127.0.0.1', family: 4 }])
+      .route('https://www.tiktok.com/t/ZMabcdef/', {
+        status: 302,
+        headers: { location: TIKTOK_VIDEO_URL },
+      });
+
+    const result = await service.resolve({ url: TIKTOK_SHORTLINK });
+
+    expect(result.status).toBe('unsupported');
+    expect(result.reason).toBe('shortlink_expansion_failed');
+    expect(result.candidates.dishCategories).toEqual([]);
+    // 危険なホストへは 1 度も接続していない（検証は接続前に行われる）
+    expect(
+      transport.requests.map((request) => new URL(request.url).hostname),
+    ).toEqual(['vm.tiktok.com']);
+  });
+
+  it('リダイレクト上限を超えたら «候補ゼロ＋理由» を返す', async () => {
+    const { service, transport } = createHarness();
+
+    // 短縮 URL 同士を延々とたらい回しにする
+    transport.route(TIKTOK_SHORTLINK, {
+      status: 302,
+      headers: { location: 'https://vm.tiktok.com/AAAAA1/' },
+    });
+    for (let i = 1; i <= 8; i += 1) {
+      transport.route(`https://vm.tiktok.com/AAAAA${i}/`, {
+        status: 302,
+        headers: { location: `https://vm.tiktok.com/AAAAA${i + 1}/` },
+      });
+    }
+
+    const result = await service.resolve({ url: TIKTOK_SHORTLINK });
+
+    expect(result.status).toBe('unsupported');
+    expect(result.reason).toBe('shortlink_expansion_failed');
+  });
+
+  it('展開先が取り込み対象の形でなければ shortlink_target_unsupported', async () => {
+    const { service, transport } = createHarness();
+
+    transport
+      .route(TIKTOK_SHORTLINK, {
+        status: 302,
+        headers: { location: 'https://www.tiktok.com/t/ZMabcdef/' },
+      })
+      // 短縮 → 短縮 → ログインページ相当（parseSnsUrl が null を返す形）
+      .route('https://www.tiktok.com/t/ZMabcdef/', { status: 200 });
+
+    const result = await service.resolve({ url: TIKTOK_SHORTLINK });
+
+    expect(result.status).toBe('unsupported');
+    expect(result.reason).toBe('shortlink_target_unsupported');
+  });
+
+  it('展開でタイムアウトしても «候補ゼロ＋理由» を返す', async () => {
+    const { service, transport } = createHarness();
+
+    transport.route(TIKTOK_SHORTLINK, { status: 200, hangBeforeHeaders: true });
+
+    // 既定の 5 秒を待たせないよう、この 1 件だけ短いタイムアウトで確かめる。
+    // 実運用の値は SAFE_FETCH_DEFAULTS 側のテストで固定してある
+    jest.useFakeTimers();
+    const promise = service.resolve({ url: TIKTOK_SHORTLINK });
+    await jest.advanceTimersByTimeAsync(6_000);
+    const result = await promise;
+    jest.useRealTimers();
+
+    expect(result.status).toBe('unsupported');
+    expect(result.reason).toBe('shortlink_expansion_failed');
+  });
+});
+
+describe('DishMediaImportsService — oEmbed の失敗', () => {
+  it('404 は unavailable（相手が消えた）', async () => {
+    const { service, transport } = createHarness();
+
+    transport.route(YOUTUBE_OEMBED, {
+      status: 404,
+      headers: { 'content-type': 'application/json' },
+      body: '{}',
+    });
+
+    const result = await service.resolve({
+      url: 'https://www.youtube.com/shorts/SXHMnicI6Pg',
+    });
+
+    expect(result.status).toBe('unavailable');
+    expect(result.reason).toBe('metadata_content_unavailable');
+    expect(result.candidates.dishCategories).toEqual([]);
+    // provider は確定しているので埋め込みに要る情報は返す
+    expect(result.source.provider).toBe('youtube');
+    expect(result.source.canonicalUrl).toBe(
+      'https://www.youtube.com/shorts/SXHMnicI6Pg',
+    );
+  });
+
+  it('400 も unavailable（YouTube は存在しない ID に 400 を返す）', async () => {
+    const { service, transport } = createHarness();
+
+    transport.route(YOUTUBE_OEMBED, {
+      status: 400,
+      headers: { 'content-type': 'text/html' },
+      body: 'Bad Request',
+    });
+
+    const result = await service.resolve({
+      url: 'https://www.youtube.com/shorts/SXHMnicI6Pg',
+    });
+
+    expect(result.status).toBe('unavailable');
+  });
+
+  it('5xx は unknown（こちらの都合。取り込みは続行させてよい）', async () => {
+    const { service, transport } = createHarness();
+
+    transport.route(TIKTOK_OEMBED, {
+      status: 503,
+      headers: { 'content-type': 'text/html' },
+      body: 'unavailable',
+    });
+
+    const result = await service.resolve({ url: TIKTOK_VIDEO_URL });
+
+    expect(result.status).toBe('unknown');
+    expect(result.reason).toBe('metadata_fetch_failed');
+    expect(result.candidates.dishCategories).toEqual([]);
+    expect(result.source.provider).toBe('tiktok');
+  });
+
+  it('タイムアウトでも例外を投げず unknown へ縮退する', async () => {
+    const { service, transport } = createHarness();
+
+    transport.route(TIKTOK_OEMBED, { status: 200, hangBeforeHeaders: true });
+
+    jest.useFakeTimers();
+    const promise = service.resolve({ url: TIKTOK_VIDEO_URL });
+    await jest.advanceTimersByTimeAsync(6_000);
+    const result = await promise;
+    jest.useRealTimers();
+
+    expect(result.status).toBe('unknown');
+    expect(result.reason).toBe('metadata_fetch_failed');
+  });
+
+  it('壊れた JSON でも unknown へ縮退する', async () => {
+    const { service, transport } = createHarness();
+
+    transport.route(TIKTOK_OEMBED, {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+      body: '{"title":',
+    });
+
+    const result = await service.resolve({ url: TIKTOK_VIDEO_URL });
+
+    expect(result.status).toBe('unknown');
+    expect(result.reason).toBe('metadata_fetch_failed');
+  });
+});
+
+describe('DishMediaImportsService — Instagram の縮退', () => {
+  it('oEmbed を叩かずに unknown で返る（審査が要るので取れない前提）', async () => {
+    const { service, transport } = createHarness();
+
+    const result = await service.resolve({
+      url: 'https://www.instagram.com/reel/DAbcDefGhIj/',
+    });
+
+    expect(result.status).toBe('unknown');
+    expect(result.reason).toBe('metadata_provider_unsupported');
+    // 埋め込みに要る情報は揃っている＝手入力へ縮退して保存まで進める
+    expect(result.source.provider).toBe('instagram');
+    expect(result.source.externalContentId).toBe('DAbcDefGhIj');
+    expect(result.source.canonicalUrl).toBe(
+      'https://www.instagram.com/reel/DAbcDefGhIj/',
+    );
+    // **外部へ 1 リクエストも出していない**
+    expect(transport.requests).toHaveLength(0);
+  });
+
+  it('カルーセルの img_index を落とさない', async () => {
+    const { service } = createHarness();
+
+    const result = await service.resolve({
+      url: 'https://www.instagram.com/p/DAbcDefGhIj/?img_index=2',
+    });
+
+    expect(result.source.mediaIndex).toBe(2);
+  });
+});
+
+describe('DishMediaImportsService — 料理カテゴリ候補', () => {
+  it('ハッシュタグから候補が出る', async () => {
+    const { service, transport, findDishCategoriesByIds } = createHarness();
+
+    transport.route(TIKTOK_OEMBED, {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+      body: tiktokOembedBody('今日のランチ #ラーメン'),
+    });
+
+    const result = await service.resolve({ url: TIKTOK_VIDEO_URL });
+
+    expect(result.status).toBe('ok');
+    expect(result.reason).toBe('resolved');
+    expect(result.candidates.dishCategories[0]).toMatchObject({
+      dishCategoryId: 'Q1',
+      labelEn: 'ramen',
+      rank: 1,
+    });
+    expect(result.candidates.dishCategories[0].confidence).toBeGreaterThan(0.8);
+    expect(findDishCategoriesByIds).toHaveBeenCalledWith(['Q1']);
+  });
+
+  it('辞書に当たらなければ候補ゼロで返る（エラーにしない）', async () => {
+    const { service, transport } = createHarness();
+
+    transport.route(TIKTOK_OEMBED, {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+      body: tiktokOembedBody('きれいな夕日'),
+    });
+
+    const result = await service.resolve({ url: TIKTOK_VIDEO_URL });
+
+    expect(result.status).toBe('ok');
+    expect(result.candidates.dishCategories).toEqual([]);
+    expect(result.prefill.dishCategoryId).toBeNull();
+  });
+
+  it('title が空なら metadata_empty', async () => {
+    const { service, transport } = createHarness();
+
+    transport.route(TIKTOK_OEMBED, {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ title: '', author_name: '' }),
+    });
+
+    const result = await service.resolve({ url: TIKTOK_VIDEO_URL });
+
+    expect(result.status).toBe('ok');
+    expect(result.reason).toBe('metadata_empty');
+    expect(result.metadata.extractedTexts).toEqual([]);
+  });
+
+  it('oEmbed の html をレスポンスへ載せない', async () => {
+    const { service, transport } = createHarness();
+
+    transport.route(TIKTOK_OEMBED, {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+      body: tiktokOembedBody('#ラーメン'),
+    });
+
+    const result = await service.resolve({ url: TIKTOK_VIDEO_URL });
+
+    expect(JSON.stringify(result)).not.toContain('tiktok-embed');
+    expect(JSON.stringify(result)).not.toContain('<script');
+  });
+});
+
+describe('DishMediaImportsService — 店舗候補', () => {
+  const CAPTION = '一蘭 渋谷店 で食べた #ラーメン';
+
+  function routeTikTok(transport: FakeSafeFetchTransport) {
+    transport.route(TIKTOK_OEMBED, {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+      body: tiktokOembedBody(CAPTION),
+    });
+  }
+
+  it('lat/lng/radius が渡されなければ探さない（候補は空・エラーではない）', async () => {
+    const harness = createHarness({
+      restaurants: [restaurantRow('r1', '一蘭 渋谷店')],
+    });
+    routeTikTok(harness.transport);
+
+    const result = await harness.service.resolve({ url: TIKTOK_VIDEO_URL });
+
+    expect(result.candidates.restaurants).toEqual([]);
+    expect(result.restaurantSearch).toMatchObject({
+      performed: false,
+      reason: 'area_not_provided',
+    });
+    expect(harness.searchNearbyRestaurants).not.toHaveBeenCalled();
+  });
+
+  it('lat/lng/radius が揃ったときだけ探して順位付けする', async () => {
+    const harness = createHarness({
+      restaurants: [
+        restaurantRow('r1', '一蘭 渋谷店'),
+        restaurantRow('r2', '無関係な店'),
+      ],
+    });
+    routeTikTok(harness.transport);
+
+    const result = await harness.service.resolve({
+      url: TIKTOK_VIDEO_URL,
+      lat: 35.658,
+      lng: 139.701,
+      radius: 3000,
+    });
+
+    expect(result.restaurantSearch).toMatchObject({
+      performed: true,
+      reason: 'searched',
+    });
+    expect(result.candidates.restaurants[0]).toMatchObject({
+      restaurantId: 'r1',
+      name: '一蘭 渋谷店',
+      googlePlaceId: 'place_r1',
+      rank: 1,
+    });
+    expect(
+      result.candidates.restaurants.some(
+        (candidate) => candidate.restaurantId === 'r2',
+      ),
+    ).toBe(false);
+  });
+
+  it('一部だけ渡されたら area_incomplete として区別する', async () => {
+    const harness = createHarness();
+    routeTikTok(harness.transport);
+
+    const result = await harness.service.resolve({
+      url: TIKTOK_VIDEO_URL,
+      lat: 35.658,
+    });
+
+    expect(result.restaurantSearch.reason).toBe('area_incomplete');
+    expect(harness.searchNearbyRestaurants).not.toHaveBeenCalled();
+  });
+
+  it('author_name を店名検索の q にも投げる（公式アカウントのケース）', async () => {
+    const harness = createHarness({
+      restaurants: [restaurantRow('r1', '一蘭 渋谷店')],
+    });
+    routeTikTok(harness.transport);
+
+    await harness.service.resolve({
+      url: TIKTOK_VIDEO_URL,
+      lat: 35.658,
+      lng: 139.701,
+      radius: 3000,
+    });
+
+    const calls = harness.searchNearbyRestaurants.mock.calls as [
+      unknown,
+      { q?: string },
+    ][];
+    const queries = calls.map((call) => call[1].q);
+    // 1 本目はエリア一覧（q なし）、2 本目が author_name
+    expect(queries).toContain(undefined);
+    expect(queries).toContain('Scout, Suki & Stella');
+  });
+
+  it('メタデータが取れなかったときは店舗検索も行わない', async () => {
+    const harness = createHarness({
+      restaurants: [restaurantRow('r1', '一蘭 渋谷店')],
+    });
+
+    const result = await harness.service.resolve({
+      url: 'https://www.instagram.com/reel/DAbcDefGhIj/',
+      lat: 35.658,
+      lng: 139.701,
+      radius: 3000,
+    });
+
+    expect(result.restaurantSearch).toMatchObject({
+      performed: false,
+      reason: 'no_extracted_text',
+    });
+    expect(harness.searchNearbyRestaurants).not.toHaveBeenCalled();
+  });
+});
+
+describe('DishMediaImportsService — 書き込みをしない', () => {
+  it('読み取り以外のリポジトリ操作を呼ばない', async () => {
+    const harness = createHarness({
+      restaurants: [restaurantRow('r1', '一蘭 渋谷店')],
+    });
+    harness.transport.route(TIKTOK_OEMBED, {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+      body: tiktokOembedBody('一蘭 渋谷店 #ラーメン'),
+    });
+
+    await harness.service.resolve({
+      url: TIKTOK_VIDEO_URL,
+      lat: 35.658,
+      lng: 139.701,
+      radius: 3000,
+    });
+
+    // モックに生やしてあるのは読み取りメソッドだけ。
+    // 書き込みを足した瞬間 `undefined is not a function` でここが落ちる
+    expect(harness.searchNearbyRestaurants).toHaveBeenCalled();
+    expect(harness.findDishCategoriesByIds).toHaveBeenCalled();
+    // トランザクションは張るが、中でやるのは SELECT だけ
+    expect(harness.withTransaction).toHaveBeenCalledTimes(1);
+  });
+});
