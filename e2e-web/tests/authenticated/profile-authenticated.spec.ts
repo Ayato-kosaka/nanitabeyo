@@ -53,7 +53,10 @@ test.describe("マイページ(ログイン済み)", () => {
 		await tabBar.gotoProfile();
 		await profilePage.openLiked();
 
-		await appPage.getByTestId("screen-header-back").click();
+		// #1404 ScreenHeader は `testID` を渡された画面では戻るボタンを `${testID}-back` にする。
+		// liked 画面は `profile-liked-screen` を渡しているので、汎用の `screen-header-back` は
+		// **存在しない**（この spec はそちらを待って 30 秒でタイムアウトしていた）。
+		await appPage.getByTestId("profile-liked-screen-back").click();
 		await expect(appPage).toHaveURL(/\/profile(\?|$)/);
 
 		await profilePage.openSavedTopics();
