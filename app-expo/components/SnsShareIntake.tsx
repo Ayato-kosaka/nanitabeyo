@@ -12,8 +12,10 @@ import { useSnsShareIntake } from "@/hooks/useSnsShareIntake";
  *   そこから push すると #1027（ディープリンクの行き先を奪う / 奪われる）と同じ競合を作る。
  *   このレイアウトがマウントされている時点で既にロケール配下へ着地しているので、競合しない
  *
- * PR1 の時点では受け取り口（`lib/sharedTextSource.ts`）が常に «共有なし» を返すため、
- * このコンポーネントは完全な no-op である。PR2 / PR3 が受け取り口を差し替えると動き出す。
+ * 受け取り口はプラットフォームごとに Metro が解決する。PR2 の時点で
+ * **Android は `lib/sharedTextSource.android.ts` が実際に共有を運んでくる**。
+ * iOS と web は `lib/sharedTextSource.ts`（常に «共有なし»）のままなので no-op で、
+ * PR3（#1472 の App Group 待ち）が iOS 側を差し替えると動き出す。
  */
 export function SnsShareIntake() {
 	useSnsShareIntake();
