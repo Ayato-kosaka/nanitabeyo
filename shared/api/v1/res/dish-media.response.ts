@@ -48,7 +48,7 @@ export type DishMediaEntry = {
 		/** 投稿サムネイル画像の署名付きCDN URL（派生サイズ or オリジナル） */
 		thumbnailImageUrl: string;
 		/** GCS媒体か、provider公式embedかをクライアントが明示的に分岐する。 */
-		renderType: "stored_media" | "external_embed";
+		renderType: "stored" | "external_embed";
 		/** renderType=external_embedのときだけ存在する。 */
 		externalEmbed: ExternalDishMediaEmbed | null;
 	};

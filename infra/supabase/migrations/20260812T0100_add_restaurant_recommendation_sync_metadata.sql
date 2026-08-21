@@ -47,45 +47,24 @@ COMMENT ON COLUMN dishes.data_origin IS
 COMMENT ON COLUMN dishes.synced_at IS
   'restaurant_recommendation catalogから最後に同期した時刻。';
 
-CREATE TABLE IF NOT EXISTS dish_media_external_embeddings (
-  dish_media_id       UUID PRIMARY KEY REFERENCES dish_media(id) ON DELETE CASCADE,
-  provider            TEXT NOT NULL,
-  external_content_id TEXT NOT NULL,
-  canonical_url       TEXT NOT NULL,
-  embed_html          TEXT NOT NULL,
-  thumbnail_url       TEXT,
-  availability_status TEXT NOT NULL,
-  rights_basis        TEXT NOT NULL,
-  terms_version       TEXT,
-  published_at        TIMESTAMPTZ,
-  last_verified_at    TIMESTAMPTZ NOT NULL,
-  source_row_hash     TEXT NOT NULL,
-  created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
-  CONSTRAINT dish_media_external_provider_check
-    CHECK (provider IN ('instagram', 'tiktok', 'x')),
-  CONSTRAINT dish_media_external_availability_check
-    CHECK (availability_status IN ('available', 'unavailable', 'deleted', 'private', 'ineligible')),
-  CONSTRAINT dish_media_external_provider_content_uq
-    UNIQUE (provider, external_content_id)
-);
-
-CREATE INDEX IF NOT EXISTS dish_media_external_availability_idx
-  ON dish_media_external_embeddings(availability_status, last_verified_at DESC);
-
-COMMENT ON TABLE dish_media_external_embeddings IS
-  'Instagram/TikTok/X等の外部埋め込み情報。dish_media本体は既存検索・reactionとの互換層。';
-COMMENT ON COLUMN dish_media_external_embeddings.embed_html IS
-  '公式oEmbed等から得たHTML。API/クライアントでprovider allowlistとCSPを適用して表示する。';
-COMMENT ON COLUMN dish_media_external_embeddings.rights_basis IS
-  'official_api / official_oembed / partner_license / first_party_permission。';
-
-ALTER TABLE dish_media_external_embeddings ENABLE ROW LEVEL SECURITY;
+-- ⚠️ dish_media_external_embeddings の CREATE TABLE はこのファイルから外した（#1375 との衝突解消）。
+--
+--    このテーブルは #1395 の
+--    20260819T0200_create_dish_media_external_embeddings.sql が作る。**そちらが唯一の作成元**である。
+--    かつては両方がそれぞれ別の定義で CREATE TABLE IF NOT EXISTS しており、
+--    «先に流れた方が勝ち、後は無言でスキップ» という形で片方の設計が壊れる状態だった
+--    （列構成・provider の値域・PK の取り方がすべて食い違っていた）。
+--
+--    このファイルが必要としていた取り込み系の列
+--    （embed_html / rights_basis / availability_status / source_row_hash）は、
+--    20260821T0000_add_external_embedding_ingestion_columns.sql が
+--    «作成済みのテーブルへ足す ALTER» として追加する。
+--    ファイル名がテーブル作成（20260819T0200）より後になっているのは意図的で、
+--    適用順が自然に正しくなるようにしてある。
 
 COMMIT;
 
 -- rollback（必要時に手動実施）:
--- DROP TABLE dish_media_external_embeddings;
 -- DROP INDEX restaurants_source_seed_id_uq;
 -- ALTER TABLE restaurants DROP COLUMN source_seed_id, DROP COLUMN source_names,
 --   DROP COLUMN source_row_hash, DROP COLUMN synced_at;

@@ -76,7 +76,7 @@ export const mockDishItems: (DishMediaEntry & {
 		},
 		dish_media: {
 			id: "media_feed_1",
-			renderType: "stored_media",
+			renderType: "stored",
 			externalEmbed: null,
 			dish_id: "dish_feed_1",
 			media_path:
@@ -187,7 +187,7 @@ export const mockDishItems: (DishMediaEntry & {
 		},
 		dish_media: {
 			id: "media_feed_2",
-			renderType: "stored_media",
+			renderType: "stored",
 			externalEmbed: null,
 			dish_id: "dish_feed_2",
 			media_path:
@@ -298,7 +298,7 @@ export const mockDishItems: (DishMediaEntry & {
 		},
 		dish_media: {
 			id: "media_feed_3",
-			renderType: "stored_media",
+			renderType: "stored",
 			externalEmbed: null,
 			dish_id: "dish_feed_3",
 			media_path:
@@ -409,7 +409,7 @@ export const mockDishItems: (DishMediaEntry & {
 		},
 		dish_media: {
 			id: "media_feed_4",
-			renderType: "stored_media",
+			renderType: "stored",
 			externalEmbed: null,
 			dish_id: "dish_feed_4",
 			media_path:
@@ -520,7 +520,7 @@ export const mockDishItems: (DishMediaEntry & {
 		},
 		dish_media: {
 			id: "media_feed_5",
-			renderType: "stored_media",
+			renderType: "stored",
 			externalEmbed: null,
 			dish_id: "dish_feed_5",
 			media_path:
