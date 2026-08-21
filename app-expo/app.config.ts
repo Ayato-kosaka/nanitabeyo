@@ -78,6 +78,23 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 				],
 				category: ["BROWSABLE", "DEFAULT"],
 			},
+			// #1400 (PR2) 他アプリの共有シート（ACTION_SEND）から text/plain を受け取る入口。
+			//
+			// これを足すと MainActivity が Android の「共有」の候補に並ぶ。上の VIEW（App Links /
+			// カスタムスキーム）とは **別の intent-filter として並べる**こと。同じ filter に action を
+			// 足すと SEND にも VIEW の data（scheme / host）条件が掛かり、共有シートに出なくなる。
+			//
+			// ⚠️ 共有は URL ではなく `Intent.EXTRA_TEXT`（文字列 extra）で来るので
+			// `Linking.getInitialURL()` では拾えない。読み取りは `lib/sharedTextSource.android.ts`。
+			//
+			// mimeType を `text/*` ではなく `text/plain` に絞っているのは、扱えるのが
+			// 「SNS の URL を含む素のテキスト」だけだからである。広げると共有シートには出るのに
+			// 「取り込めません」しか返せない経路が増える。
+			{
+				action: "SEND",
+				category: ["DEFAULT"],
+				data: [{ mimeType: "text/plain" }],
+			},
 		],
 		config: {
 			googleMaps: {
