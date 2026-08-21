@@ -211,12 +211,30 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: ${{ inputs.prompt }}
           base_branch: ${{ inputs.base_branch || github.event.repository.default_branch }}
+          # ⚠️ 読み取りワーカーにも bypassPermissions が要る。
+          #
+          # 2026-08-21、権利面の調査を頼んだ observe run が **permission_denials=29** で
+          # 終わった。`success` かつ最終メッセージも 9546 文字あったので一見成功に見えるが、
+          # WebFetch / WebSearch が拒否されており **外部を 1 ページも見ないまま「調査」していた**。
+          # 成果物の体裁は整うので、denials を見ないと気付けない種類の失敗である。
+          #
+          # 「observe は読み取り専用だから権限は要らない」は誤りだった。ここでの
+          # «読み取り専用» は **リポジトリへ書けないこと** を指しており、それを担保するのは
+          # 下の `additional_permissions: contents: read`（＋ push ステップが無いこと）であって、
+          # ツールの許可とは別の層である。調査タスクでは外部取得こそが仕事なので、
+          # ツールを塞ぐと仕事そのものが成立しない。
+          #
+          # write 側と同じ理由で `--allowedTools` は綴り変更に対する保険として残す
+          # （bypassPermissions が効いている限り、実際に効くのは permission-mode の方）。
           claude_args: |
             --model ${{ inputs.model }}
             --max-turns ${{ inputs.max_turns }}
+            --permission-mode bypassPermissions
+            --allowedTools Bash,Edit,Write,Read,Glob,Grep,TodoWrite,WebFetch,WebSearch,Task
             ${{ inputs.extra_claude_args }}
           # Claude GitHub Appトークンの既定値はcontents: writeのため、
           # observeでは明示的にreadへ下げ、コード変更を権限レベルで防ぐ。
+          # **コード変更を防いでいるのはこの行であって、ツールの許可ではない。**
           additional_permissions: |
             contents: read
             pull_requests: write
