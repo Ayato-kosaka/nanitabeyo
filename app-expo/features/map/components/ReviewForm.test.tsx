@@ -24,6 +24,13 @@ import type { MediaData } from "@/lib/mediaSelection";
 
 // ---- 観測対象（selectMedia の呼ばれ方と結果の反映）以外はすべてスタブ化する ----
 // lucide のアイコンは名前ごとに export されるため Proxy で一括スタブ化する（searchScreenPreload.test.tsx と同じ）
+// #1375 実機確認: `ReviewForm` は投稿ボタンの下端に system inset を足すため
+// `useSafeAreaInsets()` を読む。このテストは `SafeAreaProvider` を張らずに
+// コンポーネント単体を描くので、ライブラリ公式の jest mock（インセットは全て 0）を使う。
+jest.mock("react-native-safe-area-context", () => ({
+	useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+
 jest.mock(
 	"lucide-react-native",
 	() =>

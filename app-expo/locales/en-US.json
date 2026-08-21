@@ -524,7 +524,8 @@
 			"enterReviewShort": "Short review (e.g.: The rich tonkotsu broth was insanely good!)",
 			"enterBidAmount": "Enter bid amount",
 			"enterDishCategory": "Enter dish category (e.g., Burger, BBQ)",
-			"searchRestaurantsForReview": "Search by name or area"
+			"searchRestaurantsForReview": "Search by name or area",
+			"searchAreaForReview": "Search by area"
 		},
 		"labels": {
 			"endDate": "End date:",

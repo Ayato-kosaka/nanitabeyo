@@ -524,7 +524,8 @@
 			"enterReviewShort": "संक्षिप्त समीक्षा (उदाहरण: समृद्ध टोन्कोत्सु शोरबा अविश्वसनीय रूप से स्वादिष्ट था!)",
 			"enterBidAmount": "बोली राशि दर्ज करें",
 			"enterDishCategory": "Enter dish category (e.g., Biryani, Chaat)",
-			"searchRestaurantsForReview": "नाम या क्षेत्र से खोजें"
+			"searchRestaurantsForReview": "नाम या क्षेत्र से खोजें",
+			"searchAreaForReview": "क्षेत्र से खोजें"
 		},
 		"labels": {
 			"endDate": "समाप्ति तिथि:",

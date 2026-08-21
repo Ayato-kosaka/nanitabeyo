@@ -50,10 +50,7 @@ const MyDishCard = memo(function MyDishCard({
 	const { lightImpact } = useHaptics();
 	// #958 と同じ理由で useWindowDimensions ではなく CenteredAppShell の中央カラム幅を使う
 	const contentWidth = useContentWidth();
-	const width = useMemo(
-		() => (contentWidth - PADDING_HORIZONTAL * 2 - GAP * (COLUMNS - 1)) / COLUMNS,
-		[contentWidth],
-	);
+	const width = useMemo(() => (contentWidth - PADDING_HORIZONTAL * 2 - GAP * (COLUMNS - 1)) / COLUMNS, [contentWidth]);
 	const height = width / ASPECT_RATIO;
 
 	// #1398 PR5 写真なし（dishMedia === null）でも categoryImageUrl → restaurant.image_url へ
@@ -125,6 +122,13 @@ const MyDishCard = memo(function MyDishCard({
 					<Text style={styles.footerText} numberOfLines={1}>
 						{dishName ?? item.restaurant.name ?? ""}
 					</Text>
+					{/* #1375 実機確認: 一覧に店舗名も出す。1 行目に料理名が出ているときだけ 2 行目を足す
+					    （料理名が無くて店名が 1 行目へ落ちている場合に同じ文字列が 2 行並ぶのを避ける） */}
+					{dishName && !!item.restaurant.name && (
+						<Text style={styles.footerSubText} numberOfLines={1} testID="my-dishes-list-item-restaurant">
+							{item.restaurant.name}
+						</Text>
+					)}
 					{/* #1398 PR4: want 行だけ。押しても親（= 全画面 Feed への遷移）は走らない */}
 					<MyDishEatenButton item={item} onPress={onPressMarkAsEaten} />
 				</View>
@@ -326,5 +330,9 @@ const styles = StyleSheet.create({
 	footerText: {
 		fontSize: 11,
 		color: "#FFFFFF",
+	},
+	footerSubText: {
+		fontSize: 10,
+		color: "rgba(255,255,255,0.85)",
 	},
 });

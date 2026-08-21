@@ -525,7 +525,8 @@
 			"enterReviewShort": "مراجعة قصيرة (مثال: مرق التونكوتسو كان غنيًا وشهيًا بشكل لا يصدق!)",
 			"enterBidAmount": "أدخل مبلغ العرض",
 			"enterDishCategory": "أدخل فئة الطبق (مثال: كبسة، شاورما)",
-			"searchRestaurantsForReview": "البحث بالاسم أو المنطقة"
+			"searchRestaurantsForReview": "البحث بالاسم أو المنطقة",
+			"searchAreaForReview": "البحث حسب المنطقة"
 		},
 		"labels": {
 			"endDate": "تاريخ الانتهاء:",

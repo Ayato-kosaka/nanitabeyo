@@ -23,6 +23,13 @@ import TestRenderer, { type ReactTestInstance } from "react-test-renderer";
 
 // ---- 観測対象（投稿ボタンの状態と callBackend の呼ばれ方）以外はすべてスタブ化する ----
 // lucide のアイコンは名前ごとに export されるため Proxy で一括スタブ化する（ReviewForm.test.tsx と同じ）
+// #1375 実機確認: `ReviewForm` は投稿ボタンの下端に system inset を足すため
+// `useSafeAreaInsets()` を読む。このテストは `SafeAreaProvider` を張らずに
+// コンポーネント単体を描くので、ライブラリ公式の jest mock（インセットは全て 0）を使う。
+jest.mock("react-native-safe-area-context", () => ({
+	useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+
 jest.mock(
 	"lucide-react-native",
 	() =>

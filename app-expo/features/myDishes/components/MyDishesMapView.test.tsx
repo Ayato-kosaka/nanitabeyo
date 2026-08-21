@@ -500,30 +500,26 @@ describe("#1396 M-2 既定 viewport では「このエリアで再検索」を�
 });
 
 /**
- * #1396 M-2: Map ビューに「エリア絞り込み中」の表示と解除ボタンを置く。押下時は `clearArea`
- * のみを呼ぶ（絶対条件: store を書くのは commitArea と clearArea のみ）。
+ * #1396 M-2: Map ビューに「エリア絞り込み中」の表示を置く。
+ *
+ * #1375 実機確認: 解除（✕）ボタンは Map からは外した。Map ではエリア＝いま見えている
+ * viewport そのもので、「このエリアで再検索」を押し直せば範囲は変わる。地図の上に
+ * «再検索» と «解除» という似た操作を 2 つ並べない。解除はフィルタ画面にだけ残す。
  */
-describe("#1396 M-2 エリア絞り込み中の表示と解除", () => {
+describe("#1396 M-2 エリア絞り込み中の表示", () => {
 	it("area が未確定なら表示されない", async () => {
 		const tree = await render();
 		expect(tree.root.findAll((node) => node.props?.testID === "my-dishes-map-area-active").length).toBe(0);
 	});
 
-	it("area 確定後は表示され、解除ボタン押下で clearArea が呼ばれる（filter.area が null に戻る）", async () => {
+	it("area 確定後は表示されるが、解除ボタンは Map 上に出ない", async () => {
 		useMyDishesFilterStore.getState().commitArea({ lat: 35.5, lng: 139.5, radius: 5000 });
 		const tree = await render();
 
 		expect(tree.root.findAll((node) => node.props?.testID === "my-dishes-map-area-active").length).toBeGreaterThan(
 			0,
 		);
-
-		const clearButtons = tree.root.findAll((node) => node.props?.testID === "my-dishes-map-area-clear");
-		expect(clearButtons.length).toBeGreaterThan(0);
-		await act(async () => {
-			clearButtons[0].props.onPress?.();
-		});
-
-		expect(useMyDishesFilterStore.getState().filter.area).toBeNull();
+		expect(tree.root.findAll((node) => node.props?.testID === "my-dishes-map-area-clear").length).toBe(0);
 	});
 });
 

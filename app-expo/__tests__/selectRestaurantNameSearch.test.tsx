@@ -90,7 +90,22 @@ jest.mock("@/features/restaurantPicker/components/SavedRestaurantsSheet", () => 
 jest.mock("expo-image", () => ({ Image: "Image" }));
 jest.mock("lucide-react-native", () => new Proxy({}, { get: () => () => null }));
 
-import SelectRestaurantScreen from "../app/[locale]/(tabs)/my-dishes/select-restaurant";
+import { RestaurantNameSearch } from "@/features/restaurantPicker/components/RestaurantNameSearch";
+import type { QueryRestaurantsResponse } from "@shared/api/v1/res";
+
+// 店名検索は画面から切り離したので、コンポーネント単体を最小の器で描く。
+// `regionRef` は画面が持っていた「いま見ている地図の中心」で、検索の lat/lng に使われる
+const mockOnSelectRestaurant = jest.fn();
+function NameSearchHarness() {
+	const regionRef = React.useRef({ latitude: 35.68, longitude: 139.76, latitudeDelta: 0.01, longitudeDelta: 0.01 });
+	return (
+		<RestaurantNameSearch
+			regionRef={regionRef}
+			onSelectRestaurant={(result: QueryRestaurantsResponse[number]) => mockOnSelectRestaurant(result)}
+			testID="select-restaurant-name-search"
+		/>
+	);
+}
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -113,6 +128,7 @@ beforeEach(() => {
 	jest.useFakeTimers();
 	mockPush.mockClear();
 	mockUpsert.mockClear();
+	mockOnSelectRestaurant.mockClear();
 	mockCallBackend.mockReset();
 	mockCallBackend.mockImplementation((path: string) =>
 		Promise.resolve(path === "v1/restaurants/search" ? [SEARCH_RESULT] : { data: [] }),
@@ -127,9 +143,12 @@ afterEach(async () => {
 	jest.useRealTimers();
 });
 
-describe("#1398 (PR6) select-restaurant の店名検索", () => {
+// #1375 実機確認: select-restaurant の検索窓はエリア検索 1 本に統合した（店名検索の窓は外した）。
+// `RestaurantNameSearch` 自体は残っており（SNS URL 取り込みの店舗選択で使う想定）、
+// デバウンスと結果押下の挙動はこのコンポーネント単体で固定し続ける。
+describe("#1398 (PR6) 店名検索コンポーネント（RestaurantNameSearch）", () => {
 	it("入力のたびに callBackend を叩かない（デバウンスで1回にまとまる）", async () => {
-		const tree = await render(<SelectRestaurantScreen />);
+		const tree = await render(<NameSearchHarness />);
 		const input = findByTestId(tree, "select-restaurant-name-search-input");
 
 		// 3文字を素早く連続入力する（各キーストロークの間はデバウンス時間より短い）
@@ -157,8 +176,8 @@ describe("#1398 (PR6) select-restaurant の店名検索", () => {
 		);
 	});
 
-	it("検索結果を押すと /[locale]/restaurant/[restaurantId] へ push される", async () => {
-		const tree = await render(<SelectRestaurantScreen />);
+	it("検索結果を押すと onSelectRestaurant にその行がそのまま渡る", async () => {
+		const tree = await render(<NameSearchHarness />);
 		const input = findByTestId(tree, "select-restaurant-name-search-input");
 
 		await act(async () => {
@@ -175,10 +194,6 @@ describe("#1398 (PR6) select-restaurant の店名検索", () => {
 			result.props.onPress();
 		});
 
-		expect(mockUpsert).toHaveBeenCalledWith({ restaurant: SEARCH_RESULT.restaurant, meta: SEARCH_RESULT.meta });
-		expect(mockPush).toHaveBeenCalledWith({
-			pathname: "/[locale]/restaurant/[restaurantId]",
-			params: { locale: "ja-JP", restaurantId: SEARCH_RESULT.restaurant.id },
-		});
+		expect(mockOnSelectRestaurant).toHaveBeenCalledWith(SEARCH_RESULT);
 	});
 });

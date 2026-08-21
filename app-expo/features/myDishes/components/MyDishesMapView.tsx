@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
-import { RotateCw, X } from "lucide-react-native";
+import { StyleSheet, Text, View } from "react-native";
+import { RotateCw } from "lucide-react-native";
 import MapViewClass from "react-native-maps";
 import MapView, { type Region } from "@/components/MapView";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
@@ -50,7 +50,6 @@ export function MyDishesMapView() {
 	const { logFrontendEvent } = useLogger();
 	const area = useMyDishesFilterStore((s) => s.filter.area);
 	const commitArea = useMyDishesFilterStore((s) => s.commitArea);
-	const clearArea = useMyDishesFilterStore((s) => s.clearArea);
 	const { pins, isLoading, error, hasFetchedInitial, truncated, refresh } = useMyDishesMapPinsQuery();
 
 	const initialRegion = useMemo<Region>(() => (isJapanese ? REGION_JP : INITIAL_REGION), [isJapanese]);
@@ -83,13 +82,6 @@ export function MyDishesMapView() {
 			payload: buildMapAreaPayload(nextArea),
 		});
 	}, [commitArea, lightImpact, logFrontendEvent]);
-
-	// #1396 M-2: Map からエリア絞り込みを解除する唯一の口（filters 画面を開かなくても戻れるようにする）
-	const handleClearArea = useCallback(() => {
-		lightImpact();
-		clearArea();
-		logFrontendEvent({ event_name: MY_DISHES_EVENTS.mapAreaCleared, error_level: "log", payload: {} });
-	}, [clearArea, lightImpact, logFrontendEvent]);
 
 	// #1396 M-3: web は `initialRegion`（uncontrolled）を読まないため、`onMapReady` 後に
 	// `animateToRegion` で明示的に補正する（先例: select-restaurant.tsx の `pendingRegionRef`）。
@@ -198,17 +190,13 @@ export function MyDishesMapView() {
 						</Text>
 					)}
 				</View>
+				{/* #1375 実機確認: 解除ボタンは Map 上には出さない。
+				    Map ではエリア＝いま見えている viewport そのもので、「このエリアで再検索」を押し直せば
+				    絞り込み範囲は変わる。ここに ✕ を置くと «再検索» と «解除» という似た操作が地図の上に
+				    2 つ並ぶ。解除はフィルタ画面（MyDishes.filters.area.clear）に残してある */}
 				{!!area && (
 					<View style={styles.areaActiveBanner} testID="my-dishes-map-area-active">
 						<Text style={styles.areaActiveText}>{i18n.t("MyDishes.map.areaActive")}</Text>
-						<Pressable
-							testID="my-dishes-map-area-clear"
-							onPress={handleClearArea}
-							accessibilityRole="button"
-							accessibilityLabel={i18n.t("MyDishes.filters.area.clear")}
-							hitSlop={8}>
-							<X size={14} color="#FFFFFF" />
-						</Pressable>
 					</View>
 				)}
 				{truncated && (
@@ -219,10 +207,7 @@ export function MyDishesMapView() {
 			</View>
 
 			{showEmpty && (
-				<View
-					style={styles.emptyOverlay}
-					pointerEvents={error ? "auto" : "none"}
-					testID="my-dishes-map-empty-overlay">
+				<View style={styles.emptyOverlay} pointerEvents={error ? "auto" : "none"} testID="my-dishes-map-empty-overlay">
 					<EmptyState
 						message={i18n.t("MyDishes.empty.description")}
 						error={error}

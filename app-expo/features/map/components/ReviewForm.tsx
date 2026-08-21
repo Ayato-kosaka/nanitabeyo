@@ -10,6 +10,7 @@ import {
 	KeyboardAvoidingView,
 	Keyboard,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Star, ChevronRight, Utensils, CircleDollarSign, ThumbsUp, ImagePlus } from "lucide-react-native";
 import { Card } from "@/components/Card";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
@@ -101,6 +102,7 @@ export function ReviewForm({
 	onSuccess,
 }: ReviewFormProps) {
 	const { lightImpact, mediumImpact } = useHaptics();
+	const insets = useSafeAreaInsets();
 	const { logFrontendEvent } = useLogger();
 	const { callBackend } = useAPICall();
 	const { uploadFile: mediaUploadFile } = useFileUploader();
@@ -1058,7 +1060,7 @@ export function ReviewForm({
 
 			{/* 投稿ボタン */}
 			{!isKeyboardVisible && (
-				<View style={styles.buttonContainer}>
+				<View style={[styles.buttonContainer, { paddingBottom: 12 + insets.bottom }]}>
 					<PrimaryButton
 						testID="review-submit-button"
 						label={i18n.t("Common.postReview")}
@@ -1328,8 +1330,13 @@ const styles = StyleSheet.create({
 		textAlign: "right",
 		marginTop: 4,
 	},
+	// #1375 実機確認: Android のジェスチャーナビゲーションでは画面下端に system inset があり、
+	// この投稿ボタンがその下に潜って押せなかった。呼び出し側の 2 画面（review.tsx /
+	// review-from-media）はどちらも SafeAreaView を持たないので、下端の確保はここで行う。
+	// `paddingBottom` は描画時に `insets.bottom` を足して上書きする
 	buttonContainer: {
-		paddingVertical: 12,
+		paddingTop: 12,
+		paddingBottom: 12,
 		borderTopWidth: 1,
 		borderTopColor: "#C9C9C9",
 		backgroundColor: "#FFFFFF",

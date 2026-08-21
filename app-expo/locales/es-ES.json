@@ -525,7 +525,8 @@
 			"enterReviewShort": "Reseña corta (ej.: ¡El caldo de tonkotsu estaba súper rico y delicioso!)",
 			"enterBidAmount": "Ingresa el monto de la oferta",
 			"enterDishCategory": "Ingresa categoría del plato (ej: Paella, Tapas)",
-			"searchRestaurantsForReview": "Buscar por nombre o área"
+			"searchRestaurantsForReview": "Buscar por nombre o área",
+			"searchAreaForReview": "Buscar por zona"
 		},
 		"labels": {
 			"endDate": "Fecha de fin:",

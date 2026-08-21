@@ -108,22 +108,14 @@ export default function MyDishesScreen() {
 		});
 	}, [lightImpact, logFrontendEvent, locale]);
 
+	// #1375 実機確認: SafeAreaView に `bottom` を含めると、タブバーが既に確保している下端インセットの
+	// 分だけ地図の下に白い帯が二重に入る（実機で「画面下部に不自然な余白」として見えていた）。
+	// 下端はタブバーに任せ、ここでは上端だけ確保する
 	return (
-		<SafeAreaView edges={["top", "bottom"]} style={styles.container} testID="my-dishes-screen">
+		<SafeAreaView edges={["top"]} style={styles.container} testID="my-dishes-screen">
+			{/* #1375 実機確認: 画面タイトル「食べたい/食べた」はタブ名と重複しているだけなので出さない。
+			    並びは Issue 記載の [Map] [List] [Calendar] [Filter] に揃える（Filter は切替ではなく別ルートへの push） */}
 			<View style={styles.header}>
-				<View style={styles.titleRow}>
-					<Text style={styles.title}>{i18n.t("Tabs.myDishes")}</Text>
-					{!isGuest && (
-						<TouchableOpacity
-							testID="my-dishes-filter-button"
-							onPress={handleFilterPress}
-							style={styles.filterButton}
-							accessibilityRole="button"
-							accessibilityLabel={i18n.t("MyDishes.filters.title")}>
-							<SlidersHorizontal size={18} color="#374151" />
-						</TouchableOpacity>
-					)}
-				</View>
 				<View style={styles.viewSwitch}>
 					{MY_DISHES_VIEWS.map((v) => {
 						const Icon = VIEW_ICONS[v];
@@ -143,23 +135,41 @@ export default function MyDishesScreen() {
 							</TouchableOpacity>
 						);
 					})}
+					<TouchableOpacity
+						testID="my-dishes-filter-button"
+						onPress={handleFilterPress}
+						style={styles.viewButton}
+						accessibilityRole="button"
+						accessibilityLabel={i18n.t("MyDishes.filters.title")}>
+						<SlidersHorizontal size={18} color="#6B7280" />
+						<Text style={styles.viewButtonLabel}>{i18n.t("MyDishes.filters.title")}</Text>
+					</TouchableOpacity>
 				</View>
 			</View>
 
+			{/* #1375 実機確認: ゲストにもここを開ける。
+			    「食べたい」＝ `reactions(action_type='save')` は**匿名ユーザーでも書けている**（保存ボタンは
+			    ゲストにも出ている）。にもかかわらずこのタブを丸ごとログインで閉じていたので、
+			    「保存はできるが保存したものを見られない」状態になっていた。save=食べたい / dish_review=食べた
+			    という仕様に対して、閉じるべきなのは**タブではなく「食べた」の記録導線**の方である。
+			    匿名→本アカウントは `linkIdentity` で **同じ user id のまま昇格**するので、
+			    ゲスト中の保存はログイン後もそのまま引き継がれる（AuthProvider.linkIdentity）。 */}
+			{isGuest && (
+				<View style={styles.guestBanner}>
+					<Text testID="my-dishes-guest-description" style={styles.guestBannerText}>
+						{i18n.t("MyDishes.guest.description")}
+					</Text>
+					<PrimaryButton
+						testID="my-dishes-guest-login-button"
+						onPress={handleLoginPress}
+						label={i18n.t("MyDishes.guest.loginButton")}
+						style={styles.guestBannerButton}
+					/>
+				</View>
+			)}
+
 			<View style={styles.body}>
-				{isGuest ? (
-					<View style={styles.guestContainer}>
-						<Text testID="my-dishes-guest-description" style={styles.guestDescription}>
-							{i18n.t("MyDishes.guest.description")}
-						</Text>
-						<PrimaryButton
-							testID="my-dishes-guest-login-button"
-							onPress={handleLoginPress}
-							label={i18n.t("MyDishes.guest.loginButton")}
-							style={styles.guestButton}
-						/>
-					</View>
-				) : (
+				{
 					// #1396 【設計】ビュー切替では再取得しない（設計書 (2/2) §3-3）。3 ビューは
 					// `useMyDishesFilterStore` の `queryKey` を共有しており、切り替えても
 					// `queryKey` が変わらないので、既に読んだページをそのまま描く。
@@ -195,7 +205,7 @@ export default function MyDishesScreen() {
 							);
 						})}
 					</>
-				)}
+				}
 			</View>
 
 			{!isGuest && (
@@ -205,8 +215,9 @@ export default function MyDishesScreen() {
 					style={styles.fab}
 					accessibilityRole="button"
 					accessibilityLabel={i18n.t("MyDishes.record.cta")}>
-					<Plus size={20} color="#FFFFFF" />
-					<Text style={styles.fabLabel}>{i18n.t("MyDishes.record.cta")}</Text>
+					{/* #1375 実機確認: 「記録する」の文字は出さず ＋ だけにする。
+					    ラベルは accessibilityLabel に残すので読み上げからは失われない */}
+					<Plus size={24} color="#FFFFFF" />
 				</TouchableOpacity>
 			)}
 		</SafeAreaView>
@@ -224,22 +235,6 @@ const styles = StyleSheet.create({
 		paddingBottom: 12,
 		borderBottomWidth: 1,
 		borderBottomColor: "#EEE",
-	},
-	titleRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		marginBottom: 12,
-	},
-	title: {
-		fontSize: 18,
-		fontWeight: "700",
-		color: "#1A1A1A",
-	},
-	filterButton: {
-		padding: 8,
-		borderRadius: 8,
-		backgroundColor: "#F3F4F6",
 	},
 	viewSwitch: {
 		flexDirection: "row",
@@ -276,40 +271,40 @@ const styles = StyleSheet.create({
 	hiddenView: {
 		display: "none",
 	},
-	guestContainer: {
+	// #1375 ゲストは「食べたい」を閲覧できる。ログインは «食べたを記録するため» の導線として
+	// 一覧の上に細く出すだけにする（画面を占有しない）
+	guestBanner: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 12,
+		paddingHorizontal: 16,
+		paddingVertical: 10,
+		backgroundColor: "#FFF7F5",
+		borderBottomWidth: 1,
+		borderBottomColor: "#F6DCD5",
+	},
+	guestBannerText: {
 		flex: 1,
-		justifyContent: "center",
-		paddingHorizontal: 24,
+		fontSize: 13,
+		color: "#6B7280",
 	},
-	guestDescription: {
-		fontSize: 16,
-		color: "#666",
-		textAlign: "center",
-		marginBottom: 16,
-	},
-	guestButton: {
-		width: "100%",
+	guestBannerButton: {
+		flexShrink: 0,
 	},
 	fab: {
 		position: "absolute",
 		right: 16,
 		bottom: 16,
-		flexDirection: "row",
 		alignItems: "center",
-		gap: 8,
-		paddingHorizontal: 16,
-		paddingVertical: 12,
-		borderRadius: 24,
+		justifyContent: "center",
+		width: 56,
+		height: 56,
+		borderRadius: 28,
 		backgroundColor: "#F05537",
 		shadowColor: "#000",
 		shadowOffset: { width: 0, height: 2 },
 		shadowOpacity: 0.2,
 		shadowRadius: 8,
 		elevation: 6,
-	},
-	fabLabel: {
-		color: "#FFFFFF",
-		fontWeight: "700",
-		fontSize: 14,
 	},
 });

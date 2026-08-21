@@ -15,7 +15,6 @@ import {
 	ErrorCode,
 } from "@shared/api/v1/res";
 import type { CreateRestaurantDto, QuerySavedRestaurantsDto } from "@shared/api/v1/dto";
-import { RestaurantNameSearch } from "@/features/restaurantPicker/components/RestaurantNameSearch";
 import { useHaptics } from "@/hooks/useHaptics";
 import i18n from "@/lib/i18n";
 import { useLogger } from "@/hooks/useLogger";
@@ -319,30 +318,6 @@ export default function SelectRestaurantScreen() {
 		[lightImpact, logFrontendEvent, locale],
 	);
 
-	// #1398 (PR6) 店名検索（自前 restaurants テーブル。Google Places は呼ばない）結果の押下時の処理
-	// （ストア upsert → 遷移）。地図の POI 経路・保存店経路と同じ形に揃える
-	const handleNameSearchResultPress = useCallback(
-		(result: QueryRestaurantsResponse[number]) => {
-			const { upsert } = useRestaurantStore.getState();
-			upsert({
-				restaurant: result.restaurant,
-				meta: result.meta,
-			});
-
-			router.push({
-				pathname: "/[locale]/restaurant/[restaurantId]",
-				params: { locale, restaurantId: result.restaurant.id },
-			});
-
-			logFrontendEvent({
-				event_name: "restaurant_name_search_result_press",
-				error_level: "log",
-				payload: { restaurant_id: result.restaurant.id },
-			});
-		},
-		[locale, logFrontendEvent],
-	);
-
 	// Map ready 後に pendingRegionRef に保存された region があれば移動させる
 	const [mapReady, setMapReady] = useState(false);
 	const pendingRegionRef = useRef<Region | null>(null);
@@ -491,24 +466,19 @@ export default function SelectRestaurantScreen() {
 					}}
 				/>
 
-				{/* #1398 (PR6) 店名検索（自前 restaurants テーブルのみ。Google Places Text Search /
-				    Autocomplete は呼ばない）。見つからない場合は既存の Map POI タップ経路（下）を使う */}
-				<View style={styles.searchContainer}>
-					<RestaurantNameSearch
-						regionRef={currentRegion}
-						onSelectRestaurant={handleNameSearchResultPress}
-						testID="select-restaurant-name-search"
-					/>
-				</View>
-
-				{/* #644 【設計】Search Bar - placeholder: "店名やエリアで検索" */}
+				{/* #1375 実機確認: 検索窓はエリア検索の 1 本だけにする。
+				    以前は #1398 PR6 の店名検索（自前 restaurants テーブル）と、この
+				    エリア検索の 2 本が縦に並んでいて、どちらに何を打てばよいか分からなかった。
+				    エリアを選ぶ → そのエリアで保存済みの店舗が下の Sheet に出る、という 1 本道にする
+				    （`handleAutocompleteSelect` が地図移動と `searchSavedRestaurants` を続けて行う）。
+				    店名検索の部品自体（`RestaurantNameSearch`）は消していない */}
 				<View style={styles.searchContainer}>
 					<LocationAutocomplete
 						value={searchQuery}
 						onChangeText={setSearchQuery}
 						onSelectSuggestion={handleAutocompleteSelect}
 						onClear={() => setSearchQuery("")}
-						placeholder={i18n.t("Map.placeholders.searchRestaurantsForReview")}
+						placeholder={i18n.t("Map.placeholders.searchAreaForReview")}
 						renderInputRight={
 							<TouchableOpacity
 								style={styles.currentLocationButton}
