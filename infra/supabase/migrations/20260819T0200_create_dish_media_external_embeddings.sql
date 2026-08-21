@@ -106,7 +106,13 @@ CREATE TABLE IF NOT EXISTS dish_media_external_embeddings (
   CONSTRAINT dmee_embed_status_check
     CHECK (embed_status IN ('unknown','available','unavailable')),
   -- 同じ投稿 × 同じ料理の二重取り込みを弾く自然キー
-  CONSTRAINT dmee_provider_content_dish_uq UNIQUE (provider, external_content_id, dish_id)
+  CONSTRAINT dmee_provider_content_dish_uq UNIQUE (provider, external_content_id, dish_id),
+
+  -- PK が dish_media_id なので論理的には冗長。**Prisma のために張っている。**
+  -- 複合 FK (dish_media_id, dish_id) で 1:1 を表現するには «参照元側にも複合ユニークが
+  -- 宣言されていること» を Prisma が要求する（無いと 1:1 ではなく 1:N として
+  -- introspect され、API 側の型が配列になってしまう）。
+  CONSTRAINT dmee_media_dish_uq UNIQUE (dish_media_id, dish_id)
 );
 
 -- 埋め込み死活監視（#1273 §39）のバッチが「古い順に再検証」するための索引
@@ -206,6 +212,12 @@ ALTER TABLE dish_media_external_embeddings
 ALTER TABLE dish_media_external_embeddings
   ADD CONSTRAINT dmee_provider_content_dish_uq
   UNIQUE (provider, external_content_id, dish_id);
+
+-- --- Prisma が 1:1 を表現するために要求する複合ユニーク ------------
+ALTER TABLE dish_media_external_embeddings
+  DROP CONSTRAINT IF EXISTS dmee_media_dish_uq;
+ALTER TABLE dish_media_external_embeddings
+  ADD CONSTRAINT dmee_media_dish_uq UNIQUE (dish_media_id, dish_id);
 
 -- --- provider の値域（DB は 4 種。アプリ仕様は 3 種）---------------
 ALTER TABLE dish_media_external_embeddings
