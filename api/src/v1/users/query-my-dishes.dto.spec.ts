@@ -92,20 +92,30 @@ describe('QueryMyDishesDto', () => {
 
   /* ---- シチュエーション・時間帯は「並び替え」であって「絞り込み」ではない ---- */
 
-  it('sort=-sceneScore は sceneKey を必須にする', () => {
-    expect(propertiesWithErrors({ sort: '-sceneScore' })).toEqual(['sceneKey']);
-    expect(validate({ sort: '-sceneScore', sceneKey: 'date' }).errors).toEqual(
-      [],
-    );
-  });
-
-  it('sort=-timeSlotScore は timeSlotKey を必須にする', () => {
-    expect(propertiesWithErrors({ sort: '-timeSlotScore' })).toEqual([
-      'timeSlotKey',
+  it('sort=-featureScore は featureKeys を必須にする', () => {
+    expect(propertiesWithErrors({ sort: '-featureScore' })).toEqual([
+      'featureKeys',
     ]);
     expect(
-      validate({ sort: '-timeSlotScore', timeSlotKey: 'dinner' }).errors,
+      validate({ sort: '-featureScore', featureKeys: 'scene:date' }).errors,
     ).toEqual([]);
+  });
+
+  it('featureKeys は "<feature_type>:<feature_key>" の形だけ通す', () => {
+    // カンマ区切り・繰り返しの両方を受ける（他の配列パラメータと同じ作法）
+    expect(
+      validate({
+        sort: '-featureScore',
+        featureKeys: 'timeSlot:dinner,scene:friends,dining_pace:quick',
+      }).errors,
+    ).toEqual([]);
+    // 区切りが無い / キーが空 は形の時点で弾く
+    expect(
+      propertiesWithErrors({ sort: '-featureScore', featureKeys: 'dinner' }),
+    ).toEqual(['featureKeys']);
+    expect(
+      propertiesWithErrors({ sort: '-featureScore', featureKeys: 'timeSlot:' }),
+    ).toEqual(['featureKeys']);
   });
 
   it('未知の sort は通さない', () => {

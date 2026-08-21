@@ -10,6 +10,7 @@ import {
 	IsString,
 	IsUUID,
 	Max,
+	Matches,
 	MaxLength,
 	Min,
 	ValidateIf,
@@ -33,14 +34,56 @@ export type MyDishStatus = (typeof MY_DISH_STATUSES)[number];
  * - `-occurredAt` / `occurredAt`: 発生日時（eaten=レビュー日 / want=保存日）
  * - `-rating`     : 評価の高い順。**want 行は評価を持たないので必ず末尾に来る**
  * - `distance`    : 近い順。`lat` / `lng` / `radius` が必須
- * - `-sceneScore` / `-timeSlotScore`:
- *      既存 `dish_category_features`（`feature_type='scene'` / `'timeSlot'`）の
- *      連続値スコアの高い順。#1375 の追補どおり、シチュエーション・時間帯は
+ * - `-featureScore`:
+ *      既存 `dish_category_features` の連続値スコアの高い順。`featureKeys` が必須。
+ *      #1375 の追補どおり、時間帯・誰と行く・価格帯・食事にかける時間・系統は
  *      **絞り込みではなく並び替え**として提供する（連続値なので絞り込みには使えない）。
- *      それぞれ `sceneKey` / `timeSlotKey` が必須。
+ *
+ *      #1375 実機確認: 以前は軸ごとに `-sceneScore` / `-timeSlotScore` という別々の sort を
+ *      置いていたが、sort は 1 つしか選べないので「夜ご飯 × 友達と × サクッと」のように
+ *      軸を重ねられなかった。軸を `featureKeys`（複数）へ移し、sort 値は 1 つに畳んである。
+ *      複数指定した場合は **スコアの合計**の高い順になる。
  */
-export const MY_DISH_SORTS = ["-occurredAt", "occurredAt", "-rating", "distance", "-sceneScore", "-timeSlotScore"] as const;
+export const MY_DISH_SORTS = ["-occurredAt", "occurredAt", "-rating", "distance", "-featureScore"] as const;
 export type MyDishSort = (typeof MY_DISH_SORTS)[number];
+
+/**
+ * `featureKeys` に指定できる軸（`dish_category_features.feature_type`）。
+ *
+ * 値は既存の推薦（`dish-categories.repository.ts`）が使っている feature_type と同じもので、
+ * ここで新しい特徴量を作ってはいない。検索画面の選択肢がそのまま対応する:
+ *
+ * | 軸 | 検索画面の項目 | キーの例 |
+ * | --- | --- | --- |
+ * | `timeSlot` | 時間帯 | `morning` / `lunch` / `dinner` / `late_night` |
+ * | `scene` | 誰と行く | `solo` / `date` / `friends` / `family` / `drinking` |
+ * | `budget_intent` | 価格帯 | `inexpensive` / `moderate` / `expensive` / `very_expensive` |
+ * | `dining_pace` | 食事にかける時間 | `quick` / `leisurely` |
+ * | `taste` | どんな系統 | `sweet` / `spicy` / `healthy` / `junk` |
+ * | `core_ingredient` | どんな系統 | `meat` / `fish` / `rice` / `noodle` |
+ */
+export const MY_DISH_FEATURE_TYPES = [
+	"timeSlot",
+	"scene",
+	"budget_intent",
+	"dining_pace",
+	"taste",
+	"core_ingredient",
+] as const;
+export type MyDishFeatureType = (typeof MY_DISH_FEATURE_TYPES)[number];
+
+/** `featureKeys` の 1 要素。`"<feature_type>:<feature_key>"` の形 */
+export const MY_DISH_FEATURE_KEY_PATTERN = /^[A-Za-z_]{1,32}:[A-Za-z0-9_-]{1,64}$/;
+
+/** `"timeSlot:dinner"` → `{ featureType, featureKey }`。形が違えば null */
+export const parseMyDishFeatureKey = (value: string): { featureType: MyDishFeatureType; featureKey: string } | null => {
+	if (!MY_DISH_FEATURE_KEY_PATTERN.test(value)) return null;
+	const separator = value.indexOf(":");
+	const featureType = value.slice(0, separator);
+	const featureKey = value.slice(separator + 1);
+	if (!(MY_DISH_FEATURE_TYPES as readonly string[]).includes(featureType)) return null;
+	return { featureType: featureType as MyDishFeatureType, featureKey };
+};
 
 /** GET query の repeated / comma-separated の両形式を string[] に正規化する */
 const normalizeCsvStringArray = () =>
@@ -161,22 +204,23 @@ export class QueryMyDishesDto {
 	sort?: MyDishSort;
 
 	/**
-	 * `sort=-sceneScore` のときのシーン（`dish_category_features.feature_key`）。
-	 * 例: 'date' / 'family' / 'solo'。**絞り込みではなく並び替えにのみ使う**
+	 * 並び替えに使う特徴量の軸（`"<feature_type>:<feature_key>"` の配列）。
+	 * 例: `["timeSlot:dinner", "scene:friends", "dining_pace:quick"]`。
+	 *
+	 * **絞り込みではなく並び替えにのみ使う**。複数指定するとスコアの合計順になる。
+	 * `sort=-featureScore` のときは 1 件以上必須。未知の `feature_type` は 400 にする
+	 * （黙って無視すると「選んだのに並びが変わらない」になるため）。
 	 */
-	@ValidateIf((o) => o.sort === "-sceneScore" || o.sceneKey !== undefined)
-	@IsString()
-	@MaxLength(64)
-	sceneKey?: string;
-
-	/**
-	 * `sort=-timeSlotScore` のときの時間帯（`dish_category_features.feature_key`）。
-	 * 例: 'lunch' / 'dinner' / 'late_night'。**絞り込みではなく並び替えにのみ使う**
-	 */
-	@ValidateIf((o) => o.sort === "-timeSlotScore" || o.timeSlotKey !== undefined)
-	@IsString()
-	@MaxLength(64)
-	timeSlotKey?: string;
+	@ValidateIf((o) => o.sort === "-featureScore" || o.featureKeys !== undefined)
+	@normalizeCsvStringArray()
+	@IsArray()
+	@ArrayMaxSize(MY_DISH_FEATURE_TYPES.length)
+	@IsString({ each: true })
+	@MaxLength(97, { each: true })
+	@Matches(MY_DISH_FEATURE_KEY_PATTERN, { each: true })
+	// `feature_type` が既知かどうかまではここでは見ない（class-validator に列挙を渡せる形ではない）。
+	// 判定は `parseMyDishFeatureKey` に一本化してあり、クエリ組み立て側が未知の軸を 400 にする
+	featureKeys?: string[];
 
 	/**
 	 * #1397 店舗で絞る。Map のピン（`MyDishPin`）をタップして開く料理メディア Sheet 専用。

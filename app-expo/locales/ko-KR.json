@@ -819,8 +819,7 @@
 			},
 			"rating": {
 				"title": "평점",
-				"min": "★{{count}} 이상",
-				"disabledByWant": "\"먹고 싶어요\"에는 평점이 없습니다. 상태를 \"먹었어요\"만으로 설정하면 평점으로 필터링할 수 있습니다."
+				"min": "★{{count}} 이상"
 			},
 			"sort": {
 				"title": "정렬",
@@ -828,11 +827,8 @@
 				"occurredAtAsc": "오래된순",
 				"ratingDesc": "평점 높은순",
 				"distance": "가까운순",
-				"timeSlotScoreDesc": "시간대에 맞는 순",
-				"sceneScoreDesc": "상황에 맞는 순",
-				"timeSlotKey": "시간대",
-				"sceneKey": "상황",
-				"distanceRequiresArea": "가까운순으로 보려면 지역이 필요합니다. 지도에서 \"이 지역에서 재검색\"을 눌러 주세요."
+				"distanceRequiresArea": "가까운순으로 보려면 지역이 필요합니다. 지도에서 \"이 지역에서 재검색\"을 눌러 주세요.",
+				"featureScoreDesc": "선택한 조건에 맞는 순"
 			},
 			"area": {
 				"title": "지역",
@@ -840,9 +836,17 @@
 				"clear": "지역 해제",
 				"hint": "지역은 지도의 \"이 지역에서 재검색\"으로 확정됩니다."
 			},
+			"axes": {
+				"none": "지정 없음",
+				"timeSlot": "시간대",
+				"scene": "누구와 함께",
+				"budget": "가격대",
+				"diningPace": "식사 시간",
+				"foodStyle": "어떤 종류"
+			},
 			"period": {
 				"title": "기간",
-				"none": "지정 안 함(전체)",
+				"none": "지정 없음",
 				"clear": "기간 해제"
 			}
 		},

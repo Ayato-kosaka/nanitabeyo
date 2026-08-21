@@ -138,19 +138,6 @@ describe("#1396 my-dishes フィルタ編集ルート", () => {
 		expect(mockBack).toHaveBeenCalledTimes(1);
 	});
 
-	it("status に want を含む間は評価チップが押せない（#1395 m-4）", async () => {
-		const tree = await render(<MyDishesFiltersScreen />);
-
-		// 既定は status: [] （= 両方 = want を含む）なので不活性
-		expect(accessibilityStateOf(tree, "my-dishes-filter-rating-4").disabled).toBe(true);
-		expect(exists(tree, "my-dishes-filter-rating-disabled")).toBe(true);
-
-		await press(tree, "my-dishes-filter-status-eaten");
-
-		expect(accessibilityStateOf(tree, "my-dishes-filter-rating-4").disabled).toBe(false);
-		expect(exists(tree, "my-dishes-filter-rating-disabled")).toBe(false);
-	});
-
 	it("評価を選んだあとに want を足すと、その評価は落ちる（食べたいが全消しにならない）", async () => {
 		const tree = await render(<MyDishesFiltersScreen />);
 
@@ -200,32 +187,58 @@ describe("#1396 my-dishes フィルタ編集ルート", () => {
 	});
 
 	// #1396 確定B: 時間帯・シチュエーションは絞り込みではなく «並び替え» として出す
-	it("時間帯・シチュエーションはソート選択肢として出る（絞り込みチップではない）", async () => {
+	// #1375 実機確認: 軸は折りたたみ（プルダウン）で、選ぶと並びが -featureScore へ寄る
+	it("軸を選ぶと featureKeys に入り、並びが -featureScore へ寄る", async () => {
 		const tree = await render(<MyDishesFiltersScreen />);
 
-		expect(exists(tree, "my-dishes-filter-sort--timeSlotScore")).toBe(true);
-		expect(exists(tree, "my-dishes-filter-sort--sceneScore")).toBe(true);
-
-		// #1396 m-4: キーを選ぶまで「選択済み」に見せない（同伴キーの既定同伴は廃止）
-		await press(tree, "my-dishes-filter-sort--timeSlotScore");
-		expect(accessibilityStateOf(tree, "my-dishes-filter-sort--timeSlotScore").selected).toBe(false);
-		expect(useMyDishesFilterStore.getState().filter.timeSlotKey).toBeNull();
-
-		await press(tree, "my-dishes-filter-time-slot-morning");
-		expect(accessibilityStateOf(tree, "my-dishes-filter-sort--timeSlotScore").selected).toBe(true);
+		// 畳んでいる間は選択肢を描かない（開いて初めて出る）
+		expect(exists(tree, "my-dishes-filter-axis-time-slot-morning")).toBe(false);
+		await press(tree, "my-dishes-filter-axis-time-slot");
+		await press(tree, "my-dishes-filter-axis-time-slot-morning");
 
 		await press(tree, "my-dishes-filter-apply");
-		expect(useMyDishesFilterStore.getState().filter.sort).toBe("-timeSlotScore");
-		expect(useMyDishesFilterStore.getState().filter.timeSlotKey).toBe("morning");
+		expect(useMyDishesFilterStore.getState().filter.featureKeys).toEqual(["timeSlot:morning"]);
+		expect(useMyDishesFilterStore.getState().filter.sort).toBe("-featureScore");
 	});
 
-	it("キーを選ばずに適用しても同伴キーへ既定値を入れない（m-4）", async () => {
+	it("同じ軸の別の値を選ぶと差し替わる（1 軸につき高々 1 件）", async () => {
 		const tree = await render(<MyDishesFiltersScreen />);
 
-		await press(tree, "my-dishes-filter-sort--sceneScore");
-		await press(tree, "my-dishes-filter-apply");
+		await press(tree, "my-dishes-filter-axis-time-slot");
+		await press(tree, "my-dishes-filter-axis-time-slot-morning");
+		await press(tree, "my-dishes-filter-axis-time-slot-lunch");
 
-		expect(useMyDishesFilterStore.getState().filter.sceneKey).toBeNull();
+		await press(tree, "my-dishes-filter-apply");
+		expect(useMyDishesFilterStore.getState().filter.featureKeys).toEqual(["timeSlot:lunch"]);
+	});
+
+	it("軸を全て外すと既定の並びへ戻る（-featureScore は軸が無いと 400 になる）", async () => {
+		const tree = await render(<MyDishesFiltersScreen />);
+
+		await press(tree, "my-dishes-filter-axis-scene");
+		await press(tree, "my-dishes-filter-axis-scene-date");
+		await press(tree, "my-dishes-filter-axis-scene-date");
+
+		await press(tree, "my-dishes-filter-apply");
+		expect(useMyDishesFilterStore.getState().filter.featureKeys).toEqual([]);
+		expect(useMyDishesFilterStore.getState().filter.sort).toBe("-occurredAt");
+	});
+
+	// #1375 実機確認: 評価は「食べた」を選んだときだけ出す（want 行は評価を持たない）
+	it("評価は status が eaten だけのときにしか出さない", async () => {
+		const tree = await render(<MyDishesFiltersScreen />);
+
+		expect(exists(tree, "my-dishes-filter-rating-4")).toBe(false);
+		await press(tree, "my-dishes-filter-status-eaten");
+		expect(exists(tree, "my-dishes-filter-rating-4")).toBe(true);
+		await press(tree, "my-dishes-filter-status-want");
+		expect(exists(tree, "my-dishes-filter-rating-4")).toBe(false);
+	});
+
+	// #1375 実機確認: 期間の絞り込みは廃止した（Calendar → Dish Feed の導線が担当する）
+	it("期間の絞り込みは出さない", async () => {
+		const tree = await render(<MyDishesFiltersScreen />);
+		expect(exists(tree, "my-dishes-filter-period-value")).toBe(false);
 	});
 
 	it("「リセット」は確定済みエリアを残す（意図せず全国検索へ戻さない）", async () => {

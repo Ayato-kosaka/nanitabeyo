@@ -190,18 +190,18 @@ describe('my-dishes cursor (その他の sort)', () => {
     });
   });
 
-  it('scene / timeSlot スコアは (score, occurred_at, row_key) の 3 要素', () => {
+  it('特徴量スコアは (score, occurred_at, row_key) の 3 要素', () => {
     const cursor = decodeMyDishCursor(
-      '-sceneScore',
-      encodeMyDishCursor('-sceneScore', row),
+      '-featureScore',
+      encodeMyDishCursor('-featureScore', row),
     );
     expect(cursor).toEqual({
-      sort: '-sceneScore',
+      sort: '-featureScore',
       score: 0.75,
       occurredAt: row.occurred_at,
       key: row.row_key,
     });
-    expect(buildMyDishOrderBy('-timeSlotScore').sql).toContain(
+    expect(buildMyDishOrderBy('-featureScore').sql).toContain(
       'feature_score DESC',
     );
   });

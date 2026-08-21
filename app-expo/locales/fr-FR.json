@@ -819,8 +819,7 @@
 			},
 			"rating": {
 				"title": "Note",
-				"min": "{{count}} étoiles et plus",
-				"disabledByWant": "Les plats « À goûter » n'ont pas de note. Choisissez uniquement « Goûté » pour filtrer par note."
+				"min": "{{count}} étoiles et plus"
 			},
 			"sort": {
 				"title": "Trier par",
@@ -828,11 +827,8 @@
 				"occurredAtAsc": "Plus anciens d'abord",
 				"ratingDesc": "Les mieux notés",
 				"distance": "Les plus proches",
-				"timeSlotScoreDesc": "Selon le moment de la journée",
-				"sceneScoreDesc": "Selon l'occasion",
-				"timeSlotKey": "Moment de la journée",
-				"sceneKey": "Occasion",
-				"distanceRequiresArea": "Le tri par distance nécessite une zone. Utilisez « Rechercher dans cette zone » sur la carte."
+				"distanceRequiresArea": "Le tri par distance nécessite une zone. Utilisez « Rechercher dans cette zone » sur la carte.",
+				"featureScoreDesc": "Correspondance"
 			},
 			"area": {
 				"title": "Zone",
@@ -840,9 +836,17 @@
 				"clear": "Effacer la zone",
 				"hint": "La zone se définit avec « Rechercher dans cette zone » sur la carte."
 			},
+			"axes": {
+				"none": "Non spécifié",
+				"timeSlot": "Moment de la journée",
+				"scene": "Avec qui",
+				"budget": "Gamme de prix",
+				"diningPace": "Temps du repas",
+				"foodStyle": "Type de cuisine"
+			},
 			"period": {
 				"title": "Période",
-				"none": "Toutes les dates",
+				"none": "Non spécifié",
 				"clear": "Effacer la période"
 			}
 		},

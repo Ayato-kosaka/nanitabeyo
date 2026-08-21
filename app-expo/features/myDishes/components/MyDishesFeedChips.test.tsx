@@ -89,7 +89,7 @@ describe("buildMyDishesFeedChips（絞り込みだけ / 並び替えは作らな
 		expect(chips.map((chip) => chip.id)).toEqual(["category", "statusEaten", "statusWant"]);
 		// リーダー判断 Q3: 並び替えの chip は 1 つも作らない
 		expect(chips.some((chip) => chip.patch.sort !== undefined)).toBe(false);
-		expect(chips.some((chip) => chip.patch.sceneKey !== undefined || chip.patch.timeSlotKey !== undefined)).toBe(
+		expect(chips.some((chip) => chip.patch.featureKeys !== undefined)).toBe(
 			false,
 		);
 	});

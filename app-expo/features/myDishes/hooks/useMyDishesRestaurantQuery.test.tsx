@@ -3,7 +3,7 @@
 
 見るのは 3 つ。
 
-1. 派生 queryKey が `sort` / `sceneKey` / `timeSlotKey` を含まないこと（Q5: Sheet 内は常に
+1. 派生 queryKey が `sort` / `featureKeys` を含まないこと（Q5: Sheet 内は常に
    「新しい順」固定）。`restaurantId` を含み、base とは別キーになること。
 2. #1439 B-1 / #1396 と同型: 取得失敗後、effect が再走しても再取得しない（`!error` ガード）。
 3. R2（本質）: Sheet を開くたびに base の queryKey も touchQuery し、base のスライスが
@@ -58,11 +58,11 @@ describe("#1397 派生 queryKey", () => {
 		});
 	});
 
-	it("sort / sceneKey / timeSlotKey を含まない（Q5: Sheet 内は常に新しい順に固定する）", async () => {
+	it("sort / featureKeys を含まない（Q5: Sheet 内は常に新しい順に固定する）", async () => {
 		mockCallBackend.mockResolvedValue({ data: [], nextCursor: null, meta: { oldestOccurredAt: null } });
 
 		// 共有フィルタの sort をあえて既定以外にしても、派生 queryKey には出てこないこと
-		useMyDishesFilterStore.getState().patch({ sort: "-sceneScore", sceneKey: "date", timeSlotKey: "dinner" });
+		useMyDishesFilterStore.getState().patch({ sort: "-featureScore", featureKeys: ["scene:date", "timeSlot:dinner"] });
 
 		let tree!: TestRenderer.ReactTestRenderer;
 		await act(async () => {
@@ -71,8 +71,7 @@ describe("#1397 派生 queryKey", () => {
 
 		expect(latest.queryKey).not.toBeNull();
 		expect(latest.queryKey).not.toMatch(/sort=/);
-		expect(latest.queryKey).not.toMatch(/sceneKey=/);
-		expect(latest.queryKey).not.toMatch(/timeSlotKey=/);
+		expect(latest.queryKey).not.toMatch(/featureKeys=/);
 		expect(latest.queryKey).toContain(`restaurantId=${RESTAURANT_ID}`);
 
 		await act(async () => {

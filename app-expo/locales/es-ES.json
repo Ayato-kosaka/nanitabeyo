@@ -819,8 +819,7 @@
 			},
 			"rating": {
 				"title": "Valoración",
-				"min": "{{count}} estrellas o más",
-				"disabledByWant": "Los platos de \"Quiero comer\" no tienen valoración. Deja el estado solo en \"Comido\" para filtrar por valoración."
+				"min": "{{count}} estrellas o más"
 			},
 			"sort": {
 				"title": "Ordenar por",
@@ -828,11 +827,8 @@
 				"occurredAtAsc": "Más antiguos primero",
 				"ratingDesc": "Mejor valorados",
 				"distance": "Más cercanos",
-				"timeSlotScoreDesc": "Según la franja horaria",
-				"sceneScoreDesc": "Según la ocasión",
-				"timeSlotKey": "Franja horaria",
-				"sceneKey": "Ocasión",
-				"distanceRequiresArea": "Ordenar por cercanía requiere un área. Usa \"Buscar en esta zona\" en el mapa."
+				"distanceRequiresArea": "Ordenar por cercanía requiere un área. Usa \"Buscar en esta zona\" en el mapa.",
+				"featureScoreDesc": "Mejor coincidencia"
 			},
 			"area": {
 				"title": "Zona",
@@ -840,9 +836,17 @@
 				"clear": "Quitar zona",
 				"hint": "La zona se fija con \"Buscar en esta zona\" en el mapa."
 			},
+			"axes": {
+				"none": "Sin especificar",
+				"timeSlot": "Franja horaria",
+				"scene": "Con quién vas",
+				"budget": "Rango de precio",
+				"diningPace": "Tiempo para comer",
+				"foodStyle": "Tipo de comida"
+			},
 			"period": {
 				"title": "Periodo",
-				"none": "Cualquier fecha",
+				"none": "Sin especificar",
 				"clear": "Quitar periodo"
 			}
 		},

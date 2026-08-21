@@ -451,19 +451,37 @@ describe('buildMyDishesPageQuery が組み立てる SQL', () => {
     expect(afterPage).toContain('sv.target_id = dsv.id::text');
   });
 
-  it('scene / timeSlot は既存 dish_category_features のスコアで並び替える（絞り込まない）', () => {
-    const sql = buildSql({ sort: '-sceneScore', sceneKey: 'date' });
+  it('特徴量は既存 dish_category_features のスコアで並び替える（絞り込まない）', () => {
+    const sql = buildSql({ sort: '-featureScore', featureKeys: ['scene:date'] });
 
     // 既存 dish-categories.repository.ts と同じ作法（LEFT JOIN + COALESCE）
-    expect(sql).toContain('LEFT JOIN dish_category_features dcf');
+    expect(sql).toContain('LEFT JOIN (');
+    expect(sql).toContain('FROM dish_category_features');
     expect(sql).toContain('COALESCE(dcf.score, 0)::double precision');
     expect(sql).toContain('feature_score DESC');
     // INNER JOIN にすると「スコアの無いカテゴリが消える」＝絞り込みになってしまう。
     // dish_category_features への JOIN が全て LEFT JOIN であることを確認する
-    const allJoins = sql.match(/JOIN dish_category_features/g) ?? [];
-    const leftJoins = sql.match(/LEFT JOIN dish_category_features/g) ?? [];
-    expect(allJoins.length).toBeGreaterThan(0);
-    expect(leftJoins.length).toBe(allJoins.length);
+    // 集約副問い合わせへの JOIN は必ず LEFT JOIN。INNER にすると
+    // 「スコアの無いカテゴリが消える」＝絞り込みになってしまう
+    expect(sql).not.toMatch(/(?<!LEFT )JOIN \(\n\s+SELECT dish_category_id/);
+  });
+
+  it('軸を複数指定するとスコアを合計し、候補行は重複しない（集約してから LEFT JOIN する）', () => {
+    const sql = buildSql({
+      sort: '-featureScore',
+      featureKeys: ['timeSlot:dinner', 'scene:friends', 'dining_pace:quick'],
+    });
+
+    // 素直に LEFT JOIN すると軸の数だけ行が増えるので、先に GROUP BY で畳んでから JOIN する
+    expect(sql).toContain('SUM(score) AS score');
+    expect(sql).toContain('GROUP BY dish_category_id');
+    expect(sql).toContain('(feature_type, feature_key) IN (');
+  });
+
+  it('未知の feature_type は 400 にする（黙って無視しない）', () => {
+    expect(() =>
+      buildSql({ sort: '-featureScore', featureKeys: ['unknown_axis:x'] }),
+    ).toThrow(/Invalid featureKeys entry/);
   });
 });
 

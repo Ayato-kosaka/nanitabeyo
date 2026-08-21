@@ -120,11 +120,11 @@ describe("#1442 M-1 再試行ボタン押下で実際に取得が走る", () => 
 
 /*
 #1446 M-2: `sort` が日付順以外だと Calendar が成立しない（空の月が並び、上へ遡っても増えない）。
-Calendar は自分の派生 queryKey を使い、`sort` / `sceneKey` / `timeSlotKey` を落として
+Calendar は自分の派生 queryKey を使い、`sort` / `featureKeys` を落として
 常に既定の `-occurredAt` で読む（#1397 PR2 の `toMyDishesRestaurantQueryParams` と同じ作法）。
 */
 describe("#1446 M-2 Calendar は sort を -occurredAt に固定して読む", () => {
-	it("共有 sort が -rating でも、Calendar は sort / sceneKey / timeSlotKey を送らない", async () => {
+	it("共有 sort が -rating でも、Calendar は sort / featureKeys を送らない", async () => {
 		mockCallBackend.mockResolvedValue({ data: [], nextCursor: null, meta: { oldestOccurredAt: null } });
 		useMyDishesFilterStore.getState().patch({ sort: "-rating", status: ["eaten"], minRating: 4 });
 
@@ -143,9 +143,9 @@ describe("#1446 M-2 Calendar は sort を -occurredAt に固定して読む", ()
 		});
 	});
 
-	it("共有 sort が -sceneScore でも sceneKey ごと落とす（Sheet と同じ扱い）", async () => {
+	it("共有 sort が -featureScore でも featureKeys ごと落とす（Sheet と同じ扱い）", async () => {
 		mockCallBackend.mockResolvedValue({ data: [], nextCursor: null, meta: { oldestOccurredAt: null } });
-		useMyDishesFilterStore.getState().patch({ sort: "-sceneScore", sceneKey: "date" });
+		useMyDishesFilterStore.getState().patch({ sort: "-featureScore", featureKeys: ["scene:date"] });
 
 		let tree!: TestRenderer.ReactTestRenderer;
 		await act(async () => {

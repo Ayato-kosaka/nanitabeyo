@@ -88,9 +88,9 @@ describe("#1446 M-2 共有 sort が既定なら base と同一キー（追加の
 });
 
 describe("#1446 M-2 共有 sort が日付順以外のとき", () => {
-	it("base と別キーになり、sort / sceneKey / timeSlotKey を送らない", async () => {
+	it("base と別キーになり、sort / featureKeys を送らない", async () => {
 		mockCallBackend.mockResolvedValue({ data: [], nextCursor: null, meta: { oldestOccurredAt: null } });
-		useMyDishesFilterStore.getState().patch({ sort: "-sceneScore", sceneKey: "date", timeSlotKey: "dinner" });
+		useMyDishesFilterStore.getState().patch({ sort: "-featureScore", featureKeys: ["scene:date", "timeSlot:dinner"] });
 
 		let tree!: TestRenderer.ReactTestRenderer;
 		await act(async () => {
@@ -99,8 +99,7 @@ describe("#1446 M-2 共有 sort が日付順以外のとき", () => {
 
 		expect(latest.queryKey).not.toBe(baseKey());
 		expect(latest.queryKey).not.toMatch(/sort=/);
-		expect(latest.queryKey).not.toMatch(/sceneKey=/);
-		expect(latest.queryKey).not.toMatch(/timeSlotKey=/);
+		expect(latest.queryKey).not.toMatch(/featureKeys=/);
 
 		const [, options] = mockCallBackend.mock.calls[0];
 		expect(options.requestPayload).toEqual({ limit: 42 });

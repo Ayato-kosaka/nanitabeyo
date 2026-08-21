@@ -43,18 +43,7 @@ describe("#1396 useMyDishesFilterStore が持つもの / 持たないもの", ()
 		// ⚠️ このリストを増やすときは、それが «ユーザーが明示的に選んだもの» か必ず確認すること。
 		// Map の region / viewport / delta をここへ足すと、pan のたびに 964MB のテーブルへクエリが飛ぶ。
 		expect(Object.keys(getState().filter).sort()).toEqual(
-			[
-				"area",
-				"categoryIds",
-				"from",
-				"minRating",
-				"ratings",
-				"sceneKey",
-				"sort",
-				"status",
-				"timeSlotKey",
-				"to",
-			].sort(),
+			["area", "categoryIds", "featureKeys", "from", "minRating", "ratings", "sort", "status", "to"].sort(),
 		);
 	});
 
@@ -71,14 +60,13 @@ describe("#1396 useMyDishesFilterStore が持つもの / 持たないもの", ()
 		expect(getState().filter).toEqual({
 			status: [],
 			categoryIds: [],
+			featureKeys: [],
 			minRating: null,
 			ratings: [],
 			from: null,
 			to: null,
 			area: null,
 			sort: "-occurredAt",
-			sceneKey: null,
-			timeSlotKey: null,
 		});
 	});
 });
@@ -171,24 +159,20 @@ describe("#1395 §4-3 sort の同伴パラメータが欠けたクエリを組�
 	});
 
 	// #1396 確定B: 時間帯・シチュエーションは「絞り込み」ではなく「並び替え」として出す
-	it("sceneKey / timeSlotKey は sort に対応するときだけ送る（絞り込みには使わない）", () => {
-		getState().patch({ sort: "-sceneScore", sceneKey: "date", timeSlotKey: "dinner" });
-		const scene = toMyDishesQueryParams(getState().filter);
-		expect(scene.sort).toBe("-sceneScore");
-		expect(scene.sceneKey).toBe("date");
-		expect(scene.timeSlotKey).toBeUndefined();
+	// #1375 実機確認: 軸は複数重ねられる（sort は -featureScore 1 つ）
+	it("featureKeys は sort が -featureScore のときだけ送る（絞り込みには使わない）", () => {
+		getState().patch({ sort: "-featureScore", featureKeys: ["timeSlot:dinner", "scene:date"] });
+		const params = toMyDishesQueryParams(getState().filter);
+		expect(params.sort).toBe("-featureScore");
+		// 選んだ順に依存しないよう、常にソートしてから積む
+		expect(params.featureKeys).toEqual(["scene:date", "timeSlot:dinner"]);
 
-		getState().patch({ sort: "-timeSlotScore" });
-		const timeSlot = toMyDishesQueryParams(getState().filter);
-		expect(timeSlot.sort).toBe("-timeSlotScore");
-		expect(timeSlot.timeSlotKey).toBe("dinner");
-		expect(timeSlot.sceneKey).toBeUndefined();
+		getState().patch({ sort: "-occurredAt" });
+		expect(toMyDishesQueryParams(getState().filter).featureKeys).toBeUndefined();
 	});
 
-	it("キー未選択の -sceneScore / -timeSlotScore は既定の並びへ落とす", () => {
-		getState().patch({ sort: "-sceneScore" });
-		expect(resolveSort(getState().filter)).toBe("-occurredAt");
-		getState().patch({ sort: "-timeSlotScore" });
+	it("軸未選択の -featureScore は既定の並びへ落とす", () => {
+		getState().patch({ sort: "-featureScore", featureKeys: [] });
 		expect(resolveSort(getState().filter)).toBe("-occurredAt");
 	});
 });
@@ -227,14 +211,13 @@ describe("#1396 patch / reset", () => {
 describe("#1397 Sheet 用派生クエリ（toMyDishesRestaurantQueryParams / selectRestaurantQueryKey）", () => {
 	const RESTAURANT_ID = "22222222-2222-2222-2222-000000000002";
 
-	it("restaurantId を含み、sort / sceneKey / timeSlotKey を持たない", () => {
-		getState().patch({ sort: "-sceneScore", sceneKey: "date", timeSlotKey: "dinner" });
+	it("restaurantId を含み、sort / featureKeys を持たない", () => {
+		getState().patch({ sort: "-featureScore", featureKeys: ["scene:date", "timeSlot:dinner"] });
 
 		const params = toMyDishesRestaurantQueryParams(getState().filter, RESTAURANT_ID) as Record<string, unknown>;
 		expect(params.restaurantId).toBe(RESTAURANT_ID);
 		expect(params.sort).toBeUndefined();
-		expect(params.sceneKey).toBeUndefined();
-		expect(params.timeSlotKey).toBeUndefined();
+		expect(params.featureKeys).toBeUndefined();
 	});
 
 	it("sort 以外のフィルタ（status / minRating 等）は base と同じものを引き継ぐ", () => {
@@ -295,13 +278,12 @@ describe("#1446 Calendar 用派生クエリ（toMyDishesCalendarQueryParams / se
 		expect(selectCalendarQueryKey(getState())).toBe(queryKey());
 	});
 
-	it("sort / sceneKey / timeSlotKey を持たない", () => {
-		getState().patch({ sort: "-sceneScore", sceneKey: "date", timeSlotKey: "dinner" });
+	it("sort / featureKeys を持たない", () => {
+		getState().patch({ sort: "-featureScore", featureKeys: ["scene:date", "timeSlot:dinner"] });
 
 		const params = toMyDishesCalendarQueryParams(getState().filter) as Record<string, unknown>;
 		expect(params.sort).toBeUndefined();
-		expect(params.sceneKey).toBeUndefined();
-		expect(params.timeSlotKey).toBeUndefined();
+		expect(params.featureKeys).toBeUndefined();
 	});
 
 	it("sort 以外のフィルタ（status / minRating / area / 期間）は base と同じものを引き継ぐ", () => {

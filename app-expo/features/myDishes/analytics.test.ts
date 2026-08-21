@@ -7,7 +7,7 @@
    生の緯度経度はエリアの粒度まで丸める。ここが緩むと `frontend_event_logs` を読む全員が
    «誰がどこで何を食べたか» を素の文字列で見られる状態になる
 2. **「どの絞り込みを使ったか」に答えられる粒度が揃っていること。** #1396 の時点では
-   `sceneKey` / `timeSlotKey` が落ちており、確定B（時間帯・シチュエーションを並び替えとして出す）
+   `featureKeys` が落ちており、確定B（時間帯・シチュエーションを並び替えとして出す）
    が実際に使われているかを後から答えられなかった
 
 「適用したときだけ 1 回出る」（レンダーごとに出さない）は画面側の性質なので
@@ -87,8 +87,7 @@ describe("#1403 filter_applied の payload", () => {
 			minRating: null,
 			hasRatings: false,
 			categoryCount: 0,
-			sceneKey: null,
-			timeSlotKey: null,
+			featureKeys: "",
 			hasArea: false,
 			hasPeriod: false,
 		});
@@ -96,9 +95,16 @@ describe("#1403 filter_applied の payload", () => {
 
 	// #1396 確定B: 時間帯・シチュエーションは «絞り込み» ではなく «並び替え» として出している。
 	// キーが落ちていると「その並び替えが実際に使われたか」を後から答えられない
-	it("並び替えに同伴するキー（sceneKey / timeSlotKey）を載せる", () => {
-		const filter: MyDishesFilter = { ...DEFAULT_MY_DISHES_FILTER, sort: "-sceneScore", sceneKey: "date" };
-		expect(buildFilterAppliedPayload(filter)).toMatchObject({ sort: "-sceneScore", sceneKey: "date" });
+	it("並び替えに同伴する軸（featureKeys）を載せる。選んだ順に依存しないようソートして積む", () => {
+		const filter: MyDishesFilter = {
+			...DEFAULT_MY_DISHES_FILTER,
+			sort: "-featureScore",
+			featureKeys: ["timeSlot:dinner", "scene:date"],
+		};
+		expect(buildFilterAppliedPayload(filter)).toMatchObject({
+			sort: "-featureScore",
+			featureKeys: "scene:date,timeSlot:dinner",
+		});
 	});
 
 	it("エリアは真偽だけにし、座標を重ねて撒かない", () => {

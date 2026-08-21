@@ -48,8 +48,12 @@ export {
 	QueryMyDishesDto,
 	MY_DISH_STATUSES,
 	MY_DISH_SORTS,
+	MY_DISH_FEATURE_TYPES,
+	MY_DISH_FEATURE_KEY_PATTERN,
+	parseMyDishFeatureKey,
 	type MyDishStatus,
 	type MyDishSort,
+	type MyDishFeatureType,
 } from "./users/query-my-dishes.dto";
 export { UnblockDishCategoryParamsDto } from "./users/unblock-dish-category-params.dto";
 

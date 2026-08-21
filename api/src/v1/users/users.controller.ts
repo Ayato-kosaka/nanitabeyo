@@ -334,17 +334,14 @@ export class UsersController {
     name: 'sort',
     required: false,
     description:
-      '-occurredAt(既定) / occurredAt / -rating / distance / -sceneScore / -timeSlotScore',
+      '-occurredAt(既定) / occurredAt / -rating / distance / -featureScore',
   })
   @ApiQuery({
-    name: 'sceneKey',
+    name: 'featureKeys',
     required: false,
-    description: 'sort=-sceneScore のときのシーン',
-  })
-  @ApiQuery({
-    name: 'timeSlotKey',
-    required: false,
-    description: 'sort=-timeSlotScore のときの時間帯',
+    description:
+      'sort=-featureScore のときの軸。"<feature_type>:<feature_key>" の CSV。' +
+      '例: timeSlot:dinner,scene:friends,dining_pace:quick（複数指定はスコアの合計順）',
   })
   @ApiQuery({
     name: 'cursor',

@@ -14,6 +14,7 @@ import type {
   MyDishStatus,
   QueryMyDishesDto,
 } from '@shared/v1/dto';
+import { parseMyDishFeatureKey } from '@shared/v1/dto';
 import { MY_DISH_MAP_PINS_LIMIT } from '@shared/v1/res';
 
 /**
@@ -51,7 +52,7 @@ export type MyDishCursor =
     }
   | { sort: 'distance'; distanceMeters: number; key: string }
   | {
-      sort: '-sceneScore' | '-timeSlotScore';
+      sort: '-featureScore';
       score: number;
       occurredAt: Date;
       key: string;
@@ -97,8 +98,7 @@ export function encodeMyDishCursor(
         throw new Error('distance sort produced a row without distance_meters');
       }
       return [String(row.distance_meters), row.row_key].join(SEP);
-    case '-sceneScore':
-    case '-timeSlotScore':
+    case '-featureScore':
       return [String(row.feature_score ?? 0), iso, row.row_key].join(SEP);
   }
 }
@@ -158,8 +158,7 @@ export function decodeMyDishCursor(
         key: parts[1],
       };
     }
-    case '-sceneScore':
-    case '-timeSlotScore': {
+    case '-featureScore': {
       if (parts.length !== 3 || !parts[2]) invalidCursor();
       return {
         sort,
@@ -188,8 +187,7 @@ export function buildMyDishOrderBy(sort: MyDishSort): Prisma.Sql {
       return Prisma.sql`(rating IS NULL) ASC, rating DESC, occurred_at DESC, row_key DESC`;
     case 'distance':
       return Prisma.sql`distance_meters ASC, row_key ASC`;
-    case '-sceneScore':
-    case '-timeSlotScore':
+    case '-featureScore':
       return Prisma.sql`feature_score DESC, occurred_at DESC, row_key DESC`;
   }
 }
@@ -242,8 +240,7 @@ export function buildMyDishKeysetPredicate(
     }
     case 'distance':
       return Prisma.sql`(distance_meters, row_key) > (${cursor.distanceMeters}::double precision, ${cursor.key}::text)`;
-    case '-sceneScore':
-    case '-timeSlotScore':
+    case '-featureScore':
       return Prisma.sql`(
         feature_score < ${cursor.score}::double precision
         OR (
@@ -425,29 +422,36 @@ export function buildMyDishesCandidates(
   // #1375 追補「時間帯・シチュエーションは絞り込みではなく並び替え」。
   // 既存 dish-categories.repository.ts と同じく dish_category_features を
   // LEFT JOIN して COALESCE(score, 0) を使う（新しいスコアリングを作らない）。
-  const featureType =
-    sort === '-sceneScore'
-      ? 'scene'
-      : sort === '-timeSlotScore'
-        ? 'timeSlot'
-        : null;
-  const featureKey =
-    sort === '-sceneScore'
-      ? dto.sceneKey
-      : sort === '-timeSlotScore'
-        ? dto.timeSlotKey
-        : undefined;
-  const featureJoin =
-    featureType && featureKey
-      ? Prisma.sql`LEFT JOIN dish_category_features dcf
-           ON dcf.dish_category_id = d.category_id
-          AND dcf.feature_type = ${featureType}::text
-          AND dcf.feature_key = ${featureKey}::text`
-      : Prisma.empty;
-  const featureScoreExpr =
-    featureType && featureKey
-      ? Prisma.sql`COALESCE(dcf.score, 0)::double precision`
-      : Prisma.sql`NULL::double precision`;
+  //
+  // #1375 実機確認: 軸を複数選べるようにした（時間帯 × 誰と行く × 価格帯 × …）。
+  // sort は 1 つしか選べないので軸ごとに sort 値を持つ形では重ねられなかった。
+  // 複数の軸は **スコアの合計**（`SUM`）で 1 本の `feature_score` に畳む。
+  // 集約してから JOIN するのは、素直に LEFT JOIN すると軸の数だけ行が増えて
+  // 候補行が重複するためである（GROUP BY を外側へ持ち出さずに済む）。
+  const featurePairs = (dto.featureKeys ?? []).map((raw) => {
+    const parsed = parseMyDishFeatureKey(raw);
+    if (!parsed) {
+      // 黙って無視すると「選んだのに並びが変わらない」になるので落とす
+      throw new BadRequestException(`Invalid featureKeys entry: ${raw}`);
+    }
+    return parsed;
+  });
+  const featureJoin = featurePairs.length
+    ? Prisma.sql`LEFT JOIN (
+           SELECT dish_category_id, SUM(score) AS score
+             FROM dish_category_features
+            WHERE (feature_type, feature_key) IN (${Prisma.join(
+              featurePairs.map(
+                ({ featureType, featureKey }) =>
+                  Prisma.sql`(${featureType}::text, ${featureKey}::text)`,
+              ),
+            )})
+            GROUP BY dish_category_id
+         ) dcf ON dcf.dish_category_id = d.category_id`
+    : Prisma.empty;
+  const featureScoreExpr = featurePairs.length
+    ? Prisma.sql`COALESCE(dcf.score, 0)::double precision`
+    : Prisma.sql`NULL::double precision`;
 
   const rangeFilter = (column: Prisma.Sql): Prisma.Sql => {
     const fromSql = dto.from

@@ -22,7 +22,7 @@ import type { MyDishesFilter } from "./stores/useMyDishesFilterStore";
  * | 入れる | 入れない |
  * | --- | --- |
  * | `restaurantId` / `itemKey` / `dishMediaId` / `chipId` などの id | 店名・料理名・レビュー本文 |
- * | `status` / `sort` / `sceneKey` のような列挙値 | ユーザー名・メールアドレス |
+ * | `status` / `sort` / `featureKeys` のような列挙値 | ユーザー名・メールアドレス |
  * | `hasArea` / `hasPeriod` のような真偽 | 生の緯度経度（→ {@link roundCoordinateForLog} で丸める） |
  * | 件数・所要時間 | 端末位置そのもの |
  *
@@ -134,7 +134,7 @@ export const buildMapAreaPayload = (area: { lat: number; lng: number; radius: nu
  * `my_dishes_filter_applied` の payload。**「適用」を押したときにだけ**組み立てる。
  *
  * 「どの絞り込みを使ったか」を答えられる粒度まで載せる。#1396 で入った時点では
- * `sceneKey` / `timeSlotKey` / `ratings` / `categoryIds` が落ちており、
+ * `featureKeys`（当時は `sceneKey` / `timeSlotKey`）/ `ratings` / `categoryIds` が落ちており、
  * 「並び替えとして出したシーン・時間帯（確定B）が実際に使われているか」を答えられなかった。
  *
  * エリアは `hasArea` の真偽だけにする。座標は `my_dishes_map_search_this_area` 側に
@@ -149,9 +149,11 @@ export const buildFilterAppliedPayload = (filter: MyDishesFilter) => ({
 	hasRatings: filter.ratings.length > 0,
 	/** 料理カテゴリの id は載せず件数だけにする（絞り込みの «強さ» が分かれば足りる） */
 	categoryCount: filter.categoryIds.length,
-	/** 確定B の並び替えに同伴するキー。列挙値なので id 同様そのまま載せてよい */
-	sceneKey: filter.sceneKey,
-	timeSlotKey: filter.timeSlotKey,
+	/**
+	 * 確定B の並び替えに同伴する軸（`"<feature_type>:<feature_key>"`）。
+	 * 列挙値なので id 同様そのまま載せてよい。選んだ順で値が変わらないようソートして積む
+	 */
+	featureKeys: [...filter.featureKeys].sort().join(","),
 	hasArea: filter.area !== null,
 	hasPeriod: filter.from !== null || filter.to !== null,
 });

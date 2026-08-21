@@ -41,17 +41,20 @@ export type MyDishesView = "map" | "list" | "calendar";
 
 /**
  * 並び順。#1396 確定B により、時間帯・シチュエーションは**絞り込みではなく並び替え**として出す。
- * `-sceneScore` / `-timeSlotScore` は既存 `dish_category_features` の連続値スコア順（#1395 §4-3）。
+ * `-featureScore` は既存 `dish_category_features` の連続値スコア順（#1395 §4-3）。
+ *
+ * #1375 実機確認: 以前は軸ごとに `-sceneScore` / `-timeSlotScore` という別々の sort だったが、
+ * sort は 1 つしか選べないので「夜ご飯 × 友達と × サクッと」のように軸を重ねられなかった。
+ * 軸は `featureKeys`（複数可）へ移し、sort 値は `-featureScore` 1 つに畳んである。
  */
-export type MyDishesSort = "-occurredAt" | "occurredAt" | "-rating" | "distance" | "-sceneScore" | "-timeSlotScore";
+export type MyDishesSort = "-occurredAt" | "occurredAt" | "-rating" | "distance" | "-featureScore";
 
 export const MY_DISHES_SORTS: readonly MyDishesSort[] = [
 	"-occurredAt",
 	"occurredAt",
 	"-rating",
 	"distance",
-	"-sceneScore",
-	"-timeSlotScore",
+	"-featureScore",
 ] as const;
 
 /** 明示的に確定したエリア。Map の viewport そのものではない（§3-2） */
@@ -70,10 +73,11 @@ export type MyDishesFilter = {
 	to: string | null;
 	area: MyDishesArea;
 	sort: MyDishesSort;
-	/** `sort === "-sceneScore"` のときのシーン（`dish_category_features.feature_key`） */
-	sceneKey: string | null;
-	/** `sort === "-timeSlotScore"` のときの時間帯（同上） */
-	timeSlotKey: string | null;
+	/**
+	 * 並び替えに使う特徴量の軸（`"<feature_type>:<feature_key>"`）。
+	 * 例: `["timeSlot:dinner", "scene:friends"]`。1 軸につき高々 1 件で、複数軸を重ねられる
+	 */
+	featureKeys: string[];
 };
 
 export type MyDishesFilterStore = {
@@ -95,8 +99,7 @@ export const DEFAULT_MY_DISHES_FILTER: MyDishesFilter = {
 	to: null,
 	area: null,
 	sort: "-occurredAt",
-	sceneKey: null,
-	timeSlotKey: null,
+	featureKeys: [],
 };
 
 /**
@@ -114,18 +117,16 @@ export const selectIsRatingFilterEnabled = (s: MyDishesFilterStore): boolean => 
 /**
  * `sort` に必要な同伴パラメータが揃っているか検証し、揃っていなければ既定の `-occurredAt` へ落とす。
  *
- * `QueryMyDishesDto` は `sort=distance` に `lat/lng/radius` を、`-sceneScore` に `sceneKey` を、
- * `-timeSlotScore` に `timeSlotKey` を**必須**にしている。欠けたまま送ると 400 になるので、
+ * `QueryMyDishesDto` は `sort=distance` に `lat/lng/radius` を、`-featureScore` に `featureKeys` を
+ * **必須**にしている。欠けたまま送ると 400 になるので、
  * クエリを組む前にここで吸収する（UI 側も選べないようにするが、store を直接叩かれても壊れないようにする）。
  */
 export const resolveSort = (filter: MyDishesFilter): MyDishesSort => {
 	switch (filter.sort) {
 		case "distance":
 			return filter.area ? "distance" : "-occurredAt";
-		case "-sceneScore":
-			return filter.sceneKey ? "-sceneScore" : "-occurredAt";
-		case "-timeSlotScore":
-			return filter.timeSlotKey ? "-timeSlotScore" : "-occurredAt";
+		case "-featureScore":
+			return filter.featureKeys.length > 0 ? "-featureScore" : "-occurredAt";
 		default:
 			return filter.sort;
 	}
@@ -165,8 +166,8 @@ export const toMyDishesQueryParams = (filter: MyDishesFilter): MyDishesQueryPara
 	}
 	// 既定値は送らない（サーバ既定と同じ）
 	if (sort !== "-occurredAt") params.sort = sort;
-	if (sort === "-sceneScore" && filter.sceneKey) params.sceneKey = filter.sceneKey;
-	if (sort === "-timeSlotScore" && filter.timeSlotKey) params.timeSlotKey = filter.timeSlotKey;
+	// 直列化を安定させるため常にソートしてから積む（選んだ順で queryKey が変わらないように）
+	if (sort === "-featureScore" && filter.featureKeys.length > 0) params.featureKeys = [...filter.featureKeys].sort();
 
 	return params;
 };
@@ -193,16 +194,16 @@ export const selectFilterQueryKey = (s: MyDishesFilterStore): string =>
 
 /**
  * #1397 料理メディア Sheet 用の派生クエリ。base の実効クエリ（`toMyDishesQueryParams`）へ
- * `restaurantId` を足し、`sort` / `sceneKey` / `timeSlotKey` を落とす（設計 (2/2) §8-1 / Q5）。
+ * `restaurantId` を足し、`sort` / `featureKeys` を落とす（設計 (2/2) §8-1 / Q5）。
  *
- * `distance` は 1 店舗内で全行同値、`-sceneScore` / `-timeSlotScore` も同カテゴリばかりで
+ * `distance` は 1 店舗内で全行同値、`-featureScore` も同カテゴリばかりで
  * 差が出ないため、Sheet 内は常に `-occurredAt` に固定する（リーダー判断 Q5）。
  *
  * ⚠️ `restaurantId` は共有フィルタ（`MyDishesFilter`）には入れない。入れた瞬間、
  * Sheet を開いただけで一覧・Map まで 1 店舗に絞られる（設計 (2/2) §7-1）。
  * 呼び出し側（Sheet）が引数として渡す派生値としてのみ扱う。
  */
-export type MyDishesRestaurantQueryParams = Omit<MyDishesQueryParams, "sort" | "sceneKey" | "timeSlotKey"> & {
+export type MyDishesRestaurantQueryParams = Omit<MyDishesQueryParams, "sort" | "featureKeys"> & {
 	restaurantId: string;
 };
 
@@ -212,8 +213,7 @@ export const toMyDishesRestaurantQueryParams = (
 ): MyDishesRestaurantQueryParams => {
 	const params = { ...toMyDishesQueryParams(filter) };
 	delete params.sort;
-	delete params.sceneKey;
-	delete params.timeSlotKey;
+	delete params.featureKeys;
 	return { ...params, restaurantId };
 };
 
@@ -228,11 +228,11 @@ export const selectRestaurantQueryKey =
  *
  * Calendar は「上へスクロールして過去へ遡る」UI なので、**ページが日付の降順で届くこと**を
  * 前提にしている（`buildCalendarMonths` は読み込み済みの最古の月を下端に取る）。共有 `sort` が
- * `-rating` / `distance` / `-sceneScore` / `-timeSlotScore` のときは 1 ページ目が何年にも散らばり、
+ * `-rating` / `distance` / `-featureScore` のときは 1 ページ目が何年にも散らばり、
  * 空の月が数十個並んだうえに上へ遡っても何も増えない（= カレンダーとして成立しない）。
  * `sort: "occurredAt"`（古い順）に至っては「上へ遡る」の向きそのものが逆になる。
  *
- * そこで Calendar は `sort` / `sceneKey` / `timeSlotKey` を落とし、常に既定の `-occurredAt` で読む。
+ * そこで Calendar は `sort` / `featureKeys` を落とし、常に既定の `-occurredAt` で読む。
  * 落とし方も落とす対象も `toMyDishesRestaurantQueryParams`（#1397 PR2）と同じ作法である。
  *
  * ⚠️ 共有 `sort` が既定の `-occurredAt` のときは、`toMyDishesQueryParams` が `sort` をそもそも
@@ -241,13 +241,12 @@ export const selectRestaurantQueryKey =
  *
  * ⚠️ `MyDishesFilter` のキー集合は増やさない。Calendar 固有の値は filter の外で作る（#1397 PR2 と同じ）。
  */
-export type MyDishesCalendarQueryParams = Omit<MyDishesQueryParams, "sort" | "sceneKey" | "timeSlotKey">;
+export type MyDishesCalendarQueryParams = Omit<MyDishesQueryParams, "sort" | "featureKeys">;
 
 export const toMyDishesCalendarQueryParams = (filter: MyDishesFilter): MyDishesCalendarQueryParams => {
 	const params = { ...toMyDishesQueryParams(filter) };
 	delete params.sort;
-	delete params.sceneKey;
-	delete params.timeSlotKey;
+	delete params.featureKeys;
 	return params;
 };
 

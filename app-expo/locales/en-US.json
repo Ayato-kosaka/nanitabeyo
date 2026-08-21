@@ -819,8 +819,7 @@
 			},
 			"rating": {
 				"title": "Rating",
-				"min": "{{count}} stars & up",
-				"disabledByWant": "\"Want to eat\" entries have no rating. Set the status to \"Eaten\" only to filter by rating."
+				"min": "{{count}} stars & up"
 			},
 			"sort": {
 				"title": "Sort by",
@@ -828,11 +827,8 @@
 				"occurredAtAsc": "Oldest first",
 				"ratingDesc": "Highest rated",
 				"distance": "Nearest",
-				"timeSlotScoreDesc": "Best for the time of day",
-				"sceneScoreDesc": "Best for the occasion",
-				"timeSlotKey": "Time of day",
-				"sceneKey": "Occasion",
-				"distanceRequiresArea": "Sorting by distance needs an area. Use \"Search this area\" on the map."
+				"distanceRequiresArea": "Sorting by distance needs an area. Use \"Search this area\" on the map.",
+				"featureScoreDesc": "Best match"
 			},
 			"area": {
 				"title": "Area",
@@ -840,9 +836,17 @@
 				"clear": "Clear area",
 				"hint": "The area is set with \"Search this area\" on the map."
 			},
+			"axes": {
+				"none": "Any",
+				"timeSlot": "Time of day",
+				"scene": "Who you go with",
+				"budget": "Price range",
+				"diningPace": "Time to spend",
+				"foodStyle": "Style"
+			},
 			"period": {
 				"title": "Period",
-				"none": "Any time",
+				"none": "Any",
 				"clear": "Clear period"
 			}
 		},

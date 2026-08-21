@@ -1,13 +1,21 @@
 import React, { useCallback, useMemo, useState } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ChevronDown, ChevronUp } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import { useScreenTrace } from "@/hooks/useScreenTrace";
-import { sceneOptions, timeSlots } from "@/features/search/constants";
+import {
+	coreIngredientOptions,
+	diningPaceOptions,
+	priceLevelOptions,
+	sceneOptions,
+	tasteOptions,
+	timeSlots,
+} from "@/features/search/constants";
 import i18n from "@/lib/i18n";
 import { MY_DISHES_EVENTS, buildFilterAppliedPayload } from "@/features/myDishes/analytics";
 import {
@@ -46,10 +54,71 @@ const SORT_CHOICES: { sort: MyDishesSort; labelKey: string }[] = [
 	{ sort: "occurredAt", labelKey: "MyDishes.filters.sort.occurredAtAsc" },
 	{ sort: "-rating", labelKey: "MyDishes.filters.sort.ratingDesc" },
 	{ sort: "distance", labelKey: "MyDishes.filters.sort.distance" },
-	// #1396 確定B: 時間帯・シチュエーションは絞り込みではなく**並び替え**として出す
-	{ sort: "-timeSlotScore", labelKey: "MyDishes.filters.sort.timeSlotScoreDesc" },
-	{ sort: "-sceneScore", labelKey: "MyDishes.filters.sort.sceneScoreDesc" },
+	// #1396 確定B: 特徴量は絞り込みではなく**並び替え**として出す（連続値なので絞り込めない）
+	{ sort: "-featureScore", labelKey: "MyDishes.filters.sort.featureScoreDesc" },
 ];
+
+/**
+ * #1375 実機確認: 特徴量の軸。**検索画面と同じ選択肢・同じ文言**を使う。
+ *
+ * ここで新しい選択肢を作らないのは、「検索で選べたもの」と「自分の棚で絞れるもの」が
+ * 食い違うと、ユーザーから見て同じ言葉が別の意味を持つことになるためである。
+ * `featureType` は `dish_category_features.feature_type` で、API の `featureKeys`
+ * （`"<feature_type>:<feature_key>"`）へそのまま入る。
+ *
+ * `どんな系統` だけは検索画面と同じく taste と core_ingredient の 2 つの feature_type が
+ * 1 つの見出しにぶら下がる（`foodStyleOptions` と同じ構成）。
+ */
+type FeatureAxis = {
+	/** 折りたたみの識別子。testID にも使う */
+	id: string;
+	titleKey: string;
+	options: readonly { id: string; label: string; icon?: string; featureType: string }[];
+};
+
+const FEATURE_AXES: FeatureAxis[] = [
+	{
+		id: "time-slot",
+		titleKey: "MyDishes.filters.axes.timeSlot",
+		options: timeSlots.map((o) => ({ id: o.id, label: o.label, icon: o.icon, featureType: "timeSlot" })),
+	},
+	{
+		id: "scene",
+		titleKey: "MyDishes.filters.axes.scene",
+		options: sceneOptions.map((o) => ({ id: o.id, label: o.label, icon: o.icon, featureType: "scene" })),
+	},
+	{
+		id: "budget",
+		titleKey: "MyDishes.filters.axes.budget",
+		// 検索画面の価格帯は Google の PRICE_LEVEL_* だが、特徴量側のキーは budgetIntent である
+		options: priceLevelOptions.map((o) => ({
+			id: o.budgetIntent,
+			label: o.label,
+			featureType: "budget_intent",
+		})),
+	},
+	{
+		id: "dining-pace",
+		titleKey: "MyDishes.filters.axes.diningPace",
+		options: diningPaceOptions.map((o) => ({ id: o.id, label: o.label, icon: o.icon, featureType: "dining_pace" })),
+	},
+	{
+		id: "food-style",
+		titleKey: "MyDishes.filters.axes.foodStyle",
+		options: [
+			...tasteOptions.map((o) => ({ id: o.id, label: o.label, icon: o.icon, featureType: "taste" })),
+			...coreIngredientOptions.map((o) => ({
+				id: o.id,
+				label: o.label,
+				icon: o.icon,
+				featureType: "core_ingredient",
+			})),
+		],
+	},
+];
+
+/** `"<feature_type>:<feature_key>"` を組む。API 契約（`parseMyDishFeatureKey`）と同じ形 */
+const toFeatureKey = (featureType: string, id: string): string => `${featureType}:${id}`;
 
 function Chip({
 	label,
@@ -88,6 +157,49 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 	);
 }
 
+/**
+ * 「押したらプルダウンで選択肢が出る」行。RN に素の select が無いので折りたたみで表す。
+ * 閉じているときも**選択中の値は見出しの右に出す**（開かないと分からない状態を作らない）。
+ */
+function AccordionSection({
+	title,
+	valueLabel,
+	expanded,
+	// prop 名は `onPress` にする。`Chip` と揃えておくと、テストの `press()` が
+	// «一番浅い、testID を持つ要素» の `props.onPress` を呼ぶ作法のまま通る
+	onPress,
+	testID,
+	children,
+}: {
+	title: string;
+	valueLabel: string;
+	expanded: boolean;
+	onPress: () => void;
+	testID: string;
+	children: React.ReactNode;
+}) {
+	const Chevron = expanded ? ChevronUp : ChevronDown;
+	return (
+		<View style={styles.section}>
+			<TouchableOpacity
+				testID={testID}
+				onPress={onPress}
+				accessibilityRole="button"
+				accessibilityState={{ expanded }}
+				style={styles.accordionHeader}>
+				<Text style={styles.sectionTitle}>{title}</Text>
+				<View style={styles.accordionValueRow}>
+					<Text style={styles.accordionValue} numberOfLines={1} testID={`${testID}-value`}>
+						{valueLabel}
+					</Text>
+					<Chevron size={16} color="#6B7280" />
+				</View>
+			</TouchableOpacity>
+			{expanded && <View style={styles.chipRow}>{children}</View>}
+		</View>
+	);
+}
+
 export default function MyDishesFiltersScreen() {
 	useScreenTrace("MyDishesFilters");
 	const { lightImpact } = useHaptics();
@@ -96,7 +208,14 @@ export default function MyDishesFiltersScreen() {
 	const patch = useMyDishesFilterStore((s) => s.patch);
 	const clearArea = useMyDishesFilterStore((s) => s.clearArea);
 
+	// #1375 実機確認: エリアの絞り込みは Calendar では出さない（日付の棚にエリアは要らない）。
+	// どのビューから開かれたかは呼び出し側が `view` で渡す
+	const { view } = useLocalSearchParams<{ view?: string }>();
+	const showArea = view !== "calendar";
+
 	const [draft, setDraft] = useState<MyDishesFilter>(filter);
+	/** 開いている軸（プルダウン）。同時に 1 つだけ開く */
+	const [expandedAxis, setExpandedAxis] = useState<string | null>(null);
 
 	const patchDraft = useCallback((partial: Partial<MyDishesFilter>) => {
 		setDraft((prev) => ({ ...prev, ...partial }));
@@ -110,9 +229,7 @@ export default function MyDishesFiltersScreen() {
 		(status: MyDishStatus) => {
 			lightImpact();
 			setDraft((prev) => {
-				const next = prev.status.includes(status)
-					? prev.status.filter((s) => s !== status)
-					: [...prev.status, status];
+				const next = prev.status.includes(status) ? prev.status.filter((s) => s !== status) : [...prev.status, status];
 				// status が want を含む（[] = 両方も含む）状態では評価で絞れないので、選択済みの評価は落とす
 				const nextFilter: MyDishesFilter = { ...prev, status: next };
 				return isRatingFilterEnabled(nextFilter) ? nextFilter : { ...nextFilter, minRating: null, ratings: [] };
@@ -129,11 +246,49 @@ export default function MyDishesFiltersScreen() {
 		[draft.minRating, lightImpact, patchDraft],
 	);
 
+	/**
+	 * 軸の値を選ぶ / 外す。**1 軸につき高々 1 件**（同じ軸の別の値を押すと差し替え）。
+	 *
+	 * 軸を 1 つでも選んだら並び順を `-featureScore` へ寄せる。ユーザーが「夜ご飯」を選ぶのは
+	 * «夜ご飯に合うものを上に出したい» からで、選んだのに並びが変わらないのが一番分かりにくい。
+	 * 逆に全部外したら既定の日付順へ戻す（`-featureScore` は軸が無いと 400 になる）。
+	 * ただし距離順・評価順のように **ユーザーが明示的に選んだ並び**は奪わない。
+	 */
+	const toggleFeatureKey = useCallback(
+		(featureType: string, id: string) => {
+			lightImpact();
+			const key = toFeatureKey(featureType, id);
+			setDraft((prev) => {
+				const prefix = `${featureType}:`;
+				const withoutAxis = prev.featureKeys.filter((k) => !k.startsWith(prefix));
+				const next = prev.featureKeys.includes(key) ? withoutAxis : [...withoutAxis, key];
+				const sort: MyDishesSort =
+					next.length > 0
+						? prev.sort === "-occurredAt"
+							? "-featureScore"
+							: prev.sort
+						: prev.sort === "-featureScore"
+							? DEFAULT_MY_DISHES_FILTER.sort
+							: prev.sort;
+				return { ...prev, featureKeys: next, sort };
+			});
+		},
+		[lightImpact],
+	);
+
+	const toggleAxis = useCallback(
+		(axisId: string) => {
+			lightImpact();
+			setExpandedAxis((prev) => (prev === axisId ? null : axisId));
+		},
+		[lightImpact],
+	);
+
 	const selectSort = useCallback(
 		(sort: MyDishesSort) => {
 			lightImpact();
-			// #1396 m-4: 同伴キー（sceneKey / timeSlotKey）を勝手に埋めない。
-			// キーを選ぶまでこのソートは適用しない（UI 上も「選択済み」に見せない）
+			// #1396 m-4: 同伴パラメータ（featureKeys）を勝手に埋めない。
+			// 軸を選ぶまでこのソートは適用しない（UI 上も「選択済み」に見せない）
 			patchDraft({ sort });
 		},
 		[lightImpact, patchDraft],
@@ -148,11 +303,6 @@ export default function MyDishesFiltersScreen() {
 			sort: prev.sort === "distance" ? DEFAULT_MY_DISHES_FILTER.sort : prev.sort,
 		}));
 	}, [lightImpact]);
-
-	const handleClearPeriod = useCallback(() => {
-		lightImpact();
-		patchDraft({ from: null, to: null });
-	}, [lightImpact, patchDraft]);
 
 	const handleReset = useCallback(() => {
 		lightImpact();
@@ -188,11 +338,6 @@ export default function MyDishesFiltersScreen() {
 		router.back();
 	}, [lightImpact]);
 
-	const periodLabel = useMemo(() => {
-		if (!draft.from && !draft.to) return i18n.t("MyDishes.filters.period.none");
-		return `${draft.from?.slice(0, 10) ?? ""} 〜 ${draft.to?.slice(0, 10) ?? ""}`.trim();
-	}, [draft.from, draft.to]);
-
 	return (
 		<SafeAreaView edges={["bottom"]} style={styles.container} testID="my-dishes-filter-screen">
 			<ScreenHeader
@@ -214,38 +359,62 @@ export default function MyDishesFiltersScreen() {
 					))}
 				</Section>
 
-				<Section title={i18n.t("MyDishes.filters.rating.title")}>
-					{RATING_CHOICES.map((rating) => (
-						<Chip
-							key={rating}
-							testID={`my-dishes-filter-rating-${rating}`}
-							label={i18n.t("MyDishes.filters.rating.min", { count: rating })}
-							selected={draft.minRating === rating}
-							disabled={!ratingEnabled}
-							onPress={() => selectMinRating(rating)}
-						/>
-					))}
-				</Section>
-				{!ratingEnabled && (
-					<Text testID="my-dishes-filter-rating-disabled" style={styles.hint}>
-						{i18n.t("MyDishes.filters.rating.disabledByWant")}
-					</Text>
+				{/* #1375 実機確認: 評価は「食べた」を選んだときだけ出す。
+				    want 行は評価を持たないので、以前は常に出したうえで不活性にし「なぜ押せないか」を
+				    注記で説明していた。押せない UI を説明するより、出さない方が短い */}
+				{ratingEnabled && (
+					<Section title={i18n.t("MyDishes.filters.rating.title")}>
+						{RATING_CHOICES.map((rating) => (
+							<Chip
+								key={rating}
+								testID={`my-dishes-filter-rating-${rating}`}
+								label={i18n.t("MyDishes.filters.rating.min", { count: rating })}
+								selected={draft.minRating === rating}
+								onPress={() => selectMinRating(rating)}
+							/>
+						))}
+					</Section>
 				)}
+
+				{/* #1375 実機確認: 時間帯 / 誰と行く / 価格帯 / 食事にかける時間 / どんな系統。
+				    見出しも選択肢も検索画面と同じ文言を使う（`FEATURE_AXES`） */}
+				{FEATURE_AXES.map((axis) => {
+					const selected = axis.options.find((o) => draft.featureKeys.includes(toFeatureKey(o.featureType, o.id)));
+					return (
+						<AccordionSection
+							key={axis.id}
+							testID={`my-dishes-filter-axis-${axis.id}`}
+							title={i18n.t(axis.titleKey)}
+							valueLabel={selected ? i18n.t(selected.label) : i18n.t("MyDishes.filters.axes.none")}
+							expanded={expandedAxis === axis.id}
+							onPress={() => toggleAxis(axis.id)}>
+							{axis.options.map((option) => (
+								<Chip
+									key={`${option.featureType}:${option.id}`}
+									testID={`my-dishes-filter-axis-${axis.id}-${option.id}`}
+									label={option.icon ? `${option.icon} ${i18n.t(option.label)}` : i18n.t(option.label)}
+									selected={draft.featureKeys.includes(toFeatureKey(option.featureType, option.id))}
+									onPress={() => toggleFeatureKey(option.featureType, option.id)}
+								/>
+							))}
+						</AccordionSection>
+					);
+				})}
 
 				<Section title={i18n.t("MyDishes.filters.sort.title")}>
 					{SORT_CHOICES.map(({ sort, labelKey }) => {
-						// #1396 m-4: 同伴キー（sceneKey / timeSlotKey）が無い間は「選択済み」に見せない。
-						// 既定値を勝手に入れないので、キーを選ぶまでこのソートは実質未適用のままである
-						const missingSceneKey = sort === "-sceneScore" && !draft.sceneKey;
-						const missingTimeSlotKey = sort === "-timeSlotScore" && !draft.timeSlotKey;
+						// #1396 m-4: 同伴パラメータが無い間は「選択済み」に見せない。
+						// 既定値を勝手に入れないので、軸を選ぶまでこの並びは実質未適用のままである
+						const missingFeatureKeys = sort === "-featureScore" && draft.featureKeys.length === 0;
 						return (
 							<Chip
 								key={sort}
 								testID={`my-dishes-filter-sort-${sort}`}
 								label={i18n.t(labelKey)}
-								selected={draft.sort === sort && !missingSceneKey && !missingTimeSlotKey}
+								selected={draft.sort === sort && !missingFeatureKeys}
 								// distance はエリア（lat/lng/radius）が必須。未確定なら選ばせない（#1395 §4-3）
-								disabled={sort === "distance" && !draft.area}
+								// -featureScore は軸が 1 つ以上必須（欠けたまま送ると 400）
+								disabled={(sort === "distance" && !draft.area) || missingFeatureKeys}
 								onPress={() => selectSort(sort)}
 							/>
 						);
@@ -255,76 +424,31 @@ export default function MyDishesFiltersScreen() {
 					<Text style={styles.hint}>{i18n.t("MyDishes.filters.sort.distanceRequiresArea")}</Text>
 				)}
 
-				{draft.sort === "-timeSlotScore" && (
-					<Section title={i18n.t("MyDishes.filters.sort.timeSlotKey")}>
-						{timeSlots.map((slot) => (
-							<Chip
-								key={slot.id}
-								testID={`my-dishes-filter-time-slot-${slot.id}`}
-								label={`${slot.icon} ${i18n.t(slot.label)}`}
-								selected={draft.timeSlotKey === slot.id}
-								onPress={() => {
-									lightImpact();
-									patchDraft({ timeSlotKey: slot.id });
-								}}
-							/>
-						))}
-					</Section>
+				{showArea && (
+					<View style={styles.section}>
+						<Text style={styles.sectionTitle}>{i18n.t("MyDishes.filters.area.title")}</Text>
+						<Text style={styles.valueText} testID="my-dishes-filter-area-value">
+							{draft.area
+								? (draft.area.label ??
+									`${draft.area.lat.toFixed(4)}, ${draft.area.lng.toFixed(4)} / ${draft.area.radius}m`)
+								: i18n.t("MyDishes.filters.area.none")}
+						</Text>
+						{/* エリアの確定は Map の「このエリアで再検索」だけが行う（§3-2）。ここでは解除だけできる */}
+						<Text style={styles.hint}>{i18n.t("MyDishes.filters.area.hint")}</Text>
+						{!!draft.area && (
+							<TouchableOpacity
+								testID="my-dishes-filter-area-clear"
+								onPress={handleClearArea}
+								accessibilityRole="button"
+								style={styles.linkButton}>
+								<Text style={styles.linkButtonLabel}>{i18n.t("MyDishes.filters.area.clear")}</Text>
+							</TouchableOpacity>
+						)}
+					</View>
 				)}
 
-				{draft.sort === "-sceneScore" && (
-					<Section title={i18n.t("MyDishes.filters.sort.sceneKey")}>
-						{sceneOptions.map((scene) => (
-							<Chip
-								key={scene.id}
-								testID={`my-dishes-filter-scene-${scene.id}`}
-								label={`${scene.icon} ${i18n.t(scene.label)}`}
-								selected={draft.sceneKey === scene.id}
-								onPress={() => {
-									lightImpact();
-									patchDraft({ sceneKey: scene.id });
-								}}
-							/>
-						))}
-					</Section>
-				)}
-
-				<View style={styles.section}>
-					<Text style={styles.sectionTitle}>{i18n.t("MyDishes.filters.area.title")}</Text>
-					<Text style={styles.valueText} testID="my-dishes-filter-area-value">
-						{draft.area
-							? (draft.area.label ??
-								`${draft.area.lat.toFixed(4)}, ${draft.area.lng.toFixed(4)} / ${draft.area.radius}m`)
-							: i18n.t("MyDishes.filters.area.none")}
-					</Text>
-					{/* エリアの確定は Map の「このエリアで再検索」だけが行う（§3-2）。ここでは解除だけできる */}
-					<Text style={styles.hint}>{i18n.t("MyDishes.filters.area.hint")}</Text>
-					{!!draft.area && (
-						<TouchableOpacity
-							testID="my-dishes-filter-area-clear"
-							onPress={handleClearArea}
-							accessibilityRole="button"
-							style={styles.linkButton}>
-							<Text style={styles.linkButtonLabel}>{i18n.t("MyDishes.filters.area.clear")}</Text>
-						</TouchableOpacity>
-					)}
-				</View>
-
-				<View style={styles.section}>
-					<Text style={styles.sectionTitle}>{i18n.t("MyDishes.filters.period.title")}</Text>
-					<Text style={styles.valueText} testID="my-dishes-filter-period-value">
-						{periodLabel}
-					</Text>
-					{(!!draft.from || !!draft.to) && (
-						<TouchableOpacity
-							testID="my-dishes-filter-period-clear"
-							onPress={handleClearPeriod}
-							accessibilityRole="button"
-							style={styles.linkButton}>
-							<Text style={styles.linkButtonLabel}>{i18n.t("MyDishes.filters.period.clear")}</Text>
-						</TouchableOpacity>
-					)}
-				</View>
+				{/* #1375 実機確認: 期間の絞り込みはこの画面から廃止した。
+				    日付で見たいときは Calendar から Dish Feed へ入る導線が担当する */}
 			</ScrollView>
 
 			<View style={styles.footer}>
@@ -357,6 +481,23 @@ const styles = StyleSheet.create({
 	},
 	section: {
 		marginTop: 20,
+	},
+	accordionHeader: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+		gap: 12,
+	},
+	accordionValueRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 4,
+		flexShrink: 1,
+	},
+	accordionValue: {
+		fontSize: 13,
+		color: "#6B7280",
+		flexShrink: 1,
 	},
 	sectionTitle: {
 		fontSize: 14,
