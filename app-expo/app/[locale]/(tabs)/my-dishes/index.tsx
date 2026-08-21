@@ -87,8 +87,10 @@ export default function MyDishesScreen() {
 	// #1396 【設計】フィルタ編集はルート（`my-dishes/filters`）へ push する。BlurModal は使わない（§8-5）
 	const handleFilterPress = useCallback(() => {
 		lightImpact();
-		router.push({ pathname: "/[locale]/(tabs)/my-dishes/filters", params: { locale } });
-	}, [lightImpact, locale]);
+		// #1375 実機確認: どのビューから開いたかを渡す。Calendar からのときは
+		// エリアの絞り込みを出さない（日付の棚にエリアは要らない）
+		router.push({ pathname: "/[locale]/(tabs)/my-dishes/filters", params: { locale, view: activeView } });
+	}, [activeView, lightImpact, locale]);
 
 	// #1396 【設計】旧レビュータブの投稿導線（`review-post-button`）の後継。
 	// 押下先は既存 `selectRestaurant.tsx` の移設先（店名検索は別 Sub-issue で組み替え予定、挙動不変）
