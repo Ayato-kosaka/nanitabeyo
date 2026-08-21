@@ -10,6 +10,7 @@ import {
 	useMyDishesFilterStore,
 	type MyDishesFilter,
 } from "../stores/useMyDishesFilterStore";
+import { MY_DISHES_EVENTS } from "../analytics";
 
 /**
  * #1397 (PR5/5) 全画面 Feed の contextual filter chips（設計 (2/2) §10）。
@@ -152,7 +153,7 @@ export function MyDishesFeedChips({ entry }: MyDishesFeedChipsProps) {
 			patch(chip.patch);
 
 			logFrontendEvent({
-				event_name: "my_dishes_feed_chip_applied",
+				event_name: MY_DISHES_EVENTS.feedChipApplied,
 				error_level: "log",
 				payload: { chipId: chip.id, dishMediaId: entry ? String(entry.dish_media.id) : null },
 			});
@@ -163,7 +164,7 @@ export function MyDishesFeedChips({ entry }: MyDishesFeedChipsProps) {
 					onPress: () => {
 						useMyDishesFilterStore.getState().patch(previous);
 						logFrontendEvent({
-							event_name: "my_dishes_feed_chip_undone",
+							event_name: MY_DISHES_EVENTS.feedChipUndone,
 							error_level: "log",
 							payload: { chipId: chip.id },
 						});

@@ -47,6 +47,7 @@ import { shallow } from "zustand/shallow";
 
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import DishMediaFeed from "@/features/dishMedia/components/DishMediaFeed";
+import { MY_DISHES_EVENTS } from "@/features/myDishes/analytics";
 import { MyDishesFeedChips } from "@/features/myDishes/components/MyDishesFeedChips";
 import { myDishesFeedKey } from "@/features/myDishes/constants";
 import { useMyDishesRestaurantQuery } from "@/features/myDishes/hooks/useMyDishesRestaurantQuery";
@@ -290,7 +291,7 @@ export default function MyDishesFeedScreen() {
 	const handleClose = useCallback(() => {
 		lightImpact();
 		logFrontendEvent({
-			event_name: "my_dishes_feed_closed",
+			event_name: MY_DISHES_EVENTS.feedClosed,
 			error_level: "log",
 			payload: { restaurantId, itemKey, canDismiss: router.canDismiss() },
 		});

@@ -14,7 +14,9 @@ import { getCacheKeyForImage } from "@/lib/image";
 import i18n from "@/lib/i18n";
 import type { MyDishItem } from "@shared/api/v1/res";
 import { MyDishEatenButton } from "./myDishCard";
+import { MY_DISHES_EVENTS } from "../analytics";
 import { buildMarkAsEatenRoute } from "../markAsEaten";
+import { beginMarkAsEaten } from "../markAsEatenFunnel";
 import { resolveMyDishThumbnailUrl } from "../thumbnail";
 import { useMyDishesQuery } from "../hooks/useMyDishesQuery";
 
@@ -150,7 +152,7 @@ export function MyDishesListView() {
 		(item: MyDishItem) => {
 			const hasPhoto = item.dishMedia !== null;
 			logFrontendEvent({
-				event_name: "my_dishes_list_item_selected",
+				event_name: MY_DISHES_EVENTS.listItemSelected,
 				error_level: "log",
 				payload: { itemKey: item.key, status: item.status, hasPhoto },
 			});
@@ -182,9 +184,19 @@ export function MyDishesListView() {
 			if (route === null) return;
 			lightImpact();
 			logFrontendEvent({
-				event_name: "my_dishes_mark_as_eaten_pressed",
+				event_name: MY_DISHES_EVENTS.markAsEatenPressed,
 				error_level: "log",
 				payload: { itemKey: item.key, from: "list" },
+			});
+			// #1403 (PR2) 出口（記録の完了）は共有ルート `review-from-media` にあり、そこは
+			// my-dishes 以外からも入ってくる。ここで «my-dishes から押した» ことを預けておき、
+			// 完了時に取り出して `my_dishes_mark_as_eaten_completed` を出す（markAsEatenFunnel）
+			beginMarkAsEaten({
+				from: "list",
+				itemKey: item.key,
+				restaurantId: route.params.restaurantId,
+				dishMediaId: route.params.dishMediaId,
+				startedAt: Date.now(),
 			});
 			router.push(route);
 		},

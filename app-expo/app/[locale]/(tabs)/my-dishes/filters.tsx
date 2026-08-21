@@ -9,6 +9,7 @@ import { useLogger } from "@/hooks/useLogger";
 import { useScreenTrace } from "@/hooks/useScreenTrace";
 import { sceneOptions, timeSlots } from "@/features/search/constants";
 import i18n from "@/lib/i18n";
+import { MY_DISHES_EVENTS, buildFilterAppliedPayload } from "@/features/myDishes/analytics";
 import {
 	DEFAULT_MY_DISHES_FILTER,
 	isRatingFilterEnabled,
@@ -170,16 +171,14 @@ export default function MyDishesFiltersScreen() {
 		if (draft.area === null && filter.area !== null) {
 			clearArea();
 		}
+		// #1403 (PR2) 計測もこの «唯一 store を書く場所» に合わせる。チップの `onPress` からは
+		// 一切ログを出さない（押した回数だけログが積まれるのを避ける。上と同じ理由）。
+		// payload の中身は `features/myDishes/analytics.ts` に寄せてあり、
+		// 「個人を特定しうる値を入れない」判断もそちらに集約している
 		logFrontendEvent({
-			event_name: "my_dishes_filter_applied",
+			event_name: MY_DISHES_EVENTS.filterApplied,
 			error_level: "log",
-			payload: {
-				status: draft.status.join(","),
-				sort: draft.sort,
-				minRating: draft.minRating,
-				hasArea: draft.area !== null,
-				hasPeriod: draft.from !== null || draft.to !== null,
-			},
+			payload: buildFilterAppliedPayload(draft),
 		});
 		router.back();
 	}, [clearArea, draft, filter.area, lightImpact, logFrontendEvent, patch]);

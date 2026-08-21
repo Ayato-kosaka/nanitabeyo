@@ -21,6 +21,7 @@ import {
 	type CalendarDayCell,
 	type CalendarMonth,
 } from "../calendar";
+import { MY_DISHES_EVENTS } from "../analytics";
 import { useMyDishesFilterStore } from "../stores/useMyDishesFilterStore";
 import { useMyDishesCalendarQuery } from "../hooks/useMyDishesCalendarQuery";
 
@@ -224,7 +225,7 @@ export function MyDishesCalendarView() {
 			lightImpact();
 			const range = toDayRange(cell.dateKey);
 			logFrontendEvent({
-				event_name: "my_dishes_calendar_day_selected",
+				event_name: MY_DISHES_EVENTS.calendarDaySelected,
 				error_level: "log",
 				payload: { date: cell.dateKey, count: cell.items.length },
 			});
@@ -242,7 +243,7 @@ export function MyDishesCalendarView() {
 	const handleClearPeriod = useCallback(() => {
 		lightImpact();
 		patch({ from: null, to: null });
-		logFrontendEvent({ event_name: "my_dishes_calendar_period_cleared", error_level: "log", payload: {} });
+		logFrontendEvent({ event_name: MY_DISHES_EVENTS.calendarPeriodCleared, error_level: "log", payload: {} });
 	}, [lightImpact, logFrontendEvent, patch]);
 
 	// #1396 PR4 レビュー M-1: 失敗をユーザーに伝え、手動リトライの出口を必ず UI に出す。

@@ -13,6 +13,7 @@ import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import i18n from "@/lib/i18n";
 import type { MyDishPin } from "@shared/api/v1/res";
+import { MY_DISHES_EVENTS, buildMapAreaPayload } from "../analytics";
 import { boundingRegionForCoordinates, isRegionTooWide, regionToArea } from "../geo";
 import { useMyDishesFilterStore } from "../stores/useMyDishesFilterStore";
 import { useMyDishesMapPinsQuery } from "../hooks/useMyDishesMapPinsQuery";
@@ -73,10 +74,13 @@ export function MyDishesMapView() {
 		const nextArea = regionToArea(currentRegionRef.current);
 		if (!nextArea) return;
 		commitArea(nextArea);
+		// #1403 (PR2) 絞り込み自体は `nextArea` の生値で行い、**ログに載せる座標だけ丸める**。
+		// 生の緯度経度は「どのあたりを見ていたか」ではなく「どこに居たか」になりうるので、
+		// `frontend_event_logs` へはエリアの粒度（約 110m）まで落として入れる（analytics.ts）
 		logFrontendEvent({
-			event_name: "my_dishes_map_search_this_area",
+			event_name: MY_DISHES_EVENTS.mapSearchThisArea,
 			error_level: "log",
-			payload: { lat: nextArea.lat, lng: nextArea.lng, radius: nextArea.radius },
+			payload: buildMapAreaPayload(nextArea),
 		});
 	}, [commitArea, lightImpact, logFrontendEvent]);
 
@@ -84,7 +88,7 @@ export function MyDishesMapView() {
 	const handleClearArea = useCallback(() => {
 		lightImpact();
 		clearArea();
-		logFrontendEvent({ event_name: "my_dishes_map_area_cleared", error_level: "log", payload: {} });
+		logFrontendEvent({ event_name: MY_DISHES_EVENTS.mapAreaCleared, error_level: "log", payload: {} });
 	}, [clearArea, lightImpact, logFrontendEvent]);
 
 	// #1396 M-3: web は `initialRegion`（uncontrolled）を読まないため、`onMapReady` 後に
@@ -121,7 +125,7 @@ export function MyDishesMapView() {
 		(pin: MyDishPin) => {
 			lightImpact();
 			logFrontendEvent({
-				event_name: "my_dishes_map_pin_selected",
+				event_name: MY_DISHES_EVENTS.mapPinSelected,
 				error_level: "log",
 				payload: { restaurantId: pin.restaurant.id },
 			});
