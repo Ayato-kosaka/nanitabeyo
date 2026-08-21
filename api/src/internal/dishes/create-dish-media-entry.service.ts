@@ -88,6 +88,19 @@ export class CreateDishMediaEntryService {
   private async downloadAndStorePhotos(
     payload: CreateDishMediaEntryJobPayload,
   ): Promise<void> {
+    // #1395 media_path は external_embed（SNS の公式埋め込み）のために nullable 化された。
+    // ただし **この経路が作るのは常に render_type='stored'**（自ストレージへ写真を保存する行）
+    // であり、media_path は呼び出し側で必ず組み立てられている。
+    // null で来るのは payload の組み立てが壊れているときだけなので、ここで 1 度だけ絞って落とす。
+    // 各利用箇所へ `!` を撒くと、本当に null が来たとき «GCS の空パスへ書きに行く» という
+    // 分かりにくい壊れ方をする。
+    const mediaPath = payload.dish_media.media_path;
+    if (mediaPath === null) {
+      throw new Error(
+        `media_path is required for stored dish_media (jobId=${payload.jobId})`,
+      );
+    }
+
     // #514 【設計】原本の有無を先に見る。photoUri の有無では分岐しない。
     //
     // 保存に成功した後、DB transaction や resize enqueue で落ちると、Cloud Tasks は
@@ -101,13 +114,11 @@ export class CreateDishMediaEntryService {
     //
     // `uploadFileAtPath` は `overwriteIfExists: false` なので、実体がある状態で
     // download しても保存は no-op になる。先に確認しても結果は変わらない。
-    const originalExists = await this.storage.fileExists(
-      payload.dish_media.media_path,
-    );
+    const originalExists = await this.storage.fileExists(mediaPath);
     if (originalExists) {
       this.logger.debug('PhotoDownloadSkipped', 'downloadAndStorePhotos', {
         jobId: payload.jobId,
-        mediaPath: payload.dish_media.media_path,
+        mediaPath,
         hasPhotoUri: payload.photoUri.length > 0,
       });
       return;
@@ -115,9 +126,7 @@ export class CreateDishMediaEntryService {
 
     // 原本が無く、取りに行く先も無い。DB 登録と resize enqueue へ進めてはいけない。
     if (payload.photoUri.length === 0) {
-      throw new Error(
-        `Stored photo is missing: ${payload.dish_media.media_path}`,
-      );
+      throw new Error(`Stored photo is missing: ${mediaPath}`);
     }
 
     const downloadPromises = payload.photoUri.map(async (photoUri, index) => {
@@ -134,7 +143,7 @@ export class CreateDishMediaEntryService {
         const uploadResult = await this.storage.uploadFileAtPath({
           buffer,
           mimeType: 'image/jpeg', // Assuming JPEG, adjust if necessary
-          fullPath: payload.dish_media.media_path,
+          fullPath: mediaPath,
           overwriteIfExists: false, // 冪等性のため既存ファイルは上書きしない
         });
 
@@ -171,7 +180,12 @@ export class CreateDishMediaEntryService {
     // そのとき completed 側まで再 enqueue すると、resize-image 側が fileExists で
     // 早期 return するため画像処理自体は走らないものの、Cloud Tasks の実行回数と
     // Cloud Run のリクエスト数だけが二重に増える。completed の列は skip する。
-    const skipMedia = dishMedia.media_processing_status === 'completed';
+    // #1395 media_path が null なのは render_type='external_embed' の行だけで、
+    // あれは自ストレージに実体を持たないためリサイズの対象にならない。
+    // ここへ来る時点で 'stored' のはずだが、型の上では null を取りうるので明示的に skip する。
+    const skipMedia =
+      dishMedia.media_processing_status === 'completed' ||
+      dishMedia.media_path === null;
     const skipThumbnail = dishMedia.thumbnail_processing_status === 'completed';
 
     if (skipMedia || skipThumbnail) {
@@ -192,7 +206,7 @@ export class CreateDishMediaEntryService {
             recordId: dishMedia.id,
             size: 1024,
             aspectRatio: 9 / 16,
-            originalPath: dishMedia.media_path,
+            originalPath: dishMedia.media_path ?? '',
           })
           .catch((error) => {
             this.logger.error(
