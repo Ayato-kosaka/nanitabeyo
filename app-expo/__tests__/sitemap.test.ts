@@ -183,6 +183,7 @@ describe("buildSitemapXml", () => {
 		["notifications/feed", "ログイン後の個人ページ"],
 		["auth/callback", "OAuth のコールバック。人間の入口ではない"],
 		["auth/login", "アプリ内のログイン導線から push される画面。人間の入口ではない（#1359）"],
+		["sns-import", "共有された URL（?url=）前提の画面。クエリ無しでは対象が決まらない（#1400）"],
 		["contribution-tasks/dish-copy-survey", "内部作業用"],
 		["contribution-tasks/dish-category-image-review", "内部作業用"],
 	])("除外ルート %s を含まない（理由: %s）", (route) => {

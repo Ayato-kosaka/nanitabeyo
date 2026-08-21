@@ -869,5 +869,20 @@
 			}
 		},
 		"searchThisArea": "이 지역에서 재검색"
+	},
+	"SnsImport": {
+		"title": "SNS에서 가져오기",
+		"confirm": {
+			"heading": "이 게시물을 가져옵니다",
+			"pending": "이 게시물을 저장하는 기능은 아직 준비 중입니다. 조금만 기다려 주세요."
+		},
+		"expandPending": {
+			"heading": "단축 URL이 공유되었습니다",
+			"description": "단축 URL을 열어 게시물을 확인하는 기능은 아직 준비 중입니다. 게시물 페이지의 URL을 공유해 주세요."
+		},
+		"unsupported": {
+			"heading": "이 URL은 가져올 수 없습니다",
+			"description": "지원하는 서비스는 TikTok / YouTube Shorts / Instagram 입니다."
+		}
 	}
 }

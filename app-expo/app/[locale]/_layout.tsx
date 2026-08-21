@@ -13,6 +13,7 @@ import { CenteredAppShell } from "@/components/CenteredAppShell";
 import { HealthCheckInitializer } from "@/components/HealthCheckInitializer";
 import { PushTokenRegistration } from "@/components/PushTokenRegistration";
 import { MetaAppEventsInitializer } from "@/components/MetaAppEventsInitializer";
+import { SnsShareIntake } from "@/components/SnsShareIntake";
 import { getPaperTheme } from "@/constants/PaperTheme";
 import { useLocaleFonts } from "@/hooks/useLocaleFonts";
 import { useLocale } from "@/hooks/useLocale";
@@ -144,6 +145,9 @@ export default function RootLayout() {
 									<AuthProvider>
 										<PushTokenRegistration />
 										<MetaAppEventsInitializer />
+										{/* #1400 共有された URL の取り込み入口（UI 無し）。
+										    PR1 では受け取り口が «共有なし» を返すので no-op */}
+										<SnsShareIntake />
 										<Portal.Host>
 											<SplashHandler>
 												<HealthCheckInitializer>

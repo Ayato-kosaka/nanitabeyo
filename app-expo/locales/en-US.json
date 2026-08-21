@@ -869,5 +869,20 @@
 			}
 		},
 		"searchThisArea": "Search this area"
+	},
+	"SnsImport": {
+		"title": "Import from social media",
+		"confirm": {
+			"heading": "Ready to import this post",
+			"pending": "Saving this post isn't available yet. Please check back soon."
+		},
+		"expandPending": {
+			"heading": "A short link was shared",
+			"description": "Opening short links to identify the post isn't available yet. Share the URL of the post's page instead."
+		},
+		"unsupported": {
+			"heading": "This URL can't be imported",
+			"description": "The supported services are TikTok, YouTube Shorts and Instagram."
+		}
 	}
 }

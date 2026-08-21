@@ -37,6 +37,8 @@ import { LEGAL_SITEMAP_ROUTES } from "@/lib/legalRoute";
  * - `profile/*` / `notifications/*` … ログイン後の個人ページ（未ログインでは中身が無い）
  * - `posts` … `?ids=` のクエリ前提のページで、クエリ無しでは表示する対象が決まらない（#721）。
  *   sitemap に載せられる安定した URL が存在しない
+ * - `sns-import` … 共有された `?url=` を受け取る画面（#1400）。`posts` と同じくクエリ前提で、
+ *   クエリ無しでは「対応している SNS はこれです」という案内しか出ない
  *
  * #1396 `review` / `review/selectRestaurant` はレビュータブ廃止に伴い `my-dishes` へ差し替えた。
  * 旧 URL は `app/[locale]/review/**` に置いたリダイレクト専用ファイルが `my-dishes` へ倒すため、
