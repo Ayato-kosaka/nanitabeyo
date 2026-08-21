@@ -18,10 +18,10 @@
 // `sharedTextSource.ios.ts` として置けば Metro が拡張子で解決する。このファイルは
 // web と «まだ実装の無いプラットフォーム» のフォールバックとして残すこと。
 //
-// ## 現況（PR2 まで）
+// ## 現況（PR3 まで）
 //
 // - Android … `lib/sharedTextSource.android.ts` が実装済み（`ACTION_SEND` / `text/plain`）。**このファイルは使われない**
-// - iOS … 未実装（PR3・#1472 の App Group 待ち）。**このファイルにフォールバックする**
+// - iOS … `lib/sharedTextSource.ios.ts` が実装済み（Share Extension + App Group `group.com.nanitabeyo`）。**このファイルは使われない**
 // - web … 共有シートが無いので、このファイルのままで正しい
 
 import type { SharedTextSource } from "./sharedText";
