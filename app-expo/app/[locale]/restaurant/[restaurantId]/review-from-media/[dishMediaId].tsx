@@ -19,6 +19,8 @@ import type { QueryDishMediaByIdsDto } from "@shared/api/v1/dto";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { useLocale } from "@/hooks/useLocale";
 import { bumpMyDishesRevision } from "@/features/myDishes/stores/useMyDishesRevisionStore";
+import { MY_DISHES_EVENTS, buildMarkAsEatenCompletedPayload } from "@/features/myDishes/analytics";
+import { takeMarkAsEaten } from "@/features/myDishes/markAsEatenFunnel";
 
 export default function ReviewFromMediaScreen() {
 	const { restaurantId, dishMediaId } = useLocalSearchParams<{ restaurantId: string; dishMediaId: string }>();
@@ -37,6 +39,29 @@ export default function ReviewFromMediaScreen() {
 	// #1127 【修正】ReviewForm へ渡すコールバックは参照を安定させる（review.tsx と同じ多層防御）
 	const handleReviewSuccess = useCallback(
 		({ dishReviewId }: { dishReviewId: string }) => {
+			// #1403 (PR2) 「保存 → 食べた」の **出口**。入口（`my_dishes_mark_as_eaten_pressed`）と
+			// 対になる完了イベントをここで 1 回だけ出す。
+			//
+			// ⚠️ 無条件に出さないこと。このルートは my-dishes 以外（フィードの「この料理にレビューを
+			// 書く」・店舗詳細のレビューグリッド）からも入ってくる共有ルートで、無条件に出すと
+			// my-dishes を開いてすらいない投稿まで「保存→食べた の完了」に数えてしまう。
+			// `takeMarkAsEaten` は «直前に my-dishes から押した» 意図が、同じ dishMediaId で、
+			// TTL 内にあるときだけ返す（take-once）。返らなければ何も出さない = 取りこぼす側に倒す
+			const intent = takeMarkAsEaten(dishMediaId);
+			if (intent !== null) {
+				logFrontendEvent({
+					event_name: MY_DISHES_EVENTS.markAsEatenCompleted,
+					error_level: "log",
+					payload: buildMarkAsEatenCompletedPayload({
+						from: intent.from,
+						itemKey: intent.itemKey,
+						restaurantId: intent.restaurantId,
+						dishMediaId: intent.dishMediaId,
+						dishReviewId,
+						durationMs: Date.now() - intent.startedAt,
+					}),
+				});
+			}
 			// #1398 (PR4/7) 設計 §3「唯一の実務上の落とし穴：クライアントキャッシュ」。
 			// サーバ側は want 枝の `NOT EXISTS (SELECT 1 FROM dish_reviews …)` で正しく畳むが、
 			// クライアントが取り直さないと **記録した直後の一覧に「食べたい」カードが残って見える**。
@@ -53,7 +78,9 @@ export default function ReviewFromMediaScreen() {
 				},
 			});
 		},
-		[locale],
+		// `logFrontendEvent` は `useCallback(..., [])` で参照が固定されているので、
+		// #1127 が求める «このコールバックの参照を安定させる» 条件は崩れない
+		[dishMediaId, locale, logFrontendEvent],
 	);
 
 	// #1127 同上

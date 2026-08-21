@@ -13,6 +13,7 @@ import { useLocale } from "@/hooks/useLocale";
 import { MyDishesListView } from "@/features/myDishes/components/MyDishesListView";
 import { MyDishesMapView } from "@/features/myDishes/components/MyDishesMapView";
 import { MyDishesCalendarView } from "@/features/myDishes/components/MyDishesCalendarView";
+import { MY_DISHES_EVENTS, buildViewSelectedPayload } from "@/features/myDishes/analytics";
 import i18n from "@/lib/i18n";
 
 // #1396 【設計】Map / リスト / Calendar は 3 ルートに分けず、1 ルート + `?view=` 切替にする。
@@ -63,11 +64,19 @@ export default function MyDishesScreen() {
 	// 履歴を積まずに書き換える（`router.setParams`）。3 ビューは同じフィルタ状態を共有する前提。
 	const handleSelectView = useCallback(
 		(next: MyDishesView) => {
+			// #1403 (PR2) 同じビューを押しても «切り替え» ではないので、ここで先に抜ける。
+			// この early return より **後ろ**でログを出すこと。前に出すと、連打や
+			// 再レンダーで同じビューを押し直すたびに 1 行ずつ積まれる（ログが爆発する）
 			if (next === activeView) return;
 			lightImpact();
+			logFrontendEvent({
+				event_name: MY_DISHES_EVENTS.viewSelected,
+				error_level: "log",
+				payload: buildViewSelectedPayload(activeView, next),
+			});
 			router.setParams({ view: next });
 		},
-		[activeView, lightImpact],
+		[activeView, lightImpact, logFrontendEvent],
 	);
 
 	const handleLoginPress = useCallback(() => {
@@ -85,8 +94,11 @@ export default function MyDishesScreen() {
 	// 押下先は既存 `selectRestaurant.tsx` の移設先（店名検索は別 Sub-issue で組み替え予定、挙動不変）
 	const handleRecordPress = useCallback(() => {
 		lightImpact();
+		// #1403 (PR2) 旧名 `my_dishes_record_button_clicked`。my-dishes の他イベントが
+		// `_pressed` / `_selected` で揃っているのにここだけ `_clicked` だったので改名した。
+		// この機能はまだリリースされておらず、旧名を見ているダッシュボードは存在しない
 		logFrontendEvent({
-			event_name: "my_dishes_record_button_clicked",
+			event_name: MY_DISHES_EVENTS.recordPressed,
 			error_level: "log",
 			payload: {},
 		});

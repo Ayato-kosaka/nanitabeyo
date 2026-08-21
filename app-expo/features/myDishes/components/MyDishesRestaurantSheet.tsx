@@ -13,8 +13,10 @@ import { useLogger } from "@/hooks/useLogger";
 import i18n from "@/lib/i18n";
 import { dismissSheetSafely, presentSheetSafely } from "@/lib/trueSheet";
 import type { MyDishItem, MyDishPin } from "@shared/api/v1/res";
+import { MY_DISHES_EVENTS } from "../analytics";
 import { useMyDishesRestaurantQuery } from "../hooks/useMyDishesRestaurantQuery";
 import { buildMarkAsEatenRoute } from "../markAsEaten";
+import { beginMarkAsEaten } from "../markAsEatenFunnel";
 import {
 	MyDishEatenButton,
 	MyDishStatusBadge,
@@ -232,7 +234,7 @@ export function MyDishesRestaurantSheet({ pin, onDismissed }: MyDishesRestaurant
 		if (restaurantId === null) return;
 		lightImpact();
 		logFrontendEvent({
-			event_name: "my_dishes_sheet_restaurant_selected",
+			event_name: MY_DISHES_EVENTS.sheetRestaurantSelected,
 			error_level: "log",
 			payload: { restaurantId },
 		});
@@ -250,7 +252,7 @@ export function MyDishesRestaurantSheet({ pin, onDismissed }: MyDishesRestaurant
 			lightImpact();
 			const hasPhoto = item.dishMedia !== null;
 			logFrontendEvent({
-				event_name: "my_dishes_sheet_item_selected",
+				event_name: MY_DISHES_EVENTS.sheetItemSelected,
 				error_level: "log",
 				payload: { itemKey: item.key, status: item.status, hasPhoto },
 			});
@@ -286,9 +288,18 @@ export function MyDishesRestaurantSheet({ pin, onDismissed }: MyDishesRestaurant
 			if (route === null) return;
 			lightImpact();
 			logFrontendEvent({
-				event_name: "my_dishes_mark_as_eaten_pressed",
+				event_name: MY_DISHES_EVENTS.markAsEatenPressed,
 				error_level: "log",
 				payload: { itemKey: item.key, from: "sheet" },
+			});
+			// #1403 (PR2) 一覧ビューと同じ形で «my-dishes から押した» ことを預ける。
+			// 完了イベントは共有ルート `review-from-media` 側がこれを取り出して出す
+			beginMarkAsEaten({
+				from: "sheet",
+				itemKey: item.key,
+				restaurantId: route.params.restaurantId,
+				dishMediaId: route.params.dishMediaId,
+				startedAt: Date.now(),
 			});
 			router.push(route);
 		},
@@ -306,7 +317,7 @@ export function MyDishesRestaurantSheet({ pin, onDismissed }: MyDishesRestaurant
 		if (firstPhotoItem === null || firstPhotoItem.dishMedia === null || restaurantId === null) return;
 		lightImpact();
 		logFrontendEvent({
-			event_name: "my_dishes_sheet_expanded",
+			event_name: MY_DISHES_EVENTS.sheetExpanded,
 			error_level: "log",
 			payload: { restaurantId, itemKey: firstPhotoItem.key },
 		});
@@ -327,7 +338,7 @@ export function MyDishesRestaurantSheet({ pin, onDismissed }: MyDishesRestaurant
 	 */
 	const handleSeeAllInList = useCallback(() => {
 		lightImpact();
-		logFrontendEvent({ event_name: "my_dishes_sheet_see_all_in_list", error_level: "log", payload: {} });
+		logFrontendEvent({ event_name: MY_DISHES_EVENTS.sheetSeeAllInList, error_level: "log", payload: {} });
 		void dismissSheetSafely(sheetRef);
 		router.setParams({ view: "list" });
 	}, [lightImpact, logFrontendEvent]);
