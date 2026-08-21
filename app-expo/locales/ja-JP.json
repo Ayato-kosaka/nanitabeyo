@@ -869,5 +869,20 @@
 			}
 		},
 		"searchThisArea": "このエリアで再検索"
+	},
+	"SnsImport": {
+		"title": "SNS から取り込む",
+		"confirm": {
+			"heading": "この投稿を取り込みます",
+			"pending": "この投稿の保存は現在準備中です。もう少しお待ちください。"
+		},
+		"expandPending": {
+			"heading": "短縮 URL が共有されました",
+			"description": "短縮 URL を開いて投稿を特定する処理は現在準備中です。投稿ページの URL を共有すると取り込めます。"
+		},
+		"unsupported": {
+			"heading": "この URL は取り込めません",
+			"description": "対応しているのは TikTok / YouTube Shorts / Instagram です。"
+		}
 	}
 }

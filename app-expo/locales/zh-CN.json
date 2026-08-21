@@ -869,5 +869,20 @@
 			}
 		},
 		"searchThisArea": "在此区域重新搜索"
+	},
+	"SnsImport": {
+		"title": "从社交媒体导入",
+		"confirm": {
+			"heading": "将导入这条帖子",
+			"pending": "保存这条帖子的功能正在准备中，请稍后再试。"
+		},
+		"expandPending": {
+			"heading": "分享的是短链接",
+			"description": "展开短链接以识别帖子的功能正在准备中。请分享帖子页面的网址。"
+		},
+		"unsupported": {
+			"heading": "无法导入该网址",
+			"description": "目前支持的服务是 TikTok / YouTube Shorts / Instagram。"
+		}
 	}
 }

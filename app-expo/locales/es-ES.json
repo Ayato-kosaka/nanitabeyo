@@ -869,5 +869,20 @@
 			}
 		},
 		"searchThisArea": "Buscar en esta zona"
+	},
+	"SnsImport": {
+		"title": "Importar desde redes sociales",
+		"confirm": {
+			"heading": "Se importará esta publicación",
+			"pending": "Guardar esta publicación aún no está disponible. Vuelve a intentarlo pronto."
+		},
+		"expandPending": {
+			"heading": "Se ha compartido un enlace corto",
+			"description": "Abrir enlaces cortos para identificar la publicación aún no está disponible. Comparte la URL de la página de la publicación."
+		},
+		"unsupported": {
+			"heading": "No se puede importar esta URL",
+			"description": "Los servicios compatibles son TikTok, YouTube Shorts e Instagram."
+		}
 	}
 }
