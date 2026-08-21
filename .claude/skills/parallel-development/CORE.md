@@ -561,7 +561,23 @@ mcp__github__actions_list  method=list_workflow_jobs  resource_id=<run_id>
 mcp__github__get_job_logs  job_id=<書き込みワーカーのjob_id>  return_content=true  tail_lines=120
   → `claude-summary: subtype=... turns=... permission_denials=...` の行
   → `claude-denial: N tool=... parameters=[...]` の行（拒否されたツール名）
+  → `claude-result-begin:` 〜 `claude-result-end:` に挟まれた **ワーカーの最後の出力**
 ```
+
+### observe run の成果物は job のログから回収する
+
+**observe run の成果物は commit ではなく «最後に書かれたテキスト» である**（設計、レビュー、
+採用した手段とその根拠など）。この workflow は `show_full_output: false` /
+`display_report: false` で動いているので、**ワーカーが Issue へ書き残すのを忘れると、
+その run の成果はまるごと失われる**。以前は回収する手段が無かった。
+
+いまは `summarize-claude-output.sh` が最終アシスタントメッセージを stdout へ出しているので、
+`get_job_logs` で `claude-result-begin:` 〜 `claude-result-end:` を読めば回収できる
+（20000 文字で切られる。それより長い成果物は、プロンプト側で Issue コメントへ書かせること）。
+
+write run でも同じ口を使う。**「どちらの手段を採ったか」のような判断の根拠は diff に現れない**
+ので、判断を伴うタスクではプロンプトで「根拠を最後の出力に含めること」と明示し、
+ここから読むこと。
 
 判定表:
 
