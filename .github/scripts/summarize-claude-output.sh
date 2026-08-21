@@ -51,6 +51,44 @@ DENIALS=$(jq -r '[.[] | select(.type == "result")] | last | (.permission_denials
 # 機密情報は増えない。
 echo "claude-summary: subtype=$SUBTYPE is_error=$IS_ERROR turns=$NUM_TURNS cost=$COST permission_denials=$DENIALS"
 
+# ⚠️ **ワーカーの «最後の出力» を job のログへ出す。**
+#
+# observe run の成果物は commit ではなく «最後に書かれたテキスト» そのものである
+# （設計、レビュー、A/B の適合判定など）。ところがこの workflow は
+# `show_full_output: false` / `display_report: false` で動いており、集計値以外は
+# どこにも出ていなかった。そのため **ワーカーが Issue へ書き残すのを忘れた瞬間に、
+# その run の成果はまるごと失われ、リーダーには回収する手段が無かった**。
+# write run でも同じで、「どちらの手段を採ったか」のような判断の根拠は
+# diff には現れないため、ここを通さないとリーダーへ届かない。
+#
+# Step Summary ではなく **stdout** へ出すのは、Step Summary が GitHub の API から
+# 読めないためである（上の claude-summary と同じ理由）。
+#
+# 安全性について:
+#   - 出しているのは «最終アシスタントメッセージ» だけで、tool_use / tool_result の
+#     本文（Bash のコマンドや読み取ったファイルの中身）は含まない。
+#   - Actions は登録済み secrets をログ上でマスクする。
+#   - それでも無制限に出すとログが読めなくなるので 20000 文字で切る。
+MAX_RESULT_CHARS=20000
+RESULT_TEXT=$(jq -r '[.[] | select(.type == "result")] | last | (.result // "")' "$TMP_EVENTS")
+
+RESULT_CHARS=0
+if [[ -n "$RESULT_TEXT" ]]; then
+  RESULT_CHARS=${#RESULT_TEXT}
+  echo "claude-result-begin: chars=$RESULT_CHARS truncated_to=$MAX_RESULT_CHARS"
+  printf '%s\n' "${RESULT_TEXT:0:$MAX_RESULT_CHARS}"
+  if (( RESULT_CHARS > MAX_RESULT_CHARS )); then
+    echo "…（$((RESULT_CHARS - MAX_RESULT_CHARS)) 文字を省略しました）"
+  fi
+  echo "claude-result-end:"
+else
+  # ここが出るのは «最後まで走ったのに何も書かずに終わった» とき。
+  # observe run ではそれ自体が失敗なので、リーダーが気付けるようにしておく。
+  echo "claude-result-begin: chars=0 truncated_to=$MAX_RESULT_CHARS"
+  echo "（最終アシスタントメッセージが空でした）"
+  echo "claude-result-end:"
+fi
+
 # 後続ステップ（commit検証）が失敗メッセージへ埋め込めるようにする
 if [[ -n "${GITHUB_ENV:-}" ]]; then
   {
@@ -58,6 +96,9 @@ if [[ -n "${GITHUB_ENV:-}" ]]; then
     echo "CLAUDE_IS_ERROR=$IS_ERROR"
     echo "CLAUDE_NUM_TURNS=$NUM_TURNS"
     echo "CLAUDE_DENIALS=$DENIALS"
+    # observe run の「成果物を出したか」検証（write の commit 検証に相当）が読む。
+    # 0 なら «最後まで走ったのに何も書かずに終わった» ということ
+    echo "CLAUDE_RESULT_CHARS=${RESULT_CHARS:-0}"
   } >> "$GITHUB_ENV"
 fi
 
