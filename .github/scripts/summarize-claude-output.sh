@@ -72,6 +72,7 @@ echo "claude-summary: subtype=$SUBTYPE is_error=$IS_ERROR turns=$NUM_TURNS cost=
 MAX_RESULT_CHARS=20000
 RESULT_TEXT=$(jq -r '[.[] | select(.type == "result")] | last | (.result // "")' "$TMP_EVENTS")
 
+RESULT_CHARS=0
 if [[ -n "$RESULT_TEXT" ]]; then
   RESULT_CHARS=${#RESULT_TEXT}
   echo "claude-result-begin: chars=$RESULT_CHARS truncated_to=$MAX_RESULT_CHARS"
@@ -95,6 +96,9 @@ if [[ -n "${GITHUB_ENV:-}" ]]; then
     echo "CLAUDE_IS_ERROR=$IS_ERROR"
     echo "CLAUDE_NUM_TURNS=$NUM_TURNS"
     echo "CLAUDE_DENIALS=$DENIALS"
+    # observe run の「成果物を出したか」検証（write の commit 検証に相当）が読む。
+    # 0 なら «最後まで走ったのに何も書かずに終わった» ということ
+    echo "CLAUDE_RESULT_CHARS=${RESULT_CHARS:-0}"
   } >> "$GITHUB_ENV"
 fi
 

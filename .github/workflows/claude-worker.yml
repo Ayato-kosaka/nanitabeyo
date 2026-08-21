@@ -244,6 +244,27 @@ jobs:
           CLAUDE_EXECUTION_OUTPUT: ${{ steps.claude.outputs.execution_file }}
         run: bash .claude-worker-trusted/.github/scripts/summarize-claude-output.sh
 
+      # 読み取りワーカーの «成果物を出したか» 検証。書き込みワーカーの
+      # 「commit・pushされたことを検証」に相当するものが、こちらには無かった。
+      #
+      # 2026-08-20、#1400 の設計runが **19分走って `success` のままコメントを1つも投稿せずに終了**した。
+      # observeの成果物は commit ではなく «最後に書かれたテキスト» なので、
+      # 何も書かずに終わっても誰も気付けず、リーダーは «成功した» と受け取ってしまう。
+      # 実際にはその19分ぶんのトークンが丸ごと無駄になっていた。
+      #
+      # ここでは «最終アシスタントメッセージが空» だけを失敗とする。Issue へ投稿したかどうかまでは
+      # 見ない（投稿の要否はプロンプト次第で、ここで一律に強制すると調査だけを頼んだrunまで赤くなる）。
+      # 空でなければ中身は job ログの `claude-result-begin:` 〜 `claude-result-end:` から回収できる。
+      - name: 成果物が出力されたことを検証
+        if: always()
+        shell: bash
+        run: |
+          if [[ "${CLAUDE_RESULT_CHARS:-0}" -eq 0 ]]; then
+            echo "::error::読み取りワーカーが成果物を1文字も出力せずに終了しました。observeの成果物は commit ではなく «最後に書かれたテキスト» なので、これは成功ではありません。 [subtype=${CLAUDE_SUBTYPE:-unknown} is_error=${CLAUDE_IS_ERROR:-unknown} turns=${CLAUDE_NUM_TURNS:-unknown} permission_denials=${CLAUDE_DENIALS:-unknown}] 拒否されたツール名はjobログの 'claude-denial:' 行を見ること。"
+            exit 1
+          fi
+          echo "成果物を確認しました（${CLAUDE_RESULT_CHARS} 文字）。本文は job ログの 'claude-result-begin:' 〜 'claude-result-end:' にあります。"
+
       - name: テストエビデンスを保存
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
