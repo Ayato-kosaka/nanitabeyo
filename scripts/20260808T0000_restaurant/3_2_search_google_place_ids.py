@@ -238,9 +238,11 @@ def main() -> None:
             LOGGER.info("candidate seed_id=%s name=%s", row.seed_id, row.canonical_name)
         return
 
-    api_key = os.getenv("GOOGLE_MAPS_API_KEY")
+    # API サーバーが使う GOOGLE_MAPS_API_KEY とは別のキーにする。このバッチは
+    # Text Search (IDs Only) しか呼ばないので、キー側も同 SKU だけに制限できる。
+    api_key = os.getenv("PLACES_TEXT_SEARCH_API_KEY")
     if not api_key:
-        raise ValueError("--execute には GOOGLE_MAPS_API_KEY が必要です")
+        raise ValueError("--execute には PLACES_TEXT_SEARCH_API_KEY が必要です")
     client = PlacesTextSearchClient(api_key, qps=args.qps)
     buffer: list[dict[str, Any]] = []
     parameters = {

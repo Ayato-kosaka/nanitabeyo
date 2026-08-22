@@ -227,15 +227,17 @@ export DATABASE_URL='postgresql://...'
 .venv/bin/python 3_2_search_google_place_ids.py --limit 100
 
 # 少量batchから実測し、result_status分布を確認して徐々に増やす
-export GOOGLE_MAPS_API_KEY='...'
+# （APIサーバーの GOOGLE_MAPS_API_KEY とは別キー。Text Search IDs Only 専用）
+export PLACES_TEXT_SEARCH_API_KEY='...'
 .venv/bin/python 3_2_search_google_place_ids.py --limit 100 --execute
 
 .venv/bin/python 3_3_build_google_place_match_catalog.py
 .venv/bin/python 3_4_build_restaurant_catalog.py --service-cell-level 14
 ```
 
-`3_2` は `--limit` が費用上限です。同run/algorithmのattemptはresume時に除外します。
-1 seedにつき最大2 requestなので、実際のAPI request上限は`2 × --limit`です。
+`3_2` は `--limit` がrequest数の上限です。同algorithmのattemptはresume時に除外します。
+1 seedにつき最大4 request（tight→A→B→wide、必要なprobeだけ送る）で、
+PoC実測の平均は約2.17 request/seedでした。全SKUはText Search IDs Only（$0.00）です。
 API keyはheaderで送り、query文字列・ID配列・HTTP status・採否だけを監査tableへ保存します。
 
 ### 4. SNS料理媒体とcoverage
