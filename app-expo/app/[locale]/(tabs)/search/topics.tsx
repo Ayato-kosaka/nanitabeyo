@@ -248,6 +248,8 @@ export default function TopicsScreen() {
 					...(params && { location: JSON.stringify(params.location) }),
 					// #828 【設計】0件時のGoogle Maps検索はresult画面で判断するため、表示中カテゴリを渡す。
 					category: topic.category,
+					// #1484 【仕様】店舗提案の取得完了まで、独立ローディング画面の代わりに選択した料理画像を表示し続ける。
+					dishImageUrl: topic.imageUrl,
 				},
 			});
 			// #633 【設計】分析基盤互換のため移行期間は topicId と entriesKey を併記
