@@ -93,6 +93,9 @@ jobs:
       # preview チャンネルの URL には hash が入り、既定 7 日で失効する。作り直すと
       # hash が変わるので、WEB_BASE_URL も API の CORS_ORIGIN も固定できなかった。
       # 専用サイトの live チャンネルなら https://nanitabeyo-dev.web.app で不変になる。
+      # なお CORS_ORIGIN 側だけは `https://nanitabeyo-dev--preview-*.web.app` の
+      # ワイルドカード指定に対応済み（api/src/core/config/cors-origin.ts）。
+      # WEB_BASE_URL は依然として 1 つの固定 URL しか持てないため、上の判断は変わらない。
       #
       # ## ⚠️ preview を development と同じ扱いにしないこと
       # target は 3 つある。`production 以外はすべて else` にすると、**preview を流した
