@@ -10,7 +10,7 @@ import { Env } from "@/constants/Env";
  * ## なぜ必要か
  * 検索画面末尾の先読みブロック（app/[locale]/(tabs)/search/index.tsx）は、web では
  * `<img>` が DOM に出るため Resource Timing で観測でき、実際に取得が完了していることを
- * e2e-web の tests/search/tutorial-preload.spec.ts が保証している。
+ * e2e-web の tests/search/onboarding-preload.spec.ts が保証している。
  * 一方 native には同等の観測手段が無く、**先読みブロックが 0×0 だったせいで
  * 導入時（#656）から一度もロードされていなかった**ことが数ヶ月見つからなかった
  * （expo-image の native 実装は bounds が 0 のときロード要求そのものを発行しない。
@@ -25,12 +25,12 @@ import { Env } from "@/constants/Env";
  *
  * 各 `<Image>` の `onLoad` / `onError` を数え、`loaded=<n>/<total>` という文字列を持つ
  * `<Text testID="search-preload-probe">` を描画する。Detox は
- * `waitFor(element(by.id("search-preload-probe"))).toHaveText("loaded=8/8")` で待てる。
+ * `waitFor(element(by.id("search-preload-probe"))).toHaveText("loaded=10/10")` で待てる。
  *
  * ## 感度（何が赤くなり、何が緑になるか）
- * - 現状（先読みブロックが 1×1）… 8 枚とも `onLoad` が発火して `loaded=8/8` になる = **緑が正しい**
- * - サイズを 0×0 へ戻すと … ロード要求が飛ばないので `onLoad` が 1 度も発火せず `loaded=0/8` で赤くなる
- * - 先読みブロックごと消しても … 同じく `loaded=0/8` で赤くなる
+ * - 現状（先読みブロックが 1×1）… 全枚数とも `onLoad` が発火して `loaded=10/10` になる = **緑が正しい**
+ * - サイズを 0×0 へ戻すと … ロード要求が飛ばないので `onLoad` が 1 度も発火せず `loaded=0/10` で赤くなる
+ * - 先読みブロックごと消しても … 同じく `loaded=0/10` で赤くなる
  *
  * つまり **「先読みブロックを消しても緑」になる偽の緑ではない**（Screen Object の #1031 で
  * 「native からは観測不能」と判断していた点を、観測点をアプリ側に足すことで解消している）。
@@ -44,7 +44,7 @@ import { Env } from "@/constants/Env";
  * さらに CI ゲート（scripts/assert-no-e2e-hook.mjs）が sentinel の不在を検査する。
  *
  * ⚠️ **新しい環境変数は増やさず、既存の `EXPO_PUBLIC_E2E_TUTORIAL_HOOK` に相乗りしている。**
- * 先読み対象の実体は検索チュートリアルの画像（`TUTORIAL_PAGES[].image`）であり、
+ * 先読み対象の実体はオンボーディングの画像（`ONBOARDING_IMAGES`）であり、
  * このフラグが立つのは e2e-mobile-test.yml の Detox build ステップ（Android / iOS 両方）だけ。
  */
 

@@ -44,6 +44,15 @@ export class LoginScreen {
 	readonly googleButton = by.id("login-google-button");
 	/** Apple ログインボタン */
 	readonly appleButton = by.id("login-apple-button");
+	/**
+	 * ヘッダー右の「スキップ」。
+	 *
+	 * #1486 §4【設計】**オンボーディング経由のときだけ描画される**（`?skippable=1`）。
+	 * 口コミ投稿・プロフィール・店舗詳細からのログイン導線では出ない。
+	 * 「ログインが要るから来ている」画面を素通りできてしまわないようにするためで、
+	 * この spec でもその出し分けごと検証している（tests/search/onboarding.test.ts）。
+	 */
+	readonly skipButton = by.id("login-screen-skip");
 
 	/**
 	 * ログイン画面が開いていることを検証する。
@@ -69,5 +78,10 @@ export class LoginScreen {
 	/** ヘッダーの戻るボタンをタップして離脱する */
 	async goBack(): Promise<void> {
 		await tapWhenVisible(this.backButton);
+	}
+
+	/** ヘッダー右の「スキップ」をタップして、ログインせずに `next` の行き先へ進む（#1486 §4） */
+	async skip(): Promise<void> {
+		await tapWhenVisible(this.skipButton);
 	}
 }

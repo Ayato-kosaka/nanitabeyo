@@ -235,36 +235,43 @@
 				"bulkShare": "批量分享"
 			}
 		},
-		"tutorial": {
-			"page1": {
-				"title": "发现您想吃的美食",
-				"body1": "一次性解决\"今天吃什么？\"的烦恼。",
-				"body2": "根据您的位置和时间，我们会推荐料理和餐厅。",
-				"cta": "下一步"
-			},
-			"page2": {
-				"title": "看照片，发现您想吃的",
-				"body1": "我们为您推荐6道符合当前条件的菜肴。",
-				"body2": "看照片就能直观地选择想吃的东西。",
-				"cta": "下一步"
-			},
-			"page3": {
-				"title": "通过照片和评论决定去哪里",
-				"body1": "我们为您推荐5家提供您所选料理的餐厅。",
-				"body2": "查看照片、评论和地图，快速选择中意的餐厅。",
-				"cta": "下一步"
-			},
-			"page4": {
-				"title": "让我们开始吧",
-				"body1": "为了推荐附近的美味餐厅，我们将使用您的当前位置。",
-				"body2": "您可以随时在设置中更改。",
-				"primaryCta": "使用当前位置",
-				"secondaryCta": "稍后"
-			}
-		},
 		"recentLocations": {
 			"title": "最近使用的地点",
 			"clear": "清除最近使用的地点"
+		}
+	},
+	"Onboarding": {
+		"step1": {
+			"problem": "想吃什么，总是拿不定主意。",
+			"solution": "我们来推荐菜品，帮你找到想吃的那一口。"
+		},
+		"step2": {
+			"problem": "找店太花时间，候选太多挑不完。",
+			"solution": "菜品和店铺都已精选，马上就能定下来。"
+		},
+		"step3": {
+			"problem": "同行人的口味，也不想踩雷。",
+			"solution": "和朋友一起投票，共同决定吃什么。"
+		},
+		"back": "上一步",
+		"next": "下一步",
+		"skip": "跳过",
+		"location": {
+			"title": "马上找到附近的好店 📍",
+			"body": "开启位置信息后，我们就能为你推荐当前位置附近的好店。"
+		},
+		"notifications": {
+			"title": "别错过每一次想吃 🔔",
+			"body": "我们会把为你挑选的推荐和 CraveCatch 的消息发送给你。"
+		},
+		"welcome": {
+			"title": "欢迎来到 CraveCatch！🎉",
+			"body1": "选店不用再纠结了。",
+			"body2": "一起去找今天想吃的那一口吧。",
+			"cta": "开始使用"
+		},
+		"accessibility": {
+			"stepProgress": "第 %{current} 步，共 %{total} 步"
 		}
 	},
 	"Topics": {
@@ -686,7 +693,8 @@
 		"consent_login_terms": "服务条款",
 		"consent_login_and": "和",
 		"consent_login_privacy": "隐私政策",
-		"consent_login_suffix": "。"
+		"consent_login_suffix": "。",
+		"skip": "跳过"
 	},
 	"Settings": {
 		"title": "设置",

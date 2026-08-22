@@ -50,13 +50,14 @@ jest.mock("@/hooks/useLocationSearch", () => ({
 jest.mock("@/features/search/hooks/useAutoCurrentLocation", () => ({
 	useAutoCurrentLocation: () => ({ requestAutoCurrentLocation: jest.fn() }),
 }));
-jest.mock("@/features/search/hooks/useSearchTutorial", () => ({
-	useSearchTutorial: () => ({ hasSeenTutorial: false, isLoading: false, markTutorialAsSeen: jest.fn() }),
+// #1486 既読済みにしておく。未読だとオンボーディングへ router.push が走り、
+// これらのテストが見たい «検索画面そのもの» の検証にノイズが乗る
+jest.mock("@/features/onboarding/hooks/useOnboardingSeen", () => ({
+	useOnboardingSeen: () => true,
 }));
 jest.mock("@/features/search/hooks/useRecentLocations", () => ({
 	useRecentLocations: () => ({ recentLocations: [], addRecentLocation: jest.fn(), clearRecentLocations: jest.fn() }),
 }));
-jest.mock("@/features/search/components/TutorialBottomSheet", () => ({ TutorialBottomSheet: () => null }));
 jest.mock("@/features/search/components/DistanceSlider", () => ({ DistanceSlider: () => null }));
 jest.mock("@/features/search/components/PriceLevelsMultiSelect", () => ({ PriceLevelsMultiSelect: () => null }));
 jest.mock("@/features/search/components/SelectableGridItem", () => ({ SelectableGridItem: () => null }));

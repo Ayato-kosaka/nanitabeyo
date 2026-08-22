@@ -154,7 +154,7 @@
 			"locationInputHint": "Saisissez un lieu pour rechercher des restaurants",
 			"clearLocation": "Effacer le lieu",
 			"useCurrentLocation": "Utiliser la position actuelle",
-			"showTutorial": "Voir le mode d'emploi",
+			"showTutorial": "Voir comment ça marche",
 			"selectLocation": "Sélectionner ce lieu"
 		},
 		"loading": "Recherche...",
@@ -235,36 +235,43 @@
 				"bulkShare": "Tout partager"
 			}
 		},
-		"tutorial": {
-			"page1": {
-				"title": "Découvrez ce que vous voulez manger",
-				"body1": "Résolvez le dilemme \"Que devrais-je manger aujourd'hui?\" en une fois.",
-				"body2": "Nous suggérons des plats et des restaurants en fonction de votre emplacement et de l'heure.",
-				"cta": "Suivant"
-			},
-			"page2": {
-				"title": "Regardez les photos et découvrez ce que vous désirez",
-				"body1": "Nous suggérons 6 plats qui correspondent à vos préférences actuelles.",
-				"body2": "Regardez les photos et choisissez intuitivement ce que vous voulez manger.",
-				"cta": "Suivant"
-			},
-			"page3": {
-				"title": "Photos et avis vous aident à décider où aller",
-				"body1": "Nous suggérons 5 restaurants qui servent le plat que vous avez choisi.",
-				"body2": "Parcourez les photos, les avis et la carte pour choisir rapidement un endroit.",
-				"cta": "Suivant"
-			},
-			"page4": {
-				"title": "Commençons",
-				"body1": "Nous utiliserons votre position actuelle pour suggérer des restaurants à proximité.",
-				"body2": "Vous pouvez le modifier à tout moment dans les paramètres.",
-				"primaryCta": "Utiliser la position actuelle",
-				"secondaryCta": "Plus tard"
-			}
-		},
 		"recentLocations": {
 			"title": "Lieux récents",
 			"clear": "Effacer les lieux récents"
+		}
+	},
+	"Onboarding": {
+		"step1": {
+			"problem": "Impossible de décider quoi manger.",
+			"solution": "On vous suggère des plats, vous trouvez ce dont vous avez envie."
+		},
+		"step2": {
+			"problem": "Chercher un restaurant prend du temps avec trop de choix.",
+			"solution": "Plats et restaurants sont présélectionnés : vous décidez tout de suite."
+		},
+		"step3": {
+			"problem": "Vous ne voulez pas non plus vous tromper sur les goûts des autres.",
+			"solution": "Votez entre amis pour choisir le plat ensemble."
+		},
+		"back": "Précédent",
+		"next": "Suivant",
+		"skip": "Passer",
+		"location": {
+			"title": "Trouvez de bonnes adresses à côté 📍",
+			"body": "Avec votre position, nous pouvons vous proposer des restaurants recommandés près de vous."
+		},
+		"notifications": {
+			"title": "Ne ratez plus vos envies 🔔",
+			"body": "Nous vous enverrons des recommandations choisies pour vous et les actualités de CraveCatch."
+		},
+		"welcome": {
+			"title": "Bienvenue sur CraveCatch ! 🎉",
+			"body1": "Fini les hésitations interminables sur le choix du restaurant.",
+			"body2": "Partons trouver ce dont vous avez envie aujourd'hui.",
+			"cta": "Commencer"
+		},
+		"accessibility": {
+			"stepProgress": "Étape %{current} sur %{total}"
 		}
 	},
 	"Topics": {
@@ -686,7 +693,8 @@
 		"consent_login_terms": "Conditions d'utilisation",
 		"consent_login_and": " et ",
 		"consent_login_privacy": "Politique de confidentialité",
-		"consent_login_suffix": "."
+		"consent_login_suffix": ".",
+		"skip": "Passer"
 	},
 	"Settings": {
 		"title": "Paramètres",

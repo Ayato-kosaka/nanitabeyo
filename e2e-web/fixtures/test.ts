@@ -13,9 +13,12 @@ import { seedTopicsTutorialAsSeen, seedTutorialAsSeen } from "../utils/storage";
 /** テスト側から挙動を切り替えられるオプション */
 type AppOptions = {
 	/**
-	 * 検索チュートリアルの「表示済み」フラグを事前シードするか。
-	 * ja-JP では初回訪問時にチュートリアルが自動表示されて操作を妨げるため既定 true。
-	 * チュートリアル自体をテストする spec だけ `test.use({ seedTutorialSeen: false })` で無効化する。
+	 * オンボーディング（#1486）の「表示済み」フラグを事前シードするか。
+	 * ja-JP では初回訪問時にオンボーディング画面へ自動遷移して操作を妨げるため既定 true。
+	 * オンボーディング自体をテストする spec だけ `test.use({ seedTutorialSeen: false })` で無効化する。
+	 *
+	 * ⚠️ 名前に `Tutorial` が残っているのは、**ストレージキーを旧チュートリアルから
+	 * 変えていない**ため（#1486 §3。変えると既読の既存ユーザー全員へ再表示される）。
 	 */
 	seedTutorialSeen: boolean;
 	/**
@@ -63,7 +66,7 @@ export const test = base.extend<AppOptions & AppFixtures>({
 	seedTutorialSeen: [true, { option: true }],
 	seedTopicsTutorialSeen: [true, { option: true }],
 
-	// ── context: チュートリアルシードを適用 ─────────────────────
+	// ── context: オンボーディング / スポットライトのシードを適用 ──
 	// addInitScript はページ生成前に仕込む必要があるため context を拡張する
 	context: async ({ context, seedTopicsTutorialSeen, seedTutorialSeen }, use) => {
 		if (seedTutorialSeen) {

@@ -1,0 +1,288 @@
+import { test, expect } from "../../fixtures/test";
+import { OnboardingPage } from "../../pages/OnboardingPage";
+import { SearchPage } from "../../pages/SearchPage";
+
+/**
+ * 🚀 オンボーディング（#1486）の表示テスト
+ *
+ * 目的: ja-JP 初回訪問時の自動表示、課題 → 解決のフェーズ切り替え、
+ *       前へ / 次へ / スキップ、完了後の再表示抑止
+ *       （localStorage フラグ `search_tutorial_seen_v1`）を保証する。
+ *
+ * 注意: 他の全テストは fixtures/test.ts がフラグをシードして表示を抑止している。
+ *       この spec だけは `test.use({ seedTutorialSeen: false })` でシードを外し、
+ *       「未読状態」を再現する。
+ *
+ * ⚠️ **web では OS の許可ダイアログが出ない。** 位置情報はブラウザの権限で、
+ *    Playwright の既定コンテキストでは許可を «尋ねずに» 拒否される。通知も同様。
+ *    そのため位置情報・通知の説明画面は「表示され、自動で次へ進む」ところまでを見る。
+ */
+test.use({ seedTutorialSeen: false });
+
+/** 3 ステップの課題文（#1486 §1 で確定した文言） */
+const PROBLEM_TEXTS = [
+	"何食べたいか、決まらない。",
+	"お店探し。候補が多すぎて時間がかかる。",
+	"一緒に行く人の好みも、外したくない。",
+] as const;
+
+test.describe("オンボーディング(ja-JP 初回訪問)", () => {
+	// ─ テストケース: 初回訪問でオンボーディングが自動表示される ─
+	// 手順:
+	//   1. シードなしで "/" へ遷移し検索画面を表示する
+	//   2. 3 ステップ画面が自動で開き、1 枚目の課題文が出ることを検証
+	// 補足: 自動表示は isJapanese のときだけ（ブラウザロケール ja-JP 固定なので常に対象）
+	test("初回訪問でオンボーディングが自動表示される", async ({ page }) => {
+		const onboardingPage = new OnboardingPage(page);
+
+		await page.goto("/");
+
+		await onboardingPage.expectLoaded();
+		await expect(page.getByText(PROBLEM_TEXTS[0])).toBeVisible();
+	});
+
+	// ─ テストケース: 約1.5秒後に解決フェーズが再生される ─
+	// 手順:
+	//   1. 自動表示されたオンボーディングの 1 枚目を待つ
+	//   2. 解決文が不透明になる（= 解決フェーズが再生された）ことを検証
+	//   3. 課題文が **残っている** ことを検証
+	// 補足: #1486 §1 の「課題文は残しつつ、解決文言と解決画像をフェード / ポップ表示」。
+	//       課題文が消える実装へ戻ると、この 3 番目で落ちる。
+	//       固定 sleep は使わない（`expectSolutionVisible` が状態を待つ）
+	test("課題フェーズの後に解決フェーズが再生され、課題文は残る", async ({ page }) => {
+		const onboardingPage = new OnboardingPage(page);
+
+		await page.goto("/");
+		await onboardingPage.expectStep(1);
+
+		await onboardingPage.expectSolutionVisible(1);
+		await expect(page.getByText("料理が提案されるので、食べたいが見つかる。")).toBeVisible();
+		await expect(page.getByText(PROBLEM_TEXTS[0])).toBeVisible();
+	});
+
+	// ─ テストケース: 1枚目では戻る操作が無効 ─
+	// 手順:
+	//   1. 自動表示された 1 枚目を待つ
+	//   2. 「前へ」が描画されていないことを検証
+	//   3. 2 枚目へ進むと「前へ」が現れることを検証
+	// 補足: #1486 §1「1枚目は戻る操作無効」
+	test("1枚目では「前へ」が出ず、2枚目から出る", async ({ page }) => {
+		const onboardingPage = new OnboardingPage(page);
+
+		await page.goto("/");
+		await onboardingPage.expectStep(1);
+		await expect(onboardingPage.backButton).toHaveCount(0);
+
+		await onboardingPage.pressNext();
+
+		await onboardingPage.expectStep(2);
+		await expect(onboardingPage.backButton).toBeVisible();
+	});
+
+	// ─ テストケース: 前のページへ戻ると課題状態から再生し直す ─
+	// 手順:
+	//   1. 2 枚目へ進み、解決フェーズまで再生させる
+	//   2. 「前へ」で 1 枚目へ戻る
+	//   3. 1 枚目の解決フェーズが（戻った時点ではなく）改めて再生されることを検証
+	// 補足: #1486 §1「前のページへ戻った場合は、課題状態から解決アニメーションを再生する」。
+	//       フェーズをページごとに覚える実装にすると、戻った瞬間から解決状態で出てしまう。
+	//       ⚠️ 「戻った直後に解決文が透明である」ことは検証しない。ページ切り替えと
+	//       アサートの間に 1.5 秒が経ってしまうと **偽の赤** になるためで、
+	//       ここでは「戻ったあとにもう一度解決フェーズへ到達する」ことだけを見る
+	test("前のページへ戻ると解決アニメーションを再生し直す", async ({ page }) => {
+		const onboardingPage = new OnboardingPage(page);
+
+		await page.goto("/");
+		await onboardingPage.expectStep(1);
+		await onboardingPage.pressNext();
+		await onboardingPage.expectSolutionVisible(2);
+
+		await onboardingPage.pressBack();
+
+		await onboardingPage.expectStep(1);
+		await onboardingPage.expectSolutionVisible(1);
+	});
+
+	// ─ テストケース: 3枚目の「次へ」で既存ログイン画面へ進む ─
+	// 手順:
+	//   1. 3 枚目まで進める
+	//   2. 「次へ」でログイン画面へ遷移することを検証
+	//   3. オンボーディング経由なので「スキップ」が出ていることを検証
+	// 補足: #1486 §4。スキップは `skippable=1` を付けたときだけ出る
+	//       （口コミ投稿等からのログイン導線には出さない）
+	test("3枚目の「次へ」でログイン画面へ進み、スキップが出る", async ({ page }) => {
+		const onboardingPage = new OnboardingPage(page);
+
+		await page.goto("/");
+		await onboardingPage.advanceToLastStep();
+
+		await onboardingPage.pressNext();
+
+		await expect(page).toHaveURL(/\/auth\/login/);
+		await expect(page.getByTestId("login-screen")).toBeVisible();
+		await expect(page.getByTestId("login-screen-skip")).toBeVisible();
+	});
+
+	// ─ テストケース: 「スキップ」でもログイン画面へ進む ─
+	// 手順:
+	//   1. 1 枚目で「スキップ」を押す
+	//   2. ログイン画面へ遷移することを検証
+	// 補足: #1486 §1「「スキップ」でも既存ログイン画面へ」
+	test("「スキップ」でもログイン画面へ進む", async ({ page }) => {
+		const onboardingPage = new OnboardingPage(page);
+
+		await page.goto("/");
+		await onboardingPage.expectStep(1);
+
+		await onboardingPage.pressSkip();
+
+		await expect(page).toHaveURL(/\/auth\/login/);
+	});
+
+	// ─ テストケース: ログインをスキップすると位置情報 → Welcome へ進む ─
+	// 手順:
+	//   1. 3 枚目まで進めてログイン画面へ出る
+	//   2. ログイン画面の「スキップ」を押す
+	//   3. 位置情報の説明画面が出ることを検証
+	//   4. 通知許可を **飛ばして** Welcome 画面へ着くことを検証
+	// 補足: #1486 §6「ログインをスキップしたユーザーには通知許可を要求しない」。
+	//       ゲスト（匿名）ユーザーは `isGuestUser` が true なので通知画面へ入らない。
+	//       許可ダイアログは web には出ないが、拒否扱いでも先へ進む（#1486 §9）
+	test("ログインをスキップすると位置情報を経て Welcome へ進む", async ({ page }) => {
+		const onboardingPage = new OnboardingPage(page);
+
+		await page.goto("/");
+		await onboardingPage.advanceToLastStep();
+		await onboardingPage.pressNext();
+		await page.getByTestId("login-screen-skip").click();
+
+		await expect(onboardingPage.locationScreen).toBeVisible();
+		await expect(page.getByText("近くのお店を、すぐ見つけよう 📍")).toBeVisible();
+
+		await expect(onboardingPage.welcomeScreen).toBeVisible({ timeout: 60_000 });
+		await expect(onboardingPage.notificationsScreen).toHaveCount(0);
+	});
+
+	// ─ テストケース: Welcome の「はじめる」で完了フラグが立ち、再表示されない ─
+	// 手順:
+	//   1. Welcome 画面まで進める
+	//   2. 確定コピーが出ていることを検証（#1486 §7）
+	//   3. 「はじめる」を押す
+	//   4. localStorage に search_tutorial_seen_v1=true が保存されることを検証
+	//   5. 検索画面へ着地し、オンボーディングが出ていないことを検証
+	//   6. 検索画面へ改めてアクセスしても自動表示されないことを検証
+	// 補足: #1486 §3「既存のチュートリアル既読ローカルストレージキーを再利用」。
+	//       手順 6 で reload ではなく goto を使うのは、expo-router の静的書き出しでは
+	//       タブグループ内のネスト遷移で URL バーが表示内容と一致しないことがあり、
+	//       reload すると別ルートの静的 HTML が読み込まれてしまうため
+	test("Welcome の「はじめる」で完了し、再訪問しても表示されない", async ({ page }) => {
+		const searchPage = new SearchPage(page);
+		const onboardingPage = new OnboardingPage(page);
+
+		await page.goto("/");
+		await onboardingPage.advanceToLastStep();
+		await onboardingPage.pressNext();
+		await page.getByTestId("login-screen-skip").click();
+		await expect(onboardingPage.welcomeScreen).toBeVisible({ timeout: 60_000 });
+
+		await expect(page.getByText("なに食べよへようこそ！ 🎉")).toBeVisible();
+		await expect(page.getByText("今日の「食べたい」を見つけにいこう。")).toBeVisible();
+
+		await onboardingPage.startButton.click();
+
+		await expect.poll(() => page.evaluate(() => window.localStorage.getItem("search_tutorial_seen_v1"))).toBe("true");
+		await searchPage.expectLoaded();
+		await expect(onboardingPage.screen).toHaveCount(0);
+
+		await page.goto("/ja-JP/search");
+		await searchPage.expectLoaded();
+		await expect(onboardingPage.screen).toHaveCount(0);
+	});
+
+	// ─ テストケース: 「次へ」を連打してもオンボーディングが壊れない(#1084 P3 相当) ─
+	// 手順:
+	//   1. 未読シードでオンボーディングを自動表示させる
+	//   2. 1 枚目で「次へ」を 3 連打する(待機を挟まない実 pointer 連打)
+	//   3. 3 枚を飛び越して壊れることなく、いずれかのステップかログイン画面に居ることを検証
+	// 補足: **「3 連打 → 3 枚目に居る」とは書けない**。Playwright の連打は 1 プレスずつ
+	//       別のブラウザタスクとして届き、React は discrete event の更新を各ハンドラの
+	//       終わりに同期コミットするため、プレスの間に再描画が入る（旧 spec で実測済み）。
+	//       3 連打すると 3 枚目を越えてログイン画面へ抜けることもある。
+	//       そこで **プレス回数に依存せず必ず成立する不変条件** を見る:
+	//       「壊れた中間状態（どのステップでもなく、ログイン画面でもない）にならないこと」。
+	//       `hasLeftRef` が効いていないとログイン画面が二重に push されるが、
+	//       それも «ログイン画面 1 枚» の検証で捕まる
+	test("「次へ」を連打してもオンボーディングが壊れない", async ({ page }) => {
+		const onboardingPage = new OnboardingPage(page);
+
+		await page.goto("/");
+		await onboardingPage.expectStep(1);
+
+		await onboardingPage.pressNextRapid(3);
+
+		const readState = async () => {
+			if ((await page.getByTestId("login-screen").count()) > 0) return "login";
+			for (const step of [1, 2, 3] as const) {
+				if ((await onboardingPage.problemText(step).count()) > 0) return `step${step}`;
+			}
+			return "broken";
+		};
+
+		await expect
+			.poll(readState, { message: "連打でオンボーディングが壊れた（どのステップでもログイン画面でもない）" })
+			.not.toBe("broken");
+
+		// 3 枚目を越えてログイン画面まで抜けた場合は、**1 枚だけ**であること。
+		// `hasLeftRef` が効いていないと連打の回数だけ push され、ここが 2 以上になる
+		if ((await readState()) === "login") {
+			await expect(page.getByTestId("login-screen")).toHaveCount(1);
+		}
+	});
+});
+
+test.describe("ヘルプボタンからの再表示", () => {
+	// 既読状態から `？` で開く導線を見るので、シードを既定（既読）へ戻す
+	test.use({ seedTutorialSeen: true });
+
+	// ─ テストケース: 既読でも `？` から開ける ─
+	// 手順:
+	//   1. 既読シードで検索画面を開き、自動表示されないことを確認
+	//   2. `？` を押してオンボーディングが開くことを検証
+	// 補足: #1486 §3「`？` からユーザーが明示的に開いた場合は既読状態に関係なく表示する」
+	test("既読でも `？` からオンボーディングを開ける", async ({ page }) => {
+		const searchPage = new SearchPage(page);
+		const onboardingPage = new OnboardingPage(page);
+
+		await searchPage.goto();
+		await searchPage.expectLoaded();
+		await expect(onboardingPage.screen).toHaveCount(0);
+
+		await searchPage.openOnboarding();
+
+		await onboardingPage.expectLoaded();
+		await expect(page.getByText(PROBLEM_TEXTS[0])).toBeVisible();
+	});
+
+	// ─ テストケース: `？` から開いた場合は 3 枚で検索画面へ戻る ─
+	// 手順:
+	//   1. `？` からオンボーディングを開く
+	//   2. 3 枚目まで進めて「次へ」を押す
+	//   3. ログイン画面へ行かず、検索画面へ戻ることを検証
+	// 補足: #1486 §3 の `？` 導線は 3 ステップだけを見せる（`mode=manual`）。
+	//       ログイン・権限・Welcome は初回導線のためのもので、
+	//       既にアプリ本体を使っている人へ再度通す意味が無い
+	test("`？` から開いた場合は 3 枚で検索画面へ戻る", async ({ page }) => {
+		const searchPage = new SearchPage(page);
+		const onboardingPage = new OnboardingPage(page);
+
+		await searchPage.goto();
+		await searchPage.openOnboarding();
+		await onboardingPage.advanceToLastStep();
+
+		await onboardingPage.pressNext();
+
+		await searchPage.expectLoaded();
+		await expect(onboardingPage.screen).toHaveCount(0);
+		await expect(page.getByTestId("login-screen")).toHaveCount(0);
+	});
+});

@@ -23,7 +23,7 @@ presentation を指定していない（＝既定の card）のは意図的:
 URL（`toHaveURL(/\/auth\/login/)`）を使うこと。
 */
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
@@ -47,7 +47,7 @@ export default function LoginScreen() {
 	const { user, isAuthResolved } = useAuth();
 	// `next` は外部（URL / ディープリンク）から来る値。行き先として採用してよいかは
 	// lib/authNext.ts で検証する。ここでは生のまま受け取るだけにする
-	const { next } = useLocalSearchParams<{ next?: string }>();
+	const { next, skippable } = useLocalSearchParams<{ next?: string; skippable?: string }>();
 
 	// #1370 【設計】OAuth の redirectTo に載せる行き先。**検証を通した値だけ**を LoginForm へ渡す。
 	// web の OAuth は全画面リダイレクトなので、URL に載せる以外に callback へ引き継ぐ手段が無い。
@@ -87,6 +87,34 @@ export default function LoginScreen() {
 		router.replace(href as ExternalPathString);
 	}, [isAuthResolved, user, nextPath, locale, logFrontendEvent]);
 
+	/**
+	 * #1486 §4【設計】「ログインせずに次へ進む」を出してよいか。
+	 *
+	 * オンボーディング（features/onboarding/navigation.ts の `onboardingLoginPath`）だけが
+	 * `skippable=1` を付ける。**`next` の有無で出し分けてはいけない**: 口コミ投稿・プロフィール・
+	 * 店舗詳細の 3 箇所も `next` 付きでこの画面を開くが、あちらは「ログインが要るから来ている」
+	 * ので、素通りできるとログイン必須の画面へ未ログインのまま入れてしまう。
+	 *
+	 * `nextPath` を必須にしているのは、行き先が無いのに «スキップ» だけあっても
+	 * どこへも進めないため（`resolveNextPath` を通らない値なら出さない）。
+	 */
+	const canSkip = skippable === "1" && !!nextPath;
+
+	const handleSkip = useCallback(() => {
+		lightImpact();
+		if (!nextPath) return;
+
+		logFrontendEvent({
+			event_name: "login_screen_skipped",
+			error_level: "log",
+			payload: { href: nextPath },
+		});
+
+		// back ではなく replace。スキップは «戻る» ではなく «行き先へ進む» 操作で、
+		// 押した後にログイン画面が履歴に残っていると戻るで引き返せてしまう
+		router.replace(nextPath as ExternalPathString);
+	}, [lightImpact, logFrontendEvent, nextPath]);
+
 	const handleBack = useCallback(() => {
 		lightImpact();
 
@@ -113,7 +141,22 @@ export default function LoginScreen() {
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
 			<SafeAreaView style={styles.safeArea} edges={[]}>
 				{/* #1359 タイトルはこのヘッダーだけが持つ（LoginForm 側の見出しは削除済み） */}
-				<ScreenHeader title={i18n.t("auth.login_title")} onPressBack={handleBack} testID="login-screen" />
+				<ScreenHeader
+					title={i18n.t("auth.login_title")}
+					onPressBack={handleBack}
+					testID="login-screen"
+					rightContent={
+						canSkip ? (
+							<TouchableOpacity
+								onPress={handleSkip}
+								accessibilityRole="button"
+								hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+								testID="login-screen-skip">
+								<Text style={styles.skipLabel}>{i18n.t("auth.skip")}</Text>
+							</TouchableOpacity>
+						) : undefined
+					}
+				/>
 				{/* #1359 【設計】auth 未確定（user === null）の間は OAuth ボタンを «描かない»（設計 §4）。
 				    未確定のまま押させると LoginForm 側のガードで「押しても何も起きない + Snackbar」になり、
 				    さらに昇格チェックボックスが一瞬だけ出て消える。モーダル時代はこれを避けられなかったが、
@@ -154,5 +197,10 @@ const styles = StyleSheet.create({
 	scrollContent: {
 		paddingVertical: 16,
 		paddingBottom: 40,
+	},
+	skipLabel: {
+		fontSize: 15,
+		fontWeight: "600",
+		color: "#6B7280",
 	},
 });

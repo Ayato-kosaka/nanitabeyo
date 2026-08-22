@@ -1,11 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
+import { usePathname } from "expo-router";
 import { useAPICall } from "../hooks/useAPICall";
 import { useAuth } from "@/contexts/AuthProvider";
 import { isGuestUser } from "@/lib/authGuest";
+import { isOnboardingPath } from "@/features/onboarding/navigation";
 import { useLogger } from "../hooks/useLogger";
 import type { CreateDeviceTokenResponse } from "@shared/api/v1/res";
 import { Env } from "@/constants/Env";
@@ -33,6 +35,25 @@ export function PushTokenRegistration() {
 	const { user } = useAuth();
 	const { logFrontendEvent } = useLogger();
 	const [error, setError] = useState<string | null>(null);
+	const pathname = usePathname();
+
+	/**
+	 * #1486 §6【設計】このコンポーネントは «許可を尋ねる» 主体でもある
+	 *（未回答なら `requestPermissionsAsync()` を呼ぶ）。
+	 *
+	 * オンボーディング中はそれを止める。止めないと、ログイン画面でログインが成立した瞬間に
+	 * ここが動き出し、**通知の説明画面が出るより先に** OS の許可ダイアログが出てしまう。
+	 * チケットは「説明画面表示と同時に通知許可ダイアログを表示」と定めており、
+	 * 説明の無いダイアログはまさに避けたかったものである。
+	 *
+	 * オンボーディングを抜けたらこの effect が張り直され、そのときには
+	 * 通知説明画面で回答済みなので、ここは «トークンの登録» だけを行う。
+	 */
+	const isInOnboarding = isOnboardingPath(pathname);
+
+	// 画面遷移のたびに登録処理をやり直さないための番人。
+	// pathname を依存に足した結果、この effect はナビゲーションのたびに再実行されるようになった
+	const registeredUserIdRef = useRef<string | null>(null);
 
 	useEffect(() => {
 		// #通知機能 【設計】匿名ユーザーは Push Token を登録しない
@@ -40,6 +61,9 @@ export function PushTokenRegistration() {
 		// `!user` を残しているのは判定のためではなく、この後の user.id 参照を TS に絞り込ませるため
 		// （isGuestUser は boolean を返すだけなので null を除いてくれない）
 		if (!user || isGuestUser(user)) return;
+		if (isInOnboarding) return;
+		if (registeredUserIdRef.current === user.id) return;
+		registeredUserIdRef.current = user.id;
 
 		const registerPushToken = async () => {
 			try {
@@ -115,6 +139,9 @@ export function PushTokenRegistration() {
 				// #通知機能 【設計】Secure Storage にキャッシュを更新
 				await SecureStore.setItemAsync(SECURE_STORE_KEY, JSON.stringify(current));
 			} catch (err: any) {
+				// 失敗したら番人を外し、次の再描画で再試行できるようにする
+				//（依存が `user?.id` だけだった頃は、周辺の依存が変わるたびに実質再試行されていた）
+				registeredUserIdRef.current = null;
 				const errorMessage = err?.message || "Failed to register push token";
 				setError(errorMessage);
 				logFrontendEvent({
@@ -126,7 +153,7 @@ export function PushTokenRegistration() {
 		};
 
 		registerPushToken();
-	}, [user?.id, user?.is_anonymous, callBackend, logFrontendEvent]);
+	}, [user, isInOnboarding, callBackend, logFrontendEvent]);
 
 	// #通知機能 【設計】Android では通知チャンネルを設定
 	useEffect(() => {
