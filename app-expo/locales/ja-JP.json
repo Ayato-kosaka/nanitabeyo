@@ -555,6 +555,7 @@
 			"videoTooLong": "動画は2分以内のものを選択してください。",
 			"permissionDenied": "メディアにアクセスできません。設定から権限を許可してください。",
 			"thumbnailFailed": "サムネイルの生成に失敗しました。別のファイルをお試しください。",
+			"unsupportedImageFormat": "この形式の画像（HEIC）は使用できません。別の写真を選ぶか、端末のカメラ設定を「互換性優先」に変更してください。",
 			"selectedImage": "選択した画像",
 			"selectedVideoThumbnail": "選択した動画のサムネイル",
 			"playVideo": "動画を再生",
