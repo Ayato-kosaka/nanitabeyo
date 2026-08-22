@@ -22,7 +22,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react-native";
 import { OnboardingScreenOptions } from "@/features/onboarding/components/OnboardingScreenOptions";
 import { OnboardingStepIndicator } from "@/features/onboarding/components/OnboardingStepIndicator";
 import { OnboardingStepView, type OnboardingPhase } from "@/features/onboarding/components/OnboardingStepView";
-import { ONBOARDING_STEPS, PROBLEM_PHASE_DURATION_MS } from "@/features/onboarding/constants";
+import { ONBOARDING_STEPS, PROBLEM_PHASE_DURATION_MS, clampStepIndex } from "@/features/onboarding/constants";
 import {
 	appRootPath,
 	onboardingLoginPath,
@@ -46,7 +46,9 @@ export default function OnboardingScreen() {
 	const [stepIndex, setStepIndex] = useState(0);
 	const [phase, setPhase] = useState<OnboardingPhase>("problem");
 
-	const step = ONBOARDING_STEPS[stepIndex];
+	// `clampStepIndex` を通してあるので範囲外にはならないが、添字アクセスの結果が
+	// undefined になりうることを型でも消しておく（描画側は step が必ずある前提で書かれている）
+	const step = ONBOARDING_STEPS[clampStepIndex(stepIndex)];
 	const isFirstStep = stepIndex === 0;
 	const isLastStep = stepIndex === ONBOARDING_STEPS.length - 1;
 
@@ -92,7 +94,10 @@ export default function OnboardingScreen() {
 		lightImpact();
 
 		if (!isLastStep) {
-			setStepIndex((index) => index + 1);
+			// ⚠️ **クランプを外さないこと。** 連打すると複数のハンドラが同じ `stepIndex` を読むため、
+			// クランプが無いと添字が範囲外へ出て `step` が undefined になり画面ごと落ちる
+			//（詳細は features/onboarding/constants.ts の `clampStepIndex`）
+			setStepIndex((index) => clampStepIndex(index + 1));
 			return;
 		}
 
@@ -115,7 +120,8 @@ export default function OnboardingScreen() {
 		// #1486 §1 1 枚目は戻る操作無効
 		if (isFirstStep) return;
 		lightImpact();
-		setStepIndex((index) => index - 1);
+		// 「次へ」と同じ理由でクランプする（連打で添字が負になるのを防ぐ）
+		setStepIndex((index) => clampStepIndex(index - 1));
 	}, [isFirstStep, lightImpact]);
 
 	const handleSkip = useCallback(() => {

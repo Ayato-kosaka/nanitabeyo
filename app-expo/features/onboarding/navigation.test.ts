@@ -5,6 +5,7 @@ router を触らない純関数だけを対象にしている（features/onboard
 実機・実ブラウザでしか再現しづらい経路（ログイン後の全画面リダイレクト、ATT の割り込み）に
 関わる判定なので、分岐そのものをここで固めておく。
 */
+import { ONBOARDING_STEPS, clampStepIndex } from "./constants";
 import {
 	appRootPath,
 	isOnboardingPath,
@@ -16,6 +17,39 @@ import {
 	parseOnboardingMode,
 	resolveAfterLocationPath,
 } from "./navigation";
+
+describe("clampStepIndex", () => {
+	/**
+	 * #1486 【バグ】「次へ」を連打すると、複数のハンドラが **同じ `stepIndex`** を読むため
+	 * `setStepIndex((i) => i + 1)` が続けて走り、添字が範囲外へ出る。
+	 * そのまま描画すると `ONBOARDING_STEPS[3]` が undefined になり、
+	 * `step.empathyImage` で **画面が丸ごと落ちる**（e2e-web の連打テストが実際に捕まえた）。
+	 */
+	it("最終ページを越えない", () => {
+		expect(clampStepIndex(ONBOARDING_STEPS.length - 1)).toBe(ONBOARDING_STEPS.length - 1);
+		expect(clampStepIndex(ONBOARDING_STEPS.length)).toBe(ONBOARDING_STEPS.length - 1);
+		expect(clampStepIndex(99)).toBe(ONBOARDING_STEPS.length - 1);
+	});
+
+	it("1 枚目より手前へ行かない", () => {
+		expect(clampStepIndex(0)).toBe(0);
+		expect(clampStepIndex(-1)).toBe(0);
+		expect(clampStepIndex(-99)).toBe(0);
+	});
+
+	it("範囲内はそのまま返す", () => {
+		for (let index = 0; index < ONBOARDING_STEPS.length; index += 1) {
+			expect(clampStepIndex(index)).toBe(index);
+		}
+	});
+
+	/** クランプ済みの添字なら、必ず実体のあるステップを引ける（描画側の前提） */
+	it("クランプした添字で必ずステップを引ける", () => {
+		for (const index of [-5, 0, 1, 2, 3, 10]) {
+			expect(ONBOARDING_STEPS[clampStepIndex(index)]).toBeDefined();
+		}
+	});
+});
 
 describe("parseOnboardingMode", () => {
 	it("manual だけを manual として扱う", () => {

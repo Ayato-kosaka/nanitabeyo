@@ -75,6 +75,24 @@ export const ONBOARDING_IMAGES = ONBOARDING_STEPS.flatMap((step) => [step.empath
  */
 export const PROBLEM_PHASE_DURATION_MS = 1500;
 
+/**
+ * ページ番号を必ずページ範囲内へ収める。
+ *
+ * #1486 【バグ】**「次へ」の連打で範囲外へ出る。** 待機を挟まない連打では、
+ * 3 回のハンドラが **同じ `stepIndex`** を読む（React は discrete event の更新を
+ * 各ハンドラの終わりにコミットするが、同一タスク内で連続して届いたプレスは
+ * 直前の再描画を挟まない）。そのため `isLastStep` はどれも false のまま
+ * `setStepIndex((i) => i + 1)` が 3 回走り、添字が 3 になる。
+ *
+ * `ONBOARDING_STEPS[3]` は `undefined` なので、そのまま描画すると
+ * `step.empathyImage` で落ちて **画面が丸ごと消える**（e2e-web の
+ * tests/search/onboarding.spec.ts の連打テストが実際にこれを捕まえた）。
+ *
+ * 旧チュートリアルも `handleNextPage` で `Math.min` によるクランプを持っていた。
+ * 実装を作り直すときに落ちた «同じ罠» なので、関数として名前を付けて共有しておく。
+ */
+export const clampStepIndex = (index: number): number => Math.min(Math.max(index, 0), ONBOARDING_STEPS.length - 1);
+
 /** #1486 §1 解決フェーズの登場アニメーションの長さ（「約 300ms 程度を目安」） */
 export const SOLUTION_REVEAL_DURATION_MS = 300;
 
