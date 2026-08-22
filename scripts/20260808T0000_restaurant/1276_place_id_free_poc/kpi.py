@@ -67,7 +67,7 @@ def load_probes(path: Path) -> dict[str, dict[str, SearchResult]]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--cache", type=Path, required=True)
-    parser.add_argument("--rule", default="box_unique_huge")
+    parser.add_argument("--rule", default="box_unique_strict")
     parser.add_argument("--sample", type=Path, help="① 用の一様標本")
     parser.add_argument("--labels", type=Path, help="② 用の対応表")
     parser.add_argument("--label-seeds", type=Path, help="② 用の seed CSV")

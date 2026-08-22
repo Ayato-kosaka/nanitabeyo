@@ -31,8 +31,8 @@ python3 place_id_poc.py probe \
   --only-probes a b c_tight c_wide --execute
 
 echo "=== ① 3ソースでの確定率 ==="
-python3 resolve_rate.py --seeds out/sample_3sources_3000.csv --cache cache/probe_all.sqlite \
-  --rule box_unique --by-source --output results/resolve_rate_3sources.json
+python3 kpi.py --cache cache/probe_all.sqlite --rule box_unique_strict \
+  --sample out/sample_merged5_probed.csv --output results/kpi.json
 
 echo "=== ② IFAS ラベルでの正解検証 ==="
 python3 evaluate_labels.py --labels out/labels_merged_all.csv \

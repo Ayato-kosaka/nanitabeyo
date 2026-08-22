@@ -40,6 +40,7 @@ from matching import (
     STATUS_MATCHED,
     Decision,
 )
+from jp_name_match import similarity as name_similarity
 from runner import ProbeCache, ProbeSpec, execute_probes
 from seeds import (
     Seed,
@@ -56,6 +57,9 @@ from seeds import (
 )
 
 ROOT = Path(__file__).resolve().parent
+
+# 衝突した seed が「同じ店」かを決める閾値。名寄せの判定には使わず、出力の重複整理だけに使う。
+SAME_SHOP_SIMILARITY = 0.85
 API_KEY_ENVIRONMENT_VARIABLES = ("PLACE_API_TEST", "GOOGLE_PLACES_API_KEY")
 EARTH_RADIUS_M = 6_371_000.0
 
@@ -504,29 +508,45 @@ def command_export(arguments: argparse.Namespace) -> None:
     # box_unique は層そのものが証拠の強さなので、層をそのまま tier にする。それ以外の
     # ルールでは、一番厳しいルール（A/B が単一候補で一致し、かつ矩形内）でも取れたかで見る。
     box_unique_tiers = {"tight_unique_in_ab": "A", "wide_unique_in_ab": "B"}
-    tier_a = (
-        {}
-        if arguments.rule == "box_unique"
-        else apply_rule(
-            "strict_unique_geo_hard", seeds, probes, use_variant_fallback=arguments.name_variant
-        )
-    )
+    tier_a: dict = {}
     index = {seed.seed_id: seed for seed in seeds}
 
-    # 同じ place_id へ複数 seed が当たった場合、どちらか一方は誤りである。
-    # 「1件に絞れたもの」だけを渡す約束なので、衝突した place_id は全て落とす。
-    place_counts = Counter(
-        decision.place_id
-        for decision in decisions.values()
-        if decision.status == STATUS_MATCHED and decision.place_id
-    )
+    # 同じ place_id へ複数 seed が当たったとき、かつては全部落としていた。
+    # ソースが1つだった頃は「どちらかが誤り」で正しかったが、いまは Overture・IFAS・
+    # OSM・許可台帳の4ソースがあり、**同じ店が複数ソースに載っているほうが普通**である。
+    # 全部落とすと、複数ソースが一致した＝最も確からしい行から先に消えてしまう
+    # （実測で 7,804 行が該当した）。
+    #
+    # そこで、衝突した seed の店名を見て分ける。
+    # - 名前が揃っている → 同じ店。1行だけ残す（証拠が増えただけ）
+    # - 名前が食い違う   → 取り違えの可能性がある。従来どおり全部落とす
+    by_place: dict[str, list[str]] = defaultdict(list)
+    for seed_id, decision in decisions.items():
+        if decision.status == STATUS_MATCHED and decision.place_id:
+            by_place[decision.place_id].append(seed_id)
+    keep_seed: dict[str, str] = {}
+    conflicting: set[str] = set()
+    for place_id, seed_ids in by_place.items():
+        names = [index[seed_id].name for seed_id in seed_ids]
+        if len(seed_ids) == 1 or all(
+            name_similarity(names[0], other) >= SAME_SHOP_SIMILARITY for other in names[1:]
+        ):
+            # 住所クエリを組めた seed を優先して1件だけ残す。
+            keep_seed[place_id] = sorted(
+                seed_ids, key=lambda s: (not index[s].address_query, s)
+            )[0]
+        else:
+            conflicting.add(place_id)
     rows = []
-    dropped_collision = 0
+    dropped_collision = dropped_duplicate = 0
     for seed_id, decision in sorted(decisions.items()):
         if decision.status != STATUS_MATCHED or not decision.place_id:
             continue
-        if place_counts[decision.place_id] > 1:
+        if decision.place_id in conflicting:
             dropped_collision += 1
+            continue
+        if keep_seed.get(decision.place_id) != seed_id:
+            dropped_duplicate += 1
             continue
         seed = index[seed_id]
         rows.append(
@@ -543,16 +563,7 @@ def command_export(arguments: argparse.Namespace) -> None:
                 "overture_confidence": f"{seed.confidence:.3f}",
                 "match_rule": arguments.rule,
                 "match_detail": decision.detail,
-                "confidence_tier": (
-                    box_unique_tiers.get(decision.detail, "B")
-                    if arguments.rule == "box_unique"
-                    else (
-                        "A"
-                        if tier_a[seed_id].status == STATUS_MATCHED
-                        and tier_a[seed_id].place_id == decision.place_id
-                        else "B"
-                    )
-                ),
+                "confidence_tier": box_unique_tiers.get(decision.detail, "B"),
                 "geo_verification": decision.geo,
             }
         )
@@ -568,7 +579,8 @@ def command_export(arguments: argparse.Namespace) -> None:
                 "seeds": len(seeds),
                 "exported": len(rows),
                 "tier_counts": dict(Counter(row["confidence_tier"] for row in rows)),
-                "dropped_place_id_collision": dropped_collision,
+                "dropped_place_id_conflict": dropped_collision,
+                "dropped_same_shop_duplicate": dropped_duplicate,
                 "output": str(arguments.output),
             },
             ensure_ascii=False,
@@ -634,7 +646,7 @@ def build_parser() -> argparse.ArgumentParser:
     export = subcommands.add_parser("export", help="確定matchのみCSV出力")
     export.add_argument("--seeds", type=Path, nargs="+", required=True)
     export.add_argument("--cache", type=Path, required=True)
-    export.add_argument("--rule", default="layered_strict_wide", choices=sorted(RULES))
+    export.add_argument("--rule", default="box_unique_strict", choices=sorted(RULES))
     export.add_argument("--name-variant", action="store_true")
     export.add_argument("--output", type=Path, required=True)
     export.set_defaults(function=command_export)

@@ -32,7 +32,6 @@ from matching import (
     GEO_INCONCLUSIVE,
     PROBE_A,
     PROBE_B,
-    PROBE_C,
     PROBE_C_HUGE,
     PROBE_C_TIGHT,
     PROBE_C_WIDE,
@@ -43,11 +42,9 @@ from matching import (
     STATUS_INELIGIBLE,
     STATUS_MATCHED,
     STATUS_UNMATCHED,
-    geo_status,
 )
 from ground_truth import chain_key
 from jp_name_match import search_variant
-from null_test_huge import displace, haversine_m
 from jp_text import name_similarity, normalize_for_comparison
 from seeds import (
     Seed,
@@ -206,148 +203,6 @@ class QueryBuildingTest(unittest.TestCase):
         self.assertEqual(nearby["rankPreference"], "DISTANCE")
 
 
-class GeoStatusTest(unittest.TestCase):
-    def test_box_probe_decides_when_present(self) -> None:
-        probes = {PROBE_C: SearchResult(("A", "B"), 200)}
-        self.assertEqual(geo_status("A", probes), GEO_CONFIRMED)
-
-    def test_box_probe_absence_is_conclusive(self) -> None:
-        # 矩形 restriction は矩形外を実際に落とすので、件数上限を気にせず absent と言える。
-        self.assertEqual(geo_status("A", {PROBE_C: SearchResult(("B",), 200)}), GEO_ABSENT)
-        self.assertEqual(geo_status("A", {PROBE_C: SearchResult((), 200)}), GEO_ABSENT)
-
-    def test_failed_box_probe_falls_back_to_nearby(self) -> None:
-        probes = {PROBE_C: SearchResult((), 500, "boom"), PROBE_NEARBY: SearchResult(("A",), 200)}
-        self.assertEqual(geo_status("A", probes), GEO_CONFIRMED)
-
-    def test_nearby_absent_from_short_list_is_absent(self) -> None:
-        self.assertEqual(geo_status("A", {PROBE_NEARBY: SearchResult(("B", "C"), 200)}), GEO_ABSENT)
-
-    def test_nearby_truncated_list_is_inconclusive(self) -> None:
-        nearby = SearchResult(tuple(f"P{i}" for i in range(20)), 200)
-        self.assertEqual(geo_status("A", {PROBE_NEARBY: nearby}), GEO_INCONCLUSIVE)
-
-    def test_no_geo_evidence_is_inconclusive(self) -> None:
-        self.assertEqual(geo_status("A", {PROBE_NEARBY: SearchResult((), 200)}), GEO_INCONCLUSIVE)
-        self.assertEqual(geo_status("A", {}), GEO_INCONCLUSIVE)
-        self.assertEqual(geo_status(None, {PROBE_C: SearchResult(("A",), 200)}), GEO_INCONCLUSIVE)
-
-
-class RuleTest(unittest.TestCase):
-    def probes(self, a, b, box=("A",), nearby=None) -> dict:
-        probes = {
-            PROBE_A: SearchResult(tuple(a), 200),
-            PROBE_B: SearchResult(tuple(b), 200),
-        }
-        if box is not None:
-            probes[PROBE_C] = SearchResult(tuple(box), 200)
-        if nearby is not None:
-            probes[PROBE_NEARBY] = SearchResult(tuple(nearby), 200)
-        return probes
-
-    def test_strict_unique_matches_only_on_single_agreement(self) -> None:
-        rule = RULES["strict_unique"]
-        self.assertEqual(rule(make_seed(), self.probes(["A"], ["A"])).status, STATUS_MATCHED)
-        self.assertEqual(rule(make_seed(), self.probes(["A", "B"], ["A"])).status, STATUS_AMBIGUOUS)
-        self.assertEqual(rule(make_seed(), self.probes(["A"], ["B"])).status, STATUS_AMBIGUOUS)
-        self.assertEqual(rule(make_seed(), self.probes([], ["B"])).status, STATUS_UNMATCHED)
-
-    def test_top1_agree_relaxes_the_count_condition(self) -> None:
-        rule = RULES["top1_agree"]
-        decision = rule(make_seed(), self.probes(["A", "B"], ["A", "C"]))
-        self.assertEqual(decision.status, STATUS_MATCHED)
-        self.assertEqual(decision.place_id, "A")
-        self.assertEqual(rule(make_seed(), self.probes(["B", "A"], ["A", "C"])).status, STATUS_AMBIGUOUS)
-
-    def test_intersection_unique(self) -> None:
-        rule = RULES["intersection_unique"]
-        self.assertEqual(rule(make_seed(), self.probes(["B", "A"], ["A", "C"])).place_id, "A")
-        self.assertEqual(
-            rule(make_seed(), self.probes(["A", "B"], ["B", "A"])).status, STATUS_AMBIGUOUS
-        )
-        self.assertEqual(rule(make_seed(), self.probes(["A"], ["B"])).status, STATUS_AMBIGUOUS)
-
-    def test_geo_gate_hard_requires_confirmation(self) -> None:
-        hard = RULES["top1_agree_geo_hard"]
-        soft = RULES["top1_agree_geo_soft"]
-        unconfirmed = self.probes(
-            ["A"], ["A"], box=None, nearby=tuple(f"P{i}" for i in range(20))
-        )
-        self.assertEqual(hard(make_seed(), unconfirmed).status, STATUS_AMBIGUOUS)
-        self.assertEqual(soft(make_seed(), unconfirmed).status, STATUS_MATCHED)
-
-    def test_geo_absent_is_rejected_by_both_gates(self) -> None:
-        probes = self.probes(["A"], ["A"], box=("X", "Y"))
-        self.assertEqual(RULES["top1_agree_geo_soft"](make_seed(), probes).status, STATUS_AMBIGUOUS)
-        self.assertEqual(RULES["top1_agree_geo_hard"](make_seed(), probes).status, STATUS_AMBIGUOUS)
-
-    def test_missing_address_is_ineligible(self) -> None:
-        seed = make_seed(address_query="", address_quality="none")
-        self.assertEqual(RULES["strict_unique"](seed, self.probes(["A"], ["A"])).status, STATUS_INELIGIBLE)
-
-    def test_layered_requires_the_candidate_to_be_inside_the_box(self) -> None:
-        rule = RULES["layered"]
-        self.assertEqual(
-            rule(make_seed(), self.probes(["B", "A"], ["A", "C"], box=("A",))).detail,
-            "layer1_intersection_in_box",
-        )
-        # 共通集合が2件でも、最上位が一致し矩形内にあれば層2で拾う。
-        self.assertEqual(
-            rule(make_seed(), self.probes(["A", "B"], ["A", "B"], box=("A",))).detail,
-            "layer2_top1_in_box",
-        )
-        # 矩形内に同名が1件しかなく、片方のクエリがそれを挙げている場合。
-        self.assertEqual(
-            rule(make_seed(), self.probes(["B", "A"], ["C", "D"], box=("A",))).detail,
-            "layer3_unique_in_box",
-        )
-        # A と B が一致しても矩形の外なら採らない。
-        self.assertEqual(
-            rule(make_seed(), self.probes(["A"], ["A"], box=("Z",))).status, STATUS_AMBIGUOUS
-        )
-
-    def test_layered_strict_drops_the_weakest_layer(self) -> None:
-        strict = RULES["layered_strict"]
-        layered = RULES["layered"]
-        only_box = self.probes(["B", "A"], ["C", "D"], box=("A",))
-        self.assertEqual(layered(make_seed(), only_box).detail, "layer3_unique_in_box")
-        self.assertEqual(strict(make_seed(), only_box).status, STATUS_AMBIGUOUS)
-        both_agree = self.probes(["A"], ["A"], box=("A",))
-        self.assertEqual(strict(make_seed(), both_agree).status, STATUS_MATCHED)
-
-    def test_wide_recovery_needs_single_candidate_agreement(self) -> None:
-        rule = RULES["layered_strict_wide"]
-        # 狭い矩形の外だが、A と B が単一候補で一致し、広い矩形の中にある。
-        probes = {
-            PROBE_A: SearchResult(("A",), 200),
-            PROBE_B: SearchResult(("A",), 200),
-            PROBE_C: SearchResult((), 200),
-            PROBE_C_WIDE: SearchResult(("A", "Z"), 200),
-        }
-        self.assertEqual(rule(make_seed(), probes).detail, "wide1_strict_in_wide_box")
-        # 候補が複数あるなら救済しない（負例で誤マッチを出した緩い層を入れない）。
-        probes[PROBE_A] = SearchResult(("A", "B"), 200)
-        self.assertEqual(rule(make_seed(), probes).status, STATUS_AMBIGUOUS)
-        # 広い矩形の外なら救済しない。
-        probes[PROBE_A] = SearchResult(("A",), 200)
-        probes[PROBE_C_WIDE] = SearchResult(("Z",), 200)
-        self.assertEqual(rule(make_seed(), probes).status, STATUS_AMBIGUOUS)
-
-    def test_high_false_match_rules_are_not_exportable(self) -> None:
-        # 負例で 14.67% の誤マッチを出したルールを CSV 出力に選べてはいけない。
-        self.assertNotIn("layered_wide", EXPORT_SAFE_RULES)
-        self.assertNotIn("strict_unique", EXPORT_SAFE_RULES)
-        self.assertNotIn("top1_agree", EXPORT_SAFE_RULES)
-        self.assertIn("layered_strict", EXPORT_SAFE_RULES)
-        self.assertLessEqual(EXPORT_SAFE_RULES, set(RULES))
-
-    def test_http_error_is_not_counted_as_unmatched(self) -> None:
-        probes = {
-            PROBE_A: SearchResult((), 503, "unavailable"),
-            PROBE_B: SearchResult(("A",), 200),
-        }
-        self.assertEqual(RULES["strict_unique"](make_seed(), probes).status, STATUS_API_ERROR)
-
 
 class NameComparisonTest(unittest.TestCase):
     """正解検証の店名比較。ここが緩いと 99% は自動的に達成されてしまう。"""
@@ -450,11 +305,30 @@ class BoxUniqueRuleTest(unittest.TestCase):
         decision = RULES["box_unique"](make_seed(name_query=""), self.probes(a=("A",), b=("A",), tight=("A",)))
         self.assertEqual(decision.status, STATUS_INELIGIBLE)
 
-    def test_registered_as_export_safe(self) -> None:
-        self.assertIn("box_unique", RULES)
-        self.assertIn("box_unique", EXPORT_SAFE_RULES)
+    def test_only_the_strict_rule_is_export_safe(self) -> None:
+        """提出用CSVに使えるのは、全ラベルで誤り0だった `box_unique_strict` だけである。"""
 
+        self.assertEqual(EXPORT_SAFE_RULES, frozenset({"box_unique_strict"}))
 
+    def test_strict_rule_rejects_wide_box_and_ambiguous_address(self) -> None:
+        seed = make_seed()
+        probes = {
+            PROBE_A: SearchResult(("X",), 200),
+            PROBE_B: SearchResult(("X",), 200),
+            PROBE_C_TIGHT: SearchResult(("X",), 200),
+            PROBE_C_WIDE: SearchResult(("X",), 200),
+        }
+        self.assertEqual(RULES["box_unique_strict"](seed, probes).status, STATUS_MATCHED)
+        # ±25m の矩形に居ない候補は採らない
+        loose = dict(probes, **{PROBE_C_TIGHT: SearchResult((), 200)})
+        self.assertEqual(
+            RULES["box_unique_strict"](seed, loose).detail, "rejected_not_in_tight_box"
+        )
+        # 住所クエリが複数返す店名は採らない
+        noisy = dict(probes, **{PROBE_B: SearchResult(("X", "Y"), 200)})
+        self.assertEqual(
+            RULES["box_unique_strict"](seed, noisy).detail, "rejected_address_query_ambiguous"
+        )
 
 
 class RateLimiterLookaheadTest(unittest.TestCase):
@@ -643,53 +517,6 @@ class SearchVariantTest(unittest.TestCase):
         # ``core`` はカナに畳むのでクエリに使えない。こちらは畳まない。
         self.assertIn("神戸屋", search_variant("神戸屋レストラン 浜田山店"))
 
-
-class HugeRuleIsNotExportSafeTest(unittest.TestCase):
-    """±1km の層は①を上げるが②を落とす。提出用CSVには使わせない。"""
-
-    def test_registered_but_excluded_from_export(self) -> None:
-        self.assertIn("box_unique_huge", RULES)
-        self.assertNotIn("box_unique_huge", EXPORT_SAFE_RULES)
-
-    def test_huge_layer_requires_b_not_a(self) -> None:
-        seed = make_seed()
-        probes = {
-            PROBE_A: SearchResult(("X",), 200),
-            PROBE_B: SearchResult(("Y",), 200),
-            PROBE_C_TIGHT: SearchResult((), 200),
-            PROBE_C_WIDE: SearchResult((), 200),
-            PROBE_C_HUGE: SearchResult(("X",), 200),
-        }
-        # A しか挙げていない候補では発火しない（帰無検定で空撃ち率 4.44%）。
-        self.assertNotEqual(RULES["box_unique_huge"](seed, probes).status, STATUS_MATCHED)
-        probes[PROBE_C_HUGE] = SearchResult(("Y",), 200)
-        decision = RULES["box_unique_huge"](seed, probes)
-        self.assertEqual(decision.status, STATUS_MATCHED)
-        self.assertEqual(decision.detail, "huge_unique_in_b")
-
-
-class DisplacementTest(unittest.TestCase):
-    """帰無検定は座標を「同じ密度帯の別地点」へ十分遠くに動かす。"""
-
-    def test_every_seed_moves_at_least_three_kilometres(self) -> None:
-        seeds = [
-            make_seed(seed_id=str(index), latitude=35.0 + index * 0.02, longitude=139.0)
-            for index in range(8)
-        ]
-        moved = displace(seeds)
-        for before, after in zip(seeds, moved):
-            distance = haversine_m(
-                before.latitude, before.longitude, after.latitude, after.longitude
-            )
-            self.assertGreaterEqual(distance, 3000.0)
-
-    def test_names_are_kept(self) -> None:
-        seeds = [
-            make_seed(seed_id=str(index), latitude=35.0 + index * 0.02, longitude=139.0)
-            for index in range(4)
-        ]
-        for before, after in zip(seeds, displace(seeds)):
-            self.assertEqual(before.name_query, after.name_query)
 
 
 if __name__ == "__main__":

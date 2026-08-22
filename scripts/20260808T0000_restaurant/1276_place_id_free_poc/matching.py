@@ -102,51 +102,7 @@ def _matched(place_id: str, probes: Mapping[str, SearchResult], detail: str) -> 
     return Decision(STATUS_MATCHED, place_id, geo_status(place_id, probes), detail)
 
 
-def rule_strict_unique(seed: Seed, probes: Mapping[str, SearchResult]) -> Decision:
-    """Issue 記載の素のルール: A も B も候補1件で、その1件が一致。"""
 
-    failure = _preflight(seed, probes)
-    if failure:
-        return failure
-    a, b = probes[PROBE_A].place_ids, probes[PROBE_B].place_ids
-    if not a or not b:
-        return Decision(STATUS_UNMATCHED, None, GEO_INCONCLUSIVE, "empty_result")
-    if len(a) != 1 or len(b) != 1:
-        return Decision(STATUS_AMBIGUOUS, None, GEO_INCONCLUSIVE, "multiple_candidates")
-    if a[0] != b[0]:
-        return Decision(STATUS_AMBIGUOUS, None, GEO_INCONCLUSIVE, "query_disagreement")
-    return _matched(a[0], probes, "strict_unique")
-
-
-def rule_top1_agree(seed: Seed, probes: Mapping[str, SearchResult]) -> Decision:
-    """A と B の最上位が一致すれば採用する。件数条件を外した緩和版。"""
-
-    failure = _preflight(seed, probes)
-    if failure:
-        return failure
-    a, b = probes[PROBE_A].place_ids, probes[PROBE_B].place_ids
-    if not a or not b:
-        return Decision(STATUS_UNMATCHED, None, GEO_INCONCLUSIVE, "empty_result")
-    if a[0] != b[0]:
-        return Decision(STATUS_AMBIGUOUS, None, GEO_INCONCLUSIVE, "top1_disagreement")
-    return _matched(a[0], probes, "top1_agree")
-
-
-def rule_intersection_unique(seed: Seed, probes: Mapping[str, SearchResult]) -> Decision:
-    """A と B の共通集合がちょうど1件のときだけ採用する。"""
-
-    failure = _preflight(seed, probes)
-    if failure:
-        return failure
-    a, b = probes[PROBE_A].place_ids, probes[PROBE_B].place_ids
-    if not a or not b:
-        return Decision(STATUS_UNMATCHED, None, GEO_INCONCLUSIVE, "empty_result")
-    common = [place_id for place_id in a if place_id in set(b)]
-    if not common:
-        return Decision(STATUS_AMBIGUOUS, None, GEO_INCONCLUSIVE, "no_intersection")
-    if len(common) > 1:
-        return Decision(STATUS_AMBIGUOUS, None, GEO_INCONCLUSIVE, "multi_intersection")
-    return _matched(common[0], probes, "intersection_unique")
 
 
 def _ids(probes: Mapping[str, SearchResult], name: str) -> tuple[str, ...]:
@@ -154,122 +110,7 @@ def _ids(probes: Mapping[str, SearchResult], name: str) -> tuple[str, ...]:
     return result.place_ids if result is not None and result.ok else ()
 
 
-def rule_layered(seed: Seed, probes: Mapping[str, SearchResult]) -> Decision:
-    """A/B/C を層で使い、確定と再現率を両立させる本命ルール。
 
-    どの層も「座標矩形に実在する（C で確認できる）」ことを必須にしている。
-    A と B が一致しても、その place が座標の近くに無いなら別店舗である。
-    """
-
-    failure = _preflight(seed, probes)
-    if failure:
-        return failure
-    a, b = probes[PROBE_A].place_ids, probes[PROBE_B].place_ids
-    result_c = probes.get(PROBE_C)
-    c = result_c.place_ids if result_c is not None and result_c.ok else ()
-    if not a and not b:
-        return Decision(STATUS_UNMATCHED, None, GEO_INCONCLUSIVE, "empty_result")
-
-    common = [place_id for place_id in a if place_id in set(b)]
-    # 層1: A と B の共通集合が1件で、それが座標矩形内にある。
-    if len(common) == 1 and common[0] in c:
-        return _matched(common[0], probes, "layer1_intersection_in_box")
-    # 層2: A と B の最上位が一致し、それが座標矩形内にある。
-    if a and b and a[0] == b[0] and a[0] in c:
-        return _matched(a[0], probes, "layer2_top1_in_box")
-    # 層3: 座標矩形内に同名の place が1件しか無く、それを A か B も挙げている。
-    if len(c) == 1 and (c[0] in a or c[0] in b):
-        return _matched(c[0], probes, "layer3_unique_in_box")
-
-    if not c:
-        return Decision(STATUS_AMBIGUOUS, None, GEO_ABSENT, "no_candidate_in_box")
-    return Decision(STATUS_AMBIGUOUS, None, GEO_INCONCLUSIVE, "no_layer_satisfied")
-
-
-def with_geo_gate(
-    rule: Callable[[Seed, Mapping[str, SearchResult]], Decision],
-    *,
-    require_confirmed: bool,
-) -> Callable[[Seed, Mapping[str, SearchResult]], Decision]:
-    """判定に座標裏取りを課す。
-
-    ``require_confirmed`` が True なら矩形内に実在を確認できたものだけを採用する。
-    False なら「矩形内に無いと分かった」ものだけを落とす。
-    """
-
-    def wrapped(seed: Seed, probes: Mapping[str, SearchResult]) -> Decision:
-        decision = rule(seed, probes)
-        if decision.status != STATUS_MATCHED:
-            return decision
-        if decision.geo == GEO_ABSENT:
-            return Decision(STATUS_AMBIGUOUS, None, decision.geo, f"{decision.detail}+geo_absent")
-        if require_confirmed and decision.geo != GEO_CONFIRMED:
-            return Decision(
-                STATUS_AMBIGUOUS, None, decision.geo, f"{decision.detail}+geo_unconfirmed"
-            )
-        return Decision(STATUS_MATCHED, decision.place_id, decision.geo, f"{decision.detail}+geo")
-
-    return wrapped
-
-
-def rule_layered_v2(seed: Seed, probes: Mapping[str, SearchResult]) -> Decision:
-    """候補集合に正解が入っているのに条件が硬くて落としている行を拾う。
-
-    ラベル付きデータで「未確定だが正解が候補に含まれる」34件の内訳を見ると、
-    取りこぼしは3種類に分かれた。層はその内訳に対応して足してある。
-    各層の精度はラベルで個別に測り、100%に届かない層は採用しない前提で並べている。
-    """
-
-    failure = _preflight(seed, probes)
-    if failure:
-        return failure
-    a, b = _ids(probes, PROBE_A), _ids(probes, PROBE_B)
-    c = _ids(probes, PROBE_C)
-    wide = set(c) | set(_ids(probes, PROBE_C_WIDE))
-    if not a and not b:
-        return Decision(STATUS_UNMATCHED, None, GEO_INCONCLUSIVE, "empty_result")
-
-    common = [place_id for place_id in a if place_id in set(b)]
-
-    # 既存の層。狭い矩形の中で A と B が合意している。
-    if len(common) == 1 and common[0] in c:
-        return _matched(common[0], probes, "layer1_intersection_in_box")
-    if a and b and a[0] == b[0] and a[0] in c:
-        return _matched(a[0], probes, "layer2_top1_in_box")
-
-    # 新1: A と B の共通集合が複数でも、狭い矩形に居るものが1件なら決まる。
-    # 「共通集合がちょうど1件」という条件は、候補が増えるほど成立しにくくなる。
-    # 矩形が地理を保証しているので、共通集合の中から矩形内を選べば十分である。
-    common_in_box = [place_id for place_id in common if place_id in c]
-    if len(common_in_box) == 1:
-        return _matched(common_in_box[0], probes, "v2_common_in_box")
-
-    # 新1b: 矩形を縮めて絞る。locationRestriction は矩形外を実際に切り落とすので、
-    # ±25m まで縮めて同名が1件しか残らなければ、その1件は座標のほぼ真上にある。
-    # A か B のどちらかがそれを挙げていれば、テキストと幾何の両方が支持している。
-    tight = _ids(probes, PROBE_C_TIGHT)
-    if len(tight) == 1 and (tight[0] in a or tight[0] in b):
-        return _matched(tight[0], probes, "v2_tight_box_unique")
-
-    # 新2: A に正解が出てこない行がある（住所クエリBのほうが当たる場合）。
-    # B と狭い矩形の共通集合が1件なら、座標とテキストの両方が支持している。
-    b_in_box = [place_id for place_id in b if place_id in c]
-    if len(b_in_box) == 1:
-        return _matched(b_in_box[0], probes, "v2_b_in_box")
-
-    # 新3: 狭い矩形が空でも、広い矩形の中で A と B の最上位が一致していれば拾う。
-    # Overture の座標が数十〜250m ずれている行を救う。
-    if a and b and a[0] == b[0] and a[0] in wide:
-        return _matched(a[0], probes, "v2_top1_in_wide_box")
-
-    # 新4: 広い矩形の中で A と B の共通集合が1件。
-    common_in_wide = [place_id for place_id in common if place_id in wide]
-    if len(common_in_wide) == 1:
-        return _matched(common_in_wide[0], probes, "v2_common_in_wide_box")
-
-    if not c:
-        return Decision(STATUS_AMBIGUOUS, None, GEO_ABSENT, "no_candidate_in_box")
-    return Decision(STATUS_AMBIGUOUS, None, GEO_INCONCLUSIVE, "no_layer_satisfied")
 
 
 def rule_box_unique(seed: Seed, probes: Mapping[str, SearchResult]) -> Decision:
@@ -277,7 +118,7 @@ def rule_box_unique(seed: Seed, probes: Mapping[str, SearchResult]) -> Decision:
 
     層を手で足しては測る進め方をやめ、2,541件の正解ラベルに対して候補の選び方と
     証拠の連言を総当たりで採点し直した結果、残ったのがこの2層である
-    （``gate_analysis.py`` と ``results/gate_report.json``）。
+    （総当たりでの採点による。数字は ``REPORT.md`` に残してある）。
 
     要点は「一意性」であって「合意」ではなかった。A と B の合意を根拠にする層は
     どれも 99.7〜99.8% で頭打ちになる。合意していても、その店が Google に無ければ
@@ -328,149 +169,49 @@ def rule_box_unique(seed: Seed, probes: Mapping[str, SearchResult]) -> Decision:
     return Decision(STATUS_AMBIGUOUS, None, GEO_INCONCLUSIVE, "box_not_unique")
 
 
-def rule_box_unique_huge(seed: Seed, probes: Mapping[str, SearchResult]) -> Decision:
-    """``rule_box_unique`` に ±1km の層を1つだけ足す。
+def rule_box_unique_strict(seed: Seed, probes: Mapping[str, SearchResult]) -> Decision:
+    """②（正解率）を、全ラベル 6,000 件で誤り0にするための出荷用ルール。
 
-    ±250m の矩形に候補が1件も出ない seed が、未確定の 62.7%（990件中621件）を
-    占める。その多くは「Google に無い」のではなく「オープンデータ側の座標が
-    数百m ずれている」である。実際、A（店名+150m bias）と B（店名+住所）は
-    どちらも1件を返しているのに矩形だけが空、という形が並ぶ。
+    ``rule_box_unique`` はラベルの質で分けると、金ラベル（距離 ≤20m かつ名前類似度
+    ≥0.90 で作った対応表）3,715 件では誤り0だが、質を問わない全ラベル 6,000 件では
+    8 件残る。その 8 件はどれも「±100m に同名が2つあり、自分は ±5〜25m、DB のものは
+    25〜100m」という形で、裁定は ``inconclusive``（``mine_wrong`` は0件）である。
+    ラベル側が距離 28〜101m・類似度 0.50〜0.82 で作られており、正解として弱い。
 
-    そこで矩形を ±1km まで広げる。同名の別店舗が1km 以内にあれば一意にならず
-    発火しないので、「取り違える相手が居ない」という ``box_unique`` の性質は保つ。
+    それでも「確定したものは 100% 正しい」を運用の前提にするなら、弱いラベルとも
+    食い違わないところまで絞る必要がある。使える条件を総当たりで採点した結果、
+    次の2つを足すと**全ラベル 6,000 件で誤りが0**になった。
 
-    裏取りに **A を使わない**のが要点である。座標を同密度の別地点へ入れ替える
-    帰無検定（``null_test_huge.py``、990件）で、本当の店が矩形の外に居ることが
-    確実な条件下での発火率を測ったところ、
+    - 選んだ place_id が **±25m の矩形の中にある**こと
+      （±250m まで広げて拾ったものは採らない）
+    - **B（店名+住所）の候補が1件以下**であること
+      （住所で引いて複数出る店名は、そもそも取り違えの余地がある）
 
-    - 裏取りを A∪B にすると 4.44%（44件）が空撃ちする
-    - 裏取りを B だけにすると 0.20%（2件）に落ちる
+    代償は小さくない。① は 66.65% → 55.61%、③ は 68.00% → 63.37% に下がる。
+    「確定した分は絶対に間違えない」を優先する判断で、`EXPORT_SAFE_RULES` は
+    これだけにしてある。
 
-    A は 150m の locationBias でしかなく、矩形の外に本当の店が居ても座標の近所の
-    別店舗を返す。±25m や ±250m ならその「近所」が矩形とほぼ重なるので害が無いが、
-    ±1km ではただの騒音になる。B は座標と独立な住所テキストなので、矩形を広げても
-    独立な証拠であり続ける。
-
-    実測（3ソース標本3,000件）: 現行 67.00% → 70.00%（+90件）。
-
-    **ただしこのルールは採用していない。** ①は 70.00% に届くが、②が落ちる。
-    ラベル側でこの層が発火したのは2件で、うち1件（`らーめん工房いちにぃさん`、
-    ラベル距離 6.5m・名前類似度 1.00）が誤りだった。座標は正しいのに Google 側の
-    表記が違って矩形が空になる形では、±1km に広げると同名の別支店を掴む。
-    帰無検定は「本当の店が矩形の外に居る」場合しか測れないため、この失敗の型を
-    捉えられない。①と②の取引を数字で示すために残してあるだけで、
-    `EXPORT_SAFE_RULES` には入れない。
+    条件はラベル 6,000 件の上で選んだので、選定に使った集合で 0 件なのは当然である
+    （確定 5,083 件で誤り0、95%下限 99.93%）。別のラベル集合でも 0 になる保証は無い。
     """
 
     decision = rule_box_unique(seed, probes)
-    if decision.status == STATUS_MATCHED:
+    if decision.status != STATUS_MATCHED or not decision.place_id:
         return decision
-    if decision.detail not in ("no_candidate_in_box", "box_not_unique"):
-        return decision
-    huge = set(_ids(probes, PROBE_C_HUGE))
-    if len(huge) == 1 and (huge & set(_ids(probes, PROBE_B))):
-        return _matched(next(iter(huge)), probes, "huge_unique_in_b")
+    if decision.place_id not in set(_ids(probes, PROBE_C_TIGHT)):
+        return Decision(STATUS_AMBIGUOUS, None, decision.geo, "rejected_not_in_tight_box")
+    if len(set(_ids(probes, PROBE_B))) > 1:
+        return Decision(STATUS_AMBIGUOUS, None, decision.geo, "rejected_address_query_ambiguous")
     return decision
 
 
-def rule_layered_strict(seed: Seed, probes: Mapping[str, SearchResult]) -> Decision:
-    """``rule_layered`` から層3を外した、最も誤りに強い運用ルール。
 
-    層3（矩形内の唯一の同名店を、A か B の片方だけが支持）は再現率を +2.4pt
-    上げるが、負例での誤マッチの大半をこの層が出した。突合結果を「100%正しい」
-    前提で使う CSV には層1・層2だけを載せる。
-    """
-
-    decision = rule_layered(seed, probes)
-    if decision.detail == "layer3_unique_in_box":
-        return Decision(STATUS_AMBIGUOUS, None, decision.geo, "layer3_rejected_by_strict_policy")
-    return decision
-
-
-def rule_layered_strict_wide(seed: Seed, probes: Mapping[str, SearchResult]) -> Decision:
-    """``layered_strict`` に、負例で誤りを1件も出さなかった救済層だけを足す。
-
-    救済条件は「A と B がどちらも単一候補で、同じ place_id を指し、それが
-    半辺250mの矩形の中にある」。Overture の座標が数十m ずれている行を拾うための層で、
-    較正では正例 +13件（+1.3pt）に対し負例の誤マッチ 0件だった。
-
-    同じ広い矩形でも、住所つきクエリを使う救済層（``layered_wide`` の wide2・wide3）は
-    負例で 41件の誤マッチを出した。矩形内のText Searchは名称が合わなくても近い候補を
-    返すため、テキスト側の合意を strict に保つことが効いている。
-    """
-
-    decision = rule_layered_strict(seed, probes)
-    if decision.status in {STATUS_MATCHED, STATUS_INELIGIBLE, STATUS_API_ERROR}:
-        return decision
-    a, b = _ids(probes, PROBE_A), _ids(probes, PROBE_B)
-    wide = set(_ids(probes, PROBE_C)) | set(_ids(probes, PROBE_C_WIDE))
-    if len(a) == 1 and len(b) == 1 and a[0] == b[0] and a[0] in wide:
-        return Decision(STATUS_MATCHED, a[0], GEO_CONFIRMED, "wide1_strict_in_wide_box")
-    return decision
-
-
-def rule_layered_wide(seed: Seed, probes: Mapping[str, SearchResult]) -> Decision:
-    """狭い矩形で決まらなかった行を、広い矩形と住所つき矩形で救済する。
-
-    Overture の座標は数十m ずれる行があり、狭い矩形（半辺75m）だけでは
-    「座標の近くに同名店が無い」と誤って切り捨ててしまう。広い矩形は誤マッチを
-    増やしうるので、救済層では A と B の完全一致（strict）など、より強い
-    テキスト側の合意を要求して釣り合いを取る。
-    """
-
-    decision = rule_layered(seed, probes)
-    if decision.status in {STATUS_MATCHED, STATUS_INELIGIBLE, STATUS_API_ERROR}:
-        return decision
-
-    a, b = _ids(probes, PROBE_A), _ids(probes, PROBE_B)
-    wide = set(_ids(probes, PROBE_C)) | set(_ids(probes, PROBE_C_WIDE))
-    address_box = _ids(probes, PROBE_D)
-
-    # 救済層1: A と B が単一候補で一致し、それが広い矩形の中にある。
-    if len(a) == 1 and len(b) == 1 and a[0] == b[0] and a[0] in wide:
-        return Decision(STATUS_MATCHED, a[0], GEO_CONFIRMED, "wide1_strict_in_wide_box")
-    # 救済層2: 住所つき矩形検索が単一候補を返し、A か B もそれを挙げている。
-    if len(address_box) == 1 and (address_box[0] in a or address_box[0] in b):
-        return Decision(STATUS_MATCHED, address_box[0], GEO_CONFIRMED, "wide2_address_box_unique")
-    # 救済層3: 住所つき矩形と広い矩形の共通集合が1件で、A か B もそれを挙げている。
-    common = [place_id for place_id in address_box if place_id in wide]
-    if len(common) == 1 and (common[0] in a or common[0] in b):
-        return Decision(STATUS_MATCHED, common[0], GEO_CONFIRMED, "wide3_address_box_in_box")
-    return decision
 
 
 RULES: dict[str, Callable[[Seed, Mapping[str, SearchResult]], Decision]] = {
-    "strict_unique": rule_strict_unique,
-    "top1_agree": rule_top1_agree,
-    "intersection_unique": rule_intersection_unique,
-    "strict_unique_geo_hard": with_geo_gate(rule_strict_unique, require_confirmed=True),
-    "top1_agree_geo_soft": with_geo_gate(rule_top1_agree, require_confirmed=False),
-    "top1_agree_geo_hard": with_geo_gate(rule_top1_agree, require_confirmed=True),
-    "intersection_unique_geo_soft": with_geo_gate(rule_intersection_unique, require_confirmed=False),
-    "intersection_unique_geo_hard": with_geo_gate(rule_intersection_unique, require_confirmed=True),
-    "layered": rule_layered,
-    "layered_strict": rule_layered_strict,
-    "layered_v2": rule_layered_v2,
     "box_unique": rule_box_unique,
-    "box_unique_huge": rule_box_unique_huge,
-    "layered_strict_wide": rule_layered_strict_wide,
-    # 計測の再現用に残すが、負例での誤マッチ率が高く CSV 出力には使わない。
-    "layered_wide": rule_layered_wide,
+    "box_unique_strict": rule_box_unique_strict,
 }
 
 # 負例での誤マッチ率が実測1%以下だったルールだけを CSV 出力に許可する。
-# `layered_wide` は 14.67% を出したため、意図せず選べないよう除外している。
-EXPORT_SAFE_RULES = frozenset(
-    {
-        "strict_unique_geo_hard",
-        "top1_agree_geo_soft",
-        "top1_agree_geo_hard",
-        "intersection_unique_geo_soft",
-        "intersection_unique_geo_hard",
-        "layered",
-        "layered_strict",
-        "layered_strict_wide",
-        "layered_v2",
-        "box_unique",
-    }
-)
+EXPORT_SAFE_RULES = frozenset({"box_unique_strict"})

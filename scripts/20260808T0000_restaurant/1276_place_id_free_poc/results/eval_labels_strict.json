@@ -2,44 +2,23 @@
   "labelled_seeds": 6000,
   "recall_ceiling": 0.995667,
   "rules": {
-    "box_unique_huge": {
-      "matched": 5825,
-      "match_rate": 0.970833,
-      "correct": 5800,
-      "wrong": 25,
-      "precision": 0.995708,
-      "precision_95_lower": 0.993672,
+    "box_unique_strict": {
+      "matched": 5083,
+      "match_rate": 0.847167,
+      "correct": 5069,
+      "wrong": 14,
+      "precision": 0.997246,
+      "precision_95_lower": 0.995382,
       "layers": {
-        "huge_unique_in_b": {
-          "matched": 2,
-          "correct": 1,
-          "wrong": 1,
-          "precision": 0.5,
-          "precision_95_lower": 0.094531
-        },
         "tight_unique_in_ab": {
-          "matched": 5208,
-          "correct": 5185,
-          "wrong": 23,
-          "precision": 0.995584,
-          "precision_95_lower": 0.993382
-        },
-        "wide_unique_in_ab": {
-          "matched": 615,
-          "correct": 614,
-          "wrong": 1,
-          "precision": 0.998374,
-          "precision_95_lower": 0.990848
+          "matched": 5083,
+          "correct": 5069,
+          "wrong": 14,
+          "precision": 0.997246,
+          "precision_95_lower": 0.995382
         }
       },
       "mistakes": [
-        {
-          "overture_id": "066d77ec-fc1a-4890-9e24-d3ba8c7ed713",
-          "name": "酒楽酒酒酒",
-          "layer": "tight_unique_in_ab",
-          "chosen": "ChIJX6nwv3v1GGARfqBKbrHxFjE",
-          "truth": "ChIJ06lEONn1GGARp20MBne-TXk"
-        },
         {
           "overture_id": "087acd1c-57f1-4dfe-be72-25e668d7f548",
           "name": "Asian Dining Tammi",
@@ -48,32 +27,11 @@
           "truth": "ChIJDx1BeIneGGARXqXc3jTXhms"
         },
         {
-          "overture_id": "1757e5c4-4691-4bf1-8f0a-5e33bbb8fb14",
-          "name": "鹿児島ふるさと物産館",
-          "layer": "wide_unique_in_ab",
-          "chosen": "ChIJGw85hgJlPjUR6IZdYUWKYnk",
-          "truth": "ChIJncHskgJlPjURuO8VIDhuQGc"
-        },
-        {
-          "overture_id": "2c20fc19-9fa1-4e88-b441-38afa706eae7",
-          "name": "アフタヌーンティーティールーム",
-          "layer": "tight_unique_in_ab",
-          "chosen": "ChIJhfLL2hPBGGARX3sjaq7szlQ",
-          "truth": "ChIJfb6py0PBGGARQg4GaRttg94"
-        },
-        {
           "overture_id": "5172ebbc-820a-42a4-9c5f-3e5b244b20f5",
           "name": "焼鳥スタンド コジローさん 小虎小路店",
           "layer": "tight_unique_in_ab",
           "chosen": "ChIJz7AR7N2LGGAR0LAM1GvVLJ0",
           "truth": "ChIJ7XHBMWeLGGARi5S-xYQ9VIc"
-        },
-        {
-          "overture_id": "56e22109-d28c-4702-b879-b723e7ef4464",
-          "name": "らーめん工房いちにぃさん",
-          "layer": "huge_unique_in_b",
-          "chosen": "ChIJeTLWHwDzAGAR0_FNFVzh5yA",
-          "truth": "ChIJU8TlOl7yAGARP7jxQaZypGc"
         },
         {
           "overture_id": "5fa3faf9-bbaa-453c-a16b-32480ca2405a",
@@ -90,27 +48,6 @@
           "truth": "ChIJCxBULCnjAGARvad8FNBCerQ"
         },
         {
-          "overture_id": "6b48564b-1085-4918-8d9e-75cc67502202",
-          "name": "幸村",
-          "layer": "tight_unique_in_ab",
-          "chosen": "ChIJ39_wBzAoil8RFwdpDPziKYE",
-          "truth": "ChIJnZBvpjooil8RTjg5_MOPt3Y"
-        },
-        {
-          "overture_id": "71943e90-6b3d-4ff9-a04d-1579461a24c0",
-          "name": "はぐるま",
-          "layer": "tight_unique_in_ab",
-          "chosen": "ChIJ6bxs9TnkAGARhPuQIO-HIeQ",
-          "truth": "ChIJE2v0VCDlAGARuCxJzu7jSeY"
-        },
-        {
-          "overture_id": "7ac84baf-e4ef-436e-89a3-81fa233a0da1",
-          "name": "Voyager Stand Shibuya",
-          "layer": "tight_unique_in_ab",
-          "chosen": "ChIJvx_5cJqNGGARHm-YIASBuNs",
-          "truth": "ChIJxQhAHrqNGGARKDMRP7v8mbo"
-        },
-        {
           "overture_id": "82877b56-ae83-4301-a67c-b648e0d906d4",
           "name": "呑龍ラーメン",
           "layer": "tight_unique_in_ab",
@@ -123,13 +60,6 @@
           "layer": "tight_unique_in_ab",
           "chosen": "ChIJ_UmJ0lrwAGAR4u8wR9sOGaI",
           "truth": "ChIJj5hS01rwAGARHTSUZAvvozM"
-        },
-        {
-          "overture_id": "8fa00ba2-5240-4579-9d3b-456499158914",
-          "name": "十一屋本店",
-          "layer": "tight_unique_in_ab",
-          "chosen": "ChIJ7eXTNye3i18RpdbpXStvHOY",
-          "truth": "ChIJR-LZMXe3i18R2-P5Ktn8MbA"
         },
         {
           "overture_id": "c114f517-6322-4783-9a61-63c5d17dc2fc",
@@ -160,32 +90,11 @@
           "truth": "ChIJL5uh56OSHGARSlmxNTKgBBM"
         },
         {
-          "overture_id": "f19e1d5c-1f96-43fe-bbd5-16ec32aca0df",
-          "name": "焼肉食堂 くたみや 薄場店",
-          "layer": "tight_unique_in_ab",
-          "chosen": "ChIJH-qj3m31QDUR61yTswwNb3w",
-          "truth": "ChIJQ3edgeD1QDURqsYF3vDYLlQ"
-        },
-        {
           "overture_id": "f9f19813-f7fa-40f7-8016-1be9fe3b8559",
           "name": "とんかつ檍羽田イノベーションシティ店",
           "layer": "tight_unique_in_ab",
           "chosen": "ChIJ3aIGyLBhGGAR6wNL9IvMX8M",
           "truth": "ChIJ7-c-xd5hGGARO2Yh2PpCQfQ"
-        },
-        {
-          "overture_id": "ifas:038000:fBiz00000179480000000008",
-          "name": "唐揚げ食堂 ごいち ぷらす",
-          "layer": "tight_unique_in_ab",
-          "chosen": "ChIJ40aEUgA7UDURSHgAHswVL5s",
-          "truth": "ChIJCyiyPAA7UDURfhvsvnDJzU8"
-        },
-        {
-          "overture_id": "ifas:029201:fBiz00001951730000000008",
-          "name": "大起水産　海鮮丼と干物定食専門店",
-          "layer": "tight_unique_in_ab",
-          "chosen": "ChIJjZD__Ts7AWARV2D3_we17iU",
-          "truth": "ChIJx3eiAE46AWAR4qiG7V0wVLI"
         },
         {
           "overture_id": "ifas:023000:fBiz00000113080000000158",

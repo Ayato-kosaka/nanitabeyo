@@ -6,7 +6,7 @@
 # （Text Search IDs Only / Place Details IDs Only）に限られる。
 #
 # cache/probe_all.sqlite は消さない。①②③ の測定に使った probe が全部入っており、
-# 作り直すには数万リクエストが要る。以前ここで `rm -f` してから merge_caches で
+# 作り直すには数万リクエストが要る。以前ここで `rm -f` してから別キャッシュの併合で
 # 作り直していたが、いまはこれが唯一の正本である。
 set -euo pipefail
 cd "$(dirname "$0")"
