@@ -120,10 +120,14 @@ jobs:
       # 定期実行では inputs が空になるため、workflow_dispatch 以外では常に実行する
       - name: 🧪 Run Playwright tests (Tier 1 + 2)
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.run_e2e_tests }}
-        run: pnpm --filter e2e-web test
+        # tmp: #1484 納品動画の撮影用。デプロイ済み preview へ向けて撮影対象の spec だけを
+        # 全プロジェクト(chromium/mobile-chrome/mobile-safari)で実行し、成功時も動画を残す。
+        run: pnpm --filter e2e-web test tests/smoke/manual-dish-selection-loading.spec.ts
         env:
           TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
           TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+          PW_FORCE_VISUALS: "1"
+          PLAYWRIGHT_BASE_URL: "https://nanitabeyo-dev--pr-claude-cooking-store-loading-change-k7u4ih0o.web.app"
 
       # 📸 UI カタログ: 全画面を巡回してスクリーンショットを撮る(@catalog)
       # - 検証ではなく収集が目的。到達できない画面があっても失敗させず、一覧に「未取得」として残す

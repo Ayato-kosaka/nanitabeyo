@@ -52,7 +52,7 @@ module.exports = {
 		plugins: {
 			log: "none",
 			screenshot: "failing",
-			video: "none",
+			video: "all",
 			instruments: "none",
 		},
 	},
