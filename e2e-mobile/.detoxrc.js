@@ -52,7 +52,12 @@ module.exports = {
 		plugins: {
 			log: "none",
 			screenshot: "failing",
-			video: "none",
+			// #1484 エビデンス動画の収集用。workflow_dispatch の record_videos 入力が
+			// DETOX_RECORD_VIDEOS=1 を渡したときだけ全テストの動画を artifacts/ へ残す
+			//（Upload Detox artifacts ステップが always() で拾う）。
+			// 上の #1030 の注意のとおり video に launchArgs のトークンは写らないため、
+			// 動画の常設化はセキュリティ上の後退にならない。既定は従来どおり "none"
+			video: process.env.DETOX_RECORD_VIDEOS === "1" ? "all" : "none",
 			instruments: "none",
 		},
 	},
