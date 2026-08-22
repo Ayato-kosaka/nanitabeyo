@@ -265,6 +265,8 @@ model dish_media_external_embeddings {
   last_verified_at    DateTime?  @db.Timestamptz(6)
   created_at          DateTime   @default(now()) @db.Timestamptz(6)
   updated_at          DateTime   @default(now()) @db.Timestamptz(6)
+  thumbnail_url       String?
+  published_at        DateTime?  @db.Timestamptz(6)
   dish_media          dish_media @relation(fields: [dish_media_id, dish_id], references: [id, dish_id], onDelete: Cascade, onUpdate: NoAction, map: "dmee_dish_media_dish_fk")
 
   @@unique([dish_media_id, dish_id], map: "dmee_media_dish_uq")

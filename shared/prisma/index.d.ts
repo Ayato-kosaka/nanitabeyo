@@ -19436,6 +19436,8 @@ export namespace Prisma {
     last_verified_at: Date | null
     created_at: Date | null
     updated_at: Date | null
+    thumbnail_url: string | null
+    published_at: Date | null
   }
 
   export type Dish_media_external_embeddingsMaxAggregateOutputType = {
@@ -19448,6 +19450,8 @@ export namespace Prisma {
     last_verified_at: Date | null
     created_at: Date | null
     updated_at: Date | null
+    thumbnail_url: string | null
+    published_at: Date | null
   }
 
   export type Dish_media_external_embeddingsCountAggregateOutputType = {
@@ -19460,6 +19464,8 @@ export namespace Prisma {
     last_verified_at: number
     created_at: number
     updated_at: number
+    thumbnail_url: number
+    published_at: number
     _all: number
   }
 
@@ -19474,6 +19480,8 @@ export namespace Prisma {
     last_verified_at?: true
     created_at?: true
     updated_at?: true
+    thumbnail_url?: true
+    published_at?: true
   }
 
   export type Dish_media_external_embeddingsMaxAggregateInputType = {
@@ -19486,6 +19494,8 @@ export namespace Prisma {
     last_verified_at?: true
     created_at?: true
     updated_at?: true
+    thumbnail_url?: true
+    published_at?: true
   }
 
   export type Dish_media_external_embeddingsCountAggregateInputType = {
@@ -19498,6 +19508,8 @@ export namespace Prisma {
     last_verified_at?: true
     created_at?: true
     updated_at?: true
+    thumbnail_url?: true
+    published_at?: true
     _all?: true
   }
 
@@ -19583,6 +19595,8 @@ export namespace Prisma {
     last_verified_at: Date | null
     created_at: Date
     updated_at: Date
+    thumbnail_url: string | null
+    published_at: Date | null
     _count: Dish_media_external_embeddingsCountAggregateOutputType | null
     _min: Dish_media_external_embeddingsMinAggregateOutputType | null
     _max: Dish_media_external_embeddingsMaxAggregateOutputType | null
@@ -19612,6 +19626,8 @@ export namespace Prisma {
     last_verified_at?: boolean
     created_at?: boolean
     updated_at?: boolean
+    thumbnail_url?: boolean
+    published_at?: boolean
     dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["dish_media_external_embeddings"]>
 
@@ -19625,6 +19641,8 @@ export namespace Prisma {
     last_verified_at?: boolean
     created_at?: boolean
     updated_at?: boolean
+    thumbnail_url?: boolean
+    published_at?: boolean
     dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["dish_media_external_embeddings"]>
 
@@ -19638,6 +19656,8 @@ export namespace Prisma {
     last_verified_at?: boolean
     created_at?: boolean
     updated_at?: boolean
+    thumbnail_url?: boolean
+    published_at?: boolean
     dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["dish_media_external_embeddings"]>
 
@@ -19651,9 +19671,11 @@ export namespace Prisma {
     last_verified_at?: boolean
     created_at?: boolean
     updated_at?: boolean
+    thumbnail_url?: boolean
+    published_at?: boolean
   }
 
-  export type dish_media_external_embeddingsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"dish_media_id" | "dish_id" | "provider" | "external_content_id" | "canonical_url" | "embed_status" | "last_verified_at" | "created_at" | "updated_at", ExtArgs["result"]["dish_media_external_embeddings"]>
+  export type dish_media_external_embeddingsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"dish_media_id" | "dish_id" | "provider" | "external_content_id" | "canonical_url" | "embed_status" | "last_verified_at" | "created_at" | "updated_at" | "thumbnail_url" | "published_at", ExtArgs["result"]["dish_media_external_embeddings"]>
   export type dish_media_external_embeddingsInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     dish_media?: boolean | dish_mediaDefaultArgs<ExtArgs>
   }
@@ -19679,6 +19701,8 @@ export namespace Prisma {
       last_verified_at: Date | null
       created_at: Date
       updated_at: Date
+      thumbnail_url: string | null
+      published_at: Date | null
     }, ExtArgs["result"]["dish_media_external_embeddings"]>
     composites: {}
   }
@@ -20112,6 +20136,8 @@ export namespace Prisma {
     readonly last_verified_at: FieldRef<"dish_media_external_embeddings", 'DateTime'>
     readonly created_at: FieldRef<"dish_media_external_embeddings", 'DateTime'>
     readonly updated_at: FieldRef<"dish_media_external_embeddings", 'DateTime'>
+    readonly thumbnail_url: FieldRef<"dish_media_external_embeddings", 'String'>
+    readonly published_at: FieldRef<"dish_media_external_embeddings", 'DateTime'>
   }
     
 
@@ -47329,7 +47355,9 @@ export namespace Prisma {
     embed_status: 'embed_status',
     last_verified_at: 'last_verified_at',
     created_at: 'created_at',
-    updated_at: 'updated_at'
+    updated_at: 'updated_at',
+    thumbnail_url: 'thumbnail_url',
+    published_at: 'published_at'
   };
 
   export type Dish_media_external_embeddingsScalarFieldEnum = (typeof Dish_media_external_embeddingsScalarFieldEnum)[keyof typeof Dish_media_external_embeddingsScalarFieldEnum]
@@ -48839,6 +48867,8 @@ export namespace Prisma {
     last_verified_at?: DateTimeNullableFilter<"dish_media_external_embeddings"> | Date | string | null
     created_at?: DateTimeFilter<"dish_media_external_embeddings"> | Date | string
     updated_at?: DateTimeFilter<"dish_media_external_embeddings"> | Date | string
+    thumbnail_url?: StringNullableFilter<"dish_media_external_embeddings"> | string | null
+    published_at?: DateTimeNullableFilter<"dish_media_external_embeddings"> | Date | string | null
     dish_media?: XOR<Dish_mediaScalarRelationFilter, dish_mediaWhereInput>
   }
 
@@ -48852,6 +48882,8 @@ export namespace Prisma {
     last_verified_at?: SortOrderInput | SortOrder
     created_at?: SortOrder
     updated_at?: SortOrder
+    thumbnail_url?: SortOrderInput | SortOrder
+    published_at?: SortOrderInput | SortOrder
     dish_media?: dish_mediaOrderByWithRelationInput
   }
 
@@ -48870,6 +48902,8 @@ export namespace Prisma {
     last_verified_at?: DateTimeNullableFilter<"dish_media_external_embeddings"> | Date | string | null
     created_at?: DateTimeFilter<"dish_media_external_embeddings"> | Date | string
     updated_at?: DateTimeFilter<"dish_media_external_embeddings"> | Date | string
+    thumbnail_url?: StringNullableFilter<"dish_media_external_embeddings"> | string | null
+    published_at?: DateTimeNullableFilter<"dish_media_external_embeddings"> | Date | string | null
     dish_media?: XOR<Dish_mediaScalarRelationFilter, dish_mediaWhereInput>
   }, "dish_media_id" | "dish_media_id_dish_id" | "provider_external_content_id_dish_id">
 
@@ -48883,6 +48917,8 @@ export namespace Prisma {
     last_verified_at?: SortOrderInput | SortOrder
     created_at?: SortOrder
     updated_at?: SortOrder
+    thumbnail_url?: SortOrderInput | SortOrder
+    published_at?: SortOrderInput | SortOrder
     _count?: dish_media_external_embeddingsCountOrderByAggregateInput
     _max?: dish_media_external_embeddingsMaxOrderByAggregateInput
     _min?: dish_media_external_embeddingsMinOrderByAggregateInput
@@ -48901,6 +48937,8 @@ export namespace Prisma {
     last_verified_at?: DateTimeNullableWithAggregatesFilter<"dish_media_external_embeddings"> | Date | string | null
     created_at?: DateTimeWithAggregatesFilter<"dish_media_external_embeddings"> | Date | string
     updated_at?: DateTimeWithAggregatesFilter<"dish_media_external_embeddings"> | Date | string
+    thumbnail_url?: StringNullableWithAggregatesFilter<"dish_media_external_embeddings"> | string | null
+    published_at?: DateTimeNullableWithAggregatesFilter<"dish_media_external_embeddings"> | Date | string | null
   }
 
   export type dish_media_impressionsWhereInput = {
@@ -51590,6 +51628,8 @@ export namespace Prisma {
     last_verified_at?: Date | string | null
     created_at?: Date | string
     updated_at?: Date | string
+    thumbnail_url?: string | null
+    published_at?: Date | string | null
     dish_media: dish_mediaCreateNestedOneWithoutDish_media_external_embeddingsInput
   }
 
@@ -51603,6 +51643,8 @@ export namespace Prisma {
     last_verified_at?: Date | string | null
     created_at?: Date | string
     updated_at?: Date | string
+    thumbnail_url?: string | null
+    published_at?: Date | string | null
   }
 
   export type dish_media_external_embeddingsUpdateInput = {
@@ -51613,6 +51655,8 @@ export namespace Prisma {
     last_verified_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    thumbnail_url?: NullableStringFieldUpdateOperationsInput | string | null
+    published_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dish_media?: dish_mediaUpdateOneRequiredWithoutDish_media_external_embeddingsNestedInput
   }
 
@@ -51626,6 +51670,8 @@ export namespace Prisma {
     last_verified_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    thumbnail_url?: NullableStringFieldUpdateOperationsInput | string | null
+    published_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type dish_media_external_embeddingsCreateManyInput = {
@@ -51638,6 +51684,8 @@ export namespace Prisma {
     last_verified_at?: Date | string | null
     created_at?: Date | string
     updated_at?: Date | string
+    thumbnail_url?: string | null
+    published_at?: Date | string | null
   }
 
   export type dish_media_external_embeddingsUpdateManyMutationInput = {
@@ -51648,6 +51696,8 @@ export namespace Prisma {
     last_verified_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    thumbnail_url?: NullableStringFieldUpdateOperationsInput | string | null
+    published_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type dish_media_external_embeddingsUncheckedUpdateManyInput = {
@@ -51660,6 +51710,8 @@ export namespace Prisma {
     last_verified_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    thumbnail_url?: NullableStringFieldUpdateOperationsInput | string | null
+    published_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type dish_media_impressionsCreateInput = {
@@ -54542,6 +54594,8 @@ export namespace Prisma {
     last_verified_at?: SortOrder
     created_at?: SortOrder
     updated_at?: SortOrder
+    thumbnail_url?: SortOrder
+    published_at?: SortOrder
   }
 
   export type dish_media_external_embeddingsMaxOrderByAggregateInput = {
@@ -54554,6 +54608,8 @@ export namespace Prisma {
     last_verified_at?: SortOrder
     created_at?: SortOrder
     updated_at?: SortOrder
+    thumbnail_url?: SortOrder
+    published_at?: SortOrder
   }
 
   export type dish_media_external_embeddingsMinOrderByAggregateInput = {
@@ -54566,6 +54622,8 @@ export namespace Prisma {
     last_verified_at?: SortOrder
     created_at?: SortOrder
     updated_at?: SortOrder
+    thumbnail_url?: SortOrder
+    published_at?: SortOrder
   }
 
   export type dish_media_impressionsCountOrderByAggregateInput = {
@@ -59078,6 +59136,8 @@ export namespace Prisma {
     last_verified_at?: Date | string | null
     created_at?: Date | string
     updated_at?: Date | string
+    thumbnail_url?: string | null
+    published_at?: Date | string | null
   }
 
   export type dish_media_external_embeddingsUncheckedCreateWithoutDish_mediaInput = {
@@ -59088,6 +59148,8 @@ export namespace Prisma {
     last_verified_at?: Date | string | null
     created_at?: Date | string
     updated_at?: Date | string
+    thumbnail_url?: string | null
+    published_at?: Date | string | null
   }
 
   export type dish_media_external_embeddingsCreateOrConnectWithoutDish_mediaInput = {
@@ -59343,6 +59405,8 @@ export namespace Prisma {
     last_verified_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    thumbnail_url?: NullableStringFieldUpdateOperationsInput | string | null
+    published_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type dish_media_external_embeddingsUncheckedUpdateWithoutDish_mediaInput = {
@@ -59353,6 +59417,8 @@ export namespace Prisma {
     last_verified_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    thumbnail_url?: NullableStringFieldUpdateOperationsInput | string | null
+    published_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type dish_media_impressionsUpsertWithWhereUniqueWithoutDish_mediaInput = {
