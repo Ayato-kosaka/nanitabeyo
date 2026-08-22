@@ -72,3 +72,27 @@ PID を取ってから `kill -0` で生死を見るのが安全である。
 PID=$(ps -eo pid,cmd | grep "[p]attern" | awk '{print $1}' | head -1)
 while kill -0 "$PID" 2>/dev/null; do sleep 15; done
 ```
+
+## DB を変更するときの規則
+
+**`db-migrate.yml` を dry run 以外で実行してよいのは、その変更についてオーナーの承認を
+得た後だけである。** 「前に流してよいと言われた」は次の変更の承認にならない。承認は
+**migration 1 本ごと**に取ること。`target_schema: public`（本番）はもちろん、
+**`dev` でも同じ**である。
+
+実際にこのリポジトリで、前半に得た承認を根拠に後半の別 migration を無断で流す事故が起きた。
+
+DB 変更はコード変更の PR に混ぜず、**DB 変更だけのサブ Issue** を立てて承認を得る。
+書式（変更するテーブル / 適用先 / SQL / 既存データへの影響 / ロールバック / なぜ必要か）は
+`infra/supabase/migrations/README.md` にある。
+
+### 本番未適用の migration は、新しいファイルを積まずに直接直す
+
+`public` にまだ当たっていない migration へ ALTER を積むと、履歴が «作って → すぐ足す» という
+嘘の経緯になり、さらに **ALTER で足す列は必ず NULLABLE になる**（本当は NOT NULL に
+したかった列が経緯だけの理由で固定される）。元の `CREATE TABLE` のファイルを直接書き換えること。
+
+どこまで当たっているかは `db-migrate.yml` の実行履歴で、ジョブ名が
+`public スキーマへ migration を適用` の最新 run のログ（`📄 Applying:` の行）を見る。
+
+**詳細と、直接書き換えるときの冪等化の作法は `infra/supabase/migrations/README.md` を読むこと。**
