@@ -1,0 +1,76 @@
+{
+  "measured_at": "2026-08-10",
+  "method_version": 2,
+  "issue": 1261,
+  "inputs": {
+    "current_restaurants": {
+      "rows": 103125,
+      "columns": ["id", "name", "latitude", "longitude", "google_place_id", "address"],
+      "invalid_coordinates": 0,
+      "committed": false
+    },
+    "overture": {
+      "release": "2026-07-22.0",
+      "sha256": "8c2c2432eccdefa5c65882d255112fa2e6dcf54bdaa23c108cf118eb56e5be06",
+      "rows": 789612
+    },
+    "ifas": {
+      "files": 157,
+      "all_rows": 1089349,
+      "active_restaurant_or_cafe_rows": 396974,
+      "active_entities_with_coordinates": 261896
+    }
+  },
+  "current_db_coverage": {
+    "overture_only": {
+      "accepted_matches": 45257,
+      "coverage_percent": 43.89
+    },
+    "overture_ifas_union": {
+      "accepted_matches": 49203,
+      "ambiguous_matches": 378,
+      "unmatched": 53544,
+      "coverage_percent": 47.71,
+      "match_methods": {
+        "exact_name_nearby": 44949,
+        "l1_name_nearby": 928,
+        "trigram_name_nearby": 3326
+      },
+      "acceptance_gate_95_percent_excluding_closed": false
+    },
+    "ifas_increment": {
+      "accepted_matches": 3946,
+      "percentage_points": 3.82
+    }
+  },
+  "ifas_to_overture_match_progression": {
+    "candidates": 261896,
+    "l0_exact_150m": {"matched": 37949, "percent": 14.49},
+    "l1_normalized_150m": {"matched": 39577, "percent": 15.11},
+    "l2_trigram_150m": {"matched": 42688, "percent": 16.3},
+    "target_over_40_percent": false
+  },
+  "overture_contact_coverage_percent": {
+    "websites": 56.14,
+    "socials": 90.44,
+    "website_or_social": 99.96,
+    "website_and_social": 46.62
+  },
+  "overture_deduplication_50m": {
+    "method": "L1 name pg_trgm-compatible similarity >= 0.75 within 50m",
+    "input_rows": 789612,
+    "unique_clusters": 789237,
+    "duplicate_excess_rows": 375,
+    "duplicate_clusters": 375,
+    "largest_cluster": 2
+  },
+  "decision": {
+    "status": "no_go_on_current_union",
+    "reason": "47.71% raw coverage is far below the 95% acceptance line; visual closure review cannot plausibly bridge the gap without evidence.",
+    "remaining_work": [
+      "Geocode and union municipality pre-2021 permit CSVs through legacy_sources.json.",
+      "Classify unmatched_review_sample.csv as seed_missing, matching_failure, or closed.",
+      "Evaluate carrying seed_missing rows forward with google_place_id and minimal fields."
+    ]
+  }
+}
