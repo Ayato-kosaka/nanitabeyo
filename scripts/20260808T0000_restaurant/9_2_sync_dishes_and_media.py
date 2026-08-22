@@ -223,7 +223,7 @@ def apply_sync(connection: Any) -> None:
             INSERT INTO dish_media AS target (
               id, dish_id, user_id, media_path, media_type, thumbnail_path,
               created_at, updated_at, lock_no, video_duration_ms,
-              media_processing_status, thumbnail_processing_status
+              media_processing_status, thumbnail_processing_status, render_type
             )
             SELECT
               staging.dish_media_id,
@@ -237,7 +237,11 @@ def apply_sync(connection: Any) -> None:
               0,
               NULL,
               'completed',
-              'completed'
+              'completed',
+              -- #1273 §40 この経路が作るのは全て外部埋め込み行。列の既定値は 'stored' なので
+              -- ここで明示しないと、API が子テーブルから導出する renderType と列が食い違う
+              -- (migration 20260814T0000 のコメント参照)。
+              'external_embed'
             FROM media_sync_staging staging
             JOIN restaurants restaurant USING (google_place_id)
             JOIN dishes dish
@@ -248,6 +252,7 @@ def apply_sync(connection: Any) -> None:
               media_path = EXCLUDED.media_path,
               media_type = EXCLUDED.media_type,
               thumbnail_path = EXCLUDED.thumbnail_path,
+              render_type = EXCLUDED.render_type,
               updated_at = CURRENT_TIMESTAMP
             """
         )
@@ -255,18 +260,28 @@ def apply_sync(connection: Any) -> None:
         cursor.execute(
             """
             INSERT INTO dish_media_external_embeddings AS target (
-              dish_media_id, provider, external_content_id, canonical_url,
+              dish_media_id, dish_id, provider, external_content_id, canonical_url,
               embed_html, thumbnail_url, availability_status, rights_basis,
               terms_version, published_at, last_verified_at, source_row_hash,
               created_at, updated_at
             )
             SELECT
-              dish_media_id, provider, external_content_id, canonical_url,
-              embed_html, thumbnail_url, availability_status, rights_basis,
-              terms_version, published_at, last_verified_at, row_hash,
+              staging.dish_media_id, media.dish_id,
+              staging.provider, staging.external_content_id, staging.canonical_url,
+              staging.embed_html, staging.thumbnail_url, staging.availability_status,
+              staging.rights_basis, staging.terms_version, staging.published_at,
+              staging.last_verified_at, staging.row_hash,
               CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
-            FROM media_sync_staging
+            FROM media_sync_staging staging
+            -- #1375 との統合で dish_id が NOT NULL になった（自然キーが
+            -- (provider, external_content_id, dish_id) へ広がり、«同じ投稿 × 別の料理» を
+            -- 取り込めるようにするため）。値は dish_media から引く。
+            -- 複合 FK (dish_media_id, dish_id) → dish_media (id, dish_id) があるので、
+            -- ここで別の値を入れることは構造的にできない。
+            JOIN dish_media media
+              ON media.id = staging.dish_media_id
             ON CONFLICT (dish_media_id) DO UPDATE SET
+              dish_id = EXCLUDED.dish_id,
               provider = EXCLUDED.provider,
               external_content_id = EXCLUDED.external_content_id,
               canonical_url = EXCLUDED.canonical_url,

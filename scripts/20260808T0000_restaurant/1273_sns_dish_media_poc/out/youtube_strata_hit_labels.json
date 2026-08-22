@@ -1,0 +1,73 @@
+{
+  "purpose": "#1273 層別 YouTube 経路存在率（out/seed_youtube_ceiling.json）のヒット全件を目視ラベル。判定器 measure_supply_ceiling は3文字以上の店名に裏取りを課さないため、短い店名の偽陽性が疑われた。",
+  "labeled_at": "2026-08-16",
+  "labeler": "Claude（動画タイトルを読んで判定。動画本編は見ていない）",
+  "label_definition": {
+    "strict": "サンプルした**その店**の動画（市区町村が分かる場合は一致すること）",
+    "loose": "その屋号の店の料理が写っていそうな動画（チェーンの別店舗を含む）",
+    "FP": "店の動画ではない（同名の人物・曲・地名・商品・不動産など）"
+  },
+  "without_overture": {
+    "n_sample": 150,
+    "n_hit_machine": 38,
+    "strict_tp": ["鳥まさ", "大和水産", "しのわ", "Pho Tho", "甲州屋", "博多でんじゃま", "函館海鮮居酒屋魚まさ五稜郭総本店", "弁天寿し"],
+    "loose_only_tp": [
+      {"name": "くら寿司", "why": "チェーン一般の動画で店舗特定なし"},
+      {"name": "串カツ田中", "why": "サンプルは名古屋市、動画は一宮店"},
+      {"name": "松のや", "why": "商品レビューで店舗不特定"},
+      {"name": "ラーメン 来来亭", "why": "動画は野洲本店"},
+      {"name": "しぶ茶屋", "why": "サンプルは宮崎市、動画は延岡市"}
+    ],
+    "false_positive": [
+      {"name": "四万十演歌王", "why": "演歌発表会。店ではない"},
+      {"name": "Cockapoo", "why": "犬種の解説"},
+      {"name": "ほっかほっか亭", "why": "経営解説動画。料理は写らない"},
+      {"name": "Pizza Parco", "why": "TV CM"},
+      {"name": "Grand café", "why": "Charles Trénet の楽曲"},
+      {"name": "麺や 恵", "why": "動画は『麺や恵み』という別の屋号"},
+      {"name": "マナカムナ", "why": "ネパールの寺院"},
+      {"name": "みきや", "why": "人名（ディズニー動画）"},
+      {"name": "モスバーガー", "why": "50周年のニュース"},
+      {"name": "吉野家", "why": "中国語の牛丼チェーン比較"},
+      {"name": "いじげん", "why": "ポケモンの技名"},
+      {"name": "恵比寿屋", "why": "旅館の洞窟。料理ではない"},
+      {"name": "Syo", "why": "Trinidad Soca の楽曲"},
+      {"name": "NAO", "why": "『ディアスＮＡＯ』＝不動産"},
+      {"name": "Pachira", "why": "観葉植物"},
+      {"name": "Ijihu", "why": "格闘技の対戦"},
+      {"name": "カインズキッチン", "why": "『今は無き』＝閉店"},
+      {"name": "マクドナルド", "why": "CM出演のニュース"},
+      {"name": "ムーラン", "why": "楽曲"},
+      {"name": "世界の山ちゃん", "why": "バラエティでの言及"},
+      {"name": "uouo", "why": "GTA の配信"},
+      {"name": "Hira", "why": "Pakistan Idol の出演者"},
+      {"name": "あかつき", "why": "恋愛マンガ動画"},
+      {"name": "Three Suns", "why": "One Piece の楽曲"},
+      {"name": "木曽路", "why": "CM"}
+    ],
+    "counts": {"strict_tp": 8, "loose_tp": 13, "fp": 25, "n_hit": 38},
+    "precision_strict": 0.2105,
+    "precision_loose": 0.3421,
+    "rate_machine": 0.2533,
+    "rate_corrected_strict": 0.0534,
+    "rate_corrected_loose": 0.0866
+  },
+  "with_overture": {
+    "n_sample": 150,
+    "n_hit_machine": 41,
+    "false_positive": [
+      {"name": "Run", "why": "息栖神社の動画"},
+      {"name": "Dawn", "why": "『THE DAWN OF SUPER HEROES』＝DC展"},
+      {"name": "くろーんまざー", "why": "『ガチあげ！ en 31』内容不明"},
+      {"name": "カーサ錦糸町", "why": "賃貸物件の紹介"},
+      {"name": "サーティワンアイスクリーム", "why": "東京ハイジとのコラボCM"},
+      {"name": "farm", "why": "『the Farm UNIVERSAL』＝観葉植物店"}
+    ],
+    "counts": {"tp": 35, "fp": 6, "n_hit": 41},
+    "precision": 0.8537,
+    "rate_machine": 0.2733,
+    "rate_corrected": 0.2334
+  },
+  "conclusion": "偽陽性率が層で大きく違う。リンク無し層は IFAS/OSM 由来で屋号が短く一般語と衝突しやすい（Syo / Hira / NAO / farm / uouo / Ijihu / Pachira / あかつき / ムーラン）。『YouTube はリンクの有無に関係なく届く（26.67% vs 26.00%、統計的に区別がつかない）』という既報の結論は、目視すると成り立たない。",
+  "caveat": "動画タイトルだけで判定しており本編は見ていない。タイトルに店名が無いが本編に出る動画は取りこぼす（見落とし方向）。したがって補正後の値も確定値ではない。"
+}

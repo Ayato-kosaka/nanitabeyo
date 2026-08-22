@@ -51,12 +51,57 @@ const TARGETS: EmbedTarget[] = [
 		sourceUrl: "https://www.youtube.com/watch?v=HSY_cevheSo",
 		// #1273 【仕様】YouTube公式ドキュメント記載の標準iframe埋め込み。sns_dish_media_poc.py の
 		// youtube_iframe_embed_html() と同じ形（video_idはREPORT.mdの実測で採用された動画）。
-		staticHtml:
-			'<iframe width="100%" height="220" src="https://www.youtube.com/embed/HSY_cevheSo" ' +
-			'frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" ' +
-			"allowfullscreen></iframe>",
+		staticHtml: youtubeIframeHtml("HSY_cevheSo"),
 	},
 ];
+
+// #1273 【設計】①のクロールで実際に発見した dish_media 候補（restaurant × category × video）。
+// 従来この画面は手で選んだ1本しか載せておらず、②の表示検証が「YouTubeのiframeは描画できる」
+// までしか確かめられていなかった。①が 758ch / 12,557 pair まで到達したので、実発見データを
+// そのまま流し込んで「発見したものが本当に出せるか」を確かめる形にする。
+//
+// 出典: scripts/20260808T0000_restaurant/1273_sns_dish_media_poc/out/embed_verification_sample.json
+// （7,727件の dish_media 候補から、カテゴリが重複しないよう SHA-256 で決定的に12件を抽出）
+//
+// #1307 【仕様】ここに並ぶのは全て 16:9 の長尺動画である。実測で Shorts（60秒以下かつ縦）は
+// 0/250 = 0.0% だった。フィードUXが短尺縦動画前提なら、この画面で見えるのは
+// 「埋め込みは成立するが形式が合わない」という状態そのものである。
+type DiscoveredDishMedia = {
+	restaurantName: string;
+	categoryJa: string;
+	videoId: string;
+	title: string;
+};
+
+const DISCOVERED_DISH_MEDIA: DiscoveredDishMedia[] = [
+	{ restaurantName: "風らい路", categoryJa: "定食", videoId: "thM1JGHElI4", title: "山口県岩国市【風らい路】さん" },
+	{ restaurantName: "タイヨーラーメン", categoryJa: "ラーメン", videoId: "5Oj2xzV83vo", title: "📍【タイヨーラーメン(大阪府堺市美原区)】" },
+	{ restaurantName: "ふきや 博多店", categoryJa: "お好み焼き", videoId: "1zrXDdxLB8s", title: "【福岡市博多区ランチ・お好み焼き】ふきや 博多店" },
+	{ restaurantName: "ほるたん屋美濃インター店", categoryJa: "焼肉", videoId: "zQWtAV4vvOU", title: "岐阜県美濃市ほるたん屋美濃インター店で焼き肉" },
+	{ restaurantName: "手打ちうどん　ふじ樹", categoryJa: "うどん", videoId: "8El0vUxQoa8", title: "水戸市　手打ちうどん　ふじ樹" },
+	{ restaurantName: "INOSHOW", categoryJa: "豚骨ラーメン", videoId: "7WGdBfoalck", title: "INOSHOW 保谷店@東京都西東京市東町" },
+	{ restaurantName: "喫茶エイティ", categoryJa: "オムライス", videoId: "4wZh8ntFsi4", title: "曽於市「画廊喫茶エイティ」で昔ながらのオムライス" },
+	{ restaurantName: "こつぶ庵", categoryJa: "そば", videoId: "zyCgCXsVrXg", title: "【高知県黒潮町】本格蕎麦屋「こつぶ庵」" },
+	{ restaurantName: "Stellium Coffee", categoryJa: "カフェ", videoId: "U8OYQMXvZMw", title: "【大分市】STELLIUM COFFEE" },
+	{ restaurantName: "味処 一路", categoryJa: "和食", videoId: "Rth40CGoM5Q", title: "【味処 一路・宇都宮市関堀町】絶品和食" },
+	{ restaurantName: "炭火焼工房ハンバーグ・ステーキ 黒平", categoryJa: "ステーキ", videoId: "jiRo406FMyA", title: "いちき串木野市「炭火焼工房 黒平」" },
+	{ restaurantName: "長浜ラーメン力", categoryJa: "チャーハン", videoId: "dIJ0rDboesA", title: "【福岡県・糸島市】長浜ラーメン力の焼き飯" },
+];
+
+const DISCOVERED_TARGETS: EmbedTarget[] = DISCOVERED_DISH_MEDIA.map((media) => ({
+	provider: "youtube",
+	label: `${media.categoryJa} / ${media.restaurantName}`,
+	sourceUrl: `https://www.youtube.com/watch?v=${media.videoId}`,
+	staticHtml: youtubeIframeHtml(media.videoId),
+}));
+
+function youtubeIframeHtml(videoId: string): string {
+	return (
+		`<iframe width="100%" height="220" src="https://www.youtube.com/embed/${videoId}" ` +
+		'frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" ' +
+		"allowfullscreen></iframe>"
+	);
+}
 
 function wrapEmbedHtml(bodyHtml: string): string {
 	// #1273 【仕様】oEmbedのhtmlはscriptタグ込みで返る。そのままbodyへ差し込めばTikTok/Xの
@@ -143,6 +188,17 @@ export default function SnsEmbedPocScreen() {
 			{TARGETS.map((target) => (
 				<EmbedCard key={target.provider} target={target} />
 			))}
+
+			<Text style={styles.sectionHeading}>①で実際に発見した dish_media（12件）</Text>
+			<Text style={styles.subheading}>
+				758チャンネルのクロールで発見した 12,557 件の dish_media 候補から、カテゴリが重複しないよう
+				決定的に12件を抽出したものです。埋め込み可否は実測で 98.8%、生存率100%
+				でしたが、いずれも16:9の長尺動画で Shorts は 0% でした（#1307）。
+				フィードUXとして成立するかをこの画面で判断してください。
+			</Text>
+			{DISCOVERED_TARGETS.map((target) => (
+				<EmbedCard key={target.sourceUrl} target={target} />
+			))}
 		</ScrollView>
 	);
 }
@@ -162,6 +218,13 @@ const styles = StyleSheet.create({
 		fontSize: 13,
 		color: "#666666",
 		marginBottom: 20,
+	},
+	sectionHeading: {
+		fontSize: 17,
+		fontWeight: "700",
+		marginTop: 8,
+		marginBottom: 6,
+		color: "#1A1A1A",
 	},
 	card: {
 		marginBottom: 24,

@@ -20,6 +20,11 @@ export const buildExternalEmbedDocument = ({ provider, embedHtml }: ExternalDish
 		instagram: "https://instagram.com https://*.instagram.com https://*.cdninstagram.com",
 		tiktok: "https://tiktok.com https://*.tiktok.com https://*.tiktokcdn.com https://*.byteoversea.com",
 		x: "https://x.com https://*.x.com https://twitter.com https://*.twitter.com https://*.twimg.com",
+		// #1273 youtube を追加（migration 20260814T0000）。①で確立した無料の発見手法は
+		// YouTube 由来で、実測でも embeddable 98.8% / 生存率100% と土台が最も健全。
+		// youtube-nocookie も許可するのは公式 iframe が privacy-enhanced mode を使う場合があるため。
+		youtube:
+			"https://youtube.com https://*.youtube.com https://youtube-nocookie.com https://*.youtube-nocookie.com https://*.ytimg.com https://*.googlevideo.com",
 	}[provider];
 
 	const contentSecurityPolicy = [
@@ -60,6 +65,8 @@ export const isProviderNavigationUrl = (provider: ExternalDishMediaEmbed["provid
 			instagram: ["instagram.com"],
 			tiktok: ["tiktok.com"],
 			x: ["x.com", "twitter.com"],
+			// #1273 youtube の埋め込みは youtube.com / youtube-nocookie.com へ遷移しうる
+			youtube: ["youtube.com", "youtube-nocookie.com", "youtu.be"],
 		}[provider];
 		return hosts.some((host) => parsed.hostname === host || parsed.hostname.endsWith(`.${host}`));
 	} catch {

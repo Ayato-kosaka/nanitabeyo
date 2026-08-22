@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """idea検証: youtube-commoncrawl-x-combined-ceiling (#1273 Round2)
 
+【重要 / #1279 でモデル誤りと判定・SUPERSEDED】
+カバレッジ試算部分は coverage_youtube_only.py の 1-(1-p)^k モデルを再利用しているため、
+同じ Route A 前提の誤りを引き継いでいる。カバレッジの数値は `coverage_route_b.py` を使うこと。
+本ファイルのうち Common Crawl 逆引きの実測部分（#1281）は引き続き有効。
+
 YouTube(yt-dlp Route B) + CommonCrawl経由の飲食店ポータル逆引き(Route A) + X syndication
 併用時の全国カバレッジ上限試算。
 

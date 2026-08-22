@@ -1,0 +1,613 @@
+{
+  "n": 60,
+  "n_correct": 59,
+  "n_undecidable": 1,
+  "precision_over_decidable": 1.0,
+  "wilson_ci95": [
+    0.938868520215908,
+    1.0000000000000002
+  ],
+  "method": "修正前の増分60件を全件目視。誤り2件（いずれも「ハンバーグ」＝料理カテゴリ語が店名として登録されていた型）と判定不能1件。誤り2件は料理カテゴリ語の除外で消えた。",
+  "rows": [
+    {
+      "n": 1,
+      "restaurant": "道の駅草津",
+      "source": "osm_jp_food.csv",
+      "needle_current": "",
+      "needle_backfilled": "草津市",
+      "title": "【夜の】道の駅　草津　車中泊　夜の様子　滋賀県　草津市　1分で分かる　#38",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 2,
+      "restaurant": "貞光ゆうゆう館",
+      "source": "osm_jp_food.csv",
+      "needle_current": "",
+      "needle_backfilled": "つるぎ町",
+      "title": "【夜の】道の駅　貞光ゆうゆう館　夜の様子　徳島県　つるぎ町　1分で分かる　#27",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 3,
+      "restaurant": "総社らぁめん 鬼ノ城",
+      "source": "osm_jp_food.csv",
+      "needle_current": "",
+      "needle_backfilled": "総社市",
+      "title": "【総社らぁめん鬼ノ城】あのデカ盛りラーメン店の夏季限定ラーメンがヤバイ！【岡山グルメ】総社市",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 4,
+      "restaurant": "麪家ひばり",
+      "source": "osm_jp_food.csv",
+      "needle_current": "",
+      "needle_backfilled": "松江市",
+      "title": "山陰のらーめん食べ歩き！ 島根県松江市 麪家ひばり 川津店",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 5,
+      "restaurant": "土手の伊勢屋",
+      "source": "osm_jp_food.csv",
+      "needle_current": "",
+      "needle_backfilled": "台東区",
+      "title": "415 東京都 台東区 天丼（土手の伊勢屋）",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 6,
+      "restaurant": "味工房さくら亭",
+      "source": "ifas_jp_food.csv",
+      "needle_current": "中央区",
+      "needle_backfilled": "栗山町",
+      "title": "【栗山町】愛され40年以上の実力店！遠方からも大人気のリーズナブルな食堂/味工房　さくら亭",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 7,
+      "restaurant": "SOLcafe",
+      "source": "ifas_jp_food.csv",
+      "needle_current": "中区",
+      "needle_backfilled": "西区",
+      "title": "【ぶらぶらりイン広島】#555 ランチ 広島 西区 庚午北 SOLcafe",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 8,
+      "restaurant": "麺や　句來夢",
+      "source": "osm_jp_food.csv",
+      "needle_current": "",
+      "needle_backfilled": "広島市",
+      "title": "【広島ランチ】　麺や 句來夢 クラム　　広島県広島市佐伯区利松　     Lunch in Hiroshima, Japan　広島のおしゃれで美味しい　おすすめのお店紹介",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 9,
+      "restaurant": "くりの木加須店",
+      "source": "osm_jp_food.csv",
+      "needle_current": "",
+      "needle_backfilled": "加須市",
+      "title": "うまさとは、熱いことと見つけたり。なラーメン　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　【くりの木 加須店】埼玉県加須市",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 10,
+      "restaurant": "ごはん処 じょうや",
+      "source": "osm_jp_food.csv",
+      "needle_current": "",
+      "needle_backfilled": "中野市",
+      "title": "【ごはん処 じょうや】【中野市】【定食屋】【中野市　もつ焼き】",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 11,
+      "restaurant": "福春波男",
+      "source": "ifas_jp_food.csv",
+      "needle_current": "山口市",
+      "needle_backfilled": "下松市",
+      "title": "福春波男 フクハルウェーブマン[下松市 居酒屋]",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 12,
+      "restaurant": "ＮＯＯＤＬＥ・ＳＰ・ＣＲＡＦＴ",
+      "source": "ifas_jp_food.csv",
+      "needle_current": "中央区",
+      "needle_backfilled": "市原市",
+      "title": "【市原市】旭郎山3号店オープン！NOODLE SP CRAFTにいってきました(/・ω・)/",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 13,
+      "restaurant": "UDON　ひらおか",
+      "source": "ifas_jp_food.csv",
+      "needle_current": "和歌山市",
+      "needle_backfilled": "海南市",
+      "title": "【ランチvlog】海南市下津町丁にあるうどん屋さん🍜UDONひらおか‼️オシャレ店内で上品なおうどんが頂けます♪😍これからかき氷🍧がオススメででっかい器でやって来る〜。😋",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 14,
+      "restaurant": "うどん屋　空",
+      "source": "ifas_jp_food.csv",
+      "needle_current": "中区",
+      "needle_backfilled": "熊野町",
+      "title": "【ぶらぶらりイン広島】#249 ランチ 広島 安芸郡 熊野町 手打ちうどん屋 空",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 15,
+      "restaurant": "500℃ ｐｉｚｚａ",
+      "source": "ifas_jp_food.csv",
+      "needle_current": "中央区",
+      "needle_backfilled": "西原村",
+      "title": "【西原村ひとり旅】熊本阿蘇西原村で本場ナポリピッツァランチを堪能！！憧れだった大自然の中でいただく石窯ピッツァは最高でした！500℃ pizza｜俵山交流館 萌の里｜熊本観光スポット",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 16,
+      "restaurant": "幸ちゃん食堂",
+      "source": "ifas_jp_food.csv",
+      "needle_current": "中央区",
+      "needle_backfilled": "博多区",
+      "title": "福岡グルメ「幸ちゃん食堂」ちゃんぽん(福岡市博多区銀天町)",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 17,
+      "restaurant": "朝山牧場",
+      "source": "ifas_jp_food.csv",
+      "needle_current": "中央区",
+      "needle_backfilled": "福岡市",
+      "title": "福岡グルメ「朝山牧場」黒毛和牛カルビ定食ランチ(福岡市博多区博多駅前)",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 18,
+      "restaurant": "富久三苑",
+      "source": "ifas_jp_food.csv",
+      "needle_current": "葵区",
+      "needle_backfilled": "松崎町",
+      "title": "豪華な舟盛り激安民宿の旅【伊豆松崎町の富久三苑】雲見温泉の丸ごと刺し盛り宿『飯テロ』Travel Japan Izu Shizuoka",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 19,
+      "restaurant": "TRATTORIA Legare",
+      "source": "osm_jp_food.csv",
+      "needle_current": "",
+      "needle_backfilled": "唐津市",
+      "title": "【佐賀県唐津市】唐津のカジュアルイタリアン🇮🇹「TRATTORIA Legare（トラットリア レガーレ）」さんのご紹介【muchuTV】",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 20,
+      "restaurant": "極濃湯麺 フタツメ 小山店",
+      "source": "osm_jp_food.csv",
+      "needle_current": "",
+      "needle_backfilled": "小山市",
+      "title": "2023年締めすすり【茨城県水戸市】中華料理一番＊らーめん 武臣【古河市】青竹手打ち 佐野らーめん たけざわ【栃木県小山市】極濃湯麺 フタツメ 小山店",
+      "verdict": "undecidable",
+      "note": "タイトルが複数店の総集編で、切り詰められていて確認できない"
+    },
+    {
+      "n": 21,
+      "restaurant": "麺匠 真田",
+      "source": "osm_jp_food.csv",
+      "needle_current": "",
+      "needle_backfilled": "宮崎市",
+      "title": "【2023年開店！】濃厚豚魚つけ麺が美味しすぎて320gの麺を一気にペロり！▽麺匠 真田（宮崎市）▽宮崎ラーメン86杯目▽宮崎グルメ▽飯テロ総杯数703杯目",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 22,
+      "restaurant": "中国ラーメン揚州商人　流山店",
+      "source": "ifas_jp_food.csv",
+      "needle_current": "中央区",
+      "needle_backfilled": "流山市",
+      "title": "【流山市流山】冬季限定！磯の香りが広がる“冬かきラーメン”「中国ラーメン揚州商人 流山店」",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 23,
+      "restaurant": "どんマック",
+      "source": "osm_jp_food.csv",
+      "needle_current": "",
+      "needle_backfilled": "宇美町",
+      "title": "福岡県糟屋郡　雨の日ドライブ　ドラえもん連れて#糟屋郡#宇美町#須恵町#篠栗町#志免町#久山町#どんマック",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 24,
+      "restaurant": "鴨だし拉麺　鳴馬良",
+      "source": "ifas_jp_food.csv",
+      "needle_current": "長野市",
+      "needle_backfilled": "上田市",
+      "title": "【鴨だし拉麺 鳴馬良】結局また食べに来てしまった…こんぶ水つけ麺が旨すぎる！【上田市】",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 25,
+      "restaurant": "Ali's Friend Cafe & Restaurant",
+      "source": "osm_jp_food.csv",
+      "needle_current": "",
+      "needle_backfilled": "土浦市",
+      "title": "【食べめぐ再訪】茨城土浦市荒川沖で異国のシチューと冷やし中華を味わう 【Ali's Friend Cafe & Restaurant】【台湾料理 美味仙】",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 26,
+      "restaurant": "麪家ひばり",
+      "source": "osm_jp_food.csv",
+      "needle_current": "",
+      "needle_backfilled": "松江市",
+      "title": "山陰のらーめん食べ歩き！ 島根県松江市 麪家ひばり",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 27,
+      "restaurant": "ぶたとほね",
+      "source": "osm_jp_food.csv",
+      "needle_current": "",
+      "needle_backfilled": "志免町",
+      "title": "志免『ぶたとほね』のラーメンと淡麗豚そば（福岡県糟屋郡志免町）",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 28,
+      "restaurant": "あけぼの珈琲",
+      "source": "osm_jp_food.csv",
+      "needle_current": "",
+      "needle_backfilled": "下関市",
+      "title": "山口県下関市長府にの【あけぼの珈琲】へ初めて入店してみた！#山口県内お散歩チャンネル#山口県下関市 #喫茶店巡り",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 29,
+      "restaurant": "とうてつ駅そば",
+      "source": "osm_jp_food.csv",
+      "needle_current": "",
+      "needle_backfilled": "十和田市",
+      "title": "青森的ソウルフード #5 とうてつ駅そば（十和田市）",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 30,
+      "restaurant": "うどん製麺所　遠藤商店",
+      "source": "ifas_jp_food.csv",
+      "needle_current": "前橋市",
+      "needle_backfilled": "桐生市",
+      "title": "【桐生市】うどん製麺所　遠藤商店💚2024年に梅田でOPEN😍風情のある場所に店を構え静かにゆったりと😌土日限定営業のコシが強め🥹咀嚼の多いごんぶと麺😇珍しい豚天丼🐷があった😄",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 31,
+      "restaurant": "中華　ふうしん",
+      "source": "ifas_jp_food.csv",
+      "needle_current": "中区",
+      "needle_backfilled": "三次市",
+      "title": "【ぶらぶらりイン広島】#544 ランチ 広島 三次市 十日市南 中華ふうしん",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 32,
+      "restaurant": "無鉄砲　総本店",
+      "source": "ifas_jp_food.csv",
+      "needle_current": "上京区",
+      "needle_backfilled": "木津川市",
+      "title": "無鉄砲　総本店　IN京都木津川市",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 33,
+      "restaurant": "ねぎっこ",
+      "source": "osm_jp_food.csv",
+      "needle_current": "",
+      "needle_backfilled": "那須塩原市",
+      "title": "【栃木グルメ】ラーメンねぎっこ（那須塩原市）人気ラーメン店で激ウマハヤシライスを食べてみた",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 34,
+      "restaurant": "オオギヤ食堂",
+      "source": "osm_jp_food.csv",
+      "needle_current": "",
+      "needle_backfilled": "三芳町",
+      "title": "【食堂・埼玉県入間郡三芳町】『食堂へ行こうシリーズ特別版〔炭火焼鳥麺飯店オオギヤ食堂三芳藤久保店〕編』",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 35,
+      "restaurant": "くしはら温泉ささゆりの湯",
+      "source": "ifas_jp_food.csv",
+      "needle_current": "岐阜市",
+      "needle_backfilled": "恵那市",
+      "title": "恵那市 「くしはら温泉ささゆりの湯」 ～第5回布ぞうり全国コンテスト～",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 36,
+      "restaurant": "おにぎりの桃太郎",
+      "source": "osm_jp_food.csv",
+      "needle_current": "",
+      "needle_backfilled": "四日市",
+      "title": "愛知県安城市〜三重県伊勢市編　四国一周の旅Part4【四日市市　おにぎりの桃太郎　多気町　万協フィギュア博物館　伊勢市　伊勢神宮（内宮）（外宮）　おかげ横丁】",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 37,
+      "restaurant": "焼肉　広州",
+      "source": "ifas_jp_food.csv",
+      "needle_current": "山口市",
+      "needle_backfilled": "宇部市",
+      "title": "焼肉 広州（宇部市）焼肉",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 38,
+      "restaurant": "玉　ららぽーと福岡店",
+      "source": "ifas_jp_food.csv",
+      "needle_current": "中央区",
+      "needle_backfilled": "福岡市",
+      "title": "玉 ららぽーと福岡店（福岡市博多区那珂6丁目）#106",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 39,
+      "restaurant": "中国料理 重慶",
+      "source": "osm_jp_food.csv",
+      "needle_current": "",
+      "needle_backfilled": "青森市",
+      "title": "【しょうゆラーメン】青森県青森市 中国料理 重慶 冷しバンバンラーメン 750円",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 40,
+      "restaurant": "うなぎ さんしょ",
+      "source": "osm_jp_food.csv",
+      "needle_current": "",
+      "needle_backfilled": "台東区",
+      "title": "浅草観光 黒毛和牛 壱乃屋＆花月堂＆うなぎ さんしょ【東京都台東区】2024年3月 4K動画　音声有り",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 41,
+      "restaurant": "ふうたろう",
+      "source": "osm_jp_food.csv",
+      "needle_current": "",
+      "needle_backfilled": "鳥取市",
+      "title": "【めんや ふうたろう】移転オープン！担担麺、ラーメンが美味しい！鳥取市【なみよし鳥取グルメ放浪記】",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 42,
+      "restaurant": "つじ田福岡空港店",
+      "source": "ifas_jp_food.csv",
+      "needle_current": "中央区",
+      "needle_backfilled": "博多区",
+      "title": "つじ田　福岡空港店（福岡市博多区）#27",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 43,
+      "restaurant": "キッチン　カルラ",
+      "source": "ifas_jp_food.csv",
+      "needle_current": "長野市",
+      "needle_backfilled": "上田市",
+      "title": "上田市「キッチンカルラ」弩迫力な肉肌",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 44,
+      "restaurant": "らーめん 一作 茨木店",
+      "source": "osm_jp_food.csv",
+      "needle_current": "",
+      "needle_backfilled": "茨木市",
+      "title": "🍥【らーめん　一作　茨木店(大阪府茨木市)】🍜濃厚こってりラーメン",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 45,
+      "restaurant": "ぎょうざの美鈴",
+      "source": "osm_jp_food.csv",
+      "needle_current": "",
+      "needle_backfilled": "伊勢市",
+      "title": "2025年【グルメ】伊勢市　ぎょうざの美鈴　高柳の夜店　高柳商店街",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 46,
+      "restaurant": "ラーメン あんず",
+      "source": "osm_jp_food.csv",
+      "needle_current": "",
+      "needle_backfilled": "多賀城市",
+      "title": "宮城県多賀城市「ラーメン あんず」辛みそラーメン【冬季限定】辣油と味噌の融合に味噌と水出し煮干し系出汁の超絶妙なハーモニー！味噌の旨味、コク、風味引き立つ創りが最高！そして細麺が最高に合う味噌😀",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 47,
+      "restaurant": "おかせい",
+      "source": "osm_jp_food.csv",
+      "needle_current": "",
+      "needle_backfilled": "女川町",
+      "title": "[ 宮城県 2泊3日の旅 ]　#4 JR 石巻線の終着駅 女川町　～ シーパルピア女川 / お魚いちば おかせい / 女川丼など ～",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 48,
+      "restaurant": "くろいわラーメン",
+      "source": "osm_jp_food.csv",
+      "needle_current": "",
+      "needle_backfilled": "鹿児島市",
+      "title": "鹿児島市【くろいわラーメン🍜】鹿児島高校前店🍜焼豚メン🍜わっぜ美味めー😋",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 49,
+      "restaurant": "cogemame",
+      "source": "osm_jp_food.csv",
+      "needle_current": "",
+      "needle_backfilled": "三沢市",
+      "title": "【青森県自家焙煎珈琲店巡り】お洒落空間で気品高い自家焙煎コーヒと、小麦の銘柄からこだわった、ふわふわの美味しいホットサンドが頂ける「自家焙煎珈琲 cogemame (コゲマメ)」さん【三沢市春日台】",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 50,
+      "restaurant": "スパイスピッカ",
+      "source": "osm_jp_food.csv",
+      "needle_current": "",
+      "needle_backfilled": "山形市",
+      "title": "【山形カレー】スパイスピッカ（山形市北町）｜山形で味わう本場北海道のスープカレー｜ランチやディナーにおすすめのグルメ",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 51,
+      "restaurant": "おひさま食堂  ひなた家",
+      "source": "ifas_jp_food.csv",
+      "needle_current": "盛岡市",
+      "needle_backfilled": "紫波町",
+      "title": "【スバルR2】おひさま食堂ひなた家な日　まんプク満足セカンド!!【紫波町】",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 52,
+      "restaurant": "ALOHA CAFE Pineapple 西宮山口店",
+      "source": "osm_jp_food.csv",
+      "needle_current": "",
+      "needle_backfilled": "西宮市",
+      "title": "【兵庫県西宮市でランチvlog】ハワイ気分が味わえる！ロコフード食べてきた🍍「ALOHA CAFE Pineapple 西宮山口店」",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 53,
+      "restaurant": "津軽煮干中華 勝三郎",
+      "source": "osm_jp_food.csv",
+      "needle_current": "",
+      "needle_backfilled": "青森市",
+      "title": "青森グルメ　青森県青森市で朝6時から営業！津軽煮干中華　勝三郎「ぼっちグルメウーマンの青森・岩手・秋田の食巡り！ 」",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 54,
+      "restaurant": "友部SA",
+      "source": "osm_jp_food.csv",
+      "needle_current": "",
+      "needle_backfilled": "笠間市",
+      "title": "茨城県民必見❗　何にでも これを載せて食べるのが県民❗😲　　　　　　　　　　　　　　【茨城県笠間市　常磐自動車道(上り) 友部ＳＡ】      #ラーメン#茨城県#納豆",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 55,
+      "restaurant": "バーガーキング　博多駅筑紫口店",
+      "source": "ifas_jp_food.csv",
+      "needle_current": "中央区",
+      "needle_backfilled": "博多区",
+      "title": "福岡グルメ・バーガーキング博多駅筑紫口店でワッパーJr.(福岡市博多区博多駅中央街)",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 56,
+      "restaurant": "吉田のうどん",
+      "source": "osm_jp_food.csv",
+      "needle_current": "",
+      "needle_backfilled": "富士吉田市",
+      "title": "吉田のうどん とがわ（山梨県富士吉田市）今回は２種類！またまたDレンジャーブルーのうどんを食べてきたｗ",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 57,
+      "restaurant": "ねぎっこ",
+      "source": "osm_jp_food.csv",
+      "needle_current": "",
+      "needle_backfilled": "那須塩原市",
+      "title": "【栃木グルメ】ラーメンねぎっこ（那須塩原市）ネギ塩ラーメン＆新メニューのネギ丼",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 58,
+      "restaurant": "そば処　粋",
+      "source": "ifas_jp_food.csv",
+      "needle_current": "前橋市",
+      "needle_backfilled": "邑楽町",
+      "title": "【邑楽町】そば処粋💚おしゃれなお店でボリュームがあるランチ🥳7：3蕎麦とかき揚げ丼とソースカツ丼🐷男性でも喜ばれる腹ぱん具合✌️映えるお花のあんこ🌸スイーツも欠かせない🥰😍",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 59,
+      "restaurant": "ルージュ・エ・ノアール",
+      "source": "osm_jp_food.csv",
+      "needle_current": "",
+      "needle_backfilled": "小城市",
+      "title": "【佐賀県小城市】昭和感漂うレトロな店内にコスパ最強すぎる和洋折衷50種類以上の豊富なメニュー！地元で長く愛されている理由がココに！【ルージュ･エ･ノアール】",
+      "verdict": "correct",
+      "note": ""
+    },
+    {
+      "n": 60,
+      "restaurant": "ゆめ牧場",
+      "source": "osm_jp_food.csv",
+      "needle_current": "",
+      "needle_backfilled": "成田市",
+      "title": "【観光牧場】完全版！成田ゆめ牧場で癒しのひと時！からの、爆釣モード突入！？　(千葉県成田市)　４K映像",
+      "verdict": "correct",
+      "note": ""
+    }
+  ]
+}

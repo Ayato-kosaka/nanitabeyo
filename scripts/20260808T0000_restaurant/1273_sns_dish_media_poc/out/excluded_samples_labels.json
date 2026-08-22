@@ -1,0 +1,23 @@
+{
+  "purpose": "目視で無効と判断した標本の除外リスト。#1344 で『群平均から外す』と決めたブログを、別の集計で基準値に使ってしまった事故を繰り返さないためのデータ化。",
+  "created_at": "2026-08-16",
+  "rule": "ここに載っているキーは、群平均・基準値・比較対象のいずれにも使わない。使う場合は理由を明記する。",
+  "excluded": [
+    {
+      "key": "kiyosuke.blog.jp",
+      "kind": "blog",
+      "why": "店名一致 53 件のうち目視した12件中9件が誤爆（『イントロ』『アリーナ』『バッテリー』等）。リンク無し率 49.06% はこの誤爆で作られている。",
+      "first_excluded_in": "ブログ群平均（リンク無し率の群比較）",
+      "wrongly_included_in": "measure_blog_yield_by_focus.py --group general（非特化群の基準値 41.33%）",
+      "effect_when_removed": "非特化のリンク無し率 41.33% -> 22.73%。特化 12.80% との CI が重なり、差が消える。"
+    },
+    {
+      "key": "ameblo.jp",
+      "kind": "blog_platform",
+      "why": "ブログサービスのドメインを1ブログとして扱うと、サイトマップ走査が食べ物と無関係な個人ブログまで拾う。一致は『today s』『デザート』『ログイン』『イオン江別店』等の誤爆ばかりだった。",
+      "first_excluded_in": "measure_blog_yield_by_focus.py の PLATFORM 集合",
+      "wrongly_included_in": null,
+      "effect_when_removed": "150記事->47店・リンク無し53.19% という行が丸ごと無効になる。"
+    }
+  ]
+}

@@ -26,7 +26,7 @@ type DishMediaBackgroundImageDescriptor = {
 	uri?: string;
 	mediaId?: string;
 	mediaType?: string;
-	renderType?: "stored_media" | "external_embed";
+	renderType?: "stored" | "external_embed";
 };
 
 type DishMediaBackgroundImageStates = Record<string, DishMediaBackgroundImageState>;

@@ -1,0 +1,55 @@
+{
+  "operator": "lalaport (三井不動産)",
+  "n_tenant_pages_discovered": 1706,
+  "n_sampled": 150,
+  "n_fetched_ok": 143,
+  "n_food_genre": 33,
+  "n_food_with_own_images": 27,
+  "n_food_with_dish_photo": 20,
+  "rate": 0.7407407407407407,
+  "wilson95": [
+    0.553210695973843,
+    0.8682979157713322
+  ],
+  "yes": [
+    "COMPHO",
+    "J.S. BURGERS",
+    "POPUPラーメン",
+    "RHC CAFE",
+    "TUTU",
+    "WE ARE THE FARM",
+    "WHO&#39;S TEA MINI",
+    "milky70",
+    "あじフライ神楽坂さくら",
+    "がってん寿司承知の助",
+    "さんさん食堂",
+    "ゴンチャ | ららぽーと横浜",
+    "ゴンチャ | アーバンドック",
+    "マクドナルド",
+    "上島珈琲店",
+    "星乃珈琲店",
+    "熟成豚かつ だいち",
+    "金子半之助",
+    "銀座 三笠會館",
+    "韓美膳"
+  ],
+  "no": [
+    "AENA",
+    "Afternoon Tea TEAROOM",
+    "La　Maison",
+    "creperie kenny’s",
+    "サーティワンアイスクリーム | ららぽーと海老名",
+    "マザー牧場",
+    "マンゴツリーキッチン"
+  ],
+  "unattributable_pages": [
+    "ITALIAN KITCHEN BUONO",
+    "カルディコーヒーファーム",
+    "サーティワンアイスクリーム | ららぽーと富士見",
+    "ババ・ガンプ・シュリンプ",
+    "築地銀だこ"
+  ],
+  "attribution_rule": "/shopguide/<そのページのID>/imageN.* だけを『その店の画像』とする。__icsFiles/ は館の共有アップロード領域で、ページ下部の『他の店舗』枠に他店のロゴが混ざる（銀だこのページに KALDI ロゴ、AENA のページに tutuanna ロゴ）。",
+  "og_image_finding": "og:image は 32/32 すべてロゴ・看板で、料理写真は0枚。①の『og:image はロゴが多い』という既往実測と一致する。",
+  "caveat": "1事業者(ららぽーと7館)の標本。他の事業者に一般化できない。イオンモールは各モールが Nuxt の SPA で、この方法では列挙できない。"
+}

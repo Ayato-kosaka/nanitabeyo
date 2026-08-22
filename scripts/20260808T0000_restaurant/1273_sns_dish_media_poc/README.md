@@ -67,6 +67,22 @@ python3 sns_dish_media_poc.py discover-restaurant-dish-media \
 
 `.env` はgit管理外です。APIキーは出力JSONにも書き込みません。`YOUTUBE_API_KEY` 未設定時は `youtube-search` / `youtube-embed-check` が exit code 2 でfail closedし、推測値を生成しません（#1269と同じ方針）。
 
+## カバレッジ試算スクリプト
+
+```bash
+# #1279 Route B前提の再モデル化（DB接続不要、fixtures/のCSVのみ使用）
+python3 coverage_route_b.py
+```
+
+`coverage_route_b.py` が現行のカバレッジ試算です。`coverage_youtube_only.py` と `coverage_combined.py` のカバレッジ部分は Route A 前提（k = その店舗が既に `dishes` に持っているカテゴリ数）で `1-(1-p)^k` を使っており、#1279 でモデル誤りと判定されたため **SUPERSEDED**（Round2時点の記録として残置）。`coverage_combined.py` のうち Common Crawl 逆引きの実測部分（#1281）は引き続き有効。
+
+Route B での再モデル化は、試行単位が「店舗」ではなく「クエリ」になる点と、カバレッジが `S(供給上限) × R_eff(retrieval効率)` に分解され `coverage <= S` で頭打ちになる点が要点。あわせて #1273 §32 のKPI（area×categoryセルごとに異なる5店舗）が、SNS側の発見率とは無関係に店舗密度とメニュー幅だけで決まる鳩の巣原理の上限を持つことを本番データで定量化している。詳細は REPORT.md。
+
+必要なfixtures（`.gitignore`で`*.csv`が除外されているためgit管理外。DBから再エクスポートすること）:
+
+- `fixtures/public_restaurants.csv` — 本番 `public.restaurants` 全件（列: name, latitude, longitude）
+- `fixtures/public_dish_categories_134_gate.csv` — 134 gateカテゴリ（列: dish_category_id, label_en, label_ja, market_salience_jp）
+
 ## サンプルURL・カテゴリ
 
 - `fixtures/tiktok_sample_urls.txt` / `fixtures/x_sample_urls.txt`: 2026-08-12にWeb検索で見つけた公開投稿。店舗紐付け精度やcoverage measurementのためのものではなく、あくまで技術的なEmbed feasibility（issue本文 Stage 0）確認用。

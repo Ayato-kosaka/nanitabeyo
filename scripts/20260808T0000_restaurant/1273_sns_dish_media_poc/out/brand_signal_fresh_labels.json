@@ -1,0 +1,373 @@
+{
+  "n": 36,
+  "n_brand": 20,
+  "rate": 0.5555555555555556,
+  "wilson_ci95": [
+    0.3958078731600341,
+    0.7045897012345685
+  ],
+  "rule": "key_len>=5",
+  "method": "規則を作った60件とは別の、未目視の 61-120番のうち規則を通した36件を全件目視。brand=商標性のある固有名で1つの運営者を指しそう、generic=無関係の店が同名になりうる。",
+  "rows": [
+    {
+      "name": "居酒屋りん",
+      "key": "居酒屋りん",
+      "n_places": 4,
+      "key_len": 5,
+      "spread_km": 470.9,
+      "label": null,
+      "verdict": "generic",
+      "n": 1
+    },
+    {
+      "name": "ボンクール",
+      "key": "ボンクール",
+      "n_places": 2,
+      "key_len": 5,
+      "spread_km": 35.2,
+      "label": null,
+      "verdict": "generic",
+      "n": 2
+    },
+    {
+      "name": "あさひ散道イッチ",
+      "key": "あさひ散道イッチ",
+      "n_places": 2,
+      "key_len": 8,
+      "spread_km": 6.3,
+      "label": null,
+      "verdict": "brand",
+      "n": 3
+    },
+    {
+      "name": "らーめん　いち",
+      "key": "らーめんいち",
+      "n_places": 3,
+      "key_len": 6,
+      "spread_km": 11.3,
+      "label": null,
+      "verdict": "brand",
+      "n": 4
+    },
+    {
+      "name": "ロマンチック街道",
+      "key": "ロマンチック街道",
+      "n_places": 2,
+      "key_len": 8,
+      "spread_km": 17.0,
+      "label": null,
+      "verdict": "brand",
+      "n": 5
+    },
+    {
+      "name": "とらふぐ亭 南千住店",
+      "key": "とらふぐ亭南千住店",
+      "n_places": 2,
+      "key_len": 9,
+      "spread_km": 1.8,
+      "label": null,
+      "verdict": "brand",
+      "n": 6
+    },
+    {
+      "name": "kyoya",
+      "key": "kyoya",
+      "n_places": 2,
+      "key_len": 5,
+      "spread_km": 224.4,
+      "label": null,
+      "verdict": "generic",
+      "n": 7
+    },
+    {
+      "name": "Meets Sweets",
+      "key": "meets sweets",
+      "n_places": 2,
+      "key_len": 12,
+      "spread_km": 23.9,
+      "label": null,
+      "verdict": "brand",
+      "n": 8
+    },
+    {
+      "name": "焼肉の金松",
+      "key": "焼肉の金松",
+      "n_places": 2,
+      "key_len": 5,
+      "spread_km": 0.9,
+      "label": null,
+      "verdict": "brand",
+      "n": 9
+    },
+    {
+      "name": "どうとんぼり神座",
+      "key": "どうとんぼり神座",
+      "n_places": 40,
+      "key_len": 8,
+      "spread_km": 494.4,
+      "label": null,
+      "verdict": "brand",
+      "n": 10
+    },
+    {
+      "name": "寿司めいじん",
+      "key": "寿司めいじん",
+      "n_places": 7,
+      "key_len": 6,
+      "spread_km": 398.7,
+      "label": null,
+      "verdict": "brand",
+      "n": 11
+    },
+    {
+      "name": "クワンチャイ",
+      "key": "クワンチャイ",
+      "n_places": 3,
+      "key_len": 6,
+      "spread_km": 28.3,
+      "label": null,
+      "verdict": "brand",
+      "n": 12
+    },
+    {
+      "name": "ミルフルール",
+      "key": "ミルフルール",
+      "n_places": 2,
+      "key_len": 6,
+      "spread_km": 174.4,
+      "label": null,
+      "verdict": "generic",
+      "n": 13
+    },
+    {
+      "name": "ぽんぽこ亭",
+      "key": "ぽんぽこ亭",
+      "n_places": 6,
+      "key_len": 5,
+      "spread_km": 1065.4,
+      "label": null,
+      "verdict": "generic",
+      "n": 14
+    },
+    {
+      "name": "スナックマリ",
+      "key": "スナックマリ",
+      "n_places": 2,
+      "key_len": 6,
+      "spread_km": 692.0,
+      "label": null,
+      "verdict": "generic",
+      "n": 15
+    },
+    {
+      "name": "ウィッシュボーン",
+      "key": "ウィッシュボーン",
+      "n_places": 2,
+      "key_len": 8,
+      "spread_km": 302.8,
+      "label": null,
+      "verdict": "generic",
+      "n": 16
+    },
+    {
+      "name": "雨ニモマケズ",
+      "key": "雨ニモマケズ",
+      "n_places": 5,
+      "key_len": 6,
+      "spread_km": 967.2,
+      "label": null,
+      "verdict": "generic",
+      "n": 17
+    },
+    {
+      "name": "そば処中村屋",
+      "key": "そば処中村屋",
+      "n_places": 3,
+      "key_len": 6,
+      "spread_km": 125.6,
+      "label": null,
+      "verdict": "generic",
+      "n": 18
+    },
+    {
+      "name": "麺とび六方",
+      "key": "麺とび六方",
+      "n_places": 3,
+      "key_len": 5,
+      "spread_km": 56.2,
+      "label": null,
+      "verdict": "brand",
+      "n": 19
+    },
+    {
+      "name": "立呑み さいごう",
+      "key": "立呑みさいごう",
+      "n_places": 2,
+      "key_len": 7,
+      "spread_km": 0.9,
+      "label": null,
+      "verdict": "brand",
+      "n": 20
+    },
+    {
+      "name": "balloon",
+      "key": "balloon",
+      "n_places": 2,
+      "key_len": 7,
+      "spread_km": 235.4,
+      "label": null,
+      "verdict": "generic",
+      "n": 21
+    },
+    {
+      "name": "くらしき桃子",
+      "key": "くらしき桃子",
+      "n_places": 2,
+      "key_len": 6,
+      "spread_km": 15.3,
+      "label": null,
+      "verdict": "brand",
+      "n": 22
+    },
+    {
+      "name": "Food Trailer  SIZZLE(シズル)",
+      "key": "foodtrailersizzle(シズル)",
+      "n_places": 2,
+      "key_len": 22,
+      "spread_km": 19.1,
+      "label": null,
+      "verdict": "brand",
+      "n": 23
+    },
+    {
+      "name": "ささき寿司",
+      "key": "ささき寿司",
+      "n_places": 3,
+      "key_len": 5,
+      "spread_km": 653.6,
+      "label": null,
+      "verdict": "generic",
+      "n": 24
+    },
+    {
+      "name": "スナックアクア",
+      "key": "スナックアクア",
+      "n_places": 2,
+      "key_len": 7,
+      "spread_km": 1301.3,
+      "label": null,
+      "verdict": "generic",
+      "n": 25
+    },
+    {
+      "name": "廣島つけ麺本舗 ばくだん屋",
+      "key": "廣島つけ麺本舗ばくだん屋",
+      "n_places": 2,
+      "key_len": 12,
+      "spread_km": 0.9,
+      "label": null,
+      "verdict": "brand",
+      "n": 26
+    },
+    {
+      "name": "バンコク屋台",
+      "key": "バンコク屋台",
+      "n_places": 2,
+      "key_len": 6,
+      "spread_km": 798.1,
+      "label": null,
+      "verdict": "generic",
+      "n": 27
+    },
+    {
+      "name": "Angelique",
+      "key": "angelique",
+      "n_places": 3,
+      "key_len": 9,
+      "spread_km": 1126.2,
+      "label": null,
+      "verdict": "generic",
+      "n": 28
+    },
+    {
+      "name": "よかよか亭　宮地店",
+      "key": "よかよか亭宮地店",
+      "n_places": 2,
+      "key_len": 8,
+      "spread_km": 1.1,
+      "label": null,
+      "verdict": "brand",
+      "n": 29
+    },
+    {
+      "name": "Ｃｈｅｚあさひな",
+      "key": "chezあさひな",
+      "n_places": 2,
+      "key_len": 8,
+      "spread_km": 6.6,
+      "label": null,
+      "verdict": "brand",
+      "n": 30
+    },
+    {
+      "name": "いつもここから",
+      "key": "いつもここから",
+      "n_places": 2,
+      "key_len": 7,
+      "spread_km": 893.3,
+      "label": null,
+      "verdict": "generic",
+      "n": 31
+    },
+    {
+      "name": "Vitalezza Kitchen",
+      "key": "vitalezza kitchen",
+      "n_places": 2,
+      "key_len": 17,
+      "spread_km": 3.5,
+      "label": null,
+      "verdict": "brand",
+      "n": 32
+    },
+    {
+      "name": "チャーシュー力",
+      "key": "チャーシュー力",
+      "n_places": 3,
+      "key_len": 7,
+      "spread_km": 21.6,
+      "label": null,
+      "verdict": "brand",
+      "n": 33
+    },
+    {
+      "name": "Cafe Coco",
+      "key": "cafe coco",
+      "n_places": 4,
+      "key_len": 9,
+      "spread_km": 1436.1,
+      "label": null,
+      "verdict": "generic",
+      "n": 34
+    },
+    {
+      "name": "Islay Mojito",
+      "key": "islay mojito",
+      "n_places": 2,
+      "key_len": 12,
+      "spread_km": 1.1,
+      "label": null,
+      "verdict": "brand",
+      "n": 35
+    },
+    {
+      "name": "パンのみみ 木・ぼーう",
+      "key": "パンのみみ木ぼーう",
+      "n_places": 2,
+      "key_len": 9,
+      "spread_km": 0.9,
+      "label": null,
+      "verdict": "brand",
+      "n": 36
+    }
+  ]
+}

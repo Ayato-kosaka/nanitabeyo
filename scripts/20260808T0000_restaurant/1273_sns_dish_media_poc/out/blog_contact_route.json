@@ -1,0 +1,194 @@
+{
+  "n": 21,
+  "n_ok": 19,
+  "counts": {
+    "問い合わせフォーム": 1,
+    "コメント欄のみ": 13,
+    "連絡経路なし": 3,
+    "問い合わせフォーム(トップ)": 1,
+    "取得失敗": 2,
+    "mailto(トップ)": 1
+  },
+  "n_mailto": 1,
+  "n_form": 2,
+  "mailto_rate": 0.05263157894736842,
+  "rows": [
+    {
+      "blogger": "tsurifukurou.com",
+      "cat": "ramen",
+      "home": "https://tsurifukurou.com/",
+      "contact_links": [
+        "https://tsurifukurou.com/contact/"
+      ],
+      "route": "問い合わせフォーム",
+      "detail": "",
+      "page": "https://tsurifukurou.com/contact/"
+    },
+    {
+      "blogger": "titabetamono.livedoor.blog",
+      "cat": "ramen",
+      "home": "https://titabetamono.livedoor.blog/",
+      "contact_links": [],
+      "route": "コメント欄のみ",
+      "detail": ""
+    },
+    {
+      "blogger": "favoriteslibrary-ramen.com",
+      "cat": "ramen",
+      "home": "https://favoriteslibrary-ramen.com/",
+      "contact_links": [],
+      "route": "コメント欄のみ",
+      "detail": ""
+    },
+    {
+      "blogger": "soba-udon-ramen.com",
+      "cat": "ramen",
+      "home": "https://soba-udon-ramen.com/",
+      "contact_links": [
+        "http://soba-udon-ramen.com/info"
+      ],
+      "route": "コメント欄のみ",
+      "detail": ""
+    },
+    {
+      "blogger": "0jx2jxdgd9m8.blog.fc2.com",
+      "cat": "bkyu",
+      "home": "https://0jx2jxdgd9m8.blog.fc2.com/",
+      "contact_links": [],
+      "route": "コメント欄のみ",
+      "detail": ""
+    },
+    {
+      "blogger": "ogamuku.com",
+      "cat": "bkyu",
+      "home": "https://ogamuku.com/",
+      "contact_links": [],
+      "route": "連絡経路なし",
+      "detail": ""
+    },
+    {
+      "blogger": "gochisousama.officialblog.jp",
+      "cat": "ramen",
+      "home": "https://gochisousama.officialblog.jp/",
+      "contact_links": [],
+      "route": "問い合わせフォーム(トップ)",
+      "detail": ""
+    },
+    {
+      "blogger": "hassakuman.fc2.com",
+      "cat": "ramen",
+      "home": "https://hassakuman.fc2.com/",
+      "route": "取得失敗",
+      "detail": ""
+    },
+    {
+      "blogger": "kenboo340.blog.fc2.com",
+      "cat": "ramen",
+      "home": "https://kenboo340.blog.fc2.com/",
+      "contact_links": [],
+      "route": "コメント欄のみ",
+      "detail": ""
+    },
+    {
+      "blogger": "zatsu-ke.blog.jp",
+      "cat": "ramen",
+      "home": "https://zatsu-ke.blog.jp/",
+      "route": "mailto(トップ)",
+      "detail": "zatsu_ra@yahoo.co.jp"
+    },
+    {
+      "blogger": "sapporo-eatfull-life.doorblog.jp",
+      "cat": "ramen",
+      "home": "https://sapporo-eatfull-life.doorblog.jp/",
+      "contact_links": [],
+      "route": "コメント欄のみ",
+      "detail": ""
+    },
+    {
+      "blogger": "blogger-yoshi.hatenablog.com",
+      "cat": "ramen",
+      "home": "https://blogger-yoshi.hatenablog.com/",
+      "contact_links": [
+        "https://blogger-yoshi.hatenablog.com/entry/otoiawase"
+      ],
+      "route": "コメント欄のみ",
+      "detail": ""
+    },
+    {
+      "blogger": "lostigres2.fc2.com",
+      "cat": "ramen",
+      "home": "https://lostigres2.fc2.com/",
+      "route": "取得失敗",
+      "detail": ""
+    },
+    {
+      "blogger": "ryuryuryuseijinn.blog.fc2.com",
+      "cat": "ramen",
+      "home": "https://ryuryuryuseijinn.blog.fc2.com/",
+      "contact_links": [],
+      "route": "コメント欄のみ",
+      "detail": ""
+    },
+    {
+      "blogger": "koitu1818.blog.jp",
+      "cat": "bkyu",
+      "home": "https://koitu1818.blog.jp/",
+      "contact_links": [],
+      "route": "コメント欄のみ",
+      "detail": ""
+    },
+    {
+      "blogger": "dinosaur1843.livedoor.blog",
+      "cat": "bkyu",
+      "home": "https://dinosaur1843.livedoor.blog/",
+      "contact_links": [],
+      "route": "連絡経路なし",
+      "detail": ""
+    },
+    {
+      "blogger": "gudagudablog.livedoor.blog",
+      "cat": "bkyu",
+      "home": "https://gudagudablog.livedoor.blog/",
+      "contact_links": [],
+      "route": "コメント欄のみ",
+      "detail": ""
+    },
+    {
+      "blogger": "gatekinikki.blog.shinobi.jp",
+      "cat": "bkyu",
+      "home": "https://gatekinikki.blog.shinobi.jp/",
+      "contact_links": [
+        "http://mail-mag.rental-rental.net"
+      ],
+      "route": "コメント欄のみ",
+      "detail": ""
+    },
+    {
+      "blogger": "masaru142263.hatenadiary.com",
+      "cat": "bkyu",
+      "home": "https://masaru142263.hatenadiary.com/",
+      "contact_links": [],
+      "route": "コメント欄のみ",
+      "detail": ""
+    },
+    {
+      "blogger": "samura-men.com",
+      "cat": "ramen",
+      "home": "https://samura-men.com/",
+      "contact_links": [
+        "https://samura-men.com/otoiawase02/"
+      ],
+      "route": "コメント欄のみ",
+      "detail": ""
+    },
+    {
+      "blogger": "inojimania.jugem.jp",
+      "cat": "ramen",
+      "home": "https://inojimania.jugem.jp/",
+      "contact_links": [],
+      "route": "連絡経路なし",
+      "detail": ""
+    }
+  ],
+  "caveat": "経路の存在だけを測った。返信率も許諾率も測っていない。フォームは送信していない。トップと問い合わせページの2枚しか見ないので下限である。"
+}

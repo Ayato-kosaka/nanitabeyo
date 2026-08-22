@@ -1,6 +1,11 @@
 .env
 out/*.json
 !out/.gitkeep
+# #1273 【設計】目視ラベルだけは例外でコミットする。これは測定の**出力**ではなく
+# 人が読んで付けた**判断**であり、スクリプトを回し直しても再現できない。
+# コンテナが消えると失われるので、生データと違って版に残す必要がある。
+!out/*_labels*.json
+!out/*labels_*.json
 .venv/
 __pycache__/
 .ruff_cache/
@@ -16,3 +21,26 @@ out/idea_verification/*.err
 out/idea_verification/_*
 out/idea_verification/verify.py
 out/idea_verification/verify_results.json
+out/*.log
+
+# #1273 施設テナントの目視検証で落としたテナント画像とコンタクトシート。
+# 上と同じ理由（画像バイナリはコミットしない）。目視の結果は REPORT.md に書く。
+out/facility_photo_images/
+out/contact_*.jpg
+out/_blog_text/
+out/_blog_policy_text/
+out/_shorts_thumbs/
+# #1273 【事故】自社サイト画像の目視検証で落とした 14 枚を、cwd を間違えたまま
+#   `git add -A` して**コミットしてしまった**（画像バイナリはコミットしない方針）。
+#   目視の結果は out/own_site_dish_image_labels.json と REPORT.md に残す。
+out/_own_site_imgs/
+out/_blog_imgs/
+
+# #1273 【設計】BigQuery の集計結果は例外でコミットする。目視ラベルと同じ理由で、
+# **ローカルのスクリプトを回し直しても再現できない**（外部データへのクエリが要る）。
+# SQL は measure_website_column_structure.py の末尾に丸ごと入れてあるので、
+# BigQuery が使える環境では引き直せる。
+!out/website_column_structure.json
+!out/platform_link_coverage.json
+!out/blog_contact_route.json
+!out/blog_yield_both_sides_audited.json

@@ -1,0 +1,25 @@
+{
+  "domain": "ogamuku.com",
+  "blog_title": "みらこつ.com（B級グルメ）",
+  "sample_source": "verify_blog_store_matches.py --domain ogamuku.com --sample 20（SHA-256 順の決定的標本）",
+  "labeled_at": "2026-08-16",
+  "labeler": "Claude（本文の前後60字を読んで判定）",
+  "n_names_total": 40,
+  "n_stores_strict_reported": 30,
+  "n_sample": 20,
+  "true_positive": [
+    "山ノ洋食屋ざびえる", "ばんかん亭", "ピッツェリアダエッレ", "てぃーだ渡良瀬遊水地",
+    "フォーシーズンズ壬生", "伊達の牛たん本舗東インター店", "山のフモトのパン食堂cou屋",
+    "珈琲工房ほろにが", "千成多幸亭", "8代葵カフェ下妻店", "boulangerie rire",
+    "ひがの食堂", "釜戸ごはん春夏秋冬食堂", "まぐろ専門店がお", "farmers cafe minttan",
+    "fall of the leaf", "手打ちそば大山", "青山がらりつくば店", "ちんばた", "藤屋本店"
+  ],
+  "false_positive": [],
+  "counts": {"tp": 20, "fp": 0, "n": 20},
+  "precision": 1.0,
+  "notes": [
+    "**記事タイトルが「店名　都道府県市町村 | みらこつ.com」で統一されている。** 1記事1店の構造なので誤爆が起きない。",
+    "同じ「ラーメン/B級グルメ特化」でも、**文体が構造化されているブログほど機械判定の precision が高い**。titabetamono（レビュー文中心）は 62.5%、ここは 100%。",
+    "precision の差はブログの書き方によるもので、カテゴリ特化かどうかとは別の軸である。"
+  ]
+}

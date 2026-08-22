@@ -78,7 +78,7 @@ export class DishMediaAssembler {
         thumbnailImageUrl,
         renderType: external
           ? ('external_embed' as const)
-          : ('stored_media' as const),
+          : ('stored' as const),
         externalEmbed: external
           ? {
               provider: external.provider,

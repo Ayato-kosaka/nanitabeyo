@@ -203,27 +203,72 @@ model dish_category_variants {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model dish_media {
-  id                          String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  dish_id                     String                       @db.Uuid
-  user_id                     String?                      @db.Uuid
-  media_path                  String
-  media_type                  String
-  thumbnail_path              String
-  created_at                  DateTime                     @default(now()) @db.Timestamptz(6)
-  updated_at                  DateTime                     @default(now()) @db.Timestamptz(6)
-  lock_no                     Int                          @default(0)
-  video_duration_ms           Int?
-  media_processing_status     String
-  thumbnail_processing_status String
-  dishes                      dishes                       @relation(fields: [dish_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  users                       users?                       @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  dish_media_analysis_results dish_media_analysis_results?
-  dish_media_impressions      dish_media_impressions[]
-  dish_media_likes            dish_media_likes[]
-  dish_media_views            dish_media_views[]
-  payouts                     payouts[]
+  id                             String                          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  dish_id                        String                          @db.Uuid
+  user_id                        String?                         @db.Uuid
+  media_path                     String
+  media_type                     String
+  thumbnail_path                 String
+  created_at                     DateTime                        @default(now()) @db.Timestamptz(6)
+  updated_at                     DateTime                        @default(now()) @db.Timestamptz(6)
+  lock_no                        Int                             @default(0)
+  video_duration_ms              Int?
+  media_processing_status        String
+  thumbnail_processing_status    String
+  /// #1273 §40 stored=media_path の自社GCSを配信 / external_embed=外部埋め込みで描画
+  render_type                    String                          @default("stored")
+  dishes                         dishes                          @relation(fields: [dish_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users                          users?                          @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  dish_media_analysis_results    dish_media_analysis_results?
+  dish_media_impressions         dish_media_impressions[]
+  dish_media_likes               dish_media_likes[]
+  dish_media_views               dish_media_views[]
+  dish_media_external_embeddings dish_media_external_embeddings?
+  payouts                        payouts[]
 
+  @@unique([id, dish_id], map: "uq_dish_media_id_dish_id")
   @@index([dish_id], map: "idx_dish_media_dish")
+  @@schema("dev")
+}
+
+/// #1273 §40 SNS等の外部埋め込み情報。dish_media 本体は既存検索・reaction との互換層として残し、
+/// media固有の項目はこの 1:0..1 の子テーブルへ隔離する。
+/// 実体は 20260812T0100_add_restaurant_recommendation_sync_metadata.sql で作成済みだったが
+/// Prisma schema に未反映で raw SQL からしか触れなかったため、20260814T0000 で取り込んだ。
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// #1375 との統合後の形。作成元は 20260819T0200、取り込み系の列は 20260821T0000 が足す。
+/// db-migrate.yml の regenerate_prisma で introspect し直されるため、
+/// ここは «適用後にこうなるはず» の手書きの写しである。ズレたら introspect 結果を正とすること。
+model dish_media_external_embeddings {
+  dish_media_id       String     @id @db.Uuid
+  /// dish_media.dish_id と必ず一致する。自然キーに含めて «同じ投稿 × 別の料理» を許す（#1399）
+  dish_id             String     @db.Uuid
+  provider            String
+  external_content_id String
+  canonical_url       String
+  /// unknown / available / unavailable。#1273 §39 の死活監視バッチが使う
+  embed_status        String     @default("unknown")
+  last_verified_at    DateTime?  @db.Timestamptz(6)
+  /// ここから下は #1273 の一括取り込み経路だけが埋める。#1399 のユーザー取り込みでは NULL
+  embed_html          String?
+  thumbnail_url       String?
+  availability_status String?
+  rights_basis        String?
+  terms_version       String?
+  published_at        DateTime?  @db.Timestamptz(6)
+  source_row_hash     String?
+  created_at          DateTime   @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime   @default(now()) @db.Timestamptz(6)
+  /// 単一列 FK ではなく複合 FK。dish_id のズレを構造的に禁じる
+  dish_media          dish_media @relation(fields: [dish_media_id, dish_id], references: [id, dish_id], onDelete: Cascade)
+
+  /// PK が dish_media_id なので論理的には冗長だが、Prisma が複合 FK で 1:1 を
+  /// 表現するために «参照元側の複合ユニーク» を要求する。DB 側にも実体を張ってある
+  /// （20260819T0200 の dmee_media_dish_uq）
+  @@unique([dish_media_id, dish_id], map: "dmee_media_dish_uq")
+  @@unique([provider, external_content_id, dish_id], map: "dmee_provider_content_dish_uq")
+  @@index([embed_status, last_verified_at], map: "idx_dmee_status_verified")
+  @@index([availability_status, last_verified_at(sort: Desc)], map: "dish_media_external_availability_idx")
   @@schema("dev")
 }
 

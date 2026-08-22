@@ -1,0 +1,47 @@
+{
+  "measured_at": "2026-08-19",
+  "source": "BigQuery `bigquery-public-data.overture_maps.place`（release 2026-07-22_0）を MCP 経由で集計",
+  "scope": "日本の飲食 15 カテゴリ（fixtures/overture_jp_food.csv と同じ basic_category 一覧）かつ websites が1件以上",
+  "n_with_website": 442003,
+  "n_distinct_hosts": 184600,
+  "classes": [
+    {"klass": "F 複数店で共有(2-49)", "n_hosts": 31320, "n_stores": 131596, "pct": 29.77},
+    {"klass": "G 1店だけ(独自サイトの可能性)", "n_hosts": 123141, "n_stores": 123141, "pct": 27.86},
+    {"klass": "E チェーン本社(50店以上)", "n_hosts": 523, "n_stores": 100316, "pct": 22.70},
+    {"klass": "A ポータル(グルメ/出前)", "n_hosts": 422, "n_stores": 36301, "pct": 8.21},
+    {"klass": "D サイト作成サービス", "n_hosts": 23287, "n_stores": 25392, "pct": 5.74},
+    {"klass": "B SNS", "n_hosts": 38, "n_stores": 12675, "pct": 2.87},
+    {"klass": "C ブログ・無料ホスティング", "n_hosts": 5869, "n_stores": 12582, "pct": 2.85}
+  ],
+  "buckets_excluding_portal_sns_blog_builder": [
+    {"bucket": "1店", "n_hosts": 123141, "n_stores": 123141},
+    {"bucket": "2-4店", "n_hosts": 24947, "n_stores": 59771},
+    {"bucket": "5-9店", "n_hosts": 3889, "n_stores": 24781},
+    {"bucket": "10-49店", "n_hosts": 2484, "n_stores": 47044},
+    {"bucket": "50-199店", "n_hosts": 389, "n_stores": 36294},
+    {"bucket": "200店以上", "n_hosts": 134, "n_stores": 64022}
+  ],
+  "top_hosts": [
+    {"host": "tabelog.com", "n": 11517}, {"host": "r.gnavi.co.jp", "n": 8407},
+    {"host": "instagram.com", "n": 8176}, {"host": "hotpepper.jp", "n": 4925},
+    {"host": "ameblo.jp", "n": 4245}, {"host": "mcdonalds.co.jp", "n": 3120},
+    {"host": "s.tabelog.com", "n": 2488}, {"host": "hitosara.com", "n": 1984},
+    {"host": "hottomotto.com", "n": 1957}, {"host": "twitter.com", "n": 1909},
+    {"host": "sukiya.jp", "n": 1552}, {"host": "monteroza.co.jp", "n": 1518},
+    {"host": "skylark.co.jp", "n": 1505}, {"host": "r.tabelog.com", "n": 1502},
+    {"host": "localplace.jp", "n": 1451}, {"host": "geocities.jp", "n": 924},
+    {"host": "gourmet.yahoo.co.jp", "n": 856}, {"host": "ja-jp.facebook.com", "n": 632}
+  ],
+  "sample_host_counts": {
+    "r.gnavi.co.jp": 8407, "ameblo.jp": 4245, "sukiya.jp": 1552, "ichibanya.co.jp": 1078,
+    "torikizoku.co.jp": 1053, "cocos-jpn.co.jp": 305, "nogaminopan.com": 155,
+    "flojapon.co.jp": 104, "hachiban.co.jp": 92, "koganeseimensyo.com": 45,
+    "birioncoffee.com": 17, "kunimaru.net": 13, "torigin-ginza.jp": 5, "isuminavi.jp": 4,
+    "akan-malt-beef.jp": 3, "hirosaki-kanko.or.jp": 2, "cimosel.exblog.jp": 2, "coroya.com": 2,
+    "santune.co.jp": 1, "masala-kaoru.com": 1, "kukururu-okinawa.com": 1, "ponystoy.com": 1,
+    "edaya.owst.jp": 1, "francfranc.com": 1, "hodatsushimizu.jp": 1,
+    "torisen-kagoshima.food96.com": 1, "oishiiocha.com": 1, "kuwapan.jp": 1,
+    "tsukubamirai-yosoji.com": 1, "tottokimiso.com": 0
+  },
+  "caveat": "Overture のみ（母集団 1,132,482 は Overture + IFAS + OSM の3ソース）。websites の先頭1件だけを見ている。ホスト数は『同じホストを何店が指しているか』であって、ページが店ごとに分かれているかは別問題（ポータルは店ごとのページを持つ）。"
+}

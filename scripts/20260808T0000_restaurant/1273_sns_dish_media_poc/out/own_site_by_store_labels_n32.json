@@ -1,0 +1,305 @@
+{
+  "purpose": "#1273 自社サイト経路の**店単位** precision を n=8 から n=32 に広げて測り直した。天井の幅（12.22〜19.52%）を決めていたのがこの n=8 の CI（40.9〜92.9%）だったため。",
+  "labeled_at": "2026-08-19",
+  "labeler": "Claude（各店のコンタクトシートを実際に表示して判定）",
+  "criterion": "その店に**料理写真が1枚でもあるか**（67.32% と同じ定義）。ただし**別主体のサイト・ポータルの共有素材は偽**とする。dish_media はその店に帰属しなければ使えないため。",
+  "supersedes": "out/own_site_by_store_labels.json（n=8, 75.0%）。最初の8件はここに再掲してあり、判定は変えていない。",
+  "sampling": "own-website-images.json で料理画像ありと判定された 92 店を店名の SHA-256 で並べ、先頭 32 店。先頭 8 店は前回と同一。",
+  "stores": [
+    {
+      "i": 1,
+      "store": "食彩工房・蔵",
+      "domain": "ameblo.jp",
+      "verdict": "偽",
+      "why": "個人ブログ。車の人物写真とびっくりドンキーの夜間外観。**別の店**"
+    },
+    {
+      "i": 2,
+      "store": "8番らーめん",
+      "domain": "hachiban.co.jp",
+      "verdict": "境界",
+      "why": "外観にラーメン椀を合成した事業バナー。料理は写るが主役ではない"
+    },
+    {
+      "i": 3,
+      "store": "ココス白石",
+      "domain": "cocos-jpn.co.jp",
+      "verdict": "真",
+      "why": "かき氷"
+    },
+    {
+      "i": 4,
+      "store": "南印度料理 巡るインド",
+      "domain": "masala-kaoru.com",
+      "verdict": "真",
+      "why": "ミールス"
+    },
+    {
+      "i": 5,
+      "store": "こがね製麺所倉敷天城店",
+      "domain": "koganeseimensyo.com",
+      "verdict": "真",
+      "why": "讃岐うどんのバナー"
+    },
+    {
+      "i": 6,
+      "store": "Cimolo Selvaggio",
+      "domain": "cimosel.exblog.jp",
+      "verdict": "真",
+      "why": "フグの一皿"
+    },
+    {
+      "i": 7,
+      "store": "沖縄タコス くくるる",
+      "domain": "kukururu-okinawa.com",
+      "verdict": "真",
+      "why": "ステーキライス・焼きそば"
+    },
+    {
+      "i": 8,
+      "store": "568 西予店",
+      "domain": "coroya.com",
+      "verdict": "真",
+      "why": "コロッケのセット"
+    },
+    {
+      "i": 9,
+      "store": "阿寒モルト牛長村牧場",
+      "domain": "akan-malt-beef.jp",
+      "verdict": "境界",
+      "why": "外観1枚と**メニュー表のスキャン3枚**。料理は写っているが紙面であり、1枚の料理写真として切り出せない"
+    },
+    {
+      "i": 10,
+      "store": "FLO PRESTIGE",
+      "domain": "flojapon.co.jp",
+      "verdict": "真",
+      "why": "ショートケーキ、カフェの料理。文字入りだが料理が主役"
+    },
+    {
+      "i": 11,
+      "store": "わ家 はなれ",
+      "domain": "nogaminopan.com",
+      "verdict": "偽",
+      "why": "**乃が美（食パン専門店）のサイト**。写真はスフレチーズケーキと葡萄食パンで料理写真だが、『わ家 はなれ』の料理ではない。website 列が別主体を指している"
+    },
+    {
+      "i": 12,
+      "store": "Men-no-kuni Namba Sennichimae",
+      "domain": "kunimaru.net",
+      "verdict": "真",
+      "why": "排骨ラーメン"
+    },
+    {
+      "i": 13,
+      "store": "焼肉元祖江田屋",
+      "domain": "edaya.owst.jp",
+      "verdict": "真",
+      "why": "焼肉の盛り合わせ"
+    },
+    {
+      "i": 14,
+      "store": "カレーハウスCoCo壱番屋",
+      "domain": "ichibanya.co.jp",
+      "verdict": "偽",
+      "why": "ロゴ・宅配バナー・オンラインショップ。**4枚とも共有素材**で料理は1枚も無い"
+    },
+    {
+      "i": 15,
+      "store": "鳥ぎん 日比谷店",
+      "domain": "torigin-ginza.jp",
+      "verdict": "真",
+      "why": "釜めしと焼き鳥の膳（お品書き画像も1枚あり）"
+    },
+    {
+      "i": 16,
+      "store": "魚屋さんつね",
+      "domain": "santune.co.jp",
+      "verdict": "偽",
+      "why": "父の日の『のし』バナー。料理は写っていない"
+    },
+    {
+      "i": 17,
+      "store": "MUG CAFE by Francfranc",
+      "domain": "francfranc.com",
+      "verdict": "偽",
+      "why": "**Francfranc の食器販売ページ**の商品写真。皿の上に料理はあるが主役は食器で、この店の料理ではない"
+    },
+    {
+      "i": 18,
+      "store": "市川大楽園",
+      "domain": "oishiiocha.com",
+      "verdict": "偽",
+      "why": "茶葉のパッケージ写真"
+    },
+    {
+      "i": 19,
+      "store": "喜相逢",
+      "domain": "r.gnavi.co.jp",
+      "verdict": "偽",
+      "why": "焼き鳥・和牛・パスタ・個室の4枚が**すべて共有素材**（田村屋と完全一致）。料理写真だが帰属できない"
+    },
+    {
+      "i": 20,
+      "store": "とっときみそ",
+      "domain": "tottokimiso.com",
+      "verdict": "偽",
+      "why": "味噌・米麹のパッケージ写真"
+    },
+    {
+      "i": 21,
+      "store": "すき家",
+      "domain": "sukiya.jp",
+      "verdict": "真",
+      "why": "カレー・なす豚丼"
+    },
+    {
+      "i": 22,
+      "store": "すき家",
+      "domain": "sukiya.jp",
+      "verdict": "真",
+      "why": "#21 と同一チェーンの別店舗（#21=札幌市厚別区 / #22=横浜市泉区）。id が異なる**実在する2店**で、重複行ではない。ただし本社サイトを共有するため画像は完全に同じになる"
+    },
+    {
+      "i": 23,
+      "store": "酒菜食栄太",
+      "domain": "hodatsushimizu.jp",
+      "verdict": "偽",
+      "why": "看板つき外観1枚のみ"
+    },
+    {
+      "i": 24,
+      "store": "ビリオン珈琲和歌山川辺店",
+      "domain": "birioncoffee.com",
+      "verdict": "欠測",
+      "why": "4枚とも取得失敗（HTTPError 3件＋既定アバター画像）。判定に含めない"
+    },
+    {
+      "i": 25,
+      "store": "大正浪漫喫茶室",
+      "domain": "hirosaki-kanko.or.jp",
+      "verdict": "偽",
+      "why": "**弘前観光協会のサイト**。五重塔・岩木山・祭り・紅葉。URL が /img/menu/ なのはサイトのナビゲーション『メニュー』であって料理ではない"
+    },
+    {
+      "i": 26,
+      "store": "国産小麦100％全粒粉パン専門店 桑ぱん",
+      "domain": "kuwapan.jp",
+      "verdict": "真",
+      "why": "パンと料理プレート"
+    },
+    {
+      "i": 27,
+      "store": "四十路",
+      "domain": "tsukubamirai-yosoji.com",
+      "verdict": "真",
+      "why": "唐揚げ、刺身・天丼のバナー"
+    },
+    {
+      "i": 28,
+      "store": "鳥貴族 JR王寺駅前店",
+      "domain": "torikizoku.co.jp",
+      "verdict": "真",
+      "why": "焼き鳥・鉄板とろろ・釜飯"
+    },
+    {
+      "i": 29,
+      "store": "田村屋",
+      "domain": "r.gnavi.co.jp",
+      "verdict": "偽",
+      "why": "#19 と同じ共有素材4枚。帰属できない"
+    },
+    {
+      "i": 30,
+      "store": "いけす料理 あき",
+      "domain": "isuminavi.jp",
+      "verdict": "真",
+      "why": "貝・刺身盛り。ポータル(isuminavi)だが店固有の写真で共有素材ではない"
+    },
+    {
+      "i": 31,
+      "store": "Pony's Toy",
+      "domain": "ponystoy.com",
+      "verdict": "偽",
+      "why": "夜間の店舗入口（外観）のみ"
+    },
+    {
+      "i": 32,
+      "store": "炭火焼とりとん",
+      "domain": "torisen-kagoshima.food96.com",
+      "verdict": "偽",
+      "why": "**SUBWAY のロゴ**（ポータル food96.com の系列ロゴ）。店の写真ですらない"
+    }
+  ],
+  "counts": {
+    "真": 17,
+    "境界": 2,
+    "偽": 12,
+    "欠測": 1,
+    "n_judged": 31
+  },
+  "precision_strict": 0.5484,
+  "precision_strict_ci": [
+    0.378,
+    0.708
+  ],
+  "precision_with_boundary": 0.6129,
+  "precision_with_boundary_ci": [
+    0.438,
+    0.763
+  ],
+  "first8_vs_new23": {
+    "first8": {
+      "k": 6,
+      "n": 8,
+      "p": 0.75,
+      "ci": [
+        0.409,
+        0.929
+      ]
+    },
+    "new23": {
+      "k": 11,
+      "n": 23,
+      "p": 0.4783,
+      "ci": [
+        0.292,
+        0.67
+      ]
+    },
+    "judgement": "**CI が大きく重なるので差があるとは言えない。** 前回の 75.0% は n=8 の上振れだったと見るのが素直で、n を4倍にしたら点推定は 54.8% に下がった。"
+  },
+  "failure_modes": [
+    {
+      "型": "別主体のサイト",
+      "件数": 6,
+      "例": "わ家はなれ→乃が美 / MUG CAFE→Francfranc商品ページ / 大正浪漫喫茶室→弘前観光協会 / 炭火焼とりとん→SUBWAYロゴ / 食彩工房・蔵→個人ブログ",
+      "所見": "**website 列の質の問題**であって料理画像判定の問題ではない。ここは判定器を直しても救えない"
+    },
+    {
+      "型": "ポータルの共有素材",
+      "件数": 3,
+      "例": "喜相逢・田村屋（r.gnavi.co.jp の同一4枚）/ CoCo壱番屋（全4枚 shared）",
+      "所見": "料理写真ではあるが**特定の店に帰属させられない**"
+    },
+    {
+      "型": "料理でない画像",
+      "件数": 4,
+      "例": "外観のみ / 茶葉・味噌のパッケージ / のしバナー",
+      "所見": "周辺テキストの料理語だけで通っている。判定器は画像の中身を見ていない"
+    },
+    {
+      "型": "料理だが1枚に切り出せない",
+      "件数": 2,
+      "例": "メニュー表のスキャン / 外観との合成バナー",
+      "所見": "境界に分類した"
+    }
+  ],
+  "notes": [
+    "**店単位 precision は 54.84%（17/31、95%CI 37.8〜70.8%）。** 前回公表した 75.0%（n=8）から **20.2pt 下がった**。",
+    "境界2件を真に数えても 61.29% で、75.0% には届かない。",
+    "**【訂正】** #21/#22 を当初『重複店舗行』と書いたが誤りだった。id を引いたら 札幌市厚別区と横浜市泉区の**別々の実店舗**で、どちらも本社サイト(sukiya.jp)を website に持っているだけである。母集団の重複ではない。ただし**チェーンでは同じ写真が全店に付く**ので、店ごとの料理写真にはならない。dish_media としてチェーン共通写真を許すかは別の判断になる。",
+    "偽 12件のうち **6件が『別主体のサイト』**で、これが最大の失敗型になった。画像判定を改善しても取れない分である。"
+  ],
+  "caveat": "1店あたり上位4枚しか見ていないので下限。5枚目以降に料理写真があれば取りこぼす。#24 は取得失敗で欠測（分母から除外）。"
+}

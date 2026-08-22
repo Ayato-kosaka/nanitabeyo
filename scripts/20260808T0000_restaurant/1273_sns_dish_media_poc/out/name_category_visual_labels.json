@@ -1,0 +1,615 @@
+{
+  "n": 60,
+  "n_correct": 58,
+  "precision": 0.9666666666666667,
+  "wilson_ci95": [
+    0.8863601247107462,
+    0.9908108735098498
+  ],
+  "method": "SHA-256 順で決定的に選んだ60件を全件目視。誤りと判断したものだけ note を付けた。",
+  "rows": [
+    {
+      "n": 1,
+      "name": "しゃぶしゃぶステーキ桂",
+      "source": "overture",
+      "categories": [
+        "Q1061856",
+        "Q10859394"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 2,
+      "name": "神戸ステーキ メリカン",
+      "source": "overture",
+      "categories": [
+        "Q10859394"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 3,
+      "name": "はなまるうどん",
+      "source": "overture",
+      "categories": [
+        "Q471861"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 4,
+      "name": "カーニバルコーヒー",
+      "source": "osm",
+      "categories": [
+        "Q30022"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 5,
+      "name": "はま寿司　小山喜沢店",
+      "source": "ifas",
+      "categories": [
+        "Q46383"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 6,
+      "name": "児嶋珈琲店",
+      "source": "ifas",
+      "categories": [
+        "Q30022"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 7,
+      "name": "モスバーガー",
+      "source": "osm",
+      "categories": [
+        "Q6663"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 8,
+      "name": "カフェ アルバトロス",
+      "source": "overture",
+      "categories": [
+        "Q30022"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 9,
+      "name": "パスタ＆カフェ リマーユ",
+      "source": "overture",
+      "categories": [
+        "Q178",
+        "Q30022"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 10,
+      "name": "New Yorker's Cafe",
+      "source": "overture",
+      "categories": [
+        "Q30022"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 11,
+      "name": "居酒屋一休千船",
+      "source": "overture",
+      "categories": [
+        "Q1193068"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 12,
+      "name": "名代寿司 久月",
+      "source": "osm",
+      "categories": [
+        "Q46383"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 13,
+      "name": "古本カフェ・コラージュ",
+      "source": "overture",
+      "categories": [
+        "Q30022"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 14,
+      "name": "居酒屋まさ",
+      "source": "overture",
+      "categories": [
+        "Q1193068"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 15,
+      "name": "寿し武",
+      "source": "ifas",
+      "categories": [
+        "Q46383"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 16,
+      "name": "ウヱルネスカフェ＆八百屋",
+      "source": "ifas",
+      "categories": [
+        "Q30022"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 17,
+      "name": "満緑カフェ&ショップ",
+      "source": "overture",
+      "categories": [
+        "Q30022"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 18,
+      "name": "そば元本舗 グランテラス筑西店",
+      "source": "overture",
+      "categories": [
+        "Q753910"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 19,
+      "name": "中華そば 麓",
+      "source": "overture",
+      "categories": [
+        "Q234646"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 20,
+      "name": "三本珈琲店",
+      "source": "osm",
+      "categories": [
+        "Q30022"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 21,
+      "name": "炭火焼肉 たまえん",
+      "source": "overture",
+      "categories": [
+        "Q2431975"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 22,
+      "name": "手打ちそば　ようてい庵",
+      "source": "ifas",
+      "categories": [
+        "Q753910"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 23,
+      "name": "あっ晴れつけめん堂東浦店",
+      "source": "overture",
+      "categories": [
+        "Q17605220"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 24,
+      "name": "居酒屋 きらく",
+      "source": "ifas",
+      "categories": [
+        "Q1193068"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 25,
+      "name": "居酒屋　壱",
+      "source": "osm",
+      "categories": [
+        "Q1193068"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 26,
+      "name": "元祖ニュータンタンメン本舗 町田店",
+      "source": "overture",
+      "categories": [
+        "Q3013426"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 27,
+      "name": "お持ち帰り焼き鳥　口福",
+      "source": "ifas",
+      "categories": [
+        "Q483163"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 28,
+      "name": "スパゲッティーのパンチョ",
+      "source": "overture",
+      "categories": [
+        "Q178"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 29,
+      "name": "はま寿司　神戸伊川谷店",
+      "source": "ifas",
+      "categories": [
+        "Q46383"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 30,
+      "name": "ケンタッキーフライドチキン",
+      "source": "overture",
+      "categories": [
+        "Q108798661"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 31,
+      "name": "熟成焼肉いちばん",
+      "source": "overture",
+      "categories": [
+        "Q2431975"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 32,
+      "name": "もつ鍋芋中洲店",
+      "source": "overture",
+      "categories": [
+        "Q3775525"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 33,
+      "name": "ドミノ・ピザ",
+      "source": "overture",
+      "categories": [
+        "Q177"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 34,
+      "name": "和・洋居酒屋ありがとん",
+      "source": "overture",
+      "categories": [
+        "Q1193068"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 35,
+      "name": "コメダ珈琲店 プラットモール長崎店",
+      "source": "overture",
+      "categories": [
+        "Q30022"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 36,
+      "name": "Terachabo Kissa-sho powered by One Note Coffee Roaster",
+      "source": "overture",
+      "categories": [
+        "Q30022"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 37,
+      "name": "焼肉・ホルモン はな",
+      "source": "overture",
+      "categories": [
+        "Q2431975"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 38,
+      "name": "ケンチャンラーメン",
+      "source": "overture",
+      "categories": [
+        "Q234646"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 39,
+      "name": "中華料理 松林",
+      "source": "osm",
+      "categories": [
+        "Q10876842"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 40,
+      "name": "メインキッチン（ルームサービス・サービスバーアイスクリーム）",
+      "source": "ifas",
+      "categories": [
+        "Q13233"
+      ],
+      "correct": false,
+      "note": "ホテルのメインキッチン。「サービスバーアイスクリーム」は設備名で、提供する皿ではない"
+    },
+    {
+      "n": 41,
+      "name": "ａｉ　ｃｏｆｆｅｅ",
+      "source": "ifas",
+      "categories": [
+        "Q30022"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 42,
+      "name": "Cafe&Meal MUJI",
+      "source": "overture",
+      "categories": [
+        "Q30022"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 43,
+      "name": "Ten. Ten. Cafe",
+      "source": "overture",
+      "categories": [
+        "Q30022"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 44,
+      "name": "箱根そば",
+      "source": "osm",
+      "categories": [
+        "Q753910"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 45,
+      "name": "そば処夏川",
+      "source": "overture",
+      "categories": [
+        "Q753910"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 46,
+      "name": "ヒロコーヒー西宮北口店",
+      "source": "overture",
+      "categories": [
+        "Q30022"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 47,
+      "name": "鶏そば焼き鳥 くろじ",
+      "source": "overture",
+      "categories": [
+        "Q483163",
+        "Q753910"
+      ],
+      "correct": false,
+      "note": "「鶏そば」はラーメン系の一皿。そば（蕎麦）を出す店ではない可能性が高い"
+    },
+    {
+      "n": 48,
+      "name": "居酒屋えん",
+      "source": "ifas",
+      "categories": [
+        "Q1193068"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 49,
+      "name": "やきとり倶楽部相模大野店",
+      "source": "overture",
+      "categories": [
+        "Q483163"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 50,
+      "name": "クレイトンズカフェ",
+      "source": "overture",
+      "categories": [
+        "Q30022"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 51,
+      "name": "くら寿司",
+      "source": "overture",
+      "categories": [
+        "Q46383"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 52,
+      "name": "道化宿珈琲",
+      "source": "overture",
+      "categories": [
+        "Q30022"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 53,
+      "name": "とんかつ新宿さぼてん橋本ミウィ店",
+      "source": "ifas",
+      "categories": [
+        "Q1142841"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 54,
+      "name": "Cafe No Border",
+      "source": "overture",
+      "categories": [
+        "Q30022"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 55,
+      "name": "和食工房おべんと亭",
+      "source": "overture",
+      "categories": [
+        "Q234138"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 56,
+      "name": "餃子の王将",
+      "source": "osm",
+      "categories": [
+        "Q107014807"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 57,
+      "name": "カフェバー 303",
+      "source": "overture",
+      "categories": [
+        "Q30022"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 58,
+      "name": "Ebisu Sushi",
+      "source": "overture",
+      "categories": [
+        "Q46383"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 59,
+      "name": "寿司勝",
+      "source": "osm",
+      "categories": [
+        "Q46383"
+      ],
+      "correct": true,
+      "note": ""
+    },
+    {
+      "n": 60,
+      "name": "ピザハット",
+      "source": "osm",
+      "categories": [
+        "Q177"
+      ],
+      "correct": true,
+      "note": ""
+    }
+  ]
+}

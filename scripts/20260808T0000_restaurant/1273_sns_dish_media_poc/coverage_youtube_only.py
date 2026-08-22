@@ -1,6 +1,18 @@
 #!/usr/bin/env python3
 """idea検証: youtube-only-coverage-ceiling (#1273 Round2)
 
+【重要 / #1279 でモデル誤りと判定・SUPERSEDED】
+本スクリプトは coverage = 1-(1-p)^k で試算しているが、k を「その店舗が既に dishes に
+持っているカテゴリ数」として与えており、これは Route A（既存dish登録の範囲内でしか
+探索しない）の前提。オーナー確認により Route B（カテゴリ×エリア掃引を既存dish登録と
+無関係に行い、見つかった投稿からその場で dish 行を新規作成する）が正であるため、
+試行の単位が「店舗」ではなく「クエリ」になり、このモデルは形自体が適用できない。
+また p には既にYouTube側の供給不足が織り込まれているため、k を増やせば
+カバレッジが 1 に漸近するという含意も誤り（供給上限を超えられない）。
+
+現行の試算は `coverage_route_b.py` を使うこと。本ファイルは Round2 時点の
+記録として残しているだけで、新たな意思決定には使わない。
+
 YouTube単独(yt-dlp Route B)の全国カバレッジ上限試算。
 
 読み取り専用スクリプト。dev.dish_category_features / dev.dishes を SELECT するのみで、
