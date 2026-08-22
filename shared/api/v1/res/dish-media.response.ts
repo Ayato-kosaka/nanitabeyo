@@ -45,8 +45,6 @@ export type DishMediaExternalEmbed = {
 	 * 取れなければ null（表示は料理カテゴリ画像へ落ちる）。
 	 */
 	thumbnailUrl: string | null;
-	/** #1399 provider 側の投稿日時。取れなければ null。アプリ内の並び順には使わない */
-	publishedAt: string | null;
 };
 
 /** 一つの料理メディア投稿（dish_media）とそれに関連する情報（レストラン、料理、レビュー） */

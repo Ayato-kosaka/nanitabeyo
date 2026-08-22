@@ -1,7 +1,7 @@
 -- ==============================================================================
 -- 20260819T0200_create_dish_media_external_embeddings.sql
 -- #1395（親 #1375 / #1273 §14・§39 準拠）/ #1399（自然キーへ dish_id を追加・
--- thumbnail_url / published_at を追加）
+-- thumbnail_url を追加）
 --
 -- ⚠️ このテーブルは **まだ public（本番）へ適用していない**。
 --    public の最終適用は 20260807T0100 で、20260819T0000 以降は 1 本も当たっていない。
@@ -103,10 +103,6 @@ CREATE TABLE IF NOT EXISTS dish_media_external_embeddings (
   -- （表示は料理カテゴリ画像へ落ちる）。dish_media.thumbnail_path（自ストレージのパス）とは別物。
   thumbnail_url       text NULL,
 
-  -- #1399 provider 側の投稿日時。oEmbed から取れない provider では NULL。
-  -- アプリ内の並び順には使わない（自分が保存した日時＝reactions.created_at を使う）
-  published_at        timestamptz(6) NULL,
-
   -- 監査
   created_at          timestamptz(6) NOT NULL DEFAULT now(),
   updated_at          timestamptz(6) NOT NULL DEFAULT now(),
@@ -152,7 +148,6 @@ COMMENT ON COLUMN dish_media_external_embeddings.canonical_url IS 'provider 上�
 COMMENT ON COLUMN dish_media_external_embeddings.embed_status IS '埋め込みの死活（unknown=未検証 / available=表示可 / unavailable=削除・非公開等で表示不可）';
 COMMENT ON COLUMN dish_media_external_embeddings.last_verified_at IS '最後に死活検証した日時。NULL は未検証。idx_dmee_status_verified で古い順に再検証する';
 COMMENT ON COLUMN dish_media_external_embeddings.thumbnail_url IS 'provider 側のサムネイル URL（参照であって複製ではない）。取得できなければ NULL。複製の可否は provider ごとに異なる（Instagram は禁止 / TikTok の署名 URL は約48hで失効 / YouTube の i.ytimg.com は無署名で安定）ため、ここでは URL のみを保持する。#1399';
-COMMENT ON COLUMN dish_media_external_embeddings.published_at IS 'provider 側の投稿日時。oEmbed から取れない provider では NULL。アプリ内の並び順には使わない（自分が保存した日時＝reactions.created_at を使う）。#1399';
 COMMENT ON COLUMN dish_media_external_embeddings.created_at IS 'レコード作成日時';
 COMMENT ON COLUMN dish_media_external_embeddings.updated_at IS 'レコード更新日時（トリガで自動更新）';
 
@@ -210,12 +205,19 @@ UPDATE dish_media_external_embeddings dmee
 ALTER TABLE dish_media_external_embeddings
   ALTER COLUMN dish_id SET NOT NULL;
 
--- --- thumbnail_url / published_at（#1399。上の CREATE TABLE に含めた分の追いつき） ---
+-- --- thumbnail_url（#1399。上の CREATE TABLE に含めた分の追いつき） ---
 -- 既にテーブルがある環境（dev）では CREATE TABLE がスキップされるので、ここで足す。
--- どちらも NULLABLE でデフォルト値を持たないため、既存行は 1 行も書き換わらない
+-- NULLABLE でデフォルト値を持たないため、既存行は 1 行も書き換わらない
 ALTER TABLE dish_media_external_embeddings
-  ADD COLUMN IF NOT EXISTS thumbnail_url text,
-  ADD COLUMN IF NOT EXISTS published_at  timestamptz(6);
+  ADD COLUMN IF NOT EXISTS thumbnail_url text;
+
+-- --- published_at を落とす（#1399・#1483 オーナー判断） -------------
+-- 一度 dev にだけ足したが、**どのコードも書き込まなかった**（oEmbed は TikTok / YouTube の
+-- どちらも投稿日時を返さない）。「何も書かない列は置かない」という判断で削除する。
+-- public にはこのテーブル自体がまだ無いので、本番へは最初から存在しない列になる。
+-- この DROP は **dev を追いつかせるためだけ**にある。public 適用後は消してよい
+ALTER TABLE dish_media_external_embeddings
+  DROP COLUMN IF EXISTS published_at;
 
 -- --- 複合 FK ------------------------------------------------------
 -- 旧版が張っていた単一列 FK は複合 FK に包含されるので落とす

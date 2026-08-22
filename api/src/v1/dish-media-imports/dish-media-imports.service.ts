@@ -208,7 +208,6 @@ export class DishMediaImportsService {
             last_verified_at: resolved.status === 'ok' ? new Date() : null,
             // サムネイルは複製せず参照する（権利調査の結論。migration 20260822T0000 参照）
             thumbnail_url: resolved.metadata.thumbnailUrl,
-            published_at: null,
           },
         });
       }

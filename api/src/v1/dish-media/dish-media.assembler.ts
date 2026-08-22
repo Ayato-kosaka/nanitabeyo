@@ -241,7 +241,6 @@ export class DishMediaAssembler {
       embedStatus: row.embed_status as DishMediaExternalEmbed['embedStatus'],
       lastVerifiedAt: row.last_verified_at?.toISOString() ?? null,
       thumbnailUrl: row.thumbnail_url ?? null,
-      publishedAt: row.published_at?.toISOString() ?? null,
     };
   }
 
