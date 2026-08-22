@@ -89,7 +89,14 @@ export class DishMediaAssembler {
 
       const dishMediaBase = convertPrismaToSupabase_DishMedia(src.dish_media);
       const { mediaUrl } = this.getMediaUrl(src.dish_media);
-      const thumbnailImageUrl = this.getThumbnailImageUrl(src.dish_media);
+      const externalEmbed = this.toExternalEmbed(src.dish_media.externalEmbed);
+      // #1399 external_embed は自ストレージにサムネイルが無い（thumbnail_path: ''）。
+      // その場合は取り込み時に保存した外部サムネイル URL（oEmbed 由来）へ落とす。
+      // Instagram のように外部サムネイルも取れない provider では null になる
+      const thumbnailImageUrl =
+        this.getThumbnailImageUrl(src.dish_media) ??
+        externalEmbed?.thumbnailUrl ??
+        null;
       const dish_media = {
         ...dishMediaBase,
         // Explicitly add only the required additional fields for DishMediaEntry.dish_media
@@ -101,7 +108,7 @@ export class DishMediaAssembler {
         thumbnailImageUrl,
         // #1399 render_type='external_embed' の行だけが持つ。**html は返さない**
         // （#1375 設計の正本 §2 / #1273 §14。埋め込みは canonicalUrl から都度描く）
-        externalEmbed: this.toExternalEmbed(src.dish_media.externalEmbed),
+        externalEmbed,
       };
 
       const dish_reviews = src.dish_reviews.map((r) => {
@@ -252,9 +259,17 @@ export class DishMediaAssembler {
    *
    * #1395 Map ピンのように `DishMediaEntry` を丸ごと組み立てない経路からも
    * 同じ規則を使えるよう public にしてある（サムネイル URL の組み立てを 2 箇所に持たない）。
-   * ロジック自体は無改修である（サムネイルは全 provider が自ストレージ持ちのため）。
+   *
+   * ⚠️ #1399 `thumbnail_path` が空の行では **null を返す**。SNS 取り込み
+   * （render_type='external_embed'）は自ストレージにサムネイルを持たず
+   * `thumbnail_path: ''` で作られる。ここを guard しないと
+   * `buildResizedPath` が `Invalid originalPath` を throw し、その行を含む
+   * **一覧・フィード全体が 500 になる**（実際に my-dishes が
+   * 「データの読み込みに失敗しました」で全滅した）。
    */
-  public getThumbnailImageUrl(dishMedia: ThumbnailUrlSource): string {
+  public getThumbnailImageUrl(dishMedia: ThumbnailUrlSource): string | null {
+    if (!dishMedia.thumbnail_path) return null;
+
     const status =
       dishMedia.thumbnail_processing_status as MediaProcessingStatus | null;
 

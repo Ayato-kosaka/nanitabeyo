@@ -65,8 +65,13 @@ export type DishMediaEntry = {
 		 * - 画像の場合: media_processing_status に応じてオリジナル or リサイズ済みパス
 		 */
 		mediaUrl: string | null;
-		/** 投稿サムネイル画像の署名付きCDN URL（派生サイズ or オリジナル） */
-		thumbnailImageUrl: string;
+		/**
+		 * 投稿サムネイル画像の署名付きCDN URL（派生サイズ or オリジナル）。
+		 * #1399 `render_type='external_embed'` では自ストレージに実体が無いため、
+		 * 外部サムネイル URL（oEmbed 由来）が入る。それも無い provider
+		 * （Instagram 等）では **null**。
+		 */
+		thumbnailImageUrl: string | null;
 		/**
 		 * #1395 `render_type='external_embed'` のときの埋め込み情報。
 		 * 既存の組み立て箇所を壊さないため optional。stored の行では null になる。

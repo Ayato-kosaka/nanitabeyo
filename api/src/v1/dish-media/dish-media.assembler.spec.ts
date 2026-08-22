@@ -299,8 +299,53 @@ describe('DishMediaAssembler - Signed Cookie Generation', () => {
       expect(url).toContain('test-cdn.example.com');
       expect(url).toContain('user-uploads/user-1/thumb.jpg');
       expect(url).toContain('Signature=');
-      // 戻り値は string のままなので DishMediaEntry.thumbnailImageUrl: string は破壊されない
+      // 自ストレージにサムネイルがある行では従来どおり string が返る
       expect(typeof url).toBe('string');
+    });
+
+    it('#1399 thumbnail_path が空でも落ちず、外部サムネイル URL へ落ちる', () => {
+      // SNS 取り込み（dish-media-imports）は自ストレージにサムネイルを持たないので
+      // thumbnail_path: '' で作られる。ここで buildResizedPath へ '' を渡すと
+      // 'Invalid originalPath' を throw し、**その行を含む一覧全体が 500 になる**
+      // （実際に my-dishes が全滅した）。guard の存在を固定する。
+      const result = assembler.toDishMediaEntry(
+        baseEntry({
+          render_type: 'external_embed',
+          media_path: null,
+          media_processing_status: 'completed',
+          thumbnail_path: '',
+          thumbnail_processing_status: 'completed',
+          externalEmbed: {
+            id: 'embed-1',
+            dish_media_id: 'media-1',
+            provider: 'tiktok',
+            external_content_id: 'c-1',
+            canonical_url: 'https://www.tiktok.com/@a/video/1',
+            embed_status: 'available',
+            last_verified_at: null,
+            thumbnail_url: 'https://p16-sign.tiktokcdn.com/thumb.webp',
+          },
+        }) as any,
+      );
+
+      expect(result.items[0].dish_media.thumbnailImageUrl).toBe(
+        'https://p16-sign.tiktokcdn.com/thumb.webp',
+      );
+    });
+
+    it('#1399 外部サムネイルも無い provider（Instagram 等）は null になる', () => {
+      const result = assembler.toDishMediaEntry(
+        baseEntry({
+          render_type: 'external_embed',
+          media_path: null,
+          media_processing_status: 'completed',
+          thumbnail_path: '',
+          thumbnail_processing_status: 'completed',
+          externalEmbed: null,
+        }) as any,
+      );
+
+      expect(result.items[0].dish_media.thumbnailImageUrl).toBeNull();
     });
 
     it('stored でも従来どおり thumbnail_path から組む', () => {

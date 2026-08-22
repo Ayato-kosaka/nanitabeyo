@@ -457,7 +457,7 @@ export function ReviewForm({
 					setMediaState({ status: "loading" });
 					await Image.prefetch(mediaUrl);
 				}
-				const thumbnailUrl = media.thumbnailImageUrl;
+				const thumbnailUrl = media.thumbnailImageUrl ?? undefined;
 				thumbnailUrl && (await Image.prefetch(thumbnailUrl));
 				// #1127 prefetch 中に張り替え / アンマウントされていたら書き戻さない
 				if (isStale()) return;

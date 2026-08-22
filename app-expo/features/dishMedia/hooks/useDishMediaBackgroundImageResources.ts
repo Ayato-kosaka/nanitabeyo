@@ -92,7 +92,11 @@ export const areDishMediaBackgroundImageDescriptorsEqual = (
  * 背景画像 preload に必要な最小 descriptor のみを購読する。
  * restaurant/reviews/likes 等の更新では反応せず、bgUri 変更時だけ preload を走らせる。
  */
-export const useDishMediaBackgroundImageResources = ({ ids, idType, sessionKey }: UseDishMediaBackgroundImageResourcesParams) => {
+export const useDishMediaBackgroundImageResources = ({
+	ids,
+	idType,
+	sessionKey,
+}: UseDishMediaBackgroundImageResourcesParams) => {
 	const { logFrontendEvent } = useLogger();
 	const imageStatesRef = useRef<DishMediaBackgroundImageStates>({});
 	const imageLoadGenerationRef = useRef(0);
@@ -114,7 +118,7 @@ export const useDishMediaBackgroundImageResources = ({ ids, idType, sessionKey }
 						const entry = idType === "dish_media" ? selectEntryByMediaId(id)(state) : selectEntryByReviewId(id)(state);
 						if (!entry) return null;
 
-						const uri = getDishMediaBackgroundImageUri(entry);
+						const uri = getDishMediaBackgroundImageUri(entry) ?? undefined;
 						return {
 							id,
 							key: getDishMediaBackgroundImageKey(entry),
@@ -129,7 +133,10 @@ export const useDishMediaBackgroundImageResources = ({ ids, idType, sessionKey }
 		areDishMediaBackgroundImageDescriptorsEqual,
 	);
 
-	const keyById = useMemo(() => Object.fromEntries(descriptors.map((descriptor) => [descriptor.id, descriptor.key])), [descriptors]);
+	const keyById = useMemo(
+		() => Object.fromEntries(descriptors.map((descriptor) => [descriptor.id, descriptor.key])),
+		[descriptors],
+	);
 
 	// #802 【設計】表示の真実は Image.loadAsync で取得した ImageRef の ready/error に置く。
 	// 表示側 Image の mount/cache hit/re-render による load イベント欠落は状態決定に使わない。
