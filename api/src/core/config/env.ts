@@ -1,5 +1,6 @@
 import * as dotenv from 'dotenv';
 import { z } from 'zod';
+import { parseCorsOrigins } from './cors-origin';
 
 // .env ファイルから環境変数を読み込む
 dotenv.config();
@@ -13,12 +14,9 @@ const envSchema = z.object({
   API_NODE_ENV: z.string(),
   // カンマ区切りで複数オリジンを許可する（例: "https://app.example.com,http://localhost:4173"）
   // 単一値もそのまま 1 要素の配列になるため後方互換
-  CORS_ORIGIN: z.string().transform((v) =>
-    v
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean),
-  ),
+  // `*` を含む項目は RegExp へ展開される（Firebase Hosting の preview チャンネルのように
+  // URL の一部が毎回変わる配信先を許可するため）。詳細は cors-origin.ts を参照。
+  CORS_ORIGIN: z.string().transform(parseCorsOrigins),
   DATABASE_URL: z.string(),
   DB_SCHEMA: z.string(),
   // #904 【設計】Prisma 7 driver adapterではPool設定をDATABASE_URLではなくpg.Poolへ渡す

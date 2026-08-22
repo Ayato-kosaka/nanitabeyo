@@ -333,6 +333,10 @@ export function ReviewForm({
 					case "thumbnail_failed":
 						errorMessage = i18n.t("Map.media.thumbnailFailed");
 						break;
+					// #1425 HEIC / HEIF はサーバがデコードできないため、選択時点で断る
+					case "unsupported_image_format":
+						errorMessage = i18n.t("Map.media.unsupportedImageFormat");
+						break;
 				}
 
 				setMediaState({ status: "error", error: errorMessage });

@@ -293,6 +293,38 @@ export default function TopicsScreen() {
 		if (isOpeningGroupVoteRef.current) return;
 		isOpeningGroupVoteRef.current = true;
 
+		/**
+		 * #1376 【バグ】`shareToken` が空のまま push すると、expo-router は動的セグメントを
+		 * 解決できず **`[shareToken]` というリテラルのまま** URL に残す。その URL でサーバへ問い合わせると
+		 * `getDetailByShareToken` が 404 を返し、`DishCategoryGroupVotes.getDetailFailed` が error で記録される。
+		 * 本番ログには実際に `shareToken: "[shareToken]"` が届いており、認証済みユーザー 4 人が踏んでいた。
+		 *
+		 * ⚠️ **ここで弾くときは必ず `isOpeningGroupVoteRef` を解除すること。**
+		 * この ref は「遷移したら解除しない（遷移先で useFocusEffect が解除する）」設計なので、
+		 * 遷移せずに抜ける経路で解除を忘れると **ボタンが二度と押せなくなる**（#1205 と同じ罠）。
+		 */
+		const pushToGroupVote = (shareToken: string | null | undefined, source: "cache" | "created"): boolean => {
+			if (!shareToken) {
+				logFrontendEvent({
+					event_name: "dish_category_group_vote_share_token_missing",
+					error_level: "error",
+					payload: { source },
+				});
+				isOpeningGroupVoteRef.current = false;
+				showSnackbar(i18n.t("Topics.errors.fetchFailed"));
+				return false;
+			}
+
+			router.push({
+				pathname: "/[locale]/(tabs)/search/dish-category-group-votes/[shareToken]",
+				params: {
+					locale,
+					shareToken,
+				},
+			});
+			return true;
+		};
+
 		const cachedResponse = createdGroupVoteRef.current;
 		if (cachedResponse) {
 			logFrontendEvent({
@@ -300,13 +332,7 @@ export default function TopicsScreen() {
 				error_level: "log",
 				payload: { shareToken: cachedResponse.shareToken },
 			});
-			router.push({
-				pathname: "/[locale]/(tabs)/search/dish-category-group-votes/[shareToken]",
-				params: {
-					locale,
-					shareToken: cachedResponse.shareToken,
-				},
-			});
+			pushToGroupVote(cachedResponse.shareToken, "cache");
 			return;
 		}
 
@@ -321,14 +347,13 @@ export default function TopicsScreen() {
 				isOpeningGroupVoteRef.current = false;
 				return;
 			}
-			createdGroupVoteRef.current = response;
-			router.push({
-				pathname: "/[locale]/(tabs)/search/dish-category-group-votes/[shareToken]",
-				params: {
-					locale,
-					shareToken: response.shareToken,
-				},
-			});
+			// #1376 【設計】**遷移できた応答だけをキャッシュする。**
+			// ここで無条件にキャッシュすると、shareToken の無い応答が居座って
+			// 以降の再試行がすべてキャッシュ経路（= 同じ壊れた応答）へ流れ、
+			// その検索セッションでは友達投票を二度と開けなくなる。
+			if (pushToGroupVote(response.shareToken, "created")) {
+				createdGroupVoteRef.current = response;
+			}
 		} catch {
 			// #1205 失敗時は必ず解除する。ここを省くと「1 回失敗したら二度と開けない」になる。
 			isOpeningGroupVoteRef.current = false;
