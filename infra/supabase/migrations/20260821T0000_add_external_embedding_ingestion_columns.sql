@@ -9,8 +9,8 @@
 -- CREATE TABLE IF NOT EXISTS しており、«先に流れた方が勝ち、後は無言でスキップ» という
 -- 形で片方の設計が壊れる状態だった（列構成・provider の値域・PK の取り方が食い違っていた）。
 --
--- 2026-08-21 に **作成元を 20260819T0200 へ一本化**し、20260812T0100 からは
--- CREATE TABLE を外した。その結果、20260812T0100 が必要としていた «一括取り込み系の列» が
+-- 2026-08-21 に **作成元を 20260819T0200 へ一本化**し、20260823T0000 からは
+-- CREATE TABLE を外した。その結果、20260823T0000 が必要としていた «一括取り込み系の列» が
 -- 行き場を失うので、このファイルが «作成済みのテーブルへ足す ALTER» として引き受ける。
 --
 -- ファイル名がテーブル作成（20260819T0200）より後になっているのは**意図的**である。
@@ -70,7 +70,7 @@ ALTER TABLE dish_media_external_embeddings
   ADD COLUMN IF NOT EXISTS published_at        TIMESTAMPTZ(6),
   ADD COLUMN IF NOT EXISTS source_row_hash     TEXT;
 
--- 値域は元の 20260812T0100 の定義を踏襲する。
+-- 値域は元の 20260823T0000 の定義を踏襲する。
 -- NULL は «この経路では埋めていない» を意味するので CHECK は NULL を通す
 -- （SQL の CHECK は NULL を UNKNOWN として通すため、明示的な OR IS NULL は要らないが、
 --  読み手が «NULL は許されるのか» で迷わないよう意図をここに書いておく）。
@@ -83,7 +83,7 @@ ALTER TABLE dish_media_external_embeddings
 ALTER TABLE dish_media_external_embeddings
   VALIDATE CONSTRAINT dish_media_external_availability_check;
 
--- 元の 20260812T0100 が張っていた索引。取り込みバッチが
+-- 元の 20260823T0000 が張っていた索引。取り込みバッチが
 -- 「availability_status 別に、古い検証から順に」拾うために使う。
 CREATE INDEX IF NOT EXISTS dish_media_external_availability_idx
   ON dish_media_external_embeddings(availability_status, last_verified_at DESC);

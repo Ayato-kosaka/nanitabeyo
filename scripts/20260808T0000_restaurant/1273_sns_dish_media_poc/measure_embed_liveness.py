@@ -6,7 +6,7 @@
 `dish_media_external_embeddings` には既に availability_status
 ('available'/'unavailable'/'deleted'/'private'/'ineligible') と
 last_verified_at があり、index も `(availability_status, last_verified_at DESC)` が
-張ってある（20260812T0100:73）。**入れ物はある。中身を更新する手段が無い。**
+張ってある（20260823T0000:73）。**入れ物はある。中身を更新する手段が無い。**
 ①が生む dish_media は自社GCSに実体を持たないので、元動画が消えたら404の穴になる。
 
 ## 判定手段

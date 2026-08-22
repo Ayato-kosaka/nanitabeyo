@@ -60,7 +60,7 @@ STAGING_COLUMNS = [
     "row_hash",
 ]
 
-# #1273 【仕様】rights_basis の許容値は 20260812T0100 の COMMENT に定義がある:
+# #1273 【仕様】rights_basis の許容値は 20260823T0000 の COMMENT に定義がある:
 # official_api / official_oembed / partner_license / first_party_permission。
 # YouTube の公式 iframe 埋め込みは official_oembed 相当（oEmbed と同じ公式埋め込み経路）。
 RIGHTS_BASIS_YOUTUBE = "official_oembed"

@@ -5878,7 +5878,7 @@ YouTube 経路の最大の弱点（都市偏在）を、この経路は構造的
 `measure_embed_liveness.py`。①で発見した dish_media は自社GCSに実体を持たないので、
 元動画が消えれば穴になる。`dish_media_external_embeddings` には
 availability_status と `(availability_status, last_verified_at DESC)` の index が既にあるが
-（20260812T0100:73）、**中身を更新する手段が無かった**。それを埋めた。
+（20260823T0000:73）、**中身を更新する手段が無かった**。それを埋めた。
 
 ### 判定手段
 

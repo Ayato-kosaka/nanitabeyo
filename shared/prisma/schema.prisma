@@ -233,7 +233,7 @@ model dish_media {
 
 /// #1273 §40 SNS等の外部埋め込み情報。dish_media 本体は既存検索・reaction との互換層として残し、
 /// media固有の項目はこの 1:0..1 の子テーブルへ隔離する。
-/// 実体は 20260812T0100_add_restaurant_recommendation_sync_metadata.sql で作成済みだったが
+/// 実体は 20260823T0000_add_restaurant_recommendation_sync_metadata.sql で作成済みだったが
 /// Prisma schema に未反映で raw SQL からしか触れなかったため、20260814T0000 で取り込んだ。
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// #1375 との統合後の形。作成元は 20260819T0200、取り込み系の列は 20260821T0000 が足す。
