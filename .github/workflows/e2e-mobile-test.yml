@@ -34,7 +34,7 @@ on:
         required: false
         default: ""
       record_videos:
-        description: "エビデンス用に全テストの実機動画を録画して Artifact へ残す（.detoxrc.js の video plugin を all にする）。test_filter と併用すると狙ったフローだけ短時間で撮れる"
+        description: "エビデンス用に全テストの実機動画を録画して Artifact へ残す（.detoxrc.js の video plugin を all にする）。test_filter と併用すると狙ったフローだけ短時間で撮れる。⚠️ mp4 が出るのは現状 iOS のみ（Android は headless エミュレータの制約で生成されない。スクショは常時収集される）"
         type: boolean
         required: false
         default: false

@@ -32,13 +32,22 @@ description: >-
 
 1. `e2e-mobile-test.yml` を workflow_dispatch で起動する。入力:
    - `record_videos: true`（.detoxrc.js の video plugin が "all" になり全テストの動画が残る）
-   - `test_filter` に撮りたいフローの spec 名を入れると数分〜十数分に短縮できる
-     （例: `onboarding`）。platform で android / ios を絞れる
+   - `test_filter` に撮りたいフローの spec 名を入れると短縮できる（例: `onboarding`）。
+     platform で android / ios を絞れる
 2. 完了後、Artifact `detox-report-android` / `detox-report-ios` をダウンロードすると
-   `artifacts/` 配下にテストごとの動画が入っている。チャットへは必要な分だけ
+   `artifacts/` 配下にテストごとの `test.mp4` が入っている。チャットへは必要な分だけ
    `SendUserFile` で転送する
 3. CI の GitHub Actions を消費するだけで **EAS のビルド枠は消費しない**
    （CLAUDE.md の EAS Build 規則とは無関係に自由に実行してよい）
+
+⚠️ **動画が実際に出るのは現状 iOS のみ**（run 32589219056 で mp4 を確認）。
+Android は video: "all" でも mp4 が生成されない（headless エミュレータ +
+adb screenrecord の制約。ハードコード時代の run でも同様で、この入力の配管の
+問題ではない — run 32603604105 で `DETOX_RECORD_VIDEOS=1` が Detox まで
+届いていることをログで確認済み）。Android の動きのエビデンスが要るときは
+A の `android` プリセット（Pixel 7 相当）か、スクショ（--take-screenshots all が
+常時有効）で代替する。Android 側を直す場合は Detox の screenrecord 失敗を
+掘るところから（テスト時間が伸びる副作用も考慮すること）。
 
 以下は A（即席）の手順。**認証・API・地図はすべてモック**なので、映るのは
 「画面と遷移」であって実データではないことを常にキャプションで明示する。
