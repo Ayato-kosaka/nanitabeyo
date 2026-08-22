@@ -96,3 +96,34 @@ DB 変更はコード変更の PR に混ぜず、**DB 変更だけのサブ Issu
 `public スキーマへ migration を適用` の最新 run のログ（`📄 Applying:` の行）を見る。
 
 **詳細と、直接書き換えるときの冪等化の作法は `infra/supabase/migrations/README.md` を読むこと。**
+
+## EAS Build を流すときの規則
+
+2026-08-22 に、Claude Code が自主判断で EAS Build (eas-build-preview-prod.yml) を
+2 回余計に dispatch し、Expo の無料ビルド枠の超過警告が届く事故が起きた。
+2 回ともネイティブ差分ゼロ（= OTA で配信できた）である。以後、次を厳守する。
+
+### 1. ネイティブ差分が無ければ、絶対に EAS Build しない
+
+前回ビルドの commit と比べて以下のいずれも変わっていなければ、それは JS だけの
+変更であり、**EAS Build を流すことは禁止**。runtimeVersion が同じビルドへ
+eas-update (OTA) で配信する。
+
+```bash
+# これが空なら OTA。EAS Build を流してはいけない
+git diff --stat <前回ビルドのSHA> HEAD -- \
+  app-expo/app.config.ts app-expo/package.json app-expo/eas.json \
+  app-expo/languages pnpm-lock.yaml package.json
+```
+
+### 2. EAS Build は、その都度ユーザーの承認をもらってから
+
+ネイティブ差分があっても、**dispatch する前に必ずユーザーへ確認して承認を得る**。
+「ビルドを流して」という過去の指示は **その 1 回分の承認**であり、
+修正後の再ビルドや別ブランチのビルドには適用されない。
+2 回目以降も毎回、承認を取り直すこと。
+
+### 3. eas-update (OTA) は承認不要
+
+eas-update（OTA 配信、eas-update.yml）はビルド枠を消費しないため、
+JS の変更を届ける目的で自由に実行してよい。
