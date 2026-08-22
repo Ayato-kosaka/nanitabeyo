@@ -149,7 +149,9 @@ describeAuthenticated("ログアウト（ログイン済みユーザー）", () 
 		// 区別できるようにしている。
 		//
 		// 併せて **ゲスト表示へ戻っていること**（= ログイン済みセッションが再注入されていないこと）も見る。
-		// 再注入が起きていれば食べたい/食べたタブは記録 CTA（my-dishes-record-button）になり、ここが赤くなる。
+		// 判定はゲスト帯（my-dishes-guest-description）で行う。#1375 実機確認で記録 CTA
+		// （my-dishes-record-button）は **ゲストにも出る**ようになったので、CTA の有無では
+		// ログイン状態を判定できない。ゲスト帯だけがログイン状態と 1:1 で対応する。
 		await tabBar.gotoMyDishes();
 		await myDishesScreen.expectGuestViewLoaded();
 

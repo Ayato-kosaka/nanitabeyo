@@ -52,10 +52,19 @@ export class MyDishesScreen {
 	readonly guestLoginButton = by.id("my-dishes-guest-login-button");
 
 	// ── ログイン済み向け表示 ────────────────────────────────────────────
-	/** 記録 CTA（testID: my-dishes-record-button）。タップで SelectRestaurantScreen へ遷移 */
+	/**
+	 * 記録 CTA（testID: my-dishes-record-button）。
+	 *
+	 * #1375 実機確認: 押下先は **SNS URL 取り込み画面**（`sns-import`）になった。
+	 * SelectRestaurantScreen へはその上部タブ「食べた」（`sns-import-tab-eaten`）から入る。
+	 * また **ゲストにも表示される**（取り込みはログイン不要のため）。
+	 * 以前の「ログイン済みのみ表示 / 押すと店舗選択」を前提にした検証を書かないこと。
+	 */
 	readonly recordButton = by.id("my-dishes-record-button");
+	/** SNS 取り込み画面の上部タブ「食べた」。ここから従来のレビュー投稿導線へ入る */
+	readonly snsImportEatenTab = by.id("sns-import-tab-eaten");
 
-	// ── #1397 Map のピン → 料理メディア Sheet → 全画面 Feed（定義のみ） ──────────────
+	// ── #1375 Map のピン → 全画面 Feed / 下部の常設シート（定義のみ） ──────────────
 	/**
 	 * ⚠️ **ここから下は定義のみで、まだ spec から使っていない。**
 	 *
@@ -68,17 +77,16 @@ export class MyDishesScreen {
 	 *
 	 * web 側の証跡は `e2e-web/tests/authenticated/my-dishes-sheet-feed.spec.ts` が持つ。
 	 * native で固定するときは、記録を作る `@mutation` 相当のセットアップとセットで書くこと。
+	 *
+	 * #1375 実機確認: **ピンタップは Sheet を開かず Feed へ push する**ようになった。
+	 * 下部のシートは «常設»（ピン選択に依存しない）へ役割が変わっている。
 	 */
 	/** Map の店舗ピン（`MyDishesMapView.tsx`。同一店舗につき 1 つ） */
 	readonly mapPin = by.id("my-dishes-map-pin");
-	/** 料理メディア Sheet 本体（`MyDishesRestaurantSheet.tsx`） */
-	readonly sheet = by.id("my-dishes-sheet");
-	/** Sheet のヘッダ（店名タップで店舗詳細へ） */
-	readonly sheetTitle = by.id("my-dishes-sheet-title");
-	/** Sheet の行。動的 testID は作らないので `atIndex()` で指す（#1396 §6-1） */
-	readonly sheetItem = by.id("my-dishes-sheet-item");
-	/** Sheet の「全画面で見る」 */
-	readonly sheetExpand = by.id("my-dishes-sheet-expand");
+	/** Map 下部の常設シート（`MyDishesMapSheet.tsx`）。ピンを押さなくても出ている */
+	readonly mapSheet = by.id("my-dishes-map-sheet");
+	/** 常設シートのタイル。動的 testID は作らないので `atIndex()` で指す（#1396 §6-1） */
+	readonly mapSheetTile = by.id("my-dishes-map-sheet-tile");
 	/** 全画面 Feed（`app/[locale]/(tabs)/my-dishes/feed.tsx`） */
 	readonly feedScreen = by.id("my-dishes-feed-screen");
 	/** 全画面 Feed の閉じるボタン */
@@ -137,10 +145,19 @@ export class MyDishesScreen {
 		return by.id(`dish-category-search-suggestion-${index}`);
 	}
 
-	/** 記録 CTA をタップして「お店選択」画面へ進む（ログイン済みのみ表示） */
+	/**
+	 * 記録 CTA から「お店選択」画面へ進む。
+	 *
+	 * #1375 実機確認: ＋ の押下先は **SNS URL 取り込み画面**になったので、
+	 * 「お店選択」（＝レビュー投稿の入口）へはその上部タブ「食べた」を経由する。
+	 * 呼び出し側が毎回 2 タップ書くと導線変更のたびに全 spec を直すことになるので、
+	 * ここに 1 本だけ置く。
+	 */
 	async gotoRecordDish(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
 		await waitUntilVisible(this.recordButton, timeout);
 		await tapWhenVisible(this.recordButton);
+		await waitUntilVisible(this.snsImportEatenTab, timeout);
+		await tapWhenVisible(this.snsImportEatenTab);
 	}
 
 	/**
@@ -259,7 +276,7 @@ export class MyDishesScreen {
 
 	// ── #1403 (PR1) 3 ビュー共有フィルタ ──────────────────────────────────────
 
-	/** 3 ビュー共有フィルタを開くボタン（testID: my-dishes-filter-button。ログイン済みのみ表示） */
+	/** 3 ビュー共有フィルタを開くボタン（testID: my-dishes-filter-button。#1375 でゲストにも表示） */
 	readonly filterButton = by.id("my-dishes-filter-button");
 	/** フィルタ編集画面の本体（testID: my-dishes-filter-screen。BlurModal ではなくルート。#1396 §8-5） */
 	readonly filterScreen = by.id("my-dishes-filter-screen");

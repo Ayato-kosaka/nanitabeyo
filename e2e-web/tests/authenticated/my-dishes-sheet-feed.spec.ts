@@ -195,7 +195,8 @@ async function mockMyDishes(page: Page): Promise<RecordedRequest[]> {
 			const params = record(route, "dishes");
 			// chip で絞られたら、その 1 カテゴリだけを返す（= 棚が実際に削れる）
 			const categoryIds = params.get("categoryIds");
-			const dishes = categoryIds === null ? [RAMEN, CURRY] : [RAMEN, CURRY].filter((d) => categoryIds.includes(d.categoryId));
+			const dishes =
+				categoryIds === null ? [RAMEN, CURRY] : [RAMEN, CURRY].filter((d) => categoryIds.includes(d.categoryId));
 			await fulfillJson(route, {
 				data: dishes.map(buildRow),
 				nextCursor: null,
@@ -224,62 +225,60 @@ function lastRequest(recorded: RecordedRequest[], path: string): URLSearchParams
 	return hit.length > 0 ? hit[hit.length - 1].params : null;
 }
 
-test.describe("#1397 Map のピン → 料理メディア Sheet → 全画面 Feed（web / ログイン済み）", () => {
+test.describe("#1375 Map のピン → 全画面 Feed / 下部の常設シート（web / ログイン済み）", () => {
 	// ─ テストケース: ピン → Sheet → Feed の Map 経路 ─
 	// 手順:
 	//   1. 3 本の API を決定論的な値へ差し替える
 	//   2. `?view=map` で着地する（**既定ビューは list** なので付け忘れないこと）
-	//   3. ピンをタップ（実タッチ）→ Sheet が開き、その店の記録 2 件が並ぶことを検証
-	//   4. 先頭の行をタップ → 全画面 Feed（/my-dishes/feed）が開くことを検証
-	//   5. Feed を閉じる → 元の Map へ戻り、**Sheet が開きっぱなしになっていない**（#644）
-	test("ピンをタップすると Sheet が開き、行タップで Feed が開く。閉じても Sheet は残らない", async ({
-		appPage,
-	}) => {
+	//   3. 下部の常設シートが、ピンを押さなくても出ていることを検証
+	//   4. ピンをタップ（実タッチ）→ **その場で Sheet を開かず** 全画面 Feed へ遷移することを検証
+	//   5. Feed を閉じる → 元の Map へ戻る
+	//
+	// #1375 実機確認でここが変わった。以前はピンタップで料理メディア Sheet を開いていたが、
+	// Map の上に別の一覧が重なる形だった。Feed へ行けば «縦 = その店舗の記録» になり、
+	// 閉じれば Map がそのまま残る。下部のシートは «常設の帯» として役割を変えた。
+	test("下部シートは常設で、ピンタップは Feed へ遷移する", async ({ appPage }) => {
 		const recorded = await mockMyDishes(appPage);
 		const myDishes = new MyDishesPage(appPage);
 
 		await myDishes.gotoView("map");
 		await expect(myDishes.mapView).toBeVisible();
 
-		// ① ピン → Sheet（画面遷移はしない。設計 (2/2) §9-1）
-		await myDishes.tapFirstPin();
-		await myDishes.expectSheetOpened();
-		await expect(myDishes.sheetItems).toHaveCount(2);
-		// Sheet は «その店舗だけ» を引き直す派生クエリを使う（共有フィルタには入れない。§7-1）
-		expect(lastRequest(recorded, "dishes")?.get("restaurantId")).toBe(RESTAURANT_ID);
+		// ① ピンを押さなくても下部シートは出ている（＝常設）
+		await myDishes.expectMapSheetVisible();
 
-		// ② 行タップ → 全画面 Feed
-		await myDishes.sheetItems.first().tap();
+		// ② ピン → 全画面 Feed（restaurant スコープ）
+		await myDishes.tapFirstPin();
 		await myDishes.expectFeedOpened();
+		await expect(appPage).toHaveURL(/scope=restaurant/);
+		// Feed は «その店舗だけ» を引き直す派生クエリを使う（共有フィルタには入れない。§7-1）
+		expect(lastRequest(recorded, "dishes")?.get("restaurantId")).toBe(RESTAURANT_ID);
 		// ⚠️ `my-dishes-feed-screen` は «読み込み中»・«0 件»・«失敗» でも描かれる器なので、それだけでは
 		// 「Feed が開いた」の証跡にならない。chips のカテゴリラベルは «いま表示しているエントリ» の
 		// `dish.name` から作られる（`MyDishesFeedChips`）ので、これが出ていることで
-		// **タップした行（先頭 = ラーメン）の料理が実際に表示されている**ことまで確かめられる（R1）
+		// **その店舗の料理が実際に表示されている**ことまで確かめられる（R1）
 		await expect(myDishes.chipWithText(RAMEN.name)).toBeVisible();
 
-		// ③ 閉じる → 元の画面へ戻り、Sheet は残らない（#644 の再発防止）
+		// ③ 閉じる → 元の画面へ戻る
 		await myDishes.feedCloseButton.tap();
 		await expect(myDishes.feedScreen).toBeHidden();
 		await expect(appPage).toHaveURL(/\/my-dishes(\?|$)/);
-		await myDishes.expectSheetClosed();
 	});
 
-	// ─ テストケース: Sheet の「全画面で見る」からも Feed に入れる ─
+	// ─ テストケース: 下部シートのタイルからも Feed に入れる ─
 	// 手順:
-	//   1. `?view=map` で着地してピンをタップする
-	//   2. ヘッダの「全画面で見る」をタップする
-	//   3. Feed が開くことを検証（Sheet→拡大→Feed の経路。#1397 完了条件）
-	test("Sheet の「全画面で見る」からも Feed が開く", async ({ appPage }) => {
+	//   1. `?view=map` で着地する
+	//   2. 下部シートの先頭タイルをタップする
+	//   3. Feed が開くことを検証（ピン以外の経路でも Feed へ行けること）
+	test("下部シートのタイルからも Feed が開く", async ({ appPage }) => {
 		await mockMyDishes(appPage);
 		const myDishes = new MyDishesPage(appPage);
 
 		await myDishes.gotoView("map");
-		await myDishes.tapFirstPin();
-		await myDishes.expectSheetOpened();
+		await myDishes.expectMapSheetVisible();
 
-		await myDishes.sheetExpand.tap();
+		await myDishes.mapSheetTiles.first().tap();
 		await myDishes.expectFeedOpened();
-		// 「全画面で見る」の開始位置は **先頭の写真あり行**（`MyDishesRestaurantSheet.firstPhotoItem`）。
 		// 器が出たことではなく、その料理が実際に表示されていることまで見る（1 本目と同じ理由）
 		await expect(myDishes.chipWithText(RAMEN.name)).toBeVisible();
 	});

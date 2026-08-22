@@ -712,10 +712,7 @@ export class SearchScreen {
 		// iOS ではそこがタブバー・検索 FAB・ホームインジケータに覆われているため
 		// "View is not scrollable at the given start point"（= その点は見えていない）で失敗する
 		// （run 30460621899 の iOS で実測）。中央（0.5, 0.5）から始めれば何にも覆われない
-		await waitFor(element(target))
-			.toBeVisible()
-			.whileElement(this.scrollView)
-			.scroll(pixels, "down", 0.5, 0.5);
+		await waitFor(element(target)).toBeVisible().whileElement(this.scrollView).scroll(pixels, "down", 0.5, 0.5);
 	}
 }
 

@@ -20,14 +20,19 @@ import { expect, type Locator, type Page } from "@playwright/test";
  * （`display: none` で隠れているだけの兄弟ビューは DOM に残り続けるので、
  *   `toBeAttached` では区別が付かない）。
  * ## #1397 (PR5/5) で足したもの
- * Map のピン → 料理メディア Sheet → 全画面 Feed（contextual filter chips 付き）の locator。
- * **ゲスト用の locator は 1 つも変えていない**（既存 spec が落ちないことが「既存で出来たことを
- * 落としていない」証跡になる。設計 (2/2) §11-3）。
+ * Map のピン → 全画面 Feed（contextual filter chips 付き）の locator。
  *
- * ⚠️ **Sheet の操作にホイール（`page.mouse.wheel`）を使わないこと。** TrueSheet はタッチの
- * ジェスチャで動く。spec 側で `test.use({ hasTouch: true })` を宣言し、`Locator.tap()`
- * （= `page.touchscreen` 経由の実タッチ）で操作すること。ホイールでは動かないため、
- * 「通ったように見えて何も検証していない」テストになる。
+ * ## #1375 実機確認で変わったこと（**ここが一番間違えやすい**）
+ *
+ * - **ゲストもタブの中身を見られる。** 以前はタブ全体がログイン要求で閉じていた。
+ *   いまは「食べたい」＝ `reactions(save)` を匿名ユーザーでも書けるため、一覧は開いており、
+ *   ログイン導線は一覧の**上に細い帯**として出る（`guestDescription` / `guestLoginButton`）。
+ *   したがって «ゲストなら一覧が無い» を前提にした検証を書かないこと
+ * - **記録 CTA（＋）はゲストにも出る。** 押下先は店舗選択ではなく SNS 取り込み画面（`sns-import`）
+ * - **ピンタップは Sheet を開かず Feed へ push する。** 代わりに Map 下部へ
+ *   **常設**のシート（`my-dishes-map-sheet`）が出る
+ * - **Calendar の日セルタップは期間フィルタを書かず Feed（date スコープ）へ push する**
+ * - フィルタボタンはゲストにも出る（3 ビュー切替と同じ行に並ぶ）
  */
 
 export class MyDishesPage {
@@ -36,9 +41,12 @@ export class MyDishesPage {
 	readonly guestDescription: Locator;
 	/** 匿名ユーザー向けのログイン CTA ボタン（testID: my-dishes-guest-login-button） */
 	readonly guestLoginButton: Locator;
-	/** ログイン済みユーザー向けの記録 CTA（testID: my-dishes-record-button） */
+	/**
+	 * 記録 CTA（testID: my-dishes-record-button）。
+	 * #1375 実機確認: **ゲストにも出る**（押下先は SNS 取り込み画面）
+	 */
 	readonly recordButton: Locator;
-	/** 3 ビュー共有フィルタを開くボタン（testID: my-dishes-filter-button。ログイン済みのみ表示） */
+	/** 3 ビュー共有フィルタを開くボタン（testID: my-dishes-filter-button。ゲストにも出る） */
 	readonly filterButton: Locator;
 	/** フィルタ編集画面の本体（testID: my-dishes-filter-screen。BlurModal ではなくルート。#1396 §8-5） */
 	readonly filterScreen: Locator;
@@ -58,15 +66,11 @@ export class MyDishesPage {
 	/** Map の店舗ピン（testID: my-dishes-map-pin） */
 	readonly mapPins: Locator;
 
-	// ── #1397 料理メディア Sheet ──────────────────────────────────
-	/** Sheet 本体（testID: my-dishes-sheet） */
-	readonly sheet: Locator;
-	/** Sheet のヘッダ（店名タップで店舗詳細へ） */
-	readonly sheetTitle: Locator;
-	/** Sheet の行。動的 testID は作らない方針なので nth() で指す（§11-2） */
-	readonly sheetItems: Locator;
-	/** Sheet の「全画面で見る」 */
-	readonly sheetExpand: Locator;
+	// ── #1375 Map 下部の常設シート ────────────────────────────────
+	/** シート本体（testID: my-dishes-map-sheet）。ピンを押さなくても出ている */
+	readonly mapSheet: Locator;
+	/** シートのタイル（testID: my-dishes-map-sheet-tile）。押すと Feed へ */
+	readonly mapSheetTiles: Locator;
 
 	// ── #1397 全画面 Feed ────────────────────────────────────────
 	/** Feed 画面（testID: my-dishes-feed-screen） */
@@ -94,10 +98,8 @@ export class MyDishesPage {
 		this.calendarDays = this.calendarView.getByTestId("my-dishes-calendar-day");
 		this.mapPins = page.getByTestId("my-dishes-map-pin");
 
-		this.sheet = page.getByTestId("my-dishes-sheet");
-		this.sheetTitle = page.getByTestId("my-dishes-sheet-title");
-		this.sheetItems = page.getByTestId("my-dishes-sheet-item");
-		this.sheetExpand = page.getByTestId("my-dishes-sheet-expand");
+		this.mapSheet = page.getByTestId("my-dishes-map-sheet");
+		this.mapSheetTiles = page.getByTestId("my-dishes-map-sheet-tile");
 
 		this.feedScreen = page.getByTestId("my-dishes-feed-screen");
 		this.feedCloseButton = page.getByTestId("my-dishes-feed-close-button");
@@ -134,6 +136,29 @@ export class MyDishesPage {
 	/** 匿名ユーザー向けのゲスト表示が出ていることを検証する */
 	async expectGuestViewLoaded(): Promise<void> {
 		await expect(this.guestDescription).toBeVisible();
+	}
+
+	/**
+	 * #1375 実機確認: ゲストでも **タブの中身（一覧）が開いている**ことを検証する。
+	 *
+	 * 「食べたい」＝ `reactions(save)` は匿名ユーザーでも書けるので、保存はできるのに
+	 * 保存したものを見られない、という状態を作らないための不変条件である。
+	 */
+	async expectGuestCanSeeContent(): Promise<void> {
+		await expect(this.guestDescription).toBeVisible();
+		await expect(this.listView).toBeVisible();
+	}
+
+	/**
+	 * #1375 実機確認: 「食べた」（＝レビュー投稿）の入口を開く。
+	 *
+	 * ＋ の押下先は SNS URL 取り込み画面になったので、レビュー投稿は **その上部タブ**から入る。
+	 * 呼び出し側が毎回 2 タップ書くと、導線がまた変わったときに全 spec を直すことになるので、
+	 * ここに 1 本だけ置く。
+	 */
+	async openEatenRecordFlow(): Promise<void> {
+		await this.recordButton.click();
+		await this.page.getByTestId("sns-import-tab-eaten").click();
 	}
 
 	/** ログイン済みユーザー向けの記録 CTA が出ていることを検証する */
@@ -220,15 +245,13 @@ export class MyDishesPage {
 		await pin.tap();
 	}
 
-	/** Sheet が開いていることを検証する */
-	async expectSheetOpened(): Promise<void> {
-		await expect(this.sheet).toBeVisible();
-		await expect(this.sheetItems.first()).toBeVisible();
-	}
-
-	/** Sheet が閉じている（＝画面に残っていない）ことを検証する。#644 の再発防止 */
-	async expectSheetClosed(): Promise<void> {
-		await expect(this.sheet).toBeHidden();
+	/**
+	 * #1375 実機確認: Map 下部のシートが **常設**であることを検証する。
+	 * ピンを押さなくても出ている（押すと Feed へ遷移するので、押した後の検証には使わない）。
+	 */
+	async expectMapSheetVisible(): Promise<void> {
+		await expect(this.mapSheet).toBeVisible();
+		await expect(this.mapSheetTiles.first()).toBeVisible();
 	}
 
 	/** 全画面 Feed が開いていることを検証する */

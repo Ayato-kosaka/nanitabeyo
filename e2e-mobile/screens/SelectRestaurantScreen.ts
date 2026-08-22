@@ -1,10 +1,4 @@
-import {
-	DEFAULT_TIMEOUT,
-	by,
-	element,
-	tapWhenVisible,
-	waitUntilVisible,
-} from "../fixtures/e2e";
+import { DEFAULT_TIMEOUT, by, element, tapWhenVisible, waitUntilVisible } from "../fixtures/e2e";
 
 /**
  * 📍 レビュー投稿用の「お店選択」Screen Object。

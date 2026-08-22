@@ -69,7 +69,7 @@ test.describe("レビュー投稿ボタンの連打耐性 @mutation", () => {
 		const myDishesPage = new MyDishesPage(appPage);
 
 		await tabBar.gotoMyDishes();
-		await myDishesPage.recordButton.click();
+		await myDishesPage.openEatenRecordFlow();
 		await appPage.getByTestId("location-autocomplete-input").fill("スターバックス");
 		await appPage.getByTestId("location-autocomplete-suggestions").waitFor({ state: "visible" });
 		await appPage.getByTestId("location-autocomplete-suggestion-0").click();

@@ -119,7 +119,8 @@ test.describe("UI カタログ（ログイン済み） @catalog", () => {
 			appPage,
 			"my-dishes-select-restaurant",
 			async () => {
-				await appPage.getByTestId("my-dishes-record-button").click();
+				// #1375 実機確認: ＋ → SNS 取り込み画面 → 上部タブ「食べた」で店舗選択へ
+				await myDishesPage.openEatenRecordFlow();
 				// 地図画面。現在地ボタンの出現をもって到達とみなす
 				await expect(appPage.getByTestId("review-select-restaurant-current-location-button")).toBeVisible({
 					timeout: 30_000,

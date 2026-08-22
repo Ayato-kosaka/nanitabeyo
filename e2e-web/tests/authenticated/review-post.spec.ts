@@ -35,15 +35,19 @@ test.describe("レビュー投稿 @mutation", () => {
 	// ─ テストケース: 食べたい/食べたタブからレストラン選択画面が開く ─
 	// 手順:
 	//   1. ログイン済みで起動し、食べたい/食べたタブへ遷移する
-	//   2. 記録 CTA(testID: my-dishes-record-button)をタップ
-	//   3. レストラン選択画面(店名やエリアで検索する入力欄)が開くことを検証
-	test("食べたい/食べたタブからレストラン選択画面が開く", async ({ appPage }) => {
+	//   2. 記録 CTA(testID: my-dishes-record-button)をタップ → SNS 取り込み画面が開く
+	//   3. 上部タブ「食べた」(testID: sns-import-tab-eaten)をタップ
+	//   4. レストラン選択画面(エリアで検索する入力欄)が開くことを検証
+	//
+	// #1375 実機確認: ＋ の基本導線は SNS URL 取り込みになった。レビュー投稿（＝「食べた」）は
+	// その画面の上部タブから入る。**ここが «既存のレビュータブで出来たこと» を残している証跡**
+	test("食べたい/食べたタブから「食べた」タブ経由でレストラン選択画面が開く", async ({ appPage }) => {
 		const tabBar = new TabBar(appPage);
 		const myDishesPage = new MyDishesPage(appPage);
 
 		await tabBar.gotoMyDishes();
 		await myDishesPage.expectAuthenticatedViewLoaded();
-		await myDishesPage.recordButton.click();
+		await myDishesPage.openEatenRecordFlow();
 
 		await expect(appPage.getByTestId("location-autocomplete-input")).toBeVisible();
 	});
@@ -61,7 +65,7 @@ test.describe("レビュー投稿 @mutation", () => {
 		const myDishesPage = new MyDishesPage(appPage);
 
 		await tabBar.gotoMyDishes();
-		await myDishesPage.recordButton.click();
+		await myDishesPage.openEatenRecordFlow();
 
 		await appPage.getByTestId("location-autocomplete-input").fill("スターバックス");
 		await appPage.getByTestId("location-autocomplete-suggestions").waitFor({ state: "visible" });
@@ -85,7 +89,7 @@ test.describe("レビュー投稿 @mutation", () => {
 		const myDishesPage = new MyDishesPage(appPage);
 
 		await tabBar.gotoMyDishes();
-		await myDishesPage.recordButton.click();
+		await myDishesPage.openEatenRecordFlow();
 		await appPage.getByTestId("location-autocomplete-input").fill("スターバックス");
 		await appPage.getByTestId("location-autocomplete-suggestions").waitFor({ state: "visible" });
 		await appPage.getByTestId("location-autocomplete-suggestion-0").click();

@@ -37,7 +37,9 @@ test.describe("UI カタログ（レビュー投稿フロー） @catalog @mutati
 
 		await tabBar.gotoMyDishes();
 		await myDishesPage.expectAuthenticatedViewLoaded();
-		await appPage.getByTestId("my-dishes-record-button").click();
+		// #1375 実機確認: ＋ の押下先は SNS 取り込み画面になった。
+		// 「食べた」（＝レビュー投稿）はその上部タブから入る
+		await myDishesPage.openEatenRecordFlow();
 		await expect(appPage.getByTestId("location-autocomplete-input")).toBeVisible();
 
 		// ① 店舗詳細（店舗検索 → サジェスト選択で店舗が作成/upsert される）
