@@ -219,7 +219,10 @@ const EXCLUSION_REASONS = Object.freeze([
 	"unauthenticated_race", // E2 Supabase access_token is missing
 	"client_network", // E3 frontend api_call_error かつ status=0
 	"transient_status", // E4 frontend の EXCLUDED_HTTP_STATUSES
-	"user_denied_permission", // E5 位置情報の権限拒否（S2: kind は denied/timeout/unavailable/unsupported の4値）
+	// E5 端末が現在地を返せない（kind = denied/timeout/unavailable）。
+	//    「権限拒否」だけではないので user_denied_permission から改名した。除外の対象は
+	//    current_location_* の event に閉じてある（sql-generator.js の E5 を参照）。
+	"device_location_failed",
 	"expected_client_error", // E6 backend の EXCLUDED_HTTP_STATUSES
 	"external_transient", // E7 外部API側の一時障害
 ]);
