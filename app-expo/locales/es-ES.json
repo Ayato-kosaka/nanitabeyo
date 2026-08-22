@@ -669,17 +669,12 @@
 		}
 	},
 	"auth": {
-		"login_title": "Iniciar Sesión",
 		"create_title": "Crear Cuenta",
 		"field_name": "Nombre",
 		"btn_login": "Iniciar Sesión",
 		"btn_create": "Crear una Cuenta",
 		"divider_or": "O Inicia sesión con",
 		"agree_tos": "Acepto los Términos de Servicio",
-		"provider_google": "Google",
-		"provider_facebook": "Facebook",
-		"provider_twitter": "Twitter",
-		"provider_apple": "Apple",
 		"login_success": "¡Inicio de sesión exitoso!",
 		"error_required": "Este campo es obligatorio",
 		"tos_link_text": "Términos de Servicio",
@@ -694,7 +689,11 @@
 		"consent_login_and": " y ",
 		"consent_login_privacy": "Política de Privacidad",
 		"consent_login_suffix": ".",
-		"skip": "Omitir"
+		"skip": "Omitir",
+		"signup_title": "Crea tu cuenta",
+		"signup_subtitle": "Publica reseñas y guarda tus restaurantes favoritos",
+		"continue_with_google": "Continuar con Google",
+		"continue_with_apple": "Continuar con Apple"
 	},
 	"Settings": {
 		"title": "Configuración",

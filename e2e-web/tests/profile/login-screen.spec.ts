@@ -25,7 +25,7 @@ test.describe("ログイン画面", () => {
 	// 手順:
 	//   1. appPage で起動し、マイページのログインボタンをタップする
 	//   2. URL が /auth/login へ変わり、login-screen が表示されることを検証
-	//   3. タイトル「ログイン」・login-google-button・login-apple-button の表示を検証
+	//   3. タイトル「アカウントを作成しましょう」・login-google-button・login-apple-button の表示を検証
 	test("タイトルと Google/Apple ボタンが表示される", async ({ appPage }) => {
 		const tabBar = new TabBar(appPage);
 		const profilePage = new ProfilePage(appPage);
@@ -34,7 +34,8 @@ test.describe("ログイン画面", () => {
 		await tabBar.gotoProfile();
 		await profilePage.openLogin();
 		await loginPage.expectOpened();
-		await expect(loginPage.title).toHaveText("ログイン");
+		// #1486 見出しはクラシル型の「アカウントを作成しましょう」へ変わった（ScreenHeader は撤去済み）
+		await expect(loginPage.title).toHaveText("アカウントを作成しましょう");
 	});
 
 	// ─ テストケース: 同意文言のリンクで法務ドキュメント画面へ «遷移» する ─

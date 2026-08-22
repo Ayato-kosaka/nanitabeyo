@@ -669,17 +669,12 @@
 		}
 	},
 	"auth": {
-		"login_title": "登录",
 		"create_title": "创建账户",
 		"field_name": "姓名",
 		"btn_login": "登录",
 		"btn_create": "创建账户",
 		"divider_or": "或使用以下方式登录",
 		"agree_tos": "我同意服务条款",
-		"provider_google": "Google",
-		"provider_facebook": "Facebook",
-		"provider_twitter": "Twitter",
-		"provider_apple": "Apple",
 		"login_success": "登录成功！",
 		"error_required": "此字段为必填项",
 		"tos_link_text": "服务条款",
@@ -694,7 +689,11 @@
 		"consent_login_and": "和",
 		"consent_login_privacy": "隐私政策",
 		"consent_login_suffix": "。",
-		"skip": "跳过"
+		"skip": "跳过",
+		"signup_title": "创建你的账号",
+		"signup_subtitle": "发布点评，收藏喜欢的餐厅",
+		"continue_with_google": "使用 Google 继续",
+		"continue_with_apple": "使用 Apple 继续"
 	},
 	"Settings": {
 		"title": "设置",

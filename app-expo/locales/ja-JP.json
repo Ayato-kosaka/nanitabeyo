@@ -669,17 +669,12 @@
 		}
 	},
 	"auth": {
-		"login_title": "ログイン",
 		"create_title": "アカウント作成",
 		"field_name": "名前",
 		"btn_login": "ログイン",
 		"btn_create": "アカウントを作成",
 		"divider_or": "または次でサインイン",
 		"agree_tos": "利用規約に同意します",
-		"provider_google": "Google",
-		"provider_facebook": "Facebook",
-		"provider_twitter": "Twitter",
-		"provider_apple": "Apple",
 		"login_success": "ログインに成功しました！",
 		"error_required": "必須項目です",
 		"tos_link_text": "利用規約",
@@ -694,7 +689,11 @@
 		"consent_login_and": " と ",
 		"consent_login_privacy": "プライバシーポリシー",
 		"consent_login_suffix": " に同意したことになります。",
-		"skip": "スキップ"
+		"skip": "スキップ",
+		"signup_title": "アカウントを作成しましょう",
+		"signup_subtitle": "口コミを投稿したり、お気に入りのお店を保存できるようになります",
+		"continue_with_google": "Googleで続ける",
+		"continue_with_apple": "Appleで続ける"
 	},
 	"Settings": {
 		"title": "設定",

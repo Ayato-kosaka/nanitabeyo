@@ -169,63 +169,67 @@ export default function OnboardingScreen() {
 	return (
 		<View style={styles.container} testID="onboarding-screen">
 			<OnboardingScreenOptions />
-			<OnboardingStepView
-				step={step}
-				problemText={i18n.t(step.problemKey)}
-				solutionText={i18n.t(step.solutionKey)}
-				phase={phase}
-				reducedMotion={reducedMotion}
-				testID={`onboarding-step-${stepIndex + 1}`}
-			/>
-
-			{/* 丸数字と操作ボタンは写真の «上» に重ねる。写真が全面表示（#1486 §1）なので、
-			    通常フローに載せると写真の高さが削れてしまう */}
-			<SafeAreaView style={styles.topLayer} edges={["top"]} pointerEvents="box-none">
-				<OnboardingStepIndicator
-					currentIndex={stepIndex}
-					total={ONBOARDING_STEPS.length}
-					accessibilityLabel={i18n.t("Onboarding.accessibility.stepProgress", {
-						current: stepIndex + 1,
-						total: ONBOARDING_STEPS.length,
-					})}
-					testID="onboarding-step-indicator"
+			{/* SafeArea ごと StepView に渡すのではなく、上端の余白だけ SafeAreaView で確保する。
+			    バッジ・課題文・解決文・解決画像は StepView の中で 1 本のカラムに流れる
+			   （バッジと課題文が重なっていた指摘への対応。同じカラムなら構造的に重ならない） */}
+			<SafeAreaView style={styles.stepArea} edges={["top"]}>
+				<OnboardingStepView
+					step={step}
+					badge={
+						<OnboardingStepIndicator
+							currentIndex={stepIndex}
+							total={ONBOARDING_STEPS.length}
+							accessibilityLabel={i18n.t("Onboarding.accessibility.stepProgress", {
+								current: stepIndex + 1,
+								total: ONBOARDING_STEPS.length,
+							})}
+							testID="onboarding-step-indicator"
+						/>
+					}
+					problemText={i18n.t(step.problemKey)}
+					solutionText={i18n.t(step.solutionKey)}
+					phase={phase}
+					reducedMotion={reducedMotion}
+					testID={`onboarding-step-${stepIndex + 1}`}
 				/>
 			</SafeAreaView>
 
 			<SafeAreaView style={styles.bottomLayer} edges={["bottom"]} pointerEvents="box-none">
-				{/* 下部中央付近の小さめのスキップ（#1486 §1） */}
-				<TouchableOpacity
-					style={styles.skipButton}
-					onPress={handleSkip}
-					accessibilityRole="button"
-					hitSlop={{ top: 8, bottom: 8, left: 16, right: 16 }}
-					testID="onboarding-skip">
-					<Text style={styles.skipLabel}>{i18n.t("Onboarding.skip")}</Text>
-				</TouchableOpacity>
-
 				<View style={styles.navRow}>
 					{/* #1486 §1 1 枚目は戻る操作無効。押せないだけでなく «出さない» が、
-					    「次へ」の位置が 1 枚目だけ動かないようスペーサーで幅を保つ */}
+					    「次へ」の位置が 1 枚目だけ動かないようスペーサーで幅を保つ。
+					    文字ではなく円形のアイコンボタン（デザインレビューで確定）。
+					    アイコンだけなので accessibilityLabel で意味を補う */}
 					{isFirstStep ? (
-						<View style={styles.navPlaceholder} />
+						<View style={styles.navCirclePlaceholder} />
 					) : (
 						<TouchableOpacity
-							style={styles.navButton}
+							style={styles.backCircle}
 							onPress={handleBack}
 							accessibilityRole="button"
+							accessibilityLabel={i18n.t("Onboarding.back")}
 							testID="onboarding-back">
-							<ChevronLeft size={20} color="#FFFFFF" />
-							<Text style={styles.navLabel}>{i18n.t("Onboarding.back")}</Text>
+							<ChevronLeft size={26} color="#FFFFFF" />
 						</TouchableOpacity>
 					)}
 
+					{/* 下部中央の小さめのスキップ（#1486 §1）。円形ボタンと同じ行に置く */}
 					<TouchableOpacity
-						style={styles.navButton}
+						style={styles.skipButton}
+						onPress={handleSkip}
+						accessibilityRole="button"
+						hitSlop={{ top: 8, bottom: 8, left: 16, right: 16 }}
+						testID="onboarding-skip">
+						<Text style={styles.skipLabel}>{i18n.t("Onboarding.skip")}</Text>
+					</TouchableOpacity>
+
+					<TouchableOpacity
+						style={styles.nextCircle}
 						onPress={handleNext}
 						accessibilityRole="button"
+						accessibilityLabel={i18n.t("Onboarding.next")}
 						testID="onboarding-next">
-						<Text style={styles.navLabel}>{i18n.t("Onboarding.next")}</Text>
-						<ChevronRight size={20} color="#FFFFFF" />
+						<ChevronRight size={26} color="#1A1A1A" />
 					</TouchableOpacity>
 				</View>
 			</SafeAreaView>
@@ -233,17 +237,15 @@ export default function OnboardingScreen() {
 	);
 }
 
+const NAV_CIRCLE_SIZE = 56;
+
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
 		backgroundColor: "#1A1A1A",
 	},
-	topLayer: {
-		position: "absolute",
-		top: 0,
-		left: 0,
-		right: 0,
-		paddingTop: 12,
+	stepArea: {
+		flex: 1,
 	},
 	bottomLayer: {
 		position: "absolute",
@@ -253,7 +255,6 @@ const styles = StyleSheet.create({
 		paddingBottom: 8,
 	},
 	skipButton: {
-		alignSelf: "center",
 		paddingVertical: 8,
 		paddingHorizontal: 16,
 	},
@@ -266,23 +267,30 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "space-between",
-		paddingHorizontal: 12,
-		paddingBottom: 8,
+		paddingHorizontal: 24,
+		paddingBottom: 12,
 	},
-	navButton: {
-		flexDirection: "row",
+	// 前へ: 白い輪郭だけの円（参考デザインの左下ボタン）
+	backCircle: {
+		width: NAV_CIRCLE_SIZE,
+		height: NAV_CIRCLE_SIZE,
+		borderRadius: NAV_CIRCLE_SIZE / 2,
+		borderWidth: 2,
+		borderColor: "#FFFFFF",
 		alignItems: "center",
-		gap: 2,
-		paddingVertical: 12,
-		paddingHorizontal: 12,
+		justifyContent: "center",
 	},
-	navPlaceholder: {
-		// 「前へ」と同じ見かけの幅。1 枚目でも「次へ」が右下から動かないようにする
-		width: 88,
+	// 次へ: 白塗りの円に黒の矢印（参考デザインの右下ボタン）
+	nextCircle: {
+		width: NAV_CIRCLE_SIZE,
+		height: NAV_CIRCLE_SIZE,
+		borderRadius: NAV_CIRCLE_SIZE / 2,
+		backgroundColor: "#FFFFFF",
+		alignItems: "center",
+		justifyContent: "center",
 	},
-	navLabel: {
-		fontSize: 16,
-		fontWeight: "700",
-		color: "#FFFFFF",
+	navCirclePlaceholder: {
+		// 「前へ」と同じ見かけの幅。1 枚目でも「次へ」とスキップの位置が動かないようにする
+		width: NAV_CIRCLE_SIZE,
 	},
 });

@@ -1,10 +1,11 @@
 /*
 このファイルの責務
-- オンボーディング画面上部の «丸数字 1 / 2 / 3»（#1486 §1）を描く。
+- オンボーディング画面上部の «丸数字バッジ»（#1486 §1）を描く。
 
-旧チュートリアルのインジケータは「点」だったが、新オンボーディングは
-「3 ステップのうち今どこか」を数字で明示する。全体像が見えるほうが、
-途中でスキップされにくくなる（チケットで確定した仕様）。
+当初は 1 / 2 / 3 の 3 つを横に並べていたが、デザインレビューで
+**現在のステップ番号 1 つだけ** を出す形に確定した（参考にしたテンプレートカードの見せ方。
+3 つ並べると次の課題文と幅がぶつかり、視線も分散する）。
+「3 ステップ中の何番目か」はスクリーンリーダー向けの accessibilityLabel が引き続き伝える。
 */
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
@@ -18,63 +19,31 @@ export type OnboardingStepIndicatorProps = {
 	testID?: string;
 };
 
-export function OnboardingStepIndicator({
-	currentIndex,
-	total,
-	accessibilityLabel,
-	testID,
-}: OnboardingStepIndicatorProps) {
+export function OnboardingStepIndicator({ currentIndex, accessibilityLabel, testID }: OnboardingStepIndicatorProps) {
 	return (
-		<View
-			style={styles.container}
-			accessibilityRole="progressbar"
-			accessibilityLabel={accessibilityLabel}
-			testID={testID}>
-			{Array.from({ length: total }, (_, index) => {
-				const isActive = index === currentIndex;
-				return (
-					<View
-						key={index}
-						style={[styles.circle, isActive && styles.activeCircle]}
-						// 個々の丸は読み上げない（上の progressbar が 1 文で説明している）
-						accessibilityElementsHidden
-						importantForAccessibility="no-hide-descendants">
-						<Text style={[styles.number, isActive && styles.activeNumber]}>{index + 1}</Text>
-					</View>
-				);
-			})}
+		<View style={styles.badge} accessibilityRole="progressbar" accessibilityLabel={accessibilityLabel} testID={testID}>
+			<Text style={styles.number}>{currentIndex + 1}</Text>
 		</View>
 	);
 }
 
 const styles = StyleSheet.create({
-	container: {
-		flexDirection: "row",
-		justifyContent: "center",
-		alignItems: "center",
-		gap: 12,
-	},
-	circle: {
-		width: 28,
-		height: 28,
-		borderRadius: 14,
+	badge: {
+		alignSelf: "center",
+		width: 44,
+		height: 44,
 		alignItems: "center",
 		justifyContent: "center",
-		// 写真の上に載るため、非アクティブでも輪郭が消えないよう半透明の下地を敷く
-		backgroundColor: "rgba(0, 0, 0, 0.35)",
-		borderWidth: 1,
-		borderColor: "rgba(255, 255, 255, 0.7)",
-	},
-	activeCircle: {
 		backgroundColor: "#F05537",
-		borderColor: "#F05537",
+		// 正円ではなく squircle 気味の角丸にして «バッジ» らしさを出す（参考デザインの形）
+		borderRadius: 16,
+		// 45° 回転させたひし形シルエット。中の数字は逆回転で水平に戻す
+		transform: [{ rotate: "45deg" }],
 	},
 	number: {
-		fontSize: 13,
+		fontSize: 20,
 		fontWeight: "700",
 		color: "#FFFFFF",
-	},
-	activeNumber: {
-		color: "#FFFFFF",
+		transform: [{ rotate: "-45deg" }],
 	},
 });

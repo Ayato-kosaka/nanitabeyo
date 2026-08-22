@@ -669,17 +669,12 @@
 		}
 	},
 	"auth": {
-		"login_title": "تسجيل الدخول",
 		"create_title": "إنشاء حساب",
 		"field_name": "الاسم",
 		"btn_login": "تسجيل الدخول",
 		"btn_create": "إنشاء حساب",
 		"divider_or": "أو تسجيل الدخول باستخدام",
 		"agree_tos": "أوافق على شروط الخدمة",
-		"provider_google": "Google",
-		"provider_facebook": "Facebook",
-		"provider_twitter": "Twitter",
-		"provider_apple": "Apple",
 		"login_success": "تم تسجيل الدخول بنجاح!",
 		"error_required": "هذا الحقل مطلوب",
 		"tos_link_text": "شروط الخدمة",
@@ -694,7 +689,11 @@
 		"consent_login_and": " و",
 		"consent_login_privacy": "سياسة الخصوصية",
 		"consent_login_suffix": " الخاصة بنا.",
-		"skip": "تخطي"
+		"skip": "تخطي",
+		"signup_title": "أنشئ حسابك",
+		"signup_subtitle": "انشر التقييمات واحفظ مطاعمك المفضلة",
+		"continue_with_google": "المتابعة باستخدام Google",
+		"continue_with_apple": "المتابعة باستخدام Apple"
 	},
 	"Settings": {
 		"title": "الإعدادات",

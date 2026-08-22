@@ -52,6 +52,7 @@ export default function OnboardingLocationScreen() {
 			<OnboardingPermissionScreen
 				title={i18n.t("Onboarding.location.title")}
 				body={i18n.t("Onboarding.location.body")}
+				progress={0.6}
 				request={requestLocationPermission}
 				onSettled={handleSettled}
 				testID="onboarding-location"

@@ -669,17 +669,12 @@
 		}
 	},
 	"auth": {
-		"login_title": "로그인",
 		"create_title": "계정 생성",
 		"field_name": "이름",
 		"btn_login": "로그인",
 		"btn_create": "계정 생성",
 		"divider_or": "또는 다음으로 로그인",
 		"agree_tos": "서비스 약관에 동의합니다",
-		"provider_google": "Google",
-		"provider_facebook": "Facebook",
-		"provider_twitter": "Twitter",
-		"provider_apple": "Apple",
 		"login_success": "성공적으로 로그인되었습니다!",
 		"error_required": "필수 입력 항목입니다",
 		"tos_link_text": "서비스 약관",
@@ -694,7 +689,11 @@
 		"consent_login_and": " 및 ",
 		"consent_login_privacy": "개인정보 보호정책",
 		"consent_login_suffix": "에 동의하는 것으로 간주됩니다.",
-		"skip": "건너뛰기"
+		"skip": "건너뛰기",
+		"signup_title": "계정을 만들어 보세요",
+		"signup_subtitle": "리뷰를 올리고 마음에 드는 가게를 저장할 수 있어요",
+		"continue_with_google": "Google로 계속하기",
+		"continue_with_apple": "Apple로 계속하기"
 	},
 	"Settings": {
 		"title": "설정",

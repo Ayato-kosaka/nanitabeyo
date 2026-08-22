@@ -17,7 +17,6 @@
 import React, { useCallback, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Image } from "expo-image";
-import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import type { ExternalPathString } from "expo-router";
@@ -64,21 +63,17 @@ export default function OnboardingWelcomeScreen() {
 	}, [isLeaving, logFrontendEvent, locale]);
 
 	return (
-		<LinearGradient colors={["#FFFFFF", "#FFF4F1"]} style={styles.container}>
+		<View style={styles.container}>
 			<OnboardingScreenOptions />
 			<SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
 				<View style={styles.content} testID="onboarding-welcome">
-					<View style={styles.logoArea}>
-						{/* #1486 §7 ロゴ «周辺» に紙吹雪が出る。ロゴより先に描いてロゴを隠さないようにする */}
-						<ConfettiBurst reducedMotion={reducedMotion} testID="onboarding-welcome-confetti" />
-						<Image
-							source={require("@/assets/images/icon.webp")}
-							style={styles.logo}
-							contentFit="contain"
-							accessibilityElementsHidden
-							importantForAccessibility="no-hide-descendants"
-						/>
-					</View>
+					<Image
+						source={require("@/assets/images/icon.webp")}
+						style={styles.logo}
+						contentFit="contain"
+						accessibilityElementsHidden
+						importantForAccessibility="no-hide-descendants"
+					/>
 
 					<Text style={styles.title} testID="onboarding-welcome-title">
 						{i18n.t("Onboarding.welcome.title")}
@@ -93,44 +88,48 @@ export default function OnboardingWelcomeScreen() {
 						label={i18n.t("Onboarding.welcome.cta")}
 						onPress={handleStart}
 						loading={isLeaving}
-						borderRadius={12}
+						borderRadius={28}
 						contentStyle={styles.ctaContent}
 						testID="onboarding-welcome-start"
 					/>
 				</View>
 			</SafeAreaView>
-		</LinearGradient>
+
+			{/* #1486 §7 紙吹雪は «画面全体» に、ロゴやテキストの上へ被せて弾けさせる
+			   （デザインレビューで「派手に・ロゴに被ってよい」が確定）。
+			    pointerEvents="none" なので「はじめる」の操作は妨げない */}
+			<ConfettiBurst reducedMotion={reducedMotion} testID="onboarding-welcome-confetti" />
+		</View>
 	);
 }
 
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
+		backgroundColor: "#FFFFFF",
 	},
 	safeArea: {
 		flex: 1,
 	},
+	// ロゴ・見出し・本文は中央よりやや上（参考デザインの構成）。
+	// 紙吹雪の主戦場が画面上部なので、その中へ絵として収まる
 	content: {
 		flex: 1,
 		alignItems: "center",
 		justifyContent: "center",
 		paddingHorizontal: 32,
-		gap: 16,
-	},
-	logoArea: {
-		width: 220,
-		height: 220,
-		alignItems: "center",
-		justifyContent: "center",
+		paddingBottom: 96,
+		gap: 20,
 	},
 	logo: {
-		width: 104,
-		height: 104,
-		borderRadius: 24,
+		width: 132,
+		height: 132,
+		borderRadius: 66,
+		marginBottom: 12,
 	},
 	title: {
-		fontSize: 26,
-		lineHeight: 36,
+		fontSize: 27,
+		lineHeight: 38,
 		fontWeight: "700",
 		color: "#1A1A1A",
 		textAlign: "center",
@@ -146,6 +145,6 @@ const styles = StyleSheet.create({
 		paddingBottom: 24,
 	},
 	ctaContent: {
-		paddingVertical: 14,
+		paddingVertical: 15,
 	},
 });

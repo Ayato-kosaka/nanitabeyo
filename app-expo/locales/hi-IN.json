@@ -669,17 +669,12 @@
 		}
 	},
 	"auth": {
-		"login_title": "लॉग इन करें",
 		"create_title": "खाता बनाएं",
 		"field_name": "नाम",
 		"btn_login": "लॉग इन करें",
 		"btn_create": "खाता बनाएं",
 		"divider_or": "या इसके साथ साइन इन करें",
 		"agree_tos": "मैं सेवा की शर्तों से सहमत हूं",
-		"provider_google": "Google",
-		"provider_facebook": "Facebook",
-		"provider_twitter": "Twitter",
-		"provider_apple": "Apple",
 		"login_success": "सफलतापूर्वक लॉग इन हो गया!",
 		"error_required": "यह फ़ील्ड आवश्यक है",
 		"tos_link_text": "सेवा की शर्तें",
@@ -694,7 +689,11 @@
 		"consent_login_and": " और ",
 		"consent_login_privacy": "गोपनीयता नीति",
 		"consent_login_suffix": " से सहमत होते हैं।",
-		"skip": "छोड़ें"
+		"skip": "छोड़ें",
+		"signup_title": "अपना खाता बनाएँ",
+		"signup_subtitle": "समीक्षाएँ पोस्ट करें और पसंदीदा रेस्टोरेंट सहेजें",
+		"continue_with_google": "Google से जारी रखें",
+		"continue_with_apple": "Apple से जारी रखें"
 	},
 	"Settings": {
 		"title": "सेटिंग्स",

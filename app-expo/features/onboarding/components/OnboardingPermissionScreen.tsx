@@ -14,8 +14,6 @@
 */
 import React, { useEffect, useRef, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { Image } from "expo-image";
-import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { LoadingIndicator } from "@/components/LoadingIndicator";
@@ -37,6 +35,8 @@ const RESPONSE_TIMEOUT_MS = 30000;
 export type OnboardingPermissionScreenProps = {
 	title: string;
 	body: string;
+	/** 上部プログレスバーの進捗（0〜1）。オンボーディング全体のどこまで来たかを示す */
+	progress: number;
 	/** OS の許可ダイアログを出す関数（features/onboarding/permissions.ts） */
 	request: () => Promise<PermissionOutcome>;
 	/** 答えが出た（あるいは待つのをやめた）ときに 1 度だけ呼ばれる */
@@ -47,6 +47,7 @@ export type OnboardingPermissionScreenProps = {
 export function OnboardingPermissionScreen({
 	title,
 	body,
+	progress,
 	request,
 	onSettled,
 	testID,
@@ -105,17 +106,14 @@ export function OnboardingPermissionScreen({
 	}, []);
 
 	return (
-		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
+		<View style={styles.container}>
 			<SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
-				<View style={styles.content} testID={testID}>
-					<Image
-						source={require("@/assets/images/icon.webp")}
-						style={styles.logo}
-						contentFit="contain"
-						accessibilityElementsHidden
-						importantForAccessibility="no-hide-descendants"
-					/>
+				{/* 上部プログレスバー。導線のどこまで来たかを常に見せる（参考デザインの構成） */}
+				<View style={styles.progressTrack} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+					<View style={[styles.progressFill, { width: `${Math.round(progress * 100)}%` }]} />
+				</View>
 
+				<View style={styles.content} testID={testID}>
 					<Text style={styles.title} testID={testID ? `${testID}-title` : undefined}>
 						{title}
 					</Text>
@@ -124,49 +122,58 @@ export function OnboardingPermissionScreen({
 					</Text>
 				</View>
 
+				{/* 中央は空けておく。OS の許可ダイアログがこの上に重なるため、
+				    ここへ何かを置いてもユーザーには（ダイアログの背景として）ほぼ見えない */}
 				{/* 応答待ちであることを示す。答えが出た後は «次の画面へ移る直前» なので消す */}
 				<View style={styles.footer}>{outcome === null ? <LoadingIndicator size="small" /> : null}</View>
 			</SafeAreaView>
-		</LinearGradient>
+		</View>
 	);
 }
 
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
+		backgroundColor: "#FFFFFF",
 	},
 	safeArea: {
 		flex: 1,
 	},
-	content: {
-		flex: 1,
-		alignItems: "center",
-		justifyContent: "center",
-		paddingHorizontal: 32,
-		gap: 16,
+	progressTrack: {
+		height: 8,
+		marginTop: 16,
+		backgroundColor: "#FBD9D0",
+		overflow: "hidden",
 	},
-	logo: {
-		width: 88,
-		height: 88,
-		borderRadius: 20,
-		marginBottom: 8,
+	progressFill: {
+		height: "100%",
+		backgroundColor: "#F05537",
+		borderTopRightRadius: 4,
+		borderBottomRightRadius: 4,
+	},
+	// 見出しと本文は «上部» に置く（中央ではない）。中央は OS ダイアログの居場所
+	content: {
+		paddingTop: 56,
+		paddingHorizontal: 28,
+		gap: 20,
 	},
 	title: {
-		fontSize: 24,
-		lineHeight: 34,
+		fontSize: 26,
+		lineHeight: 40,
 		fontWeight: "700",
 		color: "#1A1A1A",
 		textAlign: "center",
 	},
 	body: {
 		fontSize: 15,
-		lineHeight: 24,
+		lineHeight: 26,
 		color: "#4B5563",
 		textAlign: "center",
 	},
 	footer: {
-		height: 56,
+		flex: 1,
+		justifyContent: "flex-end",
 		alignItems: "center",
-		justifyContent: "center",
+		paddingBottom: 32,
 	},
 });

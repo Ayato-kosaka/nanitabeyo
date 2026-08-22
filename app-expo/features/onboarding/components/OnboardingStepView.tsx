@@ -6,6 +6,19 @@
 ページ送り・タイマー・遷移は持たない。それらは app/[locale]/onboarding/index.tsx の責務。
 このコンポーネントは `phase` を受け取って描くだけなので、フェーズを外から与えれば
 どの状態でもそのまま描画できる（= 戻ったときに課題状態から再生し直せる）。
+
+## レイアウト（デザインレビューで確定した «テンプレートカード» 構成）
+
+上から順に 1 本の縦カラム:
+
+1. ステップ番号バッジ（1 個だけ。3 つ並べない）
+2. 課題文 — **ストーリー投稿のテキストのような半透明の背景ボックス**に載せる
+3. 解決文 — 同じくボックスに載せ、課題文の **すぐ下**（画像の下ではない）
+4. 解決画像 — 中央にカードとして収める（全面に広げない）
+
+初回実装は課題文が画面上端・解決文が画像の下にあり、バッジと課題文が重なる /
+解決画像が大きすぎるという指摘を受けた。バッジとテキストを同じカラムに流すことで
+重なりは構造的に起きなくなっている。
 */
 import React, { useEffect } from "react";
 import { StyleSheet, Text, View } from "react-native";
@@ -18,6 +31,8 @@ export type OnboardingPhase = "problem" | "solution";
 
 export type OnboardingStepViewProps = {
 	step: OnboardingStepConst;
+	/** バッジに出すステップ番号バッジ要素（index.tsx が状態を持つため受け取る） */
+	badge: React.ReactNode;
 	/** 課題文（i18n 済み） */
 	problemText: string;
 	/** 解決文（i18n 済み） */
@@ -40,6 +55,7 @@ export type OnboardingStepViewProps = {
  */
 export function OnboardingStepView({
 	step,
+	badge,
 	problemText,
 	solutionText,
 	phase,
@@ -97,17 +113,25 @@ export function OnboardingStepView({
 			/>
 
 			<View style={styles.content} pointerEvents="none">
-				<Text style={styles.problemText} testID={testID ? `${testID}-problem` : undefined}>
-					{problemText}
-				</Text>
+				{badge}
 
-				{/* 解決フェーズの中身。課題フェーズでは opacity 0 で «場所だけ» 確保しておく。
-				    表示のたびにレイアウトが組み直されると課題文の位置が動いてしまうため */}
-				<Animated.View style={[styles.solutionBlock, solutionStyle]}>
-					<Image source={step.solutionImage} style={styles.solutionImage} contentFit="contain" transition={0} />
+				<View style={styles.textBox}>
+					<Text style={styles.problemText} testID={testID ? `${testID}-problem` : undefined}>
+						{problemText}
+					</Text>
+				</View>
+
+				{/* 解決文は課題文の «すぐ下»。課題フェーズでは opacity 0 で場所だけ確保しておく。
+				    表示のたびにレイアウトが組み直されると課題文や画像の位置が動いてしまうため */}
+				<Animated.View style={[styles.textBox, styles.solutionTextBox, solutionStyle]}>
 					<Text style={styles.solutionText} testID={testID ? `${testID}-solution` : undefined}>
 						{solutionText}
 					</Text>
+				</Animated.View>
+
+				{/* 解決画像。全面ではなく «カード» として中央に収める */}
+				<Animated.View style={[styles.solutionImageArea, solutionStyle]}>
+					<Image source={step.solutionImage} style={styles.solutionImage} contentFit="contain" transition={0} />
 				</Animated.View>
 			</View>
 		</View>
@@ -122,37 +146,50 @@ const styles = StyleSheet.create({
 	},
 	content: {
 		flex: 1,
-		paddingHorizontal: 24,
-		paddingTop: 8,
-		paddingBottom: 16,
+		paddingHorizontal: 28,
+		paddingTop: 12,
+		// 下部の円形ナビボタン（index.tsx のオーバーレイ）と画像がぶつからない余白
+		paddingBottom: 104,
+	},
+	// ストーリー投稿のテキストのような、角丸 + 半透明の背景ボックス。
+	// 写真の明暗によらず文字が読めることと、「文字がそこに置いてある」感を両立する
+	textBox: {
+		alignSelf: "center",
+		marginTop: 18,
+		paddingHorizontal: 18,
+		paddingVertical: 10,
+		borderRadius: 10,
+		backgroundColor: "rgba(84, 48, 36, 0.62)",
+	},
+	solutionTextBox: {
+		marginTop: 10,
+		backgroundColor: "rgba(240, 85, 55, 0.75)",
 	},
 	problemText: {
-		fontSize: 22,
-		lineHeight: 32,
+		fontSize: 21,
+		lineHeight: 31,
 		fontWeight: "700",
 		color: "#FFFFFF",
 		textAlign: "center",
-		// 課題フェーズでは «写真の上に直接» 載るので、影が無いと明るい写真で読めなくなる
-		textShadowColor: "rgba(0, 0, 0, 0.6)",
-		textShadowOffset: { width: 0, height: 1 },
-		textShadowRadius: 8,
-	},
-	solutionBlock: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-		gap: 20,
-		marginTop: 16,
-	},
-	solutionImage: {
-		width: "100%",
-		flex: 1,
 	},
 	solutionText: {
-		fontSize: 17,
-		lineHeight: 26,
-		fontWeight: "600",
+		fontSize: 16,
+		lineHeight: 25,
+		fontWeight: "700",
 		color: "#FFFFFF",
 		textAlign: "center",
+	},
+	solutionImageArea: {
+		flex: 1,
+		alignItems: "center",
+		justifyContent: "center",
+		marginTop: 8,
+	},
+	solutionImage: {
+		// カードとして収める。幅の上限と «縦は余った分だけ» の両方を制約にすることで、
+		// 小さい端末では自動的に縮む（でかすぎたという指摘への対応）
+		width: "82%",
+		maxWidth: 340,
+		height: "100%",
 	},
 });

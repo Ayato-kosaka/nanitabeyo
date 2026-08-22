@@ -41,6 +41,7 @@ export default function OnboardingNotificationsScreen() {
 			<OnboardingPermissionScreen
 				title={i18n.t("Onboarding.notifications.title")}
 				body={i18n.t("Onboarding.notifications.body")}
+				progress={0.8}
 				request={requestNotificationPermission}
 				onSettled={handleSettled}
 				testID="onboarding-notifications"
