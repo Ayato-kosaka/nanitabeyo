@@ -1,0 +1,189 @@
+{
+  "recall": 0.16666666666666666,
+  "hit": 5,
+  "n_ok": 30,
+  "fp_on_ng": 1,
+  "n_ng": 10,
+  "rows": [
+    {
+      "title": "大番で「かしわせいろそば」～札幌市中央区大通西15丁目",
+      "human": "大番",
+      "machine": "大通食堂",
+      "ok": false
+    },
+    {
+      "title": "讃岐うどんの名店鶴丸（香川県高松）で最高のカレーうどんを食べてきました",
+      "human": "鶴丸",
+      "machine": "讃岐うどん　まるいち丸亀飯山店",
+      "ok": false
+    },
+    {
+      "title": "仙台・そばの神田 東一屋で「朝そば」…",
+      "human": "そばの神田 東一屋",
+      "machine": "そばの神田  東一屋",
+      "ok": true
+    },
+    {
+      "title": "新宿「インド定食・ターリー屋 南新宿店」食ログ2017",
+      "human": "ターリー屋 南新宿店",
+      "machine": "インド定食 ターリー屋早稲田大学前店",
+      "ok": false
+    },
+    {
+      "title": "【高松市西部でカレー🍛】キッチンベースLei★こーちゃんカレー…",
+      "human": "キッチンベースLei",
+      "machine": null,
+      "ok": false
+    },
+    {
+      "title": "…#大盛や_もり達仙台イービーンズ店 #仙台駅 #仙台市 #宮城県",
+      "human": "大盛や もり達 仙台イービーンズ店",
+      "machine": null,
+      "ok": false
+    },
+    {
+      "title": "うどん県　高松市　勅使町　焼肉酒家　あぶり亭…",
+      "human": "あぶり亭",
+      "machine": "うどん県　高松市",
+      "ok": false
+    },
+    {
+      "title": "【絶品グルメ】ラーメン二郎の隣のインドカレー屋がウマイ…「RAJ 仙台店」",
+      "human": "RAJ 仙台店",
+      "machine": "ラーメン二郎",
+      "ok": false
+    },
+    {
+      "title": "焼肉 界【東新宿】 焼肉",
+      "human": "界",
+      "machine": "東新宿食堂",
+      "ok": false
+    },
+    {
+      "title": "福岡で見つけた穴場焼肉「猛伸」",
+      "human": "猛伸",
+      "machine": null,
+      "ok": false
+    },
+    {
+      "title": "【保存必須、】博多駅近980円食べ放題付き天ぷら定食『てんぷら定食あげな』",
+      "human": "てんぷら定食あげな",
+      "machine": null,
+      "ok": false
+    },
+    {
+      "title": "香川県高松市で焼肉なら”高松文八” B",
+      "human": "高松文八",
+      "machine": "うどん県　高松市",
+      "ok": false
+    },
+    {
+      "title": "高松市瓦町 中華そば欽山",
+      "human": "中華そば欽山",
+      "machine": "らぁめん 欽山製麺所",
+      "ok": true
+    },
+    {
+      "title": "【近海】仙台市若林区｜千円でお釣りがくる寿司ランチ｜VLOG",
+      "human": "近海",
+      "machine": "鮨処近海",
+      "ok": true
+    },
+    {
+      "title": "【高松市東部の人気ラーメン店】ラーメン若松★さぬきつけ麺",
+      "human": "ラーメン若松",
+      "machine": "ラーメン若松",
+      "ok": true
+    },
+    {
+      "title": "【仙臺いろは】 番丁ラーメン 「仙台いいね!千本ノック@ハピナ名掛丁周辺」",
+      "human": "番丁ラーメン",
+      "machine": "いろは寿司",
+      "ok": false
+    },
+    {
+      "title": "新宿さぼてん さぼてん定食",
+      "human": "さぼてん 新宿",
+      "machine": null,
+      "ok": false
+    },
+    {
+      "title": "【予約不可人気店】焼肉ジャンが遂に⁉️",
+      "human": "焼肉ジャン",
+      "machine": null,
+      "ok": false
+    },
+    {
+      "title": "香川県　中華そば木具屋 高松店さん",
+      "human": "中華そば木具屋 高松店",
+      "machine": "香川",
+      "ok": false
+    },
+    {
+      "title": "JR高松駅 / 立ち食い寿司「七幸」",
+      "human": "七幸",
+      "machine": null,
+      "ok": false
+    },
+    {
+      "title": "新宿うしみつ【新宿】 焼肉",
+      "human": "うしみつ",
+      "machine": "新宿うしみつ",
+      "ok": true
+    },
+    {
+      "title": "松屋 高松兵庫町店★マッサマンカレー…",
+      "human": "松屋 高松兵庫町店",
+      "machine": null,
+      "ok": false
+    },
+    {
+      "title": "仙台市の絶品お蕎麦屋さん「 鶴 KAKU」",
+      "human": "鶴 KAKU",
+      "machine": null,
+      "ok": false
+    },
+    {
+      "title": "【東京・新宿カレー】curry 草枕",
+      "human": "curry 草枕",
+      "machine": "東京新宿",
+      "ok": false
+    },
+    {
+      "title": "桂花ラーメン 新宿東口駅前店 熊本とんこつラーメン",
+      "human": "桂花ラーメン 新宿東口駅前店",
+      "machine": "とんこつらーめん 道楽新宿店",
+      "ok": false
+    },
+    {
+      "title": "【札幌市西区】精肉卸し直営 焼肉 八軒苑",
+      "human": "八軒苑",
+      "machine": null,
+      "ok": false
+    },
+    {
+      "title": "讃岐地魚料理・寿司　味の樹",
+      "human": "味の樹",
+      "machine": null,
+      "ok": false
+    },
+    {
+      "title": "回転寿司すし丸 特急レーン",
+      "human": "すし丸",
+      "machine": null,
+      "ok": false
+    },
+    {
+      "title": "20220626 からみそラーメン ふくろう 高松屋島店★まぜそばベーシック",
+      "human": "ふくろう 高松屋島店",
+      "machine": "うどん 屋島",
+      "ok": false
+    },
+    {
+      "title": "博多で働く人達に50年以上愛されている特製かつ丼定食🍽️【福岡 やぐら】",
+      "human": "やぐら",
+      "machine": null,
+      "ok": false
+    }
+  ]
+}

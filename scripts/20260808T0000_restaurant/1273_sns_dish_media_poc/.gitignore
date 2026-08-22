@@ -44,3 +44,7 @@ out/_blog_imgs/
 !out/platform_link_coverage.json
 !out/blog_contact_route.json
 !out/blog_yield_both_sides_audited.json
+!out/shorts_area_first_eval.json
+!out/shorts_area_first_v2_eval.json
+!out/shorts_area_first_pool.json
+!out/shorts_store_linkability.json
