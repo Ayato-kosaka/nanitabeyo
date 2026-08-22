@@ -37,8 +37,8 @@ dry-runし、同じrun_idを段階的に昇格させます。Cloud Schedulerは�
 ## データフロー
 
 ```text
-既存PG / Overture / IFAS / OSM
-  -> *_raw
+既存PG / Overture / IFAS / OSM / 自治体の食品営業許可台帳
+  -> *_raw                              (1_1〜1_6)
   -> restaurant_source_records          (2_1: 形式統一)
   -> restaurant_seed_catalog            (2_2: 店舗候補へ統合)
   -> Google Place ID match catalog      (3_1〜3_3)
@@ -66,15 +66,56 @@ Overtureは1 release内でもfeatureごとに元sourceとlicenseが異なるた�
 database公開方針が承認されるまで、OSM canonicalのseedはGoogle検索・PG公開から既定で除外します。
 承認後だけ`3_2 --include-osm-only`と`3_4 --allow-osm-only-publish`を明示します。
 
+### 4つ目のソース: 自治体の食品営業許可台帳（1_6）
+
+IFAS は 2021年6月の食品衛生法改正**以降**にオンライン申請された分しか持ちません。
+改正前に許可を取った施設は各自治体が個別に公開しています（鹿児島市: IFAS 9,812 行 +
+改正前の台帳 4,885 行）。#1276 の PoC で、Google の店に届かない分は**名寄せの失敗
+ではなくデータの欠落**で、中心が**雑居ビル上階のスナック・バー**だと分かりました
+（未到達 9.8% 対 到達 1.3% ＝ 7.6倍）。許可台帳の住所には階数が入るのでそこを指せます。
+
+実測: Google 側から見た到達率は、台帳のある自治体で **66.5% → 78.9%**、
+渋谷区（ArcGIS Hub から座標つきで取れ、階数入り、39,106 行と網羅的）では **84.1%**。
+
+座標が無い台帳が多いので、`geocode_addresses.py`（国土地理院の住所検索API）で先に
+解決します。13,896 件で命中率 100%、全件が番地レベルでした。座標が無い行も raw には
+残し、`2_1` で落とします。
+
+自治体ごとに列名も文字コードも公開形式も違うため、**落とした行は必ず理由つきで
+数えます**（`1_6` の step に `dropped_reasons` として残る）。PoC では取り込み行数が
+4,160 → 174,828 になるまでに、この数え上げを見て8回直しました。
+
 ### Google Place ID
 
+根拠は「A と B の合意」ではなく **座標矩形の中での一意性** です（#1276 の PoC で
+差し替え、`algorithm_version = box-unique-strict-v1`）。
+
 1. 現行PostgreSQLの `google_place_id` は検索せずconfidence 1.0で引き継ぐ。
-2. 未確定seedだけにText Search (New) ID Onlyを2回行う。
-   - Query A: 店名、seed座標の150m `locationBias`
-   - Query B: 店名 + 住所、biasなし
-3. 各queryの結果がそれぞれ1件だけで、かつ同じPlace IDなら自動採用する。
-4. 0件、複数件、query間不一致、住所なし、API errorは採用しない。
-5. 人手修正は再生成で消えない `restaurant_google_place_match_overrides` に記録する。
+2. 未確定seedだけにText Search (New) ID Onlyを、**必要な順に必要なだけ**投げる。
+   - `tight`: 店名、seed座標の **±25m 矩形 `locationRestriction`**
+   - `wide`: 同じく **±250m 矩形**
+   - Query A: 店名、seed座標の150m `locationBias`（裏取り）
+   - Query B: 店名 + 住所、biasなし（裏取り。座標と独立な証拠）
+3. 矩形の中に同名が **1件だけ** で、それを A か B が挙げていれば候補にする。
+4. 候補が **±25m 矩形の中にあり**、かつ **B が1件以下** のときだけ自動採用する。
+5. 0件、複数件、裏取りなし、住所なし、API errorは採用しない。
+6. 人手修正は再生成で消えない `restaurant_google_place_match_overrides` に記録する。
+
+**なぜ合意ベースをやめたか。** `locationBias` は絞り込みません。大阪の店名を東京の
+bias で引いても大阪の店が返ります。店が Google に無ければ A も B も揃って**隣の店**を
+返すので、2本が一致しても証拠になりません。負例での誤マッチ率は **11.3%** でした。
+`locationRestriction` の矩形は外を実際に切り落とすので、「矩形の中に同名が1件しか
+無い」が「取り違える相手が居ない」を意味します。
+
+**4 の2条件は「確定したものは 100% 正しい」ための代償つきの選択です。** ラベル
+6,000 件で確定 5,083 件・裁定後の誤り **0 件**（`mine_wrong` 0 件、95%下限 99.92%）。
+外すと誤りが 8 件出る代わりに確定率が 11pt 上がります。条件はそのラベルの上で
+選んでいるので、別のラベル集合でも 0 である保証はありません。
+
+**裏取りは外せません。** ±25m 矩形が一意でも A も B もその place を挙げていない
+195 件のうち、正解は 2 件（**1.0%**）でした。
+
+probe は判定に要る順に送るので、実測 2.17 本/店です（4本全部送る場合と判定は不変）。
 
 Field Maskは `places.id` のみです。Google由来の名称・住所・写真をText Search結果から保存しません。
 新規open data店舗の `address_components_json` はGoogle由来に見せかけず空配列にし、既存PG値だけ

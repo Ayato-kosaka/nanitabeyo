@@ -1,0 +1,47 @@
+{
+  "population": "3ソース標本3,000件のうち box_unique が未確定にした行",
+  "n": 990,
+  "layers": {
+    "wide500_ab": {
+      "fires": 78,
+      "null_fires": 44,
+      "blank_fire_rate": 0.044444,
+      "max_errors": 44,
+      "min_precision": 0.435897
+    },
+    "huge_ab": {
+      "fires": 122,
+      "null_fires": 44,
+      "blank_fire_rate": 0.044444,
+      "max_errors": 44,
+      "min_precision": 0.639344
+    },
+    "wide500_b": {
+      "fires": 61,
+      "null_fires": 1,
+      "blank_fire_rate": 0.00101,
+      "max_errors": 1,
+      "min_precision": 0.983607
+    },
+    "huge_b": {
+      "fires": 90,
+      "null_fires": 2,
+      "blank_fire_rate": 0.00202,
+      "max_errors": 2,
+      "min_precision": 0.977778
+    },
+    "ca_huge_alone": {
+      "fires": 247,
+      "null_fires": 74,
+      "blank_fire_rate": 0.074747,
+      "max_errors": 74,
+      "min_precision": 0.700405
+    }
+  },
+  "control_box_unique_on_resolved_seeds": {
+    "n": 779,
+    "null_fires": 12,
+    "blank_fire_rate": 0.015404,
+    "note": "母集団が違う（確定した seed は名前で引ける店なので、どこへ動かしても同名が見つかりやすい）。層どうしの比較には使えない"
+  }
+}

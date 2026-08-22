@@ -284,6 +284,43 @@ def iter_source_records(
         if result:
             yield result
 
+    # 4つ目のソース。IFAS に載らない改正前の許可を補う。座標が無い行は矩形を
+    # 作れず名寄せできないので、ここで落とす（raw には残してある）。
+    permit_sql = f"""
+      SELECT * FROM `{dataset}.restaurant_food_permit_raw`
+      WHERE snapshot_date = @snapshot_date AND run_id = @run_id AND is_active
+        AND latitude IS NOT NULL AND longitude IS NOT NULL
+      ORDER BY source_record_id
+    """
+    for row in query_rows(pipeline, permit_sql, run_id, snapshot_date):
+        result = build_common_row(
+            run_id=run_id,
+            source="food_permit",
+            source_record_id=row.source_record_id,
+            source_release=row.source_release,
+            name=row.name,
+            name_language_code="ja",
+            address=row.address,
+            latitude=row.latitude,
+            longitude=row.longitude,
+            phone=None,
+            website=None,
+            social_urls=None,
+            source_categories=[item for item in (row.business_type,) if item],
+            operating_status="active_permit",
+            source_confidence=None,
+            existing_restaurant_id=None,
+            google_place_id=None,
+            image_url=None,
+            image_path=None,
+            address_components_json=None,
+            plus_code_json=None,
+            raw_payload_json=row.raw_payload_json,
+            record_hash=row.record_hash,
+        )
+        if result:
+            yield result
+
     osm_sql = f"""
       SELECT * FROM `{dataset}.restaurant_osm_raw`
       WHERE snapshot_date = @snapshot_date AND run_id = @run_id

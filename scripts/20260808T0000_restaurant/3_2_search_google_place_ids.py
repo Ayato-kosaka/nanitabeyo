@@ -17,8 +17,11 @@ from google.cloud import bigquery
 
 from google_place_matching import (
     ALGORITHM_VERSION,
+    TIGHT_HALF_SIDE_M,
+    WIDE_HALF_SIDE_M,
     PlacesTextSearchClient,
     TextSearchResult,
+    build_box_payload,
     build_query_payloads,
     decide_match,
 )
@@ -100,6 +103,14 @@ def attempt_row(
     radius_m: float,
     client: PlacesTextSearchClient,
 ) -> dict[str, Any]:
+    """1 seed 分の probe を、**必要な順に必要なだけ**送って判定する。
+
+    判定は「矩形の中で同名が一意か」から始まるので、矩形がどちらも一意で
+    なければ A も B も送る必要がない（確定しえない）。裏取りは A で足りることが
+    多く、その場合 B も要らない。#1276 の PoC の実測では 4.00 → 2.17 本/店に
+    減り、**判定が変わった seed は 0 件**だった。
+    """
+
     query_a, query_b, body_a, body_b = build_query_payloads(
         seed.canonical_name,
         seed.canonical_address or "",
@@ -108,20 +119,64 @@ def attempt_row(
         radius_m,
     )
     has_address = bool((seed.canonical_address or "").strip())
-    if has_address:
-        result_a = client.search(body_a)
-        result_b = client.search(body_b)
-    else:
-        # 同じ文字列を2回検索しても独立検証にならないため、APIを消費せず保留にする。
-        result_a = TextSearchResult((), None)
-        result_b = TextSearchResult((), None)
-    decision = decide_match(result_a, result_b, has_address=has_address)
+    results: dict[str, TextSearchResult | None] = {
+        "a": None, "b": None, "tight": None, "wide": None,
+    }
+
+    def probe(key: str, body: dict[str, Any]) -> TextSearchResult:
+        if results[key] is None:
+            results[key] = client.search(body)
+        return results[key]
+
+    def supported(candidate: str) -> bool:
+        if candidate in probe("a", body_a).place_ids:
+            return True
+        if not has_address:
+            # 住所が無ければ B は A と同じクエリになる。送る意味がない。
+            return False
+        return candidate in probe("b", body_b).place_ids
+
+    for key, half_side in (("tight", TIGHT_HALF_SIDE_M), ("wide", WIDE_HALF_SIDE_M)):
+        box = probe(
+            key,
+            build_box_payload(
+                seed.canonical_name, seed.latitude, seed.longitude, half_side
+            ),
+        )
+        if box.http_status == 200 and len(box.place_ids) == 1:
+            if supported(box.place_ids[0]):
+                break
+
+    # 判定に B を使っていなくても、採否の条件に「B が1件以下」が入っている。
+    # 住所がある seed では必ず B を確かめる。
+    if has_address and results["b"] is None and any(
+        results[key] is not None and len(results[key].place_ids) == 1
+        for key in ("tight", "wide")
+    ):
+        probe("b", body_b)
+
+    decision = decide_match(
+        results["a"],
+        results["b"],
+        result_tight=results["tight"],
+        result_wide=results["wide"],
+        has_address=has_address,
+    )
     now = utc_now()
     errors = [
-        message
-        for message in (result_a.error_message, result_b.error_message)
-        if message
+        result.error_message
+        for result in results.values()
+        if result is not None and result.error_message
     ]
+
+    def ids(key: str) -> list[str]:
+        result = results[key]
+        return list(result.place_ids) if result is not None else []
+
+    def status(key: str) -> int | None:
+        result = results[key]
+        return result.http_status if result is not None else None
+
     return {
         "attempted_date": now.date().isoformat(),
         "attempt_id": build_attempt_id(run_id, seed.seed_id, ALGORITHM_VERSION),
@@ -130,12 +185,16 @@ def attempt_row(
         "algorithm_version": ALGORITHM_VERSION,
         "query_a": query_a,
         "query_b": query_b,
-        "place_ids_a": list(result_a.place_ids),
-        "place_ids_b": list(result_b.place_ids),
+        "place_ids_a": ids("a"),
+        "place_ids_b": ids("b"),
+        "place_ids_tight_box": ids("tight"),
+        "place_ids_wide_box": ids("wide"),
         "matched_place_id": decision.matched_place_id,
         "result_status": decision.status,
-        "http_status_a": result_a.http_status,
-        "http_status_b": result_b.http_status,
+        "http_status_a": status("a"),
+        "http_status_b": status("b"),
+        "http_status_tight_box": status("tight"),
+        "http_status_wide_box": status("wide"),
         "error_message": " | ".join(errors)[:16_000] or None,
         "attempted_at": now.isoformat(),
     }

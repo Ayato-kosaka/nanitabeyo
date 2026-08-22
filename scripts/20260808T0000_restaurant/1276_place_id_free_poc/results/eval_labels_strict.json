@@ -1,0 +1,123 @@
+{
+  "labelled_seeds": 6000,
+  "recall_ceiling": 0.995667,
+  "rules": {
+    "box_unique_strict": {
+      "matched": 5083,
+      "match_rate": 0.847167,
+      "correct": 5069,
+      "wrong": 14,
+      "precision": 0.997246,
+      "precision_95_lower": 0.995382,
+      "layers": {
+        "tight_unique_in_ab": {
+          "matched": 5083,
+          "correct": 5069,
+          "wrong": 14,
+          "precision": 0.997246,
+          "precision_95_lower": 0.995382
+        }
+      },
+      "mistakes": [
+        {
+          "overture_id": "087acd1c-57f1-4dfe-be72-25e668d7f548",
+          "name": "Asian Dining Tammi",
+          "layer": "tight_unique_in_ab",
+          "chosen": "ChIJX10leIneGGARxKbss1qeyhU",
+          "truth": "ChIJDx1BeIneGGARXqXc3jTXhms"
+        },
+        {
+          "overture_id": "5172ebbc-820a-42a4-9c5f-3e5b244b20f5",
+          "name": "焼鳥スタンド コジローさん 小虎小路店",
+          "layer": "tight_unique_in_ab",
+          "chosen": "ChIJz7AR7N2LGGAR0LAM1GvVLJ0",
+          "truth": "ChIJ7XHBMWeLGGARi5S-xYQ9VIc"
+        },
+        {
+          "overture_id": "5fa3faf9-bbaa-453c-a16b-32480ca2405a",
+          "name": "Hachi",
+          "layer": "tight_unique_in_ab",
+          "chosen": "ChIJldc4RbRhGGAR9xRZ4p2_0zM",
+          "truth": "ChIJTW-yBQBhGGAReScsapjFqSc"
+        },
+        {
+          "overture_id": "61372f22-0ba8-4450-9ccb-3a47ca5c6a5f",
+          "name": "すき家 イオンモール茨木店",
+          "layer": "tight_unique_in_ab",
+          "chosen": "ChIJIfSHLCnjAGAR9rlfNDkqY3A",
+          "truth": "ChIJCxBULCnjAGARvad8FNBCerQ"
+        },
+        {
+          "overture_id": "82877b56-ae83-4301-a67c-b648e0d906d4",
+          "name": "呑龍ラーメン",
+          "layer": "tight_unique_in_ab",
+          "chosen": "ChIJnYN8UwDzHmARaE2Sfxj3VUc",
+          "truth": "ChIJw0gLV1bzHmARZfI-1V0OVgQ"
+        },
+        {
+          "overture_id": "8bbb6957-fcac-4001-b4ae-59075c5f7c7b",
+          "name": "丸亀製麺イオンモール伊丹",
+          "layer": "tight_unique_in_ab",
+          "chosen": "ChIJ_UmJ0lrwAGAR4u8wR9sOGaI",
+          "truth": "ChIJj5hS01rwAGARHTSUZAvvozM"
+        },
+        {
+          "overture_id": "c114f517-6322-4783-9a61-63c5d17dc2fc",
+          "name": "炭火焼肉 にく式 すすきの店",
+          "layer": "tight_unique_in_ab",
+          "chosen": "ChIJaR3zIt8pC18R_N1_uMSA5Z0",
+          "truth": "ChIJzbegXBYpC18RHDe-7HnEkj8"
+        },
+        {
+          "overture_id": "d23ffe30-2b34-4548-a509-66f0183c3d18",
+          "name": "Little Napoli NOOV",
+          "layer": "tight_unique_in_ab",
+          "chosen": "ChIJq8uq7GOhA2ARCjZkxsoE5GI",
+          "truth": "ChIJl6ARFsygA2AR35GCnlPdu1w"
+        },
+        {
+          "overture_id": "ef89da42-8134-4db6-a3a0-44488b127fe4",
+          "name": "舟鮨",
+          "layer": "tight_unique_in_ab",
+          "chosen": "ChIJn2M9zxl6A2ARJ1pdind-NVc",
+          "truth": "ChIJu9gXzxl6A2AROTF6crUGTJc"
+        },
+        {
+          "overture_id": "f0701701-4f9c-43bf-9e36-f71cba3408af",
+          "name": "月ノ輪",
+          "layer": "tight_unique_in_ab",
+          "chosen": "ChIJo9TA12mTHGARgDagR6i6oPQ",
+          "truth": "ChIJL5uh56OSHGARSlmxNTKgBBM"
+        },
+        {
+          "overture_id": "f9f19813-f7fa-40f7-8016-1be9fe3b8559",
+          "name": "とんかつ檍羽田イノベーションシティ店",
+          "layer": "tight_unique_in_ab",
+          "chosen": "ChIJ3aIGyLBhGGAR6wNL9IvMX8M",
+          "truth": "ChIJ7-c-xd5hGGARO2Yh2PpCQfQ"
+        },
+        {
+          "overture_id": "ifas:023000:fBiz00000113080000000158",
+          "name": "MEGAドン・キホーテUNY小牧店",
+          "layer": "tight_unique_in_ab",
+          "chosen": "ChIJr79P4LEMA2ARXA4nVcqAR_Q",
+          "truth": "ChIJZa5b4LEMA2ARp4fUuaMVVYU"
+        },
+        {
+          "overture_id": "ifas:012204:fBiz00003507190000000002",
+          "name": "ゼッテリア北習志野店",
+          "layer": "tight_unique_in_ab",
+          "chosen": "ChIJP0gs4XWAImARSWxXJWVlhyE",
+          "truth": "ChIJJZ0OTF6BImARtzXJaNAHnA0"
+        },
+        {
+          "overture_id": "ifas:023000:fBiz00000113080000000152",
+          "name": "MEGAドン・キホーテUNY大口店",
+          "layer": "tight_unique_in_ab",
+          "chosen": "ChIJOfBJKXQMA2ARDPcxeUI0gjQ",
+          "truth": "ChIJOfBJKXQMA2ARghlcRlXvvyg"
+        }
+      ]
+    }
+  }
+}

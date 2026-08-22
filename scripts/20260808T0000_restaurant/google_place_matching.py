@@ -3,8 +3,33 @@
 重要な方針:
 - 取得するGoogleフィールドは ``places.id`` だけに限定する。
 - 1本の検索結果や先頭順位だけでは採用しない。
-- 「名称 + 150m bias」と「名称 + 住所（biasなし）」がそれぞれ一意で、
-  同じIDを返した場合だけ自動確定する。
+- **座標矩形の中で同名店が一意**であることを根拠にし、テキスト検索がその
+  place を挙げていることを裏取りに使う。
+
+## なぜ「A と B の合意」をやめたのか
+
+以前は「名称 + 150m bias」（A）と「名称 + 住所」（B）がそれぞれ一意で同じ ID を
+返したら確定していた。#1276 の PoC で測ったところ、これは成り立たなかった。
+
+- 負例（座標だけ別店に差し替えた seed）での誤マッチ率 **11.3%**
+- 原因は `locationBias` が**絞り込まない**ことにある。大阪の店名を東京の bias で
+  引いても大阪の店が返る。店が Google に無ければ、A も B も揃って**隣の店**を
+  返すので、2本が一致しても証拠にならない
+
+`locationRestriction` の矩形は違う。**矩形の外を実際に切り落とす**（大阪の店名を
+東京の矩形で引くと 0 件になることを確認済み）。したがって「矩形の中に同名が
+1件しか無い」は「取り違える相手が存在しない」を意味する。
+
+## 採用しているルール（PoC の `box_unique_strict`）
+
+1. ±25m の矩形に同名が1件だけ → その1件を A か B が挙げていれば候補
+2. そうでなければ ±250m の矩形で同じ判定
+3. 候補が **±25m の矩形の中にある**こと
+4. **B（名称+住所）の候補が1件以下**であること
+
+3 と 4 は「確定したものは 100% 正しい」を満たすために足した条件である。
+ラベル 6,000 件で確定 5,083 件・誤り 0 件（機械裁定で `mine_wrong` 0 件）。
+外すと誤りが 8 件出る代わりに確定率が 11pt 上がる、という取引になっている。
 
 判定関数をHTTP処理から分離しているのは、Googleの応答を再現せずとも名寄せの
 採否を単体テストで固定するためである。
@@ -13,6 +38,7 @@
 from __future__ import annotations
 
 import json
+import math
 import time
 import urllib.error
 import urllib.request
@@ -20,7 +46,15 @@ from dataclasses import dataclass
 from typing import Any
 
 TEXT_SEARCH_URL = "https://places.googleapis.com/v1/places:searchText"
-ALGORITHM_VERSION = "double-text-search-id-only-v1"
+# 判定が変わったのでversionを上げる。resume queryはversion単位なので、
+# 古いversionのattemptがあっても新ルールで引き直される。
+ALGORITHM_VERSION = "box-unique-strict-v1"
+
+# 矩形の半辺。±25m は「座標のほぼ真上」、±250m は「座標が数百mずれていても
+# その範囲に同名が1つしか無いなら取り違えようがない」に対応する。
+TIGHT_HALF_SIDE_M = 25.0
+WIDE_HALF_SIDE_M = 250.0
+_METRES_PER_DEGREE = 111_320.0
 
 
 @dataclass(frozen=True)
@@ -68,25 +102,95 @@ def build_query_payloads(
     return query_a, query_b, body_a, body_b
 
 
+def build_box_payload(
+    name: str,
+    latitude: float,
+    longitude: float,
+    half_side_m: float,
+) -> dict[str, Any]:
+    """名称 + 座標矩形の ``locationRestriction`` request body。
+
+    ``locationBias`` と違い矩形の外を実際に切り落とすので、「この place は
+    Google 側でもこの座標の近くにある」の裏取りになる。Nearby Search と違って
+    名称で絞られるため、密集地でも件数上限に当たらない。
+    """
+
+    latitude_delta = half_side_m / _METRES_PER_DEGREE
+    longitude_delta = half_side_m / (
+        _METRES_PER_DEGREE * max(math.cos(math.radians(latitude)), 0.01)
+    )
+    return {
+        "languageCode": "ja",
+        "regionCode": "JP",
+        # 「ちょうど5件」と「60件」を区別できないと曖昧さを取りこぼす。
+        # IDs Only は件数で課金が変わらないので上限まで取る。
+        "pageSize": 20,
+        "includePureServiceAreaBusinesses": False,
+        "textQuery": name.strip(),
+        "locationRestriction": {
+            "rectangle": {
+                "low": {
+                    "latitude": latitude - latitude_delta,
+                    "longitude": longitude - longitude_delta,
+                },
+                "high": {
+                    "latitude": latitude + latitude_delta,
+                    "longitude": longitude + longitude_delta,
+                },
+            }
+        },
+    }
+
+
+def _ok(result: TextSearchResult | None) -> frozenset[str]:
+    if result is None or result.http_status != 200:
+        return frozenset()
+    return frozenset(result.place_ids)
+
+
 def decide_match(
-    result_a: TextSearchResult,
-    result_b: TextSearchResult,
+    result_a: TextSearchResult | None,
+    result_b: TextSearchResult | None,
     *,
+    result_tight: TextSearchResult | None = None,
+    result_wide: TextSearchResult | None = None,
     has_address: bool,
 ) -> MatchDecision:
-    """2検索の結果から自動採用可否を決める、唯一の判定関数。"""
+    """矩形の一意性を根拠に自動採用可否を決める、唯一の判定関数。
 
+    ``result_tight`` / ``result_wide`` は ``build_box_payload`` の結果。
+    送っていない probe は ``None`` でよい（必要な分だけ送る運用のため）。
+    """
+
+    if result_tight is None and result_a is None:
+        return MatchDecision(None, "probe_missing")
+    for result in (result_a, result_b, result_tight, result_wide):
+        if result is not None and result.http_status not in (200, None):
+            return MatchDecision(None, "api_error")
+
+    a, b = _ok(result_a), _ok(result_b)
+    supported = a | b
+    tight, wide = _ok(result_tight), _ok(result_wide)
+
+    candidate = None
+    for box in (tight, wide):
+        if len(box) == 1 and (box & supported):
+            candidate = next(iter(box))
+            break
+    if candidate is None:
+        if not tight and not wide:
+            return MatchDecision(None, "no_candidate_in_box")
+        return MatchDecision(None, "box_not_unique")
+
+    # 以下2つは「確定したものは 100% 正しい」を満たすための条件。
+    if candidate not in tight:
+        return MatchDecision(None, "rejected_not_in_tight_box")
+    if len(b) > 1:
+        return MatchDecision(None, "rejected_address_query_ambiguous")
     if not has_address:
+        # 住所が無いと B を独立な証拠として使えない。矩形だけでは採らない。
         return MatchDecision(None, "ineligible_missing_address")
-    if result_a.http_status != 200 or result_b.http_status != 200:
-        return MatchDecision(None, "api_error")
-    if len(result_a.place_ids) == 0 or len(result_b.place_ids) == 0:
-        return MatchDecision(None, "unmatched")
-    if len(result_a.place_ids) != 1 or len(result_b.place_ids) != 1:
-        return MatchDecision(None, "ambiguous")
-    if result_a.place_ids[0] != result_b.place_ids[0]:
-        return MatchDecision(None, "query_disagreement")
-    return MatchDecision(result_a.place_ids[0], "double_query_agree")
+    return MatchDecision(candidate, "box_unique_strict")
 
 
 class PlacesTextSearchClient:
