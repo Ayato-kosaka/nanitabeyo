@@ -85,23 +85,6 @@ jobs:
             --default-buckets-behavior=REGIONAL_USER_OWNED_BUCKET
       # -------------------------------------------
       # ---------- Cloud Run へデプロイ（トラフィックは切り替えない） ----------
-      # development の CORS_ORIGIN はここで宣言し、毎デプロイ上書きする。
-      # 従来は Cloud Run 上の手動管理だったが、Hosting の preview チャンネル命名が
-      # 変わったとき（#1485 で preview-* → pr-*）にサービス側の値だけ取り残され、
-      # preview URL からの API 呼び出しが全滅した。値をリポジトリ管理にして、
-      # チャンネル命名とワイルドカードを同じ PR で動かせるようにする。
-      #
-      # - `nanitabeyo-dev--*.web.app` は dev サイトの全チャンネル（preview-* / pr-* 双方）
-      #   を許可する。`*` の展開は 1 DNS ラベル内限定（cors-origin.ts）なので、
-      #   `...web.app.evil.com` のような別ドメインには一致しない。
-      # - 値内のカンマは deploy-cloudrun が区切りと解釈するため `\,` にエスケープする。
-      # - production はこの変数を渡さない（デフォルトの merge 戦略により、
-      #   env_vars に無いキーはサービス側の既存値が維持される）。
-      - name: Set CORS_ORIGIN for development
-        if: ${{ github.event.inputs.target == 'development' }}
-        run: |
-          echo 'CORS_ORIGIN_LINE=CORS_ORIGIN=http://localhost:4173\,http://localhost:8081\,https://nanitabeyo-dev.web.app\,https://nanitabeyo-dev--*.web.app' >> "$GITHUB_ENV"
-
       # #1323 【設計】トラフィック切替の *前* にスモークを挟むため、ここでは
       # `--no-traffic --tag` でリビジョンを作るだけにする。旧リビジョンが本番を
       # 捌き続けるので、スモークが落ちても利用者影響はゼロで済む。
@@ -114,12 +97,9 @@ jobs:
           image: ${{ env.IMAGE }}
           no_traffic: true
           tag: ${{ env.CANDIDATE_TAG }}
-          # CORS_ORIGIN_LINE は production では未定義 = 空行になり、
-          # deploy-cloudrun の KV パーサは空行を無視する（actions-utils parseKVString）
           env_vars: |
             API_COMMIT_ID=${{ github.sha }}
             API_NODE_ENV=${{ github.event.inputs.target }}
-            ${{ env.CORS_ORIGIN_LINE }}
 
       # 候補リビジョンの URL と名前を引く。
       # action の `outputs.url` は **service の URL**（= 切替前なので旧リビジョンを指す）
