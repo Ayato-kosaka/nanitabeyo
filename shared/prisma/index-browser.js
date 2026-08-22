@@ -264,8 +264,7 @@ exports.Prisma.Dish_media_external_embeddingsScalarFieldEnum = {
   last_verified_at: 'last_verified_at',
   created_at: 'created_at',
   updated_at: 'updated_at',
-  thumbnail_url: 'thumbnail_url',
-  published_at: 'published_at'
+  thumbnail_url: 'thumbnail_url'
 };
 
 exports.Prisma.Dish_media_impressionsScalarFieldEnum = {
