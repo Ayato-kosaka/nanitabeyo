@@ -243,29 +243,42 @@
 	"Onboarding": {
 		"step1": {
 			"problem": "Can't decide what you want to eat.",
-			"solution": "We suggest dishes, so you find what you're craving."
+			"solution": "We suggest recommended dishes,\nso you find what you're craving"
 		},
 		"step2": {
-			"problem": "Finding a restaurant takes forever with too many options.",
-			"solution": "Dishes and restaurants are both narrowed down, so you can decide right away."
+			"problem": "Finding a restaurant takes forever\nwith too many options.",
+			"solution": "Dishes and restaurants are both curated,\nso you can decide right away"
 		},
 		"step3": {
 			"problem": "You don't want to miss what your companions like either.",
-			"solution": "Vote with friends to decide on a dish together."
+			"solution": "Vote with friends to decide on a dish"
 		},
 		"back": "Back",
 		"next": "Next",
 		"skip": "Skip",
 		"location": {
 			"title": "Find great places nearby 📍",
-			"body": "With location access, we can suggest recommended restaurants close to where you are."
+			"body": "With location access, we can suggest recommended restaurants close to where you are.",
+			"dialog": {
+				"title": "Allow “CraveCatch” to use your location?",
+				"message": "Your location is used to suggest recommended restaurants near you.",
+				"allowOnce": "Allow Once",
+				"allowWhileUsing": "Allow While Using App",
+				"deny": "Don’t Allow"
+			}
 		},
 		"notifications": {
 			"title": "Never miss a craving 🔔",
-			"body": "We'll send you recommendations picked for you and updates from CraveCatch."
+			"body": "We'll send you recommendations picked for you and updates from CraveCatch.",
+			"dialog": {
+				"title": "“CraveCatch” Would Like to Send You Notifications",
+				"message": "Notifications may include alerts, sounds, and icon badges.",
+				"deny": "Don’t Allow",
+				"allow": "Allow"
+			}
 		},
 		"welcome": {
-			"title": "Welcome to CraveCatch! 🎉",
+			"title": "Welcome to CraveCatch!",
 			"body1": "No more agonizing over where to eat.",
 			"body2": "Let's go find what you're craving today.",
 			"cta": "Get started"

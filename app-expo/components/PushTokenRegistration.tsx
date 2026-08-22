@@ -8,6 +8,8 @@ import { useAPICall } from "../hooks/useAPICall";
 import { useAuth } from "@/contexts/AuthProvider";
 import { isGuestUser } from "@/lib/authGuest";
 import { isOnboardingPath } from "@/features/onboarding/navigation";
+import { useOnboardingSeen } from "@/features/onboarding/hooks/useOnboardingSeen";
+import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "../hooks/useLogger";
 import type { CreateDeviceTokenResponse } from "@shared/api/v1/res";
 import { Env } from "@/constants/Env";
@@ -48,8 +50,17 @@ export function PushTokenRegistration() {
 	 *
 	 * オンボーディングを抜けたらこの effect が張り直され、そのときには
 	 * 通知説明画面で回答済みなので、ここは «トークンの登録» だけを行う。
+	 *
+	 * ⚠️ パス判定だけでは足りない（MetaAppEventsInitializer と同じ理由）。
+	 * コールドスタート直後の `usePathname()` はオンボーディングへ push される **前の**
+	 * `/ja-JP` を一瞬返すため、その隙間でここが動き出せてしまう。未読の日本語ユーザー
+	 *（これからオンボーディングが始まる人）は完了フラグが立つまで待たせる。
+	 * 日本語以外のユーザーはオンボーディングを通らずフラグが立たない（#642）ので、
+	 * 従来どおりパス判定だけで進ませる。
 	 */
-	const isInOnboarding = isOnboardingPath(pathname);
+	const seen = useOnboardingSeen();
+	const { isJapanese } = useLocale();
+	const isInOnboarding = isOnboardingPath(pathname) || seen === null || (!seen && isJapanese);
 
 	// 画面遷移のたびに登録処理をやり直さないための番人。
 	// pathname を依存に足した結果、この effect はナビゲーションのたびに再実行されるようになった

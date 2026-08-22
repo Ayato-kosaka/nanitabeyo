@@ -165,16 +165,18 @@ const styles = StyleSheet.create({
 		marginTop: 10,
 		backgroundColor: "rgba(240, 85, 55, 0.75)",
 	},
+	// 文字は大きくしすぎない（デザインレビューで指摘）。
+	// 折り返し位置は文言側の明示 \n が決める（locales/*.json）ので、ここで幅の調整はしない
 	problemText: {
-		fontSize: 21,
-		lineHeight: 31,
+		fontSize: 18,
+		lineHeight: 28,
 		fontWeight: "700",
 		color: "#FFFFFF",
 		textAlign: "center",
 	},
 	solutionText: {
-		fontSize: 16,
-		lineHeight: 25,
+		fontSize: 15,
+		lineHeight: 24,
 		fontWeight: "700",
 		color: "#FFFFFF",
 		textAlign: "center",

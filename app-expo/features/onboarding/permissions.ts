@@ -21,6 +21,45 @@ import * as Notifications from "expo-notifications";
 export type PermissionOutcome = "granted" | "denied" | "unavailable";
 
 /**
+ * «これから尋ねたら OS のダイアログが出るか» の事前判定。
+ *
+ * `prompt` のときだけ説明画面を出す価値がある。すでに回答済み（granted / denied）や
+ * 尋ねられない環境（unavailable）で説明画面を出すと、要求が即座に返って
+ * **画面が一瞬光って消える**（web で実際に起きた指摘）。呼び出し側は
+ * `prompt` 以外なら説明画面を描かずに次へ進むこと。
+ */
+export type PermissionPromptState = "prompt" | "granted" | "denied" | "unavailable";
+
+/**
+ * 位置情報の許可ダイアログを «これから出せるか» を読む（ダイアログは出さない）。
+ *
+ * Android は一度拒否されても `canAskAgain` が true の間はもう一度ダイアログを出せるため
+ * `prompt` へ倒す。iOS は一度回答すると `canAskAgain` が false になり `denied` になる。
+ */
+export const getLocationPermissionState = async (): Promise<PermissionPromptState> => {
+	try {
+		const { status, canAskAgain } = await Location.getForegroundPermissionsAsync();
+		if (status === "granted") return "granted";
+		if (status === "undetermined") return "prompt";
+		return canAskAgain ? "prompt" : "denied";
+	} catch {
+		return "unavailable";
+	}
+};
+
+/** 通知の許可ダイアログを «これから出せるか» を読む（ダイアログは出さない） */
+export const getNotificationPermissionState = async (): Promise<PermissionPromptState> => {
+	try {
+		const { status, canAskAgain } = await Notifications.getPermissionsAsync();
+		if (status === "granted") return "granted";
+		if (status === "undetermined") return "prompt";
+		return canAskAgain ? "prompt" : "denied";
+	} catch {
+		return "unavailable";
+	}
+};
+
+/**
  * 位置情報（使用中のみ）の許可を求める（#1486 §5）。
  *
  * すでに回答済みなら OS はダイアログを出さず、現在の状態をそのまま返す

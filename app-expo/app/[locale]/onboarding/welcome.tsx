@@ -67,6 +67,10 @@ export default function OnboardingWelcomeScreen() {
 			<OnboardingScreenOptions />
 			<SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
 				<View style={styles.content} testID="onboarding-welcome">
+					{/* 見本（SARAH の Welcome）の余白比: ロゴの上に約 1、下（CTA まで）に約 1.6。
+					    justifyContent: "center" だと端末の縦横比で詰まり方が変わるため、
+					    flex スペーサーで比率そのものを固定する */}
+					<View style={styles.topSpacer} />
 					<Image
 						source={require("@/assets/images/icon.webp")}
 						style={styles.logo}
@@ -81,6 +85,7 @@ export default function OnboardingWelcomeScreen() {
 					<Text style={styles.body} testID="onboarding-welcome-body">
 						{`${i18n.t("Onboarding.welcome.body1")}\n${i18n.t("Onboarding.welcome.body2")}`}
 					</Text>
+					<View style={styles.bottomSpacer} />
 				</View>
 
 				<View style={styles.footer}>
@@ -111,21 +116,25 @@ const styles = StyleSheet.create({
 	safeArea: {
 		flex: 1,
 	},
-	// ロゴ・見出し・本文は中央よりやや上（参考デザインの構成）。
+	// ロゴ・見出し・本文は中央よりやや上（見本の構成）。
 	// 紙吹雪の主戦場が画面上部なので、その中へ絵として収まる
 	content: {
 		flex: 1,
 		alignItems: "center",
-		justifyContent: "center",
 		paddingHorizontal: 32,
-		paddingBottom: 96,
-		gap: 20,
+	},
+	topSpacer: {
+		flex: 1,
+	},
+	bottomSpacer: {
+		flex: 1.6,
 	},
 	logo: {
 		width: 132,
 		height: 132,
 		borderRadius: 66,
-		marginBottom: 12,
+		// 見本: ロゴと見出しの間はたっぷり空く
+		marginBottom: 44,
 	},
 	title: {
 		fontSize: 27,
@@ -135,6 +144,7 @@ const styles = StyleSheet.create({
 		textAlign: "center",
 	},
 	body: {
+		marginTop: 18,
 		fontSize: 15,
 		lineHeight: 26,
 		color: "#4B5563",
