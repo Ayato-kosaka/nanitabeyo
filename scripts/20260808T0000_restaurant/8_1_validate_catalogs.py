@@ -71,7 +71,7 @@ def validation_sql(pipeline: BigQueryPipeline) -> str:
           COUNT(DISTINCT seed_id) AS distinct_seed_count,
           COUNTIF(
             google_place_id IS NOT NULL
-            AND match_status IN ('existing_pg_matched', 'double_query_agree', 'manual_matched')
+            AND match_status IN ('existing_pg_matched', 'box_unique_strict', 'manual_matched')
           ) AS accepted_count
         FROM `{dataset}.restaurant_google_place_match_catalog`
         WHERE run_id = @run_id
@@ -83,7 +83,7 @@ def validation_sql(pipeline: BigQueryPipeline) -> str:
           FROM `{dataset}.restaurant_google_place_match_catalog`
           WHERE run_id = @run_id
             AND google_place_id IS NOT NULL
-            AND match_status IN ('existing_pg_matched', 'double_query_agree', 'manual_matched')
+            AND match_status IN ('existing_pg_matched', 'box_unique_strict', 'manual_matched')
           GROUP BY google_place_id
           HAVING COUNT(*) > 1
         )

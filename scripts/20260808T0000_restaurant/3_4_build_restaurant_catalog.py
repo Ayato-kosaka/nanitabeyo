@@ -80,7 +80,7 @@ def main() -> None:
         WHERE s.run_id = @run_id
           AND m.run_id = @run_id
           AND m.google_place_id IS NOT NULL
-          AND m.match_status IN ('existing_pg_matched', 'double_query_agree', 'manual_matched')
+          AND m.match_status IN ('existing_pg_matched', 'box_unique_strict', 'manual_matched')
           AND (@allow_osm_only_publish OR s.seed_origin != 'osm_only')
       )
       SELECT

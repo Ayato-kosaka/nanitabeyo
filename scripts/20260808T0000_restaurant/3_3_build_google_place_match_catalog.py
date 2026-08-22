@@ -73,7 +73,7 @@ def main() -> None:
             WHEN o.decision = 'reject' THEN NULL
             WHEN o.decision = 'accept' THEN o.google_place_id
             WHEN s.existing_google_place_id IS NOT NULL THEN s.existing_google_place_id
-            WHEN a.result_status = 'double_query_agree' THEN a.matched_place_id
+            WHEN a.result_status = 'box_unique_strict' THEN a.matched_place_id
             ELSE NULL
           END AS google_place_id,
           CASE
@@ -94,7 +94,9 @@ def main() -> None:
           CASE
             WHEN o.decision = 'accept' THEN 1.0
             WHEN s.existing_google_place_id IS NOT NULL THEN 1.0
-            WHEN a.result_status = 'double_query_agree' THEN 0.99
+            -- ラベル 6,000 件で確定 5,083 件・裁定後の誤り0件（95%下限 99.92%）。
+            -- 1.0 にしないのは、別のラベル集合でも0である保証が無いため。
+            WHEN a.result_status = 'box_unique_strict' THEN 0.999
             ELSE NULL
           END AS match_confidence,
           a.attempt_id AS source_attempt_id,

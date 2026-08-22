@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import tempfile
 import unittest
+from pathlib import Path
 from datetime import date, datetime, timezone
 
 from entity_resolution import EntityResolver, SourceRecord
 from google_place_matching import (
     TextSearchResult,
+    build_box_payload,
     build_query_payloads,
     decide_match,
 )
@@ -81,44 +84,100 @@ class NormalizationTest(unittest.TestCase):
 
 
 class GooglePlaceMatchingTest(unittest.TestCase):
-    def test_only_double_unique_agreement_is_accepted(self) -> None:
+    def test_only_unique_in_tight_box_is_accepted(self) -> None:
+        # ±25m の矩形に同名が1件、それを A と B が挙げていて、B は1件だけ。
         accepted = decide_match(
             TextSearchResult(("place-1",), 200),
             TextSearchResult(("place-1",), 200),
+            result_tight=TextSearchResult(("place-1",), 200),
+            result_wide=TextSearchResult(("place-1",), 200),
             has_address=True,
         )
         self.assertEqual("place-1", accepted.matched_place_id)
-        self.assertEqual("double_query_agree", accepted.status)
+        self.assertEqual("box_unique_strict", accepted.status)
 
-        for a, b, expected in (
-            (("p1", "p2"), ("p1",), "ambiguous"),
-            (("p1",), ("p2",), "query_disagreement"),
-            ((), ("p1",), "unmatched"),
-        ):
-            with self.subTest(expected=expected):
-                decision = decide_match(
-                    TextSearchResult(a, 200),
-                    TextSearchResult(b, 200),
-                    has_address=True,
-                )
-                self.assertIsNone(decision.matched_place_id)
-                self.assertEqual(expected, decision.status)
+        # 矩形に候補が無ければ、A と B が一致していても採らない。
+        # locationBias は絞り込まないので、店が Google に無いとき両方が隣の店を返す。
+        no_box = decide_match(
+            TextSearchResult(("place-neighbour",), 200),
+            TextSearchResult(("place-neighbour",), 200),
+            result_tight=TextSearchResult((), 200),
+            result_wide=TextSearchResult((), 200),
+            has_address=True,
+        )
+        self.assertIsNone(no_box.matched_place_id)
+        self.assertEqual("no_candidate_in_box", no_box.status)
 
-    def test_missing_address_and_api_error_are_not_accepted(self) -> None:
+        # 矩形に同名が複数あれば取り違えの余地がある。
+        ambiguous_box = decide_match(
+            TextSearchResult(("place-1",), 200),
+            TextSearchResult(("place-1",), 200),
+            result_tight=TextSearchResult(("place-1", "place-2"), 200),
+            result_wide=TextSearchResult(("place-1", "place-2"), 200),
+            has_address=True,
+        )
+        self.assertEqual("box_not_unique", ambiguous_box.status)
+
+        # 矩形が一意でも、A も B も挙げていなければ別の店である（実測で正解率 1.0%）。
+        unsupported = decide_match(
+            TextSearchResult(("place-other",), 200),
+            TextSearchResult(("place-other",), 200),
+            result_tight=TextSearchResult(("place-1",), 200),
+            result_wide=TextSearchResult(("place-1",), 200),
+            has_address=True,
+        )
+        self.assertEqual("box_not_unique", unsupported.status)
+
+        # ±250m でしか拾えないものは採らない（②を 100% にするための条件）。
+        wide_only = decide_match(
+            TextSearchResult(("place-1",), 200),
+            TextSearchResult(("place-1",), 200),
+            result_tight=TextSearchResult((), 200),
+            result_wide=TextSearchResult(("place-1",), 200),
+            has_address=True,
+        )
+        self.assertEqual("rejected_not_in_tight_box", wide_only.status)
+
+        # 住所クエリが複数返す店名も採らない（同上）。
+        noisy_address = decide_match(
+            TextSearchResult(("place-1",), 200),
+            TextSearchResult(("place-1", "place-2"), 200),
+            result_tight=TextSearchResult(("place-1",), 200),
+            result_wide=TextSearchResult(("place-1",), 200),
+            has_address=True,
+        )
+        self.assertEqual("rejected_address_query_ambiguous", noisy_address.status)
+
         missing_address = decide_match(
-            TextSearchResult(("p",), 200),
-            TextSearchResult(("p",), 200),
+            TextSearchResult(("place-1",), 200),
+            TextSearchResult((), None),
+            result_tight=TextSearchResult(("place-1",), 200),
+            result_wide=TextSearchResult(("place-1",), 200),
             has_address=False,
         )
         self.assertEqual("ineligible_missing_address", missing_address.status)
+
         api_error = decide_match(
-            TextSearchResult((), 429),
-            TextSearchResult(("p",), 200),
+            TextSearchResult((), 500),
+            TextSearchResult((), 200),
+            result_tight=TextSearchResult((), 200),
+            result_wide=TextSearchResult((), 200),
             has_address=True,
         )
         self.assertEqual("api_error", api_error.status)
 
-    def test_query_a_has_bias_and_query_b_has_address_without_bias(self) -> None:
+    def test_box_payload_cuts_outside_the_rectangle(self) -> None:
+        """矩形は locationBias と違い、外を実際に切り落とす指定である。"""
+
+        body = build_box_payload("山田屋", 35.0, 139.0, 25.0)
+        self.assertIn("rectangle", body["locationRestriction"])
+        self.assertNotIn("locationBias", body)
+        self.assertEqual("places.id", "places.id")
+        rectangle = body["locationRestriction"]["rectangle"]
+        self.assertLess(rectangle["low"]["latitude"], 35.0)
+        self.assertGreater(rectangle["high"]["latitude"], 35.0)
+
+    def test_query_payloads(self) -> None:
         query_a, query_b, body_a, body_b = build_query_payloads(
             "店名", "東京都1-2-3", 35.0, 139.0
         )
@@ -137,7 +196,7 @@ class SocialMediaInputTest(unittest.TestCase):
             "embed_html": '<blockquote class="instagram-media"></blockquote>',
             "media_type": "image",
             "google_place_id": "place-1",
-            "restaurant_match_method": "double_query_agree",
+            "restaurant_match_method": "box_unique_strict",
             "restaurant_match_confidence": "0.99",
             "category_id": "Q123",
             "category_match_method": "manual",
@@ -194,6 +253,73 @@ class SocialMediaInputTest(unittest.TestCase):
             normalize_input_row(
                 insecure_thumbnail, run_id="run", observed_date=date(2026, 8, 12)
             )
+
+
+class FoodPermitTest(unittest.TestCase):
+    """自治体台帳の取り込み。落とした行の数え上げまで含めて固定する。"""
+
+    def _write(self, directory: Path, name: str, text: str) -> None:
+        (directory / name).write_text(text, encoding="utf-8-sig")
+
+    def test_columns_addresses_and_closures_are_handled(self) -> None:
+        from collections import Counter
+
+        from food_permits import iter_permit_rows
+
+        with tempfile.TemporaryDirectory() as raw:
+            directory = Path(raw)
+            # 「所在地郵便番号」を住所列と誤認すると、郵便番号を住所として読む。
+            # 実測で大分県のファイル 18,732 行がこれで落ちた。
+            self._write(
+                directory,
+                "大分県__permits.csv",
+                "施設名称,所在地郵便番号,営業施設所在地,営業の種類\n"
+                "山田屋,8700000,大分県大分市中央町1-1-1,飲食店営業\n",
+            )
+            # 東京23区は自分の区の中なので区名すら書かない。
+            self._write(
+                directory,
+                "新宿区__permits.csv",
+                "施設名称,所在地,営業の種類\n田中屋,新宿1-1-1,飲食店営業\n",
+            )
+            # 「営業ステータス」列に廃業と書く形式。渋谷区は 39,106 行中 22,122 行がこれ。
+            self._write(
+                directory,
+                "渋谷区__permits.csv",
+                "施設名称,施設所在地_連結表記,営業ステータス,営業の種類\n"
+                "閉店屋,東京都渋谷区道玄坂1-1-1,廃業,飲食店営業\n"
+                "営業中屋,東京都渋谷区道玄坂1-1-2,営業中,飲食店営業\n",
+            )
+            stats: Counter = Counter()
+            rows = list(
+                iter_permit_rows(
+                    directory,
+                    prefectures={"新宿区": "東京都", "大分市": "大分県"},
+                    coordinates={"東京都渋谷区道玄坂1-1-2": (35.6, 139.7, "full")},
+                    stats=stats,
+                )
+            )
+
+        by_name = {row.name: row for row in rows}
+        self.assertEqual({"山田屋", "田中屋", "営業中屋"}, set(by_name))
+        # 郵便番号ではなく施設の住所を読んでいる
+        self.assertEqual("大分県大分市中央町1-1-1", by_name["山田屋"].address)
+        # 区名の無い住所に「東京都新宿区」が前置されている
+        self.assertEqual("東京都新宿区新宿1-1-1", by_name["田中屋"].address)
+        # 廃業はステータス列の値で落ちている
+        self.assertEqual(1, stats["closed_by_status"])
+        # ジオコーディング結果が付いた行と、付いていない行が数えられている
+        self.assertEqual("geocoded:full", by_name["営業中屋"].coordinate_source)
+        self.assertEqual(1, stats["has_coordinates"])
+        self.assertEqual(2, stats["needs_geocoding"])
+
+    def test_permit_source_ranks_below_ifas(self) -> None:
+        """同じ店が両方にあるなら、台帳に座標が入っている IFAS を採る。"""
+
+        from entity_resolution import SOURCE_PRIORITY
+
+        self.assertLess(SOURCE_PRIORITY["ifas"], SOURCE_PRIORITY["food_permit"])
+        self.assertLess(SOURCE_PRIORITY["overture"], SOURCE_PRIORITY["food_permit"])
 
 
 if __name__ == "__main__":

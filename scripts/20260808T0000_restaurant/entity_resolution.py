@@ -20,9 +20,21 @@ from normalization import (
     trigram_similarity,
 )
 
-# canonical列の採用順位。許可台帳(IFAS)は営業許可の根拠には強いが、店舗表示名の
-# 主マスターではないため、名称・座標では Overture / 既存DB / OSM より後にする。
-SOURCE_PRIORITY = {"overture": 10, "existing_pg": 20, "osm": 30, "ifas": 40}
+# canonical列の採用順位。許可台帳（IFAS・自治体の食品営業許可台帳）は営業許可の
+# 根拠には強いが、店舗表示名の主マスターではないため、名称・座標では
+# Overture / 既存DB / OSM より後にする。
+#
+# 自治体台帳(food_permit)を IFAS と同順にしないのは、座標の出どころが違うためである。
+# IFAS は台帳に座標が入っているが、自治体台帳は住所からジオコーディングした行が
+# 多い（実測で 13,896 件、命中率100%だが番地レベル）。同じ店が両方にあるなら
+# IFAS 側の座標を採る。
+SOURCE_PRIORITY = {
+    "overture": 10,
+    "existing_pg": 20,
+    "osm": 30,
+    "ifas": 40,
+    "food_permit": 50,
+}
 LOGGER = logging.getLogger(__name__)
 
 
@@ -151,6 +163,8 @@ class Seed:
             return "osm_only"
         if self.canonical_source == "ifas":
             return "ifas_only"
+        if self.canonical_source == "food_permit":
+            return "food_permit_only"
         return self.canonical_source
 
 

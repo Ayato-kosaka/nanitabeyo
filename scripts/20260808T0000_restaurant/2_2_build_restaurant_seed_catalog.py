@@ -55,6 +55,7 @@ def iter_records(pipeline: BigQueryPipeline, run_id: str) -> Iterable[SourceReco
           WHEN 'existing_pg' THEN 20
           WHEN 'osm' THEN 30
           WHEN 'ifas' THEN 40
+          WHEN 'food_permit' THEN 50
           ELSE 999
         END,
         source_record_id
