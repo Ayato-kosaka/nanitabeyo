@@ -152,31 +152,32 @@ const styles = StyleSheet.create({
 		paddingBottom: 104,
 	},
 	// ストーリー投稿のテキストのような、角丸 + 半透明の背景ボックス。
-	// 写真の明暗によらず文字が読めることと、「文字がそこに置いてある」感を両立する
+	// 写真の明暗によらず文字が読めることと、「文字がそこに置いてある」感を両立する。
+	// 最終検収で «色付きではなく黒の半透明に» の指摘（課題文側）
 	textBox: {
 		alignSelf: "center",
-		marginTop: 18,
-		paddingHorizontal: 18,
-		paddingVertical: 10,
+		marginTop: 16,
+		paddingHorizontal: 16,
+		paddingVertical: 9,
 		borderRadius: 10,
-		backgroundColor: "rgba(84, 48, 36, 0.62)",
+		backgroundColor: "rgba(0, 0, 0, 0.55)",
 	},
 	solutionTextBox: {
 		marginTop: 10,
 		backgroundColor: "rgba(240, 85, 55, 0.75)",
 	},
-	// 文字は大きくしすぎない（デザインレビューで指摘）。
+	// 文字は大きくしすぎない（デザインレビュー・最終検収で 2 度指摘）。
 	// 折り返し位置は文言側の明示 \n が決める（locales/*.json）ので、ここで幅の調整はしない
 	problemText: {
-		fontSize: 18,
-		lineHeight: 28,
+		fontSize: 16,
+		lineHeight: 25,
 		fontWeight: "700",
 		color: "#FFFFFF",
 		textAlign: "center",
 	},
 	solutionText: {
-		fontSize: 15,
-		lineHeight: 24,
+		fontSize: 13,
+		lineHeight: 21,
 		fontWeight: "700",
 		color: "#FFFFFF",
 		textAlign: "center",

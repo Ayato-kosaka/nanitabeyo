@@ -15,10 +15,11 @@ import { SearchPage } from "../../pages/SearchPage";
  *
  * ⚠️ **web では OS の許可ダイアログが出ない。** 位置情報はブラウザの権限で、
  *    Playwright の既定コンテキストでは権限状態が «prompt» のまま、要求だけが
- *    «尋ねずに» 拒否される。通知も同様。そのため既定コンテキストでは
- *    位置情報・通知の説明画面は「表示され、自動で次へ進む」ところまでを見る。
- *    権限が **回答済み**（granted / denied）の場合は説明画面そのものが表示されない
- *    （probe で事前判定して飛ばす）。その検証は末尾の describe が行う。
+ *    «尋ねずに» 即答で拒否される。通知も同様。説明画面は「本当にダイアログが
+ *    出ている（= 要求が応答待ちのまま）」ときだけ描画される設計
+ *    （probe + INSTANT_SETTLE_GRACE_MS）なので、既定コンテキストでは
+ *    位置情報・通知の説明画面は **表示されずに** 次へ進む。
+ *    説明画面そのものの描画・回答済みスキップの検証は末尾の describe 2 つが行う。
  */
 test.use({ seedTutorialSeen: false });
 
@@ -142,25 +143,24 @@ test.describe("オンボーディング(ja-JP 初回訪問)", () => {
 		await expect(page).toHaveURL(/\/auth\/login/);
 	});
 
-	// ─ テストケース: ログインをスキップすると位置情報 → Welcome へ進む ─
+	// ─ テストケース: ログインをスキップすると Welcome へ進む（通知許可は要求されない） ─
 	// 手順:
 	//   1. 3 枚目まで進めてログイン画面へ出る
 	//   2. ログイン画面の「スキップ」を押す
-	//   3. 位置情報の説明画面が出ることを検証
-	//   4. 通知許可を **飛ばして** Welcome 画面へ着くことを検証
+	//   3. 通知許可を **飛ばして** Welcome 画面へ着くことを検証
 	// 補足: #1486 §6「ログインをスキップしたユーザーには通知許可を要求しない」。
 	//       ゲスト（匿名）ユーザーは `isGuestUser` が true なので通知画面へ入らない。
-	//       許可ダイアログは web には出ないが、拒否扱いでも先へ進む（#1486 §9）
-	test("ログインをスキップすると位置情報を経て Welcome へ進む", async ({ page }) => {
+	//       ヘッドレスブラウザは位置情報の要求へ **ダイアログを出さずに即答で拒否**するため、
+	//       位置情報の説明画面は描画されない（INSTANT_SETTLE_GRACE_MS で回答済み扱いに畳まれる。
+	//       「拒否済みなのに一瞬画面が出る」報告の修正）。説明画面そのものの描画は
+	//       下の「位置情報のダイアログが本当に出ているとき」describe が検証する
+	test("ログインをスキップすると Welcome へ進む", async ({ page }) => {
 		const onboardingPage = new OnboardingPage(page);
 
 		await page.goto("/");
 		await onboardingPage.advanceToLastStep();
 		await onboardingPage.pressNext();
 		await page.getByTestId("login-screen-skip").click();
-
-		await expect(onboardingPage.locationScreen).toBeVisible();
-		await expect(page.getByText("近くのお店を、すぐ見つけよう 📍")).toBeVisible();
 
 		await expect(onboardingPage.welcomeScreen).toBeVisible({ timeout: 60_000 });
 		await expect(onboardingPage.notificationsScreen).toHaveCount(0);
@@ -287,6 +287,37 @@ test.describe("ヘルプボタンからの再表示", () => {
 		await searchPage.expectLoaded();
 		await expect(onboardingPage.screen).toHaveCount(0);
 		await expect(page.getByTestId("login-screen")).toHaveCount(0);
+	});
+});
+
+test.describe("位置情報のダイアログが本当に出ているとき", () => {
+	// ─ テストケース: 応答待ちの間だけ説明画面（見出し + ダミーダイアログ）が表示される ─
+	// 手順:
+	//   1. getCurrentPosition を «永遠に応答しない» 実装へ差し替える
+	//      （= ブラウザの許可プロンプトが出たままユーザーが答えていない状態の再現）
+	//   2. オンボーディング → ログインスキップまで進める
+	//   3. 説明画面の見出しと、中央のダミー OS ダイアログの文言が表示されることを検証
+	// 補足: ヘッドレスの既定コンテキストは要求へ即答するため、説明画面の描画は
+	//       この «応答保留» の再現でしか検証できない。ダミーダイアログの文言は
+	//       locales/ja-JP.json の Onboarding.location.dialog と対応する
+	test("応答待ちの間は説明とダミーダイアログが表示される", async ({ page }) => {
+		const onboardingPage = new OnboardingPage(page);
+
+		await page.addInitScript(() => {
+			if (navigator.geolocation) {
+				// 成功も失敗も呼ばない = プロンプトが出たまま。permissions.query は既定の "prompt" のまま
+				navigator.geolocation.getCurrentPosition = () => {};
+			}
+		});
+
+		await page.goto("/");
+		await onboardingPage.advanceToLastStep();
+		await onboardingPage.pressNext();
+		await page.getByTestId("login-screen-skip").click();
+
+		await expect(onboardingPage.locationScreen).toBeVisible();
+		await expect(page.getByText("近くのお店を、すぐ見つけよう 📍")).toBeVisible();
+		await expect(page.getByText("Appの使用中は許可")).toBeVisible();
 	});
 });
 
