@@ -8,8 +8,8 @@ import { useAPICall } from "../hooks/useAPICall";
 import { useAuth } from "@/contexts/AuthProvider";
 import { isGuestUser } from "@/lib/authGuest";
 import { isOnboardingPath } from "@/features/onboarding/navigation";
-import { useOnboardingSeen } from "@/features/onboarding/hooks/useOnboardingSeen";
-import { useLocale } from "@/hooks/useLocale";
+import { loadOnboardingSeen } from "@/features/onboarding/onboardingSeenStore";
+import i18n from "@/lib/i18n";
 import { useLogger } from "../hooks/useLogger";
 import type { CreateDeviceTokenResponse } from "@shared/api/v1/res";
 import { Env } from "@/constants/Env";
@@ -50,17 +50,8 @@ export function PushTokenRegistration() {
 	 *
 	 * オンボーディングを抜けたらこの effect が張り直され、そのときには
 	 * 通知説明画面で回答済みなので、ここは «トークンの登録» だけを行う。
-	 *
-	 * ⚠️ パス判定だけでは足りない（MetaAppEventsInitializer と同じ理由）。
-	 * コールドスタート直後の `usePathname()` はオンボーディングへ push される **前の**
-	 * `/ja-JP` を一瞬返すため、その隙間でここが動き出せてしまう。未読の日本語ユーザー
-	 *（これからオンボーディングが始まる人）は完了フラグが立つまで待たせる。
-	 * 日本語以外のユーザーはオンボーディングを通らずフラグが立たない（#642）ので、
-	 * 従来どおりパス判定だけで進ませる。
 	 */
-	const seen = useOnboardingSeen();
-	const { isJapanese } = useLocale();
-	const isInOnboarding = isOnboardingPath(pathname) || seen === null || (!seen && isJapanese);
+	const isInOnboarding = isOnboardingPath(pathname);
 
 	// 画面遷移のたびに登録処理をやり直さないための番人。
 	// pathname を依存に足した結果、この effect はナビゲーションのたびに再実行されるようになった
@@ -78,6 +69,26 @@ export function PushTokenRegistration() {
 
 		const registerPushToken = async () => {
 			try {
+				// #1486 §6【設計】パス判定だけでは足りない: コールドスタート直後の `usePathname()` は
+				// オンボーディングへ push される **前の** `/ja-JP` を一瞬返すため、その隙間で
+				// ここが動き出し、通知の説明画面より先に OS の許可ダイアログが出てしまう
+				//（ATT と同じ実機バグ）。未読の日本語ユーザーは見送り、完了後の画面遷移
+				//（Welcome → アプリ本体で pathname が変わり、この effect が再実行される）で改めて通る。
+				// 日本語以外のユーザーはオンボーディングを通らずフラグが立たない（#642）ので見送らない。
+				//
+				// ⚠️ ここは «描画中の購読»（useOnboardingSeen 等）にしないこと。このコンポーネントで
+				// 既読ストアを購読すると、オンボーディングへの push 遷移中の再描画と干渉して
+				// [locale] レイアウトが作り直され、AppProvider(LoadScript) が「google api is
+				// already presented」で固まり **アプリ全体が Loading のまま止まる**（e2e で実証済み）。
+				// effect 内の非同期読み取りなら描画に影響しない。
+				const seen = await loadOnboardingSeen();
+				const isJapanese = ["ja-JP", "ja"].includes(i18n.locale);
+				if (!seen && isJapanese) {
+					// 番人を外し、オンボーディング完了後の遷移で再試行できるようにする
+					registeredUserIdRef.current = null;
+					return;
+				}
+
 				// #通知機能 【設計】物理デバイスのみ Push 通知を有効化
 				// web は、 expo-server-sdk で対応していないため除外
 				// エミュレータでスキップしないと致命的に困ることはあまりないが、

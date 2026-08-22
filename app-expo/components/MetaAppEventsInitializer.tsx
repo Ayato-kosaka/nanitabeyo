@@ -5,8 +5,8 @@ import { requestTrackingPermissionsAsync, getTrackingPermissionsAsync } from "ex
 import { Settings } from "react-native-fbsdk-next";
 import { Env } from "@/constants/Env";
 import { isOnboardingPath } from "@/features/onboarding/navigation";
-import { useOnboardingSeen } from "@/features/onboarding/hooks/useOnboardingSeen";
-import { useLocale } from "@/hooks/useLocale";
+import { loadOnboardingSeen } from "@/features/onboarding/onboardingSeenStore";
+import i18n from "@/lib/i18n";
 
 /**
  * #492 【設計】Meta (Facebook) App Events 初期化用コンポーネント。
@@ -30,29 +30,37 @@ import { useLocale } from "@/hooks/useLocale";
  *
  * コールドスタート直後の `usePathname()` は、検索画面がオンボーディングへ push する
  * **前の** `/ja-JP` を一瞬返す。パスだけで判定すると、その隙間で ATT が要求されて
- * 「トラッキング許可が一番始めに出てくる」（実機で報告された）。そこで:
+ * 「トラッキング許可が一番始めに出てくる」（実機で報告された）。そこで
+ * `initializeMetaAppEvents` の冒頭で完了フラグを読み、**未読の日本語ユーザー**
+ *（これからオンボーディングが始まる人）は見送る。完了後にアプリ本体へ戻ると
+ * pathname が変わって effect が再実行され、そこで初めて要求される。
+ * 日本語以外のユーザーはオンボーディングを通らずフラグが立たない（#642）ので
+ * 見送らず、従来どおり起動直後に要求される。
  *
- * - **未読の日本語ユーザー**（これからオンボーディングが始まる人）は、パスに関係なく待つ。
- *   完了フラグ（`markOnboardingSeen`）が立ってから要求される
- * - **それ以外**（既読 / 日本語以外）はパス判定だけで従来どおり要求される。
- *   オンボーディングは日本語ロケールでしか自動表示されない（#642）ため、他言語の
- *   ユーザーを完了フラグで待たせると ATT が永久に要求されなくなる（`!isJapanese` の逃し道）
- * - フラグの読み込みが終わるまで（`seen === null`）は判定できないので待つ
- * - パス判定も残す。「?」から手動でオンボーディングを開き直した最中に
- *   effect が張り直された場合への保険
+ * ⚠️ 完了フラグは **描画中に購読しない**（useOnboardingSeen を使わない）こと。
+ * この階層（[locale] レイアウト直下）のコンポーネントで既読ストアを購読すると、
+ * オンボーディングへの push 遷移中の再描画と干渉して [locale] レイアウトが作り直され、
+ * AppProvider(LoadScript) が「google api is already presented」で固まり
+ * **アプリ全体が Loading のまま止まる**（PushTokenRegistration で e2e により実証済み）。
+ * effect 内で `loadOnboardingSeen()` を await する分には描画へ影響しない。
  */
 export const MetaAppEventsInitializer = () => {
 	const hasInitializedRef = useRef(false);
 	const pathname = usePathname();
-	const seen = useOnboardingSeen();
-	const { isJapanese } = useLocale();
-	const mayRequest = !isOnboardingPath(pathname) && seen !== null && (seen || !isJapanese);
+	const mayRequest = !isOnboardingPath(pathname);
 
 	const initializeMetaAppEvents = useCallback(async () => {
 		if (hasInitializedRef.current) return;
 
 		// #492 【設計】Web は Meta SDK 非対応のためスキップ
 		if (Platform.OS === "web") return;
+
+		// #1486 §8 未読の日本語ユーザーはまだオンボーディングが始まっていない（あるいは最中）。
+		// ATT を出さずに見送る。`hasInitializedRef` は立てないので、完了後の画面遷移で
+		// effect が再実行されたときに改めてここを通る
+		const seen = await loadOnboardingSeen();
+		const isJapanese = ["ja-JP", "ja"].includes(i18n.locale);
+		if (!seen && isJapanese) return;
 
 		try {
 			// #1486 §8【設計】**ATT の回答より先にトラッキングを始めない**。
