@@ -26,6 +26,8 @@ interface SaveTopicTabProps {
 	emptyActionLabel?: string;
 	/** #947 空状態のCTA押下時のハンドラ */
 	onEmptyAction?: () => void;
+	/** #1402 collapsible-tabs の外（独立したルート）で描画するとき true。GridList のコメント参照 */
+	standalone?: boolean;
 }
 
 export function SaveTopicTab({
@@ -42,6 +44,7 @@ export function SaveTopicTab({
 	onRetry,
 	emptyActionLabel,
 	onEmptyAction,
+	standalone = false,
 }: SaveTopicTabProps) {
 	const { locale } = useLocale();
 	// #958 【修正】useWindowDimensions はウィンドウ実幅を返すため、CenteredAppShell が
@@ -105,6 +108,7 @@ export function SaveTopicTab({
 			ListEmptyComponent={renderEmptyState}
 			onScroll={onScroll}
 			testID="save-topic-tab-grid"
+			standalone={standalone}
 		/>
 	);
 }

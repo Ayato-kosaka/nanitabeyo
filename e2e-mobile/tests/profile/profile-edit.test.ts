@@ -71,7 +71,8 @@ describeAuthenticated("プロフィール編集画面", () => {
 			await editScreen.goBack();
 		}
 
-		// #1027 と同じ理由でグリッドは存在で見る（保存 0 件だと面積を持たず iOS の可視判定を満たせない）
-		await profileScreen.expectSavedPostsGridVisible();
+		// #1402 グリッドタブが廃止されたので、戻り先の判定は縦リストの行で行う
+		// （#1027 と同じ理由で存在（toExist）で見る。iOS の可視判定は面積の 75% を要求する）
+		await profileScreen.expectLoaded();
 	});
 });

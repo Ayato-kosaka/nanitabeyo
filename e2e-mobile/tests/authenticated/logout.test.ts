@@ -11,7 +11,7 @@ import {
 	type E2ESession,
 } from "../../fixtures/e2e";
 import { ProfileScreen } from "../../screens/ProfileScreen";
-import { ReviewScreen } from "../../screens/ReviewScreen";
+import { MyDishesScreen } from "../../screens/MyDishesScreen";
 import { SearchScreen } from "../../screens/SearchScreen";
 import { SettingsScreen } from "../../screens/SettingsScreen";
 import { TabBar } from "../../screens/TabBar";
@@ -64,12 +64,12 @@ import { createDisposableAuthenticatedSession, revokeDisposableSession } from ".
  * この spec がフル実行で消費する匿名サインインは **1 回だけ** である
  * （専用セッションの `signInWithPassword` は匿名サインインとは別の枠なので影響しない）。
  *
- * ## 設定画面への行き方（e2e-web との差分）
+ * ## ログアウト行への行き方（e2e-web との差分）
  * e2e-web は「深い URL の直開き」から始める（`app/index.tsx` が起動時 URL を行き先として採り直す
  * 経路を再現するため）。ネイティブでは同じ条件がディープリンク起動に当たるが、
- * **設定画面へのディープリンク着地は実機で未確認**（tests/smoke/deep-link.test.ts が確認済みなのは
- * `search` と `profile` の 2 つだけ）。確認できていない前提の上に検証を積むより、
- * 実績のある UI 導線（マイページ → 歯車。tests/profile/settings.test.ts と同じ）を採る。
+ * 確認できていない前提の上に検証を積むより、実績のある UI 導線
+ * （マイページタブ。tests/profile/settings.test.ts と同じ）を採る。
+ * #1402 で設定はマイページ本体へ統合されたので、歯車を押す 1 階層が無くなった。
  * 起動時 URL 由来の回帰（`f8c6a437`）は e2e-web 側が押さえている。
  */
 
@@ -115,10 +115,10 @@ describeAuthenticated("ログアウト（ログイン済みユーザー）", () 
 		const profileScreen = new ProfileScreen();
 		const settingsScreen = new SettingsScreen();
 		const searchScreen = new SearchScreen();
-		const reviewScreen = new ReviewScreen();
+		const myDishesScreen = new MyDishesScreen();
 
 		await tabBar.gotoProfile();
-		await profileScreen.gotoSettings();
+		await profileScreen.expectLoaded();
 		await settingsScreen.expectLoaded();
 
 		// ログアウト行の表示 ＝ AuthProvider が「ログイン済み(非匿名)」で決着した合図。
@@ -134,12 +134,14 @@ describeAuthenticated("ログアウト（ログイン済みユーザー）", () 
 
 		// ── [症状1] ログアウト後にホーム（検索画面）へ遷移する ──────────────
 		// #1124 では router.replace が「匿名サインインの await の後の finally」に置かれていたため
-		// デッドロックで到達せず、設定画面に留まっていた。
+		// デッドロックで到達せず、マイページ（旧・設定画面）に留まっていた。
 		// Android だけは遷移を再認証タイマーより後に予約するため（AuthProvider の
 		// `Platform.OS !== "android"` 分岐）、web より 1 tick 遅れて着地することがある。
 		await searchScreen.expectLoaded();
 		await waitUntilGone(settingsScreen.logoutItem);
-		await waitUntilGone(settingsScreen.title);
+		// #1402 «画面タイトル「設定」が消えること» で見ていたが、その画面ごと無くなった。
+		// マイページを離れたことは «必ず出る行» が消えることで見る（ロケール依存も 1 つ減る）
+		await waitUntilGone(settingsScreen.feedbackItem);
 
 		// ── [症状3] 画面が固まらない（まずタブ導線） ──────────────────────
 		// ネイティブの #1124 は「本当に無反応になる」形で出るため、匿名セッションの再確立を待たずに
@@ -147,9 +149,11 @@ describeAuthenticated("ログアウト（ログイン済みユーザー）", () 
 		// 区別できるようにしている。
 		//
 		// 併せて **ゲスト表示へ戻っていること**（= ログイン済みセッションが再注入されていないこと）も見る。
-		// 再注入が起きていればレビュータブは投稿 CTA（review-post-button）になり、ここが赤くなる。
-		await tabBar.gotoReview();
-		await reviewScreen.expectGuestViewLoaded();
+		// 判定はゲスト帯（my-dishes-guest-description）で行う。#1375 実機確認で記録 CTA
+		// （my-dishes-record-button）は **ゲストにも出る**ようになったので、CTA の有無では
+		// ログイン状態を判定できない。ゲスト帯だけがログイン状態と 1:1 で対応する。
+		await tabBar.gotoMyDishes();
+		await myDishesScreen.expectGuestViewLoaded();
 
 		await tabBar.gotoSearch();
 		await searchScreen.expectLoaded();

@@ -78,6 +78,23 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 				],
 				category: ["BROWSABLE", "DEFAULT"],
 			},
+			// #1400 (PR2) 他アプリの共有シート（ACTION_SEND）から text/plain を受け取る入口。
+			//
+			// これを足すと MainActivity が Android の「共有」の候補に並ぶ。上の VIEW（App Links /
+			// カスタムスキーム）とは **別の intent-filter として並べる**こと。同じ filter に action を
+			// 足すと SEND にも VIEW の data（scheme / host）条件が掛かり、共有シートに出なくなる。
+			//
+			// ⚠️ 共有は URL ではなく `Intent.EXTRA_TEXT`（文字列 extra）で来るので
+			// `Linking.getInitialURL()` では拾えない。読み取りは `lib/sharedTextSource.android.ts`。
+			//
+			// mimeType を `text/*` ではなく `text/plain` に絞っているのは、扱えるのが
+			// 「SNS の URL を含む素のテキスト」だけだからである。広げると共有シートには出るのに
+			// 「取り込めません」しか返せない経路が増える。
+			{
+				action: "SEND",
+				category: ["DEFAULT"],
+				data: [{ mimeType: "text/plain" }],
+			},
 		],
 		config: {
 			googleMaps: {
@@ -226,6 +243,52 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		"expo-font",
 		"expo-web-browser",
 		"expo-localization",
+		// #1400 (PR3) iOS の共有シートから SNS の URL / テキストを受け取る Share Extension。
+		//
+		// ## Android は **plugin に任せない**（`disableAndroid: true`）
+		//
+		// Android の intent-filter は PR2 が `android.intentFilters` へ `text/plain` に絞って
+		// 自前で書いている（上のコメント参照）。plugin の Android 側にも同じ仕事をさせると
+		// **intent-filter が二重になる**。MainActivity の `launchMode="singleTask"` も
+		// Expo の既定テンプレートが既に持っているので、plugin 側に用がない。
+		// 受け取りの JS は `lib/sharedTextSource.android.ts` が担当し続ける。
+		//
+		// ## iOS は plugin が必須
+		//
+		// Share Extension は «アプリ本体とは別の Xcode ターゲット» なので、CNG（`ios/` を
+		// コミットしない）のこのリポジトリでは plugin にターゲットごと生成させるしかない。
+		// prebuild で `ios/ShareExtension/`（Info.plist / entitlements / ShareViewController.swift /
+		// MainInterface.storyboard / PrivacyInfo.xcprivacy）と PBXNativeTarget が生える。
+		//
+		// ## 識別子は #1472 でオーナーが Apple Developer に登録済みの値。**変えないこと**
+		//
+		// - App Group … `group.com.nanitabeyo`（本体と拡張の両方の Identifier に capability 付与済み）
+		// - 拡張の bundle id … `com.nanitabeyo.ShareExtension`
+		//
+		// 既定値は `group.com.nanitabeyo`（偶然一致する）と `com.nanitabeyo.share-extension`
+		// （**一致しない**）なので、bundle id は明示しないと登録済みの Identifier とずれて
+		// プロビジョニングが通らない。
+		//
+		// ## `iosActivationRules`: Android の `text/plain` と同じ広さに揃える
+		//
+		// plugin の既定は WebURL + WebPage だけで、**プレーンテキストの共有が共有シートに出ない**。
+		// YouTube の iOS 共有のように「本文に URL を含む素のテキスト」で来る導線があるため
+		// Text も足す（Android が `text/plain` を受けているのと同じ範囲）。
+		// 画像・動画・ファイルは足さない — 受け取っても `parseSnsUrl()` に渡す URL が無く、
+		// 「共有シートには出るのに取り込めません しか返せない」経路が増えるだけである。
+		[
+			"expo-share-intent",
+			{
+				disableAndroid: true,
+				iosAppGroupIdentifier: "group.com.nanitabeyo",
+				iosShareExtensionBundleIdentifier: "com.nanitabeyo.ShareExtension",
+				iosActivationRules: {
+					NSExtensionActivationSupportsWebURLWithMaxCount: 1,
+					NSExtensionActivationSupportsWebPageWithMaxCount: 1,
+					NSExtensionActivationSupportsTextWithMaxCount: 1,
+				},
+			},
+		],
 		...(process.env.EXPO_PUBLIC_FACEBOOK_APP_ID && process.env.EXPO_PUBLIC_FACEBOOK_CLIENT_TOKEN
 			? [
 					[

@@ -76,7 +76,11 @@ export class DishReviewsRepository {
         rating: dto.rating,
         price_cents: dto.priceCents,
         currency_code: dto.currencyCode,
-        created_dish_media_id: dto.createdDishMediaId,
+        // #1395 写真なしの「食べた」記録では undefined。列は 20260819T0000 で
+        // nullable 化されるが、Prisma 生成物が追随するまで型は string のままなので
+        // ここだけ明示的に緩める（再生成後はキャストを外せる。外さなくても意味は同じ）。
+        created_dish_media_id:
+          dto.createdDishMediaId ?? (null as unknown as string),
       },
     });
   }

@@ -377,6 +377,9 @@
 		"share": {
 			"title": "Check out {{dishName}}"
 		},
+		"save": {
+			"savedMessage": "Saved to Want to Eat"
+		},
 		"buttons": {
 			"viewRestaurant": "View restaurant"
 		},
@@ -384,8 +387,9 @@
 			"viewRestaurant": "View {{name}}'s restaurant details",
 			"likeActive": "Unlike {{name}}",
 			"likeInactive": "Like {{name}}",
-			"saveActive": "Unsave {{name}}",
-			"saveInactive": "Save {{name}}",
+			"saveActive": "Remove {{name}} from Want to Eat",
+			"saveInactive": "Add {{name}} to Want to Eat",
+			"recordEaten": "Record {{name}} as eaten",
 			"share": "Share {{name}}",
 			"openMap": "Open map for {{name}}",
 			"reviewLike": "Like {{username}}'s review"
@@ -410,31 +414,17 @@
 	"Tabs": {
 		"home": "Home",
 		"search": "Search",
-		"review": "Review",
 		"notifications": "Notifications",
 		"profile": "Profile",
 		"labels": {
 			"search": "Search",
-			"review": "Review",
 			"notifications": "Notifications",
-			"profile": "Profile"
-		}
+			"profile": "Profile",
+			"myDishes": "My Dishes"
+		},
+		"myDishes": "My Dishes"
 	},
 	"Profile": {
-		"tabGroups": {
-			"reviews": "Reviews",
-			"saved": "Saved",
-			"liked": "Liked",
-			"wallet": "Wallet"
-		},
-		"tabs": {
-			"deposits": "Deposits",
-			"earnings": "Earnings",
-			"saved-posts": "Posts",
-			"saved-topics": "Dishes",
-			"wallet-deposit": "Deposits",
-			"wallet-earning": "Earnings"
-		},
 		"numberSuffix": {
 			"million": "M",
 			"thousand": "K"
@@ -464,6 +454,10 @@
 			"refunded": "Refunded",
 			"paid": "Paid",
 			"pending": "Pending"
+		},
+		"menu": {
+			"likedPosts": "Liked posts",
+			"savedDishCategories": "Saved dish categories"
 		},
 		"buttons": {
 			"editProfile": "Edit Profile",
@@ -521,7 +515,7 @@
 		},
 		"actions": {
 			"selectDishCategory": "Select dish category",
-			"writeReviewForThisDish": "Write a review for this dish"
+			"writeReviewForThisDish": "Record as eaten"
 		},
 		"inputs": {
 			"price": "Price",
@@ -537,7 +531,8 @@
 			"enterReviewShort": "Short review (e.g.: The rich tonkotsu broth was insanely good!)",
 			"enterBidAmount": "Enter bid amount",
 			"enterDishCategory": "Enter dish category (e.g., Burger, BBQ)",
-			"searchRestaurantsForReview": "Search by name or area"
+			"searchRestaurantsForReview": "Search by name or area",
+			"searchAreaForReview": "Search by area"
 		},
 		"labels": {
 			"endDate": "End date:",
@@ -639,6 +634,34 @@
 				"asian": "Asian",
 				"other": "Other"
 			}
+		},
+		"review": {
+			"title": "Post a Review"
+		},
+		"emptyState": {
+			"noReviews": "No reviews yet.\nBe the first to review this restaurant."
+		},
+		"everybodyPostsTitle": "Choose a dish to review",
+		"characterCount": "{{current}}/{{max}}",
+		"detail": {
+			"title": "Restaurant Details"
+		}
+	},
+	"SelectRestaurant": {
+		"title": "Select a restaurant to review",
+		"searchThisArea": "Search this area",
+		"savedRestaurantList": "Saved Restaurants",
+		"postPhotoVideo": "Post Photo/Video",
+		"fetchSavedRestaurantsError": "Failed to fetch saved restaurants",
+		"noSavedRestaurantsInArea": "No saved restaurants found in this area. Please expand the area and search again.",
+		"nameSearch": {
+			"placeholder": "Search by restaurant name",
+			"searching": "Searching…",
+			"noResults": "No matching restaurants found. Tap a restaurant on the map to add it.",
+			"error": "Search failed. Please try again."
+		},
+		"accessibility": {
+			"clearNameSearch": "Clear restaurant name search"
 		}
 	},
 	"Feedback": {
@@ -696,7 +719,6 @@
 		"continue_with_apple": "Continue with Apple"
 	},
 	"Settings": {
-		"title": "Settings",
 		"sendFeedback": "Send Feedback",
 		"leaveReview": "Leave Review",
 		"rateDialogTitle": "Are you enjoying the app?",
@@ -752,33 +774,150 @@
 		"shareWithFriends": "Share with friends",
 		"cancel": "Cancel"
 	},
-	"Review": {
-		"title": "Post a Review",
-		"hero": {
-			"title": "Write reviews of recommended restaurants\nand post the dishes you ate"
+	"MyDishes": {
+		"actions": {
+			"markAsEaten": "Log as eaten",
+			"markAsEatenA11y": "Log this dish as eaten"
+		},
+		"views": {
+			"map": "Map",
+			"list": "List",
+			"calendar": "Calendar"
+		},
+		"calendar": {
+			"monthLabel": "{{month}}/{{year}}",
+			"weekdays": {
+				"sun": "Sun",
+				"mon": "Mon",
+				"tue": "Tue",
+				"wed": "Wed",
+				"thu": "Thu",
+				"fri": "Fri",
+				"sat": "Sat"
+			},
+			"dayA11yLabel": "{{date}} ({{count}} records)",
+			"periodActive": "Filtered by date",
+			"reachedOldest": "You've reached the oldest record"
+		},
+		"map": {
+			"truncated": "Only some pins are shown. Narrow the area to see the rest.",
+			"zoomInHint": "Zoom in before you search this area",
+			"areaActive": "Filtering by area",
+			"sheetTitle": "{{count}} records nearby"
 		},
 		"guest": {
-			"description": "Log in to write reviews",
+			"description": "Log in to start recording dishes you want to try and have eaten",
 			"loginButton": "Log In"
 		},
-		"authenticated": {
-			"postButton": "✏️ Post a restaurant review"
+		"record": {
+			"cta": "Record",
+			"noPhotoTitle": "Add a photo",
+			"noPhotoHint": "You can record without a photo",
+			"publicReviewNotice": "Your record appears as a public review on the restaurant page",
+			"postNotFoundNoPhoto": "This record has no photo"
 		},
-		"selectRestaurant": {
-			"title": "Select a restaurant to review",
-			"searchThisArea": "Search this area",
-			"savedRestaurantList": "Saved Restaurants",
-			"postPhotoVideo": "Post Photo/Video",
-			"fetchSavedRestaurantsError": "Failed to fetch saved restaurants",
-			"noSavedRestaurantsInArea": "No saved restaurants found in this area. Please expand the area and search again."
+		"filters": {
+			"title": "Filter & sort",
+			"apply": "Apply",
+			"reset": "Reset",
+			"status": {
+				"title": "Status",
+				"want": "Want to eat",
+				"eaten": "Eaten"
+			},
+			"rating": {
+				"title": "Rating",
+				"min": "{{count}} stars & up"
+			},
+			"sort": {
+				"title": "Sort by",
+				"occurredAtDesc": "Newest first",
+				"occurredAtAsc": "Oldest first",
+				"ratingDesc": "Highest rated",
+				"distance": "Nearest",
+				"distanceRequiresArea": "Sorting by distance needs an area. Use \"Search this area\" on the map.",
+				"featureScoreDesc": "Pick conditions"
+			},
+			"area": {
+				"title": "Area",
+				"none": "Anywhere",
+				"clear": "Clear area",
+				"hint": "The area is set with \"Search this area\" on the map."
+			},
+			"axes": {
+				"none": "Any",
+				"timeSlot": "Time of day",
+				"scene": "Who you go with",
+				"budget": "Price range",
+				"diningPace": "Time to spend",
+				"foodStyle": "Style"
+			},
+			"period": {
+				"title": "Period",
+				"none": "Any",
+				"clear": "Clear period"
+			}
 		},
-		"emptyState": {
-			"noReviews": "No reviews yet.\nBe the first to review this restaurant."
+		"empty": {
+			"description": "Dishes you save or record as eaten will show up here."
 		},
-		"everybodyPostsTitle": "Choose a dish to review",
-		"characterCount": "{{current}}/{{max}}",
-		"restaurantDetail": {
-			"title": "Restaurant Details"
+		"list": {
+			"noPhoto": "No photo"
+		},
+		"sheet": {
+			"title": "Your records at {{restaurant}}",
+			"counts": "Want to eat {{want}} · Eaten {{eaten}}",
+			"openRestaurant": "Open restaurant page",
+			"expand": "View fullscreen",
+			"seeAllInList": "See all in list",
+			"noPhotoHint": "This record has no photo. Tap to open the restaurant page."
+		},
+		"feed": {
+			"chips": {
+				"filterCategory": "Filter by {{name}}",
+				"filterStatusEaten": "Filter by Eaten",
+				"filterStatusWant": "Filter by Want to eat",
+				"filterMinRating": "Filter by {{count}} stars & up",
+				"applied": "Filters updated"
+			}
+		},
+		"searchThisArea": "Search this area"
+	},
+	"SnsImport": {
+		"title": "Import from social media",
+		"confirm": {
+			"heading": "Ready to import this post"
+		},
+		"expandPending": {
+			"heading": "A short link was shared",
+			"description": "Opening short links to identify the post isn't available yet. Share the URL of the post's page instead."
+		},
+		"unsupported": {
+			"heading": "This URL can't be imported",
+			"description": "The supported services are TikTok, YouTube Shorts and Instagram."
+		},
+		"tabs": {
+			"sns": "From SNS",
+			"eaten": "Log a meal"
+		},
+		"input": {
+			"label": "Paste an SNS URL",
+			"placeholder": "https://www.tiktok.com/... or the shared text as-is"
+		},
+		"actions": {
+			"resolve": "Read",
+			"save": "Save to Want to eat",
+			"saveRequirement": "Pick a dish and a restaurant to save."
+		},
+		"sections": {
+			"dishCategory": "Dish",
+			"restaurant": "Restaurant",
+			"dishCategorySearchPlaceholder": "Search dishes (2+ characters)",
+			"selected": "Selected: {{value}}"
+		},
+		"save": {
+			"done": "Saved to Want to eat",
+			"failed": "Could not save"
 		}
 	}
 }

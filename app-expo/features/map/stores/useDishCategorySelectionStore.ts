@@ -1,7 +1,7 @@
 import { createWithEqualityFn } from "zustand/traditional";
 
 /**
- * 料理カテゴリ選択画面（`app/[locale]/(tabs)/review/restaurant/[restaurantId]/dish-category.tsx`）が
+ * 料理カテゴリ選択画面（`app/[locale]/restaurant/[restaurantId]/dish-category.tsx`）が
  * 返す «結果»。
  *
  * - `selected`: オートコンプリートの候補を選んだ（既存カテゴリ）

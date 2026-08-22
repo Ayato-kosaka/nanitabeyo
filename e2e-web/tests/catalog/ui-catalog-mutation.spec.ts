@@ -1,7 +1,7 @@
 import * as path from "node:path";
 import { test, expect } from "../../fixtures/test";
 import { TabBar } from "../../pages/TabBar";
-import { ReviewPage } from "../../pages/ReviewPage";
+import { MyDishesPage } from "../../pages/MyDishesPage";
 import { captureScreenIfReachable } from "../../utils/catalog";
 
 /**
@@ -33,11 +33,13 @@ test.describe("UI カタログ（レビュー投稿フロー） @catalog @mutati
 
 	test("店舗選択 → 店舗詳細 → 投稿フォーム → レビュー詳細", async ({ appPage }) => {
 		const tabBar = new TabBar(appPage);
-		const reviewPage = new ReviewPage(appPage);
+		const myDishesPage = new MyDishesPage(appPage);
 
-		await tabBar.gotoReview();
-		await reviewPage.expectAuthenticatedViewLoaded();
-		await appPage.getByTestId("review-post-button").click();
+		await tabBar.gotoMyDishes();
+		await myDishesPage.expectAuthenticatedViewLoaded();
+		// #1375 実機確認: ＋ の押下先は SNS 取り込み画面になった。
+		// 「食べた」（＝レビュー投稿）はその上部タブから入る
+		await myDishesPage.openEatenRecordFlow();
 		await expect(appPage.getByTestId("location-autocomplete-input")).toBeVisible();
 
 		// ① 店舗詳細（店舗検索 → サジェスト選択で店舗が作成/upsert される）
@@ -89,8 +91,8 @@ test.describe("UI カタログ（レビュー投稿フロー） @catalog @mutati
 				await appPage.getByTestId("review-star-5").click();
 				await appPage.getByTestId("review-submit-button").click();
 
-				// 投稿成功後は /review/post/[id] へ遷移する
-				await appPage.waitForURL(/\/review\/post\//, { timeout: 60_000 });
+				// 投稿成功後は /post/[id] へ遷移する
+				await appPage.waitForURL(/\/post\//, { timeout: 60_000 });
 			},
 			{ settleMs: 4_000 },
 		);

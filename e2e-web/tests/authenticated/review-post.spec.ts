@@ -1,7 +1,7 @@
 import * as path from "node:path";
 import { test, expect } from "../../fixtures/test";
 import { TabBar } from "../../pages/TabBar";
-import { ReviewPage } from "../../pages/ReviewPage";
+import { MyDishesPage } from "../../pages/MyDishesPage";
 
 /**
  * 📸 レビュー投稿フローのテスト @mutation(不可逆・承認済み)
@@ -32,18 +32,22 @@ test.describe("レビュー投稿 @mutation", () => {
 	// 既定の 30 秒テストタイムアウトを延長する
 	test.setTimeout(60_000);
 
-	// ─ テストケース: レビュータブからレストラン選択画面が開く ─
+	// ─ テストケース: 食べたい/食べたタブからレストラン選択画面が開く ─
 	// 手順:
-	//   1. ログイン済みで起動し、レビュータブへ遷移する
-	//   2. 投稿 CTA(✏️ お店のレビューを投稿しよう)をタップ
-	//   3. レストラン選択画面(店名やエリアで検索する入力欄)が開くことを検証
-	test("レビュータブからレストラン選択画面が開く", async ({ appPage }) => {
+	//   1. ログイン済みで起動し、食べたい/食べたタブへ遷移する
+	//   2. 記録 CTA(testID: my-dishes-record-button)をタップ → SNS 取り込み画面が開く
+	//   3. 上部タブ「食べた」(testID: sns-import-tab-eaten)をタップ
+	//   4. レストラン選択画面(エリアで検索する入力欄)が開くことを検証
+	//
+	// #1375 実機確認: ＋ の基本導線は SNS URL 取り込みになった。レビュー投稿（＝「食べた」）は
+	// その画面の上部タブから入る。**ここが «既存のレビュータブで出来たこと» を残している証跡**
+	test("食べたい/食べたタブから「食べた」タブ経由でレストラン選択画面が開く", async ({ appPage }) => {
 		const tabBar = new TabBar(appPage);
-		const reviewPage = new ReviewPage(appPage);
+		const myDishesPage = new MyDishesPage(appPage);
 
-		await tabBar.gotoReview();
-		await reviewPage.expectAuthenticatedViewLoaded();
-		await reviewPage.postReviewButton.click();
+		await tabBar.gotoMyDishes();
+		await myDishesPage.expectAuthenticatedViewLoaded();
+		await myDishesPage.openEatenRecordFlow();
 
 		await expect(appPage.getByTestId("location-autocomplete-input")).toBeVisible();
 	});
@@ -54,14 +58,14 @@ test.describe("レビュー投稿 @mutation", () => {
 	//   2. サジェスト先頭を選択する
 	//      (飲食店カテゴリの場合、選択と同時に POST v1/restaurants でレストランが作成/upsert され、
 	//      レストラン詳細画面へ遷移する)
-	//   3. レストラン詳細画面の投稿ボタン(Review.selectRestaurant.postPhotoVideo:「写真・動画を投稿」)
+	//   3. レストラン詳細画面の投稿ボタン(SelectRestaurant.postPhotoVideo:「写真・動画を投稿」)
 	//      が表示されることを検証
 	test("レストラン検索でレストラン詳細画面が開く", async ({ appPage }) => {
 		const tabBar = new TabBar(appPage);
-		const reviewPage = new ReviewPage(appPage);
+		const myDishesPage = new MyDishesPage(appPage);
 
-		await tabBar.gotoReview();
-		await reviewPage.postReviewButton.click();
+		await tabBar.gotoMyDishes();
+		await myDishesPage.openEatenRecordFlow();
 
 		await appPage.getByTestId("location-autocomplete-input").fill("スターバックス");
 		await appPage.getByTestId("location-autocomplete-suggestions").waitFor({ state: "visible" });
@@ -82,10 +86,10 @@ test.describe("レビュー投稿 @mutation", () => {
 	//   5. 成功スナックバー「レビューを投稿しました」が表示されることを検証
 	test("写真付きレビュー投稿が成功する", async ({ appPage }) => {
 		const tabBar = new TabBar(appPage);
-		const reviewPage = new ReviewPage(appPage);
+		const myDishesPage = new MyDishesPage(appPage);
 
-		await tabBar.gotoReview();
-		await reviewPage.postReviewButton.click();
+		await tabBar.gotoMyDishes();
+		await myDishesPage.openEatenRecordFlow();
 		await appPage.getByTestId("location-autocomplete-input").fill("スターバックス");
 		await appPage.getByTestId("location-autocomplete-suggestions").waitFor({ state: "visible" });
 		await appPage.getByTestId("location-autocomplete-suggestion-0").click();

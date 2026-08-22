@@ -26,7 +26,16 @@ const LEGACY_BLUR_MODAL_MESSAGE =
 
 module.exports = {
 	extends: "expo",
-	ignorePatterns: ["/dist/*", "/types/supabase/database.types.ts"],
+	/*
+	  #1400 (PR3) `/ios/*` `/android/*` は CNG（`expo prebuild`）の生成物で、git 管理外
+	  （app-expo/.gitignore）かつ我々が書いたコードではない。prebuild 済みの作業ツリーで
+	  `pnpm --filter app-expo lint` を走らせると、expo-share-intent が生成する
+	  `ios/ShareExtension/ShareExtensionPreprocessor.js`（拡張の中で **ブラウザ** として動く
+	  スクリプトなので `document` を触り、`var` を使う）が no-undef / no-var で **error** になり、
+	  「error 0」の完了条件をローカルだけ満たせなくなる。CI は prebuild しないので落ちず、
+	  手元でだけ落ちるという気づきにくい壊れ方をするため、明示的に除外する。
+	*/
+	ignorePatterns: ["/dist/*", "/ios/*", "/android/*", "/types/supabase/database.types.ts"],
 	rules: {
 		"no-restricted-imports": [
 			"error",

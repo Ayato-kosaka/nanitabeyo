@@ -56,10 +56,15 @@ import {
  * 先読み対象の枚数（#1087 / #1486）。
  *
  * ⚠️ `app-expo/features/search/constants.ts` の `PRELOAD_IMAGES` と必ず対応させること
- * （オンボーディング 6 枚 + アプリアイコン + レビューのヒーロー画像 + Apple / Google のロゴ = 10 枚）。
+ * （オンボーディング 6 枚 + アプリアイコン + Apple / Google のロゴ = 9 枚。
+ *   レビューのヒーロー画像は #1403 でレビュータブごと削除済み）。
  * e2e-web の `utils/preload-assets.ts` の `PRELOAD_ASSET_KEYS` と同じ位置づけ。
+ *
+ * #1403 (PR1) 8 → 7。レビュータブと一緒に `features/review/assets/review-hero.webp` が
+ * 削除され、`PRELOAD_IMAGES` からも外れた。8 のままだとプローブが `loaded=7/7` で
+ * 止まるため、**アプリのバグではない理由でこの spec が赤くなる**。
  */
-export const PRELOAD_IMAGE_COUNT = 10;
+export const PRELOAD_IMAGE_COUNT = 9;
 
 /**
  * 先読み完了を待つ上限 (ms)。

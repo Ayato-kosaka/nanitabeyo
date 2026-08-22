@@ -2,7 +2,7 @@ import * as path from "node:path";
 import { test, expect } from "../../fixtures/test";
 import type { Locator, Page } from "@playwright/test";
 import { TabBar } from "../../pages/TabBar";
-import { ReviewPage } from "../../pages/ReviewPage";
+import { MyDishesPage } from "../../pages/MyDishesPage";
 
 /**
  * ⏳ レビュー投稿中のローディング表示テスト @mutation(#1136 / PR #1166)
@@ -63,10 +63,10 @@ const SUBMIT_FAILED_MESSAGE = "レビューの投稿に失敗しました";
  */
 async function openFilledReviewForm(appPage: Page, comment: string): Promise<Locator> {
 	const tabBar = new TabBar(appPage);
-	const reviewPage = new ReviewPage(appPage);
+	const myDishesPage = new MyDishesPage(appPage);
 
-	await tabBar.gotoReview();
-	await reviewPage.postReviewButton.click();
+	await tabBar.gotoMyDishes();
+	await myDishesPage.openEatenRecordFlow();
 	await appPage.getByTestId("location-autocomplete-input").fill("スターバックス");
 	await appPage.getByTestId("location-autocomplete-suggestions").waitFor({ state: "visible" });
 	await appPage.getByTestId("location-autocomplete-suggestion-0").click();
@@ -114,7 +114,10 @@ test.describe("レビュー投稿中のローディング @mutation", () => {
 	//   6. force クリックを 2 回打っても POST が増えない(= 実際に押下が届かない)ことを検証
 	//   7. ゲートを開けて投稿処理を失敗で終わらせ、後片付けする
 	test("投稿中はボタンにスピナーが出て押下も届かない", async ({ appPage }) => {
-		const submitButton = await openFilledReviewForm(appPage, `[E2E] ローディング表示テスト ${new Date().toISOString()}`);
+		const submitButton = await openFilledReviewForm(
+			appPage,
+			`[E2E] ローディング表示テスト ${new Date().toISOString()}`,
+		);
 
 		/** POST v1/dishes の着弾回数。ローディング中に増えなければ「押せていない」ことの直接証拠になる */
 		let createDishRequests = 0;
@@ -168,7 +171,10 @@ test.describe("レビュー投稿中のローディング @mutation", () => {
 	//   5. **もう一度ふつうに click** して再投稿できることを検証
 	//      (Playwright の click は enabled になるまで待つため、固着していればここで失敗する)
 	test("投稿に失敗してもローディングが解除され、再投稿できる", async ({ appPage }) => {
-		const submitButton = await openFilledReviewForm(appPage, `[E2E] 投稿失敗時の解除テスト ${new Date().toISOString()}`);
+		const submitButton = await openFilledReviewForm(
+			appPage,
+			`[E2E] 投稿失敗時の解除テスト ${new Date().toISOString()}`,
+		);
 
 		let createDishRequests = 0;
 		await appPage.route(CREATE_DISH_URL, async (route) => {

@@ -10,7 +10,8 @@ import {
 	KeyboardAvoidingView,
 	Keyboard,
 } from "react-native";
-import { Star, ChevronRight, Utensils, CircleDollarSign, ThumbsUp } from "lucide-react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Star, ChevronRight, Utensils, CircleDollarSign, ThumbsUp, ImagePlus } from "lucide-react-native";
 import { Card } from "@/components/Card";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { PrimaryButton } from "@/components/PrimaryButton";
@@ -60,8 +61,23 @@ interface ReviewFormProps {
 	onCancel: () => void;
 	/** Pre-filled media data (for no-media mode from Feed) */
 	prefilledMedia?: DishMediaEntry["dish_media"] & { dish: DishMediaEntry["dish"] };
-	// #644 【設計】レビュー投稿成功時のコールバック（呼び出し元で画面遷移を制御）
-	onSuccess?: (params: { dishMedia: DishMediaEntry["dish_media"]; dishReviewId: string }) => void;
+	/**
+	 * #1398 B1 【設計】写真なしでの記録を許可するか（既定 false）。
+	 *
+	 * true のときだけ `mediaState` が `{ status: "none" }` に到達しうる。到達経路は
+	 * 「マウント時に開いたピッカーをキャンセルした」だけで、そのとき画面は閉じずにフォームへ留まる
+	 *（B2）。渡さなければ挙動は**完全に従来どおり**であり、`review-from-media`
+	 *（prefilledMedia モード）は渡さないので 1 行も変わらない。
+	 */
+	allowNoMedia?: boolean;
+	/**
+	 * #644 【設計】レビュー投稿成功時のコールバック（呼び出し元で画面遷移を制御）
+	 *
+	 * #1398 B4 写真なしで記録したときは `dishMedia` が null になる。null のとき
+	 * `/post/[id]` へ遷移してはいけない（その画面はストアのエントリ前提で、写真なしは
+	 * R2 によりストアを通らないためスピナー固着になる）。
+	 */
+	onSuccess?: (params: { dishMedia: DishMediaEntry["dish_media"] | null; dishReviewId: string }) => void;
 }
 
 const { height } = Dimensions.get("window");
@@ -82,9 +98,11 @@ export function ReviewForm({
 	initialRating = 0,
 	onCancel,
 	prefilledMedia,
+	allowNoMedia = false,
 	onSuccess,
 }: ReviewFormProps) {
 	const { lightImpact, mediumImpact } = useHaptics();
+	const insets = useSafeAreaInsets();
 	const { logFrontendEvent } = useLogger();
 	const { callBackend } = useAPICall();
 	const { uploadFile: mediaUploadFile } = useFileUploader();
@@ -97,8 +115,20 @@ export function ReviewForm({
 	const profile = useProfileStore((state) => state.profile);
 
 	// Media selection state
+	/**
+	 * #1398 B1 【設計】`{ status: "none" }` = 写真なしで記録する状態。
+	 *
+	 * `allowNoMedia` が true のときだけ到達しうる（B2 のキャンセル分岐が唯一の入口）。
+	 * `success` と違って `media` を持たないので、この状態からの投稿では
+	 * アップロードも `POST /v1/dish-media` も走らず、ストア更新も行わない（B4 / R2）。
+	 * `none` からプレースホルダをタップすればピッカーを開き直せる（B3）ので、
+	 * 「写真なし → 写真あり」へはいつでも戻れる。
+	 */
 	const [mediaState, setMediaState] = useState<
-		{ status: "loading" } | { status: "error"; error: string } | { status: "success"; media: MediaData }
+		| { status: "loading" }
+		| { status: "error"; error: string }
+		| { status: "success"; media: MediaData }
+		| { status: "none" }
 	>({ status: "loading" });
 
 	/**
@@ -144,6 +174,16 @@ export function ReviewForm({
 	useEffect(() => {
 		prefilledMediaRef.current = prefilledMedia;
 	}, [prefilledMedia]);
+	/**
+	 * #1398 B2 `runMediaSelection` は `useCallback([])` で identity を固定してあるため、
+	 * 新しい prop も他と同じくラッチ経由で読む（依存配列へ足すと #1127 の欠陥が戻る）。
+	 * 上の 3 本（onCancel / lightImpact / logFrontendEvent）と同じ作法で、
+	 * `mediaGenerationRef` / `isSelectingMediaRef` / `prefilledMediaRef` には手を入れていない。
+	 */
+	const allowNoMediaRef = useRef(allowNoMedia);
+	useEffect(() => {
+		allowNoMediaRef.current = allowNoMedia;
+	}, [allowNoMedia]);
 
 	/**
 	 * #1127 【修正】メディア選択の同時実行を防ぐ同期ガード。
@@ -317,6 +357,19 @@ export function ReviewForm({
 				// Handle cancellation - close modal automatically
 				if (result.error === "cancelled") {
 					logFinished({ success: false, error: result.error, discarded: false });
+					/**
+					 * #1398 B2 【設計】写真なしを許可している画面では、キャンセルで画面を閉じない。
+					 *
+					 * `allowNoMedia` が true のとき、ピッカーのキャンセルは「写真なしで記録する」という
+					 * 意思表示とみなしてフォームに留まる（設計 §4-1）。退出手段は `ScreenHeader` の
+					 * 戻るボタンで従来どおり確保されている。
+					 * false（既定・`review-from-media` を含む）のときは**従来どおり** `onCancel()` で閉じる。
+					 * ここは `runMediaSelection` 内の唯一のキャンセル分岐なので、分岐はこの 1 箇所で閉じる。
+					 */
+					if (allowNoMediaRef.current) {
+						setMediaState({ status: "none" });
+						return;
+					}
 					onCancelRef.current();
 					return;
 				}
@@ -495,7 +548,7 @@ export function ReviewForm({
 		setDishCategoryError(null);
 		useDishCategorySelectionStore.getState().clear();
 		router.push({
-			pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]/dish-category",
+			pathname: "/[locale]/restaurant/[restaurantId]/dish-category",
 			params: { locale, restaurantId: restaurant.id },
 		});
 	}, [router, locale, restaurant.id]);
@@ -542,7 +595,9 @@ export function ReviewForm({
 	}, [dishCategoryResult, applyTypedDishCategory]);
 
 	const handleSubmit = useCallback(async () => {
-		if (!isValid || isProcessing || mediaState.status !== "success") return;
+		// #1398 B4 写真なし（status: "none"）も投稿できる。`isValid`（価格>0 / コメント / ★>0 /
+		// カテゴリ確定）は写真の有無に関係なくそのまま必須なので、ここは条件を足すだけに留める
+		if (!isValid || isProcessing || (mediaState.status !== "success" && mediaState.status !== "none")) return;
 
 		// #1090 多重投稿の判定は ref で行う（useState の isProcessing はレースが残る。
 		// 宣言箇所のコメント参照）。ここより後に投稿処理を書くこと
@@ -557,9 +612,31 @@ export function ReviewForm({
 
 		try {
 			// #400 【設計】メディアなしモード（prefilledMedia指定時）では、新規メディアアップロード処理をスキップする
-			let dish_media: DishMediaEntry["dish_media"];
-			let dish: DishMediaEntry["dish"];
-			if (!prefilledMedia) {
+			/**
+			 * #1398 B4 写真なし（`status: "none"`）のときは最後まで null のまま。
+			 * この 2 つが null であることが「ストアを触ってはいけない」の唯一の判定材料になる（R2）。
+			 */
+			let dish_media: DishMediaEntry["dish_media"] | null = null;
+			let dish: DishMediaEntry["dish"] | null = null;
+			/** レビューを書く対象の dish。写真ありは `dish_media.dish_id`、写真なしは get-or-create の結果 */
+			let dishId: string;
+			if (mediaState.status === "none") {
+				/**
+				 * #1398 (c-2) 写真なしの記録。
+				 *
+				 * `POST /v1/dishes`（get-or-create）→ `POST /v1/dish-reviews` の **2 本だけ**。
+				 * アップロードと `POST /v1/dish-media` は丸ごと飛ばす。dish が無いとレビューが
+				 * 書けないので `v1/dishes` だけは写真ありと同じく必要である。
+				 */
+				const createDishResponse = await callBackend<CreateDishDto, CreateDishResponse>("v1/dishes", {
+					method: "POST",
+					requestPayload: {
+						restaurantId: restaurant.id,
+						dishCategoryId: dishCategoryId,
+					},
+				});
+				dishId = createDishResponse.id;
+			} else if (!prefilledMedia) {
 				if (mediaState.media.durationSec === undefined && mediaState.media.type === "video") {
 					logFrontendEvent({
 						event_name: "video_duration_missing",
@@ -626,46 +703,65 @@ export function ReviewForm({
 					media_processing_status: "completed",
 					thumbnail_processing_status: "completed",
 				};
+				dishId = dish_media.dish_id;
 			} else {
 				// prefilleMedia が指定されている場合は、それを利用
 				dish_media = prefilledMedia;
 				dish = prefilledMedia.dish;
+				dishId = dish_media.dish_id;
 			}
 
 			const createdDishReview = await callBackend<CreateDishReviewDto, CreateDishReviewResponse>("/v1/dish-reviews", {
 				method: "POST",
 				requestPayload: {
-					dishId: dish_media.dish_id,
+					dishId,
 					comment: reviewText,
 					languageCode: locale,
 					priceCents: parsedPrice,
 					currencyCode: currencyCode ?? undefined,
 					rating,
-					createdDishMediaId: dish_media.id,
+					// #1398 B4 写真なしのときは `createdDishMediaId` を**送らない**。
+					// DTO 上すでに任意で、API は未指定なら `created_dish_media_id` に NULL を書く
+					...(dish_media ? { createdDishMediaId: dish_media.id } : {}),
 				},
 			});
 
+			/**
+			 * #1398 R2 【重要】写真なし（`dish_media === null`）ではストアを 1 つも触らない。
+			 *
+			 * `useDishMediaEntriesStore` のエントリは `dish_media` が在ることを前提にしており、
+			 * 写真なしの記録で `upsertDishMediaEntries` / `updateMediaIdsByKey` を呼ぶと
+			 * **不正なエントリが入って全画面 Feed が壊れる**。`updateReviewIdsByKey` も、実体の無い
+			 * レビュー id を一覧へ積むだけなので同じ理由で呼ばない。
+			 * 写真なしの記録は `/post/[id]` へも遷移しない（呼び出し元が `dishMedia === null` で判断する）ので、
+			 * ストアに入っていないことによる不都合は無い。
+			 */
 			// #460 【設計】レビュー投稿後の即時反映：API から返却された DishReview をストアに反映
-			const { upsertDishMediaEntries, updateReviewIdsByKey, updateMediaIdsByKey } = useDishMediaEntriesStore.getState();
-			upsertDishMediaEntries([
-				{
-					restaurant,
-					dish,
-					dish_media,
-					dish_reviews: [
-						{
-							...createdDishReview,
-							// #467 【設計】プロフィールストアから display_name を取得（プロフィール画面を開かなくても利用可能）
-							username: profile?.display_name ?? "me",
-							isLiked: false,
-							likeCount: 0,
-						},
-					],
-				},
-			]);
-			updateReviewIdsByKey("reviews", (prev) => [String(createdDishReview.id), ...prev]);
-			if (!prefilledMedia)
-				updateMediaIdsByKey(mapReviewsKey(restaurant.id), (prev) => [String(dish_media.id), ...prev]);
+			if (dish_media && dish) {
+				// let のままコールバックへ渡すと絞り込みが効かないので const へ受け直す
+				const createdDishMedia = dish_media;
+				const { upsertDishMediaEntries, updateReviewIdsByKey, updateMediaIdsByKey } =
+					useDishMediaEntriesStore.getState();
+				upsertDishMediaEntries([
+					{
+						restaurant,
+						dish,
+						dish_media,
+						dish_reviews: [
+							{
+								...createdDishReview,
+								// #467 【設計】プロフィールストアから display_name を取得（プロフィール画面を開かなくても利用可能）
+								username: profile?.display_name ?? "me",
+								isLiked: false,
+								likeCount: 0,
+							},
+						],
+					},
+				]);
+				updateReviewIdsByKey("reviews", (prev) => [String(createdDishReview.id), ...prev]);
+				if (!prefilledMedia)
+					updateMediaIdsByKey(mapReviewsKey(restaurant.id), (prev) => [String(createdDishMedia.id), ...prev]);
+			}
 
 			logFrontendEvent({
 				event_name: "dish_review_submitted",
@@ -733,9 +829,22 @@ export function ReviewForm({
 		[router, locale],
 	);
 
+	/**
+	 * #1441 M-1 【レビュー対応】エラーカードの「閉じる」。
+	 *
+	 * `allowNoMedia` のときにここで `onCancel()`（= 画面を閉じる）へ倒すと、★・コメント・価格・
+	 * カテゴリを入力済みでも「写真を追加」の再選択が失敗しただけで入力が丸ごと消える
+	 *（フォーム自体は unmount される）。写真なしはそもそも許可されているモードなので、
+	 * `setMediaState({ status: "none" })` でフォームへ戻せば入力は生き残る。
+	 * `allowNoMedia` でないとき（既定・`review-from-media` を含む）は従来どおり `onCancel()`。
+	 */
 	const handleCancel = useCallback(() => {
+		if (allowNoMedia) {
+			setMediaState({ status: "none" });
+			return;
+		}
 		onCancel();
-	}, [onCancel]);
+	}, [allowNoMedia, onCancel]);
 
 	// Error state
 	if (mediaState.status === "error") {
@@ -770,6 +879,28 @@ export function ReviewForm({
 							<LoadingIndicator size="large" />
 							<Text style={styles.loadingText}>{i18n.t("Map.media.loadingMedia")}</Text>
 						</View>
+					) : mediaState.status === "none" ? (
+						/**
+						 * #1398 B3 【設計】写真なしのプレビュー枠。
+						 *
+						 * タップで `handleRetry`（= マウント時と同じ `runMediaSelection`）を起動して
+						 * ピッカーを開き直せる。つまり `none` は行き止まりではなく、いつでも `success` へ戻れる。
+						 * サブラベルは「写真なしが機能欠落ではなく仕様である」ことを示すために置く（設計 §4-1）。
+						 */
+						<Pressable
+							testID="review-add-photo-placeholder"
+							style={styles.noMediaPlaceholder}
+							onPress={handleRetry}
+							accessibilityRole="button"
+							accessibilityLabel={i18n.t("MyDishes.record.noPhotoTitle")}>
+							<ImagePlus size={28} color="#9CA3AF" style={styles.noMediaIcon} />
+							<Text style={styles.noMediaTitle} numberOfLines={1}>
+								{i18n.t("MyDishes.record.noPhotoTitle")}
+							</Text>
+							<Text style={styles.noMediaHint} numberOfLines={1}>
+								{i18n.t("MyDishes.record.noPhotoHint")}
+							</Text>
+						</Pressable>
 					) : (
 						<InitialMediaPreview media={mediaState.media} />
 					)}
@@ -796,7 +927,7 @@ export function ReviewForm({
 							maxLength={100}
 						/>
 						<Text style={styles.characterCount}>
-							{i18n.t("Review.characterCount", { current: reviewText.length, max: 100 })}
+							{i18n.t("Restaurant.characterCount", { current: reviewText.length, max: 100 })}
 						</Text>
 					</View>
 
@@ -911,12 +1042,25 @@ export function ReviewForm({
 						</Text>
 						{i18n.t("Map.consent_review_suffix")}
 					</Text>
+
+					{/*
+						#1398 R4 【設計】記録は「非公開の食事ログ」に見えやすいが、実際は公開レビューであり
+						店舗の平均評価にも載る（#1375 追補 決定1）。誤解を招く UI のまま出さないため、同意文言の
+						直下に 1 行足す。
+
+						#1441 N-2 【レビュー対応】以前は `allowNoMedia` のときだけ描画していたが、
+						リーダー判断の R4 は描画画面を限定していない。`review-from-media` 経路（prefilledMedia）
+						も同じく公開レビューになるので常時表示へ変更した。
+					*/}
+					<Text testID="review-public-notice" style={styles.publicNoticeText}>
+						{i18n.t("MyDishes.record.publicReviewNotice")}
+					</Text>
 				</View>
 			</ScrollView>
 
 			{/* 投稿ボタン */}
 			{!isKeyboardVisible && (
-				<View style={styles.buttonContainer}>
+				<View style={[styles.buttonContainer, { paddingBottom: 12 + insets.bottom }]}>
 					<PrimaryButton
 						testID="review-submit-button"
 						label={i18n.t("Common.postReview")}
@@ -1141,14 +1285,58 @@ const styles = StyleSheet.create({
 		color: "#2563EB",
 		textDecorationLine: "underline",
 	},
+	// #1398 R4 同意文言の直下に置く「公開レビューになる」告知
+	publicNoticeText: {
+		fontSize: 12,
+		color: "#6B7280",
+		textAlign: "left",
+		lineHeight: 18,
+		marginTop: 8,
+	},
+	// #1398 B3 写真なし（status: "none"）のプレビュー枠
+	// #1441 N-1 【レビュー対応】window 高 667pt（iPhone SE 等）では枠の高さが 81px しか無く、
+	// 旧サイズ（アイコン 40 + gap 8 + 16px タイトル + gap 8 + 13px ヒント ≒ 91px）だとはみ出していた。
+	// アイコンと余白を縮め、`flexShrink` も添えて小型端末でも収まるようにする
+	noMediaPlaceholder: {
+		flex: 1,
+		flexShrink: 1,
+		justifyContent: "center",
+		alignItems: "center",
+		gap: 4,
+		marginHorizontal: 16,
+		borderRadius: 12,
+		borderWidth: 1,
+		borderStyle: "dashed",
+		borderColor: "#D1D5DB",
+		backgroundColor: "#F9FAFB",
+	},
+	noMediaIcon: {
+		flexShrink: 1,
+	},
+	noMediaTitle: {
+		fontSize: 14,
+		fontWeight: "600",
+		color: "#374151",
+		flexShrink: 1,
+	},
+	noMediaHint: {
+		fontSize: 12,
+		color: "#6B7280",
+		flexShrink: 1,
+	},
 	characterCount: {
 		fontSize: 12,
 		color: "#6B7280",
 		textAlign: "right",
 		marginTop: 4,
 	},
+	// #1375 実機確認: Android のジェスチャーナビゲーションでは画面下端に system inset があり、
+	// この投稿ボタンがその下に潜って押せなかった。呼び出し側の 2 画面（review.tsx /
+	// review-from-media）はどちらも SafeAreaView を持たないので、下端の確保はここで行う。
+	// `paddingBottom` は描画時に `insets.bottom` を足して上書きする
 	buttonContainer: {
-		paddingVertical: 12,
+		paddingTop: 12,
+		paddingBottom: 12,
 		borderTopWidth: 1,
 		borderTopColor: "#C9C9C9",
 		backgroundColor: "#FFFFFF",
