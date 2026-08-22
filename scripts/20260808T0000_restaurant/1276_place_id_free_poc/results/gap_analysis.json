@@ -1,0 +1,21 @@
+{
+  "enumerated": 1747,
+  "reached": 1061,
+  "missing": 686,
+  "reach_rate": 0.607327,
+  "missing_distance_to_open_data": {
+    "within_30m": 669,
+    "30_100m": 11,
+    "100_200m": 6
+  },
+  "distance_warning": "区画は繁華街なので『近くに行がある』はほぼ常に成立する。距離だけで判断してはいけない",
+  "named_missing": 45,
+  "name_verdicts": {
+    "different_shop_source_gap": 44,
+    "same_shop_matching_failure": 1
+  },
+  "name_verdict_shares": {
+    "different_shop_source_gap": 0.9778,
+    "same_shop_matching_failure": 0.0222
+  }
+}

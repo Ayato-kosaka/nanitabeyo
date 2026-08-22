@@ -83,6 +83,11 @@ jobs:
     environment: development
     env:
       DATABASE_URL: ${{ secrets.POSTGRES_DATABASE_URL }}
+      # #843 店提案パイプライン（scripts/20260808T0000_restaurant/3_2）が使う
+      # Google Places Text Search (IDs Only) 専用キー。APIサーバーの
+      # GOOGLE_MAPS_API_KEY とは別に発行し、キー側もText Search APIのみに制限する。
+      # 未登録なら空になるだけで、他のスクリプトの実行には影響しない。
+      PLACES_TEXT_SEARCH_API_KEY: ${{ secrets.PLACES_TEXT_SEARCH_API_KEY }}
 
     steps:
       - name: リポジトリを取得

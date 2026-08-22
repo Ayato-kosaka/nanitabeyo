@@ -1,0 +1,138 @@
+{
+  "measured_at": "2026-08-08",
+  "method_version": 1,
+  "overture": {
+    "release": "2026-07-22.0",
+    "filter": "addresses[1].country = 'JP' AND list_contains(taxonomy.hierarchy, 'food_and_drink')",
+    "rows": 789612,
+    "field_present": {
+      "name": 789612,
+      "address": 789612,
+      "phone": 722826,
+      "website": 443323,
+      "socials": 714103,
+      "email": 71354
+    },
+    "field_present_percent": {
+      "name": 100.0,
+      "address": 100.0,
+      "phone": 91.54,
+      "website": 56.14,
+      "socials": 90.44,
+      "email": 9.04
+    },
+    "confidence_at_least_0_8": 479677,
+    "confidence_at_least_0_8_percent": 60.75,
+    "primary_categories": {
+      "restaurant": 498237,
+      "bar": 99715,
+      "cafe": 66051,
+      "casual_eatery": 62287,
+      "coffee_shop": 30900,
+      "fast_food_restaurant": 11407,
+      "non_alcoholic_beverage_venue": 7871,
+      "(null)": 4588,
+      "lounge": 3065,
+      "brewery": 2248,
+      "smoothie_juice_bar": 1163,
+      "winery": 756,
+      "food_truck_stand": 388,
+      "alcoholic_beverage_venue": 379,
+      "distillery": 307,
+      "food_court": 250
+    },
+    "source_dataset_rows": {
+      "Overture": 789612,
+      "Meta": 691250,
+      "Foursquare": 85913,
+      "Microsoft": 7705,
+      "AllThePlaces": 4741,
+      "PinMeTo": 3
+    },
+    "operating_status": {"open": 3, "(null)": 789609},
+    "approx_duplicate_excess_same_name_coordinates_rounded_4dp": 90,
+    "approx_duplicate_excess_same_name_exact_address": 250,
+    "warning": "Operating status is almost entirely null; row count is not active-establishment coverage."
+  },
+  "ifas": {
+    "snapshot_label": "2026年06月末現在",
+    "jurisdiction_files": 157,
+    "all_rows": 1089349,
+    "all_unique_row_ids": 993483,
+    "duplicate_rows": 95866,
+    "restaurant_or_cafe_rows": 400816,
+    "active_rows_as_of_2026_08_08": 397011,
+    "active_exact_name_address_entities": 278247,
+    "active_exact_name_address_entities_with_coordinates": 261924,
+    "active_missing": {
+      "name": 108002,
+      "address": 112557,
+      "coordinates": 129295,
+      "phone": 210737
+    },
+    "active_missing_percent": {
+      "name": 27.2,
+      "address": 28.35,
+      "coordinates": 32.57,
+      "phone": 53.08
+    },
+    "restaurant_rows_prefecture_examples": {
+      "福岡県": 36739,
+      "静岡県": 33298,
+      "千葉県": 32690,
+      "東京都": 10656,
+      "大阪府": 6803,
+      "愛知県": 1786,
+      "兵庫県": 1477,
+      "福島県": 197,
+      "大分県": 157,
+      "島根県": 118
+    },
+    "warning": "Public files contain only electronic submissions whose applicants consented to disclosure; they are not all licensed establishments."
+  },
+  "ifas_to_overture_overlap": {
+    "method": "exact_normalized_name_within_100m",
+    "ifas_candidates": 261924,
+    "matched_ifas": 37083,
+    "matched_ifas_percent": 14.16,
+    "ambiguous_ifas": 35,
+    "distinct_matched_overture": 36993,
+    "warning": "Conservative lower bound only; spelling differences and displaced coordinates are not matched."
+  },
+  "osm": {
+    "data_until": "2026-08-07T20:20:18Z",
+    "core_amenity_rows": 199798,
+    "amenities": {
+      "restaurant": 109083,
+      "cafe": 28548,
+      "fast_food": 24458,
+      "bar": 12003,
+      "pub": 24250,
+      "food_court": 425,
+      "ice_cream": 965,
+      "biergarten": 66
+    },
+    "field_present": {
+      "name": 188687,
+      "opening_hours": 24571,
+      "phone": 20415,
+      "website": 14566,
+      "cuisine": 87560,
+      "wheelchair": 9941,
+      "outdoor_seating": 6337,
+      "internet_access": 3432,
+      "payment:credit_cards": 1178
+    },
+    "field_present_percent": {
+      "name": 94.4,
+      "opening_hours": 12.3,
+      "phone": 10.2,
+      "website": 7.3,
+      "cuisine": 43.8,
+      "wheelchair": 5.0,
+      "outdoor_seating": 3.2,
+      "internet_access": 1.7,
+      "payment:credit_cards": 0.6
+    }
+  }
+}

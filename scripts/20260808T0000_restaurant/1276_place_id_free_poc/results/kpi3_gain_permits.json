@@ -1,0 +1,18 @@
+{
+  "enumerated": 1747,
+  "base": {
+    "seeds_probed": 11829,
+    "seeds_matched": 8068,
+    "reached": 1086,
+    "rate": 0.621637
+  },
+  "with_extra": {
+    "seeds_probed": 7641,
+    "seeds_matched": 5566,
+    "reached": 1188,
+    "rate": 0.680023
+  },
+  "gain_points": 5.839,
+  "extra_only_reached": 102,
+  "selected_for_probing": 0
+}
