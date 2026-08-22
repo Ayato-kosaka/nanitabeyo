@@ -878,8 +878,7 @@
 	"SnsImport": {
 		"title": "SNS から取り込む",
 		"confirm": {
-			"heading": "この投稿を取り込みます",
-			"pending": "この投稿の保存は現在準備中です。もう少しお待ちください。"
+			"heading": "この投稿を取り込みます"
 		},
 		"expandPending": {
 			"heading": "短縮 URL が共有されました",
@@ -888,6 +887,29 @@
 		"unsupported": {
 			"heading": "この URL は取り込めません",
 			"description": "対応しているのは TikTok / YouTube Shorts / Instagram です。"
+		},
+		"tabs": {
+			"sns": "SNS から",
+			"eaten": "食べたを記録"
+		},
+		"input": {
+			"label": "SNS の URL を貼り付け",
+			"placeholder": "https://www.tiktok.com/... や共有された文章のまま"
+		},
+		"actions": {
+			"resolve": "読み取る",
+			"save": "食べたいに保存",
+			"saveRequirement": "料理と店舗を選ぶと保存できます。"
+		},
+		"sections": {
+			"dishCategory": "料理",
+			"restaurant": "店舗",
+			"noDishCategory": "料理の候補が見つかりませんでした。",
+			"noRestaurant": "店舗の候補が見つかりませんでした。"
+		},
+		"save": {
+			"done": "食べたいに保存しました",
+			"failed": "保存できませんでした"
 		}
 	}
 }

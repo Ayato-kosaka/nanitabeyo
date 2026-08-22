@@ -878,8 +878,7 @@
 	"SnsImport": {
 		"title": "सोशल मीडिया से इंपोर्ट करें",
 		"confirm": {
-			"heading": "यह पोस्ट इंपोर्ट की जाएगी",
-			"pending": "इस पोस्ट को सहेजने की सुविधा अभी तैयार नहीं है। कृपया कुछ देर बाद देखें।"
+			"heading": "यह पोस्ट इंपोर्ट की जाएगी"
 		},
 		"expandPending": {
 			"heading": "छोटा लिंक शेयर किया गया है",
@@ -888,6 +887,29 @@
 		"unsupported": {
 			"heading": "यह URL इंपोर्ट नहीं किया जा सकता",
 			"description": "समर्थित सेवाएँ TikTok / YouTube Shorts / Instagram हैं।"
+		},
+		"tabs": {
+			"sns": "SNS से",
+			"eaten": "खाया हुआ दर्ज करें"
+		},
+		"input": {
+			"label": "SNS URL पेस्ट करें",
+			"placeholder": "https://www.tiktok.com/... या साझा किया गया टेक्स्ट"
+		},
+		"actions": {
+			"resolve": "पढ़ें",
+			"save": "खाना है में सहेजें",
+			"saveRequirement": "सहेजने के लिए व्यंजन और रेस्तराँ चुनें।"
+		},
+		"sections": {
+			"dishCategory": "व्यंजन",
+			"restaurant": "रेस्तराँ",
+			"noDishCategory": "कोई व्यंजन नहीं मिला।",
+			"noRestaurant": "कोई रेस्तराँ नहीं मिला।"
+		},
+		"save": {
+			"done": "खाना है में सहेजा गया",
+			"failed": "सहेजा नहीं जा सका"
 		}
 	}
 }

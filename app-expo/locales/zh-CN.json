@@ -878,8 +878,7 @@
 	"SnsImport": {
 		"title": "从社交媒体导入",
 		"confirm": {
-			"heading": "将导入这条帖子",
-			"pending": "保存这条帖子的功能正在准备中，请稍后再试。"
+			"heading": "将导入这条帖子"
 		},
 		"expandPending": {
 			"heading": "分享的是短链接",
@@ -888,6 +887,29 @@
 		"unsupported": {
 			"heading": "无法导入该网址",
 			"description": "目前支持的服务是 TikTok / YouTube Shorts / Instagram。"
+		},
+		"tabs": {
+			"sns": "从社交平台",
+			"eaten": "记录已吃"
+		},
+		"input": {
+			"label": "粘贴社交平台链接",
+			"placeholder": "https://www.tiktok.com/... 或直接粘贴分享文本"
+		},
+		"actions": {
+			"resolve": "读取",
+			"save": "保存到想吃",
+			"saveRequirement": "选择菜品和店铺后即可保存。"
+		},
+		"sections": {
+			"dishCategory": "菜品",
+			"restaurant": "店铺",
+			"noDishCategory": "未找到菜品候选。",
+			"noRestaurant": "未找到店铺候选。"
+		},
+		"save": {
+			"done": "已保存到想吃",
+			"failed": "保存失败"
 		}
 	}
 }

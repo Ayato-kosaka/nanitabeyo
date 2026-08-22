@@ -878,8 +878,7 @@
 	"SnsImport": {
 		"title": "Importar desde redes sociales",
 		"confirm": {
-			"heading": "Se importará esta publicación",
-			"pending": "Guardar esta publicación aún no está disponible. Vuelve a intentarlo pronto."
+			"heading": "Se importará esta publicación"
 		},
 		"expandPending": {
 			"heading": "Se ha compartido un enlace corto",
@@ -888,6 +887,29 @@
 		"unsupported": {
 			"heading": "No se puede importar esta URL",
 			"description": "Los servicios compatibles son TikTok, YouTube Shorts e Instagram."
+		},
+		"tabs": {
+			"sns": "Desde redes",
+			"eaten": "Registrar comida"
+		},
+		"input": {
+			"label": "Pega una URL de redes",
+			"placeholder": "https://www.tiktok.com/... o el texto compartido"
+		},
+		"actions": {
+			"resolve": "Leer",
+			"save": "Guardar en Quiero comer",
+			"saveRequirement": "Elige un plato y un restaurante para guardar."
+		},
+		"sections": {
+			"dishCategory": "Plato",
+			"restaurant": "Restaurante",
+			"noDishCategory": "No se encontraron platos.",
+			"noRestaurant": "No se encontraron restaurantes."
+		},
+		"save": {
+			"done": "Guardado en Quiero comer",
+			"failed": "No se pudo guardar"
 		}
 	}
 }

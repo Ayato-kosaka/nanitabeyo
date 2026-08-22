@@ -39,6 +39,12 @@ jest.mock("@/hooks/useLocale", () => ({ useLocale: () => ({ locale: "ja-JP", isJ
 jest.mock("@/hooks/useHaptics", () => ({ useHaptics: () => ({ lightImpact: jest.fn(), mediumImpact: jest.fn() }) }));
 jest.mock("@/hooks/useLogger", () => ({ useLogger: () => ({ logFrontendEvent: jest.fn() }) }));
 jest.mock("@/hooks/useScreenTrace", () => ({ useScreenTrace: () => {} }));
+// #1399 取り込みの保存が入ったので、この画面は API 呼び出しと認証状態を読む。
+// 実 supabase クライアントを触らせないため、ここで差し替える
+const mockCallBackend = jest.fn();
+jest.mock("@/hooks/useAPICall", () => ({ useAPICall: () => ({ callBackend: mockCallBackend }) }));
+jest.mock("@/contexts/SnackbarProvider", () => ({ useSnackbar: () => ({ showSnackbar: jest.fn() }) }));
+jest.mock("@/contexts/AuthProvider", () => ({ useAuth: () => ({ user: { is_anonymous: false } }) }));
 jest.mock("@/lib/i18n", () => ({ __esModule: true, default: { t: (key: string) => key } }));
 jest.mock("lucide-react-native", () => new Proxy({}, { get: () => () => null }));
 jest.mock("react-native-safe-area-context", () => {
@@ -102,25 +108,30 @@ afterEach(() => {
 	mockCanGoBack = true;
 });
 
-describe("取り込み確認（kind: content）", () => {
+describe("貼り付け欄（#1375 実機確認: ＋ の基本導線）", () => {
+	// 共有からの着地（`?url=`）でも、＋ から開いた «url 無し» でも、同じ 1 本の入力欄で扱う
 	it.each([
-		["TikTok の投稿", TIKTOK_POST_URL, "TikTok"],
-		["YouTube Shorts", YOUTUBE_SHORTS_URL, "YouTube Shorts"],
-		["Instagram の reel", INSTAGRAM_REEL_URL, "Instagram"],
-	])("%s は取り込み確認を出す", async (_label, url, providerLabel) => {
+		["TikTok の投稿", TIKTOK_POST_URL],
+		["YouTube Shorts", YOUTUBE_SHORTS_URL],
+		["Instagram の reel", INSTAGRAM_REEL_URL],
+	])("%s は共有された値が入力欄に入る", async (_label, url) => {
 		const tree = await render(url);
 
-		expect(has(tree, "sns-import-confirm")).toBe(true);
-		expect(has(tree, "sns-import-unsupported")).toBe(false);
-		expect(has(tree, "sns-import-expand-pending")).toBe(false);
-		expect(textsOf(tree, "sns-import-provider")).toContain(providerLabel);
-		expect(textsOf(tree, "sns-import-url")).toContain(url);
+		const input = tree.root.find((node) => node.props?.testID === "sns-import-url-input");
+		expect(input.props.value).toBe(url);
+		// 見た目の判定で «非対応» ではないので、そのヒントは出さない
+		expect(has(tree, "sns-import-unsupported-description")).toBe(false);
 	});
 
-	// #1399 PR7 / PR11 が入るまで保存はできない。押しても何も起きないボタンではなく、文字で言う
-	it("保存が «準備中» であることを明示する", async () => {
-		const tree = await render(TIKTOK_POST_URL);
-		expect(has(tree, "sns-import-confirm-pending")).toBe(true);
+	it("url が無くても入力欄は出る（＋ から開いた場合）", async () => {
+		const tree = await render(undefined);
+
+		const input = tree.root.find((node) => node.props?.testID === "sns-import-url-input");
+		expect(input.props.value).toBe("");
+		// 空欄の段階で «非対応» と言わない（まだ何も貼られていないだけである）
+		expect(has(tree, "sns-import-unsupported-description")).toBe(false);
+		// 貼る前は読み取りボタンを押させない
+		expect(tree.root.find((node) => node.props?.testID === "sns-import-resolve-button").props.disabled).toBe(true);
 	});
 });
 
@@ -129,8 +140,7 @@ describe("短縮 URL（kind: shortlink）", () => {
 		const tree = await render(TIKTOK_SHORT_URL);
 
 		expect(has(tree, "sns-import-expand-pending")).toBe(true);
-		expect(has(tree, "sns-import-unsupported")).toBe(false);
-		expect(textsOf(tree, "sns-import-provider")).toContain("TikTok");
+		expect(has(tree, "sns-import-unsupported-description")).toBe(false);
 	});
 });
 
@@ -143,14 +153,7 @@ describe("対象外（null）", () => {
 	])("%s は専用の文言を出す", async (_label, url) => {
 		const tree = await render(url);
 
-		expect(has(tree, "sns-import-unsupported")).toBe(true);
-		expect(has(tree, "sns-import-confirm")).toBe(false);
 		expect(textsOf(tree, "sns-import-unsupported-description")).toContain("SnsImport.unsupported.description");
-	});
-
-	it("url パラメータが無くても空の画面にしない", async () => {
-		const tree = await render(undefined);
-		expect(has(tree, "sns-import-unsupported")).toBe(true);
 	});
 });
 
@@ -207,15 +210,27 @@ describe("8 ロケールの文言（parity テストは «キーがあること�
 		expect(description).toContain("Instagram");
 	});
 
-	it.each(LOCALES)("%s は 3 状態すべての文言を持つ", (locale) => {
+	// #1399 保存が入り «準備中» の文言が消え、貼り付け欄・タブ・候補選択の文言が増えた。
+	// 件数を数え続けるのは «文言が増えるたびに落ちるテスト» になるので、
+	// «同じキー集合を 8 ロケールが持ち、値が空でない» を見る形へ変えた
+	it.each(LOCALES)("%s は ja-JP と同じキーを持ち、値が空でない", (locale) => {
 		const messages = require(`../locales/${locale}.json`) as { SnsImport: Record<string, unknown> };
 		const flatten = (value: unknown): string[] =>
 			typeof value === "string"
 				? [value]
 				: Object.values(value as Record<string, unknown>).flatMap((child) => flatten(child));
 
+		const keysOf = (value: unknown, prefix = ""): string[] =>
+			typeof value === "string"
+				? [prefix]
+				: Object.entries(value as Record<string, unknown>).flatMap(([key, child]) =>
+						keysOf(child, prefix ? `${prefix}.${key}` : key),
+					);
+
+		const base = require("../locales/ja-JP.json") as { SnsImport: Record<string, unknown> };
+		expect(keysOf(messages.SnsImport).sort()).toEqual(keysOf(base.SnsImport).sort());
+
 		const values = flatten(messages.SnsImport);
-		expect(values.length).toBe(7);
 		values.forEach((value) => expect(value.trim().length).toBeGreaterThan(0));
 	});
 });

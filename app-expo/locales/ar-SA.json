@@ -878,8 +878,7 @@
 	"SnsImport": {
 		"title": "الاستيراد من وسائل التواصل",
 		"confirm": {
-			"heading": "سيتم استيراد هذا المنشور",
-			"pending": "حفظ هذا المنشور غير متاح بعد. يرجى المحاولة لاحقًا."
+			"heading": "سيتم استيراد هذا المنشور"
 		},
 		"expandPending": {
 			"heading": "تمت مشاركة رابط مختصر",
@@ -888,6 +887,29 @@
 		"unsupported": {
 			"heading": "لا يمكن استيراد هذا الرابط",
 			"description": "الخدمات المدعومة هي TikTok و YouTube Shorts و Instagram."
+		},
+		"tabs": {
+			"sns": "من الشبكات",
+			"eaten": "تسجيل وجبة"
+		},
+		"input": {
+			"label": "الصق رابط الشبكات الاجتماعية",
+			"placeholder": "https://www.tiktok.com/... أو النص المشارك كما هو"
+		},
+		"actions": {
+			"resolve": "قراءة",
+			"save": "حفظ في أريد تناوله",
+			"saveRequirement": "اختر طبقًا ومطعمًا للحفظ."
+		},
+		"sections": {
+			"dishCategory": "الطبق",
+			"restaurant": "المطعم",
+			"noDishCategory": "لم يتم العثور على أطباق.",
+			"noRestaurant": "لم يتم العثور على مطاعم."
+		},
+		"save": {
+			"done": "تم الحفظ في أريد تناوله",
+			"failed": "تعذر الحفظ"
 		}
 	}
 }

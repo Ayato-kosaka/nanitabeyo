@@ -93,7 +93,16 @@ export default function MyDishesScreen() {
 	}, [activeView, lightImpact, locale]);
 
 	// #1396 【設計】旧レビュータブの投稿導線（`review-post-button`）の後継。
-	// 押下先は既存 `selectRestaurant.tsx` の移設先（店名検索は別 Sub-issue で組み替え予定、挙動不変）
+	//
+	// #1375 実機確認: 押下先を **SNS URL 取り込み画面**へ変えた。＋ の基本導線は
+	// 「SNS で見つけた店を食べたいに入れる」であり、「食べた」の記録はその画面の上部タブから
+	// 切り替える（`app/[locale]/sns-import.tsx`）。OS の共有シートからの着地点と同じ画面なので、
+	// 入口が 2 つで着地は 1 つになる。
+	//
+	// 取り込みは `dish_media.user_id` を NULL のままにし、ユーザーとの紐付けを
+	// `reactions(save)` が持つため **ログイン不要**である（API も AuthAnonGuard）。
+	// したがってこのボタンはゲストにも出す。ログインが要るのは切替先の「食べたを記録」だけで、
+	// その判定は sns-import 側が行う。
 	const handleRecordPress = useCallback(() => {
 		lightImpact();
 		// #1403 (PR2) 旧名 `my_dishes_record_button_clicked`。my-dishes の他イベントが
@@ -104,10 +113,7 @@ export default function MyDishesScreen() {
 			error_level: "log",
 			payload: {},
 		});
-		router.push({
-			pathname: "/[locale]/(tabs)/my-dishes/select-restaurant",
-			params: { locale },
-		});
+		router.push({ pathname: "/[locale]/sns-import", params: { locale } });
 	}, [lightImpact, logFrontendEvent, locale]);
 
 	// #1375 実機確認: SafeAreaView に `bottom` を含めると、タブバーが既に確保している下端インセットの
@@ -210,18 +216,16 @@ export default function MyDishesScreen() {
 				}
 			</View>
 
-			{!isGuest && (
-				<TouchableOpacity
-					testID="my-dishes-record-button"
-					onPress={handleRecordPress}
-					style={styles.fab}
-					accessibilityRole="button"
-					accessibilityLabel={i18n.t("MyDishes.record.cta")}>
-					{/* #1375 実機確認: 「記録する」の文字は出さず ＋ だけにする。
+			<TouchableOpacity
+				testID="my-dishes-record-button"
+				onPress={handleRecordPress}
+				style={styles.fab}
+				accessibilityRole="button"
+				accessibilityLabel={i18n.t("MyDishes.record.cta")}>
+				{/* #1375 実機確認: 「記録する」の文字は出さず ＋ だけにする。
 					    ラベルは accessibilityLabel に残すので読み上げからは失われない */}
-					<Plus size={24} color="#FFFFFF" />
-				</TouchableOpacity>
-			)}
+				<Plus size={24} color="#FFFFFF" />
+			</TouchableOpacity>
 		</SafeAreaView>
 	);
 }

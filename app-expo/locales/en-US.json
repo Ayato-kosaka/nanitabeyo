@@ -878,8 +878,7 @@
 	"SnsImport": {
 		"title": "Import from social media",
 		"confirm": {
-			"heading": "Ready to import this post",
-			"pending": "Saving this post isn't available yet. Please check back soon."
+			"heading": "Ready to import this post"
 		},
 		"expandPending": {
 			"heading": "A short link was shared",
@@ -888,6 +887,29 @@
 		"unsupported": {
 			"heading": "This URL can't be imported",
 			"description": "The supported services are TikTok, YouTube Shorts and Instagram."
+		},
+		"tabs": {
+			"sns": "From SNS",
+			"eaten": "Log a meal"
+		},
+		"input": {
+			"label": "Paste an SNS URL",
+			"placeholder": "https://www.tiktok.com/... or the shared text as-is"
+		},
+		"actions": {
+			"resolve": "Read",
+			"save": "Save to Want to eat",
+			"saveRequirement": "Pick a dish and a restaurant to save."
+		},
+		"sections": {
+			"dishCategory": "Dish",
+			"restaurant": "Restaurant",
+			"noDishCategory": "No dish candidates found.",
+			"noRestaurant": "No restaurant candidates found."
+		},
+		"save": {
+			"done": "Saved to Want to eat",
+			"failed": "Could not save"
 		}
 	}
 }
