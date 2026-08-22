@@ -128,21 +128,27 @@ test.describe("SNS 取り込み画面(#1400 / #1375)", () => {
 		expect(text).toContain("Instagram");
 	});
 
-	// ─ テストケース: 上部タブ「食べたを記録」で既存のレビュー投稿導線へ抜ける ─
+	// ─ テストケース: ゲストが「食べたを記録」を押すとログインへ送られる ─
 	// 手順:
-	//   1. 画面を開く
+	//   1. 画面を開く（この project は匿名セッションで動く）
 	//   2. 上部タブ「食べたを記録」を押す
-	//   3. 店舗選択画面（エリア検索の入力欄）へ着くことを検証
+	//   3. ログイン画面へ着くことを検証
 	//
-	// **これが «既存のレビュータブで出来たことを失わせていない» ことの証跡**である（#1375 の大前提）。
-	// ＋ の基本導線が SNS 取り込みへ変わっても、レビュー投稿はここから必ず辿れる。
-	test("上部タブ「食べたを記録」から店舗選択へ抜けられる", async ({ appPage }) => {
-		const snsImportPage = new SnsImportPage(appPage);
+	// **取り込みと「食べた」でログインの要否が違う**ことがこの画面の肝である。
+	//   - 取り込み … ログイン不要。`dish_media.user_id` は NULL のままで、ユーザーとの紐付けは
+	//     `reactions(save)` が持つ。匿名ユーザーも実 user id を持つので save は書ける（#1375）
+	//   - 「食べた」… `dish_reviews` を書く公開レビューなのでログインが要る
+	//
+	// ログイン済みで «上部タブ → 店舗選択» まで抜けられることの証跡は
+	// `tests/authenticated/review-post.spec.ts`（`openEatenRecordFlow()`）が持つ。
+	// この project は匿名なので、ここで押さえるのは «ログインへ送られる» 側である。
+	test("ゲストが「食べたを記録」を押すとログイン画面へ送られる", async ({ page }) => {
+		const snsImportPage = new SnsImportPage(page);
 
 		await snsImportPage.goto();
 		await snsImportPage.eatenTab.click();
 
-		await expect(appPage.getByTestId("location-autocomplete-input")).toBeVisible();
+		await expect(page).toHaveURL(/\/auth\/login/);
 	});
 
 	// ─ テストケース: 履歴が無いときの戻るは my-dishes へ着く ─
