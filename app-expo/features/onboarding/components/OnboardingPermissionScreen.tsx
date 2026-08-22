@@ -12,7 +12,7 @@
 再インストール前に許可済みだった人や、2 回目以降の起動で説明画面が **一瞬光って消える**。
 説明を読ませるための画面が読めないのでは意味が無いので、答えが出ても最低限は表示し続ける。
 */
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -55,41 +55,54 @@ export function OnboardingPermissionScreen({
 	const hasSettledRef = useRef(false);
 	const [outcome, setOutcome] = useState<PermissionOutcome | null>(null);
 
-	const settle = useCallback(
-		(result: PermissionOutcome) => {
-			if (hasSettledRef.current) return;
-			hasSettledRef.current = true;
-			onSettled(result);
-		},
-		[onSettled],
-	);
+	/**
+	 * ⚠️ **`request` と `onSettled` を effect の依存に入れてはいけない。**
+	 *
+	 * 位置情報の画面（app/[locale]/onboarding/location.tsx）の `onSettled` は
+	 * `useAuth()` の `user` / `isAuthResolved` に依存している。オンボーディングの最中は
+	 * まさに認証が動いている時間帯（ログインした直後、あるいは匿名セッションの確立中）なので、
+	 * **許可ダイアログを出している間に `onSettled` の識別子が変わる**ことが普通に起こる。
+	 *
+	 * 依存に入れると、そのたびに effect が張り直されて
+	 * `requestForegroundPermissionsAsync()` が **もう一度呼ばれる**。
+	 * `hasSettledRef` は «二重に次へ進む» ことは防ぐが、OS への二重要求は防げない。
+	 *
+	 * そこで最新の関数を ref に持ち、effect 自体は **マウント時に 1 回だけ**走らせる。
+	 * 呼ぶ時点では ref の中身が最新なので、古い `onSettled` を呼んでしまうこともない。
+	 */
+	const requestRef = useRef(request);
+	const onSettledRef = useRef(onSettled);
+	requestRef.current = request;
+	onSettledRef.current = onSettled;
 
 	useEffect(() => {
 		let isActive = true;
+
+		const settle = (result: PermissionOutcome) => {
+			if (!isActive || hasSettledRef.current) return;
+			hasSettledRef.current = true;
+			onSettledRef.current(result);
+		};
 
 		// #1486 §5 【設計】「画面表示と同時に許可ダイアログを表示する」。
 		// 応答待ちと最低表示時間を **並行で** 走らせ、両方が済んでから次へ進む。
 		// 直列（表示 → 待つ → 要求）にすると、ダイアログが出るまでの間だけ説明が浮いて見える
 		const elapsed = new Promise<void>((resolve) => setTimeout(resolve, MINIMUM_VISIBLE_MS));
 
-		const timeoutId = setTimeout(() => {
-			if (isActive) settle("unavailable");
-		}, RESPONSE_TIMEOUT_MS);
+		const timeoutId = setTimeout(() => settle("unavailable"), RESPONSE_TIMEOUT_MS);
 
 		void (async () => {
-			const result = await request();
+			const result = await requestRef.current();
 			if (isActive) setOutcome(result);
 			await elapsed;
-			if (isActive) settle(result);
+			settle(result);
 		})();
 
 		return () => {
 			isActive = false;
 			clearTimeout(timeoutId);
 		};
-		// request / settle は呼び出し側で useCallback 済み。ここが再実行されると
-		// 許可ダイアログを 2 度要求することになるため、依存はこの 2 つだけに保つこと
-	}, [request, settle]);
+	}, []);
 
 	return (
 		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
