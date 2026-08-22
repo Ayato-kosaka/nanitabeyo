@@ -298,8 +298,8 @@ export const useMyDishesStore = createWithEqualityFn<MyDishesStore>()((set, get)
 		try {
 			// #1396 【設計】フィルタ変更時は cursor を捨てて先頭から取り直す（#1395 §6）
 			const response = await fetcher({ cursor: null });
-		// #1398 (PR4/7) 飛行中に clearQuery が走ったら、この結果は «捨てた世代» のものなので
-		// 1 バイトも書かない（書くと «記録前» の行が hasFetchedInitial 付きで復活する）
+			// #1398 (PR4/7) 飛行中に clearQuery が走ったら、この結果は «捨てた世代» のものなので
+			// 1 バイトも書かない（書くと «記録前» の行が hasFetchedInitial 付きで復活する）
 			if (get().generation !== generation) return;
 			set((state) => {
 				const itemPatch: Record<string, MyDishItem> = {};
@@ -344,8 +344,8 @@ export const useMyDishesStore = createWithEqualityFn<MyDishesStore>()((set, get)
 
 		try {
 			const response = await fetcher({ cursor });
-		// #1398 (PR4/7) 飛行中に clearQuery が走ったら、この結果は «捨てた世代» のものなので
-		// 1 バイトも書かない（書くと «記録前» の行が hasFetchedInitial 付きで復活する）
+			// #1398 (PR4/7) 飛行中に clearQuery が走ったら、この結果は «捨てた世代» のものなので
+			// 1 バイトも書かない（書くと «記録前» の行が hasFetchedInitial 付きで復活する）
 			if (get().generation !== generation) return;
 			// n-1（見送り・申し送り）: ここで `queryKey` がまだ `recentQueryKeys` に生きているかは見ていない。
 			// 飛行中に他の 4 本目の queryKey で LRU から追い出されると、この結果は誰も参照しない

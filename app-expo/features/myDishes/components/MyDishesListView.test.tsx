@@ -51,7 +51,11 @@ import { MyDishesListView } from "./MyDishesListView";
 
 const makeItem = (
 	key: string,
-	overrides: { thumbnailImageUrl?: string | null; categoryImageUrl?: string | null; restaurantImageUrl?: string | null } = {},
+	overrides: {
+		thumbnailImageUrl?: string | null;
+		categoryImageUrl?: string | null;
+		restaurantImageUrl?: string | null;
+	} = {},
 ): MyDishItem =>
 	({
 		key,
@@ -158,9 +162,7 @@ describe("#1398 PR5 dishMedia === null の写真なしフォールバック", ()
 		});
 		const tree = await render();
 
-		expect(
-			tree.root.findAll((node) => node.props?.testID === "my-dishes-list-item-no-photo-badge"),
-		).toHaveLength(0);
+		expect(tree.root.findAll((node) => node.props?.testID === "my-dishes-list-item-no-photo-badge")).toHaveLength(0);
 	});
 
 	it("categoryImageUrl / restaurant.image_url も無いときだけ従来どおりの無地プレースホルダーになる", async () => {
@@ -253,8 +255,7 @@ describe("#1398 (PR4/7) want カードの「食べたを記録」CTA", () => {
 
 	const findCta = (tree: TestRenderer.ReactTestRenderer) =>
 		tree.root.findAll(
-			(node) =>
-				node.props?.testID === "my-dishes-mark-as-eaten" && typeof node.props?.onPress === "function",
+			(node) => node.props?.testID === "my-dishes-mark-as-eaten" && typeof node.props?.onPress === "function",
 		);
 
 	const renderWith = async (items: MyDishItem[]) => {

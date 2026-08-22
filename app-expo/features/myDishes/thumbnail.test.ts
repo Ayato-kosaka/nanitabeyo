@@ -61,7 +61,9 @@ describe("resolveMyDishThumbnailUrl（#1375 追補2 決定3）", () => {
 
 	it("3 つとも無ければ null（呼び出し側が無地プレースホルダーを出す唯一のケース）", () => {
 		expect(
-			resolveMyDishThumbnailUrl(makeItem({ thumbnailImageUrl: null, categoryImageUrl: null, restaurantImageUrl: null })),
+			resolveMyDishThumbnailUrl(
+				makeItem({ thumbnailImageUrl: null, categoryImageUrl: null, restaurantImageUrl: null }),
+			),
 		).toBeNull();
 	});
 });

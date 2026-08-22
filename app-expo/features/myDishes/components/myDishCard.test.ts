@@ -50,9 +50,7 @@ describe("resolveMyDishImageUrl", () => {
 describe("resolveMyDishTitle", () => {
 	it("料理名 → 店名の順で落とす", () => {
 		expect(resolveMyDishTitle(makeItem())).toBe("唐揚げ定食");
-		expect(resolveMyDishTitle(makeItem({ dish: { id: "d1", name: null, categoryImageUrl: "" } }))).toBe(
-			"テスト食堂",
-		);
+		expect(resolveMyDishTitle(makeItem({ dish: { id: "d1", name: null, categoryImageUrl: "" } }))).toBe("テスト食堂");
 	});
 });
 

@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { useHaptics } from "@/hooks/useHaptics";
+import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import { getCacheKeyForImage } from "@/lib/image";
 import i18n from "@/lib/i18n";
@@ -16,13 +17,11 @@ import {
 	canLoadOlderMonths,
 	resolveDayThumbnailUrl,
 	shouldIgnoreEndReached,
-	toDayRange,
 	toYearMonth,
 	type CalendarDayCell,
 	type CalendarMonth,
 } from "../calendar";
 import { MY_DISHES_EVENTS } from "../analytics";
-import { useMyDishesFilterStore } from "../stores/useMyDishesFilterStore";
 import { useMyDishesCalendarQuery } from "../hooks/useMyDishesCalendarQuery";
 
 /**
@@ -171,9 +170,7 @@ const MonthGrid = memo(function MonthGrid({
 export function MyDishesCalendarView() {
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
-	const patch = useMyDishesFilterStore((s) => s.patch);
-	const from = useMyDishesFilterStore((s) => s.filter.from);
-	const to = useMyDishesFilterStore((s) => s.filter.to);
+	const { locale } = useLocale();
 	const {
 		items,
 		isLoading,
@@ -217,34 +214,38 @@ export function MyDishesCalendarView() {
 		loadMore();
 	}, [error, hasNextPage, isLoadingMore, loadMore, months.length]);
 
-	// #1396 §4-5: 日セルタップで期間（from / to）を確定し、リストビューへ切り替える。
-	// 3 ビューが同じフィルタ状態を共有していることの、そのままのデモになる
+	// #1375 実機確認: 日セルタップは **Dish Feed へ遷移**する。
+	//
+	// 以前は共有フィルタへ期間（from / to）を書いてリストビューへ切り替えていた。
+	// 3 ビューがフィルタを共有していることのデモとしては素直だったが、
+	// 「1 日を見に行ったつもりが、戻ってきても絞り込みが残っている」状態を作っていた
+	// （その戻り道として «この期間で絞り込み中» の帯まで必要になっていた）。
+	// Feed へ push すれば、閉じれば元の Calendar がそのまま残る。
+	//
+	// Feed 側では **縦 = その日の記録、横 = 前後の日** になる（`my-dishes/feed.tsx`）。
 	const handlePressDay = useCallback(
 		(cell: CalendarDayCell) => {
 			if (cell.items.length === 0) return;
 			lightImpact();
-			const range = toDayRange(cell.dateKey);
 			logFrontendEvent({
 				event_name: MY_DISHES_EVENTS.calendarDaySelected,
 				error_level: "log",
 				payload: { date: cell.dateKey, count: cell.items.length },
 			});
-			patch({ from: range.from, to: range.to });
-			router.setParams({ view: "list" });
+			const first = cell.items.find((item) => item.dishMedia !== null) ?? cell.items[0];
+			router.push({
+				pathname: "/[locale]/(tabs)/my-dishes/feed",
+				params: {
+					locale,
+					scope: "date",
+					date: cell.dateKey,
+					...(first ? { itemKey: first.key } : {}),
+					...(first?.dishMedia ? { dishMediaId: String(first.dishMedia.id) } : {}),
+				},
+			});
 		},
-		[lightImpact, logFrontendEvent, patch],
+		[lightImpact, locale, logFrontendEvent],
 	);
-
-	// #1446 m-1: 日セルを押すと 1 日フィルタ（from / to）が立ったまま Calendar が生き続ける
-	// （keep-alive でアンマウントされない）。Calendar 側にも解除の口を置かないと、
-	// 「1 か月ぶんのグリッドに 1 日だけ記録がある画面」から filters を開かずには戻れない。
-	// PR4 で Map に入れた「エリアで絞り込み中 + 解除」の帯と同じ形にしてある
-	const isPeriodFiltered = from !== null || to !== null;
-	const handleClearPeriod = useCallback(() => {
-		lightImpact();
-		patch({ from: null, to: null });
-		logFrontendEvent({ event_name: MY_DISHES_EVENTS.calendarPeriodCleared, error_level: "log", payload: {} });
-	}, [lightImpact, logFrontendEvent, patch]);
 
 	// #1396 PR4 レビュー M-1: 失敗をユーザーに伝え、手動リトライの出口を必ず UI に出す。
 	// `hasFetchedInitial` は成功時にしか立たないので、これでガードすると
@@ -301,28 +302,13 @@ export function MyDishesCalendarView() {
 		[error, hasFetchedInitial, hasNextPage, isLoadingMore, retryOlder],
 	);
 
-	// #1446 m-1: どの状態（読み込み中・空・エラー・通常）でも解除の口を出す。
-	// 1 日フィルタが効いた結果 0 件になっているときこそ、この帯が唯一の戻り道になる
-	const periodBanner = isPeriodFiltered ? (
-		<View style={styles.periodActiveBanner} testID="my-dishes-calendar-period-active">
-			<Text style={styles.periodActiveText}>{i18n.t("MyDishes.calendar.periodActive")}</Text>
-			<Pressable
-				testID="my-dishes-calendar-period-clear"
-				onPress={handleClearPeriod}
-				accessibilityRole="button"
-				accessibilityLabel={i18n.t("MyDishes.filters.period.clear")}
-				hitSlop={8}>
-				<X size={14} color="#FFFFFF" />
-			</Pressable>
-		</View>
-	) : null;
-
+	// #1375 実機確認: 「この期間で絞り込み中」の帯は廃止した。日セルタップが
+	// フィルタを書かなくなった（Feed へ push する）ので、そもそも立たなくなったためである。
 	// 1 行も読めていない状態での失敗は、月グリッドを出しても意味が無いので全面をエラーにする。
 	// ここも `hasFetchedInitial` では判定しない（成功時にしか立たないため）
 	if (error !== null && items.length === 0) {
 		return (
 			<View style={styles.container} testID="my-dishes-calendar">
-				{periodBanner}
 				<EmptyState
 					message={i18n.t("MyDishes.empty.description")}
 					error={error}
@@ -336,7 +322,6 @@ export function MyDishesCalendarView() {
 	if (isLoading && !hasFetchedInitial) {
 		return (
 			<View style={styles.container} testID="my-dishes-calendar">
-				{periodBanner}
 				<View style={[styles.container, styles.centered]}>
 					<LoadingIndicator size="large" />
 				</View>
@@ -347,7 +332,6 @@ export function MyDishesCalendarView() {
 	if (hasFetchedInitial && items.length === 0) {
 		return (
 			<View style={styles.container} testID="my-dishes-calendar">
-				{periodBanner}
 				<EmptyState message={i18n.t("MyDishes.empty.description")} testID="my-dishes-calendar-empty" />
 			</View>
 		);
@@ -355,7 +339,6 @@ export function MyDishesCalendarView() {
 
 	return (
 		<View style={styles.container} testID="my-dishes-calendar">
-			{periodBanner}
 			<FlatList
 				testID="my-dishes-calendar-list"
 				// ★ ここが本ビューの肝。data[0] が画面下端（最新月）になり、

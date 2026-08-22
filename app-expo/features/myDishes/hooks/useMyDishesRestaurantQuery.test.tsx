@@ -16,10 +16,7 @@ jest.mock("@/hooks/useAPICall", () => ({ useAPICall: () => ({ callBackend: mockC
 
 import React, { act } from "react";
 import TestRenderer from "react-test-renderer";
-import {
-	useMyDishesRestaurantQuery,
-	type UseMyDishesRestaurantQueryResult,
-} from "./useMyDishesRestaurantQuery";
+import { useMyDishesRestaurantQuery, type UseMyDishesRestaurantQueryResult } from "./useMyDishesRestaurantQuery";
 import { useMyDishesQuery } from "./useMyDishesQuery";
 import { selectFilterQueryKey, useMyDishesFilterStore } from "../stores/useMyDishesFilterStore";
 import { MY_DISHES_QUERY_LRU_SIZE, useMyDishesStore } from "../stores/useMyDishesStore";

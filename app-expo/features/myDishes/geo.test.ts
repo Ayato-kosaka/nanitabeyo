@@ -136,9 +136,7 @@ describe("#1396 isRegionTooWide", () => {
 
 	it("NaN / Infinity を含む region は too wide 扱い（regionToArea が null を返すのと対）", () => {
 		expect(isRegionTooWide({ latitude: NaN, longitude: 0, latitudeDelta: 0.01, longitudeDelta: 0.01 })).toBe(true);
-		expect(isRegionTooWide({ latitude: 0, longitude: Infinity, latitudeDelta: 0.01, longitudeDelta: 0.01 })).toBe(
-			true,
-		);
+		expect(isRegionTooWide({ latitude: 0, longitude: Infinity, latitudeDelta: 0.01, longitudeDelta: 0.01 })).toBe(true);
 	});
 
 	it("null / undefined は too wide 扱い（ボタンを無効化する安全側に倒す）", () => {

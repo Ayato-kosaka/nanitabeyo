@@ -795,7 +795,8 @@
 		"map": {
 			"truncated": "핀이 많아 일부만 표시하고 있어요. 지역을 좁혀보세요.",
 			"zoomInHint": "지도를 확대한 뒤 이 지역에서 재검색해 주세요",
-			"areaActive": "지역으로 좁혀서 보는 중"
+			"areaActive": "지역으로 좁혀서 보는 중",
+			"sheetTitle": "이 부근의 기록 {{count}}건"
 		},
 		"guest": {
 			"description": "로그인하여 먹고 싶은/먹은 음식을 기록해보세요",

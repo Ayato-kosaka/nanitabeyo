@@ -146,9 +146,7 @@ const findAllByTestID = (tree: TestRenderer.ReactTestRenderer, testID: string) =
 
 /** `onPress` を持つノード（= 合成コンポーネント側の Pressable）を押す */
 const pressByTestID = async (tree: TestRenderer.ReactTestRenderer, testID: string) => {
-	const nodes = tree.root.findAll(
-		(node) => node.props?.testID === testID && typeof node.props?.onPress === "function",
-	);
+	const nodes = tree.root.findAll((node) => node.props?.testID === testID && typeof node.props?.onPress === "function");
 	expect(nodes.length).toBeGreaterThan(0);
 	await act(async () => {
 		nodes[0].props.onPress();

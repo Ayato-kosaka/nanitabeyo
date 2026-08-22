@@ -9,10 +9,7 @@ import {
 	toMyDishesCalendarQueryParams,
 	useMyDishesFilterStore,
 } from "../stores/useMyDishesFilterStore";
-import {
-	selectMyDishesRevision,
-	useMyDishesRevisionStore,
-} from "../stores/useMyDishesRevisionStore";
+import { selectMyDishesRevision, useMyDishesRevisionStore } from "../stores/useMyDishesRevisionStore";
 import {
 	MY_DISHES_PAGE_SIZE,
 	selectMyDishesByQuery,

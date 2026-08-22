@@ -9,6 +9,7 @@ import { PrimaryButton } from "@/components/PrimaryButton";
 import { AvatarBubbleMarker } from "@/features/mapMarkers";
 import { INITIAL_REGION, REGION_JP } from "@/features/map/constants";
 import { useHaptics } from "@/hooks/useHaptics";
+import { router } from "expo-router";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import i18n from "@/lib/i18n";
@@ -17,7 +18,7 @@ import { MY_DISHES_EVENTS, buildMapAreaPayload } from "../analytics";
 import { boundingRegionForCoordinates, isRegionTooWide, regionToArea } from "../geo";
 import { useMyDishesFilterStore } from "../stores/useMyDishesFilterStore";
 import { useMyDishesMapPinsQuery } from "../hooks/useMyDishesMapPinsQuery";
-import { MyDishesRestaurantSheet } from "./MyDishesRestaurantSheet";
+import { MyDishesMapSheet } from "./MyDishesMapSheet";
 
 /**
  * #1396 my-dishes の Map ビュー（設計書 (2/2) §7 の PR4）。
@@ -45,7 +46,7 @@ import { MyDishesRestaurantSheet } from "./MyDishesRestaurantSheet";
  *   1 つも持たないため。設計 (1/2) §0-1 / リーダー判断 Q1）。**常に Sheet を開く**。
  */
 export function MyDishesMapView() {
-	const { isJapanese } = useLocale();
+	const { isJapanese, locale } = useLocale();
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const area = useMyDishesFilterStore((s) => s.filter.area);
@@ -110,9 +111,14 @@ export function MyDishesMapView() {
 		mapRef.current?.animateToRegion(region, 1000);
 	}, [hasFetchedInitial, pins]);
 
-	// #1397 §9-1: 選択中のピンはここ（内部 state）だけが持つ。filter store には絶対に書かない
-	const [selectedPin, setSelectedPin] = useState<MyDishPin | null>(null);
-
+	// #1375 実機確認: ピンを押したら **Dish Feed へ遷移**する。
+	//
+	// 以前はここで料理メディア Sheet（`MyDishesRestaurantSheet`）を開いていた。記録を
+	// その場で見られる代わりに、Map の上に別の一覧が重なる形になっていた。
+	// Feed へ push すれば、縦 = その店舗の記録 になり、閉じれば Map がそのまま残る。
+	//
+	// Sheet は «常設の下部シート»（下の `MyDishesMapSheet`）として役割を変えた。
+	// そちらは「いま Map に出ているピン」を横に並べるもので、押すと同じく Feed へ行く。
 	const handlePinPress = useCallback(
 		(pin: MyDishPin) => {
 			lightImpact();
@@ -121,14 +127,13 @@ export function MyDishesMapView() {
 				error_level: "log",
 				payload: { restaurantId: pin.restaurant.id },
 			});
-			// ⚠️ ここで router.push しないこと。店舗詳細への導線は Sheet のヘッダ（店名タップ）にある（Q6）
-			setSelectedPin(pin);
+			router.push({
+				pathname: "/[locale]/(tabs)/my-dishes/feed",
+				params: { locale, scope: "restaurant", restaurantId: pin.restaurant.id },
+			});
 		},
-		[lightImpact, logFrontendEvent],
+		[lightImpact, locale, logFrontendEvent],
 	);
-
-	// 閉じ切ってから state を戻す（アニメーション中に中身が空になるのを避ける）
-	const handleSheetDismissed = useCallback(() => setSelectedPin(null), []);
 
 	const showInitialLoading = isLoading && !hasFetchedInitial && !error;
 	// #1396 M-1: 取得失敗時（hasFetchedInitial === false のまま）でも EmptyState を出し、
@@ -217,8 +222,9 @@ export function MyDishesMapView() {
 				</View>
 			)}
 
-			{/* #1397 料理メディア Sheet。ルートではなく Map の内部 state で開閉する（§9-1） */}
-			<MyDishesRestaurantSheet pin={selectedPin} onDismissed={handleSheetDismissed} />
+			{/* #1375 実機確認: Map 下部の常設シート。いま出ているピンを横に並べ、押すと Feed へ行く。
+			    データは `useMyDishesMapPinsQuery` が返すピンをそのまま使う（新しい API は増やさない） */}
+			<MyDishesMapSheet pins={pins} onSelectPin={handlePinPress} />
 		</View>
 	);
 }

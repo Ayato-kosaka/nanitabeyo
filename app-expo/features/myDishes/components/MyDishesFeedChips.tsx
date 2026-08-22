@@ -5,11 +5,7 @@ import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import i18n from "@/lib/i18n";
 import type { NormalizedDishMediaEntry } from "@/stores/useDishMediaEntriesStore";
-import {
-	isRatingFilterEnabled,
-	useMyDishesFilterStore,
-	type MyDishesFilter,
-} from "../stores/useMyDishesFilterStore";
+import { isRatingFilterEnabled, useMyDishesFilterStore, type MyDishesFilter } from "../stores/useMyDishesFilterStore";
 import { MY_DISHES_EVENTS } from "../analytics";
 
 /**

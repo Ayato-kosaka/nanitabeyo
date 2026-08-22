@@ -25,7 +25,16 @@ jest.mock("@/hooks/useLogger", () => ({ useLogger: () => ({ logFrontendEvent: je
 jest.mock("@/components/LoadingIndicator", () => ({ LoadingIndicator: () => null }));
 
 const mockSetParams = jest.fn();
-jest.mock("expo-router", () => ({ router: { setParams: (...args: unknown[]) => mockSetParams(...args) } }));
+// #1375 実機確認: 日セルタップは Feed へ push するようになったので、`push` と
+// `usePathname`（useLocale が読む）も要る
+const mockPush = jest.fn();
+jest.mock("expo-router", () => ({
+	router: {
+		setParams: (...args: unknown[]) => mockSetParams(...args),
+		push: (...args: unknown[]) => mockPush(...args),
+	},
+	usePathname: () => "/ja-JP/my-dishes",
+}));
 
 jest.mock("expo-image", () => {
 	const ReactActual = jest.requireActual("react");
@@ -367,54 +376,6 @@ describe("#1446 B-1 / M-1 指を離したままの自動連投を止める", () 
 戻ったときに解除の口が無いと filters 画面を開くまで抜け出せない。
 PR4 で Map に入れた「エリアで絞り込み中 + 解除」の帯と同じ形を Calendar にも置く。
 */
-describe("#1446 m-1 期間で絞り込み中の表示と解除", () => {
-	it("from / to が立っていると帯が出て、解除ボタンで from / to が消える", async () => {
-		setQueryResult({ items: [makeItem("a", localNoonIso(2026, 8, 10))] });
-		const tree = await render();
-
-		// 日セルを押して 1 日フィルタを立てる（= 実際にユーザーが踏む経路）
-		const day = findAll(tree, "my-dishes-calendar-day").find((node) =>
-			String(node.props.accessibilityLabel ?? "").includes("2026-08-10"),
-		);
-		await act(async () => {
-			day?.props.onPress?.();
-		});
-		expect(useMyDishesFilterStore.getState().filter.from).not.toBeNull();
-
-		await rerender(tree);
-		expect(findAllHosts(tree, "my-dishes-calendar-period-active")).toHaveLength(1);
-
-		const clear = findAll(tree, "my-dishes-calendar-period-clear");
-		expect(clear.length).toBeGreaterThan(0);
-		await act(async () => {
-			clear[0].props.onPress?.();
-		});
-
-		const { filter } = useMyDishesFilterStore.getState();
-		expect(filter.from).toBeNull();
-		expect(filter.to).toBeNull();
-
-		await rerender(tree);
-		expect(findAllHosts(tree, "my-dishes-calendar-period-active")).toHaveLength(0);
-	});
-
-	it("1 日フィルタの結果 0 件になっても、帯（= 唯一の戻り道）は出る", async () => {
-		useMyDishesFilterStore.getState().patch({ from: "2026-08-10T00:00:00.000Z", to: "2026-08-10T23:59:59.999Z" });
-		setQueryResult({ items: [], hasFetchedInitial: true });
-		const tree = await render();
-
-		expect(findAll(tree, "my-dishes-calendar-empty").length).toBeGreaterThan(0);
-		expect(findAllHosts(tree, "my-dishes-calendar-period-active")).toHaveLength(1);
-	});
-
-	it("期間が未指定なら帯は出ない", async () => {
-		setQueryResult({ items: [makeItem("a", localNoonIso(2026, 8, 10))] });
-		const tree = await render();
-
-		expect(findAllHosts(tree, "my-dishes-calendar-period-active")).toHaveLength(0);
-	});
-});
-
 describe("#1375 追補2 決定3 日セルのサムネイル", () => {
 	it("dishMedia === null なら dish.categoryImageUrl の実画像を使う（灰色プレースホルダーにしない）", async () => {
 		setQueryResult({
@@ -459,8 +420,10 @@ describe("#1375 追補2 決定3 日セルのサムネイル", () => {
 	});
 });
 
-describe("#1396 §4-5 日セルタップで期間（from / to）を確定する", () => {
-	it("記録のある日を押すと from/to がその日に確定し、リストビューへ切り替わる", async () => {
+// #1375 実機確認: 日セルタップは共有フィルタへ期間を書くのをやめ、Dish Feed へ push する。
+// 「1 日を見に行ったつもりが、戻っても絞り込みが残っている」状態を作らないためである。
+describe("#1375 日セルタップで Dish Feed（date スコープ）へ遷移する", () => {
+	it("記録のある日を押すと feed へ push され、共有フィルタは書き換わらない", async () => {
 		setQueryResult({ items: [makeItem("a", localNoonIso(2026, 8, 10))] });
 		const tree = await render();
 
@@ -473,14 +436,19 @@ describe("#1396 §4-5 日セルタップで期間（from / to）を確定する"
 			day?.props.onPress?.();
 		});
 
-		const { filter } = useMyDishesFilterStore.getState();
-		expect(filter.from).toBe(new Date(2026, 7, 10, 0, 0, 0, 0).toISOString());
-		expect(filter.to).toBe(new Date(2026, 7, 10, 23, 59, 59, 999).toISOString());
-		// 3 ビューがフィルタ状態を共有していることのデモ（§4-5）
-		expect(mockSetParams).toHaveBeenCalledWith({ view: "list" });
+		expect(mockPush).toHaveBeenCalledWith(
+			expect.objectContaining({
+				pathname: "/[locale]/(tabs)/my-dishes/feed",
+				params: expect.objectContaining({ scope: "date", date: "2026-08-10" }),
+			}),
+		);
+		// 共有フィルタ（一覧・Map と共有）は触らない
+		expect(useMyDishesFilterStore.getState().filter.from).toBeNull();
+		expect(useMyDishesFilterStore.getState().filter.to).toBeNull();
+		expect(mockSetParams).not.toHaveBeenCalled();
 	});
 
-	it("記録の無い日は押せない（空の結果に切り替わらない）", async () => {
+	it("記録の無い日は押せない（遷移しない）", async () => {
 		setQueryResult({ items: [makeItem("a", localNoonIso(2026, 8, 10))] });
 		const tree = await render();
 
@@ -493,8 +461,7 @@ describe("#1396 §4-5 日セルタップで期間（from / to）を確定する"
 			emptyDays[0].props.onPress?.();
 		});
 
-		expect(useMyDishesFilterStore.getState().filter.from).toBeNull();
-		expect(mockSetParams).not.toHaveBeenCalled();
+		expect(mockPush).not.toHaveBeenCalled();
 	});
 });
 

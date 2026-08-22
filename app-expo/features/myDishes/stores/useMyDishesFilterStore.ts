@@ -254,6 +254,54 @@ export const toMyDishesCalendarQueryParams = (filter: MyDishesFilter): MyDishesC
 export const selectCalendarQueryKey = (s: MyDishesFilterStore): string =>
 	serializeMyDishesQueryParams(toMyDishesCalendarQueryParams(s.filter));
 
+/**
+ * #1375 実機確認: Calendar の日付タップから開く全画面 Feed 用の派生クエリ。
+ *
+ * Calendar は «日付の棚» なので、その日 1 日ぶんだけを見る。落とすものは 2 種類ある。
+ *
+ * - `sort` / `featureKeys` … Calendar 用派生クエリ（`toMyDishesCalendarQueryParams`）と同じ理由。
+ *   1 日ぶんの中で «評価順» や «条件に合う順» に並べ替える意味が薄く、キーが増えるだけである
+ * - `lat` / `lng` / `radius`（エリア） … 日付の棚にエリアの絞り込みは含めない（ユーザー確定）。
+ *   Map で絞ったエリアが Calendar 由来の Feed にまで効くと「なぜ減ったのか」が読めない
+ *
+ * 代わりに `from` / `to` をその日の境界へ固定する。境界は **端末のローカル日付**で切る
+ * （Calendar のマス目がローカル日付で並んでいるので、ここだけ UTC で切ると 1 日ずれる）。
+ */
+export type MyDishesDateQueryParams = Omit<MyDishesQueryParams, "sort" | "featureKeys" | "lat" | "lng" | "radius">;
+
+/** `YYYY-MM-DD` をローカル時刻の [00:00:00.000, 23:59:59.999] へ広げる */
+export const toLocalDayRange = (date: string): { from: string; to: string } | null => {
+	const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+	if (!match) return null;
+	const [, year, month, day] = match;
+	const from = new Date(Number(year), Number(month) - 1, Number(day), 0, 0, 0, 0);
+	const to = new Date(Number(year), Number(month) - 1, Number(day), 23, 59, 59, 999);
+	if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) return null;
+	return { from: from.toISOString(), to: to.toISOString() };
+};
+
+export const toMyDishesDateQueryParams = (filter: MyDishesFilter, date: string): MyDishesDateQueryParams => {
+	const params = { ...toMyDishesQueryParams(filter) };
+	delete params.sort;
+	delete params.featureKeys;
+	delete params.lat;
+	delete params.lng;
+	delete params.radius;
+
+	const range = toLocalDayRange(date);
+	if (range) {
+		params.from = range.from;
+		params.to = range.to;
+	}
+	return params;
+};
+
+/** 日付スコープの queryKey。日付ごとに別スライスになる */
+export const selectDateQueryKey =
+	(date: string) =>
+	(s: MyDishesFilterStore): string =>
+		serializeMyDishesQueryParams(toMyDishesDateQueryParams(s.filter, date));
+
 export const useMyDishesFilterStore = createWithEqualityFn<MyDishesFilterStore>()((set) => ({
 	filter: DEFAULT_MY_DISHES_FILTER,
 

@@ -1,3 +1,13 @@
+/*
+#1375 実機確認: **この Sheet は現在どこからも描画されていない。**
+
+Map のピンタップは Dish Feed へ push するようになり（`MyDishesMapView`）、Map 下部には
+常設の `MyDishesMapSheet` が出るようになった。この Sheet が持っていた
+「店舗ページを開く」「全画面で見る」「一覧で見る」の 3 導線のうち、全画面で見る＝Feed は
+そのまま置き換わっている。残る 2 つ（店舗ページ・一覧）を Map からどう出すかは
+実機で確認してから決めるため、**削除せずに残してある**（テストも生かしてある）。
+確認が済んだら、使わないと決まった時点で消すこと。
+*/
 import React, { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import { FlatList, InteractionManager, Pressable, StyleSheet, Text, View } from "react-native";
 import { TrueSheet } from "@lodev09/react-native-true-sheet";
@@ -169,8 +179,7 @@ export function MyDishesRestaurantSheet({ pin, onDismissed }: MyDishesRestaurant
 	const sheetRef = useRef<TrueSheet>(null);
 
 	const restaurantId = pin?.restaurant.id ?? null;
-	const { items, isLoading, error, hasFetchedInitial, hasNextPage, refresh } =
-		useMyDishesRestaurantQuery(restaurantId);
+	const { items, isLoading, error, hasFetchedInitial, hasNextPage, refresh } = useMyDishesRestaurantQuery(restaurantId);
 
 	// #1397 §9-1: 開閉は «ルートではなく» 内部 state。Map を再マウントさせないことが目的なので、
 	// ここから router.push / setParams で Map を巻き込むことはしない（行の遷移は除く）
@@ -349,12 +358,7 @@ export function MyDishesRestaurantSheet({ pin, onDismissed }: MyDishesRestaurant
 
 	const renderItem = useCallback(
 		({ item }: { item: MyDishItem }) => (
-			<MyDishSheetRow
-				item={item}
-				locale={locale}
-				onPress={handlePressItem}
-				onPressMarkAsEaten={handleMarkAsEaten}
-			/>
+			<MyDishSheetRow item={item} locale={locale} onPress={handlePressItem} onPressMarkAsEaten={handleMarkAsEaten} />
 		),
 		[handleMarkAsEaten, handlePressItem, locale],
 	);

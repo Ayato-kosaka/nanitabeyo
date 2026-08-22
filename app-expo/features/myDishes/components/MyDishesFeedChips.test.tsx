@@ -17,8 +17,7 @@ jest.mock("@/lib/i18n", () => ({
 	__esModule: true,
 	// ラベルの検証を «キー + 補間値» で行えるようにする（実文言はロケール依存なので見ない）
 	default: {
-		t: (key: string, params?: Record<string, unknown>) =>
-			params ? `${key}:${JSON.stringify(params)}` : key,
+		t: (key: string, params?: Record<string, unknown>) => (params ? `${key}:${JSON.stringify(params)}` : key),
 	},
 }));
 jest.mock("@/hooks/useHaptics", () => ({ useHaptics: () => ({ lightImpact: jest.fn(), mediumImpact: jest.fn() }) }));
@@ -30,11 +29,7 @@ jest.mock("@/contexts/SnackbarProvider", () => ({ useSnackbar: () => ({ showSnac
 import React, { act } from "react";
 import TestRenderer from "react-test-renderer";
 import type { NormalizedDishMediaEntry } from "@/stores/useDishMediaEntriesStore";
-import {
-	MyDishesFeedChips,
-	MY_DISHES_FEED_CHIP_MIN_RATING,
-	buildMyDishesFeedChips,
-} from "./MyDishesFeedChips";
+import { MyDishesFeedChips, MY_DISHES_FEED_CHIP_MIN_RATING, buildMyDishesFeedChips } from "./MyDishesFeedChips";
 import { DEFAULT_MY_DISHES_FILTER, useMyDishesFilterStore } from "../stores/useMyDishesFilterStore";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -69,7 +64,9 @@ const render = (entry: NormalizedDishMediaEntry | null): TestRenderer.ReactTestR
 };
 
 const chipNodes = (tree: TestRenderer.ReactTestRenderer) =>
-	tree.root.findAll((node) => node.props?.testID === "my-dishes-feed-chip" && typeof node.props?.onPress === "function");
+	tree.root.findAll(
+		(node) => node.props?.testID === "my-dishes-feed-chip" && typeof node.props?.onPress === "function",
+	);
 
 beforeEach(() => {
 	useMyDishesFilterStore.getState().reset();
@@ -89,9 +86,7 @@ describe("buildMyDishesFeedChips（絞り込みだけ / 並び替えは作らな
 		expect(chips.map((chip) => chip.id)).toEqual(["category", "statusEaten", "statusWant"]);
 		// リーダー判断 Q3: 並び替えの chip は 1 つも作らない
 		expect(chips.some((chip) => chip.patch.sort !== undefined)).toBe(false);
-		expect(chips.some((chip) => chip.patch.featureKeys !== undefined)).toBe(
-			false,
-		);
+		expect(chips.some((chip) => chip.patch.featureKeys !== undefined)).toBe(false);
 	});
 
 	it("カテゴリ chip は «追加ではなく置換»（既存の categoryIds を引き継がない）", () => {
@@ -104,19 +99,17 @@ describe("buildMyDishesFeedChips（絞り込みだけ / 並び替えは作らな
 
 	it("そのカテゴリだけに絞られているときだけカテゴリ chip が選択状態になる", () => {
 		expect(buildMyDishesFeedChips(filterOf({ categoryIds: [CATEGORY_ID] }), makeEntry())[0].active).toBe(true);
-		expect(
-			buildMyDishesFeedChips(filterOf({ categoryIds: [CATEGORY_ID, "curry"] }), makeEntry())[0].active,
-		).toBe(false);
+		expect(buildMyDishesFeedChips(filterOf({ categoryIds: [CATEGORY_ID, "curry"] }), makeEntry())[0].active).toBe(
+			false,
+		);
 	});
 
 	it("エントリが無い / カテゴリが無いときはカテゴリ chip を出さない（状態 chip は残る）", () => {
-		expect(buildMyDishesFeedChips(filterOf(), null).map((chip) => chip.id)).toEqual([
+		expect(buildMyDishesFeedChips(filterOf(), null).map((chip) => chip.id)).toEqual(["statusEaten", "statusWant"]);
+		expect(buildMyDishesFeedChips(filterOf(), makeEntry({ categoryId: "" })).map((chip) => chip.id)).toEqual([
 			"statusEaten",
 			"statusWant",
 		]);
-		expect(
-			buildMyDishesFeedChips(filterOf(), makeEntry({ categoryId: "" })).map((chip) => chip.id),
-		).toEqual(["statusEaten", "statusWant"]);
 	});
 
 	it("料理名が無いときはカテゴリ ID をラベルに使う（落ちない）", () => {
@@ -125,7 +118,7 @@ describe("buildMyDishesFeedChips（絞り込みだけ / 並び替えは作らな
 		expect(chips[0].label).toBe(`MyDishes.feed.chips.filterCategory:{"name":"${CATEGORY_ID}"}`);
 	});
 
-	it("★N以上の chip は status が [\"eaten\"] のときだけ出す（want は評価を持たない）", () => {
+	it('★N以上の chip は status が ["eaten"] のときだけ出す（want は評価を持たない）', () => {
 		// 既定（= 両方）でも「食べたい」を含む間は出さない
 		expect(buildMyDishesFeedChips(filterOf(), makeEntry()).some((chip) => chip.id === "minRating")).toBe(false);
 		expect(

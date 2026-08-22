@@ -42,8 +42,7 @@ const render = (item: MyDishItem, onPress = jest.fn()) => {
 // testID と onPress の有無で指す（Pressable 要素と内側の View の両方が当たるため、先頭を使う）
 const findButton = (tree: TestRenderer.ReactTestRenderer) =>
 	tree.root.findAll(
-		(node) =>
-			node.props?.testID === "my-dishes-mark-as-eaten" && typeof node.props?.onPress === "function",
+		(node) => node.props?.testID === "my-dishes-mark-as-eaten" && typeof node.props?.onPress === "function",
 	);
 
 const hasButton = (tree: TestRenderer.ReactTestRenderer) => findButton(tree).length > 0;

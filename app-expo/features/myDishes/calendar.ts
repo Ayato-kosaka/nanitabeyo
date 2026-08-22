@@ -233,7 +233,5 @@ export const canLoadOlderMonths = (params: {
  * @param monthCountAtLastLoad 直前に `loadMore` を投げた時点の月数。まだ投げていなければ null
  * @param monthCount 現在の月数
  */
-export const shouldIgnoreEndReached = (params: {
-	monthCountAtLastLoad: number | null;
-	monthCount: number;
-}): boolean => params.monthCountAtLastLoad !== null && params.monthCount <= params.monthCountAtLastLoad;
+export const shouldIgnoreEndReached = (params: { monthCountAtLastLoad: number | null; monthCount: number }): boolean =>
+	params.monthCountAtLastLoad !== null && params.monthCount <= params.monthCountAtLastLoad;

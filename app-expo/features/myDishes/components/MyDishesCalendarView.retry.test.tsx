@@ -15,7 +15,10 @@ jest.mock("@/lib/i18n", () => ({ __esModule: true, default: { t: (key: string) =
 jest.mock("@/hooks/useHaptics", () => ({ useHaptics: () => ({ lightImpact: jest.fn(), mediumImpact: jest.fn() }) }));
 jest.mock("@/hooks/useLogger", () => ({ useLogger: () => ({ logFrontendEvent: jest.fn() }) }));
 jest.mock("@/components/LoadingIndicator", () => ({ LoadingIndicator: () => null }));
-jest.mock("expo-router", () => ({ router: { setParams: jest.fn() } }));
+jest.mock("expo-router", () => ({
+	router: { setParams: jest.fn(), push: jest.fn() },
+	usePathname: () => "/ja-JP/my-dishes",
+}));
 jest.mock("lucide-react-native", () => new Proxy({}, { get: () => () => null }));
 jest.mock("expo-image", () => {
 	const ReactActual = jest.requireActual("react");

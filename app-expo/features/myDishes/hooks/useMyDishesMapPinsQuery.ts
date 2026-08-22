@@ -3,20 +3,9 @@ import { shallow } from "zustand/shallow";
 import { useAPICall } from "@/hooks/useAPICall";
 import type { QueryMyDishesDto } from "@shared/api/v1/dto";
 import type { MyDishPin, QueryMeDishMapPinsResponse } from "@shared/api/v1/res";
-import {
-	selectFilterQueryKey,
-	toMyDishesQueryParams,
-	useMyDishesFilterStore,
-} from "../stores/useMyDishesFilterStore";
-import {
-	selectMyDishesRevision,
-	useMyDishesRevisionStore,
-} from "../stores/useMyDishesRevisionStore";
-import {
-	selectMyDishesPinsByQuery,
-	useMyDishesStore,
-	type MyDishesPinsFetcher,
-} from "../stores/useMyDishesStore";
+import { selectFilterQueryKey, toMyDishesQueryParams, useMyDishesFilterStore } from "../stores/useMyDishesFilterStore";
+import { selectMyDishesRevision, useMyDishesRevisionStore } from "../stores/useMyDishesRevisionStore";
+import { selectMyDishesPinsByQuery, useMyDishesStore, type MyDishesPinsFetcher } from "../stores/useMyDishesStore";
 
 /**
  * #1396 `GET /v1/users/me/dishes/map-pins` に接続する Map ビュー専用のクエリフック
@@ -61,10 +50,10 @@ export const useMyDishesMapPinsQuery = (options?: { enabled?: boolean }): UseMyD
 	const fetcher = useMemo<MyDishesPinsFetcher>(() => {
 		const params = toMyDishesQueryParams(filter);
 		return async () => {
-			const response = await callBackend<QueryMyDishesDto, QueryMeDishMapPinsResponse>(
-				"v1/users/me/dishes/map-pins",
-				{ method: "GET", requestPayload: params },
-			);
+			const response = await callBackend<QueryMyDishesDto, QueryMeDishMapPinsResponse>("v1/users/me/dishes/map-pins", {
+				method: "GET",
+				requestPayload: params,
+			});
 			return {
 				data: response.data ?? [],
 				truncated: response.truncated ?? false,

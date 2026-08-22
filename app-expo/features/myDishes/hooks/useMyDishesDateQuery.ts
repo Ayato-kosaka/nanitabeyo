@@ -4,9 +4,9 @@ import { useAPICall } from "@/hooks/useAPICall";
 import type { QueryMyDishesDto } from "@shared/api/v1/dto";
 import type { MyDishItem, QueryMyDishesResponse } from "@shared/api/v1/res";
 import {
+	selectDateQueryKey,
 	selectFilterQueryKey,
-	selectRestaurantQueryKey,
-	toMyDishesRestaurantQueryParams,
+	toMyDishesDateQueryParams,
 	useMyDishesFilterStore,
 } from "../stores/useMyDishesFilterStore";
 import { selectMyDishesRevision, useMyDishesRevisionStore } from "../stores/useMyDishesRevisionStore";
@@ -18,46 +18,49 @@ import {
 } from "../stores/useMyDishesStore";
 
 /**
- * #1397 料理メディア Sheet 用の派生クエリフック（設計 (2/2) §8-1〜§8-3）。
+ * #1375 実機確認: Calendar の日付タップから開く全画面 Feed 用の派生クエリフック。
  *
- * base（一覧・Map と共有する `useMyDishesQuery` の queryKey）へ `restaurantId` を足し、
+ * **`useMyDishesRestaurantQuery` と同じ形を意図的に踏襲している**（store も LRU の扱いも同じ）。
+ * 違いは «何でスコープを切るか» だけで、店舗の代わりに «その日 1 日» で切る。
+ *
+ * base（一覧・Map と共有する `useMyDishesQuery` の queryKey）へ «その日の from/to» を足し、
  * `sort` / `sceneKey` / `timeSlotKey` を落とした別の queryKey で `useMyDishesStore` の
  * **同じ `byQuery` スライス**を引く（新しい store は作らない。§8-1）。
  *
- * Sheet 内は常に「新しい順」固定（リーダー判断 Q5）。ページングは持ち込まない（§8-3）:
+ * この Feed の中は常に「新しい順」固定（リーダー判断 Q5）。ページングは持ち込まない（§8-3）:
  * `loadMore` は公開せず、`hasNextPage` だけを返す。呼び出し側（PR3）は `true` のとき
  * 「一覧で見る」を出す。
  *
  * ⚠️ R2（本質）: マウント中・`queryKey` 変化のたびに **base の `queryKey` も** `touchQuery` する。
- * これで base は常に LRU の MRU 側に留まり、Sheet を何店舗開いても base のスライスは
+ * これで base は常に LRU の MRU 側に留まり、日付を何日ぶん開いても base のスライスは
  * evict されない（`useMyDishesStore.ts` の `MY_DISHES_QUERY_LRU_SIZE` / `touchAndEvict` を参照）。
- * サイズを 3→6 にしただけでは、Sheet 側だけが積み上がる限り足りない。
+ * サイズを 3→6 にしただけでは、日付スライス側だけが積み上がる限り足りない。
  */
-export type UseMyDishesRestaurantQueryResult = {
+export type UseMyDishesDateQueryResult = {
 	/** `itemKeysByQuery` の順に並べ直した行 */
 	items: MyDishItem[];
-	/** base とは別キー（`restaurantId` を含む）。`restaurantId` が `null` の間は `null` */
+	/** base とは別キー（その日の `from`/`to` を含む）。`date` が `null` の間は `null` */
 	queryKey: string | null;
 	isLoading: boolean;
 	error: string | null;
 	hasFetchedInitial: boolean;
-	/** `nextCursor !== null`。Sheet 内では追加読み込みをせず、呼び出し側が「一覧で見る」の出し分けに使う（§8-3） */
+	/** `nextCursor !== null`。1 日ぶんが 1 ページに収まらないのは稀なので、ここでもページングは持ち込まない */
 	hasNextPage: boolean;
 	/** 明示的な再取得 */
 	refresh: () => void;
 };
 
 const EMPTY_ITEMS: MyDishItem[] = [];
-const DISABLED_QUERY_KEY = "__my-dishes-restaurant-query-disabled__";
+const DISABLED_QUERY_KEY = "__my-dishes-date-query-disabled__";
 
-/** `restaurantId` が `null` の間（Sheet が閉じている間）は何もしない */
-export const useMyDishesRestaurantQuery = (restaurantId: string | null): UseMyDishesRestaurantQueryResult => {
-	const enabled = restaurantId !== null;
+/** `date` が `null` の間（そのページがまだ開かれていない間）は何もしない */
+export const useMyDishesDateQuery = (date: string | null): UseMyDishesDateQueryResult => {
+	const enabled = date !== null;
 	const { callBackend } = useAPICall();
 
 	const filter = useMyDishesFilterStore((s) => s.filter);
 	const baseQueryKey = useMyDishesFilterStore(selectFilterQueryKey);
-	const queryKey = useMyDishesFilterStore(restaurantId !== null ? selectRestaurantQueryKey(restaurantId) : () => null);
+	const queryKey = useMyDishesFilterStore(date !== null ? selectDateQueryKey(date) : () => null);
 	const effectiveQueryKey = queryKey ?? DISABLED_QUERY_KEY;
 
 	const touchQuery = useMyDishesStore((s) => s.touchQuery);
@@ -71,8 +74,8 @@ export const useMyDishesRestaurantQuery = (restaurantId: string | null): UseMyDi
 
 	// #1396 【設計】store が持つのは「ユーザーが選んだもの」だけ。cursor / limit はここで足す（§3-1）
 	const fetcher = useMemo<MyDishesFetcher | null>(() => {
-		if (restaurantId === null) return null;
-		const params = toMyDishesRestaurantQueryParams(filter, restaurantId);
+		if (date === null) return null;
+		const params = toMyDishesDateQueryParams(filter, date);
 		return async ({ cursor }) => {
 			const response = await callBackend<QueryMyDishesDto, QueryMyDishesResponse>("v1/users/me/dishes", {
 				method: "GET",
@@ -88,10 +91,10 @@ export const useMyDishesRestaurantQuery = (restaurantId: string | null): UseMyDi
 				oldestOccurredAt: response.meta?.oldestOccurredAt ?? null,
 			};
 		};
-	}, [callBackend, filter, restaurantId]);
+	}, [callBackend, date, filter]);
 
-	// #1397 R2: Sheet を開くたび（マウント・queryKey 変化のたび）に base も touch する。
-	// これが本質。base を touch しないと、Sheet 用キーだけが LRU を埋めて base が落ちる（§8-2）
+	// #1397 R2: 日付ページを開くたび（マウント・queryKey 変化のたび）に base も touch する。
+	// これが本質。base を touch しないと、日付スライスだけが LRU を埋めて base が落ちる（§8-2）
 	useEffect(() => {
 		if (!enabled || queryKey === null) return;
 		touchQuery(baseQueryKey);
