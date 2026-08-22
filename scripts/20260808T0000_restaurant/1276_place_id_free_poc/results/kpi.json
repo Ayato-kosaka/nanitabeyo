@@ -1,0 +1,187 @@
+{
+  "rule": "box_unique_strict",
+  "kpi1_resolve_rate": {
+    "denominator": 5850,
+    "matched": 3253,
+    "rate": 0.556068,
+    "ci95": [
+      0.543304,
+      0.568759
+    ],
+    "by_detail": {
+      "tight_unique_in_ab": 3253,
+      "no_candidate_in_box": 1267,
+      "box_not_unique": 684,
+      "rejected_not_in_tight_box": 520,
+      "rejected_address_query_ambiguous": 126
+    }
+  },
+  "kpi2_precision": {
+    "all_labels": {
+      "labels": 6000,
+      "matched": 5083,
+      "raw_disagreements": 14,
+      "errors_after_adjudication": 0,
+      "precision": 1.0,
+      "precision_95_lower": 0.999245,
+      "disagreements": [
+        {
+          "seed_id": "087acd1c-57f1-4dfe-be72-25e668d7f548",
+          "name": "Asian Dining Tammi",
+          "layer": "tight_unique_in_ab",
+          "verdict": "db_stale",
+          "label_distance_m": 12.1,
+          "label_similarity": 0.611
+        },
+        {
+          "seed_id": "5172ebbc-820a-42a4-9c5f-3e5b244b20f5",
+          "name": "焼鳥スタンド コジローさん 小虎小路店",
+          "layer": "tight_unique_in_ab",
+          "verdict": "db_stale",
+          "label_distance_m": 1.4,
+          "label_similarity": 0.5
+        },
+        {
+          "seed_id": "5fa3faf9-bbaa-453c-a16b-32480ca2405a",
+          "name": "Hachi",
+          "layer": "tight_unique_in_ab",
+          "verdict": "db_stale",
+          "label_distance_m": 145.4,
+          "label_similarity": 0.6
+        },
+        {
+          "seed_id": "61372f22-0ba8-4450-9ccb-3a47ca5c6a5f",
+          "name": "すき家 イオンモール茨木店",
+          "layer": "tight_unique_in_ab",
+          "verdict": "db_stale",
+          "label_distance_m": 23.1,
+          "label_similarity": 0.5
+        },
+        {
+          "seed_id": "82877b56-ae83-4301-a67c-b648e0d906d4",
+          "name": "呑龍ラーメン",
+          "layer": "tight_unique_in_ab",
+          "verdict": "db_stale",
+          "label_distance_m": 101.0,
+          "label_similarity": 0.667
+        },
+        {
+          "seed_id": "8bbb6957-fcac-4001-b4ae-59075c5f7c7b",
+          "name": "丸亀製麺イオンモール伊丹",
+          "layer": "tight_unique_in_ab",
+          "verdict": "db_stale",
+          "label_distance_m": 130.3,
+          "label_similarity": 0.538
+        },
+        {
+          "seed_id": "c114f517-6322-4783-9a61-63c5d17dc2fc",
+          "name": "炭火焼肉 にく式 すすきの店",
+          "layer": "tight_unique_in_ab",
+          "verdict": "db_stale",
+          "label_distance_m": 104.8,
+          "label_similarity": 0.615
+        },
+        {
+          "seed_id": "d23ffe30-2b34-4548-a509-66f0183c3d18",
+          "name": "Little Napoli NOOV",
+          "layer": "tight_unique_in_ab",
+          "verdict": "db_stale",
+          "label_distance_m": 2.8,
+          "label_similarity": 1.0
+        },
+        {
+          "seed_id": "ef89da42-8134-4db6-a3a0-44488b127fe4",
+          "name": "舟鮨",
+          "layer": "tight_unique_in_ab",
+          "verdict": "db_stale",
+          "label_distance_m": 2.5,
+          "label_similarity": 0.6
+        },
+        {
+          "seed_id": "f0701701-4f9c-43bf-9e36-f71cba3408af",
+          "name": "月ノ輪",
+          "layer": "tight_unique_in_ab",
+          "verdict": "db_stale",
+          "label_distance_m": 6.8,
+          "label_similarity": 1.0
+        },
+        {
+          "seed_id": "f9f19813-f7fa-40f7-8016-1be9fe3b8559",
+          "name": "とんかつ檍羽田イノベーションシティ店",
+          "layer": "tight_unique_in_ab",
+          "verdict": "db_stale",
+          "label_distance_m": 43.2,
+          "label_similarity": 0.611
+        },
+        {
+          "seed_id": "ifas:023000:fBiz00000113080000000158",
+          "name": "MEGAドン・キホーテUNY小牧店",
+          "layer": "tight_unique_in_ab",
+          "verdict": "db_stale",
+          "label_distance_m": 0.1,
+          "label_similarity": 0.789
+        },
+        {
+          "seed_id": "ifas:012204:fBiz00003507190000000002",
+          "name": "ゼッテリア北習志野店",
+          "layer": "tight_unique_in_ab",
+          "verdict": "db_stale",
+          "label_distance_m": 0.1,
+          "label_similarity": 1.0
+        },
+        {
+          "seed_id": "ifas:023000:fBiz00000113080000000152",
+          "name": "MEGAドン・キホーテUNY大口店",
+          "layer": "tight_unique_in_ab",
+          "verdict": "db_stale",
+          "label_distance_m": 9.9,
+          "label_similarity": 0.882
+        }
+      ]
+    },
+    "gold_labels": {
+      "labels": 3785,
+      "matched": 3669,
+      "raw_disagreements": 3,
+      "errors_after_adjudication": 0,
+      "precision": 1.0,
+      "precision_95_lower": 0.998954,
+      "disagreements": [
+        {
+          "seed_id": "d23ffe30-2b34-4548-a509-66f0183c3d18",
+          "name": "Little Napoli NOOV",
+          "layer": "tight_unique_in_ab",
+          "verdict": "db_stale",
+          "label_distance_m": 2.8,
+          "label_similarity": 1.0
+        },
+        {
+          "seed_id": "f0701701-4f9c-43bf-9e36-f71cba3408af",
+          "name": "月ノ輪",
+          "layer": "tight_unique_in_ab",
+          "verdict": "db_stale",
+          "label_distance_m": 6.8,
+          "label_similarity": 1.0
+        },
+        {
+          "seed_id": "ifas:012204:fBiz00003507190000000002",
+          "name": "ゼッテリア北習志野店",
+          "layer": "tight_unique_in_ab",
+          "verdict": "db_stale",
+          "label_distance_m": 0.1,
+          "label_similarity": 1.0
+        }
+      ]
+    }
+  },
+  "kpi3_google_reach": {
+    "enumerated_google_places": 1747,
+    "reached": 1107,
+    "rate": 0.633658,
+    "ci95": [
+      0.610794,
+      0.655934
+    ],
+    "seeds_involved": 11642
+  }
+}

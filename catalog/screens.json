@@ -80,10 +80,10 @@
 			]
 		},
 		{
-			"id": "search-tutorial-page1",
-			"name": "検索チュートリアル 1/4（食べたい料理に気づけるアプリ）",
-			"route": "/[locale]/search",
-			"url": "/ja-JP/search",
+			"id": "onboarding-step1",
+			"name": "オンボーディング 1/3（何食べたいか、決まらない。）",
+			"route": "/[locale]/onboarding",
+			"url": "/ja-JP/onboarding",
 			"platforms": {
 				"web": {
 					"capture": "auto",
@@ -94,21 +94,16 @@
 					"session": "anon"
 				}
 			},
-			"state": "チュートリアル BottomSheet の 1 ページ目",
-			"description": "同一 URL 内の UI 状態。1 ページ目。アプリの目的（今日なに食べる？を解決する）を伝える。",
-			"from": [
-				"検索フォーム（初回訪問）",
-				"検索フォームのヘルプボタン（？）"
-			],
-			"to": [
-				"検索チュートリアル 次ページ"
-			]
+			"state": "3 ステップの 1 枚目。約 1.5 秒後に課題フェーズから解決フェーズへ切り替わる",
+			"description": "共感写真を全面に敷き、課題「何食べたいか、決まらない。」を提示する。解決フェーズでは黒の半透明オーバーレイの上に「おすすめの料理が提案されるので「食べたい」が見つかる」と料理提案の図が重なる。",
+			"from": ["検索フォーム（初回訪問）", "検索フォームのヘルプボタン（？）"],
+			"to": ["オンボーディング 2/3"]
 		},
 		{
-			"id": "search-tutorial-page2",
-			"name": "検索チュートリアル 2/4（料理写真を見て「食べたい」に気づく）",
-			"route": "/[locale]/search",
-			"url": "/ja-JP/search",
+			"id": "onboarding-step2",
+			"name": "オンボーディング 2/3（お店探し。候補が多すぎて時間がかかる。）",
+			"route": "/[locale]/onboarding",
+			"url": "/ja-JP/onboarding",
 			"platforms": {
 				"web": {
 					"capture": "auto",
@@ -119,21 +114,16 @@
 					"session": "anon"
 				}
 			},
-			"state": "チュートリアル BottomSheet の 2 ページ目",
-			"description": "同一 URL 内の UI 状態。2 ページ目。条件に合う料理を 6 つ提案する体験の説明。",
-			"from": [
-				"検索フォーム（初回訪問）",
-				"検索フォームのヘルプボタン（？）"
-			],
-			"to": [
-				"検索チュートリアル 次ページ"
-			]
+			"state": "3 ステップの 2 枚目",
+			"description": "課題「お店探し。候補が多すぎて時間がかかる。」に対し、「料理もお店も候補が厳選されているのですぐ決められる」を、選んだ料理から厳選 4 店舗へ辿る図で示す。",
+			"from": ["オンボーディング 1/3"],
+			"to": ["オンボーディング 3/3"]
 		},
 		{
-			"id": "search-tutorial-page3",
-			"name": "検索チュートリアル 3/4（写真と口コミで「ここ行こ」が決まる）",
-			"route": "/[locale]/search",
-			"url": "/ja-JP/search",
+			"id": "onboarding-step3",
+			"name": "オンボーディング 3/3（一緒に行く人の好みも、外したくない。）",
+			"route": "/[locale]/onboarding",
+			"url": "/ja-JP/onboarding",
 			"platforms": {
 				"web": {
 					"capture": "auto",
@@ -144,21 +134,16 @@
 					"session": "anon"
 				}
 			},
-			"state": "チュートリアル BottomSheet の 3 ページ目",
-			"description": "同一 URL 内の UI 状態。3 ページ目。選んだ料理に合う店を 5 つ提案する体験の説明。",
-			"from": [
-				"検索フォーム（初回訪問）",
-				"検索フォームのヘルプボタン（？）"
-			],
-			"to": [
-				"検索チュートリアル 次ページ"
-			]
+			"state": "3 ステップの 3 枚目（最終）",
+			"description": "課題「一緒に行く人の好みも、外したくない。」に対し、「友達と投票して、料理を決められる」を投票結果の図で示す。「次へ」で既存ログイン画面へ進む。",
+			"from": ["オンボーディング 2/3"],
+			"to": ["ログイン"]
 		},
 		{
-			"id": "search-tutorial-page4",
-			"name": "検索チュートリアル 4/4（はじめよう（現在地の利用））",
-			"route": "/[locale]/search",
-			"url": "/ja-JP/search",
+			"id": "onboarding-location",
+			"name": "オンボーディング 位置情報許可",
+			"route": "/[locale]/onboarding/location",
+			"url": "/ja-JP/onboarding/location",
 			"platforms": {
 				"web": {
 					"capture": "auto",
@@ -169,15 +154,50 @@
 					"session": "anon"
 				}
 			},
-			"state": "チュートリアル BottomSheet の 4 ページ目",
-			"description": "同一 URL 内の UI 状態。4 ページ目（最終）。現在地の利用を促す。CTA は「現在地を利用する」「あとで」。",
-			"from": [
-				"検索フォーム（初回訪問）",
-				"検索フォームのヘルプボタン（？）"
-			],
-			"to": [
-				"検索フォーム（あとで / 現在地を利用する）"
-			]
+			"state": "未回答のときだけ表示され、画面表示と同時に OS の位置情報許可ダイアログが出る。中央に OS ダイアログを模したダミーを描き、おすすめの選択肢を強調する。回答済みなら表示されずに次へ進む",
+			"description": "「近くのお店を、すぐ見つけよう 📍」。許可 / 拒否のどちらでも次へ進む。ログイン済みなら通知許可へ、未ログインなら Welcome へ分岐する。",
+			"from": ["ログイン（ログイン / スキップ）"],
+			"to": ["オンボーディング 通知許可", "オンボーディング Welcome"]
+		},
+		{
+			"id": "onboarding-notifications",
+			"name": "オンボーディング 通知許可",
+			"route": "/[locale]/onboarding/notifications",
+			"url": "/ja-JP/onboarding/notifications",
+			"platforms": {
+				"web": {
+					"capture": "auto",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "auto",
+					"session": "anon"
+				}
+			},
+			"state": "未回答のときだけ表示され、画面表示と同時に OS の通知許可ダイアログが出る（ログイン済みのみ到達する）。中央に OS ダイアログを模したダミーを描き、「許可」を強調する。回答済みなら表示されずに次へ進む",
+			"description": "「食べたいを、見逃さない 🔔」。ログインをスキップしたユーザーはこの画面を通らない。許可 / 拒否のどちらでも次へ進む。",
+			"from": ["オンボーディング 位置情報許可"],
+			"to": ["オンボーディング Welcome"]
+		},
+		{
+			"id": "onboarding-welcome",
+			"name": "オンボーディング Welcome",
+			"route": "/[locale]/onboarding/welcome",
+			"url": "/ja-JP/onboarding/welcome",
+			"platforms": {
+				"web": {
+					"capture": "auto",
+					"session": "anon"
+				},
+				"mobile": {
+					"capture": "auto",
+					"session": "anon"
+				}
+			},
+			"state": "ロゴ周辺にクラッカーが弾ける完了演出",
+			"description": "「なに食べよへようこそ！」。「はじめる」でオンボーディング完了フラグを確定してアプリ本体へ戻る。本体表示の直後に ATT の許可ダイアログが出る。",
+			"from": ["オンボーディング 位置情報許可", "オンボーディング 通知許可"],
+			"to": ["検索フォーム"]
 		},
 		{
 			"id": "search-topics",
@@ -1378,28 +1398,48 @@
 		},
 		{
 			"from": "search-form",
-			"to": "search-tutorial-page1",
+			"to": "onboarding-step1",
 			"label": "初回 / ？"
 		},
 		{
-			"from": "search-tutorial-page1",
-			"to": "search-tutorial-page2",
-			"label": "つぎへ"
+			"from": "onboarding-step1",
+			"to": "onboarding-step2",
+			"label": "次へ"
 		},
 		{
-			"from": "search-tutorial-page2",
-			"to": "search-tutorial-page3",
-			"label": "つぎへ"
+			"from": "onboarding-step2",
+			"to": "onboarding-step3",
+			"label": "次へ"
 		},
 		{
-			"from": "search-tutorial-page3",
-			"to": "search-tutorial-page4",
-			"label": "つぎへ"
+			"from": "onboarding-step3",
+			"to": "auth-login",
+			"label": "次へ / スキップ"
 		},
 		{
-			"from": "search-tutorial-page4",
+			"from": "auth-login",
+			"to": "onboarding-location",
+			"label": "ログイン / スキップ"
+		},
+		{
+			"from": "onboarding-location",
+			"to": "onboarding-notifications",
+			"label": "ログイン済み"
+		},
+		{
+			"from": "onboarding-location",
+			"to": "onboarding-welcome",
+			"label": "未ログイン"
+		},
+		{
+			"from": "onboarding-notifications",
+			"to": "onboarding-welcome",
+			"label": "回答後"
+		},
+		{
+			"from": "onboarding-welcome",
 			"to": "search-form",
-			"label": "現在地を利用する / あとで"
+			"label": "はじめる"
 		},
 		{
 			"from": "search-topics",

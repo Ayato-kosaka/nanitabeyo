@@ -98,11 +98,7 @@ const toRawStringLiteral = (pattern) => {
  * @returns {string}
  */
 const toStringLiteral = (value) =>
-	`'${String(value)
-		.replace(/\\/g, "\\\\")
-		.replace(/'/g, "\\'")
-		.replace(/\n/g, "\\n")
-		.replace(/\r/g, "\\r")}'`;
+	`'${String(value).replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/\n/g, "\\n").replace(/\r/g, "\\r")}'`;
 
 const indent = (level) => "  ".repeat(level);
 
@@ -190,10 +186,11 @@ const generateErrorTriageSql = () => {
 	const pathLocaleExpression = buildPathLocaleExpression({ innerExpr: "n.norm[OFFSET(1)]", baseLevel: 3 });
 	const pathLocaleExtract = toRawStringLiteral(PATH_LOCALE_EXTRACT.re2Pattern);
 	const slotComments = NORMALIZED_SLOTS.map(
-		(slot) => `${indent(4)}IFNULL(${slot.source}, '')${slot.offset === NORMALIZED_SLOTS.length - 1 ? "" : ","}`.padEnd(
-			44,
-			" ",
-		) + `-- OFFSET(${slot.offset}) ${slot.name}: ${slot.why}`,
+		(slot) =>
+			`${indent(4)}IFNULL(${slot.source}, '')${slot.offset === NORMALIZED_SLOTS.length - 1 ? "" : ","}`.padEnd(
+				44,
+				" ",
+			) + `-- OFFSET(${slot.offset}) ${slot.name}: ${slot.why}`,
 	).join("\n");
 
 	return `-- =============================================================================
@@ -433,12 +430,29 @@ ${pathLocaleExpression}
       WHEN n.surface = 'frontend'
        AND SAFE_CAST(n.feHttpStatus AS INT64) IN (${excludedStatusList()})
         THEN 'transient_status'
-      -- (E5) 位置情報の権限拒否。kind の値集合は denied/timeout/unavailable/unsupported の4値
-      --      （locationPermissionError.ts）。除外するのは denied だけ。
-      --      timeout / unavailable は端末側の障害なので残す（横断レビュー S2）。
-      --      unsupported（Web で Geolocation 非対応）はオーナー判断により SQL では除外せず残す。
-      WHEN n.surface = 'frontend' AND n.feKind = 'denied'
-        THEN 'user_denied_permission'
+      -- (E5) 端末が現在地を返せない。kind の値集合は denied/timeout/unavailable/unsupported の4値
+      --      （locationPermissionError.ts）。denied / timeout / unavailable を除外する。
+      --
+      --      当初は denied だけを除外していたが、それでは止まらなかった。fingerprint は
+      --      messagePattern を含むため、**同じ「位置情報が取れない」が OS ごとの文言で割れる**。
+      --      実測で event 名 2 種 × 文言 9 種 × 経路 3 種に分かれ、err/skip ラベル を付けても
+      --      文言違いで新しい Issue が立ち続けた（実際に 10 件立った / #1196）。
+      --      kind は既に 3 値へ正規化済みなので、そちらで畳むのが唯一の止め方である。
+      --
+      --      ⚠️ **kind の値だけで判定しないこと。** kind は payload の汎用キーで、
+      --      将来 位置情報と無関係な機能が kind: 'timeout' を積んだら、その不具合が
+      --      «理由も告げずに» 除外される。除外の取りこぼし（Issue が立つ）は見えるが、
+      --      過剰な除外（Issue が立たない）は見えない。見えるほうの失敗に倒すため
+      --      event 名で範囲を閉じる。
+      --      前方一致にしてあるのは、位置情報の event が現状 5 つあり
+      --      （current_location_{fetch_failed,failed,auto_fetch_failed,backend_failed_fallback,
+      --      expo_fallback_failed}）今後も増えうるため。この命名規約が唯一の前提。
+      --
+      --      unsupported（Web で Geolocation 非対応）はオーナー判断により除外せず残す。
+      WHEN n.surface = 'frontend'
+       AND STARTS_WITH(IFNULL(n.eventName, ''), 'current_location_')
+       AND n.feKind IN ('denied', 'timeout', 'unavailable')
+        THEN 'device_location_failed'
       -- (E6) 期待された 4xx。E4 と**同じ定数**を共有する（横断レビュー §6-4 / S3）。
       --      400 / 409 / 422 は残す: このリポジトリは logQueue.ts で既に
       --      「400/422 は契約が壊れている状態＝不具合」と定義済みで、この API の一次クライアントは

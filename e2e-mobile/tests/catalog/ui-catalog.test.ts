@@ -13,6 +13,7 @@ import {
 } from "../../fixtures/e2e";
 import { LegalScreen } from "../../screens/LegalScreen";
 import { LoginScreen } from "../../screens/LoginScreen";
+import { OnboardingScreen } from "../../screens/OnboardingScreen";
 import { ProfileScreen } from "../../screens/ProfileScreen";
 import { ResultScreen } from "../../screens/ResultScreen";
 import { MyDishesScreen } from "../../screens/MyDishesScreen";
@@ -42,12 +43,6 @@ import { captureScreen, captureScreenIfReachable, getScreen, settle, tolerate } 
  * ここでは「その画面へどう到達するか」だけを書く。
  */
 
-/**
- * TrueSheet（チュートリアル）の中身は Android で必ず 2 つの View に一致するため、
- * シート内の要素を触るときは常に index を指定する（fixtures/e2e.ts の TUTORIAL_INDEX と同じ理由）。
- */
-const TUTORIAL_INDEX = 0;
-
 /** カタログ定義の URL からロケール付きディープリンクを組み立てる（URL の二重管理を防ぐ） */
 function deepLinkOf(id: string): string {
 	// 定義側は "/ja-JP/profile/saved-topics" 形式なので、先頭のロケールセグメントを外して渡す
@@ -56,7 +51,7 @@ function deepLinkOf(id: string): string {
 }
 
 describe("UI カタログ（匿名） @catalog", () => {
-	it("さがすタブ（フォーム・詳細条件・チュートリアル 4 ページ）", async () => {
+	it("さがすタブ（フォーム・詳細条件）", async () => {
 		const searchScreen = new SearchScreen();
 
 		await launchAppWithSession({ as: "anon" });
@@ -68,32 +63,62 @@ describe("UI カタログ（匿名） @catalog", () => {
 			// iOS では距離スライダーが画面外に居ることがある。展開できていれば撮る価値はあるので待ちは緩める
 			await tolerate(() => waitUntilVisible(searchScreen.distanceSlider));
 		});
+	});
 
-		// チュートリアルは「未視聴」で起動すると初回フォーカスで自動表示される（e2e-web の
-		// ヘルプボタン経由と違い、こちらが native の素直な導線。tests/search/search-tutorial.test.ts と同じ）。
-		// ⚠️ シート内の要素は Detox の toBeVisible（面積 75% 以上）が成立しないことがあるため、
-		//    待ちは expectTutorialOperable、タップは存在ベースの tapWhenPresent を使う（run 31409643139 で実測）
+	// ─ オンボーディング（#1486） ─
+	//
+	// 「未読」で起動すると初回フォーカスで自動的に開く（e2e-web のヘルプボタン経由と違い、
+	// こちらが native の素直な導線。tests/search/onboarding.test.ts と同じ）。
+	//
+	// ⚠️ 各ページは表示から約 1.5 秒後に課題フェーズ → 解決フェーズへ切り替わる。
+	// カタログとしては «その画面が何を伝えるか» が写っていてほしいので、
+	// 課題だけの状態ではなく解決フェーズまで再生させてから撮る。
+	it("オンボーディング（3 ステップ・権限・Welcome）", async () => {
+		const onboardingScreen = new OnboardingScreen();
+		const loginScreen = new LoginScreen();
+
 		const opened = await captureScreenIfReachable(
-			"search-tutorial-page1",
+			"onboarding-step1",
 			async () => {
-				await launchAppWithSession({ as: "anon", tutorialSeen: false });
-				await searchScreen.expectTutorialOperable();
+				await launchAppWithSession({ as: "anon", tutorialSeen: false, waitForReady: false });
+				await onboardingScreen.expectShown();
+				await onboardingScreen.expectSolutionShown(1);
 			},
-			{ settleMs: 1_500 },
+			{ settleMs: 500 },
 		);
 
 		if (!opened) return;
 
-		for (const page of [2, 3, 4]) {
+		for (const step of [2, 3] as const) {
 			await captureScreenIfReachable(
-				`search-tutorial-page${page}`,
+				`onboarding-step${step}`,
 				async () => {
-					// 最終ページではプライマリ CTA の testID が finish へ入れ替わる
-					await tapWhenPresent(searchScreen.tutorialNextButton, DEFAULT_TIMEOUT, TUTORIAL_INDEX);
+					await onboardingScreen.pressNext();
+					await onboardingScreen.expectStep(step);
+					await onboardingScreen.expectSolutionShown(step);
 				},
-				{ settleMs: 1_500 },
+				{ settleMs: 500 },
 			);
 		}
+
+		// 位置情報・通知の説明画面は «答えが出るまで» しか出ていない。E2E ビルドは起動時に
+		// 権限を付与済みなので OS のダイアログは出ず、最低表示時間を過ぎると自動で次へ進む。
+		// 撮り逃してもジョブを赤くしないよう captureScreenIfReachable で «撮れたら撮る» にしている
+		await captureScreenIfReachable("onboarding-location", async () => {
+			await onboardingScreen.pressNext();
+			await loginScreen.expectOpened();
+			await loginScreen.skip();
+			await waitUntilVisible(onboardingScreen.locationScreen, DEFAULT_TIMEOUT);
+		});
+
+		await captureScreenIfReachable(
+			"onboarding-welcome",
+			async () => {
+				await onboardingScreen.waitForWelcome();
+			},
+			// クラッカーが飛び散り切ってから撮る
+			{ settleMs: 1_500 },
+		);
 	});
 
 	it("検索フロー（場所サジェスト・料理提案・チュートリアル 4 ステップ・結果フィード）", async () => {

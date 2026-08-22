@@ -16,8 +16,7 @@
 **git から設計コメントごと復元**すること。
 */
 import React, { useState, useCallback } from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { PrimaryButton } from "@/components/PrimaryButton";
+import { ActivityIndicator, View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import i18n from "@/lib/i18n";
 import { useLogger } from "@/hooks/useLogger";
 import { useAuth } from "@/contexts/AuthProvider";
@@ -154,7 +153,8 @@ export function LoginForm({ testID, next }: LoginFormProps) {
 
 	return (
 		<View style={styles.container} testID={testID}>
-			{/* Existing Account Checkbox - Show only for anonymous users */}
+			{/* Existing Account Checkbox - Show only for anonymous users
+			    ボタンの «上» に置く（デザインレビューで確定。押す前に読ませたい分岐スイッチのため）*/}
 			{/* #1092 PR4b ここは `isGuestUser(user)` へ丸ごと寄せない。isGuestUser は user === null（認証未確定）を
 			    ゲストへ倒すため、そのまま置くと未確定の一瞬だけチェックボックスが出て消える。
 			    このチェックボックスは上の handleOAuthSignIn の分岐用で、未確定の間はその分岐自体が
@@ -174,68 +174,51 @@ export function LoginForm({ testID, next }: LoginFormProps) {
 				</TouchableOpacity>
 			)}
 
-			{/* OAuth Buttons */}
+			{/* OAuth Buttons
+			    #1486 【設計】影付きの PrimaryButton から «1px の枠線だけ» のフラットなピルへ変えた
+			   （デザインレビューで確定。強い影は付けない）。ラベルは「◯◯で続ける」。
+			    アイコンは絶対配置で左端に固定し、ラベルはボタン中央へ揃える */}
 			<View style={styles.oauthContainer}>
-				<PrimaryButton
+				<TouchableOpacity
 					testID="login-google-button"
-					label={i18n.t("auth.provider_google")}
-					icon={
-						<Image
-							source={require("@/assets/images/logo_google_g_icon.png")}
-							style={{ width: 30, height: 30 }}
-							cachePolicy="memory-disk"
-						/>
-					}
+					style={styles.oauthButton}
 					onPress={() => handleOAuthSignIn("google")}
-					style={{ width: "100%" }}
-					colors={["#ffffff", "#ffffff"]}
-					shadowColor={"#000000"}
-					labelStyle={{ color: "#1A1A1A", fontSize: 20 }}
-					loading={isLoading}
-					loadingIndicatorType="native"
-					nativeLoadingColor={"#1A1A1A"}
-				/>
-				{/* <PrimaryButton
-					label={i18n.t("auth.provider_facebook")}
-					onPress={() => handleOAuthSignIn("facebook")}
-					style={{ width: "100%" }}
-					colors={["#ffffff", "#ffffff"]}
-					shadowColor={"#000000"}
-					labelStyle={{ color: "#1A1A1A", fontSize: 20 }}
-					loading={isLoading}
-					loadingIndicatorType="native"
-					nativeLoadingColor={"#1A1A1A"}
-				/>
-				<PrimaryButton
-					label={i18n.t("auth.provider_twitter")}
-					onPress={() => handleOAuthSignIn("twitter")}
-					style={{ width: "100%" }}
-					colors={["#ffffff", "#ffffff"]}
-					shadowColor={"#000000"}
-					labelStyle={{ color: "#1A1A1A", fontSize: 20 }}
-					loading={isLoading}
-					loadingIndicatorType="native"
-					nativeLoadingColor={"#1A1A1A"}
-				/> */}
-				<PrimaryButton
+					disabled={isLoading}
+					accessibilityRole="button"
+					accessibilityState={{ disabled: isLoading, busy: isLoading }}
+					activeOpacity={0.6}>
+					<Image
+						source={require("@/assets/images/logo_google_g_icon.png")}
+						style={styles.oauthIcon}
+						cachePolicy="memory-disk"
+					/>
+					{isLoading ? (
+						<ActivityIndicator size="small" color="#1A1A1A" testID="login-google-button-loading" />
+					) : (
+						<Text style={styles.oauthLabel}>{i18n.t("auth.continue_with_google")}</Text>
+					)}
+				</TouchableOpacity>
+				{/* Facebook / Twitter ログインは #1359 以前からコメントアウトされたまま提供していない。
+				    復活させるときは同じフラットなピルの形で足すこと */}
+				<TouchableOpacity
 					testID="login-apple-button"
-					label={i18n.t("auth.provider_apple")}
-					icon={
-						<Image
-							source={require("@/assets/images/logo_apple_icon.png")}
-							style={{ width: 30, height: 30 }}
-							cachePolicy="memory-disk"
-						/>
-					}
+					style={styles.oauthButton}
 					onPress={() => handleOAuthSignIn("apple")}
-					style={{ width: "100%" }}
-					colors={["#ffffff", "#ffffff"]}
-					shadowColor={"#000000"}
-					labelStyle={{ color: "#1A1A1A", fontSize: 20 }}
-					loading={isLoading}
-					loadingIndicatorType="native"
-					nativeLoadingColor={"#1A1A1A"}
-				/>
+					disabled={isLoading}
+					accessibilityRole="button"
+					accessibilityState={{ disabled: isLoading, busy: isLoading }}
+					activeOpacity={0.6}>
+					<Image
+						source={require("@/assets/images/logo_apple_icon.png")}
+						style={styles.oauthIcon}
+						cachePolicy="memory-disk"
+					/>
+					{isLoading ? (
+						<ActivityIndicator size="small" color="#1A1A1A" testID="login-apple-button-loading" />
+					) : (
+						<Text style={styles.oauthLabel}>{i18n.t("auth.continue_with_apple")}</Text>
+					)}
+				</TouchableOpacity>
 			</View>
 
 			{/* 同意メッセージ */}
@@ -269,17 +252,34 @@ export function LoginForm({ testID, next }: LoginFormProps) {
 const styles = StyleSheet.create({
 	container: {
 		paddingHorizontal: 24,
-		paddingVertical: 32,
+		paddingTop: 20,
+		paddingBottom: 32,
 	},
 	oauthContainer: {
-		flexWrap: "wrap",
-		gap: 30,
-		justifyContent: "center",
+		gap: 16,
 		width: "100%",
 	},
-	oauthButtonText: {
-		fontSize: 14,
-		fontWeight: "600",
+	// フラットなアウトラインのピル。影は付けない（デザインレビューで確定）
+	oauthButton: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "center",
+		height: 60,
+		borderRadius: 30,
+		borderWidth: 1,
+		borderColor: "#D1D5DB",
+		backgroundColor: "#FFFFFF",
+		paddingHorizontal: 60,
+	},
+	oauthIcon: {
+		position: "absolute",
+		left: 24,
+		width: 28,
+		height: 28,
+	},
+	oauthLabel: {
+		fontSize: 17,
+		fontWeight: "700",
 		color: "#1A1A1A",
 	},
 	checkboxContainer: {
@@ -296,11 +296,9 @@ const styles = StyleSheet.create({
 		justifyContent: "center",
 		marginRight: 12,
 		backgroundColor: "#FFFFFF",
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 0 },
-		shadowOpacity: 0.5,
-		shadowRadius: 16,
-		elevation: 4,
+		// #1486 影は使わない（デザインレビューで確定）。枠線で輪郭を出す
+		borderWidth: 1.5,
+		borderColor: "#D1D5DB",
 	},
 	checkboxChecked: {
 		backgroundColor: "#F05537",

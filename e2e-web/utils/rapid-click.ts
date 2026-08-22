@@ -67,12 +67,15 @@ export async function clickRapid(locator: Locator, times: number): Promise<void>
  * Playwright 側で Locator を解決してから実際にイベントが届くまでの間に、対象が
  * 別ノードへ化ける／消えることがある画面で使う。
  *
- * 具体例（#1086 / #1091）: 検索チュートリアルのプライマリ CTA は **単一の DOM ノード**で、
- * testID だけが `search-tutorial-next` ↔ `search-tutorial-finish` と入れ替わる
- * （`TutorialBottomSheet` の `isLastPage ? ... : ...`）。ページ送りアニメーション中は
- * `onViewableItemsChanged` が `currentPage` を揺らすため、「つぎへ」として解決したノードが
- * クリック到達時には「はじめよう」へ化けていることがある。
+ * 具体例（#1086 / #1091）: 旧検索チュートリアルのプライマリ CTA は **単一の DOM ノード**で、
+ * testID だけが `search-tutorial-next` ↔ `search-tutorial-finish` と入れ替わる実装だった。
+ * ページ送りアニメーション中は `onViewableItemsChanged` が `currentPage` を揺らすため、
+ * 「つぎへ」として解決したノードがクリック到達時には「はじめよう」へ化けていることがあった。
  * 特定とイベント送出を **同一 JS タスク内**で行えば、この取り違えは構造的に起こり得ない。
+ *
+ * ⚠️ #1486 でその実装は無くなった（新オンボーディングの「前へ」「次へ」「スキップ」は
+ * それぞれ独立したノードで、押しても別の testID へ化けない）。この関数は
+ * «同じ壊れ方をする画面» が再び現れたときのために残してある。
  *
  * @param page 対象ページ
  * @param testId `data-testid` の値

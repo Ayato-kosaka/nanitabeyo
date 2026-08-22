@@ -235,36 +235,56 @@
 				"bulkShare": "まとめてシェア"
 			}
 		},
-		"tutorial": {
-			"page1": {
-				"title": "食べたい料理に気づけるアプリ",
-				"body1": "「今日なに食べる？」で、もう迷わない。",
-				"body2": "場所や時間に合わせて、料理とお店をセットで提案します。",
-				"cta": "つぎへ"
-			},
-			"page2": {
-				"title": "料理写真を見て\n「食べたい」に気づく",
-				"body1": "今の条件に合った料理を６つご提案。",
-				"body2": "写真を見ながら食べたいものを直感で選べます。",
-				"cta": "つぎへ"
-			},
-			"page3": {
-				"title": "写真と口コミで\n「ここ行こ」が決まる",
-				"body1": "選んだ料理に合うお店を５つご提案。",
-				"body2": "写真と口コミ、地図を見ながら、気になる一軒をサクッと選べます。",
-				"cta": "つぎへ"
-			},
-			"page4": {
-				"title": "はじめよう",
-				"body1": "近くの美味しいお店を提案するために、現在地を利用します。",
-				"body2": "いつでも設定から変更できます。",
-				"primaryCta": "現在地を利用する",
-				"secondaryCta": "あとで"
-			}
-		},
 		"recentLocations": {
 			"title": "最近使った場所",
 			"clear": "最近使った場所を消去"
+		}
+	},
+	"Onboarding": {
+		"step1": {
+			"problem": "何食べたいか、決まらない。",
+			"solution": "おすすめの料理が提案されるので\n「食べたい」が見つかる"
+		},
+		"step2": {
+			"problem": "お店探し。\n候補が多すぎて時間がかかる。",
+			"solution": "料理もお店も候補が厳選されているので\nすぐ決められる"
+		},
+		"step3": {
+			"problem": "一緒に行く人の好みも、外したくない。",
+			"solution": "友達と投票して、料理を決められる"
+		},
+		"back": "前へ",
+		"next": "次へ",
+		"skip": "スキップ",
+		"location": {
+			"title": "近くのお店を、すぐ見つけよう 📍",
+			"body": "位置情報を使うと、今いる場所の近くからおすすめのお店を提案できます。",
+			"dialog": {
+				"title": "「なに食べよ」に位置情報の使用を許可しますか？",
+				"message": "現在地周辺のおすすめのお店を提案するために、位置情報を使用します。",
+				"allowOnce": "一度だけ許可",
+				"allowWhileUsing": "Appの使用中は許可",
+				"deny": "許可しない"
+			}
+		},
+		"notifications": {
+			"title": "食べたいを、見逃さない 🔔",
+			"body": "あなたに合ったおすすめや、なに食べよからのお知らせをお届けします。",
+			"dialog": {
+				"title": "「なに食べよ」は通知を送信します。よろしいですか？",
+				"message": "通知方法は、テキスト、サウンド、アイコンバッジが利用できる可能性があります。",
+				"deny": "許可しない",
+				"allow": "許可"
+			}
+		},
+		"welcome": {
+			"title": "なに食べよへようこそ！",
+			"body1": "もう、お店選びで迷いすぎなくて大丈夫。",
+			"body2": "今日の「食べたい」を見つけにいこう。",
+			"cta": "はじめる"
+		},
+		"accessibility": {
+			"stepProgress": "{{total}} ステップ中 {{current}} ステップ目"
 		}
 	},
 	"Topics": {
@@ -688,17 +708,12 @@
 		}
 	},
 	"auth": {
-		"login_title": "ログイン",
 		"create_title": "アカウント作成",
 		"field_name": "名前",
 		"btn_login": "ログイン",
 		"btn_create": "アカウントを作成",
 		"divider_or": "または次でサインイン",
 		"agree_tos": "利用規約に同意します",
-		"provider_google": "Google",
-		"provider_facebook": "Facebook",
-		"provider_twitter": "Twitter",
-		"provider_apple": "Apple",
 		"login_success": "ログインに成功しました！",
 		"error_required": "必須項目です",
 		"tos_link_text": "利用規約",
@@ -712,7 +727,12 @@
 		"consent_login_terms": "利用規約",
 		"consent_login_and": " と ",
 		"consent_login_privacy": "プライバシーポリシー",
-		"consent_login_suffix": " に同意したことになります。"
+		"consent_login_suffix": " に同意したことになります。",
+		"skip": "スキップ",
+		"signup_title": "アカウントを作成しましょう",
+		"signup_subtitle": "口コミを投稿したり、お気に入りのお店を保存できるようになります",
+		"continue_with_google": "Googleで続ける",
+		"continue_with_apple": "Appleで続ける"
 	},
 	"Settings": {
 		"sendFeedback": "ご意見・不具合",

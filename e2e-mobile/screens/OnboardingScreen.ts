@@ -1,0 +1,174 @@
+import {
+	DEFAULT_TIMEOUT,
+	by,
+	existsNow,
+	multiTapWhenPresent,
+	tapWhenPresent,
+	visibleNow,
+	waitUntil,
+	waitUntilVisible,
+} from "../fixtures/e2e";
+
+/**
+ * 🚀 オンボーディング（#1486）の Screen Object
+ *
+ * 対応画面:
+ * - `app-expo/app/[locale]/onboarding/index.tsx`（3 ステップ）
+ * - `app-expo/app/[locale]/onboarding/location.tsx`（位置情報許可）
+ * - `app-expo/app/[locale]/onboarding/notifications.tsx`（通知許可・ログイン済みのみ）
+ * - `app-expo/app/[locale]/onboarding/welcome.tsx`（Welcome）
+ *
+ * 対応する e2e-web の Page Object: e2e-web/pages/OnboardingPage.ts
+ *
+ * ## 旧チュートリアル（TrueSheet）との違い — ここが重要
+ *
+ * 旧実装は TrueSheet の BottomSheet で、Detox から見ると次の 2 つの厄介事があった。
+ *
+ * 1. **Android では中身が必ず 2 つの View に一致する**（run 30445542854 で実測）。
+ *    シート内の要素を扱うすべてのヘルパへ `atIndex(0)` を渡す必要があった
+ * 2. **iOS では表示中でも `toBeVisible` が成立しない**（面積を持つ実体が無い。run 30432596949）
+ *
+ * 新実装は **通常のルート（画面）** なので、どちらも起きない。
+ * `atIndex` の指定は要らず、`toBeVisible` もそのまま使える。
+ *
+ * さらに、旧実装のプライマリ CTA は単一ボタンで testID が
+ * `search-tutorial-next` ↔ `search-tutorial-finish` と入れ替わっていたため、
+ * 「最終ページでは next がツリーに存在しない」という前提を全ヘルパが背負っていた（#1086）。
+ * 新実装の「前へ」「次へ」「スキップ」は **別々のボタン**で、押しても別の testID へ化けない。
+ *
+ * ⚠️ ただし **「次へ」を押した直後に解決文言を見ないこと**。各ページは表示から約 1.5 秒後に
+ * 課題フェーズ → 解決フェーズへ切り替わる（`PROBLEM_PHASE_DURATION_MS`）。
+ * 待つときは固定 sleep ではなく {@link expectSolutionShown} を使う。
+ */
+export class OnboardingScreen {
+	/** 3 ステップ画面のルート */
+	readonly screen = by.id("onboarding-screen");
+	/** 上部の丸数字インジケータ */
+	readonly stepIndicator = by.id("onboarding-step-indicator");
+	/** 左下「前へ」（1 枚目では描画されない） */
+	readonly backButton = by.id("onboarding-back");
+	/** 右下「次へ」 */
+	readonly nextButton = by.id("onboarding-next");
+	/** 下部中央の「スキップ」 */
+	readonly skipButton = by.id("onboarding-skip");
+	/** 位置情報許可の説明画面 */
+	readonly locationScreen = by.id("onboarding-location");
+	/** 通知許可の説明画面 */
+	readonly notificationsScreen = by.id("onboarding-notifications");
+	/** Welcome 画面 */
+	readonly welcomeScreen = by.id("onboarding-welcome");
+	/** Welcome の「はじめる」 */
+	readonly startButton = by.id("onboarding-welcome-start");
+
+	/** 指定ステップの課題文 */
+	problemText(step: 1 | 2 | 3): Detox.NativeMatcher {
+		return by.id(`onboarding-step-${step}-problem`);
+	}
+
+	/** 指定ステップの解決文 */
+	solutionText(step: 1 | 2 | 3): Detox.NativeMatcher {
+		return by.id(`onboarding-step-${step}-solution`);
+	}
+
+	/**
+	 * オンボーディングが自動表示されていることを検証する。
+	 *
+	 * ja-JP かつ未読（AsyncStorage の `search_tutorial_seen_v1` が未設定）のときだけ成立する。
+	 *
+	 * 観測点を «画面のルート» ではなく「次へ」ボタンにしているのは #1027 と同じ理由で、
+	 * 「出ていて操作できる」という検証したい事実と 1:1 で対応するのがボタンだから。
+	 */
+	async expectShown(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
+		await waitUntilVisible(this.nextButton, timeout);
+	}
+
+	/** 指定ステップに居ることを検証する（課題文は解決フェーズでも残るので «居る» の検査になる） */
+	async expectStep(step: 1 | 2 | 3, timeout: number = DEFAULT_TIMEOUT): Promise<void> {
+		await waitUntilVisible(this.problemText(step), timeout);
+	}
+
+	/**
+	 * 指定ステップの解決フェーズが再生されたことを検証する。
+	 *
+	 * ⚠️ 解決文は課題フェーズでも **ツリーには存在する**（`opacity: 0` で場所だけ確保している）。
+	 * `existsNow` で判定すると課題フェーズと区別できないので、`toBeVisible`（Detox は
+	 * 可視性に不透明度を含める）で «見えている» ことを見る。
+	 */
+	async expectSolutionShown(step: 1 | 2 | 3, timeout: number = DEFAULT_TIMEOUT): Promise<void> {
+		await waitUntilVisible(this.solutionText(step), timeout);
+	}
+
+	/** 「次へ」を 1 回押す */
+	async pressNext(): Promise<void> {
+		await tapWhenPresent(this.nextButton);
+	}
+
+	/** 「前へ」を 1 回押す */
+	async pressBack(): Promise<void> {
+		await tapWhenPresent(this.backButton);
+	}
+
+	/** 「スキップ」を 1 回押す */
+	async pressSkip(): Promise<void> {
+		await tapWhenPresent(this.skipButton);
+	}
+
+	/** Welcome の「はじめる」を押す */
+	async pressStart(): Promise<void> {
+		await tapWhenPresent(this.startButton);
+	}
+
+	/**
+	 * 「次へ」を **待機を挟まずに** `times` 回連打する（#1084 P3 と同じ狙い）。
+	 *
+	 * `pressNext()` の連続呼び出しでは連打にならない（Detox の同期機構が
+	 * 1 発目の後に画面遷移の完了を待ってしまう）。詳細は `multiTapWhenPresent`。
+	 */
+	async pressNextRapid(times = 3): Promise<void> {
+		await multiTapWhenPresent(this.nextButton, times);
+	}
+
+	/**
+	 * 「前へ」が描画されているか（1 枚目では描画されない = #1486 §1「1枚目は戻る操作無効」）。
+	 *
+	 * 「見えているか」ではなく「存在するか」で見る。1 枚目では要素そのものを描いていないので、
+	 * 存在の有無が仕様と 1:1 で対応する。
+	 */
+	async backButtonExists(timeout = 3_000): Promise<boolean> {
+		return existsNow(this.backButton, timeout);
+	}
+
+	/** オンボーディングの 3 ステップ画面がまだ開いているか（連打テスト用） */
+	async stillOpen(timeout = 3_000): Promise<boolean> {
+		return visibleNow(this.nextButton, timeout);
+	}
+
+	/**
+	 * 3 ステップを最後まで進める。
+	 *
+	 * @param maxSteps ページ送りの上限（無限ループ防止。現在のページ数は 3）
+	 */
+	async advanceToLastStep(maxSteps = 5): Promise<void> {
+		await this.expectStep(1);
+		for (let i = 0; i < maxSteps; i += 1) {
+			if (await existsNow(this.problemText(3), 1_000)) return;
+			await this.pressNext();
+		}
+		await this.expectStep(3);
+	}
+
+	/**
+	 * 許可フローを通って Welcome へ着くまで待つ。
+	 *
+	 * 位置情報・通知の説明画面は «答えが出るまで» しか出ていない。E2E ビルドは
+	 * 起動時に権限を付与済み（fixtures/e2e.ts の `platformLaunchOptions()`）なので
+	 * OS のダイアログは出ず、最低表示時間を過ぎると自動で次へ進む。
+	 * つまり途中の画面は «通り過ぎる» ものとして扱い、着地点だけを待つ。
+	 */
+	async waitForWelcome(timeout = 60_000): Promise<void> {
+		await waitUntil(async () => visibleNow(this.welcomeScreen, 2_000), {
+			description: "許可フローを通って Welcome 画面へ着くこと",
+			timeout,
+		});
+	}
+}

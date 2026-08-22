@@ -156,12 +156,21 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		[
 			"expo-location",
 			{
+				// #1486 §5 【仕様】iOS の許可ダイアログに出る説明文。
+				//
+				// チケットが確定させたのは日本語の文言（「現在地周辺のおすすめのお店を提案するために、
+				// 位置情報を使用します。」）で、それは languages/ja-JP.json の
+				// `NSLocationWhenInUseUsageDescription` に置いてある（下の `locales` が
+				// 言語ごとの InfoPlist.strings を生成する）。ここに直接日本語を書くと、
+				// **8 言語すべての既定値**が日本語になってしまう。
+				//
+				// ここに残す英文は「日本語以外の端末で出る既定値」。旧文の
+				// 「location-based guides（現地ガイド）」はこのアプリの実態と違ったため、
+				// 日本語版と同じ意味（近くのおすすめの店を提案する）に揃えてある。
 				locationAlwaysAndWhenInUsePermission:
-					"Allow $(PRODUCT_NAME) to use your location to find nearby places and provide location-based guides.",
-				locationAlwaysPermission:
-					"Allow $(PRODUCT_NAME) to use your location to find nearby places and provide location-based guides.",
-				locationWhenInUsePermission:
-					"Allow $(PRODUCT_NAME) to use your location to find nearby places and provide location-based guides.",
+					"$(PRODUCT_NAME) uses your location to suggest recommended restaurants near you.",
+				locationAlwaysPermission: "$(PRODUCT_NAME) uses your location to suggest recommended restaurants near you.",
+				locationWhenInUsePermission: "$(PRODUCT_NAME) uses your location to suggest recommended restaurants near you.",
 				isIosBackgroundLocationEnabled: false,
 				isAndroidBackgroundLocationEnabled: false,
 			},
@@ -282,31 +291,42 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		],
 		...(process.env.EXPO_PUBLIC_FACEBOOK_APP_ID && process.env.EXPO_PUBLIC_FACEBOOK_CLIENT_TOKEN
 			? [
-				[
-					// #492 【設計】Meta SDK (react-native-fbsdk-next) プラグイン設定
-					// expo config は eas build 実行の際に走るため、環境変数がないと落ちる。そのため、env が無ければスキップにする
-					"react-native-fbsdk-next",
-					{
-						appID: process.env.EXPO_PUBLIC_FACEBOOK_APP_ID,
-						clientToken: process.env.EXPO_PUBLIC_FACEBOOK_CLIENT_TOKEN,
-						displayName: "nanitabeyo",
-						advertiserIDCollectionEnabled: true,
-						autoLogAppEventsEnabled: true,
-						isAutoInitEnabled: true,
-					},
-				] as [string, any],
-			]
+					[
+						// #492 【設計】Meta SDK (react-native-fbsdk-next) プラグイン設定
+						// expo config は eas build 実行の際に走るため、環境変数がないと落ちる。そのため、env が無ければスキップにする
+						"react-native-fbsdk-next",
+						{
+							appID: process.env.EXPO_PUBLIC_FACEBOOK_APP_ID,
+							clientToken: process.env.EXPO_PUBLIC_FACEBOOK_CLIENT_TOKEN,
+							displayName: "nanitabeyo",
+							// #1486 §8 【仕様】**ATT の回答前にトラッキングを開始しない**。
+							//
+							// この 3 つはネイティブ側（Info.plist / AndroidManifest）へ書き出され、
+							// true だと **JS が動き出す前に** SDK が自動初期化して `fb_mobile_activate_app` を
+							// 送り、広告 ID（IDFA）も集め始める。ATT ダイアログは JS から出すので、
+							// true のままでは「回答前に送信済み」を構造的に避けられない。
+							//
+							// すべて false にして、components/MetaAppEventsInitializer.tsx が
+							// ATT の回答を得てから `Settings.setAdvertiserIDCollectionEnabled` /
+							// `setAutoLogAppEventsEnabled` / `initializeSDK` を順に呼ぶ経路 **だけ** を
+							// SDK の入口にする。
+							advertiserIDCollectionEnabled: false,
+							autoLogAppEventsEnabled: false,
+							isAutoInitEnabled: false,
+						},
+					] as [string, any],
+				]
 			: []),
 		...(process.env.E2E_DETOX === "1"
 			? [
-				// #1027 【設計】Detox E2E 用プラグイン（androidTest 設定・Network Security Config を注入する）
-				// 通常の EAS ビルドへ混入させないため、E2E ビルド時のみ E2E_DETOX=1 で有効化する
-				"@config-plugins/detox",
-				// #1016 【設計】Detox の androidTest APK が持ち込む古い protobuf が firebase-perf と衝突し、
-				// JS が動く前に FirebaseInitProvider で NoSuchMethodError を起こすのを防ぐ。
-				// 必ず @config-plugins/detox の後に置く（androidTest の依存が入ってから除外する）
-				"./plugins/withDetoxProtobufFix",
-			]
+					// #1027 【設計】Detox E2E 用プラグイン（androidTest 設定・Network Security Config を注入する）
+					// 通常の EAS ビルドへ混入させないため、E2E ビルド時のみ E2E_DETOX=1 で有効化する
+					"@config-plugins/detox",
+					// #1016 【設計】Detox の androidTest APK が持ち込む古い protobuf が firebase-perf と衝突し、
+					// JS が動く前に FirebaseInitProvider で NoSuchMethodError を起こすのを防ぐ。
+					// 必ず @config-plugins/detox の後に置く（androidTest の依存が入ってから除外する）
+					"./plugins/withDetoxProtobufFix",
+				]
 			: []),
 		[
 			// #492 【設計】ATT (App Tracking Transparency) ダイアログ設定
