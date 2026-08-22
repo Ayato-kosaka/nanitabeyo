@@ -2,7 +2,17 @@ import { test, expect } from "../../fixtures/test";
 import { SnsImportPage } from "../../pages/SnsImportPage";
 
 /**
- * 📥 SNS 取り込み確認画面の 3 状態（#1400 PR4）
+ * 📥 SNS 取り込み画面（#1400 PR4 → #1375 実機確認で «貼り付けて取り込む» 画面へ）
+ *
+ * ## #1375 実機確認で変わったこと
+ *
+ * 3 状態の掲示板（confirm / expandPending / unsupported の器を排他で出すだけ）ではなくなった。
+ * いまは **入口が 2 つ（OS の共有シート / my-dishes の ＋ ボタン）で着地は 1 つ**の画面で、
+ * 主役は URL の貼り付け欄である。`?url=` があれば初期値に入り、無ければ空で開く。
+ *
+ * ⚠️ **貼られた文字列が画面に出るのは仕様**（編集できる入力欄なので）。旧 spec の
+ * 「生の共有テキストを画面へ出さない」は前提ごと変わった。代わりに
+ * «対応外なら対応 provider を必ず明示する» を検知点として残している。
  *
  * ## なぜ E2E で守るのか（ユニットテストがあるのに）
  * `app-expo/__tests__/snsImportRoute.test.tsx` は **react-test-renderer のツリー**を見ており、
@@ -27,7 +37,12 @@ import { SnsImportPage } from "../../pages/SnsImportPage";
  * レート制限（README「匿名セッションの共有」）にも影響しない。
  *
  * ## ここで使う URL は実在しなくてよい
- * 画面もこの spec もネットワークへ取りに行かない。`parseSnsUrl()` は文字列の形だけで判定する。
+ * この spec はネットワークへ取りに行かない。貼り付け欄の見た目の判定は
+ * `parseSnsUrl()`（文字列の形だけで判定する純関数）で閉じている。
+ *
+ * ⚠️ **「読み取る」「食べたいに保存」は押さない。** どちらも実 API を叩くので、実装が壊れたのか
+ * 外部 provider / dev DB が変わったのかを区別できないテストになる。押下を伴う検証は
+ * mock を用意した別 spec の責務とし、ここは «配信経路・文言・戻る» の 3 つを守る。
  */
 
 /** YouTube Shorts の投稿 URL（ID は 11 文字固定） */
@@ -44,109 +59,90 @@ const TIKTOK_SHORTLINK_URL = "https://vm.tiktok.com/ZSAbCd123/";
 /** 対応外の URL。X は #1399 のリーダー確定で対象外 */
 const UNSUPPORTED_URL = "https://x.com/nanitabeyo/status/1234567890";
 
-test.describe("SNS 取り込み確認画面(#1400)", () => {
-	// ─ テストケース: 取り込める URL は 3 provider とも confirm 状態になる ─
+test.describe("SNS 取り込み画面(#1400 / #1375)", () => {
+	// ─ テストケース: 共有された URL が貼り付け欄の初期値に入る ─
 	// 手順:
 	//   1. YouTube Shorts / TikTok / Instagram の投稿 URL でそれぞれ画面を直接開く
-	//   2. `sns-import-confirm` だけが出ていることを検証（他 2 状態が出ていないことまで見る）
-	//   3. provider 名と canonical URL が出ていることを検証
-	//   4. 「保存は準備中」が **文字で** 出ていることを検証（無言で終わる画面にしない。設計 §3）
-	test("取り込める URL は provider と canonical URL つきで確認状態になる", async ({ page }) => {
+	//   2. 貼り付け欄の値が **共有された URL そのもの**であることを検証
+	//   3. 「非対応」の説明が出ていないことを検証（対応 provider を非対応に倒していない）
+	test("共有された URL が貼り付け欄に入り、非対応にはならない", async ({ page }) => {
 		const snsImportPage = new SnsImportPage(page);
 
-		const cases = [
-			{ shared: YOUTUBE_SHORTS_URL, provider: "YouTube Shorts", canonical: YOUTUBE_SHORTS_URL },
-			{ shared: TIKTOK_POST_URL, provider: "TikTok", canonical: TIKTOK_POST_URL },
-			{ shared: INSTAGRAM_REEL_URL, provider: "Instagram", canonical: INSTAGRAM_REEL_URL },
-		];
-
-		for (const { shared, provider, canonical } of cases) {
+		for (const shared of [YOUTUBE_SHORTS_URL, TIKTOK_POST_URL, INSTAGRAM_REEL_URL]) {
 			await snsImportPage.goto(shared);
-			await snsImportPage.expectOnlyStateVisible("confirm");
-			await expect(snsImportPage.provider).toHaveText(provider);
-			await expect(snsImportPage.url).toHaveText(canonical);
-			// #1399 PR7/PR11 が入るまで保存できない。押せないボタンではなく文字で伝える契約
-			await expect(snsImportPage.confirmPending).not.toBeEmpty();
+
+			expect(await snsImportPage.inputValue()).toBe(shared);
+			await expect(snsImportPage.unsupportedDescription).toBeHidden();
 		}
 	});
 
-	// ─ テストケース: 短縮 URL は「非対応」ではなく「準備中」になる ─
+	// ─ テストケース: ＋ ボタンから開いた形（url 無し）でも入力欄が出る ─
 	// 手順:
-	//   1. vm.tiktok.com の短縮 URL で画面を直接開く
-	//   2. `sns-import-expand-pending` だけが出ていることを検証
-	//   3. **`sns-import-unsupported` が出ていないこと**を明示的に検証（この PR の主眼）
-	//   4. provider が TikTok と分かること、準備中である旨が文字で出ていることを検証
+	//   1. `?url=` を付けずに画面を開く
+	//   2. 貼り付け欄が空で出ていることを検証（空白の画面にしない）
+	//   3. まだ何も貼っていないので「非対応」とは言わないことを検証
+	//   4. 「読み取る」が押せない状態であることを検証
 	//
-	// TikTok アプリの共有ボタンが出すのはこの形なので、ここが unsupported に倒れると
-	// 「TikTok から共有した人は全員 非対応と言われる」ことになる。
-	test("短縮 URL は非対応ではなく展開準備中として受ける", async ({ page }) => {
-		const snsImportPage = new SnsImportPage(page);
-
-		await snsImportPage.goto(TIKTOK_SHORTLINK_URL);
-
-		await snsImportPage.expectOnlyStateVisible("expandPending");
-		await expect(snsImportPage.unsupported, "短縮 URL が「非対応」に倒れている").toBeHidden();
-		await expect(snsImportPage.provider).toHaveText("TikTok");
-		// 「準備中」であることが文字で伝わっているか（ja-JP.json: SnsImport.expandPending.description）
-		await expect(snsImportPage.expandPending).toContainText("準備中");
-	});
-
-	// ─ テストケース: 対応外 URL は対応 provider を明示して落とす ─
-	// 手順:
-	//   1. x.com の URL で画面を直接開く
-	//   2. `sns-import-unsupported` だけが出ていることを検証
-	//   3. 説明文に対応 3 provider がすべて挙がっていることを検証（黙って落とさない。設計 §3）
-	//   4. 生の共有 URL が画面へ出ていないことを検証
-	//
-	// 4 は `resolveSnsShareIntakeView()` を通した値だけを描く契約の検知点。第三者が作った任意の
-	// 文字列をそのまま描くと、共有テキストを画面へ素通しすることになる。
-	test("対応外 URL は対応 provider を明示し、生の URL を画面へ出さない", async ({ page }) => {
-		const snsImportPage = new SnsImportPage(page);
-
-		await snsImportPage.goto(UNSUPPORTED_URL);
-
-		await snsImportPage.expectOnlyStateVisible("unsupported");
-		for (const provider of ["TikTok", "YouTube Shorts", "Instagram"]) {
-			await expect(snsImportPage.unsupportedDescription).toContainText(provider);
-		}
-
-		expect(await snsImportPage.visibleText(), "生の共有 URL が画面へ露出している").not.toContain("x.com");
-	});
-
-	// ─ テストケース: url を付けずに開いても空の画面にならない ─
-	// 手順:
-	//   1. `?url=` 無しで画面を直接開く（ログイン往復で落ちた / 直接ブックマークされた等）
-	//   2. `sns-import-unsupported` だけが出ていることを検証
-	//   3. タイトルと説明文が出ていることを検証（真っ白な画面を出さない）
-	test("url 無しで開いても対応 provider の案内が出る", async ({ page }) => {
+	// #1375 実機確認: ＋ の基本導線がこの経路である。旧仕様は url 無しを unsupported に
+	// 倒していたが、いまは «これから貼る» 状態なので «非対応» と言ってはいけない。
+	test("url 無しで開くと空の貼り付け欄が出る（非対応とは言わない）", async ({ page }) => {
 		const snsImportPage = new SnsImportPage(page);
 
 		await snsImportPage.goto();
 
-		await snsImportPage.expectOnlyStateVisible("unsupported");
-		await expect(snsImportPage.title).not.toBeEmpty();
-		await expect(snsImportPage.unsupportedDescription).not.toBeEmpty();
+		await expect(snsImportPage.urlInput).toBeVisible();
+		expect(await snsImportPage.inputValue()).toBe("");
+		await expect(snsImportPage.unsupportedDescription).toBeHidden();
+		await expect(snsImportPage.resolveButton).toBeDisabled();
 	});
 
-	// ─ テストケース: 画面に出るのは canonical だけ（トラッキングパラメータが混ざらない）─
+	// ─ テストケース: 短縮 URL は「非対応」ではなく「展開の案内」になる ─
 	// 手順:
-	//   1. `?igsh=…` 付きの Instagram URL で画面を直接開く
-	//   2. confirm 状態になることを検証
-	//   3. 表示された URL が canonical（クエリ無し）であることを検証
-	//   4. 画面のどこにも `igsh` の値が出ていないことを検証
+	//   1. TikTok アプリの共有ボタンが出す短縮 URL で画面を開く
+	//   2. 展開の案内が出ていて、**非対応の説明が出ていない**ことを検証
 	//
-	// 画面は `url` を «そのまま» 描いてはいけない（生の共有テキストを画面へ出さない契約）。
-	// ここが崩れると、共有した人を特定しうる値がそのまま画面へ出る。
-	test("表示される URL は canonical だけでトラッキングパラメータを含まない", async ({ page }) => {
+	// ここが混ざると TikTok の主要導線が丸ごと「非対応」に見える（設計 §3）。
+	test("短縮 URL は非対応ではなく展開の案内として受ける", async ({ page }) => {
 		const snsImportPage = new SnsImportPage(page);
 
-		await snsImportPage.goto(`${INSTAGRAM_REEL_URL}?igsh=SHARER_TRACKING_VALUE`);
+		await snsImportPage.goto(TIKTOK_SHORTLINK_URL);
+		await snsImportPage.expectShortlinkNotTreatedAsUnsupported();
+	});
 
-		await snsImportPage.expectOnlyStateVisible("confirm");
-		await expect(snsImportPage.url).toHaveText(INSTAGRAM_REEL_URL);
-		expect(await snsImportPage.visibleText(), "トラッキングパラメータが画面へ露出している").not.toContain(
-			"SHARER_TRACKING_VALUE",
-		);
+	// ─ テストケース: 対応外の URL は対応 provider を明示する ─
+	// 手順:
+	//   1. 対応外の URL（X）を貼り付け欄へ入れる
+	//   2. 「対応しているのは TikTok / YouTube Shorts / Instagram」が **文字で** 出ることを検証
+	//
+	// 黙って落とさない、が設計 §3 の要求。文言が引けずに空になっていないかもここで見る。
+	test("対応外 URL は対応 provider を明示する", async ({ page }) => {
+		const snsImportPage = new SnsImportPage(page);
+
+		await snsImportPage.goto();
+		await snsImportPage.paste(UNSUPPORTED_URL);
+
+		await expect(snsImportPage.unsupportedDescription).toBeVisible();
+		const text = await snsImportPage.visibleText();
+		expect(text).toContain("TikTok");
+		expect(text).toContain("YouTube Shorts");
+		expect(text).toContain("Instagram");
+	});
+
+	// ─ テストケース: 上部タブ「食べたを記録」で既存のレビュー投稿導線へ抜ける ─
+	// 手順:
+	//   1. 画面を開く
+	//   2. 上部タブ「食べたを記録」を押す
+	//   3. 店舗選択画面（エリア検索の入力欄）へ着くことを検証
+	//
+	// **これが «既存のレビュータブで出来たことを失わせていない» ことの証跡**である（#1375 の大前提）。
+	// ＋ の基本導線が SNS 取り込みへ変わっても、レビュー投稿はここから必ず辿れる。
+	test("上部タブ「食べたを記録」から店舗選択へ抜けられる", async ({ appPage }) => {
+		const snsImportPage = new SnsImportPage(appPage);
+
+		await snsImportPage.goto();
+		await snsImportPage.eatenTab.click();
+
+		await expect(appPage.getByTestId("location-autocomplete-input")).toBeVisible();
 	});
 
 	// ─ テストケース: 履歴が無いときの戻るは my-dishes へ着く ─
@@ -161,7 +157,6 @@ test.describe("SNS 取り込み確認画面(#1400)", () => {
 		const snsImportPage = new SnsImportPage(page);
 
 		await snsImportPage.goto(TIKTOK_POST_URL);
-		await snsImportPage.expectOnlyStateVisible("confirm");
 
 		await snsImportPage.backButton.click();
 

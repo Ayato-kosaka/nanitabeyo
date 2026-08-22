@@ -1,38 +1,40 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 
 /**
- * 📥 SNS 取り込み確認画面の Page Object（#1400）
+ * 📥 SNS 取り込み画面の Page Object（#1400 → #1375 実機確認で作り直し）
  *
  * 対応画面: app-expo/app/[locale]/sns-import.tsx
  *
  * ## この画面は «URL 直叩きで開ける» ことが前提
  * 共有からの着地は「アプリ未起動 → 起動 → この画面」という経路を持つため、画面そのものは
- * 認証を要求しない（ログイン往復は `lib/snsShareIntake.ts` の責務で、画面の外側にある）。
- * したがって E2E は `/{locale}/sns-import?url=<encoded>` を直接開くだけで 3 状態を固定できる。
- * **モックサーバも E2E フックも要らない**（判定は `shared/utils/snsUrl.ts` の純関数だけで閉じている）。
+ * ログインを要求しない。取り込んだ `dish_media` の投稿者はアプリのユーザーではないので
+ * `user_id` は NULL のままで、ユーザーとの紐付けは `reactions(save)` が持つ（#1375）。
+ * したがって E2E は `/{locale}/sns-import?url=<encoded>` を直接開くだけで成立する。
  *
- * ## 3 状態（混ぜてはいけない）
- * | state | testID | 意味 |
- * | --- | --- | --- |
- * | confirm | `sns-import-confirm` | 投稿が特定できた。canonical URL を表示する |
- * | expandPending | `sns-import-expand-pending` | 短縮 URL。展開は API の仕事（#1399）で準備中 |
- * | unsupported | `sns-import-unsupported` | 対応外、または `url` 無しで開かれた |
+ * ## #1375 実機確認で «3 状態の掲示板» ではなくなった
  *
- * ⚠️ **`expandPending` が `unsupported` に倒れていたら不具合**である。TikTok アプリの共有ボタンが
+ * 以前は `confirm` / `expandPending` / `unsupported` の 3 つの器を排他で出すだけの画面で、
+ * 保存は「準備中」と文字で言っていた。いまは:
+ *
+ * - **入口が 2 つ、着地は 1 つ** … OS の共有シート（`?url=`）と、my-dishes の ＋ ボタン（`?url=` 無し）
+ * - **貼り付け欄が主役** … `?url=` があれば初期値に入り、無ければ空で開く。どちらも同じ 1 本の入力欄
+ * - **上部タブ** … 「SNS から」/「食べたを記録」（後者は既存のレビュー投稿導線へ抜ける）
+ * - 「読み取る」→ 候補表示 →「食べたいに保存」まで画面内で完結する
+ *
+ * ⚠️ **貼られた文字列が画面に出るのは仕様である。** 旧 spec は「生の共有テキストを画面へ
+ * 出さない」を検知点にしていたが、編集できる貼り付け欄が主役になったので前提が変わった。
+ * 代わりに «対応外のときは対応 provider を必ず明示する» を検知点として残している
+ * （黙って落とさない、という設計 §3 の要求はそのまま生きている）。
+ *
+ * ⚠️ **短縮 URL が «非対応» に倒れていたら不具合**である。TikTok アプリの共有ボタンが
  * 出すのは `vm.tiktok.com/{code}` なので、混ざると TikTok の主要導線が丸ごと「非対応」に見える。
+ *
+ * ## 「読み取る」「保存」はこの Page Object では叩かない
+ * どちらも実 API（`POST /v1/dish-media/imports/resolve` / `.../imports`）を叩く。
+ * 実 API に依存すると «実装が壊れた» のか «外部 provider / dev DB が変わった» のかを
+ * 区別できないテストになるので、押下を伴う検証は mock を用意した別 spec の責務とする。
+ * ここが守るのは «配信経路・文言・戻る» の 3 つである。
  */
-
-/** 画面が取りうる 3 状態（app-expo/lib/snsShareIntake.ts の `SnsShareIntakeView` と対応） */
-export const SNS_IMPORT_STATES = ["confirm", "expandPending", "unsupported"] as const;
-
-export type SnsImportState = (typeof SNS_IMPORT_STATES)[number];
-
-/** state → 器の testID */
-const STATE_TEST_IDS: Record<SnsImportState, string> = {
-	confirm: "sns-import-confirm",
-	expandPending: "sns-import-expand-pending",
-	unsupported: "sns-import-unsupported",
-};
 
 export class SnsImportPage {
 	readonly page: Page;
@@ -42,44 +44,36 @@ export class SnsImportPage {
 	readonly title: Locator;
 	/** ヘッダの戻るボタン（ScreenHeader の `${testID}-back` 規約。#1404 で画面ごとに分かれた） */
 	readonly backButton: Locator;
-	/** 取り込める状態の器 */
-	readonly confirm: Locator;
-	/** provider の表示名（固有名詞なので翻訳されない。confirm / expandPending の両方に出る） */
-	readonly provider: Locator;
-	/** 表示される URL。**canonical だけが出る契約**（生の共有テキストは出さない） */
-	readonly url: Locator;
-	/** 「保存は準備中」を文字で伝える行。無言で終わる画面にしないための検知点 */
-	readonly confirmPending: Locator;
-	/** 短縮 URL の展開待ちの器 */
-	readonly expandPending: Locator;
-	/** 対応外の器 */
-	readonly unsupported: Locator;
+	/** 上部タブ「SNS から」（既定で選択されている） */
+	readonly snsTab: Locator;
+	/** 上部タブ「食べたを記録」。押すと既存のレビュー投稿導線（店舗選択）へ抜ける */
+	readonly eatenTab: Locator;
+	/** URL の貼り付け欄。`?url=` があれば初期値に入る */
+	readonly urlInput: Locator;
+	/** 「読み取る」ボタン。空欄の間は押せない */
+	readonly resolveButton: Locator;
 	/** 対応外のときに «対応している provider» を明示する説明文 */
 	readonly unsupportedDescription: Locator;
+	/** 短縮 URL のときの案内。**`unsupportedDescription` と混ざってはいけない** */
+	readonly expandPending: Locator;
 
 	constructor(page: Page) {
 		this.page = page;
 		this.screen = page.getByTestId("sns-import-screen");
 		this.title = page.getByTestId("sns-import-screen-title");
 		this.backButton = page.getByTestId("sns-import-screen-back");
-		this.confirm = page.getByTestId("sns-import-confirm");
-		this.provider = page.getByTestId("sns-import-provider");
-		this.url = page.getByTestId("sns-import-url");
-		this.confirmPending = page.getByTestId("sns-import-confirm-pending");
-		this.expandPending = page.getByTestId("sns-import-expand-pending");
-		this.unsupported = page.getByTestId("sns-import-unsupported");
+		this.snsTab = page.getByTestId("sns-import-tab-sns");
+		this.eatenTab = page.getByTestId("sns-import-tab-eaten");
+		this.urlInput = page.getByTestId("sns-import-url-input");
+		this.resolveButton = page.getByTestId("sns-import-resolve-button");
 		this.unsupportedDescription = page.getByTestId("sns-import-unsupported-description");
-	}
-
-	/** state 名から器の locator を引く */
-	container(state: SnsImportState): Locator {
-		return this.page.getByTestId(STATE_TEST_IDS[state]);
+		this.expandPending = page.getByTestId("sns-import-expand-pending");
 	}
 
 	/**
 	 * 共有された URL を載せて画面を直接開く（= 共有からの着地と同じ形）。
 	 *
-	 * `sharedUrl` を省略すると `?url=` 無しで開く（`unsupported` に倒れるのが仕様）。
+	 * `sharedUrl` を省略すると `?url=` 無しで開く（＝ ＋ ボタンから開いた形）。
 	 * `page.goto()` は毎回フルロードなので、**expo-router の履歴は空**になる。
 	 * 「履歴が無いときの戻る」を見たいテストはこの状態を前提にしてよい。
 	 */
@@ -89,27 +83,28 @@ export class SnsImportPage {
 		await expect(this.screen).toBeVisible();
 	}
 
-	/**
-	 * 指定した state «だけ» が出ていることを検証する。
-	 *
-	 * 3 状態は排他なので、「出ていること」だけでなく **「他の 2 つが出ていないこと」** まで見る。
-	 * 特に `expandPending` を見るときは、`unsupported` が出ていないことがそのまま
-	 * 「TikTok の共有ボタンが非対応に見えていない」証跡になる。
-	 */
-	async expectOnlyStateVisible(state: SnsImportState): Promise<void> {
-		await expect(this.container(state)).toBeVisible();
-		for (const other of SNS_IMPORT_STATES) {
-			if (other === state) continue;
-			await expect(this.container(other)).toBeHidden();
-		}
+	/** 貼り付け欄にいま入っている文字列 */
+	async inputValue(): Promise<string> {
+		return this.urlInput.inputValue();
+	}
+
+	/** 貼り付け欄へ入力する（共有ではなく手で貼った形） */
+	async paste(text: string): Promise<void> {
+		await this.urlInput.fill(text);
 	}
 
 	/**
-	 * 画面に描かれているテキスト全体。
+	 * 短縮 URL が «非対応» に倒れていないことを検証する。
 	 *
-	 * 「生の共有テキストが画面へ露出していないか」を見るために使う。個別の locator を並べても
-	 * 「どこか別の場所に出ている」を否定できないので、**画面ごと**見るのが検知点になる。
+	 * 「展開の案内が出ている」だけでなく **「非対応の説明が出ていない」** まで見る。
+	 * ここが混ざると TikTok の主要導線が丸ごと壊れて見えるためである。
 	 */
+	async expectShortlinkNotTreatedAsUnsupported(): Promise<void> {
+		await expect(this.expandPending).toBeVisible();
+		await expect(this.unsupportedDescription).toBeHidden();
+	}
+
+	/** 画面に描かれているテキスト全体（文言が引けずに空になっていないかを見るために使う） */
 	async visibleText(): Promise<string> {
 		return (await this.screen.innerText()).replace(/\s+/g, " ");
 	}
