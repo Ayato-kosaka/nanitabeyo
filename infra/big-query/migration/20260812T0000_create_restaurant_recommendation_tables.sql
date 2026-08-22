@@ -284,7 +284,7 @@ CREATE TABLE IF NOT EXISTS `${DATASET}.restaurant_seed_catalog` (
   phone                     STRING,
   website                   STRING,
   social_urls               ARRAY<STRING>,
-  source_names              ARRAY<STRING> NOT NULL,
+  source_names              ARRAY<STRING>,
   source_record_count       INT64 NOT NULL,
   seed_origin               STRING NOT NULL,
   entity_resolution_method  STRING NOT NULL,
@@ -329,8 +329,8 @@ CREATE TABLE IF NOT EXISTS `${DATASET}.restaurant_google_place_match_attempts` (
   algorithm_version    STRING NOT NULL,
   query_a              STRING NOT NULL,
   query_b              STRING NOT NULL,
-  place_ids_a          ARRAY<STRING> NOT NULL,
-  place_ids_b          ARRAY<STRING> NOT NULL,
+  place_ids_a          ARRAY<STRING>,
+  place_ids_b          ARRAY<STRING>,
   -- #1276 の PoC で、名寄せの根拠を「A と B の合意」から「座標矩形の中での一意性」へ
   -- 変えた。矩形（locationRestriction）は矩形の外を実際に切り落とすので、
   -- 「矩形の中に同名が1件しか無い」が「取り違える相手が居ない」を意味する。
@@ -400,7 +400,7 @@ CREATE TABLE IF NOT EXISTS `${DATASET}.restaurant_catalog` (
   phone                    STRING,
   website                  STRING,
   social_urls              ARRAY<STRING>,
-  source_names             ARRAY<STRING> NOT NULL,
+  source_names             ARRAY<STRING>,
   match_method             STRING NOT NULL,
   row_hash                 STRING NOT NULL,
   built_at                 TIMESTAMP NOT NULL

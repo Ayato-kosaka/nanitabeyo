@@ -196,6 +196,19 @@ APIは検索時にこの子tableを参照するため、deploy順は **migration
 - `args`: 例 `--snapshot-date 2026-08-25 --execute --qps 40`
 - `requirements_path`: `scripts/20260808T0000_restaurant/requirements.txt`
 
+**1_3〜1_6 の外部データは `1_0_fetch_and_load.py` 経由で流します。** job を
+またいでファイルが残らないため、取得（Overture parquet / OSM PBF / IFAS CSV /
+許可台帳）とロードを同じ job で行う入口です。取得元は PoC で固定したもの
+（`0000_open_data_poc/sources.lock.json`、`1276_place_id_free_poc/results/`）を
+使い、Overture は sha256 検証、許可台帳はジオコーダキャッシュ 13,896 件を
+読み込んでから差分だけを解決します。
+
+```text
+script_path: scripts/20260808T0000_restaurant/1_0_fetch_and_load.py
+args:        --source overture --run-id restaurant-2026-08-23 --snapshot-date 2026-08-23
+             （--source は overture / osm / ifas / food_permit の4回 dispatch する）
+```
+
 前提が3つあります。
 
 1. **BigQuery 権限**: workflow が借用する SA
