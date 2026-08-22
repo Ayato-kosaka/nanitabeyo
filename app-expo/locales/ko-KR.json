@@ -829,7 +829,7 @@
 				"ratingDesc": "평점 높은순",
 				"distance": "가까운순",
 				"distanceRequiresArea": "가까운순으로 보려면 지역이 필요합니다. 지도에서 \"이 지역에서 재검색\"을 눌러 주세요.",
-				"featureScoreDesc": "선택한 조건에 맞는 순"
+				"featureScoreDesc": "조건 선택"
 			},
 			"area": {
 				"title": "지역",

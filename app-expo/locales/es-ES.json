@@ -829,7 +829,7 @@
 				"ratingDesc": "Mejor valorados",
 				"distance": "Más cercanos",
 				"distanceRequiresArea": "Ordenar por cercanía requiere un área. Usa \"Buscar en esta zona\" en el mapa.",
-				"featureScoreDesc": "Mejor coincidencia"
+				"featureScoreDesc": "Elegir condiciones"
 			},
 			"area": {
 				"title": "Zona",

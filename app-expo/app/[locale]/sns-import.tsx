@@ -44,10 +44,18 @@ provider や externalContentId をクライアントで組み立てて送らな�
 `imports`）が同じ `shared/utils/snsUrl.ts` で解釈し直すので、判定を 2 箇所に持たない。
 */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import {
+	ActivityIndicator,
+	PanResponder,
+	ScrollView,
+	StyleSheet,
+	Text,
+	TextInput,
+	TouchableOpacity,
+	View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
-import { ScreenHeader } from "@/components/ScreenHeader";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useHaptics } from "@/hooks/useHaptics";
@@ -156,6 +164,30 @@ export default function SnsImportScreen() {
 	 */
 	const view = useMemo(() => resolveSnsShareIntakeView(input.trim() || null), [input]);
 
+	/**
+	 * #1375 実機確認: **下へ引いて閉じる。** ヘッダを出さない代わりの戻る導線である。
+	 *
+	 * ⚠️ 本物のボトムシート（オーバーレイ）にはしていない。`Portal.Host` が `<Stack>` を
+	 * 包んでいるため、オーバーレイを開いたまま push すると遷移先が下に潜る（#1364 で実測）。
+	 * この画面は「食べたを記録」から店舗選択へ push するので、そこを踏む。
+	 * ルートのまま **ジェスチャだけ** ボトムシート相当にしてある。
+	 *
+	 * ⚠️ ジェスチャは «つまみの帯» にだけ付ける。画面全体に付けると、下のスクロールや
+	 * 入力欄のドラッグを奪う。`onMoveShouldSetPanResponder` で下方向の動きだけを拾い、
+	 * 横方向・上方向は素通しにしている。
+	 */
+	const DISMISS_DISTANCE = 80;
+	const dismissGesture = useMemo(
+		() =>
+			PanResponder.create({
+				onMoveShouldSetPanResponder: (_event, gesture) => gesture.dy > 8 && Math.abs(gesture.dy) > Math.abs(gesture.dx),
+				onPanResponderRelease: (_event, gesture) => {
+					if (gesture.dy > DISMISS_DISTANCE) handleBackRef.current();
+				},
+			}),
+		[],
+	);
+
 	const handleBack = useCallback(() => {
 		lightImpact();
 		logFrontendEvent({
@@ -171,6 +203,13 @@ export default function SnsImportScreen() {
 		}
 		router.replace(`/${locale}/my-dishes`);
 	}, [lightImpact, locale, logFrontendEvent, view.state]);
+
+	// PanResponder は 1 度だけ作る（毎レンダー作り直すとジェスチャが途中で切れる）ので、
+	// 最新の `handleBack` は ref 経由で読む
+	const handleBackRef = useRef(handleBack);
+	useEffect(() => {
+		handleBackRef.current = handleBack;
+	}, [handleBack]);
 
 	/**
 	 * 「食べたを記録」タブ。こちらは **公開レビューの投稿**なのでログインが要る
@@ -297,9 +336,26 @@ export default function SnsImportScreen() {
 
 	return (
 		<SafeAreaView edges={["bottom"]} style={styles.container} testID="sns-import-screen">
-			<ScreenHeader title={i18n.t("SnsImport.title")} onPressBack={handleBack} testID="sns-import-screen" />
+			{/* #1375 実機確認: **ヘッダは出さない。** タブ自体が見出しの役割を持つので、
+			    その上にもう 1 段タイトル帯を置くと «同じことを 2 回言う» 形になる。
+			    戻る導線はヘッダではなく «下へ引いて閉じる»（`dismissGesture`）が担う。
 
-			{/* #1375 実機確認: ＋ の基本導線は SNS 取り込み。上部タブで「食べた」の追加へ切り替える */}
+			    ⚠️ 戻る手段を 1 つも持たない画面にしない。ジェスチャが効かない環境
+			    （web・アクセシビリティ操作）のために、読み上げ用の閉じるボタンを
+			    画面外に置かず **つまみ自体をボタンにして**ある */}
+			<View style={styles.grabberArea} {...dismissGesture.panHandlers}>
+				<TouchableOpacity
+					testID="sns-import-screen-back"
+					onPress={handleBack}
+					accessibilityRole="button"
+					accessibilityLabel={i18n.t("Common.close")}
+					style={styles.grabberHitArea}>
+					<View style={styles.grabber} />
+				</TouchableOpacity>
+			</View>
+
+			{/* #1375 実機確認: ＋ の基本導線は SNS 取り込み。上部タブで「食べた」の追加へ切り替える。
+			    背景は敷かず、選択中だけ濃い黒＋下線で示す */}
 			<View style={styles.tabRow}>
 				{TABS.map((t) => (
 					<TouchableOpacity
@@ -308,8 +364,11 @@ export default function SnsImportScreen() {
 						onPress={() => handleSelectTab(t)}
 						accessibilityRole="button"
 						accessibilityState={{ selected: tab === t }}
-						style={[styles.tab, tab === t && styles.tabActive]}>
+						style={styles.tab}>
 						<Text style={[styles.tabLabel, tab === t && styles.tabLabelActive]}>{i18n.t(`SnsImport.tabs.${t}`)}</Text>
+						{/* 下線は «選択中のときだけ» 描く。常に描いて色を変える形にすると、
+						    非選択のタブにも薄い線が残って «どれが選ばれているか» が弱くなる */}
+						{tab === t && <View style={styles.tabUnderline} />}
 					</TouchableOpacity>
 				))}
 			</View>
@@ -499,29 +558,47 @@ const styles = StyleSheet.create({
 		flex: 1,
 		backgroundColor: "#FFFFFF",
 	},
-	tabRow: {
-		flexDirection: "row",
-		gap: 8,
-		paddingHorizontal: 16,
-		paddingBottom: 8,
-	},
-	tab: {
-		flex: 1,
-		paddingVertical: 10,
-		borderRadius: 8,
-		backgroundColor: "#F3F4F6",
+	grabberArea: {
+		paddingTop: 8,
+		paddingBottom: 4,
 		alignItems: "center",
 	},
-	tabActive: {
-		backgroundColor: "#FDE7E1",
+	grabberHitArea: {
+		paddingVertical: 8,
+		paddingHorizontal: 24,
+	},
+	grabber: {
+		width: 40,
+		height: 4,
+		borderRadius: 2,
+		backgroundColor: "#D1D5DB",
+	},
+	tabRow: {
+		flexDirection: "row",
+		gap: 20,
+		paddingHorizontal: 16,
+		paddingBottom: 4,
+	},
+	tab: {
+		paddingVertical: 10,
+		paddingRight: 20,
+		alignItems: "flex-start",
 	},
 	tabLabel: {
-		fontSize: 13,
-		color: "#6B7280",
+		fontSize: 22,
+		fontWeight: "700",
+		// 非選択は «薄い黒»。別の色にすると «押せない» ように見える
+		color: "#9CA3AF",
 	},
 	tabLabelActive: {
-		color: "#F05537",
-		fontWeight: "700",
+		color: "#111827",
+	},
+	tabUnderline: {
+		marginTop: 6,
+		height: 3,
+		borderRadius: 2,
+		alignSelf: "stretch",
+		backgroundColor: "#111827",
 	},
 	content: {
 		paddingHorizontal: 16,

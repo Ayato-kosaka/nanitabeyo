@@ -829,7 +829,7 @@
 				"ratingDesc": "الأعلى تقييماً",
 				"distance": "الأقرب",
 				"distanceRequiresArea": "الترتيب حسب المسافة يحتاج إلى منطقة. استخدم \"ابحث في هذه المنطقة\" على الخريطة.",
-				"featureScoreDesc": "الأنسب للاختيار"
+				"featureScoreDesc": "اختر الشروط"
 			},
 			"area": {
 				"title": "المنطقة",

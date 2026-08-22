@@ -188,9 +188,20 @@ describe("#1396 my-dishes フィルタ編集ルート", () => {
 
 	// #1396 確定B: 時間帯・シチュエーションは絞り込みではなく «並び替え» として出す
 	// #1375 実機確認: 軸は折りたたみ（プルダウン）で、選ぶと並びが -featureScore へ寄る
+	// #1375 実機確認: 軸は «「条件を選ぶ」を選んだときだけ» 出す。
+	// 常に 5 行出していると、日付順で見たいだけの人にも関係ない行が並ぶ
+	it("「条件を選ぶ」を押すまで軸は出ない", async () => {
+		const tree = await render(<MyDishesFiltersScreen />);
+
+		expect(exists(tree, "my-dishes-filter-axis-time-slot")).toBe(false);
+		await press(tree, "my-dishes-filter-sort--featureScore");
+		expect(exists(tree, "my-dishes-filter-axis-time-slot")).toBe(true);
+	});
+
 	it("軸を選ぶと featureKeys に入り、並びが -featureScore へ寄る", async () => {
 		const tree = await render(<MyDishesFiltersScreen />);
 
+		await press(tree, "my-dishes-filter-sort--featureScore");
 		// 畳んでいる間は選択肢を描かない（開いて初めて出る）
 		expect(exists(tree, "my-dishes-filter-axis-time-slot-morning")).toBe(false);
 		await press(tree, "my-dishes-filter-axis-time-slot");
@@ -204,6 +215,7 @@ describe("#1396 my-dishes フィルタ編集ルート", () => {
 	it("同じ軸の別の値を選ぶと差し替わる（1 軸につき高々 1 件）", async () => {
 		const tree = await render(<MyDishesFiltersScreen />);
 
+		await press(tree, "my-dishes-filter-sort--featureScore");
 		await press(tree, "my-dishes-filter-axis-time-slot");
 		await press(tree, "my-dishes-filter-axis-time-slot-morning");
 		await press(tree, "my-dishes-filter-axis-time-slot-lunch");
@@ -215,6 +227,7 @@ describe("#1396 my-dishes フィルタ編集ルート", () => {
 	it("軸を全て外すと既定の並びへ戻る（-featureScore は軸が無いと 400 になる）", async () => {
 		const tree = await render(<MyDishesFiltersScreen />);
 
+		await press(tree, "my-dishes-filter-sort--featureScore");
 		await press(tree, "my-dishes-filter-axis-scene");
 		await press(tree, "my-dishes-filter-axis-scene-date");
 		await press(tree, "my-dishes-filter-axis-scene-date");

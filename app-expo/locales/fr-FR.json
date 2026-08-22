@@ -829,7 +829,7 @@
 				"ratingDesc": "Les mieux notés",
 				"distance": "Les plus proches",
 				"distanceRequiresArea": "Le tri par distance nécessite une zone. Utilisez « Rechercher dans cette zone » sur la carte.",
-				"featureScoreDesc": "Correspondance"
+				"featureScoreDesc": "Choisir des critères"
 			},
 			"area": {
 				"title": "Zone",

@@ -151,7 +151,9 @@ function Chip({
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
 	return (
 		<View style={styles.section}>
-			<Text style={styles.sectionTitle}>{title}</Text>
+			{/* #1375 実機確認: 空文字を渡した節は見出しを描かない。
+			    「絞り込み」「並び替え」のように、チップを見れば分かる見出しは出さない */}
+			{title.length > 0 && <Text style={styles.sectionTitle}>{title}</Text>}
 			<View style={styles.chipRow}>{children}</View>
 		</View>
 	);
@@ -181,19 +183,19 @@ function AccordionSection({
 	const Chevron = expanded ? ChevronUp : ChevronDown;
 	return (
 		<View style={styles.section}>
+			{/* #1375 実機確認: 軸の見出しは **チップの見た目**にする。
+			    押すとプルダウンのように選択肢が開く、という関係を形で示すため */}
 			<TouchableOpacity
 				testID={testID}
 				onPress={onPress}
 				accessibilityRole="button"
-				accessibilityState={{ expanded }}
-				style={styles.accordionHeader}>
-				<Text style={styles.sectionTitle}>{title}</Text>
-				<View style={styles.accordionValueRow}>
-					<Text style={styles.accordionValue} numberOfLines={1} testID={`${testID}-value`}>
-						{valueLabel}
-					</Text>
-					<Chevron size={16} color="#6B7280" />
-				</View>
+				accessibilityState={{ expanded, selected: expanded }}
+				style={[styles.axisChip, expanded && styles.axisChipExpanded]}>
+				<Text style={styles.axisChipLabel}>{title}</Text>
+				<Text style={styles.accordionValue} numberOfLines={1} testID={`${testID}-value`}>
+					{valueLabel}
+				</Text>
+				<Chevron size={14} color="#6B7280" />
 			</TouchableOpacity>
 			{expanded && <View style={styles.chipRow}>{children}</View>}
 		</View>
@@ -347,7 +349,8 @@ export default function MyDishesFiltersScreen() {
 			/>
 
 			<ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-				<Section title={i18n.t("MyDishes.filters.status.title")}>
+				{/* #1375 実機確認: 「絞り込み」「並び替え」のラベルは出さない。チップだけで意味が通る */}
+				<Section title="">
 					{(["want", "eaten"] as const).map((status) => (
 						<Chip
 							key={status}
@@ -376,45 +379,23 @@ export default function MyDishesFiltersScreen() {
 					</Section>
 				)}
 
-				{/* #1375 実機確認: 時間帯 / 誰と行く / 価格帯 / 食事にかける時間 / どんな系統。
-				    見出しも選択肢も検索画面と同じ文言を使う（`FEATURE_AXES`） */}
-				{FEATURE_AXES.map((axis) => {
-					const selected = axis.options.find((o) => draft.featureKeys.includes(toFeatureKey(o.featureType, o.id)));
-					return (
-						<AccordionSection
-							key={axis.id}
-							testID={`my-dishes-filter-axis-${axis.id}`}
-							title={i18n.t(axis.titleKey)}
-							valueLabel={selected ? i18n.t(selected.label) : i18n.t("MyDishes.filters.axes.none")}
-							expanded={expandedAxis === axis.id}
-							onPress={() => toggleAxis(axis.id)}>
-							{axis.options.map((option) => (
-								<Chip
-									key={`${option.featureType}:${option.id}`}
-									testID={`my-dishes-filter-axis-${axis.id}-${option.id}`}
-									label={option.icon ? `${option.icon} ${i18n.t(option.label)}` : i18n.t(option.label)}
-									selected={draft.featureKeys.includes(toFeatureKey(option.featureType, option.id))}
-									onPress={() => toggleFeatureKey(option.featureType, option.id)}
-								/>
-							))}
-						</AccordionSection>
-					);
-				})}
-
-				<Section title={i18n.t("MyDishes.filters.sort.title")}>
+				<Section title="">
 					{SORT_CHOICES.map(({ sort, labelKey }) => {
 						// #1396 m-4: 同伴パラメータが無い間は「選択済み」に見せない。
-						// 既定値を勝手に入れないので、軸を選ぶまでこの並びは実質未適用のままである
-						const missingFeatureKeys = sort === "-featureScore" && draft.featureKeys.length === 0;
+						// 既定値を勝手に入れないので、軸を選ぶまでこの並びは実質未適用のままである。
+						//
+						// ⚠️ #1375 実機確認: **`-featureScore` は押せないようにしない。**
+						// 押して初めて軸（時間帯〜どんな系統）が出る作りなので、
+						// «軸が無いから押せない → 押せないから軸を選べない» で詰む。
+						// 軸が無いまま適用されても `resolveSort` が既定の並びへ落とすので 400 にはならない
 						return (
 							<Chip
 								key={sort}
 								testID={`my-dishes-filter-sort-${sort}`}
 								label={i18n.t(labelKey)}
-								selected={draft.sort === sort && !missingFeatureKeys}
+								selected={draft.sort === sort}
 								// distance はエリア（lat/lng/radius）が必須。未確定なら選ばせない（#1395 §4-3）
-								// -featureScore は軸が 1 つ以上必須（欠けたまま送ると 400）
-								disabled={(sort === "distance" && !draft.area) || missingFeatureKeys}
+								disabled={sort === "distance" && !draft.area}
 								onPress={() => selectSort(sort)}
 							/>
 						);
@@ -423,6 +404,33 @@ export default function MyDishesFiltersScreen() {
 				{draft.sort === "distance" && !draft.area && (
 					<Text style={styles.hint}>{i18n.t("MyDishes.filters.sort.distanceRequiresArea")}</Text>
 				)}
+
+				{/* #1375 実機確認: 軸は «「条件を選ぶ」を選んだときだけ» 出す。
+				    常に 5 行出していると、日付順で見たいだけの人にも関係ない行が並ぶ。
+				    見出しも選択肢も検索画面と同じ文言を使う（`FEATURE_AXES`） */}
+				{draft.sort === "-featureScore" &&
+					FEATURE_AXES.map((axis) => {
+						const selected = axis.options.find((o) => draft.featureKeys.includes(toFeatureKey(o.featureType, o.id)));
+						return (
+							<AccordionSection
+								key={axis.id}
+								testID={`my-dishes-filter-axis-${axis.id}`}
+								title={i18n.t(axis.titleKey)}
+								valueLabel={selected ? i18n.t(selected.label) : i18n.t("MyDishes.filters.axes.none")}
+								expanded={expandedAxis === axis.id}
+								onPress={() => toggleAxis(axis.id)}>
+								{axis.options.map((option) => (
+									<Chip
+										key={`${option.featureType}:${option.id}`}
+										testID={`my-dishes-filter-axis-${axis.id}-${option.id}`}
+										label={option.icon ? `${option.icon} ${i18n.t(option.label)}` : i18n.t(option.label)}
+										selected={draft.featureKeys.includes(toFeatureKey(option.featureType, option.id))}
+										onPress={() => toggleFeatureKey(option.featureType, option.id)}
+									/>
+								))}
+							</AccordionSection>
+						);
+					})}
 
 				{showArea && (
 					<View style={styles.section}>
@@ -482,27 +490,34 @@ const styles = StyleSheet.create({
 	section: {
 		marginTop: 20,
 	},
-	accordionHeader: {
+	axisChip: {
+		alignSelf: "flex-start",
 		flexDirection: "row",
 		alignItems: "center",
-		justifyContent: "space-between",
-		gap: 12,
+		gap: 6,
+		paddingHorizontal: 12,
+		paddingVertical: 8,
+		borderRadius: 16,
+		backgroundColor: "#F3F4F6",
 	},
-	accordionValueRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 4,
-		flexShrink: 1,
+	axisChipExpanded: {
+		backgroundColor: "#FDE7E1",
+	},
+	axisChipLabel: {
+		fontSize: 13,
+		fontWeight: "700",
+		color: "#374151",
 	},
 	accordionValue: {
 		fontSize: 13,
 		color: "#6B7280",
 		flexShrink: 1,
 	},
+	// #1375 実機確認: 見出しは «小さくてよい»。大きい見出しが並ぶとチップより目立ってしまう
 	sectionTitle: {
-		fontSize: 14,
+		fontSize: 12,
 		fontWeight: "700",
-		color: "#1A1A1A",
+		color: "#9CA3AF",
 		marginBottom: 8,
 	},
 	chipRow: {

@@ -829,7 +829,7 @@
 				"ratingDesc": "評価の高い順",
 				"distance": "近い順",
 				"distanceRequiresArea": "近い順にはエリアの指定が必要です。マップで「このエリアで再検索」してください。",
-				"featureScoreDesc": "選んだ条件に合う順"
+				"featureScoreDesc": "条件を選ぶ"
 			},
 			"area": {
 				"title": "エリア",

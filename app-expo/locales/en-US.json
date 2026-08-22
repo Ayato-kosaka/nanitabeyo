@@ -829,7 +829,7 @@
 				"ratingDesc": "Highest rated",
 				"distance": "Nearest",
 				"distanceRequiresArea": "Sorting by distance needs an area. Use \"Search this area\" on the map.",
-				"featureScoreDesc": "Best match"
+				"featureScoreDesc": "Pick conditions"
 			},
 			"area": {
 				"title": "Area",

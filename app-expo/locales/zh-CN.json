@@ -829,7 +829,7 @@
 				"ratingDesc": "评分从高到低",
 				"distance": "距离最近",
 				"distanceRequiresArea": "按距离排序需要指定区域。请在地图上点击“在此区域重新搜索”。",
-				"featureScoreDesc": "最符合所选条件"
+				"featureScoreDesc": "选择条件"
 			},
 			"area": {
 				"title": "区域",
