@@ -21,6 +21,7 @@ jest.mock('src/core/config/env', () => ({
   },
 }));
 
+import type { ClsService } from 'nestjs-cls';
 import { AppLoggerService } from '../../core/logger/logger.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SafeFetchService } from '../../core/safe-fetch/safe-fetch.service';
@@ -139,6 +140,8 @@ function createHarness(options?: {
     restaurantsRepo,
     prisma,
     logger,
+    // #1399 保存経路（create）が created_version に使う。resolve は触らない
+    { get: () => 'test' } as unknown as ClsService,
   );
 
   return {
@@ -652,5 +655,168 @@ describe('DishMediaImportsService — 書き込みをしない', () => {
     expect(harness.findDishCategoriesByIds).toHaveBeenCalled();
     // トランザクションは張るが、中でやるのは SELECT だけ
     expect(harness.withTransaction).toHaveBeenCalledTimes(1);
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/*  #1399 保存（POST /v1/dish-media/imports）                                  */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * 保存経路が触るテーブルだけを持つ最小の `tx`。
+ *
+ * ここで固定したいのは «どのテーブルに何を書くか» であって Prisma の挙動ではないので、
+ * 実 DB は使わない。呼ばれた引数を記録して、次の 3 点を検証する。
+ *
+ *  1. `dish_media.user_id` は NULL のまま（投稿者はアプリのユーザーではない）
+ *  2. 同じ SNS 投稿が同じ料理に既に在れば dish_media を作り直さない（冪等）
+ *  3. どちらの場合も `reactions(save)` は呼び出したユーザーぶんを用意する
+ */
+function createSaveTx(options?: {
+  existingEmbedding?: { dish_media_id: string };
+  alreadySaved?: boolean;
+}) {
+  const calls = {
+    dishUpsert: jest.fn().mockResolvedValue({ id: 'dish-1' }),
+    mediaCreate: jest.fn().mockResolvedValue({ id: 'media-1' }),
+    embeddingCreate: jest.fn().mockResolvedValue({}),
+    reactionCreate: jest.fn().mockResolvedValue({}),
+  };
+  const tx = {
+    dishes: { upsert: calls.dishUpsert },
+    dish_media: { create: calls.mediaCreate },
+    dish_media_external_embeddings: {
+      findFirst: jest
+        .fn()
+        .mockResolvedValue(options?.existingEmbedding ?? null),
+      create: calls.embeddingCreate,
+    },
+    reactions: {
+      findUnique: jest
+        .fn()
+        .mockResolvedValue(options?.alreadySaved ? { id: 'r-1' } : null),
+      create: calls.reactionCreate,
+    },
+  };
+  return { tx, calls };
+}
+
+describe('#1399 SNS 取り込みの保存', () => {
+  const URL = 'https://www.tiktok.com/@scout2015/video/6718335390845095173';
+
+  it('dish_media.user_id は NULL のまま作り、ユーザーとの紐付けは reactions(save) が持つ', async () => {
+    const { service, transport } = createHarness();
+    transport.route(TIKTOK_OEMBED, {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+      body: tiktokOembedBody('味噌ラーメン #ramen'),
+    });
+    const { tx, calls } = createSaveTx();
+    (service as unknown as { prisma: { withTransaction: unknown } }).prisma = {
+      withTransaction: (cb: (t: unknown) => unknown) => cb(tx),
+    };
+
+    const result = await service.create(
+      {
+        url: URL,
+        restaurantId: '11111111-1111-1111-1111-111111111111',
+        dishCategoryId: 'Q2',
+      },
+      'user-1',
+    );
+
+    expect(calls.mediaCreate).toHaveBeenCalledTimes(1);
+    const mediaData = calls.mediaCreate.mock.calls[0][0].data;
+    expect(mediaData.user_id).toBeNull();
+    expect(mediaData.media_path).toBeNull();
+    expect(mediaData.render_type).toBe('external_embed');
+
+    // 埋め込みは canonical_url から描くので html は保存しない（正本 §2）
+    const embeddingData = calls.embeddingCreate.mock.calls[0][0].data;
+    expect(embeddingData).not.toHaveProperty('embed_html');
+    expect(embeddingData.provider).toBe('tiktok');
+
+    expect(calls.reactionCreate).toHaveBeenCalledTimes(1);
+    expect(calls.reactionCreate.mock.calls[0][0].data).toMatchObject({
+      user_id: 'user-1',
+      target_type: 'dish_media',
+      action_type: 'save',
+    });
+    expect(result).toMatchObject({ created: true, saved: true });
+  });
+
+  it('同じ SNS 投稿が同じ料理に既に在れば dish_media を作り直さず、save だけ足す', async () => {
+    const { service, transport } = createHarness();
+    transport.route(TIKTOK_OEMBED, {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+      body: tiktokOembedBody('味噌ラーメン'),
+    });
+    const { tx, calls } = createSaveTx({
+      existingEmbedding: { dish_media_id: 'media-existing' },
+    });
+    (service as unknown as { prisma: { withTransaction: unknown } }).prisma = {
+      withTransaction: (cb: (t: unknown) => unknown) => cb(tx),
+    };
+
+    const result = await service.create(
+      {
+        url: URL,
+        restaurantId: '11111111-1111-1111-1111-111111111111',
+        dishCategoryId: 'Q2',
+      },
+      'user-2',
+    );
+
+    expect(calls.mediaCreate).not.toHaveBeenCalled();
+    expect(calls.embeddingCreate).not.toHaveBeenCalled();
+    expect(calls.reactionCreate).toHaveBeenCalledTimes(1);
+    expect(result).toMatchObject({
+      dishMediaId: 'media-existing',
+      created: false,
+      saved: true,
+    });
+  });
+
+  it('既に保存済みなら reactions を二重に作らない', async () => {
+    const { service, transport } = createHarness();
+    transport.route(TIKTOK_OEMBED, {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+      body: tiktokOembedBody('味噌ラーメン'),
+    });
+    const { tx, calls } = createSaveTx({
+      existingEmbedding: { dish_media_id: 'media-existing' },
+      alreadySaved: true,
+    });
+    (service as unknown as { prisma: { withTransaction: unknown } }).prisma = {
+      withTransaction: (cb: (t: unknown) => unknown) => cb(tx),
+    };
+
+    const result = await service.create(
+      {
+        url: URL,
+        restaurantId: '11111111-1111-1111-1111-111111111111',
+        dishCategoryId: 'Q2',
+      },
+      'user-2',
+    );
+
+    expect(calls.reactionCreate).not.toHaveBeenCalled();
+    expect(result).toMatchObject({ created: false, saved: false });
+  });
+
+  it('対応していない URL は 400 にする（黙って空の行を作らない）', async () => {
+    const { service } = createHarness();
+    await expect(
+      service.create(
+        {
+          url: 'https://example.com/not-a-sns',
+          restaurantId: '11111111-1111-1111-1111-111111111111',
+          dishCategoryId: 'Q2',
+        },
+        'user-1',
+      ),
+    ).rejects.toThrow(/IMPORT_UNSUPPORTED/);
   });
 });

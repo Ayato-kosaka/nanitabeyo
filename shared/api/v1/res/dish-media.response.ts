@@ -38,6 +38,15 @@ export type DishMediaExternalEmbed = {
 	canonicalUrl: string;
 	embedStatus: ExternalEmbedStatus;
 	lastVerifiedAt: string | null;
+	/**
+	 * #1399 provider 側のサムネイル URL。**自ストレージへ複製した実体ではない**。
+	 * Instagram は複製が規約で禁じられ、TikTok の署名 URL は約 48h で失効するため、
+	 * provider によって複製できたりできなかったりする。ここは «参照先» を持つだけである。
+	 * 取れなければ null（表示は料理カテゴリ画像へ落ちる）。
+	 */
+	thumbnailUrl: string | null;
+	/** #1399 provider 側の投稿日時。取れなければ null。アプリ内の並び順には使わない */
+	publishedAt: string | null;
 };
 
 /** 一つの料理メディア投稿（dish_media）とそれに関連する情報（レストラン、料理、レビュー） */
@@ -62,13 +71,13 @@ export type DishMediaEntry = {
 		thumbnailImageUrl: string;
 		/**
 		 * #1395 `render_type='external_embed'` のときの埋め込み情報。
-		 * 既存の組み立て箇所を壊さないため optional。未取得・stored のときは undefined か null。
+		 * 既存の組み立て箇所を壊さないため optional。stored の行では null になる。
 		 *
-		 * ⚠️ **現状どの経路もこの値を詰めていない。**
-		 * `dish_media_external_embeddings` に行を作るのは SNS import（#1399）であり、
-		 * 本 Issue の範囲はスキーマと契約の確定まで。読み取り経路への join は
-		 * 書き込み側が入るのと同じ PR で足すこと（今入れると、行が 0 件のテーブルへの
-		 * join を全読み取り経路に増やすだけになる）。
+		 * ⚠️ **詰めているのは `GET /v1/dish-media?ids=` だけ**（#1399）。
+		 * 検索・一覧のような件数の多い経路へは join を広げていない。大多数を占める
+		 * stored の行では常に NULL になり、無駄が積み上がるためである。
+		 * それらの経路では `undefined` が返るので、**「null だから stored」と判断しないこと**
+		 * （判断には `render_type` を使う）。
 		 */
 		externalEmbed?: DishMediaExternalEmbed | null;
 	};
@@ -252,4 +261,26 @@ export type ResolveDishMediaImportResponse = {
 		/** 照合対象にした `restaurants` の件数 */
 		scannedCount: number;
 	};
+};
+
+/**
+ * `POST /v1/dish-media/imports` のレスポンス。
+ *
+ * #1399 保存した（または既に在った）1 件を指す。表示に必要なものは
+ * `GET /v1/dish-media?ids=` で引き直せるので、ここでは id と «新規かどうか» だけを返す。
+ */
+export type CreateDishMediaImportResponse = {
+	dishMediaId: string;
+	dishId: string;
+	/**
+	 * 同じ SNS 投稿が同じ料理に対して既に取り込まれていたか。
+	 *
+	 * `false` のとき `dish_media` は作り直さず既存行を指す（自然キー
+	 * `(provider, external_content_id, dish_id)` の UNIQUE がそれを保証する）。
+	 * この場合でも **`reactions(save)` は呼び出したユーザーの分を必ず用意する**ので、
+	 * 「他人が先に取り込んだ投稿を自分の食べたいへ入れる」が成立する。
+	 */
+	created: boolean;
+	/** その dish_media を «食べたい» として保存したか（既に保存済みなら false） */
+	saved: boolean;
 };

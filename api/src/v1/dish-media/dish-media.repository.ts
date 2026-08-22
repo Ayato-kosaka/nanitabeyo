@@ -11,6 +11,7 @@ import { Prisma } from '../../../../shared/prisma/client';
 import { PrismaRestaurants } from '../../../../shared/converters/convert_restaurants';
 import { PrismaDishes } from '../../../../shared/converters/convert_dishes';
 import { PrismaDishMedia } from '../../../../shared/converters/convert_dish_media';
+import type { dish_media_external_embeddings as PrismaDishMediaExternalEmbeddings } from '../../../../shared/prisma/client';
 import { PrismaDishReviews } from '../../../../shared/converters/convert_dish_reviews';
 import { PrismaDishMediaViews } from '../../../../shared/converters/convert_dish_media_views';
 import { PrismaDishMediaImpressions } from '../../../../shared/converters/convert_dish_media_impressions';
@@ -56,6 +57,11 @@ export interface DishMediaEntryEntity {
     isSaved: boolean;
     isLiked: boolean;
     likeCount: number;
+    /**
+     * #1399 `render_type='external_embed'` の行だけが持つ。
+     * join しない経路（検索・一覧など件数の多い経路）では undefined のままになる
+     */
+    externalEmbed?: PrismaDishMediaExternalEmbeddings | null;
   };
   dish_reviews: (PrismaDishReviews & {
     username: string;
@@ -760,6 +766,11 @@ export class DishMediaRepository {
       include: {
         dish_media_likes: { where: { user_id: userId } }, // User がいいねしているか
         dish_media_analysis_results: true, // #292 【設計】いいね数は like_total から取得（トゥルース源）
+        // #1399 render_type='external_embed' の行は自ストレージに実体が無く、
+        // canonical_url が無いと 1 件も描けない。**この経路（ids 指定）だけ** join する。
+        // 全読み取り経路へ広げないのは、大多数を占める stored の行では常に NULL になり、
+        // 検索・一覧のような件数の多い経路で無駄が積み上がるためである（#1395 の判断を踏襲）
+        dish_media_external_embeddings: true,
         dishes: {
           include: {
             restaurants: true,
@@ -871,6 +882,9 @@ export class DishMediaRepository {
             likeCount: Number(
               dishMedia.dish_media_analysis_results?.like_total ?? 0,
             ), // #292 【設計】likeCount は dish_media_analysis_results.like_total から取得（reactions は含めない）
+            // #1399 external_embed の行だけがこれを持つ。stored の行では常に undefined
+            externalEmbed:
+              dishMedia.dish_media_external_embeddings ?? undefined,
           },
           dish_reviews: dishReviews.map((review) => ({
             ...review,

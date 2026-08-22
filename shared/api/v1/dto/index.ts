@@ -9,6 +9,7 @@ export {
 } from "./dish-media/dish-media-reaction.dto";
 export { DishMediaImpressionBodyDto } from "./dish-media/dish-media-impression.dto";
 export { ResolveDishMediaImportDto } from "./dish-media/resolve-dish-media-import.dto";
+export { CreateDishMediaImportDto } from "./dish-media/create-dish-media-import.dto";
 
 export { QueryDishCategoryRecommendationsDto } from "./dish-categories/query-dish-category-recommendations.dto";
 export { QueryDishCategoryVariantsDto } from "./dish-category-variants/query-dish-category-variants.dto";

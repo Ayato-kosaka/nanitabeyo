@@ -22,10 +22,18 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
-import { ResolveDishMediaImportDto } from '@shared/v1/dto';
-import { ResolveDishMediaImportResponse } from '@shared/v1/res';
+import {
+  CreateDishMediaImportDto,
+  ResolveDishMediaImportDto,
+} from '@shared/v1/dto';
+import {
+  CreateDishMediaImportResponse,
+  ResolveDishMediaImportResponse,
+} from '@shared/v1/res';
 
-import { AuthUserGuard } from '../../core/auth/auth.guard';
+import { AuthAnonGuard } from '../../core/auth/auth.guard';
+import { CurrentUser } from '../../core/auth/current-user.decorator';
+import type { RequestUser } from '../../core/auth/auth.types';
 import { DishMediaImportsService } from './dish-media-imports.service';
 
 @ApiTags('DishMedia')
@@ -36,8 +44,12 @@ export class DishMediaImportsController {
   /* ------------------------------------------------------------------ */
   /*            POST /v1/dish-media/imports/resolve  (要認証)            */
   /* ------------------------------------------------------------------ */
+  // #1375 実機確認: **ログイン必須にしない**（`AuthUserGuard` は匿名を 403 で弾く）。
+  // 取り込んだ dish_media の投稿者はアプリのユーザーではないので `user_id` は NULL のままで、
+  // ユーザーとの紐付けは `reactions(save)` が持つ。匿名ユーザーも実 user id を持っており
+  // save は書けるので、取り込み自体にフルログインを要求する理由が無い
   @Post('resolve')
-  @UseGuards(AuthUserGuard)
+  @UseGuards(AuthAnonGuard)
   @ApiBearerAuth()
   @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
   @ApiOperation({
@@ -62,5 +74,34 @@ export class DishMediaImportsController {
     @Body() dto: ResolveDishMediaImportDto,
   ): Promise<ResolveDishMediaImportResponse> {
     return this.service.resolve(dto);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*        POST /v1/dish-media/imports  (匿名可・保存する)             */
+  /* ------------------------------------------------------------------ */
+  @Post()
+  @UseGuards(AuthAnonGuard)
+  @ApiBearerAuth()
+  @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
+  @ApiOperation({
+    summary: 'SNS の URL から取り込んだ 1 件を保存し、「食べたい」に入れる',
+    description: [
+      '`resolve` と違い **DB へ書く**。URL はここでもう一度サーバ側で解決し直すので、',
+      'クライアントが送る provider / externalContentId は受け取らない。',
+      '同じ SNS 投稿を同じ料理へ二重に取り込むことはなく（自然キーの UNIQUE）、',
+      '既に在る場合はその dish_media を指したうえで `reactions(save)` だけを用意する。',
+    ].join(' '),
+  })
+  @ApiResponse({ status: 201, description: '保存した（または既に在った）1 件' })
+  @ApiResponse({
+    status: 400,
+    description:
+      '対応外の URL（IMPORT_UNSUPPORTED:*）/ 相手が消えている（IMPORT_UNAVAILABLE:*）',
+  })
+  async create(
+    @Body() dto: CreateDishMediaImportDto,
+    @CurrentUser() user: RequestUser,
+  ): Promise<CreateDishMediaImportResponse> {
+    return this.service.create(dto, user.id);
   }
 }

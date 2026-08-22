@@ -10,7 +10,12 @@ import {
   buildTranscodedPath,
 } from '../../core/storage/storage.utils';
 import { DishMediaEntryEntity } from './dish-media.repository';
-import { DishMediaEntry, MediaProcessingStatus } from '@shared/v1/res';
+import {
+  DishMediaEntry,
+  DishMediaExternalEmbed,
+  MediaProcessingStatus,
+} from '@shared/v1/res';
+import type { dish_media_external_embeddings as ExternalEmbedRow } from '../../../../shared/prisma/client';
 import { env } from '../../core/config/env';
 
 import { convertPrismaToSupabase_Dishes } from '../../../../shared/converters/convert_dishes';
@@ -94,6 +99,9 @@ export class DishMediaAssembler {
         likeCount: src.dish_media.likeCount,
         mediaUrl,
         thumbnailImageUrl,
+        // #1399 render_type='external_embed' の行だけが持つ。**html は返さない**
+        // （#1375 設計の正本 §2 / #1273 §14。埋め込みは canonicalUrl から都度描く）
+        externalEmbed: this.toExternalEmbed(src.dish_media.externalEmbed),
       };
 
       const dish_reviews = src.dish_reviews.map((r) => {
@@ -213,6 +221,28 @@ export class DishMediaAssembler {
         return { mediaUrl };
       }
     }
+  }
+
+  /**
+   * #1399 `dish_media_external_embeddings` の行を API の形へ写す。
+   *
+   * ⚠️ `thumbnailUrl` は **provider 側の URL** であって自ストレージの署名 URL ではない。
+   * 権利上サムネイルを複製できない provider があるため、参照として持っている
+   * （migration 20260822T0000 のヘッダに理由がある）。したがってここで署名は付けない。
+   */
+  private toExternalEmbed(
+    row: ExternalEmbedRow | null | undefined,
+  ): DishMediaExternalEmbed | null {
+    if (!row) return null;
+    return {
+      provider: row.provider as DishMediaExternalEmbed['provider'],
+      externalContentId: row.external_content_id,
+      canonicalUrl: row.canonical_url,
+      embedStatus: row.embed_status as DishMediaExternalEmbed['embedStatus'],
+      lastVerifiedAt: row.last_verified_at?.toISOString() ?? null,
+      thumbnailUrl: row.thumbnail_url ?? null,
+      publishedAt: row.published_at?.toISOString() ?? null,
+    };
   }
 
   /**

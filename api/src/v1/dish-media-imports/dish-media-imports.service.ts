@@ -27,9 +27,11 @@
 // **`null` は返さない。** 対応外 URL・oEmbed 失敗・メタデータ空のいずれも
 // «候補ゼロ＋理由» を返して、呼び出し側が «手入力へ縮退» できる形にする。
 
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { ClsService } from 'nestjs-cls';
 
 import { AppLoggerService } from '../../core/logger/logger.service';
+import { CLS_KEY_APP_VERSION } from '../../core/cls/cls.constants';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SafeFetchService } from '../../core/safe-fetch/safe-fetch.service';
 import { SafeFetchError } from '../../core/safe-fetch/safe-fetch.types';
@@ -47,8 +49,12 @@ import {
 import { matchDishCategoriesWithIndex } from '../../../../shared/utils/dishCategoryMatch';
 import { matchRestaurantNames } from '../../../../shared/utils/restaurantNameMatch';
 import type { ExtractedText } from '../../../../shared/utils/textNormalize';
-import type { ResolveDishMediaImportDto } from '@shared/v1/dto';
 import type {
+  CreateDishMediaImportDto,
+  ResolveDishMediaImportDto,
+} from '@shared/v1/dto';
+import type {
+  CreateDishMediaImportResponse,
   ResolveDishMediaImportDishCategoryCandidate,
   ResolveDishMediaImportReason,
   ResolveDishMediaImportResponse,
@@ -90,7 +96,158 @@ export class DishMediaImportsService {
     private readonly restaurantsRepo: RestaurantsRepository,
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
+    private readonly cls: ClsService,
   ) {}
+
+  /**
+   * #1399 SNS の URL から取り込んだ 1 件を **保存する**。
+   *
+   * ## URL はここでもう一度解決し直す
+   *
+   * クライアントが送ってきた provider / externalContentId をそのまま信じない。
+   * 信じると、任意の provider・任意の id の行を作れてしまう。`resolve` を通してから
+   * その結果だけを保存する（多少無駄でも、保存の入口は 1 本にしておく）。
+   *
+   * ## 冪等である
+   *
+   * 自然キー `(provider, external_content_id, dish_id)` の UNIQUE により、同じ SNS 投稿を
+   * 同じ料理へ二重に取り込むことはない。既に在れば **その `dish_media` を指すだけ**で、
+   * 新しい行は作らない。そのうえで `reactions(save)` は呼び出したユーザーの分を必ず用意する。
+   * これで「他人が先に取り込んだ投稿を、自分の食べたいへ入れる」が成立する。
+   *
+   * ## dish_media.user_id は NULL のままにする
+   *
+   * 取り込んだメディアの投稿者は **アプリのユーザーではない**（SNS 側の投稿者である）。
+   * `user_id` を取り込んだ人にすると「自分が撮った写真」と同じ扱いになり、`isMine` や
+   * payouts の対象にまで乗ってしまう。ユーザーとの紐付けは `reactions(save)` が持つ
+   * （＝「食べたい」）。これは #1375 の状態導出（save=食べたい / dish_reviews=食べた）と同じ形である。
+   */
+  async create(
+    dto: CreateDishMediaImportDto,
+    userId: string,
+  ): Promise<CreateDishMediaImportResponse> {
+    const resolved = await this.resolve({ url: dto.url });
+
+    if (resolved.status === 'unsupported') {
+      throw new BadRequestException(`IMPORT_UNSUPPORTED:${resolved.reason}`);
+    }
+    if (resolved.status === 'unavailable') {
+      // 相手が消えている。取り込ませない（`unknown` とは混ぜないこと。#1399 設計 §3-7）
+      throw new BadRequestException(`IMPORT_UNAVAILABLE:${resolved.reason}`);
+    }
+
+    const { provider, externalContentId, canonicalUrl } = resolved.source;
+    if (!provider || !externalContentId || !canonicalUrl) {
+      // status が ok / unknown ならここは埋まっている。埋まっていなければ契約違反
+      throw new BadRequestException('IMPORT_UNSUPPORTED:unsupported_url');
+    }
+
+    const appVersion = this.cls.get<string>(CLS_KEY_APP_VERSION) ?? 'unknown';
+
+    return this.prisma.withTransaction(async (tx) => {
+      /* 1. dish（店舗 × 料理カテゴリ）。無ければ作る */
+      const dish = await tx.dishes.upsert({
+        where: {
+          restaurant_id_category_id: {
+            restaurant_id: dto.restaurantId,
+            category_id: dto.dishCategoryId,
+          },
+        },
+        create: {
+          restaurant_id: dto.restaurantId,
+          category_id: dto.dishCategoryId,
+        },
+        update: {},
+      });
+
+      /* 2. 同じ SNS 投稿が同じ料理へ既に取り込まれていないか */
+      const existing = await tx.dish_media_external_embeddings.findFirst({
+        where: {
+          provider,
+          external_content_id: externalContentId,
+          dish_id: dish.id,
+        },
+        select: { dish_media_id: true },
+      });
+
+      let dishMediaId = existing?.dish_media_id ?? null;
+      const created = dishMediaId === null;
+
+      if (dishMediaId === null) {
+        /* 3. dish_media。実体は自ストレージに無いので media_path は NULL */
+        const media = await tx.dish_media.create({
+          data: {
+            dish_id: dish.id,
+            // 投稿者はアプリのユーザーではない（上のコメント参照）
+            user_id: null,
+            media_path: null,
+            media_type: 'image',
+            // NOT NULL なので空文字を入れる。external_embed では自ストレージに実体が無く、
+            // 表示は dish_media_external_embeddings.thumbnail_url →
+            // 料理カテゴリ画像 の順で解決する（assembler / resolveMyDishThumbnailUrl）
+            thumbnail_path: '',
+            media_processing_status: 'completed',
+            thumbnail_processing_status: 'completed',
+            render_type: 'external_embed',
+          },
+          select: { id: true },
+        });
+        dishMediaId = media.id;
+
+        /* 4. 埋め込みの実体。embed_html は保存しない（正本 §2 / #1273 §14） */
+        await tx.dish_media_external_embeddings.create({
+          data: {
+            dish_media_id: dishMediaId,
+            dish_id: dish.id,
+            provider,
+            external_content_id: externalContentId,
+            canonical_url: canonicalUrl,
+            // 取り込んだ直後は «生きている» と確認できた状態にはない。
+            // oEmbed が取れた（status='ok'）ときだけ available と言い切る
+            embed_status: resolved.status === 'ok' ? 'available' : 'unknown',
+            last_verified_at: resolved.status === 'ok' ? new Date() : null,
+            // サムネイルは複製せず参照する（権利調査の結論。migration 20260822T0000 参照）
+            thumbnail_url: resolved.metadata.thumbnailUrl,
+            published_at: null,
+          },
+        });
+      }
+
+      /* 5. 「食べたい」= reactions(save)。ここがユーザーとの唯一の紐付けである */
+      const alreadySaved = await tx.reactions.findUnique({
+        where: {
+          user_id_target_type_target_id_action_type: {
+            user_id: userId,
+            target_type: 'dish_media',
+            target_id: dishMediaId,
+            action_type: 'save',
+          },
+        },
+        select: { id: true },
+      });
+
+      if (!alreadySaved) {
+        await tx.reactions.create({
+          data: {
+            user_id: userId,
+            target_type: 'dish_media',
+            target_id: dishMediaId,
+            action_type: 'save',
+            created_at: new Date(),
+            created_version: appVersion,
+            lock_no: 0,
+          },
+        });
+      }
+
+      return {
+        dishMediaId,
+        dishId: dish.id,
+        created,
+        saved: !alreadySaved,
+      };
+    });
+  }
 
   async resolve(
     dto: ResolveDishMediaImportDto,
