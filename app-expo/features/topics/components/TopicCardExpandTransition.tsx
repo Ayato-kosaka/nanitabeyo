@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { StyleSheet, View, useWindowDimensions } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
@@ -18,8 +18,10 @@ export type CardRect = { x: number; y: number; width: number; height: number };
 type TopicCardExpandTransitionProps = {
 	/** 拡大させる料理カードの画像URL */
 	imageUrl: string;
-	/** アニメーション開始時点の、押されたカード自身の画面上の矩形（measureInWindow由来） */
+	/** アニメーション開始時点の、押されたカード自身の矩形（呼び出し元でこのコンポーネントの親基準に変換済み） */
 	originRect: CardRect;
+	/** 広がりきった時の目標矩形（同じく呼び出し元でこのコンポーネントの親基準に変換済み） */
+	targetRect: CardRect;
 	/** カードの角丸（TopicVisualCard.card の borderRadius と揃える） */
 	cardBorderRadius?: number;
 	/** フルスクリーンまで広がり切ったタイミングで呼ばれる（ここで画面遷移する） */
@@ -34,10 +36,10 @@ const EXPAND_DURATION_MS = 340;
 export const TopicCardExpandTransition = ({
 	imageUrl,
 	originRect,
+	targetRect,
 	cardBorderRadius = 24,
 	onExpandComplete,
 }: TopicCardExpandTransitionProps) => {
-	const { width: screenWidth, height: screenHeight } = useWindowDimensions();
 	const progress = useSharedValue(0);
 
 	useEffect(() => {
@@ -49,10 +51,10 @@ export const TopicCardExpandTransition = ({
 	}, []);
 
 	const containerStyle = useAnimatedStyle(() => {
-		const x = interpolate(progress.value, [0, 1], [originRect.x, 0]);
-		const y = interpolate(progress.value, [0, 1], [originRect.y, 0]);
-		const width = interpolate(progress.value, [0, 1], [originRect.width, screenWidth]);
-		const height = interpolate(progress.value, [0, 1], [originRect.height, screenHeight]);
+		const x = interpolate(progress.value, [0, 1], [originRect.x, targetRect.x]);
+		const y = interpolate(progress.value, [0, 1], [originRect.y, targetRect.y]);
+		const width = interpolate(progress.value, [0, 1], [originRect.width, targetRect.width]);
+		const height = interpolate(progress.value, [0, 1], [originRect.height, targetRect.height]);
 		const borderRadius = interpolate(progress.value, [0, 1], [cardBorderRadius, 0]);
 		return { left: x, top: y, width, height, borderRadius };
 	});
@@ -107,9 +109,11 @@ const styles = StyleSheet.create({
 	},
 	spinnerContainer: {
 		position: "absolute",
+		top: 0,
 		left: 0,
 		right: 0,
-		bottom: 64,
+		bottom: 0,
+		justifyContent: "center",
 		alignItems: "center",
 	},
 });

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from "react-native";
 import { MapPin, SunMoon, Users, ChefHat, RefreshCw, DollarSign, Timer, CircleHelp } from "lucide-react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
@@ -98,8 +98,21 @@ export default function TopicsScreen() {
 	const [isSelectingTopic, setIsSelectingTopic] = useState(false);
 	// #1484 【設計】押されたカード画像がその場からフルスクリーンへ広がるアニメーションの対象。
 	// 画面遷移は広がり切ってから行うため、遷移処理そのものは ref に積んでおく。
-	const [expandingCard, setExpandingCard] = useState<{ imageUrl: string; rect: CardRect } | null>(null);
+	const [expandingCard, setExpandingCard] = useState<{
+		imageUrl: string;
+		originRect: CardRect;
+		targetRect: CardRect;
+	} | null>(null);
 	const pendingNavigateRef = useRef<(() => void) | null>(null);
+	/**
+	 * #1484 【設計】web は CenteredAppShell により画面中央の狭いカラムへ収まっており、
+	 * react-native-web は全 View に既定で position:relative を当てるため、この overlay の
+	 * position:absolute は window ではなく直近の親（この画面のルート View）基準で解決される。
+	 * originRect（measureInWindow = window絶対座標）をそのまま渡すと、そのズレの分だけ
+	 * 開始位置がカードから外れ、広がる先も window 全体（カラム外の余白まで）になってしまう。
+	 * このルート View 自身を計測し、相対座標へ変換した上で渡す。
+	 */
+	const screenContainerRef = useRef<View>(null);
 	const carouselRef = useRef<any>(null);
 	// React stateの反映前に連打された押下も防ぐため、同期的に参照できるガードを併用する。
 	const isSelectingTopicRef = useRef(false);
@@ -280,7 +293,31 @@ export default function TopicsScreen() {
 
 			if (originRect) {
 				pendingNavigateRef.current = navigateToResult;
-				setExpandingCard({ imageUrl: topic.imageUrl, rect: originRect });
+				const containerNode = screenContainerRef.current;
+				const fallbackTargetRect = (): CardRect => {
+					const { width, height } = Dimensions.get("window");
+					return { x: 0, y: 0, width, height };
+				};
+				if (containerNode && typeof containerNode.measureInWindow === "function") {
+					containerNode.measureInWindow((containerX, containerY, containerWidth, containerHeight) => {
+						const targetRect: CardRect =
+							containerWidth > 0 && containerHeight > 0
+								? { x: 0, y: 0, width: containerWidth, height: containerHeight }
+								: fallbackTargetRect();
+						setExpandingCard({
+							imageUrl: topic.imageUrl,
+							originRect: {
+								x: originRect.x - containerX,
+								y: originRect.y - containerY,
+								width: originRect.width,
+								height: originRect.height,
+							},
+							targetRect,
+						});
+					});
+				} else {
+					setExpandingCard({ imageUrl: topic.imageUrl, originRect, targetRect: fallbackTargetRect() });
+				}
 			} else {
 				// #1484 実測矩形が取れなかった場合（レイアウト未確定等）は、従来どおり即座に遷移する。
 				navigateToResult();
@@ -729,7 +766,7 @@ export default function TopicsScreen() {
 	};
 
 	return (
-		<View style={styles.container}>
+		<View style={styles.container} ref={screenContainerRef} collapsable={false}>
 			{/* #674 【仕様】ヘッダー（戻るボタン + タイトル） */}
 			{/* #1031 【設計】Detox からタイトル表示を検証できるよう testID を追加 */}
 			<ScreenHeader
@@ -924,7 +961,8 @@ export default function TopicsScreen() {
 			{expandingCard && (
 				<TopicCardExpandTransition
 					imageUrl={expandingCard.imageUrl}
-					originRect={expandingCard.rect}
+					originRect={expandingCard.originRect}
+					targetRect={expandingCard.targetRect}
 					onExpandComplete={handleExpandComplete}
 				/>
 			)}
