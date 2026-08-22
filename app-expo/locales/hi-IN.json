@@ -271,7 +271,7 @@
 			"cta": "शुरू करें"
 		},
 		"accessibility": {
-			"stepProgress": "%{total} में से %{current} चरण"
+			"stepProgress": "{{total}} में से {{current}} चरण"
 		}
 	},
 	"Topics": {

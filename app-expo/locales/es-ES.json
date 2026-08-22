@@ -271,7 +271,7 @@
 			"cta": "Empezar"
 		},
 		"accessibility": {
-			"stepProgress": "Paso %{current} de %{total}"
+			"stepProgress": "Paso {{current}} de {{total}}"
 		}
 	},
 	"Topics": {

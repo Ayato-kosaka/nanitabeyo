@@ -271,7 +271,7 @@
 			"cta": "Get started"
 		},
 		"accessibility": {
-			"stepProgress": "Step %{current} of %{total}"
+			"stepProgress": "Step {{current}} of {{total}}"
 		}
 	},
 	"Topics": {

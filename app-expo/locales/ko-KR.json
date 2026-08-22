@@ -271,7 +271,7 @@
 			"cta": "시작하기"
 		},
 		"accessibility": {
-			"stepProgress": "%{total}단계 중 %{current}단계"
+			"stepProgress": "{{total}}단계 중 {{current}}단계"
 		}
 	},
 	"Topics": {

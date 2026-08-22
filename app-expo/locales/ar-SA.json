@@ -271,7 +271,7 @@
 			"cta": "لنبدأ"
 		},
 		"accessibility": {
-			"stepProgress": "الخطوة %{current} من %{total}"
+			"stepProgress": "الخطوة {{current}} من {{total}}"
 		}
 	},
 	"Topics": {

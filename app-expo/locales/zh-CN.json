@@ -271,7 +271,7 @@
 			"cta": "开始使用"
 		},
 		"accessibility": {
-			"stepProgress": "第 %{current} 步，共 %{total} 步"
+			"stepProgress": "第 {{current}} 步，共 {{total}} 步"
 		}
 	},
 	"Topics": {

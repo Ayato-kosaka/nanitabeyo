@@ -271,7 +271,7 @@
 			"cta": "はじめる"
 		},
 		"accessibility": {
-			"stepProgress": "%{total} ステップ中 %{current} ステップ目"
+			"stepProgress": "{{total}} ステップ中 {{current}} ステップ目"
 		}
 	},
 	"Topics": {
