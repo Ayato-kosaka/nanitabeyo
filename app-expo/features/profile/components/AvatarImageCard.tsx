@@ -42,6 +42,8 @@ export function AvatarImageCard({ avatarUrl, onSelectImage, onLayout }: AvatarIm
 			});
 			if (result.success && result.media) onSelectImage({ uri: result.media.uri, mimeType: result.media.mimeType });
 			else if (result.error === "permission_denied") showSnackbar(i18n.t("Profile.errors.permissionDenied"));
+			// #1425 HEIC / HEIF は «選ばせない» のが正しい失敗なので、例外にせず案内だけ出す
+			else if (result.error === "unsupported_image_format") showSnackbar(i18n.t("Map.media.unsupportedImageFormat"));
 			else if (result.error === "cancelled") {
 			} // ユーザーキャンセルは無視
 			else {
