@@ -171,7 +171,7 @@ export RESTAURANT_PIPELINE_RUN_ID=restaurant-2026-08-12
 PostgreSQL同期前に次のmigrationをdev/publicへ適用してください。
 
 ```text
-infra/supabase/migrations/20260812T0100_add_restaurant_recommendation_sync_metadata.sql
+infra/supabase/migrations/20260823T0000_add_restaurant_recommendation_sync_metadata.sql
 ```
 
 既存tablesには同期metadataだけを追加し、SNS固有列は
