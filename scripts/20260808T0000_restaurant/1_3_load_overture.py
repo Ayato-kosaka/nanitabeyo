@@ -81,8 +81,23 @@ def build_filtered_parquet(
               coalesce(to_json(socials)::VARCHAR, '[]'))) AS record_hash,
             current_timestamp AS ingested_at
           FROM read_parquet({source_path})
-          WHERE addresses[1].country = 'JP'
-            AND list_contains(taxonomy.hierarchy, 'food_and_drink')
+          -- 日本の絞り込みは住所ではなく座標で行う。addresses[1].country = 'JP' は
+          -- 住所が付いていない行を丸ごと落とし、実測で22%（約29万行）を捨てていた
+          -- （#1276 PoC）。住所はクエリBを組むのに使うだけで、名寄せの判定は
+          -- 店名と座標があれば成立する。カテゴリも taxonomy だけでは
+          -- パン屋・菓子店が欠けるため basic_category を併用する。
+          WHERE bbox.xmin BETWEEN 122.0 AND 154.0
+            AND bbox.ymin BETWEEN 20.0 AND 46.5
+            AND (
+              list_contains(taxonomy.hierarchy, 'food_and_drink')
+              OR basic_category IN (
+                'restaurant', 'bar', 'cafe', 'casual_eatery', 'coffee_shop',
+                'food_and_beverage_store', 'bakery', 'dessert_shop', 'pub',
+                'fast_food_restaurant'
+              )
+            )
+            AND names.primary IS NOT NULL
+            AND bbox IS NOT NULL
         ) TO {destination_path} (FORMAT PARQUET, COMPRESSION ZSTD)
         """
         connection.execute(query)
