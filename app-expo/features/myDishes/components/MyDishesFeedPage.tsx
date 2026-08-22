@@ -322,13 +322,34 @@ export function MyDishesFeedPage({ scope, itemKey = null, dishMediaId = null, is
 			{entriesKey !== null && feedIds.length > 0 ? (
 				<>
 					{/* ⚠️ `initialIndex` は «ids が確定してから» 渡す。DishMediaFeed は最初に届いた
-					    非空の ids で並びを固定するので、ここで描き始める時点の index が最終値になる */}
+					    非空の ids で並びを固定するので、ここで描き始める時点の index が最終値になる。
+					    #1375 実機確認（2 巡目）: 日付スコープは **横** = 同じ日の別の投稿。
+					    縦は外側のページャ（前後の «記録がある日»）が受け持つ */}
 					<DishMediaFeed
 						entriesKey={entriesKey}
 						idType="dish_media"
 						initialIndex={initialIndex}
 						onIndexChange={setViewedIndex}
+						horizontal={scope.kind === "date"}
 					/>
+					{/* #1375 実機確認（2 巡目）: «その日の何個目を見ているか» をストーリーズと同じ
+					    セグメントバーで出す。件数が多い日はバーが細くなりすぎるので数字も添える */}
+					{scope.kind === "date" && feedIds.length > 1 && (
+						<View
+							// chips（top: 40）と閉じるボタンの下に置く
+							style={{ ...styles.positionContainer, top: Platform.OS === "ios" ? 92 : 52 }}
+							pointerEvents="none"
+							testID="my-dishes-feed-position">
+							<View style={styles.positionBars}>
+								{feedIds.map((id, index) => (
+									<View key={id} style={[styles.positionBar, index === currentIndex && styles.positionBarActive]} />
+								))}
+							</View>
+							<Text style={styles.positionCounter} testID="my-dishes-feed-position-counter">
+								{`${Math.min(currentIndex + 1, feedIds.length)} / ${feedIds.length}`}
+							</Text>
+						</View>
+					)}
 					{/* #1397 (PR5/5) contextual filter chips。**`DishMediaFeed` の外側**に重ねるので、
 					    店舗フィード・通知フィード・投稿フィードの振る舞いは一切変わらない（§10-1） */}
 					<View style={{ ...styles.chipsContainer, top: Platform.OS === "ios" ? 40 : 0 }} pointerEvents="box-none">
@@ -395,5 +416,31 @@ const styles = StyleSheet.create({
 		left: 0,
 		right: 0,
 		zIndex: 9,
+	},
+	// «その日の n 件目» のインジケータ。閉じるボタン（右上）と重ならないよう右へ余白を取る
+	positionContainer: {
+		position: "absolute",
+		left: 16,
+		right: 64,
+		zIndex: 9,
+		gap: 4,
+	},
+	positionBars: {
+		flexDirection: "row",
+		gap: 3,
+	},
+	positionBar: {
+		flex: 1,
+		height: 2,
+		borderRadius: 1,
+		backgroundColor: "rgba(255,255,255,0.35)",
+	},
+	positionBarActive: {
+		backgroundColor: "#FFFFFF",
+	},
+	positionCounter: {
+		fontSize: 11,
+		fontWeight: "700",
+		color: "rgba(255,255,255,0.9)",
 	},
 });

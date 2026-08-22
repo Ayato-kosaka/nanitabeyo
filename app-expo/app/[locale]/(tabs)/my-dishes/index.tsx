@@ -124,6 +124,11 @@ export default function MyDishesScreen() {
 			{/* #1375 実機確認: 画面タイトル「食べたい/食べた」はタブ名と重複しているだけなので出さない。
 			    並びは Issue 記載の [Map] [List] [Calendar] [Filter] に揃える（Filter は切替ではなく別ルートへの push） */}
 			<View style={styles.header}>
+				{/* #1375 実機確認（2 巡目）: ストーリーズアーカイブと同じ **黒/灰のアイコン切替**にする。
+				    赤は使わない。アクティブは黒アイコン + 下線、非アクティブは灰。ラベルは出さず
+				    読み上げには accessibilityLabel で残す。
+				    絞り込みは «ビュー切替ではない別系統» なので、同じ列に混ぜず右端に
+				    丸囲みのアイコンだけで置く */}
 				<View style={styles.viewSwitch}>
 					{MY_DISHES_VIEWS.map((v) => {
 						const Icon = VIEW_ICONS[v];
@@ -133,24 +138,24 @@ export default function MyDishesScreen() {
 								key={v}
 								testID={`my-dishes-view-${v}`}
 								onPress={() => handleSelectView(v)}
-								style={[styles.viewButton, isActive && styles.viewButtonActive]}
+								style={styles.viewButton}
 								accessibilityRole="button"
-								accessibilityState={{ selected: isActive }}>
-								<Icon size={18} color={isActive ? "#F05537" : "#6B7280"} />
-								<Text style={[styles.viewButtonLabel, isActive && styles.viewButtonLabelActive]}>
-									{i18n.t(`MyDishes.views.${v}`)}
-								</Text>
+								accessibilityState={{ selected: isActive }}
+								accessibilityLabel={i18n.t(`MyDishes.views.${v}`)}>
+								<Icon size={22} color={isActive ? "#111827" : "#9CA3AF"} strokeWidth={isActive ? 2.2 : 1.8} />
+								{/* 下線はアクティブのときだけ描く（非アクティブへ薄線を残すと選択が読めなくなる） */}
+								<View style={[styles.viewUnderline, !isActive && styles.viewUnderlineHidden]} />
 							</TouchableOpacity>
 						);
 					})}
+					<View style={styles.viewSwitchSpacer} />
 					<TouchableOpacity
 						testID="my-dishes-filter-button"
 						onPress={handleFilterPress}
-						style={styles.viewButton}
+						style={styles.filterButton}
 						accessibilityRole="button"
 						accessibilityLabel={i18n.t("MyDishes.filters.title")}>
-						<SlidersHorizontal size={18} color="#6B7280" />
-						<Text style={styles.viewButtonLabel}>{i18n.t("MyDishes.filters.title")}</Text>
+						<SlidersHorizontal size={18} color="#111827" />
 					</TouchableOpacity>
 				</View>
 			</View>
@@ -244,28 +249,38 @@ const styles = StyleSheet.create({
 	},
 	viewSwitch: {
 		flexDirection: "row",
-		gap: 8,
+		alignItems: "center",
 	},
 	viewButton: {
 		flex: 1,
-		flexDirection: "row",
+		alignItems: "center",
+		paddingTop: 6,
+		gap: 8,
+	},
+	viewUnderline: {
+		height: 2,
+		alignSelf: "stretch",
+		marginHorizontal: 18,
+		borderRadius: 1,
+		backgroundColor: "#111827",
+	},
+	// 高さを変えないために透明で残す（消すとアイコンの縦位置がアクティブだけずれる）
+	viewUnderlineHidden: {
+		backgroundColor: "transparent",
+	},
+	viewSwitchSpacer: {
+		width: 12,
+	},
+	// 絞り込みは «別系統» と分かるよう、丸囲みのアイコンボタンにする
+	filterButton: {
+		width: 38,
+		height: 38,
+		borderRadius: 19,
+		borderWidth: 1,
+		borderColor: "#D1D5DB",
 		alignItems: "center",
 		justifyContent: "center",
-		gap: 6,
-		paddingVertical: 8,
-		borderRadius: 8,
-		backgroundColor: "#F3F4F6",
-	},
-	viewButtonActive: {
-		backgroundColor: "#FDE7E1",
-	},
-	viewButtonLabel: {
-		fontSize: 12,
-		color: "#6B7280",
-	},
-	viewButtonLabelActive: {
-		color: "#F05537",
-		fontWeight: "700",
+		marginBottom: 6,
 	},
 	body: {
 		flex: 1,

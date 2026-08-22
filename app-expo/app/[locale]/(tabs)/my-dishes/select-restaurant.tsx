@@ -160,8 +160,16 @@ export default function SelectRestaurantScreen() {
 	useFocusEffect(
 		useCallback(() => {
 			isFocusedRef.current = true;
-			setIsSheetVisible(true);
+			// #1375 実機確認（2 巡目）: 遷移アニメーションの最中に TrueSheet を present すると、
+			// iOS でシートが **遷移前の画面の view controller に取り付く**ことがあり、
+			// 「シートは見えているのにボタンが効かず、タップが背後の画面へ抜ける」状態になる
+			// （実機で «モーダルのボタンが効かない» と指摘された症状）。
+			// InteractionManager で遷移が終わってから present する
+			const task = InteractionManager.runAfterInteractions(() => {
+				if (isFocusedRef.current) setIsSheetVisible(true);
+			});
 			return () => {
+				task.cancel();
 				isFocusedRef.current = false;
 				setIsSheetVisible(false);
 			};

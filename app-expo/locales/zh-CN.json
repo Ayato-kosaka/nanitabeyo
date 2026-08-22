@@ -562,7 +562,8 @@
 			"selectingMedia": "正在选择媒体...",
 			"loadingMedia": "正在加载媒体...",
 			"mediaSelectionFailed": "媒体选择失败",
-			"mediaSelectionError": "选择媒体时发生错误。请重试。"
+			"mediaSelectionError": "选择媒体时发生错误。请重试。",
+			"replaceWithMyPhoto": "改用我自己的照片"
 		},
 		"noResultsFound": "未找到结果",
 		"accessibility": {
@@ -795,7 +796,6 @@
 		},
 		"map": {
 			"truncated": "地图上仅显示部分标记，请缩小搜索范围。",
-			"zoomInHint": "请先放大地图，再重新搜索该区域",
 			"sheetTitle": "附近的记录 {{count}} 条"
 		},
 		"guest": {
@@ -921,7 +921,7 @@
 		"intro": "粘贴 Instagram、TikTok 或 YouTube Shorts 的帖子链接，选择菜品和店铺，即可保存到“想吃”。无需登录。",
 		"steps": {
 			"paste": "粘贴链接",
-			"dish": "选择菜品",
+			"dish": "选择菜品类别",
 			"restaurant": "选择店铺"
 		},
 		"pickRestaurant": {

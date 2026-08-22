@@ -562,7 +562,8 @@
 			"selectingMedia": "미디어 선택 중...",
 			"loadingMedia": "미디어 로드 중...",
 			"mediaSelectionFailed": "미디어 선택 실패",
-			"mediaSelectionError": "미디어 선택 중 오류가 발생했습니다. 다시 시도해주세요."
+			"mediaSelectionError": "미디어 선택 중 오류가 발생했습니다. 다시 시도해주세요.",
+			"replaceWithMyPhoto": "내 사진으로 바꾸기"
 		},
 		"noResultsFound": "결과를 찾을 수 없습니다",
 		"accessibility": {
@@ -795,7 +796,6 @@
 		},
 		"map": {
 			"truncated": "핀이 많아 일부만 표시하고 있어요. 지역을 좁혀보세요.",
-			"zoomInHint": "지도를 확대한 뒤 이 지역에서 재검색해 주세요",
 			"sheetTitle": "이 부근의 기록 {{count}}건"
 		},
 		"guest": {
@@ -921,7 +921,7 @@
 		"intro": "Instagram·TikTok·YouTube Shorts 게시물 URL을 붙여넣고 요리와 가게를 고르면 「먹고 싶다」에 저장됩니다. 로그인은 필요 없습니다.",
 		"steps": {
 			"paste": "URL 붙여넣기",
-			"dish": "요리 고르기",
+			"dish": "요리 카테고리 고르기",
 			"restaurant": "가게 고르기"
 		},
 		"pickRestaurant": {

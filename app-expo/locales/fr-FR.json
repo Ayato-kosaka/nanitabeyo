@@ -562,7 +562,8 @@
 			"selectingMedia": "Sélection des médias...",
 			"loadingMedia": "Chargement des médias...",
 			"mediaSelectionFailed": "Échec de la sélection des médias",
-			"mediaSelectionError": "Une erreur s'est produite lors de la sélection des médias. Veuillez réessayer."
+			"mediaSelectionError": "Une erreur s'est produite lors de la sélection des médias. Veuillez réessayer.",
+			"replaceWithMyPhoto": "Utiliser ma propre photo"
 		},
 		"noResultsFound": "Aucun résultat trouvé",
 		"accessibility": {
@@ -795,7 +796,6 @@
 		},
 		"map": {
 			"truncated": "Seuls certains repères sont affichés. Réduisez la zone de recherche.",
-			"zoomInHint": "Zoomez avant de rechercher dans cette zone",
 			"sheetTitle": "{{count}} enregistrements à proximité"
 		},
 		"guest": {
@@ -921,7 +921,7 @@
 		"intro": "Collez l’URL d’une publication Instagram, TikTok ou YouTube Shorts, choisissez le plat et l’établissement, puis enregistrez-le dans vos envies. Aucune connexion requise.",
 		"steps": {
 			"paste": "Collez l’URL",
-			"dish": "Choisissez le plat",
+			"dish": "Choisissez la catégorie du plat",
 			"restaurant": "Choisissez l’établissement"
 		},
 		"pickRestaurant": {

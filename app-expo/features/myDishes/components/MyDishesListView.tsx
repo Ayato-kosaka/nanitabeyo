@@ -304,8 +304,9 @@ const styles = StyleSheet.create({
 		fontWeight: "700",
 		color: "#FFFFFF",
 	},
+	// #1375 実機確認（2 巡目）: 食べたい = 緑（myDishCard.tsx と必ず一致させる）
 	statusWant: {
-		backgroundColor: "rgba(59,130,246,0.9)",
+		backgroundColor: "rgba(22,163,74,0.9)",
 	},
 	statusEaten: {
 		backgroundColor: "rgba(240,85,55,0.9)",

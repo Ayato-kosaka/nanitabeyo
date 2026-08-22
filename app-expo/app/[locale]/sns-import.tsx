@@ -487,144 +487,134 @@ export default function SnsImportScreen() {
 										{resolved.metadata.title}
 									</Text>
 								)}
-
-								{/* ⚠️ 候補は «出れば嬉しい» もの。**0 件でも下の検索から必ず選べる**ようにしてある。
-								    Instagram はサーバから取れるメタデータが無いので、候補 0 件は想定内の主要経路である */}
-								<View style={styles.card}>
-									<StepHeading step={2} title={i18n.t("SnsImport.steps.dish")} testID="sns-import-step-dish" />
-									{resolved.candidates.dishCategories.length > 0 && (
-										<View style={styles.chipRow}>
-											{resolved.candidates.dishCategories.map((candidate) => (
-												<TouchableOpacity
-													key={candidate.dishCategoryId}
-													testID={`sns-import-dish-category-${candidate.dishCategoryId}`}
-													onPress={() => {
-														lightImpact();
-														setDishCategoryId(candidate.dishCategoryId);
-														setDishCategoryLabel(
-															candidate.labels?.[locale.split("-")[0]] ?? candidate.labelEn ?? candidate.dishCategoryId,
-														);
-													}}
-													accessibilityRole="button"
-													accessibilityState={{ selected: dishCategoryId === candidate.dishCategoryId }}
-													style={[styles.chip, dishCategoryId === candidate.dishCategoryId && styles.chipSelected]}>
-													<Text
-														style={[
-															styles.chipLabel,
-															dishCategoryId === candidate.dishCategoryId && styles.chipLabelSelected,
-														]}>
-														{candidate.labels?.[locale.split("-")[0]] ?? candidate.labelEn ?? candidate.dishCategoryId}
-													</Text>
-												</TouchableOpacity>
-											))}
-										</View>
-									)}
-
-									{/* 料理カテゴリの手入力。候補の有無に関わらず常に出す */}
-									<TextInput
-										testID="sns-import-dish-category-search-input"
-										value={dishCategoryQuery}
-										onChangeText={(text) => {
-											setDishCategoryQuery(text);
-											void searchDishCategories(text);
-										}}
-										placeholder={i18n.t("SnsImport.sections.dishCategorySearchPlaceholder")}
-										autoCapitalize="none"
-										style={styles.searchInput}
-									/>
-									{dishCategorySuggestions.length > 0 && (
-										<View style={styles.chipRow}>
-											{dishCategorySuggestions.map((suggestion) => (
-												<TouchableOpacity
-													key={suggestion.dishCategoryId}
-													testID={`sns-import-dish-category-suggestion-${suggestion.dishCategoryId}`}
-													onPress={() => handleSelectDishCategoryFromSearch(suggestion)}
-													accessibilityRole="button"
-													style={styles.chip}>
-													<Text style={styles.chipLabel}>{suggestion.label}</Text>
-												</TouchableOpacity>
-											))}
-										</View>
-									)}
-									{!!dishCategoryLabel && (
-										<Text style={styles.selectedValue} testID="sns-import-selected-dish-category">
-											{i18n.t("SnsImport.sections.selected", { value: dishCategoryLabel })}
-										</Text>
-									)}
-								</View>
-
-								<View style={styles.card}>
-									<StepHeading
-										step={3}
-										title={i18n.t("SnsImport.steps.restaurant")}
-										testID="sns-import-step-restaurant"
-									/>
-									{resolved.candidates.restaurants.length > 0 && (
-										<View style={styles.chipRow}>
-											{resolved.candidates.restaurants.map((candidate) => (
-												<TouchableOpacity
-													key={candidate.restaurantId}
-													testID={`sns-import-restaurant-${candidate.restaurantId}`}
-													onPress={() => {
-														lightImpact();
-														setRestaurantId(candidate.restaurantId);
-														setRestaurantName(candidate.name);
-													}}
-													accessibilityRole="button"
-													accessibilityState={{ selected: restaurantId === candidate.restaurantId }}
-													style={[styles.chip, restaurantId === candidate.restaurantId && styles.chipSelected]}>
-													<Text
-														style={[
-															styles.chipLabel,
-															restaurantId === candidate.restaurantId && styles.chipLabelSelected,
-														]}>
-														{candidate.name}
-													</Text>
-												</TouchableOpacity>
-											))}
-										</View>
-									)}
-
-									{/* 店名検索（自前 `restaurants` テーブル。Google Places Text Search /
-									    Autocomplete は呼ばない）。候補の有無に関わらず常に出す。
-									    0 件のときは «地図から探す» を検索結果の中にも出す（`emptyAction`）*/}
-									<RestaurantNameSearch
-										regionRef={regionRef}
-										onSelectRestaurant={handleSelectRestaurantFromSearch}
-										emptyAction={{
-											label: i18n.t("SnsImport.sections.pickOnMap"),
-											onPress: handleOpenMapPicker,
-											testID: "sns-import-restaurant-search-map-fallback",
-										}}
-										testID="sns-import-restaurant-search"
-									/>
-									{/* #1375 実機確認（2 巡目）: «店名でヒットしなかったら地図の店舗をタップ» と
-									    案内していたのに、その地図への導線がどこにも無かった。検索する前でも
-									    «地図から探す» を選べるよう、常設のボタンとしても置く */}
-									<TouchableOpacity
-										testID="sns-import-pick-on-map"
-										onPress={handleOpenMapPicker}
-										accessibilityRole="button"
-										style={styles.mapPickButton}>
-										<MapPin size={16} color="#F05537" />
-										<Text style={styles.mapPickLabel}>{i18n.t("SnsImport.sections.pickOnMap")}</Text>
-									</TouchableOpacity>
-									{!!restaurantName && (
-										<Text style={styles.selectedValue} testID="sns-import-selected-restaurant">
-											{i18n.t("SnsImport.sections.selected", { value: restaurantName })}
-										</Text>
-									)}
-								</View>
 							</>
 						)}
 					</View>
 				)}
+
+				{/* #1375 実機確認（2 巡目）: 店舗と料理カテゴリの手順は **読み取り前から常に出す**。
+				    以前は読み取り成功後にしか出なかったため、
+				    - 候補ゼロ・API 失敗のとき «選ぶ手段» ごと画面から消える
+				    - 「地図からお店を探す」導線が見えたり見えなかったりする（実機で指摘された）
+				    の 2 つが起きていた。候補チップだけが読み取り結果に依存する。
+				    並びは店舗 → 料理カテゴリ（実機指摘: 店舗を料理の上へ） */}
+				<View style={styles.card}>
+					<StepHeading step={2} title={i18n.t("SnsImport.steps.restaurant")} testID="sns-import-step-restaurant" />
+					{resolved !== null && resolved.candidates.restaurants.length > 0 && (
+						<View style={styles.chipRow}>
+							{resolved.candidates.restaurants.map((candidate) => (
+								<TouchableOpacity
+									key={candidate.restaurantId}
+									testID={`sns-import-restaurant-${candidate.restaurantId}`}
+									onPress={() => {
+										lightImpact();
+										setRestaurantId(candidate.restaurantId);
+										setRestaurantName(candidate.name);
+									}}
+									accessibilityRole="button"
+									accessibilityState={{ selected: restaurantId === candidate.restaurantId }}
+									style={[styles.chip, restaurantId === candidate.restaurantId && styles.chipSelected]}>
+									<Text style={[styles.chipLabel, restaurantId === candidate.restaurantId && styles.chipLabelSelected]}>
+										{candidate.name}
+									</Text>
+								</TouchableOpacity>
+							))}
+						</View>
+					)}
+
+					{/* 店名検索（自前 `restaurants` テーブル。Google Places Text Search /
+					    Autocomplete は呼ばない）。0 件のときは «地図から探す» を検索結果の中にも出す */}
+					<RestaurantNameSearch
+						regionRef={regionRef}
+						onSelectRestaurant={handleSelectRestaurantFromSearch}
+						emptyAction={{
+							label: i18n.t("SnsImport.sections.pickOnMap"),
+							onPress: handleOpenMapPicker,
+							testID: "sns-import-restaurant-search-map-fallback",
+						}}
+						testID="sns-import-restaurant-search"
+					/>
+					{/* «地図から探す» は検索が空振りしたときの逃げ道でもあるので、常設でも見せる */}
+					<TouchableOpacity
+						testID="sns-import-pick-on-map"
+						onPress={handleOpenMapPicker}
+						accessibilityRole="button"
+						style={styles.mapPickButton}>
+						<MapPin size={16} color="#F05537" />
+						<Text style={styles.mapPickLabel}>{i18n.t("SnsImport.sections.pickOnMap")}</Text>
+					</TouchableOpacity>
+					{!!restaurantName && (
+						<Text style={styles.selectedValue} testID="sns-import-selected-restaurant">
+							{i18n.t("SnsImport.sections.selected", { value: restaurantName })}
+						</Text>
+					)}
+				</View>
+
+				<View style={styles.card}>
+					<StepHeading step={3} title={i18n.t("SnsImport.steps.dish")} testID="sns-import-step-dish" />
+					{resolved !== null && resolved.candidates.dishCategories.length > 0 && (
+						<View style={styles.chipRow}>
+							{resolved.candidates.dishCategories.map((candidate) => (
+								<TouchableOpacity
+									key={candidate.dishCategoryId}
+									testID={`sns-import-dish-category-${candidate.dishCategoryId}`}
+									onPress={() => {
+										lightImpact();
+										setDishCategoryId(candidate.dishCategoryId);
+										setDishCategoryLabel(
+											candidate.labels?.[locale.split("-")[0]] ?? candidate.labelEn ?? candidate.dishCategoryId,
+										);
+									}}
+									accessibilityRole="button"
+									accessibilityState={{ selected: dishCategoryId === candidate.dishCategoryId }}
+									style={[styles.chip, dishCategoryId === candidate.dishCategoryId && styles.chipSelected]}>
+									<Text
+										style={[styles.chipLabel, dishCategoryId === candidate.dishCategoryId && styles.chipLabelSelected]}>
+										{candidate.labels?.[locale.split("-")[0]] ?? candidate.labelEn ?? candidate.dishCategoryId}
+									</Text>
+								</TouchableOpacity>
+							))}
+						</View>
+					)}
+
+					{/* 料理カテゴリの手入力。候補の有無に関わらず常に出す */}
+					<TextInput
+						testID="sns-import-dish-category-search-input"
+						value={dishCategoryQuery}
+						onChangeText={(text) => {
+							setDishCategoryQuery(text);
+							void searchDishCategories(text);
+						}}
+						placeholder={i18n.t("SnsImport.sections.dishCategorySearchPlaceholder")}
+						autoCapitalize="none"
+						style={styles.searchInput}
+					/>
+					{dishCategorySuggestions.length > 0 && (
+						<View style={styles.chipRow}>
+							{dishCategorySuggestions.map((suggestion) => (
+								<TouchableOpacity
+									key={suggestion.dishCategoryId}
+									testID={`sns-import-dish-category-suggestion-${suggestion.dishCategoryId}`}
+									onPress={() => handleSelectDishCategoryFromSearch(suggestion)}
+									accessibilityRole="button"
+									style={styles.chip}>
+									<Text style={styles.chipLabel}>{suggestion.label}</Text>
+								</TouchableOpacity>
+							))}
+						</View>
+					)}
+					{!!dishCategoryLabel && (
+						<Text style={styles.selectedValue} testID="sns-import-selected-dish-category">
+							{i18n.t("SnsImport.sections.selected", { value: dishCategoryLabel })}
+						</Text>
+					)}
+				</View>
 			</ScrollView>
 
 			{/* #1375 実機確認（2 巡目）: 保存はスクロールの一番下ではなく **常に見えるところ**に置く。
 			    候補と検索欄が縦に伸びる画面なので、下端に埋めると «選んだのに保存が見つからない» になる。
 			    読み取り前は出さない（押せないボタンだけが浮いていても意味が無い） */}
-			{resolved !== null && resolved.status !== "unsupported" && resolved.status !== "unavailable" && (
+			{input.trim().length > 0 && (
 				<View style={styles.footer}>
 					{!canSave && !isSaving && (
 						<Text style={styles.footerHint}>{i18n.t("SnsImport.actions.saveRequirement")}</Text>

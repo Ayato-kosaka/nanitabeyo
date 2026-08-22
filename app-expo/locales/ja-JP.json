@@ -562,7 +562,8 @@
 			"selectingMedia": "メディアを選択中...",
 			"loadingMedia": "メディアを読み込み中...",
 			"mediaSelectionFailed": "メディアの選択に失敗しました",
-			"mediaSelectionError": "メディアの選択中にエラーが発生しました。もう一度お試しください。"
+			"mediaSelectionError": "メディアの選択中にエラーが発生しました。もう一度お試しください。",
+			"replaceWithMyPhoto": "自分の写真に差し替える"
 		},
 		"noResultsFound": "結果が見つかりませんでした",
 		"accessibility": {
@@ -780,7 +781,7 @@
 			"calendar": "カレンダー"
 		},
 		"calendar": {
-			"monthLabel": "{{year}}年{{month}}月",
+			"monthLabel": "{{month}}月 {{year}}",
 			"weekdays": {
 				"sun": "日",
 				"mon": "月",
@@ -795,7 +796,6 @@
 		},
 		"map": {
 			"truncated": "件数が多いため一部のピンのみ表示しています。エリアを絞り込んでください。",
-			"zoomInHint": "ズームインしてから「このエリアで再検索」を押してください",
 			"sheetTitle": "この付近の記録 {{count}} 件"
 		},
 		"guest": {
@@ -921,7 +921,7 @@
 		"intro": "Instagram・TikTok・YouTube Shorts の投稿 URL を貼ると、料理とお店を選んで「食べたい」に保存できます。ログインは要りません。",
 		"steps": {
 			"paste": "URL を貼る",
-			"dish": "料理を選ぶ",
+			"dish": "料理カテゴリーを選ぶ",
 			"restaurant": "お店を選ぶ"
 		},
 		"pickRestaurant": {

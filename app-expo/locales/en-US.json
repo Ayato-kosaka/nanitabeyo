@@ -562,7 +562,8 @@
 			"selectingMedia": "Selecting media...",
 			"loadingMedia": "Loading media...",
 			"mediaSelectionFailed": "Failed to select media",
-			"mediaSelectionError": "An error occurred while selecting media. Please try again."
+			"mediaSelectionError": "An error occurred while selecting media. Please try again.",
+			"replaceWithMyPhoto": "Use my own photo"
 		},
 		"noResultsFound": "No results found",
 		"accessibility": {
@@ -795,7 +796,6 @@
 		},
 		"map": {
 			"truncated": "Only some pins are shown. Narrow the area to see the rest.",
-			"zoomInHint": "Zoom in before you search this area",
 			"sheetTitle": "{{count}} records nearby"
 		},
 		"guest": {
@@ -921,7 +921,7 @@
 		"intro": "Paste a post URL from Instagram, TikTok or YouTube Shorts, pick the dish and the shop, and save it to your want-to-eat shelf. No sign-in needed.",
 		"steps": {
 			"paste": "Paste the URL",
-			"dish": "Pick the dish",
+			"dish": "Pick the dish category",
 			"restaurant": "Pick the shop"
 		},
 		"pickRestaurant": {

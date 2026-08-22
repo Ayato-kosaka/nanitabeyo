@@ -14,6 +14,7 @@ import {
 	CALENDAR_WEEKDAY_KEYS,
 	buildCalendarMonths,
 	canLoadOlderMonths,
+	isoToLocalDateKey,
 	resolveDayThumbnailUrl,
 	shouldIgnoreEndReached,
 	toYearMonth,
@@ -21,6 +22,7 @@ import {
 	type CalendarMonth,
 } from "../calendar";
 import { MY_DISHES_EVENTS } from "../analytics";
+import { useMyDishesFeedScopeStore } from "../stores/useMyDishesFeedScopeStore";
 import { useMyDishesCalendarQuery } from "../hooks/useMyDishesCalendarQuery";
 
 /**
@@ -246,6 +248,14 @@ export function MyDishesCalendarView() {
 				error_level: "log",
 				payload: { date: cell.dateKey, count: cell.items.length },
 			});
+			// #1375 実機確認（2 巡目）: 縦フリックで行き来するのは **記録がある日だけ**にする。
+			// ±1 日の計算だと隣の日が空で「見つかりません」ページが挟まる。読み込み済みの
+			// 全記録から «記録がある日» の昇順を作り、遷移直前に scope store へ置く
+			// （Map がピンの並びを置くのと同じ作法）
+			const dateKeys = Array.from(
+				new Set(items.map((item) => isoToLocalDateKey(item.occurredAt)).filter((key): key is string => key !== null)),
+			).sort();
+			useMyDishesFeedScopeStore.getState().setDateKeys(dateKeys);
 			const first = cell.items.find((item) => item.dishMedia !== null) ?? cell.items[0];
 			router.push({
 				pathname: "/[locale]/(tabs)/my-dishes/feed",
@@ -258,7 +268,7 @@ export function MyDishesCalendarView() {
 				},
 			});
 		},
-		[lightImpact, locale, logFrontendEvent],
+		[items, lightImpact, locale, logFrontendEvent],
 	);
 
 	// #1396 PR4 レビュー M-1: 失敗をユーザーに伝え、手動リトライの出口を必ず UI に出す。
@@ -387,38 +397,43 @@ const styles = StyleSheet.create({
 	},
 	// #1375 実機確認: 月と月のあいだを広く取る。詰めると «どこからが次の月か» が読めない
 	month: {
-		marginBottom: 36,
+		marginBottom: 28,
 	},
-	// Instagram のストーリーアーカイブと同じく、月見出しはグリッドより一段大きく置く
+	// Instagram のストーリーズアーカイブと同じく **中央寄せ**。左寄せだと表ではなく見出しに見える
 	monthLabel: {
 		fontSize: 20,
 		fontWeight: "700",
 		color: "#111827",
-		marginBottom: 12,
+		textAlign: "center",
+		marginBottom: 14,
 	},
 	weekdayRow: {
 		flexDirection: "row",
-		marginBottom: 8,
+		marginBottom: 4,
 	},
 	weekdayLabel: {
 		flex: 1,
 		textAlign: "center",
-		fontSize: 12,
-		color: "#9CA3AF",
+		fontSize: 14,
+		color: "#6B7280",
 	},
 	weekRow: {
 		flexDirection: "row",
-		marginBottom: 6,
 	},
+	// #1375 実機確認（2 巡目）: 縦幅を詰める。正方形セル（aspectRatio: 1）だと行の高さが
+	// 列幅そのままになり縦に間延びするので、円の直径をセル幅より小さい固定値にして
+	// 行の高さもそれに合わせる
 	dayCell: {
 		flex: 1,
-		aspectRatio: 1,
-		padding: 3,
+		height: 54,
+		alignItems: "center",
+		justifyContent: "center",
 	},
 	// 円形。`borderRadius: 999` ではなく `overflow: hidden` と併せて正円にする
 	dayCircle: {
-		flex: 1,
-		borderRadius: 999,
+		width: 48,
+		height: 48,
+		borderRadius: 24,
 		overflow: "hidden",
 		alignItems: "center",
 		justifyContent: "center",
@@ -428,11 +443,12 @@ const styles = StyleSheet.create({
 		backgroundColor: "rgba(0,0,0,0.18)",
 	},
 	dayNumber: {
-		fontSize: 13,
+		fontSize: 17,
+		fontWeight: "600",
 	},
-	// 記録が無い日。円も背景も描かず、数字だけを淡く残す
+	// 記録が無い日。円も背景も描かず、数字だけを灰で残す（参考画像はかなりはっきり見える灰）
 	dayNumberEmpty: {
-		color: "#D1D5DB",
+		color: "#9CA3AF",
 	},
 	// 記録はあるがサムネイルが引けなかった日（画像 URL が無い）。数字を濃く残して押せると示す
 	dayNumberRecorded: {
@@ -449,7 +465,7 @@ const styles = StyleSheet.create({
 	},
 	countBadge: {
 		position: "absolute",
-		right: 0,
+		right: 6,
 		bottom: 0,
 		minWidth: 16,
 		paddingHorizontal: 4,

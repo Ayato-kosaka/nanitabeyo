@@ -1,31 +1,34 @@
 /*
 このファイルの責務
-- my-dishes の全画面 Feed を «画面» として提供する。
-- **縦 = 同じスコープ内の記録、横 = 前後のスコープ** という 2 軸にする（#1375 実機確認）。
-  1 スコープぶんの中身は `features/myDishes/components/MyDishesFeedPage.tsx` が描く。
+- my-dishes の全画面 Feed を «画面» として提供する。スコープごとの中身は
+  `features/myDishes/components/MyDishesFeedPage.tsx` が描く。
 
-## スコープは 2 種類
+## 軸の向きはスコープで変わる（#1375 実機確認 2 巡目）
 
-| scope | URL | 横（前後） |
+| scope | 外側（このファイルのページャ） | 内側（MyDishesFeedPage） |
 | --- | --- | --- |
-| `restaurant` | `?scope=restaurant&restaurantId=…` | 無し（1 ページのみ） |
-| `date` | `?scope=date&date=YYYY-MM-DD` | 前日 / 翌日 |
+| `restaurant` | **横** = 前後の店舗 | 縦 = その店舗の記録 |
+| `date` | **縦** = 前後の «記録がある日» | 横 = その日の記録（n/m のバーを出す） |
 
-「前後」の決め方は 2 つある。
+date が縦になったのは実機確認の指摘による。「上フリックで次の日付へ、下フリックで前の
+日付へ遡り、横で同じ日の別の投稿を見る」— Instagram のストーリーズと同じ軸である。
 
-- `date` … **計算で決まる**（前日 / 翌日）。直リンクでもアプリ内遷移でも同じ結果になる
-- `restaurant` … 決まらない。Map のピンの並びは viewport 依存で、URL にも
-  `useMyDishesFilterStore` にも入れない（§3-2: viewport を store に入れると 964MB の
-  `dish_reviews` へのクエリが pan/zoom のたびに飛ぶ。配列を URL に積むのも #1397 の
-  «URL に ids を積まない» と同じ理由で採らない）。そこで **遷移直前に並びを知っている側**
-  （Map）が `useMyDishesFeedScopeStore` へ置き、こちらはそれを読む。
-  置かれていないとき（web の直リンク・リロード）は 1 ページへ縮退する
+## «前後» の決め方
 
-## 3 ページしかマウントしない
+- `date` … **記録がある日だけ**を並べる。±1 日の計算だと隣が空で「見つかりません」の
+  ページが挟まる（実機で指摘された）。並びは Calendar が遷移直前に
+  `useMyDishesFeedScopeStore.dateKeys`（昇順）へ置く。置かれていないとき
+  （web の直リンク・リロード）は 1 日だけへ縮退する
+- `restaurant` … Map のピンの並びは viewport 依存で、URL にも `useMyDishesFilterStore` にも
+  入れない（§3-2: viewport を store に入れると 964MB の `dish_reviews` へのクエリが
+  pan/zoom のたびに飛ぶ。配列を URL に積むのも #1397 の «URL に ids を積まない» と同じ理由）。
+  Map が `useMyDishesFeedScopeStore` へ置き、こちらはそれを読む。無ければ 1 ページへ縮退
 
-`date` でも作るページは前日・当日・翌日の 3 つだけである。さらに `MyDishesFeedPage` は
-`isActive` が false の間は取得を始めない。相手は約 964MB の `dish_reviews` なので、
-「隣に来るかもしれない」だけのページのぶんまで先に投げない。
+## 取得は «前面のページだけ»
+
+`MyDishesFeedPage` は `isActive` が false の間は取得を始めない。相手は約 964MB の
+`dish_reviews` なので、「隣に来るかもしれない」だけのページのぶんまで先に投げない。
+date の全日をページとして持っても、マウントは `windowSize` が、取得は `isActive` が絞る。
 
 ## 旧 URL（`?restaurantId=` だけ）も受ける
 
@@ -44,17 +47,6 @@ import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import i18n from "@/lib/i18n";
-
-/** `YYYY-MM-DD` を日数だけずらす。ローカル日付で計算する（Calendar のマス目と揃える） */
-const shiftDate = (date: string, days: number): string | null => {
-	const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
-	if (!match) return null;
-	const [, year, month, day] = match;
-	const shifted = new Date(Number(year), Number(month) - 1, Number(day) + days);
-	if (Number.isNaN(shifted.getTime())) return null;
-	const pad = (value: number) => String(value).padStart(2, "0");
-	return `${shifted.getFullYear()}-${pad(shifted.getMonth() + 1)}-${pad(shifted.getDate())}`;
-};
 
 const firstParam = (value: string | string[] | undefined): string | null =>
 	typeof value === "string" && value.length > 0 ? value : null;
@@ -81,37 +73,33 @@ export default function MyDishesFeedScreen() {
 	// `scope` が無い旧 URL は `restaurantId` の有無で判断する
 	const scopeKind =
 		firstParam(scopeParam) === "date" || (firstParam(scopeParam) === null && date !== null) ? "date" : "restaurant";
+	// date = 縦ページャ / restaurant = 横ページャ（ファイル冒頭の表）
+	const isVerticalPager = scopeKind === "date";
 
 	const { locale } = useLocale();
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
-	const { width } = useWindowDimensions();
-	// ⚠️ 初回に読んだ並びで固定する。Map が裏で再検索して並びが変わっても、
-	// 開いている Feed のページが増減すると横スクロールの位置が飛ぶ
+	const { width, height } = useWindowDimensions();
+	// ⚠️ 初回に読んだ並びで固定する。遷移元が裏で再検索して並びが変わっても、
+	// 開いている Feed のページが増減するとスクロール位置が飛ぶ
 	const [scopeRestaurantIds] = useState<string[]>(() => useMyDishesFeedScopeStore.getState().restaurantIds);
+	const [scopeDateKeys] = useState<string[]>(() => useMyDishesFeedScopeStore.getState().dateKeys);
 
-	/**
-	 * 横に並べるスコープ。**3 ページまで**。
-	 * `date` は前日・当日・翌日、`restaurant` は当該店舗のみ。
-	 */
+	/** ページャに並べるスコープ */
 	const scopes = useMemo<MyDishesFeedScope[]>(() => {
 		if (scopeKind === "date") {
 			if (date === null) return [];
-			const previous = shiftDate(date, -1);
-			const next = shiftDate(date, 1);
-			return [
-				...(previous ? [{ kind: "date" as const, date: previous }] : []),
-				{ kind: "date" as const, date },
-				...(next ? [{ kind: "date" as const, date: next }] : []),
-			];
+			// 記録がある日だけ。Calendar が並びを置いていなければ（直リンク）1 日へ縮退する
+			const keys = scopeDateKeys.includes(date) ? scopeDateKeys : [date];
+			return keys.map((key) => ({ kind: "date" as const, date: key }));
 		}
 		if (restaurantId === null) return [];
 		// 遷移元が並びを置いていればその前後 1 件ずつ、無ければこの店舗だけ
 		const ids = scopeRestaurantIds.length > 0 ? sliceScopeWindow(scopeRestaurantIds, restaurantId) : [restaurantId];
 		return ids.map((id) => ({ kind: "restaurant" as const, restaurantId: id }));
-	}, [date, restaurantId, scopeKind, scopeRestaurantIds]);
+	}, [date, restaurantId, scopeDateKeys, scopeKind, scopeRestaurantIds]);
 
-	/** 開いた時点で前面に居るページ。前後が作れていれば真ん中（index 1） */
+	/** 開いた時点で前面に居るページ */
 	const initialScopeIndex = useMemo(() => {
 		if (scopes.length === 0) return 0;
 		const currentId =
@@ -127,10 +115,13 @@ export default function MyDishesFeedScreen() {
 
 	const [activeScopeIndex, setActiveScopeIndex] = useState(initialScopeIndex);
 	// 「開いた位置の手がかり（itemKey / dishMediaId）」は最初に開いたページにだけ渡す。
-	// 横へ動いた先で同じ id を探しても居ないので、渡すと必ず先頭へ落ちて無駄になる
+	// 別のページで同じ id を探しても居ないので、渡すと必ず先頭へ落ちて無駄になる
 	const initialScopeIdRef = useRef<string | null>(
 		scopes[initialScopeIndex] ? feedScopeId(scopes[initialScopeIndex]) : null,
 	);
+
+	// 縦ページャはページ長 = 画面高、横ページャはページ長 = 画面幅
+	const pageLength = isVerticalPager ? height : width;
 
 	const handleClose = useCallback(() => {
 		lightImpact();
@@ -150,8 +141,8 @@ export default function MyDishesFeedScreen() {
 
 	return (
 		<View style={styles.container} testID="my-dishes-feed-screen">
-			{/* ⚠️ 閉じる導線は «横スクロールの外» に 1 つだけ置くこと。ページ側に持たせると
-			    横へ動く途中で 2 つ見えるし、ここで詰まると戻る手段が無くなる
+			{/* ⚠️ 閉じる導線は «ページャの外» に 1 つだけ置くこと。ページ側に持たせると
+			    ページ間を動く途中で 2 つ見えるし、ここで詰まると戻る手段が無くなる
 			    （`restaurant/[restaurantId]/feed.tsx` と同じ判断） */}
 			<View style={{ ...styles.closeButtonContainer, top: Platform.OS === "ios" ? 40 : 0 }}>
 				<TouchableOpacity
@@ -168,24 +159,25 @@ export default function MyDishesFeedScreen() {
 				testID="my-dishes-feed-pager"
 				data={scopes}
 				keyExtractor={feedScopeId}
-				horizontal
+				horizontal={!isVerticalPager}
 				pagingEnabled
 				showsHorizontalScrollIndicator={false}
+				showsVerticalScrollIndicator={false}
 				initialScrollIndex={initialScopeIndex}
-				getItemLayout={(_data, index) => ({ length: width, offset: width * index, index })}
-				// 3 ページしか無いので windowSize は最小で足りる。取得を抑えているのは
-				// `isActive`（下）であって、こちらはマウント数を抑えるためのもの
+				getItemLayout={(_data, index) => ({ length: pageLength, offset: pageLength * index, index })}
+				// マウント数を抑える（取得を抑えるのは `isActive`。date は全日をページに持つので特に効く）
 				windowSize={3}
 				initialNumToRender={1}
 				removeClippedSubviews
 				onMomentumScrollEnd={(event) => {
-					const next = Math.round(event.nativeEvent.contentOffset.x / width);
+					const offset = isVerticalPager ? event.nativeEvent.contentOffset.y : event.nativeEvent.contentOffset.x;
+					const next = Math.round(offset / pageLength);
 					setActiveScopeIndex((prev) => (prev === next ? prev : next));
 				}}
 				renderItem={({ item, index }) => {
 					const isInitialScope = feedScopeId(item) === initialScopeIdRef.current;
 					return (
-						<View style={{ width }}>
+						<View style={isVerticalPager ? { height } : { width }}>
 							<MyDishesFeedPage
 								scope={item}
 								itemKey={isInitialScope ? itemKey : null}

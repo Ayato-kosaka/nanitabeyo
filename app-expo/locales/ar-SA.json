@@ -562,7 +562,8 @@
 			"selectingMedia": "جاري اختيار الوسائط...",
 			"loadingMedia": "جارٍ تحميل الوسائط...",
 			"mediaSelectionFailed": "فشل تحديد الوسائط",
-			"mediaSelectionError": "حدث خطأ أثناء تحديد الوسائط. يرجى المحاولة مرة أخرى."
+			"mediaSelectionError": "حدث خطأ أثناء تحديد الوسائط. يرجى المحاولة مرة أخرى.",
+			"replaceWithMyPhoto": "استخدام صورتي الخاصة"
 		},
 		"noResultsFound": "لم يتم العثور على نتائج",
 		"accessibility": {
@@ -795,7 +796,6 @@
 		},
 		"map": {
 			"truncated": "يتم عرض بعض الدبابيس فقط. يرجى تضييق نطاق المنطقة.",
-			"zoomInHint": "قم بتكبير الخريطة قبل البحث في هذه المنطقة",
 			"sheetTitle": "{{count}} سجلات قريبة"
 		},
 		"guest": {
@@ -921,7 +921,7 @@
 		"intro": "الصق رابط منشور من Instagram أو TikTok أو YouTube Shorts، ثم اختر الطبق والمطعم لحفظه في «أريد تناوله». لا حاجة لتسجيل الدخول.",
 		"steps": {
 			"paste": "الصق الرابط",
-			"dish": "اختر الطبق",
+			"dish": "اختر فئة الطبق",
 			"restaurant": "اختر المطعم"
 		},
 		"pickRestaurant": {

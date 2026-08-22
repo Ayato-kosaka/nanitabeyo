@@ -15,7 +15,7 @@ import { useLogger } from "@/hooks/useLogger";
 import i18n from "@/lib/i18n";
 import type { MyDishPin } from "@shared/api/v1/res";
 import { MY_DISHES_EVENTS, buildMapAreaPayload } from "../analytics";
-import { boundingRegionForCoordinates, isRegionTooWide, regionToArea } from "../geo";
+import { boundingRegionForCoordinates, regionToArea } from "../geo";
 import { useMyDishesFilterStore } from "../stores/useMyDishesFilterStore";
 import { useMyDishesMapPinsQuery } from "../hooks/useMyDishesMapPinsQuery";
 import { useMyDishesFeedScopeStore } from "../stores/useMyDishesFeedScopeStore";
@@ -58,14 +58,11 @@ export function MyDishesMapView() {
 	const mapRef = useRef<MapViewClass>(null);
 	// #1396 【設計】生の viewport はここにだけ置く。store には絶対に書かない（§3-2）
 	const currentRegionRef = useRef<Region>(initialRegion);
-	// #1396 M-2: ボタンのラベル（「このエリアで再検索」）と実際に確定する範囲が大きくずれる
-	// （regionToArea が MAX_AREA_RADIUS_M で clamp する）ズームレベルではボタンを無効化する。
-	// store には触れないローカル state なので §3-2 の不変条件は破らない。
-	const [isTooWide, setIsTooWide] = useState(() => isRegionTooWide(initialRegion));
-
+	// #1375 実機確認（2 巡目）: 「ズームインしてから…」の注意文とボタン無効化は廃止した。
+	// 広すぎる表示域では `regionToArea` が MAX_AREA_RADIUS_M（50km）へ黙って丸める。
+	// 「押せない理由を説明する」より「押したら常識的な範囲で動く」方が短い
 	const handleRegionChangeComplete = useCallback((region: Region) => {
 		currentRegionRef.current = region;
-		setIsTooWide(isRegionTooWide(region));
 	}, []);
 
 	// #1396 【設計】store（= queryKey）を書く唯一の口。ボタン押下時にのみ呼ばれる
@@ -186,17 +183,9 @@ export function MyDishesMapView() {
 						shadowColor="transparent"
 						labelStyle={{ color: "#357AFF", fontSize: 14 }}
 						loading={showButtonLoading}
-						disabled={isTooWide}
 						loadingIndicatorType="native"
 						nativeLoadingColor="#357AFF"
 					/>
-					{/* #1396 M-2: 既定 viewport（REGION_JP）のまま押すと MAX_AREA_RADIUS_M へ
-						clamp され、ボタンのラベルと確定する範囲が大きくずれるためズームを促す */}
-					{isTooWide && (
-						<Text style={styles.zoomHintText} testID="my-dishes-map-zoom-hint">
-							{i18n.t("MyDishes.map.zoomInHint")}
-						</Text>
-					)}
 				</View>
 				{/* #1375 実機確認: 「このエリアで絞り込み中」の帯は廃止した。
 				    Map ではエリア＝いま見えている viewport そのもので、地図を動かせば
@@ -223,7 +212,13 @@ export function MyDishesMapView() {
 
 			{/* #1375 実機確認: Map 下部の常設シート。いま出ているピンを横に並べ、押すと Feed へ行く。
 			    データは `useMyDishesMapPinsQuery` が返すピンをそのまま使う（新しい API は増やさない） */}
-			<MyDishesMapSheet pins={pins} onSelectPin={handlePinPress} />
+			{/* #1375 実機確認（2 巡目）: 帯を上へ引き上げたら、先頭のピンから Feed を開く
+			    （タイルを押したときと同じ経路。並びも同じものを置く） */}
+			<MyDishesMapSheet
+				pins={pins}
+				onSelectPin={handlePinPress}
+				onSwipeUp={pins.length > 0 ? () => handlePinPress(pins[0]) : undefined}
+			/>
 		</View>
 	);
 }
@@ -251,14 +246,6 @@ const styles = StyleSheet.create({
 	searchButtonContainer: {
 		marginTop: 12,
 		alignItems: "center",
-	},
-	zoomHintText: {
-		marginTop: 6,
-		fontSize: 12,
-		color: "#111827",
-		textAlign: "center",
-		textShadowColor: "rgba(255,255,255,0.9)",
-		textShadowRadius: 4,
 	},
 	truncatedBanner: {
 		marginTop: 8,

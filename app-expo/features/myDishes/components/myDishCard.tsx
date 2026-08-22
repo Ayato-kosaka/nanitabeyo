@@ -147,8 +147,9 @@ const styles = StyleSheet.create({
 		paddingVertical: 2,
 		borderRadius: 10,
 	},
+	// #1375 実機確認（2 巡目）: 食べたい = 緑。「まだ行っていない（Go）」の意で青から変えた
 	statusWant: {
-		backgroundColor: "rgba(59,130,246,0.9)",
+		backgroundColor: "rgba(22,163,74,0.9)",
 	},
 	statusEaten: {
 		backgroundColor: "rgba(240,85,55,0.9)",

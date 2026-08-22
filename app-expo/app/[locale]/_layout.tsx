@@ -157,6 +157,13 @@ export default function RootLayout() {
 														<ErrorBoundary onRetry={() => router.replace("/")}>
 															<Stack screenOptions={{ header: () => null }}>
 																<Stack.Screen name="(tabs)" options={{ header: () => null }} />
+																{/* #1375 実機確認（2 巡目）: ＋ からの取り込みは iOS ネイティブのシート
+																    （背後の画面が縮む pageSheet）で出す。下スワイプで閉じるのは
+																    ネイティブのジェスチャに任せる（自前 PanResponder は web の保険） */}
+																<Stack.Screen
+																	name="sns-import"
+																	options={{ presentation: "modal", header: () => null }}
+																/>
 																<Stack.Screen name="+not-found" />
 															</Stack>
 														</ErrorBoundary>

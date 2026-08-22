@@ -45,6 +45,9 @@ interface DishMediaFeedProps {
 	entriesKey: string;
 	// ID の種類（dish_media / dish_reviews）
 	idType: IdType;
+	// #1375 横ページングにする（my-dishes の日付 Feed 用）。既定 false = 従来どおり縦。
+	// 既存の呼び出し元（検索結果・店舗・通知・投稿）は渡さないので挙動は変わらない
+	horizontal?: boolean;
 }
 
 // --- 本体 --------------------------------------------------------------------
@@ -54,6 +57,7 @@ export default function DishMediaFeed({
 	getTitle,
 	entriesKey,
 	idType,
+	horizontal = false,
 }: DishMediaFeedProps) {
 	const selector = useCallback(
 		(state: DishMediaEntriesStore) => selectIdsByKey(entriesKey, idType)(state),
@@ -69,7 +73,10 @@ export default function DishMediaFeed({
 	}, [liveIds, ids.length]);
 
 	// #802 【責務分離】Feed は ids とページング制御だけを担い、背景画像 preload の最小購読は hook に閉じる。
-	const backgroundImagesSessionKey = useMemo(() => `${entriesKey}::${idType}::${ids.join(",")}`, [entriesKey, idType, ids]);
+	const backgroundImagesSessionKey = useMemo(
+		() => `${entriesKey}::${idType}::${ids.join(",")}`,
+		[entriesKey, idType, ids],
+	);
 	// TODO(#802): 現在は ids 全件を background image preload 対象にしている。
 	// Android では Google Place photo の大きい画像を複数同時に取得すると Glide 側で timeout することがある。
 	// 根本対応としては currentIndex 周辺の数件だけを preload する方式を検討する。
@@ -84,6 +91,10 @@ export default function DishMediaFeed({
 
 	// 実レイアウト高（SafeArea等込み）: onLayout で初回確定
 	const [pageHeight, setPageHeight] = useState(0);
+	// #1375 横ページング時のページ幅。縦のときは使わない
+	const [pageWidth, setPageWidth] = useState(0);
+	// ページ 1 枚ぶんのスクロール量。横なら幅、縦なら高さ
+	const pageLength = horizontal ? pageWidth : pageHeight;
 
 	// initialIndex を常に範囲内へ
 	const clampedInitialIndex = useMemo(() => clampIndex(initialIndex, ids.length), [initialIndex, ids.length]);
@@ -123,14 +134,14 @@ export default function DishMediaFeed({
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
-	// --- getItemLayout（高さ=画面高を提供; 初期スクロール安定化の要） --------
+	// --- getItemLayout（ページ長=画面高 or 画面幅; 初期スクロール安定化の要） --------
 	const getItemLayout = useMemo(
 		() => (_: ArrayLike<string> | null | undefined, index: number) => ({
-			length: pageHeight ?? 0,
-			offset: (pageHeight ?? 0) * index,
+			length: pageLength ?? 0,
+			offset: (pageLength ?? 0) * index,
 			index,
 		}),
-		[pageHeight],
+		[pageLength],
 	);
 
 	// --- viewability 閾値（90%以上を“表示中”とみなす） -----------------------
@@ -169,8 +180,8 @@ export default function DishMediaFeed({
 	// --- renderItem（再レンダを抑制：pageHeight にのみ依存） -------------------
 	const renderItem = useCallback(
 		({ item, index }: ListRenderItemInfo<string>) => (
-			// 各ページは厳密に画面高に合わせる
-			<View style={{ height: Math.max(1, pageHeight) }}>
+			// 各ページは厳密に画面サイズに合わせる（横のときは幅も固定しないとページングが崩れる）
+			<View style={{ height: Math.max(1, pageHeight), ...(horizontal ? { width: Math.max(1, pageWidth) } : {}) }}>
 				<DishMediaContent
 					id={item}
 					isActive={index === currentIndex}
@@ -182,7 +193,7 @@ export default function DishMediaFeed({
 				/>
 			</View>
 		),
-		[pageHeight, currentIndex, getTitle, entriesKey, idType, getBackgroundImageState],
+		[pageHeight, pageWidth, horizontal, currentIndex, getTitle, entriesKey, idType, getBackgroundImageState],
 	);
 
 	return (
@@ -192,9 +203,11 @@ export default function DishMediaFeed({
 			onLayout={(e) => {
 				const h = Math.max(1, Math.floor(e.nativeEvent.layout.height));
 				if (h !== pageHeight) setPageHeight(h);
+				const w = Math.max(1, Math.floor(e.nativeEvent.layout.width));
+				if (w !== pageWidth) setPageWidth(w);
 			}}>
-			{/* pageHeight が確定するまでは描画を遅延（初期スクロール不発を防止） */}
-			{pageHeight > 0 ? (
+			{/* ページ寸法が確定するまでは描画を遅延（初期スクロール不発を防止） */}
+			{pageLength > 0 && pageHeight > 0 ? (
 				!!isLoading ? (
 					<View style={styles.centerContainer}>
 						<LoadingIndicator size="large" />
@@ -206,8 +219,9 @@ export default function DishMediaFeed({
 					</View>
 				) : ids.length > 0 ? (
 					<FlatList
-						// pageHeight が変わったときはリマウントさせたいため key を付ける
-						key={`${entriesKey}-${pageHeight}`}
+						// ページ寸法が変わったときはリマウントさせたいため key を付ける
+						key={`${entriesKey}-${pageLength}`}
+						horizontal={horizontal}
 						ref={listRef}
 						data={ids}
 						renderItem={renderItem}

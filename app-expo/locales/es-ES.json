@@ -562,7 +562,8 @@
 			"selectingMedia": "Seleccionando medios...",
 			"loadingMedia": "Cargando medios...",
 			"mediaSelectionFailed": "Error al seleccionar medios",
-			"mediaSelectionError": "Ocurrió un error al seleccionar medios. Por favor intenta de nuevo."
+			"mediaSelectionError": "Ocurrió un error al seleccionar medios. Por favor intenta de nuevo.",
+			"replaceWithMyPhoto": "Usar mi propia foto"
 		},
 		"noResultsFound": "No se encontraron resultados",
 		"accessibility": {
@@ -795,7 +796,6 @@
 		},
 		"map": {
 			"truncated": "Solo se muestran algunos pines. Reduce el área de búsqueda.",
-			"zoomInHint": "Acerca el mapa antes de buscar en esta zona",
 			"sheetTitle": "{{count}} registros cerca"
 		},
 		"guest": {
@@ -921,7 +921,7 @@
 		"intro": "Pega la URL de una publicación de Instagram, TikTok o YouTube Shorts, elige el plato y el local, y guárdalo en «quiero comer». No hace falta iniciar sesión.",
 		"steps": {
 			"paste": "Pega la URL",
-			"dish": "Elige el plato",
+			"dish": "Elige la categoría del plato",
 			"restaurant": "Elige el local"
 		},
 		"pickRestaurant": {

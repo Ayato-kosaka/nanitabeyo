@@ -562,7 +562,8 @@
 			"selectingMedia": "मीडिया चयन कर रहे हैं...",
 			"loadingMedia": "मीडिया लोड हो रहा है...",
 			"mediaSelectionFailed": "मीडिया चयन विफल रहा",
-			"mediaSelectionError": "मीडिया का चयन करते समय एक त्रुटि हुई। कृपया पुनः प्रयास करें।"
+			"mediaSelectionError": "मीडिया का चयन करते समय एक त्रुटि हुई। कृपया पुनः प्रयास करें।",
+			"replaceWithMyPhoto": "अपनी फ़ोटो इस्तेमाल करें"
 		},
 		"noResultsFound": "No results found",
 		"accessibility": {
@@ -795,7 +796,6 @@
 		},
 		"map": {
 			"truncated": "कुछ ही पिन दिखाए जा रहे हैं। कृपया क्षेत्र सीमित करें।",
-			"zoomInHint": "इस क्षेत्र में फिर से खोजने से पहले ज़ूम इन करें",
 			"sheetTitle": "आस-पास {{count}} रिकॉर्ड"
 		},
 		"guest": {
@@ -921,7 +921,7 @@
 		"intro": "Instagram, TikTok या YouTube Shorts की पोस्ट का URL चिपकाएँ, फिर व्यंजन और दुकान चुनकर उसे “खाना चाहते हैं” में सहेजें। लॉगिन ज़रूरी नहीं।",
 		"steps": {
 			"paste": "URL चिपकाएँ",
-			"dish": "व्यंजन चुनें",
+			"dish": "व्यंजन श्रेणी चुनें",
 			"restaurant": "दुकान चुनें"
 		},
 		"pickRestaurant": {

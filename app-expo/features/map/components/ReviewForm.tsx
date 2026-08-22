@@ -170,10 +170,20 @@ export function ReviewForm({
 	useEffect(() => {
 		logFrontendEventRef.current = logFrontendEvent;
 	}, [logFrontendEvent]);
-	const prefilledMediaRef = useRef(prefilledMedia);
+	/**
+	 * #1375 実機確認（2 巡目）: prefilledMedia モード（食べたを記録）でも **自分の写真に
+	 * 差し替えられる**ようにする。true になった時点で prefilled を捨てて通常の
+	 * メディア選択フローへ切り替わる（submit も «自分でアップロードする» 分岐を通る）。
+	 * 差し替え後にピッカーをキャンセルすると「写真なし」へ落ちる（B2 のキャンセル分岐）。
+	 * 元の投稿写真へ戻す UI は持たない — その場合は画面を開き直せばよい。
+	 */
+	const [useOwnMedia, setUseOwnMedia] = useState(false);
+	const effectivePrefilledMedia = useOwnMedia ? undefined : prefilledMedia;
+
+	const prefilledMediaRef = useRef(effectivePrefilledMedia);
 	useEffect(() => {
-		prefilledMediaRef.current = prefilledMedia;
-	}, [prefilledMedia]);
+		prefilledMediaRef.current = effectivePrefilledMedia;
+	}, [effectivePrefilledMedia]);
 	/**
 	 * #1398 B2 `runMediaSelection` は `useCallback([])` で identity を固定してあるため、
 	 * 新しい prop も他と同じくラッチ経由で読む（依存配列へ足すと #1127 の欠陥が戻る）。
@@ -428,12 +438,12 @@ export function ReviewForm({
 	 * **`handleSetMediaState` が実際に読むフィールド**（id / media_type / mediaUrl /
 	 * thumbnailImageUrl）を突き合わせる。ここに項目を足したら本キーにも足すこと。
 	 */
-	const prefilledMediaKey = prefilledMedia
+	const prefilledMediaKey = effectivePrefilledMedia
 		? JSON.stringify([
-				prefilledMedia.id,
-				prefilledMedia.media_type,
-				prefilledMedia.mediaUrl,
-				prefilledMedia.thumbnailImageUrl,
+				effectivePrefilledMedia.id,
+				effectivePrefilledMedia.media_type,
+				effectivePrefilledMedia.mediaUrl,
+				effectivePrefilledMedia.thumbnailImageUrl,
 			])
 		: null;
 
@@ -640,7 +650,7 @@ export function ReviewForm({
 					},
 				});
 				dishId = createDishResponse.id;
-			} else if (!prefilledMedia) {
+			} else if (!effectivePrefilledMedia) {
 				if (mediaState.media.durationSec === undefined && mediaState.media.type === "video") {
 					logFrontendEvent({
 						event_name: "video_duration_missing",
@@ -709,9 +719,9 @@ export function ReviewForm({
 				};
 				dishId = dish_media.dish_id;
 			} else {
-				// prefilleMedia が指定されている場合は、それを利用
-				dish_media = prefilledMedia;
-				dish = prefilledMedia.dish;
+				// prefilledMedia が指定されている場合は、それを利用
+				dish_media = effectivePrefilledMedia;
+				dish = effectivePrefilledMedia.dish;
 				dishId = dish_media.dish_id;
 			}
 
@@ -906,7 +916,25 @@ export function ReviewForm({
 							</Text>
 						</Pressable>
 					) : (
-						<InitialMediaPreview media={mediaState.media} />
+						<View style={styles.previewWrap}>
+							<InitialMediaPreview media={mediaState.media} />
+							{/* #1375 実機確認（2 巡目）: 食べたを記録（prefilledMedia モード）でも
+							    自分で撮った写真に差し替えられる入口を出す */}
+							{effectivePrefilledMedia !== undefined && (
+								<TouchableOpacity
+									testID="review-replace-with-my-photo"
+									style={styles.replacePhotoButton}
+									onPress={() => {
+										lightImpact();
+										setUseOwnMedia(true);
+									}}
+									accessibilityRole="button"
+									accessibilityLabel={i18n.t("Map.media.replaceWithMyPhoto")}>
+									<ImagePlus size={14} color="#FFFFFF" />
+									<Text style={styles.replacePhotoLabel}>{i18n.t("Map.media.replaceWithMyPhoto")}</Text>
+								</TouchableOpacity>
+							)}
+						</View>
 					)}
 				</View>
 				<View style={styles.formContainer}>
@@ -1301,6 +1329,26 @@ const styles = StyleSheet.create({
 	// #1441 N-1 【レビュー対応】window 高 667pt（iPhone SE 等）では枠の高さが 81px しか無く、
 	// 旧サイズ（アイコン 40 + gap 8 + 16px タイトル + gap 8 + 13px ヒント ≒ 91px）だとはみ出していた。
 	// アイコンと余白を縮め、`flexShrink` も添えて小型端末でも収まるようにする
+	previewWrap: {
+		flex: 1,
+	},
+	replacePhotoButton: {
+		position: "absolute",
+		right: 8,
+		bottom: 8,
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 4,
+		paddingHorizontal: 10,
+		paddingVertical: 6,
+		borderRadius: 14,
+		backgroundColor: "rgba(17,24,39,0.7)",
+	},
+	replacePhotoLabel: {
+		fontSize: 11,
+		fontWeight: "700",
+		color: "#FFFFFF",
+	},
 	noMediaPlaceholder: {
 		flex: 1,
 		flexShrink: 1,

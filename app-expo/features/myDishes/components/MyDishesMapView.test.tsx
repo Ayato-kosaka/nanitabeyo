@@ -411,44 +411,30 @@ describe("#1396 n-1 「このエリアで再検索」ボタンのローディン
 });
 
 /**
- * #1396 レビュー M-2: 既定 viewport（`REGION_JP` = 日本全体）のまま「このエリアで再検索」を
- * 押すと、`regionToArea` が `MAX_AREA_RADIUS_M`（50km）へ clamp し、ボタンのラベルと実際に
- * 確定する範囲が大きくずれる（東京・大阪の記録が圏外になる）。clamp されるズームレベルでは
- * ボタンを無効化し、ズームを促すヒントを出す。
+ * #1375 実機確認（2 巡目）: 「ズームインしてから…」の無効化・ヒントは廃止した。
+ * 広すぎる表示域では `regionToArea` が MAX_AREA_RADIUS_M（50km）へ黙って丸める。
+ * ここでは «どのズームでも押せる» ことと «ヒントが出ない» ことを固定する（戻したら失敗する）。
  */
-describe("#1396 M-2 既定 viewport では「このエリアで再検索」を無効化する", () => {
-	it("マウント直後（REGION_JP 相当の初期 viewport）はボタンが無効でヒントが出る", async () => {
+describe("#1375 「このエリアで再検索」はどのズームでも押せる", () => {
+	it("既定 viewport（日本全体）でもボタンは押せて、ヒントは出ない", async () => {
 		const tree = await render();
 
 		const button = tree.root.find((node) => node.props?.testID === "my-dishes-search-this-area");
-		expect(button.props.disabled).toBe(true);
-		expect(tree.root.findAll((node) => node.props?.testID === "my-dishes-map-zoom-hint").length).toBeGreaterThan(0);
-	});
-
-	it("ズームインした region へ pan すると有効化されヒントが消える", async () => {
-		const tree = await render();
-
-		act(() => {
-			regionChangeHandler?.({ latitude: 35.5, longitude: 139.5, latitudeDelta: 0.02, longitudeDelta: 0.02 });
-		});
-
-		const button = tree.root.find((node) => node.props?.testID === "my-dishes-search-this-area");
-		expect(button.props.disabled).toBe(false);
+		expect(button.props.disabled).toBeFalsy();
 		expect(tree.root.findAll((node) => node.props?.testID === "my-dishes-map-zoom-hint").length).toBe(0);
 	});
 
-	it("ズームインした後、再びズームアウトすると無効化に戻る", async () => {
+	it("押すと 50km へ clamp されたエリアが確定する", async () => {
 		const tree = await render();
 
-		act(() => {
-			regionChangeHandler?.({ latitude: 35.5, longitude: 139.5, latitudeDelta: 0.02, longitudeDelta: 0.02 });
-		});
-		act(() => {
-			regionChangeHandler?.({ latitude: 36.2048, longitude: 138.2529, latitudeDelta: 20, longitudeDelta: 20 });
+		const button = tree.root.find((node) => node.props?.testID === "my-dishes-search-this-area");
+		await act(async () => {
+			button.props.onPress();
 		});
 
-		const button = tree.root.find((node) => node.props?.testID === "my-dishes-search-this-area");
-		expect(button.props.disabled).toBe(true);
+		const area = useMyDishesFilterStore.getState().filter.area;
+		expect(area).not.toBeNull();
+		expect(area!.radius).toBeLessThanOrEqual(50_000);
 	});
 });
 

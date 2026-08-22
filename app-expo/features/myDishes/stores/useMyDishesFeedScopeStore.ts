@@ -19,25 +19,34 @@
 viewport 由来の並びが横スクロールに出てくるのは事故である。store が空のときは
 Feed 側が «1 ページだけ» へ縮退する。
 
-## 日付スコープはここを使わない
+## 日付スコープ（#1375 実機確認 2 巡目で方針転換）
 
-前後の日は計算で決まる（`my-dishes/feed.tsx` の `shiftDate`）。計算で出せるものを
-store 経由にすると、直リンクとアプリ内遷移で挙動が変わる。
+以前は «前後の日は計算で決まる（±1 日）» としていたが、隣の日に記録が無いと
+「見つかりません」の空ページが挟まる、という指摘を受けた。縦フリックで行き来するのは
+**記録がある日だけ**にしたいので、Calendar が知っている «記録がある日付の並び» を
+店舗 id と同じ作法でここへ置く（昇順 = 古 → 新）。
+store が空のとき（web の直リンク・リロード）は Feed 側が 1 日だけへ縮退する。
 */
 import { createWithEqualityFn } from "zustand/traditional";
 
 export type MyDishesFeedScopeStore = {
 	/** 順序付きの店舗 id。空なら «並びは分からない»（Feed は 1 ページへ縮退する） */
 	restaurantIds: string[];
+	/** 記録がある日付（YYYY-MM-DD）の昇順。空なら «並びは分からない»（Feed は 1 日へ縮退する） */
+	dateKeys: string[];
 	/** 遷移直前に置く。呼ぶのは Map / 一覧のように «並びを知っている» 側だけ */
 	setRestaurantIds: (restaurantIds: string[]) => void;
+	/** 遷移直前に置く。呼ぶのは Calendar のように «記録がある日を知っている» 側だけ */
+	setDateKeys: (dateKeys: string[]) => void;
 	clear: () => void;
 };
 
 export const useMyDishesFeedScopeStore = createWithEqualityFn<MyDishesFeedScopeStore>()((set) => ({
 	restaurantIds: [],
+	dateKeys: [],
 	setRestaurantIds: (restaurantIds) => set({ restaurantIds }),
-	clear: () => set({ restaurantIds: [] }),
+	setDateKeys: (dateKeys) => set({ dateKeys }),
+	clear: () => set({ restaurantIds: [], dateKeys: [] }),
 }));
 
 /**

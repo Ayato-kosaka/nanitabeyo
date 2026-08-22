@@ -22,8 +22,8 @@ Issue が想定していたのは «地図を眺めながら、下の帯で記�
 画像が無いときは店舗の画像 → 何も無ければ店名だけのタイルへ落とす
 （一覧・Calendar と同じ «灰色プレースホルダーにしない» 方針。#1375 追補2 決定3）。
 */
-import React, { memo, useCallback } from "react";
-import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import React, { memo, useCallback, useMemo, useRef } from "react";
+import { FlatList, PanResponder, Pressable, StyleSheet, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { getCacheKeyForImage } from "@/lib/image";
 import i18n from "@/lib/i18n";
@@ -64,17 +64,47 @@ const PinTile = memo(function PinTile({ pin, onPress }: { pin: MyDishPin; onPres
 	);
 });
 
-export function MyDishesMapSheet({ pins, onSelectPin }: { pins: MyDishPin[]; onSelectPin: (pin: MyDishPin) => void }) {
+export function MyDishesMapSheet({
+	pins,
+	onSelectPin,
+	onSwipeUp,
+}: {
+	pins: MyDishPin[];
+	onSelectPin: (pin: MyDishPin) => void;
+	/** #1375 実機確認（2 巡目）: 帯を上へ引き上げたら Feed へ行く */
+	onSwipeUp?: () => void;
+}) {
 	const renderItem = useCallback(
 		({ item }: { item: MyDishPin }) => <PinTile pin={item} onPress={onSelectPin} />,
 		[onSelectPin],
+	);
+
+	// PanResponder は 1 度だけ作る（毎レンダー作り直すとジェスチャが途中で切れる）
+	const onSwipeUpRef = useRef(onSwipeUp);
+	onSwipeUpRef.current = onSwipeUp;
+	const SWIPE_UP_DISTANCE = 48;
+	const swipeUpGesture = useMemo(
+		() =>
+			PanResponder.create({
+				// 上方向のドラッグだけを拾う。横はタイルの FlatList スクロールに渡す
+				onMoveShouldSetPanResponder: (_event, gesture) =>
+					gesture.dy < -8 && Math.abs(gesture.dy) > Math.abs(gesture.dx),
+				onPanResponderRelease: (_event, gesture) => {
+					if (gesture.dy < -SWIPE_UP_DISTANCE) onSwipeUpRef.current?.();
+				},
+			}),
+		[],
 	);
 
 	// ピンが 0 件のときは帯ごと出さない。空の帯が地図を隠すだけになる
 	if (pins.length === 0) return null;
 
 	return (
-		<View style={styles.container} testID="my-dishes-map-sheet" pointerEvents="box-none">
+		<View
+			style={styles.container}
+			testID="my-dishes-map-sheet"
+			pointerEvents="box-none"
+			{...swipeUpGesture.panHandlers}>
 			<View style={styles.handle} />
 			<Text style={styles.title}>{i18n.t("MyDishes.map.sheetTitle", { count: pins.length })}</Text>
 			<FlatList
