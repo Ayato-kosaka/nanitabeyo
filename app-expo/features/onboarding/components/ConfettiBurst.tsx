@@ -32,6 +32,8 @@ import Animated, {
 	useAnimatedStyle,
 	useSharedValue,
 	withDelay,
+	withRepeat,
+	withSequence,
 	withTiming,
 	type SharedValue,
 } from "react-native-reanimated";
@@ -47,6 +49,16 @@ const BURSTS = [
 const PIECES_PER_BURST = 28;
 /** 落下の強さ（進捗の 2 乗に掛かる px 数） */
 const GRAVITY_PX = 300;
+
+/**
+ * 1 周期の長さ。最終検収で «1 回で終わらせず無限ループに» が確定した。
+ *
+ * 最も遅い粒（delay 720+140ms + duration 2000ms = 2860ms）が舞い終わってから
+ * ひと呼吸置いて次の «パンパンパン» が始まるよう、少し余白を持たせてある。
+ * ⚠️ 全粒でこの共通周期に揃えること。粒ごとの周期（delay+duration）でループさせると
+ * 位相がずれていき、バーストの「パンッ」というまとまりが数周で溶けて消える。
+ */
+const CYCLE_MS = 3400;
 
 /**
  * 紙片の形。長方形だけだと «単調»（デザインレビューで指摘）なので、
@@ -128,13 +140,23 @@ function ConfettiPiece({ config }: { config: PieceConfig }) {
 	const progress: SharedValue<number> = useSharedValue(0);
 
 	useEffect(() => {
-		progress.value = withDelay(
-			config.delayMs,
-			withTiming(1, {
-				duration: config.durationMs,
-				// 出だしが速く、飛んだ先で減速する。`パンッ` はこの立ち上がりの速さで決まる
-				easing: Easing.out(Easing.quad),
-			}),
+		// 舞い終わった粒（t=1 で opacity 0）は周期の残り時間だけ待ち、瞬時に 0 へ戻って次の周へ。
+		// 全粒が CYCLE_MS の共通周期を持つので、バーストのリズムは何周しても崩れない
+		const restMs = Math.max(0, CYCLE_MS - config.delayMs - config.durationMs);
+		progress.value = withRepeat(
+			withSequence(
+				withDelay(
+					config.delayMs,
+					withTiming(1, {
+						duration: config.durationMs,
+						// 出だしが速く、飛んだ先で減速する。`パンッ` はこの立ち上がりの速さで決まる
+						easing: Easing.out(Easing.quad),
+					}),
+				),
+				withDelay(restMs, withTiming(0, { duration: 1 })),
+			),
+			-1,
+			false,
 		);
 	}, [config.delayMs, config.durationMs, progress]);
 

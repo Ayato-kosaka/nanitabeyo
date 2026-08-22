@@ -34,6 +34,20 @@ import type { PermissionOutcome, PermissionPromptState } from "../permissions";
 const MINIMUM_VISIBLE_MS = 1400;
 
 /**
+ * «ダイアログを出さずに即答された» とみなす猶予。
+ *
+ * probe（permissions.query 等）が `prompt` を返しても、実際に要求すると **ダイアログを
+ * 出さずに即座に拒否が返る**環境がある（プライベートブラウジング、OS レベルで位置情報が
+ * 切られている端末など）。probe を信じて説明画面を描くと「一瞬出てすぐ消える」が再発する
+ *（実機検収で再報告された）ので、要求を先に投げ、この猶予内に答えが返ったら
+ * **回答済みと同じ扱い**にして描画せずに次へ進む。
+ *
+ * 人間がダイアログを読んで答えるのに 400ms では足りないため、
+ * 本当にダイアログが出ている場合をここで取り違えることはない。
+ */
+const INSTANT_SETTLE_GRACE_MS = 400;
+
+/**
  * 万一 OS からの応答が返ってこなかったときの保険。
  *
  * ここに引っかかるのは「ダイアログが出たまま応答が来ない」ときだけで、通常は先に答えが返る。
@@ -79,7 +93,8 @@ export function OnboardingPermissionScreen({
 }: OnboardingPermissionScreenProps) {
 	// 進行は 1 回だけ。応答とタイムアウトが競っても二重に遷移させない
 	const hasSettledRef = useRef(false);
-	// probe が「これから尋ねられる」と言うまでは何も描かない（回答済みの人に一瞬見せない）
+	// probe が「これから尋ねられる」と言い、かつ要求が即答で返らなかった（= ダイアログが
+	// 本当に出ている）ことが確認できるまでは何も描かない（回答済みの人に一瞬見せない）
 	const [isAskable, setIsAskable] = useState(false);
 	const [outcome, setOutcome] = useState<PermissionOutcome | null>(null);
 
@@ -126,13 +141,27 @@ export function OnboardingPermissionScreen({
 				return;
 			}
 
-			setIsAskable(true);
+			// #1486 §5 【設計】「画面表示と同時に許可ダイアログを表示する」ため要求を先に投げる。
+			// ただし probe が `prompt` と言っても即答で返る環境がある（上の GRACE 定数のコメント参照）
+			// ので、猶予内に答えが返ったら説明を描かずにそのまま次へ進む
+			const requestPromise = requestRef.current();
+			const GRACE = Symbol("grace");
+			const early = await Promise.race([
+				requestPromise,
+				new Promise<typeof GRACE>((resolve) => setTimeout(() => resolve(GRACE), INSTANT_SETTLE_GRACE_MS)),
+			]);
+			if (!isActive) return;
+			if (early !== GRACE) {
+				settle(early);
+				return;
+			}
 
-			// #1486 §5 【設計】「画面表示と同時に許可ダイアログを表示する」。
+			// ダイアログが本当に出ている。ここで初めて説明画面を描画する。
 			// 応答待ちと最低表示時間を **並行で** 走らせ、両方が済んでから次へ進む。
 			// 直列（表示 → 待つ → 要求）にすると、ダイアログが出るまでの間だけ説明が浮いて見える
+			setIsAskable(true);
 			const elapsed = new Promise<void>((resolve) => setTimeout(resolve, MINIMUM_VISIBLE_MS));
-			const result = await requestRef.current();
+			const result = await requestPromise;
 			if (isActive) setOutcome(result);
 			await elapsed;
 			settle(result);

@@ -30,18 +30,19 @@ export function OnboardingStepIndicator({ currentIndex, accessibilityLabel, test
 const styles = StyleSheet.create({
 	badge: {
 		alignSelf: "center",
-		width: 44,
-		height: 44,
+		// 最終検収で «もう少し小さく» の指摘。44 → 34
+		width: 34,
+		height: 34,
 		alignItems: "center",
 		justifyContent: "center",
 		backgroundColor: "#F05537",
 		// 正円ではなく squircle 気味の角丸にして «バッジ» らしさを出す（参考デザインの形）
-		borderRadius: 16,
+		borderRadius: 12,
 		// 45° 回転させたひし形シルエット。中の数字は逆回転で水平に戻す
 		transform: [{ rotate: "45deg" }],
 	},
 	number: {
-		fontSize: 20,
+		fontSize: 16,
 		fontWeight: "700",
 		color: "#FFFFFF",
 		transform: [{ rotate: "-45deg" }],
