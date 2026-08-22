@@ -655,7 +655,8 @@
 		},
 		"accessibility": {
 			"clearNameSearch": "Borrar búsqueda por nombre de restaurante"
-		}
+		},
+		"unsavedHint": "También puedes elegir locales que no has guardado: escribe su nombre en el buscador de arriba o toca su icono en el mapa."
 	},
 	"Feedback": {
 		"title": "Enviar Comentarios/Reporte de Errores",
@@ -789,13 +790,11 @@
 				"sat": "Sáb"
 			},
 			"dayA11yLabel": "{{date}} ({{count}} registros)",
-			"periodActive": "Filtrado por fecha",
 			"reachedOldest": "Has llegado al registro más antiguo"
 		},
 		"map": {
 			"truncated": "Solo se muestran algunos pines. Reduce el área de búsqueda.",
 			"zoomInHint": "Acerca el mapa antes de buscar en esta zona",
-			"areaActive": "Filtrando por zona",
 			"sheetTitle": "{{count}} registros cerca"
 		},
 		"guest": {
@@ -816,11 +815,13 @@
 			"status": {
 				"title": "Estado",
 				"want": "Quiero comer",
-				"eaten": "Comido"
+				"eaten": "Comido",
+				"description": "Elige qué registros mostrar: guardados (quiero comer) o ya comidos"
 			},
 			"rating": {
 				"title": "Valoración",
-				"min": "{{count}} estrellas o más"
+				"min": "{{count}} estrellas o más",
+				"description": "Filtra tus registros de «ya comido» por la valoración que diste"
 			},
 			"sort": {
 				"title": "Ordenar por",
@@ -829,13 +830,15 @@
 				"ratingDesc": "Mejor valorados",
 				"distance": "Más cercanos",
 				"distanceRequiresArea": "Ordenar por cercanía requiere un área. Usa \"Buscar en esta zona\" en el mapa.",
-				"featureScoreDesc": "Elegir condiciones"
+				"featureScoreDesc": "Elegir condiciones",
+				"description": "Elige el orden. Toca «Elegir condiciones» para abrir franja horaria, con quién vas y más"
 			},
 			"area": {
 				"title": "Zona",
 				"none": "Cualquier zona",
 				"clear": "Quitar zona",
-				"hint": "La zona se fija con \"Buscar en esta zona\" en el mapa."
+				"hint": "La zona se fija con \"Buscar en esta zona\" en el mapa.",
+				"selected": "Zona elegida en el mapa (radio {{radius}})"
 			},
 			"axes": {
 				"none": "Sin especificar",
@@ -843,7 +846,8 @@
 				"scene": "Con quién vas",
 				"budget": "Rango de precio",
 				"diningPace": "Tiempo para comer",
-				"foodStyle": "Tipo de comida"
+				"foodStyle": "Tipo de comida",
+				"description": "Toca un título para abrir sus opciones. Una opción por título"
 			},
 			"period": {
 				"title": "Periodo",
@@ -906,11 +910,23 @@
 			"dishCategory": "Plato",
 			"restaurant": "Restaurante",
 			"dishCategorySearchPlaceholder": "Buscar platos (2+ caracteres)",
-			"selected": "Seleccionado: {{value}}"
+			"selected": "Seleccionado: {{value}}",
+			"pickOnMap": "Buscar el local en el mapa"
 		},
 		"save": {
 			"done": "Guardado en Quiero comer",
 			"failed": "No se pudo guardar"
+		},
+		"intro": "Pega la URL de una publicación de Instagram, TikTok o YouTube Shorts, elige el plato y el local, y guárdalo en «quiero comer». No hace falta iniciar sesión.",
+		"steps": {
+			"paste": "Pega la URL",
+			"dish": "Elige el plato",
+			"restaurant": "Elige el local"
+		},
+		"pickRestaurant": {
+			"title": "Elegir un local en el mapa",
+			"hint": "Toca el icono de un local en el mapa o búscalo arriba. Al elegirlo volverás a la pantalla de importación.",
+			"done": "Has elegido «{{name}}»"
 		}
 	}
 }

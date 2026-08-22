@@ -28,6 +28,13 @@ export type RestaurantNameSearchProps = {
 	regionRef: React.RefObject<Region>;
 	/** 検索結果の1件が押されたときのハンドラ（店舗詳細への遷移は呼び出し元が担う） */
 	onSelectRestaurant: (result: RestaurantSearchResult) => void;
+	/**
+	 * #1375 実機確認: 0 件だったときの逃げ道。文言（`nameSearch.noResults`）は
+	 * 「地図の店舗をタップしてお店を登録してください」と言っているのに、呼び出し元によっては
+	 * **その地図がどこにも無かった**。案内だけ置いて導線が無い状態を作らないよう、
+	 * 0 件・失敗のときに押せるボタンをここへ差せるようにする。
+	 */
+	emptyAction?: { label: string; onPress: () => void; testID?: string };
 	testID?: string;
 };
 
@@ -38,7 +45,12 @@ export type RestaurantNameSearchProps = {
  *
  * `LocationAutocomplete`（場所検索）とは別の入力欄として独立させている。混同・置き換えはしない。
  */
-export function RestaurantNameSearch({ regionRef, onSelectRestaurant, testID = "restaurant-name-search" }: RestaurantNameSearchProps) {
+export function RestaurantNameSearch({
+	regionRef,
+	onSelectRestaurant,
+	emptyAction,
+	testID = "restaurant-name-search",
+}: RestaurantNameSearchProps) {
 	const [query, setQuery] = useState("");
 	const [results, setResults] = useState<RestaurantSearchResult[]>([]);
 	const [status, setStatus] = useState<SearchStatus>("idle");
@@ -221,14 +233,32 @@ export function RestaurantNameSearch({ regionRef, onSelectRestaurant, testID = "
 					)}
 
 					{status === "empty" && (
-						<View style={styles.centerRow}>
+						<View style={styles.centerColumn}>
 							<Text style={styles.emptyText}>{i18n.t("SelectRestaurant.nameSearch.noResults")}</Text>
+							{emptyAction ? (
+								<TouchableOpacity
+									onPress={emptyAction.onPress}
+									accessibilityRole="button"
+									style={styles.emptyActionButton}
+									testID={emptyAction.testID ?? `${testID}-empty-action`}>
+									<Text style={styles.emptyActionLabel}>{emptyAction.label}</Text>
+								</TouchableOpacity>
+							) : null}
 						</View>
 					)}
 
 					{status === "error" && (
-						<View style={styles.centerRow}>
+						<View style={styles.centerColumn}>
 							<Text style={styles.emptyText}>{i18n.t("SelectRestaurant.nameSearch.error")}</Text>
+							{emptyAction ? (
+								<TouchableOpacity
+									onPress={emptyAction.onPress}
+									accessibilityRole="button"
+									style={styles.emptyActionButton}
+									testID={`${emptyAction.testID ?? `${testID}-empty-action`}-error`}>
+									<Text style={styles.emptyActionLabel}>{emptyAction.label}</Text>
+								</TouchableOpacity>
+							) : null}
 						</View>
 					)}
 				</View>
@@ -297,6 +327,25 @@ const styles = StyleSheet.create({
 		fontSize: 16,
 		color: "#1A1A1A",
 		fontWeight: "600",
+	},
+	// 0 件・失敗のときは «説明 + 逃げ道のボタン» を縦に積むので、行ではなく列にする
+	centerColumn: {
+		alignItems: "center",
+		justifyContent: "center",
+		gap: 12,
+		paddingVertical: 20,
+		paddingHorizontal: 16,
+	},
+	emptyActionButton: {
+		paddingHorizontal: 16,
+		paddingVertical: 10,
+		borderRadius: 16,
+		backgroundColor: "#FDE7E1",
+	},
+	emptyActionLabel: {
+		fontSize: 13,
+		fontWeight: "700",
+		color: "#F05537",
 	},
 	centerRow: {
 		flexDirection: "row",

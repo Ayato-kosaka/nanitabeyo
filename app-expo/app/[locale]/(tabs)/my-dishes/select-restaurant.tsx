@@ -466,19 +466,23 @@ export default function SelectRestaurantScreen() {
 					}}
 				/>
 
-				{/* #1375 実機確認: 検索窓はエリア検索の 1 本だけにする。
+				{/* #1375 実機確認: 検索窓は 1 本だけにする。
 				    以前は #1398 PR6 の店名検索（自前 restaurants テーブル）と、この
-				    エリア検索の 2 本が縦に並んでいて、どちらに何を打てばよいか分からなかった。
-				    エリアを選ぶ → そのエリアで保存済みの店舗が下の Sheet に出る、という 1 本道にする
-				    （`handleAutocompleteSelect` が地図移動と `searchSavedRestaurants` を続けて行う）。
-				    店名検索の部品自体（`RestaurantNameSearch`）は消していない */}
+				    Places の検索の 2 本が縦に並んでいて、どちらに何を打てばよいか分からなかった。
+				    店名検索の部品自体（`RestaurantNameSearch`）は消していない。
+
+				    ⚠️ この 1 本は «エリア専用» ではない（2 巡目の指摘「保存してないお店が見れない」）。
+				    `handleAutocompleteSelect` は候補が飲食店なら `createAndOpenRestaurant` へ、
+				    そうでなければ地図移動 +（そのエリアの）保存済み検索へ振り分ける。つまり
+				    **店名を打てば未保存の店もそのまま選べる**。プレースホルダを「エリアで検索」に
+				    していたせいでその道が隠れていたので、「店名やエリアで検索」に戻す */}
 				<View style={styles.searchContainer}>
 					<LocationAutocomplete
 						value={searchQuery}
 						onChangeText={setSearchQuery}
 						onSelectSuggestion={handleAutocompleteSelect}
 						onClear={() => setSearchQuery("")}
-						placeholder={i18n.t("Map.placeholders.searchAreaForReview")}
+						placeholder={i18n.t("Map.placeholders.searchRestaurantsForReview")}
 						renderInputRight={
 							<TouchableOpacity
 								style={styles.currentLocationButton}

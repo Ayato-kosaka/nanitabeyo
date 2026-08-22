@@ -2,7 +2,6 @@ import React, { memo, useCallback, useMemo, useRef } from "react";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { router } from "expo-router";
-import { X } from "lucide-react-native";
 import { EmptyState } from "@/components/EmptyState";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { PrimaryButton } from "@/components/PrimaryButton";
@@ -98,26 +97,41 @@ const DayCell = memo(function DayCell({ cell, onPress }: { cell: CalendarDayCell
 			accessibilityRole="button"
 			accessibilityState={{ disabled: count === 0 }}
 			accessibilityLabel={i18n.t("MyDishes.calendar.dayA11yLabel", { date: cell.dateKey, count })}>
-			<View style={styles.dayInner}>
-				{thumbnailUrl ? (
-					<Image
-						source={{ uri: thumbnailUrl, cacheKey: getCacheKeyForImage(thumbnailUrl) }}
-						cachePolicy="memory-disk"
-						transition={100}
-						style={StyleSheet.absoluteFill}
-						contentFit="cover"
-						alt=""
-						accessibilityElementsHidden
-						importantForAccessibility="no"
-					/>
-				) : null}
-				<Text style={[styles.dayNumber, thumbnailUrl ? styles.dayNumberOnImage : null]}>{cell.day}</Text>
-				{count > 1 && (
-					<View style={styles.countBadge}>
-						<Text style={styles.countBadgeText}>{count}</Text>
+			{/* #1375 実機確認: 記録が無い日は «空の器» を描かない。Instagram のストーリーアーカイブと
+			    同じく、日付の数字だけが淡く残る。記録がある日だけが円形のサムネイルとして浮き上がるので、
+			    「どの日に記録があるか」が一目でわかる（以前は全日が同じ灰色の角丸で埋まっていた） */}
+			{thumbnailUrl ? (
+				<>
+					<View style={styles.dayCircle}>
+						<Image
+							source={{ uri: thumbnailUrl, cacheKey: getCacheKeyForImage(thumbnailUrl) }}
+							cachePolicy="memory-disk"
+							transition={100}
+							style={StyleSheet.absoluteFill}
+							contentFit="cover"
+							alt=""
+							accessibilityElementsHidden
+							importantForAccessibility="no"
+						/>
+						{/* 画像の上に数字を直接置くと明るい写真で読めなくなるので、薄い暗幕を敷く */}
+						<View style={styles.dayScrim} />
+						<Text style={[styles.dayNumber, styles.dayNumberOnImage]}>{cell.day}</Text>
 					</View>
-				)}
-			</View>
+					{/* ⚠️ 件数バッジは **円の外（セル側）**に置く。円は `overflow: "hidden"` の丸マスクなので、
+					    中に置くと角が欠けて半月状に切れる（実 UI レビューで発見） */}
+					{count > 1 && (
+						<View style={styles.countBadge}>
+							<Text style={styles.countBadgeText}>{count}</Text>
+						</View>
+					)}
+				</>
+			) : (
+				<View style={styles.dayCircle}>
+					<Text style={[styles.dayNumber, count > 0 ? styles.dayNumberRecorded : styles.dayNumberEmpty]}>
+						{cell.day}
+					</Text>
+				</View>
+			)}
 		</Pressable>
 	);
 });
@@ -368,47 +382,62 @@ const styles = StyleSheet.create({
 		justifyContent: "center",
 	},
 	listContent: {
-		paddingHorizontal: 12,
-		paddingVertical: 8,
+		paddingHorizontal: 16,
+		paddingVertical: 12,
 	},
+	// #1375 実機確認: 月と月のあいだを広く取る。詰めると «どこからが次の月か» が読めない
 	month: {
-		marginBottom: 20,
+		marginBottom: 36,
 	},
+	// Instagram のストーリーアーカイブと同じく、月見出しはグリッドより一段大きく置く
 	monthLabel: {
-		fontSize: 15,
+		fontSize: 20,
 		fontWeight: "700",
-		color: "#1A1A1A",
-		marginBottom: 8,
+		color: "#111827",
+		marginBottom: 12,
 	},
 	weekdayRow: {
 		flexDirection: "row",
-		marginBottom: 4,
+		marginBottom: 8,
 	},
 	weekdayLabel: {
 		flex: 1,
 		textAlign: "center",
-		fontSize: 10,
+		fontSize: 12,
 		color: "#9CA3AF",
 	},
 	weekRow: {
 		flexDirection: "row",
+		marginBottom: 6,
 	},
 	dayCell: {
 		flex: 1,
 		aspectRatio: 1,
-		padding: 1,
+		padding: 3,
 	},
-	dayInner: {
+	// 円形。`borderRadius: 999` ではなく `overflow: hidden` と併せて正円にする
+	dayCircle: {
 		flex: 1,
-		borderRadius: 4,
+		borderRadius: 999,
 		overflow: "hidden",
-		backgroundColor: "#F3F4F6",
 		alignItems: "center",
 		justifyContent: "center",
 	},
+	dayScrim: {
+		...StyleSheet.absoluteFillObject,
+		backgroundColor: "rgba(0,0,0,0.18)",
+	},
 	dayNumber: {
-		fontSize: 11,
-		color: "#6B7280",
+		fontSize: 13,
+	},
+	// 記録が無い日。円も背景も描かず、数字だけを淡く残す
+	dayNumberEmpty: {
+		color: "#D1D5DB",
+	},
+	// 記録はあるがサムネイルが引けなかった日（画像 URL が無い）。数字を濃く残して押せると示す
+	dayNumberRecorded: {
+		color: "#111827",
+		fontWeight: "700",
 	},
 	dayNumberOnImage: {
 		color: "#FFFFFF",
@@ -420,12 +449,13 @@ const styles = StyleSheet.create({
 	},
 	countBadge: {
 		position: "absolute",
-		right: 2,
-		bottom: 2,
-		minWidth: 14,
-		paddingHorizontal: 3,
-		borderRadius: 7,
-		backgroundColor: "rgba(17,24,39,0.75)",
+		right: 0,
+		bottom: 0,
+		minWidth: 16,
+		paddingHorizontal: 4,
+		paddingVertical: 1,
+		borderRadius: 8,
+		backgroundColor: "rgba(17,24,39,0.85)",
 		alignItems: "center",
 	},
 	countBadgeText: {
@@ -457,24 +487,6 @@ const styles = StyleSheet.create({
 	footerErrorText: {
 		fontSize: 13,
 		color: "#B91C1C",
-		textAlign: "center",
-	},
-	// #1446 m-1: PR4 で Map に入れた「エリアで絞り込み中 + 解除」の帯と同じ形
-	periodActiveBanner: {
-		marginTop: 8,
-		marginHorizontal: 24,
-		paddingHorizontal: 12,
-		paddingVertical: 8,
-		borderRadius: 8,
-		backgroundColor: "rgba(53, 122, 255, 0.9)",
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "center",
-		gap: 8,
-	},
-	periodActiveText: {
-		fontSize: 12,
-		color: "#FFFFFF",
 		textAlign: "center",
 	},
 });

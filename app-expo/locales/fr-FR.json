@@ -655,7 +655,8 @@
 		},
 		"accessibility": {
 			"clearNameSearch": "Effacer la recherche par nom de restaurant"
-		}
+		},
+		"unsavedHint": "Vous pouvez aussi choisir un établissement non enregistré : saisissez son nom dans la recherche ci-dessus ou touchez son icône sur la carte."
 	},
 	"Feedback": {
 		"title": "Envoyer Commentaires/Rapport de Bug",
@@ -789,13 +790,11 @@
 				"sat": "Sam"
 			},
 			"dayA11yLabel": "{{date}} ({{count}} enregistrements)",
-			"periodActive": "Filtré par date",
 			"reachedOldest": "Vous avez atteint le plus ancien enregistrement"
 		},
 		"map": {
 			"truncated": "Seuls certains repères sont affichés. Réduisez la zone de recherche.",
 			"zoomInHint": "Zoomez avant de rechercher dans cette zone",
-			"areaActive": "Filtré par zone",
 			"sheetTitle": "{{count}} enregistrements à proximité"
 		},
 		"guest": {
@@ -816,11 +815,13 @@
 			"status": {
 				"title": "Statut",
 				"want": "À goûter",
-				"eaten": "Goûté"
+				"eaten": "Goûté",
+				"description": "Choisissez les enregistrements à afficher : envies ou déjà mangés"
 			},
 			"rating": {
 				"title": "Note",
-				"min": "{{count}} étoiles et plus"
+				"min": "{{count}} étoiles et plus",
+				"description": "Filtrez vos plats déjà mangés selon la note que vous avez donnée"
 			},
 			"sort": {
 				"title": "Trier par",
@@ -829,13 +830,15 @@
 				"ratingDesc": "Les mieux notés",
 				"distance": "Les plus proches",
 				"distanceRequiresArea": "Le tri par distance nécessite une zone. Utilisez « Rechercher dans cette zone » sur la carte.",
-				"featureScoreDesc": "Choisir des critères"
+				"featureScoreDesc": "Choisir des critères",
+				"description": "Choisissez l’ordre. Touchez « Choisir des critères » pour ouvrir le moment, avec qui vous y allez, etc."
 			},
 			"area": {
 				"title": "Zone",
 				"none": "Partout",
 				"clear": "Effacer la zone",
-				"hint": "La zone se définit avec « Rechercher dans cette zone » sur la carte."
+				"hint": "La zone se définit avec « Rechercher dans cette zone » sur la carte.",
+				"selected": "Zone choisie sur la carte (rayon {{radius}})"
 			},
 			"axes": {
 				"none": "Non spécifié",
@@ -843,7 +846,8 @@
 				"scene": "Avec qui",
 				"budget": "Gamme de prix",
 				"diningPace": "Temps du repas",
-				"foodStyle": "Type de cuisine"
+				"foodStyle": "Type de cuisine",
+				"description": "Touchez un titre pour ouvrir ses options. Une option par titre"
 			},
 			"period": {
 				"title": "Période",
@@ -906,11 +910,23 @@
 			"dishCategory": "Plat",
 			"restaurant": "Restaurant",
 			"dishCategorySearchPlaceholder": "Rechercher un plat (2+ caractères)",
-			"selected": "Sélectionné : {{value}}"
+			"selected": "Sélectionné : {{value}}",
+			"pickOnMap": "Trouver l’établissement sur la carte"
 		},
 		"save": {
 			"done": "Enregistré dans Envies",
 			"failed": "Enregistrement impossible"
+		},
+		"intro": "Collez l’URL d’une publication Instagram, TikTok ou YouTube Shorts, choisissez le plat et l’établissement, puis enregistrez-le dans vos envies. Aucune connexion requise.",
+		"steps": {
+			"paste": "Collez l’URL",
+			"dish": "Choisissez le plat",
+			"restaurant": "Choisissez l’établissement"
+		},
+		"pickRestaurant": {
+			"title": "Choisir un établissement sur la carte",
+			"hint": "Touchez l’icône d’un établissement sur la carte, ou cherchez ci-dessus. Une fois choisi, vous revenez à l’écran d’import.",
+			"done": "« {{name}} » sélectionné"
 		}
 	}
 }

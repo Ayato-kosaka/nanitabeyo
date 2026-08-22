@@ -655,7 +655,8 @@
 		},
 		"accessibility": {
 			"clearNameSearch": "店名検索の入力をクリア"
-		}
+		},
+		"unsavedHint": "保存していないお店も選べます。上の検索にお店の名前を入れるか、地図のお店アイコンをタップしてください。"
 	},
 	"Feedback": {
 		"title": "ご意見・不具合を送る",
@@ -789,13 +790,11 @@
 				"sat": "土"
 			},
 			"dayA11yLabel": "{{date}}（{{count}}件）",
-			"periodActive": "期間で絞り込み中",
 			"reachedOldest": "これ以上さかのぼれません"
 		},
 		"map": {
 			"truncated": "件数が多いため一部のピンのみ表示しています。エリアを絞り込んでください。",
 			"zoomInHint": "ズームインしてから「このエリアで再検索」を押してください",
-			"areaActive": "エリアで絞り込み中",
 			"sheetTitle": "この付近の記録 {{count}} 件"
 		},
 		"guest": {
@@ -816,11 +815,13 @@
 			"status": {
 				"title": "状態",
 				"want": "食べたい",
-				"eaten": "食べた"
+				"eaten": "食べた",
+				"description": "「食べたい」と「食べた」のどちらを棚に出すかを選びます"
 			},
 			"rating": {
 				"title": "評価",
-				"min": "★{{count}}以上"
+				"min": "★{{count}}以上",
+				"description": "「食べた」記録を、自分が付けた評価で絞り込みます"
 			},
 			"sort": {
 				"title": "並び替え",
@@ -829,13 +830,15 @@
 				"ratingDesc": "評価の高い順",
 				"distance": "近い順",
 				"distanceRequiresArea": "近い順にはエリアの指定が必要です。マップで「このエリアで再検索」してください。",
-				"featureScoreDesc": "条件を選ぶ"
+				"featureScoreDesc": "条件を選ぶ",
+				"description": "並び順を選びます。「条件を選ぶ」を押すと、時間帯や誰と行くなどの条件が開きます"
 			},
 			"area": {
 				"title": "エリア",
 				"none": "指定なし（すべて）",
 				"clear": "エリアを解除",
-				"hint": "エリアはマップの「このエリアで再検索」で確定します。"
+				"hint": "エリアはマップの「このエリアで再検索」で確定します。",
+				"selected": "マップで選んだ範囲（半径 {{radius}}）"
 			},
 			"axes": {
 				"none": "指定なし",
@@ -843,7 +846,8 @@
 				"scene": "誰と行く",
 				"budget": "価格帯",
 				"diningPace": "食事にかける時間",
-				"foodStyle": "どんな系統"
+				"foodStyle": "どんな系統",
+				"description": "見出しを押すと選択肢が開きます。1 つの見出しにつき 1 つまで選べます"
 			},
 			"period": {
 				"title": "期間",
@@ -906,11 +910,23 @@
 			"dishCategory": "料理",
 			"restaurant": "店舗",
 			"dishCategorySearchPlaceholder": "料理名で検索（2文字以上）",
-			"selected": "選択中: {{value}}"
+			"selected": "選択中: {{value}}",
+			"pickOnMap": "地図からお店を探す"
 		},
 		"save": {
 			"done": "食べたいに保存しました",
 			"failed": "保存できませんでした"
+		},
+		"intro": "Instagram・TikTok・YouTube Shorts の投稿 URL を貼ると、料理とお店を選んで「食べたい」に保存できます。ログインは要りません。",
+		"steps": {
+			"paste": "URL を貼る",
+			"dish": "料理を選ぶ",
+			"restaurant": "お店を選ぶ"
+		},
+		"pickRestaurant": {
+			"title": "地図からお店を選ぶ",
+			"hint": "地図のお店アイコンをタップするか、上の検索でお店を探してください。選ぶと取り込み画面に戻ります。",
+			"done": "「{{name}}」を選びました"
 		}
 	}
 }

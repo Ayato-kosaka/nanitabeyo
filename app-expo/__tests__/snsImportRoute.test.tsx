@@ -16,13 +16,19 @@ import React, { act } from "react";
 import TestRenderer from "react-test-renderer";
 
 const mockBack = jest.fn();
+const mockPush = jest.fn();
+/**
+ * `useFocusEffect` に渡された最新のコールバック。
+ * 「別画面へ行って戻ってきた」を再現するために、テストから明示的に呼ぶ。
+ */
+const mockFocusEffects: { current: (() => void | (() => void)) | null } = { current: null };
 const mockReplace = jest.fn();
 let mockCanGoBack = true;
 let mockParams: { locale: string; url?: string } = { locale: "ja-JP" };
 
 jest.mock("expo-router", () => {
 	const stub = {
-		push: () => {},
+		push: (href: unknown) => mockPush(href),
 		replace: (href: string) => mockReplace(href),
 		back: () => mockBack(),
 		canGoBack: () => mockCanGoBack,
@@ -32,6 +38,14 @@ jest.mock("expo-router", () => {
 		useRouter: () => stub,
 		useLocalSearchParams: () => mockParams,
 		useGlobalSearchParams: () => mockParams,
+		// #1375 実機確認: 画面が «地図で選んだお店» を focus 時に受け取るようになったので、
+		// このスタブにも `useFocusEffect` が要る。React の `useEffect` と同じ意味で十分
+		// （このテストにナビゲーションの出入りは無い）
+		useFocusEffect: (effect: () => void | (() => void)) => {
+			mockFocusEffects.current = effect;
+			// eslint-disable-next-line react-hooks/rules-of-hooks
+			require("react").useEffect(effect, [effect]);
+		},
 	};
 });
 
@@ -85,6 +99,7 @@ jest.mock("react-native-paper", () => ({
 }));
 
 import SnsImportScreen from "../app/[locale]/sns-import";
+import { usePickedRestaurantStore } from "../features/restaurantPicker/stores/usePickedRestaurantStore";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -122,6 +137,7 @@ afterEach(() => {
 		});
 	});
 	mockCanGoBack = true;
+	mockPush.mockClear();
 });
 
 describe("貼り付け欄（#1375 実機確認: ＋ の基本導線）", () => {
@@ -318,5 +334,76 @@ describe("#1375 取り込みは «候補ゼロでも保存に到達できる»",
 		// 候補が 0 件でも «選ぶ手段» が画面に在ること。これが無いと保存へ到達できない
 		expect(has(tree, "sns-import-dish-category-search-input")).toBe(true);
 		expect(has(tree, "sns-import-restaurant-search")).toBe(true);
+	});
+});
+
+/**
+ * #1375 実機確認（2 巡目）: 「店舗検索してヒットしなかったら地図の店舗をタップ、とあるのに
+ * その導線がない」への回帰テスト。
+ *
+ * 店名検索（自前 `restaurants`）が空振りしたときの案内文
+ * （`SelectRestaurant.nameSearch.noResults`）は «地図の店舗をタップしてお店を登録してください»
+ * と言っているのに、この画面には地図が無く、地図を持つルートへの入口も無かった。
+ * ここで固定するのは 2 つ。
+ *
+ * 1. 地図へ行くボタンが **検索する前から** 出ていて、押すと地図ルートへ push される
+ * 2. 地図で選んだ結果が focus 時に取り込まれ、選択済みとして表示される
+ */
+describe("#1375 店名検索が空振りしたときの «地図から探す»", () => {
+	const resolveWithNoCandidates = async () => {
+		mockCallBackend.mockResolvedValue({
+			status: "unknown",
+			reason: "metadata_provider_unsupported",
+			source: { provider: "instagram", externalContentId: "1", canonicalUrl: "https://x", mediaIndex: null },
+			metadata: { title: null, authorName: null, authorUrl: null, thumbnailUrl: null, extractedTexts: [] },
+			candidates: { dishCategories: [], restaurants: [] },
+			prefill: { dishCategoryId: null, restaurantId: null },
+			restaurantSearch: { performed: false, reason: "no_extracted_text", scannedCount: 0 },
+		});
+
+		const tree = await render();
+		const input = tree.root.find((node) => node.props?.testID === "sns-import-url-input");
+		await act(async () => {
+			input.props.onChangeText("https://www.instagram.com/reel/ABCdef12345/");
+		});
+		const button = tree.root.find((node) => node.props?.testID === "sns-import-resolve-button");
+		await act(async () => {
+			await button.props.onPress();
+		});
+		return tree;
+	};
+
+	it("「地図から探す」が出ていて、押すと地図ルートへ push される", async () => {
+		const tree = await resolveWithNoCandidates();
+
+		expect(has(tree, "sns-import-pick-on-map")).toBe(true);
+
+		const mapButton = tree.root.find((node) => node.props?.testID === "sns-import-pick-on-map");
+		await act(async () => {
+			mapButton.props.onPress();
+		});
+
+		expect(mockPush).toHaveBeenCalledWith(
+			expect.objectContaining({ pathname: "/[locale]/sns-import-pick-restaurant" }),
+		);
+	});
+
+	it("地図で選んだお店は、画面へ戻ったときに選択済みとして反映される", async () => {
+		const tree = await resolveWithNoCandidates();
+		// 読み取った直後は «選択中» が無い（この後の表示が focus で入ったものだと言い切るため）
+		expect(has(tree, "sns-import-selected-restaurant")).toBe(false);
+
+		// 地図ルートが結果を置いて `router.back()` した、の再現。
+		// 戻り先（この画面）はマウントされたままなので、focus のたびに受け取りに行く
+		usePickedRestaurantStore.getState().setPicked({ restaurantId: "r-1", name: "選んだ店" });
+		await act(async () => {
+			mockFocusEffects.current?.();
+		});
+
+		// ⚠️ 文言は i18n をキー返しにモックしてあるので «店名そのもの» は出ない。
+		// ここで見たいのは「選択済みの行が立つこと」と「store が空になること」である
+		expect(has(tree, "sns-import-selected-restaurant")).toBe(true);
+		// 受け取ったら捨てる（次に開いたときに «前回の選択» が黙って復活しない）
+		expect(usePickedRestaurantStore.getState().picked).toBeNull();
 	});
 });

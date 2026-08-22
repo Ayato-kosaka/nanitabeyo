@@ -284,6 +284,12 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 						{/* #1126 ネイティブのグラバーは draggable の切り替えで点滅するため、Android では自前で描画する */}
 						{GATES_SHEET_DRAG ? <View style={styles.grabber} /> : null}
 						<Text style={styles.savedRestaurantsTitle}>{i18n.t("SelectRestaurant.savedRestaurantList")}</Text>
+						{/* #1375 実機確認: このシートに出るのは «保存済みの店» だけなので、
+						    保存していない店を選ぶ道が無いように見えていた。実際は上の検索に店名を打つか
+						    地図の店アイコンを押せば選べる。その 2 本を、常に見えるところに書いておく */}
+						<Text style={styles.headerHint} testID="saved-restaurants-sheet-unsaved-hint">
+							{i18n.t("SelectRestaurant.unsavedHint")}
+						</Text>
 					</View>
 				}
 				onDetentChange={handleDetentChange}>
@@ -386,7 +392,10 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 						</>
 					) : (
 						// 空状態（ローディング完了後、データなし）
-						<Text style={styles.emptyStateText}>{i18n.t("SelectRestaurant.noSavedRestaurantsInArea")}</Text>
+						<>
+							<Text style={styles.emptyStateText}>{i18n.t("SelectRestaurant.noSavedRestaurantsInArea")}</Text>
+							<Text style={styles.emptyStateText}>{i18n.t("SelectRestaurant.unsavedHint")}</Text>
+						</>
 					)}
 				</SheetGestureRoot>
 			</TrueSheet>
@@ -525,6 +534,12 @@ const styles = StyleSheet.create({
 		fontWeight: "600",
 		color: "#1A1A1A",
 		marginBottom: 8,
+	},
+	headerHint: {
+		fontSize: 12,
+		color: "#6B7280",
+		lineHeight: 17,
+		marginTop: 4,
 	},
 	emptyStateText: {
 		fontSize: 14,

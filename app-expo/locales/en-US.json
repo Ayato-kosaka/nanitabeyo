@@ -655,7 +655,8 @@
 		},
 		"accessibility": {
 			"clearNameSearch": "Clear restaurant name search"
-		}
+		},
+		"unsavedHint": "You can pick shops you haven’t saved too. Type the shop name in the search above, or tap a shop icon on the map."
 	},
 	"Feedback": {
 		"title": "Send Feedback/Bug Report",
@@ -789,13 +790,11 @@
 				"sat": "Sat"
 			},
 			"dayA11yLabel": "{{date}} ({{count}} records)",
-			"periodActive": "Filtered by date",
 			"reachedOldest": "You've reached the oldest record"
 		},
 		"map": {
 			"truncated": "Only some pins are shown. Narrow the area to see the rest.",
 			"zoomInHint": "Zoom in before you search this area",
-			"areaActive": "Filtering by area",
 			"sheetTitle": "{{count}} records nearby"
 		},
 		"guest": {
@@ -816,11 +815,13 @@
 			"status": {
 				"title": "Status",
 				"want": "Want to eat",
-				"eaten": "Eaten"
+				"eaten": "Eaten",
+				"description": "Choose which records to show: saved (want to eat) or eaten"
 			},
 			"rating": {
 				"title": "Rating",
-				"min": "{{count}} stars & up"
+				"min": "{{count}} stars & up",
+				"description": "Filter your eaten records by the rating you gave"
 			},
 			"sort": {
 				"title": "Sort by",
@@ -829,13 +830,15 @@
 				"ratingDesc": "Highest rated",
 				"distance": "Nearest",
 				"distanceRequiresArea": "Sorting by distance needs an area. Use \"Search this area\" on the map.",
-				"featureScoreDesc": "Pick conditions"
+				"featureScoreDesc": "Pick conditions",
+				"description": "Pick the order. Tap “Choose conditions” to open time of day, who you go with, and more"
 			},
 			"area": {
 				"title": "Area",
 				"none": "Anywhere",
 				"clear": "Clear area",
-				"hint": "The area is set with \"Search this area\" on the map."
+				"hint": "The area is set with \"Search this area\" on the map.",
+				"selected": "Area you picked on the map (radius {{radius}})"
 			},
 			"axes": {
 				"none": "Any",
@@ -843,7 +846,8 @@
 				"scene": "Who you go with",
 				"budget": "Price range",
 				"diningPace": "Time to spend",
-				"foodStyle": "Style"
+				"foodStyle": "Style",
+				"description": "Tap a heading to open its choices. One choice per heading"
 			},
 			"period": {
 				"title": "Period",
@@ -906,11 +910,23 @@
 			"dishCategory": "Dish",
 			"restaurant": "Restaurant",
 			"dishCategorySearchPlaceholder": "Search dishes (2+ characters)",
-			"selected": "Selected: {{value}}"
+			"selected": "Selected: {{value}}",
+			"pickOnMap": "Find the shop on the map"
 		},
 		"save": {
 			"done": "Saved to Want to eat",
 			"failed": "Could not save"
+		},
+		"intro": "Paste a post URL from Instagram, TikTok or YouTube Shorts, pick the dish and the shop, and save it to your want-to-eat shelf. No sign-in needed.",
+		"steps": {
+			"paste": "Paste the URL",
+			"dish": "Pick the dish",
+			"restaurant": "Pick the shop"
+		},
+		"pickRestaurant": {
+			"title": "Pick a shop on the map",
+			"hint": "Tap a shop icon on the map, or search above. Picking one brings you back to the import screen.",
+			"done": "Picked “{{name}}”"
 		}
 	}
 }

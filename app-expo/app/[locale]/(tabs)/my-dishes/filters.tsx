@@ -148,16 +148,23 @@ function Chip({
 	);
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
 	return (
 		<View style={styles.section}>
-			{/* #1375 実機確認: 空文字を渡した節は見出しを描かない。
-			    「絞り込み」「並び替え」のように、チップを見れば分かる見出しは出さない */}
+			{/* #1375 実機確認（2 巡目）: 見出しは «小さく» するが、**消さない**。
+			    1 巡目で「絞り込み」「並び替え」のラベルを丸ごと落としたところ、チップだけが
+			    3 段並ぶ画面になり «何をすればいいのか分からない» という指摘になった。
+			    見出し（何の話か）＋ 1 行の説明（押すとどうなるか）を必ず添える */}
 			{title.length > 0 && <Text style={styles.sectionTitle}>{title}</Text>}
+			{description ? <Text style={styles.sectionDescription}>{description}</Text> : null}
 			<View style={styles.chipRow}>{children}</View>
 		</View>
 	);
 }
+
+/** エリアの半径を «読める単位» にする。1km 以上は km、それ未満は m */
+export const formatAreaRadius = (radiusMeters: number): string =>
+	radiusMeters >= 1000 ? `${(radiusMeters / 1000).toFixed(1)}km` : `${Math.round(radiusMeters)}m`;
 
 /**
  * 「押したらプルダウンで選択肢が出る」行。RN に素の select が無いので折りたたみで表す。
@@ -349,8 +356,9 @@ export default function MyDishesFiltersScreen() {
 			/>
 
 			<ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-				{/* #1375 実機確認: 「絞り込み」「並び替え」のラベルは出さない。チップだけで意味が通る */}
-				<Section title="">
+				<Section
+					title={i18n.t("MyDishes.filters.status.title")}
+					description={i18n.t("MyDishes.filters.status.description")}>
 					{(["want", "eaten"] as const).map((status) => (
 						<Chip
 							key={status}
@@ -366,7 +374,9 @@ export default function MyDishesFiltersScreen() {
 				    want 行は評価を持たないので、以前は常に出したうえで不活性にし「なぜ押せないか」を
 				    注記で説明していた。押せない UI を説明するより、出さない方が短い */}
 				{ratingEnabled && (
-					<Section title={i18n.t("MyDishes.filters.rating.title")}>
+					<Section
+						title={i18n.t("MyDishes.filters.rating.title")}
+						description={i18n.t("MyDishes.filters.rating.description")}>
 						{RATING_CHOICES.map((rating) => (
 							<Chip
 								key={rating}
@@ -379,7 +389,9 @@ export default function MyDishesFiltersScreen() {
 					</Section>
 				)}
 
-				<Section title="">
+				<Section
+					title={i18n.t("MyDishes.filters.sort.title")}
+					description={i18n.t("MyDishes.filters.sort.description")}>
 					{SORT_CHOICES.map(({ sort, labelKey }) => {
 						// #1396 m-4: 同伴パラメータが無い間は「選択済み」に見せない。
 						// 既定値を勝手に入れないので、軸を選ぶまでこの並びは実質未適用のままである。
@@ -408,6 +420,11 @@ export default function MyDishesFiltersScreen() {
 				{/* #1375 実機確認: 軸は «「条件を選ぶ」を選んだときだけ» 出す。
 				    常に 5 行出していると、日付順で見たいだけの人にも関係ない行が並ぶ。
 				    見出しも選択肢も検索画面と同じ文言を使う（`FEATURE_AXES`） */}
+				{draft.sort === "-featureScore" && (
+					<Text style={styles.axesDescription} testID="my-dishes-filter-axes-description">
+						{i18n.t("MyDishes.filters.axes.description")}
+					</Text>
+				)}
 				{draft.sort === "-featureScore" &&
 					FEATURE_AXES.map((axis) => {
 						const selected = axis.options.find((o) => draft.featureKeys.includes(toFeatureKey(o.featureType, o.id)));
@@ -436,9 +453,13 @@ export default function MyDishesFiltersScreen() {
 					<View style={styles.section}>
 						<Text style={styles.sectionTitle}>{i18n.t("MyDishes.filters.area.title")}</Text>
 						<Text style={styles.valueText} testID="my-dishes-filter-area-value">
+							{/* #1375 実機確認（2 巡目）: 生の緯度経度は出さない。
+							    `35.6812, 139.7671 / 5000m` は «よくわからない数字» でしかなく、
+							    ユーザーがやったのは「マップでこの範囲を選んだ」ことだけである。
+							    その事実と半径だけを、読める単位（km / m）で言う */}
 							{draft.area
 								? (draft.area.label ??
-									`${draft.area.lat.toFixed(4)}, ${draft.area.lng.toFixed(4)} / ${draft.area.radius}m`)
+									i18n.t("MyDishes.filters.area.selected", { radius: formatAreaRadius(draft.area.radius) }))
 								: i18n.t("MyDishes.filters.area.none")}
 						</Text>
 						{/* エリアの確定は Map の「このエリアで再検索」だけが行う（§3-2）。ここでは解除だけできる */}
@@ -519,6 +540,18 @@ const styles = StyleSheet.create({
 		fontWeight: "700",
 		color: "#9CA3AF",
 		marginBottom: 8,
+	},
+	sectionDescription: {
+		fontSize: 12,
+		color: "#6B7280",
+		lineHeight: 17,
+		marginBottom: 10,
+	},
+	axesDescription: {
+		marginTop: 16,
+		fontSize: 12,
+		color: "#6B7280",
+		lineHeight: 17,
 	},
 	chipRow: {
 		flexDirection: "row",

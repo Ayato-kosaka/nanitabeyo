@@ -453,23 +453,18 @@ describe("#1396 M-2 既定 viewport では「このエリアで再検索」を�
 });
 
 /**
- * #1396 M-2: Map ビューに「エリア絞り込み中」の表示を置く。
+ * #1375 実機確認: 「このエリアで絞り込み中」の帯は Map から廃止した。
  *
- * #1375 実機確認: 解除（✕）ボタンは Map からは外した。Map ではエリア＝いま見えている
- * viewport そのもので、「このエリアで再検索」を押し直せば範囲は変わる。地図の上に
- * «再検索» と «解除» という似た操作を 2 つ並べない。解除はフィルタ画面にだけ残す。
+ * 地図は «いま見えている範囲» そのものが絞り込み範囲なので、それを文字で言い直す帯は
+ * 地図を隠すだけの重複だった。エリアの表示と解除はフィルタ画面に集約してある。
+ * ここでは «エリアが確定していても Map に帯を出さない» ことを固定する（戻したら失敗する）。
  */
-describe("#1396 M-2 エリア絞り込み中の表示", () => {
-	it("area が未確定なら表示されない", async () => {
-		const tree = await render();
-		expect(tree.root.findAll((node) => node.props?.testID === "my-dishes-map-area-active").length).toBe(0);
-	});
-
-	it("area 確定後は表示されるが、解除ボタンは Map 上に出ない", async () => {
+describe("#1375 エリアの帯は Map に出さない", () => {
+	it("area が確定していても、帯も解除ボタンも Map 上に無い", async () => {
 		useMyDishesFilterStore.getState().commitArea({ lat: 35.5, lng: 139.5, radius: 5000 });
 		const tree = await render();
 
-		expect(tree.root.findAll((node) => node.props?.testID === "my-dishes-map-area-active").length).toBeGreaterThan(0);
+		expect(tree.root.findAll((node) => node.props?.testID === "my-dishes-map-area-active").length).toBe(0);
 		expect(tree.root.findAll((node) => node.props?.testID === "my-dishes-map-area-clear").length).toBe(0);
 	});
 });

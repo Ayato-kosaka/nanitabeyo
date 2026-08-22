@@ -50,7 +50,6 @@ export function MyDishesMapView() {
 	const { isJapanese, locale } = useLocale();
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
-	const area = useMyDishesFilterStore((s) => s.filter.area);
 	const commitArea = useMyDishesFilterStore((s) => s.commitArea);
 	const { pins, isLoading, error, hasFetchedInitial, truncated, refresh } = useMyDishesMapPinsQuery();
 
@@ -199,15 +198,11 @@ export function MyDishesMapView() {
 						</Text>
 					)}
 				</View>
-				{/* #1375 実機確認: 解除ボタンは Map 上には出さない。
-				    Map ではエリア＝いま見えている viewport そのもので、「このエリアで再検索」を押し直せば
-				    絞り込み範囲は変わる。ここに ✕ を置くと «再検索» と «解除» という似た操作が地図の上に
-				    2 つ並ぶ。解除はフィルタ画面（MyDishes.filters.area.clear）に残してある */}
-				{!!area && (
-					<View style={styles.areaActiveBanner} testID="my-dishes-map-area-active">
-						<Text style={styles.areaActiveText}>{i18n.t("MyDishes.map.areaActive")}</Text>
-					</View>
-				)}
+				{/* #1375 実機確認: 「このエリアで絞り込み中」の帯は廃止した。
+				    Map ではエリア＝いま見えている viewport そのもので、地図を動かせば
+				    「このエリアで再検索」ボタンがそのまま «いまの範囲で引き直す» 導線になる。
+				    見えているものを文字で言い直すだけの帯は、地図を隠すぶんだけ損である。
+				    エリアが効いていることの表示と解除は、フィルタ画面（MyDishes.filters.area）に集約した */}
 				{truncated && (
 					<View style={styles.truncatedBanner} testID="my-dishes-map-truncated">
 						<Text style={styles.truncatedText}>{i18n.t("MyDishes.map.truncated")}</Text>
@@ -264,23 +259,6 @@ const styles = StyleSheet.create({
 		textAlign: "center",
 		textShadowColor: "rgba(255,255,255,0.9)",
 		textShadowRadius: 4,
-	},
-	areaActiveBanner: {
-		marginTop: 8,
-		marginHorizontal: 24,
-		paddingHorizontal: 12,
-		paddingVertical: 8,
-		borderRadius: 8,
-		backgroundColor: "rgba(53, 122, 255, 0.9)",
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "center",
-		gap: 8,
-	},
-	areaActiveText: {
-		fontSize: 12,
-		color: "#FFFFFF",
-		textAlign: "center",
 	},
 	truncatedBanner: {
 		marginTop: 8,

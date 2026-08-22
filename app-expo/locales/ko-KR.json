@@ -655,7 +655,8 @@
 		},
 		"accessibility": {
 			"clearNameSearch": "가게 이름 검색 지우기"
-		}
+		},
+		"unsavedHint": "저장하지 않은 가게도 고를 수 있습니다. 위 검색창에 가게 이름을 넣거나 지도의 가게 아이콘을 누르세요."
 	},
 	"Feedback": {
 		"title": "피드백/버그 신고 보내기",
@@ -789,13 +790,11 @@
 				"sat": "토"
 			},
 			"dayA11yLabel": "{{date}} ({{count}}건)",
-			"periodActive": "기간으로 필터링 중",
 			"reachedOldest": "가장 오래된 기록입니다"
 		},
 		"map": {
 			"truncated": "핀이 많아 일부만 표시하고 있어요. 지역을 좁혀보세요.",
 			"zoomInHint": "지도를 확대한 뒤 이 지역에서 재검색해 주세요",
-			"areaActive": "지역으로 좁혀서 보는 중",
 			"sheetTitle": "이 부근의 기록 {{count}}건"
 		},
 		"guest": {
@@ -816,11 +815,13 @@
 			"status": {
 				"title": "상태",
 				"want": "먹고 싶어요",
-				"eaten": "먹었어요"
+				"eaten": "먹었어요",
+				"description": "「먹고 싶다」와 「먹었다」 중 무엇을 표시할지 고릅니다"
 			},
 			"rating": {
 				"title": "평점",
-				"min": "★{{count}} 이상"
+				"min": "★{{count}} 이상",
+				"description": "「먹었다」 기록을 직접 매긴 평가로 좁힙니다"
 			},
 			"sort": {
 				"title": "정렬",
@@ -829,13 +830,15 @@
 				"ratingDesc": "평점 높은순",
 				"distance": "가까운순",
 				"distanceRequiresArea": "가까운순으로 보려면 지역이 필요합니다. 지도에서 \"이 지역에서 재검색\"을 눌러 주세요.",
-				"featureScoreDesc": "조건 선택"
+				"featureScoreDesc": "조건 선택",
+				"description": "정렬을 고릅니다. 「조건 고르기」를 누르면 시간대·누구와 가는지 등이 열립니다"
 			},
 			"area": {
 				"title": "지역",
 				"none": "지정 안 함(전체)",
 				"clear": "지역 해제",
-				"hint": "지역은 지도의 \"이 지역에서 재검색\"으로 확정됩니다."
+				"hint": "지역은 지도의 \"이 지역에서 재검색\"으로 확정됩니다.",
+				"selected": "지도에서 고른 범위 (반경 {{radius}})"
 			},
 			"axes": {
 				"none": "지정 없음",
@@ -843,7 +846,8 @@
 				"scene": "누구와 함께",
 				"budget": "가격대",
 				"diningPace": "식사 시간",
-				"foodStyle": "어떤 종류"
+				"foodStyle": "어떤 종류",
+				"description": "제목을 누르면 선택지가 열립니다. 제목마다 하나씩 고를 수 있습니다"
 			},
 			"period": {
 				"title": "기간",
@@ -906,11 +910,23 @@
 			"dishCategory": "음식",
 			"restaurant": "가게",
 			"dishCategorySearchPlaceholder": "음식 이름으로 검색(2자 이상)",
-			"selected": "선택: {{value}}"
+			"selected": "선택: {{value}}",
+			"pickOnMap": "지도에서 가게 찾기"
 		},
 		"save": {
 			"done": "먹고 싶다에 저장했습니다",
 			"failed": "저장하지 못했습니다"
+		},
+		"intro": "Instagram·TikTok·YouTube Shorts 게시물 URL을 붙여넣고 요리와 가게를 고르면 「먹고 싶다」에 저장됩니다. 로그인은 필요 없습니다.",
+		"steps": {
+			"paste": "URL 붙여넣기",
+			"dish": "요리 고르기",
+			"restaurant": "가게 고르기"
+		},
+		"pickRestaurant": {
+			"title": "지도에서 가게 고르기",
+			"hint": "지도의 가게 아이콘을 누르거나 위에서 검색하세요. 고르면 가져오기 화면으로 돌아갑니다.",
+			"done": "「{{name}}」을(를) 선택했습니다"
 		}
 	}
 }
