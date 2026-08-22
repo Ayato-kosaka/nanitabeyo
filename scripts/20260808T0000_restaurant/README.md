@@ -205,6 +205,8 @@ APIは検索時にこの子tableを参照するため、deploy順は **migration
    GitHub secret の追加ではありません）。
 2. **Text Search キー**: `3_2 --execute` には GitHub Environment `development` の
    secret `PLACES_TEXT_SEARCH_API_KEY` が必要です（workflow が env として渡します）。
+   キーはバッチ専用プロジェクト `nanitabeyo-places-batch` の `places-batch-key`
+   を使います（#1331）。クォータは承認済みで Text Search 3,000,000/日・3,000/分。
 3. **run_id**: `GCP_PROJECT` / `BQ_DATASET` / `BQ_REGION` は既定値
    （food-scroll / restaurant_recommendation / asia-northeast1）のままで動きます。
    run_id は env が使えないので、各スクリプトに `--run-id restaurant-2026-08-25`
@@ -212,7 +214,8 @@ APIは検索時にこの子tableを参照するため、deploy順は **migration
 
 hosted runner は 1 job 最大6時間です。`3_2` は attempts の resume
 （`algorithm_version` 単位）で続きから再開できるので、複数回 dispatch すれば
-全件を消化できます。
+全件を消化できます。全コーパス約300万リクエスト（1.38M seed × 実測2.17本）は
+分次3,000（≈50qps）で実働約17時間 ＝ 3〜4回の dispatch で完了します。
 
 ## 手動実行順
 
