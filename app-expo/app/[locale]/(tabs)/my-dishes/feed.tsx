@@ -11,11 +11,15 @@
 | `restaurant` | `?scope=restaurant&restaurantId=…` | 無し（1 ページのみ） |
 | `date` | `?scope=date&date=YYYY-MM-DD` | 前日 / 翌日 |
 
-`restaurant` に横移動を付けていないのは、「前後の店舗」という並びがこの画面だけでは決まらない
-ためである。Map のピンの並びは viewport 依存で、URL にも `useMyDishesFilterStore` にも入れない
-（§3-2: viewport を store に入れると 964MB の `dish_reviews` へのクエリが pan/zoom のたびに飛ぶ）。
-配列を URL に積むのも #1397 の «URL に ids を積まない» と同じ理由で採らない。
-日付は前後が**計算で決まる**ので、そちらだけ横移動を入れてある。
+「前後」の決め方は 2 つある。
+
+- `date` … **計算で決まる**（前日 / 翌日）。直リンクでもアプリ内遷移でも同じ結果になる
+- `restaurant` … 決まらない。Map のピンの並びは viewport 依存で、URL にも
+  `useMyDishesFilterStore` にも入れない（§3-2: viewport を store に入れると 964MB の
+  `dish_reviews` へのクエリが pan/zoom のたびに飛ぶ。配列を URL に積むのも #1397 の
+  «URL に ids を積まない» と同じ理由で採らない）。そこで **遷移直前に並びを知っている側**
+  （Map）が `useMyDishesFeedScopeStore` へ置き、こちらはそれを読む。
+  置かれていないとき（web の直リンク・リロード）は 1 ページへ縮退する
 
 ## 3 ページしかマウントしない
 
@@ -35,6 +39,7 @@ import { X } from "lucide-react-native";
 
 import { MY_DISHES_EVENTS } from "@/features/myDishes/analytics";
 import { MyDishesFeedPage, feedScopeId, type MyDishesFeedScope } from "@/features/myDishes/components/MyDishesFeedPage";
+import { sliceScopeWindow, useMyDishesFeedScopeStore } from "@/features/myDishes/stores/useMyDishesFeedScopeStore";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
@@ -81,6 +86,9 @@ export default function MyDishesFeedScreen() {
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { width } = useWindowDimensions();
+	// ⚠️ 初回に読んだ並びで固定する。Map が裏で再検索して並びが変わっても、
+	// 開いている Feed のページが増減すると横スクロールの位置が飛ぶ
+	const [scopeRestaurantIds] = useState<string[]>(() => useMyDishesFeedScopeStore.getState().restaurantIds);
 
 	/**
 	 * 横に並べるスコープ。**3 ページまで**。
@@ -97,17 +105,25 @@ export default function MyDishesFeedScreen() {
 				...(next ? [{ kind: "date" as const, date: next }] : []),
 			];
 		}
-		return restaurantId === null ? [] : [{ kind: "restaurant" as const, restaurantId }];
-	}, [date, restaurantId, scopeKind]);
+		if (restaurantId === null) return [];
+		// 遷移元が並びを置いていればその前後 1 件ずつ、無ければこの店舗だけ
+		const ids = scopeRestaurantIds.length > 0 ? sliceScopeWindow(scopeRestaurantIds, restaurantId) : [restaurantId];
+		return ids.map((id) => ({ kind: "restaurant" as const, restaurantId: id }));
+	}, [date, restaurantId, scopeKind, scopeRestaurantIds]);
 
-	/** 開いた時点で前面に居るページ。`date` は真ん中（前日が作れていれば index 1） */
+	/** 開いた時点で前面に居るページ。前後が作れていれば真ん中（index 1） */
 	const initialScopeIndex = useMemo(() => {
 		if (scopes.length === 0) return 0;
-		const currentId = scopeKind === "date" && date !== null ? feedScopeId({ kind: "date", date }) : null;
+		const currentId =
+			scopeKind === "date" && date !== null
+				? feedScopeId({ kind: "date", date })
+				: restaurantId !== null
+					? feedScopeId({ kind: "restaurant", restaurantId })
+					: null;
 		if (currentId === null) return 0;
 		const index = scopes.findIndex((scope) => feedScopeId(scope) === currentId);
 		return index >= 0 ? index : 0;
-	}, [date, scopeKind, scopes]);
+	}, [date, restaurantId, scopeKind, scopes]);
 
 	const [activeScopeIndex, setActiveScopeIndex] = useState(initialScopeIndex);
 	// 「開いた位置の手がかり（itemKey / dishMediaId）」は最初に開いたページにだけ渡す。

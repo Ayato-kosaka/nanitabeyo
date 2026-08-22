@@ -18,6 +18,7 @@ import { MY_DISHES_EVENTS, buildMapAreaPayload } from "../analytics";
 import { boundingRegionForCoordinates, isRegionTooWide, regionToArea } from "../geo";
 import { useMyDishesFilterStore } from "../stores/useMyDishesFilterStore";
 import { useMyDishesMapPinsQuery } from "../hooks/useMyDishesMapPinsQuery";
+import { useMyDishesFeedScopeStore } from "../stores/useMyDishesFeedScopeStore";
 import { MyDishesMapSheet } from "./MyDishesMapSheet";
 
 /**
@@ -127,12 +128,15 @@ export function MyDishesMapView() {
 				error_level: "log",
 				payload: { restaurantId: pin.restaurant.id },
 			});
+			// 横スクロールで «前後の店舗» へ行けるよう、いま出ているピンの並びを置いてから push する。
+			// 並びは viewport 依存なので filter store にも URL にも入れない（§3-2 / #1397）
+			useMyDishesFeedScopeStore.getState().setRestaurantIds(pins.map((p) => p.restaurant.id));
 			router.push({
 				pathname: "/[locale]/(tabs)/my-dishes/feed",
 				params: { locale, scope: "restaurant", restaurantId: pin.restaurant.id },
 			});
 		},
-		[lightImpact, locale, logFrontendEvent],
+		[lightImpact, locale, logFrontendEvent, pins],
 	);
 
 	const showInitialLoading = isLoading && !hasFetchedInitial && !error;
