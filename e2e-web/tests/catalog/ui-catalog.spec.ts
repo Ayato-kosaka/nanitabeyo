@@ -1,4 +1,5 @@
 import { test, expect } from "../../fixtures/test";
+import { OnboardingPage } from "../../pages/OnboardingPage";
 import { SearchPage } from "../../pages/SearchPage";
 import { TopicsPage } from "../../pages/TopicsPage";
 import { ResultPage } from "../../pages/ResultPage";
@@ -36,7 +37,7 @@ test.describe("UI カタログ（匿名） @catalog", () => {
 	};
 
 	// ─ 検索フォームとその UI 状態 ─
-	test("さがすタブ（フォーム・詳細条件・チュートリアル）", async ({ appPage }) => {
+	test("さがすタブ（フォーム・詳細条件）", async ({ appPage }) => {
 		const searchPage = new SearchPage(appPage);
 
 		await searchPage.expectLoaded();
@@ -47,41 +48,88 @@ test.describe("UI カタログ（匿名） @catalog", () => {
 			await searchPage.advancedToggle.click();
 			await expect(searchPage.distanceSlider).toBeVisible();
 		});
+	});
 
-		// チュートリアルは初回のみ自動表示される（fixtures が視聴済みをシードしている）ため、
-		// ヘッダーの「？」から開いて同じ UI を撮る。
-		// 展開した詳細条件を引きずらないよう画面を開き直す
-		const openedTutorial = await captureScreenIfReachable(appPage, "search-tutorial-page1", async () => {
-			await searchPage.goto();
-			await searchPage.expectLoaded();
-			await searchPage.openTutorial();
-		});
+	// ─ オンボーディング 3 ステップ（#1486） ─
+	test("オンボーディング（3 ステップ）", async ({ appPage }) => {
+		const searchPage = new SearchPage(appPage);
+		const onboardingPage = new OnboardingPage(appPage);
 
-		if (!openedTutorial) return;
+		// 初回のみ自動で開く（fixtures が既読をシードしている）ため、ヘッダーの「？」から開く。
+		// `？` 経由は 3 ステップだけを見せる導線（mode=manual）で、ここで撮りたいのもその 3 枚
+		const opened = await captureScreenIfReachable(
+			appPage,
+			"onboarding-step1",
+			async () => {
+				await searchPage.goto();
+				await searchPage.expectLoaded();
+				await searchPage.openOnboarding();
+				await onboardingPage.expectStep(1);
+				// 解決フェーズまで再生させてから撮る（課題だけの状態は «途中経過» で、
+				// カタログとしては «その画面が何を伝えるか» が写っているほうが役に立つ）
+				await onboardingPage.expectSolutionVisible(1);
+			},
+			{ settleMs: 500 },
+		);
 
-		// 2〜4 ページ目。ページ送りは pressTutorialNextIfPresent を使う
-		// （プライマリ CTA は単一ノードで testID が「つぎへ」↔「はじめよう」と入れ替わるため、
-		//   Locator 経由の click では取り違えが起きうる。SearchPage のコメント参照）
-		for (const page of [2, 3, 4] as const) {
+		if (!opened) return;
+
+		for (const step of [2, 3] as const) {
 			await captureScreenIfReachable(
 				appPage,
-				`search-tutorial-page${page}`,
+				`onboarding-step${step}`,
 				async () => {
-					const pressed = await searchPage.pressTutorialNextIfPresent();
-					if (!pressed)
-						throw new Error(`チュートリアル ${page} ページ目へ送れませんでした（「つぎへ」が見つかりません）`);
-					await expect(searchPage.tutorialOverlay).toBeVisible();
+					await onboardingPage.pressNext();
+					await onboardingPage.expectStep(step);
+					await onboardingPage.expectSolutionVisible(step);
 				},
-				// ページ送りアニメーションと挿絵の読み込みが終わるのを待つ
-				{ settleMs: 1_500 },
+				{ settleMs: 500 },
 			);
 		}
 	});
 
+	// ─ オンボーディングの許可フローと Welcome（#1486 §5〜§7） ─
+	//
+	// ⚠️ 位置情報・通知の説明画面は «答えが出るまで» しか出ていない。web では
+	// Playwright の既定コンテキストが許可を尋ねずに拒否するため、最低表示時間
+	// （OnboardingPage のコメント参照）を過ぎると自動で次へ進む。撮り逃しても
+	// ジョブを赤くしないよう、3 画面とも captureScreenIfReachable で «撮れたら撮る» にしている。
+	test("オンボーディング（権限・Welcome）", async ({ appPage }) => {
+		const searchPage = new SearchPage(appPage);
+		const onboardingPage = new OnboardingPage(appPage);
+
+		await searchPage.goto();
+		await searchPage.expectLoaded();
+		await searchPage.openOnboarding();
+		await onboardingPage.advanceToLastStep();
+		// `？` からは 3 枚で戻ってしまうので、ログイン以降は URL で直接入る
+		await gotoScreen(appPage, "onboarding-location");
+
+		await captureScreenIfReachable(appPage, "onboarding-location", async () => {
+			await expect(onboardingPage.locationScreen).toBeVisible();
+		});
+
+		await captureScreenIfReachable(appPage, "onboarding-notifications", async () => {
+			await gotoScreen(appPage, "onboarding-notifications");
+			await expect(onboardingPage.notificationsScreen).toBeVisible();
+		});
+
+		await captureScreenIfReachable(
+			appPage,
+			"onboarding-welcome",
+			async () => {
+				await gotoScreen(appPage, "onboarding-welcome");
+				await expect(onboardingPage.welcomeScreen).toBeVisible();
+			},
+			// クラッカーが飛び散り切ってから撮る
+			{ settleMs: 1_500 },
+		);
+	});
+
 	// ─ 検索フロー（実 API・AI のトピック生成を待つ） ─
-	test("検索フロー（料理提案・チュートリアル・結果フィード）", async ({ appPage }) => {
+	test("検索フロー（料理提案・スポットライト・結果フィード）", async ({ appPage }) => {
 		// トピック生成は実測で 30 秒近くかかることがあるうえ、
-		// チュートリアル 4 ステップ分の撮影も挟むため、既定の 30 秒では全く足りない
+		// スポットライトチュートリアル 4 ステップ分の撮影も挟むため、既定の 30 秒では全く足りない
 		test.setTimeout(240_000);
 
 		const searchPage = new SearchPage(appPage);

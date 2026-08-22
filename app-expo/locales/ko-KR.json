@@ -154,7 +154,7 @@
 			"locationInputHint": "레스토랑을 검색할 위치를 입력하세요",
 			"clearLocation": "위치 지우기",
 			"useCurrentLocation": "현재 위치 사용",
-			"showTutorial": "사용법 보기",
+			"showTutorial": "사용 방법 보기",
 			"selectLocation": "이 위치 선택"
 		},
 		"loading": "검색 중...",
@@ -235,36 +235,56 @@
 				"bulkShare": "모두 공유"
 			}
 		},
-		"tutorial": {
-			"page1": {
-				"title": "먹고 싶은 음식을 발견하세요",
-				"body1": "\"오늘 뭐 먹지?\"의 고민을 한 번에 해결합니다.",
-				"body2": "위치와 시간에 맞춰 요리와 레스토랑을 함께 제안합니다.",
-				"cta": "다음"
-			},
-			"page2": {
-				"title": "사진을 보고 먹고 싶은 것을 발견하세요",
-				"body1": "현재 조건에 맞는 요리 6개를 제안합니다.",
-				"body2": "사진을 보면서 직관적으로 먹고 싶은 것을 선택할 수 있습니다.",
-				"cta": "다음"
-			},
-			"page3": {
-				"title": "사진과 리뷰로 \"여기 가자\"가 결정됩니다",
-				"body1": "선택한 요리에 맞는 레스토랑 5곳을 제안합니다.",
-				"body2": "사진과 리뷰, 지도를 보면서 마음에 드는 곳을 빠르게 선택할 수 있습니다.",
-				"cta": "다음"
-			},
-			"page4": {
-				"title": "시작하기",
-				"body1": "근처의 맛있는 레스토랑을 제안하기 위해 현재 위치를 사용합니다.",
-				"body2": "언제든지 설정에서 변경할 수 있습니다.",
-				"primaryCta": "현재 위치 사용",
-				"secondaryCta": "나중에"
-			}
-		},
 		"recentLocations": {
 			"title": "최근 사용한 장소",
 			"clear": "최근 사용한 장소 지우기"
+		}
+	},
+	"Onboarding": {
+		"step1": {
+			"problem": "뭘 먹고 싶은지 정해지지 않아요.",
+			"solution": "추천 요리를 제안해 드리니\n'먹고 싶다'가 보여요"
+		},
+		"step2": {
+			"problem": "가게 찾기.\n후보가 너무 많아 시간이 걸려요.",
+			"solution": "요리도 가게도 후보를 엄선해 두어\n바로 정할 수 있어요"
+		},
+		"step3": {
+			"problem": "함께 가는 사람의 취향도 놓치고 싶지 않아요.",
+			"solution": "친구들과 투표해서 요리를 정할 수 있어요"
+		},
+		"back": "이전",
+		"next": "다음",
+		"skip": "건너뛰기",
+		"location": {
+			"title": "가까운 맛집을 바로 찾아보세요 📍",
+			"body": "위치 정보를 사용하면 지금 있는 곳 근처의 추천 맛집을 제안해 드릴 수 있어요.",
+			"dialog": {
+				"title": "'CraveCatch'에서 사용자의 위치를 사용하도록 허용하겠습니까?",
+				"message": "현재 위치 주변의 추천 맛집을 제안하기 위해 위치 정보를 사용합니다.",
+				"allowOnce": "한 번 허용",
+				"allowWhileUsing": "앱을 사용하는 동안 허용",
+				"deny": "허용 안 함"
+			}
+		},
+		"notifications": {
+			"title": "먹고 싶은 순간을 놓치지 않도록 🔔",
+			"body": "회원님께 맞는 추천과 CraveCatch의 소식을 보내 드릴게요.",
+			"dialog": {
+				"title": "'CraveCatch'에서 알림을 보내고자 합니다.",
+				"message": "알림에는 텍스트, 사운드 및 아이콘 배지가 포함될 수 있습니다.",
+				"deny": "허용 안 함",
+				"allow": "허용"
+			}
+		},
+		"welcome": {
+			"title": "CraveCatch에 오신 것을 환영해요!",
+			"body1": "이제 가게 고르느라 너무 고민하지 않아도 돼요.",
+			"body2": "오늘의 '먹고 싶다'를 찾으러 가요.",
+			"cta": "시작하기"
+		},
+		"accessibility": {
+			"stepProgress": "{{total}}단계 중 {{current}}단계"
 		}
 	},
 	"Topics": {
@@ -663,17 +683,12 @@
 		}
 	},
 	"auth": {
-		"login_title": "로그인",
 		"create_title": "계정 생성",
 		"field_name": "이름",
 		"btn_login": "로그인",
 		"btn_create": "계정 생성",
 		"divider_or": "또는 다음으로 로그인",
 		"agree_tos": "서비스 약관에 동의합니다",
-		"provider_google": "Google",
-		"provider_facebook": "Facebook",
-		"provider_twitter": "Twitter",
-		"provider_apple": "Apple",
 		"login_success": "성공적으로 로그인되었습니다!",
 		"error_required": "필수 입력 항목입니다",
 		"tos_link_text": "서비스 약관",
@@ -687,7 +702,12 @@
 		"consent_login_terms": "이용약관",
 		"consent_login_and": " 및 ",
 		"consent_login_privacy": "개인정보 보호정책",
-		"consent_login_suffix": "에 동의하는 것으로 간주됩니다."
+		"consent_login_suffix": "에 동의하는 것으로 간주됩니다.",
+		"skip": "건너뛰기",
+		"signup_title": "계정을 만들어 보세요",
+		"signup_subtitle": "리뷰를 올리고 마음에 드는 가게를 저장할 수 있어요",
+		"continue_with_google": "Google로 계속하기",
+		"continue_with_apple": "Apple로 계속하기"
 	},
 	"Settings": {
 		"title": "설정",

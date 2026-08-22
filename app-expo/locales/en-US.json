@@ -154,7 +154,7 @@
 			"locationInputHint": "Enter a location to search for restaurants",
 			"clearLocation": "Clear location",
 			"useCurrentLocation": "Use current location",
-			"showTutorial": "View how to use",
+			"showTutorial": "See how it works",
 			"selectLocation": "Select this location"
 		},
 		"loading": "Searching...",
@@ -235,36 +235,56 @@
 				"bulkShare": "Share all"
 			}
 		},
-		"tutorial": {
-			"page1": {
-				"title": "Discover what you want to eat",
-				"body1": "Solve the \"What should I eat today?\" dilemma all at once.",
-				"body2": "We suggest dishes and restaurants based on your location and time.",
-				"cta": "Next"
-			},
-			"page2": {
-				"title": "See photos and discover what you crave",
-				"body1": "We suggest 6 dishes that match your current preferences.",
-				"body2": "Look at photos and intuitively choose what you want to eat.",
-				"cta": "Next"
-			},
-			"page3": {
-				"title": "Photos and reviews help you decide where to go",
-				"body1": "We suggest 5 restaurants that serve your chosen dish.",
-				"body2": "Browse photos, reviews, and the map to quickly pick a place.",
-				"cta": "Next"
-			},
-			"page4": {
-				"title": "Let's get started",
-				"body1": "We'll use your current location to suggest nearby restaurants.",
-				"body2": "You can change this anytime in settings.",
-				"primaryCta": "Use current location",
-				"secondaryCta": "Later"
-			}
-		},
 		"recentLocations": {
 			"title": "Recent locations",
 			"clear": "Clear recent locations"
+		}
+	},
+	"Onboarding": {
+		"step1": {
+			"problem": "Can't decide what you want to eat.",
+			"solution": "We suggest recommended dishes,\nso you find what you're craving"
+		},
+		"step2": {
+			"problem": "Finding a restaurant takes forever\nwith too many options.",
+			"solution": "Dishes and restaurants are both curated,\nso you can decide right away"
+		},
+		"step3": {
+			"problem": "You don't want to miss what your companions like either.",
+			"solution": "Vote with friends to decide on a dish"
+		},
+		"back": "Back",
+		"next": "Next",
+		"skip": "Skip",
+		"location": {
+			"title": "Find great places nearby 📍",
+			"body": "With location access, we can suggest recommended restaurants close to where you are.",
+			"dialog": {
+				"title": "Allow “CraveCatch” to use your location?",
+				"message": "Your location is used to suggest recommended restaurants near you.",
+				"allowOnce": "Allow Once",
+				"allowWhileUsing": "Allow While Using App",
+				"deny": "Don’t Allow"
+			}
+		},
+		"notifications": {
+			"title": "Never miss a craving 🔔",
+			"body": "We'll send you recommendations picked for you and updates from CraveCatch.",
+			"dialog": {
+				"title": "“CraveCatch” Would Like to Send You Notifications",
+				"message": "Notifications may include alerts, sounds, and icon badges.",
+				"deny": "Don’t Allow",
+				"allow": "Allow"
+			}
+		},
+		"welcome": {
+			"title": "Welcome to CraveCatch!",
+			"body1": "No more agonizing over where to eat.",
+			"body2": "Let's go find what you're craving today.",
+			"cta": "Get started"
+		},
+		"accessibility": {
+			"stepProgress": "Step {{current}} of {{total}}"
 		}
 	},
 	"Topics": {
@@ -663,17 +683,12 @@
 		}
 	},
 	"auth": {
-		"login_title": "Log In",
 		"create_title": "Create Account",
 		"field_name": "Name",
 		"btn_login": "Login",
 		"btn_create": "Create an Account",
 		"divider_or": "Or Sign in with",
 		"agree_tos": "I agree to the Terms of Service",
-		"provider_google": "Google",
-		"provider_facebook": "Facebook",
-		"provider_twitter": "Twitter",
-		"provider_apple": "Apple",
 		"login_success": "Successfully logged in!",
 		"error_required": "This field is required",
 		"tos_link_text": "Terms of Service",
@@ -687,7 +702,12 @@
 		"consent_login_terms": "Terms of Service",
 		"consent_login_and": " and ",
 		"consent_login_privacy": "Privacy Policy",
-		"consent_login_suffix": "."
+		"consent_login_suffix": ".",
+		"skip": "Skip",
+		"signup_title": "Create your account",
+		"signup_subtitle": "Post reviews and save your favorite restaurants",
+		"continue_with_google": "Continue with Google",
+		"continue_with_apple": "Continue with Apple"
 	},
 	"Settings": {
 		"title": "Settings",

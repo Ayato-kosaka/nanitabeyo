@@ -15,6 +15,7 @@ import {
 	Timer,
 } from "lucide-react-native";
 import { router } from "expo-router";
+import type { ExternalPathString } from "expo-router";
 import { SearchParams } from "@/types/search";
 import type { AutocompleteLocation, LocationDetailsResponse } from "@shared/api/v1/res";
 import { useLocationSearch } from "@/hooks/useLocationSearch";
@@ -34,7 +35,6 @@ import {
 	foodStyleOptions,
 	diningPaceOptions,
 	priceLevelOptions,
-	TUTORIAL_PAGES,
 	PRELOAD_IMAGES,
 } from "@/features/search/constants";
 import { DistanceSlider } from "@/features/search/components/DistanceSlider";
@@ -48,8 +48,8 @@ import { useLogger } from "@/hooks/useLogger";
 import { useScreenTrace } from "@/hooks/useScreenTrace";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { DEFAULT_SEARCH_RADIUS } from "@/features/topics/constants";
-import { TutorialBottomSheet } from "@/features/search/components/TutorialBottomSheet";
-import { useSearchTutorial } from "@/features/search/hooks/useSearchTutorial";
+import { useOnboardingSeen } from "@/features/onboarding/hooks/useOnboardingSeen";
+import { onboardingIndexPath } from "@/features/onboarding/navigation";
 import { useAutoCurrentLocation } from "@/features/search/hooks/useAutoCurrentLocation";
 import { useRecentLocations } from "@/features/search/hooks/useRecentLocations";
 import { Image } from "expo-image";
@@ -469,61 +469,64 @@ export default function SearchScreen() {
 		}, []),
 	});
 
-	// ========== チュートリアル表示制御 ==========
-	const [showTutorial, setShowTutorial] = useState(false);
-	const { hasSeenTutorial, isLoading: isTutorialLoading, markTutorialAsSeen } = useSearchTutorial();
-	// チュートリアル初期処理実行済みフラグ
-	const didInitTutorialState = useRef(false);
-	// チュートリアル表示制御のため、画面がフォーカスされているかを判定
+	// ========== オンボーディング表示制御（#1486） ==========
+	// #1486 §3【設計】既読の判定は旧チュートリアルと **同じキー** を読む
+	//（features/onboarding/onboardingSeenStore.ts）。既存ユーザーには再表示しない
+	const hasSeenOnboarding = useOnboardingSeen();
+	// オンボーディングへ送るのは 1 度だけ（途中で離脱した人を送り返して閉じ込めない）
+	const didPushOnboardingRef = useRef(false);
+	// 現在地の自動取得も 1 度だけ
+	const didRequestAutoLocationRef = useRef(false);
+	// 画面がフォーカスされているかを判定（オンボーディングへ遷移している間は false になる）
 	const isFocused = useIsFocused();
+
+	const requestAutoCurrentLocationOnce = useCallback(() => {
+		if (didRequestAutoLocationRef.current) return;
+		didRequestAutoLocationRef.current = true;
+		requestAutoCurrentLocation();
+	}, [requestAutoCurrentLocation]);
 
 	useEffect(() => {
 		if (!isFocused) return;
-		if (isTutorialLoading) return;
-		if (hasSeenTutorial === null) return;
-		if (didInitTutorialState.current) return;
-
-		didInitTutorialState.current = true;
+		// null は「まだ読み込んでいない」。既読とも未読とも判定してはいけない
+		if (hasSeenOnboarding === null) return;
 
 		if (!isJapanese) {
-			// #642 【設計】対応言語以外ではチュートリアルを表示しない
-			requestAutoCurrentLocation();
+			// #642 【設計】対応言語以外ではオンボーディングを表示しない
+			requestAutoCurrentLocationOnce();
 			return;
 		}
 
-		if (hasSeenTutorial === false) {
-			// #642 【設計】チュートリアル未表示の場合、自動表示する（getCurrentLocation は呼ばない）
-			setShowTutorial(true);
-			logFrontendEvent({
-				event_name: "search_tutorial_auto_opened",
-				error_level: "log",
-				payload: { opened_reason: "auto" },
-			});
-		} else if (hasSeenTutorial === true) {
-			// #642 【設計】チュートリアル既表示の場合、現在地取得してセットする
-			requestAutoCurrentLocation();
+		if (hasSeenOnboarding) {
+			// #1486 【設計】ここは «初回導線を終えて戻ってきた» 直後にも通る。
+			// オンボーディングの中で位置情報を許可してもらっているので、その足で現在地を入れる
+			//（旧チュートリアルが最終ページの「現在地を利用する」で行っていたことの引き継ぎ）
+			requestAutoCurrentLocationOnce();
+			return;
 		}
-	}, [isFocused, isTutorialLoading, hasSeenTutorial, logFrontendEvent, requestAutoCurrentLocation, isJapanese]);
 
-	// #642 【設計】ヘルプアイコンからチュートリアルを手動で開く
-	const handleOpenTutorial = () => {
-		lightImpact();
-		setShowTutorial(true);
+		if (didPushOnboardingRef.current) return;
+		didPushOnboardingRef.current = true;
+
 		logFrontendEvent({
-			event_name: "search_tutorial_opened",
+			event_name: "onboarding_auto_opened",
+			error_level: "log",
+			payload: { opened_reason: "auto" },
+		});
+		router.push(onboardingIndexPath(locale) as ExternalPathString);
+	}, [isFocused, hasSeenOnboarding, isJapanese, locale, logFrontendEvent, requestAutoCurrentLocationOnce]);
+
+	// #1486 §3【設計】`？` からは «既読状態に関係なく» オンボーディングを開く。
+	// ただし 3 ステップだけを見せて戻す（`mode=manual`）。ログイン・権限・Welcome は
+	// 初回導線のためのもので、既に本体を使っている人へ再度通す意味が無い
+	const handleOpenOnboarding = () => {
+		lightImpact();
+		logFrontendEvent({
+			event_name: "onboarding_opened",
 			error_level: "log",
 			payload: { opened_reason: "manual" },
 		});
-	};
-
-	// #642 【設計】チュートリアル完了時の処理
-	const handleTutorialCompleted = () => {
-		markTutorialAsSeen();
-		logFrontendEvent({
-			event_name: "search_tutorial_completed",
-			error_level: "log",
-			payload: { completed: true },
-		});
+		router.push(onboardingIndexPath(locale, "manual") as ExternalPathString);
 	};
 
 	// #1087 【設計】E2E(Detox) ビルドに限り、先読み画像が実際に何枚ロードできたかを数えて
@@ -531,29 +534,28 @@ export default function SearchScreen() {
 	// noop 実装へ差し替えるため、props も要素も一切増えない）。詳細は lib/e2e/preloadProbe.tsx
 	const preloadProbe = useE2EPreloadProbe(PRELOAD_IMAGES.length);
 
-	// #642 【設計】チュートリアルから位置情報取得を要求
-	const handleTutorialRequestLocation = async () => {
-		await handleUseCurrentLocation();
-		logFrontendEvent({
-			event_name: "search_tutorial_location_requested",
-			error_level: "log",
-			payload: { from_tutorial: true },
-		});
-	};
-
 	return (
 		<SafeAreaView style={styles.container} edges={["top"]}>
 			{/* Header */}
 			<View style={styles.header}>
 				{/* #1031 【設計】Detox から表示確認できるよう testID を追加 */}
-				<Text testID="search-header-title" style={styles.headerTitle}>
+				{/* #1486 【バグ】`numberOfLines` / `ellipsizeMode` を外さないこと。
+				    詳細は styles.headerTitle のコメントを参照（`？` が右へはみ出す） */}
+				<Text
+					testID="search-header-title"
+					style={styles.headerTitle}
+					numberOfLines={1}
+					ellipsizeMode="tail"
+					// OS の文字サイズ設定を «無視» はしないが、青天井にもしない。
+					// ヘッダーは 1 行に固定してあるので、上げすぎると本文がほとんど «…» になる
+					maxFontSizeMultiplier={1.4}>
 					{i18n.t("Search.headerTitle")}
 				</Text>
-				{/* #642 【設計】ヘルプアイコンからチュートリアルを再表示 */}
+				{/* #1486 §3【設計】ヘルプアイコンからオンボーディングを再表示 */}
 				{isJapanese && (
 					<TouchableOpacity
 						style={styles.helpButton}
-						onPress={handleOpenTutorial}
+						onPress={handleOpenOnboarding}
 						hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
 						accessibilityRole="button"
 						accessibilityLabel={i18n.t("Search.accessibility.showTutorial")}
@@ -808,15 +810,7 @@ export default function SearchScreen() {
 				/>
 			</View>
 
-			{/* #642 【設計】チュートリアル BottomSheet */}
-			<TutorialBottomSheet
-				visible={showTutorial}
-				pageConfigs={TUTORIAL_PAGES}
-				onClose={() => setShowTutorial(false)}
-				onCompleted={handleTutorialCompleted}
-				onRequestCurrentLocation={handleTutorialRequestLocation}
-			/>
-			{/* #642 【設計】オフスクリーンでチュートリアル画像を一度描画して decode */}
+			{/* #642 【設計】オフスクリーンでオンボーディング画像を一度描画して decode */}
 			{/* #934 【修正】decode専用で内容を持たないため aria-hidden で支援技術から隠す(axe: image-alt 対策) */}
 			{/* #1087 【修正】0×0 だと native は 1 枚もロードしない。expo-image のネイティブ実装は
 			    ビューの bounds が 0 のときロード要求そのものを発行しないため、先読みは導入時(#656)から
@@ -875,6 +869,11 @@ const styles = StyleSheet.create({
 		// #1272 タイトルが伸びても «絶対に» 縮まない。ヘッダーは space-between なので、
 		// これが無いと限られた幅の奪い合いでボタン側が潰されうる
 		flexShrink: 0,
+		// #1486 アイコン(24) + 左右の padding(8+8) 分の幅を «先に» 確保する。
+		// 幅を内容任せにすると、レイアウトの確定順によってはタイトルが先に場所を取り切る
+		width: 40,
+		alignItems: "center",
+		justifyContent: "center",
 	},
 	headerTitle: {
 		fontSize: 20,
@@ -888,6 +887,23 @@ const styles = StyleSheet.create({
 		// 失敗時スクリーンショットで確認。Detox が 75% 可視を満たせず落ちたのは正しい検出だった）。
 		// 小さめの実機（幅の狭い端末 / 大きい文字サイズ設定）でも同じ詰みが起きる
 		flex: 1,
+		// #1486 【バグ】`flex: 1` **だけでは足りない**（実機の iPhone で `？` が右へはみ出す報告）。
+		//
+		// `flex: 1` は `flexBasis: 0` を含むので «配分» は正しく行われるが、Yoga は
+		// 折り返し可能な Text を「与えられた幅で測って、収まらなければ実測幅を返す」形で測る。
+		// 日本語のタイトルは空白が無く、端末の文字サイズ設定（Dynamic Type）を上げると
+		// 1 行が配分された幅を超え、**測定値がそのまま行ボックスの幅**になる。
+		// 行が伸びた分だけ right 側の兄弟が押し出され、`？` が画面の外へ出る。
+		// 画面幅が狭いほど、また文字サイズ設定が大きいほど起きやすい。
+		//
+		// 料理提案画面（`app/[locale]/(tabs)/search/topics.tsx` → `components/ScreenHeader.tsx`）で
+		// 同じ症状が出ていないのは、あちらのタイトルが `numberOfLines={1}` + `ellipsizeMode="tail"` で
+		// **1 行に固定されている**ため。折り返しが起きない Text は与えられた幅で必ず打ち切られ、
+		// 測定値が配分幅を超えない。こちらも同じ形へ揃えてある（JSX 側を参照）。
+		//
+		// `minWidth: 0` は web（react-native-web）向け。CSS の flex アイテムは既定で
+		// `min-width: auto`（＝内容の最小幅より縮まない）なので、これが無いと同じ症状が web で残る。
+		minWidth: 0,
 	},
 	// #667 【設計】カード無しセクションのスタイル
 	section: {

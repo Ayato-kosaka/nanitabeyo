@@ -154,7 +154,7 @@
 			"locationInputHint": "Introduce una ubicación para buscar restaurantes",
 			"clearLocation": "Borrar ubicación",
 			"useCurrentLocation": "Usar ubicación actual",
-			"showTutorial": "Ver cómo usar",
+			"showTutorial": "Ver cómo funciona",
 			"selectLocation": "Seleccionar esta ubicación"
 		},
 		"loading": "Buscando...",
@@ -235,36 +235,56 @@
 				"bulkShare": "Compartir todo"
 			}
 		},
-		"tutorial": {
-			"page1": {
-				"title": "Descubre lo que quieres comer",
-				"body1": "Resuelve el dilema \"¿Qué como hoy?\" de una vez.",
-				"body2": "Sugerimos platos y restaurantes según tu ubicación y hora.",
-				"cta": "Siguiente"
-			},
-			"page2": {
-				"title": "Ve fotos y descubre lo que deseas",
-				"body1": "Sugerimos 6 platos que coinciden con tus preferencias actuales.",
-				"body2": "Mira las fotos y elige intuitivamente lo que quieres comer.",
-				"cta": "Siguiente"
-			},
-			"page3": {
-				"title": "Fotos y reseñas te ayudan a decidir dónde ir",
-				"body1": "Sugerimos 5 restaurantes que sirven el plato elegido.",
-				"body2": "Explora fotos, reseñas y el mapa para elegir rápidamente un lugar.",
-				"cta": "Siguiente"
-			},
-			"page4": {
-				"title": "Comencemos",
-				"body1": "Usaremos tu ubicación actual para sugerir restaurantes cercanos.",
-				"body2": "Puedes cambiar esto en cualquier momento en la configuración.",
-				"primaryCta": "Usar ubicación actual",
-				"secondaryCta": "Más tarde"
-			}
-		},
 		"recentLocations": {
 			"title": "Ubicaciones recientes",
 			"clear": "Borrar ubicaciones recientes"
+		}
+	},
+	"Onboarding": {
+		"step1": {
+			"problem": "No te decides sobre qué comer.",
+			"solution": "Te sugerimos platos recomendados\npara que encuentres lo que te apetece"
+		},
+		"step2": {
+			"problem": "Buscar restaurante lleva mucho tiempo\ncon tantas opciones.",
+			"solution": "Platos y restaurantes ya seleccionados,\nasí decides al momento"
+		},
+		"step3": {
+			"problem": "Tampoco quieres fallar con los gustos de quien te acompaña.",
+			"solution": "Vota con tus amigos y decidid el plato"
+		},
+		"back": "Atrás",
+		"next": "Siguiente",
+		"skip": "Omitir",
+		"location": {
+			"title": "Encuentra sitios estupendos cerca 📍",
+			"body": "Con acceso a tu ubicación podemos sugerirte restaurantes recomendados cerca de ti.",
+			"dialog": {
+				"title": "¿Permitir que “CraveCatch” use tu ubicación?",
+				"message": "Tu ubicación se usa para sugerirte restaurantes recomendados cerca de ti.",
+				"allowOnce": "Permitir una vez",
+				"allowWhileUsing": "Permitir al usar la app",
+				"deny": "No permitir"
+			}
+		},
+		"notifications": {
+			"title": "No te pierdas ningún antojo 🔔",
+			"body": "Te enviaremos recomendaciones elegidas para ti y novedades de CraveCatch.",
+			"dialog": {
+				"title": "“CraveCatch” quiere enviarte notificaciones",
+				"message": "Las notificaciones pueden incluir alertas, sonidos e insignias en el icono.",
+				"deny": "No permitir",
+				"allow": "Permitir"
+			}
+		},
+		"welcome": {
+			"title": "¡Bienvenido a CraveCatch!",
+			"body1": "Se acabó darle vueltas a dónde comer.",
+			"body2": "Vamos a buscar lo que te apetece hoy.",
+			"cta": "Empezar"
+		},
+		"accessibility": {
+			"stepProgress": "Paso {{current}} de {{total}}"
 		}
 	},
 	"Topics": {
@@ -663,17 +683,12 @@
 		}
 	},
 	"auth": {
-		"login_title": "Iniciar Sesión",
 		"create_title": "Crear Cuenta",
 		"field_name": "Nombre",
 		"btn_login": "Iniciar Sesión",
 		"btn_create": "Crear una Cuenta",
 		"divider_or": "O Inicia sesión con",
 		"agree_tos": "Acepto los Términos de Servicio",
-		"provider_google": "Google",
-		"provider_facebook": "Facebook",
-		"provider_twitter": "Twitter",
-		"provider_apple": "Apple",
 		"login_success": "¡Inicio de sesión exitoso!",
 		"error_required": "Este campo es obligatorio",
 		"tos_link_text": "Términos de Servicio",
@@ -687,7 +702,12 @@
 		"consent_login_terms": "Términos de Servicio",
 		"consent_login_and": " y ",
 		"consent_login_privacy": "Política de Privacidad",
-		"consent_login_suffix": "."
+		"consent_login_suffix": ".",
+		"skip": "Omitir",
+		"signup_title": "Crea tu cuenta",
+		"signup_subtitle": "Publica reseñas y guarda tus restaurantes favoritos",
+		"continue_with_google": "Continuar con Google",
+		"continue_with_apple": "Continuar con Apple"
 	},
 	"Settings": {
 		"title": "Configuración",
