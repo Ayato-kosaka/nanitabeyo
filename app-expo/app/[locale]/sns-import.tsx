@@ -24,11 +24,26 @@ push すると遷移先が下に潜る（#1364 で実測）。加えて共有か
 `lib/snsShareIntake.ts` が canonical / expand URL だけをクエリへ載せるが、この画面は
 URL 直叩きでも開けるし、貼り付け欄からは任意の文字列が入る。**生の値を画面に出さない。**
 
+## 候補は «出れば嬉しい» もので、**出なくても保存できる**
+
+⚠️ ここが一度壊れていた。`resolve` は **`lat` / `lng` / `radius` が渡されたときだけ**店舗候補を
+探す（`dish-media-imports.service.ts` の `area_not_provided`）。エリアを送っていなかったので
+**店舗候補は構造的に必ず 0 件**で、候補からしか選べない UI だったため保存に到達できなかった。
+
+直し方は 2 つセットでないと意味が無い。
+
+1. **エリアを送る** … 現在地を best-effort で取り、`lat` / `lng` / `radius` を付ける。
+   取れなくてもエラーにしない（権限拒否は普通に起きる）
+2. **手入力へ縮退する口を常に出す** … 候補が 0 件でも、店名検索（自前 `restaurants`）と
+   料理カテゴリ検索から選べる。設計の「完全自動確定を前提にしない」がこれである。
+   Instagram はサーバから取れるメタデータが無い（`metadata_provider_unsupported`）ので、
+   **候補が 0 件になるのは異常系ではなく想定内の主要経路**である
+
 ## サーバへ渡すのは «貼られた文字列» そのもの
 provider や externalContentId をクライアントで組み立てて送らない。サーバ側（`resolve` /
 `imports`）が同じ `shared/utils/snsUrl.ts` で解釈し直すので、判定を 2 箇所に持たない。
 */
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
@@ -44,6 +59,11 @@ import { useAuth } from "@/contexts/AuthProvider";
 import { isGuestUser } from "@/lib/authGuest";
 import i18n from "@/lib/i18n";
 import { resolveSnsShareIntakeView } from "@/lib/snsShareIntake";
+import { getCurrentLocationPosition } from "@/hooks/useCurrentLocationPosition";
+import { useDishCategorySearch } from "@/hooks/useDishCategorySearch";
+import { RestaurantNameSearch } from "@/features/restaurantPicker/components/RestaurantNameSearch";
+import type { QueryRestaurantsResponse } from "@shared/api/v1/res";
+import type { Region } from "react-native-maps";
 import type { SnsProvider } from "@shared/utils/snsUrl";
 import type { CreateDishMediaImportDto, ResolveDishMediaImportDto } from "@shared/api/v1/dto";
 import type { CreateDishMediaImportResponse, ResolveDishMediaImportResponse } from "@shared/api/v1/res";
@@ -57,6 +77,15 @@ const PROVIDER_LABELS: Record<SnsProvider, string> = {
 	tiktok: "TikTok",
 	youtube: "YouTube Shorts",
 };
+
+/**
+ * 店舗候補を探す半径（m）。
+ *
+ * SNS の URL には座標が無いので、エリアは «いまユーザーが居る場所» を使うほかない
+ * （設計 骨子 Q-3）。5km は「その辺で見つけた店を取り込む」に効く広さで、
+ * これ以上広げても照合対象の上限（200 件）で頭打ちになるだけ精度が上がらない。
+ */
+const RESOLVE_RADIUS_M = 5000;
 
 /** 上部タブ。`sns` が既定（＝ ＋ ボタンの基本導線） */
 const TABS = ["sns", "eaten"] as const;
@@ -82,6 +111,39 @@ export default function SnsImportScreen() {
 	const [isSaving, setIsSaving] = useState(false);
 	const [dishCategoryId, setDishCategoryId] = useState<string | null>(null);
 	const [restaurantId, setRestaurantId] = useState<string | null>(null);
+	/** 選択済みの表示名。候補からでも手入力からでも、選んだものが見えるようにする */
+	const [dishCategoryLabel, setDishCategoryLabel] = useState<string | null>(null);
+	const [restaurantName, setRestaurantName] = useState<string | null>(null);
+
+	/**
+	 * 店舗候補・店名検索に使うエリア。**取れなくても止めない**（権限拒否は普通に起きる）。
+	 * 既定は日本の中心付近で、店名検索は全国から拾えないので現在地が取れたときだけ意味を持つ。
+	 */
+	const regionRef = useRef<Region>({
+		latitude: 35.6812,
+		longitude: 139.7671,
+		latitudeDelta: 0.05,
+		longitudeDelta: 0.05,
+	});
+	const [area, setArea] = useState<{ lat: number; lng: number } | null>(null);
+	useEffect(() => {
+		let cancelled = false;
+		getCurrentLocationPosition()
+			.then(({ latitude, longitude }) => {
+				if (cancelled) return;
+				regionRef.current = { latitude, longitude, latitudeDelta: 0.05, longitudeDelta: 0.05 };
+				setArea({ lat: latitude, lng: longitude });
+			})
+			// 権限拒否・タイムアウトはここでは何も出さない。候補が減るだけで、手入力へ縮退できる
+			.catch(() => undefined);
+		return () => {
+			cancelled = true;
+		};
+	}, []);
+
+	// 料理カテゴリの手入力（候補が 0 件でも選べるようにするための口）
+	const { suggestions: dishCategorySuggestions, searchDishCategories } = useDishCategorySearch();
+	const [dishCategoryQuery, setDishCategoryQuery] = useState("");
 
 	// 共有から来たときの入力欄の初期値。`?url=` は起動経路によって遅れて届くことがある
 	useEffect(() => {
@@ -142,15 +204,30 @@ export default function SnsImportScreen() {
 		setResolved(null);
 		setDishCategoryId(null);
 		setRestaurantId(null);
+		setDishCategoryLabel(null);
+		setRestaurantName(null);
 		try {
+			// ⚠️ **エリアを必ず付ける。** `lat` / `lng` / `radius` が揃っていないとサーバは
+			// 店舗候補を 1 件も探さない（`area_not_provided`）。取れなかったときは付けずに投げ、
+			// 候補ゼロのまま手入力へ縮退させる（エラーにはしない）
 			const response = await callBackend<ResolveDishMediaImportDto, ResolveDishMediaImportResponse>(
 				"v1/dish-media/imports/resolve",
-				{ method: "POST", requestPayload: { url } },
+				{
+					method: "POST",
+					requestPayload: area ? { url, lat: area.lat, lng: area.lng, radius: RESOLVE_RADIUS_M } : { url },
+				},
 			);
 			setResolved(response);
 			// 閾値を超えた候補があれば初期選択に使う。**それでもユーザーが直せる状態で見せる**
 			setDishCategoryId(response.prefill.dishCategoryId);
 			setRestaurantId(response.prefill.restaurantId);
+			setDishCategoryLabel(
+				response.candidates.dishCategories.find((c) => c.dishCategoryId === response.prefill.dishCategoryId)?.labelEn ??
+					null,
+			);
+			setRestaurantName(
+				response.candidates.restaurants.find((c) => c.restaurantId === response.prefill.restaurantId)?.name ?? null,
+			);
 			logFrontendEvent({
 				event_name: "sns_import_resolved",
 				error_level: "log",
@@ -168,7 +245,28 @@ export default function SnsImportScreen() {
 		} finally {
 			setIsResolving(false);
 		}
-	}, [callBackend, input, isResolving, lightImpact, logFrontendEvent, showSnackbar]);
+	}, [area, callBackend, input, isResolving, lightImpact, logFrontendEvent, showSnackbar]);
+
+	/** 店名検索（自前 `restaurants`）から選んだ。候補が 0 件でもここから必ず選べる */
+	const handleSelectRestaurantFromSearch = useCallback(
+		(result: QueryRestaurantsResponse[number]) => {
+			lightImpact();
+			setRestaurantId(result.restaurant.id);
+			setRestaurantName(result.restaurant.name);
+		},
+		[lightImpact],
+	);
+
+	/** 料理カテゴリ検索から選んだ。同上 */
+	const handleSelectDishCategoryFromSearch = useCallback(
+		(suggestion: { dishCategoryId: string; label: string }) => {
+			lightImpact();
+			setDishCategoryId(suggestion.dishCategoryId);
+			setDishCategoryLabel(suggestion.label);
+			setDishCategoryQuery("");
+		},
+		[lightImpact],
+	);
 
 	const handleSave = useCallback(async () => {
 		const url = input.trim();
@@ -211,9 +309,7 @@ export default function SnsImportScreen() {
 						accessibilityRole="button"
 						accessibilityState={{ selected: tab === t }}
 						style={[styles.tab, tab === t && styles.tabActive]}>
-						<Text style={[styles.tabLabel, tab === t && styles.tabLabelActive]}>
-							{i18n.t(`SnsImport.tabs.${t}`)}
-						</Text>
+						<Text style={[styles.tabLabel, tab === t && styles.tabLabelActive]}>{i18n.t(`SnsImport.tabs.${t}`)}</Text>
 					</TouchableOpacity>
 				))}
 			</View>
@@ -275,10 +371,10 @@ export default function SnsImportScreen() {
 									</Text>
 								)}
 
+								{/* ⚠️ 候補は «出れば嬉しい» もの。**0 件でも下の検索から必ず選べる**ようにしてある。
+								    Instagram はサーバから取れるメタデータが無いので、候補 0 件は想定内の主要経路である */}
 								<Text style={styles.sectionTitle}>{i18n.t("SnsImport.sections.dishCategory")}</Text>
-								{resolved.candidates.dishCategories.length === 0 ? (
-									<Text style={styles.hint}>{i18n.t("SnsImport.sections.noDishCategory")}</Text>
-								) : (
+								{resolved.candidates.dishCategories.length > 0 && (
 									<View style={styles.chipRow}>
 										{resolved.candidates.dishCategories.map((candidate) => (
 											<TouchableOpacity
@@ -287,34 +383,59 @@ export default function SnsImportScreen() {
 												onPress={() => {
 													lightImpact();
 													setDishCategoryId(candidate.dishCategoryId);
+													setDishCategoryLabel(
+														candidate.labels?.[locale.split("-")[0]] ?? candidate.labelEn ?? candidate.dishCategoryId,
+													);
 												}}
 												accessibilityRole="button"
 												accessibilityState={{ selected: dishCategoryId === candidate.dishCategoryId }}
-												style={[
-													styles.chip,
-													dishCategoryId === candidate.dishCategoryId && styles.chipSelected,
-												]}>
+												style={[styles.chip, dishCategoryId === candidate.dishCategoryId && styles.chipSelected]}>
 												<Text
 													style={[
 														styles.chipLabel,
 														dishCategoryId === candidate.dishCategoryId && styles.chipLabelSelected,
 													]}>
-													{candidate.labels?.[locale.split("-")[0]] ??
-														candidate.labelEn ??
-														candidate.dishCategoryId}
+													{candidate.labels?.[locale.split("-")[0]] ?? candidate.labelEn ?? candidate.dishCategoryId}
 												</Text>
 											</TouchableOpacity>
 										))}
 									</View>
 								)}
 
-								<Text style={styles.sectionTitle}>{i18n.t("SnsImport.sections.restaurant")}</Text>
-								{resolved.candidates.restaurants.length === 0 ? (
-									// エリアを渡していない / 近くに候補が無い。**エラーではない**
-									<Text style={styles.hint} testID="sns-import-no-restaurant">
-										{i18n.t("SnsImport.sections.noRestaurant")}
+								{/* 料理カテゴリの手入力。候補の有無に関わらず常に出す */}
+								<TextInput
+									testID="sns-import-dish-category-search-input"
+									value={dishCategoryQuery}
+									onChangeText={(text) => {
+										setDishCategoryQuery(text);
+										void searchDishCategories(text);
+									}}
+									placeholder={i18n.t("SnsImport.sections.dishCategorySearchPlaceholder")}
+									autoCapitalize="none"
+									style={styles.searchInput}
+								/>
+								{dishCategorySuggestions.length > 0 && (
+									<View style={styles.chipRow}>
+										{dishCategorySuggestions.map((suggestion) => (
+											<TouchableOpacity
+												key={suggestion.dishCategoryId}
+												testID={`sns-import-dish-category-suggestion-${suggestion.dishCategoryId}`}
+												onPress={() => handleSelectDishCategoryFromSearch(suggestion)}
+												accessibilityRole="button"
+												style={styles.chip}>
+												<Text style={styles.chipLabel}>{suggestion.label}</Text>
+											</TouchableOpacity>
+										))}
+									</View>
+								)}
+								{!!dishCategoryLabel && (
+									<Text style={styles.selectedValue} testID="sns-import-selected-dish-category">
+										{i18n.t("SnsImport.sections.selected", { value: dishCategoryLabel })}
 									</Text>
-								) : (
+								)}
+
+								<Text style={styles.sectionTitle}>{i18n.t("SnsImport.sections.restaurant")}</Text>
+								{resolved.candidates.restaurants.length > 0 && (
 									<View style={styles.chipRow}>
 										{resolved.candidates.restaurants.map((candidate) => (
 											<TouchableOpacity
@@ -323,6 +444,7 @@ export default function SnsImportScreen() {
 												onPress={() => {
 													lightImpact();
 													setRestaurantId(candidate.restaurantId);
+													setRestaurantName(candidate.name);
 												}}
 												accessibilityRole="button"
 												accessibilityState={{ selected: restaurantId === candidate.restaurantId }}
@@ -337,6 +459,19 @@ export default function SnsImportScreen() {
 											</TouchableOpacity>
 										))}
 									</View>
+								)}
+
+								{/* 店名検索（自前 `restaurants` テーブル。Google Places Text Search /
+								    Autocomplete は呼ばない）。候補の有無に関わらず常に出す */}
+								<RestaurantNameSearch
+									regionRef={regionRef}
+									onSelectRestaurant={handleSelectRestaurantFromSearch}
+									testID="sns-import-restaurant-search"
+								/>
+								{!!restaurantName && (
+									<Text style={styles.selectedValue} testID="sns-import-selected-restaurant">
+										{i18n.t("SnsImport.sections.selected", { value: restaurantName })}
+									</Text>
 								)}
 
 								<PrimaryButton
@@ -435,6 +570,22 @@ const styles = StyleSheet.create({
 		fontSize: 14,
 		fontWeight: "700",
 		color: "#1A1A1A",
+	},
+	searchInput: {
+		marginTop: 8,
+		borderWidth: 1,
+		borderColor: "#E5E7EB",
+		borderRadius: 8,
+		paddingHorizontal: 12,
+		paddingVertical: 10,
+		fontSize: 14,
+		color: "#111827",
+	},
+	selectedValue: {
+		marginTop: 8,
+		fontSize: 13,
+		fontWeight: "700",
+		color: "#F05537",
 	},
 	chipRow: {
 		marginTop: 8,

@@ -111,23 +111,25 @@ describe("useSnsShareIntake（共有の受け取りから遷移まで）", () =>
 		});
 	});
 
-	it("未ログインなら、URL を ?next= に載せてログインへ push する", async () => {
+	// #1375 実機確認: **ログインを挟まない。** 共有した直後にログイン画面が出るのが一番離脱する形で、
+	// 取り込み自体は匿名で成立する（`dish_media.user_id` は NULL、紐付けは `reactions(save)`）
+	it("未ログインでも取り込み画面へ直接 push する", async () => {
 		mockSession = null;
 
 		await mountIntake(makeSource(SHARED_POST_URL));
 
 		expect(mockPush).toHaveBeenCalledWith({
-			pathname: "/[locale]/auth/login",
-			params: { locale: "ja-JP", next: `/ja-JP/sns-import?url=${encodeURIComponent(SHARED_POST_URL)}` },
+			pathname: "/[locale]/sns-import",
+			params: { locale: "ja-JP", url: SHARED_POST_URL },
 		});
 	});
 
-	it("ゲスト（匿名）ユーザーもログインへ送る", async () => {
+	it("ゲスト（匿名）ユーザーもログインへ送らない", async () => {
 		mockSession = { user: { is_anonymous: true } };
 
 		await mountIntake(makeSource(SHARED_POST_URL));
 
-		expect(mockPush.mock.calls[0][0]).toMatchObject({ pathname: "/[locale]/auth/login" });
+		expect(mockPush.mock.calls[0][0]).toMatchObject({ pathname: "/[locale]/sns-import" });
 	});
 
 	// #1194 コールドスタートでは «マウント» と «認証の初期化» が競合する。待たずに判定すると

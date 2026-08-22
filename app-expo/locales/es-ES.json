@@ -905,8 +905,8 @@
 		"sections": {
 			"dishCategory": "Plato",
 			"restaurant": "Restaurante",
-			"noDishCategory": "No se encontraron platos.",
-			"noRestaurant": "No se encontraron restaurantes."
+			"dishCategorySearchPlaceholder": "Buscar platos (2+ caracteres)",
+			"selected": "Seleccionado: {{value}}"
 		},
 		"save": {
 			"done": "Guardado en Quiero comer",

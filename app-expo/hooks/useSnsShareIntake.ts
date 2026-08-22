@@ -65,10 +65,12 @@ export function useSnsShareIntake(source: SharedTextSource = defaultSharedTextSo
 		async (sharedText: string) => {
 			// #1194 と同じ理由で render 時点のスナップショット（`isAuthResolved`）ではなく «待つ» 方を使う。
 			// 決着後の user は sessionRef を同期参照する getSession() から読む（再 render を待たない）
+			// #1375 実機確認: 行き先の判定にログイン状態は要らなくなった（取り込みは匿名可）。
+			// それでも **認証の決着は待つ**。取り込み画面は着地直後に `resolve` を叩くので、
+			// セッションが未確定のまま着くと最初の 1 本が 401 になる
 			await waitForAuthResolved(AUTH_RESOLVE_TIMEOUT_MS);
-			const isLoggedIn = !isGuestUser(getSession()?.user ?? null);
 
-			const route = resolveSnsShareIntake({ sharedText, locale: localeRef.current, isLoggedIn });
+			const route = resolveSnsShareIntake({ sharedText, locale: localeRef.current });
 
 			logFrontendEvent({
 				event_name: "sns_share_intake_routed",
@@ -81,13 +83,9 @@ export function useSnsShareIntake(source: SharedTextSource = defaultSharedTextSo
 				},
 			});
 
-			if (route.type === "login") {
-				router.push({ pathname: route.pathname, params: route.params });
-				return;
-			}
 			router.push({ pathname: route.pathname, params: route.params });
 		},
-		[getSession, logFrontendEvent, waitForAuthResolved],
+		[logFrontendEvent, waitForAuthResolved],
 	);
 
 	useEffect(() => {

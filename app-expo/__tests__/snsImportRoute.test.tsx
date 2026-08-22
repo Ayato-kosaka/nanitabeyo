@@ -45,6 +45,22 @@ const mockCallBackend = jest.fn();
 jest.mock("@/hooks/useAPICall", () => ({ useAPICall: () => ({ callBackend: mockCallBackend }) }));
 jest.mock("@/contexts/SnackbarProvider", () => ({ useSnackbar: () => ({ showSnackbar: jest.fn() }) }));
 jest.mock("@/contexts/AuthProvider", () => ({ useAuth: () => ({ user: { is_anonymous: false } }) }));
+// #1375 実機確認の回帰: 現在地が取れる前提で «エリアを付けて resolve を叩く» ことを見る
+jest.mock("@/hooks/useCurrentLocationPosition", () => ({
+	getCurrentLocationPosition: () => Promise.resolve({ latitude: 35.68, longitude: 139.76 }),
+}));
+jest.mock("@/hooks/useDishCategorySearch", () => ({
+	useDishCategorySearch: () => ({ suggestions: [], isSearching: false, searchDishCategories: jest.fn() }),
+}));
+jest.mock("@/features/restaurantPicker/components/RestaurantNameSearch", () => {
+	const ReactActual = jest.requireActual("react");
+	const { View: RNView } = jest.requireActual("react-native");
+	// 中身は専用 suite（selectRestaurantNameSearch.test.tsx）が見る。
+	// ここでは «画面に置かれているか» だけを見たいので testID を持つ器にする
+	return {
+		RestaurantNameSearch: ({ testID }: { testID?: string }) => ReactActual.createElement(RNView, { testID }),
+	};
+});
 jest.mock("@/lib/i18n", () => ({ __esModule: true, default: { t: (key: string) => key } }));
 jest.mock("lucide-react-native", () => new Proxy({}, { get: () => () => null }));
 jest.mock("react-native-safe-area-context", () => {
@@ -232,5 +248,75 @@ describe("8 ロケールの文言（parity テストは «キーがあること�
 
 		const values = flatten(messages.SnsImport);
 		values.forEach((value) => expect(value.trim().length).toBeGreaterThan(0));
+	});
+});
+
+/*
+#1375 実機確認の回帰テスト。
+
+**候補が 1 件も出ず、保存に到達できない状態で出してしまった。** 原因は 2 つで、
+どちらか片方だけ直しても «出せない» ままになる。
+
+1. `resolve` は `lat` / `lng` / `radius` が揃ったときだけ店舗候補を探す
+   （`dish-media-imports.service.ts` の `area_not_provided`）。エリアを送っていなかったので
+   **店舗候補は構造的に必ず 0 件**だった
+2. 候補からしか選べない UI だったので、候補 0 件 = 永久に保存不可だった。
+   Instagram はサーバから取れるメタデータが無く候補 0 件が主要経路なので、
+   **手入力へ縮退する口が無いこと自体が設計違反**である（「完全自動確定を前提にしない」）
+
+ここではその 2 点を固定する。
+*/
+describe("#1375 取り込みは «候補ゼロでも保存に到達できる»", () => {
+	it("resolve にはエリア（lat / lng / radius）を必ず付ける", async () => {
+		mockCallBackend.mockResolvedValue({
+			status: "ok",
+			reason: "resolved",
+			source: { provider: "tiktok", externalContentId: "1", canonicalUrl: "https://x", mediaIndex: null },
+			metadata: { title: null, authorName: null, authorUrl: null, thumbnailUrl: null, extractedTexts: [] },
+			candidates: { dishCategories: [], restaurants: [] },
+			prefill: { dishCategoryId: null, restaurantId: null },
+			restaurantSearch: { performed: true, reason: "searched", scannedCount: 0 },
+		});
+
+		const tree = await render();
+		const input = tree.root.find((node) => node.props?.testID === "sns-import-url-input");
+		await act(async () => {
+			input.props.onChangeText("https://www.tiktok.com/@a/video/7412345678901234567");
+		});
+		const button = tree.root.find((node) => node.props?.testID === "sns-import-resolve-button");
+		await act(async () => {
+			await button.props.onPress();
+		});
+
+		const call = mockCallBackend.mock.calls.find(([path]) => path === "v1/dish-media/imports/resolve");
+		expect(call).toBeDefined();
+		// ⚠️ ここが欠けると店舗候補は **常に 0 件**になる
+		expect(call?.[1].requestPayload).toMatchObject({ lat: 35.68, lng: 139.76, radius: expect.any(Number) });
+	});
+
+	it("候補が 0 件でも、手入力の口（料理カテゴリ検索・店名検索）が出る", async () => {
+		mockCallBackend.mockResolvedValue({
+			status: "unknown",
+			reason: "metadata_provider_unsupported",
+			source: { provider: "instagram", externalContentId: "1", canonicalUrl: "https://x", mediaIndex: null },
+			metadata: { title: null, authorName: null, authorUrl: null, thumbnailUrl: null, extractedTexts: [] },
+			candidates: { dishCategories: [], restaurants: [] },
+			prefill: { dishCategoryId: null, restaurantId: null },
+			restaurantSearch: { performed: false, reason: "no_extracted_text", scannedCount: 0 },
+		});
+
+		const tree = await render();
+		const input = tree.root.find((node) => node.props?.testID === "sns-import-url-input");
+		await act(async () => {
+			input.props.onChangeText("https://www.instagram.com/reel/ABCdef12345/");
+		});
+		const button = tree.root.find((node) => node.props?.testID === "sns-import-resolve-button");
+		await act(async () => {
+			await button.props.onPress();
+		});
+
+		// 候補が 0 件でも «選ぶ手段» が画面に在ること。これが無いと保存へ到達できない
+		expect(has(tree, "sns-import-dish-category-search-input")).toBe(true);
+		expect(has(tree, "sns-import-restaurant-search")).toBe(true);
 	});
 });

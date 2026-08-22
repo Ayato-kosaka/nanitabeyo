@@ -905,8 +905,8 @@
 		"sections": {
 			"dishCategory": "व्यंजन",
 			"restaurant": "रेस्तराँ",
-			"noDishCategory": "कोई व्यंजन नहीं मिला।",
-			"noRestaurant": "कोई रेस्तराँ नहीं मिला।"
+			"dishCategorySearchPlaceholder": "व्यंजन खोजें (2+ अक्षर)",
+			"selected": "चयनित: {{value}}"
 		},
 		"save": {
 			"done": "खाना है में सहेजा गया",

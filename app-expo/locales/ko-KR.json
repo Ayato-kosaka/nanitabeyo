@@ -905,8 +905,8 @@
 		"sections": {
 			"dishCategory": "음식",
 			"restaurant": "가게",
-			"noDishCategory": "음식 후보를 찾지 못했습니다.",
-			"noRestaurant": "가게 후보를 찾지 못했습니다."
+			"dishCategorySearchPlaceholder": "음식 이름으로 검색(2자 이상)",
+			"selected": "선택: {{value}}"
 		},
 		"save": {
 			"done": "먹고 싶다에 저장했습니다",

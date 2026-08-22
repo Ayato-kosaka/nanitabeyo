@@ -905,8 +905,8 @@
 		"sections": {
 			"dishCategory": "料理",
 			"restaurant": "店舗",
-			"noDishCategory": "料理の候補が見つかりませんでした。",
-			"noRestaurant": "店舗の候補が見つかりませんでした。"
+			"dishCategorySearchPlaceholder": "料理名で検索（2文字以上）",
+			"selected": "選択中: {{value}}"
 		},
 		"save": {
 			"done": "食べたいに保存しました",

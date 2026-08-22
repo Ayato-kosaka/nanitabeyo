@@ -905,8 +905,8 @@
 		"sections": {
 			"dishCategory": "菜品",
 			"restaurant": "店铺",
-			"noDishCategory": "未找到菜品候选。",
-			"noRestaurant": "未找到店铺候选。"
+			"dishCategorySearchPlaceholder": "按菜品名搜索（2 个字以上）",
+			"selected": "已选择：{{value}}"
 		},
 		"save": {
 			"done": "已保存到想吃",

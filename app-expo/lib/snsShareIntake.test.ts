@@ -60,8 +60,8 @@ describe("resolveSnsShareIntakeView（画面が描くべき状態）", () => {
 	});
 });
 
-describe("resolveSnsShareIntake（ログイン済み）", () => {
-	const intakeOf = (sharedText: string) => resolveSnsShareIntake({ sharedText, locale: "ja-JP", isLoggedIn: true });
+describe("resolveSnsShareIntake", () => {
+	const intakeOf = (sharedText: string) => resolveSnsShareIntake({ sharedText, locale: "ja-JP" });
 
 	it.each([
 		["TikTok の投稿", TIKTOK_POST_URL, TIKTOK_POST_URL],
@@ -101,81 +101,39 @@ describe("resolveSnsShareIntake（ログイン済み）", () => {
 	});
 
 	it("ロケールは呼び出し側の現在値をそのまま使う", () => {
-		const route = resolveSnsShareIntake({ sharedText: TIKTOK_POST_URL, locale: "en-US", isLoggedIn: true });
+		const route = resolveSnsShareIntake({ sharedText: TIKTOK_POST_URL, locale: "en-US" });
 		expect(route.params.locale).toBe("en-US");
 	});
 });
 
-describe("resolveSnsShareIntake（未ログイン）", () => {
-	const intakeOf = (sharedText: string) => resolveSnsShareIntake({ sharedText, locale: "ja-JP", isLoggedIn: false });
+// #1375 実機確認: 共有からの着地で **ログインを挟まない**。
+// 取り込みは `dish_media.user_id` を NULL のままにし、ユーザーとの紐付けは
+// `reactions(save)` が持つ（匿名ユーザーも実 user id を持つので save は書ける）。
+// 挟むと「共有した直後にログイン画面が出る」という、一番離脱する形になる。
+describe("resolveSnsShareIntake（未ログインでもログインを挟まない）", () => {
+	const intakeOf = (sharedText: string) => resolveSnsShareIntake({ sharedText, locale: "ja-JP" });
 
-	it("取り込める URL は捨てずに ?next= へ載せてログインへ送る", () => {
-		expect(intakeOf(TIKTOK_POST_URL)).toEqual({
-			type: "login",
-			pathname: LOGIN_PATHNAME,
-			params: { locale: "ja-JP", next: buildSnsImportPath("ja-JP", TIKTOK_POST_URL) },
-		});
-	});
-
-	it("短縮 URL も同じく保持する（展開はログイン後の話）", () => {
-		const route = intakeOf(TIKTOK_SHORT_URL);
-		expect(route.type).toBe("login");
-	});
-
-	// ログインしても取り込めないものでログインを強いない。Android の ACTION_SEND は
-	// URL 以外のテキストも飛ばしてくるので、この経路は稀ではない（設計 §6 R-4）
-	it("対象外の URL ではログインへ送らず、そのまま «非対応» の説明へ進む", () => {
-		expect(intakeOf(UNSUPPORTED_URL)).toEqual({
-			type: "import",
-			pathname: SNS_IMPORT_PATHNAME,
-			params: { locale: "ja-JP" },
-		});
-	});
-});
-
-describe("未ログインで共有 → ログイン → 元の URL で取り込みが続行される", () => {
-	// ログイン画面（app/[locale]/auth/login.tsx）は `resolveNextPath()` を通した値へ replace する。
-	// 通らない形を作ってしまうと共有した URL が黙って消えるので、往復をそのまま再現する。
 	it.each([
 		["TikTok の投稿", TIKTOK_POST_URL],
 		["YouTube Shorts", YOUTUBE_SHORTS_URL],
 		["Instagram の reel", INSTAGRAM_REEL_URL],
-		["TikTok の短縮 URL", TIKTOK_SHORT_URL],
-	])("%s", (_label, sharedUrl) => {
-		const route = resolveSnsShareIntake({ sharedText: sharedUrl, locale: "ja-JP", isLoggedIn: false });
-		if (route.type !== "login") throw new Error("未ログインならログインへ送られるはず");
-
-		// ① login.tsx が open redirect 対策の検証を通す
-		const href = resolveNextPath(route.params.next, "ja-JP");
-		expect(href).toBe(`/ja-JP/sns-import?url=${encodeURIComponent(sharedUrl)}`);
-
-		// ② 復帰先の画面が受け取る `url` パラメータ（expo-router がデコードして渡す）
-		const restoredUrl = new URL(`https://example.test${href}`).searchParams.get("url");
-		expect(restoredUrl).toBe(sharedUrl);
-
-		// ③ その URL で、共有直後とまったく同じ状態が再現される
-		expect(resolveSnsShareIntakeView(restoredUrl)).toEqual(resolveSnsShareIntakeView(sharedUrl));
+	])("%s は取り込み画面へ直接着く", (_label, sharedUrl) => {
+		expect(intakeOf(sharedUrl)).toEqual({
+			type: "import",
+			pathname: SNS_IMPORT_PATHNAME,
+			params: { locale: "ja-JP", url: sharedUrl },
+		});
 	});
 
-	it("ログインを挟んでロケールが変わっても、行き先は現在のロケールへ寄る（URL は保持される）", () => {
-		const route = resolveSnsShareIntake({ sharedText: TIKTOK_POST_URL, locale: "ja-JP", isLoggedIn: false });
-		if (route.type !== "login") throw new Error("未ログインならログインへ送られるはず");
-
-		expect(resolveNextPath(route.params.next, "en-US")).toBe(
-			`/en-US/sns-import?url=${encodeURIComponent(TIKTOK_POST_URL)}`,
-		);
-	});
-});
-
-describe("buildSnsImportPath", () => {
-	it("url があればクエリに載せる（エンコードする）", () => {
-		expect(buildSnsImportPath("ja-JP", TIKTOK_POST_URL)).toBe(
-			`/ja-JP/sns-import?url=${encodeURIComponent(TIKTOK_POST_URL)}`,
-		);
+	it("短縮 URL も取り込み画面へ直接着く（展開はサーバの仕事）", () => {
+		const route = intakeOf(TIKTOK_SHORT_URL);
+		expect(route.type).toBe("import");
+		expect(route.pathname).toBe(SNS_IMPORT_PATHNAME);
 	});
 
-	it("url が無ければクエリを付けない", () => {
-		expect(buildSnsImportPath("ja-JP")).toBe("/ja-JP/sns-import");
-		expect(buildSnsImportPath("ja-JP", null)).toBe("/ja-JP/sns-import");
+	it("どの入力でもログインへは送らない", () => {
+		for (const shared of [TIKTOK_POST_URL, YOUTUBE_SHORTS_URL, INSTAGRAM_REEL_URL, TIKTOK_SHORT_URL, "ただの文章"]) {
+			expect(intakeOf(shared).type).not.toBe("login");
+		}
 	});
 });

@@ -104,8 +104,6 @@ export const resolveSnsShareIntake = (params: {
 	sharedText: string | null | undefined;
 	/** 現在のロケール（`useLocale().locale`） */
 	locale: string;
-	/** ログイン済みか（ゲスト・認証未確定は false。`lib/authGuest.ts` の判定を使うこと） */
-	isLoggedIn: boolean;
 }): SnsShareIntakeRoute => {
 	const view = resolveSnsShareIntakeView(params.sharedText);
 	const url =
@@ -115,14 +113,15 @@ export const resolveSnsShareIntake = (params: {
 				? view.shortlink.expandUrl
 				: undefined;
 
-	if (url && !params.isLoggedIn) {
-		return {
-			type: "login",
-			pathname: LOGIN_PATHNAME,
-			params: { locale: params.locale, next: buildSnsImportPath(params.locale, url) },
-		};
-	}
-
+	// #1375 実機確認: **ログインへ寄り道させない。**
+	//
+	// 取り込みは `dish_media.user_id` を NULL のままにし、ユーザーとの紐付けは
+	// `reactions(save)` が持つ（匿名ユーザーも実 user id を持つので save は書ける）。
+	// API も `AuthAnonGuard` なので、共有からの着地でログインを挟む理由が無い。
+	// 挟むと「共有した直後にログイン画面が出る」という、一番離脱する形になる。
+	//
+	// ログインが要るのは «食べたを記録»（`dish_reviews` を書く公開レビュー）だけで、
+	// その判定は取り込み画面側の上部タブが行う。
 	return {
 		type: "import",
 		pathname: SNS_IMPORT_PATHNAME,

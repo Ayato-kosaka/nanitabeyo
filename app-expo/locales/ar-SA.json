@@ -905,8 +905,8 @@
 		"sections": {
 			"dishCategory": "الطبق",
 			"restaurant": "المطعم",
-			"noDishCategory": "لم يتم العثور على أطباق.",
-			"noRestaurant": "لم يتم العثور على مطاعم."
+			"dishCategorySearchPlaceholder": "ابحث عن طبق (حرفان فأكثر)",
+			"selected": "المحدد: {{value}}"
 		},
 		"save": {
 			"done": "تم الحفظ في أريد تناوله",

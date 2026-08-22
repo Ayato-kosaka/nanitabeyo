@@ -905,8 +905,8 @@
 		"sections": {
 			"dishCategory": "Dish",
 			"restaurant": "Restaurant",
-			"noDishCategory": "No dish candidates found.",
-			"noRestaurant": "No restaurant candidates found."
+			"dishCategorySearchPlaceholder": "Search dishes (2+ characters)",
+			"selected": "Selected: {{value}}"
 		},
 		"save": {
 			"done": "Saved to Want to eat",

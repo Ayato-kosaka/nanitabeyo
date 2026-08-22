@@ -905,8 +905,8 @@
 		"sections": {
 			"dishCategory": "Plat",
 			"restaurant": "Restaurant",
-			"noDishCategory": "Aucun plat trouvé.",
-			"noRestaurant": "Aucun restaurant trouvé."
+			"dishCategorySearchPlaceholder": "Rechercher un plat (2+ caractères)",
+			"selected": "Sélectionné : {{value}}"
 		},
 		"save": {
 			"done": "Enregistré dans Envies",
