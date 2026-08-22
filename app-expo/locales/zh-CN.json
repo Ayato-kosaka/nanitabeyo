@@ -555,6 +555,7 @@
 			"videoTooLong": "请选择2分钟以内的视频。",
 			"permissionDenied": "无法访问媒体。请在设置中授予权限。",
 			"thumbnailFailed": "生成缩略图失败。请尝试其他文件。",
+			"unsupportedImageFormat": "不支持此图片格式（HEIC）。请选择其他照片，或将相机设置改为“兼容性优先”。",
 			"selectedImage": "已选择的图片",
 			"selectedVideoThumbnail": "已选择视频的缩略图",
 			"playVideo": "播放视频",

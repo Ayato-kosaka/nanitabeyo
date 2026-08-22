@@ -555,6 +555,7 @@
 			"videoTooLong": "Veuillez sélectionner une vidéo de moins de 2 minutes.",
 			"permissionDenied": "Impossible d'accéder aux médias. Veuillez accorder l'autorisation dans les paramètres.",
 			"thumbnailFailed": "Échec de la génération de la miniature. Veuillez essayer un autre fichier.",
+			"unsupportedImageFormat": "Ce format d'image (HEIC) n'est pas pris en charge. Choisissez une autre photo ou réglez votre appareil photo sur « Le plus compatible ».",
 			"selectedImage": "Image sélectionnée",
 			"selectedVideoThumbnail": "Miniature de la vidéo sélectionnée",
 			"playVideo": "Lire la vidéo",

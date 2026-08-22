@@ -555,6 +555,7 @@
 			"videoTooLong": "Please select a video under 2 minutes.",
 			"permissionDenied": "Cannot access media. Please grant permission in settings.",
 			"thumbnailFailed": "Failed to generate thumbnail. Please try a different file.",
+			"unsupportedImageFormat": "This image format (HEIC) is not supported. Please choose a different photo, or set your camera to \"Most Compatible\".",
 			"selectedImage": "Selected image",
 			"selectedVideoThumbnail": "Thumbnail of selected video",
 			"playVideo": "Play video",

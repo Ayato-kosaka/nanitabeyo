@@ -19,7 +19,13 @@ export interface MediaData {
 interface MediaSelectionResult {
 	success: boolean;
 	media?: MediaData;
-	error?: "cancelled" | "permission_denied" | "video_too_long" | "thumbnail_failed" | "unknown";
+	error?:
+		| "cancelled"
+		| "permission_denied"
+		| "video_too_long"
+		| "thumbnail_failed"
+		| "unsupported_image_format"
+		| "unknown";
 	errorMessage?: string;
 }
 
@@ -29,6 +35,25 @@ function isVideoAsset(asset: ImagePicker.ImagePickerAsset): boolean {
 	if (mt.startsWith("video/")) return true;
 	const ext = asset.fileName?.split(".").pop()?.toLowerCase();
 	return ext === "mp4" || ext === "mov" || ext === "m4v";
+}
+
+/**
+ * #1425 サーバがデコードできない画像形式か。現状は HEIC / HEIF のみ。
+ *
+ * `mimeType` は端末・プラットフォームによって欠けることがあるため、
+ * ファイル名と URI の拡張子もあわせて見る（Android は mimeType を返さない場合がある）。
+ *
+ * ⚠️ ここを「EXTENSION_TABLE に無いものは全部弾く」へ広げないこと。
+ * 現状たまたま通っている形式まで巻き込んで、直っていたものを壊す。
+ * 実測で失敗が確認されている HEIC / HEIF だけを対象にする。
+ */
+function isUnsupportedImageAsset(asset: { mimeType?: string | null; fileName?: string | null; uri?: string }): boolean {
+	const mimeType = asset.mimeType?.toLowerCase() ?? "";
+	if (mimeType === "image/heic" || mimeType === "image/heif") return true;
+
+	// クエリ文字列やフラグメントを落としてから拡張子を見る
+	const name = (asset.fileName ?? asset.uri ?? "").toLowerCase().split(/[?#]/)[0] ?? "";
+	return name.endsWith(".heic") || name.endsWith(".heif");
 }
 
 // ミリ秒/秒 混在に耐える正規化
@@ -214,6 +239,19 @@ export async function selectMedia(
 		const asset = result.assets[0];
 		if (!asset) {
 			return { success: false, error: "unknown" };
+		}
+
+		// #1425 【バグ】サーバが HEIC をデコードできないので、選ばせた時点で断る。
+		//
+		// #1156 の `preferredAssetRepresentationMode: Compatible` は **iOS 限定**で、
+		// Android と web では無視される。Samsung / Pixel の「高効率」設定は HEIC で保存するため、
+		// Android のフォトピッカーは HEIC をそのまま返しうる。
+		//
+		// ここで断らないと «アップロードは 200 で成功 → 投稿後に静かに failed» になり、
+		// フィードには「このメディアは現在ご利用いただけません」とだけ出る。
+		// サーバ側（#1425）は恒久失敗として畳むだけで、画像が見えるようにはならない。
+		if (!isVideoAsset(asset) && isUnsupportedImageAsset(asset)) {
+			return { success: false, error: "unsupported_image_format" };
 		}
 
 		const isVideo = isVideoAsset(asset);

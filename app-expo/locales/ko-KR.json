@@ -555,6 +555,7 @@
 			"videoTooLong": "2분 이내의 동영상을 선택해주세요.",
 			"permissionDenied": "미디어에 액세스할 수 없습니다. 설정에서 권한을 허용해주세요.",
 			"thumbnailFailed": "썸네일 생성에 실패했습니다. 다른 파일을 시도해주세요.",
+			"unsupportedImageFormat": "이 이미지 형식(HEIC)은 사용할 수 없습니다. 다른 사진을 선택하거나 카메라 설정을 \"높은 호환성\"으로 변경해주세요.",
 			"selectedImage": "선택한 이미지",
 			"selectedVideoThumbnail": "선택한 동영상의 썸네일",
 			"playVideo": "동영상 재생",
