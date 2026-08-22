@@ -5,6 +5,8 @@ import { requestTrackingPermissionsAsync, getTrackingPermissionsAsync } from "ex
 import { Settings } from "react-native-fbsdk-next";
 import { Env } from "@/constants/Env";
 import { isOnboardingPath } from "@/features/onboarding/navigation";
+import { useOnboardingSeen } from "@/features/onboarding/hooks/useOnboardingSeen";
+import { useLocale } from "@/hooks/useLocale";
 
 /**
  * #492 【設計】Meta (Facebook) App Events 初期化用コンポーネント。
@@ -24,15 +26,27 @@ import { isOnboardingPath } from "@/features/onboarding/navigation";
  * 「食べたいものが決まらない」という話をしている最中に OS のトラッキング許可ダイアログが
  * 割り込むと、文脈が無いぶん拒否されやすく、オンボーディング自体も分断される。
  *
- * ⚠️ 判定を «オンボーディング完了フラグ» にしてはいけない。オンボーディングは
- * 日本語ロケールでしか表示されない（#642）ため、他言語のユーザーはフラグが立たず
- * ATT が永久に要求されなくなる。見ているパスで判定すれば、オンボーディングを
- * 通らないユーザーは従来どおり起動直後に要求される。
+ * ## 判定の組み立て（パス判定だけでは足りない — 実機で ATT が最初に出たバグの修正）
+ *
+ * コールドスタート直後の `usePathname()` は、検索画面がオンボーディングへ push する
+ * **前の** `/ja-JP` を一瞬返す。パスだけで判定すると、その隙間で ATT が要求されて
+ * 「トラッキング許可が一番始めに出てくる」（実機で報告された）。そこで:
+ *
+ * - **未読の日本語ユーザー**（これからオンボーディングが始まる人）は、パスに関係なく待つ。
+ *   完了フラグ（`markOnboardingSeen`）が立ってから要求される
+ * - **それ以外**（既読 / 日本語以外）はパス判定だけで従来どおり要求される。
+ *   オンボーディングは日本語ロケールでしか自動表示されない（#642）ため、他言語の
+ *   ユーザーを完了フラグで待たせると ATT が永久に要求されなくなる（`!isJapanese` の逃し道）
+ * - フラグの読み込みが終わるまで（`seen === null`）は判定できないので待つ
+ * - パス判定も残す。「?」から手動でオンボーディングを開き直した最中に
+ *   effect が張り直された場合への保険
  */
 export const MetaAppEventsInitializer = () => {
 	const hasInitializedRef = useRef(false);
 	const pathname = usePathname();
-	const isInOnboarding = isOnboardingPath(pathname);
+	const seen = useOnboardingSeen();
+	const { isJapanese } = useLocale();
+	const mayRequest = !isOnboardingPath(pathname) && seen !== null && (seen || !isJapanese);
 
 	const initializeMetaAppEvents = useCallback(async () => {
 		if (hasInitializedRef.current) return;
@@ -87,9 +101,9 @@ export const MetaAppEventsInitializer = () => {
 	}, []);
 
 	useEffect(() => {
-		// #1486 §8 オンボーディング導線の途中では ATT を要求しない。
-		// 抜けた時点でこの effect が張り直され、そこで初めて要求される
-		if (isInOnboarding) return;
+		// #1486 §8 オンボーディングが済む（または対象外と分かる）まで ATT を要求しない。
+		// 条件が揃った時点でこの effect が張り直され、そこで初めて要求される
+		if (!mayRequest) return;
 
 		// #1013 【パフォーマンス】root layout 直下でネイティブブリッジ(SDK初期化・ATTダイアログ)を
 		// 即時実行すると起動直後の描画が遅れるため、初回インタラクション完了後まで初期化を遅延する
@@ -97,7 +111,7 @@ export const MetaAppEventsInitializer = () => {
 			initializeMetaAppEvents();
 		});
 		return () => task.cancel();
-	}, [initializeMetaAppEvents, isInOnboarding]);
+	}, [initializeMetaAppEvents, mayRequest]);
 
 	return null;
 };

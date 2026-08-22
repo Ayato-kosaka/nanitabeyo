@@ -102,18 +102,21 @@ describe("Onboarding の i18n", () => {
 		try {
 			i18n.locale = "ja-JP";
 
-			// #1486 §1 の確定文言。ここを書き換えるときはチケット側の合意も更新すること
+			// #1486 §1 の文言（デザインレビューで一部更新）。
+			// - step1 の解決文はレビューで確定した改稿版（明示改行入り）
+			// - 長文は画面幅で折り返し位置が揺れるため、意味の切れ目に \n を入れてある。
+			//   ここを消すと狭い端末で不格好な位置で折り返す
 			expect(i18n.t("Onboarding.step1.problem")).toBe("何食べたいか、決まらない。");
-			expect(i18n.t("Onboarding.step1.solution")).toBe("料理が提案されるので、食べたいが見つかる。");
-			expect(i18n.t("Onboarding.step2.problem")).toBe("お店探し。候補が多すぎて時間がかかる。");
-			expect(i18n.t("Onboarding.step2.solution")).toBe("料理もお店も候補が厳選されているので、すぐ決められる。");
+			expect(i18n.t("Onboarding.step1.solution")).toBe("おすすめの料理が提案されるので\n「食べたい」が見つかる");
+			expect(i18n.t("Onboarding.step2.problem")).toBe("お店探し。\n候補が多すぎて時間がかかる。");
+			expect(i18n.t("Onboarding.step2.solution")).toBe("料理もお店も候補が厳選されているので\nすぐ決められる");
 			expect(i18n.t("Onboarding.step3.problem")).toBe("一緒に行く人の好みも、外したくない。");
-			expect(i18n.t("Onboarding.step3.solution")).toBe("友達と投票して、料理を決められる。");
+			expect(i18n.t("Onboarding.step3.solution")).toBe("友達と投票して、料理を決められる");
 
-			// #1486 §5 / §6 / §7 の確定文言
+			// #1486 §5 / §6 / §7 の確定文言（welcome.title の 🎉 はレビューで削除が確定）
 			expect(i18n.t("Onboarding.location.title")).toBe("近くのお店を、すぐ見つけよう 📍");
 			expect(i18n.t("Onboarding.notifications.title")).toBe("食べたいを、見逃さない 🔔");
-			expect(i18n.t("Onboarding.welcome.title")).toBe("なに食べよへようこそ！ 🎉");
+			expect(i18n.t("Onboarding.welcome.title")).toBe("なに食べよへようこそ！");
 			expect(i18n.t("Onboarding.welcome.body1")).toBe("もう、お店選びで迷いすぎなくて大丈夫。");
 			expect(i18n.t("Onboarding.welcome.body2")).toBe("今日の「食べたい」を見つけにいこう。");
 			expect(i18n.t("Onboarding.welcome.cta")).toBe("はじめる");

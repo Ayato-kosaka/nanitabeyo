@@ -14,15 +14,18 @@ import { SearchPage } from "../../pages/SearchPage";
  *       「未読状態」を再現する。
  *
  * ⚠️ **web では OS の許可ダイアログが出ない。** 位置情報はブラウザの権限で、
- *    Playwright の既定コンテキストでは許可を «尋ねずに» 拒否される。通知も同様。
- *    そのため位置情報・通知の説明画面は「表示され、自動で次へ進む」ところまでを見る。
+ *    Playwright の既定コンテキストでは権限状態が «prompt» のまま、要求だけが
+ *    «尋ねずに» 拒否される。通知も同様。そのため既定コンテキストでは
+ *    位置情報・通知の説明画面は「表示され、自動で次へ進む」ところまでを見る。
+ *    権限が **回答済み**（granted / denied）の場合は説明画面そのものが表示されない
+ *    （probe で事前判定して飛ばす）。その検証は末尾の describe が行う。
  */
 test.use({ seedTutorialSeen: false });
 
-/** 3 ステップの課題文（#1486 §1 で確定した文言） */
+/** 3 ステップの課題文（#1486 §1 で確定した文言。\n は文言側で決めた明示改行） */
 const PROBLEM_TEXTS = [
 	"何食べたいか、決まらない。",
-	"お店探し。候補が多すぎて時間がかかる。",
+	"お店探し。\n候補が多すぎて時間がかかる。",
 	"一緒に行く人の好みも、外したくない。",
 ] as const;
 
@@ -56,7 +59,7 @@ test.describe("オンボーディング(ja-JP 初回訪問)", () => {
 		await onboardingPage.expectStep(1);
 
 		await onboardingPage.expectSolutionVisible(1);
-		await expect(page.getByText("料理が提案されるので、食べたいが見つかる。")).toBeVisible();
+		await expect(page.getByText("おすすめの料理が提案されるので\n「食べたい」が見つかる")).toBeVisible();
 		await expect(page.getByText(PROBLEM_TEXTS[0])).toBeVisible();
 	});
 
@@ -185,7 +188,7 @@ test.describe("オンボーディング(ja-JP 初回訪問)", () => {
 		await page.getByTestId("login-screen-skip").click();
 		await expect(onboardingPage.welcomeScreen).toBeVisible({ timeout: 60_000 });
 
-		await expect(page.getByText("なに食べよへようこそ！ 🎉")).toBeVisible();
+		await expect(page.getByText("なに食べよへようこそ！")).toBeVisible();
 		await expect(page.getByText("今日の「食べたい」を見つけにいこう。")).toBeVisible();
 
 		await onboardingPage.startButton.click();
@@ -284,5 +287,46 @@ test.describe("ヘルプボタンからの再表示", () => {
 		await searchPage.expectLoaded();
 		await expect(onboardingPage.screen).toHaveCount(0);
 		await expect(page.getByTestId("login-screen")).toHaveCount(0);
+	});
+});
+
+test.describe("位置情報が回答済みのとき", () => {
+	// Playwright の permissions オプションで «granted（回答済み）» の状態を作る。
+	// 既定コンテキストは «prompt（未回答）» なので、上のフローテストでは説明画面が表示される
+	test.use({ permissions: ["geolocation"], geolocation: { latitude: 35.681236, longitude: 139.767125 } });
+
+	// ─ テストケース: 回答済みなら位置情報の説明画面を出さずに Welcome へ進む ─
+	// 手順:
+	//   1. MutationObserver を仕込み、位置情報画面が一瞬でも DOM に現れたら記録する
+	//   2. オンボーディング → ログインスキップまで進める
+	//   3. Welcome に着くこと、位置情報画面が **一度も** 現れなかったことを検証
+	// 補足: 「web だと位置情報画面が一瞬出て直ぐ次に進む。拒否されてるなら出ないべきでは」
+	//       という報告の回帰テスト。probe（permissions.query）が prompt 以外を返したら
+	//       説明画面は描画すらしない設計（OnboardingPermissionScreen の isAskable）。
+	//       Welcome 到着後の「count 0」では一瞬の表示を見逃すため、Observer で全期間を監視する
+	test("回答済みなら位置情報画面を出さずに Welcome へ進む", async ({ page }) => {
+		const onboardingPage = new OnboardingPage(page);
+
+		await page.addInitScript(() => {
+			const flagged = window as unknown as { __locationScreenAppeared?: boolean };
+			const observer = new MutationObserver(() => {
+				if (document.querySelector('[data-testid="onboarding-location"]')) {
+					flagged.__locationScreenAppeared = true;
+				}
+			});
+			observer.observe(document.documentElement, { childList: true, subtree: true });
+		});
+
+		await page.goto("/");
+		await onboardingPage.advanceToLastStep();
+		await onboardingPage.pressNext();
+		await page.getByTestId("login-screen-skip").click();
+
+		await expect(onboardingPage.welcomeScreen).toBeVisible({ timeout: 60_000 });
+		expect(
+			await page.evaluate(
+				() => (window as unknown as { __locationScreenAppeared?: boolean }).__locationScreenAppeared ?? false,
+			),
+		).toBe(false);
 	});
 });

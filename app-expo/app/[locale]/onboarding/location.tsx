@@ -12,7 +12,11 @@ import type { ExternalPathString } from "expo-router";
 import { OnboardingPermissionScreen } from "@/features/onboarding/components/OnboardingPermissionScreen";
 import { OnboardingScreenOptions } from "@/features/onboarding/components/OnboardingScreenOptions";
 import { resolveAfterLocationPath } from "@/features/onboarding/navigation";
-import { requestLocationPermission, type PermissionOutcome } from "@/features/onboarding/permissions";
+import {
+	getLocationPermissionState,
+	requestLocationPermission,
+	type PermissionOutcome,
+} from "@/features/onboarding/permissions";
 import { useAuth } from "@/contexts/AuthProvider";
 import { isGuestUser } from "@/lib/authGuest";
 import { useLocale } from "@/hooks/useLocale";
@@ -53,7 +57,19 @@ export default function OnboardingLocationScreen() {
 				title={i18n.t("Onboarding.location.title")}
 				body={i18n.t("Onboarding.location.body")}
 				progress={0.6}
+				probe={getLocationPermissionState}
 				request={requestLocationPermission}
+				// 中央に置く iOS 位置情報ダイアログのダミー。実物と同じ並び順で、
+				// おすすめの「Appの使用中は許可」を強調する
+				dialogPreview={{
+					title: i18n.t("Onboarding.location.dialog.title"),
+					message: i18n.t("Onboarding.location.dialog.message"),
+					buttons: [
+						{ label: i18n.t("Onboarding.location.dialog.allowOnce") },
+						{ label: i18n.t("Onboarding.location.dialog.allowWhileUsing"), emphasized: true },
+						{ label: i18n.t("Onboarding.location.dialog.deny") },
+					],
+				}}
 				onSettled={handleSettled}
 				testID="onboarding-location"
 			/>

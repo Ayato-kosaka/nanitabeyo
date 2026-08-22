@@ -243,29 +243,42 @@
 	"Onboarding": {
 		"step1": {
 			"problem": "想吃什么，总是拿不定主意。",
-			"solution": "我们来推荐菜品，帮你找到想吃的那一口。"
+			"solution": "我们会推荐菜品，\n帮你找到「想吃」的那一口"
 		},
 		"step2": {
-			"problem": "找店太花时间，候选太多挑不完。",
-			"solution": "菜品和店铺都已精选，马上就能定下来。"
+			"problem": "找店太花时间，\n候选太多挑不完。",
+			"solution": "菜品和店铺都已精选，\n马上就能定下来"
 		},
 		"step3": {
 			"problem": "同行人的口味，也不想踩雷。",
-			"solution": "和朋友一起投票，共同决定吃什么。"
+			"solution": "和朋友一起投票，共同决定吃什么"
 		},
 		"back": "上一步",
 		"next": "下一步",
 		"skip": "跳过",
 		"location": {
 			"title": "马上找到附近的好店 📍",
-			"body": "开启位置信息后，我们就能为你推荐当前位置附近的好店。"
+			"body": "开启位置信息后，我们就能为你推荐当前位置附近的好店。",
+			"dialog": {
+				"title": "允许“CraveCatch”使用您的位置吗？",
+				"message": "为了推荐您附近的好店，将使用您的位置信息。",
+				"allowOnce": "允许一次",
+				"allowWhileUsing": "使用App时允许",
+				"deny": "不允许"
+			}
 		},
 		"notifications": {
 			"title": "别错过每一次想吃 🔔",
-			"body": "我们会把为你挑选的推荐和 CraveCatch 的消息发送给你。"
+			"body": "我们会把为你挑选的推荐和 CraveCatch 的消息发送给你。",
+			"dialog": {
+				"title": "“CraveCatch”想给您发送通知",
+				"message": "通知可能包括提醒、声音和图标标记。",
+				"deny": "不允许",
+				"allow": "允许"
+			}
 		},
 		"welcome": {
-			"title": "欢迎来到 CraveCatch！🎉",
+			"title": "欢迎来到 CraveCatch！",
 			"body1": "选店不用再纠结了。",
 			"body2": "一起去找今天想吃的那一口吧。",
 			"cta": "开始使用"

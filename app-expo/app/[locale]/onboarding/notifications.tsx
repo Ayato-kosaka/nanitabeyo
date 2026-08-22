@@ -13,7 +13,11 @@ import type { ExternalPathString } from "expo-router";
 import { OnboardingPermissionScreen } from "@/features/onboarding/components/OnboardingPermissionScreen";
 import { OnboardingScreenOptions } from "@/features/onboarding/components/OnboardingScreenOptions";
 import { onboardingWelcomePath } from "@/features/onboarding/navigation";
-import { requestNotificationPermission, type PermissionOutcome } from "@/features/onboarding/permissions";
+import {
+	getNotificationPermissionState,
+	requestNotificationPermission,
+	type PermissionOutcome,
+} from "@/features/onboarding/permissions";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import i18n from "@/lib/i18n";
@@ -42,7 +46,18 @@ export default function OnboardingNotificationsScreen() {
 				title={i18n.t("Onboarding.notifications.title")}
 				body={i18n.t("Onboarding.notifications.body")}
 				progress={0.8}
+				probe={getNotificationPermissionState}
 				request={requestNotificationPermission}
+				// 中央に置く iOS 通知ダイアログのダミー。2 択なので実物どおり横並びになり、
+				// おすすめの「許可」を強調する
+				dialogPreview={{
+					title: i18n.t("Onboarding.notifications.dialog.title"),
+					message: i18n.t("Onboarding.notifications.dialog.message"),
+					buttons: [
+						{ label: i18n.t("Onboarding.notifications.dialog.deny") },
+						{ label: i18n.t("Onboarding.notifications.dialog.allow"), emphasized: true },
+					],
+				}}
 				onSettled={handleSettled}
 				testID="onboarding-notifications"
 			/>

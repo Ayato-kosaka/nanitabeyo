@@ -45,10 +45,15 @@ const BURSTS = [
 
 /** 1 バーストあたりの紙片の枚数。3 バーストで計 84 枚 */
 const PIECES_PER_BURST = 28;
-/** 1 バーストが飛び散りきるまでの時間 */
-const BURST_DURATION_MS = 1600;
 /** 落下の強さ（進捗の 2 乗に掛かる px 数） */
 const GRAVITY_PX = 300;
+
+/**
+ * 紙片の形。長方形だけだと «単調»（デザインレビューで指摘）なので、
+ * 見本のように 丸 / 紙片 / 細長いリボン を混ぜる
+ */
+type PieceShape = "circle" | "rect" | "ribbon";
+const SHAPES: readonly PieceShape[] = ["rect", "circle", "ribbon", "rect", "circle", "rect", "ribbon"];
 
 /** プロジェクト標準色（#F05537）を軸に、明度差のある差し色を混ぜる */
 const PIECE_COLORS = ["#F05537", "#FFB03A", "#FFE066", "#4ECDC4", "#8E7DFF", "#FF8FA3", "#3BC46A"];
@@ -70,9 +75,15 @@ type PieceConfig = {
 	distance: number;
 	spinDeg: number;
 	color: string;
+	shape: PieceShape;
 	width: number;
 	height: number;
 	delayMs: number;
+	/** 粒ごとに飛ぶ速さを変える（全員が同時に着地すると板のように見える） */
+	durationMs: number;
+	/** ひらひら（横揺れ）の位相と振幅。0 だと直線的に落ちて紙に見えない */
+	swayPhase: number;
+	swayAmp: number;
 };
 
 const buildPieces = (): PieceConfig[] =>
@@ -84,6 +95,15 @@ const buildPieces = (): PieceConfig[] =>
 			const spin = scatter(index, 2);
 			const shape = scatter(index, 3);
 
+			const pieceShape = SHAPES[index % SHAPES.length];
+			// 形ごとの基本サイズ。リボンは細長く、丸は小さめ、紙片は中くらい
+			const size =
+				pieceShape === "ribbon"
+					? { width: 5 + shape * 3, height: 22 + shape * 12 }
+					: pieceShape === "circle"
+						? { width: 8 + shape * 5, height: 8 + shape * 5 }
+						: { width: 8 + shape * 6, height: 12 + shape * 8 };
+
 			return {
 				burst,
 				// クラッカーらしく «上向き» を中心に大きく扇状へ。左右の端のバーストも
@@ -92,10 +112,14 @@ const buildPieces = (): PieceConfig[] =>
 				distance: 130 + reach * 190,
 				spinDeg: (spin < 0.5 ? -1 : 1) * (220 + spin * 620),
 				color: PIECE_COLORS[index % PIECE_COLORS.length],
-				width: 7 + shape * 5,
-				height: 11 + shape * 7,
+				shape: pieceShape,
+				...size,
 				// バースト内でも数十 ms ずらして «一枚の板» に見えないようにする
 				delayMs: burst.delayMs + Math.round(spread * 140),
+				// 速い粒と遅い粒を混ぜる（1.35〜2.0 秒）
+				durationMs: 1350 + Math.round(reach * 650),
+				swayPhase: spin * Math.PI * 2,
+				swayAmp: 8 + shape * 14,
 			};
 		}),
 	);
@@ -107,22 +131,27 @@ function ConfettiPiece({ config }: { config: PieceConfig }) {
 		progress.value = withDelay(
 			config.delayMs,
 			withTiming(1, {
-				duration: BURST_DURATION_MS,
+				duration: config.durationMs,
 				// 出だしが速く、飛んだ先で減速する。`パンッ` はこの立ち上がりの速さで決まる
 				easing: Easing.out(Easing.quad),
 			}),
 		);
-	}, [config.delayMs, progress]);
+	}, [config.delayMs, config.durationMs, progress]);
 
 	const animatedStyle = useAnimatedStyle(() => {
 		const t = progress.value;
+		// ひらひら（横揺れ）。落ちながら左右に振れることで紙らしく見える
+		const sway = Math.sin(t * 9 + config.swayPhase) * config.swayAmp * t;
+		// 紙片が面を返す «めくれ»。丸には掛けない（回しても見た目が変わらない）
+		const flip = config.shape === "circle" ? 1 : 0.35 + Math.abs(Math.sin(t * 7 + config.swayPhase)) * 0.65;
 
 		return {
 			opacity: t === 0 ? 0 : 1 - Math.max(0, (t - 0.7) / 0.3),
 			transform: [
-				{ translateX: Math.cos(config.angleRad) * config.distance * t },
+				{ translateX: Math.cos(config.angleRad) * config.distance * t + sway },
 				{ translateY: Math.sin(config.angleRad) * config.distance * t + GRAVITY_PX * t * t },
 				{ rotate: `${config.spinDeg * t}deg` },
+				{ scaleY: flip },
 				// 出た瞬間だけ少し大きく見せる（«弾ける» 感じ）
 				{ scale: t < 0.15 ? 0.6 + t * 2.6 : 1 },
 			],
@@ -139,6 +168,8 @@ function ConfettiPiece({ config }: { config: PieceConfig }) {
 					backgroundColor: config.color,
 					width: config.width,
 					height: config.height,
+					// 丸は正円、リボンは端まで丸め、紙片は角を少しだけ落とす
+					borderRadius: config.shape === "circle" ? config.width / 2 : config.shape === "ribbon" ? 3 : 2,
 				},
 				animatedStyle,
 			]}

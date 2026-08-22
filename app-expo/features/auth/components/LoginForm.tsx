@@ -153,6 +153,27 @@ export function LoginForm({ testID, next }: LoginFormProps) {
 
 	return (
 		<View style={styles.container} testID={testID}>
+			{/* Existing Account Checkbox - Show only for anonymous users
+			    ボタンの «上» に置く（デザインレビューで確定。押す前に読ませたい分岐スイッチのため）*/}
+			{/* #1092 PR4b ここは `isGuestUser(user)` へ丸ごと寄せない。isGuestUser は user === null（認証未確定）を
+			    ゲストへ倒すため、そのまま置くと未確定の一瞬だけチェックボックスが出て消える。
+			    このチェックボックスは上の handleOAuthSignIn の分岐用で、未確定の間はその分岐自体が
+			    「何もしない」に倒れている（＝出しても押す意味がない）。
+			    そのため null の扱いだけ従来どおり `user &&` で落とし、is_anonymous の解釈だけ共通判定へ揃える。 */}
+			{user && isGuestUser(user) && (
+				<TouchableOpacity
+					style={styles.checkboxContainer}
+					onPress={() => setHasExistingAccount(!hasExistingAccount)}
+					disabled={isLoading}>
+					<View style={[styles.checkbox, hasExistingAccount && styles.checkboxChecked]}>
+						{hasExistingAccount && <Text style={styles.checkboxMark}>✓</Text>}
+					</View>
+					<View style={styles.checkboxTextContainer}>
+						<Text style={styles.checkboxText}>{i18n.t("auth.existing_account_checkbox")}</Text>
+					</View>
+				</TouchableOpacity>
+			)}
+
 			{/* OAuth Buttons
 			    #1486 【設計】影付きの PrimaryButton から «1px の枠線だけ» のフラットなピルへ変えた
 			   （デザインレビューで確定。強い影は付けない）。ラベルは「◯◯で続ける」。
@@ -200,27 +221,6 @@ export function LoginForm({ testID, next }: LoginFormProps) {
 				</TouchableOpacity>
 			</View>
 
-			{/* Existing Account Checkbox - Show only for anonymous users
-			    ボタンの下に置く（クラシルの並び: ボタン → 補助チェック → 注記）*/}
-			{/* #1092 PR4b ここは `isGuestUser(user)` へ丸ごと寄せない。isGuestUser は user === null（認証未確定）を
-			    ゲストへ倒すため、そのまま置くと未確定の一瞬だけチェックボックスが出て消える。
-			    このチェックボックスは上の handleOAuthSignIn の分岐用で、未確定の間はその分岐自体が
-			    「何もしない」に倒れている（＝出しても押す意味がない）。
-			    そのため null の扱いだけ従来どおり `user &&` で落とし、is_anonymous の解釈だけ共通判定へ揃える。 */}
-			{user && isGuestUser(user) && (
-				<TouchableOpacity
-					style={styles.checkboxContainer}
-					onPress={() => setHasExistingAccount(!hasExistingAccount)}
-					disabled={isLoading}>
-					<View style={[styles.checkbox, hasExistingAccount && styles.checkboxChecked]}>
-						{hasExistingAccount && <Text style={styles.checkboxMark}>✓</Text>}
-					</View>
-					<View style={styles.checkboxTextContainer}>
-						<Text style={styles.checkboxText}>{i18n.t("auth.existing_account_checkbox")}</Text>
-					</View>
-				</TouchableOpacity>
-			)}
-
 			{/* 同意メッセージ */}
 			<View style={styles.consentContainer}>
 				<Text style={styles.consentText}>
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
 		paddingBottom: 32,
 	},
 	oauthContainer: {
-		gap: 14,
+		gap: 16,
 		width: "100%",
 	},
 	// フラットなアウトラインのピル。影は付けない（デザインレビューで確定）
@@ -264,28 +264,28 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "center",
-		height: 56,
-		borderRadius: 28,
+		height: 60,
+		borderRadius: 30,
 		borderWidth: 1,
 		borderColor: "#D1D5DB",
 		backgroundColor: "#FFFFFF",
-		paddingHorizontal: 56,
+		paddingHorizontal: 60,
 	},
 	oauthIcon: {
 		position: "absolute",
-		left: 22,
-		width: 24,
-		height: 24,
+		left: 24,
+		width: 28,
+		height: 28,
 	},
 	oauthLabel: {
-		fontSize: 16,
+		fontSize: 17,
 		fontWeight: "700",
 		color: "#1A1A1A",
 	},
 	checkboxContainer: {
 		flexDirection: "row",
 		alignItems: "center",
-		marginTop: 20,
+		marginBottom: 20,
 		paddingHorizontal: 4,
 	},
 	checkbox: {
