@@ -85,15 +85,19 @@ export const buildMyDishesFeedChips = (
 		// `dishes` は `restaurant_id × category_id` で一意（`schema.prisma` の
 		// `dishes_restaurant_category_unique`）なので、`dish.name` は実質「その店でのその
 		// カテゴリの呼び名」であり、絞り込みの対象（`category_id`）と 1 対 1 に対応する。
-		// 名前が無いときだけカテゴリ ID（スラッグ）へ落ちる
-		const name = entry?.dish.name ?? categoryId;
-		chips.push({
-			id: "category",
-			label: i18n.t("MyDishes.feed.chips.filterCategory", { name }),
-			// 「置換」なので、ちょうどこのカテゴリ 1 件のときだけ選択状態
-			active: filter.categoryIds.length === 1 && filter.categoryIds[0] === categoryId,
-			patch: { categoryIds: [categoryId] },
-		});
+		// ⚠️ 名前が無い dish（SNS 取り込み等）で ID へ落とさない。「Q234646」のような
+		// Wikidata QID がそのまま chip に出て «何で絞るのか分からない» と実機で指摘された。
+		// ラベルにできる名前があるときだけ chip を出す
+		const name = entry?.dish.name || null;
+		if (name !== null) {
+			chips.push({
+				id: "category",
+				label: i18n.t("MyDishes.feed.chips.filterCategory", { name }),
+				// 「置換」なので、ちょうどこのカテゴリ 1 件のときだけ選択状態
+				active: filter.categoryIds.length === 1 && filter.categoryIds[0] === categoryId,
+				patch: { categoryIds: [categoryId] },
+			});
+		}
 	}
 
 	chips.push({

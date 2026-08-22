@@ -101,7 +101,15 @@ const makeEntry = (mediaId: string, isSaved = false, categoryId = "karaage", dis
 	restaurant: { id: RESTAURANT_ID, name: "テスト食堂" },
 	// #1397 (PR5/5) chips はここの `category_id` で絞り、`name` をラベルにする
 	dish: { id: "dish-1", category_id: categoryId, name: dishName },
-	dish_media: { id: mediaId, isMine: false, isSaved, isLiked: false, likeCount: 0, mediaUrl: null, thumbnailImageUrl: "" },
+	dish_media: {
+		id: mediaId,
+		isMine: false,
+		isSaved,
+		isLiked: false,
+		likeCount: 0,
+		mediaUrl: null,
+		thumbnailImageUrl: "",
+	},
 	dish_reviews: [],
 });
 
@@ -121,6 +129,17 @@ const render = async (): Promise<TestRenderer.ReactTestRenderer> => {
 	let tree!: TestRenderer.ReactTestRenderer;
 	await act(async () => {
 		tree = TestRenderer.create(<MyDishesFeedScreen />);
+	});
+	// #1375 実機確認（3 巡目）: ページャは onLayout で実寸法が確定するまで描かない
+	// （ウィンドウ寸法で計算すると黒画面に着地する）。テストでは layout イベントが
+	// 来ないので、実機相当の寸法を明示的に流す
+	await act(async () => {
+		const pager = tree.root.findAll(
+			(node) => typeof node.props?.onLayout === "function" && node.props?.style === undefined,
+		);
+		void pager;
+		const containers = tree.root.findAll((node) => typeof node.props?.onLayout === "function");
+		containers[0]?.props.onLayout({ nativeEvent: { layout: { width: 390, height: 780 } } });
 	});
 	// 行の取得 → メディアの取得の 2 段なので、追加でもう 1 周させて effect を落ち着かせる
 	await act(async () => {});
@@ -453,6 +472,11 @@ describe("#1397 M-1 取得が返る前に unmount しても残骸が復活しな
 		let tree!: TestRenderer.ReactTestRenderer;
 		await act(async () => {
 			tree = TestRenderer.create(<MyDishesFeedScreen />);
+		});
+		// ページャの onLayout を流してページを描かせる（render ヘルパと同じ理由）
+		await act(async () => {
+			const containers = tree.root.findAll((node) => typeof node.props?.onLayout === "function");
+			containers[0]?.props.onLayout({ nativeEvent: { layout: { width: 390, height: 780 } } });
 		});
 		// 行の取得は終わり、メディア取得（GET /v1/dish-media）は飛行中のまま unmount する
 		await act(async () => {

@@ -583,7 +583,8 @@
 			"loadingMedia": "Chargement des médias...",
 			"mediaSelectionFailed": "Échec de la sélection des médias",
 			"mediaSelectionError": "Une erreur s'est produite lors de la sélection des médias. Veuillez réessayer.",
-			"replaceWithMyPhoto": "Utiliser ma propre photo"
+			"replaceWithMyPhoto": "Utiliser ma propre photo",
+			"openSettings": "Ouvrir les réglages"
 		},
 		"noResultsFound": "Aucun résultat trouvé",
 		"accessibility": {
@@ -925,7 +926,8 @@
 		"actions": {
 			"resolve": "Lire",
 			"save": "Enregistrer dans Envies",
-			"saveRequirement": "Choisissez un plat et un restaurant pour enregistrer."
+			"saveRequirement": "Choisissez un plat et un restaurant pour enregistrer.",
+			"resolveAgain": "Relire"
 		},
 		"sections": {
 			"dishCategory": "Plat",
@@ -948,6 +950,10 @@
 			"title": "Choisir un établissement sur la carte",
 			"hint": "Touchez l’icône d’un établissement sur la carte, ou cherchez ci-dessus. Une fois choisi, vous revenez à l’écran d’import.",
 			"done": "« {{name}} » sélectionné"
+		},
+		"result": {
+			"summary": "Lecture terminée",
+			"noInfo": "Aucune information n’a pu être lue depuis cette publication. Choisissez l’établissement et la catégorie ci-dessous pour l’enregistrer."
 		}
 	}
 }

@@ -31,13 +31,19 @@ import type { GestureType } from "react-native-gesture-handler";
 import { toErrorLogMessage } from "@/lib/errorMessage";
 
 interface ActionButtonsProps {
+	/**
+	 * #1375 実機確認（3 巡目）:「食べたを記録」ボタンを出すか。
+	 * 検索動線のフィード（DishMediaMap 系）では出さない — 探している段階で
+	 * 食べたを記録する人は居ない、というオーナー判断。既定は true（既存フィードは不変）
+	 */
+	showRecordEaten?: boolean;
 	id: string;
 	idType: IdType;
 	onLayout: (width: number) => void;
 	buttonsGesture: GestureType; // #694 【設計】親Tapとの競合を防ぐための Native Gesture
 }
 
-export function ActionButtons({ id, idType, onLayout, buttonsGesture }: ActionButtonsProps) {
+export function ActionButtons({ id, idType, onLayout, buttonsGesture, showRecordEaten = true }: ActionButtonsProps) {
 	const { logFrontendEvent } = useLogger();
 
 	// ログアウト時は AuthProvider がストアを消去してから旧画面の unmount が完了するまで、
@@ -62,14 +68,22 @@ export function ActionButtons({ id, idType, onLayout, buttonsGesture }: ActionBu
 
 	if (!entry) return null;
 
-	return <ActionButtonsContent entry={entry} onLayout={onLayout} buttonsGesture={buttonsGesture} />;
+	return (
+		<ActionButtonsContent
+			entry={entry}
+			onLayout={onLayout}
+			buttonsGesture={buttonsGesture}
+			showRecordEaten={showRecordEaten}
+		/>
+	);
 }
 
 function ActionButtonsContent({
 	entry,
 	onLayout,
 	buttonsGesture,
-}: Pick<ActionButtonsProps, "onLayout" | "buttonsGesture"> & { entry: NormalizedDishMediaEntry }) {
+	showRecordEaten = true,
+}: Pick<ActionButtonsProps, "onLayout" | "buttonsGesture" | "showRecordEaten"> & { entry: NormalizedDishMediaEntry }) {
 	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
 	const { lightImpact } = useHaptics();
@@ -205,8 +219,11 @@ function ActionButtonsContent({
 				showSnackbar(i18n.t("DishMediaContent.save.savedMessage"), {
 					action: {
 						label: i18n.t("Common.view"),
+						// #1401 実機確認（3 巡目）: `push` だと検索結果（transparentModal）の上に
+						// 積もうとして **画面が動かない**ことがある。タブ切替を含む遷移なので
+						// `navigate` でタブごと my-dishes へ移す
 						onPress: () =>
-							router.push({
+							router.navigate({
 								pathname: "/[locale]/(tabs)/my-dishes",
 								params: { locale },
 							}),
@@ -350,7 +367,7 @@ function ActionButtonsContent({
 
 				{/* #1398 (PR3/7) 【仕様】ゲストは非表示。like/save と同じ作法（isGuestUser）。
 				    トグルではないため「済」表示・aria-selected は付けない（常時活性） */}
-				{!isGuestUser(user) && (
+				{showRecordEaten && !isGuestUser(user) && (
 					<View style={styles.actionContainer}>
 						<TouchableOpacity
 							testID="dish-action-eaten"

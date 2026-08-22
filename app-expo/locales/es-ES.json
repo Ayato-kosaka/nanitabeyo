@@ -583,7 +583,8 @@
 			"loadingMedia": "Cargando medios...",
 			"mediaSelectionFailed": "Error al seleccionar medios",
 			"mediaSelectionError": "Ocurrió un error al seleccionar medios. Por favor intenta de nuevo.",
-			"replaceWithMyPhoto": "Usar mi propia foto"
+			"replaceWithMyPhoto": "Usar mi propia foto",
+			"openSettings": "Abrir ajustes"
 		},
 		"noResultsFound": "No se encontraron resultados",
 		"accessibility": {
@@ -925,7 +926,8 @@
 		"actions": {
 			"resolve": "Leer",
 			"save": "Guardar en Quiero comer",
-			"saveRequirement": "Elige un plato y un restaurante para guardar."
+			"saveRequirement": "Elige un plato y un restaurante para guardar.",
+			"resolveAgain": "Volver a leer"
 		},
 		"sections": {
 			"dishCategory": "Plato",
@@ -948,6 +950,10 @@
 			"title": "Elegir un local en el mapa",
 			"hint": "Toca el icono de un local en el mapa o búscalo arriba. Al elegirlo volverás a la pantalla de importación.",
 			"done": "Has elegido «{{name}}»"
+		},
+		"result": {
+			"summary": "Lectura completada",
+			"noInfo": "No se pudo leer información de esta publicación. Elige el local y la categoría abajo para guardarla."
 		}
 	}
 }

@@ -267,10 +267,23 @@ describe("ReviewForm のマウント時メディア選択（#1127）", () => {
 		const resolveSelection = deferSelectMedia();
 		mount();
 
+		// #1375 実機確認（3 巡目）: 権限拒否は「再試行」ではなく **「設定を開く」** を出す。
+		// 再試行しても同じ結果にしかならないため（実機で «設定まで行くのが面倒» と指摘され、
+		// Linking.openSettings で 1 タップ化した）
 		await resolveSelection({ success: false, error: "permission_denied" });
 		expect(findTextNodes(tree.root, "Map.media.permissionDenied")).toHaveLength(1);
+		expect(findTextNodes(tree.root, "Map.media.openSettings")).toHaveLength(1);
+		expect(findTextNodes(tree.root, "Common.retry")).toHaveLength(0);
 
-		// 再試行は同じ実行本体（ref 経由・同時実行ガード）を通る
+	});
+
+	it("権限以外のエラー（動画が長すぎる等）は従来どおり再試行が出て、同じ実行本体を通る", async () => {
+		const resolveSelection = deferSelectMedia();
+		mount();
+
+		await resolveSelection({ success: false, error: "video_too_long" });
+		expect(findTextNodes(tree.root, "Map.media.videoTooLong")).toHaveLength(1);
+
 		const retry = deferSelectMedia();
 		act(() => findPressHandler(tree.root, "Common.retry")());
 		expect(selectMediaMock).toHaveBeenCalledTimes(2);
@@ -283,7 +296,7 @@ describe("ReviewForm のマウント時メディア選択（#1127）", () => {
 		const resolveSelection = deferSelectMedia();
 		mount();
 
-		await resolveSelection({ success: false, error: "permission_denied" });
+		await resolveSelection({ success: false, error: "video_too_long" });
 
 		deferSelectMedia();
 		// 押した瞬間に loading へ倒れて再試行ボタンが消えるため、ハンドラを掴んでから連打する
@@ -302,7 +315,7 @@ describe("ReviewForm のマウント時メディア選択（#1127）", () => {
 		const resolveSelection = deferSelectMedia();
 		mount();
 
-		await resolveSelection({ success: false, error: "permission_denied" });
+		await resolveSelection({ success: false, error: "video_too_long" });
 
 		deferSelectMedia();
 		const retryPress = findPressHandler(tree.root, "Common.retry");
@@ -449,8 +462,8 @@ describe("ReviewForm の写真なしモード（#1398 B2 / B3）", () => {
 
 		const retry = deferSelectMedia();
 		pressPlaceholder();
-		await retry({ success: false, error: "permission_denied" });
-		expect(findTextNodes(tree.root, "Map.media.permissionDenied")).toHaveLength(1);
+		await retry({ success: false, error: "video_too_long" });
+		expect(findTextNodes(tree.root, "Map.media.videoTooLong")).toHaveLength(1);
 
 		act(() => findPressHandler(tree.root, "Common.close")());
 

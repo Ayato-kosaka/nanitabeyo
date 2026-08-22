@@ -583,7 +583,8 @@
 			"loadingMedia": "メディアを読み込み中...",
 			"mediaSelectionFailed": "メディアの選択に失敗しました",
 			"mediaSelectionError": "メディアの選択中にエラーが発生しました。もう一度お試しください。",
-			"replaceWithMyPhoto": "自分の写真に差し替える"
+			"replaceWithMyPhoto": "自分の写真に差し替える",
+			"openSettings": "設定を開く"
 		},
 		"noResultsFound": "結果が見つかりませんでした",
 		"accessibility": {
@@ -801,7 +802,7 @@
 			"calendar": "カレンダー"
 		},
 		"calendar": {
-			"monthLabel": "{{month}}月 {{year}}",
+			"monthLabel": "{{year}}年{{month}}月",
 			"weekdays": {
 				"sun": "日",
 				"mon": "月",
@@ -925,7 +926,8 @@
 		"actions": {
 			"resolve": "読み取る",
 			"save": "食べたいに保存",
-			"saveRequirement": "料理と店舗を選ぶと保存できます。"
+			"saveRequirement": "料理と店舗を選ぶと保存できます。",
+			"resolveAgain": "もう一度読み取る"
 		},
 		"sections": {
 			"dishCategory": "料理",
@@ -948,6 +950,10 @@
 			"title": "地図からお店を選ぶ",
 			"hint": "地図のお店アイコンをタップするか、上の検索でお店を探してください。選ぶと取り込み画面に戻ります。",
 			"done": "「{{name}}」を選びました"
+		},
+		"result": {
+			"summary": "読み取りました",
+			"noInfo": "この投稿から読み取れる情報はありませんでした。下でお店と料理カテゴリーを選ぶと保存できます。"
 		}
 	}
 }

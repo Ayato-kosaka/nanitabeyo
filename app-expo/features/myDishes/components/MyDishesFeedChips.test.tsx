@@ -112,10 +112,13 @@ describe("buildMyDishesFeedChips（絞り込みだけ / 並び替えは作らな
 		]);
 	});
 
-	it("料理名が無いときはカテゴリ ID をラベルに使う（落ちない）", () => {
+	it("料理名が無いときはカテゴリ chip を出さない（QID をラベルに出さない）", () => {
+		// #1375 実機確認（3 巡目）: 名前が無い dish（SNS 取り込み等）で ID へ落とすと
+		// 「「Q234646」で絞る」のような意味不明の chip が出る。名前があるときだけ出す
 		const chips = buildMyDishesFeedChips(filterOf(), makeEntry({ name: null }));
 
-		expect(chips[0].label).toBe(`MyDishes.feed.chips.filterCategory:{"name":"${CATEGORY_ID}"}`);
+		expect(chips.some((chip) => chip.id === "category")).toBe(false);
+		expect(chips[0].id).toBe("statusEaten");
 	});
 
 	it('★N以上の chip は status が ["eaten"] のときだけ出す（want は評価を持たない）', () => {

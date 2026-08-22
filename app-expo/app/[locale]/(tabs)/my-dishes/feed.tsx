@@ -36,7 +36,7 @@ date の全日をページとして持っても、マウントは `windowSize` �
 push が壊れないようにするため。
 */
 import React, { useCallback, useMemo, useRef, useState } from "react";
-import { FlatList, Platform, StyleSheet, TouchableOpacity, useWindowDimensions, View } from "react-native";
+import { FlatList, Platform, StyleSheet, TouchableOpacity, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { X } from "lucide-react-native";
 
@@ -79,7 +79,14 @@ export default function MyDishesFeedScreen() {
 	const { locale } = useLocale();
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
-	const { width, height } = useWindowDimensions();
+	/**
+	 * ⚠️ ページ寸法は **実レイアウト**（onLayout）から取る。`useWindowDimensions()` は
+	 * タブバー・SafeArea を含むウィンドウ全体の寸法で、このルートは (tabs) の中に居るため
+	 * リストの実高はそれより小さい。ウィンドウ高で `initialScrollIndex` のオフセットを
+	 * 計算すると **ページとページの隙間（真っ黒）に着地する**（iPhone 実機で発生した黒画面）。
+	 */
+	const [pageSize, setPageSize] = useState<{ width: number; height: number } | null>(null);
+	const pagerRef = useRef<FlatList<MyDishesFeedScope>>(null);
 	// ⚠️ 初回に読んだ並びで固定する。遷移元が裏で再検索して並びが変わっても、
 	// 開いている Feed のページが増減するとスクロール位置が飛ぶ
 	const [scopeRestaurantIds] = useState<string[]>(() => useMyDishesFeedScopeStore.getState().restaurantIds);
@@ -120,8 +127,8 @@ export default function MyDishesFeedScreen() {
 		scopes[initialScopeIndex] ? feedScopeId(scopes[initialScopeIndex]) : null,
 	);
 
-	// 縦ページャはページ長 = 画面高、横ページャはページ長 = 画面幅
-	const pageLength = isVerticalPager ? height : width;
+	// 縦ページャはページ長 = リスト実高、横ページャはページ長 = リスト実幅
+	const pageLength = pageSize === null ? 0 : isVerticalPager ? pageSize.height : pageSize.width;
 
 	const handleClose = useCallback(() => {
 		lightImpact();
@@ -155,39 +162,56 @@ export default function MyDishesFeedScreen() {
 				</TouchableOpacity>
 			</View>
 
-			<FlatList
-				testID="my-dishes-feed-pager"
-				data={scopes}
-				keyExtractor={feedScopeId}
-				horizontal={!isVerticalPager}
-				pagingEnabled
-				showsHorizontalScrollIndicator={false}
-				showsVerticalScrollIndicator={false}
-				initialScrollIndex={initialScopeIndex}
-				getItemLayout={(_data, index) => ({ length: pageLength, offset: pageLength * index, index })}
-				// マウント数を抑える（取得を抑えるのは `isActive`。date は全日をページに持つので特に効く）
-				windowSize={3}
-				initialNumToRender={1}
-				removeClippedSubviews
-				onMomentumScrollEnd={(event) => {
-					const offset = isVerticalPager ? event.nativeEvent.contentOffset.y : event.nativeEvent.contentOffset.x;
-					const next = Math.round(offset / pageLength);
-					setActiveScopeIndex((prev) => (prev === next ? prev : next));
-				}}
-				renderItem={({ item, index }) => {
-					const isInitialScope = feedScopeId(item) === initialScopeIdRef.current;
-					return (
-						<View style={isVerticalPager ? { height } : { width }}>
-							<MyDishesFeedPage
-								scope={item}
-								itemKey={isInitialScope ? itemKey : null}
-								dishMediaId={isInitialScope ? dishMediaId : null}
-								isActive={index === activeScopeIndex}
-							/>
-						</View>
-					);
-				}}
-			/>
+			<View
+				style={styles.pagerContainer}
+				onLayout={(event) => {
+					const { width, height } = event.nativeEvent.layout;
+					const next = { width: Math.max(1, Math.floor(width)), height: Math.max(1, Math.floor(height)) };
+					setPageSize((prev) => (prev && prev.width === next.width && prev.height === next.height ? prev : next));
+				}}>
+				{/* 寸法が確定するまで描かない（初期スクロール不発と黒画面の防止） */}
+				{pageSize !== null && pageLength > 0 && (
+					<FlatList
+						ref={pagerRef}
+						testID="my-dishes-feed-pager"
+						data={scopes}
+						keyExtractor={feedScopeId}
+						horizontal={!isVerticalPager}
+						pagingEnabled
+						showsHorizontalScrollIndicator={false}
+						showsVerticalScrollIndicator={false}
+						initialScrollIndex={initialScopeIndex}
+						getItemLayout={(_data, index) => ({ length: pageLength, offset: pageLength * index, index })}
+						// マウント数を抑える（取得を抑えるのは `isActive`。date は全日をページに持つので特に効く）
+						windowSize={3}
+						initialNumToRender={1}
+						onMomentumScrollEnd={(event) => {
+							const offset = isVerticalPager ? event.nativeEvent.contentOffset.y : event.nativeEvent.contentOffset.x;
+							const next = Math.round(offset / pageLength);
+							setActiveScopeIndex((prev) => (prev === next ? prev : next));
+						}}
+						// 初期スクロールがレイアウト確定前に走って失敗したときの保険（DishMediaFeed と同じ作法）
+						onScrollToIndexFailed={({ index }) => {
+							setTimeout(() => {
+								pagerRef.current?.scrollToIndex({ index, animated: false });
+							}, 250);
+						}}
+						renderItem={({ item, index }) => {
+							const isInitialScope = feedScopeId(item) === initialScopeIdRef.current;
+							return (
+								<View style={isVerticalPager ? { height: pageSize.height } : { width: pageSize.width }}>
+									<MyDishesFeedPage
+										scope={item}
+										itemKey={isInitialScope ? itemKey : null}
+										dishMediaId={isInitialScope ? dishMediaId : null}
+										isActive={index === activeScopeIndex}
+									/>
+								</View>
+							);
+						}}
+					/>
+				)}
+			</View>
 		</View>
 	);
 }
@@ -196,6 +220,9 @@ const styles = StyleSheet.create({
 	container: {
 		flex: 1,
 		backgroundColor: "#000",
+	},
+	pagerContainer: {
+		flex: 1,
 	},
 	// search/result.tsx / restaurant/[restaurantId]/feed.tsx と同じ形（フィードの上に浮かせる）
 	closeButtonContainer: {

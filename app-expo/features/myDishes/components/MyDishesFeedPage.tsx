@@ -307,8 +307,12 @@ export function MyDishesFeedPage({ scope, itemKey = null, dishMediaId = null, is
 	}, [entriesKey, refreshRows, rowsError]);
 
 	// ⚠️ ローディングは «まだ結果が出ていない» ときだけに絞ること。失敗しても止まる形にしないと
-	// スピナーで固着する（`restaurant/[restaurantId]/feed.tsx` と同じ判断）
-	const isFetchingRows = isActive && !hasFetchedRows && rowsError === null;
+	// スピナーで固着する（`restaurant/[restaurantId]/feed.tsx` と同じ判断）。
+	// #1375 実機確認（3 巡目）: `isActive` を条件に入れない。まだ前面に来ていない
+	// （= 取得を始めていない）隣のページを «0 件 = 見つかりません» と誤表示すると、
+	// 縦フリックの途中に「見つかりません」が挟まって壊れて見える。
+	// 未取得はエラーでも 0 件でもなく «読み込み中» である
+	const isFetchingRows = !hasFetchedRows && rowsError === null;
 	const isHydratingMedia = mediaIds.length > 0 && settledKey !== hydrationKey && mediaError === null;
 	const showLoading = feedIds.length === 0 && (isFetchingRows || isHydratingMedia);
 	const hasError = rowsError !== null || mediaError !== null;
@@ -336,8 +340,7 @@ export function MyDishesFeedPage({ scope, itemKey = null, dishMediaId = null, is
 					    セグメントバーで出す。件数が多い日はバーが細くなりすぎるので数字も添える */}
 					{scope.kind === "date" && feedIds.length > 1 && (
 						<View
-							// chips（top: 40）と閉じるボタンの下に置く
-							style={{ ...styles.positionContainer, top: Platform.OS === "ios" ? 92 : 52 }}
+							style={{ ...styles.positionContainer, top: Platform.OS === "ios" ? 48 : 8 }}
 							pointerEvents="none"
 							testID="my-dishes-feed-position">
 							<View style={styles.positionBars}>
@@ -352,7 +355,8 @@ export function MyDishesFeedPage({ scope, itemKey = null, dishMediaId = null, is
 					)}
 					{/* #1397 (PR5/5) contextual filter chips。**`DishMediaFeed` の外側**に重ねるので、
 					    店舗フィード・通知フィード・投稿フィードの振る舞いは一切変わらない（§10-1） */}
-					<View style={{ ...styles.chipsContainer, top: Platform.OS === "ios" ? 40 : 0 }} pointerEvents="box-none">
+					{/* #1375 実機確認（3 巡目）: chips は **下部**へ。上部は日付インジケータと閉じるが居る */}
+					<View style={{ ...styles.chipsContainer, bottom: 12 }} pointerEvents="box-none">
 						<MyDishesFeedChips entry={currentEntry} />
 					</View>
 				</>

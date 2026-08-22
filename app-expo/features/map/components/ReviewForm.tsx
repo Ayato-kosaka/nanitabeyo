@@ -9,6 +9,7 @@ import {
 	Pressable,
 	KeyboardAvoidingView,
 	Keyboard,
+	Linking,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Star, ChevronRight, Utensils, CircleDollarSign, ThumbsUp, ImagePlus } from "lucide-react-native";
@@ -126,7 +127,7 @@ export function ReviewForm({
 	 */
 	const [mediaState, setMediaState] = useState<
 		| { status: "loading" }
-		| { status: "error"; error: string }
+		| { status: "error"; error: string; isPermissionError?: boolean }
 		| { status: "success"; media: MediaData }
 		| { status: "none" }
 	>({ status: "loading" });
@@ -402,7 +403,14 @@ export function ReviewForm({
 						break;
 				}
 
-				setMediaState({ status: "error", error: errorMessage });
+				setMediaState({
+					status: "error",
+					error: errorMessage,
+					// #1375 実機確認（3 巡目）: 権限拒否のときだけ「設定を開く」ボタンを出す。
+					// 「設定から許可してください」と文字で言うだけだと、設定アプリの中から
+					// このアプリを探させることになる（Linking.openSettings で 1 タップにする）
+					isPermissionError: result.error === "permission_denied",
+				});
 				logFinished({ success: false, error: result.error, discarded: false });
 				return;
 			}
@@ -871,9 +879,21 @@ export function ReviewForm({
 						<TouchableOpacity style={styles.secondaryButton} onPress={handleCancel}>
 							<Text style={styles.secondaryButtonText}>{i18n.t("Common.close")}</Text>
 						</TouchableOpacity>
-						<TouchableOpacity style={styles.primaryButton} onPress={handleRetry}>
-							<Text style={styles.primaryButtonText}>{i18n.t("Common.retry")}</Text>
-						</TouchableOpacity>
+						{mediaState.isPermissionError ? (
+							// 権限拒否は「もう一度」しても同じ結果にしかならない。設定へ直行させる
+							<TouchableOpacity
+								testID="review-open-settings"
+								style={styles.primaryButton}
+								onPress={() => {
+									void Linking.openSettings();
+								}}>
+								<Text style={styles.primaryButtonText}>{i18n.t("Map.media.openSettings")}</Text>
+							</TouchableOpacity>
+						) : (
+							<TouchableOpacity style={styles.primaryButton} onPress={handleRetry}>
+								<Text style={styles.primaryButtonText}>{i18n.t("Common.retry")}</Text>
+							</TouchableOpacity>
+						)}
 					</View>
 				</Card>
 			</View>

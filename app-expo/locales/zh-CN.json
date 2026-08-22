@@ -583,7 +583,8 @@
 			"loadingMedia": "正在加载媒体...",
 			"mediaSelectionFailed": "媒体选择失败",
 			"mediaSelectionError": "选择媒体时发生错误。请重试。",
-			"replaceWithMyPhoto": "改用我自己的照片"
+			"replaceWithMyPhoto": "改用我自己的照片",
+			"openSettings": "打开设置"
 		},
 		"noResultsFound": "未找到结果",
 		"accessibility": {
@@ -925,7 +926,8 @@
 		"actions": {
 			"resolve": "读取",
 			"save": "保存到想吃",
-			"saveRequirement": "选择菜品和店铺后即可保存。"
+			"saveRequirement": "选择菜品和店铺后即可保存。",
+			"resolveAgain": "重新读取"
 		},
 		"sections": {
 			"dishCategory": "菜品",
@@ -948,6 +950,10 @@
 			"title": "在地图上选择店铺",
 			"hint": "点击地图上的店铺图标，或在上方搜索。选好后会回到导入页面。",
 			"done": "已选择“{{name}}”"
+		},
+		"result": {
+			"summary": "读取完成",
+			"noInfo": "无法从该帖子读取信息。在下方选择店铺和菜品类别即可保存。"
 		}
 	}
 }

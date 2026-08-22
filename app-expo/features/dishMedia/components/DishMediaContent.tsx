@@ -35,6 +35,8 @@ interface DishMediaContentProps {
 	onCardPress?: (entry: NormalizedDishMediaEntry) => void;
 	displayIndex?: number;
 	backgroundImageState: DishMediaBackgroundImageState;
+	/** #1375 「食べたを記録」を出すか（検索動線の DishMediaMap では false）。既定 true */
+	showRecordEaten?: boolean;
 }
 
 export default function DishMediaContent({
@@ -48,6 +50,7 @@ export default function DishMediaContent({
 	onCardPress, // #613 【設計】カード押下時のコールバック
 	displayIndex,
 	backgroundImageState,
+	showRecordEaten,
 }: DishMediaContentProps) {
 	// #940 【修正】entry 未取得時に throw する前に理由を記録する。throw 自体は残す
 	// (このコンポーネントは entry の存在を前提に構築されており、無ければ描画できないため)。
@@ -292,6 +295,7 @@ export default function DishMediaContent({
 					<ActionButtons
 						id={id}
 						idType={idType}
+						showRecordEaten={showRecordEaten}
 						onLayout={(width) => setRightActionsWidth(width)}
 						buttonsGesture={buttonsGesture}
 					/>
