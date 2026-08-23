@@ -613,7 +613,8 @@
 			"replaceWithMyPhoto": "自分の写真に差し替える",
 			"openSettings": "設定を開く",
 			"pickFromLibrary": "ライブラリから選ぶ",
-			"shootWithCamera": "写真を撮る"
+			"shootWithCamera": "写真を撮る",
+			"pickFromExisting": "このお店の写真から選ぶ"
 		},
 		"noResultsFound": "結果が見つかりませんでした",
 		"accessibility": {

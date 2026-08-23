@@ -613,7 +613,8 @@
 			"replaceWithMyPhoto": "Utiliser ma propre photo",
 			"openSettings": "Ouvrir les réglages",
 			"pickFromLibrary": "Choisir dans la galerie",
-			"shootWithCamera": "Prendre une photo"
+			"shootWithCamera": "Prendre une photo",
+			"pickFromExisting": "Ou choisir une photo de ce restaurant"
 		},
 		"noResultsFound": "Aucun résultat trouvé",
 		"accessibility": {

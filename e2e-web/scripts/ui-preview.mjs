@@ -49,7 +49,10 @@ import { chromium } from "@playwright/test";
 const dir = process.env.UI_PREVIEW_OUT_DIR ?? "./ui-preview-shots";
 mkdirSync(dir, { recursive: true });
 const now = Math.floor(Date.now() / 1000);
-const user = { id: "00000000-0000-4000-8000-000000000001", aud: "authenticated", role: "authenticated", email: "", is_anonymous: true, app_metadata: { provider: "anonymous", providers: ["anonymous"] }, user_metadata: {}, identities: [], created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+// #1375 5 巡目: 「食べたを記録」はログインが要る（ゲストにはサインイン画面が出るのが正しい挙動）。
+// 撮影用のセッションは **ログイン済み**にする。以前は is_anonymous: true で、
+// eaten タブを撮ろうとするとサインイン画面しか撮れなかった
+const user = { id: "00000000-0000-4000-8000-000000000001", aud: "authenticated", role: "authenticated", email: "preview@example.com", is_anonymous: false, app_metadata: { provider: "anonymous", providers: ["anonymous"] }, user_metadata: {}, identities: [], created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
 const session = { access_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ4IiwiZXhwIjo5OTk5OTk5OTk5fQ.x", token_type: "bearer", expires_in: 3600, expires_at: now + 3600, refresh_token: "r", user };
 
 // 1x1 PNG (orange-ish) data
@@ -213,6 +216,22 @@ await context.route("**/localhost:9999/**", (r) => {
       notFound: [],
     });
   }
+  // #1375 5 巡目: 食べたを記録タブの店名検索と «このお店の写真から選ぶ»
+  if (p.endsWith("/v1/restaurants/search"))
+    return env([
+      { restaurant: { id: "r-1", name: "醤油ラーメン一番", imageUrls: { sm: "https://img.example.invalid/r.jpg" } }, meta: { averageRating: 4.2, reviewCount: 12 } },
+      { restaurant: { id: "r-2", name: "らーめん 大和", imageUrls: { sm: "https://img.example.invalid/r.jpg" } }, meta: { averageRating: 3.9, reviewCount: 4 } },
+    ]);
+  if (/\/v1\/restaurants\/[^/]+\/dish-media$/.test(p))
+    return env({
+      data: [1, 2, 3, 4].map((n) => ({
+        restaurant: { id: "r-1", name: "醤油ラーメン一番" },
+        dish: { id: `dish-${n}`, category_id: `cat-${n}`, name: ["味玉ラーメン", "つけ麺", "チャーシュー丼", "餃子"][n - 1], reviewCount: n, averageRating: 4 },
+        dish_media: { id: `dm-${n}`, isMine: false, isSaved: false, isLiked: false, likeCount: 0, mediaUrl: "https://img.example.invalid/m.jpg", thumbnailImageUrl: "https://img.example.invalid/t.jpg", media_type: "image" },
+        dish_reviews: [],
+      })),
+      nextCursor: null,
+    });
   if (p.includes("/v1/logs")) return env({});
   return env({});
 });
@@ -281,6 +300,20 @@ await shot("sns-import-caption-expanded");
 await page.mouse.wheel(0, 600);
 await page.waitForTimeout(800);
 await shot("sns-import-resolved-bottom");
+
+// 3b. 食べたを記録タブ（#1375 5 巡目: 店選択の統一 + メディアの選び方）
+await goto("/ja-JP/sns-import");
+await page.getByTestId("sns-import-screen").waitFor({ timeout: 120000 }).catch((e) => console.log("sns wait:", e.message));
+await page.waitForTimeout(1500);
+await page.getByTestId("sns-import-tab-eaten").click().catch((e) => console.log("eaten tab:", e.message));
+await page.waitForTimeout(1200);
+await shot("eaten-pick-restaurant");
+// 店名検索で 1 件選ぶ（restaurants/search をスタブしてある）
+await page.getByTestId("sns-import-eaten-restaurant-search-input").fill("ラーメン").catch((e) => console.log("eaten search:", e.message));
+await page.waitForTimeout(1200);
+await page.getByTestId("sns-import-eaten-restaurant-search-result-0").click().catch((e) => console.log("eaten result:", e.message));
+await page.waitForTimeout(2500);
+await shot("eaten-media-step");
 
 // 4. 取り込んだリールの再生（external_embed → web は iframe）。
 // 実ユーザー経路: カレンダー → 日付タップ → フィード（client-side 遷移で store を保つ）

@@ -613,7 +613,8 @@
 			"replaceWithMyPhoto": "改用我自己的照片",
 			"openSettings": "打开设置",
 			"pickFromLibrary": "从相册选择",
-			"shootWithCamera": "拍照"
+			"shootWithCamera": "拍照",
+			"pickFromExisting": "或从这家店的照片中选择"
 		},
 		"noResultsFound": "未找到结果",
 		"accessibility": {

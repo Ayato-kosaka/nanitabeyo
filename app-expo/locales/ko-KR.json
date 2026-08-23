@@ -613,7 +613,8 @@
 			"replaceWithMyPhoto": "내 사진으로 바꾸기",
 			"openSettings": "설정 열기",
 			"pickFromLibrary": "라이브러리에서 선택",
-			"shootWithCamera": "사진 촬영"
+			"shootWithCamera": "사진 촬영",
+			"pickFromExisting": "이 가게의 사진에서 고르기"
 		},
 		"noResultsFound": "결과를 찾을 수 없습니다",
 		"accessibility": {

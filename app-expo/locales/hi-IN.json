@@ -613,7 +613,8 @@
 			"replaceWithMyPhoto": "अपनी फ़ोटो इस्तेमाल करें",
 			"openSettings": "सेटिंग्स खोलें",
 			"pickFromLibrary": "लाइब्रेरी से चुनें",
-			"shootWithCamera": "फ़ोटो लें"
+			"shootWithCamera": "फ़ोटो लें",
+			"pickFromExisting": "या इस रेस्तराँ की फ़ोटो चुनें"
 		},
 		"noResultsFound": "No results found",
 		"accessibility": {

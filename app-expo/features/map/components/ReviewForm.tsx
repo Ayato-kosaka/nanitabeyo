@@ -41,6 +41,7 @@ import type {
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { Dimensions } from "react-native";
 import { MediaData, selectMedia } from "@/lib/mediaSelection";
+import { ExistingDishMediaPicker } from "./ExistingDishMediaPicker";
 import { Image } from "expo-image";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { useProfileStore } from "@/features/profile/stores/useProfileStore";
@@ -191,7 +192,19 @@ export function ReviewForm({
 	 * 元の投稿写真へ戻す UI は持たない — その場合は画面を開き直せばよい。
 	 */
 	const [useOwnMedia, setUseOwnMedia] = useState(false);
-	const effectivePrefilledMedia = useOwnMedia ? undefined : prefilledMedia;
+	/**
+	 * #1375（5 巡目）「その下に既存のディッシュメディアから選べるように」。
+	 *
+	 * 選んだものは **親から渡された `prefilledMedia` と同じ扱い**にする（プレビューに出て、
+	 * 料理カテゴリーがそのメディアの料理に固定される = `review-from-media` と同じ仕組み）。
+	 * 親の prefilledMedia が在るとき（店舗フィードからの記録）はそちらが優先で、
+	 * この一覧はそもそも出さない
+	 */
+	const [pickedExistingMedia, setPickedExistingMedia] = useState<ReviewFormProps["prefilledMedia"]>(undefined);
+	const activePrefilledMedia = prefilledMedia ?? pickedExistingMedia;
+	/** «画面の中で写真を選ぶ» 見た目を出しているか（高さを固定しない条件。下のコメント参照） */
+	const showsManualMediaChooser = mediaPickerMode === "manual" && !activePrefilledMedia;
+	const effectivePrefilledMedia = useOwnMedia ? undefined : activePrefilledMedia;
 
 	const prefilledMediaRef = useRef(effectivePrefilledMedia);
 	useEffect(() => {
@@ -305,6 +318,18 @@ export function ReviewForm({
 	  ⚠️ このフォームを再びオーバーレイの中へ入れないこと。入れると上の 2 つの制約が同時に戻る。
 	  「呼び出し元が portal を持たない」ことは `__tests__/reviewFormRoutes.test.tsx` が固定している。
 	*/
+
+	/**
+	 * #1375（5 巡目）既存メディアを選んだら、料理カテゴリーはそのメディアの料理になる
+	 * （`review-from-media` と同じ仕組み。マウント時の初期値と同じ経路を後から通す）。
+	 * ⚠️ 親から `prefilledMedia` を渡された画面ではこの effect は 1 度も走らない
+	 * （`pickedExistingMedia` が undefined のままなので）
+	 */
+	useEffect(() => {
+		if (!pickedExistingMedia) return;
+		setDishCategoryName(pickedExistingMedia.dish.name ?? "");
+		setDishCategoryId(pickedExistingMedia.dish.category_id ?? null);
+	}, [pickedExistingMedia]);
 
 	/**
 	 * #1386 料理カテゴリ選択画面（ルート）からの «戻り値»。
@@ -957,7 +982,11 @@ export function ReviewForm({
 				keyboardShouldPersistTaps="handled"
 				showsVerticalScrollIndicator={false}
 				contentContainerStyle={styles.scrollContent}>
-				<View style={{ height: mediaHeight, marginTop: 16 }}>
+				{/* #1375 実機確認（5 巡目）: manual（記録フロー）では **高さを固定しない**。
+				    «写真を撮る / ライブラリ / このお店の写真から選ぶ / スキップ» を積むと
+				    `mediaHeight` に収まらず、上の見出しと下のスキップが切れた（撮って気づいた）。
+				    auto では従来どおり «プレビュー 1 枚» なので固定のままでよい */}
+				<View style={showsManualMediaChooser ? { marginTop: 16 } : { height: mediaHeight, marginTop: 16 }}>
 					{mediaState.status === "loading" ? (
 						<View style={styles.loadingContainer}>
 							<LoadingIndicator size="large" />
@@ -1016,6 +1045,12 @@ export function ReviewForm({
 									<Text style={styles.mediaSourceLabel}>{i18n.t("Map.media.pickFromLibrary")}</Text>
 								</TouchableOpacity>
 							</View>
+							{/* #1375（5 巡目）「その下に既存のディッシュメディアから選べるように」。
+							    親から prefilledMedia が来ている画面（店舗フィードからの記録）では出さない
+							    — そちらは «そのメディアの記録» と決まっているため */}
+							{mediaPickerMode === "manual" && !prefilledMedia && (
+								<ExistingDishMediaPicker restaurantId={restaurant.id} onSelect={setPickedExistingMedia} />
+							)}
 							{/* スキップ。**小さく**（主導線ではないが、押せる必要がある） */}
 							{allowNoMedia && (
 								<TouchableOpacity
@@ -1081,7 +1116,9 @@ export function ReviewForm({
 						testID="review-dish-category-row"
 						style={styles.dishCategorySelectRow}
 						onPress={handleOpenDishCategory}
-						disabled={!!prefilledMedia} // #400 【設計】prefilledMedia が指定されている場合は、料理カテゴリ選択を無効化
+						// #400 prefilledMedia のときは料理カテゴリ選択を無効化（そのメディアの料理に固定される）。
+						// #1375（5 巡目）既存メディアを «選んだ» ときも同じ（activePrefilledMedia に入る）
+						disabled={!!activePrefilledMedia}
 						accessibilityRole="button"
 						accessibilityLabel={i18n.t("Map.actions.selectDishCategory")}>
 						{/* #644 【UX】料理カテゴリラベルにアイコン追加 + prefilledMedia 時は「料理カテゴリ」に変更 */}
@@ -1468,6 +1505,9 @@ const styles = StyleSheet.create({
 		justifyContent: "center",
 		alignItems: "center",
 		gap: 4,
+		// 中身（見出し・ボタン・既存メディア・スキップ）が枠に接しないようにする。
+		// 以前は 0 で、manual のときスキップが破線の枠へ重なって見えた
+		paddingVertical: 14,
 		marginHorizontal: 16,
 		borderRadius: 12,
 		borderWidth: 1,

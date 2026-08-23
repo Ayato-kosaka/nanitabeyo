@@ -47,6 +47,15 @@ jest.mock(
 		),
 );
 jest.mock("@/lib/mediaSelection", () => ({ selectMedia: jest.fn() }));
+// #1375（5 巡目）既存メディア一覧は自分で API を叩くので、ここでは «置かれているか» だけを見る器にする
+jest.mock("./ExistingDishMediaPicker", () => {
+	const ReactActual = jest.requireActual("react");
+	const { View: RNView } = jest.requireActual("react-native");
+	return {
+		ExistingDishMediaPicker: ({ restaurantId }: { restaurantId: string }) =>
+			ReactActual.createElement(RNView, { testID: "review-existing-dish-media-host", "data-restaurant": restaurantId }),
+	};
+});
 jest.mock("@/lib/i18n", () => ({ __esModule: true, default: { t: (key: string) => key } }));
 // prefilledMedia（プレビュー専用モード）は Image.prefetch の解決を待ってから success へ倒すため、
 // 解決タイミングをテストから握れるようにしておく。jest.mock のファクトリからは `mock` 始まりの変数だけ参照できる
@@ -647,5 +656,52 @@ describe("#1375 ReviewForm のメディア選択モード", () => {
 	it("allowNoMedia でない画面にはスキップを出さない（写真なしでは投稿できないため）", () => {
 		mount({ mediaPickerMode: "manual" });
 		expect(tree.root.findAll((n) => n.props?.testID === "review-skip-photo")).toHaveLength(0);
+	});
+});
+
+/*
+#1375 実機確認（5 巡目）「③ は… その下に既存のディッシュメディアから選べるように配置」。
+
+写真を持っていない人でも «その料理の顔» がある記録にできるようにする。
+選んだメディアは親から渡された `prefilledMedia` と同じ扱いになり、
+料理カテゴリーはそのメディアの料理に固定される（`review-from-media` と同じ仕組み）。
+*/
+describe("#1375 既存メディアから選ぶ", () => {
+	let tree: TestRenderer.ReactTestRenderer;
+
+	afterEach(() => {
+		act(() => tree?.unmount());
+	});
+
+	const mount = (props: Record<string, unknown>) => {
+		act(() => {
+			tree = TestRenderer.create(<ReviewForm restaurant={restaurant} onCancel={jest.fn()} {...props} />);
+		});
+	};
+
+	it("manual のときだけ既存メディアの一覧を出す", () => {
+		mount({ mediaPickerMode: "manual", allowNoMedia: true });
+		// 合成要素とホスト要素の両方に当たるので «存在するか» で見る（このファイルの他のテストと同じ作法）
+		expect(tree.root.findAll((n) => n.props?.testID === "review-existing-dish-media-host").length).toBeGreaterThan(0);
+	});
+
+	it("親から prefilledMedia が来ている画面には出さない（そのメディアの記録と決まっているため）", () => {
+		mount({
+			mediaPickerMode: "manual",
+			allowNoMedia: true,
+			prefilledMedia: {
+				id: "dm-1",
+				media_type: "image",
+				mediaUrl: "https://example.com/m.jpg",
+				thumbnailImageUrl: "https://example.com/t.jpg",
+				dish: { id: "dish-1", name: "唐揚げ", category_id: "cat-1" },
+			},
+		});
+		expect(tree.root.findAll((n) => n.props?.testID === "review-existing-dish-media-host")).toHaveLength(0);
+	});
+
+	it("既定（auto）では出さない（ピッカーが開く画面なので）", () => {
+		mount({});
+		expect(tree.root.findAll((n) => n.props?.testID === "review-existing-dish-media-host")).toHaveLength(0);
 	});
 });

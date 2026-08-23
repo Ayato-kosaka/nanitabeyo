@@ -613,7 +613,8 @@
 			"replaceWithMyPhoto": "استخدام صورتي الخاصة",
 			"openSettings": "فتح الإعدادات",
 			"pickFromLibrary": "اختيار من المكتبة",
-			"shootWithCamera": "التقاط صورة"
+			"shootWithCamera": "التقاط صورة",
+			"pickFromExisting": "أو اختر من صور هذا المطعم"
 		},
 		"noResultsFound": "لم يتم العثور على نتائج",
 		"accessibility": {
