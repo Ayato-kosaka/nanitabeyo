@@ -401,7 +401,8 @@
 			"saveInactive": "{{name}}を保存",
 			"share": "{{name}}をシェア",
 			"openMap": "{{name}}の地図を開く",
-			"reviewLike": "{{username}}の口コミにいいね"
+			"reviewLike": "{{username}}の口コミにいいね",
+			"ownPostMenu": "{{name}}の投稿メニューを開く"
 		},
 		"processing": "メディアを処理中...",
 		"errors": {
@@ -410,6 +411,27 @@
 		},
 		"info": {
 			"walkFromShibuya": "渋谷駅から徒歩13分"
+		},
+		"ownPost": {
+			"menuTitle": "自分の投稿",
+			"edit": "レビューを編集",
+			"delete": "投稿を削除",
+			"cancel": "キャンセル",
+			"mediaLocked": "写真・動画は変更できません。編集できるのはコメント・評価・価格です。",
+			"deleteConfirmTitle": "投稿を削除しますか？",
+			"deleteConfirmMessage": "この投稿と、一緒に投稿したレビューが表示されなくなります。元に戻せません。",
+			"deleteConfirmButton": "削除する",
+			"deleted": "投稿を削除しました",
+			"deleteFailed": "削除できませんでした",
+			"editTitle": "レビューを編集",
+			"editComment": "コメント",
+			"editRating": "評価",
+			"editPrice": "価格",
+			"save": "保存する",
+			"saved": "レビューを更新しました",
+			"saveFailed": "更新できませんでした",
+			"conflict": "他の端末で先に更新されました。開き直してから編集してください",
+			"forbidden": "自分の投稿ではないため操作できません"
 		}
 	},
 	"ImageCardGrid": {

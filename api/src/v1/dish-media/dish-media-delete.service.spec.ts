@@ -77,7 +77,10 @@ describe('DishMediaService #1513 投稿の削除', () => {
           },
         },
         { provide: TranscoderService, useValue: {} },
-        { provide: CloudTasksService, useValue: { enqueueNotification: jest.fn() } },
+        {
+          provide: CloudTasksService,
+          useValue: { enqueueNotification: jest.fn() },
+        },
         { provide: ClsService, useValue: { get: jest.fn() } },
       ],
     }).compile();

@@ -401,7 +401,8 @@
 			"saveInactive": "Guardar {{name}}",
 			"share": "Compartir {{name}}",
 			"openMap": "Abrir el mapa de {{name}}",
-			"reviewLike": "Me gusta la reseña de {{username}}"
+			"reviewLike": "Me gusta la reseña de {{username}}",
+			"ownPostMenu": "Abrir el menú de la publicación de {{name}}"
 		},
 		"processing": "Procesando el contenido...",
 		"errors": {
@@ -410,6 +411,27 @@
 		},
 		"info": {
 			"walkFromShibuya": "A 13 min a pie de la estación de Shibuya"
+		},
+		"ownPost": {
+			"menuTitle": "Tu publicación",
+			"edit": "Editar reseña",
+			"delete": "Eliminar publicación",
+			"cancel": "Cancelar",
+			"mediaLocked": "Las fotos y los vídeos no se pueden cambiar. Puedes editar el comentario, la valoración y el precio.",
+			"deleteConfirmTitle": "¿Eliminar esta publicación?",
+			"deleteConfirmMessage": "Esta publicación y la reseña que publicaste con ella dejarán de mostrarse. No se puede deshacer.",
+			"deleteConfirmButton": "Eliminar",
+			"deleted": "Publicación eliminada",
+			"deleteFailed": "No se pudo eliminar la publicación",
+			"editTitle": "Editar reseña",
+			"editComment": "Comentario",
+			"editRating": "Valoración",
+			"editPrice": "Precio",
+			"save": "Guardar",
+			"saved": "Reseña actualizada",
+			"saveFailed": "No se pudo actualizar la reseña",
+			"conflict": "Esta reseña se actualizó en otro dispositivo. Vuelve a abrirla antes de editarla.",
+			"forbidden": "Solo puedes editar o eliminar tus propias publicaciones"
 		}
 	},
 	"ImageCardGrid": {

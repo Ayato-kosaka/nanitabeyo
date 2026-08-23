@@ -401,7 +401,8 @@
 			"saveInactive": "{{name}} 저장",
 			"share": "{{name}} 공유",
 			"openMap": "{{name}} 지도 열기",
-			"reviewLike": "{{username}}님의 리뷰에 좋아요"
+			"reviewLike": "{{username}}님의 리뷰에 좋아요",
+			"ownPostMenu": "{{name}} 게시물 메뉴 열기"
 		},
 		"processing": "미디어 처리 중...",
 		"info": {
@@ -410,6 +411,27 @@
 		"errors": {
 			"mapOpenFailed": "지도 앱을 열 수 없습니다",
 			"mediaUnavailable": "이 미디어는 현재 이용하실 수 없습니다."
+		},
+		"ownPost": {
+			"menuTitle": "내 게시물",
+			"edit": "리뷰 편집",
+			"delete": "게시물 삭제",
+			"cancel": "취소",
+			"mediaLocked": "사진과 동영상은 변경할 수 없습니다. 코멘트, 평점, 가격만 수정할 수 있습니다.",
+			"deleteConfirmTitle": "게시물을 삭제할까요?",
+			"deleteConfirmMessage": "이 게시물과 함께 올린 리뷰가 더 이상 표시되지 않습니다. 되돌릴 수 없습니다.",
+			"deleteConfirmButton": "삭제",
+			"deleted": "게시물을 삭제했습니다",
+			"deleteFailed": "삭제하지 못했습니다",
+			"editTitle": "리뷰 편집",
+			"editComment": "코멘트",
+			"editRating": "평점",
+			"editPrice": "가격",
+			"save": "저장",
+			"saved": "리뷰를 수정했습니다",
+			"saveFailed": "수정하지 못했습니다",
+			"conflict": "다른 기기에서 먼저 수정되었습니다. 다시 열고 편집해 주세요.",
+			"forbidden": "내 게시물만 편집하거나 삭제할 수 있습니다"
 		}
 	},
 	"ImageCardGrid": {

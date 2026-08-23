@@ -401,7 +401,8 @@
 			"saveInactive": "保存{{name}}",
 			"share": "分享{{name}}",
 			"openMap": "打开{{name}}的地图",
-			"reviewLike": "为{{username}}的点评点赞"
+			"reviewLike": "为{{username}}的点评点赞",
+			"ownPostMenu": "打开{{name}}的帖子菜单"
 		},
 		"processing": "正在处理媒体...",
 		"errors": {
@@ -410,6 +411,27 @@
 		},
 		"info": {
 			"walkFromShibuya": "距离涩谷站步行13分钟"
+		},
+		"ownPost": {
+			"menuTitle": "我的帖子",
+			"edit": "编辑评价",
+			"delete": "删除帖子",
+			"cancel": "取消",
+			"mediaLocked": "照片和视频无法更换。可编辑的是评论、评分和价格。",
+			"deleteConfirmTitle": "要删除这条帖子吗？",
+			"deleteConfirmMessage": "这条帖子以及一起发布的评价将不再显示，且无法恢复。",
+			"deleteConfirmButton": "删除",
+			"deleted": "已删除帖子",
+			"deleteFailed": "删除失败",
+			"editTitle": "编辑评价",
+			"editComment": "评论",
+			"editRating": "评分",
+			"editPrice": "价格",
+			"save": "保存",
+			"saved": "已更新评价",
+			"saveFailed": "更新失败",
+			"conflict": "该评价已在其他设备上更新，请重新打开后再编辑。",
+			"forbidden": "只能编辑或删除自己的帖子"
 		}
 	},
 	"ImageCardGrid": {

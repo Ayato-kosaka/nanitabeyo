@@ -21,6 +21,7 @@ import { shallow } from "zustand/shallow";
 import { profileLikesEntriesKey } from "@/features/profile/tabs/LikeTab";
 import { profileSavedPostsEntriesKey } from "@/features/profile/tabs/SavedPostsTab";
 import { useDishMediaActions } from "../hooks/useDishMediaActions";
+import { OwnPostActions } from "./OwnPostActions";
 import { GestureDetector } from "react-native-gesture-handler";
 import type { GestureType } from "react-native-gesture-handler";
 import { toErrorLogMessage } from "@/lib/errorMessage";
@@ -322,6 +323,11 @@ function ActionButtonsContent({
 					</TouchableOpacity>
 					<Text style={styles.actionText}>{i18n.t("DishMediaContent.actions.share")}</Text>
 				</View>
+
+				{/* #1513 自分の投稿だけに編集・削除の導線を出す。他人の投稿では
+				    ボタン自体が描画されないので、UI からは操作にたどり着けない
+				    （サーバー側でも user_id 一致を必須にして二重に担保している） */}
+				{entry.dish_media.isMine && <OwnPostActions entry={entry} />}
 
 				<View style={styles.actionContainer}>
 					<TouchableOpacity
