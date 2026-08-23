@@ -1,6 +1,6 @@
 import { strict as assert } from "node:assert";
 
-import { launchAppWithSession, waitUntilVisible } from "../../fixtures/e2e";
+import { element, expect, launchAppWithSession, waitUntilVisible } from "../../fixtures/e2e";
 import { TabBar } from "../../screens/TabBar";
 import { ProfileScreen } from "../../screens/ProfileScreen";
 import { SettingsScreen } from "../../screens/SettingsScreen";
@@ -91,5 +91,37 @@ describe("設定画面（匿名ユーザー）", () => {
 
 		const hasLogoutItem = await settingsScreen.hasLogoutItem();
 		assert.equal(hasLogoutItem, false, "匿名ユーザーには settings-logout が表示されないはず");
+	});
+
+	// ─ テストケース: バージョン情報が表示される(#1495 SUP-03) ─
+	// 手順:
+	//   1. 設定画面を表示する
+	//   2. バージョン行(settings-version-section)がセマンティックバージョン形式(例: 1.14.0)で
+	//      表示されることを検証する(versionText は by.text の RegExp マッチ)
+	//   3. ビルド情報行(settings-build-info)の実測テキストにランタイムバージョンとビルドIDが
+	//      含まれ、"undefined" を含んでいないことを検証する
+	//      (取得できない場合は UNKNOWN_BUILD_META_CLIENT へフォールバックする仕様。
+	//       値そのものの保証は app-expo/constants/Env.test.ts が持つので、ここでは画面に
+	//       出てくる文言が「バージョンらしい形」であることだけを見る)
+	//
+	// ⚠️ web と異なり、ネイティブは nativeApplicationVersion 系の取得経路がある一方、
+	//   VersionInfo コンポーネント自体は Env.APP_VERSION / Env.RUNTIME_VERSION / Env.COMMIT_ID を
+	//   web/native 共通で読む設計（VersionInfo.tsx 参照）。ここではネイティブ実機/シミュレータ上で
+	//   実際にその値が画面に描画されることを検証する。
+	it("バージョン情報が表示される", async () => {
+		const tabBar = new TabBar();
+		const profileScreen = new ProfileScreen();
+		const settingsScreen = new SettingsScreen();
+
+		await tabBar.gotoProfile();
+		await profileScreen.gotoSettings();
+		await settingsScreen.expectLoaded();
+
+		await waitUntilVisible(settingsScreen.versionSection);
+		await expect(element(settingsScreen.versionText)).toBeVisible();
+
+		const buildInfoText = await settingsScreen.getBuildInfoText();
+		assert.match(buildInfoText, /^ランタイム\s+\S+・ビルド\s+\S+$/, `実測: "${buildInfoText}"`);
+		assert.doesNotMatch(buildInfoText, /undefined/i, `実測: "${buildInfoText}"`);
 	});
 });

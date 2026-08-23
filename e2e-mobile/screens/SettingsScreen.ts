@@ -51,6 +51,19 @@ export class SettingsScreen {
 	/** ログアウト行（ログイン済みユーザーのみ表示・既存 testID） */
 	readonly logoutItem = by.id("settings-logout");
 	/**
+	 * バージョン表示セクション（#1495 SUP-03、既存 testID）。
+	 * 対応コンポーネント: app-expo/components/VersionInfo.tsx（web/native 共通）。
+	 */
+	readonly versionSection = by.id("settings-version-section");
+	/**
+	 * バージョン行の文言（ja-JP: Settings.version＝「バージョン {{version}}」、既存 testID なし）。
+	 * `{{version}}` はビルドごとに変わるため、`by.text` の RegExp マッチで
+	 * 「セマンティックバージョン形式で表示されている」ことだけを見る。
+	 */
+	readonly versionText = by.text(/^バージョン\s+\d+\.\d+\.\d+$/);
+	/** ビルド情報行（ja-JP: Settings.buildInfo＝「ランタイム {{runtimeVersion}}・ビルド {{commitId}}」・既存 testID） */
+	readonly buildInfoItem = by.id("settings-build-info");
+	/**
 	 * ログアウト確認ダイアログのタイトル（ja-JP: `Settings.logoutConfirmTitle`）。
 	 * DialogProvider（react-native-paper の Dialog）はタイトルに testID を持たないため文字列で特定する。
 	 * `title` と同じくロケール依存のセレクタなので、翻訳キーを変えたらここも直すこと。
@@ -86,6 +99,16 @@ export class SettingsScreen {
 	/** 設定画面が表示されていることを検証する */
 	async expectLoaded(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
 		await waitUntilVisible(this.title, timeout);
+	}
+
+	/**
+	 * ビルド情報行（settings-build-info）の実測テキストを読む（#1495）。
+	 * `getAttributes()` の戻り値は iOS / Android で型が分かれるため、`text` だけを拾う
+	 * （tests/profile/profile-tab-deep-link.test.ts と同じ絞り方）。
+	 */
+	async getBuildInfoText(): Promise<string> {
+		const attributes = (await element(this.buildInfoItem).getAttributes()) as { text?: string };
+		return attributes.text ?? "";
 	}
 
 	/**
