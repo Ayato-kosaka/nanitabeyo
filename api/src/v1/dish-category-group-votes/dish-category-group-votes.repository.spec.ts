@@ -1,6 +1,6 @@
 // api/src/v1/dish-category-group-votes/dish-category-group-votes.repository.spec.ts
 //
-// #1505 【設計】GET /v1/users/me/dish-category-group-votes の認可テスト。
+// #1505 【設計】GET /v1/users/me/dish-category-group-votes の認可テスト + 行の中身のテスト。
 //
 // findMeSessions が組み立てる where 句(host_user_id = 自分)を「実際に条件として評価する」
 // フェイク findMany の上でテストする。呼び出し引数の形だけを assert すると、where 句の中身が
@@ -11,9 +11,24 @@
 // 【仕様】オーナー指示により、この一覧は **自分が主催したセッションだけ** を返す。
 // 参加(投票)しただけのセッションは対象外。絞り込みはクライアントではなく where 句で行うため、
 // 「参加しただけのセッションが返らない」ことをここで固定する。
+//
+// #1505 デザイン再設計で、行は «何を投票したのか»(候補サムネイル・候補名・参加人数・勝者名)を
+// 出すようになった。表示の材料を API が返せているか、そして
+// **ページ全体を数クエリで引いているか(セッションごとに引く N+1 になっていないか)** も
+// ここで固定する。行数が増えるほど効く性質なので、目視では退行に気付けない。
 
 import { Prisma } from '../../../../shared/prisma/client';
 import { DishCategoryGroupVotesRepository } from './dish-category-group-votes.repository';
+
+type FakeCandidate = {
+  id: string;
+  display_name: string;
+  image_url: string;
+  display_order: number;
+  deleted_at: Date | null;
+  /** この候補に入った得票。reaction は 'like' | 'dislike' */
+  reactions: string[];
+};
 
 type FakeSession = {
   id: string;
@@ -21,9 +36,22 @@ type FakeSession = {
   share_token: string;
   created_at: Date;
   updated_at: Date;
-  candidates: { deleted_at: Date | null }[];
+  candidates: FakeCandidate[];
   participants: { id: string; user_id: string }[];
 };
+
+/** 候補の定型部分を埋める。テストが着目する項目だけを渡せるようにするためのヘルパー */
+function candidate(overrides: Partial<FakeCandidate> = {}): FakeCandidate {
+  const displayOrder = overrides.display_order ?? 0;
+  return {
+    id: overrides.id ?? `candidate-${displayOrder}`,
+    display_name: overrides.display_name ?? `candidate-${displayOrder}`,
+    image_url: overrides.image_url ?? `https://example.com/${displayOrder}.jpg`,
+    display_order: displayOrder,
+    deleted_at: overrides.deleted_at ?? null,
+    reactions: overrides.reactions ?? [],
+  };
+}
 
 /**
  * findMeSessions が渡す where 句だけを対象にした最小限の評価器。
@@ -74,6 +102,7 @@ function buildFakeDb(sessions: FakeSession[]) {
         dish_category_group_vote_candidates: s.candidates.filter(
           (c) => c.deleted_at === null,
         ).length,
+        dish_category_group_vote_participants: s.participants.length,
       },
       dish_category_group_vote_participants: s.participants
         .filter((p) => p.user_id === participantsSelect.where.user_id)
@@ -82,11 +111,63 @@ function buildFakeDb(sessions: FakeSession[]) {
     }));
   });
 
+  // 候補は「ページ内の全セッションぶんを 1 回で引く」形しか受け付けない。
+  // セッションごとに引く N+1 へ戻る退行は、呼び出し回数の assert（下の it）で赤くなる。
+  const findManyCandidates = jest.fn(async (args: any) => {
+    const sessionIds: string[] = args.where.session_id.in;
+    if (args.where.deleted_at !== null) {
+      throw new Error(
+        '削除済み候補を除外していない: where.deleted_at が null ではない',
+      );
+    }
+
+    return sessions
+      .filter((s) => sessionIds.includes(s.id))
+      .flatMap((s) =>
+        s.candidates
+          .filter((c) => c.deleted_at === null)
+          .map((c) => ({
+            id: c.id,
+            session_id: s.id,
+            display_name: c.display_name,
+            image_url: c.image_url,
+            display_order: c.display_order,
+          })),
+      )
+      .sort((a, b) =>
+        a.session_id === b.session_id
+          ? a.display_order - b.display_order
+          : a.session_id.localeCompare(b.session_id),
+      );
+  });
+
+  const groupByVotes = jest.fn(async (args: any) => {
+    const candidateIds: string[] = args.where.candidate_id.in;
+    const counts = new Map<string, number>();
+
+    for (const session of sessions) {
+      for (const c of session.candidates) {
+        if (!candidateIds.includes(c.id)) continue;
+        for (const reaction of c.reactions) {
+          const key = `${c.id}::${reaction}`;
+          counts.set(key, (counts.get(key) ?? 0) + 1);
+        }
+      }
+    }
+
+    return [...counts.entries()].map(([key, count]) => {
+      const [candidate_id, reaction] = key.split('::');
+      return { candidate_id, reaction, _count: { _all: count } };
+    });
+  });
+
   const db = {
     dish_category_group_vote_sessions: { findMany },
+    dish_category_group_vote_candidates: { findMany: findManyCandidates },
+    dish_category_group_vote_candidate_votes: { groupBy: groupByVotes },
   } as unknown as Prisma.TransactionClient;
 
-  return { db, findMany };
+  return { db, findMany, findManyCandidates, groupByVotes };
 }
 
 describe('DishCategoryGroupVotesRepository.findMeSessions', () => {
@@ -105,7 +186,10 @@ describe('DishCategoryGroupVotesRepository.findMeSessions', () => {
       share_token: 'token-hosted',
       created_at: new Date('2026-08-01T00:00:00Z'),
       updated_at: new Date('2026-08-03T00:00:00Z'),
-      candidates: [{ deleted_at: null }, { deleted_at: null }],
+      candidates: [
+        candidate({ display_order: 0 }),
+        candidate({ display_order: 1 }),
+      ],
       participants: [],
     };
     // 自分は participant として居るが host ではない ＝ 一覧に出してはいけない(#1505 仕様変更)
@@ -115,7 +199,7 @@ describe('DishCategoryGroupVotesRepository.findMeSessions', () => {
       share_token: 'token-participated',
       created_at: new Date('2026-08-02T00:00:00Z'),
       updated_at: new Date('2026-08-04T00:00:00Z'),
-      candidates: [{ deleted_at: null }],
+      candidates: [candidate({ display_order: 0 })],
       participants: [
         { id: 'participant-me', user_id: 'user-me' },
         { id: 'participant-stranger', user_id: 'user-stranger' },
@@ -127,7 +211,7 @@ describe('DishCategoryGroupVotesRepository.findMeSessions', () => {
       share_token: 'token-unrelated',
       created_at: new Date('2026-08-05T00:00:00Z'),
       updated_at: new Date('2026-08-05T00:00:00Z'),
-      candidates: [{ deleted_at: null }],
+      candidates: [candidate({ display_order: 0 })],
       participants: [{ id: 'participant-stranger', user_id: 'user-stranger' }],
     };
 
@@ -198,9 +282,13 @@ describe('DishCategoryGroupVotesRepository.findMeSessions', () => {
       created_at: new Date('2026-08-01T00:00:00Z'),
       updated_at: new Date('2026-08-01T00:00:00Z'),
       candidates: [
-        { deleted_at: null },
-        { deleted_at: null },
-        { deleted_at: new Date('2026-08-01T00:00:00Z') },
+        candidate({ id: 'c-0', display_order: 0 }),
+        candidate({ id: 'c-1', display_order: 1 }),
+        candidate({
+          id: 'c-2',
+          display_order: 2,
+          deleted_at: new Date('2026-08-01T00:00:00Z'),
+        }),
       ],
       participants: [],
     };
@@ -230,7 +318,10 @@ describe('DishCategoryGroupVotesRepository.findMeSessions', () => {
       undefined,
       2,
     );
-    expect(firstPage.items.map((i) => i.id)).toEqual(['session-2', 'session-1']);
+    expect(firstPage.items.map((i) => i.id)).toEqual([
+      'session-2',
+      'session-1',
+    ]);
     expect(firstPage.nextCursor).toBe(sessions[1].updated_at.toISOString());
 
     const secondPage = await repository.findMeSessions(
@@ -243,5 +334,258 @@ describe('DishCategoryGroupVotesRepository.findMeSessions', () => {
     expect(secondPage.nextCursor).toBeNull();
 
     expect(findMany).toHaveBeenCalledTimes(2);
+  });
+
+  // ─────────────────────────────────────────────────────────────────
+  // #1505 行の中身（デザイン再設計で追加したフィールド）
+  // ─────────────────────────────────────────────────────────────────
+
+  it('候補プレビューは display_order 昇順の先頭3件を、削除済みを除いて返す', async () => {
+    const session: FakeSession = {
+      id: 'session-previews',
+      host_user_id: 'user-me',
+      share_token: 'token-previews',
+      created_at: new Date('2026-08-01T00:00:00Z'),
+      updated_at: new Date('2026-08-01T00:00:00Z'),
+      candidates: [
+        candidate({
+          id: 'c-3',
+          display_order: 3,
+          display_name: '四番目',
+          image_url: 'https://example.com/4.jpg',
+        }),
+        candidate({
+          id: 'c-0',
+          display_order: 0,
+          display_name: 'ラーメン',
+          image_url: 'https://example.com/ramen.jpg',
+        }),
+        // 削除済みは «見えている候補» ではないのでサムネイルにも出さない
+        candidate({
+          id: 'c-1',
+          display_order: 1,
+          display_name: '削除済み',
+          deleted_at: new Date('2026-08-01T00:00:00Z'),
+        }),
+        candidate({
+          id: 'c-2',
+          display_order: 2,
+          display_name: '寿司',
+          image_url: 'https://example.com/sushi.jpg',
+        }),
+        candidate({ id: 'c-4', display_order: 4, display_name: '五番目' }),
+      ],
+      participants: [],
+    };
+
+    const { db } = buildFakeDb([session]);
+    const result = await repository.findMeSessions(db, 'user-me');
+
+    expect(result.items[0].candidatePreviews).toEqual([
+      { displayName: 'ラーメン', imageUrl: 'https://example.com/ramen.jpg' },
+      { displayName: '寿司', imageUrl: 'https://example.com/sushi.jpg' },
+      { displayName: '四番目', imageUrl: 'https://example.com/4.jpg' },
+    ]);
+    // 「+N」は candidateCount とプレビュー件数の差で出すので、総数は削除済みを除いた 4
+    expect(result.items[0].candidateCount).toBe(4);
+  });
+
+  it('participantCount は「投票した参加者の数」であり、自分が投票したかとは独立に数える', async () => {
+    const session: FakeSession = {
+      id: 'session-participants',
+      host_user_id: 'user-me',
+      share_token: 'token-participants',
+      created_at: new Date('2026-08-01T00:00:00Z'),
+      updated_at: new Date('2026-08-01T00:00:00Z'),
+      candidates: [],
+      // 主催者である自分は投票していないが、他人が 3 人投票している
+      participants: [
+        { id: 'p-1', user_id: 'user-a' },
+        { id: 'p-2', user_id: 'user-b' },
+        { id: 'p-3', user_id: 'user-c' },
+      ],
+    };
+
+    const { db } = buildFakeDb([session]);
+    const result = await repository.findMeSessions(db, 'user-me');
+
+    expect(result.items[0]).toMatchObject({
+      participantCount: 3,
+      hasVoted: false,
+    });
+  });
+
+  it('winnerName は単独首位の候補名を返す（like 数が多い候補が勝つ）', async () => {
+    const session: FakeSession = {
+      id: 'session-winner',
+      host_user_id: 'user-me',
+      share_token: 'token-winner',
+      created_at: new Date('2026-08-01T00:00:00Z'),
+      updated_at: new Date('2026-08-01T00:00:00Z'),
+      candidates: [
+        candidate({
+          id: 'c-0',
+          display_order: 0,
+          display_name: 'ラーメン',
+          reactions: ['like'],
+        }),
+        candidate({
+          id: 'c-1',
+          display_order: 1,
+          display_name: '寿司',
+          reactions: ['like', 'like', 'dislike'],
+        }),
+      ],
+      participants: [{ id: 'p-1', user_id: 'user-a' }],
+    };
+
+    const { db } = buildFakeDb([session]);
+    const result = await repository.findMeSessions(db, 'user-me');
+
+    expect(result.items[0].winnerName).toBe('寿司');
+  });
+
+  it('winnerName は同率首位のとき null（並んでいる状態を「決まった」と呼ばない）', async () => {
+    const session: FakeSession = {
+      id: 'session-tie',
+      host_user_id: 'user-me',
+      share_token: 'token-tie',
+      created_at: new Date('2026-08-01T00:00:00Z'),
+      updated_at: new Date('2026-08-01T00:00:00Z'),
+      candidates: [
+        candidate({
+          id: 'c-0',
+          display_order: 0,
+          display_name: 'ラーメン',
+          reactions: ['like', 'like'],
+        }),
+        candidate({
+          id: 'c-1',
+          display_order: 1,
+          display_name: '寿司',
+          reactions: ['like', 'like'],
+        }),
+      ],
+      participants: [{ id: 'p-1', user_id: 'user-a' }],
+    };
+
+    const { db } = buildFakeDb([session]);
+    const result = await repository.findMeSessions(db, 'user-me');
+
+    expect(result.items[0].winnerName).toBeNull();
+  });
+
+  it('winnerName は誰も投票していないとき null（0票同士で display_order の若い候補を勝たせない）', async () => {
+    const session: FakeSession = {
+      id: 'session-no-votes',
+      host_user_id: 'user-me',
+      share_token: 'token-no-votes',
+      created_at: new Date('2026-08-01T00:00:00Z'),
+      updated_at: new Date('2026-08-01T00:00:00Z'),
+      candidates: [
+        candidate({ id: 'c-0', display_order: 0, display_name: 'ラーメン' }),
+        candidate({ id: 'c-1', display_order: 1, display_name: '寿司' }),
+      ],
+      participants: [],
+    };
+
+    const { db } = buildFakeDb([session]);
+    const result = await repository.findMeSessions(db, 'user-me');
+
+    expect(result.items[0].winnerName).toBeNull();
+  });
+
+  it('dislike だけが入った候補より、like が 1 票でも入った候補が勝つ', async () => {
+    const session: FakeSession = {
+      id: 'session-dislike',
+      host_user_id: 'user-me',
+      share_token: 'token-dislike',
+      created_at: new Date('2026-08-01T00:00:00Z'),
+      updated_at: new Date('2026-08-01T00:00:00Z'),
+      candidates: [
+        candidate({
+          id: 'c-0',
+          display_order: 0,
+          display_name: 'ラーメン',
+          reactions: ['dislike', 'dislike'],
+        }),
+        candidate({
+          id: 'c-1',
+          display_order: 1,
+          display_name: '寿司',
+          reactions: ['like'],
+        }),
+      ],
+      participants: [{ id: 'p-1', user_id: 'user-a' }],
+    };
+
+    const { db } = buildFakeDb([session]);
+    const result = await repository.findMeSessions(db, 'user-me');
+
+    expect(result.items[0].winnerName).toBe('寿司');
+  });
+
+  // 一覧を開くだけで DB を叩き潰さないこと。行数に比例してクエリが増える形に戻ったら赤くなる。
+  it('候補と得票はページ全体で 1 回ずつしか引かない（行ごとの N+1 にしない）', async () => {
+    const sessions: FakeSession[] = Array.from({ length: 5 }, (_, i) => ({
+      id: `session-${i}`,
+      host_user_id: 'user-me',
+      share_token: `token-${i}`,
+      created_at: new Date(2026, 7, i + 1),
+      updated_at: new Date(2026, 7, i + 1),
+      candidates: [
+        candidate({
+          id: `c-${i}-0`,
+          display_order: 0,
+          display_name: `候補 ${i}`,
+          reactions: ['like'],
+        }),
+      ],
+      participants: [{ id: `p-${i}`, user_id: 'user-a' }],
+    }));
+
+    const { db, findMany, findManyCandidates, groupByVotes } =
+      buildFakeDb(sessions);
+
+    const result = await repository.findMeSessions(db, 'user-me');
+
+    expect(result.items).toHaveLength(5);
+    expect(findMany).toHaveBeenCalledTimes(1);
+    expect(findManyCandidates).toHaveBeenCalledTimes(1);
+    expect(groupByVotes).toHaveBeenCalledTimes(1);
+  });
+
+  it('候補が 1 件も無いページでは、候補・得票のクエリを投げない', async () => {
+    const session: FakeSession = {
+      id: 'session-empty',
+      host_user_id: 'user-me',
+      share_token: 'token-empty',
+      created_at: new Date('2026-08-01T00:00:00Z'),
+      updated_at: new Date('2026-08-01T00:00:00Z'),
+      candidates: [],
+      participants: [],
+    };
+
+    const { db, findManyCandidates, groupByVotes } = buildFakeDb([session]);
+
+    const result = await repository.findMeSessions(db, 'user-me');
+
+    expect(result.items[0]).toMatchObject({
+      candidatePreviews: [],
+      winnerName: null,
+    });
+    // 候補は「居ないことを確かめる」ために 1 回引く。得票は引く相手が居ないので 0 回。
+    expect(findManyCandidates).toHaveBeenCalledTimes(1);
+    expect(groupByVotes).not.toHaveBeenCalled();
+  });
+
+  it('1 件も返らないページでは、候補のクエリすら投げない', async () => {
+    const { db, findManyCandidates, groupByVotes } = buildFakeDb([]);
+
+    const result = await repository.findMeSessions(db, 'user-me');
+
+    expect(result.items).toEqual([]);
+    expect(findManyCandidates).not.toHaveBeenCalled();
+    expect(groupByVotes).not.toHaveBeenCalled();
   });
 });

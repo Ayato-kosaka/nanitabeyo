@@ -334,8 +334,9 @@ export class UsersService {
   /* ------------------------------------------------------------------ */
   /*          GET /v1/users/me/dish-category-group-votes               */
   /* ------------------------------------------------------------------ */
-  // #1505 【設計】自分がホスト(作成)または参加(投票)した dish_category グループ投票の一覧。
-  // 認可の担保は repository の where 句(host_user_id または participants.user_id が自分)に閉じており、
+  // #1505 【設計】**自分が主催(作成)した** dish_category グループ投票の一覧。
+  // 参加しただけのセッションは含まない(オーナー指示)。
+  // 認可の担保は repository の where 句(host_user_id = 自分)に閉じており、
   // ここでは userId を JWT 由来のものだけ使い、body/query から session の所有者を受け取らない。
   async getMeDishCategoryGroupVotes(
     userId: string,
@@ -375,6 +376,11 @@ export class UsersService {
         shareToken: item.shareToken,
         hasVoted: item.hasVoted,
         candidateCount: item.candidateCount,
+        // #1505 行の主役は「何を投票したのか」。候補のサムネイル・候補名・参加人数・勝者名を
+        // 一覧の時点で返し、画面が行ごとに detail を叩かなくて済むようにしている。
+        candidatePreviews: item.candidatePreviews,
+        participantCount: item.participantCount,
+        winnerName: item.winnerName,
         createdAt: item.createdAt.toISOString(),
         updatedAt: item.updatedAt.toISOString(),
       })),
