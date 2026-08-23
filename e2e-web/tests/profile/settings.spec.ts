@@ -40,4 +40,28 @@ test.describe("設定画面(匿名ユーザー)", () => {
 
 		await expect(settingsPage.logoutItem).toHaveCount(0);
 	});
+
+	// ─ テストケース: バージョン情報が表示される(#1495 SUP-03) ─
+	// 手順:
+	//   1. 設定画面を表示する
+	//   2. バージョン行(settings-version-section)がセマンティックバージョン形式(例: 1.14.0)で
+	//      表示されることを検証する
+	//   3. ビルド情報行(settings-build-info)にランタイムバージョンとビルドIDが表示され、
+	//      空文字や"undefined"を出していないことを検証する
+	//      (取得できない場合は UNKNOWN_BUILD_META_CLIENT へフォールバックする仕様。
+	//       constants/Env.test.ts が値そのものは保証しているので、ここでは画面に
+	//       出てくる文言が「バージョンらしい形」であることだけを見る)
+	test("バージョン情報が表示される", async ({ appPage }) => {
+		const settingsPage = new SettingsPage(appPage);
+		await settingsPage.goto();
+		await settingsPage.expectLoaded();
+
+		await expect(settingsPage.versionSection).toBeVisible();
+		await expect(settingsPage.versionText).toHaveText(/^バージョン\s+\d+\.\d+\.\d+$/);
+
+		await expect(settingsPage.buildInfoItem).toBeVisible();
+		const buildInfoText = await settingsPage.buildInfoItem.innerText();
+		expect(buildInfoText).toMatch(/^ランタイム\s+\S+・ビルド\s+\S+$/);
+		expect(buildInfoText).not.toMatch(/undefined/i);
+	});
 });

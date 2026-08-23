@@ -26,6 +26,15 @@ export class SettingsPage {
 	readonly copyrightItem: Locator;
 	/** ブロック済みの料理トピック行 */
 	readonly blockedTopicsItem: Locator;
+	/**
+	 * バージョン表示セクション（#1495 SUP-03）。
+	 * 対応コンポーネント: app-expo/components/VersionInfo.tsx
+	 */
+	readonly versionSection: Locator;
+	/** バージョン行の文言（ja-JP: Settings.version＝「バージョン {{version}}」） */
+	readonly versionText: Locator;
+	/** ビルド情報行（ja-JP: Settings.buildInfo＝「ランタイム {{runtimeVersion}}・ビルド {{commitId}}」） */
+	readonly buildInfoItem: Locator;
 	/** ログアウト行（ログイン済みユーザーのみ表示） */
 	readonly logoutItem: Locator;
 	/**
@@ -53,6 +62,9 @@ export class SettingsPage {
 		this.privacyItem = page.getByTestId("settings-privacy");
 		this.copyrightItem = page.getByTestId("settings-copyright");
 		this.blockedTopicsItem = page.getByTestId("settings-blocked-topics");
+		this.versionSection = page.getByTestId("settings-version-section");
+		this.versionText = this.versionSection.getByText(/バージョン/);
+		this.buildInfoItem = page.getByTestId("settings-build-info");
 		this.logoutItem = page.getByTestId("settings-logout");
 		this.logoutConfirmDialog = page.getByTestId("modal-surface");
 		this.logoutConfirmTitle = page.getByText("ログアウトしますか？", { exact: true });
