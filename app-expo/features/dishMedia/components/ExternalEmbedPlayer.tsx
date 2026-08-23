@@ -33,7 +33,7 @@ require の成否だけでは足りない（JS 側は解決できてもネイテ
 になる（独立レビュー指摘）ため、遅延評価にし、正常な結果だけキャッシュし、
 例外は logFrontendEvent へ残して次のレンダで再判定する。
 */
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, UIManager, View } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import { GestureDetector, type GestureType } from "react-native-gesture-handler";
@@ -43,12 +43,9 @@ import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import i18n from "@/lib/i18n";
 import type { DishMediaExternalEmbed } from "@shared/api/v1/res";
-import { buildExternalEmbedPlayerSource, isAllowedEmbedNavigation } from "../embedUrl";
+import { buildExternalEmbedPlayerSource, isAllowedEmbedNavigation, isEmbedEscapeUrl } from "../embedUrl";
 
-type WebViewComponent = React.ComponentType<Record<string, unknown>> & {
-	prototype?: { injectJavaScript?: unknown };
-};
-type WebViewRef = { injectJavaScript?: (script: string) => void };
+type WebViewComponent = React.ComponentType<Record<string, unknown>>;
 type ProbeResult = { WebView: WebViewComponent | null; error: string | null };
 
 let cachedProbe: ProbeResult | undefined;
@@ -73,12 +70,6 @@ const probeNativeWebView = (): ProbeResult => {
 };
 let probeErrorLogged = false;
 
-/** Instagram の埋め込みは自動再生しないので、操作モード開始時に中央へ合成クリックを
- *  注入してその場で再生を始めさせる。provider の DOM に依存しない座標クリックで、
- *  失敗しても操作モードには入っている（ユーザーが直接タップすれば再生できる） */
-const CENTER_CLICK_JS =
-	"(function(){var e=document.elementFromPoint(window.innerWidth/2,window.innerHeight/2);if(e&&e.click)e.click();})();true;";
-
 export type ExternalEmbedPlayerProps = {
 	embed: Pick<DishMediaExternalEmbed, "provider" | "externalContentId" | "canonicalUrl" | "embedStatus">;
 	/**
@@ -97,7 +88,6 @@ export function ExternalEmbedPlayer({ embed, isActive, blockParentTapGesture }: 
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const [interactive, setInteractive] = useState(false);
-	const webViewRef = useRef<WebViewRef | null>(null);
 
 	const source = buildExternalEmbedPlayerSource(embed.provider, embed.externalContentId);
 	const probe = probeNativeWebView();
@@ -128,7 +118,9 @@ export function ExternalEmbedPlayer({ embed, isActive, blockParentTapGesture }: 
 		});
 	}, [embed.canonicalUrl, embed.provider, lightImpact, logFrontendEvent]);
 
-	// WebView 在りビルド用: 操作モードへ入る（Instagram は合成クリックで再生開始も試みる）
+	// WebView 在りビルド用: 操作モードへ入る（以降のタップは埋め込み側の再生 UI が受ける。
+	// 合成クリックの注入は行わない: 中央は「Instagramで見る」リンクで、クリックすると
+	// フルサイトへ遷移してしまう。Detox 実機でアプリのプロセスごと落ちるのを観測した）
 	const handleActivate = useCallback(() => {
 		lightImpact();
 		logFrontendEvent({
@@ -137,9 +129,6 @@ export function ExternalEmbedPlayer({ embed, isActive, blockParentTapGesture }: 
 			payload: { provider: embed.provider },
 		});
 		setInteractive(true);
-		if (embed.provider === "instagram") {
-			webViewRef.current?.injectJavaScript?.(CENTER_CLICK_JS);
-		}
 	}, [embed.provider, lightImpact, logFrontendEvent]);
 
 	if (!isActive) return null;
@@ -181,16 +170,21 @@ export function ExternalEmbedPlayer({ embed, isActive, blockParentTapGesture }: 
 					pointerEvents={interactive ? "auto" : "none"}
 					testID="external-embed-webview">
 					<NativeWebView
-						ref={(node: WebViewRef | null) => {
-							webViewRef.current = node;
-						}}
 						source={{ uri: source.embedUrl }}
 						style={styles.webView}
 						allowsInlineMediaPlayback
 						mediaPlaybackRequiresUserAction={false}
 						// 埋め込み内部のナビゲーション（サブフレーム・302）は打ち切らない。
-						// アプリ起動スキームだけ遮断する。判定の理由は embedUrl.ts
-						onShouldStartLoadWithRequest={(request: { url: string }) => isAllowedEmbedNavigation(request.url)}
+						// アプリ起動スキームは遮断し、「Instagramで見る」等の本体サイトへの脱出は
+						// フィードのセル内で開かずアプリ内ブラウザへ逃がす。判定の理由は embedUrl.ts
+						onShouldStartLoadWithRequest={(request: { url: string }) => {
+							if (!isAllowedEmbedNavigation(request.url)) return false;
+							if (isEmbedEscapeUrl(request.url)) {
+								WebBrowser.openBrowserAsync(request.url).catch(() => {});
+								return false;
+							}
+							return true;
+						}}
 					/>
 				</View>
 			)}

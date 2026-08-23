@@ -1,4 +1,4 @@
-import { buildExternalEmbedPlayerSource, isAllowedEmbedNavigation } from "./embedUrl";
+import { buildExternalEmbedPlayerSource, isAllowedEmbedNavigation, isEmbedEscapeUrl } from "./embedUrl";
 
 describe("buildExternalEmbedPlayerSource", () => {
 	it("instagram はリールのコードでも /p/{code}/embed/ を組む（captioned は白カードが付くので使わない）", () => {
@@ -34,6 +34,15 @@ describe("isAllowedEmbedNavigation", () => {
 		expect(isAllowedEmbedNavigation("https://www.instagram.com/p/abc/embed/?cr=1")).toBe(true);
 		expect(isAllowedEmbedNavigation("http://example.com/redirected")).toBe(true);
 		expect(isAllowedEmbedNavigation("about:blank")).toBe(true);
+	});
+
+	it("provider 本体サイトへの脱出（embed 以外のページ）を判定できる", () => {
+		expect(isEmbedEscapeUrl("https://www.instagram.com/reel/DZFdePPzzLI/")).toBe(true);
+		expect(isEmbedEscapeUrl("https://www.instagram.com/p/abc/embed/")).toBe(false);
+		expect(isEmbedEscapeUrl("https://www.youtube.com/watch?v=abc")).toBe(true);
+		expect(isEmbedEscapeUrl("https://www.youtube.com/embed/abc")).toBe(false);
+		expect(isEmbedEscapeUrl("https://googleads.g.doubleclick.net/frame")).toBe(false);
+		expect(isEmbedEscapeUrl("not a url")).toBe(false);
 	});
 
 	it("アプリ起動スキームは遮断する", () => {

@@ -68,3 +68,34 @@ Android は isForMainFrame を捨てて URL 版へ委譲する）。「embedUrl 
 export function isAllowedEmbedNavigation(url: string): boolean {
 	return /^https?:\/\//.test(url) || url.startsWith("about:");
 }
+
+/*
+埋め込みからの «本体サイトへの脱出» 判定。
+
+Instagram の埋め込みは中央に「Instagramで見る」リンクを持ち、タップすると
+埋め込みページごと instagram.com の本体ページへ遷移する。フルサイトは重く
+（Detox 実機検証でアプリのプロセスが落ちる= OOM 相当を観測。run 32654704176）、
+そもそもフィードのセル内に本体サイトが出るのは UX としても壊れている。
+provider ドメインの «embed 以外のページ» への遷移は WebView に読ませず、
+呼び出し側がアプリ内ブラウザへ逃がす。広告・CDN 等の他ドメインは対象外（inline 継続）。
+*/
+const EMBED_PROVIDER_HOSTS = new Set([
+	"instagram.com",
+	"www.instagram.com",
+	"tiktok.com",
+	"www.tiktok.com",
+	"youtube.com",
+	"www.youtube.com",
+	"m.youtube.com",
+	"youtu.be",
+]);
+
+export function isEmbedEscapeUrl(url: string): boolean {
+	try {
+		const parsed = new URL(url);
+		if (!EMBED_PROVIDER_HOSTS.has(parsed.hostname)) return false;
+		return !parsed.pathname.includes("/embed");
+	} catch {
+		return false;
+	}
+}
