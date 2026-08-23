@@ -93,3 +93,78 @@ describe("設定画面（匿名ユーザー）", () => {
 		assert.equal(hasLogoutItem, false, "匿名ユーザーには settings-logout が表示されないはず");
 	});
 });
+
+/**
+ * #1504 SET-01 ハプティクスのオン/オフトグル（匿名ユーザー）のテスト
+ *
+ * 対応する e2e-web: tests/profile/settings.spec.ts の「設定画面のハプティクストグル」。
+ *
+ * ## Web 版との違い（ネイティブでこそ意味がある理由）
+ * ハプティクス自体は実機/エミュレータでしか実際に発火しない機能で、jest 側の
+ * `app-expo/hooks/useHaptics.test.tsx` がオフ時に `expo-haptics` を呼ばないことを固定している。
+ * ただし Detox はブラックボックス e2e であり、このリポジトリの e2e-mobile 基盤には
+ * `expo-haptics` のようなネイティブモジュール呼び出しをスパイ/モックする手段が無いため、
+ * 「振動が実際に鳴らないこと」自体はここでは検証できない。
+ * 代わりに、**ネイティブの `Switch` コンポーネントが実際に期待どおりの状態を描画し、
+ * AsyncStorage 経由でアプリ再起動後も保持されること**を検証する
+ * （`SettingsScreen.expectHapticsToggleValue` は Detox の `toHaveToggleValue()` を使う。
+ * e2e-web と異なり、ネイティブでは `testID` が `Switch` 自体に直接乗るため、
+ * react-native-web 特有の「testID が外側の View へ逃げる」問題が無い）。
+ *
+ * 永続化の検証は「アプリを再起動しても状態が保持されること」で行う（recent-locations.test.ts と同じ方式。
+ * `launchAppWithSession` は既定 `resetState: false` なので、再起動しても AsyncStorage は消えない）。
+ */
+describe("設定画面のハプティクストグル（匿名ユーザー）", () => {
+	beforeEach(async () => {
+		await launchAppWithSession({ as: "anon" });
+	});
+
+	// ─ テストケース: トグルが表示され、既定でオンである ─
+	// 手順:
+	//   1. マイページタブ→歯車ボタンの実導線で設定画面へ遷移する
+	//   2. トグル行（settings-haptics-toggle）が表示されることを検証
+	//   3. 既定値（未設定時はオン。hapticsSettingsStore.ts の仕様）であることを検証
+	it("トグルが表示され、既定でオンである", async () => {
+		const tabBar = new TabBar();
+		const profileScreen = new ProfileScreen();
+		const settingsScreen = new SettingsScreen();
+
+		await tabBar.gotoProfile();
+		await profileScreen.gotoSettings();
+		await settingsScreen.expectLoaded();
+
+		await waitUntilVisible(settingsScreen.hapticsToggleItem);
+		await settingsScreen.expectHapticsToggleValue(true);
+	});
+
+	// ─ テストケース: タップすると状態が変わり、アプリ再起動後も保持される ─
+	// 手順:
+	//   1. 設定画面を表示する（既定オン）
+	//   2. トグル行をタップしてオフにする → Switch の状態がオフになることを検証
+	//   3. アプリを再起動し、設定画面を開き直してオフが保持されていることを検証（永続化）
+	//   4. 後始末: もう一度タップしてオンへ戻す
+	it("タップすると状態が変わり、アプリ再起動後も保持される", async () => {
+		const tabBar = new TabBar();
+		const profileScreen = new ProfileScreen();
+		const settingsScreen = new SettingsScreen();
+
+		await tabBar.gotoProfile();
+		await profileScreen.gotoSettings();
+		await settingsScreen.expectLoaded();
+		await settingsScreen.expectHapticsToggleValue(true);
+
+		await settingsScreen.toggleHaptics();
+		await settingsScreen.expectHapticsToggleValue(false);
+
+		// アプリを再起動しても状態が保持される（resetState 既定 false = AsyncStorage は消えない）
+		await launchAppWithSession({ as: "anon" });
+		await tabBar.gotoProfile();
+		await profileScreen.gotoSettings();
+		await settingsScreen.expectLoaded();
+		await settingsScreen.expectHapticsToggleValue(false);
+
+		// 後始末: 既定値（オン）へ戻す
+		await settingsScreen.toggleHaptics();
+		await settingsScreen.expectHapticsToggleValue(true);
+	});
+});

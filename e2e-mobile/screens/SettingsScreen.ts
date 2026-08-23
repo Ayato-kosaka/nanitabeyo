@@ -1,4 +1,4 @@
-import { DEFAULT_TIMEOUT, by, element, existsNow, tapWhenVisible, waitFor, waitUntilVisible } from "../fixtures/e2e";
+import { DEFAULT_TIMEOUT, by, element, existsNow, expect, tapWhenVisible, waitFor, waitUntilVisible } from "../fixtures/e2e";
 
 /**
  * 設定画面から開ける法務ドキュメント（#1368）。
@@ -50,6 +50,20 @@ export class SettingsScreen {
 	readonly copyrightItem = by.id("settings-copyright");
 	/** ログアウト行（ログイン済みユーザーのみ表示・既存 testID） */
 	readonly logoutItem = by.id("settings-logout");
+	/**
+	 * #1504 ハプティクスのオン/オフ行（タップ領域全体・既存 testID）。
+	 * `SettingsToggleItem` はラベルタップでも切り替わるようこの行全体を `TouchableOpacity` にしている。
+	 */
+	readonly hapticsToggleItem = by.id("settings-haptics-toggle");
+	/**
+	 * ハプティクストグルの実体（`Switch`、既存 testID `${testID}-switch`）。
+	 *
+	 * e2e-web と違い、ネイティブでは `testID` がこの `Switch` 自体へそのまま乗るため
+	 * （react-native-web のように外側の `View` へ逃げない）、状態確認はこの要素へ直接行える。
+	 * Detox はこの用途のために `toHaveToggleValue()` を提供している
+	 * （公式ドキュメントの参照実装が React Native の Switch そのもの）。
+	 */
+	readonly hapticsToggleSwitch = by.id("settings-haptics-toggle-switch");
 	/**
 	 * ログアウト確認ダイアログのタイトル（ja-JP: `Settings.logoutConfirmTitle`）。
 	 * DialogProvider（react-native-paper の Dialog）はタイトルに testID を持たないため文字列で特定する。
@@ -116,6 +130,27 @@ export class SettingsScreen {
 	/** プライバシーポリシー行をタップして法務ドキュメント画面へ遷移する（#1368 でモーダル起動から変更） */
 	async openPrivacyPolicy(): Promise<void> {
 		await tapWhenVisible(this.privacyItem);
+	}
+
+	/**
+	 * ハプティクストグル行をタップしてオン/オフを切り替える（#1504）。
+	 * ラベル部分も含めた行全体が `TouchableOpacity` なので、`Switch` 自体ではなく行をタップする
+	 * （`SettingsToggleItem` の設計。行タップとスイッチ直接タップの両方が効くが、後者は端末によって
+	 * ヒット領域が小さく安定しないため、既存 spec と同じ「行をタップする」流儀に揃える）。
+	 */
+	async toggleHaptics(): Promise<void> {
+		await tapWhenVisible(this.hapticsToggleItem);
+	}
+
+	/**
+	 * ハプティクストグルが期待するオン/オフ状態になっていることを検証する（#1504）。
+	 * `useHaptics` 自体（実際に鳴る/鳴らないか）は Detox のブラックボックス e2e から観測できないため
+	 * （ネイティブモジュール呼び出しを差し替える手段がこのリポジトリの e2e-mobile 基盤に無い）、
+	 * ここでは「設定 UI の状態が正しく切り替わり、期待どおり反映されていること」までを担保する。
+	 */
+	async expectHapticsToggleValue(value: boolean, timeout: number = DEFAULT_TIMEOUT): Promise<void> {
+		await waitUntilVisible(this.hapticsToggleSwitch, timeout);
+		await expect(element(this.hapticsToggleSwitch)).toHaveToggleValue(value);
 	}
 
 	/**
