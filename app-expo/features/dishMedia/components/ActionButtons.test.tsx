@@ -1,166 +1,269 @@
-/*
-#1398 (PR3/7) 【設計】全画面 Feed（DishMediaFeed + ActionButtons）に「食べた」導線を追加する。
+// #1501 【監査 DAT-01】いいね/保存の楽観更新が API 失敗時にロールバックされることを固定するテスト。
+//
+// `handleLike` / `handleSave` は、1) ストアを楽観更新 → 2) API を叩く → 3) 失敗しても catch で
+// ログを出すだけ、という形になっていた。API が失敗すると、表示（isLiked / likeCount / isSaved /
+// liked・saved タブの一覧）がサーバーと食い違ったまま残る。
+//
+// このテストは、失敗時にこの 4 つが「操作前の値」へ戻ることを固定する。
+// ⚠️ 「操作前の値」であって「トグルの反転」ではない点に注意。反転で戻す実装は、他端末/別画面から
+// 割り込みで更新されていた場合に誤った値を書き戻す（このテストでは #1205 の連打ガードと組み合わせて
+// 状態が壊れないことも見るが、割り込み更新そのものまでは再現していない）。
+//
+// #1205 の多重実行ガード（inFlightActionsRef）は連打ガードであってロールバックではないため、
+// 壊さないこと。連打しても API が 1 回しか呼ばれず、ロールバック後の状態も壊れないことを確認する。
 
-## なぜ必要か
-全画面 Feed にはいいね / 保存（＝食べたい）/ シェア / 地図はあったが「食べた」が無かった。
-遷移先は my-dishes カードや店舗詳細フィードと同じ既存ルート（review-from-media）で、
-このボタンはその呼び出し元が1つ増えるだけ。ここでは
-1. ゲストには出ないこと（like/save と同じ isGuestUser の作法）
-2. ログイン済みで押すと restaurantId / dishMediaId 付きで review-from-media へ push すること
-の 2 点を固定する。「済」表示は付けない仕様（dish_reviews は再訪＝別レビューが正しい）なので、
-トグル状態の検証はしない。
-*/
-import React, { act } from "react";
+import { act } from "react";
 import TestRenderer from "react-test-renderer";
 
-const mockPush = jest.fn();
+// lucide のアイコンは名前ごとに export されるため Proxy で一括スタブ化する（ReviewForm.test.tsx と同じ）
+jest.mock(
+	"lucide-react-native",
+	() =>
+		new Proxy(
+			{},
+			{
+				get: (_target, prop) =>
+					prop === "__esModule"
+						? true
+						: function MockIcon() {
+								return null;
+							},
+			},
+		),
+);
 
+// react-native-gesture-handler は transformIgnorePatterns の許可リストに無く、素で import すると
+// Flow 構文で parse に失敗する。ここで見たいのは押下時の楽観更新/ロールバックだけなので、
+// GestureDetector は children をそのまま返す軽い stub で足りる（SheetGestureRoot.test.tsx と同じ考え方）
+jest.mock("react-native-gesture-handler", () => ({
+	GestureDetector: ({ children }: { children: unknown }) => children,
+}));
+
+const mockCallBackend = jest.fn();
+jest.mock("@/hooks/useAPICall", () => ({ useAPICall: () => ({ callBackend: mockCallBackend }) }));
+jest.mock("@/hooks/useLogger", () => ({ useLogger: () => ({ logFrontendEvent: jest.fn() }) }));
+jest.mock("@/hooks/useHaptics", () => ({ useHaptics: () => ({ lightImpact: jest.fn() }) }));
+
+// #1402/#1398 このブランチの ActionButtons は「食べたを記録」導線のためログイン状態を見る
+// （useAuth → lib/supabase を芋づるで読み込み、実 env が無い jest では落ちる）。
+// このテストが見たいのは楽観更新のロールバックだけなので、認証まわりは軽い stub にする
+jest.mock("@/contexts/AuthProvider", () => ({ useAuth: () => ({ user: { id: "user-1", is_anonymous: false } }) }));
+jest.mock("@/hooks/useLocale", () => ({ useLocale: () => ({ locale: "ja-JP", isJapanese: true }) }));
 jest.mock("expo-router", () => {
 	const stub = {
-		push: (href: unknown) => mockPush(href),
+		push: () => {},
+		navigate: () => {},
 		replace: () => {},
 		back: () => {},
 		canGoBack: () => true,
+		canDismiss: () => false,
+		dismissAll: () => {},
 	};
 	return { router: stub, useRouter: () => stub };
 });
-
 jest.mock("@/lib/i18n", () => ({ __esModule: true, default: { t: (key: string) => key } }));
-jest.mock("lucide-react-native", () => new Proxy({}, { get: () => () => null }));
-jest.mock("expo-image", () => ({
-	Image: Object.assign(
-		function MockExpoImage() {
-			return null;
-		},
-		{ prefetch: () => Promise.resolve(true) },
-	),
-}));
-// #694 buttonsGesture は GestureDetector に渡すだけのスタブでよい（gesture ロジックはここでは見ない）
-jest.mock("react-native-gesture-handler", () => {
-	const react = require("react");
-	return {
-		GestureDetector: ({ children }: { children?: React.ReactNode }) => react.createElement(react.Fragment, null, children),
-	};
-});
-jest.mock("@/hooks/useHaptics", () => {
-	const lightImpact = jest.fn();
-	return { useHaptics: () => ({ lightImpact, mediumImpact: jest.fn() }) };
-});
-jest.mock("@/hooks/useLogger", () => ({ useLogger: () => ({ logFrontendEvent: jest.fn() }) }));
-jest.mock("@/hooks/useAPICall", () => ({ useAPICall: () => ({ callBackend: jest.fn(() => Promise.resolve()) }) }));
-jest.mock("@/hooks/useLocale", () => ({ useLocale: () => ({ locale: "ja-JP", isJapanese: true }) }));
-jest.mock("@/contexts/SnackbarProvider", () => ({ useSnackbar: () => ({ showSnackbar: jest.fn() }) }));
 
-const mockUseAuth = jest.fn();
-jest.mock("@/contexts/AuthProvider", () => ({ useAuth: () => mockUseAuth() }));
+const mockShowSnackbar = jest.fn();
+jest.mock("@/contexts/SnackbarProvider", () => ({ useSnackbar: () => ({ showSnackbar: mockShowSnackbar }) }));
+
+// openInGoogleMaps / shareRestaurant はこのテストの対象外。#613 のフックが内部で
+// expo-router 経由の useLocale や googlePlaces 等へ芋づるで依存するため、まるごとスタブへ差し替える
+jest.mock("../hooks/useDishMediaActions", () => ({
+	useDishMediaActions: () => ({ openInGoogleMaps: jest.fn(), shareRestaurant: jest.fn() }),
+}));
+
+// liked / saved タブの本体（GridList 等）はこのテストに不要。#460 のキー文字列だけ要る
+jest.mock("@/features/profile/tabs/LikeTab", () => ({ profileLikesEntriesKey: "profileLikes" }));
+jest.mock("@/features/profile/entriesKeys", () => ({ profileSavedPostsEntriesKey: "profileSavedPosts" }));
 
 import { ActionButtons } from "./ActionButtons";
-import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
-import type { DishMediaEntry } from "@shared/api/v1/res";
+import { useDishMediaEntriesStore, type NormalizedDishMediaEntry } from "@/stores/useDishMediaEntriesStore";
 
+// React 19 では初期描画がスケジューラのタスクへ回されるため act() で包む必要がある
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-const RESTAURANT_ID = "restaurant-1";
-const DISH_MEDIA_ID = "dish-media-1";
+const DISH_MEDIA_ID = "dm-1";
+const LIKES_KEY = "profileLikes";
+const SAVED_KEY = "profileSavedPosts";
 
-/** ActionButtons が参照する最小限のフィールドだけを持つダミー DishMediaEntry */
-const entry = {
-	restaurant: { id: RESTAURANT_ID, name: "テスト食堂", google_place_id: "place-1" },
-	dish: { id: "dish-1", name: "ラーメン" },
-	dish_media: { id: DISH_MEDIA_ID, isMine: false, isSaved: false, isLiked: false, likeCount: 3, mediaUrl: null, thumbnailImageUrl: "" },
-	dish_reviews: [],
-} as unknown as DishMediaEntry;
+function buildEntry(overrides: { isLiked?: boolean; isSaved?: boolean; likeCount?: number }): NormalizedDishMediaEntry {
+	return {
+		dish_media: {
+			id: DISH_MEDIA_ID,
+			isLiked: overrides.isLiked ?? false,
+			isSaved: overrides.isSaved ?? false,
+			likeCount: overrides.likeCount ?? 3,
+		},
+		restaurant: { id: "restaurant-1", name: "テスト店" },
+		dishReviewIds: [],
+	} as unknown as NormalizedDishMediaEntry;
+}
 
-const mountedTrees: TestRenderer.ReactTestRenderer[] = [];
-const render = async (element: React.ReactElement) => {
-	let tree!: TestRenderer.ReactTestRenderer;
-	await act(async () => {
-		tree = TestRenderer.create(element);
+/** ストアへ 1 件だけエントリを積む。liked/saved 一覧は「他の投稿」を 1 件だけ入れて初期化する */
+function seedStore(overrides: { isLiked?: boolean; isSaved?: boolean; likeCount?: number }) {
+	useDishMediaEntriesStore.setState({
+		entriesByMediaId: { [DISH_MEDIA_ID]: buildEntry(overrides) },
+		mediaIdsByKey: {
+			[LIKES_KEY]: ["other-media"],
+			[SAVED_KEY]: ["other-media"],
+		},
 	});
-	mountedTrees.push(tree);
-	return tree;
-};
+}
 
-afterEach(async () => {
-	await act(async () => {
-		mountedTrees.splice(0).forEach((tree) => tree.unmount());
-	});
-});
+let activeRenderer: TestRenderer.ReactTestRenderer | undefined;
 
-/** 指定 testID の要素を押す */
-const press = async (tree: TestRenderer.ReactTestRenderer, testID: string): Promise<void> => {
-	const target = tree.root.find((node) => node.props?.testID === testID);
-	await act(async () => {
-		await target.props.onPress();
-	});
-};
-
-/** 指定 testID の要素が描かれているか */
-const exists = (tree: TestRenderer.ReactTestRenderer, testID: string): boolean =>
-	tree.root.findAll((node) => node.props?.testID === testID).length > 0;
-
-beforeEach(() => {
-	mockPush.mockClear();
-	mockUseAuth.mockReset();
-	useDishMediaEntriesStore.getState().clearByKey();
-	useDishMediaEntriesStore.getState().upsertDishMediaEntries([entry]);
-});
-
-describe("#1398 (PR3/7) ActionButtons の「食べた」導線", () => {
-	it("ゲストには「食べた」ボタンを出さない", async () => {
-		mockUseAuth.mockReturnValue({ user: { id: "anon-1", is_anonymous: true }, isAuthResolved: true });
-
-		const tree = await render(
+function renderActionButtons() {
+	let renderer!: TestRenderer.ReactTestRenderer;
+	act(() => {
+		renderer = TestRenderer.create(
 			<ActionButtons id={DISH_MEDIA_ID} idType="dish_media" onLayout={() => {}} buttonsGesture={{} as never} />,
 		);
+	});
+	activeRenderer = renderer;
+	return renderer;
+}
 
-		expect(exists(tree, "dish-action-eaten")).toBe(false);
-		// ゲストでも like/save は出る（既存仕様）ことも合わせて確認し、ゲスト判定を「食べた」だけ誤って
-		// 全ボタンへ広げていないことを見る
-		expect(exists(tree, "dish-action-like")).toBe(true);
-		expect(exists(tree, "dish-action-save")).toBe(true);
+/** testID に一致する要素のうち、実際に onPress を持つもの（TouchableOpacity 本体）を返す */
+function findPressable(renderer: TestRenderer.ReactTestRenderer, testID: string) {
+	const matches = renderer.root.findAllByProps({ testID });
+	const pressable = matches.find((instance) => typeof instance.props.onPress === "function");
+	if (!pressable) throw new Error(`No pressable found for testID=${testID}`);
+	return pressable;
+}
+
+function getEntry() {
+	const entry = useDishMediaEntriesStore.getState().entriesByMediaId[DISH_MEDIA_ID];
+	if (!entry) throw new Error("entry missing from store");
+	return entry;
+}
+
+/** callBackend の解決タイミングを外から握るための門（useDishMediaActions.doubleTap.test.tsx と同じ手法） */
+function createGate() {
+	let release!: () => void;
+	const wait = new Promise<void>((resolve) => {
+		release = resolve;
+	});
+	return { wait, release };
+}
+
+describe("#1501 いいね/保存の楽観更新ロールバック", () => {
+	beforeEach(() => {
+		mockCallBackend.mockReset();
+		mockShowSnackbar.mockReset();
+		useDishMediaEntriesStore.setState({ entriesByMediaId: {}, mediaIdsByKey: {} });
 	});
 
-	it("user が未確定（null）でもゲスト扱いで「食べた」ボタンを出さない", async () => {
-		mockUseAuth.mockReturnValue({ user: null, isAuthResolved: false });
-
-		const tree = await render(
-			<ActionButtons id={DISH_MEDIA_ID} idType="dish_media" onLayout={() => {}} buttonsGesture={{} as never} />,
-		);
-
-		expect(exists(tree, "dish-action-eaten")).toBe(false);
+	afterEach(() => {
+		// 前のテストの renderer を購読させたまま次のテストで setState すると
+		// act() 外での更新警告が出るため、都度アンマウントする
+		act(() => activeRenderer?.unmount());
+		activeRenderer = undefined;
 	});
 
-	it("ログイン済みで押すと restaurantId / dishMediaId 付きで review-from-media へ push する", async () => {
-		mockUseAuth.mockReturnValue({ user: { id: "user-1", is_anonymous: false }, isAuthResolved: true });
+	it("いいね失敗時、isLiked・likeCount・liked一覧が操作前の値へ戻る", async () => {
+		seedStore({ isLiked: false, likeCount: 3 });
+		mockCallBackend.mockRejectedValueOnce(new Error("boom"));
 
-		const tree = await render(
-			<ActionButtons id={DISH_MEDIA_ID} idType="dish_media" onLayout={() => {}} buttonsGesture={{} as never} />,
-		);
+		const renderer = renderActionButtons();
+		const likeButton = findPressable(renderer, "dish-action-like");
 
-		expect(exists(tree, "dish-action-eaten")).toBe(true);
-
-		await press(tree, "dish-action-eaten");
-
-		expect(mockPush).toHaveBeenCalledTimes(1);
-		expect(mockPush).toHaveBeenCalledWith({
-			pathname: "/[locale]/restaurant/[restaurantId]/review-from-media/[dishMediaId]",
-			params: { locale: "ja-JP", restaurantId: RESTAURANT_ID, dishMediaId: DISH_MEDIA_ID },
+		await act(async () => {
+			await likeButton.props.onPress();
 		});
+
+		expect(getEntry().dish_media.isLiked).toBe(false);
+		expect(getEntry().dish_media.likeCount).toBe(3);
+		expect(useDishMediaEntriesStore.getState().mediaIdsByKey[LIKES_KEY]).toEqual(["other-media"]);
+		// #1501 失敗を伝え、再試行できること
+		expect(mockShowSnackbar).toHaveBeenCalledTimes(1);
+		const [, options] = mockShowSnackbar.mock.calls[0];
+		expect(typeof options?.action?.onPress).toBe("function");
 	});
 
-	// #1398 【仕様】「済」表示は付けない。dish_reviews に (user_id, dish_id) の一意制約は無く、
-	// 再訪＝別レビューが正しいため、押した後も同じボタンを再度押せる（disabled にならない）ことを見る
-	it("押した後もボタンは活性のまま（再訪の記録を妨げない）", async () => {
-		mockUseAuth.mockReturnValue({ user: { id: "user-1", is_anonymous: false }, isAuthResolved: true });
+	it("いいね解除（isLiked: true → false 操作）の失敗時、isLiked=true・元のlikeCount・元の一覧順へ戻る", async () => {
+		seedStore({ isLiked: true, likeCount: 5 });
+		// liked タブの先頭に自分の投稿が乗っている状態を再現
+		useDishMediaEntriesStore.setState((state) => ({
+			mediaIdsByKey: { ...state.mediaIdsByKey, [LIKES_KEY]: [DISH_MEDIA_ID, "other-media"] },
+		}));
+		mockCallBackend.mockRejectedValueOnce(new Error("boom"));
 
-		const tree = await render(
-			<ActionButtons id={DISH_MEDIA_ID} idType="dish_media" onLayout={() => {}} buttonsGesture={{} as never} />,
-		);
+		const renderer = renderActionButtons();
+		const likeButton = findPressable(renderer, "dish-action-like");
 
-		await press(tree, "dish-action-eaten");
-		await press(tree, "dish-action-eaten");
+		await act(async () => {
+			await likeButton.props.onPress();
+		});
 
-		expect(mockPush).toHaveBeenCalledTimes(2);
+		// トグルの反転（!willLike）ではなく、操作前の値そのものへ戻っていること
+		expect(getEntry().dish_media.isLiked).toBe(true);
+		expect(getEntry().dish_media.likeCount).toBe(5);
+		expect(useDishMediaEntriesStore.getState().mediaIdsByKey[LIKES_KEY]).toEqual([DISH_MEDIA_ID, "other-media"]);
+	});
+
+	it("保存失敗時、isSaved・saved一覧が操作前の値へ戻る", async () => {
+		seedStore({ isSaved: false });
+		mockCallBackend.mockRejectedValueOnce(new Error("boom"));
+
+		const renderer = renderActionButtons();
+		const saveButton = findPressable(renderer, "dish-action-save");
+
+		await act(async () => {
+			await saveButton.props.onPress();
+		});
+
+		expect(getEntry().dish_media.isSaved).toBe(false);
+		expect(useDishMediaEntriesStore.getState().mediaIdsByKey[SAVED_KEY]).toEqual(["other-media"]);
+		expect(mockShowSnackbar).toHaveBeenCalledTimes(1);
+	});
+
+	it("いいね成功時はロールバックされず、liked一覧の先頭に反映される", async () => {
+		seedStore({ isLiked: false, likeCount: 3 });
+		mockCallBackend.mockResolvedValueOnce(undefined);
+
+		const renderer = renderActionButtons();
+		const likeButton = findPressable(renderer, "dish-action-like");
+
+		await act(async () => {
+			await likeButton.props.onPress();
+		});
+
+		expect(getEntry().dish_media.isLiked).toBe(true);
+		expect(getEntry().dish_media.likeCount).toBe(4);
+		expect(useDishMediaEntriesStore.getState().mediaIdsByKey[LIKES_KEY]).toEqual([DISH_MEDIA_ID, "other-media"]);
+		expect(mockShowSnackbar).not.toHaveBeenCalled();
+	});
+
+	it("連打（#1205 のガード）と併用しても、API は1回しか呼ばれず失敗後の状態が壊れない", async () => {
+		seedStore({ isLiked: false, likeCount: 3 });
+		const gate = createGate();
+		mockCallBackend.mockImplementation(async () => {
+			await gate.wait;
+			throw new Error("boom");
+		});
+
+		const renderer = renderActionButtons();
+		const likeButton = findPressable(renderer, "dish-action-like");
+
+		await act(async () => {
+			// await せずに 2 回続けて呼ぶ = 同一 JS タスク内の連打。2 発目は #1205 のガードで無視されるはず
+			const first = likeButton.props.onPress();
+			const second = likeButton.props.onPress();
+			gate.release();
+			await Promise.all([first, second]);
+		});
+
+		expect(mockCallBackend).toHaveBeenCalledTimes(1);
+		expect(getEntry().dish_media.isLiked).toBe(false);
+		expect(getEntry().dish_media.likeCount).toBe(3);
+		expect(useDishMediaEntriesStore.getState().mediaIdsByKey[LIKES_KEY]).toEqual(["other-media"]);
+
+		// ガードが解除された後、再試行できること（壊れて二度と押せなくなっていないこと）
+		mockCallBackend.mockResolvedValueOnce(undefined);
+		await act(async () => {
+			await likeButton.props.onPress();
+		});
+		expect(getEntry().dish_media.isLiked).toBe(true);
+		expect(getEntry().dish_media.likeCount).toBe(4);
 	});
 });

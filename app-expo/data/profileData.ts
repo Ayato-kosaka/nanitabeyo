@@ -12,6 +12,8 @@ const getGuestProfile = (): GetUserProfileResponse => ({
 	// 決定されこの値は参照されないため、技術的なプレースホルダとして "en" を設定する。
 	preferred_locale: "en",
 	created_at: new Date().toISOString(),
+	// #1511 users.deleted_at（論理削除）。ゲストは削除され得ないので常に null
+	deleted_at: null,
 	last_login_at: null,
 	lock_no: 0,
 	updated_at: new Date().toISOString(),

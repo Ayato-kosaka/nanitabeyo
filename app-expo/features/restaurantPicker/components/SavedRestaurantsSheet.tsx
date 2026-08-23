@@ -52,7 +52,7 @@ type SavedRestaurant = QueryMeSavedRestaurantsResponse["data"][number];
  * その場合、意図的な縦ドラッグでもカルーセルの Pan が fail するまで
  * （`failOffsetY = 20dp`）シートを掴めず、展開操作に遅れが出る。
  * どちらの体感がましかは実機でしか判断できないため、#1126 は実機確認へ残している
- * （`docs/manual-verification-parallel-dev-7he5dw.md`）。
+ * （Issue #1126）。
  */
 const GATES_SHEET_DRAG = Platform.OS === "android";
 

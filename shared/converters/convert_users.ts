@@ -22,6 +22,7 @@ export function convertSupabaseToPrisma_Users(supabase: SupabaseUsers): PrismaUs
     last_login_at: supabase.last_login_at !== null ? new Date(supabase.last_login_at) : null,
     created_at: new Date(supabase.created_at),
     updated_at: new Date(supabase.updated_at),
+    deleted_at: supabase.deleted_at !== null ? new Date(supabase.deleted_at) : null,
     lock_no: supabase.lock_no,
   };
 }
@@ -42,6 +43,7 @@ export function convertPrismaToSupabase_Users(prisma: PrismaUsers): SupabaseUser
     last_login_at: prisma.last_login_at?.toISOString() ?? null,
     created_at: prisma.created_at?.toISOString() ?? null,
     updated_at: prisma.updated_at?.toISOString() ?? null,
+    deleted_at: prisma.deleted_at?.toISOString() ?? null,
     lock_no: prisma.lock_no,
   };
 }

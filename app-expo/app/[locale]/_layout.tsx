@@ -15,6 +15,7 @@ import { PushTokenRegistration } from "@/components/PushTokenRegistration";
 import { MetaAppEventsInitializer } from "@/components/MetaAppEventsInitializer";
 import { SnsShareIntake } from "@/components/SnsShareIntake";
 import { getPaperTheme } from "@/constants/PaperTheme";
+import { ThemeProvider, useAppTheme } from "@/contexts/ThemeProvider";
 import { useLocaleFonts } from "@/hooks/useLocaleFonts";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
@@ -47,11 +48,24 @@ const isValidBcp47Tag = (tag: string): boolean => {
  * @returns 言語判定とバリデーションを行ったレイアウト付きスタック構造
  */
 export default function RootLayout() {
+	// #1509 【設計】テーマの解決（設定値 + OS スキーム）は Provider の中でしか読めないため、
+	// 中身を LocaleLayout へ切り出して ThemeProvider で包む。ここが全画面のテーマの起点になる。
+	return (
+		<ThemeProvider>
+			<LocaleLayout />
+		</ThemeProvider>
+	);
+}
+
+function LocaleLayout() {
 	useFrameworkReady();
 	const router = useRouter();
 	const { locale, isJapanese } = useLocale();
-	const scheme = "light"; // light モード 固定（ダークモード対応時に useColorScheme() とする）
-	const theme = getPaperTheme(scheme, locale);
+	// #1509 【設計】ここは長く `const scheme = "light"` で固定されていた（= ダークモード未対応）。
+	// 設定画面の 3 択（システム追従 / ライト / ダーク）を解決した結果を使う。
+	// `getPaperTheme` は元から light / dark の両方を組み立てられるので、渡す値を変えるだけでよい。
+	const { scheme } = useAppTheme();
+	const theme = useMemo(() => getPaperTheme(scheme, locale), [scheme, locale]);
 	const { logFrontendEvent } = useLogger();
 
 	// #1027 【バグ】ルートナビゲータがマウントされる前に router.replace() を呼ぶと expo-router の
