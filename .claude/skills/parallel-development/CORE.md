@@ -615,6 +615,34 @@ gh run download <run-id> --dir <destination>
 
 長時間runを逐次監視し続けて次のdispatchを遅らせない。まず独立runを全て起動し、その後まとめて状態を確認する。
 
+### ⚠️ `mcp__github__actions_list` の `list_workflow_runs` で run 一覧を舐めない
+
+MCP 経由の run 一覧は **1 件ごとに `head_commit.message` を全文**返す。このリポジトリの
+コミットメッセージは設計意図を書く方針なので 1 件で数千字あり、`per_page` が小さくても
+コンテキストを食い潰す。実測（2026-08-23）:
+
+| 呼び方 | 消費 |
+| --- | --- |
+| `list_workflow_runs`（`per_page: 8`, e2e-mobile） | **約 25,000 トークン** |
+| `list_workflow_runs`（`per_page: 6`, claude-worker） | **約 30,000 トークン** |
+| `git ls-remote` + `git log -1 --format` でブランチ 8 本を確認 | 約 400 トークン |
+
+**代わりにこうする。**
+
+- **成果の確認は git で行う。** run の `conclusion` は元々信用しない方針（下記）なので、
+  そもそも run 一覧を見る必要が無い。`git fetch origin && git log -1 --format='%h %cr %s' origin/<branch>`
+  でブランチが動いたかを直接見る。何を実装したかは `git log origin/main..origin/<branch>` と
+  `git show --stat <sha>` で確定する
+- **生死の確認だけが必要なとき**は `workflow_runs_filter: {"status": "in_progress"}` を付ける。
+  走っている run だけに絞られるので数件で収まる
+- **特定の run を見るとき**は run id が分かっているなら `actions_get` / `list_workflow_jobs` を使う。
+  こちらはコミットメッセージを含まない
+- run id は **dispatch した直後に控えておく**。後から一覧で探すのが一番高くつく
+
+失敗の診断はログではなく **Artifact を落とす方が安い**ことも多い。Detox の
+`detox-report-*` には `detox-run.log` と失敗時スクリーンショットが入っており、
+`get_job_logs` の `tail_lines` は post-job の後片付けしか返さないことがある（実測）。
+
 ローカルセッションが中断しても、CSV、親Issue、Sub-issue、PR、branch、task_key、Actions履歴、Artifactから進捗を復元する。会話履歴だけを正本にしない。
 
 ### ⚠️ runの完了待ちに `sleep` のバックグラウンド実行を使わない
