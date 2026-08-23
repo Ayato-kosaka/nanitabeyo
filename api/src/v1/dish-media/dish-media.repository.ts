@@ -189,7 +189,14 @@ export class DishMediaRepository {
       -- 価格帯の絞り込みはMVPでは未対応
       WHERE 1=1
         -- カテゴリ
-        AND d.category_id = (SELECT category_id FROM params) 
+        AND d.category_id = (SELECT category_id FROM params)
+        -- #1257 実体（GCS original）が届いていない行を検索候補から除外する。
+        -- media_processing_status を「加工完了フラグ」としてではなく「原本到達の代理指標」として使う。
+        -- 単純に processing のみを弾く案では、原本のダウンロードに恒久的に失敗して
+        -- processing のまま固着した行や、リサイズに失敗した failed 行という別種の
+        -- 「実体未着」を見落とす（processing と failed は原因が違うだけで、どちらも
+        -- 検索へ公開してはいけない点は同じ）。そのため completed 以外を一律に除外する。
+        AND dm.media_processing_status = 'completed'
     ),
     -- 距離計算
     geo AS (
