@@ -198,13 +198,22 @@ export default function DishMediaContent({
 				}),
 		[],
 	);
+	// #1375 埋め込みの再生ボタン用。buttonsGesture と同じ目的だが、1 つの gesture は
+	// 1 つの GestureDetector にしか付けられないため別インスタンスにする
+	const embedButtonGesture = useMemo(
+		() =>
+			Gesture.Tap()
+				.maxDistance(9999)
+				.onBegin(() => {}),
+		[],
+	);
 	const tapGesture = useMemo(() => {
 		return (
 			Gesture.Tap()
 				// #611 横スワイプと競合しないように maxDistance を設定
 				.maxDistance(10)
 				// #694 【設計】ボタン操作中は親Tapを失敗させる（縁タップ誤発火防止）
-				.requireExternalGestureToFail(buttonsGesture)
+				.requireExternalGestureToFail(buttonsGesture, embedButtonGesture)
 				.onBegin(() => {
 					if (onCardPress) pressed.value = 1;
 				})
@@ -217,7 +226,7 @@ export default function DishMediaContent({
 					runOnJS(onCardPress)(dishMediaEntry);
 				})
 		);
-	}, [onCardPress, dishMediaEntry, pressed, buttonsGesture]);
+	}, [onCardPress, dishMediaEntry, pressed, buttonsGesture, embedButtonGesture]);
 
 	return (
 		<View style={styles.container}>
@@ -252,7 +261,11 @@ export default function DishMediaContent({
 					    取り込んだリールは «サムネイルが出るだけで再生できない»（実機で指摘された）。
 					    web は iframe、ネイティブは WebView（ビルドに在れば）/ アプリ内ブラウザで再生する */}
 					{dishMediaEntry.dish_media.externalEmbed && !isProcessing && !isFailed && (
-						<ExternalEmbedPlayer embed={dishMediaEntry.dish_media.externalEmbed} isActive={isActive} />
+						<ExternalEmbedPlayer
+							embed={dishMediaEntry.dish_media.externalEmbed}
+							isActive={isActive}
+							blockParentTapGesture={embedButtonGesture}
+						/>
 					)}
 				</Animated.View>
 			</GestureDetector>

@@ -17,6 +17,9 @@ const mockLogFrontendEvent = jest.fn();
 jest.mock("@/hooks/useLogger", () => ({ useLogger: () => ({ logFrontendEvent: mockLogFrontendEvent }) }));
 jest.mock("@/lib/i18n", () => ({ __esModule: true, default: { t: (key: string) => key } }));
 jest.mock("lucide-react-native", () => ({ Play: () => null }));
+jest.mock("react-native-gesture-handler", () => ({
+	GestureDetector: ({ children }: { children: React.ReactNode }) => children,
+}));
 
 import { ExternalEmbedPlayer } from "./ExternalEmbedPlayer";
 
@@ -24,6 +27,7 @@ const EMBED = {
 	provider: "instagram" as const,
 	externalContentId: "DZnIRziT70s",
 	canonicalUrl: "https://www.instagram.com/reel/DZnIRziT70s/",
+	embedStatus: "available" as const,
 };
 
 describe("ExternalEmbedPlayer（ネイティブ・WebView 不在ビルド）", () => {
@@ -65,5 +69,14 @@ describe("ExternalEmbedPlayer（ネイティブ・WebView 不在ビルド）", (
 			);
 		});
 		expect(tree.root.findAllByProps({ testID: "external-embed-open-browser" }).length).toBeGreaterThan(0);
+	});
+
+	it("embedStatus=unavailable は再生ボタンを出さず «利用できません» を出す（独立レビュー指摘）", () => {
+		let tree!: ReactTestRenderer;
+		act(() => {
+			tree = create(<ExternalEmbedPlayer embed={{ ...EMBED, embedStatus: "unavailable" }} isActive />);
+		});
+		expect(tree.root.findAllByProps({ testID: "external-embed-open-browser" }).length).toBe(0);
+		expect(tree.root.findAllByProps({ testID: "external-embed-unavailable" }).length).toBeGreaterThan(0);
 	});
 });

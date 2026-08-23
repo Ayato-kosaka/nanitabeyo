@@ -10,7 +10,7 @@ canonicalUrl は投稿ページ（instagram.com/reel/... 等）で、iframe / We
 
 | provider | 埋め込み URL | 根拠 |
 | --- | --- | --- |
-| instagram | `https://www.instagram.com/p/{code}/embed/captioned/` | 公式 blockquote 埋め込みが最終的に描く iframe と同じ。reel のコードも `/p/{code}/` で解決される（サーバ側 sns-oembed.service.ts が resolve で実測済みの同じ経路） |
+| instagram | `https://www.instagram.com/p/{code}/embed/` | 公式 blockquote 埋め込みが最終的に描く iframe と同じ。reel のコードも `/p/{code}/` で解決される（サーバ側 sns-oembed.service.ts が resolve で実測済みの同じ経路）。`/embed/captioned/` はヘッダ＋キャプションの白カードが付き全画面フィードで浮くため、映像本体だけの `/embed/` を使う（独立レビュー指摘） |
 | tiktok | `https://www.tiktok.com/embed/v2/{videoId}` | 公式 embed v2。動画 ID だけで動く |
 | youtube | `https://www.youtube.com/embed/{videoId}?playsinline=1` | 公式 iframe embed。playsinline はモバイルでフルスクリーンに奪われないため |
 
@@ -33,7 +33,7 @@ export function buildExternalEmbedPlayerSource(
 	switch (provider) {
 		case "instagram":
 			return {
-				embedUrl: `https://www.instagram.com/p/${encodedId}/embed/captioned/`,
+				embedUrl: `https://www.instagram.com/p/${encodedId}/embed/`,
 				providerLabel: "Instagram",
 			};
 		case "tiktok":
@@ -49,4 +49,22 @@ export function buildExternalEmbedPlayerSource(
 		default:
 			return null;
 	}
+}
+
+/*
+WebView 内ナビゲーションの許可判定。
+
+独立レビュー指摘: onShouldStartLoadWithRequest は **サブフレーム（広告 iframe）や
+302 リダイレクトでも呼ばれる**（iOS は isTopFrame をイベントに載せるだけで必ず呼ぶ /
+Android は isForMainFrame を捨てて URL 版へ委譲する）。「embedUrl と不一致なら
+外部ブラウザへ」という判定にすると、指を触れていないのに広告フレームの URL で
+ブラウザが開いたり、埋め込み本体のリダイレクトが打ち切られて真っ黒になる。
+
+この WebView は pointerEvents="none" の **表示専用**（タップは親の再生ボタンが受ける）
+なので、中で起きるナビゲーションはすべて埋め込みページ自身の内部動作である。
+外部ブラウザは一切開かず、http(s) と about: だけ通し、intent:// market:// 等の
+アプリ起動スキームだけを黙って遮断する。
+*/
+export function isAllowedEmbedNavigation(url: string): boolean {
+	return /^https?:\/\//.test(url) || url.startsWith("about:");
 }
