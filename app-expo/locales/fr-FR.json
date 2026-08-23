@@ -679,7 +679,8 @@
 		"accessibility": {
 			"clearNameSearch": "Effacer la recherche par nom de restaurant"
 		},
-		"unsavedHint": "Vous pouvez aussi choisir un établissement non enregistré : saisissez son nom dans la recherche ci-dessus ou touchez son icône sur la carte."
+		"unsavedHint": "Vous pouvez aussi choisir un établissement non enregistré : saisissez son nom dans la recherche ci-dessus ou touchez son icône sur la carte.",
+		"pickTitle": "Choisir un établissement"
 	},
 	"Feedback": {
 		"title": "Envoyer Commentaires/Rapport de Bug",
@@ -875,6 +876,11 @@
 				"title": "Période",
 				"none": "Non spécifié",
 				"clear": "Effacer la période"
+			},
+			"category": {
+				"title": "Catégorie de plat",
+				"description": "Filtrez par les catégories les plus fréquentes parmi les enregistrements affichés",
+				"count": "{{label}} ({{count}})"
 			}
 		},
 		"empty": {
@@ -954,6 +960,13 @@
 		"result": {
 			"summary": "Lecture terminée",
 			"noInfo": "Aucune information n’a pu être lue depuis cette publication. Choisissez l’établissement et la catégorie ci-dessous pour l’enregistrer."
+		},
+		"eaten": {
+			"pickRestaurant": "Choisir un établissement",
+			"pick": "Choisir",
+			"change": "Modifier",
+			"hint": "Choisissez d’abord l’établissement. Vous pourrez ensuite ajouter photo, avis court, catégorie, prix et note (photo facultative).",
+			"done": "Enregistré comme mangé"
 		}
 	}
 }

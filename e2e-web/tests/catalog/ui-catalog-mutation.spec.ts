@@ -31,39 +31,37 @@ test.describe("UI カタログ（レビュー投稿フロー） @catalog @mutati
 	// 画面ごとに撮影の待ちも入るため長めに取る
 	test.setTimeout(180_000);
 
-	test("店舗選択 → 店舗詳細 → 投稿フォーム → レビュー詳細", async ({ appPage }) => {
+	test("お店を選ぶ（pick） → 統合フォーム → レビュー詳細", async ({ appPage }) => {
 		const tabBar = new TabBar(appPage);
 		const myDishesPage = new MyDishesPage(appPage);
 
 		await tabBar.gotoMyDishes();
 		await myDishesPage.expectAuthenticatedViewLoaded();
-		// #1375 実機確認: ＋ の押下先は SNS 取り込み画面になった。
-		// 「食べた」（＝レビュー投稿）はその上部タブから入る
+		// #1375（3 巡目）: ＋ → SNS 取り込み画面 → 上部タブ「食べた」で **統合フォーム**。
+		// お店はフォーム先頭の「お店を選ぶ」から pick モードの地図で選ぶ
 		await myDishesPage.openEatenRecordFlow();
-		await expect(appPage.getByTestId("location-autocomplete-input")).toBeVisible();
 
-		// ① 店舗詳細（店舗検索 → サジェスト選択で店舗が作成/upsert される）
-		const reachedDetail = await captureScreenIfReachable(
+		// ① pick モードの地図（店舗検索 → サジェスト選択で店舗が作成/upsert され、フォームへ戻る）
+		const reachedPicker = await captureScreenIfReachable(
 			appPage,
-			"review-restaurant-detail",
+			"review-restaurant-pick",
 			async () => {
-				await appPage.getByTestId("location-autocomplete-input").fill("スターバックス");
-				await appPage.getByTestId("location-autocomplete-suggestions").waitFor({ state: "visible" });
-				await appPage.getByTestId("location-autocomplete-suggestion-0").click();
-				await expect(appPage.getByTestId("restaurant-detail-post-photo-button")).toBeVisible({ timeout: 30_000 });
+				await myDishesPage.openEatenRestaurantPicker();
 			},
 			{ settleMs: 3_000 },
 		);
 
-		if (!reachedDetail) return;
+		if (!reachedPicker) return;
 
-		// ② レビュー投稿フォーム（遷移と同時にファイル選択が開くため先に待ち受ける）
+		// ② 統合フォーム（お店を選ぶと同時にファイル選択が開くため先に待ち受ける）
 		const reachedForm = await captureScreenIfReachable(
 			appPage,
 			"review-post-form",
 			async () => {
 				const fileChooserPromise = appPage.waitForEvent("filechooser");
-				await appPage.getByTestId("restaurant-detail-post-photo-button").click();
+				await appPage.getByTestId("location-autocomplete-input").fill("スターバックス");
+				await appPage.getByTestId("location-autocomplete-suggestions").waitFor({ state: "visible" });
+				await appPage.getByTestId("location-autocomplete-suggestion-0").click();
 				const fileChooser = await fileChooserPromise;
 				await fileChooser.setFiles(TEST_IMAGE_PATH);
 				await expect(appPage.getByTestId("review-comment-input")).toBeVisible({ timeout: 30_000 });

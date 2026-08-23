@@ -18,6 +18,9 @@ import {
 } from "@/features/search/constants";
 import i18n from "@/lib/i18n";
 import { MY_DISHES_EVENTS, buildFilterAppliedPayload } from "@/features/myDishes/analytics";
+import { buildCategoryFacets } from "@/features/myDishes/categoryFacets";
+import { useMyDishesStore, selectMyDishesByQuery } from "@/features/myDishes/stores/useMyDishesStore";
+import { selectFilterQueryKey } from "@/features/myDishes/stores/useMyDishesFilterStore";
 import {
 	DEFAULT_MY_DISHES_FILTER,
 	isRatingFilterEnabled,
@@ -223,6 +226,33 @@ export default function MyDishesFiltersScreen() {
 	const showArea = view !== "calendar";
 
 	const [draft, setDraft] = useState<MyDishesFilter>(filter);
+
+	/**
+	 * #1375（3 巡目）料理カテゴリーの候補。**いま画面に出ている記録**（開いた時点の
+	 * base スライス）から数える。取得はしない — 一覧が読んだキャッシュを読むだけなので、
+	 * この画面を開いても 964MB の dish_reviews へ新しいクエリは飛ばない。
+	 * 開いた時点のスナップショットで固定する（編集中に裏で並びが動くと候補が揺れる）
+	 */
+	const [categoryFacets] = useState(() => {
+		const state = useMyDishesStore.getState();
+		const queryKey = selectFilterQueryKey(useMyDishesFilterStore.getState());
+		const { itemKeys } = selectMyDishesByQuery(queryKey)(state);
+		const items = itemKeys.map((key) => state.itemByKey[key]).filter((item) => Boolean(item));
+		return buildCategoryFacets(items);
+	});
+
+	const toggleCategory = useCallback(
+		(categoryId: string) => {
+			lightImpact();
+			setDraft((prev) => ({
+				...prev,
+				categoryIds: prev.categoryIds.includes(categoryId)
+					? prev.categoryIds.filter((id) => id !== categoryId)
+					: [...prev.categoryIds, categoryId],
+			}));
+		},
+		[lightImpact],
+	);
 	/** 開いている軸（プルダウン）。同時に 1 つだけ開く */
 	const [expandedAxis, setExpandedAxis] = useState<string | null>(null);
 
@@ -369,6 +399,23 @@ export default function MyDishesFiltersScreen() {
 						/>
 					))}
 				</Section>
+
+				{/* #1375（3 巡目）: 料理カテゴリーの絞り込み。候補は «いま出ている記録の中で多いもの» */}
+				{categoryFacets.length > 0 && (
+					<Section
+						title={i18n.t("MyDishes.filters.category.title")}
+						description={i18n.t("MyDishes.filters.category.description")}>
+						{categoryFacets.map((facet) => (
+							<Chip
+								key={facet.categoryId}
+								testID={`my-dishes-filter-category-${facet.categoryId}`}
+								label={i18n.t("MyDishes.filters.category.count", { label: facet.label, count: facet.count })}
+								selected={draft.categoryIds.includes(facet.categoryId)}
+								onPress={() => toggleCategory(facet.categoryId)}
+							/>
+						))}
+					</Section>
+				)}
 
 				{/* #1375 実機確認: 評価は「食べた」を選んだときだけ出す。
 				    want 行は評価を持たないので、以前は常に出したうえで不活性にし「なぜ押せないか」を

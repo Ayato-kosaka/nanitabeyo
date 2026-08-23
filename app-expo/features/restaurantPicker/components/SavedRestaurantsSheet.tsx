@@ -63,6 +63,8 @@ export type SavedRestaurantsSheetHandle = {
 
 export type SavedRestaurantsSheetProps = {
 	visible: boolean;
+	/** #1375（3 巡目）pick モードでは「写真・動画を投稿」を出さない（カードタップ = 選択） */
+	showReviewButton?: boolean;
 	savedRestaurants: QueryMeSavedRestaurantsResponse["data"];
 	isLoadingSavedRestaurants: boolean;
 	activeRestaurantId: string | null;
@@ -123,6 +125,7 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 	function SavedRestaurantsSheetInner(props, ref) {
 		const {
 			visible,
+			showReviewButton = true,
 			savedRestaurants,
 			isLoadingSavedRestaurants,
 			activeRestaurantId,
@@ -382,7 +385,7 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 											<PrimaryCard
 												item={item}
 												onPress={() => onRestaurantCardPress(item)}
-												onReview={() => onRestaurantReviewPress(item)}
+												onReview={showReviewButton ? () => onRestaurantReviewPress(item) : undefined}
 											/>
 										</View>
 									))}
@@ -410,7 +413,7 @@ function PrimaryCard({
 }: {
 	item: SavedRestaurant;
 	onPress: () => void;
-	onReview: () => void;
+	onReview?: () => void;
 }) {
 	return (
 		<TouchableOpacity style={styles.savedRestaurantCard} activeOpacity={0.7} onPress={onPress}>
@@ -425,14 +428,16 @@ function PrimaryCard({
 				<Text style={styles.savedRestaurantName} numberOfLines={1} ellipsizeMode="tail">
 					{item.restaurant.name}
 				</Text>
-				<PrimaryButton
-					onPress={onReview}
-					label={i18n.t("SelectRestaurant.postPhotoVideo")}
-					colors={["#F05537", "#F05537"]}
-					shadowColor={"transparent"}
-					labelStyle={{ color: "#FFF", fontSize: 12 }}
-					style={{ alignSelf: "flex-end" }}
-				/>
+				{onReview && (
+					<PrimaryButton
+						onPress={onReview}
+						label={i18n.t("SelectRestaurant.postPhotoVideo")}
+						colors={["#F05537", "#F05537"]}
+						shadowColor={"transparent"}
+						labelStyle={{ color: "#FFF", fontSize: 12 }}
+						style={{ alignSelf: "flex-end" }}
+					/>
+				)}
 			</View>
 		</TouchableOpacity>
 	);

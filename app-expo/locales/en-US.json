@@ -679,7 +679,8 @@
 		"accessibility": {
 			"clearNameSearch": "Clear restaurant name search"
 		},
-		"unsavedHint": "You can pick shops you haven’t saved too. Type the shop name in the search above, or tap a shop icon on the map."
+		"unsavedHint": "You can pick shops you haven’t saved too. Type the shop name in the search above, or tap a shop icon on the map.",
+		"pickTitle": "Pick a shop"
 	},
 	"Feedback": {
 		"title": "Send Feedback/Bug Report",
@@ -875,6 +876,11 @@
 				"title": "Period",
 				"none": "Any",
 				"clear": "Clear period"
+			},
+			"category": {
+				"title": "Dish category",
+				"description": "Narrow down by the most common dish categories among the records shown",
+				"count": "{{label}} ({{count}})"
 			}
 		},
 		"empty": {
@@ -954,6 +960,13 @@
 		"result": {
 			"summary": "Read successfully",
 			"noInfo": "No information could be read from this post. Pick the shop and dish category below to save it."
+		},
+		"eaten": {
+			"pickRestaurant": "Pick a shop",
+			"pick": "Pick",
+			"change": "Change",
+			"hint": "Pick a shop first. Then you can add a photo, a short review, the dish category, price, and rating (a photo is optional).",
+			"done": "Recorded as eaten"
 		}
 	}
 }

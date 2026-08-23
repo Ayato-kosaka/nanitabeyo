@@ -63,6 +63,8 @@ export class MyDishesScreen {
 	readonly recordButton = by.id("my-dishes-record-button");
 	/** SNS 取り込み画面の上部タブ「食べた」。ここから従来のレビュー投稿導線へ入る */
 	readonly snsImportEatenTab = by.id("sns-import-tab-eaten");
+	/** 統合フォームの「お店を選ぶ」（pick モードの地図を開く） */
+	readonly eatenPickRestaurantButton = by.id("sns-import-eaten-pick-restaurant");
 
 	// ── #1375 Map のピン → 全画面 Feed / 下部の常設シート（定義のみ） ──────────────
 	/**
@@ -158,6 +160,10 @@ export class MyDishesScreen {
 		await tapWhenVisible(this.recordButton);
 		await waitUntilVisible(this.snsImportEatenTab, timeout);
 		await tapWhenVisible(this.snsImportEatenTab);
+		// #1375（3 巡目）「食べた」タブは統合フォームになった。お店はフォーム先頭の
+		// 「お店を選ぶ」から pick モードの地図（select-restaurant）で選ぶ
+		await waitUntilVisible(this.eatenPickRestaurantButton, timeout);
+		await tapWhenVisible(this.eatenPickRestaurantButton);
 	}
 
 	/**

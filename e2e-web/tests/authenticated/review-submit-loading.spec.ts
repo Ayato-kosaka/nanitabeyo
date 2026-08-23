@@ -67,14 +67,12 @@ async function openFilledReviewForm(appPage: Page, comment: string): Promise<Loc
 
 	await tabBar.gotoMyDishes();
 	await myDishesPage.openEatenRecordFlow();
+	await myDishesPage.openEatenRestaurantPicker();
+	// #1375（3 巡目）pick モードで選ぶと統合フォームへ戻り、ReviewForm が自動でメディア選択を開く
+	const fileChooserPromise = appPage.waitForEvent("filechooser");
 	await appPage.getByTestId("location-autocomplete-input").fill("スターバックス");
 	await appPage.getByTestId("location-autocomplete-suggestions").waitFor({ state: "visible" });
 	await appPage.getByTestId("location-autocomplete-suggestion-0").click();
-	await expect(appPage.getByTestId("restaurant-detail-post-photo-button")).toBeVisible({ timeout: 20_000 });
-
-	// レビューフォーム画面(review.tsx)へ遷移すると同時に写真選択(filechooser)が自動的に走る
-	const fileChooserPromise = appPage.waitForEvent("filechooser");
-	await appPage.getByTestId("restaurant-detail-post-photo-button").click();
 	const fileChooser = await fileChooserPromise;
 	await fileChooser.setFiles(TEST_IMAGE_PATH);
 

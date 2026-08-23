@@ -436,23 +436,13 @@ describeMutation("UI カタログ（レビュー投稿フロー） @catalog @mut
 		await myDishesScreen.gotoRecordDish();
 		await selectRestaurantScreen.expectLoaded();
 
-		const reachedDetail = await captureScreenIfReachable(
-			"review-restaurant-detail",
-			async () => {
-				await selectRestaurantScreen.searchRestaurant("スターバックス");
-				await selectRestaurantScreen.selectSuggestion(0);
-				await waitUntilVisible(selectRestaurantScreen.postPhotoButton, 30_000);
-			},
-			{ settleMs: 3_000 },
-		);
-
-		if (!reachedDetail) return;
-
+		// #1375（3 巡目）pick モードでは選んだ時点で統合フォームへ戻る（詳細画面は経由しない）。
 		// メディア選択は E2E ビルドの固定画像スタブ（EXPO_PUBLIC_E2E_MEDIA_HOOK）で通る
 		const reachedForm = await captureScreenIfReachable(
 			"review-post-form",
 			async () => {
-				await selectRestaurantScreen.gotoReviewForm();
+				await selectRestaurantScreen.searchRestaurant("スターバックス");
+				await selectRestaurantScreen.selectSuggestion(0);
 				await waitUntilVisible(myDishesScreen.commentInput, 30_000);
 			},
 			{ settleMs: 2_000 },

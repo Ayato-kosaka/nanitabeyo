@@ -17,10 +17,17 @@ SNS 取り込み画面で店名検索が空振りしたときの逃げ道は「�
 前回の選択が黙って復活する）。永続化しない。
 */
 import { create } from "zustand";
+import type { SupabaseRestaurants } from "@shared/converters/convert_restaurants";
 
 export type PickedRestaurant = {
 	restaurantId: string;
 	name: string;
+	/**
+	 * #1375（3 巡目）食べたを記録の統合フォームは `ReviewForm` に **restaurants の行そのもの**を
+	 * 渡す必要がある（通貨コード等を読む）。地図側は持っているので一緒に運ぶ。
+	 * SNS 取り込みのように id と名前しか要らない受け手は無視してよい
+	 */
+	restaurant?: SupabaseRestaurants;
 };
 
 type PickedRestaurantStore = {

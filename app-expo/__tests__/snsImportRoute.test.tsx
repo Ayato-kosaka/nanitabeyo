@@ -50,6 +50,17 @@ jest.mock("expo-router", () => {
 });
 
 jest.mock("@/hooks/useLocale", () => ({ useLocale: () => ({ locale: "ja-JP", isJapanese: true }) }));
+
+// #1375（3 巡目）「食べたを記録」タブが ReviewForm を内包するようになった。
+// ReviewForm 自体の挙動は features/map/components/ReviewForm.test.tsx が固定しているので、
+// この suite ではフォームを持つこと（お店を選ぶまで描かれないこと）だけを見る。
+// 実体を読み込むと expo-video など native 依存が jest で解決できない
+jest.mock("@/features/map/components/ReviewForm", () => ({
+	ReviewForm: () => {
+		const { View } = require("react-native");
+		return <View testID="sns-import-eaten-review-form" />;
+	},
+}));
 jest.mock("@/hooks/useHaptics", () => ({ useHaptics: () => ({ lightImpact: jest.fn(), mediumImpact: jest.fn() }) }));
 jest.mock("@/hooks/useLogger", () => ({ useLogger: () => ({ logFrontendEvent: jest.fn() }) }));
 jest.mock("@/hooks/useScreenTrace", () => ({ useScreenTrace: () => {} }));
@@ -384,7 +395,10 @@ describe("#1375 店名検索が空振りしたときの «地図から探す»",
 		});
 
 		expect(mockPush).toHaveBeenCalledWith(
-			expect.objectContaining({ pathname: "/[locale]/sns-import-pick-restaurant" }),
+			expect.objectContaining({
+				pathname: "/[locale]/pick-restaurant",
+				params: expect.objectContaining({ mode: "pick" }),
+			}),
 		);
 	});
 
@@ -405,5 +419,58 @@ describe("#1375 店名検索が空振りしたときの «地図から探す»",
 		expect(has(tree, "sns-import-selected-restaurant")).toBe(true);
 		// 受け取ったら捨てる（次に開いたときに «前回の選択» が黙って復活しない）
 		expect(usePickedRestaurantStore.getState().picked).toBeNull();
+	});
+});
+
+/**
+ * #1375（3 巡目）: 「食べたを記録」は **別画面へ push しない**。
+ *
+ * 以前は select-restaurant へ push しており、「閉じられない・戻ると検索へ飛ぶ・
+ * ネイティブスタックが積み上がる」と実機で指摘された。タブの中の統合フォーム
+ * （お店を選ぶ → ReviewForm）であることを固定する。
+ */
+describe("#1375 食べたを記録タブは画面内の統合フォーム", () => {
+	it("タブを押しても push されず、フォームの器と「お店を選ぶ」が出る", async () => {
+		const tree = await render();
+
+		const eatenTab = tree.root.find((node) => node.props?.testID === "sns-import-tab-eaten");
+		await act(async () => {
+			eatenTab.props.onPress();
+		});
+
+		expect(mockPush).not.toHaveBeenCalled();
+		expect(has(tree, "sns-import-eaten-form")).toBe(true);
+		expect(has(tree, "sns-import-eaten-pick-restaurant")).toBe(true);
+		// お店を選ぶまで ReviewForm は描かない
+		expect(has(tree, "sns-import-eaten-review-form")).toBe(false);
+	});
+
+	it("「お店を選ぶ」は pick モードの地図へ push し、選んだお店で ReviewForm が出る", async () => {
+		const tree = await render();
+		await act(async () => {
+			tree.root.find((node) => node.props?.testID === "sns-import-tab-eaten").props.onPress();
+		});
+
+		await act(async () => {
+			tree.root.find((node) => node.props?.testID === "sns-import-eaten-pick-restaurant").props.onPress();
+		});
+		expect(mockPush).toHaveBeenCalledWith(
+			expect.objectContaining({
+				pathname: "/[locale]/pick-restaurant",
+				params: expect.objectContaining({ mode: "pick" }),
+			}),
+		);
+
+		// 地図側が picked を置いて back してきた、の再現（focus で受け取る）
+		usePickedRestaurantStore.getState().setPicked({
+			restaurantId: "r-1",
+			name: "選んだ店",
+			restaurant: { id: "r-1", name: "選んだ店" } as never,
+		});
+		await act(async () => {
+			mockFocusEffects.current?.();
+		});
+
+		expect(has(tree, "sns-import-eaten-review-form")).toBe(true);
 	});
 });

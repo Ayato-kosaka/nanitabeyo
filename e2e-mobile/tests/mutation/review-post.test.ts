@@ -55,8 +55,8 @@ describeMutation("レビュー投稿 @mutation", () => {
 		await selectRestaurant.searchRestaurant("スターバックスコーヒー 渋谷");
 		await selectRestaurant.selectSuggestion(0);
 
-		// 店舗レコードの作成 → 詳細表示までバックエンド往復があるため長めに待つ
-		await selectRestaurant.gotoReviewForm(MyDishesScreen.FORM_TIMEOUT);
+		// #1375（3 巡目）pick モードでは詳細画面へ行かず、選んだ時点で統合フォームへ戻る。
+		// 店舗レコードの作成にバックエンド往復があるため長めに待つ
 
 		// メディア選択（E2E では固定画像）が解決するとフォーム本体が描画される
 		await myDishes.expectFormLoaded(MyDishesScreen.FORM_TIMEOUT);

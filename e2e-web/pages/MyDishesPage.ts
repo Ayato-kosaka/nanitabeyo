@@ -159,6 +159,15 @@ export class MyDishesPage {
 	async openEatenRecordFlow(): Promise<void> {
 		await this.recordButton.click();
 		await this.page.getByTestId("sns-import-tab-eaten").click();
+		// #1375（3 巡目）「食べたを記録」は別画面へ push しない統合フォームになった。
+		// お店はフォーム先頭の「お店を選ぶ」から pick モードの地図で選ぶ
+		await this.page.getByTestId("sns-import-eaten-form").waitFor({ state: "visible" });
+	}
+
+	/** 統合フォームの「お店を選ぶ」を押して pick モードの地図（select-restaurant）を開く */
+	async openEatenRestaurantPicker(): Promise<void> {
+		await this.page.getByTestId("sns-import-eaten-pick-restaurant").click();
+		await this.page.getByTestId("location-autocomplete-input").waitFor({ state: "visible" });
 	}
 
 	/** ログイン済みユーザー向けの記録 CTA が出ていることを検証する */

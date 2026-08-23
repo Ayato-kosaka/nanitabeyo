@@ -679,7 +679,8 @@
 		"accessibility": {
 			"clearNameSearch": "清除店名搜索"
 		},
-		"unsavedHint": "未保存的店铺也可以选择：在上方搜索框输入店名，或点击地图上的店铺图标。"
+		"unsavedHint": "未保存的店铺也可以选择：在上方搜索框输入店名，或点击地图上的店铺图标。",
+		"pickTitle": "选择店铺"
 	},
 	"Feedback": {
 		"title": "发送反馈/错误报告",
@@ -875,6 +876,11 @@
 				"title": "时间范围",
 				"none": "不限",
 				"clear": "清除时间范围"
+			},
+			"category": {
+				"title": "菜品类别",
+				"description": "按当前显示记录中最多的菜品类别筛选",
+				"count": "{{label}}（{{count}}）"
 			}
 		},
 		"empty": {
@@ -954,6 +960,13 @@
 		"result": {
 			"summary": "读取完成",
 			"noInfo": "无法从该帖子读取信息。在下方选择店铺和菜品类别即可保存。"
+		},
+		"eaten": {
+			"pickRestaurant": "选择店铺",
+			"pick": "选择",
+			"change": "更改",
+			"hint": "请先选择店铺。之后可以填写照片、一句点评、菜品类别、价格和推荐度（照片可选）。",
+			"done": "已记录为吃过"
 		}
 	}
 }

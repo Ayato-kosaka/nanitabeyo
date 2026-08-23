@@ -679,7 +679,8 @@
 		"accessibility": {
 			"clearNameSearch": "Borrar búsqueda por nombre de restaurante"
 		},
-		"unsavedHint": "También puedes elegir locales que no has guardado: escribe su nombre en el buscador de arriba o toca su icono en el mapa."
+		"unsavedHint": "También puedes elegir locales que no has guardado: escribe su nombre en el buscador de arriba o toca su icono en el mapa.",
+		"pickTitle": "Elegir local"
 	},
 	"Feedback": {
 		"title": "Enviar Comentarios/Reporte de Errores",
@@ -875,6 +876,11 @@
 				"title": "Periodo",
 				"none": "Sin especificar",
 				"clear": "Quitar periodo"
+			},
+			"category": {
+				"title": "Categoría de plato",
+				"description": "Filtra por las categorías más frecuentes entre los registros mostrados",
+				"count": "{{label}} ({{count}})"
 			}
 		},
 		"empty": {
@@ -954,6 +960,13 @@
 		"result": {
 			"summary": "Lectura completada",
 			"noInfo": "No se pudo leer información de esta publicación. Elige el local y la categoría abajo para guardarla."
+		},
+		"eaten": {
+			"pickRestaurant": "Elegir local",
+			"pick": "Elegir",
+			"change": "Cambiar",
+			"hint": "Primero elige el local. Después podrás añadir foto, reseña breve, categoría, precio y valoración (la foto es opcional).",
+			"done": "Registrado como comido"
 		}
 	}
 }

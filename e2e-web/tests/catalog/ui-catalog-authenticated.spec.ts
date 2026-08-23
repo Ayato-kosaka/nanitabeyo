@@ -119,8 +119,10 @@ test.describe("UI カタログ（ログイン済み） @catalog", () => {
 			appPage,
 			"my-dishes-select-restaurant",
 			async () => {
-				// #1375 実機確認: ＋ → SNS 取り込み画面 → 上部タブ「食べた」で店舗選択へ
+				// #1375（3 巡目）: ＋ → SNS 取り込み画面 → 「食べた」タブ（統合フォーム）→
+				// 「お店を選ぶ」で pick モードの地図へ
 				await myDishesPage.openEatenRecordFlow();
+				await appPage.getByTestId("sns-import-eaten-pick-restaurant").click();
 				// 地図画面。現在地ボタンの出現をもって到達とみなす
 				await expect(appPage.getByTestId("review-select-restaurant-current-location-button")).toBeVisible({
 					timeout: 30_000,

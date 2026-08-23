@@ -22,7 +22,7 @@ import MapViewClass from "react-native-maps";
 import { isFoodAndDrinkPlaceForUser } from "@shared/utils/google_places_restaurant_type";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { AvatarBubbleMarker } from "@/features/mapMarkers";
-import { router, useFocusEffect, useNavigation } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams, useNavigation } from "expo-router";
 import {
 	SavedRestaurantsSheet,
 	SavedRestaurantsSheetHandle,
@@ -32,6 +32,7 @@ import { useRestaurantStore } from "@/stores/useRestaurantStore";
 import { useLocale } from "@/hooks/useLocale";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { INITIAL_REGION, REGION_JP } from "@/features/map/constants";
+import { usePickedRestaurantStore } from "@/features/restaurantPicker/stores/usePickedRestaurantStore";
 
 type SavedRestaurant = QueryMeSavedRestaurantsResponse["data"][number];
 
@@ -41,6 +42,16 @@ type SavedRestaurant = QueryMeSavedRestaurantsResponse["data"][number];
  * - 保存したお店を地図上にマーカー表示、カード表示
  */
 export default function SelectRestaurantScreen() {
+	/**
+	 * #1375（3 巡目）`?mode=pick` — «お店を 1 件選んで戻る» モード。
+	 *
+	 * 食べたを記録（sns-import の統合フォーム）と SNS 取り込みの「地図からお店を選ぶ」が使う。
+	 * このモードでは店舗詳細やレビュー画面へ **push しない**（ネイティブスタックが
+	 * どんどん積まれる、と実機で指摘された）。選んだ結果を `usePickedRestaurantStore` に
+	 * 置いて `router.back()` するだけである。既定（mode 無し）の挙動は従来どおり
+	 */
+	const { mode } = useLocalSearchParams<{ mode?: string }>();
+	const isPickMode = mode === "pick";
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { callBackend } = useAPICall();
@@ -76,6 +87,17 @@ export default function SelectRestaurantScreen() {
 					method: "POST",
 					requestPayload: { googlePlaceId },
 				});
+
+				if (isPickMode) {
+					// pick モード: 選択として返して戻るだけ。詳細画面へは行かない
+					usePickedRestaurantStore.getState().setPicked({
+						restaurantId: response.restaurant.id,
+						name: response.restaurant.name,
+						restaurant: response.restaurant,
+					});
+					router.back();
+					return;
+				}
 
 				// #644 【設計】ストアに upsert してから詳細画面へ遷移
 				const { upsert } = useRestaurantStore.getState();
@@ -120,7 +142,7 @@ export default function SelectRestaurantScreen() {
 				setIsLoadingRestaurantCreation(false);
 			}
 		},
-		[callBackend, logFrontendEvent, showSnackbar, locale],
+		[callBackend, isPickMode, logFrontendEvent, showSnackbar, locale],
 	);
 
 	// #644 【設計】POI押下時にレストラン情報を取得してモーダル表示
@@ -250,8 +272,17 @@ export default function SelectRestaurantScreen() {
 			const index = savedRestaurants.findIndex((r) => r.restaurant.id === restaurant.restaurant.id);
 			if (index === -1) return;
 
-			// すでにアクティブなら詳細画面へ遷移
+			// すでにアクティブなら確定（pick モードは選択して戻る / 通常は詳細画面へ）
 			if (activeRestaurantId === restaurant.restaurant.id) {
+				if (isPickMode) {
+					usePickedRestaurantStore.getState().setPicked({
+						restaurantId: restaurant.restaurant.id,
+						name: restaurant.restaurant.name,
+						restaurant: restaurant.restaurant,
+					});
+					router.back();
+					return;
+				}
 				// ストアに upsert
 				const { upsert } = useRestaurantStore.getState();
 				upsert({
@@ -269,7 +300,7 @@ export default function SelectRestaurantScreen() {
 			// アクティブ更新（スクロールはシート側で active ID を監視して同期）
 			setActiveRestaurantId(restaurant.restaurant.id);
 		},
-		[activeRestaurantId, lightImpact, savedRestaurants, locale],
+		[activeRestaurantId, isPickMode, lightImpact, savedRestaurants, locale],
 	);
 
 	// #644 【設計】保存したお店のカード押下時の処理（ボタン以外）（ストア upsert → 遷移）
@@ -277,6 +308,16 @@ export default function SelectRestaurantScreen() {
 		(restaurant: SavedRestaurant) => {
 			lightImpact();
 			setActiveRestaurantId(restaurant.restaurant.id);
+
+			if (isPickMode) {
+				usePickedRestaurantStore.getState().setPicked({
+					restaurantId: restaurant.restaurant.id,
+					name: restaurant.restaurant.name,
+					restaurant: restaurant.restaurant,
+				});
+				router.back();
+				return;
+			}
 
 			// ストアに upsert
 			const { upsert } = useRestaurantStore.getState();
@@ -296,7 +337,7 @@ export default function SelectRestaurantScreen() {
 				payload: { restaurant_id: restaurant.restaurant.id },
 			});
 		},
-		[lightImpact, logFrontendEvent, locale],
+		[isPickMode, lightImpact, logFrontendEvent, locale],
 	);
 
 	// #644 【設計】保存したお店カードの「写真・動画を投稿」ボタン押下時の処理（ストア upsert → レビュー画面遷移）
@@ -467,7 +508,7 @@ export default function SelectRestaurantScreen() {
 			>
 				{/* #644 【設計】画面タイトル with 戻るボタン */}
 				<ScreenHeader
-					title={i18n.t("SelectRestaurant.title")}
+					title={i18n.t(isPickMode ? "SelectRestaurant.pickTitle" : "SelectRestaurant.title")}
 					onPressBack={() => {
 						lightImpact();
 						router.back();
@@ -525,6 +566,7 @@ export default function SelectRestaurantScreen() {
 			<SavedRestaurantsSheet
 				ref={savedRestaurantsSheetRef}
 				visible={isSheetVisible}
+				showReviewButton={!isPickMode}
 				savedRestaurants={savedRestaurants}
 				isLoadingSavedRestaurants={isLoadingSavedRestaurants}
 				activeRestaurantId={activeRestaurantId}
