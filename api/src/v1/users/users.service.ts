@@ -552,11 +552,16 @@ export class UsersService {
         ),
         counts: pin.counts,
         latestOccurredAt: pin.latestOccurredAt.toISOString(),
-        representativeThumbnailUrl: pin.representativeMedia
-          ? this.dishMediaAssembler.getThumbnailImageUrl(
-              pin.representativeMedia,
-            )
-          : null,
+        // #1375 G4 一覧・Feed（dish-media.assembler.ts）と同じ順序で落とす:
+        // 自ストレージのサムネイル → provider 側のサムネイル → null（店舗写真へ）
+        representativeThumbnailUrl:
+          (pin.representativeMedia
+            ? this.dishMediaAssembler.getThumbnailImageUrl(
+                pin.representativeMedia,
+              )
+            : null) ??
+          pin.representativeExternalThumbnailUrl ??
+          null,
       })),
       truncated,
     };

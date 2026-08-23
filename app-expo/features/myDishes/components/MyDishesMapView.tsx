@@ -11,6 +11,7 @@ import { INITIAL_REGION, REGION_JP } from "@/features/map/constants";
 import { useHaptics } from "@/hooks/useHaptics";
 import { router } from "expo-router";
 import { useLocale } from "@/hooks/useLocale";
+import { getCurrentLocationPosition } from "@/hooks/useCurrentLocationPosition";
 import { useLogger } from "@/hooks/useLogger";
 import i18n from "@/lib/i18n";
 import type { MyDishPin } from "@shared/api/v1/res";
@@ -93,6 +94,35 @@ export function MyDishesMapView() {
 		mapRef.current?.animateToRegion(region, 1);
 		pendingRegionRef.current = null;
 	}, [mapReady]);
+
+	// #1375 独立レビュー（仕様ギャップ G2）: 仕様 §7「位置情報が利用可能なら **現在地周辺**を初期表示」。
+	// 実装は «ロケール依存の固定領域 → 初回取得後にピンの外接矩形» しか無く、保存が全国に
+	// 散っていると日本全体まで引かれて「渋谷で何食べよう？」が 1 タップで始まらなかった。
+	//
+	// ⚠️ 権限ダイアログをこの画面から出すが、**拒否・失敗は静かに縮退**する（従来の挙動へ戻すだけ）。
+	// store は書かない（= 再取得を起こさない）。viewport を動かすだけなのは «このエリアで再検索» と同じ契約
+	const hasCenteredOnUserRef = useRef(false);
+	useEffect(() => {
+		if (hasCenteredOnUserRef.current) return;
+		hasCenteredOnUserRef.current = true;
+		let cancelled = false;
+		getCurrentLocationPosition()
+			.then(({ latitude, longitude }) => {
+				if (cancelled) return;
+				// 現在地が取れたらピンの外接矩形フィットは走らせない（現在地の方が仕様上の優先）
+				hasFitPinsRef.current = true;
+				const region: Region = { latitude, longitude, latitudeDelta: 0.05, longitudeDelta: 0.05 };
+				currentRegionRef.current = region;
+				pendingRegionRef.current = region;
+				mapRef.current?.animateToRegion(region, 500);
+			})
+			.catch(() => {
+				// 権限拒否 / タイムアウト: 既存のフォールバック（固定領域 → ピン外接矩形）へ委ねる
+			});
+		return () => {
+			cancelled = true;
+		};
+	}, []);
 
 	// #1396 m-1: エリア未確定だと全世界のピンが返るため、初回取得後に一度だけピンの外接矩形へ寄せる。
 	// ⚠️ store は書かない・再取得も起こさない・二度目以降の取得では発火しない（ref で一度きりに固定する）
