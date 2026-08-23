@@ -178,13 +178,21 @@ export default function NotificationsScreen() {
 
 			return (
 				<TouchableOpacity
+					// #1506 GRP-04 【テスト】行とアイコンに action_type 込みの testID を付ける。
+					// 通知 id は E2E から予測できないので id は載せず、**種別で引ける**ことを優先した
+					// （e2e-web は .first()、Detox は atIndex(0) で先頭行＝最新の通知を掴む）。
+					// これが無いと「vote 通知が一覧に出た」「押すと結果画面へ行く」を外から観測できない
+					// （screens/NotificationsScreen.ts が「内容の検証が要るなら都度足すこと」と書いている通り）。
+					testID={`notification-item-${item.notification.action_type}`}
 					style={styles.notificationItem}
 					onPress={() => handleNotificationPress(item)}
 					activeOpacity={0.7}>
 					{/* Left: Avatar with Action Icon */}
 					<View style={styles.avatarContainer}>
 						<Image source={{ uri: avatar, cacheKey: getCacheKeyForImage(avatar) }} style={styles.avatar} />
-						<View style={[styles.actionIcon, { backgroundColor: iconBgColor }]}>
+						<View
+							testID={`notification-icon-${item.notification.action_type}`}
+							style={[styles.actionIcon, { backgroundColor: iconBgColor }]}>
 							{getNotificationIcon(item.notification.action_type)}
 						</View>
 					</View>
