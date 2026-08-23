@@ -724,6 +724,8 @@
 		"logout": "로그아웃",
 		"logoutConfirmTitle": "로그아웃하시겠어요?",
 		"logoutConfirmMessage": "다시 로그인해야 게시물과 리뷰를 관리할 수 있습니다.",
+		"version": "버전 {{version}}",
+		"buildInfo": "런타임 {{runtimeVersion}} · 빌드 {{commitId}}",
 		"blockedTopics": {
 			"navigationLabel": "차단된 요리 카테고리",
 			"pageTitle": "차단된 요리 카테고리",

@@ -27,6 +27,7 @@ import { useRouter } from "expo-router";
 import { useLocale } from "@/hooks/useLocale";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { openExternalUrl } from "@/lib/openExternalUrl";
+import { VersionInfo } from "@/components/VersionInfo";
 
 interface SettingsMenuItemProps {
 	label: string;
@@ -380,6 +381,8 @@ export default function SettingsScreen() {
 							/>
 						)}
 					</Card>
+
+					<VersionInfo />
 				</ScrollView>
 			</SafeAreaView>
 		</LinearGradient>

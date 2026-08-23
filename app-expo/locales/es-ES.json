@@ -724,6 +724,8 @@
 		"logout": "Cerrar sesión",
 		"logoutConfirmTitle": "¿Cerrar sesión?",
 		"logoutConfirmMessage": "Deberás iniciar sesión de nuevo para gestionar tus publicaciones y reseñas.",
+		"version": "Versión {{version}}",
+		"buildInfo": "Runtime {{runtimeVersion}} · Build {{commitId}}",
 		"blockedTopics": {
 			"navigationLabel": "Categorías de platos bloqueadas",
 			"pageTitle": "Categorías de platos bloqueadas",

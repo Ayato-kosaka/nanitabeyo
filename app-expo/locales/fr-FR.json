@@ -724,6 +724,8 @@
 		"logout": "Se déconnecter",
 		"logoutConfirmTitle": "Se déconnecter ?",
 		"logoutConfirmMessage": "Vous devrez vous reconnecter pour gérer vos publications et avis.",
+		"version": "Version {{version}}",
+		"buildInfo": "Runtime {{runtimeVersion}} · Build {{commitId}}",
 		"blockedTopics": {
 			"navigationLabel": "Catégories de plats bloquées",
 			"pageTitle": "Catégories de plats bloquées",

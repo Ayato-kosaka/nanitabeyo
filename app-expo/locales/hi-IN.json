@@ -724,6 +724,8 @@
 		"logout": "लॉग आउट",
 		"logoutConfirmTitle": "लॉग आउट करें?",
 		"logoutConfirmMessage": "अपनी पोस्ट और समीक्षाएं प्रबंधित करने के लिए आपको फिर से लॉगिन करना होगा।",
+		"version": "संस्करण {{version}}",
+		"buildInfo": "रनटाइम {{runtimeVersion}} · बिल्ड {{commitId}}",
 		"blockedTopics": {
 			"navigationLabel": "ब्लॉक की गई व्यंजन श्रेणियाँ",
 			"pageTitle": "ब्लॉक की गई व्यंजन श्रेणियाँ",

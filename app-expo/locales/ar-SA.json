@@ -724,6 +724,8 @@
 		"logout": "تسجيل الخروج",
 		"logoutConfirmTitle": "هل تريد تسجيل الخروج؟",
 		"logoutConfirmMessage": "ستحتاج إلى تسجيل الدخول مرة أخرى لإدارة منشوراتك ومراجعاتك.",
+		"version": "الإصدار {{version}}",
+		"buildInfo": "وقت التشغيل {{runtimeVersion}} · البناء {{commitId}}",
 		"blockedTopics": {
 			"navigationLabel": "فئات الأطباق المحظورة",
 			"pageTitle": "فئات الأطباق المحظورة",

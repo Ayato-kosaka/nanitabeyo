@@ -724,6 +724,8 @@
 		"logout": "Logout",
 		"logoutConfirmTitle": "Log out?",
 		"logoutConfirmMessage": "You'll need to log in again to manage your posts and reviews.",
+		"version": "Version {{version}}",
+		"buildInfo": "Runtime {{runtimeVersion}} · Build {{commitId}}",
 		"blockedTopics": {
 			"navigationLabel": "Blocked dish categories",
 			"pageTitle": "Blocked dish categories",

@@ -724,6 +724,8 @@
 		"logout": "登出",
 		"logoutConfirmTitle": "要退出登录吗？",
 		"logoutConfirmMessage": "再次登录后才能管理你的帖子和评论。",
+		"version": "版本 {{version}}",
+		"buildInfo": "运行时 {{runtimeVersion}} · 构建 {{commitId}}",
 		"blockedTopics": {
 			"navigationLabel": "已屏蔽的菜品类别",
 			"pageTitle": "已屏蔽的菜品类别",

@@ -724,6 +724,8 @@
 		"logout": "ログアウト",
 		"logoutConfirmTitle": "ログアウトしますか？",
 		"logoutConfirmMessage": "再度ログインするまで、投稿やレビューの管理ができなくなります。",
+		"version": "バージョン {{version}}",
+		"buildInfo": "ランタイム {{runtimeVersion}}・ビルド {{commitId}}",
 		"blockedTopics": {
 			"navigationLabel": "ブロック済みの料理カテゴリ",
 			"pageTitle": "ブロック済みの料理カテゴリ",
