@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 from collections.abc import Iterable
 from datetime import date, datetime, timezone
 from pathlib import Path
@@ -25,6 +26,7 @@ from normalization import (
 )
 from pipeline_common import BigQueryPipeline, configure_logging, require_run_id
 
+LOGGER = logging.getLogger(__name__)
 REPO_ROOT = Path(__file__).resolve().parents[2]
 JAPAN_BOUNDS = {"min_lat": 20.0, "max_lat": 46.5, "min_lon": 122.0, "max_lon": 154.0}
 
@@ -33,6 +35,13 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="source rawを共通形式へ変換します")
     parser.add_argument("--run-id")
     parser.add_argument("--snapshot-date", type=date.fromisoformat, required=True)
+    parser.add_argument(
+        "--skip-invalid-existing",
+        action="store_true",
+        help="名称・座標が不正な既存PG行を、IDを記録したうえで除外して続行する。"
+        "既定は停止（現行データ100%保全）。devスキーマのテスト行を想定した逃げ道で、"
+        "public の実行では付けないこと",
+    )
     return parser.parse_args()
 
 
@@ -168,7 +177,10 @@ def build_common_row(
 
 
 def iter_source_records(
-    pipeline: BigQueryPipeline, run_id: str, snapshot_date: date
+    pipeline: BigQueryPipeline,
+    run_id: str,
+    snapshot_date: date,
+    skipped_invalid_existing: list[str] | None = None,
 ) -> Iterable[dict[str, Any]]:
     dataset = pipeline.dataset_ref
 
@@ -206,6 +218,17 @@ def iter_source_records(
         if result is None:
             # 既存PG行だけは「open dataの不正行」と同じように黙って捨てない。
             # 現行データ100%保全を優先し、対象IDを示してstep全体を停止する。
+            # devスキーマにはJapan boundsの外を指すテスト行が混ざるため、
+            # --skip-invalid-existing のときだけIDを残して除外する（8_1 の
+            # 既存PG欠損チェックは seed_catalog 起点なので、ここで除外した行は
+            # ゲートに掛からない）。
+            if skipped_invalid_existing is not None:
+                LOGGER.warning(
+                    "不正な既存restaurantを除外: id=%s name=%r lat=%r lng=%r",
+                    row.source_record_id, row.name, row.latitude, row.longitude,
+                )
+                skipped_invalid_existing.append(row.source_record_id)
+                continue
             raise RuntimeError(
                 f"既存restaurantの名称または座標が不正です: {row.source_record_id}"
             )
@@ -361,15 +384,19 @@ def main() -> None:
     args = parse_args()
     run_id = require_run_id(args.run_id)
     pipeline = BigQueryPipeline()
+    skipped: list[str] | None = [] if args.skip_invalid_existing else None
     with pipeline.step(
         run_id,
         "2_1_build_restaurant_source_records",
-        parameters={"snapshot_date": args.snapshot_date},
+        parameters={
+            "snapshot_date": args.snapshot_date,
+            "skip_invalid_existing": args.skip_invalid_existing,
+        },
         repo_root=REPO_ROOT,
     ) as step:
         row_count = pipeline.load_json_rows(
             "restaurant_source_records",
-            iter_source_records(pipeline, run_id, args.snapshot_date),
+            iter_source_records(pipeline, run_id, args.snapshot_date, skipped),
             write_disposition=bigquery.WriteDisposition.WRITE_TRUNCATE,
         )
         if row_count == 0:
@@ -377,6 +404,9 @@ def main() -> None:
                 "restaurant_source_records が0件です。1_* のrun_idを確認してください。"
             )
         step["row_count"] = row_count
+        if skipped:
+            step["skipped_invalid_existing"] = skipped
+            LOGGER.warning("不正として除外した既存restaurant: %d件 %s", len(skipped), skipped)
 
 
 if __name__ == "__main__":
