@@ -1,6 +1,8 @@
 import { ReactNode } from "react";
 import { View, StyleSheet } from "react-native";
 import { CONTENT_MAX_WIDTH } from "@/constants/layout";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useThemedStyles } from "@/contexts/ThemeProvider";
 
 /**
  * #958 【設計】walica.jp のように、web の広い画面ではアプリ全体(タブバー含む)を
@@ -18,6 +20,8 @@ import { CONTENT_MAX_WIDTH } from "@/constants/layout";
  * (同じ `min(windowWidth, CONTENT_MAX_WIDTH)` を返す)。
  */
 export function CenteredAppShell({ children }: { children: ReactNode }) {
+	// #1509 カラムの外側もダークで白く残らないようテーマ追従にする
+	const styles = useThemedStyles(createStyles);
 	return (
 		<View style={styles.outer}>
 			<View style={styles.inner}>{children}</View>
@@ -25,22 +29,24 @@ export function CenteredAppShell({ children }: { children: ReactNode }) {
 	);
 }
 
-const styles = StyleSheet.create({
-	outer: {
-		flex: 1,
-		width: "100%",
-		alignItems: "center",
-		backgroundColor: "#F3F4F6",
-	},
-	inner: {
-		flex: 1,
-		width: "100%",
-		maxWidth: CONTENT_MAX_WIDTH,
-		// #958 【UI】カラムと余白の境界を分かりやすくする控えめな影(walica.jp を参考)
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 0 },
-		shadowOpacity: 0.06,
-		shadowRadius: 24,
-		elevation: 2,
-	},
-});
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		outer: {
+			flex: 1,
+			width: "100%",
+			alignItems: "center",
+			backgroundColor: c.appShellBackdrop,
+		},
+		inner: {
+			flex: 1,
+			width: "100%",
+			maxWidth: CONTENT_MAX_WIDTH,
+			// #958 【UI】カラムと余白の境界を分かりやすくする控えめな影(walica.jp を参考)
+			// #1509 影はテーマ非追従（`#000` と `#000000` は同一色）
+			shadowColor: FixedColors.shadow,
+			shadowOffset: { width: 0, height: 0 },
+			shadowOpacity: 0.06,
+			shadowRadius: 24,
+			elevation: 2,
+		},
+	});

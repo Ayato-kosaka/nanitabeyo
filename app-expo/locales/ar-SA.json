@@ -711,6 +711,14 @@
 	},
 	"Settings": {
 		"title": "الإعدادات",
+		"theme": {
+			"sectionTitle": "المظهر",
+			"options": {
+				"system": "اتباع إعداد النظام",
+				"light": "فاتح",
+				"dark": "داكن"
+			}
+		},
 		"sendFeedback": "إرسال ملاحظات",
 		"leaveReview": "اترك تقييم",
 		"rateDialogTitle": "هل تستمتع بالتطبيق؟",

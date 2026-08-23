@@ -711,6 +711,14 @@
 	},
 	"Settings": {
 		"title": "Paramètres",
+		"theme": {
+			"sectionTitle": "Apparence",
+			"options": {
+				"system": "Suivre le réglage du système",
+				"light": "Clair",
+				"dark": "Sombre"
+			}
+		},
 		"sendFeedback": "Envoyer des commentaires",
 		"leaveReview": "Laisser un avis",
 		"rateDialogTitle": "Appréciez-vous l'application ?",

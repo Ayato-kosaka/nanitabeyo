@@ -711,6 +711,14 @@
 	},
 	"Settings": {
 		"title": "Settings",
+		"theme": {
+			"sectionTitle": "Appearance",
+			"options": {
+				"system": "Match system setting",
+				"light": "Light",
+				"dark": "Dark"
+			}
+		},
 		"sendFeedback": "Send Feedback",
 		"leaveReview": "Leave Review",
 		"rateDialogTitle": "Are you enjoying the app?",

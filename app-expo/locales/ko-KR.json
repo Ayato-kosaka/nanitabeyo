@@ -711,6 +711,14 @@
 	},
 	"Settings": {
 		"title": "설정",
+		"theme": {
+			"sectionTitle": "화면 테마",
+			"options": {
+				"system": "시스템 설정 따르기",
+				"light": "라이트",
+				"dark": "다크"
+			}
+		},
 		"sendFeedback": "피드백 보내기",
 		"leaveReview": "리뷰 남기기",
 		"rateDialogTitle": "앱이 마음에 드시나요?",

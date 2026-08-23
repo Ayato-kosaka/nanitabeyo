@@ -711,6 +711,14 @@
 	},
 	"Settings": {
 		"title": "设置",
+		"theme": {
+			"sectionTitle": "外观",
+			"options": {
+				"system": "跟随系统设置",
+				"light": "浅色",
+				"dark": "深色"
+			}
+		},
 		"sendFeedback": "发送反馈",
 		"leaveReview": "留下评价",
 		"rateDialogTitle": "您喜欢这个应用吗？",
