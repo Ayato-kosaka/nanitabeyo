@@ -81,7 +81,16 @@
 		"submitFailed": "आपका वोट भेजा नहीं जा सका",
 		"participantsList": "प्रतिभागी: {{names}}",
 		"noParticipants": "अभी कोई प्रतिभागी नहीं है",
-		"noVotes": "अभी कोई वोट नहीं है"
+		"noVotes": "अभी कोई वोट नहीं है",
+		"myVotes": {
+			"pageTitle": "मेरे समूह वोट",
+			"empty": "अभी तक कोई समूह वोट नहीं",
+			"hostBadge": "होस्ट",
+			"votedBadge": "वोट किया",
+			"notVotedBadge": "वोट नहीं किया",
+			"candidateCount": "{{count}} विकल्प",
+			"loadFailed": "समूह वोट लोड नहीं हो सके"
+		}
 	},
 	"Error": {
 		"maintenanceMessage": "हम वर्तमान में रखरखाव कर रहे हैं।",
@@ -735,6 +744,9 @@
 			"unblockMessage": "यह व्यंजन श्रेणी सिफारिशों में वापस जोड़ दी जाएगी।",
 			"unblockConfirm": "अनब्लॉक करें",
 			"unblocked": "अनब्लॉक किया गया"
+		},
+		"myGroupVotes": {
+			"navigationLabel": "मेरे समूह वोट"
 		}
 	},
 	"Dialog": {

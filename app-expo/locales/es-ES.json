@@ -81,7 +81,16 @@
 		"submitFailed": "No se pudo enviar tu voto",
 		"participantsList": "Participantes: {{names}}",
 		"noParticipants": "Aún no hay participantes",
-		"noVotes": "Aún no hay votos"
+		"noVotes": "Aún no hay votos",
+		"myVotes": {
+			"pageTitle": "Mis votaciones de grupo",
+			"empty": "Aún no hay votaciones de grupo",
+			"hostBadge": "Anfitrión",
+			"votedBadge": "Votado",
+			"notVotedBadge": "Sin votar",
+			"candidateCount": "{{count}} opciones",
+			"loadFailed": "No se pudieron cargar tus votaciones de grupo"
+		}
 	},
 	"Error": {
 		"maintenanceMessage": "Actualmente estamos en mantenimiento.",
@@ -735,6 +744,9 @@
 			"unblockMessage": "Esta categoría de plato se volverá a añadir a las recomendaciones.",
 			"unblockConfirm": "Desbloquear",
 			"unblocked": "Desbloqueado"
+		},
+		"myGroupVotes": {
+			"navigationLabel": "Mis votaciones de grupo"
 		}
 	},
 	"Dialog": {

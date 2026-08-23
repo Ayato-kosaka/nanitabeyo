@@ -81,7 +81,16 @@
 		"submitFailed": "投票を送信できませんでした",
 		"participantsList": "参加者：{{names}}",
 		"noParticipants": "まだ参加者はいません",
-		"noVotes": "まだ投票がありません"
+		"noVotes": "まだ投票がありません",
+		"myVotes": {
+			"pageTitle": "グループ投票の履歴",
+			"empty": "まだグループ投票がありません",
+			"hostBadge": "主催",
+			"votedBadge": "投票済み",
+			"notVotedBadge": "未投票",
+			"candidateCount": "候補 {{count}} 件",
+			"loadFailed": "グループ投票を読み込めませんでした"
+		}
 	},
 	"Error": {
 		"maintenanceMessage": "ただいまメンテナンス中です。",
@@ -735,6 +744,9 @@
 			"unblockMessage": "この料理カテゴリをおすすめ対象に戻します。",
 			"unblockConfirm": "解除する",
 			"unblocked": "ブロックを解除しました"
+		},
+		"myGroupVotes": {
+			"navigationLabel": "グループ投票の履歴"
 		}
 	},
 	"Dialog": {

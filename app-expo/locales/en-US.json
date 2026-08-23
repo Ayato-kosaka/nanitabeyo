@@ -81,7 +81,16 @@
 		"submitFailed": "Could not submit your vote",
 		"participantsList": "Participants: {{names}}",
 		"noParticipants": "No participants yet",
-		"noVotes": "No votes yet"
+		"noVotes": "No votes yet",
+		"myVotes": {
+			"pageTitle": "My group votes",
+			"empty": "No group votes yet",
+			"hostBadge": "Host",
+			"votedBadge": "Voted",
+			"notVotedBadge": "Not voted",
+			"candidateCount": "{{count}} choices",
+			"loadFailed": "Could not load your group votes"
+		}
 	},
 	"Error": {
 		"maintenanceMessage": "We are currently undergoing maintenance.",
@@ -735,6 +744,9 @@
 			"unblockMessage": "This dish category will be added back to recommendations.",
 			"unblockConfirm": "Unblock",
 			"unblocked": "Unblocked"
+		},
+		"myGroupVotes": {
+			"navigationLabel": "My group votes"
 		}
 	},
 	"Dialog": {
