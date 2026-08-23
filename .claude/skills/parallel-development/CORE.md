@@ -327,7 +327,28 @@ turnが切れても部分成果がbranchに残れば、追加runで続きから�
 
 `error_max_turns` の失敗runでも、Workflowの `commit・pushされたことを検証` ステップが `success` を返し、かつ**実際にはbranchが存在しない**という食い違いを観測している。ステップの結果を信用せず、リーダー自身が **GitHub API（`mcp__github__list_branches` 等）でbranchの実在を確認**すること。
 
-この食い違いの原因のひとつは判明している（下記「ワーカーは `.github/workflows/` を変更できない」）。runが`success`でもbranchが無いときは、まずpushがremote rejectedされていないかを疑う。
+この食い違いの原因は**2つとも判明している**。
+
+**原因1: 検証ステップ自身のバグ（2026-08-23 に修正済み）。** 旧実装は次のように書かれていた。
+
+```bash
+REMOTE_SHA=$(git rev-parse "origin/$BRANCH_NAME" 2>/dev/null || echo "")
+if [[ -z "$REMOTE_SHA" ]]; then ... exit 1; fi
+```
+
+`git rev-parse` は**解決できない ref を渡されると、その引数文字列自体をstdoutへ出す**（エラーはstderrへ出て exit 128）。したがって `|| echo ""` は発火せず、`REMOTE_SHA` へ `origin/claude/xxx` という文字列が入り、`-z` ガードを素通りする。**リモートにbranchが無いのにステップがsuccessで終わる**のはこれが原因だった。
+
+現在は `git ls-remote --heads origin "$BRANCH_NAME"` でoriginへ直接問い合わせる形に直してある。ローカルのremote-tracking refに依存しないので、pushされたかどうかを正しく判定できる。あわせて「一部だけpushされている」ケースも `::warning::` から `::error::` へ格上げした（中途半端なpushをsuccessで返すと、リーダーがbranchに全成果が載っていると誤認するため）。
+
+**原因2: push が remote rejected される。** 下記「ワーカーは `.github/workflows/` を変更できない」を参照。
+
+### commit だけでは足りない。**push まで**指示する
+
+実測（run 32607186274 / Issue #1499）: `error_max_turns` で 81 turn・14分・$5.97 を消費したが、**ローカルにcommitは出来ていた**（HEADは `c772f14` → `66052c3` へ変化していた）のに **push 前にturnが尽き、成果が丸ごと失われた**。
+
+プロンプトの「早めに小さくcommitする」だけでは、この失われ方を防げない。次のように**pushまで**を明示すること。
+
+> 実装が一区切りついた時点で、テストを書く前に必ず `git add -A && git commit && git push -u origin <branch>` まで行うこと。**ローカルcommitだけではturn切れで全部消えます。**
 
 ## ワーカーは `.github/workflows/` を変更できない
 

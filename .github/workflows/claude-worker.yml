@@ -490,17 +490,28 @@ jobs:
           fi
           echo "✓ HEADが変化: $PRE_SHA -> $POST_SHA"
 
-          git fetch origin "refs/heads/$BRANCH_NAME" 2>/dev/null || true
-          REMOTE_SHA=$(git rev-parse "origin/$BRANCH_NAME" 2>/dev/null || echo "")
+          # ⚠️ ここは `git rev-parse "origin/$BRANCH_NAME"` で書いてはいけない。
+          # rev-parse は解決できない ref を渡されると **その引数文字列自体をstdoutへ出す**
+          # (エラーはstderr、exit 128)。したがって `|| echo ""` は発火せず、REMOTE_SHA には
+          # "origin/claude/xxx" という文字列が入り、下の -z ガードを素通りする。
+          # 結果、**リモートにブランチが無いのにstepがsuccessで終わる**。
+          # 実際にこれを踏んだ: run 32607186274 は turn切れでpush前に終わったのに、
+          # このstepがsuccessを返したためリーダーが成果物ありと誤認した。
+          # ls-remote はローカルのremote-tracking refに依存せずoriginへ直接問い合わせるので、
+          # 「originにあるか」を判定する手段としてこちらが正しい。
+          REMOTE_SHA=$(git ls-remote --heads origin "$BRANCH_NAME" | awk '{print $1}')
           if [[ -z "$REMOTE_SHA" ]]; then
-            echo "::error::作業ブランチ '$BRANCH_NAME' がoriginへpushされていません。commitはローカルに存在しますが共有されていません。"
+            echo "::error::作業ブランチ '$BRANCH_NAME' がoriginへpushされていません。commitはローカルに存在しますが共有されていません。 [subtype=${CLAUDE_SUBTYPE:-unknown} is_error=${CLAUDE_IS_ERROR:-unknown} turns=${CLAUDE_NUM_TURNS:-unknown} permission_denials=${CLAUDE_DENIALS:-unknown}]"
             exit 1
           fi
+          # 「一部だけpushされている」も失敗として扱う。warningにするとstepがsuccessで終わり、
+          # リーダーはブランチに全成果が載っていると誤認する。このstepの目的は
+          # 「成果物が本当に共有されたか」の判定なので、中途半端なpushは成功ではない。
           if [[ "$REMOTE_SHA" != "$POST_SHA" ]]; then
-            echo "::warning::originの '$BRANCH_NAME' ($REMOTE_SHA) が最新のローカルcommit ($POST_SHA) と一致しません。最後の変更がpushされていない可能性があります。"
-          else
-            echo "✓ originへpush済み: $REMOTE_SHA"
+            echo "::error::originの '$BRANCH_NAME' ($REMOTE_SHA) が最新のローカルcommit ($POST_SHA) と一致しません。最後の変更がpushされていません。 [subtype=${CLAUDE_SUBTYPE:-unknown} is_error=${CLAUDE_IS_ERROR:-unknown} turns=${CLAUDE_NUM_TURNS:-unknown} permission_denials=${CLAUDE_DENIALS:-unknown}]"
+            exit 1
           fi
+          echo "✓ originへpush済み: $REMOTE_SHA"
 
       - name: テストエビデンスを保存
         if: always()
