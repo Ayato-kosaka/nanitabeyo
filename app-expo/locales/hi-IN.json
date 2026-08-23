@@ -374,6 +374,9 @@
 			},
 			"dish_reviews": {
 				"like": "ने आपकी समीक्षा को पसंद किया"
+			},
+			"dish_category_group_vote_sessions": {
+				"vote": "ने आपके ग्रुप में वोट किया"
 			}
 		}
 	},

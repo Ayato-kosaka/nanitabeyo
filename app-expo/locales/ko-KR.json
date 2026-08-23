@@ -374,6 +374,9 @@
 			},
 			"dish_reviews": {
 				"like": "님이 회원님의 리뷰를 좋아합니다"
+			},
+			"dish_category_group_vote_sessions": {
+				"vote": "님이 회원님의 그룹에 투표했습니다"
 			}
 		}
 	},

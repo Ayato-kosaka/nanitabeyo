@@ -45,7 +45,9 @@ export function voteScreenPath(shareToken: string = MOCK_SHARE_TOKEN): string {
  * 「最後の候補に投票した時点で完了モーダルを開く」実装のため、
  * **1 回タップするだけで完了モーダルへ到達できる** から（操作が増えるほどフレーク要因も増える）。
  */
-export function buildVoteDetail(): DishCategoryGroupVoteDetailResponse {
+export function buildVoteDetail(
+	sessionOverrides: Partial<DishCategoryGroupVoteDetailResponse["session"]> = {},
+): DishCategoryGroupVoteDetailResponse {
 	const now = "2026-01-01T00:00:00.000Z";
 	return {
 		session: {
@@ -64,6 +66,9 @@ export function buildVoteDetail(): DishCategoryGroupVoteDetailResponse {
 			participantCount: 0,
 			createdAt: now,
 			updatedAt: now,
+			// #1506 呼び出し側が hasVoted / isHost / shareToken を差し替えられるようにする。
+			// 「投票済みホストが結果画面を開く」など、画面ごとに要る前提が違うため
+			...sessionOverrides,
 		},
 		candidates: [
 			{
@@ -91,7 +96,10 @@ export function buildVoteDetail(): DishCategoryGroupVoteDetailResponse {
  * 画像は example.invalid を指しているので読み込みは失敗するが、
  * 検証対象は完了モーダルの描画順序なのでカードの画像有無は問わない。
  */
-export async function mockVoteDetail(page: Page): Promise<void> {
+export async function mockVoteDetail(
+	page: Page,
+	sessionOverrides: Partial<DishCategoryGroupVoteDetailResponse["session"]> = {},
+): Promise<void> {
 	await page.route(DETAIL_URL_PATTERN, async (route) => {
 		await route.fulfill({
 			status: 200,
@@ -101,9 +109,48 @@ export async function mockVoteDetail(page: Page): Promise<void> {
 			// undefined が渡って画面が「投票を読み込めませんでした」になる。
 			// 失敗の見た目が「API が落ちている」ときと同じなので、mock 側の
 			// 封筒漏れだと気付くのに時間がかかる（実際 3 spec がこれで落ちていた）。
-			body: JSON.stringify({ success: true, data: buildVoteDetail() }),
+			body: JSON.stringify({ success: true, data: buildVoteDetail(sessionOverrides) }),
 		});
 	});
+}
+
+/** 投票送信 API（POST /v1/dish-category-group-votes/:sessionId/vote）のパス */
+const SUBMIT_VOTE_URL_PATTERN = /\/v1\/dish-category-group-votes\/[^/?]+\/vote(\?.*)?$/;
+
+/**
+ * 投票送信 API をモックに差し替え、**送られたリクエストボディを記録する**（#1506 GRP-04）。
+ *
+ * ホストへの通知は「投票の送信が API に届いたこと」を起点にサーバ側で enqueue される
+ * （api/src/v1/dish-category-group-votes/dish-category-group-votes.service.ts）。
+ * ブラウザ側から観測できるのはその起点までなので、ここを押さえる。
+ * enqueue そのものは API のユニットテストが担保している。
+ *
+ * 実 API へ流さないので dev DB へ参加者行は増えない（= この spec は @mutation にならない）。
+ *
+ * @returns 記録された送信ボディの配列（テスト側から件数と中身を検証できる）
+ */
+export async function mockSubmitVote(page: Page): Promise<Array<Record<string, unknown>>> {
+	const submitted: Array<Record<string, unknown>> = [];
+
+	await page.route(SUBMIT_VOTE_URL_PATTERN, async (route) => {
+		// postDataJSON() はボディが JSON でないと throw する。記録に失敗しても
+		// 「送信された事実」だけは残したいので、空オブジェクトで補う
+		try {
+			submitted.push(route.request().postDataJSON() as Record<string, unknown>);
+		} catch {
+			submitted.push({});
+		}
+		await route.fulfill({
+			status: 201,
+			contentType: "application/json",
+			body: JSON.stringify({
+				success: true,
+				data: { participantId: "00000000-0000-4000-8000-0000000015f0", stored: true },
+			}),
+		});
+	});
+
+	return submitted;
 }
 
 /**
