@@ -250,6 +250,6 @@ e2e-web/
 ## 補足
 
 - 認証フローの「どこが自動テストで守られていて、どこが守られていないか」の一覧は
-  [`docs/auth-e2e-coverage.md`](../docs/auth-e2e-coverage.md) にまとめてある。認証まわりのテストを増減させたら合わせて更新すること
+  [`docs/specs/auth-e2e-coverage.md`](../docs/specs/auth-e2e-coverage.md) にまとめてある。認証まわりのテストを増減させたら合わせて更新すること
 - `turbo run test` を使う場合は `--filter=!e2e-web` で除外すること(E2E は実ブラウザ + 共有 dev 環境依存でキャッシュに不適なため、turbo タスクには組み込んでいない)
 - `pnpm typecheck`(ルート)で e2e-web の型チェックも turbo 経由で実行される

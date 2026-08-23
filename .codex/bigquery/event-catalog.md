@@ -1,5 +1,10 @@
 # Event Catalog
 
+> **Before running any of these queries:** the `*_event_logs` views cannot prune partitions,
+> so a time-ranged query against them costs 18.4 GB/day instead of ~77 MB.
+> Rewrite time-ranged queries onto `run_googleapis_com_stdout` filtered on `timestamp`.
+> See [safety-policy.md](./safety-policy.md).
+
 This file is a starting point for log investigations. It combines source-code
 confirmed event names with queries that can refresh the production view of what
 actually appears in BigQuery.

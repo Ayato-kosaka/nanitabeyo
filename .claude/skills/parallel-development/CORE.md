@@ -347,7 +347,7 @@ REST Contents API経由でも `403 Resource not accessible by integration` に�
 
 - **workflowファイルを変更するタスクをワーカーへ渡さない。** 渡す場合は「`.github/workflows/` へは直接置かず、`.github/workflows-pending/` 等へ成果物とpatchを出力する」と明示し、**リーダーが適用してcommitする**。リーダーのgit認証はGitHub Appではないため、workflowファイルをpushできる。
 - 全ての実装promptへ「**`.github/workflows/` 配下を変更しない**」を入れておくと、無関係なタスクが巻き添えでbranchごと消えるのを防げる。
-- 恒久的にワーカーへ編集させたいなら、(1) Claude GitHub AppのインストールでWorkflows権限をwriteにする、(2) `claude-worker.yml` の write ジョブの `additional_permissions` へ `workflows: write` を追加する、の**両方**が要る。ただしエージェントがCI定義そのものを書き換えられるようになるため、権限を広げるかはリポジトリオーナーの判断に委ねること。
+- 恒久的にワーカーへ編集させたいなら、(1) Claude GitHub AppのインストールでWorkflows権限をwriteにする、(2) `claude-worker.yml` の write ジョブの `additional_permissions` へ `workflows: write` を追加する、の**両方**が要る。ただし **2026-08-13 に「付与しない」で確定済み**（理由は `docs/decisions/20260813-ci-gate-and-worker-permissions.md`）。再検討は workflow 変更タスクが恒常化した場合のみ。
 
 **`--ref` にはデフォルトブランチだけを指定できる（例外なし）**: `workflow_dispatch` はGitHubの仕様上、`--ref` で指定したブランチ上のWorkflowファイルが**既定ブランチ上のバージョンと1バイトでも違う**場合、`Claude Codeを実行` ステップ自体を無言でスキップする(`Skipping action due to workflow validation`という警告のみ)。これは `claude-worker.yml` 自体を修正した直後に踏みやすい罠で、修正branchを`--ref`に指定して試し撃ちしても何も起きず、後段のcommit検証stepが「変更なし」でjob failするだけになる。Workflow自体の変更を試すときは、**まずmainへマージしてから**改めてdispatchすること。
 
