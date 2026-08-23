@@ -85,8 +85,7 @@
 		"noVotes": "Aún no hay votos",
 		"myVotes": {
 			"pageTitle": "Mis votaciones de grupo",
-			"empty": "Aún no hay votaciones de grupo",
-			"hostBadge": "Anfitrión",
+			"empty": "Aún no has iniciado ninguna votación de grupo",
 			"votedBadge": "Votado",
 			"notVotedBadge": "Sin votar",
 			"candidateCount": "{{count}} opciones",

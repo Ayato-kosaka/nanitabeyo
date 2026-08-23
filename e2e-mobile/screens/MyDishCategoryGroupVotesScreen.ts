@@ -5,12 +5,16 @@ import { DEFAULT_TIMEOUT, by, existsNow, tapWhenVisible, waitUntilVisible } from
  *
  * 対応画面: app-expo/app/[locale]/(tabs)/profile/dish-category-group-votes.tsx
  *
+ * ## 一覧に出るもの
+ * **自分が主催した投票だけ**。参加しただけの投票は API 側（where 句）で除かれるため出ない。
+ * 全行が主催なので「主催」バッジは無く、行に出るバッジは投票済み／未投票の 1 つだけ。
+ *
  * ## 行に testID が無い理由
  * `VoteListItem`（画面側コンポーネント）は `accessibilityRole="link"` /
  * `accessibilityLabel={formattedDate}` しか持たない。同じ `formattedDate` は行内の
  * `<Text>`（itemDate）としても描画されているため、`by.text()` でも一致しうるが、
  * **行の識別・タップ対象としては明示的に付与された `accessibilityLabel` の方を正とする**
- * （`by.label()`）。バッジ（主催／投票済み／未投票）が「どの行に属するか」を見るときは
+ * （`by.label()`）。バッジ（投票済み／未投票）が「どの行に属するか」を見るときは
  * Detox の `withAncestor()` で `by.label(<行の日付>)` を祖先に指定してスコープする
  * （e2e-web の `Locator.getByText()` チェーンに相当）。
  */
@@ -36,15 +40,6 @@ export class MyDishCategoryGroupVotesScreen {
 	 */
 	async expectItemVisible(dateLabel: string, timeout: number = DEFAULT_TIMEOUT, index?: number): Promise<void> {
 		await waitUntilVisible(this.item(dateLabel), timeout, index);
-	}
-
-	/**
-	 * 指定した行に「主催」バッジ（`Settings` ではなく `DishCategoryGroupVotes.myVotes.hostBadge`。
-	 * ja-JP の値は「主催」）が出ているかを **待たずに** 判定する。
-	 * 自分が作成した投票（isHost）だけに出る想定（#1505 の主旨）。
-	 */
-	async hasHostBadge(dateLabel: string): Promise<boolean> {
-		return existsNow(by.text("主催").withAncestor(this.item(dateLabel)));
 	}
 
 	/** 指定した行に「未投票」バッジが出ているかを **待たずに** 判定する */

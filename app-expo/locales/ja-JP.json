@@ -85,8 +85,7 @@
 		"noVotes": "まだ投票がありません",
 		"myVotes": {
 			"pageTitle": "グループ投票の履歴",
-			"empty": "まだグループ投票がありません",
-			"hostBadge": "主催",
+			"empty": "まだ主催したグループ投票がありません",
 			"votedBadge": "投票済み",
 			"notVotedBadge": "未投票",
 			"candidateCount": "候補 {{count}} 件",

@@ -2,11 +2,15 @@
 //
 // #1505 【設計】GET /v1/users/me/dish-category-group-votes の認可テスト。
 //
-// findMeSessions が組み立てる where 句(host_user_id または participants.user_id が自分)を
-// 「実際に条件として評価する」フェイク findMany の上でテストする。呼び出し引数の形だけを
-// assert すると、where 句の中身が壊れていても気付けない(例: OR を AND に書き換えても
-// 引数の "形" 自体は変わらない)。フェイク側で OR / some を本物同様に評価することで、
-// 「自分が関与していないセッションが混ざらない」ことを実質的に保証する。
+// findMeSessions が組み立てる where 句(host_user_id = 自分)を「実際に条件として評価する」
+// フェイク findMany の上でテストする。呼び出し引数の形だけを assert すると、where 句の中身が
+// 壊れていても気付けない(例: host 限定を OR に戻しても引数の "形" 自体は変わらない)。
+// フェイク側で host_user_id / updated_at.lt / participants.some を本物同様に評価することで、
+// 「他人のセッションも、参加しただけのセッションも混ざらない」ことを実質的に保証する。
+//
+// 【仕様】オーナー指示により、この一覧は **自分が主催したセッションだけ** を返す。
+// 参加(投票)しただけのセッションは対象外。絞り込みはクライアントではなく where 句で行うため、
+// 「参加しただけのセッションが返らない」ことをここで固定する。
 
 import { Prisma } from '../../../../shared/prisma/client';
 import { DishCategoryGroupVotesRepository } from './dish-category-group-votes.repository';
@@ -23,7 +27,12 @@ type FakeSession = {
 
 /**
  * findMeSessions が渡す where 句だけを対象にした最小限の評価器。
- * OR と、host_user_id / updated_at.lt / participants.some(user_id) の3種類だけ理解する。
+ * host_user_id / updated_at.lt / participants.some(user_id) と、
+ * (回帰検知のために) OR を理解する。
+ *
+ * OR を残してあるのは、host 限定を OR 条件へ戻す退行が起きたときに
+ * 「throw して落ちた」ではなく「参加しただけの行が返って落ちた」と読める形で
+ * 赤くしたいため(下の «参加しただけのセッションは含めない» が本来の検知点)。
  * 未知の形が渡されたら黙って通すのではなく throw し、テストが無言で無意味化するのを防ぐ。
  */
 function matchesWhere(session: FakeSession, where: any): boolean {
@@ -58,7 +67,6 @@ function buildFakeDb(sessions: FakeSession[]) {
 
     return filtered.map((s) => ({
       id: s.id,
-      host_user_id: s.host_user_id,
       share_token: s.share_token,
       created_at: s.created_at,
       updated_at: s.updated_at,
@@ -88,8 +96,9 @@ describe('DishCategoryGroupVotesRepository.findMeSessions', () => {
     repository = new DishCategoryGroupVotesRepository();
   });
 
-  // #1505 一番重要な認可テスト: 自分が関与していないセッションが混ざらないこと。
-  it('自分がホストまたは参加者であるセッションだけを返し、無関係なセッションは含めない', async () => {
+  // #1505 一番重要な認可 + 仕様テスト:
+  // 自分が主催したセッションだけが返り、参加しただけ / 無関係のどちらも混ざらないこと。
+  it('自分が主催したセッションだけを返し、参加しただけのセッションも無関係なセッションも含めない', async () => {
     const hostedByMe: FakeSession = {
       id: 'session-hosted-by-me',
       host_user_id: 'user-me',
@@ -99,6 +108,7 @@ describe('DishCategoryGroupVotesRepository.findMeSessions', () => {
       candidates: [{ deleted_at: null }, { deleted_at: null }],
       participants: [],
     };
+    // 自分は participant として居るが host ではない ＝ 一覧に出してはいけない(#1505 仕様変更)
     const participatedByMe: FakeSession = {
       id: 'session-participated-by-me',
       host_user_id: 'user-other-host',
@@ -126,30 +136,19 @@ describe('DishCategoryGroupVotesRepository.findMeSessions', () => {
     const result = await repository.findMeSessions(db, 'user-me');
 
     const returnedIds = result.items.map((item) => item.id);
-    expect(returnedIds).toContain('session-hosted-by-me');
-    expect(returnedIds).toContain('session-participated-by-me');
-    expect(returnedIds).not.toContain('session-unrelated');
-    expect(returnedIds).toHaveLength(2);
+    expect(returnedIds).toEqual(['session-hosted-by-me']);
   });
 
-  it('isHost / hasVoted をセッションごとに正しく区別する', async () => {
-    const hostedOnly: FakeSession = {
-      id: 'session-hosted-only',
+  it('hasVoted は「主催者自身が投票済みか」をセッションごとに区別する', async () => {
+    const hostedNotVoted: FakeSession = {
+      id: 'session-hosted-not-voted',
       host_user_id: 'user-me',
       share_token: 'token-1',
       created_at: new Date('2026-08-01T00:00:00Z'),
       updated_at: new Date('2026-08-01T00:00:00Z'),
       candidates: [],
-      participants: [],
-    };
-    const participatedOnly: FakeSession = {
-      id: 'session-participated-only',
-      host_user_id: 'user-other-host',
-      share_token: 'token-2',
-      created_at: new Date('2026-08-02T00:00:00Z'),
-      updated_at: new Date('2026-08-02T00:00:00Z'),
-      candidates: [],
-      participants: [{ id: 'p1', user_id: 'user-me' }],
+      // 他人だけが投票している。自分は未投票なので hasVoted は false
+      participants: [{ id: 'p-other', user_id: 'user-other' }],
     };
     const hostedAndVoted: FakeSession = {
       id: 'session-hosted-and-voted',
@@ -161,22 +160,34 @@ describe('DishCategoryGroupVotesRepository.findMeSessions', () => {
       participants: [{ id: 'p2', user_id: 'user-me' }],
     };
 
-    const { db } = buildFakeDb([hostedOnly, participatedOnly, hostedAndVoted]);
+    const { db } = buildFakeDb([hostedNotVoted, hostedAndVoted]);
     const result = await repository.findMeSessions(db, 'user-me');
     const byId = new Map(result.items.map((item) => [item.id, item]));
 
-    expect(byId.get('session-hosted-only')).toMatchObject({
-      isHost: true,
+    expect(byId.get('session-hosted-not-voted')).toMatchObject({
       hasVoted: false,
     });
-    expect(byId.get('session-participated-only')).toMatchObject({
-      isHost: false,
-      hasVoted: true,
-    });
     expect(byId.get('session-hosted-and-voted')).toMatchObject({
-      isHost: true,
       hasVoted: true,
     });
+  });
+
+  // 全行が主催なので isHost は返さない(画面のバッジも撤去済み)
+  it('isHost は返さない', async () => {
+    const session: FakeSession = {
+      id: 'session-hosted',
+      host_user_id: 'user-me',
+      share_token: 'token-no-is-host',
+      created_at: new Date('2026-08-01T00:00:00Z'),
+      updated_at: new Date('2026-08-01T00:00:00Z'),
+      candidates: [],
+      participants: [],
+    };
+
+    const { db } = buildFakeDb([session]);
+    const result = await repository.findMeSessions(db, 'user-me');
+
+    expect(result.items[0]).not.toHaveProperty('isHost');
   });
 
   it('候補数は未削除(deleted_at IS NULL)のみをカウントする', async () => {
@@ -213,11 +224,14 @@ describe('DishCategoryGroupVotesRepository.findMeSessions', () => {
 
     const { db, findMany } = buildFakeDb(sessions);
 
-    const firstPage = await repository.findMeSessions(db, 'user-me', undefined, 2);
-    expect(firstPage.items.map((i) => i.id)).toEqual(['session-2', 'session-1']);
-    expect(firstPage.nextCursor).toBe(
-      sessions[1].updated_at.toISOString(),
+    const firstPage = await repository.findMeSessions(
+      db,
+      'user-me',
+      undefined,
+      2,
     );
+    expect(firstPage.items.map((i) => i.id)).toEqual(['session-2', 'session-1']);
+    expect(firstPage.nextCursor).toBe(sessions[1].updated_at.toISOString());
 
     const secondPage = await repository.findMeSessions(
       db,

@@ -272,9 +272,9 @@ export class UsersController {
   @ApiBearerAuth()
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiOperation({
-    summary: '自分が作成/参加した dish_category グループ投票一覧',
+    summary: '自分が主催した dish_category グループ投票一覧',
     description:
-      'host_user_id が自分、または participants に自分が含まれるセッションを返す。isHost / hasVoted で役割を区別する。',
+      'host_user_id が自分のセッションだけを返す(参加しただけのセッションは含まない)。hasVoted は主催者自身が投票済みかを表す。',
   })
   @ApiQuery({
     name: 'cursor',

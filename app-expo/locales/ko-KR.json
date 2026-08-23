@@ -85,8 +85,7 @@
 		"noVotes": "아직 투표가 없습니다",
 		"myVotes": {
 			"pageTitle": "그룹 투표 내역",
-			"empty": "아직 그룹 투표가 없습니다",
-			"hostBadge": "주최",
+			"empty": "아직 주최한 그룹 투표가 없습니다",
 			"votedBadge": "투표 완료",
 			"notVotedBadge": "미투표",
 			"candidateCount": "후보 {{count}}개",

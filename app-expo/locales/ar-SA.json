@@ -85,8 +85,7 @@
 		"noVotes": "لا توجد أصوات بعد",
 		"myVotes": {
 			"pageTitle": "تصويتاتي الجماعية",
-			"empty": "لا توجد تصويتات جماعية بعد",
-			"hostBadge": "المضيف",
+			"empty": "لم تبدأ أي تصويت جماعي بعد",
 			"votedBadge": "تم التصويت",
 			"notVotedBadge": "لم يتم التصويت",
 			"candidateCount": "{{count}} خيارات",

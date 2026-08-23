@@ -85,8 +85,7 @@
 		"noVotes": "还没有投票",
 		"myVotes": {
 			"pageTitle": "我的分组投票",
-			"empty": "暂无分组投票",
-			"hostBadge": "发起人",
+			"empty": "您还没有发起过分组投票",
 			"votedBadge": "已投票",
 			"notVotedBadge": "未投票",
 			"candidateCount": "{{count}} 个候选",

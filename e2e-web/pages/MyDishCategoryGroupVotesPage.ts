@@ -5,9 +5,10 @@ import { expect, type Locator, type Page } from "@playwright/test";
  *
  * 対応画面: app-expo/app/[locale]/(tabs)/profile/dish-category-group-votes.tsx
  *
- * 自分が作成（isHost）または参加した友達投票セッションの一覧。設定画面の
- * `settings-my-group-votes` 行（SettingsPage 未対応。テストIDのみ既存）から遷移できるが、
- * URL 直遷移でも到達できるため blocked-topics と同じ流儀で直接 goto する。
+ * 自分が **主催した** 友達投票セッションの一覧（参加しただけの投票は API 側で除かれる）。
+ * マイページの `settings-my-group-votes` 行（#1402 で設定画面が廃止され、設定項目は
+ * マイページの縦リストへ統合された）から遷移できるが、URL 直遷移でも到達できるため
+ * blocked-topics と同じ流儀で直接 goto する。
  *
  * ## 行に testID が無い理由
  * `VoteListItem`（画面側コンポーネント）は `accessibilityRole="link"` /

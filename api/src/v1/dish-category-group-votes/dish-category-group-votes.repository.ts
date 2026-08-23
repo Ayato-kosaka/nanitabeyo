@@ -178,10 +178,16 @@ export class DishCategoryGroupVotesRepository {
 
   /**
    * #1505 【設計】GET /v1/users/me/dish-category-group-votes 用。
-   * host_user_id が自分、または participants に自分の user_id が居るセッションを1本の一覧として返す。
-   * submitVote は participant 作成と同じトランザクションで touchSession(updated_at 更新) するため、
-   * 「作成」「参加」どちらの活動でも updated_at が動く。この性質を利用し、両方を updated_at 降順の
-   * 単一カーソルで安全にページングできる。
+   * **自分が主催(host_user_id = 自分)したセッションだけ**を返す。
+   *
+   * オーナー指示により、参加しただけ(participants に自分が居るだけ)のセッションは一覧に出さない。
+   * 絞り込みは呼び出し側やクライアントではなくこの where 句 1 箇所に閉じる。
+   * ここで返さなかった行は API のどの層からも復元できないので、
+   * 「一覧に他人の投票が混ざらない」保証もこの 1 箇所を見れば足りる。
+   *
+   * ページングは updated_at 降順の単一カーソル。session の更新
+   * (候補追加・削除・dish_media 固定・submitVote の touchSession)で updated_at が動くため、
+   * 主催した投票の「最後に動きがあった順」で並ぶ。
    */
   async findMeSessions(
     db: PrismaExecutor,
@@ -192,7 +198,6 @@ export class DishCategoryGroupVotesRepository {
     items: {
       id: string;
       shareToken: string;
-      isHost: boolean;
       hasVoted: boolean;
       candidateCount: number;
       createdAt: Date;
@@ -201,14 +206,7 @@ export class DishCategoryGroupVotesRepository {
     nextCursor: string | null;
   }> {
     const whereClause: Prisma.dish_category_group_vote_sessionsWhereInput = {
-      OR: [
-        { host_user_id: userId },
-        {
-          dish_category_group_vote_participants: {
-            some: { user_id: userId },
-          },
-        },
-      ],
+      host_user_id: userId,
     };
     if (cursor) {
       whereClause.updated_at = { lt: new Date(cursor) };
@@ -220,7 +218,6 @@ export class DishCategoryGroupVotesRepository {
       take: limit + 1,
       select: {
         id: true,
-        host_user_id: true,
         share_token: true,
         created_at: true,
         updated_at: true,
@@ -250,7 +247,7 @@ export class DishCategoryGroupVotesRepository {
       items: page.map((session) => ({
         id: session.id,
         shareToken: session.share_token,
-        isHost: session.host_user_id === userId,
+        // 主催者自身が自分の投票に投票済みかどうか。主催と投票済みは独立なので残す。
         hasVoted: session.dish_category_group_vote_participants.length > 0,
         candidateCount:
           session._count.dish_category_group_vote_candidates,

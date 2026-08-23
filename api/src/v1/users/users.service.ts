@@ -373,7 +373,6 @@ export class UsersService {
       data: items.map((item) => ({
         id: item.id,
         shareToken: item.shareToken,
-        isHost: item.isHost,
         hasVoted: item.hasVoted,
         candidateCount: item.candidateCount,
         createdAt: item.createdAt.toISOString(),

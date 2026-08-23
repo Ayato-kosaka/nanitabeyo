@@ -9,10 +9,16 @@ import type { MeDishCategoryGroupVoteListItem, QueryMeDishCategoryGroupVotesResp
  *
  * ## 背景
  * #1505 で追加された新規画面（app-expo/app/[locale]/(tabs)/profile/dish-category-group-votes.tsx）。
- * 自分が作成（isHost）した投票と、参加しただけ（isHost=false）の投票を同じ一覧に出す。
- * 一覧の取得元は実アカウントの投票履歴に依存し、0 件・複数件・host/participant の組み合わせを
- * 実データで確実に用意することはできないため、`GET /v1/users/me/dish-category-group-votes` を
- * `page.route()` で固定レスポンスに差し替える。
+ * 一覧に出るのは **自分が主催した投票だけ**（参加しただけの投票は出さない）。
+ * 一覧の取得元は実アカウントの投票履歴に依存し、0 件・複数件を実データで確実に用意することは
+ * できないため、`GET /v1/users/me/dish-category-group-votes` を `page.route()` で固定レスポンスに
+ * 差し替える。
+ *
+ * ## 「参加しただけの投票を出さない」の担保場所
+ * この絞り込みは API の where 句（`host_user_id = 自分`）で行っており、ここで一覧 API を
+ * モックしている以上 web からは検証できない。除外そのものは
+ * `api/src/v1/dish-category-group-votes/dish-category-group-votes.repository.spec.ts` が固定する。
+ * web 側で担保するのは「画面が主催バッジを持たず、行のバッジが投票済み/未投票だけになった」こと。
  *
  * 投票結果画面への遷移確認は、既存の `utils/dishCategoryGroupVote.ts`（#1120 の spec 用に作られた
  * detail API のモック）をそのまま再利用する。`MOCK_SHARE_TOKEN` を一覧アイテムの shareToken に
@@ -60,7 +66,6 @@ function buildItem(overrides: Partial<MeDishCategoryGroupVoteListItem>): MeDishC
 	return {
 		id: "e2e-1505-item",
 		shareToken: "e2e-1505-share-token",
-		isHost: false,
 		hasVoted: false,
 		candidateCount: 3,
 		createdAt: "2026-08-10T00:00:00.000Z",
@@ -111,43 +116,45 @@ test.describe("グループ投票の履歴一覧 (#1505)", () => {
 		await expect(appPage.getByTestId("dish-category-group-vote-copy-share-link")).toBeVisible();
 	});
 
-	// ─ テストケース: 作成したものと参加したものが区別できる（#1505 の主旨） ─
-	// isHost=true の行にだけ「主催」バッジが出て、isHost=false の行には出ないことを、
-	// 各行にスコープしたロケータ(getByRole("link",{name})から辿った子要素)で検証する。
-	// 併せて投票済み/未投票バッジも行ごとに正しく出ていることを見る。
-	test("作成した投票と参加した投票が区別できる", async ({ appPage }) => {
-		const created = buildItem({
-			id: "e2e-1505-created",
-			shareToken: "e2e-1505-share-created",
-			isHost: true,
+	// ─ テストケース: 主催バッジは無く、投票済み/未投票だけが行ごとに出る（#1505 仕様変更） ─
+	// 一覧は主催した投票だけになったため「主催」バッジは撤去した。行に残るのは投票状態のバッジ 1 つ。
+	// 各行にスコープしたロケータ（getByRole("link",{name}) から辿った子要素）で行ごとに検証する。
+	test("主催バッジは出ず、投票済み/未投票だけが行ごとに出る", async ({ appPage }) => {
+		const notVoted = buildItem({
+			id: "e2e-1505-not-voted",
+			shareToken: "e2e-1505-share-not-voted",
 			hasVoted: false,
 			candidateCount: 3,
 			createdAt: "2026-08-10T00:00:00.000Z",
 		});
-		const joined = buildItem({
-			id: "e2e-1505-joined",
-			shareToken: "e2e-1505-share-joined",
-			isHost: false,
+		const voted = buildItem({
+			id: "e2e-1505-voted",
+			shareToken: "e2e-1505-share-voted",
 			hasVoted: true,
 			candidateCount: 5,
 			createdAt: "2026-08-05T00:00:00.000Z",
 		});
-		await mockMeDishCategoryGroupVotes(appPage, [created, joined]);
+		await mockMeDishCategoryGroupVotes(appPage, [notVoted, voted]);
 
 		const listPage = new MyDishCategoryGroupVotesPage(appPage);
 		await listPage.goto();
 		await listPage.expectLoaded();
 
-		const createdRow = listPage.item(formatItemDate(created.createdAt));
-		const joinedRow = listPage.item(formatItemDate(joined.createdAt));
+		const notVotedRow = listPage.item(formatItemDate(notVoted.createdAt));
+		const votedRow = listPage.item(formatItemDate(voted.createdAt));
 
-		// 作成した投票: 「主催」バッジが出て、まだ未投票
-		await expect(createdRow.getByText("主催", { exact: true })).toBeVisible();
-		await expect(createdRow.getByText("未投票", { exact: true })).toBeVisible();
-		await expect(createdRow.getByText("投票済み", { exact: true })).toHaveCount(0);
+		// 自分がまだ投票していない投票: 「未投票」だけ
+		await expect(notVotedRow.getByText("未投票", { exact: true })).toBeVisible();
+		await expect(notVotedRow.getByText("投票済み", { exact: true })).toHaveCount(0);
 
-		// 参加しただけの投票: 「主催」バッジは出ず、投票済み
-		await expect(joinedRow.getByText("主催", { exact: true })).toHaveCount(0);
-		await expect(joinedRow.getByText("投票済み", { exact: true })).toBeVisible();
+		// 自分も投票済みの投票: 「投票済み」だけ
+		await expect(votedRow.getByText("投票済み", { exact: true })).toBeVisible();
+		await expect(votedRow.getByText("未投票", { exact: true })).toHaveCount(0);
+
+		// 「主催」バッジは画面のどこにも無い（全行が主催なので不要になった）
+		await expect(appPage.getByText("主催", { exact: true })).toHaveCount(0);
+
+		// 候補数は日付と同じ行に畳んで表示する（#1505 密度調整）
+		await expect(notVotedRow.getByText("候補 3 件", { exact: true })).toBeVisible();
 	});
 });

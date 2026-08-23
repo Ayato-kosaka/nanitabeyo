@@ -85,8 +85,7 @@
 		"noVotes": "अभी कोई वोट नहीं है",
 		"myVotes": {
 			"pageTitle": "मेरे समूह वोट",
-			"empty": "अभी तक कोई समूह वोट नहीं",
-			"hostBadge": "होस्ट",
+			"empty": "आपने अभी तक कोई समूह वोट शुरू नहीं किया है",
 			"votedBadge": "वोट किया",
 			"notVotedBadge": "वोट नहीं किया",
 			"candidateCount": "{{count}} विकल्प",

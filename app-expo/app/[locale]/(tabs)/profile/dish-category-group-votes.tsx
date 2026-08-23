@@ -1,6 +1,11 @@
-// #1505 【設計】自分が作成/参加したグループ投票の一覧画面。
+// #1505 【設計】自分が主催したグループ投票の一覧画面。
 // profile/blocked-topics.tsx と同じ「Stack push + ScreenHeader + FlatList + cursorページング」の
 // 型に揃える。差分は「操作(ブロック解除)が無く、タップで投票詳細へ戻る」だけ。
+//
+// 【仕様】一覧は **自分が主催した投票だけ**（参加しただけの投票は出さない）。
+// 絞り込みはこの画面ではなく API 側（GET /v1/users/me/dish-category-group-votes の where 句）で
+// 行っている。ここでクライアント側の再フィルタを足さないこと（真実の置き場所を二重にしない）。
+// 全行が主催なので「主催」バッジは持たない。残すバッジは投票済み/未投票だけ。
 import React, { useCallback, useEffect, useState, useRef, memo } from "react";
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -41,27 +46,24 @@ const VoteListItem = memo(({ item, locale, onPress }: VoteListItemProps) => {
 			activeOpacity={0.7}
 			accessibilityRole="link"
 			accessibilityLabel={formattedDate}>
+			{/* #1505 【設計】日付と候補数は 1 行に畳む。行が高いと一覧が「出しすぎ」に見えるため */}
 			<View style={styles.itemMain}>
-				<Text style={styles.itemDate}>{formattedDate}</Text>
-				<Text style={styles.itemCandidateCount}>
+				<Text style={styles.itemDate} numberOfLines={1}>
+					{formattedDate}
+				</Text>
+				<Text style={styles.itemSeparator}>·</Text>
+				<Text style={styles.itemCandidateCount} numberOfLines={1}>
 					{i18n.t("DishCategoryGroupVotes.myVotes.candidateCount", { count: item.candidateCount })}
 				</Text>
 			</View>
-			<View style={styles.badgeRow}>
-				{item.isHost && (
-					<View style={[styles.badge, styles.hostBadge]}>
-						<Text style={styles.badgeText}>{i18n.t("DishCategoryGroupVotes.myVotes.hostBadge")}</Text>
-					</View>
-				)}
-				<View style={[styles.badge, item.hasVoted ? styles.votedBadge : styles.notVotedBadge]}>
-					<Text style={styles.badgeText}>
-						{i18n.t(
-							item.hasVoted
-								? "DishCategoryGroupVotes.myVotes.votedBadge"
-								: "DishCategoryGroupVotes.myVotes.notVotedBadge",
-						)}
-					</Text>
-				</View>
+			<View style={[styles.badge, item.hasVoted ? styles.votedBadge : styles.notVotedBadge]}>
+				<Text style={styles.badgeText}>
+					{i18n.t(
+						item.hasVoted
+							? "DishCategoryGroupVotes.myVotes.votedBadge"
+							: "DishCategoryGroupVotes.myVotes.notVotedBadge",
+					)}
+				</Text>
 			</View>
 		</TouchableOpacity>
 	);
@@ -168,7 +170,7 @@ export default function MyDishCategoryGroupVotesScreen() {
 			logFrontendEvent({
 				event_name: "me_dish_category_group_votes_item_pressed",
 				error_level: "log",
-				payload: { session_id: item.id, is_host: item.isHost, has_voted: item.hasVoted },
+				payload: { session_id: item.id, has_voted: item.hasVoted },
 			});
 			router.push({
 				pathname: "/[locale]/(tabs)/search/dish-category-group-votes/[shareToken]",
@@ -270,7 +272,7 @@ const styles = StyleSheet.create({
 		borderTopLeftRadius: 32,
 		borderTopRightRadius: 32,
 		overflow: "hidden",
-		paddingTop: 24,
+		paddingTop: 16,
 	},
 	loaderContainer: {
 		flex: 1,
@@ -281,14 +283,17 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 16,
 		paddingBottom: 32,
 	},
+	// #1505 【設計】行の密度。オーナー指摘「リストが出しすぎ」への暫定調整で、
+	// 縦 padding 16→10 / 行間 12→8 / 角丸 12→10 と、日付+候補数の 1 行化で行高を詰めている。
 	itemContainer: {
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "space-between",
 		backgroundColor: "#FFFFFF",
-		borderRadius: 12,
-		padding: 16,
-		marginBottom: 12,
+		borderRadius: 10,
+		paddingVertical: 10,
+		paddingHorizontal: 14,
+		marginBottom: 8,
 		shadowColor: "#000",
 		shadowOffset: { width: 0, height: 1 },
 		shadowOpacity: 0.05,
@@ -297,28 +302,30 @@ const styles = StyleSheet.create({
 	},
 	itemMain: {
 		flex: 1,
+		flexDirection: "row",
+		alignItems: "center",
 	},
 	itemDate: {
-		fontSize: 16,
+		fontSize: 15,
 		fontWeight: "600",
 		color: "#1A1A1A",
+		flexShrink: 1,
+	},
+	itemSeparator: {
+		marginHorizontal: 6,
+		fontSize: 13,
+		color: "#9CA3AF",
 	},
 	itemCandidateCount: {
-		marginTop: 4,
-		fontSize: 14,
+		fontSize: 13,
 		color: "#6B7280",
-	},
-	badgeRow: {
-		flexDirection: "row",
-		gap: 8,
+		flexShrink: 1,
 	},
 	badge: {
-		paddingHorizontal: 10,
-		paddingVertical: 4,
-		borderRadius: 8,
-	},
-	hostBadge: {
-		backgroundColor: "#FEF3C7",
+		marginLeft: 8,
+		paddingHorizontal: 8,
+		paddingVertical: 2,
+		borderRadius: 6,
 	},
 	votedBadge: {
 		backgroundColor: "#D1FAE5",
@@ -327,7 +334,7 @@ const styles = StyleSheet.create({
 		backgroundColor: "#F3F4F6",
 	},
 	badgeText: {
-		fontSize: 12,
+		fontSize: 11,
 		fontWeight: "600",
 		color: "#1A1A1A",
 	},
