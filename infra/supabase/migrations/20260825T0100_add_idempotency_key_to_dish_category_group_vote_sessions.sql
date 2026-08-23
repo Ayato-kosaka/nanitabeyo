@@ -1,5 +1,5 @@
 -- ==============================================================================
--- 20260823T0100_add_idempotency_key_to_dish_category_group_vote_sessions.sql
+-- 20260825T0100_add_idempotency_key_to_dish_category_group_vote_sessions.sql
 -- #1507 (GRP-14)
 -- ==============================================================================
 -- 【目的】
@@ -26,7 +26,7 @@
 --   (b) 同一キー再送で他人のセッション（share_token 込み）を返す漏洩経路ができる。
 --   複合にすることで「既存行を返す」経路が本人の行しか返さないことを制約レベルで保証する。
 -- - ADD CONSTRAINT は IF NOT EXISTS を取れないため、
---   20260823T0000_add_restaurant_recommendation_sync_metadata.sql:31-33 の前例に合わせて
+--   20260825T0100_add_idempotency_key_to_dish_category_group_vote_sessions.sql:31-33 の前例に合わせて
 --   CREATE UNIQUE INDEX IF NOT EXISTS で張る（Prisma も @@unique として認識するので
 --   findUnique が使える）。
 --
