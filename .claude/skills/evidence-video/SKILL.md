@@ -184,3 +184,24 @@ gh workflow run evidence-collect.yml --ref main \
 **その場合はワーカー（`access=observe` + `mcp__github__add_issue_comment`）へ投稿を任せ、
 投稿後に本文を再取得して `<img>` の数が期待枚数と一致することまで確認する。**
 詳しくは `parallel-development` スキルの「投稿した画像が実際に表示されているか検証する」節。
+
+## ⚠️ フォントが無い環境では、撮っても読めないものが出来る
+
+CI ランナー（GitHub Actions の ubuntu）には CJK フォントが入っていない。
+`playwright install --with-deps chromium` が入れるのは Latin 系のフォントだけで、
+**日本語・中国語・韓国語・アラビア語・ヒンディー語はすべて豆腐（□）になる。**
+
+2026-08-23 にこれで 6 本の PR へ読めないエビデンスを配った。ローカルのサンドボックスには
+IPAGothic が入っているため、手元で撮ったものは正常に見える。**手元で読めたことは、
+CI で読めることを保証しない。**
+
+- `scenarios/harness.mjs` の `record()` は撮る前に `fc-list :lang=<lang>` を見て、
+  字が描けないなら例外で落ちる。`record({ langs: ["ja", "ar"] })` のように、
+  その画面に出る言語を渡す（既定は `["ja"]`）
+- `claude-worker.yml` は両ジョブで `fonts-noto-cjk` / `fonts-noto-core` /
+  `fonts-noto-color-emoji` を入れ、ja/zh/ko/ar/hi のいずれかが 0 件なら run を落とす
+- 自前の環境で撮るなら先に入れる:
+  `sudo apt-get install -y fonts-noto-cjk fonts-noto-core && fc-cache -f`
+
+**撮ったら必ず PNG を Read ツールで開いて目で見ること。** 「保存できた」「URL が 200」は
+中身が読めることを何も保証しない。
