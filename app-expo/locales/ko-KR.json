@@ -578,7 +578,8 @@
 			"endDate": "종료일:",
 			"paymentProcessing": "결제 처리 중...",
 			"restaurant": "레스토랑",
-			"dishCategory": "요리 카테고리"
+			"dishCategory": "요리 카테고리",
+			"dishesAtThisRestaurant": "이 가게의 요리"
 		},
 		"tabs": {
 			"reviews": "리뷰"

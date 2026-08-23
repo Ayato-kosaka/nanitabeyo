@@ -577,7 +577,8 @@
 			"endDate": "समाप्ति तिथि:",
 			"paymentProcessing": "भुगतान प्रसंस्करण...",
 			"restaurant": "रेस्टोरेंट",
-			"dishCategory": "व्यंजन श्रेणी"
+			"dishCategory": "व्यंजन श्रेणी",
+			"dishesAtThisRestaurant": "इस रेस्तराँ के व्यंजन"
 		},
 		"tabs": {
 			"reviews": "समीक्षाएँ"

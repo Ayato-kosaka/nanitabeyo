@@ -578,7 +578,8 @@
 			"endDate": "تاريخ الانتهاء:",
 			"paymentProcessing": "معالجة الدفع...",
 			"restaurant": "مطعم",
-			"dishCategory": "فئة الطبق"
+			"dishCategory": "فئة الطبق",
+			"dishesAtThisRestaurant": "أطباق في هذا المطعم"
 		},
 		"tabs": {
 			"reviews": "المراجعات"

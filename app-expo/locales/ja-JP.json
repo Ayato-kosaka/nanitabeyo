@@ -578,7 +578,8 @@
 			"endDate": "終了日:",
 			"paymentProcessing": "決済処理中...",
 			"restaurant": "お店",
-			"dishCategory": "料理カテゴリ"
+			"dishCategory": "料理カテゴリ",
+			"dishesAtThisRestaurant": "このお店の料理"
 		},
 		"tabs": {
 			"reviews": "レビュー"

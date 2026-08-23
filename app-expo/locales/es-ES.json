@@ -578,7 +578,8 @@
 			"endDate": "Fecha de fin:",
 			"paymentProcessing": "Procesando pago...",
 			"restaurant": "Restaurante",
-			"dishCategory": "Categoría del plato"
+			"dishCategory": "Categoría del plato",
+			"dishesAtThisRestaurant": "Platos de este restaurante"
 		},
 		"tabs": {
 			"reviews": "Reseñas"

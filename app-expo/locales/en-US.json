@@ -577,7 +577,8 @@
 			"endDate": "End date:",
 			"paymentProcessing": "Processing payment...",
 			"restaurant": "Restaurant",
-			"dishCategory": "Dish category"
+			"dishCategory": "Dish category",
+			"dishesAtThisRestaurant": "Dishes at this restaurant"
 		},
 		"tabs": {
 			"reviews": "Reviews"
