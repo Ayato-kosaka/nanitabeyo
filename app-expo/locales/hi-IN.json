@@ -716,6 +716,14 @@
 	},
 	"Settings": {
 		"title": "सेटिंग्स",
+		"theme": {
+			"sectionTitle": "दिखावट",
+			"options": {
+				"system": "सिस्टम सेटिंग के अनुसार",
+				"light": "लाइट",
+				"dark": "डार्क"
+			}
+		},
 		"sendFeedback": "प्रतिक्रिया भेजें",
 		"leaveReview": "समीक्षा छोड़ें",
 		"rateDialogTitle": "क्या आपको ऐप पसंद है?",

@@ -716,6 +716,14 @@
 	},
 	"Settings": {
 		"title": "Configuración",
+		"theme": {
+			"sectionTitle": "Apariencia",
+			"options": {
+				"system": "Seguir la configuración del sistema",
+				"light": "Claro",
+				"dark": "Oscuro"
+			}
+		},
 		"sendFeedback": "Enviar comentarios",
 		"leaveReview": "Dejar reseña",
 		"rateDialogTitle": "¿Te gusta la aplicación?",

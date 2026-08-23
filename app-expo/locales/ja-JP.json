@@ -716,6 +716,14 @@
 	},
 	"Settings": {
 		"title": "設定",
+		"theme": {
+			"sectionTitle": "表示テーマ",
+			"options": {
+				"system": "システム設定に合わせる",
+				"light": "ライト",
+				"dark": "ダーク"
+			}
+		},
 		"sendFeedback": "ご意見・不具合",
 		"leaveReview": "レビューを書く",
 		"rateDialogTitle": "アプリを気に入っていただけましたか？",
