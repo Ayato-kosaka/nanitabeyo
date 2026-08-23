@@ -236,7 +236,8 @@ exports.Prisma.Dish_mediaScalarFieldEnum = {
   lock_no: 'lock_no',
   video_duration_ms: 'video_duration_ms',
   media_processing_status: 'media_processing_status',
-  thumbnail_processing_status: 'thumbnail_processing_status'
+  thumbnail_processing_status: 'thumbnail_processing_status',
+  render_type: 'render_type'
 };
 
 exports.Prisma.Dish_media_analysis_resultsScalarFieldEnum = {
@@ -251,6 +252,19 @@ exports.Prisma.Dish_media_analysis_resultsScalarFieldEnum = {
   open_map_total: 'open_map_total',
   created_at: 'created_at',
   updated_at: 'updated_at'
+};
+
+exports.Prisma.Dish_media_external_embeddingsScalarFieldEnum = {
+  dish_media_id: 'dish_media_id',
+  dish_id: 'dish_id',
+  provider: 'provider',
+  external_content_id: 'external_content_id',
+  canonical_url: 'canonical_url',
+  embed_status: 'embed_status',
+  last_verified_at: 'last_verified_at',
+  created_at: 'created_at',
+  updated_at: 'updated_at',
+  thumbnail_url: 'thumbnail_url'
 };
 
 exports.Prisma.Dish_media_impressionsScalarFieldEnum = {
@@ -582,6 +596,7 @@ exports.Prisma.ModelName = {
   dish_category_variants: 'dish_category_variants',
   dish_media: 'dish_media',
   dish_media_analysis_results: 'dish_media_analysis_results',
+  dish_media_external_embeddings: 'dish_media_external_embeddings',
   dish_media_impressions: 'dish_media_impressions',
   dish_media_likes: 'dish_media_likes',
   dish_media_views: 'dish_media_views',

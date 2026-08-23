@@ -85,7 +85,12 @@ const useHeaderCollapse = (headerHeight: number = 0) => {
 // #954 【修正】native(react-native-collapsible-tab-view)の CollapsibleRef.jumpToTab と
 // 同等の命令的タブ切替を web でも使えるよう forwardRef 化する。initialTabName(宣言的)は
 // 同名パラメータの再遷移では変化せず再発火しないため、遷移のたびに確実に切り替えるには
-// 命令的 API が必要(ProfileTabsLayout の tab パラメータ対応で使用)
+// 命令的 API が必要だった。
+//
+// ⚠️ #1402 現在、jumpToTab を呼んでいる箇所は 1 つも無い。唯一の利用者だったマイページの
+// 4 グリッドタブ（?tab= でタブを指名する仕組み）が廃止されたため。native 側の API と
+// 形を揃えるために残してあるので、web だけ先に落とさないこと（落とすなら両方の Tabs.Container を
+// «宣言的 initialTabName のみ» に揃えるのが筋）。
 const Container = React.forwardRef<{ jumpToTab: (name: string) => void }, TabsContainerProps>(function Container(
 	{
 		children,

@@ -119,6 +119,30 @@ export class OnboardingScreen {
 	}
 
 	/**
+	 * Welcome の「はじめる」を、**画面を抜けるまでタップし直しながら**押し切る。
+	 *
+	 * Welcome は紙吹雪が無限ループする（確定仕様）うえ、record_videos 有効時は
+	 * 画面録画の負荷も乗る。この状態の iOS シミュレータでは 1 回のタップが
+	 * 取りこぼされることがあり、「押したのに Welcome のまま」で後続の遷移待ちが
+	 * タイムアウトした（録画有効の run 32609985951 / 32615946840 で計 4 連続、
+	 * 録画無効の run 32605810775 では成功、という相関の実測）。
+	 * タップは冪等（markOnboardingSeen + 遷移）なので、着地確認とセットで繰り返す。
+	 *
+	 * @param exitedMatcher 遷移先で見えるはずの要素（例: 検索ヘッダのタイトル）
+	 */
+	async pressStartUntilExited(exitedMatcher: Detox.NativeMatcher, timeout = 60_000): Promise<void> {
+		await waitUntil(
+			async () => {
+				if (await visibleNow(this.startButton, 1_000)) {
+					await tapWhenPresent(this.startButton);
+				}
+				return visibleNow(exitedMatcher, 3_000);
+			},
+			{ description: "「はじめる」でアプリ本体へ戻ること", timeout },
+		);
+	}
+
+	/**
 	 * 「次へ」を **待機を挟まずに** `times` 回連打する（#1084 P3 と同じ狙い）。
 	 *
 	 * `pressNext()` の連続呼び出しでは連打にならない（Detox の同期機構が

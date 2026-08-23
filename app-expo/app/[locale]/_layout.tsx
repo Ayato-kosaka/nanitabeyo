@@ -13,6 +13,7 @@ import { CenteredAppShell } from "@/components/CenteredAppShell";
 import { HealthCheckInitializer } from "@/components/HealthCheckInitializer";
 import { PushTokenRegistration } from "@/components/PushTokenRegistration";
 import { MetaAppEventsInitializer } from "@/components/MetaAppEventsInitializer";
+import { SnsShareIntake } from "@/components/SnsShareIntake";
 import { getPaperTheme } from "@/constants/PaperTheme";
 import { useLocaleFonts } from "@/hooks/useLocaleFonts";
 import { useLocale } from "@/hooks/useLocale";
@@ -144,6 +145,9 @@ export default function RootLayout() {
 									<AuthProvider>
 										<PushTokenRegistration />
 										<MetaAppEventsInitializer />
+										{/* #1400 共有された URL の取り込み入口（UI 無し）。
+										    PR1 では受け取り口が «共有なし» を返すので no-op */}
+										<SnsShareIntake />
 										<Portal.Host>
 											<SplashHandler>
 												<HealthCheckInitializer>
@@ -153,6 +157,13 @@ export default function RootLayout() {
 														<ErrorBoundary onRetry={() => router.replace("/")}>
 															<Stack screenOptions={{ header: () => null }}>
 																<Stack.Screen name="(tabs)" options={{ header: () => null }} />
+																{/* #1375 実機確認（2 巡目）: ＋ からの取り込みは iOS ネイティブのシート
+																    （背後の画面が縮む pageSheet）で出す。下スワイプで閉じるのは
+																    ネイティブのジェスチャに任せる（自前 PanResponder は web の保険） */}
+																<Stack.Screen
+																	name="sns-import"
+																	options={{ presentation: "modal", header: () => null }}
+																/>
 																<Stack.Screen name="+not-found" />
 															</Stack>
 														</ErrorBoundary>

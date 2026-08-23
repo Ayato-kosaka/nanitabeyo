@@ -37,6 +37,12 @@ import { LEGAL_SITEMAP_ROUTES } from "@/lib/legalRoute";
  * - `profile/*` / `notifications/*` … ログイン後の個人ページ（未ログインでは中身が無い）
  * - `posts` … `?ids=` のクエリ前提のページで、クエリ無しでは表示する対象が決まらない（#721）。
  *   sitemap に載せられる安定した URL が存在しない
+ * - `sns-import` … 共有された `?url=` を受け取る画面（#1400）。`posts` と同じくクエリ前提で、
+ *   クエリ無しでは「対応している SNS はこれです」という案内しか出ない
+ *
+ * #1396 `review` / `review/selectRestaurant` はレビュータブ廃止に伴い `my-dishes` へ差し替えた。
+ * 旧 URL は `app/[locale]/review/**` に置いたリダイレクト専用ファイルが `my-dishes` へ倒すため、
+ * ここへ載せ続ける必要はない（設計確定A）。
  *
  * ⚠️ `""`（ロケールのトップ）と `search` は同じ検索画面を指す（tabs の initialRouteName が
  *    `search` のため）。`/` からのリダイレクト先が `/{locale}` であり、サイトの入口として
@@ -62,8 +68,9 @@ import { LEGAL_SITEMAP_ROUTES } from "@/lib/legalRoute";
 export const SITEMAP_ROUTES: readonly string[] = [
 	"search",
 	// #1419 "map" は外した。マップタブは `href: null` で到達不能なまま sitemap にだけ出ていた
-	"review",
-	"review/selectRestaurant",
+	// #1375 "review" / "review/selectRestaurant" も外した。レビュータブは my-dishes タブへ置き換わり、
+	// 店選択は `(tabs)` の外（`/restaurant/**`）へ移設されて locale トップ直下のルートではなくなった
+	"my-dishes",
 	...LEGAL_SITEMAP_ROUTES,
 ];
 
@@ -123,7 +130,7 @@ function escapeXml(value: string): string {
  * @param baseUrl 末尾スラッシュ無しのオリジン
  * @param locale URL prefix のロケール（例: `ja-JP`）
  * @param route locale prefix より後ろのパス（空文字はロケールのトップ）
- * @returns 例: `https://app.nanitabeyo.net/ja-JP/review/selectRestaurant`
+ * @returns 例: `https://app.nanitabeyo.net/ja-JP/my-dishes`
  */
 export function buildPageUrl(baseUrl: string, locale: string, route: string): string {
 	const path = route.replace(/^\/+/, "").replace(/\/+$/, "");

@@ -87,6 +87,9 @@ export const mockDishItems: (DishMediaEntry & {
 			created_at: "2025-08-08T17:19:02.676Z",
 			updated_at: "2025-08-08T17:19:02.676Z",
 			media_processing_status: "completed",
+			// #1395 モックは全て自ストレージ配信の既存レコード相当。
+			// "external_embed" は SNS の公式埋め込み（#1399 の取り込み）だけが使う
+			render_type: "stored",
 			thumbnail_processing_status: "completed",
 			isSaved: false,
 			isLiked: false,
@@ -197,6 +200,9 @@ export const mockDishItems: (DishMediaEntry & {
 			created_at: "2025-08-08T17:19:02.676Z",
 			updated_at: "2025-08-08T17:19:02.676Z",
 			media_processing_status: "completed",
+			// #1395 モックは全て自ストレージ配信の既存レコード相当。
+			// "external_embed" は SNS の公式埋め込み（#1399 の取り込み）だけが使う
+			render_type: "stored",
 			thumbnail_processing_status: "completed",
 			isSaved: false,
 			isLiked: false,
@@ -306,6 +312,9 @@ export const mockDishItems: (DishMediaEntry & {
 			created_at: "2025-08-08T17:19:02.676Z",
 			updated_at: "2025-08-08T17:19:02.676Z",
 			media_processing_status: "completed",
+			// #1395 モックは全て自ストレージ配信の既存レコード相当。
+			// "external_embed" は SNS の公式埋め込み（#1399 の取り込み）だけが使う
+			render_type: "stored",
 			thumbnail_processing_status: "completed",
 			isSaved: false,
 			isLiked: false,
@@ -415,6 +424,9 @@ export const mockDishItems: (DishMediaEntry & {
 			created_at: "2025-08-08T17:19:02.676Z",
 			updated_at: "2025-08-08T17:19:02.676Z",
 			media_processing_status: "completed",
+			// #1395 モックは全て自ストレージ配信の既存レコード相当。
+			// "external_embed" は SNS の公式埋め込み（#1399 の取り込み）だけが使う
+			render_type: "stored",
 			thumbnail_processing_status: "completed",
 			isSaved: false,
 			isLiked: false,
@@ -524,6 +536,9 @@ export const mockDishItems: (DishMediaEntry & {
 			created_at: "2025-08-08T17:19:02.676Z",
 			updated_at: "2025-08-08T17:19:02.676Z",
 			media_processing_status: "completed",
+			// #1395 モックは全て自ストレージ配信の既存レコード相当。
+			// "external_embed" は SNS の公式埋め込み（#1399 の取り込み）だけが使う
+			render_type: "stored",
 			thumbnail_processing_status: "completed",
 			isSaved: false,
 			isLiked: false,

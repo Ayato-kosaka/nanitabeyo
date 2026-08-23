@@ -9,6 +9,9 @@
 		"experimentalDecorators": true,
 		"emitDecoratorMetadata": true
 	},
+	// テストは dist へ出さない（配布物に持ち込まない）。型検査は `pnpm --filter shared test` が
+	// ts-node 経由で行うので、ここから外しても検査されないまま腐ることはない。
+	"exclude": ["**/__tests__/**", "dist", "node_modules"],
 	"include": [
 		"scripts/**/*",
 		"types/**/*",

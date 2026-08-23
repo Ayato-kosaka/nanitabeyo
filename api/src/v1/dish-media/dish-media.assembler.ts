@@ -10,7 +10,12 @@ import {
   buildTranscodedPath,
 } from '../../core/storage/storage.utils';
 import { DishMediaEntryEntity } from './dish-media.repository';
-import { DishMediaEntry, MediaProcessingStatus } from '@shared/v1/res';
+import {
+  DishMediaEntry,
+  DishMediaExternalEmbed,
+  MediaProcessingStatus,
+} from '@shared/v1/res';
+import type { dish_media_external_embeddings as ExternalEmbedRow } from '../../../../shared/prisma/client';
 import { env } from '../../core/config/env';
 
 import { convertPrismaToSupabase_Dishes } from '../../../../shared/converters/convert_dishes';
@@ -26,6 +31,31 @@ import { AppLoggerService } from 'src/core/logger/logger.service';
 function buildCdnUrlFromPath(gcsPath: string): string {
   return `https://${env.CDN_HOST}/${gcsPath}`;
 }
+
+/**
+ * #1395 `dish_media` に増える列。
+ *
+ * マイグレーション（20260819T0100）適用後に `prisma db pull` で
+ * `PrismaDishMedia` へ生えるが、それまでは型に存在しない。
+ * 生成物の再生成タイミングに実装を縛られないよう、**optional** の構造型として重ねる。
+ * 再生成後もそのまま代入互換なので、この宣言は消さなくてよい。
+ */
+type DishMediaRenderColumns = {
+  /** 'stored' | 'external_embed' */
+  render_type?: string | null;
+};
+
+/**
+ * サムネイル URL の組み立てに必要な最小限の列。
+ *
+ * #1395 サムネイルは全 provider について取り込み時に自ストレージへ保存する
+ * （統一キャッシュ方式）ので、`render_type` によらず必要な列はこの 3 つだけである。
+ */
+export type ThumbnailUrlSource = {
+  id: string;
+  thumbnail_path: string;
+  thumbnail_processing_status: string;
+};
 
 @Injectable()
 export class DishMediaAssembler {
@@ -59,7 +89,14 @@ export class DishMediaAssembler {
 
       const dishMediaBase = convertPrismaToSupabase_DishMedia(src.dish_media);
       const { mediaUrl } = this.getMediaUrl(src.dish_media);
-      const thumbnailImageUrl = this.getThumbnailImageUrl(src.dish_media);
+      const externalEmbed = this.toExternalEmbed(src.dish_media.externalEmbed);
+      // #1399 external_embed は自ストレージにサムネイルが無い（thumbnail_path: ''）。
+      // その場合は取り込み時に保存した外部サムネイル URL（oEmbed 由来）へ落とす。
+      // Instagram のように外部サムネイルも取れない provider では null になる
+      const thumbnailImageUrl =
+        this.getThumbnailImageUrl(src.dish_media) ??
+        externalEmbed?.thumbnailUrl ??
+        null;
       const dish_media = {
         ...dishMediaBase,
         // Explicitly add only the required additional fields for DishMediaEntry.dish_media
@@ -69,6 +106,9 @@ export class DishMediaAssembler {
         likeCount: src.dish_media.likeCount,
         mediaUrl,
         thumbnailImageUrl,
+        // #1399 render_type='external_embed' の行だけが持つ。**html は返さない**
+        // （#1375 設計の正本 §2 / #1273 §14。埋め込みは canonicalUrl から都度描く）
+        externalEmbed,
       };
 
       const dish_reviews = src.dish_reviews.map((r) => {
@@ -126,10 +166,26 @@ export class DishMediaAssembler {
    * 画像の場合:
    *   - media_processing_status が 'completed' の場合はリサイズ済みパスの Signed URL を返す
    *   - それ以外はオリジナルパスの Signed URL を返す
+   *
+   * #1395 render_type が 'external_embed' のときは自ストレージに実体が無いので
+   * 署名 URL を作らず null を返す。`mediaUrl` は既に nullable なのでレスポンス型は壊れない。
    */
-  private getMediaUrl(dishMedia: DishMediaEntryEntity['dish_media']): {
+  private getMediaUrl(
+    dishMedia: DishMediaEntryEntity['dish_media'] & DishMediaRenderColumns,
+  ): {
     mediaUrl: string | null;
   } {
+    // #1395 external_embed は自ストレージに実体が無いので署名 URL を作らない。
+    // 表示は provider 別コンポーネントが canonical_url から行う（#1273 §14）
+    if (dishMedia.render_type === 'external_embed') {
+      return { mediaUrl: null };
+    }
+    // #1395 media_path は nullable 化される（render_type='stored' のときだけ CHECK で必須）。
+    // 万一 stored なのに欠けていたら URL を作らない
+    if (!dishMedia.media_path) {
+      return { mediaUrl: null };
+    }
+
     const status =
       dishMedia.media_processing_status as MediaProcessingStatus | null;
 
@@ -175,14 +231,45 @@ export class DishMediaAssembler {
   }
 
   /**
+   * #1399 `dish_media_external_embeddings` の行を API の形へ写す。
+   *
+   * ⚠️ `thumbnailUrl` は **provider 側の URL** であって自ストレージの署名 URL ではない。
+   * 権利上サムネイルを複製できない provider があるため、参照として持っている
+   * （migration 20260822T0000 のヘッダに理由がある）。したがってここで署名は付けない。
+   */
+  private toExternalEmbed(
+    row: ExternalEmbedRow | null | undefined,
+  ): DishMediaExternalEmbed | null {
+    if (!row) return null;
+    return {
+      provider: row.provider as DishMediaExternalEmbed['provider'],
+      externalContentId: row.external_content_id,
+      canonicalUrl: row.canonical_url,
+      embedStatus: row.embed_status as DishMediaExternalEmbed['embedStatus'],
+      lastVerifiedAt: row.last_verified_at?.toISOString() ?? null,
+      thumbnailUrl: row.thumbnail_url ?? null,
+    };
+  }
+
+  /**
    * #511 【設計】dish_media エンティティからサムネイル画像の URL を生成
    *
    * thumbnail_processing_status が 'completed' の場合はリサイズ済みパスを返す
    * それ以外はオリジナルパスを返す
+   *
+   * #1395 Map ピンのように `DishMediaEntry` を丸ごと組み立てない経路からも
+   * 同じ規則を使えるよう public にしてある（サムネイル URL の組み立てを 2 箇所に持たない）。
+   *
+   * ⚠️ #1399 `thumbnail_path` が空の行では **null を返す**。SNS 取り込み
+   * （render_type='external_embed'）は自ストレージにサムネイルを持たず
+   * `thumbnail_path: ''` で作られる。ここを guard しないと
+   * `buildResizedPath` が `Invalid originalPath` を throw し、その行を含む
+   * **一覧・フィード全体が 500 になる**（実際に my-dishes が
+   * 「データの読み込みに失敗しました」で全滅した）。
    */
-  private getThumbnailImageUrl(
-    dishMedia: DishMediaEntryEntity['dish_media'],
-  ): string {
+  public getThumbnailImageUrl(dishMedia: ThumbnailUrlSource): string | null {
+    if (!dishMedia.thumbnail_path) return null;
+
     const status =
       dishMedia.thumbnail_processing_status as MediaProcessingStatus | null;
 

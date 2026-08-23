@@ -81,8 +81,9 @@ describeMutation("グループ投票の履歴一覧 @mutation (#1505)", () => {
 		});
 
 		await tabBar.gotoProfile();
-		await profileScreen.gotoSettings();
-		await settingsScreen.expectLoaded();
+		// #1402 で独立した設定画面は無くなり、設定項目はマイページの縦リストへ統合された。
+		// 「グループ投票の履歴」行もそこに並ぶので、歯車を経由せずマイページから直接タップする。
+		await profileScreen.expectLoaded();
 		await settingsScreen.openMyGroupVotes();
 
 		await myGroupVotesScreen.expectLoaded();

@@ -153,6 +153,41 @@ export class DishCategoryVariantsRepository {
   }
 
   /**
+   * #1399 照合用に `dish_category_variants` を**全件**読む（読み取りのみ）。
+   *
+   * 既存の `findDishCategoryVariants` は `surface_form LIKE ($q || '%')` の**前方一致**で、
+   * 「ユーザーが打った文字で始まる表記を探す」向きである。SNS のキャプションから
+   * 料理名を拾う用途は**向きが逆**（長文の中に含まれる表記を探す）なので、既存の索引が効かない。
+   *
+   * そこで辞書側を丸ごと持ってきて `shared/utils/dishCategoryMatch.ts` の純関数に渡す。
+   * 実データは約 5,000 行 / 66 KiB の見込み（#1399 独立レビュー M-4。ただし
+   * **この数値は本 DB で検証されていない**ので、`take` で上限を切って青天井にはしない）。
+   *
+   * 呼び出し側（`DishCategoryVariantDictionaryService`）が TTL つきでキャッシュするので、
+   * import のたびに全件読みが走るわけではない。
+   */
+  async findAllVariantsForMatching(limit: number) {
+    const result = await this.prisma.prisma.dish_category_variants.findMany({
+      select: {
+        dish_category_id: true,
+        surface_form: true,
+        source: true,
+      },
+      // 決定的な順序にしておく。上限に当たったときに毎回違う辞書が載るのを避ける
+      orderBy: { surface_form: 'asc' },
+      take: limit,
+    });
+
+    this.logger.debug('AllVariantsLoaded', 'findAllVariantsForMatching', {
+      count: result.length,
+      limit,
+      truncated: result.length >= limit,
+    });
+
+    return result;
+  }
+
+  /**
    * 料理カテゴリ一覧を取得
    */
   async getDishCategories() {

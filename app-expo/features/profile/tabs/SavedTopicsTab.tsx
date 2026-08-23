@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect } from "react";
-import { View, Text, StyleSheet } from "react-native";
-import { router, useLocalSearchParams } from "expo-router";
+import { router } from "expo-router";
 import { SaveTopicTab } from "./save/SaveTopicTab";
 import i18n from "@/lib/i18n";
 import { useAPICall } from "@/hooks/useAPICall";
@@ -12,14 +11,18 @@ import type { QueryMeSavedDishCategoriesResponse } from "@shared/api/v1/res";
 import { useTopicsStore, selectTopicIdsByKey, DishCategory } from "@/stores/useTopicsStore";
 import { shallow } from "zustand/shallow";
 
-interface SavedTopicsTabProps {
-	isOwnProfile: boolean;
-}
-
 export const profileSavedTopicsEntriesKey = "profileSavedTopics";
 
-export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
-	const { userId } = useLocalSearchParams();
+/**
+ * 保存した料理カテゴリのグリッド。
+ *
+ * #1402 【設計】マイページの 4 グリッドタブを廃止し、このグリッドは
+ * `/[locale]/profile/saved-topics` という «単独のルート» の中身になった。
+ * それに伴い `isOwnProfile` 分岐（他人のプロフィールでの非公開表示）を落としている。
+ * このアプリには他ユーザーのプロフィールを開く導線が存在せず（#1402 で調査済み）、
+ * 呼び出し側は常に自分のマイページだったため、常に false になり得ない分岐だった。
+ */
+export function SavedTopicsTab() {
 	const { locale } = useLocale();
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
@@ -135,16 +138,6 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 		});
 	}, [lightImpact, locale, logFrontendEvent]);
 
-	if (!isOwnProfile) {
-		return (
-			<View style={styles.privateContainer}>
-				<View style={styles.privateCard}>
-					<Text style={styles.privateText}>{i18n.t("Profile.privateContent")}</Text>
-				</View>
-			</View>
-		);
-	}
-
 	return (
 		<SaveTopicTab
 			topicIds={topicIds}
@@ -158,32 +151,8 @@ export function SavedTopicsTab({ isOwnProfile }: SavedTopicsTabProps) {
 			onRetry={handleRefresh}
 			emptyActionLabel={i18n.t("Profile.buttons.searchByMood")}
 			onEmptyAction={handleSearchByMood}
+			// #1402 タブのペインではなく単独ルートの中身になったため collapsible-tabs の外で描画される
+			standalone
 		/>
 	);
 }
-
-const styles = StyleSheet.create({
-	privateContainer: {
-		flex: 1,
-		paddingHorizontal: 16,
-	},
-	privateCard: {
-		backgroundColor: "#FFFFFF",
-		borderRadius: 20,
-		padding: 32,
-		alignItems: "center",
-		justifyContent: "center",
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 0 },
-		shadowOpacity: 0.08,
-		shadowRadius: 16,
-		elevation: 4,
-	},
-	privateText: {
-		fontSize: 17,
-		color: "#6B7280",
-		marginTop: 16,
-		fontWeight: "500",
-		textAlign: "center",
-	},
-});

@@ -50,7 +50,7 @@ export function RestaurantReviewsTab({ restaurantId, onItemPress }: RestaurantRe
 	// false のまま `isLoading` を false へ戻すので（stores/useDishMediaEntriesStore.ts の
 	// handleAsyncAction）、error を見ないと **失敗するたびに再取得して無限ループする**。
 	// #1388 のレビュー指摘: 同じ entriesKey・同じ fetcher を使う feed ルート
-	// （app/[locale]/(tabs)/review/restaurant/[restaurantId]/feed.tsx）にはこのガードが
+	// （app/[locale]/restaurant/[restaurantId]/feed.tsx）にはこのガードが
 	// 入っていたが、こちら側だけ抜けていた。«同じものが 2 つあって片方だけ直る» 形なので揃える
 	useEffect(() => {
 		if (restaurantId && !hasFetchedInitial && !isLoading && !error) {
@@ -82,7 +82,7 @@ export function RestaurantReviewsTab({ restaurantId, onItemPress }: RestaurantRe
 				<ImageCard
 					item={{
 						id: entry.dish_media.id,
-						imageUrl: entry.dish_media.thumbnailImageUrl,
+						imageUrl: entry.dish_media.thumbnailImageUrl ?? "",
 						title: entry.dish.name ?? undefined,
 					}}
 					onPress={() => handleItemPress(index, entry.dish_media.id)}>
