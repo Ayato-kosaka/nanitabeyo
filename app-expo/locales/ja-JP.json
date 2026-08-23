@@ -415,6 +415,9 @@
 		},
 		"info": {
 			"walkFromShibuya": "渋谷駅から徒歩13分"
+		},
+		"embed": {
+			"play": "{{provider}}で再生"
 		}
 	},
 	"ImageCardGrid": {

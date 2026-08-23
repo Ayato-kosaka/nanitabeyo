@@ -415,6 +415,9 @@
 		},
 		"info": {
 			"walkFromShibuya": "A 13 min a pie de la estación de Shibuya"
+		},
+		"embed": {
+			"play": "Reproducir en {{provider}}"
 		}
 	},
 	"ImageCardGrid": {

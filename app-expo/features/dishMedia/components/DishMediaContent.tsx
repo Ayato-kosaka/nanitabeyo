@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Image } from "expo-image";
 import VideoPlayer from "../../../components/VideoPlayer";
+import { ExternalEmbedPlayer } from "./ExternalEmbedPlayer";
 import { ActionButtons } from "./ActionButtons";
 import { DishReviewsSection } from "./DishReviewsSection";
 import { useMediaTracking } from "../hooks/useMediaTracking";
@@ -245,6 +246,13 @@ export default function DishMediaContent({
 							onProgress={handleVideoProgress}
 							onLoop={handleVideoLoop}
 						/>
+					)}
+					{/* #1375 4 巡目実機確認: SNS 取り込み（render_type='external_embed'）の再生。
+					    mediaUrl は自ストレージに実体が無いので常に null。ここが無いと
+					    取り込んだリールは «サムネイルが出るだけで再生できない»（実機で指摘された）。
+					    web は iframe、ネイティブは WebView（ビルドに在れば）/ アプリ内ブラウザで再生する */}
+					{dishMediaEntry.dish_media.externalEmbed && !isProcessing && !isFailed && (
+						<ExternalEmbedPlayer embed={dishMediaEntry.dish_media.externalEmbed} isActive={isActive} />
 					)}
 				</Animated.View>
 			</GestureDetector>

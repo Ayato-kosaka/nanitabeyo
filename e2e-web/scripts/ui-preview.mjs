@@ -87,6 +87,39 @@ const LONG_CAPTION = [
   "■ご紹介したメニュー",
   "・中華そば：800円（税込）",
 ].join("\n");
+// #1375 4巡目: 取り込んだリール（render_type='external_embed'）の再生確認用エントリ
+const EMBED_ENTRY = {
+  restaurant: {
+    id: "r-embed", name: "中華そば専門店 八王子ラーメンよしだ", name_language_code: "ja",
+    image_url: "https://img.example.invalid/r.jpg", image_path: null,
+    google_place_id: "place_embed", created_at: "2026-08-01T00:00:00Z",
+    latitude: 35.6577, longitude: 139.341, location: null, address_components: null, plus_code: null,
+  },
+  dish: {
+    id: "dish-embed", name: "ラーメン", restaurant_id: "r-embed", category_id: "Q1",
+    created_at: "2026-08-01T00:00:00Z", updated_at: "2026-08-01T00:00:00Z", lock_no: 1,
+    reviewCount: 0, averageRating: 0,
+  },
+  dish_media: {
+    id: "media-embed-1", dish_id: "dish-embed", media_path: null, thumbnail_path: "",
+    media_type: "image", user_id: null, lock_no: 1,
+    created_at: "2026-08-01T00:00:00Z", updated_at: "2026-08-01T00:00:00Z",
+    media_processing_status: "completed", thumbnail_processing_status: "completed",
+    render_type: "external_embed",
+    isSaved: true, isLiked: false, likeCount: 0, isMine: false,
+    mediaUrl: null,
+    thumbnailImageUrl: "https://img.example.invalid/t.jpg",
+    video_duration_ms: null,
+    externalEmbed: {
+      provider: "instagram", externalContentId: "DZnIRziT70s",
+      canonicalUrl: "https://www.instagram.com/reel/DZnIRziT70s/",
+      embedStatus: "available", lastVerifiedAt: null,
+      thumbnailUrl: "https://img.example.invalid/t.jpg",
+    },
+  },
+  dish_reviews: [],
+};
+
 const resolveResponse = {
   status: "ok", reason: "resolved",
   source: { provider: "instagram", externalContentId: "DZFdePPzzLI", canonicalUrl: "https://www.instagram.com/reel/DZFdePPzzLI/", mediaIndex: null },
@@ -139,6 +172,15 @@ await context.route("**/maps.googleapis.com/**", (r) => {
   return r.fulfill({ json: {} });
 });
 await context.route("**/img.example.invalid/**", (r) => r.fulfill({ contentType: "image/png", body: PNG }));
+// ⚠️ このサンドボックスのプロキシは Chromium→instagram.com を遮断する（実測 ERR_CONNECTION_RESET。
+// curl では届くのでアプリ側の問題ではない）。埋め込み «ページ» をスタブし、
+// iframe の生成・サイズ・重なり順（本アプリ側の責務）だけを目視検証する
+await context.route("**/www.instagram.com/**", (r) =>
+  r.fulfill({
+    contentType: "text/html",
+    body: `<html><body style="margin:0;background:#000;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif"><div style="text-align:center"><div style="width:220px;height:220px;border:3px solid #E1306C;border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px">▶ Instagram embed<br/>(stub)</div>DZnIRziT70s</div></body></html>`,
+  }),
+);
 await context.route("**/localhost:9999/**", (r) => {
   const u = new URL(r.request().url());
   const p = u.pathname;
@@ -146,6 +188,14 @@ await context.route("**/localhost:9999/**", (r) => {
   if (p.endsWith("/health")) return env({ status: "ok" });
   if (p.endsWith("/v1/users/me/dishes")) return env({ data: page1, nextCursor: null, meta: { oldestOccurredAt: iso(1, 1) } });
   if (p.endsWith("/v1/dish-media/imports/resolve")) return env(resolveResponse);
+  if (p.endsWith("/v1/dish-media") && u.searchParams.has("ids")) {
+    // 要求された id を echo する（id が食い違うとフィード側の突き合わせで 0 件になる）
+    const ids = (u.searchParams.get("ids") ?? "").split(",").filter(Boolean);
+    return env({
+      items: ids.map((id) => ({ ...EMBED_ENTRY, dish_media: { ...EMBED_ENTRY.dish_media, id } })),
+      notFound: [],
+    });
+  }
   if (p.includes("/v1/logs")) return env({});
   return env({});
 });
@@ -205,5 +255,18 @@ await shot("sns-import-caption-expanded");
 await page.mouse.wheel(0, 600);
 await page.waitForTimeout(800);
 await shot("sns-import-resolved-bottom");
+
+// 4. 取り込んだリールの再生（external_embed → web は iframe）。
+// 実ユーザー経路: カレンダー → 日付タップ → フィード（client-side 遷移で store を保つ）
+await goto("/ja-JP/my-dishes?view=calendar");
+await page.getByTestId("my-dishes-calendar-list").waitFor({ timeout: 120000 }).catch((e) => console.log("cal wait:", e.message));
+await page.waitForTimeout(2500);
+await page.getByTestId("my-dishes-calendar-day").first().click().catch((e) => console.log("day click:", e.message));
+await page.waitForTimeout(5000);
+const iframeCount = await page.locator("iframe").count();
+console.log("embed iframes:", iframeCount);
+await shot("embed-feed");
+await page.waitForTimeout(4000);
+await shot("embed-feed-loaded");
 
 await browser.close();

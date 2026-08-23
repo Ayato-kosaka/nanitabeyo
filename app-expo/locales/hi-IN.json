@@ -415,6 +415,9 @@
 		"errors": {
 			"mapOpenFailed": "मानचित्र ऐप नहीं खोल सका",
 			"mediaUnavailable": "यह मीडिया अभी उपलब्ध नहीं है।"
+		},
+		"embed": {
+			"play": "{{provider}} पर चलाएँ"
 		}
 	},
 	"ImageCardGrid": {

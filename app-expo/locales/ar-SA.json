@@ -415,6 +415,9 @@
 		"errors": {
 			"mapOpenFailed": "تعذر فتح تطبيق الخرائط",
 			"mediaUnavailable": "هذا المحتوى غير متاح حالياً."
+		},
+		"embed": {
+			"play": "التشغيل على {{provider}}"
 		}
 	},
 	"ImageCardGrid": {
