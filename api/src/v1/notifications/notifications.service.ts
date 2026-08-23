@@ -26,6 +26,7 @@ import { DishMediaService } from '../dish-media/dish-media.service';
 import { UsersAssembler } from '../users/users.assembler';
 import { DishMediaRepository } from '../dish-media/dish-media.repository';
 import { convertPrismaToSupabase_DishReviews } from '../../../../shared/converters/convert_dish_reviews';
+import { toNullableId } from '../../core/utils/backend-utils';
 
 @Injectable()
 export class NotificationsService {
@@ -92,7 +93,11 @@ export class NotificationsService {
         ...items
           .filter((item) => item.notifications.target_table === 'dish_media')
           .map((item) => item.notifications.target_id),
-        ...reviews.map((review) => review.created_dish_media_id),
+        // #1395 写真なしの「食べた」記録では created_dish_media_id が NULL になる。
+        // 落としておかないと dish_media.findMany({ where: { id: { in: [null] } } }) になる
+        ...reviews
+          .map((review) => toNullableId(review.created_dish_media_id))
+          .filter((id): id is string => id !== null),
       ]),
     );
     const { items: dishMediaItems } =
@@ -137,7 +142,10 @@ export class NotificationsService {
     const review = reviewMap.get(item.notifications.target_id);
     if (!review) return undefined;
 
-    const dishME = dishMediaMap.get(review.created_dish_media_id);
+    // #1395 写真なしレビューへのいいね通知では紐づくメディアが無い。
+    // 通知自体は残り、サムネイルだけが出ない（フロントはサムネイル欠落を許容すること）
+    const mediaId = toNullableId(review.created_dish_media_id);
+    const dishME = mediaId === null ? undefined : dishMediaMap.get(mediaId);
     if (!dishME) return undefined;
 
     return {

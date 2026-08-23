@@ -19,10 +19,12 @@ interface EmptyStateProps {
 
 /**
  * #947 【仕様】空状態(データ0件)/エラー状態の共通UI。
- * LikeTab/SavedPostsTab/SaveTopicTab/ReviewTab/blocked-topics で同じ見た目・スタイルが
- * 4箇所以上コピペされており、CTAがあるのもLikeTabだけだった。ここに集約し、
+ * LikeTab/SaveTopicTab/blocked-topics 等で同じ見た目・スタイルが 4箇所以上コピペされており、
+ * CTAがあるのもLikeTabだけだった。ここに集約し、
  * 各画面には「何を表示するか(message/actionLabel/onAction)」だけを渡させる。
  * CTAはPrimaryButton経由にすることでrole/label/disabled状態のアクセシビリティを担保する。
+ *
+ * （#1402 でマイページの 4 グリッドタブを廃止し、SavedPostsTab / ReviewTab は撤去された）
  */
 export function EmptyState({ message, actionLabel, onAction, error, onRetry, testID }: EmptyStateProps) {
 	const isError = !!error;

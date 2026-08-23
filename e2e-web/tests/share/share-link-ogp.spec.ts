@@ -133,7 +133,7 @@ test.describe("共有リンクの OGP(#721) @mutation", () => {
 
 		expect(status).toBe(404);
 		// catch-all に落ちていれば 200 で index.html が返る。404 であること自体が検知点
-		expect(body).not.toContain("<meta property=\"og:type\" content=\"article\">");
+		expect(body).not.toContain('<meta property="og:type" content="article">');
 	});
 });
 

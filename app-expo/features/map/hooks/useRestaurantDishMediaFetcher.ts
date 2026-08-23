@@ -9,7 +9,7 @@ import type { QueryRestaurantDishMediaResponse } from "@shared/api/v1/res";
  * `useDishMediaEntriesStore` のページネーション API へ渡す形で引く fetcher。
  *
  * #1386 【設計】店詳細のレビュータブ（`features/map/components/tabs/RestaurantReviewsTab.tsx`）と、
- * そこから開くフィードのルート（`app/[locale]/(tabs)/review/restaurant/[restaurantId]/feed.tsx`）の
+ * そこから開くフィードのルート（`app/[locale]/restaurant/[restaurantId]/feed.tsx`）の
  * 2 箇所で必要になったので切り出した。フィードはルートなので **URL 直リンク / リロードで
  * 単独で着地しうる**（旧実装は BlurModal で、常にレビュータブが先に読み込んでいた）。
  * その場合はフィード側が自分で初回読み込みを行う必要があり、同じキー・同じエンドポイントで

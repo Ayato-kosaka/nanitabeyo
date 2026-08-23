@@ -66,7 +66,7 @@ describe("resolveNextPath", () => {
 		// そのまま使うと、ログインを挟んだ瞬間だけ表示言語が変わる
 		it.each([
 			["/en-US/profile", "/ja-JP/profile"],
-			["/en-US/review/restaurant/abc/review", "/ja-JP/review/restaurant/abc/review"],
+			["/en-US/restaurant/abc/review", "/ja-JP/restaurant/abc/review"],
 			["/ja/posts", "/ja-JP/posts"],
 			["/zh-Hant-TW/search", "/ja-JP/search"],
 		])("%s → %s（locale を差し替える）", (next, expected) => {

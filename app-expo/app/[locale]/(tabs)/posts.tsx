@@ -14,9 +14,13 @@ import { SeoOverride } from "@/contexts/SeoContext/SeoProvider";
 import { resolvePublicLocale, SITE_NAME_BY_PUBLIC_LOCALE } from "@/constants/seoLocales";
 
 export default function PostsScreen() {
-	const { ids, entriesKey: entriesKeyParam } = useLocalSearchParams<{ ids?: string | string[]; entriesKey?: string | string[] }>();
+	const { ids, entriesKey: entriesKeyParam } = useLocalSearchParams<{
+		ids?: string | string[];
+		entriesKey?: string | string[];
+	}>();
 	const { callBackend } = useAPICall();
-	const entriesKey = typeof entriesKeyParam === "string" && entriesKeyParam.length > 0 ? entriesKeyParam : "PostsScreen";
+	const entriesKey =
+		typeof entriesKeyParam === "string" && entriesKeyParam.length > 0 ? entriesKeyParam : "PostsScreen";
 
 	const [seoData, setSeoData] = useState<SeoOverride["data"]>({});
 
@@ -40,7 +44,7 @@ export default function PostsScreen() {
 					setSeoData({
 						title: SITE_NAME_BY_PUBLIC_LOCALE[resolvePublicLocale(i18n.locale)] + " - " + res.items[0].restaurant.name,
 						...(res.items[0].dish_reviews.length > 0 ? { description: res.items[0].dish_reviews[0].comment } : {}),
-						image: res.items[0].dish_media.thumbnailImageUrl,
+						image: res.items[0].dish_media.thumbnailImageUrl ?? undefined,
 						imageAlt: res.items[0].restaurant.name,
 					});
 
