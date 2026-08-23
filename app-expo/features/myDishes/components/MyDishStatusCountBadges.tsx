@@ -1,12 +1,7 @@
 import React, { memo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-import {
-	MY_DISH_STATUS_COLORS,
-	MY_DISH_STATUS_ON_COLOR,
-	type MyDishStatusCounts,
-} from "@/features/myDishes/statusColors";
-import { FixedColors } from "@/constants/Palette";
+import { MY_DISH_STATUS_COLORS, type MyDishStatusCounts } from "@/features/myDishes/statusColors";
 
 /**
  * #1375 実機確認（5 巡目）: 「食べたい（緑）/ 食べた（赤）が何件か」を、
@@ -23,11 +18,11 @@ import { FixedColors } from "@/constants/Palette";
  *
  * «食べたい 0 / 食べた 3» の店に «0» を出しても読む手間が増えるだけである。
  *
- * ## 白い縁を必ず付ける
+ * ## 縁を必ず付ける
  *
  * バッジは **写真の上**に載る。赤い料理の写真に赤いバッジを重ねると輪郭が溶けて
  * 数が読めなくなる（撮って確かめたとき実際にそうなった）。
- * 選択済みバッジ（`FixedColors.badgeBorder`）と同じ考え方で白い縁を回す。
+ * 縁の色は状態ごとに違う（赤塗りには白縁、白塗りには赤縁）ので `statusColors` から 1 組で取る。
  */
 export const MyDishStatusCountBadges = memo(function MyDishStatusCountBadges({
 	counts,
@@ -49,8 +44,16 @@ export const MyDishStatusCountBadges = memo(function MyDishStatusCountBadges({
 					<View
 						key={status}
 						testID={`${testIDPrefix}-${status}`}
-						style={[metrics, { backgroundColor: MY_DISH_STATUS_COLORS[status] }]}>
-						{counts[status] > 1 ? <Text style={textStyle}>{counts[status]}</Text> : null}
+						style={[
+							metrics,
+							{
+								backgroundColor: MY_DISH_STATUS_COLORS[status].fill,
+								borderColor: MY_DISH_STATUS_COLORS[status].border,
+							},
+						]}>
+						{counts[status] > 1 ? (
+							<Text style={[textStyle, { color: MY_DISH_STATUS_COLORS[status].on }]}>{counts[status]}</Text>
+						) : null}
 					</View>
 				) : null,
 			)}
@@ -71,7 +74,6 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 3,
 		borderRadius: 7,
 		borderWidth: 1.5,
-		borderColor: FixedColors.badgeBorder,
 		alignItems: "center",
 		justifyContent: "center",
 	},
@@ -81,18 +83,16 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 4,
 		borderRadius: 8.5,
 		borderWidth: 1.5,
-		borderColor: FixedColors.badgeBorder,
 		alignItems: "center",
 		justifyContent: "center",
 	},
+	// 色は状態ごとに `statusColors` から重ねる（白塗りには赤文字、赤塗りには白文字）
 	textSm: {
 		fontSize: 9,
 		fontWeight: "700",
-		color: MY_DISH_STATUS_ON_COLOR,
 	},
 	textMd: {
 		fontSize: 10,
 		fontWeight: "700",
-		color: MY_DISH_STATUS_ON_COLOR,
 	},
 });

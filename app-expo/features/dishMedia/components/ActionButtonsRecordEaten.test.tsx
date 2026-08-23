@@ -228,7 +228,7 @@ describe("#1375 記録済みの色", () => {
 		const tree = await render(
 			<ActionButtons id={DISH_MEDIA_ID} idType="dish_media" onLayout={() => {}} buttonsGesture={{} as never} />,
 		);
-		expect(eatenIconColor(tree)).toBe(MY_DISH_STATUS_COLORS.eaten);
+		expect(eatenIconColor(tree)).toBe(MY_DISH_STATUS_COLORS.eaten.fill);
 		const button = tree.root.find((node) => node.props?.testID === "dish-action-eaten");
 		expect(button.props["aria-selected"]).toBe(true);
 		expect(button.props.accessibilityLabel).toBe("DishMediaContent.accessibility.recordEatenAgain");

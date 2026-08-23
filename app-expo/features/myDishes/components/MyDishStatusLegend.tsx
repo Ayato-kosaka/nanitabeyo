@@ -28,7 +28,15 @@ export const MyDishStatusLegend = memo(function MyDishStatusLegend({
 			importantForAccessibility="no-hide-descendants">
 			{(["want", "eaten"] as const).map((status) => (
 				<View key={status} style={styles.item}>
-					<View style={[styles.dot, { backgroundColor: MY_DISH_STATUS_COLORS[status] }]} />
+					<View
+						style={[
+							styles.dot,
+							{
+								backgroundColor: MY_DISH_STATUS_COLORS[status].fill,
+								borderColor: MY_DISH_STATUS_COLORS[status].border,
+							},
+						]}
+					/>
 					<Text style={styles.label}>{i18n.t(`MyDishes.filters.status.${status}`)}</Text>
 				</View>
 			))}
@@ -48,10 +56,13 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		gap: 5,
 	},
+	// 塗りの有無で区別するので、凡例の丸にも必ず枠を描く
+	// （白塗りの側は枠が無いと «何も無い» に見える）
 	dot: {
-		width: 9,
-		height: 9,
+		width: 10,
+		height: 10,
 		borderRadius: 5,
+		borderWidth: 1.5,
 	},
 	label: {
 		fontSize: 11,

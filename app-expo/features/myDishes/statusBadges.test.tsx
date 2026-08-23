@@ -49,13 +49,19 @@ describe("#1375 食べたい=緑 / 食べた=赤 の内訳表示", () => {
 		expect(countMyDishStatuses([])).toEqual({ want: 0, eaten: 0 });
 	});
 
-	it("色は statusColors の 1 箇所が正（緑と赤が別の値であること）", () => {
-		expect(MY_DISH_STATUS_COLORS.want).not.toBe(MY_DISH_STATUS_COLORS.eaten);
-		expect(MY_DISH_STATUS_COLORS.want).toMatch(/22,163,74/);
-		expect(MY_DISH_STATUS_COLORS.eaten).toMatch(/240,85,55/);
+	it("色は statusColors の 1 箇所が正: 食べたい = 白塗り赤枠 / 食べた = 赤塗り", () => {
+		// #1375（5 巡目）オーナー指示で «緑 / 赤» の色相分けから «塗りの有無» へ変えた。
+		// 白塗りの側は文字も枠も赤でなければ読めないので、3 つ組が揃っていることまで見る
+		expect(MY_DISH_STATUS_COLORS.want.fill).toBe("#FFFFFF");
+		expect(MY_DISH_STATUS_COLORS.want.border).toBe(MY_DISH_STATUS_COLORS.eaten.fill);
+		expect(MY_DISH_STATUS_COLORS.want.on).toBe(MY_DISH_STATUS_COLORS.eaten.fill);
+		expect(MY_DISH_STATUS_COLORS.eaten.on).toBe("#FFFFFF");
+		// 「白地に白文字」を作れないこと
+		expect(MY_DISH_STATUS_COLORS.want.fill).not.toBe(MY_DISH_STATUS_COLORS.want.on);
+		expect(MY_DISH_STATUS_COLORS.eaten.fill).not.toBe(MY_DISH_STATUS_COLORS.eaten.on);
 	});
 
-	it("凡例は «食べたい» と «食べた» の 2 つを、それぞれの色の丸つきで出す", () => {
+	it("凡例は «食べたい» と «食べた» の 2 つを、それぞれの塗りの丸つきで出す", () => {
 		const tree = render(<MyDishStatusLegend />);
 		const dots = tree.root.findAll(
 			(node) =>
@@ -66,7 +72,9 @@ describe("#1375 食べたい=緑 / 食べた=赤 の内訳表示", () => {
 						typeof s === "object" &&
 						s !== null &&
 						"backgroundColor" in (s as Record<string, unknown>) &&
-						Object.values(MY_DISH_STATUS_COLORS).includes((s as { backgroundColor: string }).backgroundColor),
+						Object.values(MY_DISH_STATUS_COLORS)
+							.map((paint) => paint.fill)
+							.includes((s as { backgroundColor: string }).backgroundColor),
 				),
 		);
 		expect(dots).toHaveLength(2);

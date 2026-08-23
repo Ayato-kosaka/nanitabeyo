@@ -108,7 +108,10 @@ const MyDishCard = memo(function MyDishCard({
 				pointerEvents="box-none">
 				<View style={styles.badgeRow}>
 					<View style={[styles.statusBadge, item.status === "want" ? styles.statusWant : styles.statusEaten]}>
-						<Text style={styles.statusBadgeText}>{i18n.t(`MyDishes.filters.status.${item.status}`)}</Text>
+						{/* 白塗りの側は文字も赤でなければ読めない。色は statusColors から 1 組で取る */}
+						<Text style={[styles.statusBadgeText, { color: MY_DISH_STATUS_COLORS[item.status].on }]}>
+							{i18n.t(`MyDishes.filters.status.${item.status}`)}
+						</Text>
 					</View>
 					{/* #1398 PR5 実画像へフォールバックしても「写真なし」自体は分かるようにする */}
 					{source && isNoPhoto && (
@@ -305,16 +308,20 @@ const styles = StyleSheet.create({
 		fontWeight: "700",
 		color: "#FFFFFF",
 	},
+	// #1375（5 巡目）塗りの有無で区別する: 食べたい = 白塗り赤枠 / 食べた = 赤塗り
 	statusWant: {
-		backgroundColor: MY_DISH_STATUS_COLORS.want,
+		backgroundColor: MY_DISH_STATUS_COLORS.want.fill,
+		borderWidth: 1,
+		borderColor: MY_DISH_STATUS_COLORS.want.border,
 	},
 	statusEaten: {
-		backgroundColor: MY_DISH_STATUS_COLORS.eaten,
+		backgroundColor: MY_DISH_STATUS_COLORS.eaten.fill,
+		borderWidth: 1,
+		borderColor: MY_DISH_STATUS_COLORS.eaten.border,
 	},
 	statusBadgeText: {
 		fontSize: 10,
 		fontWeight: "700",
-		color: "#FFFFFF",
 	},
 	footer: {
 		position: "absolute",

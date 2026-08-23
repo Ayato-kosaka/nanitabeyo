@@ -1,27 +1,45 @@
 import type { MyDishStatus } from "@shared/api/v1/dto";
 
 /**
- * #1375 実機確認（5 巡目）: 「食べたい = 緑丸 / 食べた = 赤丸」を my-dishes 全体の共通語彙にする。
+ * #1375 my-dishes 全体で «食べたい / 食べた» を表す記号色。
  *
- * 2 巡目で myDishCard と MyDishesListView のバッジに色を入れたとき、同じ値を 2 ファイルへ
- * 直書きし「必ず一致させること」とコメントで縛っていた。5 巡目でカレンダーの日バッジ・
- * 地図の帯カード・凡例と使う場所が 4 つ増えるので、値の正をここ 1 箇所へ寄せる。
+ * ## 塗りで区別する（色相では区別しない）— 5 巡目のオーナー指示
  *
- * ## 色の根拠（`docs/design-guidelines.md` §1 のパレット）
+ * | 状態 | 見た目 |
+ * | --- | --- |
+ * | want（食べたい） | **白塗り + 赤枠**（まだ埋まっていない = これから） |
+ * | eaten（食べた） | **赤塗り**（埋まった = 済んだ） |
  *
- * - want  … `rgba(22,163,74,0.9)`  「まだ行っていない（Go）」の緑。既存バッジと同値
- * - eaten … `rgba(240,85,55,0.9)`  ブランド `#F05537` の 90%。既存バッジと同値
+ * 2 巡目〜5 巡目の途中までは «緑 = 食べたい / 赤 = 食べた» の色相分けだった。
+ * オーナー指示で塗りの有無へ変えている。塗りの差は色覚に依存せず、
+ * サムネイルの上でも «埋まっているか» が形として読める。
  *
  * ⚠️ これは **状態を区別するための記号色**であって、「赤を CTA 以外へ広げてよい」という
- * 意味ではない。新しい画面へ赤を足したくなったら、まず状態の記号かどうかを確かめること。
+ * 意味ではない（`docs/design-guidelines.md` §1）。新しい画面へ赤を足したくなったら、
+ * まず状態の記号かどうかを確かめること。
+ *
+ * ## 3 つ組で持つ理由
+ *
+ * 白塗りの側は **文字も枠も赤**でなければ読めない。塗りの色だけを配ると
+ * 「白地に白文字」を作れてしまうので、`fill` / `border` / `on`（上に載る文字・アイコン）を
+ * 必ず 1 組で配る。
  */
-export const MY_DISH_STATUS_COLORS: Record<MyDishStatus, string> = {
-	want: "rgba(22,163,74,0.9)",
-	eaten: "rgba(240,85,55,0.9)",
+export type MyDishStatusPaint = {
+	/** 地の色 */
+	fill: string;
+	/** 縁の色。写真の上に載っても輪郭が保たれる値にしてある */
+	border: string;
+	/** 上に載る文字・アイコンの色 */
+	on: string;
 };
 
-/** 記号色の上に載る文字。地が濃いので light / dark で振らない（FixedColors.onFilled と同じ判断） */
-export const MY_DISH_STATUS_ON_COLOR = "#FFFFFF";
+/** ブランドの赤（`docs/design-guidelines.md` のパレット）。記号としてはこの 1 色だけを使う */
+const BRAND_RED = "#F05537";
+
+export const MY_DISH_STATUS_COLORS: Record<MyDishStatus, MyDishStatusPaint> = {
+	want: { fill: "#FFFFFF", border: BRAND_RED, on: BRAND_RED },
+	eaten: { fill: BRAND_RED, border: "#FFFFFF", on: "#FFFFFF" },
+};
 
 /** 件数の内訳。`countMyDishStatuses` の返り値 */
 export type MyDishStatusCounts = { want: number; eaten: number };

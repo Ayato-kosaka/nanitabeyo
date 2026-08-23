@@ -434,7 +434,7 @@ function ActionButtonsContent({
 							)}
 							// 読み上げでも «記録済み» が分かるようにする（色だけに頼らない）
 							aria-selected={!!isEaten}>
-							<UtensilsCrossed size={28} color={isEaten ? MY_DISH_STATUS_COLORS.eaten : "#FFFFFF"} />
+							<UtensilsCrossed size={28} color={isEaten ? MY_DISH_STATUS_COLORS.eaten.fill : "#FFFFFF"} />
 						</TouchableOpacity>
 						<Text style={[styles.actionText, isEaten && styles.actionTextEaten]}>
 							{i18n.t("Map.actions.writeReviewForThisDish")}
@@ -496,7 +496,7 @@ const styles = StyleSheet.create({
 	// #1375（5 巡目）記録済み。色の正は my-dishes と同じ（`features/myDishes/statusColors.ts`）ので、
 	// 一覧・カレンダー・地図で «食べた» を表している赤とここが必ず一致する
 	actionTextEaten: {
-		color: MY_DISH_STATUS_COLORS.eaten,
+		color: MY_DISH_STATUS_COLORS.eaten.fill,
 		fontWeight: "700",
 	},
 });

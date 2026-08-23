@@ -96,7 +96,7 @@ export default function MyDishesScreen() {
 	//
 	// #1375 実機確認: 押下先を **SNS URL 取り込み画面**へ変えた。＋ の基本導線は
 	// 「SNS で見つけた店を食べたいに入れる」であり、「食べた」の記録はその画面の上部タブから
-	// 切り替える（`app/[locale]/sns-import.tsx`）。OS の共有シートからの着地点と同じ画面なので、
+	// 切り替える（`app/[locale]/add-record.tsx`）。OS の共有シートからの着地点と同じ画面なので、
 	// 入口が 2 つで着地は 1 つになる。
 	//
 	// 取り込みは `dish_media.user_id` を NULL のままにし、ユーザーとの紐付けを
@@ -113,7 +113,7 @@ export default function MyDishesScreen() {
 			error_level: "log",
 			payload: {},
 		});
-		router.push({ pathname: "/[locale]/sns-import", params: { locale } });
+		router.push({ pathname: "/[locale]/add-record", params: { locale } });
 	}, [lightImpact, logFrontendEvent, locale]);
 
 	// #1375 実機確認: SafeAreaView に `bottom` を含めると、タブバーが既に確保している下端インセットの

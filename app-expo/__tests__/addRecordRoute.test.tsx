@@ -126,7 +126,7 @@ jest.mock("react-native-paper", () => ({
 	},
 }));
 
-import SnsImportScreen from "../app/[locale]/sns-import";
+import SnsImportScreen from "../app/[locale]/add-record";
 import { usePickedRestaurantStore } from "../features/restaurantPicker/stores/usePickedRestaurantStore";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

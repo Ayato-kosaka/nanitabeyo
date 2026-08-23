@@ -284,7 +284,7 @@ await page.waitForTimeout(500);
 await shot("filters-axis-closed-after-select");
 
 // 3. sns-import initial
-await goto("/ja-JP/sns-import");
+await goto("/ja-JP/add-record");
 await page.getByTestId("sns-import-screen").waitFor({ timeout: 120000 }).catch((e) => console.log("sns wait:", e.message));
 await page.waitForTimeout(2000);
 await shot("sns-import-initial");
@@ -302,7 +302,7 @@ await page.waitForTimeout(800);
 await shot("sns-import-resolved-bottom");
 
 // 3b. 食べたを記録タブ（#1375 5 巡目: 店選択の統一 + メディアの選び方）
-await goto("/ja-JP/sns-import");
+await goto("/ja-JP/add-record");
 await page.getByTestId("sns-import-screen").waitFor({ timeout: 120000 }).catch((e) => console.log("sns wait:", e.message));
 await page.waitForTimeout(1500);
 await page.getByTestId("sns-import-tab-eaten").click().catch((e) => console.log("eaten tab:", e.message));
