@@ -92,7 +92,11 @@ export class NotificationsService {
         ...items
           .filter((item) => item.notifications.target_table === 'dish_media')
           .map((item) => item.notifications.target_id),
-        ...reviews.map((review) => review.created_dish_media_id),
+        // #1395 created_dish_media_id は nullable。メディアを作っていない
+        // レビューは取得対象が無いので落とす
+        ...reviews
+          .map((review) => review.created_dish_media_id)
+          .filter((id): id is string => id !== null),
       ]),
     );
     const { items: dishMediaItems } =
@@ -101,6 +105,25 @@ export class NotificationsService {
       });
     const dishMediaMap = new Map(
       dishMediaItems.map((entry) => [entry.dish_media.id, entry]),
+    );
+
+    // #1506 GRP-04: dish_category_group_vote_sessions ターゲットの shareToken を一括取得
+    // （通知タップ時に結果画面 `[shareToken]` へ遷移するため、内部 session id とは別に必要）
+    const groupVoteSessions = await this.repo.findGroupVoteSessionsByIds(
+      Array.from(
+        new Set(
+          items
+            .filter(
+              (item) =>
+                item.notifications.target_table ===
+                'dish_category_group_vote_sessions',
+            )
+            .map((item) => item.notifications.target_id),
+        ),
+      ),
+    );
+    const groupVoteSessionMap = new Map(
+      groupVoteSessions.map((session) => [session.id, session]),
     );
 
     // #通知機能 【設計】NotificationItem 形式に変換（actors と notification を含む）
@@ -121,6 +144,18 @@ export class NotificationsService {
                 dishMediaMap,
               )
             : undefined,
+      dishCategoryGroupVoteSession:
+        item.notifications.target_table ===
+        'dish_category_group_vote_sessions'
+          ? (() => {
+              const session = groupVoteSessionMap.get(
+                item.notifications.target_id,
+              );
+              return session
+                ? { id: session.id, shareToken: session.share_token }
+                : undefined;
+            })()
+          : undefined,
     }));
 
     return {
@@ -137,6 +172,8 @@ export class NotificationsService {
     const review = reviewMap.get(item.notifications.target_id);
     if (!review) return undefined;
 
+    // #1395 メディアを作っていないレビューには紐づく dish_media が無い
+    if (!review.created_dish_media_id) return undefined;
     const dishME = dishMediaMap.get(review.created_dish_media_id);
     if (!dishME) return undefined;
 

@@ -379,6 +379,9 @@
 			},
 			"dish_reviews": {
 				"like": "ने आपकी समीक्षा को पसंद किया"
+			},
+			"dish_category_group_vote_sessions": {
+				"vote": "ने आपके ग्रुप में वोट किया"
 			}
 		}
 	},
@@ -414,7 +417,9 @@
 		},
 		"errors": {
 			"mapOpenFailed": "मानचित्र ऐप नहीं खोल सका",
-			"mediaUnavailable": "यह मीडिया अभी उपलब्ध नहीं है।"
+			"mediaUnavailable": "यह मीडिया अभी उपलब्ध नहीं है।",
+			"likeReactionFailed": "लाइक अपडेट करने में विफल। कृपया पुनः प्रयास करें।",
+			"saveReactionFailed": "सेव अपडेट करने में विफल। कृपया पुनः प्रयास करें।"
 		}
 	},
 	"ImageCardGrid": {
@@ -716,6 +721,14 @@
 	},
 	"Settings": {
 		"title": "सेटिंग्स",
+		"theme": {
+			"sectionTitle": "दिखावट",
+			"options": {
+				"system": "सिस्टम सेटिंग के अनुसार",
+				"light": "लाइट",
+				"dark": "डार्क"
+			}
+		},
 		"sendFeedback": "प्रतिक्रिया भेजें",
 		"leaveReview": "समीक्षा छोड़ें",
 		"rateDialogTitle": "क्या आपको ऐप पसंद है?",

@@ -8,6 +8,8 @@ import { isFoodAndDrinkPlaceForUser } from "@shared/utils/google_places_restaura
 import { MapPin, Utensils, X, History, Trash2, CheckCircle, AlertCircle } from "lucide-react-native";
 import type { LocationDetailsResponse } from "@shared/api/v1/res";
 import { LoadingIndicator } from "./LoadingIndicator";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 
 // #932 【設計】現在地取得の失敗時、呼び出し元(検索画面)から「手入力を促すフォーカス移動」を
 // 行うための最小限の命令的ハンドル
@@ -103,6 +105,9 @@ export const LocationAutocomplete = forwardRef<LocationAutocompleteHandle, Locat
 		},
 		ref,
 	) {
+		// #1509 地点入力は検索フォームの主役なので、基盤と同じ PR でテーマ対応する
+		const { colors } = useAppTheme();
+		const styles = useThemedStyles(createStyles);
 		const [showSuggestions, setShowSuggestions] = useState(false);
 		const [isFocused, setIsFocused] = useState(false);
 		// #931 【設計】デバウンス待機中(=まだAPIを呼んでいない)かどうかはHookの外側(このコンポーネント)でしか
@@ -327,7 +332,7 @@ export const LocationAutocomplete = forwardRef<LocationAutocompleteHandle, Locat
 						onFocus={handleFocus}
 						onBlur={handleBlur}
 						placeholder={placeholder}
-						placeholderTextColor="#6B7280"
+						placeholderTextColor={colors.textSecondary}
 						autoComplete="off"
 						autoCorrect={false}
 						autoCapitalize="words"
@@ -346,7 +351,7 @@ export const LocationAutocomplete = forwardRef<LocationAutocompleteHandle, Locat
 							accessibilityRole="button"
 							accessibilityLabel={i18n.t("Search.accessibility.clearLocation")}
 							testID={`${testID}-clear`}>
-							<X size={16} color="#6B7280" />
+							<X size={16} color={colors.textSecondary} />
 						</TouchableOpacity>
 					)}
 					{renderInputRight}
@@ -403,7 +408,7 @@ export const LocationAutocomplete = forwardRef<LocationAutocompleteHandle, Locat
 									accessibilityRole="button"
 									accessibilityLabel={i18n.t("Search.recentLocations.clear")}
 									testID={`${testID}-recent-locations-clear`}>
-									<Trash2 size={16} color="#9CA3AF" />
+									<Trash2 size={16} color={colors.textTertiary} />
 								</TouchableOpacity>
 							)}
 						</View>
@@ -421,7 +426,7 @@ export const LocationAutocomplete = forwardRef<LocationAutocompleteHandle, Locat
 									accessibilityLabel={recent.locationQuery}
 									accessibilityHint={i18n.t("Search.accessibility.selectLocation")}
 									testID={`${testID}-recent-location-${index}`}>
-									<History size={16} color="#6B7280" />
+									<History size={16} color={colors.textSecondary} />
 									<View style={styles.suggestionText}>
 										<Text style={styles.suggestionMainText} numberOfLines={1}>
 											{recent.locationQuery}
@@ -459,9 +464,9 @@ export const LocationAutocomplete = forwardRef<LocationAutocompleteHandle, Locat
 									accessibilityHint={i18n.t("Search.accessibility.selectLocation")}
 									testID={`${testID}-suggestion-${index}`}>
 									{isFoodAndDrinkPlaceForUser(suggestion) ? (
-										<Utensils size={16} color="#6B7280" />
+										<Utensils size={16} color={colors.textSecondary} />
 									) : (
-										<MapPin size={16} color="#6B7280" />
+										<MapPin size={16} color={colors.textSecondary} />
 									)}
 									<View style={styles.suggestionText}>
 										<Text style={styles.suggestionMainText}>{suggestion.mainText}</Text>
@@ -503,150 +508,157 @@ export const LocationAutocomplete = forwardRef<LocationAutocompleteHandle, Locat
 	},
 );
 
-const styles = StyleSheet.create({
-	container: { flex: 1 },
-	locationInputContainer: {
-		flexDirection: "row",
-		alignItems: "center",
-		borderRadius: 16,
-		backgroundColor: "#FFFFFF",
-		borderWidth: 1,
-		borderColor: "#C9C9C9",
-	},
-	input: {
-		flex: 1,
-		paddingHorizontal: 20,
-		paddingVertical: 16,
-		fontSize: 16,
-		color: "#1A1A1A",
-	},
-	inputFocused: {},
-	confirmationContainer: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 6,
-		marginTop: 8,
-		paddingHorizontal: 4,
-	},
-	confirmationText: {
-		fontSize: 13,
-		color: "#6B7280",
-	},
-	confirmationTextConfirmed: {
-		color: "#16A34A",
-		fontWeight: "600",
-	},
-	confirmationTextError: {
-		color: "#DC2626",
-		fontWeight: "600",
-	},
-	confirmationErrorContainer: {
-		marginTop: 8,
-		paddingHorizontal: 4,
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-	},
-	clearButton: {
-		padding: 12,
-		marginRight: 4,
-	},
-	loadingContainer: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "center",
-		paddingVertical: 20,
-		marginTop: 12,
-		backgroundColor: "#FFF",
-		borderRadius: 16,
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 0 },
-		shadowOpacity: 0.1,
-		shadowRadius: 24,
-		elevation: 4,
-	},
-	loadingText: {
-		marginLeft: 8,
-		fontSize: 14,
-		color: "#6B7280",
-	},
-	suggestionsContainer: {
-		marginTop: 12,
-		backgroundColor: "#FFF",
-		borderRadius: 16,
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 0 },
-		shadowOpacity: 0.1,
-		shadowRadius: 24,
-		elevation: 4,
-	},
-	suggestionsList: {},
-	recentLocationsHeader: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		paddingHorizontal: 20,
-		paddingTop: 14,
-		paddingBottom: 4,
-	},
-	recentLocationsTitle: {
-		fontSize: 12,
-		fontWeight: "600",
-		color: "#9CA3AF",
-	},
-	suggestionItem: {
-		flexDirection: "row",
-		alignItems: "center",
-		paddingHorizontal: 20,
-		paddingVertical: 16,
-		borderBottomWidth: 0.5,
-		borderBottomColor: "#F3F4F6",
-	},
-	lastSuggestionItem: {
-		borderBottomWidth: 0,
-	},
-	suggestionText: {
-		marginLeft: 16,
-		flex: 1,
-	},
-	suggestionMainText: {
-		fontSize: 16,
-		color: "#1A1A1A",
-		fontWeight: "600",
-	},
-	suggestionSecondaryText: {
-		fontSize: 14,
-		color: "#6B7280",
-		marginTop: 4,
-	},
-	noResultsContainer: {
-		minHeight: 60,
-		alignItems: "center",
-		justifyContent: "center",
-		backgroundColor: "#FFFFFF",
-		borderRadius: 12,
-		marginTop: 12,
-		paddingVertical: 20,
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 0 },
-		shadowOpacity: 0.1,
-		shadowRadius: 24,
-		elevation: 4,
-	},
-	noResultsText: {
-		fontSize: 14,
-		color: "#6B7280",
-	},
-	retryButton: {
-		marginTop: 12,
-		backgroundColor: "#F05537",
-		paddingHorizontal: 20,
-		paddingVertical: 10,
-		borderRadius: 20,
-	},
-	retryButtonText: {
-		color: "#FFFFFF",
-		fontWeight: "600",
-		fontSize: 14,
-	},
-});
+// #1509 【設計】テーマ依存のスタイルはファクトリで組む（`contexts/ThemeProvider.tsx` の useThemedStyles）。
+// 値はすべて main のリテラルをそのまま `constants/Palette.ts` の light へ写したもので、ライトの見た目は変わらない。
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		container: { flex: 1 },
+		locationInputContainer: {
+			flexDirection: "row",
+			alignItems: "center",
+			borderRadius: 16,
+			backgroundColor: c.surface,
+			borderWidth: 1,
+			borderColor: c.border,
+		},
+		input: {
+			flex: 1,
+			paddingHorizontal: 20,
+			paddingVertical: 16,
+			fontSize: 16,
+			color: c.textPrimary,
+		},
+		inputFocused: {},
+		confirmationContainer: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 6,
+			marginTop: 8,
+			paddingHorizontal: 4,
+		},
+		confirmationText: {
+			fontSize: 13,
+			color: c.textSecondary,
+		},
+		confirmationTextConfirmed: {
+			// #1502 ライトの #16A34A をそのまま使用（Palette に success 系トークンが無いため据え置き）
+			color: "#16A34A",
+			fontWeight: "600",
+		},
+		confirmationTextError: {
+			color: c.danger,
+			fontWeight: "600",
+		},
+		confirmationErrorContainer: {
+			marginTop: 8,
+			paddingHorizontal: 4,
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+		},
+		clearButton: {
+			padding: 12,
+			marginRight: 4,
+		},
+		loadingContainer: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "center",
+			paddingVertical: 20,
+			marginTop: 12,
+			// #1509 `#FFF` は `surface` の `#FFFFFF` と同一色（表記だけを揃えており見た目は変わらない）
+			backgroundColor: c.surface,
+			borderRadius: 16,
+			shadowColor: FixedColors.shadow,
+			shadowOffset: { width: 0, height: 0 },
+			shadowOpacity: 0.1,
+			shadowRadius: 24,
+			elevation: 4,
+		},
+		loadingText: {
+			marginLeft: 8,
+			fontSize: 14,
+			color: c.textSecondary,
+		},
+		suggestionsContainer: {
+			marginTop: 12,
+			// #1509 `#FFF` は `surface` の `#FFFFFF` と同一色（表記だけを揃えており見た目は変わらない）
+			backgroundColor: c.surface,
+			borderRadius: 16,
+			shadowColor: FixedColors.shadow,
+			shadowOffset: { width: 0, height: 0 },
+			shadowOpacity: 0.1,
+			shadowRadius: 24,
+			elevation: 4,
+		},
+		suggestionsList: {},
+		recentLocationsHeader: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+			paddingHorizontal: 20,
+			paddingTop: 14,
+			paddingBottom: 4,
+		},
+		recentLocationsTitle: {
+			fontSize: 12,
+			fontWeight: "600",
+			color: c.textTertiary,
+		},
+		suggestionItem: {
+			flexDirection: "row",
+			alignItems: "center",
+			paddingHorizontal: 20,
+			paddingVertical: 16,
+			borderBottomWidth: 0.5,
+			borderBottomColor: c.divider,
+		},
+		lastSuggestionItem: {
+			borderBottomWidth: 0,
+		},
+		suggestionText: {
+			marginLeft: 16,
+			flex: 1,
+		},
+		suggestionMainText: {
+			fontSize: 16,
+			color: c.textPrimary,
+			fontWeight: "600",
+		},
+		suggestionSecondaryText: {
+			fontSize: 14,
+			color: c.textSecondary,
+			marginTop: 4,
+		},
+		noResultsContainer: {
+			minHeight: 60,
+			alignItems: "center",
+			justifyContent: "center",
+			backgroundColor: c.surface,
+			borderRadius: 12,
+			marginTop: 12,
+			paddingVertical: 20,
+			shadowColor: FixedColors.shadow,
+			shadowOffset: { width: 0, height: 0 },
+			shadowOpacity: 0.1,
+			shadowRadius: 24,
+			elevation: 4,
+		},
+		noResultsText: {
+			fontSize: 14,
+			color: c.textSecondary,
+		},
+		retryButton: {
+			marginTop: 12,
+			backgroundColor: c.brand,
+			paddingHorizontal: 20,
+			paddingVertical: 10,
+			borderRadius: 20,
+		},
+		retryButtonText: {
+			// #1509 ブランド色の上に載る文字はテーマ非追従
+			color: FixedColors.onFilled,
+			fontWeight: "600",
+			fontSize: 14,
+		},
+	});

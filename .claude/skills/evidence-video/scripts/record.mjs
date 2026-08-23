@@ -14,7 +14,29 @@ import { createRequire } from "node:module";
 // このスクリプトは node_modules を持たない場所に居るため、ESM の import では
 // @playwright/test を解決できない。e2e-web を基点にした require で借りる
 const require = createRequire(new URL("../../../../e2e-web/package.json", import.meta.url));
-const { chromium } = require("@playwright/test");
+const { chromium, webkit, devices } = require("@playwright/test");
+
+/**
+ * デバイスプリセット。e2e-web/playwright.config.ts の mobile-chrome / mobile-safari と
+ * 同じ device descriptor を使う（CI のテスト環境と見た目を揃えるため）。
+ *
+ * ⚠️ これは «相当» であって実機ではない。同じ React Native の JS が描画されるので
+ * UI・デザイン・フローのエビデンスとしてはほぼ等価だが、OS の許可ダイアログ・ATT・
+ * プッシュ通知・共有インテント等のネイティブ面は映らない。それらは e2e-mobile CI の
+ * record_videos 入力（本物の Detox 動画）で撮ること。SKILL.md 参照。
+ *
+ * ios プリセットは WebKit エンジンを使うため、初回は
+ *   env -u PLAYWRIGHT_BROWSERS_PATH npx playwright install webkit
+ * （e2e-web で実行）が必要になることがある。
+ */
+const PRESETS = {
+	// 素の iPhone サイズ Chromium（最速。エンジン差が論点でないときの既定）
+	default: { engine: chromium, options: { viewport: { width: 390, height: 844 } } },
+	// Android 相当（Pixel 7 の UA / viewport / タッチ。CI の mobile-chrome と同一）
+	android: { engine: chromium, options: { ...devices["Pixel 7"] } },
+	// iOS 相当（iPhone 14 + WebKit = Safari のレンダリングエンジン。CI の mobile-safari と同一）
+	ios: { engine: webkit, options: { ...devices["iPhone 14"] } },
+};
 
 const BASE = "http://localhost:8788";
 // 出力先。セッションの scratchpad へ書き換えて使う（リポジトリ内へは置かない）
@@ -71,17 +93,27 @@ async function installMocks(page) {
 // ── モックここまで ───────────────────────────────────────────────
 
 await mkdir(OUT, { recursive: true });
-const browser = await chromium.launch();
+const launched = new Map(); // エンジンごとに 1 度だけ起動して使い回す
 
 /**
- * 1 本の動画を撮る。contextOptions で権限や viewport を変えられる。
- * 例) 位置情報許可済み: { permissions: ["geolocation"], geolocation: { latitude: 35.68, longitude: 139.76 } }
+ * 1 本の動画を撮る。
+ *
+ * @param name    出力ファイル名（.webm が付く）
+ * @param preset  PRESETS のキー（"default" / "android" / "ios"）
+ * @param contextOptions 追加の context オプション。
+ *   例) 位置情報許可済み: { permissions: ["geolocation"], geolocation: { latitude: 35.68, longitude: 139.76 } }
+ * @param scenario page を受け取って操作する async 関数
  */
-async function record(name, contextOptions, scenario) {
+async function record(name, preset, contextOptions, scenario) {
+	const { engine, options } = PRESETS[preset];
+	if (!launched.has(engine)) launched.set(engine, await engine.launch());
+	const browser = launched.get(engine);
+
+	const viewport = options.viewport;
 	const context = await browser.newContext({
 		locale: "ja-JP",
-		viewport: { width: 390, height: 844 }, // iPhone 相当（SE は 375x667）
-		recordVideo: { dir: OUT, size: { width: 390, height: 844 } },
+		...options,
+		recordVideo: { dir: OUT, size: viewport },
 		...contextOptions,
 	});
 	const page = await context.newPage();
@@ -95,8 +127,9 @@ async function record(name, contextOptions, scenario) {
 
 // ── シナリオ（ここを撮りたいフローへ書き換える） ─────────────────────
 // 例: オンボーディング初回導線。SPA モードは "/" からの初期タブが狂うことがあるので
-//     目的のルートへ直接 goto する。アニメーションは実時間ぶん waitForTimeout で待つ
-await record("example-onboarding", {}, async (page) => {
+//     目的のルートへ直接 goto する。アニメーションは実時間ぶん waitForTimeout で待つ。
+//     プラットフォーム比較が要るときは同じシナリオを "android" / "ios" でも record する
+await record("example-onboarding", "default", {}, async (page) => {
 	await page.goto(BASE + "/ja-JP/search");
 	await page.getByTestId("onboarding-screen").waitFor({ timeout: 30000 });
 	await page.waitForTimeout(2600); // 課題 → 解決アニメーション（約 1.5s + 0.3s）
@@ -104,4 +137,4 @@ await record("example-onboarding", {}, async (page) => {
 	await page.waitForTimeout(2600);
 });
 
-await browser.close();
+for (const browser of launched.values()) await browser.close();

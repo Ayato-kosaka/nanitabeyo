@@ -36,6 +36,14 @@ export class TopicsPage {
 	readonly tutorialDeepDiveStep: Locator;
 	readonly tutorialActionsStep: Locator;
 	readonly tutorialGroupVoteStep: Locator;
+	/** #1499 取得失敗時のエラーカード全体 */
+	readonly errorCard: Locator;
+	/** #1499 失敗時のエラー文言 */
+	readonly errorMessage: Locator;
+	/** #1499 「その場で再試行」ボタン */
+	readonly errorRetryButton: Locator;
+	/** #1499 エラーカードの「戻る」ボタン */
+	readonly errorBackButton: Locator;
 
 	constructor(page: Page) {
 		this.page = page;
@@ -52,6 +60,10 @@ export class TopicsPage {
 		this.tutorialDeepDiveStep = page.getByTestId("topics-tutorial-step-deepDive");
 		this.tutorialActionsStep = page.getByTestId("topics-tutorial-step-topicActions");
 		this.tutorialGroupVoteStep = page.getByTestId("topics-tutorial-step-groupVote");
+		this.errorCard = page.getByTestId("topics-error");
+		this.errorMessage = page.getByTestId("topics-error-message");
+		this.errorRetryButton = page.getByTestId("topics-error-retry");
+		this.errorBackButton = page.getByTestId("topics-error-back");
 	}
 
 	/** トピック提案画面が表示されていることを検証する */
@@ -99,5 +111,21 @@ export class TopicsPage {
 	async expectTutorialStarted(): Promise<void> {
 		await expect(this.tutorialOverlay).toBeVisible({ timeout: 10_000 });
 		await expect(this.tutorialSwipeStep).toBeVisible();
+	}
+
+	/**
+	 * #1499 取得失敗時のエラー画面(TopicsError)が表示され、再試行ボタンが押せる状態であることを検証する。
+	 *
+	 * トピック生成は実測で時間がかかりうるため、失敗確定までのタイムアウトも長めに取る
+	 * (topics-flow.spec.ts の TOPICS_TIMEOUT 相当の考え方)。
+	 */
+	async expectErrorState(): Promise<void> {
+		await expect(this.errorCard).toBeVisible({ timeout: 30_000 });
+		await expect(this.errorRetryButton).toBeEnabled();
+	}
+
+	/** #1499 再試行ボタンを押す */
+	async retry(): Promise<void> {
+		await this.errorRetryButton.click();
 	}
 }
