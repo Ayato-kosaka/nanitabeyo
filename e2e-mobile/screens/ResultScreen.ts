@@ -42,6 +42,15 @@ export class ResultScreen {
 	 * DialogProvider の既定 2 ボタンに付く安定 testID で、i18n のラベルに依存しない。
 	 */
 	readonly googleMapsFallbackCancelButton = by.id("dialog-action-cancel");
+	/**
+	 * #1501 いいね / 保存の API が失敗したときに出るグローバルスナックバー
+	 * （SnackbarProvider の `global-snackbar`。SearchScreen も同じ testID を観測点にしている）。
+	 *
+	 * ⚠️ 既定で 4 秒後に自動で消える。Detox の同期機構を有効にしたまま待つと
+	 * 「タイマーが終わるまで idle にならない」→「消えてから評価される」になるため、
+	 * 観測する側は `device.disableSynchronization()` してから待つこと。
+	 */
+	readonly snackbar = by.id("global-snackbar");
 
 	/**
 	 * 結果フィードの読み込み待ちタイムアウト (ms)。
