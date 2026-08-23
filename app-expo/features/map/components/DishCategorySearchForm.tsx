@@ -19,7 +19,7 @@ interface DishCategorySearchFormProps {
 	/**
 	 * 見出し。`null` を渡すと描かない。
 	 *
-	 * #1386 ルート（`app/[locale]/(tabs)/review/restaurant/[restaurantId]/dish-category.tsx`）に
+	 * #1386 ルート（`app/[locale]/restaurant/[restaurantId]/dish-category.tsx`）に
 	 * 載せるときは `ScreenHeader` がタイトルを持つため `null` を渡す。
 	 * `features/profile/components/LocationSearchForm.tsx` と同じ形。
 	 */

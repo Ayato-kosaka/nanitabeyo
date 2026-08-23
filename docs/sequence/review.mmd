@@ -44,16 +44,21 @@ sequenceDiagram
         UI ->> Backend: POST /v1/dishes {restaurantId, dishCategory}
             Backend ->> Database: UPSERT dishes
                 Database ->> Backend: Dish
-        UI ->> Backend: POST /v1/user-uploads/signed-url { contentType, identifier }
-            Backend ->> Backend: 認可
-            Backend ->> Storage: generateSignedUrl(action=PUT, exp=15m)
-                Storage ->> Backend: putUrl, objectPath, expiresAt
-            Backend ->> UI: { putUrl, objectPath }
-        UI ->> Storage: PUT (putUrl) バイナリ
-        UI ->> Backend: POST /v1/dish-media {dishId, mediaPath, mediaType}
-            Backend ->> Database: INSERT dish_media
-        UI ->> Backend: POST /v1/dish-reviews<br>{dishId, comment, priceCents, currencyCode, rating, createdDishMediaId}
-            Backend ->> Database: INSERT dish_reviews
+        alt 写真あり
+            UI ->> Backend: POST /v1/user-uploads/signed-url { contentType, identifier }
+                Backend ->> Backend: 認可
+                Backend ->> Storage: generateSignedUrl(action=PUT, exp=15m)
+                    Storage ->> Backend: putUrl, objectPath, expiresAt
+                Backend ->> UI: { putUrl, objectPath }
+            UI ->> Storage: PUT (putUrl) バイナリ
+            UI ->> Backend: POST /v1/dish-media {dishId, mediaPath, mediaType}
+                Backend ->> Database: INSERT dish_media
+            UI ->> Backend: POST /v1/dish-reviews<br>{dishId, comment, priceCents, currencyCode, rating, createdDishMediaId}
+        else 写真なし（#1395「食べた」を写真なしで記録）
+            Note over UI,Backend: createdDishMediaId を送らない。<br>dish_media も作らない
+            UI ->> Backend: POST /v1/dish-reviews<br>{dishId, comment, priceCents, currencyCode, rating}
+        end
+            Backend ->> Database: INSERT dish_reviews<br>（created_dish_media_id は写真なしなら NULL）
         Backend ->> UI: success
     UI ->> UI: dishMedia 追加表示
 
@@ -61,6 +66,7 @@ sequenceDiagram
     Note over User,UI: DishMediaScreen<br>(レビューのみ投稿)
     User ->> UI: 「レビューを書く」押下
     User ->> UI: レビュー入力
+        Note over UI,Backend: 元メディアに紐づくため createdDishMediaId は必ず送る
         UI ->> Backend: POST /v1/dish-reviews<br>{dishId, comment, priceCents, currencyCode, rating, createdDishMediaId}
             Backend ->> Database: INSERT dish_reviews
         Backend ->> UI: success
@@ -71,7 +77,8 @@ sequenceDiagram
     User ->> UI: ProfileScreen を開く
         UI ->> UI: 「Reviews」タブ選択
         UI ->> Backend: GET /v1/users/{id}/dish-reviews?cursor
-            Backend ->> Database: SELECT dr.review_id,<br>dr.dish_id, dr.rating, dr.comment,<br>dr.created_at, dm.object_path,<br>(dm.user_id = :userId) AS hasMedia<br>FROM dish_reviews dr<br>LEFT JOIN dish_media dm ON dr.dish_media_id = dm.id<br>WHERE dr.user_id = :userId<br>ORDER BY dr.created_at DESC
+            Backend ->> Database: SELECT dr.review_id,<br>dr.dish_id, dr.rating, dr.comment,<br>dr.created_at, dm.object_path,<br>(dm.user_id = :userId) AS hasMedia<br>FROM dish_reviews dr<br>LEFT JOIN dish_media dm ON dr.created_dish_media_id = dm.id<br>WHERE dr.user_id = :userId<br>ORDER BY dr.created_at DESC
+            Note over Backend,Database: #1395 created_dish_media_id が NULL のときは<br>その dish の最新メディアへフォールバックする。<br>メディアが 1 件も無い dish はこの画面では表現できないため、<br>GET /v1/users/me/dishes?status=eaten へ移行する
                 Database ->> Backend: {DishMedia, DishReviews, hasMedia}[]
             Backend ->> Storage: generateSignedUrl(action=GET, exp=24h)
                 Storage ->> Backend: [{objectPath,getUrl}]

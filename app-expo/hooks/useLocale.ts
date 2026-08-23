@@ -1,5 +1,6 @@
 import { usePathname } from "expo-router";
 import { useMemo } from "react";
+import * as Localization from "expo-localization";
 
 import i18n from "@/lib/i18n";
 import { resolvePublicLocale } from "@/constants/seoLocales";
@@ -48,8 +49,26 @@ export const useLocale = () => {
 	const locale = useMemo(() => {
 		const fromPath = pathname.split("/")[1];
 		if (fromPath && LOCALE_LIKE.test(fromPath)) return fromPath;
-		// 端末の言語設定（i18n が解決済み）から公開ロケールへ寄せる。
-		// ルータが落ち着けば pathname 由来の値へ戻るので、これは «起動直後だけ» の値
+
+		// ## ⚠️ `i18n.locale` を先に読んではいけない（#1375 実機で踏んだ）
+		//
+		// `i18n.locale` を設定しているのは `app/[locale]/_layout.tsx` だけで、その入力は
+		// **URL のロケールセグメント**である。つまりロケール付き URL へ入る前は未設定で、
+		// `i18n.defaultLocale`（= "en-US"）が読める。ここでそれを採ると
+		// **端末が日本語でも en-US になる**。
+		//
+		// 実際に踏んだのが共有シートからのコールドスタートである。`usePathname()` は起動直後
+		// `"/"` を返すのでこの分岐へ落ち、`/en-US/sns-import` へ push されて画面が英語になった
+		// （`app/index.tsx` のロケール判定リダイレクトを経由しないため、誰も `i18n.locale` を
+		//   直していない状態でここが評価される）。
+		//
+		// したがって **端末の言語設定を直接読む**。`app/index.tsx` の起動時リダイレクトと
+		// 同じ入力（`Localization.getLocales()[0].languageTag`）を使うので、
+		// «通常起動で着くロケール» と «この分岐が返すロケール» が一致する。
+		const deviceLanguageTag = Localization.getLocales?.()[0]?.languageTag;
+		if (deviceLanguageTag) return resolvePublicLocale(deviceLanguageTag);
+
+		// 端末ロケールすら取れない環境（web の一部・テスト）だけ i18n 側へ落とす
 		return resolvePublicLocale(i18n.locale);
 	}, [pathname]);
 

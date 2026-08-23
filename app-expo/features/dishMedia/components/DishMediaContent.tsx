@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Image } from "expo-image";
 import VideoPlayer from "../../../components/VideoPlayer";
+import { ExternalEmbedPlayer } from "./ExternalEmbedPlayer";
 import { ActionButtons } from "./ActionButtons";
 import { DishReviewsSection } from "./DishReviewsSection";
 import { useMediaTracking } from "../hooks/useMediaTracking";
@@ -35,6 +36,8 @@ interface DishMediaContentProps {
 	onCardPress?: (entry: NormalizedDishMediaEntry) => void;
 	displayIndex?: number;
 	backgroundImageState: DishMediaBackgroundImageState;
+	/** #1375 「食べたを記録」を出すか（検索動線の DishMediaMap では false）。既定 true */
+	showRecordEaten?: boolean;
 }
 
 export default function DishMediaContent({
@@ -48,6 +51,7 @@ export default function DishMediaContent({
 	onCardPress, // #613 【設計】カード押下時のコールバック
 	displayIndex,
 	backgroundImageState,
+	showRecordEaten,
 }: DishMediaContentProps) {
 	// #940 【修正】entry 未取得時に throw する前に理由を記録する。throw 自体は残す
 	// (このコンポーネントは entry の存在を前提に構築されており、無ければ描画できないため)。
@@ -194,13 +198,22 @@ export default function DishMediaContent({
 				}),
 		[],
 	);
+	// #1375 埋め込みの再生ボタン用。buttonsGesture と同じ目的だが、1 つの gesture は
+	// 1 つの GestureDetector にしか付けられないため別インスタンスにする
+	const embedButtonGesture = useMemo(
+		() =>
+			Gesture.Tap()
+				.maxDistance(9999)
+				.onBegin(() => {}),
+		[],
+	);
 	const tapGesture = useMemo(() => {
 		return (
 			Gesture.Tap()
 				// #611 横スワイプと競合しないように maxDistance を設定
 				.maxDistance(10)
 				// #694 【設計】ボタン操作中は親Tapを失敗させる（縁タップ誤発火防止）
-				.requireExternalGestureToFail(buttonsGesture)
+				.requireExternalGestureToFail(buttonsGesture, embedButtonGesture)
 				.onBegin(() => {
 					if (onCardPress) pressed.value = 1;
 				})
@@ -213,7 +226,7 @@ export default function DishMediaContent({
 					runOnJS(onCardPress)(dishMediaEntry);
 				})
 		);
-	}, [onCardPress, dishMediaEntry, pressed, buttonsGesture]);
+	}, [onCardPress, dishMediaEntry, pressed, buttonsGesture, embedButtonGesture]);
 
 	return (
 		<View style={styles.container}>
@@ -241,6 +254,17 @@ export default function DishMediaContent({
 							shouldPlay={isActive}
 							onProgress={handleVideoProgress}
 							onLoop={handleVideoLoop}
+						/>
+					)}
+					{/* #1375 4 巡目実機確認: SNS 取り込み（render_type='external_embed'）の再生。
+					    mediaUrl は自ストレージに実体が無いので常に null。ここが無いと
+					    取り込んだリールは «サムネイルが出るだけで再生できない»（実機で指摘された）。
+					    web は iframe、ネイティブは WebView（ビルドに在れば）/ アプリ内ブラウザで再生する */}
+					{dishMediaEntry.dish_media.externalEmbed && !isProcessing && !isFailed && (
+						<ExternalEmbedPlayer
+							embed={dishMediaEntry.dish_media.externalEmbed}
+							isActive={isActive}
+							blockParentTapGesture={embedButtonGesture}
 						/>
 					)}
 				</Animated.View>
@@ -292,6 +316,7 @@ export default function DishMediaContent({
 					<ActionButtons
 						id={id}
 						idType={idType}
+						showRecordEaten={showRecordEaten}
 						onLayout={(width) => setRightActionsWidth(width)}
 						buttonsGesture={buttonsGesture}
 					/>

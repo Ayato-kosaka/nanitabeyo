@@ -83,9 +83,7 @@ export async function ensureFreshSession(owner: SessionOwner): Promise<E2ESessio
 	const remainingMs = expMs === null ? 0 : expMs - Date.now();
 	if (remainingMs > REFRESH_MARGIN_MS) return session;
 
-	console.log(
-		`⏳ ${owner} セッションの残りが ${Math.max(0, Math.round(remainingMs / 60000))} 分のため refresh します`,
-	);
+	console.log(`⏳ ${owner} セッションの残りが ${Math.max(0, Math.round(remainingMs / 60000))} 分のため refresh します`);
 
 	const { url, anonKey } = loadSupabaseEnv();
 	// persistSession / autoRefreshToken は必ず無効（#1030 M-4。勝手なローテーションを防ぐ）

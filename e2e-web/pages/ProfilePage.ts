@@ -3,24 +3,30 @@ import { expect, type Locator, type Page } from "@playwright/test";
 /**
  * 👤 「マイページ」タブの Page Object
  *
- * 対応画面: app-expo/app/[locale]/(tabs)/profile/index.tsx（実体は features/profile/ProfileTabsLayout）
+ * 対応画面: app-expo/app/[locale]/(tabs)/profile/index.tsx
  *
- * タブ構成はログイン状態で分岐する:
- * - 匿名ユーザー: 保存系タブのみ（save-post / save-topic / like）+ ログインボタン表示
- * - ログイン済み: 上記に加えて reviews（投稿）・wallet（入札/収益）タブ
+ * #1402 で画面の形が変わった:
+ * - **4 グリッドタブ（自分のレビュー / 保存した料理 / 保存した投稿 / いいねした料理）は廃止**。
+ *   `?tab=` によるタブ指定も、`review-tab-grid` / `save-post-tab-grid` も無くなった。
+ * - 残る 2 つのグリッドは «独立したルート» になった
+ *   （`/[locale]/profile/liked` / `/[locale]/profile/saved-topics`）。
+ * - **独立した設定画面も無くなり**、その項目はこの画面の縦リストに並んでいる。
+ *   設定項目そのものの Locator は `pages/SettingsPage.ts` が持ち続ける（testID も据え置き）。
+ *
+ * ログイン状態による分岐は «ログインボタン / 編集ボタン» と «ログアウト行の有無» だけになった。
  */
 export class ProfilePage {
 	readonly page: Page;
 	/** 匿名ユーザーに表示されるログインボタン */
 	readonly loginButton: Locator;
-	/** 保存した投稿グリッド（既存 testID） */
-	readonly savedPostsGrid: Locator;
-	/** 保存したトピックグリッド（既存 testID） */
+	/** 「いいねした投稿」の行（#1402 で追加。押すと /[locale]/profile/liked へ） */
+	readonly likedItem: Locator;
+	/** 「保存した料理カテゴリ」の行（#1402 で追加。押すと /[locale]/profile/saved-topics へ） */
+	readonly savedTopicsItem: Locator;
+	/** 保存した料理カテゴリのグリッド（既存 testID。#1402 で単独ルートの中身になった） */
 	readonly savedTopicsGrid: Locator;
-	/** いいねした投稿グリッド（既存 testID） */
+	/** いいねした投稿のグリッド（既存 testID。#1402 で単独ルートの中身になった） */
 	readonly likedGrid: Locator;
-	/** 自分のレビュー投稿グリッド（ログイン済みのみ・既存 testID） */
-	readonly reviewsGrid: Locator;
 	/**
 	 * 保存料理カテゴリから開く地点検索画面の入力欄（#1133 / #1369 でモーダルからルートへ）。
 	 *
@@ -45,10 +51,10 @@ export class ProfilePage {
 	constructor(page: Page) {
 		this.page = page;
 		this.loginButton = page.getByTestId("profile-login-button");
-		this.savedPostsGrid = page.getByTestId("save-post-tab-grid");
+		this.likedItem = page.getByTestId("profile-liked");
+		this.savedTopicsItem = page.getByTestId("profile-saved-topics");
 		this.savedTopicsGrid = page.getByTestId("save-topic-tab-grid");
 		this.likedGrid = page.getByTestId("like-tab-grid");
-		this.reviewsGrid = page.getByTestId("review-tab-grid");
 		this.locationSearchInput = page.getByTestId("saved-topic-location-search-input");
 		this.locationSearchRecentList = page.getByTestId("saved-topic-location-search-recent-locations");
 		this.locationSearchRecentClearButton = page.getByTestId("saved-topic-location-search-recent-locations-clear");
@@ -59,14 +65,34 @@ export class ProfilePage {
 	}
 
 	/**
-	 * 「保存した料理カテゴリ」タブを開く（#1133）。
+	 * 「保存した料理カテゴリ」の一覧を開く（#1133 / #1402）。
 	 *
-	 * タブは `?tab=` で直接指定できる（#954。ProfileTabsLayout の requestedTab）。
-	 * タブヘッダには testID が無く、ラベル文言もロケール依存なのでクリックでは選ばない。
+	 * #1402 でタブから «単独のルート» になったので、`?tab=` ではなく URL 直遷移で開く。
+	 * 実 UI 導線（マイページの行をクリック）を通したい場合は `openSavedTopics()` を使うこと。
 	 */
 	async gotoSavedTopics(locale = "ja-JP"): Promise<void> {
-		await this.page.goto(`/${locale}/profile?tab=saved-topics`);
+		await this.page.goto(`/${locale}/profile/saved-topics`);
 		await expect(this.savedTopicsGrid).toBeVisible();
+	}
+
+	/** マイページの「保存した料理カテゴリ」行をクリックして一覧へ遷移する（実 UI 導線・#1402） */
+	async openSavedTopics(): Promise<void> {
+		await this.savedTopicsItem.click();
+		await expect(this.page).toHaveURL(/\/profile\/saved-topics/);
+		await expect(this.savedTopicsGrid).toBeVisible();
+	}
+
+	/** 「いいねした投稿」の一覧を開く（#1402。URL 直遷移） */
+	async gotoLiked(locale = "ja-JP"): Promise<void> {
+		await this.page.goto(`/${locale}/profile/liked`);
+		await expect(this.likedGrid).toBeVisible();
+	}
+
+	/** マイページの「いいねした投稿」行をクリックして一覧へ遷移する（実 UI 導線・#1402） */
+	async openLiked(): Promise<void> {
+		await this.likedItem.click();
+		await expect(this.page).toHaveURL(/\/profile\/liked/);
+		await expect(this.likedGrid).toBeVisible();
 	}
 
 	/** n 番目の保存料理カテゴリカードの Locator を返す（0 始まり） */
@@ -135,9 +161,13 @@ export class ProfilePage {
 		await this.loginButton.click();
 	}
 
-	/** 設定画面（歯車アイコン）へ遷移する */
-	async gotoSettings(locale = "ja-JP"): Promise<void> {
-		// 歯車アイコンに testID が無いため URL 直遷移で代替する
-		await this.page.goto(`/${locale}/profile/settings`);
+	/**
+	 * マイページが表示されていることを検証する。
+	 *
+	 * #1402 で «設定という画面» が無くなり、設定項目はこの画面の縦リストへ移った。
+	 * ロケール依存の文言ではなく、必ず出る行（ご意見・不具合）の testID を待つ。
+	 */
+	async expectLoaded(): Promise<void> {
+		await expect(this.page.getByTestId("settings-feedback")).toBeVisible();
 	}
 }

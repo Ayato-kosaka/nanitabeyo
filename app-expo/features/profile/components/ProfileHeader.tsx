@@ -1,30 +1,29 @@
-import React, { useCallback, useMemo } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, LayoutChangeEvent } from "react-native";
+import React, { useMemo } from "react";
+import { View, Text, StyleSheet } from "react-native";
 import { Image } from "expo-image";
-import { ArrowLeft, Settings, Share, Pencil as Edit3, MessageCircle } from "lucide-react-native";
+import { Pencil as Edit3 } from "lucide-react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Card } from "@/components/Card";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
 import { GetUserProfileResponse } from "@shared/api/v1/res";
 import { getCacheKeyForImage } from "@/lib/image";
-import { useHaptics } from "@/hooks/useHaptics";
-import { useLogger } from "@/hooks/useLogger";
-import { router } from "expo-router";
-import { useAuth } from "@/contexts/AuthProvider";
-import { useLocale } from "@/hooks/useLocale";
 
+/**
+ * マイページ上部のプロフィール要約。
+ *
+ * #1402 【設計】以下を落とした。
+ * - **設定への歯車ボタン**: 独立した設定画面が無くなり、この直下が設定項目そのものになったため。
+ * - **isOwnProfile / isFollowing / onFollow / onMessage / onBack / onShare**:
+ *   このアプリに他ユーザーのプロフィールを開く導線が存在せず（#1402 で調査済み）、
+ *   `isOwnProfile` は呼び出し側で `useMemo(() => true)` と書かれた定数だった。
+ *   フォロー・メッセージのボタンは到達不能なコードだったので消してある。
+ * - **onLayout**: collapsible-tabs へヘッダー高さを渡すためのものだった（タブごと廃止）。
+ */
 interface ProfileHeaderProps {
 	profile: GetUserProfileResponse;
-	isOwnProfile: boolean;
 	isGuest?: boolean;
-	isFollowing?: boolean;
-	onLayout?: (event: LayoutChangeEvent) => void;
-	onBack?: () => void;
-	onShare?: () => void;
 	onEditProfile?: () => void;
-	onFollow?: () => void;
-	onMessage?: () => void;
 	onLogin?: () => void;
 }
 
@@ -38,65 +37,18 @@ const formatNumber = (num: number): string => {
 	return num.toString();
 };
 
-export function ProfileHeader({
-	profile,
-	isOwnProfile,
-	isGuest = false,
-	isFollowing = false,
-	onLayout,
-	onBack,
-	onShare,
-	onEditProfile,
-	onFollow,
-	onMessage,
-	onLogin,
-}: ProfileHeaderProps) {
-	const { lightImpact } = useHaptics();
-	const { logFrontendEvent } = useLogger();
-	const { user } = useAuth();
-	const { locale } = useLocale();
-
+export function ProfileHeader({ profile, isGuest = false, onEditProfile, onLogin }: ProfileHeaderProps) {
 	const avatarUrl = useMemo(() => profile.avatarUrls?.md, [profile]);
 
-	// #設定画面 【設計】設定画面へ遷移するハンドラを追加
-	const handleSettings = useCallback(() => {
-		lightImpact();
-		router.push({
-			pathname: "/[locale]/(tabs)/profile/settings",
-			params: { locale },
-		});
-		logFrontendEvent({
-			event_name: "settings_screen_opened",
-			error_level: "log",
-			payload: { userId: user?.id },
-		});
-	}, [lightImpact, logFrontendEvent, user?.id, locale]);
-
 	return (
-		<View onLayout={onLayout} pointerEvents="box-none" style={{ zIndex: 1 }}>
+		<View pointerEvents="box-none" style={{ zIndex: 1 }}>
 			{/* Header Navigation */}
 			<View style={styles.header} pointerEvents="box-none">
-				{!isOwnProfile && (
-					<TouchableOpacity onPress={onBack || (() => {})} style={styles.backButton}>
-						<ArrowLeft size={24} color="#1A1A1A" />
-					</TouchableOpacity>
-				)}
-
 				{/* Display Name */}
 				{/* #948 【仕様】ゲストは locale 非依存のダミー値(profileData.ts)ではなく現在言語の「ゲスト」表示にする */}
 				<Text style={[styles.displayName]} pointerEvents="none">
 					{isGuest ? i18n.t("Profile.guestDisplayName") : profile.display_name}
 				</Text>
-				{/* <Text style={styles.headerTitle}>{profile.username}</Text> */}
-				<View style={{ flexDirection: "row", gap: 8 }}>
-					{/* <TouchableOpacity style={styles.shareButton} onPress={onShare || (() => {})}>
-						<Share size={24} color="#666" />
-					</TouchableOpacity> */}
-					{/* #1031 【設計】Detox から設定画面への実UI導線を検証するため testID を追加 */}
-					<TouchableOpacity testID="profile-settings-button" style={styles.settingButton} onPress={handleSettings}>
-						<Settings size={24} color="#666" />
-					</TouchableOpacity>
-				</View>
 			</View>
 
 			{/* Profile Info Card */}
@@ -156,7 +108,14 @@ export function ProfileHeader({
 
 					{/* Action Buttons */}
 					<View style={styles.actionButtons}>
-						{isOwnProfile && !isGuest ? (
+						{isGuest ? (
+							<PrimaryButton
+								testID="profile-login-button"
+								style={{ flex: 1 }}
+								onPress={onLogin || (() => {})}
+								label={i18n.t("auth.btn_login")}
+							/>
+						) : (
 							<PrimaryButton
 								// #1369 編集はモーダルではなくルート（/[locale]/profile/edit）になった。
 								// 「押した先」を E2E から検証できるよう、ログインボタンと同じく testID を持たせる
@@ -167,27 +126,6 @@ export function ProfileHeader({
 								shadowColor="transparent"
 								icon={<Edit3 size={16} color="#FFFFFF" />}
 							/>
-						) : isGuest && isOwnProfile ? (
-							<PrimaryButton
-								testID="profile-login-button"
-								style={{ flex: 1 }}
-								onPress={onLogin || (() => {})}
-								label={i18n.t("auth.btn_login")}
-							/>
-						) : (
-							<>
-								<TouchableOpacity
-									style={[styles.followButton, isFollowing && styles.followingButton]}
-									onPress={onFollow || (() => {})}>
-									<Text style={[styles.followButtonText, isFollowing && styles.followingButtonText]}>
-										{isFollowing ? i18n.t("Profile.buttons.following") : i18n.t("Profile.buttons.follow")}
-									</Text>
-								</TouchableOpacity>
-								<TouchableOpacity style={styles.messageButton} onPress={onMessage || (() => {})}>
-									<MessageCircle size={16} color="#FFFFFF" />
-									<Text style={styles.messageButtonText}>{i18n.t("Profile.buttons.message")}</Text>
-								</TouchableOpacity>
-							</>
 						)}
 					</View>
 				</Card>
@@ -204,23 +142,11 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 16,
 		paddingVertical: 12,
 	},
-	backButton: {
-		padding: 4,
-		borderRadius: 12,
-		backgroundColor: "rgba(255, 255, 255, 0.1)",
-	},
 	headerTitle: {
 		fontSize: 20,
 		fontWeight: "700",
 		color: "#1A1A1A",
 		letterSpacing: -0.5,
-	},
-	settingButton: {
-		paddingVertical: 4,
-		paddingHorizontal: 8,
-	},
-	shareButton: {
-		padding: 4,
 	},
 	cardContainer: {},
 	card: {
@@ -299,51 +225,5 @@ const styles = StyleSheet.create({
 		width: "100%",
 		flexDirection: "row",
 		gap: 8,
-	},
-	followButton: {
-		flex: 1,
-		backgroundColor: "#F05537",
-		paddingVertical: 10,
-		paddingHorizontal: 16,
-		borderRadius: 16,
-		alignItems: "center",
-		shadowColor: "#F05537",
-		shadowOffset: { width: 0, height: 4 },
-		shadowOpacity: 0.3,
-		shadowRadius: 8,
-		elevation: 6,
-	},
-	followingButton: {
-		backgroundColor: "#6B7280",
-	},
-	followButtonText: {
-		fontSize: 15,
-		fontWeight: "600",
-		color: "#FFFFFF",
-		letterSpacing: 0.2,
-	},
-	followingButtonText: {
-		color: "#FFFFFF",
-	},
-	messageButton: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "center",
-		backgroundColor: "#6B7280",
-		paddingVertical: 10,
-		paddingHorizontal: 16,
-		borderRadius: 16,
-		gap: 6,
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 2 },
-		shadowOpacity: 0.1,
-		shadowRadius: 4,
-		elevation: 3,
-	},
-	messageButtonText: {
-		fontSize: 15,
-		fontWeight: "600",
-		color: "#FFFFFF",
-		letterSpacing: 0.2,
 	},
 });
