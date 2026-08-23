@@ -10,7 +10,6 @@ import { useAPICall, type ApiError } from "@/hooks/useAPICall";
 import { useDialog } from "@/contexts/DialogProvider";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useLocale } from "@/hooks/useLocale";
-import { useAuth } from "@/contexts/AuthProvider";
 import { toErrorLogMessage } from "@/lib/errorMessage";
 import { getMinorUnitDigits, parseAmountString, resolveCurrencySymbol, toMinorAmountInteger } from "@/lib/googlePlaces";
 import {
@@ -50,7 +49,6 @@ type Props = {
 
 export function OwnPostActions({ entry }: Props) {
 	const dishMediaId = String(entry.dish_media.id);
-	const { user } = useAuth();
 	const { locale } = useLocale();
 	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
@@ -63,15 +61,17 @@ export function OwnPostActions({ entry }: Props) {
 
 	/**
 	 * 編集対象は「この投稿と一緒に作られた自分のレビュー」。
-	 * 同じ料理には他人のレビューもぶら下がるので、`created_dish_media_id` と
-	 * `user_id` の両方で絞らないと他人の本文を編集画面に出してしまう。
+	 *
+	 * 所有判定は `review.isMine`（サーバーが返す）を使い、クライアントで
+	 * `user_id === 自分の id` を組み立てない。導線を出す根拠と PATCH の認可の根拠を
+	 * 同じにしておかないと、「編集ボタンは出るのに 403」がありうる。
+	 *
+	 * `created_dish_media_id` でも絞るのは、同じ料理には別の投稿に紐づく自分のレビューも
+	 * ぶら下がるため。この投稿の本文以外を編集画面に出してはいけない。
 	 */
 	const myReview: DishReview | undefined = useMemo(
-		() =>
-			reviews.find(
-				(review) => String(review.created_dish_media_id) === dishMediaId && review.user_id === (user?.id ?? null),
-			),
-		[reviews, dishMediaId, user?.id],
+		() => reviews.find((review) => review.isMine && String(review.created_dish_media_id) === dishMediaId),
+		[reviews, dishMediaId],
 	);
 
 	const [menuVisible, setMenuVisible] = useState(false);

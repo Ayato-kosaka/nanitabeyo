@@ -118,6 +118,7 @@ export const mockDishItems: (DishMediaEntry & {
 				updated_at: "2025-08-08T17:19:02.676Z",
 				lock_no: 0,
 				deleted_at: null,
+				isMine: false, // #1513 モックは他人のレビュー扱い（編集・削除の導線を出さない）
 				username: "ramen_lover",
 				isLiked: false,
 				likeCount: 10,
@@ -140,6 +141,7 @@ export const mockDishItems: (DishMediaEntry & {
 				updated_at: "2025-08-08T17:19:02.676Z",
 				lock_no: 0,
 				deleted_at: null,
+				isMine: false, // #1513 モックは他人のレビュー扱い（編集・削除の導線を出さない）
 				username: "foodie123",
 				isLiked: false,
 				likeCount: 10,
@@ -162,6 +164,7 @@ export const mockDishItems: (DishMediaEntry & {
 				updated_at: "2025-08-08T17:19:02.676Z",
 				lock_no: 0,
 				deleted_at: null,
+				isMine: false, // #1513 モックは他人のレビュー扱い（編集・削除の導線を出さない）
 				username: "tokyo_gourmet",
 				isLiked: false,
 				likeCount: 10,
@@ -240,6 +243,7 @@ export const mockDishItems: (DishMediaEntry & {
 				updated_at: "2025-08-08T17:19:02.676Z",
 				lock_no: 0,
 				deleted_at: null,
+				isMine: false, // #1513 モックは他人のレビュー扱い（編集・削除の導線を出さない）
 				username: "noodle_fan",
 				isLiked: false,
 				likeCount: 10,
@@ -262,6 +266,7 @@ export const mockDishItems: (DishMediaEntry & {
 				updated_at: "2025-08-08T17:19:02.676Z",
 				lock_no: 0,
 				deleted_at: null,
+				isMine: false, // #1513 モックは他人のレビュー扱い（編集・削除の導線を出さない）
 				username: "ramen_king",
 				isLiked: false,
 				likeCount: 10,
@@ -284,6 +289,7 @@ export const mockDishItems: (DishMediaEntry & {
 				updated_at: "2025-08-08T17:19:02.676Z",
 				lock_no: 0,
 				deleted_at: null,
+				isMine: false, // #1513 モックは他人のレビュー扱い（編集・削除の導線を出さない）
 				username: "sio_master",
 				isLiked: false,
 				likeCount: 10,
@@ -362,6 +368,7 @@ export const mockDishItems: (DishMediaEntry & {
 				updated_at: "2025-08-08T17:19:02.676Z",
 				lock_no: 0,
 				deleted_at: null,
+				isMine: false, // #1513 モックは他人のレビュー扱い（編集・削除の導線を出さない）
 				username: "gyoza_freak",
 				isLiked: false,
 				likeCount: 10,
@@ -384,6 +391,7 @@ export const mockDishItems: (DishMediaEntry & {
 				updated_at: "2025-08-08T17:19:02.676Z",
 				lock_no: 0,
 				deleted_at: null,
+				isMine: false, // #1513 モックは他人のレビュー扱い（編集・削除の導線を出さない）
 				username: "ramenholic",
 				isLiked: false,
 				likeCount: 10,
@@ -406,6 +414,7 @@ export const mockDishItems: (DishMediaEntry & {
 				updated_at: "2025-08-08T17:19:02.676Z",
 				lock_no: 0,
 				deleted_at: null,
+				isMine: false, // #1513 モックは他人のレビュー扱い（編集・削除の導線を出さない）
 				username: "tokyo_ramen",
 				isLiked: false,
 				likeCount: 10,
@@ -484,6 +493,7 @@ export const mockDishItems: (DishMediaEntry & {
 				updated_at: "2025-08-08T17:19:02.676Z",
 				lock_no: 0,
 				deleted_at: null,
+				isMine: false, // #1513 モックは他人のレビュー扱い（編集・削除の導線を出さない）
 				username: "spicy_addict",
 				isLiked: false,
 				likeCount: 10,
@@ -506,6 +516,7 @@ export const mockDishItems: (DishMediaEntry & {
 				updated_at: "2025-08-08T17:19:02.676Z",
 				lock_no: 0,
 				deleted_at: null,
+				isMine: false, // #1513 モックは他人のレビュー扱い（編集・削除の導線を出さない）
 				username: "ramen_fever",
 				isLiked: false,
 				likeCount: 10,
@@ -528,6 +539,7 @@ export const mockDishItems: (DishMediaEntry & {
 				updated_at: "2025-08-08T17:19:02.676Z",
 				lock_no: 0,
 				deleted_at: null,
+				isMine: false, // #1513 モックは他人のレビュー扱い（編集・削除の導線を出さない）
 				username: "hotspice",
 				isLiked: false,
 				likeCount: 10,
@@ -606,6 +618,7 @@ export const mockDishItems: (DishMediaEntry & {
 				updated_at: "2025-08-08T17:19:02.676Z",
 				lock_no: 0,
 				deleted_at: null,
+				isMine: false, // #1513 モックは他人のレビュー扱い（編集・削除の導線を出さない）
 				username: "tokyo_foodie",
 				isLiked: false,
 				likeCount: 10,
@@ -628,6 +641,7 @@ export const mockDishItems: (DishMediaEntry & {
 				updated_at: "2025-08-08T17:19:02.676Z",
 				lock_no: 0,
 				deleted_at: null,
+				isMine: false, // #1513 モックは他人のレビュー扱い（編集・削除の導線を出さない）
 				username: "ramen_addict",
 				isLiked: false,
 				likeCount: 10,
@@ -650,6 +664,7 @@ export const mockDishItems: (DishMediaEntry & {
 				updated_at: "2025-08-08T17:19:02.676Z",
 				lock_no: 0,
 				deleted_at: null,
+				isMine: false, // #1513 モックは他人のレビュー扱い（編集・削除の導線を出さない）
 				username: "midnight_snacker",
 				isLiked: false,
 				likeCount: 10,

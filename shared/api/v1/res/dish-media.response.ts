@@ -37,6 +37,14 @@ export type DishMediaEntry = {
 		username: string;
 		isLiked: boolean;
 		likeCount: number;
+		/**
+		 * #1513 閲覧者自身が書いたレビューかどうか。編集・削除の導線を出す判定に使う。
+		 *
+		 * クライアント側で `user_id === 自分の id` を組み立てさせない。所有判定は
+		 * サーバーが持つ（PATCH / DELETE の認可と同じ根拠で返す）ため、
+		 * 画面が出す導線と実際に通る操作がズレない。
+		 */
+		isMine: boolean;
 	})[];
 };
 

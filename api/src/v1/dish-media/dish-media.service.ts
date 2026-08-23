@@ -241,10 +241,10 @@ export class DishMediaService {
   /**
    * 自分の投稿を論理削除する。
    *
-   * 【削除単位】dish_media 1 件 + その dish_media と一緒に作られたレビュー
-   * (dish_reviews.created_dish_media_id = :id)。「削除はメディアごと消える」という
-   * オーナー確定仕様に対応する。逆向き（レビュー単体の削除でメディアまで消す）は
-   * しない。
+   * 【削除単位】dish_media 1 件 + **投稿者自身が**その dish_media に対して書いたレビュー。
+   * 「削除はメディアごと消える」というオーナー確定仕様に対応する。
+   * 他人が同じメディアへ書いたレビュー（`review-from-media` 経路）は消さない。
+   * 逆向き（レビュー単体の削除でメディアまで消す）もしない。
    *
    * 【編集は無い】dish_media にはユーザーが書き換えられるテキスト列が無く、
    * 残りは media_path / thumbnail_path など媒体そのものである。メディアの差し替えは
@@ -290,7 +290,12 @@ export class DishMediaService {
     const deletedAt = new Date();
     const result = await this.prisma.withTransaction(
       (tx: Prisma.TransactionClient) =>
-        this.repo.softDeleteDishMediaWithReviews(tx, dishMediaId, deletedAt),
+        this.repo.softDeleteDishMediaWithReviews(
+          tx,
+          dishMediaId,
+          userId,
+          deletedAt,
+        ),
     );
 
     this.logger.log('DishMediaDeleted', 'deleteDishMedia', {

@@ -742,6 +742,7 @@ export class DishesService {
             // 作られるため dish_id が 'unknown' のまま。レスポンスは実 ID に揃える。
             dish_id: dish.id,
             username: r.imported_user_name || 'Anonymous', // ユーザー名がない場合は 'Anonymous' とする
+            isMine: false, // #1513 インポートなので自分のものではない（編集・削除の導線は出さない）
             isLiked: false, // 初期状態ではいいねされていない
             likeCount: 0, // 初期状態ではいいね数は 0
           })),

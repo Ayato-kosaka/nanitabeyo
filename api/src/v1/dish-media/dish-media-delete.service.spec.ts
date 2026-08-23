@@ -103,9 +103,12 @@ describe('DishMediaService #1513 投稿の削除', () => {
 
     expect(result.id).toBe(DISH_MEDIA_ID);
     expect(result.deletedDishReviewIds).toEqual(['review-uuid']);
+    // owner の id を渡していることが要点。これが無いと
+    // 他人が同じメディアへ書いたレビュー（review-from-media 経路）まで巻き添えで消える
     expect(repo.softDeleteDishMediaWithReviews).toHaveBeenCalledWith(
       TX,
       DISH_MEDIA_ID,
+      OWNER_ID,
       expect.any(Date),
     );
   });

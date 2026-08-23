@@ -57,6 +57,8 @@ export interface DishMediaEntryEntity {
     username: string;
     isLiked: boolean;
     likeCount: number;
+    /** #1513 閲覧者自身が書いたレビューか（編集・削除の導線判定） */
+    isMine: boolean;
   })[];
 }
 
@@ -593,6 +595,8 @@ export class DishMediaRepository {
         this.reactionKey('dish_reviews', review.id, 'like'),
       ),
       likeCount: reviewLikeCountMap.get(review.id) ?? 0,
+      // #1513 このメソッドは「userId が書いたレビュー」だけを引くので常に true
+      isMine: review.user_id === userId,
     }));
 
     return { items, nextCursor };
@@ -887,6 +891,9 @@ export class DishMediaRepository {
               this.reactionKey('dish_reviews', review.id, 'like'),
             ),
             likeCount: reviewLikeCountMap.get(review.id) ?? 0,
+            // #1513 編集・削除の導線を出す判定。Google import 由来は user_id が
+            // null なので、この比較で常に false になる
+            isMine: review.user_id === userId,
           })),
         };
       });
@@ -1019,11 +1026,19 @@ export class DishMediaRepository {
   }
 
   /**
-   * 投稿（dish_media）とその投稿と一緒に作られたレビューをまとめて論理削除する。
+   * 投稿（dish_media）と、その投稿を作った本人が同時に書いたレビューを論理削除する。
    *
-   * 削除単位をここに閉じ込めているのは、メディアだけ消してレビューを残すと
-   * 「写真の無いレビューが料理詳細に残る」状態になるため。逆にレビュー単体削除
-   * (DELETE /v1/dish-reviews/:id) は dish_media を巻き込まない。
+   * 【消す範囲を owner のレビューに限る理由】
+   * `created_dish_media_id` は「一緒に作られた」だけを意味しない。既存メディアへ
+   * レビューを足す経路（`review-from-media/[dishMediaId]`）でも同じメディア id が入るため、
+   * `created_dish_media_id = :id` だけで消すと **他人が書いたレビューまで巻き添えで消える**。
+   * 自分の投稿を消す操作で他人の文章を消してはいけないので、owner のものだけに絞る。
+   *
+   * 残った他人のレビューは失われない。レビューは *料理* 単位で読み出される
+   * （`getDishMediaEntriesByIds` の `dishes.dish_reviews`）ので、同じ料理の別の投稿から
+   * 引き続き読める。
+   *
+   * 逆にレビュー単体削除 (DELETE /v1/dish-reviews/:id) は dish_media を巻き込まない。
    *
    * 物理削除しないのは dish_media_likes(NoAction) / payouts / GCS 実体 /
    * notifications.target_id が dish_media.id を指したまま残るため。
@@ -1031,13 +1046,18 @@ export class DishMediaRepository {
   async softDeleteDishMediaWithReviews(
     tx: Prisma.TransactionClient,
     dishMediaId: string,
+    ownerUserId: string,
     deletedAt: Date,
   ): Promise<{ mediaDeleted: number; deletedDishReviewIds: string[] }> {
     // 巻き添えにするレビューの id は、更新の前に確定させておく。
     // updateMany は更新した行を返さないため、後から引くと「今回消したもの」と
     // 「元から消えていたもの」を区別できない
     const targets = await tx.dish_reviews.findMany({
-      where: { created_dish_media_id: dishMediaId, deleted_at: null },
+      where: {
+        created_dish_media_id: dishMediaId,
+        user_id: ownerUserId,
+        deleted_at: null,
+      },
       select: { id: true },
     });
 

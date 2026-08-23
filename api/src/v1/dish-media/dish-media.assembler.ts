@@ -79,6 +79,7 @@ export class DishMediaAssembler {
           username: r.username,
           isLiked: r.isLiked,
           likeCount: r.likeCount,
+          isMine: r.isMine, // #1513 編集・削除の導線を出す判定
         };
       });
 

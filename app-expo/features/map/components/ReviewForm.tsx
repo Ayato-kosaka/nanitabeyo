@@ -661,6 +661,9 @@ export function ReviewForm({
 							...createdDishReview,
 							// #467 【設計】プロフィールストアから display_name を取得（プロフィール画面を開かなくても利用可能）
 							username: profile?.display_name ?? "me",
+							// #1513 いま自分が投稿したレビューなので必ず true。
+							// サーバーから引き直したときも同じ値になる（user_id が一致するため）
+							isMine: true,
 							isLiked: false,
 							likeCount: 0,
 						},
