@@ -49,6 +49,18 @@ import type { QueryMeDishCategoryGroupVotesResponse } from "@shared/api/v1/res";
 import type { MeDishCategoryGroupVoteListItem } from "@shared/api/v1/res";
 import { toErrorLogMessage } from "@/lib/errorMessage";
 
+/**
+ * #1505 e2e（Playwright / Detox）の観測点。
+ *
+ * 行は全て同じ testID を持ち、区別は「上から何番目か」か「行内のテキスト」で行う。
+ * 旧実装は行に testID が無く、観測点が accessibilityLabel（表示日付）しか無かったため、
+ * 同じ日付の投票が 2 件あると行を特定できなかった。
+ */
+const ITEM_TEST_ID = "me-dish-category-group-votes-item";
+const ITEM_TITLE_TEST_ID = "me-dish-category-group-votes-item-title";
+/** 未投票のドット。出ている＝主催者である自分がまだ投票していない */
+const ITEM_UNVOTED_TEST_ID = "me-dish-category-group-votes-item-unvoted";
+
 /** サムネイル 1 枚の一辺。行の最小高（44pt）は上下 padding 14 と合わせてこれで満たす */
 const THUMBNAIL_SIZE = 44;
 /** 重なり量。少しだけ重ねて «同じ投票の候補» に見せる（隠しすぎると何の写真か分からない） */
@@ -120,7 +132,10 @@ const VoteListItem = memo(({ item, locale, onPress }: VoteListItemProps) => {
 			activeOpacity={0.7}
 			accessibilityRole="link"
 			accessibilityLabel={accessibilityLabel}
-			testID={`me-dish-category-group-votes-item-${item.id}`}>
+			// #1505 e2e の観測点。**全行で同じ testID** にしてある。session id を含めると
+			// Detox 側が「id を知らないと行を掴めない」形になり（prefix 一致が無い）、
+			// 実データで作った投票を掴めなくなる。行の区別は index か行内のテキストで行う。
+			testID={ITEM_TEST_ID}>
 			<View style={styles.thumbnails}>
 				{item.candidatePreviews.length === 0 ? (
 					// 候補が 1 件も無い投票でも行の高さと左端を揃える（レイアウトを崩さない）
@@ -154,7 +169,10 @@ const VoteListItem = memo(({ item, locale, onPress }: VoteListItemProps) => {
 			</View>
 
 			<View style={styles.itemBody}>
-				<Text style={[styles.itemTitle, !item.winnerName && styles.itemTitleUndecided]} numberOfLines={1}>
+				<Text
+					style={[styles.itemTitle, !item.winnerName && styles.itemTitleUndecided]}
+					numberOfLines={1}
+					testID={ITEM_TITLE_TEST_ID}>
 					{title}
 				</Text>
 				<Text style={styles.itemMeta} numberOfLines={1}>
@@ -162,8 +180,9 @@ const VoteListItem = memo(({ item, locale, onPress }: VoteListItemProps) => {
 				</Text>
 			</View>
 
-			{/* 状態はバッジではなくドットで示す。未投票の行だけに出す控えめな印 */}
-			{!item.hasVoted && <View style={styles.unvotedDot} />}
+			{/* 状態はバッジではなくドットで示す。未投票の行だけに出す控えめな印。
+			    「未投票」という語は accessibilityLabel が持つので、ここは装飾に徹する */}
+			{!item.hasVoted && <View style={styles.unvotedDot} testID={ITEM_UNVOTED_TEST_ID} />}
 			<ChevronRight size={18} color={colors.textTertiary} accessibilityElementsHidden importantForAccessibility="no" />
 		</TouchableOpacity>
 	);
