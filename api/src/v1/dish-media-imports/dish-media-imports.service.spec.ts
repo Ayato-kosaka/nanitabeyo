@@ -876,12 +876,16 @@ describe('DishMediaImportsService — 書き込みをしない', () => {
  */
 function createSaveTx(options?: {
   existingEmbedding?: { dish_media_id: string };
+  /** #1513 既存の dish_media が論理削除済みだったことにする */
+  existingDeletedAt?: Date;
   alreadySaved?: boolean;
 }) {
   const calls = {
     dishUpsert: jest.fn().mockResolvedValue({ id: 'dish-1' }),
     mediaCreate: jest.fn().mockResolvedValue({ id: 'media-1' }),
     mediaUpdate: jest.fn().mockResolvedValue({ count: 1 }),
+    // #1513 論理削除されていた既存行の復活（deleted_at を戻す）
+    mediaUndelete: jest.fn().mockResolvedValue({ id: 'media-existing' }),
     embeddingCreate: jest.fn().mockResolvedValue({}),
     reactionCreate: jest.fn().mockResolvedValue({}),
   };
@@ -892,11 +896,19 @@ function createSaveTx(options?: {
       // #1375 4 巡目 サムネイル複製の前提確認（'' = まだ複製していない）と据え替え
       findUnique: jest.fn().mockResolvedValue({ thumbnail_path: '' }),
       updateMany: calls.mediaUpdate,
+      update: calls.mediaUndelete,
     },
     dish_media_external_embeddings: {
-      findFirst: jest
-        .fn()
-        .mockResolvedValue(options?.existingEmbedding ?? null),
+      // #1513 サービスは `select` で dish_media.deleted_at も一緒に引くので、
+      // fake も同じ形（ネストした dish_media）を返す
+      findFirst: jest.fn().mockResolvedValue(
+        options?.existingEmbedding
+          ? {
+              ...options.existingEmbedding,
+              dish_media: { deleted_at: options?.existingDeletedAt ?? null },
+            }
+          : null,
+      ),
       create: calls.embeddingCreate,
       // #1375（3 巡目）再取り込み時のサムネイル貼り替え
       updateMany: jest.fn().mockResolvedValue({ count: 1 }),
@@ -1100,6 +1112,70 @@ describe('#1399 SNS 取り込みの保存', () => {
 
     expect(calls.reactionCreate).not.toHaveBeenCalled();
     expect(result).toMatchObject({ created: false, saved: false });
+  });
+
+  /**
+   * #1513 自然キー `(provider, external_content_id, dish_id)` の UNIQUE は論理削除でも
+   * 空かないので、一度消した投稿を取り込み直しても新しい `dish_media` は作れない。
+   * `deleted_at` を戻さないと «取り込みは 200 で返るのにどこにも出ない» ことになる。
+   */
+  it('一度削除した SNS 投稿を取り込み直したら、既存行を復活させる', async () => {
+    const { service, transport } = createHarness();
+    transport.route(TIKTOK_OEMBED, {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+      body: tiktokOembedBody('味噌ラーメン'),
+    });
+    const { tx, calls } = createSaveTx({
+      existingEmbedding: { dish_media_id: 'media-existing' },
+      existingDeletedAt: new Date('2026-08-20T00:00:00.000Z'),
+    });
+    (service as unknown as { prisma: { withTransaction: unknown } }).prisma = {
+      withTransaction: (cb: (t: unknown) => unknown) => cb(tx),
+    };
+
+    const result = await service.create(
+      {
+        url: URL,
+        restaurantId: '11111111-1111-1111-1111-111111111111',
+        dishCategoryId: 'Q2',
+      },
+      'user-2',
+    );
+
+    expect(calls.mediaCreate).not.toHaveBeenCalled();
+    expect(calls.mediaUndelete).toHaveBeenCalledTimes(1);
+    expect(calls.mediaUndelete.mock.calls[0][0]).toMatchObject({
+      where: { id: 'media-existing' },
+      data: { deleted_at: null },
+    });
+    expect(result).toMatchObject({ dishMediaId: 'media-existing' });
+  });
+
+  it('削除されていない既存行には復活の update を投げない', async () => {
+    const { service, transport } = createHarness();
+    transport.route(TIKTOK_OEMBED, {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+      body: tiktokOembedBody('味噌ラーメン'),
+    });
+    const { tx, calls } = createSaveTx({
+      existingEmbedding: { dish_media_id: 'media-existing' },
+    });
+    (service as unknown as { prisma: { withTransaction: unknown } }).prisma = {
+      withTransaction: (cb: (t: unknown) => unknown) => cb(tx),
+    };
+
+    await service.create(
+      {
+        url: URL,
+        restaurantId: '11111111-1111-1111-1111-111111111111',
+        dishCategoryId: 'Q2',
+      },
+      'user-2',
+    );
+
+    expect(calls.mediaUndelete).not.toHaveBeenCalled();
   });
 
   it('対応していない URL は 400 にする（黙って空の行を作らない）', async () => {

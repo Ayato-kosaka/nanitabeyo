@@ -110,7 +110,9 @@ export class RestaurantsRepository {
         MAX(rct.created_at) AS last_saved_at
       FROM reactions rct
       JOIN dish_media dm
-        ON rct.target_id::uuid = dm.id
+        -- #1513 削除しても save の reaction は残る。ここで弾かないと
+        -- 実体の無い投稿だけを根拠に店舗が「保存済み」として出続ける
+        ON rct.target_id::uuid = dm.id AND dm.deleted_at IS NULL
       JOIN dishes d
         ON d.id = dm.dish_id
       JOIN params p

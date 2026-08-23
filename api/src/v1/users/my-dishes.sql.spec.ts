@@ -41,8 +41,13 @@ describe('buildMyDishesPageQuery が組み立てる SQL', () => {
     expect(sql).toContain('my_save_ids AS MATERIALIZED (');
     expect(sql).toContain("target_type = 'dish_media'");
     // キャストはフェンスを通した後にだけ現れる
+    // #1513 で JOIN 条件に deleted_at が付き、間にコメント行も入ったので、
+    // 「フェンスの後に、削除済みを弾く JOIN が来ること」を 2 つに分けて見る
     expect(sql).toContain(
-      'FROM my_save_ids s JOIN dish_media dm ON dm.id = s.target_id::uuid',
+      'JOIN dish_media dm ON dm.id = s.target_id::uuid AND dm.deleted_at IS NULL',
+    );
+    expect(sql.indexOf('FROM my_save_ids s')).toBeLessThan(
+      sql.indexOf('JOIN dish_media dm ON dm.id = s.target_id::uuid'),
     );
 
     // フェンスの内側（reactions を直接読む部分）に ::uuid が無いこと。
@@ -224,7 +229,37 @@ describe('buildMyDishesPageQuery が組み立てる SQL', () => {
     expect(sql).toContain('ORDER BY dm.dish_id, s.created_at DESC, dm.id DESC');
     // eaten: created_dish_media_id。NULL のときだけ dish の最新メディアへ落とす
     expect(sql).toContain('dr.created_dish_media_id AS own_media_id');
-    expect(sql).toContain('fb ON p.own_media_id IS NULL');
+    // #1513 own_media_id は「生きているか」を om で 1 段挟んでから使う。
+    // NULL のときに加えて、削除済みを指していたときも fb（dish の最新メディア）へ落ちる
+    expect(sql).toContain('om ON p.own_media_id IS NOT NULL');
+    expect(sql).toContain(
+      'WHERE dmo.id = p.own_media_id AND dmo.deleted_at IS NULL',
+    );
+    expect(sql).toContain('fb ON om.id IS NULL');
+    expect(sql).toContain('COALESCE(om.id, fb.id) AS media_id');
+  });
+
+  it('#1513 代表メディアの候補にも集計にも論理削除済みの行を混ぜない', () => {
+    const sql = buildSql({});
+
+    // 候補集合（want / eaten の各枝）
+    expect(sql).toContain(
+      'JOIN dish_media dm ON dm.id = s.target_id::uuid AND dm.deleted_at IS NULL',
+    );
+    expect(sql).toContain('AND dr2.deleted_at IS NULL');
+    expect(sql).toContain(
+      'WHERE dr.user_id = ?::uuid AND dr.deleted_at IS NULL',
+    );
+    // ページ内 dish に限定した LATERAL（savedAt / フォールバック / 件数・平均）
+    expect(sql).toContain(
+      'WHERE dsv.dish_id = p.dish_id AND dsv.deleted_at IS NULL',
+    );
+    expect(sql).toContain(
+      'WHERE dm2.dish_id = p.dish_id AND dm2.deleted_at IS NULL',
+    );
+    expect(sql).toContain(
+      'WHERE dr3.dish_id = p.dish_id AND dr3.deleted_at IS NULL',
+    );
   });
 
   /* ---------------- #1397: restaurantId ---------------- */
@@ -452,7 +487,10 @@ describe('buildMyDishesPageQuery が組み立てる SQL', () => {
   });
 
   it('特徴量は既存 dish_category_features のスコアで並び替える（絞り込まない）', () => {
-    const sql = buildSql({ sort: '-featureScore', featureKeys: ['scene:date'] });
+    const sql = buildSql({
+      sort: '-featureScore',
+      featureKeys: ['scene:date'],
+    });
 
     // 既存 dish-categories.repository.ts と同じ作法（LEFT JOIN + COALESCE）
     expect(sql).toContain('LEFT JOIN (');
@@ -521,8 +559,13 @@ describe('buildMyDishesOldestWantSaveQuery が組み立てる SQL', () => {
 
     expect(sql).toContain('my_save_ids AS MATERIALIZED (');
     expect(fence).not.toContain('target_id::uuid');
+    // #1513 で JOIN 条件に deleted_at が付き、間にコメント行も入ったので、
+    // 「フェンスの後に、削除済みを弾く JOIN が来ること」を 2 つに分けて見る
     expect(sql).toContain(
-      'FROM my_save_ids s JOIN dish_media dm ON dm.id = s.target_id::uuid',
+      'JOIN dish_media dm ON dm.id = s.target_id::uuid AND dm.deleted_at IS NULL',
+    );
+    expect(sql.indexOf('FROM my_save_ids s')).toBeLessThan(
+      sql.indexOf('JOIN dish_media dm ON dm.id = s.target_id::uuid'),
     );
   });
 });
@@ -542,5 +585,24 @@ describe('buildMyDishMapPinsQuery が組み立てる SQL', () => {
     expect(beforeUnion).not.toContain('LIMIT');
     // 一覧と同じフェンスを使う（map-pins だけ ::uuid が裸になっていないこと）
     expect(sql).toContain('my_save_ids AS MATERIALIZED (');
+  });
+
+  it('#1513 ピンの代表メディアにも論理削除済みの行を採らない', () => {
+    const query = buildMyDishMapPinsQuery(USER_ID, {});
+    expect(query).not.toBeNull();
+    const sql = normalize(query!.sql);
+
+    // 一覧（buildMyDishesPageQuery）と同じ om → fb の順で解決する
+    expect(sql).toContain('om ON top.own_media_id IS NOT NULL');
+    expect(sql).toContain(
+      'WHERE dmo.id = top.own_media_id AND dmo.deleted_at IS NULL',
+    );
+    expect(sql).toContain(
+      'WHERE dm3.dish_id = top.dish_id AND dm3.deleted_at IS NULL',
+    );
+    expect(sql).toContain('fb ON om.id IS NULL');
+    expect(sql).toContain(
+      'LEFT JOIN dish_media dm ON dm.id = COALESCE(om.id, fb.id)',
+    );
   });
 });

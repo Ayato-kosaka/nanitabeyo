@@ -280,7 +280,9 @@ export class UsersRepository {
     const [oldestReview, oldestSaveRows] = await Promise.all([
       statuses.includes('eaten')
         ? this.prisma.prisma.dish_reviews.findFirst({
-            where: { user_id: userId },
+            // #1513 一覧の eaten 枝と同じ条件で引く。削除済みを混ぜると
+            // 「一覧に 1 件も無い月まで Calendar が遡れる」表示になる
+            where: { user_id: userId, deleted_at: null },
             orderBy: { created_at: 'asc' },
             select: { created_at: true },
           })

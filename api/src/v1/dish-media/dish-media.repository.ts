@@ -1046,7 +1046,10 @@ export class DishMediaRepository {
     >`
       SELECT DISTINCT ON (dm.dish_id) dm.dish_id, dm.id
       FROM dish_media dm
+      -- #1513 これは「その dish の代表メディア」を選ぶ経路なので、
+      -- 削除済みを候補に残すと消したはずの写真が代表として出続ける
       WHERE dm.dish_id = ANY(${dishIds}::uuid[])
+        AND dm.deleted_at IS NULL
       ORDER BY dm.dish_id, dm.created_at DESC, dm.id DESC
     `;
 
