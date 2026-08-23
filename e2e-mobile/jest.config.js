@@ -44,6 +44,23 @@ if (!isMutationEnabled) testPathIgnorePatterns.push("<rootDir>/tests/mutation/")
 if (!isProbeEnabled) testPathIgnorePatterns.push("<rootDir>/tests/probe/");
 if (!isCatalogEnabled) testPathIgnorePatterns.push("<rootDir>/tests/catalog/");
 
+// 🔬 spec の絞り込み（workflow_dispatch の test_filter → DETOX_RECORD 系と同じく env で届く）。
+//
+// ⚠️ jest の位置引数や --testPathPattern で渡してはいけない。それらは jest 内部で
+// **すべて 1 つの OR リストへ合流する**ため、tier スクリプトが持つ
+// `--testPathPattern 'tests/smoke/'` と併用すると「(smoke) OR (filter)」になり、
+// 絞ったつもりで全 smoke が実行されていた（run 32605810775 で実測: iOS のテストが 14.9 分）。
+// testPathIgnorePatterns は選択とは独立に AND で効くため、
+// 「filter のどの語も含まないパスを除外する」否定先読みで (tier) AND (filter) を表現する。
+const testFilter = (process.env.DETOX_TEST_FILTER || "").trim();
+if (testFilter) {
+	const words = testFilter
+		.split(/[|\s]+/)
+		.filter(Boolean)
+		.map((word) => word.replace(/[.*+?^${}()[\]\\]/g, "\\$&"));
+	if (words.length > 0) testPathIgnorePatterns.push(`^(?!.*(?:${words.join("|")}))`);
+}
+
 /** @type {import('ts-jest').JestConfigWithTsJest} */
 module.exports = {
 	rootDir: ".",

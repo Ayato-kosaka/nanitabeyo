@@ -1,4 +1,4 @@
-import React, { useCallback, useRef } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import { Text, TouchableOpacity, StyleSheet, View } from "react-native";
 import { router } from "expo-router";
 import { Bookmark, Ban } from "lucide-react-native";
@@ -15,6 +15,7 @@ import { toErrorLogMessage } from "@/lib/errorMessage";
 import { type TopicImageResourceState } from "@/features/topics/hooks/useTopicImageResources";
 import type { TopicsTutorialTargetRefs } from "@/features/topics/types/tutorial";
 import { TopicVisualCard } from "./TopicVisualCard";
+import type { CardRect } from "./TopicCardExpandTransition";
 
 export type TopicDeepDiveOption = {
 	key: string;
@@ -42,7 +43,8 @@ export const TopicCard = ({
 	item: Topic;
 	onBlock: (topic: Topic) => void;
 	onDeepDive?: (topic: Topic, option: TopicDeepDiveOption) => void;
-	onSelect: (topic: Topic) => void;
+	/** #1484 【設計】origin は押されたカード画像自身の実測矩形。拡大アニメーションの開始位置に使う。 */
+	onSelect: (topic: Topic, originRect?: CardRect) => void;
 	deepDiveOptions?: TopicDeepDiveOption[];
 	// #958 【修正】CARD_WIDTH の直接 import(window幅固定・中央カラム幅と不一致)をやめ、
 	// cardHeight と同様に呼び出し元(topics.tsx)から算出済みの値を受け取る
@@ -175,95 +177,134 @@ export const TopicCard = ({
 		onBlock(item);
 	};
 
+	/**
+	 * #1484 【設計】カード画像自身の実測矩形を取り、拡大アニメーションの開始位置として onSelect へ渡す。
+	 * 画像タップ・CTAボタンのどちらから呼ばれても、広がる対象は常にこのカード画像にする。
+	 *
+	 * measureInWindow はネイティブブリッジを跨ぐため、呼び出しから結果が返るまで必ず一呼吸ある。
+	 * その間は topics.tsx 側の isSelectingTopicRef がまだ立っておらず、素早い連打だと 2 回目の
+	 * タップがこの一呼吸の間に素通りしうる。呼び出し元コンポーネントを跨がず、この場で
+	 * 同期的に確定するガードを併用して、同一カードからの連打を測定中に弾く。
+	 */
+	const isMeasuringRef = useRef(false);
+	// isSelecting が false に戻った（=結果画面から戻ってきた等で再選択可能になった）タイミングで解除する。
+	// 測定中の一瞬は isSelecting がまだ false のままなので、ここでは解除されない（意図通り）。
+	useEffect(() => {
+		if (!isSelecting) {
+			isMeasuringRef.current = false;
+		}
+	}, [isSelecting]);
+	const cardMeasureRef = useRef<View>(null);
+	const handleSelectPress = useCallback(() => {
+		if (isMeasuringRef.current) return;
+		isMeasuringRef.current = true;
+
+		const node = cardMeasureRef.current;
+		if (node && typeof node.measureInWindow === "function") {
+			node.measureInWindow((x, y, width, height) => {
+				// 稀にレイアウト未確定で 0 サイズが返ることがあり、その場合は広がる元が無いのと同じなので諦める
+				if (width > 0 && height > 0) {
+					onSelect(item, { x, y, width, height });
+				} else {
+					onSelect(item);
+				}
+			});
+		} else {
+			onSelect(item);
+		}
+	}, [item, onSelect]);
+
 	return (
 		<View style={[styles.cardPressArea, { width: cardWidth, height: cardHeight + TOPIC_CARD_CTA_OVERHANG }]}>
 			{/* measureInWindowの基準を安定させるため、Touchableではなく明示的なViewを計測する。 */}
-			<View
-				ref={tutorialTargetRefs?.swipeArea}
-				collapsable={false}
-				testID={tutorialTargetRefs ? "topics-tutorial-target-swipe" : undefined}>
-				<TouchableOpacity onPress={() => onSelect(item)} activeOpacity={0.95}>
-					<TopicVisualCard
-						title={item.topicTitle}
-						tagline={item.reason}
-						imageSource={{ uri: item.imageUrl }}
-						cardWidth={cardWidth}
-						cardHeight={cardHeight}
-						imageState={imageState}
-						recyclingKey={item.categoryId}
-						onImageRetry={onImageRetry ? () => onImageRetry(item) : undefined}
-						onImageLoadError={onImageLoadError ? () => onImageLoadError(item) : undefined}
-						bottomContent={
-							<View style={styles.bottomContent}>
-								{deepDiveOptions.length > 0 ? (
-									<View
-										ref={tutorialTargetRefs?.deepDive}
-										collapsable={false}
-										style={styles.deepDiveContainer}
-										testID={tutorialTargetRefs ? "topics-tutorial-target-deep-dive" : undefined}>
-										<View style={styles.deepDiveTitleRow}>
-											<View style={styles.deepDiveTitleLine} />
-											<Text style={styles.deepDiveTitle}>{i18n.t("Topics.deepDive.title")}</Text>
-											<View style={styles.deepDiveTitleLine} />
+			<View ref={cardMeasureRef} collapsable={false}>
+				<View
+					ref={tutorialTargetRefs?.swipeArea}
+					collapsable={false}
+					testID={tutorialTargetRefs ? "topics-tutorial-target-swipe" : undefined}>
+					<TouchableOpacity onPress={handleSelectPress} activeOpacity={0.95}>
+						<TopicVisualCard
+							title={item.topicTitle}
+							tagline={item.reason}
+							imageSource={{ uri: item.imageUrl }}
+							cardWidth={cardWidth}
+							cardHeight={cardHeight}
+							imageState={imageState}
+							recyclingKey={item.categoryId}
+							onImageRetry={onImageRetry ? () => onImageRetry(item) : undefined}
+							onImageLoadError={onImageLoadError ? () => onImageLoadError(item) : undefined}
+							bottomContent={
+								<View style={styles.bottomContent}>
+									{deepDiveOptions.length > 0 ? (
+										<View
+											ref={tutorialTargetRefs?.deepDive}
+											collapsable={false}
+											style={styles.deepDiveContainer}
+											testID={tutorialTargetRefs ? "topics-tutorial-target-deep-dive" : undefined}>
+											<View style={styles.deepDiveTitleRow}>
+												<View style={styles.deepDiveTitleLine} />
+												<Text style={styles.deepDiveTitle}>{i18n.t("Topics.deepDive.title")}</Text>
+												<View style={styles.deepDiveTitleLine} />
+											</View>
+											<View style={[styles.deepDiveChips, isThreeDeepDiveChips && styles.deepDiveChipsRow]}>
+												{deepDiveOptions.map((option) => (
+													<TouchableOpacity
+														key={option.key}
+														style={[styles.deepDiveChip, isThreeDeepDiveChips && styles.deepDiveChipThird]}
+														hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+														onPress={(event) => {
+															event.stopPropagation();
+															onDeepDive?.(item, option);
+														}}
+														activeOpacity={0.8}>
+														<Text style={styles.deepDiveChipText}>{option.label}</Text>
+													</TouchableOpacity>
+												))}
+											</View>
 										</View>
-										<View style={[styles.deepDiveChips, isThreeDeepDiveChips && styles.deepDiveChipsRow]}>
-											{deepDiveOptions.map((option) => (
-												<TouchableOpacity
-													key={option.key}
-													style={[styles.deepDiveChip, isThreeDeepDiveChips && styles.deepDiveChipThird]}
-													hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
-													onPress={(event) => {
-														event.stopPropagation();
-														onDeepDive?.(item, option);
-													}}
-													activeOpacity={0.8}>
-													<Text style={styles.deepDiveChipText}>{option.label}</Text>
-												</TouchableOpacity>
-											))}
-										</View>
-									</View>
-								) : null}
-								<View style={styles.ctaSpacer} />
-							</View>
-						}
-						topRightContent={
-							<View
-								ref={tutorialTargetRefs?.topicActions}
-								collapsable={false}
-								style={styles.topicActions}
-								testID={tutorialTargetRefs ? "topics-tutorial-target-actions" : undefined}>
-								<TouchableOpacity
-									style={styles.topButton}
-									onPress={(event) => {
-										event.stopPropagation();
-										void handleSave();
-									}}
-									accessibilityRole="button"
-									accessibilityState={{ selected: isSaved }}
-									accessibilityLabel={i18n.t(
-										isSaved ? "Topics.accessibility.unsaveTopic" : "Topics.accessibility.saveTopic",
-										{ title: item.topicTitle },
-									)}>
-									<Bookmark
-										size={20}
-										color={isSaved ? "transparent" : "white"}
-										fill={isSaved ? "orange" : "transparent"}
-									/>
-								</TouchableOpacity>
-								<TouchableOpacity
-									style={styles.topButton}
-									onPress={(event) => {
-										event.stopPropagation();
-										void handleBlock();
-									}}
-									accessibilityRole="button"
-									accessibilityLabel={i18n.t("Topics.accessibility.blockTopic", { title: item.topicTitle })}>
-									<Ban size={18} color="#FFF" />
-								</TouchableOpacity>
-							</View>
-						}
-					/>
-				</TouchableOpacity>
+									) : null}
+									<View style={styles.ctaSpacer} />
+								</View>
+							}
+							topRightContent={
+								<View
+									ref={tutorialTargetRefs?.topicActions}
+									collapsable={false}
+									style={styles.topicActions}
+									testID={tutorialTargetRefs ? "topics-tutorial-target-actions" : undefined}>
+									<TouchableOpacity
+										style={styles.topButton}
+										onPress={(event) => {
+											event.stopPropagation();
+											void handleSave();
+										}}
+										accessibilityRole="button"
+										accessibilityState={{ selected: isSaved }}
+										accessibilityLabel={i18n.t(
+											isSaved ? "Topics.accessibility.unsaveTopic" : "Topics.accessibility.saveTopic",
+											{ title: item.topicTitle },
+										)}>
+										<Bookmark
+											size={20}
+											color={isSaved ? "transparent" : "white"}
+											fill={isSaved ? "orange" : "transparent"}
+										/>
+									</TouchableOpacity>
+									<TouchableOpacity
+										style={styles.topButton}
+										onPress={(event) => {
+											event.stopPropagation();
+											void handleBlock();
+										}}
+										accessibilityRole="button"
+										accessibilityLabel={i18n.t("Topics.accessibility.blockTopic", { title: item.topicTitle })}>
+										<Ban size={18} color="#FFF" />
+									</TouchableOpacity>
+								</View>
+							}
+						/>
+					</TouchableOpacity>
+				</View>
 			</View>
 			<View
 				ref={tutorialTargetRefs?.selectCta}
@@ -274,7 +315,7 @@ export const TopicCard = ({
 				<TouchableOpacity
 					testID="topics-choose-button"
 					style={[styles.selectButton, isSelecting && styles.selectButtonDisabled]}
-					onPress={() => onSelect(item)}
+					onPress={handleSelectPress}
 					disabled={isSelecting}
 					activeOpacity={0.85}
 					accessibilityRole="button"

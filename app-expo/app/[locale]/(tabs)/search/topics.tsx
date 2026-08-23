@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from "react-native";
 import { MapPin, SunMoon, Users, ChefHat, RefreshCw, DollarSign, Timer, CircleHelp } from "lucide-react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
@@ -8,6 +8,7 @@ import { Topic, SearchParams } from "@/types/search";
 import { useTopicSearch } from "@/features/topics/hooks/useTopicSearch";
 import { useBlockTopic } from "@/features/topics/hooks/useBlockTopic";
 import { TopicCard, TOPIC_CARD_CTA_OVERHANG, type TopicDeepDiveOption } from "@/features/topics/components/TopicCard";
+import { TopicCardExpandTransition, type CardRect } from "@/features/topics/components/TopicCardExpandTransition";
 import { TopicThumbnail } from "@/features/topics/components/TopicThumbnail";
 import { useTopicImageResources } from "@/features/topics/hooks/useTopicImageResources";
 import { TopicsLoading } from "@/features/topics/components/TopicsLoading";
@@ -95,6 +96,23 @@ export default function TopicsScreen() {
 	const [loadedSearchSessionKey, setLoadedSearchSessionKey] = useState<string | null>(null);
 	const [carouselAvailableHeight, setCarouselAvailableHeight] = useState(0);
 	const [isSelectingTopic, setIsSelectingTopic] = useState(false);
+	// #1484 【設計】押されたカード画像がその場からフルスクリーンへ広がるアニメーションの対象。
+	// 画面遷移は広がり切ってから行うため、遷移処理そのものは ref に積んでおく。
+	const [expandingCard, setExpandingCard] = useState<{
+		imageUrl: string;
+		originRect: CardRect;
+		targetRect: CardRect;
+	} | null>(null);
+	const pendingNavigateRef = useRef<(() => void) | null>(null);
+	/**
+	 * #1484 【設計】web は CenteredAppShell により画面中央の狭いカラムへ収まっており、
+	 * react-native-web は全 View に既定で position:relative を当てるため、この overlay の
+	 * position:absolute は window ではなく直近の親（この画面のルート View）基準で解決される。
+	 * originRect（measureInWindow = window絶対座標）をそのまま渡すと、そのズレの分だけ
+	 * 開始位置がカードから外れ、広がる先も window 全体（カラム外の余白まで）になってしまう。
+	 * このルート View 自身を計測し、相対座標へ変換した上で渡す。
+	 */
+	const screenContainerRef = useRef<View>(null);
 	const carouselRef = useRef<any>(null);
 	// React stateの反映前に連打された押下も防ぐため、同期的に参照できるガードを併用する。
 	const isSelectingTopicRef = useRef(false);
@@ -146,8 +164,18 @@ export default function TopicsScreen() {
 			isSelectingTopicRef.current = false;
 			setIsSelectingTopic(false);
 			isOpeningGroupVoteRef.current = false;
+			// #1484 結果画面から戻ってきた時点で、広がりきったままのオーバーレイを消す。
+			pendingNavigateRef.current = null;
+			setExpandingCard(null);
 		}, []),
 	);
+
+	/** #1484 拡大アニメーションが完了した瞬間に呼ばれ、予約しておいた画面遷移を実行する。 */
+	const handleExpandComplete = useCallback(() => {
+		const navigate = pendingNavigateRef.current;
+		pendingNavigateRef.current = null;
+		navigate?.();
+	}, []);
 
 	const { topics, isLoading, error, searchTopics, refillTopics, hideTopic, unhideTopic, createDishItemsPromise } =
 		useTopicSearch();
@@ -194,7 +222,7 @@ export default function TopicsScreen() {
 	}, [params, pinnedTopic, searchParams, searchTopics, showSnackbar, router]);
 
 	const handleViewDetails = useCallback(
-		(topic: Topic) => {
+		(topic: Topic, originRect?: CardRect) => {
 			// #633 【Blocker】params が undefined の場合は早期 return（クラッシュ防止）
 			if (!params) {
 				showSnackbar(i18n.t("Topics.errors.invalidSearchParams"));
@@ -240,22 +268,60 @@ export default function TopicsScreen() {
 				updateMediaIdsByKeyAsync(entriesKey, getIds(), (_, fetched) => fetched);
 			}
 
-			router.push({
-				pathname: "/[locale]/(tabs)/search/result",
-				params: {
-					locale,
-					entriesKey, // #633 【設計】topicId ではなく entriesKey を渡す
-					...(params && { location: JSON.stringify(params.location) }),
-					// #828 【設計】0件時のGoogle Maps検索はresult画面で判断するため、表示中カテゴリを渡す。
-					category: topic.category,
-				},
-			});
-			// #633 【設計】分析基盤互換のため移行期間は topicId と entriesKey を併記
-			logFrontendEvent({
-				event_name: "topic_view_details",
-				error_level: "log",
-				payload: { topic_id: topic.categoryId, entries_key: entriesKey },
-			});
+			// #1484 【設計】遷移そのものは拡大アニメーション完了後に行う（handleExpandComplete参照）。
+			// フェッチ開始はここまでの処理で既に走っており、遷移の遅延では待たされない。
+			const navigateToResult = () => {
+				router.push({
+					pathname: "/[locale]/(tabs)/search/result",
+					params: {
+						locale,
+						entriesKey, // #633 【設計】topicId ではなく entriesKey を渡す
+						...(params && { location: JSON.stringify(params.location) }),
+						// #828 【設計】0件時のGoogle Maps検索はresult画面で判断するため、表示中カテゴリを渡す。
+						category: topic.category,
+						// #1484 【仕様】店舗提案の取得完了まで、独立ローディング画面の代わりに選択した料理画像を表示し続ける。
+						dishImageUrl: topic.imageUrl,
+					},
+				});
+				// #633 【設計】分析基盤互換のため移行期間は topicId と entriesKey を併記
+				logFrontendEvent({
+					event_name: "topic_view_details",
+					error_level: "log",
+					payload: { topic_id: topic.categoryId, entries_key: entriesKey },
+				});
+			};
+
+			if (originRect) {
+				pendingNavigateRef.current = navigateToResult;
+				const containerNode = screenContainerRef.current;
+				const fallbackTargetRect = (): CardRect => {
+					const { width, height } = Dimensions.get("window");
+					return { x: 0, y: 0, width, height };
+				};
+				if (containerNode && typeof containerNode.measureInWindow === "function") {
+					containerNode.measureInWindow((containerX, containerY, containerWidth, containerHeight) => {
+						const targetRect: CardRect =
+							containerWidth > 0 && containerHeight > 0
+								? { x: 0, y: 0, width: containerWidth, height: containerHeight }
+								: fallbackTargetRect();
+						setExpandingCard({
+							imageUrl: topic.imageUrl,
+							originRect: {
+								x: originRect.x - containerX,
+								y: originRect.y - containerY,
+								width: originRect.width,
+								height: originRect.height,
+							},
+							targetRect,
+						});
+					});
+				} else {
+					setExpandingCard({ imageUrl: topic.imageUrl, originRect, targetRect: fallbackTargetRect() });
+				}
+			} else {
+				// #1484 実測矩形が取れなかった場合（レイアウト未確定等）は、従来どおり即座に遷移する。
+				navigateToResult();
+			}
 		},
 		[locale, params, createDishItemsPromise, logFrontendEvent, showSnackbar],
 	);
@@ -443,8 +509,8 @@ export default function TopicsScreen() {
 	// 遷移しない」だけの挙動になっていたため撤去した(レビュー指摘)。
 	// 実スワイプとタップの弁別は Carousel のジェスチャ制御に委ねる。
 	const handleCardPress = useCallback(
-		(topic: Topic) => {
-			handleViewDetails(topic);
+		(topic: Topic, originRect?: CardRect) => {
+			handleViewDetails(topic, originRect);
 		},
 		[handleViewDetails],
 	);
@@ -700,7 +766,7 @@ export default function TopicsScreen() {
 	};
 
 	return (
-		<View style={styles.container}>
+		<View style={styles.container} ref={screenContainerRef} collapsable={false}>
 			{/* #674 【仕様】ヘッダー（戻るボタン + タイトル） */}
 			{/* #1031 【設計】Detox からタイトル表示を検証できるよう testID を追加 */}
 			<ScreenHeader
@@ -889,6 +955,17 @@ export default function TopicsScreen() {
 				onClose={closeTopicsTutorial}
 				onUnavailable={closeTopicsTutorial}
 			/>
+
+			{/* #1484 【仕様】「この料理にする！」押下位置から画面いっぱいに広がるアニメーション。
+			    広がり切ったら handleExpandComplete が予約済みの画面遷移を実行する。 */}
+			{expandingCard && (
+				<TopicCardExpandTransition
+					imageUrl={expandingCard.imageUrl}
+					originRect={expandingCard.originRect}
+					targetRect={expandingCard.targetRect}
+					onExpandComplete={handleExpandComplete}
+				/>
+			)}
 		</View>
 	);
 }

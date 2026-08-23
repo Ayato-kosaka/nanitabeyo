@@ -27,6 +27,14 @@ name: DB Migrate
 # ## なぜ Actions でやるのか
 # migration は「誰かのローカルから流す」と、いつ・どのファイルまで当たったのかが
 # 記録に残りません。dispatch のログが残る形にしておくと、後から追えます。
+#
+# ## 実適用（dry_run=false）は main ブランチからのみ
+# 2026-08 に、機能ブランチ（#1469）から dev へ migration を先行適用した結果、
+# 「dev の schema と噛み合うコードがそのブランチにしか無く、api-development を
+# main からデプロイできない」状態が発生しました。以後、DB 変更は
+# «migration だけの小 PR を先に main へマージ → main からこの workflow で適用»
+# という migration-first 運用に固定します（infra/supabase/migrations/README.md）。
+# ブランチからは dry_run のみ許可します（適用対象と検査の事前確認用）。
 # ==============================================================================
 
 on:
@@ -88,6 +96,16 @@ jobs:
         run: |
           if [ -z "${DATABASE_URL}" ]; then
             echo "::error::secrets.POSTGRES_DATABASE_URL が未設定です。migration 対象 DB の接続文字列を登録してください。"
+            exit 1
+          fi
+
+      - name: 実適用は main ブランチからのみ許可
+        if: ${{ !inputs.dry_run }}
+        shell: bash
+        run: |
+          if [ "${GITHUB_REF_NAME}" != "main" ]; then
+            echo "::error::実適用（dry_run=false）は main ブランチからのみ実行できます（現在: ${GITHUB_REF_NAME}）。"
+            echo "::error::migration を適用したい場合は、migration ファイルだけの小 PR を先に main へマージしてください（infra/supabase/migrations/README.md）。"
             exit 1
           fi
 
