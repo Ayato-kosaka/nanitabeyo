@@ -1,4 +1,4 @@
-import { LAUNCH_TIMEOUT, describeJapaneseLocale, device, launchAppWithSession } from "../../fixtures/e2e";
+import { LAUNCH_TIMEOUT, describeJapaneseLocale, launchAppWithSession } from "../../fixtures/e2e";
 import { LoginScreen } from "../../screens/LoginScreen";
 import { OnboardingScreen } from "../../screens/OnboardingScreen";
 import { SearchScreen } from "../../screens/SearchScreen";
@@ -109,22 +109,12 @@ describeJapaneseLocale("オンボーディング（初回起動）", () => {
 		await login.skip();
 		await onboarding.waitForWelcome();
 
-		// ⚠️ Welcome の紙吹雪は **無限ループ**（最終検収で確定した仕様）のため、アプリは
-		// 二度と idle にならない。Detox の同期機構に任せたままタップすると
-		// 「Run loop awake / work items pending」のまま操作が不安定になり、
-		// 「はじめる」後の遷移待ちがフレークする（iOS run 32609985951 で 2 回連続失敗、
-		// 同一コードの run 32605810775 では成功、というフレーク実測）。
-		// 無限アニメーション画面の定石どおり、同期を切ってタップし、
-		// 着地（検索画面）をポーリングで確認してから同期を戻す
-		await device.disableSynchronization();
-		try {
-			await onboarding.pressStart();
-
-			// #1486 §7 「はじめる」でアプリ本体（検索画面）へ戻る
-			await search.expectLoaded();
-		} finally {
-			await device.enableSynchronization();
-		}
+		// #1486 §7 「はじめる」でアプリ本体（検索画面）へ戻る。
+		// ⚠️ 単発の pressStart + expectLoaded にしないこと。Welcome は紙吹雪が
+		// 無限ループし（確定仕様）、録画有効時はタップが取りこぼされることがある
+		//（詳細は pressStartUntilExited のコメント）。着地するまでタップし直す
+		await onboarding.pressStartUntilExited(search.headerTitle);
+		await search.expectLoaded();
 
 		// ── #1027: 既読フラグが AsyncStorage へ永続化されている ──────────
 		// 【重要】ここで `tutorialSeen: true`（既定）にしてはいけない。
