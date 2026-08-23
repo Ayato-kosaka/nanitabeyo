@@ -181,6 +181,20 @@ export default function TopicsScreen() {
 		useTopicSearch();
 	const { showSnackbar } = useSnackbar();
 	const { showDialog } = useDialog();
+	/**
+	 * #1499 【設計】取得失敗時の「その場で再試行」用の状態。
+	 *
+	 * `useTopicSearch` の `isLoading`/`error` は初回取得・再試行・リフィルで共有されており、
+	 * 再試行を開始すると即座に `error` が null に戻る（`searchTopics` 冒頭の `setError(null)`）。
+	 * TopicsError の文言をその瞬間に失わせないよう、直近のエラーだけ別途保持しておく。
+	 * 二重発火の防止は他の操作（isSelectingTopicRef 等）と同じ同期 ref ガード。
+	 */
+	const isRetryingTopicsRef = useRef(false);
+	const [isRetryingTopics, setIsRetryingTopics] = useState(false);
+	const [displayError, setDisplayError] = useState<string | null>(null);
+	useEffect(() => {
+		if (error) setDisplayError(error);
+	}, [error]);
 	const { handleBlockCard } = useBlockTopic(hideTopic, unhideTopic, showSnackbar);
 	const { createGroupVote, isCreating } = useCreateDishCategoryGroupVote();
 	// #958 【修正】CARD_WIDTH/CARD_MAX_HEIGHT/SCREEN_WIDTH(window幅固定、中央カラム幅と不一致)の
@@ -329,6 +343,32 @@ export default function TopicsScreen() {
 	const handleBack = () => {
 		router.back();
 	};
+
+	/**
+	 * #1499 【仕様】取得失敗画面の「再試行」ボタン。同じ params（+ pinnedTopic）で再取得する。
+	 *
+	 * ⚠️ state の反映を待たずに立つガード（isSelectingTopicRef 等と同じ方式）。
+	 * ボタン押下から re-render までの間の連打で `searchTopics` が二重に走るのを防ぐ。
+	 * 再試行が再び失敗した場合も、setError により displayError が更新され、
+	 * かつ Snackbar でも通知するため「無言で元のエラー表示に戻る」ことはない。
+	 */
+	const handleRetryTopics = useCallback(() => {
+		if (!params || isRetryingTopicsRef.current) return;
+		isRetryingTopicsRef.current = true;
+		setIsRetryingTopics(true);
+		const searchSessionKey = searchParams ?? "";
+		searchTopics(params, { pinnedTopic })
+			.then(() => {
+				setLoadedSearchSessionKey(searchSessionKey);
+			})
+			.catch(() => {
+				showSnackbar(i18n.t("Topics.errors.fetchFailed"));
+			})
+			.finally(() => {
+				isRetryingTopicsRef.current = false;
+				setIsRetryingTopics(false);
+			});
+	}, [params, pinnedTopic, searchParams, searchTopics, showSnackbar]);
 
 	const visibleTopics = useMemo(() => topics.filter((topic) => !topic.isHidden), [topics]);
 	const isCarouselReady = cardHeight > 0 && visibleTopics.length > 0;
@@ -738,12 +778,22 @@ export default function TopicsScreen() {
 		],
 	);
 
-	if (isLoading) {
+	// #1499 【設計】再試行中(isRetryingTopics)は、内部で isLoading が true になっても
+	// TopicsLoading へ切り替えず TopicsError を維持する。ボタンを非活性のまま表示し続けることで、
+	// 「再試行中であること」がユーザーに読める状態を保つ（TopicsLoading への切替だとボタンごと消えてしまう）。
+	if (isLoading && !isRetryingTopics) {
 		return <TopicsLoading />;
 	}
 
-	if (error) {
-		return <TopicsError error={error} onBack={handleBack} />;
+	if (error || isRetryingTopics) {
+		return (
+			<TopicsError
+				error={displayError ?? error ?? i18n.t("Topics.errors.fetchFailed")}
+				onBack={handleBack}
+				onRetry={handleRetryTopics}
+				isRetrying={isRetryingTopics}
+			/>
+		);
 	}
 
 	// #747 【仕様】リロードアイコンの表示条件：params が存在 && 表示中のトピックが0〜3件
