@@ -504,6 +504,32 @@ Markdown の画像埋め込みは、リンク記法（`[alt](url)`）の前に `
 
 `gh run download` で元Artifactも必要に応じて取得し、要約だけでなく中身を確認する。人間にはrun URL、Artifact名、対象SHA、成功・失敗、未実施項目をまとめて提示する。
 
+### dispatch する前に「その PR に対して既に走らせていないか」を確認する
+
+2026-08-23、残作業を洗い出して仕上げ run を 10 本 dispatch したところ、そのうち 3 本
+(#1518 / #1524 / #1525) は数十分前に自分で dispatch 済みの run と同じ内容だった。先行 run が
+既に e2e spec を足して push していたため、後発の run は「やることが無い」状態で何も commit
+できずに終わり、push 検証ステップが正しく失敗を返した。2 本ぶんのトークンが無駄になった。
+
+原因は「PR 本文にエビデンスの URL が入っているか」だけを残作業の判定に使ったこと。
+先行 run が **push は済ませたがエビデンスの公開はこれから**という中間状態にあると、この
+判定は「まだ何もしていない」と誤読する。
+
+dispatch の前に、次の 2 つを **両方** 見ること。
+
+```bash
+# 1) その PR のブランチに、既に成果物が入っていないか
+git fetch -q origin "$BRANCH" && git diff --name-only origin/main FETCH_HEAD -- e2e-web/tests e2e-mobile/tests
+
+# 2) 同じ PR に対する run が既に走っていないか（task_key に PR 番号を入れておくと引ける）
+#    mcp__github__actions_list(list_workflow_runs) の display_title を PR 番号で探す
+```
+
+`git diff origin/main <branch>` は **main 側の進み** も差分に混ぜてくる。ファイル名まで見て、
+本当にその PR が足したものかを確かめること。上の事故のとき、実際には何も足していない
+ブランチが `e2e-mobile/tests` に 1 件の差分を持っているように見えたが、中身は main へ
+先に入った別 PR の `onboarding.test.ts` だった。**件数ではなくファイル名で判定する。**
+
 ## runを追跡する
 
 `task_key` とrun URLをIssueまたは作業メモへ対応付ける。次のコマンドを使い分ける。
