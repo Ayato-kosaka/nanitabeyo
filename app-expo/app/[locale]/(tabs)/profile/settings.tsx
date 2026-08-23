@@ -18,6 +18,9 @@ import { useAuth } from "@/contexts/AuthProvider";
 import { isGuestUser } from "@/lib/authGuest";
 import type { LegalDocumentType } from "@/lib/legalRoute";
 import { useHaptics } from "@/hooks/useHaptics";
+import { useHapticsEnabled } from "@/features/settings/hooks/useHapticsEnabled";
+import { setHapticsEnabled } from "@/features/settings/hapticsSettingsStore";
+import { SettingsToggleItem } from "@/features/settings/components/SettingsToggleItem";
 import { useLogger } from "@/hooks/useLogger";
 import { useDialog } from "@/contexts/DialogProvider";
 import { Env } from "@/constants/Env";
@@ -71,6 +74,7 @@ export default function SettingsScreen() {
 	const { logout, user, isAuthResolved } = useAuth();
 	const router = useRouter();
 	const { lightImpact, mediumImpact } = useHaptics();
+	const hapticsEnabled = useHapticsEnabled();
 	const { logFrontendEvent } = useLogger();
 	const { locale } = useLocale();
 	const { showDialog, confirm } = useDialog();
@@ -100,6 +104,21 @@ export default function SettingsScreen() {
 			params: { locale },
 		});
 	}, [lightImpact, logFrontendEvent, router, locale]);
+
+	// #1504 【設計】ハプティクスのオン/オフ切替。オンにした場合のみ確認の振動を返す
+	// (オフへ切り替えたのに振動が鳴ると、切ったつもりが切れていないように見えるため)
+	const handleToggleHaptics = useCallback(
+		(next: boolean) => {
+			void setHapticsEnabled(next);
+			logFrontendEvent({
+				event_name: "settings_haptics_toggled",
+				error_level: "log",
+				payload: { enabled: next },
+			});
+			if (next) lightImpact();
+		},
+		[lightImpact, logFrontendEvent],
+	);
 
 	// #611 【設計】ストア直接遷移（market:// / itms-apps:// → https:// フォールバック）
 	const openStoreReviewPage = useCallback(async () => {
@@ -310,6 +329,17 @@ export default function SettingsScreen() {
 				{/* #1131 E2E から「ログアウト行まで送る」ためのスクロール対象。見た目には影響しない。
 				    ログアウト行は最下段のカードにあり、端末によっては初期表示で画面外にいる */}
 				<ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} testID="settings-scroll">
+					{/* Card 0: 端末ローカルの一般設定。#1504 SET-01 ハプティクス。以後 SET-02/05/06 もここに並ぶ想定 */}
+					<Card style={styles.card}>
+						<SettingsToggleItem
+							label={i18n.t("Settings.hapticsEnabled")}
+							value={hapticsEnabled}
+							onValueChange={handleToggleHaptics}
+							isLast
+							testID="settings-haptics-toggle"
+						/>
+					</Card>
+
 					{/* Card 1: フィードバック・レビュー・ブロック済みトピック */}
 					<Card style={styles.card}>
 						<SettingsMenuItem

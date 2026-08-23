@@ -711,6 +711,7 @@
 	},
 	"Settings": {
 		"title": "सेटिंग्स",
+		"hapticsEnabled": "हैप्टिक फ़ीडबैक",
 		"sendFeedback": "प्रतिक्रिया भेजें",
 		"leaveReview": "समीक्षा छोड़ें",
 		"rateDialogTitle": "क्या आपको ऐप पसंद है?",

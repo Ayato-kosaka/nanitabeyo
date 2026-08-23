@@ -711,6 +711,7 @@
 	},
 	"Settings": {
 		"title": "設定",
+		"hapticsEnabled": "触覚フィードバック",
 		"sendFeedback": "ご意見・不具合",
 		"leaveReview": "レビューを書く",
 		"rateDialogTitle": "アプリを気に入っていただけましたか？",

@@ -711,6 +711,7 @@
 	},
 	"Settings": {
 		"title": "Settings",
+		"hapticsEnabled": "Haptic Feedback",
 		"sendFeedback": "Send Feedback",
 		"leaveReview": "Leave Review",
 		"rateDialogTitle": "Are you enjoying the app?",

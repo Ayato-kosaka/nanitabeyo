@@ -711,6 +711,7 @@
 	},
 	"Settings": {
 		"title": "설정",
+		"hapticsEnabled": "햅틱 피드백",
 		"sendFeedback": "피드백 보내기",
 		"leaveReview": "리뷰 남기기",
 		"rateDialogTitle": "앱이 마음에 드시나요?",

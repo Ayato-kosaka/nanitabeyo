@@ -711,6 +711,7 @@
 	},
 	"Settings": {
 		"title": "设置",
+		"hapticsEnabled": "触感反馈",
 		"sendFeedback": "发送反馈",
 		"leaveReview": "留下评价",
 		"rateDialogTitle": "您喜欢这个应用吗？",

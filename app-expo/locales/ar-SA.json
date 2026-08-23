@@ -711,6 +711,7 @@
 	},
 	"Settings": {
 		"title": "الإعدادات",
+		"hapticsEnabled": "التغذية الراجعة اللمسية",
 		"sendFeedback": "إرسال ملاحظات",
 		"leaveReview": "اترك تقييم",
 		"rateDialogTitle": "هل تستمتع بالتطبيق؟",

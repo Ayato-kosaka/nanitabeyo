@@ -711,6 +711,7 @@
 	},
 	"Settings": {
 		"title": "Configuración",
+		"hapticsEnabled": "Retroalimentación háptica",
 		"sendFeedback": "Enviar comentarios",
 		"leaveReview": "Dejar reseña",
 		"rateDialogTitle": "¿Te gusta la aplicación?",
