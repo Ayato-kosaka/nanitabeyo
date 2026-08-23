@@ -12,7 +12,7 @@ canonicalUrl は投稿ページ（instagram.com/reel/... 等）で、iframe / We
 | --- | --- | --- |
 | instagram | `https://www.instagram.com/p/{code}/embed/` | 公式 blockquote 埋め込みが最終的に描く iframe と同じ。reel のコードも `/p/{code}/` で解決される（サーバ側 sns-oembed.service.ts が resolve で実測済みの同じ経路）。`/embed/captioned/` はヘッダ＋キャプションの白カードが付き全画面フィードで浮くため、映像本体だけの `/embed/` を使う（独立レビュー指摘） |
 | tiktok | `https://www.tiktok.com/embed/v2/{videoId}` | 公式 embed v2。動画 ID だけで動く |
-| youtube | `https://www.youtube.com/embed/{videoId}?playsinline=1` | 公式 iframe embed。playsinline はモバイルでフルスクリーンに奪われないため |
+| youtube | `https://www.youtube.com/embed/{videoId}?playsinline=1&autoplay=1&mute=1` | 公式 iframe embed。playsinline はモバイルでフルスクリーンに奪われないため。autoplay+mute は既存 dish_media の «着地したら動く» に寄せるため（ブラウザは無音でないと自動再生を許可しない） |
 
 判定できない provider は null（呼び出し側は «外部で開く» へ縮退する）。
 */
@@ -43,7 +43,7 @@ export function buildExternalEmbedPlayerSource(
 			};
 		case "youtube":
 			return {
-				embedUrl: `https://www.youtube.com/embed/${encodedId}?playsinline=1`,
+				embedUrl: `https://www.youtube.com/embed/${encodedId}?playsinline=1&autoplay=1&mute=1`,
 				providerLabel: "YouTube",
 			};
 		default:

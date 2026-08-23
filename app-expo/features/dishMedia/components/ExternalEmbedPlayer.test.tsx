@@ -1,9 +1,6 @@
 /*
-#1375 4 巡目: 外部埋め込み再生（ネイティブ側）の縮退を固定する。
-
-jest 環境では react-native-webview のネイティブビュー（RNCWebView）は登録されていない
-＝ **WebView が入っていない 1.14 ビルドと同じ状態**なので、
-「再生ボタン → アプリ内ブラウザ」のフォールバック経路がそのまま検証できる。
+#1375 4 巡目: 外部埋め込み再生（ネイティブ側 = 再生ボタン → アプリ内ブラウザ）の検証。
+フィード内埋め込み表示（react-native-webview）はネイティブ専用ブランチ側にある。
 */
 import React from "react";
 import { act, create, type ReactTestRenderer } from "react-test-renderer";

@@ -13,7 +13,7 @@ describe("buildExternalEmbedPlayerSource", () => {
 			"https://www.tiktok.com/embed/v2/6718335390845095173",
 		);
 		expect(buildExternalEmbedPlayerSource("youtube", "abc123")?.embedUrl).toBe(
-			"https://www.youtube.com/embed/abc123?playsinline=1",
+			"https://www.youtube.com/embed/abc123?playsinline=1&autoplay=1&mute=1",
 		);
 	});
 
