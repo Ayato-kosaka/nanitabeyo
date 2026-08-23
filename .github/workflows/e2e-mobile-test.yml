@@ -29,7 +29,7 @@ on:
           - catalog
           - catalog-with-review-flow
       test_filter:
-        description: "実行する spec を絞る jest の --testPathPattern（例: logout|saved-topic）。修正 1 件の検証ループを全 suite 実行（iOS で 90 分超）から数分へ縮めるための入力。空なら全件。⚠️ マージ前の最終確認は必ず空（全件）で回すこと"
+        description: "実行する spec をパス部分一致で絞る（例: logout|saved-topic。| か空白区切りで OR）。scope の範囲内で AND で効く（jest.config.js が DETOX_TEST_FILTER から除外パターンを組む）。修正 1 件の検証ループやエビデンス撮影を数分へ縮めるための入力。空なら全件。⚠️ マージ前の最終確認は必ず空（全件）で回すこと"
         type: string
         required: false
         default: ""
@@ -151,8 +151,35 @@ jobs:
           COMMIT_ID: ${{ github.sha }}
         run: printf '\nEXPO_PUBLIC_COMMIT_ID=%s\n' "$COMMIT_ID" >> .env
 
+      # 🔑 アプリバイナリ(APK)のキャッシュキーを算出する（iOS ジョブの同名ステップと同一思想）。
+      # Gradle ビルドは毎 run 約 11 分かかる（run 32607545105 で実測）が、release APK は
+      # アプリ側の入力が同じなら同一。エビデンス動画の再撮影やテストコードだけの修正で
+      # 11 分を払わないためにバイナリ単位でキャッシュする。
+      # COMMIT_ID を除く理由・stale COMMIT_ID の代償は iOS 側のコメントを参照
+      - name: 🔑 Compute app binary cache key
+        id: appkey
+        shell: bash
+        run: |
+          grep -v '^EXPO_PUBLIC_COMMIT_ID=' app-expo/.env > app-expo/.env.cachekey
+          echo "app_tree=$(git rev-parse HEAD:app-expo)" >> "$GITHUB_OUTPUT"
+          echo "shared_tree=$(git rev-parse HEAD:shared)" >> "$GITHUB_OUTPUT"
+
+      # ⚠️ restore-keys は付けない（iOS 側と同じ理由: 前方一致で stale バイナリを掴まない）
+      - name: 📥 Cache Detox app binary (Android)
+        id: appcache
+        uses: actions/cache@v4
+        with:
+          path: app-expo/android/app/build/outputs/apk
+          key: android-detox-apk-${{ runner.os }}-${{ steps.appkey.outputs.app_tree }}-${{ steps.appkey.outputs.shared_tree }}-${{ hashFiles('pnpm-lock.yaml', 'app-expo/.env.cachekey') }}
+
+      - name: ♻️ Report app binary cache hit
+        if: steps.appcache.outputs.cache-hit == 'true'
+        run: |
+          echo "::warning::APK キャッシュがヒットしたため Gradle ビルドをスキップします。バイナリ内の EXPO_PUBLIC_COMMIT_ID はビルド元コミットのままです（E2E は COMMIT_ID を検証しない）"
+
       # Gradle (AGP 8.x) は JDK 17 を要求する
       - name: ☕ Setup JDK 17
+        if: steps.appcache.outputs.cache-hit != 'true'
         uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -160,11 +187,13 @@ jobs:
 
       # Gradle の依存・ビルドキャッシュを共有し、2 回目以降のビルドを高速化する
       - name: 🐘 Setup Gradle
+        if: steps.appcache.outputs.cache-hit != 'true'
         uses: gradle/actions/setup-gradle@v4
 
       # CNG: android/ ディレクトリを生成する。E2E_DETOX=1 で @config-plugins/detox が
       # androidTest 設定（DetoxTest.java・build.gradle・Network Security Config）を注入する
       - name: 🧬 Expo prebuild (Android)
+        if: steps.appcache.outputs.cache-hit != 'true'
         working-directory: app-expo
         env:
           E2E_DETOX: "1"
@@ -172,6 +201,7 @@ jobs:
 
       # release APK + androidTest APK をビルドする（エミュレータ用に x86_64 のみ。.detoxrc.js 参照）
       - name: 🏗️ Detox build (Android release)
+        if: steps.appcache.outputs.cache-hit != 'true'
         # #1030 【設計】A' 案のセッション注入フックは **バンドル時** に metro.config.js の resolver で
         # 有効/無効が決まる。ここで立てないと noop 実装が焼き込まれ、launchArgs が黙って無視される
         # （= 認証済みテストが匿名のまま走り、テストは緑なのに検証内容だけが嘘になる）
@@ -196,6 +226,7 @@ jobs:
       # #1076 焼き込みは失敗しても例外もログも出ない (@expo/env が黙って捨てる) ため、
       # 成果物を直接検査して落とす。assert-no-e2e-hook と同じ sentinel ゲートの考え方。
       - name: 🔍 Assert commit id is baked into the APK
+        if: steps.appcache.outputs.cache-hit != 'true'
         env:
           COMMIT_ID: ${{ github.sha }}
         run: |

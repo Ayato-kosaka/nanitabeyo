@@ -5,7 +5,8 @@ description: >-
   (A) 即席 = ローカルで expo の web ビルドを立ち上げ、認証・API・Maps をモックした Playwright で
   録画（数分。Android 相当 / iOS 相当 = WebKit のデバイスプリセット付き）。
   (B) 実機 = e2e-mobile CI を record_videos 入力付きで dispatch し、Android エミュレータ /
-  iOS シミュレータの本物の Detox 動画を Artifact から回収（約 30 分〜）。
+  iOS シミュレータの本物の Detox 動画を Artifact から回収（ビルドキャッシュ命中時
+  Android 約 6 分 / iOS 約 15 分）。
   「動画で見せて」「エビデンスください」「スクショで確認したい」「iOS/Android での見た目を確かめたい」
   「デザイン修正を目視確認して」のように、UI の見た目や挙動を人に見せる・自分で確かめる必要が
   あるとき必ず使う。
@@ -17,7 +18,7 @@ description: >-
 
 | | A. 即席（このファイルの主題） | B. 実機（Detox / CI） |
 | --- | --- | --- |
-| 所要 | 数分 | 約 30 分〜（iOS は更に長い） |
+| 所要 | 数分 | APK/app キャッシュ命中時: Android 約 6 分 / iOS 約 15 分。ミス時 +11〜16 分 |
 | 実体 | ローカル web ビルド + Playwright | Android エミュレータ / iOS シミュレータ + Detox |
 | データ | 認証・API・Maps は**モック** | 実 dev 環境（実 API） |
 | 映るもの | UI・デザイン・画面遷移 | 上に加えて OS 許可ダイアログ・ATT 等ネイティブ面 |
@@ -32,8 +33,12 @@ description: >-
 
 1. `e2e-mobile-test.yml` を workflow_dispatch で起動する。入力:
    - `record_videos: true`（.detoxrc.js の video plugin が "all" になり全テストの動画が残る）
-   - `test_filter` に撮りたいフローの spec 名を入れると短縮できる（例: `onboarding`）。
-     platform で android / ios を絞れる
+   - `test_filter` に撮りたいフローの spec 名（例: `onboarding`）。**scope は既定の
+     `tier1-2` のまま**にする。filter は scope と AND で効くため、tier1(smoke) に
+     smoke 外の spec 名を渡すと 0 件になる。platform で android / ios を絞れる
+   - ビルドはバイナリ単位でキャッシュされる（app-expo / shared / lockfile が前回
+     ビルド時と同一なら Gradle 11 分 / xcodebuild 16 分がスキップされる）。
+     main で一度撮った後の再撮影・テストコードだけの修正は毎回キャッシュに乗る
 2. 完了後、Artifact `detox-report-android` / `detox-report-ios` をダウンロードすると
    `artifacts/` 配下にテストごとの `test.mp4` が入っている。チャットへは必要な分だけ
    `SendUserFile` で転送する
@@ -42,6 +47,14 @@ description: >-
 
 Android / iOS どちらも `test.mp4` が出る（#1484 の run 32589219056 で両 OS の
 mp4 を確認）。スクショ（--take-screenshots all）は録画の有無によらず常時収集される。
+
+⚠️ **CI の実機動画に紙吹雪など「モーション削減で消える演出」は映らない。**
+CI エミュレータはテスト安定化のため `disable-animations: true` で走り、Android は
+これをモーション削減としてアプリへ通知する。アプリ側（ConfettiBurst 等）が
+reduced motion を正しく尊重して描画を抑制するので、映らないのが正しい挙動。
+アニメを有効にすると無限ループ演出（紙吹雪・スピナー）が Detox の同期機構を
+永久ビジーにして全テストがハングするため、CI では有効化しない。
+演出そのもののエビデンスは A（即席 web 動画）か手元の実機で撮ること。
 
 ⚠️ **`DETOX_RECORD_VIDEOS` という env 名は Detox 自身が CLI オプションとして
 解釈する**（collectCliConfig が argv と同格に読み、defaultsDeep で .detoxrc.js より
