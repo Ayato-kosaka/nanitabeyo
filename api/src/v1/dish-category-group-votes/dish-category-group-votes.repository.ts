@@ -176,6 +176,91 @@ export class DishCategoryGroupVotesRepository {
     return session;
   }
 
+  /**
+   * #1505 【設計】GET /v1/users/me/dish-category-group-votes 用。
+   * host_user_id が自分、または participants に自分の user_id が居るセッションを1本の一覧として返す。
+   * submitVote は participant 作成と同じトランザクションで touchSession(updated_at 更新) するため、
+   * 「作成」「参加」どちらの活動でも updated_at が動く。この性質を利用し、両方を updated_at 降順の
+   * 単一カーソルで安全にページングできる。
+   */
+  async findMeSessions(
+    db: PrismaExecutor,
+    userId: string,
+    cursor?: string,
+    limit = 20,
+  ): Promise<{
+    items: {
+      id: string;
+      shareToken: string;
+      isHost: boolean;
+      hasVoted: boolean;
+      candidateCount: number;
+      createdAt: Date;
+      updatedAt: Date;
+    }[];
+    nextCursor: string | null;
+  }> {
+    const whereClause: Prisma.dish_category_group_vote_sessionsWhereInput = {
+      OR: [
+        { host_user_id: userId },
+        {
+          dish_category_group_vote_participants: {
+            some: { user_id: userId },
+          },
+        },
+      ],
+    };
+    if (cursor) {
+      whereClause.updated_at = { lt: new Date(cursor) };
+    }
+
+    const sessions = await db.dish_category_group_vote_sessions.findMany({
+      where: whereClause,
+      orderBy: { updated_at: 'desc' },
+      take: limit + 1,
+      select: {
+        id: true,
+        host_user_id: true,
+        share_token: true,
+        created_at: true,
+        updated_at: true,
+        _count: {
+          select: {
+            dish_category_group_vote_candidates: {
+              where: { deleted_at: null },
+            },
+          },
+        },
+        dish_category_group_vote_participants: {
+          where: { user_id: userId },
+          select: { id: true },
+          take: 1,
+        },
+      },
+    });
+
+    // #479 【設計】limit+1 件取得できた場合のみ nextCursor を返す
+    const hasMore = sessions.length > limit;
+    const page = hasMore ? sessions.slice(0, limit) : sessions;
+    const nextCursor = hasMore
+      ? page[page.length - 1].updated_at.toISOString()
+      : null;
+
+    return {
+      items: page.map((session) => ({
+        id: session.id,
+        shareToken: session.share_token,
+        isHost: session.host_user_id === userId,
+        hasVoted: session.dish_category_group_vote_participants.length > 0,
+        candidateCount:
+          session._count.dish_category_group_vote_candidates,
+        createdAt: session.created_at,
+        updatedAt: session.updated_at,
+      })),
+      nextCursor,
+    };
+  }
+
   async findCandidateById(
     db: PrismaExecutor,
     sessionId: string,

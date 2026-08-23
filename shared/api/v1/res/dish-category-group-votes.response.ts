@@ -135,3 +135,20 @@ export type DeleteDishCategoryGroupVoteCandidateResponse = {
 export type RestoreDishCategoryGroupVoteCandidateResponse = {
 	restored: true;
 };
+
+/**
+ * GET /v1/users/me/dish-category-group-votes の1件分。
+ *
+ * 自分がホスト(作成)したセッションと、参加(投票)したセッションの両方を返す。
+ * 同一セッションでホストが自分の投票にも投票した場合は isHost / hasVoted が両方 true になる。
+ */
+export type MeDishCategoryGroupVoteListItem = {
+	id: string;
+	shareToken: string;
+	isHost: boolean;
+	hasVoted: boolean;
+	/** 未削除(deleted_at IS NULL)の候補数 */
+	candidateCount: number;
+	createdAt: string;
+	updatedAt: string;
+};

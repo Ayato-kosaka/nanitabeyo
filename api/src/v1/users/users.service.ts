@@ -21,6 +21,7 @@ import {
   UpdateUserProfileDto,
   QuerySavedRestaurantsDto,
   QueryMeBlockedDishCategoriesDto,
+  QueryMeDishCategoryGroupVotesDto,
 } from '@shared/v1/dto';
 
 import { UsersRepository } from './users.repository';
@@ -32,9 +33,11 @@ import { RestaurantsRepository } from '../restaurants/restaurants.repository';
 import { isValidUserUploadedPath } from 'src/core/storage/storage.utils';
 import { CloudTasksService } from 'src/core/cloud-tasks/cloud-tasks.service';
 import { UsersAssembler } from './users.assembler';
-import { DishMediaEntry } from '@shared/v1/res';
+import { DishMediaEntry, MeDishCategoryGroupVoteListItem } from '@shared/v1/res';
 import { convertPrismaToSupabase_DishReviews } from '../../../../shared/converters/convert_dish_reviews';
 import { RestaurantsAssembler } from '../restaurants/restaurants.assembler';
+import { DishCategoryGroupVotesRepository } from '../dish-category-group-votes/dish-category-group-votes.repository';
+import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
 export class UsersService {
@@ -48,6 +51,8 @@ export class UsersService {
     private readonly cloudTasks: CloudTasksService,
     private readonly restaurantsRepo: RestaurantsRepository,
     private readonly restaurantsAssembler: RestaurantsAssembler,
+    private readonly dishCategoryGroupVotesRepo: DishCategoryGroupVotesRepository,
+    private readonly prismaService: PrismaService,
   ) {}
 
   async getUserByIds(userId: string[]) {
@@ -275,6 +280,58 @@ export class UsersService {
 
     return {
       data: dishMediaEntryItemsResult.items,
+      nextCursor,
+    };
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*          GET /v1/users/me/dish-category-group-votes               */
+  /* ------------------------------------------------------------------ */
+  // #1505 【設計】自分がホスト(作成)または参加(投票)した dish_category グループ投票の一覧。
+  // 認可の担保は repository の where 句(host_user_id または participants.user_id が自分)に閉じており、
+  // ここでは userId を JWT 由来のものだけ使い、body/query から session の所有者を受け取らない。
+  async getMeDishCategoryGroupVotes(
+    userId: string,
+    dto: QueryMeDishCategoryGroupVotesDto,
+  ): Promise<{
+    data: MeDishCategoryGroupVoteListItem[];
+    nextCursor: string | null;
+  }> {
+    this.logger.debug(
+      'GetMeDishCategoryGroupVotes',
+      'getMeDishCategoryGroupVotes',
+      {
+        userId,
+        cursor: dto.cursor,
+      },
+    );
+
+    const { items, nextCursor } =
+      await this.dishCategoryGroupVotesRepo.findMeSessions(
+        this.prismaService.prisma,
+        userId,
+        dto.cursor,
+      );
+
+    this.logger.debug(
+      'GetMeDishCategoryGroupVotesResult',
+      'getMeDishCategoryGroupVotes',
+      {
+        count: items.length,
+        nextCursor,
+      },
+    );
+
+    return {
+      data: items.map((item) => ({
+        id: item.id,
+        shareToken: item.shareToken,
+        isHost: item.isHost,
+        hasVoted: item.hasVoted,
+        candidateCount: item.candidateCount,
+        createdAt: item.createdAt.toISOString(),
+        updatedAt: item.updatedAt.toISOString(),
+      })),
       nextCursor,
     };
   }
