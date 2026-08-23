@@ -160,8 +160,6 @@
 		"loading": "खोज जारी...",
 		"noLocationsFound": "कोई स्थान नहीं मिला",
 		"locationConfirmation": {
-			"confirming": "स्थान की पुष्टि हो रही है…",
-			"confirmed": "स्थान की पुष्टि हो गई",
 			"error": "स्थान की पुष्टि करने में विफल"
 		},
 		"advancedToggle": {

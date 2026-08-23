@@ -160,8 +160,6 @@
 		"loading": "搜索中...",
 		"noLocationsFound": "未找到位置",
 		"locationConfirmation": {
-			"confirming": "正在确认位置…",
-			"confirmed": "位置已确认",
 			"error": "位置确认失败"
 		},
 		"advancedToggle": {

@@ -15,6 +15,12 @@ import type { AutocompleteLocation, LocationDetailsResponse } from "@shared/api/
  * (本番実査: 渋谷駅 / 2026-07-28)。PR #1524 で LocationAutocomplete に
  * confirmationStatus("confirming" | "confirmed" | "error")を追加し、状態を可視化した。
  *
+ * ## 案A (オーナー採用・成功は文章で語らない)
+ * - confirming: 入力欄右端に小さなスピナー(文言なし)
+ * - confirmed: 入力欄右端に ✓ が一瞬(2000ms)だけ出て、入力欄の値が候補の正式なフル地名
+ *   (autocomplete の text)へ置き換わる。「地点が確定しました」等の成功文言は存在しない
+ * - error: 現行どおり赤の1行+再試行ボタン(エラーだけが言葉を持つ)
+ *
  * ## モック方針
  * 実 Google Places / details API の応答タイミングは制御できず、「確認中」を安定して
  * 描画させたり、意図的に失敗させたりできない。そのため v1/locations/autocomplete と
@@ -74,13 +80,13 @@ function createGate(): { promise: Promise<void>; release: () => void } {
 }
 
 test.describe("地点確認(confirming/confirmed/error)の状態表示 (#1502)", () => {
-	// ─ テストケース: 確認中 → 確定 の順に表示され、確定後は確認中/失敗の表示が残らない ─
+	// ─ テストケース: 確認中(スピナー) → 確定(✓+値の置き換え) → ✓ が黙って消える ─
 	// 手順:
 	//   1. autocomplete を固定候補にモックし、details(OK_PLACE_ID)を保留可能にモックする
-	//   2. 候補を選択した直後、確認中の表示(スピナー)が出ることを検証
-	//   3. details 応答を解放し、確定の表示(チェックマーク)へ遷移することを検証
-	//   4. 確認中/失敗の表示が同時に残っていないことを検証
-	test("候補選択直後は確認中の表示が出て、details 成功後に確定の表示へ切り替わる", async ({ appPage }) => {
+	//   2. 候補を選択した直後、確認中のスピナーが出ることを検証
+	//   3. details 応答を解放し、✓ が出て入力欄の値が正式なフル地名(text)へ置き換わることを検証
+	//   4. 確認中/失敗の表示が同時に残っておらず、✓ も一瞬(2000ms)で消えることを検証
+	test("候補選択直後は確認中の表示が出て、details 成功後に ✓ と値の置き換えで確定が伝わる", async ({ appPage }) => {
 		const context = appPage.context();
 		const okGate = createGate();
 
@@ -121,9 +127,14 @@ test.describe("地点確認(confirming/confirmed/error)の状態表示 (#1502)",
 
 		okGate.release();
 
+		// 案A: 成功文言は無い。✓ が出て、入力欄の値が候補の正式なフル地名(text)へ置き換わる
 		await expect(searchPage.locationConfirmed).toBeVisible();
+		await expect(searchPage.locationInput).toHaveValue("確認テスト地点A, 東京都");
 		await expect(searchPage.locationConfirming).toHaveCount(0);
 		await expect(searchPage.locationConfirmationError).toHaveCount(0);
+
+		// ✓ は一瞬(2000ms)で黙って消える(成功表示が居座らない)
+		await expect(searchPage.locationConfirmed).toHaveCount(0);
 	});
 
 	// ─ テストケース: details 失敗時は再試行ボタンが出て、押すと details を再取得して確定する ─
@@ -198,7 +209,9 @@ test.describe("地点確認(confirming/confirmed/error)の状態表示 (#1502)",
 
 		retryGate.release();
 
+		// 再試行の成功も案Aどおり: ✓ + 入力値の正式地名への置き換えで伝わる
 		await expect(searchPage.locationConfirmed).toBeVisible();
+		await expect(searchPage.locationInput).toHaveValue("確認テスト地点B, 東京都");
 		await expect(searchPage.locationConfirming).toHaveCount(0);
 		await expect(searchPage.locationConfirmationError).toHaveCount(0);
 	});

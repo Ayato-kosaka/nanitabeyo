@@ -11,7 +11,23 @@ import path from "node:path";
 
 const REPO = process.env.EVIDENCE_REPO || "/home/user/nanitabeyo";
 const require = createRequire(path.join(REPO, "e2e-web/"));
-const { chromium } = require("@playwright/test");
+const { chromium, webkit, devices } = require("@playwright/test");
+
+/**
+ * デバイスプリセット（scripts/record.mjs と同じ方針。e2e-web CI の
+ * mobile-chrome / mobile-safari と同じ device descriptor を使う）。
+ * ⚠️ «相当» であって実機ではない。エビデンスとして提示するときプラットフォームを偽らないこと。
+ * ios プリセットは WebKit バイナリが要る（e2e-web で
+ * `env -u PLAYWRIGHT_BROWSERS_PATH ./node_modules/.bin/playwright install --with-deps webkit`）。
+ */
+export const PRESETS = {
+	// 素の iPhone サイズ Chromium（最速。エンジン差が論点でないときの既定）
+	default: { engine: chromium, options: { viewport: { width: 390, height: 844 } } },
+	// Android 相当（Pixel 7 の UA / viewport / タッチ）
+	android: { engine: chromium, options: { ...devices["Pixel 7"] } },
+	// iOS 相当（iPhone 14 + WebKit = Safari のレンダリングエンジン）
+	ios: { engine: webkit, options: { ...devices["iPhone 14"] } },
+};
 
 export const BASE = process.env.EVIDENCE_BASE || "http://localhost:8788";
 export const OUT = process.env.EVIDENCE_OUT || "/tmp/claude-artifacts/evidence";
@@ -156,14 +172,17 @@ export function assertFontsFor(langs = ["ja"]) {
 	}
 }
 
-export async function record({ name, mock, contextOptions, flow, langs }) {
+export async function record({ name, mock, contextOptions, flow, langs, preset = "default" }) {
 	assertFontsFor(langs ?? ["ja"]);
 	await mkdir(OUT, { recursive: true });
-	const browser = await chromium.launch({ executablePath: resolveExecutablePath() });
+	const { engine, options } = PRESETS[preset] ?? PRESETS.default;
+	// resolveExecutablePath は Chromium の実体を指すためのもの。WebKit(ios) では渡さない
+	const browser = await engine.launch(engine === chromium ? { executablePath: resolveExecutablePath() } : {});
+	const viewport = options.viewport ?? { width: 390, height: 844 };
 	const context = await browser.newContext({
 		locale: "ja-JP",
-		viewport: { width: 390, height: 844 }, // iPhone 相当。iOS 実機ではないので偽らないこと
-		recordVideo: { dir: OUT, size: { width: 390, height: 844 } },
+		...options, // viewport / UA / タッチなど preset 由来（«相当» であって実機ではない）
+		recordVideo: { dir: OUT, size: viewport },
 		...contextOptions,
 	});
 	const page = await context.newPage();

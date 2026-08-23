@@ -240,11 +240,18 @@ export default function SearchScreen() {
 			const locationDetails = await getLocationDetails(prediction);
 			if (locationConfirmationRequestIdRef.current !== requestId) return;
 			setLocation(locationDetails);
+			// #1502 【案A】成功は文章で語らず、入力欄の値を「解決済みの正式な地名」へ置き換える
+			// こと自体で「掴んだ場所はここ」を伝える(例:「渋谷」→「渋谷区, 東京都」)。
+			// details API のレスポンスに人間可読の地名は無い(address は "country:JP, locality:…"
+			// の機械形式)ため、autocomplete が返す候補の完全表記(text = mainText + secondaryText)を
+			// 正式地名として使う。ユーザーがタップした候補そのものの表記なので齟齬は生まれない。
+			setLocationQuery(prediction.text);
 			setLocationConfirmationStatus("confirmed");
 			// #953 【仕様】details 取得に成功した地点だけを「最近使った場所」に保存する。
 			// viewport はスプレッドすると型上は Omit していても実行時には残ってしまうため、明示的に除く。
+			// #1502 保存する表示名も確定後の入力欄と同じ正式地名(text)に揃える
 			const { viewport: _viewport, ...locationWithoutViewport } = locationDetails;
-			addRecentLocation({ ...locationWithoutViewport, locationQuery: prediction.mainText });
+			addRecentLocation({ ...locationWithoutViewport, locationQuery: prediction.text });
 		} catch (error) {
 			if (locationConfirmationRequestIdRef.current !== requestId) return;
 			logFrontendEvent({

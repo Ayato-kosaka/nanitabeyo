@@ -7,7 +7,9 @@
 //
 // ここで固定するのは
 //   1. 候補選択直後は「確認中」になること
-//   2. details が成功すれば「確定」になり、最近使った場所へ保存されること
+//   2. details が成功すれば「確定」になり、入力欄の値が候補の正式なフル地名(text)へ
+//      置き換わること(案A: 成功は文章ではなく値の置き換えで伝える)、最近使った場所へ
+//      同じ正式地名で保存されること
 //   3. details が失敗すれば「失敗」になり、再試行(onRetryConfirmation)でやり直せること
 //   4. 確認中に別候補へ選び直したとき、先発の取得が後から返ってきても確定状態を上書きしないこと
 //
@@ -87,8 +89,10 @@ jest.mock("@/hooks/useLocationSearch", () => ({
 let onSelectSuggestion: ((prediction: AutocompleteLocation) => void) | undefined;
 let onRetryConfirmation: (() => void) | undefined;
 let latestConfirmationStatus: "confirming" | "confirmed" | "error" | null | undefined;
+let latestLocationQuery: string | undefined;
 jest.mock("@/components/LocationAutocomplete", () => ({
 	LocationAutocomplete: (props: {
+		value?: string;
 		onSelectSuggestion?: (prediction: AutocompleteLocation) => void;
 		onRetryConfirmation?: () => void;
 		confirmationStatus?: "confirming" | "confirmed" | "error" | null;
@@ -96,6 +100,7 @@ jest.mock("@/components/LocationAutocomplete", () => ({
 		onSelectSuggestion = props.onSelectSuggestion;
 		onRetryConfirmation = props.onRetryConfirmation;
 		latestConfirmationStatus = props.confirmationStatus;
+		latestLocationQuery = props.value;
 		return null;
 	},
 }));
@@ -115,9 +120,11 @@ function createDeferred<T>() {
 	return { promise, resolve, reject };
 }
 
+// #1502 【案A】text(正式なフル地名)と mainText(短い表記)を別の値にしておくことで、
+// 「確定時に入力欄の値が mainText → text へ置き換わる」ことを区別して検証できる
 const predictionA = {
 	place_id: "place-a",
-	text: "地点A",
+	text: "地点A, 東京都",
 	mainText: "地点A",
 	secondaryText: "東京都",
 	types: ["establishment"],
@@ -125,7 +132,7 @@ const predictionA = {
 
 const predictionB = {
 	place_id: "place-b",
-	text: "地点B",
+	text: "地点B, 東京都",
 	mainText: "地点B",
 	secondaryText: "東京都",
 	types: ["establishment"],
@@ -151,6 +158,7 @@ describe("#1502 地点確認(confirming/confirmed/error)の状態遷移", () => 
 		onSelectSuggestion = undefined;
 		onRetryConfirmation = undefined;
 		latestConfirmationStatus = undefined;
+		latestLocationQuery = undefined;
 	});
 
 	afterEach(() => {
@@ -167,7 +175,7 @@ describe("#1502 地点確認(confirming/confirmed/error)の状態遷移", () => 
 		expect(onSelectSuggestion).toBeDefined();
 	}
 
-	it("候補選択直後は「確認中」になり、details 成功後に「確定」へ遷移して最近使った場所に保存される", async () => {
+	it("候補選択直後は「確認中」になり、details 成功後に「確定」へ遷移して入力値が正式地名に置き換わり、最近使った場所に保存される", async () => {
 		const deferred = createDeferred<LocationDetailsResponse>();
 		mockGetLocationDetails.mockReturnValueOnce(deferred.promise);
 		renderScreen();
@@ -175,8 +183,10 @@ describe("#1502 地点確認(confirming/confirmed/error)の状態遷移", () => 
 		act(() => {
 			onSelectSuggestion!(predictionA);
 		});
-		// details がまだ解決していない間は「確認中」(検索ボタンが灰色のままの理由が画面に出る)
+		// details がまだ解決していない間は「確認中」(検索ボタンが灰色のままの理由が画面に出る)。
+		// 入力欄はまだ選択した候補の短い表記(mainText)のまま
 		expect(latestConfirmationStatus).toBe("confirming");
+		expect(latestLocationQuery).toBe("地点A");
 		expect(mockAddRecentLocation).not.toHaveBeenCalled();
 
 		await act(async () => {
@@ -186,7 +196,10 @@ describe("#1502 地点確認(confirming/confirmed/error)の状態遷移", () => 
 		});
 
 		expect(latestConfirmationStatus).toBe("confirmed");
-		expect(mockAddRecentLocation).toHaveBeenCalledWith(expect.objectContaining({ locationQuery: "地点A" }));
+		// #1502 【案A】成功文言の代わりに、入力欄の値が正式なフル地名(text)へ置き換わる
+		expect(latestLocationQuery).toBe("地点A, 東京都");
+		// 最近使った場所にも確定後の入力欄と同じ正式地名で保存される
+		expect(mockAddRecentLocation).toHaveBeenCalledWith(expect.objectContaining({ locationQuery: "地点A, 東京都" }));
 	});
 
 	it("details が失敗すると「失敗」になり、再試行(onRetryConfirmation)で同じ候補を取り直せる", async () => {
@@ -252,6 +265,8 @@ describe("#1502 地点確認(confirming/confirmed/error)の状態遷移", () => 
 			await Promise.resolve();
 		});
 		expect(latestConfirmationStatus).toBe("confirming");
+		// 遅れて届いた A の正式地名で入力値が書き換わっていない(まだ B の mainText のまま)
+		expect(latestLocationQuery).toBe("地点B");
 		expect(mockAddRecentLocation).not.toHaveBeenCalled();
 
 		// 後発の B が解決すると確定する
@@ -261,8 +276,10 @@ describe("#1502 地点確認(confirming/confirmed/error)の状態遷移", () => 
 			await Promise.resolve();
 		});
 		expect(latestConfirmationStatus).toBe("confirmed");
+		// #1502 【案A】確定した B の正式地名(text)に置き換わっている(A の text ではない)
+		expect(latestLocationQuery).toBe("地点B, 東京都");
 		// 最近使った場所に保存されるのは B の分だけ(A の遅延結果に上書きされていない)
 		expect(mockAddRecentLocation).toHaveBeenCalledTimes(1);
-		expect(mockAddRecentLocation).toHaveBeenCalledWith(expect.objectContaining({ locationQuery: "地点B" }));
+		expect(mockAddRecentLocation).toHaveBeenCalledWith(expect.objectContaining({ locationQuery: "地点B, 東京都" }));
 	});
 });

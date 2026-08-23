@@ -24,6 +24,12 @@ import { SearchScreen } from "../../screens/SearchScreen";
  * (本番実査: 渋谷駅 / 2026-07-28)。PR #1524 で LocationAutocomplete に
  * confirmationStatus("confirming" | "confirmed" | "error")を追加し、状態を可視化した。
  *
+ * ## 案A (オーナー採用・成功は文章で語らない)
+ * - confirming: 入力欄右端に小さなスピナー(文言なし)
+ * - confirmed: 入力欄右端に ✓ が一瞬(2000ms)だけ出て、入力欄の値が候補の正式なフル地名
+ *   (autocomplete の text)へ置き換わる。「地点が確定しました」等の成功文言は存在しない
+ * - error: 現行どおり赤の1行+再試行ボタン(エラーだけが言葉を持つ)
+ *
  * ## ⚠️ web 側とのカバレッジ差(意図的)
  * e2e-web は `page.route()` で v1/locations/details を遅延・失敗させ、confirming/confirmed に加えて
  * error(失敗)→再試行→confirmed までの3状態を検証している。
@@ -49,15 +55,18 @@ describe("地点確認(confirming/confirmed)の状態表示(実 API)", () => {
 		await device.enableSynchronization();
 	});
 
-	// ─ テストケース: 確認中 → 確定 の順に表示され、確定後は確認中の表示が残らない ─
+	// ─ テストケース: 確認中(スピナー) → 確定(✓が一瞬) → ✓ が黙って消える ─
 	// 手順:
 	//   1. 「渋谷」で検索し、先頭候補が表示されるまで待つ
 	//   2. 同期機構を切ってから候補をタップする(切らないと Detox が details の完了まで
 	//      次の評価をブロックし、確認中の一瞬を必ず取り逃がす。review-submit-loading.test.ts と同じ理由)
 	//   3. 確認中の表示(search-location-autocomplete-confirmation-confirming)をポーリングで観測する
-	//   4. 同期機構を戻し、details 完了を待って確定の表示に切り替わることを検証する
-	//   5. 確定後は確認中の表示が残っていないことを検証する
-	it("候補選択直後は確認中の表示が出て、details 成功後に確定の表示へ切り替わる", async () => {
+	//   4. 確定の ✓ は 2000ms しか表示されない(案A)。details の解決タイミングは実 API 依存で
+	//      読めないため、同期機構は切ったままポーリングで ✓ の一瞬を掴む
+	//      (✓ の 2000ms タイマー自体は Detox が追跡しない 1.5s 超だが、可視待ちに切り替える
+	//       enableSynchronization の往復の間に表示期間が終わり得る)
+	//   5. ✓ が黙って消える(表示が残り続けない)ことまで確認してから同期機構を戻す
+	it("候補選択直後は確認中のスピナーが出て、details 成功後に ✓ が一瞬出て消える", async () => {
 		await search.clearLocationIfPresent();
 		await search.typeLocation("渋谷");
 		await waitUntilVisible(search.locationSuggestion(0));
@@ -67,16 +76,26 @@ describe("地点確認(confirming/confirmed)の状態表示(実 API)", () => {
 
 		await waitUntil(() => visibleNow(search.locationConfirming, 500), {
 			interval: 100,
-			description: "地点確認中の表示(search-location-autocomplete-confirmation-confirming)",
+			description: "地点確認中のスピナー(search-location-autocomplete-confirmation-confirming)",
 		});
 
-		// 確定は details の完了を要するので、同期機構を戻して通常の可視待ちに任せる
-		await device.enableSynchronization();
-		await waitUntilVisible(search.locationConfirmed);
+		// 案A: 成功文言は無く、✓ が一瞬(2000ms)だけ出る
+		await waitUntil(() => visibleNow(search.locationConfirmed, 500), {
+			interval: 100,
+			description: "地点確定の ✓ (search-location-autocomplete-confirmation-confirmed)",
+		});
 		assert.equal(
 			await existsNow(search.locationConfirming),
 			false,
-			"確定後も確認中の表示が残っている(状態遷移が壊れている疑い)",
+			"確定後も確認中のスピナーが残っている(状態遷移が壊れている疑い)",
 		);
+
+		// ✓ は 2000ms で黙って消える(成功表示が居座らないことも案Aの仕様)
+		await waitUntil(async () => !(await existsNow(search.locationConfirmed, 500)), {
+			interval: 250,
+			description: "地点確定の ✓ が一瞬で消えること",
+		});
+
+		await device.enableSynchronization();
 	});
 });

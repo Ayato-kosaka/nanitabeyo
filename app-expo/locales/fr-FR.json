@@ -160,8 +160,6 @@
 		"loading": "Recherche...",
 		"noLocationsFound": "Aucun lieu trouvé",
 		"locationConfirmation": {
-			"confirming": "Confirmation du lieu…",
-			"confirmed": "Lieu confirmé",
 			"error": "Échec de la confirmation du lieu"
 		},
 		"advancedToggle": {

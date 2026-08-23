@@ -160,8 +160,6 @@
 		"loading": "Searching...",
 		"noLocationsFound": "No locations found",
 		"locationConfirmation": {
-			"confirming": "Confirming location…",
-			"confirmed": "Location confirmed",
 			"error": "Failed to confirm location"
 		},
 		"advancedToggle": {

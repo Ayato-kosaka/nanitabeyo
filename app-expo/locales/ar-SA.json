@@ -160,8 +160,6 @@
 		"loading": "جارٍ البحث...",
 		"noLocationsFound": "لم يتم العثور على مواقع",
 		"locationConfirmation": {
-			"confirming": "جارٍ تأكيد الموقع…",
-			"confirmed": "تم تأكيد الموقع",
 			"error": "فشل تأكيد الموقع"
 		},
 		"advancedToggle": {
