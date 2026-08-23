@@ -73,20 +73,26 @@ export class SettingsPage {
 	}
 
 	/**
-	 * #1510 通知カテゴリの行（トグル）を返す。
+	 * #1510 通知カテゴリの行（トグル）を返す。**押すのはこの行。**
 	 *
-	 * `SettingsToggleItem` は行全体をタップ対象にし、Switch には `-switch` を足した
-	 * testID を付ける。**押すのは行**（Switch は `pointerEvents="none"` で親へ透過する）、
-	 * **状態を読むのは Switch**（react-native-web は `role="switch"` + `aria-checked` を出す）。
+	 * `SettingsToggleItem` は行全体をタップ対象にし、Switch 側は `pointerEvents="none"` で
+	 * タッチを親へ透過させる（ラベルを押しても切り替わるようにするため）。
 	 */
 	notificationToggle(category: "likes" | "saves" | "group_votes"): Locator {
 		return this.page.getByTestId(`settings-notifications-${category}`);
 	}
 
-	/** #1510 カテゴリのトグルが今オンかを読む */
+	/**
+	 * #1510 カテゴリのトグルが今オンかを読む。
+	 *
+	 * ⚠️ **行の `aria-checked` は読めない。** 行には `accessibilityState={{ checked }}` を
+	 * 渡しているが、react-native-web はこれを `aria-checked` として出力しない
+	 * （実測: 行は `role="switch"` と `aria-label` だけを持ち、`aria-checked` は付かない）。
+	 * 実際の状態は行の中に描かれる `<input type="checkbox" role="switch">` の `checked` にある。
+	 * ここを行側から読もうとして 1 度書き直しているので、戻さないこと。
+	 */
 	async isNotificationToggleOn(category: "likes" | "saves" | "group_votes"): Promise<boolean> {
-		const checked = await this.notificationToggle(category).getAttribute("aria-checked");
-		return checked === "true";
+		return this.notificationToggle(category).locator('input[type="checkbox"]').isChecked();
 	}
 
 	/** 指定 URL へ直接遷移する（locale プレフィックス必須） */
