@@ -109,6 +109,19 @@ export default function SearchScreen() {
 	const { logFrontendEvent } = useLogger();
 	const [location, setLocation] = useState<Omit<LocationDetailsResponse, "viewport"> | null>(null);
 	const [locationQuery, setLocationQuery] = useState("");
+	// #1502 【設計】候補選択→details取得(緯度経度の確定)は非同期なので、入力欄に文字が
+	// 入っただけで検索ボタンが押せない理由が分からない、という詰みが実査で見つかった
+	// (渋谷駅/2026-07-28)。「確認中」「確定」「失敗」を明示するための状態。
+	const [locationConfirmationStatus, setLocationConfirmationStatus] = useState<"confirming" | "confirmed" | "error" | null>(
+		null,
+	);
+	// #1502 【設計】details取得の完了は非同期なので、後発の選択・クリア・現在地取得が先発の
+	// 結果を上書きしてしまうレースがありうる(候補A選択→確認中→候補Bへ選び直す、等)。
+	// 単調増加IDを「発行した要求」と突き合わせ、自分が最新でなければ結果を捨てる
+	// (`hooks/useLocationSearch.ts` の `latestRequestIdRef` と同じパターン)。
+	const locationConfirmationRequestIdRef = useRef(0);
+	// #1502 【設計】確認失敗時の再試行のため、直前に選択した候補を保持する
+	const lastLocationPredictionRef = useRef<AutocompleteLocation | null>(null);
 	const [timeSlot, setTimeSlot] = useState<SearchParams["timeSlot"]>("lunch");
 	const [scene, setScene] = useState<SearchParams["scene"]>("solo"); // #533 【仕様】scene 初期値を solo に変更（レコメンドAPI必須化対応）
 	const [taste, setTaste] = useState<SearchParams["taste"] | undefined>(undefined);
@@ -184,11 +197,25 @@ export default function SearchScreen() {
 		lightImpact();
 		setLocation(null);
 		setLocationQuery("");
+		// #1502 進行中の確認結果が後から届いても無視させる
+		locationConfirmationRequestIdRef.current += 1;
+		setLocationConfirmationStatus(null);
+		lastLocationPredictionRef.current = null;
 		logFrontendEvent({
 			event_name: "location_cleared",
 			error_level: "log",
 			payload: {},
 		});
+	};
+
+	// #1502 【設計】手入力での書き換えは「未確定」であることが自明なので、直前の確認状態
+	// (確認中/確定/失敗)は今のテキストに対応しなくなる。進行中の確認があれば無効化して idle へ戻す
+	const handleLocationQueryChange = (text: string) => {
+		setLocationQuery(text);
+		if (locationConfirmationStatus !== null) {
+			locationConfirmationRequestIdRef.current += 1;
+			setLocationConfirmationStatus(null);
+		}
 	};
 
 	const handleLocationSelect = async (prediction: AutocompleteLocation) => {
@@ -198,21 +225,37 @@ export default function SearchScreen() {
 			payload: { placeId: prediction.place_id, mainText: prediction.mainText },
 		});
 		setLocationQuery(prediction.mainText);
+		lastLocationPredictionRef.current = prediction;
+		// #1502 このリクエストの identity を確保。完了時に最新でなければ結果を捨てる
+		// (取得中に別の候補を選び直した場合に、先行する取得の結果が後から上書きしないようにする)
+		const requestId = ++locationConfirmationRequestIdRef.current;
+		setLocationConfirmationStatus("confirming");
 		try {
 			const locationDetails = await getLocationDetails(prediction);
+			if (locationConfirmationRequestIdRef.current !== requestId) return;
 			setLocation(locationDetails);
+			setLocationConfirmationStatus("confirmed");
 			// #953 【仕様】details 取得に成功した地点だけを「最近使った場所」に保存する。
 			// viewport はスプレッドすると型上は Omit していても実行時には残ってしまうため、明示的に除く。
 			const { viewport: _viewport, ...locationWithoutViewport } = locationDetails;
 			addRecentLocation({ ...locationWithoutViewport, locationQuery: prediction.mainText });
 		} catch (error) {
+			if (locationConfirmationRequestIdRef.current !== requestId) return;
 			logFrontendEvent({
 				event_name: "location_selection_failed",
 				error_level: "error",
 				payload: { placeId: prediction.place_id, error: toErrorLogString(error) },
 			});
+			setLocationConfirmationStatus("error");
 			showSnackbar(i18n.t("Search.errors.fetchLocation"));
 		}
+	};
+
+	// #1502 地点確認の失敗時の再試行。直前に選択した候補で details 取得をやり直す
+	const handleRetryLocationConfirmation = () => {
+		const prediction = lastLocationPredictionRef.current;
+		if (!prediction) return;
+		void handleLocationSelect(prediction);
 	};
 
 	// #932 【設計】失敗理由(kind)ごとに文言を出し分ける。denied/unsupported は再試行しても
@@ -239,8 +282,13 @@ export default function SearchScreen() {
 				error_level: "log",
 				payload: { locationQuery: recent.locationQuery },
 			});
+			// #1502 進行中の候補確認(details取得)があれば無効化し、最近使った場所は
+			// details を待たず即座に「確定」として表示する
+			locationConfirmationRequestIdRef.current += 1;
+			lastLocationPredictionRef.current = null;
 			setLocation(recent);
 			setLocationQuery(recent.locationQuery);
+			setLocationConfirmationStatus("confirmed");
 			// #1129 【仕様】再選択した地点を MRU(Most Recently Used)順で先頭へ引き上げる。
 			// addRecentLocation は同一地点を除去してから先頭へ積むため、件数は増えない。
 			// 保存タイミングはオートコンプリート選択時(handleLocationSelect)と揃えて「選択した瞬間」とする。
@@ -256,10 +304,14 @@ export default function SearchScreen() {
 			error_level: "log",
 			payload: {},
 		});
+		// #1502 進行中の候補確認(details取得)があれば無効化する
+		locationConfirmationRequestIdRef.current += 1;
+		lastLocationPredictionRef.current = null;
 		try {
 			const currentLocation = await getCurrentLocation();
 			setLocation(currentLocation);
 			setLocationQuery(i18n.t("Search.currentLocation"));
+			setLocationConfirmationStatus("confirmed");
 			logFrontendEvent({
 				event_name: "current_location_success",
 				error_level: "log",
@@ -464,8 +516,12 @@ export default function SearchScreen() {
 	const { requestAutoCurrentLocation } = useAutoCurrentLocation({
 		getCurrentLocation,
 		onResolved: useCallback((currentLocation: Omit<LocationDetailsResponse, "viewport">) => {
+			// #1502 進行中の候補確認(details取得)があれば無効化する
+			locationConfirmationRequestIdRef.current += 1;
+			lastLocationPredictionRef.current = null;
 			setLocation(currentLocation);
 			setLocationQuery(i18n.t("Search.currentLocation"));
+			setLocationConfirmationStatus("confirmed");
 		}, []),
 	});
 
@@ -608,7 +664,7 @@ export default function SearchScreen() {
 						<LocationAutocomplete
 							ref={locationInputRef}
 							value={locationQuery}
-							onChangeText={setLocationQuery}
+							onChangeText={handleLocationQueryChange}
 							onSelectSuggestion={handleLocationSelect}
 							onClear={handleLocationClear}
 							placeholder={i18n.t("Search.placeholders.enterLocation")}
@@ -616,6 +672,8 @@ export default function SearchScreen() {
 							recentLocations={recentLocations}
 							onSelectRecentLocation={handleSelectRecentLocation}
 							onClearRecentLocations={recentLocations.length > 0 ? clearRecentLocations : undefined}
+							confirmationStatus={locationConfirmationStatus}
+							onRetryConfirmation={handleRetryLocationConfirmation}
 							renderInputRight={
 								<TouchableOpacity
 									style={styles.currentLocationButton}

@@ -5,7 +5,7 @@ import { useHaptics } from "@/hooks/useHaptics";
 import i18n from "@/lib/i18n";
 import { type AutocompleteLocation } from "@shared/api/v1/res";
 import { isFoodAndDrinkPlaceForUser } from "@shared/utils/google_places_restaurant_type";
-import { MapPin, Utensils, X, History, Trash2 } from "lucide-react-native";
+import { MapPin, Utensils, X, History, Trash2, CheckCircle, AlertCircle } from "lucide-react-native";
 import type { LocationDetailsResponse } from "@shared/api/v1/res";
 import { LoadingIndicator } from "./LoadingIndicator";
 
@@ -48,6 +48,15 @@ interface LocationAutocompleteProps {
 	onSelectRecentLocation?: (location: RecentLocation) => void;
 	/** #953 「最近使った場所」を全件クリアするハンドラ。未指定なら消去ボタンを出さない */
 	onClearRecentLocations?: () => void;
+	/**
+	 * #1502 【設計】候補選択後、details API(緯度経度の取得)が完了するまでの状態。
+	 * 検索候補一覧の状態(searchLocations由来)とは別の非同期処理なので独立して持つ。
+	 * 未指定/nullなら何も表示しない(現在地・最近使った場所からの選択は details を待たず
+	 * 確定するため、呼び出し元がこの状態を経由させるかどうかを選べるようにしてある)。
+	 */
+	confirmationStatus?: "confirming" | "confirmed" | "error" | null;
+	/** #1502 confirmationStatus が "error" のときの再試行ハンドラ */
+	onRetryConfirmation?: () => void;
 }
 
 // ===== Tunables (ベストプラクティス的にマジックナンバーを定数化) =====
@@ -89,6 +98,8 @@ export const LocationAutocomplete = forwardRef<LocationAutocompleteHandle, Locat
 			recentLocations = [],
 			onSelectRecentLocation,
 			onClearRecentLocations,
+			confirmationStatus = null,
+			onRetryConfirmation,
 		},
 		ref,
 	) {
@@ -341,6 +352,45 @@ export const LocationAutocomplete = forwardRef<LocationAutocompleteHandle, Locat
 					{renderInputRight}
 				</View>
 
+				{/* #1502 【設計】候補選択→details取得(地点確認)の状態表示。選択直後は
+				    handleSuggestionPress が showSuggestions を false にする(#528)ため、
+				    候補一覧・最近使った場所パネルとは同時に表示されない */}
+				{confirmationStatus === "confirming" && (
+					<View style={styles.confirmationContainer} testID={`${testID}-confirmation-confirming`}>
+						<LoadingIndicator size="small" />
+						<Text style={styles.confirmationText}>{i18n.t("Search.locationConfirmation.confirming")}</Text>
+					</View>
+				)}
+				{confirmationStatus === "confirmed" && (
+					<View style={styles.confirmationContainer} testID={`${testID}-confirmation-confirmed`}>
+						<CheckCircle size={16} color="#16A34A" />
+						<Text style={[styles.confirmationText, styles.confirmationTextConfirmed]}>
+							{i18n.t("Search.locationConfirmation.confirmed")}
+						</Text>
+					</View>
+				)}
+				{confirmationStatus === "error" && (
+					<View
+						style={styles.confirmationErrorContainer}
+						{...preventFocusStealOnWeb}
+						testID={`${testID}-confirmation-error`}>
+						<View style={styles.confirmationContainer}>
+							<AlertCircle size={16} color="#DC2626" />
+							<Text style={[styles.confirmationText, styles.confirmationTextError]}>
+								{i18n.t("Search.locationConfirmation.error")}
+							</Text>
+						</View>
+						<TouchableOpacity
+							style={styles.retryButton}
+							onPress={onRetryConfirmation}
+							accessibilityRole="button"
+							accessibilityLabel={i18n.t("Common.retry")}
+							testID={`${testID}-confirmation-retry`}>
+							<Text style={styles.retryButtonText}>{i18n.t("Common.retry")}</Text>
+						</TouchableOpacity>
+					</View>
+				)}
+
 				{/* #953 最近使った場所 */}
 				{showRecentLocations && (
 					<View style={styles.suggestionsContainer} {...preventFocusStealOnWeb}>
@@ -471,6 +521,32 @@ const styles = StyleSheet.create({
 		color: "#1A1A1A",
 	},
 	inputFocused: {},
+	confirmationContainer: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 6,
+		marginTop: 8,
+		paddingHorizontal: 4,
+	},
+	confirmationText: {
+		fontSize: 13,
+		color: "#6B7280",
+	},
+	confirmationTextConfirmed: {
+		color: "#16A34A",
+		fontWeight: "600",
+	},
+	confirmationTextError: {
+		color: "#DC2626",
+		fontWeight: "600",
+	},
+	confirmationErrorContainer: {
+		marginTop: 8,
+		paddingHorizontal: 4,
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+	},
 	clearButton: {
 		padding: 12,
 		marginRight: 4,

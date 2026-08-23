@@ -159,6 +159,11 @@
 		},
 		"loading": "Buscando...",
 		"noLocationsFound": "No se encontraron ubicaciones",
+		"locationConfirmation": {
+			"confirming": "Confirmando ubicación…",
+			"confirmed": "Ubicación confirmada",
+			"error": "No se pudo confirmar la ubicación"
+		},
 		"advancedToggle": {
 			"open": "Más opciones",
 			"close": "Cerrar búsqueda avanzada"
