@@ -17,6 +17,12 @@ jest.mock("@/hooks/useLogger", () => ({ useLogger: () => ({ logFrontendEvent: je
 jest.mock("@/components/LoadingIndicator", () => ({ LoadingIndicator: () => null }));
 jest.mock("lucide-react-native", () => new Proxy({}, { get: () => () => null }));
 
+// #1375 G2: Map の初期表示。既定は «現在地が取れない»（= 権限拒否）にして従来挙動を壊さない
+const mockGetCurrentLocationPosition = jest.fn(() => Promise.reject(new Error("denied")));
+jest.mock("@/hooks/useCurrentLocationPosition", () => ({
+	getCurrentLocationPosition: () => mockGetCurrentLocationPosition(),
+}));
+
 const mockPush = jest.fn();
 jest.mock("expo-router", () => ({ router: { push: (...args: unknown[]) => mockPush(...args) } }));
 
@@ -149,6 +155,9 @@ beforeEach(() => {
 	pinPresses.length = 0;
 	pinUris.length = 0;
 	sheetPinLists.length = 0;
+	mockAnimateToRegion.mockClear();
+	mockGetCurrentLocationPosition.mockReset();
+	mockGetCurrentLocationPosition.mockImplementation(() => Promise.reject(new Error("denied")));
 	mockUseMyDishesMapPinsQuery.mockReturnValue({
 		pins: [],
 		queryKey: "default",
@@ -233,9 +242,12 @@ describe("#1375 ピンタップは Dish Feed（restaurant スコープ）へ遷�
 		mockUseMyDishesMapPinsQuery.mockReturnValue(pinsResult());
 		await render();
 
-		expect(pinPresses).toHaveLength(1);
+		// #1375 G2: 現在地の判定（getCurrentLocationPosition）が決着すると再描画が 1 回増えるため、
+		// «何回描かれたか» ではなく «最後に描かれたピンを押したら遷移するか» で見る。
+		// pinPresses はマーカーのモックが描画ごとに push する累積配列である
+		expect(pinPresses.length).toBeGreaterThanOrEqual(1);
 		act(() => {
-			pinPresses[0]();
+			pinPresses[pinPresses.length - 1]();
 		});
 
 		expect(mockPush).toHaveBeenCalledWith(
@@ -593,5 +605,50 @@ describe("#1396 m-1 初回取得後に一度だけピンへ viewport を寄せ�
 
 		expect(mockAnimateToRegion).toHaveBeenCalledTimes(1);
 		expect(useMyDishesFilterStore.getState().filter.area).toBeNull();
+	});
+
+	// #1375 独立レビュー（仕様ギャップ G2）: 仕様 §7「位置情報が利用可能なら現在地周辺を初期表示」
+	it("現在地が取れたらその周辺へ寄せ、取れなければ従来のフォールバック（ピンの外接矩形）のままにする", async () => {
+		mockGetCurrentLocationPosition.mockImplementationOnce(() =>
+			Promise.resolve({ latitude: 35.6595, longitude: 139.7005 } as never),
+		);
+		mockUseMyDishesMapPinsQuery.mockReturnValue({
+			pins: [mockPin],
+			isLoading: false,
+			error: null,
+			hasFetchedInitial: true,
+			truncated: false,
+			refresh: jest.fn(),
+		});
+
+		await render();
+
+		const centered = mockAnimateToRegion.mock.calls.find(
+			([region]) => Math.abs((region as { latitude: number }).latitude - 35.6595) < 1e-6,
+		);
+		expect(centered).toBeDefined();
+		// 現在地が取れたときは «ピンの外接矩形» へは寄せない（現在地の方が仕様上の優先）
+		const fitToPins = mockAnimateToRegion.mock.calls.find(
+			([region]) => Math.abs((region as { latitude: number }).latitude - 35.5) < 1e-6,
+		);
+		expect(fitToPins).toBeUndefined();
+	});
+
+	it("現在地が取れない（権限拒否）ときは現在地へ寄せず、従来どおりピンの外接矩形へ寄せる", async () => {
+		mockUseMyDishesMapPinsQuery.mockReturnValue({
+			pins: [mockPin],
+			isLoading: false,
+			error: null,
+			hasFetchedInitial: true,
+			truncated: false,
+			refresh: jest.fn(),
+		});
+
+		await render();
+
+		const fitToPins = mockAnimateToRegion.mock.calls.find(
+			([region]) => Math.abs((region as { latitude: number }).latitude - 35.5) < 1e-6,
+		);
+		expect(fitToPins).toBeDefined();
 	});
 });

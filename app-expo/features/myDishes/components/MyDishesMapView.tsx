@@ -101,23 +101,27 @@ export function MyDishesMapView() {
 	//
 	// ⚠️ 権限ダイアログをこの画面から出すが、**拒否・失敗は静かに縮退**する（従来の挙動へ戻すだけ）。
 	// store は書かない（= 再取得を起こさない）。viewport を動かすだけなのは «このエリアで再検索» と同じ契約
-	const hasCenteredOnUserRef = useRef(false);
+	//
+	// ⚠️ 判定が決着するまで «ピンの外接矩形» を走らせない。先に矩形へ寄せてから現在地へ飛ぶと
+	// 画面が 2 回動いて見える（自分で足したテストで気づいた）
+	const [locationProbe, setLocationProbe] = useState<"pending" | "resolved" | "unavailable">("pending");
+	const hasRequestedLocationRef = useRef(false);
 	useEffect(() => {
-		if (hasCenteredOnUserRef.current) return;
-		hasCenteredOnUserRef.current = true;
+		if (hasRequestedLocationRef.current) return;
+		hasRequestedLocationRef.current = true;
 		let cancelled = false;
 		getCurrentLocationPosition()
 			.then(({ latitude, longitude }) => {
 				if (cancelled) return;
-				// 現在地が取れたらピンの外接矩形フィットは走らせない（現在地の方が仕様上の優先）
-				hasFitPinsRef.current = true;
 				const region: Region = { latitude, longitude, latitudeDelta: 0.05, longitudeDelta: 0.05 };
 				currentRegionRef.current = region;
 				pendingRegionRef.current = region;
 				mapRef.current?.animateToRegion(region, 500);
+				setLocationProbe("resolved");
 			})
 			.catch(() => {
 				// 権限拒否 / タイムアウト: 既存のフォールバック（固定領域 → ピン外接矩形）へ委ねる
+				if (!cancelled) setLocationProbe("unavailable");
 			});
 		return () => {
 			cancelled = true;
@@ -129,6 +133,12 @@ export function MyDishesMapView() {
 	const hasFitPinsRef = useRef(false);
 	useEffect(() => {
 		if (hasFitPinsRef.current) return;
+		// #1375 G2: 現在地の判定中は待つ。取れたなら現在地が優先なので、こちらは二度と走らせない
+		if (locationProbe === "pending") return;
+		if (locationProbe === "resolved") {
+			hasFitPinsRef.current = true;
+			return;
+		}
 		if (!hasFetchedInitial) return;
 		hasFitPinsRef.current = true;
 		const region = boundingRegionForCoordinates(
@@ -136,7 +146,7 @@ export function MyDishesMapView() {
 		);
 		if (!region) return;
 		mapRef.current?.animateToRegion(region, 1000);
-	}, [hasFetchedInitial, pins]);
+	}, [hasFetchedInitial, pins, locationProbe]);
 
 	// #1375 実機確認: ピンを押したら **Dish Feed へ遷移**する。
 	//
