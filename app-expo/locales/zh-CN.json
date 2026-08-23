@@ -406,7 +406,8 @@
 			"share": "分享{{name}}",
 			"openMap": "打开{{name}}的地图",
 			"reviewLike": "为{{username}}的点评点赞",
-			"recordEaten": "将{{name}}记录为吃过"
+			"recordEaten": "将{{name}}记录为吃过",
+			"recordEatenAgain": "再次记录在{{name}}吃过（已记录）"
 		},
 		"processing": "正在处理媒体...",
 		"errors": {

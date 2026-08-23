@@ -406,7 +406,8 @@
 			"share": "Partager {{name}}",
 			"openMap": "Ouvrir la carte de {{name}}",
 			"reviewLike": "Aimer l'avis de {{username}}",
-			"recordEaten": "Enregistrer {{name}} comme goûté"
+			"recordEaten": "Enregistrer {{name}} comme goûté",
+			"recordEatenAgain": "Enregistrer à nouveau chez {{name}} (déjà enregistré)"
 		},
 		"processing": "Traitement du média...",
 		"errors": {

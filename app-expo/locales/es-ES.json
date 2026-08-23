@@ -406,7 +406,8 @@
 			"share": "Compartir {{name}}",
 			"openMap": "Abrir el mapa de {{name}}",
 			"reviewLike": "Me gusta la reseña de {{username}}",
-			"recordEaten": "Registrar {{name}} como comido"
+			"recordEaten": "Registrar {{name}} como comido",
+			"recordEatenAgain": "Registrar de nuevo en {{name}} (ya registrado)"
 		},
 		"processing": "Procesando el contenido...",
 		"errors": {

@@ -406,7 +406,8 @@
 			"share": "{{name}}をシェア",
 			"openMap": "{{name}}の地図を開く",
 			"reviewLike": "{{username}}の口コミにいいね",
-			"recordEaten": "{{name}}の食べたを記録"
+			"recordEaten": "{{name}}の食べたを記録",
+			"recordEatenAgain": "{{name}}で食べたをもう一度記録する（記録済み）"
 		},
 		"processing": "メディアを処理中...",
 		"errors": {

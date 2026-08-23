@@ -406,7 +406,8 @@
 			"share": "مشاركة {{name}}",
 			"openMap": "فتح خريطة {{name}}",
 			"reviewLike": "الإعجاب بمراجعة {{username}}",
-			"recordEaten": "تسجيل {{name}} كأنك تناولته"
+			"recordEaten": "تسجيل {{name}} كأنك تناولته",
+			"recordEatenAgain": "سجّل {{name}} مرة أخرى (مسجَّل بالفعل)"
 		},
 		"processing": "جارٍ معالجة الوسائط...",
 		"info": {

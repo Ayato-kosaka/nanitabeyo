@@ -406,7 +406,8 @@
 			"share": "Share {{name}}",
 			"openMap": "Open map for {{name}}",
 			"reviewLike": "Like {{username}}'s review",
-			"recordEaten": "Record {{name}} as eaten"
+			"recordEaten": "Record {{name}} as eaten",
+			"recordEatenAgain": "Record eating at {{name}} again (already recorded)"
 		},
 		"processing": "Processing media...",
 		"errors": {

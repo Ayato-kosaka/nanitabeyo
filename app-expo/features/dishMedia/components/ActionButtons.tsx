@@ -26,6 +26,7 @@ import { shallow } from "zustand/shallow";
 import { profileLikesEntriesKey } from "@/features/profile/tabs/LikeTab";
 import { profileSavedPostsEntriesKey } from "@/features/profile/entriesKeys";
 import { bumpMyDishesRevision } from "@/features/myDishes/stores/useMyDishesRevisionStore";
+import { MY_DISH_STATUS_COLORS } from "@/features/myDishes/statusColors";
 import { useDishMediaActions } from "../hooks/useDishMediaActions";
 import { GestureDetector } from "react-native-gesture-handler";
 import type { GestureType } from "react-native-gesture-handler";
@@ -91,7 +92,7 @@ function ActionButtonsContent({
 	const { showSnackbar } = useSnackbar();
 	const { locale } = useLocale();
 	const { user } = useAuth();
-	const { isSaved, isLiked, likeCount } = entry.dish_media;
+	const { isSaved, isLiked, likeCount, isEaten } = entry.dish_media;
 	const dishMediaId = entry.dish_media.id;
 	const { restaurant } = entry;
 
@@ -301,8 +302,12 @@ function ActionButtonsContent({
 
 	// #1398 (PR3/7) 【設計】全画面 Feed から「食べた」を記録する導線。
 	// 遷移先は my-dishes カードや店舗詳細フィードと同じ既存ルート（review-from-media）で、
-	// このボタンはその呼び出し元が1つ増えるだけ。「済」表示は付けない
-	// （dish_reviews に (user_id, dish_id) の一意制約は無く、再訪＝別レビューが正しい仕様のため）。
+	// このボタンはその呼び出し元が1つ増えるだけ。
+	//
+	// #1375 実機確認（5 巡目）: **色だけ**「記録済み」を表す（`isEaten`）。
+	// ⚠️ 押せなくはしない。`dish_reviews` に (user_id, dish_id) の一意制約は無く、
+	// 再訪 = 別の記録が正しい仕様なので、«済 = 無効化» にすると 2 回目が記録できなくなる。
+	// 伝えたいのは「もう記録した料理だ」であって「もう押せない」ではない。
 	const handleRecordEaten = useCallback(() => {
 		lightImpact();
 		logFrontendEvent({
@@ -421,10 +426,19 @@ function ActionButtonsContent({
 							onPress={handleRecordEaten}
 							hitSlop={buttonHitSlop}
 							accessibilityRole="button"
-							accessibilityLabel={i18n.t("DishMediaContent.accessibility.recordEaten", { name: restaurant.name })}>
-							<UtensilsCrossed size={28} color="#FFFFFF" />
+							accessibilityLabel={i18n.t(
+								isEaten
+									? "DishMediaContent.accessibility.recordEatenAgain"
+									: "DishMediaContent.accessibility.recordEaten",
+								{ name: restaurant.name },
+							)}
+							// 読み上げでも «記録済み» が分かるようにする（色だけに頼らない）
+							aria-selected={!!isEaten}>
+							<UtensilsCrossed size={28} color={isEaten ? MY_DISH_STATUS_COLORS.eaten : "#FFFFFF"} />
 						</TouchableOpacity>
-						<Text style={styles.actionText}>{i18n.t("Map.actions.writeReviewForThisDish")}</Text>
+						<Text style={[styles.actionText, isEaten && styles.actionTextEaten]}>
+							{i18n.t("Map.actions.writeReviewForThisDish")}
+						</Text>
 					</View>
 				)}
 
@@ -478,5 +492,11 @@ const styles = StyleSheet.create({
 		color: "#FFFFFF",
 		marginTop: 4,
 		letterSpacing: 0.2,
+	},
+	// #1375（5 巡目）記録済み。色の正は my-dishes と同じ（`features/myDishes/statusColors.ts`）ので、
+	// 一覧・カレンダー・地図で «食べた» を表している赤とここが必ず一致する
+	actionTextEaten: {
+		color: MY_DISH_STATUS_COLORS.eaten,
+		fontWeight: "700",
 	},
 });

@@ -406,7 +406,8 @@
 			"share": "{{name}} 공유",
 			"openMap": "{{name}} 지도 열기",
 			"reviewLike": "{{username}}님의 리뷰에 좋아요",
-			"recordEaten": "{{name}} 먹었어요로 기록"
+			"recordEaten": "{{name}} 먹었어요로 기록",
+			"recordEatenAgain": "{{name}}에서 먹었다를 다시 기록 (기록됨)"
 		},
 		"processing": "미디어 처리 중...",
 		"info": {
