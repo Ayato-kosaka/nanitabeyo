@@ -76,7 +76,12 @@ export class UsersService {
       });
 
     const uniqueDishMediaIds = Array.from(
-      new Set(reviews.map((r) => r.created_dish_media_id)),
+      // #1395 created_dish_media_id は nullable（メディアを作っていないレビュー）
+      new Set(
+        reviews
+          .map((r) => r.created_dish_media_id)
+          .filter((id): id is string => id !== null),
+      ),
     );
     const dishMediaEntryItemsResult =
       await this.dishMediaService.fetchDishMediaEntryItems(uniqueDishMediaIds, {
@@ -98,9 +103,10 @@ export class UsersService {
     return {
       data: reviews
         .map((review) => {
-          const dishMediaEntryItem = dishMediaMap.get(
-            review.created_dish_media_id,
-          );
+          // #1395 メディアを作っていないレビューには紐づく dish_media が無い
+          const dishMediaEntryItem = review.created_dish_media_id
+            ? dishMediaMap.get(review.created_dish_media_id)
+            : undefined;
           if (!dishMediaEntryItem) {
             this.logger.warn(
               'DishMediaEntryItem not found for review',
