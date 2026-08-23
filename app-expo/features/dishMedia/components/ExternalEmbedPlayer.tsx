@@ -1,28 +1,40 @@
 /*
-#1375 4 巡目実機確認: 取り込んだ SNS 投稿（render_type='external_embed'）の再生（ネイティブ）。
+#1375 外部埋め込み再生（ネイティブ・WebView 入りビルド用ブランチ）。
 
-## 実機報告「保存後にリールが再生されない」の真因
+## このブランチの位置づけ
 
-サーバは externalEmbed（provider / canonicalUrl / サムネイル）を返しているのに、
-**それを描く provider 別コンポーネントがアプリに存在しなかった**。設計コメント
-（#1273 §14 / #1399「表示は canonicalUrl から provider 別コンポーネントが行う」）が
-実装されないまま取り込み機能だけが先行していた。ここがその実装である。
+`react-native-webview` はネイティブモジュールで、追加には EAS Build（オーナー承認制）が
+要る。CLAUDE.md の取り決めどおり、**ネイティブ差分はこのブランチに隔離**し、
+検証は Detox（e2e-mobile CI はブランチのソースからネイティブごとビルドする）と
+Playwright の録画で行う。OTA 側ブランチの実装は «再生ボタン → アプリ内ブラウザ» のみ。
 
-## このブランチ（OTA 配信）では «再生ボタン → アプリ内ブラウザ» のみ
+## UX（オーナー合意: 既存 dish_media に可能な限り寄せる。2026-08-23 チャット）
 
-`react-native-webview` は現行 1.14 ビルドに入っておらず、ネイティブモジュールの
-追加は EAS Build（オーナー承認制）が要る。CLAUDE.md の取り決めどおり、
-**WebView によるフィード内埋め込み表示はネイティブ専用ブランチへ切り出した**。
-ここに require("react-native-webview") を書くと依存が無い状態で Metro の
-バンドルが解決できず落ちるので、このファイルに WebView のコードは置かない。
+- **YouTube / TikTok**: 埋め込みが無音自動再生する（embedUrl に autoplay+mute。
+  ブラウザ/WebView は無音でないと自動再生を許可しない）。着地した瞬間から動く。
+  タッチは既定で渡さない（縦フリックのフィード送りを守る）。中央ボタンのタップで
+  操作モードへ入り、埋め込み側のコントロール（音量など）を直接触れる
+- **Instagram**: 規約と技術の制約で mp4 が取得できず自動再生も不可（実測: embed SSR に
+  mp4 は無い）。フィード内に実埋め込みカードを表示し、中央の再生ボタンで操作モードへ
+  入る＋埋め込み中央へ合成クリックを注入してその場で再生を試みる（音あり・Instagram UI 内）
 
-現行の動作: 親のサムネイルの上に再生ボタンを重ね、タップでアプリ内ブラウザ
-（expo-web-browser。SFSafariViewController / Custom Tabs）を開いてそこで再生する。
+タッチを既定で渡さない（pointerEvents="none"）のは独立レビューの構造対策:
+Android の WebView は縦ドラッグを自分で消費する（scrollEnabled は iOS 専用）ため、
+渡すとフィード送りが死ぬ。操作モードはユーザーが自分で選んだときだけ。
 
-web 版は `ExternalEmbedPlayer.web.tsx`（iframe）が Metro に選ばれる。
+- WebView が居ないビルド（現行 1.14 に OTA だけ届いた場合）は
+  «再生ボタン → アプリ内ブラウザ» へ縮退する（OTA ブランチと同じ挙動）
+
+## WebView 存在判定
+
+require の成否だけでは足りない（JS 側は解決できてもネイティブ側が無いと描画時に落ちる）
+ので、`UIManager` のビューマネージャ登録も確認する。module スコープで 1 回だけ実行して
+例外を無言で握ると «一度こけたらセッション中ずっとフォールバック、しかも観測できない»
+になる（独立レビュー指摘）ため、遅延評価にし、正常な結果だけキャッシュし、
+例外は logFrontendEvent へ残して次のレンダで再判定する。
 */
-import React, { useCallback } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useCallback, useRef, useState } from "react";
+import { StyleSheet, Text, TouchableOpacity, UIManager, View } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import { GestureDetector, type GestureType } from "react-native-gesture-handler";
 import { Play } from "lucide-react-native";
@@ -31,20 +43,52 @@ import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import i18n from "@/lib/i18n";
 import type { DishMediaExternalEmbed } from "@shared/api/v1/res";
-import { buildExternalEmbedPlayerSource } from "../embedUrl";
+import { buildExternalEmbedPlayerSource, isAllowedEmbedNavigation } from "../embedUrl";
+
+type WebViewComponent = React.ComponentType<Record<string, unknown>> & {
+	prototype?: { injectJavaScript?: unknown };
+};
+type WebViewRef = { injectJavaScript?: (script: string) => void };
+type ProbeResult = { WebView: WebViewComponent | null; error: string | null };
+
+let cachedProbe: ProbeResult | undefined;
+const probeNativeWebView = (): ProbeResult => {
+	if (cachedProbe) return cachedProbe;
+	try {
+		const uiManager = UIManager as unknown as {
+			hasViewManagerConfig?: (name: string) => boolean;
+			getViewManagerConfig?: (name: string) => unknown;
+		};
+		const hasNative =
+			uiManager.hasViewManagerConfig?.("RNCWebView") ?? uiManager.getViewManagerConfig?.("RNCWebView") != null;
+		// eslint-disable-next-line @typescript-eslint/no-var-requires
+		cachedProbe = {
+			WebView: hasNative ? (require("react-native-webview").WebView as WebViewComponent) : null,
+			error: null,
+		};
+		return cachedProbe;
+	} catch (error) {
+		return { WebView: null, error: error instanceof Error ? error.message : String(error) };
+	}
+};
+let probeErrorLogged = false;
+
+/** Instagram の埋め込みは自動再生しないので、操作モード開始時に中央へ合成クリックを
+ *  注入してその場で再生を始めさせる。provider の DOM に依存しない座標クリックで、
+ *  失敗しても操作モードには入っている（ユーザーが直接タップすれば再生できる） */
+const CENTER_CLICK_JS =
+	"(function(){var e=document.elementFromPoint(window.innerWidth/2,window.innerHeight/2);if(e&&e.click)e.click();})();true;";
 
 export type ExternalEmbedPlayerProps = {
 	embed: Pick<DishMediaExternalEmbed, "provider" | "externalContentId" | "canonicalUrl" | "embedStatus">;
 	/**
 	 * 前面のページだけ true。false の間は何も描かない（親のサムネイルが見えている）。
-	 * 埋め込みをフィードの全セルに立てない（メモリと帯域のため）
+	 * WebView をフィードの全セルに立てない（メモリと帯域のため）
 	 */
 	isActive: boolean;
 	/**
 	 * #694 と同じ仕組み。親（DishMediaContent）の tapGesture はこの gesture の失敗を
-	 * 待つので、再生ボタンのタップで ActionSheet が同時に開かない（独立レビュー指摘）。
-	 * 1 つの gesture は 1 つの GestureDetector にしか付けられないため、
-	 * ActionButtons の buttonsGesture とは別のインスタンスを親が作って渡す
+	 * 待つので、再生ボタンのタップで ActionSheet が同時に開かない
 	 */
 	blockParentTapGesture?: GestureType;
 };
@@ -52,9 +96,22 @@ export type ExternalEmbedPlayerProps = {
 export function ExternalEmbedPlayer({ embed, isActive, blockParentTapGesture }: ExternalEmbedPlayerProps) {
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
+	const [interactive, setInteractive] = useState(false);
+	const webViewRef = useRef<WebViewRef | null>(null);
 
 	const source = buildExternalEmbedPlayerSource(embed.provider, embed.externalContentId);
+	const probe = probeNativeWebView();
+	if (probe.error && !probeErrorLogged) {
+		probeErrorLogged = true;
+		logFrontendEvent({
+			event_name: "external_embed_webview_probe_failed",
+			error_level: "warn",
+			payload: { provider: embed.provider, error: probe.error },
+		});
+	}
+	const NativeWebView = probe.WebView;
 
+	// WebView 不在ビルド用: アプリ内ブラウザで開く（閉じればフィードへそのまま戻る）
 	const handleOpenExternally = useCallback(() => {
 		lightImpact();
 		logFrontendEvent({
@@ -62,7 +119,6 @@ export function ExternalEmbedPlayer({ embed, isActive, blockParentTapGesture }: 
 			error_level: "log",
 			payload: { provider: embed.provider },
 		});
-		// アプリ内ブラウザ（閉じればフィードへそのまま戻る）。失敗は握り潰さずログだけ残す
 		WebBrowser.openBrowserAsync(embed.canonicalUrl).catch((error) => {
 			logFrontendEvent({
 				event_name: "external_embed_open_browser_failed",
@@ -72,10 +128,24 @@ export function ExternalEmbedPlayer({ embed, isActive, blockParentTapGesture }: 
 		});
 	}, [embed.canonicalUrl, embed.provider, lightImpact, logFrontendEvent]);
 
+	// WebView 在りビルド用: 操作モードへ入る（Instagram は合成クリックで再生開始も試みる）
+	const handleActivate = useCallback(() => {
+		lightImpact();
+		logFrontendEvent({
+			event_name: "external_embed_interactive",
+			error_level: "log",
+			payload: { provider: embed.provider },
+		});
+		setInteractive(true);
+		if (embed.provider === "instagram") {
+			webViewRef.current?.injectJavaScript?.(CENTER_CLICK_JS);
+		}
+	}, [embed.provider, lightImpact, logFrontendEvent]);
+
 	if (!isActive) return null;
 
-	// 削除・非公開になった投稿（#1273 §39）。ブラウザで開いても provider の
-	// «利用できません» 画面にしかならないので、開かせず文言で伝える（独立レビュー指摘）
+	// 削除・非公開になった投稿（#1273 §39）。埋め込み/ブラウザどちらも provider の
+	// «利用できません» 画面にしかならないので、開かせず文言で伝える
 	if (embed.embedStatus === "unavailable") {
 		return (
 			<View style={styles.overlayContainer} pointerEvents="none" testID="external-embed-unavailable">
@@ -84,11 +154,12 @@ export function ExternalEmbedPlayer({ embed, isActive, blockParentTapGesture }: 
 		);
 	}
 
+	const inlineAvailable = source !== null && NativeWebView !== null;
 	const playButton = (
 		<TouchableOpacity
 			testID="external-embed-open-browser"
 			style={styles.playButton}
-			onPress={handleOpenExternally}
+			onPress={inlineAvailable ? handleActivate : handleOpenExternally}
 			accessibilityRole="button"
 			accessibilityLabel={i18n.t("DishMediaContent.embed.play", {
 				provider: source?.providerLabel ?? embed.provider,
@@ -103,20 +174,47 @@ export function ExternalEmbedPlayer({ embed, isActive, blockParentTapGesture }: 
 	);
 
 	return (
-		<View style={styles.overlayContainer} pointerEvents="box-none" testID="external-embed-fallback">
-			{blockParentTapGesture ? (
-				<GestureDetector gesture={blockParentTapGesture}>
-					{/* collapsable=false: GestureDetector が実ビューを要求する */}
-					<View collapsable={false}>{playButton}</View>
-				</GestureDetector>
-			) : (
-				playButton
+		<>
+			{inlineAvailable && NativeWebView !== null && source !== null && (
+				<View
+					style={StyleSheet.absoluteFill}
+					pointerEvents={interactive ? "auto" : "none"}
+					testID="external-embed-webview">
+					<NativeWebView
+						ref={(node: WebViewRef | null) => {
+							webViewRef.current = node;
+						}}
+						source={{ uri: source.embedUrl }}
+						style={styles.webView}
+						allowsInlineMediaPlayback
+						mediaPlaybackRequiresUserAction={false}
+						// 埋め込み内部のナビゲーション（サブフレーム・302）は打ち切らない。
+						// アプリ起動スキームだけ遮断する。判定の理由は embedUrl.ts
+						onShouldStartLoadWithRequest={(request: { url: string }) => isAllowedEmbedNavigation(request.url)}
+					/>
+				</View>
 			)}
-		</View>
+			{!interactive && (
+				<View style={styles.overlayContainer} pointerEvents="box-none" testID="external-embed-fallback">
+					{blockParentTapGesture ? (
+						<GestureDetector gesture={blockParentTapGesture}>
+							{/* collapsable=false: GestureDetector が実ビューを要求する */}
+							<View collapsable={false}>{playButton}</View>
+						</GestureDetector>
+					) : (
+						playButton
+					)}
+				</View>
+			)}
+		</>
 	);
 }
 
 const styles = StyleSheet.create({
+	webView: {
+		...StyleSheet.absoluteFillObject,
+		backgroundColor: "#000",
+	},
 	overlayContainer: {
 		...StyleSheet.absoluteFillObject,
 		justifyContent: "center",
