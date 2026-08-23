@@ -69,13 +69,21 @@ describeMutation("SNS 取り込みリールのフィード内再生 @mutation", 
 		if (!overlayGone) {
 			throw new Error("再生ボタンをタップしたのに操作モードへ入っていません（オーバーレイが残っています）");
 		}
+		// 操作モードを抜ける口が出ていること（独立レビュー指摘: 抜けられないと戻れなくなる）
+		await waitUntilVisible(by.id("external-embed-exit-interactive"));
 
 		// 操作モードの埋め込みを 1 回タップする（録画用の最後の操作）。
-		// 中央は Instagram の「Instagramで見る」リンクで、アプリ側のガード
-		// （isEmbedEscapeUrl → アプリ内ブラウザへ逃がす）が働くところが録画に残る。
-		// ※ run 32654704176 ではガードが無く、フルサイトがセル内へ読み込まれて
-		//    アプリのプロセスごと落ちた（この spec がその回帰テストを兼ねる）
+		// 中央は provider 側のリンク（Android は target=_blank）で、アプリ側のガード
+		// （setSupportMultipleWindows=false + isInlineEmbedUrl → アプリ内ブラウザ）が働く。
+		// ※ run 32654704176 ではガードが無く、フルサイトがセル内／画面外の WebView へ
+		//    読み込まれてアプリのプロセスごと落ちた。この spec はその回帰テストを兼ねる
 		await element(embedWebView).tap();
 		await new Promise((resolve) => setTimeout(resolve, 8_000));
+
+		// ⚠️ ここで «アプリが生きていること» を必ず 1 つ検証する。
+		// タップ後に assertion が無いと、プロセスが死んでも緑で終わる（独立レビュー指摘 9-b）
+		await element(by.id("external-embed-exit-interactive")).tap();
+		await waitUntilVisible(by.id("external-embed-fallback"));
+		await waitUntilVisible(restaurantFeed.container);
 	});
 });

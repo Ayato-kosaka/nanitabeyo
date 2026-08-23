@@ -11,7 +11,7 @@ canonicalUrl は投稿ページ（instagram.com/reel/... 等）で、iframe / We
 | provider | 埋め込み URL | 根拠 |
 | --- | --- | --- |
 | instagram | `https://www.instagram.com/p/{code}/embed/` | 公式 blockquote 埋め込みが最終的に描く iframe と同じ。reel のコードも `/p/{code}/` で解決される（サーバ側 sns-oembed.service.ts が resolve で実測済みの同じ経路）。`/embed/captioned/` はヘッダ＋キャプションの白カードが付き全画面フィードで浮くため、映像本体だけの `/embed/` を使う（独立レビュー指摘） |
-| tiktok | `https://www.tiktok.com/embed/v2/{videoId}` | 公式 embed v2。動画 ID だけで動く |
+| tiktok | `https://www.tiktok.com/embed/v2/{videoId}` | 公式 embed v2。動画 ID だけで動く。**自動再生はしない**（autoplay パラメータが無く、provider 側もユーザー操作を要求する）ので、着地後に 1 タップ要る。独立レビュー指摘で «TikTok も無音自動再生» という記述を実測に合わせて訂正した |
 | youtube | `https://www.youtube.com/embed/{videoId}?playsinline=1&autoplay=1&mute=1` | 公式 iframe embed。playsinline はモバイルでフルスクリーンに奪われないため。autoplay+mute は既存 dish_media の «着地したら動く» に寄せるため（ブラウザは無音でないと自動再生を許可しない） |
 
 判定できない provider は null（呼び出し側は «外部で開く» へ縮退する）。
@@ -52,49 +52,46 @@ export function buildExternalEmbedPlayerSource(
 }
 
 /*
-WebView 内ナビゲーションの許可判定。
+WebView 内ナビゲーションの許可判定（2 段構え）。
 
-独立レビュー指摘: onShouldStartLoadWithRequest は **サブフレーム（広告 iframe）や
-302 リダイレクトでも呼ばれる**（iOS は isTopFrame をイベントに載せるだけで必ず呼ぶ /
-Android は isForMainFrame を捨てて URL 版へ委譲する）。「embedUrl と不一致なら
-外部ブラウザへ」という判定にすると、指を触れていないのに広告フレームの URL で
-ブラウザが開いたり、埋め込み本体のリダイレクトが打ち切られて真っ黒になる。
-
-この WebView は pointerEvents="none" の **表示専用**（タップは親の再生ボタンが受ける）
-なので、中で起きるナビゲーションはすべて埋め込みページ自身の内部動作である。
-外部ブラウザは一切開かず、http(s) と about: だけ通し、intent:// market:// 等の
+## 1. `isAllowedEmbedNavigation` — スキーム
+`onShouldStartLoadWithRequest` は **サブフレーム（広告 iframe）や 302 リダイレクトでも
+呼ばれる**（iOS は isTopFrame をイベントに載せるだけで必ず呼ぶ / Android は
+isForMainFrame を捨てて URL 版へ委譲する）。埋め込み内部の通信を打ち切ると
+埋め込み自体が壊れるので、http(s) と about: は通し、`intent://` `market://` 等の
 アプリ起動スキームだけを黙って遮断する。
+
+## 2. `isInlineEmbedUrl` — トップフレームで «そのまま読ませてよい» URL か
+独立レビュー指摘（PR #1469）: ホスト集合の «拒否リスト» では
+`l.instagram.com`（外部リンク shim）/ `vm.tiktok.com` / `instagr.am` /
+`accounts.instagram.com` のような別ホストや、パスの途中に `/embed` を含む本体ページを
+取りこぼし、フルサイトがフィードのセル内へ読み込まれる（実機でアプリのプロセスごと
+落ちた。run 32654704176）。そこで発想を反転し、**埋め込みページの形に前方一致する
+ものだけを inline 継続とする許可リスト**にした。それ以外のトップフレーム遷移は
+呼び出し側がアプリ内ブラウザへ逃がす。
 */
 export function isAllowedEmbedNavigation(url: string): boolean {
 	return /^https?:\/\//.test(url) || url.startsWith("about:");
 }
 
-/*
-埋め込みからの «本体サイトへの脱出» 判定。
-
-Instagram の埋め込みは中央に「Instagramで見る」リンクを持ち、タップすると
-埋め込みページごと instagram.com の本体ページへ遷移する。フルサイトは重く
-（Detox 実機検証でアプリのプロセスが落ちる= OOM 相当を観測。run 32654704176）、
-そもそもフィードのセル内に本体サイトが出るのは UX としても壊れている。
-provider ドメインの «embed 以外のページ» への遷移は WebView に読ませず、
-呼び出し側がアプリ内ブラウザへ逃がす。広告・CDN 等の他ドメインは対象外（inline 継続）。
-*/
-const EMBED_PROVIDER_HOSTS = new Set([
-	"instagram.com",
-	"www.instagram.com",
-	"tiktok.com",
-	"www.tiktok.com",
-	"youtube.com",
-	"www.youtube.com",
-	"m.youtube.com",
-	"youtu.be",
-]);
-
-export function isEmbedEscapeUrl(url: string): boolean {
+/** provider の «埋め込みページ» そのものか（トップフレームで inline 継続してよいか） */
+export function isInlineEmbedUrl(url: string): boolean {
 	try {
 		const parsed = new URL(url);
-		if (!EMBED_PROVIDER_HOSTS.has(parsed.hostname)) return false;
-		return !parsed.pathname.includes("/embed");
+		// RN 内蔵の URL は hostname を小文字化しない（polyfill の読み込み順に依存させない）
+		const host = parsed.hostname.toLowerCase();
+		const path = parsed.pathname;
+		if (host === "www.instagram.com" || host === "instagram.com") {
+			// /p/{code}/embed/ ・ /reel/{code}/embed/ ・ /tv/{code}/embed/
+			return /^\/(p|reel|tv)\/[^/]+\/embed\/?$/.test(path);
+		}
+		if (host === "www.tiktok.com" || host === "tiktok.com") {
+			return /^\/embed(\/v2)?\/[^/]+\/?$/.test(path);
+		}
+		if (host === "www.youtube.com" || host === "youtube.com" || host === "www.youtube-nocookie.com") {
+			return /^\/embed\/[^/]+\/?$/.test(path);
+		}
+		return false;
 	} catch {
 		return false;
 	}

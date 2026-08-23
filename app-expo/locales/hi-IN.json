@@ -417,7 +417,8 @@
 			"mediaUnavailable": "यह मीडिया अभी उपलब्ध नहीं है।"
 		},
 		"embed": {
-			"play": "{{provider}} पर चलाएँ"
+			"play": "{{provider}} पर चलाएँ",
+			"exitInteractive": "एम्बेड नियंत्रण से बाहर निकलें"
 		}
 	},
 	"ImageCardGrid": {

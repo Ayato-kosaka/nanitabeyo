@@ -1,4 +1,4 @@
-import { buildExternalEmbedPlayerSource, isAllowedEmbedNavigation, isEmbedEscapeUrl } from "./embedUrl";
+import { buildExternalEmbedPlayerSource, isAllowedEmbedNavigation, isInlineEmbedUrl } from "./embedUrl";
 
 describe("buildExternalEmbedPlayerSource", () => {
 	it("instagram はリールのコードでも /p/{code}/embed/ を組む（captioned は白カードが付くので使わない）", () => {
@@ -36,13 +36,24 @@ describe("isAllowedEmbedNavigation", () => {
 		expect(isAllowedEmbedNavigation("about:blank")).toBe(true);
 	});
 
-	it("provider 本体サイトへの脱出（embed 以外のページ）を判定できる", () => {
-		expect(isEmbedEscapeUrl("https://www.instagram.com/reel/DZFdePPzzLI/")).toBe(true);
-		expect(isEmbedEscapeUrl("https://www.instagram.com/p/abc/embed/")).toBe(false);
-		expect(isEmbedEscapeUrl("https://www.youtube.com/watch?v=abc")).toBe(true);
-		expect(isEmbedEscapeUrl("https://www.youtube.com/embed/abc")).toBe(false);
-		expect(isEmbedEscapeUrl("https://googleads.g.doubleclick.net/frame")).toBe(false);
-		expect(isEmbedEscapeUrl("not a url")).toBe(false);
+	it("inline 継続してよいのは «埋め込みページの形» だけ（許可リスト。独立レビュー指摘）", () => {
+		// 埋め込み本体 → inline
+		expect(isInlineEmbedUrl("https://www.instagram.com/p/DZFdePPzzLI/embed/")).toBe(true);
+		expect(isInlineEmbedUrl("https://www.instagram.com/reel/DZFdePPzzLI/embed/?cr=1")).toBe(true);
+		expect(isInlineEmbedUrl("https://www.tiktok.com/embed/v2/12345")).toBe(true);
+		expect(isInlineEmbedUrl("https://www.youtube.com/embed/abc123?autoplay=1")).toBe(true);
+		expect(isInlineEmbedUrl("https://WWW.INSTAGRAM.COM/p/abc/embed/")).toBe(true); // ホストは小文字化して判定
+
+		// 本体サイト・ログイン・短縮 URL・外部リンク shim → inline させない（アプリ内ブラウザへ逃がす）
+		expect(isInlineEmbedUrl("https://www.instagram.com/reel/DZFdePPzzLI/")).toBe(false);
+		expect(isInlineEmbedUrl("https://www.instagram.com/accounts/login/?next=/p/abc/embed/")).toBe(false);
+		expect(isInlineEmbedUrl("https://l.instagram.com/?u=https%3A%2F%2Fexample.com")).toBe(false);
+		expect(isInlineEmbedUrl("https://vm.tiktok.com/ZSabc/")).toBe(false);
+		expect(isInlineEmbedUrl("https://instagr.am/p/abc/embed/")).toBe(false);
+		expect(isInlineEmbedUrl("https://www.youtube.com/watch?v=abc")).toBe(false);
+		// 広告等の別ドメインはトップフレームでは来ない前提。来ても inline させない
+		expect(isInlineEmbedUrl("https://googleads.g.doubleclick.net/frame")).toBe(false);
+		expect(isInlineEmbedUrl("not a url")).toBe(false);
 	});
 
 	it("アプリ起動スキームは遮断する", () => {

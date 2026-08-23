@@ -417,7 +417,8 @@
 			"mediaUnavailable": "이 미디어는 현재 이용하실 수 없습니다."
 		},
 		"embed": {
-			"play": "{{provider}}에서 재생"
+			"play": "{{provider}}에서 재생",
+			"exitInteractive": "임베드 조작 종료"
 		}
 	},
 	"ImageCardGrid": {

@@ -417,7 +417,8 @@
 			"walkFromShibuya": "距离涩谷站步行13分钟"
 		},
 		"embed": {
-			"play": "在{{provider}}上播放"
+			"play": "在{{provider}}上播放",
+			"exitInteractive": "退出嵌入内容操作"
 		}
 	},
 	"ImageCardGrid": {

@@ -417,7 +417,8 @@
 			"mediaUnavailable": "هذا المحتوى غير متاح حالياً."
 		},
 		"embed": {
-			"play": "التشغيل على {{provider}}"
+			"play": "التشغيل على {{provider}}",
+			"exitInteractive": "إنهاء التحكم في المحتوى المضمّن"
 		}
 	},
 	"ImageCardGrid": {
