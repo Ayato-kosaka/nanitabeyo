@@ -92,17 +92,39 @@ await record({
 
 		await dismissTutorial(page);
 		await shot("01-carousel");
-		const found = await page.getByText("ラーメン", { exact: false }).count();
-		notes.push(`カード（ラーメン）の一致数: ${found}`);
+		// ⚠️ カードに出るのは `topicTitle` と `reason` であって `category` ではない。
+		// `category`（"ラーメン"）を探すと **描画できていても 0 件**になり、誤検知する。
+		const found = await page.getByText(CATS[0][1], { exact: false }).count();
+		notes.push(`カード（"${CATS[0][1]}"）の一致数: ${found}`);
 		if (found === 0) notes.push("⚠️ カードが描画されていない。到達に失敗している可能性がある。");
-		// 横スワイプして左右の隣接カードが画面端まで来ているかを映す
-		for (let i = 0; i < 3; i++) {
-			await page.mouse.move(300, 420);
+		// ⚠️ このカルーセルは **スワイプで送れない**。実測（3 方式）で、カード本体を
+		// どこで押しても «タップ» と解釈され、結果画面 → 0 件フォールバック → ルートへ
+		// 飛んでしまう。右上のブロックアイコンから引くとカルーセルは送れるが、
+		// 離した瞬間にブロック確認ダイアログが開く。
+		//
+		// したがって既定では送らない。**この画面のレイアウト（カード幅・左右の見切れ方）は
+		// 静止画で十分に映る**し、スナップ位置は e2e spec 側（実座標でアサートする
+		// topic-card-full-bleed.spec.ts）が担保している。
+		// 送った «ふり» の動画を出す方が誤解を招くので出さない。
+		//
+		// どうしても操作を映したいときは EVIDENCE_TRY_SWIPE=1 を渡す。その場合も
+		// 遷移してしまったかどうかを必ずメモへ残す。
+		await page.waitForTimeout(1200);
+		await shot("02-carousel-hold");
+		if (process.env.EVIDENCE_TRY_SWIPE === "1") {
+			await page.mouse.move(200, 300);
 			await page.mouse.down();
-			await page.mouse.move(90, 420, { steps: 18 });
+			await page.waitForTimeout(400);
+			for (let x = 200; x >= 60; x -= 20) {
+				await page.mouse.move(x, 300);
+				await page.waitForTimeout(25);
+			}
 			await page.mouse.up();
-			await page.waitForTimeout(1400);
-			await shot(`0${i + 2}-swipe-${i + 1}`);
+			await page.waitForTimeout(1800);
+			const stayed = page.url().includes("/search/topics");
+			notes.push(`スワイプ試行: topics 画面に留まった = ${stayed}`);
+			if (!stayed) notes.push("⚠️ スワイプがタップと解釈され画面遷移した。動画のこの部分は根拠に使えない。");
+			await shot("03-after-swipe-attempt");
 		}
 	},
 });
