@@ -114,6 +114,48 @@ export async function stubGoogleMaps(context: BrowserContext): Promise<void> {
 	});
 }
 
+/**
+ * 料理提案(トピック)取得 API を常に 500 で固定し、Topics 画面を取得失敗状態にする(#1499)。
+ *
+ * `v1/dish-categories/recommendations` は GET だが、`app-expo/hooks/useAPICall.ts` の
+ * 自動リトライはネットワーク到達不能時と 401/503 だけが対象で、500 はそのまま
+ * `http_error` として即座に throw されるため、1 回のクリックにつき 1 リクエストで確定する
+ * (`countRequests` の JSDoc にある 503/network エラーの自動リトライとは別枠)。
+ *
+ * ルートは `unroute` するまで生存し続けるため、再試行ボタンを押しても同じ 500 を返し続け、
+ * 「再試行しても失敗する」ケースの固定に使える。
+ *
+ * CORS の扱いは {@link stubEmptyDishMediaResults} と同じ理由でリクエスト元 origin を返す。
+ *
+ * @param context ルートを仕掛ける BrowserContext
+ * @returns 仕掛けたリクエスト数を数えられるカウンタと、ルートを解除する関数
+ */
+export async function stubDishCategoryRecommendationsFailure(context: BrowserContext): Promise<RequestCounter> {
+	let count = 0;
+	const urlGlob = "**/v1/dish-categories/recommendations*";
+
+	const handler = async (route: Route): Promise<void> => {
+		count += 1;
+		const origin = (await route.request().headerValue("origin")) ?? "*";
+		await route.fulfill({
+			status: 500,
+			contentType: "application/json",
+			headers: {
+				"access-control-allow-origin": origin,
+				"access-control-allow-credentials": "true",
+			},
+			body: JSON.stringify({ success: false, message: "stubbed failure (#1499)" }),
+		});
+	};
+
+	await context.route(urlGlob, handler);
+
+	return {
+		count: () => count,
+		stop: () => context.unroute(urlGlob, handler),
+	};
+}
+
 /** `stubSavedDishCategories` へ渡す料理カテゴリ1件分の最小形 */
 export type StubbedDishCategory = {
 	id: string;
