@@ -51,6 +51,7 @@ import { DEFAULT_SEARCH_RADIUS } from "@/features/topics/constants";
 import { useOnboardingSeen } from "@/features/onboarding/hooks/useOnboardingSeen";
 import { onboardingIndexPath } from "@/features/onboarding/navigation";
 import { useAutoCurrentLocation } from "@/features/search/hooks/useAutoCurrentLocation";
+import { getSavedSearchConditions, saveSearchConditions } from "@/features/search/stores/useSearchConditionsStore";
 import { useRecentLocations } from "@/features/search/hooks/useRecentLocations";
 import { Image } from "expo-image";
 import { useE2EPreloadProbe } from "@/lib/e2e/preloadProbe";
@@ -113,13 +114,25 @@ export default function SearchScreen() {
 	const { locale, isJapanese } = useLocale();
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
-	const [location, setLocation] = useState<Omit<LocationDetailsResponse, "viewport"> | null>(null);
-	const [locationQuery, setLocationQuery] = useState("");
-	const [timeSlot, setTimeSlot] = useState<SearchParams["timeSlot"]>("lunch");
-	const [scene, setScene] = useState<SearchParams["scene"]>("solo"); // #533 【仕様】scene 初期値を solo に変更（レコメンドAPI必須化対応）
-	const [taste, setTaste] = useState<SearchParams["taste"] | undefined>(undefined);
-	const [coreIngredient, setCoreIngredient] = useState<SearchParams["coreIngredient"] | undefined>(undefined);
-	const [diningPace, setDiningPace] = useState<SearchParams["diningPace"] | undefined>(undefined);
+	// #1375 実機確認（5 巡目）「保存スナックバーの『見る』で食べたい/食べたへ行き、
+	// 探すへ戻ると条件が全部消えている」への対処。条件は画面の外（store）に置き、
+	// 画面が作り直されても «前回の続き» から始める。まだ一度も触っていなければ null で、
+	// その場合だけ従来どおりの既定値を使う（初回の見た目は一切変えない）。
+	// ⚠️ 復元するのは «人が選んだ条件» だけで、検索結果は復元しない（鮮度が落ちるため取り直す）
+	const restoredConditionsRef = useRef(getSavedSearchConditions());
+	const restored = restoredConditionsRef.current;
+	const [location, setLocation] = useState<Omit<LocationDetailsResponse, "viewport"> | null>(
+		restored?.location ?? null,
+	);
+	const [locationQuery, setLocationQuery] = useState(restored?.locationQuery ?? "");
+	const [timeSlot, setTimeSlot] = useState<SearchParams["timeSlot"]>(restored?.timeSlot ?? "lunch");
+	// #533 【仕様】scene 初期値を solo に変更（レコメンドAPI必須化対応）
+	const [scene, setScene] = useState<SearchParams["scene"]>(restored?.scene ?? "solo");
+	const [taste, setTaste] = useState<SearchParams["taste"] | undefined>(restored?.taste);
+	const [coreIngredient, setCoreIngredient] = useState<SearchParams["coreIngredient"] | undefined>(
+		restored?.coreIngredient,
+	);
+	const [diningPace, setDiningPace] = useState<SearchParams["diningPace"] | undefined>(restored?.diningPace);
 	const isSearchingRef = useRef(false);
 	// #1196 【設計】海外未対応の告知が二重に積まれるのを防ぐ。
 	// 多重検索防止の `isSearchingRef` はガードより後段にあるため、この経路には効かない
@@ -128,9 +141,11 @@ export default function SearchScreen() {
 	// 閉じさせることになる。confirm の Promise は OK / Cancel / Dismiss のいずれでも解決するので、
 	// それを閉じた合図として使う。
 	const isUnsupportedRegionNoticeOpenRef = useRef(false);
-	const [distance, setDistance] = useState<number>(DEFAULT_SEARCH_RADIUS);
-	const [priceLevels, setPriceLevels] = useState<(typeof priceLevelOptions)[number]["value"][]>([]);
-	const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+	const [distance, setDistance] = useState<number>(restored?.distance ?? DEFAULT_SEARCH_RADIUS);
+	const [priceLevels, setPriceLevels] = useState<(typeof priceLevelOptions)[number]["value"][]>(
+		restored?.priceLevels ?? [],
+	);
+	const [showAdvancedFilters, setShowAdvancedFilters] = useState(restored?.showAdvancedFilters ?? false);
 
 	const { getCurrentLocation, getLocationDetails } = useLocationSearch();
 	const { showSnackbar } = useSnackbar();
@@ -174,6 +189,9 @@ export default function SearchScreen() {
 		});
 
 		// 端末時間帯に基づき timeSlot を自動設定
+		// #1375 ただし «前回の続き» を復元したときは人が選んだ時間帯を上書きしない。
+		// （夜に「昼」を選んで検索 → 保存の «見る» → 戻ると勝手に「夜」へ戻る、を防ぐ）
+		if (restoredConditionsRef.current !== null) return;
 		const hour = new Date().getHours();
 		const TIME_SLOTS: { until: number; slot: SearchParams["timeSlot"] }[] = [
 			{ until: 5, slot: "late_night" },
@@ -185,6 +203,35 @@ export default function SearchScreen() {
 		const slot = TIME_SLOTS.find((s) => hour < s.until)!.slot;
 		setTimeSlot(slot);
 	}, [logFrontendEvent]);
+
+	// #1375 条件が変わるたびに store へ書き戻す。次にこの画面が作り直されたとき
+	// （保存スナックバーの «見る» → `router.dismissAll()` など）ここから復元する。
+	// ⚠️ 取得（queryKey）には一切関与しない。純粋に «画面の初期値» のための保存である
+	useEffect(() => {
+		saveSearchConditions({
+			location,
+			locationQuery,
+			timeSlot,
+			scene,
+			taste,
+			coreIngredient,
+			diningPace,
+			distance,
+			priceLevels,
+			showAdvancedFilters,
+		});
+	}, [
+		location,
+		locationQuery,
+		timeSlot,
+		scene,
+		taste,
+		coreIngredient,
+		diningPace,
+		distance,
+		priceLevels,
+		showAdvancedFilters,
+	]);
 
 	const handleLocationClear = () => {
 		lightImpact();
@@ -488,6 +535,12 @@ export default function SearchScreen() {
 
 	const requestAutoCurrentLocationOnce = useCallback(() => {
 		if (didRequestAutoLocationRef.current) return;
+		// #1375 復元した地点を現在地で踏み潰さない。人が «渋谷» を選んで検索したあと
+		// 戻ってきたら «現在地» に置き換わっている、という取り消しになるため
+		if (restoredConditionsRef.current?.location) {
+			didRequestAutoLocationRef.current = true;
+			return;
+		}
 		didRequestAutoLocationRef.current = true;
 		requestAutoCurrentLocation();
 	}, [requestAutoCurrentLocation]);

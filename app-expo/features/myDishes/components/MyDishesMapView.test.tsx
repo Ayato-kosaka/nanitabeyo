@@ -111,6 +111,7 @@ import TestRenderer from "react-test-renderer";
 import type { MyDishPin } from "@shared/api/v1/res";
 import { MyDishesMapView } from "./MyDishesMapView";
 import { selectFilterQueryKey, useMyDishesFilterStore } from "../stores/useMyDishesFilterStore";
+import { useMyDishesViewportStore } from "../stores/useMyDishesViewportStore";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -152,6 +153,8 @@ beforeEach(() => {
 	regionChangeHandler = undefined;
 	mapReadyHandler = undefined;
 	mockAnimateToRegion.mockClear();
+	// #1375（5 巡目）viewport の保持はテスト間で漏らさない
+	useMyDishesViewportStore.getState().reset();
 	pinPresses.length = 0;
 	pinUris.length = 0;
 	sheetPinLists.length = 0;
@@ -650,5 +653,46 @@ describe("#1396 m-1 初回取得後に一度だけピンへ viewport を寄せ�
 			([region]) => Math.abs((region as { latitude: number }).latitude - 35.5) < 1e-6,
 		);
 		expect(fitToPins).toBeDefined();
+	});
+
+	// #1375 実機確認（5 巡目）: 拡大 → リスト → Map と戻ると全国まで引かれてしまう
+	it("人が動かした表示域は、次に開いたときも保たれる（現在地にもピンの外接矩形にも奪われない）", async () => {
+		mockUseMyDishesMapPinsQuery.mockReturnValue({
+			pins: [mockPin],
+			isLoading: false,
+			error: null,
+			hasFetchedInitial: true,
+			truncated: false,
+			refresh: jest.fn(),
+		});
+
+		// 1 回目: 開いて拡大する（onRegionChangeComplete が人の操作として届く）
+		await render();
+		const zoomed = { latitude: 35.6812, longitude: 139.7671, latitudeDelta: 0.01, longitudeDelta: 0.01 };
+		act(() => {
+			regionChangeHandler?.(zoomed);
+		});
+
+		// 2 回目: いったん閉じて開き直す（リストへ行って戻る操作に相当）
+		await act(async () => {
+			mountedTrees.splice(0).forEach((tree) => tree.unmount());
+		});
+		mockAnimateToRegion.mockClear();
+		mockGetCurrentLocationPosition.mockImplementationOnce(() =>
+			Promise.resolve({ latitude: 35.6595, longitude: 139.7005 } as never),
+		);
+		await render();
+
+		// 拡大した表示域へ戻っていること
+		const restored = mockAnimateToRegion.mock.calls.find(
+			([region]) => Math.abs((region as { latitudeDelta: number }).latitudeDelta - 0.01) < 1e-6,
+		);
+		expect(restored).toBeDefined();
+		// 現在地にもピンの外接矩形にも動かされていないこと
+		const stolen = mockAnimateToRegion.mock.calls.find(([region]) => {
+			const lat = (region as { latitude: number }).latitude;
+			return Math.abs(lat - 35.6595) < 1e-6 || Math.abs(lat - 35.5) < 1e-6;
+		});
+		expect(stolen).toBeUndefined();
 	});
 });

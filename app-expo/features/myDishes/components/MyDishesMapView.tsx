@@ -12,6 +12,10 @@ import { useHaptics } from "@/hooks/useHaptics";
 import { router } from "expo-router";
 import { useLocale } from "@/hooks/useLocale";
 import { getCurrentLocationPosition } from "@/hooks/useCurrentLocationPosition";
+import {
+	getMyDishesViewportRegion,
+	setMyDishesViewportRegion,
+} from "@/features/myDishes/stores/useMyDishesViewportStore";
 import { useLogger } from "@/hooks/useLogger";
 import i18n from "@/lib/i18n";
 import type { MyDishPin } from "@shared/api/v1/res";
@@ -64,6 +68,9 @@ export function MyDishesMapView() {
 	// 「押せない理由を説明する」より「押したら常識的な範囲で動く」方が短い
 	const handleRegionChangeComplete = useCallback((region: Region) => {
 		currentRegionRef.current = region;
+		// #1375（5 巡目）人が動かした表示域を覚える。次にこの画面へ来たらここから始める
+		// （取得には一切関与しない store。useMyDishesViewportStore のコメント参照）
+		setMyDishesViewportRegion(region);
 	}, []);
 
 	// #1396 【設計】store（= queryKey）を書く唯一の口。ボタン押下時にのみ呼ばれる
@@ -104,9 +111,21 @@ export function MyDishesMapView() {
 	//
 	// ⚠️ 判定が決着するまで «ピンの外接矩形» を走らせない。先に矩形へ寄せてから現在地へ飛ぶと
 	// 画面が 2 回動いて見える（自分で足したテストで気づいた）
-	const [locationProbe, setLocationProbe] = useState<"pending" | "resolved" | "unavailable">("pending");
+	// 覚えている表示域があるなら自動の初期化は全部やらない（人の操作が最優先）
+	const restoredRegionRef = useRef<Region | null>(getMyDishesViewportRegion());
+	const [locationProbe, setLocationProbe] = useState<"pending" | "resolved" | "unavailable">(
+		restoredRegionRef.current === null ? "pending" : "resolved",
+	);
 	const hasRequestedLocationRef = useRef(false);
 	useEffect(() => {
+		if (restoredRegionRef.current !== null) {
+			// 前回の表示域へ戻す（現在地取得もピンの外接矩形も走らせない）
+			const region = restoredRegionRef.current;
+			currentRegionRef.current = region;
+			pendingRegionRef.current = region;
+			mapRef.current?.animateToRegion(region, 1);
+			return;
+		}
 		if (hasRequestedLocationRef.current) return;
 		hasRequestedLocationRef.current = true;
 		let cancelled = false;

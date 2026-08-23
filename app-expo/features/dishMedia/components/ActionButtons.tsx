@@ -25,6 +25,7 @@ import {
 import { shallow } from "zustand/shallow";
 import { profileLikesEntriesKey } from "@/features/profile/tabs/LikeTab";
 import { profileSavedPostsEntriesKey } from "@/features/profile/entriesKeys";
+import { bumpMyDishesRevision } from "@/features/myDishes/stores/useMyDishesRevisionStore";
 import { useDishMediaActions } from "../hooks/useDishMediaActions";
 import { GestureDetector } from "react-native-gesture-handler";
 import type { GestureType } from "react-native-gesture-handler";
@@ -240,6 +241,11 @@ function ActionButtonsContent({
 				method: willSave ? "POST" : "DELETE",
 				requestPayload: { action_type: "save" },
 			});
+			// #1375 実機確認（5 巡目）: フィードで «食べたい» を外しても、戻ってリロードするまで
+			// 一覧から消えなかった。save reaction は my-dishes の want 枝の実体そのものなので、
+			// 記録（#1398）や取り込み（#1399）と同じくここでもキャッシュを捨てる。
+			// ⚠️ 失敗時は捨てない（ロールバック済みの表示と取り直しの結果が食い違う）
+			bumpMyDishesRevision();
 			if (willSave) {
 				// #1401 【仕様】保存操作のみ完了フィードバックを出す(解除は状態変化が見た目で分かるため省略)。
 				// TopicCard の「見る」導線(#954)と同じ作法で、遷移先だけ my-dishes タブに変える。
