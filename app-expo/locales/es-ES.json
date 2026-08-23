@@ -423,6 +423,7 @@
 	"Report": {
 		"action": "Denunciar",
 		"title": "Denunciar esta publicación",
+		"reviewTitle": "Denunciar esta reseña",
 		"description": "Elige un motivo. Nuestro equipo lo revisará y no se avisará a quien lo publicó.",
 		"reasons": {
 			"spam": "Spam o publicidad",
@@ -450,9 +451,11 @@
 		},
 		"accessibility": {
 			"open": "Denunciar la publicación de {{name}}",
+			"openReview": "Denunciar la reseña de {{name}}",
 			"reason": "Motivo: {{reason}}",
 			"reasonSelected": "Motivo: {{reason}} (seleccionado)",
-			"submit": "Enviar la denuncia de la publicación de {{name}}"
+			"submit": "Enviar la denuncia de la publicación de {{name}}",
+			"submitReview": "Enviar la denuncia de la reseña de {{name}}"
 		}
 	},
 	"ImageCardGrid": {

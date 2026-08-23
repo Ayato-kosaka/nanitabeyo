@@ -1,6 +1,6 @@
 // api/src/v1/content-reports/content-reports.repository.ts
 //
-// #1514 (SAF-01) 【設計】投稿の通報の永続化境界。
+// #1514 (SAF-01) 【設計】投稿・レビューの通報の永続化境界。
 //
 // このテーブルは RLS のポリシーを 1 つも持たない（= クライアントからは触れない）。
 // 書き込み経路がここしかないことが、通報を «通報者が消せない証跡» にしている。
@@ -51,7 +51,7 @@ export class ContentReportsRepository {
   /**
    * 通報を 1 件作る。
    *
-   * 同一ユーザー × 同一対象の 2 件目は `uq_content_reports_reporter_target` により
+   * 同一ユーザー × 同一対象（種別 + ID）の 2 件目は `uq_content_reports_reporter_target` により
    * Prisma が P2002 を投げる。握りつぶさずそのまま投げ、Service 側で
    * 「既存の通報を返す」へ倒す（呼び出し側から見て冪等にするのは Service の責務）。
    */
@@ -95,6 +95,9 @@ export class ContentReportsRepository {
    * ⚠️ **存在確認を省かないこと。** `target_id` には FK が無い（対象テーブルが
    * `target_type` で変わるため）ので、DB は存在しない ID を弾かない。
    * 省くと、存在しない UUID を投げ続けるだけで運営のキューを水増しできる。
+   *
+   * 分岐は `CONTENT_REPORT_TARGET_TYPES` と 1 対 1 に保つこと。対象種別を増やして
+   * ここを足し忘れると default 節の `never` 代入がコンパイルエラーになる。
    */
   async existsTarget(
     targetType: ContentReportTargetType,
@@ -103,6 +106,13 @@ export class ContentReportsRepository {
     switch (targetType) {
       case 'dish_media': {
         const found = await this.prisma.dish_media.findUnique({
+          where: { id: targetId },
+          select: { id: true },
+        });
+        return found !== null;
+      }
+      case 'dish_reviews': {
+        const found = await this.prisma.dish_reviews.findUnique({
           where: { id: targetId },
           select: { id: true },
         });

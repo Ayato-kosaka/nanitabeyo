@@ -3,8 +3,8 @@
 -- #1514 (SAF-01)
 -- ==============================================================================
 -- 【目的】
--- 投稿（dish_media）に対するユーザーからの通報を保存する。運営が「見て、対応する」
--- ワークフローの起点になるテーブル。
+-- 投稿（dish_media）とレビュー（dish_reviews）に対するユーザーからの通報を保存する。
+-- 運営が「見て、対応する」ワークフローの起点になるテーブル。
 --
 -- 【背景】
 -- 通報のためのテーブル・API・画面がこれまで一切無かった。近いものが 2 つあるが
@@ -44,14 +44,17 @@ CREATE TABLE IF NOT EXISTS content_reports (
   -- ⚠️ 値の集合は shared/api/v1/constants/contentReports.ts の
   --    CONTENT_REPORT_TARGET_TYPES と **同じ集合**でなければならない。
   --    片方だけ増やすと API は 201 を返すのに INSERT が落ちる。
-  --    オーナー確定仕様により、今回の対象は投稿（dish_media）のみ。
-  --    ユーザー・店舗・レビュー（dish_reviews）は対象外
+  --    オーナー確定仕様により、対象は投稿（dish_media）とレビュー（dish_reviews）。
+  --    ユーザー・店舗は対象外。
+  -- ⚠️ 制約に明示的な名前を付けてあるのは、下の「揃え直し」ブロックが
+  --    DROP CONSTRAINT IF EXISTS で確実に掴めるようにするため
   target_type      text NOT NULL
-    CHECK (target_type IN ('dish_media')),
+    CONSTRAINT content_reports_target_type_check
+    CHECK (target_type IN ('dish_media', 'dish_reviews')),
 
   -- 通報対象の ID。target_type で示したテーブルの主キー。
   -- 対象テーブルが target_type によって変わるので FK は張らない（既存 3 テーブルと同じ方針）。
-  -- 型は uuid（dish_media.id が uuid のため。text にする理由が無い）
+  -- 型は uuid（dish_media.id / dish_reviews.id がどちらも uuid のため。text にする理由が無い）
   target_id        uuid NOT NULL,
 
   -- 通報者（JWT の uid）。
@@ -64,8 +67,10 @@ CREATE TABLE IF NOT EXISTS content_reports (
 
   -- 通報理由（選択式）。自由記述だけにすると「同じ理由の通報が何件あるか」を
   -- 集計できず、運営が優先順位を付けられない。
-  -- ⚠️ 値の集合は CONTENT_REPORT_REASON_CODES と同じ集合を保つこと
+  -- ⚠️ 値の集合は CONTENT_REPORT_REASON_CODES と同じ集合を保つこと。
+  --    理由コードは投稿・レビューで共通（片方だけの理由は今のところ無い）
   reason_code      text NOT NULL
+    CONSTRAINT content_reports_reason_code_check
     CHECK (reason_code IN ('spam', 'sexual', 'violence', 'harassment', 'illegal',
                            'misinformation', 'rights', 'privacy', 'irrelevant', 'other')),
 
@@ -89,7 +94,8 @@ CREATE TABLE IF NOT EXISTS content_reports (
   updated_at       timestamptz NOT NULL DEFAULT now(),
   lock_no          integer NOT NULL DEFAULT 0,
 
-  -- 同じユーザーが同じ投稿を何度も通報できないこと（オーナー確定仕様）。
+  -- 同じユーザーが同じ対象を何度も通報できないこと（オーナー確定仕様）。
+  -- target_type を含むので、同じ ID が別テーブルに在っても衝突しない。
   -- ⚠️ 部分索引（未解決のものだけ一意）にしないこと。「解決後は再通報できる」形は
   -- 運営が rejected にした投稿を延々と通報し直せる余地を残す。
   -- API 側はこの制約に当たったとき 409 ではなく **既存の通報 ID を返す**（冪等）ため、
@@ -116,12 +122,12 @@ CREATE INDEX IF NOT EXISTS idx_content_reports_target
 -- =========================
 
 COMMENT ON TABLE content_reports IS
-  '投稿（dish_media）への通報。運営の処理ワークフローの起点。RLS ポリシーを持たず、書き込みは API 経由のみ';
+  '投稿（dish_media）・レビュー（dish_reviews）への通報。運営の処理ワークフローの起点。RLS ポリシーを持たず、書き込みは API 経由のみ';
 
 COMMENT ON COLUMN content_reports.id IS
   '通報ID（UUID）。通報者へ返す受付番号を兼ねる';
 COMMENT ON COLUMN content_reports.target_type IS
-  '通報対象の種別。値は対象テーブル名。現在は dish_media のみ（ユーザー・店舗・レビューは対象外）。対象テーブルが可変のため外部キー制約は張らない';
+  '通報対象の種別。値は対象テーブル名。現在は dish_media / dish_reviews（ユーザー・店舗は対象外）。対象テーブルが可変のため外部キー制約は張らない';
 COMMENT ON COLUMN content_reports.target_id IS
   '通報対象のID。target_type で示したテーブルの主キー';
 COMMENT ON COLUMN content_reports.reporter_user_id IS
@@ -154,3 +160,40 @@ COMMENT ON COLUMN content_reports.lock_no IS
 -- 通報者が自分の通報を消せない・他人の通報が見えないのは、この状態によって担保される。
 -- （自分の通報一覧を見せる要件が出たら、SELECT ポリシーではなく API を足すこと）
 ALTER TABLE content_reports ENABLE ROW LEVEL SECURITY;
+
+-- ==================================================================
+-- 既存テーブルを現行仕様へ揃え直す
+--
+-- ⚠️ **上の CREATE TABLE は IF NOT EXISTS なので、既にテーブルがある環境では
+--    丸ごとスキップされ、インライン制約の変更は一切反映されない。**
+--    scripts/apply-migration.sh は from_file 以降を毎回全部流すため、
+--    「テーブルが既にある環境」は普通に起こりうる。
+--    よって値域の実体はここで DROP → ADD で張り直す
+--    （ADD CONSTRAINT に IF NOT EXISTS は無いので DROP CONSTRAINT IF EXISTS を必ず前に置く）。
+--
+--    何度流しても同じ結果になる（冪等）ように書いてある。
+-- ==================================================================
+
+-- --- target_type の値域（dish_reviews を追加） ---------------------
+-- 初版は ('dish_media') だけだった。レビューも通報できるようになったので張り替える。
+-- ⚠️ 値域の «緩和» なので既存行は 1 行も違反しない（規則 3 の additive に収まる）。
+--    NOT VALID → VALIDATE の 2 段にするのは、張り替えの一瞬でも
+--    ACCESS EXCLUSIVE で全行走査を抱えないため
+ALTER TABLE content_reports
+  DROP CONSTRAINT IF EXISTS content_reports_target_type_check;
+ALTER TABLE content_reports
+  ADD CONSTRAINT content_reports_target_type_check
+  CHECK (target_type IN ('dish_media', 'dish_reviews')) NOT VALID;
+ALTER TABLE content_reports VALIDATE CONSTRAINT content_reports_target_type_check;
+
+-- --- reason_code の値域（初版から変更なし。名前だけ揃える） ---------
+-- 初版は無名のインライン CHECK だったため、環境によっては Postgres が付けた
+-- 既定名（content_reports_reason_code_check）で存在する。同じ名前なので
+-- DROP → ADD で確実に現行の値域へ揃う
+ALTER TABLE content_reports
+  DROP CONSTRAINT IF EXISTS content_reports_reason_code_check;
+ALTER TABLE content_reports
+  ADD CONSTRAINT content_reports_reason_code_check
+  CHECK (reason_code IN ('spam', 'sexual', 'violence', 'harassment', 'illegal',
+                         'misinformation', 'rights', 'privacy', 'irrelevant', 'other')) NOT VALID;
+ALTER TABLE content_reports VALIDATE CONSTRAINT content_reports_reason_code_check;

@@ -26,7 +26,7 @@ import { shallow } from "zustand/shallow";
 import { profileLikesEntriesKey } from "@/features/profile/tabs/LikeTab";
 import { profileSavedPostsEntriesKey } from "@/features/profile/entriesKeys";
 import { useDishMediaActions } from "../hooks/useDishMediaActions";
-import { ReportDishMediaSheet } from "./ReportDishMediaSheet";
+import { ReportContentSheet } from "./ReportContentSheet";
 import { GestureDetector } from "react-native-gesture-handler";
 import type { GestureType } from "react-native-gesture-handler";
 import { toErrorLogMessage } from "@/lib/errorMessage";
@@ -313,9 +313,9 @@ function ActionButtonsContent({
 	const handleReportPress = useCallback(() => {
 		lightImpact();
 		logFrontendEvent({
-			event_name: "dish_media_report_opened",
+			event_name: "content_report_opened",
 			error_level: "log",
-			payload: { dishMediaId },
+			payload: { targetType: "dish_media", targetId: String(dishMediaId) },
 		});
 		setIsReportSheetOpen(true);
 	}, [dishMediaId, lightImpact, logFrontendEvent]);
@@ -432,7 +432,8 @@ function ActionButtonsContent({
 				{/* #1514 (SAF-01) 投稿の通報導線。
 				    右レールに常設するのは、通報の敷居を上げないため（メニューの奥に隠すと、
 				    «見つけられないから通報されない» を «問題が無い» と読み違える）。
-				    通報できるのは投稿だけで、ユーザー・店舗・レビューは対象外（オーナー確定仕様） */}
+				    レビューの通報は DishReviewsSection のレビュー行側にある。
+				    ユーザー・店舗は対象外（オーナー確定仕様） */}
 				<View style={styles.actionContainer}>
 					<TouchableOpacity
 						testID="dish-action-report"
@@ -446,10 +447,11 @@ function ActionButtonsContent({
 					<Text style={styles.actionText}>{i18n.t("Report.action")}</Text>
 				</View>
 
-				<ReportDishMediaSheet
+				<ReportContentSheet
 					visible={isReportSheetOpen}
-					dishMediaId={String(dishMediaId)}
-					restaurantName={restaurant.name}
+					targetType="dish_media"
+					targetId={String(dishMediaId)}
+					targetLabel={restaurant.name}
 					onClose={handleReportSheetClose}
 				/>
 			</View>

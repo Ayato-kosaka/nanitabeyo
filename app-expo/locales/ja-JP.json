@@ -423,6 +423,7 @@
 	"Report": {
 		"action": "報告",
 		"title": "この投稿を報告する",
+		"reviewTitle": "このレビューを報告する",
 		"description": "報告の理由を選んでください。運営が内容を確認します。相手に通知されることはありません。",
 		"reasons": {
 			"spam": "スパム・宣伝",
@@ -450,9 +451,11 @@
 		},
 		"accessibility": {
 			"open": "{{name}}の投稿を報告",
+			"openReview": "{{name}}さんのレビューを報告",
 			"reason": "理由: {{reason}}",
 			"reasonSelected": "理由: {{reason}}（選択中）",
-			"submit": "{{name}}の投稿の報告を送信"
+			"submit": "{{name}}の投稿の報告を送信",
+			"submitReview": "{{name}}さんのレビューの報告を送信"
 		}
 	},
 	"ImageCardGrid": {

@@ -423,6 +423,7 @@
 	"Report": {
 		"action": "Report",
 		"title": "Report this post",
+		"reviewTitle": "Report this review",
 		"description": "Choose a reason for reporting. Our team will review it, and the person who posted is not notified.",
 		"reasons": {
 			"spam": "Spam or advertising",
@@ -450,9 +451,11 @@
 		},
 		"accessibility": {
 			"open": "Report the post from {{name}}",
+			"openReview": "Report the review from {{name}}",
 			"reason": "Reason: {{reason}}",
 			"reasonSelected": "Reason: {{reason}}, selected",
-			"submit": "Submit the report for the post from {{name}}"
+			"submit": "Submit the report for the post from {{name}}",
+			"submitReview": "Submit the report for the review from {{name}}"
 		}
 	},
 	"ImageCardGrid": {

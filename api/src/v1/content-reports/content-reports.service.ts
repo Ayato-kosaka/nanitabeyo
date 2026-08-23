@@ -1,6 +1,9 @@
 // api/src/v1/content-reports/content-reports.service.ts
 //
-// #1514 (SAF-01) 【設計】投稿の通報の受付。
+// #1514 (SAF-01) 【設計】投稿・レビューの通報の受付。
+//
+// 対象種別ごとの分岐はここには無い。存在検証だけが対象テーブルを知っていればよく
+// （Repository.existsTarget）、受付・重複・ログの規則は投稿とレビューで完全に同じである。
 
 import { Injectable, NotFoundException } from '@nestjs/common';
 
@@ -24,19 +27,20 @@ export class ContentReportsService {
    * 手順は「対象の実在を確かめる → 保存 → 受付番号を返す」。
    *
    * ## 重複通報をエラーにしない理由
-   * 同一ユーザー × 同一対象は DB の一意制約で 1 件に制限されている（オーナー確定仕様）。
+   * 同一ユーザー × 同一対象（種別 + ID）は DB の一意制約で 1 件に制限されている
+   * （オーナー確定仕様。投稿とレビューで同じ規則）。
    * ここで 409 を返すと 2 つ困ることがある。
    *
    * 1. ユーザーには「通報したのに失敗した」としか見えない。実際には受理済みなのに、
    *    もう一度押させることになる
-   * 2. 409 と 201 の差が **«自分がその投稿を通報済みかどうか» の観測点**になる。
+   * 2. 409 と 201 の差が **«自分がその対象を通報済みかどうか» の観測点**になる。
    *    通報の有無は本人にも積極的に見せる情報ではない
    *
    * そこで **既存の通報 ID をそのまま返す**（冪等）。UI は成功と同じ「受け付けました」を出す。
    *
    * ## 通報しても対象を非表示にしない
    * 通報を即時非表示に繋ぐと、通報爆撃がそのまま検閲の道具になる。運営が見るまで表示は変わらない。
-   * このサービスは `dish_media` を一切更新しない。
+   * このサービスは `dish_media` も `dish_reviews` も一切更新しない。
    *
    * @param dto 通報対象と理由
    * @param reporterUserId 通報者（匿名ユーザーも通報できる。JWT の uid をそのまま使う）
@@ -88,7 +92,7 @@ export class ContentReportsService {
     } catch (error) {
       if (!isUniqueViolation(error)) throw error;
 
-      // 一意制約に当たった = 同じユーザーが同じ投稿を既に通報している。
+      // 一意制約に当たった = 同じユーザーが同じ対象を既に通報している。
       // 既存の受付番号を返して、呼び出し側から見て冪等にする
       const existing = await this.repository.findByReporterAndTarget(
         reporterUserId,

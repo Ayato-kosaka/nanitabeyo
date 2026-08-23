@@ -423,6 +423,7 @@
 	"Report": {
 		"action": "إبلاغ",
 		"title": "الإبلاغ عن هذا المنشور",
+		"reviewTitle": "الإبلاغ عن هذه المراجعة",
 		"description": "اختر سبب الإبلاغ. سيراجع الفريق المحتوى، ولن يتم إخطار صاحب المنشور.",
 		"reasons": {
 			"spam": "رسائل مزعجة أو إعلانات",
@@ -450,9 +451,11 @@
 		},
 		"accessibility": {
 			"open": "الإبلاغ عن منشور {{name}}",
+			"openReview": "الإبلاغ عن مراجعة {{name}}",
 			"reason": "السبب: {{reason}}",
 			"reasonSelected": "السبب: {{reason}} (محدد)",
-			"submit": "إرسال بلاغ عن منشور {{name}}"
+			"submit": "إرسال بلاغ عن منشور {{name}}",
+			"submitReview": "إرسال بلاغ عن مراجعة {{name}}"
 		}
 	},
 	"ImageCardGrid": {

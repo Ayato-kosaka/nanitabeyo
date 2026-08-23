@@ -423,6 +423,7 @@
 	"Report": {
 		"action": "举报",
 		"title": "举报这条投稿",
+		"reviewTitle": "举报这条评价",
 		"description": "请选择举报理由。我们会进行核实，不会通知发布者。",
 		"reasons": {
 			"spam": "垃圾信息或广告",
@@ -450,9 +451,11 @@
 		},
 		"accessibility": {
 			"open": "举报来自{{name}}的投稿",
+			"openReview": "举报来自{{name}}的评价",
 			"reason": "理由：{{reason}}",
 			"reasonSelected": "理由：{{reason}}（已选择）",
-			"submit": "提交对{{name}}投稿的举报"
+			"submit": "提交对{{name}}投稿的举报",
+			"submitReview": "提交对{{name}}评价的举报"
 		}
 	},
 	"ImageCardGrid": {

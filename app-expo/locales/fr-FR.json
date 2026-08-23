@@ -423,6 +423,7 @@
 	"Report": {
 		"action": "Signaler",
 		"title": "Signaler cette publication",
+		"reviewTitle": "Signaler cet avis",
 		"description": "Choisissez un motif de signalement. Notre équipe l'examinera et l'auteur n'en sera pas informé.",
 		"reasons": {
 			"spam": "Spam ou publicité",
@@ -450,9 +451,11 @@
 		},
 		"accessibility": {
 			"open": "Signaler la publication de {{name}}",
+			"openReview": "Signaler l'avis de {{name}}",
 			"reason": "Motif : {{reason}}",
 			"reasonSelected": "Motif : {{reason}} (sélectionné)",
-			"submit": "Envoyer le signalement de la publication de {{name}}"
+			"submit": "Envoyer le signalement de la publication de {{name}}",
+			"submitReview": "Envoyer le signalement de l'avis de {{name}}"
 		}
 	},
 	"ImageCardGrid": {

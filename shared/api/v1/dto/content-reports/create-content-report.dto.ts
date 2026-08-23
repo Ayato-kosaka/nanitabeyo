@@ -15,17 +15,17 @@ import {
  * 作れてしまう。`content_reports.reporter_user_id` はサーバー側でしか埋めない。
  *
  * ## 通報の「対象」を polymorphic にしてある理由
- * オーナー確定仕様では対象は **投稿（`dish_media`）だけ**だが、`target_type` を持たない形に
- * すると対象を増やすときにテーブルごと作り直しになる。今は `CONTENT_REPORT_TARGET_TYPES` が
- * 1 要素なので、`dish_media` 以外は 400 になる。
+ * `target_type` を持たない形にすると対象を増やすときにテーブルごと作り直しになる。
+ * 対象は `CONTENT_REPORT_TARGET_TYPES`（投稿 `dish_media` とレビュー `dish_reviews`）で、
+ * それ以外の値は 400 になる。ユーザー・店舗は対象外（オーナー確定仕様）。
  */
 export class CreateContentReportDto {
-	/** 通報対象の種別。現在は `dish_media`（投稿）のみ */
+	/** 通報対象の種別。`dish_media`（投稿）または `dish_reviews`（レビュー） */
 	@IsIn(CONTENT_REPORT_TARGET_TYPES)
 	targetType!: ContentReportTargetType;
 
 	/**
-	 * 通報対象の ID。
+	 * 通報対象の ID。`targetType` が示すテーブルの主キー。
 	 *
 	 * ⚠️ **バージョンを固定しないこと（`@IsUUID("4")` にしない）。**
 	 * `dish_media.id` には v5 の ID が混ざっており（`ShareTargetDishMediaParamsDto` に

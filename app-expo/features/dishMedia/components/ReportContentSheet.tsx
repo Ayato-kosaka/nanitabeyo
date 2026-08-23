@@ -1,12 +1,19 @@
 /**
- * 🚩 投稿を通報するシート（#1514 / SAF-01）
+ * 🚩 コンテンツを通報するシート（#1514 / SAF-01）
  *
  * ## 責務
  * 「理由を選ぶ → 送る → 受け付けたことを伝える」の 3 状態だけを持つ。
- * 審査の進捗も、通報した投稿が今どうなっているかも見せない
+ * 審査の進捗も、通報した対象が今どうなっているかも見せない
  * （オーナー確定仕様: 通報後は「受け付けました」と返すだけ。審査結果の通知はスコープ外）。
  *
- * ## 通報しても投稿は消えない・隠れない
+ * ## 投稿とレビューで 1 つのコンポーネントを使い回す
+ * 通報の対象は投稿（`dish_media`）とレビュー（`dish_reviews`）の 2 つあるが、
+ * **理由の集合・送信先・重複時の見え方・受付後の文面はすべて同じ**である。
+ * 対象ごとにシートを分けると、理由を 1 つ足すたびに 2 箇所を直すことになり、
+ * 片方だけ古い選択肢が残る事故を招く。差分は
+ * 「見出しと読み上げラベル（= `TARGET_COPY`）」と「送信する `targetType`」だけに閉じてある。
+ *
+ * ## 通報しても対象は消えない・隠れない
  * 通報を即時非表示に繋ぐと、通報爆撃がそのまま検閲の道具になる。
  * したがってこのシートは `useDishMediaEntriesStore` を一切更新しない。
  * 送信後もフィードの見た目は変わらないのが正しい。
@@ -32,15 +39,40 @@ import {
 	CONTENT_REPORT_REASON_CODES,
 	CONTENT_REPORT_REASON_TEXT_MAX_LENGTH,
 	type ContentReportReasonCode,
+	type ContentReportTargetType,
 } from "@shared/api/v1/constants/contentReports";
 
-interface ReportDishMediaSheetProps {
+/**
+ * 対象種別ごとに変わる文言のキー。
+ *
+ * ⚠️ **ここ以外に種別分岐を増やさないこと。** 選択肢・送信処理・受付後の面まで
+ * 分岐が広がると「投稿では直したのにレビューでは直っていない」が起きる。
+ * 種別を増やすときは `ContentReportTargetType` に足せば、この Record が
+ * 網羅を強制する（キー漏れがコンパイルエラーになる）。
+ */
+const TARGET_COPY: Record<ContentReportTargetType, { title: string; submitAccessibilityLabel: string }> = {
+	dish_media: {
+		title: "Report.title",
+		submitAccessibilityLabel: "Report.accessibility.submit",
+	},
+	dish_reviews: {
+		title: "Report.reviewTitle",
+		submitAccessibilityLabel: "Report.accessibility.submitReview",
+	},
+};
+
+interface ReportContentSheetProps {
 	/** シートを開いているか */
 	visible: boolean;
-	/** 通報対象の投稿 ID */
-	dishMediaId: string;
-	/** 通報対象が «どの投稿か» を読み上げるための店舗名 */
-	restaurantName: string;
+	/** 通報対象の種別。投稿（`dish_media`）かレビュー（`dish_reviews`） */
+	targetType: ContentReportTargetType;
+	/** 通報対象の ID。`targetType` が示すテーブルの主キー */
+	targetId: string;
+	/**
+	 * 通報対象が «どれか» を読み上げるための名前。
+	 * 投稿なら店舗名、レビューなら書いた人の表示名。
+	 */
+	targetLabel: string;
 	/** 閉じる（キャンセル・完了のいずれでも呼ばれる） */
 	onClose: () => void;
 }
@@ -48,7 +80,7 @@ interface ReportDishMediaSheetProps {
 /** シートの状態。`accepted` まで来たら理由の選択には戻さない */
 type Phase = "form" | "submitting" | "accepted";
 
-export function ReportDishMediaSheet({ visible, dishMediaId, restaurantName, onClose }: ReportDishMediaSheetProps) {
+export function ReportContentSheet({ visible, targetType, targetId, targetLabel, onClose }: ReportContentSheetProps) {
 	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
 	const { lightImpact } = useHaptics();
@@ -59,8 +91,11 @@ export function ReportDishMediaSheet({ visible, dishMediaId, restaurantName, onC
 	const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
 	// 理由の並び順は shared の定数がそのまま表示順（`other` が最後）。
-	// 画面側で並べ替えると、API・DB・UI の 3 箇所で順番の解釈が割れる
+	// 画面側で並べ替えると、API・DB・UI の 3 箇所で順番の解釈が割れる。
+	// 投稿とレビューで同じ集合を出す（種別ごとに絞り込まない）
 	const reasons = useMemo(() => CONTENT_REPORT_REASON_CODES, []);
+
+	const copy = TARGET_COPY[targetType];
 
 	/** 閉じるときに状態を初期化する。次に開いたとき前回の選択が残っていると誤送信になる */
 	const handleClose = useCallback(() => {
@@ -84,8 +119,8 @@ export function ReportDishMediaSheet({ visible, dishMediaId, restaurantName, onC
 			const response = await callBackend<CreateContentReportDto, CreateContentReportResponse>("v1/content-reports", {
 				method: "POST",
 				requestPayload: {
-					targetType: "dish_media",
-					targetId: dishMediaId,
+					targetType,
+					targetId,
 					reasonCode,
 					// 空文字は送らない（API 側でも trim して null にするが、
 					// 「入力していない」を「空文字を入力した」として送る理由が無い）
@@ -94,12 +129,17 @@ export function ReportDishMediaSheet({ visible, dishMediaId, restaurantName, onC
 			});
 
 			// ⚠️ **payload に reasonText を入れないこと。** 自由記述には第三者の個人情報が
-			// 書かれうる。フロントのログは BigQuery まで流れるので、理由コードまでに留める
+			// 書かれうる。フロントのログは BigQuery まで流れるので、理由コードまでに留める。
+			//
+			// イベント名は種別に依らず 1 つにして、種別は payload の targetType で分ける。
+			// 種別ごとにイベント名を割ると、「通報が何件あったか」を数えるだけで
+			// 名前の一覧を先に知っていないといけなくなる（種別を足すたび集計も直す）
 			logFrontendEvent({
-				event_name: "dish_media_reported",
+				event_name: "content_reported",
 				error_level: "log",
 				payload: {
-					dishMediaId,
+					targetType,
+					targetId,
 					reasonCode,
 					hasReasonText: reasonText.trim().length > 0,
 					alreadyReported: response.alreadyReported,
@@ -109,15 +149,15 @@ export function ReportDishMediaSheet({ visible, dishMediaId, restaurantName, onC
 			setPhase("accepted");
 		} catch (error) {
 			logFrontendEvent({
-				event_name: "dish_media_report_failed",
+				event_name: "content_report_failed",
 				error_level: "warn",
-				payload: { dishMediaId, reasonCode, error: toErrorLogMessage(error) },
+				payload: { targetType, targetId, reasonCode, error: toErrorLogMessage(error) },
 			});
 			// 失敗しても選択内容は残す。もう一度「報告する」を押せば送り直せる
 			setErrorMessage(i18n.t("Report.errors.submitFailed"));
 			setPhase("form");
 		}
-	}, [callBackend, dishMediaId, lightImpact, logFrontendEvent, phase, reasonCode, reasonText]);
+	}, [callBackend, lightImpact, logFrontendEvent, phase, reasonCode, reasonText, targetId, targetType]);
 
 	return (
 		<Modal
@@ -143,7 +183,7 @@ export function ReportDishMediaSheet({ visible, dishMediaId, restaurantName, onC
 						<>
 							<View style={styles.header}>
 								<Flag size={18} color="#DC2626" />
-								<Text style={styles.title}>{i18n.t("Report.title")}</Text>
+								<Text style={styles.title}>{i18n.t(copy.title)}</Text>
 								<TouchableOpacity
 									onPress={handleClose}
 									disabled={phase === "submitting"}
@@ -211,7 +251,7 @@ export function ReportDishMediaSheet({ visible, dishMediaId, restaurantName, onC
 								disabled={!reasonCode || phase === "submitting"}
 								colors={["#EF4444", "#DC2626"]}
 								shadowColor="#DC2626"
-								accessibilityLabel={i18n.t("Report.accessibility.submit", { name: restaurantName })}
+								accessibilityLabel={i18n.t(copy.submitAccessibilityLabel, { name: targetLabel })}
 								testID="report-submit"
 							/>
 						</>

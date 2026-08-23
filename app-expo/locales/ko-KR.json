@@ -423,6 +423,7 @@
 	"Report": {
 		"action": "신고",
 		"title": "이 게시물 신고하기",
+		"reviewTitle": "이 리뷰 신고하기",
 		"description": "신고 사유를 선택해 주세요. 운영팀이 확인하며, 작성자에게는 알리지 않습니다.",
 		"reasons": {
 			"spam": "스팸 또는 광고",
@@ -450,9 +451,11 @@
 		},
 		"accessibility": {
 			"open": "{{name}} 게시물 신고",
+			"openReview": "{{name}} 리뷰 신고",
 			"reason": "사유: {{reason}}",
 			"reasonSelected": "사유: {{reason}}(선택됨)",
-			"submit": "{{name}} 게시물 신고 보내기"
+			"submit": "{{name}} 게시물 신고 보내기",
+			"submitReview": "{{name}} 리뷰 신고 보내기"
 		}
 	},
 	"ImageCardGrid": {

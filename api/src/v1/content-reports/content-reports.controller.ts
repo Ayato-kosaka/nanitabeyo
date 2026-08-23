@@ -1,6 +1,6 @@
 // api/src/v1/content-reports/content-reports.controller.ts
 //
-// #1514 (SAF-01) 【設計】投稿の通報の受付エンドポイント。
+// #1514 (SAF-01) 【設計】投稿・レビューの通報の受付エンドポイント。
 
 import {
   Body,
@@ -35,7 +35,10 @@ export class ContentReportsController {
   /* ------------------------------------------------------------------ */
 
   /**
-   * 投稿を通報する。
+   * 投稿（`dish_media`）またはレビュー（`dish_reviews`）を通報する。
+   *
+   * 対象種別ごとにエンドポイントを分けない。受付・重複・レスポンスの規則が同じなので、
+   * 分けると同じ仕様を 2 箇所で保守することになる（`target_type` は body で受ける）。
    *
    * 匿名ユーザーからの通報も受け付ける（`AuthAnonGuard`）。通報の敷居を上げると、
    * 一番通報したい人（アカウントを作っていない閲覧者）が通報できなくなる。
@@ -50,10 +53,10 @@ export class ContentReportsController {
   @ApiBearerAuth()
   @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
   @ApiOperation({
-    summary: '投稿の通報',
+    summary: '投稿・レビューの通報',
     description:
-      '対象の実在を検証して通報を保存し、受付番号（reportId）を返す。' +
-      '同一ユーザー × 同一投稿の 2 回目以降は新規作成せず既存の受付番号を返す（冪等）。' +
+      '対象（dish_media / dish_reviews）の実在を検証して通報を保存し、受付番号（reportId）を返す。' +
+      '同一ユーザー × 同一対象の 2 回目以降は新規作成せず既存の受付番号を返す（冪等）。' +
       '通報しても対象は即時非表示にならない。',
   })
   @ApiResponse({
@@ -64,7 +67,10 @@ export class ContentReportsController {
     status: 400,
     description: '対象種別・理由コードが未知、または自由記述が長すぎる',
   })
-  @ApiResponse({ status: 404, description: '通報対象の投稿が存在しない' })
+  @ApiResponse({
+    status: 404,
+    description: '通報対象（投稿・レビュー）が存在しない',
+  })
   async create(
     @Body() dto: CreateContentReportDto,
     @CurrentUser() user: RequestUser,
