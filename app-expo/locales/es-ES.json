@@ -855,7 +855,8 @@
 			"clearNameSearch": "Borrar búsqueda por nombre de restaurante"
 		},
 		"unsavedHint": "También puedes elegir locales que no has guardado: escribe su nombre en el buscador de arriba o toca su icono en el mapa.",
-		"pickTitle": "Elegir local"
+		"pickTitle": "Elegir local",
+		"pickOnMap": "Buscar en el mapa"
 	},
 	"MyDishes": {
 		"actions": {
@@ -1000,7 +1001,8 @@
 			"resolve": "Leer",
 			"save": "Guardar en Quiero comer",
 			"saveRequirement": "Elige un plato y un restaurante para guardar.",
-			"resolveAgain": "Volver a leer"
+			"resolveAgain": "Volver a leer",
+			"cancel": "Cancelar"
 		},
 		"sections": {
 			"dishCategory": "Plato",

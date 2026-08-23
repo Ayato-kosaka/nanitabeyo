@@ -855,7 +855,8 @@
 			"clearNameSearch": "店名検索の入力をクリア"
 		},
 		"unsavedHint": "保存していないお店も選べます。上の検索にお店の名前を入れるか、地図のお店アイコンをタップしてください。",
-		"pickTitle": "お店を選ぶ"
+		"pickTitle": "お店を選ぶ",
+		"pickOnMap": "地図からお店を探す"
 	},
 	"MyDishes": {
 		"actions": {
@@ -1000,7 +1001,8 @@
 			"resolve": "読み取る",
 			"save": "食べたいに保存",
 			"saveRequirement": "料理と店舗を選ぶと保存できます。",
-			"resolveAgain": "もう一度読み取る"
+			"resolveAgain": "もう一度読み取る",
+			"cancel": "キャンセル"
 		},
 		"sections": {
 			"dishCategory": "料理",

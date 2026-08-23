@@ -855,7 +855,8 @@
 			"clearNameSearch": "Effacer la recherche par nom de restaurant"
 		},
 		"unsavedHint": "Vous pouvez aussi choisir un établissement non enregistré : saisissez son nom dans la recherche ci-dessus ou touchez son icône sur la carte.",
-		"pickTitle": "Choisir un établissement"
+		"pickTitle": "Choisir un établissement",
+		"pickOnMap": "Chercher sur la carte"
 	},
 	"MyDishes": {
 		"actions": {
@@ -1000,7 +1001,8 @@
 			"resolve": "Lire",
 			"save": "Enregistrer dans Envies",
 			"saveRequirement": "Choisissez un plat et un restaurant pour enregistrer.",
-			"resolveAgain": "Relire"
+			"resolveAgain": "Relire",
+			"cancel": "Annuler"
 		},
 		"sections": {
 			"dishCategory": "Plat",

@@ -855,7 +855,8 @@
 			"clearNameSearch": "清除店名搜索"
 		},
 		"unsavedHint": "未保存的店铺也可以选择：在上方搜索框输入店名，或点击地图上的店铺图标。",
-		"pickTitle": "选择店铺"
+		"pickTitle": "选择店铺",
+		"pickOnMap": "在地图上查找店铺"
 	},
 	"MyDishes": {
 		"actions": {
@@ -1000,7 +1001,8 @@
 			"resolve": "读取",
 			"save": "保存到想吃",
 			"saveRequirement": "选择菜品和店铺后即可保存。",
-			"resolveAgain": "重新读取"
+			"resolveAgain": "重新读取",
+			"cancel": "取消"
 		},
 		"sections": {
 			"dishCategory": "菜品",

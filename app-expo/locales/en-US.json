@@ -855,7 +855,8 @@
 			"clearNameSearch": "Clear restaurant name search"
 		},
 		"unsavedHint": "You can pick shops you haven’t saved too. Type the shop name in the search above, or tap a shop icon on the map.",
-		"pickTitle": "Pick a shop"
+		"pickTitle": "Pick a shop",
+		"pickOnMap": "Find on map"
 	},
 	"MyDishes": {
 		"actions": {
@@ -1000,7 +1001,8 @@
 			"resolve": "Read",
 			"save": "Save to Want to eat",
 			"saveRequirement": "Pick a dish and a restaurant to save.",
-			"resolveAgain": "Read again"
+			"resolveAgain": "Read again",
+			"cancel": "Cancel"
 		},
 		"sections": {
 			"dishCategory": "Dish",

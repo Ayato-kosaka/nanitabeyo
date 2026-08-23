@@ -81,9 +81,26 @@ jest.mock("@/features/restaurantPicker/components/RestaurantNameSearch", () => {
 	const ReactActual = jest.requireActual("react");
 	const { View: RNView } = jest.requireActual("react-native");
 	// 中身は専用 suite（selectRestaurantNameSearch.test.tsx）が見る。
-	// ここでは «画面に置かれているか» だけを見たいので testID を持つ器にする
+	// ここでは «画面に置かれているか» と «画面から渡している契約» だけを見たいので、
+	// #1375 5 巡目で店選択がこの部品へ畳まれた分（地図アイコン・確定名）を器の上に出す
 	return {
-		RestaurantNameSearch: ({ testID }: { testID?: string }) => ReactActual.createElement(RNView, { testID }),
+		RestaurantNameSearch: ({
+			testID,
+			mapAction,
+			selectedName,
+		}: {
+			testID?: string;
+			mapAction?: { onPress: () => void; testID?: string };
+			selectedName?: string | null;
+		}) =>
+			ReactActual.createElement(
+				RNView,
+				{ testID },
+				mapAction ? ReactActual.createElement(RNView, { testID: mapAction.testID, onPress: mapAction.onPress }) : null,
+				selectedName
+					? ReactActual.createElement(RNView, { testID: "sns-import-selected-restaurant", "data-name": selectedName })
+					: null,
+			),
 	};
 });
 jest.mock("@/lib/i18n", () => ({ __esModule: true, default: { t: (key: string) => key } }));
@@ -472,5 +489,92 @@ describe("#1375 食べたを記録タブは画面内の統合フォーム", () =
 		});
 
 		expect(has(tree, "sns-import-eaten-review-form")).toBe(true);
+	});
+});
+
+/*
+#1375 実機確認（5 巡目）: 「URL を読み取ったら編集不可。②以降はそこから出る。
+キャンセルすると URL を直せる状態へ戻り、②以降の選択は捨てる」。
+
+読み取った URL と ②③ の選択は 1 組である。片方だけ差し替えられると
+「別の投稿の URL なのに、前の投稿で選んだ店と料理が付いたまま保存できる」状態を作れる。
+*/
+describe("#1375 読み取り後は URL を固定し、キャンセルで組ごと捨てる", () => {
+	beforeEach(() => {
+		jest.clearAllMocks();
+		usePickedRestaurantStore.getState().consume();
+	});
+
+	const renderAndResolve = async (status: "ok" | "unsupported" = "ok") => {
+		mockCallBackend.mockImplementation((path: string) => {
+			if (path === "v1/dish-media/imports/resolve") {
+				return Promise.resolve({
+					status,
+					reason: status === "ok" ? "resolved" : "unsupported_provider",
+					source: { provider: "instagram", externalContentId: "abc", canonicalUrl: "https://x/", mediaIndex: null },
+					metadata: { title: "キャプション", thumbnailUrl: null },
+					candidates: { dishCategories: [], restaurants: [] },
+					prefill: { dishCategoryId: null, restaurantId: null },
+				});
+			}
+			return Promise.resolve({});
+		});
+		const tree = await render();
+		const urlInput = tree.root.find((node) => node.props?.testID === "sns-import-url-input");
+		await act(async () => {
+			urlInput.props.onChangeText("https://www.instagram.com/reel/ABC/");
+		});
+		const button = tree.root.find((node) => node.props?.testID === "sns-import-resolve-button");
+		await act(async () => {
+			await button.props.onPress();
+		});
+		return tree;
+	};
+
+	it("読み取り前は ②以降も保存の帯も出さない", async () => {
+		const tree = await render();
+		const urlInput = tree.root.find((node) => node.props?.testID === "sns-import-url-input");
+		await act(async () => {
+			urlInput.props.onChangeText("https://www.instagram.com/reel/ABC/");
+		});
+		expect(has(tree, "sns-import-step-restaurant")).toBe(false);
+		expect(has(tree, "sns-import-step-dish")).toBe(false);
+		expect(has(tree, "sns-import-save-button")).toBe(false);
+		// URL はこの時点では編集できる
+		expect(urlInput.props.editable).toBe(true);
+	});
+
+	it("読み取りに成功すると URL が編集不可になり、②以降が出る", async () => {
+		const tree = await renderAndResolve();
+		const urlInput = tree.root.find((node) => node.props?.testID === "sns-import-url-input");
+		expect(urlInput.props.editable).toBe(false);
+		expect(has(tree, "sns-import-step-restaurant")).toBe(true);
+		expect(has(tree, "sns-import-step-dish")).toBe(true);
+		// «もう一度読み取る» ではなくキャンセルへ替わる
+		expect(has(tree, "sns-import-resolve-button")).toBe(false);
+		expect(has(tree, "sns-import-cancel-button")).toBe(true);
+	});
+
+	it("読み取れなかった URL は固定しない（直せる状態のまま）", async () => {
+		const tree = await renderAndResolve("unsupported");
+		const urlInput = tree.root.find((node) => node.props?.testID === "sns-import-url-input");
+		expect(urlInput.props.editable).toBe(true);
+		expect(has(tree, "sns-import-step-restaurant")).toBe(false);
+		expect(has(tree, "sns-import-cancel-button")).toBe(false);
+	});
+
+	it("キャンセルすると URL を直せる状態へ戻り、②以降が消える", async () => {
+		const tree = await renderAndResolve();
+		const cancel = tree.root.find((node) => node.props?.testID === "sns-import-cancel-button");
+		await act(async () => {
+			cancel.props.onPress();
+		});
+		const urlInput = tree.root.find((node) => node.props?.testID === "sns-import-url-input");
+		expect(urlInput.props.editable).toBe(true);
+		// URL 自体は残す（打ち直しではなく «直す» ため）
+		expect(urlInput.props.value).toBe("https://www.instagram.com/reel/ABC/");
+		expect(has(tree, "sns-import-step-restaurant")).toBe(false);
+		expect(has(tree, "sns-import-save-button")).toBe(false);
+		expect(has(tree, "sns-import-resolve-button")).toBe(true);
 	});
 });
