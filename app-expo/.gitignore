@@ -38,3 +38,7 @@ yarn-error.*
 
 # typescript
 *.tsbuildinfo
+
+# エビデンス撮影（.claude/skills/evidence-video）のローカルビルド出力。
+# build-and-serve.sh が毎回生成し stop で消すが、撮影中は残るため無視する。
+dist-local/

@@ -327,7 +327,28 @@ turnが切れても部分成果がbranchに残れば、追加runで続きから�
 
 `error_max_turns` の失敗runでも、Workflowの `commit・pushされたことを検証` ステップが `success` を返し、かつ**実際にはbranchが存在しない**という食い違いを観測している。ステップの結果を信用せず、リーダー自身が **GitHub API（`mcp__github__list_branches` 等）でbranchの実在を確認**すること。
 
-この食い違いの原因のひとつは判明している（下記「ワーカーは `.github/workflows/` を変更できない」）。runが`success`でもbranchが無いときは、まずpushがremote rejectedされていないかを疑う。
+この食い違いの原因は**2つとも判明している**。
+
+**原因1: 検証ステップ自身のバグ（2026-08-23 に修正済み）。** 旧実装は次のように書かれていた。
+
+```bash
+REMOTE_SHA=$(git rev-parse "origin/$BRANCH_NAME" 2>/dev/null || echo "")
+if [[ -z "$REMOTE_SHA" ]]; then ... exit 1; fi
+```
+
+`git rev-parse` は**解決できない ref を渡されると、その引数文字列自体をstdoutへ出す**（エラーはstderrへ出て exit 128）。したがって `|| echo ""` は発火せず、`REMOTE_SHA` へ `origin/claude/xxx` という文字列が入り、`-z` ガードを素通りする。**リモートにbranchが無いのにステップがsuccessで終わる**のはこれが原因だった。
+
+現在は `git ls-remote --heads origin "$BRANCH_NAME"` でoriginへ直接問い合わせる形に直してある。ローカルのremote-tracking refに依存しないので、pushされたかどうかを正しく判定できる。あわせて「一部だけpushされている」ケースも `::warning::` から `::error::` へ格上げした（中途半端なpushをsuccessで返すと、リーダーがbranchに全成果が載っていると誤認するため）。
+
+**原因2: push が remote rejected される。** 下記「ワーカーは `.github/workflows/` を変更できない」を参照。
+
+### commit だけでは足りない。**push まで**指示する
+
+実測（run 32607186274 / Issue #1499）: `error_max_turns` で 81 turn・14分・$5.97 を消費したが、**ローカルにcommitは出来ていた**（HEADは `c772f14` → `66052c3` へ変化していた）のに **push 前にturnが尽き、成果が丸ごと失われた**。
+
+プロンプトの「早めに小さくcommitする」だけでは、この失われ方を防げない。次のように**pushまで**を明示すること。
+
+> 実装が一区切りついた時点で、テストを書く前に必ず `git add -A && git commit && git push -u origin <branch>` まで行うこと。**ローカルcommitだけではturn切れで全部消えます。**
 
 ## ワーカーは `.github/workflows/` を変更できない
 
@@ -391,6 +412,26 @@ Workerへ、実行したテストの生データを `/tmp/claude-artifacts/` 配
 
 実装runのエビデンスは暫定確認に使い、人間へ公開する最終エビデンスは、原則として独立レビューrunまたは専用validation runのArtifactを使う。UI変更では `access=observe`、`setup_playwright=true`、`base_ref=<検証対象の正確なSHA>` で検証runを起動し、レビュー指摘の修正後は新しいSHAで再実行する。
 
+### 撮影だけの run は `access=observe` で回す
+
+`access=write` の run は最後に「commit・push されたか」を検証する。撮影だけが目的で
+コード差分が出ない run をこれで回すと、**エビデンスは正しく撮れて Artifact も上がっているのに
+run 全体は失敗**になる。`evidence-collect.yml` は既定で success の run しか受け取らないため、
+そのままでは公開できない。
+
+2026-08-23、#1525 でこれを踏んだ。先行 run が e2e spec を push 済みだったので後発 run には
+commit するものが無く、292KB のエビデンス Artifact を上げたうえで失敗した。
+
+- **撮影だけなら `access=observe`。** observe のジョブも `/tmp/claude-artifacts/` を
+  Artifact として上げるので、エビデンスは同じように回収できる
+- 既に失敗した run から拾うしかない場合は `allow_failed_run=true` で公開できるが、
+  そのときは **なぜ失敗した run から採ったのか** を PR 本文に書くこと。
+  「緑の run から採ったエビデンス」という既定の意味が崩れるため、黙って使わない
+
+あわせて、**Artifact が実在するかを公開前に確かめる**。run が success でも
+`/tmp/claude-artifacts/` へ何も置かなければ Artifact は作られない（`if-no-files-found: ignore`）。
+`list_workflow_run_artifacts` が 0 件を返したら、その run は撮影していない。
+
 ### 画像・動画は必ず`evidence-collect.yml`で可視化する
 
 **画像または動画を根拠としてIssueまたはPRへ書く場合、`evidence-collect.yml` の実行は必須である。** Artifact名、`/tmp/claude-artifacts/` のパス、スクリーンショットのファイル名一覧だけを書いて終わりにしない。人間がActionsのArtifactをダウンロードして解凍しなければ確認できない状態は、エビデンスを提示したことにならない。
@@ -435,6 +476,57 @@ gh workflow run evidence-collect.yml \
 - ファイル名は公開時に `[A-Za-z0-9._-]` へ正規化される。日本語名や `[` `]` を含む名前でも失敗しないが、公開後のURLは元の名前と一致しない。対応は `manifest.json` の `path` と `publishedPath` で確認する。
 - 公開先はキャッシュ `immutable` の公開バケットである。**認証情報・個人情報・秘密値が写った画像を公開しない。** 検証runのpromptに「スクリーンショットに認証情報が写らないようにする。写る場合はマスクするか保存しない」と明記する。
 - 同じ検証を修正後に再実行したら、新しいrunのArtifactで再度公開し、Issue・PRのコメントも新しいURLへ更新する。古いURLを残したまま「修正済み」と書かない。
+
+### 「公開できた」ではなく「読めた」を確認する
+
+2026-08-23、6 本の PR へ公開したエビデンス動画・スクリーンショットの**日本語が
+すべて豆腐（□）**で、レビューに一切使えないものを配った。オーナーから
+「エビデンスが文字化けしてて判断できません」と指摘されるまで気づかなかった。
+
+技術的な原因は CI ランナーに CJK フォントが無かったこと（`playwright install
+--with-deps` は Latin 系しか入れない）。ローカルには IPAGothic が居るため、
+手元で撮ったものは正常に描画され、差に気づけなかった。
+
+しかし本当の原因は**検証の中身**である。公開後に確認したのは
+
+```bash
+curl -s -o /dev/null -w "%{http_code}" "$URL/index.html"   # → 200
+```
+
+これだけだった。**HTTP 200 は「ファイルが置けた」以上のことを何も意味しない。**
+中身が真っ黒でも、豆腐でも、別の画面でも 200 は返る。エビデンスの目的は
+「人が見て判断できること」なので、確認すべきは配信ではなく可読性である。
+
+公開したら、**必ず画像を 1 枚以上ダウンロードして Read ツールで開き、自分の目で見る。**
+
+```bash
+curl -s -o /tmp/check.png "$URL/evidence/<最初の画像>.png"
+# → Read ツールで /tmp/check.png を開く。文字が読めるか、意図した画面かを目で確認する
+```
+
+見て確認するまでは、PR 本文にもチャットにも「公開済み」と書かない。
+これは 1 枚だけでよい。1 枚読めれば同じ run の残りも同じ条件で撮れている。
+
+同じ理由で、**撮影する run 自身にも「撮った画像を開いて見ろ」と指示する。**
+ワーカーは Read ツールで PNG を開ける。撮りっぱなしにさせない。
+
+### リーダーからは画像を埋め込めない（2 形式とも実測で無効化される）
+
+2026-08-23、PR #1522 の本文で 2 通り試し、**どちらも壊れる**ことを実測した。
+
+| 書いたもの | 実際に保存されたもの |
+| --- | --- |
+| `![alt](https://…png)` | `[alt](``https://…png)``` — 先頭の `!` が落ち、URL がバックティックで囲まれる |
+| `<img src="https://…png">` | `` `` `&lt;img src="https://…png"&gt;` `` `` — HTML エスケープされたうえでバックティックで囲まれる |
+
+つまり **リーダーの環境からは、markdown 記法でも HTML タグでも画像を表示できない。**
+「たぶん大丈夫だろう」で投稿すると、リンクですらない壊れた文字列が PR 本文に残る。
+
+- 画像の埋め込みは **必ずワーカー（`access=observe` + `mcp__github__update_pull_request`）に任せる**
+- リーダー自身が本文へ書けるのは **素の URL（`https://…png` をそのまま1行）** まで。
+  これはクリックできるリンクとして残るので、緊急時の代替にはなる
+- ワーカーに任せたら、**投稿後に本文を取得して `<img` の数を数えて確かめる**。
+  ワーカー側にもその検証を指示すること（下の節を参照）
 
 ### 投稿した画像が実際に表示されているか検証する
 
@@ -482,6 +574,32 @@ Markdown の画像埋め込みは、リンク記法（`[alt](url)`）の前に `
 枚数が多い場合は、結論に直結する数枚を本文へ直接埋め込み、残りは `<details>` で畳む。全部を並べて読めなくするのも、Artifactへのリンク1本で済ませるのも避ける。各画像には「何を示している画像か」を1行添える。
 
 `gh run download` で元Artifactも必要に応じて取得し、要約だけでなく中身を確認する。人間にはrun URL、Artifact名、対象SHA、成功・失敗、未実施項目をまとめて提示する。
+
+### dispatch する前に「その PR に対して既に走らせていないか」を確認する
+
+2026-08-23、残作業を洗い出して仕上げ run を 10 本 dispatch したところ、そのうち 3 本
+(#1518 / #1524 / #1525) は数十分前に自分で dispatch 済みの run と同じ内容だった。先行 run が
+既に e2e spec を足して push していたため、後発の run は「やることが無い」状態で何も commit
+できずに終わり、push 検証ステップが正しく失敗を返した。2 本ぶんのトークンが無駄になった。
+
+原因は「PR 本文にエビデンスの URL が入っているか」だけを残作業の判定に使ったこと。
+先行 run が **push は済ませたがエビデンスの公開はこれから**という中間状態にあると、この
+判定は「まだ何もしていない」と誤読する。
+
+dispatch の前に、次の 2 つを **両方** 見ること。
+
+```bash
+# 1) その PR のブランチに、既に成果物が入っていないか
+git fetch -q origin "$BRANCH" && git diff --name-only origin/main FETCH_HEAD -- e2e-web/tests e2e-mobile/tests
+
+# 2) 同じ PR に対する run が既に走っていないか（task_key に PR 番号を入れておくと引ける）
+#    mcp__github__actions_list(list_workflow_runs) の display_title を PR 番号で探す
+```
+
+`git diff origin/main <branch>` は **main 側の進み** も差分に混ぜてくる。ファイル名まで見て、
+本当にその PR が足したものかを確かめること。上の事故のとき、実際には何も足していない
+ブランチが `e2e-mobile/tests` に 1 件の差分を持っているように見えたが、中身は main へ
+先に入った別 PR の `onboarding.test.ts` だった。**件数ではなくファイル名で判定する。**
 
 ## runを追跡する
 
