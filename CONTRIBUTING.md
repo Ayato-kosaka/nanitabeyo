@@ -27,16 +27,17 @@
 
 ## push 前に通しておくもの
 
-CI（[`.github/workflows/pr-check.yml`](.github/workflows/pr-check.yml)）が全 PR で回すのは次の 7 つ。
+CI（[`.github/workflows/pr-check.yml`](.github/workflows/pr-check.yml)）が全 PR で回すのは次の 8 つ。
 **この一覧の正は workflow 側**なので、食い違ったら workflow を見ること。
 
+1. `pnpm assert:doc-hygiene`
 1. `pnpm --filter app-expo assert:remote-config-defaults`
-2. `pnpm --filter app-expo assert:legacy-blur-modal-boundary`
-3. `pnpm --filter error-triage test`
-4. `pnpm --filter app-expo lint`
-5. `pnpm --filter shared build`
-6. `pnpm --filter app-expo typecheck`
-7. `pnpm --filter app-expo test`
+1. `pnpm --filter app-expo assert:legacy-blur-modal-boundary`
+1. `pnpm --filter error-triage test`
+1. `pnpm --filter app-expo lint`
+1. `pnpm --filter shared build`
+1. `pnpm --filter app-expo typecheck`
+1. `pnpm --filter app-expo test`
 
 `pr-check.yml` は **required check ではない**（赤でもマージできる）。
 理由は [docs/decisions/20260813-ci-gate-and-worker-permissions.md](docs/decisions/20260813-ci-gate-and-worker-permissions.md)。
