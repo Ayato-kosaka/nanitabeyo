@@ -1327,6 +1327,7 @@ export type Database = {
           avatar_path: string | null
           bio: string | null
           created_at: string
+          deleted_at: string | null
           display_name: string | null
           id: string
           last_login_at: string | null
@@ -1339,6 +1340,7 @@ export type Database = {
           avatar_path?: string | null
           bio?: string | null
           created_at?: string
+          deleted_at?: string | null
           display_name?: string | null
           id?: string
           last_login_at?: string | null
@@ -1351,6 +1353,7 @@ export type Database = {
           avatar_path?: string | null
           bio?: string | null
           created_at?: string
+          deleted_at?: string | null
           display_name?: string | null
           id?: string
           last_login_at?: string | null

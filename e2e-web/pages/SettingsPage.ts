@@ -43,6 +43,23 @@ export class SettingsPage {
 	readonly logoutConfirmButton: Locator;
 	/** 確認ダイアログの「キャンセル」ボタン */
 	readonly logoutCancelButton: Locator;
+	/** #1511 アカウント削除行（ログイン済みユーザーのみ表示） */
+	readonly deleteAccountItem: Locator;
+	/** #1511 1 枚目（影響の説明）ダイアログのタイトル（ja-JP: Settings.deleteAccountConfirmTitle） */
+	readonly deleteAccountConfirmTitle: Locator;
+	/** #1511 1 枚目の本文。**「取り消せない」と明記されていること**を見るための素材 */
+	readonly deleteAccountConfirmMessage: Locator;
+	/** #1511 2 枚目（取り消せないことへの同意）ダイアログのタイトル */
+	readonly deleteAccountFinalTitle: Locator;
+	/**
+	 * #1511 確認ダイアログの OK / キャンセル。
+	 *
+	 * `confirm()`（DialogProvider）が出すダイアログは既定 testID を持つ（#1131）。
+	 * ログアウト側がラベル一致で掴んでいるのは、当時 testID が無かった名残であり、
+	 * 新しく足すこちらは **多言語で壊れない testID** を使う。
+	 */
+	readonly dialogConfirmButton: Locator;
+	readonly dialogCancelButton: Locator;
 
 	constructor(page: Page) {
 		this.page = page;
@@ -58,6 +75,24 @@ export class SettingsPage {
 		this.logoutConfirmTitle = page.getByText("ログアウトしますか？", { exact: true });
 		this.logoutConfirmButton = this.logoutConfirmDialog.getByRole("button", { name: "ログアウト" });
 		this.logoutCancelButton = this.logoutConfirmDialog.getByRole("button", { name: "キャンセル" });
+		this.deleteAccountItem = page.getByTestId("settings-delete-account");
+		this.deleteAccountConfirmTitle = page.getByText("アカウントを削除しますか？", { exact: true });
+		this.deleteAccountConfirmMessage = page.getByText("この操作は取り消せません。");
+		this.deleteAccountFinalTitle = page.getByText("本当に削除しますか？", { exact: true });
+		this.dialogConfirmButton = page.getByTestId("dialog-confirm-button");
+		this.dialogCancelButton = page.getByTestId("dialog-cancel-button");
+	}
+
+	/**
+	 * #1511 アカウント削除行を押して 1 枚目の確認ダイアログを開く（**確定しない**）。
+	 *
+	 * 削除は取り消せないので、確定まで行う操作は Page Object に置かない。
+	 * 「開くところまで」と「確定」を分けておくと、キャンセル経路のテストが
+	 * 誤って本物の削除を走らせる事故を構造的に防げる。
+	 */
+	async openDeleteAccountDialog(): Promise<void> {
+		await this.deleteAccountItem.click();
+		await expect(this.deleteAccountConfirmTitle).toBeVisible();
 	}
 
 	/** 指定 URL へ直接遷移する（locale プレフィックス必須） */

@@ -504,7 +504,8 @@ exports.Prisma.UsersScalarFieldEnum = {
   lock_no: 'lock_no',
   username: 'username',
   preferred_locale: 'preferred_locale',
-  avatar_path: 'avatar_path'
+  avatar_path: 'avatar_path',
+  deleted_at: 'deleted_at'
 };
 
 exports.Prisma.SortOrder = {
