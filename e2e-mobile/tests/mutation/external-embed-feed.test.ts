@@ -40,11 +40,15 @@ describeMutation("SNS 取り込みリールのフィード内再生 @mutation", 
 	});
 
 	it("取り込んだリールがフィードに埋め込み表示され、再生ボタンで操作モードへ入る", async () => {
+		// ⚠️ waitForReady（= タブバーの表示待ち）は使えない。/restaurant/.../feed は
+		// (tabs) の外の全画面ルートでタブバーが出ないため、既定のままだと 120s 待って落ちる
+		// （run 32652789508 で実測。アプリ自体はフィードに正常着地していた）
 		await launchAppWithSession({
 			as: "authenticated",
 			url: localeDeepLink(`restaurant/${restaurantId}/feed`),
+			waitForReady: false,
 		});
-		await waitUntilVisible(restaurantFeed.container);
+		await waitUntilVisible(restaurantFeed.container, 120_000);
 
 		// 埋め込みセルまでスワイプで探す（このお店の記録は少ないので通常は先頭にいる）
 		const embedWebView = by.id("external-embed-webview");
