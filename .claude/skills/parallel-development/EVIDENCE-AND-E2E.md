@@ -43,7 +43,22 @@ spec を書かないのは規約違反になる。過去に同じ抜けが起き
 - API だけの変更で UI 経路が無い PR は、e2e の代わりに API の統合テストで代替してよい。
   その場合「なぜ e2e ではなく統合テストか」を PR 本文に書く。
 
-## 2. エビデンスを撮る
+## 2. エビデンスは web だけでは足りない（Android / iOS も撮る）
+
+2026-08-23 のオーナー指示:「全体的に web だけじゃなく、iOS, Android もエビデンスがほしい」。
+以後、UI 変更のエビデンスは次の 3 点セットを標準とする。
+
+| 経路 | 何を撮るか | 方法 |
+| --- | --- | --- |
+| web | モック撮影（本ドキュメントの手順） | evidence-video スキル経路 A |
+| Android | **実機（エミュレータ）の Detox 動画** | `e2e-mobile-test.yml` を `record_videos: true` + `test_filter` で dispatch（経路 B。APK キャッシュ命中で約 6 分） |
+| iOS | 同上（できれば） | 同 workflow の `platform: ios` または `all`（ビルド約 25 分） |
+
+- Android は必須、iOS は「できれば」。両方まとめるなら `platform: all` で 1 dispatch
+- 対象 PR がマージ済みなら main で、未マージならその PR のブランチを ref にして dispatch する
+- Detox spec が無い画面は撮れない。**そのためにも e2e-mobile へ spec を書く**（§3）
+
+## 2b. エビデンスを撮る
 
 `.claude/skills/evidence-video/SKILL.md` に従う。要点だけ再掲する。
 
