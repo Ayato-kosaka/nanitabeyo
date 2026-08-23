@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import logging
 import os
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
@@ -213,14 +214,28 @@ def flush_rows(pipeline: BigQueryPipeline, rows: list[dict[str, Any]]) -> None:
     if not rows:
         return
     # attempt_idをinsertIdにも使う。resume queryと組み合わせ、手動再実行の重複を防ぐ。
-    errors = pipeline.client.insert_rows_json(
-        pipeline.table("restaurant_google_place_match_attempts"),
-        rows,
-        row_ids=[row["attempt_id"] for row in rows],
-    )
-    if errors:
-        raise RuntimeError(f"Google match attemptsの保存に失敗しました: {errors}")
-    rows.clear()
+    # timeoutを明示しないと、コネクションが死んだときに無限待ちになる。実際に
+    # 6時間jobの途中（13:22）から書き込みだけが止まり、workerはAPIを叩き続けるのに
+    # attemptsが1行も増えない状態が2時間以上続いた。insertIdがあるので再送は安全。
+    last_error: Exception | None = None
+    for retry in range(3):
+        try:
+            errors = pipeline.client.insert_rows_json(
+                pipeline.table("restaurant_google_place_match_attempts"),
+                rows,
+                row_ids=[row["attempt_id"] for row in rows],
+                timeout=60.0,
+            )
+        except Exception as error:  # noqa: BLE001 - 通信断も含めて再試行する
+            last_error = error
+            LOGGER.warning("attempts書き込みが失敗（%d回目）: %s", retry + 1, error)
+            time.sleep(2**retry)
+            continue
+        if errors:
+            raise RuntimeError(f"Google match attemptsの保存に失敗しました: {errors}")
+        rows.clear()
+        return
+    raise RuntimeError(f"attempts書き込みが3回失敗しました: {last_error}")
 
 
 def main() -> None:
@@ -273,23 +288,32 @@ def main() -> None:
         # seed単位でworkerへ分配する。1seed内のprobeは判定順序に意味があるため
         # 逐次のまま。qpsはclient側の共有throttleがHTTP request数で守る。
         # BQへの書き込みはこのメインスレッドだけが行う。
+        # chunk単位でsubmitするのは、45万futureを一度に作ると完了済みfutureが
+        # 結果を握ったまま解放されず、数時間でGB級にメモリが積み上がるため。
+        chunk_size = 5_000
+        done = 0
         with ThreadPoolExecutor(max_workers=args.workers) as pool:
-            futures = [
-                pool.submit(
-                    attempt_row,
-                    run_id=run_id,
-                    seed=seed,
-                    radius_m=args.radius_m,
-                    client=client,
-                )
-                for seed in candidates
-            ]
-            for index, future in enumerate(as_completed(futures), start=1):
-                buffer.append(future.result())
-                if len(buffer) >= 100:
-                    flush_rows(pipeline, buffer)
-                if index % 1000 == 0:
-                    LOGGER.info("Google照合: %d/%d件", index, len(candidates))
+            for offset in range(0, len(candidates), chunk_size):
+                chunk = candidates[offset : offset + chunk_size]
+                futures = [
+                    pool.submit(
+                        attempt_row,
+                        run_id=run_id,
+                        seed=seed,
+                        radius_m=args.radius_m,
+                        client=client,
+                    )
+                    for seed in chunk
+                ]
+                for future in as_completed(futures):
+                    buffer.append(future.result())
+                    done += 1
+                    if len(buffer) >= 100:
+                        flush_rows(pipeline, buffer)
+                    if done % 1000 == 0:
+                        LOGGER.info("Google照合: %d/%d件", done, len(candidates))
+                futures.clear()
+                flush_rows(pipeline, buffer)
         flush_rows(pipeline, buffer)
         step["row_count"] = len(candidates)
 
