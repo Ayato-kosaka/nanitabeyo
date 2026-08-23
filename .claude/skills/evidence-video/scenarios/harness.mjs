@@ -170,9 +170,14 @@ export async function record({ name, mock, contextOptions, flow, langs }) {
 	await installMocks(page, mock);
 	// チュートリアルは既読にしておく（目的の画面を隠すため）
 	await page.addInitScript(() => {
-		try {
-			window.localStorage.setItem("search_tutorial_seen_v1", "true");
-		} catch {}
+		// チュートリアルのオーバーレイは目的の画面を隠すうえ、pointer events を
+		// 奪ってタップを弾く（実測: topics-tutorial-overlay が click を 56 回リトライさせた）。
+		// 画面ごとに既読キーが違うので、判明しているものは全部立てておく。
+		for (const k of ["search_tutorial_seen_v1", "topics_spotlight_tutorial_seen_v1"]) {
+			try {
+				window.localStorage.setItem(k, "true");
+			} catch {}
+		}
 	});
 
 	const shots = [];
