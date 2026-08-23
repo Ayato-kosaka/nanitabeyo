@@ -49,6 +49,21 @@ export default function RootLayout() {
 	useFrameworkReady();
 	const router = useRouter();
 	const { locale, isJapanese } = useLocale();
+
+	// #1503 【バグ】i18n の locale 同期は **描画中**に行う（以前は下の useEffect で行っていた）。
+	// effect は `expo export` の静的レンダリング（prerender）では走らないため、サーバが焼く HTML
+	// だけが既定ロケール（en-US）の文言になり、クライアントの初回描画（URL 由来の ja-JP）と
+	// 食い違っていた。その結果が
+	//   「Hydration failed because the server rendered HTML didn't match the client.」
+	//   = 本番の minified React では **error #418** で、ツリーが丸ごと作り直される。
+	// dev ビルド（`expo export --dev`）+ 直リンクで実測し、差分がタブバーのラベル
+	//   サーバ: "Search" / クライアント: "さがす"
+	// であることまで確認している。
+	// locale は URL のセグメント由来でサーバ・クライアントとも同じ値になるため、描画中に
+	// 代入しても «その回の描画» の結果は決定的。同じ値なら代入もしない。
+	const resolvedLocale = getResolvedLocale(locale);
+	if (i18n.locale !== resolvedLocale) i18n.locale = resolvedLocale;
+
 	const scheme = "light"; // light モード 固定（ダークモード対応時に useColorScheme() とする）
 	const theme = getPaperTheme(scheme, locale);
 	const { logFrontendEvent } = useLogger();
@@ -124,7 +139,8 @@ export default function RootLayout() {
 		}
 
 		// #717 【設計】i18n の locale を必ず同期
-		i18n.locale = getResolvedLocale(locale);
+		// #1503 実際の代入はこのコンポーネントの描画中（上部）へ移した。prerender では effect が
+		// 走らず、サーバ HTML だけ英語のまま焼かれて hydration が壊れるため。
 	}, [locale, router, logFrontendEvent, scheme, isNavigationReady]);
 
 	return (
