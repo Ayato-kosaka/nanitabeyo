@@ -66,3 +66,20 @@ export type CreateDishMediaViewResponse = {
 	stored: boolean;
 	analysis_applied: boolean;
 };
+
+/**
+ * DELETE /v1/dish-media/:id のレスポンス型 (#1513)
+ *
+ * 「投稿」の削除単位は dish_media 1 件と、その dish_media と一緒に作られたレビュー
+ * (dish_reviews.created_dish_media_id = :id) である。メディアが消える以上、
+ * そのメディアを前提に書かれたレビューだけを残すことはできない。
+ * 論理削除なので行は残るが、レスポンスには本文を載せない。
+ */
+export type DeleteDishMediaResponse = {
+	/** 論理削除した dish_media.id */
+	id: string;
+	/** 論理削除日時 (ISO8601) */
+	deletedAt: string;
+	/** 巻き添えで論理削除した dish_reviews.id */
+	deletedDishReviewIds: string[];
+};

@@ -542,6 +542,7 @@ export class DishesService {
             new Date().toISOString(),
           updated_at: new Date().toISOString(),
           lock_no: existingGoogleImportEntry?.dish_media.lock_no ?? 0,
+          deleted_at: null, // #1513 Google import は常に未削除で作る
         };
 
         if (existingGoogleImportEntry) {
@@ -590,6 +591,10 @@ export class DishesService {
           imported_user_name: review.authorAttribution?.displayName || null,
           imported_user_avatar: review.authorAttribution?.photoUri || null,
           created_at: new Date().toISOString(),
+          // #1513 Google import は常に未削除・未編集で作る
+          updated_at: new Date().toISOString(),
+          lock_no: 0,
+          deleted_at: null,
         }));
 
         // #829 【設計】未完了 Google import の再処理では既存 review ID を渡し、handler 側の skipDuplicates と合わせて retry を no-op 化する。

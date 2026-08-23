@@ -236,7 +236,8 @@ exports.Prisma.Dish_mediaScalarFieldEnum = {
   lock_no: 'lock_no',
   video_duration_ms: 'video_duration_ms',
   media_processing_status: 'media_processing_status',
-  thumbnail_processing_status: 'thumbnail_processing_status'
+  thumbnail_processing_status: 'thumbnail_processing_status',
+  deleted_at: 'deleted_at'
 };
 
 exports.Prisma.Dish_media_analysis_resultsScalarFieldEnum = {
@@ -293,7 +294,10 @@ exports.Prisma.Dish_reviewsScalarFieldEnum = {
   created_dish_media_id: 'created_dish_media_id',
   imported_user_name: 'imported_user_name',
   imported_user_avatar: 'imported_user_avatar',
-  created_at: 'created_at'
+  created_at: 'created_at',
+  updated_at: 'updated_at',
+  lock_no: 'lock_no',
+  deleted_at: 'deleted_at'
 };
 
 exports.Prisma.DishesScalarFieldEnum = {

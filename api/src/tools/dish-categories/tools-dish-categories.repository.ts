@@ -92,6 +92,7 @@ export class ToolsDishCategoriesRepository {
         dishes: {
           category_id: categoryId,
         },
+        deleted_at: null, // #1513 削除済みの投稿はカテゴリ画像の候補にしない
       },
       orderBy: { id: 'asc' },
       take: limit,
@@ -103,7 +104,7 @@ export class ToolsDishCategoriesRepository {
    */
   async findDishMediaByIds(ids: string[]) {
     return this.prisma.prisma.dish_media.findMany({
-      where: { id: { in: ids } },
+      where: { id: { in: ids }, deleted_at: null }, // #1513
       include: { dishes: true },
     });
   }

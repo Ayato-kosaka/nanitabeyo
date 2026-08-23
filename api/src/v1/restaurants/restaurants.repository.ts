@@ -145,7 +145,8 @@ export class RestaurantsRepository {
     LEFT JOIN dishes d
       ON d.restaurant_id = r.id
     LEFT JOIN dish_reviews dr
-      ON dr.dish_id = d.id
+      -- #1513 削除済みレビューを件数・平均に混ぜない
+      ON dr.dish_id = d.id AND dr.deleted_at IS NULL
     WHERE
       -- 粗いバウンディングボックスで先に絞り込み（インデックスがあれば活用されやすい）
       r.latitude BETWEEN p.lat - ${radiusInDegrees} AND p.lat + ${radiusInDegrees}
@@ -253,7 +254,8 @@ export class RestaurantsRepository {
       LEFT JOIN dishes d 
         ON d.restaurant_id = r.id
       LEFT JOIN dish_reviews dr 
-        ON dr.dish_id = d.id
+        -- #1513 削除済みレビューを件数・平均に混ぜない
+        ON dr.dish_id = d.id AND dr.deleted_at IS NULL
       WHERE 
         r.latitude BETWEEN ${dto.lat - radiusInDegrees} AND ${dto.lat + radiusInDegrees}
         AND r.longitude BETWEEN ${dto.lng - radiusInDegrees} AND ${dto.lng + radiusInDegrees}
@@ -313,6 +315,7 @@ export class RestaurantsRepository {
     const result = await tx.dish_reviews.aggregate({
       where: {
         dishes: { restaurant_id },
+        deleted_at: null, // #1513 削除済みレビューを件数・平均に混ぜない
       },
       _count: { _all: true }, // Review count
       _avg: { rating: true }, // Average rating
