@@ -485,6 +485,13 @@ export class DishMediaRepository {
         LEFT JOIN dish_media_analysis_results dmar
           ON dmar.dish_media_id = dm.id
         WHERE d.restaurant_id = ${restaurantId}::uuid
+          -- #1257 findDishMediaIds と同じ理由で、実体（GCS original）が届いていない行を
+          -- レストラン詳細の一覧からも除外する。ここを漏らすと、検索には出なくなった
+          -- 未着メディアが店舗ページ経由でだけ露出し続ける。
+          -- 「各 dish につきいいね数最大の1件」を選ぶ ROW_NUMBER より前段で除外する必要がある。
+          -- 後段で弾くと、未着行が代表に選ばれた dish が丸ごと欠落し、completed な
+          -- 次点メディアまで巻き添えで消える。
+          AND dm.media_processing_status = 'completed'
       ),
       ranked AS (
         SELECT
