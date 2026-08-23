@@ -40,14 +40,16 @@ description: >-
 3. CI の GitHub Actions を消費するだけで **EAS のビルド枠は消費しない**
    （CLAUDE.md の EAS Build 規則とは無関係に自由に実行してよい）
 
-⚠️ **動画が実際に出るのは現状 iOS のみ**（run 32589219056 で mp4 を確認）。
-Android は video: "all" でも mp4 が生成されない（headless エミュレータ +
-adb screenrecord の制約。ハードコード時代の run でも同様で、この入力の配管の
-問題ではない — run 32603604105 で `DETOX_RECORD_VIDEOS=1` が Detox まで
-届いていることをログで確認済み）。Android の動きのエビデンスが要るときは
-A の `android` プリセット（Pixel 7 相当）か、スクショ（--take-screenshots all が
-常時有効）で代替する。Android 側を直す場合は Detox の screenrecord 失敗を
-掘るところから（テスト時間が伸びる副作用も考慮すること）。
+Android / iOS どちらも `test.mp4` が出る（#1484 の run 32589219056 で両 OS の
+mp4 を確認）。スクショ（--take-screenshots all）は録画の有無によらず常時収集される。
+
+⚠️ **`DETOX_RECORD_VIDEOS` という env 名は Detox 自身が CLI オプションとして
+解釈する**（collectCliConfig が argv と同格に読み、defaultsDeep で .detoxrc.js より
+優先される）。record_videos 入力はこの仕組みを使って `all` を渡している。
+値を none|failing|all 以外（"1" 等）にすると、エラーにならず .detoxrc.js の
+video 設定を黙って上書きして動画が出なくなる（run 32603604105 / 32605810775 で
+実測）。.detoxrc.js 側を process.env の三項演算で切り替える実装も同じ理由で
+機能しないので、やらないこと。
 
 以下は A（即席）の手順。**認証・API・地図はすべてモック**なので、映るのは
 「画面と遷移」であって実データではないことを常にキャプションで明示する。

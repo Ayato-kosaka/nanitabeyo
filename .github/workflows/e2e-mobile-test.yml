@@ -34,7 +34,7 @@ on:
         required: false
         default: ""
       record_videos:
-        description: "エビデンス用に全テストの実機動画を録画して Artifact へ残す（.detoxrc.js の video plugin を all にする）。test_filter と併用すると狙ったフローだけ短時間で撮れる。⚠️ mp4 が出るのは現状 iOS のみ（Android は headless エミュレータの制約で生成されない。スクショは常時収集される）"
+        description: "エビデンス用に全テストの実機動画（test.mp4）を録画して Artifact へ残す（DETOX_RECORD_VIDEOS=all 相当）。Android / iOS 両対応。test_filter と併用すると狙ったフローだけ短時間で撮れる"
         type: boolean
         required: false
         default: false
@@ -267,9 +267,11 @@ jobs:
           TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
           TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
           DETOX_TEST_FILTER: ${{ inputs.test_filter }}
-          # record_videos 入力が true のときだけ .detoxrc.js の video plugin を all にする
-          # （schedule 実行では inputs が空 = 従来どおり録画しない）
-          DETOX_RECORD_VIDEOS: ${{ inputs.record_videos && '1' || '' }}
+          # record_videos 入力が true のとき Detox の env→CLI マッピングで --record-videos all
+          # に相当する指定になる（schedule 実行では inputs が空 = 'none' で従来どおり）。
+          # ⚠️ 値は none|failing|all 以外を渡さないこと。不正値でも Detox はエラーにせず
+          # .detoxrc.js の video 設定を黙って上書きして動画が出なくなる（run 32605810775 で実測）
+          DETOX_RECORD_VIDEOS: ${{ inputs.record_videos && 'all' || 'none' }}
 
       # 📋 UI カタログ（scope=catalog*）: 画面定義と突き合わせて一覧を生成する
       - name: 📋 Generate UI catalog document (Android)
@@ -497,9 +499,11 @@ jobs:
           TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
           TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
           DETOX_TEST_FILTER: ${{ inputs.test_filter }}
-          # record_videos 入力が true のときだけ .detoxrc.js の video plugin を all にする
-          # （schedule 実行では inputs が空 = 従来どおり録画しない）
-          DETOX_RECORD_VIDEOS: ${{ inputs.record_videos && '1' || '' }}
+          # record_videos 入力が true のとき Detox の env→CLI マッピングで --record-videos all
+          # に相当する指定になる（schedule 実行では inputs が空 = 'none' で従来どおり）。
+          # ⚠️ 値は none|failing|all 以外を渡さないこと。不正値でも Detox はエラーにせず
+          # .detoxrc.js の video 設定を黙って上書きして動画が出なくなる（run 32605810775 で実測）
+          DETOX_RECORD_VIDEOS: ${{ inputs.record_videos && 'all' || 'none' }}
 
       # 📋 UI カタログ（scope=catalog*）: 画面定義と突き合わせて一覧を生成する
       - name: 📋 Generate UI catalog document (iOS)
