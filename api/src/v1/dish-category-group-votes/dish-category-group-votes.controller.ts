@@ -59,9 +59,14 @@ export class DishCategoryGroupVotesController {
   @ApiOperation({
     summary: 'dish_category グループ投票セッション作成',
     description:
-      '候補表示名・画像を作成時点のスナップショットとして固定し、共有用 shareToken を発行する。',
+      '候補表示名・画像を作成時点のスナップショットとして固定し、共有用 shareToken を発行する。' +
+      ' #1507 body に idempotencyKey (UUID v4) を付けると再送に対して冪等になり、' +
+      '同一ホスト・同一キーの 2 回目以降は新規セッションを作らず初回と同じ id / shareToken を 201 で返す。',
   })
-  @ApiResponse({ status: 201, description: '作成成功' })
+  @ApiResponse({
+    status: 201,
+    description: '作成成功（冪等キーによる再送で既存セッションを返した場合も 201）',
+  })
   async create(
     @Body() dto: CreateDishCategoryGroupVoteDto,
     @CurrentUser() user: RequestUser,

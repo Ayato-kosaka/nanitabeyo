@@ -13539,6 +13539,7 @@ export namespace Prisma {
     share_token: string | null
     created_at: Date | null
     updated_at: Date | null
+    idempotency_key: string | null
   }
 
   export type Dish_category_group_vote_sessionsMaxAggregateOutputType = {
@@ -13547,6 +13548,7 @@ export namespace Prisma {
     share_token: string | null
     created_at: Date | null
     updated_at: Date | null
+    idempotency_key: string | null
   }
 
   export type Dish_category_group_vote_sessionsCountAggregateOutputType = {
@@ -13556,6 +13558,7 @@ export namespace Prisma {
     search_context: number
     created_at: number
     updated_at: number
+    idempotency_key: number
     _all: number
   }
 
@@ -13566,6 +13569,7 @@ export namespace Prisma {
     share_token?: true
     created_at?: true
     updated_at?: true
+    idempotency_key?: true
   }
 
   export type Dish_category_group_vote_sessionsMaxAggregateInputType = {
@@ -13574,6 +13578,7 @@ export namespace Prisma {
     share_token?: true
     created_at?: true
     updated_at?: true
+    idempotency_key?: true
   }
 
   export type Dish_category_group_vote_sessionsCountAggregateInputType = {
@@ -13583,6 +13588,7 @@ export namespace Prisma {
     search_context?: true
     created_at?: true
     updated_at?: true
+    idempotency_key?: true
     _all?: true
   }
 
@@ -13665,6 +13671,7 @@ export namespace Prisma {
     search_context: JsonValue
     created_at: Date
     updated_at: Date
+    idempotency_key: string | null
     _count: Dish_category_group_vote_sessionsCountAggregateOutputType | null
     _min: Dish_category_group_vote_sessionsMinAggregateOutputType | null
     _max: Dish_category_group_vote_sessionsMaxAggregateOutputType | null
@@ -13691,6 +13698,7 @@ export namespace Prisma {
     search_context?: boolean
     created_at?: boolean
     updated_at?: boolean
+    idempotency_key?: boolean
     dish_category_group_vote_candidates?: boolean | dish_category_group_vote_sessions$dish_category_group_vote_candidatesArgs<ExtArgs>
     dish_category_group_vote_participants?: boolean | dish_category_group_vote_sessions$dish_category_group_vote_participantsArgs<ExtArgs>
     _count?: boolean | Dish_category_group_vote_sessionsCountOutputTypeDefaultArgs<ExtArgs>
@@ -13703,6 +13711,7 @@ export namespace Prisma {
     search_context?: boolean
     created_at?: boolean
     updated_at?: boolean
+    idempotency_key?: boolean
   }, ExtArgs["result"]["dish_category_group_vote_sessions"]>
 
   export type dish_category_group_vote_sessionsSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -13712,6 +13721,7 @@ export namespace Prisma {
     search_context?: boolean
     created_at?: boolean
     updated_at?: boolean
+    idempotency_key?: boolean
   }, ExtArgs["result"]["dish_category_group_vote_sessions"]>
 
   export type dish_category_group_vote_sessionsSelectScalar = {
@@ -13721,9 +13731,10 @@ export namespace Prisma {
     search_context?: boolean
     created_at?: boolean
     updated_at?: boolean
+    idempotency_key?: boolean
   }
 
-  export type dish_category_group_vote_sessionsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "host_user_id" | "share_token" | "search_context" | "created_at" | "updated_at", ExtArgs["result"]["dish_category_group_vote_sessions"]>
+  export type dish_category_group_vote_sessionsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "host_user_id" | "share_token" | "search_context" | "created_at" | "updated_at" | "idempotency_key", ExtArgs["result"]["dish_category_group_vote_sessions"]>
   export type dish_category_group_vote_sessionsInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     dish_category_group_vote_candidates?: boolean | dish_category_group_vote_sessions$dish_category_group_vote_candidatesArgs<ExtArgs>
     dish_category_group_vote_participants?: boolean | dish_category_group_vote_sessions$dish_category_group_vote_participantsArgs<ExtArgs>
@@ -13745,6 +13756,10 @@ export namespace Prisma {
       search_context: Prisma.JsonValue
       created_at: Date
       updated_at: Date
+      /**
+       * #1507 クライアント生成の冪等キー（UUID v4）。旧クライアント経由の行は null。
+       */
+      idempotency_key: string | null
     }, ExtArgs["result"]["dish_category_group_vote_sessions"]>
     composites: {}
   }
@@ -14176,6 +14191,7 @@ export namespace Prisma {
     readonly search_context: FieldRef<"dish_category_group_vote_sessions", 'Json'>
     readonly created_at: FieldRef<"dish_category_group_vote_sessions", 'DateTime'>
     readonly updated_at: FieldRef<"dish_category_group_vote_sessions", 'DateTime'>
+    readonly idempotency_key: FieldRef<"dish_category_group_vote_sessions", 'String'>
   }
     
 
@@ -46135,7 +46151,8 @@ export namespace Prisma {
     share_token: 'share_token',
     search_context: 'search_context',
     created_at: 'created_at',
-    updated_at: 'updated_at'
+    updated_at: 'updated_at',
+    idempotency_key: 'idempotency_key'
   };
 
   export type Dish_category_group_vote_sessionsScalarFieldEnum = (typeof Dish_category_group_vote_sessionsScalarFieldEnum)[keyof typeof Dish_category_group_vote_sessionsScalarFieldEnum]
@@ -47318,6 +47335,7 @@ export namespace Prisma {
     search_context?: JsonFilter<"dish_category_group_vote_sessions">
     created_at?: DateTimeFilter<"dish_category_group_vote_sessions"> | Date | string
     updated_at?: DateTimeFilter<"dish_category_group_vote_sessions"> | Date | string
+    idempotency_key?: StringNullableFilter<"dish_category_group_vote_sessions"> | string | null
     dish_category_group_vote_candidates?: Dish_category_group_vote_candidatesListRelationFilter
     dish_category_group_vote_participants?: Dish_category_group_vote_participantsListRelationFilter
   }
@@ -47329,6 +47347,7 @@ export namespace Prisma {
     search_context?: SortOrder
     created_at?: SortOrder
     updated_at?: SortOrder
+    idempotency_key?: SortOrderInput | SortOrder
     dish_category_group_vote_candidates?: dish_category_group_vote_candidatesOrderByRelationAggregateInput
     dish_category_group_vote_participants?: dish_category_group_vote_participantsOrderByRelationAggregateInput
   }
@@ -47336,6 +47355,7 @@ export namespace Prisma {
   export type dish_category_group_vote_sessionsWhereUniqueInput = Prisma.AtLeast<{
     id?: string
     share_token?: string
+    host_user_id_idempotency_key?: dish_category_group_vote_sessionsHost_user_idIdempotency_keyCompoundUniqueInput
     AND?: dish_category_group_vote_sessionsWhereInput | dish_category_group_vote_sessionsWhereInput[]
     OR?: dish_category_group_vote_sessionsWhereInput[]
     NOT?: dish_category_group_vote_sessionsWhereInput | dish_category_group_vote_sessionsWhereInput[]
@@ -47343,9 +47363,10 @@ export namespace Prisma {
     search_context?: JsonFilter<"dish_category_group_vote_sessions">
     created_at?: DateTimeFilter<"dish_category_group_vote_sessions"> | Date | string
     updated_at?: DateTimeFilter<"dish_category_group_vote_sessions"> | Date | string
+    idempotency_key?: StringNullableFilter<"dish_category_group_vote_sessions"> | string | null
     dish_category_group_vote_candidates?: Dish_category_group_vote_candidatesListRelationFilter
     dish_category_group_vote_participants?: Dish_category_group_vote_participantsListRelationFilter
-  }, "id" | "share_token">
+  }, "id" | "share_token" | "host_user_id_idempotency_key">
 
   export type dish_category_group_vote_sessionsOrderByWithAggregationInput = {
     id?: SortOrder
@@ -47354,6 +47375,7 @@ export namespace Prisma {
     search_context?: SortOrder
     created_at?: SortOrder
     updated_at?: SortOrder
+    idempotency_key?: SortOrderInput | SortOrder
     _count?: dish_category_group_vote_sessionsCountOrderByAggregateInput
     _max?: dish_category_group_vote_sessionsMaxOrderByAggregateInput
     _min?: dish_category_group_vote_sessionsMinOrderByAggregateInput
@@ -47369,6 +47391,7 @@ export namespace Prisma {
     search_context?: JsonWithAggregatesFilter<"dish_category_group_vote_sessions">
     created_at?: DateTimeWithAggregatesFilter<"dish_category_group_vote_sessions"> | Date | string
     updated_at?: DateTimeWithAggregatesFilter<"dish_category_group_vote_sessions"> | Date | string
+    idempotency_key?: StringNullableWithAggregatesFilter<"dish_category_group_vote_sessions"> | string | null
   }
 
   export type dish_category_localized_textWhereInput = {
@@ -49960,6 +49983,7 @@ export namespace Prisma {
     search_context?: JsonNullValueInput | InputJsonValue
     created_at?: Date | string
     updated_at?: Date | string
+    idempotency_key?: string | null
     dish_category_group_vote_candidates?: dish_category_group_vote_candidatesCreateNestedManyWithoutDish_category_group_vote_sessionsInput
     dish_category_group_vote_participants?: dish_category_group_vote_participantsCreateNestedManyWithoutDish_category_group_vote_sessionsInput
   }
@@ -49971,6 +49995,7 @@ export namespace Prisma {
     search_context?: JsonNullValueInput | InputJsonValue
     created_at?: Date | string
     updated_at?: Date | string
+    idempotency_key?: string | null
     dish_category_group_vote_candidates?: dish_category_group_vote_candidatesUncheckedCreateNestedManyWithoutDish_category_group_vote_sessionsInput
     dish_category_group_vote_participants?: dish_category_group_vote_participantsUncheckedCreateNestedManyWithoutDish_category_group_vote_sessionsInput
   }
@@ -49982,6 +50007,7 @@ export namespace Prisma {
     search_context?: JsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    idempotency_key?: NullableStringFieldUpdateOperationsInput | string | null
     dish_category_group_vote_candidates?: dish_category_group_vote_candidatesUpdateManyWithoutDish_category_group_vote_sessionsNestedInput
     dish_category_group_vote_participants?: dish_category_group_vote_participantsUpdateManyWithoutDish_category_group_vote_sessionsNestedInput
   }
@@ -49993,6 +50019,7 @@ export namespace Prisma {
     search_context?: JsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    idempotency_key?: NullableStringFieldUpdateOperationsInput | string | null
     dish_category_group_vote_candidates?: dish_category_group_vote_candidatesUncheckedUpdateManyWithoutDish_category_group_vote_sessionsNestedInput
     dish_category_group_vote_participants?: dish_category_group_vote_participantsUncheckedUpdateManyWithoutDish_category_group_vote_sessionsNestedInput
   }
@@ -50004,6 +50031,7 @@ export namespace Prisma {
     search_context?: JsonNullValueInput | InputJsonValue
     created_at?: Date | string
     updated_at?: Date | string
+    idempotency_key?: string | null
   }
 
   export type dish_category_group_vote_sessionsUpdateManyMutationInput = {
@@ -50013,6 +50041,7 @@ export namespace Prisma {
     search_context?: JsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    idempotency_key?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type dish_category_group_vote_sessionsUncheckedUpdateManyInput = {
@@ -50022,6 +50051,7 @@ export namespace Prisma {
     search_context?: JsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    idempotency_key?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type dish_category_localized_textCreateInput = {
@@ -52887,6 +52917,11 @@ export namespace Prisma {
     _count?: SortOrder
   }
 
+  export type dish_category_group_vote_sessionsHost_user_idIdempotency_keyCompoundUniqueInput = {
+    host_user_id: string
+    idempotency_key: string
+  }
+
   export type dish_category_group_vote_sessionsCountOrderByAggregateInput = {
     id?: SortOrder
     host_user_id?: SortOrder
@@ -52894,6 +52929,7 @@ export namespace Prisma {
     search_context?: SortOrder
     created_at?: SortOrder
     updated_at?: SortOrder
+    idempotency_key?: SortOrder
   }
 
   export type dish_category_group_vote_sessionsMaxOrderByAggregateInput = {
@@ -52902,6 +52938,7 @@ export namespace Prisma {
     share_token?: SortOrder
     created_at?: SortOrder
     updated_at?: SortOrder
+    idempotency_key?: SortOrder
   }
 
   export type dish_category_group_vote_sessionsMinOrderByAggregateInput = {
@@ -52910,6 +52947,7 @@ export namespace Prisma {
     share_token?: SortOrder
     created_at?: SortOrder
     updated_at?: SortOrder
+    idempotency_key?: SortOrder
   }
 
   export type dish_category_localized_textDish_category_idLocaleCompoundUniqueInput = {
@@ -57160,6 +57198,7 @@ export namespace Prisma {
     search_context?: JsonNullValueInput | InputJsonValue
     created_at?: Date | string
     updated_at?: Date | string
+    idempotency_key?: string | null
     dish_category_group_vote_participants?: dish_category_group_vote_participantsCreateNestedManyWithoutDish_category_group_vote_sessionsInput
   }
 
@@ -57170,6 +57209,7 @@ export namespace Prisma {
     search_context?: JsonNullValueInput | InputJsonValue
     created_at?: Date | string
     updated_at?: Date | string
+    idempotency_key?: string | null
     dish_category_group_vote_participants?: dish_category_group_vote_participantsUncheckedCreateNestedManyWithoutDish_category_group_vote_sessionsInput
   }
 
@@ -57263,6 +57303,7 @@ export namespace Prisma {
     search_context?: JsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    idempotency_key?: NullableStringFieldUpdateOperationsInput | string | null
     dish_category_group_vote_participants?: dish_category_group_vote_participantsUpdateManyWithoutDish_category_group_vote_sessionsNestedInput
   }
 
@@ -57273,6 +57314,7 @@ export namespace Prisma {
     search_context?: JsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    idempotency_key?: NullableStringFieldUpdateOperationsInput | string | null
     dish_category_group_vote_participants?: dish_category_group_vote_participantsUncheckedUpdateManyWithoutDish_category_group_vote_sessionsNestedInput
   }
 
@@ -57305,6 +57347,7 @@ export namespace Prisma {
     search_context?: JsonNullValueInput | InputJsonValue
     created_at?: Date | string
     updated_at?: Date | string
+    idempotency_key?: string | null
     dish_category_group_vote_candidates?: dish_category_group_vote_candidatesCreateNestedManyWithoutDish_category_group_vote_sessionsInput
   }
 
@@ -57315,6 +57358,7 @@ export namespace Prisma {
     search_context?: JsonNullValueInput | InputJsonValue
     created_at?: Date | string
     updated_at?: Date | string
+    idempotency_key?: string | null
     dish_category_group_vote_candidates?: dish_category_group_vote_candidatesUncheckedCreateNestedManyWithoutDish_category_group_vote_sessionsInput
   }
 
@@ -57357,6 +57401,7 @@ export namespace Prisma {
     search_context?: JsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    idempotency_key?: NullableStringFieldUpdateOperationsInput | string | null
     dish_category_group_vote_candidates?: dish_category_group_vote_candidatesUpdateManyWithoutDish_category_group_vote_sessionsNestedInput
   }
 
@@ -57367,6 +57412,7 @@ export namespace Prisma {
     search_context?: JsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    idempotency_key?: NullableStringFieldUpdateOperationsInput | string | null
     dish_category_group_vote_candidates?: dish_category_group_vote_candidatesUncheckedUpdateManyWithoutDish_category_group_vote_sessionsNestedInput
   }
 

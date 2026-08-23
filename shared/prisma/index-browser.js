@@ -205,7 +205,8 @@ exports.Prisma.Dish_category_group_vote_sessionsScalarFieldEnum = {
   share_token: 'share_token',
   search_context: 'search_context',
   created_at: 'created_at',
-  updated_at: 'updated_at'
+  updated_at: 'updated_at',
+  idempotency_key: 'idempotency_key'
 };
 
 exports.Prisma.Dish_category_localized_textScalarFieldEnum = {

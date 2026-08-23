@@ -308,6 +308,7 @@ export type Database = {
           created_at: string
           host_user_id: string
           id: string
+          idempotency_key: string | null
           search_context: Json
           share_token: string
           updated_at: string
@@ -316,6 +317,7 @@ export type Database = {
           created_at?: string
           host_user_id: string
           id?: string
+          idempotency_key?: string | null
           search_context?: Json
           share_token: string
           updated_at?: string
@@ -324,6 +326,7 @@ export type Database = {
           created_at?: string
           host_user_id?: string
           id?: string
+          idempotency_key?: string | null
           search_context?: Json
           share_token?: string
           updated_at?: string
