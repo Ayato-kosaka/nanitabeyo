@@ -185,7 +185,8 @@ export default function TopicsScreen() {
 	const { createGroupVote, isCreating } = useCreateDishCategoryGroupVote();
 	// #958 【修正】CARD_WIDTH/CARD_MAX_HEIGHT/SCREEN_WIDTH(window幅固定、中央カラム幅と不一致)の
 	// 代わりに useContentWidth ベースの値を使う
-	const { cardWidth, cardMaxHeight } = useTopicCardSize();
+	// #1212 【修正】候補カルーセルは画面幅いっぱいに広げたい(左右の余白を無くす)ため fullBleed を指定する。
+	const { cardWidth, cardMaxHeight } = useTopicCardSize({ fullBleed: true });
 	const contentWidth = useContentWidth();
 	// #907 【設計】Carouselのmount条件とimpressionの準備条件で同じ高さを参照する。
 	const cardHeight = useMemo(() => {
