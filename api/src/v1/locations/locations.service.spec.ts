@@ -668,5 +668,22 @@ describe('LocationsService', () => {
       expect(result).toHaveLength(1);
       expect(result[0].place_id).toBe('place-dup-1');
     });
+
+    it('should restrict the Autocomplete request to Japan via includedRegionCodes', async () => {
+      // #1502 【テスト】日本国外の候補が選べてしまうと、dish-categories.service.ts の
+      // 国単位ホワイトリスト('region:country:JP' のみ)にどのゲートも当たらず、
+      // レコメンドが行き止まりになる。アプリ側フィルタではなくリクエスト自体を
+      // 日本限定にしていること(includedRegionCodes: ['jp'])を固定する。
+      mockExternalApiService.callPlacesAutocomplete.mockResolvedValue({
+        suggestions: [],
+      } as never);
+
+      await service.autocompleteLocations(mockQuery);
+
+      expect(mockExternalApiService.callPlacesAutocomplete).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ includedRegionCodes: ['jp'] }),
+      );
+    });
   });
 });
