@@ -61,8 +61,42 @@ jobs:
           echo 'DATABASE_URL=${{ secrets.PRISMA_DATABASE_URL }}'            >> ./api/.env
           echo "DB_SCHEMA=$DB_SCHEMA" >> ./api/.env
 
-      - name: Prisma db:pull
-        run: pnpm db:pull
+      # ==========================================================================
+      # 【設計】デプロイ時に生きた DB を introspect（db:pull）しない。
+      #
+      # かつてここで `pnpm db:pull` していたが、それは「ビルドの Prisma 型 =
+      # その瞬間の DB の姿」を意味する。2026-08 に、機能ブランチ（#1469）が dev へ
+      # migration を先行適用した結果、dev を introspect した型と噛み合うコードが
+      # そのブランチにしか無くなり、**main から api-development をデプロイできない**
+      # 事故が起きた。
+      #
+      # 以後、ビルドはブランチ自己完結にする: コミット済み api/prisma/schema.prisma
+      # （db-migrate.yml の regenerate_prisma が migration 適用時に introspect して
+      # commit している）のスキーマ名だけを適用先へ差し替え、`prisma generate` で
+      # Client を作り直す。DB へは一切接続しない。DB がコードより先に進んでいても、
+      # migration が後方互換（additive）である限りこのビルドは正しく動く
+      # （運用規則: infra/supabase/migrations/README.md）。
+      # ==========================================================================
+      - name: Prisma Client を生成（コミット済み schema から・DB 非接続）
+        run: |
+          set -euo pipefail
+          # prisma.config.ts が env("DATABASE_URL") を要求する（validate / generate は
+          # 接続しないが、config の評価に必要）。旧 db-pull.sh と同じく api/.env から export する
+          set -a; source ./api/.env; set +a
+          # コミット済み schema.prisma は dev スキーマ名で introspect されている。
+          # 適用先スキーマ名へ機械置換する（対象は schemas 配列と @@schema の 2 パターンのみ）。
+          sed -i \
+            -e "s/= \[\"dev\"\]/= [\"${DB_SCHEMA}\"]/" \
+            -e "s/@@schema(\"dev\")/@@schema(\"${DB_SCHEMA}\")/g" \
+            api/prisma/schema.prisma
+          # 置換漏れがあると別スキーマへ向いたまま本番へ出るので、ここで検算する
+          if [ "${DB_SCHEMA}" != "dev" ] && grep -q '"dev"' api/prisma/schema.prisma; then
+            echo "::error::schema.prisma に \"dev\" が残っています。置換パターンを見直してください。"
+            grep -n '"dev"' api/prisma/schema.prisma
+            exit 1
+          fi
+          pnpm -C api exec prisma validate --schema prisma/schema.prisma --config ../prisma.config.ts
+          pnpm -C api exec prisma generate --schema prisma/schema.prisma --config ../prisma.config.ts
 
       # ---------- Google Cloud へ OIDC でログイン ----------
       - name: Auth to Google Cloud (WIF)
