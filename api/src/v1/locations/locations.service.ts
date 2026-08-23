@@ -509,6 +509,16 @@ export class LocationsService {
       input: query.q,
       languageCode: query.languageCode,
       sessionToken: query.sessionToken,
+      // #1502 【設計】日本国外の候補を選べてしまうと、地点は確定するのに
+      // dish-categories.service.ts:242 のホワイトリスト(国単位、日本向けは
+      // 'region:country:JP' のみ)にどのゲートも当たらず、レコメンドが
+      // 0件/insufficient_candidates で行き止まりになる。
+      // アプリ側で後から間引くのではなく、Places API (New) Autocomplete の
+      // includedRegionCodes (CLDR 地域コード、最大15件) でリクエスト自体を
+      // 日本限定にする。
+      // 参照: https://developers.google.com/maps/documentation/places/web-service/place-autocomplete
+      // 【将来】多国展開する際はここを国・地域に応じて可変にすること。
+      includedRegionCodes: ['jp'],
     };
 
     try {
