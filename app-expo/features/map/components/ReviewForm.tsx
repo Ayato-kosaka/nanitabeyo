@@ -16,6 +16,8 @@ import { Star, ChevronRight, Utensils, CircleDollarSign, ThumbsUp, ImagePlus, Ca
 import { Card } from "@/components/Card";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { PrimaryButton } from "@/components/PrimaryButton";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 import i18n from "@/lib/i18n";
 import { SupabaseRestaurants } from "@shared/converters/convert_restaurants";
 import { InitialMediaPreview } from "./InitialMediaPreview";
@@ -102,6 +104,8 @@ export function ReviewForm({
 	allowNoMedia = false,
 	onSuccess,
 }: ReviewFormProps) {
+	const styles = useThemedStyles(createStyles);
+	const { colors } = useAppTheme();
 	const { lightImpact, mediumImpact } = useHaptics();
 	const insets = useSafeAreaInsets();
 	const { logFrontendEvent } = useLogger();
@@ -948,7 +952,7 @@ export function ReviewForm({
 							onPress={handleRetry}
 							accessibilityRole="button"
 							accessibilityLabel={i18n.t("MyDishes.record.noPhotoTitle")}>
-							<ImagePlus size={28} color="#9CA3AF" style={styles.noMediaIcon} />
+							<ImagePlus size={28} color={colors.textTertiary} style={styles.noMediaIcon} />
 							<Text style={styles.noMediaTitle} numberOfLines={1}>
 								{i18n.t("MyDishes.record.noPhotoTitle")}
 							</Text>
@@ -958,7 +962,7 @@ export function ReviewForm({
 									style={styles.mediaSourceButton}
 									onPress={handleRetry}
 									accessibilityRole="button">
-									<ImagePlus size={16} color="#374151" />
+									<ImagePlus size={16} color={colors.textSecondaryStrong} />
 									<Text style={styles.mediaSourceLabel}>{i18n.t("Map.media.pickFromLibrary")}</Text>
 								</TouchableOpacity>
 								<TouchableOpacity
@@ -966,7 +970,7 @@ export function ReviewForm({
 									style={styles.mediaSourceButton}
 									onPress={handleShootWithCamera}
 									accessibilityRole="button">
-									<Camera size={16} color="#374151" />
+									<Camera size={16} color={colors.textSecondaryStrong} />
 									<Text style={styles.mediaSourceLabel}>{i18n.t("Map.media.shootWithCamera")}</Text>
 								</TouchableOpacity>
 							</View>
@@ -989,7 +993,8 @@ export function ReviewForm({
 									}}
 									accessibilityRole="button"
 									accessibilityLabel={i18n.t("Map.media.replaceWithMyPhoto")}>
-									<ImagePlus size={14} color="#FFFFFF" />
+									{/* メディアプレビューの上に載る半透明暗地のボタンなので、テーマに依らず白で固定する */}
+									<ImagePlus size={14} color={FixedColors.onMedia} />
 									<Text style={styles.replacePhotoLabel}>{i18n.t("Map.media.replaceWithMyPhoto")}</Text>
 								</TouchableOpacity>
 							)}
@@ -1008,7 +1013,7 @@ export function ReviewForm({
 						<TextInput
 							testID="review-comment-input"
 							style={[styles.textInput, styles.textArea]}
-							placeholderTextColor="#A0A0A0"
+							placeholderTextColor={colors.textPlaceholder}
 							placeholder={i18n.t("Map.placeholders.enterReviewShort")}
 							value={reviewText}
 							onChangeText={setReviewText}
@@ -1032,7 +1037,7 @@ export function ReviewForm({
 						accessibilityLabel={i18n.t("Map.actions.selectDishCategory")}>
 						{/* #644 【UX】料理カテゴリラベルにアイコン追加 + prefilledMedia 時は「料理カテゴリ」に変更 */}
 						<View style={styles.inputRowLabelWithIcon}>
-							<Utensils size={18} color="#6B7280" />
+							<Utensils size={18} color={colors.textSecondary} />
 							<Text style={styles.inputRowLabel}>
 								{prefilledMedia ? i18n.t("Map.labels.dishCategory") : i18n.t("Map.actions.selectDishCategory")}
 							</Text>
@@ -1043,7 +1048,7 @@ export function ReviewForm({
 									{dishCategoryName}
 								</Text>
 							)}
-							{!prefilledMedia && <ChevronRight size={20} color="#666" />}
+							{!prefilledMedia && <ChevronRight size={20} color={colors.textMuted} />}
 						</View>
 					</Pressable>
 					{dishCategoryError && (
@@ -1056,7 +1061,7 @@ export function ReviewForm({
 					<View style={styles.priceInputRow}>
 						{/* #644 【UX】価格ラベルにアイコン追加 */}
 						<View style={styles.inputRowLabelWithIcon}>
-							<CircleDollarSign size={18} color="#6B7280" />
+							<CircleDollarSign size={18} color={colors.textSecondary} />
 							<Text style={styles.inputRowLabel}>{i18n.t("Map.placeholders.enterPrice")}</Text>
 						</View>
 						{currencySymbol ? (
@@ -1066,7 +1071,7 @@ export function ReviewForm({
 									testID="review-price-input"
 									style={[styles.textInput, styles.priceInput]}
 									placeholder={"0"}
-									placeholderTextColor="#A0A0A0"
+									placeholderTextColor={colors.textPlaceholder}
 									value={price}
 									onChangeText={setPrice}
 									keyboardType="numeric"
@@ -1077,7 +1082,7 @@ export function ReviewForm({
 								testID="review-price-input"
 								style={[styles.textInput, styles.priceInputSmall]}
 								placeholder={"0"}
-								placeholderTextColor="#A0A0A0"
+								placeholderTextColor={colors.textPlaceholder}
 								value={price}
 								onChangeText={setPrice}
 								keyboardType="numeric"
@@ -1089,7 +1094,7 @@ export function ReviewForm({
 					<View style={styles.ratingInputRow}>
 						{/* #644 【UX】オススメ度ラベルにアイコン追加 */}
 						<View style={styles.inputRowLabelWithIcon}>
-							<ThumbsUp size={18} color="#6B7280" />
+							<ThumbsUp size={18} color={colors.textSecondary} />
 							<Text style={styles.inputRowLabel}>{i18n.t("Map.placeholders.enterReview")}</Text>
 						</View>
 						{/* 星評価コンポーネント */}
@@ -1102,8 +1107,8 @@ export function ReviewForm({
 										<TouchableOpacity key={star} testID={`review-star-${star}`} onPress={() => setRating(star)}>
 											<Star
 												size={36}
-												color={isActive ? "#FFD700" : "#D1D5DB"}
-												fill={isActive ? "#FFD700" : "transparent"}
+												color={isActive ? FixedColors.ratingActive : colors.trackMuted}
+												fill={isActive ? FixedColors.ratingActive : "transparent"}
 											/>
 										</TouchableOpacity>
 									);
@@ -1170,7 +1175,8 @@ export function ReviewForm({
 	);
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
 	centeredContainer: {
 		flex: 1,
 		justifyContent: "center",
@@ -1186,7 +1192,7 @@ const styles = StyleSheet.create({
 	loadingText: {
 		marginTop: 16,
 		fontSize: 16,
-		color: "#666",
+		color: c.textMuted,
 	},
 	errorCard: {
 		padding: 24,
@@ -1195,13 +1201,13 @@ const styles = StyleSheet.create({
 	errorTitle: {
 		fontSize: 20,
 		fontWeight: "700",
-		color: "#1A1A1A",
+		color: c.textPrimary,
 		marginBottom: 12,
 		textAlign: "center",
 	},
 	errorMessage: {
 		fontSize: 16,
-		color: "#6B7280",
+		color: c.textSecondary,
 		lineHeight: 24,
 		marginBottom: 24,
 		textAlign: "center",
@@ -1212,7 +1218,7 @@ const styles = StyleSheet.create({
 	},
 	primaryButton: {
 		flex: 1,
-		backgroundColor: "#F05537",
+		backgroundColor: c.brand,
 		paddingVertical: 14,
 		borderRadius: 12,
 		alignItems: "center",
@@ -1220,11 +1226,12 @@ const styles = StyleSheet.create({
 	primaryButtonText: {
 		fontSize: 16,
 		fontWeight: "600",
-		color: "#FFFFFF",
+		// ブランド色（ライト / ダークで同値）で塗った地の上の文字なので固定でよい
+		color: FixedColors.onFilled,
 	},
 	secondaryButton: {
 		flex: 1,
-		backgroundColor: "#F3F4F6",
+		backgroundColor: c.surfaceSubtle,
 		paddingVertical: 14,
 		borderRadius: 12,
 		alignItems: "center",
@@ -1232,17 +1239,17 @@ const styles = StyleSheet.create({
 	secondaryButtonText: {
 		fontSize: 16,
 		fontWeight: "600",
-		color: "#6B7280",
+		color: c.textSecondary,
 	},
 	inputLabel: {
 		fontSize: 16,
 		fontWeight: "600",
-		color: "#000",
+		color: c.textStrong,
 		marginBottom: 8,
 	},
 	container: {
 		flex: 1,
-		backgroundColor: "#FFFFFF",
+		backgroundColor: c.surface,
 	},
 	// #644 【UX】KeyboardAvoidingView でキーボード表示時の位置調整
 	keyboardAvoidingView: {
@@ -1261,13 +1268,13 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 12,
 		paddingVertical: 12,
 		fontSize: 16,
-		color: "#000",
+		color: c.textStrong,
 	},
 	textArea: {
 		height: 100,
 		textAlignVertical: "top",
 		borderWidth: 1,
-		borderColor: "#D1D5DB",
+		borderColor: c.trackMuted,
 		marginBottom: 8,
 	},
 	dishCategorySelectRow: {
@@ -1286,7 +1293,7 @@ const styles = StyleSheet.create({
 	},
 	dishCategoryValueText: {
 		fontSize: 15,
-		color: "#000",
+		color: c.textStrong,
 		textAlign: "right",
 		maxWidth: 160,
 	},
@@ -1306,7 +1313,7 @@ const styles = StyleSheet.create({
 	},
 	inputRowLabel: {
 		fontSize: 15,
-		color: "#000",
+		color: c.textStrong,
 		flex: 1,
 	},
 	// #644 【UX】ラベルにアイコンを追加するための横並びコンテナ
@@ -1326,7 +1333,7 @@ const styles = StyleSheet.create({
 		justifyContent: "space-between",
 		alignItems: "center",
 		borderBottomWidth: 1,
-		borderBottomColor: "#D1D5DB",
+		borderBottomColor: c.trackMuted,
 		paddingBottom: 0,
 	},
 	ratingInput: {
@@ -1337,14 +1344,14 @@ const styles = StyleSheet.create({
 	},
 	ratingText: {
 		fontSize: 32,
-		color: "#000",
+		color: c.textStrong,
 		textAlign: "right",
 		marginRight: 12,
 	},
 	currencySymbol: {
 		fontSize: 16,
 		fontWeight: "600",
-		color: "#666",
+		color: c.textMuted,
 		minWidth: 24,
 		paddingLeft: 8,
 	},
@@ -1362,24 +1369,24 @@ const styles = StyleSheet.create({
 		textAlign: "right",
 	},
 	errorText: {
-		color: "#DC2626",
+		color: c.danger,
 		fontSize: 12,
 		paddingHorizontal: 4,
 	},
 	consentText: {
 		fontSize: 12,
-		color: "#6B7280",
+		color: c.textSecondary,
 		textAlign: "left",
 		lineHeight: 18,
 	},
 	consentLink: {
-		color: "#2563EB",
+		color: c.linkAlt,
 		textDecorationLine: "underline",
 	},
 	// #1398 R4 同意文言の直下に置く「公開レビューになる」告知
 	publicNoticeText: {
 		fontSize: 12,
-		color: "#6B7280",
+		color: c.textSecondary,
 		textAlign: "left",
 		lineHeight: 18,
 		marginTop: 8,
@@ -1406,7 +1413,8 @@ const styles = StyleSheet.create({
 	replacePhotoLabel: {
 		fontSize: 11,
 		fontWeight: "700",
-		color: "#FFFFFF",
+		// メディアプレビューの上に載る半透明暗地のボタンなので、テーマに依らず白で固定する
+		color: FixedColors.onMedia,
 	},
 	noMediaPlaceholder: {
 		flex: 1,
@@ -1418,8 +1426,8 @@ const styles = StyleSheet.create({
 		borderRadius: 12,
 		borderWidth: 1,
 		borderStyle: "dashed",
-		borderColor: "#D1D5DB",
-		backgroundColor: "#F9FAFB",
+		borderColor: c.trackMuted,
+		backgroundColor: c.surfaceFaint,
 	},
 	noMediaIcon: {
 		flexShrink: 1,
@@ -1427,12 +1435,12 @@ const styles = StyleSheet.create({
 	noMediaTitle: {
 		fontSize: 14,
 		fontWeight: "600",
-		color: "#374151",
+		color: c.textSecondaryStrong,
 		flexShrink: 1,
 	},
 	noMediaHint: {
 		fontSize: 12,
-		color: "#6B7280",
+		color: c.textSecondary,
 		flexShrink: 1,
 	},
 	// #1375 4 巡目: 「ライブラリから選ぶ / カメラで撮る」の 2 択導線
@@ -1449,16 +1457,16 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 14,
 		paddingVertical: 10,
 		borderRadius: 12,
-		backgroundColor: "#F3F4F6",
+		backgroundColor: c.surfaceSubtle,
 	},
 	mediaSourceLabel: {
 		fontSize: 13,
 		fontWeight: "700",
-		color: "#374151",
+		color: c.textSecondaryStrong,
 	},
 	characterCount: {
 		fontSize: 12,
-		color: "#6B7280",
+		color: c.textSecondary,
 		textAlign: "right",
 		marginTop: 4,
 	},
@@ -1470,7 +1478,7 @@ const styles = StyleSheet.create({
 		paddingTop: 12,
 		paddingBottom: 12,
 		borderTopWidth: 1,
-		borderTopColor: "#C9C9C9",
-		backgroundColor: "#FFFFFF",
+		borderTopColor: c.border,
+		backgroundColor: c.surface,
 	},
-});
+	});

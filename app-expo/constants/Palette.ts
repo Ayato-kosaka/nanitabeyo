@@ -78,6 +78,16 @@ export const FixedColors = {
 	 * ライトの面でもダークの面でも判読できるため振らない。
 	 */
 	ratingActive: "#FFD700",
+	/**
+	 * 地図タイルの上に直接載るマーカーバブルの地。Google Map のタイルはアプリの
+	 * テーマに追従せず常にライト配色なので、その上のバブルも固定でライトの白を使う
+	 * （テーマで暗くすると明るい地図の上で浮いてしまう）。
+	 */
+	mapMarkerSurface: "#FFFFFF",
+	/** 地図上のブランド色（ピンの縁・「Google マップで開く」の文字）。地図が常にライトなので固定 */
+	brandOnMap: "#F05537",
+	/** 地図上のブランド淡地（フローティングボタンのグラデ）。地図が常にライトなので固定 */
+	brandTintOnMap: "#FDEBE7",
 } as const;
 
 export interface Palette {
@@ -136,6 +146,8 @@ export interface Palette {
 	textMuted: string;
 	/** 入力欄のプレースホルダ */
 	textPlaceholder: string;
+	/** 画像が無いときのプレースホルダアイコン（`#999` 系統） */
+	iconPlaceholder: string;
 	/** リンク・情報系アクション（「現在地で再検索」「詳細を見る」等の青） */
 	link: string;
 	/** リンク文字（`#2563EB` 系統。ライトでは link と別値のため分けてある） */
@@ -206,6 +218,7 @@ const light: Palette = {
 	textSecondaryStrong: "#374151", // #1469 my-dishes/filters.tsx / sns-import.tsx のフォームラベル
 	textMuted: "#666666", // #1469 restaurant 系の補足文字。元表記は #666（描画される色は完全に同一）
 	textPlaceholder: "#A0A0A0", // #1469 ReviewForm.tsx placeholderTextColor
+	iconPlaceholder: "#999999", // ProfileHeader.tsx アバター無しのアイコン。元表記は #999（描画される色は完全に同一）
 	link: "#357AFF", // #1469 my-dishes 系の青系アクション（現在地で再検索・全画面表示 等）
 	linkAlt: "#2563EB", // #1469 post/[id].tsx / ReviewForm.tsx のリンク文字
 
@@ -258,6 +271,7 @@ const dark: Palette = {
 	textSecondaryStrong: "#C4C7C7", // schemes.dark.onSurfaceVariant（textSecondaryAlt と同じ役割に収束する）
 	textMuted: "#A8ABAB", // textSecondary と同値（ライトの #666 / #6B7280 は暗面では同じ役割に収束する）
 	textPlaceholder: "#8E9192", // schemes.dark.outline
+	iconPlaceholder: "#8E9192", // schemes.dark.outline（textPlaceholder と同じ弱さへ収束）
 	link: "#357AFF", // 据え置き（#141313 上でコントラスト比 約 4.7:1、AA 可）
 	linkAlt: "#357AFF", // #2563EB は #141313 上でコントラスト比 約 3.6:1 と AA を割るため link と同値へ収束
 

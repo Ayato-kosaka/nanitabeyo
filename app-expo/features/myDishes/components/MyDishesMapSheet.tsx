@@ -25,6 +25,8 @@ Issue が想定していたのは «地図を眺めながら、下の帯で記�
 import React, { memo, useCallback, useMemo, useRef } from "react";
 import { FlatList, PanResponder, Pressable, StyleSheet, Text, View } from "react-native";
 import { Image } from "expo-image";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useThemedStyles } from "@/contexts/ThemeProvider";
 import { getCacheKeyForImage } from "@/lib/image";
 import i18n from "@/lib/i18n";
 import type { MyDishPin } from "@shared/api/v1/res";
@@ -33,6 +35,7 @@ import type { MyDishPin } from "@shared/api/v1/res";
 const TILE_WIDTH = 104;
 
 const PinTile = memo(function PinTile({ pin, onPress }: { pin: MyDishPin; onPress: (pin: MyDishPin) => void }) {
+	const styles = useThemedStyles(createStyles);
 	const handlePress = useCallback(() => onPress(pin), [onPress, pin]);
 	const uri = pin.representativeThumbnailUrl ?? pin.restaurant.image_url ?? null;
 
@@ -74,6 +77,7 @@ export function MyDishesMapSheet({
 	/** #1375 実機確認（2 巡目）: 帯を上へ引き上げたら Feed へ行く */
 	onSwipeUp?: () => void;
 }) {
+	const styles = useThemedStyles(createStyles);
 	const renderItem = useCallback(
 		({ item }: { item: MyDishPin }) => <PinTile pin={item} onPress={onSelectPin} />,
 		[onSelectPin],
@@ -124,55 +128,56 @@ export function MyDishesMapSheet({
 	);
 }
 
-const styles = StyleSheet.create({
-	container: {
-		position: "absolute",
-		left: 0,
-		right: 0,
-		bottom: 0,
-		paddingTop: 8,
-		paddingBottom: 12,
-		backgroundColor: "#FFFFFF",
-		borderTopLeftRadius: 16,
-		borderTopRightRadius: 16,
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: -2 },
-		shadowOpacity: 0.12,
-		shadowRadius: 8,
-		elevation: 8,
-	},
-	handle: {
-		alignSelf: "center",
-		width: 36,
-		height: 4,
-		borderRadius: 2,
-		backgroundColor: "#E5E7EB",
-	},
-	title: {
-		marginTop: 8,
-		marginHorizontal: 16,
-		fontSize: 13,
-		fontWeight: "700",
-		color: "#374151",
-	},
-	listContent: {
-		paddingHorizontal: 16,
-		paddingTop: 8,
-		gap: 8,
-	},
-	tile: {
-		width: TILE_WIDTH,
-	},
-	tileImage: {
-		width: TILE_WIDTH,
-		height: TILE_WIDTH,
-		borderRadius: 8,
-		overflow: "hidden",
-		backgroundColor: "#F3F4F6",
-	},
-	tileLabel: {
-		marginTop: 4,
-		fontSize: 11,
-		color: "#374151",
-	},
-});
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		container: {
+			position: "absolute",
+			left: 0,
+			right: 0,
+			bottom: 0,
+			paddingTop: 8,
+			paddingBottom: 12,
+			backgroundColor: c.surface,
+			borderTopLeftRadius: 16,
+			borderTopRightRadius: 16,
+			shadowColor: FixedColors.shadow,
+			shadowOffset: { width: 0, height: -2 },
+			shadowOpacity: 0.12,
+			shadowRadius: 8,
+			elevation: 8,
+		},
+		handle: {
+			alignSelf: "center",
+			width: 36,
+			height: 4,
+			borderRadius: 2,
+			backgroundColor: c.borderMuted,
+		},
+		title: {
+			marginTop: 8,
+			marginHorizontal: 16,
+			fontSize: 13,
+			fontWeight: "700",
+			color: c.textSecondaryStrong,
+		},
+		listContent: {
+			paddingHorizontal: 16,
+			paddingTop: 8,
+			gap: 8,
+		},
+		tile: {
+			width: TILE_WIDTH,
+		},
+		tileImage: {
+			width: TILE_WIDTH,
+			height: TILE_WIDTH,
+			borderRadius: 8,
+			overflow: "hidden",
+			backgroundColor: c.surfaceSubtle,
+		},
+		tileLabel: {
+			marginTop: 4,
+			fontSize: 11,
+			color: c.textSecondaryStrong,
+		},
+	});

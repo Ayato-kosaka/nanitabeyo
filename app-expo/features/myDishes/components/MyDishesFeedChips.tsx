@@ -1,6 +1,8 @@
 import React, { useCallback, useMemo } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { FixedColors, type Palette } from "@/constants/Palette";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
+import { useThemedStyles } from "@/contexts/ThemeProvider";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import i18n from "@/lib/i18n";
@@ -133,6 +135,7 @@ export type MyDishesFeedChipsProps = {
 };
 
 export function MyDishesFeedChips({ entry }: MyDishesFeedChipsProps) {
+	const styles = useThemedStyles(createStyles);
 	const filter = useMyDishesFilterStore((s) => s.filter);
 	const patch = useMyDishesFilterStore((s) => s.patch);
 	const { showSnackbar } = useSnackbar();
@@ -208,35 +211,38 @@ export function MyDishesFeedChips({ entry }: MyDishesFeedChipsProps) {
 	);
 }
 
-const styles = StyleSheet.create({
-	container: {
-		// 閉じるボタン（右上）と重ならないよう右側を空ける。ルート側の
-		// `closeButtonContainer` は right: 16 / padding 12 なので 56 で足りる
-		paddingRight: 56,
-	},
-	content: {
-		gap: 8,
-		paddingHorizontal: 16,
-		paddingVertical: 8,
-	},
-	chip: {
-		paddingHorizontal: 12,
-		paddingVertical: 6,
-		borderRadius: 999,
-		backgroundColor: "rgba(0,0,0,0.55)",
-		borderWidth: 1,
-		borderColor: "rgba(255,255,255,0.35)",
-	},
-	chipActive: {
-		backgroundColor: "#357AFF",
-		borderColor: "#357AFF",
-	},
-	chipText: {
-		fontSize: 13,
-		fontWeight: "600",
-		color: "#FFFFFF",
-	},
-	chipTextActive: {
-		color: "#FFFFFF",
-	},
-});
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		container: {
+			// 閉じるボタン（右上）と重ならないよう右側を空ける。ルート側の
+			// `closeButtonContainer` は right: 16 / padding 12 なので 56 で足りる
+			paddingRight: 56,
+		},
+		content: {
+			gap: 8,
+			paddingHorizontal: 16,
+			paddingVertical: 8,
+		},
+		chip: {
+			paddingHorizontal: 12,
+			paddingVertical: 6,
+			borderRadius: 999,
+			backgroundColor: "rgba(0,0,0,0.55)",
+			borderWidth: 1,
+			borderColor: "rgba(255,255,255,0.35)",
+		},
+		chipActive: {
+			backgroundColor: c.link,
+			borderColor: c.link,
+		},
+		chipText: {
+			fontSize: 13,
+			fontWeight: "600",
+			// メディア（全画面 Feed）の上の固定濃色チップに載る文字なので固定の白でよい
+			color: FixedColors.onMedia,
+		},
+		chipTextActive: {
+			// 地（chipActive = link の濃色）で塗り潰した上の文字なので固定でよい
+			color: FixedColors.onFilled,
+		},
+	});

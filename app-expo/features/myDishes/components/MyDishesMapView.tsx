@@ -6,6 +6,8 @@ import MapView, { type Region } from "@/components/MapView";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { EmptyState } from "@/components/EmptyState";
 import { PrimaryButton } from "@/components/PrimaryButton";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 import { AvatarBubbleMarker } from "@/features/mapMarkers";
 import { INITIAL_REGION, REGION_JP } from "@/features/map/constants";
 import { useHaptics } from "@/hooks/useHaptics";
@@ -48,6 +50,8 @@ import { MyDishesMapSheet } from "./MyDishesMapSheet";
  *   1 つも持たないため。設計 (1/2) §0-1 / リーダー判断 Q1）。**常に Sheet を開く**。
  */
 export function MyDishesMapView() {
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 	const { isJapanese, locale } = useLocale();
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
@@ -239,13 +243,13 @@ export function MyDishesMapView() {
 						testID="my-dishes-search-this-area"
 						onPress={handleSearchThisArea}
 						label={i18n.t("MyDishes.searchThisArea")}
-						icon={<RotateCw size={16} color="#357AFF" />}
-						colors={["#ffffff", "#ffffff"]}
+						icon={<RotateCw size={16} color={colors.link} />}
+						colors={[colors.surface, colors.surface]}
 						shadowColor="transparent"
-						labelStyle={{ color: "#357AFF", fontSize: 14 }}
+						labelStyle={{ color: colors.link, fontSize: 14 }}
 						loading={showButtonLoading}
 						loadingIndicatorType="native"
-						nativeLoadingColor="#357AFF"
+						nativeLoadingColor={colors.link}
 					/>
 				</View>
 				{/* #1375 実機確認: 「このエリアで絞り込み中」の帯は廃止した。
@@ -284,48 +288,50 @@ export function MyDishesMapView() {
 	);
 }
 
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-	},
-	map: {
-		flex: 1,
-	},
-	loadingOverlay: {
-		...StyleSheet.absoluteFillObject,
-		justifyContent: "center",
-		alignItems: "center",
-		backgroundColor: "rgba(255, 255, 255, 0.5)",
-	},
-	topOverlay: {
-		position: "absolute",
-		top: 0,
-		left: 0,
-		right: 0,
-		zIndex: 100,
-	},
-	searchButtonContainer: {
-		marginTop: 12,
-		alignItems: "center",
-	},
-	truncatedBanner: {
-		marginTop: 8,
-		marginHorizontal: 24,
-		paddingHorizontal: 12,
-		paddingVertical: 8,
-		borderRadius: 8,
-		backgroundColor: "rgba(17, 24, 39, 0.85)",
-	},
-	truncatedText: {
-		fontSize: 12,
-		color: "#FFFFFF",
-		textAlign: "center",
-	},
-	emptyOverlay: {
-		position: "absolute",
-		top: 80,
-		left: 24,
-		right: 24,
-		bottom: 24,
-	},
-});
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		container: {
+			flex: 1,
+		},
+		map: {
+			flex: 1,
+		},
+		loadingOverlay: {
+			...StyleSheet.absoluteFillObject,
+			justifyContent: "center",
+			alignItems: "center",
+			backgroundColor: "rgba(255, 255, 255, 0.5)",
+		},
+		topOverlay: {
+			position: "absolute",
+			top: 0,
+			left: 0,
+			right: 0,
+			zIndex: 100,
+		},
+		searchButtonContainer: {
+			marginTop: 12,
+			alignItems: "center",
+		},
+		truncatedBanner: {
+			marginTop: 8,
+			marginHorizontal: 24,
+			paddingHorizontal: 12,
+			paddingVertical: 8,
+			borderRadius: 8,
+			backgroundColor: "rgba(17, 24, 39, 0.85)",
+		},
+		truncatedText: {
+			fontSize: 12,
+			// 地（truncatedBanner）が固定の濃色なので、文字も固定でよい
+			color: FixedColors.onFilled,
+			textAlign: "center",
+		},
+		emptyOverlay: {
+			position: "absolute",
+			top: 80,
+			left: 24,
+			right: 24,
+			bottom: 24,
+		},
+	});

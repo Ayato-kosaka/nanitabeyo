@@ -28,6 +28,8 @@ import { Text } from "react-native";
 import i18n from "@/lib/i18n";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { useDishMediaBackgroundImageResources } from "@/features/dishMedia/hooks/useDishMediaBackgroundImageResources";
+// #1509 全画面フィードの黒背景・白文字はメディアを引き立てる固定色（テーマ非追従）
+import { FixedColors } from "@/constants/Palette";
 
 // --- ユーティリティ群（純粋関数） ------------------------------------------
 // インデックスを items.length の範囲内にクランプ
@@ -268,25 +270,25 @@ const styles = StyleSheet.create({
 	// ルートは常に黒背景（SafeAreaや余白での色抜け防止）
 	root: {
 		flex: 1,
-		backgroundColor: "#000",
+		backgroundColor: FixedColors.mediaBackground,
 	},
 	list: {
 		flex: 1,
-		backgroundColor: "#000", // メディアを引き立てる黒背景
+		backgroundColor: FixedColors.mediaBackground, // メディアを引き立てる黒背景
 	},
 	centerContainer: {
 		flex: 1,
 		justifyContent: "center",
 		alignItems: "center",
-		backgroundColor: "#000",
+		backgroundColor: FixedColors.mediaBackground,
 	},
 	loadingText: {
 		marginTop: 16,
-		color: "#FFF",
+		color: FixedColors.onMedia,
 		fontSize: 16,
 	},
 	errorText: {
-		color: "#FF6B6B",
+		color: FixedColors.errorOnMedia,
 		fontSize: 16,
 		textAlign: "center",
 		paddingHorizontal: 20,

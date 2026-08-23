@@ -23,6 +23,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { X } from "lucide-react-native";
 
 import { LoadingIndicator } from "@/components/LoadingIndicator";
+import { FixedColors } from "@/constants/Palette";
 import { FeedDishMediaViewer } from "@/features/map/components/FeedDishMediaViewer";
 import { mapReviewsKey } from "@/features/map/constants";
 import { useRestaurantDishMediaFetcher } from "@/features/map/hooks/useRestaurantDishMediaFetcher";
@@ -92,7 +93,7 @@ export default function RestaurantFeedScreen() {
 					onPress={handleClose}
 					accessibilityRole="button"
 					accessibilityLabel={i18n.t("Common.close")}>
-					<X size={24} color="#FFF" />
+					<X size={24} color={FixedColors.onMedia} />
 				</TouchableOpacity>
 			</View>
 
@@ -118,10 +119,11 @@ export default function RestaurantFeedScreen() {
 	);
 }
 
+// 全画面フィードの黒地と、その上の白文字・白アイコンはテーマで振らない固定色（constants/Palette.ts の FixedColors）
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: "#000",
+		backgroundColor: FixedColors.mediaBackground,
 	},
 	centered: {
 		flex: 1,
@@ -131,7 +133,7 @@ const styles = StyleSheet.create({
 	},
 	emptyText: {
 		fontSize: 16,
-		color: "#FFF",
+		color: FixedColors.onMedia,
 		textAlign: "center",
 	},
 	// search/result.tsx と同じ形（フィードの上に浮かせる）

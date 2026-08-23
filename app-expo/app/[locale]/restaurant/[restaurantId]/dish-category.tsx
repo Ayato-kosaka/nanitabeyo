@@ -37,8 +37,10 @@ import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import i18n from "@/lib/i18n";
+import { useAppTheme } from "@/contexts/ThemeProvider";
 
 export default function DishCategorySelectScreen() {
+	const { colors } = useAppTheme();
 	const { restaurantId } = useLocalSearchParams<{ restaurantId: string }>();
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
@@ -111,7 +113,7 @@ export default function DishCategorySelectScreen() {
 	);
 
 	return (
-		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
+		<LinearGradient colors={colors.backgroundGradient} style={styles.container}>
 			<SafeAreaView style={styles.safeArea} edges={[]}>
 				{/* タイトルはこのヘッダーだけが持つ（フォーム側の見出しは title={null} で落とす） */}
 				<ScreenHeader

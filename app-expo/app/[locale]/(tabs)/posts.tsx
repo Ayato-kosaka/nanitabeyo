@@ -8,6 +8,7 @@ import type { QueryDishMediaByIdsDto } from "@shared/api/v1/dto";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { OpenInAppBanner } from "@/components/deepLinking/OpenInAppBanner";
+import { useAppTheme } from "@/contexts/ThemeProvider";
 import { useSeo } from "@/contexts/SeoContext";
 import i18n from "@/lib/i18n";
 import { SeoOverride } from "@/contexts/SeoContext/SeoProvider";
@@ -18,6 +19,7 @@ export default function PostsScreen() {
 		ids?: string | string[];
 		entriesKey?: string | string[];
 	}>();
+	const { colors } = useAppTheme();
 	const { callBackend } = useAPICall();
 	const entriesKey =
 		typeof entriesKeyParam === "string" && entriesKeyParam.length > 0 ? entriesKeyParam : "PostsScreen";
@@ -63,7 +65,7 @@ export default function PostsScreen() {
 	// #721 testID は共有リンク（/s/:token）が «捨てられず投稿画面へ着地したか» を E2E から見るための目印。
 	// 解決画面は resolve の往復の間しか出ず観測できないため、着地先そのものを観測点にしている。見た目には影響しない
 	return (
-		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container} testID="posts-screen">
+		<LinearGradient colors={colors.backgroundGradient} style={styles.container} testID="posts-screen">
 			{/* #688 【設計】Web Deep Linking バナー（アプリ未インストール時の導線） */}
 			<OpenInAppBanner path="posts" params={{ ids, entriesKey }} />
 			<DishMediaMap entriesKey={entriesKey} idType="dish_media" />

@@ -17,6 +17,8 @@ import { ChevronRight, Maximize2 } from "lucide-react-native";
 import { EmptyState } from "@/components/EmptyState";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { SheetGestureRoot } from "@/components/SheetGestureRoot";
+import { type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
@@ -107,6 +109,8 @@ const MyDishSheetRow = memo(function MyDishSheetRow({
 	onPress: (item: MyDishItem) => void;
 	onPressMarkAsEaten: (item: MyDishItem) => void;
 }) {
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 	// #1375 追補2 決定3: 写真なしの記録も **実画像**（categoryImageUrl → restaurant.image_url）で並べる。
 	// 灰色プレースホルダーにしない（一覧ビューとの意図的な非対称。myDishCard.tsx 参照）
 	const source = useMyDishImageSource(item, "category");
@@ -166,12 +170,14 @@ const MyDishSheetRow = memo(function MyDishSheetRow({
 				)}
 			</View>
 
-			<ChevronRight size={16} color="#9CA3AF" />
+			<ChevronRight size={16} color={colors.textTertiary} />
 		</Pressable>
 	);
 });
 
 export function MyDishesRestaurantSheet({ pin, onDismissed }: MyDishesRestaurantSheetProps) {
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 	const { locale } = useLocale();
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
@@ -388,7 +394,7 @@ export function MyDishesRestaurantSheet({ pin, onDismissed }: MyDishesRestaurant
 					<Text style={styles.headerTitle} numberOfLines={1}>
 						{i18n.t("MyDishes.sheet.title", { restaurant: pin?.restaurant.name ?? "" })}
 					</Text>
-					<ChevronRight size={16} color="#6B7280" />
+					<ChevronRight size={16} color={colors.textSecondary} />
 				</Pressable>
 				<Text style={styles.headerCounts}>
 					{i18n.t("MyDishes.sheet.counts", {
@@ -405,13 +411,13 @@ export function MyDishesRestaurantSheet({ pin, onDismissed }: MyDishesRestaurant
 						accessibilityLabel={i18n.t("MyDishes.sheet.expand")}
 						style={styles.expand}
 						hitSlop={8}>
-						<Maximize2 size={14} color="#357AFF" />
+						<Maximize2 size={14} color={colors.link} />
 						<Text style={styles.expandText}>{i18n.t("MyDishes.sheet.expand")}</Text>
 					</Pressable>
 				)}
 			</View>
 		),
-		[firstPhotoItem, handleExpand, handlePressRestaurant, pin],
+		[firstPhotoItem, handleExpand, handlePressRestaurant, pin, colors, styles],
 	);
 
 	return (
@@ -419,7 +425,7 @@ export function MyDishesRestaurantSheet({ pin, onDismissed }: MyDishesRestaurant
 			ref={sheetRef}
 			detents={[0.6, 1]}
 			cornerRadius={24}
-			backgroundColor="#FFFFFF"
+			backgroundColor={colors.surface}
 			// 縦 FlatList を «シートの可視領域» に収めるための唯一のスイッチ（冒頭コメントの表を参照）
 			scrollable
 			header={header}
@@ -458,7 +464,7 @@ export function MyDishesRestaurantSheet({ pin, onDismissed }: MyDishesRestaurant
 									accessibilityRole="button"
 									accessibilityLabel={i18n.t("MyDishes.sheet.seeAllInList")}>
 									<Text style={styles.seeAllText}>{i18n.t("MyDishes.sheet.seeAllInList")}</Text>
-									<ChevronRight size={16} color="#357AFF" />
+									<ChevronRight size={16} color={colors.link} />
 								</Pressable>
 							) : null
 						}
@@ -469,114 +475,115 @@ export function MyDishesRestaurantSheet({ pin, onDismissed }: MyDishesRestaurant
 	);
 }
 
-const styles = StyleSheet.create({
-	// native は `scrollable` がライブラリ側で content へ flex:1 を足すので、こちらも伸ばして
-	// FlatList へ高さを渡す。web では器（block）が高さを持つので、この flex は効かない（実測済み）
-	body: {
-		flex: 1,
-	},
-	list: {
-		flex: 1,
-	},
-	header: {
-		paddingHorizontal: 16,
-		paddingTop: 16,
-		paddingBottom: 8,
-		gap: 2,
-	},
-	headerTitleRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 4,
-	},
-	headerTitle: {
-		flexShrink: 1,
-		fontSize: 16,
-		fontWeight: "700",
-		color: "#111827",
-	},
-	headerCounts: {
-		fontSize: 12,
-		color: "#6B7280",
-	},
-	expand: {
-		flexDirection: "row",
-		alignItems: "center",
-		alignSelf: "flex-start",
-		gap: 4,
-		marginTop: 6,
-	},
-	expandText: {
-		fontSize: 13,
-		fontWeight: "600",
-		color: "#357AFF",
-	},
-	centered: {
-		paddingVertical: 32,
-		paddingHorizontal: 24,
-	},
-	listContent: {
-		paddingHorizontal: 16,
-		paddingBottom: 32,
-	},
-	row: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 12,
-		paddingVertical: 8,
-	},
-	thumbnailWrapper: {
-		width: THUMBNAIL_SIZE,
-		height: THUMBNAIL_SIZE,
-		borderRadius: 8,
-		overflow: "hidden",
-		backgroundColor: "#F3F4F6",
-	},
-	thumbnail: {
-		width: THUMBNAIL_SIZE,
-		height: THUMBNAIL_SIZE,
-	},
-	thumbnailFallback: {
-		backgroundColor: "#F3F4F6",
-	},
-	rowBody: {
-		flex: 1,
-		gap: 4,
-	},
-	rowTitle: {
-		fontSize: 14,
-		fontWeight: "600",
-		color: "#111827",
-	},
-	rowMeta: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 8,
-	},
-	rowRating: {
-		fontSize: 12,
-		fontWeight: "700",
-		color: "#F05537",
-	},
-	rowDate: {
-		fontSize: 12,
-		color: "#6B7280",
-	},
-	rowHint: {
-		fontSize: 11,
-		color: "#9CA3AF",
-	},
-	seeAll: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "center",
-		gap: 4,
-		marginTop: 8,
-		paddingVertical: 12,
-	},
-	seeAllText: {
-		fontSize: 14,
-		fontWeight: "600",
-		color: "#357AFF",
-	},
-});
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		// native は `scrollable` がライブラリ側で content へ flex:1 を足すので、こちらも伸ばして
+		// FlatList へ高さを渡す。web では器（block）が高さを持つので、この flex は効かない（実測済み）
+		body: {
+			flex: 1,
+		},
+		list: {
+			flex: 1,
+		},
+		header: {
+			paddingHorizontal: 16,
+			paddingTop: 16,
+			paddingBottom: 8,
+			gap: 2,
+		},
+		headerTitleRow: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 4,
+		},
+		headerTitle: {
+			flexShrink: 1,
+			fontSize: 16,
+			fontWeight: "700",
+			color: c.textPrimaryAlt,
+		},
+		headerCounts: {
+			fontSize: 12,
+			color: c.textSecondary,
+		},
+		expand: {
+			flexDirection: "row",
+			alignItems: "center",
+			alignSelf: "flex-start",
+			gap: 4,
+			marginTop: 6,
+		},
+		expandText: {
+			fontSize: 13,
+			fontWeight: "600",
+			color: c.link,
+		},
+		centered: {
+			paddingVertical: 32,
+			paddingHorizontal: 24,
+		},
+		listContent: {
+			paddingHorizontal: 16,
+			paddingBottom: 32,
+		},
+		row: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 12,
+			paddingVertical: 8,
+		},
+		thumbnailWrapper: {
+			width: THUMBNAIL_SIZE,
+			height: THUMBNAIL_SIZE,
+			borderRadius: 8,
+			overflow: "hidden",
+			backgroundColor: c.surfaceSubtle,
+		},
+		thumbnail: {
+			width: THUMBNAIL_SIZE,
+			height: THUMBNAIL_SIZE,
+		},
+		thumbnailFallback: {
+			backgroundColor: c.surfaceSubtle,
+		},
+		rowBody: {
+			flex: 1,
+			gap: 4,
+		},
+		rowTitle: {
+			fontSize: 14,
+			fontWeight: "600",
+			color: c.textPrimaryAlt,
+		},
+		rowMeta: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 8,
+		},
+		rowRating: {
+			fontSize: 12,
+			fontWeight: "700",
+			color: c.brand,
+		},
+		rowDate: {
+			fontSize: 12,
+			color: c.textSecondary,
+		},
+		rowHint: {
+			fontSize: 11,
+			color: c.textTertiary,
+		},
+		seeAll: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "center",
+			gap: 4,
+			marginTop: 8,
+			paddingVertical: 12,
+		},
+		seeAllText: {
+			fontSize: 14,
+			fontWeight: "600",
+			color: c.link,
+		},
+	});

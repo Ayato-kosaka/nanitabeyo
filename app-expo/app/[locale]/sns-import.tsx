@@ -60,6 +60,8 @@ import { Instagram, MapPin, MapPinned, Music2, Youtube } from "lucide-react-nati
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { PrimaryButton } from "@/components/PrimaryButton";
+import { type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
@@ -136,6 +138,7 @@ type Tab = (typeof TABS)[number];
  * 保存する、という順番が画面から読み取れなかった（«簡素すぎる» の中身はこれである）。
  */
 function StepHeading({ step, title, testID }: { step: number; title: string; testID?: string }) {
+	const styles = useThemedStyles(createStyles);
 	return (
 		<View style={styles.stepHeading} testID={testID}>
 			<View style={styles.stepBadge}>
@@ -148,6 +151,8 @@ function StepHeading({ step, title, testID }: { step: number; title: string; tes
 
 export default function SnsImportScreen() {
 	useScreenTrace("SnsImport");
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 	const { lightImpact } = useHaptics();
 	const { locale } = useLocale();
 	const { logFrontendEvent } = useLogger();
@@ -501,7 +506,7 @@ export default function SnsImportScreen() {
 						onPress={handleOpenMapPicker}
 						accessibilityRole="button"
 						style={styles.eatenRestaurantRow}>
-						<MapPinned size={18} color="#374151" />
+						<MapPinned size={18} color={colors.textSecondaryStrong} />
 						<Text
 							style={[styles.eatenRestaurantLabel, eatenRestaurant === null && styles.eatenRestaurantPlaceholder]}
 							numberOfLines={1}>
@@ -597,7 +602,7 @@ export default function SnsImportScreen() {
 													const ProviderIcon = PROVIDER_ICONS[resolved.source.provider];
 													return (
 														<View style={styles.providerRow}>
-															<ProviderIcon size={16} color="#F05537" />
+															<ProviderIcon size={16} color={colors.brand} />
 															<Text style={styles.provider} testID="sns-import-provider">
 																{PROVIDER_LABELS[resolved.source.provider]}
 															</Text>
@@ -702,7 +707,7 @@ export default function SnsImportScreen() {
 									onPress={handleOpenMapPicker}
 									accessibilityRole="button"
 									style={styles.mapPickButton}>
-									<MapPin size={16} color="#F05537" />
+									<MapPin size={16} color={colors.brand} />
 									<Text style={styles.mapPickLabel}>{i18n.t("SnsImport.sections.pickOnMap")}</Text>
 								</TouchableOpacity>
 								{!!restaurantName && (
@@ -800,10 +805,12 @@ export default function SnsImportScreen() {
 	);
 }
 
-const styles = StyleSheet.create({
+// #1509 【設計】テーマ依存のスタイルはファクトリで組む（contexts/ThemeProvider.tsx の useThemedStyles）
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: "#FFFFFF",
+		backgroundColor: c.surface,
 	},
 	grabberArea: {
 		paddingTop: 8,
@@ -818,7 +825,7 @@ const styles = StyleSheet.create({
 		width: 40,
 		height: 4,
 		borderRadius: 2,
-		backgroundColor: "#D1D5DB",
+		backgroundColor: c.trackMuted,
 	},
 	tabRow: {
 		flexDirection: "row",
@@ -839,17 +846,17 @@ const styles = StyleSheet.create({
 		fontSize: 22,
 		fontWeight: "700",
 		// 非選択は «薄い黒»。別の色にすると «押せない» ように見える
-		color: "#9CA3AF",
+		color: c.textTertiary,
 	},
 	tabLabelActive: {
-		color: "#111827",
+		color: c.textPrimaryAlt,
 	},
 	tabUnderline: {
 		marginTop: 6,
 		height: 3,
 		borderRadius: 2,
 		alignSelf: "stretch",
-		backgroundColor: "#111827",
+		backgroundColor: c.textPrimaryAlt,
 	},
 	keyboardAvoiding: {
 		flex: 1,
@@ -867,30 +874,30 @@ const styles = StyleSheet.create({
 		paddingVertical: 12,
 		borderRadius: 12,
 		borderWidth: 1,
-		borderColor: "#E5E7EB",
-		backgroundColor: "#FFFFFF",
+		borderColor: c.borderMuted,
+		backgroundColor: c.surface,
 	},
 	eatenRestaurantLabel: {
 		flex: 1,
 		fontSize: 15,
 		fontWeight: "700",
-		color: "#111827",
+		color: c.textPrimaryAlt,
 	},
 	eatenRestaurantPlaceholder: {
-		color: "#9CA3AF",
+		color: c.textTertiary,
 		fontWeight: "400",
 	},
 	eatenRestaurantChange: {
 		fontSize: 13,
 		fontWeight: "700",
-		color: "#F05537",
+		color: c.brand,
 	},
 	eatenHint: {
 		marginTop: 12,
 		marginHorizontal: 16,
 		fontSize: 13,
 		lineHeight: 19,
-		color: "#6B7280",
+		color: c.textSecondary,
 	},
 	content: {
 		paddingHorizontal: 16,
@@ -900,7 +907,7 @@ const styles = StyleSheet.create({
 		marginTop: 12,
 		fontSize: 13,
 		lineHeight: 19,
-		color: "#6B7280",
+		color: c.textSecondary,
 	},
 	// 手順ごとの器。枠を描くと «ここまでが 1 つの手順» が目で分かる
 	card: {
@@ -908,8 +915,8 @@ const styles = StyleSheet.create({
 		padding: 14,
 		borderRadius: 12,
 		borderWidth: 1,
-		borderColor: "#E5E7EB",
-		backgroundColor: "#FFFFFF",
+		borderColor: c.borderMuted,
+		backgroundColor: c.surface,
 	},
 	stepHeading: {
 		flexDirection: "row",
@@ -921,19 +928,20 @@ const styles = StyleSheet.create({
 		width: 22,
 		height: 22,
 		borderRadius: 11,
-		backgroundColor: "#111827",
+		backgroundColor: c.textPrimaryAlt,
 		alignItems: "center",
 		justifyContent: "center",
 	},
 	stepBadgeText: {
 		fontSize: 12,
 		fontWeight: "700",
-		color: "#FFFFFF",
+		// 地（stepBadge）が textPrimaryAlt なので、文字は CTA と同じ反転規則で振る
+		color: c.ctaLabel,
 	},
 	stepTitle: {
 		fontSize: 15,
 		fontWeight: "700",
-		color: "#111827",
+		color: c.textPrimaryAlt,
 	},
 	mapPickButton: {
 		marginTop: 10,
@@ -944,12 +952,12 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 12,
 		paddingVertical: 8,
 		borderRadius: 16,
-		backgroundColor: "#FDE7E1",
+		backgroundColor: c.brandTintAlt,
 	},
 	mapPickLabel: {
 		fontSize: 13,
 		fontWeight: "700",
-		color: "#F05537",
+		color: c.brand,
 	},
 	footer: {
 		gap: 8,
@@ -957,28 +965,28 @@ const styles = StyleSheet.create({
 		paddingTop: 12,
 		paddingBottom: 12,
 		borderTopWidth: 1,
-		borderTopColor: "#EEE",
-		backgroundColor: "#FFFFFF",
+		borderTopColor: c.dividerMuted,
+		backgroundColor: c.surface,
 	},
 	footerHint: {
 		fontSize: 12,
-		color: "#6B7280",
+		color: c.textSecondary,
 	},
 	label: {
 		marginTop: 12,
 		fontSize: 13,
-		color: "#6B7280",
+		color: c.textSecondary,
 	},
 	input: {
 		marginTop: 6,
 		minHeight: 72,
 		borderWidth: 1,
-		borderColor: "#E5E7EB",
+		borderColor: c.borderMuted,
 		borderRadius: 8,
 		paddingHorizontal: 12,
 		paddingVertical: 10,
 		fontSize: 14,
-		color: "#111827",
+		color: c.textPrimaryAlt,
 		textAlignVertical: "top",
 	},
 	resolveButton: {
@@ -999,41 +1007,41 @@ const styles = StyleSheet.create({
 	provider: {
 		fontSize: 14,
 		fontWeight: "700",
-		color: "#F05537",
+		color: c.brand,
 	},
 	captionToggle: {
 		marginTop: 4,
 		fontSize: 13,
 		fontWeight: "700",
-		color: "#6B7280",
+		color: c.textSecondary,
 	},
 	metaTitle: {
 		marginTop: 4,
 		fontSize: 14,
 		lineHeight: 20,
-		color: "#374151",
+		color: c.textSecondaryStrong,
 	},
 	sectionTitle: {
 		marginTop: 20,
 		fontSize: 14,
 		fontWeight: "700",
-		color: "#1A1A1A",
+		color: c.textPrimary,
 	},
 	searchInput: {
 		marginTop: 8,
 		borderWidth: 1,
-		borderColor: "#E5E7EB",
+		borderColor: c.borderMuted,
 		borderRadius: 8,
 		paddingHorizontal: 12,
 		paddingVertical: 10,
 		fontSize: 14,
-		color: "#111827",
+		color: c.textPrimaryAlt,
 	},
 	selectedValue: {
 		marginTop: 8,
 		fontSize: 13,
 		fontWeight: "700",
-		color: "#F05537",
+		color: c.brand,
 	},
 	chipRow: {
 		marginTop: 8,
@@ -1045,23 +1053,23 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 12,
 		paddingVertical: 8,
 		borderRadius: 16,
-		backgroundColor: "#F3F4F6",
+		backgroundColor: c.surfaceSubtle,
 	},
 	chipSelected: {
-		backgroundColor: "#FDE7E1",
+		backgroundColor: c.brandTintAlt,
 	},
 	chipLabel: {
 		fontSize: 13,
-		color: "#374151",
+		color: c.textSecondaryStrong,
 	},
 	chipLabelSelected: {
-		color: "#F05537",
+		color: c.brand,
 		fontWeight: "700",
 	},
 	hint: {
 		marginTop: 12,
 		fontSize: 13,
 		lineHeight: 19,
-		color: "#6B7280",
+		color: c.textSecondary,
 	},
-});
+	});

@@ -6,6 +6,8 @@ import { ImageOff } from "lucide-react-native";
 import { router } from "expo-router";
 import { GridList } from "@/components/collapsible-tabs/GridList";
 import { EmptyState } from "@/components/EmptyState";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 import { useContentWidth } from "@/hooks/useContentWidth";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
@@ -47,6 +49,8 @@ const MyDishCard = memo(function MyDishCard({
 	onPress: (i: MyDishItem) => void;
 	onPressMarkAsEaten: (i: MyDishItem) => void;
 }) {
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 	const { lightImpact } = useHaptics();
 	// #958 と同じ理由で useWindowDimensions ではなく CenteredAppShell の中央カラム幅を使う
 	const contentWidth = useContentWidth();
@@ -94,7 +98,7 @@ const MyDishCard = memo(function MyDishCard({
 				// （dishMedia === null というだけではこの分岐に来ない。#1396 当時の「写真なし記録＝この
 				// プレースホルダー」という前提は変わったが、testID は e2e から未参照のため残している）
 				<View testID="my-dishes-list-item-placeholder" style={[StyleSheet.absoluteFill, styles.placeholder]}>
-					<ImageOff size={20} color="#9CA3AF" />
+					<ImageOff size={20} color={colors.textTertiary} />
 					<Text style={styles.placeholderText} numberOfLines={2}>
 						{dishName ?? i18n.t("MyDishes.list.noPhoto")}
 					</Text>
@@ -112,7 +116,8 @@ const MyDishCard = memo(function MyDishCard({
 					{/* #1398 PR5 実画像へフォールバックしても「写真なし」自体は分かるようにする */}
 					{source && isNoPhoto && (
 						<View style={styles.noPhotoBadge} testID="my-dishes-list-item-no-photo-badge">
-							<ImageOff size={10} color="#FFFFFF" />
+							{/* 写真の上に載る固定濃色バッジの中なので固定の白でよい */}
+							<ImageOff size={10} color={FixedColors.onFilled} />
 							<Text style={styles.noPhotoBadgeText}>{i18n.t("MyDishes.list.noPhoto")}</Text>
 						</View>
 					)}
@@ -138,6 +143,7 @@ const MyDishCard = memo(function MyDishCard({
 });
 
 export function MyDishesListView() {
+	const styles = useThemedStyles(createStyles);
 	const { locale } = useLocale();
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
@@ -254,86 +260,91 @@ export function MyDishesListView() {
 	);
 }
 
-const styles = StyleSheet.create({
-	gridContent: {
-		paddingHorizontal: PADDING_HORIZONTAL,
-		paddingVertical: 8,
-	},
-	gridRow: {
-		gap: GAP,
-	},
-	card: {
-		marginBottom: GAP,
-		borderRadius: 8,
-		overflow: "hidden",
-		backgroundColor: "#F3F4F6",
-	},
-	placeholder: {
-		alignItems: "center",
-		justifyContent: "center",
-		gap: 4,
-		paddingHorizontal: 6,
-		backgroundColor: "#F3F4F6",
-	},
-	placeholderText: {
-		fontSize: 10,
-		color: "#6B7280",
-		textAlign: "center",
-	},
-	badgeRow: {
-		flexDirection: "row",
-		padding: 6,
-		gap: 4,
-	},
-	statusBadge: {
-		paddingHorizontal: 6,
-		paddingVertical: 2,
-		borderRadius: 10,
-	},
-	noPhotoBadge: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 2,
-		paddingHorizontal: 6,
-		paddingVertical: 2,
-		borderRadius: 10,
-		backgroundColor: "rgba(17,24,39,0.6)",
-	},
-	noPhotoBadgeText: {
-		fontSize: 9,
-		fontWeight: "700",
-		color: "#FFFFFF",
-	},
-	// #1375 実機確認（2 巡目）: 食べたい = 緑（myDishCard.tsx と必ず一致させる）
-	statusWant: {
-		backgroundColor: "rgba(22,163,74,0.9)",
-	},
-	statusEaten: {
-		backgroundColor: "rgba(240,85,55,0.9)",
-	},
-	statusBadgeText: {
-		fontSize: 10,
-		fontWeight: "700",
-		color: "#FFFFFF",
-	},
-	footer: {
-		position: "absolute",
-		left: 6,
-		right: 6,
-		bottom: 6,
-		gap: 2,
-	},
-	ratingText: {
-		fontSize: 11,
-		fontWeight: "700",
-		color: "#FFFFFF",
-	},
-	footerText: {
-		fontSize: 11,
-		color: "#FFFFFF",
-	},
-	footerSubText: {
-		fontSize: 10,
-		color: "rgba(255,255,255,0.85)",
-	},
-});
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		gridContent: {
+			paddingHorizontal: PADDING_HORIZONTAL,
+			paddingVertical: 8,
+		},
+		gridRow: {
+			gap: GAP,
+		},
+		card: {
+			marginBottom: GAP,
+			borderRadius: 8,
+			overflow: "hidden",
+			backgroundColor: c.surfaceSubtle,
+		},
+		placeholder: {
+			alignItems: "center",
+			justifyContent: "center",
+			gap: 4,
+			paddingHorizontal: 6,
+			backgroundColor: c.surfaceSubtle,
+		},
+		placeholderText: {
+			fontSize: 10,
+			color: c.textSecondary,
+			textAlign: "center",
+		},
+		badgeRow: {
+			flexDirection: "row",
+			padding: 6,
+			gap: 4,
+		},
+		statusBadge: {
+			paddingHorizontal: 6,
+			paddingVertical: 2,
+			borderRadius: 10,
+		},
+		noPhotoBadge: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 2,
+			paddingHorizontal: 6,
+			paddingVertical: 2,
+			borderRadius: 10,
+			backgroundColor: "rgba(17,24,39,0.6)",
+		},
+		noPhotoBadgeText: {
+			fontSize: 9,
+			fontWeight: "700",
+			// 地（noPhotoBadge）が固定の濃色なので、文字も固定でよい
+			color: FixedColors.onFilled,
+		},
+		// #1375 実機確認（2 巡目）: 食べたい = 緑（myDishCard.tsx と必ず一致させる）
+		statusWant: {
+			backgroundColor: "rgba(22,163,74,0.9)",
+		},
+		statusEaten: {
+			backgroundColor: "rgba(240,85,55,0.9)",
+		},
+		statusBadgeText: {
+			fontSize: 10,
+			fontWeight: "700",
+			// 地（statusWant / statusEaten）が固定の濃色なので、文字も固定でよい
+			color: FixedColors.onFilled,
+		},
+		footer: {
+			position: "absolute",
+			left: 6,
+			right: 6,
+			bottom: 6,
+			gap: 2,
+		},
+		ratingText: {
+			fontSize: 11,
+			fontWeight: "700",
+			// 料理写真（+ 暗いグラデーション）の上に載る文字なので固定の白でよい
+			color: FixedColors.onMedia,
+		},
+		footerText: {
+			fontSize: 11,
+			// 料理写真（+ 暗いグラデーション）の上に載る文字なので固定の白でよい
+			color: FixedColors.onMedia,
+		},
+		footerSubText: {
+			fontSize: 10,
+			color: "rgba(255,255,255,0.85)",
+		},
+	});

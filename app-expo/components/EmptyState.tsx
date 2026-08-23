@@ -1,6 +1,8 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { PrimaryButton } from "@/components/PrimaryButton";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useThemedStyles } from "@/contexts/ThemeProvider";
 import i18n from "@/lib/i18n";
 
 interface EmptyStateProps {
@@ -27,6 +29,7 @@ interface EmptyStateProps {
  * （#1402 でマイページの 4 グリッドタブを廃止し、SavedPostsTab / ReviewTab は撤去された）
  */
 export function EmptyState({ message, actionLabel, onAction, error, onRetry, testID }: EmptyStateProps) {
+	const styles = useThemedStyles(createStyles);
 	const isError = !!error;
 
 	return (
@@ -53,28 +56,29 @@ export function EmptyState({ message, actionLabel, onAction, error, onRetry, tes
 	);
 }
 
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-	},
-	card: {
-		backgroundColor: "#FFFFFF",
-		borderRadius: 20,
-		padding: 32,
-		alignItems: "center",
-		justifyContent: "center",
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 0 },
-		shadowOpacity: 0.08,
-		shadowRadius: 16,
-		elevation: 4,
-	},
-	text: {
-		fontSize: 16,
-		color: "#6B7280",
-		textAlign: "center",
-	},
-	button: {
-		marginTop: 16,
-	},
-});
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		container: {
+			flex: 1,
+		},
+		card: {
+			backgroundColor: c.surface,
+			borderRadius: 20,
+			padding: 32,
+			alignItems: "center",
+			justifyContent: "center",
+			shadowColor: FixedColors.shadow,
+			shadowOffset: { width: 0, height: 0 },
+			shadowOpacity: 0.08,
+			shadowRadius: 16,
+			elevation: 4,
+		},
+		text: {
+			fontSize: 16,
+			color: c.textSecondary,
+			textAlign: "center",
+		},
+		button: {
+			marginTop: 16,
+		},
+	});
