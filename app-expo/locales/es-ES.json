@@ -85,11 +85,18 @@
 		"noVotes": "Aún no hay votos",
 		"myVotes": {
 			"pageTitle": "Mis votaciones de grupo",
-			"empty": "Aún no has iniciado ninguna votación de grupo",
-			"votedBadge": "Votado",
-			"notVotedBadge": "Sin votar",
-			"candidateCount": "{{count}} opciones",
-			"loadFailed": "No se pudieron cargar tus votaciones de grupo"
+			"loadFailed": "No se pudieron cargar tus votaciones de grupo",
+			"noCandidates": "Sin opciones",
+			"candidateSeparator": ", ",
+			"candidateSummaryMore": "{{names}} y {{count}} más",
+			"participantSummary": "{{count}} han votado",
+			"decidedLabel": "Ganador: {{name}}",
+			"votedLabel": "Has votado",
+			"notVotedLabel": "No has votado",
+			"itemAccessibilityLabel": "Votación de grupo del {{date}}. {{summary}}. {{participants}}. {{status}}",
+			"emptyTitle": "Aún no has iniciado ninguna votación de grupo",
+			"emptyDescription": "Busca comida, elige algunas opciones y pide a tus amigos que voten.",
+			"emptyAction": "Crear una votación"
 		}
 	},
 	"Error": {

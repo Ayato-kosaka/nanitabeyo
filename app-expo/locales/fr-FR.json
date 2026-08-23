@@ -85,11 +85,18 @@
 		"noVotes": "Aucun vote pour le moment",
 		"myVotes": {
 			"pageTitle": "Mes votes de groupe",
-			"empty": "Vous n'avez encore lancé aucun vote de groupe",
-			"votedBadge": "Voté",
-			"notVotedBadge": "Pas encore voté",
-			"candidateCount": "{{count}} choix",
-			"loadFailed": "Impossible de charger vos votes de groupe"
+			"loadFailed": "Impossible de charger vos votes de groupe",
+			"noCandidates": "Aucun choix",
+			"candidateSeparator": ", ",
+			"candidateSummaryMore": "{{names}} et {{count}} de plus",
+			"participantSummary": "{{count}} ont voté",
+			"decidedLabel": "Gagnant : {{name}}",
+			"votedLabel": "Vous avez voté",
+			"notVotedLabel": "Vous n'avez pas voté",
+			"itemAccessibilityLabel": "Vote de groupe du {{date}}. {{summary}}. {{participants}}. {{status}}",
+			"emptyTitle": "Vous n'avez encore lancé aucun vote de groupe",
+			"emptyDescription": "Cherchez un plat, proposez quelques choix et demandez à vos amis de voter.",
+			"emptyAction": "Créer un vote"
 		}
 	},
 	"Error": {

@@ -85,11 +85,18 @@
 		"noVotes": "まだ投票がありません",
 		"myVotes": {
 			"pageTitle": "グループ投票の履歴",
-			"empty": "まだ主催したグループ投票がありません",
-			"votedBadge": "投票済み",
-			"notVotedBadge": "未投票",
-			"candidateCount": "候補 {{count}} 件",
-			"loadFailed": "グループ投票を読み込めませんでした"
+			"loadFailed": "グループ投票を読み込めませんでした",
+			"noCandidates": "候補なし",
+			"candidateSeparator": "・",
+			"candidateSummaryMore": "{{names}} ほか{{count}}件",
+			"participantSummary": "{{count}}人が投票",
+			"decidedLabel": "決定: {{name}}",
+			"votedLabel": "投票済み",
+			"notVotedLabel": "未投票",
+			"itemAccessibilityLabel": "{{date}}のグループ投票。{{summary}}。{{participants}}。{{status}}",
+			"emptyTitle": "まだ主催したグループ投票がありません",
+			"emptyDescription": "料理を検索して候補を出すと、友達に投票をお願いできます。",
+			"emptyAction": "投票を作る"
 		}
 	},
 	"Error": {

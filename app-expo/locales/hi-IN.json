@@ -85,11 +85,18 @@
 		"noVotes": "अभी कोई वोट नहीं है",
 		"myVotes": {
 			"pageTitle": "मेरे समूह वोट",
-			"empty": "आपने अभी तक कोई समूह वोट शुरू नहीं किया है",
-			"votedBadge": "वोट किया",
-			"notVotedBadge": "वोट नहीं किया",
-			"candidateCount": "{{count}} विकल्प",
-			"loadFailed": "समूह वोट लोड नहीं हो सके"
+			"loadFailed": "समूह वोट लोड नहीं हो सके",
+			"noCandidates": "कोई विकल्प नहीं",
+			"candidateSeparator": ", ",
+			"candidateSummaryMore": "{{names}} और {{count}} अन्य",
+			"participantSummary": "{{count}} ने वोट किया",
+			"decidedLabel": "विजेता: {{name}}",
+			"votedLabel": "आपने वोट किया",
+			"notVotedLabel": "आपने वोट नहीं किया",
+			"itemAccessibilityLabel": "{{date}} का ग्रुप वोट। {{summary}}। {{participants}}। {{status}}",
+			"emptyTitle": "आपने अभी तक कोई समूह वोट शुरू नहीं किया है",
+			"emptyDescription": "खाना खोजें, कुछ विकल्प चुनें और दोस्तों से वोट करने को कहें।",
+			"emptyAction": "वोट बनाएँ"
 		}
 	},
 	"Error": {

@@ -85,11 +85,18 @@
 		"noVotes": "لا توجد أصوات بعد",
 		"myVotes": {
 			"pageTitle": "تصويتاتي الجماعية",
-			"empty": "لم تبدأ أي تصويت جماعي بعد",
-			"votedBadge": "تم التصويت",
-			"notVotedBadge": "لم يتم التصويت",
-			"candidateCount": "{{count}} خيارات",
-			"loadFailed": "تعذر تحميل تصويتاتك الجماعية"
+			"loadFailed": "تعذر تحميل تصويتاتك الجماعية",
+			"noCandidates": "لا توجد خيارات",
+			"candidateSeparator": "، ",
+			"candidateSummaryMore": "{{names}} و{{count}} أخرى",
+			"participantSummary": "صوّت {{count}}",
+			"decidedLabel": "الفائز: {{name}}",
+			"votedLabel": "لقد صوّتت",
+			"notVotedLabel": "لم تصوّت بعد",
+			"itemAccessibilityLabel": "تصويت جماعي بتاريخ {{date}}. {{summary}}. {{participants}}. {{status}}",
+			"emptyTitle": "لم تبدأ أي تصويت جماعي بعد",
+			"emptyDescription": "ابحث عن طعام واختر بعض الخيارات، ثم اطلب من أصدقائك التصويت.",
+			"emptyAction": "إنشاء تصويت"
 		}
 	},
 	"Error": {

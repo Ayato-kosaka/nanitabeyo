@@ -85,11 +85,18 @@
 		"noVotes": "아직 투표가 없습니다",
 		"myVotes": {
 			"pageTitle": "그룹 투표 내역",
-			"empty": "아직 주최한 그룹 투표가 없습니다",
-			"votedBadge": "투표 완료",
-			"notVotedBadge": "미투표",
-			"candidateCount": "후보 {{count}}개",
-			"loadFailed": "그룹 투표를 불러올 수 없습니다"
+			"loadFailed": "그룹 투표를 불러올 수 없습니다",
+			"noCandidates": "후보 없음",
+			"candidateSeparator": ", ",
+			"candidateSummaryMore": "{{names}} 외 {{count}}개",
+			"participantSummary": "{{count}}명이 투표",
+			"decidedLabel": "결정: {{name}}",
+			"votedLabel": "투표 완료",
+			"notVotedLabel": "미투표",
+			"itemAccessibilityLabel": "{{date}}의 그룹 투표. {{summary}}. {{participants}}. {{status}}",
+			"emptyTitle": "아직 주최한 그룹 투표가 없습니다",
+			"emptyDescription": "음식을 검색해 후보를 고르면 친구들에게 투표를 요청할 수 있어요.",
+			"emptyAction": "투표 만들기"
 		}
 	},
 	"Error": {

@@ -5,26 +5,72 @@
 // 【仕様】一覧は **自分が主催した投票だけ**（参加しただけの投票は出さない）。
 // 絞り込みはこの画面ではなく API 側（GET /v1/users/me/dish-category-group-votes の where 句）で
 // 行っている。ここでクライアント側の再フィルタを足さないこと（真実の置き場所を二重にしない）。
-// 全行が主催なので「主催」バッジは持たない。残すバッジは投票済み/未投票だけ。
+//
+// ## 行の作り（オーナー指摘「デザインが不格好すぎる」への再設計）
+//
+// 元の行は「日付 · 候補 N 件」＋テキストバッジで、**料理アプリなのに料理が 1 つも見えなかった**。
+// 情報の無い行はどう組んでも汎用リストにしかならないので、行の主役を «候補の写真» に据え直した。
+//
+// - 左: 候補サムネイルを 3 枚オーバーラップさせて重ねる。4 件目以降は「+N」。ここが主役
+// - 中: 1 行目 = 勝者が決まっていればその料理名（太字）、未決なら候補名の要約。
+//       2 行目 = 参加人数と相対時刻
+// - 右: 遷移を示すシェブロン。テキストバッジは廃止し、状態は
+//       「勝者名が出ているか」と「未投票のドット」だけで伝える
+// - 区切りはカードの羅列ではなく、1 枚の面の中の細い区切り線
+//
+// ## 色
+//
+// #1509 の `constants/Palette.ts` / `contexts/ThemeProvider.tsx` のトークンを使う。
+// `StyleSheet.create` はモジュール評価時に 1 度しか走らずテーマを追従できないため、
+// ファクトリ（createStyles）をモジュールスコープに置いて `useThemedStyles` で組む
+// （#1509 が定めた作法。画面ごとに別のやり方を発明しない）。
 import React, { useCallback, useEffect, useState, useRef, memo } from "react";
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from "react-native";
+import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
+import { ChevronRight, UtensilsCrossed } from "lucide-react-native";
 
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { EmptyState } from "@/components/EmptyState";
 import i18n from "@/lib/i18n";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
+import { dateStringToTimestamp } from "@/lib/frontend-utils";
+import type { Palette } from "@/constants/Palette";
 
 import type { QueryMeDishCategoryGroupVotesResponse } from "@shared/api/v1/res";
 import type { MeDishCategoryGroupVoteListItem } from "@shared/api/v1/res";
 import { toErrorLogMessage } from "@/lib/errorMessage";
+
+/** サムネイル 1 枚の一辺。行の最小高（44pt）は上下 padding 14 と合わせてこれで満たす */
+const THUMBNAIL_SIZE = 44;
+/** 重なり量。少しだけ重ねて «同じ投票の候補» に見せる（隠しすぎると何の写真か分からない） */
+const THUMBNAIL_OVERLAP = 14;
+
+/**
+ * 候補名の要約。「ラーメン・寿司ほか2件」。
+ *
+ * 区切り記号と「ほか N 件」の語順はロケールごとに違うので、両方 i18n に持たせる
+ * （日本語の「・」を英語へそのまま持ち込むと読めない）。
+ */
+function buildCandidateSummary(item: MeDishCategoryGroupVoteListItem): string {
+	const names = item.candidatePreviews.map((preview) => preview.displayName);
+	if (names.length === 0) return i18n.t("DishCategoryGroupVotes.myVotes.noCandidates");
+
+	const joined = names.join(i18n.t("DishCategoryGroupVotes.myVotes.candidateSeparator"));
+	const rest = item.candidateCount - names.length;
+
+	return rest > 0
+		? i18n.t("DishCategoryGroupVotes.myVotes.candidateSummaryMore", { names: joined, count: rest })
+		: joined;
+}
 
 interface VoteListItemProps {
 	item: MeDishCategoryGroupVoteListItem;
@@ -33,11 +79,39 @@ interface VoteListItemProps {
 }
 
 const VoteListItem = memo(({ item, locale, onPress }: VoteListItemProps) => {
-	const formattedDate = new Date(item.createdAt).toLocaleDateString(locale, {
+	const styles = useThemedStyles(createStyles);
+	const { colors } = useAppTheme();
+
+	// 表示は相対時刻（「2日前」）。一覧は updated_at の降順で並ぶので、
+	// 見えている時刻も updated_at にしないと「並びがおかしい」と見える。
+	const relativeTime = dateStringToTimestamp(item.updatedAt);
+	// 読み上げは相対時刻ではなく絶対日付にする。「2日前」は音声だけで聞くと何日か分からない。
+	const absoluteDate = new Date(item.updatedAt).toLocaleDateString(locale, {
 		year: "numeric",
 		month: "short",
 		day: "numeric",
 	});
+
+	const summary = buildCandidateSummary(item);
+	const title = item.winnerName ?? summary;
+	const participants = i18n.t("DishCategoryGroupVotes.myVotes.participantSummary", {
+		count: item.participantCount,
+	});
+
+	// 「いつ・何の投票・状態」を 1 つのラベルに畳む。行の中の Text を個別に読ませると
+	// 「2日前」「5人が投票」だけが読み上がって、何の投票かが分からない。
+	const accessibilityLabel = i18n.t("DishCategoryGroupVotes.myVotes.itemAccessibilityLabel", {
+		date: absoluteDate,
+		summary: item.winnerName
+			? i18n.t("DishCategoryGroupVotes.myVotes.decidedLabel", { name: item.winnerName })
+			: summary,
+		participants,
+		status: i18n.t(
+			item.hasVoted ? "DishCategoryGroupVotes.myVotes.votedLabel" : "DishCategoryGroupVotes.myVotes.notVotedLabel",
+		),
+	});
+
+	const restCount = item.candidateCount - item.candidatePreviews.length;
 
 	return (
 		<TouchableOpacity
@@ -45,26 +119,52 @@ const VoteListItem = memo(({ item, locale, onPress }: VoteListItemProps) => {
 			onPress={() => onPress(item)}
 			activeOpacity={0.7}
 			accessibilityRole="link"
-			accessibilityLabel={formattedDate}>
-			{/* #1505 【設計】日付と候補数は 1 行に畳む。行が高いと一覧が「出しすぎ」に見えるため */}
-			<View style={styles.itemMain}>
-				<Text style={styles.itemDate} numberOfLines={1}>
-					{formattedDate}
+			accessibilityLabel={accessibilityLabel}
+			testID={`me-dish-category-group-votes-item-${item.id}`}>
+			<View style={styles.thumbnails}>
+				{item.candidatePreviews.length === 0 ? (
+					// 候補が 1 件も無い投票でも行の高さと左端を揃える（レイアウトを崩さない）
+					<View style={[styles.thumbnail, styles.thumbnailFallback]}>
+						<UtensilsCrossed size={18} color={colors.textTertiary} />
+					</View>
+				) : (
+					item.candidatePreviews.map((preview, index) => (
+						<View key={`${item.id}-${index}`} style={[styles.thumbnail, index > 0 && styles.thumbnailStacked]}>
+							{/* 読み込み中・失敗のどちらでも、この View の寸法と地色がそのまま残る。
+							    画像側にサイズを持たせないので、画像が来なくても行が動かない */}
+							<Image
+								source={{ uri: preview.imageUrl }}
+								style={StyleSheet.absoluteFill}
+								contentFit="cover"
+								cachePolicy="memory-disk"
+								transition={100}
+								// 行の accessibilityLabel が候補名を含むので、画像自体は装飾扱い
+								alt=""
+								accessibilityElementsHidden
+								importantForAccessibility="no"
+							/>
+						</View>
+					))
+				)}
+				{restCount > 0 && (
+					<View style={[styles.thumbnail, styles.thumbnailStacked, styles.moreThumbnail]}>
+						<Text style={styles.moreThumbnailText}>{`+${restCount}`}</Text>
+					</View>
+				)}
+			</View>
+
+			<View style={styles.itemBody}>
+				<Text style={[styles.itemTitle, !item.winnerName && styles.itemTitleUndecided]} numberOfLines={1}>
+					{title}
 				</Text>
-				<Text style={styles.itemSeparator}>·</Text>
-				<Text style={styles.itemCandidateCount} numberOfLines={1}>
-					{i18n.t("DishCategoryGroupVotes.myVotes.candidateCount", { count: item.candidateCount })}
+				<Text style={styles.itemMeta} numberOfLines={1}>
+					{`${participants} · ${relativeTime}`}
 				</Text>
 			</View>
-			<View style={[styles.badge, item.hasVoted ? styles.votedBadge : styles.notVotedBadge]}>
-				<Text style={styles.badgeText}>
-					{i18n.t(
-						item.hasVoted
-							? "DishCategoryGroupVotes.myVotes.votedBadge"
-							: "DishCategoryGroupVotes.myVotes.notVotedBadge",
-					)}
-				</Text>
-			</View>
+
+			{/* 状態はバッジではなくドットで示す。未投票の行だけに出す控えめな印 */}
+			{!item.hasVoted && <View style={styles.unvotedDot} />}
+			<ChevronRight size={18} color={colors.textTertiary} accessibilityElementsHidden importantForAccessibility="no" />
 		</TouchableOpacity>
 	);
 });
@@ -76,6 +176,8 @@ export default function MyDishCategoryGroupVotesScreen() {
 	const { locale } = useLocale();
 	const { logFrontendEvent } = useLogger();
 	const { lightImpact } = useHaptics();
+	const styles = useThemedStyles(createStyles);
+	const { colors } = useAppTheme();
 
 	const [votes, setVotes] = useState<MeDishCategoryGroupVoteListItem[]>([]);
 	const [isLoading, setIsLoading] = useState(false);
@@ -180,6 +282,18 @@ export default function MyDishCategoryGroupVotesScreen() {
 		[lightImpact, logFrontendEvent, locale],
 	);
 
+	// #1505 空状態の導線。投票は「検索 → 候補を出す → 友達に聞く」でしか作れないので、
+	// その入口である検索タブへ送る（行き先の無い CTA を置かない）。
+	const handleCreateVote = useCallback(() => {
+		lightImpact();
+		logFrontendEvent({
+			event_name: "me_dish_category_group_votes_empty_cta_pressed",
+			error_level: "log",
+			payload: {},
+		});
+		router.push({ pathname: "/[locale]/(tabs)/search", params: { locale } });
+	}, [lightImpact, logFrontendEvent, locale]);
+
 	const keyExtractor = useCallback((item: MeDishCategoryGroupVoteListItem) => item.id, []);
 
 	const renderItem = useCallback(
@@ -189,6 +303,8 @@ export default function MyDishCategoryGroupVotesScreen() {
 		[locale, handlePressItem],
 	);
 
+	const renderSeparator = useCallback(() => <View style={styles.separator} />, [styles.separator]);
+
 	const renderFooter = useCallback(() => {
 		if (!isLoadingMore) return null;
 		return (
@@ -196,20 +312,24 @@ export default function MyDishCategoryGroupVotesScreen() {
 				<LoadingIndicator size="small" />
 			</View>
 		);
-	}, [isLoadingMore]);
+	}, [isLoadingMore, styles.footerLoader]);
 
 	const renderEmpty = useCallback(() => {
 		if (isLoading) return null;
 		return (
 			<EmptyState
-				message={i18n.t("DishCategoryGroupVotes.myVotes.empty")}
+				icon={<UtensilsCrossed size={28} color={colors.textTertiary} />}
+				message={i18n.t("DishCategoryGroupVotes.myVotes.emptyTitle")}
+				description={i18n.t("DishCategoryGroupVotes.myVotes.emptyDescription")}
+				actionLabel={i18n.t("DishCategoryGroupVotes.myVotes.emptyAction")}
+				onAction={handleCreateVote}
 				testID="me-dish-category-group-votes-empty-state"
 			/>
 		);
-	}, [isLoading]);
+	}, [isLoading, colors.textTertiary, handleCreateVote]);
 
 	return (
-		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
+		<LinearGradient colors={colors.backgroundGradient} style={styles.container}>
 			<SafeAreaView style={styles.safeArea} edges={[]}>
 				<ScreenHeader
 					testID="me-dish-category-group-votes-header"
@@ -228,13 +348,14 @@ export default function MyDishCategoryGroupVotesScreen() {
 								data={votes}
 								keyExtractor={keyExtractor}
 								renderItem={renderItem}
+								ItemSeparatorComponent={renderSeparator}
 								ListEmptyComponent={renderEmpty}
 								ListFooterComponent={renderFooter}
 								onEndReached={handleLoadMore}
 								onEndReachedThreshold={0.5}
 								refreshing={isRefreshing}
 								onRefresh={handleRefresh}
-								contentContainerStyle={styles.listContent}
+								contentContainerStyle={[styles.listContent, votes.length === 0 && styles.listContentEmpty]}
 								removeClippedSubviews={true}
 								initialNumToRender={10}
 								maxToRenderPerBatch={10}
@@ -248,98 +369,121 @@ export default function MyDishCategoryGroupVotesScreen() {
 	);
 }
 
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-	},
-	safeArea: {
-		flex: 1,
-	},
-	listWrapper: {
-		flex: 1,
-		marginTop: 16,
-		borderTopLeftRadius: 32,
-		borderTopRightRadius: 32,
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 0 },
-		shadowOpacity: 0.1,
-		shadowRadius: 24,
-		elevation: 10,
-	},
-	sheet: {
-		flex: 1,
-		backgroundColor: "#FFFFFF",
-		borderTopLeftRadius: 32,
-		borderTopRightRadius: 32,
-		overflow: "hidden",
-		paddingTop: 16,
-	},
-	loaderContainer: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-	},
-	listContent: {
-		paddingHorizontal: 16,
-		paddingBottom: 32,
-	},
-	// #1505 【設計】行の密度。オーナー指摘「リストが出しすぎ」への暫定調整で、
-	// 縦 padding 16→10 / 行間 12→8 / 角丸 12→10 と、日付+候補数の 1 行化で行高を詰めている。
-	itemContainer: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		backgroundColor: "#FFFFFF",
-		borderRadius: 10,
-		paddingVertical: 10,
-		paddingHorizontal: 14,
-		marginBottom: 8,
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 1 },
-		shadowOpacity: 0.05,
-		shadowRadius: 2,
-		elevation: 2,
-	},
-	itemMain: {
-		flex: 1,
-		flexDirection: "row",
-		alignItems: "center",
-	},
-	itemDate: {
-		fontSize: 15,
-		fontWeight: "600",
-		color: "#1A1A1A",
-		flexShrink: 1,
-	},
-	itemSeparator: {
-		marginHorizontal: 6,
-		fontSize: 13,
-		color: "#9CA3AF",
-	},
-	itemCandidateCount: {
-		fontSize: 13,
-		color: "#6B7280",
-		flexShrink: 1,
-	},
-	badge: {
-		marginLeft: 8,
-		paddingHorizontal: 8,
-		paddingVertical: 2,
-		borderRadius: 6,
-	},
-	votedBadge: {
-		backgroundColor: "#D1FAE5",
-	},
-	notVotedBadge: {
-		backgroundColor: "#F3F4F6",
-	},
-	badgeText: {
-		fontSize: 11,
-		fontWeight: "600",
-		color: "#1A1A1A",
-	},
-	footerLoader: {
-		paddingVertical: 20,
-		alignItems: "center",
-	},
-});
+const createStyles = (colors: Palette) =>
+	StyleSheet.create({
+		container: {
+			flex: 1,
+		},
+		safeArea: {
+			flex: 1,
+		},
+		listWrapper: {
+			flex: 1,
+			marginTop: 16,
+			borderTopLeftRadius: 32,
+			borderTopRightRadius: 32,
+			shadowColor: "#000",
+			shadowOffset: { width: 0, height: 0 },
+			shadowOpacity: 0.1,
+			shadowRadius: 24,
+			elevation: 10,
+		},
+		sheet: {
+			flex: 1,
+			backgroundColor: colors.surface,
+			borderTopLeftRadius: 32,
+			borderTopRightRadius: 32,
+			overflow: "hidden",
+			paddingTop: 8,
+		},
+		loaderContainer: {
+			flex: 1,
+			justifyContent: "center",
+			alignItems: "center",
+		},
+		listContent: {
+			paddingBottom: 32,
+		},
+		// 0 件のときだけ、空状態をシートの中で上下中央に置くために伸ばす
+		listContentEmpty: {
+			flexGrow: 1,
+			justifyContent: "center",
+			paddingHorizontal: 16,
+		},
+		// #1505 行はカードにしない。1 枚の面（sheet）の中に行が並び、細い区切り線で切る。
+		// 影付きカードを 20 個積むと «情報の少ない箱の羅列» に見えるのが元の不格好さの一因だった。
+		itemContainer: {
+			flexDirection: "row",
+			alignItems: "center",
+			paddingVertical: 14,
+			paddingHorizontal: 16,
+			// サムネイル 44 + 上下 14 で 72。タップ領域は 44pt を余裕で超える
+			minHeight: 72,
+		},
+		separator: {
+			height: StyleSheet.hairlineWidth,
+			backgroundColor: colors.divider,
+			marginHorizontal: 16,
+		},
+		thumbnails: {
+			flexDirection: "row",
+			alignItems: "center",
+			marginRight: 12,
+		},
+		thumbnail: {
+			width: THUMBNAIL_SIZE,
+			height: THUMBNAIL_SIZE,
+			borderRadius: 12,
+			// 画像が来る前・失敗時に残る地。ここが «同寸法のプレースホルダ» になる
+			backgroundColor: colors.surfaceMuted,
+			// 面と同色の縁。重ねたときに隣の写真との境目が消えないようにする
+			borderWidth: 2,
+			borderColor: colors.surface,
+			overflow: "hidden",
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		thumbnailStacked: {
+			marginLeft: -THUMBNAIL_OVERLAP,
+		},
+		thumbnailFallback: {
+			backgroundColor: colors.surfaceSubtle,
+		},
+		moreThumbnail: {
+			backgroundColor: colors.surfaceSubtle,
+		},
+		moreThumbnailText: {
+			fontSize: 12,
+			fontWeight: "700",
+			color: colors.textSecondary,
+		},
+		itemBody: {
+			flex: 1,
+		},
+		itemTitle: {
+			fontSize: 15,
+			fontWeight: "700",
+			color: colors.textPrimary,
+		},
+		// 未決のときは候補名の «要約» であって決定事項ではないので、勝者名より一段弱くする
+		itemTitleUndecided: {
+			fontWeight: "500",
+			color: colors.textPrimaryAlt,
+		},
+		itemMeta: {
+			marginTop: 3,
+			fontSize: 13,
+			color: colors.textSecondary,
+		},
+		unvotedDot: {
+			width: 6,
+			height: 6,
+			borderRadius: 3,
+			marginRight: 8,
+			backgroundColor: colors.textPrimaryAlt,
+		},
+		footerLoader: {
+			paddingVertical: 20,
+			alignItems: "center",
+		},
+	});
