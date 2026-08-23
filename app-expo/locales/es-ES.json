@@ -406,7 +406,9 @@
 		"processing": "Procesando el contenido...",
 		"errors": {
 			"mapOpenFailed": "No se pudo abrir la aplicación de mapas",
-			"mediaUnavailable": "Este contenido no está disponible actualmente."
+			"mediaUnavailable": "Este contenido no está disponible actualmente.",
+			"likeReactionFailed": "No se pudo actualizar el me gusta. Inténtalo de nuevo.",
+			"saveReactionFailed": "No se pudo actualizar el guardado. Inténtalo de nuevo."
 		},
 		"info": {
 			"walkFromShibuya": "A 13 min a pie de la estación de Shibuya"

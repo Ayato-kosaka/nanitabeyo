@@ -406,7 +406,9 @@
 		"processing": "正在处理媒体...",
 		"errors": {
 			"mapOpenFailed": "无法打开地图应用",
-			"mediaUnavailable": "该内容当前不可用。"
+			"mediaUnavailable": "该内容当前不可用。",
+			"likeReactionFailed": "点赞更新失败，请重试。",
+			"saveReactionFailed": "收藏更新失败，请重试。"
 		},
 		"info": {
 			"walkFromShibuya": "距离涩谷站步行13分钟"
