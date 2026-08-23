@@ -52,6 +52,14 @@ module.exports = {
 		plugins: {
 			log: "none",
 			screenshot: "failing",
+			// #1484 エビデンス動画は workflow_dispatch の record_videos 入力で撮る。
+			// 入力は DETOX_RECORD_VIDEOS=all を渡し、Detox 自身の env→CLI マッピング
+			//（collectCliConfig が argv と同格に DETOX_RECORD_VIDEOS を読む）で有効化される。
+			// ⚠️ ここを process.env の三項演算にしてはいけない。CLI 設定は defaultsDeep で
+			// この config より優先されるため、"1" のような不正値の env が来た時点で
+			// この行の値は黙って上書きされ、動画が出ない（run 32603604105 / 32605810775 で実測）。
+			// env の値は必ず none|failing|all のいずれかにすること。
+			// #1030 の注意のとおり video に launchArgs のトークンは写らない。既定は "none"
 			video: "none",
 			instruments: "none",
 		},
