@@ -5,6 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Check } from "lucide-react-native";
 import * as Localization from "expo-localization";
 import { useRouter, usePathname } from "expo-router";
+import type { ExternalPathString } from "expo-router";
 
 import { Card } from "@/components/Card";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
@@ -114,7 +115,7 @@ export default function LanguageScreen() {
 				payload: { from: locale, to: resolvedLocale, preference: next },
 			});
 
-			router.replace(replaceLocaleInPath(pathname, resolvedLocale) as never);
+			router.replace(replaceLocaleInPath(pathname, resolvedLocale) as ExternalPathString);
 		},
 		[isSwitching, preference, lightImpact, isAuthResolved, user, callBackend, logFrontendEvent, locale, router, pathname],
 	);
