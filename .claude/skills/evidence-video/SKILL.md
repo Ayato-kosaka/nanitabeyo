@@ -1,22 +1,71 @@
 ---
 name: evidence-video
 description: >-
-  web アプリの操作動画・スクリーンショットを CI を経由せず数分でチャットへ届ける即席エビデンス撮影。
-  ローカルで expo の web ビルドを立ち上げ、Supabase 認証・backend API・Google Maps をモックした
-  Playwright で画面フローを操作しながら録画する。「動画で見せて」「エビデンスください」「この画面
-  どうなってるかスクショで確認したい」「デザイン修正を目視確認して」のように、UI の実際の見た目や
-  挙動を人に見せる・自分で確かめる必要があるとき必ず使う。実 API・実データが必要な正式エビデンス
-  （CI の e2e 動画 Artifact）とは別物で、こちらはモック前提の高速版。
+  アプリの操作動画・スクリーンショットをチャットへ届けるエビデンス撮影。2 経路ある:
+  (A) 即席 = ローカルで expo の web ビルドを立ち上げ、認証・API・Maps をモックした Playwright で
+  録画（数分。Android 相当 / iOS 相当 = WebKit のデバイスプリセット付き）。
+  (B) 実機 = e2e-mobile CI を record_videos 入力付きで dispatch し、Android エミュレータ /
+  iOS シミュレータの本物の Detox 動画を Artifact から回収（ビルドキャッシュ命中時
+  Android 約 6 分 / iOS 約 15 分）。
+  「動画で見せて」「エビデンスください」「スクショで確認したい」「iOS/Android での見た目を確かめたい」
+  「デザイン修正を目視確認して」のように、UI の見た目や挙動を人に見せる・自分で確かめる必要が
+  あるとき必ず使う。
 ---
 
-# 即席エビデンス撮影（web）
+# エビデンス撮影
 
-ローカルビルド + Playwright 録画で、UI フローの動画 / スクショを数分で作る手順。
-CI を待てないとき・チャットへ直接届けたいとき・デザイン修正を自分の目で確かめたいときに使う。
+2 経路ある。目的で選ぶ:
 
-**認証・API・地図はすべてモック**なので、映るのは「画面と遷移」であって実データではない。
-実 API での正式エビデンスが要るときは e2e-web-test.yml（Playwright は失敗時に動画を残す）や
-e2e-mobile の Detox video artifact を使うこと。
+| | A. 即席（このファイルの主題） | B. 実機（Detox / CI） |
+| --- | --- | --- |
+| 所要 | 数分 | APK/app キャッシュ命中時: Android 約 6 分 / iOS 約 15 分。ミス時 +11〜16 分 |
+| 実体 | ローカル web ビルド + Playwright | Android エミュレータ / iOS シミュレータ + Detox |
+| データ | 認証・API・Maps は**モック** | 実 dev 環境（実 API） |
+| 映るもの | UI・デザイン・画面遷移 | 上に加えて OS 許可ダイアログ・ATT 等ネイティブ面 |
+| デバイス | Chromium(素/Pixel 7 相当) + WebKit(iPhone 14 相当) | 本物の Android / iOS |
+
+**A で足りるか**の判断基準: アプリは React Native で web も native も同じ JS が描画される。
+デザイン・文言・レイアウト・フローの確認なら A でほぼ等価。OS ダイアログ・プッシュ通知・
+共有インテント・ネイティブ遷移の滑らかさが論点なら B。**A の動画を「実機で確認した」と
+提示してはいけない**（プリセットは «相当» であって実機ではない）。
+
+## B. 実機動画（Detox / CI）の手順
+
+1. `e2e-mobile-test.yml` を workflow_dispatch で起動する。入力:
+   - `record_videos: true`（.detoxrc.js の video plugin が "all" になり全テストの動画が残る）
+   - `test_filter` に撮りたいフローの spec 名（例: `onboarding`）。**scope は既定の
+     `tier1-2` のまま**にする。filter は scope と AND で効くため、tier1(smoke) に
+     smoke 外の spec 名を渡すと 0 件になる。platform で android / ios を絞れる
+   - ビルドはバイナリ単位でキャッシュされる（app-expo / shared / lockfile が前回
+     ビルド時と同一なら Gradle 11 分 / xcodebuild 16 分がスキップされる）。
+     main で一度撮った後の再撮影・テストコードだけの修正は毎回キャッシュに乗る
+2. 完了後、Artifact `detox-report-android` / `detox-report-ios` をダウンロードすると
+   `artifacts/` 配下にテストごとの `test.mp4` が入っている。チャットへは必要な分だけ
+   `SendUserFile` で転送する
+3. CI の GitHub Actions を消費するだけで **EAS のビルド枠は消費しない**
+   （CLAUDE.md の EAS Build 規則とは無関係に自由に実行してよい）
+
+Android / iOS どちらも `test.mp4` が出る（#1484 の run 32589219056 で両 OS の
+mp4 を確認）。スクショ（--take-screenshots all）は録画の有無によらず常時収集される。
+
+⚠️ **CI の実機動画に紙吹雪など「モーション削減で消える演出」は映らない。**
+CI エミュレータはテスト安定化のため `disable-animations: true` で走り、Android は
+これをモーション削減としてアプリへ通知する。アプリ側（ConfettiBurst 等）が
+reduced motion を正しく尊重して描画を抑制するので、映らないのが正しい挙動。
+アニメを有効にすると無限ループ演出（紙吹雪・スピナー）が Detox の同期機構を
+永久ビジーにして全テストがハングするため、CI では有効化しない。
+演出そのもののエビデンスは A（即席 web 動画）か手元の実機で撮ること。
+
+⚠️ **`DETOX_RECORD_VIDEOS` という env 名は Detox 自身が CLI オプションとして
+解釈する**（collectCliConfig が argv と同格に読み、defaultsDeep で .detoxrc.js より
+優先される）。record_videos 入力はこの仕組みを使って `all` を渡している。
+値を none|failing|all 以外（"1" 等）にすると、エラーにならず .detoxrc.js の
+video 設定を黙って上書きして動画が出なくなる（run 32603604105 / 32605810775 で
+実測）。.detoxrc.js 側を process.env の三項演算で切り替える実装も同じ理由で
+機能しないので、やらないこと。
+
+以下は A（即席）の手順。**認証・API・地図はすべてモック**なので、映るのは
+「画面と遷移」であって実データではないことを常にキャプションで明示する。
 
 ## 全体像
 
@@ -103,8 +152,13 @@ env -u PLAYWRIGHT_BROWSERS_PATH node .claude/skills/evidence-video/scripts/recor
   `permissions: ["geolocation"]` + `geolocation: {...}` で作る
 - **アニメーションは実時間で待つ。** オンボーディングの課題→解決は表示から約 1.5 秒 +
   アニメ 0.3 秒。`waitForTimeout(2600)` 程度置いてから次へ進むと動画に全部映る
-- **iPhone 相当は viewport 390×844**（SE は 375×667）。これは「見た目が iPhone サイズ」な
-  だけで iOS 実機ではない。エビデンスとして提示するとき、プラットフォームを偽らないこと
+- **デバイスは record.mjs の PRESETS で選ぶ**: `default`（素の iPhone サイズ Chromium・最速）/
+  `android`（Pixel 7 相当）/ `ios`（iPhone 14 + WebKit）。後者 2 つは e2e-web CI の
+  mobile-chrome / mobile-safari と同じ descriptor。`ios` は WebKit バイナリと OS ライブラリが
+  要るため、初回に e2e-web で次の 2 つを実行する（数分。2 回目以降は不要）:
+  `env -u PLAYWRIGHT_BROWSERS_PATH ./node_modules/.bin/playwright install webkit` と
+  `env -u PLAYWRIGHT_BROWSERS_PATH ./node_modules/.bin/playwright install-deps webkit`。
+  いずれも実機ではないので、エビデンスとして提示するときプラットフォームを偽らないこと
 - ffmpeg はサンドボックスに無い。**webm のまま送る**（チャットで再生できる）
 
 ## してはいけないこと

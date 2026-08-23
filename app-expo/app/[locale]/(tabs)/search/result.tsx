@@ -15,6 +15,7 @@ import {
 } from "@/stores/useDishMediaEntriesStore";
 import { shallow } from "zustand/shallow";
 import { RestaurantLoading } from "@/features/dishMedia/components/RestaurantLoading";
+import { DishSelectionExpandLoading } from "@/features/dishMedia/components/DishSelectionExpandLoading";
 import { useDishMediaActions } from "@/features/dishMedia/hooks/useDishMediaActions";
 import i18n from "@/lib/i18n";
 import { useLocale } from "@/hooks/useLocale";
@@ -24,10 +25,13 @@ const idType = "dish_media" as const;
 
 export default function ResultScreen() {
 	// #633 【設計】topicId ではなく entriesKey を使用（Topics/SavedTopics 共通化）
-	const { entriesKey, location, category } = useLocalSearchParams<{
+	const { entriesKey, location, category, dishImageUrl } = useLocalSearchParams<{
 		entriesKey: string;
 		location?: string;
 		category?: string;
+		// #1484 【設計】Topics 画面の「この料理にする！」経由の場合のみ渡される。選択した料理画像を
+		// 店舗提案の取得完了まで表示し続けるためのローディング演出に使う（無ければ従来のローディングにfallback）。
+		dishImageUrl?: string;
 	}>();
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
@@ -198,11 +202,18 @@ export default function ResultScreen() {
 
 			{/* #420 【仕様】店舗5件のローディング画面 - 必要データ（リスト＋サムネイル最低1枚）事前読み込み未完了の場合のみ表示 */}
 			{/* #633 【防御】entriesKey が undefined の場合も loading を表示（戻る処理中） */}
-			{(isLoading || !entriesKey) && (
-				<View style={[StyleSheet.absoluteFill, { zIndex: 9999 }]} pointerEvents="auto">
-					<RestaurantLoading />
-				</View>
-			)}
+			{/* #1484 【仕様】Topics画面の「この料理にする！」経由（dishImageUrlあり）は、独立ローディング画面の
+			    代わりに選択した料理画像を拡大表示したまま待たせる。それ以外の経路は従来のRestaurantLoadingを維持する。 */}
+			{(isLoading || !entriesKey) &&
+				(dishImageUrl ? (
+					<View style={[StyleSheet.absoluteFill, { zIndex: 9999 }]} pointerEvents="auto">
+						<DishSelectionExpandLoading imageUrl={dishImageUrl} />
+					</View>
+				) : (
+					<View style={[StyleSheet.absoluteFill, { zIndex: 9999 }]} pointerEvents="auto">
+						<RestaurantLoading />
+					</View>
+				))}
 		</LinearGradient>
 	);
 }
