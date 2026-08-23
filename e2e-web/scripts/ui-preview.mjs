@@ -76,6 +76,39 @@ const page1 = [
     .map((cat, i) => item(`cat-${cat[0]}`, iso(0, 3 + (i % 20)), true, cat)),
 ];
 
+// #1505 グループ投票の履歴一覧（自分が主催した投票だけ）。
+// 「勝者が決まった行 / 未決の行 / 候補 4 件以上（+N）/ 候補 0 件 / 画像が読めない行」を
+// 1 画面に並べ、**どの状態でも行の高さと左端が揃うこと**を目で見るための材料。
+const hoursAgo = (h) => new Date(Date.now() - h * 3600 * 1000).toISOString();
+const cand = (name, host = "img.example.invalid") => ({
+  displayName: name,
+  imageUrl: `https://${host}/${encodeURIComponent(name)}.jpg`,
+});
+const groupVote = (o) => ({
+  id: o.id, shareToken: `share-${o.id}`, hasVoted: o.hasVoted ?? false,
+  candidateCount: o.candidateCount, candidatePreviews: o.candidatePreviews,
+  participantCount: o.participantCount, winnerName: o.winnerName ?? null,
+  createdAt: o.updatedAt, updatedAt: o.updatedAt,
+});
+const GROUP_VOTE_ITEMS = [
+  // 勝者が決まっている（1 行目は料理名が太字。未投票ドットは出ない）
+  groupVote({ id: "decided", hasVoted: true, candidateCount: 3, participantCount: 5, winnerName: "八王子ラーメン",
+    candidatePreviews: [cand("八王子ラーメン"), cand("寿司"), cand("カレー")], updatedAt: hoursAgo(50) }),
+  // 未決 + 候補 6 件（+3 が出る）+ 自分は未投票（ドットが出る）
+  groupVote({ id: "undecided", candidateCount: 6, participantCount: 2,
+    candidatePreviews: [cand("うどん"), cand("そば"), cand("天ぷら")], updatedAt: hoursAgo(5) }),
+  // 画像が読めない行（img.broken.invalid はモックしていない）。同寸法のプレースホルダが残るはず
+  groupVote({ id: "broken-image", candidateCount: 2, participantCount: 0,
+    candidatePreviews: [cand("焼き鳥", "img.broken.invalid"), cand("餃子", "img.broken.invalid")], updatedAt: hoursAgo(1) }),
+  // 候補が 1 件も無い（全部削除された）行。左端が揃うか
+  groupVote({ id: "no-candidates", candidateCount: 0, participantCount: 0, candidatePreviews: [], updatedAt: hoursAgo(0.2) }),
+  // 長い料理名（1 行に収まらない）で行が崩れないか
+  groupVote({ id: "long-name", hasVoted: true, candidateCount: 4, participantCount: 12,
+    winnerName: "特製濃厚豚骨魚介つけ麺（全部のせ・大盛り）",
+    candidatePreviews: [cand("つけ麺"), cand("ハンバーガー"), cand("パスタ")], updatedAt: hoursAgo(24 * 40) }),
+];
+let groupVoteItems = GROUP_VOTE_ITEMS;
+
 const LONG_CAPTION = [
   "濃口醤油とラードを効かせた八王子ラーメン！半熟味玉を添えた中華そば",
   "【中華そば専門店 八王子ラーメンよしだ】",
@@ -187,6 +220,8 @@ await context.route("**/localhost:9999/**", (r) => {
   const env = (data) => r.fulfill({ json: { success: true, data } });
   if (p.endsWith("/health")) return env({ status: "ok" });
   if (p.endsWith("/v1/users/me/dishes")) return env({ data: page1, nextCursor: null, meta: { oldestOccurredAt: iso(1, 1) } });
+  // #1505 グループ投票の履歴一覧。空状態も撮れるよう、返す配列は下のシナリオから差し替える
+  if (p.endsWith("/v1/users/me/dish-category-group-votes")) return env({ data: groupVoteItems, nextCursor: null });
   if (p.endsWith("/v1/dish-media/imports/resolve")) return env(resolveResponse);
   if (p.endsWith("/v1/dish-media") && u.searchParams.has("ids")) {
     // 要求された id を echo する（id が食い違うとフィード側の突き合わせで 0 件になる）
@@ -268,5 +303,18 @@ console.log("embed iframes:", iframeCount);
 await shot("embed-feed");
 await page.waitForTimeout(4000);
 await shot("embed-feed-loaded");
+
+// 5. #1505 グループ投票の履歴一覧（行の再設計 / 空状態）
+groupVoteItems = GROUP_VOTE_ITEMS;
+await goto("/ja-JP/profile/dish-category-group-votes");
+await page.getByTestId("me-dish-category-group-votes-item").first().waitFor({ timeout: 120000 }).catch((e) => console.log("group-votes wait:", e.message));
+await page.waitForTimeout(2500);
+await shot("group-votes-list");
+
+groupVoteItems = [];
+await goto("/ja-JP/profile/dish-category-group-votes");
+await page.getByTestId("me-dish-category-group-votes-empty-state").waitFor({ timeout: 120000 }).catch((e) => console.log("group-votes empty wait:", e.message));
+await page.waitForTimeout(1500);
+await shot("group-votes-empty");
 
 await browser.close();

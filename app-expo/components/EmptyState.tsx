@@ -20,6 +20,18 @@ interface EmptyStateProps {
 	 * 読み上げ対象からは外す（意味は message/description が持つ）。
 	 */
 	icon?: React.ReactNode;
+	/**
+	 * #1505 地の描き方。
+	 *
+	 * - `"card"`（既定）: 白いカードとして描く。**灰色の背景の上に置く**呼び出し向け
+	 *   （LikeTab / SaveTopicTab / blocked-topics はこちら）
+	 * - `"plain"`: 地も影も持たない。**白い面（シート）の中に置く**呼び出し向け。
+	 *   白いカードを白い面へ重ねても輪郭が見えず、余白だけが無駄に増えるため
+	 *
+	 * 高さも変える。`"card"` は `flex: 1` で伸び、`"plain"` は内容ぶんだけの高さになるので、
+	 * 親の `justifyContent` で上下中央に置ける（伸びていると中央寄せが効かない）。
+	 */
+	variant?: "card" | "plain";
 	/** CTA ボタンのラベル。未指定なら CTA を表示しない */
 	actionLabel?: string;
 	/** CTA ボタン押下時のハンドラ */
@@ -48,6 +60,7 @@ export function EmptyState({
 	message,
 	description,
 	icon,
+	variant = "card",
 	actionLabel,
 	onAction,
 	error,
@@ -56,10 +69,11 @@ export function EmptyState({
 }: EmptyStateProps) {
 	const styles = useThemedStyles(createStyles);
 	const isError = !!error;
+	const isPlain = variant === "plain";
 
 	return (
-		<View style={styles.container} testID={testID}>
-			<View style={styles.card}>
+		<View style={isPlain ? styles.plainContainer : styles.container} testID={testID}>
+			<View style={isPlain ? styles.plainCard : styles.card}>
 				{/* アイコンは装飾。同じ内容を二重に読み上げさせない */}
 				{icon ? (
 					<View style={styles.icon} accessibilityElementsHidden importantForAccessibility="no">
@@ -92,6 +106,17 @@ const createStyles = (colors: Palette) =>
 	StyleSheet.create({
 		container: {
 			flex: 1,
+		},
+		// plain は内容ぶんの高さしか持たない。親（FlatList の contentContainerStyle 等）が
+		// justifyContent: "center" で上下中央へ置けるようにするため
+		plainContainer: {
+			alignSelf: "stretch",
+		},
+		plainCard: {
+			paddingHorizontal: 24,
+			paddingVertical: 8,
+			alignItems: "center",
+			justifyContent: "center",
 		},
 		card: {
 			backgroundColor: colors.surface,

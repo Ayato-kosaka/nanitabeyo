@@ -337,6 +337,8 @@ export default function MyDishCategoryGroupVotesScreen() {
 		if (isLoading) return null;
 		return (
 			<EmptyState
+				// 白いシートの中に置くので、白いカードは重ねない（輪郭が見えず余白が増えるだけ）
+				variant="plain"
 				icon={<UtensilsCrossed size={28} color={colors.textTertiary} />}
 				message={i18n.t("DishCategoryGroupVotes.myVotes.emptyTitle")}
 				description={i18n.t("DishCategoryGroupVotes.myVotes.emptyDescription")}
@@ -453,8 +455,9 @@ const createStyles = (colors: Palette) =>
 			width: THUMBNAIL_SIZE,
 			height: THUMBNAIL_SIZE,
 			borderRadius: 12,
-			// 画像が来る前・失敗時に残る地。ここが «同寸法のプレースホルダ» になる
-			backgroundColor: colors.surfaceMuted,
+			// 画像が来る前・失敗時に残る地。ここが «同寸法のプレースホルダ» になる。
+			// 面（surface）より一段沈めて、写真が来なくても «枠がある» ことが分かるようにする
+			backgroundColor: colors.surfaceSubtle,
 			// 面と同色の縁。重ねたときに隣の写真との境目が消えないようにする
 			borderWidth: 2,
 			borderColor: colors.surface,
