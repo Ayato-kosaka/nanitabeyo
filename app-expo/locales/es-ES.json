@@ -735,6 +735,12 @@
 			"unblockMessage": "Esta categoría de plato se volverá a añadir a las recomendaciones.",
 			"unblockConfirm": "Desbloquear",
 			"unblocked": "Desbloqueado"
+		},
+		"language": {
+			"navigationLabel": "Idioma",
+			"pageTitle": "Idioma",
+			"systemDefault": "Seguir la configuración del dispositivo",
+			"switching": "Cambiando de idioma…"
 		}
 	},
 	"Dialog": {

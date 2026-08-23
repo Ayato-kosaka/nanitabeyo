@@ -735,6 +735,12 @@
 			"unblockMessage": "此菜品类别将重新添加到推荐中。",
 			"unblockConfirm": "取消屏蔽",
 			"unblocked": "已取消屏蔽"
+		},
+		"language": {
+			"navigationLabel": "语言",
+			"pageTitle": "语言",
+			"systemDefault": "跟随设备设置",
+			"switching": "正在切换语言…"
 		}
 	},
 	"Dialog": {

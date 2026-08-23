@@ -735,6 +735,12 @@
 			"unblockMessage": "यह व्यंजन श्रेणी सिफारिशों में वापस जोड़ दी जाएगी।",
 			"unblockConfirm": "अनब्लॉक करें",
 			"unblocked": "अनब्लॉक किया गया"
+		},
+		"language": {
+			"navigationLabel": "भाषा",
+			"pageTitle": "भाषा",
+			"systemDefault": "डिवाइस की सेटिंग के अनुसार",
+			"switching": "भाषा बदली जा रही है…"
 		}
 	},
 	"Dialog": {

@@ -735,6 +735,12 @@
 			"unblockMessage": "This dish category will be added back to recommendations.",
 			"unblockConfirm": "Unblock",
 			"unblocked": "Unblocked"
+		},
+		"language": {
+			"navigationLabel": "Language",
+			"pageTitle": "Language",
+			"systemDefault": "Use device language",
+			"switching": "Switching language…"
 		}
 	},
 	"Dialog": {

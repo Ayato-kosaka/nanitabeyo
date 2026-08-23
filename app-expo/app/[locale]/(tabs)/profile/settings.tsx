@@ -101,6 +101,20 @@ export default function SettingsScreen() {
 		});
 	}, [lightImpact, logFrontendEvent, router, locale]);
 
+	// #1508 【設計】表示言語の選択画面への遷移
+	const handleNavigateToLanguage = useCallback(() => {
+		lightImpact();
+		logFrontendEvent({
+			event_name: "settings_language_pressed",
+			error_level: "log",
+			payload: {},
+		});
+		router.push({
+			pathname: "/[locale]/(tabs)/profile/language",
+			params: { locale },
+		});
+	}, [lightImpact, logFrontendEvent, router, locale]);
+
 	// #611 【設計】ストア直接遷移（market:// / itms-apps:// → https:// フォールバック）
 	const openStoreReviewPage = useCallback(async () => {
 		try {
@@ -332,8 +346,15 @@ export default function SettingsScreen() {
 						<SettingsMenuItem
 							label={i18n.t("Settings.blockedTopics.navigationLabel")}
 							onPress={handleNavigateToBlockedTopics}
-							isLast
 							testID="settings-blocked-topics"
+							accessibilityRole="link"
+						/>
+						{/* #1508 【設計】表示言語の選択画面へ遷移 */}
+						<SettingsMenuItem
+							label={i18n.t("Settings.language.navigationLabel")}
+							onPress={handleNavigateToLanguage}
+							isLast
+							testID="settings-language"
 							accessibilityRole="link"
 						/>
 					</Card>

@@ -735,6 +735,12 @@
 			"unblockMessage": "この料理カテゴリをおすすめ対象に戻します。",
 			"unblockConfirm": "解除する",
 			"unblocked": "ブロックを解除しました"
+		},
+		"language": {
+			"navigationLabel": "言語",
+			"pageTitle": "言語",
+			"systemDefault": "端末の設定に従う",
+			"switching": "言語を切り替えています…"
 		}
 	},
 	"Dialog": {

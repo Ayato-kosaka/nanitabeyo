@@ -735,6 +735,12 @@
 			"unblockMessage": "이 요리 카테고리가 추천에 다시 추가됩니다.",
 			"unblockConfirm": "차단 해제",
 			"unblocked": "차단 해제됨"
+		},
+		"language": {
+			"navigationLabel": "언어",
+			"pageTitle": "언어",
+			"systemDefault": "기기 설정을 따름",
+			"switching": "언어를 전환하는 중…"
 		}
 	},
 	"Dialog": {
