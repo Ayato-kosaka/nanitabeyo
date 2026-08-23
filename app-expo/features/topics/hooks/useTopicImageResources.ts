@@ -36,6 +36,39 @@ const releaseIfImageRef = (image: ImageRef | ImageSource) => {
 };
 
 /**
+ * #1213 取得中の HTMLImageElement は、参照が切れると取得ごと中断されうる。決着するまで保持する。
+ * 決着後は必ず外すので、画面を離れても要素が溜まり続けることはない。
+ */
+const pendingCacheWarmups = new Set<HTMLImageElement>();
+
+/**
+ * #1213 【修正】web の ready は「共有する URL が確定した」ことしか意味せず、実体の取得は
+ * 表示側の `<img>` が最初に描かれたときに初めて始まる。カルーセルとサムネイルで全件を同時に
+ * 描く Topics 検索画面ではそれで足りていたが、カードを **1 枚ずつしか描かない**画面
+ * （友達投票の投票画面）では先読みが一切効かないのと同じで、候補を送るたびに取得完了まで
+ * カード背景色(#EEE)が見えていた（実測: 画像応答を 1200ms 遅らせた環境で毎回 1200ms 前後）。
+ *
+ * ready の意味も描画経路も変えず、**ブラウザキャッシュへ実体だけ先に載せる**。
+ * 後から同じ URL を `<img>` へ渡した時点でキャッシュヒットになり、グレーを挟まずに描ける。
+ * fetch + Blob を使わないのは #719/#929 と同じ理由（解放不能な Blob と重複取得を作らない）。
+ * 同じ URL の重複要求はブラウザ側で共有されるため、既に描画中の画像を二重に取りに行くことはない。
+ *
+ * SSR（web の静的レンダリング）では Platform.OS === "web" でも window が無いので、必ず存在確認する。
+ */
+const warmBrowserImageCache = (uri: string) => {
+	if (typeof window === "undefined" || typeof window.Image !== "function") return;
+	const image = new window.Image();
+	const settle = () => {
+		pendingCacheWarmups.delete(image);
+	};
+	image.onload = settle;
+	image.onerror = settle;
+	pendingCacheWarmups.add(image);
+	image.decoding = "async";
+	image.src = uri;
+};
+
+/**
  * #802/#929 【設計】Topics 画面を画像リソースの所有境界とし、カードとサムネイルへ同じ source を配る。
  * native は Image.loadAsync の完了を ready の根拠にして同じ ImageRef を共有し、表示側の onLoad 系イベントには依存しない。
  * web は Blob の生成と重複取得を避けるため URL を共有し、実際の表示失敗だけを onError から error へ反映する。
@@ -90,6 +123,8 @@ export const useTopicImageResources = ({ topics, sessionKey }: UseTopicImageReso
 			// fetch→Blob URL を生成し、表示ごとの重複取得と解放不能な Blob を生む。
 			// headers キーも含めず同じ URL を配り、ブラウザの通常キャッシュとリクエスト共有に委ねる。
 			if (Platform.OS === "web") {
+				// #1213 ready にする前に取得を始める（ready の意味・タイミングは変えない。上の warmBrowserImageCache 参照）
+				warmBrowserImageCache(topic.imageUrl);
 				topicImageStatesRef.current = {
 					...topicImageStatesRef.current,
 					[key]: { status: "ready", image: { uri: topic.imageUrl } },

@@ -179,3 +179,141 @@ export async function hasGuestSuggestionEverAppeared(page: Page): Promise<boolea
 		GUEST_SUGGESTION_SEEN_FLAG,
 	);
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// #1213 候補画像の先読み（グレー点滅の回帰防止）用
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * 先読みを検証するときの候補数。
+ *
+ * #1120 側が候補 1 件なのは「1 タップで完了モーダルへ行きたい」から。
+ * こちらは逆に **送っても送っても次の候補がある**状態が要るので複数件にする
+ * （1 件だと «次の候補» が存在せず、先読みの有無を区別できない）。
+ */
+export const PRELOAD_CANDIDATE_COUNT = 4;
+
+/** 候補画像の URL。実在しないホストを指し、`mockCandidateImages` が横取りする */
+export function candidateImageUrl(index: number): string {
+	return `https://images.e2e-1213.invalid/candidate-${index}.svg`;
+}
+
+/** URL から候補の添字を取り出す（先読み対象でなければ null） */
+export function matchCandidateImageIndex(url: string): number | null {
+	const matched = /\/candidate-(\d+)\.svg$/.exec(new URL(url).pathname);
+	return matched ? Number(matched[1]) : null;
+}
+
+/** 期待される候補添字の一覧。失敗時に「どの候補が先読みされなかったか」が名指しで出る */
+export const PRELOAD_CANDIDATE_INDEXES: number[] = Array.from({ length: PRELOAD_CANDIDATE_COUNT }, (_, i) => i);
+
+/**
+ * 候補を複数件持つ detail レスポンスを組み立てる。
+ *
+ * `displayOrder` の昇順がそのまま投票順になる（画面は `deletedAt === null` の候補を
+ * 受け取った順に 1 枚ずつ送る）。
+ */
+export function buildMultiCandidateVoteDetail(): DishCategoryGroupVoteDetailResponse {
+	const base = buildVoteDetail();
+	const names = ["ラーメン", "寿司", "焼き鳥", "カレー", "天ぷら", "餃子"];
+
+	return {
+		...base,
+		candidates: PRELOAD_CANDIDATE_INDEXES.map((index) => ({
+			...base.candidates[0],
+			id: `00000000-0000-4000-8000-00000000${String(2130 + index)}`,
+			dishCategoryId: `00000000-0000-4000-8000-00000000${String(3130 + index)}`,
+			displayName: names[index % names.length],
+			tagline: `${index + 1} 枚目の候補`,
+			imageUrl: candidateImageUrl(index),
+			displayOrder: index,
+		})),
+	};
+}
+
+/** 複数候補の detail をモックに差し替える（封筒の注意は `mockVoteDetail` と同じ） */
+export async function mockMultiCandidateVoteDetail(page: Page): Promise<void> {
+	const detail = buildMultiCandidateVoteDetail();
+	await page.route(DETAIL_URL_PATTERN, async (route) => {
+		await route.fulfill({
+			status: 200,
+			contentType: "application/json",
+			body: JSON.stringify({ success: true, data: detail }),
+		});
+	});
+}
+
+/**
+ * 候補画像を **意図的に遅延** させて返す。
+ *
+ * #1120 の `delayOwnProfile` と同じ考え方で、競合窓を人為的に広げるためのもの。
+ * 素の実行では画像が速すぎて「先読みのおかげで即出た」のか「たまたま速かった」のかを
+ * 区別できない。遅延を入れておけば、先読みが外れた瞬間に **必ず**「送った後に取りに行く」
+ * 順序へ変わり、happens-before のアサートが確実に落ちる。
+ *
+ * ⚠️ `timing-allow-origin` を付けているのは、クロスオリジンのリソースでも
+ * Resource Timing の値を読めるようにするため（付けないと一部の項目が 0 に丸められる）。
+ *
+ * @param page 対象ページ
+ * @param delayMs 1 枚あたりの遅延（既定 800ms）
+ */
+export async function mockCandidateImages(page: Page, delayMs = 800): Promise<void> {
+	const colors = ["e8734a", "3a7bd5", "43a047", "8e44ad", "e0a800", "d64550"];
+
+	await page.route(/images\.e2e-1213\.invalid\/candidate-\d+\.svg$/, async (route) => {
+		const index = matchCandidateImageIndex(route.request().url()) ?? 0;
+		const color = colors[index % colors.length];
+		await new Promise((resolve) => setTimeout(resolve, delayMs));
+		await route.fulfill({
+			status: 200,
+			contentType: "image/svg+xml",
+			headers: { "timing-allow-origin": "*", "cache-control": "public, max-age=3600" },
+			body: `<svg xmlns="http://www.w3.org/2000/svg" width="720" height="1280"><rect width="720" height="1280" fill="#${color}"/></svg>`,
+		});
+	});
+}
+
+/**
+ * **取得が完了した**候補画像の添字一覧を返す（ソート済み・重複なし）。
+ *
+ * `responseEnd > 0` は「取得が完了した」ことを表すフラグとして使っており、
+ * 所要時間の閾値ではない（遅いランナーでも真になる）。
+ * 観測の原則は utils/preload-assets.ts と同じ。
+ */
+export async function collectCompletedCandidateImageIndexes(page: Page): Promise<number[]> {
+	return page.evaluate(() => {
+		const found = new Set<number>();
+		for (const entry of performance.getEntriesByType("resource") as PerformanceResourceTiming[]) {
+			if (!(entry.responseEnd > 0)) continue;
+			const matched = /\/candidate-(\d+)\.svg$/.exec(new URL(entry.name).pathname);
+			if (matched) found.add(Number(matched[1]));
+		}
+		return [...found].sort((a, b) => a - b);
+	});
+}
+
+/**
+ * いま投票カードに描かれている候補画像を読む（無ければ null）。
+ *
+ * `TopicVisualCard` は expo-image を使い、web では `<img>` を描く。
+ * ヘッダ等の小さなアイコンを拾わないよう **カード大の `<img>` に限る**。
+ *
+ * @param page 対象ページ
+ */
+export async function readDisplayedCandidateImage(
+	page: Page,
+): Promise<{ index: number; decoded: boolean; complete: boolean } | null> {
+	return page.evaluate(() => {
+		const cardImages = Array.from(document.querySelectorAll("img")).filter((element) => {
+			const rect = element.getBoundingClientRect();
+			return rect.width > 200 && rect.height > 200;
+		});
+		for (const element of cardImages) {
+			const source = element.currentSrc || element.src;
+			const matched = /\/candidate-(\d+)\.svg$/.exec(new URL(source, window.location.href).pathname);
+			if (!matched) continue;
+			return { index: Number(matched[1]), decoded: element.naturalWidth > 0, complete: element.complete };
+		}
+		return null;
+	});
+}

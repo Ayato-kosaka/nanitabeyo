@@ -24,6 +24,7 @@ import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { useLogger } from "@/hooks/useLogger";
 import { useLocale } from "@/hooks/useLocale";
 import { useTopicImageResources } from "@/features/topics/hooks/useTopicImageResources";
+import { e2eVoteImagePreloadProbeElement } from "@/lib/e2e/voteImagePreloadProbe";
 import { useDishCategoryGroupVoteActions } from "../hooks/useDishCategoryGroupVoteActions";
 import { useDishCategoryGroupVoteDetail } from "../hooks/useDishCategoryGroupVoteDetail";
 import type { DishCategoryGroupVoteDraftVote } from "../types";
@@ -90,6 +91,22 @@ export function DishCategoryGroupVoteVoteScreen({ shareToken }: Props) {
 		[voteCandidates],
 	);
 	const { getImageState } = useTopicImageResources({ topics: candidateTopics, sessionKey: shareToken });
+
+	/**
+	 * #1213 【観測】native には「先読みが効いているか」を外から見る手段が無い（web は Resource Timing で見える）。
+	 * 実測値を Detox から読めるようにするための計数で、E2E ビルド以外では
+	 * `e2eVoteImagePreloadProbeElement` が null を返すため描画物は増えない。
+	 */
+	const imagePreloadCounts = useMemo(() => {
+		let ready = 0;
+		let failed = 0;
+		for (const topic of candidateTopics) {
+			const status = getImageState(topic).status;
+			if (status === "ready") ready += 1;
+			else if (status === "error") failed += 1;
+		}
+		return { ready, failed, total: candidateTopics.length };
+	}, [candidateTopics, getImageState]);
 
 	// #945 【仕様】スワイプ/ボタンどちらの操作でもカードが切り替わったことを読み上げる
 	useEffect(() => {
@@ -252,6 +269,10 @@ export function DishCategoryGroupVoteVoteScreen({ shareToken }: Props) {
 						<Text style={styles.errorText}>{i18n.t("DishCategoryGroupVotes.noVoteCandidates")}</Text>
 					</View>
 				)}
+				{/* #1213 E2E ビルドでだけ描かれる 1×1 の計測要素（通常ビルドでは null）。
+				    完了レイヤーの兄弟ではなく本文の内側に置く（外枠直下に zIndex を持たない要素でも
+				    並べない、という上のコメントの前提を崩さないため） */}
+				{e2eVoteImagePreloadProbeElement(imagePreloadCounts)}
 			</View>
 			{isCompleted ? (
 				// #1358 閉じる導線を持たせない（＝ onRequestClose を渡さない）のは旧実装の
