@@ -1,5 +1,5 @@
 -- ==============================================================================
--- 20260823T0100_add_soft_delete_and_edit_columns_to_dish_media_and_dish_reviews.sql
+-- 20260825T0400_add_soft_delete_and_edit_columns_to_dish_media_and_dish_reviews.sql
 -- #1513 (UGC-01 自分の投稿・レビューを編集／削除する)
 -- ==============================================================================
 -- 【目的】
