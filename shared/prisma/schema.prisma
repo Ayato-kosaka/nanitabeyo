@@ -38,6 +38,30 @@ model config {
   @@schema("dev")
 }
 
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model content_reports {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  target_type      String
+  target_id        String    @db.Uuid
+  reporter_user_id String    @db.Uuid
+  reason_code      String
+  reason_text      String?
+  status           String    @default("pending")
+  resolved_at      DateTime? @db.Timestamptz(6)
+  resolution_note  String?
+  created_version  String    @default("unknown")
+  created_at       DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime  @default(now()) @db.Timestamptz(6)
+  lock_no          Int       @default(0)
+
+  @@unique([reporter_user_id, target_type, target_id], map: "uq_content_reports_reporter_target")
+  @@index([status, created_at], map: "idx_content_reports_status_created")
+  @@index([target_type, target_id], map: "idx_content_reports_target")
+  @@schema("dev")
+}
+
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model contribution_tasks {
@@ -625,6 +649,7 @@ model share_links {
   expires_at          DateTime? @db.Timestamptz(6)
   created_at          DateTime  @default(now()) @db.Timestamptz(6)
   updated_at          DateTime  @default(now()) @db.Timestamptz(6)
+  users               users?    @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([created_by, created_at(sort: Desc)], map: "idx_share_links_created_by_created_at")
   @@index([target_type, target_id], map: "idx_share_links_target")
@@ -682,6 +707,7 @@ model users {
   dish_media_likes dish_media_likes[]
   dish_reviews     dish_reviews[]
   restaurant_bids  restaurant_bids[]
+  share_links      share_links[]
 
   @@schema("dev")
 }

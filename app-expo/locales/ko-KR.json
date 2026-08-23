@@ -412,6 +412,41 @@
 			"mediaUnavailable": "이 미디어는 현재 이용하실 수 없습니다."
 		}
 	},
+	"Report": {
+		"action": "신고",
+		"title": "이 게시물 신고하기",
+		"description": "신고 사유를 선택해 주세요. 운영팀이 확인하며, 작성자에게는 알리지 않습니다.",
+		"reasons": {
+			"spam": "스팸 또는 광고",
+			"sexual": "성적인 콘텐츠",
+			"violence": "폭력적이거나 불쾌한 콘텐츠",
+			"harassment": "괴롭힘 또는 비방",
+			"illegal": "불법 행위",
+			"misinformation": "잘못된 정보",
+			"rights": "저작권 등 권리 침해",
+			"privacy": "개인정보가 노출됨",
+			"irrelevant": "음식과 관련 없음",
+			"other": "기타"
+		},
+		"detailsLabel": "자세한 내용(선택)",
+		"detailsPlaceholder": "추가로 알려주실 내용이 있으면 입력해 주세요(1,000자까지)",
+		"submit": "신고하기",
+		"submitting": "전송 중...",
+		"accepted": {
+			"title": "신고를 접수했습니다",
+			"description": "알려주셔서 감사합니다. 운영팀이 내용을 확인합니다. 처리 결과는 개별적으로 안내하지 않습니다.",
+			"close": "닫기"
+		},
+		"errors": {
+			"submitFailed": "신고를 보내지 못했습니다. 다시 시도해 주세요."
+		},
+		"accessibility": {
+			"open": "{{name}} 게시물 신고",
+			"reason": "사유: {{reason}}",
+			"reasonSelected": "사유: {{reason}}(선택됨)",
+			"submit": "{{name}} 게시물 신고 보내기"
+		}
+	},
 	"ImageCardGrid": {
 		"openItemDetails": "항목 세부정보 열기"
 	},

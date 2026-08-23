@@ -138,6 +138,22 @@ exports.Prisma.ConfigScalarFieldEnum = {
   description: 'description'
 };
 
+exports.Prisma.Content_reportsScalarFieldEnum = {
+  id: 'id',
+  target_type: 'target_type',
+  target_id: 'target_id',
+  reporter_user_id: 'reporter_user_id',
+  reason_code: 'reason_code',
+  reason_text: 'reason_text',
+  status: 'status',
+  resolved_at: 'resolved_at',
+  resolution_note: 'resolution_note',
+  created_version: 'created_version',
+  created_at: 'created_at',
+  updated_at: 'updated_at',
+  lock_no: 'lock_no'
+};
+
 exports.Prisma.Contribution_tasksScalarFieldEnum = {
   id: 'id',
   type: 'type',
@@ -571,6 +587,7 @@ exports.restaurant_bid_status = exports.$Enums.restaurant_bid_status = {
 exports.Prisma.ModelName = {
   backend_event_logs: 'backend_event_logs',
   config: 'config',
+  content_reports: 'content_reports',
   contribution_tasks: 'contribution_tasks',
   dish_categories: 'dish_categories',
   dish_category_features: 'dish_category_features',

@@ -412,6 +412,41 @@
 			"walkFromShibuya": "渋谷駅から徒歩13分"
 		}
 	},
+	"Report": {
+		"action": "報告",
+		"title": "この投稿を報告する",
+		"description": "報告の理由を選んでください。運営が内容を確認します。相手に通知されることはありません。",
+		"reasons": {
+			"spam": "スパム・宣伝",
+			"sexual": "性的なコンテンツ",
+			"violence": "暴力的・不快なコンテンツ",
+			"harassment": "嫌がらせ・誹謗中傷",
+			"illegal": "違法行為",
+			"misinformation": "誤った情報",
+			"rights": "権利侵害（著作権など）",
+			"privacy": "個人情報が写っている",
+			"irrelevant": "料理と関係がない",
+			"other": "その他"
+		},
+		"detailsLabel": "詳しい内容（任意）",
+		"detailsPlaceholder": "補足があれば入力してください（1000文字まで）",
+		"submit": "報告する",
+		"submitting": "送信中...",
+		"accepted": {
+			"title": "報告を受け付けました",
+			"description": "ご報告ありがとうございます。運営が内容を確認します。審査の結果は個別にはお知らせしていません。",
+			"close": "閉じる"
+		},
+		"errors": {
+			"submitFailed": "報告を送信できませんでした。もう一度お試しください。"
+		},
+		"accessibility": {
+			"open": "{{name}}の投稿を報告",
+			"reason": "理由: {{reason}}",
+			"reasonSelected": "理由: {{reason}}（選択中）",
+			"submit": "{{name}}の投稿の報告を送信"
+		}
+	},
 	"ImageCardGrid": {
 		"openItemDetails": "詳細を表示"
 	},

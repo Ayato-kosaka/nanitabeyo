@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, LayoutChangeEvent } from "react-native";
 import { Image } from "expo-image";
-import { Heart, Bookmark, Share, MapPinned } from "lucide-react-native";
+import { Heart, Bookmark, Share, MapPinned, Flag } from "lucide-react-native";
 import i18n from "@/lib/i18n";
 import { formatLikeCount } from "../utils/text";
 import { useLogger } from "@/hooks/useLogger";
@@ -21,6 +21,7 @@ import { shallow } from "zustand/shallow";
 import { profileLikesEntriesKey } from "@/features/profile/tabs/LikeTab";
 import { profileSavedPostsEntriesKey } from "@/features/profile/tabs/SavedPostsTab";
 import { useDishMediaActions } from "../hooks/useDishMediaActions";
+import { ReportDishMediaSheet } from "./ReportDishMediaSheet";
 import { GestureDetector } from "react-native-gesture-handler";
 import type { GestureType } from "react-native-gesture-handler";
 import { toErrorLogMessage } from "@/lib/errorMessage";
@@ -245,6 +246,22 @@ function ActionButtonsContent({
 		});
 	}, [dishMediaId, restaurant, shareRestaurant]);
 
+	// #1514 (SAF-01) 通報シートの開閉。
+	// 「通報された投稿」の見た目は変えないので、ここには開閉以外の state を持たせない
+	const [isReportSheetOpen, setIsReportSheetOpen] = useState(false);
+
+	const handleReportPress = useCallback(() => {
+		lightImpact();
+		logFrontendEvent({
+			event_name: "dish_media_report_opened",
+			error_level: "log",
+			payload: { dishMediaId },
+		});
+		setIsReportSheetOpen(true);
+	}, [dishMediaId, lightImpact, logFrontendEvent]);
+
+	const handleReportSheetClose = useCallback(() => setIsReportSheetOpen(false), []);
+
 	const handleLayout = useCallback(
 		(event: LayoutChangeEvent) => onLayout?.(event.nativeEvent.layout.width),
 		[onLayout],
@@ -334,6 +351,30 @@ function ActionButtonsContent({
 					</TouchableOpacity>
 					<Text style={styles.actionText}>{i18n.t("DishMediaContent.actions.openMap")}</Text>
 				</View>
+
+				{/* #1514 (SAF-01) 投稿の通報導線。
+				    右レールに常設するのは、通報の敷居を上げないため（メニューの奥に隠すと、
+				    «見つけられないから通報されない» を «問題が無い» と読み違える）。
+				    通報できるのは投稿だけで、ユーザー・店舗・レビューは対象外（オーナー確定仕様） */}
+				<View style={styles.actionContainer}>
+					<TouchableOpacity
+						testID="dish-action-report"
+						style={styles.actionButton}
+						onPress={handleReportPress}
+						hitSlop={buttonHitSlop}
+						accessibilityRole="button"
+						accessibilityLabel={i18n.t("Report.accessibility.open", { name: restaurant.name })}>
+						<Flag size={26} color="#FFFFFF" />
+					</TouchableOpacity>
+					<Text style={styles.actionText}>{i18n.t("Report.action")}</Text>
+				</View>
+
+				<ReportDishMediaSheet
+					visible={isReportSheetOpen}
+					dishMediaId={String(dishMediaId)}
+					restaurantName={restaurant.name}
+					onClose={handleReportSheetClose}
+				/>
 			</View>
 		</GestureDetector>
 	);

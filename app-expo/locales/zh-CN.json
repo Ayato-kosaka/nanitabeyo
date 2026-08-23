@@ -412,6 +412,41 @@
 			"walkFromShibuya": "距离涩谷站步行13分钟"
 		}
 	},
+	"Report": {
+		"action": "举报",
+		"title": "举报这条投稿",
+		"description": "请选择举报理由。我们会进行核实，不会通知发布者。",
+		"reasons": {
+			"spam": "垃圾信息或广告",
+			"sexual": "色情内容",
+			"violence": "暴力或令人不适的内容",
+			"harassment": "骚扰或人身攻击",
+			"illegal": "违法行为",
+			"misinformation": "虚假信息",
+			"rights": "侵犯著作权等权利",
+			"privacy": "含有个人信息",
+			"irrelevant": "与餐饮无关",
+			"other": "其他"
+		},
+		"detailsLabel": "补充说明（选填）",
+		"detailsPlaceholder": "如有补充请填写（最多 1000 字）",
+		"submit": "提交举报",
+		"submitting": "提交中...",
+		"accepted": {
+			"title": "已收到举报",
+			"description": "感谢反馈。我们会核实相关内容，但不会单独告知处理结果。",
+			"close": "关闭"
+		},
+		"errors": {
+			"submitFailed": "举报提交失败，请重试。"
+		},
+		"accessibility": {
+			"open": "举报来自{{name}}的投稿",
+			"reason": "理由：{{reason}}",
+			"reasonSelected": "理由：{{reason}}（已选择）",
+			"submit": "提交对{{name}}投稿的举报"
+		}
+	},
 	"ImageCardGrid": {
 		"openItemDetails": "打开项目详情"
 	},

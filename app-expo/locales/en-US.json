@@ -412,6 +412,41 @@
 			"walkFromShibuya": "13 min walk from Shibuya Station"
 		}
 	},
+	"Report": {
+		"action": "Report",
+		"title": "Report this post",
+		"description": "Choose a reason for reporting. Our team will review it, and the person who posted is not notified.",
+		"reasons": {
+			"spam": "Spam or advertising",
+			"sexual": "Sexual content",
+			"violence": "Violence or disturbing content",
+			"harassment": "Harassment or abuse",
+			"illegal": "Illegal activity",
+			"misinformation": "False information",
+			"rights": "Copyright or other rights violation",
+			"privacy": "Shows personal information",
+			"irrelevant": "Not about food or dining",
+			"other": "Something else"
+		},
+		"detailsLabel": "Details (optional)",
+		"detailsPlaceholder": "Add anything that helps us review it (up to 1,000 characters)",
+		"submit": "Submit report",
+		"submitting": "Sending...",
+		"accepted": {
+			"title": "Report received",
+			"description": "Thanks for letting us know. Our team will review it. We don't send individual updates on the outcome.",
+			"close": "Close"
+		},
+		"errors": {
+			"submitFailed": "We couldn't send your report. Please try again."
+		},
+		"accessibility": {
+			"open": "Report the post from {{name}}",
+			"reason": "Reason: {{reason}}",
+			"reasonSelected": "Reason: {{reason}}, selected",
+			"submit": "Submit the report for the post from {{name}}"
+		}
+	},
 	"ImageCardGrid": {
 		"openItemDetails": "Open item details"
 	},

@@ -412,6 +412,41 @@
 			"walkFromShibuya": "A 13 min a pie de la estación de Shibuya"
 		}
 	},
+	"Report": {
+		"action": "Denunciar",
+		"title": "Denunciar esta publicación",
+		"description": "Elige un motivo. Nuestro equipo lo revisará y no se avisará a quien lo publicó.",
+		"reasons": {
+			"spam": "Spam o publicidad",
+			"sexual": "Contenido sexual",
+			"violence": "Violencia o contenido perturbador",
+			"harassment": "Acoso o insultos",
+			"illegal": "Actividad ilegal",
+			"misinformation": "Información falsa",
+			"rights": "Infracción de derechos (autor, etc.)",
+			"privacy": "Muestra datos personales",
+			"irrelevant": "No tiene que ver con comida",
+			"other": "Otro motivo"
+		},
+		"detailsLabel": "Detalles (opcional)",
+		"detailsPlaceholder": "Añade lo que nos ayude a revisarlo (hasta 1000 caracteres)",
+		"submit": "Enviar denuncia",
+		"submitting": "Enviando...",
+		"accepted": {
+			"title": "Denuncia recibida",
+			"description": "Gracias por avisarnos. Nuestro equipo lo revisará. No informamos del resultado de forma individual.",
+			"close": "Cerrar"
+		},
+		"errors": {
+			"submitFailed": "No se pudo enviar la denuncia. Inténtalo de nuevo."
+		},
+		"accessibility": {
+			"open": "Denunciar la publicación de {{name}}",
+			"reason": "Motivo: {{reason}}",
+			"reasonSelected": "Motivo: {{reason}} (seleccionado)",
+			"submit": "Enviar la denuncia de la publicación de {{name}}"
+		}
+	},
 	"ImageCardGrid": {
 		"openItemDetails": "Abrir detalles del elemento"
 	},
