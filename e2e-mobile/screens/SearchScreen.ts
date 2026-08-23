@@ -412,6 +412,20 @@ export class SearchScreen {
 	}
 
 	/**
+	 * n 番目の場所サジェストの accessibilityLabel（= `AutocompleteLocationsResponse` の `text`。
+	 * 「渋谷駅、日本、東京都渋谷区」のように **国名を含む完全な表記**）を読み取る。
+	 *
+	 * #1502 【設計】候補が日本国内かどうかを Detox から見るための観測点。Detox には
+	 * 子孫の Text を読む API が無く、`toHaveText` は行（TouchableOpacity）に対しては効かない。
+	 * `LocationAutocomplete` は候補行の accessibilityLabel に `suggestion.text` を入れており
+	 * （app-expo/components/LocationAutocomplete.tsx）、ここに国名まで含まれるため、
+	 * ラベルを読む方式（ResultScreen の likeLabel と同じ）で代替する。
+	 */
+	async locationSuggestionLabel(index: number): Promise<string> {
+		return readLabel(this.locationSuggestion(index), 0);
+	}
+
+	/**
 	 * n 番目の「最近使った場所」の accessibilityLabel（= `RecentLocation.locationQuery`）を読み取る。
 	 *
 	 * 実 API の検索結果は地名も件数も事前に確定できないため、e2e-web のように入力欄の値を
