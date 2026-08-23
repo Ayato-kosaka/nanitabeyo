@@ -412,6 +412,26 @@ Workerへ、実行したテストの生データを `/tmp/claude-artifacts/` 配
 
 実装runのエビデンスは暫定確認に使い、人間へ公開する最終エビデンスは、原則として独立レビューrunまたは専用validation runのArtifactを使う。UI変更では `access=observe`、`setup_playwright=true`、`base_ref=<検証対象の正確なSHA>` で検証runを起動し、レビュー指摘の修正後は新しいSHAで再実行する。
 
+### 撮影だけの run は `access=observe` で回す
+
+`access=write` の run は最後に「commit・push されたか」を検証する。撮影だけが目的で
+コード差分が出ない run をこれで回すと、**エビデンスは正しく撮れて Artifact も上がっているのに
+run 全体は失敗**になる。`evidence-collect.yml` は既定で success の run しか受け取らないため、
+そのままでは公開できない。
+
+2026-08-23、#1525 でこれを踏んだ。先行 run が e2e spec を push 済みだったので後発 run には
+commit するものが無く、292KB のエビデンス Artifact を上げたうえで失敗した。
+
+- **撮影だけなら `access=observe`。** observe のジョブも `/tmp/claude-artifacts/` を
+  Artifact として上げるので、エビデンスは同じように回収できる
+- 既に失敗した run から拾うしかない場合は `allow_failed_run=true` で公開できるが、
+  そのときは **なぜ失敗した run から採ったのか** を PR 本文に書くこと。
+  「緑の run から採ったエビデンス」という既定の意味が崩れるため、黙って使わない
+
+あわせて、**Artifact が実在するかを公開前に確かめる**。run が success でも
+`/tmp/claude-artifacts/` へ何も置かなければ Artifact は作られない（`if-no-files-found: ignore`）。
+`list_workflow_run_artifacts` が 0 件を返したら、その run は撮影していない。
+
 ### 画像・動画は必ず`evidence-collect.yml`で可視化する
 
 **画像または動画を根拠としてIssueまたはPRへ書く場合、`evidence-collect.yml` の実行は必須である。** Artifact名、`/tmp/claude-artifacts/` のパス、スクリーンショットのファイル名一覧だけを書いて終わりにしない。人間がActionsのArtifactをダウンロードして解凍しなければ確認できない状態は、エビデンスを提示したことにならない。
