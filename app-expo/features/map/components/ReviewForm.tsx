@@ -12,7 +12,7 @@ import {
 	Linking,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Star, ChevronRight, Utensils, CircleDollarSign, ThumbsUp, ImagePlus } from "lucide-react-native";
+import { Star, ChevronRight, Utensils, CircleDollarSign, ThumbsUp, ImagePlus, Camera } from "lucide-react-native";
 import { Card } from "@/components/Card";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { PrimaryButton } from "@/components/PrimaryButton";
@@ -307,129 +307,139 @@ export function ReviewForm({
 	 * @param origin 起動起点（`"mount"` = マウント時 effect / `"retry"` = 再試行ボタン）
 	 * @param generation 起動時点の実行世代（`mediaGenerationRef` の値）。宣言箇所のコメント参照
 	 */
-	const runMediaSelection = useCallback(async (origin: "mount" | "retry", generation: number) => {
-		/** #1127 この起動が属する世代がもう有効でない（= 張り替え済み / アンマウント済み）か */
-		const isStale = () => generation !== mediaGenerationRef.current;
+	const runMediaSelection = useCallback(
+		async (origin: "mount" | "retry", generation: number, source: "library" | "camera" = "library") => {
+			/** #1127 この起動が属する世代がもう有効でない（= 張り替え済み / アンマウント済み）か */
+			const isStale = () => generation !== mediaGenerationRef.current;
 
-		// #1127 native 側（Android の isPickerOpen）に弾かれる二重起動を JS 側で先に防ぐ。
-		// 宣言箇所のコメント参照。ここより後にピッカー起動処理を書くこと
-		if (isSelectingMediaRef.current) {
-			// #1127 弾いた起動こそが「二重起動が起きた」という一番知りたい事実なので、
-			// attempt を消費しない専用イベントとして残す（start/finished の対を崩さないため）
-			logFrontendEventRef.current({
-				event_name: "review_media_selection_skipped",
-				error_level: "warn",
-				// #1127 【セキュリティ】メディアの URI や個人情報は payload へ入れないこと
-				payload: { origin },
-			});
-			return;
-		}
-		isSelectingMediaRef.current = true;
-
-		const attempt = (mediaSelectionAttemptRef.current += 1);
-		logFrontendEventRef.current({
-			event_name: "review_media_selection_start",
-			// #1127 同一マウント内の 2 回目以降は本来起きない起動なので、後追いできるよう warn で残す
-			error_level: attempt > 1 ? "warn" : "log",
-			// #1127 【セキュリティ】メディアの URI や個人情報は payload へ入れないこと
-			payload: { attempt, origin },
-		});
-
-		/** #1127 診断ログの終端。結果を破棄したかどうかまで含めて 1 イベントで見えるようにする */
-		const logFinished = (outcome: { success: boolean; error?: string; discarded: boolean }) => {
-			logFrontendEventRef.current({
-				event_name: "review_media_selection_finished",
-				error_level: outcome.discarded || attempt > 1 ? "warn" : "log",
-				payload: { attempt, origin, ...outcome },
-			});
-		};
-
-		/**
-		 * #1127 結果を破棄する経路。旧実装はここで黙って return しており、
-		 * 破棄されたこと自体が観測できなかったのでログだけは必ず残す。
-		 *
-		 * 世代が古い＝「アンマウント済み」か「新しい effect が mediaState の所有権を持っている」の
-		 * どちらかなので、**ここから setMediaState してはいけない**（どちらの場合も上書きが誤り）。
-		 */
-		const discard = (outcome: { success: boolean; error?: string }) => {
-			logFinished({ ...outcome, discarded: true });
-		};
-
-		try {
-			const result = await selectMedia(["images", "videos"], { shouldGenerateThumbnail: true });
-
-			// Guard against setState on unmounted / superseded component
-			if (isStale()) {
-				discard({ success: result.success, error: result.error });
+			// #1127 native 側（Android の isPickerOpen）に弾かれる二重起動を JS 側で先に防ぐ。
+			// 宣言箇所のコメント参照。ここより後にピッカー起動処理を書くこと
+			if (isSelectingMediaRef.current) {
+				// #1127 弾いた起動こそが「二重起動が起きた」という一番知りたい事実なので、
+				// attempt を消費しない専用イベントとして残す（start/finished の対を崩さないため）
+				logFrontendEventRef.current({
+					event_name: "review_media_selection_skipped",
+					error_level: "warn",
+					// #1127 【セキュリティ】メディアの URI や個人情報は payload へ入れないこと
+					payload: { origin },
+				});
 				return;
 			}
+			isSelectingMediaRef.current = true;
 
-			if (!result.success || result.media === undefined) {
-				// Handle cancellation - close modal automatically
-				if (result.error === "cancelled") {
-					logFinished({ success: false, error: result.error, discarded: false });
-					/**
-					 * #1398 B2 【設計】写真なしを許可している画面では、キャンセルで画面を閉じない。
-					 *
-					 * `allowNoMedia` が true のとき、ピッカーのキャンセルは「写真なしで記録する」という
-					 * 意思表示とみなしてフォームに留まる（設計 §4-1）。退出手段は `ScreenHeader` の
-					 * 戻るボタンで従来どおり確保されている。
-					 * false（既定・`review-from-media` を含む）のときは**従来どおり** `onCancel()` で閉じる。
-					 * ここは `runMediaSelection` 内の唯一のキャンセル分岐なので、分岐はこの 1 箇所で閉じる。
-					 */
-					if (allowNoMediaRef.current) {
-						setMediaState({ status: "none" });
-						return;
-					}
-					onCancelRef.current();
+			const attempt = (mediaSelectionAttemptRef.current += 1);
+			logFrontendEventRef.current({
+				event_name: "review_media_selection_start",
+				// #1127 同一マウント内の 2 回目以降は本来起きない起動なので、後追いできるよう warn で残す
+				error_level: attempt > 1 ? "warn" : "log",
+				// #1127 【セキュリティ】メディアの URI や個人情報は payload へ入れないこと
+				payload: { attempt, origin },
+			});
+
+			/** #1127 診断ログの終端。結果を破棄したかどうかまで含めて 1 イベントで見えるようにする */
+			const logFinished = (outcome: { success: boolean; error?: string; discarded: boolean }) => {
+				logFrontendEventRef.current({
+					event_name: "review_media_selection_finished",
+					error_level: outcome.discarded || attempt > 1 ? "warn" : "log",
+					payload: { attempt, origin, ...outcome },
+				});
+			};
+
+			/**
+			 * #1127 結果を破棄する経路。旧実装はここで黙って return しており、
+			 * 破棄されたこと自体が観測できなかったのでログだけは必ず残す。
+			 *
+			 * 世代が古い＝「アンマウント済み」か「新しい effect が mediaState の所有権を持っている」の
+			 * どちらかなので、**ここから setMediaState してはいけない**（どちらの場合も上書きが誤り）。
+			 */
+			const discard = (outcome: { success: boolean; error?: string }) => {
+				logFinished({ ...outcome, discarded: true });
+			};
+
+			try {
+				// ⚠️ カメラ起動は **写真のみ**。動画撮影はマイクを掴むが、現行ビルドの Info.plist に
+				// NSMicrophoneUsageDescription が無く、iOS はその場でクラッシュする。
+				// 権限文言の追加はネイティブビルドが要る（= OTA で届かない）ので、
+				// ビルドを流す判断が出るまで動画はライブラリ選択のみとする（#1375 4 巡目）
+				const result = await selectMedia(source === "camera" ? ["images"] : ["images", "videos"], {
+					shouldGenerateThumbnail: true,
+					source,
+				});
+
+				// Guard against setState on unmounted / superseded component
+				if (isStale()) {
+					discard({ success: result.success, error: result.error });
 					return;
 				}
 
-				// Handle other errors
-				let errorMessage = i18n.t("Map.media.mediaSelectionError");
-				switch (result.error) {
-					case "permission_denied":
-						errorMessage = i18n.t("Map.media.permissionDenied");
-						break;
-					case "video_too_long":
-						errorMessage = i18n.t("Map.media.videoTooLong");
-						break;
-					case "thumbnail_failed":
-						errorMessage = i18n.t("Map.media.thumbnailFailed");
-						break;
-					// #1425 HEIC / HEIF はサーバがデコードできないため、選択時点で断る
-					case "unsupported_image_format":
-						errorMessage = i18n.t("Map.media.unsupportedImageFormat");
-						break;
+				if (!result.success || result.media === undefined) {
+					// Handle cancellation - close modal automatically
+					if (result.error === "cancelled") {
+						logFinished({ success: false, error: result.error, discarded: false });
+						/**
+						 * #1398 B2 【設計】写真なしを許可している画面では、キャンセルで画面を閉じない。
+						 *
+						 * `allowNoMedia` が true のとき、ピッカーのキャンセルは「写真なしで記録する」という
+						 * 意思表示とみなしてフォームに留まる（設計 §4-1）。退出手段は `ScreenHeader` の
+						 * 戻るボタンで従来どおり確保されている。
+						 * false（既定・`review-from-media` を含む）のときは**従来どおり** `onCancel()` で閉じる。
+						 * ここは `runMediaSelection` 内の唯一のキャンセル分岐なので、分岐はこの 1 箇所で閉じる。
+						 */
+						if (allowNoMediaRef.current) {
+							setMediaState({ status: "none" });
+							return;
+						}
+						onCancelRef.current();
+						return;
+					}
+
+					// Handle other errors
+					let errorMessage = i18n.t("Map.media.mediaSelectionError");
+					switch (result.error) {
+						case "permission_denied":
+							errorMessage = i18n.t("Map.media.permissionDenied");
+							break;
+						case "video_too_long":
+							errorMessage = i18n.t("Map.media.videoTooLong");
+							break;
+						case "thumbnail_failed":
+							errorMessage = i18n.t("Map.media.thumbnailFailed");
+							break;
+						// #1425 HEIC / HEIF はサーバがデコードできないため、選択時点で断る
+						case "unsupported_image_format":
+							errorMessage = i18n.t("Map.media.unsupportedImageFormat");
+							break;
+					}
+
+					setMediaState({
+						status: "error",
+						error: errorMessage,
+						// #1375 実機確認（3 巡目）: 権限拒否のときだけ「設定を開く」ボタンを出す。
+						// 「設定から許可してください」と文字で言うだけだと、設定アプリの中から
+						// このアプリを探させることになる（Linking.openSettings で 1 タップにする）
+						isPermissionError: result.error === "permission_denied",
+					});
+					logFinished({ success: false, error: result.error, discarded: false });
+					return;
 				}
 
-				setMediaState({
-					status: "error",
-					error: errorMessage,
-					// #1375 実機確認（3 巡目）: 権限拒否のときだけ「設定を開く」ボタンを出す。
-					// 「設定から許可してください」と文字で言うだけだと、設定アプリの中から
-					// このアプリを探させることになる（Linking.openSettings で 1 タップにする）
-					isPermissionError: result.error === "permission_denied",
-				});
-				logFinished({ success: false, error: result.error, discarded: false });
-				return;
+				// Success - set media and show form
+				setMediaState({ status: "success", media: result.media });
+				lightImpactRef.current(); // Haptic feedback on success
+				logFinished({ success: true, discarded: false });
+			} catch (error) {
+				if (isStale()) {
+					discard({ success: false, error: "exception" });
+					return;
+				}
+				setMediaState({ status: "error", error: i18n.t("Map.media.mediaSelectionError") });
+				logFinished({ success: false, error: "exception", discarded: false });
+			} finally {
+				isSelectingMediaRef.current = false;
 			}
-
-			// Success - set media and show form
-			setMediaState({ status: "success", media: result.media });
-			lightImpactRef.current(); // Haptic feedback on success
-			logFinished({ success: true, discarded: false });
-		} catch (error) {
-			if (isStale()) {
-				discard({ success: false, error: "exception" });
-				return;
-			}
-			setMediaState({ status: "error", error: i18n.t("Map.media.mediaSelectionError") });
-			logFinished({ success: false, error: "exception", discarded: false });
-		} finally {
-			isSelectingMediaRef.current = false;
-		}
-	}, []);
+		},
+		[],
+	);
 
 	/**
 	 * #1127 【修正】プレビュー専用モードの「中身」だけを取り出した依存キー。
@@ -527,6 +537,12 @@ export function ReviewForm({
 		// 再試行は「いま有効な世代」に属するので現在値をそのまま渡す。
 		// アンマウント時は cleanup が世代を進めるため、遅れて返ってきた結果は書き戻されない
 		runMediaSelection("retry", mediaGenerationRef.current);
+	}, [runMediaSelection]);
+
+	// #1375 4 巡目: 「その場で撮る」導線。ガードの作法は handleRetry と同一に保つ
+	const handleShootWithCamera = useCallback(() => {
+		if (!isSelectingMediaRef.current) setMediaState({ status: "loading" });
+		runMediaSelection("retry", mediaGenerationRef.current, "camera");
 	}, [runMediaSelection]);
 
 	// Animated height for InitialMediaPreview
@@ -921,6 +937,11 @@ export function ReviewForm({
 						 * ピッカーを開き直せる。つまり `none` は行き止まりではなく、いつでも `success` へ戻れる。
 						 * サブラベルは「写真なしが機能欠落ではなく仕様である」ことを示すために置く（設計 §4-1）。
 						 */
+						/**
+						 * #1375 4 巡目: 「ライブラリから選ぶのか、その場で撮るのか」の導線を明示する。
+						 * placeholder 全体タップ = ライブラリ（従来挙動・テスト互換）に加え、
+						 * カメラ起動のボタンを並べる。写真なしでも記録できる旨は従来どおり言う
+						 */
 						<Pressable
 							testID="review-add-photo-placeholder"
 							style={styles.noMediaPlaceholder}
@@ -931,6 +952,24 @@ export function ReviewForm({
 							<Text style={styles.noMediaTitle} numberOfLines={1}>
 								{i18n.t("MyDishes.record.noPhotoTitle")}
 							</Text>
+							<View style={styles.mediaSourceRow}>
+								<TouchableOpacity
+									testID="review-pick-from-library"
+									style={styles.mediaSourceButton}
+									onPress={handleRetry}
+									accessibilityRole="button">
+									<ImagePlus size={16} color="#374151" />
+									<Text style={styles.mediaSourceLabel}>{i18n.t("Map.media.pickFromLibrary")}</Text>
+								</TouchableOpacity>
+								<TouchableOpacity
+									testID="review-shoot-with-camera"
+									style={styles.mediaSourceButton}
+									onPress={handleShootWithCamera}
+									accessibilityRole="button">
+									<Camera size={16} color="#374151" />
+									<Text style={styles.mediaSourceLabel}>{i18n.t("Map.media.shootWithCamera")}</Text>
+								</TouchableOpacity>
+							</View>
 							<Text style={styles.noMediaHint} numberOfLines={1}>
 								{i18n.t("MyDishes.record.noPhotoHint")}
 							</Text>
@@ -1395,6 +1434,27 @@ const styles = StyleSheet.create({
 		fontSize: 12,
 		color: "#6B7280",
 		flexShrink: 1,
+	},
+	// #1375 4 巡目: 「ライブラリから選ぶ / カメラで撮る」の 2 択導線
+	mediaSourceRow: {
+		flexDirection: "row",
+		gap: 8,
+		marginTop: 12,
+		marginBottom: 8,
+	},
+	mediaSourceButton: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 6,
+		paddingHorizontal: 14,
+		paddingVertical: 10,
+		borderRadius: 12,
+		backgroundColor: "#F3F4F6",
+	},
+	mediaSourceLabel: {
+		fontSize: 13,
+		fontWeight: "700",
+		color: "#374151",
 	},
 	characterCount: {
 		fontSize: 12,

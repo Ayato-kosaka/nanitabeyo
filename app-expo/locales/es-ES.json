@@ -584,7 +584,9 @@
 			"mediaSelectionFailed": "Error al seleccionar medios",
 			"mediaSelectionError": "Ocurrió un error al seleccionar medios. Por favor intenta de nuevo.",
 			"replaceWithMyPhoto": "Usar mi propia foto",
-			"openSettings": "Abrir ajustes"
+			"openSettings": "Abrir ajustes",
+			"pickFromLibrary": "Elegir de la galería",
+			"shootWithCamera": "Tomar una foto"
 		},
 		"noResultsFound": "No se encontraron resultados",
 		"accessibility": {
@@ -880,7 +882,8 @@
 			"category": {
 				"title": "Categoría de plato",
 				"description": "Filtra por las categorías más frecuentes entre los registros mostrados",
-				"count": "{{label}} ({{count}})"
+				"count": "{{label}} ({{count}})",
+				"showAll": "Ver más ({{count}} más)"
 			}
 		},
 		"empty": {
@@ -959,7 +962,9 @@
 		},
 		"result": {
 			"summary": "Lectura completada",
-			"noInfo": "No se pudo leer información de esta publicación. Elige el local y la categoría abajo para guardarla."
+			"noInfo": "No se pudo leer información de esta publicación. Elige el local y la categoría abajo para guardarla.",
+			"showFullCaption": "Ver más",
+			"collapseCaption": "Ver menos"
 		},
 		"eaten": {
 			"pickRestaurant": "Elegir local",

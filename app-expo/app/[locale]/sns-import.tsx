@@ -56,7 +56,7 @@ import {
 	TouchableOpacity,
 	View,
 } from "react-native";
-import { MapPin, MapPinned } from "lucide-react-native";
+import { Instagram, MapPin, MapPinned, Music2, Youtube } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { PrimaryButton } from "@/components/PrimaryButton";
@@ -94,6 +94,19 @@ const PROVIDER_LABELS: Record<SnsProvider, string> = {
 	tiktok: "TikTok",
 	youtube: "YouTube Shorts",
 };
+
+/**
+ * provider 名の左に添えるロゴ（#1375 4 巡目の実機指摘）。
+ * lucide に TikTok の公式グリフは無いので音符（Music2）で代用する。
+ */
+const PROVIDER_ICONS: Record<SnsProvider, typeof Instagram> = {
+	instagram: Instagram,
+	tiktok: Music2,
+	youtube: Youtube,
+};
+
+/** キャプションをこの文字数まで畳む。超えたら「もっと見る」を出す */
+const CAPTION_COLLAPSE_THRESHOLD = 120;
 
 /**
  * 店舗候補を探す半径（m）。
@@ -144,6 +157,8 @@ export default function SnsImportScreen() {
 	/** 貼り付け欄。共有から来たときは初期値が入る */
 	const [input, setInput] = useState<string>(sharedUrl ?? "");
 	const [resolved, setResolved] = useState<ResolveDishMediaImportResponse | null>(null);
+	// #1375 4 巡目: キャプションは畳んで出し、「もっと見る」で全文を見られるようにする
+	const [isCaptionExpanded, setIsCaptionExpanded] = useState(false);
 	const [isResolving, setIsResolving] = useState(false);
 	const [isSaving, setIsSaving] = useState(false);
 	const [dishCategoryId, setDishCategoryId] = useState<string | null>(null);
@@ -286,6 +301,8 @@ export default function SnsImportScreen() {
 				},
 			);
 			setResolved(response);
+			// 読み取り直しでキャプションは畳み直す（前の投稿の展開状態を引き継がない）
+			setIsCaptionExpanded(false);
 			// 閾値を超えた候補があれば初期選択に使う。**それでもユーザーが直せる状態で見せる**
 			setDishCategoryId(response.prefill.dishCategoryId);
 			setRestaurantId(response.prefill.restaurantId);
@@ -560,15 +577,47 @@ export default function SnsImportScreen() {
 										</Text>
 									) : (
 										<>
-											{!!resolved.source.provider && (
-												<Text style={styles.provider} testID="sns-import-provider">
-													{PROVIDER_LABELS[resolved.source.provider]}
-												</Text>
-											)}
+											{!!resolved.source.provider &&
+												(() => {
+													// #1375 4 巡目: 名前だけだと素っ気ないのでロゴを左に添える
+													const ProviderIcon = PROVIDER_ICONS[resolved.source.provider];
+													return (
+														<View style={styles.providerRow}>
+															<ProviderIcon size={16} color="#F05537" />
+															<Text style={styles.provider} testID="sns-import-provider">
+																{PROVIDER_LABELS[resolved.source.provider]}
+															</Text>
+														</View>
+													);
+												})()}
 											{!!resolved.metadata.title && (
-												<Text style={styles.metaTitle} numberOfLines={3}>
-													{resolved.metadata.title}
-												</Text>
+												<>
+													<Text
+														style={styles.metaTitle}
+														testID="sns-import-caption"
+														numberOfLines={isCaptionExpanded ? undefined : 3}>
+														{resolved.metadata.title}
+													</Text>
+													{/* キャプション全文（店舗情報・メニューが書かれていることが多い）を
+											    その場で読めるようにする。閾値以下なら 3 行に収まるので出さない */}
+													{resolved.metadata.title.length > CAPTION_COLLAPSE_THRESHOLD && (
+														<TouchableOpacity
+															testID="sns-import-caption-toggle"
+															onPress={() => {
+																lightImpact();
+																setIsCaptionExpanded((prev) => !prev);
+															}}
+															accessibilityRole="button">
+															<Text style={styles.captionToggle}>
+																{i18n.t(
+																	isCaptionExpanded
+																		? "SnsImport.result.collapseCaption"
+																		: "SnsImport.result.showFullCaption",
+																)}
+															</Text>
+														</TouchableOpacity>
+													)}
+												</>
 											)}
 											{/* #1375 実機確認（3 巡目）: **読み取り後に何も出ないのを禁止する。**
 								    Instagram はサーバから取れる情報が無いので、候補ゼロは主要経路である。
@@ -927,11 +976,22 @@ const styles = StyleSheet.create({
 	spinner: {
 		marginTop: 16,
 	},
-	provider: {
+	providerRow: {
 		marginTop: 20,
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 6,
+	},
+	provider: {
 		fontSize: 14,
 		fontWeight: "700",
 		color: "#F05537",
+	},
+	captionToggle: {
+		marginTop: 4,
+		fontSize: 13,
+		fontWeight: "700",
+		color: "#6B7280",
 	},
 	metaTitle: {
 		marginTop: 4,

@@ -59,10 +59,10 @@ const pad2 = (v) => (v < 10 ? `0${v}` : String(v));
 const d = new Date();
 const ym = (n) => { const a = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() - n, 15, 3)); return a; };
 const iso = (n, day) => { const a = ym(n); return new Date(Date.UTC(a.getUTCFullYear(), a.getUTCMonth(), day, 3)).toISOString(); };
-const item = (key, occurredAt, withMedia) => ({
+const item = (key, occurredAt, withMedia, cat = ["Q1", "ラーメン"]) => ({
   key, status: "eaten", occurredAt, savedAt: null, eatenAt: occurredAt,
   restaurant: { id: "r-1", name: "醤油ラーメン一番", image_url: "https://img.example.invalid/r.jpg" },
-  dish: { id: `dish-${key}`, name: "ラーメン", reviewCount: 3, averageRating: 4.2, categoryImageUrl: "https://img.example.invalid/c.jpg" },
+  dish: { id: `dish-${key}`, category_id: cat[0], name: cat[1], reviewCount: 3, averageRating: 4.2, categoryImageUrl: "https://img.example.invalid/c.jpg" },
   dishMedia: withMedia ? { id: `dm-${key}`, thumbnailImageUrl: "https://img.example.invalid/t.jpg", mediaImageUrl: "https://img.example.invalid/m.jpg", mediaType: "image" } : null,
   myReview: null, distanceMeters: null,
 });
@@ -71,12 +71,26 @@ const page1 = [
   item("a", iso(0, 2), true), item("b", iso(0, 5), true), item("b2", iso(0, 5), true), item("c", iso(0, 11), true),
   item("d", iso(0, 14), false), item("e", iso(0, 20), true),
   item("f", iso(1, 3), true), item("g", iso(1, 9), true), item("h", iso(1, 22), true),
+  // #1375 4 巡目: 料理カテゴリー絞り込みの「もっと見る」を出すため 10 カテゴリー以上にする
+  ...[["Q2","寿司"],["Q3","カレー"],["Q4","うどん"],["Q5","そば"],["Q6","天ぷら"],["Q7","焼き鳥"],["Q8","餃子"],["Q9","パスタ"],["Q10","ハンバーガー"],["Q11","牛丼"]]
+    .map((cat, i) => item(`cat-${cat[0]}`, iso(0, 3 + (i % 20)), true, cat)),
 ];
 
+const LONG_CAPTION = [
+  "濃口醤油とラードを効かせた八王子ラーメン！半熟味玉を添えた中華そば",
+  "【中華そば専門店 八王子ラーメンよしだ】",
+  "東京都八王子市にある「中華そば専門店 八王子ラーメンよしだ」へ撮影に伺いました。",
+  "■店舗情報",
+  "🏠 店名：中華そば専門店 八王子ラーメンよしだ",
+  "📍 住所：東京都八王子市東町1-3",
+  "⏰ 営業時間：11:00〜翌2:00",
+  "■ご紹介したメニュー",
+  "・中華そば：800円（税込）",
+].join("\n");
 const resolveResponse = {
   status: "ok", reason: "resolved",
-  source: { provider: "tiktok", externalContentId: "1", canonicalUrl: "https://www.tiktok.com/@a/video/1", mediaIndex: null },
-  metadata: { title: "駅前の絶品味噌ラーメン🍜", authorName: null, authorUrl: null, thumbnailUrl: null, extractedTexts: [] },
+  source: { provider: "instagram", externalContentId: "DZFdePPzzLI", canonicalUrl: "https://www.instagram.com/reel/DZFdePPzzLI/", mediaIndex: null },
+  metadata: { title: LONG_CAPTION, authorName: "umaguru.tokyo", authorUrl: null, thumbnailUrl: null, extractedTexts: [] },
   candidates: {
     dishCategories: [
       { dishCategoryId: "Q177", labelEn: "Ramen", labels: { ja: "ラーメン" } },
@@ -149,11 +163,19 @@ await page.getByTestId("my-dishes-calendar-list").waitFor({ timeout: 120000 }).c
 await page.waitForTimeout(3000);
 await shot("calendar");
 
-// 2. filters
-await goto("/ja-JP/my-dishes/filters");
+// 2. filters（先に一覧を訪れて store を満たす。カテゴリー候補は一覧のキャッシュから数える。
+// ⚠️ goto() はフルリロードで store が消えるので、フィルタへは **画面内のボタンから** 遷移する）
+await goto("/ja-JP/my-dishes");
+await page.waitForTimeout(3000);
+await page.getByTestId("my-dishes-filter-button").click().catch((e) => console.log("filter-btn:", e.message));
+await page.waitForTimeout(1500);
 await page.getByTestId("my-dishes-filter-screen").first().waitFor({ timeout: 120000 }).catch((e) => console.log("filters wait:", e.message));
 await page.waitForTimeout(2000);
 await shot("filters-default");
+// #1375 4 巡目: カテゴリー「もっと見る」を開く
+await page.getByTestId("my-dishes-filter-category-show-all").click().catch((e) => console.log("show-all:", e.message));
+await page.waitForTimeout(400);
+await shot("filters-categories-expanded");
 // select 条件を選ぶ to reveal axes
 await page.getByTestId("my-dishes-filter-sort--featureScore").click().catch((e) => console.log(e.message));
 await page.waitForTimeout(500);
@@ -161,6 +183,10 @@ await shot("filters-feature-axes");
 await page.getByTestId("my-dishes-filter-axis-time-slot").click().catch((e) => console.log(e.message));
 await page.waitForTimeout(500);
 await shot("filters-axis-open");
+// #1375 4 巡目: 値を選ぶとプルダウンが閉じる（確定の見た目）
+await page.getByTestId("my-dishes-filter-axis-time-slot-dinner").click().catch((e) => console.log("dinner:", e.message));
+await page.waitForTimeout(500);
+await shot("filters-axis-closed-after-select");
 
 // 3. sns-import initial
 await goto("/ja-JP/sns-import");
@@ -172,6 +198,10 @@ await page.getByTestId("sns-import-url-input").fill("https://www.tiktok.com/@a/v
 await page.getByTestId("sns-import-resolve-button").click();
 await page.waitForTimeout(2500);
 await shot("sns-import-resolved-top");
+// #1375 4 巡目: キャプション「もっと見る」で全文を開く
+await page.getByTestId("sns-import-caption-toggle").click().catch((e) => console.log("caption:", e.message));
+await page.waitForTimeout(500);
+await shot("sns-import-caption-expanded");
 await page.mouse.wheel(0, 600);
 await page.waitForTimeout(800);
 await shot("sns-import-resolved-bottom");

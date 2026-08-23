@@ -25,6 +25,8 @@ import type { ClsService } from 'nestjs-cls';
 import { AppLoggerService } from '../../core/logger/logger.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SafeFetchService } from '../../core/safe-fetch/safe-fetch.service';
+import { StorageService } from '../../core/storage/storage.service';
+import { CloudTasksService } from '../../core/cloud-tasks/cloud-tasks.service';
 import { FakeSafeFetchTransport } from '../../core/safe-fetch/testing/fake-safe-fetch.transport';
 import { DishCategoriesRepository } from '../dish-categories/dish-categories.repository';
 import { RestaurantsRepository } from '../restaurants/restaurants.repository';
@@ -88,6 +90,8 @@ type Harness = {
   searchNearbyRestaurants: jest.Mock;
   findDishCategoriesByIds: jest.Mock;
   withTransaction: jest.Mock;
+  uploadFile: jest.Mock;
+  enqueueResizeImage: jest.Mock;
 };
 
 function createHarness(options?: {
@@ -132,6 +136,15 @@ function createHarness(options?: {
   );
   const prisma = { withTransaction } as unknown as PrismaService;
 
+  // #1375 4 巡目: サムネイル複製（create 経路のみが使う）
+  const uploadFile = jest.fn().mockResolvedValue({
+    path: 'test/dish_media/imported-thumbnail/123_media-1.jpg',
+    signedUrl: 'https://signed/imported.jpg',
+  });
+  const storage = { uploadFile } as unknown as StorageService;
+  const enqueueResizeImage = jest.fn().mockResolvedValue(undefined);
+  const cloudTasks = { enqueueResizeImage } as unknown as CloudTasksService;
+
   const service = new DishMediaImportsService(
     safeFetch,
     oembed,
@@ -139,6 +152,8 @@ function createHarness(options?: {
     dishCategoriesRepo,
     restaurantsRepo,
     prisma,
+    storage,
+    cloudTasks,
     logger,
     // #1399 保存経路（create）が created_version に使う。resolve は触らない
     { get: () => 'test' } as unknown as ClsService,
@@ -150,6 +165,8 @@ function createHarness(options?: {
     searchNearbyRestaurants,
     findDishCategoriesByIds,
     withTransaction,
+    uploadFile,
+    enqueueResizeImage,
   };
 }
 
@@ -672,6 +689,130 @@ describe('DishMediaImportsService — 店舗候補', () => {
     expect(queries).toContain('Scout, Suki & Stella');
   });
 
+  // #1375 4 巡目: 現在地が店から離れていても、キャプションの住所から店へ辿れる
+  describe('キャプションの住所から探す（国土地理院ジオコーディング）', () => {
+    const GSI_ENDPOINT =
+      'https://msearch.gsi.go.jp/address-search/AddressSearch';
+    const CAPTION_WITH_ADDRESS = [
+      '中華そば専門店 八王子ラーメンよしだ の一杯',
+      '📍 住所：東京都八王子市東町1-3',
+      '#ラーメン',
+    ].join('\n');
+
+    function routeTikTokWithAddress(transport: FakeSafeFetchTransport) {
+      transport.route(TIKTOK_OEMBED, {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+        body: tiktokOembedBody(CAPTION_WITH_ADDRESS),
+      });
+    }
+
+    function routeGsi(transport: FakeSafeFetchTransport) {
+      transport.route(GSI_ENDPOINT, {
+        status: 200,
+        headers: { 'content-type': 'application/json; charset=utf-8' },
+        body: JSON.stringify([
+          {
+            geometry: { coordinates: [139.341049, 35.657646], type: 'Point' },
+            type: 'Feature',
+            properties: {
+              addressCode: '',
+              title: '東京都八王子市東町１番３号',
+            },
+          },
+        ]),
+      });
+    }
+
+    it('現在地が無くても、住所の地点で店舗を照合する', async () => {
+      const harness = createHarness({
+        restaurants: [
+          restaurantRow('r1', '中華そば専門店 八王子ラーメンよしだ'),
+        ],
+      });
+      routeTikTokWithAddress(harness.transport);
+      routeGsi(harness.transport);
+
+      const result = await harness.service.resolve({ url: TIKTOK_VIDEO_URL });
+
+      expect(result.restaurantSearch).toMatchObject({
+        performed: true,
+        reason: 'searched',
+      });
+      expect(result.candidates.restaurants[0]).toMatchObject({
+        restaurantId: 'r1',
+        name: '中華そば専門店 八王子ラーメンよしだ',
+      });
+      // 住所の地点（GeoJSON の [経度, 緯度] を読み替えた値）+ 住所用の狭い半径で引く
+      expect(harness.searchNearbyRestaurants).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          lat: 35.657646,
+          lng: 139.341049,
+          radius: 1000,
+        }),
+      );
+    });
+
+    it('現在地と住所の両方があれば、両方の地点で引く', async () => {
+      const harness = createHarness({
+        restaurants: [
+          restaurantRow('r1', '中華そば専門店 八王子ラーメンよしだ'),
+        ],
+      });
+      routeTikTokWithAddress(harness.transport);
+      routeGsi(harness.transport);
+
+      await harness.service.resolve({
+        url: TIKTOK_VIDEO_URL,
+        lat: 35.658,
+        lng: 139.701,
+        radius: 3000,
+      });
+
+      const areas = (
+        harness.searchNearbyRestaurants.mock.calls as [
+          unknown,
+          { lat: number; lng: number; q?: string },
+        ][]
+      )
+        .filter((call) => call[1].q === undefined)
+        .map((call) => call[1].lat);
+      expect(areas).toContain(35.658); // 現在地
+      expect(areas).toContain(35.657646); // キャプション住所
+    });
+
+    it('ジオコーディングが落ちても resolve は失敗しない（従来の縮退のまま）', async () => {
+      // GSI をルートしない = 接続失敗。住所ありでも従来どおり «探さなかった» へ縮退する
+      const harness = createHarness({
+        restaurants: [
+          restaurantRow('r1', '中華そば専門店 八王子ラーメンよしだ'),
+        ],
+      });
+      routeTikTokWithAddress(harness.transport);
+
+      const result = await harness.service.resolve({ url: TIKTOK_VIDEO_URL });
+
+      expect(result.status).toBe('ok');
+      expect(result.restaurantSearch).toMatchObject({
+        performed: false,
+        reason: 'area_not_provided',
+      });
+    });
+
+    it('住所が無いキャプションでは国土地理院を叩かない', async () => {
+      const harness = createHarness();
+      routeTikTok(harness.transport);
+
+      await harness.service.resolve({ url: TIKTOK_VIDEO_URL });
+
+      const gsiCalls = harness.transport.requests.filter((request) =>
+        request.url.includes('msearch.gsi.go.jp'),
+      );
+      expect(gsiCalls).toHaveLength(0);
+    });
+  });
+
   it('メタデータが取れなかったときは店舗検索も行わない', async () => {
     const harness = createHarness({
       restaurants: [restaurantRow('r1', '一蘭 渋谷店')],
@@ -740,12 +881,18 @@ function createSaveTx(options?: {
   const calls = {
     dishUpsert: jest.fn().mockResolvedValue({ id: 'dish-1' }),
     mediaCreate: jest.fn().mockResolvedValue({ id: 'media-1' }),
+    mediaUpdate: jest.fn().mockResolvedValue({}),
     embeddingCreate: jest.fn().mockResolvedValue({}),
     reactionCreate: jest.fn().mockResolvedValue({}),
   };
   const tx = {
     dishes: { upsert: calls.dishUpsert },
-    dish_media: { create: calls.mediaCreate },
+    dish_media: {
+      create: calls.mediaCreate,
+      // #1375 4 巡目 サムネイル複製の前提確認（'' = まだ複製していない）と据え替え
+      findUnique: jest.fn().mockResolvedValue({ thumbnail_path: '' }),
+      update: calls.mediaUpdate,
+    },
     dish_media_external_embeddings: {
       findFirst: jest
         .fn()
@@ -806,6 +953,91 @@ describe('#1399 SNS 取り込みの保存', () => {
       action_type: 'save',
     });
     expect(result).toMatchObject({ created: true, saved: true });
+  });
+
+  // #1375 4 巡目（オーナー承認 2026-08-23）: 外部サムネイルは自ストレージへ複製する
+  it('サムネイルを自ストレージへ複製し、thumbnail_path に据えてリサイズを積む', async () => {
+    const harness = createHarness();
+    harness.transport.route(TIKTOK_OEMBED, {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+      body: tiktokOembedBody('味噌ラーメン #ramen'),
+    });
+    // oEmbed が返す thumbnail_url（tiktokcdn-us は allowlist 内）
+    harness.transport.route('https://p16-common-sign.tiktokcdn-us.com/x.jpeg', {
+      status: 200,
+      headers: { 'content-type': 'image/jpeg' },
+      body: 'fake-jpeg-bytes',
+    });
+    const { tx, calls } = createSaveTx();
+    (
+      harness.service as unknown as { prisma: { withTransaction: unknown } }
+    ).prisma = {
+      withTransaction: (cb: (t: unknown) => unknown) => cb(tx),
+    };
+
+    await harness.service.create(
+      {
+        url: URL,
+        restaurantId: '11111111-1111-1111-1111-111111111111',
+        dishCategoryId: 'Q2',
+      },
+      'user-1',
+    );
+
+    expect(harness.uploadFile).toHaveBeenCalledTimes(1);
+    expect(harness.uploadFile.mock.calls[0][0]).toMatchObject({
+      mimeType: 'image/jpeg',
+      resourceType: 'dish_media',
+      usageType: 'imported-thumbnail',
+      identifier: 'media-1',
+    });
+    expect(calls.mediaUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'media-1' },
+        data: expect.objectContaining({
+          thumbnail_path: 'test/dish_media/imported-thumbnail/123_media-1.jpg',
+          thumbnail_processing_status: 'processing',
+        }),
+      }),
+    );
+    expect(harness.enqueueResizeImage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        table: 'dish_media',
+        column: 'thumbnail_path',
+        recordId: 'media-1',
+        size: 256,
+      }),
+    );
+  });
+
+  it('サムネイルの取得が失敗しても取り込みは成功のまま（外部 URL フォールバック）', async () => {
+    const harness = createHarness();
+    harness.transport.route(TIKTOK_OEMBED, {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+      body: tiktokOembedBody('味噌ラーメン #ramen'),
+    });
+    // サムネイル URL はルートしない = CDN 落ち
+    const { tx, calls } = createSaveTx();
+    (
+      harness.service as unknown as { prisma: { withTransaction: unknown } }
+    ).prisma = {
+      withTransaction: (cb: (t: unknown) => unknown) => cb(tx),
+    };
+
+    const result = await harness.service.create(
+      {
+        url: URL,
+        restaurantId: '11111111-1111-1111-1111-111111111111',
+        dishCategoryId: 'Q2',
+      },
+      'user-1',
+    );
+
+    expect(result).toMatchObject({ created: true, saved: true });
+    expect(harness.uploadFile).not.toHaveBeenCalled();
+    expect(calls.mediaUpdate).not.toHaveBeenCalled();
   });
 
   it('同じ SNS 投稿が同じ料理に既に在れば dish_media を作り直さず、save だけ足す', async () => {

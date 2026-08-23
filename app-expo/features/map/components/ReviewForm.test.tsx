@@ -427,6 +427,29 @@ describe("ReviewForm の写真なしモード（#1398 B2 / B3）", () => {
 		expect(tree.root.findAllByProps({ testID: "review-comment-input" }).length).toBeGreaterThan(0);
 	});
 
+	// #1375 4 巡目: 「ライブラリから選ぶ / 写真を撮る」の 2 択導線
+	it("プレースホルダにはライブラリとカメラの導線があり、カメラは source: camera で起動する", async () => {
+		const resolveSelection = deferSelectMedia();
+		mount({ onCancel: jest.fn(), allowNoMedia: true });
+
+		await resolveSelection({ success: false, error: "cancelled" });
+		expect(hasPlaceholder()).toBe(true);
+		expect(tree.root.findAllByProps({ testID: "review-pick-from-library" }).length).toBeGreaterThan(0);
+
+		deferSelectMedia();
+		const cameraNode = tree.root
+			.findAllByProps({ testID: "review-shoot-with-camera" })
+			.find((candidate) => typeof candidate.props.onPress === "function");
+		if (!cameraNode) throw new Error("カメラ導線が見つかりません");
+		act(() => cameraNode.props.onPress());
+
+		expect(selectMediaMock).toHaveBeenCalledTimes(2);
+		const [mediaTypes, options] = selectMediaMock.mock.calls[1];
+		// カメラは写真のみ（NSMicrophoneUsageDescription が現行ビルドに無く、動画撮影は落ちる）
+		expect(mediaTypes).toEqual(["images"]);
+		expect(options).toMatchObject({ source: "camera" });
+	});
+
 	it("プレースホルダをタップすれば選び直せて、写真なしから写真ありへ戻れる", async () => {
 		const resolveSelection = deferSelectMedia();
 		mount({ onCancel: jest.fn(), allowNoMedia: true });

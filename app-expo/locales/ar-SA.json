@@ -584,7 +584,9 @@
 			"mediaSelectionFailed": "فشل تحديد الوسائط",
 			"mediaSelectionError": "حدث خطأ أثناء تحديد الوسائط. يرجى المحاولة مرة أخرى.",
 			"replaceWithMyPhoto": "استخدام صورتي الخاصة",
-			"openSettings": "فتح الإعدادات"
+			"openSettings": "فتح الإعدادات",
+			"pickFromLibrary": "اختيار من المكتبة",
+			"shootWithCamera": "التقاط صورة"
 		},
 		"noResultsFound": "لم يتم العثور على نتائج",
 		"accessibility": {
@@ -880,7 +882,8 @@
 			"category": {
 				"title": "فئة الطبق",
 				"description": "صفِّ حسب فئات الأطباق الأكثر تكرارًا ضمن السجلات المعروضة",
-				"count": "{{label}} ({{count}})"
+				"count": "{{label}} ({{count}})",
+				"showAll": "عرض المزيد ({{count}} أخرى)"
 			}
 		},
 		"empty": {
@@ -959,7 +962,9 @@
 		},
 		"result": {
 			"summary": "تمت القراءة",
-			"noInfo": "تعذّر قراءة معلومات من هذا المنشور. اختر المطعم وفئة الطبق أدناه للحفظ."
+			"noInfo": "تعذّر قراءة معلومات من هذا المنشور. اختر المطعم وفئة الطبق أدناه للحفظ.",
+			"showFullCaption": "عرض المزيد",
+			"collapseCaption": "عرض أقل"
 		},
 		"eaten": {
 			"pickRestaurant": "اختر مطعمًا",

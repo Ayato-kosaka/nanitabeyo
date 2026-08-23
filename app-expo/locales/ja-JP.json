@@ -584,7 +584,9 @@
 			"mediaSelectionFailed": "メディアの選択に失敗しました",
 			"mediaSelectionError": "メディアの選択中にエラーが発生しました。もう一度お試しください。",
 			"replaceWithMyPhoto": "自分の写真に差し替える",
-			"openSettings": "設定を開く"
+			"openSettings": "設定を開く",
+			"pickFromLibrary": "ライブラリから選ぶ",
+			"shootWithCamera": "写真を撮る"
 		},
 		"noResultsFound": "結果が見つかりませんでした",
 		"accessibility": {
@@ -880,7 +882,8 @@
 			"category": {
 				"title": "料理カテゴリー",
 				"description": "いま表示されている記録の中から、多い料理カテゴリーで絞り込みます",
-				"count": "{{label}}（{{count}}）"
+				"count": "{{label}}（{{count}}）",
+				"showAll": "もっと見る（あと{{count}}件）"
 			}
 		},
 		"empty": {
@@ -959,7 +962,9 @@
 		},
 		"result": {
 			"summary": "読み取りました",
-			"noInfo": "この投稿から読み取れる情報はありませんでした。下でお店と料理カテゴリーを選ぶと保存できます。"
+			"noInfo": "この投稿から読み取れる情報はありませんでした。下でお店と料理カテゴリーを選ぶと保存できます。",
+			"showFullCaption": "もっと見る",
+			"collapseCaption": "閉じる"
 		},
 		"eaten": {
 			"pickRestaurant": "お店を選ぶ",

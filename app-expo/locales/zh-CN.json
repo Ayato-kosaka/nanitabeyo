@@ -584,7 +584,9 @@
 			"mediaSelectionFailed": "媒体选择失败",
 			"mediaSelectionError": "选择媒体时发生错误。请重试。",
 			"replaceWithMyPhoto": "改用我自己的照片",
-			"openSettings": "打开设置"
+			"openSettings": "打开设置",
+			"pickFromLibrary": "从相册选择",
+			"shootWithCamera": "拍照"
 		},
 		"noResultsFound": "未找到结果",
 		"accessibility": {
@@ -880,7 +882,8 @@
 			"category": {
 				"title": "菜品类别",
 				"description": "按当前显示记录中最多的菜品类别筛选",
-				"count": "{{label}}（{{count}}）"
+				"count": "{{label}}（{{count}}）",
+				"showAll": "查看更多（还有{{count}}个）"
 			}
 		},
 		"empty": {
@@ -959,7 +962,9 @@
 		},
 		"result": {
 			"summary": "读取完成",
-			"noInfo": "无法从该帖子读取信息。在下方选择店铺和菜品类别即可保存。"
+			"noInfo": "无法从该帖子读取信息。在下方选择店铺和菜品类别即可保存。",
+			"showFullCaption": "查看更多",
+			"collapseCaption": "收起"
 		},
 		"eaten": {
 			"pickRestaurant": "选择店铺",

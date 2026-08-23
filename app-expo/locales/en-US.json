@@ -584,7 +584,9 @@
 			"mediaSelectionFailed": "Failed to select media",
 			"mediaSelectionError": "An error occurred while selecting media. Please try again.",
 			"replaceWithMyPhoto": "Use my own photo",
-			"openSettings": "Open Settings"
+			"openSettings": "Open Settings",
+			"pickFromLibrary": "Choose from library",
+			"shootWithCamera": "Take a photo"
 		},
 		"noResultsFound": "No results found",
 		"accessibility": {
@@ -880,7 +882,8 @@
 			"category": {
 				"title": "Dish category",
 				"description": "Narrow down by the most common dish categories among the records shown",
-				"count": "{{label}} ({{count}})"
+				"count": "{{label}} ({{count}})",
+				"showAll": "Show more ({{count}} more)"
 			}
 		},
 		"empty": {
@@ -959,7 +962,9 @@
 		},
 		"result": {
 			"summary": "Read successfully",
-			"noInfo": "No information could be read from this post. Pick the shop and dish category below to save it."
+			"noInfo": "No information could be read from this post. Pick the shop and dish category below to save it.",
+			"showFullCaption": "Show more",
+			"collapseCaption": "Show less"
 		},
 		"eaten": {
 			"pickRestaurant": "Pick a shop",

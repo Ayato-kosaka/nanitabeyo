@@ -584,7 +584,9 @@
 			"mediaSelectionFailed": "미디어 선택 실패",
 			"mediaSelectionError": "미디어 선택 중 오류가 발생했습니다. 다시 시도해주세요.",
 			"replaceWithMyPhoto": "내 사진으로 바꾸기",
-			"openSettings": "설정 열기"
+			"openSettings": "설정 열기",
+			"pickFromLibrary": "라이브러리에서 선택",
+			"shootWithCamera": "사진 촬영"
 		},
 		"noResultsFound": "결과를 찾을 수 없습니다",
 		"accessibility": {
@@ -880,7 +882,8 @@
 			"category": {
 				"title": "요리 카테고리",
 				"description": "지금 표시된 기록 중에서 많은 요리 카테고리로 좁힙니다",
-				"count": "{{label}}（{{count}}）"
+				"count": "{{label}}（{{count}}）",
+				"showAll": "더 보기 (외 {{count}}개)"
 			}
 		},
 		"empty": {
@@ -959,7 +962,9 @@
 		},
 		"result": {
 			"summary": "읽어왔습니다",
-			"noInfo": "이 게시물에서 읽을 수 있는 정보가 없었습니다. 아래에서 가게와 요리 카테고리를 고르면 저장할 수 있습니다."
+			"noInfo": "이 게시물에서 읽을 수 있는 정보가 없었습니다. 아래에서 가게와 요리 카테고리를 고르면 저장할 수 있습니다.",
+			"showFullCaption": "더 보기",
+			"collapseCaption": "접기"
 		},
 		"eaten": {
 			"pickRestaurant": "가게 고르기",

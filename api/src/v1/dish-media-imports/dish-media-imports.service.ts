@@ -35,6 +35,8 @@ import { CLS_KEY_APP_VERSION } from '../../core/cls/cls.constants';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SafeFetchService } from '../../core/safe-fetch/safe-fetch.service';
 import { SafeFetchError } from '../../core/safe-fetch/safe-fetch.types';
+import { StorageService } from '../../core/storage/storage.service';
+import { CloudTasksService } from '../../core/cloud-tasks/cloud-tasks.service';
 import { DishCategoriesRepository } from '../dish-categories/dish-categories.repository';
 import { RestaurantsRepository } from '../restaurants/restaurants.repository';
 import { DishCategoryVariantDictionaryService } from './dish-category-variant-dictionary.service';
@@ -49,6 +51,11 @@ import {
 import { matchDishCategoriesWithIndex } from '../../../../shared/utils/dishCategoryMatch';
 import { matchRestaurantNames } from '../../../../shared/utils/restaurantNameMatch';
 import type { ExtractedText } from '../../../../shared/utils/textNormalize';
+import {
+  extractPostalAddress,
+  parseGsiAddressSearchResponse,
+  type GeocodedPoint,
+} from './sns-address';
 import type {
   CreateDishMediaImportDto,
   ResolveDishMediaImportDto,
@@ -86,6 +93,45 @@ const AUTHOR_NAME_QUERY_MAX_LENGTH = 64;
 /** 返す候補の既定件数 */
 const DEFAULT_CANDIDATE_LIMIT = 5;
 
+/**
+ * キャプションの住所をジオコーディングした地点で照合する半径（m）。
+ *
+ * 国土地理院は地番レベル（実測で店舗座標と 30m 差）まで解決するが、
+ * 住所の書き方の揺れ（「東町1-3」と「東町１番３号」）や店舗座標側のズレを
+ * 吸収するため 1km 取る。ユーザー現在地の 5km と違い、住所は «店そのもの» を
+ * 指しているので狭くてよい。
+ */
+const CAPTION_ADDRESS_RADIUS_M = 1_000;
+
+/**
+ * 外部サムネイルを取りにいってよい CDN ホスト（provider 別）。
+ *
+ * `thumbnail_url` は provider の応答由来だが、それでもサーバから外へ出る先は
+ * 明示的な allowlist で縛る（SafeFetch `fetchImage` の `allowHost`）。
+ */
+const THUMBNAIL_CDN_ALLOWLIST: Record<string, (host: string) => boolean> = {
+  instagram: (host) =>
+    host.endsWith('.cdninstagram.com') || host.endsWith('.fbcdn.net'),
+  tiktok: (host) =>
+    host.endsWith('.tiktokcdn.com') || host.endsWith('.tiktokcdn-us.com'),
+  youtube: (host) => host === 'i.ytimg.com' || host.endsWith('.ytimg.com'),
+};
+
+/**
+ * 複製するサムネイルの上限サイズ。Instagram の実測は 100〜300 KiB で、
+ * 5 MiB は 15 倍以上の余裕。これを超えるものはサムネイルではない
+ */
+const IMPORT_THUMBNAIL_MAX_BYTES = 5 * 1024 * 1024;
+
+/**
+ * 国土地理院 ジオコーディング API（無料・キー不要・日本国内のみ）。
+ *
+ * Google Geocoding / Places は**課金になるので使わない**（オーナー方針）。
+ * 固定エンドポイントなので SafeFetch の fetchJson（SSRF 検証なし・衛生あり）で叩く。
+ */
+const GSI_ADDRESS_SEARCH_BASE =
+  'https://msearch.gsi.go.jp/address-search/AddressSearch';
+
 @Injectable()
 export class DishMediaImportsService {
   constructor(
@@ -95,6 +141,8 @@ export class DishMediaImportsService {
     private readonly dishCategoriesRepo: DishCategoriesRepository,
     private readonly restaurantsRepo: RestaurantsRepository,
     private readonly prisma: PrismaService,
+    private readonly storage: StorageService,
+    private readonly cloudTasks: CloudTasksService,
     private readonly logger: AppLoggerService,
     private readonly cls: ClsService,
   ) {}
@@ -144,125 +192,248 @@ export class DishMediaImportsService {
 
     const appVersion = this.cls.get<string>(CLS_KEY_APP_VERSION) ?? 'unknown';
 
-    return this.prisma.withTransaction(async (tx) => {
-      /* 1. dish（店舗 × 料理カテゴリ）。無ければ作る */
-      const dish = await tx.dishes.upsert({
-        where: {
-          restaurant_id_category_id: {
+    return this.prisma
+      .withTransaction(async (tx) => {
+        /* 1. dish（店舗 × 料理カテゴリ）。無ければ作る */
+        const dish = await tx.dishes.upsert({
+          where: {
+            restaurant_id_category_id: {
+              restaurant_id: dto.restaurantId,
+              category_id: dto.dishCategoryId,
+            },
+          },
+          create: {
             restaurant_id: dto.restaurantId,
             category_id: dto.dishCategoryId,
           },
-        },
-        create: {
-          restaurant_id: dto.restaurantId,
-          category_id: dto.dishCategoryId,
-        },
-        update: {},
-      });
+          update: {},
+        });
 
-      /* 2. 同じ SNS 投稿が同じ料理へ既に取り込まれていないか */
-      const existing = await tx.dish_media_external_embeddings.findFirst({
-        where: {
-          provider,
-          external_content_id: externalContentId,
-          dish_id: dish.id,
-        },
-        select: { dish_media_id: true },
-      });
-
-      let dishMediaId = existing?.dish_media_id ?? null;
-      const created = dishMediaId === null;
-
-      if (dishMediaId !== null && resolved.status === 'ok') {
-        // #1375（3 巡目）再取り込み時はサムネイル URL を更新する。Instagram / TikTok の
-        // CDN URL は署名付きで数日〜数週間で失効するため、取れたときに貼り替えておく
-        await tx.dish_media_external_embeddings.updateMany({
+        /* 2. 同じ SNS 投稿が同じ料理へ既に取り込まれていないか */
+        const existing = await tx.dish_media_external_embeddings.findFirst({
           where: {
             provider,
             external_content_id: externalContentId,
             dish_id: dish.id,
           },
-          data: {
-            thumbnail_url: resolved.metadata.thumbnailUrl,
-            embed_status: 'available',
-            last_verified_at: new Date(),
-          },
+          select: { dish_media_id: true },
         });
-      }
 
-      if (dishMediaId === null) {
-        /* 3. dish_media。実体は自ストレージに無いので media_path は NULL */
-        const media = await tx.dish_media.create({
-          data: {
-            dish_id: dish.id,
-            // 投稿者はアプリのユーザーではない（上のコメント参照）
-            user_id: null,
-            media_path: null,
-            media_type: 'image',
-            // NOT NULL なので空文字を入れる。external_embed では自ストレージに実体が無く、
-            // 表示は dish_media_external_embeddings.thumbnail_url →
-            // 料理カテゴリ画像 の順で解決する（assembler / resolveMyDishThumbnailUrl）
-            thumbnail_path: '',
-            media_processing_status: 'completed',
-            thumbnail_processing_status: 'completed',
-            render_type: 'external_embed',
+        let dishMediaId = existing?.dish_media_id ?? null;
+        const created = dishMediaId === null;
+
+        if (dishMediaId !== null && resolved.status === 'ok') {
+          // #1375（3 巡目）再取り込み時はサムネイル URL を更新する。Instagram / TikTok の
+          // CDN URL は署名付きで数日〜数週間で失効するため、取れたときに貼り替えておく
+          await tx.dish_media_external_embeddings.updateMany({
+            where: {
+              provider,
+              external_content_id: externalContentId,
+              dish_id: dish.id,
+            },
+            data: {
+              thumbnail_url: resolved.metadata.thumbnailUrl,
+              embed_status: 'available',
+              last_verified_at: new Date(),
+            },
+          });
+        }
+
+        if (dishMediaId === null) {
+          /* 3. dish_media。実体は自ストレージに無いので media_path は NULL */
+          const media = await tx.dish_media.create({
+            data: {
+              dish_id: dish.id,
+              // 投稿者はアプリのユーザーではない（上のコメント参照）
+              user_id: null,
+              media_path: null,
+              media_type: 'image',
+              // NOT NULL なので空文字を入れる。この直後に replicateExternalThumbnail が
+              // 自ストレージへ複製して据え替える（オーナー承認 2026-08-23）。複製が失敗して
+              // いる間は dish_media_external_embeddings.thumbnail_url →
+              // 料理カテゴリ画像 の順で解決する（assembler / resolveMyDishThumbnailUrl）
+              thumbnail_path: '',
+              media_processing_status: 'completed',
+              thumbnail_processing_status: 'completed',
+              render_type: 'external_embed',
+            },
+            select: { id: true },
+          });
+          dishMediaId = media.id;
+
+          /* 4. 埋め込みの実体。embed_html は保存しない（正本 §2 / #1273 §14） */
+          await tx.dish_media_external_embeddings.create({
+            data: {
+              dish_media_id: dishMediaId,
+              dish_id: dish.id,
+              provider,
+              external_content_id: externalContentId,
+              canonical_url: canonicalUrl,
+              // 取り込んだ直後は «生きている» と確認できた状態にはない。
+              // oEmbed が取れた（status='ok'）ときだけ available と言い切る
+              embed_status: resolved.status === 'ok' ? 'available' : 'unknown',
+              last_verified_at: resolved.status === 'ok' ? new Date() : null,
+              // 外部サムネイル URL は provenance と複製失敗時のフォールバックとして残す。
+              // 表示の一次ソースはこの後の複製（replicateExternalThumbnail）が置く
+              // dish_media.thumbnail_path（オーナー承認 2026-08-23: 自ストレージへ複製する）
+              thumbnail_url: resolved.metadata.thumbnailUrl,
+            },
+          });
+        }
+
+        /* 5. 「食べたい」= reactions(save)。ここがユーザーとの唯一の紐付けである */
+        const alreadySaved = await tx.reactions.findUnique({
+          where: {
+            user_id_target_type_target_id_action_type: {
+              user_id: userId,
+              target_type: 'dish_media',
+              target_id: dishMediaId,
+              action_type: 'save',
+            },
           },
           select: { id: true },
         });
-        dishMediaId = media.id;
 
-        /* 4. 埋め込みの実体。embed_html は保存しない（正本 §2 / #1273 §14） */
-        await tx.dish_media_external_embeddings.create({
-          data: {
-            dish_media_id: dishMediaId,
-            dish_id: dish.id,
+        if (!alreadySaved) {
+          await tx.reactions.create({
+            data: {
+              user_id: userId,
+              target_type: 'dish_media',
+              target_id: dishMediaId,
+              action_type: 'save',
+              created_at: new Date(),
+              created_version: appVersion,
+              lock_no: 0,
+            },
+          });
+        }
+
+        return {
+          dishMediaId,
+          dishId: dish.id,
+          created,
+          saved: !alreadySaved,
+        };
+      })
+      .then(async (result) => {
+        // #1375 4 巡目（オーナー承認 2026-08-23）: 外部サムネイルは失効する
+        // （Instagram scontent は実測 4〜5 日）ので、自ストレージへ複製して恒久化する。
+        // 失敗しても取り込み自体は成立している（外部 URL フォールバックが効く）ので
+        // create は失敗にしない
+        if (
+          resolved.status === 'ok' &&
+          resolved.metadata.thumbnailUrl !== null
+        ) {
+          await this.replicateExternalThumbnail(
+            result.dishMediaId,
             provider,
-            external_content_id: externalContentId,
-            canonical_url: canonicalUrl,
-            // 取り込んだ直後は «生きている» と確認できた状態にはない。
-            // oEmbed が取れた（status='ok'）ときだけ available と言い切る
-            embed_status: resolved.status === 'ok' ? 'available' : 'unknown',
-            last_verified_at: resolved.status === 'ok' ? new Date() : null,
-            // サムネイルは複製せず参照する（権利調査の結論。migration 20260822T0000 参照）
-            thumbnail_url: resolved.metadata.thumbnailUrl,
-          },
-        });
+            resolved.metadata.thumbnailUrl,
+          );
+        }
+        return result;
+      });
+  }
+
+  /**
+   * 外部 CDN のサムネイルを自ストレージ（GCS）へ複製し、`dish_media.thumbnail_path` に
+   * 据える。以後の表示は通常投稿と同じ経路（リサイズ済み CDN）になり、外部 URL の
+   * 失効に影響されない。
+   *
+   * - 既に `thumbnail_path` が入っていれば何もしない（再取り込みのたびに転送しない）
+   * - 取得先ホストは provider 別 allowlist で縛る（`fetchImage` の `allowHost`）
+   * - どこで失敗しても throw せず縮退（外部 URL フォールバックが残っている）
+   */
+  private async replicateExternalThumbnail(
+    dishMediaId: string,
+    provider: string,
+    thumbnailUrl: string,
+  ): Promise<void> {
+    const allowHost = THUMBNAIL_CDN_ALLOWLIST[provider];
+    if (!allowHost) return;
+
+    try {
+      const current = await this.prisma.withTransaction((tx) =>
+        tx.dish_media.findUnique({
+          where: { id: dishMediaId },
+          select: { thumbnail_path: true },
+        }),
+      );
+      if (!current || current.thumbnail_path !== '') return;
+
+      const { buffer, contentType } = await this.safeFetch.fetchImage(
+        thumbnailUrl,
+        {
+          apiName: `${provider} thumbnail`,
+          functionName: 'replicateExternalThumbnail',
+          allowHost,
+          maxResponseBytes: IMPORT_THUMBNAIL_MAX_BYTES,
+        },
+      );
+
+      // `image/jpeg; charset=...` のようなパラメータを落とし、既知の画像型だけ通す
+      const mimeType = contentType.split(';')[0].trim();
+      if (
+        mimeType !== 'image/jpeg' &&
+        mimeType !== 'image/png' &&
+        mimeType !== 'image/webp'
+      ) {
+        this.logger.warn(
+          'ImportThumbnailUnsupportedType',
+          'replicateExternalThumbnail',
+          { dishMediaId, provider, contentType },
+        );
+        return;
       }
 
-      /* 5. 「食べたい」= reactions(save)。ここがユーザーとの唯一の紐付けである */
-      const alreadySaved = await tx.reactions.findUnique({
-        where: {
-          user_id_target_type_target_id_action_type: {
-            user_id: userId,
-            target_type: 'dish_media',
-            target_id: dishMediaId,
-            action_type: 'save',
-          },
-        },
-        select: { id: true },
+      const uploaded = await this.storage.uploadFile({
+        buffer,
+        mimeType,
+        resourceType: 'dish_media',
+        usageType: 'imported-thumbnail',
+        identifier: dishMediaId,
       });
 
-      if (!alreadySaved) {
-        await tx.reactions.create({
+      await this.prisma.withTransaction((tx) =>
+        tx.dish_media.update({
+          where: { id: dishMediaId },
           data: {
-            user_id: userId,
-            target_type: 'dish_media',
-            target_id: dishMediaId,
-            action_type: 'save',
-            created_at: new Date(),
-            created_version: appVersion,
-            lock_no: 0,
+            thumbnail_path: uploaded.path,
+            // 通常投稿と同じく、リサイズ完了までは original が配信される（assembler の規則）
+            thumbnail_processing_status: 'processing',
           },
-        });
-      }
+        }),
+      );
 
-      return {
-        dishMediaId,
-        dishId: dish.id,
-        created,
-        saved: !alreadySaved,
-      };
-    });
+      await this.cloudTasks.enqueueResizeImage({
+        table: 'dish_media',
+        column: 'thumbnail_path',
+        recordId: dishMediaId,
+        size: 256,
+        aspectRatio: 9 / 16,
+        originalPath: uploaded.path,
+      });
+
+      this.logger.log(
+        'ImportThumbnailReplicated',
+        'replicateExternalThumbnail',
+        {
+          dishMediaId,
+          provider,
+          path: uploaded.path,
+          bytes: buffer.length,
+        },
+      );
+    } catch (error) {
+      this.logger.warn(
+        'ImportThumbnailReplicateFailed',
+        'replicateExternalThumbnail',
+        {
+          dishMediaId,
+          provider,
+          error: error instanceof Error ? error.message : String(error),
+        },
+      );
+    }
   }
 
   async resolve(
@@ -538,13 +709,17 @@ export class DishMediaImportsService {
   /* ------------------------------------------------------------------ */
 
   /**
-   * 店舗候補を出す。**エリアが渡されたときだけ `restaurants` を引く。**
+   * 店舗候補を出す。探す «地点» は 2 系統ある。
    *
-   * SNS の URL には座標が無いので、エリアは呼び出し側が渡す（設計 骨子 Q-3）。
-   * 渡されなければ候補は空で返す。**これは失敗ではなく既定の状態**であり、
+   *  1. **ユーザーの現在地**（呼び出し側が lat/lng/radius を渡す。設計 骨子 Q-3）
+   *  2. **キャプションに書かれた住所**（#1375 4 巡目）… 「📍 住所：東京都八王子市…」の
+   *     形で店の住所が書かれていることが多く、現在地が店から離れていても（家で取り込む
+   *     のが普通の使い方）ここから店へ辿れる。国土地理院の無料 API で座標化する
+   *
+   * どちらも無ければ候補は空で返す。**これは失敗ではなく既定の状態**であり、
    * 呼び出し側は「見つかりませんでした」ではなく「地図から店を選んでください」を出すこと（設計 §5-3）。
    *
-   * 引き方は 2 本立て。
+   * 各地点での引き方は 2 本立て。
    *  - **エリア内の店舗を一覧で取る**（`q` なし）… `matchRestaurantNames` が
    *    「店名がキャプションに含まれるか」を見る。**店名側から当てにいく**方向（設計 §5-4）
    *  - **`author_name` を `q` に投げる**… 店の公式アカウントのケース。
@@ -574,44 +749,76 @@ export class DishMediaImportsService {
     const provided = [dto.lat, dto.lng, dto.radius].filter(
       (value) => typeof value === 'number',
     ).length;
-    if (provided === 0) return empty('area_not_provided');
-    if (provided < 3) {
-      // 一部だけ渡すのは呼び出し側の組み立てミス。400 にはせず、区別できる理由で返す
+    if (provided > 0 && provided < 3) {
+      // 一部だけ渡すのは呼び出し側の組み立てミス。400 にはせず、区別できる理由で返す。
+      // ただしキャプション住所からは引けるかもしれないので、ここでは打ち切らない
       this.logger.warn('SnsImportAreaIncomplete', 'findRestaurantCandidates', {
         provided,
       });
-      return empty('area_incomplete');
     }
-    if (texts.length === 0 && authorName === null)
-      return empty('no_extracted_text');
 
-    const lat = dto.lat as number;
-    const lng = dto.lng as number;
-    const radius = dto.radius as number;
+    const searchAreas: { lat: number; lng: number; radius: number }[] = [];
+    if (provided === 3) {
+      searchAreas.push({
+        lat: dto.lat as number,
+        lng: dto.lng as number,
+        radius: dto.radius as number,
+      });
+    }
+
+    if (texts.length === 0 && authorName === null) {
+      // 照合するテキストが無ければ、どの地点で引いても当たらない（住所抽出も不可能）
+      return empty(
+        provided === 3
+          ? 'no_extracted_text'
+          : provided > 0
+            ? 'area_incomplete'
+            : 'area_not_provided',
+      );
+    }
+
+    // キャプションに住所が書かれていれば、その地点の周辺でも探す（#1375 4 巡目）
+    const captionAddress = extractPostalAddress(texts);
+    if (captionAddress !== null) {
+      const geocoded = await this.geocodeCaptionAddress(captionAddress);
+      if (geocoded !== null) {
+        searchAreas.push({
+          lat: geocoded.lat,
+          lng: geocoded.lng,
+          radius: CAPTION_ADDRESS_RADIUS_M,
+        });
+      }
+    }
+
+    if (searchAreas.length === 0) {
+      return empty(provided > 0 ? 'area_incomplete' : 'area_not_provided');
+    }
 
     const rows = await this.prisma.withTransaction(
       async (tx: Prisma.TransactionClient) => {
-        const area = await this.restaurantsRepo.searchNearbyRestaurants(tx, {
-          lat,
-          lng,
-          radius,
-          limit: AREA_RESTAURANT_LIMIT,
-        });
-
         const authorQuery = this.buildAuthorNameQuery(authorName);
-        if (authorQuery === null) return area;
+        const collected: Awaited<
+          ReturnType<RestaurantsRepository['searchNearbyRestaurants']>
+        > = [];
 
-        const byAuthor = await this.restaurantsRepo.searchNearbyRestaurants(
-          tx,
-          {
-            lat,
-            lng,
-            radius,
-            q: authorQuery,
-            limit: AUTHOR_NAME_RESTAURANT_LIMIT,
-          },
-        );
-        return [...area, ...byAuthor];
+        for (const areaParams of searchAreas) {
+          collected.push(
+            ...(await this.restaurantsRepo.searchNearbyRestaurants(tx, {
+              ...areaParams,
+              limit: AREA_RESTAURANT_LIMIT,
+            })),
+          );
+          if (authorQuery !== null) {
+            collected.push(
+              ...(await this.restaurantsRepo.searchNearbyRestaurants(tx, {
+                ...areaParams,
+                q: authorQuery,
+                limit: AUTHOR_NAME_RESTAURANT_LIMIT,
+              })),
+            );
+          }
+        }
+        return collected;
       },
     );
 
@@ -653,6 +860,43 @@ export class DishMediaImportsService {
       reason: 'searched',
       scannedCount: searchCandidates.length,
     };
+  }
+
+  /**
+   * キャプションから抜いた住所を国土地理院 API で座標化する。失敗は `null` で縮退。
+   *
+   * ここが落ちても resolve 全体は失敗にしない（住所からの照合は «増やす» ための
+   * 経路であって、従来の現在地照合を壊してよい理由にはならない）。
+   */
+  private async geocodeCaptionAddress(
+    address: string,
+  ): Promise<GeocodedPoint | null> {
+    try {
+      const body = await this.safeFetch.fetchJson(
+        `${GSI_ADDRESS_SEARCH_BASE}?q=${encodeURIComponent(address)}`,
+        {
+          apiName: 'GSI AddressSearch',
+          functionName: 'geocodeCaptionAddress',
+        },
+      );
+      const point = parseGsiAddressSearchResponse(body);
+      this.logger.debug('SnsImportAddressGeocoded', 'geocodeCaptionAddress', {
+        address,
+        resolvedTitle: point?.title ?? null,
+        found: point !== null,
+      });
+      return point;
+    } catch (error) {
+      this.logger.warn(
+        'SnsImportAddressGeocodeFailed',
+        'geocodeCaptionAddress',
+        {
+          address,
+          error: error instanceof Error ? error.message : String(error),
+        },
+      );
+      return null;
+    }
   }
 
   /** `author_name` を `q` として使ってよい形に整える。使えないなら `null` */

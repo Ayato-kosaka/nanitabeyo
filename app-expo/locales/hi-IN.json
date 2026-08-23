@@ -584,7 +584,9 @@
 			"mediaSelectionFailed": "मीडिया चयन विफल रहा",
 			"mediaSelectionError": "मीडिया का चयन करते समय एक त्रुटि हुई। कृपया पुनः प्रयास करें।",
 			"replaceWithMyPhoto": "अपनी फ़ोटो इस्तेमाल करें",
-			"openSettings": "सेटिंग्स खोलें"
+			"openSettings": "सेटिंग्स खोलें",
+			"pickFromLibrary": "लाइब्रेरी से चुनें",
+			"shootWithCamera": "फ़ोटो लें"
 		},
 		"noResultsFound": "No results found",
 		"accessibility": {
@@ -880,7 +882,8 @@
 			"category": {
 				"title": "व्यंजन श्रेणी",
 				"description": "दिख रहे रिकॉर्ड में सबसे आम व्यंजन श्रेणियों से फ़िल्टर करें",
-				"count": "{{label}} ({{count}})"
+				"count": "{{label}} ({{count}})",
+				"showAll": "और देखें ({{count}} और)"
 			}
 		},
 		"empty": {
@@ -959,7 +962,9 @@
 		},
 		"result": {
 			"summary": "पढ़ लिया गया",
-			"noInfo": "इस पोस्ट से जानकारी नहीं पढ़ी जा सकी। सहेजने के लिए नीचे दुकान और व्यंजन श्रेणी चुनें।"
+			"noInfo": "इस पोस्ट से जानकारी नहीं पढ़ी जा सकी। सहेजने के लिए नीचे दुकान और व्यंजन श्रेणी चुनें।",
+			"showFullCaption": "और देखें",
+			"collapseCaption": "कम देखें"
 		},
 		"eaten": {
 			"pickRestaurant": "दुकान चुनें",

@@ -584,7 +584,9 @@
 			"mediaSelectionFailed": "Échec de la sélection des médias",
 			"mediaSelectionError": "Une erreur s'est produite lors de la sélection des médias. Veuillez réessayer.",
 			"replaceWithMyPhoto": "Utiliser ma propre photo",
-			"openSettings": "Ouvrir les réglages"
+			"openSettings": "Ouvrir les réglages",
+			"pickFromLibrary": "Choisir dans la galerie",
+			"shootWithCamera": "Prendre une photo"
 		},
 		"noResultsFound": "Aucun résultat trouvé",
 		"accessibility": {
@@ -880,7 +882,8 @@
 			"category": {
 				"title": "Catégorie de plat",
 				"description": "Filtrez par les catégories les plus fréquentes parmi les enregistrements affichés",
-				"count": "{{label}} ({{count}})"
+				"count": "{{label}} ({{count}})",
+				"showAll": "Voir plus ({{count}} de plus)"
 			}
 		},
 		"empty": {
@@ -959,7 +962,9 @@
 		},
 		"result": {
 			"summary": "Lecture terminée",
-			"noInfo": "Aucune information n’a pu être lue depuis cette publication. Choisissez l’établissement et la catégorie ci-dessous pour l’enregistrer."
+			"noInfo": "Aucune information n’a pu être lue depuis cette publication. Choisissez l’établissement et la catégorie ci-dessous pour l’enregistrer.",
+			"showFullCaption": "Voir plus",
+			"collapseCaption": "Voir moins"
 		},
 		"eaten": {
 			"pickRestaurant": "Choisir un établissement",

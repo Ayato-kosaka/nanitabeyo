@@ -52,6 +52,9 @@ import {
 
 const RATING_CHOICES = [5, 4, 3, 2, 1] as const;
 
+/** 料理カテゴリーのチップをこの件数まで畳む。超えたぶんは「もっと見る」で開く（#1375 4 巡目） */
+const CATEGORY_COLLAPSE_COUNT = 8;
+
 const SORT_CHOICES: { sort: MyDishesSort; labelKey: string }[] = [
 	{ sort: "-occurredAt", labelKey: "MyDishes.filters.sort.occurredAtDesc" },
 	{ sort: "occurredAt", labelKey: "MyDishes.filters.sort.occurredAtAsc" },
@@ -238,8 +241,12 @@ export default function MyDishesFiltersScreen() {
 		const queryKey = selectFilterQueryKey(useMyDishesFilterStore.getState());
 		const { itemKeys } = selectMyDishesByQuery(queryKey)(state);
 		const items = itemKeys.map((key) => state.itemByKey[key]).filter((item) => Boolean(item));
-		return buildCategoryFacets(items);
+		// 上限は «全部»。表示側が CATEGORY_COLLAPSE_COUNT で畳む（#1375 4 巡目）
+		return buildCategoryFacets(items, Number.POSITIVE_INFINITY);
 	});
+	// #1375 4 巡目: カテゴリーが多いとチップが画面を占領するので、上位だけ見せて「もっと見る」で開く
+	const [showAllCategories, setShowAllCategories] = useState(false);
+	const visibleCategoryFacets = showAllCategories ? categoryFacets : categoryFacets.slice(0, CATEGORY_COLLAPSE_COUNT);
 
 	const toggleCategory = useCallback(
 		(categoryId: string) => {
@@ -297,6 +304,11 @@ export default function MyDishesFiltersScreen() {
 		(featureType: string, id: string) => {
 			lightImpact();
 			const key = toFeatureKey(featureType, id);
+			// #1375 4 巡目: 1 軸 1 値なので、値を **選んだら** その軸の役目は終わり。
+			// プルダウンを開いたままにせず閉じる（外したときは選び直しの途中なので開けたまま）
+			if (!draft.featureKeys.includes(key)) {
+				setExpandedAxis(null);
+			}
 			setDraft((prev) => {
 				const prefix = `${featureType}:`;
 				const withoutAxis = prev.featureKeys.filter((k) => !k.startsWith(prefix));
@@ -312,7 +324,7 @@ export default function MyDishesFiltersScreen() {
 				return { ...prev, featureKeys: next, sort };
 			});
 		},
-		[lightImpact],
+		[draft.featureKeys, lightImpact],
 	);
 
 	const toggleAxis = useCallback(
@@ -405,7 +417,7 @@ export default function MyDishesFiltersScreen() {
 					<Section
 						title={i18n.t("MyDishes.filters.category.title")}
 						description={i18n.t("MyDishes.filters.category.description")}>
-						{categoryFacets.map((facet) => (
+						{visibleCategoryFacets.map((facet) => (
 							<Chip
 								key={facet.categoryId}
 								testID={`my-dishes-filter-category-${facet.categoryId}`}
@@ -414,6 +426,20 @@ export default function MyDishesFiltersScreen() {
 								onPress={() => toggleCategory(facet.categoryId)}
 							/>
 						))}
+						{/* 畳んだぶんがあるときだけ出す。開いたら畳み直しは要らない（適用して閉じる画面なので） */}
+						{!showAllCategories && categoryFacets.length > CATEGORY_COLLAPSE_COUNT && (
+							<Chip
+								testID="my-dishes-filter-category-show-all"
+								label={i18n.t("MyDishes.filters.category.showAll", {
+									count: categoryFacets.length - CATEGORY_COLLAPSE_COUNT,
+								})}
+								selected={false}
+								onPress={() => {
+									lightImpact();
+									setShowAllCategories(true);
+								}}
+							/>
+						)}
 					</Section>
 				)}
 

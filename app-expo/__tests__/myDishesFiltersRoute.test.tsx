@@ -218,6 +218,9 @@ describe("#1396 my-dishes フィルタ編集ルート", () => {
 		await press(tree, "my-dishes-filter-sort--featureScore");
 		await press(tree, "my-dishes-filter-axis-time-slot");
 		await press(tree, "my-dishes-filter-axis-time-slot-morning");
+		// #1375 4 巡目: 値を選ぶとプルダウンは閉じる。別の値にするには開き直す
+		expect(exists(tree, "my-dishes-filter-axis-time-slot-lunch")).toBe(false);
+		await press(tree, "my-dishes-filter-axis-time-slot");
 		await press(tree, "my-dishes-filter-axis-time-slot-lunch");
 
 		await press(tree, "my-dishes-filter-apply");
@@ -230,6 +233,8 @@ describe("#1396 my-dishes フィルタ編集ルート", () => {
 		await press(tree, "my-dishes-filter-sort--featureScore");
 		await press(tree, "my-dishes-filter-axis-scene");
 		await press(tree, "my-dishes-filter-axis-scene-date");
+		// #1375 4 巡目: 選択でプルダウンが閉じるので、外すには開き直してもう一度押す
+		await press(tree, "my-dishes-filter-axis-scene");
 		await press(tree, "my-dishes-filter-axis-scene-date");
 
 		await press(tree, "my-dishes-filter-apply");

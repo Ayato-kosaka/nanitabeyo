@@ -219,14 +219,20 @@ function ActionButtonsContent({
 				showSnackbar(i18n.t("DishMediaContent.save.savedMessage"), {
 					action: {
 						label: i18n.t("Common.view"),
-						// #1401 実機確認（3 巡目）: `push` だと検索結果（transparentModal）の上に
-						// 積もうとして **画面が動かない**ことがある。タブ切替を含む遷移なので
-						// `navigate` でタブごと my-dishes へ移す
-						onPress: () =>
+						// #1401 実機確認（4 巡目）: `navigate` 単体でもまだ動かなかった。
+						// 原因はネイティブモーダル（検索結果 = transparentModal / SNS 取り込み = modal）が
+						// **タブの上に提示されたまま残る**こと。expo-router のタブ切替はモーダルの
+						// 下で起きるので、モーダルを閉じない限り画面は変わって見えない。
+						// 先に dismissAll でモーダルスタックを畳んでからタブを移す
+						onPress: () => {
+							if (router.canDismiss()) {
+								router.dismissAll();
+							}
 							router.navigate({
 								pathname: "/[locale]/(tabs)/my-dishes",
 								params: { locale },
-							}),
+							});
+						},
 					},
 				});
 			} else {
