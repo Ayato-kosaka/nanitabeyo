@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import logging
 import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 
@@ -47,6 +48,14 @@ def parse_args() -> argparse.Namespace:
         "--execute", action="store_true", help="指定時だけGoogle APIとBQ書込を実行"
     )
     parser.add_argument("--qps", type=float, default=5.0)
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=32,
+        help="並列worker数。逐次だとHTTPレイテンシ律速で実効3〜4req/sに落ち、"
+        "--qpsをいくら上げても届かない（1seedあたり2.17requestを1本ずつ待つため）。"
+        "qpsの上限自体は共有throttleが守る",
+    )
     parser.add_argument("--radius-m", type=float, default=150.0)
     parser.add_argument("--resume-days", type=int, default=90)
     parser.add_argument(
@@ -222,6 +231,8 @@ def main() -> None:
         raise ValueError("--limit は1以上にしてください")
     if args.qps <= 0 or not 0 < args.radius_m <= 50_000 or args.resume_days <= 0:
         raise ValueError("--qps/--radius-m/--resume-days が不正です")
+    if not 1 <= args.workers <= 128:
+        raise ValueError("--workers は1〜128にしてください")
 
     pipeline = BigQueryPipeline()
     candidates = fetch_candidates(
@@ -248,6 +259,7 @@ def main() -> None:
     parameters = {
         "limit": args.limit,
         "qps": args.qps,
+        "workers": args.workers,
         "radius_m": args.radius_m,
         "algorithm_version": ALGORITHM_VERSION,
         "include_osm_only": args.include_osm_only,
@@ -258,19 +270,26 @@ def main() -> None:
         parameters=parameters,
         repo_root=REPO_ROOT,
     ) as step:
-        for index, seed in enumerate(candidates, start=1):
-            buffer.append(
-                attempt_row(
+        # seed単位でworkerへ分配する。1seed内のprobeは判定順序に意味があるため
+        # 逐次のまま。qpsはclient側の共有throttleがHTTP request数で守る。
+        # BQへの書き込みはこのメインスレッドだけが行う。
+        with ThreadPoolExecutor(max_workers=args.workers) as pool:
+            futures = [
+                pool.submit(
+                    attempt_row,
                     run_id=run_id,
                     seed=seed,
                     radius_m=args.radius_m,
                     client=client,
                 )
-            )
-            if len(buffer) >= 100:
-                flush_rows(pipeline, buffer)
-            if index % 1000 == 0:
-                LOGGER.info("Google照合: %d/%d件", index, len(candidates))
+                for seed in candidates
+            ]
+            for index, future in enumerate(as_completed(futures), start=1):
+                buffer.append(future.result())
+                if len(buffer) >= 100:
+                    flush_rows(pipeline, buffer)
+                if index % 1000 == 0:
+                    LOGGER.info("Google照合: %d/%d件", index, len(candidates))
         flush_rows(pipeline, buffer)
         step["row_count"] = len(candidates)
 
