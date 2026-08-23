@@ -59,15 +59,15 @@ describe("useTopicImageResources（web）", () => {
 		originalPlatformOS = Platform.OS;
 		// Platform.OS は素のプロパティなので差し替えで web 分岐へ入れる
 		Object.defineProperty(Platform, "OS", { configurable: true, get: () => "web" });
-		const globalWindow = (globalThis as { window?: Record<string, unknown> }).window ?? {};
-		(globalThis as { window?: Record<string, unknown> }).window = globalWindow;
+		const globalWindow = (globalThis as unknown as { window?: Record<string, unknown> }).window ?? {};
+		(globalThis as unknown as { window?: Record<string, unknown> }).window = globalWindow;
 		originalWindowImage = globalWindow.Image;
 		globalWindow.Image = FakeBrowserImage;
 	});
 
 	afterAll(() => {
 		Object.defineProperty(Platform, "OS", { configurable: true, get: () => originalPlatformOS });
-		const globalWindow = (globalThis as { window?: Record<string, unknown> }).window;
+		const globalWindow = (globalThis as unknown as { window?: Record<string, unknown> }).window;
 		if (globalWindow) globalWindow.Image = originalWindowImage;
 	});
 
