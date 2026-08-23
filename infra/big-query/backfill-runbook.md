@@ -309,7 +309,7 @@ infra/big-query/
 ├── 20251203T0000_backfill_supabase_logs_to_bigquery.sh  # バックフィル実行スクリプト
 ├── migration/
 │   └── 20251203T0000_backfill_legacy_log_tables_and_views.sql  # BigQuery SQL
-└── README_BACKFILL.md  # このドキュメント
+└── backfill-runbook.md # このドキュメント
 ```
 
 ## 受け入れ条件チェックリスト

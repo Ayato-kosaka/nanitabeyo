@@ -236,11 +236,11 @@ interface CreateFrontendLogDto {
 
 #1078 以降、この 2 項目は **1 個の欠落でログ本体を捨てない**契約になっている。3 層で吸収する。
 
-| 層 | 実装箇所 | 役割 | 入る値 |
-| --- | --- | --- | --- |
-| クライアント | `app-expo/constants/Env.ts`（`COMMIT_ID`）／`app-expo/hooks/useLogger.ts`（`created_app_version`） | 一次防衛。通常はここで埋まる | `"unknown-client"` |
-| 契約（DTO） | `shared/api/v1/dto/logs/create-frontend-log.dto.ts` | `@IsOptional()`。既に配布済みの古いバンドルを 400 で捨てない | （キーなし） |
-| サーバ | `api/src/v1/logs/logs.service.ts` の `writeFrontendLog` | 最終防衛。BigQuery 側が NULL にならないよう補完 | `"unknown-server"` |
+| 層           | 実装箇所                                                                                           | 役割                                                         | 入る値             |
+| ------------ | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------ |
+| クライアント | `app-expo/constants/Env.ts`（`COMMIT_ID`）／`app-expo/hooks/useLogger.ts`（`created_app_version`） | 一次防衛。通常はここで埋まる                                 | `"unknown-client"` |
+| 契約（DTO）  | `shared/api/v1/dto/logs/create-frontend-log.dto.ts`                                                | `@IsOptional()`。既に配布済みの古いバンドルを 400 で捨てない | （キーなし）       |
+| サーバ       | `api/src/v1/logs/logs.service.ts` の `writeFrontendLog`                                            | 最終防衛。BigQuery 側が NULL にならないよう補完              | `"unknown-server"` |
 
 - 定数は `shared/api/v1/dto` の `UNKNOWN_BUILD_META_CLIENT` / `UNKNOWN_BUILD_META_SERVER`。クライアント・サーバ双方がこれを import する（ハードコード禁止）。
 - 空文字も欠落として扱う（`??` ではなく `||` で補完）。

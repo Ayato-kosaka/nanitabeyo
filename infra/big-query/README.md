@@ -14,9 +14,13 @@ BigQuery は以下の目的で使用されています：
 
 ```
 infra/big-query/
-├── migration/                              # BigQuery テーブル定義 SQL
+├── migration/                              # BigQuery テーブル定義 SQL（実体は ls で確認すること）
 │   ├── 20251203T0000_backfill_legacy_log_tables_and_views.sql
 │   ├── 20251213T0000_create_wikidata_food_tables.sql
+│   ├── 20251215T0000_create_wikidata_food_llm_labels.sql
+│   ├── 20251216T0000_create_macro_genre_tables.sql
+│   ├── 20260210T0000_add_food_nodes_raw_staging.sql
+│   ├── 20260715T0000_create_dish_category_label_alias_overrides.sql
 │   └── 20260812T0000_create_restaurant_recommendation_tables.sql
 ├── 20251201T0000_setup_logging_and_bigquery_sink.sh
 ├── 20251203T0000_backfill_supabase_logs_to_bigquery.sh
@@ -24,8 +28,7 @@ infra/big-query/
 ├── 20260812T0000_setup_restaurant_recommendation_dataset.sh # 店提案事前データ用
 ├── setup_logging_bigquery_dataset.sh
 ├── setup_logging_sink.sh
-├── IMPLEMENTATION_SUMMARY.md               # ログバックフィル実装サマリー
-├── README_BACKFILL.md                      # バックフィル詳細ガイド
+├── backfill-runbook.md                      # バックフィル詳細ガイド
 └── README.md                               # このファイル
 ```
 
@@ -61,7 +64,7 @@ Supabase からのログデータをバックフィルする場合：
 ./20251203T0000_backfill_supabase_logs_to_bigquery.sh prod
 ```
 
-詳細は [README_BACKFILL.md](./README_BACKFILL.md) を参照してください。
+詳細は [backfill-runbook.md](./backfill-runbook.md) を参照してください。
 
 ## 2. Wikidata 食品グラフテーブル
 
@@ -271,5 +274,4 @@ Datasetで分割せず、手動パイプライン内のtable名とrun_idで区�
 
 ### 関連ドキュメント
 
-- [IMPLEMENTATION_SUMMARY.md](./IMPLEMENTATION_SUMMARY.md): ログバックフィル実装サマリー
-- [README_BACKFILL.md](./README_BACKFILL.md): バックフィル詳細ガイド
+- [backfill-runbook.md](./backfill-runbook.md): バックフィル詳細ガイド

@@ -34,63 +34,63 @@
 
 判定の根拠は 2026-08-23 時点のコードとの突き合わせ。「参照 0 件」は他ファイルからのリンクが無いことを確認済み。
 
-| ファイル | 判定 | 根拠 |
-| --- | --- | --- |
-| `BEHAVIOR_TRACKING_LOGS.md` | KEEP（改名 kebab-case） | 参照先 6 ファイル全実在。#1078/#1079 の契約まで追記され手入れ継続中 |
-| `CDN_SIGNED_COOKIE_IMPLEMENTATION.md` | **DELETE**（CDN セットアップ手順のみランブックへ救出） | 記載の `cdnCookies` 方式はコード 0 ヒット。`CDN_HOST` も現在必須でフォールバック記述が不成立 |
-| `HLS_SIGNED_COOKIE_IMPLEMENTATION.md` | 圧縮 → `specs/cdn-signed-cookies.md` | CDN Cookie 3 兄弟で唯一現行実装と一致。ただし解説部分は設計コメントとして CookieQueueService 等の該当コードへ移し、md は Cookie 属性・CDN 前提などコードから読めない外部契約だけに圧縮する |
-| `IMPLEMENTATION_SUMMARY_CDN_COOKIES.md` | **DELETE** | GitHub Actions ランナーの絶対パス・受け入れ条件チェックボックス等、純粋な PR 説明文。恒久情報ゼロ |
-| `IMAGE_RESIZE_IMPLEMENTATION.md` | **DELETE** | 中核 API `getOrQueueResizedSignedUrl()` / `queueResizeJob()` がコード 0 ヒット。現行方式（`thumbnail_processing_status` + CDN URL 組み立て）の設計判断は `dish-media.assembler.ts` 等のコードコメントへ書く |
-| `FEATURE_IMAGE_RESIZE_SUMMARY.md` | **DELETE** | 上の PR 説明版。存在しない `validate.ts` の実行ログ入り |
-| `IMPLEMENTATION_VIDEO_ARCHITECTURE.md` | **DELETE**（要点はコードコメントへ） | 前提の `internal/transcode/` と `enqueueTranscodeJob()` が不在。実際は `internal/transcoder/`（webhook）+ 直接呼び出しで Cloud Tasks を経由しない |
-| `VIDEO_ARCHITECTURE_SUMMARY.md` | **DELETE** | 上の短縮版で同じ誤りを含む |
-| `IMPLEMENTATION_SUMMARY_OLD.md` | 圧縮・改名 → `specs/google-places-currency.md` | ファイル名が内容と無関係。中身（Google Places address_components → 通貨判定）は現行コードと一致し生きている。実装解説部分は `googlePlaces.ts` のコメントへ寄せ、md は仕様（判定規則の外部契約）だけに |
-| `MAINTENANCE_SYSTEM.md` | 圧縮（+2 点修正） | `useHealthCheck.ts` は不在で実体は `HealthCheckInitializer.tsx`（そちらのコードコメントの方が既に詳しい＝コードを正とする実例）。md は運用パラメータと Remote Config 契約の要約に圧縮し、`allowedPaths` に `/livez` 追記 |
-| `MEDIA_SELECTION_IMPLEMENTATION.md` | **DELETE** | パス 3 箇所移動済み、`expo-av` は撤去済み（現 `expo-video`）。PR サマリー形式 |
-| `DISH_CATEGORY_AUTOCOMPLETE_IMPLEMENTATION.md` | **DELETE** | 中心の「ReviewForm への統合」が解体済み。部品の現行利用箇所は別画面 |
-| `DISH_CATEGORY_MANUAL_IMAGE_SUPPLY.md` | KEEP → `runbooks/` | 画面・DTO と一致。BigQuery/gsutil 手順は他に代替なし |
-| `auth-e2e-coverage.md` | KEEP | 更新規約つきの生きた表。#1359 で実更新、`e2e-web/README.md` から参照 |
-| `database-connection-pool.md` | KEEP | `env.ts` の 4 変数と完全一致 |
-| `manual-verification-parallel-dev-7he5dw.md` | **DELETE**（末尾の恒久判断のみ退避） | 特定ブランチの消化済み実機確認チェックリスト。`workflows: write` を付与しない理由等の恒久判断は `.claude/skills/parallel-development/CORE.md` へ移してから消す。`SavedRestaurantsSheet.tsx:55` の参照コメントも同時に更新 |
-| `share-links.md` | KEEP（統合先・圧縮候補） | 現行実装・コード内コメント・テストと一致する最新世代。落とし穴の記述はコードコメントと重複しているため、統合時にコード側を正として md は URL 設計の仕様サマリーへ寄せる |
-| `mobile/UNIVERSAL_LINKS_IMPLEMENTATION.md` | MERGE → `share-links.md` | AASA 配置先 `api/public/**` が不在（実体は `app-expo/public/`）。ドメイン・Team ID 等の生きた情報のみ移す |
-| `mobile/share-and-links.md` | **DELETE** | 最古世代。`your-domain.com` プレースホルダ、移動済みパス。内容は他 2 つに包含 |
-| `mobile/store-redirect.md` | MERGE → `share-links.md` | 仕様は生きているが URL が全て旧 `food-scroll.web.app` 固定 |
-| `ui-catalog.md` / `ui-catalog-mobile.md` | KEEP（自動生成物） | `pnpm catalog:doc` の出力。手編集・削除とも不可 |
-| `ux/blur-modal-teardown.md` | KEEP → `decisions/` へ移設 | 意思決定記録の手本。`assert-legacy-blur-modal-boundary.mjs` のエラーメッセージが本文書を指すため、**移設時にスクリプトとテストの参照パスも更新** |
-| `detailed_design/*.csv`, `sequence/*.mmd`, `ux/*.svg` | KEEP（現状維持） | 一次資料。今回の対象外 |
+| ファイル                                              | 判定                                       | 根拠                                                                                                                                                                                                                      |
+| ----------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `BEHAVIOR_TRACKING_LOGS.md`                           | KEEP（改名 kebab-case）                    | 参照先 6 ファイル全実在。#1078/#1079 の契約まで追記され手入れ継続中                                                                                                                                                       |
+| `CDN_SIGNED_COOKIE_IMPLEMENTATION.md`                 | **DELETE**（CDN セットアップ手順のみ救出） | 記載の `cdnCookies` 方式はコード 0 ヒット。`CDN_HOST` も現在必須でフォールバック記述が不成立。セットアップ手順は `specs/cdn-signed-cookies.md` へ移した                                                                   |
+| `HLS_SIGNED_COOKIE_IMPLEMENTATION.md`                 | 圧縮 → `specs/cdn-signed-cookies.md`       | CDN Cookie 3 兄弟で唯一現行実装と一致。ただし解説部分は設計コメントとして CookieQueueService 等の該当コードへ移し、md は Cookie 属性・CDN 前提などコードから読めない外部契約だけに圧縮する                                |
+| `IMPLEMENTATION_SUMMARY_CDN_COOKIES.md`               | **DELETE**                                 | GitHub Actions ランナーの絶対パス・受け入れ条件チェックボックス等、純粋な PR 説明文。恒久情報ゼロ                                                                                                                         |
+| `IMAGE_RESIZE_IMPLEMENTATION.md`                      | **DELETE**                                 | 中核 API `getOrQueueResizedSignedUrl()` / `queueResizeJob()` がコード 0 ヒット。現行方式（`thumbnail_processing_status` + CDN URL 組み立て）の設計判断は `dish-media.assembler.ts` 等のコードコメントへ書く               |
+| `FEATURE_IMAGE_RESIZE_SUMMARY.md`                     | **DELETE**                                 | 上の PR 説明版。存在しない `validate.ts` の実行ログ入り                                                                                                                                                                   |
+| `IMPLEMENTATION_VIDEO_ARCHITECTURE.md`                | **DELETE**（要点はコードコメントへ）       | 前提の `internal/transcode/` と `enqueueTranscodeJob()` が不在。実際は `internal/transcoder/`（webhook）+ 直接呼び出しで Cloud Tasks を経由しない                                                                         |
+| `VIDEO_ARCHITECTURE_SUMMARY.md`                       | **DELETE**                                 | 上の短縮版で同じ誤りを含む                                                                                                                                                                                                |
+| `IMPLEMENTATION_SUMMARY_OLD.md`                       | **DELETE**                                 | 中身（Google Places の通貨判定）は生きているが、関数一覧・対応通貨・使用例まで `app-expo/lib/googlePlaces.ts` に書いてあり md 側に足せる情報が無い。コードを正とする                                                      |
+| `MAINTENANCE_SYSTEM.md`                               | 圧縮（+2 点修正）                          | `useHealthCheck.ts` は不在で実体は `HealthCheckInitializer.tsx`（そちらのコードコメントの方が既に詳しい＝コードを正とする実例）。md は運用パラメータと Remote Config 契約の要約に圧縮し、`allowedPaths` に `/livez` 追記  |
+| `MEDIA_SELECTION_IMPLEMENTATION.md`                   | **DELETE**                                 | パス 3 箇所移動済み、`expo-av` は撤去済み（現 `expo-video`）。PR サマリー形式                                                                                                                                             |
+| `DISH_CATEGORY_AUTOCOMPLETE_IMPLEMENTATION.md`        | **DELETE**                                 | 中心の「ReviewForm への統合」が解体済み。部品の現行利用箇所は別画面                                                                                                                                                       |
+| `DISH_CATEGORY_MANUAL_IMAGE_SUPPLY.md`                | KEEP → `runbooks/`                         | 画面・DTO と一致。BigQuery/gsutil 手順は他に代替なし                                                                                                                                                                      |
+| `auth-e2e-coverage.md`                                | KEEP                                       | 更新規約つきの生きた表。#1359 で実更新、`e2e-web/README.md` から参照                                                                                                                                                      |
+| `database-connection-pool.md`                         | KEEP                                       | `env.ts` の 4 変数と完全一致                                                                                                                                                                                              |
+| `manual-verification-parallel-dev-7he5dw.md`          | **DELETE**（末尾の恒久判断のみ退避）       | 特定ブランチの消化済み実機確認チェックリスト。`workflows: write` を付与しない理由等の恒久判断は `.claude/skills/parallel-development/CORE.md` へ移してから消す。`SavedRestaurantsSheet.tsx:55` の参照コメントも同時に更新 |
+| `share-links.md`                                      | KEEP（統合先・圧縮候補）                   | 現行実装・コード内コメント・テストと一致する最新世代。落とし穴の記述はコードコメントと重複しているため、統合時にコード側を正として md は URL 設計の仕様サマリーへ寄せる                                                   |
+| `mobile/UNIVERSAL_LINKS_IMPLEMENTATION.md`            | MERGE → `share-links.md`                   | AASA 配置先 `api/public/**` が不在（実体は `app-expo/public/`）。ドメイン・Team ID 等の生きた情報のみ移す                                                                                                                 |
+| `mobile/share-and-links.md`                           | **DELETE**                                 | 最古世代。`your-domain.com` プレースホルダ、移動済みパス。内容は他 2 つに包含                                                                                                                                             |
+| `mobile/store-redirect.md`                            | MERGE → `share-links.md`                   | 仕様は生きているが URL が全て旧 `food-scroll.web.app` 固定                                                                                                                                                                |
+| `ui-catalog.md` / `ui-catalog-mobile.md`              | KEEP（自動生成物）                         | `pnpm catalog:doc` の出力。手編集・削除とも不可                                                                                                                                                                           |
+| `ux/blur-modal-teardown.md`                           | KEEP → `decisions/` へ移設                 | 意思決定記録の手本。`assert-legacy-blur-modal-boundary.mjs` のエラーメッセージが本文書を指すため、**移設時にスクリプトとテストの参照パスも更新**                                                                          |
+| `detailed_design/*.csv`, `sequence/*.mmd`, `ux/*.svg` | KEEP（現状維持）                           | 一次資料。今回の対象外                                                                                                                                                                                                    |
 
 ## 処分表: 散在ドキュメント
 
-| ファイル | 判定 | 根拠 |
-| --- | --- | --- |
-| `api/README.md` | **DELETE**（Auth Guards 3 行のみ救出） | 103 行中 100 行が NestJS スターター定型文 |
-| `api/LOG_BUFFERING_IMPLEMENTATION.md` | **DELETE**（設計判断はコードコメントへ） | コードは実在するが Before/After 形式の PR 説明。残す価値がある判断はバッファリング実装箇所の `【設計】` コメントへ |
-| `api/src/internal/resize-image/README.md` | 大幅圧縮（最優先） | 中核として説明する `getOrQueueResizedSignedUrl()` がコード 0 ヒット。**存在しない API の説明は無い文書より有害**。エンドポイントの外部契約とコードへの案内だけに圧縮する |
-| `api/test/functional/v1/dish-categories/README.md` | KEEP | ツールの使い方として正確 |
-| `app-expo/LOGGING_IMPLEMENTATION.md` | **DELETE** | 列挙イベントの一部（`dish_menu_opened` 等）がコード 0 ヒット。`docs/BEHAVIOR_TRACKING_LOGS.md` と役割重複 |
-| `app-expo/.../DISH_CATEGORY_MANUAL_TEXT_SUPPLY_README.md` | MERGE → `docs/runbooks/` | 内容は正確だが「Issue #749 実装」形式。姉妹文書（画像版）と置き場所を揃える |
-| `app-expo/contexts/SeoContext/README.md` | KEEP | 現行構成と一致 |
-| `app-expo/features/mapMarkers/README*.md`（3 本） | 3→1 統合・圧縮 | `README_ARCHITECTURE.md` と `README_IMPLEMENTATION.md` は問題背景・解決策が相互重複、「廃止予定」記述も放置。`README.md`（42 行のコード案内）だけ残し、設計判断は該当コードのコメントへ |
-| `app-expo/features/search/README.md` | KEEP | 参照ファイル全実在 |
-| `infra/big-query/README.md` | KEEP（migration SQL 一覧に 4 本追記） | 入口として妥当だが一覧が 3/7 本しか載っていない |
-| `infra/big-query/README_BACKFILL.md` | KEEP（`backfill-runbook.md` へ改名） | 再実行可能な運用ガイド |
-| `infra/big-query/IMPLEMENTATION_SUMMARY.md` | **DELETE** | 「✅実装完了」形式。実手順は README_BACKFILL に全て存在 |
-| `issues/central-cropping-bug-in-resizeImage.md` | **DELETE**（`issues/` ごと） | 提案どおり `position: 'center'` が実装済み。ディレクトリ唯一の残存物で、課題管理は GitHub Issues に移行済み |
-| `catalog/`, `e2e-web/`, `e2e-mobile/` の README | KEEP | いずれも現役・正確 |
-| `scripts/**`（作業ログ 14 本） | 凍結（現状維持） | 日付付きディレクトリとして自己完結し、失敗記録・機械可読 JSON 連携まで揃っており水準が高い。個別整理はコストに見合わない |
+| ファイル                                                  | 判定                                     | 根拠                                                                                                                                                                                    |
+| --------------------------------------------------------- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `api/README.md`                                           | **DELETE**（Auth Guards 3 行のみ救出）   | 103 行中 100 行が NestJS スターター定型文                                                                                                                                               |
+| `api/LOG_BUFFERING_IMPLEMENTATION.md`                     | **DELETE**（設計判断はコードコメントへ） | コードは実在するが Before/After 形式の PR 説明。残す価値がある判断はバッファリング実装箇所の `【設計】` コメントへ                                                                      |
+| `api/src/internal/resize-image/README.md`                 | 大幅圧縮（最優先）                       | 中核として説明する `getOrQueueResizedSignedUrl()` がコード 0 ヒット。**存在しない API の説明は無い文書より有害**。エンドポイントの外部契約とコードへの案内だけに圧縮する                |
+| `api/test/functional/v1/dish-categories/README.md`        | KEEP                                     | ツールの使い方として正確                                                                                                                                                                |
+| `app-expo/LOGGING_IMPLEMENTATION.md`                      | **DELETE**                               | 列挙イベントの一部（`dish_menu_opened` 等）がコード 0 ヒット。`docs/BEHAVIOR_TRACKING_LOGS.md` と役割重複                                                                               |
+| `app-expo/.../DISH_CATEGORY_MANUAL_TEXT_SUPPLY_README.md` | MERGE → `docs/runbooks/`                 | 内容は正確だが「Issue #749 実装」形式。姉妹文書（画像版）と置き場所を揃える                                                                                                             |
+| `app-expo/contexts/SeoContext/README.md`                  | KEEP                                     | 現行構成と一致                                                                                                                                                                          |
+| `app-expo/features/mapMarkers/README*.md`（3 本）         | 3→1 統合・圧縮                           | `README_ARCHITECTURE.md` と `README_IMPLEMENTATION.md` は問題背景・解決策が相互重複、「廃止予定」記述も放置。`README.md`（42 行のコード案内）だけ残し、設計判断は該当コードのコメントへ |
+| `app-expo/features/search/README.md`                      | KEEP                                     | 参照ファイル全実在                                                                                                                                                                      |
+| `infra/big-query/README.md`                               | KEEP（migration SQL 一覧に 4 本追記）    | 入口として妥当だが一覧が 3/7 本しか載っていない                                                                                                                                         |
+| `infra/big-query/README_BACKFILL.md`                      | KEEP（`backfill-runbook.md` へ改名）     | 再実行可能な運用ガイド                                                                                                                                                                  |
+| `infra/big-query/IMPLEMENTATION_SUMMARY.md`               | **DELETE**                               | 「✅実装完了」形式。実手順は README_BACKFILL に全て存在                                                                                                                                 |
+| `issues/central-cropping-bug-in-resizeImage.md`           | **DELETE**（`issues/` ごと）             | 提案どおり `position: 'center'` が実装済み。ディレクトリ唯一の残存物で、課題管理は GitHub Issues に移行済み                                                                             |
+| `catalog/`, `e2e-web/`, `e2e-mobile/` の README           | KEEP                                     | いずれも現役・正確                                                                                                                                                                      |
+| `scripts/**`（作業ログ 14 本）                            | 凍結（現状維持）                         | 日付付きディレクトリとして自己完結し、失敗記録・機械可読 JSON 連携まで揃っており水準が高い。個別整理はコストに見合わない                                                                |
 
 ## 処分表: エージェント指示書類
 
-| ファイル | 判定 | 根拠 |
-| --- | --- | --- |
-| `.github/copilot-instructions.md` 1〜308 行 | **全面書き直し** | 「lint は壊れている」「jest が無い」「E2E は機能していない」が全て逆（`pr-check.yml` が全 PR で lint/test を実行中、E2E は日次稼働中）。`.env` テンプレも必須変数 34 個中 8 個欠落で起動しない。**現状は Copilot を積極的に誤らせている**。正は `pr-check.yml` と README に置き、薄い参照にする |
-| 同 309 行以降（コメント規約・i18n・PR スクショ） | MERGE → `.codex/commentary-policy.md` 等 | コメント種別が `.codex` 側と不一致（【パフォーマンス】vs【性能】等）。実コードは `.codex` 側の 5 種別に従っているのでそちらを正とする |
-| `README.md`（ルート） | 更新 | `e2e/` → `e2e-web/` + `e2e-mobile/`、workspace 4 → 6 パッケージ、Expo SDK 53 → 54 / RN 0.79 → 0.81、スクリプト表の欠落補完 |
-| `CLAUDE.md` の EAS 差分リスト | 参照化 | 差分パス 6 個のリストは `audit-ota-inputs.sh` の `native_path_pattern`（`ios/`, `android/`, `patches/` 等を含む）より狭く、単独に従うと OTA 可否を誤判定しうる。スクリプトへの参照に置き換え二重管理をやめる |
-| `.codex/bigquery/{schemas,query-patterns,event-catalog}.md` | FROM 句差し替え | views 推奨だが、`error-triage/FORENSICS.md` の実測でビューはパーティション枝刈りが効かず 18.4GB/日（生テーブル 77MB）。同ディレクトリの `safety-policy.md`（1GB 超はユーザー確認）と自己矛盾。生テーブル `run_googleapis_com_stdout` 直参照へ |
-| `.codex/bigquery/access.md` | 更新 | `/home/ubuntu` 前提の gcloud パスが現環境に不在。BigQuery MCP ツール経路を正として追記。dev データセット規則の `API_TESTING.md:59` への丸写しも参照に変える |
-| `.claude/skills/**`, `.codex/skills/**` | KEEP | 週次で手入れされており実質の正。スキル内に役割分担表・単一ソース規則が既にある |
+| ファイル                                                    | 判定                                     | 根拠                                                                                                                                                                                                                                                                                            |
+| ----------------------------------------------------------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.github/copilot-instructions.md` 1〜308 行                 | **全面書き直し**                         | 「lint は壊れている」「jest が無い」「E2E は機能していない」が全て逆（`pr-check.yml` が全 PR で lint/test を実行中、E2E は日次稼働中）。`.env` テンプレも必須変数 34 個中 8 個欠落で起動しない。**現状は Copilot を積極的に誤らせている**。正は `pr-check.yml` と README に置き、薄い参照にする |
+| 同 309 行以降（コメント規約・i18n・PR スクショ）            | MERGE → `.codex/commentary-policy.md` 等 | コメント種別が `.codex` 側と不一致（【パフォーマンス】vs【性能】等）。実コードは `.codex` 側の 5 種別に従っているのでそちらを正とする                                                                                                                                                           |
+| `README.md`（ルート）                                       | 更新                                     | `e2e/` → `e2e-web/` + `e2e-mobile/`、workspace 4 → 6 パッケージ、Expo SDK 53 → 54 / RN 0.79 → 0.81、スクリプト表の欠落補完                                                                                                                                                                      |
+| `CLAUDE.md` の EAS 差分リスト                               | 参照化                                   | 差分パス 6 個のリストは `audit-ota-inputs.sh` の `native_path_pattern`（`ios/`, `android/`, `patches/` 等を含む）より狭く、単独に従うと OTA 可否を誤判定しうる。スクリプトへの参照に置き換え二重管理をやめる                                                                                    |
+| `.codex/bigquery/{schemas,query-patterns,event-catalog}.md` | FROM 句差し替え                          | views 推奨だが、`error-triage/FORENSICS.md` の実測でビューはパーティション枝刈りが効かず 18.4GB/日（生テーブル 77MB）。同ディレクトリの `safety-policy.md`（1GB 超はユーザー確認）と自己矛盾。生テーブル `run_googleapis_com_stdout` 直参照へ                                                   |
+| `.codex/bigquery/access.md`                                 | 更新                                     | `/home/ubuntu` 前提の gcloud パスが現環境に不在。BigQuery MCP ツール経路を正として追記。dev データセット規則の `API_TESTING.md:59` への丸写しも参照に変える                                                                                                                                     |
+| `.claude/skills/**`, `.codex/skills/**`                     | KEEP                                     | 週次で手入れされており実質の正。スキル内に役割分担表・単一ソース規則が既にある                                                                                                                                                                                                                  |
 
 ## ブランチ衛生
 
@@ -100,11 +100,11 @@
 
 ## 実施フェーズ
 
-| フェーズ | 内容 | 状態 |
-| --- | --- | --- |
-| 1 | 規約制定（`docs/README.md`）+ 本記録 + `CLAUDE.md` への規則追記 | この PR |
-| 2 | DELETE 判定の削除、圧縮・改名、共有リンク/mapMarkers の統合。残す設計判断は該当コードの `【設計】` コメントへ移植 | 未着手 |
-| 3 | 指示書類の修正（copilot-instructions 全面改訂、README 更新、EAS 差分の参照化） | 未着手 |
-| 4 | `.codex/bigquery` の矛盾解消（生テーブル化・MCP 経路追記） | 未着手 |
-| 5 | ブランチ削除 + auto-delete 設定（GitHub 設定はオーナー操作） | 未着手 |
-| 6 | （任意）CI ガード: `*_SUMMARY.md` / `*_OLD.md` / 2 枚目 README を PR チェックで検出 | 未着手 |
+| フェーズ | 内容                                                                                                              | 状態    |
+| -------- | ----------------------------------------------------------------------------------------------------------------- | ------- |
+| 1        | 規約制定（`docs/README.md`）+ 本記録 + `CLAUDE.md` への規則追記                                                   | この PR |
+| 2        | DELETE 判定の削除、圧縮・改名、共有リンク/mapMarkers の統合。残す設計判断は該当コードの `【設計】` コメントへ移植 | 未着手  |
+| 3        | 指示書類の修正（copilot-instructions 全面改訂、README 更新、EAS 差分の参照化）                                    | 未着手  |
+| 4        | `.codex/bigquery` の矛盾解消（生テーブル化・MCP 経路追記）                                                        | 未着手  |
+| 5        | ブランチ削除 + auto-delete 設定（GitHub 設定はオーナー操作）                                                      | 未着手  |
+| 6        | （任意）CI ガード: `*_SUMMARY.md` / `*_OLD.md` / 2 枚目 README を PR チェックで検出                               | 未着手  |
