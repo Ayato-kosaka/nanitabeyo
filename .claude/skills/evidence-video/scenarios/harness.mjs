@@ -99,7 +99,9 @@ export async function installMocks(page, handler) {
 		if (url.includes("/auth/v1/"))
 			return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(SESSION) });
 		if (handler) {
-			const r = handler(url);
+			// handler は async でもよい。待ち時間そのものを撮りたいとき
+			// （「確認しています…」等）は、handler の中で待ってから返す。
+			const r = await handler(url);
 			if (r)
 				return route.fulfill({
 					status: r.status ?? 200,
@@ -115,7 +117,7 @@ export async function installMocks(page, handler) {
  * 1 本撮る。撮ったファイルの一覧を返す。
  * @param {object} o
  * @param {string} o.name           出力ファイル名の接頭辞
- * @param {(url:string)=>any} [o.mock] シナリオ固有のモック
+ * @param {(url:string)=>any|Promise<any>} [o.mock] シナリオ固有のモック（async 可）
  * @param {object} [o.contextOptions]  viewport / permissions などの上書き
  * @param {(page, shot)=>Promise<void>} o.flow  操作。shot("01-open") でスクショを撮る
  */
