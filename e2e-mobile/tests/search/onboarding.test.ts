@@ -108,9 +108,12 @@ describeJapaneseLocale("オンボーディング（初回起動）", () => {
 		await login.expectOpened();
 		await login.skip();
 		await onboarding.waitForWelcome();
-		await onboarding.pressStart();
 
-		// #1486 §7 「はじめる」でアプリ本体（検索画面）へ戻る
+		// #1486 §7 「はじめる」でアプリ本体（検索画面）へ戻る。
+		// ⚠️ 単発の pressStart + expectLoaded にしないこと。Welcome は紙吹雪が
+		// 無限ループし（確定仕様）、録画有効時はタップが取りこぼされることがある
+		//（詳細は pressStartUntilExited のコメント）。着地するまでタップし直す
+		await onboarding.pressStartUntilExited(search.headerTitle);
 		await search.expectLoaded();
 
 		// ── #1027: 既読フラグが AsyncStorage へ永続化されている ──────────
