@@ -899,7 +899,8 @@
 			"noPhotoTitle": "Añadir una foto",
 			"noPhotoHint": "También puedes registrarlo sin foto",
 			"publicReviewNotice": "Tu registro aparecerá como reseña pública en la página del restaurante",
-			"postNotFoundNoPhoto": "Este registro no tiene foto"
+			"postNotFoundNoPhoto": "Este registro no tiene foto",
+			"skipPhoto": "Omitir (sin foto)"
 		},
 		"filters": {
 			"title": "Filtrar y ordenar",

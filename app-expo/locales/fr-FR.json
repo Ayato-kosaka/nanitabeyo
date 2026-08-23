@@ -899,7 +899,8 @@
 			"noPhotoTitle": "Ajouter une photo",
 			"noPhotoHint": "Vous pouvez enregistrer sans photo",
 			"publicReviewNotice": "Votre enregistrement apparaîtra comme un avis public sur la page du restaurant",
-			"postNotFoundNoPhoto": "Cet enregistrement n'a pas de photo"
+			"postNotFoundNoPhoto": "Cet enregistrement n'a pas de photo",
+			"skipPhoto": "Passer (sans photo)"
 		},
 		"filters": {
 			"title": "Filtrer et trier",

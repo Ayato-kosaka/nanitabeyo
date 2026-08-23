@@ -72,6 +72,17 @@ interface ReviewFormProps {
 	 */
 	allowNoMedia?: boolean;
 	/**
+	 * #1375 実機確認（5 巡目）: メディアの選び方。
+	 *
+	 * - `"auto"`（既定・従来）… マウント直後に OS のピッカーを開く。
+	 *   «写真を選んでからレビューを書く» 前提の画面（店舗フィードからの投稿）はこちら
+	 * - `"manual"` … 開かない。**画面の中の «自分で撮影して追加 / ライブラリから選ぶ / スキップ»**
+	 *   から人が選ぶ。オーナー指摘「③ は上部に自分で撮影して追加、小さくスキップ、
+	 *   下に既存の dish_media」の形にするため、記録フローはこちら。
+	 *   いきなり OS のピッカーが立ち上がると «何を選ばされているのか» が分からない
+	 */
+	mediaPickerMode?: "auto" | "manual";
+	/**
 	 * #644 【設計】レビュー投稿成功時のコールバック（呼び出し元で画面遷移を制御）
 	 *
 	 * #1398 B4 写真なしで記録したときは `dishMedia` が null になる。null のとき
@@ -100,6 +111,7 @@ export function ReviewForm({
 	onCancel,
 	prefilledMedia,
 	allowNoMedia = false,
+	mediaPickerMode = "auto",
 	onSuccess,
 }: ReviewFormProps) {
 	const { lightImpact, mediumImpact } = useHaptics();
@@ -191,6 +203,10 @@ export function ReviewForm({
 	 * 上の 3 本（onCancel / lightImpact / logFrontendEvent）と同じ作法で、
 	 * `mediaGenerationRef` / `isSelectingMediaRef` / `prefilledMediaRef` には手を入れていない。
 	 */
+	const mediaPickerModeRef = useRef(mediaPickerMode);
+	useEffect(() => {
+		mediaPickerModeRef.current = mediaPickerMode;
+	}, [mediaPickerMode]);
 	const allowNoMediaRef = useRef(allowNoMedia);
 	useEffect(() => {
 		allowNoMediaRef.current = allowNoMedia;
@@ -509,6 +525,12 @@ export function ReviewForm({
 		// #400 【設計】prefilledMedia が指定されている場合は、メディア選択をスキップしてプレビュー専用モードにする
 		if (prefilledMediaKey !== null) {
 			handleSetMediaState();
+		} else if (mediaPickerModeRef.current === "manual") {
+			// #1375（5 巡目）manual では OS のピッカーを開かない。
+			// «写真なし» の状態から始めて、画面の中のボタンで人が選ぶ。
+			// ⚠️ `allowNoMedia` が false のままここへ来ると «写真なしでは投稿できないのに
+			// 写真なしで始まる» という詰みになるので、manual は allowNoMedia と対で使うこと
+			setMediaState({ status: "none" });
 		} else {
 			// 通常のメディア選択フロー
 			runMediaSelection("mount", generation);
@@ -524,7 +546,19 @@ export function ReviewForm({
 		// - runMediaSelection: useCallback([]) で参照が安定しているので実質不変
 		// prefilledMedia 本体 / onCancel / lightImpact / logFrontendEvent は ref 経由で読むため、
 		// 親の再レンダーだけでは effect が張り替わらない
+		// mediaPickerMode は ref 経由（親の再レンダーで effect を張り替えない。#1127 と同じ作法）
 	}, [prefilledMediaKey, runMediaSelection]);
+
+	/**
+	 * #1375（5 巡目）写真なしで記録する。
+	 *
+	 * `allowNoMedia` の画面でだけ出す。`{ status: "none" }` は «写真なしで記録する» 状態で、
+	 * ここから «写真あり» へはいつでも戻れる（placeholder は none のときに出ている）。
+	 */
+	const handleSkipPhoto = useCallback(() => {
+		lightImpact();
+		setMediaState({ status: "none" });
+	}, [lightImpact]);
 
 	// Retry media selection
 	const handleRetry = useCallback(() => {
@@ -942,6 +976,16 @@ export function ReviewForm({
 						 * placeholder 全体タップ = ライブラリ（従来挙動・テスト互換）に加え、
 						 * カメラ起動のボタンを並べる。写真なしでも記録できる旨は従来どおり言う
 						 */
+						/**
+						 * #1375 実機確認（5 巡目）: 並びをオーナー指定の順にした。
+						 * **上に «自分で撮影して追加»（主）→ ライブラリ → 小さくスキップ**。
+						 * 4 巡目までは «写真を追加» の見出しの下に 2 択が並び、スキップに当たる
+						 * «写真なしでも記録できます» はただの説明文で押せなかった。
+						 * 「スキップ」は押せる必要がある（写真なしで記録する、が 1 タップで済むように）。
+						 *
+						 * ⚠️ placeholder 全体タップ = ライブラリ、は従来挙動なので変えない
+						 * （既存テストと実機の指の記憶の両方が乗っている）
+						 */
 						<Pressable
 							testID="review-add-photo-placeholder"
 							style={styles.noMediaPlaceholder}
@@ -952,7 +996,17 @@ export function ReviewForm({
 							<Text style={styles.noMediaTitle} numberOfLines={1}>
 								{i18n.t("MyDishes.record.noPhotoTitle")}
 							</Text>
-							<View style={styles.mediaSourceRow}>
+							<View style={styles.mediaSourceColumn}>
+								<TouchableOpacity
+									testID="review-shoot-with-camera"
+									style={[styles.mediaSourceButton, styles.mediaSourceButtonPrimary]}
+									onPress={handleShootWithCamera}
+									accessibilityRole="button">
+									<Camera size={16} color="#FFFFFF" />
+									<Text style={[styles.mediaSourceLabel, styles.mediaSourceLabelPrimary]}>
+										{i18n.t("Map.media.shootWithCamera")}
+									</Text>
+								</TouchableOpacity>
 								<TouchableOpacity
 									testID="review-pick-from-library"
 									style={styles.mediaSourceButton}
@@ -961,18 +1015,18 @@ export function ReviewForm({
 									<ImagePlus size={16} color="#374151" />
 									<Text style={styles.mediaSourceLabel}>{i18n.t("Map.media.pickFromLibrary")}</Text>
 								</TouchableOpacity>
-								<TouchableOpacity
-									testID="review-shoot-with-camera"
-									style={styles.mediaSourceButton}
-									onPress={handleShootWithCamera}
-									accessibilityRole="button">
-									<Camera size={16} color="#374151" />
-									<Text style={styles.mediaSourceLabel}>{i18n.t("Map.media.shootWithCamera")}</Text>
-								</TouchableOpacity>
 							</View>
-							<Text style={styles.noMediaHint} numberOfLines={1}>
-								{i18n.t("MyDishes.record.noPhotoHint")}
-							</Text>
+							{/* スキップ。**小さく**（主導線ではないが、押せる必要がある） */}
+							{allowNoMedia && (
+								<TouchableOpacity
+									testID="review-skip-photo"
+									style={styles.skipPhotoButton}
+									onPress={handleSkipPhoto}
+									accessibilityRole="button"
+									accessibilityLabel={i18n.t("MyDishes.record.skipPhoto")}>
+									<Text style={styles.skipPhotoLabel}>{i18n.t("MyDishes.record.skipPhoto")}</Text>
+								</TouchableOpacity>
+							)}
 						</Pressable>
 					) : (
 						<View style={styles.previewWrap}>
@@ -1435,21 +1489,44 @@ const styles = StyleSheet.create({
 		color: "#6B7280",
 		flexShrink: 1,
 	},
-	// #1375 4 巡目: 「ライブラリから選ぶ / カメラで撮る」の 2 択導線
-	mediaSourceRow: {
-		flexDirection: "row",
+	// #1375 5 巡目: 縦に積む（上が «自分で撮影して追加» の主導線）。
+	// 4 巡目は横並びで «どちらが主か» が読めなかった
+	mediaSourceColumn: {
 		gap: 8,
 		marginTop: 12,
-		marginBottom: 8,
+		marginBottom: 4,
+		alignSelf: "stretch",
+		paddingHorizontal: 24,
 	},
 	mediaSourceButton: {
 		flexDirection: "row",
 		alignItems: "center",
+		justifyContent: "center",
 		gap: 6,
 		paddingHorizontal: 14,
 		paddingVertical: 10,
 		borderRadius: 12,
 		backgroundColor: "#F3F4F6",
+	},
+	// «自分で撮影して追加» はこの領域の主導線。濃灰で埋める
+	// （赤は画面に 1 つの主 CTA = «投稿する» に譲る。docs/design-guidelines.md §1）
+	mediaSourceButtonPrimary: {
+		backgroundColor: "#111827",
+	},
+	mediaSourceLabelPrimary: {
+		color: "#FFFFFF",
+	},
+	// スキップは «小さく»（オーナー指定）。押せるが主導線ではない
+	skipPhotoButton: {
+		marginTop: 4,
+		paddingHorizontal: 10,
+		paddingVertical: 6,
+	},
+	skipPhotoLabel: {
+		fontSize: 12,
+		fontWeight: "600",
+		color: "#6B7280",
+		textDecorationLine: "underline",
 	},
 	mediaSourceLabel: {
 		fontSize: 13,

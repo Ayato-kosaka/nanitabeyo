@@ -899,7 +899,8 @@
 			"noPhotoTitle": "إضافة صورة",
 			"noPhotoHint": "يمكنك التسجيل بدون صورة",
 			"publicReviewNotice": "سيظهر سجلك كمراجعة عامة في صفحة المطعم",
-			"postNotFoundNoPhoto": "لا يحتوي هذا السجل على صورة"
+			"postNotFoundNoPhoto": "لا يحتوي هذا السجل على صورة",
+			"skipPhoto": "تخطّي (بدون صورة)"
 		},
 		"filters": {
 			"title": "التصفية والترتيب",

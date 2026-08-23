@@ -899,7 +899,8 @@
 			"noPhotoTitle": "写真を追加",
 			"noPhotoHint": "写真なしでも記録できます",
 			"publicReviewNotice": "記録は公開レビューとして店舗ページに表示されます",
-			"postNotFoundNoPhoto": "この記録には写真がありません"
+			"postNotFoundNoPhoto": "この記録には写真がありません",
+			"skipPhoto": "スキップ（写真なし）"
 		},
 		"filters": {
 			"title": "絞り込み・並び替え",

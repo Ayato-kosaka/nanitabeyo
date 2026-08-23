@@ -541,8 +541,9 @@ export default function SnsImportScreen() {
 			{tab === "eaten" ? (
 				/* #1375（3 巡目）食べたを記録 = このタブの中のレビュー入力フォーム。
 				   1. お店を選ぶ（pick モードの地図。保存したお店リスト付き。選んだらここへ戻る）
-				   2. お店が決まったら ReviewForm（メディア選択 → 一言レビュー・料理カテゴリー・
-				      料金・おすすめ度）。写真なしでも記録できる（allowNoMedia） */
+				   2. お店が決まったら ReviewForm（写真は «自分で撮影して追加 / ライブラリ / スキップ»
+				      から選ぶ → 一言レビュー・料理カテゴリー・料金・おすすめ度）。
+				      写真なしでも記録できる（allowNoMedia + mediaPickerMode="manual"） */
 				<View style={styles.eatenContainer} testID="sns-import-eaten-form">
 					{/* #1375 実機確認（5 巡目）: 店選択は SNS 取り込みの②と **同じ部品**にする。
 					    以前はここだけ «行をタップして地図へ» という別の形で、SNS 側と揃っていなかった。
@@ -564,10 +565,16 @@ export default function SnsImportScreen() {
 					</View>
 
 					{eatenRestaurant?.restaurant ? (
+						/* #1375 実機確認（5 巡目）: この画面では OS のピッカーを勝手に開かない。
+						   店を選んだ瞬間に写真ピッカーが立ち上がると «何を選ばされているのか» が
+						   分からないので、«自分で撮影して追加 / ライブラリから選ぶ / スキップ» を
+						   画面の中に出して人が選ぶ（mediaPickerMode="manual"）。
+						   ⚠️ manual は allowNoMedia と対で使うこと（ReviewForm のコメント参照） */
 						<ReviewForm
 							key={eatenRestaurant.restaurantId}
 							restaurant={eatenRestaurant.restaurant}
 							allowNoMedia
+							mediaPickerMode="manual"
 							onCancel={() => setEatenRestaurant(null)}
 							onSuccess={handleEatenSuccess}
 						/>
