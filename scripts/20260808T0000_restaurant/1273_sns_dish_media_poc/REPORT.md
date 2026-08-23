@@ -8,6 +8,74 @@
 
 ---
 
+## 【#1345・訂正】Instagram の起点は **2.80% ではなく 15.17%** だった。私の数え方が狭かった
+
+`out/instagram_handle_labels.json` / `out/instagram_handle_reach.json`
+（元データは 8/14 実測の `out/site-to-sns-bridge.json`）
+
+Instagram の経路存在率を **2.80%**（Overture の `socials` に instagram がある店）と
+報告した。これは**狭すぎる数え方**だった。**店のサイトを見に行けばもっと取れる**。
+その測定は 8/14 に既に取ってあったのに、私は使わずに報告していた。
+
+### 無料で Instagram のハンドルに辿り着ける店（600店の標本）
+
+| 経路 | 店数 | 割合 |
+|---|---:|---:|
+| `website` がそのまま instagram.com | 7 | 1.17% |
+| **店のサイトから Instagram リンクを抽出** | **84** | **14.00%** |
+| **和** | **91** | **15.17%** |
+| （参考）Overture の socials だけ | — | 2.80% |
+
+**5.4倍である。** 以前の報告は過小だった。
+
+### ただし目視すると、店固有は 33.3%
+
+96 ハンドルから 18 件を目視した。
+
+| | 件数 | 例 |
+|---|---:|---|
+| **店固有** | **6** | `kajicurry` / `kuwapan2014` / `sala.noge` |
+| チェーン本部 | 7 | `chateraise.jp` / `yakiniku_king_official` / `fukushin_koushiki` |
+| **別主体** | 5 | `tochinavi`（**とちナビ＝地域ポータル**）/ `vison_com`（**VISON＝商業施設**） |
+
+**別主体の型は自社サイト経路とまったく同じ**だった（ポータル・商業施設の
+公式アカウントを店のものとして拾う）。
+
+### 直した数字
+
+| | 旧 | 新 |
+|---|---:|---:|
+| Instagram の経路存在率 | 2.80% | **15.17%** |
+| **店固有まで絞った実効** | 1.95% | **5.06%** |
+| チェーン共通を許した場合 | — | **10.95%** |
+
+**70% とは依然として桁が違う**が、**私が報告していた 1.95% は 2.6倍過小**だった。
+
+### オーナーからの新情報（審査の要否）について
+
+- **oEmbed のトークンレス化** — 私の環境からは developers.facebook.com を
+  再取得できなかった（CORS プロキシが 500 と 522 を返す）ため、**一次資料で
+  再確認できていない**。オーナーの調査を前提として扱う
+- ただし **8/15 に保存した oEmbed 文書（Updated: May 15, 2026）の Limitations は
+  明確**で、これは審査の要否とは別の話である:
+
+  > Using metadata and page, post, or video content (or their derivations) from the
+  > endpoint for any purpose other than providing a front-end view … is strictly
+  > prohibited. This prohibition encompasses consuming, manipulating, extracting,
+  > or **persisting** the metadata and content …
+
+  **つまり「審査が要らない」ことと「保存してよい」ことは別**である。
+  `dish_media` に**画像を保存する形は oEmbed では取れない**。
+  一方、**投稿 URL だけを持って表示時に埋め込む形**なら
+  "providing a front-end view" に当たり、制約(c) と両立する。
+  **これは設計の選択であって、測定で決まる話ではない。**
+- Business Discovery が Standard Access で動くという点は、**一次資料を
+  再取得できなかったので私は検証していない**。ただし**検証できたとしても
+  上の 15.17% / 5.06% という上限は変わらない**（API の権限ではなく、
+  **ハンドルが分かる店の数**が効いているため）
+
+---
+
 ## 【#1345・オーナーの見立ては当たっていた】Shorts の詰まりは**抽出器**だった。人間 50.0% に対し機械は **6.85%**
 
 `measure_shorts_identification.py` / `measure_shorts_area_first_matcher.py`

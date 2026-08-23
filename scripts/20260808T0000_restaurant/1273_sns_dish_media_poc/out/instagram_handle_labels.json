@@ -1,0 +1,54 @@
+{
+  "purpose": "#1345 【訂正の裏取り】Instagram の起点を Overture の socials だけで数えて 2.80% と報告したが、**店のサイトを見に行けばもっと取れる**。取れたハンドルが本当にその店のものかを目視した。",
+  "labeled_at": "2026-08-19",
+  "labeler": "Claude（ハンドル名と店名を突き合わせて判定）",
+  "source": "out/site-to-sns-bridge.json（600店の標本）から抽出した 96 ハンドルのうち 18 件（seed 20260819）",
+  "reach": {
+    "n_sample_stores": 600,
+    "website_is_instagram": 7,
+    "extracted_from_site": 84,
+    "union": 91,
+    "union_pct": 15.17,
+    "overture_socials_only_pct": 2.80
+  },
+  "store_own": [
+    {"handle": "pasteleriasanonofre", "store": "サンオノフレ・スペイン菓子"},
+    {"handle": "momosawakasiho", "store": "甘泉堂 ももさわ菓子舗"},
+    {"handle": "kajicurry", "store": "Kaji Curry", "note": "website 自体が instagram.com"},
+    {"handle": "kuwapan2014", "store": "国産小麦100％全粒粉パン専門店 桑ぱん"},
+    {"handle": "dondonsunada", "store": "どんどん コスパ店"},
+    {"handle": "sala.noge", "store": "Sala noge"}
+  ],
+  "chain_hq": [
+    {"handle": "ryugetsu_sanpouroku", "store": "柳月", "note": "商品『三方六』の公式。店舗単位ではない"},
+    {"handle": "flo_prestige", "store": "FLO PRESTIGE"},
+    {"handle": "uogashimeicha", "store": "うおがし銘茶銀座店"},
+    {"handle": "chateraise.jp", "store": "シャトレーゼ 小野店"},
+    {"handle": "afternoontea_official", "store": "アフタヌーンティー ティールーム 伊勢丹浦和"},
+    {"handle": "yakiniku_king_official", "store": "焼肉きんぐ 福岡新宮店"},
+    {"handle": "fukushin_koushiki", "store": "福しん 成増店"}
+  ],
+  "other_entity": [
+    {"handle": "tochinavi", "store": "中華料理仁", "why": "**とちナビ（地域ポータル）**の公式。店のものではない"},
+    {"handle": "vison_com", "store": "Izurun", "why": "**VISON（商業施設）**の公式"},
+    {"handle": "menyasyokudou", "store": "月のトリコ 厚木店", "why": "ハンドルと店名が対応しない"},
+    {"handle": "gathering_insta", "store": "Vege-Plant Cafe Bar LEBRO", "why": "運営会社か別店舗と思われる"},
+    {"handle": "islandeye_official", "store": "なみうどん", "why": "同上"}
+  ],
+  "counts": {"店固有": 6, "チェーン本部": 7, "別主体": 5, "n": 18},
+  "precision_store_own": 0.3333,
+  "precision_store_own_ci": [0.164, 0.569],
+  "precision_incl_chain": 0.7222,
+  "derived": {
+    "自分のアカウントに辿れる店": 5.06,
+    "チェーン共通を許した場合": 10.95,
+    "以前の報告値": 1.95
+  },
+  "notes": [
+    "**Instagram のハンドルが無料で取れる店は 15.17%（91/600）。** Overture の socials だけで数えた 2.80% の **5.4倍**である。以前の報告は**過小だった**。",
+    "ただし目視すると **店固有は 33.3%（6/18）** にとどまる。チェーン本部 7 件、別主体 5 件。",
+    "**店固有だけなら母集団の 5.06%、チェーン共通を許して 10.95%。** 以前報告した 1.95% よりは大きいが、70% とは依然として桁が違う。",
+    "別主体の型は自社サイト経路と同じだった（**地域ポータル・商業施設の公式アカウント**を店のものとして拾う）。"
+  ],
+  "caveat": "n=18 で幅は広い（店固有の 95%CI 16.4〜56.9%）。600店の標本のうち HTML が取れたのは 158 店なので、**取れなかった店にもハンドルはある**（下限）。ハンドルが取れることと、そこに料理写真があること、それを保存してよいことは**それぞれ別**である。"
+}
