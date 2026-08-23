@@ -6,6 +6,7 @@
 import { createRequire } from "node:module";
 import { mkdir, rename, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import path from "node:path";
 
 const REPO = process.env.EVIDENCE_REPO || "/home/user/nanitabeyo";
@@ -118,7 +119,43 @@ export async function installMocks(page, handler) {
  * @param {object} [o.contextOptions]  viewport / permissions などの上書き
  * @param {(page, shot)=>Promise<void>} o.flow  操作。shot("01-open") でスクショを撮る
  */
-export async function record({ name, mock, contextOptions, flow }) {
+/**
+ * 撮る前に、その言語の字が描けるフォントが居るかを確かめる。
+ *
+ * 2026-08-23、この確認が無かったために、CI で撮った動画・スクショの日本語が
+ * すべて豆腐（□）になり、読めないエビデンスをそのまま PR へ配ってしまった。
+ * `playwright install --with-deps` が入れるのは Latin 系だけで、CJK は入らない。
+ * 「URL が 200 で返る」は中身が読めることを何ひとつ保証しない。
+ *
+ * 撮ってから気づいても撮り直しになるので、起動前に落とす。
+ */
+export function assertFontsFor(langs = ["ja"]) {
+	const missing = [];
+	for (const lang of langs) {
+		let n = 0;
+		try {
+			n = execFileSync("fc-list", [`:lang=${lang}`], { encoding: "utf8" })
+				.split("\n")
+				.filter(Boolean).length;
+		} catch {
+			// fc-list が無い環境では判定できない。黙って通さず、その旨を出す
+			console.warn("fc-list が無いためフォントの確認ができない。文字化けの可能性を残したまま撮る");
+			return;
+		}
+		console.log(`lang=${lang} のフォント数: ${n}`);
+		if (n === 0) missing.push(lang);
+	}
+	if (missing.length) {
+		throw new Error(
+			`${missing.join(", ")} のフォントが無い。この状態で撮ると文字が豆腐（□）になり、\n` +
+				`エビデンスとして使えない。先に入れること:\n` +
+				`  sudo apt-get install -y fonts-noto-cjk fonts-noto-core && fc-cache -f`,
+		);
+	}
+}
+
+export async function record({ name, mock, contextOptions, flow, langs }) {
+	assertFontsFor(langs ?? ["ja"]);
 	await mkdir(OUT, { recursive: true });
 	const browser = await chromium.launch({ executablePath: resolveExecutablePath() });
 	const context = await browser.newContext({

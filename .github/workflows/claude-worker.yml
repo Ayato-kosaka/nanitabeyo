@@ -186,6 +186,31 @@ jobs:
         # dev環境向けの値で焼き込まれる。
         run: pnpx eas-cli env:pull development --non-interactive --path .env
 
+      # 2026-08-23、この step が無かったために、公開したエビデンス動画・スクショの
+      # 日本語がすべて豆腐（□）で描画され、レビューに使えないものを配ってしまった。
+      # `playwright install --with-deps` が入れるのは Latin 系のフォントだけで、
+      # CJK・アラビア文字・デーヴァナーガリーは含まれない。このアプリは 8 言語対応な
+      # ので、日本語だけでなく zh-CN / ko-KR / ar-SA / hi-IN も同時に落ちる。
+      # setup_playwright に紐づけない。ワーカーが自分で playwright を入れる経路が
+      # あり、そこを通ると豆腐に戻るため、常に入れる。
+      - name: 多言語フォントをインストール（エビデンスの文字化け防止）
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends \
+            fonts-noto-cjk fonts-noto-core fonts-noto-color-emoji
+          fc-cache -f >/dev/null
+          # 入ったことを数字で確認する。0 ならエビデンスは撮る前から無意味なので落とす。
+          for lang in ja zh ko ar hi; do
+            n=$(fc-list ":lang=$lang" | wc -l)
+            echo "lang=$lang のフォント数: $n"
+            if [[ "$n" -eq 0 ]]; then
+              echo "::error::$lang のフォントが無い。この状態で撮った画像は文字化けする。"
+              exit 1
+            fi
+          done
+
       - name: Playwrightブラウザをインストール
         if: inputs.setup_playwright
         shell: bash
@@ -374,6 +399,31 @@ jobs:
         working-directory: app-expo
         shell: bash
         run: pnpx eas-cli env:pull development --non-interactive --path .env
+
+      # 2026-08-23、この step が無かったために、公開したエビデンス動画・スクショの
+      # 日本語がすべて豆腐（□）で描画され、レビューに使えないものを配ってしまった。
+      # `playwright install --with-deps` が入れるのは Latin 系のフォントだけで、
+      # CJK・アラビア文字・デーヴァナーガリーは含まれない。このアプリは 8 言語対応な
+      # ので、日本語だけでなく zh-CN / ko-KR / ar-SA / hi-IN も同時に落ちる。
+      # setup_playwright に紐づけない。ワーカーが自分で playwright を入れる経路が
+      # あり、そこを通ると豆腐に戻るため、常に入れる。
+      - name: 多言語フォントをインストール（エビデンスの文字化け防止）
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends \
+            fonts-noto-cjk fonts-noto-core fonts-noto-color-emoji
+          fc-cache -f >/dev/null
+          # 入ったことを数字で確認する。0 ならエビデンスは撮る前から無意味なので落とす。
+          for lang in ja zh ko ar hi; do
+            n=$(fc-list ":lang=$lang" | wc -l)
+            echo "lang=$lang のフォント数: $n"
+            if [[ "$n" -eq 0 ]]; then
+              echo "::error::$lang のフォントが無い。この状態で撮った画像は文字化けする。"
+              exit 1
+            fi
+          done
 
       - name: Playwrightブラウザをインストール
         if: inputs.setup_playwright
