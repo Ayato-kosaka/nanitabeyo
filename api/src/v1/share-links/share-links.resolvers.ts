@@ -21,6 +21,8 @@ import {
   PREVIEW_TITLE_MAX_LENGTH,
   truncatePreviewText,
 } from './share-links.preview-text';
+// #1511 退会したユーザーの投稿は共有リンクの OGP からも出さない
+import { NOT_AUTHORED_BY_DELETED_USER } from '../dish-media/deleted-user-filter';
 
 /** Resolver が返す、DB へ保存する形 */
 export type ResolvedShareTarget = {
@@ -105,8 +107,12 @@ export class ShareLinkTargetResolvers {
     // 同じ ID を並べて上限を回避されないよう、重複は落としたうえで順序は保つ
     const uniqueIds = [...new Set(ids)];
 
-    const head = await this.prisma.dish_media.findUnique({
-      where: { id: uniqueIds[0] },
+    // #1511 退会したユーザーの投稿は OGP カードにも出さない。
+    // 共有リンクは «詳細の入口» であり、ここを塞がないと SNS のプレビューにだけ
+    // 削除済みの投稿が残り続ける（アプリを開けば 404 なのに、カードだけ生きている状態）。
+    // 複合条件を書くため `findUnique` ではなく `findFirst` を使う
+    const head = await this.prisma.dish_media.findFirst({
+      where: { id: uniqueIds[0], ...NOT_AUTHORED_BY_DELETED_USER },
       select: {
         id: true,
         thumbnail_path: true,

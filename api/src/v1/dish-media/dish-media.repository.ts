@@ -31,30 +31,9 @@ import { ClsService } from 'nestjs-cls';
 import { normalizePreferredLanguageCodes } from '../../../../shared/utils/languageCode';
 import { prioritizeReviewsByLanguage } from './review-ordering';
 import { buildLanguageWhereClause } from './language-where';
+// #1511 退会したユーザーの投稿・レビューを外す where 断片（共有リンクの OGP でも使う）
+import { NOT_AUTHORED_BY_DELETED_USER } from './deleted-user-filter';
 import { MediaProcessingStatus } from '@shared/v1/res';
-
-/**
- * #1511 ACC-01 退会したユーザーの投稿・レビューを読み取り経路から外すための where 断片。
- *
- * ## なぜ「作者の users.deleted_at」で判定するのか
- * 投稿・レビューは論理削除（一覧・検索・詳細のどこにも出さない）だが、
- * `dish_media` / `dish_reviews` に専用の削除カラムは足していない。
- * アカウント削除は `users` 行を残したまま `deleted_at` を立てる設計なので、
- * **作者を辿れば「消えているか」が分かる**。カラムを増やすより、
- * 削除処理が 1 行の更新で完結するぶん取りこぼしが起きにくい。
- * （投稿単位の削除 = #1042/#1513 は別の課題で、そちらは専用カラムが要る）
- *
- * ## `user_id: null` を許すのはなぜか
- * 取り込み由来のレビュー（`imported_user_name` を持つ行）と、作者列が NULL の
- * メディアは **元から users 行を持たない**。これを落とすと、退会と無関係な
- * 既存データが一斉に消える。「作者が居ない」と「作者が退会した」を混ぜない。
- *
- * ⚠️ `OR` を使うので、既に `OR` を持つ where と混ぜるときは `AND: [...]` で包むこと
- * （素朴に spread すると先にあった `OR` を潰す）。
- */
-const NOT_AUTHORED_BY_DELETED_USER = {
-  OR: [{ user_id: null }, { users: { is: { deleted_at: null } } }],
-};
 
 /** #817 優先言語のレビュー先読みクエリの戻り値 */
 type DishReviewWithUser = Prisma.dish_reviewsGetPayload<{
