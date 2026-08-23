@@ -14,7 +14,6 @@ const mockLogFrontendEvent = jest.fn();
 jest.mock("@/hooks/useLogger", () => ({ useLogger: () => ({ logFrontendEvent: mockLogFrontendEvent }) }));
 jest.mock("@/lib/i18n", () => ({ __esModule: true, default: { t: (key: string) => key } }));
 jest.mock("lucide-react-native", () => ({ Play: () => null, X: () => null }));
-jest.mock("@react-navigation/native", () => ({ useIsFocused: () => true }));
 jest.mock("react-native-gesture-handler", () => ({
 	GestureDetector: ({ children }: { children: React.ReactNode }) => children,
 }));

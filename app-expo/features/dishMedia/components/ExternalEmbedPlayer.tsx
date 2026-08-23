@@ -38,14 +38,16 @@ run 32654704176 で、埋め込み中央の「Instagramで見る」を踏んだ�
 
 ## 音とメモリ
 
-`isActive`（前面のセル）に加えて **画面フォーカスとアプリ状態**を掛け、
-裏へ回ったらアンマウントする。Android の RNCWebView は `onHostPause` で何もしない
-＝ 音が鳴り続けるため、既存 `VideoPlayer`（shouldPlayInBackground: false）と
-挙動を揃えるにはアンマウントが要る。
+`isActive`（前面のセル）に加えて **アプリ状態**（`AppState`）を掛け、バックグラウンドでは
+アンマウントする。Android の RNCWebView は `onHostPause` で何もしない ＝ 音が鳴り続けるため、
+既存 `VideoPlayer`（shouldPlayInBackground: false）と挙動を揃えるにはアンマウントが要る。
+
+画面フォーカス（別ルートへ push されたか）は `isScreenFocused` prop で受け取る。
+**このコンポーネント自身が `useIsFocused()` を呼ぶと、Portal 配下（ナビゲータ外）で
+描かれた瞬間にフックが例外を投げてアプリごと落ちる**（Detox run 32658978146 で実測）。
 */
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { AppState, type AppStateStatus, StyleSheet, Text, TouchableOpacity, UIManager, View } from "react-native";
-import { useIsFocused } from "@react-navigation/native";
 import * as WebBrowser from "expo-web-browser";
 import { GestureDetector, type GestureType } from "react-native-gesture-handler";
 import { Play, X } from "lucide-react-native";
@@ -92,15 +94,29 @@ export type ExternalEmbedPlayerProps = {
 	 * 待つので、埋め込みへのタップで ActionSheet が同時に開かない
 	 */
 	blockParentTapGesture?: GestureType;
+	/**
+	 * 呼び出し元の画面がフォーカスを持っているか（別ルートへ push されていないか）。
+	 *
+	 * ⚠️ **ここで `useIsFocused()` を呼んではいけない。** このコンポーネントは
+	 * ActionSheet などの Portal 配下（`Portal.Host` は `<Stack>` を包んでいる = ナビゲータの外）
+	 * でも描かれるため、ナビゲーションコンテキストが無い経路があり、
+	 * フックが例外を投げてアプリごと落ちる（Detox run 32658978146 で実測）。
+	 * 判定はナビゲータ内にいる呼び出し元が行い、props で渡す。未指定なら «フォーカスあり» 扱い
+	 */
+	isScreenFocused?: boolean;
 };
 
-export function ExternalEmbedPlayer({ embed, isActive, blockParentTapGesture }: ExternalEmbedPlayerProps) {
+export function ExternalEmbedPlayer({
+	embed,
+	isActive,
+	blockParentTapGesture,
+	isScreenFocused,
+}: ExternalEmbedPlayerProps) {
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const [interactive, setInteractive] = useState(false);
 	// WebView のレンダラが system に殺されたとき、黒いセルのまま放置しないための印
 	const [renderProcessGone, setRenderProcessGone] = useState(false);
-	const isFocused = useIsFocused();
 	// jest やテスト環境では currentState が "unknown" になり得る。
 	// «明示的に裏へ回っているか» で判定し、判らないときは前面扱いにする
 	const isForeground = (state: AppStateStatus | null | undefined) => state !== "background" && state !== "inactive";
@@ -196,8 +212,9 @@ export function ExternalEmbedPlayer({ embed, isActive, blockParentTapGesture }: 
 		[interactive, openInAppBrowser, source?.embedUrl],
 	);
 
-	// 画面が裏（別ルートへ push / アプリがバックグラウンド）なら描かない = 音もメモリも解放する
-	if (!isActive || !isFocused || !appActive) return null;
+	// 画面が裏（アプリがバックグラウンド / 呼び出し元がフォーカスを失った）なら描かない
+	// = 音もメモリも解放する
+	if (!isActive || !appActive || isScreenFocused === false) return null;
 
 	// 削除・非公開になった投稿（#1273 §39）
 	if (embed.embedStatus === "unavailable") {
