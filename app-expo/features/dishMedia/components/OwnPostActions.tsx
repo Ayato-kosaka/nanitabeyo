@@ -19,6 +19,7 @@ import {
 	type NormalizedDishMediaEntry,
 } from "@/stores/useDishMediaEntriesStore";
 import { shallow } from "zustand/shallow";
+import { bumpMyDishesRevision } from "@/features/myDishes/stores/useMyDishesRevisionStore";
 import type { UpdateDishReviewDto } from "@shared/api/v1/dto";
 import type { DeleteDishMediaResponse, UpdateDishReviewResponse } from "@shared/api/v1/res";
 
@@ -149,6 +150,9 @@ export function OwnPostActions({ entry }: Props) {
 				error_level: "log",
 				payload: { reviewId: myReview.id, dishMediaId },
 			});
+			// #1398 の版数（設計 (1/2) §3）。評価・価格は my-dishes の並び替えとフィルタの
+			// 入力なので、編集はカードの中身だけでなく «どの行がどこに出るか» を変える
+			bumpMyDishesRevision();
 			setEditVisible(false);
 			showSnackbar(i18n.t("DishMediaContent.ownPost.saved"));
 		} catch (error) {
@@ -203,6 +207,10 @@ export function OwnPostActions({ entry }: Props) {
 				requestPayload: {},
 			});
 			useDishMediaEntriesStore.getState().removeDishMediaEntry(dishMediaId);
+			// #1398 の版数（設計 (1/2) §3）。削除は «食べた» が 1 行消えるだけでなく、
+			// その dish の «食べたい» が復活しうる（want 枝の NOT EXISTS が外れる）ので、
+			// 一覧・Map のピン・Calendar の月・meta.oldestOccurredAt のどれにも波及する
+			bumpMyDishesRevision();
 			logFrontendEvent({
 				event_name: "own_post_deleted",
 				error_level: "log",
