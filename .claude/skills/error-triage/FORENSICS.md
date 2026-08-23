@@ -172,10 +172,8 @@ kind=null       commit 2f159544 / 24e95bcf /
 `frontend_event_logs` などのビューは `created_at` が計算列（`TO_JSON_STRING(jsonPayload)` を含む）で、
 パーティション枝刈りが効かない。**必ず `run_googleapis_com_stdout` を `timestamp` で直接絞る。**
 
-| 引き方 | 1日あたり |
-|---|---|
-| `frontend_event_logs` ビュー（`created_at` 絞り） | **18.4 GB** |
-| 生テーブル（`timestamp` 絞り、3系統まとめて） | **約 77 MB** |
+実測値と対処の正は [`.codex/bigquery/safety-policy.md`](../../../.codex/bigquery/safety-policy.md)
+（ビュー 18.4 GB/日 に対し生テーブル約 77 MB/日）。
 
 ## スキャン上限に当たったら、上げる前に「増えたのは何か」を切り分ける
 

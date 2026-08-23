@@ -99,12 +99,15 @@ while kill -0 "$PID" 2>/dev/null; do sleep 15; done
 変更であり、**EAS Build を流すことは禁止**。runtimeVersion が同じビルドへ
 eas-update (OTA) で配信する。
 
+判定は監査スクリプトに任せる。**差分パスのリストをここへ書き写さないこと**（`ios/`、`android/`、
+`patches/`、`plugins/`、`Podfile*`、`*.gradle`、`google-services.json` 等を取りこぼし、
+「差分ゼロ＝OTA 可」と誤判定した実績がある）。
+
 ```bash
-# これが空なら OTA。EAS Build を流してはいけない
-git diff --stat <前回ビルドのSHA> HEAD -- \
-  app-expo/app.config.ts app-expo/package.json app-expo/eas.json \
-  app-expo/languages pnpm-lock.yaml package.json
+bash .codex/skills/gh-nanitabeyo-release/scripts/audit-ota-inputs.sh <前回ビルドのSHA> HEAD
 ```
+
+ネイティブ差分の定義の正は、このスクリプト内の `native_path_pattern` である。
 
 ### 2. EAS Build は、その都度ユーザーの承認をもらってから
 
