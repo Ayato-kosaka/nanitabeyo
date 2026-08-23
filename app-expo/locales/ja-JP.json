@@ -374,6 +374,9 @@
 			},
 			"dish_reviews": {
 				"like": "があなたのレビューにいいねしました"
+			},
+			"dish_category_group_vote_sessions": {
+				"vote": "があなたのグループ投票に投票しました"
 			}
 		}
 	},
