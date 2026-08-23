@@ -1,0 +1,28 @@
+{
+  "A": {
+    "label": "A 広いカテゴリ8 × 大都市8",
+    "n_queries": 64,
+    "n_shorts": 818,
+    "n_hits": 80,
+    "rate": 0.097799511002445,
+    "distinct": 49,
+    "productive_queries": 31,
+    "tail_new_per_productive_query": 1.75,
+    "distinct_per_query_all": 0.765625,
+    "distinct_per_1000_videos": 59.90220048899755
+  },
+  "B": {
+    "label": "B 長尾の料理 × 非大都市県",
+    "n_queries": 60,
+    "n_shorts": 560,
+    "n_hits": 59,
+    "rate": 0.10535714285714286,
+    "distinct": 35,
+    "productive_queries": 29,
+    "tail_new_per_productive_query": 1.125,
+    "distinct_per_query_all": 0.5833333333333334,
+    "distinct_per_1000_videos": 62.5
+  },
+  "precision": 0.7,
+  "caveat": "経路存在率に目視 precision 70.0% を掛けて実効にしている。裾が減衰しない仮定なので**上限**である。A と B は1検索あたりの取得本数が違う（60 と 40）。"
+}

@@ -1,0 +1,4568 @@
+{
+  "n_queries": 60,
+  "per_query": 40,
+  "prefs": [
+    "山梨",
+    "鳥取",
+    "島根",
+    "佐賀",
+    "徳島",
+    "高知",
+    "福井",
+    "秋田",
+    "青森",
+    "宮崎",
+    "山形",
+    "岩手",
+    "和歌山",
+    "富山",
+    "香川",
+    "大分"
+  ],
+  "queries": [
+    "火鍋 富山",
+    "牡蠣料理 徳島",
+    "韓国フライドチキン 富山",
+    "ベトナム料理 和歌山",
+    "四川料理 山梨",
+    "刺身定食 高知",
+    "串カツ 宮崎",
+    "豚骨ラーメン 鳥取",
+    "居酒屋 福井",
+    "もんじゃ焼き 青森",
+    "四川料理 富山",
+    "エビチリ 福井",
+    "チーズタッカルビ 山梨",
+    "ペペロンチーノ 宮崎",
+    "ジェラート 宮崎",
+    "フライドチキン 青森",
+    "ウナギ 青森",
+    "ピラフ 島根",
+    "フルーツサンド 秋田",
+    "ビーフシチュー 岩手",
+    "フレンチ 秋田",
+    "ケーキ 山梨",
+    "タルト 岩手",
+    "エッグベネディクト 山梨",
+    "キーマカレー 岩手",
+    "フレンチ 山形",
+    "もつ鍋 和歌山",
+    "ソフトクリーム 高知",
+    "キッシュ 大分",
+    "韓国フライドチキン 佐賀",
+    "チーズケーキ 島根",
+    "トースト 香川",
+    "和食 宮崎",
+    "アフタヌーン 福井",
+    "フルーツサンド 岩手",
+    "トースト 佐賀",
+    "回鍋肉 佐賀",
+    "素麺 山梨",
+    "親子丼 島根",
+    "ショートケーキ 島根",
+    "アイスクリーム 岩手",
+    "タルト 島根",
+    "海鮮料理 鳥取",
+    "もんじゃ焼き 島根",
+    "ちゃんぽん 青森",
+    "ケーキ 佐賀",
+    "四川料理 福井",
+    "ジェラート 岩手",
+    "チンジャオロース 岩手",
+    "酢豚 山形",
+    "ハヤシライス 香川",
+    "さば塩焼き 山形",
+    "居酒屋 香川",
+    "和食 富山",
+    "中華料理 香川",
+    "チーズケーキ 福井",
+    "チーズケーキ 大分",
+    "酢豚 宮崎",
+    "沖縄料理 島根",
+    "タコライス 島根"
+  ],
+  "n_shorts": 560,
+  "rows": [
+    {
+      "id": "2UTTfL_VEys",
+      "title": "富山駅前で鍋宴会！蕎麦居酒屋けやき亭　『ちゃんこ鍋』",
+      "duration": 42,
+      "channel": "けやき亭富山駅前",
+      "channel_id": "UCFpqBrwJUl2whsr_NKffqNg",
+      "query": "火鍋 富山"
+    },
+    {
+      "id": "pqiw6AuRA4o",
+      "title": "富山で「鍋祭り」　20種類の味・・・身も心もほっかほか(16/01/10)",
+      "duration": 41,
+      "channel": "ANNnewsCH",
+      "channel_id": "UCGCZAYq5Xxojl_tSXcVJhiQ",
+      "query": "火鍋 富山"
+    },
+    {
+      "id": "oyrje9XIRVo",
+      "title": "日本富山火鍋店送餐機器人1",
+      "duration": 24,
+      "channel": "alisha sato",
+      "channel_id": "UC-dNQ-auCVbqLrYFd6QKl8A",
+      "query": "火鍋 富山"
+    },
+    {
+      "id": "xiDW4j_3aHE",
+      "title": "富山 魚津で 旬のホタルイカ料理が自慢の温泉宿　仁右衛門家",
+      "duration": 30,
+      "channel": "smfactory",
+      "channel_id": "UCDihHPS6fOazk6FSOKer9LA",
+      "query": "火鍋 富山"
+    },
+    {
+      "id": "WBoZttJMCaM",
+      "title": "富山 魚津で日帰り温泉もある 旬のホタルイカ料理が自慢の温泉宿　仁右衛門家",
+      "duration": 31,
+      "channel": "smfactory",
+      "channel_id": "UCDihHPS6fOazk6FSOKer9LA",
+      "query": "火鍋 富山"
+    },
+    {
+      "id": "x92yb9TIH3A",
+      "title": "富山県魚津市　温泉旅館　ホタルイカ　ほたるいか",
+      "duration": 26,
+      "channel": "仁右衛門旅館",
+      "channel_id": "UCNqQk3BBTrlZSmm8cmpcPDQ",
+      "query": "火鍋 富山"
+    },
+    {
+      "id": "bWaaFpr8eEA",
+      "title": "ねんりんピック富山2018 ダンススポーツ（大漁鍋食レポ）",
+      "duration": 40,
+      "channel": "ねんりんピック富山2018 YouTube 動画配信",
+      "channel_id": "UCYU8vjo86-J3VUXL3nRx3jg",
+      "query": "火鍋 富山"
+    },
+    {
+      "id": "hyW5E-3unXc",
+      "title": "牛すじたっぷり！香りたつ赤味噌！　食堂MARKO（マルコ）一押しの「赤炊き」",
+      "duration": 11,
+      "channel": "ワインを楽しむウォークマン",
+      "channel_id": "UCgy_8GEnJv6nOIT3Vc16b_A",
+      "query": "火鍋 富山"
+    },
+    {
+      "id": "sCQzj69BZjE",
+      "title": "お気楽　屯場",
+      "duration": 49,
+      "channel": "gourmet247",
+      "channel_id": "UCjqI3kyad1sd5gg6lnSy9xA",
+      "query": "火鍋 富山"
+    },
+    {
+      "id": "CSVo3CL2_aE",
+      "title": "鍋を食ってみた31",
+      "duration": 26,
+      "channel": "でーぶ",
+      "channel_id": "UCfX3moMYfW4dohySo3zmt8w",
+      "query": "火鍋 富山"
+    },
+    {
+      "id": "RtGatmp2wWA",
+      "title": "豆腐がドーン！のホルモン鍋",
+      "duration": 8,
+      "channel": "ワインを楽しむウォークマン",
+      "channel_id": "UCgy_8GEnJv6nOIT3Vc16b_A",
+      "query": "火鍋 富山"
+    },
+    {
+      "id": "Lrn-fsjvsPc",
+      "title": "焼き牡蠣　鳴門　うちの海",
+      "duration": 11,
+      "channel": "azamiimazaあざみ",
+      "channel_id": "UCyFEELKGww4hGI1SnMcQ-cQ",
+      "query": "牡蠣料理 徳島"
+    },
+    {
+      "id": "X6r6oGGH_HE",
+      "title": "鳴門の牡蠣食べ放題！",
+      "duration": 17,
+      "channel": "はまー",
+      "channel_id": "UCTNOuEZN_pjd-q2xMHnhZtg",
+      "query": "牡蠣料理 徳島"
+    },
+    {
+      "id": "BfoCTc8PgKs",
+      "title": "うちの海　鳴門カキを食す",
+      "duration": 26,
+      "channel": "家族連れ 国内旅行おすすめ",
+      "channel_id": "UCWdQ5AW1nwyibij7olmX_Wg",
+      "query": "牡蠣料理 徳島"
+    },
+    {
+      "id": "nR9ViFVxdfo",
+      "title": "牡蠣小屋",
+      "duration": 21,
+      "channel": "スマホ堂徳島沖浜店",
+      "channel_id": "UCqpO559pRQBxaAEpxICOKIA",
+      "query": "牡蠣料理 徳島"
+    },
+    {
+      "id": "lpRWZM985EQ",
+      "title": "徳島県鳴門市アオアヲナルトリゾート人気の！阿波郷土料理バイキング阿波三昧",
+      "duration": 29,
+      "channel": "アオアヲ ナルト リゾート公式チャンネル",
+      "channel_id": "UCjAC4m-wEX0g7tdmOL6NOsQ",
+      "query": "牡蠣料理 徳島"
+    },
+    {
+      "id": "Z7HxbIouk6U",
+      "title": "徳島グルメ紹介Part⑩お鮨編inすし勝鳴門",
+      "duration": 46,
+      "channel": "▶︎ミキTiffany",
+      "channel_id": "UC15-dx3msobre4y9--X-Jiw",
+      "query": "牡蠣料理 徳島"
+    },
+    {
+      "id": "_M98SfAcY50",
+      "title": "【徳島市】辛さが選べる旨味たっぷり麻婆豆腐　徳島麻婆屋　善",
+      "duration": 31,
+      "channel": "Yuya's Gourmet log",
+      "channel_id": "UCciKAbsnmR0Be3ha0mle9dw",
+      "query": "牡蠣料理 徳島"
+    },
+    {
+      "id": "xEX3X9KFt5I",
+      "title": "肥美的冬季海鮮 播磨灘牡蠣｜",
+      "duration": 36,
+      "channel": "主廚市場",
+      "channel_id": "UCFOj4JTuJpuLjQfahWQY67w",
+      "query": "牡蠣料理 徳島"
+    },
+    {
+      "id": "91Zq5UL5HuQ",
+      "title": "【マルト水産】播磨灘の牡蠣　MBSラジオ『それゆけ！メッセンジャー』でラジオCMデビュー！！",
+      "duration": 40,
+      "channel": "珠せいろチャンネル",
+      "channel_id": "UCMBxRK82u5D8D-tIhXUVHOw",
+      "query": "牡蠣料理 徳島"
+    },
+    {
+      "id": "uOsscyiY6w8",
+      "title": "汗をかきながら収穫　特産「ハウスすだち」の出荷が最盛期　徳島・阿南市（2023年4月30日）",
+      "duration": 46,
+      "channel": "MBS NEWS",
+      "channel_id": "UCkKJhKO73xF1pK5h9R82ZGQ",
+      "query": "牡蠣料理 徳島"
+    },
+    {
+      "id": "u6BilkbL0EM",
+      "title": "三重県に牡蠣を食べに行ってきました#牡蠣#伊勢志摩",
+      "duration": 60,
+      "channel": "うちの妻チャンネル〜",
+      "channel_id": "UCo0RqwK0e0zXsgRfrBveqfw",
+      "query": "牡蠣料理 徳島"
+    },
+    {
+      "id": "ojHEb_y0t5Q",
+      "title": "磯焼「片山水産」徳島",
+      "duration": 17,
+      "channel": "sabaoism1",
+      "channel_id": "UC9km2OTWVjOZRoHGldCxKvw",
+      "query": "牡蠣料理 徳島"
+    },
+    {
+      "id": "OqkuOFKvTAI",
+      "title": "徳島 鳴門 イタリアン ディナー おすすめ",
+      "duration": 45,
+      "channel": "Moana Coast",
+      "channel_id": "UCYakU6CkrpILQUrv8jDkrvw",
+      "query": "牡蠣料理 徳島"
+    },
+    {
+      "id": "VxgjzeK5HwQ",
+      "title": "【富山市のジャンボ船盛からあげ】から好し　大漁盛り　大関",
+      "duration": 20,
+      "channel": "伊藤の食べある気ちゃんねる",
+      "channel_id": "UCiO4-kpXJUkDKVA-bIbWJKA",
+      "query": "韓国フライドチキン 富山"
+    },
+    {
+      "id": "ya66sQvKbEk",
+      "title": "スシロー　ヤンニョムチキン",
+      "duration": 46,
+      "channel": "Dr.くま",
+      "channel_id": "UCNoi8uzHOieU61iqdVPGbuw",
+      "query": "韓国フライドチキン 富山"
+    },
+    {
+      "id": "D-imfuUsnM4",
+      "title": "ネネチキンに行ってきました❗️",
+      "duration": 37,
+      "channel": "soran1744 (soran1744)",
+      "channel_id": "UCoo_TwtUuSGxVs7YxvQHb9g",
+      "query": "韓国フライドチキン 富山"
+    },
+    {
+      "id": "18wWYQGE00E",
+      "title": "【ひとあし早い夏到来】金沢中心部に恒例のビアガーデンがオープン",
+      "duration": 43,
+      "channel": "テレビ金沢NEWS",
+      "channel_id": "UCzeRR8rMI8IkjqGx_MFlUjQ",
+      "query": "韓国フライドチキン 富山"
+    },
+    {
+      "id": "w73fidLSEB4",
+      "title": "【屋上で「乾杯！」】金沢市片町にビアガーデンオープン　歴代の定番メニュー勢ぞろい",
+      "duration": 59,
+      "channel": "テレビ金沢NEWS",
+      "channel_id": "UCzeRR8rMI8IkjqGx_MFlUjQ",
+      "query": "韓国フライドチキン 富山"
+    },
+    {
+      "id": "PhZA3ggDf7o",
+      "title": "【ほたるいかは富山産！】「エビフライの作り方」",
+      "duration": 26,
+      "channel": "ふじやま先生の特急パン教室",
+      "channel_id": "UCMY-B8KKDKYeW6Z18LIEswg",
+      "query": "韓国フライドチキン 富山"
+    },
+    {
+      "id": "szfGqNs9r00",
+      "title": "KC力作、男の唐揚げ",
+      "duration": 23,
+      "channel": "KC",
+      "channel_id": "UCRR8xsVOGGYIQO_pgRyrp7A",
+      "query": "韓国フライドチキン 富山"
+    },
+    {
+      "id": "s1942AQLpDY",
+      "title": "おあじのメニューやおつまみセット、オードブルなど、テイクアウトスタートしました。",
+      "duration": 59,
+      "channel": "おあじ料理チャンネル",
+      "channel_id": "UCce6077jQ2Bt4oYEWkDt1hg",
+      "query": "韓国フライドチキン 富山"
+    },
+    {
+      "id": "EO1JCw8xI14",
+      "title": "急成長の「チキンバーガー」　焼き鳥店が専門店(2021年7月14日)",
+      "duration": 48,
+      "channel": "ANNnewsCH",
+      "channel_id": "UCGCZAYq5Xxojl_tSXcVJhiQ",
+      "query": "韓国フライドチキン 富山"
+    },
+    {
+      "id": "G1vQja-sExI",
+      "title": "予約がとれない名店に、“肉山登山”に行ってきた！「肉山（吉祥寺）」",
+      "duration": 33,
+      "channel": "3poco",
+      "channel_id": "UC8kGTAko3dln2ABQa0JHSDw",
+      "query": "韓国フライドチキン 富山"
+    },
+    {
+      "id": "8IwSSTNlX00",
+      "title": "元町屋台の大鶏排（ダージーパイ）",
+      "duration": 15,
+      "channel": "昭和レトロBARニューロマンと大鶏排の元町屋台チャンネル",
+      "channel_id": "UCpB2eh9EvXgZb7xQUUWtnWA",
+      "query": "韓国フライドチキン 富山"
+    },
+    {
+      "id": "9M3LArHrWUs",
+      "title": "【秘蔵映像】金沢スッピン珍道中",
+      "duration": 49,
+      "channel": "DJ陽気なゴッドサマーズ",
+      "channel_id": "UCGH7eZPYM7-gB-gAPPLjJ1A",
+      "query": "韓国フライドチキン 富山"
+    },
+    {
+      "id": "cBMNyx64NTs",
+      "title": "茅場町徒歩3分！海老”牡蠣専門店エビアー名物木下シェフ",
+      "duration": 48,
+      "channel": "エビアー 海麦酒 茅場町店",
+      "channel_id": "UCFJGcRuMzwNDd0zLYSdnNpA",
+      "query": "韓国フライドチキン 富山"
+    },
+    {
+      "id": "70QxcDFWc_g",
+      "title": "やっぱりここのビリヤニも外せないぜ！｜飛島モスク",
+      "duration": 26,
+      "channel": "Spicy Food Attacks",
+      "channel_id": "UCmhMnRHcMmR7rVHMZ8uD2FQ",
+      "query": "韓国フライドチキン 富山"
+    },
+    {
+      "id": "lo2EkrxGVYA",
+      "title": "アサヒ家具サロン６月セール告知CM1案編集",
+      "duration": 16,
+      "channel": "Ｓ yuuya",
+      "channel_id": "UCpiyjuGwL7UdpIyUZpn2--Q",
+      "query": "韓国フライドチキン 富山"
+    },
+    {
+      "id": "_7uBikRzFJY",
+      "title": "古民家カフェ桜蓮さん前の風景　綺麗な１本桜🌸　無音　和歌山　広川町の風景",
+      "duration": 47,
+      "channel": "ししいのまるのおでかけメモリーズ",
+      "channel_id": "UChqfbagVuke3REF7FnoSPng",
+      "query": "ベトナム料理 和歌山"
+    },
+    {
+      "id": "4vDkVMZkWGc",
+      "title": "和歌山　シーサイドすぎる絶景カフェ【老夫婦編】",
+      "duration": 60,
+      "channel": "ボートカフェ衣奈マリーナ",
+      "channel_id": "UCqYfAzxa9ZuFHtmC3XKBIjQ",
+      "query": "ベトナム料理 和歌山"
+    },
+    {
+      "id": "6cikU7tR0WI",
+      "title": "和歌山　シーサイドすぎる絶景カフェ【スマイル編】",
+      "duration": 60,
+      "channel": "ボートカフェ衣奈マリーナ",
+      "channel_id": "UCqYfAzxa9ZuFHtmC3XKBIjQ",
+      "query": "ベトナム料理 和歌山"
+    },
+    {
+      "id": "I26xtyatSL8",
+      "title": "ベトナム料理・ランチタイム大阪江坂駅付近",
+      "duration": 31,
+      "channel": "カオリピー女子店巡りチャンネル",
+      "channel_id": "UC1cSIwz6DqWDjp7VbsV3iWA",
+      "query": "ベトナム料理 和歌山"
+    },
+    {
+      "id": "zCwHPGf9Gqo",
+      "title": "桜 ＠ほたるの湯 和歌山県広川町",
+      "duration": 46,
+      "channel": "バイクで応援 バファローズ case.わっけん",
+      "channel_id": "UCaaNnfPNIjnpYr2cYhfxINg",
+      "query": "ベトナム料理 和歌山"
+    },
+    {
+      "id": "yoCHFWFyg1Q",
+      "title": "No.3886 五十嵐製麺 和歌山ラーメン 豚骨しょうゆ味",
+      "duration": 31,
+      "channel": "tontantin",
+      "channel_id": "UCX7ZVAfq2MR14FJuJbFSYVg",
+      "query": "ベトナム料理 和歌山"
+    },
+    {
+      "id": "_IZfocEeckI",
+      "title": "玉林園 極上の抹茶かき氷。極上極上極上！【 Travel Japan 和歌山 】Wakayama",
+      "duration": 50,
+      "channel": "Shoko Nidegawa",
+      "channel_id": "UCzks4wpRu-dOxgLAZ3iAZjA",
+      "query": "ベトナム料理 和歌山"
+    },
+    {
+      "id": "DrGuSOCQu8o",
+      "title": "【4K】カレーライスとグリーンソフト Curry rice and Soft ice cream with green tea",
+      "duration": 21,
+      "channel": "河童(旅･散策) /Kappa",
+      "channel_id": "UCj1-fYrMJ_u0Vzeb0lTEamw",
+      "query": "ベトナム料理 和歌山"
+    },
+    {
+      "id": "IbbX6wZyl6E",
+      "title": "2009年・堺まつり・「ベトナム人コミュニティ」　（大阪府堺市）12",
+      "duration": 25,
+      "channel": "河童",
+      "channel_id": "UCEANQpa5rlquJ5NV02LhhIA",
+      "query": "ベトナム料理 和歌山"
+    },
+    {
+      "id": "I4s0coh3sME",
+      "title": "今日のランチは四川料理 酔廬(すいろ)さんの麻婆豆腐定食♪ 千葉県千葉市",
+      "duration": 27,
+      "channel": "kaomaru42",
+      "channel_id": "UCf2SsX0D6Kh6LOfkj5YJM6Q",
+      "query": "四川料理 山梨"
+    },
+    {
+      "id": "cLVNr-opMIo",
+      "title": "山梨 グルメ おしゃれ 隠れ家レストラン",
+      "duration": 16,
+      "channel": "田舎暮らしシェフあしぇっと八ヶ岳TV",
+      "channel_id": "UCP031aS8hJ53r2v4cgBOkjg",
+      "query": "四川料理 山梨"
+    },
+    {
+      "id": "7XnIKEEAu7A",
+      "title": "四川 China 八兵衛　八兵衛ランチ（こだわりの麻婆豆腐）辛さ２ ご飯大盛り",
+      "duration": 16,
+      "channel": "H Hange",
+      "channel_id": "UCAid6bkIKxBxZcqtj0AkC_g",
+      "query": "四川料理 山梨"
+    },
+    {
+      "id": "zy9294tX-cE",
+      "title": "【山梨うどん編：富士吉田】みうらうどん",
+      "duration": 29,
+      "channel": "ひろの食べ歩き",
+      "channel_id": "UCB06SFnvdFtG7uD1KVdD1qw",
+      "query": "四川料理 山梨"
+    },
+    {
+      "id": "svCz6G40eUY",
+      "title": "「高知グルメ」 高知県須崎市「須崎魚河岸 魚貴 須崎本店」 で「海鮮丼」を頂く",
+      "duration": 30,
+      "channel": "sensuidiver",
+      "channel_id": "UCU9GRixuqWgPDoDpBJuwT5g",
+      "query": "刺身定食 高知"
+    },
+    {
+      "id": "0WjWseUGpfw",
+      "title": "高知　鰻　石焼きまぶし　ランチ　ディナー",
+      "duration": 50,
+      "channel": "開発部飲食事業",
+      "channel_id": "UCP4JBHjO5TiAi3l0uUwTphQ",
+      "query": "刺身定食 高知"
+    },
+    {
+      "id": "_X7QEgPhhgQ",
+      "title": "高知市 うなぎ ランチ 日替わり おまかせ膳",
+      "duration": 27,
+      "channel": "開発部飲食事業",
+      "channel_id": "UCP4JBHjO5TiAi3l0uUwTphQ",
+      "query": "刺身定食 高知"
+    },
+    {
+      "id": "bbGD8AhrscE",
+      "title": "司 高知空港店 鰹のたたき定食 KCZ 高知龍馬空港 Kochi Ryoma Airport Japan",
+      "duration": 32,
+      "channel": "200777",
+      "channel_id": "UCxz2vYPgt_SgdO7Yi8kPK7Q",
+      "query": "刺身定食 高知"
+    },
+    {
+      "id": "oMRH_xyj2bg",
+      "title": "「高知グルメ」 高知市帯屋町の「ビンビン！海鮮メシ。」で海鮮丼を頂く",
+      "duration": 36,
+      "channel": "sensuidiver",
+      "channel_id": "UCU9GRixuqWgPDoDpBJuwT5g",
+      "query": "刺身定食 高知"
+    },
+    {
+      "id": "QtnHqObDLvQ",
+      "title": "高知県高知市帯屋町「食楽 いずみ」 日替わり定食鶏天ぷら 梅マヨソース掛け",
+      "duration": 11,
+      "channel": "sensuidiver",
+      "channel_id": "UCU9GRixuqWgPDoDpBJuwT5g",
+      "query": "刺身定食 高知"
+    },
+    {
+      "id": "6Hcpy2qNGtE",
+      "title": "【高知県公立大 永国寺キャンパス 学食】ハンバーグ定食 (高知県/高知市) Hamburger Set Meal",
+      "duration": 13,
+      "channel": "趣味のMap",
+      "channel_id": "UCiUrS_U597S0mwv3METruGw",
+      "query": "刺身定食 高知"
+    },
+    {
+      "id": "7JPFV7sX-g8",
+      "title": "【高知県】土佐市　地のもん市場ハレタで「チキン南蛮定食」食べて来た！　#産直市　#食堂",
+      "duration": 48,
+      "channel": "アニージャワールド",
+      "channel_id": "UCb7qPZ934b2qbFneeFTExxA",
+      "query": "刺身定食 高知"
+    },
+    {
+      "id": "x-FtHYf64sg",
+      "title": "高知でいただけるカキ料理店「かき吉」",
+      "duration": 34,
+      "channel": "sensuidiver",
+      "channel_id": "UCU9GRixuqWgPDoDpBJuwT5g",
+      "query": "刺身定食 高知"
+    },
+    {
+      "id": "4ELVZ8CWCL8",
+      "title": "「高知グルメ」 高知市堺町「葉牡丹」で「かつ丼セット」を頂く",
+      "duration": 39,
+      "channel": "sensuidiver",
+      "channel_id": "UCU9GRixuqWgPDoDpBJuwT5g",
+      "query": "刺身定食 高知"
+    },
+    {
+      "id": "4fnhgALfMkE",
+      "title": "高知の赤シャリで有名な寿司屋「穂寿美」",
+      "duration": 57,
+      "channel": "sensuidiver",
+      "channel_id": "UCU9GRixuqWgPDoDpBJuwT5g",
+      "query": "刺身定食 高知"
+    },
+    {
+      "id": "uMeD4KOnUHw",
+      "title": "「高知グルメ」 高知市長浜「HARAPEKO KITCHEN」で「ハーフサルシッチャとベーコンチーズに恋するカルボナーラ」を頂く",
+      "duration": 27,
+      "channel": "sensuidiver",
+      "channel_id": "UCU9GRixuqWgPDoDpBJuwT5g",
+      "query": "刺身定食 高知"
+    },
+    {
+      "id": "5f9uqpG-ceI",
+      "title": "500円玉１個で天然ブリやマグロ丼(高知)",
+      "duration": 34,
+      "channel": "風のかさちゃんねる 四万十川と高知の絶景",
+      "channel_id": "UCkABv7YuHqpHuA7g0Nd_8nQ",
+      "query": "刺身定食 高知"
+    },
+    {
+      "id": "39BJypZlzfA",
+      "title": "串工房憩の創作串揚げ、揚げたてが美味い！",
+      "duration": 10,
+      "channel": "串工房憩",
+      "channel_id": "UCBI2oXJWpBweG1Xb5jGtxlA",
+      "query": "串カツ 宮崎"
+    },
+    {
+      "id": "_ArpRzZL-e0",
+      "title": "串かつの玉家　全国グルメフェスティバルに出店",
+      "duration": 54,
+      "channel": "エンカプロ",
+      "channel_id": "UCeAumwLauG8cerr7md0jD7g",
+      "query": "串カツ 宮崎"
+    },
+    {
+      "id": "5-sv6jGhSJQ",
+      "title": "串カツ・どて焼専門店『串かつじゃんじゃん 大阪新世界本店』",
+      "duration": 34,
+      "channel": "dbmdc500",
+      "channel_id": "UCX3YSiW7VtPGzZX6hoNGsng",
+      "query": "串カツ 宮崎"
+    },
+    {
+      "id": "YBcT3CdkqHs",
+      "title": "庶民派グルメが進化！ 最高級の串かつと贅沢な時間でおもてなし「串かつ 凡 北新地」",
+      "duration": 32,
+      "channel": "ルトロン - おでかけ動画メディア",
+      "channel_id": "UCxI_jUcF-1aTMR71sReJqSA",
+      "query": "串カツ 宮崎"
+    },
+    {
+      "id": "XXbmIQawk5U",
+      "title": "炭火串焼らくい No.2",
+      "duration": 25,
+      "channel": "株式会社マスコ",
+      "channel_id": "UCc3_94B_YkBpPn9fGJmWDdQ",
+      "query": "串カツ 宮崎"
+    },
+    {
+      "id": "4kjCls4ebMg",
+      "title": "炭火鶏串カツ みなみ 京都駅前店　おまかせ串カツ10本盛り合わせ",
+      "duration": 10,
+      "channel": "京都eats",
+      "channel_id": "UCqp1wdOR4Z_fzjENXZz5CYg",
+      "query": "串カツ 宮崎"
+    },
+    {
+      "id": "7DuTIJSglFI",
+      "title": "北新地　北銀扇　串料理　串カツ",
+      "duration": 31,
+      "channel": "elite.tv",
+      "channel_id": "UCwO9biJFjlYTweyzJr8hW7w",
+      "query": "串カツ 宮崎"
+    },
+    {
+      "id": "5Agor0G1y84",
+      "title": "宮崎グルメ14  日向　居酒屋さんくる✨",
+      "duration": 44,
+      "channel": "高木公徳　宮崎グルメ🍜神社⛩    ",
+      "channel_id": "UC00T_ttwgfhJuXpw-wdaTRg",
+      "query": "串カツ 宮崎"
+    },
+    {
+      "id": "JMF1j92r8uI",
+      "title": "【ラーメン】(鳥取県鳥取市)龍瞳",
+      "duration": 51,
+      "channel": "M-ざわざわチャンネル",
+      "channel_id": "UCAWMLofg7m475anuSsdrXHg",
+      "query": "豚骨ラーメン 鳥取"
+    },
+    {
+      "id": "ls2O4dMZG4w",
+      "title": "「らーめん あお屋」で醤油とんこつラーメン　鳥取市安長",
+      "duration": 35,
+      "channel": "hahioka",
+      "channel_id": "UCTKchPnMPBGc-jRZ5TpvQng",
+      "query": "豚骨ラーメン 鳥取"
+    },
+    {
+      "id": "y0Oko16G62c",
+      "title": "「一力　福井店」居酒屋とり元の人気メニューもサービス開始",
+      "duration": 16,
+      "channel": "グルメFUKUI【公式チャンネル】",
+      "channel_id": "UCo_6I_69Cx9E8cQRvkg349g",
+      "query": "居酒屋 福井"
+    },
+    {
+      "id": "L87UhxVbdWU",
+      "title": "越前市（福井県）【ケンコバのほろ酔いビジホ泊  全国版】",
+      "duration": 31,
+      "channel": "BSAsahi",
+      "channel_id": "UCYMua3k4CTKbCJXUNwj89wg",
+      "query": "居酒屋 福井"
+    },
+    {
+      "id": "zB1o_Tk-BuU",
+      "title": "ぎょうざ酒場だいきち　CM",
+      "duration": 16,
+      "channel": "ぎょうざ酒場だいきち",
+      "channel_id": "UCWbficIBdhLXhBLbtztT1pg",
+      "query": "居酒屋 福井"
+    },
+    {
+      "id": "Tmc_JR1sql4",
+      "title": "福井の地酒、日本酒を販売する酒屋。梵、黒龍、雲乃井、花垣、叔羅川など",
+      "duration": 51,
+      "channel": "さかえや予備",
+      "channel_id": "UCjVEHZVqHYYI6wSQdxpleYA",
+      "query": "居酒屋 福井"
+    },
+    {
+      "id": "QAvirWNZn2w",
+      "title": "福井市　片町の居酒屋「正大」　Izakaya Restaurant \"Seidai\", Fukui City, JAPAN",
+      "duration": 3,
+      "channel": "narrowboatjapan",
+      "channel_id": "UCFSebLtFcx0jP9gUPL9S7jA",
+      "query": "居酒屋 福井"
+    },
+    {
+      "id": "rzGc6cWPTLY",
+      "title": "福井の居酒屋",
+      "duration": 49,
+      "channel": "Sotaro BABA (Babasou)",
+      "channel_id": "UCVUP0o8GJ1a3tK_YK-s5Zvg",
+      "query": "居酒屋 福井"
+    },
+    {
+      "id": "OKFN1OYb2tI",
+      "title": "福井の地酒「梵」、高精白の山田錦から醸し出される純米大吟醸酒",
+      "duration": 51,
+      "channel": "さかえや予備",
+      "channel_id": "UCjVEHZVqHYYI6wSQdxpleYA",
+      "query": "居酒屋 福井"
+    },
+    {
+      "id": "sruFDfHZyao",
+      "title": "浅草　お好み焼き・もんじゃ　”こばやし”",
+      "duration": 41,
+      "channel": "浅草観光新聞",
+      "channel_id": "UCTUezXprFyayh7Iwbp0CbWQ",
+      "query": "もんじゃ焼き 青森"
+    },
+    {
+      "id": "qjhraqQoHT8",
+      "title": "道とん堀　いかもんじゃ",
+      "duration": 12,
+      "channel": "よっしー交通局",
+      "channel_id": "UCbyGOG02wJSqFbANbXZCqjg",
+      "query": "もんじゃ焼き 青森"
+    },
+    {
+      "id": "s1_J1Zdap9o",
+      "title": "月島　もんじゃ　わらしべ",
+      "duration": 19,
+      "channel": "旅行ちゃんねる",
+      "channel_id": "UCoA5UIPbXYK3TM2q8xVZJUg",
+      "query": "もんじゃ焼き 青森"
+    },
+    {
+      "id": "nUjda6GgvUU",
+      "title": "屋台でお祭りのベビーカステラとたこ焼きともんじゃ焼き#food９",
+      "duration": 16,
+      "channel": "みっかぼうず",
+      "channel_id": "UCF-nD0Xcuj_NKHXO3KDHkIA",
+      "query": "もんじゃ焼き 青森"
+    },
+    {
+      "id": "lUM3hE7V3EY",
+      "title": "道とん堀　もんじゃ焼き　お好み焼き　焼きそば食べ放題2020.8.30",
+      "duration": 25,
+      "channel": "fuu.chan24",
+      "channel_id": "UCy0lN_b0GIDn9JpitlLebCA",
+      "query": "もんじゃ焼き 青森"
+    },
+    {
+      "id": "2eiA0lH_HRg",
+      "title": "軽貨物 運送 ドライバー 求人 居酒屋グルメ もんじゃ焼き 超美味い 東京都 葛飾区 足立区 墨田区 江戸川区 江東区",
+      "duration": 21,
+      "channel": "おもてなし軽自動車運送業 おもてなし便 ドライバー 求人 未経験大歓迎",
+      "channel_id": "UCQB4vTKmgplK71cHjsUOHew",
+      "query": "もんじゃ焼き 青森"
+    },
+    {
+      "id": "MQIuU6rZ9fc",
+      "title": "#千葉市　#千葉県　#お好み焼き 　#もんじゃ　#てつこ　鉄子　牛スジもんじゃ　オススメ",
+      "duration": 9,
+      "channel": "Yamatoダイワデン",
+      "channel_id": "UCrNl581G01LKdn2KTIPscKA",
+      "query": "もんじゃ焼き 青森"
+    },
+    {
+      "id": "yhTTM6r3T64",
+      "title": "230225お好み焼き青森さん＠神戸新長田での美しいまでの鉄板さばき！(そばめし)",
+      "duration": 35,
+      "channel": "ys11propjet",
+      "channel_id": "UCui8d6QC6VOHT8Q57cmqGhg",
+      "query": "もんじゃ焼き 青森"
+    },
+    {
+      "id": "ef1iQMoAvgc",
+      "title": "青森・夜店まつり にぎわう",
+      "duration": 42,
+      "channel": "ToonippoPress",
+      "channel_id": "UC5DH5QQNFQbS24A2SE2vAtQ",
+      "query": "もんじゃ焼き 青森"
+    },
+    {
+      "id": "9HsUl3612ko",
+      "title": "花月嵐 裏メニュー もんじゃそば",
+      "duration": 20,
+      "channel": "fire_boys",
+      "channel_id": "UC2dwMhX4VUddY7X9JBIT_qg",
+      "query": "もんじゃ焼き 青森"
+    },
+    {
+      "id": "cqvv1DMnNEI",
+      "title": "Aomori Nebuta Festival 2015, Aomori, Japan",
+      "duration": 45,
+      "channel": "michinoku",
+      "channel_id": "UC3THF-OucXyljhrl4Bbt-Mw",
+      "query": "もんじゃ焼き 青森"
+    },
+    {
+      "id": "8Y06KU1dsTI",
+      "title": "豚エビタコそばめし",
+      "duration": 28,
+      "channel": "CHIN YEH",
+      "channel_id": "UCfK2-gWM5Ne2I0Aa8KFd4Vg",
+      "query": "もんじゃ焼き 青森"
+    },
+    {
+      "id": "WeZY4AmN7oI",
+      "title": "【ハイライト】ふたご座流星群13連発 #Shorts",
+      "duration": 14,
+      "channel": "東北牧場",
+      "channel_id": "UCcfeNpgcMlyP1ldke2tUU6Q",
+      "query": "もんじゃ焼き 青森"
+    },
+    {
+      "id": "BAyEzLUqXa4",
+      "title": "名古屋初出店！お好み焼き・鉄板焼き専門店「こて吉」。まるでケーキのような美しいお好み焼きが話題！",
+      "duration": 51,
+      "channel": "株式会社リン・クルー",
+      "channel_id": "UCpDtJS3uN7v1dYkP5Qi4Rkg",
+      "query": "もんじゃ焼き 青森"
+    },
+    {
+      "id": "HSTAhiiofFg",
+      "title": "鈴木先生が語る 四川料理 の特徴　国際調理製菓専門学校",
+      "duration": 50,
+      "channel": "国際調理製菓専門学校",
+      "channel_id": "UCQJP8GGXtgz5RMpVPnas6xA",
+      "query": "四川料理 富山"
+    },
+    {
+      "id": "bk9sw9qAcSw",
+      "title": "麺飯屋 醤＠富山市の四川麻婆煨麺",
+      "duration": 9,
+      "channel": "まいこーでらに",
+      "channel_id": "UChrC_XpNCbOPFJA0utFR3IQ",
+      "query": "四川料理 富山"
+    },
+    {
+      "id": "MI5iazs4LBQ",
+      "title": "【麺飯屋 醤】駐車場情報/富山県富山市中川原224-3【ラーメン&中華料理】",
+      "duration": 55,
+      "channel": "なに?食べるがぁ～Z",
+      "channel_id": "UC62Mz952uMbWPnLPzVVXMTg",
+      "query": "四川料理 富山"
+    },
+    {
+      "id": "QZ5ELBYg-LI",
+      "title": "Imizu, Toyama | PANDA Chinese Restaurant ★Spicy Mapo Tofu★ 富山県射水市熊猫中華料理屋",
+      "duration": 43,
+      "channel": "Yummy Toyama Eats",
+      "channel_id": "UCg9fxwZK2bd_tiRjEQVD-IA",
+      "query": "四川料理 富山"
+    },
+    {
+      "id": "jjk9ONvybJM",
+      "title": "中国菜 香山(大阪・本町)中華、四川料理・黒酢の酢豚",
+      "duration": 51,
+      "channel": "osaka-gourmet",
+      "channel_id": "UC-4sUmwyrE0vjVTMv10T2GQ",
+      "query": "四川料理 富山"
+    },
+    {
+      "id": "zYOsSzYv7eM",
+      "title": "四川飯店 陳建一シェフ 賞味会 インターンシップ　国際調理製菓専門学校",
+      "duration": 55,
+      "channel": "国際調理製菓専門学校",
+      "channel_id": "UCQJP8GGXtgz5RMpVPnas6xA",
+      "query": "四川料理 富山"
+    },
+    {
+      "id": "2wF9ZoxNYAc",
+      "title": "【富山県南砺市　中華菜館チュー福光】焼きそば @メニュー紹介",
+      "duration": 53,
+      "channel": "中華菜館 チュー福光",
+      "channel_id": "UCISxNhpW4TKWiBSXFKam6bA",
+      "query": "四川料理 富山"
+    },
+    {
+      "id": "LmfqJmumNsI",
+      "title": "八宝菜@メニュー紹介【富山県南砺市 中華菜館チュー福光店】",
+      "duration": 39,
+      "channel": "中華菜館 チュー福光",
+      "channel_id": "UCISxNhpW4TKWiBSXFKam6bA",
+      "query": "四川料理 富山"
+    },
+    {
+      "id": "nO8Nm9HuWyc",
+      "title": "【富山県南砺市　中華菜館チュー福光】中華飯 @メニュー紹介",
+      "duration": 59,
+      "channel": "中華菜館 チュー福光",
+      "channel_id": "UCISxNhpW4TKWiBSXFKam6bA",
+      "query": "四川料理 富山"
+    },
+    {
+      "id": "iTjnLDylXao",
+      "title": "焼きそば@メニュー紹介【富山県南砺市 中華菜館チュー福光店】",
+      "duration": 52,
+      "channel": "中華菜館 チュー福光",
+      "channel_id": "UCISxNhpW4TKWiBSXFKam6bA",
+      "query": "四川料理 富山"
+    },
+    {
+      "id": "f9o6IlblcwA",
+      "title": "糸庄のもつ煮込みうどん（富山市）",
+      "duration": 28,
+      "channel": "いつもありがとうch",
+      "channel_id": "UCDIRTTHErPaHNzHVr8zlIgw",
+      "query": "四川料理 富山"
+    },
+    {
+      "id": "uTXsvBf90Oc",
+      "title": "お食事処「しもむら」WEB CM 〜餃子・エビチリ編〜",
+      "duration": 38,
+      "channel": "sakigake eizoworks",
+      "channel_id": "UCKDSCURS0lTvF0xDfYZJNQA",
+      "query": "エビチリ 福井"
+    },
+    {
+      "id": "gPxW3rSxrCk",
+      "title": "横浜中華街のオススメ店・海南飯店のエビチリ",
+      "duration": 54,
+      "channel": "大久保Channel",
+      "channel_id": "UCmbUr7dIib-t5mUhYDZ_vPw",
+      "query": "エビチリ 福井"
+    },
+    {
+      "id": "4rLHValzRCo",
+      "title": "大山　晩杯屋　エビのチリソース　380円",
+      "duration": 20,
+      "channel": "9vodka8vodka7vodka",
+      "channel_id": "UCnTE8icGjZrp6oJK5TjBSWQ",
+      "query": "エビチリ 福井"
+    },
+    {
+      "id": "SvPFjFLYjPU",
+      "title": "昇龍 岡崎八帖店",
+      "duration": 18,
+      "channel": "よし赤ちゃんの冒険記👶🏻",
+      "channel_id": "UCCiiI-sW-i8Yk32hDSfc7Qg",
+      "query": "エビチリ 福井"
+    },
+    {
+      "id": "DiQnEU_bB4I",
+      "title": "北海道羅臼町から、ふるさと納税返礼品のボタンエビが届いたのでレビュー♪",
+      "duration": 47,
+      "channel": "魅力のお取り寄せグルメ",
+      "channel_id": "UCNCzNT-VVSbSEYGvOh5oAuQ",
+      "query": "エビチリ 福井"
+    },
+    {
+      "id": "Azy6V2pv9Ts",
+      "title": "【旅日記15】加賀坊山オートキャンプ場",
+      "duration": 22,
+      "channel": "タビシカ",
+      "channel_id": "UCRqKdZxGCzWcnwEWMIB7bVQ",
+      "query": "エビチリ 福井"
+    },
+    {
+      "id": "1BQyTkIGIYo",
+      "title": "211.初午だんご製造工程2_Shirakawa-go movie images - Winter | Shirakawa village, Japan",
+      "duration": 52,
+      "channel": "世界遺産 白川郷 公式 / SHIRAKAWA-GO Official Channel",
+      "channel_id": "UCbe_AGdzSs4BZluAGvVP0Tg",
+      "query": "エビチリ 福井"
+    },
+    {
+      "id": "Ule0hYiWVcs",
+      "title": "えび鬼がら焼き(二度焼き)",
+      "duration": 30,
+      "channel": "柳橋 小松屋",
+      "channel_id": "UCi7EdSO4FUUz-9fic5K9Lfw",
+      "query": "エビチリ 福井"
+    },
+    {
+      "id": "Ra91ehtRPmA",
+      "title": "天婦羅 えびのや(揚げたてでボリューム満点・辛子明太子食べ放題)",
+      "duration": 5,
+      "channel": "AK",
+      "channel_id": "UCGdAmPc1yKgiyKJO4VuyzJw",
+      "query": "エビチリ 福井"
+    },
+    {
+      "id": "cN6JgJBg87o",
+      "title": "【五十嵐美幸×ユウキ食品】本格中華調味料プロモーション",
+      "duration": 58,
+      "channel": "ユウキ食品公式チャンネル",
+      "channel_id": "UC2BAnWo8MMlMg5P6qA2CjcA",
+      "query": "エビチリ 福井"
+    },
+    {
+      "id": "TPGWWBrnxGQ",
+      "title": "大人気の石焼きチーズダッカルビ丼2",
+      "duration": 35,
+      "channel": "LEEKYURAE",
+      "channel_id": "UCYJ2UkHOOep7A9LHderVhYQ",
+      "query": "チーズタッカルビ 山梨"
+    },
+    {
+      "id": "x4bJISSstWI",
+      "title": "チーズタッカルビ　作ってみた",
+      "duration": 4,
+      "channel": "dominique mickimchi",
+      "channel_id": "UCnzA3zyoPgvxB1ZbEWaTEyQ",
+      "query": "チーズタッカルビ 山梨"
+    },
+    {
+      "id": "fq-vhf4TqS4",
+      "title": "とろとろチ～ズ チーズタッカルビ ＆ 白若潮 ( しろわかしお )  Dining meister ( ダイニングマイスター )　若潮酒造の美味しい焼酎が飲めるお店　鹿児島県志布志市志布志町志布志",
+      "duration": 7,
+      "channel": "焼酎ほんわかくん 服部明 AKIRA HATTORI",
+      "channel_id": "UC9iyw41rfoD-_jOSQiDQx1g",
+      "query": "チーズタッカルビ 山梨"
+    },
+    {
+      "id": "kne-r0-66Pw",
+      "title": "新宿 しゃぶしゃぶ 個室 | 山梨 ワイン豚ダイニングENZAN 新宿店",
+      "duration": 51,
+      "channel": "kikomi yasuoka",
+      "channel_id": "UCvCDzxN5BOj1LMjGnzoJqzA",
+      "query": "チーズタッカルビ 山梨"
+    },
+    {
+      "id": "FPTCg-vq4Kc",
+      "title": "【毎年恒例のBBQ♪】鍼灸・整体が得意な整骨院惠心堂へ・福岡市中央区薬院駅近く",
+      "duration": 16,
+      "channel": "惠心堂チャンネル",
+      "channel_id": "UCgMPWFdKK1rbjn7hG-Vli9g",
+      "query": "チーズタッカルビ 山梨"
+    },
+    {
+      "id": "V4_fD4Bqv04",
+      "title": "仮面ライダー",
+      "duration": 55,
+      "channel": "MrKIT0010",
+      "channel_id": "UC7626Uq8YUo4QD7Z9xPQrSQ",
+      "query": "チーズタッカルビ 山梨"
+    },
+    {
+      "id": "UYjUSYW5YvI",
+      "title": "酒菜gubiぐび ペペロンチーノ500円",
+      "duration": 13,
+      "channel": "miyazakionsen",
+      "channel_id": "UCmaEn3ck3MqCUm5cMFI1m5A",
+      "query": "ペペロンチーノ 宮崎"
+    },
+    {
+      "id": "cjdiVa8SaGg",
+      "title": "【シズル動画】15秒で分かる「ペペロンチーノ」という名の芸術",
+      "duration": 21,
+      "channel": "URBAN OUTSIDER",
+      "channel_id": "UC7l0RklXqCgTHv4XVhZzg5A",
+      "query": "ペペロンチーノ 宮崎"
+    },
+    {
+      "id": "gbhuELiaHKM",
+      "title": "No.3788 横浜国大ペペロンチーノ風味ラーメン カラッチーノ",
+      "duration": 31,
+      "channel": "tontantin",
+      "channel_id": "UCX7ZVAfq2MR14FJuJbFSYVg",
+      "query": "ペペロンチーノ 宮崎"
+    },
+    {
+      "id": "1Fz9jytq97U",
+      "title": "父の日を前に宮崎市のフローランテで音楽イベント",
+      "duration": 58,
+      "channel": "ＭＲＴ宮崎放送",
+      "channel_id": "UCET0Zu3i8I0mwh2yDDy6vfQ",
+      "query": "ペペロンチーノ 宮崎"
+    },
+    {
+      "id": "miIXCCFYE3o",
+      "title": "100円料理動画〜 にんにくマーガリンとキノコのスパゲッティ",
+      "duration": 50,
+      "channel": "イーゼル芸術工房 -EASEL ART STUDIO-",
+      "channel_id": "UC_loxWomI7GxQbXK_qspvMQ",
+      "query": "ペペロンチーノ 宮崎"
+    },
+    {
+      "id": "Ai_sCyJoWVU",
+      "title": "セブンイレブンのウインナーの大盛！ペペロンチーノ",
+      "duration": 33,
+      "channel": "igaiga7850",
+      "channel_id": "UC_J3efZ83noPAD4hiEUjG6g",
+      "query": "ペペロンチーノ 宮崎"
+    },
+    {
+      "id": "gh8p3ZUfnA0",
+      "title": "宮崎 黒瀬鰤のしゃぶ風サラダ 高知産柚子のドレッシング",
+      "duration": 52,
+      "channel": "ラ・ヴィータ高知店",
+      "channel_id": "UCcKhTCtHMqMalJIHc_ZQlHQ",
+      "query": "ペペロンチーノ 宮崎"
+    },
+    {
+      "id": "hJZf4ZupqNo",
+      "title": "たんたんめん　シャンシャン茶屋 宮崎店",
+      "duration": 23,
+      "channel": "miyazakionsen",
+      "channel_id": "UCmaEn3ck3MqCUm5cMFI1m5A",
+      "query": "ペペロンチーノ 宮崎"
+    },
+    {
+      "id": "eWJwgYg-Rdg",
+      "title": "ナチュールトレイン（宮崎ワインイベント）",
+      "duration": 15,
+      "channel": "内藤崇",
+      "channel_id": "UC9osdZd1JWkfZRyYC-VILhA",
+      "query": "ペペロンチーノ 宮崎"
+    },
+    {
+      "id": "MMkT3YE6ocQ",
+      "title": "宮崎パティスリーエス・サンク　ジェラートマジックのジェラート",
+      "duration": 20,
+      "channel": "ほんみやちゃんねる（ほんとの宮崎）",
+      "channel_id": "UC3JzvYp5zvWQ3lncDopga0A",
+      "query": "ジェラート 宮崎"
+    },
+    {
+      "id": "kwWSFNuwXfQ",
+      "title": "東京と宮城県の二拠点生活！東京では保育園経営、宮崎では地産品を使ったジェラート店を運営する男性【太陽生命 Presents しあわせ2倍！二拠点生活～素晴らしき My Way～】",
+      "duration": 31,
+      "channel": "BSAsahi",
+      "channel_id": "UCYMua3k4CTKbCJXUNwj89wg",
+      "query": "ジェラート 宮崎"
+    },
+    {
+      "id": "0Ofmritk-jI",
+      "title": "gelato pique アミュプラザ宮崎",
+      "duration": 17,
+      "channel": "Smile Design Co.",
+      "channel_id": "UCGszbmxE5HQEL3Xr7wnDNqg",
+      "query": "ジェラート 宮崎"
+    },
+    {
+      "id": "mQ9rjMojdCM",
+      "title": "最高値は去年の倍の1箱3000円　宮崎を代表する果実「日向夏」露地もの の初競り",
+      "duration": 56,
+      "channel": "ＭＲＴ宮崎放送",
+      "channel_id": "UCET0Zu3i8I0mwh2yDDy6vfQ",
+      "query": "ジェラート 宮崎"
+    },
+    {
+      "id": "l9SeANC_b1M",
+      "title": "アミュプラザみやざきが開業",
+      "duration": 15,
+      "channel": "南日本新聞",
+      "channel_id": "UCYrSmfeQqm1nM_XPfTFHxag",
+      "query": "ジェラート 宮崎"
+    },
+    {
+      "id": "QsTKBloQj5s",
+      "title": "アミュプラザみやざきオープニングセレモニー🎉🎊 No2",
+      "duration": 43,
+      "channel": "てらにしまさあき",
+      "channel_id": "UCOzPXyY2yBDgMCCOcCIclAg",
+      "query": "ジェラート 宮崎"
+    },
+    {
+      "id": "yHOSuwppzwU",
+      "title": "お箸処北諸アミュプラザみやざき店 【4K】",
+      "duration": 38,
+      "channel": "Munenori Horita",
+      "channel_id": "UCIY-FAUOpJMjoNJR1A52CyA",
+      "query": "ジェラート 宮崎"
+    },
+    {
+      "id": "iW_mXBedfS8",
+      "title": "MilaOwen アミュプラザ宮崎",
+      "duration": 25,
+      "channel": "Smile Design Co.",
+      "channel_id": "UCGszbmxE5HQEL3Xr7wnDNqg",
+      "query": "ジェラート 宮崎"
+    },
+    {
+      "id": "VEsz5c3xej0",
+      "title": "アミュプラザ屋上からの宮崎市内の大絶景眺望パノラマ動画 😳😲😃🤩😍🥰😘🌞☀️🌈🌲🌳🌴🌱🌿☘️🍀🏠🏡🏘🏗🏭🏢🏬🏣🏤🏥🏦🏨🏪🏫🏩💒⛪️ No5",
+      "duration": 24,
+      "channel": "てらにしまさあき",
+      "channel_id": "UCOzPXyY2yBDgMCCOcCIclAg",
+      "query": "ジェラート 宮崎"
+    },
+    {
+      "id": "PFRvMlpKYgE",
+      "title": "齋藤牧場アミュプラザみやざき店 【4K】",
+      "duration": 38,
+      "channel": "Munenori Horita",
+      "channel_id": "UCIY-FAUOpJMjoNJR1A52CyA",
+      "query": "ジェラート 宮崎"
+    },
+    {
+      "id": "nlh9JeHXP-8",
+      "title": "宮崎にキャンプギア専門店がオープン【太郎ちゃんのキャンプショップ】　アミュプラザみやざきから徒歩5分",
+      "duration": 49,
+      "channel": "HiЯoTo ☯ crazybison",
+      "channel_id": "UCGKUHvCqGw7e7_MrlNrwtYw",
+      "query": "ジェラート 宮崎"
+    },
+    {
+      "id": "iu-Bs8fcjIg",
+      "title": "【宮崎県三股町】しゃくなげの森（夏のやまめ祭）",
+      "duration": 60,
+      "channel": "宮崎こてきたい",
+      "channel_id": "UCZZRMU9H7z2TdJqan1LqLVw",
+      "query": "ジェラート 宮崎"
+    },
+    {
+      "id": "lWsOzWdufbM",
+      "title": "アミュプラザ屋上からの宮崎市内の大絶景眺望パノラマ動画 😳😲😃🤩😍🥰😘🌞☀️🌈🌲🌳🌴🌱🌿☘️🍀🏠🏡🏘🏗🏭🏢🏬🏣🏤🏥🏦🏨🏪🏫🏩💒⛪️ No1",
+      "duration": 11,
+      "channel": "てらにしまさあき",
+      "channel_id": "UCOzPXyY2yBDgMCCOcCIclAg",
+      "query": "ジェラート 宮崎"
+    },
+    {
+      "id": "RZ3klipUaWU",
+      "title": "九州合宿免許 宮崎で評判の教習所 かき氷",
+      "duration": 38,
+      "channel": "えびの高原ドライビングスクール",
+      "channel_id": "UCgXEETU2nfGgWcpjVveBhHA",
+      "query": "ジェラート 宮崎"
+    },
+    {
+      "id": "d2AITrKDkYM",
+      "title": "アミュプラザ宮崎の靴下屋さん♪",
+      "duration": 39,
+      "channel": "小賀秀人",
+      "channel_id": "UCdkPz_WSNrulGtB6p4j0zFw",
+      "query": "ジェラート 宮崎"
+    },
+    {
+      "id": "hje5GXXC5kU",
+      "title": "アミュプラザみやざき　2022年度は1100万人余が来場　前年度140万人以上上回る",
+      "duration": 60,
+      "channel": "ＭＲＴ宮崎放送",
+      "channel_id": "UCET0Zu3i8I0mwh2yDDy6vfQ",
+      "query": "ジェラート 宮崎"
+    },
+    {
+      "id": "RYNv3bRQmV4",
+      "title": "【愛知県】大輝：ジェラート紹介",
+      "duration": 52,
+      "channel": "HAPPY MEDIA ちゃんねる",
+      "channel_id": "UCKcFZ9eYVBY46ZTtilmNpxQ",
+      "query": "ジェラート 宮崎"
+    },
+    {
+      "id": "FQpN7GtKbQY",
+      "title": "ケンタッキーフライドチキン ガーラタウン青森西店 さん(レモネードソーダ 注文) #青森市",
+      "duration": 35,
+      "channel": "(全県居住目指す)つじやんの訪問記録",
+      "channel_id": "UCySKUquiPfH-Vs0ORM0nMIw",
+      "query": "フライドチキン 青森"
+    },
+    {
+      "id": "1oP9unPVwiE",
+      "title": "え？なんて言ってるの？あなたは聞き取れる？滑舌悪い芸人・諸見里大介　ケンタッキーフライドチキン",
+      "duration": 41,
+      "channel": "フィールドキャスター",
+      "channel_id": "UC-J0pIKmHc6_chLUCch_wNA",
+      "query": "フライドチキン 青森"
+    },
+    {
+      "id": "TKedXABxu_E",
+      "title": "610Chicken - ロクチキ -｜鳥取県北栄町のフライドチキンテイクアウト専門店",
+      "duration": 55,
+      "channel": "610 kitchen",
+      "channel_id": "UC7qVDoGN6qjLjCY0P-sclng",
+      "query": "フライドチキン 青森"
+    },
+    {
+      "id": "-PLvmL1s6Us",
+      "title": "鳥玉フライドチキンPV",
+      "duration": 47,
+      "channel": "田野治樹",
+      "channel_id": "UCVCgvRwVvhfxevhLIkgjd3A",
+      "query": "フライドチキン 青森"
+    },
+    {
+      "id": "6alN2djj_qQ",
+      "title": "【サニーマート】☆X'masにはチキンがないと始まらない！やわらかくてジューシーなこだわりのフライドチキン！",
+      "duration": 16,
+      "channel": "高知・愛媛のクオリティスーパーマーケット【サニーマート】公式チャンネル",
+      "channel_id": "UCt-hE_SP_Jfsd-DIOl9x8Dw",
+      "query": "フライドチキン 青森"
+    },
+    {
+      "id": "IRdgs5ywL70",
+      "title": "【青森県宅建協会】宅建協会PRCM",
+      "duration": 16,
+      "channel": "（公社）青森県宅地建物取引業協会",
+      "channel_id": "UCrRhR_GHBb0jruhRrKSbSOA",
+      "query": "フライドチキン 青森"
+    },
+    {
+      "id": "9ePEWvFPiss",
+      "title": "青森お米「青天の霹靂」朝の食卓篇15秒",
+      "duration": 16,
+      "channel": "あおもり米「青天の霹靂」「はれわたり」",
+      "channel_id": "UCEYfzTlRChZxFyG-K_EM4RQ",
+      "query": "フライドチキン 青森"
+    },
+    {
+      "id": "9jBVyoitoVg",
+      "title": "芋や さん(週末限定 スイートポテト 購入) #青森県 #青森市 #スイートポテト",
+      "duration": 26,
+      "channel": "(全県居住目指す)つじやんの訪問記録",
+      "channel_id": "UCySKUquiPfH-Vs0ORM0nMIw",
+      "query": "フライドチキン 青森"
+    },
+    {
+      "id": "IG6ykPHQz8c",
+      "title": "青森でクリスマスこども大会",
+      "duration": 58,
+      "channel": "ToonippoPress",
+      "channel_id": "UC5DH5QQNFQbS24A2SE2vAtQ",
+      "query": "フライドチキン 青森"
+    },
+    {
+      "id": "Pxq2LGfCMJs",
+      "title": "【日立製】ガーラタウン・青森ウェストモール　昇りエスカレーター",
+      "duration": 35,
+      "channel": "エスカレーターマニア",
+      "channel_id": "UCHYowAfyjcRNgNYobRvcuXw",
+      "query": "フライドチキン 青森"
+    },
+    {
+      "id": "zc1mObjBa4E",
+      "title": "小川原湖でウナギ追跡調査",
+      "duration": 51,
+      "channel": "ToonippoPress",
+      "channel_id": "UC5DH5QQNFQbS24A2SE2vAtQ",
+      "query": "ウナギ 青森"
+    },
+    {
+      "id": "sT1A-4zjKqQ",
+      "title": "『映画ちいかわ 人魚の島のひみつ』WEBCMうさぎラップ篇【大ヒット上映中】",
+      "duration": 25,
+      "channel": "東宝MOVIEチャンネル and QTORYチャンネル",
+      "channel_id": null,
+      "query": "ウナギ 青森"
+    },
+    {
+      "id": "gSh8GrcV7gc",
+      "title": "７月２３日土用の丑の日を前にウナギの販売促進イベント　仙台市中央卸売市場",
+      "duration": 55,
+      "channel": "khb東日本放送",
+      "channel_id": "UCkW_baVbq6aGPWeYY4hOPCA",
+      "query": "ウナギ 青森"
+    },
+    {
+      "id": "sutP_HdJHso",
+      "title": "青森 250円弁当 ウナ重",
+      "duration": 16,
+      "channel": "aomoriyamada",
+      "channel_id": "UCp1DFzOsLItqxDGACTTJGAg",
+      "query": "ウナギ 青森"
+    },
+    {
+      "id": "2Wlsqfibnb8",
+      "title": "小川原湖天然鰻",
+      "duration": 14,
+      "channel": "記憶喪失な酒吞童子",
+      "channel_id": "UC9ebEZJXZWyTSjYIt__xc_g",
+      "query": "ウナギ 青森"
+    },
+    {
+      "id": "Zb4fcWWHgrQ",
+      "title": "【青森オススメ】高いコスパで地元民に愛される『すぎのこ』をご紹介【トラベラ】",
+      "duration": 36,
+      "channel": "トラベラ",
+      "channel_id": "UCsOcgrOWgJIX8OvCE4TA5-g",
+      "query": "ウナギ 青森"
+    },
+    {
+      "id": "6QbTVhXi2wM",
+      "title": "Doyo no Ushi no Hi: Eel specialty stores are bustling in Oita (23/07/30 19:00)",
+      "duration": 49,
+      "channel": "TOSテレビ大分 ニュース【公式】",
+      "channel_id": "UChx_y6aLWNkifSDUt2TVAzg",
+      "query": "ウナギ 青森"
+    },
+    {
+      "id": "dvLif1h9dOE",
+      "title": "２０２６年３月２９日 青森県八戸市国道４５号線類家付近 鰻の成瀬八戸類家店  公式HPから削除され事実上青森県内すべての鰻の成瀬は閉店されたものと思われます",
+      "duration": 45,
+      "channel": "たみふる",
+      "channel_id": "UCEJ6zyPX-ylObkmI30uVOfg",
+      "query": "ウナギ 青森"
+    },
+    {
+      "id": "byeKXMH99iQ",
+      "title": "三河一色産 炭火焼き活うなぎ うなぎのしろむら プロモーションムービー Full ver.",
+      "duration": 55,
+      "channel": "おいしい通販ショップ",
+      "channel_id": "UC4Za1DC-PdmexT__BJNwJDA",
+      "query": "ウナギ 青森"
+    },
+    {
+      "id": "e61Q-YEv9ms",
+      "title": "【神戸グルメ】コスパNo.1の老舗うなぎ屋『山信』で特丼を喰らう！",
+      "duration": 50,
+      "channel": "行政書士グルメまっチャンネル",
+      "channel_id": "UCqW6Vr3A9rGwfZPiAY0a4ZQ",
+      "query": "ウナギ 青森"
+    },
+    {
+      "id": "gtdKMLUswRM",
+      "title": "【グルメWalker】　駒岡　うなぎ料理　鰻々亭(まんまんてい)",
+      "duration": 57,
+      "channel": "YokohamaWalkerCH",
+      "channel_id": "UCN_jAcJpbIqIFoC35PFU1VQ",
+      "query": "ウナギ 青森"
+    },
+    {
+      "id": "BooF0DasZGw",
+      "title": "今年の夏はうなぎが安価に？　稚魚の漁獲が好調(20/03/05)",
+      "duration": 31,
+      "channel": "ANNnewsCH",
+      "channel_id": "UCGCZAYq5Xxojl_tSXcVJhiQ",
+      "query": "ウナギ 青森"
+    },
+    {
+      "id": "T6LiQ4f3EFI",
+      "title": "２０２３年５月９日 青森県八戸市八日町 なか卯 新登場「うな重」販売開始しました 販売が早いな さすが販売上手 さっそく食べました",
+      "duration": 59,
+      "channel": "たみふる",
+      "channel_id": "UCEJ6zyPX-ylObkmI30uVOfg",
+      "query": "ウナギ 青森"
+    },
+    {
+      "id": "Nmd-HlCS-8k",
+      "title": "江別のヤツメウナギ漁と郷土料理",
+      "duration": 46,
+      "channel": "ゾラシュロック",
+      "channel_id": "UCgsoPAQSLrfm7nqo3yjuqHw",
+      "query": "ウナギ 青森"
+    },
+    {
+      "id": "Yeklq4Pfj8s",
+      "title": "青森！カニ美味しいねぇ",
+      "duration": 12,
+      "channel": "青森8728",
+      "channel_id": "UCmuLFIeyYXit-vx9Dr9D4dg",
+      "query": "ウナギ 青森"
+    },
+    {
+      "id": "q3zok3cznIs",
+      "title": "雑穀米「kokuu」 レシピ：洋風ピラフ",
+      "duration": 34,
+      "channel": "イミコトマルシェ",
+      "channel_id": "UCzqTlnij2WMZuoGlT-a9lcQ",
+      "query": "ピラフ 島根"
+    },
+    {
+      "id": "mXMR22mnwQ4",
+      "title": "シーフードレストラン メヒコ 山形フラミンゴ館 紹介動画 2019",
+      "duration": 16,
+      "channel": "ekcgroup",
+      "channel_id": "UCzzUQo9UP3tNloptrSpHN3g",
+      "query": "ピラフ 島根"
+    },
+    {
+      "id": "u9W1ZDq7IkY",
+      "title": "寺岡有機醸造株式会社　CM",
+      "duration": 16,
+      "channel": "寺岡有機醸造株式会社",
+      "channel_id": "UCgr65MXUNYUClithpqsty_A",
+      "query": "ピラフ 島根"
+    },
+    {
+      "id": "9ZRvgnUS_NI",
+      "title": "【えごまレシピ】えごま油のにんじんドレッシングの作り方/えごま油を使ったえごまレシピ/簡単レシピ/手作りドレッシング",
+      "duration": 38,
+      "channel": "川本町ふるさと納税",
+      "channel_id": "UCHK4AVMzrL_g1_lPb-cWnXw",
+      "query": "ピラフ 島根"
+    },
+    {
+      "id": "xbIuZZJ4hgY",
+      "title": "2017.6.17 白根選手、プロ初安打初ホームラン！！！！",
+      "duration": 44,
+      "channel": "ランチピラフ",
+      "channel_id": "UCExinN42PkkTBhWEtbiOaMA",
+      "query": "ピラフ 島根"
+    },
+    {
+      "id": "VxTJmFwG9X8",
+      "title": "海士産サザエでサザエご飯",
+      "duration": 49,
+      "channel": "scommunity4badoler",
+      "channel_id": "UCG1139wlFRKAV264bLjkjjQ",
+      "query": "ピラフ 島根"
+    },
+    {
+      "id": "0chSzF6h7yo",
+      "title": "軽貨物 運送 ドライバー 求人 ランチミーティング キムチ炒め定食 ご飯大盛り 東京都 葛飾区 足立区 墨田区 江戸川区 江東区",
+      "duration": 25,
+      "channel": "おもてなし軽自動車運送業 おもてなし便 ドライバー 求人 未経験大歓迎",
+      "channel_id": "UCQB4vTKmgplK71cHjsUOHew",
+      "query": "ピラフ 島根"
+    },
+    {
+      "id": "NfdcqAZuEd0",
+      "title": "100周年記念CMメッセージ編（2019年12月19日）",
+      "duration": 16,
+      "channel": "東北醤油株式会社",
+      "channel_id": "UCDuHVxw7jGh_XT5cLa-d0Gg",
+      "query": "ピラフ 島根"
+    },
+    {
+      "id": "Ny1gmmf_ojo",
+      "title": "「ひと切れ一六タルトダークみきゃん」CM",
+      "duration": 16,
+      "channel": "四国名菓一六本舗",
+      "channel_id": "UC1sJ2iCN9XzQYLQyKmETdww",
+      "query": "ピラフ 島根"
+    },
+    {
+      "id": "MybuMvGECe0",
+      "title": "24時間営業『はかたや』辛子高菜ラーメン",
+      "duration": 52,
+      "channel": "TomoChackey TV",
+      "channel_id": "UCSBg1ClvLSCJ-yy1BicAf4A",
+      "query": "ピラフ 島根"
+    },
+    {
+      "id": "n7umSTDVwpQ",
+      "title": "【代替食品】レシピを「NFT」で発行　最先端装置で未来に残したい“味”再現(2022年12月7日)",
+      "duration": 58,
+      "channel": "ANNnewsCH",
+      "channel_id": "UCGCZAYq5Xxojl_tSXcVJhiQ",
+      "query": "ピラフ 島根"
+    },
+    {
+      "id": "W9PMNuWWM_A",
+      "title": "雑穀米「kokuu」 レシピ：雑穀お好み焼き",
+      "duration": 59,
+      "channel": "イミコトマルシェ",
+      "channel_id": "UCzqTlnij2WMZuoGlT-a9lcQ",
+      "query": "ピラフ 島根"
+    },
+    {
+      "id": "g7lx1bhMZBU",
+      "title": "あのコンビニおでんの味をかくし味で！！（2017年12月27日）",
+      "duration": 16,
+      "channel": "東北醤油株式会社",
+      "channel_id": "UCDuHVxw7jGh_XT5cLa-d0Gg",
+      "query": "ピラフ 島根"
+    },
+    {
+      "id": "LkeNpYXXtLw",
+      "title": "トマトとチキンのヘルシーカレー　899円（税抜き）　ジョナサン秩父店にて",
+      "duration": 30,
+      "channel": "kaomaru42",
+      "channel_id": "UCf2SsX0D6Kh6LOfkj5YJM6Q",
+      "query": "ピラフ 島根"
+    },
+    {
+      "id": "Z4JU9OU5bN4",
+      "title": "にかほ市移住PRムービー「ほかにないな、にかほ。」",
+      "duration": 40,
+      "channel": "【にかほーむ】にかほ市移住・Uターン・お仕事支援チャンネル",
+      "channel_id": "UCk3PkAtJU2ppT9iDADaHWgg",
+      "query": "フルーツサンド 秋田"
+    },
+    {
+      "id": "F2Liupt4_5U",
+      "title": "#ロッテリア 秋田ステーショントピコ店 さん(フレンチトースト 注文)。 #秋田県 #秋田市",
+      "duration": 27,
+      "channel": "(全県居住目指す)つじやんの訪問記録",
+      "channel_id": "UCySKUquiPfH-Vs0ORM0nMIw",
+      "query": "フルーツサンド 秋田"
+    },
+    {
+      "id": "lHjA2kzpqkI",
+      "title": "ANA1652 秋田発伊丹行",
+      "duration": 45,
+      "channel": "Go Fry",
+      "channel_id": "UCHUk7P0Xn0Z-jELDW4rg_XQ",
+      "query": "フルーツサンド 秋田"
+    },
+    {
+      "id": "oNATauBw1Lc",
+      "title": "湯気に包まれ餅作り、年末迎え最盛期　秋田市",
+      "duration": 58,
+      "channel": "秋田魁新報",
+      "channel_id": "UCf_deS7E0Y0l4-n1BFEeCgA",
+      "query": "フルーツサンド 秋田"
+    },
+    {
+      "id": "rDpxMjeKhHA",
+      "title": "東京駅で買ったフルーツサンド達😀　2022.3.26",
+      "duration": 19,
+      "channel": "たいやき鉄旅ライン",
+      "channel_id": "UCP5-GA8NVYtulgrffjjWTDA",
+      "query": "フルーツサンド 秋田"
+    },
+    {
+      "id": "5-cB6-Fjz88",
+      "title": "日本航空 秋田空港 伊丹行(2)",
+      "duration": 40,
+      "channel": "出雲 咲姫“🌸DJ HAYABUSAチャンネル🌸”",
+      "channel_id": "UCLrDUmLjuNeglD_ZUbGMdFg",
+      "query": "フルーツサンド 秋田"
+    },
+    {
+      "id": "NsiO2bBAhaA",
+      "title": "ANA1831便新千歳空港行きが秋田空港を離陸",
+      "duration": 38,
+      "channel": "DoSomething5591",
+      "channel_id": "UCq70fzKKu31o8ifpTQypzgA",
+      "query": "フルーツサンド 秋田"
+    },
+    {
+      "id": "3vJ09fS0U4g",
+      "title": "たけや製パン　カステラサンド",
+      "duration": 38,
+      "channel": "ジャックオーランタン",
+      "channel_id": "UCFtXC2qOIAFMv2Jfqq87qTQ",
+      "query": "フルーツサンド 秋田"
+    },
+    {
+      "id": "qDOFM2yM1AA",
+      "title": "【あきた桜模様】にかほ市・白瀬記念館近くの竹嶋潟",
+      "duration": 59,
+      "channel": "秋田魁新報",
+      "channel_id": "UCf_deS7E0Y0l4-n1BFEeCgA",
+      "query": "フルーツサンド 秋田"
+    },
+    {
+      "id": "D9_lQ-bZn_4",
+      "title": "日本国秋田県秋田市秋田県立総合プール",
+      "duration": 16,
+      "channel": "VR内でAITuberと会話する系VTuberのあいあい翔太",
+      "channel_id": "UCcTKhvNWB04JJR3SoTtJscQ",
+      "query": "フルーツサンド 秋田"
+    },
+    {
+      "id": "A1x2kr1Hsqw",
+      "title": "秋田空港発ANA1831便が新千歳空港に着陸",
+      "duration": 57,
+      "channel": "DoSomething5591",
+      "channel_id": "UCq70fzKKu31o8ifpTQypzgA",
+      "query": "フルーツサンド 秋田"
+    },
+    {
+      "id": "AagD4eYgviI",
+      "title": "秋田空港へ行きなさい",
+      "duration": 15,
+      "channel": "ヴェン",
+      "channel_id": "UC6IUvWtpHAhrcxzl2Zq4rTA",
+      "query": "フルーツサンド 秋田"
+    },
+    {
+      "id": "_We9tk3JJGo",
+      "title": "ノーザンホースパークでビーフシチュー",
+      "duration": 9,
+      "channel": "toru0305",
+      "channel_id": "UCaVacnycBVsj0I9iLMippgA",
+      "query": "ビーフシチュー 岩手"
+    },
+    {
+      "id": "DEf346squCk",
+      "title": "リフォーム＆増改築　岩手県・宮城県　陽だまり工房TVCM かまど篇",
+      "duration": 16,
+      "channel": "陽だまり工房",
+      "channel_id": "UCD8lrF3G2eZyLt0p6cTl7Mg",
+      "query": "ビーフシチュー 岩手"
+    },
+    {
+      "id": "vzSidgAkNB4",
+      "title": "2020/9/22 岩手県産 イシカゲ貝",
+      "duration": 13,
+      "channel": "海芯速報",
+      "channel_id": "UCFbaC6nIJ1Q05H_blepOO8w",
+      "query": "ビーフシチュー 岩手"
+    },
+    {
+      "id": "Ff-rZoAzDzA",
+      "title": "オージーフーズ、シズル感ある動画提供　鶏肉メーカーのアマタケは月２回撮影で利用",
+      "duration": 49,
+      "channel": "日本ネット経済新聞",
+      "channel_id": "UCvvoPcArH3j-3uaXAMSdZQQ",
+      "query": "ビーフシチュー 岩手"
+    },
+    {
+      "id": "JbZZpokNdZ0",
+      "title": "【煮込みハンバーグ】ｍｉｔａｓｕアレンジメニュー",
+      "duration": 7,
+      "channel": "yoritokoヨリトコ",
+      "channel_id": "UCjeVWERV9hdQ9Dmba6StgJQ",
+      "query": "ビーフシチュー 岩手"
+    },
+    {
+      "id": "De-VygB72ck",
+      "title": "【特売】2020/10/23 メキシコ産 ウニ(50g)",
+      "duration": 18,
+      "channel": "海芯速報",
+      "channel_id": "UCFbaC6nIJ1Q05H_blepOO8w",
+      "query": "ビーフシチュー 岩手"
+    },
+    {
+      "id": "HhIEFYDzYWw",
+      "title": "ベアレンビール2018CM～15周年宣誓編",
+      "duration": 30,
+      "channel": "洋一嶌田",
+      "channel_id": "UCSY5BwbQdAZG7eYgrS4cX8Q",
+      "query": "ビーフシチュー 岩手"
+    },
+    {
+      "id": "3NjrUzduzOE",
+      "title": "10分レストラン！！〜6時間じっくり煮込んだ牛頬肉の赤ワイン煮込み〜",
+      "duration": 49,
+      "channel": "NOTO Catering",
+      "channel_id": "UC8_eN2Oy-rQVC2pt1F3i22Q",
+      "query": "ビーフシチュー 岩手"
+    },
+    {
+      "id": "2oWt3dunNcM",
+      "title": "ハウス食品 ハウスハッシュドビーフ 本格ハヤシライスソース",
+      "duration": 16,
+      "channel": "ゆさみさくら",
+      "channel_id": "UC5vAyo2CPiibzuKCjt_y6Qg",
+      "query": "ビーフシチュー 岩手"
+    },
+    {
+      "id": "UwxX347keGM",
+      "title": "Auberge フレンチの森",
+      "duration": 49,
+      "channel": "awaji resort by pasona",
+      "channel_id": "UCAGE7CVhNrDqa_1KdsafcZg",
+      "query": "フレンチ 秋田"
+    },
+    {
+      "id": "9odNOMeXolU",
+      "title": "南青山 外苑前 フレンチ ワイン 【 グラース 】 おすすめ 口コミ",
+      "duration": 51,
+      "channel": "jitta6372",
+      "channel_id": "UCfMRnag0wp7DSFDrNVJgwbA",
+      "query": "フレンチ 秋田"
+    },
+    {
+      "id": "w_R77h9OnQg",
+      "title": "宮城・福島・山形・岩手・秋田でフレンチブルドッグのめすをお探しなら当店へ",
+      "duration": 9,
+      "channel": "宮城県仙台・塩釜のペットショップ鈴花",
+      "channel_id": "UC52cEJOsy5IpSDUbkthbd4w",
+      "query": "フレンチ 秋田"
+    },
+    {
+      "id": "PtZUGzjI6gQ",
+      "title": "山梨県 バレンタイン シェフ手作りケーキ チョコレートチーズケーキ",
+      "duration": 47,
+      "channel": "田舎暮らしシェフあしぇっと八ヶ岳TV",
+      "channel_id": "UCP031aS8hJ53r2v4cgBOkjg",
+      "query": "ケーキ 山梨"
+    },
+    {
+      "id": "isc33iM3kus",
+      "title": "山梨で美味しい天然酵母パンとシフォンケーキのGreen Terraceアルガンオイル",
+      "duration": 36,
+      "channel": "手島勇二",
+      "channel_id": "UCdID3wtakR05lgDzBt_Ls1g",
+      "query": "ケーキ 山梨"
+    },
+    {
+      "id": "PCpdAKscIfw",
+      "title": "清里高原チーズケーキファクトリー【PORTA】",
+      "duration": 60,
+      "channel": "PORTAグルメ",
+      "channel_id": "UCNe3yJVrVaAN5Vr0I-Zt6LQ",
+      "query": "ケーキ 山梨"
+    },
+    {
+      "id": "ENJmnJ8kqnI",
+      "title": "【食レポ】フルーツボンブケーキ 山梨県産ピオーネを買ってきた #Shorts",
+      "duration": 25,
+      "channel": "すこちゃんねる",
+      "channel_id": "UCIAcz1BoWVKZiyMthbzuzIQ",
+      "query": "ケーキ 山梨"
+    },
+    {
+      "id": "YQ_mOlJuwfk",
+      "title": "山梨 冷凍自販機 ラーメン 餃子 鍋 ケーキ お肉 精肉 お魚 鮮魚 大福 アイス お菓子 馬刺し お刺身",
+      "duration": 32,
+      "channel": "JUST ジャスト",
+      "channel_id": "UCI-bVn6DYGZ16NqevyPuGIQ",
+      "query": "ケーキ 山梨"
+    },
+    {
+      "id": "77vEk9xX0ao",
+      "title": "キャラメルナッツ",
+      "duration": 16,
+      "channel": "タルトタタン公式",
+      "channel_id": "UCykMTBhsDHffoviEJPw3Fqw",
+      "query": "タルト 岩手"
+    },
+    {
+      "id": "bk9uBUk_mHQ",
+      "title": "タルトタタンのシフォンケーキフェア　2024",
+      "duration": 22,
+      "channel": "タルトタタン公式",
+      "channel_id": "UCykMTBhsDHffoviEJPw3Fqw",
+      "query": "タルト 岩手"
+    },
+    {
+      "id": "kHQI-exO5_E",
+      "title": "焼き立てチーズタルト CM",
+      "duration": 43,
+      "channel": "EIZOW KIROKUSHA",
+      "channel_id": "UCvU1_GrtjZp1enVsWVMkyWw",
+      "query": "タルト 岩手"
+    },
+    {
+      "id": "sEvg-NcsuZU",
+      "title": "岩手県で震度５強 津波の心配なし【news23】",
+      "duration": 36,
+      "channel": "TBS NEWS DIG Powered by JNN",
+      "channel_id": "UC6AG81pAkf6Lbi_1VC5NmPA",
+      "query": "タルト 岩手"
+    },
+    {
+      "id": "aa0wdCcogtM",
+      "title": "Promotion～Tarte tatin (Iwate)",
+      "duration": 31,
+      "channel": "タルトタタン公式",
+      "channel_id": "UCykMTBhsDHffoviEJPw3Fqw",
+      "query": "タルト 岩手"
+    },
+    {
+      "id": "uy-3nA7NQsQ",
+      "title": "【簡単手作り犬ご飯】エッグタルトを使った愛犬のいちごタルトケーキ",
+      "duration": 25,
+      "channel": "愛犬が大好き!帝塚山ハウンドカム【houndcom公式】",
+      "channel_id": "UCrwOzsGnpXsxnLV2CnLeDzw",
+      "query": "タルト 岩手"
+    },
+    {
+      "id": "nhkJTt0001U",
+      "title": "岩手リオンCM　店舗訪問",
+      "duration": 16,
+      "channel": "岩手リオンYouTubeチャンネル",
+      "channel_id": "UCqrqd8HcftxaRAQ_qZtdLRA",
+      "query": "タルト 岩手"
+    },
+    {
+      "id": "S6f8j7CMymw",
+      "title": "もうほかのエッグタルトは食べられない！ 「ナタ・デ・クリスチアノ」の洋菓子３選",
+      "duration": 33,
+      "channel": "ルトロン - おでかけ動画メディア",
+      "channel_id": "UCxI_jUcF-1aTMR71sReJqSA",
+      "query": "タルト 岩手"
+    },
+    {
+      "id": "GrQz2vUc9Sk",
+      "title": "【ハウンドカム食堂】愛犬用おやつ　手作りスイーツ ヤギミルクのエッグタルト【帝塚山ハウンドカム】",
+      "duration": 36,
+      "channel": "愛犬が大好き!帝塚山ハウンドカム【houndcom公式】",
+      "channel_id": "UCrwOzsGnpXsxnLV2CnLeDzw",
+      "query": "タルト 岩手"
+    },
+    {
+      "id": "mbLvlbTeWFo",
+      "title": "紅芋タルト",
+      "duration": 24,
+      "channel": "oo25k",
+      "channel_id": "UCcwMZKj6UIiGKGfpsrpJccA",
+      "query": "タルト 岩手"
+    },
+    {
+      "id": "awoJN_DueLU",
+      "title": "フルーツタルトはヒガコの星！？[おちこぼれフルーツタルト]",
+      "duration": 26,
+      "channel": "channel anime",
+      "channel_id": "UC0FUaMZ2rL5UIRDtukcyJJw",
+      "query": "タルト 岩手"
+    },
+    {
+      "id": "mWsqwnalf2w",
+      "title": "【YARIS＆GO！】ニューライフスタイル篇｜トヨタカローラ岩手",
+      "duration": 34,
+      "channel": "【公式】トヨタカローラ岩手チャンネル",
+      "channel_id": "UC6o07L0EWzyQVNd7W4EDt_Q",
+      "query": "タルト 岩手"
+    },
+    {
+      "id": "CcAE9B17GEY",
+      "title": "リスくんタルトを食べる.m4v",
+      "duration": 11,
+      "channel": "sato takashi",
+      "channel_id": "UCtPbfO5dtL-ORpsdqwGkppA",
+      "query": "タルト 岩手"
+    },
+    {
+      "id": "-xdOGERZZD8",
+      "title": "【ケーキ大人食い】ミックスタルト《ハナフル》【早送り】",
+      "duration": 54,
+      "channel": "シンペーのケーキ大人食い【咀嚼音なし】",
+      "channel_id": "UC71oT9iEcz-CuSq9tv1WFqw",
+      "query": "タルト 岩手"
+    },
+    {
+      "id": "O0-6qD0YDJw",
+      "title": "岩手県北上市青柳町 BAR「SIAM」( ・∀・)b",
+      "duration": 47,
+      "channel": "N siam",
+      "channel_id": "UCuaJwDlBXuaZHRojUqFqFlg",
+      "query": "タルト 岩手"
+    },
+    {
+      "id": "oc0r7ScoVmA",
+      "title": "【岩手飯テロ😋】冷凍ホタテのバター醤油焼き💕",
+      "duration": 11,
+      "channel": "種田未来",
+      "channel_id": "UCHjwctoIOuwlk-MG11pFWRw",
+      "query": "タルト 岩手"
+    },
+    {
+      "id": "fpuK9ehjVkw",
+      "title": "【enico.cafe&bar Kawaguchiko】山梨県｜モーニングから営業する富士山を望むカフェ＜紹介動画＞",
+      "duration": 15,
+      "channel": "旅色プロモーション【公式チャンネル】",
+      "channel_id": "UCrMBD4MD_adkM6YrfECVKdA",
+      "query": "エッグベネディクト 山梨"
+    },
+    {
+      "id": "zwXky5Nve-w",
+      "title": "西荻窪「BREAD & BEAN」のカスタムプレート：エッグベネディクト",
+      "duration": 21,
+      "channel": "シラタキ",
+      "channel_id": "UCAceRqjltajjKSepnfnlHWw",
+      "query": "エッグベネディクト 山梨"
+    },
+    {
+      "id": "KIQ-DbRFPH0",
+      "title": "エッグベネディクトが美味しい、東京都内のお店オススメ3選",
+      "duration": 33,
+      "channel": "ルトロン - おでかけ動画メディア",
+      "channel_id": "UCxI_jUcF-1aTMR71sReJqSA",
+      "query": "エッグベネディクト 山梨"
+    },
+    {
+      "id": "ERbTWmMK7ms",
+      "title": "pinoko  kitchen😋　パンケーキエッグベネディクト　　&バナナチョコ　#日本海の夕日が沈むまで",
+      "duration": 57,
+      "channel": "毎日料理してます😋",
+      "channel_id": "UCtH6lVRB7pYCTxQb-WqrEHA",
+      "query": "エッグベネディクト 山梨"
+    },
+    {
+      "id": "EoB6xEu1VnU",
+      "title": "WORLD CAFE ワールドカフェ CM30秒",
+      "duration": 31,
+      "channel": "kikaku UTY",
+      "channel_id": "UC-6V499raJGVVDHtdHvuj0w",
+      "query": "エッグベネディクト 山梨"
+    },
+    {
+      "id": "cViSH20ddvc",
+      "title": "白井の湯（リラフル）",
+      "duration": 43,
+      "channel": "白井工業団地協議会",
+      "channel_id": "UCfejEo_HlBmFTAEqzeQkHRw",
+      "query": "エッグベネディクト 山梨"
+    },
+    {
+      "id": "X3rCuB3uaow",
+      "title": "すっぱおいしい！鶏むね肉をつかった酸辣湯カツ",
+      "duration": 59,
+      "channel": "macaroni | マカロニ",
+      "channel_id": "UC6vzXCyUFiz0wMF6aIe7Isg",
+      "query": "エッグベネディクト 山梨"
+    },
+    {
+      "id": "LLtoDrVUsQE",
+      "title": "大好きな家 大好きな暮らし「ふたりの時間」篇",
+      "duration": 31,
+      "channel": "UNNOHOUSE",
+      "channel_id": "UCS5ydtqGB07DmJNQLiVZKBA",
+      "query": "エッグベネディクト 山梨"
+    },
+    {
+      "id": "sW_MbWHdoFA",
+      "title": "ザ　リビングの桃のパフェの王様❗桃野郎",
+      "duration": 33,
+      "channel": "kosuke Sak",
+      "channel_id": "UCzWLGneZFrkWLtubl7BrkgA",
+      "query": "エッグベネディクト 山梨"
+    },
+    {
+      "id": "PnyIxaMFits",
+      "title": "コナーズカフェ「ティラミスパンケーキ」",
+      "duration": 14,
+      "channel": "隠居TV久保徹朗",
+      "channel_id": "UCD5CwzOev65o_KhWnFSOC_A",
+      "query": "エッグベネディクト 山梨"
+    },
+    {
+      "id": "Hh-piiHMCww",
+      "title": "お籠りしたい新橋「HOTEL 1899 TOKYO」くつろぎポイント大解剖！│トラベルjp",
+      "duration": 60,
+      "channel": "トラベルjp",
+      "channel_id": "UCMKLi1X5Q-ZL26hEz4FP_WA",
+      "query": "エッグベネディクト 山梨"
+    },
+    {
+      "id": "Xkbt2_8_1xM",
+      "title": "カナダ風ロッジの喫茶店 カナデアンコーヒーハウス コーヒーは濃いめの水出し 豊橋市 愛知県 カナディアン・シーダー・ハウス",
+      "duration": 59,
+      "channel": "PistLove",
+      "channel_id": "UCRwqTcUh7jMWqFjSYH3JHow",
+      "query": "エッグベネディクト 山梨"
+    },
+    {
+      "id": "GXtmwnBRZ9g",
+      "title": "【簡単レシピ】ほやの食感がクセになるチーズキーマカレー｜ASMR",
+      "duration": 35,
+      "channel": "&fish(アンドフィッシュ)",
+      "channel_id": "UCI2PMReqJIepaoSJcqaJeGQ",
+      "query": "キーマカレー 岩手"
+    },
+    {
+      "id": "AgmYkEPwISg",
+      "title": "【ココイチ】ココイチのカレーアレンジレシピ　旨味たっぷりキーマカレー篇",
+      "duration": 51,
+      "channel": "カレーハウスCoCo壱番屋【ココイチ】公式YouTubeチャンネル",
+      "channel_id": "UCN4Dbqt67WAyK-krKNSLPxw",
+      "query": "キーマカレー 岩手"
+    },
+    {
+      "id": "iu88-uc2F-E",
+      "title": "花巻ひえカレー｜花巻温泉 ホテル千秋閣「プロスパー」",
+      "duration": 47,
+      "channel": "花巻ひえカレープロジェクト",
+      "channel_id": "UCF-2DCmwi2vionQoRFolTmA",
+      "query": "キーマカレー 岩手"
+    },
+    {
+      "id": "CiY-1zFxwzg",
+      "title": "探訪 静かに息づく銀幕の世界　山形県鶴岡市の庄内映画村",
+      "duration": 48,
+      "channel": "産経ニュース",
+      "channel_id": "UC1zYGo1jIIjMVDTLL3dydow",
+      "query": "フレンチ 山形"
+    },
+    {
+      "id": "4Fom4MifghQ",
+      "title": "#134 フレンチブルドッグ（7月1日生／女の子3頭／山形／デコロピック）",
+      "duration": 30,
+      "channel": "デコロ・ピック",
+      "channel_id": "UCzigu66ph4brHJV1Hg4fiOA",
+      "query": "フレンチ 山形"
+    },
+    {
+      "id": "U9JzR4UHEYw",
+      "title": "プロの技に近づきたい　酒田調理師専門学校、有名仏料理人が特別講座",
+      "duration": 52,
+      "channel": "山形新聞オンライン",
+      "channel_id": "UCPj5eNsyMJooCdIG9GAZdHQ",
+      "query": "フレンチ 山形"
+    },
+    {
+      "id": "KzwI3K1usqA",
+      "title": "【フレンチ】海鮮ポワレ　夏野菜のラタトイュ添え　【レストランみながわ】",
+      "duration": 33,
+      "channel": "メニューランド",
+      "channel_id": "UCrXmvqPk63L5ws3CzepiJeA",
+      "query": "フレンチ 山形"
+    },
+    {
+      "id": "qb3Asodu3C8",
+      "title": "#131 フレンチブルドッグ（5月10日生／男の子／山形／デコロピック）",
+      "duration": 41,
+      "channel": "デコロ・ピック",
+      "channel_id": "UCzigu66ph4brHJV1Hg4fiOA",
+      "query": "フレンチ 山形"
+    },
+    {
+      "id": "MU4hSs34efM",
+      "title": "#133 フレンチブルドッグ（8月1日生／男の子／山形／デコロピック）",
+      "duration": 44,
+      "channel": "デコロ・ピック",
+      "channel_id": "UCzigu66ph4brHJV1Hg4fiOA",
+      "query": "フレンチ 山形"
+    },
+    {
+      "id": "oZvCrpHA5j4",
+      "title": "レストラン欅",
+      "duration": 20,
+      "channel": "tmumaster",
+      "channel_id": "UC0tOaRONCQ_VYFUqZQv-Vbw",
+      "query": "フレンチ 山形"
+    },
+    {
+      "id": "fhwyr5lEsDk",
+      "title": "【フレンチ】国産牛ロースステーキ【米沢市レストランみながわ】",
+      "duration": 33,
+      "channel": "メニューランド",
+      "channel_id": "UCrXmvqPk63L5ws3CzepiJeA",
+      "query": "フレンチ 山形"
+    },
+    {
+      "id": "p5rtGXzp_7k",
+      "title": "神戸旧居留地で絶品コースメニューを味わえる本格フレンチ「Bistrot Enry.」",
+      "duration": 37,
+      "channel": "ルトロン - おでかけ動画メディア",
+      "channel_id": "UCxI_jUcF-1aTMR71sReJqSA",
+      "query": "フレンチ 山形"
+    },
+    {
+      "id": "dgFvHL_8Wms",
+      "title": "ローストビーフ丼 肉処真田丸 橋本市 五條市 和歌山 奈良 もつ鍋 ちりとり鍋 居酒屋 ランチ 食べログ",
+      "duration": 17,
+      "channel": "肉処真田丸",
+      "channel_id": "UCbT2R0DhWFOjAZ8yp784PyA",
+      "query": "もつ鍋 和歌山"
+    },
+    {
+      "id": "YTOwpIUaVpU",
+      "title": "ローストビーフ丼 肉処真田丸 橋本市 五條市 和歌山 奈良 高野山 九度山 もつ鍋 ちりとり鍋 居酒屋 ランチ 食べログ",
+      "duration": 18,
+      "channel": "肉処真田丸",
+      "channel_id": "UCbT2R0DhWFOjAZ8yp784PyA",
+      "query": "もつ鍋 和歌山"
+    },
+    {
+      "id": "ILYXmI5q4cw",
+      "title": "ガーリックライス 肉処真田丸 橋本市 五條市 和歌山 奈良 高野山 九度山 もつ鍋 ちりとり鍋 居酒屋 ランチ 食べログ",
+      "duration": 19,
+      "channel": "肉処真田丸",
+      "channel_id": "UCbT2R0DhWFOjAZ8yp784PyA",
+      "query": "もつ鍋 和歌山"
+    },
+    {
+      "id": "BnI31tFtGfA",
+      "title": "ローストビーフ丼 肉処真田丸 橋本市 五條市 和歌山 奈良 高野山 九度山 もつ鍋 ちりとり鍋 居酒屋 ランチ 食べログ",
+      "duration": 17,
+      "channel": "肉処真田丸",
+      "channel_id": "UCbT2R0DhWFOjAZ8yp784PyA",
+      "query": "もつ鍋 和歌山"
+    },
+    {
+      "id": "B5SH8-yKOo0",
+      "title": "ローストビーフ丼  肉処真田丸 橋本市 五條市 和歌山 奈良 高野山 九度山 もつ鍋 ちりとり鍋 居酒屋 ランチ 食べログ",
+      "duration": 20,
+      "channel": "肉処真田丸",
+      "channel_id": "UCbT2R0DhWFOjAZ8yp784PyA",
+      "query": "もつ鍋 和歌山"
+    },
+    {
+      "id": "q6bNVuGRmKE",
+      "title": "ローストビーフ丼 肉処真田丸 橋本市 五條市 和歌山 奈良 高野山 九度山 もつ鍋 ちりとり鍋 居酒屋 ランチ 食べログ",
+      "duration": 20,
+      "channel": "肉処真田丸",
+      "channel_id": "UCbT2R0DhWFOjAZ8yp784PyA",
+      "query": "もつ鍋 和歌山"
+    },
+    {
+      "id": "9RIcFL2uF0o",
+      "title": "から揚げ 肉処真田丸 橋本市 五條市 和歌山 奈良 高野山 九度山 もつ鍋 ちりとり鍋 居酒屋 ランチ 食べログ",
+      "duration": 17,
+      "channel": "肉処真田丸",
+      "channel_id": "UCbT2R0DhWFOjAZ8yp784PyA",
+      "query": "もつ鍋 和歌山"
+    },
+    {
+      "id": "upibmcerJ6w",
+      "title": "チキン南蛮 肉処真田丸 橋本市 五條市 和歌山 奈良 高野山 九度山 もつ鍋 ちりとり鍋 居酒屋 ランチ 食べログ",
+      "duration": 19,
+      "channel": "肉処真田丸",
+      "channel_id": "UCbT2R0DhWFOjAZ8yp784PyA",
+      "query": "もつ鍋 和歌山"
+    },
+    {
+      "id": "1mdCpMXWFPU",
+      "title": "もつ鍋一慶「牛もつの炙りシーン」",
+      "duration": 21,
+      "channel": "博多もつ鍋一慶",
+      "channel_id": "UCrqT8Fgo_CaGHx19qHFooLg",
+      "query": "もつ鍋 和歌山"
+    },
+    {
+      "id": "wNqufMQKX-U",
+      "title": "ハンバーグ 肉処真田丸 橋本市 五條市 和歌山 奈良 高野山 九度山 もつ鍋 ちりとり鍋 居酒屋 ランチ 食べログ",
+      "duration": 20,
+      "channel": "肉処真田丸",
+      "channel_id": "UCbT2R0DhWFOjAZ8yp784PyA",
+      "query": "もつ鍋 和歌山"
+    },
+    {
+      "id": "yTUO4iyIYow",
+      "title": "チキンステーキ 肉処真田丸 橋本市 五條市 和歌山 奈良 高野山 九度山 もつ鍋 ちりとり鍋 居酒屋 ランチ 食べログ",
+      "duration": 17,
+      "channel": "肉処真田丸",
+      "channel_id": "UCbT2R0DhWFOjAZ8yp784PyA",
+      "query": "もつ鍋 和歌山"
+    },
+    {
+      "id": "b9YuOiXJR-k",
+      "title": "もつ鍋！",
+      "duration": 10,
+      "channel": "インユアハート77 Ch",
+      "channel_id": "UC47YAhQBbM7PDPTDOG6r_tw",
+      "query": "もつ鍋 和歌山"
+    },
+    {
+      "id": "bSwnXfnvsoI",
+      "title": "博多もつ鍋おくゑ一品が逸品.m4v",
+      "duration": 31,
+      "channel": "kotobuki1955",
+      "channel_id": "UC8OEdth-4IM4Pyl6-GaDsZg",
+      "query": "もつ鍋 和歌山"
+    },
+    {
+      "id": "T-BH3H13Blo",
+      "title": "居酒屋 虎丸水産 【 うろうろ和歌山 Travel Japan 】 和歌山県 和歌山市",
+      "duration": 60,
+      "channel": "Shoko Nidegawa",
+      "channel_id": "UCzks4wpRu-dOxgLAZ3iAZjA",
+      "query": "もつ鍋 和歌山"
+    },
+    {
+      "id": "uRdsIbU1j38",
+      "title": "チキン南蛮 肉処真田丸 橋本市 九度山 高野山 五條市 和歌山 奈良 もつ鍋 ちりとり鍋 居酒屋 ランチ 食べログ",
+      "duration": 19,
+      "channel": "肉処真田丸",
+      "channel_id": "UCbT2R0DhWFOjAZ8yp784PyA",
+      "query": "もつ鍋 和歌山"
+    },
+    {
+      "id": "4DRINSesH1Y",
+      "title": "和歌山 とんかつ ももたろう",
+      "duration": 32,
+      "channel": "豊田屋ゆたか",
+      "channel_id": "UC_hz5T5EvT990849lOu33aA",
+      "query": "もつ鍋 和歌山"
+    },
+    {
+      "id": "6Z-rXkQ8fGg",
+      "title": "「高知グルメ」 高知市帯屋町「高知プリン亭」で「プリンソフト」を頂く",
+      "duration": 12,
+      "channel": "sensuidiver",
+      "channel_id": "UCU9GRixuqWgPDoDpBJuwT5g",
+      "query": "ソフトクリーム 高知"
+    },
+    {
+      "id": "DTu3dFx3g_o",
+      "title": "ソフトクリーム、いただきます！",
+      "duration": 33,
+      "channel": "もぐにぃチャンネル",
+      "channel_id": "UC9Zg91QkHXCymBYmj-TDDGg",
+      "query": "ソフトクリーム 高知"
+    },
+    {
+      "id": "1PXKnbTtGWw",
+      "title": "高知アイス売店、最高！！",
+      "duration": 41,
+      "channel": "ビール",
+      "channel_id": "UC0CCFGo3u8hBNOQEJYam6ew",
+      "query": "ソフトクリーム 高知"
+    },
+    {
+      "id": "KsJjFQ8WyyU",
+      "title": "吉野駅前の近藤商店と桜とよもぎのソフトクリーム",
+      "duration": 19,
+      "channel": "堀内重人",
+      "channel_id": "UC1vDkopXZyyadSr2MzbHyLg",
+      "query": "ソフトクリーム 高知"
+    },
+    {
+      "id": "6P7uJY2lTio",
+      "title": "【高知　アイスジェラート　ジェラテリア　ザ　クリーム 】[Kochi Ice Gelato Gelateria The Cream】",
+      "duration": 45,
+      "channel": "Kochi Sound",
+      "channel_id": "UCC63xN7cfS_MhFY37pkPkJg",
+      "query": "ソフトクリーム 高知"
+    },
+    {
+      "id": "S_C7UvP04GA",
+      "title": "土佐の「ほっ」とするアイスです。【Vol.01】",
+      "duration": 25,
+      "channel": "有限会社松崎冷菓工業",
+      "channel_id": "UCztRJzqNL6Ajp2QHmHXC4Wg",
+      "query": "ソフトクリーム 高知"
+    },
+    {
+      "id": "SQh3dGAlW5M",
+      "title": "【Vlog】田舎道に突如現れたソフトクリーム屋さん",
+      "duration": 60,
+      "channel": "知の巨人TV",
+      "channel_id": "UCP6zcL-TFRG__A41sQNzX3A",
+      "query": "ソフトクリーム 高知"
+    },
+    {
+      "id": "okYJMQUYq18",
+      "title": "高知県産品PR動画_土佐茶編_30s",
+      "duration": 31,
+      "channel": "kochimarugoto",
+      "channel_id": "UC0iiqQ7ovPAsDnoI2QZ6NmQ",
+      "query": "ソフトクリーム 高知"
+    },
+    {
+      "id": "rrHJWXqu0BM",
+      "title": "おいしいワイン：ミシマファームワイナリー「土佐ぶどう酒」／地蔵庵「れいほく高原牛乳」ソフトクリーム",
+      "duration": 46,
+      "channel": "土佐町YouTube",
+      "channel_id": "UCwByZgvX7Vyw-TSYiz5NKuw",
+      "query": "ソフトクリーム 高知"
+    },
+    {
+      "id": "ZiFvMmZ4ntY",
+      "title": "大分市産品を使ったレシピ（レンジで一発！「パセリチンキッシュ」）",
+      "duration": 31,
+      "channel": "大分市公式動画チャンネル「いいやん！大分」",
+      "channel_id": "UCoQJ1RRCBaM9DbKtAPdrzlA",
+      "query": "キッシュ 大分"
+    },
+    {
+      "id": "zr16OxFGRc8",
+      "title": "オーブン不要！冬野菜のキッシュ【きちんとキッチンbydaiei】",
+      "duration": 50,
+      "channel": "きちんとキッチンbydaiei",
+      "channel_id": "UCwOLeB5wCbonRQzUkj3-oWA",
+      "query": "キッシュ 大分"
+    },
+    {
+      "id": "5g0aSrlDi9w",
+      "title": "「大分味一ねぎのねぎ焼き」　大手コンビニエンスストアで発売　大分 (23/04/13 18:40)",
+      "duration": 42,
+      "channel": "TOSテレビ大分 ニュース【公式】",
+      "channel_id": "UChx_y6aLWNkifSDUt2TVAzg",
+      "query": "キッシュ 大分"
+    },
+    {
+      "id": "0eibOTtd2FI",
+      "title": "パンで作るキッシュ",
+      "duration": 41,
+      "channel": "伊藤ハムグループ公式チャンネル",
+      "channel_id": "UC285mN6MNkPvBcCbsHcqesA",
+      "query": "キッシュ 大分"
+    },
+    {
+      "id": "bGVVDC22pik",
+      "title": "チーズキッシュ完成！オーブントースターで予熱3分、焼き15分",
+      "duration": 16,
+      "channel": "ねこまぐろ",
+      "channel_id": "UCWxdEmUXXYJwTOPasRP_vKA",
+      "query": "キッシュ 大分"
+    },
+    {
+      "id": "hbI4aLQZYDs",
+      "title": "しいたけを使ったキッシュのレシピ（至高の食材倶楽部）",
+      "duration": 49,
+      "channel": "至高の食材倶楽部",
+      "channel_id": "UCK4YAJgPbpGFjDl8LyR1ZEQ",
+      "query": "キッシュ 大分"
+    },
+    {
+      "id": "rtRWn6-dqjs",
+      "title": "大分市産品を使ったレシピ（免疫力UP！栄養満点の「にらめっこ鍋」）",
+      "duration": 31,
+      "channel": "大分市公式動画チャンネル「いいやん！大分」",
+      "channel_id": "UCoQJ1RRCBaM9DbKtAPdrzlA",
+      "query": "キッシュ 大分"
+    },
+    {
+      "id": "30BstO2ea9M",
+      "title": "【 #もうひとつのルヴァンカップ 2017】カターレ富山「ルヴァンde富山の白えびキッシュ」",
+      "duration": 55,
+      "channel": "Jリーグ公式チャンネル",
+      "channel_id": "UCWc-XpFHPK1SwGcvpFPZ8NA",
+      "query": "キッシュ 大分"
+    },
+    {
+      "id": "4j2Ww31s30s",
+      "title": "call name　#6",
+      "duration": 10,
+      "channel": "大分ヒートデビルズ豊肥地区後援会",
+      "channel_id": "UClyuW1xEPM1PuDW-BHZIWVg",
+      "query": "キッシュ 大分"
+    },
+    {
+      "id": "db8100Irm7Q",
+      "title": "うちの郷土料理～次世代に伝えたい大切な味～　大分県「きらすまめし」レシピムービー",
+      "duration": 53,
+      "channel": "maffchannel",
+      "channel_id": "UCDrlZ0fFFrVkhaV4rFKba9w",
+      "query": "キッシュ 大分"
+    },
+    {
+      "id": "LKZGf6HGwXI",
+      "title": "レンジでパンの耳を！ 簡単 キッシュ の レシピ 作り方",
+      "duration": 37,
+      "channel": "macaroni | マカロニ",
+      "channel_id": "UC6vzXCyUFiz0wMF6aIe7Isg",
+      "query": "キッシュ 大分"
+    },
+    {
+      "id": "px5H90NT9AI",
+      "title": "お食事処：フルーツ工房 えふ① ～小林消防設備　福岡県豊前市　全類消防設備士　第二種電気工事士　経営学修士～",
+      "duration": 8,
+      "channel": "小林消防設備 全類消防設備士  小林寮一 消防設備のYouTuber【消防設備】【消防設備士】",
+      "channel_id": "UCd6PCs-7Xr8QYkcvWrQvesw",
+      "query": "キッシュ 大分"
+    },
+    {
+      "id": "Lr0diXlYLDk",
+      "title": "伊万里 韓国料理 『チングとここで』ホルモン定食2",
+      "duration": 55,
+      "channel": "ヒロポン",
+      "channel_id": "UCa9g6FOP1S_C-YCp0gOR3FQ",
+      "query": "韓国フライドチキン 佐賀"
+    },
+    {
+      "id": "wQZtekDfmpY",
+      "title": "「大和家」福岡県福岡市城南区西片江#福岡グルメ #ランチ #후쿠오카맛집 #런치#Fukuokagourmet #Lunch#福岡美食店 #午餐",
+      "duration": 40,
+      "channel": "Aki.channel",
+      "channel_id": "UChgVsJomCqfsgu5mszrg1tQ",
+      "query": "韓国フライドチキン 佐賀"
+    },
+    {
+      "id": "l3NWQKXELD0",
+      "title": "「ごはんや てん」福岡県久留米市東合川#ごはんやてん#久留米#からあげ#福岡グルメ#후쿠오카",
+      "duration": 53,
+      "channel": "Aki.channel",
+      "channel_id": "UChgVsJomCqfsgu5mszrg1tQ",
+      "query": "韓国フライドチキン 佐賀"
+    },
+    {
+      "id": "drVTMY9W7Cs",
+      "title": "竹下通りにあるヤンニョムチキンが美味しいよ🤩#shorts  原宿",
+      "duration": 44,
+      "channel": "Saku Ali Channelさくありちゃんねる",
+      "channel_id": "UCwg3w5pBCnhBkdYp4sMI73w",
+      "query": "韓国フライドチキン 佐賀"
+    },
+    {
+      "id": "1aAdMw5TCxE",
+      "title": "伊万里 韓国料理 『チングとここで』ビビンバ",
+      "duration": 56,
+      "channel": "ヒロポン",
+      "channel_id": "UCa9g6FOP1S_C-YCp0gOR3FQ",
+      "query": "韓国フライドチキン 佐賀"
+    },
+    {
+      "id": "nzDnHFVsjBo",
+      "title": "「ケンタッキーフライドチキン油山店」福岡県福岡市城南区東油山#ケンタッキーフライドチキン #ケンチキ #ケンタ#kfc",
+      "duration": 33,
+      "channel": "Aki.channel",
+      "channel_id": "UChgVsJomCqfsgu5mszrg1tQ",
+      "query": "韓国フライドチキン 佐賀"
+    },
+    {
+      "id": "iLDPqkK2xIM",
+      "title": "大川タレ付け唐揚げPVショート",
+      "duration": 10,
+      "channel": "シティ情報ふくおかナビちゃんねる",
+      "channel_id": "UC0wR7EDtbdpfd6s_fRBgSyQ",
+      "query": "韓国フライドチキン 佐賀"
+    },
+    {
+      "id": "NoYp3VkybQw",
+      "title": "【ここの弁当屋の唐揚げは凄すぎる!？】",
+      "duration": 30,
+      "channel": "takada Hirosi",
+      "channel_id": "UCZXxBzf9gdcqGLwAqx_fPDg",
+      "query": "韓国フライドチキン 佐賀"
+    },
+    {
+      "id": "1KV-0ll8fa8",
+      "title": "【早送り】唐揚げテリタル丼《ガスト》【食べる動画】",
+      "duration": 44,
+      "channel": "シンペーのご飯とおかずと時々趣味",
+      "channel_id": "UCaQUF5b71wuEY_pfTaa5USA",
+      "query": "韓国フライドチキン 佐賀"
+    },
+    {
+      "id": "l4yYaKRRvwo",
+      "title": "福岡デカ盛り「大和家」福岡県福岡市城南区西片江#福岡 #fukuoka #후쿠오카 #또쿠오카#日本 #japan #일본",
+      "duration": 51,
+      "channel": "Aki.channel",
+      "channel_id": "UChgVsJomCqfsgu5mszrg1tQ",
+      "query": "韓国フライドチキン 佐賀"
+    },
+    {
+      "id": "A-EeZ8GLezU",
+      "title": "[170302] 日本語字幕 EXID Hani KFC ロングトンサルバーガーCF 15- A",
+      "duration": 18,
+      "channel": "EXID JAPAN2",
+      "channel_id": "UCNPd5SSyyO-M42wjCFwfb8g",
+      "query": "韓国フライドチキン 佐賀"
+    },
+    {
+      "id": "ExYdvfRNCkU",
+      "title": "福岡デカ盛り「大和家」福岡県福岡市城南区西片江#福岡 #fukuoka #후쿠오카 #또쿠오카#日本 #japan #일본",
+      "duration": 50,
+      "channel": "Aki.channel",
+      "channel_id": "UChgVsJomCqfsgu5mszrg1tQ",
+      "query": "韓国フライドチキン 佐賀"
+    },
+    {
+      "id": "adcceKhE7J0",
+      "title": "京都 唐揚げ おいしい 店 天然温泉 源氏の湯　唐揚げが、最高。",
+      "duration": 42,
+      "channel": "源氏の湯宇治天然温泉",
+      "channel_id": "UCDVGF2MI9w3EP_A-VAoXxiQ",
+      "query": "韓国フライドチキン 佐賀"
+    },
+    {
+      "id": "s9ZbgBJ7VoE",
+      "title": "伊万里 韓国料理 『チングとここで』ホルモン定食1",
+      "duration": 57,
+      "channel": "ヒロポン",
+      "channel_id": "UCa9g6FOP1S_C-YCp0gOR3FQ",
+      "query": "韓国フライドチキン 佐賀"
+    },
+    {
+      "id": "c90UPL_FbHc",
+      "title": "[170302] 日本語字幕 EXID Hani KFC ロングトンサルバーガーCF 15- B",
+      "duration": 18,
+      "channel": "EXID JAPAN2",
+      "channel_id": "UCNPd5SSyyO-M42wjCFwfb8g",
+      "query": "韓国フライドチキン 佐賀"
+    },
+    {
+      "id": "1CWoXAMKGGw",
+      "title": "話題の高級食パン専門店で頂くこだわりトースト！梅田　レブレッソ（LeBRESSO） グランフロント大阪店",
+      "duration": 34,
+      "channel": "メシ食って遊ぼう",
+      "channel_id": "UCRWmEqHGxPUaswgywx0Zi8w",
+      "query": "トースト 香川"
+    },
+    {
+      "id": "SfIbOABoDss",
+      "title": "🏕裏山キャンプ / コールマンのグリルバスケットクッカーでハニートーストを作ってみた",
+      "duration": 42,
+      "channel": "柴犬じょーと裏山キャンプ",
+      "channel_id": "UC3m8R2ZVIPTxTotaIVogJ6g",
+      "query": "トースト 香川"
+    },
+    {
+      "id": "e0qKMs535II",
+      "title": "おろしポン酢トースト",
+      "duration": 59,
+      "channel": "たこやきくんのチャンネル",
+      "channel_id": "UCvgvUj69KH5hTjMXYk1L4bQ",
+      "query": "トースト 香川"
+    },
+    {
+      "id": "FCzXN0xO0H8",
+      "title": "【簡単レシピ】朝からプルスロットル『プルコギチーズトースト』の作り方【男飯】",
+      "duration": 47,
+      "channel": "GOHAN",
+      "channel_id": "UC1EWquZDm53poYx9ymae87A",
+      "query": "トースト 香川"
+    },
+    {
+      "id": "1Uu3OXpqGeQ",
+      "title": "【香川】おいり",
+      "duration": 30,
+      "channel": "いわし思い出動画",
+      "channel_id": "UCl39jnWhxDvc2MVlzdJUGWA",
+      "query": "トースト 香川"
+    },
+    {
+      "id": "UiDUPbJ1UwU",
+      "title": "in五穀！和食！高級金目鯛、お値段は？【イオンモール宮崎】",
+      "duration": 42,
+      "channel": "日向夏チャンネル-Hyuuga Natsu-",
+      "channel_id": "UCftp9bD5UrS57RFFDoBa_mg",
+      "query": "和食 宮崎"
+    },
+    {
+      "id": "0TvhQ325tbQ",
+      "title": "宮崎グルメ159  延岡　和食亭こだま　　定食屋さん　朝食✨",
+      "duration": 33,
+      "channel": "高木公徳　宮崎グルメ🍜神社⛩    ",
+      "channel_id": "UC00T_ttwgfhJuXpw-wdaTRg",
+      "query": "和食 宮崎"
+    },
+    {
+      "id": "4c_1U2gEEk0",
+      "title": "宮崎グルメ297  日向　寿司🍣和食🍤　大乃屋✨",
+      "duration": 55,
+      "channel": "高木公徳　宮崎グルメ🍜神社⛩    ",
+      "channel_id": "UC00T_ttwgfhJuXpw-wdaTRg",
+      "query": "和食 宮崎"
+    },
+    {
+      "id": "TufAtZrhKPA",
+      "title": "たまプラーザ 和食 郷土料理 絶品『宮崎県冷汁』日本酒の後に",
+      "duration": 48,
+      "channel": "プロジェクションマッピング&エンタメ懐石【瑞亭】",
+      "channel_id": "UCnRhUi3xAh9zDdY_gyLgECQ",
+      "query": "和食 宮崎"
+    },
+    {
+      "id": "f_G1xztnRSA",
+      "title": "宮崎グルメ348  延岡　神田川本店　和食.回転寿司🍣",
+      "duration": 55,
+      "channel": "高木公徳　宮崎グルメ🍜神社⛩    ",
+      "channel_id": "UC00T_ttwgfhJuXpw-wdaTRg",
+      "query": "和食 宮崎"
+    },
+    {
+      "id": "-LJ7ylMI2DA",
+      "title": "宮崎牛すき鍋とお刺身御膳 (和食麺処サガミ 長野篠ノ井バイパス店)",
+      "duration": 59,
+      "channel": "akio tamagawa",
+      "channel_id": "UCEtLID3QsmHkoasQg17XhjQ",
+      "query": "和食 宮崎"
+    },
+    {
+      "id": "I7U9OMaVSLA",
+      "title": "都城の和食店なかむら個室の伊勢海老フェア",
+      "duration": 16,
+      "channel": "寿司虎",
+      "channel_id": "UCyIxeRjZMIgdD4NtM7QSpBQ",
+      "query": "和食 宮崎"
+    },
+    {
+      "id": "TLC-NsvnoXw",
+      "title": "都城の寿司和食専門店。海の幸のおもてなしなかむらの北海道フェア",
+      "duration": 16,
+      "channel": "寿司虎",
+      "channel_id": "UCyIxeRjZMIgdD4NtM7QSpBQ",
+      "query": "和食 宮崎"
+    },
+    {
+      "id": "SCQLTvaAdLk",
+      "title": "都城の寿司和食「海の幸のおもてなしなかむら」伊勢海老フェア2014",
+      "duration": 16,
+      "channel": "寿司虎",
+      "channel_id": "UCyIxeRjZMIgdD4NtM7QSpBQ",
+      "query": "和食 宮崎"
+    },
+    {
+      "id": "z8lyczA49OQ",
+      "title": "【関西】夏のおすすめアフタヌーンティー3選",
+      "duration": 31,
+      "channel": "ルトロン - おでかけ動画メディア",
+      "channel_id": "UCxI_jUcF-1aTMR71sReJqSA",
+      "query": "アフタヌーン 福井"
+    },
+    {
+      "id": "df_0OWRUpP0",
+      "title": "自宅でおしゃれなティータイム！　アフタヌーンティー講座　ダイジェスト",
+      "duration": 57,
+      "channel": "ココカラPark",
+      "channel_id": "UCTu2JjiSx1VatGOrYWnfEGg",
+      "query": "アフタヌーン 福井"
+    },
+    {
+      "id": "IQl19pOr_oo",
+      "title": "アンティークで優雅な午後",
+      "duration": 51,
+      "channel": "ハンドルTV",
+      "channel_id": "UCl7ngyW21J2ttIZw6XGpwFw",
+      "query": "アフタヌーン 福井"
+    },
+    {
+      "id": "wOxw5aq4xw0",
+      "title": "スイーツが主役　季節のアフタヌーンティー付きグリルランチ｜Sweets are the star! Seasonal Grill Lunch with Afternoon tea",
+      "duration": 20,
+      "channel": "Hilton Osaka",
+      "channel_id": "UCFZ755HrWnZanI1Pf4BK_ow",
+      "query": "アフタヌーン 福井"
+    },
+    {
+      "id": "b1mOFXYA-YI",
+      "title": "sunny sunny 今日のランチ219 福井県 ソースかつ丼 福井家",
+      "duration": 37,
+      "channel": "sunny sunny",
+      "channel_id": "UCJTqcgm0-R-zWKPC7xJp_5g",
+      "query": "アフタヌーン 福井"
+    },
+    {
+      "id": "42ncwWghFG4",
+      "title": "【ウェスティンホテル大阪】　アフタヌーンティー　体験動画",
+      "duration": 37,
+      "channel": "【公式】ECC国際外語専門学校",
+      "channel_id": "UCY4JMHi5eUqDLwkm2DqXn5w",
+      "query": "アフタヌーン 福井"
+    },
+    {
+      "id": "_hGR1EGheTI",
+      "title": "タビーズカフェの新感覚スイーツ！メテオラ！",
+      "duration": 41,
+      "channel": "Tabby's Cafe",
+      "channel_id": "UCY--RiRerZtiZcJ85jnZdww",
+      "query": "アフタヌーン 福井"
+    },
+    {
+      "id": "1zfjrFaCi-4",
+      "title": "ジープラングラー今週末フェア開催",
+      "duration": 16,
+      "channel": "ジープ福井",
+      "channel_id": "UCz9ZtC1brl-A7n9jUrEvqgg",
+      "query": "アフタヌーン 福井"
+    },
+    {
+      "id": "L4HwLfw4eps",
+      "title": "英国式アフタヌーンティーの世界 15秒CM",
+      "duration": 16,
+      "channel": "誠文堂新光社",
+      "channel_id": "UC55tCoiZG_e5jlUrxR7bEKg",
+      "query": "アフタヌーン 福井"
+    },
+    {
+      "id": "GguLaHoJA6A",
+      "title": "Flooding in Minami Echizen Town, Fukui Prefecture: Possible backwater phenomenon at river confluence",
+      "duration": 44,
+      "channel": "毎日新聞",
+      "channel_id": "UCI4mta4pWhYhPSLhjmUAfZQ",
+      "query": "アフタヌーン 福井"
+    },
+    {
+      "id": "QrKsAe4UrHU",
+      "title": "EF510形　福井駅通過",
+      "duration": 59,
+      "channel": "katamachirapid207",
+      "channel_id": "UCYFoLaeJsmue_eft7qV0qRg",
+      "query": "アフタヌーン 福井"
+    },
+    {
+      "id": "LrrY0F1epoo",
+      "title": "《予告編》【就活協奏曲】マジで語りだすマチ（１５秒ＣＭ）",
+      "duration": 16,
+      "channel": "福井県土木部",
+      "channel_id": "UC6Ok-53Va6RYgYSlclKvD6w",
+      "query": "アフタヌーン 福井"
+    },
+    {
+      "id": "WkI-hlhcWOA",
+      "title": "Message from TRIO AXIS",
+      "duration": 37,
+      "channel": "福井県立音楽堂ハーモニーホールふくい",
+      "channel_id": "UCrS1Ni2K0_yXHmpYAIpJOJg",
+      "query": "アフタヌーン 福井"
+    },
+    {
+      "id": "qoQxbaALPa8",
+      "title": "山口敏太郎の食いしん坊  三桂のフルーツサンド",
+      "duration": 56,
+      "channel": "Bintarou Turtle Company Yamaguchi",
+      "channel_id": "UCy-GNMfhIvwtFliYifj0pZw",
+      "query": "フルーツサンド 岩手"
+    },
+    {
+      "id": "G8ClFptl1Tg",
+      "title": "いわて紫波おでんせチャンネル　ジョバンニ　ワイン漬",
+      "duration": 57,
+      "channel": "shiwatvchannel",
+      "channel_id": "UCi0b432seBynI-CTplxwiBA",
+      "query": "フルーツサンド 岩手"
+    },
+    {
+      "id": "Z6m_XeHiPZQ",
+      "title": "麺処 いっちょう 2【岩手ラーメン】【紫波ラーメン】",
+      "duration": 58,
+      "channel": "よっしー",
+      "channel_id": "UCaNF5muF9a57c79MjfQJfuA",
+      "query": "フルーツサンド 岩手"
+    },
+    {
+      "id": "tgwP4NbGoDE",
+      "title": "【恵比寿】1日300個以上売れるコッペパンサンド！メニュー20種以上の『えびすぱん』",
+      "duration": 41,
+      "channel": "favy channel",
+      "channel_id": "UCNG9Az7A1f0n_8jtkYbmhJQ",
+      "query": "フルーツサンド 岩手"
+    },
+    {
+      "id": "Okx38QjFr9A",
+      "title": "青空の下で食べたい！ 上野のコッペパン専門店の「イアコッペ」おすすめ3選",
+      "duration": 29,
+      "channel": "ルトロン - おでかけ動画メディア",
+      "channel_id": "UCxI_jUcF-1aTMR71sReJqSA",
+      "query": "フルーツサンド 岩手"
+    },
+    {
+      "id": "I3HtlKPPkrA",
+      "title": "23時の佐賀飯アニメ 完全版",
+      "duration": 31,
+      "channel": "sagaprise",
+      "channel_id": "UCc3um9x2MDyZKI-KWJ55ViA",
+      "query": "トースト 佐賀"
+    },
+    {
+      "id": "3FaSWp2Eafs",
+      "title": "SWEET TIME WITH FAMILY @เคนภูปัง - Ken Phu Pang Toast & Ice cream | P-SAGA AND FAM",
+      "duration": 56,
+      "channel": "P-SAGA CHARUESIT [ the arts of peace ]",
+      "channel_id": "UCEvE3i5w6ZrwYUf3KH-TOqw",
+      "query": "トースト 佐賀"
+    },
+    {
+      "id": "mnFbe8z7Rpw",
+      "title": "マクドナルド　新登場マックトースト　￥100マック",
+      "duration": 32,
+      "channel": "urauraist",
+      "channel_id": "UCCRyC1AXORmb78RYFaLDREQ",
+      "query": "トースト 佐賀"
+    },
+    {
+      "id": "P5pc4y_6XnU",
+      "title": "【おうち英語子育て】１歳児パンをトーストする！】バイリンガルキッズ",
+      "duration": 55,
+      "channel": "SAYURI ENGLISH👘Japanese Rustic Cottage Life",
+      "channel_id": "UCVxGK5AD8xEoCzarvfCnqqA",
+      "query": "トースト 佐賀"
+    },
+    {
+      "id": "PbOWiHHoq6w",
+      "title": "The toast vs doge saga Pt.3",
+      "duration": 20,
+      "channel": "ThatMelonDude",
+      "channel_id": "UCNjTBrpeTffXOTsvkohSYPA",
+      "query": "トースト 佐賀"
+    },
+    {
+      "id": "EWa6jlVPR7I",
+      "title": "The toast vs doge saga Pt.2",
+      "duration": 22,
+      "channel": "ThatMelonDude",
+      "channel_id": "UCNjTBrpeTffXOTsvkohSYPA",
+      "query": "トースト 佐賀"
+    },
+    {
+      "id": "XqXKRJZFSMk",
+      "title": "The toast vs doge saga Pt.4",
+      "duration": 22,
+      "channel": "ThatMelonDude",
+      "channel_id": "UCNjTBrpeTffXOTsvkohSYPA",
+      "query": "トースト 佐賀"
+    },
+    {
+      "id": "uPzUuMbR_aY",
+      "title": "Japanese Pandora Saga - Making Toast",
+      "duration": 9,
+      "channel": "Larry Hess (Zel)",
+      "channel_id": "UCWGtrlVlzRXXi8PJYzkm5nQ",
+      "query": "トースト 佐賀"
+    },
+    {
+      "id": "aDjSGj1Ay5c",
+      "title": "the toast vs doge saga Pt.1",
+      "duration": 19,
+      "channel": "ThatMelonDude",
+      "channel_id": "UCNjTBrpeTffXOTsvkohSYPA",
+      "query": "トースト 佐賀"
+    },
+    {
+      "id": "gfoIukZNjGs",
+      "title": "Gwain Saga meme - toast.",
+      "duration": 14,
+      "channel": "🎀 KANDII !! 🎀",
+      "channel_id": "UCMGicV_mIxSpGSU_zvBhs_w",
+      "query": "トースト 佐賀"
+    },
+    {
+      "id": "DC-RjKS6F-Y",
+      "title": "Cinnamon Toast Shrimp Saga Is Shrimply Better Than Prawn",
+      "duration": 44,
+      "channel": "Modern Wall Street",
+      "channel_id": "UCUp_qAfFbfBvbkM3SBehgrQ",
+      "query": "トースト 佐賀"
+    },
+    {
+      "id": "HhGJp9sUe-k",
+      "title": "Saga of the sword glitches with Cinnamon Toast Crunch",
+      "duration": 52,
+      "channel": "Plunger doge",
+      "channel_id": "UC3ynvi62JjOfBS9quvk6clw",
+      "query": "トースト 佐賀"
+    },
+    {
+      "id": "mo6nRIkWQZg",
+      "title": "日本のおすすめ調味料　食卓が笑顔になる料理　ホイコーロー　天然調味料で新しい調味料で　チャレンジ料理レシピ",
+      "duration": 21,
+      "channel": "うさがわしげる",
+      "channel_id": "UC0g8jbvy-qgyPt7A9k3USvQ",
+      "query": "回鍋肉 佐賀"
+    },
+    {
+      "id": "UrqZuIkG6Jk",
+      "title": "昇仙峡の円右衛門さんで流しそうめんを楽しむ！",
+      "duration": 51,
+      "channel": "mittu730",
+      "channel_id": "UCliFoy9zrt4xLguPod9IydA",
+      "query": "素麺 山梨"
+    },
+    {
+      "id": "y_7b6z7v2k8",
+      "title": "あおい＆いつき　昇仙峡　円右衛門で流しそうめん(^-^)20190916",
+      "duration": 36,
+      "channel": "どんぐりチャンネル",
+      "channel_id": "UCrKxZmBqlMh3QeN-a08cIyA",
+      "query": "素麺 山梨"
+    },
+    {
+      "id": "iOf-BEoC2u8",
+      "title": "えんざん朝市～流しそうめんの様子～",
+      "duration": 50,
+      "channel": "NatureWebStyle",
+      "channel_id": "UC6wOahMizmX_6tOvZxzI96A",
+      "query": "素麺 山梨"
+    },
+    {
+      "id": "P66740bm4vo",
+      "title": "産直市場で「そうめん流し」イベント　ミニトマトやマスカットも流す　高松市",
+      "duration": 51,
+      "channel": "KSB瀬戸内海放送",
+      "channel_id": "UCH9jlbggZY_mRx7Q0k49TuQ",
+      "query": "素麺 山梨"
+    },
+    {
+      "id": "woKgoyfsGbA",
+      "title": "「流しそうめん」",
+      "duration": 34,
+      "channel": "古民家和み庵",
+      "channel_id": "UCU1LqkXBkab4LzPw-QmfAOQ",
+      "query": "素麺 山梨"
+    },
+    {
+      "id": "XQ1QdcS3z6g",
+      "title": "Japanese food Japanese noodles Somen 日本の夏 そうめん流しの夏",
+      "duration": 46,
+      "channel": "H56A-パジェロミニ-TV",
+      "channel_id": "UC6Z2sEkYfm46tL16JzY9N0g",
+      "query": "素麺 山梨"
+    },
+    {
+      "id": "Ycazx8Lh1t8",
+      "title": "流しそうめん・流し終わった素麺",
+      "duration": 46,
+      "channel": "まぐろ",
+      "channel_id": "UCt7niVg0Xt0V94-LzdHpRzw",
+      "query": "素麺 山梨"
+    },
+    {
+      "id": "Zzlaz2HMWQU",
+      "title": "流しそうめん @道志渓谷Camp 2019",
+      "duration": 56,
+      "channel": "Hossy STAR",
+      "channel_id": "UCEbsSAxujbj_LgopmvTmskA",
+      "query": "素麺 山梨"
+    },
+    {
+      "id": "D-WOZIX_g5w",
+      "title": "流し素麺ツーリング",
+      "duration": 50,
+      "channel": "MINIKAERUs",
+      "channel_id": "UCXdBi7LljaYeMypFuqg6nfg",
+      "query": "素麺 山梨"
+    },
+    {
+      "id": "n0SkiFIOalA",
+      "title": "【ロケ飯】出雲大社近くのご飯屋さん「食事処 奴」",
+      "duration": 56,
+      "channel": "プリロールチャンネル PreRoll channel",
+      "channel_id": "UC0ftFnjpxwOrHSL5gq_P83w",
+      "query": "親子丼 島根"
+    },
+    {
+      "id": "J1CNzyjhCKs",
+      "title": "島根旅行65　海鮮丼",
+      "duration": 21,
+      "channel": "babaBluesky",
+      "channel_id": "UCa5eljTkPqcyvenw9Mz_E4w",
+      "query": "親子丼 島根"
+    },
+    {
+      "id": "KltNuENFMxw",
+      "title": "病院の食事28【親子丼が食べられました♪】",
+      "duration": 33,
+      "channel": "リアルな夕食Channel",
+      "channel_id": "UC-nny8JyeE6OCC-uniK6sPQ",
+      "query": "親子丼 島根"
+    },
+    {
+      "id": "bG9bjG6Gq6s",
+      "title": "島根県  わが町の海のごちそう自慢！ 日本財団 海と日本PROJECT in しまね 2021 #23",
+      "duration": 16,
+      "channel": "【休止中】海と日本プロジェクト",
+      "channel_id": "UCl1fqym-wuEeg8QyEPFnAAQ",
+      "query": "親子丼 島根"
+    },
+    {
+      "id": "ZtVQX0jc5T4",
+      "title": "島根県出雲市 看板 エヌサイン 看板戦略 すし屋",
+      "duration": 42,
+      "channel": "西森晃",
+      "channel_id": "UCA1LQNtJj0xM69xSjTdK7Jw",
+      "query": "親子丼 島根"
+    },
+    {
+      "id": "BBbCj6SARjs",
+      "title": "島根県松江市にある　旨いとんかつ かつふじ",
+      "duration": 56,
+      "channel": "tub orion",
+      "channel_id": "UCWilRIPkA9kT9pVjS_9oSIA",
+      "query": "親子丼 島根"
+    },
+    {
+      "id": "vbPNcRiW5wk",
+      "title": "松江駅弁、島根牛みそ玉丼を開封！",
+      "duration": 37,
+      "channel": "ニッポン街歩き紀行・Walking around the streets of Japan",
+      "channel_id": "UCwdH9g7hKAHJxPS8ZqZw0Uw",
+      "query": "親子丼 島根"
+    },
+    {
+      "id": "J0VEEPMEMGI",
+      "title": "島根県（山陰）の旬の食材（しまね和牛｜のどぐろ｜ あわび｜松葉かに）が味わえる豪華会席｜長生閣",
+      "duration": 56,
+      "channel": "温泉TV",
+      "channel_id": "UCYSniyppv0CE8IZ55OTLZBg",
+      "query": "親子丼 島根"
+    },
+    {
+      "id": "55Rbtua_IsM",
+      "title": "味噌カツ丼を食した！",
+      "duration": 23,
+      "channel": "でぃこの部屋",
+      "channel_id": "UC5Q3mEwqdaljKKzJ78wE38g",
+      "query": "親子丼 島根"
+    },
+    {
+      "id": "cQJtAmJEUn8",
+      "title": "ドローンでお店から日本海側を見てみました！",
+      "duration": 60,
+      "channel": "米粉ケーキお菓子工房きいちご",
+      "channel_id": "UCRbSjeRhv9k1GsvRrukNNew",
+      "query": "ショートケーキ 島根"
+    },
+    {
+      "id": "GWUy7z8uxr8",
+      "title": "ソフトクリームとジェラート！自然の恵みは美味しいぃ！【岩手県八幡平市ノレグレット】",
+      "duration": 28,
+      "channel": "Omose 八幡平市ローカルチャンネル",
+      "channel_id": "UCsJM92sqRLgBoZAGiUu41KQ",
+      "query": "アイスクリーム 岩手"
+    },
+    {
+      "id": "Q_mxKluuybY",
+      "title": "【日本初！柿ソフトクリーム】岩手県大船渡市の「道の駅さんりく」にある『柿ソフト』は大船渡特産のこえだ柿を使用したソフト「柿ミックス400円」 #柿#柿ソフト#日本初#道の駅#道の駅さんりく#大船渡",
+      "duration": 23,
+      "channel": "N.D78",
+      "channel_id": "UCz4hyjnw7KtL8MWWHLnhfJg",
+      "query": "アイスクリーム 岩手"
+    },
+    {
+      "id": "54IURNFvBto",
+      "title": "【さちスタ】岩手さちこと盛岡八幡宮のとうふソフト🍦",
+      "duration": 5,
+      "channel": "種田未来",
+      "channel_id": "UCHjwctoIOuwlk-MG11pFWRw",
+      "query": "アイスクリーム 岩手"
+    },
+    {
+      "id": "h7kDVNXbzII",
+      "title": "【岩手県岩手郡岩手町】北上川源流入り口でアイス自販機【レトロ自販機】Japanese vending machine",
+      "duration": 21,
+      "channel": "レーメンマンREIMEN MAN",
+      "channel_id": "UCRO8cK0W_XVbDHEJ4VWjP1A",
+      "query": "アイスクリーム 岩手"
+    },
+    {
+      "id": "oG5373AnB-A",
+      "title": "岩手県の田老で田中お菓子屋、かりんとうなんだけど、アイスクリームもできたよ￼",
+      "duration": 13,
+      "channel": "max trf",
+      "channel_id": "UCQ1AnUZ_zqgYCLdeM2NP9Kg",
+      "query": "アイスクリーム 岩手"
+    },
+    {
+      "id": "CbEsWs135r8",
+      "title": "マルカンデパートのアイスクリーム 2017.08.17",
+      "duration": 27,
+      "channel": "チャンネルゆうちゃん",
+      "channel_id": "UCvoOTIhzwUcYb3lt2UZ0L4Q",
+      "query": "アイスクリーム 岩手"
+    },
+    {
+      "id": "VD7KxasxbTs",
+      "title": "【株式会社マルカン百貨店】　ソフトクリーム　【岩手県花巻市】 【170円也】",
+      "duration": 29,
+      "channel": "siro3031",
+      "channel_id": "UC-zsDxrrAYXl0E2vUm2XNhQ",
+      "query": "アイスクリーム 岩手"
+    },
+    {
+      "id": "VCY0enxNfZs",
+      "title": "お勧めカフェ自家製 豆乳アイス！無添加のソーベーズカフェ",
+      "duration": 45,
+      "channel": "えみの食べログ🇯🇵",
+      "channel_id": "UCLxlAoirjD78k_HIzXLZaCQ",
+      "query": "アイスクリーム 岩手"
+    },
+    {
+      "id": "AAbaD7PWF2Y",
+      "title": "マルカンビル大食堂　ソフトクリーム【岩手県・花巻市】　2022.09.17",
+      "duration": 34,
+      "channel": "Y1226M",
+      "channel_id": "UCNJ3oeClkpVl5BmBjgzKirA",
+      "query": "アイスクリーム 岩手"
+    },
+    {
+      "id": "WKkC3WLjnWY",
+      "title": "島根県のスーパーで驚いたこと",
+      "duration": 37,
+      "channel": "ちゃんねるる",
+      "channel_id": "UCXxOlvlPGcqaIEF1X4Td9gg",
+      "query": "タルト 島根"
+    },
+    {
+      "id": "CkfUt4sAYdo",
+      "title": "シャインマスカットタルト",
+      "duration": 47,
+      "channel": "ちゃんねるる",
+      "channel_id": "UCXxOlvlPGcqaIEF1X4Td9gg",
+      "query": "タルト 島根"
+    },
+    {
+      "id": "miEJhNj8Ia0",
+      "title": "しまねっこ　島根県観光キャラクターです",
+      "duration": 42,
+      "channel": "watcherjp",
+      "channel_id": "UCthEetTZ6aueJ22cVTR6z_A",
+      "query": "タルト 島根"
+    },
+    {
+      "id": "6kmGp_F1OJA",
+      "title": "ろまん亭　2014年クリスマスケーキ  津和野栗のタルト",
+      "duration": 26,
+      "channel": "札幌ろまん亭",
+      "channel_id": "UC88gMxpEBfoFeaUQKW_4quQ",
+      "query": "タルト 島根"
+    },
+    {
+      "id": "3KVhEpla42I",
+      "title": "鳥取市に行ったら外せない「鯛喜」の海鮮丼",
+      "duration": 30,
+      "channel": "groundvalley",
+      "channel_id": "UC0JQAv4lRw-of5Rv3plTe_w",
+      "query": "海鮮料理 鳥取"
+    },
+    {
+      "id": "tl9lW9Z6YCw",
+      "title": "【日本鳥取市】鳥取港海鮮賀露市場 海陽亭，現撈現吃白烏賊 (鳥取美食 白イカ Tottori, Japan)",
+      "duration": 10,
+      "channel": "日本田舎生活VS台灣小日子",
+      "channel_id": "UChD70gZpAUnLTshTRibx1WQ",
+      "query": "海鮮料理 鳥取"
+    },
+    {
+      "id": "HZbXz1HJd20",
+      "title": "【鳥取砂丘】#08 ランチは鯛喜！食べログ、3.58の海鮮丼！",
+      "duration": 58,
+      "channel": "ぶっぴぃーの旅日記",
+      "channel_id": "UCyFfpSwrwAETvo3ZqgzL6dQ",
+      "query": "海鮮料理 鳥取"
+    },
+    {
+      "id": "CGoWbltaDX8",
+      "title": "鳥取 境港で食べた 海鮮丼^ ^",
+      "duration": 23,
+      "channel": "hcrblack",
+      "channel_id": "UCKgednET816JdTWHzGZtCzw",
+      "query": "海鮮料理 鳥取"
+    },
+    {
+      "id": "kMOO0T6NcXk",
+      "title": "UOICHI ご紹介 2017 鳥取県鳥取市賀露港 海鮮市場 かろいち",
+      "duration": 50,
+      "channel": "UOICHI - 全国のご当地鮮魚をお取り寄せ・宅配・ギフト",
+      "channel_id": "UCN1PsoS_ydSKfGDAREgYmBg",
+      "query": "海鮮料理 鳥取"
+    },
+    {
+      "id": "9q6JpEH8AM8",
+      "title": "【鳥取市賀露港市場】幻の猛者海老🦐ココだけでしか食べれない😋松葉ガニ【猛者海老】",
+      "duration": 46,
+      "channel": "じゅんchannel",
+      "channel_id": "UCbqevIBMoty5mCzuayFNZYA",
+      "query": "海鮮料理 鳥取"
+    },
+    {
+      "id": "nLFKOqJu7_A",
+      "title": "鳥取港海鮮市場 かろいち",
+      "duration": 6,
+      "channel": "adkami1",
+      "channel_id": "UC9v3ArCIfc0p1u9MK-LO8nQ",
+      "query": "海鮮料理 鳥取"
+    },
+    {
+      "id": "wUQUYPTwttU",
+      "title": "ぜんざいもんじゃ",
+      "duration": 12,
+      "channel": "rimjapan",
+      "channel_id": "UC6m8NJvVmMwhb65auPj8mDg",
+      "query": "もんじゃ焼き 島根"
+    },
+    {
+      "id": "yghWRrFRwJY",
+      "title": "月島もんじゃ・お好み焼きてっぱんで「お好み焼き」のできあがり",
+      "duration": 8,
+      "channel": "みやもとまなぶの動画倉庫",
+      "channel_id": "UC-fTSwD5QbY7s4pwSes-UeQ",
+      "query": "もんじゃ焼き 島根"
+    },
+    {
+      "id": "FyQit2DhtXw",
+      "title": "隠れ里酒場忍者もんじゃ 誕生日サプライズ",
+      "duration": 60,
+      "channel": "真に忍ぶ者",
+      "channel_id": "UC-5lE07n6Xuiqh2UOywgHhw",
+      "query": "もんじゃ焼き 島根"
+    },
+    {
+      "id": "fRKg5wqQsm4",
+      "title": "お好み焼本舗「ジュジュちゃん」篇",
+      "duration": 17,
+      "channel": "株式会社CTV MID ENJIN",
+      "channel_id": "UCXYZMQiz2e5xZbiz5kUWTrw",
+      "query": "もんじゃ焼き 島根"
+    },
+    {
+      "id": "6oJWPxn3hT8",
+      "title": "[名物] 大あなご丼 ー「海の店ささき」さん",
+      "duration": 39,
+      "channel": "ぎょうさん_ 178 _ R53",
+      "channel_id": "UCJIL-_ZErZhGU-fgdyAqDlA",
+      "query": "もんじゃ焼き 島根"
+    },
+    {
+      "id": "Jt5muxG8zWg",
+      "title": "島根県 わがまちの海自慢！ 日本財団 海と日本PROJECT in しまね 2021 #11",
+      "duration": 16,
+      "channel": "【休止中】海と日本プロジェクト",
+      "channel_id": "UCl1fqym-wuEeg8QyEPFnAAQ",
+      "query": "もんじゃ焼き 島根"
+    },
+    {
+      "id": "Z3vgcrBCxAY",
+      "title": "足立区竹の塚にある美味しい韓国料理のお店・花水木",
+      "duration": 43,
+      "channel": "zan60047",
+      "channel_id": "UC5lbQKv8vQKz9OVwWbCZaYA",
+      "query": "もんじゃ焼き 島根"
+    },
+    {
+      "id": "12UGGs9S7QQ",
+      "title": "下関市の広島お好み焼き　鉄板でテコで食べると旨さ3倍",
+      "duration": 56,
+      "channel": "広島お好み焼き弘々家 こうこうや",
+      "channel_id": "UCMBLxCS3u29vGqkZmWjO9OA",
+      "query": "もんじゃ焼き 島根"
+    },
+    {
+      "id": "Yeji2Q2_xRA",
+      "title": "ももいろクローバーZ、川上Pとドライブで思い出話",
+      "duration": 38,
+      "channel": "小浜純",
+      "channel_id": "UCPfUJMqgYT0FCosZqB44nIQ",
+      "query": "もんじゃ焼き 島根"
+    },
+    {
+      "id": "9OPY21S9HpY",
+      "title": "うちの郷土料理～次世代に伝えたい大切な味～　三重県「あらめ巻き」レシピムービー",
+      "duration": 43,
+      "channel": "maffchannel",
+      "channel_id": "UCDrlZ0fFFrVkhaV4rFKba9w",
+      "query": "もんじゃ焼き 島根"
+    },
+    {
+      "id": "IIBzEr7V9kA",
+      "title": "#広島お好み焼き #广岛烧 不可错过的广岛美食哟💕",
+      "duration": 31,
+      "channel": "merry YU",
+      "channel_id": "UCEoWAwRSHCjN8jbjJqJEJPw",
+      "query": "もんじゃ焼き 島根"
+    },
+    {
+      "id": "FZvdbQ5IkQc",
+      "title": "三浦泉さん｜mu-MU＠西新宿｜女子グルメ",
+      "duration": 27,
+      "channel": "TOKYO Gourmet",
+      "channel_id": "UCM5wN6H91TGAQAMYaLpRKLQ",
+      "query": "もんじゃ焼き 島根"
+    },
+    {
+      "id": "1Lu8HEoqNhQ",
+      "title": "『VIVANT』第3話 7/30(日) 消えた薫の行方は...そして乃木を陥れた人物とは!?【TBS】",
+      "duration": 37,
+      "channel": "TBS公式 YouTuboo",
+      "channel_id": "UCxpIo6FFB7gMQz2Fy2X8XdQ",
+      "query": "もんじゃ焼き 島根"
+    },
+    {
+      "id": "kNi3sH7en5Q",
+      "title": "気仙沼でフカヒレの天日干し　およそ８０日かけて熟成",
+      "duration": 56,
+      "channel": "khb東日本放送",
+      "channel_id": "UCkW_baVbq6aGPWeYY4hOPCA",
+      "query": "もんじゃ焼き 島根"
+    },
+    {
+      "id": "0NySdoCAlMU",
+      "title": "新橋の魚が旨い居酒屋「魚金2号店」の名物石鍋ご飯",
+      "duration": 13,
+      "channel": "masaharu motoyama",
+      "channel_id": "UCPRXWd5NoZOKaG-zJvzTUCA",
+      "query": "もんじゃ焼き 島根"
+    },
+    {
+      "id": "pt2P9NmZxlk",
+      "title": "黒石市ちゃんぽんふぅふぅ、味噌玉子ちゃんぽん。",
+      "duration": 35,
+      "channel": "津軽青森",
+      "channel_id": "UCZd795JABcZBF7FlisjEy7A",
+      "query": "ちゃんぽん 青森"
+    },
+    {
+      "id": "0wwsigylSGU",
+      "title": "【リンガーハット シーナシーナ青森店】長崎ちゃんぽん",
+      "duration": 26,
+      "channel": "ウッチーウッチー",
+      "channel_id": "UCrKGedWDw2WQIq51XsyUBPA",
+      "query": "ちゃんぽん 青森"
+    },
+    {
+      "id": "mnDRgXycwII",
+      "title": "黒石市、石焼ちゃんぽんふうふうのふぅふぅちゃんぽん＋ライス（７６０円＋一杯無料）。配膳されてもしばらくはグツグツです。映えます。",
+      "duration": 25,
+      "channel": "TKENチャンネル 青森県の美味いラーメン図鑑(ショートムービー編)　現在、諸事情によりほぼ津軽です",
+      "channel_id": "UCO2vtJJN65QNGgcZ_6gjGuQ",
+      "query": "ちゃんぽん 青森"
+    },
+    {
+      "id": "oFK99q_LBWc",
+      "title": "青森県黒石　ふぅふぅ玉子チャーシュー　石は　触れません  場所: ふぅふぅ石焼ちゃんぽん",
+      "duration": 17,
+      "channel": "サロマ湖おじさん　NAKATANIAUTO kiminobu",
+      "channel_id": "UCS3_s3lp5hGoWz7ST7GWBpA",
+      "query": "ちゃんぽん 青森"
+    },
+    {
+      "id": "901H79Cfkto",
+      "title": "長崎ちゃんぽんリンガーハット@イトーヨーカドー青森店",
+      "duration": 15,
+      "channel": "ウッチーウッチー",
+      "channel_id": "UCrKGedWDw2WQIq51XsyUBPA",
+      "query": "ちゃんぽん 青森"
+    },
+    {
+      "id": "O9sF7yS1L18",
+      "title": "弘前市ヒロロ内リンガーハットの野菜たっぷりちゃんぽん。国産にこだわった野菜を４８０ｇ使用。",
+      "duration": 17,
+      "channel": "TKENチャンネル 青森県の美味いラーメン図鑑(ショートムービー編)　現在、諸事情によりほぼ津軽です",
+      "channel_id": "UCO2vtJJN65QNGgcZ_6gjGuQ",
+      "query": "ちゃんぽん 青森"
+    },
+    {
+      "id": "nTiqYEOBhyw",
+      "title": "平川市、おぐら食堂のみそチャンポン。スープの風味はトンコツ魚介、まさしくチャンポンです。野菜が超たっぷりトッピングの味噌ラーメンです。",
+      "duration": 15,
+      "channel": "TKENチャンネル 青森県の美味いラーメン図鑑(ショートムービー編)　現在、諸事情によりほぼ津軽です",
+      "channel_id": "UCO2vtJJN65QNGgcZ_6gjGuQ",
+      "query": "ちゃんぽん 青森"
+    },
+    {
+      "id": "-86TDuVRlr4",
+      "title": "弘前市、リンガーハット ヒロロ店・野菜たっぷりちゃんぽんミドルサイズ。",
+      "duration": 16,
+      "channel": "TKENチャンネル 青森県の美味いラーメン図鑑(ショートムービー編)　現在、諸事情によりほぼ津軽です",
+      "channel_id": "UCO2vtJJN65QNGgcZ_6gjGuQ",
+      "query": "ちゃんぽん 青森"
+    },
+    {
+      "id": "rVGIdrVelQ8",
+      "title": "黒石市、ふうふうのみそちゃんぽん。煮えたぎってます。",
+      "duration": 7,
+      "channel": "TKENチャンネル 青森県の美味いラーメン図鑑(ショートムービー編)　現在、諸事情によりほぼ津軽です",
+      "channel_id": "UCO2vtJJN65QNGgcZ_6gjGuQ",
+      "query": "ちゃんぽん 青森"
+    },
+    {
+      "id": "UzgXtUe5o1A",
+      "title": "黒石市、石焼ちゃんぽんふうふうの五味（ごみ）ラーメン＋餃子５個（８４０円＋来店ポイントスタンプにより無料）。店主が弘前市で営業していた前店の屋台屋ラーメン五味から継承するラーメンメニューです。",
+      "duration": 26,
+      "channel": "TKENチャンネル 青森県の美味いラーメン図鑑(ショートムービー編)　現在、諸事情によりほぼ津軽です",
+      "channel_id": "UCO2vtJJN65QNGgcZ_6gjGuQ",
+      "query": "ちゃんぽん 青森"
+    },
+    {
+      "id": "8m9LqckAHO4",
+      "title": "黒石市、石焼ちゃんぽんふうふうのワンタンチャーシュー（９９０円）。ボリュームたっぷりな具だくさんの自家製ワンタンです。",
+      "duration": 27,
+      "channel": "TKENチャンネル 青森県の美味いラーメン図鑑(ショートムービー編)　現在、諸事情によりほぼ津軽です",
+      "channel_id": "UCO2vtJJN65QNGgcZ_6gjGuQ",
+      "query": "ちゃんぽん 青森"
+    },
+    {
+      "id": "sM20m4cK8bU",
+      "title": "⌘ちゃんぽん⌘思案橋ラーメン (2023.06.09)",
+      "duration": 33,
+      "channel": "sekipanman",
+      "channel_id": "UCI6N-Kz5At5FqqX34jUjc2g",
+      "query": "ちゃんぽん 青森"
+    },
+    {
+      "id": "VwII12sSH-Q",
+      "title": "食べ歩き・やさいちゃんぽん麺三昧編！",
+      "duration": 31,
+      "channel": "シーエスサービス",
+      "channel_id": "UCZZ5IdhXbU9T8XQyDc0UDaw",
+      "query": "ちゃんぽん 青森"
+    },
+    {
+      "id": "uP5ZssW3X1o",
+      "title": "長崎ちゃんぽん リンガーハット【横浜市都筑区】　Japanese noodle",
+      "duration": 30,
+      "channel": "YOKOHAMA",
+      "channel_id": "UC6KW1egBApbpnIl_8lt6iJA",
+      "query": "ちゃんぽん 青森"
+    },
+    {
+      "id": "-qE9xwSEA0w",
+      "title": "話題の激にぼ-青森津軽煮干ラーメンのカップめんを食してみました。",
+      "duration": 59,
+      "channel": "TERUYUKI SUKEKAWA",
+      "channel_id": "UCZuSjkyoyz_2aJmTUYD2ZvA",
+      "query": "ちゃんぽん 青森"
+    },
+    {
+      "id": "JDmckH-F7Hw",
+      "title": "黒石市、石焼ちゃんぽんふうふうのふぅふぅちゃんぽん＋ライス（８５０円＋無料ライス）。麺類を注文のお客様はライス一杯無料です。",
+      "duration": 29,
+      "channel": "TKENチャンネル 青森県の美味いラーメン図鑑(ショートムービー編)　現在、諸事情によりほぼ津軽です",
+      "channel_id": "UCO2vtJJN65QNGgcZ_6gjGuQ",
+      "query": "ちゃんぽん 青森"
+    },
+    {
+      "id": "IQNW-azX7vk",
+      "title": "黒石市、石焼ちゃんぽんふうふうのふぅふぅちゃんぽん＋ライス（８５０円＋無料ライス）。麺類を注文のお客様はライス一杯無料ですが食べ残しは厳禁となってます。",
+      "duration": 27,
+      "channel": "TKENチャンネル 青森県の美味いラーメン図鑑(ショートムービー編)　現在、諸事情によりほぼ津軽です",
+      "channel_id": "UCO2vtJJN65QNGgcZ_6gjGuQ",
+      "query": "ちゃんぽん 青森"
+    },
+    {
+      "id": "SHJ9uDm4YNo",
+      "title": "青森県で約90ミリの猛烈な雨　記録的短時間大雨情報(2021年11月2日)",
+      "duration": 29,
+      "channel": "ANNnewsCH",
+      "channel_id": "UCGCZAYq5Xxojl_tSXcVJhiQ",
+      "query": "ちゃんぽん 青森"
+    },
+    {
+      "id": "SAhhpvvCZgs",
+      "title": "リンガーハット フードコートで食べる「長崎ちゃんぽん」",
+      "duration": 22,
+      "channel": "スペードのエース ",
+      "channel_id": "UCp9ghzmtkfQhL5VKcvdsdhA",
+      "query": "ちゃんぽん 青森"
+    },
+    {
+      "id": "B1Qb0pkEmjI",
+      "title": "長崎ちゃんぽん リンガーハット",
+      "duration": 30,
+      "channel": "スペードのエース ",
+      "channel_id": "UCp9ghzmtkfQhL5VKcvdsdhA",
+      "query": "ちゃんぽん 青森"
+    },
+    {
+      "id": "yocRKZVD5Kw",
+      "title": "【福岡・佐賀】福岡市おすすめチーズケーキ♥️インスタで大人気　kakaチーズケーキ専門店",
+      "duration": 28,
+      "channel": "佐賀のがばい勇ちゃん",
+      "channel_id": "UC4uK-Bzy-RhyT9voKPV8brQ",
+      "query": "ケーキ 佐賀"
+    },
+    {
+      "id": "hLAVOJFT1F0",
+      "title": "江田島シール　唐津コラソンケーキ屋閉店と聞き　ライブ配信済み",
+      "duration": 57,
+      "channel": "ぶらもと",
+      "channel_id": "UC14cbsq133k6loG2kcbH-6g",
+      "query": "ケーキ 佐賀"
+    },
+    {
+      "id": "iKYino_Up6M",
+      "title": "今日はホワイトデー！物産館の幸せロールケーキをプレゼントして幸せになりましょう！",
+      "duration": 31,
+      "channel": "武雄温泉物産館（武雄温泉物産館）",
+      "channel_id": "UCCHTe5Uq4v_H4UO6YOaNKdg",
+      "query": "ケーキ 佐賀"
+    },
+    {
+      "id": "Sunwc5okIi0",
+      "title": "Merry Christmas 🍓🍓Amaou cake🍰🍰Saga nori seaweed, Hinohikari (Saga rice), natto, wasabi stems, Noz...",
+      "duration": 56,
+      "channel": "原口一博",
+      "channel_id": "UC7Opkf9V2DMmw9SXsOcSOeA",
+      "query": "ケーキ 佐賀"
+    },
+    {
+      "id": "ys9C_2MxH5E",
+      "title": "四季彩中華シノワ",
+      "duration": 16,
+      "channel": "グルメFUKUI【公式チャンネル】",
+      "channel_id": "UCo_6I_69Cx9E8cQRvkg349g",
+      "query": "四川料理 福井"
+    },
+    {
+      "id": "_98sw0ithRM",
+      "title": "「ふく一力森田店」オープン",
+      "duration": 16,
+      "channel": "グルメFUKUI【公式チャンネル】",
+      "channel_id": "UCo_6I_69Cx9E8cQRvkg349g",
+      "query": "四川料理 福井"
+    },
+    {
+      "id": "MafAjsOVnVg",
+      "title": "岡山市宴会 中華料理四川 又来軒",
+      "duration": 54,
+      "channel": "向井修一",
+      "channel_id": "UC8ymlclJhX1ruxCmOWrmjxA",
+      "query": "四川料理 福井"
+    },
+    {
+      "id": "pBBhYf-fpzA",
+      "title": "福井新聞 月刊FU2018 9月号CM「中華は夏のおわりに。」",
+      "duration": 46,
+      "channel": "fuプロダクション",
+      "channel_id": "UCuC8iqnw4xYseCs48qfHXzg",
+      "query": "四川料理 福井"
+    },
+    {
+      "id": "oBY9A01Gd9Q",
+      "title": "テルメの新グルメ！中国料理「油湯」(ユウタン)オープン CM",
+      "duration": 31,
+      "channel": "テルちゃんねる",
+      "channel_id": "UCYIoiW4xPJxGZ-d1e-WDUuQ",
+      "query": "四川料理 福井"
+    },
+    {
+      "id": "BFhCRUKDX5w",
+      "title": "福井市で歯科衛生士求人は学生も募集中の永井歯科医院へ",
+      "duration": 47,
+      "channel": "医療法人永井歯科医院",
+      "channel_id": "UCtOkSUu5AY6efznuGHDTEnw",
+      "query": "四川料理 福井"
+    },
+    {
+      "id": "un2nKKecko0",
+      "title": "まるくまの飯テロでごめんなさい🙏⤴️今回は石川県白山市美川【JR美川駅最寄り】にある大人気【中華料理　美美さん】のグランド単品メニュー、イカの四川風炒めを喰らってみた🤗極厚のイカを堪能したよん👍",
+      "duration": 28,
+      "channel": "まるくまちゃんねる金沢爆食い【marukuma_channel_kanazawa_bakugui】",
+      "channel_id": "UCjEP89Q-eBQupxLHO2Bm-4w",
+      "query": "四川料理 福井"
+    },
+    {
+      "id": "ubNJ__ch-Yk",
+      "title": "岩手のジェラート屋さん💕【ジェラテリアティアーラ】",
+      "duration": 8,
+      "channel": "種田未来",
+      "channel_id": "UCHjwctoIOuwlk-MG11pFWRw",
+      "query": "ジェラート 岩手"
+    },
+    {
+      "id": "xPC1WDRz7iM",
+      "title": "釜石港を臨む魚河岸テラスにジェラート屋さんがオープンするよ／2020年5月28日",
+      "duration": 39,
+      "channel": "橋野果実 KiSSA KOTi",
+      "channel_id": "UC6IPTQq2gbd4qRkp91EH6cQ",
+      "query": "ジェラート 岩手"
+    },
+    {
+      "id": "4kKkgm1Ko2I",
+      "title": "Iwate short Vlog | Morioka Cold Noodles, Ryusendo Cave, Wanko Soba Challenge & Luxury Onsen",
+      "duration": 27,
+      "channel": "Yoshi's Diary Films",
+      "channel_id": "UCUrWOQjaZa2yY1E2Yh9hvLQ",
+      "query": "ジェラート 岩手"
+    },
+    {
+      "id": "NjxuiWVVX-I",
+      "title": "【Go！Go！いわて】11月12日（土）予告",
+      "duration": 31,
+      "channel": "IAT岩手朝日テレビ",
+      "channel_id": "UCPPyaDqgxNlbiyOkq2FzMOQ",
+      "query": "ジェラート 岩手"
+    },
+    {
+      "id": "au6GLrBhCv0",
+      "title": "【Go！Go！いわて】9月17日（土）予告",
+      "duration": 31,
+      "channel": "IAT岩手朝日テレビ",
+      "channel_id": "UCPPyaDqgxNlbiyOkq2FzMOQ",
+      "query": "ジェラート 岩手"
+    },
+    {
+      "id": "iIIlB0B-oE4",
+      "title": "ジェラートのお花を咲かせましょう！ 「ポッピンスウィーティ―ズ」が美し過ぎる",
+      "duration": 35,
+      "channel": "ルトロン - おでかけ動画メディア",
+      "channel_id": "UCxI_jUcF-1aTMR71sReJqSA",
+      "query": "ジェラート 岩手"
+    },
+    {
+      "id": "On_QFzObKj0",
+      "title": "【開催中】シルバニアファミリー展 in 岩手 〜誕生から現在にいたるまで森の仲間たちの素敵な物語〜",
+      "duration": 16,
+      "channel": "ニイタカプラス",
+      "channel_id": "UCKdbIWzrMfJCDWxfHYTHZzQ",
+      "query": "ジェラート 岩手"
+    },
+    {
+      "id": "74P2dWTcfbQ",
+      "title": "いちはらのジェラート屋さん",
+      "duration": 45,
+      "channel": "いちはらすとりーと",
+      "channel_id": "UCArzfawjuQEaztBIe_y2YgA",
+      "query": "ジェラート 岩手"
+    },
+    {
+      "id": "8wssRgKbNGc",
+      "title": "■山田花子■カンタン酢豚♪",
+      "duration": 22,
+      "channel": "maa2mama",
+      "channel_id": "UCIfiOM3Ow7lfBakz3VRRVdQ",
+      "query": "酢豚 山形"
+    },
+    {
+      "id": "IeUWpLvnkhE",
+      "title": "おすすめ山菜レシピ【たらの芽と豚肉の炒め物】　#Shorts",
+      "duration": 58,
+      "channel": "山形の旬!らふらんチャンネル",
+      "channel_id": "UCtDeYpQvTbCZXmkdcNP-DPg",
+      "query": "酢豚 山形"
+    },
+    {
+      "id": "F81mkOG-3Ws",
+      "title": "胃袋を掴む‼ ささみと大葉のゴマポン酢炒め 【モテメニュー】彼を惚れなおさせる！おしゃべりクッキング   Way to a man's heart is through his stomach.",
+      "duration": 59,
+      "channel": "おっさん遊びチャネル浪花くんとイトさん(旧お気楽クックマン)",
+      "channel_id": "UCqnZCeM4bnXIQzbXNSE87iw",
+      "query": "酢豚 山形"
+    },
+    {
+      "id": "YhepIKY7Ju4",
+      "title": "NOSAI山形 園芸施設共済強風篇",
+      "duration": 16,
+      "channel": "サム・コミュニケーションズ",
+      "channel_id": "UCEN_4CyeyAgzVLzZ4oQMRLg",
+      "query": "酢豚 山形"
+    },
+    {
+      "id": "spbsvi0cl-8",
+      "title": "郷土料理介護食教室12＿介護食の作り方・山形市【ゆにしあ】",
+      "duration": 22,
+      "channel": "ゆにしあ動画",
+      "channel_id": "UCDX4YebABxR4qW7pZB_A5_Q",
+      "query": "酢豚 山形"
+    },
+    {
+      "id": "Ku7n4Rxu4dw",
+      "title": "豚汁【ガーリックマーガリンレシピ】",
+      "duration": 35,
+      "channel": "マリンフード株式会社",
+      "channel_id": "UCsO4v6NjENCccwomsljl3nA",
+      "query": "酢豚 山形"
+    },
+    {
+      "id": "3eSjcFwukE0",
+      "title": "腎臓病の方の食事＿介護食・山形市【ゆにしあ】",
+      "duration": 28,
+      "channel": "ゆにしあ動画",
+      "channel_id": "UCDX4YebABxR4qW7pZB_A5_Q",
+      "query": "酢豚 山形"
+    },
+    {
+      "id": "Y4xNJy0b18Y",
+      "title": "龍園の餃子　焼き方",
+      "duration": 22,
+      "channel": "蜂谷祐一",
+      "channel_id": "UCmTexe312_xQ9IYFphyHw4g",
+      "query": "酢豚 山形"
+    },
+    {
+      "id": "9VDcsc89Pd8",
+      "title": "En ～えん～あべのハルカスの美味しい鉄板焼ステーキランチ",
+      "duration": 11,
+      "channel": "藤川奈々",
+      "channel_id": "UCsPGuaAPWvRgleL81azc_Bw",
+      "query": "酢豚 山形"
+    },
+    {
+      "id": "TTnTXd8_6y4",
+      "title": "キッチン・ボン　ハヤシライス　恵比寿駅",
+      "duration": 31,
+      "channel": "【神社TV】神様大好き　神社の楽しさを伝えるのchannel【神様に呼ばれた人が見れる神社動画】",
+      "channel_id": "UCjZV4TWLn663xrPnyMF8ZYQ",
+      "query": "ハヤシライス 香川"
+    },
+    {
+      "id": "hCCIKt71wGg",
+      "title": "タイムCM",
+      "duration": 15,
+      "channel": "三谷かなえ",
+      "channel_id": "UCnYJFvAlol_nPgaoh_faBuQ",
+      "query": "ハヤシライス 香川"
+    },
+    {
+      "id": "YURCLw_jwpA",
+      "title": "岡山・香川県知事 今年にかける想い",
+      "duration": 50,
+      "channel": "hiro_liveedit",
+      "channel_id": "UCx2RV_FQ0XKvZdrGpO5Cd2w",
+      "query": "ハヤシライス 香川"
+    },
+    {
+      "id": "_TQZ7ihQB6o",
+      "title": "【簡単レシピ】超簡単焼くだけ！「鶏モモ肉の照り焼き」の作り方 【男飯】",
+      "duration": 43,
+      "channel": "GOHAN",
+      "channel_id": "UC1EWquZDm53poYx9ymae87A",
+      "query": "ハヤシライス 香川"
+    },
+    {
+      "id": "aGUy1y-YD_A",
+      "title": "高松市一宮町　ＢＩＧ　ＢＡＮ２　40,000円",
+      "duration": 49,
+      "channel": "サクセス・ホーム",
+      "channel_id": "UCALgbH19BYwNJh6oCAxmgaA",
+      "query": "ハヤシライス 香川"
+    },
+    {
+      "id": "rBN4iqLkzCQ",
+      "title": "ハートフルホームTVCM『お父さん』篇",
+      "duration": 16,
+      "channel": "ハートフルホーム福山㈱",
+      "channel_id": "UCc4MA6PlN3WE6Rdgzltd-cw",
+      "query": "ハヤシライス 香川"
+    },
+    {
+      "id": "6hF0-8fnmJg",
+      "title": "シマダヤプラス高松店9月CM「家具の試着室2」",
+      "duration": 16,
+      "channel": "カワムランド公式",
+      "channel_id": "UC6U55R6_KMzicJ3mDtIqwkA",
+      "query": "ハヤシライス 香川"
+    },
+    {
+      "id": "gBG2ivBlq5k",
+      "title": "We compared the grilled salted mackerel from three convenience stores",
+      "duration": 44,
+      "channel": "ずんだ絶品レビュー",
+      "channel_id": "UCfkTnI4yWeW7xy9UeWgf8GA",
+      "query": "さば塩焼き 山形"
+    },
+    {
+      "id": "HzZZcbZxAD4",
+      "title": "30分で4品！サバの塩焼き&水餃子献立🐟🥟",
+      "duration": 47,
+      "channel": "あやラクめし【子どもがよろこぶ簡単かわいいレシピ】",
+      "channel_id": "UCkSQYIfUO74Z_Ty37a48c5g",
+      "query": "さば塩焼き 山形"
+    },
+    {
+      "id": "H0KcQJ2pG5k",
+      "title": "I came across a great mackerel set meal",
+      "duration": 29,
+      "channel": "ハシダ",
+      "channel_id": "UCrAIO-dGTta7sxynk3e5Yag",
+      "query": "さば塩焼き 山形"
+    },
+    {
+      "id": "SJNgfG8XY6o",
+      "title": "福井名物の半夏生さばの串打ち作業の様子　 #fish #魚 #魚屋 #鯖 #さば #サバ #浜焼き",
+      "duration": 25,
+      "channel": "魚屋の喰い処まつ田",
+      "channel_id": "UCj7D7gyEZTPcOWu8SuI34bQ",
+      "query": "さば塩焼き 山形"
+    },
+    {
+      "id": "GxZ_A07EP1U",
+      "title": "さばの竜田揚げ🐟ここをタップしてね⭐️最近、スーパーでよく見かける骨取り塩さばで作りました😊#さばの竜田揚げ #簡単レシピ #鯖",
+      "duration": 59,
+      "channel": "えこTV料理中",
+      "channel_id": "UCZDSmpV5o5qyr-1Iv-oEVwQ",
+      "query": "さば塩焼き 山形"
+    },
+    {
+      "id": "fCgdVGAw2qM",
+      "title": "Teriyaki Mackerel ⭐︎Ingredients and recipe in the comments section #OnePerson #Cooking #EasyMeal ...",
+      "duration": 25,
+      "channel": "まさ 4児双子パパの時短料理",
+      "channel_id": "UCyouRVTLxIW5kuNi-7jAj7Q",
+      "query": "さば塩焼き 山形"
+    },
+    {
+      "id": "AMrQldp0Y84",
+      "title": "【材料４つで絶品おつまみ・おかず】「スパイシー鯖竜田」の作り方 #shorts #recipe #cooking",
+      "duration": 43,
+      "channel": "kattyanneru/かっちゃんねる",
+      "channel_id": "UC1Lp8HbCqOPBMT1W_mjb21A",
+      "query": "さば塩焼き 山形"
+    },
+    {
+      "id": "YyqRH3P14Sg",
+      "title": "サバごま照り焼き #幼児食 #簡単レシピ #野菜嫌い #料理 #偏食 #自炊 #おつまみ",
+      "duration": 20,
+      "channel": "ヒロ⌇大人もリピする子どもごはん🍳",
+      "channel_id": "UCUcfmJZ97Mx4zju9APiK_Aw",
+      "query": "さば塩焼き 山形"
+    },
+    {
+      "id": "M3sKIXEPJOs",
+      "title": "白飯がすすむ！お弁当にも嬉しい「サバの照り焼き」#shorts #food #recipe #簡単料理 #簡単レシピ #料理 #レシピ",
+      "duration": 28,
+      "channel": "低空飛行キッチン",
+      "channel_id": "UChRvrs89q-o5TgLU8daUdgA",
+      "query": "さば塩焼き 山形"
+    },
+    {
+      "id": "4aS7gREc1bg",
+      "title": "やよい軒 周南城ヶ丘店で久しぶりにサバの塩焼き定食を食った！",
+      "duration": 22,
+      "channel": "Japanese Delicious Files",
+      "channel_id": "UC6NkHgqXZ_NHWvpspvnS8zQ",
+      "query": "さば塩焼き 山形"
+    },
+    {
+      "id": "W3FAKrtIvV0",
+      "title": "旦那のリクエストでサバの照り焼き作ったよ👨🏻これはご飯が進むやつです🍚#簡単レシピ #簡単料理 #夜ご飯 #るいちゃんねる",
+      "duration": 36,
+      "channel": "るいちゃんねる🍼",
+      "channel_id": "UCF9AZSpKTFh3gLKnoqQplXg",
+      "query": "さば塩焼き 山形"
+    },
+    {
+      "id": "Jl3hXn7NAzA",
+      "title": "Exquisite Teriyaki Mackerel #cooking #cookingvideo #easyrecipe #menu #recipe #timesavingrecipe #m...",
+      "duration": 22,
+      "channel": "まさ 4児双子パパの時短料理",
+      "channel_id": "UCyouRVTLxIW5kuNi-7jAj7Q",
+      "query": "さば塩焼き 山形"
+    },
+    {
+      "id": "0BP7UyZHWfY",
+      "title": "Japan's best mackerel set meal with long queues",
+      "duration": 12,
+      "channel": "食べすぎグルメ旅 - Japanese food and travel -",
+      "channel_id": "UCqBgRWu4dCC_yAA11x0qPrw",
+      "query": "さば塩焼き 山形"
+    },
+    {
+      "id": "mbyn5j8aE1s",
+      "title": "Grilled salted mackerel with restaurant-quality ingredients #cooking #menu #easyrecipe #cookingvi...",
+      "duration": 33,
+      "channel": "まさ 4児双子パパの時短料理",
+      "channel_id": "UCyouRVTLxIW5kuNi-7jAj7Q",
+      "query": "さば塩焼き 山形"
+    },
+    {
+      "id": "zCRz0wZ7S08",
+      "title": "ひと手間かけて！最高に美味しい鯖の塩焼き",
+      "duration": 58,
+      "channel": "ニシナのさかな屋",
+      "channel_id": "UC_7ZJVK2g-f7c28Uk7nBkeQ",
+      "query": "さば塩焼き 山形"
+    },
+    {
+      "id": "F-SUuw82wOc",
+      "title": "塩サバのキレイな焼き方（塩サバ炭火焼）#shorts",
+      "duration": 48,
+      "channel": "炭焼仙人",
+      "channel_id": "UCYVNgcA0mVh5lfW71PJv28w",
+      "query": "さば塩焼き 山形"
+    },
+    {
+      "id": "rx7gTAD8Th0",
+      "title": "【俺流】塩さばの作り方　#shorts",
+      "duration": 43,
+      "channel": "【大将】まさと",
+      "channel_id": "UCc56ETMxZcUKEYdxvWcchng",
+      "query": "さば塩焼き 山形"
+    },
+    {
+      "id": "get6JH0zWqk",
+      "title": "凍ったまま塩サバ焼くよ🫶甘酢トマト🍅タレ#レシピ #料理 #料理動画 #簡単レシピ #簡単美味しい #recipe #ライフハック #めっちゃおいしい #時短 #鯖 #さば #shorts",
+      "duration": 20,
+      "channel": "冷凍子ママ",
+      "channel_id": "UCtmbtKC2Pd9od963jc3ODLQ",
+      "query": "さば塩焼き 山形"
+    },
+    {
+      "id": "pcZ-Zq_lNIg",
+      "title": "いつもの焼きサバが１００倍うまくなる魔法の粉！【さばカレー焼き】＃さば＃カレー焼き＃カレー粉＃さば焼きアレンジ＃ #簡単レシピ＃シニアの料理チャンネル",
+      "duration": 54,
+      "channel": "シニアまるのの小さな暮らし",
+      "channel_id": "UCsA38QTA-dckquyRqiDY1tQ",
+      "query": "さば塩焼き 山形"
+    },
+    {
+      "id": "F0EVz47cFRE",
+      "title": "フライパンでOK。革命的に旨くなる「塩さば」の食べ方。#shorts",
+      "duration": 60,
+      "channel": "食事処さくらの料理教室",
+      "channel_id": "UCvZ2_QT3GHTC8GF5yXhW2Bw",
+      "query": "さば塩焼き 山形"
+    },
+    {
+      "id": "zmwjosfucGc",
+      "title": "フライパンで塩サバの焼き方! #shorts",
+      "duration": 42,
+      "channel": "お得くん",
+      "channel_id": "UC1GgxhqYWlznwzaNc-nm8jw",
+      "query": "さば塩焼き 山形"
+    },
+    {
+      "id": "wDCDV89y-l4",
+      "title": "山形県漁業協同組合の『 庄内おばこサワラ』ホイル焼き",
+      "duration": 56,
+      "channel": "TUY次世代住宅展示場シマカラ",
+      "channel_id": "UC2u06P7Vwp7mKyg-pj88yBQ",
+      "query": "さば塩焼き 山形"
+    },
+    {
+      "id": "goolQ-g5Wtw",
+      "title": "漁師からもらったサバがヤバすぎるww #刺身 #料理 #ゆるい動画 #さば",
+      "duration": 59,
+      "channel": "ゆるいシェフ",
+      "channel_id": "UCONsBtmBfonrXWljBlrloJw",
+      "query": "さば塩焼き 山形"
+    },
+    {
+      "id": "S2CIS3vMR4w",
+      "title": "茹でサバの作り方 #塩鯖 #おうちごはん #料理",
+      "duration": 57,
+      "channel": "ぽちゃぽちゃチャッキー簡単cooking",
+      "channel_id": "UCTykwCHfj4bhStkDunlSrGg",
+      "query": "さば塩焼き 山形"
+    },
+    {
+      "id": "ARZ9OyhVYkE",
+      "title": "サバの蒲焼🧑🏻‍🍳🐟#簡単レシピ #鯖 #給食 #魚料理 #shorts",
+      "duration": 26,
+      "channel": "給食の先生ゆりまま",
+      "channel_id": "UC58OWLgazz5aLAEK6KDsUdg",
+      "query": "さば塩焼き 山形"
+    },
+    {
+      "id": "tOJ3XnTYOeU",
+      "title": "食彩処 えにし🍚さばから定食🐟炭火焼魚定食ﾎｯｹ🐟",
+      "duration": 21,
+      "channel": "Pちゃん@山形🇯🇵",
+      "channel_id": "UC2SpWmVURqn1x9xS2IxFCCA",
+      "query": "さば塩焼き 山形"
+    },
+    {
+      "id": "O9uiAPUHz9M",
+      "title": "Salted mackerel was sprinkled with 〇〇 and baked, and it was delicious! Super easy recipe!",
+      "duration": 60,
+      "channel": "キチスケ キッチン",
+      "channel_id": "UCvIUuWTkySGZS4i8MrH3_Jg",
+      "query": "さば塩焼き 山形"
+    },
+    {
+      "id": "bMLUDgm5K84",
+      "title": "重ねて包むだけで絶品鯖寿司！ほんのりピンクが可愛い。 #簡単レシピ #料理 #おうちごはん #鯖 #寿司 #おつまみ #shorts",
+      "duration": 26,
+      "channel": "倉嶋里菜",
+      "channel_id": "UCOywfV92VIHB2c9EW7Fm8Pg",
+      "query": "さば塩焼き 山形"
+    },
+    {
+      "id": "HVom0BQGtzo",
+      "title": "サビキ釣りで簡単に釣れちゃうサバ！塩焼き、フライも美味しいですが、一夜干しもおすすめですよ！ #料理 #釣り #cooking #料理動画 #fishing #簡単 #サバ #レシピ #魚",
+      "duration": 50,
+      "channel": "釣りバカアーリー",
+      "channel_id": "UCOWk0BwTKf_iXChTwLeYgPg",
+      "query": "さば塩焼き 山形"
+    },
+    {
+      "id": "9EzAr9x_skE",
+      "title": "サバの照り焼き",
+      "duration": 17,
+      "channel": "なほ 〻 簡単やみつきレシピ𓌉◯𓇋",
+      "channel_id": "UCIVDHguHOu3HWRAeTvR65ng",
+      "query": "さば塩焼き 山形"
+    },
+    {
+      "id": "g3OBTpddexk",
+      "title": "サバの塩焼き弁当 #僕らの別荘",
+      "duration": 21,
+      "channel": "僕らの別荘",
+      "channel_id": "UCL43u22Otj2GkpdYlRio1sA",
+      "query": "さば塩焼き 山形"
+    },
+    {
+      "id": "QgYwooJBMxs",
+      "title": "セブンイレブンのさばの塩焼きがマジでヤバすぎた件について！ #shorts #セブンイレブン #飯テロ #モッパン",
+      "duration": 48,
+      "channel": "あきlunch",
+      "channel_id": "UCJCs7CcokFWhNTq1J1z9MWg",
+      "query": "さば塩焼き 山形"
+    },
+    {
+      "id": "5vDsy4Ag3-Q",
+      "title": "スチームオーブンレンジ　ビストロ805　鯖の塩焼き",
+      "duration": 9,
+      "channel": "shu 707",
+      "channel_id": "UCDT3k0HcM3vgNGGslI2tgeQ",
+      "query": "さば塩焼き 山形"
+    },
+    {
+      "id": "i-YdYB3mfuc",
+      "title": "丸亀 居酒屋 個室 アクセス②",
+      "duration": 30,
+      "channel": "囲味庵鉄板鍋と地産地消",
+      "channel_id": "UC5O_SMwK6F_FkOJlPLcabxw",
+      "query": "居酒屋 香川"
+    },
+    {
+      "id": "_E4P4smo5js",
+      "title": "居酒屋えいと",
+      "duration": 60,
+      "channel": "EIGHT8",
+      "channel_id": "UC5vP6MWG2E8ldm841ITvo8w",
+      "query": "居酒屋 香川"
+    },
+    {
+      "id": "ClJlF0P-b58",
+      "title": "丸亀 居酒屋 個室",
+      "duration": 28,
+      "channel": "囲味庵鉄板鍋と地産地消",
+      "channel_id": "UC5O_SMwK6F_FkOJlPLcabxw",
+      "query": "居酒屋 香川"
+    },
+    {
+      "id": "1w5IrMFCMOU",
+      "title": "高松市　加治屋町　居酒屋　宮崎　創作料理のお店",
+      "duration": 54,
+      "channel": "小松芳樹",
+      "channel_id": "UCIi3oheYTPr03O9xdb0LmXg",
+      "query": "居酒屋 香川"
+    },
+    {
+      "id": "mmasCb12fJU",
+      "title": "居酒屋　かとう　高松　瓦町　オーナーの性格と確かな味がお気に入り",
+      "duration": 39,
+      "channel": "小松芳樹",
+      "channel_id": "UCIi3oheYTPr03O9xdb0LmXg",
+      "query": "居酒屋 香川"
+    },
+    {
+      "id": "acxlBZsMqSA",
+      "title": "丸亀 梅酒 居酒屋 個室",
+      "duration": 23,
+      "channel": "囲味庵鉄板鍋と地産地消",
+      "channel_id": "UC5O_SMwK6F_FkOJlPLcabxw",
+      "query": "居酒屋 香川"
+    },
+    {
+      "id": "GsYFCxnH9vw",
+      "title": "エルちの立ち飲み居酒屋🍶  #香川#高松#うどん#猫#猫動画#保護猫#猫カフェ#肉灸",
+      "duration": 36,
+      "channel": "ねこカフェ肉灸",
+      "channel_id": "UCINDfogywpL7e5gTcLcRKwQ",
+      "query": "居酒屋 香川"
+    },
+    {
+      "id": "hX3VqJCJ9Xw",
+      "title": "あさ乃　富山市八尾　ランチ　和食",
+      "duration": 49,
+      "channel": "富山の暮らし",
+      "channel_id": "UCTX3wGq2xoeC9iJT2TT_YIQ",
+      "query": "和食 富山"
+    },
+    {
+      "id": "fEj1RoimPm0",
+      "title": "香川町でもう一度食べたい！閉店した中華料理店（香龍）",
+      "duration": 32,
+      "channel": "ドライブチャンネル",
+      "channel_id": "UCsZgDWoXDBM-JaD2J6AKphw",
+      "query": "中華料理 香川"
+    },
+    {
+      "id": "2r1ARFequ6c",
+      "title": "香川高松　中華料理　大家　評判　口コミ情報　ランチがすごい",
+      "duration": 9,
+      "channel": "小松芳樹",
+      "channel_id": "UCIi3oheYTPr03O9xdb0LmXg",
+      "query": "中華料理 香川"
+    },
+    {
+      "id": "fFYdOCMT4r0",
+      "title": "香川県 高松市　長浜ラーメン 一竜",
+      "duration": 13,
+      "channel": "旅猫",
+      "channel_id": "UC7aPdZqw8JoApVpn3IyPTNQ",
+      "query": "中華料理 香川"
+    },
+    {
+      "id": "Qlwy_oojQ44",
+      "title": "讃岐餃子《香川県》",
+      "duration": 59,
+      "channel": "PrefKagawa 香川県インターネット放送局 『ちょっとみてみまい』",
+      "channel_id": "UCebSRpA50HwIEayz-rGVquw",
+      "query": "中華料理 香川"
+    },
+    {
+      "id": "ijediUxZUdE",
+      "title": "香川県 坂出市 ラーメン五圓安さん",
+      "duration": 15,
+      "channel": "旅猫",
+      "channel_id": "UC7aPdZqw8JoApVpn3IyPTNQ",
+      "query": "中華料理 香川"
+    },
+    {
+      "id": "By_j1KphxR8",
+      "title": "香川県 観音寺市　中華そば 源平",
+      "duration": 15,
+      "channel": "旅猫",
+      "channel_id": "UC7aPdZqw8JoApVpn3IyPTNQ",
+      "query": "中華料理 香川"
+    },
+    {
+      "id": "RbIx4vzx7NE",
+      "title": "#王龍ラーメン　#王龍ラーメン　#丸亀市　#丸亀駅　#香川県",
+      "duration": 14,
+      "channel": "1962年生まれからの挑戦　食を探して、完食",
+      "channel_id": "UCfZkp5cXGDzCOFoM4zbCGCw",
+      "query": "中華料理 香川"
+    },
+    {
+      "id": "X62kBhBThs8",
+      "title": "上海常　香川県高松ゆめタウン内",
+      "duration": 44,
+      "channel": "みぃ〜チャンネル",
+      "channel_id": "UCCjDDlxUkTo8AtntBIYmBGg",
+      "query": "中華料理 香川"
+    },
+    {
+      "id": "NPnHN7Gz-gc",
+      "title": "広島県　尾道ラーメン　香川県　讃岐肉うどん",
+      "duration": 24,
+      "channel": "どいともゆき",
+      "channel_id": "UCrnT-fybkEaS1npj-PGlYJg",
+      "query": "中華料理 香川"
+    },
+    {
+      "id": "MJMNrbvOQjk",
+      "title": "香川県　中華そば木具屋 高松店さん",
+      "duration": 18,
+      "channel": "旅猫",
+      "channel_id": "UC7aPdZqw8JoApVpn3IyPTNQ",
+      "query": "中華料理 香川"
+    },
+    {
+      "id": "Lqb9vJ8SDy8",
+      "title": "チーズスイーツ専門店【RUNNY CHEESE】の人気商品「羽二重ベイクドチーズケーキ」をお取り寄せしてみた",
+      "duration": 42,
+      "channel": "チーズケーキ通信 Japanese Cheese Desserts Channel",
+      "channel_id": "UCj8QepfhNy3huxEktlpNrzQ",
+      "query": "チーズケーキ 福井"
+    },
+    {
+      "id": "YYOfGv_guDE",
+      "title": "バスク チーズケーキ　福井市オーシャンズ",
+      "duration": 34,
+      "channel": "大坂幸太郎",
+      "channel_id": "UCJYjVDM4VdBfmxZvXqVl1VQ",
+      "query": "チーズケーキ 福井"
+    },
+    {
+      "id": "sBtKnELFL7A",
+      "title": "バスクチーズケーキ / ロイハ - ロイヤルハワイアンテーブル // Basque Burnt Cheesecake / ROYHA - ROYAL HAWAIIAN TABLE",
+      "duration": 55,
+      "channel": "FASTIME INC.",
+      "channel_id": "UCmel8n2UZ7dfD7IScm9fdSw",
+      "query": "チーズケーキ 福井"
+    },
+    {
+      "id": "DF-UWP9BuEU",
+      "title": "チーズケーキ",
+      "duration": 50,
+      "channel": "30代のリアル@ひーろ",
+      "channel_id": "UCB3m5XfOSIsVu8PpZWDJm6w",
+      "query": "チーズケーキ 福井"
+    },
+    {
+      "id": "zAIN2sV53z8",
+      "title": "2024タビーズカフェ",
+      "duration": 16,
+      "channel": "グルメFUKUI【公式チャンネル】",
+      "channel_id": "UCo_6I_69Cx9E8cQRvkg349g",
+      "query": "チーズケーキ 福井"
+    },
+    {
+      "id": "KSWU8B1p6-0",
+      "title": "チーズスイーツ専門店の映えてでとろけるスイーツ【RUNNY CHEESE】#shorts",
+      "duration": 37,
+      "channel": "ぜんたろう宣伝ちゃんねる",
+      "channel_id": "UCXa8xR1BO1rTfUjnbc8df7A",
+      "query": "チーズケーキ 福井"
+    },
+    {
+      "id": "eOdqlKaIdK8",
+      "title": "BELTZ【ベルツ】バスクチーズケーキ",
+      "duration": 25,
+      "channel": "BELTZ TOKYO 【 Basque Burnt Cheesecake 】",
+      "channel_id": "UCCgUu3QZKKy1TOtB06In0fg",
+      "query": "チーズケーキ 福井"
+    },
+    {
+      "id": "s9AZS_2zL7w",
+      "title": "【臼杵】凡と凛のバスクチーズケーキ｜臼杵焼の器で過ごす、自分へのご褒美時間",
+      "duration": 59,
+      "channel": "GQ oita大人の休日ナビ",
+      "channel_id": "UCCqws97o53OZMtZYc7bMqRg",
+      "query": "チーズケーキ 大分"
+    },
+    {
+      "id": "3MmmB2uwBpE",
+      "title": "由布院生まれのお土産新定番！？行列の出来る絶品スイーツ！大分のデパートや空港でも販売中！鎌倉にも出店！！ #スイーツ #チーズケーキ #由布院 #湯布院",
+      "duration": 30,
+      "channel": "かぼすネット",
+      "channel_id": "UCt0l1APfDEdhSOXeAEiXoIQ",
+      "query": "チーズケーキ 大分"
+    },
+    {
+      "id": "NvegTzKYg4o",
+      "title": "大分でスイーツを買うなら\"シュクル\"は外せない！",
+      "duration": 31,
+      "channel": "お店の動画を作るよチャンネル",
+      "channel_id": "UCvtqUU0vT4-3rD_WhX9VPyg",
+      "query": "チーズケーキ 大分"
+    },
+    {
+      "id": "tIJV0p6c6mM",
+      "title": "【バスクチーズケーキ】birthday cake おばあちゃん ばあば 濃厚 フルーツアップ エディブル フラワー　食べる押し花 ストロベリー strawberry grandmother japan",
+      "duration": 14,
+      "channel": "Erimin えりみん 食と睡眠",
+      "channel_id": "UC234EGlZ1jF0_3Fn6VjMbnA",
+      "query": "チーズケーキ 大分"
+    },
+    {
+      "id": "Xc2CCkO2D-4",
+      "title": "【SAN MiDO】サンミド　究極のバスクチーズケーキ",
+      "duration": 41,
+      "channel": "SAN MiDO",
+      "channel_id": "UCvNf0GIsrLxMwLzDO7lAWrA",
+      "query": "チーズケーキ 大分"
+    },
+    {
+      "id": "InblGdMlaU8",
+      "title": "東山道チーズケーキ  那須町 伊王野  和洋菓子おおつか",
+      "duration": 29,
+      "channel": "kaomaru42",
+      "channel_id": "UCf2SsX0D6Kh6LOfkj5YJM6Q",
+      "query": "チーズケーキ 大分"
+    },
+    {
+      "id": "PEpzFxxXlts",
+      "title": "大分グルメ15  佐伯　Coffee 5  ☕️ 珈琲のおいしいお店✨",
+      "duration": 55,
+      "channel": "高木公徳　宮崎グルメ🍜神社⛩    ",
+      "channel_id": "UC00T_ttwgfhJuXpw-wdaTRg",
+      "query": "チーズケーキ 大分"
+    },
+    {
+      "id": "KW30NJEovNs",
+      "title": "【資生堂パーラー】『秋のチーズケーキ（マロン）』が期間限定で登場！",
+      "duration": 56,
+      "channel": "PR TIMES TV",
+      "channel_id": "UCqUl_nj1nQ0_T0iAej8sjfw",
+      "query": "チーズケーキ 大分"
+    },
+    {
+      "id": "7e1Sm4NdaCg",
+      "title": "Milch Kase Suffle  ～由布院ミルヒプラス「ケーゼスフレ」～",
+      "duration": 47,
+      "channel": "由布院ミルヒ",
+      "channel_id": "UCkiIzH_0BncFvFT5AehCQQw",
+      "query": "チーズケーキ 大分"
+    },
+    {
+      "id": "Abg_an2IC50",
+      "title": "大分　木村山羊牧場　やぎミルクチーズ②",
+      "duration": 27,
+      "channel": "Mr. Takeshita",
+      "channel_id": "UCuGHUsm46ZC3gtqZAu_vTKw",
+      "query": "チーズケーキ 大分"
+    },
+    {
+      "id": "P6PCF1LhXdY",
+      "title": "宮崎ブランドポークレシピ＃15【揚げずに！こま切れでレモン酢豚】",
+      "duration": 50,
+      "channel": "宮崎ブランドポーク",
+      "channel_id": "UCUjga-1ith7tX-ZQ-_tqs5Q",
+      "query": "酢豚 宮崎"
+    },
+    {
+      "id": "lVfz4JbXTWA",
+      "title": "中国料理福隆　酢豚定食800円",
+      "duration": 22,
+      "channel": "ミヤザキユーチューバーマサヨシ",
+      "channel_id": "UCgIzjQRCr4E_6L9vyo3uS_Q",
+      "query": "酢豚 宮崎"
+    },
+    {
+      "id": "-RvXDhmeOzk",
+      "title": "黒豚ロース生姜焼定食（おもてなし 夢かぐら）2025年3月",
+      "duration": 29,
+      "channel": "きずみの外出",
+      "channel_id": "UCEX0XFF7Osz5YT1bDvmcMnA",
+      "query": "酢豚 宮崎"
+    },
+    {
+      "id": "AEK_ZaSjs98",
+      "title": "[みやこ一貫]西宮小松南町店   酢豚定食",
+      "duration": 22,
+      "channel": "山本ゆうた",
+      "channel_id": "UC4ecwHsIne8YqrkBVZEqgQA",
+      "query": "酢豚 宮崎"
+    },
+    {
+      "id": "HQusxkwLoxw",
+      "title": "酢豚定食",
+      "duration": 15,
+      "channel": "rebaniraitame",
+      "channel_id": "UCVQFBsAeFRkRcE_QSmNisGw",
+      "query": "酢豚 宮崎"
+    },
+    {
+      "id": "6sdXHfQEZQQ",
+      "title": "【香港食卓】 酢豚定食",
+      "duration": 18,
+      "channel": "twin21jp",
+      "channel_id": "UCOd9BpdsRrJE7hS9WBonLKQ",
+      "query": "酢豚 宮崎"
+    },
+    {
+      "id": "IFM0YeYsQFs",
+      "title": "宮崎グルメ336  高岡　信時飯店　昭和49年創業の中華料理店🔥",
+      "duration": 55,
+      "channel": "高木公徳　宮崎グルメ🍜神社⛩    ",
+      "channel_id": "UC00T_ttwgfhJuXpw-wdaTRg",
+      "query": "酢豚 宮崎"
+    },
+    {
+      "id": "85P5GmQJ1gs",
+      "title": "酢豚",
+      "duration": 7,
+      "channel": "kotokaji",
+      "channel_id": "UC3M25bN2CzPr-DuXwrd1DEw",
+      "query": "酢豚 宮崎"
+    },
+    {
+      "id": "TzOz5HDIIC8",
+      "title": "王将今里店の酢豚のにんじん固すぎる",
+      "duration": 4,
+      "channel": "チャンネルオリオリ",
+      "channel_id": "UCqwa8aQ0XUgCijb9DHkWVQg",
+      "query": "酢豚 宮崎"
+    },
+    {
+      "id": "TBIwGN8QNlI",
+      "title": "石垣島、大戸屋の酢豚定食",
+      "duration": 31,
+      "channel": "石垣島ライブカメラ配信中です",
+      "channel_id": "UCUUH2KqMbaWF5ywYItYQcMQ",
+      "query": "酢豚 宮崎"
+    },
+    {
+      "id": "1PZrqlGoedw",
+      "title": "【四谷三丁目ランチ】 日興苑の酢豚定食の照り具合をお届け！",
+      "duration": 33,
+      "channel": "もりもり",
+      "channel_id": "UCMDKiRNES7RwMofXXZJa8hg",
+      "query": "酢豚 宮崎"
+    },
+    {
+      "id": "rLRdUMqCIRQ",
+      "title": "沖縄 ラーメン (中華団欒) 八戒 酢豚セット",
+      "duration": 28,
+      "channel": "えぼ太",
+      "channel_id": "UCDUquigKw3jASx2KWOi4QIA",
+      "query": "酢豚 宮崎"
+    },
+    {
+      "id": "kTPqA-9wIwY",
+      "title": "りた２歳 酢豚を食う",
+      "duration": 60,
+      "channel": "kyouryokutai",
+      "channel_id": "UC6xNibv6FmU5YGJoxVvLVZg",
+      "query": "酢豚 宮崎"
+    },
+    {
+      "id": "1530KfiyhFI",
+      "title": "宮崎グルメ295 日向亀崎　中国料理🇨🇳 流通菜館✨",
+      "duration": 55,
+      "channel": "高木公徳　宮崎グルメ🍜神社⛩    ",
+      "channel_id": "UC00T_ttwgfhJuXpw-wdaTRg",
+      "query": "酢豚 宮崎"
+    },
+    {
+      "id": "gsq7WFgdPnY",
+      "title": "宮崎グルメ342 日向　セブンチャイナ　中華料理🔥",
+      "duration": 55,
+      "channel": "高木公徳　宮崎グルメ🍜神社⛩    ",
+      "channel_id": "UC00T_ttwgfhJuXpw-wdaTRg",
+      "query": "酢豚 宮崎"
+    },
+    {
+      "id": "VjGPas4woCY",
+      "title": "中国料理福隆",
+      "duration": 36,
+      "channel": "miyazakionsen",
+      "channel_id": "UCmaEn3ck3MqCUm5cMFI1m5A",
+      "query": "酢豚 宮崎"
+    },
+    {
+      "id": "GUAe_kgdUno",
+      "title": "島根県出雲市 看板 エヌサイン 看板戦略 沖縄料理店",
+      "duration": 45,
+      "channel": "西森晃",
+      "channel_id": "UCA1LQNtJj0xM69xSjTdK7Jw",
+      "query": "沖縄料理 島根"
+    },
+    {
+      "id": "IgjU1G7hDjQ",
+      "title": "大人無料！1日遊び放題😍　#子連れ　#子供とお出かけ　#shorts",
+      "duration": 17,
+      "channel": "ゆみ | 子連れお出かけ&旅",
+      "channel_id": "UC9X4n3qGEWx0DoIOJAN1dug",
+      "query": "沖縄料理 島根"
+    },
+    {
+      "id": "e4OZL30Geb0",
+      "title": "「ご縁も、美肌も、しまねから。」しまね旅キャンペーン 【グルメ編 30秒ver.】第三弾",
+      "duration": 31,
+      "channel": "【ご縁も、美肌も、しまねから。】島根県観光振興課公式チャンネル",
+      "channel_id": "UCFT6U_hpiJIHTVnPon16M0Q",
+      "query": "沖縄料理 島根"
+    },
+    {
+      "id": "vCmoD3d6pRo",
+      "title": "生たまごBang！『”う”から始まるうまいもの探し！！』（1月18日OA）",
+      "duration": 16,
+      "channel": "BSS山陰放送ラッテチャンネル",
+      "channel_id": "UC5f3JQdmlT_7W1l1kpwzkJQ",
+      "query": "沖縄料理 島根"
+    },
+    {
+      "id": "kvcFhBIFzq8",
+      "title": "でいごレンジャー【容器はしっかり密封 篇】",
+      "duration": 6,
+      "channel": "沖縄食糧株式会社",
+      "channel_id": "UC-lwwA6HlPmiyfK0y47RTMQ",
+      "query": "タコライス 島根"
+    },
+    {
+      "id": "e1fWg_fO3I8",
+      "title": "おすすめグルメ：沖縄 那覇・国際どおり ぶくぶく沖縄コーヒーの静かなカフェ！ランチ＆ディナー【世界のオアシス】",
+      "duration": 46,
+      "channel": "旅 オアシス Travel Oasis",
+      "channel_id": "UC9uxBcy38TBVDh0Pnk9syMg",
+      "query": "タコライス 島根"
+    },
+    {
+      "id": "BDj4YWflaTY",
+      "title": "TOTOMATOドッグラン",
+      "duration": 21,
+      "channel": "吉村隆司",
+      "channel_id": "UCbzyiERohTSlqOGl2Lq_4oQ",
+      "query": "タコライス 島根"
+    },
+    {
+      "id": "0FPV1tlKc9g",
+      "title": "佐渡トマト＆オニオン　チャレンジメニュー成功編その１",
+      "duration": 15,
+      "channel": "JQ FSA",
+      "channel_id": "UCCjuVUON2kUnLZgrlRFdSpg",
+      "query": "タコライス 島根"
+    },
+    {
+      "id": "uEoJG99cExk",
+      "title": "【速報】貨物船座礁、19人救助   沖縄・石垣沖、けが人なし",
+      "duration": 30,
+      "channel": "共同通信  KYODO NEWS",
+      "channel_id": "UCwJXtk_1CKlCrh7YJDP2uPw",
+      "query": "タコライス 島根"
+    },
+    {
+      "id": "l7IVQddPEqs",
+      "title": "第11回沖縄県議会選挙ＣＭ「期日前投票」篇",
+      "duration": 16,
+      "channel": "明るい選挙推進協会",
+      "channel_id": "UC9VJNH7aG1E6cMMwsBieeHg",
+      "query": "タコライス 島根"
+    },
+    {
+      "id": "dAszOATsVug",
+      "title": "チャーリーレストラン(061)",
+      "duration": 31,
+      "channel": "沖縄県南城市",
+      "channel_id": "UCudFG9bceAI6wJhmjjMogWQ",
+      "query": "タコライス 島根"
+    },
+    {
+      "id": "TIpVypnqp_o",
+      "title": "今日のランチ　2010.11.2",
+      "duration": 41,
+      "channel": "Digital more.TV",
+      "channel_id": "UCEg_SU0vnSVIOq7_DUqONTQ",
+      "query": "タコライス 島根"
+    },
+    {
+      "id": "EJ2Mx2RHMBo",
+      "title": "大王ダコ　（Great king octopus）",
+      "duration": 41,
+      "channel": "LowSpecHolder",
+      "channel_id": "UCqYvFhPNzRR2JHL9lwfoawA",
+      "query": "タコライス 島根"
+    }
+  ],
+  "caveat": "検索結果は実行ごとに変わる。経路存在率であって実効ではない（目視 precision 70.0% を掛ける）。"
+}
