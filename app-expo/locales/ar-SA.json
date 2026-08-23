@@ -409,7 +409,9 @@
 		},
 		"errors": {
 			"mapOpenFailed": "تعذر فتح تطبيق الخرائط",
-			"mediaUnavailable": "هذا المحتوى غير متاح حالياً."
+			"mediaUnavailable": "هذا المحتوى غير متاح حالياً.",
+			"likeReactionFailed": "فشل تحديث الإعجاب. يرجى المحاولة مرة أخرى.",
+			"saveReactionFailed": "فشل تحديث الحفظ. يرجى المحاولة مرة أخرى."
 		}
 	},
 	"ImageCardGrid": {

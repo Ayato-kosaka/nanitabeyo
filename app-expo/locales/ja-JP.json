@@ -406,7 +406,9 @@
 		"processing": "メディアを処理中...",
 		"errors": {
 			"mapOpenFailed": "地図アプリを開けませんでした",
-			"mediaUnavailable": "このメディアは現在ご利用いただけません。"
+			"mediaUnavailable": "このメディアは現在ご利用いただけません。",
+			"likeReactionFailed": "いいねの更新に失敗しました。もう一度お試しください。",
+			"saveReactionFailed": "保存の更新に失敗しました。もう一度お試しください。"
 		},
 		"info": {
 			"walkFromShibuya": "渋谷駅から徒歩13分"

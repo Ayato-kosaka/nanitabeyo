@@ -409,7 +409,9 @@
 		},
 		"errors": {
 			"mapOpenFailed": "मानचित्र ऐप नहीं खोल सका",
-			"mediaUnavailable": "यह मीडिया अभी उपलब्ध नहीं है।"
+			"mediaUnavailable": "यह मीडिया अभी उपलब्ध नहीं है।",
+			"likeReactionFailed": "लाइक अपडेट करने में विफल। कृपया पुनः प्रयास करें।",
+			"saveReactionFailed": "सेव अपडेट करने में विफल। कृपया पुनः प्रयास करें।"
 		}
 	},
 	"ImageCardGrid": {

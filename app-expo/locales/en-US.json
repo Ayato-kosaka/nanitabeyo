@@ -406,7 +406,9 @@
 		"processing": "Processing media...",
 		"errors": {
 			"mapOpenFailed": "Could not open map application",
-			"mediaUnavailable": "This media is currently unavailable."
+			"mediaUnavailable": "This media is currently unavailable.",
+			"likeReactionFailed": "Failed to update like. Please try again.",
+			"saveReactionFailed": "Failed to update save. Please try again."
 		},
 		"info": {
 			"walkFromShibuya": "13 min walk from Shibuya Station"
