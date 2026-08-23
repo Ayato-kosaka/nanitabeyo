@@ -307,8 +307,8 @@ export type Database = {
         Row: {
           created_at: string
           host_user_id: string
-          idempotency_key: string | null
           id: string
+          idempotency_key: string | null
           search_context: Json
           share_token: string
           updated_at: string
@@ -316,8 +316,8 @@ export type Database = {
         Insert: {
           created_at?: string
           host_user_id: string
-          idempotency_key?: string | null
           id?: string
+          idempotency_key?: string | null
           search_context?: Json
           share_token: string
           updated_at?: string
@@ -325,8 +325,8 @@ export type Database = {
         Update: {
           created_at?: string
           host_user_id?: string
-          idempotency_key?: string | null
           id?: string
+          idempotency_key?: string | null
           search_context?: Json
           share_token?: string
           updated_at?: string

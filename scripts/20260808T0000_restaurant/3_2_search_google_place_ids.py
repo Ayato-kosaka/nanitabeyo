@@ -60,6 +60,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--radius-m", type=float, default=150.0)
     parser.add_argument("--resume-days", type=int, default=90)
     parser.add_argument(
+        "--probe-wide-box",
+        action="store_true",
+        help="±250m の矩形も送る。既定は送らない。出荷ルール box_unique_strict は"
+        "「選んだ place_id が ±25m 矩形の中にあること」を必須にしており、"
+        "矩形は wide ⊇ tight なので wide でしか出ない候補は構造上必ず棄却される。"
+        "実測でも 345,770 seed 中 wide 由来の確定は 0 件、"
+        "rejected_not_in_tight_box が 34,386 件だった（全 request の約21%が無駄）。"
+        "緩いルール box_unique へ戻して再評価したいときだけ指定する",
+    )
+    parser.add_argument(
         "--include-osm-only",
         action="store_true",
         help="ODbL公開方針の承認後に、OSM canonical seedも検索対象へ含める",
@@ -112,6 +122,7 @@ def attempt_row(
     seed: Any,
     radius_m: float,
     client: PlacesTextSearchClient,
+    probe_wide_box: bool = False,
 ) -> dict[str, Any]:
     """1 seed 分の probe を、**必要な順に必要なだけ**送って判定する。
 
@@ -119,6 +130,10 @@ def attempt_row(
     なければ A も B も送る必要がない（確定しえない）。裏取りは A で足りることが
     多く、その場合 B も要らない。#1276 の PoC の実測では 4.00 → 2.17 本/店に
     減り、**判定が変わった seed は 0 件**だった。
+
+    ±250m の矩形は既定で送らない（``probe_wide_box``）。理由は
+    ``--probe-wide-box`` の help を参照。確定する place_id は変わらず、
+    変わるのは棄却理由のラベルだけである。
     """
 
     query_a, query_b, body_a, body_b = build_query_payloads(
@@ -146,7 +161,10 @@ def attempt_row(
             return False
         return candidate in probe("b", body_b).place_ids
 
-    for key, half_side in (("tight", TIGHT_HALF_SIDE_M), ("wide", WIDE_HALF_SIDE_M)):
+    boxes = [("tight", TIGHT_HALF_SIDE_M)]
+    if probe_wide_box:
+        boxes.append(("wide", WIDE_HALF_SIDE_M))
+    for key, half_side in boxes:
         box = probe(
             key,
             build_box_payload(
@@ -162,7 +180,7 @@ def attempt_row(
     if has_address and results["b"] is None and any(
         results[key] is not None and len(results[key].place_ids) == 1
         for key in ("tight", "wide")
-    ):
+    ):  # 送っていない矩形は results[key] が None のまま無視される
         probe("b", body_b)
 
     decision = decide_match(
@@ -275,6 +293,7 @@ def main() -> None:
         "limit": args.limit,
         "qps": args.qps,
         "workers": args.workers,
+        "probe_wide_box": args.probe_wide_box,
         "radius_m": args.radius_m,
         "algorithm_version": ALGORITHM_VERSION,
         "include_osm_only": args.include_osm_only,
@@ -302,6 +321,7 @@ def main() -> None:
                         seed=seed,
                         radius_m=args.radius_m,
                         client=client,
+                        probe_wide_box=args.probe_wide_box,
                     )
                     for seed in chunk
                 ]
