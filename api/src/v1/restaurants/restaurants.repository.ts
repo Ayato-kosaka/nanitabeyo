@@ -197,7 +197,10 @@ export class RestaurantsRepository {
   /* ------------------------------------------------------------------ */
   async searchNearbyRestaurants(
     tx: Prisma.TransactionClient,
-    dto: QueryRestaurantsDto,
+    // #1375 4 巡目: `orderByDistance` はキャプション住所での照合用。住所は «店そのもの» を
+    // 指しているので、入札額順で 100 件に切ると肝心の店が落ちる（独立レビュー指摘 #3）。
+    // API の公開 DTO には出さず、サーバ内部の呼び出しだけが指定できる形にしておく
+    dto: QueryRestaurantsDto & { orderByDistance?: boolean },
   ): Promise<RestaurantWithMeta[]> {
     this.logger.debug('SearchNearbyRestaurants', 'searchNearbyRestaurants', {
       lat: dto.lat,
@@ -208,6 +211,27 @@ export class RestaurantsRepository {
     // Geographic fence query: find restaurants based on latitude/longitude and radius
     const radiusInKm = dto.radius / 1000; // Convert to kilometers
     const radiusInDegrees = radiusInKm / 111; // Rough conversion (1 degree ≈ 111 km)
+
+    // #1395 店名の部分一致（自前 restaurants テーブル。Google Places は呼ばない）。
+    // ユーザー入力の % / _ / \ は LIKE のワイルドカードとして解釈されてしまうので、
+    // バインドする前にエスケープする（ESCAPE '\' は ILIKE の既定）。
+    const nameQuery = dto.q?.trim() ? dto.q.trim() : null;
+    const escapedNameQuery = nameQuery
+      ? nameQuery.replace(/[\\%_]/g, (c) => `\\${c}`)
+      : null;
+    const nameFilter = escapedNameQuery
+      ? Prisma.sql`AND r.name ILIKE ${'%' + escapedNameQuery + '%'}`
+      : Prisma.empty;
+    // 店名で絞ったときは入札額順ではなく距離順にする。
+    // 店舗選択 UI で「一蘭」と打った結果が入札額で並ぶのは不自然なため
+    // 距離式は SELECT に出さない（返却行に余計な列を混ぜないため）。
+    // GROUP BY r.id に対して r の列だけから成る式は関数従属なので ORDER BY に直接書ける
+    const orderBy =
+      escapedNameQuery || dto.orderByDistance
+        ? Prisma.sql`ORDER BY (6371 * acos(cos(radians(${dto.lat})) * cos(radians(r.latitude))
+            * cos(radians(r.longitude) - radians(${dto.lng})) + sin(radians(${dto.lat}))
+            * sin(radians(r.latitude)))) ASC`
+        : Prisma.sql`ORDER BY total_cents DESC`;
 
     const rawResult = await tx.$queryRaw<
       (Pick<
@@ -229,8 +253,8 @@ export class RestaurantsRepository {
         total_cents: number;
         max_end_date: string | null;
       })[]
-    >`
-      SELECT 
+    >(Prisma.sql`
+      SELECT
         r.id,
         r.google_place_id,
         r.name,
@@ -262,10 +286,11 @@ export class RestaurantsRepository {
         AND (6371 * acos(cos(radians(${dto.lat})) * cos(radians(r.latitude)) 
             * cos(radians(r.longitude) - radians(${dto.lng})) + sin(radians(${dto.lat})) 
             * sin(radians(r.latitude)))) <= ${radiusInKm}
+        ${nameFilter}
       GROUP BY r.id
-      ORDER BY total_cents DESC
+      ${orderBy}
       LIMIT ${dto.limit ?? 20};
-    `;
+    `);
 
     return rawResult.map((row) => ({
       restaurant: row,

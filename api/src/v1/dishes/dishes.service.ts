@@ -530,6 +530,9 @@ export class DishesService {
           dish_id: dish.id,
           user_id: null, // Google からのインポートなので null
           media_path: mediaPath,
+          // #1395 この経路は Google の写真を自ストレージへ保存するので常に 'stored'。
+          // 'external_embed' は SNS の公式埋め込み（#1399 の取り込み）だけが使う
+          render_type: 'stored',
           media_type:
             existingGoogleImportEntry?.dish_media.media_type ?? 'image',
           thumbnail_path:

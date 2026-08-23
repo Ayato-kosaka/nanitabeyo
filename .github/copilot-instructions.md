@@ -2,6 +2,17 @@
 
 Always reference these instructions first and fallback to search or bash commands only when you encounter unexpected information that does not match the info here.
 
+## Design Guidelines (UI を触る前に必読)
+
+**UI（画面・コンポーネント・スタイル・文言）を追加・変更するときは、先に
+[`docs/design-guidelines.md`](../docs/design-guidelines.md) を読むこと。** あちらが見た目の正本で、
+このファイルには要点だけを置く（具体値はあちらにしか書かない）:
+
+- 基調はモノクロ＋灰。**赤（ブランド色）は 1 画面 1 箇所の主 CTA だけ**。ナビゲーションは黒/灰＋下線
+- 見出しと 1 行説明を消さない。チップだけが並ぶ画面を作らない
+- UI 変更は `e2e-web/scripts/ui-preview.mjs` でスクリーンショットを撮り、
+  **自分の目でセルフレビューしてから**納品する（撮れない挙動は「実機確認が必要」と明記）
+
 ## Working Effectively
 
 ### Bootstrap and Dependencies

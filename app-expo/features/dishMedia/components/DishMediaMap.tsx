@@ -324,6 +324,10 @@ export default function DishMediaMap({
 						onCardPress={handleCardPress} // #613 【設計】カード押下時のコールバックを渡す
 						displayIndex={index}
 						backgroundImageState={getBackgroundImageState(item)}
+						// #1375 実機確認（3 巡目）: 検索動線のフィードに「食べたを記録」は出さない。
+						// 探している段階で記録する人は居ない（オーナー判断）。記録の入口は
+						// my-dishes（保存後の棚）と店舗フィード側にある
+						showRecordEaten={false}
 					/>
 				</ErrorBoundary>
 			</View>

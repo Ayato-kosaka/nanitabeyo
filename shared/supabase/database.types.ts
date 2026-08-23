@@ -401,9 +401,10 @@ export type Database = {
           dish_id: string
           id: string
           lock_no: number
-          media_path: string
+          media_path: string | null
           media_processing_status: string
           media_type: string
+          render_type: string
           thumbnail_path: string
           thumbnail_processing_status: string
           updated_at: string
@@ -416,9 +417,10 @@ export type Database = {
           dish_id: string
           id?: string
           lock_no?: number
-          media_path: string
+          media_path?: string | null
           media_processing_status: string
           media_type: string
+          render_type?: string
           thumbnail_path: string
           thumbnail_processing_status: string
           updated_at?: string
@@ -431,9 +433,10 @@ export type Database = {
           dish_id?: string
           id?: string
           lock_no?: number
-          media_path?: string
+          media_path?: string | null
           media_processing_status?: string
           media_type?: string
+          render_type?: string
           thumbnail_path?: string
           thumbnail_processing_status?: string
           updated_at?: string
@@ -634,7 +637,7 @@ export type Database = {
           comment: string
           comment_tsv: unknown
           created_at: string
-          created_dish_media_id: string
+          created_dish_media_id: string | null
           currency_code: string | null
           deleted_at: string | null
           dish_id: string
@@ -652,7 +655,7 @@ export type Database = {
           comment: string
           comment_tsv?: unknown
           created_at?: string
-          created_dish_media_id: string
+          created_dish_media_id?: string | null
           currency_code?: string | null
           deleted_at?: string | null
           dish_id: string
@@ -670,7 +673,7 @@ export type Database = {
           comment?: string
           comment_tsv?: unknown
           created_at?: string
-          created_dish_media_id?: string
+          created_dish_media_id?: string | null
           currency_code?: string | null
           deleted_at?: string | null
           dish_id?: string

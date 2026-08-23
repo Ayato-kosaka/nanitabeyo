@@ -261,8 +261,12 @@ export const selectEntryByReviewId =
 	(state: DishMediaEntriesStore): NormalizedDishMediaEntry | null => {
 		const review = state.reviewsByReviewId[reviewId];
 		if (!review) return null;
-		const mediaId = String(review.created_dish_media_id);
-		return state.entriesByMediaId[mediaId] ?? null;
+		// #1395 写真なしの「食べた」記録では created_dish_media_id が NULL になる。
+		// String(null) は "null" という文字列になり entriesByMediaId["null"] を引いて
+		// miss するため、落ちはしないが**検知できない形で静かに失敗する**。明示的に弾く
+		const mediaId = review.created_dish_media_id;
+		if (mediaId == null) return null;
+		return state.entriesByMediaId[String(mediaId)] ?? null;
 	};
 
 /**
@@ -505,7 +509,8 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 			for (const reviewIds of Object.values(nextReviewIdsByKey)) {
 				for (const reviewId of reviewIds) {
 					const review = state.reviewsByReviewId[reviewId];
-					if (review) {
+					// #1395 写真なし記録では NULL。ガードしないと GC 用 Set に "null" が混ざる
+					if (review && review.created_dish_media_id != null) {
 						remainingMediaIds.add(String(review.created_dish_media_id));
 					}
 				}

@@ -7,9 +7,14 @@ import { DEFAULT_TIMEOUT, by, element, existsNow, tapWhenVisible, waitFor, waitU
 export type LegalDocumentKey = "guidelines" | "terms" | "privacy" | "copyright";
 
 /**
- * ⚙️ 設定画面の Screen Object（e2e-web の pages/SettingsPage.ts に対応）
+ * ⚙️ 設定項目の Screen Object（e2e-web の pages/SettingsPage.ts に対応）
  *
- * 対応画面: app-expo/app/[locale]/(tabs)/profile/settings.tsx
+ * 対応画面: app-expo/app/[locale]/(tabs)/profile/index.tsx（マイページ本体）
+ *
+ * #1402 で **独立した設定画面（profile/settings.tsx）は無くなり**、その項目は
+ * マイページの縦リストへ統合された（歯車ボタンも消えた）。«設定という画面» は消えたが
+ * «設定という項目群» はそのまま残っているので、この Screen Object と `settings-*` の
+ * testID は据え置いてある。マイページ側の要素は `screens/ProfileScreen.ts` が持つ。
  *
  * - 「レビューを書く」（ストア誘導・settings-leave-review）は Web では非表示（`Platform.OS !== "web"` 条件）だが、
  *   ネイティブでは表示される（#1031 §1-1 の反転分類）。
@@ -21,16 +26,6 @@ export type LegalDocumentKey = "guidelines" | "terms" | "privacy" | "copyright";
  *   遷移先の検証は screens/LegalScreen.ts が持つ。
  */
 export class SettingsScreen {
-	/**
-	 * 画面タイトル（ja-JP: Settings.title＝「設定」）。
-	 * ナビゲーションヘッダー（ScreenHeader）のため testID 化は見送られている（#1031 確定 §3-P3）。
-	 * i18n 文字列セレクタのため、翻訳キー変更時はここも見直すこと。
-	 *
-	 * ⚠️ 本 Screen Object で唯一のロケール依存セレクタ。**Android 端末のロケールが ja-JP でない場合、
-	 * expectLoaded() がここで最初に落ちる**（iOS は launchApp の languageAndLocale で固定できるが、
-	 * Android は CI 側で `adb shell setprop persist.sys.locale ja-JP` を実行する前提。#1031 B4）。
-	 */
-	readonly title = by.text("設定");
 	/** ご意見・不具合（フィードバック）行（既存 testID） */
 	readonly feedbackItem = by.id("settings-feedback");
 	/** レビューを書く（ストア誘導）行。ネイティブのみ表示（既存 testID） */
@@ -83,9 +78,15 @@ export class SettingsScreen {
 		copyright: this.copyrightItem,
 	} as const;
 
-	/** 設定画面が表示されていることを検証する */
+	/**
+	 * 設定項目が表示されていることを検証する。
+	 *
+	 * #1402 以前は ScreenHeader のタイトル「設定」（`by.text`）を見ていたが、その画面ごと無くなった。
+	 * 代わりに «必ず出る行» の testID を見る。**この Screen Object からロケール依存の
+	 * セレクタが 1 つ減った**（Android の端末ロケールに引きずられて落ちる経路が 1 本消えた。#1031 B4）。
+	 */
 	async expectLoaded(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
-		await waitUntilVisible(this.title, timeout);
+		await waitUntilVisible(this.feedbackItem, timeout);
 	}
 
 	/**
@@ -132,7 +133,7 @@ export class SettingsScreen {
 	 * ログアウト行が **見える位置まで** 設定画面をスクロールする（#1131）。
 	 *
 	 * ## なぜ要るのか（CI で実際に赤くなった）
-	 * ログアウト行は設定画面の最下段のカードにあり、エミュレータの画面高では
+	 * ログアウト行はマイページ最下段のカードにあり、エミュレータの画面高では
 	 * **初期表示で画面外**にいる。Detox の `toBeVisible()` は「面積の 75% 以上が可視」を
 	 * 要求するので、`toExist()` は真でも `toBeVisible()` は永久に偽のまま 25 秒待って落ちる。
 	 * `hasLogoutItem()` が `existsNow`（= `toExist`）なのは匿名側で「無い」ことを見るためで、
@@ -140,6 +141,9 @@ export class SettingsScreen {
 	 *
 	 * `whileElement(...).scroll()` は「見つかるまでスクロールする」Detox の標準手段で、
 	 * 既に見えている場合は 1 度も動かさずに返る（画面が大きい端末でも安全）。
+	 *
+	 * ⚠️ スクロール対象の `settings-scroll` は #1402 でも据え置いてある（マイページ本体の ScrollView）。
+	 * 項目が «プロフィール要約 + いいね/保存の 2 行» の分だけ下へずれたので、この関数の重要度は上がった。
 	 */
 	async scrollToLogout(): Promise<void> {
 		await waitFor(element(this.logoutItem)).toBeVisible().whileElement(by.id("settings-scroll")).scroll(300, "down");

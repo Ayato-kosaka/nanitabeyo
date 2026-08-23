@@ -8,6 +8,8 @@ export {
 	ReactionActionType,
 } from "./dish-media/dish-media-reaction.dto";
 export { DishMediaImpressionBodyDto } from "./dish-media/dish-media-impression.dto";
+export { ResolveDishMediaImportDto } from "./dish-media/resolve-dish-media-import.dto";
+export { CreateDishMediaImportDto } from "./dish-media/create-dish-media-import.dto";
 
 export { QueryDishCategoryRecommendationsDto } from "./dish-categories/query-dish-category-recommendations.dto";
 export { QueryDishCategoryVariantsDto } from "./dish-category-variants/query-dish-category-variants.dto";
@@ -44,6 +46,17 @@ export { QueryMeSavedDishCategoriesDto } from "./users/query-me-saved-dish-categ
 export { QueryMeSavedDishMediaDto } from "./users/query-me-saved-dish-media.dto";
 export { QuerySavedRestaurantsDto } from "./users/query-saved-restaurants.dto";
 export { QueryMeBlockedDishCategoriesDto } from "./users/query-me-blocked-dish-categories.dto";
+export {
+	QueryMyDishesDto,
+	MY_DISH_STATUSES,
+	MY_DISH_SORTS,
+	MY_DISH_FEATURE_TYPES,
+	MY_DISH_FEATURE_KEY_PATTERN,
+	parseMyDishFeatureKey,
+	type MyDishStatus,
+	type MyDishSort,
+	type MyDishFeatureType,
+} from "./users/query-my-dishes.dto";
 export { UnblockDishCategoryParamsDto } from "./users/unblock-dish-category-params.dto";
 
 export { CreateFeedbackDto } from "./feedback/create-feedback.dto";

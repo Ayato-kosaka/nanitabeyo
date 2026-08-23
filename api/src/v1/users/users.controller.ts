@@ -42,6 +42,7 @@ import {
   QuerySavedRestaurantsDto,
   QueryMeBlockedDishCategoriesDto,
   UnblockDishCategoryParamsDto,
+  QueryMyDishesDto,
 } from '@shared/v1/dto';
 import {
   GetUserProfileResponse,
@@ -55,6 +56,8 @@ import {
   QueryMeSavedRestaurantsResponse,
   QueryMeBlockedDishCategoriesResponse,
   UnblockDishCategoryResponse,
+  QueryMyDishesResponse,
+  QueryMeDishMapPinsResponse,
 } from '@shared/v1/res';
 
 // 横串 (Auth)
@@ -289,6 +292,91 @@ export class UsersController {
       await this.usersService.getMySavedNearbyRestaurants(user.id, query);
 
     return { data, nextCursor };
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*                    GET /v1/users/me/dishes                        */
+  /* ------------------------------------------------------------------ */
+  // #1395 「食べたい/食べた」の一覧。リストと Calendar が同じクエリ契約を共有する
+  //
+  // Guard は AuthAnonGuard。既存の me/* と同じで、匿名セッションのユーザーにも
+  // 実 user.id があるためゲストでも動く（AuthUserGuard にするとゲストが 401 になる）
+  @Get('me/dishes')
+  @UseGuards(AuthAnonGuard)
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @ApiOperation({ summary: '自分の「食べたい/食べた」一覧' })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    description: 'want / eaten（multi・CSV可）。未指定は両方',
+  })
+  @ApiQuery({
+    name: 'lat',
+    required: false,
+    description: 'エリア中心の緯度。lat/lng/radius は 3 点セット',
+  })
+  @ApiQuery({ name: 'lng', required: false, description: 'エリア中心の経度' })
+  @ApiQuery({ name: 'radius', required: false, description: 'エリア半径（m）' })
+  @ApiQuery({
+    name: 'categoryIds',
+    required: false,
+    description: '料理カテゴリ（multi・CSV可）',
+  })
+  @ApiQuery({ name: 'minRating', required: false, description: '★n 以上' })
+  @ApiQuery({
+    name: 'ratings',
+    required: false,
+    description: '★n のみ（multi・CSV可）',
+  })
+  @ApiQuery({ name: 'from', required: false, description: 'occurredAt の下限' })
+  @ApiQuery({ name: 'to', required: false, description: 'occurredAt の上限' })
+  @ApiQuery({
+    name: 'sort',
+    required: false,
+    description:
+      '-occurredAt(既定) / occurredAt / -rating / distance / -featureScore',
+  })
+  @ApiQuery({
+    name: 'featureKeys',
+    required: false,
+    description:
+      'sort=-featureScore のときの軸。"<feature_type>:<feature_key>" の CSV。' +
+      '例: timeSlot:dinner,scene:friends,dining_pace:quick（複数指定はスコアの合計順）',
+  })
+  @ApiQuery({
+    name: 'cursor',
+    required: false,
+    description: 'keyset カーソル',
+  })
+  @ApiQuery({ name: 'limit', required: false, description: '既定 42' })
+  @ApiResponse({ status: 200, description: '取得成功' })
+  @ApiResponse({ status: 400, description: 'クエリ不正（カーソル / エリア）' })
+  async getMyDishes(
+    @Query() query: QueryMyDishesDto,
+    @CurrentUser() user: RequestUser,
+  ): Promise<QueryMyDishesResponse> {
+    return await this.usersService.getMyDishes(user.id, query);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*               GET /v1/users/me/dishes/map-pins                    */
+  /* ------------------------------------------------------------------ */
+  // #1395 Map ビュー。一覧と同じ QueryMyDishesDto を取り、店舗単位に集約して返す
+  @Get('me/dishes/map-pins')
+  @UseGuards(AuthAnonGuard)
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @ApiOperation({
+    summary: '自分の「食べたい/食べた」の店舗ピン（同一店舗につき 1 つ）',
+  })
+  @ApiResponse({
+    status: 200,
+    description: '取得成功。上限で切られた場合は truncated: true',
+  })
+  async getMyDishMapPins(
+    @Query() query: QueryMyDishesDto,
+    @CurrentUser() user: RequestUser,
+  ): Promise<QueryMeDishMapPinsResponse> {
+    return await this.usersService.getMyDishMapPins(user.id, query);
   }
 
   /* ------------------------------------------------------------------ */

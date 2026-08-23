@@ -11,6 +11,7 @@ import { Prisma } from '../../../../shared/prisma/client';
 import { PrismaRestaurants } from '../../../../shared/converters/convert_restaurants';
 import { PrismaDishes } from '../../../../shared/converters/convert_dishes';
 import { PrismaDishMedia } from '../../../../shared/converters/convert_dish_media';
+import type { dish_media_external_embeddings as PrismaDishMediaExternalEmbeddings } from '../../../../shared/prisma/client';
 import { PrismaDishReviews } from '../../../../shared/converters/convert_dish_reviews';
 import { PrismaDishMediaViews } from '../../../../shared/converters/convert_dish_media_views';
 import { PrismaDishMediaImpressions } from '../../../../shared/converters/convert_dish_media_impressions';
@@ -25,7 +26,11 @@ import {
 } from '@shared/v1/dto';
 
 import { PrismaService } from '../../prisma/prisma.service';
-import { roundToOneDecimal, shuffle } from '../../core/utils/backend-utils';
+import {
+  roundToOneDecimal,
+  shuffle,
+  toNullableId,
+} from '../../core/utils/backend-utils';
 import { CLS_KEY_APP_VERSION } from 'src/core/cls/cls.constants';
 import { ClsService } from 'nestjs-cls';
 import { normalizePreferredLanguageCodes } from '../../../../shared/utils/languageCode';
@@ -52,6 +57,11 @@ export interface DishMediaEntryEntity {
     isSaved: boolean;
     isLiked: boolean;
     likeCount: number;
+    /**
+     * #1399 `render_type='external_embed'` の行だけが持つ。
+     * join しない経路（検索・一覧など件数の多い経路）では undefined のままになる
+     */
+    externalEmbed?: PrismaDishMediaExternalEmbeddings | null;
   };
   dish_reviews: (PrismaDishReviews & {
     username: string;
@@ -582,7 +592,11 @@ export class DishMediaRepository {
 
     const { reactionSet, reviewLikeCountMap } =
       await this.buildReactionAggregates(
-        reviewsToReturn.map((review) => review.created_dish_media_id),
+        // #1395 写真なしの「食べた」記録では created_dish_media_id が NULL になる。
+        // 落としておかないと集計キーが 'dish_media:null:save' になり、無意味な IN 句が増える
+        reviewsToReturn
+          .map((review) => toNullableId(review.created_dish_media_id))
+          .filter((id): id is string => id !== null),
         reviewsToReturn.map((review) => review.id),
         userId,
       );
@@ -767,6 +781,11 @@ export class DishMediaRepository {
       include: {
         dish_media_likes: { where: { user_id: userId } }, // User がいいねしているか
         dish_media_analysis_results: true, // #292 【設計】いいね数は like_total から取得（トゥルース源）
+        // #1399 render_type='external_embed' の行は自ストレージに実体が無く、
+        // canonical_url が無いと 1 件も描けない。**この経路（ids 指定）だけ** join する。
+        // 全読み取り経路へ広げないのは、大多数を占める stored の行では常に NULL になり、
+        // 検索・一覧のような件数の多い経路で無駄が積み上がるためである（#1395 の判断を踏襲）
+        dish_media_external_embeddings: true,
         dishes: {
           include: {
             restaurants: true,
@@ -880,6 +899,9 @@ export class DishMediaRepository {
             likeCount: Number(
               dishMedia.dish_media_analysis_results?.like_total ?? 0,
             ), // #292 【設計】likeCount は dish_media_analysis_results.like_total から取得（reactions は含めない）
+            // #1399 external_embed の行だけがこれを持つ。stored の行では常に undefined
+            externalEmbed:
+              dishMedia.dish_media_external_embeddings ?? undefined,
           },
           dish_reviews: dishReviews.map((review) => ({
             ...review,
@@ -1003,6 +1025,32 @@ export class DishMediaRepository {
       where: { id: dishId },
     });
     return cnt > 0;
+  }
+
+  /**
+   * #1395 dish ごとの「最新メディア」を引く。
+   *
+   * 写真なしの「食べた」記録（`created_dish_media_id` が NULL）を
+   * 代表メディアへ落とし込むために使う。選び方は my-dishes と揃える
+   * （`created_at DESC, id DESC` の先頭 1 件。ページを取り直しても変わらない）。
+   *
+   * @returns dish_id → dish_media.id の Map（メディアが 1 件も無い dish は含まれない）
+   */
+  async findLatestDishMediaIdsByDishIds(
+    dishIds: string[],
+  ): Promise<Map<string, string>> {
+    if (dishIds.length === 0) return new Map();
+
+    const rows = await this.prisma.prisma.$queryRaw<
+      { dish_id: string; id: string }[]
+    >`
+      SELECT DISTINCT ON (dm.dish_id) dm.dish_id, dm.id
+      FROM dish_media dm
+      WHERE dm.dish_id = ANY(${dishIds}::uuid[])
+      ORDER BY dm.dish_id, dm.created_at DESC, dm.id DESC
+    `;
+
+    return new Map(rows.map((row) => [row.dish_id, row.id]));
   }
 
   /* ------------------------------------------------------------------ */

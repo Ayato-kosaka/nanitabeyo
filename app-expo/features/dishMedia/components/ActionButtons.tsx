@@ -1,12 +1,17 @@
 import React, { useCallback, useEffect, useRef } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, LayoutChangeEvent } from "react-native";
 import { Image } from "expo-image";
-import { Heart, Bookmark, Share, MapPinned } from "lucide-react-native";
+import { Heart, Bookmark, Share, MapPinned, UtensilsCrossed } from "lucide-react-native";
+import { router } from "expo-router";
 import i18n from "@/lib/i18n";
 import { formatLikeCount } from "../utils/text";
 import { useLogger } from "@/hooks/useLogger";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useAPICall } from "@/hooks/useAPICall";
+import { useLocale } from "@/hooks/useLocale";
+import { useSnackbar } from "@/contexts/SnackbarProvider";
+import { useAuth } from "@/contexts/AuthProvider";
+import { isGuestUser } from "@/lib/authGuest";
 import type { DishMediaReactionBodyDto } from "@shared/api/v1/dto";
 import { getCacheKeyForImage } from "@/lib/image";
 import {
@@ -19,7 +24,7 @@ import {
 } from "@/stores/useDishMediaEntriesStore";
 import { shallow } from "zustand/shallow";
 import { profileLikesEntriesKey } from "@/features/profile/tabs/LikeTab";
-import { profileSavedPostsEntriesKey } from "@/features/profile/tabs/SavedPostsTab";
+import { profileSavedPostsEntriesKey } from "@/features/profile/entriesKeys";
 import { useDishMediaActions } from "../hooks/useDishMediaActions";
 import { OwnPostActions } from "./OwnPostActions";
 import { GestureDetector } from "react-native-gesture-handler";
@@ -27,13 +32,19 @@ import type { GestureType } from "react-native-gesture-handler";
 import { toErrorLogMessage } from "@/lib/errorMessage";
 
 interface ActionButtonsProps {
+	/**
+	 * #1375 実機確認（3 巡目）:「食べたを記録」ボタンを出すか。
+	 * 検索動線のフィード（DishMediaMap 系）では出さない — 探している段階で
+	 * 食べたを記録する人は居ない、というオーナー判断。既定は true（既存フィードは不変）
+	 */
+	showRecordEaten?: boolean;
 	id: string;
 	idType: IdType;
 	onLayout: (width: number) => void;
 	buttonsGesture: GestureType; // #694 【設計】親Tapとの競合を防ぐための Native Gesture
 }
 
-export function ActionButtons({ id, idType, onLayout, buttonsGesture }: ActionButtonsProps) {
+export function ActionButtons({ id, idType, onLayout, buttonsGesture, showRecordEaten = true }: ActionButtonsProps) {
 	const { logFrontendEvent } = useLogger();
 
 	// ログアウト時は AuthProvider がストアを消去してから旧画面の unmount が完了するまで、
@@ -58,17 +69,28 @@ export function ActionButtons({ id, idType, onLayout, buttonsGesture }: ActionBu
 
 	if (!entry) return null;
 
-	return <ActionButtonsContent entry={entry} onLayout={onLayout} buttonsGesture={buttonsGesture} />;
+	return (
+		<ActionButtonsContent
+			entry={entry}
+			onLayout={onLayout}
+			buttonsGesture={buttonsGesture}
+			showRecordEaten={showRecordEaten}
+		/>
+	);
 }
 
 function ActionButtonsContent({
 	entry,
 	onLayout,
 	buttonsGesture,
-}: Pick<ActionButtonsProps, "onLayout" | "buttonsGesture"> & { entry: NormalizedDishMediaEntry }) {
+	showRecordEaten = true,
+}: Pick<ActionButtonsProps, "onLayout" | "buttonsGesture" | "showRecordEaten"> & { entry: NormalizedDishMediaEntry }) {
 	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
 	const { lightImpact } = useHaptics();
+	const { showSnackbar } = useSnackbar();
+	const { locale } = useLocale();
+	const { user } = useAuth();
 	const { isSaved, isLiked, likeCount } = entry.dish_media;
 	const dishMediaId = entry.dish_media.id;
 	const { restaurant } = entry;
@@ -193,6 +215,27 @@ function ActionButtonsContent({
 					const without = prev.filter((id) => id !== String(dishMediaId));
 					return [String(dishMediaId), ...without];
 				});
+				// #1401 【仕様】保存操作のみ完了フィードバックを出す(解除は状態変化が見た目で分かるため省略)。
+				// TopicCard の「見る」導線(#954)と同じ作法で、遷移先だけ my-dishes タブに変える。
+				showSnackbar(i18n.t("DishMediaContent.save.savedMessage"), {
+					action: {
+						label: i18n.t("Common.view"),
+						// #1401 実機確認（4 巡目）: `navigate` 単体でもまだ動かなかった。
+						// 原因はネイティブモーダル（検索結果 = transparentModal / SNS 取り込み = modal）が
+						// **タブの上に提示されたまま残る**こと。expo-router のタブ切替はモーダルの
+						// 下で起きるので、モーダルを閉じない限り画面は変わって見えない。
+						// 先に dismissAll でモーダルスタックを畳んでからタブを移す
+						onPress: () => {
+							if (router.canDismiss()) {
+								router.dismissAll();
+							}
+							router.navigate({
+								pathname: "/[locale]/(tabs)/my-dishes",
+								params: { locale },
+							});
+						},
+					},
+				});
 			} else {
 				await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${dishMediaId}/reaction`, {
 					method: "DELETE",
@@ -215,7 +258,24 @@ function ActionButtonsContent({
 			// #1205 失敗しても押し直せるよう、成功・失敗のいずれでも必ず解除する
 			inFlightActionsRef.current.delete("save");
 		}
-	}, [callBackend, dishMediaId, isSaved, lightImpact, logFrontendEvent]);
+	}, [callBackend, dishMediaId, isSaved, lightImpact, locale, logFrontendEvent, showSnackbar]);
+
+	// #1398 (PR3/7) 【設計】全画面 Feed から「食べた」を記録する導線。
+	// 遷移先は my-dishes カードや店舗詳細フィードと同じ既存ルート（review-from-media）で、
+	// このボタンはその呼び出し元が1つ増えるだけ。「済」表示は付けない
+	// （dish_reviews に (user_id, dish_id) の一意制約は無く、再訪＝別レビューが正しい仕様のため）。
+	const handleRecordEaten = useCallback(() => {
+		lightImpact();
+		logFrontendEvent({
+			event_name: "review_from_media_navigate",
+			error_level: "log",
+			payload: { restaurant_id: restaurant.id, dish_media_id: dishMediaId, source: "ActionButtons" },
+		});
+		router.push({
+			pathname: "/[locale]/restaurant/[restaurantId]/review-from-media/[dishMediaId]",
+			params: { locale, restaurantId: restaurant.id, dishMediaId },
+		});
+	}, [lightImpact, logFrontendEvent, locale, restaurant, dishMediaId]);
 
 	const handleViewRestaurant = () => {
 		lightImpact();
@@ -311,6 +371,23 @@ function ActionButtonsContent({
 					aria-selected={isSaved}>
 					<Bookmark size={30} color={"transparent"} fill={isSaved ? "orange" : "white"} />
 				</TouchableOpacity>
+
+				{/* #1398 (PR3/7) 【仕様】ゲストは非表示。like/save と同じ作法（isGuestUser）。
+				    トグルではないため「済」表示・aria-selected は付けない（常時活性） */}
+				{showRecordEaten && !isGuestUser(user) && (
+					<View style={styles.actionContainer}>
+						<TouchableOpacity
+							testID="dish-action-eaten"
+							style={styles.actionButton}
+							onPress={handleRecordEaten}
+							hitSlop={buttonHitSlop}
+							accessibilityRole="button"
+							accessibilityLabel={i18n.t("DishMediaContent.accessibility.recordEaten", { name: restaurant.name })}>
+							<UtensilsCrossed size={28} color="#FFFFFF" />
+						</TouchableOpacity>
+						<Text style={styles.actionText}>{i18n.t("Map.actions.writeReviewForThisDish")}</Text>
+					</View>
+				)}
 
 				<View style={styles.actionContainer}>
 					<TouchableOpacity

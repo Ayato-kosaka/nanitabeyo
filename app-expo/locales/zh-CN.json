@@ -29,7 +29,8 @@
 			"unexpected": "发生意外错误。请稍后重试。",
 			"notFound": "未找到",
 			"authUnavailable": "登录失败。请检查您的网络连接后重试。",
-			"authRateLimited": "当前请求过于频繁。请稍后再试。"
+			"authRateLimited": "当前请求过于频繁。请稍后再试。",
+			"videoProcessingFailed": "视频处理失败，请尝试其他视频。"
 		}
 	},
 	"DeepLinking": {
@@ -390,6 +391,9 @@
 		"share": {
 			"title": "看看{{dishName}}"
 		},
+		"save": {
+			"savedMessage": "已保存到想吃"
+		},
 		"buttons": {
 			"viewRestaurant": "查看餐厅"
 		},
@@ -397,8 +401,9 @@
 			"viewRestaurant": "查看{{name}}的门店详情",
 			"likeActive": "取消点赞{{name}}",
 			"likeInactive": "点赞{{name}}",
-			"saveActive": "取消保存{{name}}",
-			"saveInactive": "保存{{name}}",
+			"saveActive": "将{{name}}从想吃中移除",
+			"saveInactive": "将{{name}}保存到想吃",
+			"recordEaten": "将{{name}}记录为吃过",
 			"share": "分享{{name}}",
 			"openMap": "打开{{name}}的地图",
 			"reviewLike": "为{{username}}的点评点赞",
@@ -432,6 +437,9 @@
 			"saveFailed": "更新失败",
 			"conflict": "该评价已在其他设备上更新，请重新打开后再编辑。",
 			"forbidden": "只能编辑或删除自己的帖子"
+		},
+		"embed": {
+			"play": "在{{provider}}上播放"
 		}
 	},
 	"ImageCardGrid": {
@@ -445,31 +453,17 @@
 	"Tabs": {
 		"home": "首页",
 		"search": "搜索",
-		"review": "评论",
 		"notifications": "通知",
 		"profile": "个人资料",
 		"labels": {
 			"search": "搜索",
-			"review": "评论",
 			"notifications": "通知",
-			"profile": "个人资料"
-		}
+			"profile": "个人资料",
+			"myDishes": "我的美食"
+		},
+		"myDishes": "我的美食"
 	},
 	"Profile": {
-		"tabGroups": {
-			"reviews": "评论",
-			"saved": "已保存",
-			"liked": "喜欢",
-			"wallet": "钱包"
-		},
-		"tabs": {
-			"deposits": "存款",
-			"earnings": "收益",
-			"saved-posts": "帖子",
-			"saved-topics": "菜品",
-			"wallet-deposit": "存款",
-			"wallet-earning": "收益"
-		},
 		"numberSuffix": {
 			"million": "M",
 			"thousand": "K"
@@ -499,6 +493,10 @@
 			"refunded": "已退款",
 			"paid": "已支付",
 			"pending": "待定"
+		},
+		"menu": {
+			"likedPosts": "点赞的帖子",
+			"savedDishCategories": "已保存的菜品类别"
 		},
 		"buttons": {
 			"editProfile": "编辑个人资料",
@@ -556,7 +554,7 @@
 		},
 		"actions": {
 			"selectDishCategory": "选择菜品类别",
-			"writeReviewForThisDish": "为这道菜写评论"
+			"writeReviewForThisDish": "记录为吃过"
 		},
 		"inputs": {
 			"price": "价格",
@@ -572,7 +570,8 @@
 			"enterReviewShort": "简短评价（例：浓郁的豚骨汤真的超级好吃！）",
 			"enterBidAmount": "输入出价金额",
 			"enterDishCategory": "输入菜品类别（例如：火锅、点心）",
-			"searchRestaurantsForReview": "按名称或区域搜索"
+			"searchRestaurantsForReview": "按名称或区域搜索",
+			"searchAreaForReview": "按区域搜索"
 		},
 		"labels": {
 			"endDate": "结束日期:",
@@ -609,7 +608,11 @@
 			"selectingMedia": "正在选择媒体...",
 			"loadingMedia": "正在加载媒体...",
 			"mediaSelectionFailed": "媒体选择失败",
-			"mediaSelectionError": "选择媒体时发生错误。请重试。"
+			"mediaSelectionError": "选择媒体时发生错误。请重试。",
+			"replaceWithMyPhoto": "改用我自己的照片",
+			"openSettings": "打开设置",
+			"pickFromLibrary": "从相册选择",
+			"shootWithCamera": "拍照"
 		},
 		"noResultsFound": "未找到结果",
 		"accessibility": {
@@ -675,7 +678,37 @@
 				"asian": "亚洲菜",
 				"other": "其他"
 			}
+		},
+		"review": {
+			"title": "发布评论"
+		},
+		"emptyState": {
+			"noReviews": "还没有评论。\n成为第一个评论这家餐厅的人。"
+		},
+		"everybodyPostsTitle": "选择要评论的菜品",
+		"characterCount": "{{current}}/{{max}}",
+		"detail": {
+			"title": "餐厅详情"
 		}
+	},
+	"SelectRestaurant": {
+		"title": "选择要点评的餐厅",
+		"searchThisArea": "搜索此区域",
+		"savedRestaurantList": "已保存的餐厅",
+		"postPhotoVideo": "发布照片/视频",
+		"fetchSavedRestaurantsError": "获取已保存的餐厅失败",
+		"noSavedRestaurantsInArea": "在此区域未找到已保存的餐厅。请扩大区域并重新搜索。",
+		"nameSearch": {
+			"placeholder": "按店名搜索",
+			"searching": "搜索中…",
+			"noResults": "未找到匹配的店铺。请点击地图上的店铺进行添加。",
+			"error": "搜索失败，请重试。"
+		},
+		"accessibility": {
+			"clearNameSearch": "清除店名搜索"
+		},
+		"unsavedHint": "未保存的店铺也可以选择：在上方搜索框输入店名，或点击地图上的店铺图标。",
+		"pickTitle": "选择店铺"
 	},
 	"Feedback": {
 		"title": "发送反馈/错误报告",
@@ -732,7 +765,6 @@
 		"continue_with_apple": "使用 Apple 继续"
 	},
 	"Settings": {
-		"title": "设置",
 		"sendFeedback": "发送反馈",
 		"leaveReview": "留下评价",
 		"rateDialogTitle": "您喜欢这个应用吗？",
@@ -788,33 +820,184 @@
 		"shareWithFriends": "与朋友分享",
 		"cancel": "取消"
 	},
-	"Review": {
-		"title": "发布评论",
-		"hero": {
-			"title": "写推荐餐厅的点评\n并发布你吃过的菜品"
+	"MyDishes": {
+		"actions": {
+			"markAsEaten": "记录已吃",
+			"markAsEatenA11y": "将这道菜记录为已吃"
+		},
+		"views": {
+			"map": "地图",
+			"list": "列表",
+			"calendar": "日历"
+		},
+		"calendar": {
+			"monthLabel": "{{year}}年{{month}}月",
+			"weekdays": {
+				"sun": "日",
+				"mon": "一",
+				"tue": "二",
+				"wed": "三",
+				"thu": "四",
+				"fri": "五",
+				"sat": "六"
+			},
+			"dayA11yLabel": "{{date}}（{{count}}条）",
+			"reachedOldest": "已经是最早的记录了"
+		},
+		"map": {
+			"truncated": "地图上仅显示部分标记，请缩小搜索范围。",
+			"sheetTitle": "附近的记录 {{count}} 条"
 		},
 		"guest": {
-			"description": "登录以撰写评论",
+			"description": "登录后记录你想吃和吃过的美食",
 			"loginButton": "登录"
 		},
-		"authenticated": {
-			"postButton": "✏️ 发布餐厅评论"
+		"record": {
+			"cta": "记录",
+			"noPhotoTitle": "添加照片",
+			"noPhotoHint": "没有照片也可以记录",
+			"publicReviewNotice": "该记录将作为公开评价显示在餐厅页面上",
+			"postNotFoundNoPhoto": "该记录没有照片"
 		},
-		"selectRestaurant": {
-			"title": "选择要点评的餐厅",
-			"searchThisArea": "搜索此区域",
-			"savedRestaurantList": "已保存的餐厅",
-			"postPhotoVideo": "发布照片/视频",
-			"fetchSavedRestaurantsError": "获取已保存的餐厅失败",
-			"noSavedRestaurantsInArea": "在此区域未找到已保存的餐厅。请扩大区域并重新搜索。"
+		"filters": {
+			"title": "筛选与排序",
+			"apply": "应用",
+			"reset": "重置",
+			"status": {
+				"title": "状态",
+				"want": "想吃",
+				"eaten": "吃过",
+				"description": "选择要显示的记录：想吃 或 已吃"
+			},
+			"rating": {
+				"title": "评分",
+				"min": "★{{count}} 以上",
+				"description": "按你给出的评分筛选“已吃”的记录"
+			},
+			"sort": {
+				"title": "排序",
+				"occurredAtDesc": "最新优先",
+				"occurredAtAsc": "最早优先",
+				"ratingDesc": "评分从高到低",
+				"distance": "距离最近",
+				"distanceRequiresArea": "按距离排序需要指定区域。请在地图上点击“在此区域重新搜索”。",
+				"featureScoreDesc": "选择条件",
+				"description": "选择排序方式。点击“选择条件”可展开时间段、和谁一起等条件"
+			},
+			"area": {
+				"title": "区域",
+				"none": "不限（全部）",
+				"clear": "清除区域",
+				"hint": "区域通过地图上的“在此区域重新搜索”确定。",
+				"selected": "在地图上选择的范围（半径 {{radius}}）"
+			},
+			"axes": {
+				"none": "不限",
+				"timeSlot": "时段",
+				"scene": "和谁一起",
+				"budget": "价格区间",
+				"diningPace": "用餐时长",
+				"foodStyle": "菜式类型",
+				"description": "点击标题可展开选项。每个标题最多选一个"
+			},
+			"period": {
+				"title": "时间范围",
+				"none": "不限",
+				"clear": "清除时间范围"
+			},
+			"category": {
+				"title": "菜品类别",
+				"description": "按当前显示记录中最多的菜品类别筛选",
+				"count": "{{label}}（{{count}}）",
+				"showAll": "查看更多（还有{{count}}个）"
+			}
 		},
-		"emptyState": {
-			"noReviews": "还没有评论。\n成为第一个评论这家餐厅的人。"
+		"empty": {
+			"description": "你收藏或记录为已吃过的美食会显示在这里。"
 		},
-		"everybodyPostsTitle": "选择要评论的菜品",
-		"characterCount": "{{current}}/{{max}}",
-		"restaurantDetail": {
-			"title": "餐厅详情"
+		"list": {
+			"noPhoto": "无照片"
+		},
+		"sheet": {
+			"title": "{{restaurant}} 的记录",
+			"counts": "想吃 {{want}} · 吃过 {{eaten}}",
+			"openRestaurant": "打开店铺页面",
+			"expand": "全屏查看",
+			"seeAllInList": "在列表中查看",
+			"noPhotoHint": "该记录没有照片。点按可打开店铺页面。"
+		},
+		"feed": {
+			"chips": {
+				"filterCategory": "按{{name}}筛选",
+				"filterStatusEaten": "按「吃过」筛选",
+				"filterStatusWant": "按「想吃」筛选",
+				"filterMinRating": "按★{{count}} 以上筛选",
+				"applied": "已更新筛选条件"
+			}
+		},
+		"searchThisArea": "在此区域重新搜索"
+	},
+	"SnsImport": {
+		"title": "从社交媒体导入",
+		"confirm": {
+			"heading": "将导入这条帖子"
+		},
+		"expandPending": {
+			"heading": "分享的是短链接",
+			"description": "展开短链接以识别帖子的功能正在准备中。请分享帖子页面的网址。"
+		},
+		"unsupported": {
+			"heading": "无法导入该网址",
+			"description": "目前支持的服务是 TikTok / YouTube Shorts / Instagram。"
+		},
+		"tabs": {
+			"sns": "从社交平台",
+			"eaten": "记录已吃"
+		},
+		"input": {
+			"label": "粘贴社交平台链接",
+			"placeholder": "https://www.tiktok.com/... 或直接粘贴分享文本"
+		},
+		"actions": {
+			"resolve": "读取",
+			"save": "保存到想吃",
+			"saveRequirement": "选择菜品和店铺后即可保存。",
+			"resolveAgain": "重新读取"
+		},
+		"sections": {
+			"dishCategory": "菜品",
+			"restaurant": "店铺",
+			"dishCategorySearchPlaceholder": "按菜品名搜索（2 个字以上）",
+			"selected": "已选择：{{value}}",
+			"pickOnMap": "在地图上找店铺"
+		},
+		"save": {
+			"done": "已保存到想吃",
+			"failed": "保存失败"
+		},
+		"intro": "粘贴 Instagram、TikTok 或 YouTube Shorts 的帖子链接，选择菜品和店铺，即可保存到“想吃”。无需登录。",
+		"steps": {
+			"paste": "粘贴链接",
+			"dish": "选择菜品类别",
+			"restaurant": "选择店铺"
+		},
+		"pickRestaurant": {
+			"title": "在地图上选择店铺",
+			"hint": "点击地图上的店铺图标，或在上方搜索。选好后会回到导入页面。",
+			"done": "已选择“{{name}}”"
+		},
+		"result": {
+			"summary": "读取完成",
+			"noInfo": "无法从该帖子读取信息。在下方选择店铺和菜品类别即可保存。",
+			"showFullCaption": "查看更多",
+			"collapseCaption": "收起"
+		},
+		"eaten": {
+			"pickRestaurant": "选择店铺",
+			"pick": "选择",
+			"change": "更改",
+			"hint": "请先选择店铺。之后可以填写照片、一句点评、菜品类别、价格和推荐度（照片可选）。",
+			"done": "已记录为吃过"
 		}
 	}
 }

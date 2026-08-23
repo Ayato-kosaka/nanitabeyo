@@ -117,7 +117,7 @@ pnpm --filter e2e-mobile test:ios             # Android と同じく :smoke / :m
 | 層     | ディレクトリ                                                                                | 内容                                                          | 実行タイミング                                        |
 | ------ | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------- | ----------------------------------------------------- |
 | Tier 1 | `tests/smoke/`                                                                              | 起動・タブ導線の最小確認                                      | 夜間 CI + 手動実行。将来の PR ゲート候補              |
-| Tier 2 | `tests/navigation/` `tests/search/` `tests/review/` `tests/profile/` `tests/authenticated/` | 機能テスト全般(実 API 読み取り)                               | 夜間 CI                                               |
+| Tier 2 | `tests/navigation/` `tests/search/` `tests/my-dishes/` `tests/dish-category-group-votes/` `tests/profile/` `tests/authenticated/` | 機能テスト全般(実 API 読み取り)                               | 夜間 CI                                               |
 | Tier 3 | `tests/mutation/`                                                                           | dev DB への書き込み(いいね/保存・レビュー投稿)                | **既定では実行されない**。`RUN_MUTATION=1` で明示実行 |
 | 番外   | `tests/probe/`                                                                              | 不具合の存在を数値で示すプローブ(`@probe`)。**現在は空**      | **既定では実行されない**。`RUN_PROBE=1` で明示実行    |
 | 番外   | `tests/catalog/`                                                                            | UI カタログ(全画面のスクリーンショット収集。**検証ではない**) | **既定では実行されない**。`RUN_CATALOG=1` で明示実行  |
