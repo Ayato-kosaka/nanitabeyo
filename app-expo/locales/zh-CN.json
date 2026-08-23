@@ -883,7 +883,8 @@
 		},
 		"map": {
 			"truncated": "地图上仅显示部分标记，请缩小搜索范围。",
-			"sheetTitle": "附近的记录 {{count}} 条"
+			"sheetTitle": "附近的餐厅 {{count}} 家",
+			"tileA11yLabel": "{{name}}（想吃 {{want}} 条，吃过 {{eaten}} 条）"
 		},
 		"guest": {
 			"description": "登录后记录你想吃和吃过的美食",

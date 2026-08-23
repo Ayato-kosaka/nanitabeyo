@@ -411,6 +411,27 @@ export default function MyDishesFiltersScreen() {
 					))}
 				</Section>
 
+				{/* #1375 実機確認（5 巡目）: 評価は料理カテゴリーより **上**。「食べた」を選ぶと
+				    まず «どのくらい美味しかったか» で絞りたい、というオーナーの操作順に合わせる。
+				    #1375 実機確認: 評価は「食べた」を選んだときだけ出す。
+				    want 行は評価を持たないので、以前は常に出したうえで不活性にし「なぜ押せないか」を
+				    注記で説明していた。押せない UI を説明するより、出さない方が短い */}
+				{ratingEnabled && (
+					<Section
+						title={i18n.t("MyDishes.filters.rating.title")}
+						description={i18n.t("MyDishes.filters.rating.description")}>
+						{RATING_CHOICES.map((rating) => (
+							<Chip
+								key={rating}
+								testID={`my-dishes-filter-rating-${rating}`}
+								label={i18n.t("MyDishes.filters.rating.min", { count: rating })}
+								selected={draft.minRating === rating}
+								onPress={() => selectMinRating(rating)}
+							/>
+						))}
+					</Section>
+				)}
+
 				{/* #1375（3 巡目）: 料理カテゴリーの絞り込み。候補は «いま出ている記録の中で多いもの» */}
 				{categoryFacets.length > 0 && (
 					<Section
@@ -439,25 +460,6 @@ export default function MyDishesFiltersScreen() {
 								}}
 							/>
 						)}
-					</Section>
-				)}
-
-				{/* #1375 実機確認: 評価は「食べた」を選んだときだけ出す。
-				    want 行は評価を持たないので、以前は常に出したうえで不活性にし「なぜ押せないか」を
-				    注記で説明していた。押せない UI を説明するより、出さない方が短い */}
-				{ratingEnabled && (
-					<Section
-						title={i18n.t("MyDishes.filters.rating.title")}
-						description={i18n.t("MyDishes.filters.rating.description")}>
-						{RATING_CHOICES.map((rating) => (
-							<Chip
-								key={rating}
-								testID={`my-dishes-filter-rating-${rating}`}
-								label={i18n.t("MyDishes.filters.rating.min", { count: rating })}
-								selected={draft.minRating === rating}
-								onPress={() => selectMinRating(rating)}
-							/>
-						))}
 					</Section>
 				)}
 

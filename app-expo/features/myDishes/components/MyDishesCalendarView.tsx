@@ -24,6 +24,9 @@ import {
 import { MY_DISHES_EVENTS } from "../analytics";
 import { useMyDishesFeedScopeStore } from "../stores/useMyDishesFeedScopeStore";
 import { useMyDishesCalendarQuery } from "../hooks/useMyDishesCalendarQuery";
+import { countMyDishStatuses } from "@/features/myDishes/statusColors";
+import { MyDishStatusLegend } from "@/features/myDishes/components/MyDishStatusLegend";
+import { MyDishStatusCountBadges } from "@/features/myDishes/components/MyDishStatusCountBadges";
 
 /**
  * #1396 my-dishes の Calendar ビュー（設計書 (2/2) §4 / §7 の PR5）。
@@ -83,6 +86,9 @@ const DayCell = memo(function DayCell({ cell, onPress }: { cell: CalendarDayCell
 	}, [cell, onPress]);
 
 	const count = cell?.items.length ?? 0;
+	// #1375 実機確認（5 巡目）: 1 つの黒バッジに合計を出していたが、その日に «行きたい» が
+	// 何件で «食べた» が何件かは読めなかった。緑 / 赤に割って両方出す
+	const counts = useMemo(() => countMyDishStatuses(cell?.items ?? []), [cell?.items]);
 	const representative = cell && count > 0 ? cell.items[0] : null;
 	// #1396 【仕様】写真なしの記録（dishMedia === null）でも灰色プレースホルダーにしない。
 	// categoryImageUrl → restaurant.image_url の順で実画像へ落とす（#1375 追補2 決定3）
@@ -127,18 +133,24 @@ const DayCell = memo(function DayCell({ cell, onPress }: { cell: CalendarDayCell
 					</View>
 					{/* ⚠️ 件数バッジは **円の外（セル側）**に置く。円は `overflow: "hidden"` の丸マスクなので、
 					    中に置くと角が欠けて半月状に切れる（実 UI レビューで発見） */}
-					{count > 1 && (
-						<View style={styles.countBadge}>
-							<Text style={styles.countBadgeText}>{count}</Text>
-						</View>
-					)}
+					{/* ⚠️ 円の **外**（セル側）に置くこと。円は overflow:"hidden" の丸マスクなので、
+					    中へ入れると角が欠けて半月状に切れる（実 UI レビューで発見） */}
+					<View style={styles.countBadgeRow}>
+						<MyDishStatusCountBadges counts={counts} testIDPrefix="my-dishes-calendar-day-count" />
+					</View>
 				</>
 			) : (
-				<View style={styles.dayCircle}>
-					<Text style={[styles.dayNumber, count > 0 ? styles.dayNumberRecorded : styles.dayNumberEmpty]}>
-						{cell.day}
-					</Text>
-				</View>
+				<>
+					<View style={styles.dayCircle}>
+						<Text style={[styles.dayNumber, count > 0 ? styles.dayNumberRecorded : styles.dayNumberEmpty]}>
+							{cell.day}
+						</Text>
+					</View>
+					{/* 画像が引けなかった日も内訳は出す（数字だけの日が «記録ゼロ» に見えないように） */}
+					<View style={styles.countBadgeRow}>
+						<MyDishStatusCountBadges counts={counts} testIDPrefix="my-dishes-calendar-day-count" />
+					</View>
+				</>
 			)}
 		</Pressable>
 	);
@@ -389,6 +401,10 @@ export function MyDishesCalendarView() {
 				contentContainerStyle={styles.listContent}
 				showsVerticalScrollIndicator={false}
 			/>
+			{/* #1375 実機確認（5 巡目）: 日バッジの緑 / 赤が何を指すかを画面の最下部で明かす。
+			    ⚠️ inverted なリストの中へ入れないこと（scaleY(-1) で上下が反転して読めなくなる）。
+			    リストの外へ固定して置くのが正しい */}
+			<MyDishStatusLegend style={styles.legend} testID="my-dishes-calendar-legend" />
 		</View>
 	);
 }
@@ -404,6 +420,11 @@ const styles = StyleSheet.create({
 	listContent: {
 		paddingHorizontal: 16,
 		paddingVertical: 12,
+	},
+	legend: {
+		paddingVertical: 10,
+		borderTopWidth: StyleSheet.hairlineWidth,
+		borderTopColor: "#E5E7EB",
 	},
 	// #1375 実機確認: 月と月のあいだを広く取る。詰めると «どこからが次の月か» が読めない
 	month: {
@@ -473,21 +494,10 @@ const styles = StyleSheet.create({
 		textShadowOffset: { width: 0, height: 1 },
 		textShadowRadius: 3,
 	},
-	countBadge: {
+	countBadgeRow: {
 		position: "absolute",
-		right: 6,
+		right: 2,
 		bottom: 0,
-		minWidth: 16,
-		paddingHorizontal: 4,
-		paddingVertical: 1,
-		borderRadius: 8,
-		backgroundColor: "rgba(17,24,39,0.85)",
-		alignItems: "center",
-	},
-	countBadgeText: {
-		fontSize: 9,
-		fontWeight: "700",
-		color: "#FFFFFF",
 	},
 	footer: {
 		alignItems: "center",

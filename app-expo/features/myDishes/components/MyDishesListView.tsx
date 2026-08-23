@@ -19,6 +19,7 @@ import { buildMarkAsEatenRoute } from "../markAsEaten";
 import { beginMarkAsEaten } from "../markAsEatenFunnel";
 import { resolveMyDishThumbnailUrl } from "../thumbnail";
 import { useMyDishesQuery } from "../hooks/useMyDishesQuery";
+import { MY_DISH_STATUS_COLORS } from "@/features/myDishes/statusColors";
 
 /**
  * #1396 my-dishes のリストビュー（設計書 (2/2) §7 の PR3）。
@@ -304,12 +305,11 @@ const styles = StyleSheet.create({
 		fontWeight: "700",
 		color: "#FFFFFF",
 	},
-	// #1375 実機確認（2 巡目）: 食べたい = 緑（myDishCard.tsx と必ず一致させる）
 	statusWant: {
-		backgroundColor: "rgba(22,163,74,0.9)",
+		backgroundColor: MY_DISH_STATUS_COLORS.want,
 	},
 	statusEaten: {
-		backgroundColor: "rgba(240,85,55,0.9)",
+		backgroundColor: MY_DISH_STATUS_COLORS.eaten,
 	},
 	statusBadgeText: {
 		fontSize: 10,

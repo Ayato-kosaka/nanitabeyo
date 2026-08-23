@@ -4,6 +4,7 @@ import { Utensils } from "lucide-react-native";
 import i18n from "@/lib/i18n";
 import { getCacheKeyForImage } from "@/lib/image";
 import type { MyDishItem } from "@shared/api/v1/res";
+import { MY_DISH_STATUS_COLORS } from "@/features/myDishes/statusColors";
 
 /**
  * #1397 リストビューのカード（`MyDishesListView`）と料理メディア Sheet の行
@@ -147,12 +148,11 @@ const styles = StyleSheet.create({
 		paddingVertical: 2,
 		borderRadius: 10,
 	},
-	// #1375 実機確認（2 巡目）: 食べたい = 緑。「まだ行っていない（Go）」の意で青から変えた
 	statusWant: {
-		backgroundColor: "rgba(22,163,74,0.9)",
+		backgroundColor: MY_DISH_STATUS_COLORS.want,
 	},
 	statusEaten: {
-		backgroundColor: "rgba(240,85,55,0.9)",
+		backgroundColor: MY_DISH_STATUS_COLORS.eaten,
 	},
 	statusBadgeText: {
 		fontSize: 10,

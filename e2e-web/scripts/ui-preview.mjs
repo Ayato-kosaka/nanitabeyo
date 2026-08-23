@@ -59,8 +59,10 @@ const pad2 = (v) => (v < 10 ? `0${v}` : String(v));
 const d = new Date();
 const ym = (n) => { const a = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() - n, 15, 3)); return a; };
 const iso = (n, day) => { const a = ym(n); return new Date(Date.UTC(a.getUTCFullYear(), a.getUTCMonth(), day, 3)).toISOString(); };
-const item = (key, occurredAt, withMedia, cat = ["Q1", "ラーメン"]) => ({
-  key, status: "eaten", occurredAt, savedAt: null, eatenAt: occurredAt,
+// #1375 5 巡目: status を引数にした（緑=食べたい / 赤=食べた の内訳バッジを撮るため。
+// 既定は従来どおり "eaten" なので、既存の呼び出しの見え方は変わらない）
+const item = (key, occurredAt, withMedia, cat = ["Q1", "ラーメン"], status = "eaten") => ({
+  key, status, occurredAt, savedAt: status === "want" ? occurredAt : null, eatenAt: status === "eaten" ? occurredAt : null,
   restaurant: { id: "r-1", name: "醤油ラーメン一番", image_url: "https://img.example.invalid/r.jpg" },
   dish: { id: `dish-${key}`, category_id: cat[0], name: cat[1], reviewCount: 3, averageRating: 4.2, categoryImageUrl: "https://img.example.invalid/c.jpg" },
   dishMedia: withMedia ? { id: `dm-${key}`, thumbnailImageUrl: "https://img.example.invalid/t.jpg", mediaImageUrl: "https://img.example.invalid/m.jpg", mediaType: "image" } : null,
@@ -71,6 +73,11 @@ const page1 = [
   item("a", iso(0, 2), true), item("b", iso(0, 5), true), item("b2", iso(0, 5), true), item("c", iso(0, 11), true),
   item("d", iso(0, 14), false), item("e", iso(0, 20), true),
   item("f", iso(1, 3), true), item("g", iso(1, 9), true), item("h", iso(1, 22), true),
+  // #1375 5 巡目: 同じ日に «食べたい» と «食べた» が混ざる日を作る（日バッジが緑と赤に割れる）
+  item("w1", iso(0, 5), true, ["Q1", "ラーメン"], "want"),
+  item("w2", iso(0, 5), true, ["Q2", "寿司"], "want"),
+  item("w3", iso(0, 11), true, ["Q3", "カレー"], "want"),
+  item("w4", iso(0, 18), true, ["Q4", "うどん"], "want"),
   // #1375 4 巡目: 料理カテゴリー絞り込みの「もっと見る」を出すため 10 カテゴリー以上にする
   ...[["Q2","寿司"],["Q3","カレー"],["Q4","うどん"],["Q5","そば"],["Q6","天ぷら"],["Q7","焼き鳥"],["Q8","餃子"],["Q9","パスタ"],["Q10","ハンバーガー"],["Q11","牛丼"]]
     .map((cat, i) => item(`cat-${cat[0]}`, iso(0, 3 + (i % 20)), true, cat)),
@@ -187,6 +194,16 @@ await context.route("**/localhost:9999/**", (r) => {
   const env = (data) => r.fulfill({ json: { success: true, data } });
   if (p.endsWith("/health")) return env({ status: "ok" });
   if (p.endsWith("/v1/users/me/dishes")) return env({ data: page1, nextCursor: null, meta: { oldestOccurredAt: iso(1, 1) } });
+  // #1375 5 巡目: Map ビューの下帯（店名 + 緑/赤の内訳バッジ + 凡例）を撮るため
+  if (p.endsWith("/v1/users/me/dishes/map-pins"))
+    return env({
+      data: [
+        { restaurant: { id: "r-1", name: "醤油ラーメン一番", image_url: "https://img.example.invalid/r.jpg", location: { latitude: 35.68, longitude: 139.76 }, latitude: 35.68, longitude: 139.76 }, counts: { want: 2, eaten: 3 }, latestOccurredAt: iso(0, 20), representativeThumbnailUrl: "https://img.example.invalid/t.jpg" },
+        { restaurant: { id: "r-2", name: "寿司処 まえだ", image_url: null, location: { latitude: 35.69, longitude: 139.77 }, latitude: 35.69, longitude: 139.77 }, counts: { want: 1, eaten: 0 }, latestOccurredAt: iso(0, 14), representativeThumbnailUrl: null },
+        { restaurant: { id: "r-3", name: "カレーの店 ボンベイ", image_url: "https://img.example.invalid/r.jpg", location: { latitude: 35.67, longitude: 139.75 }, latitude: 35.67, longitude: 139.75 }, counts: { want: 0, eaten: 4 }, latestOccurredAt: iso(0, 11), representativeThumbnailUrl: "https://img.example.invalid/t.jpg" },
+      ],
+      truncated: false,
+    });
   if (p.endsWith("/v1/dish-media/imports/resolve")) return env(resolveResponse);
   if (p.endsWith("/v1/dish-media") && u.searchParams.has("ids")) {
     // 要求された id を echo する（id が食い違うとフィード側の突き合わせで 0 件になる）
@@ -212,6 +229,15 @@ await goto("/ja-JP/my-dishes?view=calendar");
 await page.getByTestId("my-dishes-calendar-list").waitFor({ timeout: 120000 }).catch((e) => console.log("calendar wait:", e.message));
 await page.waitForTimeout(3000);
 await shot("calendar");
+// 1b. calendar の最下部（凡例）
+await page.getByTestId("my-dishes-calendar-legend").first().waitFor({ timeout: 30000 }).catch((e) => console.log("legend wait:", e.message));
+await shot("calendar-legend");
+
+// 1c. map（下帯の店名 + 緑/赤の内訳 + 凡例）
+await goto("/ja-JP/my-dishes?view=map");
+await page.getByTestId("my-dishes-map-sheet").first().waitFor({ timeout: 120000 }).catch((e) => console.log("map sheet wait:", e.message));
+await page.waitForTimeout(2500);
+await shot("map-sheet");
 
 // 2. filters（先に一覧を訪れて store を満たす。カテゴリー候補は一覧のキャッシュから数える。
 // ⚠️ goto() はフルリロードで store が消えるので、フィルタへは **画面内のボタンから** 遷移する）
