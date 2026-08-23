@@ -29,17 +29,11 @@ export class SettingsPage {
 	readonly copyrightItem: Locator;
 	/** ブロック済みの料理トピック行 */
 	readonly blockedTopicsItem: Locator;
-	/** #1504 ハプティクスのオン/オフ行（タップ領域全体） */
-	readonly hapticsToggleItem: Locator;
 	/**
-	 * ハプティクストグルの実 DOM 上の `<input type="checkbox" role="switch">`。
-	 *
-	 * `SettingsToggleItem` の `testID` は react-native-web の `Switch` では中身の `<input>` ではなく
-	 * それを包む `<View>` へ `data-testid` として付与される（react-native-web の Switch 実装が
-	 * `testID` を除外リストに含めず outer View へスプレッドしているため）。
-	 * オン/オフの状態は `<input>` の `checked` にしか出ないので、そこまで一段掘って取得する。
+	 * #1504 端末設定行（規約カードの直上）。
+	 * トグル本体はこの行から push される端末設定画面にあり、`pages/DeviceSettingsPage.ts` が持つ。
 	 */
-	readonly hapticsToggleSwitch: Locator;
+	readonly deviceSettingsItem: Locator;
 	/** ログアウト行（ログイン済みユーザーのみ表示） */
 	readonly logoutItem: Locator;
 	/**
@@ -66,8 +60,7 @@ export class SettingsPage {
 		this.privacyItem = page.getByTestId("settings-privacy");
 		this.copyrightItem = page.getByTestId("settings-copyright");
 		this.blockedTopicsItem = page.getByTestId("settings-blocked-topics");
-		this.hapticsToggleItem = page.getByTestId("settings-haptics-toggle");
-		this.hapticsToggleSwitch = page.getByTestId("settings-haptics-toggle-switch").locator("input");
+		this.deviceSettingsItem = page.getByTestId("settings-device-settings");
 		this.logoutItem = page.getByTestId("settings-logout");
 		this.logoutConfirmDialog = page.getByTestId("modal-surface");
 		this.logoutConfirmTitle = page.getByText("ログアウトしますか？", { exact: true });
@@ -91,6 +84,11 @@ export class SettingsPage {
 	 */
 	async expectLoaded(): Promise<void> {
 		await expect(this.feedbackItem).toBeVisible();
+	}
+
+	/** #1504 端末設定行をタップして端末設定画面（`/[locale]/profile/device-settings`）へ遷移する */
+	async openDeviceSettings(): Promise<void> {
+		await this.deviceSettingsItem.click();
 	}
 
 	/**

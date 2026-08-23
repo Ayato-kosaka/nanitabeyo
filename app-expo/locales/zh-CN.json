@@ -744,6 +744,11 @@
 	},
 	"Settings": {
 		"hapticsEnabled": "触感反馈",
+		"deviceSettings": {
+			"navigationLabel": "设备设置",
+			"title": "设备设置",
+			"description": "这些设置仅保存在本设备上，不会同步到其他设备或账号。"
+		},
 		"sendFeedback": "发送反馈",
 		"leaveReview": "留下评价",
 		"rateDialogTitle": "您喜欢这个应用吗？",

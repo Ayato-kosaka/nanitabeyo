@@ -744,6 +744,11 @@
 	},
 	"Settings": {
 		"hapticsEnabled": "触覚フィードバック",
+		"deviceSettings": {
+			"navigationLabel": "端末設定",
+			"title": "端末設定",
+			"description": "この端末にのみ保存される設定です。他の端末やアカウントには引き継がれません。"
+		},
 		"sendFeedback": "ご意見・不具合",
 		"leaveReview": "レビューを書く",
 		"rateDialogTitle": "アプリを気に入っていただけましたか？",

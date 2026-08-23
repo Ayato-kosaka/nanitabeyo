@@ -4,6 +4,7 @@ import { launchAppWithSession, waitUntilVisible } from "../../fixtures/e2e";
 import { TabBar } from "../../screens/TabBar";
 import { ProfileScreen } from "../../screens/ProfileScreen";
 import { SettingsScreen } from "../../screens/SettingsScreen";
+import { DeviceSettingsScreen } from "../../screens/DeviceSettingsScreen";
 import { LegalScreen } from "../../screens/LegalScreen";
 
 /**
@@ -35,7 +36,8 @@ describe("設定項目（匿名ユーザー）", () => {
 	//   1. マイページタブを開く（#1402 以前は「歯車ボタンをタップして設定画面へ」だった）
 	//   2. 以下の項目が表示されることを検証:
 	//      - ご意見・不具合(settings-feedback) / レビューを書く(settings-leave-review、ネイティブのみ)
-	//      - ブロック済みの料理トピック(settings-blocked-topics) / 利用規約(settings-terms)
+	//      - ブロック済みの料理トピック(settings-blocked-topics) / 端末設定(settings-device-settings)
+	//      - 利用規約(settings-terms)
 	//      - プライバシーポリシー(settings-privacy)
 	it("設定メニューの各項目が表示される", async () => {
 		const tabBar = new TabBar();
@@ -49,6 +51,8 @@ describe("設定項目（匿名ユーザー）", () => {
 		await waitUntilVisible(settingsScreen.feedbackItem);
 		await waitUntilVisible(settingsScreen.leaveReviewItem);
 		await waitUntilVisible(settingsScreen.blockedTopicsItem);
+		// #1504 端末設定は規約カードの直上に置いた行。規約 4 行より上にいるので順序も併せて固定される
+		await waitUntilVisible(settingsScreen.deviceSettingsItem);
 		await waitUntilVisible(settingsScreen.termsItem);
 		await waitUntilVisible(settingsScreen.privacyItem);
 	});
@@ -94,9 +98,13 @@ describe("設定項目（匿名ユーザー）", () => {
 });
 
 /**
- * #1504 SET-01 ハプティクスのオン/オフトグル（匿名ユーザー）のテスト
+ * #1504 SET-01 端末設定画面（ハプティクスのオン/オフ）のテスト（匿名ユーザー）
  *
- * 対応する e2e-web: tests/profile/settings.spec.ts の「設定画面のハプティクストグル」。
+ * 対応する e2e-web: tests/profile/settings.spec.ts の「端末設定画面のハプティクストグル」。
+ *
+ * トグルはマイページ直置きではなく «端末設定» 行（settings-device-settings）から push される
+ * 別画面にある（オーナー指示。理由は app-expo/app/[locale]/(tabs)/profile/device-settings.tsx の冒頭）。
+ * ネイティブには URL 直遷移が無いので、ここでは必ず実 UI 導線（行のタップ）で開く。
  *
  * ## Web 版との違い（ネイティブでこそ意味がある理由）
  * ハプティクス自体は実機/エミュレータでしか実際に発火しない機能で、jest 側の
@@ -106,59 +114,67 @@ describe("設定項目（匿名ユーザー）", () => {
  * 「振動が実際に鳴らないこと」自体はここでは検証できない。
  * 代わりに、**ネイティブの `Switch` コンポーネントが実際に期待どおりの状態を描画し、
  * AsyncStorage 経由でアプリ再起動後も保持されること**を検証する
- * （`SettingsScreen.expectHapticsToggleValue` は Detox の `toHaveToggleValue()` を使う。
+ * （`DeviceSettingsScreen.expectHapticsToggleValue` は Detox の `toHaveToggleValue()` を使う。
  * e2e-web と異なり、ネイティブでは `testID` が `Switch` 自体に直接乗るため、
  * react-native-web 特有の「testID が外側の View へ逃げる」問題が無い）。
  *
  * 永続化の検証は「アプリを再起動しても状態が保持されること」で行う（recent-locations.test.ts と同じ方式。
  * `launchAppWithSession` は既定 `resetState: false` なので、再起動しても AsyncStorage は消えない）。
  */
-describe("設定画面のハプティクストグル（匿名ユーザー）", () => {
+describe("端末設定画面のハプティクストグル（匿名ユーザー）", () => {
 	beforeEach(async () => {
 		await launchAppWithSession({ as: "anon" });
 	});
 
-	// ─ テストケース: トグルが表示され、既定でオンである ─
+	// ─ テストケース: 端末設定行から開くと、トグルが表示され既定でオンである ─
 	// 手順:
 	//   1. マイページタブを開く（#1402 で歯車の 1 階層は無くなった）
-	//   2. トグル行（settings-haptics-toggle）が表示されることを検証
-	//   3. 既定値（未設定時はオン。hapticsSettingsStore.ts の仕様）であることを検証
-	it("トグルが表示され、既定でオンである", async () => {
+	//   2. 端末設定行（settings-device-settings）をタップして端末設定画面へ遷移する
+	//   3. トグル行（settings-haptics-toggle）が表示されることを検証
+	//   4. 既定値（未設定時はオン。hapticsSettingsStore.ts の仕様）であることを検証
+	it("端末設定行から開くと、トグルが表示され既定でオンである", async () => {
 		const tabBar = new TabBar();
 		const settingsScreen = new SettingsScreen();
+		const deviceSettingsScreen = new DeviceSettingsScreen();
 
 		await tabBar.gotoProfile();
 		await settingsScreen.expectLoaded();
 
-		await waitUntilVisible(settingsScreen.hapticsToggleItem);
-		await settingsScreen.expectHapticsToggleValue(true);
+		await settingsScreen.openDeviceSettings();
+		await deviceSettingsScreen.expectLoaded();
+		await deviceSettingsScreen.expectHapticsToggleValue(true);
 	});
 
 	// ─ テストケース: タップすると状態が変わり、アプリ再起動後も保持される ─
 	// 手順:
-	//   1. マイページ（設定項目）を表示する（既定オン）
+	//   1. マイページ →「端末設定」で端末設定画面を表示する（既定オン）
 	//   2. トグル行をタップしてオフにする → Switch の状態がオフになることを検証
-	//   3. アプリを再起動し、マイページを開き直してオフが保持されていることを検証（永続化）
+	//   3. アプリを再起動し、同じ導線で開き直してオフが保持されていることを検証（永続化）
 	//   4. 後始末: もう一度タップしてオンへ戻す
 	it("タップすると状態が変わり、アプリ再起動後も保持される", async () => {
 		const tabBar = new TabBar();
 		const settingsScreen = new SettingsScreen();
+		const deviceSettingsScreen = new DeviceSettingsScreen();
 
 		await tabBar.gotoProfile();
 		await settingsScreen.expectLoaded();
-		await settingsScreen.expectHapticsToggleValue(true);
+		await settingsScreen.openDeviceSettings();
+		await deviceSettingsScreen.expectLoaded();
+		await deviceSettingsScreen.expectHapticsToggleValue(true);
 
-		await settingsScreen.toggleHaptics();
-		await settingsScreen.expectHapticsToggleValue(false);
+		await deviceSettingsScreen.toggleHaptics();
+		await deviceSettingsScreen.expectHapticsToggleValue(false);
 
 		// アプリを再起動しても状態が保持される（resetState 既定 false = AsyncStorage は消えない）
 		await launchAppWithSession({ as: "anon" });
 		await tabBar.gotoProfile();
 		await settingsScreen.expectLoaded();
-		await settingsScreen.expectHapticsToggleValue(false);
+		await settingsScreen.openDeviceSettings();
+		await deviceSettingsScreen.expectLoaded();
+		await deviceSettingsScreen.expectHapticsToggleValue(false);
 
 		// 後始末: 既定値（オン）へ戻す
-		await settingsScreen.toggleHaptics();
-		await settingsScreen.expectHapticsToggleValue(true);
+		await deviceSettingsScreen.toggleHaptics();
+		await deviceSettingsScreen.expectHapticsToggleValue(true);
 	});
 });
