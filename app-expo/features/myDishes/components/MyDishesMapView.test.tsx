@@ -55,10 +55,16 @@ jest.mock("@/components/MapView", () => {
 				return ReactActual.createElement(RNView, { testID: "map-view" }, children);
 			},
 		),
+		// #1375（5 巡目）クラスタの丸は素の Marker で描く（AvatarBubbleMarker ではない）
+		Marker: ({ children, onPress, testID }: { children?: React.ReactNode; onPress?: () => void; testID?: string }) => {
+			if (onPress && testID === "my-dishes-map-cluster") clusterPresses.push(onPress);
+			return ReactActual.createElement(RNView, { testID }, children);
+		},
 	};
 });
 jest.mock("react-native-maps", () => ({ __esModule: true, default: () => null }));
 
+const clusterPresses: Array<() => void> = [];
 const pinPresses: Array<() => void> = [];
 const pinUris: Array<string | undefined> = [];
 jest.mock("@/features/mapMarkers", () => {
@@ -156,6 +162,7 @@ beforeEach(() => {
 	// #1375（5 巡目）viewport の保持はテスト間で漏らさない
 	useMyDishesViewportStore.getState().reset();
 	pinPresses.length = 0;
+	clusterPresses.length = 0;
 	pinUris.length = 0;
 	sheetPinLists.length = 0;
 	mockAnimateToRegion.mockClear();
@@ -694,5 +701,69 @@ describe("#1396 m-1 初回取得後に一度だけピンへ viewport を寄せ�
 			return Math.abs(lat - 35.6595) < 1e-6 || Math.abs(lat - 35.5) < 1e-6;
 		});
 		expect(stolen).toBeUndefined();
+	});
+});
+
+/*
+#1375 実機確認（5 巡目）「Map のクラスタリングはやってほしい」。
+
+近すぎるピンは 1 つの丸へ畳み、押すと中のピンの外接矩形へ寄る（= もう一段ほどく）。
+畳む粒度は **指を離したときの表示域**で決める（pan 追従は重く、ピンが動いて見える）。
+*/
+describe("#1375 Map のクラスタリング", () => {
+	const nearbyPin = {
+		...mockPin,
+		restaurant: { ...mockPin.restaurant, id: "restaurant-2", name: "隣の食堂", latitude: 35.5001, longitude: 139.5001 },
+	};
+	const farPin = {
+		...mockPin,
+		restaurant: { ...mockPin.restaurant, id: "restaurant-3", name: "遠くの食堂", latitude: 35.9, longitude: 139.9 },
+	};
+	const result = (pins: unknown[]) => ({
+		pins,
+		queryKey: "default",
+		isLoading: false,
+		error: null,
+		hasFetchedInitial: true,
+		truncated: false,
+		refresh: jest.fn(),
+	});
+
+	it("近い 2 件は丸 1 つに畳まれ、離れた 1 件は写真のピンのまま残る", async () => {
+		mockUseMyDishesMapPinsQuery.mockReturnValue(result([mockPin, nearbyPin, farPin]));
+		const tree = await render();
+		// 初期表示は日本全体（REGION_JP）なので 3 件とも «近い»。
+		// 人が寄せたところから判定する（クラスタの粒度は指を離した表示域で決まる）
+		act(() => {
+			regionChangeHandler?.({ latitude: 35.5, longitude: 139.5, latitudeDelta: 0.05, longitudeDelta: 0.05 });
+		});
+
+		const clusters = tree.root.findAll(
+			(node) => typeof node.type === "string" && node.props?.testID === "my-dishes-map-cluster",
+		);
+		expect(clusters).toHaveLength(1);
+		// 畳んだ 2 件ぶんの数字が出る
+		const texts = clusters[0].findAllByType("Text" as never).flatMap((n) => n.props.children);
+		expect(texts).toContain(2);
+	});
+
+	it("クラスタを押すと中のピンの範囲へ寄る（Feed へは行かない）", async () => {
+		mockUseMyDishesMapPinsQuery.mockReturnValue(result([mockPin, nearbyPin]));
+		await render();
+		act(() => {
+			regionChangeHandler?.({ latitude: 35.5, longitude: 139.5, latitudeDelta: 0.05, longitudeDelta: 0.05 });
+		});
+
+		expect(clusterPresses.length).toBeGreaterThanOrEqual(1);
+		mockAnimateToRegion.mockClear();
+		act(() => {
+			clusterPresses[clusterPresses.length - 1]();
+		});
+
+		expect(mockAnimateToRegion).toHaveBeenCalled();
+		const [region] = mockAnimateToRegion.mock.calls[mockAnimateToRegion.mock.calls.length - 1];
+		expect(region.latitude).toBeCloseTo(35.50005, 4);
+		// クラスタ押下は «ほどく» 操作であって記録を開く操作ではない
+		expect(mockPush).not.toHaveBeenCalled();
 	});
 });

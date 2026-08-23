@@ -2,11 +2,12 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { StyleSheet, Text, View } from "react-native";
 import { RotateCw } from "lucide-react-native";
 import MapViewClass from "react-native-maps";
-import MapView, { type Region } from "@/components/MapView";
+import MapView, { Marker, type Region } from "@/components/MapView";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { EmptyState } from "@/components/EmptyState";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { AvatarBubbleMarker } from "@/features/mapMarkers";
+import { clusterMyDishPins, regionForCluster, type MyDishPinCluster } from "../clustering";
 import { INITIAL_REGION, REGION_JP } from "@/features/map/constants";
 import { useHaptics } from "@/hooks/useHaptics";
 import { router } from "expo-router";
@@ -63,6 +64,11 @@ export function MyDishesMapView() {
 	const mapRef = useRef<MapViewClass>(null);
 	// #1396 【設計】生の viewport はここにだけ置く。store には絶対に書かない（§3-2）
 	const currentRegionRef = useRef<Region>(initialRegion);
+	// #1375 実機確認（5 巡目）「クラスタリングはやってほしい」。
+	// 近すぎて重なるピンを 1 つの丸へ畳む単位は **いま画面に映っている範囲**（clustering.ts）。
+	// ⚠️ ここを `onRegionChangeComplete`（= 指を離した後）でしか更新しないこと。
+	// pan に追従させると毎フレーム畳み直して重く、しかもピンが動いて見える
+	const [clusterRegion, setClusterRegion] = useState<Region>(initialRegion);
 	// #1375 実機確認（2 巡目）: 「ズームインしてから…」の注意文とボタン無効化は廃止した。
 	// 広すぎる表示域では `regionToArea` が MAX_AREA_RADIUS_M（50km）へ黙って丸める。
 	// 「押せない理由を説明する」より「押したら常識的な範囲で動く」方が短い
@@ -71,6 +77,9 @@ export function MyDishesMapView() {
 		// #1375（5 巡目）人が動かした表示域を覚える。次にこの画面へ来たらここから始める
 		// （取得には一切関与しない store。useMyDishesViewportStore のコメント参照）
 		setMyDishesViewportRegion(region);
+		// #1375（5 巡目）クラスタの粒度は «指を離したときの表示域» で決める。
+		// pan の最中に畳み直すと重いうえ、ピンが動いて見える
+		setClusterRegion(region);
 	}, []);
 
 	// #1396 【設計】store（= queryKey）を書く唯一の口。ボタン押下時にのみ呼ばれる
@@ -209,22 +218,52 @@ export function MyDishesMapView() {
 
 	// マーカー配列は memo で固定する。`pins` が同じ参照である限り、activeIndex 等の
 	// 無関係な state 更新で 300 個のマーカーへ props が流れない
+	const clusters = useMemo(() => clusterMyDishPins(pins, clusterRegion), [pins, clusterRegion]);
+
+	// クラスタを押したら «もう一段ほどく»。中のピンの外接矩形へ寄せる
+	const handleClusterPress = useCallback(
+		(cluster: MyDishPinCluster) => {
+			lightImpact();
+			const region = regionForCluster(cluster);
+			currentRegionRef.current = region;
+			setMyDishesViewportRegion(region);
+			setClusterRegion(region);
+			mapRef.current?.animateToRegion(region, 400);
+		},
+		[lightImpact],
+	);
+
+	// マーカー配列は memo で固定する。`clusters` が同じ参照である限り、activeIndex 等の
+	// 無関係な state 更新で 300 個のマーカーへ props が流れない
 	const markers = useMemo(
 		() =>
-			pins.map((pin) => (
-				<AvatarBubbleMarker
-					key={pin.restaurant.id}
-					testID="my-dishes-map-pin"
-					coordinate={{ latitude: pin.restaurant.latitude, longitude: pin.restaurant.longitude }}
-					onPress={() => handlePinPress(pin)}
-					// #1398 PR5 写真なし（representativeThumbnailUrl === null）でも灰色プレースホルダーに
-					// しない（#1375 追補2 決定3）。`MyDishPin` はピン＝店舗単位で `dish` を持たないため、
-					// list / calendar と違い `categoryImageUrl` の段は無く `restaurant.image_url` へ直接
-					// 落ちる（設計書 (2/2) §5-2 で確定。GET .../map-pins のレスポンスは変えない）
-					uri={pin.representativeThumbnailUrl ?? pin.restaurant.image_url ?? undefined}
-				/>
-			)),
-		[handlePinPress, pins],
+			clusters.map((cluster) =>
+				cluster.pins.length === 1 ? (
+					<AvatarBubbleMarker
+						key={cluster.id}
+						testID="my-dishes-map-pin"
+						coordinate={{ latitude: cluster.latitude, longitude: cluster.longitude }}
+						onPress={() => handlePinPress(cluster.pins[0])}
+						// #1398 PR5 写真なし（representativeThumbnailUrl === null）でも灰色プレースホルダーに
+						// しない（#1375 追補2 決定3）。`MyDishPin` はピン＝店舗単位で `dish` を持たないため、
+						// list / calendar と違い `categoryImageUrl` の段は無く `restaurant.image_url` へ直接
+						// 落ちる（設計書 (2/2) §5-2 で確定。GET .../map-pins のレスポンスは変えない）
+						uri={cluster.pins[0].representativeThumbnailUrl ?? cluster.pins[0].restaurant.image_url ?? undefined}
+					/>
+				) : (
+					<Marker
+						key={cluster.id}
+						testID="my-dishes-map-cluster"
+						coordinate={{ latitude: cluster.latitude, longitude: cluster.longitude }}
+						onPress={() => handleClusterPress(cluster)}
+						accessibilityLabel={i18n.t("MyDishes.map.clusterA11yLabel", { count: cluster.pins.length })}>
+						<View style={styles.cluster}>
+							<Text style={styles.clusterLabel}>{cluster.pins.length}</Text>
+						</View>
+					</Marker>
+				),
+			),
+		[clusters, handleClusterPress, handlePinPress],
 	);
 
 	const showInitialLoading = isLoading && !hasFetchedInitial && !error;
@@ -304,6 +343,24 @@ export function MyDishesMapView() {
 }
 
 const styles = StyleSheet.create({
+	// #1375（5 巡目）クラスタの丸。地図の上に載るので白い縁で輪郭を保つ
+	// （バッジ類と同じ考え方。`features/myDishes/components/MyDishStatusCountBadges.tsx`）
+	cluster: {
+		minWidth: 36,
+		height: 36,
+		paddingHorizontal: 6,
+		borderRadius: 18,
+		alignItems: "center",
+		justifyContent: "center",
+		backgroundColor: "rgba(17,24,39,0.82)",
+		borderWidth: 2,
+		borderColor: "#FFFFFF",
+	},
+	clusterLabel: {
+		fontSize: 14,
+		fontWeight: "700",
+		color: "#FFFFFF",
+	},
 	container: {
 		flex: 1,
 	},

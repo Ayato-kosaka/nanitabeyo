@@ -885,7 +885,8 @@
 		"map": {
 			"truncated": "Seuls certains repères sont affichés. Réduisez la zone de recherche.",
 			"sheetTitle": "{{count}} restaurants à proximité",
-			"tileA11yLabel": "{{name}} (à goûter : {{want}}, goûté : {{eaten}})"
+			"tileA11yLabel": "{{name}} (à goûter : {{want}}, goûté : {{eaten}})",
+			"clusterA11yLabel": "{{count}} restaurants ici"
 		},
 		"guest": {
 			"description": "Connectez-vous pour enregistrer les plats que vous voulez essayer et ceux que vous avez mangés",

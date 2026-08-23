@@ -658,3 +658,45 @@ describe("#1397 (PR5/5) contextual filter chips（§10）", () => {
 		).toHaveLength(1);
 	});
 });
+
+/*
+#1375 実機確認（5 巡目）: 「Map から開いたフィードも、カレンダーから開いたのと同じ軸に
+してほしい（縦でレストランを切り替え、横で同じ店の中）」。
+
+2 巡目では date スコープだけを «縦 = 日 / 横 = 同じ日の投稿» にしていたため、
+**同じ全画面フィードなのに入口によって指の向きが変わっていた**。ここはその回帰テストで、
+外側のページャが常に縦・内側が常に横であることを両スコープで見る。
+*/
+describe("#1375 フィードの軸は入口によらず «縦 = スコープ送り / 横 = スコープ内»", () => {
+	beforeEach(() => {
+		jest.clearAllMocks();
+		mockParams = { locale: "ja-JP", restaurantId: RESTAURANT_ID, itemKey: "review:with-photo" };
+		respond(
+			[makeRow("review:with-photo", "media-1"), makeRow("review:b", "media-2")],
+			[makeEntry("media-1"), makeEntry("media-2")],
+		);
+	});
+
+	const axisOf = (tree: TestRenderer.ReactTestRenderer) => {
+		const pager = tree.root.find((node) => node.props?.testID === "my-dishes-feed-pager");
+		// FlatList の horizontal は未指定＝縦
+		return pager.props.horizontal === true ? "horizontal" : "vertical";
+	};
+	const innerAxisOf = (tree: TestRenderer.ReactTestRenderer) => {
+		const feeds = tree.root.findAll((node) => node.props?.testID === "dish-media-feed");
+		return feeds[0]?.props.horizontal === true ? "horizontal" : "vertical";
+	};
+
+	it("restaurant スコープ: 外側は縦、内側は横", async () => {
+		const tree = await render();
+		expect(axisOf(tree)).toBe("vertical");
+		expect(innerAxisOf(tree)).toBe("horizontal");
+	});
+
+	it("date スコープ: 外側は縦、内側は横（2 巡目からの挙動を保つ）", async () => {
+		mockParams = { locale: "ja-JP", scope: "date", date: "2026-08-01", itemKey: "review:with-photo" };
+		const tree = await render();
+		expect(axisOf(tree)).toBe("vertical");
+		expect(innerAxisOf(tree)).toBe("horizontal");
+	});
+});
