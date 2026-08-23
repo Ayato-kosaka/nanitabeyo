@@ -23,7 +23,7 @@
 // | --- | --- | --- |
 // | YouTube | `https://www.youtube.com/oembed`（無認証・200） | `title` / `author_name` / `author_url` / `thumbnail_url`。**`description` は返らない** |
 // | TikTok | `https://www.tiktok.com/oembed`（無認証・200） | `title` に**キャプション＋ハッシュタグがそのまま**入る。3 provider で最も情報量が多い |
-// | Instagram | Graph API の `instagram_oembed`。**Meta のアプリ審査が要る** | **叩かない。** 常に `unknown` へ縮退する |
+// | Instagram | 埋め込み SSR `https://www.instagram.com/p/{code}/embed/captioned/` | **oEmbed ではなく埋め込みの SSR HTML** から取る（#1375 3 巡目で実測）。非ブラウザ UA（既定の `nanitabeyo/1.0`）に対してはサーバレンダリングされた HTML が返り、キャプション全文（店舗情報・ハッシュタグ込み）・サムネイル URL・投稿者名が入っている。Graph API の `instagram_oembed`（Meta 審査要）は、この経路が封じられたときの正規フォールバック候補として温存 | |
 
 import { Injectable } from '@nestjs/common';
 
@@ -63,8 +63,24 @@ export type SnsMetadataOutcome =
 const OEMBED_ENDPOINTS: Readonly<Record<SnsProvider, string | null>> = {
   youtube: 'https://www.youtube.com/oembed',
   tiktok: 'https://www.tiktok.com/oembed',
+  // Instagram は oEmbed ではなく埋め込み SSR（下の INSTAGRAM_EMBED_* ）で取る
   instagram: null,
 };
+
+/**
+ * Instagram の埋め込み SSR。**ホストは固定**で、パスへ入るのは
+ * `parseSnsUrl` が正規表現で検証済みの shortcode だけ（SSRF は成立しない）。
+ *
+ * 実測（2026-08-23 / Cloud Run 相当の DC IP・既定 UA `nanitabeyo/1.0`）:
+ * - `p` / `reel` どちらの shortcode でも 200 + SSR HTML（約 260 KiB）
+ * - HTML に `class="Caption"`（キャプション全文）・`EmbeddedMediaImage`（scontent の
+ *   サムネイル URL）・`UsernameText` が入る
+ * - **ブラウザ UA だと JS シェル（600 KiB / SSR なし）が返る。** UA を既定から
+ *   変えないこと（SafeFetch の「UA を詐称しない」とも整合する）
+ */
+const INSTAGRAM_EMBED_BASE = 'https://www.instagram.com';
+/** SSR embed は約 260 KiB。既定の 256 KiB では**わずかに足りない**ので明示する */
+const INSTAGRAM_EMBED_MAX_BYTES = 1024 * 1024;
 
 /** `logger.externalApi` に出す名前 */
 const API_NAMES: Readonly<Record<SnsProvider, string>> = {
@@ -95,10 +111,13 @@ export class SnsOembedService {
    * 投稿のメタデータを取る。**例外は投げない。**
    */
   async fetchMetadata(content: SnsUrlContent): Promise<SnsMetadataOutcome> {
+    if (content.provider === 'instagram') {
+      return this.fetchInstagramEmbedMetadata(content);
+    }
+
     const endpoint = OEMBED_ENDPOINTS[content.provider];
 
     if (endpoint === null) {
-      // Instagram。**取れない前提の縮退であって、失敗ではない。**
       this.logger.debug('SnsOembedSkipped', 'fetchMetadata', {
         provider: content.provider,
         reason: 'no_server_side_metadata_endpoint',
@@ -170,6 +189,65 @@ export class SnsOembedService {
   }
 
   /**
+   * Instagram の埋め込み SSR からメタデータを取る（#1375 3 巡目）。
+   *
+   * ## HTML は保存しない
+   *
+   * ここで受けた HTML から **caption / サムネイル URL / 投稿者名の 3 つだけ**を抽出して
+   * すぐ捨てる。`html` を持ち回らない規律（#1273 §14）は oEmbed と同じ。
+   *
+   * ## SSR が返らなかったら «取れなかった» へ縮退する
+   *
+   * Instagram 側の UA 判定・レート制限・仕様変更で JS シェルが返ることがある。
+   * その場合は Caption 要素が無いので `fetch_failed` として扱い、既存の
+   * «候補ゼロ＋手入力へ縮退» にそのまま乗る（この画面の設計が最初からそうなっている）。
+   */
+  private async fetchInstagramEmbedMetadata(
+    content: SnsUrlContent,
+  ): Promise<SnsMetadataOutcome> {
+    const embedUrl = `${INSTAGRAM_EMBED_BASE}/p/${content.externalContentId}/embed/captioned/`;
+
+    let html: string;
+    try {
+      html = await this.safeFetch.fetchText(embedUrl, {
+        apiName: API_NAMES.instagram,
+        functionName: 'fetchInstagramEmbedMetadata',
+        maxResponseBytes: INSTAGRAM_EMBED_MAX_BYTES,
+      });
+    } catch (error) {
+      return this.classifyFailure(error, 'instagram');
+    }
+
+    const metadata = parseInstagramEmbedHtml(html);
+    if (metadata === null) {
+      // 200 だが SSR ではない（JS シェル / ログイン壁 / 仕様変更）。手入力へ縮退させる
+      this.logger.warn('InstagramEmbedNotSsr', 'fetchInstagramEmbedMetadata', {
+        htmlLength: html.length,
+      });
+      return {
+        status: 'unknown',
+        kind: 'fetch_failed',
+        detail: { provider: 'instagram', reason: 'embed_not_ssr' },
+      };
+    }
+
+    return {
+      status: 'ok',
+      metadata: {
+        title: this.pickString(metadata.caption),
+        authorName: this.pickString(metadata.username),
+        authorUrl:
+          metadata.username !== null
+            ? this.pickHttpsUrl(
+                `https://www.instagram.com/${encodeURIComponent(metadata.username)}/`,
+              )
+            : null,
+        thumbnailUrl: this.pickHttpsUrl(metadata.thumbnailUrl),
+      },
+    };
+  }
+
+  /**
    * 失敗を «相手が消えた» と «こちらの都合» に振り分ける（設計 §3-7）。
    *
    * **この 2 つを混ぜてはいけない。** 混ぜると、TikTok が一時的に落ちただけで
@@ -218,4 +296,67 @@ export class SnsOembedService {
       detail: { provider, kind: 'unknown_error' },
     };
   }
+}
+
+/** `parseInstagramEmbedHtml` の戻り値。全フィールド «取れなければ null» */
+export type InstagramEmbedFields = {
+  caption: string | null;
+  thumbnailUrl: string | null;
+  username: string | null;
+};
+
+/** HTML エンティティのうち、embed SSR に実際に出るものだけを戻す */
+const decodeHtmlEntities = (text: string): string =>
+  text
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&#x27;/g, "'");
+
+/**
+ * Instagram 埋め込み SSR の HTML から caption / サムネイル / 投稿者名を抜く純関数。
+ *
+ * DOM パーサは使わない（依存を増やさない）。目印は埋め込みウィジェットが何年も
+ * 使っている class 名（`Caption` / `EmbeddedMediaImage` / `UsernameText`）で、
+ * どれも無ければ **SSR ではない**と判断して null を返す（呼び出し側が縮退する）。
+ */
+export function parseInstagramEmbedHtml(
+  html: string,
+): InstagramEmbedFields | null {
+  const imageMatch =
+    /<img[^>]*class="[^"]*EmbeddedMediaImage[^"]*"[^>]*src="([^"]+)"/.exec(
+      html,
+    ) ??
+    /<img[^>]*src="([^"]+)"[^>]*class="[^"]*EmbeddedMediaImage[^"]*"/.exec(
+      html,
+    );
+  const captionMatch = /<div class="Caption"[^>]*>([\s\S]*?)<\/div>/.exec(html);
+  const usernameMatch = /class="UsernameText"[^>]*>([^<]+)</.exec(html);
+
+  if (imageMatch === null && captionMatch === null && usernameMatch === null) {
+    return null;
+  }
+
+  let caption: string | null = null;
+  if (captionMatch !== null) {
+    caption = decodeHtmlEntities(
+      captionMatch[1].replace(/<br\s*\/?\s*>/gi, '\n').replace(/<[^>]+>/g, ' '),
+    )
+      .replace(/[ \t]+/g, ' ')
+      .replace(/\s*\n\s*/g, '\n')
+      .trim();
+    if (caption.length === 0) caption = null;
+  }
+
+  return {
+    caption,
+    thumbnailUrl:
+      imageMatch !== null ? decodeHtmlEntities(imageMatch[1]) : null,
+    username:
+      usernameMatch !== null
+        ? decodeHtmlEntities(usernameMatch[1]).trim() || null
+        : null,
+  };
 }

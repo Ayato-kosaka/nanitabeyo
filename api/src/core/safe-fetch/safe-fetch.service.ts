@@ -188,6 +188,104 @@ export class SafeFetchService {
     }
   }
 
+  /**
+   * **provider ごとの固定エンドポイント**から HTML/テキストを取る。
+   *
+   * #1399 Instagram の埋め込み SSR（`https://www.instagram.com/p/{code}/embed/captioned/`）用。
+   * fetchJson と同じ衛生（固定ホスト・タイムアウト・サイズ上限・リダイレクト非追従）で、
+   * Content-Type だけ text/html を受ける。呼び出し側は **HTML を保存せず**、
+   * 使うフィールドを抽出したら捨てること（#1273 §14 の規律はここでも同じ）。
+   */
+  async fetchText(
+    rawUrl: string,
+    options: SafeFetchHygieneOptions,
+  ): Promise<string> {
+    const url = this.assertHygienicUrl(rawUrl);
+    const deadline =
+      Date.now() + (options.timeoutMs ?? SAFE_FETCH_DEFAULTS.timeoutMs);
+
+    const { status, contentType, body } = await this.performRequest(url, {
+      method: 'GET',
+      headers: { ...DEFAULT_HEADERS, accept: 'text/html' },
+      deadline,
+      perRequestTimeoutMs: options.timeoutMs ?? SAFE_FETCH_DEFAULTS.timeoutMs,
+      maxResponseBytes:
+        options.maxResponseBytes ?? SAFE_FETCH_DEFAULTS.maxResponseBytes,
+      apiName: options.apiName,
+      functionName: options.functionName,
+    });
+
+    if (status < 200 || status >= 300) {
+      throw new SafeFetchError(
+        'unexpected_status',
+        `Unexpected status ${status}`,
+        { status },
+      );
+    }
+
+    if (!contentType.startsWith('text/html')) {
+      throw new SafeFetchError(
+        'unexpected_content_type',
+        `Unexpected content-type ${contentType}`,
+        { contentType },
+      );
+    }
+
+    return body.toString('utf8');
+  }
+
+  /**
+   * provider が返した **画像 URL** からバイナリを取る（#1399 サムネイルの自ストレージ保存用）。
+   *
+   * URL はユーザー入力ではなく provider のレスポンス由来だが、それでも信用しない:
+   * - https のみ / 呼び出し側が `allowHost` でホストを検証してから渡す
+   * - Content-Type は image/* のみ
+   * - サイズ上限（既定より大きめを呼び出し側が指定する想定）
+   * - リダイレクトは追わない（CDN の画像 URL が 3xx を返すのは想定外）
+   */
+  async fetchImage(
+    rawUrl: string,
+    options: SafeFetchHygieneOptions & { allowHost: (host: string) => boolean },
+  ): Promise<{ buffer: Buffer; contentType: string }> {
+    const url = this.assertHygienicUrl(rawUrl);
+    if (!options.allowHost(url.hostname)) {
+      throw new SafeFetchError('host_not_allowed', 'Host not allowed', {
+        host: url.hostname,
+      });
+    }
+    const deadline =
+      Date.now() + (options.timeoutMs ?? SAFE_FETCH_DEFAULTS.timeoutMs);
+
+    const { status, contentType, body } = await this.performRequest(url, {
+      method: 'GET',
+      headers: { ...DEFAULT_HEADERS, accept: 'image/*' },
+      deadline,
+      perRequestTimeoutMs: options.timeoutMs ?? SAFE_FETCH_DEFAULTS.timeoutMs,
+      maxResponseBytes:
+        options.maxResponseBytes ?? SAFE_FETCH_DEFAULTS.maxResponseBytes,
+      apiName: options.apiName,
+      functionName: options.functionName,
+    });
+
+    if (status < 200 || status >= 300) {
+      throw new SafeFetchError(
+        'unexpected_status',
+        `Unexpected status ${status}`,
+        { status },
+      );
+    }
+
+    if (!contentType.startsWith('image/')) {
+      throw new SafeFetchError(
+        'unexpected_content_type',
+        `Unexpected content-type ${contentType}`,
+        { contentType },
+      );
+    }
+
+    return { buffer: body, contentType };
+  }
+
   /* ------------------------------------------------------------------ */
   /*  SSRF ガード層: ユーザー入力 URL のリダイレクト解決                  */
   /* ------------------------------------------------------------------ */

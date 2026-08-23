@@ -17,7 +17,7 @@
 //   ├ null            → unsupported_url（候補ゼロ＋理由）
 //   ├ kind:"shortlink" → SafeFetch で展開 → もう一度 parseSnsUrl
 //   └ kind:"content"   → そのまま
-// oEmbed でメタデータ取得（TikTok / YouTube。Instagram は取れない前提で縮退）
+// メタデータ取得（TikTok / YouTube = oEmbed、Instagram = 埋め込み SSR。#1375 3 巡目）
 //   └ 失敗 → 候補ゼロ＋理由（**例外を投げっぱなしにしない**）
 // matchDishCategories(texts, 辞書)      ← shared/utils/dishCategoryMatch.ts
 // matchRestaurantNames(texts, 近傍店舗) ← shared/utils/restaurantNameMatch.ts
@@ -172,6 +172,23 @@ export class DishMediaImportsService {
 
       let dishMediaId = existing?.dish_media_id ?? null;
       const created = dishMediaId === null;
+
+      if (dishMediaId !== null && resolved.status === 'ok') {
+        // #1375（3 巡目）再取り込み時はサムネイル URL を更新する。Instagram / TikTok の
+        // CDN URL は署名付きで数日〜数週間で失効するため、取れたときに貼り替えておく
+        await tx.dish_media_external_embeddings.updateMany({
+          where: {
+            provider,
+            external_content_id: externalContentId,
+            dish_id: dish.id,
+          },
+          data: {
+            thumbnail_url: resolved.metadata.thumbnailUrl,
+            embed_status: 'available',
+            last_verified_at: new Date(),
+          },
+        });
+      }
 
       if (dishMediaId === null) {
         /* 3. dish_media。実体は自ストレージに無いので media_path は NULL */
@@ -442,10 +459,12 @@ export class DishMediaImportsService {
   ): ExtractedText[] {
     if (metadata.title === null) return [];
 
-    // TikTok の `title` はキャプション本文（ハッシュタグ込み）、YouTube の `title` は動画題名。
-    // 由来が違うので field を分けておく（信頼度の調整はしていないが、根拠のログで区別できる）
+    // TikTok / Instagram の `title` はキャプション本文（ハッシュタグ・店舗情報込み）、
+    // YouTube の `title` は動画題名。由来が違うので field を分けておく
+    // （信頼度の調整はしていないが、根拠のログで区別できる）。
+    // Instagram は #1375（3 巡目）で埋め込み SSR からキャプションが取れるようになった
     const field: ExtractedText['field'] =
-      content.provider === 'tiktok' ? 'caption' : 'title';
+      content.provider === 'youtube' ? 'title' : 'caption';
     return [{ field, text: metadata.title }];
   }
 

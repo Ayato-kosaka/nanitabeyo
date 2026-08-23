@@ -10,7 +10,7 @@
 //  - リダイレクトがプライベート IP へ向いたら «候補ゼロ＋理由» になる（例外を投げっぱなしにしない）
 //  - リダイレクト上限超過も同じく «候補ゼロ＋理由»
 //  - oEmbed が 4xx / 5xx / タイムアウトでも «候補ゼロ＋理由»
-//  - Instagram は oEmbed が取れなくても縮退して返る
+//  - Instagram は埋め込み SSR から取り、SSR でなければ縮退して返る
 //  - lat/lng/radius が渡されたときだけ店舗候補を探す
 //  - **DB へ 1 行も書かない**
 
@@ -413,28 +413,89 @@ describe('DishMediaImportsService — oEmbed の失敗', () => {
   });
 });
 
-describe('DishMediaImportsService — Instagram の縮退', () => {
-  it('oEmbed を叩かずに unknown で返る（審査が要るので取れない前提）', async () => {
+describe('DishMediaImportsService — Instagram（埋め込み SSR。#1375 3 巡目）', () => {
+  const INSTAGRAM_EMBED_URL =
+    'https://www.instagram.com/p/DAbcDefGhIj/embed/captioned/';
+
+  /** 実物（/reel/Dap33wsTO4p/ を 2026-08-23 に実取得）を最小化した SSR HTML */
+  const SSR_EMBED_HTML = [
+    '<!DOCTYPE html><html><body>',
+    '<img class="EmbeddedMediaImage" src="https://scontent-lga3-3.cdninstagram.com/v/t51/744.jpg?oe=6A9007E8" />',
+    '<a class="UsernameText">umaguru.tokyo</a>',
+    '<div class="Caption">',
+    'umaguru.tokyo<br />濃口醤油とラードを効かせた八王子<b>ラーメン</b>！',
+    '【中華そば専門店 八王子ラーメンよしだ】<br />#ラーメン',
+    '</div>',
+    '</body></html>',
+  ].join('');
+
+  /** ブラウザ UA へ返る JS シェル（SSR の目印が 1 つも無い） */
+  const JS_SHELL_HTML =
+    '<!DOCTYPE html><html><head><meta charset="utf-8" /></head><body><div id="splash"></div></body></html>';
+
+  it('SSR が返れば caption から候補が出て、サムネイルと投稿者も載る', async () => {
     const { service, transport } = createHarness();
+    transport.route(INSTAGRAM_EMBED_URL, {
+      status: 200,
+      headers: { 'content-type': 'text/html; charset=utf-8' },
+      body: SSR_EMBED_HTML,
+    });
+
+    const result = await service.resolve({
+      url: 'https://www.instagram.com/reel/DAbcDefGhIj/',
+    });
+
+    expect(result.status).toBe('ok');
+    expect(result.reason).toBe('resolved');
+    expect(result.source.provider).toBe('instagram');
+    // キャプション本文が extractedText として流れ、辞書照合で候補が出る
+    expect(
+      result.candidates.dishCategories.map((c) => c.dishCategoryId),
+    ).toContain('Q1');
+    expect(result.metadata.thumbnailUrl).toContain('scontent');
+    expect(result.metadata.authorName).toBe('umaguru.tokyo');
+    // タグ・<br> は落ちて素のテキストになっている
+    expect(result.metadata.title).toContain('八王子ラーメンよしだ');
+    expect(result.metadata.title).not.toContain('<b>');
+  });
+
+  it('JS シェルが返ったら «取れなかった» へ縮退する（保存までは進める）', async () => {
+    const { service, transport } = createHarness();
+    transport.route(INSTAGRAM_EMBED_URL, {
+      status: 200,
+      headers: { 'content-type': 'text/html; charset=utf-8' },
+      body: JS_SHELL_HTML,
+    });
 
     const result = await service.resolve({
       url: 'https://www.instagram.com/reel/DAbcDefGhIj/',
     });
 
     expect(result.status).toBe('unknown');
-    expect(result.reason).toBe('metadata_provider_unsupported');
-    // 埋め込みに要る情報は揃っている＝手入力へ縮退して保存まで進める
-    expect(result.source.provider).toBe('instagram');
-    expect(result.source.externalContentId).toBe('DAbcDefGhIj');
+    expect(result.reason).toBe('metadata_fetch_failed');
     expect(result.source.canonicalUrl).toBe(
       'https://www.instagram.com/reel/DAbcDefGhIj/',
     );
-    // **外部へ 1 リクエストも出していない**
-    expect(transport.requests).toHaveLength(0);
+  });
+
+  it('embed が 404 なら unavailable（相手が消えた）', async () => {
+    const { service, transport } = createHarness();
+    transport.route(INSTAGRAM_EMBED_URL, { status: 404 });
+
+    const result = await service.resolve({
+      url: 'https://www.instagram.com/reel/DAbcDefGhIj/',
+    });
+
+    expect(result.status).toBe('unavailable');
   });
 
   it('カルーセルの img_index を落とさない', async () => {
-    const { service } = createHarness();
+    const { service, transport } = createHarness();
+    transport.route(INSTAGRAM_EMBED_URL, {
+      status: 200,
+      headers: { 'content-type': 'text/html; charset=utf-8' },
+      body: SSR_EMBED_HTML,
+    });
 
     const result = await service.resolve({
       url: 'https://www.instagram.com/p/DAbcDefGhIj/?img_index=2',
@@ -690,6 +751,8 @@ function createSaveTx(options?: {
         .fn()
         .mockResolvedValue(options?.existingEmbedding ?? null),
       create: calls.embeddingCreate,
+      // #1375（3 巡目）再取り込み時のサムネイル貼り替え
+      updateMany: jest.fn().mockResolvedValue({ count: 1 }),
     },
     reactions: {
       findUnique: jest
