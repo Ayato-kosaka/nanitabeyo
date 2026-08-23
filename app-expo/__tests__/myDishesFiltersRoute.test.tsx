@@ -227,7 +227,7 @@ describe("#1396 my-dishes フィルタ編集ルート", () => {
 		expect(useMyDishesFilterStore.getState().filter.featureKeys).toEqual(["timeSlot:lunch"]);
 	});
 
-	it("軸を全て外すと既定の並びへ戻る（-featureScore は軸が無いと 400 になる）", async () => {
+	it("軸を全て外しても sort は巻き戻さない（軸セクションが画面から消えないため）", async () => {
 		const tree = await render(<MyDishesFiltersScreen />);
 
 		await press(tree, "my-dishes-filter-sort--featureScore");
@@ -237,9 +237,14 @@ describe("#1396 my-dishes フィルタ編集ルート", () => {
 		await press(tree, "my-dishes-filter-axis-scene");
 		await press(tree, "my-dishes-filter-axis-scene-date");
 
+		// 独立レビュー指摘 #6: ここで -occurredAt へ巻き戻すと、`draft.sort === "-featureScore"`
+		// を描画条件にしている軸セクションごと消える。軸ゼロの -featureScore は
+		// サーバの resolveSort が既定の並びへ落とすので、そのまま適用してよい
+		expect(exists(tree, "my-dishes-filter-axis-scene-date")).toBe(true);
+
 		await press(tree, "my-dishes-filter-apply");
 		expect(useMyDishesFilterStore.getState().filter.featureKeys).toEqual([]);
-		expect(useMyDishesFilterStore.getState().filter.sort).toBe("-occurredAt");
+		expect(useMyDishesFilterStore.getState().filter.sort).toBe("-featureScore");
 	});
 
 	// #1375 実機確認: 評価は「食べた」を選んだときだけ出す（want 行は評価を持たない）

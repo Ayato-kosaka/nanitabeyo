@@ -29,7 +29,8 @@
 			"unexpected": "Se produjo un error inesperado. Por favor, inténtalo más tarde.",
 			"notFound": "No encontrado",
 			"authUnavailable": "No se pudo iniciar sesión. Por favor, verifica tu conexión de red e inténtalo de nuevo.",
-			"authRateLimited": "Demasiadas solicitudes en este momento. Por favor, espera un momento e inténtalo de nuevo."
+			"authRateLimited": "Demasiadas solicitudes en este momento. Por favor, espera un momento e inténtalo de nuevo.",
+			"videoProcessingFailed": "No se pudo procesar el vídeo. Prueba con otro."
 		}
 	},
 	"DeepLinking": {

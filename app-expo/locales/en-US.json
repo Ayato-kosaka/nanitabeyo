@@ -29,7 +29,8 @@
 			"unexpected": "An unexpected error occurred. Please try again later.",
 			"notFound": "Not found",
 			"authUnavailable": "Sign-in failed. Please check your network connection and try again.",
-			"authRateLimited": "Too many requests right now. Please wait a moment and try again."
+			"authRateLimited": "Too many requests right now. Please wait a moment and try again.",
+			"videoProcessingFailed": "Failed to process the video. Please try another one."
 		}
 	},
 	"DeepLinking": {

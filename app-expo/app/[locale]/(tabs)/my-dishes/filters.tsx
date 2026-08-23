@@ -313,14 +313,13 @@ export default function MyDishesFiltersScreen() {
 				const prefix = `${featureType}:`;
 				const withoutAxis = prev.featureKeys.filter((k) => !k.startsWith(prefix));
 				const next = prev.featureKeys.includes(key) ? withoutAxis : [...withoutAxis, key];
-				const sort: MyDishesSort =
-					next.length > 0
-						? prev.sort === "-occurredAt"
-							? "-featureScore"
-							: prev.sort
-						: prev.sort === "-featureScore"
-							? DEFAULT_MY_DISHES_FILTER.sort
-							: prev.sort;
+				// 軸を選んだら並びを -featureScore へ寄せる（ユーザーが明示した並びは奪わない）。
+				//
+				// ⚠️ 全部外しても **-featureScore から巻き戻さない**（独立レビュー指摘 #6）。
+				// 巻き戻すと `draft.sort === "-featureScore"` が描画条件の軸セクションごと
+				// 消えてしまい、「選び直そうとして外した瞬間に UI が消える」。軸ゼロのまま
+				// 適用されてもサーバ側の resolveSort が既定の並びへ落とすので 400 にはならない
+				const sort: MyDishesSort = next.length > 0 && prev.sort === "-occurredAt" ? "-featureScore" : prev.sort;
 				return { ...prev, featureKeys: next, sort };
 			});
 		},

@@ -40,13 +40,19 @@ const ADDRESS_BODY = `${PREFECTURE}[0-9０-９一-龠々ぁ-んァ-ヶa-zA-Z\\-�
 /**
  * 「住所：」「所在地：」のようなラベル付き行。ラベルの直前の絵文字（📍 等）は
  * 「行のどこかにラベルがある」ことしか見ないので自然に無視される。
+ *
+ * ⚠️ `g` 付きで全マッチを走査すること（独立レビュー指摘 #1）。非 global の
+ * `match()` は最初の 1 件しか返さず、その 1 件が「東京都在住のグルメです」の
+ * ような偽陽性で市区町村チェックに落ちると、後方にある本物の住所が
+ * 一度も評価されないまま null になる。
  */
 const LABELED_ADDRESS = new RegExp(
   `(?:住所|所在地)\\s*[:：]\\s*(${ADDRESS_BODY})`,
+  'g',
 );
 
-/** ラベルが無いときに本文から拾う保険。最初の 1 つだけ使う */
-const BARE_ADDRESS = new RegExp(`(${ADDRESS_BODY})`);
+/** ラベルが無いときに本文から拾う保険。市区町村を含む最初のマッチを使う */
+const BARE_ADDRESS = new RegExp(`(${ADDRESS_BODY})`, 'g');
 
 /**
  * 「市区町村まで含んでいるか」の確認。都道府県名だけ（「東京都のラーメン」等）を
@@ -62,13 +68,17 @@ const HAS_CITY_LEVEL = /[市区町村郡]/;
  * 末尾にビル名等が混ざっていても地番までで解決される）。
  */
 export function extractPostalAddress(texts: ExtractedText[]): string | null {
+  // キャプションは 1 エントリに全文が入る形で来るので、全マッチを走査して
+  // 市区町村チェックを通す最初のものを採る（先頭の偽陽性で打ち切らない）
   for (const entry of texts) {
-    const labeled = entry.text.match(LABELED_ADDRESS);
-    if (labeled && HAS_CITY_LEVEL.test(labeled[1])) return labeled[1];
+    for (const labeled of entry.text.matchAll(LABELED_ADDRESS)) {
+      if (HAS_CITY_LEVEL.test(labeled[1])) return labeled[1];
+    }
   }
   for (const entry of texts) {
-    const bare = entry.text.match(BARE_ADDRESS);
-    if (bare && HAS_CITY_LEVEL.test(bare[1])) return bare[1];
+    for (const bare of entry.text.matchAll(BARE_ADDRESS)) {
+      if (HAS_CITY_LEVEL.test(bare[1])) return bare[1];
+    }
   }
   return null;
 }

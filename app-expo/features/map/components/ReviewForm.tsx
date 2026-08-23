@@ -681,7 +681,7 @@ export function ReviewForm({
 						error_level: "error",
 						payload: { media: mediaState.media },
 					});
-					throw new Error(i18n.t("errors.videoProcessingFailed"));
+					throw new Error(i18n.t("Common.errors.videoProcessingFailed"));
 				}
 
 				const createDishResponse = await callBackend<CreateDishDto, CreateDishResponse>("v1/dishes", {

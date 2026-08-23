@@ -35,7 +35,7 @@ date の全日をページとして持っても、マウントは `windowSize` �
 `scope` が無いときは `restaurantId` の有無で判断する。Map の Sheet / リストからの既存の
 push が壊れないようにするため。
 */
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FlatList, Platform, StyleSheet, TouchableOpacity, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { X } from "lucide-react-native";
@@ -130,6 +130,37 @@ export default function MyDishesFeedScreen() {
 	// 縦ページャはページ長 = リスト実高、横ページャはページ長 = リスト実幅
 	const pageLength = pageSize === null ? 0 : isVerticalPager ? pageSize.height : pageSize.width;
 
+	// ⚠️ 測り直しで pageLength が変わっても contentOffset(px) は据え置かれ、ページ境界から
+	// ずれた位置に取り残される（web のウィンドウリサイズで再現。独立レビュー指摘）。
+	// いま前面のページ境界へ合わせ直す
+	const activeScopeIndexRef = useRef(initialScopeIndex);
+	useEffect(() => {
+		if (pageLength <= 0) return;
+		pagerRef.current?.scrollToIndex({ index: activeScopeIndexRef.current, animated: false });
+	}, [pageLength]);
+
+	// ページャの props は identity を固定する（インラインだと activeScopeIndex が動くたびに
+	// マウント中の全ページへ新しい props が流れる。独立レビュー指摘）
+	const handleMomentumScrollEnd = useCallback(
+		(event: { nativeEvent: { contentOffset: { x: number; y: number } } }) => {
+			if (pageLength <= 0) return;
+			const offset = isVerticalPager ? event.nativeEvent.contentOffset.y : event.nativeEvent.contentOffset.x;
+			const next = Math.round(offset / pageLength);
+			activeScopeIndexRef.current = next;
+			setActiveScopeIndex((prev) => (prev === next ? prev : next));
+		},
+		[isVerticalPager, pageLength],
+	);
+	const getItemLayout = useCallback(
+		(_data: unknown, index: number) => ({ length: pageLength, offset: pageLength * index, index }),
+		[pageLength],
+	);
+	const handleScrollToIndexFailed = useCallback(({ index }: { index: number }) => {
+		setTimeout(() => {
+			pagerRef.current?.scrollToIndex({ index, animated: false });
+		}, 250);
+	}, []);
+
 	const handleClose = useCallback(() => {
 		lightImpact();
 		logFrontendEvent({
@@ -181,21 +212,13 @@ export default function MyDishesFeedScreen() {
 						showsHorizontalScrollIndicator={false}
 						showsVerticalScrollIndicator={false}
 						initialScrollIndex={initialScopeIndex}
-						getItemLayout={(_data, index) => ({ length: pageLength, offset: pageLength * index, index })}
+						getItemLayout={getItemLayout}
 						// マウント数を抑える（取得を抑えるのは `isActive`。date は全日をページに持つので特に効く）
 						windowSize={3}
 						initialNumToRender={1}
-						onMomentumScrollEnd={(event) => {
-							const offset = isVerticalPager ? event.nativeEvent.contentOffset.y : event.nativeEvent.contentOffset.x;
-							const next = Math.round(offset / pageLength);
-							setActiveScopeIndex((prev) => (prev === next ? prev : next));
-						}}
+						onMomentumScrollEnd={handleMomentumScrollEnd}
 						// 初期スクロールがレイアウト確定前に走って失敗したときの保険（DishMediaFeed と同じ作法）
-						onScrollToIndexFailed={({ index }) => {
-							setTimeout(() => {
-								pagerRef.current?.scrollToIndex({ index, animated: false });
-							}, 250);
-						}}
+						onScrollToIndexFailed={handleScrollToIndexFailed}
 						renderItem={({ item, index }) => {
 							const isInitialScope = feedScopeId(item) === initialScopeIdRef.current;
 							return (

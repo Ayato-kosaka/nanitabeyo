@@ -276,18 +276,15 @@ export class UsersRepository {
     userId: string,
     statuses: MyDishStatus[],
   ): Promise<Date | null> {
-    const candidates: Date[] = [];
-
-    if (statuses.includes('eaten')) {
-      const oldestReview = await this.prisma.prisma.dish_reviews.findFirst({
-        where: { user_id: userId },
-        orderBy: { created_at: 'asc' },
-        select: { created_at: true },
-      });
-      if (oldestReview) candidates.push(oldestReview.created_at);
-    }
-
-    if (statuses.includes('want')) {
+    // eaten / want の 2 本は独立なので並列に引く（片方だけのときは 1 本）
+    const [oldestReview, oldestSaveRows] = await Promise.all([
+      statuses.includes('eaten')
+        ? this.prisma.prisma.dish_reviews.findFirst({
+            where: { user_id: userId },
+            orderBy: { created_at: 'asc' },
+            select: { created_at: true },
+          })
+        : Promise.resolve(null),
       // #1395 m-b / m-e: 一覧の want 行は「その dish に自分の dish_reviews が 1 件も無い」
       // ものだけ（NOT EXISTS）で、`occurredAt` は dish ごとの「最新 save」
       // （DISTINCT ON ... ORDER BY created_at DESC）。ここも dish ごとに畳んでから
@@ -297,12 +294,17 @@ export class UsersRepository {
       //
       // フェンスがあるので save 全件を 1 度読むが、この算出は
       // 「初回ページかつ status 以外のフィルタ無し」のときだけ走る（resolveOldestOccurredAt）。
-      const rows = await this.prisma.prisma.$queryRaw<
-        { oldest: Date | null }[]
-      >(buildMyDishesOldestWantSaveQuery(userId));
-      const oldestSave = rows[0]?.oldest ?? null;
-      if (oldestSave) candidates.push(oldestSave);
-    }
+      statuses.includes('want')
+        ? this.prisma.prisma.$queryRaw<{ oldest: Date | null }[]>(
+            buildMyDishesOldestWantSaveQuery(userId),
+          )
+        : Promise.resolve([] as { oldest: Date | null }[]),
+    ]);
+
+    const candidates: Date[] = [];
+    if (oldestReview) candidates.push(oldestReview.created_at);
+    const oldestSave = oldestSaveRows[0]?.oldest ?? null;
+    if (oldestSave) candidates.push(oldestSave);
 
     if (candidates.length === 0) return null;
     return candidates.reduce((a, b) => (a < b ? a : b));

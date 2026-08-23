@@ -105,8 +105,16 @@ const PROVIDER_ICONS: Record<SnsProvider, typeof Instagram> = {
 	youtube: Youtube,
 };
 
-/** キャプションをこの文字数まで畳む。超えたら「もっと見る」を出す */
-const CAPTION_COLLAPSE_THRESHOLD = 120;
+/**
+ * キャプションを畳んだとき（3 行）に収まりきらない可能性が高い条件。
+ *
+ * 独立レビュー指摘: 文字数だけで判定すると「改行が多く 1 行が短い」店舗情報型の
+ * キャプション（このフィーチャーの主対象）が 120 文字未満のまま 3 行を超え、
+ * 「もっと見る」が出ずに住所行が読めなくなる。`onTextLayout` は react-native-web で
+ * 発火が不安定なため、文字数 or 改行数のヒューリスティックで判定する
+ */
+const shouldOfferCaptionToggle = (title: string): boolean =>
+	title.length > 120 || (title.match(/\n/g)?.length ?? 0) >= 3;
 
 /**
  * 店舗候補を探す半径（m）。
@@ -161,6 +169,8 @@ export default function SnsImportScreen() {
 	const [isCaptionExpanded, setIsCaptionExpanded] = useState(false);
 	const [isResolving, setIsResolving] = useState(false);
 	const [isSaving, setIsSaving] = useState(false);
+	// 連打の同期ガード（表示用の isSaving とは役割を分ける）
+	const isSavingRef = useRef(false);
 	const [dishCategoryId, setDishCategoryId] = useState<string | null>(null);
 	const [restaurantId, setRestaurantId] = useState<string | null>(null);
 	/** 選択済みの表示名。候補からでも手入力からでも、選んだものが見えるようにする */
@@ -412,7 +422,10 @@ export default function SnsImportScreen() {
 
 	const handleSave = useCallback(async () => {
 		const url = input.trim();
-		if (!url || !dishCategoryId || !restaurantId || isSaving) return;
+		// ⚠️ `isSaving`（state）は同一フレーム内の連打を弾けない（ReviewForm #1090 /
+		// ActionButtons #1205 と同じ既知パターン）。同期 ref で先に閉める
+		if (!url || !dishCategoryId || !restaurantId || isSaving || isSavingRef.current) return;
+		isSavingRef.current = true;
 		lightImpact();
 		setIsSaving(true);
 		try {
@@ -431,6 +444,7 @@ export default function SnsImportScreen() {
 		} catch {
 			showSnackbar(i18n.t("SnsImport.save.failed"));
 		} finally {
+			isSavingRef.current = false;
 			setIsSaving(false);
 		}
 	}, [callBackend, dishCategoryId, input, isSaving, lightImpact, locale, logFrontendEvent, restaurantId, showSnackbar]);
@@ -600,7 +614,7 @@ export default function SnsImportScreen() {
 													</Text>
 													{/* キャプション全文（店舗情報・メニューが書かれていることが多い）を
 											    その場で読めるようにする。閾値以下なら 3 行に収まるので出さない */}
-													{resolved.metadata.title.length > CAPTION_COLLAPSE_THRESHOLD && (
+													{shouldOfferCaptionToggle(resolved.metadata.title) && (
 														<TouchableOpacity
 															testID="sns-import-caption-toggle"
 															onPress={() => {

@@ -76,7 +76,14 @@ export type MyDishesFeedPageProps = {
 	isActive: boolean;
 };
 
-export function MyDishesFeedPage({ scope, itemKey = null, dishMediaId = null, isActive }: MyDishesFeedPageProps) {
+// ⚠️ memo でくるむ（独立レビュー指摘）。外側ページャの `activeScopeIndex` が動くたびに
+// マウント中の全ページが再レンダーされ、各ページの派生クエリ 2 本が再実行されていた
+export const MyDishesFeedPage = React.memo(function MyDishesFeedPage({
+	scope,
+	itemKey = null,
+	dishMediaId = null,
+	isActive,
+}: MyDishesFeedPageProps) {
 	const restaurantId = scope.kind === "restaurant" ? scope.restaurantId : null;
 	const date = scope.kind === "date" ? scope.date : null;
 	const dishMediaIdParam = dishMediaId;
@@ -242,10 +249,24 @@ export function MyDishesFeedPage({ scope, itemKey = null, dishMediaId = null, is
 		};
 	}, [callBackend, entriesKey, hydrationKey, isLoadingMedia, mediaError, mediaIds]);
 
-	// §9-2 手順 5: unmount で `clearByKey`。その前に Q4 の dirty 判定を済ませる
+	// §9-2 手順 5: **本当の unmount** で `clearByKey`。その前に Q4 の dirty 判定を済ませる。
+	//
+	// ⚠️ 独立レビュー指摘（High）: 以前は依存を `[entriesKey]` にしていたが、`entriesKey` は
+	// `isActive` が false になると null へ変わるため、**隣のページへフリックしただけ**で
+	// クリーンアップが走って entry が消えていた。ところがページ自体は windowSize=3 で
+	// 生き残るので `requestedKeyRef` は前の値のまま残り、戻ってきたとき
+	// 「hydrationKey が同一 → 再取得スキップ → feedIds は消えたまま → 見つかりません」
+	// になる（実機の縦フリック往復で再現）。エントリの破棄は unmount だけにすれば、
+	// 往復のたびの `GET /v1/dish-media?ids=` 再送も同時に無くなる。
+	// 「取得を始めない」ことは hooks へ null を渡す側（`isActive` 分岐）が既に担っている
+	const lastEntriesKeyRef = useRef<string | null>(null);
 	useEffect(() => {
-		if (entriesKey === null) return;
+		if (entriesKey !== null) lastEntriesKeyRef.current = entriesKey;
+	}, [entriesKey]);
+	useEffect(() => {
 		return () => {
+			const key = lastEntriesKeyRef.current;
+			if (key === null) return;
 			const state = useDishMediaEntriesStore.getState();
 			const dirty = Object.entries(initialSavedRef.current).some(([id, wasSaved]) => {
 				const entry = state.entriesByMediaId[id];
@@ -257,10 +278,10 @@ export function MyDishesFeedPage({ scope, itemKey = null, dishMediaId = null, is
 			if (dirty && sheetQueryKeyRef.current !== null) {
 				useMyDishesStore.getState().clearQuery(sheetQueryKeyRef.current);
 			}
-			state.clearByKey(entriesKey);
+			state.clearByKey(key);
 			initialSavedRef.current = {};
 		};
-	}, [entriesKey]);
+	}, []);
 
 	/** R1: index は «Feed が実際に並べている ids» に対して引く。見つからなければ先頭 */
 	const initialIndex = useMemo(() => {
@@ -383,7 +404,7 @@ export function MyDishesFeedPage({ scope, itemKey = null, dishMediaId = null, is
 			) : null}
 		</View>
 	);
-}
+});
 
 const styles = StyleSheet.create({
 	container: {

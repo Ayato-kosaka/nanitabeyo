@@ -114,6 +114,11 @@ export function MyDishesMapSheet({
 				horizontal
 				showsHorizontalScrollIndicator={false}
 				contentContainerStyle={styles.listContent}
+				// ピンは最大 300 件来る。画面に見えるのは数枚なので、マウントを絞らないと
+				// Map と合わせて同じサムネイルを二重に一括取得してしまう（独立レビュー指摘）
+				initialNumToRender={5}
+				windowSize={3}
+				removeClippedSubviews
 			/>
 		</View>
 	);

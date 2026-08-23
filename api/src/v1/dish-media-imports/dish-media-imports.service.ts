@@ -71,10 +71,13 @@ import type {
 } from '@shared/v1/res';
 
 /**
- * 照合対象として引く近傍店舗の件数。
+ * 照合対象として引く近傍店舗の件数（1 エリアあたり）。
  *
  * `QueryRestaurantsDto.limit` の上限（100）に合わせてある。
- * `matchRestaurantNames` 側も 200 件で頭打ちなので、これ以上増やしても候補は増えない。
+ *
+ * ⚠️ `matchRestaurantNames` は入力の**先頭 200 件で頭打ち**になる。エリアは最大 2 つ
+ * （キャプション住所 + 現在地）で author 検索も足すと最大 240 件になり得るため、
+ * **並べる順序が意味を持つ**（住所エリアを先頭にする。findRestaurantCandidates 参照）。
  */
 const AREA_RESTAURANT_LIMIT = 100;
 
@@ -191,6 +194,39 @@ export class DishMediaImportsService {
     }
 
     const appVersion = this.cls.get<string>(CLS_KEY_APP_VERSION) ?? 'unknown';
+
+    // findFirst → create は非原子なので、同じ投稿を同時に取り込むと後発が
+    // UNIQUE（dmee_provider_content_dish_uq）で P2002 になる（独立レビュー指摘 #4）。
+    // その場合は 1 回だけやり直す — 2 回目は findFirst が先行の行を見つけて
+    // 冪等経路（save だけ足す）を通るので、契約どおり成功で返せる
+    try {
+      return await this.runCreateTransaction(dto, userId, resolved, appVersion);
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        this.logger.warn('SnsImportCreateRaceRetried', 'create', {
+          provider,
+          externalContentId,
+        });
+        return this.runCreateTransaction(dto, userId, resolved, appVersion);
+      }
+      throw error;
+    }
+  }
+
+  /** `create()` の本体。P2002 リトライのために切り出してある */
+  private async runCreateTransaction(
+    dto: CreateDishMediaImportDto,
+    userId: string,
+    resolved: ResolveDishMediaImportResponse,
+    appVersion: string,
+  ): Promise<CreateDishMediaImportResponse> {
+    const { provider, externalContentId, canonicalUrl } = resolved.source;
+    if (!provider || !externalContentId || !canonicalUrl) {
+      throw new BadRequestException('IMPORT_UNSUPPORTED:unsupported_url');
+    }
 
     return this.prisma
       .withTransaction(async (tx) => {
@@ -393,9 +429,12 @@ export class DishMediaImportsService {
         identifier: dishMediaId,
       });
 
-      await this.prisma.withTransaction((tx) =>
-        tx.dish_media.update({
-          where: { id: dishMediaId },
+      // 事前確認と update の間には外部 fetch + upload が挟まる（TOCTOU）。同じ投稿の
+      // 同時取り込みで両方がここへ来ても、`thumbnail_path: ''` を条件に入れた
+      // updateMany なら勝つのは 1 本だけで、負けた側は 0 件更新で静かに終わる
+      const updated = await this.prisma.withTransaction((tx) =>
+        tx.dish_media.updateMany({
+          where: { id: dishMediaId, thumbnail_path: '' },
           data: {
             thumbnail_path: uploaded.path,
             // 通常投稿と同じく、リサイズ完了までは original が配信される（assembler の規則）
@@ -403,6 +442,7 @@ export class DishMediaImportsService {
           },
         }),
       );
+      if (updated.count === 0) return;
 
       await this.cloudTasks.enqueueResizeImage({
         table: 'dish_media',
@@ -506,19 +546,17 @@ export class DishMediaImportsService {
     const metadata = outcome.metadata;
     const texts = this.buildExtractedTexts(content, metadata);
 
-    /* 4. 料理カテゴリ候補 */
-    const dishCategoryOutcome =
+    /* 4-5. 料理カテゴリ候補と店舗候補。互いの結果を使わないので並列に走らせる
+       （店舗側はジオコーディング HTTP + DB 検索を持ち、直列だと応答時間が合算になる） */
+    const [dishCategoryOutcome, restaurantOutcome] = await Promise.all([
       texts.length === 0
-        ? { candidates: [], prefillDishCategoryId: null }
-        : await this.findDishCategoryCandidates(texts, limit);
-
-    /* 5. 店舗候補（lat/lng/radius が渡されたときだけ） */
-    const restaurantOutcome = await this.findRestaurantCandidates(
-      dto,
-      texts,
-      metadata.authorName,
-      limit,
-    );
+        ? Promise.resolve({
+            candidates: [] as ResolveDishMediaImportDishCategoryCandidate[],
+            prefillDishCategoryId: null as string | null,
+          })
+        : this.findDishCategoryCandidates(texts, limit),
+      this.findRestaurantCandidates(dto, texts, metadata.authorName, limit),
+    ]);
 
     const reason: ResolveDishMediaImportReason =
       texts.length === 0 && metadata.authorName === null
@@ -757,7 +795,12 @@ export class DishMediaImportsService {
       });
     }
 
-    const searchAreas: { lat: number; lng: number; radius: number }[] = [];
+    const searchAreas: {
+      lat: number;
+      lng: number;
+      radius: number;
+      orderByDistance?: boolean;
+    }[] = [];
     if (provided === 3) {
       searchAreas.push({
         lat: dto.lat as number,
@@ -777,15 +820,23 @@ export class DishMediaImportsService {
       );
     }
 
-    // キャプションに住所が書かれていれば、その地点の周辺でも探す（#1375 4 巡目）
+    // キャプションに住所が書かれていれば、その地点の周辺でも探す（#1375 4 巡目）。
+    //
+    // ⚠️ **住所エリアを先頭に置く**（独立レビュー指摘 #2）。`matchRestaurantNames` は
+    // 入力の先頭 200 件しか走査しないため、現在地エリアを先にすると（都心では
+    // 100 + author 20 で埋まる）住所エリア側が切り落とされる。住所は «店そのもの» を
+    // 指しており現在地より根拠が強いので、優先されるべきはこちらである。
+    // 同じ理由で住所エリアの引きは入札額順ではなく **距離順**にする（指摘 #3。
+    // 半径 1km に 100 件以上ある繁華街で、入札額 0 の個人店が落ちるのを防ぐ）
     const captionAddress = extractPostalAddress(texts);
     if (captionAddress !== null) {
       const geocoded = await this.geocodeCaptionAddress(captionAddress);
       if (geocoded !== null) {
-        searchAreas.push({
+        searchAreas.unshift({
           lat: geocoded.lat,
           lng: geocoded.lng,
           radius: CAPTION_ADDRESS_RADIUS_M,
+          orderByDistance: true,
         });
       }
     }
@@ -880,9 +931,11 @@ export class DishMediaImportsService {
         },
       );
       const point = parseGsiAddressSearchResponse(body);
+      // ⚠️ 住所の生文字列はログへ入れない（独立レビュー指摘）。キャプション由来とはいえ
+      // 個人の住所がパターンに一致することはあり得るし、ログは BigQuery へ永続化される。
+      // SafeFetch がクエリ文字列を落とすのと同じ規律（safe-fetch.service.ts）に合わせる
       this.logger.debug('SnsImportAddressGeocoded', 'geocodeCaptionAddress', {
-        address,
-        resolvedTitle: point?.title ?? null,
+        addressLength: address.length,
         found: point !== null,
       });
       return point;
@@ -891,7 +944,7 @@ export class DishMediaImportsService {
         'SnsImportAddressGeocodeFailed',
         'geocodeCaptionAddress',
         {
-          address,
+          addressLength: address.length,
           error: error instanceof Error ? error.message : String(error),
         },
       );

@@ -421,28 +421,34 @@ export class UsersService {
           .filter((id): id is string => id !== null),
       ),
     );
-    const { items: dishMediaEntries } =
-      await this.dishMediaService.fetchDishMediaEntryItems(mediaIds, {
-        userId,
-      });
-    const dishMediaById = new Map(
-      dishMediaEntries.map((entry) => [entry.dish_media.id, entry.dish_media]),
-    );
-
     // 自分のレビュー（★n はここから引く）
     const reviewIds = items
       .map((item) => item.reviewId)
       .filter((id): id is string => id !== null);
-    const { items: myReviews } = reviewIds.length
-      ? await this.dishMediaRepo.findDishReviewsByUser(userId, {
-          type: 'ids',
-          ids: reviewIds,
-        })
-      : {
-          items: [] as Awaited<
-            ReturnType<typeof this.dishMediaRepo.findDishReviewsByUser>
-          >['items'],
-        };
+
+    // メディア詳細・自分のレビュー・最古日はいずれも互いの結果を使わないので
+    // 並列に取る（直列だと応答時間が 3 本の合算になる。独立レビュー指摘）
+    const [
+      { items: dishMediaEntries },
+      { items: myReviews },
+      oldestOccurredAt,
+    ] = await Promise.all([
+      this.dishMediaService.fetchDishMediaEntryItems(mediaIds, { userId }),
+      reviewIds.length
+        ? this.dishMediaRepo.findDishReviewsByUser(userId, {
+            type: 'ids',
+            ids: reviewIds,
+          })
+        : Promise.resolve({
+            items: [] as Awaited<
+              ReturnType<typeof this.dishMediaRepo.findDishReviewsByUser>
+            >['items'],
+          }),
+      this.resolveOldestOccurredAt(userId, dto),
+    ]);
+    const dishMediaById = new Map(
+      dishMediaEntries.map((entry) => [entry.dish_media.id, entry.dish_media]),
+    );
     const myReviewById = new Map(
       myReviews.map((review) => [review.id, review]),
     );
@@ -484,8 +490,6 @@ export class UsersService {
       hasMore && items.length > 0
         ? encodeMyDishCursor(sort, items[items.length - 1].cursorSource)
         : null;
-
-    const oldestOccurredAt = await this.resolveOldestOccurredAt(userId, dto);
 
     this.logger.debug('GetMyDishesResult', 'getMyDishes', {
       count: data.length,

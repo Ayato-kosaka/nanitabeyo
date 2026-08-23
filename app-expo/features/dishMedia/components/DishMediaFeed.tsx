@@ -77,14 +77,6 @@ export default function DishMediaFeed({
 		() => `${entriesKey}::${idType}::${ids.join(",")}`,
 		[entriesKey, idType, ids],
 	);
-	// TODO(#802): 現在は ids 全件を background image preload 対象にしている。
-	// Android では Google Place photo の大きい画像を複数同時に取得すると Glide 側で timeout することがある。
-	// 根本対応としては currentIndex 周辺の数件だけを preload する方式を検討する。
-	const { getBackgroundImageState } = useDishMediaBackgroundImageResources({
-		ids,
-		idType,
-		sessionKey: backgroundImagesSessionKey,
-	});
 
 	// 命令的スクロール用の List 参照
 	const listRef = useRef<FlatList<string>>(null);
@@ -101,6 +93,20 @@ export default function DishMediaFeed({
 
 	// 現在の表示インデックス（状態）＋最新値ミラー用Ref（Viewabilityコールバックで参照）
 	const [currentIndex, setCurrentIndex] = useState(clampIndex(initialIndex, ids.length));
+
+	// #802 / 独立レビュー指摘（High）: preload は **currentIndex の周辺だけ**に絞る。
+	// 以前は ids 全件（my-dishes 経由だと最大 42 件）を同時に `Image.loadAsync` しており、
+	// 開いた瞬間に全画面ビットマップ 42 枚の取得・デコードが一斉に走っていた
+	// （Android は Glide 側の timeout も踏む）。窓の外は表示時に通常経路で読まれる
+	const preloadIds = useMemo(() => {
+		const start = Math.max(0, currentIndex - 1);
+		return ids.slice(start, currentIndex + 3);
+	}, [ids, currentIndex]);
+	const { getBackgroundImageState } = useDishMediaBackgroundImageResources({
+		ids: preloadIds,
+		idType,
+		sessionKey: backgroundImagesSessionKey,
+	});
 	const currentIndexRef = useRef(currentIndex);
 	useEffect(() => {
 		currentIndexRef.current = currentIndex;

@@ -15,6 +15,7 @@ import {
 	selectMyDishesByQuery,
 	useMyDishesStore,
 	type MyDishesFetcher,
+	type MyDishesStore,
 } from "../stores/useMyDishesStore";
 
 /**
@@ -65,7 +66,6 @@ export const useMyDishesDateQuery = (date: string | null): UseMyDishesDateQueryR
 
 	const touchQuery = useMyDishesStore((s) => s.touchQuery);
 	const fetchInitial = useMyDishesStore((s) => s.fetchInitial);
-	const itemByKey = useMyDishesStore((s) => s.itemByKey);
 	const revision = useMyDishesRevisionStore(selectMyDishesRevision);
 	const { itemKeys, isLoading, error, hasFetchedInitial, hasNextPage } = useMyDishesStore(
 		selectMyDishesByQuery(effectiveQueryKey),
@@ -116,12 +116,19 @@ export const useMyDishesDateQuery = (date: string | null): UseMyDishesDateQueryR
 		void fetchInitial(queryKey, fetcher);
 	}, [enabled, error, fetchInitial, fetcher, hasFetchedInitial, isLoading, queryKey, revision]);
 
-	const items = useMemo(
-		() =>
-			queryKey === null
-				? EMPTY_ITEMS
-				: itemKeys.map((key) => itemByKey[key]).filter((item): item is MyDishItem => Boolean(item)),
-		[itemByKey, itemKeys, queryKey],
+	// ⚠️ `s.itemByKey` を丸ごと購読しない（独立レビュー指摘 High）。テーブル全体を購読すると、
+	// 他ビュー・他 queryKey の取得 1 回で（keep-alive 中の）全フックが再レンダーする。
+	// 行の配列へ materialize したうえで shallow 比較する
+	const items = useMyDishesStore(
+		useCallback(
+			(s: MyDishesStore) => {
+				if (queryKey === null) return EMPTY_ITEMS;
+				const { itemKeys: keys } = selectMyDishesByQuery(effectiveQueryKey)(s);
+				return keys.map((key) => s.itemByKey[key]).filter((item): item is MyDishItem => Boolean(item));
+			},
+			[queryKey, effectiveQueryKey],
+		),
+		shallow,
 	);
 
 	const refresh = useCallback(() => {

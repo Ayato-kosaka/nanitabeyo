@@ -82,13 +82,19 @@ const DayCell = memo(function DayCell({ cell, onPress }: { cell: CalendarDayCell
 		if (cell) onPress(cell);
 	}, [cell, onPress]);
 
-	if (!cell) return <View style={styles.dayCell} />;
-
-	const count = cell.items.length;
-	const representative = count > 0 ? cell.items[0] : null;
+	const count = cell?.items.length ?? 0;
+	const representative = cell && count > 0 ? cell.items[0] : null;
 	// #1396 【仕様】写真なしの記録（dishMedia === null）でも灰色プレースホルダーにしない。
 	// categoryImageUrl → restaurant.image_url の順で実画像へ落とす（#1375 追補2 決定3）
 	const thumbnailUrl = representative ? resolveDayThumbnailUrl(representative) : null;
+	// `source` は memo で identity を固定する（MyDishesListView と同じ作法。
+	// インラインで作ると expo-image に毎レンダー新しい source が渡る。独立レビュー指摘）
+	const source = useMemo(
+		() => (thumbnailUrl ? { uri: thumbnailUrl, cacheKey: getCacheKeyForImage(thumbnailUrl) } : null),
+		[thumbnailUrl],
+	);
+
+	if (!cell) return <View style={styles.dayCell} />;
 
 	return (
 		<Pressable
@@ -102,11 +108,11 @@ const DayCell = memo(function DayCell({ cell, onPress }: { cell: CalendarDayCell
 			{/* #1375 実機確認: 記録が無い日は «空の器» を描かない。Instagram のストーリーアーカイブと
 			    同じく、日付の数字だけが淡く残る。記録がある日だけが円形のサムネイルとして浮き上がるので、
 			    「どの日に記録があるか」が一目でわかる（以前は全日が同じ灰色の角丸で埋まっていた） */}
-			{thumbnailUrl ? (
+			{source ? (
 				<>
 					<View style={styles.dayCircle}>
 						<Image
-							source={{ uri: thumbnailUrl, cacheKey: getCacheKeyForImage(thumbnailUrl) }}
+							source={source}
 							cachePolicy="memory-disk"
 							transition={100}
 							style={StyleSheet.absoluteFill}
@@ -205,10 +211,14 @@ export function MyDishesCalendarView() {
 	// `newestItemYm` 経由で救われるので実害は小さいと判断してリーダーが見送りとした。
 	// 直すなら `nowYm` を state にして「日付が変わったときだけ」更新する（毎レンダー new Date() はしない）
 	const nowYm = useMemo(() => toYearMonth(new Date()), []);
-	const months = useMemo(
-		() => buildCalendarMonths({ items, nowYm, oldestOccurredAt }),
-		[items, nowYm, oldestOccurredAt],
-	);
+	// 前回の結果を渡し、中身が変わっていない月は**同じオブジェクト**を返してもらう。
+	// これで行が 1 件増えても、変わった月以外は MonthGrid / DayCell の memo が効く（独立レビュー指摘）
+	const previousMonthsRef = useRef<ReturnType<typeof buildCalendarMonths>>([]);
+	const months = useMemo(() => {
+		const next = buildCalendarMonths({ items, nowYm, oldestOccurredAt, previousMonths: previousMonthsRef.current });
+		previousMonthsRef.current = next;
+		return next;
+	}, [items, nowYm, oldestOccurredAt]);
 
 	// #1446 M-1: 直前に `loadMore` を投げた時点の月数。次の `onEndReached` の判定にだけ使う。
 	// state にすると再レンダーを増やすだけなので ref で持つ（描画には一切使わない）

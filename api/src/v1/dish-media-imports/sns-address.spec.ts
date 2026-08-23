@@ -47,6 +47,20 @@ describe('extractPostalAddress', () => {
     expect(extractPostalAddress([])).toBeNull();
   });
 
+  // 独立レビュー指摘 #1: 先頭の偽陽性（「東京都在住」等）で打ち切らず、後方の本物を拾う
+  it('先頭に市区町村を含まない偽陽性があっても、後方の本物の住所を拾う', () => {
+    expect(
+      extractPostalAddress(
+        text('東京都在住のグルメです\n神奈川県横浜市西区みなとみらい2-2-1'),
+      ),
+    ).toBe('神奈川県横浜市西区みなとみらい2-2-1');
+    expect(
+      extractPostalAddress(
+        text('東京都から電車で1時間！千葉県船橋市本町1-2-3'),
+      ),
+    ).toBe('千葉県船橋市本町1-2-3');
+  });
+
   it('ラベル付きが後方のテキストにあっても、裸の住所より優先する', () => {
     const texts = [
       { field: 'caption' as const, text: '千葉県千葉市中央区で食べ歩き' },

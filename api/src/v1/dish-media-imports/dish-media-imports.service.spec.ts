@@ -881,7 +881,7 @@ function createSaveTx(options?: {
   const calls = {
     dishUpsert: jest.fn().mockResolvedValue({ id: 'dish-1' }),
     mediaCreate: jest.fn().mockResolvedValue({ id: 'media-1' }),
-    mediaUpdate: jest.fn().mockResolvedValue({}),
+    mediaUpdate: jest.fn().mockResolvedValue({ count: 1 }),
     embeddingCreate: jest.fn().mockResolvedValue({}),
     reactionCreate: jest.fn().mockResolvedValue({}),
   };
@@ -891,7 +891,7 @@ function createSaveTx(options?: {
       create: calls.mediaCreate,
       // #1375 4 巡目 サムネイル複製の前提確認（'' = まだ複製していない）と据え替え
       findUnique: jest.fn().mockResolvedValue({ thumbnail_path: '' }),
-      update: calls.mediaUpdate,
+      updateMany: calls.mediaUpdate,
     },
     dish_media_external_embeddings: {
       findFirst: jest
@@ -994,7 +994,8 @@ describe('#1399 SNS 取り込みの保存', () => {
     });
     expect(calls.mediaUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { id: 'media-1' },
+        // TOCTOU ガード: '' のときだけ据え替える（同時取り込みで後勝ちさせない）
+        where: { id: 'media-1', thumbnail_path: '' },
         data: expect.objectContaining({
           thumbnail_path: 'test/dish_media/imported-thumbnail/123_media-1.jpg',
           thumbnail_processing_status: 'processing',

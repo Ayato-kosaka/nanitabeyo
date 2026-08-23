@@ -29,7 +29,8 @@
 			"unexpected": "Une erreur inattendue s'est produite. Veuillez réessayer plus tard.",
 			"notFound": "Non trouvé",
 			"authUnavailable": "Échec de la connexion. Veuillez vérifier votre connexion réseau, puis réessayer.",
-			"authRateLimited": "Trop de requêtes en ce moment. Veuillez patienter un instant, puis réessayer."
+			"authRateLimited": "Trop de requêtes en ce moment. Veuillez patienter un instant, puis réessayer.",
+			"videoProcessingFailed": "Échec du traitement de la vidéo. Essayez-en une autre."
 		}
 	},
 	"DeepLinking": {

@@ -136,7 +136,19 @@ export type BuildCalendarMonthsParams = {
 	nowYm: string;
 	/** `meta.oldestOccurredAt`（#1395 §4-4）。null なら終端不明 */
 	oldestOccurredAt: string | null;
+	/**
+	 * 前回の結果（独立レビュー指摘: 月単位の再利用）。中身が変わっていない月は
+	 * **前回のオブジェクトをそのまま返す**ことで、`DayCell` の memo（参照比較）を効かせる。
+	 * これが無いと行が 1 件増えるだけで全月・全セルが作り直され、memo が一度も効かない
+	 */
+	previousMonths?: CalendarMonth[];
 };
+
+/** 月の中身の同一性判定に使う署名。日付ごとの item.key の並びが同じなら同じ月 */
+const monthSignatureFromCells = (month: CalendarMonth): string =>
+	month.cells
+		.map((cell) => (cell === null ? "-" : `${cell.day}:${cell.items.map((item) => item.key).join("|")}`))
+		.join(";");
 
 /**
  * 月グリッドを**新しい順**（inverted FlatList の `data[0]` = 画面下端 = 最新月）で返す。
@@ -145,7 +157,12 @@ export type BuildCalendarMonthsParams = {
  * - 生成範囲は `newestYm`（今月と最新記録月の新しいほう）から
  *   `floorYm`（読み込み済みの最古の月。ただし `oldestOccurredAt` より古くしない）まで。
  */
-export const buildCalendarMonths = ({ items, nowYm, oldestOccurredAt }: BuildCalendarMonthsParams): CalendarMonth[] => {
+export const buildCalendarMonths = ({
+	items,
+	nowYm,
+	oldestOccurredAt,
+	previousMonths,
+}: BuildCalendarMonthsParams): CalendarMonth[] => {
 	const itemsByDate = new Map<string, MyDishItem[]>();
 	let oldestItemYm: string | null = null;
 	let newestItemYm: string | null = null;
@@ -180,10 +197,17 @@ export const buildCalendarMonths = ({ items, nowYm, oldestOccurredAt }: BuildCal
 	}
 	if (floorYm > newestYm) floorYm = newestYm;
 
+	const previousByYm = new Map((previousMonths ?? []).map((month) => [month.ym, month]));
+
 	const months: CalendarMonth[] = [];
 	let cursorYm = newestYm;
 	while (cursorYm >= floorYm && months.length < MAX_CALENDAR_MONTHS) {
-		months.push(buildMonthCells(cursorYm, itemsByDate));
+		const built = buildMonthCells(cursorYm, itemsByDate);
+		const previous = previousByYm.get(cursorYm);
+		// 中身が同じ月は前回のオブジェクトを返す（DayCell の memo を効かせるため）
+		months.push(
+			previous !== undefined && monthSignatureFromCells(previous) === monthSignatureFromCells(built) ? previous : built,
+		);
 		cursorYm = addMonths(cursorYm, -1);
 	}
 	return months;

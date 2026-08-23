@@ -116,6 +116,14 @@ export function MyDishesMapView() {
 	//
 	// Sheet は «常設の下部シート»（下の `MyDishesMapSheet`）として役割を変えた。
 	// そちらは「いま Map に出ているピン」を横に並べるもので、押すと同じく Feed へ行く。
+	// ⚠️ `pins` は ref 経由で読む（独立レビュー指摘 High）。ハンドラを `pins` に依存させると、
+	// ピンが届くたびに identity が変わり、マーカー最大 300 個へ新しい props が流れて
+	// Android では 300 回のビットマップ再生成に繋がる
+	const pinsRef = useRef(pins);
+	useEffect(() => {
+		pinsRef.current = pins;
+	}, [pins]);
+
 	const handlePinPress = useCallback(
 		(pin: MyDishPin) => {
 			lightImpact();
@@ -126,13 +134,38 @@ export function MyDishesMapView() {
 			});
 			// 横スクロールで «前後の店舗» へ行けるよう、いま出ているピンの並びを置いてから push する。
 			// 並びは viewport 依存なので filter store にも URL にも入れない（§3-2 / #1397）
-			useMyDishesFeedScopeStore.getState().setRestaurantIds(pins.map((p) => p.restaurant.id));
+			useMyDishesFeedScopeStore.getState().setRestaurantIds(pinsRef.current.map((p) => p.restaurant.id));
 			router.push({
 				pathname: "/[locale]/(tabs)/my-dishes/feed",
 				params: { locale, scope: "restaurant", restaurantId: pin.restaurant.id },
 			});
 		},
-		[lightImpact, locale, logFrontendEvent, pins],
+		[lightImpact, locale, logFrontendEvent],
+	);
+
+	const handleSheetSwipeUp = useCallback(() => {
+		const first = pinsRef.current[0];
+		if (first) handlePinPress(first);
+	}, [handlePinPress]);
+
+	// マーカー配列は memo で固定する。`pins` が同じ参照である限り、activeIndex 等の
+	// 無関係な state 更新で 300 個のマーカーへ props が流れない
+	const markers = useMemo(
+		() =>
+			pins.map((pin) => (
+				<AvatarBubbleMarker
+					key={pin.restaurant.id}
+					testID="my-dishes-map-pin"
+					coordinate={{ latitude: pin.restaurant.latitude, longitude: pin.restaurant.longitude }}
+					onPress={() => handlePinPress(pin)}
+					// #1398 PR5 写真なし（representativeThumbnailUrl === null）でも灰色プレースホルダーに
+					// しない（#1375 追補2 決定3）。`MyDishPin` はピン＝店舗単位で `dish` を持たないため、
+					// list / calendar と違い `categoryImageUrl` の段は無く `restaurant.image_url` へ直接
+					// 落ちる（設計書 (2/2) §5-2 で確定。GET .../map-pins のレスポンスは変えない）
+					uri={pin.representativeThumbnailUrl ?? pin.restaurant.image_url ?? undefined}
+				/>
+			)),
+		[handlePinPress, pins],
 	);
 
 	const showInitialLoading = isLoading && !hasFetchedInitial && !error;
@@ -151,19 +184,7 @@ export function MyDishesMapView() {
 				initialRegion={initialRegion}
 				onMapReady={handleMapReady}
 				onRegionChangeComplete={handleRegionChangeComplete}>
-				{pins.map((pin) => (
-					<AvatarBubbleMarker
-						key={pin.restaurant.id}
-						testID="my-dishes-map-pin"
-						coordinate={{ latitude: pin.restaurant.latitude, longitude: pin.restaurant.longitude }}
-						onPress={() => handlePinPress(pin)}
-						// #1398 PR5 写真なし（representativeThumbnailUrl === null）でも灰色プレースホルダーに
-						// しない（#1375 追補2 決定3）。`MyDishPin` はピン＝店舗単位で `dish` を持たないため、
-						// list / calendar と違い `categoryImageUrl` の段は無く `restaurant.image_url` へ直接
-						// 落ちる（設計書 (2/2) §5-2 で確定。GET .../map-pins のレスポンスは変えない）
-						uri={pin.representativeThumbnailUrl ?? pin.restaurant.image_url ?? undefined}
-					/>
-				))}
+				{markers}
 			</MapView>
 
 			{showInitialLoading && (
@@ -217,7 +238,7 @@ export function MyDishesMapView() {
 			<MyDishesMapSheet
 				pins={pins}
 				onSelectPin={handlePinPress}
-				onSwipeUp={pins.length > 0 ? () => handlePinPress(pins[0]) : undefined}
+				onSwipeUp={pins.length > 0 ? handleSheetSwipeUp : undefined}
 			/>
 		</View>
 	);
