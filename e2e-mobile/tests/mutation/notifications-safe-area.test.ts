@@ -100,6 +100,9 @@ describeMutation("お知らせ一覧の SafeArea @mutation", () => {
 	 * #1404 以前は共通の `screen-header-back` を引き、「設定とブロック済み一覧で 2 枚になること」を
 	 * 遷移完了の合図にしていた。ScreenHeader の戻るが画面ごとの id（`${testID}-back`）になったので、
 	 * **見本画面そのものを直接観測する**形へ変えた。合図としても «2 枚に増えるまで待つ» より正確である。
+	 *
+	 * #1402 の «設定をマイページ本体へ統合» とも噛み合う。統合後は遷移元が ScreenHeader を
+	 * 持たないので共通 id は 1 枚しか一致せず、«2 枚» を合図にはもう使えない。
 	 */
 	const blockedTopicsBack = by.id("blocked-topics-header-back");
 
@@ -111,15 +114,16 @@ describeMutation("お知らせ一覧の SafeArea @mutation", () => {
 
 	// ─ テストケース: お知らせ一覧のヘッダーがステータスバー領域へ食い込まない ─
 	// 手順:
-	//   1. マイページ → 歯車 → ブロック済み料理カテゴリ一覧 と実導線で遷移する
-	//      （ネイティブには URL 直遷移の代替経路が無いため。settings.test.ts と同方針）
+	//   1. マイページ → ブロック済み料理カテゴリ一覧 と実導線で遷移する
+	//      （ネイティブには URL 直遷移の代替経路が無いため。settings.test.ts と同方針。
+	//       #1402 で歯車の 1 階層が無くなった）
 	//   2. 見本画面のヘッダー（blocked-topics-header-back）の上端 y を基準値として読む
 	//   3. お知らせタブへ切り替え、ヘッダータイトル（notifications-header-title）の上端 y を読む
 	//   4. 「お知らせの上端 y >= 見本の上端 y - 許容差」を検証する
 	//      修正前は inset ぶん（最小でも 24dp）上へずれるため必ず落ちる
 	it("ヘッダーの上端がブロック済み料理カテゴリ一覧と同じ高さ以下にある", async () => {
 		await tabBar.gotoProfile();
-		await profile.gotoSettings();
+		await profile.expectLoaded();
 		await settings.expectLoaded();
 		// SettingsScreen に遷移ヘルパを足さず、ここで行を直接タップしている。
 		// この spec が必要とするのは「見本画面のヘッダー座標」だけで、

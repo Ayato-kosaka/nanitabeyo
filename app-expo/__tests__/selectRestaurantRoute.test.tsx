@@ -2,7 +2,7 @@
 #1451 【設計】店舗選択 → 店詳細 «ルート» の結び目を固定する。
 
 ## なぜ必要か
-遷移先（`app/[locale]/(tabs)/review/restaurant/[restaurantId].tsx`）は `useRestaurantStore` の
+遷移先（`app/[locale]/restaurant/[restaurantId].tsx`）は `useRestaurantStore` の
 キャッシュ優先で描く。この画面は `POST v1/restaurants` /
 `GET v1/users/me/saved-restaurants` の応答として **店の実体をすでに持っている**ので、
 push より先にストアへ入れておけば遷移先は API を引かずに即描ける。
@@ -65,7 +65,7 @@ jest.mock("expo-router", () => {
 	};
 });
 
-jest.mock("@/features/review/stores/useRestaurantStore", () => ({
+jest.mock("@/stores/useRestaurantStore", () => ({
 	useRestaurantStore: { getState: () => ({ upsert: (entry: unknown) => mockUpsert(entry), getById: () => undefined }) },
 }));
 
@@ -114,7 +114,7 @@ jest.mock("@/features/mapMarkers", () => {
 	};
 });
 // シートの中身は要らない。カード押下 / 投稿ボタン押下の 2 経路だけを押せる形で露出する
-jest.mock("@/features/review/components/SavedRestaurantsSheet", () => {
+jest.mock("@/features/restaurantPicker/components/SavedRestaurantsSheet", () => {
 	const ReactActual = jest.requireActual("react");
 	const { View: RNView } = jest.requireActual("react-native");
 	return {
@@ -157,7 +157,7 @@ jest.mock("@/components/LoadingIndicator", () => ({ LoadingIndicator: () => null
 jest.mock("@/components/ScreenHeader", () => ({ ScreenHeader: () => null }));
 jest.mock("lucide-react-native", () => new Proxy({}, { get: () => () => null }));
 
-import SelectRestaurantScreen from "../app/[locale]/(tabs)/review/selectRestaurant";
+import SelectRestaurantScreen from "../app/[locale]/(tabs)/my-dishes/select-restaurant";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -217,7 +217,7 @@ describe("#1451 店舗選択から店詳細へ push する 4 経路", () => {
 		expect(mockCallBackend).toHaveBeenCalledWith("v1/restaurants", expect.objectContaining({ method: "POST" }));
 		expect(callOrder).toEqual(["upsert", "push"]);
 		expect(mockPush).toHaveBeenCalledWith({
-			pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]",
+			pathname: "/[locale]/restaurant/[restaurantId]",
 			params: { locale: "ja-JP", restaurantId: RESTAURANT_ID },
 		});
 	});
@@ -229,7 +229,7 @@ describe("#1451 店舗選択から店詳細へ push する 4 経路", () => {
 
 		expect(callOrder).toEqual(["upsert", "push"]);
 		expect(mockPush).toHaveBeenCalledWith({
-			pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]",
+			pathname: "/[locale]/restaurant/[restaurantId]",
 			params: { locale: "ja-JP", restaurantId: RESTAURANT_ID },
 		});
 	});
@@ -242,7 +242,7 @@ describe("#1451 店舗選択から店詳細へ push する 4 経路", () => {
 		expect(callOrder).toEqual(["upsert", "push"]);
 		expect(mockPush).toHaveBeenCalledWith(
 			expect.objectContaining({
-				pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]/review",
+				pathname: "/[locale]/restaurant/[restaurantId]/review",
 			}),
 		);
 	});

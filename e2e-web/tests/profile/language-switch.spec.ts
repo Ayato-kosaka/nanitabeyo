@@ -60,7 +60,7 @@ const SELECTABLE_LOCALES = PUBLIC_LOCALES.filter((locale) => !RTL_PUBLIC_LOCALES
 test.describe("表示言語の切り替え(#1508)", () => {
 	// ─ テストケース: 設定メニューから言語画面へ入れる ─
 	// 手順:
-	//   1. /ja-JP/profile/settings を開く
+	//   1. /ja-JP/profile を開く
 	//   2. 「言語」行（settings-language）が表示されていることを検証
 	//   3. タップして言語画面（language-header-title = 「言語」）へ遷移することを検証
 	test("設定メニューの「言語」から言語画面へ遷移できる", async ({ appPage }) => {

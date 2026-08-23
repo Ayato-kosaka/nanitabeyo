@@ -29,7 +29,8 @@
 			"unexpected": "Une erreur inattendue s'est produite. Veuillez réessayer plus tard.",
 			"notFound": "Non trouvé",
 			"authUnavailable": "Échec de la connexion. Veuillez vérifier votre connexion réseau, puis réessayer.",
-			"authRateLimited": "Trop de requêtes en ce moment. Veuillez patienter un instant, puis réessayer."
+			"authRateLimited": "Trop de requêtes en ce moment. Veuillez patienter un instant, puis réessayer.",
+			"videoProcessingFailed": "Échec du traitement de la vidéo. Essayez-en une autre."
 		}
 	},
 	"DeepLinking": {
@@ -390,6 +391,9 @@
 		"share": {
 			"title": "Découvrez {{dishName}}"
 		},
+		"save": {
+			"savedMessage": "Ajouté à Envie d'essayer"
+		},
 		"buttons": {
 			"viewRestaurant": "Voir le restaurant"
 		},
@@ -397,8 +401,9 @@
 			"viewRestaurant": "Voir les détails du restaurant {{name}}",
 			"likeActive": "Ne plus aimer {{name}}",
 			"likeInactive": "Aimer {{name}}",
-			"saveActive": "Retirer {{name}} des enregistrements",
-			"saveInactive": "Enregistrer {{name}}",
+			"saveActive": "Retirer {{name}} de Envie d'essayer",
+			"saveInactive": "Ajouter {{name}} à Envie d'essayer",
+			"recordEaten": "Enregistrer {{name}} comme goûté",
 			"share": "Partager {{name}}",
 			"openMap": "Ouvrir la carte de {{name}}",
 			"reviewLike": "Aimer l'avis de {{username}}"
@@ -410,6 +415,9 @@
 		},
 		"info": {
 			"walkFromShibuya": "À 13 min à pied de la gare de Shibuya"
+		},
+		"embed": {
+			"play": "Lire sur {{provider}}"
 		}
 	},
 	"ImageCardGrid": {
@@ -423,31 +431,17 @@
 	"Tabs": {
 		"home": "Accueil",
 		"search": "Recherche",
-		"review": "Avis",
 		"notifications": "Notifications",
 		"profile": "Profil",
 		"labels": {
 			"search": "Recherche",
-			"review": "Avis",
 			"notifications": "Notifications",
-			"profile": "Profil"
-		}
+			"profile": "Profil",
+			"myDishes": "Mes plats"
+		},
+		"myDishes": "Mes plats"
 	},
 	"Profile": {
-		"tabGroups": {
-			"reviews": "Avis",
-			"saved": "Enregistré",
-			"liked": "J'aime",
-			"wallet": "Portefeuille"
-		},
-		"tabs": {
-			"deposits": "Dépôts",
-			"earnings": "Revenus",
-			"saved-posts": "Publications",
-			"saved-topics": "Plats",
-			"wallet-deposit": "Dépôts",
-			"wallet-earning": "Revenus"
-		},
 		"numberSuffix": {
 			"million": "M",
 			"thousand": "K"
@@ -477,6 +471,10 @@
 			"refunded": "Remboursé",
 			"paid": "Payé",
 			"pending": "En attente"
+		},
+		"menu": {
+			"likedPosts": "Publications aimées",
+			"savedDishCategories": "Catégories de plats enregistrées"
 		},
 		"buttons": {
 			"editProfile": "Modifier le profil",
@@ -535,7 +533,7 @@
 		},
 		"actions": {
 			"selectDishCategory": "Sélectionner la catégorie du plat",
-			"writeReviewForThisDish": "Écrire un avis sur ce plat"
+			"writeReviewForThisDish": "Enregistrer comme goûté"
 		},
 		"inputs": {
 			"price": "Prix",
@@ -551,7 +549,8 @@
 			"enterReviewShort": "Avis bref (ex: Le bouillon de tonkotsu était incroyablement riche et délicieux!)",
 			"enterBidAmount": "Entrez le montant de l'enchère",
 			"enterDishCategory": "Entrez la catégorie de plat (ex: Crêpe, Ratatouille)",
-			"searchRestaurantsForReview": "Rechercher par nom ou zone"
+			"searchRestaurantsForReview": "Rechercher par nom ou zone",
+			"searchAreaForReview": "Rechercher par zone"
 		},
 		"labels": {
 			"endDate": "Date de fin:",
@@ -587,7 +586,11 @@
 			"selectingMedia": "Sélection des médias...",
 			"loadingMedia": "Chargement des médias...",
 			"mediaSelectionFailed": "Échec de la sélection des médias",
-			"mediaSelectionError": "Une erreur s'est produite lors de la sélection des médias. Veuillez réessayer."
+			"mediaSelectionError": "Une erreur s'est produite lors de la sélection des médias. Veuillez réessayer.",
+			"replaceWithMyPhoto": "Utiliser ma propre photo",
+			"openSettings": "Ouvrir les réglages",
+			"pickFromLibrary": "Choisir dans la galerie",
+			"shootWithCamera": "Prendre une photo"
 		},
 		"noResultsFound": "Aucun résultat trouvé",
 		"accessibility": {
@@ -653,7 +656,37 @@
 				"asian": "Asiatique",
 				"other": "Autre"
 			}
+		},
+		"review": {
+			"title": "Publier un Avis"
+		},
+		"emptyState": {
+			"noReviews": "Pas encore d'avis.\nSoyez le premier à évaluer ce restaurant."
+		},
+		"everybodyPostsTitle": "Choisir un plat à évaluer",
+		"characterCount": "{{current}}/{{max}}",
+		"detail": {
+			"title": "Détails du restaurant"
 		}
+	},
+	"SelectRestaurant": {
+		"title": "Sélectionner un restaurant",
+		"searchThisArea": "Rechercher à nouveau dans cette zone",
+		"savedRestaurantList": "Liste des restaurants enregistrés",
+		"postPhotoVideo": "Publier une photo/vidéo",
+		"fetchSavedRestaurantsError": "Échec de la récupération des restaurants enregistrés",
+		"noSavedRestaurantsInArea": "Aucun restaurant enregistré trouvé dans la zone affichée. Agrandissez la zone et relancez la recherche.",
+		"nameSearch": {
+			"placeholder": "Rechercher par nom de restaurant",
+			"searching": "Recherche en cours…",
+			"noResults": "Aucun restaurant correspondant trouvé. Appuyez sur un restaurant sur la carte pour l'ajouter.",
+			"error": "Échec de la recherche. Veuillez réessayer."
+		},
+		"accessibility": {
+			"clearNameSearch": "Effacer la recherche par nom de restaurant"
+		},
+		"unsavedHint": "Vous pouvez aussi choisir un établissement non enregistré : saisissez son nom dans la recherche ci-dessus ou touchez son icône sur la carte.",
+		"pickTitle": "Choisir un établissement"
 	},
 	"Feedback": {
 		"title": "Envoyer Commentaires/Rapport de Bug",
@@ -710,7 +743,6 @@
 		"continue_with_apple": "Continuer avec Apple"
 	},
 	"Settings": {
-		"title": "Paramètres",
 		"sendFeedback": "Envoyer des commentaires",
 		"leaveReview": "Laisser un avis",
 		"rateDialogTitle": "Appréciez-vous l'application ?",
@@ -772,33 +804,184 @@
 		"shareWithFriends": "Partager avec des amis",
 		"cancel": "Annuler"
 	},
-	"Review": {
-		"title": "Publier un Avis",
-		"hero": {
-			"title": "Rédige des avis sur des restaurants recommandés\net publie les plats que tu as mangés"
+	"MyDishes": {
+		"actions": {
+			"markAsEaten": "Noter comme mangé",
+			"markAsEatenA11y": "Noter ce plat comme mangé"
+		},
+		"views": {
+			"map": "Carte",
+			"list": "Liste",
+			"calendar": "Calendrier"
+		},
+		"calendar": {
+			"monthLabel": "{{month}}/{{year}}",
+			"weekdays": {
+				"sun": "Dim",
+				"mon": "Lun",
+				"tue": "Mar",
+				"wed": "Mer",
+				"thu": "Jeu",
+				"fri": "Ven",
+				"sat": "Sam"
+			},
+			"dayA11yLabel": "{{date}} ({{count}} enregistrements)",
+			"reachedOldest": "Vous avez atteint le plus ancien enregistrement"
+		},
+		"map": {
+			"truncated": "Seuls certains repères sont affichés. Réduisez la zone de recherche.",
+			"sheetTitle": "{{count}} enregistrements à proximité"
 		},
 		"guest": {
-			"description": "Connectez-vous pour écrire des avis",
+			"description": "Connectez-vous pour enregistrer les plats que vous voulez essayer et ceux que vous avez mangés",
 			"loginButton": "Se Connecter"
 		},
-		"authenticated": {
-			"postButton": "✏️ Publier un avis de restaurant"
+		"record": {
+			"cta": "Enregistrer",
+			"noPhotoTitle": "Ajouter une photo",
+			"noPhotoHint": "Vous pouvez enregistrer sans photo",
+			"publicReviewNotice": "Votre enregistrement apparaîtra comme un avis public sur la page du restaurant",
+			"postNotFoundNoPhoto": "Cet enregistrement n'a pas de photo"
 		},
-		"selectRestaurant": {
-			"title": "Sélectionner un restaurant",
-			"searchThisArea": "Rechercher à nouveau dans cette zone",
-			"savedRestaurantList": "Liste des restaurants enregistrés",
-			"postPhotoVideo": "Publier une photo/vidéo",
-			"fetchSavedRestaurantsError": "Échec de la récupération des restaurants enregistrés",
-			"noSavedRestaurantsInArea": "Aucun restaurant enregistré trouvé dans la zone affichée. Agrandissez la zone et relancez la recherche."
+		"filters": {
+			"title": "Filtrer et trier",
+			"apply": "Appliquer",
+			"reset": "Réinitialiser",
+			"status": {
+				"title": "Statut",
+				"want": "À goûter",
+				"eaten": "Goûté",
+				"description": "Choisissez les enregistrements à afficher : envies ou déjà mangés"
+			},
+			"rating": {
+				"title": "Note",
+				"min": "{{count}} étoiles et plus",
+				"description": "Filtrez vos plats déjà mangés selon la note que vous avez donnée"
+			},
+			"sort": {
+				"title": "Trier par",
+				"occurredAtDesc": "Plus récents d'abord",
+				"occurredAtAsc": "Plus anciens d'abord",
+				"ratingDesc": "Les mieux notés",
+				"distance": "Les plus proches",
+				"distanceRequiresArea": "Le tri par distance nécessite une zone. Utilisez « Rechercher dans cette zone » sur la carte.",
+				"featureScoreDesc": "Choisir des critères",
+				"description": "Choisissez l’ordre. Touchez « Choisir des critères » pour ouvrir le moment, avec qui vous y allez, etc."
+			},
+			"area": {
+				"title": "Zone",
+				"none": "Partout",
+				"clear": "Effacer la zone",
+				"hint": "La zone se définit avec « Rechercher dans cette zone » sur la carte.",
+				"selected": "Zone choisie sur la carte (rayon {{radius}})"
+			},
+			"axes": {
+				"none": "Non spécifié",
+				"timeSlot": "Moment de la journée",
+				"scene": "Avec qui",
+				"budget": "Gamme de prix",
+				"diningPace": "Temps du repas",
+				"foodStyle": "Type de cuisine",
+				"description": "Touchez un titre pour ouvrir ses options. Une option par titre"
+			},
+			"period": {
+				"title": "Période",
+				"none": "Non spécifié",
+				"clear": "Effacer la période"
+			},
+			"category": {
+				"title": "Catégorie de plat",
+				"description": "Filtrez par les catégories les plus fréquentes parmi les enregistrements affichés",
+				"count": "{{label}} ({{count}})",
+				"showAll": "Voir plus ({{count}} de plus)"
+			}
 		},
-		"emptyState": {
-			"noReviews": "Pas encore d'avis.\nSoyez le premier à évaluer ce restaurant."
+		"empty": {
+			"description": "Les plats que vous enregistrez ou marquez comme goûtés apparaîtront ici."
 		},
-		"everybodyPostsTitle": "Choisir un plat à évaluer",
-		"characterCount": "{{current}}/{{max}}",
-		"restaurantDetail": {
-			"title": "Détails du restaurant"
+		"list": {
+			"noPhoto": "Sans photo"
+		},
+		"sheet": {
+			"title": "Vos enregistrements chez {{restaurant}}",
+			"counts": "À goûter {{want}} · Goûtés {{eaten}}",
+			"openRestaurant": "Ouvrir la page du restaurant",
+			"expand": "Voir en plein écran",
+			"seeAllInList": "Tout voir dans la liste",
+			"noPhotoHint": "Cet enregistrement n'a pas de photo. Touchez pour ouvrir la page du restaurant."
+		},
+		"feed": {
+			"chips": {
+				"filterCategory": "Filtrer par {{name}}",
+				"filterStatusEaten": "Filtrer par « Goûté »",
+				"filterStatusWant": "Filtrer par « À goûter »",
+				"filterMinRating": "Filtrer par {{count}} étoiles et plus",
+				"applied": "Filtres mis à jour"
+			}
+		},
+		"searchThisArea": "Rechercher dans cette zone"
+	},
+	"SnsImport": {
+		"title": "Importer depuis les réseaux sociaux",
+		"confirm": {
+			"heading": "Cette publication va être importée"
+		},
+		"expandPending": {
+			"heading": "Un lien raccourci a été partagé",
+			"description": "L'ouverture des liens raccourcis pour identifier la publication n'est pas encore disponible. Partagez plutôt l'URL de la page de la publication."
+		},
+		"unsupported": {
+			"heading": "Cette URL ne peut pas être importée",
+			"description": "Les services pris en charge sont TikTok, YouTube Shorts et Instagram."
+		},
+		"tabs": {
+			"sns": "Depuis les réseaux",
+			"eaten": "Enregistrer un repas"
+		},
+		"input": {
+			"label": "Collez une URL de réseau social",
+			"placeholder": "https://www.tiktok.com/... ou le texte partagé"
+		},
+		"actions": {
+			"resolve": "Lire",
+			"save": "Enregistrer dans Envies",
+			"saveRequirement": "Choisissez un plat et un restaurant pour enregistrer.",
+			"resolveAgain": "Relire"
+		},
+		"sections": {
+			"dishCategory": "Plat",
+			"restaurant": "Restaurant",
+			"dishCategorySearchPlaceholder": "Rechercher un plat (2+ caractères)",
+			"selected": "Sélectionné : {{value}}",
+			"pickOnMap": "Trouver l’établissement sur la carte"
+		},
+		"save": {
+			"done": "Enregistré dans Envies",
+			"failed": "Enregistrement impossible"
+		},
+		"intro": "Collez l’URL d’une publication Instagram, TikTok ou YouTube Shorts, choisissez le plat et l’établissement, puis enregistrez-le dans vos envies. Aucune connexion requise.",
+		"steps": {
+			"paste": "Collez l’URL",
+			"dish": "Choisissez la catégorie du plat",
+			"restaurant": "Choisissez l’établissement"
+		},
+		"pickRestaurant": {
+			"title": "Choisir un établissement sur la carte",
+			"hint": "Touchez l’icône d’un établissement sur la carte, ou cherchez ci-dessus. Une fois choisi, vous revenez à l’écran d’import.",
+			"done": "« {{name}} » sélectionné"
+		},
+		"result": {
+			"summary": "Lecture terminée",
+			"noInfo": "Aucune information n’a pu être lue depuis cette publication. Choisissez l’établissement et la catégorie ci-dessous pour l’enregistrer.",
+			"showFullCaption": "Voir plus",
+			"collapseCaption": "Voir moins"
+		},
+		"eaten": {
+			"pickRestaurant": "Choisir un établissement",
+			"pick": "Choisir",
+			"change": "Modifier",
+			"hint": "Choisissez d’abord l’établissement. Vous pourrez ensuite ajouter photo, avis court, catégorie, prix et note (photo facultative).",
+			"done": "Enregistré comme mangé"
 		}
 	}
 }

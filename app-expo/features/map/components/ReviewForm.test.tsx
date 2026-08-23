@@ -24,6 +24,13 @@ import type { MediaData } from "@/lib/mediaSelection";
 
 // ---- 観測対象（selectMedia の呼ばれ方と結果の反映）以外はすべてスタブ化する ----
 // lucide のアイコンは名前ごとに export されるため Proxy で一括スタブ化する（searchScreenPreload.test.tsx と同じ）
+// #1375 実機確認: `ReviewForm` は投稿ボタンの下端に system inset を足すため
+// `useSafeAreaInsets()` を読む。このテストは `SafeAreaProvider` を張らずに
+// コンポーネント単体を描くので、ライブラリ公式の jest mock（インセットは全て 0）を使う。
+jest.mock("react-native-safe-area-context", () => ({
+	useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+
 jest.mock(
 	"lucide-react-native",
 	() =>
@@ -260,10 +267,23 @@ describe("ReviewForm のマウント時メディア選択（#1127）", () => {
 		const resolveSelection = deferSelectMedia();
 		mount();
 
+		// #1375 実機確認（3 巡目）: 権限拒否は「再試行」ではなく **「設定を開く」** を出す。
+		// 再試行しても同じ結果にしかならないため（実機で «設定まで行くのが面倒» と指摘され、
+		// Linking.openSettings で 1 タップ化した）
 		await resolveSelection({ success: false, error: "permission_denied" });
 		expect(findTextNodes(tree.root, "Map.media.permissionDenied")).toHaveLength(1);
+		expect(findTextNodes(tree.root, "Map.media.openSettings")).toHaveLength(1);
+		expect(findTextNodes(tree.root, "Common.retry")).toHaveLength(0);
 
-		// 再試行は同じ実行本体（ref 経由・同時実行ガード）を通る
+	});
+
+	it("権限以外のエラー（動画が長すぎる等）は従来どおり再試行が出て、同じ実行本体を通る", async () => {
+		const resolveSelection = deferSelectMedia();
+		mount();
+
+		await resolveSelection({ success: false, error: "video_too_long" });
+		expect(findTextNodes(tree.root, "Map.media.videoTooLong")).toHaveLength(1);
+
 		const retry = deferSelectMedia();
 		act(() => findPressHandler(tree.root, "Common.retry")());
 		expect(selectMediaMock).toHaveBeenCalledTimes(2);
@@ -276,7 +296,7 @@ describe("ReviewForm のマウント時メディア選択（#1127）", () => {
 		const resolveSelection = deferSelectMedia();
 		mount();
 
-		await resolveSelection({ success: false, error: "permission_denied" });
+		await resolveSelection({ success: false, error: "video_too_long" });
 
 		deferSelectMedia();
 		// 押した瞬間に loading へ倒れて再試行ボタンが消えるため、ハンドラを掴んでから連打する
@@ -295,7 +315,7 @@ describe("ReviewForm のマウント時メディア選択（#1127）", () => {
 		const resolveSelection = deferSelectMedia();
 		mount();
 
-		await resolveSelection({ success: false, error: "permission_denied" });
+		await resolveSelection({ success: false, error: "video_too_long" });
 
 		deferSelectMedia();
 		const retryPress = findPressHandler(tree.root, "Common.retry");
@@ -335,6 +355,160 @@ describe("ReviewForm のマウント時メディア選択（#1127）", () => {
 		]) {
 			expect(JSON.stringify(event.payload)).not.toContain(stubMedia.uri);
 		}
+	});
+});
+
+// #1398 【設計】写真なしモード（allowNoMedia）のテスト。
+//
+// 背景（Issue #1398 / 設計 §2 B2・B3・Q2）:
+// 完全新規の「食べた」記録には写真が無いことがある。そこで `/restaurant/[id]/review` だけに
+// `allowNoMedia` を渡し、**ピッカーのキャンセル = 写真なしで続行**へ倒す。
+//
+// ここで固定するのは 2 つ。
+//   1. `allowNoMedia` を渡さなければ挙動は**完全に従来どおり**（キャンセル → onCancel → 画面が閉じる）
+//   2. `allowNoMedia` のときはキャンセルで閉じず、写真なし（status:"none"）のプレースホルダへ倒れ、
+//      そこから選び直して success へ戻れる（= 写真なしは行き止まりではない）
+//
+// 1 が落ちると `review-from-media` 経路（prefilledMedia モード）の退出動線ごと壊れる。
+describe("ReviewForm の写真なしモード（#1398 B2 / B3）", () => {
+	let tree: TestRenderer.ReactTestRenderer;
+
+	/** allowNoMedia の有無を切り替えてマウントする（未指定 = 既定 false = 従来どおり） */
+	const mount = ({ onCancel, allowNoMedia }: { onCancel: () => void; allowNoMedia?: boolean }) => {
+		act(() => {
+			tree = TestRenderer.create(
+				<ReviewForm restaurant={restaurant} onCancel={onCancel} allowNoMedia={allowNoMedia} />,
+			);
+		});
+	};
+
+	/** 「写真を追加」プレースホルダのノード（composite + host が並ぶので長さは見ない） */
+	const placeholderNodes = () => tree.root.findAllByProps({ testID: "review-add-photo-placeholder" });
+	const hasPlaceholder = () => placeholderNodes().length > 0;
+
+	const pressPlaceholder = () => {
+		const node = placeholderNodes().find((candidate) => typeof candidate.props.onPress === "function");
+		if (!node) throw new Error("プレースホルダの onPress が見つかりません");
+		act(() => node.props.onPress());
+	};
+
+	afterEach(() => {
+		act(() => tree?.unmount());
+	});
+
+	it("allowNoMedia を渡さないときのキャンセルは、従来どおり onCancel を呼ぶ", async () => {
+		const onCancel = jest.fn();
+		const resolveSelection = deferSelectMedia();
+		mount({ onCancel });
+
+		await resolveSelection({ success: false, error: "cancelled" });
+
+		// #1398 ここが «写真なしの分岐が既存経路へ漏れていない» ことの本丸。
+		// review-from-media も含めて allowNoMedia を渡さない呼び出し元はすべてこの経路を通る
+		expect(onCancel).toHaveBeenCalledTimes(1);
+		expect(hasPlaceholder()).toBe(false);
+	});
+
+	it("allowNoMedia のときのキャンセルは onCancel を呼ばず、写真なしのプレースホルダへ倒れる", async () => {
+		const onCancel = jest.fn();
+		const resolveSelection = deferSelectMedia();
+		mount({ onCancel, allowNoMedia: true });
+
+		await resolveSelection({ success: false, error: "cancelled" });
+
+		// 画面は閉じない（退出は ScreenHeader の戻るボタンで確保されている。設計 Q2）
+		expect(onCancel).not.toHaveBeenCalled();
+		expect(hasPlaceholder()).toBe(true);
+		// ローディングのまま固着しないこと
+		expect(findTextNodes(tree.root, "Map.media.loadingMedia")).toHaveLength(0);
+		// 「写真なしでも記録できる」ことが画面に出ている（機能欠落に見せない。設計 §4-1）
+		expect(findTextNodes(tree.root, "MyDishes.record.noPhotoHint")).toHaveLength(1);
+		// フォームは開いたまま = 既存の入力欄がそのまま使える
+		expect(tree.root.findAllByProps({ testID: "review-comment-input" }).length).toBeGreaterThan(0);
+	});
+
+	// #1375 4 巡目: 「ライブラリから選ぶ / 写真を撮る」の 2 択導線
+	it("プレースホルダにはライブラリとカメラの導線があり、カメラは source: camera で起動する", async () => {
+		const resolveSelection = deferSelectMedia();
+		mount({ onCancel: jest.fn(), allowNoMedia: true });
+
+		await resolveSelection({ success: false, error: "cancelled" });
+		expect(hasPlaceholder()).toBe(true);
+		expect(tree.root.findAllByProps({ testID: "review-pick-from-library" }).length).toBeGreaterThan(0);
+
+		deferSelectMedia();
+		const cameraNode = tree.root
+			.findAllByProps({ testID: "review-shoot-with-camera" })
+			.find((candidate) => typeof candidate.props.onPress === "function");
+		if (!cameraNode) throw new Error("カメラ導線が見つかりません");
+		act(() => cameraNode.props.onPress());
+
+		expect(selectMediaMock).toHaveBeenCalledTimes(2);
+		const [mediaTypes, options] = selectMediaMock.mock.calls[1];
+		// カメラは写真のみ（NSMicrophoneUsageDescription が現行ビルドに無く、動画撮影は落ちる）
+		expect(mediaTypes).toEqual(["images"]);
+		expect(options).toMatchObject({ source: "camera" });
+	});
+
+	it("プレースホルダをタップすれば選び直せて、写真なしから写真ありへ戻れる", async () => {
+		const resolveSelection = deferSelectMedia();
+		mount({ onCancel: jest.fn(), allowNoMedia: true });
+
+		await resolveSelection({ success: false, error: "cancelled" });
+		expect(hasPlaceholder()).toBe(true);
+
+		// 再選択は「再試行」と同じ実行本体（ref 経由・同時実行ガード・世代判定）を通る
+		const retry = deferSelectMedia();
+		pressPlaceholder();
+		expect(selectMediaMock).toHaveBeenCalledTimes(2);
+
+		await retry({ success: true, media: stubMedia });
+
+		expect(tree.root.findByProps({ testID: "initial-media-preview" }).props.children).toBe(stubMedia.uri);
+		expect(hasPlaceholder()).toBe(false);
+	});
+
+	// #1441 M-1 【レビュー対応】写真なしで ★・コメント・価格・カテゴリを入力した後にプレースホルダから
+	// 再選択して失敗すると、以前はエラーカードの「閉じる」しか押せず、それが onCancel（= 画面を閉じる）
+	// を呼んでいたため入力が丸ごと消えていた。allowNoMedia のときは「閉じる」でフォームへ戻し、
+	// 入力を残す。allowNoMedia でないときの挙動（従来どおり onCancel）は変えていないことも対で固定する
+	it("allowNoMedia のときはエラーカードの「閉じる」でフォームへ戻り、入力を残す", async () => {
+		const onCancel = jest.fn();
+		const resolveSelection = deferSelectMedia();
+		mount({ onCancel, allowNoMedia: true });
+
+		await resolveSelection({ success: false, error: "cancelled" });
+		expect(hasPlaceholder()).toBe(true);
+
+		const commentInput = tree.root.findByProps({ testID: "review-comment-input" });
+		act(() => commentInput.props.onChangeText("美味しかった"));
+
+		const retry = deferSelectMedia();
+		pressPlaceholder();
+		await retry({ success: false, error: "video_too_long" });
+		expect(findTextNodes(tree.root, "Map.media.videoTooLong")).toHaveLength(1);
+
+		act(() => findPressHandler(tree.root, "Common.close")());
+
+		// 画面は閉じない（従来は onCancel → router.back() で入力が丸ごと消えていた）
+		expect(onCancel).not.toHaveBeenCalled();
+		// 写真なしのフォームへ戻る
+		expect(hasPlaceholder()).toBe(true);
+		// 入力済みのコメントは消えない
+		expect(tree.root.findByProps({ testID: "review-comment-input" }).props.value).toBe("美味しかった");
+	});
+
+	it("allowNoMedia を渡さないときのエラーカードの「閉じる」は、従来どおり onCancel を呼ぶ", async () => {
+		const onCancel = jest.fn();
+		const resolveSelection = deferSelectMedia();
+		mount({ onCancel });
+
+		await resolveSelection({ success: false, error: "permission_denied" });
+		expect(findTextNodes(tree.root, "Map.media.permissionDenied")).toHaveLength(1);
+
+		act(() => findPressHandler(tree.root, "Common.close")());
+
+		expect(onCancel).toHaveBeenCalledTimes(1);
 	});
 });
 

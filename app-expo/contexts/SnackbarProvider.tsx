@@ -1,6 +1,11 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback, useMemo } from "react";
-import { StyleSheet, Text, TouchableOpacity } from "react-native";
+import { Platform, StyleSheet, Text, TouchableOpacity } from "react-native";
 import { Snackbar } from "react-native-paper";
+// #1401 iOS のネイティブモーダル（presentation: "modal" / "transparentModal"）は
+// ルートの view より **上のレイヤ**に提示されるため、ここで素の absolute として描く
+// Snackbar はその背後に隠れる（検索結果フィードで「保存しました」が見えなかった実バグ）。
+// FullWindowOverlay はネイティブモーダルよりさらに上の window に描くための器である
+import { FullWindowOverlay } from "react-native-screens";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import i18n from "@/lib/i18n";
 
@@ -73,29 +78,61 @@ export const SnackbarProvider = ({ children }: { children: ReactNode }) => {
 	return (
 		<SnackbarContext.Provider value={value}>
 			{children}
-			<Snackbar
-				visible={visible}
-				onDismiss={() => setVisible(false)}
-				duration={duration}
-				style={[styles.snackbar, { bottom: bottomOffset }]}
-				testID="global-snackbar"
-				// #936 【仕様】スクリーンリーダーにメッセージ表示を自動通知する(Web は aria-live="polite" に対応)
-				accessibilityLiveRegion="polite"
-				action={
-					action
-						? {
-								label: action.label,
-								onPress: () => {
-									action.onPress();
-									setVisible(false);
-								},
-							}
-						: undefined
-				}>
-				<TouchableOpacity activeOpacity={0.8} onPress={() => setVisible(false)}>
-					<Text style={{ color: "#FFF" }}>{message}</Text>
-				</TouchableOpacity>
-			</Snackbar>
+			{/* #1401 iOS では表示中だけ FullWindowOverlay に載せる。
+			    - 常時マウントしない: overlay はタッチ層を 1 枚挟むので、出しっぱなしは事故のもと
+			    - Android / web は従来どおり（モーダルの上にも素の絶対配置で乗る） */}
+			{Platform.OS === "ios" ? (
+				visible ? (
+					<FullWindowOverlay>
+						<Snackbar
+							visible={visible}
+							onDismiss={() => setVisible(false)}
+							duration={duration}
+							style={[styles.snackbar, { bottom: bottomOffset }]}
+							testID="global-snackbar"
+							accessibilityLiveRegion="polite"
+							action={
+								action
+									? {
+											label: action.label,
+											onPress: () => {
+												action.onPress();
+												setVisible(false);
+											},
+										}
+									: undefined
+							}>
+							<TouchableOpacity activeOpacity={0.8} onPress={() => setVisible(false)}>
+								<Text style={{ color: "#FFF" }}>{message}</Text>
+							</TouchableOpacity>
+						</Snackbar>
+					</FullWindowOverlay>
+				) : null
+			) : (
+				<Snackbar
+					visible={visible}
+					onDismiss={() => setVisible(false)}
+					duration={duration}
+					style={[styles.snackbar, { bottom: bottomOffset }]}
+					testID="global-snackbar"
+					// #936 【仕様】スクリーンリーダーにメッセージ表示を自動通知する(Web は aria-live="polite" に対応)
+					accessibilityLiveRegion="polite"
+					action={
+						action
+							? {
+									label: action.label,
+									onPress: () => {
+										action.onPress();
+										setVisible(false);
+									},
+								}
+							: undefined
+					}>
+					<TouchableOpacity activeOpacity={0.8} onPress={() => setVisible(false)}>
+						<Text style={{ color: "#FFF" }}>{message}</Text>
+					</TouchableOpacity>
+				</Snackbar>
+			)}
 		</SnackbarContext.Provider>
 	);
 };
@@ -107,7 +144,6 @@ const styles = StyleSheet.create({
 		right: 16,
 	},
 });
-
 /**
  * useSnackbar フック
  *
