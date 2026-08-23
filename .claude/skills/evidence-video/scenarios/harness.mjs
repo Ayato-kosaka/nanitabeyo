@@ -108,6 +108,12 @@ export async function installMocks(page, handler) {
 	await page.route("**", async (route) => {
 		const url = route.request().url();
 		if (url.startsWith(BASE)) return route.continue();
+		// dotlottie(web 版 LoadingIndicator)はレンダラの WASM を jsdelivr から取る。
+		// JSON で握りつぶすとスピナーが一切描画されず、「確認中」等のローディングの
+		// エビデンスが撮れない（実測: #1502 案A の確認中スピナーが写らなかった）。
+		// CI ランナー / サンドボックスに外部到達性があればそのまま通す（無ければ
+		// 失敗して従来どおり写らないだけで、他へ波及しない）
+		if (url.includes("cdn.jsdelivr.net") && url.endsWith(".wasm")) return route.continue();
 		if (url.includes("maps.googleapis.com"))
 			return route.fulfill({ status: 200, contentType: "text/javascript", body: MAPS_STUB });
 		if (url.includes("/auth/v1/user"))
