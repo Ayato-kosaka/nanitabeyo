@@ -306,4 +306,70 @@ export class NotificationsRepository {
 
     return { notificationId: createdNotification.id, isNew: true };
   }
+
+  /* ------------------------------------------------------------------ */
+  /*        #1510 SET-02 通知カテゴリ別の受信設定                        */
+  /* ------------------------------------------------------------------ */
+
+  /**
+   * ユーザーの受信設定を全件取得（#1510）
+   *
+   * **行が無いカテゴリは返らない。** 「未設定 = 既定値」の解決は Service 側で行う。
+   * ここで既定値を埋めてしまうと「保存済みか未設定か」の情報が失われ、
+   * 将来 既定値を変えたときに保存済みの値と区別できなくなる。
+   */
+  async findNotificationPreferences(
+    userId: string,
+  ): Promise<{ category: string; enabled: boolean }[]> {
+    return this.prisma.prisma.user_notification_preferences.findMany({
+      where: { user_id: userId },
+      select: { category: true, enabled: true },
+    });
+  }
+
+  /**
+   * 単一カテゴリの受信設定を取得（#1510）
+   *
+   * @returns 保存済みなら `enabled` の値、**未設定なら `null`**（既定値の解決は呼び出し側）
+   */
+  async findNotificationPreference(
+    userId: string,
+    category: string,
+  ): Promise<boolean | null> {
+    const row =
+      await this.prisma.prisma.user_notification_preferences.findUnique({
+        where: {
+          user_id_category: { user_id: userId, category },
+        },
+        select: { enabled: true },
+      });
+
+    return row?.enabled ?? null;
+  }
+
+  /**
+   * 受信設定を upsert（#1510）
+   *
+   * 既定値と同じ値でも行を作る。「明示的にその値を選んだ」ことを残しておくと、
+   * 将来カテゴリの既定値を変更したときに、選択済みのユーザーを巻き込まずに済む。
+   */
+  async upsertNotificationPreference(
+    userId: string,
+    category: string,
+    enabled: boolean,
+  ): Promise<void> {
+    await this.prisma.prisma.user_notification_preferences.upsert({
+      where: {
+        user_id_category: { user_id: userId, category },
+      },
+      create: { user_id: userId, category, enabled },
+      update: { enabled, updated_at: new Date() },
+    });
+
+    this.logger.debug(
+      'NotificationPreferenceUpserted',
+      'upsertNotificationPreference',
+      { userId, category, enabled },
+    );
+  }
 }

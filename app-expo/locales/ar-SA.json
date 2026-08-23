@@ -724,6 +724,25 @@
 		"logout": "تسجيل الخروج",
 		"logoutConfirmTitle": "هل تريد تسجيل الخروج؟",
 		"logoutConfirmMessage": "ستحتاج إلى تسجيل الدخول مرة أخرى لإدارة منشوراتك ومراجعاتك.",
+		"notifications": {
+			"sectionTitle": "الإشعارات",
+			"osDisabledTitle": "الإشعارات موقوفة على هذا الجهاز",
+			"osDisabledDescription": "يتم حفظ اختياراتك هنا، لكن هذا الجهاز لن يتلقى إشعارات.",
+			"openOsSettings": "فتح إعدادات الجهاز",
+			"updateFailed": "تعذّر حفظ الإعداد",
+			"likes": {
+				"title": "الإعجابات",
+				"description": "عندما يعجب أحدهم بمنشورك أو تقييمك"
+			},
+			"saves": {
+				"title": "الحفظ",
+				"description": "عندما يحفظ أحدهم منشورك"
+			},
+			"group_votes": {
+				"title": "تصويت المجموعة",
+				"description": "عند حدوث نشاط في تصويت مجموعة انضممت إليها"
+			}
+		},
 		"blockedTopics": {
 			"navigationLabel": "فئات الأطباق المحظورة",
 			"pageTitle": "فئات الأطباق المحظورة",

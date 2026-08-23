@@ -29,6 +29,15 @@ export class SettingsPage {
 	/** ログアウト行（ログイン済みユーザーのみ表示） */
 	readonly logoutItem: Locator;
 	/**
+	 * #1510 通知カテゴリ別トグルのカード（ログイン済みユーザーのみ表示）。
+	 * ゲストにはプッシュの受け手が存在しないためカードごと出ない。
+	 */
+	readonly notificationsCard: Locator;
+	/** #1510 読み込み失敗時の再試行行（トグルの代わりに出る） */
+	readonly notificationsErrorRow: Locator;
+	/** #1510 OS 通知拒否中の案内行。Web は push 自体が無いため常に非表示 */
+	readonly notificationsOsDeniedNotice: Locator;
+	/**
 	 * ログアウト確認ダイアログ（DialogProvider の confirm）。
 	 *
 	 * DialogProvider は確認ボタンに testID を付けていないため、react-native-paper が
@@ -54,10 +63,30 @@ export class SettingsPage {
 		this.copyrightItem = page.getByTestId("settings-copyright");
 		this.blockedTopicsItem = page.getByTestId("settings-blocked-topics");
 		this.logoutItem = page.getByTestId("settings-logout");
+		this.notificationsCard = page.getByTestId("settings-notifications-card");
+		this.notificationsErrorRow = page.getByTestId("settings-notifications-error");
+		this.notificationsOsDeniedNotice = page.getByTestId("settings-notifications-os-denied");
 		this.logoutConfirmDialog = page.getByTestId("modal-surface");
 		this.logoutConfirmTitle = page.getByText("ログアウトしますか？", { exact: true });
 		this.logoutConfirmButton = this.logoutConfirmDialog.getByRole("button", { name: "ログアウト" });
 		this.logoutCancelButton = this.logoutConfirmDialog.getByRole("button", { name: "キャンセル" });
+	}
+
+	/**
+	 * #1510 通知カテゴリの行（トグル）を返す。
+	 *
+	 * `SettingsToggleItem` は行全体をタップ対象にし、Switch には `-switch` を足した
+	 * testID を付ける。**押すのは行**（Switch は `pointerEvents="none"` で親へ透過する）、
+	 * **状態を読むのは Switch**（react-native-web は `role="switch"` + `aria-checked` を出す）。
+	 */
+	notificationToggle(category: "likes" | "saves" | "group_votes"): Locator {
+		return this.page.getByTestId(`settings-notifications-${category}`);
+	}
+
+	/** #1510 カテゴリのトグルが今オンかを読む */
+	async isNotificationToggleOn(category: "likes" | "saves" | "group_votes"): Promise<boolean> {
+		const checked = await this.notificationToggle(category).getAttribute("aria-checked");
+		return checked === "true";
 	}
 
 	/** 指定 URL へ直接遷移する（locale プレフィックス必須） */
