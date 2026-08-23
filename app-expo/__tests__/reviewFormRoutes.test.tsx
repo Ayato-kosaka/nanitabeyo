@@ -205,7 +205,7 @@ describe("#1386 レビュー投稿フォームの料理カテゴリ選択", () =
 
 		expect(mockPush).toHaveBeenCalledTimes(1);
 		expect(mockPush).toHaveBeenCalledWith({
-			pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]/dish-category",
+			pathname: "/[locale]/restaurant/[restaurantId]/dish-category",
 			params: { locale: "ja-JP", restaurantId: RESTAURANT_ID },
 		});
 	});
@@ -298,7 +298,7 @@ describe("#1386 フィードから既存メディアのレビュー投稿へ", (
 
 		expect(mockPush).toHaveBeenCalledTimes(1);
 		expect(mockPush).toHaveBeenCalledWith({
-			pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]/review-from-media/[dishMediaId]",
+			pathname: "/[locale]/restaurant/[restaurantId]/review-from-media/[dishMediaId]",
 			params: { locale: "ja-JP", restaurantId: RESTAURANT_ID, dishMediaId: DISH_MEDIA_ID },
 		});
 	});

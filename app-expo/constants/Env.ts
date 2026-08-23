@@ -13,11 +13,6 @@ export const Env = {
 	// package.json 由来（app.config.ts）で常に値を持つから。ログ用の既定値は
 	// hooks/useLogger.ts のログ組み立て時に限定する。
 	APP_VERSION: Constants.expoConfig?.version as string,
-	// #1495 サポート問い合わせでビルドを特定するための表示用。app.config.ts が
-	// `version` の上2桁から機械的に生成する値で、OTA 更新はこの値を変えずに配信されるため
-	// COMMIT_ID と組み合わせて初めて「今動いている OTA 更新」まで特定できる。
-	// APP_VERSION と異なり表示専用（API へは乗らない）なのでフォールバックを持たせてよい。
-	RUNTIME_VERSION: (Constants.expoConfig?.runtimeVersion as string | undefined) || UNKNOWN_BUILD_META_CLIENT,
 	EAS_PROJECT_ID: extra.eas.projectId as string,
 	// #1078 EXPO_PUBLIC_COMMIT_ID を注入しない環境（ローカル開発 / E2E CI）で undefined になり、
 	// フロントログが 400 で全滅した（#1076）。参照元は useLogger のみなので Env 側で既定値を持たせて良い。

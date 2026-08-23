@@ -24,7 +24,7 @@
 */
 import React, { act } from "react";
 import TestRenderer from "react-test-renderer";
-import type { RestaurantEntry } from "@/features/review/stores/useRestaurantStore";
+import type { RestaurantEntry } from "@/stores/useRestaurantStore";
 
 const mockPush = jest.fn();
 
@@ -122,9 +122,9 @@ const mockCallBackend = jest.fn();
 jest.mock("@/hooks/useAPICall", () => ({ useAPICall: () => ({ callBackend: mockCallBackend }) }));
 jest.mock("@/components/LoadingIndicator", () => ({ LoadingIndicator: () => null }));
 
-import RestaurantDetailScreen from "../app/[locale]/(tabs)/review/restaurant/[restaurantId]";
-import { useRestaurantStore } from "@/features/review/stores/useRestaurantStore";
-import { SelectedRestaurantDetails } from "@/features/review/components/SelectedRestaurantDetails";
+import RestaurantDetailScreen from "../app/[locale]/restaurant/[restaurantId]";
+import { useRestaurantStore } from "@/stores/useRestaurantStore";
+import { SelectedRestaurantDetails } from "@/features/restaurant/components/SelectedRestaurantDetails";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -199,7 +199,8 @@ describe("#1388 店詳細ルートの push 先", () => {
 		await press(tree, "reviews-tab-item");
 
 		expect(mockPush).toHaveBeenCalledWith({
-			pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]/review-from-media/[dishMediaId]",
+			// #1375 移設先（レビュータブ廃止で `(tabs)/review/restaurant/**` → `restaurant/**`）
+			pathname: "/[locale]/restaurant/[restaurantId]/review-from-media/[dishMediaId]",
 			params: { locale: "ja-JP", restaurantId: RESTAURANT_ID, dishMediaId: "dish-media-7" },
 		});
 	});
@@ -211,7 +212,7 @@ describe("#1388 店詳細ルートの push 先", () => {
 		await press(tree, "reviews-tab-item");
 
 		expect(mockPush).not.toHaveBeenCalledWith(
-			expect.objectContaining({ pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]/feed" }),
+			expect.objectContaining({ pathname: "/[locale]/restaurant/[restaurantId]/feed" }),
 		);
 	});
 
@@ -222,7 +223,7 @@ describe("#1388 店詳細ルートの push 先", () => {
 		await press(tree, "restaurant-detail-post-photo-button");
 
 		expect(mockPush).toHaveBeenCalledWith({
-			pathname: "/[locale]/(tabs)/review/restaurant/[restaurantId]/review",
+			pathname: "/[locale]/restaurant/[restaurantId]/review",
 			params: { locale: "ja-JP", restaurantId: RESTAURANT_ID },
 		});
 	});

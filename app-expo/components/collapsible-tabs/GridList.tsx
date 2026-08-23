@@ -1,5 +1,5 @@
 import React, { useCallback } from "react";
-import { RefreshControl, View, StyleSheet, FlatListProps, ListRenderItemInfo } from "react-native";
+import { FlatList, RefreshControl, View, StyleSheet, FlatListProps, ListRenderItemInfo } from "react-native";
 import { Tabs } from "@/components/collapsible-tabs";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 
@@ -38,6 +38,17 @@ interface GridListProps<T extends GridItem> {
 	isLoading?: boolean;
 	isLoadingMore?: boolean;
 	onScroll?: FlatListProps<T>["onScroll"];
+	/**
+	 * #1402 【設計】collapsible-tabs の外（＝単独の画面）で使うときに true にする。
+	 *
+	 * `Tabs.FlatList` は react-native-collapsible-tab-view のコンテキスト
+	 * （`Tabs.Container` > `Tabs.Tab` の内側）を前提にしており、外側で描画すると実行時に落ちる。
+	 * プロフィールの 4 グリッドタブを廃止（#1402）した結果、LikeTab / SavedTopicsTab は
+	 * «タブのペイン» ではなく «独立したルート» として描画されるようになったため、
+	 * そこだけ素の FlatList へ落とす。既定値 false は従来の呼び出し側
+	 * （店詳細のレビュー等、まだ Tabs.Container の中にいるもの）を変えないため。
+	 */
+	standalone?: boolean;
 }
 
 export function GridList<T extends GridItem>({
@@ -59,6 +70,7 @@ export function GridList<T extends GridItem>({
 	isLoading = false,
 	isLoadingMore = false,
 	onScroll,
+	standalone = false,
 }: GridListProps<T>) {
 	const defaultKeyExtractor = useCallback(
 		(item: T, index: number) => {
@@ -88,8 +100,11 @@ export function GridList<T extends GridItem>({
 		);
 	}
 
+	// #1402 単独ルートでは collapsible-tabs のコンテキストが無いので素の FlatList を使う
+	const ListComponent = (standalone ? FlatList : Tabs.FlatList) as typeof FlatList;
+
 	return (
-		<Tabs.FlatList
+		<ListComponent
 			data={data}
 			renderItem={renderItem}
 			keyExtractor={defaultKeyExtractor}

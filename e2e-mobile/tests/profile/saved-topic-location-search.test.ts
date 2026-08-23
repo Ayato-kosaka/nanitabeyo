@@ -1,9 +1,4 @@
-import {
-	describeAuthenticated,
-	launchAppWithSession,
-	localeDeepLink,
-	waitUntilVisible,
-} from "../../fixtures/e2e";
+import { describeAuthenticated, launchAppWithSession, localeDeepLink, waitUntilVisible } from "../../fixtures/e2e";
 import { SavedTopicLocationSearchScreen } from "../../screens/SavedTopicLocationSearchScreen";
 import { SearchScreen } from "../../screens/SearchScreen";
 import { TabBar } from "../../screens/TabBar";
@@ -69,7 +64,9 @@ describeAuthenticated("保存した料理カテゴリからの地点検索", () 
 	 * `?tab=saved-topics` は付けない。iOS で効かなかった問題は #1272 で修正済みだが、
 	 * この spec の主題は «保存料理カテゴリからの地点検索» であってディープリンクではないため、
 	 * タブの切り替えは実 UI（タブバー）で行う（`openSavedTopicsTab`）。
-	 * `?tab=` の到達性そのものは profile-tab-deep-link.test.ts が回帰テストとして守っている。
+	 * ⚠️ #1402 で `?tab=` の仕組みごと無くなった（4 グリッドタブの廃止）。それを守っていた
+	 * profile-tab-deep-link.test.ts も一緒に落としてある。ここへ来る導線は
+	 * マイページの「保存した料理カテゴリ」の行 1 本だけになった。
 	 */
 	const profileDeepLink = localeDeepLink("profile");
 
