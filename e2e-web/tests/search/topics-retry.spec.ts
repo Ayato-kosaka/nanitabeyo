@@ -89,4 +89,34 @@ test.describe("Topics 取得失敗時の再試行(#1499)", () => {
 
 		await counter.stop();
 	});
+
+	// ─ テストケース: 再試行中は再試行ボタンが非活性になる ─
+	// 手順:
+	//   1. v1/dish-categories/recommendations を 500(遅延付き)に固定する
+	//   2. 検索を実行してエラー画面を出す(1 リクエスト目)
+	//   3. 再試行ボタンを押す。レスポンスが遅延で返ってこない間に、ボタンが disabled に
+	//      なっていることを検証する(topics.tsx の isRetryingTopics → TopicsError の
+	//      isRetrying prop が反映されている証拠。上の連打テストは「二重発火しない」ことの
+	//      証拠だが、ボタン自体が押せない見た目になっているかは別に見る必要がある)
+	//   4. 遅延分のレスポンスが返り、エラー画面(かつ再度押せる状態)に戻ることを確認する
+	test("再試行中は再試行ボタンが非活性になる", async ({ appPage }) => {
+		const counter = await stubDishCategoryRecommendationsFailure(appPage.context(), { delayMs: 500 });
+		const searchPage = new SearchPage(appPage);
+		const topicsPage = new TopicsPage(appPage);
+
+		await searchPage.typeLocation("渋谷");
+		await searchPage.selectLocationSuggestion(0);
+		await searchPage.submitButton.click();
+		await topicsPage.expectErrorState();
+		expect(counter.count()).toBe(1);
+
+		await topicsPage.retry();
+
+		await expect(topicsPage.errorRetryButton).toBeDisabled();
+
+		await topicsPage.expectErrorState();
+		expect(counter.count()).toBe(2);
+
+		await counter.stop();
+	});
 });

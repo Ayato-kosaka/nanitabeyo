@@ -128,14 +128,24 @@ export async function stubGoogleMaps(context: BrowserContext): Promise<void> {
  * CORS の扱いは {@link stubEmptyDishMediaResults} と同じ理由でリクエスト元 origin を返す。
  *
  * @param context ルートを仕掛ける BrowserContext
+ * @param options.delayMs レスポンスを返すまでの遅延(ms)。既定 0。
+ *   再試行ボタンが `isRetrying` 中に非活性(disabled)であることを検証したいテストのように、
+ *   「リクエストが飛んでからレスポンスが返るまでの間」を観測したい場合に指定する。
  * @returns 仕掛けたリクエスト数を数えられるカウンタと、ルートを解除する関数
  */
-export async function stubDishCategoryRecommendationsFailure(context: BrowserContext): Promise<RequestCounter> {
+export async function stubDishCategoryRecommendationsFailure(
+	context: BrowserContext,
+	options: { delayMs?: number } = {},
+): Promise<RequestCounter> {
 	let count = 0;
 	const urlGlob = "**/v1/dish-categories/recommendations*";
+	const delayMs = options.delayMs ?? 0;
 
 	const handler = async (route: Route): Promise<void> => {
 		count += 1;
+		if (delayMs > 0) {
+			await new Promise((resolve) => setTimeout(resolve, delayMs));
+		}
 		const origin = (await route.request().headerValue("origin")) ?? "*";
 		await route.fulfill({
 			status: 500,
