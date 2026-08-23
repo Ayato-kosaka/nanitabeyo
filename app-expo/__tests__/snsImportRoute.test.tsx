@@ -578,3 +578,55 @@ describe("#1375 読み取り後は URL を固定し、キャンセルで組ご�
 		expect(has(tree, "sns-import-resolve-button")).toBe(true);
 	});
 });
+
+/*
+#1375 実機確認（5 巡目）「店選択のコンポーネントを SNS と統一してほしい」。
+
+«食べたを記録» タブの店選択は «行をタップして地図へ» という SNS 側（②）とは別の形だった。
+同じ `RestaurantNameSearch` に揃え、確定名は入力欄の値・地図は右端のアイコンにする。
+*/
+describe("#1375 食べたを記録の店選択も SNS と同じ部品", () => {
+	beforeEach(() => {
+		jest.clearAllMocks();
+		usePickedRestaurantStore.getState().consume();
+	});
+
+	const openEatenTab = async () => {
+		const tree = await render();
+		const tab = tree.root.find((node) => node.props?.testID === "sns-import-tab-eaten");
+		await act(async () => {
+			tab.props.onPress();
+		});
+		return tree;
+	};
+
+	it("店名検索の入力欄が置かれ、地図は入力欄の中のアイコンから開く", async () => {
+		const tree = await openEatenTab();
+		expect(has(tree, "sns-import-eaten-restaurant-search")).toBe(true);
+
+		const mapButton = tree.root.find((node) => node.props?.testID === "sns-import-eaten-pick-restaurant");
+		await act(async () => {
+			mapButton.props.onPress();
+		});
+		expect(mockPush).toHaveBeenCalledWith(
+			expect.objectContaining({
+				pathname: "/[locale]/pick-restaurant",
+				params: expect.objectContaining({ mode: "pick" }),
+			}),
+		);
+	});
+
+	it("地図で選んだお店は入力欄の値として出る（別の «選択中» 行を作らない）", async () => {
+		const tree = await openEatenTab();
+		usePickedRestaurantStore.getState().setPicked({
+			restaurantId: "r-1",
+			name: "選んだ店",
+			restaurant: { id: "r-1", name: "選んだ店" } as never,
+		});
+		await act(async () => {
+			mockFocusEffects.current?.();
+		});
+		// モックした RestaurantNameSearch は selectedName を受け取ると器を 1 つ出す
+		expect(has(tree, "sns-import-selected-restaurant")).toBe(true);
+	});
+});

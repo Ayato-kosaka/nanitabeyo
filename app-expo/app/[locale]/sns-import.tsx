@@ -413,6 +413,25 @@ export default function SnsImportScreen() {
 	/** 食べたを記録タブで選んだお店（ReviewForm へ渡す restaurants の行ごと持つ） */
 	const [eatenRestaurant, setEatenRestaurant] = useState<PickedRestaurant | null>(null);
 
+	/**
+	 * #1375（5 巡目）店名検索から «食べたを記録» の店を選ぶ。
+	 *
+	 * ReviewForm は `restaurants` の行そのものを要求する（店名だけでは足りない）。
+	 * 店名検索の結果は同じ行を持っているので、地図経由（`usePickedRestaurantStore`）と
+	 * 同じ形へ詰め替えて渡す。
+	 */
+	const handleSelectEatenRestaurantFromSearch = useCallback(
+		(result: QueryRestaurantsResponse[number]) => {
+			lightImpact();
+			setEatenRestaurant({
+				restaurantId: result.restaurant.id,
+				name: result.restaurant.name,
+				restaurant: result.restaurant,
+			});
+		},
+		[lightImpact],
+	);
+
 	/** 記録できたら my-dishes を無効化してシートを閉じる（記録したものが並ぶ場所へ帰す） */
 	const handleEatenSuccess = useCallback(() => {
 		bumpMyDishesRevision();
@@ -525,21 +544,24 @@ export default function SnsImportScreen() {
 				   2. お店が決まったら ReviewForm（メディア選択 → 一言レビュー・料理カテゴリー・
 				      料金・おすすめ度）。写真なしでも記録できる（allowNoMedia） */
 				<View style={styles.eatenContainer} testID="sns-import-eaten-form">
-					<TouchableOpacity
-						testID="sns-import-eaten-pick-restaurant"
-						onPress={handleOpenMapPicker}
-						accessibilityRole="button"
-						style={styles.eatenRestaurantRow}>
-						<MapPinned size={18} color="#374151" />
-						<Text
-							style={[styles.eatenRestaurantLabel, eatenRestaurant === null && styles.eatenRestaurantPlaceholder]}
-							numberOfLines={1}>
-							{eatenRestaurant?.name ?? i18n.t("SnsImport.eaten.pickRestaurant")}
-						</Text>
-						<Text style={styles.eatenRestaurantChange}>
-							{i18n.t(eatenRestaurant === null ? "SnsImport.eaten.pick" : "SnsImport.eaten.change")}
-						</Text>
-					</TouchableOpacity>
+					{/* #1375 実機確認（5 巡目）: 店選択は SNS 取り込みの②と **同じ部品**にする。
+					    以前はここだけ «行をタップして地図へ» という別の形で、SNS 側と揃っていなかった。
+					    決まった店名は入力欄の値として出て、右端の地図アイコンで地図から探せる */}
+					<View style={styles.eatenRestaurantField}>
+						<RestaurantNameSearch
+							regionRef={regionRef}
+							onSelectRestaurant={handleSelectEatenRestaurantFromSearch}
+							selectedName={eatenRestaurant?.name ?? null}
+							onClearSelection={() => setEatenRestaurant(null)}
+							mapAction={{ onPress: handleOpenMapPicker, testID: "sns-import-eaten-pick-restaurant" }}
+							emptyAction={{
+								label: i18n.t("SnsImport.sections.pickOnMap"),
+								onPress: handleOpenMapPicker,
+								testID: "sns-import-eaten-restaurant-search-map-fallback",
+							}}
+							testID="sns-import-eaten-restaurant-search"
+						/>
+					</View>
 
 					{eatenRestaurant?.restaurant ? (
 						<ReviewForm
@@ -917,6 +939,9 @@ const styles = StyleSheet.create({
 	eatenContainer: {
 		flex: 1,
 		paddingTop: 8,
+	},
+	eatenRestaurantField: {
+		marginBottom: 12,
 	},
 	eatenRestaurantRow: {
 		flexDirection: "row",
