@@ -8,6 +8,7 @@ import { DishMediaAssembler } from './dish-media.assembler';
 import { StorageService } from '../../core/storage/storage.service';
 import { RestaurantsAssembler } from '../restaurants/restaurants.assembler';
 import { CookieQueueService } from '../../core/cookie-queue/cookie-queue.service';
+import { AppLoggerService } from '../../core/logger/logger.service';
 
 // Mock environment config before importing anything that depends on it
 jest.mock('src/core/config/env', () => ({
@@ -73,6 +74,16 @@ describe('DishMediaAssembler - Signed Cookie Generation', () => {
           provide: CookieQueueService,
           useValue: mockCookieQueueService,
         },
+        {
+          // DishMediaAssembler は logger を DI するので、テストモジュールにも要る
+          provide: AppLoggerService,
+          useValue: {
+            debug: jest.fn(),
+            log: jest.fn(),
+            warn: jest.fn(),
+            error: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
@@ -93,6 +104,9 @@ describe('DishMediaAssembler - Signed Cookie Generation', () => {
             id: 'media-1',
             media_type: 'video' as const,
             media_path: 'user-uploads/user-1/video.mp4',
+            // #511 動画の CDN URL は completed のときだけ作られる。
+            // 署名 Cookie の検証が目的なので completed 前提の fixture にする
+            media_processing_status: 'completed',
             thumbnail_path: 'user-uploads/user-1/thumb.jpg',
             isSaved: false,
             isLiked: false,
@@ -170,6 +184,9 @@ describe('DishMediaAssembler - Signed Cookie Generation', () => {
             id: 'media-1',
             media_type: 'video' as const,
             media_path: 'user-uploads/user-1/video1.mp4',
+            // #511 動画の CDN URL は completed のときだけ作られる。
+            // 署名 Cookie の検証が目的なので completed 前提の fixture にする
+            media_processing_status: 'completed',
             thumbnail_path: 'user-uploads/user-1/thumb1.jpg',
             isSaved: false,
             isLiked: false,
@@ -184,6 +201,9 @@ describe('DishMediaAssembler - Signed Cookie Generation', () => {
             id: 'media-2',
             media_type: 'video' as const,
             media_path: 'user-uploads/user-1/video2.mp4',
+            // #511 動画の CDN URL は completed のときだけ作られる。
+            // 署名 Cookie の検証が目的なので completed 前提の fixture にする
+            media_processing_status: 'completed',
             thumbnail_path: 'user-uploads/user-1/thumb2.jpg',
             isSaved: false,
             isLiked: false,

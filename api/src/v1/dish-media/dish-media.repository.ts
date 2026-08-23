@@ -585,7 +585,11 @@ export class DishMediaRepository {
 
     const { reactionSet, reviewLikeCountMap } =
       await this.buildReactionAggregates(
-        reviewsToReturn.map((review) => review.created_dish_media_id),
+        // #1395 created_dish_media_id は nullable（そのレビューがメディアを
+        // 作っていない場合は NULL）。集計対象になるメディアが無いので落とす
+        reviewsToReturn
+          .map((review) => review.created_dish_media_id)
+          .filter((id): id is string => id !== null),
         reviewsToReturn.map((review) => review.id),
         userId,
       );

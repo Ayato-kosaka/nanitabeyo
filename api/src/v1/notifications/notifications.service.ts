@@ -92,7 +92,11 @@ export class NotificationsService {
         ...items
           .filter((item) => item.notifications.target_table === 'dish_media')
           .map((item) => item.notifications.target_id),
-        ...reviews.map((review) => review.created_dish_media_id),
+        // #1395 created_dish_media_id は nullable。メディアを作っていない
+        // レビューは取得対象が無いので落とす
+        ...reviews
+          .map((review) => review.created_dish_media_id)
+          .filter((id): id is string => id !== null),
       ]),
     );
     const { items: dishMediaItems } =
@@ -168,6 +172,8 @@ export class NotificationsService {
     const review = reviewMap.get(item.notifications.target_id);
     if (!review) return undefined;
 
+    // #1395 メディアを作っていないレビューには紐づく dish_media が無い
+    if (!review.created_dish_media_id) return undefined;
     const dishME = dishMediaMap.get(review.created_dish_media_id);
     if (!dishME) return undefined;
 
