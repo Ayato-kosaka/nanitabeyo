@@ -23,7 +23,9 @@ export function CenteredAppShell({ children }: { children: ReactNode }) {
 	// #1509 カラムの外側もダークで白く残らないようテーマ追従にする
 	const styles = useThemedStyles(createStyles);
 	return (
-		<View style={styles.outer}>
+		// #1509 【E2E】カラムの外側の面色はテーマ切替が «アプリ全体» に効いたことを見る唯一の観測点なので
+		// testID を付ける（Web では data-testid として出力される）。見た目には影響しない
+		<View style={styles.outer} testID="app-shell-backdrop">
 			<View style={styles.inner}>{children}</View>
 		</View>
 	);

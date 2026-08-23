@@ -127,6 +127,9 @@ function ThemeSelector() {
 							testID={`settings-theme-${option}`}
 							accessibilityRole="radio"
 							accessibilityState={{ selected: isSelected, checked: isSelected }}
+							// #934 と同じ理由: react-native-web は accessibilityState.checked を DOM の
+							// aria-checked へ変換しないため、native/web 両対応の aria-checked を直接指定する
+							aria-checked={isSelected}
 							accessibilityLabel={label}>
 							<Icon
 								size={20}
@@ -136,13 +139,12 @@ function ThemeSelector() {
 							/>
 							<Text style={[styles.themeOptionText, isSelected && styles.themeOptionTextSelected]}>{label}</Text>
 							{isSelected && (
-								<Check
-									size={20}
-									color={colors.brand}
-									testID={`settings-theme-${option}-check`}
-									accessibilityElementsHidden
-									importantForAccessibility="no"
-								/>
+								// #1509 【E2E】チェックは lucide の SVG なので testID を直接載せると
+								// Detox / react-native-web のどちらで拾えるかが実装依存になる。
+								// 素の View で包んで testID を持たせ、両方から確実に見えるようにする
+								<View testID={`settings-theme-${option}-check`}>
+									<Check size={20} color={colors.brand} accessibilityElementsHidden importantForAccessibility="no" />
+								</View>
 							)}
 						</TouchableOpacity>
 						{!isLast && <View style={styles.separator} />}
