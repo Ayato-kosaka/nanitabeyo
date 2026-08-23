@@ -280,6 +280,11 @@ class BigQueryPipeline:
         parquet_options = bigquery.ParquetOptions()
         parquet_options.enable_list_inference = True
         job_config.parquet_options = parquet_options
+        # duckdb の COPY は全列を optional で書くため、スキーマ推定に任せると
+        # REQUIRED 列が "changed mode from REQUIRED to NULLABLE" で落ちる。
+        # 宛先テーブルのスキーマを明示して推定を使わせない（NULL が実際に
+        # 入っていればこの指定でも load 時に落ちる。それは落ちるべきである）。
+        job_config.schema = self.client.get_table(self.table(table_name)).schema
         with path.open("rb") as stream:
             job = self.client.load_table_from_file(
                 stream,
