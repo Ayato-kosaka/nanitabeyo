@@ -234,13 +234,31 @@ export default function MyDishCategoryGroupVotesScreen() {
 					},
 				);
 
-				if (!cursor || isRefresh) {
-					setVotes(response.data);
-				} else {
-					setVotes((prev) => [...prev, ...response.data]);
+				/*
+				#1561 と同じ形の事故を防ぐ。`response.data` は **無いことがある**
+				（レスポンスの形が変わった / 別の封筒が返った / 想定外の 200）。
+				そのまま setVotes(undefined) すると、**次のレンダーの votes.map が throw** し、
+				try/catch の外なので拾えず、画面ごと ErrorBoundary の
+				「予期しないエラーが発生しました」になる。
+
+				実際、エビデンス撮影（モックが空配列を返す構成）でこの画面が丸ごと落ちた。
+				一覧が空なのと、一覧が取れないのは、利用者にとって別物である。
+				取れない形で返ってきたら «空» ではなく «エラー表示» へ倒す。
+				*/
+				const items = Array.isArray(response?.data) ? response.data : null;
+				if (items === null) {
+					throw new Error(
+						`想定外のレスポンス形式です（data が配列ではありません）: ${typeof response?.data}`,
+					);
 				}
 
-				setNextCursor(response.nextCursor);
+				if (!cursor || isRefresh) {
+					setVotes(items);
+				} else {
+					setVotes((prev) => [...prev, ...items]);
+				}
+
+				setNextCursor(response.nextCursor ?? null);
 				setHasMore(!!response.nextCursor);
 			} catch (error) {
 				logFrontendEvent({

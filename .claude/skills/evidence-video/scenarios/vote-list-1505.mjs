@@ -6,14 +6,26 @@
 
 ⚠️ 認証・API・地図はモック。映っているのは «画面» であって実データではない。
 */
-import { record, writeNote, OUT } from "./harness.mjs";
+import { record, ok, writeNote, OUT } from "./harness.mjs";
 
 const BASE = process.env.EVIDENCE_BASE || "http://localhost:8788";
 const TARGET = "me-dish-category-group-votes-header";
 
+/*
+既定のモックは «空の配列» を返すが、この画面が期待しているのは
+`{ data, nextCursor }` の封筒である。素の配列を返すと `response.data` が
+undefined になり、次のレンダーの map が throw して画面ごと落ちる（実測）。
+封筒を正しく返して «一覧が空» の状態を撮る。
+*/
+const mock = (url) =>
+	url.includes("/v1/users/me/dish-category-group-votes")
+		? { body: ok({ data: [], nextCursor: null }) }
+		: null;
+
 async function shootScheme(scheme) {
 	return record({
 		name: `votelist1505-${scheme}`,
+		mock,
 		contextOptions: { colorScheme: scheme },
 		flow: async (page, shot) => {
 			await page.addInitScript((s) => {
