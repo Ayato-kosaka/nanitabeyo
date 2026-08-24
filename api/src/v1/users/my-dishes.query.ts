@@ -706,17 +706,17 @@ export function buildMyDishesPageQuery(
     WHERE dsv.dish_id = p.dish_id
       AND dsv.deleted_at IS NULL
   ) ms ON TRUE
-  -- #1513 own_media_id（= dish_reviews.created_dish_media_id）は他人が消したメディアを
-  -- 指したまま残りうる。«メディア削除の巻き添えは自分のレビューだけ» なので、
-  -- 他人のメディアから書いた自分のレビューは削除後も «食べた» として残るためである。
-  -- 実体が消えた id をそのまま返さず、下の fb（その dish の最新の生きたメディア）へ落とす
+  -- #1513 【設計】削除済みの自分のメディアは別の写真へ差し替えず、代表メディア NULL のまま
+  -- 返して UI 側で墓標を出す。差し替えると「自分の食べた記録の写真が勝手に別人の写真になる」ため。
+  -- om は「own_media_id が指す実体がまだ生きているか」だけを見る LATERAL で、
+  -- 死んでいれば media_id は NULL になる（fb へは落ちない）。
   LEFT JOIN LATERAL (
     SELECT dmo.id
     FROM dish_media dmo
     WHERE dmo.id = p.own_media_id
       AND dmo.deleted_at IS NULL
   ) om ON p.own_media_id IS NOT NULL
-  -- own_media_id が NULL、または上で弾かれた（削除済み）ときだけ、その dish の最新メディアへ落とす（m-7）
+  -- own_media_id が NULL のときだけ、その dish の最新メディアへ落とす（m-7）
   LEFT JOIN LATERAL (
     SELECT dm2.id
     FROM dish_media dm2
@@ -724,7 +724,7 @@ export function buildMyDishesPageQuery(
       AND dm2.deleted_at IS NULL
     ORDER BY dm2.created_at DESC, dm2.id DESC
     LIMIT 1
-  ) fb ON om.id IS NULL
+  ) fb ON p.own_media_id IS NULL
   -- ページ内の dish に限定した集計（候補集合全体の GROUP BY はしない）
   LEFT JOIN LATERAL (
     SELECT
@@ -800,8 +800,9 @@ export function buildMyDishMapPinsQuery(
     ORDER BY c2.occurred_at DESC, c2.row_key DESC
     LIMIT 1
   ) top ON TRUE
-  -- #1513 一覧と同じ理由（buildMyDishesPageQuery の om）で、削除済みメディアを指した
-  -- own_media_id は代表に採らず fb へ落とす。ピンのサムネイルが消えた投稿のままになるのを防ぐ
+  -- #1513 【設計】一覧（buildMyDishesPageQuery の om）と同じ扱い。削除済みメディアを指した
+  -- own_media_id は別の写真へ差し替えず、代表メディア NULL のまま返して UI 側で墓標を出す。
+  -- 差し替えると「自分の食べた記録の写真が勝手に別人の写真になる」ため。
   LEFT JOIN LATERAL (
     SELECT dmo.id
     FROM dish_media dmo
@@ -815,7 +816,7 @@ export function buildMyDishMapPinsQuery(
       AND dm3.deleted_at IS NULL
     ORDER BY dm3.created_at DESC, dm3.id DESC
     LIMIT 1
-  ) fb ON om.id IS NULL
+  ) fb ON top.own_media_id IS NULL
   LEFT JOIN dish_media dm ON dm.id = COALESCE(om.id, fb.id)
   LEFT JOIN dish_media_external_embeddings dmee ON dmee.dish_media_id = dm.id
   ORDER BY p.latest_occurred_at DESC
