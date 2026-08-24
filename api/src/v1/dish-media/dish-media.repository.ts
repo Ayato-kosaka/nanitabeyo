@@ -1119,7 +1119,14 @@ export class DishMediaRepository {
   }
 
   /**
-   * 投稿（dish_media）と、その投稿を作った本人が同時に書いたレビューを論理削除する。
+   * 投稿（dish_media）と、その投稿に紐づく **投稿者自身の最古のレビュー 1 件** を論理削除する。
+   *
+   * 【#1513 【設計】「投稿」の単位】
+   * オーナー確定仕様で「投稿」= dish_media 1 件 + そのメディアに紐づく自分の**最古**の
+   * dish_review 1 件である。よって消すレビューも 1 件だけで、
+   * 自分が同じメディアへ後から書いた 2 本目以降のレビューは
+   * **「別の投稿」として残す**（それらを消すと、消していない投稿が消える）。
+   * 最古の決め方は `created_at ASC, id ASC`（同時刻の tie-break。オーナー確認済み）。
    *
    * 【消す範囲を owner のレビューに限る理由】
    * `created_dish_media_id` は「一緒に作られた」だけを意味しない。既存メディアへ
@@ -1145,14 +1152,17 @@ export class DishMediaRepository {
     // 巻き添えにするレビューの id は、更新の前に確定させておく。
     // updateMany は更新した行を返さないため、後から引くと「今回消したもの」と
     // 「元から消えていたもの」を区別できない
-    const targets = await tx.dish_reviews.findMany({
+    const oldest = await tx.dish_reviews.findFirst({
       where: {
         created_dish_media_id: dishMediaId,
         user_id: ownerUserId,
         deleted_at: null,
       },
+      // #1513 「最古」= created_at 昇順。同時刻は id で決める（DB 側の物理順に依存しない）
+      orderBy: [{ created_at: 'asc' }, { id: 'asc' }],
       select: { id: true },
     });
+    const targets = oldest ? [oldest] : [];
 
     const media = await tx.dish_media.updateMany({
       where: { id: dishMediaId, deleted_at: null },

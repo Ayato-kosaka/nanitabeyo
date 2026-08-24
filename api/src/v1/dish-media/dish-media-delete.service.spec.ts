@@ -8,7 +8,7 @@
 //
 // ここで守りたいのは 3 つ。
 //   ❶ 他人の投稿を削除できないこと（サーバー側での認可）
-//   ❷ 削除単位が「dish_media 1 件 + その投稿と一緒に作られたレビュー」であること
+//   ❷ 削除単位が「dish_media 1 件 + そのメディアに紐づく自分の最古のレビュー 1 件」であること
 //   ❸ 論理削除であること（行を消さず deleted_at を立てる）
 //
 
@@ -88,7 +88,7 @@ describe('DishMediaService #1513 投稿の削除', () => {
     service = module.get(DishMediaService);
   });
 
-  it('自分の投稿は論理削除でき、一緒に作られたレビューも巻き添えで消える', async () => {
+  it('自分の投稿は論理削除でき、紐づく自分の最古のレビューも一緒に消える', async () => {
     repo.findDishMediaForMutation.mockResolvedValue({
       id: DISH_MEDIA_ID,
       user_id: OWNER_ID,
@@ -158,5 +158,112 @@ describe('DishMediaService #1513 投稿の削除', () => {
     await expect(
       service.deleteDishMedia(DISH_MEDIA_ID, OWNER_ID),
     ).rejects.toBeInstanceOf(NotFoundException);
+  });
+});
+
+/**
+ * #1513 リポジトリ側の「削除単位」を固定する。
+ *
+ * オーナー確定仕様の「投稿」= dish_media 1 件 + **そのメディアに紐づく自分の最古の
+ * dish_review 1 件**。ここが崩れると
+ *   - 他人のレビューを巻き添えにする（他人の文章が消える）
+ *   - 自分の 2 本目以降のレビュー（= 別の投稿）まで消える
+ * のどちらかが起きる。どちらも「消していない投稿が消える」ので、問い合わせの形で固定する。
+ */
+describe('DishMediaRepository #1513 softDeleteDishMediaWithReviews', () => {
+  const OLDEST_REVIEW_ID = 'oldest-review-uuid';
+  const DELETED_AT = new Date('2026-08-24T00:00:00.000Z');
+
+  const makeRepo = (
+    oldest: { id: string } | null = { id: OLDEST_REVIEW_ID },
+  ) => {
+    const findFirst = jest.fn().mockResolvedValue(oldest);
+    const reviewUpdateMany = jest.fn().mockResolvedValue({ count: 1 });
+    const mediaUpdateMany = jest.fn().mockResolvedValue({ count: 1 });
+    const tx = {
+      dish_reviews: { findFirst, updateMany: reviewUpdateMany },
+      dish_media: { updateMany: mediaUpdateMany },
+    };
+    const repo = new DishMediaRepository(
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+    return { repo, tx, findFirst, reviewUpdateMany, mediaUpdateMany };
+  };
+
+  it('巻き添えにするレビューは「自分の・未削除の・最古の」1 件だけ引く', async () => {
+    const { repo, tx, findFirst } = makeRepo();
+
+    await repo.softDeleteDishMediaWithReviews(
+      tx as never,
+      DISH_MEDIA_ID,
+      OWNER_ID,
+      DELETED_AT,
+    );
+
+    // findMany（= そのメディアに紐づく自分のレビュー全件）ではなく findFirst で 1 件。
+    // 全件消すと、自分が後から書いた 2 本目以降（別の投稿）まで消える
+    expect(findFirst).toHaveBeenCalledTimes(1);
+    expect(findFirst).toHaveBeenCalledWith({
+      where: {
+        created_dish_media_id: DISH_MEDIA_ID,
+        // 他人のレビューを巻き添えにしないための条件。外すと他人の文章が消える
+        user_id: OWNER_ID,
+        deleted_at: null,
+      },
+      // 「最古」は created_at 昇順 + id で tie-break（オーナー確認済み）
+      orderBy: [{ created_at: 'asc' }, { id: 'asc' }],
+      select: { id: true },
+    });
+  });
+
+  it('メディアとレビューを同じ deleted_at で論理削除し、消した id を返す', async () => {
+    const { repo, tx, reviewUpdateMany, mediaUpdateMany } = makeRepo();
+
+    const result = await repo.softDeleteDishMediaWithReviews(
+      tx as never,
+      DISH_MEDIA_ID,
+      OWNER_ID,
+      DELETED_AT,
+    );
+
+    expect(mediaUpdateMany).toHaveBeenCalledWith({
+      // 既に消えている行を上書きしない（冪等）
+      where: { id: DISH_MEDIA_ID, deleted_at: null },
+      data: {
+        deleted_at: DELETED_AT,
+        updated_at: DELETED_AT,
+        lock_no: { increment: 1 },
+      },
+    });
+    expect(reviewUpdateMany).toHaveBeenCalledWith({
+      where: { id: { in: [OLDEST_REVIEW_ID] } },
+      data: {
+        deleted_at: DELETED_AT,
+        updated_at: DELETED_AT,
+        lock_no: { increment: 1 },
+      },
+    });
+    expect(result).toEqual({
+      mediaDeleted: 1,
+      deletedDishReviewIds: [OLDEST_REVIEW_ID],
+    });
+  });
+
+  it('自分のレビューが 1 件も無い（他人のメディアではない写真だけの投稿）ならメディアだけ消す', async () => {
+    const { repo, tx, reviewUpdateMany, mediaUpdateMany } = makeRepo(null);
+
+    const result = await repo.softDeleteDishMediaWithReviews(
+      tx as never,
+      DISH_MEDIA_ID,
+      OWNER_ID,
+      DELETED_AT,
+    );
+
+    expect(mediaUpdateMany).toHaveBeenCalledTimes(1);
+    // レビューが無いのに updateMany を投げない（空 IN は全件更新の事故になり得る）
+    expect(reviewUpdateMany).not.toHaveBeenCalled();
+    expect(result.deletedDishReviewIds).toEqual([]);
   });
 });
