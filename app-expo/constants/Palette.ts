@@ -60,6 +60,17 @@ export const FixedColors = {
 	shadow: "#000000",
 	/** 主要 CTA の影（`components/PrimaryButton` へ渡す） */
 	ctaShadow: "rgba(0, 0, 0, 0.45)",
+	/*
+	#1513 通知の «種別» を表すバッジの地色（いいね = 赤 / 保存 = 紫 / 投票 = 緑）。
+
+	これは面の色ではなく **識別子** である。ライトとダークで色を振ると
+	「赤 = いいね」という手掛かりが崩れ、同じ通知が別物に見える。
+	上の `badgeBackground` と同じ理由でテーマ非追従にしている。
+	この上に載る字は `onFilled`（＝白）。
+	*/
+	notificationLike: "#FF3040",
+	notificationSave: "#5856D6",
+	notificationVote: "#34C759",
 } as const;
 
 export interface Palette {
