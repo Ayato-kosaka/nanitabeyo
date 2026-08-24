@@ -1,5 +1,7 @@
 import React, { useCallback } from "react";
 import { View, Text, Switch, TouchableOpacity, StyleSheet, StyleProp, TextStyle } from "react-native";
+import { useThemedStyles } from "@/contexts/ThemeProvider";
+import type { Palette } from "@/constants/Palette";
 
 interface SettingsToggleItemProps {
 	label: string;
@@ -30,6 +32,7 @@ export function SettingsToggleItem({
 	textStyle,
 	testID,
 }: SettingsToggleItemProps) {
+	const styles = useThemedStyles(createStyles);
 	const handlePress = useCallback(() => {
 		onValueChange(!value);
 	}, [onValueChange, value]);
@@ -53,22 +56,30 @@ export function SettingsToggleItem({
 	);
 }
 
-const styles = StyleSheet.create({
-	menuItem: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		paddingHorizontal: 16,
-		paddingVertical: 16,
-	},
-	menuItemText: {
-		fontSize: 16,
-		color: "#1A1A1A",
-		fontWeight: "500",
-	},
-	separator: {
-		height: 1,
-		backgroundColor: "#F3F4F6",
-		marginHorizontal: 16,
-	},
-});
+/*
+#1504 【修正】色を直書きしていたため、ダークで **ラベルが読めなかった**。
+
+エビデンス撮影で実測: カード地 #201F1F の上に文字 #1A1A1A が乗り、
+コントラスト比 **1.07:1**（ライトは 17.40:1）。事実上「文字が消えている」状態だった。
+色はテーマのトークンから取る（constants/Palette.ts）。
+*/
+const createStyles = (colors: Palette) =>
+	StyleSheet.create({
+		menuItem: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+			paddingHorizontal: 16,
+			paddingVertical: 16,
+		},
+		menuItemText: {
+			fontSize: 16,
+			color: colors.textPrimary,
+			fontWeight: "500",
+		},
+		separator: {
+			height: 1,
+			backgroundColor: colors.divider,
+			marginHorizontal: 16,
+		},
+	});

@@ -24,6 +24,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 
 import { Card } from "@/components/Card";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
+import type { Palette } from "@/constants/Palette";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { SettingsToggleItem } from "@/features/settings/components/SettingsToggleItem";
 import { setHapticsEnabled } from "@/features/settings/hapticsSettingsStore";
@@ -35,6 +37,8 @@ import { useScreenTrace } from "@/hooks/useScreenTrace";
 import i18n from "@/lib/i18n";
 
 export default function DeviceSettingsScreen() {
+	const styles = useThemedStyles(createStyles);
+	const { colors } = useAppTheme();
 	useScreenTrace("DeviceSettings");
 
 	const { lightImpact } = useHaptics();
@@ -76,7 +80,7 @@ export default function DeviceSettingsScreen() {
 	);
 
 	return (
-		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
+		<LinearGradient colors={colors.backgroundGradient} style={styles.container}>
 			<SafeAreaView style={styles.safeArea} edges={[]}>
 				<ScreenHeader
 					title={i18n.t("Settings.deviceSettings.title")}
@@ -106,28 +110,34 @@ export default function DeviceSettingsScreen() {
 	);
 }
 
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-	},
-	safeArea: {
-		flex: 1,
-	},
-	scrollView: {
-		flex: 1,
-	},
-	scrollContent: {
-		paddingBottom: 32,
-	},
-	description: {
-		fontSize: 13,
-		lineHeight: 20,
-		color: "#6B7280",
-		paddingHorizontal: 16,
-		paddingTop: 8,
-		paddingBottom: 12,
-	},
-	card: {
-		padding: 0,
-	},
-});
+/*
+#1504 【修正】画面の地を直書きしていたため、**ダークでもカードの外側が白のまま**だった
+（エビデンス撮影で実測: 地 rgb(251,252,252)）。カードとヘッダーだけがテーマに追従し、
+その周りが白いという絵になっていた。
+*/
+const createStyles = (colors: Palette) =>
+	StyleSheet.create({
+		container: {
+			flex: 1,
+		},
+		safeArea: {
+			flex: 1,
+		},
+		scrollView: {
+			flex: 1,
+		},
+		scrollContent: {
+			paddingBottom: 32,
+		},
+		description: {
+			fontSize: 13,
+			lineHeight: 20,
+			color: colors.textSecondary,
+			paddingHorizontal: 16,
+			paddingTop: 8,
+			paddingBottom: 12,
+		},
+		card: {
+			padding: 0,
+		},
+	});
