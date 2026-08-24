@@ -25,7 +25,7 @@
 `features/map/stores/useDishCategorySelectionStore.ts` のコメント。
 */
 import React, { useCallback } from "react";
-import { StyleSheet } from "react-native";
+import { FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
@@ -33,19 +33,23 @@ import { router, useLocalSearchParams } from "expo-router";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { DishCategorySearchForm } from "@/features/map/components/DishCategorySearchForm";
 import { useDishCategorySelectionStore } from "@/features/map/stores/useDishCategorySelectionStore";
+import { useRestaurantDishCategories } from "@/features/map/hooks/useRestaurantDishCategories";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import i18n from "@/lib/i18n";
-import { useAppTheme } from "@/contexts/ThemeProvider";
+import { type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 
 export default function DishCategorySelectScreen() {
 	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 	const { restaurantId } = useLocalSearchParams<{ restaurantId: string }>();
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { locale } = useLocale();
 	const setResult = useDishCategorySelectionStore((state) => state.setResult);
+	const { categories: restaurantCategories } = useRestaurantDishCategories(restaurantId);
 
 	/** 履歴があれば back。無い着地（URL 直リンク / リロード）だけ投稿フォームへ倒す */
 	/**
@@ -127,16 +131,78 @@ export default function DishCategorySelectScreen() {
 					title={null}
 					testID="dish-category-search"
 				/>
+				{/* #1375 実機確認（5 巡目）「縦スクロールで選びたい。その上に検索ボックス」。
+				    打たないと何も出ない画面だったので、**その店で既に記録がある料理**を縦に並べる。
+				    記録しようとしている料理の名前を正確に打てるとは限らず、ここが一番当たる。
+				    API は増やしていない（店舗フィードの既存 1 本から数えて畳む）。
+				    打ち始めたら候補パネルがこの上に出るので、そのときは従来どおりの検索になる */}
+				{restaurantCategories.length > 0 && (
+					<View style={styles.listSection}>
+						<Text style={styles.listHeading}>{i18n.t("Map.labels.dishesAtThisRestaurant")}</Text>
+						<FlatList
+							testID="dish-category-restaurant-list"
+							data={restaurantCategories}
+							keyExtractor={(item) => item.dishCategoryId}
+							keyboardShouldPersistTaps="handled"
+							renderItem={({ item }) => (
+								<TouchableOpacity
+									testID={`dish-category-restaurant-item-${item.dishCategoryId}`}
+									style={styles.listItem}
+									onPress={() => handleSuggestionSelect({ dishCategoryId: item.dishCategoryId, label: item.label })}
+									accessibilityRole="button"
+									accessibilityLabel={item.label}>
+									<Text style={styles.listItemLabel} numberOfLines={1} ellipsizeMode="tail">
+										{item.label}
+									</Text>
+									<Text style={styles.listItemCount}>{item.count}</Text>
+								</TouchableOpacity>
+							)}
+						/>
+					</View>
+				)}
 			</SafeAreaView>
 		</LinearGradient>
 	);
 }
 
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-	},
-	safeArea: {
-		flex: 1,
-	},
-});
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		container: {
+			flex: 1,
+		},
+		safeArea: {
+			flex: 1,
+		},
+		// 検索欄の «下» に置く。候補パネル（DishCategoryAutocomplete が自分の下に描く）は
+		// これより手前に出るので、打ち始めればこの一覧は隠れる
+		listSection: {
+			flex: 1,
+			paddingHorizontal: 16,
+		},
+		listHeading: {
+			fontSize: 14,
+			fontWeight: "700",
+			color: c.textSecondaryStrong,
+			marginBottom: 8,
+		},
+		listItem: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+			gap: 12,
+			paddingVertical: 14,
+			borderBottomWidth: StyleSheet.hairlineWidth,
+			borderBottomColor: c.borderMuted,
+		},
+		listItemLabel: {
+			flex: 1,
+			fontSize: 16,
+			color: c.textPrimaryAlt,
+		},
+		// 件数は «その店でよく記録されている» の手がかり。主役ではないので淡く小さく
+		listItemCount: {
+			fontSize: 12,
+			fontWeight: "700",
+			color: c.textTertiary,
+		},
+	});

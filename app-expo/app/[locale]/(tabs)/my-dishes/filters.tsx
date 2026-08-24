@@ -418,6 +418,27 @@ export default function MyDishesFiltersScreen() {
 					))}
 				</Section>
 
+				{/* #1375 実機確認（5 巡目）: 評価は料理カテゴリーより **上**。「食べた」を選ぶと
+				    まず «どのくらい美味しかったか» で絞りたい、というオーナーの操作順に合わせる。
+				    #1375 実機確認: 評価は「食べた」を選んだときだけ出す。
+				    want 行は評価を持たないので、以前は常に出したうえで不活性にし「なぜ押せないか」を
+				    注記で説明していた。押せない UI を説明するより、出さない方が短い */}
+				{ratingEnabled && (
+					<Section
+						title={i18n.t("MyDishes.filters.rating.title")}
+						description={i18n.t("MyDishes.filters.rating.description")}>
+						{RATING_CHOICES.map((rating) => (
+							<Chip
+								key={rating}
+								testID={`my-dishes-filter-rating-${rating}`}
+								label={i18n.t("MyDishes.filters.rating.min", { count: rating })}
+								selected={draft.minRating === rating}
+								onPress={() => selectMinRating(rating)}
+							/>
+						))}
+					</Section>
+				)}
+
 				{/* #1375（3 巡目）: 料理カテゴリーの絞り込み。候補は «いま出ている記録の中で多いもの» */}
 				{categoryFacets.length > 0 && (
 					<Section
@@ -446,25 +467,6 @@ export default function MyDishesFiltersScreen() {
 								}}
 							/>
 						)}
-					</Section>
-				)}
-
-				{/* #1375 実機確認: 評価は「食べた」を選んだときだけ出す。
-				    want 行は評価を持たないので、以前は常に出したうえで不活性にし「なぜ押せないか」を
-				    注記で説明していた。押せない UI を説明するより、出さない方が短い */}
-				{ratingEnabled && (
-					<Section
-						title={i18n.t("MyDishes.filters.rating.title")}
-						description={i18n.t("MyDishes.filters.rating.description")}>
-						{RATING_CHOICES.map((rating) => (
-							<Chip
-								key={rating}
-								testID={`my-dishes-filter-rating-${rating}`}
-								label={i18n.t("MyDishes.filters.rating.min", { count: rating })}
-								selected={draft.minRating === rating}
-								onPress={() => selectMinRating(rating)}
-							/>
-						))}
 					</Section>
 				)}
 
@@ -615,10 +617,13 @@ const createStyles = (c: Palette) =>
 			flexShrink: 1,
 		},
 		// #1375 実機確認: 見出しは «小さくてよい»。大きい見出しが並ぶとチップより目立ってしまう
+		// #1375（5 巡目・デザインレビュー #10）見出しが自分の説明文より薄かった
+		// （12/700 #9CA3AF = プレースホルダ色 vs 説明文 12/400 #6B7280）。
+		// 正本 §2 のセクション見出しは 14–15/700
 		sectionTitle: {
-			fontSize: 12,
+			fontSize: 14,
 			fontWeight: "700",
-			color: c.textTertiary,
+			color: c.textPrimaryAlt,
 			marginBottom: 8,
 		},
 		sectionDescription: {
@@ -686,15 +691,20 @@ const createStyles = (c: Palette) =>
 			paddingHorizontal: 16,
 			paddingVertical: 12,
 			borderTopWidth: 1,
-			borderTopColor: c.dividerMuted,
+			// #1375（5 巡目・デザインレビュー #18）`#EEE` は正本のパレットに無い。罫線は #E5E7EB へ統一
+			borderTopColor: c.borderMuted,
 		},
+		// #1375（5 巡目・デザインレビュー #21）副 CTA が «枠も地も無い素のテキスト» で、
+		// 隣の赤い「適用する」との差が開きすぎていた。正本 §1「副 CTA は灰背景 + 濃灰文字」
 		resetButton: {
 			paddingHorizontal: 16,
 			paddingVertical: 12,
+			borderRadius: 8,
+			backgroundColor: c.surfaceSubtle,
 		},
 		resetButtonLabel: {
 			fontSize: 14,
-			color: c.textSecondary,
+			color: c.textSecondaryStrong,
 			fontWeight: "700",
 		},
 		applyButton: {

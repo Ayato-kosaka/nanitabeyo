@@ -406,7 +406,8 @@
 			"share": "{{name}}をシェア",
 			"openMap": "{{name}}の地図を開く",
 			"reviewLike": "{{username}}の口コミにいいね",
-			"recordEaten": "{{name}}の食べたを記録"
+			"recordEaten": "{{name}}の食べたを記録",
+			"recordEatenAgain": "{{name}}で食べたをもう一度記録する（記録済み）"
 		},
 		"processing": "メディアを処理中...",
 		"errors": {
@@ -577,7 +578,8 @@
 			"endDate": "終了日:",
 			"paymentProcessing": "決済処理中...",
 			"restaurant": "お店",
-			"dishCategory": "料理カテゴリ"
+			"dishCategory": "料理カテゴリ",
+			"dishesAtThisRestaurant": "このお店の料理"
 		},
 		"tabs": {
 			"reviews": "レビュー"
@@ -611,7 +613,8 @@
 			"replaceWithMyPhoto": "自分の写真に差し替える",
 			"openSettings": "設定を開く",
 			"pickFromLibrary": "ライブラリから選ぶ",
-			"shootWithCamera": "写真を撮る"
+			"shootWithCamera": "写真を撮る",
+			"pickFromExisting": "このお店の写真から選ぶ"
 		},
 		"noResultsFound": "結果が見つかりませんでした",
 		"accessibility": {
@@ -855,7 +858,8 @@
 			"clearNameSearch": "店名検索の入力をクリア"
 		},
 		"unsavedHint": "保存していないお店も選べます。上の検索にお店の名前を入れるか、地図のお店アイコンをタップしてください。",
-		"pickTitle": "お店を選ぶ"
+		"pickTitle": "お店を選ぶ",
+		"pickOnMap": "地図からお店を探す"
 	},
 	"MyDishes": {
 		"actions": {
@@ -883,7 +887,9 @@
 		},
 		"map": {
 			"truncated": "件数が多いため一部のピンのみ表示しています。エリアを絞り込んでください。",
-			"sheetTitle": "この付近の記録 {{count}} 件"
+			"sheetTitle": "この付近のレストラン {{count}} 件",
+			"tileA11yLabel": "{{name}}（食べたい {{want}} 件、食べた {{eaten}} 件）",
+			"clusterA11yLabel": "このあたりのレストラン {{count}} 件"
 		},
 		"guest": {
 			"description": "ログインして食べたい/食べたを記録しよう",
@@ -894,7 +900,8 @@
 			"noPhotoTitle": "写真を追加",
 			"noPhotoHint": "写真なしでも記録できます",
 			"publicReviewNotice": "記録は公開レビューとして店舗ページに表示されます",
-			"postNotFoundNoPhoto": "この記録には写真がありません"
+			"postNotFoundNoPhoto": "この記録には写真がありません",
+			"skipPhoto": "スキップ（写真なし）"
 		},
 		"filters": {
 			"title": "絞り込み・並び替え",
@@ -972,7 +979,29 @@
 				"applied": "絞り込みを更新しました"
 			}
 		},
-		"searchThisArea": "このエリアで再検索"
+		"searchThisArea": "このエリアで再検索",
+		"tutorial": {
+			"steps": {
+				"views": {
+					"title": "3 つの見方を切り替えられます",
+					"body": "地図・一覧・カレンダーで、同じ «食べたい / 食べた» を見られます。地図は «いまこの辺で何食べよう»、カレンダーは «いつ何を食べたか» を見るときに。"
+				},
+				"openFeed": {
+					"title": "押すと全画面で見られます",
+					"body": "ピン・カード・日付を押すと、その記録が全画面で開きます。",
+					"axis": "上下でお店や日を送り、左右で同じお店・同じ日の別の 1 枚へ。"
+				},
+				"add": {
+					"title": "ここから棚に足します",
+					"sns": "Instagram・TikTok・YouTube の URL を貼ると、お店と料理を読み取って «食べたい» に保存します。",
+					"eaten": "食べたものは «食べたを記録» から。写真は後からでも、無しでも記録できます。"
+				},
+				"filter": {
+					"title": "増えてきたら、ここで絞ります",
+					"body": "«食べたい / 食べた»・料理・エリア・誰と・時間帯で棚を削れます。選択肢を増やすためではなく、迷いを減らすための道具です。"
+				}
+			}
+		}
 	},
 	"SnsImport": {
 		"title": "SNS から取り込む",
@@ -999,7 +1028,8 @@
 			"resolve": "読み取る",
 			"save": "食べたいに保存",
 			"saveRequirement": "料理と店舗を選ぶと保存できます。",
-			"resolveAgain": "もう一度読み取る"
+			"resolveAgain": "もう一度読み取る",
+			"cancel": "キャンセル"
 		},
 		"sections": {
 			"dishCategory": "料理",
@@ -1035,6 +1065,15 @@
 			"change": "変更",
 			"hint": "まずお店を選んでください。選ぶと写真・一言レビュー・料理カテゴリー・料金・おすすめ度を入力できます（写真なしでも記録できます）。",
 			"done": "食べたを記録しました"
+		}
+	},
+	"Tutorial": {
+		"spotlight": {
+			"skip": "スキップ",
+			"next": "次へ",
+			"finish": "使ってみる",
+			"progress": "{{current}} / {{total}}",
+			"progressAccessibility": "{{total}}ステップ中{{current}}番目"
 		}
 	}
 }

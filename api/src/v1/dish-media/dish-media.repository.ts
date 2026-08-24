@@ -58,6 +58,16 @@ export interface DishMediaEntryEntity {
     isLiked: boolean;
     likeCount: number;
     /**
+     * #1375 実機確認（5 巡目）「フィードの『食べたを記録』ボタンに記録済みの色を付けたい」。
+     * その dish に **自分の `dish_reviews` が 1 件でもあるか**。
+     *
+     * ⚠️ 詰めているのは `GET /v1/dish-media?ids=` だけ（#1399 の externalEmbed と同じ判断）。
+     * このボタンを出すのはその経路で読むフィードだけで、検索動線のフィードでは
+     * そもそも出さない（`ActionButtons` の `showRecordEaten`）。件数の多い検索経路へ
+     * 問い合わせを 1 本増やす理由が無い。join しない経路では undefined になる
+     */
+    isEaten?: boolean;
+    /**
      * #1399 `render_type='external_embed'` の行だけが持つ。
      * join しない経路（検索・一覧など件数の多い経路）では undefined のままになる
      */
@@ -859,6 +869,22 @@ export class DishMediaRepository {
     const { reactionSet, reviewLikeCountMap } =
       await this.buildReactionAggregates(dishMediaIds, allReviewIds, userId);
 
+    // #1375（5 巡目）この dish を自分が «食べた» 記録があるか。
+    //
+    // 上で取っている `dishes.dish_reviews` は **全ユーザーぶんを reviewLimit 件で切っている**ので、
+    // 自分のレビューがその中に居るとは限らない（＝ あの配列から判定すると «記録していない» と
+    // 誤判定する）。索引 `idx_dish_reviews_user_dish (user_id, dish_id)` にそのまま乗る
+    // 専用の 1 本で引く。ゲスト（userId なし）では引かない
+    const eatenDishIds = new Set<string>();
+    if (userId && dishIds.length > 0) {
+      const myReviewedDishes = await this.prisma.prisma.dish_reviews.findMany({
+        where: { user_id: userId, dish_id: { in: dishIds } },
+        distinct: ['dish_id'],
+        select: { dish_id: true },
+      });
+      for (const row of myReviewedDishes) eatenDishIds.add(row.dish_id);
+    }
+
     return dishMediaIds
       .filter((dishMediaId) => {
         const dishMedia = dishMediaMap.get(dishMediaId);
@@ -896,6 +922,8 @@ export class DishMediaRepository {
             likeCount: Number(
               dishMedia.dish_media_analysis_results?.like_total ?? 0,
             ), // #292 【設計】likeCount は dish_media_analysis_results.like_total から取得（reactions は含めない）
+            // #1375（5 巡目）「食べたを記録」ボタンを記録済みの色にするための旗
+            isEaten: eatenDishIds.has(dishMedia.dish_id),
             // #1399 external_embed の行だけがこれを持つ。stored の行では常に undefined
             externalEmbed:
               dishMedia.dish_media_external_embeddings ?? undefined,

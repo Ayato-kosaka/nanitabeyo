@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
 import { Image } from "expo-image";
-import { Search, X } from "lucide-react-native";
+import { MapPin, Search, X } from "lucide-react-native";
 import type { Region } from "@/components/MapView";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useLogger } from "@/hooks/useLogger";
@@ -37,6 +37,29 @@ export type RestaurantNameSearchProps = {
 	 * 0 件・失敗のときに押せるボタンをここへ差せるようにする。
 	 */
 	emptyAction?: { label: string; onPress: () => void; testID?: string };
+	/**
+	 * #1375 実機確認（5 巡目）「決まったお店の名前が検索ボックスに入ってほしい」。
+	 *
+	 * 選び終えた店名。渡すと、入力していない間はこの名前が **入力欄の値**として出る
+	 * （下に «選択中: ◯◯» の行を別で置かない ＝ 同じことを 2 箇所へ書かない）。
+	 * X を押すと `onClearSelection` が呼ばれ、選び直しに戻る。
+	 */
+	selectedName?: string | null;
+	onClearSelection?: () => void;
+	/**
+	 * #1375 実機確認（5 巡目）「検索ボックスの右に地図アイコン」。
+	 * «地図から探す» を独立したボタンとして下へ置くと、幅が中途半端に余って
+	 * 画面の中で浮く（実機指摘「幅が不揃い」）。入力欄の中の右端へ入れる。
+	 */
+	mapAction?: { onPress: () => void; testID?: string; accessibilityLabel?: string };
+	/**
+	 * #1375 読み取り結果などの «候補»。入力欄の **下に小さく** 並べる（実機指摘）。
+	 * 呼び出し元がチップを自前で組むと画面ごとに寸法がずれるため、ここで描く。
+	 */
+	candidates?: { id: string; label: string; testID?: string }[];
+	/** 選択済み候補の id（候補チップの強調に使う） */
+	selectedCandidateId?: string | null;
+	onSelectCandidate?: (id: string) => void;
 	testID?: string;
 };
 
@@ -51,6 +74,12 @@ export function RestaurantNameSearch({
 	regionRef,
 	onSelectRestaurant,
 	emptyAction,
+	selectedName,
+	onClearSelection,
+	mapAction,
+	candidates,
+	selectedCandidateId,
+	onSelectCandidate,
 	testID = "restaurant-name-search",
 }: RestaurantNameSearchProps) {
 	const { colors } = useAppTheme();
@@ -167,15 +196,25 @@ export function RestaurantNameSearch({
 		};
 	}, []);
 
-	const showResultsPanel = status !== "idle";
+	// 選び終えていて、かつ自分で打ち直していない間だけ «確定名» を出す。
+	// 打ち始めたら（query が入ったら）検索の入力欄として振る舞う
+	const showsSelectedName = !!selectedName && query.length === 0;
+
+	const handleClearSelection = useCallback(() => {
+		lightImpact();
+		onClearSelection?.();
+	}, [lightImpact, onClearSelection]);
+
+	// 確定名が出ている間は結果パネルを出さない（選び終えた欄の下に候補一覧が残らないように）
+	const showResultsPanel = status !== "idle" && !showsSelectedName;
 
 	return (
 		<View style={styles.container}>
 			<View style={styles.inputContainer}>
 				<Search size={18} color={colors.textSecondary} style={styles.searchIcon} />
 				<TextInput
-					style={styles.input}
-					value={query}
+					style={[styles.input, showsSelectedName && styles.inputSelected]}
+					value={showsSelectedName ? selectedName! : query}
 					onChangeText={handleChangeText}
 					placeholder={i18n.t("SelectRestaurant.nameSearch.placeholder")}
 					placeholderTextColor={colors.textSecondary}
@@ -185,10 +224,10 @@ export function RestaurantNameSearch({
 					accessibilityLabel={i18n.t("SelectRestaurant.nameSearch.placeholder")}
 					testID={`${testID}-input`}
 				/>
-				{query.length > 0 && (
+				{(query.length > 0 || showsSelectedName) && (
 					<TouchableOpacity
 						style={styles.clearButton}
-						onPress={handleClear}
+						onPress={showsSelectedName ? handleClearSelection : handleClear}
 						hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
 						accessibilityRole="button"
 						accessibilityLabel={i18n.t("SelectRestaurant.accessibility.clearNameSearch")}
@@ -196,7 +235,41 @@ export function RestaurantNameSearch({
 						<X size={16} color={colors.textSecondary} />
 					</TouchableOpacity>
 				)}
+				{mapAction && (
+					<TouchableOpacity
+						style={styles.mapButton}
+						onPress={mapAction.onPress}
+						hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+						accessibilityRole="button"
+						accessibilityLabel={mapAction.accessibilityLabel ?? i18n.t("SelectRestaurant.pickOnMap")}
+						testID={mapAction.testID ?? `${testID}-map`}>
+						<MapPin size={18} color={colors.textSecondaryStrong} />
+					</TouchableOpacity>
+				)}
 			</View>
+
+			{/* #1375 候補は入力欄の «下に小さく»。選び終えたら畳む（もう選ぶものが無いため） */}
+			{!showsSelectedName && candidates && candidates.length > 0 && (
+				<View style={styles.candidateRow}>
+					{candidates.map((candidate) => (
+						<TouchableOpacity
+							key={candidate.id}
+							testID={candidate.testID}
+							onPress={() => {
+								lightImpact();
+								onSelectCandidate?.(candidate.id);
+							}}
+							accessibilityRole="button"
+							accessibilityState={{ selected: selectedCandidateId === candidate.id }}
+							style={[styles.candidateChip, selectedCandidateId === candidate.id && styles.candidateChipSelected]}>
+							<Text
+								style={[styles.candidateLabel, selectedCandidateId === candidate.id && styles.candidateLabelSelected]}>
+								{candidate.label}
+							</Text>
+						</TouchableOpacity>
+					))}
+				</View>
+			)}
 
 			{showResultsPanel && (
 				<View style={styles.resultsPanel}>
@@ -294,7 +367,42 @@ const createStyles = (c: Palette) =>
 	},
 	clearButton: {
 		padding: 12,
-		marginRight: 4,
+	},
+	// 確定した店名は «入力の続き» ではなく «決まった値» なので、少し強く見せる
+	inputSelected: {
+		fontWeight: "700",
+	},
+	// #1375 «地図から探す» は入力欄の中の右端。赤くしない（副次的な導線で、CTA ではない）
+	mapButton: {
+		paddingHorizontal: 14,
+		paddingVertical: 12,
+		marginRight: 2,
+		borderLeftWidth: StyleSheet.hairlineWidth,
+		borderLeftColor: c.borderMuted,
+	},
+	candidateRow: {
+		marginTop: 8,
+		flexDirection: "row",
+		flexWrap: "wrap",
+		gap: 6,
+	},
+	// 候補は «小さく»（実機指摘）。本文のチップ（13pt）より一回り下げる
+	candidateChip: {
+		paddingHorizontal: 10,
+		paddingVertical: 5,
+		borderRadius: 14,
+		backgroundColor: c.surfaceSubtle,
+	},
+	candidateChipSelected: {
+		backgroundColor: c.brandTintAlt,
+	},
+	candidateLabel: {
+		fontSize: 12,
+		color: c.textSecondaryStrong,
+	},
+	candidateLabelSelected: {
+		color: c.brand,
+		fontWeight: "700",
 	},
 	resultsPanel: {
 		marginTop: 12,

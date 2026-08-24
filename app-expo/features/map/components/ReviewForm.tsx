@@ -43,6 +43,7 @@ import type {
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { Dimensions } from "react-native";
 import { MediaData, selectMedia } from "@/lib/mediaSelection";
+import { ExistingDishMediaPicker } from "./ExistingDishMediaPicker";
 import { Image } from "expo-image";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { useProfileStore } from "@/features/profile/stores/useProfileStore";
@@ -74,6 +75,17 @@ interface ReviewFormProps {
 	 */
 	allowNoMedia?: boolean;
 	/**
+	 * #1375 実機確認（5 巡目）: メディアの選び方。
+	 *
+	 * - `"auto"`（既定・従来）… マウント直後に OS のピッカーを開く。
+	 *   «写真を選んでからレビューを書く» 前提の画面（店舗フィードからの投稿）はこちら
+	 * - `"manual"` … 開かない。**画面の中の «自分で撮影して追加 / ライブラリから選ぶ / スキップ»**
+	 *   から人が選ぶ。オーナー指摘「③ は上部に自分で撮影して追加、小さくスキップ、
+	 *   下に既存の dish_media」の形にするため、記録フローはこちら。
+	 *   いきなり OS のピッカーが立ち上がると «何を選ばされているのか» が分からない
+	 */
+	mediaPickerMode?: "auto" | "manual";
+	/**
 	 * #644 【設計】レビュー投稿成功時のコールバック（呼び出し元で画面遷移を制御）
 	 *
 	 * #1398 B4 写真なしで記録したときは `dishMedia` が null になる。null のとき
@@ -102,6 +114,7 @@ export function ReviewForm({
 	onCancel,
 	prefilledMedia,
 	allowNoMedia = false,
+	mediaPickerMode = "auto",
 	onSuccess,
 }: ReviewFormProps) {
 	const styles = useThemedStyles(createStyles);
@@ -183,7 +196,19 @@ export function ReviewForm({
 	 * 元の投稿写真へ戻す UI は持たない — その場合は画面を開き直せばよい。
 	 */
 	const [useOwnMedia, setUseOwnMedia] = useState(false);
-	const effectivePrefilledMedia = useOwnMedia ? undefined : prefilledMedia;
+	/**
+	 * #1375（5 巡目）「その下に既存のディッシュメディアから選べるように」。
+	 *
+	 * 選んだものは **親から渡された `prefilledMedia` と同じ扱い**にする（プレビューに出て、
+	 * 料理カテゴリーがそのメディアの料理に固定される = `review-from-media` と同じ仕組み）。
+	 * 親の prefilledMedia が在るとき（店舗フィードからの記録）はそちらが優先で、
+	 * この一覧はそもそも出さない
+	 */
+	const [pickedExistingMedia, setPickedExistingMedia] = useState<ReviewFormProps["prefilledMedia"]>(undefined);
+	const activePrefilledMedia = prefilledMedia ?? pickedExistingMedia;
+	/** «画面の中で写真を選ぶ» 見た目を出しているか（高さを固定しない条件。下のコメント参照） */
+	const showsManualMediaChooser = mediaPickerMode === "manual" && !activePrefilledMedia;
+	const effectivePrefilledMedia = useOwnMedia ? undefined : activePrefilledMedia;
 
 	const prefilledMediaRef = useRef(effectivePrefilledMedia);
 	useEffect(() => {
@@ -195,6 +220,10 @@ export function ReviewForm({
 	 * 上の 3 本（onCancel / lightImpact / logFrontendEvent）と同じ作法で、
 	 * `mediaGenerationRef` / `isSelectingMediaRef` / `prefilledMediaRef` には手を入れていない。
 	 */
+	const mediaPickerModeRef = useRef(mediaPickerMode);
+	useEffect(() => {
+		mediaPickerModeRef.current = mediaPickerMode;
+	}, [mediaPickerMode]);
 	const allowNoMediaRef = useRef(allowNoMedia);
 	useEffect(() => {
 		allowNoMediaRef.current = allowNoMedia;
@@ -293,6 +322,18 @@ export function ReviewForm({
 	  ⚠️ このフォームを再びオーバーレイの中へ入れないこと。入れると上の 2 つの制約が同時に戻る。
 	  「呼び出し元が portal を持たない」ことは `__tests__/reviewFormRoutes.test.tsx` が固定している。
 	*/
+
+	/**
+	 * #1375（5 巡目）既存メディアを選んだら、料理カテゴリーはそのメディアの料理になる
+	 * （`review-from-media` と同じ仕組み。マウント時の初期値と同じ経路を後から通す）。
+	 * ⚠️ 親から `prefilledMedia` を渡された画面ではこの effect は 1 度も走らない
+	 * （`pickedExistingMedia` が undefined のままなので）
+	 */
+	useEffect(() => {
+		if (!pickedExistingMedia) return;
+		setDishCategoryName(pickedExistingMedia.dish.name ?? "");
+		setDishCategoryId(pickedExistingMedia.dish.category_id ?? null);
+	}, [pickedExistingMedia]);
 
 	/**
 	 * #1386 料理カテゴリ選択画面（ルート）からの «戻り値»。
@@ -513,6 +554,12 @@ export function ReviewForm({
 		// #400 【設計】prefilledMedia が指定されている場合は、メディア選択をスキップしてプレビュー専用モードにする
 		if (prefilledMediaKey !== null) {
 			handleSetMediaState();
+		} else if (mediaPickerModeRef.current === "manual") {
+			// #1375（5 巡目）manual では OS のピッカーを開かない。
+			// «写真なし» の状態から始めて、画面の中のボタンで人が選ぶ。
+			// ⚠️ `allowNoMedia` が false のままここへ来ると «写真なしでは投稿できないのに
+			// 写真なしで始まる» という詰みになるので、manual は allowNoMedia と対で使うこと
+			setMediaState({ status: "none" });
 		} else {
 			// 通常のメディア選択フロー
 			runMediaSelection("mount", generation);
@@ -528,7 +575,19 @@ export function ReviewForm({
 		// - runMediaSelection: useCallback([]) で参照が安定しているので実質不変
 		// prefilledMedia 本体 / onCancel / lightImpact / logFrontendEvent は ref 経由で読むため、
 		// 親の再レンダーだけでは effect が張り替わらない
+		// mediaPickerMode は ref 経由（親の再レンダーで effect を張り替えない。#1127 と同じ作法）
 	}, [prefilledMediaKey, runMediaSelection]);
+
+	/**
+	 * #1375（5 巡目）写真なしで記録する。
+	 *
+	 * `allowNoMedia` の画面でだけ出す。`{ status: "none" }` は «写真なしで記録する» 状態で、
+	 * ここから «写真あり» へはいつでも戻れる（placeholder は none のときに出ている）。
+	 */
+	const handleSkipPhoto = useCallback(() => {
+		lightImpact();
+		setMediaState({ status: "none" });
+	}, [lightImpact]);
 
 	// Retry media selection
 	const handleRetry = useCallback(() => {
@@ -927,7 +986,11 @@ export function ReviewForm({
 				keyboardShouldPersistTaps="handled"
 				showsVerticalScrollIndicator={false}
 				contentContainerStyle={styles.scrollContent}>
-				<View style={{ height: mediaHeight, marginTop: 16 }}>
+				{/* #1375 実機確認（5 巡目）: manual（記録フロー）では **高さを固定しない**。
+				    «写真を撮る / ライブラリ / このお店の写真から選ぶ / スキップ» を積むと
+				    `mediaHeight` に収まらず、上の見出しと下のスキップが切れた（撮って気づいた）。
+				    auto では従来どおり «プレビュー 1 枚» なので固定のままでよい */}
+				<View style={showsManualMediaChooser ? { marginTop: 16 } : { height: mediaHeight, marginTop: 16 }}>
 					{mediaState.status === "loading" ? (
 						<View style={styles.loadingContainer}>
 							<LoadingIndicator size="large" />
@@ -946,6 +1009,16 @@ export function ReviewForm({
 						 * placeholder 全体タップ = ライブラリ（従来挙動・テスト互換）に加え、
 						 * カメラ起動のボタンを並べる。写真なしでも記録できる旨は従来どおり言う
 						 */
+						/**
+						 * #1375 実機確認（5 巡目）: 並びをオーナー指定の順にした。
+						 * **上に «自分で撮影して追加»（主）→ ライブラリ → 小さくスキップ**。
+						 * 4 巡目までは «写真を追加» の見出しの下に 2 択が並び、スキップに当たる
+						 * «写真なしでも記録できます» はただの説明文で押せなかった。
+						 * 「スキップ」は押せる必要がある（写真なしで記録する、が 1 タップで済むように）。
+						 *
+						 * ⚠️ placeholder 全体タップ = ライブラリ、は従来挙動なので変えない
+						 * （既存テストと実機の指の記憶の両方が乗っている）
+						 */
 						<Pressable
 							testID="review-add-photo-placeholder"
 							style={styles.noMediaPlaceholder}
@@ -956,7 +1029,17 @@ export function ReviewForm({
 							<Text style={styles.noMediaTitle} numberOfLines={1}>
 								{i18n.t("MyDishes.record.noPhotoTitle")}
 							</Text>
-							<View style={styles.mediaSourceRow}>
+							<View style={styles.mediaSourceColumn}>
+								<TouchableOpacity
+									testID="review-shoot-with-camera"
+									style={[styles.mediaSourceButton, styles.mediaSourceButtonPrimary]}
+									onPress={handleShootWithCamera}
+									accessibilityRole="button">
+									<Camera size={16} color={colors.ctaLabel} />
+									<Text style={[styles.mediaSourceLabel, styles.mediaSourceLabelPrimary]}>
+										{i18n.t("Map.media.shootWithCamera")}
+									</Text>
+								</TouchableOpacity>
 								<TouchableOpacity
 									testID="review-pick-from-library"
 									style={styles.mediaSourceButton}
@@ -965,18 +1048,24 @@ export function ReviewForm({
 									<ImagePlus size={16} color={colors.textSecondaryStrong} />
 									<Text style={styles.mediaSourceLabel}>{i18n.t("Map.media.pickFromLibrary")}</Text>
 								</TouchableOpacity>
-								<TouchableOpacity
-									testID="review-shoot-with-camera"
-									style={styles.mediaSourceButton}
-									onPress={handleShootWithCamera}
-									accessibilityRole="button">
-									<Camera size={16} color={colors.textSecondaryStrong} />
-									<Text style={styles.mediaSourceLabel}>{i18n.t("Map.media.shootWithCamera")}</Text>
-								</TouchableOpacity>
 							</View>
-							<Text style={styles.noMediaHint} numberOfLines={1}>
-								{i18n.t("MyDishes.record.noPhotoHint")}
-							</Text>
+							{/* #1375（5 巡目）「その下に既存のディッシュメディアから選べるように」。
+							    親から prefilledMedia が来ている画面（店舗フィードからの記録）では出さない
+							    — そちらは «そのメディアの記録» と決まっているため */}
+							{mediaPickerMode === "manual" && !prefilledMedia && (
+								<ExistingDishMediaPicker restaurantId={restaurant.id} onSelect={setPickedExistingMedia} />
+							)}
+							{/* スキップ。**小さく**（主導線ではないが、押せる必要がある） */}
+							{allowNoMedia && (
+								<TouchableOpacity
+									testID="review-skip-photo"
+									style={styles.skipPhotoButton}
+									onPress={handleSkipPhoto}
+									accessibilityRole="button"
+									accessibilityLabel={i18n.t("MyDishes.record.skipPhoto")}>
+									<Text style={styles.skipPhotoLabel}>{i18n.t("MyDishes.record.skipPhoto")}</Text>
+								</TouchableOpacity>
+							)}
 						</Pressable>
 					) : (
 						<View style={styles.previewWrap}>
@@ -1032,7 +1121,9 @@ export function ReviewForm({
 						testID="review-dish-category-row"
 						style={styles.dishCategorySelectRow}
 						onPress={handleOpenDishCategory}
-						disabled={!!prefilledMedia} // #400 【設計】prefilledMedia が指定されている場合は、料理カテゴリ選択を無効化
+						// #400 prefilledMedia のときは料理カテゴリ選択を無効化（そのメディアの料理に固定される）。
+						// #1375（5 巡目）既存メディアを «選んだ» ときも同じ（activePrefilledMedia に入る）
+						disabled={!!activePrefilledMedia}
 						accessibilityRole="button"
 						accessibilityLabel={i18n.t("Map.actions.selectDishCategory")}>
 						{/* #644 【UX】料理カテゴリラベルにアイコン追加 + prefilledMedia 時は「料理カテゴリ」に変更 */}
@@ -1166,6 +1257,9 @@ export function ReviewForm({
 						// 表示と操作可否がズレない。進捗率は取得できないので不定形スピナーで十分とする
 						loading={isSubmitting}
 						disabled={isProcessing || !isValid}
+						// #1375（5 巡目・デザインレビュー #4）無効時は透過ではなく灰へ。
+						// 赤に透過を掛けると白文字が読めなくなる（参照実装の検索画面と同じ手）
+						colors={isProcessing || !isValid ? [colors.ctaBackgroundDisabled, colors.ctaBackgroundDisabled] : undefined}
 						shadowColor="transparent"
 						style={{ marginHorizontal: 16 }}
 					/>
@@ -1304,7 +1398,11 @@ const createStyles = (c: Palette) =>
 		marginTop: 16,
 		height: 48,
 	},
+	// #1375（5 巡目・デザインレビュー #15）すぐ上のレビュー欄は枠があるのに、
+	// ここだけ枠が無く «押せる物» に見えなかった
 	priceInputContainer: {
+		borderWidth: 1,
+		borderColor: c.trackMuted,
 		flexDirection: "row",
 		alignItems: "center",
 		borderRadius: 8,
@@ -1380,7 +1478,8 @@ const createStyles = (c: Palette) =>
 		lineHeight: 18,
 	},
 	consentLink: {
-		color: c.linkAlt,
+		// #1375（5 巡目・デザインレビュー #3）パレットに無い青をやめ、下線でリンクと示す
+		color: c.textPrimaryAlt,
 		textDecorationLine: "underline",
 	},
 	// #1398 R4 同意文言の直下に置く「公開レビューになる」告知
@@ -1422,6 +1521,9 @@ const createStyles = (c: Palette) =>
 		justifyContent: "center",
 		alignItems: "center",
 		gap: 4,
+		// 中身（見出し・ボタン・既存メディア・スキップ）が枠に接しないようにする。
+		// 以前は 0 で、manual のときスキップが破線の枠へ重なって見えた
+		paddingVertical: 14,
 		marginHorizontal: 16,
 		borderRadius: 12,
 		borderWidth: 1,
@@ -1443,21 +1545,46 @@ const createStyles = (c: Palette) =>
 		color: c.textSecondary,
 		flexShrink: 1,
 	},
-	// #1375 4 巡目: 「ライブラリから選ぶ / カメラで撮る」の 2 択導線
-	mediaSourceRow: {
-		flexDirection: "row",
+	// #1375 5 巡目: 縦に積む（上が «自分で撮影して追加» の主導線）。
+	// 4 巡目は横並びで «どちらが主か» が読めなかった
+	mediaSourceColumn: {
 		gap: 8,
 		marginTop: 12,
-		marginBottom: 8,
+		marginBottom: 4,
+		alignSelf: "stretch",
+		paddingHorizontal: 24,
 	},
 	mediaSourceButton: {
 		flexDirection: "row",
 		alignItems: "center",
+		justifyContent: "center",
 		gap: 6,
 		paddingHorizontal: 14,
 		paddingVertical: 10,
 		borderRadius: 12,
 		backgroundColor: c.surfaceSubtle,
+	},
+	// «自分で撮影して追加» はこの領域の主導線。濃灰で埋める
+	// （赤は画面に 1 つの主 CTA = «投稿する» に譲る。docs/design-guidelines.md §1）
+	// #1509 ライトの «濃灰の地に白文字» はダークでは沈むので、反転する CTA トークンで受ける
+	// （ctaBackground/ctaLabel はダークで «明るい地に暗い文字» へ入れ替わる）
+	mediaSourceButtonPrimary: {
+		backgroundColor: c.ctaBackground,
+	},
+	mediaSourceLabelPrimary: {
+		color: c.ctaLabel,
+	},
+	// スキップは «小さく»（オーナー指定）。押せるが主導線ではない
+	skipPhotoButton: {
+		marginTop: 4,
+		paddingHorizontal: 10,
+		paddingVertical: 6,
+	},
+	skipPhotoLabel: {
+		fontSize: 12,
+		fontWeight: "600",
+		color: c.textSecondary,
+		textDecorationLine: "underline",
 	},
 	mediaSourceLabel: {
 		fontSize: 13,

@@ -406,7 +406,8 @@
 			"share": "Partager {{name}}",
 			"openMap": "Ouvrir la carte de {{name}}",
 			"reviewLike": "Aimer l'avis de {{username}}",
-			"recordEaten": "Enregistrer {{name}} comme goûté"
+			"recordEaten": "Enregistrer {{name}} comme goûté",
+			"recordEatenAgain": "Enregistrer à nouveau chez {{name}} (déjà enregistré)"
 		},
 		"processing": "Traitement du média...",
 		"errors": {
@@ -577,7 +578,8 @@
 			"endDate": "Date de fin:",
 			"paymentProcessing": "Traitement du paiement...",
 			"restaurant": "Restaurant",
-			"dishCategory": "Catégorie de plat"
+			"dishCategory": "Catégorie de plat",
+			"dishesAtThisRestaurant": "Plats de ce restaurant"
 		},
 		"tabs": {
 			"reviews": "Avis"
@@ -611,7 +613,8 @@
 			"replaceWithMyPhoto": "Utiliser ma propre photo",
 			"openSettings": "Ouvrir les réglages",
 			"pickFromLibrary": "Choisir dans la galerie",
-			"shootWithCamera": "Prendre une photo"
+			"shootWithCamera": "Prendre une photo",
+			"pickFromExisting": "Ou choisir une photo de ce restaurant"
 		},
 		"noResultsFound": "Aucun résultat trouvé",
 		"accessibility": {
@@ -855,7 +858,8 @@
 			"clearNameSearch": "Effacer la recherche par nom de restaurant"
 		},
 		"unsavedHint": "Vous pouvez aussi choisir un établissement non enregistré : saisissez son nom dans la recherche ci-dessus ou touchez son icône sur la carte.",
-		"pickTitle": "Choisir un établissement"
+		"pickTitle": "Choisir un établissement",
+		"pickOnMap": "Chercher sur la carte"
 	},
 	"MyDishes": {
 		"actions": {
@@ -883,7 +887,9 @@
 		},
 		"map": {
 			"truncated": "Seuls certains repères sont affichés. Réduisez la zone de recherche.",
-			"sheetTitle": "{{count}} enregistrements à proximité"
+			"sheetTitle": "{{count}} restaurants à proximité",
+			"tileA11yLabel": "{{name}} (à goûter : {{want}}, goûté : {{eaten}})",
+			"clusterA11yLabel": "{{count}} restaurants ici"
 		},
 		"guest": {
 			"description": "Connectez-vous pour enregistrer les plats que vous voulez essayer et ceux que vous avez mangés",
@@ -894,7 +900,8 @@
 			"noPhotoTitle": "Ajouter une photo",
 			"noPhotoHint": "Vous pouvez enregistrer sans photo",
 			"publicReviewNotice": "Votre enregistrement apparaîtra comme un avis public sur la page du restaurant",
-			"postNotFoundNoPhoto": "Cet enregistrement n'a pas de photo"
+			"postNotFoundNoPhoto": "Cet enregistrement n'a pas de photo",
+			"skipPhoto": "Passer (sans photo)"
 		},
 		"filters": {
 			"title": "Filtrer et trier",
@@ -972,7 +979,29 @@
 				"applied": "Filtres mis à jour"
 			}
 		},
-		"searchThisArea": "Rechercher dans cette zone"
+		"searchThisArea": "Rechercher dans cette zone",
+		"tutorial": {
+			"steps": {
+				"views": {
+					"title": "Trois façons de voir votre liste",
+					"body": "Carte, grille et calendrier montrent les mêmes « à goûter » et « goûté ». La carte pour « qu'est-ce que je mange par ici », le calendrier pour « qu'ai-je mangé et quand »."
+				},
+				"openFeed": {
+					"title": "Touchez pour ouvrir en plein écran",
+					"body": "Touchez un repère, une carte ou un jour pour ouvrir cet enregistrement en plein écran.",
+					"axis": "Balayez de haut en bas pour changer de restaurant ou de jour, et sur les côtés pour une autre photo du même."
+				},
+				"add": {
+					"title": "Ajoutez ici à votre liste",
+					"sns": "Collez un lien Instagram, TikTok ou YouTube : nous en lisons le restaurant et le plat, puis l'enregistrons comme « à goûter ».",
+					"eaten": "Déjà goûté ? Utilisez « enregistrer ce que j'ai mangé ». La photo peut venir plus tard, ou pas du tout."
+				},
+				"filter": {
+					"title": "Filtrez quand la liste s'allonge",
+					"body": "Filtrez par « à goûter / goûté », plat, quartier, avec qui et moment de la journée. C'est fait pour réduire les choix, pas pour en ajouter."
+				}
+			}
+		}
 	},
 	"SnsImport": {
 		"title": "Importer depuis les réseaux sociaux",
@@ -999,7 +1028,8 @@
 			"resolve": "Lire",
 			"save": "Enregistrer dans Envies",
 			"saveRequirement": "Choisissez un plat et un restaurant pour enregistrer.",
-			"resolveAgain": "Relire"
+			"resolveAgain": "Relire",
+			"cancel": "Annuler"
 		},
 		"sections": {
 			"dishCategory": "Plat",
@@ -1035,6 +1065,15 @@
 			"change": "Modifier",
 			"hint": "Choisissez d’abord l’établissement. Vous pourrez ensuite ajouter photo, avis court, catégorie, prix et note (photo facultative).",
 			"done": "Enregistré comme mangé"
+		}
+	},
+	"Tutorial": {
+		"spotlight": {
+			"skip": "Ignorer",
+			"next": "Suivant",
+			"finish": "Commencer",
+			"progress": "{{current}} / {{total}}",
+			"progressAccessibility": "Étape {{current}} sur {{total}}"
 		}
 	}
 }

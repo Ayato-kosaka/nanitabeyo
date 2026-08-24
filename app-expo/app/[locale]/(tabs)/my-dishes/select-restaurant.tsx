@@ -558,13 +558,15 @@ export default function SelectRestaurantScreen() {
 					<PrimaryButton
 						onPress={() => searchSavedRestaurants(currentRegion.current)}
 						label={i18n.t("SelectRestaurant.searchThisArea")}
-						icon={<RotateCw size={16} color={colors.link} />}
+						// #1375（5 巡目）「この範囲で再検索」は青（#357AFF）から主要文字色（#111827）へ。
+						// #1509 でその 2 色をトークン化してある
+						icon={<RotateCw size={16} color={colors.textPrimaryAlt} />}
 						colors={[colors.surface, colors.surface]}
 						shadowColor={"transparent"}
-						labelStyle={{ color: colors.link, fontSize: 14 }}
+						labelStyle={{ color: colors.textPrimaryAlt, fontSize: 14 }}
 						loading={isLoadingSavedRestaurants}
 						loadingIndicatorType="native"
-						nativeLoadingColor={colors.link}
+						nativeLoadingColor={colors.textPrimaryAlt}
 					/>
 				</View>
 			</View>

@@ -76,6 +76,12 @@ jest.mock("../hooks/useDishMediaActions", () => ({
 jest.mock("@/features/profile/tabs/LikeTab", () => ({ profileLikesEntriesKey: "profileLikes" }));
 jest.mock("@/features/profile/entriesKeys", () => ({ profileSavedPostsEntriesKey: "profileSavedPosts" }));
 
+// #1375（5 巡目）保存トグルで my-dishes のキャッシュを捨てること（= 一覧から即座に消えること）を固定する
+const mockBumpMyDishesRevision = jest.fn();
+jest.mock("@/features/myDishes/stores/useMyDishesRevisionStore", () => ({
+	bumpMyDishesRevision: () => mockBumpMyDishesRevision(),
+}));
+
 import { ActionButtons } from "./ActionButtons";
 import { useDishMediaEntriesStore, type NormalizedDishMediaEntry } from "@/stores/useDishMediaEntriesStore";
 
@@ -265,5 +271,30 @@ describe("#1501 いいね/保存の楽観更新ロールバック", () => {
 		});
 		expect(getEntry().dish_media.isLiked).toBe(true);
 		expect(getEntry().dish_media.likeCount).toBe(4);
+	});
+
+	it("保存の解除が成功したら my-dishes のキャッシュを捨てる（一覧から即座に消える）", async () => {
+		seedStore({ isSaved: true });
+		mockCallBackend.mockResolvedValueOnce(undefined);
+		const renderer = renderActionButtons();
+
+		await act(async () => {
+			findPressable(renderer, "dish-action-save").props.onPress();
+		});
+
+		expect(mockBumpMyDishesRevision).toHaveBeenCalled();
+	});
+
+	it("保存の API が失敗したときはキャッシュを捨てない（ロールバック後の表示と食い違わせない）", async () => {
+		seedStore({ isSaved: false });
+		mockBumpMyDishesRevision.mockClear();
+		mockCallBackend.mockRejectedValueOnce(new Error("boom"));
+		const renderer = renderActionButtons();
+
+		await act(async () => {
+			findPressable(renderer, "dish-action-save").props.onPress();
+		});
+
+		expect(mockBumpMyDishesRevision).not.toHaveBeenCalled();
 	});
 });

@@ -406,7 +406,8 @@
 			"share": "{{name}} 공유",
 			"openMap": "{{name}} 지도 열기",
 			"reviewLike": "{{username}}님의 리뷰에 좋아요",
-			"recordEaten": "{{name}} 먹었어요로 기록"
+			"recordEaten": "{{name}} 먹었어요로 기록",
+			"recordEatenAgain": "{{name}}에서 먹었다를 다시 기록 (기록됨)"
 		},
 		"processing": "미디어 처리 중...",
 		"info": {
@@ -577,7 +578,8 @@
 			"endDate": "종료일:",
 			"paymentProcessing": "결제 처리 중...",
 			"restaurant": "레스토랑",
-			"dishCategory": "요리 카테고리"
+			"dishCategory": "요리 카테고리",
+			"dishesAtThisRestaurant": "이 가게의 요리"
 		},
 		"tabs": {
 			"reviews": "리뷰"
@@ -611,7 +613,8 @@
 			"replaceWithMyPhoto": "내 사진으로 바꾸기",
 			"openSettings": "설정 열기",
 			"pickFromLibrary": "라이브러리에서 선택",
-			"shootWithCamera": "사진 촬영"
+			"shootWithCamera": "사진 촬영",
+			"pickFromExisting": "이 가게의 사진에서 고르기"
 		},
 		"noResultsFound": "결과를 찾을 수 없습니다",
 		"accessibility": {
@@ -855,7 +858,8 @@
 			"clearNameSearch": "가게 이름 검색 지우기"
 		},
 		"unsavedHint": "저장하지 않은 가게도 고를 수 있습니다. 위 검색창에 가게 이름을 넣거나 지도의 가게 아이콘을 누르세요.",
-		"pickTitle": "가게 고르기"
+		"pickTitle": "가게 고르기",
+		"pickOnMap": "지도에서 가게 찾기"
 	},
 	"MyDishes": {
 		"actions": {
@@ -883,7 +887,9 @@
 		},
 		"map": {
 			"truncated": "핀이 많아 일부만 표시하고 있어요. 지역을 좁혀보세요.",
-			"sheetTitle": "이 부근의 기록 {{count}}건"
+			"sheetTitle": "이 부근의 레스토랑 {{count}}곳",
+			"tileA11yLabel": "{{name}} (먹고 싶다 {{want}}건, 먹었다 {{eaten}}건)",
+			"clusterA11yLabel": "이 부근 레스토랑 {{count}}곳"
 		},
 		"guest": {
 			"description": "로그인하여 먹고 싶은/먹은 음식을 기록해보세요",
@@ -894,7 +900,8 @@
 			"noPhotoTitle": "사진 추가",
 			"noPhotoHint": "사진 없이도 기록할 수 있습니다",
 			"publicReviewNotice": "기록은 공개 리뷰로 음식점 페이지에 표시됩니다",
-			"postNotFoundNoPhoto": "이 기록에는 사진이 없습니다"
+			"postNotFoundNoPhoto": "이 기록에는 사진이 없습니다",
+			"skipPhoto": "건너뛰기 (사진 없음)"
 		},
 		"filters": {
 			"title": "필터 및 정렬",
@@ -972,7 +979,29 @@
 				"applied": "필터를 업데이트했습니다"
 			}
 		},
-		"searchThisArea": "이 지역에서 재검색"
+		"searchThisArea": "이 지역에서 재검색",
+		"tutorial": {
+			"steps": {
+				"views": {
+					"title": "세 가지 방식으로 볼 수 있어요",
+					"body": "지도·목록·캘린더에서 같은 «먹고 싶다 / 먹었다»를 볼 수 있습니다. 지도는 «지금 이 근처에서 뭘 먹지», 캘린더는 «언제 뭘 먹었지»를 볼 때."
+				},
+				"openFeed": {
+					"title": "누르면 전체 화면으로 열려요",
+					"body": "핀·카드·날짜를 누르면 그 기록이 전체 화면으로 열립니다.",
+					"axis": "위아래로 가게나 날짜를 넘기고, 좌우로 같은 가게·같은 날의 다른 한 장으로."
+				},
+				"add": {
+					"title": "여기서 추가합니다",
+					"sns": "Instagram·TikTok·YouTube 링크를 붙여 넣으면 가게와 요리를 읽어 «먹고 싶다»로 저장합니다.",
+					"eaten": "먹은 것은 «먹었다 기록»에서. 사진은 나중에도, 없어도 기록할 수 있습니다."
+				},
+				"filter": {
+					"title": "늘어나면 여기서 좁힙니다",
+					"body": "«먹고 싶다 / 먹었다»·요리·지역·누구와·시간대로 좁힐 수 있습니다. 선택지를 늘리기 위해서가 아니라 고민을 줄이기 위한 도구입니다."
+				}
+			}
+		}
 	},
 	"SnsImport": {
 		"title": "SNS에서 가져오기",
@@ -999,7 +1028,8 @@
 			"resolve": "읽어오기",
 			"save": "먹고 싶다에 저장",
 			"saveRequirement": "음식과 가게를 선택하면 저장할 수 있습니다.",
-			"resolveAgain": "다시 읽기"
+			"resolveAgain": "다시 읽기",
+			"cancel": "취소"
 		},
 		"sections": {
 			"dishCategory": "음식",
@@ -1035,6 +1065,15 @@
 			"change": "변경",
 			"hint": "먼저 가게를 고르세요. 그다음 사진·한줄 리뷰·요리 카테고리·가격·추천도를 입력할 수 있습니다（사진은 선택）.",
 			"done": "먹었다를 기록했습니다"
+		}
+	},
+	"Tutorial": {
+		"spotlight": {
+			"skip": "건너뛰기",
+			"next": "다음",
+			"finish": "시작하기",
+			"progress": "{{current}} / {{total}}",
+			"progressAccessibility": "총 {{total}}단계 중 {{current}}단계"
 		}
 	}
 }

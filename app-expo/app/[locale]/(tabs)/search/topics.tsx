@@ -42,7 +42,7 @@ import { ScreenHeader } from "@/components/ScreenHeader";
 import { useCreateDishCategoryGroupVote } from "@/features/dishCategoryGroupVotes/hooks/useCreateDishCategoryGroupVote";
 import { useTopicsTutorial } from "@/features/topics/hooks/useTopicsTutorial";
 import { TopicsSpotlightTutorial } from "@/features/topics/components/TopicsSpotlightTutorial";
-import type { TopicsTutorialTargetRefs } from "@/features/topics/types/tutorial";
+import type { TopicsTutorialTargetRefs } from "@/features/tutorial/types/spotlight";
 import type { CreateDishCategoryGroupVoteResponse } from "@shared/api/v1/res";
 
 const DEEP_DIVE_SCORE_THRESHOLD = 0.85;

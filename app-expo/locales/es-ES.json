@@ -406,7 +406,8 @@
 			"share": "Compartir {{name}}",
 			"openMap": "Abrir el mapa de {{name}}",
 			"reviewLike": "Me gusta la reseña de {{username}}",
-			"recordEaten": "Registrar {{name}} como comido"
+			"recordEaten": "Registrar {{name}} como comido",
+			"recordEatenAgain": "Registrar de nuevo en {{name}} (ya registrado)"
 		},
 		"processing": "Procesando el contenido...",
 		"errors": {
@@ -577,7 +578,8 @@
 			"endDate": "Fecha de fin:",
 			"paymentProcessing": "Procesando pago...",
 			"restaurant": "Restaurante",
-			"dishCategory": "Categoría del plato"
+			"dishCategory": "Categoría del plato",
+			"dishesAtThisRestaurant": "Platos de este restaurante"
 		},
 		"tabs": {
 			"reviews": "Reseñas"
@@ -611,7 +613,8 @@
 			"replaceWithMyPhoto": "Usar mi propia foto",
 			"openSettings": "Abrir ajustes",
 			"pickFromLibrary": "Elegir de la galería",
-			"shootWithCamera": "Tomar una foto"
+			"shootWithCamera": "Tomar una foto",
+			"pickFromExisting": "O elige una foto de este restaurante"
 		},
 		"noResultsFound": "No se encontraron resultados",
 		"accessibility": {
@@ -855,7 +858,8 @@
 			"clearNameSearch": "Borrar búsqueda por nombre de restaurante"
 		},
 		"unsavedHint": "También puedes elegir locales que no has guardado: escribe su nombre en el buscador de arriba o toca su icono en el mapa.",
-		"pickTitle": "Elegir local"
+		"pickTitle": "Elegir local",
+		"pickOnMap": "Buscar en el mapa"
 	},
 	"MyDishes": {
 		"actions": {
@@ -883,7 +887,9 @@
 		},
 		"map": {
 			"truncated": "Solo se muestran algunos pines. Reduce el área de búsqueda.",
-			"sheetTitle": "{{count}} registros cerca"
+			"sheetTitle": "{{count}} restaurantes cerca",
+			"tileA11yLabel": "{{name}} (quiero comer: {{want}}, comido: {{eaten}})",
+			"clusterA11yLabel": "{{count}} restaurantes aquí"
 		},
 		"guest": {
 			"description": "Inicia sesión para registrar los platos que quieres probar y los que ya comiste",
@@ -894,7 +900,8 @@
 			"noPhotoTitle": "Añadir una foto",
 			"noPhotoHint": "También puedes registrarlo sin foto",
 			"publicReviewNotice": "Tu registro aparecerá como reseña pública en la página del restaurante",
-			"postNotFoundNoPhoto": "Este registro no tiene foto"
+			"postNotFoundNoPhoto": "Este registro no tiene foto",
+			"skipPhoto": "Omitir (sin foto)"
 		},
 		"filters": {
 			"title": "Filtrar y ordenar",
@@ -972,7 +979,29 @@
 				"applied": "Filtros actualizados"
 			}
 		},
-		"searchThisArea": "Buscar en esta zona"
+		"searchThisArea": "Buscar en esta zona",
+		"tutorial": {
+			"steps": {
+				"views": {
+					"title": "Tres formas de ver tu lista",
+					"body": "Mapa, cuadrícula y calendario muestran los mismos registros de “quiero comer” y “comido”. El mapa para “qué como por aquí”, el calendario para “qué comí y cuándo”."
+				},
+				"openFeed": {
+					"title": "Toca para verlo a pantalla completa",
+					"body": "Toca un pin, una tarjeta o un día para abrir ese registro a pantalla completa.",
+					"axis": "Desliza arriba y abajo para cambiar de restaurante o de día, y a los lados para otra foto del mismo."
+				},
+				"add": {
+					"title": "Añade aquí a tu lista",
+					"sns": "Pega un enlace de Instagram, TikTok o YouTube: leemos el restaurante y el plato y lo guardamos como “quiero comer”.",
+					"eaten": "¿Ya lo comiste? Usa “registrar lo comido”. La foto puede esperar, o no ponerse."
+				},
+				"filter": {
+					"title": "Filtra cuando crezca",
+					"body": "Filtra por “quiero comer / comido”, plato, zona, con quién y franja horaria. Está para reducir opciones, no para añadirlas."
+				}
+			}
+		}
 	},
 	"SnsImport": {
 		"title": "Importar desde redes sociales",
@@ -999,7 +1028,8 @@
 			"resolve": "Leer",
 			"save": "Guardar en Quiero comer",
 			"saveRequirement": "Elige un plato y un restaurante para guardar.",
-			"resolveAgain": "Volver a leer"
+			"resolveAgain": "Volver a leer",
+			"cancel": "Cancelar"
 		},
 		"sections": {
 			"dishCategory": "Plato",
@@ -1035,6 +1065,15 @@
 			"change": "Cambiar",
 			"hint": "Primero elige el local. Después podrás añadir foto, reseña breve, categoría, precio y valoración (la foto es opcional).",
 			"done": "Registrado como comido"
+		}
+	},
+	"Tutorial": {
+		"spotlight": {
+			"skip": "Omitir",
+			"next": "Siguiente",
+			"finish": "Empezar",
+			"progress": "{{current}} / {{total}}",
+			"progressAccessibility": "Paso {{current}} de {{total}}"
 		}
 	}
 }

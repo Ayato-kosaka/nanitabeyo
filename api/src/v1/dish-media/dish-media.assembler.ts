@@ -102,6 +102,8 @@ export class DishMediaAssembler {
         // Explicitly add only the required additional fields for DishMediaEntry.dish_media
         isMine: src.dish_media.isMine,
         isSaved: src.dish_media.isSaved,
+        // #1375（5 巡目）「食べたを記録」ボタンの記録済み色。ids 経路だけが持つ（undefined あり）
+        isEaten: src.dish_media.isEaten,
         isLiked: src.dish_media.isLiked,
         likeCount: src.dish_media.likeCount,
         mediaUrl,

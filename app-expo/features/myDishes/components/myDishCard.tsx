@@ -5,6 +5,7 @@ import { FixedColors } from "@/constants/Palette";
 import i18n from "@/lib/i18n";
 import { getCacheKeyForImage } from "@/lib/image";
 import type { MyDishItem } from "@shared/api/v1/res";
+import { MY_DISH_STATUS_COLORS } from "@/features/myDishes/statusColors";
 
 /**
  * #1397 リストビューのカード（`MyDishesListView`）と料理メディア Sheet の行
@@ -74,7 +75,10 @@ export const formatMyDishOccurredAt = (occurredAt: string, locale: string): stri
 export const MyDishStatusBadge = memo(function MyDishStatusBadge({ status }: { status: MyDishItem["status"] }) {
 	return (
 		<View style={[styles.statusBadge, status === "want" ? styles.statusWant : styles.statusEaten]}>
-			<Text style={styles.statusBadgeText}>{i18n.t(`MyDishes.filters.status.${status}`)}</Text>
+			{/* 白塗りの側は文字も赤でなければ読めない。色は statusColors から 1 組で取る */}
+			<Text style={[styles.statusBadgeText, { color: MY_DISH_STATUS_COLORS[status].on }]}>
+				{i18n.t(`MyDishes.filters.status.${status}`)}
+			</Text>
 		</View>
 	);
 });
@@ -149,27 +153,40 @@ const styles = StyleSheet.create({
 		paddingVertical: 2,
 		borderRadius: 10,
 	},
-	// #1375 実機確認（2 巡目）: 食べたい = 緑。「まだ行っていない（Go）」の意で青から変えた
+	// #1375（5 巡目）塗りの有無で区別する: 食べたい = 白塗り赤枠 / 食べた = 赤塗り
 	statusWant: {
-		backgroundColor: "rgba(22,163,74,0.9)",
+		backgroundColor: MY_DISH_STATUS_COLORS.want.fill,
+		borderWidth: 1,
+		borderColor: MY_DISH_STATUS_COLORS.want.border,
 	},
 	statusEaten: {
-		backgroundColor: "rgba(240,85,55,0.9)",
+		backgroundColor: MY_DISH_STATUS_COLORS.eaten.fill,
+		borderWidth: 1,
+		borderColor: MY_DISH_STATUS_COLORS.eaten.border,
 	},
 	statusBadgeText: {
 		fontSize: 10,
 		fontWeight: "700",
-		// 地（statusWant / statusEaten）が固定の濃色なので、文字も固定でよい
-		color: FixedColors.onFilled,
 	},
+	/**
+	 * #1375（5 巡目・デザインレビュー #2）**内容幅・非赤にした。**
+	 *
+	 * 以前は 3 列グリッドの `footer`（`alignItems` 既定 = stretch）でタイル全幅の赤いピルになり、
+	 * 1 画面に 9〜12 本並んで、画面唯一の主アクセントであるべき FAB が負けていた。
+	 * `alignSelf: "flex-end"` で内容幅へ縮め、色は写真の上に載る半透明黒にしてある。
+	 * 赤はこの画面では FAB と状態バッジだけが使う。
+	 */
 	eatenButton: {
+		alignSelf: "flex-end",
 		flexDirection: "row",
 		alignItems: "center",
 		gap: 3,
 		paddingHorizontal: 8,
 		paddingVertical: 4,
 		borderRadius: 12,
-		backgroundColor: "rgba(240,85,55,0.95)",
+		backgroundColor: "rgba(0,0,0,0.55)",
+		borderWidth: StyleSheet.hairlineWidth,
+		borderColor: "rgba(255,255,255,0.5)",
 	},
 	eatenButtonText: {
 		fontSize: 10,

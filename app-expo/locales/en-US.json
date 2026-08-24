@@ -406,7 +406,8 @@
 			"share": "Share {{name}}",
 			"openMap": "Open map for {{name}}",
 			"reviewLike": "Like {{username}}'s review",
-			"recordEaten": "Record {{name}} as eaten"
+			"recordEaten": "Record {{name}} as eaten",
+			"recordEatenAgain": "Record eating at {{name}} again (already recorded)"
 		},
 		"processing": "Processing media...",
 		"errors": {
@@ -576,7 +577,8 @@
 			"endDate": "End date:",
 			"paymentProcessing": "Processing payment...",
 			"restaurant": "Restaurant",
-			"dishCategory": "Dish category"
+			"dishCategory": "Dish category",
+			"dishesAtThisRestaurant": "Dishes at this restaurant"
 		},
 		"tabs": {
 			"reviews": "Reviews"
@@ -611,7 +613,8 @@
 			"replaceWithMyPhoto": "Use my own photo",
 			"openSettings": "Open Settings",
 			"pickFromLibrary": "Choose from library",
-			"shootWithCamera": "Take a photo"
+			"shootWithCamera": "Take a photo",
+			"pickFromExisting": "Or pick a photo from this restaurant"
 		},
 		"noResultsFound": "No results found",
 		"accessibility": {
@@ -855,7 +858,8 @@
 			"clearNameSearch": "Clear restaurant name search"
 		},
 		"unsavedHint": "You can pick shops you haven’t saved too. Type the shop name in the search above, or tap a shop icon on the map.",
-		"pickTitle": "Pick a shop"
+		"pickTitle": "Pick a shop",
+		"pickOnMap": "Find on map"
 	},
 	"MyDishes": {
 		"actions": {
@@ -883,7 +887,9 @@
 		},
 		"map": {
 			"truncated": "Only some pins are shown. Narrow the area to see the rest.",
-			"sheetTitle": "{{count}} records nearby"
+			"sheetTitle": "{{count}} restaurants nearby",
+			"tileA11yLabel": "{{name}} (want to eat: {{want}}, eaten: {{eaten}})",
+			"clusterA11yLabel": "{{count}} restaurants here"
 		},
 		"guest": {
 			"description": "Log in to start recording dishes you want to try and have eaten",
@@ -894,7 +900,8 @@
 			"noPhotoTitle": "Add a photo",
 			"noPhotoHint": "You can record without a photo",
 			"publicReviewNotice": "Your record appears as a public review on the restaurant page",
-			"postNotFoundNoPhoto": "This record has no photo"
+			"postNotFoundNoPhoto": "This record has no photo",
+			"skipPhoto": "Skip (no photo)"
 		},
 		"filters": {
 			"title": "Filter & sort",
@@ -972,7 +979,29 @@
 				"applied": "Filters updated"
 			}
 		},
-		"searchThisArea": "Search this area"
+		"searchThisArea": "Search this area",
+		"tutorial": {
+			"steps": {
+				"views": {
+					"title": "Three ways to look at your shelf",
+					"body": "Map, grid and calendar all show the same want-to-eat and eaten records. Use the map for “what shall I eat around here”, the calendar for “what did I eat and when”."
+				},
+				"openFeed": {
+					"title": "Tap to open it full screen",
+					"body": "Tap a pin, a card or a day to open that record full screen.",
+					"axis": "Swipe up and down to move between restaurants or days, left and right for another shot from the same one."
+				},
+				"add": {
+					"title": "Add to your shelf here",
+					"sns": "Paste an Instagram, TikTok or YouTube link and we read the restaurant and dish out of it, then save it as want-to-eat.",
+					"eaten": "Already ate it? Use “record what you ate”. The photo can come later, or not at all."
+				},
+				"filter": {
+					"title": "Narrow it down as it grows",
+					"body": "Filter by want-to-eat / eaten, dish, area, who you are with and time of day. It is here to cut choices down, not to add more."
+				}
+			}
+		}
 	},
 	"SnsImport": {
 		"title": "Import from social media",
@@ -999,7 +1028,8 @@
 			"resolve": "Read",
 			"save": "Save to Want to eat",
 			"saveRequirement": "Pick a dish and a restaurant to save.",
-			"resolveAgain": "Read again"
+			"resolveAgain": "Read again",
+			"cancel": "Cancel"
 		},
 		"sections": {
 			"dishCategory": "Dish",
@@ -1035,6 +1065,15 @@
 			"change": "Change",
 			"hint": "Pick a shop first. Then you can add a photo, a short review, the dish category, price, and rating (a photo is optional).",
 			"done": "Recorded as eaten"
+		}
+	},
+	"Tutorial": {
+		"spotlight": {
+			"skip": "Skip",
+			"next": "Next",
+			"finish": "Start exploring",
+			"progress": "{{current}} / {{total}}",
+			"progressAccessibility": "Step {{current}} of {{total}}"
 		}
 	}
 }
