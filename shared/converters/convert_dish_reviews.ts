@@ -26,6 +26,7 @@ export function convertSupabaseToPrisma_DishReviews(supabase: SupabaseDishReview
     imported_user_name: supabase.imported_user_name,
     imported_user_avatar: supabase.imported_user_avatar,
     created_at: new Date(supabase.created_at),
+    eaten_at: supabase.eaten_at ? new Date(supabase.eaten_at) : null,
   };
 }
 
@@ -49,5 +50,6 @@ export function convertPrismaToSupabase_DishReviews(prisma: PrismaDishReviews): 
     imported_user_name: prisma.imported_user_name,
     imported_user_avatar: prisma.imported_user_avatar,
     created_at: prisma.created_at?.toISOString() ?? null,
+    eaten_at: prisma.eaten_at?.toISOString() ?? null,
   };
 }
