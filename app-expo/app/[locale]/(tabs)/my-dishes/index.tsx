@@ -353,7 +353,10 @@ const createStyles = (c: Palette) =>
 		header: {
 			paddingHorizontal: 16,
 			paddingTop: 8,
-			paddingBottom: 12,
+			// #1375（6 巡目・オーナー指示）選択中のタブの下線と、ヘッダの区切り線の間に
+			// 余白を作らない。以前は 12 空けており «下線の下にもう一本、意味の無い帯がある»
+			// ように見えていた。下線がそのまま区切り線へ接するようにする
+			paddingBottom: 0,
 			borderBottomWidth: 1,
 			borderBottomColor: c.borderMuted,
 		},
@@ -390,7 +393,8 @@ const createStyles = (c: Palette) =>
 			borderColor: c.borderMuted,
 			alignItems: "center",
 			justifyContent: "center",
-			marginBottom: 6,
+			// 下線（高さ 2）と同じ分だけ持ち上げて、タブのアイコン列と光学的に揃える
+			marginBottom: 8,
 		},
 		body: {
 			flex: 1,

@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
 import { Image } from "expo-image";
-import { MapPin, Search, X } from "lucide-react-native";
+// #1375（6 巡目・オーナー指示）右のボタンは «地図から探す» なので、
+// 1 地点を指す MapPin ではなく «折り畳んだ地図» の Map を使う（ピンだと «現在地» に見える）
+import { Map as MapIcon, Search, X } from "lucide-react-native";
 import type { Region } from "@/components/MapView";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useLogger } from "@/hooks/useLogger";
@@ -243,7 +245,7 @@ export function RestaurantNameSearch({
 						accessibilityRole="button"
 						accessibilityLabel={mapAction.accessibilityLabel ?? i18n.t("SelectRestaurant.pickOnMap")}
 						testID={mapAction.testID ?? `${testID}-map`}>
-						<MapPin size={18} color={colors.textSecondaryStrong} />
+						<MapIcon size={20} color={colors.textSecondaryStrong} />
 					</TouchableOpacity>
 				)}
 			</View>

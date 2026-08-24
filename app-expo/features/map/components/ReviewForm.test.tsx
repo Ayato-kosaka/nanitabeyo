@@ -48,6 +48,20 @@ jest.mock(
 );
 jest.mock("@/lib/mediaSelection", () => ({ selectMedia: jest.fn() }));
 // #1375（5 巡目）既存メディア一覧は自分で API を叩くので、ここでは «置かれているか» だけを見る器にする
+/*
+#1375（6 巡目）記録フローは «料理カテゴリー → 写真» の順になった。
+1 歩目をモックして、テストから «選んだ» を起こせるようにする
+（本物は API を引くので、ここでは順序と受け渡しだけを見る）。
+*/
+jest.mock("./DishCategoryStep", () => {
+	const { View } = require("react-native");
+	return {
+		DishCategoryStep: (props: { onSelectExisting: (c: { dishCategoryId: string; label: string }) => void }) => (
+			<View testID="review-dish-category-step-host" onPress={props.onSelectExisting} />
+		),
+	};
+});
+
 jest.mock("./ExistingDishMediaPicker", () => {
 	const ReactActual = jest.requireActual("react");
 	const { View: RNView } = jest.requireActual("react-native");
@@ -607,6 +621,18 @@ describe("#1375 ReviewForm のメディア選択モード", () => {
 		});
 	};
 
+	/**
+	 * #1375（6 巡目）記録フローの 1 歩目（料理カテゴリー）を済ませる。
+	 * manual では、これを通すまで写真の選択肢は出ない（それ自体を下の 1 本目が固定している）。
+	 */
+	const chooseDishCategory = () => {
+		const step = tree.root
+			.findAll((candidate) => candidate.props?.testID === "review-dish-category-step-host")
+			.find((candidate) => typeof candidate.props.onPress === "function");
+		if (!step) throw new Error("料理カテゴリーの 1 歩目が出ていません");
+		act(() => step.props.onPress({ dishCategoryId: "cat-1", label: "ラーメン" }));
+	};
+
 	const pressableWithTestID = (testID: string) => {
 		const node = tree.root
 			.findAll((candidate) => candidate.props?.testID === testID)
@@ -624,16 +650,32 @@ describe("#1375 ReviewForm のメディア選択モード", () => {
 		expect(selectMedia).toHaveBeenCalledTimes(1);
 	});
 
-	it("manual ではマウント時にピッカーを開かず、写真なしのプレースホルダから始まる", () => {
+	/**
+	 * #1375（6 巡目・オーナー指示）**写真より先に料理カテゴリーを選ばせる。**
+	 * 先に料理が決まっていれば «その料理の、この店の写真» を出せる。
+	 */
+	it("manual は料理カテゴリーから始まり、決まるまで写真の選択肢を出さない", () => {
 		mount({ mediaPickerMode: "manual", allowNoMedia: true });
 		expect(selectMedia).not.toHaveBeenCalled();
+		expect(tree.root.findAll((n) => n.props?.testID === "review-dish-category-step-host").length).toBeGreaterThan(0);
+		// この時点では写真の入口もコメント欄も出ていない
+		expect(tree.root.findAllByProps({ testID: "review-add-photo-placeholder" })).toHaveLength(0);
+		expect(tree.root.findAllByProps({ testID: "review-comment-input" })).toHaveLength(0);
+	});
+
+	it("料理カテゴリーが決まると、写真なしのプレースホルダと残りの入力が出る", () => {
+		mount({ mediaPickerMode: "manual", allowNoMedia: true });
+		chooseDishCategory();
+		expect(selectMedia).not.toHaveBeenCalled();
 		expect(tree.root.findAllByProps({ testID: "review-add-photo-placeholder" }).length).toBeGreaterThan(0);
+		expect(tree.root.findAllByProps({ testID: "review-comment-input" }).length).toBeGreaterThan(0);
 	});
 
 	// ⚠️ 押した時点でプレースホルダは «読み込み中» へ変わって消えるので、
 	// 2 つのボタンを 1 回のマウントで続けて押せない。別々に立てて確かめる
 	it("«自分で撮影して追加» はカメラ（画像のみ）で開く", () => {
 		mount({ mediaPickerMode: "manual", allowNoMedia: true });
+		chooseDishCategory();
 		act(() => pressableWithTestID("review-shoot-with-camera").props.onPress());
 		expect(selectMedia).toHaveBeenCalledTimes(1);
 		expect((selectMedia as jest.Mock).mock.calls[0][0]).toEqual(["images"]);
@@ -641,6 +683,7 @@ describe("#1375 ReviewForm のメディア選択モード", () => {
 
 	it("«ライブラリから選ぶ» は画像と動画の両方で開く", () => {
 		mount({ mediaPickerMode: "manual", allowNoMedia: true });
+		chooseDishCategory();
 		act(() => pressableWithTestID("review-pick-from-library").props.onPress());
 		expect(selectMedia).toHaveBeenCalledTimes(1);
 		expect((selectMedia as jest.Mock).mock.calls[0][0]).toEqual(["images", "videos"]);
@@ -648,6 +691,7 @@ describe("#1375 ReviewForm のメディア選択モード", () => {
 
 	it("スキップは押せる。押してもピッカーは開かず、写真なしのまま", () => {
 		mount({ mediaPickerMode: "manual", allowNoMedia: true });
+		chooseDishCategory();
 		act(() => pressableWithTestID("review-skip-photo").props.onPress());
 		expect(selectMedia).not.toHaveBeenCalled();
 		expect(tree.root.findAllByProps({ testID: "review-comment-input" }).length).toBeGreaterThan(0);
@@ -655,6 +699,7 @@ describe("#1375 ReviewForm のメディア選択モード", () => {
 
 	it("allowNoMedia でない画面にはスキップを出さない（写真なしでは投稿できないため）", () => {
 		mount({ mediaPickerMode: "manual" });
+		chooseDishCategory();
 		expect(tree.root.findAll((n) => n.props?.testID === "review-skip-photo")).toHaveLength(0);
 	});
 });
@@ -681,6 +726,10 @@ describe("#1375 既存メディアから選ぶ", () => {
 
 	it("manual のときだけ既存メディアの一覧を出す", () => {
 		mount({ mediaPickerMode: "manual", allowNoMedia: true });
+		const step = tree.root
+			.findAll((n) => n.props?.testID === "review-dish-category-step-host")
+			.find((n) => typeof n.props.onPress === "function");
+		act(() => step!.props.onPress({ dishCategoryId: "cat-1", label: "ラーメン" }));
 		// 合成要素とホスト要素の両方に当たるので «存在するか» で見る（このファイルの他のテストと同じ作法）
 		expect(tree.root.findAll((n) => n.props?.testID === "review-existing-dish-media-host").length).toBeGreaterThan(0);
 	});
