@@ -206,7 +206,7 @@ if (existsSync(removedDirAbsolute)) {
 			"     - 問い合わせる … DialogProvider の confirm() / showDialog()",
 			"     - 同じ画面に出す … インライン描画（#1358 の友達投票が例）",
 			"   意図して復活させるのなら、この検査の REMOVED_DIR を外し、",
-			"   docs/ux/blur-modal-teardown.md に理由を残してください。",
+			"   docs/decisions/20260819-blur-modal-teardown.md に理由を残してください。",
 		].join("\n"),
 	);
 	process.exit(1);

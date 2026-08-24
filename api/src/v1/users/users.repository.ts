@@ -59,6 +59,14 @@ export type MyDishPinEntity = {
     thumbnail_path: string;
     thumbnail_processing_status: string;
   } | null;
+  /**
+   * #1375 G4 SNS 取り込みの provider 側サムネイル URL。
+   *
+   * 取り込み行は自ストレージへの複製に失敗し得る（`replicateExternalThumbnail` は
+   * 失敗しても縮退する設計）ため、`representativeMedia` が null になる正常系がある。
+   * 一覧 / Feed は assembler がここへ落ちるので、Map ピンも同じ順序で落とす。
+   */
+  representativeExternalThumbnailUrl: string | null;
 };
 
 type RestaurantColumns = {
@@ -109,6 +117,8 @@ type MyDishPinRawRow = RestaurantColumns & {
   media_id: string | null;
   media_thumbnail_path: string | null;
   media_thumbnail_processing_status: string | null;
+  /** #1375 G4 SNS 取り込みの provider 側サムネイル（自ストレージへの複製が無い行の退避先） */
+  media_external_thumbnail_url: string | null;
 };
 
 const toRestaurant = (row: RestaurantColumns): PrismaRestaurants => ({
@@ -255,6 +265,9 @@ export class UsersRepository {
                   row.media_thumbnail_processing_status ?? 'idle',
               }
             : null,
+        // #1375 G4 自ストレージへの複製が無い（= thumbnail_path が空）取り込み行のための退避先
+        representativeExternalThumbnailUrl:
+          row.media_external_thumbnail_url ?? null,
       })),
       truncated,
     };

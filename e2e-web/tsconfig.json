@@ -13,7 +13,13 @@
 		// 型が変わったらモックが型エラーで落ちる = 実 API とモックの乖離に気づける
 		// （app-expo/tsconfig.json と同じ別名にそろえている）
 		"paths": {
-			"@shared/*": ["../shared/*"]
+			"@shared/*": ["../shared/*"],
+			// #1503 直リンクスモークが回す公開ルートの一覧を app-expo と共有するため。
+			// spec 側に URL を手書きすると、ルートが増えたときに必ず置いていかれる
+			//（実際 REL-01 では 4 ルート中 2 本しか spec が無かった）。
+			// 参照先は react / expo に依存しない純粋なモジュールに限ること
+			//（Playwright は TS をそのまま変換するだけで、RN のバンドラは通らない）。
+			"@app-expo/*": ["../app-expo/*"]
 		}
 	},
 	"include": ["playwright.config.ts", "tests/**/*.ts", "fixtures/**/*.ts", "pages/**/*.ts", "utils/**/*.ts"]

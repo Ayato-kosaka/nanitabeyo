@@ -13,7 +13,7 @@ import { profileSavedTopicsEntriesKey } from "@/features/profile/tabs/SavedTopic
 import i18n from "@/lib/i18n";
 import { toErrorLogMessage } from "@/lib/errorMessage";
 import { type TopicImageResourceState } from "@/features/topics/hooks/useTopicImageResources";
-import type { TopicsTutorialTargetRefs } from "@/features/topics/types/tutorial";
+import type { TopicsTutorialTargetRefs } from "@/features/tutorial/types/spotlight";
 import { TopicVisualCard } from "./TopicVisualCard";
 import type { CardRect } from "./TopicCardExpandTransition";
 

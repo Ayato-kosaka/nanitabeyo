@@ -5,12 +5,16 @@ import { useAuth } from "@/contexts/AuthProvider";
 import { isGuestUser } from "@/lib/authGuest";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { View } from "react-native";
+import { FixedColors } from "@/constants/Palette";
+import { useAppTheme } from "@/contexts/ThemeProvider";
 
 const ICON_SIZE = 21;
 
 export default function TabLayout() {
 	const { user } = useAuth();
 	const insets = useSafeAreaInsets();
+	// #1509 タブバーは全画面に常駐する下地なので、基盤と同じ PR でテーマ対応する
+	const { colors } = useAppTheme();
 
 	return (
 		<Tabs
@@ -27,16 +31,17 @@ export default function TabLayout() {
 					height: ICON_SIZE,
 				},
 				tabBarStyle: {
-					backgroundColor: "#fff",
+					// #1509 ライトでは `#fff`（= `surface` の `#FFFFFF`）と同一色。表記だけを揃えており見た目は変わらない
+					backgroundColor: colors.surface,
 					paddingTop: 4,
-					shadowColor: "#000",
+					shadowColor: FixedColors.shadow,
 					shadowOffset: { width: 0, height: -4 },
 					shadowOpacity: 0.15,
 					shadowRadius: 24,
 					elevation: 12,
 				},
-				tabBarActiveTintColor: "#F05537",
-				tabBarInactiveTintColor: "#6B7280",
+				tabBarActiveTintColor: colors.brand,
+				tabBarInactiveTintColor: colors.textSecondary,
 			}}>
 			<Tabs.Screen
 				name="search"

@@ -47,6 +47,15 @@ jest.mock(
 		),
 );
 jest.mock("@/lib/mediaSelection", () => ({ selectMedia: jest.fn() }));
+// #1375（5 巡目）既存メディア一覧は自分で API を叩くので、ここでは «置かれているか» だけを見る器にする
+jest.mock("./ExistingDishMediaPicker", () => {
+	const ReactActual = jest.requireActual("react");
+	const { View: RNView } = jest.requireActual("react-native");
+	return {
+		ExistingDishMediaPicker: ({ restaurantId }: { restaurantId: string }) =>
+			ReactActual.createElement(RNView, { testID: "review-existing-dish-media-host", "data-restaurant": restaurantId }),
+	};
+});
 jest.mock("@/lib/i18n", () => ({ __esModule: true, default: { t: (key: string) => key } }));
 // prefilledMedia（プレビュー専用モード）は Image.prefetch の解決を待ってから success へ倒すため、
 // 解決タイミングをテストから握れるようにしておく。jest.mock のファクトリからは `mock` 始まりの変数だけ参照できる
@@ -274,7 +283,6 @@ describe("ReviewForm のマウント時メディア選択（#1127）", () => {
 		expect(findTextNodes(tree.root, "Map.media.permissionDenied")).toHaveLength(1);
 		expect(findTextNodes(tree.root, "Map.media.openSettings")).toHaveLength(1);
 		expect(findTextNodes(tree.root, "Common.retry")).toHaveLength(0);
-
 	});
 
 	it("権限以外のエラー（動画が長すぎる等）は従来どおり再試行が出て、同じ実行本体を通る", async () => {
@@ -421,8 +429,12 @@ describe("ReviewForm の写真なしモード（#1398 B2 / B3）", () => {
 		expect(hasPlaceholder()).toBe(true);
 		// ローディングのまま固着しないこと
 		expect(findTextNodes(tree.root, "Map.media.loadingMedia")).toHaveLength(0);
-		// 「写真なしでも記録できる」ことが画面に出ている（機能欠落に見せない。設計 §4-1）
-		expect(findTextNodes(tree.root, "MyDishes.record.noPhotoHint")).toHaveLength(1);
+		// 「写真なしでも記録できる」ことが画面に出ている（機能欠落に見せない。設計 §4-1）。
+		// #1375（5 巡目）: 以前は押せない説明文（noPhotoHint）だったが、
+		// «スキップ» は 1 タップで済むべき操作なので押せるボタンにした
+		const skip = tree.root.findAll((node) => node.props?.testID === "review-skip-photo");
+		expect(skip.length).toBeGreaterThan(0);
+		expect(findTextNodes(tree.root, "MyDishes.record.skipPhoto").length).toBeGreaterThan(0);
 		// フォームは開いたまま = 既存の入力欄がそのまま使える
 		expect(tree.root.findAllByProps({ testID: "review-comment-input" }).length).toBeGreaterThan(0);
 	});
@@ -572,5 +584,124 @@ describe("ReviewForm のプレビュー専用モード（#1127 / #511）", () =>
 		// identity ではなく**中身**で張り替えるので、ここは確実に再実行されなければならない
 		expect(previewUri()).toBe(processedUrl);
 		expect(mockImagePrefetch).toHaveBeenCalledWith(processedUrl);
+	});
+});
+
+/*
+#1375 実機確認（5 巡目）: 記録フローの ③ メディア選択。
+
+オーナー指定は「上部に «自分で撮影して追加»、その下にライブラリ、スキップは小さく」。
+そして **いきなり OS のピッカーが立ち上がらない**こと — 何を選ばされているのか分からないため。
+
+守るのは 3 つ。
+1. `mediaPickerMode="manual"` ではマウント時に `selectMedia` を呼ばない
+2. その状態でも «写真なし» として始まり、画面の中のボタンから選べる
+3. スキップは押せる（説明文ではない）
+*/
+describe("#1375 ReviewForm のメディア選択モード", () => {
+	let tree: TestRenderer.ReactTestRenderer;
+
+	const mount = (props: { mediaPickerMode?: "auto" | "manual"; allowNoMedia?: boolean }) => {
+		act(() => {
+			tree = TestRenderer.create(<ReviewForm restaurant={restaurant} onCancel={jest.fn()} {...props} />);
+		});
+	};
+
+	const pressableWithTestID = (testID: string) => {
+		const node = tree.root
+			.findAll((candidate) => candidate.props?.testID === testID)
+			.find((candidate) => typeof candidate.props.onPress === "function");
+		if (!node) throw new Error(`${testID} の onPress が見つかりません`);
+		return node;
+	};
+
+	afterEach(() => {
+		act(() => tree?.unmount());
+	});
+
+	it("既定（auto）は従来どおりマウント時にピッカーを開く", () => {
+		mount({});
+		expect(selectMedia).toHaveBeenCalledTimes(1);
+	});
+
+	it("manual ではマウント時にピッカーを開かず、写真なしのプレースホルダから始まる", () => {
+		mount({ mediaPickerMode: "manual", allowNoMedia: true });
+		expect(selectMedia).not.toHaveBeenCalled();
+		expect(tree.root.findAllByProps({ testID: "review-add-photo-placeholder" }).length).toBeGreaterThan(0);
+	});
+
+	// ⚠️ 押した時点でプレースホルダは «読み込み中» へ変わって消えるので、
+	// 2 つのボタンを 1 回のマウントで続けて押せない。別々に立てて確かめる
+	it("«自分で撮影して追加» はカメラ（画像のみ）で開く", () => {
+		mount({ mediaPickerMode: "manual", allowNoMedia: true });
+		act(() => pressableWithTestID("review-shoot-with-camera").props.onPress());
+		expect(selectMedia).toHaveBeenCalledTimes(1);
+		expect((selectMedia as jest.Mock).mock.calls[0][0]).toEqual(["images"]);
+	});
+
+	it("«ライブラリから選ぶ» は画像と動画の両方で開く", () => {
+		mount({ mediaPickerMode: "manual", allowNoMedia: true });
+		act(() => pressableWithTestID("review-pick-from-library").props.onPress());
+		expect(selectMedia).toHaveBeenCalledTimes(1);
+		expect((selectMedia as jest.Mock).mock.calls[0][0]).toEqual(["images", "videos"]);
+	});
+
+	it("スキップは押せる。押してもピッカーは開かず、写真なしのまま", () => {
+		mount({ mediaPickerMode: "manual", allowNoMedia: true });
+		act(() => pressableWithTestID("review-skip-photo").props.onPress());
+		expect(selectMedia).not.toHaveBeenCalled();
+		expect(tree.root.findAllByProps({ testID: "review-comment-input" }).length).toBeGreaterThan(0);
+	});
+
+	it("allowNoMedia でない画面にはスキップを出さない（写真なしでは投稿できないため）", () => {
+		mount({ mediaPickerMode: "manual" });
+		expect(tree.root.findAll((n) => n.props?.testID === "review-skip-photo")).toHaveLength(0);
+	});
+});
+
+/*
+#1375 実機確認（5 巡目）「③ は… その下に既存のディッシュメディアから選べるように配置」。
+
+写真を持っていない人でも «その料理の顔» がある記録にできるようにする。
+選んだメディアは親から渡された `prefilledMedia` と同じ扱いになり、
+料理カテゴリーはそのメディアの料理に固定される（`review-from-media` と同じ仕組み）。
+*/
+describe("#1375 既存メディアから選ぶ", () => {
+	let tree: TestRenderer.ReactTestRenderer;
+
+	afterEach(() => {
+		act(() => tree?.unmount());
+	});
+
+	const mount = (props: Record<string, unknown>) => {
+		act(() => {
+			tree = TestRenderer.create(<ReviewForm restaurant={restaurant} onCancel={jest.fn()} {...props} />);
+		});
+	};
+
+	it("manual のときだけ既存メディアの一覧を出す", () => {
+		mount({ mediaPickerMode: "manual", allowNoMedia: true });
+		// 合成要素とホスト要素の両方に当たるので «存在するか» で見る（このファイルの他のテストと同じ作法）
+		expect(tree.root.findAll((n) => n.props?.testID === "review-existing-dish-media-host").length).toBeGreaterThan(0);
+	});
+
+	it("親から prefilledMedia が来ている画面には出さない（そのメディアの記録と決まっているため）", () => {
+		mount({
+			mediaPickerMode: "manual",
+			allowNoMedia: true,
+			prefilledMedia: {
+				id: "dm-1",
+				media_type: "image",
+				mediaUrl: "https://example.com/m.jpg",
+				thumbnailImageUrl: "https://example.com/t.jpg",
+				dish: { id: "dish-1", name: "唐揚げ", category_id: "cat-1" },
+			},
+		});
+		expect(tree.root.findAll((n) => n.props?.testID === "review-existing-dish-media-host")).toHaveLength(0);
+	});
+
+	it("既定（auto）では出さない（ピッカーが開く画面なので）", () => {
+		mount({});
+		expect(tree.root.findAll((n) => n.props?.testID === "review-existing-dish-media-host")).toHaveLength(0);
 	});
 });

@@ -348,18 +348,21 @@ export const MyDishesFeedPage = React.memo(function MyDishesFeedPage({
 				<>
 					{/* ⚠️ `initialIndex` は «ids が確定してから» 渡す。DishMediaFeed は最初に届いた
 					    非空の ids で並びを固定するので、ここで描き始める時点の index が最終値になる。
-					    #1375 実機確認（2 巡目）: 日付スコープは **横** = 同じ日の別の投稿。
-					    縦は外側のページャ（前後の «記録がある日»）が受け持つ */}
+					    #1375 実機確認（5 巡目）: **どちらのスコープも横** = そのスコープの中の別の投稿。
+					    縦は外側のページャ（前後の «記録がある日» / 前後の店舗）が受け持つ。
+					    2 巡目では date だけ横にしていたが、入口によって指の向きが変わるのが
+					    分かりにくいという指摘を受けて揃えた */}
 					<DishMediaFeed
 						entriesKey={entriesKey}
 						idType="dish_media"
 						initialIndex={initialIndex}
 						onIndexChange={setViewedIndex}
-						horizontal={scope.kind === "date"}
+						horizontal
 					/>
-					{/* #1375 実機確認（2 巡目）: «その日の何個目を見ているか» をストーリーズと同じ
-					    セグメントバーで出す。件数が多い日はバーが細くなりすぎるので数字も添える */}
-					{scope.kind === "date" && feedIds.length > 1 && (
+					{/* #1375 実機確認（2 巡目）: «何個目を見ているか» をストーリーズと同じ
+					    セグメントバーで出す。件数が多いとバーが細くなりすぎるので数字も添える。
+					    5 巡目で横スクロールが両スコープになったので、バーも両方で出す */}
+					{feedIds.length > 1 && (
 						<View
 							style={{ ...styles.positionContainer, top: Platform.OS === "ios" ? 48 : 8 }}
 							pointerEvents="none"
@@ -427,12 +430,14 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 20,
 		paddingVertical: 10,
 		borderRadius: 20,
-		backgroundColor: "#357AFF",
+		// #1375（5 巡目・デザインレビュー #3）パレットに無い青をやめる
+		backgroundColor: "#FFFFFF",
 	},
 	retryText: {
 		fontSize: 14,
 		fontWeight: "600",
-		color: "#FFF",
+		// 地が白になったので文字は黒
+		color: "#111827",
 	},
 	// chips の帯。閉じるボタン（zIndex: 10）と同じ高さに置き、重ならないよう
 	// chips 側で右に余白を取っている（MyDishesFeedChips.tsx の `container`）

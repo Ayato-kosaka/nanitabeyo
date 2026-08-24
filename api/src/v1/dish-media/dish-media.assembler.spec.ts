@@ -75,9 +75,14 @@ describe('DishMediaAssembler - Signed Cookie Generation', () => {
           useValue: mockCookieQueueService,
         },
         {
-          // このテストは AppLoggerService を注入しておらず Nest の解決に失敗していた
+          // DishMediaAssembler は logger を DI するので、テストモジュールにも要る
           provide: AppLoggerService,
-          useValue: { debug: jest.fn(), warn: jest.fn(), error: jest.fn() },
+          useValue: {
+            debug: jest.fn(),
+            log: jest.fn(),
+            warn: jest.fn(),
+            error: jest.fn(),
+          },
         },
       ],
     }).compile();

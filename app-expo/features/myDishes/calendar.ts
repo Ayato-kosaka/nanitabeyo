@@ -145,10 +145,33 @@ export type BuildCalendarMonthsParams = {
 };
 
 /** 月の中身の同一性判定に使う署名。日付ごとの item.key の並びが同じなら同じ月 */
-const monthSignatureFromCells = (month: CalendarMonth): string =>
-	month.cells
-		.map((cell) => (cell === null ? "-" : `${cell.day}:${cell.items.map((item) => item.key).join("|")}`))
-		.join(";");
+/**
+ * 2 つの月グリッドが «同じ中身» か。同じなら前回のオブジェクトを使い回して
+ * `MonthGrid` / `DayCell` の memo を効かせる。
+ *
+ * #1375（5 巡目・性能レビュー B-3）以前はここで両方の月を 1 本の署名文字列へ畳んで
+ * 比較していた。1 か月 = 42 セル、月は最大 `MAX_CALENDAR_MONTHS` 本あるので、
+ * **`items` が 1 件増えるたびに «全月ぶんの署名文字列» を 2 セット作り直していた**
+ * （しかも 99% の月は «同じ» と分かるだけのために捨てられる）。
+ * 走査して違いが出た時点で抜ければ、文字列を 1 つも作らずに同じ判定ができる。
+ */
+const isSameMonthCells = (a: CalendarMonth, b: CalendarMonth): boolean => {
+	if (a.cells.length !== b.cells.length) return false;
+	for (let i = 0; i < a.cells.length; i++) {
+		const cellA = a.cells[i];
+		const cellB = b.cells[i];
+		if (cellA === null || cellB === null) {
+			if (cellA !== cellB) return false;
+			continue;
+		}
+		if (cellA.day !== cellB.day) return false;
+		if (cellA.items.length !== cellB.items.length) return false;
+		for (let j = 0; j < cellA.items.length; j++) {
+			if (cellA.items[j].key !== cellB.items[j].key) return false;
+		}
+	}
+	return true;
+};
 
 /**
  * 月グリッドを**新しい順**（inverted FlatList の `data[0]` = 画面下端 = 最新月）で返す。
@@ -205,9 +228,7 @@ export const buildCalendarMonths = ({
 		const built = buildMonthCells(cursorYm, itemsByDate);
 		const previous = previousByYm.get(cursorYm);
 		// 中身が同じ月は前回のオブジェクトを返す（DayCell の memo を効かせるため）
-		months.push(
-			previous !== undefined && monthSignatureFromCells(previous) === monthSignatureFromCells(built) ? previous : built,
-		);
+		months.push(previous !== undefined && isSameMonthCells(previous, built) ? previous : built);
 		cursorYm = addMonths(cursorYm, -1);
 	}
 	return months;

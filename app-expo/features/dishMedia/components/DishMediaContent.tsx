@@ -38,6 +38,19 @@ interface DishMediaContentProps {
 	backgroundImageState: DishMediaBackgroundImageState;
 	/** #1375 「食べたを記録」を出すか（検索動線の DishMediaMap では false）。既定 true */
 	showRecordEaten?: boolean;
+	/**
+	 * #1375（5 巡目・性能レビュー B-2）**動画プレイヤーを実体化してよいセルか。**
+	 *
+	 * `DishMediaFeed` の `windowSize={5}` は前後 2 ページぶんのセルを «見えていないのに»
+	 * マウントする。動画セルはそのぶん `expo-video` の `useVideoPlayer`
+	 * （native は AVPlayer / ExoPlayer の実体）を作るので、**同時に最大 5 本の
+	 * デコーダが立つ**。低メモリ端末で落ちる・フィードが重いの直接の原因になりうる。
+	 *
+	 * 隣（±1）だけは先読みしたい（スワイプした瞬間に黒画面を出さないため）ので、
+	 * «見えている ±1» を親が判定してここへ渡す。範囲外のセルは背景画像だけを描く。
+	 * 既定 true = 単体で使う `DishMediaMap` のカルーセルは今までどおり。
+	 */
+	isNearActive?: boolean;
 }
 
 export default function DishMediaContent({
@@ -52,6 +65,7 @@ export default function DishMediaContent({
 	displayIndex,
 	backgroundImageState,
 	showRecordEaten,
+	isNearActive = true,
 }: DishMediaContentProps) {
 	// #940 【修正】entry 未取得時に throw する前に理由を記録する。throw 自体は残す
 	// (このコンポーネントは entry の存在を前提に構築されており、無ければ描画できないため)。
@@ -246,16 +260,23 @@ export default function DishMediaContent({
 							accessibilityLabel={dishMediaEntry.dish.name ?? dishMediaEntry.restaurant.name}
 						/>
 					)}
-					{/* #630 【設計】動画の場合のみ VideoPlayer を重ねて表示 */}
-					{isVideo && hasMediaUrl && !isProcessing && !isFailed && dishMediaEntry.dish_media.mediaUrl && (
-						<VideoPlayer
-							uri={dishMediaEntry.dish_media.mediaUrl}
-							style={StyleSheet.absoluteFill}
-							shouldPlay={isActive}
-							onProgress={handleVideoProgress}
-							onLoop={handleVideoLoop}
-						/>
-					)}
+					{/* #630 【設計】動画の場合のみ VideoPlayer を重ねて表示。
+					    #1375（5 巡目・性能 B-2）ただし «見えている ±1» のセルだけ。範囲外は背景画像のまま
+					    （プレイヤーを作らない = デコーダを立てない）。isNearActive の doc を参照 */}
+					{isNearActive &&
+						isVideo &&
+						hasMediaUrl &&
+						!isProcessing &&
+						!isFailed &&
+						dishMediaEntry.dish_media.mediaUrl && (
+							<VideoPlayer
+								uri={dishMediaEntry.dish_media.mediaUrl}
+								style={StyleSheet.absoluteFill}
+								shouldPlay={isActive}
+								onProgress={handleVideoProgress}
+								onLoop={handleVideoLoop}
+							/>
+						)}
 					{/* #1375 4 巡目実機確認: SNS 取り込み（render_type='external_embed'）の再生。
 					    mediaUrl は自ストレージに実体が無いので常に null。ここが無いと
 					    取り込んだリールは «サムネイルが出るだけで再生できない»（実機で指摘された）。
