@@ -46,6 +46,14 @@ type Props = RNMarkerProps & {
 	size?: number;
 	color?: string;
 	isActive?: boolean;
+	/**
+	 * #1513 吹き出しの中身を画像の代わりに差し替える。
+	 *
+	 * 渡されたときは `uri` を無視してこれを描く。my-dishes の Map が «自分の投稿が削除済み» の
+	 * ピンへ墓標を出すために使う（`uri` を空にするだけでは白い丸になり、削除されたことが伝わらない）。
+	 * 既定は undefined で、渡さなければ従来どおり画像を描く。
+	 */
+	bubbleContent?: React.ReactNode;
 };
 
 export function AvatarBubbleMarker({
@@ -54,6 +62,7 @@ export function AvatarBubbleMarker({
 	size = 48,
 	color = "#FFFFFF",
 	isActive = false,
+	bubbleContent,
 	...props
 }: Props) {
 	// Androidは領域制限のためsize=37が最も安定
@@ -81,19 +90,26 @@ export function AvatarBubbleMarker({
 							borderColor: color,
 						},
 					]}>
-					<Image
-						style={[
-							styles.image,
-							{
-								width: imageSize,
-								height: imageSize,
-							},
-						]}
-						source={uri ? { uri } : undefined}
-						contentFit="cover"
-						transition={100}
-						cachePolicy="memory-disk" // #785 DishMediaContent と同一ポリシーにすることで iOS SDWebImage のパイプライン競合を防止
-					/>
+					{bubbleContent ? (
+						// #1513 画像の代わりの中身（墓標など）。丸マスクの中いっぱいに置く
+						<View style={[styles.image, { width: imageSize, height: imageSize, overflow: "hidden" }]}>
+							{bubbleContent}
+						</View>
+					) : (
+						<Image
+							style={[
+								styles.image,
+								{
+									width: imageSize,
+									height: imageSize,
+								},
+							]}
+							source={uri ? { uri } : undefined}
+							contentFit="cover"
+							transition={100}
+							cachePolicy="memory-disk" // #785 DishMediaContent と同一ポリシーにすることで iOS SDWebImage のパイプライン競合を防止
+						/>
+					)}
 				</View>
 
 				{/* ⚠️ Androidは尻尾を描画しない理由

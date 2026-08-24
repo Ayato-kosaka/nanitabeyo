@@ -1023,6 +1023,10 @@
 					"body": "Filtra por “quiero comer / comido”, plato, zona, con quién y franja horaria. Está para reducir opciones, no para añadirlas."
 				}
 			}
+		},
+		"deleted": {
+			"label": "Eliminada",
+			"a11yLabel": "La foto de esta publicación se eliminó"
 		}
 	},
 	"SnsImport": {

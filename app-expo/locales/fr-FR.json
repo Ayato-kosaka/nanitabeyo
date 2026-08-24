@@ -1023,6 +1023,10 @@
 					"body": "Filtrez par « à goûter / goûté », plat, quartier, avec qui et moment de la journée. C'est fait pour réduire les choix, pas pour en ajouter."
 				}
 			}
+		},
+		"deleted": {
+			"label": "Supprimée",
+			"a11yLabel": "La photo de cette publication a été supprimée"
 		}
 	},
 	"SnsImport": {

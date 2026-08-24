@@ -27,6 +27,9 @@ import { useMyDishesCalendarQuery } from "../hooks/useMyDishesCalendarQuery";
 import { countMyDishStatuses } from "@/features/myDishes/statusColors";
 import { MyDishStatusLegend } from "@/features/myDishes/components/MyDishStatusLegend";
 import { MyDishStatusCountBadges } from "@/features/myDishes/components/MyDishStatusCountBadges";
+import { MyDishDeletedTombstone } from "@/features/myDishes/components/MyDishDeletedTombstone";
+import { useThemedStyles } from "@/contexts/ThemeProvider";
+import type { Palette } from "@/constants/Palette";
 
 /**
  * #1396 my-dishes の Calendar ビュー（設計書 (2/2) §4 / §7 の PR5）。
@@ -78,6 +81,18 @@ import { MyDishStatusCountBadges } from "@/features/myDishes/components/MyDishSt
 
 const WEEKDAY_COUNT = 7;
 
+/**
+ * #1513 墓標の上に残す日付の数字の色。
+ *
+ * この画面の既定（`dayNumberRecorded` の `#111827`）はダークで墓標の面に沈むため、
+ * 墓標の上だけテーマ追従のトークン（ライト `#111827` / ダーク `#E5E2E1`）へ差し替える。
+ * ファクトリはモジュールスコープに置く（`useThemedStyles` の useMemo を効かせるため）。
+ */
+const createDeletedDayStyles = (colors: Palette) =>
+	StyleSheet.create({
+		dayNumber: { color: colors.textPrimaryAlt, fontWeight: "700" },
+	});
+
 type DayPressHandler = (cell: CalendarDayCell) => void;
 
 const DayCell = memo(function DayCell({ cell, onPress }: { cell: CalendarDayCell | null; onPress: DayPressHandler }) {
@@ -92,7 +107,13 @@ const DayCell = memo(function DayCell({ cell, onPress }: { cell: CalendarDayCell
 	const representative = cell && count > 0 ? cell.items[0] : null;
 	// #1396 【仕様】写真なしの記録（dishMedia === null）でも灰色プレースホルダーにしない。
 	// categoryImageUrl → restaurant.image_url の順で実画像へ落とす（#1375 追補2 決定3）
-	const thumbnailUrl = representative ? resolveDayThumbnailUrl(representative) : null;
+	//
+	// #1513 代表の行が «自分の投稿が削除済み» のときはフォールバックせず墓標を出す。
+	// 日付の数字は墓標の上に残す（記録がある日であることは変わらないため）ので、
+	// 数字の色だけテーマ追従のトークンで塗り直す（この画面の既定 #111827 はダークで沈む）
+	const isDeleted = representative?.isOwnMediaDeleted === true;
+	const deletedStyles = useThemedStyles(createDeletedDayStyles);
+	const thumbnailUrl = representative && !isDeleted ? resolveDayThumbnailUrl(representative) : null;
 	// `source` は memo で identity を固定する（MyDishesListView と同じ作法。
 	// インラインで作ると expo-image に毎レンダー新しい source が渡る。独立レビュー指摘）
 	const source = useMemo(
@@ -114,7 +135,18 @@ const DayCell = memo(function DayCell({ cell, onPress }: { cell: CalendarDayCell
 			{/* #1375 実機確認: 記録が無い日は «空の器» を描かない。Instagram のストーリーアーカイブと
 			    同じく、日付の数字だけが淡く残る。記録がある日だけが円形のサムネイルとして浮き上がるので、
 			    「どの日に記録があるか」が一目でわかる（以前は全日が同じ灰色の角丸で埋まっていた） */}
-			{source ? (
+			{isDeleted ? (
+				<>
+					{/* #1513 自分の投稿が削除済みの日。日付は残し、写真の枠だけ墓標に差し替える */}
+					<View style={styles.dayCircle}>
+						<MyDishDeletedTombstone variant="cell" style={StyleSheet.absoluteFill} />
+						<Text style={[styles.dayNumber, deletedStyles.dayNumber]}>{cell.day}</Text>
+					</View>
+					<View style={styles.countBadgeRow}>
+						<MyDishStatusCountBadges counts={counts} testIDPrefix="my-dishes-calendar-day-count" />
+					</View>
+				</>
+			) : source ? (
 				<>
 					<View style={styles.dayCircle}>
 						<Image

@@ -23,3 +23,30 @@ import type { MyDishItem } from "@shared/api/v1/res";
  */
 export const resolveMyDishThumbnailUrl = (item: MyDishItem): string | null =>
 	item.dishMedia?.thumbnailImageUrl ?? item.dish?.categoryImageUrl ?? item.restaurant?.image_url ?? null;
+
+/**
+ * #1513 サムネイル枠に何を描くか。
+ *
+ * - `photo`: その URL の画像を描く
+ * - `deleted`: **墓標**（`components/MyDishDeletedTombstone.tsx`）。自分の投稿が削除済み
+ * - `none`: 画像が 1 つも引けなかった異常系。従来どおりの無地プレースホルダー
+ */
+export type MyDishThumbnail = { kind: "photo"; url: string } | { kind: "deleted" } | { kind: "none" };
+
+/**
+ * #1513 【設計】`isOwnMediaDeleted` を **フォールバックより先に**見る。
+ *
+ * `isOwnMediaDeleted === true`（自分の投稿が削除済み）のとき、サーバーは `dishMedia` を
+ * null にして返す。ここで `resolveMyDishThumbnailUrl` をそのまま呼ぶと
+ * `categoryImageUrl` / `restaurant.image_url` へ落ちてしまい、**自分が消した写真の跡地に
+ * 別の絵が入って「消えたこと」が伝わらない**（オーナー確定: 黙って差し替えない）。
+ *
+ * 分岐をこの 1 関数に置くのは、list / calendar / 地図ピンで判断がずれないようにするため。
+ * 「黙って除外する」側の画面（検索結果 / 店舗フィード / 投票候補）はそもそも削除済みの行が
+ * サーバーから返らないので、この関数を通らない。
+ */
+export const resolveMyDishThumbnail = (item: MyDishItem): MyDishThumbnail => {
+	if (item.isOwnMediaDeleted) return { kind: "deleted" };
+	const url = resolveMyDishThumbnailUrl(item);
+	return url ? { kind: "photo", url } : { kind: "none" };
+};

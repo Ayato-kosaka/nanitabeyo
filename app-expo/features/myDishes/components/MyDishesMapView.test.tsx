@@ -67,14 +67,27 @@ jest.mock("react-native-maps", () => ({ __esModule: true, default: () => null })
 const clusterPresses: Array<() => void> = [];
 const pinPresses: Array<() => void> = [];
 const pinUris: Array<string | undefined> = [];
+// #1513 墓標のピンは «uri を渡さず bubbleContent を渡す» ので、その有無も拾う
+const pinBubbleContents: Array<unknown> = [];
 jest.mock("@/features/mapMarkers", () => {
 	const ReactActual = jest.requireActual("react");
 	const { View: RNView } = jest.requireActual("react-native");
 	return {
-		AvatarBubbleMarker: ({ onPress, uri, testID }: { onPress?: () => void; uri?: string; testID?: string }) => {
+		AvatarBubbleMarker: ({
+			onPress,
+			uri,
+			testID,
+			bubbleContent,
+		}: {
+			onPress?: () => void;
+			uri?: string;
+			testID?: string;
+			bubbleContent?: unknown;
+		}) => {
 			if (onPress) pinPresses.push(onPress);
 			pinUris.push(uri);
-			return ReactActual.createElement(RNView, { testID });
+			pinBubbleContents.push(bubbleContent);
+			return ReactActual.createElement(RNView, { testID }, (bubbleContent ?? null) as never);
 		},
 	};
 });
@@ -164,6 +177,7 @@ beforeEach(() => {
 	pinPresses.length = 0;
 	clusterPresses.length = 0;
 	pinUris.length = 0;
+	pinBubbleContents.length = 0;
 	sheetPinLists.length = 0;
 	mockAnimateToRegion.mockClear();
 	mockGetCurrentLocationPosition.mockReset();
@@ -710,6 +724,56 @@ describe("#1396 m-1 初回取得後に一度だけピンへ viewport を寄せ�
 近すぎるピンは 1 つの丸へ畳み、押すと中のピンの外接矩形へ寄る（= もう一段ほどく）。
 畳む粒度は **指を離したときの表示域**で決める（pan 追従は重く、ピンが動いて見える）。
 */
+/*
+#1513 «自分の投稿が削除済み» のピン（`isOwnMediaDeleted`）。
+
+ピンは残す（店舗ごとの記録が消えたわけではない）。ただし写真は
+`restaurant.image_url` へも落とさず、吹き出しの中身を墓標へ差し替える。
+落としてしまうと「自分が消した写真の跡地に別の絵」になり、消えたことが伝わらない。
+*/
+describe("#1513 削除済みのピンは墓標になる（ピン自体は消さない）", () => {
+	const pinsResult = (pins: MyDishPin[]) => ({
+		pins,
+		queryKey: "default",
+		isLoading: false,
+		error: null,
+		hasFetchedInitial: true,
+		truncated: false,
+		refresh: jest.fn(),
+	});
+
+	it("isOwnMediaDeleted なら uri を渡さず、墓標（bubbleContent）を渡す", async () => {
+		mockUseMyDishesMapPinsQuery.mockReturnValue(
+			pinsResult([
+				{
+					...mockPin,
+					representativeThumbnailUrl: null,
+					isOwnMediaDeleted: true,
+				} as unknown as MyDishPin,
+			]),
+		);
+		const tree = await render();
+
+		// restaurant.image_url（mockPin にある）へ落ちていないこと。
+		// ⚠️ マーカーは mapReady の補正で 2 回描かれるので «全ての描画で» を見る（件数で数えない）
+		expect(pinUris.every((uri) => uri === undefined)).toBe(true);
+		expect(pinBubbleContents.filter(Boolean).length).toBeGreaterThan(0);
+		// ピンは消えない
+		expect(tree.root.findAll((node) => node.props?.testID === "my-dishes-map-pin").length).toBeGreaterThan(0);
+	});
+
+	it("削除されていないピンは従来どおり画像を渡す（bubbleContent は渡さない）", async () => {
+		mockUseMyDishesMapPinsQuery.mockReturnValue(
+			pinsResult([{ ...mockPin, isOwnMediaDeleted: false } as unknown as MyDishPin]),
+		);
+		await render();
+
+		expect(pinUris.every((uri) => uri === "https://example.com/restaurant.jpg")).toBe(true);
+		expect(pinUris.length).toBeGreaterThan(0);
+		expect(pinBubbleContents.filter(Boolean)).toHaveLength(0);
+	});
+});
+
 describe("#1375 Map のクラスタリング", () => {
 	const nearbyPin = {
 		...mockPin,

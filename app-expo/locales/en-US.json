@@ -1023,6 +1023,10 @@
 					"body": "Filter by want-to-eat / eaten, dish, area, who you are with and time of day. It is here to cut choices down, not to add more."
 				}
 			}
+		},
+		"deleted": {
+			"label": "Deleted",
+			"a11yLabel": "The photo for this post was deleted"
 		}
 	},
 	"SnsImport": {
