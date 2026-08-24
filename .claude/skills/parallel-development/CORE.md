@@ -350,6 +350,64 @@ if [[ -z "$REMOTE_SHA" ]]; then ... exit 1; fi
 
 > 実装が一区切りついた時点で、テストを書く前に必ず `git add -A && git commit && git push -u origin <branch>` まで行うこと。**ローカルcommitだけではturn切れで全部消えます。**
 
+#### この規則は「書いてある」だけでは効かない。**毎回のプロンプトの冒頭へ写すこと**
+
+2026-08-24 に**同じ失われ方を再発させた**。run 32682347819（#1513 の実装）は `error_max_turns`
+（turns=151 / 上限 150、denials=0、23 分）で終わり、`4f56996c → ae343454` とローカル commit は
+できていたのに push 前に尽きて、5 タスク分の実装が丸ごと消えた。CORE.md にはこの節が既にあったが、
+**リーダーがワーカーへ渡したプロンプトに書かなかった**ため効かなかった。
+
+ワーカーは CORE.md を読まない。リーダーが書くプロンプトの**冒頭**（やることの前）へ、
+毎回この形で入れること。
+
+> ## ⚠️ 最優先の規則: 1 つ終わるたびに commit して push する
+>
+> - タスクを 1 つ終えるたびに `git add -A && git commit && git push -u origin <branch>` を実行する
+> - 全部終わってからまとめて commit しない
+> - 検証はそのタスクに関係するものだけをその都度回し、通し検証は最後に 1 回だけ
+> - turn が残り少ないと感じたら、**途中でも必ず push してから**「ここまで終わった / 残りはこれ」を
+>   PR へコメントして終わる
+
+あわせて、**1 run に 5 タスクを詰めない**。上の run は A（削除の 1 本化）/ A-2（SQL 差し戻し）/
+B（墓標表示）/ C（列コメント）/ D（投票候補）を 1 run へ渡していた。API・SQL 側と UI 側は
+別 run へ割り、同じブランチへ直列で流す方が、turn 切れの被害が 1 タスク分に収まる。
+
+#### 失敗 run の切り分けは `commit・pushされたことを検証` ステップの env を見る
+
+`mcp__github__get_job_logs` に `job_id` と `tail_lines: 120` を渡すと、このステップの env に
+集計値が出る。ここだけで «上限» / «権限拒否» / «prompt の不備» を切り分けられる。
+
+```
+CLAUDE_SUBTYPE: error_max_turns   ← turn 切れ
+CLAUDE_NUM_TURNS: 151
+CLAUDE_DENIALS: 0                 ← 0 なら権限問題ではない
+PRE_SHA: 4f56996c...
+✓ HEADが変化: 4f56996c... -> ae343454...   ← commit はできていた = push だけが間に合わなかった
+```
+
+`tail_lines` が小さすぎると post-job cleanup しか返らない。120 前後を指定すること。
+
+env の 3 値の読み方（実測した組み合わせ）:
+
+| CLAUDE_SUBTYPE | IS_ERROR | NUM_TURNS | 意味 | 取るべき手 |
+| --- | --- | --- | --- | --- |
+| `error_max_turns` | true | 上限+1 | turn 切れ | **上げるのではなく割る**。push 済みなら成果は残っている |
+| `success` | **true** | **1** | **何もせず 1 ターンで引き返した**（run 32697670173 は 5 分で終了・commit ゼロ・denials 0） | ここだけは **1 回だけそのまま再実行してよい**。仕事の形の問題ではないため |
+| `success` | false | — | 正常終了 | branch / PR の実在を別途確認する |
+
+`success` + `is_error=true` + `turns=1` は「プロンプトが悪い」でも「権限が無い」でもない。
+CLAUDE_DENIALS が 0 で、かつ HEAD が動いていないことを併せて確認したうえで、
+**task_key を変えて 1 回だけ**再投入する。2 回続けて同じなら形を疑うこと。
+
+**turn 切れでも Artifact は上がっている**ことがある。同じ 2026-08-24 の
+run 32683977248（ダークモードのエビデンス撮影）は `error_max_turns`（turns=91 / 上限 90）で
+commit ゼロだったが、**61 ファイル・9.4 MB の Artifact は upload 済み**だった。
+撮影 run が失敗したときは、諦める前に `list_workflow_run_artifacts` を見て、
+`evidence-collect.yml` を `allow_failed_run: true` で回せば成果物を回収できる。
+
+`evidence-collect.yml` の `source_sha` は **40〜64 桁のフル SHA でなければ入力検証で落ちる**
+（短縮 SHA を渡した run 32697489584 は 10 秒で failure）。`git rev-parse <short>` で伸ばしてから渡すこと。
+
 ## ワーカーは `.github/workflows/` を変更できない
 
 **Claude Worker（`access=write`）は `.github/workflows/` 配下のファイルを作成・更新できない。** `claude-worker.yml` がClaude GitHub Appへ要求している権限は `contents: write` / `pull_requests: write` / `issues: write` / `actions: read` の4つで、**`workflows: write` を含まないため、GitHubがサーバ側でpushを拒否する**。
@@ -660,7 +718,12 @@ MCP 経由の run 一覧は **1 件ごとに `head_commit.message` を全文**�
 | --- | --- |
 | `list_workflow_runs`（`per_page: 8`, e2e-mobile） | **約 25,000 トークン** |
 | `list_workflow_runs`（`per_page: 6`, claude-worker） | **約 30,000 トークン** |
+| `list_workflow_runs`（**`per_page: 1`**, claude-worker） | **約 30,000 トークン**（下記） |
 | `git ls-remote` + `git log -1 --format` でブランチ 8 本を確認 | 約 400 トークン |
+
+⚠️ **`per_page` を小さくしても効かない。** 2026-08-24 に `per_page: 1` を渡したが
+**30 件返ってきた**（この MCP ツールは `list_workflow_runs` で `per_page` を無視する）。
+「1 件だけ見るから安いはず」は成り立たないので、`per_page` に頼らないこと。
 
 **代わりにこうする。**
 
@@ -765,6 +828,7 @@ write run でも同じ口を使う。**「どちらの手段を採ったか」�
 | 見えるもの | 意味 | 直す場所 |
 | --- | --- | --- |
 | `subtype=error_max_turns` | ターン切れ | 下の「ターン切れは…」節。**max_turnsを上げるだけでは直らない** |
+| `subtype=success` かつ `is_error=true` かつ `turns=1` | 何もせず引き返した | task_key を変えて 1 回だけ再投入してよい（上の表） |
 | `permission_denials>0` + `claude-denial:` にツール名 | 権限で弾かれて作業できなかった | プロンプト側でそのツールを使わせない、または `extra_claude_args` の `--allowedTools` |
 | `subtype=success` かつ `permission_denials=0` なのに commit 無し | プロンプトの不備（何をcommitすべきか伝わっていない） | プロンプトへ「push まで完了させること」を明示 |
 | ジョブが「Claude Codeを実行」の途中で failure | 本当に異常終了・認証・上限 | 認証と利用枠を確認 |

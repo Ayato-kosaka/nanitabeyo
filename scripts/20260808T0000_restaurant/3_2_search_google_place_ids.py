@@ -19,6 +19,7 @@ from google.cloud import bigquery
 
 from google_place_matching import (
     ALGORITHM_VERSION,
+    DailyQuotaExhausted,
     TIGHT_HALF_SIDE_M,
     WIDE_HALF_SIDE_M,
     PlacesTextSearchClient,
@@ -102,6 +103,11 @@ def fetch_candidates(
             AND a.run_id = @run_id
             AND a.seed_id = s.seed_id
             AND a.algorithm_version = @algorithm_version
+            -- api_error は「照合を試したが答えが出ていない」状態である。
+            -- これを済み扱いにすると、日次クォータ枯渇や一過性の5xxで
+            -- 落ちた seed が resume 対象から外れ、二度と照合されない
+            -- （実際に429で15,376件がこの状態になった）。次回は引き直す。
+            AND a.result_status != 'api_error'
         )
       ORDER BY s.seed_id
       LIMIT @limit
@@ -325,8 +331,18 @@ def main() -> None:
                     )
                     for seed in chunk
                 ]
+                quota_exhausted = False
                 for future in as_completed(futures):
-                    buffer.append(future.result())
+                    try:
+                        buffer.append(future.result())
+                    except DailyQuotaExhausted as error:
+                        # 日次クォータは翌日まで回復しない。残りを走らせても
+                        # api_error を書き込むだけなので、ここで打ち切る。
+                        # 未処理分は次回 run が resume で引き直す。
+                        if not quota_exhausted:
+                            LOGGER.error("日次クォータ枯渇で打ち切る: %s", error)
+                        quota_exhausted = True
+                        continue
                     done += 1
                     if len(buffer) >= 100:
                         flush_rows(pipeline, buffer)
@@ -334,8 +350,16 @@ def main() -> None:
                         LOGGER.info("Google照合: %d/%d件", done, len(candidates))
                 futures.clear()
                 flush_rows(pipeline, buffer)
+                if quota_exhausted:
+                    break
         flush_rows(pipeline, buffer)
-        step["row_count"] = len(candidates)
+        step["row_count"] = done
+        step["quota_exhausted"] = quota_exhausted
+        if quota_exhausted:
+            raise RuntimeError(
+                f"日次クォータ枯渇で {done}/{len(candidates)} 件で打ち切った。"
+                "太平洋時間の日付が変わってから再実行すると、未処理分だけ引き直す。"
+            )
 
 
 if __name__ == "__main__":
