@@ -43,6 +43,7 @@ export class SettingsPage {
 	readonly logoutConfirmButton: Locator;
 	/** 確認ダイアログの「キャンセル」ボタン */
 	readonly logoutCancelButton: Locator;
+<<<<<<< HEAD
 	/** #1511 アカウント削除行（ログイン済みユーザーのみ表示） */
 	readonly deleteAccountItem: Locator;
 	/** #1511 1 枚目（影響の説明）ダイアログのタイトル（ja-JP: Settings.deleteAccountConfirmTitle） */
@@ -60,6 +61,21 @@ export class SettingsPage {
 	 */
 	readonly dialogConfirmButton: Locator;
 	readonly dialogCancelButton: Locator;
+=======
+	/**
+	 * #1509 表示テーマの 3 択セレクタ（システム追従 / ライト / ダーク）のコンテナ。
+	 * `themeCardSurface` はこの直上の要素で、Card の面色（`Palette.surface`）を持つ。
+	 */
+	readonly themeSelector: Locator;
+	/**
+	 * テーマセレクタを載せている Card の面。
+	 *
+	 * react-native-web は `Card` の `backgroundColor` をこの div の computed style に出すため、
+	 * 「面がテーマで切り替わったか」を色で検証できる唯一の安定した観測点になる。
+	 * セレクタ自身（`themeSelector`）は背景を持たないので、こちらを見ること。
+	 */
+	readonly themeCardSurface: Locator;
+>>>>>>> origin/main
 
 	constructor(page: Page) {
 		this.page = page;
@@ -75,6 +91,7 @@ export class SettingsPage {
 		this.logoutConfirmTitle = page.getByText("ログアウトしますか？", { exact: true });
 		this.logoutConfirmButton = this.logoutConfirmDialog.getByRole("button", { name: "ログアウト" });
 		this.logoutCancelButton = this.logoutConfirmDialog.getByRole("button", { name: "キャンセル" });
+<<<<<<< HEAD
 		this.deleteAccountItem = page.getByTestId("settings-delete-account");
 		this.deleteAccountConfirmTitle = page.getByText("アカウントを削除しますか？", { exact: true });
 		this.deleteAccountConfirmMessage = page.getByText("この操作は取り消せません。");
@@ -93,6 +110,32 @@ export class SettingsPage {
 	async openDeleteAccountDialog(): Promise<void> {
 		await this.deleteAccountItem.click();
 		await expect(this.deleteAccountConfirmTitle).toBeVisible();
+=======
+		this.themeSelector = page.getByTestId("settings-theme-selector");
+		this.themeCardSurface = this.themeSelector.locator("xpath=..");
+	}
+
+	/** テーマ 3 択の 1 行（#1509） */
+	themeOption(preference: "system" | "light" | "dark"): Locator {
+		return this.page.getByTestId(`settings-theme-${preference}`);
+	}
+
+	/**
+	 * 選択中を示すチェックアイコン（選択されている行にだけ存在する）。
+	 *
+	 * `aria-checked` ではなくアイコンの有無で見るのは、react-native-web が
+	 * `accessibilityState.checked` を DOM の `aria-checked` へ変換しないため
+	 *（`features/search/components/SelectableChip.tsx` のコメントと同じ既知の非対応）。
+	 */
+	themeOptionCheck(preference: "system" | "light" | "dark"): Locator {
+		return this.page.getByTestId(`settings-theme-${preference}-check`);
+	}
+
+	/** テーマを選び、選択状態が切り替わるまで待つ（#1509） */
+	async selectTheme(preference: "system" | "light" | "dark"): Promise<void> {
+		await this.themeOption(preference).click();
+		await expect(this.themeOptionCheck(preference)).toBeVisible();
+>>>>>>> origin/main
 	}
 
 	/** 指定 URL へ直接遷移する（locale プレフィックス必須） */

@@ -7,6 +7,12 @@ import { DEFAULT_TIMEOUT, by, element, existsNow, tapWhenVisible, waitFor, waitU
 export type LegalDocumentKey = "guidelines" | "terms" | "privacy" | "copyright";
 
 /**
+ * #1509 表示テーマの 3 択。
+ * app-expo/contexts/ThemeProvider.ts の `ThemePreference` / `THEME_PREFERENCES` と一致させること。
+ */
+export type ThemePreferenceKey = "system" | "light" | "dark";
+
+/**
  * ⚙️ 設定画面の Screen Object（e2e-web の pages/SettingsPage.ts に対応）
  *
  * 対応画面: app-expo/app/[locale]/(tabs)/profile/settings.tsx
@@ -50,6 +56,11 @@ export class SettingsScreen {
 	readonly copyrightItem = by.id("settings-copyright");
 	/** ログアウト行（ログイン済みユーザーのみ表示・既存 testID） */
 	readonly logoutItem = by.id("settings-logout");
+	/**
+	 * #1509 表示テーマの 3 択セレクタ（システム追従 / ライト / ダーク）。
+	 * 設定画面の最上段にあり、初期表示でスクロール無しに触れる。
+	 */
+	readonly themeSelector = by.id("settings-theme-selector");
 	/**
 	 * ログアウト確認ダイアログのタイトル（ja-JP: `Settings.logoutConfirmTitle`）。
 	 * DialogProvider（react-native-paper の Dialog）はタイトルに testID を持たないため文字列で特定する。
@@ -107,6 +118,34 @@ export class SettingsScreen {
 	/** 設定画面が表示されていることを検証する */
 	async expectLoaded(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
 		await waitUntilVisible(this.title, timeout);
+	}
+
+	/** テーマ 3 択の 1 行（#1509） */
+	themeOption(preference: ThemePreferenceKey) {
+		return by.id(`settings-theme-${preference}`);
+	}
+
+	/**
+	 * 選択中を示すチェック（選択されている行にだけ存在する・#1509）。
+	 *
+	 * ⚠️ `getAttributes()` で選択状態を読もうとしないこと。`accessibilityState.selected` は
+	 * Android の Detox では属性として上がってこず、iOS でも取れる保証が無い。
+	 * アプリ側はチェックアイコンを **素の View** で包んで testID を持たせてあるので、
+	 * 「その View が居るか」で判定するのが両 OS で確実（app-expo の settings.tsx のコメント参照）。
+	 */
+	themeOptionCheck(preference: ThemePreferenceKey) {
+		return by.id(`settings-theme-${preference}-check`);
+	}
+
+	/** テーマを選び、選択状態が切り替わるまで待つ（#1509） */
+	async selectTheme(preference: ThemePreferenceKey): Promise<void> {
+		await tapWhenVisible(this.themeOption(preference));
+		await waitUntilVisible(this.themeOptionCheck(preference));
+	}
+
+	/** そのテーマが選択済みかを **待たずに** 判定する（hasLogoutItem と同じ考え方） */
+	async isThemeSelected(preference: ThemePreferenceKey): Promise<boolean> {
+		return existsNow(this.themeOptionCheck(preference));
 	}
 
 	/**

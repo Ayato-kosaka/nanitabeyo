@@ -191,6 +191,7 @@ export class DishMediaRepository {
       -- 価格帯の絞り込みはMVPでは未対応
       WHERE 1=1
         -- カテゴリ
+<<<<<<< HEAD
         AND d.category_id = (SELECT category_id FROM params) 
         -- #1511 退会したユーザーの投稿はフィードに出さない（作者の users.deleted_at で判定）。
         -- user_id が NULL の取り込みメディアは対象外なので NOT EXISTS で書く
@@ -199,6 +200,16 @@ export class DishMediaRepository {
           WHERE u.id = dm.user_id
             AND u.deleted_at IS NOT NULL
         )
+=======
+        AND d.category_id = (SELECT category_id FROM params)
+        -- #1257 実体（GCS original）が届いていない行を検索候補から除外する。
+        -- media_processing_status を「加工完了フラグ」としてではなく「原本到達の代理指標」として使う。
+        -- 単純に processing のみを弾く案では、原本のダウンロードに恒久的に失敗して
+        -- processing のまま固着した行や、リサイズに失敗した failed 行という別種の
+        -- 「実体未着」を見落とす（processing と failed は原因が違うだけで、どちらも
+        -- 検索へ公開してはいけない点は同じ）。そのため completed 以外を一律に除外する。
+        AND dm.media_processing_status = 'completed'
+>>>>>>> origin/main
     ),
     -- 距離計算
     geo AS (
@@ -487,12 +498,22 @@ export class DishMediaRepository {
         LEFT JOIN dish_media_analysis_results dmar
           ON dmar.dish_media_id = dm.id
         WHERE d.restaurant_id = ${restaurantId}::uuid
+<<<<<<< HEAD
           -- #1511 退会したユーザーの投稿は店舗の投稿一覧にも出さない
           AND NOT EXISTS (
             SELECT 1 FROM users u
             WHERE u.id = dm.user_id
               AND u.deleted_at IS NOT NULL
           )
+=======
+          -- #1257 findDishMediaIds と同じ理由で、実体（GCS original）が届いていない行を
+          -- レストラン詳細の一覧からも除外する。ここを漏らすと、検索には出なくなった
+          -- 未着メディアが店舗ページ経由でだけ露出し続ける。
+          -- 「各 dish につきいいね数最大の1件」を選ぶ ROW_NUMBER より前段で除外する必要がある。
+          -- 後段で弾くと、未着行が代表に選ばれた dish が丸ごと欠落し、completed な
+          -- 次点メディアまで巻き添えで消える。
+          AND dm.media_processing_status = 'completed'
+>>>>>>> origin/main
       ),
       ranked AS (
         SELECT
@@ -589,7 +610,11 @@ export class DishMediaRepository {
 
     const { reactionSet, reviewLikeCountMap } =
       await this.buildReactionAggregates(
-        reviewsToReturn.map((review) => review.created_dish_media_id),
+        // #1395 created_dish_media_id は nullable（そのレビューがメディアを
+        // 作っていない場合は NULL）。集計対象になるメディアが無いので落とす
+        reviewsToReturn
+          .map((review) => review.created_dish_media_id)
+          .filter((id): id is string => id !== null),
         reviewsToReturn.map((review) => review.id),
         userId,
       );

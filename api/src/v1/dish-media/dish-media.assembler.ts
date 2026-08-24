@@ -126,10 +126,19 @@ export class DishMediaAssembler {
    * 画像の場合:
    *   - media_processing_status が 'completed' の場合はリサイズ済みパスの Signed URL を返す
    *   - それ以外はオリジナルパスの Signed URL を返す
+   *
+   * #1395 media_path は nullable。CHECK 制約 dish_media_media_path_required_for_stored に
+   * より NULL になるのは render_type='external_embed'（自ストレージに実体が無い）だけで、
+   * その行は署名 URL を作れない。mediaUrl は元から nullable なのでレスポンス型は壊れない。
    */
   private getMediaUrl(dishMedia: DishMediaEntryEntity['dish_media']): {
     mediaUrl: string | null;
   } {
+    const mediaPath = dishMedia.media_path;
+    if (mediaPath === null) {
+      return { mediaUrl: null };
+    }
+
     const status =
       dishMedia.media_processing_status as MediaProcessingStatus | null;
 
@@ -144,7 +153,7 @@ export class DishMediaAssembler {
           table: 'dish_media',
           column: 'media_path',
           recordId: dishMedia.id,
-          originalPath: dishMedia.media_path,
+          originalPath: mediaPath,
         },
         'cdn',
       );
@@ -159,7 +168,7 @@ export class DishMediaAssembler {
             column: 'media_path',
             recordId: dishMedia.id,
             size: 1024,
-            originalPath: dishMedia.media_path,
+            originalPath: mediaPath,
           },
           'cdn',
         );
@@ -167,7 +176,7 @@ export class DishMediaAssembler {
         return { mediaUrl };
       } else {
         // #511 【設計】未完了時はオリジナルパスの CDN Signed URL を返す
-        const originalCdnUrl = buildCdnUrlFromPath(dishMedia.media_path);
+        const originalCdnUrl = buildCdnUrlFromPath(mediaPath);
         const mediaUrl = this.storage.generateCdnSignedURL(originalCdnUrl);
         return { mediaUrl };
       }

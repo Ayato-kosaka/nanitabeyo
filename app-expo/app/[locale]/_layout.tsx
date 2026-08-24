@@ -14,6 +14,7 @@ import { HealthCheckInitializer } from "@/components/HealthCheckInitializer";
 import { PushTokenRegistration } from "@/components/PushTokenRegistration";
 import { MetaAppEventsInitializer } from "@/components/MetaAppEventsInitializer";
 import { getPaperTheme } from "@/constants/PaperTheme";
+import { ThemeProvider, useAppTheme } from "@/contexts/ThemeProvider";
 import { useLocaleFonts } from "@/hooks/useLocaleFonts";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
@@ -46,11 +47,40 @@ const isValidBcp47Tag = (tag: string): boolean => {
  * @returns 言語判定とバリデーションを行ったレイアウト付きスタック構造
  */
 export default function RootLayout() {
+	// #1509 【設計】テーマの解決（設定値 + OS スキーム）は Provider の中でしか読めないため、
+	// 中身を LocaleLayout へ切り出して ThemeProvider で包む。ここが全画面のテーマの起点になる。
+	return (
+		<ThemeProvider>
+			<LocaleLayout />
+		</ThemeProvider>
+	);
+}
+
+function LocaleLayout() {
 	useFrameworkReady();
 	const router = useRouter();
 	const { locale, isJapanese } = useLocale();
-	const scheme = "light"; // light モード 固定（ダークモード対応時に useColorScheme() とする）
-	const theme = getPaperTheme(scheme, locale);
+
+
+	// #1503 【バグ】i18n の locale 同期は **描画中**に行う（以前は下の useEffect で行っていた）。
+	// effect は `expo export` の静的レンダリング（prerender）では走らないため、サーバが焼く HTML
+	// だけが既定ロケール（en-US）の文言になり、クライアントの初回描画（URL 由来の ja-JP）と
+	// 食い違っていた。その結果が
+	//   「Hydration failed because the server rendered HTML didn't match the client.」
+	//   = 本番の minified React では **error #418** で、ツリーが丸ごと作り直される。
+	// dev ビルド（`expo export --dev`）+ 直リンクで実測し、差分がタブバーのラベル
+	//   サーバ: "Search" / クライアント: "さがす"
+	// であることまで確認している。
+	// locale は URL のセグメント由来でサーバ・クライアントとも同じ値になるため、描画中に
+	// 代入しても «その回の描画» の結果は決定的。同じ値なら代入もしない。
+	const resolvedLocale = getResolvedLocale(locale);
+	if (i18n.locale !== resolvedLocale) i18n.locale = resolvedLocale;
+	// #1509 【設計】ここは長く `const scheme = "light"` で固定されていた（= ダークモード未対応）。
+	// 設定画面の 3 択（システム追従 / ライト / ダーク）を解決した結果を使う。
+	// `getPaperTheme` は元から light / dark の両方を組み立てられるので、渡す値を変えるだけでよい。
+	const { scheme } = useAppTheme();
+	const theme = useMemo(() => getPaperTheme(scheme, locale), [scheme, locale]);
+
 	const { logFrontendEvent } = useLogger();
 
 	// #1027 【バグ】ルートナビゲータがマウントされる前に router.replace() を呼ぶと expo-router の
@@ -124,7 +154,8 @@ export default function RootLayout() {
 		}
 
 		// #717 【設計】i18n の locale を必ず同期
-		i18n.locale = getResolvedLocale(locale);
+		// #1503 実際の代入はこのコンポーネントの描画中（上部）へ移した。prerender では effect が
+		// 走らず、サーバ HTML だけ英語のまま焼かれて hydration が壊れるため。
 	}, [locale, router, logFrontendEvent, scheme, isNavigationReady]);
 
 	return (

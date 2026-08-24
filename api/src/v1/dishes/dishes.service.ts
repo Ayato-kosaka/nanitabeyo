@@ -529,6 +529,8 @@ export class DishesService {
           id: dishMediaId,
           dish_id: dish.id,
           user_id: null, // Google からのインポートなので null
+          // #1395 Google インポートは実体を自ストレージへ保存するので 'stored'
+          render_type: 'stored',
           media_path: mediaPath,
           media_type:
             existingGoogleImportEntry?.dish_media.media_type ?? 'image',
