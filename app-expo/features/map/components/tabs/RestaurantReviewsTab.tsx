@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo } from "react";
 import { View, StyleSheet } from "react-native";
 import { GridList } from "@/components/collapsible-tabs/GridList";
 import { ImageCard } from "@/components/ImageCardGrid";
+import { FixedColors } from "@/constants/Palette";
 import { Text } from "react-native";
 import Stars from "@/components/Stars";
 import { useDishMediaEntriesStore, selectIdsByKey, selectEntryByMediaId } from "@/stores/useDishMediaEntriesStore";
@@ -141,7 +142,8 @@ const styles = StyleSheet.create({
 	reviewCardTitle: {
 		fontSize: 12,
 		fontWeight: "600",
-		color: "#FFF",
+		// 写真（ImageCard）の上に載る文字なのでテーマで振らない固定色
+		color: FixedColors.onMedia,
 		marginBottom: 4,
 	},
 	reviewCardRating: {
@@ -150,7 +152,7 @@ const styles = StyleSheet.create({
 	},
 	reviewCardRatingText: {
 		fontSize: 10,
-		color: "#FFF",
+		color: FixedColors.onMedia,
 		marginLeft: 4,
 	},
 });

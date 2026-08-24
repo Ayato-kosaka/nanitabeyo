@@ -4,15 +4,15 @@ import { StyleSheet, Text, View } from "react-native";
 import { MY_DISH_STATUS_COLORS, type MyDishStatusCounts } from "@/features/myDishes/statusColors";
 
 /**
- * #1375 実機確認（5 巡目）: 「食べたい（緑）/ 食べた（赤）が何件か」を、
+ * #1375 実機確認（5 巡目）: 「食べたい / 食べたが何件か」を、
  * カレンダーの日と地図の帯タイルの **右下** に同じ形で出す。
  *
- * ## 1 件のときは数字を出さない
+ * ## 1 件でも «1» と書く（6 巡目・オーナー指示）
  *
- * 最初は常に数字を出したが、自分で撮って見たところ **記録がある日すべてに «1» が付き**、
- * 月グリッドが小さな数字で埋まって読みにくかった（`shots/calendar.png`）。
- * 1 件なら «その色の点があること» 自体が情報（= どちらの状態か）なので、数字は要らない。
- * 2 件以上のときだけ数字を出す。
+ * 5 巡目では «1 件なら点だけ» にしていた。月グリッドが «1» で埋まって読みにくいと
+ * 判断したためだが、実機で見たオーナーの判断は逆で、**1 件のときも数字を出す**。
+ * 点だけだと «1 件なのか、色の印なのか» が読み取れないためである。
+ * 数を出す/出さないを件数で切り替えないので、見た目の規則も 1 つで済む。
  *
  * ## 0 件の側は描かない
  *
@@ -51,9 +51,7 @@ export const MyDishStatusCountBadges = memo(function MyDishStatusCountBadges({
 								borderColor: MY_DISH_STATUS_COLORS[status].border,
 							},
 						]}>
-						{counts[status] > 1 ? (
-							<Text style={[textStyle, { color: MY_DISH_STATUS_COLORS[status].on }]}>{counts[status]}</Text>
-						) : null}
+						<Text style={[textStyle, { color: MY_DISH_STATUS_COLORS[status].on }]}>{counts[status]}</Text>
 					</View>
 				) : null,
 			)}
@@ -67,7 +65,7 @@ const styles = StyleSheet.create({
 		gap: 3,
 		alignItems: "center",
 	},
-	// 数字が無いときは «丸» に、あるときは数字を包む横長の錠剤になる（minWidth = 高さ）
+	// 1 桁なら丸、2 桁以上は数字を包む横長の錠剤になる（minWidth = 高さ）
 	badgeSm: {
 		minWidth: 14,
 		height: 14,

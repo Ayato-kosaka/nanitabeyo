@@ -15,6 +15,7 @@ import { useLocale } from "@/hooks/useLocale";
 import type { QueryMeLikedDishMediaResponse } from "@shared/api/v1/res";
 import type { QueryMeLikedDishMediaDto } from "@shared/api/v1/dto";
 import { shallow } from "zustand/shallow";
+import { FixedColors } from "@/constants/Palette";
 
 export const profileLikesEntriesKey = "profileLikes" as const;
 
@@ -198,7 +199,8 @@ const styles = StyleSheet.create({
 	},
 	likeCardRatingText: {
 		fontSize: 12,
-		color: "#FFFFFF",
+		// 料理写真のサムネイルの上に載る文字なのでテーマで振らない
+		color: FixedColors.onMedia,
 		fontWeight: "500",
 		textShadowColor: "rgba(0, 0, 0, 0.5)",
 		textShadowOffset: { width: 0, height: 1 },

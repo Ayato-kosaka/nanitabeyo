@@ -577,7 +577,8 @@
 		},
 		"actions": {
 			"selectDishCategory": "Sélectionner la catégorie du plat",
-			"writeReviewForThisDish": "Enregistrer comme goûté"
+			"writeReviewForThisDish": "Enregistrer comme goûté",
+			"useTypedDishCategory": "Utiliser « {{name}} »"
 		},
 		"inputs": {
 			"price": "Prix",
@@ -594,14 +595,16 @@
 			"enterBidAmount": "Entrez le montant de l'enchère",
 			"enterDishCategory": "Entrez la catégorie de plat (ex: Crêpe, Ratatouille)",
 			"searchRestaurantsForReview": "Rechercher par nom ou zone",
-			"searchAreaForReview": "Rechercher par zone"
+			"searchAreaForReview": "Rechercher par zone",
+			"searchDishCategory": "Rechercher par nom de plat"
 		},
 		"labels": {
 			"endDate": "Date de fin:",
 			"paymentProcessing": "Traitement du paiement...",
 			"restaurant": "Restaurant",
 			"dishCategory": "Catégorie de plat",
-			"dishesAtThisRestaurant": "Plats de ce restaurant"
+			"dishesAtThisRestaurant": "Plats de ce restaurant",
+			"noDishesAtThisRestaurant": "Aucun plat enregistré ici. Saisissez un nom de plat."
 		},
 		"tabs": {
 			"reviews": "Avis"

@@ -7,6 +7,7 @@
 3. 地図の帯タイルが `pin.counts` をそのまま出すこと（この表示のために API を増やさない）
 */
 import React from "react";
+import { Text } from "react-native";
 import TestRenderer from "react-test-renderer";
 
 jest.mock("@/lib/i18n", () => ({ __esModule: true, default: { t: (key: string) => key } }));
@@ -89,5 +90,23 @@ describe("#1375 食べたい=緑 / 食べた=赤 の内訳表示", () => {
 		expect(countOf(tree, "my-dishes-map-tile-count-eaten")).toBe(1);
 		// 見出しは «レストランの件数»（ピン数）
 		expect(tree.root.findAllByProps({ testID: "my-dishes-map-sheet-legend" }).length).toBeGreaterThan(0);
+	});
+
+	/**
+	 * #1375（6 巡目・オーナー指示）**1 件でも数字を出す。**
+	 *
+	 * 5 巡目では «1 件なら点だけ» にしていたが、実機で見て «1 と書いてほしい» と指示された。
+	 * 点だけだと «1 件なのか、単なる色の印なのか» が読み取れないため。
+	 */
+	it("件数が 1 でも «1» と表示する（点だけにしない）", () => {
+		const tree = render(<MyDishesMapSheet pins={[pin("1 件ずつ", 1, 1)]} onSelectPin={jest.fn()} />);
+		const textOf = (testID: string) =>
+			tree.root
+				.findAllByProps({ testID })
+				.flatMap((node) => node.findAllByType(Text))
+				.map((node) => node.props.children)
+				.filter((child) => child !== undefined && child !== null);
+		expect(textOf("my-dishes-map-tile-count-want")).toContain(1);
+		expect(textOf("my-dishes-map-tile-count-eaten")).toContain(1);
 	});
 });

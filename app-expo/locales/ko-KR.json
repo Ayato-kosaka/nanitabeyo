@@ -577,7 +577,8 @@
 		},
 		"actions": {
 			"selectDishCategory": "요리 카테고리 선택",
-			"writeReviewForThisDish": "먹었어요로 기록"
+			"writeReviewForThisDish": "먹었어요로 기록",
+			"useTypedDishCategory": "“{{name}}”(으)로 결정"
 		},
 		"inputs": {
 			"price": "가격",
@@ -594,14 +595,16 @@
 			"enterBidAmount": "입찰 금액 입력",
 			"enterDishCategory": "요리 카테고리 입력 (예: 비빔밥, 불고기)",
 			"searchRestaurantsForReview": "이름이나 지역으로 검색",
-			"searchAreaForReview": "지역으로 검색"
+			"searchAreaForReview": "지역으로 검색",
+			"searchDishCategory": "요리 이름으로 검색"
 		},
 		"labels": {
 			"endDate": "종료일:",
 			"paymentProcessing": "결제 처리 중...",
 			"restaurant": "레스토랑",
 			"dishCategory": "요리 카테고리",
-			"dishesAtThisRestaurant": "이 가게의 요리"
+			"dishesAtThisRestaurant": "이 가게의 요리",
+			"noDishesAtThisRestaurant": "이 가게에는 아직 기록이 없습니다. 요리 이름을 입력하세요."
 		},
 		"tabs": {
 			"reviews": "리뷰"

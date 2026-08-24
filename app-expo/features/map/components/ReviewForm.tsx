@@ -16,6 +16,8 @@ import { Star, ChevronRight, Utensils, CircleDollarSign, ThumbsUp, ImagePlus, Ca
 import { Card } from "@/components/Card";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { PrimaryButton } from "@/components/PrimaryButton";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 import i18n from "@/lib/i18n";
 import { SupabaseRestaurants } from "@shared/converters/convert_restaurants";
 import { InitialMediaPreview } from "./InitialMediaPreview";
@@ -42,6 +44,7 @@ import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { Dimensions } from "react-native";
 import { MediaData, selectMedia } from "@/lib/mediaSelection";
 import { ExistingDishMediaPicker } from "./ExistingDishMediaPicker";
+import { DishCategoryStep } from "./DishCategoryStep";
 import { Image } from "expo-image";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { useProfileStore } from "@/features/profile/stores/useProfileStore";
@@ -115,6 +118,8 @@ export function ReviewForm({
 	mediaPickerMode = "auto",
 	onSuccess,
 }: ReviewFormProps) {
+	const styles = useThemedStyles(createStyles);
+	const { colors } = useAppTheme();
 	const { lightImpact, mediumImpact } = useHaptics();
 	const insets = useSafeAreaInsets();
 	const { logFrontendEvent } = useLogger();
@@ -246,6 +251,18 @@ export function ReviewForm({
 	const [dishCategoryName, setDishCategoryName] = useState(prefilledMedia?.dish.name ?? "");
 	const [dishCategoryId, setDishCategoryId] = useState<string | null>(prefilledMedia?.dish.category_id ?? null);
 	const [dishCategoryError, setDishCategoryError] = useState<string | null>(null);
+
+	/*
+	#1375（6 巡目・オーナー指示）**記録フローは «料理カテゴリー → 写真» の順にする。**
+
+	先に料理が決まっていれば «この店の、その料理の写真» を選ばせられる。
+	逆順（5 巡目まで）だと、どの料理か分からないまま写真を探すことになっていた。
+
+	この段階分けは記録フロー（`mediaPickerMode === "manual"`）だけに効かせる。
+	店舗フィードからの記録（`prefilledMedia` あり）は料理が既に決まっているし、
+	検索動線（auto）は従来どおり写真ありきで始まる。
+	*/
+	const needsDishCategoryFirst = mediaPickerMode === "manual" && !prefilledMedia && !dishCategoryId;
 
 	// Internal state - isolated from parent re-renders
 	const [isProcessing, setIsProcessing] = useState(false);
@@ -671,6 +688,25 @@ export function ReviewForm({
 		[createDishCategoryVariant],
 	);
 
+	/*
+	#1375（6 巡目）記録フローの 1 歩目（DishCategoryStep）から来る 2 つの確定口。
+	既存の «別画面へ push して戻り値を受け取る» 経路（下の useEffect）はそのまま残す
+	— 店舗フィードからの記録や、決めた後に押し直したときはそちらを使う。
+	*/
+	const handleSelectDishCategoryInline = useCallback((category: { dishCategoryId: string; label: string }) => {
+		setDishCategoryId(category.dishCategoryId);
+		setDishCategoryName(category.label);
+		setDishCategoryError(null);
+	}, []);
+
+	const handleCreateDishCategoryFromName = useCallback(
+		(name: string) => {
+			setDishCategoryError(null);
+			void applyTypedDishCategory(name);
+		},
+		[applyTypedDishCategory],
+	);
+
 	/**
 	 * #1386 料理カテゴリ選択画面の «戻り値» を受け取る。
 	 *
@@ -989,246 +1025,270 @@ export function ReviewForm({
 				    «写真を撮る / ライブラリ / このお店の写真から選ぶ / スキップ» を積むと
 				    `mediaHeight` に収まらず、上の見出しと下のスキップが切れた（撮って気づいた）。
 				    auto では従来どおり «プレビュー 1 枚» なので固定のままでよい */}
-				<View style={showsManualMediaChooser ? { marginTop: 16 } : { height: mediaHeight, marginTop: 16 }}>
-					{mediaState.status === "loading" ? (
-						<View style={styles.loadingContainer}>
-							<LoadingIndicator size="large" />
-							<Text style={styles.loadingText}>{i18n.t("Map.media.loadingMedia")}</Text>
-						</View>
-					) : mediaState.status === "none" ? (
-						/**
-						 * #1398 B3 【設計】写真なしのプレビュー枠。
-						 *
-						 * タップで `handleRetry`（= マウント時と同じ `runMediaSelection`）を起動して
-						 * ピッカーを開き直せる。つまり `none` は行き止まりではなく、いつでも `success` へ戻れる。
-						 * サブラベルは「写真なしが機能欠落ではなく仕様である」ことを示すために置く（設計 §4-1）。
-						 */
-						/**
-						 * #1375 4 巡目: 「ライブラリから選ぶのか、その場で撮るのか」の導線を明示する。
-						 * placeholder 全体タップ = ライブラリ（従来挙動・テスト互換）に加え、
-						 * カメラ起動のボタンを並べる。写真なしでも記録できる旨は従来どおり言う
-						 */
-						/**
-						 * #1375 実機確認（5 巡目）: 並びをオーナー指定の順にした。
-						 * **上に «自分で撮影して追加»（主）→ ライブラリ → 小さくスキップ**。
-						 * 4 巡目までは «写真を追加» の見出しの下に 2 択が並び、スキップに当たる
-						 * «写真なしでも記録できます» はただの説明文で押せなかった。
-						 * 「スキップ」は押せる必要がある（写真なしで記録する、が 1 タップで済むように）。
-						 *
-						 * ⚠️ placeholder 全体タップ = ライブラリ、は従来挙動なので変えない
-						 * （既存テストと実機の指の記憶の両方が乗っている）
-						 */
-						<Pressable
-							testID="review-add-photo-placeholder"
-							style={styles.noMediaPlaceholder}
-							onPress={handleRetry}
-							accessibilityRole="button"
-							accessibilityLabel={i18n.t("MyDishes.record.noPhotoTitle")}>
-							<ImagePlus size={28} color="#9CA3AF" style={styles.noMediaIcon} />
-							<Text style={styles.noMediaTitle} numberOfLines={1}>
-								{i18n.t("MyDishes.record.noPhotoTitle")}
+				{/* 1 歩目: 料理カテゴリー。決まるまで写真も他の入力も出さない（DishCategoryStep のヘッダ参照） */}
+				{needsDishCategoryFirst ? (
+					<View style={styles.dishCategoryStepContainer}>
+						<DishCategoryStep
+							restaurantId={restaurant.id}
+							onSelectExisting={handleSelectDishCategoryInline}
+							onSubmitTyped={handleCreateDishCategoryFromName}
+							testID="review-dish-category-step"
+						/>
+						{dishCategoryError && (
+							<Text style={styles.errorText} accessibilityLiveRegion="polite">
+								{dishCategoryError}
 							</Text>
-							<View style={styles.mediaSourceColumn}>
-								<TouchableOpacity
-									testID="review-shoot-with-camera"
-									style={[styles.mediaSourceButton, styles.mediaSourceButtonPrimary]}
-									onPress={handleShootWithCamera}
-									accessibilityRole="button">
-									<Camera size={16} color="#FFFFFF" />
-									<Text style={[styles.mediaSourceLabel, styles.mediaSourceLabelPrimary]}>
-										{i18n.t("Map.media.shootWithCamera")}
-									</Text>
-								</TouchableOpacity>
-								<TouchableOpacity
-									testID="review-pick-from-library"
-									style={styles.mediaSourceButton}
+						)}
+					</View>
+				) : (
+					<>
+						<View style={showsManualMediaChooser ? { marginTop: 16 } : { height: mediaHeight, marginTop: 16 }}>
+							{mediaState.status === "loading" ? (
+								<View style={styles.loadingContainer}>
+									<LoadingIndicator size="large" />
+									<Text style={styles.loadingText}>{i18n.t("Map.media.loadingMedia")}</Text>
+								</View>
+							) : mediaState.status === "none" ? (
+								/**
+								 * #1398 B3 【設計】写真なしのプレビュー枠。
+								 *
+								 * タップで `handleRetry`（= マウント時と同じ `runMediaSelection`）を起動して
+								 * ピッカーを開き直せる。つまり `none` は行き止まりではなく、いつでも `success` へ戻れる。
+								 * サブラベルは「写真なしが機能欠落ではなく仕様である」ことを示すために置く（設計 §4-1）。
+								 */
+								/**
+								 * #1375 4 巡目: 「ライブラリから選ぶのか、その場で撮るのか」の導線を明示する。
+								 * placeholder 全体タップ = ライブラリ（従来挙動・テスト互換）に加え、
+								 * カメラ起動のボタンを並べる。写真なしでも記録できる旨は従来どおり言う
+								 */
+								/**
+								 * #1375 実機確認（5 巡目）: 並びをオーナー指定の順にした。
+								 * **上に «自分で撮影して追加»（主）→ ライブラリ → 小さくスキップ**。
+								 * 4 巡目までは «写真を追加» の見出しの下に 2 択が並び、スキップに当たる
+								 * «写真なしでも記録できます» はただの説明文で押せなかった。
+								 * 「スキップ」は押せる必要がある（写真なしで記録する、が 1 タップで済むように）。
+								 *
+								 * ⚠️ placeholder 全体タップ = ライブラリ、は従来挙動なので変えない
+								 * （既存テストと実機の指の記憶の両方が乗っている）
+								 */
+								<Pressable
+									testID="review-add-photo-placeholder"
+									style={styles.noMediaPlaceholder}
 									onPress={handleRetry}
-									accessibilityRole="button">
-									<ImagePlus size={16} color="#374151" />
-									<Text style={styles.mediaSourceLabel}>{i18n.t("Map.media.pickFromLibrary")}</Text>
-								</TouchableOpacity>
-							</View>
-							{/* #1375（5 巡目）「その下に既存のディッシュメディアから選べるように」。
+									accessibilityRole="button"
+									accessibilityLabel={i18n.t("MyDishes.record.noPhotoTitle")}>
+									<ImagePlus size={28} color={colors.textTertiary} style={styles.noMediaIcon} />
+									<Text style={styles.noMediaTitle} numberOfLines={1}>
+										{i18n.t("MyDishes.record.noPhotoTitle")}
+									</Text>
+									<View style={styles.mediaSourceColumn}>
+										<TouchableOpacity
+											testID="review-shoot-with-camera"
+											style={[styles.mediaSourceButton, styles.mediaSourceButtonPrimary]}
+											onPress={handleShootWithCamera}
+											accessibilityRole="button">
+											<Camera size={16} color={colors.ctaLabel} />
+											<Text style={[styles.mediaSourceLabel, styles.mediaSourceLabelPrimary]}>
+												{i18n.t("Map.media.shootWithCamera")}
+											</Text>
+										</TouchableOpacity>
+										<TouchableOpacity
+											testID="review-pick-from-library"
+											style={styles.mediaSourceButton}
+											onPress={handleRetry}
+											accessibilityRole="button">
+											<ImagePlus size={16} color={colors.textSecondaryStrong} />
+											<Text style={styles.mediaSourceLabel}>{i18n.t("Map.media.pickFromLibrary")}</Text>
+										</TouchableOpacity>
+									</View>
+									{/* #1375（5 巡目）「その下に既存のディッシュメディアから選べるように」。
 							    親から prefilledMedia が来ている画面（店舗フィードからの記録）では出さない
 							    — そちらは «そのメディアの記録» と決まっているため */}
-							{mediaPickerMode === "manual" && !prefilledMedia && (
-								<ExistingDishMediaPicker restaurantId={restaurant.id} onSelect={setPickedExistingMedia} />
-							)}
-							{/* スキップ。**小さく**（主導線ではないが、押せる必要がある） */}
-							{allowNoMedia && (
-								<TouchableOpacity
-									testID="review-skip-photo"
-									style={styles.skipPhotoButton}
-									onPress={handleSkipPhoto}
-									accessibilityRole="button"
-									accessibilityLabel={i18n.t("MyDishes.record.skipPhoto")}>
-									<Text style={styles.skipPhotoLabel}>{i18n.t("MyDishes.record.skipPhoto")}</Text>
-								</TouchableOpacity>
-							)}
-						</Pressable>
-					) : (
-						<View style={styles.previewWrap}>
-							<InitialMediaPreview media={mediaState.media} />
-							{/* #1375 実機確認（2 巡目）: 食べたを記録（prefilledMedia モード）でも
+									{mediaPickerMode === "manual" && !prefilledMedia && (
+										/* #1375（6 巡目）先に決まった料理カテゴリーで絞る。
+								   «その料理の、この店の写真» だけが出る（決まっていなければ店全体） */
+										<ExistingDishMediaPicker
+											restaurantId={restaurant.id}
+											dishCategoryId={dishCategoryId}
+											onSelect={setPickedExistingMedia}
+										/>
+									)}
+									{/* スキップ。**小さく**（主導線ではないが、押せる必要がある） */}
+									{allowNoMedia && (
+										<TouchableOpacity
+											testID="review-skip-photo"
+											style={styles.skipPhotoButton}
+											onPress={handleSkipPhoto}
+											accessibilityRole="button"
+											accessibilityLabel={i18n.t("MyDishes.record.skipPhoto")}>
+											<Text style={styles.skipPhotoLabel}>{i18n.t("MyDishes.record.skipPhoto")}</Text>
+										</TouchableOpacity>
+									)}
+								</Pressable>
+							) : (
+								<View style={styles.previewWrap}>
+									<InitialMediaPreview media={mediaState.media} />
+									{/* #1375 実機確認（2 巡目）: 食べたを記録（prefilledMedia モード）でも
 							    自分で撮った写真に差し替えられる入口を出す */}
-							{effectivePrefilledMedia !== undefined && (
-								<TouchableOpacity
-									testID="review-replace-with-my-photo"
-									style={styles.replacePhotoButton}
-									onPress={() => {
-										lightImpact();
-										setUseOwnMedia(true);
-									}}
-									accessibilityRole="button"
-									accessibilityLabel={i18n.t("Map.media.replaceWithMyPhoto")}>
-									<ImagePlus size={14} color="#FFFFFF" />
-									<Text style={styles.replacePhotoLabel}>{i18n.t("Map.media.replaceWithMyPhoto")}</Text>
-								</TouchableOpacity>
+									{effectivePrefilledMedia !== undefined && (
+										<TouchableOpacity
+											testID="review-replace-with-my-photo"
+											style={styles.replacePhotoButton}
+											onPress={() => {
+												lightImpact();
+												setUseOwnMedia(true);
+											}}
+											accessibilityRole="button"
+											accessibilityLabel={i18n.t("Map.media.replaceWithMyPhoto")}>
+											{/* メディアプレビューの上に載る半透明暗地のボタンなので、テーマに依らず白で固定する */}
+											<ImagePlus size={14} color={FixedColors.onMedia} />
+											<Text style={styles.replacePhotoLabel}>{i18n.t("Map.media.replaceWithMyPhoto")}</Text>
+										</TouchableOpacity>
+									)}
+								</View>
 							)}
 						</View>
-					)}
-				</View>
-				<View style={styles.formContainer}>
-					{/* 
+						<View style={styles.formContainer}>
+							{/* 
 					#644 【設計】レビュー入力フィールド仕様
 					- 既存メディアに対するテキストレビュー追加モード
 					- 短文 placeholder（豚骨スープが...）を使用
 					- 100文字制限を適用
 					- 文字数カウンタを表示
 				*/}
-					<View>
-						<TextInput
-							testID="review-comment-input"
-							style={[styles.textInput, styles.textArea]}
-							placeholderTextColor="#A0A0A0"
-							placeholder={i18n.t("Map.placeholders.enterReviewShort")}
-							value={reviewText}
-							onChangeText={setReviewText}
-							multiline
-							numberOfLines={4}
-							textAlignVertical="top"
-							maxLength={100}
-						/>
-						<Text style={styles.characterCount}>
-							{i18n.t("Restaurant.characterCount", { current: reviewText.length, max: 100 })}
-						</Text>
-					</View>
+							<View>
+								<TextInput
+									testID="review-comment-input"
+									style={[styles.textInput, styles.textArea]}
+									placeholderTextColor={colors.textPlaceholder}
+									placeholder={i18n.t("Map.placeholders.enterReviewShort")}
+									value={reviewText}
+									onChangeText={setReviewText}
+									multiline
+									numberOfLines={4}
+									textAlignVertical="top"
+									maxLength={100}
+								/>
+								<Text style={styles.characterCount}>
+									{i18n.t("Restaurant.characterCount", { current: reviewText.length, max: 100 })}
+								</Text>
+							</View>
 
-					{/* 料理カテゴリ選択 Pressable 行 */}
-					<Pressable
-						testID="review-dish-category-row"
-						style={styles.dishCategorySelectRow}
-						onPress={handleOpenDishCategory}
-						// #400 prefilledMedia のときは料理カテゴリ選択を無効化（そのメディアの料理に固定される）。
-						// #1375（5 巡目）既存メディアを «選んだ» ときも同じ（activePrefilledMedia に入る）
-						disabled={!!activePrefilledMedia}
-						accessibilityRole="button"
-						accessibilityLabel={i18n.t("Map.actions.selectDishCategory")}>
-						{/* #644 【UX】料理カテゴリラベルにアイコン追加 + prefilledMedia 時は「料理カテゴリ」に変更 */}
-						<View style={styles.inputRowLabelWithIcon}>
-							<Utensils size={18} color="#6B7280" />
-							<Text style={styles.inputRowLabel}>
-								{prefilledMedia ? i18n.t("Map.labels.dishCategory") : i18n.t("Map.actions.selectDishCategory")}
-							</Text>
-						</View>
-						<View style={styles.dishCategorySelectContent}>
-							{dishCategoryName && (
-								<Text style={styles.dishCategoryValueText} numberOfLines={1} ellipsizeMode="tail">
-									{dishCategoryName}
+							{/* 料理カテゴリ選択 Pressable 行 */}
+							<Pressable
+								testID="review-dish-category-row"
+								style={styles.dishCategorySelectRow}
+								onPress={handleOpenDishCategory}
+								// #400 prefilledMedia のときは料理カテゴリ選択を無効化（そのメディアの料理に固定される）。
+								// #1375（5 巡目）既存メディアを «選んだ» ときも同じ（activePrefilledMedia に入る）
+								disabled={!!activePrefilledMedia}
+								accessibilityRole="button"
+								accessibilityLabel={i18n.t("Map.actions.selectDishCategory")}>
+								{/* #644 【UX】料理カテゴリラベルにアイコン追加 + prefilledMedia 時は「料理カテゴリ」に変更 */}
+								<View style={styles.inputRowLabelWithIcon}>
+									<Utensils size={18} color={colors.textSecondary} />
+									<Text style={styles.inputRowLabel}>
+										{prefilledMedia ? i18n.t("Map.labels.dishCategory") : i18n.t("Map.actions.selectDishCategory")}
+									</Text>
+								</View>
+								<View style={styles.dishCategorySelectContent}>
+									{dishCategoryName && (
+										<Text style={styles.dishCategoryValueText} numberOfLines={1} ellipsizeMode="tail">
+											{dishCategoryName}
+										</Text>
+									)}
+									{!prefilledMedia && <ChevronRight size={20} color={colors.textMuted} />}
+								</View>
+							</Pressable>
+							{dishCategoryError && (
+								<Text style={styles.errorText} accessibilityLiveRegion="polite">
+									{dishCategoryError}
 								</Text>
 							)}
-							{!prefilledMedia && <ChevronRight size={20} color="#666" />}
-						</View>
-					</Pressable>
-					{dishCategoryError && (
-						<Text style={styles.errorText} accessibilityLiveRegion="polite">
-							{dishCategoryError}
-						</Text>
-					)}
 
-					{/* 価格入力 行 */}
-					<View style={styles.priceInputRow}>
-						{/* #644 【UX】価格ラベルにアイコン追加 */}
-						<View style={styles.inputRowLabelWithIcon}>
-							<CircleDollarSign size={18} color="#6B7280" />
-							<Text style={styles.inputRowLabel}>{i18n.t("Map.placeholders.enterPrice")}</Text>
-						</View>
-						{currencySymbol ? (
-							<View style={styles.priceInputContainer}>
-								<Text style={styles.currencySymbol}>{currencySymbol}</Text>
-								<TextInput
-									testID="review-price-input"
-									style={[styles.textInput, styles.priceInput]}
-									placeholder={"0"}
-									placeholderTextColor="#A0A0A0"
-									value={price}
-									onChangeText={setPrice}
-									keyboardType="numeric"
-								/>
+							{/* 価格入力 行 */}
+							<View style={styles.priceInputRow}>
+								{/* #644 【UX】価格ラベルにアイコン追加 */}
+								<View style={styles.inputRowLabelWithIcon}>
+									<CircleDollarSign size={18} color={colors.textSecondary} />
+									<Text style={styles.inputRowLabel}>{i18n.t("Map.placeholders.enterPrice")}</Text>
+								</View>
+								{currencySymbol ? (
+									<View style={styles.priceInputContainer}>
+										<Text style={styles.currencySymbol}>{currencySymbol}</Text>
+										<TextInput
+											testID="review-price-input"
+											style={[styles.textInput, styles.priceInput]}
+											placeholder={"0"}
+											placeholderTextColor={colors.textPlaceholder}
+											value={price}
+											onChangeText={setPrice}
+											keyboardType="numeric"
+										/>
+									</View>
+								) : (
+									<TextInput
+										testID="review-price-input"
+										style={[styles.textInput, styles.priceInputSmall]}
+										placeholder={"0"}
+										placeholderTextColor={colors.textPlaceholder}
+										value={price}
+										onChangeText={setPrice}
+										keyboardType="numeric"
+									/>
+								)}
 							</View>
-						) : (
-							<TextInput
-								testID="review-price-input"
-								style={[styles.textInput, styles.priceInputSmall]}
-								placeholder={"0"}
-								placeholderTextColor="#A0A0A0"
-								value={price}
-								onChangeText={setPrice}
-								keyboardType="numeric"
-							/>
-						)}
-					</View>
 
-					{/* 評価入力 行 */}
-					<View style={styles.ratingInputRow}>
-						{/* #644 【UX】オススメ度ラベルにアイコン追加 */}
-						<View style={styles.inputRowLabelWithIcon}>
-							<ThumbsUp size={18} color="#6B7280" />
-							<Text style={styles.inputRowLabel}>{i18n.t("Map.placeholders.enterReview")}</Text>
-						</View>
-						{/* 星評価コンポーネント */}
-						<View style={styles.ratingContainer}>
-							<View style={styles.ratingInput}>
-								{[1, 2, 3, 4, 5].map((star) => {
-									// #644 【UX】未選択時の星アイコン外枠を灰色に変更
-									const isActive = star <= rating;
-									return (
-										<TouchableOpacity key={star} testID={`review-star-${star}`} onPress={() => setRating(star)}>
-											<Star
-												size={36}
-												color={isActive ? "#FFD700" : "#D1D5DB"}
-												fill={isActive ? "#FFD700" : "transparent"}
-											/>
-										</TouchableOpacity>
-									);
-								})}
+							{/* 評価入力 行 */}
+							<View style={styles.ratingInputRow}>
+								{/* #644 【UX】オススメ度ラベルにアイコン追加 */}
+								<View style={styles.inputRowLabelWithIcon}>
+									<ThumbsUp size={18} color={colors.textSecondary} />
+									<Text style={styles.inputRowLabel}>{i18n.t("Map.placeholders.enterReview")}</Text>
+								</View>
+								{/* 星評価コンポーネント */}
+								<View style={styles.ratingContainer}>
+									<View style={styles.ratingInput}>
+										{[1, 2, 3, 4, 5].map((star) => {
+											// #644 【UX】未選択時の星アイコン外枠を灰色に変更
+											const isActive = star <= rating;
+											return (
+												<TouchableOpacity key={star} testID={`review-star-${star}`} onPress={() => setRating(star)}>
+													<Star
+														size={36}
+														color={isActive ? FixedColors.ratingActive : colors.trackMuted}
+														fill={isActive ? FixedColors.ratingActive : "transparent"}
+													/>
+												</TouchableOpacity>
+											);
+										})}
+									</View>
+									<Text style={styles.ratingText} accessibilityLiveRegion="polite">
+										{rating}
+									</Text>
+								</View>
 							</View>
-							<Text style={styles.ratingText} accessibilityLiveRegion="polite">
-								{rating}
+
+							{/* 同意メッセージ */}
+							<Text style={styles.consentText}>
+								{i18n.t("Map.consent_review_prefix")}
+								<Text
+									testID="review-consent-guidelines-link"
+									style={styles.consentLink}
+									onPress={() => handleOpenLegalDocument("guidelines")}>
+									{i18n.t("Map.consent_review_guidelines")}
+								</Text>
+								{i18n.t("Map.consent_review_and")}
+								<Text
+									testID="review-consent-copyright-link"
+									style={styles.consentLink}
+									onPress={() => handleOpenLegalDocument("copyright")}>
+									{i18n.t("Map.consent_review_copyright")}
+								</Text>
+								{i18n.t("Map.consent_review_suffix")}
 							</Text>
-						</View>
-					</View>
 
-					{/* 同意メッセージ */}
-					<Text style={styles.consentText}>
-						{i18n.t("Map.consent_review_prefix")}
-						<Text
-							testID="review-consent-guidelines-link"
-							style={styles.consentLink}
-							onPress={() => handleOpenLegalDocument("guidelines")}>
-							{i18n.t("Map.consent_review_guidelines")}
-						</Text>
-						{i18n.t("Map.consent_review_and")}
-						<Text
-							testID="review-consent-copyright-link"
-							style={styles.consentLink}
-							onPress={() => handleOpenLegalDocument("copyright")}>
-							{i18n.t("Map.consent_review_copyright")}
-						</Text>
-						{i18n.t("Map.consent_review_suffix")}
-					</Text>
-
-					{/*
+							{/*
 						#1398 R4 【設計】記録は「非公開の食事ログ」に見えやすいが、実際は公開レビューであり
 						店舗の平均評価にも載る（#1375 追補 決定1）。誤解を招く UI のまま出さないため、同意文言の
 						直下に 1 行足す。
@@ -1237,10 +1297,12 @@ export function ReviewForm({
 						リーダー判断の R4 は描画画面を限定していない。`review-from-media` 経路（prefilledMedia）
 						も同じく公開レビューになるので常時表示へ変更した。
 					*/}
-					<Text testID="review-public-notice" style={styles.publicNoticeText}>
-						{i18n.t("MyDishes.record.publicReviewNotice")}
-					</Text>
-				</View>
+							<Text testID="review-public-notice" style={styles.publicNoticeText}>
+								{i18n.t("MyDishes.record.publicReviewNotice")}
+							</Text>
+						</View>
+					</>
+				)}
 			</ScrollView>
 
 			{/* 投稿ボタン */}
@@ -1257,7 +1319,7 @@ export function ReviewForm({
 						disabled={isProcessing || !isValid}
 						// #1375（5 巡目・デザインレビュー #4）無効時は透過ではなく灰へ。
 						// 赤に透過を掛けると白文字が読めなくなる（参照実装の検索画面と同じ手）
-						colors={isProcessing || !isValid ? ["#999999", "#999999"] : undefined}
+						colors={isProcessing || !isValid ? [colors.ctaBackgroundDisabled, colors.ctaBackgroundDisabled] : undefined}
 						shadowColor="transparent"
 						style={{ marginHorizontal: 16 }}
 					/>
@@ -1267,338 +1329,349 @@ export function ReviewForm({
 	);
 }
 
-const styles = StyleSheet.create({
-	centeredContainer: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-		paddingHorizontal: 24,
-		minHeight: 400,
-	},
-	loadingContainer: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-	},
-	loadingText: {
-		marginTop: 16,
-		fontSize: 16,
-		color: "#666",
-	},
-	errorCard: {
-		padding: 24,
-		width: "100%",
-	},
-	errorTitle: {
-		fontSize: 20,
-		fontWeight: "700",
-		color: "#1A1A1A",
-		marginBottom: 12,
-		textAlign: "center",
-	},
-	errorMessage: {
-		fontSize: 16,
-		color: "#6B7280",
-		lineHeight: 24,
-		marginBottom: 24,
-		textAlign: "center",
-	},
-	errorButtons: {
-		flexDirection: "row",
-		gap: 12,
-	},
-	primaryButton: {
-		flex: 1,
-		backgroundColor: "#F05537",
-		paddingVertical: 14,
-		borderRadius: 12,
-		alignItems: "center",
-	},
-	primaryButtonText: {
-		fontSize: 16,
-		fontWeight: "600",
-		color: "#FFFFFF",
-	},
-	secondaryButton: {
-		flex: 1,
-		backgroundColor: "#F3F4F6",
-		paddingVertical: 14,
-		borderRadius: 12,
-		alignItems: "center",
-	},
-	secondaryButtonText: {
-		fontSize: 16,
-		fontWeight: "600",
-		color: "#6B7280",
-	},
-	inputLabel: {
-		fontSize: 16,
-		fontWeight: "600",
-		color: "#000",
-		marginBottom: 8,
-	},
-	container: {
-		flex: 1,
-		backgroundColor: "#FFFFFF",
-	},
-	// #644 【UX】KeyboardAvoidingView でキーボード表示時の位置調整
-	keyboardAvoidingView: {
-		flex: 1,
-	},
-	scrollContent: {
-		paddingBottom: 64,
-	},
-	formContainer: {
-		paddingHorizontal: 16,
-		paddingTop: 16,
-		paddingBottom: 24,
-	},
-	textInput: {
-		borderRadius: 8,
-		paddingHorizontal: 12,
-		paddingVertical: 12,
-		fontSize: 16,
-		color: "#000",
-	},
-	textArea: {
-		height: 100,
-		textAlignVertical: "top",
-		borderWidth: 1,
-		borderColor: "#D1D5DB",
-		marginBottom: 8,
-	},
-	dishCategorySelectRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		height: 48,
-		marginTop: 16,
-	},
-	dishCategorySelectContent: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 8,
-		marginRight: 12,
-		flexShrink: 1,
-	},
-	dishCategoryValueText: {
-		fontSize: 15,
-		color: "#000",
-		textAlign: "right",
-		maxWidth: 160,
-	},
-	priceInputRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		marginTop: 16,
-		height: 48,
-	},
-	// #1375（5 巡目・デザインレビュー #15）すぐ上のレビュー欄は枠があるのに、
-	// ここだけ枠が無く «押せる物» に見えなかった
-	priceInputContainer: {
-		borderWidth: 1,
-		borderColor: "#D1D5DB",
-		flexDirection: "row",
-		alignItems: "center",
-		borderRadius: 8,
-		minWidth: 120,
-		marginRight: 12,
-	},
-	inputRowLabel: {
-		fontSize: 15,
-		color: "#000",
-		flex: 1,
-	},
-	// #644 【UX】ラベルにアイコンを追加するための横並びコンテナ
-	inputRowLabelWithIcon: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 6,
-		flex: 1,
-	},
-	ratingInputRow: {
-		flexDirection: "column",
-		marginTop: 16,
-		marginBottom: 24,
-	},
-	ratingContainer: {
-		flexDirection: "row",
-		justifyContent: "space-between",
-		alignItems: "center",
-		borderBottomWidth: 1,
-		borderBottomColor: "#D1D5DB",
-		paddingBottom: 0,
-	},
-	ratingInput: {
-		flexDirection: "row",
-		alignItems: "center",
-		marginVertical: 8,
-		gap: 16,
-	},
-	ratingText: {
-		fontSize: 32,
-		color: "#000",
-		textAlign: "right",
-		marginRight: 12,
-	},
-	currencySymbol: {
-		fontSize: 16,
-		fontWeight: "600",
-		color: "#666",
-		minWidth: 24,
-		paddingLeft: 8,
-	},
-	priceInput: {
-		flex: 1,
-		paddingLeft: 4,
-		paddingRight: 12,
-		width: 80,
-		textAlign: "right",
-	},
-	priceInputSmall: {
-		minWidth: 120,
-		paddingHorizontal: 12,
-		paddingVertical: 8,
-		textAlign: "right",
-	},
-	errorText: {
-		color: "#DC2626",
-		fontSize: 12,
-		paddingHorizontal: 4,
-	},
-	consentText: {
-		fontSize: 12,
-		color: "#6B7280",
-		textAlign: "left",
-		lineHeight: 18,
-	},
-	consentLink: {
-		// #1375（5 巡目・デザインレビュー #3）パレットに無い青をやめ、下線でリンクと示す
-		color: "#111827",
-		textDecorationLine: "underline",
-	},
-	// #1398 R4 同意文言の直下に置く「公開レビューになる」告知
-	publicNoticeText: {
-		fontSize: 12,
-		color: "#6B7280",
-		textAlign: "left",
-		lineHeight: 18,
-		marginTop: 8,
-	},
-	// #1398 B3 写真なし（status: "none"）のプレビュー枠
-	// #1441 N-1 【レビュー対応】window 高 667pt（iPhone SE 等）では枠の高さが 81px しか無く、
-	// 旧サイズ（アイコン 40 + gap 8 + 16px タイトル + gap 8 + 13px ヒント ≒ 91px）だとはみ出していた。
-	// アイコンと余白を縮め、`flexShrink` も添えて小型端末でも収まるようにする
-	previewWrap: {
-		flex: 1,
-	},
-	replacePhotoButton: {
-		position: "absolute",
-		right: 8,
-		bottom: 8,
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 4,
-		paddingHorizontal: 10,
-		paddingVertical: 6,
-		borderRadius: 14,
-		backgroundColor: "rgba(17,24,39,0.7)",
-	},
-	replacePhotoLabel: {
-		fontSize: 11,
-		fontWeight: "700",
-		color: "#FFFFFF",
-	},
-	noMediaPlaceholder: {
-		flex: 1,
-		flexShrink: 1,
-		justifyContent: "center",
-		alignItems: "center",
-		gap: 4,
-		// 中身（見出し・ボタン・既存メディア・スキップ）が枠に接しないようにする。
-		// 以前は 0 で、manual のときスキップが破線の枠へ重なって見えた
-		paddingVertical: 14,
-		marginHorizontal: 16,
-		borderRadius: 12,
-		borderWidth: 1,
-		borderStyle: "dashed",
-		borderColor: "#D1D5DB",
-		backgroundColor: "#F9FAFB",
-	},
-	noMediaIcon: {
-		flexShrink: 1,
-	},
-	noMediaTitle: {
-		fontSize: 14,
-		fontWeight: "600",
-		color: "#374151",
-		flexShrink: 1,
-	},
-	noMediaHint: {
-		fontSize: 12,
-		color: "#6B7280",
-		flexShrink: 1,
-	},
-	// #1375 5 巡目: 縦に積む（上が «自分で撮影して追加» の主導線）。
-	// 4 巡目は横並びで «どちらが主か» が読めなかった
-	mediaSourceColumn: {
-		gap: 8,
-		marginTop: 12,
-		marginBottom: 4,
-		alignSelf: "stretch",
-		paddingHorizontal: 24,
-	},
-	mediaSourceButton: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "center",
-		gap: 6,
-		paddingHorizontal: 14,
-		paddingVertical: 10,
-		borderRadius: 12,
-		backgroundColor: "#F3F4F6",
-	},
-	// «自分で撮影して追加» はこの領域の主導線。濃灰で埋める
-	// （赤は画面に 1 つの主 CTA = «投稿する» に譲る。docs/design-guidelines.md §1）
-	mediaSourceButtonPrimary: {
-		backgroundColor: "#111827",
-	},
-	mediaSourceLabelPrimary: {
-		color: "#FFFFFF",
-	},
-	// スキップは «小さく»（オーナー指定）。押せるが主導線ではない
-	skipPhotoButton: {
-		marginTop: 4,
-		paddingHorizontal: 10,
-		paddingVertical: 6,
-	},
-	skipPhotoLabel: {
-		fontSize: 12,
-		fontWeight: "600",
-		color: "#6B7280",
-		textDecorationLine: "underline",
-	},
-	mediaSourceLabel: {
-		fontSize: 13,
-		fontWeight: "700",
-		color: "#374151",
-	},
-	characterCount: {
-		fontSize: 12,
-		color: "#6B7280",
-		textAlign: "right",
-		marginTop: 4,
-	},
-	// #1375 実機確認: Android のジェスチャーナビゲーションでは画面下端に system inset があり、
-	// この投稿ボタンがその下に潜って押せなかった。呼び出し側の 2 画面（review.tsx /
-	// review-from-media）はどちらも SafeAreaView を持たないので、下端の確保はここで行う。
-	// `paddingBottom` は描画時に `insets.bottom` を足して上書きする
-	buttonContainer: {
-		paddingTop: 12,
-		paddingBottom: 12,
-		borderTopWidth: 1,
-		borderTopColor: "#C9C9C9",
-		backgroundColor: "#FFFFFF",
-	},
-});
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		centeredContainer: {
+			flex: 1,
+			justifyContent: "center",
+			alignItems: "center",
+			paddingHorizontal: 24,
+			minHeight: 400,
+		},
+		loadingContainer: {
+			flex: 1,
+			justifyContent: "center",
+			alignItems: "center",
+		},
+		loadingText: {
+			marginTop: 16,
+			fontSize: 16,
+			color: c.textMuted,
+		},
+		errorCard: {
+			padding: 24,
+			width: "100%",
+		},
+		errorTitle: {
+			fontSize: 20,
+			fontWeight: "700",
+			color: c.textPrimary,
+			marginBottom: 12,
+			textAlign: "center",
+		},
+		errorMessage: {
+			fontSize: 16,
+			color: c.textSecondary,
+			lineHeight: 24,
+			marginBottom: 24,
+			textAlign: "center",
+		},
+		errorButtons: {
+			flexDirection: "row",
+			gap: 12,
+		},
+		primaryButton: {
+			flex: 1,
+			backgroundColor: c.brand,
+			paddingVertical: 14,
+			borderRadius: 12,
+			alignItems: "center",
+		},
+		primaryButtonText: {
+			fontSize: 16,
+			fontWeight: "600",
+			// ブランド色（ライト / ダークで同値）で塗った地の上の文字なので固定でよい
+			color: FixedColors.onFilled,
+		},
+		secondaryButton: {
+			flex: 1,
+			backgroundColor: c.surfaceSubtle,
+			paddingVertical: 14,
+			borderRadius: 12,
+			alignItems: "center",
+		},
+		secondaryButtonText: {
+			fontSize: 16,
+			fontWeight: "600",
+			color: c.textSecondary,
+		},
+		inputLabel: {
+			fontSize: 16,
+			fontWeight: "600",
+			color: c.textStrong,
+			marginBottom: 8,
+		},
+		container: {
+			flex: 1,
+			backgroundColor: c.surface,
+		},
+		// #644 【UX】KeyboardAvoidingView でキーボード表示時の位置調整
+		keyboardAvoidingView: {
+			flex: 1,
+		},
+		scrollContent: {
+			paddingBottom: 64,
+		},
+		formContainer: {
+			paddingHorizontal: 16,
+			paddingTop: 16,
+			paddingBottom: 24,
+		},
+		textInput: {
+			borderRadius: 8,
+			paddingHorizontal: 12,
+			paddingVertical: 12,
+			fontSize: 16,
+			color: c.textStrong,
+		},
+		textArea: {
+			height: 100,
+			textAlignVertical: "top",
+			borderWidth: 1,
+			borderColor: c.trackMuted,
+			marginBottom: 8,
+		},
+		dishCategorySelectRow: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+			height: 48,
+			marginTop: 16,
+		},
+		dishCategorySelectContent: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 8,
+			marginRight: 12,
+			flexShrink: 1,
+		},
+		dishCategoryValueText: {
+			fontSize: 15,
+			color: c.textStrong,
+			textAlign: "right",
+			maxWidth: 160,
+		},
+		priceInputRow: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+			marginTop: 16,
+			height: 48,
+		},
+		// #1375（5 巡目・デザインレビュー #15）すぐ上のレビュー欄は枠があるのに、
+		// ここだけ枠が無く «押せる物» に見えなかった
+		priceInputContainer: {
+			borderWidth: 1,
+			borderColor: c.trackMuted,
+			flexDirection: "row",
+			alignItems: "center",
+			borderRadius: 8,
+			minWidth: 120,
+			marginRight: 12,
+		},
+		inputRowLabel: {
+			fontSize: 15,
+			color: c.textStrong,
+			flex: 1,
+		},
+		// #644 【UX】ラベルにアイコンを追加するための横並びコンテナ
+		inputRowLabelWithIcon: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 6,
+			flex: 1,
+		},
+		ratingInputRow: {
+			flexDirection: "column",
+			marginTop: 16,
+			marginBottom: 24,
+		},
+		ratingContainer: {
+			flexDirection: "row",
+			justifyContent: "space-between",
+			alignItems: "center",
+			borderBottomWidth: 1,
+			borderBottomColor: c.trackMuted,
+			paddingBottom: 0,
+		},
+		ratingInput: {
+			flexDirection: "row",
+			alignItems: "center",
+			marginVertical: 8,
+			gap: 16,
+		},
+		ratingText: {
+			fontSize: 32,
+			color: c.textStrong,
+			textAlign: "right",
+			marginRight: 12,
+		},
+		currencySymbol: {
+			fontSize: 16,
+			fontWeight: "600",
+			color: c.textMuted,
+			minWidth: 24,
+			paddingLeft: 8,
+		},
+		priceInput: {
+			flex: 1,
+			paddingLeft: 4,
+			paddingRight: 12,
+			width: 80,
+			textAlign: "right",
+		},
+		priceInputSmall: {
+			minWidth: 120,
+			paddingHorizontal: 12,
+			paddingVertical: 8,
+			textAlign: "right",
+		},
+		errorText: {
+			color: c.danger,
+			fontSize: 12,
+			paddingHorizontal: 4,
+		},
+		consentText: {
+			fontSize: 12,
+			color: c.textSecondary,
+			textAlign: "left",
+			lineHeight: 18,
+		},
+		consentLink: {
+			// #1375（5 巡目・デザインレビュー #3）パレットに無い青をやめ、下線でリンクと示す
+			color: c.textPrimaryAlt,
+			textDecorationLine: "underline",
+		},
+		// #1398 R4 同意文言の直下に置く「公開レビューになる」告知
+		publicNoticeText: {
+			fontSize: 12,
+			color: c.textSecondary,
+			textAlign: "left",
+			lineHeight: 18,
+			marginTop: 8,
+		},
+		// #1398 B3 写真なし（status: "none"）のプレビュー枠
+		// #1441 N-1 【レビュー対応】window 高 667pt（iPhone SE 等）では枠の高さが 81px しか無く、
+		// 旧サイズ（アイコン 40 + gap 8 + 16px タイトル + gap 8 + 13px ヒント ≒ 91px）だとはみ出していた。
+		// アイコンと余白を縮め、`flexShrink` も添えて小型端末でも収まるようにする
+		previewWrap: {
+			flex: 1,
+		},
+		replacePhotoButton: {
+			position: "absolute",
+			right: 8,
+			bottom: 8,
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 4,
+			paddingHorizontal: 10,
+			paddingVertical: 6,
+			borderRadius: 14,
+			backgroundColor: "rgba(17,24,39,0.7)",
+		},
+		replacePhotoLabel: {
+			fontSize: 11,
+			fontWeight: "700",
+			// メディアプレビューの上に載る半透明暗地のボタンなので、テーマに依らず白で固定する
+			color: FixedColors.onMedia,
+		},
+		noMediaPlaceholder: {
+			flex: 1,
+			flexShrink: 1,
+			justifyContent: "center",
+			alignItems: "center",
+			gap: 4,
+			// 中身（見出し・ボタン・既存メディア・スキップ）が枠に接しないようにする。
+			// 以前は 0 で、manual のときスキップが破線の枠へ重なって見えた
+			paddingVertical: 14,
+			marginHorizontal: 16,
+			borderRadius: 12,
+			borderWidth: 1,
+			borderStyle: "dashed",
+			borderColor: c.trackMuted,
+			backgroundColor: c.surfaceFaint,
+		},
+		noMediaIcon: {
+			flexShrink: 1,
+		},
+		noMediaTitle: {
+			fontSize: 14,
+			fontWeight: "600",
+			color: c.textSecondaryStrong,
+			flexShrink: 1,
+		},
+		noMediaHint: {
+			fontSize: 12,
+			color: c.textSecondary,
+			flexShrink: 1,
+		},
+		// #1375 5 巡目: 縦に積む（上が «自分で撮影して追加» の主導線）。
+		// 4 巡目は横並びで «どちらが主か» が読めなかった
+		mediaSourceColumn: {
+			gap: 8,
+			marginTop: 12,
+			marginBottom: 4,
+			alignSelf: "stretch",
+			paddingHorizontal: 24,
+		},
+		mediaSourceButton: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "center",
+			gap: 6,
+			paddingHorizontal: 14,
+			paddingVertical: 10,
+			borderRadius: 12,
+			backgroundColor: c.surfaceSubtle,
+		},
+		// «自分で撮影して追加» はこの領域の主導線。濃灰で埋める
+		// （赤は画面に 1 つの主 CTA = «投稿する» に譲る。docs/design-guidelines.md §1）
+		// #1509 ライトの «濃灰の地に白文字» はダークでは沈むので、反転する CTA トークンで受ける
+		// （ctaBackground/ctaLabel はダークで «明るい地に暗い文字» へ入れ替わる）
+		mediaSourceButtonPrimary: {
+			backgroundColor: c.ctaBackground,
+		},
+		mediaSourceLabelPrimary: {
+			color: c.ctaLabel,
+		},
+		// スキップは «小さく»（オーナー指定）。押せるが主導線ではない
+		skipPhotoButton: {
+			marginTop: 4,
+			paddingHorizontal: 10,
+			paddingVertical: 6,
+		},
+		skipPhotoLabel: {
+			fontSize: 12,
+			fontWeight: "600",
+			color: c.textSecondary,
+			textDecorationLine: "underline",
+		},
+		mediaSourceLabel: {
+			fontSize: 13,
+			fontWeight: "700",
+			color: c.textSecondaryStrong,
+		},
+		characterCount: {
+			fontSize: 12,
+			color: c.textSecondary,
+			textAlign: "right",
+			marginTop: 4,
+		},
+		// #1375（6 巡目）記録フローの 1 歩目（料理カテゴリー）の器。左右余白は下のフォームと揃える
+		dishCategoryStepContainer: {
+			marginTop: 16,
+			paddingHorizontal: 16,
+			gap: 8,
+		},
+		// #1375 実機確認: Android のジェスチャーナビゲーションでは画面下端に system inset があり、
+		// この投稿ボタンがその下に潜って押せなかった。呼び出し側の 2 画面（review.tsx /
+		// review-from-media）はどちらも SafeAreaView を持たないので、下端の確保はここで行う。
+		// `paddingBottom` は描画時に `insets.bottom` を足して上書きする
+		buttonContainer: {
+			paddingTop: 12,
+			paddingBottom: 12,
+			borderTopWidth: 1,
+			borderTopColor: c.border,
+			backgroundColor: c.surface,
+		},
+	});

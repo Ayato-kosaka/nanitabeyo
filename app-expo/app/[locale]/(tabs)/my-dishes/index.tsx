@@ -5,6 +5,8 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useIsFocused } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { PrimaryButton } from "@/components/PrimaryButton";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 import { useAuth } from "@/contexts/AuthProvider";
 import { isGuestUser } from "@/lib/authGuest";
 import { useHaptics } from "@/hooks/useHaptics";
@@ -47,6 +49,8 @@ const VIEW_ICONS: Record<MyDishesView, typeof MapPinned> = {
 
 export default function MyDishesScreen() {
 	useScreenTrace("MyDishes");
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 	const { user } = useAuth();
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
@@ -218,7 +222,11 @@ export default function MyDishesScreen() {
 								accessibilityRole="button"
 								accessibilityState={{ selected: isActive }}
 								accessibilityLabel={i18n.t(`MyDishes.views.${v}`)}>
-								<Icon size={22} color={isActive ? "#111827" : "#9CA3AF"} strokeWidth={isActive ? 2.2 : 1.8} />
+								<Icon
+									size={22}
+									color={isActive ? colors.textPrimaryAlt : colors.textTertiary}
+									strokeWidth={isActive ? 2.2 : 1.8}
+								/>
 								{/* 下線はアクティブのときだけ描く（非アクティブへ薄線を残すと選択が読めなくなる） */}
 								<View style={[styles.viewUnderline, !isActive && styles.viewUnderlineHidden]} />
 							</TouchableOpacity>
@@ -232,7 +240,7 @@ export default function MyDishesScreen() {
 							style={styles.filterButton}
 							accessibilityRole="button"
 							accessibilityLabel={i18n.t("MyDishes.filters.title")}>
-							<SlidersHorizontal size={18} color="#111827" />
+							<SlidersHorizontal size={18} color={colors.textPrimaryAlt} />
 						</TouchableOpacity>
 					</View>
 				</View>
@@ -316,7 +324,8 @@ export default function MyDishesScreen() {
 					accessibilityLabel={i18n.t("MyDishes.record.cta")}>
 					{/* #1375 実機確認: 「記録する」の文字は出さず ＋ だけにする。
 					    ラベルは accessibilityLabel に残すので読み上げからは失われない */}
-					<Plus size={24} color="#FFFFFF" />
+					{/* brand 塗りの FAB の上。地色がライト / ダークで変わらないため文字も固定 */}
+					<Plus size={24} color={FixedColors.onFilled} />
 				</TouchableOpacity>
 			</View>
 
@@ -335,105 +344,110 @@ export default function MyDishesScreen() {
 	);
 }
 
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		backgroundColor: "#FFFFFF",
-	},
-	header: {
-		paddingHorizontal: 16,
-		paddingTop: 8,
-		paddingBottom: 12,
-		borderBottomWidth: 1,
-		borderBottomColor: "#E5E7EB",
-	},
-	viewSwitch: {
-		flexDirection: "row",
-		alignItems: "center",
-	},
-	viewButton: {
-		flex: 1,
-		alignItems: "center",
-		paddingTop: 6,
-		gap: 8,
-	},
-	viewUnderline: {
-		height: 2,
-		alignSelf: "stretch",
-		marginHorizontal: 18,
-		borderRadius: 1,
-		backgroundColor: "#111827",
-	},
-	// 高さを変えないために透明で残す（消すとアイコンの縦位置がアクティブだけずれる）
-	viewUnderlineHidden: {
-		backgroundColor: "transparent",
-	},
-	viewSwitchSpacer: {
-		width: 12,
-	},
-	// 絞り込みは «別系統» と分かるよう、丸囲みのアイコンボタンにする
-	filterButton: {
-		width: 38,
-		height: 38,
-		borderRadius: 19,
-		borderWidth: 1,
-		borderColor: "#E5E7EB",
-		alignItems: "center",
-		justifyContent: "center",
-		marginBottom: 6,
-	},
-	body: {
-		flex: 1,
-	},
-	viewPlaceholder: {
-		flex: 1,
-	},
-	// M-1: 非表示ビューを `display: "none"` で隠す。RN の View / react-native-web の両方で効く
-	hiddenView: {
-		display: "none",
-	},
-	// #1375 ゲストは「食べたい」を閲覧できる。ログインは «食べたを記録するため» の導線として
-	// 一覧の上に細く出すだけにする（画面を占有しない）
-	guestBanner: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 12,
-		paddingHorizontal: 16,
-		paddingVertical: 10,
-		// #1375（5 巡目・デザインレビュー #19）パレットに無い淡ピンクをやめる。
-		// 画面上部に常時ピンクが乗ると、赤い FAB と主張が競合する。
-		// 赤はこの帯の中のログインボタン 1 点だけに残す
-		backgroundColor: "#F3F4F6",
-		borderBottomWidth: 1,
-		borderBottomColor: "#F6DCD5",
-	},
-	guestBannerText: {
-		flex: 1,
-		fontSize: 13,
-		color: "#6B7280",
-	},
-	guestBannerButton: {
-		flexShrink: 0,
-	},
-	// #1375（5 巡目）チュートリアルが ＋ の座標を測れるよう、**位置決めは器の側**へ移した。
-	// ボタン自身を position:"absolute" のままにすると、包んだ器は 0×0 のまま流れの中に残り、
-	// measureInWindow が «画面の左上の点» を返してスポットライトが明後日の方向を指す
-	fabAnchor: {
-		position: "absolute",
-		right: 16,
-		bottom: 16,
-	},
-	fab: {
-		alignItems: "center",
-		justifyContent: "center",
-		width: 56,
-		height: 56,
-		borderRadius: 28,
-		backgroundColor: "#F05537",
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 2 },
-		shadowOpacity: 0.2,
-		shadowRadius: 8,
-		elevation: 6,
-	},
-});
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		container: {
+			flex: 1,
+			backgroundColor: c.surface,
+		},
+		header: {
+			paddingHorizontal: 16,
+			paddingTop: 8,
+			// #1375（6 巡目・オーナー指示）選択中のタブの下線と、ヘッダの区切り線の間に
+			// 余白を作らない。以前は 12 空けており «下線の下にもう一本、意味の無い帯がある»
+			// ように見えていた。下線がそのまま区切り線へ接するようにする
+			paddingBottom: 0,
+			borderBottomWidth: 1,
+			borderBottomColor: c.borderMuted,
+		},
+		viewSwitch: {
+			flexDirection: "row",
+			alignItems: "center",
+		},
+		viewButton: {
+			flex: 1,
+			alignItems: "center",
+			paddingTop: 6,
+			gap: 8,
+		},
+		viewUnderline: {
+			height: 2,
+			alignSelf: "stretch",
+			marginHorizontal: 18,
+			borderRadius: 1,
+			backgroundColor: c.textPrimaryAlt,
+		},
+		// 高さを変えないために透明で残す（消すとアイコンの縦位置がアクティブだけずれる）
+		viewUnderlineHidden: {
+			backgroundColor: "transparent",
+		},
+		viewSwitchSpacer: {
+			width: 12,
+		},
+		// 絞り込みは «別系統» と分かるよう、丸囲みのアイコンボタンにする
+		filterButton: {
+			width: 38,
+			height: 38,
+			borderRadius: 19,
+			borderWidth: 1,
+			borderColor: c.borderMuted,
+			alignItems: "center",
+			justifyContent: "center",
+			// 下線（高さ 2）と同じ分だけ持ち上げて、タブのアイコン列と光学的に揃える
+			marginBottom: 8,
+		},
+		body: {
+			flex: 1,
+		},
+		viewPlaceholder: {
+			flex: 1,
+		},
+		// M-1: 非表示ビューを `display: "none"` で隠す。RN の View / react-native-web の両方で効く
+		hiddenView: {
+			display: "none",
+		},
+		// #1375 ゲストは「食べたい」を閲覧できる。ログインは «食べたを記録するため» の導線として
+		// 一覧の上に細く出すだけにする（画面を占有しない）
+		guestBanner: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 12,
+			paddingHorizontal: 16,
+			paddingVertical: 10,
+			// #1375（5 巡目・デザインレビュー #19）パレットに無い淡ピンクをやめる。
+			// 画面上部に常時ピンクが乗ると、赤い FAB と主張が競合する。
+			// 赤はこの帯の中のログインボタン 1 点だけに残す
+			backgroundColor: c.surfaceSubtle,
+			borderBottomWidth: 1,
+			borderBottomColor: c.brandBorder,
+		},
+		guestBannerText: {
+			flex: 1,
+			fontSize: 13,
+			color: c.textSecondary,
+		},
+		guestBannerButton: {
+			flexShrink: 0,
+		},
+		// #1375（5 巡目）チュートリアルが ＋ の座標を測れるよう、**位置決めは器の側**へ移した。
+		// ボタン自身を position:"absolute" のままにすると、包んだ器は 0×0 のまま流れの中に残り、
+		// measureInWindow が «画面の左上の点» を返してスポットライトが明後日の方向を指す
+		fabAnchor: {
+			position: "absolute",
+			right: 16,
+			bottom: 16,
+		},
+		fab: {
+			alignItems: "center",
+			justifyContent: "center",
+			width: 56,
+			height: 56,
+			borderRadius: 28,
+			backgroundColor: c.brand,
+			shadowColor: FixedColors.badgeBackground,
+			shadowOffset: { width: 0, height: 2 },
+			shadowOpacity: 0.2,
+			shadowRadius: 8,
+			elevation: 6,
+		},
+	});
