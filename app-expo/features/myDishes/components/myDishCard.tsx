@@ -1,6 +1,7 @@
 import React, { memo, useCallback, useMemo } from "react";
 import { Pressable, StyleSheet, Text, View, type GestureResponderEvent } from "react-native";
 import { Utensils } from "lucide-react-native";
+import { FixedColors } from "@/constants/Palette";
 import i18n from "@/lib/i18n";
 import { getCacheKeyForImage } from "@/lib/image";
 import type { MyDishItem } from "@shared/api/v1/res";
@@ -137,7 +138,8 @@ export const MyDishEatenButton = memo(function MyDishEatenButton({
 			hitSlop={6}
 			accessibilityRole="button"
 			accessibilityLabel={i18n.t("MyDishes.actions.markAsEatenA11y")}>
-			<Utensils size={11} color="#FFFFFF" />
+			{/* 地（eatenButton = 固定の濃色）で塗り潰した上のアイコンなので固定の白でよい */}
+			<Utensils size={11} color={FixedColors.onFilled} />
 			<Text style={styles.eatenButtonText} numberOfLines={1}>
 				{i18n.t("MyDishes.actions.markAsEaten")}
 			</Text>
@@ -189,6 +191,7 @@ const styles = StyleSheet.create({
 	eatenButtonText: {
 		fontSize: 10,
 		fontWeight: "700",
-		color: "#FFFFFF",
+		// 地（eatenButton）が固定の濃色なので、文字も固定でよい
+		color: FixedColors.onFilled,
 	},
 });

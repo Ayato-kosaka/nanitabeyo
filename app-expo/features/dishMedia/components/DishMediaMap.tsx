@@ -27,6 +27,7 @@ import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useDishMediaBackgroundImageResources } from "@/features/dishMedia/hooks/useDishMediaBackgroundImageResources";
 import { useContentWidth } from "@/hooks/useContentWidth";
+import { FixedColors } from "@/constants/Palette";
 
 // #958 【修正】カルーセルの幅は window 実幅ではなく中央カラム幅に追従させる必要があるため、
 // コンポーネント内の useContentWidth() を使う(下の contentWidth)。height はカルーセルの
@@ -44,7 +45,8 @@ const HANDLE_HEIGHT = 44;
 // #605 【設計】スナップ判定の閾値（0.5 = 中間点）
 const SNAP_THRESHOLD = 0.5;
 // #605 【設計】ハンドルの色（半透明白）
-const HANDLE_COLOR = "#FFFFFFFF";
+// #1509 元表記は 8 桁 HEX "#FFFFFFFF"（alpha FF = 不透明）。FixedColors.onMedia（6 桁 #FFFFFF）と描画は完全に同一
+const HANDLE_COLOR = FixedColors.onMedia;
 // #638 【設計】フローティングボタンのマージン（右端からの距離）
 const FLOATING_BUTTON_MARGIN = 8;
 
@@ -381,7 +383,10 @@ export default function DishMediaMap({
 							coordinate={restaurant.coordinate}
 							onPress={() => handleMarkerPress(index)}
 							uri={restaurant.imageUrls?.sm}
-							color={index === currentIndex ? "#F05537" : "#FFF"}
+							color={
+								// 地図タイルは常にライト配色のため、ピンはテーマで振らない（FixedColors 参照）
+								index === currentIndex ? FixedColors.brandOnMap : FixedColors.mapMarkerSurface
+							}
 							isActive={index === currentIndex}
 						/>
 					))}
@@ -395,8 +400,9 @@ export default function DishMediaMap({
 					<PrimaryButton
 						label={i18n.t("Map.buttons.openInGoogle")}
 						onPress={handleOpenInGoogleMaps}
-						labelStyle={{ color: "#F05537" }}
-						colors={["#FDEBE7", "#FDEBE7"]}
+						// 地図の上に浮くボタン。地図タイルが常にライト配色のため、テーマで振らない（FixedColors 参照）
+						labelStyle={{ color: FixedColors.brandOnMap }}
+						colors={[FixedColors.brandTintOnMap, FixedColors.brandTintOnMap]}
 						shadowColor="transparent"
 						borderRadius={8}
 					/>
@@ -435,7 +441,7 @@ export default function DishMediaMap({
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: "#000",
+		backgroundColor: FixedColors.mediaBackground,
 	},
 	mapContainer: {
 		position: "absolute",
@@ -474,7 +480,7 @@ const styles = StyleSheet.create({
 		height: 5,
 		borderRadius: 2.5,
 		backgroundColor: HANDLE_COLOR,
-		shadowColor: "#000",
+		shadowColor: FixedColors.shadow,
 		shadowOffset: { width: 0, height: 1 },
 		shadowOpacity: 0.55,
 		shadowRadius: 3,
@@ -498,7 +504,7 @@ const styles = StyleSheet.create({
 		flex: 1,
 		borderRadius: 24,
 		overflow: "hidden",
-		shadowColor: "#000",
+		shadowColor: FixedColors.shadow,
 		shadowOffset: { width: 0, height: 0 },
 		shadowOpacity: 0.3,
 		shadowRadius: 32,
@@ -508,11 +514,11 @@ const styles = StyleSheet.create({
 		flex: 1,
 		justifyContent: "center",
 		alignItems: "center",
-		backgroundColor: "#000",
+		backgroundColor: FixedColors.mediaBackground,
 	},
 	loadingText: {
 		marginTop: 16,
-		color: "#FFF",
+		color: FixedColors.onMedia,
 		fontSize: 16,
 	},
 	// #940 【修正】mapContainer(zIndex:1)より前面に絶対配置し、地図の下敷きにならないようにする
@@ -529,7 +535,7 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 20,
 	},
 	errorText: {
-		color: "#FF6B6B",
+		color: FixedColors.errorOnMedia,
 		fontSize: 16,
 		textAlign: "center",
 		paddingHorizontal: 20,

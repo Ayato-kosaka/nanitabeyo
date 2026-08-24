@@ -21,6 +21,8 @@ import { Play } from "lucide-react-native";
 import i18n from "@/lib/i18n";
 import { buildExternalEmbedPlayerSource } from "../embedUrl";
 import type { ExternalEmbedPlayerProps } from "./ExternalEmbedPlayer";
+// #1509 メディア埋め込みの黒背景・再生 UI はメディアを引き立てる固定色（テーマ非追従）
+import { FixedColors } from "@/constants/Palette";
 
 export type { ExternalEmbedPlayerProps };
 
@@ -47,7 +49,7 @@ export function ExternalEmbedPlayer({ embed, isActive, blockParentTapGesture }: 
 			accessibilityRole="button"
 			accessibilityLabel={i18n.t("DishMediaContent.embed.play", { provider: source.providerLabel })}>
 			<View style={styles.playCircle}>
-				<Play size={30} color="#FFFFFF" fill="#FFFFFF" />
+				<Play size={30} color={FixedColors.onMedia} fill={FixedColors.onMedia} />
 			</View>
 			<Text style={styles.playLabel}>{i18n.t("DishMediaContent.embed.play", { provider: source.providerLabel })}</Text>
 		</TouchableOpacity>
@@ -58,7 +60,7 @@ export function ExternalEmbedPlayer({ embed, isActive, blockParentTapGesture }: 
 			<View style={styles.container} pointerEvents={interactive ? "auto" : "none"} testID="external-embed-webview">
 				{React.createElement("iframe", {
 					src: source.embedUrl,
-					style: { border: 0, width: "100%", height: "100%", backgroundColor: "#000" },
+					style: { border: 0, width: "100%", height: "100%", backgroundColor: FixedColors.mediaBackground },
 					allow: "autoplay; encrypted-media; picture-in-picture",
 					allowFullScreen: true,
 					loading: "lazy",
@@ -85,7 +87,7 @@ export function ExternalEmbedPlayer({ embed, isActive, blockParentTapGesture }: 
 const styles = StyleSheet.create({
 	container: {
 		...StyleSheet.absoluteFillObject,
-		backgroundColor: "#000",
+		backgroundColor: FixedColors.mediaBackground,
 	},
 	overlayContainer: {
 		...StyleSheet.absoluteFillObject,
@@ -110,7 +112,7 @@ const styles = StyleSheet.create({
 	playLabel: {
 		fontSize: 13,
 		fontWeight: "700",
-		color: "#FFFFFF",
+		color: FixedColors.onMedia,
 		textShadowColor: "rgba(0,0,0,0.6)",
 		textShadowRadius: 6,
 	},

@@ -32,6 +32,8 @@ import { useLogger } from "@/hooks/useLogger";
 import i18n from "@/lib/i18n";
 import type { DishMediaExternalEmbed } from "@shared/api/v1/res";
 import { buildExternalEmbedPlayerSource } from "../embedUrl";
+// #1509 メディア（サムネイル）の上に重ねる再生 UI のため、テーマ非追従の FixedColors を使う
+import { FixedColors } from "@/constants/Palette";
 
 export type ExternalEmbedPlayerProps = {
 	embed: Pick<DishMediaExternalEmbed, "provider" | "externalContentId" | "canonicalUrl" | "embedStatus">;
@@ -94,7 +96,7 @@ export function ExternalEmbedPlayer({ embed, isActive, blockParentTapGesture }: 
 				provider: source?.providerLabel ?? embed.provider,
 			})}>
 			<View style={styles.playCircle}>
-				<Play size={30} color="#FFFFFF" fill="#FFFFFF" />
+				<Play size={30} color={FixedColors.onMedia} fill={FixedColors.onMedia} />
 			</View>
 			<Text style={styles.playLabel}>
 				{i18n.t("DishMediaContent.embed.play", { provider: source?.providerLabel ?? embed.provider })}
@@ -141,7 +143,7 @@ const styles = StyleSheet.create({
 	playLabel: {
 		fontSize: 13,
 		fontWeight: "700",
-		color: "#FFFFFF",
+		color: FixedColors.onMedia,
 		textShadowColor: "rgba(0,0,0,0.6)",
 		textShadowRadius: 6,
 	},

@@ -11,6 +11,8 @@ import { getCacheKeyForImage } from "@/lib/image";
 import i18n from "@/lib/i18n";
 import type { QueryRestaurantsDto } from "@shared/api/v1/dto";
 import type { QueryRestaurantsResponse } from "@shared/api/v1/res";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 
 type RestaurantSearchResult = QueryRestaurantsResponse[number];
 
@@ -80,6 +82,8 @@ export function RestaurantNameSearch({
 	onSelectCandidate,
 	testID = "restaurant-name-search",
 }: RestaurantNameSearchProps) {
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 	const [query, setQuery] = useState("");
 	const [results, setResults] = useState<RestaurantSearchResult[]>([]);
 	const [status, setStatus] = useState<SearchStatus>("idle");
@@ -207,13 +211,13 @@ export function RestaurantNameSearch({
 	return (
 		<View style={styles.container}>
 			<View style={styles.inputContainer}>
-				<Search size={18} color="#6B7280" style={styles.searchIcon} />
+				<Search size={18} color={colors.textSecondary} style={styles.searchIcon} />
 				<TextInput
 					style={[styles.input, showsSelectedName && styles.inputSelected]}
 					value={showsSelectedName ? selectedName! : query}
 					onChangeText={handleChangeText}
 					placeholder={i18n.t("SelectRestaurant.nameSearch.placeholder")}
-					placeholderTextColor="#6B7280"
+					placeholderTextColor={colors.textSecondary}
 					autoComplete="off"
 					autoCorrect={false}
 					returnKeyType="search"
@@ -228,7 +232,7 @@ export function RestaurantNameSearch({
 						accessibilityRole="button"
 						accessibilityLabel={i18n.t("SelectRestaurant.accessibility.clearNameSearch")}
 						testID={`${testID}-clear`}>
-						<X size={16} color="#6B7280" />
+						<X size={16} color={colors.textSecondary} />
 					</TouchableOpacity>
 				)}
 				{mapAction && (
@@ -239,7 +243,7 @@ export function RestaurantNameSearch({
 						accessibilityRole="button"
 						accessibilityLabel={mapAction.accessibilityLabel ?? i18n.t("SelectRestaurant.pickOnMap")}
 						testID={mapAction.testID ?? `${testID}-map`}>
-						<MapPin size={18} color="#374151" />
+						<MapPin size={18} color={colors.textSecondaryStrong} />
 					</TouchableOpacity>
 				)}
 			</View>
@@ -340,15 +344,16 @@ export function RestaurantNameSearch({
 	);
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
 	container: { flex: 1 },
 	inputContainer: {
 		flexDirection: "row",
 		alignItems: "center",
 		borderRadius: 16,
-		backgroundColor: "#FFFFFF",
+		backgroundColor: c.surface,
 		borderWidth: 1,
-		borderColor: "#C9C9C9",
+		borderColor: c.border,
 	},
 	searchIcon: {
 		marginLeft: 16,
@@ -358,7 +363,7 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 12,
 		paddingVertical: 16,
 		fontSize: 16,
-		color: "#1A1A1A",
+		color: c.textPrimary,
 	},
 	clearButton: {
 		padding: 12,
@@ -373,7 +378,7 @@ const styles = StyleSheet.create({
 		paddingVertical: 12,
 		marginRight: 2,
 		borderLeftWidth: StyleSheet.hairlineWidth,
-		borderLeftColor: "#E5E7EB",
+		borderLeftColor: c.borderMuted,
 	},
 	candidateRow: {
 		marginTop: 8,
@@ -386,24 +391,24 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 10,
 		paddingVertical: 5,
 		borderRadius: 14,
-		backgroundColor: "#F3F4F6",
+		backgroundColor: c.surfaceSubtle,
 	},
 	candidateChipSelected: {
-		backgroundColor: "#FDE7E1",
+		backgroundColor: c.brandTintAlt,
 	},
 	candidateLabel: {
 		fontSize: 12,
-		color: "#374151",
+		color: c.textSecondaryStrong,
 	},
 	candidateLabelSelected: {
-		color: "#F05537",
+		color: c.brand,
 		fontWeight: "700",
 	},
 	resultsPanel: {
 		marginTop: 12,
-		backgroundColor: "#FFF",
+		backgroundColor: c.surface,
 		borderRadius: 16,
-		shadowColor: "#000",
+		shadowColor: FixedColors.shadow,
 		shadowOffset: { width: 0, height: 0 },
 		shadowOpacity: 0.1,
 		shadowRadius: 24,
@@ -418,7 +423,7 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 16,
 		paddingVertical: 12,
 		borderBottomWidth: 0.5,
-		borderBottomColor: "#F3F4F6",
+		borderBottomColor: c.divider,
 	},
 	lastResultItem: {
 		borderBottomWidth: 0,
@@ -428,12 +433,12 @@ const styles = StyleSheet.create({
 		height: 40,
 		borderRadius: 8,
 		marginRight: 12,
-		backgroundColor: "#F3F4F6",
+		backgroundColor: c.surfaceSubtle,
 	},
 	resultName: {
 		flex: 1,
 		fontSize: 16,
-		color: "#1A1A1A",
+		color: c.textPrimary,
 		fontWeight: "600",
 	},
 	// 0 件・失敗のときは «説明 + 逃げ道のボタン» を縦に積むので、行ではなく列にする
@@ -448,12 +453,12 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 16,
 		paddingVertical: 10,
 		borderRadius: 16,
-		backgroundColor: "#FDE7E1",
+		backgroundColor: c.brandTintAlt,
 	},
 	emptyActionLabel: {
 		fontSize: 13,
 		fontWeight: "700",
-		color: "#F05537",
+		color: c.brand,
 	},
 	centerRow: {
 		flexDirection: "row",
@@ -465,11 +470,11 @@ const styles = StyleSheet.create({
 	loadingText: {
 		marginLeft: 8,
 		fontSize: 14,
-		color: "#6B7280",
+		color: c.textSecondary,
 	},
 	emptyText: {
 		fontSize: 14,
-		color: "#6B7280",
+		color: c.textSecondary,
 		textAlign: "center",
 	},
 });

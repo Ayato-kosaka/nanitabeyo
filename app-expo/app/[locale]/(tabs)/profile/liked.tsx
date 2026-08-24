@@ -22,12 +22,14 @@ import { router } from "expo-router";
 
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { LikeTab } from "@/features/profile/tabs/LikeTab";
+import { useAppTheme } from "@/contexts/ThemeProvider";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import i18n from "@/lib/i18n";
 
 export default function ProfileLikedScreen() {
+	const { colors } = useAppTheme();
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { locale } = useLocale();
@@ -49,7 +51,7 @@ export default function ProfileLikedScreen() {
 	}, [lightImpact, logFrontendEvent, locale]);
 
 	return (
-		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
+		<LinearGradient colors={colors.backgroundGradient} style={styles.container}>
 			<SafeAreaView style={styles.safeArea} edges={[]}>
 				<ScreenHeader
 					title={i18n.t("Profile.menu.likedPosts")}

@@ -17,6 +17,8 @@ import Svg, { Defs, Mask, Rect as SvgRect } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
 import { Pointer } from "lucide-react-native";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useThemedStyles } from "@/contexts/ThemeProvider";
 import i18n from "@/lib/i18n";
 import { useLogger } from "@/hooks/useLogger";
 import type {
@@ -238,6 +240,7 @@ export function SpotlightTutorial<K extends string>({
 	onClose,
 	onUnavailable,
 }: SpotlightTutorialProps<K>) {
+	const styles = useThemedStyles(createStyles);
 	const { width: windowWidth, height: windowHeight } = useWindowDimensions();
 	const insets = useSafeAreaInsets();
 	const { logFrontendEvent } = useLogger();
@@ -633,7 +636,7 @@ export function SpotlightTutorial<K extends string>({
 				<Svg pointerEvents="none" width={windowWidth} height={windowHeight} style={StyleSheet.absoluteFillObject}>
 					<Defs>
 						<Mask id={maskId}>
-							<SvgRect x={0} y={0} width={windowWidth} height={windowHeight} fill="#FFFFFF" />
+							<SvgRect x={0} y={0} width={windowWidth} height={windowHeight} fill={FixedColors.maskOpaque} />
 							{activeTargetRects.map((rect, index) => (
 								<SvgRect
 									key={`mask-hole-${index}`}
@@ -643,7 +646,7 @@ export function SpotlightTutorial<K extends string>({
 									height={rect.height}
 									rx={14}
 									ry={14}
-									fill="#000000"
+									fill={FixedColors.maskHole}
 								/>
 							))}
 						</Mask>
@@ -685,7 +688,7 @@ export function SpotlightTutorial<K extends string>({
 							swipeHintAnimatedStyle,
 						]}>
 						<View style={styles.swipeHintBadge}>
-							<Pointer size={20} color="#FFFFFF" />
+							<Pointer size={20} color={FixedColors.onMedia} />
 						</View>
 					</Animated.View>
 				)}
@@ -772,130 +775,143 @@ export function SpotlightTutorial<K extends string>({
 	);
 }
 
-const styles = StyleSheet.create({
-	overlay: {
-		flex: 1,
-	},
-	callout: {
-		position: "absolute",
-		backgroundColor: "#FFFFFF",
-		borderRadius: 20,
-		shadowColor: "#000000",
-		shadowOffset: { width: 0, height: 8 },
-		shadowOpacity: 0.24,
-		shadowRadius: 20,
-		elevation: 16,
-	},
-	calloutContent: {
-		paddingHorizontal: 20,
-		paddingTop: 20,
-		paddingBottom: 16,
-	},
-	calloutScroll: {
-		flexShrink: 1,
-	},
-	arrow: {
-		position: "absolute",
-		width: 16,
-		height: 16,
-		backgroundColor: "#FFFFFF",
-		transform: [{ rotate: "45deg" }],
-	},
-	arrowAbove: {
-		top: -8,
-	},
-	arrowBelow: {
-		bottom: -8,
-	},
-	swipeHint: {
-		position: "absolute",
-		width: SWIPE_HINT_ICON_SIZE,
-		height: SWIPE_HINT_ICON_SIZE,
-	},
-	swipeHintBadge: {
-		width: SWIPE_HINT_ICON_SIZE,
-		height: SWIPE_HINT_ICON_SIZE,
-		borderRadius: SWIPE_HINT_ICON_SIZE / 2,
-		alignItems: "center",
-		justifyContent: "center",
-		backgroundColor: "rgba(0, 0, 0, 0.55)",
-		borderWidth: 2,
-		borderColor: "rgba(255, 255, 255, 0.9)",
-	},
-	title: {
-		color: "#171717",
-		fontSize: 20,
-		fontWeight: "800",
-		lineHeight: 28,
-		textAlign: "auto",
-	},
-	bodyContainer: {
-		marginTop: 8,
-		gap: 4,
-	},
-	body: {
-		color: "#4B5563",
-		fontSize: 15,
-		fontWeight: "500",
-		lineHeight: 22,
-		textAlign: "auto",
-	},
-	progressRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		marginTop: 16,
-	},
-	dots: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 6,
-	},
-	dot: {
-		width: 7,
-		height: 7,
-		borderRadius: 4,
-		backgroundColor: "#D1D5DB",
-	},
-	activeDot: {
-		width: 18,
-		backgroundColor: "#F05537",
-	},
-	progress: {
-		color: "#6B7280",
-		fontSize: 13,
-		fontWeight: "700",
-	},
-	actions: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "flex-end",
-		gap: 12,
-		marginTop: 14,
-	},
-	skipButton: {
-		minHeight: 44,
-		paddingHorizontal: 12,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	skipButtonText: {
-		color: "#6B7280",
-		fontSize: 15,
-		fontWeight: "700",
-	},
-	primaryButton: {
-		minHeight: 44,
-		minWidth: 104,
-		paddingHorizontal: 20,
-		borderRadius: 22,
-		backgroundColor: "#F05537",
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	primaryButtonText: {
-		color: "#FFFFFF",
-		fontSize: 15,
-		fontWeight: "800",
-	},
-});
+/*
+#1509 【設計】吹き出しは «64% の黒い暗幕の上に浮くカード» である。
+
+ライトの «白いカードに濃い文字» をそのまま出すと、ダークでは暗幕の上で
+唯一まぶしい白面になり、実測（run 32683977248 の my-dishes ダーク）で
+「最初に見えるのが真っ白な吹き出し」という状態になっていた。
+地は `surface`、文字は `textPrimary` / `textSecondaryAlt` でテーマへ追従させる。
+
+⚠️ マスクのチャンネル値（`FixedColors.maskOpaque` / `maskHole`）と、暗幕の上に載る
+   要素（スワイプヒントのバッジ・アイコン、ブランド塗りボタンの文字）は固定のままにすること。
+*/
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		overlay: {
+			flex: 1,
+		},
+		callout: {
+			position: "absolute",
+			backgroundColor: c.surface,
+			borderRadius: 20,
+			shadowColor: FixedColors.shadow,
+			shadowOffset: { width: 0, height: 8 },
+			shadowOpacity: 0.24,
+			shadowRadius: 20,
+			elevation: 16,
+		},
+		calloutContent: {
+			paddingHorizontal: 20,
+			paddingTop: 20,
+			paddingBottom: 16,
+		},
+		calloutScroll: {
+			flexShrink: 1,
+		},
+		arrow: {
+			position: "absolute",
+			width: 16,
+			height: 16,
+			backgroundColor: c.surface,
+			transform: [{ rotate: "45deg" }],
+		},
+		arrowAbove: {
+			top: -8,
+		},
+		arrowBelow: {
+			bottom: -8,
+		},
+		swipeHint: {
+			position: "absolute",
+			width: SWIPE_HINT_ICON_SIZE,
+			height: SWIPE_HINT_ICON_SIZE,
+		},
+		swipeHintBadge: {
+			width: SWIPE_HINT_ICON_SIZE,
+			height: SWIPE_HINT_ICON_SIZE,
+			borderRadius: SWIPE_HINT_ICON_SIZE / 2,
+			alignItems: "center",
+			justifyContent: "center",
+			backgroundColor: "rgba(0, 0, 0, 0.55)",
+			borderWidth: 2,
+			borderColor: "rgba(255, 255, 255, 0.9)",
+		},
+		title: {
+			color: c.textPrimary,
+			fontSize: 20,
+			fontWeight: "800",
+			lineHeight: 28,
+			textAlign: "auto",
+		},
+		bodyContainer: {
+			marginTop: 8,
+			gap: 4,
+		},
+		body: {
+			color: c.textSecondaryAlt,
+			fontSize: 15,
+			fontWeight: "500",
+			lineHeight: 22,
+			textAlign: "auto",
+		},
+		progressRow: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+			marginTop: 16,
+		},
+		dots: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 6,
+		},
+		dot: {
+			width: 7,
+			height: 7,
+			borderRadius: 4,
+			backgroundColor: c.trackMuted,
+		},
+		activeDot: {
+			width: 18,
+			backgroundColor: c.brand,
+		},
+		progress: {
+			color: c.textSecondary,
+			fontSize: 13,
+			fontWeight: "700",
+		},
+		actions: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "flex-end",
+			gap: 12,
+			marginTop: 14,
+		},
+		skipButton: {
+			minHeight: 44,
+			paddingHorizontal: 12,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		skipButtonText: {
+			color: c.textSecondary,
+			fontSize: 15,
+			fontWeight: "700",
+		},
+		primaryButton: {
+			minHeight: 44,
+			minWidth: 104,
+			paddingHorizontal: 20,
+			borderRadius: 22,
+			backgroundColor: c.brand,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		primaryButtonText: {
+			// brand 塗りの上。地がライト / ダークで変わらないため文字も固定
+			color: FixedColors.onFilled,
+			fontSize: 15,
+			fontWeight: "800",
+		},
+	});

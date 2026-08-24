@@ -3,6 +3,8 @@ import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { Image } from "expo-image";
 
 import { LoadingIndicator } from "@/components/LoadingIndicator";
+import { type Palette } from "@/constants/Palette";
+import { useThemedStyles } from "@/contexts/ThemeProvider";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
@@ -42,6 +44,7 @@ export function ExistingDishMediaPicker({
 	onSelect: (media: ExistingDishMedia) => void;
 	testID?: string;
 }) {
+	const styles = useThemedStyles(createStyles);
 	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
 	const { lightImpact } = useHaptics();
@@ -142,38 +145,39 @@ export function ExistingDishMediaPicker({
 
 const TILE_WIDTH = 88;
 
-const styles = StyleSheet.create({
-	container: {
-		alignSelf: "stretch",
-		marginTop: 12,
-	},
-	centered: {
-		marginTop: 12,
-		alignItems: "center",
-	},
-	heading: {
-		fontSize: 12,
-		fontWeight: "700",
-		color: "#6B7280",
-		marginBottom: 6,
-		paddingHorizontal: 12,
-	},
-	listContent: {
-		paddingHorizontal: 12,
-		gap: 8,
-	},
-	tile: {
-		width: TILE_WIDTH,
-	},
-	tileImage: {
-		width: TILE_WIDTH,
-		height: TILE_WIDTH,
-		borderRadius: 8,
-		backgroundColor: "#F3F4F6",
-	},
-	tileLabel: {
-		marginTop: 4,
-		fontSize: 11,
-		color: "#374151",
-	},
-});
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		container: {
+			alignSelf: "stretch",
+			marginTop: 12,
+		},
+		centered: {
+			marginTop: 12,
+			alignItems: "center",
+		},
+		heading: {
+			fontSize: 12,
+			fontWeight: "700",
+			color: c.textSecondary,
+			marginBottom: 6,
+			paddingHorizontal: 12,
+		},
+		listContent: {
+			paddingHorizontal: 12,
+			gap: 8,
+		},
+		tile: {
+			width: TILE_WIDTH,
+		},
+		tileImage: {
+			width: TILE_WIDTH,
+			height: TILE_WIDTH,
+			borderRadius: 8,
+			backgroundColor: c.surfaceSubtle,
+		},
+		tileLabel: {
+			marginTop: 4,
+			fontSize: 11,
+			color: c.textSecondaryStrong,
+		},
+	});
