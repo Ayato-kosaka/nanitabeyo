@@ -342,8 +342,13 @@ export function ExternalEmbedPlayer({
 				<View style={styles.overlayContainer} pointerEvents="box-none" testID="external-embed-fallback">
 					{blockParentTapGesture ? (
 						<GestureDetector gesture={blockParentTapGesture}>
-							{/* collapsable=false: GestureDetector が実ビューを要求する */}
-							<View collapsable={false}>{playButton}</View>
+							{/* collapsable=false: GestureDetector が実ビューを要求する。
+							    ⚠️ absoluteFill も必須。素の View（高さ 0）を挟むと、中の絶対配置が
+							    そこを基準にしてしまい «▶ の小さい帯が画面の中途半端な位置に浮く»
+							    （実機 Detox / run 32724564583 で実測。web でも同じ症状が出た） */}
+							<View style={StyleSheet.absoluteFill} collapsable={false}>
+								{playButton}
+							</View>
 						</GestureDetector>
 					) : (
 						playButton
