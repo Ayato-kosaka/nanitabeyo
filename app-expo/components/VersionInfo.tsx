@@ -1,6 +1,8 @@
 import React from "react";
 import { Text, StyleSheet } from "react-native";
 import { Env } from "@/constants/Env";
+import type { Palette } from "@/constants/Palette";
+import { useThemedStyles } from "@/contexts/ThemeProvider";
 import { UNKNOWN_BUILD_META_CLIENT } from "@shared/api/v1/constants/build-meta";
 
 const SHORT_COMMIT_ID_LENGTH = 7;
@@ -20,10 +22,9 @@ const SHORT_COMMIT_ID_LENGTH = 7;
  * selectable にしているのは、問い合わせ時にそのままコピーして送ってもらうため。
  */
 export function VersionInfo() {
+	const styles = useThemedStyles(createStyles);
 	const shortCommitId =
-		Env.COMMIT_ID === UNKNOWN_BUILD_META_CLIENT
-			? "dev"
-			: Env.COMMIT_ID.slice(0, SHORT_COMMIT_ID_LENGTH);
+		Env.COMMIT_ID === UNKNOWN_BUILD_META_CLIENT ? "dev" : Env.COMMIT_ID.slice(0, SHORT_COMMIT_ID_LENGTH);
 
 	return (
 		<Text style={styles.versionText} selectable testID="settings-version-section">
@@ -32,12 +33,13 @@ export function VersionInfo() {
 	);
 }
 
-const styles = StyleSheet.create({
-	versionText: {
-		fontSize: 13,
-		color: "#9CA3AF",
-		textAlign: "center",
-		paddingTop: 24,
-		paddingHorizontal: 16,
-	},
-});
+const createStyles = (colors: Palette) =>
+	StyleSheet.create({
+		versionText: {
+			fontSize: 13,
+			color: colors.textTertiary,
+			textAlign: "center",
+			paddingTop: 24,
+			paddingHorizontal: 16,
+		},
+	});
