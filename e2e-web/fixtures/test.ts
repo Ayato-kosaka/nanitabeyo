@@ -26,6 +26,16 @@ type AppOptions = {
 	 * 既存の検索フローを遮らないよう既定true、専用specのみfalseにする。
 	 */
 	seedTopicsTutorialSeen: boolean;
+	/**
+	 * この spec では «出て当然» の console error / pageerror。ここに一致するものは収集しない。
+	 *
+	 * `KNOWN_CONSOLE_NOISE` との違いは **適用範囲** である。あちらは «どの spec でも無害» な
+	 * ノイズ用で、ここは «その spec の前提そのものがエラーを生む» 場合に使う。
+	 * hydration 失敗（React error #418）のような検知したい種類のエラーを
+	 * `KNOWN_CONSOLE_NOISE` へ入れると **全 spec で見えなくなる**ので、必ずこちらを使い、
+	 * `test.use()` の直近に «なぜ出て当然なのか» を書くこと。
+	 */
+	allowedConsoleErrors: RegExp[];
 };
 
 /** テストへ提供するフィクスチャ */
@@ -69,6 +79,7 @@ export const test = base.extend<AppOptions & AppFixtures>({
 	// ── オプション ──────────────────────────────────────────────
 	seedTutorialSeen: [true, { option: true }],
 	seedTopicsTutorialSeen: [true, { option: true }],
+	allowedConsoleErrors: [[], { option: true }],
 
 	// ── context: オンボーディング / スポットライトのシードを適用 ──
 	// addInitScript はページ生成前に仕込む必要があるため context を拡張する
@@ -84,17 +95,20 @@ export const test = base.extend<AppOptions & AppFixtures>({
 
 	// ── consoleErrors: 自動収集（auto） ─────────────────────────
 	consoleErrors: [
-		async ({ page }, use, testInfo) => {
+		async ({ page, allowedConsoleErrors }, use, testInfo) => {
 			const errors: string[] = [];
+			const isIgnored = (text: string) =>
+				KNOWN_CONSOLE_NOISE.some((pattern) => pattern.test(text)) ||
+				allowedConsoleErrors.some((pattern) => pattern.test(text));
 
 			// console.error と未捕捉例外 (pageerror) の両方を収集する
 			page.on("console", (message) => {
-				if (message.type() === "error" && !KNOWN_CONSOLE_NOISE.some((pattern) => pattern.test(message.text()))) {
+				if (message.type() === "error" && !isIgnored(message.text())) {
 					errors.push(message.text());
 				}
 			});
 			page.on("pageerror", (error) => {
-				if (!KNOWN_CONSOLE_NOISE.some((pattern) => pattern.test(error.message))) {
+				if (!isIgnored(error.message)) {
 					errors.push(`[pageerror] ${error.message}`);
 				}
 			});

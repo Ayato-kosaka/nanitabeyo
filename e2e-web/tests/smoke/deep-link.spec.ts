@@ -81,7 +81,8 @@ const markerFor = (route: string) => {
  *
  * @param route locale prefix より後ろのパス
  */
-const prerenderMarkerFor = (route: string): string => (route.startsWith("legal/") ? "legal-screen-document" : "tab-search");
+const prerenderMarkerFor = (route: string): string =>
+	route.startsWith("legal/") ? "legal-screen-document" : "tab-search";
 
 test.describe("ディープリンク @smoke", () => {
 	for (const route of DEEP_LINK_SMOKE_ROUTES) {
@@ -126,6 +127,34 @@ test.describe("ディープリンク @smoke", () => {
 			expect(body).toContain(`data-testid="${prerenderMarkerFor(route)}"`);
 		});
 	}
+});
+
+/**
+ * 存在しないパスの NotFound 画面。
+ *
+ * ## なぜ hydration 失敗（React error #418）を許容するのか
+ *
+ * Firebase Hosting は最後の rewrite `** → /index.html` で **prerender されていない URL を
+ * すべて index.html（ルート `app/index.tsx` の静的出力）で返す**（firebase.json）。
+ * 実測: `/ja-JP/this-route-does-not-exist` と `/` は **バイト単位で同一の HTML** が返る
+ *（run 32716114752 の preview で md5 一致を確認）。
+ *
+ * その HTML はロケール解決前のルートの器で、本文テキストを持たない。ブラウザ側は URL に従って
+ * `[locale]/+not-found.tsx` を描くので、サーバ HTML とクライアントの木が食い違い、
+ * React は #418 を出してクライアント側で描き直す。**画面は正しく出る**（下の 2 つの
+ * アサーションが実際に通っている）が、エラーは構造上必ず出る。
+ *
+ * これは «SPA フォールバックで配信される URL» すべてに共通する性質で、この画面固有の不具合ではない
+ *（店舗詳細のような prerender されない動的ルートも同じ経路をたどる）。根本から消すには
+ * 動的ルートごとに rewrite を張って catch-all を NotFound の静的出力へ向ける必要があり、
+ * 張り忘れたルートが «正しい URL なのに NotFound» になる副作用を持つ。この spec の範囲を超えるため、
+ * ここでは «出て当然のエラー» として明示的に許容する。
+ *
+ * ⚠️ `KNOWN_CONSOLE_NOISE` へ入れないこと。#418 は #1503 が prerender の不一致を捕まえるために
+ * 使っている検知点で、全 spec で無視すると «公開ルートの hydration 不一致» が見えなくなる。
+ */
+test.describe("存在しないパス @smoke", () => {
+	test.use({ allowedConsoleErrors: [/Minified React error #418/, /Hydration failed/] });
 
 	// ─ テストケース: 存在しないパスで NotFound 画面が表示される ─
 	// 手順:

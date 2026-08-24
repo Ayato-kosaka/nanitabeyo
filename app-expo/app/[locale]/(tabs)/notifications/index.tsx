@@ -242,7 +242,15 @@ export default function NotificationsScreen() {
 		return (
 			<SafeAreaView style={styles.container} edges={["top"]}>
 				<View style={styles.header}>
-					<Text style={styles.headerTitle}>{i18n.t("Notifications.title")}</Text>
+					{/* #1503 【テスト】ログイン済みの分岐と **同じ testID** を付けること。
+					    直リンクスモーク（e2e-web tests/smoke/deep-link.spec.ts）と Detox の
+					    SafeArea 実測（e2e-mobile tests/mutation/notifications-safe-area.test.ts）は
+					    どちらもこの testID を «お知らせ画面が描画された印» にしている。
+					    どちらのセッションも匿名なので、実際に評価されるのは **こちらの分岐**である。
+					    testID がこちらに無いと «画面は出ているのにテストからは見えない» 状態になる */}
+					<Text testID="notifications-header-title" style={styles.headerTitle}>
+						{i18n.t("Notifications.title")}
+					</Text>
 				</View>
 				<View style={styles.emptyContainer}>
 					<Text style={styles.emptyText}>{i18n.t("Notifications.empty")}</Text>
