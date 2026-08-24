@@ -609,10 +609,13 @@ const styles = StyleSheet.create({
 		flexShrink: 1,
 	},
 	// #1375 実機確認: 見出しは «小さくてよい»。大きい見出しが並ぶとチップより目立ってしまう
+	// #1375（5 巡目・デザインレビュー #10）見出しが自分の説明文より薄かった
+	// （12/700 #9CA3AF = プレースホルダ色 vs 説明文 12/400 #6B7280）。
+	// 正本 §2 のセクション見出しは 14–15/700
 	sectionTitle: {
-		fontSize: 12,
+		fontSize: 14,
 		fontWeight: "700",
-		color: "#9CA3AF",
+		color: "#111827",
 		marginBottom: 8,
 	},
 	sectionDescription: {
@@ -680,15 +683,20 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 16,
 		paddingVertical: 12,
 		borderTopWidth: 1,
-		borderTopColor: "#EEE",
+		// #1375（5 巡目・デザインレビュー #18）`#EEE` は正本のパレットに無い。罫線は #E5E7EB へ統一
+		borderTopColor: "#E5E7EB",
 	},
+	// #1375（5 巡目・デザインレビュー #21）副 CTA が «枠も地も無い素のテキスト» で、
+	// 隣の赤い「適用する」との差が開きすぎていた。正本 §1「副 CTA は灰背景 + 濃灰文字」
 	resetButton: {
 		paddingHorizontal: 16,
 		paddingVertical: 12,
+		borderRadius: 8,
+		backgroundColor: "#F3F4F6",
 	},
 	resetButtonLabel: {
 		fontSize: 14,
-		color: "#6B7280",
+		color: "#374151",
 		fontWeight: "700",
 	},
 	applyButton: {

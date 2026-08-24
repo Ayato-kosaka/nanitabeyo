@@ -9,7 +9,7 @@
 */
 import type { Region } from "@/components/MapView";
 import type { MyDishPin } from "@shared/api/v1/res";
-import { CLUSTER_ZOOM_MIN_DELTA, clusterMyDishPins, regionForCluster } from "./clustering";
+import { CLUSTER_ZOOM_MIN_DELTA, clusterMyDishPins, isSameClusterScale, regionForCluster } from "./clustering";
 
 const pin = (id: string, latitude: number, longitude: number): MyDishPin =>
 	({
@@ -79,5 +79,54 @@ describe("regionForCluster", () => {
 		const region = regionForCluster(cluster);
 		expect(region.latitudeDelta).toBe(CLUSTER_ZOOM_MIN_DELTA);
 		expect(region.longitudeDelta).toBe(CLUSTER_ZOOM_MIN_DELTA);
+	});
+});
+
+/**
+ * #1375（5 巡目・性能レビュー B-1）pan だけでは畳み直さないこと。
+ *
+ * `onRegionChangeComplete` は指を離すたびに新しい Region オブジェクトを寄こす。
+ * それをそのまま useMemo の依存へ入れていたので、**地図を少し動かすだけで
+ * 最大 300 個のマーカーが作り直されていた**。倍率だけを見て、5% 未満の差は同一とみなす。
+ */
+describe("isSameClusterScale", () => {
+	it("中心だけ動いた（= pan）なら同じ倍率とみなす", () => {
+		expect(
+			isSameClusterScale({ latitudeDelta: 0.05, longitudeDelta: 0.05 }, { latitudeDelta: 0.05, longitudeDelta: 0.05 }),
+		).toBe(true);
+	});
+
+	it("5% 未満のぶれは同じ倍率とみなす（指を離すたびの微差で畳み直さない）", () => {
+		expect(
+			isSameClusterScale(
+				{ latitudeDelta: 0.05, longitudeDelta: 0.05 },
+				{ latitudeDelta: 0.0502, longitudeDelta: 0.0499 },
+			),
+		).toBe(true);
+	});
+
+	it("ズームで倍率が変われば畳み直す", () => {
+		expect(
+			isSameClusterScale({ latitudeDelta: 0.05, longitudeDelta: 0.05 }, { latitudeDelta: 0.1, longitudeDelta: 0.1 }),
+		).toBe(false);
+	});
+
+	it("不正な表示域（0 や負値）との行き来は同一とみなさない", () => {
+		// 0 は «畳まない»（clusterMyDishPins が 1 件ずつ返す）ので、有効値との間は必ず畳み直す
+		expect(
+			isSameClusterScale({ latitudeDelta: 0.05, longitudeDelta: 0.05 }, { latitudeDelta: 0, longitudeDelta: 0 }),
+		).toBe(false);
+		expect(
+			isSameClusterScale({ latitudeDelta: 0, longitudeDelta: 0 }, { latitudeDelta: 0.05, longitudeDelta: 0.05 }),
+		).toBe(false);
+	});
+
+	it("倍率だけ渡してもクラスタリングは成立する（中心は読まない）", () => {
+		const pins = [pin("a", 35.68, 139.76), pin("b", 35.6801, 139.7601), pin("c", 35.9, 140.2)];
+		const byScale = clusterMyDishPins(pins, { latitudeDelta: 0.05, longitudeDelta: 0.05 });
+		const region: Region = { latitude: 0, longitude: 0, latitudeDelta: 0.05, longitudeDelta: 0.05 };
+		const byRegion = clusterMyDishPins(pins, region);
+		expect(byScale).toEqual(byRegion);
+		expect(byScale.map((c) => c.pins.length)).toEqual([2, 1]);
 	});
 });

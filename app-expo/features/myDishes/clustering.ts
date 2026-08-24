@@ -54,7 +54,36 @@ export type MyDishPinCluster = {
  * 入力順に走るため、同じ入力なら必ず同じ結果になる（マーカーの並びが取得のたびに
  * 入れ替わらない）。表示域が不正（delta が 0 以下）なら畳まず 1 件ずつ返す。
  */
-export function clusterMyDishPins(pins: readonly MyDishPin[], region: Region | null): MyDishPinCluster[] {
+/**
+ * クラスタリングが実際に読む表示域の情報。**中心座標は読まない。**
+ *
+ * 畳む半径は delta の割合だけで決まるので、pan（中心が動くだけ）ではクラスタは 1 つも変わらない。
+ * 型をここまで絞ってあるのは、呼び出し側（`MyDishesMapView`）が
+ * 「pan では畳み直さない」を型として担保できるようにするためである。
+ */
+export type ClusterScale = Pick<Region, "latitudeDelta" | "longitudeDelta">;
+
+/**
+ * #1375（5 巡目・性能レビュー B-1）**畳み直しが要るほど倍率が変わったか。**
+ *
+ * `onRegionChangeComplete` は指を離すたびに «新しいオブジェクト» を寄こす。
+ * それをそのまま state に入れると、中身が同じでも参照が変わるので `useMemo` が外れ、
+ * 最大 300 個のマーカーが pan のたびに作り直されていた。
+ * 5%（= `CLUSTER_SCALE_EPSILON`）未満の変化は畳み方に影響しないので、前の値を使い続ける。
+ */
+export const CLUSTER_SCALE_EPSILON = 0.05;
+
+export function isSameClusterScale(a: ClusterScale, b: ClusterScale): boolean {
+	const near = (x: number, y: number) => {
+		if (x === y) return true;
+		// 完全一致は上で抜けている。0 や負値（不正な表示域）と有効値の間は必ず畳み直させる
+		if (!(x > 0) || !(y > 0)) return false;
+		return Math.abs(x - y) / Math.max(x, y) < CLUSTER_SCALE_EPSILON;
+	};
+	return near(a.latitudeDelta, b.latitudeDelta) && near(a.longitudeDelta, b.longitudeDelta);
+}
+
+export function clusterMyDishPins(pins: readonly MyDishPin[], region: ClusterScale | null): MyDishPinCluster[] {
 	const valid = pins.filter(
 		(pin) => Number.isFinite(pin.restaurant.latitude) && Number.isFinite(pin.restaurant.longitude),
 	);

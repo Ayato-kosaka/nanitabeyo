@@ -126,6 +126,8 @@ export default function SearchScreen() {
 	);
 	const [locationQuery, setLocationQuery] = useState(restored?.locationQuery ?? "");
 	const [timeSlot, setTimeSlot] = useState<SearchParams["timeSlot"]>(restored?.timeSlot ?? "lunch");
+	// #1375（5 巡目・独立レビュー A-3）人が自分で時間帯を選んだか。自動選択を止めてよいのはこのときだけ
+	const [timeSlotTouched, setTimeSlotTouched] = useState(restored?.timeSlotTouched ?? false);
 	// #533 【仕様】scene 初期値を solo に変更（レコメンドAPI必須化対応）
 	const [scene, setScene] = useState<SearchParams["scene"]>(restored?.scene ?? "solo");
 	const [taste, setTaste] = useState<SearchParams["taste"] | undefined>(restored?.taste);
@@ -189,9 +191,11 @@ export default function SearchScreen() {
 		});
 
 		// 端末時間帯に基づき timeSlot を自動設定
-		// #1375 ただし «前回の続き» を復元したときは人が選んだ時間帯を上書きしない。
-		// （夜に「昼」を選んで検索 → 保存の «見る» → 戻ると勝手に「夜」へ戻る、を防ぐ）
-		if (restoredConditionsRef.current !== null) return;
+		// #1375 ただし **人が自分で選んでいたら**上書きしない
+		// （夜に「昼」を選んで検索 → 保存の «見る» → 戻ると勝手に「夜」へ戻る、を防ぐ）。
+		// ⚠️ 判定に «store が空でないか» を使わないこと。初回マウントで既定値を保存した瞬間に
+		// 成立してしまい、2 度目以降のマウントで自動選択が二度と働かなくなる（独立レビュー A-3）
+		if (restoredConditionsRef.current?.timeSlotTouched) return;
 		const hour = new Date().getHours();
 		const TIME_SLOTS: { until: number; slot: SearchParams["timeSlot"] }[] = [
 			{ until: 5, slot: "late_night" },
@@ -219,6 +223,7 @@ export default function SearchScreen() {
 			distance,
 			priceLevels,
 			showAdvancedFilters,
+			timeSlotTouched,
 		});
 	}, [
 		location,
@@ -231,6 +236,7 @@ export default function SearchScreen() {
 		distance,
 		priceLevels,
 		showAdvancedFilters,
+		timeSlotTouched,
 	]);
 
 	const handleLocationClear = () => {
@@ -478,6 +484,8 @@ export default function SearchScreen() {
 	const handleTimeSlotSelect = (slotId: SearchParams["timeSlot"]) => {
 		lightImpact();
 		setTimeSlot(slotId);
+		// #1375 ここが «人が選んだ» の唯一の入口。以後この端末では時刻による自動選択をしない
+		setTimeSlotTouched(true);
 	};
 
 	// #533 【仕様】scene を必須化（解除不可、レコメンドAPI必須化対応）

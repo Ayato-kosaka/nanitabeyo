@@ -979,7 +979,29 @@
 				"applied": "Filtres mis à jour"
 			}
 		},
-		"searchThisArea": "Rechercher dans cette zone"
+		"searchThisArea": "Rechercher dans cette zone",
+		"tutorial": {
+			"steps": {
+				"views": {
+					"title": "Trois façons de voir votre liste",
+					"body": "Carte, grille et calendrier montrent les mêmes « à goûter » et « goûté ». La carte pour « qu'est-ce que je mange par ici », le calendrier pour « qu'ai-je mangé et quand »."
+				},
+				"openFeed": {
+					"title": "Touchez pour ouvrir en plein écran",
+					"body": "Touchez un repère, une carte ou un jour pour ouvrir cet enregistrement en plein écran.",
+					"axis": "Balayez de haut en bas pour changer de restaurant ou de jour, et sur les côtés pour une autre photo du même."
+				},
+				"add": {
+					"title": "Ajoutez ici à votre liste",
+					"sns": "Collez un lien Instagram, TikTok ou YouTube : nous en lisons le restaurant et le plat, puis l'enregistrons comme « à goûter ».",
+					"eaten": "Déjà goûté ? Utilisez « enregistrer ce que j'ai mangé ». La photo peut venir plus tard, ou pas du tout."
+				},
+				"filter": {
+					"title": "Filtrez quand la liste s'allonge",
+					"body": "Filtrez par « à goûter / goûté », plat, quartier, avec qui et moment de la journée. C'est fait pour réduire les choix, pas pour en ajouter."
+				}
+			}
+		}
 	},
 	"SnsImport": {
 		"title": "Importer depuis les réseaux sociaux",
@@ -1043,6 +1065,15 @@
 			"change": "Modifier",
 			"hint": "Choisissez d’abord l’établissement. Vous pourrez ensuite ajouter photo, avis court, catégorie, prix et note (photo facultative).",
 			"done": "Enregistré comme mangé"
+		}
+	},
+	"Tutorial": {
+		"spotlight": {
+			"skip": "Ignorer",
+			"next": "Suivant",
+			"finish": "Commencer",
+			"progress": "{{current}} / {{total}}",
+			"progressAccessibility": "Étape {{current}} sur {{total}}"
 		}
 	}
 }

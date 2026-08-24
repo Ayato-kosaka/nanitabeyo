@@ -121,18 +121,24 @@ const MyDishCard = memo(function MyDishCard({
 						</View>
 					)}
 				</View>
+				{/*
+				#1375（5 巡目・デザインレビュー #2 / #9）**3 列グリッドのタイルの密度を落とした。**
+
+				幅 119pt のタイルに 6 要素（状態バッジ / 写真なしバッジ / ★ / 料理名 / 店名 /
+				«食べたを記録»）が載っていて、どれも読めていなかった。落としたのは **★ と店名**の 2 つ。
+				どちらもタップ先の全画面 Feed が必ず出しているので、ここに無くても失われない。
+
+				«食べたを記録» は残す（1 タップの近道であり、消すと機能が減る）。ただし
+				`footer` の `alignItems` 既定 = stretch でタイル全幅の赤いピルになっており、
+				1 画面に 9〜12 本並んで **画面唯一の主アクセントであるべき FAB が負けていた**。
+				そこで `alignSelf: "flex-end"` で内容幅へ縮め、色を赤から «写真の上の半透明黒» へ
+				落としてある（`myDishCard.tsx` の `eatenButton`）。赤はこの画面では FAB と
+				状態バッジだけが使う。
+				*/}
 				<View style={styles.footer}>
-					{rating !== null && <Text style={styles.ratingText}>{`★${rating}`}</Text>}
 					<Text style={styles.footerText} numberOfLines={1}>
 						{dishName ?? item.restaurant.name ?? ""}
 					</Text>
-					{/* #1375 実機確認: 一覧に店舗名も出す。1 行目に料理名が出ているときだけ 2 行目を足す
-					    （料理名が無くて店名が 1 行目へ落ちている場合に同じ文字列が 2 行並ぶのを避ける） */}
-					{dishName && !!item.restaurant.name && (
-						<Text style={styles.footerSubText} numberOfLines={1} testID="my-dishes-list-item-restaurant">
-							{item.restaurant.name}
-						</Text>
-					)}
 					{/* #1398 PR4: want 行だけ。押しても親（= 全画面 Feed への遷移）は走らない */}
 					<MyDishEatenButton item={item} onPress={onPressMarkAsEaten} />
 				</View>
@@ -141,11 +147,16 @@ const MyDishCard = memo(function MyDishCard({
 	);
 });
 
-export function MyDishesListView() {
+/**
+ * @param enabled #1375（5 巡目・性能）取得を始めてよいか。
+ *   3 ビューは keep-alive なので、**見えていないビューまで取り直しに行かない**ようにする
+ *   （呼び出し元の `my-dishes/index.tsx` が「タブが前面 かつ このビューが選ばれている」を渡す）
+ */
+export function MyDishesListView({ enabled = true }: { enabled?: boolean } = {}) {
 	const { locale } = useLocale();
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
-	const { items, isLoading, isLoadingMore, error, hasNextPage, loadMore, refresh } = useMyDishesQuery();
+	const { items, isLoading, isLoadingMore, error, hasNextPage, loadMore, refresh } = useMyDishesQuery({ enabled });
 
 	const data = useMemo<MyDishGridItem[]>(() => items.map((item) => ({ id: item.key, item })), [items]);
 

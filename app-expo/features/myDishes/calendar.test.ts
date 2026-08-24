@@ -307,3 +307,41 @@ describe("shouldIgnoreEndReached（#1446 M-1: フッタ高の往復による自�
 		expect(shouldIgnoreEndReached({ monthCountAtLastLoad: 3, monthCount: 3 })).toBe(true);
 	});
 });
+
+/**
+ * #1375（5 巡目・性能レビュー B-3）**変わっていない月は同じオブジェクトで返す。**
+ *
+ * `MonthGrid` / `DayCell` は memo なので、月オブジェクトの参照が変わらない限り再描画しない。
+ * 行が 1 件増えるたびに全月を作り直して返すと、最大 `MAX_CALENDAR_MONTHS` 本の月グリッド
+ * （1 月 = 42 セル）が丸ごと描き直され、カレンダーが目に見えて重くなる。
+ *
+ * 判定は署名文字列ではなく走査（`isSameMonthCells`）で行うようにした。
+ * 文字列を作らないだけで結果は同じであることを、この 2 本が固定する。
+ */
+describe("buildCalendarMonths の previousMonths 再利用", () => {
+	const build = (items: MyDishItem[], previousMonths?: ReturnType<typeof buildCalendarMonths>) =>
+		buildCalendarMonths({ items, nowYm: "2026-08", oldestOccurredAt: null, previousMonths });
+
+	it("中身が同じ月は前回と同じオブジェクトを返す", () => {
+		const items = [makeItem({ key: "a", occurredAt: localNoonIso(2026, 6, 1) })];
+		const first = build(items);
+		const second = build(items, first);
+
+		expect(second).toHaveLength(first.length);
+		second.forEach((month, index) => expect(month).toBe(first[index]));
+	});
+
+	it("中身が変わった月だけ新しいオブジェクトになる（他の月は使い回す）", () => {
+		const base = [makeItem({ key: "a", occurredAt: localNoonIso(2026, 6, 1) })];
+		const first = build(base);
+		const second = build([...base, makeItem({ key: "b", occurredAt: localNoonIso(2026, 7, 3) })], first);
+
+		const byYm = (months: ReturnType<typeof buildCalendarMonths>, ym: string) =>
+			months.find((month) => month.ym === ym);
+
+		// 7 月に 1 件増えた → 7 月だけ作り直され、6 月・8 月は前回のまま
+		expect(byYm(second, "2026-07")).not.toBe(byYm(first, "2026-07"));
+		expect(byYm(second, "2026-06")).toBe(byYm(first, "2026-06"));
+		expect(byYm(second, "2026-08")).toBe(byYm(first, "2026-08"));
+	});
+});

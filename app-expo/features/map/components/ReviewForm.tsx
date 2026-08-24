@@ -1252,6 +1252,9 @@ export function ReviewForm({
 						// 表示と操作可否がズレない。進捗率は取得できないので不定形スピナーで十分とする
 						loading={isSubmitting}
 						disabled={isProcessing || !isValid}
+						// #1375（5 巡目・デザインレビュー #4）無効時は透過ではなく灰へ。
+						// 赤に透過を掛けると白文字が読めなくなる（参照実装の検索画面と同じ手）
+						colors={isProcessing || !isValid ? ["#999999", "#999999"] : undefined}
 						shadowColor="transparent"
 						style={{ marginHorizontal: 16 }}
 					/>
@@ -1388,7 +1391,11 @@ const styles = StyleSheet.create({
 		marginTop: 16,
 		height: 48,
 	},
+	// #1375（5 巡目・デザインレビュー #15）すぐ上のレビュー欄は枠があるのに、
+	// ここだけ枠が無く «押せる物» に見えなかった
 	priceInputContainer: {
+		borderWidth: 1,
+		borderColor: "#D1D5DB",
 		flexDirection: "row",
 		alignItems: "center",
 		borderRadius: 8,
@@ -1464,7 +1471,8 @@ const styles = StyleSheet.create({
 		lineHeight: 18,
 	},
 	consentLink: {
-		color: "#2563EB",
+		// #1375（5 巡目・デザインレビュー #3）パレットに無い青をやめ、下線でリンクと示す
+		color: "#111827",
 		textDecorationLine: "underline",
 	},
 	// #1398 R4 同意文言の直下に置く「公開レビューになる」告知

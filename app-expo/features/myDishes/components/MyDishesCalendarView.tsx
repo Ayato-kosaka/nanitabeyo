@@ -201,7 +201,12 @@ const MonthGrid = memo(function MonthGrid({
 	);
 });
 
-export function MyDishesCalendarView() {
+/**
+ * @param enabled #1375（5 巡目・性能）取得を始めてよいか。
+ *   3 ビューは keep-alive なので、**見えていないビューまで取り直しに行かない**ようにする
+ *   （呼び出し元の `my-dishes/index.tsx` が「タブが前面 かつ このビューが選ばれている」を渡す）
+ */
+export function MyDishesCalendarView({ enabled = true }: { enabled?: boolean } = {}) {
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { locale } = useLocale();
@@ -215,7 +220,7 @@ export function MyDishesCalendarView() {
 		oldestOccurredAt,
 		loadMore,
 		refresh,
-	} = useMyDishesCalendarQuery();
+	} = useMyDishesCalendarQuery({ enabled });
 
 	// 「今月」はマウント時に 1 度だけ決める（毎レンダー new Date() すると months が作り直される）。
 	// ⚠️ #1446 m-4（申し送り・本 PR では直さない）: keep-alive でアンマウントされないため、
@@ -456,15 +461,17 @@ const styles = StyleSheet.create({
 	// 行の高さもそれに合わせる
 	dayCell: {
 		flex: 1,
-		height: 54,
+		// #1375（5 巡目・デザインレビュー #23）円がセル幅の 94%（48/51.1）で、
+		// 記録が続く週は円が繋がって 1 本の帯に見えていた。要素は減らさず余白だけ作る
+		height: 58,
 		alignItems: "center",
 		justifyContent: "center",
 	},
 	// 円形。`borderRadius: 999` ではなく `overflow: hidden` と併せて正円にする
 	dayCircle: {
-		width: 48,
-		height: 48,
-		borderRadius: 24,
+		width: 44,
+		height: 44,
+		borderRadius: 22,
 		overflow: "hidden",
 		alignItems: "center",
 		justifyContent: "center",

@@ -13,7 +13,7 @@ import { profileSavedDishCategoriesEntriesKey } from "@/features/profile/tabs/Sa
 import i18n from "@/lib/i18n";
 import { toErrorLogMessage } from "@/lib/errorMessage";
 import { type DishCategoryImageResourceState } from "@/features/dishCategories/hooks/useDishCategoryImageResources";
-import type { DishCategoriesTutorialTargetRefs } from "@/features/dishCategories/types/tutorial";
+import type { DishCategoriesTutorialTargetRefs } from "@/features/tutorial/types/spotlight";
 import { DishCategoryVisualCard } from "./DishCategoryVisualCard";
 import type { CardRect } from "./DishCategoryCardExpandTransition";
 

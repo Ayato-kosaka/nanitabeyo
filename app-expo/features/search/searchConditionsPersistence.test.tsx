@@ -113,6 +113,7 @@ const SAVED: SearchConditions = {
 	} as SearchConditions["location"],
 	locationQuery: "渋谷",
 	timeSlot: "morning",
+	timeSlotTouched: true,
 	scene: "friends",
 	taste: "spicy",
 	coreIngredient: undefined,
@@ -186,5 +187,42 @@ describe("#1375 探すタブの検索条件が画面の作り直しで消えな�
 		useSearchConditionsStore.getState().save({ ...SAVED, location: null, locationQuery: "" });
 		render();
 		expect(mockRequestAutoCurrentLocation).toHaveBeenCalled();
+	});
+});
+
+/*
+#1375（5 巡目・独立レビュー A-3）「保存されているか」ではなく「人が時間帯を選んだか」で
+自動選択を止める。前者だと、初回マウントで既定値を保存した瞬間に成立してしまい、
+2 度目以降のマウントで **端末時刻による自動選択が二度と働かなくなる**。
+*/
+describe("#1375 時間帯の自動選択は «人が選ぶまで» 働き続ける", () => {
+	beforeEach(() => {
+		useSearchConditionsStore.getState().reset();
+		mockRequestAutoCurrentLocation.mockClear();
+		jest.useFakeTimers();
+		jest.setSystemTime(new Date(2026, 7, 23, 20, 0, 0));
+	});
+	afterEach(() => {
+		jest.useRealTimers();
+	});
+
+	it("1 度目のマウントで保存されても、2 度目のマウントで自動選択がまた働く", () => {
+		// 1 度目: 誰も触っていない。端末時刻（20 時）から dinner になり、その条件が保存される
+		render();
+		expect(useSearchConditionsStore.getState().conditions?.timeSlot).toBe("dinner");
+		expect(useSearchConditionsStore.getState().conditions?.timeSlotTouched).toBe(false);
+
+		// 2 度目: 時計を朝へ進める。人はまだ何も選んでいないので、朝の時間帯が選ばれるべき
+		jest.setSystemTime(new Date(2026, 7, 24, 8, 0, 0));
+		const tree = render();
+		expect(propOf(tree, "search-time-slot-morning", "data-selected")).toBe(true);
+	});
+
+	it("人が選んだあとは、時計が変わっても上書きしない", () => {
+		useSearchConditionsStore.getState().save({ ...SAVED, timeSlot: "morning", timeSlotTouched: true });
+		const tree = render();
+		// 端末時刻は 20 時（dinner）だが、人が選んだ morning のまま
+		expect(propOf(tree, "search-time-slot-morning", "data-selected")).toBe(true);
+		expect(propOf(tree, "search-time-slot-dinner", "data-selected")).toBe(false);
 	});
 });

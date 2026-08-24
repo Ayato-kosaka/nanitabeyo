@@ -189,6 +189,9 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 16,
 		paddingTop: 8,
 		gap: 8,
+		// #1375（5 巡目・デザインレビュー #8）右下の FAB（＋、56pt + 右余白 16）が
+		// 最後のタイルと店名を隠していた。タイルが FAB の下へ入らないよう右を空ける
+		paddingRight: 88,
 	},
 	tile: {
 		width: TILE_WIDTH,
