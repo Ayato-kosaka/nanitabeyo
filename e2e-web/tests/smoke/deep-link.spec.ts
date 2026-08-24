@@ -154,7 +154,8 @@ test.describe("ディープリンク @smoke", () => {
  * 使っている検知点で、全 spec で無視すると «公開ルートの hydration 不一致» が見えなくなる。
  */
 test.describe("存在しないパス @smoke", () => {
-	test.use({ allowedConsoleErrors: [/Minified React error #418/, /Hydration failed/] });
+	// 部分一致（本番ビルドは minify 済みの #418、dev ビルドは "Hydration failed" の文言で出る）
+	test.use({ allowedConsoleErrors: ["Minified React error #418", "Hydration failed"] });
 
 	// ─ テストケース: 存在しないパスで NotFound 画面が表示される ─
 	// 手順:

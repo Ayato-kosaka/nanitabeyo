@@ -27,15 +27,22 @@ type AppOptions = {
 	 */
 	seedTopicsTutorialSeen: boolean;
 	/**
-	 * この spec では «出て当然» の console error / pageerror。ここに一致するものは収集しない。
+	 * この spec では «出て当然» の console error / pageerror。**部分一致**したものは収集しない。
 	 *
 	 * `KNOWN_CONSOLE_NOISE` との違いは **適用範囲** である。あちらは «どの spec でも無害» な
 	 * ノイズ用で、ここは «その spec の前提そのものがエラーを生む» 場合に使う。
 	 * hydration 失敗（React error #418）のような検知したい種類のエラーを
 	 * `KNOWN_CONSOLE_NOISE` へ入れると **全 spec で見えなくなる**ので、必ずこちらを使い、
 	 * `test.use()` の直近に «なぜ出て当然なのか» を書くこと。
+	 *
+	 * ⚠️ **正規表現の配列にしないこと。** Playwright はフィクスチャ値が
+	 * `Array.isArray(value) && typeof value[1] === "object"` を満たすと «[値, オプション]» の
+	 * タプルとみなす（playwright/lib の `isFixtureTuple`）。`RegExp` は object なので
+	 * `test.use({ allowedConsoleErrors: [/a/, /b/] })` は 2 要素目をオプション扱いで剥がされ、
+	 * 値が配列でなくなって実行時に `allowedConsoleErrors.some is not a function` で落ちる
+	 *（run 32718781438 で実測）。文字列なら `typeof value[1] === "string"` なのでこの罠を踏まない。
 	 */
-	allowedConsoleErrors: RegExp[];
+	allowedConsoleErrors: string[];
 };
 
 /** テストへ提供するフィクスチャ */
@@ -99,7 +106,7 @@ export const test = base.extend<AppOptions & AppFixtures>({
 			const errors: string[] = [];
 			const isIgnored = (text: string) =>
 				KNOWN_CONSOLE_NOISE.some((pattern) => pattern.test(text)) ||
-				allowedConsoleErrors.some((pattern) => pattern.test(text));
+				allowedConsoleErrors.some((allowed) => text.includes(allowed));
 
 			// console.error と未捕捉例外 (pageerror) の両方を収集する
 			page.on("console", (message) => {
