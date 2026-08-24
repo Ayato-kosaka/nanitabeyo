@@ -24,8 +24,21 @@ import type { Palette } from "@/constants/Palette";
  * ## 色
  * テーマ追従のトークン（`constants/Palette.ts`）だけで組む。墓標は写真の代わりに
  * **アプリの地の上へ**出るものなので、`FixedColors`（写真・動画の上専用）は使わない。
- * ダークで地に沈まないよう、面は `divider`（地より一段明るい / 暗い面）、
- * 文字は `textSecondary`、アイコンは `textTertiary` を使う。
+ * ダークで地に沈まないよう、面は `divider`（地より一段明るい / 暗い面）を使う。
+ *
+ * 文字は `textSecondaryAlt`、アイコンは `textSecondary`。ここは実測して決めた値で、
+ * **一段淡いトークンでは WCAG を割る**（`divider` の面に対するコントラスト比）:
+ *
+ * |            | ライト | ダーク | 必要 |
+ * | ---------- | ------ | ------ | ---- |
+ * | 文字 `textSecondaryAlt` | 6.87:1 | 8.44:1 | 4.5:1 (AA・小さい文字) |
+ * | 文字 `textSecondary`（不可） | **4.39:1** | 6.20:1 | 同上 |
+ * | アイコン `textSecondary` | 4.39:1 | 6.20:1 | 3:1 (1.4.11 非文字) |
+ * | アイコン `textTertiary`（不可） | **2.31:1** | 4.52:1 | 同上 |
+ *
+ * 文字は 10pt（= 小さい文字）なので AA は 4.5:1 が要る。ライトで 4.39:1 は割っている。
+ * アイコンだけの variant（`cell` / `pin`）では、そのアイコンが «削除された» を伝える
+ * 唯一の手掛かりなので、3:1 は必ず満たすこと。
  */
 
 /*
@@ -76,7 +89,7 @@ export function DeletedMediaTombstone({
 			style={[styles.container, variant === "cell" && styles.cellContainer, style]}
 			// 文字を出さない variant でも、削除されたことは支援技術へ必ず伝える
 			accessibilityLabel={i18n.t("MyDishes.deleted.a11yLabel")}>
-			<ImageOff size={ICON_SIZE[variant]} color={colors.textTertiary} />
+			<ImageOff size={ICON_SIZE[variant]} color={colors.textSecondary} />
 			{showLabel && (
 				<Text testID={`${testID}-label`} style={styles.label} numberOfLines={2}>
 					{i18n.t("MyDishes.deleted.label")}
@@ -102,7 +115,7 @@ const createStyles = (colors: Palette) =>
 		},
 		label: {
 			fontSize: 10,
-			color: colors.textSecondary,
+			color: colors.textSecondaryAlt,
 			textAlign: "center",
 		},
 	});
