@@ -387,6 +387,18 @@ PRE_SHA: 4f56996c...
 
 `tail_lines` が小さすぎると post-job cleanup しか返らない。120 前後を指定すること。
 
+env の 3 値の読み方（実測した組み合わせ）:
+
+| CLAUDE_SUBTYPE | IS_ERROR | NUM_TURNS | 意味 | 取るべき手 |
+| --- | --- | --- | --- | --- |
+| `error_max_turns` | true | 上限+1 | turn 切れ | **上げるのではなく割る**。push 済みなら成果は残っている |
+| `success` | **true** | **1** | **何もせず 1 ターンで引き返した**（run 32697670173 は 5 分で終了・commit ゼロ・denials 0） | ここだけは **1 回だけそのまま再実行してよい**。仕事の形の問題ではないため |
+| `success` | false | — | 正常終了 | branch / PR の実在を別途確認する |
+
+`success` + `is_error=true` + `turns=1` は「プロンプトが悪い」でも「権限が無い」でもない。
+CLAUDE_DENIALS が 0 で、かつ HEAD が動いていないことを併せて確認したうえで、
+**task_key を変えて 1 回だけ**再投入する。2 回続けて同じなら形を疑うこと。
+
 **turn 切れでも Artifact は上がっている**ことがある。同じ 2026-08-24 の
 run 32683977248（ダークモードのエビデンス撮影）は `error_max_turns`（turns=91 / 上限 90）で
 commit ゼロだったが、**61 ファイル・9.4 MB の Artifact は upload 済み**だった。
@@ -811,6 +823,7 @@ write run でも同じ口を使う。**「どちらの手段を採ったか」�
 | 見えるもの | 意味 | 直す場所 |
 | --- | --- | --- |
 | `subtype=error_max_turns` | ターン切れ | 下の「ターン切れは…」節。**max_turnsを上げるだけでは直らない** |
+| `subtype=success` かつ `is_error=true` かつ `turns=1` | 何もせず引き返した | task_key を変えて 1 回だけ再投入してよい（上の表） |
 | `permission_denials>0` + `claude-denial:` にツール名 | 権限で弾かれて作業できなかった | プロンプト側でそのツールを使わせない、または `extra_claude_args` の `--allowedTools` |
 | `subtype=success` かつ `permission_denials=0` なのに commit 無し | プロンプトの不備（何をcommitすべきか伝わっていない） | プロンプトへ「push まで完了させること」を明示 |
 | ジョブが「Claude Codeを実行」の途中で failure | 本当に異常終了・認証・上限 | 認証と利用枠を確認 |
