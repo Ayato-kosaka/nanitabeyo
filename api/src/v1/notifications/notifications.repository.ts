@@ -139,6 +139,21 @@ export class NotificationsRepository {
   }
 
   /**
+   * #1506 GRP-04: 投票通知の enrichment 用に、対象セッションの shareToken をまとめて引く。
+   * @param sessionIds dish_category_group_vote_sessions.id の配列
+   */
+  async findGroupVoteSessionsByIds(
+    sessionIds: string[],
+  ): Promise<{ id: string; share_token: string }[]> {
+    if (sessionIds.length === 0) return [];
+
+    return this.prisma.prisma.dish_category_group_vote_sessions.findMany({
+      where: { id: { in: sessionIds } },
+      select: { id: true, share_token: true },
+    });
+  }
+
+  /**
    * デバイストークンを登録/更新
    * @param userId ユーザーID
    * @param expoPushToken Expo Push Token

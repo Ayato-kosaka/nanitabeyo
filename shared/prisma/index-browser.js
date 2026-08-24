@@ -205,7 +205,8 @@ exports.Prisma.Dish_category_group_vote_sessionsScalarFieldEnum = {
   share_token: 'share_token',
   search_context: 'search_context',
   created_at: 'created_at',
-  updated_at: 'updated_at'
+  updated_at: 'updated_at',
+  idempotency_key: 'idempotency_key'
 };
 
 exports.Prisma.Dish_category_localized_textScalarFieldEnum = {
@@ -236,7 +237,8 @@ exports.Prisma.Dish_mediaScalarFieldEnum = {
   lock_no: 'lock_no',
   video_duration_ms: 'video_duration_ms',
   media_processing_status: 'media_processing_status',
-  thumbnail_processing_status: 'thumbnail_processing_status'
+  thumbnail_processing_status: 'thumbnail_processing_status',
+  render_type: 'render_type'
 };
 
 exports.Prisma.Dish_media_analysis_resultsScalarFieldEnum = {
@@ -251,6 +253,19 @@ exports.Prisma.Dish_media_analysis_resultsScalarFieldEnum = {
   open_map_total: 'open_map_total',
   created_at: 'created_at',
   updated_at: 'updated_at'
+};
+
+exports.Prisma.Dish_media_external_embeddingsScalarFieldEnum = {
+  dish_media_id: 'dish_media_id',
+  dish_id: 'dish_id',
+  provider: 'provider',
+  external_content_id: 'external_content_id',
+  canonical_url: 'canonical_url',
+  embed_status: 'embed_status',
+  last_verified_at: 'last_verified_at',
+  created_at: 'created_at',
+  updated_at: 'updated_at',
+  thumbnail_url: 'thumbnail_url'
 };
 
 exports.Prisma.Dish_media_impressionsScalarFieldEnum = {
@@ -293,7 +308,8 @@ exports.Prisma.Dish_reviewsScalarFieldEnum = {
   created_dish_media_id: 'created_dish_media_id',
   imported_user_name: 'imported_user_name',
   imported_user_avatar: 'imported_user_avatar',
-  created_at: 'created_at'
+  created_at: 'created_at',
+  eaten_at: 'eaten_at'
 };
 
 exports.Prisma.DishesScalarFieldEnum = {
@@ -303,7 +319,9 @@ exports.Prisma.DishesScalarFieldEnum = {
   name: 'name',
   created_at: 'created_at',
   updated_at: 'updated_at',
-  lock_no: 'lock_no'
+  lock_no: 'lock_no',
+  data_origin: 'data_origin',
+  synced_at: 'synced_at'
 };
 
 exports.Prisma.External_api_logsScalarFieldEnum = {
@@ -446,7 +464,11 @@ exports.Prisma.RestaurantsScalarFieldEnum = {
   address_components: 'address_components',
   plus_code: 'plus_code',
   created_at: 'created_at',
-  image_path: 'image_path'
+  image_path: 'image_path',
+  source_seed_id: 'source_seed_id',
+  source_names: 'source_names',
+  source_row_hash: 'source_row_hash',
+  synced_at: 'synced_at'
 };
 
 exports.Prisma.Role_permissionsScalarFieldEnum = {
@@ -512,7 +534,8 @@ exports.Prisma.UsersScalarFieldEnum = {
   lock_no: 'lock_no',
   username: 'username',
   preferred_locale: 'preferred_locale',
-  avatar_path: 'avatar_path'
+  avatar_path: 'avatar_path',
+  deleted_at: 'deleted_at'
 };
 
 exports.Prisma.SortOrder = {
@@ -590,6 +613,7 @@ exports.Prisma.ModelName = {
   dish_category_variants: 'dish_category_variants',
   dish_media: 'dish_media',
   dish_media_analysis_results: 'dish_media_analysis_results',
+  dish_media_external_embeddings: 'dish_media_external_embeddings',
   dish_media_impressions: 'dish_media_impressions',
   dish_media_likes: 'dish_media_likes',
   dish_media_views: 'dish_media_views',

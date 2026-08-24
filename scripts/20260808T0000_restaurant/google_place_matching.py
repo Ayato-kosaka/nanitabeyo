@@ -39,6 +39,7 @@ from __future__ import annotations
 
 import json
 import math
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -193,6 +194,17 @@ def decide_match(
     return MatchDecision(candidate, "box_unique_strict")
 
 
+# 日次クォータ枯渇のマーカー。分次（per minute）は数十秒待てば回復するので
+# 再試行するが、日次（per day）は翌日まで回復しないため即座に止める。
+# これが無いと、枯渇後の全 seed に api_error の attempt 行が書かれ、
+# resume の対象から外れて「二度と照合されない」状態になる（実際に15,376件で発生）。
+DAILY_QUOTA_MARKERS = ("per day", "PerDayPerProject")
+
+
+class DailyQuotaExhausted(RuntimeError):
+    """Text Search の日次クォータを使い切った。その日はもう送れない。"""
+
+
 class PlacesTextSearchClient:
     """標準ライブラリだけでText Search (New)を呼ぶ小さなclient。
 
@@ -212,13 +224,18 @@ class PlacesTextSearchClient:
         self.timeout_seconds = timeout_seconds
         self.max_retries = max_retries
         self.minimum_interval_seconds = 1.0 / qps
-        self._last_request_at: float | None = None
+        self._lock = threading.Lock()
+        self._next_request_at = 0.0
 
     def _throttle(self) -> None:
-        if self._last_request_at is not None:
-            elapsed = time.monotonic() - self._last_request_at
-            time.sleep(max(0.0, self.minimum_interval_seconds - elapsed))
-        self._last_request_at = time.monotonic()
+        # 複数workerで共有する前提のスロット予約式。lockの中では「自分の送信時刻」を
+        # 予約するだけで、sleepはlockの外で行う。lock内でsleepすると全workerが
+        # 直列化され、逐次実行（実効3〜4req/s）に戻ってしまう。
+        with self._lock:
+            now = time.monotonic()
+            start = max(now, self._next_request_at)
+            self._next_request_at = start + self.minimum_interval_seconds
+        time.sleep(max(0.0, start - time.monotonic()))
 
     def search(self, payload: dict[str, Any]) -> TextSearchResult:
         encoded = json.dumps(payload, ensure_ascii=False).encode("utf-8")
@@ -254,6 +271,11 @@ class PlacesTextSearchClient:
             except urllib.error.HTTPError as error:
                 status = int(error.code)
                 message = error.read(4096).decode("utf-8", errors="replace")
+                if status == 429 and any(
+                    marker in message for marker in DAILY_QUOTA_MARKERS
+                ):
+                    # 再試行しても回復しない。呼び出し側で run 全体を止める。
+                    raise DailyQuotaExhausted(message[:2000]) from error
                 if (
                     status not in {429, 500, 502, 503, 504}
                     or attempt >= self.max_retries

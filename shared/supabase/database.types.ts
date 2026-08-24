@@ -308,6 +308,7 @@ export type Database = {
           created_at: string
           host_user_id: string
           id: string
+          idempotency_key: string | null
           search_context: Json
           share_token: string
           updated_at: string
@@ -316,6 +317,7 @@ export type Database = {
           created_at?: string
           host_user_id: string
           id?: string
+          idempotency_key?: string | null
           search_context?: Json
           share_token: string
           updated_at?: string
@@ -324,6 +326,7 @@ export type Database = {
           created_at?: string
           host_user_id?: string
           id?: string
+          idempotency_key?: string | null
           search_context?: Json
           share_token?: string
           updated_at?: string
@@ -400,9 +403,10 @@ export type Database = {
           dish_id: string
           id: string
           lock_no: number
-          media_path: string
+          media_path: string | null
           media_processing_status: string
           media_type: string
+          render_type: string
           thumbnail_path: string
           thumbnail_processing_status: string
           updated_at: string
@@ -414,9 +418,10 @@ export type Database = {
           dish_id: string
           id?: string
           lock_no?: number
-          media_path: string
+          media_path?: string | null
           media_processing_status: string
           media_type: string
+          render_type?: string
           thumbnail_path: string
           thumbnail_processing_status: string
           updated_at?: string
@@ -428,9 +433,10 @@ export type Database = {
           dish_id?: string
           id?: string
           lock_no?: number
-          media_path?: string
+          media_path?: string | null
           media_processing_status?: string
           media_type?: string
+          render_type?: string
           thumbnail_path?: string
           thumbnail_processing_status?: string
           updated_at?: string
@@ -631,7 +637,7 @@ export type Database = {
           comment: string
           comment_tsv: unknown
           created_at: string
-          created_dish_media_id: string
+          created_dish_media_id: string | null
           currency_code: string | null
           dish_id: string
           id: string
@@ -646,7 +652,7 @@ export type Database = {
           comment: string
           comment_tsv?: unknown
           created_at?: string
-          created_dish_media_id: string
+          created_dish_media_id?: string | null
           currency_code?: string | null
           dish_id: string
           id?: string
@@ -661,7 +667,7 @@ export type Database = {
           comment?: string
           comment_tsv?: unknown
           created_at?: string
-          created_dish_media_id?: string
+          created_dish_media_id?: string | null
           currency_code?: string | null
           dish_id?: string
           id?: string
@@ -1327,6 +1333,7 @@ export type Database = {
           avatar_path: string | null
           bio: string | null
           created_at: string
+          deleted_at: string | null
           display_name: string | null
           id: string
           last_login_at: string | null
@@ -1339,6 +1346,7 @@ export type Database = {
           avatar_path?: string | null
           bio?: string | null
           created_at?: string
+          deleted_at?: string | null
           display_name?: string | null
           id?: string
           last_login_at?: string | null
@@ -1351,6 +1359,7 @@ export type Database = {
           avatar_path?: string | null
           bio?: string | null
           created_at?: string
+          deleted_at?: string | null
           display_name?: string | null
           id?: string
           last_login_at?: string | null

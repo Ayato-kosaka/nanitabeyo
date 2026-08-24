@@ -63,6 +63,13 @@ jobs:
       - name: 依存関係をインストール
         run: pnpm install --frozen-lockfile
 
+      # #0 ドキュメント管理規約（docs/README.md）のうち機械的に検査できる部分。
+      # 2026-08 に *_IMPLEMENTATION.md / *_SUMMARY.md が堆積し、存在しない API を説明する
+      # 文書が複数残る事故が起きた（docs/decisions/20260823-documentation-cleanup.md）。
+      # git ls-files を見るだけで依存ゼロ・1 秒未満なので最速の位置に置く。
+      - name: ドキュメント管理規約を検査
+        run: pnpm assert:doc-hygiene
+
       # 4-1 は shared/dist を import せず shared/remoteConfig/remoteConfig.schema.ts を
       # AST として読むだけなので、shared build より前に置いて最速で赤にできる。
       - name: Remote Config 既定値のドリフトを検査

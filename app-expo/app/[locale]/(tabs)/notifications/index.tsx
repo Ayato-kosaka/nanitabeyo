@@ -8,7 +8,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity } from "react-native
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Image } from "expo-image";
 import i18n from "@/lib/i18n";
-import { Heart, Bookmark } from "lucide-react-native";
+import { Heart, Bookmark, Vote } from "lucide-react-native";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useNotifications } from "@/features/notifications/hooks/useNotifications";
 import { useMarkNotificationsRead } from "@/features/notifications/hooks/useMarkNotificationsRead";
@@ -98,6 +98,15 @@ export default function NotificationsScreen() {
 					pathname: "/[locale]/(tabs)/notifications/feed",
 					params: { locale, idType: "dish_reviews" },
 				});
+			} else if (
+				target_table === "dish_category_group_vote_sessions" &&
+				notification.dishCategoryGroupVoteSession !== undefined
+			) {
+				// #1506 GRP-04 【仕様】投票通知は結果画面（shareToken）へ遷移
+				router.push({
+					pathname: "/[locale]/(tabs)/search/dish-category-group-votes/[shareToken]",
+					params: { locale, shareToken: notification.dishCategoryGroupVoteSession.shareToken },
+				});
 			}
 			// #通知機能 【設計】他の target_table は今後追加予定
 		},
@@ -113,6 +122,8 @@ export default function NotificationsScreen() {
 				return <Heart {...iconProps} fill="#FFFFFF" />;
 			case "save":
 				return <Bookmark {...iconProps} fill="#FFFFFF" />;
+			case "vote":
+				return <Vote {...iconProps} />;
 			default:
 				return <Heart {...iconProps} />;
 		}
@@ -125,6 +136,8 @@ export default function NotificationsScreen() {
 				return "#FF3040";
 			case "save":
 				return "#5856D6";
+			case "vote":
+				return "#34C759";
 			default:
 				return "#FF3040";
 		}
@@ -132,6 +145,9 @@ export default function NotificationsScreen() {
 
 	// #通知機能 【仕様】アクター名を多言語対応で表示（Intl.ListFormat）
 	const formatActorNames = useCallback((actors: NotificationItem["actors"]) => {
+		// #1557 【設計】匿名ユーザー（users 行が無い actor）は API の actors から落ちるため
+		// 空配列になる。ProfileHeader のゲスト表示と同じ文言（Profile.guestDisplayName）で表示する
+		if (actors.length === 0) return i18n.t("Profile.guestDisplayName");
 		const names = actors.map((a: NotificationItem["actors"][number]) => a.display_name || "Unknown");
 		const locale = i18n.locale;
 
@@ -161,17 +177,33 @@ export default function NotificationsScreen() {
 			const iconBgColor = getIconBackgroundColor(item.notification.action_type);
 			const actorNames = formatActorNames(item.actors);
 			const message = getNotificationMessage(item);
-			const avatar = item.actors?.[0].avatarUrls?.sm || "https://via.placeholder.com/50";
+			// #1557 【バグ】匿名 actor だと actors は空配列になり、`[0].avatarUrls` の直参照が
+			// TypeError で画面全体を落としていた。actor 不在はゲストとして扱う
+			const firstActor = item.actors?.[0];
+			const avatar = firstActor?.avatarUrls?.sm || "https://via.placeholder.com/50";
 
 			return (
 				<TouchableOpacity
+					// #1506 GRP-04 【テスト】行とアイコンに action_type 込みの testID を付ける。
+					// 通知 id は E2E から予測できないので id は載せず、**種別で引ける**ことを優先した
+					// （e2e-web は .first()、Detox は atIndex(0) で先頭行＝最新の通知を掴む）。
+					// これが無いと「vote 通知が一覧に出た」「押すと結果画面へ行く」を外から観測できない
+					// （screens/NotificationsScreen.ts が「内容の検証が要るなら都度足すこと」と書いている通り）。
+					testID={`notification-item-${item.notification.action_type}`}
 					style={styles.notificationItem}
 					onPress={() => handleNotificationPress(item)}
 					activeOpacity={0.7}>
 					{/* Left: Avatar with Action Icon */}
 					<View style={styles.avatarContainer}>
-						<Image source={{ uri: avatar, cacheKey: getCacheKeyForImage(avatar) }} style={styles.avatar} />
-						<View style={[styles.actionIcon, { backgroundColor: iconBgColor }]}>
+						{firstActor ? (
+							<Image source={{ uri: avatar, cacheKey: getCacheKeyForImage(avatar) }} style={styles.avatar} />
+						) : (
+							// #1557 【設計】ゲストのアバターは ProfileHeader のゲスト表示と同じアプリアイコン
+							<Image source={require("@/assets/images/icon.webp")} style={styles.avatar} />
+						)}
+						<View
+							testID={`notification-icon-${item.notification.action_type}`}
+							style={[styles.actionIcon, { backgroundColor: iconBgColor }]}>
 							{getNotificationIcon(item.notification.action_type)}
 						</View>
 					</View>
@@ -210,7 +242,15 @@ export default function NotificationsScreen() {
 		return (
 			<SafeAreaView style={styles.container} edges={["top"]}>
 				<View style={styles.header}>
-					<Text style={styles.headerTitle}>{i18n.t("Notifications.title")}</Text>
+					{/* #1503 【テスト】ログイン済みの分岐と **同じ testID** を付けること。
+					    直リンクスモーク（e2e-web tests/smoke/deep-link.spec.ts）と Detox の
+					    SafeArea 実測（e2e-mobile tests/mutation/notifications-safe-area.test.ts）は
+					    どちらもこの testID を «お知らせ画面が描画された印» にしている。
+					    どちらのセッションも匿名なので、実際に評価されるのは **こちらの分岐**である。
+					    testID がこちらに無いと «画面は出ているのにテストからは見えない» 状態になる */}
+					<Text testID="notifications-header-title" style={styles.headerTitle}>
+						{i18n.t("Notifications.title")}
+					</Text>
 				</View>
 				<View style={styles.emptyContainer}>
 					<Text style={styles.emptyText}>{i18n.t("Notifications.empty")}</Text>

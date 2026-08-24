@@ -24,6 +24,7 @@ import { useDishMediaActions } from "../hooks/useDishMediaActions";
 import { GestureDetector } from "react-native-gesture-handler";
 import type { GestureType } from "react-native-gesture-handler";
 import { toErrorLogMessage } from "@/lib/errorMessage";
+import { useSnackbar } from "@/contexts/SnackbarProvider";
 
 interface ActionButtonsProps {
 	id: string;
@@ -68,6 +69,7 @@ function ActionButtonsContent({
 	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
 	const { lightImpact } = useHaptics();
+	const { showSnackbar } = useSnackbar();
 	const { isSaved, isLiked, likeCount } = entry.dish_media;
 	const dishMediaId = entry.dish_media.id;
 	const { restaurant } = entry;
@@ -98,8 +100,13 @@ function ActionButtonsContent({
 
 		lightImpact();
 		const willLike = !isLiked;
+		// #1501 【修正】API失敗時に戻す「操作前の値」。!willLike(トグルの反転)ではなく、
+		// 楽観更新の直前に読んだ値そのものを保持する。反転で戻すと、他端末/別画面からの
+		// 更新が割り込んでいた場合に誤った値を書き戻してしまう
+		const previousIsLiked = isLiked;
+		const previousLikeCount = likeCount;
 		// #259 【バグ】いいね数が0未満にならないよう下限0を保証
-		let newLikeCount = willLike ? likeCount + 1 : Math.max(0, likeCount - 1);
+		const newLikeCount = willLike ? likeCount + 1 : Math.max(0, likeCount - 1);
 		const { updateEntry, updateMediaIdsByKey } = useDishMediaEntriesStore.getState();
 		updateEntry(String(dishMediaId), (entry) => ({
 			...entry,
@@ -109,6 +116,17 @@ function ActionButtonsContent({
 				likeCount: newLikeCount,
 			},
 		}));
+
+		// #1501 【修正】liked タブの一覧も dish_media 本体と同じタイミングで楽観更新し、
+		// 失敗時にロールバックできるよう更新前の一覧を保持しておく
+		// #460 【設計】いいね ON → liked タブの先頭に移動、いいね OFF → liked タブから除外
+		let previousLikedIds: string[] = [];
+		updateMediaIdsByKey(profileLikesEntriesKey, (prev) => {
+			previousLikedIds = prev;
+			return willLike
+				? [String(dishMediaId), ...prev.filter((id) => id !== String(dishMediaId))]
+				: prev.filter((id) => id !== String(dishMediaId));
+		});
 
 		logFrontendEvent({
 			event_name: willLike ? "dish_liked" : "dish_unliked",
@@ -121,24 +139,22 @@ function ActionButtonsContent({
 		});
 
 		try {
-			// #460 【設計】いいね ON → liked タブの先頭に移動、いいね OFF → liked タブから除外
-			if (willLike) {
-				await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${dishMediaId}/reaction`, {
-					method: "POST",
-					requestPayload: { action_type: "like" },
-				});
-				updateMediaIdsByKey(profileLikesEntriesKey, (prev) => {
-					const without = prev.filter((id) => id !== String(dishMediaId));
-					return [String(dishMediaId), ...without];
-				});
-			} else {
-				await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${dishMediaId}/reaction`, {
-					method: "DELETE",
-					requestPayload: { action_type: "like" },
-				});
-				updateMediaIdsByKey(profileLikesEntriesKey, (prev) => prev.filter((id) => id !== String(dishMediaId)));
-			}
+			await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${dishMediaId}/reaction`, {
+				method: willLike ? "POST" : "DELETE",
+				requestPayload: { action_type: "like" },
+			});
 		} catch (error) {
+			// #1501 【修正】API失敗時は表示をサーバーと一致させるため、操作前の値へロールバックする
+			updateEntry(String(dishMediaId), (entry) => ({
+				...entry,
+				dish_media: {
+					...entry.dish_media,
+					isLiked: previousIsLiked,
+					likeCount: previousLikeCount,
+				},
+			}));
+			updateMediaIdsByKey(profileLikesEntriesKey, () => previousLikedIds);
+
 			logFrontendEvent({
 				event_name: "dish_like_reaction_failed",
 				error_level: "warn",
@@ -149,11 +165,14 @@ function ActionButtonsContent({
 					newLikeCount: newLikeCount,
 				},
 			});
+			showSnackbar(i18n.t("DishMediaContent.errors.likeReactionFailed"), {
+				action: { label: i18n.t("Common.retry"), onPress: () => void handleLike() },
+			});
 		} finally {
 			// #1205 失敗しても押し直せるよう、成功・失敗のいずれでも必ず解除する
 			inFlightActionsRef.current.delete("like");
 		}
-	}, [callBackend, dishMediaId, isLiked, likeCount, lightImpact, logFrontendEvent]);
+	}, [callBackend, dishMediaId, isLiked, likeCount, lightImpact, logFrontendEvent, showSnackbar]);
 
 	const handleSave = useCallback(async () => {
 		// #1205 進行中なら何もしない（宣言箇所のコメント参照）。楽観更新より前に弾くこと
@@ -162,6 +181,10 @@ function ActionButtonsContent({
 
 		lightImpact();
 		const willSave = !isSaved;
+		// #1501 【修正】API失敗時に戻す「操作前の値」。!willSave(トグルの反転)ではなく、
+		// 楽観更新の直前に読んだ値そのものを保持する。反転で戻すと、他端末/別画面からの
+		// 更新が割り込んでいた場合に誤った値を書き戻してしまう
+		const previousIsSaved = isSaved;
 		const { updateEntry, updateMediaIdsByKey } = useDishMediaEntriesStore.getState();
 
 		// #460 【設計】エンティティ更新
@@ -173,6 +196,17 @@ function ActionButtonsContent({
 			},
 		}));
 
+		// #1501 【修正】saved タブの一覧も dish_media 本体と同じタイミングで楽観更新し、
+		// 失敗時にロールバックできるよう更新前の一覧を保持しておく
+		// #460 【設計】保存 ON → saved タブの先頭に移動、保存 OFF → saved タブから除外
+		let previousSavedIds: string[] = [];
+		updateMediaIdsByKey(profileSavedPostsEntriesKey, (prev) => {
+			previousSavedIds = prev;
+			return willSave
+				? [String(dishMediaId), ...prev.filter((id) => id !== String(dishMediaId))]
+				: prev.filter((id) => id !== String(dishMediaId));
+		});
+
 		logFrontendEvent({
 			event_name: willSave ? "dish_saved" : "dish_unsaved",
 			error_level: "log",
@@ -182,24 +216,21 @@ function ActionButtonsContent({
 		});
 
 		try {
-			// #460 【設計】保存 ON → saved タブの先頭に移動、保存 OFF → saved タブから除外
-			if (willSave) {
-				await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${dishMediaId}/reaction`, {
-					method: "POST",
-					requestPayload: { action_type: "save" },
-				});
-				updateMediaIdsByKey(profileSavedPostsEntriesKey, (prev) => {
-					const without = prev.filter((id) => id !== String(dishMediaId));
-					return [String(dishMediaId), ...without];
-				});
-			} else {
-				await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${dishMediaId}/reaction`, {
-					method: "DELETE",
-					requestPayload: { action_type: "save" },
-				});
-				updateMediaIdsByKey(profileSavedPostsEntriesKey, (prev) => prev.filter((id) => id !== String(dishMediaId)));
-			}
+			await callBackend<DishMediaReactionBodyDto, void>(`v1/dish-media/${dishMediaId}/reaction`, {
+				method: willSave ? "POST" : "DELETE",
+				requestPayload: { action_type: "save" },
+			});
 		} catch (error) {
+			// #1501 【修正】API失敗時は表示をサーバーと一致させるため、操作前の値へロールバックする
+			updateEntry(String(dishMediaId), (entry) => ({
+				...entry,
+				dish_media: {
+					...entry.dish_media,
+					isSaved: previousIsSaved,
+				},
+			}));
+			updateMediaIdsByKey(profileSavedPostsEntriesKey, () => previousSavedIds);
+
 			logFrontendEvent({
 				event_name: "dish_save_reaction_failed",
 				error_level: "log",
@@ -210,11 +241,14 @@ function ActionButtonsContent({
 					willReact: willSave,
 				},
 			});
+			showSnackbar(i18n.t("DishMediaContent.errors.saveReactionFailed"), {
+				action: { label: i18n.t("Common.retry"), onPress: () => void handleSave() },
+			});
 		} finally {
 			// #1205 失敗しても押し直せるよう、成功・失敗のいずれでも必ず解除する
 			inFlightActionsRef.current.delete("save");
 		}
-	}, [callBackend, dishMediaId, isSaved, lightImpact, logFrontendEvent]);
+	}, [callBackend, dishMediaId, isSaved, lightImpact, logFrontendEvent, showSnackbar]);
 
 	const handleViewRestaurant = () => {
 		lightImpact();

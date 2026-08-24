@@ -52,6 +52,19 @@ export class SettingsPage {
 	readonly logoutConfirmButton: Locator;
 	/** 確認ダイアログの「キャンセル」ボタン */
 	readonly logoutCancelButton: Locator;
+	/**
+	 * #1509 表示テーマの 3 択セレクタ（システム追従 / ライト / ダーク）のコンテナ。
+	 * `themeCardSurface` はこの直上の要素で、Card の面色（`Palette.surface`）を持つ。
+	 */
+	readonly themeSelector: Locator;
+	/**
+	 * テーマセレクタを載せている Card の面。
+	 *
+	 * react-native-web は `Card` の `backgroundColor` をこの div の computed style に出すため、
+	 * 「面がテーマで切り替わったか」を色で検証できる唯一の安定した観測点になる。
+	 * セレクタ自身（`themeSelector`）は背景を持たないので、こちらを見ること。
+	 */
+	readonly themeCardSurface: Locator;
 
 	constructor(page: Page) {
 		this.page = page;
@@ -70,6 +83,30 @@ export class SettingsPage {
 		this.logoutConfirmTitle = page.getByText("ログアウトしますか？", { exact: true });
 		this.logoutConfirmButton = this.logoutConfirmDialog.getByRole("button", { name: "ログアウト" });
 		this.logoutCancelButton = this.logoutConfirmDialog.getByRole("button", { name: "キャンセル" });
+		this.themeSelector = page.getByTestId("settings-theme-selector");
+		this.themeCardSurface = this.themeSelector.locator("xpath=..");
+	}
+
+	/** テーマ 3 択の 1 行（#1509） */
+	themeOption(preference: "system" | "light" | "dark"): Locator {
+		return this.page.getByTestId(`settings-theme-${preference}`);
+	}
+
+	/**
+	 * 選択中を示すチェックアイコン（選択されている行にだけ存在する）。
+	 *
+	 * `aria-checked` ではなくアイコンの有無で見るのは、react-native-web が
+	 * `accessibilityState.checked` を DOM の `aria-checked` へ変換しないため
+	 *（`features/search/components/SelectableChip.tsx` のコメントと同じ既知の非対応）。
+	 */
+	themeOptionCheck(preference: "system" | "light" | "dark"): Locator {
+		return this.page.getByTestId(`settings-theme-${preference}-check`);
+	}
+
+	/** テーマを選び、選択状態が切り替わるまで待つ（#1509） */
+	async selectTheme(preference: "system" | "light" | "dark"): Promise<void> {
+		await this.themeOption(preference).click();
+		await expect(this.themeOptionCheck(preference)).toBeVisible();
 	}
 
 	/**
