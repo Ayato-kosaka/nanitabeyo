@@ -58,6 +58,16 @@ export const FixedColors = {
 	onFilled: "#FFFFFF",
 	/** 影。ダークでは実質見えないが、値としては黒のままでよい */
 	shadow: "#000000",
+	/**
+	 * #1509 SVG マスクの **チャンネル値**。これは «色» ではない。
+	 *
+	 * `features/tutorial/components/SpotlightTutorial.tsx` のスポットライトは、
+	 * 画面全体を覆う矩形を白（= 覆う）で塗り、対象の矩形を黒（= 抜く）で描いた
+	 * `<Mask>` を通して描画している。テーマで振ると **穴が開かなくなる**ので、
+	 * ライト / ダークのどちらでも白と黒でなければならない。
+	 */
+	maskOpaque: "#FFFFFF",
+	maskHole: "#000000",
 	/** 主要 CTA の影（`components/PrimaryButton` へ渡す） */
 	ctaShadow: "rgba(0, 0, 0, 0.45)",
 	/**

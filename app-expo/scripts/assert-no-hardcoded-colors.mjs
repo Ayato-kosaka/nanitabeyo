@@ -210,12 +210,6 @@ const EXCLUSIONS = {
 		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
 	"features/topics/components/TopicsLoading.tsx":
 		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	// #1375 が TopicsSpotlightTutorial.tsx の実装本体（900 行）を features/tutorial/ の
-	// 共通コンポーネントへ切り出したため、直書きの居場所もこちらへ移った。
-	// 元の除外（features/topics/components/TopicsSpotlightTutorial.tsx）はファイル自体が
-	// 薄い定義だけになり直書きが 0 件になったので、ラチェットに従って行ごと消してある
-	"features/tutorial/components/SpotlightTutorial.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
 };
 
 /** 除外理由の最低文字数。「TODO」や空文字で通り抜けられないようにする */
