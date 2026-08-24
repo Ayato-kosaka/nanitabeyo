@@ -4,7 +4,7 @@
  * API・app・e2e がこの 1 ファイルだけを見るようにする。
  *
  * ⚠️ ここの配列は **`content_reports` の CHECK 制約と同じ集合**でなければならない
- * （migration: `infra/supabase/migrations/20260825T0500_create_content_reports.sql`）。
+ * （migration: `infra/supabase/migrations/20260826T0300_create_content_reports.sql`）。
  * 片方だけ増やすと、API は 201 を返すのに INSERT が落ちる（`share_links` で同じ形の
  * 落とし穴が既に文書化されている）。
  */
