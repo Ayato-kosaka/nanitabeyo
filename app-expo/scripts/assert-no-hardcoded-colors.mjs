@@ -112,8 +112,6 @@ const EXCLUSIONS = {
 		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
 	"components/AuthErrorFallback.tsx":
 		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"components/DishCategoryAutocomplete.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
 	"components/ErrorBoundary.tsx":
 		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
 	"components/ImageCardGrid.tsx":
