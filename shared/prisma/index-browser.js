@@ -308,7 +308,8 @@ exports.Prisma.Dish_reviewsScalarFieldEnum = {
   created_dish_media_id: 'created_dish_media_id',
   imported_user_name: 'imported_user_name',
   imported_user_avatar: 'imported_user_avatar',
-  created_at: 'created_at'
+  created_at: 'created_at',
+  eaten_at: 'eaten_at'
 };
 
 exports.Prisma.DishesScalarFieldEnum = {

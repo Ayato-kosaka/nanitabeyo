@@ -127,6 +127,7 @@ export type dish_media_views = $Result.DefaultSelection<Prisma.$dish_media_views
  * This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
  * This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
  * This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+ * This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
  */
 export type dish_reviews = $Result.DefaultSelection<Prisma.$dish_reviewsPayload>
 /**
@@ -24009,6 +24010,7 @@ export namespace Prisma {
     imported_user_name: string | null
     imported_user_avatar: string | null
     created_at: Date | null
+    eaten_at: Date | null
   }
 
   export type Dish_reviewsMaxAggregateOutputType = {
@@ -24024,6 +24026,7 @@ export namespace Prisma {
     imported_user_name: string | null
     imported_user_avatar: string | null
     created_at: Date | null
+    eaten_at: Date | null
   }
 
   export type Dish_reviewsCountAggregateOutputType = {
@@ -24039,6 +24042,7 @@ export namespace Prisma {
     imported_user_name: number
     imported_user_avatar: number
     created_at: number
+    eaten_at: number
     _all: number
   }
 
@@ -24066,6 +24070,7 @@ export namespace Prisma {
     imported_user_name?: true
     imported_user_avatar?: true
     created_at?: true
+    eaten_at?: true
   }
 
   export type Dish_reviewsMaxAggregateInputType = {
@@ -24081,6 +24086,7 @@ export namespace Prisma {
     imported_user_name?: true
     imported_user_avatar?: true
     created_at?: true
+    eaten_at?: true
   }
 
   export type Dish_reviewsCountAggregateInputType = {
@@ -24096,6 +24102,7 @@ export namespace Prisma {
     imported_user_name?: true
     imported_user_avatar?: true
     created_at?: true
+    eaten_at?: true
     _all?: true
   }
 
@@ -24198,6 +24205,7 @@ export namespace Prisma {
     imported_user_name: string | null
     imported_user_avatar: string | null
     created_at: Date
+    eaten_at: Date | null
     _count: Dish_reviewsCountAggregateOutputType | null
     _avg: Dish_reviewsAvgAggregateOutputType | null
     _sum: Dish_reviewsSumAggregateOutputType | null
@@ -24232,6 +24240,7 @@ export namespace Prisma {
     imported_user_name?: boolean
     imported_user_avatar?: boolean
     created_at?: boolean
+    eaten_at?: boolean
     dishes?: boolean | dishesDefaultArgs<ExtArgs>
     users?: boolean | dish_reviews$usersArgs<ExtArgs>
   }, ExtArgs["result"]["dish_reviews"]>
@@ -24249,6 +24258,7 @@ export namespace Prisma {
     imported_user_name?: boolean
     imported_user_avatar?: boolean
     created_at?: boolean
+    eaten_at?: boolean
     dishes?: boolean | dishesDefaultArgs<ExtArgs>
     users?: boolean | dish_reviews$usersArgs<ExtArgs>
   }, ExtArgs["result"]["dish_reviews"]>
@@ -24266,6 +24276,7 @@ export namespace Prisma {
     imported_user_name?: boolean
     imported_user_avatar?: boolean
     created_at?: boolean
+    eaten_at?: boolean
     dishes?: boolean | dishesDefaultArgs<ExtArgs>
     users?: boolean | dish_reviews$usersArgs<ExtArgs>
   }, ExtArgs["result"]["dish_reviews"]>
@@ -24283,9 +24294,10 @@ export namespace Prisma {
     imported_user_name?: boolean
     imported_user_avatar?: boolean
     created_at?: boolean
+    eaten_at?: boolean
   }
 
-  export type dish_reviewsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "dish_id" | "comment" | "original_language_code" | "user_id" | "rating" | "price_cents" | "currency_code" | "created_dish_media_id" | "imported_user_name" | "imported_user_avatar" | "created_at", ExtArgs["result"]["dish_reviews"]>
+  export type dish_reviewsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "dish_id" | "comment" | "original_language_code" | "user_id" | "rating" | "price_cents" | "currency_code" | "created_dish_media_id" | "imported_user_name" | "imported_user_avatar" | "created_at" | "eaten_at", ExtArgs["result"]["dish_reviews"]>
   export type dish_reviewsInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     dishes?: boolean | dishesDefaultArgs<ExtArgs>
     users?: boolean | dish_reviews$usersArgs<ExtArgs>
@@ -24318,6 +24330,7 @@ export namespace Prisma {
       imported_user_name: string | null
       imported_user_avatar: string | null
       created_at: Date
+      eaten_at: Date | null
     }, ExtArgs["result"]["dish_reviews"]>
     composites: {}
   }
@@ -24755,6 +24768,7 @@ export namespace Prisma {
     readonly imported_user_name: FieldRef<"dish_reviews", 'String'>
     readonly imported_user_avatar: FieldRef<"dish_reviews", 'String'>
     readonly created_at: FieldRef<"dish_reviews", 'DateTime'>
+    readonly eaten_at: FieldRef<"dish_reviews", 'DateTime'>
   }
     
 
@@ -48587,7 +48601,8 @@ export namespace Prisma {
     created_dish_media_id: 'created_dish_media_id',
     imported_user_name: 'imported_user_name',
     imported_user_avatar: 'imported_user_avatar',
-    created_at: 'created_at'
+    created_at: 'created_at',
+    eaten_at: 'eaten_at'
   };
 
   export type Dish_reviewsScalarFieldEnum = (typeof Dish_reviewsScalarFieldEnum)[keyof typeof Dish_reviewsScalarFieldEnum]
@@ -50348,6 +50363,7 @@ export namespace Prisma {
     imported_user_name?: StringNullableFilter<"dish_reviews"> | string | null
     imported_user_avatar?: StringNullableFilter<"dish_reviews"> | string | null
     created_at?: DateTimeFilter<"dish_reviews"> | Date | string
+    eaten_at?: DateTimeNullableFilter<"dish_reviews"> | Date | string | null
     dishes?: XOR<DishesScalarRelationFilter, dishesWhereInput>
     users?: XOR<UsersNullableScalarRelationFilter, usersWhereInput> | null
   }
@@ -50365,6 +50381,7 @@ export namespace Prisma {
     imported_user_name?: SortOrderInput | SortOrder
     imported_user_avatar?: SortOrderInput | SortOrder
     created_at?: SortOrder
+    eaten_at?: SortOrderInput | SortOrder
     dishes?: dishesOrderByWithRelationInput
     users?: usersOrderByWithRelationInput
   }
@@ -50385,6 +50402,7 @@ export namespace Prisma {
     imported_user_name?: StringNullableFilter<"dish_reviews"> | string | null
     imported_user_avatar?: StringNullableFilter<"dish_reviews"> | string | null
     created_at?: DateTimeFilter<"dish_reviews"> | Date | string
+    eaten_at?: DateTimeNullableFilter<"dish_reviews"> | Date | string | null
     dishes?: XOR<DishesScalarRelationFilter, dishesWhereInput>
     users?: XOR<UsersNullableScalarRelationFilter, usersWhereInput> | null
   }, "id">
@@ -50402,6 +50420,7 @@ export namespace Prisma {
     imported_user_name?: SortOrderInput | SortOrder
     imported_user_avatar?: SortOrderInput | SortOrder
     created_at?: SortOrder
+    eaten_at?: SortOrderInput | SortOrder
     _count?: dish_reviewsCountOrderByAggregateInput
     _avg?: dish_reviewsAvgOrderByAggregateInput
     _max?: dish_reviewsMaxOrderByAggregateInput
@@ -50425,6 +50444,7 @@ export namespace Prisma {
     imported_user_name?: StringNullableWithAggregatesFilter<"dish_reviews"> | string | null
     imported_user_avatar?: StringNullableWithAggregatesFilter<"dish_reviews"> | string | null
     created_at?: DateTimeWithAggregatesFilter<"dish_reviews"> | Date | string
+    eaten_at?: DateTimeNullableWithAggregatesFilter<"dish_reviews"> | Date | string | null
   }
 
   export type dishesWhereInput = {
@@ -53202,6 +53222,7 @@ export namespace Prisma {
     imported_user_name?: string | null
     imported_user_avatar?: string | null
     created_at?: Date | string
+    eaten_at?: Date | string | null
     dishes: dishesCreateNestedOneWithoutDish_reviewsInput
     users?: usersCreateNestedOneWithoutDish_reviewsInput
   }
@@ -53219,6 +53240,7 @@ export namespace Prisma {
     imported_user_name?: string | null
     imported_user_avatar?: string | null
     created_at?: Date | string
+    eaten_at?: Date | string | null
   }
 
   export type dish_reviewsUpdateInput = {
@@ -53232,6 +53254,7 @@ export namespace Prisma {
     imported_user_name?: NullableStringFieldUpdateOperationsInput | string | null
     imported_user_avatar?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    eaten_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dishes?: dishesUpdateOneRequiredWithoutDish_reviewsNestedInput
     users?: usersUpdateOneWithoutDish_reviewsNestedInput
   }
@@ -53249,6 +53272,7 @@ export namespace Prisma {
     imported_user_name?: NullableStringFieldUpdateOperationsInput | string | null
     imported_user_avatar?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    eaten_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type dish_reviewsCreateManyInput = {
@@ -53264,6 +53288,7 @@ export namespace Prisma {
     imported_user_name?: string | null
     imported_user_avatar?: string | null
     created_at?: Date | string
+    eaten_at?: Date | string | null
   }
 
   export type dish_reviewsUpdateManyMutationInput = {
@@ -53277,6 +53302,7 @@ export namespace Prisma {
     imported_user_name?: NullableStringFieldUpdateOperationsInput | string | null
     imported_user_avatar?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    eaten_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type dish_reviewsUncheckedUpdateManyInput = {
@@ -53292,6 +53318,7 @@ export namespace Prisma {
     imported_user_name?: NullableStringFieldUpdateOperationsInput | string | null
     imported_user_avatar?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    eaten_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type dishesCreateInput = {
@@ -56153,6 +56180,7 @@ export namespace Prisma {
     imported_user_name?: SortOrder
     imported_user_avatar?: SortOrder
     created_at?: SortOrder
+    eaten_at?: SortOrder
   }
 
   export type dish_reviewsAvgOrderByAggregateInput = {
@@ -56173,6 +56201,7 @@ export namespace Prisma {
     imported_user_name?: SortOrder
     imported_user_avatar?: SortOrder
     created_at?: SortOrder
+    eaten_at?: SortOrder
   }
 
   export type dish_reviewsMinOrderByAggregateInput = {
@@ -56188,6 +56217,7 @@ export namespace Prisma {
     imported_user_name?: SortOrder
     imported_user_avatar?: SortOrder
     created_at?: SortOrder
+    eaten_at?: SortOrder
   }
 
   export type dish_reviewsSumOrderByAggregateInput = {
@@ -61908,6 +61938,7 @@ export namespace Prisma {
     imported_user_name?: string | null
     imported_user_avatar?: string | null
     created_at?: Date | string
+    eaten_at?: Date | string | null
     users?: usersCreateNestedOneWithoutDish_reviewsInput
   }
 
@@ -61923,6 +61954,7 @@ export namespace Prisma {
     imported_user_name?: string | null
     imported_user_avatar?: string | null
     created_at?: Date | string
+    eaten_at?: Date | string | null
   }
 
   export type dish_reviewsCreateOrConnectWithoutDishesInput = {
@@ -62080,6 +62112,7 @@ export namespace Prisma {
     imported_user_name?: StringNullableFilter<"dish_reviews"> | string | null
     imported_user_avatar?: StringNullableFilter<"dish_reviews"> | string | null
     created_at?: DateTimeFilter<"dish_reviews"> | Date | string
+    eaten_at?: DateTimeNullableFilter<"dish_reviews"> | Date | string | null
   }
 
   export type dish_categoriesUpsertWithoutDishesInput = {
@@ -63251,6 +63284,7 @@ export namespace Prisma {
     imported_user_name?: string | null
     imported_user_avatar?: string | null
     created_at?: Date | string
+    eaten_at?: Date | string | null
     dishes: dishesCreateNestedOneWithoutDish_reviewsInput
   }
 
@@ -63266,6 +63300,7 @@ export namespace Prisma {
     imported_user_name?: string | null
     imported_user_avatar?: string | null
     created_at?: Date | string
+    eaten_at?: Date | string | null
   }
 
   export type dish_reviewsCreateOrConnectWithoutUsersInput = {
@@ -63927,6 +63962,7 @@ export namespace Prisma {
     imported_user_name?: string | null
     imported_user_avatar?: string | null
     created_at?: Date | string
+    eaten_at?: Date | string | null
   }
 
   export type dish_mediaUpdateWithoutDishesInput = {
@@ -63997,6 +64033,7 @@ export namespace Prisma {
     imported_user_name?: NullableStringFieldUpdateOperationsInput | string | null
     imported_user_avatar?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    eaten_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     users?: usersUpdateOneWithoutDish_reviewsNestedInput
   }
 
@@ -64012,6 +64049,7 @@ export namespace Prisma {
     imported_user_name?: NullableStringFieldUpdateOperationsInput | string | null
     imported_user_avatar?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    eaten_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type dish_reviewsUncheckedUpdateManyWithoutDishesInput = {
@@ -64026,6 +64064,7 @@ export namespace Prisma {
     imported_user_name?: NullableStringFieldUpdateOperationsInput | string | null
     imported_user_avatar?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    eaten_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type notification_recipientsCreateManyNotificationsInput = {
@@ -64327,6 +64366,7 @@ export namespace Prisma {
     imported_user_name?: string | null
     imported_user_avatar?: string | null
     created_at?: Date | string
+    eaten_at?: Date | string | null
   }
 
   export type restaurant_bidsCreateManyUsersInput = {
@@ -64430,6 +64470,7 @@ export namespace Prisma {
     imported_user_name?: NullableStringFieldUpdateOperationsInput | string | null
     imported_user_avatar?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    eaten_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dishes?: dishesUpdateOneRequiredWithoutDish_reviewsNestedInput
   }
 
@@ -64445,6 +64486,7 @@ export namespace Prisma {
     imported_user_name?: NullableStringFieldUpdateOperationsInput | string | null
     imported_user_avatar?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    eaten_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type dish_reviewsUncheckedUpdateManyWithoutUsersInput = {
@@ -64459,6 +64501,7 @@ export namespace Prisma {
     imported_user_name?: NullableStringFieldUpdateOperationsInput | string | null
     imported_user_avatar?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    eaten_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type restaurant_bidsUpdateWithoutUsersInput = {
