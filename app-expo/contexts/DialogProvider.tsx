@@ -296,7 +296,7 @@ export const DialogProvider = ({ children }: { children: ReactNode }) => {
 	 * であって、多重実行の判定には使えない。React が再レンダリングをコミットする前に 2 発目の
 	 * 押下が処理されると、両方が `state.confirming === false` を読んで通過しうるためで、
 	 * 通過すると custom（`showDialog` + `onConfirm`）の `onConfirm` が 2 回走る。
-	 * 実害の例：`features/topics/hooks/useBlockTopic.ts` のブロックは 2 発目が
+	 * 実害の例：`features/dishCategories/hooks/useBlockDishCategory.ts` のブロックは 2 発目が
 	 * `reactions` の一意制約で失敗し、**ブロックできているのにダイアログにエラーが残る**。
 	 *
 	 * ref への代入は同期的に確定するため、同一 JS タスク内の連続呼び出しでもレースしない。

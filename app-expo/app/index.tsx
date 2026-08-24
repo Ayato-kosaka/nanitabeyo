@@ -60,7 +60,7 @@ export default function App() {
 	//
 	// `null` は「まだ初期 URL を調べていない」を表し、判定が付くまでリダイレクトを保留する
 	const [initialPath, setInitialPath] = useState<string | null | undefined>(undefined);
-	// #1272 【バグ】`Linking.parse().path` はクエリを落とす。`?tab=saved-topics` のような
+	// #1272 【バグ】`Linking.parse().path` はクエリを落とす。`?tab=saved-dish-categories` のような
 	// 行き先パラメータを保持するため、クエリ文字列は生 URL から別途切り出して持ち回る
 	//（iOS はこの画面のリダイレクトが expo-router の初期 URL 解決に勝つため、ここで落とすと
 	//  端末に届いたクエリが**アプリのどこにも到達しない**。probe の実測 `local=- global=-` で確定）

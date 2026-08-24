@@ -16,7 +16,7 @@
 - **入力中のレビューと `mediaState`（#1127 の実行世代つき）が消えない**。投稿フォームは
   スタックに残ったままなので、選んで戻れば書きかけがそのまま続く
 
-⚠️ この画面に KeyboardAvoidingView を足さないこと（`profile/saved-topic-location.tsx` と同じ理由）。
+⚠️ この画面に KeyboardAvoidingView を足さないこと（`profile/saved-dish-category-location.tsx` と同じ理由）。
 入力欄は 1 つで、候補パネルは `DishCategoryAutocomplete` が自分の下に描く。
 
 ⚠️ 「候補を選ばずに文字だけ入れて戻る」= 新規カテゴリの作成候補、という仕様は BlurModal 時代の

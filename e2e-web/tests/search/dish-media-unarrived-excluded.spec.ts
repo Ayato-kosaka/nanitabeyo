@@ -2,7 +2,7 @@ import { test, expect } from "../../fixtures/test";
 import type { Page, Response } from "@playwright/test";
 import type { DishMediaEntry } from "@shared/api/v1/res";
 import { SearchPage } from "../../pages/SearchPage";
-import { TopicsPage } from "../../pages/TopicsPage";
+import { DishCategoriesPage } from "../../pages/DishCategoriesPage";
 import { ResultPage } from "../../pages/ResultPage";
 import { RestaurantDetailPage } from "../../pages/RestaurantDetailPage";
 
@@ -112,7 +112,7 @@ test.describe("実体未着の料理メディアは一覧に出ない（#1257）
 	//   3. 返ってきた全 dish_media が completed かつ mediaUrl を持つことを検証する
 	test("検索フィードの API 応答に未着メディアが含まれない", async ({ appPage }) => {
 		const searchPage = new SearchPage(appPage);
-		const topicsPage = new TopicsPage(appPage);
+		const dishCategoriesPage = new DishCategoriesPage(appPage);
 		const resultPage = new ResultPage(appPage);
 
 		// SearchDishMediaResponse は DishMediaEntry[] そのもの（封筒の data が配列）
@@ -121,8 +121,8 @@ test.describe("実体未着の料理メディアは一覧に出ない（#1257）
 		await searchPage.typeLocation("渋谷");
 		await searchPage.selectLocationSuggestion(0);
 		await searchPage.submitButton.click();
-		await topicsPage.expectLoaded();
-		await topicsPage.chooseFirstTopic();
+		await dishCategoriesPage.expectLoaded();
+		await dishCategoriesPage.chooseFirstDishCategory();
 		await resultPage.expectLoaded();
 
 		// 応答の JSON 読み取りは非同期なので、フィードが描かれたあとに落ち着くのを待つ
@@ -145,7 +145,7 @@ test.describe("実体未着の料理メディアは一覧に出ない（#1257）
 	//   3. `GET /v1/restaurants/:id/dish-media` の応答が completed だけであることを検証する
 	test("店舗フィードの API 応答に未着メディアが含まれない", async ({ appPage }) => {
 		const searchPage = new SearchPage(appPage);
-		const topicsPage = new TopicsPage(appPage);
+		const dishCategoriesPage = new DishCategoriesPage(appPage);
 		const resultPage = new ResultPage(appPage);
 		const detailPage = new RestaurantDetailPage(appPage);
 
@@ -154,8 +154,8 @@ test.describe("実体未着の料理メディアは一覧に出ない（#1257）
 		await searchPage.typeLocation("渋谷");
 		await searchPage.selectLocationSuggestion(0);
 		await searchPage.submitButton.click();
-		await topicsPage.expectLoaded();
-		await topicsPage.chooseFirstTopic();
+		await dishCategoriesPage.expectLoaded();
+		await dishCategoriesPage.chooseFirstDishCategory();
 		await resultPage.expectLoaded();
 
 		await expect

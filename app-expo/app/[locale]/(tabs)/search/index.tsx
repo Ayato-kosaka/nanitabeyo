@@ -47,7 +47,7 @@ import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import { useScreenTrace } from "@/hooks/useScreenTrace";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { DEFAULT_SEARCH_RADIUS } from "@/features/topics/constants";
+import { DEFAULT_SEARCH_RADIUS } from "@/features/dishCategories/constants";
 import { useOnboardingSeen } from "@/features/onboarding/hooks/useOnboardingSeen";
 import { onboardingIndexPath } from "@/features/onboarding/navigation";
 import { useAutoCurrentLocation } from "@/features/search/hooks/useAutoCurrentLocation";
@@ -448,7 +448,7 @@ export default function SearchScreen() {
 
 		// Navigate to cards screen with search parameters
 		router.push({
-			pathname: "/[locale]/(tabs)/search/topics",
+			pathname: "/[locale]/(tabs)/search/dish-categories",
 			params: {
 				locale,
 				searchParams: JSON.stringify(searchParams),
@@ -983,7 +983,7 @@ const createStyles = (c: Palette) =>
 			// 行が伸びた分だけ right 側の兄弟が押し出され、`？` が画面の外へ出る。
 			// 画面幅が狭いほど、また文字サイズ設定が大きいほど起きやすい。
 			//
-			// 料理提案画面（`app/[locale]/(tabs)/search/topics.tsx` → `components/ScreenHeader.tsx`）で
+			// 料理提案画面（`app/[locale]/(tabs)/search/dish-categories.tsx` → `components/ScreenHeader.tsx`）で
 			// 同じ症状が出ていないのは、あちらのタイトルが `numberOfLines={1}` + `ellipsizeMode="tail"` で
 			// **1 行に固定されている**ため。折り返しが起きない Text は与えられた幅で必ず打ち切られ、
 			// 測定値が配分幅を超えない。こちらも同じ形へ揃えてある（JSX 側を参照）。

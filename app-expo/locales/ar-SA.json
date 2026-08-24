@@ -288,7 +288,7 @@
 			"stepProgress": "الخطوة {{current}} من {{total}}"
 		}
 	},
-	"Topics": {
+	"DishCategories": {
 		"deepDive": {
 			"title": "تصفية بهذا النمط"
 		},
@@ -309,7 +309,7 @@
 					"title": "تعمّق في البحث حسب مزاجك",
 					"body": "لم تقرر بعد؟ اختر نمطًا لتضييق الاقتراحات إلى أطباق مشابهة."
 				},
-				"topicActions": {
+				"dishCategoryActions": {
 					"title": "نظّم الاقتراحات حسب ذوقك",
 					"save": "حفظ: ارجع إلى الطبق لاحقًا",
 					"block": "حظر: أوقف اقتراح الأطباق التي لا تناسب ذوقك مستقبلاً"
@@ -320,7 +320,7 @@
 				}
 			}
 		},
-		"HideTopicModal": {
+		"HideDishCategoryModal": {
 			"title": "إخفاء",
 			"description": "أخبرنا سبب الإخفاء (اختياري)",
 			"placeholder": "أدخل السبب...",
@@ -338,7 +338,7 @@
 		"retry": "العودة إلى البحث",
 		"chooseThis": "اختر هذا!",
 		"hiddenMessage": "تم إخفاء {{title}}",
-		"BlockTopicModal": {
+		"BlockDishCategoryModal": {
 			"title": "حظر هذا الطبق؟",
 			"description": "لن تظهر فئات الأطباق المحظورة بعد الآن في التوصيات.",
 			"note": "يمكنك إلغاء الحظر في أي وقت من الإعدادات.",
@@ -357,9 +357,9 @@
 		"headerTitle": "الأطباق الموصى بها لك",
 		"subCopy": "انقر على طبق يعجبك للعثور على المطاعم",
 		"accessibility": {
-			"blockTopic": "إزالة {{title}} من التوصيات",
-			"saveTopic": "حفظ {{title}}",
-			"unsaveTopic": "إلغاء حفظ {{title}}",
+			"blockDishCategory": "إزالة {{title}} من التوصيات",
+			"saveDishCategory": "حفظ {{title}}",
+			"unsaveDishCategory": "إلغاء حفظ {{title}}",
 			"thumbnail": "صورة مصغرة لـ {{title}}، {{index}} من {{total}}"
 		}
 	},
@@ -460,7 +460,7 @@
 			"deposits": "الودائع",
 			"earnings": "الأرباح",
 			"saved-posts": "المنشورات",
-			"saved-topics": "الأطباق",
+			"saved-dish-categories": "الأطباق",
 			"wallet-deposit": "الودائع",
 			"wallet-earning": "الأرباح"
 		},
@@ -480,7 +480,7 @@
 			"noLikedDishMediaEntries": "لا توجد منشورات معجبة",
 			"noSavedItems": "لا توجد عناصر محفوظة",
 			"noSavedPosts": "عندما تجد منشورات مثيرة للاهتمام، استخدم \"حفظ\" لمراجعتها",
-			"noSavedTopics": "عندما تجد أطباق مثيرة للاهتمام، استخدم \"حفظ\" لاستكشاف المطاعم القريبة"
+			"noSavedDishCategories": "عندما تجد أطباق مثيرة للاهتمام، استخدم \"حفظ\" لاستكشاف المطاعم القريبة"
 		},
 		"reviews": {
 			"filter": {
@@ -770,7 +770,7 @@
 		"logout": "تسجيل الخروج",
 		"logoutConfirmTitle": "هل تريد تسجيل الخروج؟",
 		"logoutConfirmMessage": "ستحتاج إلى تسجيل الدخول مرة أخرى لإدارة منشوراتك ومراجعاتك.",
-		"blockedTopics": {
+		"blockedDishCategories": {
 			"navigationLabel": "فئات الأطباق المحظورة",
 			"pageTitle": "فئات الأطباق المحظورة",
 			"title": "أطباق محظورة",

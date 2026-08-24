@@ -19,7 +19,7 @@ interface EmptyStateProps {
 
 /**
  * #947 【仕様】空状態(データ0件)/エラー状態の共通UI。
- * LikeTab/SaveTopicTab/blocked-topics 等で同じ見た目・スタイルが 4箇所以上コピペされており、
+ * LikeTab/SaveDishCategoryTab/blocked-dish-categories 等で同じ見た目・スタイルが 4箇所以上コピペされており、
  * CTAがあるのもLikeTabだけだった。ここに集約し、
  * 各画面には「何を表示するか(message/actionLabel/onAction)」だけを渡させる。
  * CTAはPrimaryButton経由にすることでrole/label/disabled状態のアクセシビリティを担保する。

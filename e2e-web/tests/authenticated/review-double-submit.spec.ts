@@ -16,7 +16,7 @@ import { clickRapid } from "../../utils/rapid-click";
  * `isProcessing === false` を読んで通過しうるため、`v1/dishes` の POST と
  * メディアアップロードが二重に走り、同じレビューが 2 件登録される。
  * #1090 で `isSubmittingRef`(useRef)による同期ガードを追加した
- * (`search/index.tsx` の `isSearchingRef` / `search/topics.tsx` の `isSelectingTopicRef` と同じ方式)。
+ * (`search/index.tsx` の `isSearchingRef` / `search/dish-categories.tsx` の `isSelectingDishCategoryRef` と同じ方式)。
  *
  * ## 観測点(#1084 設計 §3-1 / #1086 の教訓)
  * **POST のリクエスト件数**を数える。「履歴段数の増分」は二重 push を検知できないことが

@@ -288,7 +288,7 @@
 			"stepProgress": "Étape {{current}} sur {{total}}"
 		}
 	},
-	"Topics": {
+	"DishCategories": {
 		"deepDive": {
 			"title": "Filtrer ce style"
 		},
@@ -309,7 +309,7 @@
 					"title": "Approfondissez selon votre humeur",
 					"body": "Vous hésitez encore ? Choisissez un style pour affiner les suggestions."
 				},
-				"topicActions": {
+				"dishCategoryActions": {
 					"title": "Adaptez les suggestions à vos goûts",
 					"save": "Enregistrer : retrouvez ce plat plus tard",
 					"block": "Bloquer : ne plus voir les plats qui ne vous plaisent pas"
@@ -320,7 +320,7 @@
 				}
 			}
 		},
-		"HideTopicModal": {
+		"HideDishCategoryModal": {
 			"title": "Masquer",
 			"description": "Veuillez indiquer la raison du masquage (facultatif)",
 			"placeholder": "Entrez une raison...",
@@ -338,7 +338,7 @@
 		"retry": "Retour à la recherche",
 		"chooseThis": "Je choisis celui-ci !",
 		"hiddenMessage": "{{title}} a été masqué",
-		"BlockTopicModal": {
+		"BlockDishCategoryModal": {
 			"title": "Bloquer ce plat ?",
 			"description": "Les catégories de plats bloquées n’apparaîtront plus dans les recommandations.",
 			"note": "Vous pouvez le débloquer à tout moment depuis les Paramètres.",
@@ -357,9 +357,9 @@
 		"headerTitle": "Plats Recommandés pour Vous",
 		"subCopy": "Appuyez sur un plat que vous aimez pour trouver des restaurants",
 		"accessibility": {
-			"blockTopic": "Retirer {{title}} des recommandations",
-			"saveTopic": "Enregistrer {{title}}",
-			"unsaveTopic": "Retirer {{title}} des favoris",
+			"blockDishCategory": "Retirer {{title}} des recommandations",
+			"saveDishCategory": "Enregistrer {{title}}",
+			"unsaveDishCategory": "Retirer {{title}} des favoris",
 			"thumbnail": "Miniature de {{title}}, {{index}} sur {{total}}"
 		}
 	},
@@ -460,7 +460,7 @@
 			"deposits": "Dépôts",
 			"earnings": "Revenus",
 			"saved-posts": "Publications",
-			"saved-topics": "Plats",
+			"saved-dish-categories": "Plats",
 			"wallet-deposit": "Dépôts",
 			"wallet-earning": "Revenus"
 		},
@@ -480,7 +480,7 @@
 			"noLikedDishMediaEntries": "Aucune publication aimée",
 			"noSavedItems": "Aucun élément enregistré",
 			"noSavedPosts": "Quand vous trouvez des publications intéressantes, utilisez \"Enregistrer\" pour les revoir",
-			"noSavedTopics": "Quand vous trouvez des plats intéressants, utilisez \"Enregistrer\" pour explorer les restaurants à proximité"
+			"noSavedDishCategories": "Quand vous trouvez des plats intéressants, utilisez \"Enregistrer\" pour explorer les restaurants à proximité"
 		},
 		"reviews": {
 			"filter": {
@@ -770,7 +770,7 @@
 		"logout": "Se déconnecter",
 		"logoutConfirmTitle": "Se déconnecter ?",
 		"logoutConfirmMessage": "Vous devrez vous reconnecter pour gérer vos publications et avis.",
-		"blockedTopics": {
+		"blockedDishCategories": {
 			"navigationLabel": "Catégories de plats bloquées",
 			"pageTitle": "Catégories de plats bloquées",
 			"title": "Plats bloqués",

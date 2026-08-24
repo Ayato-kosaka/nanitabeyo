@@ -24,12 +24,12 @@ import { useGoogleMapsFallback } from "@/features/search/hooks/useGoogleMapsFall
 const idType = "dish_media" as const;
 
 export default function ResultScreen() {
-	// #633 【設計】topicId ではなく entriesKey を使用（Topics/SavedTopics 共通化）
+	// #633 【設計】dishCategoryId ではなく entriesKey を使用（DishCategories/SavedDishCategories 共通化）
 	const { entriesKey, location, category, dishImageUrl } = useLocalSearchParams<{
 		entriesKey: string;
 		location?: string;
 		category?: string;
-		// #1484 【設計】Topics 画面の「この料理にする！」経由の場合のみ渡される。選択した料理画像を
+		// #1484 【設計】DishCategories 画面の「この料理にする！」経由の場合のみ渡される。選択した料理画像を
 		// 店舗提案の取得完了まで表示し続けるためのローディング演出に使う（無ければ従来のローディングにfallback）。
 		dishImageUrl?: string;
 	}>();
@@ -202,7 +202,7 @@ export default function ResultScreen() {
 
 			{/* #420 【仕様】店舗5件のローディング画面 - 必要データ（リスト＋サムネイル最低1枚）事前読み込み未完了の場合のみ表示 */}
 			{/* #633 【防御】entriesKey が undefined の場合も loading を表示（戻る処理中） */}
-			{/* #1484 【仕様】Topics画面の「この料理にする！」経由（dishImageUrlあり）は、独立ローディング画面の
+			{/* #1484 【仕様】DishCategories画面の「この料理にする！」経由（dishImageUrlあり）は、独立ローディング画面の
 			    代わりに選択した料理画像を拡大表示したまま待たせる。それ以外の経路は従来のRestaurantLoadingを維持する。 */}
 			{(isLoading || !entriesKey) &&
 				(dishImageUrl ? (

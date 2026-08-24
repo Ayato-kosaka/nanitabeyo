@@ -288,7 +288,7 @@
 			"stepProgress": "{{total}}단계 중 {{current}}단계"
 		}
 	},
-	"Topics": {
+	"DishCategories": {
 		"deepDive": {
 			"title": "이 계열로 좁히기"
 		},
@@ -309,7 +309,7 @@
 					"title": "기분에 맞춰 더 깊이 검색",
 					"body": "아직 고민된다면 원하는 계열을 골라 비슷한 요리로 범위를 좁혀보세요."
 				},
-				"topicActions": {
+				"dishCategoryActions": {
 					"title": "취향에 맞게 정리하기",
 					"save": "저장: 마음에 드는 요리를 나중에 다시 볼 수 있어요",
 					"block": "차단: 취향에 맞지 않는 요리는 앞으로 추천되지 않아요"
@@ -320,7 +320,7 @@
 				}
 			}
 		},
-		"HideTopicModal": {
+		"HideDishCategoryModal": {
 			"title": "숨기기",
 			"description": "숨기는 이유를 알려주세요 (선택사항)",
 			"placeholder": "이유를 입력하세요...",
@@ -338,7 +338,7 @@
 		"retry": "검색으로 돌아가기",
 		"chooseThis": "이걸로 할래!",
 		"hiddenMessage": "{{title}} 이(가) 숨겨졌습니다",
-		"BlockTopicModal": {
+		"BlockDishCategoryModal": {
 			"title": "이 요리를 차단할까요?",
 			"description": "차단된 요리 카테고리는 추천에 더 이상 표시되지 않습니다.",
 			"note": "설정에서 언제든지 차단을 해제할 수 있어요.",
@@ -357,9 +357,9 @@
 		"headerTitle": "당신을 위한 추천 요리",
 		"subCopy": "마음에 드는 요리를 탭하여 레스토랑을 찾으세요",
 		"accessibility": {
-			"blockTopic": "추천에서 {{title}} 제외",
-			"saveTopic": "{{title}} 저장",
-			"unsaveTopic": "{{title}} 저장 해제",
+			"blockDishCategory": "추천에서 {{title}} 제외",
+			"saveDishCategory": "{{title}} 저장",
+			"unsaveDishCategory": "{{title}} 저장 해제",
 			"thumbnail": "{{title}} 썸네일, {{total}}개 중 {{index}}번째"
 		}
 	},
@@ -460,7 +460,7 @@
 			"deposits": "예치금",
 			"earnings": "수익",
 			"saved-posts": "게시물",
-			"saved-topics": "요리",
+			"saved-dish-categories": "요리",
 			"wallet-deposit": "예치금",
 			"wallet-earning": "수익"
 		},
@@ -480,7 +480,7 @@
 			"noLikedDishMediaEntries": "좋아요한 게시물이 없습니다",
 			"noSavedItems": "저장된 항목이 없습니다",
 			"noSavedPosts": "흥미로운 게시물을 찾으면 \"저장\"으로 다시 볼 수 있습니다",
-			"noSavedTopics": "흥미로운 요리를 찾으면 \"저장\"으로 주변 음식점을 탐색할 수 있습니다"
+			"noSavedDishCategories": "흥미로운 요리를 찾으면 \"저장\"으로 주변 음식점을 탐색할 수 있습니다"
 		},
 		"reviews": {
 			"filter": {
@@ -770,7 +770,7 @@
 		"logout": "로그아웃",
 		"logoutConfirmTitle": "로그아웃하시겠어요?",
 		"logoutConfirmMessage": "다시 로그인해야 게시물과 리뷰를 관리할 수 있습니다.",
-		"blockedTopics": {
+		"blockedDishCategories": {
 			"navigationLabel": "차단된 요리 카테고리",
 			"pageTitle": "차단된 요리 카테고리",
 			"title": "차단된 요리",

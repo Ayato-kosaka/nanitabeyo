@@ -28,7 +28,7 @@ export class SettingsPage {
 	/** 著作権行 */
 	readonly copyrightItem: Locator;
 	/** ブロック済みの料理トピック行 */
-	readonly blockedTopicsItem: Locator;
+	readonly blockedDishCategoriesItem: Locator;
 	/** ログアウト行（ログイン済みユーザーのみ表示） */
 	readonly logoutItem: Locator;
 	/**
@@ -67,7 +67,7 @@ export class SettingsPage {
 		this.termsItem = page.getByTestId("settings-terms");
 		this.privacyItem = page.getByTestId("settings-privacy");
 		this.copyrightItem = page.getByTestId("settings-copyright");
-		this.blockedTopicsItem = page.getByTestId("settings-blocked-topics");
+		this.blockedDishCategoriesItem = page.getByTestId("settings-blocked-dish-categories");
 		this.logoutItem = page.getByTestId("settings-logout");
 		this.logoutConfirmDialog = page.getByTestId("modal-surface");
 		this.logoutConfirmTitle = page.getByText("ログアウトしますか？", { exact: true });

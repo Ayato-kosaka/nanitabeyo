@@ -288,7 +288,7 @@
 			"stepProgress": "{{total}} ステップ中 {{current}} ステップ目"
 		}
 	},
-	"Topics": {
+	"DishCategories": {
 		"deepDive": {
 			"title": "この系統で再検索"
 		},
@@ -309,7 +309,7 @@
 					"title": "気分に合わせて深堀再検索",
 					"body": "まだ決めきれないときは、気になる系統を選ぶと近い系統で再検索できます。"
 				},
-				"topicActions": {
+				"dishCategoryActions": {
 					"title": "好みに合わせて整理",
 					"save": "保存：気になる料理をあとで見返せます",
 					"block": "ブロック：好みでない料理を今後提案しないように出来ます"
@@ -320,7 +320,7 @@
 				}
 			}
 		},
-		"HideTopicModal": {
+		"HideDishCategoryModal": {
 			"title": "非表示にする",
 			"description": "非表示にする理由を教えてください（任意）",
 			"placeholder": "理由を入力してください...",
@@ -338,7 +338,7 @@
 		"retry": "検索に戻る",
 		"chooseThis": "この料理にする！",
 		"hiddenMessage": "{{title}}を非表示にしました",
-		"BlockTopicModal": {
+		"BlockDishCategoryModal": {
 			"title": "この料理をブロックしますか？",
 			"description": "ブロックした料理カテゴリは、今後おすすめに表示されません。",
 			"note": "設定画面からいつでも解除できます。",
@@ -357,9 +357,9 @@
 		"headerTitle": "あなたにおすすめの料理",
 		"subCopy": "いいかも！と思った料理をタップしてお店を見つけよう",
 		"accessibility": {
-			"blockTopic": "{{title}}をおすすめから除外",
-			"saveTopic": "{{title}}を保存",
-			"unsaveTopic": "{{title}}の保存を解除",
+			"blockDishCategory": "{{title}}をおすすめから除外",
+			"saveDishCategory": "{{title}}を保存",
+			"unsaveDishCategory": "{{title}}の保存を解除",
 			"thumbnail": "{{title}}のサムネイル、{{index}}件目/{{total}}件中"
 		}
 	},
@@ -460,7 +460,7 @@
 			"deposits": "入札",
 			"earnings": "収益",
 			"saved-posts": "投稿",
-			"saved-topics": "料理",
+			"saved-dish-categories": "料理",
 			"wallet-deposit": "入札",
 			"wallet-earning": "収益"
 		},
@@ -480,7 +480,7 @@
 			"noLikedDishMediaEntries": "いいねした投稿はありません",
 			"noSavedItems": "保存されたアイテムはありません",
 			"noSavedPosts": "気になる投稿を見つけたら\"保存\"で見返せます",
-			"noSavedTopics": "気になる料理を見つけたら\"保存\"で周辺のお店を探せます"
+			"noSavedDishCategories": "気になる料理を見つけたら\"保存\"で周辺のお店を探せます"
 		},
 		"reviews": {
 			"filter": {
@@ -770,7 +770,7 @@
 		"logout": "ログアウト",
 		"logoutConfirmTitle": "ログアウトしますか？",
 		"logoutConfirmMessage": "再度ログインするまで、投稿やレビューの管理ができなくなります。",
-		"blockedTopics": {
+		"blockedDishCategories": {
 			"navigationLabel": "ブロック済みの料理カテゴリ",
 			"pageTitle": "ブロック済みの料理カテゴリ",
 			"title": "ブロックしている料理",

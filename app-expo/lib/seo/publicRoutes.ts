@@ -74,11 +74,11 @@ export const DEEP_LINK_SMOKE_EXCLUSIONS: Readonly<Record<string, string>> = {
 	"profile/edit": "ログイン必須。未ログインでは中身が無い",
 	// #1402 で profile/settings は廃止（設定項目はマイページ本体へ統合）。キーは残さない
 	"profile/liked": "ログイン必須。未ログインでは中身が無い",
-	"profile/saved-topics": "ログイン必須。未ログインでは中身が無い",
+	"profile/saved-dish-categories": "ログイン必須。未ログインでは中身が無い",
 	"profile/feedback": "ログイン必須。未ログインでは中身が無い",
-	"profile/blocked-topics": "ログイン必須。未ログインでは中身が無い",
+	"profile/blocked-dish-categories": "ログイン必須。未ログインでは中身が無い",
 	"profile/food": "ログイン必須。未ログインでは中身が無い",
-	"profile/saved-topic-location": "ログイン必須。未ログインでは中身が無い",
+	"profile/saved-dish-category-location": "ログイン必須。未ログインでは中身が無い",
 	"profile/search-results": "ログイン必須。未ログインでは中身が無い",
 
 	// 通知一覧のサブタブ。親（notifications）を踏めば同じレイアウトを通る
@@ -92,6 +92,13 @@ export const DEEP_LINK_SMOKE_EXCLUSIONS: Readonly<Record<string, string>> = {
 
 	// 検索フローの途中の画面。直リンクでは «前の画面で選んだ条件» が無い状態になる。
 	// フローとしての検証は tests/search/ の spec が持っている
-	"search/topics": "検索フローの途中の画面。前画面の条件（場所・時間帯・シーン）が無い状態を直リンクの正とはしない",
+	"search/dish-categories": "検索フローの途中の画面。前画面の条件（場所・時間帯・シーン）が無い状態を直リンクの正とはしない",
 	"search/result": "検索フローの途中の画面。検索条件のパラメータ前提のため直リンクの対象にしない",
+
+	// #1553 «topic» という表現をやめた際の旧ルート。実体は無く、新ルートへの Redirect だけを持つ
+	// （__tests__/legacyRouteRedirects.test.tsx が行き先を固定している）。消してよいかはオーナー判断
+	"search/topics": "旧ルート。search/dish-categories へリダイレクトするだけの画面",
+	"profile/saved-topics": "旧ルート。profile/saved-dish-categories へリダイレクトするだけの画面",
+	"profile/blocked-topics": "旧ルート。profile/blocked-dish-categories へリダイレクトするだけの画面",
+	"profile/saved-topic-location": "旧ルート。profile/saved-dish-category-location へリダイレクトするだけの画面",
 };

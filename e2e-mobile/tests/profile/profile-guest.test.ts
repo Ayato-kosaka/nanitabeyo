@@ -47,7 +47,7 @@ describe("マイページ（匿名ユーザー）", () => {
 		await tabBar.gotoProfile();
 		// #1027 と同じ理由で存在（toExist）で見る。iOS の可視判定は面積の 75% を要求する
 		await profileScreen.expectLoaded();
-		await waitUntilExists(profileScreen.savedTopicsItem);
+		await waitUntilExists(profileScreen.savedDishCategoriesItem);
 
 		const hasLegacyGridTabs = await profileScreen.hasLegacyGridTabs();
 		assert.equal(hasLegacyGridTabs, false, "#1402 で廃止した 4 グリッドタブが残っている");

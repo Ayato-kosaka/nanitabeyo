@@ -17,7 +17,7 @@ test.describe("設定項目(匿名ユーザー)", () => {
 	//      - ご意見・不具合(settings-feedback)
 	//      - 利用規約(settings-terms)
 	//      - プライバシーポリシー(settings-privacy)
-	//      - ブロック済みの料理カテゴリ(settings-blocked-topics) ← #1132 で「トピック」から改称
+	//      - ブロック済みの料理カテゴリ(settings-blocked-dish-categories) ← #1132 で「トピック」から改称
 	//   3. 「レビューを書く」(ストア誘導)は Web では表示されないことを検証
 	test("設定メニューの各項目が表示される", async ({ appPage }) => {
 		const settingsPage = new SettingsPage(appPage);
@@ -27,7 +27,7 @@ test.describe("設定項目(匿名ユーザー)", () => {
 		await expect(settingsPage.feedbackItem).toBeVisible();
 		await expect(settingsPage.termsItem).toBeVisible();
 		await expect(settingsPage.privacyItem).toBeVisible();
-		await expect(settingsPage.blockedTopicsItem).toBeVisible();
+		await expect(settingsPage.blockedDishCategoriesItem).toBeVisible();
 		await expect(appPage.getByText("レビューを書く", { exact: true })).toHaveCount(0);
 	});
 

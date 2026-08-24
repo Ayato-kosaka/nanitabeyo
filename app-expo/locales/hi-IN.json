@@ -288,7 +288,7 @@
 			"stepProgress": "{{total}} में से {{current}} चरण"
 		}
 	},
-	"Topics": {
+	"DishCategories": {
 		"deepDive": {
 			"title": "इस शैली से छांटें"
 		},
@@ -309,7 +309,7 @@
 					"title": "मूड के हिसाब से गहराई से खोजें",
 					"body": "अभी तय नहीं कर पाए? सुझावों को सीमित करने के लिए अपनी पसंद की शैली चुनें।"
 				},
-				"topicActions": {
+				"dishCategoryActions": {
 					"title": "सुझावों को अपनी पसंद के अनुसार बनाएँ",
 					"save": "सेव: पसंदीदा व्यंजन बाद में फिर देखें",
 					"block": "ब्लॉक: नापसंद व्यंजन आगे सुझाए नहीं जाएंगे"
@@ -320,7 +320,7 @@
 				}
 			}
 		},
-		"HideTopicModal": {
+		"HideDishCategoryModal": {
 			"title": "छिपाएँ",
 			"description": "कृपया छिपाने का कारण बताएं (वैकल्पिक)",
 			"placeholder": "कारण दर्ज करें...",
@@ -338,7 +338,7 @@
 		"retry": "खोज पर लौटें",
 		"chooseThis": "इसे चुनें!",
 		"hiddenMessage": "{{title}} को छिपा दिया गया है",
-		"BlockTopicModal": {
+		"BlockDishCategoryModal": {
 			"title": "क्या इस व्यंजन को ब्लॉक करना चाहते हैं?",
 			"description": "ब्लॉक की गई व्यंजन श्रेणियाँ अब आपकी सिफ़ारिशों में नहीं दिखेंगी।",
 			"note": "आप इसे कभी भी सेटिंग्स से अनब्लॉक कर सकते हैं।",
@@ -357,9 +357,9 @@
 		"headerTitle": "आपके लिए अनुशंसित व्यंजन",
 		"subCopy": "रेस्तरां खोजने के लिए पसंदीदा व्यंजन पर टैप करें",
 		"accessibility": {
-			"blockTopic": "अनुशंसाओं से {{title}} हटाएं",
-			"saveTopic": "{{title}} सेव करें",
-			"unsaveTopic": "{{title}} सेव से हटाएं",
+			"blockDishCategory": "अनुशंसाओं से {{title}} हटाएं",
+			"saveDishCategory": "{{title}} सेव करें",
+			"unsaveDishCategory": "{{title}} सेव से हटाएं",
 			"thumbnail": "{{title}} थंबनेल, {{total}} में से {{index}}"
 		}
 	},
@@ -460,7 +460,7 @@
 			"deposits": "जमा",
 			"earnings": "आय",
 			"saved-posts": "पोस्ट",
-			"saved-topics": "व्यंजन",
+			"saved-dish-categories": "व्यंजन",
 			"wallet-deposit": "जमा",
 			"wallet-earning": "आय"
 		},
@@ -480,7 +480,7 @@
 			"noLikedDishMediaEntries": "कोई पसंद की गई पोस्ट नहीं",
 			"noSavedItems": "कोई सहेजे गए आइटम नहीं",
 			"noSavedPosts": "जब आपको दिलचस्प पोस्ट मिलें, तो उन्हें दोबारा देखने के लिए \"सहेजें\" का उपयोग करें",
-			"noSavedTopics": "जब आपको दिलचस्प व्यंजन मिलें, तो आसपास के रेस्टोरेंट देखने के लिए \"सहेजें\" का उपयोग करें"
+			"noSavedDishCategories": "जब आपको दिलचस्प व्यंजन मिलें, तो आसपास के रेस्टोरेंट देखने के लिए \"सहेजें\" का उपयोग करें"
 		},
 		"reviews": {
 			"filter": {
@@ -770,7 +770,7 @@
 		"logout": "लॉग आउट",
 		"logoutConfirmTitle": "लॉग आउट करें?",
 		"logoutConfirmMessage": "अपनी पोस्ट और समीक्षाएं प्रबंधित करने के लिए आपको फिर से लॉगिन करना होगा।",
-		"blockedTopics": {
+		"blockedDishCategories": {
 			"navigationLabel": "ब्लॉक की गई व्यंजन श्रेणियाँ",
 			"pageTitle": "ब्लॉक की गई व्यंजन श्रेणियाँ",
 			"title": "ब्लॉक किए गए व्यंजन",

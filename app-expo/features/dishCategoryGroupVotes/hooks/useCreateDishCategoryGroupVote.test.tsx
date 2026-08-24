@@ -16,7 +16,7 @@
 import { act } from "react";
 import TestRenderer from "react-test-renderer";
 
-import type { SearchParams, Topic } from "@/types/search";
+import type { SearchParams, DishCategoryRecommendation } from "@/types/search";
 
 // jest.mock のファクトリから参照できるのは `mock` 始まりの変数だけ
 const mockCallBackend = jest.fn();
@@ -37,12 +37,12 @@ const searchParams = {
 	localLanguageCode: "ja",
 } as unknown as SearchParams;
 
-const topics: Topic[] = [
-	{ category: "ラーメン", topicTitle: "濃厚豚骨", reason: "近所で人気", categoryId: "cat-1", imageUrl: "https://x/1" },
+const dishCategories: DishCategoryRecommendation[] = [
+	{ category: "ラーメン", title: "濃厚豚骨", reason: "近所で人気", categoryId: "cat-1", imageUrl: "https://x/1" },
 	// 非表示のトピックは候補へ含まれない（候補件数のアサーションで効く）
 	{
 		category: "カレー",
-		topicTitle: "スパイスカレー",
+		title: "スパイスカレー",
 		reason: "話題",
 		categoryId: "cat-2",
 		imageUrl: "https://x/2",
@@ -105,12 +105,12 @@ describe("useCreateDishCategoryGroupVote の連打耐性（#1205）", () => {
 		let first!: Promise<unknown>;
 		let second!: Promise<unknown>;
 		await act(async () => {
-			first = hookRef.createGroupVote({ searchParams, topics });
-			second = hookRef.createGroupVote({ searchParams, topics });
+			first = hookRef.createGroupVote({ searchParams, dishCategories });
+			second = hookRef.createGroupVote({ searchParams, dishCategories });
 		});
 
 		expect(mockCallBackend).toHaveBeenCalledTimes(1);
-		// 非表示トピックは候補へ入らない（= 送っているのは visibleTopics）
+		// 非表示トピックは候補へ入らない（= 送っているのは visibleDishCategories）
 		expect(mockCallBackend.mock.calls[0][1].requestPayload.candidates).toHaveLength(1);
 
 		await create.resolve({ shareToken: "token-1" });
@@ -126,7 +126,7 @@ describe("useCreateDishCategoryGroupVote の連打耐性（#1205）", () => {
 
 		const results: Promise<unknown>[] = [];
 		await act(async () => {
-			for (let i = 0; i < 3; i += 1) results.push(hookRef.createGroupVote({ searchParams, topics }));
+			for (let i = 0; i < 3; i += 1) results.push(hookRef.createGroupVote({ searchParams, dishCategories }));
 		});
 
 		expect(mockCallBackend).toHaveBeenCalledTimes(1);
@@ -141,7 +141,7 @@ describe("useCreateDishCategoryGroupVote の連打耐性（#1205）", () => {
 
 		let first!: Promise<unknown>;
 		await act(async () => {
-			first = hookRef.createGroupVote({ searchParams, topics });
+			first = hookRef.createGroupVote({ searchParams, dishCategories });
 			// 失敗を待たずに reject されるため、ここで捕捉しておかないと unhandled rejection になる
 			first.catch(() => {});
 		});
@@ -155,7 +155,7 @@ describe("useCreateDishCategoryGroupVote の連打耐性（#1205）", () => {
 		const retry = deferCreate();
 		let second!: Promise<unknown>;
 		await act(async () => {
-			second = hookRef.createGroupVote({ searchParams, topics });
+			second = hookRef.createGroupVote({ searchParams, dishCategories });
 		});
 
 		expect(mockCallBackend).toHaveBeenCalledTimes(2);
@@ -169,7 +169,7 @@ describe("useCreateDishCategoryGroupVote の連打耐性（#1205）", () => {
 
 		let first!: Promise<unknown>;
 		await act(async () => {
-			first = hookRef.createGroupVote({ searchParams, topics });
+			first = hookRef.createGroupVote({ searchParams, dishCategories });
 		});
 		await create.resolve({ shareToken: "token-1" });
 		await first;
@@ -178,7 +178,7 @@ describe("useCreateDishCategoryGroupVote の連打耐性（#1205）", () => {
 
 		const next = deferCreate();
 		await act(async () => {
-			hookRef.createGroupVote({ searchParams, topics });
+			hookRef.createGroupVote({ searchParams, dishCategories });
 		});
 		expect(mockCallBackend).toHaveBeenCalledTimes(2);
 		await next.resolve({ shareToken: "token-2" });
@@ -187,15 +187,15 @@ describe("useCreateDishCategoryGroupVote の連打耐性（#1205）", () => {
 	it("表示中のトピックが 0 件なら API を呼ばずに失敗し、ガードも残らない", async () => {
 		await mount();
 
-		await expect(hookRef.createGroupVote({ searchParams, topics: [{ ...topics[0], isHidden: true }] })).rejects.toThrow(
-			"No visible topics",
+		await expect(hookRef.createGroupVote({ searchParams, dishCategories: [{ ...dishCategories[0], isHidden: true }] })).rejects.toThrow(
+			"No visible dishCategories",
 		);
 		expect(mockCallBackend).not.toHaveBeenCalled();
 
 		// バリデーション失敗でガードが立ちっぱなしになっていないこと
 		const create = deferCreate();
 		await act(async () => {
-			hookRef.createGroupVote({ searchParams, topics });
+			hookRef.createGroupVote({ searchParams, dishCategories });
 		});
 		expect(mockCallBackend).toHaveBeenCalledTimes(1);
 		await create.resolve({ shareToken: "token-1" });

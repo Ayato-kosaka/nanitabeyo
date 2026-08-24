@@ -52,7 +52,7 @@ describe("剥がす — #1196 の実データにある path_name の形", () => 
 			"/contribution-tasks/dish-category-manual-image-supply",
 			"es-ES/[locale]",
 		],
-		["/ko-KR/[locale]/profile/blocked-topics", "/profile/blocked-topics", "ko-KR/[locale]"],
+		["/ko-KR/[locale]/profile/blocked-dish-categories", "/profile/blocked-dish-categories", "ko-KR/[locale]"],
 		["/fr-FR/[locale]/review/selectRestaurant", "/review/selectRestaurant", "fr-FR/[locale]"],
 		// ロケールが1つも解決していないパターン
 		["/[locale]/profile/settings", "/profile/settings", "[locale]"],
@@ -97,14 +97,14 @@ describe("剥がさない — app-expo のルーティングに実在する形",
 		["/auth"],
 		["/store"], // app/store.tsx（ロケール配下ではない実在ルート）
 		["/posts"],
-		["/topics"],
+		["/dish-categories"],
 		["/search"],
 		["/profile"],
 		["/review"],
 		["/notifications"],
 		["/contribution-tasks"],
 		["/search/result"],
-		["/profile/blocked-topics"],
+		["/profile/blocked-dish-categories"],
 		["/review/selectRestaurant"],
 		["/"],
 	])("%s は1文字も変えない", (input) => {
@@ -399,7 +399,7 @@ describe("ロケール違いが同じ fingerprint に畳まれる（#1221 / #122
 
 	it("画面が違えば依然として別 fingerprint（畳みすぎていない）", () => {
 		expect(computeFingerprint(groupFor("/ja-JP/search/result"))).not.toBe(
-			computeFingerprint(groupFor("/ja-JP/search/topics")),
+			computeFingerprint(groupFor("/ja-JP/search/dish-categories")),
 		);
 		expect(computeFingerprint(groupFor("/ja-JP/map"))).not.toBe(computeFingerprint(groupFor("/ja-JP")));
 	});

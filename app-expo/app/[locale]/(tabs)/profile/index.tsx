@@ -8,8 +8,8 @@
    自分のレビュー / 保存した料理 / 保存した投稿 / いいねした料理 の 4 つは、新タブ
    「食べたい/食べた」（親: #1375）と役割が重複する。残すのは «いいねした投稿» と
    «保存した料理カテゴリ» の 2 つだけで、しかもタブではなく下のリストから
-   `/[locale]/profile/liked` / `/[locale]/profile/saved-topics` へ push する
-   （グリッドの実装 LikeTab / SavedTopicsTab はそのまま流用している）。
+   `/[locale]/profile/liked` / `/[locale]/profile/saved-dish-categories` へ push する
+   （グリッドの実装 LikeTab / SavedDishCategoriesTab はそのまま流用している）。
 
 2. **独立した設定画面（profile/settings.tsx）を無くし、その項目をこのリストへ統合した。**
    設定は「たまに開く項目の一覧」でしかなく、マイページも 4 タブを失って同じ形になったため、
@@ -233,14 +233,14 @@ export default function ProfileScreen() {
 	}, [lightImpact, logFrontendEvent, router, locale]);
 
 	// #1402 【設計】旧「保存 > 料理」サブタブのグリッドを単独ルートとして開く
-	const handleNavigateToSavedTopics = useCallback(() => {
+	const handleNavigateToSavedDishCategories = useCallback(() => {
 		lightImpact();
 		logFrontendEvent({
 			event_name: "profile_saved_topics_pressed",
 			error_level: "log",
 			payload: {},
 		});
-		router.push({ pathname: "/[locale]/(tabs)/profile/saved-topics", params: { locale } });
+		router.push({ pathname: "/[locale]/(tabs)/profile/saved-dish-categories", params: { locale } });
 	}, [lightImpact, logFrontendEvent, router, locale]);
 
 	// ── プロフィール ────────────────────────────────────────────────────────
@@ -273,7 +273,7 @@ export default function ProfileScreen() {
 	// ── 旧設定画面から移してきた項目 ──────────────────────────────────────────
 
 	// #747 【設計】ブロック済みトピック管理画面への遷移
-	const handleNavigateToBlockedTopics = useCallback(() => {
+	const handleNavigateToBlockedDishCategories = useCallback(() => {
 		lightImpact();
 		logFrontendEvent({
 			event_name: "settings_blocked_topics_pressed",
@@ -281,7 +281,7 @@ export default function ProfileScreen() {
 			payload: {},
 		});
 		router.push({
-			pathname: "/[locale]/(tabs)/profile/blocked-topics",
+			pathname: "/[locale]/(tabs)/profile/blocked-dish-categories",
 			params: { locale },
 		});
 	}, [lightImpact, logFrontendEvent, router, locale]);
@@ -518,9 +518,9 @@ export default function ProfileScreen() {
 						/>
 						<ProfileMenuItem
 							label={i18n.t("Profile.menu.savedDishCategories")}
-							onPress={handleNavigateToSavedTopics}
+							onPress={handleNavigateToSavedDishCategories}
 							isLast
-							testID="profile-saved-topics"
+							testID="profile-saved-dish-categories"
 							accessibilityRole="link"
 						/>
 					</Card>
@@ -545,10 +545,10 @@ export default function ProfileScreen() {
 						)}
 						{/* #747 【設計】ブロック済みの料理カテゴリ管理画面へ遷移 */}
 						<ProfileMenuItem
-							label={i18n.t("Settings.blockedTopics.navigationLabel")}
-							onPress={handleNavigateToBlockedTopics}
+							label={i18n.t("Settings.blockedDishCategories.navigationLabel")}
+							onPress={handleNavigateToBlockedDishCategories}
 							isLast
-							testID="settings-blocked-topics"
+							testID="settings-blocked-dish-categories"
 							accessibilityRole="link"
 						/>
 					</Card>

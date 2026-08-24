@@ -288,7 +288,7 @@
 			"stepProgress": "Paso {{current}} de {{total}}"
 		}
 	},
-	"Topics": {
+	"DishCategories": {
 		"deepDive": {
 			"title": "Filtrar este estilo"
 		},
@@ -309,7 +309,7 @@
 					"title": "Profundiza según tu estado de ánimo",
 					"body": "¿Aún no te decides? Elige un estilo para acotar las sugerencias."
 				},
-				"topicActions": {
+				"dishCategoryActions": {
 					"title": "Adapta las sugerencias a tus gustos",
 					"save": "Guardar: vuelve a ver este plato más tarde",
 					"block": "Bloquear: deja de recibir sugerencias de platos que no te gustan"
@@ -320,7 +320,7 @@
 				}
 			}
 		},
-		"HideTopicModal": {
+		"HideDishCategoryModal": {
 			"title": "Ocultar",
 			"description": "Dinos la razón para ocultarlo (opcional)",
 			"placeholder": "Introduce una razón...",
@@ -338,7 +338,7 @@
 		"retry": "Volver a la búsqueda",
 		"chooseThis": "¡Este!",
 		"hiddenMessage": "{{title}} se ha ocultado",
-		"BlockTopicModal": {
+		"BlockDishCategoryModal": {
 			"title": "¿Bloquear este plato?",
 			"description": "Las categorías de platos bloqueadas ya no aparecerán en las recomendaciones.",
 			"note": "Puedes desbloquearlo en cualquier momento desde Configuración.",
@@ -357,9 +357,9 @@
 		"headerTitle": "Platos Recomendados para Ti",
 		"subCopy": "Toca un plato que te guste para encontrar restaurantes",
 		"accessibility": {
-			"blockTopic": "Quitar {{title}} de las recomendaciones",
-			"saveTopic": "Guardar {{title}}",
-			"unsaveTopic": "Quitar {{title}} de guardados",
+			"blockDishCategory": "Quitar {{title}} de las recomendaciones",
+			"saveDishCategory": "Guardar {{title}}",
+			"unsaveDishCategory": "Quitar {{title}} de guardados",
 			"thumbnail": "Miniatura de {{title}}, {{index}} de {{total}}"
 		}
 	},
@@ -460,7 +460,7 @@
 			"deposits": "Depósitos",
 			"earnings": "Ganancias",
 			"saved-posts": "Publicaciones",
-			"saved-topics": "Platos",
+			"saved-dish-categories": "Platos",
 			"wallet-deposit": "Depósitos",
 			"wallet-earning": "Ganancias"
 		},
@@ -480,7 +480,7 @@
 			"noLikedDishMediaEntries": "No hay publicaciones con me gusta",
 			"noSavedItems": "No hay elementos guardados",
 			"noSavedPosts": "Cuando encuentres publicaciones interesantes, usa \"Guardar\" para revisarlas",
-			"noSavedTopics": "Cuando encuentres platos interesantes, usa \"Guardar\" para explorar restaurantes cercanos"
+			"noSavedDishCategories": "Cuando encuentres platos interesantes, usa \"Guardar\" para explorar restaurantes cercanos"
 		},
 		"reviews": {
 			"filter": {
@@ -770,7 +770,7 @@
 		"logout": "Cerrar sesión",
 		"logoutConfirmTitle": "¿Cerrar sesión?",
 		"logoutConfirmMessage": "Deberás iniciar sesión de nuevo para gestionar tus publicaciones y reseñas.",
-		"blockedTopics": {
+		"blockedDishCategories": {
 			"navigationLabel": "Categorías de platos bloqueadas",
 			"pageTitle": "Categorías de platos bloqueadas",
 			"title": "Platos bloqueados",

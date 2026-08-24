@@ -178,7 +178,7 @@ describe("buildSitemapXml", () => {
 		["posts", "?ids= のクエリ前提で、クエリ無しでは対象が決まらない（#721）"],
 		["profile", "ログイン後の個人ページ"],
 		["profile/settings", "ログイン後の個人ページ"],
-		["profile/blocked-topics", "ログイン後の個人ページ"],
+		["profile/blocked-dish-categories", "ログイン後の個人ページ"],
 		["notifications", "ログイン後の個人ページ"],
 		["notifications/feed", "ログイン後の個人ページ"],
 		["auth/callback", "OAuth のコールバック。人間の入口ではない"],

@@ -259,7 +259,7 @@ export function ReviewForm({
 	 * **同じレビューが 2 件登録される**。
 	 *
 	 * ref への代入は同期的に確定するため、同一 JS タスク内の連続呼び出しでもレースしない。
-	 * search/index.tsx の `isSearchingRef`、search/topics.tsx の `isSelectingTopicRef` と同じ方式。
+	 * search/index.tsx の `isSearchingRef`、search/dish-categories.tsx の `isSelectingDishCategoryRef` と同じ方式。
 	 */
 	const isSubmittingRef = useRef(false);
 	/**

@@ -6,7 +6,7 @@ import * as Linking from "expo-linking";
  *
  * Web で `Linking.openURL()` を呼ぶと react-native-web は同一タブを遷移させるため、
  * SPA を離脱してしまい、ブラウザバックで戻ってきたときに復元に失敗して壊れる
- * （`/ja-JP/search/topics` の Google Maps fallback ダイアログで発生）。
+ * （`/ja-JP/search/dish-categories` の Google Maps fallback ダイアログで発生）。
  * そのため Web では常に別タブで開き、元のページを離脱させない。
  *
  * プラットフォーム判定と `window.open` の引数は、先行して個別に分岐していた

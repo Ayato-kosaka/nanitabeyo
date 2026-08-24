@@ -5,7 +5,7 @@
  * 多重タップ防止が `state.confirming`（useState）だけで書かれていた。React が
  * 再レンダリングをコミットする前に 2 発目の押下が処理されると、両方の押下が
  * `state.confirming === false` を読んで通過するため、custom（`showDialog` + `onConfirm`）の
- * `onConfirm` が 2 回走る。`features/topics/hooks/useBlockTopic.ts` では 2 発目が
+ * `onConfirm` が 2 回走る。`features/dishCategories/hooks/useBlockDishCategory.ts` では 2 発目が
  * `reactions` の一意制約で失敗し、**ブロックできているのにダイアログにエラーが残る**。
  *
  * このテストは以下を赤で守る。
@@ -136,7 +136,7 @@ describe("#1205 DialogProvider の確認アクションの多重実行ガード"
 			await press("dialog-action-ok", 3);
 
 			// #1205 これが本丸。state.confirming だけのガードでは 2 発目・3 発目も通り、
-			// useBlockTopic のように 2 発目が一意制約で失敗して「成功しているのにエラー表示」になる
+			// useBlockDishCategory のように 2 発目が一意制約で失敗して「成功しているのにエラー表示」になる
 			expect(onConfirm).toHaveBeenCalledTimes(1);
 
 			await confirming.resolve(undefined);

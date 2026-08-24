@@ -288,7 +288,7 @@
 			"stepProgress": "Step {{current}} of {{total}}"
 		}
 	},
-	"Topics": {
+	"DishCategories": {
 		"deepDive": {
 			"title": "Narrow this style"
 		},
@@ -309,7 +309,7 @@
 					"title": "Search deeper to match your mood",
 					"body": "Still deciding? Pick a style to narrow the suggestions to similar dishes."
 				},
-				"topicActions": {
+				"dishCategoryActions": {
 					"title": "Make suggestions fit your taste",
 					"save": "Save: Keep a dish so you can revisit it later",
 					"block": "Block: Stop dishes you don't like from being suggested again"
@@ -320,7 +320,7 @@
 				}
 			}
 		},
-		"HideTopicModal": {
+		"HideDishCategoryModal": {
 			"title": "Hide",
 			"description": "Please tell us the reason for hiding (optional)",
 			"placeholder": "Enter a reason...",
@@ -338,7 +338,7 @@
 		"retry": "Back to search",
 		"chooseThis": "Choose this!",
 		"hiddenMessage": "{{title}} has been hidden",
-		"BlockTopicModal": {
+		"BlockDishCategoryModal": {
 			"title": "Block this dish?",
 			"description": "Blocked dish categories will no longer appear in recommendations.",
 			"note": "You can unblock it anytime from Settings.",
@@ -357,9 +357,9 @@
 		"headerTitle": "Recommended Dishes for You",
 		"subCopy": "Tap on a dish you like to find restaurants",
 		"accessibility": {
-			"blockTopic": "Remove {{title}} from recommendations",
-			"saveTopic": "Save {{title}}",
-			"unsaveTopic": "Unsave {{title}}",
+			"blockDishCategory": "Remove {{title}} from recommendations",
+			"saveDishCategory": "Save {{title}}",
+			"unsaveDishCategory": "Unsave {{title}}",
 			"thumbnail": "{{title}} thumbnail, {{index}} of {{total}}"
 		}
 	},
@@ -460,7 +460,7 @@
 			"deposits": "Deposits",
 			"earnings": "Earnings",
 			"saved-posts": "Posts",
-			"saved-topics": "Dishes",
+			"saved-dish-categories": "Dishes",
 			"wallet-deposit": "Deposits",
 			"wallet-earning": "Earnings"
 		},
@@ -480,7 +480,7 @@
 			"noLikedDishMediaEntries": "No liked posts",
 			"noSavedItems": "No saved items",
 			"noSavedPosts": "When you find interesting posts, use \"Save\" to revisit them",
-			"noSavedTopics": "When you find interesting dishes, use \"Save\" to explore nearby restaurants"
+			"noSavedDishCategories": "When you find interesting dishes, use \"Save\" to explore nearby restaurants"
 		},
 		"reviews": {
 			"filter": {
@@ -770,7 +770,7 @@
 		"logout": "Logout",
 		"logoutConfirmTitle": "Log out?",
 		"logoutConfirmMessage": "You'll need to log in again to manage your posts and reviews.",
-		"blockedTopics": {
+		"blockedDishCategories": {
 			"navigationLabel": "Blocked dish categories",
 			"pageTitle": "Blocked dish categories",
 			"title": "Blocked dishes",
