@@ -2,6 +2,7 @@ import React, { useCallback } from "react";
 import { FlatList, RefreshControl, View, StyleSheet, FlatListProps, ListRenderItemInfo } from "react-native";
 import { Tabs } from "@/components/collapsible-tabs";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
+import { useAppTheme } from "@/contexts/ThemeProvider";
 
 interface GridItem {
 	id: string | number;
@@ -72,6 +73,7 @@ export function GridList<T extends GridItem>({
 	onScroll,
 	standalone = false,
 }: GridListProps<T>) {
+	const { colors } = useAppTheme();
 	const defaultKeyExtractor = useCallback(
 		(item: T, index: number) => {
 			return keyExtractor ? keyExtractor(item, index) : item.id.toString();
@@ -89,7 +91,7 @@ export function GridList<T extends GridItem>({
 	}, [isLoadingMore]);
 
 	const refreshControl = onRefresh ? (
-		<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#F05537"]} tintColor="#F05537" />
+		<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.brand]} tintColor={colors.brand} />
 	) : undefined;
 
 	if (isLoading) {

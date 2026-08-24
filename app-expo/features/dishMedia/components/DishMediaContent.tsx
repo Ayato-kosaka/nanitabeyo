@@ -24,6 +24,8 @@ import Animated, { runOnJS, useAnimatedStyle, useSharedValue, withTiming } from 
 import { SkeletonShimmer } from "@/components/SkeletonShimmer";
 import { type DishMediaBackgroundImageState } from "@/features/dishMedia/hooks/useDishMediaBackgroundImageResources";
 import { getDishMediaBackgroundImageUri } from "@/features/dishMedia/utils/backgroundImage";
+// #1509 全画面メディアの上の文字・黒背景は「常に同じ見え方」が仕様のため、テーマ非追従の FixedColors を使う
+import { FixedColors } from "@/constants/Palette";
 
 interface DishMediaContentProps {
 	id: string;
@@ -350,7 +352,7 @@ export default function DishMediaContent({
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: "#000",
+		backgroundColor: FixedColors.mediaBackground,
 	},
 	topHeader: {
 		position: "absolute",
@@ -374,7 +376,7 @@ const styles = StyleSheet.create({
 	menuName: {
 		fontSize: 28,
 		fontWeight: "700",
-		color: "#FFFFFF",
+		color: FixedColors.onMedia,
 		textShadowColor: "rgba(0, 0, 0, 0.5)",
 		textShadowOffset: { width: 0, height: 1 },
 		textShadowRadius: 2,
@@ -390,7 +392,7 @@ const styles = StyleSheet.create({
 	price: {
 		fontSize: 20,
 		fontWeight: "600",
-		color: "#FFFFFF",
+		color: FixedColors.onMedia,
 		textShadowColor: "rgba(0, 0, 0, 0.5)",
 		textShadowOffset: { width: 0, height: 1 },
 		textShadowRadius: 2,
@@ -407,7 +409,7 @@ const styles = StyleSheet.create({
 	},
 	reviewCount: {
 		fontSize: 16,
-		color: "#FFFFFF",
+		color: FixedColors.onMedia,
 		textShadowColor: "rgba(0, 0, 0, 0.5)",
 		textShadowOffset: { width: 0, height: 1 },
 		textShadowRadius: 2,
@@ -421,7 +423,7 @@ const styles = StyleSheet.create({
 	distance: {
 		fontSize: 20,
 		fontWeight: "600",
-		color: "#FFFFFF",
+		color: FixedColors.onMedia,
 		textShadowColor: "rgba(0, 0, 0, 0.5)",
 		textShadowOffset: { width: 0, height: 1 },
 		textShadowRadius: 2,
@@ -455,7 +457,7 @@ const styles = StyleSheet.create({
 		zIndex: 5,
 	},
 	processingText: {
-		color: "#fff",
+		color: FixedColors.onMedia,
 		fontSize: 16,
 		marginTop: 12,
 		textShadowColor: "rgba(0, 0, 0, 0.5)",
@@ -471,7 +473,7 @@ const styles = StyleSheet.create({
 		zIndex: 5,
 	},
 	errorText: {
-		color: "#fff",
+		color: FixedColors.onMedia,
 		fontSize: 16,
 		textShadowColor: "rgba(0, 0, 0, 0.5)",
 		textShadowOffset: { width: 0, height: 1 },

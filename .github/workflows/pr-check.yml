@@ -85,6 +85,13 @@ jobs:
       - name: legacyBlurModal の import 境界を検査
         run: pnpm --filter app-expo assert:legacy-blur-modal-boundary
 
+      # #1469 で新画面が色を直書きし、ダークモードで «ヘッダーだけ黒く本体は白い» 画面が
+      # 量産された事故の再発防止（#1509）。画面 .tsx の引用符内 hex / "white" / "black" を落とす。
+      # レガシーは理由付きの EXCLUSIONS で凍結し、直書きが消えたらリストから消させる（ラチェット）。
+      # 依存ゼロ・ファイル走査のみなので shared build より前の最速の位置に置く。
+      - name: 画面ファイルの色直書きを検査
+        run: pnpm --filter app-expo assert:no-hardcoded-colors
+
       # #1196 エラートリアージの純関数群。外部I/Oゼロ（node:crypto のみ）で shared/dist にも
       # 依存しないため、shared build より前・最速の位置に置ける。
       # このテストが守っているのは主に「正規化ルール表が RE2 と JS の共通部分集合に留まること」で、

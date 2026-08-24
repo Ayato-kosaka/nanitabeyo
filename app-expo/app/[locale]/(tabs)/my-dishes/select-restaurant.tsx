@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 import { View, StyleSheet, TouchableOpacity, InteractionManager } from "react-native";
 import { Navigation, RotateCw } from "lucide-react-native";
 import MapView, { Region } from "@/components/MapView";
@@ -17,6 +19,7 @@ import {
 import type { CreateRestaurantDto, QuerySavedRestaurantsDto } from "@shared/api/v1/dto";
 import { useHaptics } from "@/hooks/useHaptics";
 import i18n from "@/lib/i18n";
+import { asApiList } from "@/lib/apiList";
 import { useLogger } from "@/hooks/useLogger";
 import MapViewClass from "react-native-maps";
 import { isFoodAndDrinkPlaceForUser } from "@shared/utils/google_places_restaurant_type";
@@ -52,6 +55,8 @@ export default function SelectRestaurantScreen() {
 	 */
 	const { mode } = useLocalSearchParams<{ mode?: string }>();
 	const isPickMode = mode === "pick";
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { callBackend } = useAPICall();
@@ -248,7 +253,9 @@ export default function SelectRestaurantScreen() {
 					},
 				);
 
-				setSavedRestaurants(response.data);
+				// #1561 API が 200 で «data の無い本文» を返すと、次のレンダーの .map で
+				// 画面ごと ErrorBoundary へ落ちていた（throw は try の外なので catch できない）
+				setSavedRestaurants(asApiList(response.data));
 				setActiveRestaurantId(null);
 			} catch (error) {
 				showSnackbar(i18n.t("SelectRestaurant.fetchSavedRestaurantsError"));
@@ -487,7 +494,10 @@ export default function SelectRestaurantScreen() {
 							longitude: item.restaurant.longitude,
 						}}
 						onPress={() => handleSavedRestaurantMarkerPress(item)}
-						color={activeRestaurantId === item.restaurant.id ? "#F05537" : "#FFF"}
+						color={
+							// 地図タイルは常にライト配色のため、非アクティブのバブルは固定白（FixedColors 参照）
+							activeRestaurantId === item.restaurant.id ? colors.brand : FixedColors.mapMarkerSurface
+						}
 						isActive={activeRestaurantId === item.restaurant.id}
 						uri={item.restaurant.imageUrls?.sm}
 					/>
@@ -540,7 +550,7 @@ export default function SelectRestaurantScreen() {
 								accessibilityRole="button"
 								accessibilityLabel={i18n.t("Map.accessibility.useCurrentLocation")}
 								testID="review-select-restaurant-current-location-button">
-								<Navigation size={20} color="#000000" />
+								<Navigation size={20} color={colors.textStrong} />
 							</TouchableOpacity>
 						}
 					/>
@@ -551,13 +561,15 @@ export default function SelectRestaurantScreen() {
 					<PrimaryButton
 						onPress={() => searchSavedRestaurants(currentRegion.current)}
 						label={i18n.t("SelectRestaurant.searchThisArea")}
-						icon={<RotateCw size={16} color="#111827" />}
-						colors={["#ffffff", "#ffffff"]}
+						// #1375（5 巡目）「この範囲で再検索」は青（#357AFF）から主要文字色（#111827）へ。
+						// #1509 でその 2 色をトークン化してある
+						icon={<RotateCw size={16} color={colors.textPrimaryAlt} />}
+						colors={[colors.surface, colors.surface]}
 						shadowColor={"transparent"}
-						labelStyle={{ color: "#111827", fontSize: 14 }}
+						labelStyle={{ color: colors.textPrimaryAlt, fontSize: 14 }}
 						loading={isLoadingSavedRestaurants}
 						loadingIndicatorType="native"
-						nativeLoadingColor={"#111827"}
+						nativeLoadingColor={colors.textPrimaryAlt}
 					/>
 				</View>
 			</View>
@@ -578,43 +590,44 @@ export default function SelectRestaurantScreen() {
 	);
 }
 
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		backgroundColor: "#FFFFFF",
-	},
-	map: {
-		flex: 1,
-	},
-	topOverlay: {
-		position: "absolute",
-		top: 0,
-		left: 0,
-		right: 0,
-		zIndex: 100,
-	},
-	searchContainer: {
-		marginTop: 8,
-		marginHorizontal: 16,
-	},
-	currentLocationButton: {
-		padding: 16,
-		borderLeftWidth: 0.5,
-		borderLeftColor: "#C9C9C9",
-	},
-	searchButtonContainer: {
-		marginTop: 8,
-		alignItems: "center",
-	},
-	loadingOverlay: {
-		position: "absolute",
-		top: 0,
-		left: 0,
-		right: 0,
-		bottom: 0,
-		justifyContent: "center",
-		alignItems: "center",
-		backgroundColor: "rgba(0, 0, 0, 0.3)",
-		zIndex: 20,
-	},
-});
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		container: {
+			flex: 1,
+			backgroundColor: c.surface,
+		},
+		map: {
+			flex: 1,
+		},
+		topOverlay: {
+			position: "absolute",
+			top: 0,
+			left: 0,
+			right: 0,
+			zIndex: 100,
+		},
+		searchContainer: {
+			marginTop: 8,
+			marginHorizontal: 16,
+		},
+		currentLocationButton: {
+			padding: 16,
+			borderLeftWidth: 0.5,
+			borderLeftColor: c.border,
+		},
+		searchButtonContainer: {
+			marginTop: 8,
+			alignItems: "center",
+		},
+		loadingOverlay: {
+			position: "absolute",
+			top: 0,
+			left: 0,
+			right: 0,
+			bottom: 0,
+			justifyContent: "center",
+			alignItems: "center",
+			backgroundColor: "rgba(0, 0, 0, 0.3)",
+			zIndex: 20,
+		},
+	});

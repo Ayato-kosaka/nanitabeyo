@@ -12,6 +12,8 @@ import type { GetRestaurantByIdResponse } from "@shared/api/v1/res";
 import i18n from "@/lib/i18n";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { useLocale } from "@/hooks/useLocale";
+import { type Palette } from "@/constants/Palette";
+import { useThemedStyles } from "@/contexts/ThemeProvider";
 
 /*
  * 店舗詳細画面（アプリ唯一の店舗詳細）
@@ -29,6 +31,7 @@ import { useLocale } from "@/hooks/useLocale";
  * どれも `restaurantId` だけで成立する（実体はストアのキャッシュ優先で、無ければ API を引く）。
  */
 export default function RestaurantDetailScreen() {
+	const styles = useThemedStyles(createStyles);
 	const { restaurantId } = useLocalSearchParams<{ restaurantId: string }>();
 	const { lightImpact } = useHaptics();
 	const { callBackend } = useAPICall();
@@ -151,25 +154,26 @@ export default function RestaurantDetailScreen() {
 	);
 }
 
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		backgroundColor: "#FFFFFF",
-	},
-	loadingContainer: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-	},
-	errorContainer: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-		padding: 16,
-	},
-	errorText: {
-		fontSize: 16,
-		color: "#666",
-		textAlign: "center",
-	},
-});
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		container: {
+			flex: 1,
+			backgroundColor: c.surface,
+		},
+		loadingContainer: {
+			flex: 1,
+			justifyContent: "center",
+			alignItems: "center",
+		},
+		errorContainer: {
+			flex: 1,
+			justifyContent: "center",
+			alignItems: "center",
+			padding: 16,
+		},
+		errorText: {
+			fontSize: 16,
+			color: c.textMuted,
+			textAlign: "center",
+		},
+	});

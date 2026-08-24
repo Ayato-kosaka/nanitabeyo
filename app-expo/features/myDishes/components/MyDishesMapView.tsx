@@ -6,6 +6,8 @@ import MapView, { Marker, type Region } from "@/components/MapView";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { EmptyState } from "@/components/EmptyState";
 import { PrimaryButton } from "@/components/PrimaryButton";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 import { AvatarBubbleMarker } from "@/features/mapMarkers";
 import {
 	clusterMyDishPins,
@@ -64,6 +66,8 @@ import { MyDishesMapSheet } from "./MyDishesMapSheet";
  *   （呼び出し元の `my-dishes/index.tsx` が「タブが前面 かつ このビューが選ばれている」を渡す）
  */
 export function MyDishesMapView({ enabled = true }: { enabled?: boolean } = {}) {
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 	const { isJapanese, locale } = useLocale();
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
@@ -328,13 +332,13 @@ export function MyDishesMapView({ enabled = true }: { enabled?: boolean } = {}) 
 						testID="my-dishes-search-this-area"
 						onPress={handleSearchThisArea}
 						label={i18n.t("MyDishes.searchThisArea")}
-						icon={<RotateCw size={16} color="#111827" />}
-						colors={["#ffffff", "#ffffff"]}
+						icon={<RotateCw size={16} color={colors.textPrimaryAlt} />}
+						colors={[colors.surface, colors.surface]}
 						shadowColor="transparent"
-						labelStyle={{ color: "#111827", fontSize: 14 }}
+						labelStyle={{ color: colors.textPrimaryAlt, fontSize: 14 }}
 						loading={showButtonLoading}
 						loadingIndicatorType="native"
-						nativeLoadingColor="#111827"
+						nativeLoadingColor={colors.textPrimaryAlt}
 					/>
 				</View>
 				{/* #1375 実機確認: 「このエリアで絞り込み中」の帯は廃止した。
@@ -373,66 +377,67 @@ export function MyDishesMapView({ enabled = true }: { enabled?: boolean } = {}) 
 	);
 }
 
-const styles = StyleSheet.create({
-	// #1375（5 巡目）クラスタの丸。地図の上に載るので白い縁で輪郭を保つ
-	// （バッジ類と同じ考え方。`features/myDishes/components/MyDishStatusCountBadges.tsx`）
-	cluster: {
-		minWidth: 36,
-		height: 36,
-		paddingHorizontal: 6,
-		borderRadius: 18,
-		alignItems: "center",
-		justifyContent: "center",
-		backgroundColor: "rgba(17,24,39,0.82)",
-		borderWidth: 2,
-		borderColor: "#FFFFFF",
-	},
-	clusterLabel: {
-		fontSize: 14,
-		fontWeight: "700",
-		color: "#FFFFFF",
-	},
-	container: {
-		flex: 1,
-	},
-	map: {
-		flex: 1,
-	},
-	loadingOverlay: {
-		...StyleSheet.absoluteFillObject,
-		justifyContent: "center",
-		alignItems: "center",
-		backgroundColor: "rgba(255, 255, 255, 0.5)",
-	},
-	topOverlay: {
-		position: "absolute",
-		top: 0,
-		left: 0,
-		right: 0,
-		zIndex: 100,
-	},
-	searchButtonContainer: {
-		marginTop: 12,
-		alignItems: "center",
-	},
-	truncatedBanner: {
-		marginTop: 8,
-		marginHorizontal: 24,
-		paddingHorizontal: 12,
-		paddingVertical: 8,
-		borderRadius: 8,
-		backgroundColor: "rgba(17, 24, 39, 0.85)",
-	},
-	truncatedText: {
-		fontSize: 12,
-		color: "#FFFFFF",
-		textAlign: "center",
-	},
-	emptyOverlay: {
-		position: "absolute",
-		top: 80,
-		left: 24,
-		right: 24,
-		bottom: 24,
-	},
-});
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		// #1375（5 巡目）クラスタの丸。地図の上に載るので白い縁で輪郭を保つ
+		// （バッジ類と同じ考え方。`features/myDishes/components/MyDishStatusCountBadges.tsx`）
+		cluster: {
+			minWidth: 36,
+			height: 36,
+			paddingHorizontal: 6,
+			borderRadius: 18,
+			alignItems: "center",
+			justifyContent: "center",
+			backgroundColor: "rgba(17,24,39,0.82)",
+			borderWidth: 2,
+			borderColor: FixedColors.onMedia,
+		},
+		clusterLabel: {
+			fontSize: 14,
+			fontWeight: "700",
+			color: FixedColors.onMedia,
+		},
+		container: {
+			flex: 1,
+		},
+		map: {
+			flex: 1,
+		},
+		loadingOverlay: {
+			...StyleSheet.absoluteFillObject,
+			justifyContent: "center",
+			alignItems: "center",
+			backgroundColor: "rgba(255, 255, 255, 0.5)",
+		},
+		topOverlay: {
+			position: "absolute",
+			top: 0,
+			left: 0,
+			right: 0,
+			zIndex: 100,
+		},
+		searchButtonContainer: {
+			marginTop: 12,
+			alignItems: "center",
+		},
+		truncatedBanner: {
+			marginTop: 8,
+			marginHorizontal: 24,
+			paddingHorizontal: 12,
+			paddingVertical: 8,
+			borderRadius: 8,
+			backgroundColor: "rgba(17, 24, 39, 0.85)",
+		},
+		truncatedText: {
+			fontSize: 12,
+			color: FixedColors.onMedia,
+			textAlign: "center",
+		},
+		emptyOverlay: {
+			position: "absolute",
+			top: 80,
+			left: 24,
+			right: 24,
+			bottom: 24,
+		},
+	});

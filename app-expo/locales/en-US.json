@@ -554,7 +554,8 @@
 		},
 		"actions": {
 			"selectDishCategory": "Select dish category",
-			"writeReviewForThisDish": "Record as eaten"
+			"writeReviewForThisDish": "Record as eaten",
+			"useTypedDishCategory": "Use “{{name}}”"
 		},
 		"inputs": {
 			"price": "Price",
@@ -571,14 +572,16 @@
 			"enterBidAmount": "Enter bid amount",
 			"enterDishCategory": "Enter dish category (e.g., Burger, BBQ)",
 			"searchRestaurantsForReview": "Search by name or area",
-			"searchAreaForReview": "Search by area"
+			"searchAreaForReview": "Search by area",
+			"searchDishCategory": "Search by dish name"
 		},
 		"labels": {
 			"endDate": "End date:",
 			"paymentProcessing": "Processing payment...",
 			"restaurant": "Restaurant",
 			"dishCategory": "Dish category",
-			"dishesAtThisRestaurant": "Dishes at this restaurant"
+			"dishesAtThisRestaurant": "Dishes at this restaurant",
+			"noDishesAtThisRestaurant": "No dishes recorded here yet. Type a dish name."
 		},
 		"tabs": {
 			"reviews": "Reviews"
