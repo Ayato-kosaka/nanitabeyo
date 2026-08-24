@@ -718,7 +718,12 @@ MCP 経由の run 一覧は **1 件ごとに `head_commit.message` を全文**�
 | --- | --- |
 | `list_workflow_runs`（`per_page: 8`, e2e-mobile） | **約 25,000 トークン** |
 | `list_workflow_runs`（`per_page: 6`, claude-worker） | **約 30,000 トークン** |
+| `list_workflow_runs`（**`per_page: 1`**, claude-worker） | **約 30,000 トークン**（下記） |
 | `git ls-remote` + `git log -1 --format` でブランチ 8 本を確認 | 約 400 トークン |
+
+⚠️ **`per_page` を小さくしても効かない。** 2026-08-24 に `per_page: 1` を渡したが
+**30 件返ってきた**（この MCP ツールは `list_workflow_runs` で `per_page` を無視する）。
+「1 件だけ見るから安いはず」は成り立たないので、`per_page` に頼らないこと。
 
 **代わりにこうする。**
 
