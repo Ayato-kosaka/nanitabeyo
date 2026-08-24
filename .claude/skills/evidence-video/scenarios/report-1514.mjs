@@ -79,8 +79,14 @@ async function shootScheme(scheme) {
 			await page.waitForTimeout(4000);
 			await shot("01-feed");
 
-			// 「通報する」は右側のアクション列にある
-			const reportButton = page.getByTestId("dish-action-report");
+			/*
+			「通報する」は右側のアクション列にある。
+
+			⚠️ `.first()` が要る。全画面フィードは前後のページも同時に描くので、
+			   同じ testID が **3 つ**当たり、Playwright の strict モードが
+			   「複数一致」で落ちる（実測で撮影が 1 枚目で止まった）。
+			*/
+			const reportButton = page.getByTestId("dish-action-report").first();
 			await reportButton.waitFor({ state: "visible", timeout: 15000 });
 			await reportButton.scrollIntoViewIfNeeded().catch(() => {});
 			await shot("02-report-button");
@@ -88,15 +94,15 @@ async function shootScheme(scheme) {
 			await reportButton.click();
 			await page.waitForTimeout(1200);
 
-			const sheet = page.getByTestId("report-sheet");
+			const sheet = page.getByTestId("report-sheet").first();
 			await sheet.waitFor({ state: "visible", timeout: 10000 });
 			await shot("03-report-sheet");
 
 			// 理由の選択肢がどう並んでいるかを絵で残す。文言はアプリの i18n に任せる
-			const detailsInput = page.getByTestId("report-details-input");
+			const detailsInput = page.getByTestId("report-details-input").first();
 			if (await detailsInput.count()) {
-				await detailsInput.first().click().catch(() => {});
-				await detailsInput.first().fill("[E2E] エビデンス撮影のための入力です").catch(() => {});
+				await detailsInput.click().catch(() => {});
+				await detailsInput.fill("[E2E] エビデンス撮影のための入力です").catch(() => {});
 				await page.waitForTimeout(400);
 				await shot("04-report-filled");
 			}
