@@ -19,6 +19,8 @@ from pipeline_common import BigQueryPipeline, utc_now
 
 LOGGER = logging.getLogger(__name__)
 ALLOWED_SCHEMAS = {"dev", "public"}
+# 同期session専用の statement_timeout（30分）。詳細は connect_postgres を参照。
+STATEMENT_TIMEOUT_MS = 30 * 60 * 1000
 
 # 8_1 が書く ERROR check の名前。「部分insertのvalidationで同期を承認しない」を、
 # 件数ではなく**名前の集合**で担保する。件数だけを見ると «17件は揃っているが
@@ -82,6 +84,13 @@ def connect_postgres(schema: str, *, allow_public: bool) -> PgConnection:
         cursor.execute(
             sql.SQL("SET search_path TO {}, public").format(sql.Identifier(schema))
         )
+        # サーバ側の既定 statement_timeout は「APIが投げる対話クエリ」を想定した
+        # 短い値である。この同期は57万行を1文でINSERTするバッチなので、その既定に
+        # 当たって落ちる（実測: dry-run が apply_sync の途中で
+        # "canceling statement due to statement timeout"）。
+        # 0（無制限）にはしない。lock待ちで無限に居座ると、advisory lockを掴んだまま
+        # 次の実行も止めてしまうため、十分大きい有限値で頭打ちにする。
+        cursor.execute(f"SET statement_timeout = '{STATEMENT_TIMEOUT_MS}ms'")
         # 手動実行でも二つのterminalから同じschemaへ同時publishされ得る。
         # transaction advisory lockで9_1/9_2を直列化し、staging判定後の競合を防ぐ。
         cursor.execute(
