@@ -6,14 +6,38 @@
 
 ⚠️ 認証・API・地図はモック。映っているのは «画面» であって実データではない。
 */
-import { record, writeNote, OUT } from "./harness.mjs";
+import { record, ok, writeNote, OUT } from "./harness.mjs";
 
 const BASE = process.env.EVIDENCE_BASE || "http://localhost:8788";
 const TARGET = "settings-notifications-card";
 
+/*
+モックを書かずにハーネス既定（どんな URL にも `ok([])`）へ任せると、
+`useNotificationPreferences` が `response.data` を舐められず catch に落ち、
+カードが «エラーが発生しました / 再試行» の状態で描画される（run 32750173211 で実測）。
+
+`NotificationSettingsCard` は取得に失敗したらトグルを描かない仕様である
+（既定値を描くと「オフにしているのにオンと表示する」嘘になるため）。
+つまりモックを省くと、撮れるのはエラー状態であってこの機能の絵ではない。
+
+カテゴリと並び順は `NOTIFICATION_CATEGORIES`（likes / saves / group_votes）が正。
+オン・オフが混ざった状態にして、両方の見た目が 1 枚に入るようにしてある。
+*/
+const PREFERENCES = {
+	data: [
+		{ category: "likes", enabled: true },
+		{ category: "saves", enabled: true },
+		{ category: "group_votes", enabled: false },
+	],
+};
+
+const mock = (url) =>
+	url.includes("/v1/users/me/notification-preferences") ? { body: ok(PREFERENCES) } : null;
+
 async function shootScheme(scheme) {
 	return record({
 		name: `notifprefs1510-${scheme}`,
+		mock,
 		contextOptions: { colorScheme: scheme },
 		flow: async (page, shot) => {
 			await page.addInitScript((s) => {
@@ -30,6 +54,18 @@ async function shootScheme(scheme) {
 			await page.goto(`${BASE}/ja-JP/profile/settings`, { waitUntil: "domcontentloaded" });
 			await page.waitForTimeout(3500);
 			await shot("01-screen");
+
+			// 「トグルが並んだ絵」を撮りに来ているので、無いなら撮らずに落とす。
+			// エラー状態のスクショを «カテゴリ別オン/オフの証拠» として納品する事故を防ぐ。
+			for (const { category } of PREFERENCES.data) {
+				const row = page.getByTestId(`settings-notifications-${category}`);
+				await row.waitFor({ state: "visible", timeout: 15000 });
+			}
+			// エラー状態が出ていたら «撮れた» ことにしない
+			if (await page.getByTestId("settings-notifications-error").count()) {
+				throw new Error("通知カードがエラー状態で描画されている（モックが効いていない）");
+			}
+			console.log(`[${scheme}] トグル ${PREFERENCES.data.length} 件を確認`);
 
 			const target = page.getByTestId(TARGET);
 			await target.waitFor({ state: "attached", timeout: 15000 });
