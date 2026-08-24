@@ -5,7 +5,7 @@ import { SearchPage } from "../../pages/SearchPage";
 /**
  * 🚀 オンボーディング（#1486）の表示テスト
  *
- * 目的: ja-JP 初回訪問時の自動表示、課題 → 解決のフェーズ切り替え、
+ * 目的: ja-JP 初回訪問時の自動表示、矢印による課題 → 解決のフェーズ送り、
  *       前へ / 次へ / スキップ、完了後の再表示抑止
  *       （localStorage フラグ `search_tutorial_seen_v1`）を保証する。
  *
@@ -23,11 +23,11 @@ import { SearchPage } from "../../pages/SearchPage";
  */
 test.use({ seedTutorialSeen: false });
 
-/** 3 ステップの課題文（#1486 §1 で確定した文言。\n は文言側で決めた明示改行） */
+/** 3 ステップの課題文（#1486 §1 の文言。\n は文言側で決めた明示改行） */
 const PROBLEM_TEXTS = [
-	"何食べたいか、決まらない。",
-	"お店探し。\n候補が多すぎて時間がかかる。",
-	"一緒に行く人の好みも、外したくない。",
+	"そもそも何食べたいか決まらない",
+	"お店の候補が多すぎて、\n決めるの疲れるなぁ",
+	"友達の意見も聞きたいなぁ",
 ] as const;
 
 test.describe("オンボーディング(ja-JP 初回訪問)", () => {
@@ -45,22 +45,30 @@ test.describe("オンボーディング(ja-JP 初回訪問)", () => {
 		await expect(page.getByText(PROBLEM_TEXTS[0])).toBeVisible();
 	});
 
-	// ─ テストケース: 約1.5秒後に解決フェーズが再生される ─
+	// ─ テストケース: 解決フェーズは「次へ」を押すまで再生されない ─
 	// 手順:
 	//   1. 自動表示されたオンボーディングの 1 枚目を待つ
-	//   2. 解決文が不透明になる（= 解決フェーズが再生された）ことを検証
-	//   3. 課題文が **残っている** ことを検証
-	// 補足: #1486 §1 の「課題文は残しつつ、解決文言と解決画像をフェード / ポップ表示」。
-	//       課題文が消える実装へ戻ると、この 3 番目で落ちる。
-	//       固定 sleep は使わない（`expectSolutionVisible` が状態を待つ）
-	test("課題フェーズの後に解決フェーズが再生され、課題文は残る", async ({ page }) => {
+	//   2. 待っても解決文が透明のままである（= 自動再生されない）ことを検証
+	//   3. 「次へ」を 1 回押すと解決文が不透明になることを検証
+	//   4. 課題文が **残っている** ことを検証
+	// 補足: 旧実装は約 1.5 秒で自動的に解決フェーズへ切り替わっていたが、課題文を読み終える前に
+	//       画面が変わるという指摘を受けて «矢印を押したときだけ» 出す形になった。
+	//       手順 2 の待ち時間（2 秒）は旧仕様の 1.5 秒より長い。ここを縮めると
+	//       自動再生が戻ってきても気づけない
+	test("解決フェーズは「次へ」を押すまで再生されない", async ({ page }) => {
 		const onboardingPage = new OnboardingPage(page);
 
 		await page.goto("/");
 		await onboardingPage.expectStep(1);
 
+		await expect(onboardingPage.solutionText(1)).toHaveCount(1);
+		await page.waitForTimeout(2_000);
+		expect(await onboardingPage.solutionOpacity(1)).toBeLessThan(0.1);
+
+		await onboardingPage.pressNext();
+
 		await onboardingPage.expectSolutionVisible(1);
-		await expect(page.getByText("おすすめの料理が提案されるので\n「食べたい」が見つかる")).toBeVisible();
+		await expect(page.getByText("提案されたオススメの料理の中から選ぶだけ")).toBeVisible();
 		await expect(page.getByText(PROBLEM_TEXTS[0])).toBeVisible();
 	});
 
@@ -69,7 +77,8 @@ test.describe("オンボーディング(ja-JP 初回訪問)", () => {
 	//   1. 自動表示された 1 枚目を待つ
 	//   2. 「前へ」が描画されていないことを検証
 	//   3. 2 枚目へ進むと「前へ」が現れることを検証
-	// 補足: #1486 §1「1枚目は戻る操作無効」
+	// 補足: #1486 §1「1枚目は戻る操作無効」。
+	//       «2 枚目へ進む» は「次へ」2 押下（解決フェーズ → 次のページ）であることに注意
 	test("1枚目では「前へ」が出ず、2枚目から出る", async ({ page }) => {
 		const onboardingPage = new OnboardingPage(page);
 
@@ -77,7 +86,7 @@ test.describe("オンボーディング(ja-JP 初回訪問)", () => {
 		await onboardingPage.expectStep(1);
 		await expect(onboardingPage.backButton).toHaveCount(0);
 
-		await onboardingPage.pressNext();
+		await onboardingPage.goToNextStep(1);
 
 		await onboardingPage.expectStep(2);
 		await expect(onboardingPage.backButton).toBeVisible();
@@ -87,23 +96,24 @@ test.describe("オンボーディング(ja-JP 初回訪問)", () => {
 	// 手順:
 	//   1. 2 枚目へ進み、解決フェーズまで再生させる
 	//   2. 「前へ」で 1 枚目へ戻る
-	//   3. 1 枚目の解決フェーズが（戻った時点ではなく）改めて再生されることを検証
+	//   3. 戻った先が **課題状態**（解決文が透明）であることを検証
+	//   4. 「次へ」で 1 枚目の解決フェーズが改めて再生されることを検証
 	// 補足: #1486 §1「前のページへ戻った場合は、課題状態から解決アニメーションを再生する」。
 	//       フェーズをページごとに覚える実装にすると、戻った瞬間から解決状態で出てしまう。
-	//       ⚠️ 「戻った直後に解決文が透明である」ことは検証しない。ページ切り替えと
-	//       アサートの間に 1.5 秒が経ってしまうと **偽の赤** になるためで、
-	//       ここでは「戻ったあとにもう一度解決フェーズへ到達する」ことだけを見る
+	//       自動再生が無くなったので、手順 3 は «時間が経つと勝手に解決へ変わる» 心配なく検証できる
 	test("前のページへ戻ると解決アニメーションを再生し直す", async ({ page }) => {
 		const onboardingPage = new OnboardingPage(page);
 
 		await page.goto("/");
-		await onboardingPage.expectStep(1);
-		await onboardingPage.pressNext();
-		await onboardingPage.expectSolutionVisible(2);
+		await onboardingPage.goToNextStep(1);
+		await onboardingPage.revealSolution(2);
 
 		await onboardingPage.pressBack();
 
 		await onboardingPage.expectStep(1);
+		await expect.poll(() => onboardingPage.solutionOpacity(1)).toBeLessThan(0.1);
+
+		await onboardingPage.pressNext();
 		await onboardingPage.expectSolutionVisible(1);
 	});
 
@@ -120,6 +130,8 @@ test.describe("オンボーディング(ja-JP 初回訪問)", () => {
 		await page.goto("/");
 		await onboardingPage.advanceToLastStep();
 
+		// 3 枚目でも «解決を出す» → «送る» の 2 押下でログイン画面へ抜ける
+		await onboardingPage.pressNext();
 		await onboardingPage.pressNext();
 
 		await expect(page).toHaveURL(/\/auth\/login/);
@@ -160,6 +172,7 @@ test.describe("オンボーディング(ja-JP 初回訪問)", () => {
 		await page.goto("/");
 		await onboardingPage.advanceToLastStep();
 		await onboardingPage.pressNext();
+		await onboardingPage.pressNext();
 		await page.getByTestId("login-screen-skip").click();
 
 		await expect(onboardingPage.welcomeScreen).toBeVisible({ timeout: 60_000 });
@@ -185,6 +198,7 @@ test.describe("オンボーディング(ja-JP 初回訪問)", () => {
 		await page.goto("/");
 		await onboardingPage.advanceToLastStep();
 		await onboardingPage.pressNext();
+		await onboardingPage.pressNext();
 		await page.getByTestId("login-screen-skip").click();
 		await expect(onboardingPage.welcomeScreen).toBeVisible({ timeout: 60_000 });
 
@@ -207,10 +221,10 @@ test.describe("オンボーディング(ja-JP 初回訪問)", () => {
 	//   1. 未読シードでオンボーディングを自動表示させる
 	//   2. 1 枚目で「次へ」を 3 連打する(待機を挟まない実 pointer 連打)
 	//   3. 3 枚を飛び越して壊れることなく、いずれかのステップかログイン画面に居ることを検証
-	// 補足: **「3 連打 → 3 枚目に居る」とは書けない**。Playwright の連打は 1 プレスずつ
+	// 補足: **「3 連打 → N 枚目に居る」とは書けない**。Playwright の連打は 1 プレスずつ
 	//       別のブラウザタスクとして届き、React は discrete event の更新を各ハンドラの
 	//       終わりに同期コミットするため、プレスの間に再描画が入る（旧 spec で実測済み）。
-	//       3 連打すると 3 枚目を越えてログイン画面へ抜けることもある。
+	//       いまは 1 ページにつき 2 押下（解決 → 送り）なので届く先はさらに読めない。
 	//       そこで **プレス回数に依存せず必ず成立する不変条件** を見る:
 	//       「壊れた中間状態（どのステップでもなく、ログイン画面でもない）にならないこと」。
 	//       `hasLeftRef` が効いていないとログイン画面が二重に push されるが、

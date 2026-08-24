@@ -70,9 +70,9 @@ describe("UI カタログ（匿名） @catalog", () => {
 	// 「未読」で起動すると初回フォーカスで自動的に開く（e2e-web のヘルプボタン経由と違い、
 	// こちらが native の素直な導線。tests/search/onboarding.test.ts と同じ）。
 	//
-	// ⚠️ 各ページは表示から約 1.5 秒後に課題フェーズ → 解決フェーズへ切り替わる。
+	// ⚠️ 課題フェーズ → 解決フェーズは **矢印を押したときだけ** 切り替わる（自動では出ない）。
 	// カタログとしては «その画面が何を伝えるか» が写っていてほしいので、
-	// 課題だけの状態ではなく解決フェーズまで再生させてから撮る。
+	// 課題だけの状態ではなく解決フェーズを出してから撮る（= 1 ページにつき「次へ」2 押下）。
 	it("オンボーディング（3 ステップ・権限・Welcome）", async () => {
 		const onboardingScreen = new OnboardingScreen();
 		const loginScreen = new LoginScreen();
@@ -82,7 +82,7 @@ describe("UI カタログ（匿名） @catalog", () => {
 			async () => {
 				await launchAppWithSession({ as: "anon", tutorialSeen: false, waitForReady: false });
 				await onboardingScreen.expectShown();
-				await onboardingScreen.expectSolutionShown(1);
+				await onboardingScreen.revealSolution(1);
 			},
 			{ settleMs: 500 },
 		);
@@ -93,9 +93,9 @@ describe("UI カタログ（匿名） @catalog", () => {
 			await captureScreenIfReachable(
 				`onboarding-step${step}`,
 				async () => {
+					// 直前のページは解決フェーズで止まっているので、1 押下で次のページへ送られる
 					await onboardingScreen.pressNext();
-					await onboardingScreen.expectStep(step);
-					await onboardingScreen.expectSolutionShown(step);
+					await onboardingScreen.revealSolution(step);
 				},
 				{ settleMs: 500 },
 			);
@@ -105,6 +105,7 @@ describe("UI カタログ（匿名） @catalog", () => {
 		// 権限を付与済みなので OS のダイアログは出ず、最低表示時間を過ぎると自動で次へ進む。
 		// 撮り逃してもジョブを赤くしないよう captureScreenIfReachable で «撮れたら撮る» にしている
 		await captureScreenIfReachable("onboarding-location", async () => {
+			// 3 枚目も解決フェーズで止まっているので、1 押下でログイン画面へ抜ける
 			await onboardingScreen.pressNext();
 			await loginScreen.expectOpened();
 			await loginScreen.skip();

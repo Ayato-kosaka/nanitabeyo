@@ -242,16 +242,16 @@
 	},
 	"Onboarding": {
 		"step1": {
-			"problem": "Can't decide what you want to eat.",
-			"solution": "We suggest recommended dishes,\nso you find what you're craving"
+			"problem": "You can't even decide\nwhat you feel like eating.",
+			"solution": "Just pick from the dishes we recommend"
 		},
 		"step2": {
-			"problem": "Finding a restaurant takes forever\nwith too many options.",
-			"solution": "Dishes and restaurants are both curated,\nso you can decide right away"
+			"problem": "Too many restaurants to choose from.\nDeciding is exhausting.",
+			"solution": "Pick from curated restaurants, so it's easy to decide!"
 		},
 		"step3": {
-			"problem": "You don't want to miss what your companions like either.",
-			"solution": "Vote with friends to decide on a dish"
+			"problem": "You'd like to hear\nwhat your friends think, too.",
+			"solution": "Decide the dish with friends by vote!"
 		},
 		"back": "Back",
 		"next": "Next",
