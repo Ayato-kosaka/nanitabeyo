@@ -508,7 +508,7 @@ function ActionButtonsContent({
 						hitSlop={buttonHitSlop}
 						accessibilityRole="button"
 						accessibilityLabel={i18n.t("Report.accessibility.open", { name: restaurant.name })}>
-						<Flag size={26} color="#FFFFFF" />
+						<Flag size={26} color={FixedColors.onMedia} />
 					</TouchableOpacity>
 					<Text style={styles.actionText}>{i18n.t("Report.action")}</Text>
 				</View>

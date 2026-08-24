@@ -28,6 +28,10 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpa
 import { Check, CircleCheck, Flag, X } from "lucide-react-native";
 
 import { PrimaryButton } from "@/components/PrimaryButton";
+// #1514 このシートはフィード（常に暗いメディア面）の上ではなく «画面の面» として開くため、
+// メディア用の FixedColors ではなくテーマ追従のトークンを使う
+import type { Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 import i18n from "@/lib/i18n";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useLogger } from "@/hooks/useLogger";
@@ -81,6 +85,8 @@ interface ReportContentSheetProps {
 type Phase = "form" | "submitting" | "accepted";
 
 export function ReportContentSheet({ visible, targetType, targetId, targetLabel, onClose }: ReportContentSheetProps) {
+	const styles = useThemedStyles(createStyles);
+	const { colors } = useAppTheme();
 	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
 	const { lightImpact } = useHaptics();
@@ -182,7 +188,7 @@ export function ReportContentSheet({ visible, targetType, targetId, targetLabel,
 					) : (
 						<>
 							<View style={styles.header}>
-								<Flag size={18} color="#DC2626" />
+								<Flag size={18} color={colors.danger} />
 								<Text style={styles.title}>{i18n.t(copy.title)}</Text>
 								<TouchableOpacity
 									onPress={handleClose}
@@ -191,7 +197,7 @@ export function ReportContentSheet({ visible, targetType, targetId, targetLabel,
 									accessibilityRole="button"
 									accessibilityLabel={i18n.t("Common.close")}
 									testID="report-cancel">
-									<X size={20} color="#6B7280" />
+									<X size={20} color={colors.textSecondary} />
 								</TouchableOpacity>
 							</View>
 
@@ -217,7 +223,7 @@ export function ReportContentSheet({ visible, targetType, targetId, targetLabel,
 											<Text style={[styles.reasonLabel, selected && styles.reasonLabelSelected]}>
 												{i18n.t(`Report.reasons.${code}`)}
 											</Text>
-											{selected ? <Check size={18} color="#DC2626" /> : null}
+											{selected ? <Check size={18} color={colors.danger} /> : null}
 										</TouchableOpacity>
 									);
 								})}
@@ -228,7 +234,7 @@ export function ReportContentSheet({ visible, targetType, targetId, targetLabel,
 									value={reasonText}
 									onChangeText={setReasonText}
 									placeholder={i18n.t("Report.detailsPlaceholder")}
-									placeholderTextColor="#9CA3AF"
+									placeholderTextColor={colors.textTertiary}
 									multiline
 									// DB の CHECK（1000 文字）と同じ上限。ここで止めておけば
 									// 「長文を書ききってから 400 で弾かれる」体験にならない
@@ -249,8 +255,8 @@ export function ReportContentSheet({ visible, targetType, targetId, targetLabel,
 								onPress={handleSubmit}
 								loading={phase === "submitting"}
 								disabled={!reasonCode || phase === "submitting"}
-								colors={["#EF4444", "#DC2626"]}
-								shadowColor="#DC2626"
+								colors={[colors.dangerStrong, colors.danger]}
+								shadowColor={colors.danger}
 								accessibilityLabel={i18n.t(copy.submitAccessibilityLabel, { name: targetLabel })}
 								testID="report-submit"
 							/>
@@ -269,9 +275,11 @@ export function ReportContentSheet({ visible, targetType, targetId, targetLabel,
  * 「番号があるなら進捗が見られるはず」という誤解だけが残る。
  */
 function AcceptedView({ onClose }: { onClose: () => void }) {
+	const styles = useThemedStyles(createStyles);
+	const { colors } = useAppTheme();
 	return (
 		<View style={styles.accepted} testID="report-accepted">
-			<CircleCheck size={44} color="#16A34A" />
+			<CircleCheck size={44} color={colors.success} />
 			<Text style={styles.acceptedTitle}>{i18n.t("Report.accepted.title")}</Text>
 			<Text style={styles.acceptedDescription}>{i18n.t("Report.accepted.description")}</Text>
 			<PrimaryButton
@@ -284,108 +292,109 @@ function AcceptedView({ onClose }: { onClose: () => void }) {
 	);
 }
 
-const styles = StyleSheet.create({
-	backdrop: {
-		flex: 1,
-		justifyContent: "flex-end",
-		backgroundColor: "rgba(0, 0, 0, 0.45)",
-	},
-	backdropTouchable: {
-		...StyleSheet.absoluteFillObject,
-	},
-	sheet: {
-		backgroundColor: "#FFFFFF",
-		borderTopLeftRadius: 20,
-		borderTopRightRadius: 20,
-		paddingHorizontal: 20,
-		paddingTop: 16,
-		paddingBottom: 28,
-		maxHeight: "85%",
-	},
-	header: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 8,
-	},
-	title: {
-		flex: 1,
-		fontSize: 17,
-		fontWeight: "700",
-		color: "#111827",
-	},
-	description: {
-		marginTop: 8,
-		fontSize: 13,
-		lineHeight: 19,
-		color: "#6B7280",
-	},
-	reasonList: {
-		marginTop: 12,
-		marginBottom: 12,
-	},
-	reasonRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		paddingVertical: 13,
-		paddingHorizontal: 14,
-		borderRadius: 12,
-		borderWidth: 1,
-		borderColor: "#E5E7EB",
-		marginBottom: 8,
-	},
-	reasonRowSelected: {
-		borderColor: "#DC2626",
-		backgroundColor: "#FEF2F2",
-	},
-	reasonLabel: {
-		fontSize: 15,
-		color: "#111827",
-	},
-	reasonLabelSelected: {
-		color: "#DC2626",
-		fontWeight: "600",
-	},
-	detailsLabel: {
-		marginTop: 8,
-		marginBottom: 6,
-		fontSize: 13,
-		fontWeight: "600",
-		color: "#374151",
-	},
-	detailsInput: {
-		minHeight: 80,
-		borderWidth: 1,
-		borderColor: "#E5E7EB",
-		borderRadius: 12,
-		padding: 12,
-		fontSize: 14,
-		color: "#111827",
-		textAlignVertical: "top",
-	},
-	error: {
-		marginBottom: 10,
-		fontSize: 13,
-		color: "#DC2626",
-	},
-	accepted: {
-		alignItems: "center",
-		paddingVertical: 12,
-		gap: 10,
-	},
-	acceptedTitle: {
-		fontSize: 17,
-		fontWeight: "700",
-		color: "#111827",
-	},
-	acceptedDescription: {
-		fontSize: 13,
-		lineHeight: 19,
-		color: "#6B7280",
-		textAlign: "center",
-	},
-	acceptedButton: {
-		marginTop: 8,
-		alignSelf: "stretch",
-	},
-});
+const createStyles = (colors: Palette) =>
+	StyleSheet.create({
+		backdrop: {
+			flex: 1,
+			justifyContent: "flex-end",
+			backgroundColor: "rgba(0, 0, 0, 0.45)",
+		},
+		backdropTouchable: {
+			...StyleSheet.absoluteFillObject,
+		},
+		sheet: {
+			backgroundColor: colors.surface,
+			borderTopLeftRadius: 20,
+			borderTopRightRadius: 20,
+			paddingHorizontal: 20,
+			paddingTop: 16,
+			paddingBottom: 28,
+			maxHeight: "85%",
+		},
+		header: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 8,
+		},
+		title: {
+			flex: 1,
+			fontSize: 17,
+			fontWeight: "700",
+			color: colors.textPrimaryAlt,
+		},
+		description: {
+			marginTop: 8,
+			fontSize: 13,
+			lineHeight: 19,
+			color: colors.textSecondary,
+		},
+		reasonList: {
+			marginTop: 12,
+			marginBottom: 12,
+		},
+		reasonRow: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+			paddingVertical: 13,
+			paddingHorizontal: 14,
+			borderRadius: 12,
+			borderWidth: 1,
+			borderColor: colors.borderMuted,
+			marginBottom: 8,
+		},
+		reasonRowSelected: {
+			borderColor: colors.danger,
+			backgroundColor: colors.dangerTint,
+		},
+		reasonLabel: {
+			fontSize: 15,
+			color: colors.textPrimaryAlt,
+		},
+		reasonLabelSelected: {
+			color: colors.danger,
+			fontWeight: "600",
+		},
+		detailsLabel: {
+			marginTop: 8,
+			marginBottom: 6,
+			fontSize: 13,
+			fontWeight: "600",
+			color: colors.textSecondaryStrong,
+		},
+		detailsInput: {
+			minHeight: 80,
+			borderWidth: 1,
+			borderColor: colors.borderMuted,
+			borderRadius: 12,
+			padding: 12,
+			fontSize: 14,
+			color: colors.textPrimaryAlt,
+			textAlignVertical: "top",
+		},
+		error: {
+			marginBottom: 10,
+			fontSize: 13,
+			color: colors.danger,
+		},
+		accepted: {
+			alignItems: "center",
+			paddingVertical: 12,
+			gap: 10,
+		},
+		acceptedTitle: {
+			fontSize: 17,
+			fontWeight: "700",
+			color: colors.textPrimaryAlt,
+		},
+		acceptedDescription: {
+			fontSize: 13,
+			lineHeight: 19,
+			color: colors.textSecondary,
+			textAlign: "center",
+		},
+		acceptedButton: {
+			marginTop: 8,
+			alignSelf: "stretch",
+		},
+	});
