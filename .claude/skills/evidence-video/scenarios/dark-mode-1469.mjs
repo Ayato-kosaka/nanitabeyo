@@ -5,8 +5,13 @@ import { record, writeNote, OUT } from "./harness.mjs";
 const ROUTES = [
 	["my-dishes",         "/ja-JP/my-dishes"],
 	["my-dishes-filters", "/ja-JP/my-dishes/filters"],
-	["sns-import",        "/ja-JP/sns-import"],
+	// #1375（5 巡目）で sns-import は add-record へ改名された（旧ルートは転送のみ）。
+	// トークン化も改名先へ載せ直してあるので、撮るのは実体のある方
+	["add-record",        "/ja-JP/add-record"],
 	["profile",           "/ja-JP/profile"],
+	// #1509 のマージで新たにトークン化した画面（#1375 が分岐後に足したもの）
+	["posts-not-found",   "/ja-JP/posts"],
+	["device-settings",   "/ja-JP/profile/device-settings"],
 	// 比較対象（テーマ対応済みと分かっている画面）
 	["search",            "/ja-JP/search"],
 ];
