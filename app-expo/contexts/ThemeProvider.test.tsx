@@ -205,6 +205,9 @@ describe("Palette（#1509 絶対条件: ライトの色を 1 つも変えない�
 		dangerStrong: "#EF4444",
 		dangerTint: "#FEE2E2",
 		destructive: "#FF3E33",
+		// #1514 通報受付の CircleCheck。ReportContentSheet.tsx が直書きしていた
+		// リテラルの写しなので、ライトの見た目は 1px も変わらない。
+		success: "#16A34A",
 		dangerEmphasis: "#B91C1C",
 		ctaBackground: "#000000",
 		ctaBackgroundDisabled: "#999999",
