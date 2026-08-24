@@ -55,7 +55,7 @@ export class MyDishesScreen {
 	/**
 	 * 記録 CTA（testID: my-dishes-record-button）。
 	 *
-	 * #1375 実機確認: 押下先は **SNS URL 取り込み画面**（`sns-import`）になった。
+	 * #1375 実機確認: 押下先は **«追加» のシート**（`add-record`。SNS 取り込み / 食べたを記録の 2 タブ）になった。
 	 * SelectRestaurantScreen へはその上部タブ「食べた」（`sns-import-tab-eaten`）から入る。
 	 * また **ゲストにも表示される**（取り込みはログイン不要のため）。
 	 * 以前の「ログイン済みのみ表示 / 押すと店舗選択」を前提にした検証を書かないこと。

@@ -375,6 +375,9 @@
 			},
 			"dish_reviews": {
 				"like": "أعجب بمراجعتك"
+			},
+			"dish_category_group_vote_sessions": {
+				"vote": "صوّت في مجموعتك"
 			}
 		}
 	},
@@ -406,7 +409,8 @@
 			"recordEaten": "تسجيل {{name}} كأنك تناولته",
 			"share": "مشاركة {{name}}",
 			"openMap": "فتح خريطة {{name}}",
-			"reviewLike": "الإعجاب بمراجعة {{username}}"
+			"reviewLike": "الإعجاب بمراجعة {{username}}",
+			"recordEatenAgain": "سجّل {{name}} مرة أخرى (مسجَّل بالفعل)"
 		},
 		"processing": "جارٍ معالجة الوسائط...",
 		"info": {
@@ -414,7 +418,9 @@
 		},
 		"errors": {
 			"mapOpenFailed": "تعذر فتح تطبيق الخرائط",
-			"mediaUnavailable": "هذا المحتوى غير متاح حالياً."
+			"mediaUnavailable": "هذا المحتوى غير متاح حالياً.",
+			"likeReactionFailed": "فشل تحديث الإعجاب. يرجى المحاولة مرة أخرى.",
+			"saveReactionFailed": "فشل تحديث الحفظ. يرجى المحاولة مرة أخرى."
 		},
 		"embed": {
 			"play": "التشغيل على {{provider}}"
@@ -437,9 +443,11 @@
 			"search": "البحث",
 			"notifications": "الإشعارات",
 			"profile": "الملف الشخصي",
-			"myDishes": "أطباقي"
+			"myDishes": "أطباقي",
+			"review": "المراجعة"
 		},
-		"myDishes": "أطباقي"
+		"myDishes": "أطباقي",
+		"review": "المراجعة"
 	},
 	"Profile": {
 		"numberSuffix": {
@@ -515,7 +523,21 @@
 			"displayNameLength": "يجب ألا يتجاوز اسم العرض 30 حرفًا",
 			"bioLength": "يجب ألا تتجاوز النبذة 150 حرفًا"
 		},
-		"guestDisplayName": "ضيف"
+		"guestDisplayName": "ضيف",
+		"tabGroups": {
+			"reviews": "المراجعات",
+			"saved": "المحفوظة",
+			"liked": "الإعجابات",
+			"wallet": "المحفظة"
+		},
+		"tabs": {
+			"deposits": "الودائع",
+			"earnings": "الأرباح",
+			"saved-posts": "المنشورات",
+			"saved-topics": "الأطباق",
+			"wallet-deposit": "الودائع",
+			"wallet-earning": "الأرباح"
+		}
 	},
 	"NotFound": {
 		"title": "عذرًا!",
@@ -556,7 +578,8 @@
 			"endDate": "تاريخ الانتهاء:",
 			"paymentProcessing": "معالجة الدفع...",
 			"restaurant": "مطعم",
-			"dishCategory": "فئة الطبق"
+			"dishCategory": "فئة الطبق",
+			"dishesAtThisRestaurant": "أطباق في هذا المطعم"
 		},
 		"tabs": {
 			"reviews": "المراجعات"
@@ -590,7 +613,8 @@
 			"replaceWithMyPhoto": "استخدام صورتي الخاصة",
 			"openSettings": "فتح الإعدادات",
 			"pickFromLibrary": "اختيار من المكتبة",
-			"shootWithCamera": "التقاط صورة"
+			"shootWithCamera": "التقاط صورة",
+			"pickFromExisting": "أو اختر من صور هذا المطعم"
 		},
 		"noResultsFound": "لم يتم العثور على نتائج",
 		"accessibility": {
@@ -686,7 +710,8 @@
 			"clearNameSearch": "مسح بحث اسم المطعم"
 		},
 		"unsavedHint": "يمكنك أيضًا اختيار مطاعم لم تحفظها: اكتب اسم المطعم في البحث أعلاه، أو اضغط على أيقونة المطعم على الخريطة.",
-		"pickTitle": "اختيار مطعم"
+		"pickTitle": "اختيار مطعم",
+		"pickOnMap": "ابحث عن مطعم على الخريطة"
 	},
 	"Feedback": {
 		"title": "إرسال ملاحظات/تقرير خطأ",
@@ -773,6 +798,15 @@
 			"unblockMessage": "ستتم إضافة فئة الطبق هذه إلى التوصيات مرة أخرى.",
 			"unblockConfirm": "إلغاء الحظر",
 			"unblocked": "تم إلغاء الحظر"
+		},
+		"title": "الإعدادات",
+		"theme": {
+			"sectionTitle": "المظهر",
+			"options": {
+				"system": "اتباع إعداد النظام",
+				"light": "فاتح",
+				"dark": "داكن"
+			}
 		}
 	},
 	"Dialog": {
@@ -830,7 +864,9 @@
 		},
 		"map": {
 			"truncated": "يتم عرض بعض الدبابيس فقط. يرجى تضييق نطاق المنطقة.",
-			"sheetTitle": "{{count}} سجلات قريبة"
+			"sheetTitle": "{{count}} مطاعم قريبة",
+			"tileA11yLabel": "{{name}} (أريد أن آكل: {{want}}، أكلت: {{eaten}})",
+			"clusterA11yLabel": "{{count}} مطاعم في هذه المنطقة"
 		},
 		"guest": {
 			"description": "سجّل الدخول لتسجيل الأطباق التي تريد تجربتها والتي تناولتها",
@@ -841,7 +877,8 @@
 			"noPhotoTitle": "إضافة صورة",
 			"noPhotoHint": "يمكنك التسجيل بدون صورة",
 			"publicReviewNotice": "سيظهر سجلك كمراجعة عامة في صفحة المطعم",
-			"postNotFoundNoPhoto": "لا يحتوي هذا السجل على صورة"
+			"postNotFoundNoPhoto": "لا يحتوي هذا السجل على صورة",
+			"skipPhoto": "تخطّي (بدون صورة)"
 		},
 		"filters": {
 			"title": "التصفية والترتيب",
@@ -919,7 +956,29 @@
 				"applied": "تم تحديث عوامل التصفية"
 			}
 		},
-		"searchThisArea": "ابحث في هذه المنطقة"
+		"searchThisArea": "ابحث في هذه المنطقة",
+		"tutorial": {
+			"steps": {
+				"views": {
+					"title": "ثلاث طرق لعرض قائمتك",
+					"body": "الخريطة والشبكة والتقويم تعرض نفس سجلات «أريد أن آكل / أكلت». الخريطة لـ«ماذا آكل هنا»، والتقويم لـ«ماذا أكلت ومتى»."
+				},
+				"openFeed": {
+					"title": "اضغط لعرضه بملء الشاشة",
+					"body": "اضغط على علامة أو بطاقة أو يوم لفتح ذلك السجل بملء الشاشة.",
+					"axis": "اسحب لأعلى وأسفل للتنقل بين المطاعم أو الأيام، ويمينًا ويسارًا لصورة أخرى من نفسه."
+				},
+				"add": {
+					"title": "أضف إلى قائمتك من هنا",
+					"sns": "الصق رابط Instagram أو TikTok أو YouTube، فنقرأ منه المطعم والطبق ونحفظه ضمن «أريد أن آكل».",
+					"eaten": "أكلته بالفعل؟ استخدم «تسجيل ما أكلت». يمكن إضافة الصورة لاحقًا أو تركها."
+				},
+				"filter": {
+					"title": "صفِّ القائمة عندما تكبر",
+					"body": "صفِّ حسب «أريد أن آكل / أكلت» والطبق والمنطقة ومع من والوقت. الغرض تقليل الخيارات لا زيادتها."
+				}
+			}
+		}
 	},
 	"SnsImport": {
 		"title": "الاستيراد من وسائل التواصل",
@@ -946,7 +1005,8 @@
 			"resolve": "قراءة",
 			"save": "حفظ في أريد تناوله",
 			"saveRequirement": "اختر طبقًا ومطعمًا للحفظ.",
-			"resolveAgain": "إعادة القراءة"
+			"resolveAgain": "إعادة القراءة",
+			"cancel": "إلغاء"
 		},
 		"sections": {
 			"dishCategory": "الطبق",
@@ -982,6 +1042,44 @@
 			"change": "تغيير",
 			"hint": "اختر المطعم أولًا. بعدها يمكنك إضافة صورة ومراجعة قصيرة وفئة الطبق والسعر والتقييم (الصورة اختيارية).",
 			"done": "تم تسجيله كمأكول"
+		}
+	},
+	"Review": {
+		"title": "نشر مراجعة",
+		"hero": {
+			"title": "اكتب مراجعات للمطاعم الموصى بها\nوانشر الأطباق التي تناولتها"
+		},
+		"guest": {
+			"description": "سجل الدخول لكتابة المراجعات",
+			"loginButton": "تسجيل الدخول"
+		},
+		"authenticated": {
+			"postButton": "✏️ نشر مراجعة مطعم"
+		},
+		"selectRestaurant": {
+			"title": "اختر مطعمًا للمراجعة",
+			"searchThisArea": "ابحث في هذه المنطقة",
+			"savedRestaurantList": "المطاعم المحفوظة",
+			"postPhotoVideo": "نشر صورة/فيديو",
+			"fetchSavedRestaurantsError": "فشل في جلب المطاعم المحفوظة",
+			"noSavedRestaurantsInArea": "لم يتم العثور على مطاعم محفوظة في هذه المنطقة. يرجى توسيع المنطقة والبحث مرة أخرى."
+		},
+		"emptyState": {
+			"noReviews": "لا توجد مراجعات بعد.\nكن أول من يراجع هذا المطعم."
+		},
+		"everybodyPostsTitle": "اختر طبقًا لمراجعته",
+		"characterCount": "{{current}}/{{max}}",
+		"restaurantDetail": {
+			"title": "تفاصيل المطعم"
+		}
+	},
+	"Tutorial": {
+		"spotlight": {
+			"skip": "تخطي",
+			"next": "التالي",
+			"finish": "ابدأ",
+			"progress": "{{current}} / {{total}}",
+			"progressAccessibility": "الخطوة {{current}} من {{total}}"
 		}
 	}
 }

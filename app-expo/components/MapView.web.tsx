@@ -4,6 +4,7 @@ import type { MapViewProps, MarkerProps } from "./MapView";
 import type { MapPressEvent, MarkerPressEvent, PoiClickEvent, Region } from "react-native-maps";
 import { OverlayView } from "@react-google-maps/api";
 import { TouchableOpacity } from "react-native";
+import { useGoogleMapsScript } from "./GoogleMapsScript";
 
 /** ─────────────────────────────────────────────────────────────
  *  ネイティブと API 互換にするためのハンドル
@@ -52,6 +53,12 @@ const MapView = forwardRef<MapViewHandle | null, MapViewProps>(
 	({ style, region, onRegionChangeComplete, onPress, onPoiClick, children }, ref) => {
 		/* Google Maps 本体を保持（外部には晒さない） */
 		const innerMapRef = useRef<google.maps.Map | null>(null);
+
+		/* #1503 【設計】Maps API の読み込みを «待つのはここだけ» にする。
+		   このフックを呼んだ時点で初めてスクリプトの注入が始まり、読み込み中／失敗中は
+		   地図の代わりにプレースホルダを描く。以前はアプリ全体を包む LoadScript が待っていたため、
+		   地図と無関係な画面まで白いまま止まっていた（AppProvider.web.tsx のコメント参照）。 */
+		const { isLoaded } = useGoogleMapsScript();
 
 		/* Google Maps 読み込み完了時 */
 		const handleLoad = useCallback(
@@ -163,6 +170,12 @@ const MapView = forwardRef<MapViewHandle | null, MapViewProps>(
 			height: "100%",
 			...(typeof style === "object" && style !== null ? (style as React.CSSProperties) : {}),
 		};
+
+		/* 読み込み前・読み込み失敗時は地図の代わりに «場所だけ確保した» 面を描く。
+		   ここで null を返すとレイアウトが潰れて周りの UI がずれるため、同じ寸法の箱を残す。 */
+		if (!isLoaded) {
+			return <div style={{ ...containerStyle, backgroundColor: "#e9e9e9" }} data-testid="map-placeholder" />;
+		}
 
 		return (
 			<GoogleMap

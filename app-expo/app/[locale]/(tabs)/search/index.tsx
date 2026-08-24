@@ -51,12 +51,15 @@ import { DEFAULT_SEARCH_RADIUS } from "@/features/topics/constants";
 import { useOnboardingSeen } from "@/features/onboarding/hooks/useOnboardingSeen";
 import { onboardingIndexPath } from "@/features/onboarding/navigation";
 import { useAutoCurrentLocation } from "@/features/search/hooks/useAutoCurrentLocation";
+import { getSavedSearchConditions, saveSearchConditions } from "@/features/search/stores/useSearchConditionsStore";
 import { useRecentLocations } from "@/features/search/hooks/useRecentLocations";
 import { Image } from "expo-image";
 import { useE2EPreloadProbe } from "@/lib/e2e/preloadProbe";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { useIsFocused } from "@react-navigation/native";
 import { useContentWidth } from "@/hooks/useContentWidth";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 
 // #667 【設計】画面幅ベースでアイテムサイズを計算（4列グリッド）
 // #958 【修正】Dimensions.get("window") はモジュール評価時に1回だけ計算されリサイズに
@@ -85,6 +88,7 @@ const SUPPORTED_COUNTRY_CODE = "JP";
 // 別要素として視覚表示しつつスクリーンリーダー向けには見出しの accessibilityLabel に合成する
 // (別々に読み上げられるより「(必須)」まで一続きで聞こえた方が分かりやすいため)
 function SectionHeader({ icon, title, required }: { icon: React.ReactNode; title: string; required?: boolean }) {
+	const styles = useThemedStyles(createStyles);
 	const label = required ? `${title} (${i18n.t("Search.required")})` : title;
 	return (
 		<View style={styles.sectionHeader}>
@@ -104,16 +108,33 @@ function SectionHeader({ icon, title, required }: { icon: React.ReactNode; title
 export default function SearchScreen() {
 	// #1016 【設計】主要画面(検索タブ)にFirebase Performance Monitoringの画面トレースを計装する。
 	useScreenTrace("Search");
+	// #1509 検索フォームは起動直後に必ず通る画面なので、基盤と同じ PR でテーマ対応する
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 	const { locale, isJapanese } = useLocale();
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
-	const [location, setLocation] = useState<Omit<LocationDetailsResponse, "viewport"> | null>(null);
-	const [locationQuery, setLocationQuery] = useState("");
-	const [timeSlot, setTimeSlot] = useState<SearchParams["timeSlot"]>("lunch");
-	const [scene, setScene] = useState<SearchParams["scene"]>("solo"); // #533 【仕様】scene 初期値を solo に変更（レコメンドAPI必須化対応）
-	const [taste, setTaste] = useState<SearchParams["taste"] | undefined>(undefined);
-	const [coreIngredient, setCoreIngredient] = useState<SearchParams["coreIngredient"] | undefined>(undefined);
-	const [diningPace, setDiningPace] = useState<SearchParams["diningPace"] | undefined>(undefined);
+	// #1375 実機確認（5 巡目）「保存スナックバーの『見る』で食べたい/食べたへ行き、
+	// 探すへ戻ると条件が全部消えている」への対処。条件は画面の外（store）に置き、
+	// 画面が作り直されても «前回の続き» から始める。まだ一度も触っていなければ null で、
+	// その場合だけ従来どおりの既定値を使う（初回の見た目は一切変えない）。
+	// ⚠️ 復元するのは «人が選んだ条件» だけで、検索結果は復元しない（鮮度が落ちるため取り直す）
+	const restoredConditionsRef = useRef(getSavedSearchConditions());
+	const restored = restoredConditionsRef.current;
+	const [location, setLocation] = useState<Omit<LocationDetailsResponse, "viewport"> | null>(
+		restored?.location ?? null,
+	);
+	const [locationQuery, setLocationQuery] = useState(restored?.locationQuery ?? "");
+	const [timeSlot, setTimeSlot] = useState<SearchParams["timeSlot"]>(restored?.timeSlot ?? "lunch");
+	// #1375（5 巡目・独立レビュー A-3）人が自分で時間帯を選んだか。自動選択を止めてよいのはこのときだけ
+	const [timeSlotTouched, setTimeSlotTouched] = useState(restored?.timeSlotTouched ?? false);
+	// #533 【仕様】scene 初期値を solo に変更（レコメンドAPI必須化対応）
+	const [scene, setScene] = useState<SearchParams["scene"]>(restored?.scene ?? "solo");
+	const [taste, setTaste] = useState<SearchParams["taste"] | undefined>(restored?.taste);
+	const [coreIngredient, setCoreIngredient] = useState<SearchParams["coreIngredient"] | undefined>(
+		restored?.coreIngredient,
+	);
+	const [diningPace, setDiningPace] = useState<SearchParams["diningPace"] | undefined>(restored?.diningPace);
 	const isSearchingRef = useRef(false);
 	// #1196 【設計】海外未対応の告知が二重に積まれるのを防ぐ。
 	// 多重検索防止の `isSearchingRef` はガードより後段にあるため、この経路には効かない
@@ -122,9 +143,11 @@ export default function SearchScreen() {
 	// 閉じさせることになる。confirm の Promise は OK / Cancel / Dismiss のいずれでも解決するので、
 	// それを閉じた合図として使う。
 	const isUnsupportedRegionNoticeOpenRef = useRef(false);
-	const [distance, setDistance] = useState<number>(DEFAULT_SEARCH_RADIUS);
-	const [priceLevels, setPriceLevels] = useState<(typeof priceLevelOptions)[number]["value"][]>([]);
-	const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+	const [distance, setDistance] = useState<number>(restored?.distance ?? DEFAULT_SEARCH_RADIUS);
+	const [priceLevels, setPriceLevels] = useState<(typeof priceLevelOptions)[number]["value"][]>(
+		restored?.priceLevels ?? [],
+	);
+	const [showAdvancedFilters, setShowAdvancedFilters] = useState(restored?.showAdvancedFilters ?? false);
 
 	const { getCurrentLocation, getLocationDetails } = useLocationSearch();
 	const { showSnackbar } = useSnackbar();
@@ -168,6 +191,11 @@ export default function SearchScreen() {
 		});
 
 		// 端末時間帯に基づき timeSlot を自動設定
+		// #1375 ただし **人が自分で選んでいたら**上書きしない
+		// （夜に「昼」を選んで検索 → 保存の «見る» → 戻ると勝手に「夜」へ戻る、を防ぐ）。
+		// ⚠️ 判定に «store が空でないか» を使わないこと。初回マウントで既定値を保存した瞬間に
+		// 成立してしまい、2 度目以降のマウントで自動選択が二度と働かなくなる（独立レビュー A-3）
+		if (restoredConditionsRef.current?.timeSlotTouched) return;
 		const hour = new Date().getHours();
 		const TIME_SLOTS: { until: number; slot: SearchParams["timeSlot"] }[] = [
 			{ until: 5, slot: "late_night" },
@@ -179,6 +207,37 @@ export default function SearchScreen() {
 		const slot = TIME_SLOTS.find((s) => hour < s.until)!.slot;
 		setTimeSlot(slot);
 	}, [logFrontendEvent]);
+
+	// #1375 条件が変わるたびに store へ書き戻す。次にこの画面が作り直されたとき
+	// （保存スナックバーの «見る» → `router.dismissAll()` など）ここから復元する。
+	// ⚠️ 取得（queryKey）には一切関与しない。純粋に «画面の初期値» のための保存である
+	useEffect(() => {
+		saveSearchConditions({
+			location,
+			locationQuery,
+			timeSlot,
+			scene,
+			taste,
+			coreIngredient,
+			diningPace,
+			distance,
+			priceLevels,
+			showAdvancedFilters,
+			timeSlotTouched,
+		});
+	}, [
+		location,
+		locationQuery,
+		timeSlot,
+		scene,
+		taste,
+		coreIngredient,
+		diningPace,
+		distance,
+		priceLevels,
+		showAdvancedFilters,
+		timeSlotTouched,
+	]);
 
 	const handleLocationClear = () => {
 		lightImpact();
@@ -425,6 +484,8 @@ export default function SearchScreen() {
 	const handleTimeSlotSelect = (slotId: SearchParams["timeSlot"]) => {
 		lightImpact();
 		setTimeSlot(slotId);
+		// #1375 ここが «人が選んだ» の唯一の入口。以後この端末では時刻による自動選択をしない
+		setTimeSlotTouched(true);
 	};
 
 	// #533 【仕様】scene を必須化（解除不可、レコメンドAPI必須化対応）
@@ -482,6 +543,12 @@ export default function SearchScreen() {
 
 	const requestAutoCurrentLocationOnce = useCallback(() => {
 		if (didRequestAutoLocationRef.current) return;
+		// #1375 復元した地点を現在地で踏み潰さない。人が «渋谷» を選んで検索したあと
+		// 戻ってきたら «現在地» に置き換わっている、という取り消しになるため
+		if (restoredConditionsRef.current?.location) {
+			didRequestAutoLocationRef.current = true;
+			return;
+		}
 		didRequestAutoLocationRef.current = true;
 		requestAutoCurrentLocation();
 	}, [requestAutoCurrentLocation]);
@@ -560,7 +627,7 @@ export default function SearchScreen() {
 						accessibilityRole="button"
 						accessibilityLabel={i18n.t("Search.accessibility.showTutorial")}
 						testID="search-help-button">
-						<HelpCircle size={24} color="#6B7280" />
+						<HelpCircle size={24} color={colors.textSecondary} />
 					</TouchableOpacity>
 				)}
 			</View>
@@ -600,7 +667,7 @@ export default function SearchScreen() {
 				{/* Location Input */}
 				<View style={styles.section}>
 					<SectionHeader
-						icon={<MapPin size={20} color="#F05537" />}
+						icon={<MapPin size={20} color={colors.brand} />}
 						title={i18n.t("Search.sections.location")}
 						required
 					/>
@@ -624,7 +691,7 @@ export default function SearchScreen() {
 									accessibilityRole="button"
 									accessibilityLabel={i18n.t("Search.accessibility.useCurrentLocation")}
 									testID="search-current-location-button">
-									<Navigation size={20} color="#000000" />
+									<Navigation size={20} color={colors.textStrong} />
 								</TouchableOpacity>
 							}
 							testID="search-location-autocomplete"
@@ -634,7 +701,11 @@ export default function SearchScreen() {
 
 				{/* #667 【設計】Time of Day - カード無し、画像グリッド表示（4列1行） */}
 				<View style={styles.section}>
-					<SectionHeader icon={<SunMoon size={20} color="#F05537" />} title={i18n.t("Search.sections.time")} required />
+					<SectionHeader
+						icon={<SunMoon size={20} color={colors.brand} />}
+						title={i18n.t("Search.sections.time")}
+						required
+					/>
 					<View
 						style={styles.gridContainer}
 						accessibilityRole="radiogroup"
@@ -655,7 +726,11 @@ export default function SearchScreen() {
 
 				{/* #667 【設計】Scene - カード無し、画像グリッド表示（4列2行） */}
 				<View style={styles.section}>
-					<SectionHeader icon={<Users size={20} color="#F05537" />} title={i18n.t("Search.sections.scene")} required />
+					<SectionHeader
+						icon={<Users size={20} color={colors.brand} />}
+						title={i18n.t("Search.sections.scene")}
+						required
+					/>
 					<View
 						style={styles.gridContainer}
 						accessibilityRole="radiogroup"
@@ -676,7 +751,10 @@ export default function SearchScreen() {
 
 				{/* Price Levels */}
 				<View style={styles.section}>
-					<SectionHeader icon={<DollarSign size={20} color="#F05537" />} title={i18n.t("Search.sections.budget")} />
+					<SectionHeader
+						icon={<DollarSign size={20} color={colors.brand} />}
+						title={i18n.t("Search.sections.budget")}
+					/>
 					<View style={styles.sliderSection}>
 						<PriceLevelsMultiSelect
 							selectedPriceLevels={priceLevels}
@@ -689,7 +767,7 @@ export default function SearchScreen() {
 
 				{/* Dining Pace */}
 				<View style={styles.section}>
-					<SectionHeader icon={<Timer size={20} color="#F05537" />} title={i18n.t("Search.sections.diningPace")} />
+					<SectionHeader icon={<Timer size={20} color={colors.brand} />} title={i18n.t("Search.sections.diningPace")} />
 					<View
 						style={styles.chipGrid}
 						accessibilityRole="radiogroup"
@@ -714,7 +792,11 @@ export default function SearchScreen() {
 						testID="search-advanced-toggle"
 						style={styles.advancedToggle}
 						onPress={handleAdvancedToggle}>
-						{showAdvancedFilters ? <ChevronUp size={20} color="#F05537" /> : <Plus size={20} color="#F05537" />}
+						{showAdvancedFilters ? (
+							<ChevronUp size={20} color={colors.brand} />
+						) : (
+							<Plus size={20} color={colors.brand} />
+						)}
 						<Text style={styles.advancedToggleText}>
 							{showAdvancedFilters ? i18n.t("Search.advancedToggle.close") : i18n.t("Search.advancedToggle.open")}
 						</Text>
@@ -726,7 +808,10 @@ export default function SearchScreen() {
 					<>
 						{/* Distance */}
 						<View style={styles.section}>
-							<SectionHeader icon={<Ruler size={20} color="#F05537" />} title={i18n.t("Search.sections.distance")} />
+							<SectionHeader
+								icon={<Ruler size={20} color={colors.brand} />}
+								title={i18n.t("Search.sections.distance")}
+							/>
 							<View style={styles.sliderSection}>
 								{/* #987 【設計】距離値・おすすめ移動時間・詳細開閉を一つのコンパクトな操作領域に集約 */}
 								<DistanceSlider distance={distance} setDistance={setDistance} />
@@ -735,7 +820,10 @@ export default function SearchScreen() {
 
 						{/* Food Style */}
 						<View style={styles.section}>
-							<SectionHeader icon={<ChefHat size={20} color="#F05537" />} title={i18n.t("Search.sections.foodStyle")} />
+							<SectionHeader
+								icon={<ChefHat size={20} color={colors.brand} />}
+								title={i18n.t("Search.sections.foodStyle")}
+							/>
 							<View
 								style={styles.chipGrid}
 								accessibilityRole="radiogroup"
@@ -802,10 +890,14 @@ export default function SearchScreen() {
 					testID="search-submit-button"
 					label={i18n.t("Search.searchButton")}
 					onPress={handleSearch}
-					colors={isSearchReady ? ["#000000", "#000000"] : ["#999999", "#999999"]}
-					labelStyle={{ color: isSearchReady ? "#FFFFFF" : "#FFFFFF" }}
-					shadowColor="rgba(0, 0, 0, 0.45)"
-					icon={<Search size={20} color={isSearchReady ? "#FFFFFF" : "#FFFFFF"} />}
+					colors={
+						isSearchReady
+							? [colors.ctaBackground, colors.ctaBackground]
+							: [colors.ctaBackgroundDisabled, colors.ctaBackgroundDisabled]
+					}
+					labelStyle={{ color: isSearchReady ? colors.ctaLabel : colors.ctaLabelDisabled }}
+					shadowColor={FixedColors.ctaShadow}
+					icon={<Search size={20} color={isSearchReady ? colors.ctaLabel : colors.ctaLabelDisabled} />}
 					style={styles.searchFab}
 				/>
 			</View>
@@ -844,210 +936,214 @@ export default function SearchScreen() {
 	);
 }
 
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		backgroundColor: "#F8F9FA",
-	},
-	scrollView: {
-		flex: 1,
-	},
-	scrollContent: {
-		paddingBottom: 100, // moved here so it affects ScrollView content
-		gap: 12,
-	},
-	header: {
-		paddingHorizontal: 24,
-		paddingTop: 20,
-		paddingBottom: 20,
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-	},
-	helpButton: {
-		paddingHorizontal: 8,
-		// #1272 タイトルが伸びても «絶対に» 縮まない。ヘッダーは space-between なので、
-		// これが無いと限られた幅の奪い合いでボタン側が潰されうる
-		flexShrink: 0,
-		// #1486 アイコン(24) + 左右の padding(8+8) 分の幅を «先に» 確保する。
-		// 幅を内容任せにすると、レイアウトの確定順によってはタイトルが先に場所を取り切る
-		width: 40,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	headerTitle: {
-		fontSize: 20,
-		fontWeight: "700",
-		color: "#1A1A1A",
-		letterSpacing: -0.5,
-		// ⚠️ **`flex: 1` を外さないこと。** 無いと Text が自然幅を取り、日本語の長いタイトル
-		// （"どんな料理を探しましょう？🍽"）が **ヘルプボタンを画面外へ押し出す**。
-		// 320dp 幅の Android エミュレータで実測: タイトルが 2 行に折り返し、
-		// 「?」ボタンが右端で見切れて押せない状態になっていた（run 31698138582 の
-		// 失敗時スクリーンショットで確認。Detox が 75% 可視を満たせず落ちたのは正しい検出だった）。
-		// 小さめの実機（幅の狭い端末 / 大きい文字サイズ設定）でも同じ詰みが起きる
-		flex: 1,
-		// #1486 【バグ】`flex: 1` **だけでは足りない**（実機の iPhone で `？` が右へはみ出す報告）。
-		//
-		// `flex: 1` は `flexBasis: 0` を含むので «配分» は正しく行われるが、Yoga は
-		// 折り返し可能な Text を「与えられた幅で測って、収まらなければ実測幅を返す」形で測る。
-		// 日本語のタイトルは空白が無く、端末の文字サイズ設定（Dynamic Type）を上げると
-		// 1 行が配分された幅を超え、**測定値がそのまま行ボックスの幅**になる。
-		// 行が伸びた分だけ right 側の兄弟が押し出され、`？` が画面の外へ出る。
-		// 画面幅が狭いほど、また文字サイズ設定が大きいほど起きやすい。
-		//
-		// 料理提案画面（`app/[locale]/(tabs)/search/topics.tsx` → `components/ScreenHeader.tsx`）で
-		// 同じ症状が出ていないのは、あちらのタイトルが `numberOfLines={1}` + `ellipsizeMode="tail"` で
-		// **1 行に固定されている**ため。折り返しが起きない Text は与えられた幅で必ず打ち切られ、
-		// 測定値が配分幅を超えない。こちらも同じ形へ揃えてある（JSX 側を参照）。
-		//
-		// `minWidth: 0` は web（react-native-web）向け。CSS の flex アイテムは既定で
-		// `min-width: auto`（＝内容の最小幅より縮まない）なので、これが無いと同じ症状が web で残る。
-		minWidth: 0,
-	},
-	// #667 【設計】カード無しセクションのスタイル
-	section: {
-		paddingHorizontal: HORIZONTAL_PADDING,
-		marginBottom: 24,
-	},
-	sectionHeader: {
-		flexDirection: "row",
-		alignItems: "center",
-		marginBottom: 16,
-	},
-	sectionTitle: {
-		fontSize: 16,
-		fontWeight: "700",
-		color: "#1A1A1A",
-		marginLeft: 8,
-		flex: 1,
-	},
-	requiredBadge: {
-		backgroundColor: "#FEE2E2",
-		paddingHorizontal: 8,
-		paddingVertical: 4,
-		borderRadius: 12,
-	},
-	requiredText: {
-		fontSize: 10,
-		fontWeight: "600",
-		color: "#DC2626",
-	},
-	locationSection: {
-		flexDirection: "row",
-		alignItems: "flex-start",
-		gap: 12,
-	},
-	currentLocationButton: {
-		padding: 16,
-		borderLeftWidth: 0.5,
-		borderLeftColor: "#C9C9C9",
-	},
-	// #667 【設計】画像グリッドコンテナ（4列、flexWrap）
-	gridContainer: {
-		flexDirection: "row",
-		flexWrap: "wrap",
-		gap: ITEM_GAP,
-	},
-	// #667 【設計】ムード用の横並びコンテナ
-	moodContainer: {
-		flexDirection: "row",
-		justifyContent: "space-around",
-		alignItems: "center",
-		paddingVertical: 16,
-	},
-	// #667 【設計】ムード個別アイテム（円+ラベル縦並び）
-	moodItem: {
-		flex: 1,
-		alignItems: "center",
-		gap: 8,
-	},
-	// #667 【設計】ムードの円形アイコン
-	moodCircle: {
-		backgroundColor: "#C9C9C9",
-		borderRadius: 100, // 完全な円
-	},
-	selectedMoodCircle: {
-		backgroundColor: "#000000",
-	},
-	// #667 【設計】ムードのラベル
-	moodLabel: {
-		fontSize: 13,
-		color: "#000000",
-		fontWeight: "500",
-		textAlign: "center",
-	},
-	selectedMoodLabel: {
-		fontWeight: "600",
-	},
-	advancedToggle: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "center",
-		backgroundColor: "#FDEBE7",
-		marginHorizontal: 24,
-		paddingVertical: 16,
-		paddingHorizontal: 20,
-		borderRadius: 16,
-	},
-	advancedToggleText: {
-		fontSize: 15,
-		color: "#F05537",
-		fontWeight: "600",
-		marginLeft: 12,
-	},
-	chipGrid: {
-		flexDirection: "row",
-		flexWrap: "wrap",
-		gap: 12,
-	},
-	sliderSection: {
-		width: "100%",
-	},
-	searchFabContainer: {
-		position: "absolute",
-		bottom: 0,
-		paddingTop: 12,
-		paddingBottom: 32,
-		paddingHorizontal: HORIZONTAL_PADDING,
-		width: "100%",
-		justifyContent: "center",
-		flexDirection: "row",
-		alignItems: "center",
-	},
-	searchFab: {
-		width: "100%",
-		// #973【設計】コンテナ全体を透明にした分、ボタンの矩形部分だけ白背景を持たせて
-		// 未充足時のグレー表示も含め視認性を確保する(価格帯セクションの見通しは維持)
-		backgroundColor: "#FFFFFF",
-		borderRadius: 8,
-	},
-	restrictionsContainer: {
-		flexDirection: "row",
-		flexWrap: "wrap",
-		gap: 12,
-	},
-	restrictionChip: {
-		flexDirection: "row",
-		alignItems: "center",
-		backgroundColor: "#F8F9FA",
-		paddingHorizontal: 12,
-		paddingVertical: 8,
-		borderRadius: 20,
-		marginBottom: 8,
-	},
-	selectedRestrictionChip: {
-		backgroundColor: "#EF4444",
-	},
-	restrictionChipText: {
-		fontSize: 11,
-		color: "#6B7280",
-		fontWeight: "500",
-		marginLeft: 8,
-		marginRight: 8,
-	},
-	selectedRestrictionChipText: {
-		color: "#FFF",
-		fontWeight: "700",
-	},
-});
+// #1509 【設計】テーマ依存のスタイルはファクトリで組む（`contexts/ThemeProvider.tsx` の useThemedStyles）。
+// 値はすべて main のリテラルをそのまま `constants/Palette.ts` の light へ写したもので、ライトの見た目は変わらない。
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		container: {
+			flex: 1,
+			backgroundColor: c.background,
+		},
+		scrollView: {
+			flex: 1,
+		},
+		scrollContent: {
+			paddingBottom: 100, // moved here so it affects ScrollView content
+			gap: 12,
+		},
+		header: {
+			paddingHorizontal: 24,
+			paddingTop: 20,
+			paddingBottom: 20,
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+		},
+		helpButton: {
+			paddingHorizontal: 8,
+			// #1272 タイトルが伸びても «絶対に» 縮まない。ヘッダーは space-between なので、
+			// これが無いと限られた幅の奪い合いでボタン側が潰されうる
+			flexShrink: 0,
+			// #1486 アイコン(24) + 左右の padding(8+8) 分の幅を «先に» 確保する。
+			// 幅を内容任せにすると、レイアウトの確定順によってはタイトルが先に場所を取り切る
+			width: 40,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		headerTitle: {
+			fontSize: 20,
+			fontWeight: "700",
+			color: c.textPrimary,
+			letterSpacing: -0.5,
+			// ⚠️ **`flex: 1` を外さないこと。** 無いと Text が自然幅を取り、日本語の長いタイトル
+			// （"どんな料理を探しましょう？🍽"）が **ヘルプボタンを画面外へ押し出す**。
+			// 320dp 幅の Android エミュレータで実測: タイトルが 2 行に折り返し、
+			// 「?」ボタンが右端で見切れて押せない状態になっていた（run 31698138582 の
+			// 失敗時スクリーンショットで確認。Detox が 75% 可視を満たせず落ちたのは正しい検出だった）。
+			// 小さめの実機（幅の狭い端末 / 大きい文字サイズ設定）でも同じ詰みが起きる
+			flex: 1,
+			// #1486 【バグ】`flex: 1` **だけでは足りない**（実機の iPhone で `？` が右へはみ出す報告）。
+			//
+			// `flex: 1` は `flexBasis: 0` を含むので «配分» は正しく行われるが、Yoga は
+			// 折り返し可能な Text を「与えられた幅で測って、収まらなければ実測幅を返す」形で測る。
+			// 日本語のタイトルは空白が無く、端末の文字サイズ設定（Dynamic Type）を上げると
+			// 1 行が配分された幅を超え、**測定値がそのまま行ボックスの幅**になる。
+			// 行が伸びた分だけ right 側の兄弟が押し出され、`？` が画面の外へ出る。
+			// 画面幅が狭いほど、また文字サイズ設定が大きいほど起きやすい。
+			//
+			// 料理提案画面（`app/[locale]/(tabs)/search/topics.tsx` → `components/ScreenHeader.tsx`）で
+			// 同じ症状が出ていないのは、あちらのタイトルが `numberOfLines={1}` + `ellipsizeMode="tail"` で
+			// **1 行に固定されている**ため。折り返しが起きない Text は与えられた幅で必ず打ち切られ、
+			// 測定値が配分幅を超えない。こちらも同じ形へ揃えてある（JSX 側を参照）。
+			//
+			// `minWidth: 0` は web（react-native-web）向け。CSS の flex アイテムは既定で
+			// `min-width: auto`（＝内容の最小幅より縮まない）なので、これが無いと同じ症状が web で残る。
+			minWidth: 0,
+		},
+		// #667 【設計】カード無しセクションのスタイル
+		section: {
+			paddingHorizontal: HORIZONTAL_PADDING,
+			marginBottom: 24,
+		},
+		sectionHeader: {
+			flexDirection: "row",
+			alignItems: "center",
+			marginBottom: 16,
+		},
+		sectionTitle: {
+			fontSize: 16,
+			fontWeight: "700",
+			color: c.textPrimary,
+			marginLeft: 8,
+			flex: 1,
+		},
+		requiredBadge: {
+			backgroundColor: c.dangerTint,
+			paddingHorizontal: 8,
+			paddingVertical: 4,
+			borderRadius: 12,
+		},
+		requiredText: {
+			fontSize: 10,
+			fontWeight: "600",
+			color: c.danger,
+		},
+		locationSection: {
+			flexDirection: "row",
+			alignItems: "flex-start",
+			gap: 12,
+		},
+		currentLocationButton: {
+			padding: 16,
+			borderLeftWidth: 0.5,
+			borderLeftColor: c.border,
+		},
+		// #667 【設計】画像グリッドコンテナ（4列、flexWrap）
+		gridContainer: {
+			flexDirection: "row",
+			flexWrap: "wrap",
+			gap: ITEM_GAP,
+		},
+		// #667 【設計】ムード用の横並びコンテナ
+		moodContainer: {
+			flexDirection: "row",
+			justifyContent: "space-around",
+			alignItems: "center",
+			paddingVertical: 16,
+		},
+		// #667 【設計】ムード個別アイテム（円+ラベル縦並び）
+		moodItem: {
+			flex: 1,
+			alignItems: "center",
+			gap: 8,
+		},
+		// #667 【設計】ムードの円形アイコン
+		moodCircle: {
+			backgroundColor: c.border,
+			borderRadius: 100, // 完全な円
+		},
+		selectedMoodCircle: {
+			backgroundColor: c.textStrong,
+		},
+		// #667 【設計】ムードのラベル
+		moodLabel: {
+			fontSize: 13,
+			color: c.textStrong,
+			fontWeight: "500",
+			textAlign: "center",
+		},
+		selectedMoodLabel: {
+			fontWeight: "600",
+		},
+		advancedToggle: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "center",
+			backgroundColor: c.brandTint,
+			marginHorizontal: 24,
+			paddingVertical: 16,
+			paddingHorizontal: 20,
+			borderRadius: 16,
+		},
+		advancedToggleText: {
+			fontSize: 15,
+			color: c.brand,
+			fontWeight: "600",
+			marginLeft: 12,
+		},
+		chipGrid: {
+			flexDirection: "row",
+			flexWrap: "wrap",
+			gap: 12,
+		},
+		sliderSection: {
+			width: "100%",
+		},
+		searchFabContainer: {
+			position: "absolute",
+			bottom: 0,
+			paddingTop: 12,
+			paddingBottom: 32,
+			paddingHorizontal: HORIZONTAL_PADDING,
+			width: "100%",
+			justifyContent: "center",
+			flexDirection: "row",
+			alignItems: "center",
+		},
+		searchFab: {
+			width: "100%",
+			// #973【設計】コンテナ全体を透明にした分、ボタンの矩形部分だけ白背景を持たせて
+			// 未充足時のグレー表示も含め視認性を確保する(価格帯セクションの見通しは維持)
+			backgroundColor: c.ctaSurface,
+			borderRadius: 8,
+		},
+		restrictionsContainer: {
+			flexDirection: "row",
+			flexWrap: "wrap",
+			gap: 12,
+		},
+		restrictionChip: {
+			flexDirection: "row",
+			alignItems: "center",
+			backgroundColor: c.surfaceMuted,
+			paddingHorizontal: 12,
+			paddingVertical: 8,
+			borderRadius: 20,
+			marginBottom: 8,
+		},
+		selectedRestrictionChip: {
+			backgroundColor: c.dangerStrong,
+		},
+		restrictionChipText: {
+			fontSize: 11,
+			color: c.textSecondary,
+			fontWeight: "500",
+			marginLeft: 8,
+			marginRight: 8,
+		},
+		selectedRestrictionChipText: {
+			// #1509 `#FFF` と `#FFFFFF` は同一色。赤いチップの上の文字はテーマ非追従
+			color: FixedColors.onFilled,
+			fontWeight: "700",
+		},
+	});

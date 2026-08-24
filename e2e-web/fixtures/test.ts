@@ -32,9 +32,13 @@ type AppOptions = {
 type AppFixtures = {
 	/**
 	 * 収集された console error / pageerror のメッセージ一覧。
-	 * 現状はソフト運用（自動で fail しない）。テスト内で明示的にアサートしたい場合に参照する。
-	 * 全テストでハード化する場合は、auto フィクスチャ末尾の attach 後に
-	 * `expect(consoleErrors).toEqual([])` を追加すればよい。
+	 * auto フィクスチャの teardown で `toEqual([])` を検証しており、収集された時点で
+	 * spec 側が何も書かなくてもテストは失敗する（REL-08）。テスト内で明示的に参照して
+	 * メッセージをカスタマイズしたい場合や、途中経過を見たい場合のために公開している。
+	 *
+	 * ⚠️ `page` に依存しない spec（`@playwright/test` を直接 import するもの。
+	 * 例: `tests/smoke/vote-share-ogp.spec.ts`）はこのフィクスチャ自体を経由しないため、
+	 * console error は収集されない。理由はそちらのファイル冒頭のコメントを参照。
 	 */
 	consoleErrors: string[];
 
@@ -104,6 +108,15 @@ export const test = base.extend<AppOptions & AppFixtures>({
 					contentType: "text/plain",
 				});
 			}
+
+			// REL-08: spec が明示的にアサートしていなくても、収集された console error /
+			// pageerror があれば既定で失敗させる。個別の spec で `expect(consoleErrors).toEqual([])`
+			// を書く必要はもう無い（書いても二重にはなるが害は無い）。
+			expect(
+				errors,
+				"想定外の console error / pageerror が検出された（詳細は添付の console-errors.txt を参照。" +
+					"既知のノイズなら KNOWN_CONSOLE_NOISE へ理由付きで追加すること）",
+			).toEqual([]);
 		},
 		{ auto: true },
 	],

@@ -55,7 +55,19 @@ export type UseMyDishesCalendarQueryResult = {
 	refresh: () => void;
 };
 
-export const useMyDishesCalendarQuery = (): UseMyDishesCalendarQueryResult => {
+export const useMyDishesCalendarQuery = (options?: { enabled?: boolean }): UseMyDishesCalendarQueryResult => {
+	/**
+	 * #1375（5 巡目・性能）false の間は取得を始めない。
+	 *
+	 * 3 ビューは keep-alive で、タブを離れても生きている。`bumpMyDishesRevision()` が
+	 * キャッシュを捨てると、**見えていないビューまで**その場で取り直しに行く。
+	 * 一覧の取得は実測で平均 4.48 秒・最大 11.23 秒（#1395 §0(A)）なので、
+	 * 保存ボタン 1 タップで数秒級のクエリが最大 3 本走っていた。
+	 * 捨てる範囲は変えず（`useMyDishesRevisionStore` の «全部捨てるのが唯一ズレない» は正しい）、
+	 * **取り直すのを «画面に出ているビューが見えているとき» に限る**。
+	 * `hasFetchedInitial` は false のままなので、戻ってきた瞬間に自然と取り直される。
+	 */
+	const enabled = options?.enabled ?? true;
 	const { callBackend } = useAPICall();
 
 	const filter = useMyDishesFilterStore((s) => s.filter);
@@ -93,9 +105,10 @@ export const useMyDishesCalendarQuery = (): UseMyDishesCalendarQueryResult => {
 	// base を touch しないと、Calendar 用キーだけが LRU を埋めて base のスライスが落ちる。
 	// 共有 sort が既定なら両者は同じ文字列なので、touch は実質 1 本にしかならない
 	useEffect(() => {
+		if (!enabled) return;
 		touchQuery(baseQueryKey);
 		if (queryKey !== baseQueryKey) touchQuery(queryKey);
-	}, [baseQueryKey, queryKey, touchQuery]);
+	}, [baseQueryKey, enabled, queryKey, touchQuery]);
 
 	// ⚠️ `!error` を必ず条件へ入れること。取得が失敗したときストアは
 	// `hasFetchedInitial` を false のまま `isLoading` を false へ戻すので（stores/useMyDishesStore.ts
@@ -107,9 +120,10 @@ export const useMyDishesCalendarQuery = (): UseMyDishesCalendarQueryResult => {
 	// 版が動いたときはスライスごと消えていて `error` も `hasFetchedInitial` も落ちているので、
 	// このガードを保ったまま «版が動いたときだけ» 取り直す形になる
 	useEffect(() => {
+		if (!enabled) return;
 		if (hasFetchedInitial || isLoading || error) return;
 		void fetchInitial(queryKey, fetcher);
-	}, [error, fetchInitial, fetcher, hasFetchedInitial, isLoading, queryKey, revision]);
+	}, [enabled, error, fetchInitial, fetcher, hasFetchedInitial, isLoading, queryKey, revision]);
 
 	// ⚠️ `s.itemByKey` を丸ごと購読しない（独立レビュー指摘 High）。テーブル全体を購読すると、
 	// 他ビュー・他 queryKey の取得 1 回で（keep-alive 中の）全フックが再レンダーする。
