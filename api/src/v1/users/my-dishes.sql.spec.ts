@@ -298,6 +298,15 @@ describe('buildMyDishesPageQuery が組み立てる SQL', () => {
       // その行自体は消さない（UI が墓標を出すため残す）
       expect(sql).toContain('p.row_status');
     });
+
+    // 行を消さない代わりに、UI が墓標を出せるフラグを返す
+    it('墓標フラグ（is_own_media_deleted）を SELECT に載せる', () => {
+      const sql = buildSql({});
+
+      expect(sql).toContain(
+        '(p.own_media_id IS NOT NULL AND om.id IS NULL) AS is_own_media_deleted',
+      );
+    });
   });
 
   it('#1513 代表メディアの候補にも集計にも論理削除済みの行を混ぜない', () => {
@@ -667,6 +676,10 @@ describe('buildMyDishMapPinsQuery が組み立てる SQL', () => {
     expect(sql).not.toContain('fb ON om.id IS NULL');
     expect(sql).toContain(
       'LEFT JOIN dish_media dm ON dm.id = COALESCE(om.id, fb.id)',
+    );
+    // ピンも消さず、墓標フラグを返す
+    expect(sql).toContain(
+      '(top.own_media_id IS NOT NULL AND om.id IS NULL) AS is_own_media_deleted',
     );
   });
 

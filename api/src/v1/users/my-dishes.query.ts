@@ -670,6 +670,10 @@ export function buildMyDishesPageQuery(
     p.feature_score,
     ms.saved_at                       AS saved_at,
     COALESCE(om.id, fb.id)            AS media_id,
+    -- #1513 【設計】墓標フラグ。own_media_id は非 NULL なのに実体が論理削除済み
+    -- （= 自分の投稿を消した）ことを示す。行は消さず、UI 側が「この投稿は削除されました」を
+    -- 出すために使う（媒体を別の写真へ差し替えないので media_id は NULL で返る）
+    (p.own_media_id IS NOT NULL AND om.id IS NULL) AS is_own_media_deleted,
     ${RESTAURANT_COLUMNS_SQL},
     d.id            AS d_id,
     d.restaurant_id AS d_restaurant_id,
@@ -785,6 +789,9 @@ export function buildMyDishMapPinsQuery(
     dm.id                          AS media_id,
     dm.thumbnail_path              AS media_thumbnail_path,
     dm.thumbnail_processing_status AS media_thumbnail_processing_status,
+    -- #1513 【設計】一覧（buildMyDishesPageQuery）と同じ墓標フラグ。
+    -- ピンの代表行の own_media_id が削除済みメディアを指しているとき true
+    (top.own_media_id IS NOT NULL AND om.id IS NULL) AS is_own_media_deleted,
     -- #1375 独立レビュー（仕様ギャップ G4）: SNS 取り込みは自ストレージへの複製に失敗し得るため
     -- dish_media.thumbnail_path が空のまま正常系で存在する。同じフォールバックが効くよう
     -- 埋め込み側の URL も返す（Map ピンだけ店舗の外観写真へ化けるのを防ぐ）

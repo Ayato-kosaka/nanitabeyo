@@ -477,6 +477,9 @@ export class UsersService {
         },
         dishMedia:
           (item.mediaId ? dishMediaById.get(item.mediaId) : undefined) ?? null,
+        // #1513 自分の投稿を消したときは別の写真へ差し替えず（mediaId は NULL）、
+        // このフラグで墓標を出させる。行は消さない
+        isOwnMediaDeleted: item.isOwnMediaDeleted,
         myReview: review
           ? {
               ...convertPrismaToSupabase_DishReviews(review),
@@ -565,6 +568,8 @@ export class UsersService {
             : null) ??
           pin.representativeExternalThumbnailUrl ??
           null,
+        // #1513 代表行の自分の投稿が消えているときは墓標のサムネイルを出させる
+        isOwnMediaDeleted: pin.isOwnMediaDeleted,
       })),
       truncated,
     };
