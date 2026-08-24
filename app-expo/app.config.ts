@@ -1,6 +1,17 @@
 import { ExpoConfig, ConfigContext } from "@expo/config";
 import { version } from "./package.json";
 
+// #1552 【設計】ホーム画面で開発版・プレビュー版を見分けるため、ビルドプロファイルに応じて
+// DEV / PREV ラベル入りアイコンへ差し替える。EAS_BUILD_PROFILE は EAS Build が自動で
+// 設定する（eas.json の profile 名）。ローカルの prebuild では APP_VARIANT で明示できる。
+// **既定値は production 用アセット**にする — env が渡らなかったときにラベルが付く方が
+// （本番へ DEV アイコンが出る方が）事故が大きいため、未知の値もすべて production へ倒す。
+// アセットは 4 枚ともビルド時生成ではなくコミット済み（生成スクリプトが EAS 上で失敗すると
+// ラベル無しのまま出てしまうため）。adaptive-icon 系は下の adaptiveIcon コメントにある
+// セーフゾーン制約（中央 66dp の円）へラベルを収めた専用アセットである。
+const buildProfile = process.env.APP_VARIANT ?? process.env.EAS_BUILD_PROFILE;
+const iconSuffix = buildProfile === "development" ? "-dev" : buildProfile === "preview" ? "-prev" : "";
+
 export default ({ config }: ConfigContext): ExpoConfig => ({
 	...config,
 	name: "nanitabeyo",
@@ -9,7 +20,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 	runtimeVersion: version.split(".").slice(0, 2).join("."),
 	version,
 	orientation: "portrait",
-	icon: "./assets/images/icon.png",
+	icon: `./assets/images/icon${iconSuffix}.png`,
 	scheme: "nanitabeyo",
 	updates: {
 		url: "https://u.expo.dev/e01a92f1-0341-4eb5-84cc-61b8cef1a8f1",
@@ -54,7 +65,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 			// （円 / squircle）で切り抜かれる。icon.png（フチまで絵柄がある全面画像）をそのまま使うと端が欠けるため、
 			// adaptive-icon.png は絵柄をセーフゾーン（中央 68dp 相当の円）内に収めた専用アセットにしている。
 			// icon.png で置き換えないこと。
-			foregroundImage: "./assets/images/adaptive-icon.png",
+			// #1552 【設計】-dev / -prev もこのセーフゾーンへラベルを収めた専用アセット（ファイル冒頭参照）。
+			foregroundImage: `./assets/images/adaptive-icon${iconSuffix}.png`,
 			backgroundColor: "#ffffff",
 		},
 		googleServicesFile: "./google-services.json",
