@@ -1,6 +1,9 @@
 import React, { useCallback } from "react";
 import { View, Text, Switch, TouchableOpacity, StyleSheet, StyleProp, TextStyle } from "react-native";
 
+import type { Palette } from "@/constants/Palette";
+import { useThemedStyles } from "@/contexts/ThemeProvider";
+
 interface SettingsToggleItemProps {
 	label: string;
 	value: boolean;
@@ -48,6 +51,7 @@ export function SettingsToggleItem({
 	description,
 	disabled,
 }: SettingsToggleItemProps) {
+	const styles = useThemedStyles(createStyles);
 	const handlePress = useCallback(() => {
 		onValueChange(!value);
 	}, [onValueChange, value]);
@@ -87,33 +91,34 @@ export function SettingsToggleItem({
 	);
 }
 
-const styles = StyleSheet.create({
-	menuItem: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		paddingHorizontal: 16,
-		paddingVertical: 16,
-	},
-	// #1510 補足文があるときにラベルが Switch へ回り込まないよう、ラベル側だけを伸縮させる
-	labelColumn: {
-		flex: 1,
-		paddingRight: 12,
-	},
-	menuItemText: {
-		fontSize: 16,
-		color: "#1A1A1A",
-		fontWeight: "500",
-	},
-	descriptionText: {
-		marginTop: 2,
-		fontSize: 13,
-		color: "#6B7280",
-		fontWeight: "400",
-	},
-	separator: {
-		height: 1,
-		backgroundColor: "#F3F4F6",
-		marginHorizontal: 16,
-	},
-});
+const createStyles = (colors: Palette) =>
+	StyleSheet.create({
+		menuItem: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+			paddingHorizontal: 16,
+			paddingVertical: 16,
+		},
+		// #1510 補足文があるときにラベルが Switch へ回り込まないよう、ラベル側だけを伸縮させる
+		labelColumn: {
+			flex: 1,
+			paddingRight: 12,
+		},
+		menuItemText: {
+			fontSize: 16,
+			color: colors.textPrimary,
+			fontWeight: "500",
+		},
+		descriptionText: {
+			marginTop: 2,
+			fontSize: 13,
+			color: colors.textSecondary,
+			fontWeight: "400",
+		},
+		separator: {
+			height: 1,
+			backgroundColor: colors.divider,
+			marginHorizontal: 16,
+		},
+	});

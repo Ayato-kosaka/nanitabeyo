@@ -4,6 +4,8 @@ import { BellOff, ChevronRight } from "lucide-react-native";
 
 import { Card } from "@/components/Card";
 import i18n from "@/lib/i18n";
+import type { Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useSnackbar } from "@/contexts/SnackbarProvider";
 import { NOTIFICATION_CATEGORIES, type NotificationCategory } from "@shared/api/v1/constants/notificationCategories";
@@ -28,6 +30,8 @@ import { useOsNotificationPermission } from "../hooks/useOsNotificationPermissio
  * 呼び出し側（settings.tsx）が `isGuest` で出し分ける。プッシュの受け手が居ないため。
  */
 export function NotificationSettingsCard() {
+	const styles = useThemedStyles(createStyles);
+	const { colors } = useAppTheme();
 	const { lightImpact } = useHaptics();
 	const { showSnackbar } = useSnackbar();
 	const { isOsNotificationDenied, openOsSettings, refresh } = useOsNotificationPermission();
@@ -65,21 +69,24 @@ export function NotificationSettingsCard() {
 					accessibilityRole="button"
 					accessibilityLabel={i18n.t("Settings.notifications.osDisabledTitle")}
 					accessibilityHint={i18n.t("Settings.notifications.openOsSettings")}>
-					<BellOff size={20} color="#B45309" accessibilityElementsHidden importantForAccessibility="no" />
+					<BellOff size={20} color={colors.warningAction} accessibilityElementsHidden importantForAccessibility="no" />
 					<View style={styles.osNoticeTextColumn}>
 						<Text style={styles.osNoticeTitle}>{i18n.t("Settings.notifications.osDisabledTitle")}</Text>
-						<Text style={styles.osNoticeDescription}>
-							{i18n.t("Settings.notifications.osDisabledDescription")}
-						</Text>
+						<Text style={styles.osNoticeDescription}>{i18n.t("Settings.notifications.osDisabledDescription")}</Text>
 						<Text style={styles.osNoticeAction}>{i18n.t("Settings.notifications.openOsSettings")}</Text>
 					</View>
-					<ChevronRight size={20} color="#B45309" accessibilityElementsHidden importantForAccessibility="no" />
+					<ChevronRight
+						size={20}
+						color={colors.warningAction}
+						accessibilityElementsHidden
+						importantForAccessibility="no"
+					/>
 				</TouchableOpacity>
 			)}
 
 			{isLoading && !preferences && (
 				<View style={styles.stateRow} testID="settings-notifications-loading">
-					<ActivityIndicator size="small" color="#9CA3AF" />
+					<ActivityIndicator size="small" color={colors.textTertiary} />
 				</View>
 			)}
 
@@ -116,63 +123,64 @@ export function NotificationSettingsCard() {
 	);
 }
 
-const styles = StyleSheet.create({
-	card: {
-		padding: 0,
-	},
-	sectionTitle: {
-		fontSize: 13,
-		fontWeight: "600",
-		color: "#6B7280",
-		paddingHorizontal: 16,
-		paddingTop: 16,
-		paddingBottom: 4,
-	},
-	osNotice: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 12,
-		marginHorizontal: 12,
-		marginVertical: 8,
-		paddingHorizontal: 12,
-		paddingVertical: 12,
-		borderRadius: 12,
-		backgroundColor: "#FEF3C7",
-	},
-	osNoticeTextColumn: {
-		flex: 1,
-	},
-	osNoticeTitle: {
-		fontSize: 14,
-		fontWeight: "600",
-		color: "#92400E",
-	},
-	osNoticeDescription: {
-		marginTop: 2,
-		fontSize: 13,
-		color: "#92400E",
-	},
-	osNoticeAction: {
-		marginTop: 6,
-		fontSize: 13,
-		fontWeight: "600",
-		color: "#B45309",
-		textDecorationLine: "underline",
-	},
-	stateRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		paddingHorizontal: 16,
-		paddingVertical: 20,
-	},
-	errorText: {
-		fontSize: 14,
-		color: "#6B7280",
-	},
-	retryText: {
-		fontSize: 14,
-		fontWeight: "600",
-		color: "#FF3E33",
-	},
-});
+const createStyles = (colors: Palette) =>
+	StyleSheet.create({
+		card: {
+			padding: 0,
+		},
+		sectionTitle: {
+			fontSize: 13,
+			fontWeight: "600",
+			color: colors.textSecondary,
+			paddingHorizontal: 16,
+			paddingTop: 16,
+			paddingBottom: 4,
+		},
+		osNotice: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 12,
+			marginHorizontal: 12,
+			marginVertical: 8,
+			paddingHorizontal: 12,
+			paddingVertical: 12,
+			borderRadius: 12,
+			backgroundColor: colors.warningTint,
+		},
+		osNoticeTextColumn: {
+			flex: 1,
+		},
+		osNoticeTitle: {
+			fontSize: 14,
+			fontWeight: "600",
+			color: colors.warningText,
+		},
+		osNoticeDescription: {
+			marginTop: 2,
+			fontSize: 13,
+			color: colors.warningText,
+		},
+		osNoticeAction: {
+			marginTop: 6,
+			fontSize: 13,
+			fontWeight: "600",
+			color: colors.warningAction,
+			textDecorationLine: "underline",
+		},
+		stateRow: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+			paddingHorizontal: 16,
+			paddingVertical: 20,
+		},
+		errorText: {
+			fontSize: 14,
+			color: colors.textSecondary,
+		},
+		retryText: {
+			fontSize: 14,
+			fontWeight: "600",
+			color: colors.destructive,
+		},
+	});
