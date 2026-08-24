@@ -44,6 +44,15 @@ jest.mock("@/hooks/useLocale", () => ({ useLocale: () => ({ locale: "ja-JP", isJ
 jest.mock("@/hooks/useHaptics", () => ({ useHaptics: () => ({ lightImpact: jest.fn(), mediumImpact: jest.fn() }) }));
 jest.mock("@/hooks/useLogger", () => ({ useLogger: () => ({ logFrontendEvent: jest.fn() }) }));
 jest.mock("@/hooks/useScreenTrace", () => ({ useScreenTrace: () => {} }));
+// #1375（5 巡目）チュートリアルは **必ずスタブ化する**。
+// 実体は Modal + 無限ループのアニメーション + 座標の測り直しを持つので、
+// マウントすると jest がアイドルにならず OOM で落ちる（実際に落ちた）。
+// 料理提案画面のテスト（groupVoteShareTokenGuard.test.tsx）が
+// TopicsSpotlightTutorial をスタブ化しているのと同じ理由。
+jest.mock("@/features/myDishes/components/MyDishesSpotlightTutorial", () => ({
+	MY_DISHES_TUTORIAL_STORAGE_KEY: "my_dishes_spotlight_tutorial_seen_v1",
+	MyDishesSpotlightTutorial: () => null,
+}));
 jest.mock("@/lib/i18n", () => ({ __esModule: true, default: { t: (key: string) => key } }));
 jest.mock("lucide-react-native", () => new Proxy({}, { get: () => () => null }));
 jest.mock("react-native-safe-area-context", () => {

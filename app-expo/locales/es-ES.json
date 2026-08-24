@@ -979,7 +979,29 @@
 				"applied": "Filtros actualizados"
 			}
 		},
-		"searchThisArea": "Buscar en esta zona"
+		"searchThisArea": "Buscar en esta zona",
+		"tutorial": {
+			"steps": {
+				"views": {
+					"title": "Tres formas de ver tu lista",
+					"body": "Mapa, cuadrícula y calendario muestran los mismos registros de “quiero comer” y “comido”. El mapa para “qué como por aquí”, el calendario para “qué comí y cuándo”."
+				},
+				"openFeed": {
+					"title": "Toca para verlo a pantalla completa",
+					"body": "Toca un pin, una tarjeta o un día para abrir ese registro a pantalla completa.",
+					"axis": "Desliza arriba y abajo para cambiar de restaurante o de día, y a los lados para otra foto del mismo."
+				},
+				"add": {
+					"title": "Añade aquí a tu lista",
+					"sns": "Pega un enlace de Instagram, TikTok o YouTube: leemos el restaurante y el plato y lo guardamos como “quiero comer”.",
+					"eaten": "¿Ya lo comiste? Usa “registrar lo comido”. La foto puede esperar, o no ponerse."
+				},
+				"filter": {
+					"title": "Filtra cuando crezca",
+					"body": "Filtra por “quiero comer / comido”, plato, zona, con quién y franja horaria. Está para reducir opciones, no para añadirlas."
+				}
+			}
+		}
 	},
 	"SnsImport": {
 		"title": "Importar desde redes sociales",
@@ -1043,6 +1065,15 @@
 			"change": "Cambiar",
 			"hint": "Primero elige el local. Después podrás añadir foto, reseña breve, categoría, precio y valoración (la foto es opcional).",
 			"done": "Registrado como comido"
+		}
+	},
+	"Tutorial": {
+		"spotlight": {
+			"skip": "Omitir",
+			"next": "Siguiente",
+			"finish": "Empezar",
+			"progress": "{{current}} / {{total}}",
+			"progressAccessibility": "Paso {{current}} de {{total}}"
 		}
 	}
 }

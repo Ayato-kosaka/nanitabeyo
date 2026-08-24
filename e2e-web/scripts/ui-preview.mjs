@@ -243,6 +243,20 @@ const goto = async (path) => { await page.goto("http://localhost:8081" + path, {
 
 // ─── 撮影シナリオ（撮りたい画面・状態はここへ足す） ───
 
+// 0. my-dishes のチュートリアル（#1375 5 巡目: 初見の人へ画面の使い方を指す）
+// ⚠️ 初回起動でしか自動で開かないので、**一番最初に**撮ること
+await goto("/ja-JP/my-dishes");
+await page.getByTestId("my-dishes-tutorial-overlay").first().waitFor({ timeout: 60000 }).catch((e) => console.log("tutorial wait:", e.message));
+await page.waitForTimeout(1500);
+await shot("tutorial-1-views");
+for (const step of ["2-openFeed", "3-add", "4-filter"]) {
+  await page.getByTestId("my-dishes-tutorial-next").click().catch((e) => console.log("next:", e.message));
+  await page.waitForTimeout(1200);
+  await shot(`tutorial-${step}`);
+}
+await page.getByTestId("my-dishes-tutorial-finish").click().catch((e) => console.log("finish:", e.message));
+await page.waitForTimeout(800);
+
 // 1. calendar
 await goto("/ja-JP/my-dishes?view=calendar");
 await page.getByTestId("my-dishes-calendar-list").waitFor({ timeout: 120000 }).catch((e) => console.log("calendar wait:", e.message));

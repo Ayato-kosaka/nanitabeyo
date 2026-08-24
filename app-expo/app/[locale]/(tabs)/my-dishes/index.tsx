@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { CalendarDays, LayoutGrid, MapPinned, Plus, SlidersHorizontal } from "lucide-react-native";
 import { router, useLocalSearchParams } from "expo-router";
@@ -14,6 +14,12 @@ import { MyDishesListView } from "@/features/myDishes/components/MyDishesListVie
 import { MyDishesMapView } from "@/features/myDishes/components/MyDishesMapView";
 import { MyDishesCalendarView } from "@/features/myDishes/components/MyDishesCalendarView";
 import { MY_DISHES_EVENTS, buildViewSelectedPayload } from "@/features/myDishes/analytics";
+import { useSpotlightTutorial } from "@/features/tutorial/hooks/useSpotlightTutorial";
+import {
+	MY_DISHES_TUTORIAL_STORAGE_KEY,
+	MyDishesSpotlightTutorial,
+	type MyDishesTutorialTargetRefs,
+} from "@/features/myDishes/components/MyDishesSpotlightTutorial";
 import i18n from "@/lib/i18n";
 
 // #1396 【設計】Map / リスト / Calendar は 3 ルートに分けず、1 ルート + `?view=` 切替にする。
@@ -119,6 +125,40 @@ export default function MyDishesScreen() {
 	// #1375 実機確認: SafeAreaView に `bottom` を含めると、タブバーが既に確保している下端インセットの
 	// 分だけ地図の下に白い帯が二重に入る（実機で「画面下部に不自然な余白」として見えていた）。
 	// 下端はタブバーに任せ、ここでは上端だけ確保する
+	/*
+	#1375 実機確認（5 巡目）オーナー要望: この画面のチュートリアル。
+
+	初見では «上部の 3 アイコンがビュー切替である» ことも «カードを押すと全画面フィードに入る»
+	ことも分からない、という指摘への対処。料理提案画面（#927）と同じスポットライト形式で、
+	仕組みは `features/tutorial/` と共有している。
+
+	⚠️ ref は `collapsable={false}` の View に付けること。RN は子を持たない View を
+	ネイティブ階層から畳んでしまい、`measureInWindow` が返らなくなる（#927 で踏んだ）。
+	*/
+	const viewSwitchTutorialRef = useRef<View>(null);
+	const bodyTutorialRef = useRef<View>(null);
+	const addButtonTutorialRef = useRef<View>(null);
+	const filterButtonTutorialRef = useRef<View>(null);
+	const tutorialTargetRefs = useMemo<MyDishesTutorialTargetRefs>(
+		() => ({
+			viewSwitch: viewSwitchTutorialRef,
+			body: bodyTutorialRef,
+			addButton: addButtonTutorialRef,
+			filterButton: filterButtonTutorialRef,
+		}),
+		[],
+	);
+	// 器が描かれてからでないと座標が測れない。ゲストのログイン帯は高さが変わるので、
+	// «画面が出ている» ことだけを条件にする（中身の読み込み完了は待たない —
+	// この 4 つはデータに依存しない画面の骨格である）
+	const {
+		isTutorialRequested,
+		tutorialRequestId,
+		openReason: tutorialOpenReason,
+		close: closeTutorial,
+		markPresented: markTutorialPresented,
+	} = useSpotlightTutorial({ storageKey: MY_DISHES_TUTORIAL_STORAGE_KEY, canAutoOpen: true });
+
 	return (
 		<SafeAreaView edges={["top"]} style={styles.container} testID="my-dishes-screen">
 			{/* #1375 実機確認: 画面タイトル「食べたい/食べた」はタブ名と重複しているだけなので出さない。
@@ -129,7 +169,7 @@ export default function MyDishesScreen() {
 				    読み上げには accessibilityLabel で残す。
 				    絞り込みは «ビュー切替ではない別系統» なので、同じ列に混ぜず右端に
 				    丸囲みのアイコンだけで置く */}
-				<View style={styles.viewSwitch}>
+				<View style={styles.viewSwitch} ref={viewSwitchTutorialRef} collapsable={false}>
 					{MY_DISHES_VIEWS.map((v) => {
 						const Icon = VIEW_ICONS[v];
 						const isActive = activeView === v;
@@ -149,14 +189,16 @@ export default function MyDishesScreen() {
 						);
 					})}
 					<View style={styles.viewSwitchSpacer} />
-					<TouchableOpacity
-						testID="my-dishes-filter-button"
-						onPress={handleFilterPress}
-						style={styles.filterButton}
-						accessibilityRole="button"
-						accessibilityLabel={i18n.t("MyDishes.filters.title")}>
-						<SlidersHorizontal size={18} color="#111827" />
-					</TouchableOpacity>
+					<View ref={filterButtonTutorialRef} collapsable={false}>
+						<TouchableOpacity
+							testID="my-dishes-filter-button"
+							onPress={handleFilterPress}
+							style={styles.filterButton}
+							accessibilityRole="button"
+							accessibilityLabel={i18n.t("MyDishes.filters.title")}>
+							<SlidersHorizontal size={18} color="#111827" />
+						</TouchableOpacity>
+					</View>
 				</View>
 			</View>
 
@@ -181,7 +223,7 @@ export default function MyDishesScreen() {
 				</View>
 			)}
 
-			<View style={styles.body}>
+			<View style={styles.body} ref={bodyTutorialRef} collapsable={false}>
 				{
 					// #1396 【設計】ビュー切替では再取得しない（設計書 (2/2) §3-3）。3 ビューは
 					// `useMyDishesFilterStore` の `queryKey` を共有しており、切り替えても
@@ -221,16 +263,30 @@ export default function MyDishesScreen() {
 				}
 			</View>
 
-			<TouchableOpacity
-				testID="my-dishes-record-button"
-				onPress={handleRecordPress}
-				style={styles.fab}
-				accessibilityRole="button"
-				accessibilityLabel={i18n.t("MyDishes.record.cta")}>
-				{/* #1375 実機確認: 「記録する」の文字は出さず ＋ だけにする。
+			<View ref={addButtonTutorialRef} collapsable={false} style={styles.fabAnchor}>
+				<TouchableOpacity
+					testID="my-dishes-record-button"
+					onPress={handleRecordPress}
+					style={styles.fab}
+					accessibilityRole="button"
+					accessibilityLabel={i18n.t("MyDishes.record.cta")}>
+					{/* #1375 実機確認: 「記録する」の文字は出さず ＋ だけにする。
 					    ラベルは accessibilityLabel に残すので読み上げからは失われない */}
-				<Plus size={24} color="#FFFFFF" />
-			</TouchableOpacity>
+					<Plus size={24} color="#FFFFFF" />
+				</TouchableOpacity>
+			</View>
+
+			{/* #1375 実機確認（5 巡目）: 初見の人へ «この画面の使い方» を指す。
+			    仕組みは料理提案画面（#927）と共通（features/tutorial/） */}
+			<MyDishesSpotlightTutorial
+				visible={isTutorialRequested}
+				requestId={tutorialRequestId}
+				openReason={tutorialOpenReason}
+				targetRefs={tutorialTargetRefs}
+				onPresented={markTutorialPresented}
+				onClose={closeTutorial}
+				onUnavailable={closeTutorial}
+			/>
 		</SafeAreaView>
 	);
 }
@@ -312,10 +368,15 @@ const styles = StyleSheet.create({
 	guestBannerButton: {
 		flexShrink: 0,
 	},
-	fab: {
+	// #1375（5 巡目）チュートリアルが ＋ の座標を測れるよう、**位置決めは器の側**へ移した。
+	// ボタン自身を position:"absolute" のままにすると、包んだ器は 0×0 のまま流れの中に残り、
+	// measureInWindow が «画面の左上の点» を返してスポットライトが明後日の方向を指す
+	fabAnchor: {
 		position: "absolute",
 		right: 16,
 		bottom: 16,
+	},
+	fab: {
 		alignItems: "center",
 		justifyContent: "center",
 		width: 56,
