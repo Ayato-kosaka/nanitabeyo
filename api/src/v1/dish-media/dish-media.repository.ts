@@ -20,6 +20,7 @@ import { AppLoggerService } from 'src/core/logger/logger.service';
 
 import {
   CreateDishMediaDto,
+  CreateDishMediaReviewDto,
   SearchDishMediaDto,
   QueryRestaurantDishMediaDto,
   ReactionActionType,
@@ -1107,6 +1108,37 @@ export class DishMediaRepository {
     });
 
     return newMedia;
+  }
+
+  /**
+   * #1560 投稿と同時に作るレビュー。
+   *
+   * `createDishMedia` と **同じ `tx` で呼ぶこと**。別トランザクションにすると
+   * «写真だけ残ってレビューが無い» 孤児（#1560）がそのまま復活する。
+   *
+   * `dish_id` と `created_dish_media_id` は引数の `dish_media` から取る。
+   * クライアントに決めさせないのは、取り違えたときに «別の料理へレビューが付く» を
+   * サーバー側で検出できなくなるため（DTO 側の JSDoc も参照）。
+   */
+  async createDishReviewForMedia(
+    tx: Prisma.TransactionClient,
+    review: CreateDishMediaReviewDto,
+    dishMedia: { id: string; dish_id: string },
+    userId: string,
+  ) {
+    return tx.dish_reviews.create({
+      data: {
+        dish_id: dishMedia.dish_id,
+        user_id: userId,
+        // 【設計】comment は翻訳せず入力のまま保存する（dish-reviews.repository と同じ）
+        comment: review.comment,
+        original_language_code: review.languageCode,
+        rating: review.rating,
+        price_cents: review.priceCents,
+        currency_code: review.currencyCode,
+        created_dish_media_id: dishMedia.id,
+      },
+    });
   }
 
   /* ------------------------------------------------------------------ */

@@ -110,8 +110,16 @@ export type QueryDishMediaByIdsResponse = {
 	notFound: string[];
 };
 
-/** POST /v1/dish-media のレスポンス型 */
-export type CreateDishMediaResponse = SupabaseDishMedia;
+/**
+ * POST /v1/dish-media のレスポンス型。
+ *
+ * #1560 `review` を一緒に送ったときだけ `dishReview` が入る。**同じトランザクションで
+ * 書かれたもの**なので、これが返っていれば «写真だけ残ってレビューが無い» は起こり得ない。
+ * 送らなかった従来の呼び出しでは `undefined`（形は後方互換）。
+ */
+export type CreateDishMediaResponse = SupabaseDishMedia & {
+	dishReview?: SupabaseDishReviews;
+};
 
 /** POST /v1/dish-media/view のレスポンス型 */
 export type CreateDishMediaViewResponse = {
