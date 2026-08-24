@@ -65,6 +65,52 @@ const LIKED = [
 	entry("media-alive-2", { deleted: false }),
 ];
 
+
+/*
+my-dishes は API の形が違う（`MyDishItem`）。`dishMedia` は削除済みなら **必ず null** で返り、
+`isOwnMediaDeleted: true` が立つ。クライアントはこの旗を 3 段フォールバック
+（categoryImageUrl → restaurant.image_url → 無地）より **先に** 見て墓標を出す。
+`categoryImageUrl` に絵を入れてあるのは、フォールバックが誤って効いていないかを見るため。
+*/
+const myDish = (key, { deleted, eaten = true }) => ({
+	key,
+	status: eaten ? "eaten" : "want",
+	occurredAt: "2026-08-20T12:00:00.000Z",
+	savedAt: "2026-08-19T12:00:00.000Z",
+	eatenAt: eaten ? "2026-08-20T12:00:00.000Z" : null,
+	restaurant,
+	dish: {
+		id: `dish-${key}`,
+		name: deleted ? "削除した投稿" : "生きている投稿",
+		restaurant_id: "restaurant-1",
+		reviewCount: 7,
+		averageRating: 4.2,
+		categoryImageUrl: IMG,
+	},
+	dishMedia: deleted ? null : { id: `media-${key}`, thumbnailImageUrl: IMG },
+	isOwnMediaDeleted: deleted,
+	myReview: eaten
+		? { id: `review-${key}`, rating: 4, comment: "テスト", created_at: "2026-08-20T12:00:00.000Z" }
+		: null,
+});
+
+const MY_DISHES = [
+	myDish("review:1", { deleted: true }),
+	myDish("review:2", { deleted: false }),
+	myDish("review:3", { deleted: true }),
+	myDish("review:4", { deleted: false }),
+];
+
+const MY_DISH_PINS = [
+	{
+		restaurant,
+		counts: { want: 0, eaten: 2 },
+		latestOccurredAt: "2026-08-20T12:00:00.000Z",
+		representativeThumbnailUrl: null,
+		isOwnMediaDeleted: true,
+	},
+];
+
 const notification = (id, actionType, deleted) => ({
 	notification: {
 		id,
@@ -87,6 +133,11 @@ const NOTIFICATIONS = [
 
 const mock = (url) => {
 	if (url.includes("liked-dish-media")) return { body: ok({ data: LIKED, nextCursor: null }) };
+	if (url.includes("/v1/users/me/dishes/map-pins")) return { body: ok({ data: MY_DISH_PINS, truncated: false }) };
+	if (url.includes("/v1/users/me/dishes"))
+		return {
+			body: ok({ data: MY_DISHES, nextCursor: null, meta: { oldestOccurredAt: "2026-08-01T00:00:00.000Z" } }),
+		};
 	if (url.includes("/v1/notifications/unread-count")) return { body: ok({ unread: 2 }) };
 	if (url.includes("/v1/notifications/mark-all-read"))
 		return { body: ok({ lastReadAt: "2026-08-21T00:00:00.000Z" }) };
@@ -102,6 +153,21 @@ const flow = async (page, shot) => {
 	await page.goto(`${process.env.EVIDENCE_BASE || "http://localhost:8788"}/ja-JP/notifications`);
 	await page.waitForTimeout(4000);
 	await shot("02-notifications");
+
+	// my-dishes は «墓標を出す» 面のうち最大のもの（一覧 / カレンダー / 地図のピン）。
+	// 一覧とカレンダーは同じ画面のビュー切り替えなので、切り替えて 2 枚撮る
+	await page.goto(`${process.env.EVIDENCE_BASE || "http://localhost:8788"}/ja-JP/my-dishes`);
+	await page.waitForTimeout(4000);
+	await shot("03-my-dishes-list");
+
+	// 切り替えに失敗しても撮影全体を落とさない（1 枚欠けるだけにする）
+	try {
+		await page.getByTestId("my-dishes-view-calendar").first().click({ timeout: 5000 });
+		await page.waitForTimeout(2500);
+		await shot("04-my-dishes-calendar");
+	} catch (e) {
+		console.warn("カレンダーへの切り替えに失敗した:", e.message.split("\n")[0]);
+	}
 };
 
 for (const scheme of ["light", "dark"]) {
