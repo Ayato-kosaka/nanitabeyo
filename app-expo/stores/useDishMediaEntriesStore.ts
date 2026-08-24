@@ -1,4 +1,6 @@
 import i18n from "@/lib/i18n";
+// #1561 API の本文の形を信じない（lib/apiList.ts のヘッダ参照）
+import { asApiList } from "@/lib/apiList";
 import { toErrorLogMessage } from "@/lib/errorMessage";
 import type { DishMediaEntry } from "@shared/api/v1/res";
 import { createWithEqualityFn } from "zustand/traditional";
@@ -468,10 +470,10 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 			clearByKey(key);
 
 			// 1. エンティティを正規化して反映
-			upsertDishMediaEntries(response.data);
+			upsertDishMediaEntries(asApiList(response.data));
 
 			// 2. 並び順を id でセット
-			const mediaIds = response.data.map((item) => String(item.dish_media.id));
+			const mediaIds = asApiList(response.data).map((item) => String(item.dish_media.id));
 			updateMediaIdsByKey(key, () => mediaIds);
 
 			// 3. nextCursor / hasFetchedInitial の更新
@@ -494,10 +496,10 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 			fetcher({ cursor: nextCursor, request }),
 			(response) => {
 				// 1. エンティティを正規化
-				upsertDishMediaEntries(response.data);
+				upsertDishMediaEntries(asApiList(response.data));
 
 				// 2. 並び順の末尾に追加
-				const mediaIds = response.data.map((item) => String(item.dish_media.id));
+				const mediaIds = asApiList(response.data).map((item) => String(item.dish_media.id));
 				updateMediaIdsByKey(key, (prevIds) => {
 					// #CodeQL 【バグ】重複IDを排除して追加（paginationで同じIDが返る場合に備える）
 					const newIds = mediaIds.filter((id) => !prevIds.includes(id));
@@ -520,10 +522,10 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 			clearByKey(key);
 
 			// 1. エンティティを正規化して反映
-			upsertDishMediaEntries(response.data);
+			upsertDishMediaEntries(asApiList(response.data));
 
 			// 2. 自分のレビュー一覧の id 配列をセット（最初のレビューのみ）
-			const myReviewIds = response.data
+			const myReviewIds = asApiList(response.data)
 				.filter((item) => item.dish_reviews.length > 0)
 				.map((item) => String(item.dish_reviews[0].id));
 			updateReviewIdsByKey(key, () => myReviewIds);
@@ -549,10 +551,10 @@ export const useDishMediaEntriesStore = createWithEqualityFn<DishMediaEntriesSto
 			fetcher({ cursor: nextCursor, request }),
 			(response) => {
 				// 1. エンティティを正規化
-				upsertDishMediaEntries(response.data);
+				upsertDishMediaEntries(asApiList(response.data));
 
 				// 2. 自分のレビュー一覧の id 配列の末尾に追加（最初のレビューのみ）
-				const myReviewIds = response.data
+				const myReviewIds = asApiList(response.data)
 					.filter((item) => item.dish_reviews.length > 0)
 					.map((item) => String(item.dish_reviews[0].id));
 				// #CodeQL 【バグ】レビューID重複防止のため、既存IDと重複しないもののみ追加

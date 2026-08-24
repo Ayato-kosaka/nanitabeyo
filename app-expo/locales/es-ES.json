@@ -556,7 +556,8 @@
 		},
 		"actions": {
 			"selectDishCategory": "Seleccionar categoría de plato",
-			"writeReviewForThisDish": "Registrar como comido"
+			"writeReviewForThisDish": "Registrar como comido",
+			"useTypedDishCategory": "Usar «{{name}}»"
 		},
 		"inputs": {
 			"price": "Precio",
@@ -573,14 +574,16 @@
 			"enterBidAmount": "Ingresa el monto de la oferta",
 			"enterDishCategory": "Ingresa categoría del plato (ej: Paella, Tapas)",
 			"searchRestaurantsForReview": "Buscar por nombre o área",
-			"searchAreaForReview": "Buscar por zona"
+			"searchAreaForReview": "Buscar por zona",
+			"searchDishCategory": "Buscar por nombre de plato"
 		},
 		"labels": {
 			"endDate": "Fecha de fin:",
 			"paymentProcessing": "Procesando pago...",
 			"restaurant": "Restaurante",
 			"dishCategory": "Categoría del plato",
-			"dishesAtThisRestaurant": "Platos de este restaurante"
+			"dishesAtThisRestaurant": "Platos de este restaurante",
+			"noDishesAtThisRestaurant": "Aún no hay platos registrados aquí. Escribe un nombre de plato."
 		},
 		"tabs": {
 			"reviews": "Reseñas"
@@ -1064,7 +1067,7 @@
 			"pickRestaurant": "Elegir local",
 			"pick": "Elegir",
 			"change": "Cambiar",
-			"hint": "Primero elige el local. Después podrás añadir foto, reseña breve, categoría, precio y valoración (la foto es opcional).",
+			"hint": "Primero elige un restaurante. Después selecciona el plato y añade una foto (opcional), una breve reseña, el precio y tu valoración.",
 			"done": "Registrado como comido"
 		}
 	},

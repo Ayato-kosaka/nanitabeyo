@@ -556,7 +556,8 @@
 		},
 		"actions": {
 			"selectDishCategory": "اختر فئة الطبق",
-			"writeReviewForThisDish": "سجّل أنك تناولته"
+			"writeReviewForThisDish": "سجّل أنك تناولته",
+			"useTypedDishCategory": "استخدام «{{name}}»"
 		},
 		"inputs": {
 			"price": "السعر",
@@ -573,14 +574,16 @@
 			"enterBidAmount": "أدخل مبلغ العرض",
 			"enterDishCategory": "أدخل فئة الطبق (مثال: كبسة، شاورما)",
 			"searchRestaurantsForReview": "البحث بالاسم أو المنطقة",
-			"searchAreaForReview": "البحث حسب المنطقة"
+			"searchAreaForReview": "البحث حسب المنطقة",
+			"searchDishCategory": "البحث باسم الطبق"
 		},
 		"labels": {
 			"endDate": "تاريخ الانتهاء:",
 			"paymentProcessing": "معالجة الدفع...",
 			"restaurant": "مطعم",
 			"dishCategory": "فئة الطبق",
-			"dishesAtThisRestaurant": "أطباق في هذا المطعم"
+			"dishesAtThisRestaurant": "أطباق في هذا المطعم",
+			"noDishesAtThisRestaurant": "لا توجد أطباق مسجلة هنا بعد. اكتب اسم طبق."
 		},
 		"tabs": {
 			"reviews": "المراجعات"
@@ -1064,7 +1067,7 @@
 			"pickRestaurant": "اختر مطعمًا",
 			"pick": "اختيار",
 			"change": "تغيير",
-			"hint": "اختر المطعم أولًا. بعدها يمكنك إضافة صورة ومراجعة قصيرة وفئة الطبق والسعر والتقييم (الصورة اختيارية).",
+			"hint": "اختر المطعم أولاً، ثم اختر الطبق، وأضف صورة (اختيارية) ومراجعة قصيرة والسعر وتقييمك.",
 			"done": "تم تسجيله كمأكول"
 		}
 	},

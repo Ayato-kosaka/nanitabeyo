@@ -24,6 +24,7 @@ import {
 	type MyDishesTutorialTargetRefs,
 } from "@/features/myDishes/components/MyDishesSpotlightTutorial";
 import i18n from "@/lib/i18n";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 // #1396 【設計】Map / リスト / Calendar は 3 ルートに分けず、1 ルート + `?view=` 切替にする。
 // ルートを分けるとビュー切替のたびにアンマウントが起き、Map の viewport・各ビューのスクロール
@@ -305,9 +306,18 @@ export default function MyDishesScreen() {
 									    ⚠️ 捨てる範囲は変えていない（全部捨てるのが唯一ズレない）。
 									    変えたのは «取り直すタイミング» だけで、隠れているビューは
 									    `hasFetchedInitial` が false のまま待ち、見えた瞬間に取り直す */}
-									{v === "list" && <MyDishesListView enabled={isActive && isScreenFocused} />}
-									{v === "map" && <MyDishesMapView enabled={isActive && isScreenFocused} />}
-									{v === "calendar" && <MyDishesCalendarView enabled={isActive && isScreenFocused} />}
+									{/* #1375（6 巡目・オーナー指示）**1 つのビューの描画時例外でアプリごと落とさない。**
+									    「マップから絞り込みをする画面がすごいクラッシュする」への構造対策。
+									    描画中に throw すると（API が想定と違う形を返した等）アプリ全体の
+									    ErrorBoundary まで抜けて «予期しないエラー → トップへ戻る» になり、
+									    ユーザーからは «落ちた» と区別が付かない（#1561 と同じ型）。
+									    ビュー単位で捕まえれば、その場の再試行に閉じ込められる。
+									    ⚠️ これは受け皿であって原因の修正ではない。原因は別途 asApiList 等で潰す */}
+									<ErrorBoundary>
+										{v === "list" && <MyDishesListView enabled={isActive && isScreenFocused} />}
+										{v === "map" && <MyDishesMapView enabled={isActive && isScreenFocused} />}
+										{v === "calendar" && <MyDishesCalendarView enabled={isActive && isScreenFocused} />}
+									</ErrorBoundary>
 								</View>
 							);
 						})}
@@ -353,7 +363,10 @@ const createStyles = (c: Palette) =>
 		header: {
 			paddingHorizontal: 16,
 			paddingTop: 8,
-			paddingBottom: 12,
+			// #1375（6 巡目・オーナー指示）選択中のタブの下線と、ヘッダの区切り線の間に
+			// 余白を作らない。以前は 12 空けており «下線の下にもう一本、意味の無い帯がある»
+			// ように見えていた。下線がそのまま区切り線へ接するようにする
+			paddingBottom: 0,
 			borderBottomWidth: 1,
 			borderBottomColor: c.borderMuted,
 		},
@@ -390,7 +403,8 @@ const createStyles = (c: Palette) =>
 			borderColor: c.borderMuted,
 			alignItems: "center",
 			justifyContent: "center",
-			marginBottom: 6,
+			// 下線（高さ 2）と同じ分だけ持ち上げて、タブのアイコン列と光学的に揃える
+			marginBottom: 8,
 		},
 		body: {
 			flex: 1,
