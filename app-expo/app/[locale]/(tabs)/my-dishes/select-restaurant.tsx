@@ -19,6 +19,7 @@ import {
 import type { CreateRestaurantDto, QuerySavedRestaurantsDto } from "@shared/api/v1/dto";
 import { useHaptics } from "@/hooks/useHaptics";
 import i18n from "@/lib/i18n";
+import { asApiList } from "@/lib/apiList";
 import { useLogger } from "@/hooks/useLogger";
 import MapViewClass from "react-native-maps";
 import { isFoodAndDrinkPlaceForUser } from "@shared/utils/google_places_restaurant_type";
@@ -252,7 +253,9 @@ export default function SelectRestaurantScreen() {
 					},
 				);
 
-				setSavedRestaurants(response.data);
+				// #1561 API が 200 で «data の無い本文» を返すと、次のレンダーの .map で
+				// 画面ごと ErrorBoundary へ落ちていた（throw は try の外なので catch できない）
+				setSavedRestaurants(asApiList(response.data));
 				setActiveRestaurantId(null);
 			} catch (error) {
 				showSnackbar(i18n.t("SelectRestaurant.fetchSavedRestaurantsError"));

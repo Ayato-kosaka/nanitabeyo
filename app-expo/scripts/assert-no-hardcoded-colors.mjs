@@ -112,8 +112,6 @@ const EXCLUSIONS = {
 		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
 	"components/AuthErrorFallback.tsx":
 		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"components/ErrorBoundary.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
 	"components/ImageCardGrid.tsx":
 		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
 	"components/MapView.web.tsx":
@@ -255,7 +253,9 @@ const findViolations = (contents) => {
 const exclusionErrors = [];
 for (const [relative, reason] of Object.entries(EXCLUSIONS)) {
 	if (typeof reason !== "string" || reason.trim().length < MIN_REASON_LENGTH) {
-		exclusionErrors.push(`  - ${relative} … 理由が短すぎます（${MIN_REASON_LENGTH} 文字以上で、なぜ残っているかを書く）`);
+		exclusionErrors.push(
+			`  - ${relative} … 理由が短すぎます（${MIN_REASON_LENGTH} 文字以上で、なぜ残っているかを書く）`,
+		);
 	}
 	if (!existsSync(path.resolve(appRoot, relative))) {
 		exclusionErrors.push(`  - ${relative} … ファイルが存在しません（消した・改名したのならこの行も消す）`);
