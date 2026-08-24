@@ -32,7 +32,7 @@ import { useMyDishesFilterStore } from "../stores/useMyDishesFilterStore";
 import { useMyDishesMapPinsQuery } from "../hooks/useMyDishesMapPinsQuery";
 import { useMyDishesFeedScopeStore } from "../stores/useMyDishesFeedScopeStore";
 import { MyDishesMapSheet } from "./MyDishesMapSheet";
-import { MyDishDeletedTombstone } from "./MyDishDeletedTombstone";
+import { DeletedMediaTombstone } from "@/components/DeletedMediaTombstone";
 
 /**
  * #1396 my-dishes の Map ビュー（設計書 (2/2) §7 の PR4）。
@@ -288,7 +288,7 @@ export function MyDishesMapView({ enabled = true }: { enabled?: boolean } = {}) 
 								? undefined
 								: (cluster.pins[0].representativeThumbnailUrl ?? cluster.pins[0].restaurant.image_url ?? undefined)
 						}
-						bubbleContent={cluster.pins[0].isOwnMediaDeleted ? <MyDishDeletedTombstone variant="pin" /> : undefined}
+						bubbleContent={cluster.pins[0].isOwnMediaDeleted ? <DeletedMediaTombstone variant="pin" /> : undefined}
 					/>
 				) : (
 					<Marker

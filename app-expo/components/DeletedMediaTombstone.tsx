@@ -28,8 +28,20 @@ import type { Palette } from "@/constants/Palette";
  * 文字は `textSecondary`、アイコンは `textTertiary` を使う。
  */
 
+/*
+#1513 【設計】置き場所と名前について。
+
+最初は my-dishes 専用のつもりで `features/myDishes/` に置いたが、いいね一覧・通知・
+レビューのサムネイルでも同じ墓標を出すことになったので `components/` へ移した。
+同じ見た目を 2 通り作らないためである。
+
+⚠️ 文言キーは `MyDishes.deleted.*` のまま据え置いている。既に 8 ロケールへ配ってあり、
+   キー名を変えても利用者から見て何も変わらない（文言は «削除されました» で汎用）。
+   キーの改名だけのために 8 ファイルを触る価値は無いと判断した。
+*/
+
 /** Detox / Playwright が墓標の有無を確かめるための testID */
-export const MY_DISH_TOMBSTONE_TEST_ID = "my-dishes-deleted-tombstone";
+export const DELETED_MEDIA_TOMBSTONE_TEST_ID = "my-dishes-deleted-tombstone";
 
 /**
  * 出す場所ごとの寸法。
@@ -39,16 +51,16 @@ export const MY_DISH_TOMBSTONE_TEST_ID = "my-dishes-deleted-tombstone";
  *   「削除されました」は `accessibilityLabel` で読み上げへ回す
  * - `pin`: 地図ピンの吹き出し（直径 37〜48pt）。`cell` と同じ理由でアイコンだけ
  */
-export type MyDishTombstoneVariant = "tile" | "cell" | "pin";
+export type DeletedMediaTombstoneVariant = "tile" | "cell" | "pin";
 
-const ICON_SIZE: Record<MyDishTombstoneVariant, number> = { tile: 20, cell: 14, pin: 18 };
+const ICON_SIZE: Record<DeletedMediaTombstoneVariant, number> = { tile: 20, cell: 14, pin: 18 };
 
-export function MyDishDeletedTombstone({
+export function DeletedMediaTombstone({
 	variant = "tile",
 	style,
-	testID = MY_DISH_TOMBSTONE_TEST_ID,
+	testID = DELETED_MEDIA_TOMBSTONE_TEST_ID,
 }: {
-	variant?: MyDishTombstoneVariant;
+	variant?: DeletedMediaTombstoneVariant;
 	style?: React.ComponentProps<typeof View>["style"];
 	testID?: string;
 }) {

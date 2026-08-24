@@ -66,7 +66,7 @@ import React, { act } from "react";
 import TestRenderer from "react-test-renderer";
 import type { MyDishItem } from "@shared/api/v1/res";
 import { MyDishesCalendarView } from "./MyDishesCalendarView";
-import { MY_DISH_TOMBSTONE_TEST_ID } from "./MyDishDeletedTombstone";
+import { DELETED_MEDIA_TOMBSTONE_TEST_ID } from "@/components/DeletedMediaTombstone";
 import type { CalendarMonth } from "../calendar";
 import { useMyDishesFilterStore } from "../stores/useMyDishesFilterStore";
 
@@ -403,7 +403,7 @@ describe("#1513 削除済みの日は墓標になる（日付は残す）", () =
 		const tree = await render();
 
 		expect(findAllHosts(tree, "my-dishes-calendar-day-image").filter((node) => node.props.source)).toHaveLength(0);
-		expect(findAllHosts(tree, MY_DISH_TOMBSTONE_TEST_ID)).toHaveLength(1);
+		expect(findAllHosts(tree, DELETED_MEDIA_TOMBSTONE_TEST_ID)).toHaveLength(1);
 		// 記録がある日として押せるまま（行を消さない）
 		expect(findAllHosts(tree, "my-dishes-calendar-day").length).toBeGreaterThan(0);
 	});
@@ -414,7 +414,7 @@ describe("#1513 削除済みの日は墓標になる（日付は残す）", () =
 		});
 		const tree = await render();
 
-		expect(findAllHosts(tree, MY_DISH_TOMBSTONE_TEST_ID)).toHaveLength(0);
+		expect(findAllHosts(tree, DELETED_MEDIA_TOMBSTONE_TEST_ID)).toHaveLength(0);
 	});
 });
 

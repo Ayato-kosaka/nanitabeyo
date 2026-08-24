@@ -30,7 +30,7 @@ import i18n from "@/lib/i18n";
 import type { MyDishPin } from "@shared/api/v1/res";
 import { MyDishStatusLegend } from "@/features/myDishes/components/MyDishStatusLegend";
 import { MyDishStatusCountBadges } from "@/features/myDishes/components/MyDishStatusCountBadges";
-import { MyDishDeletedTombstone } from "@/features/myDishes/components/MyDishDeletedTombstone";
+import { DeletedMediaTombstone } from "@/components/DeletedMediaTombstone";
 
 /** 1 枚あたりの幅。3 枚強が見える幅にして「横に続きがある」ことを見せる */
 const TILE_WIDTH = 104;
@@ -55,7 +55,7 @@ const PinTile = memo(function PinTile({ pin, onPress }: { pin: MyDishPin; onPres
 			})}>
 			<View style={styles.tileImage}>
 				{pin.isOwnMediaDeleted ? (
-					<MyDishDeletedTombstone style={StyleSheet.absoluteFill} />
+					<DeletedMediaTombstone style={StyleSheet.absoluteFill} />
 				) : uri ? (
 					<Image
 						source={{ uri, cacheKey: getCacheKeyForImage(uri) }}

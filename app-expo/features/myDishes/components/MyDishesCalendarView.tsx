@@ -27,7 +27,7 @@ import { useMyDishesCalendarQuery } from "../hooks/useMyDishesCalendarQuery";
 import { countMyDishStatuses } from "@/features/myDishes/statusColors";
 import { MyDishStatusLegend } from "@/features/myDishes/components/MyDishStatusLegend";
 import { MyDishStatusCountBadges } from "@/features/myDishes/components/MyDishStatusCountBadges";
-import { MyDishDeletedTombstone } from "@/features/myDishes/components/MyDishDeletedTombstone";
+import { DeletedMediaTombstone } from "@/components/DeletedMediaTombstone";
 import { useThemedStyles } from "@/contexts/ThemeProvider";
 import type { Palette } from "@/constants/Palette";
 
@@ -139,7 +139,7 @@ const DayCell = memo(function DayCell({ cell, onPress }: { cell: CalendarDayCell
 				<>
 					{/* #1513 自分の投稿が削除済みの日。日付は残し、写真の枠だけ墓標に差し替える */}
 					<View style={styles.dayCircle}>
-						<MyDishDeletedTombstone variant="cell" style={StyleSheet.absoluteFill} />
+						<DeletedMediaTombstone variant="cell" style={StyleSheet.absoluteFill} />
 						<Text style={[styles.dayNumber, deletedStyles.dayNumber]}>{cell.day}</Text>
 					</View>
 					<View style={styles.countBadgeRow}>

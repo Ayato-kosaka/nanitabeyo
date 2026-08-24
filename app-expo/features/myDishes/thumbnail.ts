@@ -28,7 +28,7 @@ export const resolveMyDishThumbnailUrl = (item: MyDishItem): string | null =>
  * #1513 サムネイル枠に何を描くか。
  *
  * - `photo`: その URL の画像を描く
- * - `deleted`: **墓標**（`components/MyDishDeletedTombstone.tsx`）。自分の投稿が削除済み
+ * - `deleted`: **墓標**（`components/DeletedMediaTombstone.tsx`）。自分の投稿が削除済み
  * - `none`: 画像が 1 つも引けなかった異常系。従来どおりの無地プレースホルダー
  */
 export type MyDishThumbnail = { kind: "photo"; url: string } | { kind: "deleted" } | { kind: "none" };

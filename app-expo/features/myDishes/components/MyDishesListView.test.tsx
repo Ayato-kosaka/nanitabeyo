@@ -46,7 +46,7 @@ import React, { act } from "react";
 import TestRenderer from "react-test-renderer";
 import type { MyDishItem } from "@shared/api/v1/res";
 import { MyDishesListView } from "./MyDishesListView";
-import { MY_DISH_TOMBSTONE_TEST_ID } from "./MyDishDeletedTombstone";
+import { DELETED_MEDIA_TOMBSTONE_TEST_ID } from "@/components/DeletedMediaTombstone";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -212,7 +212,7 @@ describe("#1513 isOwnMediaDeleted の行は墓標になる（黙って消さな�
 
 		// 跡地に別の絵を入れない
 		expect(tree.root.findAll((node) => node.props?.testID === "my-dishes-list-item-image")).toHaveLength(0);
-		expect(tree.root.findAll((node) => node.props?.testID === MY_DISH_TOMBSTONE_TEST_ID).length).toBeGreaterThan(0);
+		expect(tree.root.findAll((node) => node.props?.testID === DELETED_MEDIA_TOMBSTONE_TEST_ID).length).toBeGreaterThan(0);
 		// 文言（i18n はキーをそのまま返すモック）
 		expect(
 			tree.root.findAll((node) => typeof node.type === "string" && node.children.includes("MyDishes.deleted.label"))
@@ -237,7 +237,7 @@ describe("#1513 isOwnMediaDeleted の行は墓標になる（黙って消さな�
 		);
 		const tree = await render();
 
-		expect(tree.root.findAll((node) => node.props?.testID === MY_DISH_TOMBSTONE_TEST_ID)).toHaveLength(0);
+		expect(tree.root.findAll((node) => node.props?.testID === DELETED_MEDIA_TOMBSTONE_TEST_ID)).toHaveLength(0);
 	});
 });
 
