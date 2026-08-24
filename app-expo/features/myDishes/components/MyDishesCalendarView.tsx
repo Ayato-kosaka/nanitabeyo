@@ -5,6 +5,8 @@ import { router } from "expo-router";
 import { EmptyState } from "@/components/EmptyState";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { PrimaryButton } from "@/components/PrimaryButton";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useThemedStyles } from "@/contexts/ThemeProvider";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
@@ -81,6 +83,7 @@ const WEEKDAY_COUNT = 7;
 type DayPressHandler = (cell: CalendarDayCell) => void;
 
 const DayCell = memo(function DayCell({ cell, onPress }: { cell: CalendarDayCell | null; onPress: DayPressHandler }) {
+	const styles = useThemedStyles(createStyles);
 	const handlePress = useCallback(() => {
 		if (cell) onPress(cell);
 	}, [cell, onPress]);
@@ -163,6 +166,7 @@ const MonthGrid = memo(function MonthGrid({
 	month: CalendarMonth;
 	onPressDay: DayPressHandler;
 }) {
+	const styles = useThemedStyles(createStyles);
 	const weeks = useMemo(() => {
 		const rows: (CalendarDayCell | null)[][] = [];
 		for (let i = 0; i < month.cells.length; i += WEEKDAY_COUNT) {
@@ -207,6 +211,7 @@ const MonthGrid = memo(function MonthGrid({
  *   （呼び出し元の `my-dishes/index.tsx` が「タブが前面 かつ このビューが選ばれている」を渡す）
  */
 export function MyDishesCalendarView({ enabled = true }: { enabled?: boolean } = {}) {
+	const styles = useThemedStyles(createStyles);
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { locale } = useLocale();
@@ -414,122 +419,123 @@ export function MyDishesCalendarView({ enabled = true }: { enabled?: boolean } =
 	);
 }
 
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-	},
-	centered: {
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	listContent: {
-		paddingHorizontal: 16,
-		paddingVertical: 12,
-	},
-	legend: {
-		paddingVertical: 10,
-		borderTopWidth: StyleSheet.hairlineWidth,
-		borderTopColor: "#E5E7EB",
-	},
-	// #1375 実機確認: 月と月のあいだを広く取る。詰めると «どこからが次の月か» が読めない
-	month: {
-		marginBottom: 28,
-	},
-	// Instagram のストーリーズアーカイブと同じく **中央寄せ**。左寄せだと表ではなく見出しに見える
-	monthLabel: {
-		fontSize: 20,
-		fontWeight: "700",
-		color: "#111827",
-		textAlign: "center",
-		marginBottom: 14,
-	},
-	weekdayRow: {
-		flexDirection: "row",
-		marginBottom: 4,
-	},
-	weekdayLabel: {
-		flex: 1,
-		textAlign: "center",
-		fontSize: 14,
-		color: "#6B7280",
-	},
-	weekRow: {
-		flexDirection: "row",
-	},
-	// #1375 実機確認（2 巡目）: 縦幅を詰める。正方形セル（aspectRatio: 1）だと行の高さが
-	// 列幅そのままになり縦に間延びするので、円の直径をセル幅より小さい固定値にして
-	// 行の高さもそれに合わせる
-	dayCell: {
-		flex: 1,
-		// #1375（5 巡目・デザインレビュー #23）円がセル幅の 94%（48/51.1）で、
-		// 記録が続く週は円が繋がって 1 本の帯に見えていた。要素は減らさず余白だけ作る
-		height: 58,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	// 円形。`borderRadius: 999` ではなく `overflow: hidden` と併せて正円にする
-	dayCircle: {
-		width: 44,
-		height: 44,
-		borderRadius: 22,
-		overflow: "hidden",
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	dayScrim: {
-		...StyleSheet.absoluteFillObject,
-		backgroundColor: "rgba(0,0,0,0.18)",
-	},
-	dayNumber: {
-		fontSize: 17,
-		fontWeight: "600",
-	},
-	// 記録が無い日。円も背景も描かず、数字だけを灰で残す（参考画像はかなりはっきり見える灰）
-	dayNumberEmpty: {
-		color: "#9CA3AF",
-	},
-	// 記録はあるがサムネイルが引けなかった日（画像 URL が無い）。数字を濃く残して押せると示す
-	dayNumberRecorded: {
-		color: "#111827",
-		fontWeight: "700",
-	},
-	dayNumberOnImage: {
-		color: "#FFFFFF",
-		fontWeight: "700",
-		textShadowColor: "rgba(0,0,0,0.6)",
-		// #1446 n-2: offset は既定値（{0,0}）でも、明示しないと web / native で解釈が揃う保証が無い
-		textShadowOffset: { width: 0, height: 1 },
-		textShadowRadius: 3,
-	},
-	countBadgeRow: {
-		position: "absolute",
-		right: 2,
-		bottom: 0,
-	},
-	footer: {
-		alignItems: "center",
-		paddingVertical: 16,
-	},
-	// #1446 M-1: スピナーの有無で高さを変えないための固定枠。
-	// ここを可変にすると contentLength が往復し、`onEndReached` が自動連投になる
-	footerSpinnerSlot: {
-		height: 24,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	footerBlock: {
-		alignItems: "center",
-		gap: 12,
-		paddingTop: 8,
-	},
-	footerText: {
-		fontSize: 12,
-		color: "#9CA3AF",
-		textAlign: "center",
-	},
-	footerErrorText: {
-		fontSize: 13,
-		color: "#B91C1C",
-		textAlign: "center",
-	},
-});
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		container: {
+			flex: 1,
+		},
+		centered: {
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		listContent: {
+			paddingHorizontal: 16,
+			paddingVertical: 12,
+		},
+		legend: {
+			paddingVertical: 10,
+			borderTopWidth: StyleSheet.hairlineWidth,
+			borderTopColor: c.borderMuted,
+		},
+		// #1375 実機確認: 月と月のあいだを広く取る。詰めると «どこからが次の月か» が読めない
+		month: {
+			marginBottom: 28,
+		},
+		// Instagram のストーリーズアーカイブと同じく **中央寄せ**。左寄せだと表ではなく見出しに見える
+		monthLabel: {
+			fontSize: 20,
+			fontWeight: "700",
+			color: c.textPrimaryAlt,
+			textAlign: "center",
+			marginBottom: 14,
+		},
+		weekdayRow: {
+			flexDirection: "row",
+			marginBottom: 4,
+		},
+		weekdayLabel: {
+			flex: 1,
+			textAlign: "center",
+			fontSize: 14,
+			color: c.textSecondary,
+		},
+		weekRow: {
+			flexDirection: "row",
+		},
+		// #1375 実機確認（2 巡目）: 縦幅を詰める。正方形セル（aspectRatio: 1）だと行の高さが
+		// 列幅そのままになり縦に間延びするので、円の直径をセル幅より小さい固定値にして
+		// 行の高さもそれに合わせる
+		dayCell: {
+			flex: 1,
+			// #1375（5 巡目・デザインレビュー #23）円がセル幅の 94%（48/51.1）で、
+			// 記録が続く週は円が繋がって 1 本の帯に見えていた。要素は減らさず余白だけ作る
+			height: 58,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		// 円形。`borderRadius: 999` ではなく `overflow: hidden` と併せて正円にする
+		dayCircle: {
+			width: 44,
+			height: 44,
+			borderRadius: 22,
+			overflow: "hidden",
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		dayScrim: {
+			...StyleSheet.absoluteFillObject,
+			backgroundColor: "rgba(0,0,0,0.18)",
+		},
+		dayNumber: {
+			fontSize: 17,
+			fontWeight: "600",
+		},
+		// 記録が無い日。円も背景も描かず、数字だけを灰で残す（参考画像はかなりはっきり見える灰）
+		dayNumberEmpty: {
+			color: c.textTertiary,
+		},
+		// 記録はあるがサムネイルが引けなかった日（画像 URL が無い）。数字を濃く残して押せると示す
+		dayNumberRecorded: {
+			color: c.textPrimaryAlt,
+			fontWeight: "700",
+		},
+		dayNumberOnImage: {
+			color: FixedColors.onMedia,
+			fontWeight: "700",
+			textShadowColor: "rgba(0,0,0,0.6)",
+			// #1446 n-2: offset は既定値（{0,0}）でも、明示しないと web / native で解釈が揃う保証が無い
+			textShadowOffset: { width: 0, height: 1 },
+			textShadowRadius: 3,
+		},
+		countBadgeRow: {
+			position: "absolute",
+			right: 2,
+			bottom: 0,
+		},
+		footer: {
+			alignItems: "center",
+			paddingVertical: 16,
+		},
+		// #1446 M-1: スピナーの有無で高さを変えないための固定枠。
+		// ここを可変にすると contentLength が往復し、`onEndReached` が自動連投になる
+		footerSpinnerSlot: {
+			height: 24,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		footerBlock: {
+			alignItems: "center",
+			gap: 12,
+			paddingTop: 8,
+		},
+		footerText: {
+			fontSize: 12,
+			color: c.textTertiary,
+			textAlign: "center",
+		},
+		footerErrorText: {
+			fontSize: 13,
+			color: c.dangerEmphasis,
+			textAlign: "center",
+		},
+	});

@@ -27,12 +27,14 @@ import { router, useLocalSearchParams } from "expo-router";
 
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { SavedTopicLocationSearch } from "@/features/profile/containers/SavedTopicLocationSearch";
+import { useAppTheme } from "@/contexts/ThemeProvider";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import i18n from "@/lib/i18n";
 
 export default function SavedTopicLocationScreen() {
+	const { colors } = useAppTheme();
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { locale } = useLocale();
@@ -56,7 +58,7 @@ export default function SavedTopicLocationScreen() {
 	}, [lightImpact, logFrontendEvent, locale, topicId]);
 
 	return (
-		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
+		<LinearGradient colors={colors.backgroundGradient} style={styles.container}>
 			<SafeAreaView style={styles.safeArea} edges={[]}>
 				<ScreenHeader
 					title={i18n.t("Search.locationModal.title")}

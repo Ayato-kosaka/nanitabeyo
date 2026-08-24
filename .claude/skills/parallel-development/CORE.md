@@ -387,6 +387,41 @@ REST Contents API経由でも `403 Resource not accessible by integration` に�
 - テストの妥当性
 - 保守性
 - UI変更時の表示・多言語・アクセシビリティ
+- **仕様に無い振る舞いが増えていないか**（下記。常設で回す）
+
+### ⚠️ 「仕様に無い振る舞いが増えていないか」は常設で回す
+
+既存の観点は «仕様にあるのに実装が無い» を探す形に寄っている。**その逆——
+仕様に無いのに実装が増えた——は、どの観点にも引っかからない。**
+
+実例（2026-08-23、#1513）: `api/src/v1/users/my-dishes.query.ts` のフォールバックの
+発火条件が、承認済みの仕様から 1 語だけ変わっていた。
+
+```sql
+) fb ON p.own_media_id IS NULL   -- #1469: 写真なし記録のときだけ代表メディアを借りる
+) fb ON om.id IS NULL            -- #1513 が黙って変更: 削除済みのときも差し替える
+```
+
+**差分は 1 行、テストは全部緑、PR 本文に記述なし。**レビューでも CI でも検知できず、
+リーダーがオーナーへ «そういう仕様です» と説明して初めて «そんな仕様は無い» と分かった。
+
+このレビューで見るのは 1 つだけ。
+
+> **既存の分岐条件・既定値・フォールバックの「発火条件」が変わっていないか。
+> 変わっているなら、その根拠の Issue 番号が PR 本文にあるか。**
+
+具体的に照合するもの:
+
+- `if` / 三項 / SQL の `ON` 句・`WHERE` 句の条件式
+- 既定値（`??` の右辺、`default`、`DEFAULT`）
+- リトライ回数・タイムアウト・上限値
+- フォールバックが発火する条件
+
+**根拠が書かれていない条件変更は、それだけで Request Changes 相当にする。**
+「動くから良い」ではなく「決めていないことを決めてしまった」が問題である。
+
+実装側の規律としても、[EVIDENCE-AND-E2E.md](./EVIDENCE-AND-E2E.md) の
+「§0 絶対に守ること」と同格で扱う。
 
 指摘は根拠と再現方法を伴わせ、PRへ記録する。修正が必要なら同じ実装ブランチへwrite runを再dispatchし、修正後に影響範囲を再レビューする。
 
@@ -614,6 +649,34 @@ gh run download <run-id> --dir <destination>
 ```
 
 長時間runを逐次監視し続けて次のdispatchを遅らせない。まず独立runを全て起動し、その後まとめて状態を確認する。
+
+### ⚠️ `mcp__github__actions_list` の `list_workflow_runs` で run 一覧を舐めない
+
+MCP 経由の run 一覧は **1 件ごとに `head_commit.message` を全文**返す。このリポジトリの
+コミットメッセージは設計意図を書く方針なので 1 件で数千字あり、`per_page` が小さくても
+コンテキストを食い潰す。実測（2026-08-23）:
+
+| 呼び方 | 消費 |
+| --- | --- |
+| `list_workflow_runs`（`per_page: 8`, e2e-mobile） | **約 25,000 トークン** |
+| `list_workflow_runs`（`per_page: 6`, claude-worker） | **約 30,000 トークン** |
+| `git ls-remote` + `git log -1 --format` でブランチ 8 本を確認 | 約 400 トークン |
+
+**代わりにこうする。**
+
+- **成果の確認は git で行う。** run の `conclusion` は元々信用しない方針（下記）なので、
+  そもそも run 一覧を見る必要が無い。`git fetch origin && git log -1 --format='%h %cr %s' origin/<branch>`
+  でブランチが動いたかを直接見る。何を実装したかは `git log origin/main..origin/<branch>` と
+  `git show --stat <sha>` で確定する
+- **生死の確認だけが必要なとき**は `workflow_runs_filter: {"status": "in_progress"}` を付ける。
+  走っている run だけに絞られるので数件で収まる
+- **特定の run を見るとき**は run id が分かっているなら `actions_get` / `list_workflow_jobs` を使う。
+  こちらはコミットメッセージを含まない
+- run id は **dispatch した直後に控えておく**。後から一覧で探すのが一番高くつく
+
+失敗の診断はログではなく **Artifact を落とす方が安い**ことも多い。Detox の
+`detox-report-*` には `detox-run.log` と失敗時スクリーンショットが入っており、
+`get_job_logs` の `tail_lines` は post-job の後片付けしか返さないことがある（実測）。
 
 ローカルセッションが中断しても、CSV、親Issue、Sub-issue、PR、branch、task_key、Actions履歴、Artifactから進捗を復元する。会話履歴だけを正本にしない。
 

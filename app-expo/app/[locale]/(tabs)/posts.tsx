@@ -9,6 +9,8 @@ import { useAPICall } from "@/hooks/useAPICall";
 import { useLogger } from "@/hooks/useLogger";
 import { useDishMediaEntriesStore } from "@/stores/useDishMediaEntriesStore";
 import { OpenInAppBanner } from "@/components/deepLinking/OpenInAppBanner";
+import { type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 import { useSeo } from "@/contexts/SeoContext";
 import i18n from "@/lib/i18n";
 import { SeoOverride } from "@/contexts/SeoContext/SeoProvider";
@@ -42,6 +44,8 @@ export default function PostsScreen() {
 		ids?: string | string[];
 		entriesKey?: string | string[];
 	}>();
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
 	const entriesKey =
@@ -102,7 +106,7 @@ export default function PostsScreen() {
 	// #1477 壊れた URL で着地した人には、内部エラー文ではなく «見つかりません» を出す。
 	if (!hasValidIds) {
 		return (
-			<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container} testID="posts-screen">
+			<LinearGradient colors={colors.backgroundGradient} style={styles.container} testID="posts-screen">
 				<View style={styles.notFoundContainer}>
 					<Text style={styles.notFoundText} testID="posts-not-found">
 						{i18n.t("Common.errors.notFound")}
@@ -113,7 +117,7 @@ export default function PostsScreen() {
 	}
 
 	return (
-		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container} testID="posts-screen">
+		<LinearGradient colors={colors.backgroundGradient} style={styles.container} testID="posts-screen">
 			{/* #688 【設計】Web Deep Linking バナー（アプリ未インストール時の導線） */}
 			<OpenInAppBanner path="posts" params={{ ids, entriesKey }} />
 			<DishMediaMap entriesKey={entriesKey} idType="dish_media" />
@@ -121,8 +125,9 @@ export default function PostsScreen() {
 	);
 }
 
-const styles = StyleSheet.create({
-	container: { flex: 1 },
-	notFoundContainer: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
-	notFoundText: { fontSize: 16, color: "#6B7280", textAlign: "center" },
-});
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		container: { flex: 1 },
+		notFoundContainer: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
+		notFoundText: { fontSize: 16, color: c.textSecondary, textAlign: "center" },
+	});
