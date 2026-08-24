@@ -1066,7 +1066,7 @@
 			"pickRestaurant": "Elegir local",
 			"pick": "Elegir",
 			"change": "Cambiar",
-			"hint": "Primero elige el local. Después podrás añadir foto, reseña breve, categoría, precio y valoración (la foto es opcional).",
+			"hint": "Primero elige un restaurante. Después selecciona el plato y añade una foto (opcional), una breve reseña, el precio y tu valoración.",
 			"done": "Registrado como comido"
 		}
 	},

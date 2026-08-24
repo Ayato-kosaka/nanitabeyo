@@ -1066,7 +1066,7 @@
 			"pickRestaurant": "Choisir un établissement",
 			"pick": "Choisir",
 			"change": "Modifier",
-			"hint": "Choisissez d’abord l’établissement. Vous pourrez ensuite ajouter photo, avis court, catégorie, prix et note (photo facultative).",
+			"hint": "Choisissez d’abord un restaurant. Sélectionnez ensuite le plat, puis ajoutez une photo (facultative), un court avis, le prix et votre note.",
 			"done": "Enregistré comme mangé"
 		}
 	},
