@@ -141,11 +141,16 @@ const MyDishCard = memo(function MyDishCard({
 	);
 });
 
-export function MyDishesListView() {
+/**
+ * @param enabled #1375（5 巡目・性能）取得を始めてよいか。
+ *   3 ビューは keep-alive なので、**見えていないビューまで取り直しに行かない**ようにする
+ *   （呼び出し元の `my-dishes/index.tsx` が「タブが前面 かつ このビューが選ばれている」を渡す）
+ */
+export function MyDishesListView({ enabled = true }: { enabled?: boolean } = {}) {
 	const { locale } = useLocale();
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
-	const { items, isLoading, isLoadingMore, error, hasNextPage, loadMore, refresh } = useMyDishesQuery();
+	const { items, isLoading, isLoadingMore, error, hasNextPage, loadMore, refresh } = useMyDishesQuery({ enabled });
 
 	const data = useMemo<MyDishGridItem[]>(() => items.map((item) => ({ id: item.key, item })), [items]);
 

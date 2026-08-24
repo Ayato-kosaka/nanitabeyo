@@ -27,6 +27,16 @@ export type SearchConditions = {
 	location: Omit<LocationDetailsResponse, "viewport"> | null;
 	locationQuery: string;
 	timeSlot: SearchParams["timeSlot"];
+	/**
+	 * #1375（5 巡目・独立レビュー A-3）**人が時間帯を選んだか。**
+	 *
+	 * 「復元すべき条件がある」を «store が空でないか» で判定すると、初回マウントで
+	 * 既定値を保存した瞬間に成立してしまい、2 度目のマウント（ロケール切替 /
+	 * ErrorBoundary の復帰 / `router.replace("/")` 後）で
+	 * **端末時刻に基づく時間帯の自動選択が二度と働かなくなる**。
+	 * 自動選択を止めてよいのは «人が自分で選んだとき» だけなので、その事実を別に持つ。
+	 */
+	timeSlotTouched: boolean;
 	scene: SearchParams["scene"];
 	taste: SearchParams["taste"];
 	coreIngredient: SearchParams["coreIngredient"];

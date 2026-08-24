@@ -28,6 +28,7 @@ import { Text } from "react-native";
 import i18n from "@/lib/i18n";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { useDishMediaBackgroundImageResources } from "@/features/dishMedia/hooks/useDishMediaBackgroundImageResources";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 // --- ユーティリティ群（純粋関数） ------------------------------------------
 // インデックスを items.length の範囲内にクランプ
@@ -188,15 +189,24 @@ export default function DishMediaFeed({
 		({ item, index }: ListRenderItemInfo<string>) => (
 			// 各ページは厳密に画面サイズに合わせる（横のときは幅も固定しないとページングが崩れる）
 			<View style={{ height: Math.max(1, pageHeight), ...(horizontal ? { width: Math.max(1, pageWidth) } : {}) }}>
-				<DishMediaContent
-					id={item}
-					isActive={index === currentIndex}
-					getTitle={getTitle}
-					sessionId={sessionId.current}
-					entriesKey={entriesKey}
-					idType={idType}
-					backgroundImageState={getBackgroundImageState(item)}
-				/>
+				{/* #1375（5 巡目・安定性）**セル単位の ErrorBoundary。**
+				    `DishMediaContent` は entry が引けないと throw する設計（同ファイル冒頭のコメント）だが、
+				    その境界は検索結果のカルーセル（`DishMediaMap.tsx:315`）にしか無く、
+				    このフィード（my-dishes / 店舗 / 通知 / 投稿 / プロフィール）から throw すると
+				    **アプリ全体の ErrorBoundary まで抜けて «全画面エラー → トップへ戻る»** になっていた。
+				    ユーザーからは «落ちた» と区別がつかない。1 セルの再試行に閉じ込める。
+				    ⚠️ throw を残すか消すかは別論点。まず境界を `DishMediaMap` と揃える */}
+				<ErrorBoundary>
+					<DishMediaContent
+						id={item}
+						isActive={index === currentIndex}
+						getTitle={getTitle}
+						sessionId={sessionId.current}
+						entriesKey={entriesKey}
+						idType={idType}
+						backgroundImageState={getBackgroundImageState(item)}
+					/>
+				</ErrorBoundary>
 			</View>
 		),
 		[pageHeight, pageWidth, horizontal, currentIndex, getTitle, entriesKey, idType, getBackgroundImageState],

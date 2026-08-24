@@ -201,7 +201,12 @@ const MonthGrid = memo(function MonthGrid({
 	);
 });
 
-export function MyDishesCalendarView() {
+/**
+ * @param enabled #1375（5 巡目・性能）取得を始めてよいか。
+ *   3 ビューは keep-alive なので、**見えていないビューまで取り直しに行かない**ようにする
+ *   （呼び出し元の `my-dishes/index.tsx` が「タブが前面 かつ このビューが選ばれている」を渡す）
+ */
+export function MyDishesCalendarView({ enabled = true }: { enabled?: boolean } = {}) {
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { locale } = useLocale();
@@ -215,7 +220,7 @@ export function MyDishesCalendarView() {
 		oldestOccurredAt,
 		loadMore,
 		refresh,
-	} = useMyDishesCalendarQuery();
+	} = useMyDishesCalendarQuery({ enabled });
 
 	// 「今月」はマウント時に 1 度だけ決める（毎レンダー new Date() すると months が作り直される）。
 	// ⚠️ #1446 m-4（申し送り・本 PR では直さない）: keep-alive でアンマウントされないため、

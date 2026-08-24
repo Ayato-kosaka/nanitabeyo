@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { CalendarDays, LayoutGrid, MapPinned, Plus, SlidersHorizontal } from "lucide-react-native";
 import { router, useLocalSearchParams } from "expo-router";
+import { useIsFocused } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { useAuth } from "@/contexts/AuthProvider";
@@ -125,6 +126,19 @@ export default function MyDishesScreen() {
 	// #1375 実機確認: SafeAreaView に `bottom` を含めると、タブバーが既に確保している下端インセットの
 	// 分だけ地図の下に白い帯が二重に入る（実機で「画面下部に不自然な余白」として見えていた）。
 	// 下端はタブバーに任せ、ここでは上端だけ確保する
+	/**
+	 * #1375（5 巡目・性能）タブが前面にあるか。
+	 *
+	 * bottom-tabs は `unmountOnBlur` を指定していないので、一度開いたタブは離れても
+	 * unmount されない。これを見ずに `activeView` だけで判定すると、検索タブにいる間も
+	 * my-dishes の 1 ビューが取得し続ける。
+	 *
+	 * ⚠️ `useIsFocused()` は **ナビゲータの中でだけ**呼べる。ここは (tabs) 配下の画面なので
+	 * 安全だが、Portal 配下のコンポーネントへ持ち込むと例外になる（#1375 で実際に踏んだ）。
+	 * だからここで 1 回だけ読み、子には props で配る
+	 */
+	const isScreenFocused = useIsFocused();
+
 	/*
 	#1375 実機確認（5 巡目）オーナー要望: この画面のチュートリアル。
 
@@ -253,9 +267,17 @@ export default function MyDishesScreen() {
 									pointerEvents={isActive ? "auto" : "none"}
 									accessibilityElementsHidden={!isActive}
 									importantForAccessibility={isActive ? "auto" : "no-hide-descendants"}>
-									{v === "list" && <MyDishesListView />}
-									{v === "map" && <MyDishesMapView />}
-									{v === "calendar" && <MyDishesCalendarView />}
+									{/* #1375（5 巡目・性能）**見えているビューだけが取得する。**
+									    3 ビューは keep-alive なので、`bumpMyDishesRevision()` が
+									    キャッシュを捨てると隠れているビューまで取り直しに行っていた。
+									    一覧の取得は実測で平均 4.48 秒（#1395 §0(A)）なので、
+									    保存ボタン 1 タップで数秒級のクエリが最大 3 本走っていた。
+									    ⚠️ 捨てる範囲は変えていない（全部捨てるのが唯一ズレない）。
+									    変えたのは «取り直すタイミング» だけで、隠れているビューは
+									    `hasFetchedInitial` が false のまま待ち、見えた瞬間に取り直す */}
+									{v === "list" && <MyDishesListView enabled={isActive && isScreenFocused} />}
+									{v === "map" && <MyDishesMapView enabled={isActive && isScreenFocused} />}
+									{v === "calendar" && <MyDishesCalendarView enabled={isActive && isScreenFocused} />}
 								</View>
 							);
 						})}

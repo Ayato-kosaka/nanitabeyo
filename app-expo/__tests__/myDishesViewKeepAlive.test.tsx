@@ -40,6 +40,9 @@ jest.mock("expo-router", () => {
 jest.mock("@/contexts/AuthProvider", () => ({
 	useAuth: () => ({ user: { id: "user-1", is_anonymous: false } }),
 }));
+// #1375（5 巡目・性能）画面はタブのフォーカスを見て «見えているビューだけ取得する»。
+// このテストはナビゲータの外で画面を描くので、フォーカスは «前面» 固定でよい
+jest.mock("@react-navigation/native", () => ({ useIsFocused: () => true }));
 jest.mock("@/hooks/useLocale", () => ({ useLocale: () => ({ locale: "ja-JP", isJapanese: true }) }));
 jest.mock("@/hooks/useHaptics", () => ({ useHaptics: () => ({ lightImpact: jest.fn(), mediumImpact: jest.fn() }) }));
 jest.mock("@/hooks/useLogger", () => ({ useLogger: () => ({ logFrontendEvent: jest.fn() }) }));

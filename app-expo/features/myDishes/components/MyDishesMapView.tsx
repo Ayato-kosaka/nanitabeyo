@@ -52,12 +52,17 @@ import { MyDishesMapSheet } from "./MyDishesMapSheet";
  * - ピンタップで全画面 Feed へ直行することはできない（`MyDishPin` が `dish_media.id` を
  *   1 つも持たないため。設計 (1/2) §0-1 / リーダー判断 Q1）。**常に Sheet を開く**。
  */
-export function MyDishesMapView() {
+/**
+ * @param enabled #1375（5 巡目・性能）取得を始めてよいか。
+ *   3 ビューは keep-alive なので、**見えていないビューまで取り直しに行かない**ようにする
+ *   （呼び出し元の `my-dishes/index.tsx` が「タブが前面 かつ このビューが選ばれている」を渡す）
+ */
+export function MyDishesMapView({ enabled = true }: { enabled?: boolean } = {}) {
 	const { isJapanese, locale } = useLocale();
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const commitArea = useMyDishesFilterStore((s) => s.commitArea);
-	const { pins, isLoading, error, hasFetchedInitial, truncated, refresh } = useMyDishesMapPinsQuery();
+	const { pins, isLoading, error, hasFetchedInitial, truncated, refresh } = useMyDishesMapPinsQuery({ enabled });
 
 	const initialRegion = useMemo<Region>(() => (isJapanese ? REGION_JP : INITIAL_REGION), [isJapanese]);
 
