@@ -8,7 +8,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity } from "react-native
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Image } from "expo-image";
 import i18n from "@/lib/i18n";
-import { Heart, Bookmark } from "lucide-react-native";
+import { Heart, Bookmark, Vote } from "lucide-react-native";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useNotifications } from "@/features/notifications/hooks/useNotifications";
 import { useMarkNotificationsRead } from "@/features/notifications/hooks/useMarkNotificationsRead";
@@ -98,6 +98,15 @@ export default function NotificationsScreen() {
 					pathname: "/[locale]/(tabs)/notifications/feed",
 					params: { locale, idType: "dish_reviews" },
 				});
+			} else if (
+				target_table === "dish_category_group_vote_sessions" &&
+				notification.dishCategoryGroupVoteSession !== undefined
+			) {
+				// #1506 GRP-04 【仕様】投票通知は結果画面（shareToken）へ遷移
+				router.push({
+					pathname: "/[locale]/(tabs)/search/dish-category-group-votes/[shareToken]",
+					params: { locale, shareToken: notification.dishCategoryGroupVoteSession.shareToken },
+				});
 			}
 			// #通知機能 【設計】他の target_table は今後追加予定
 		},
@@ -113,6 +122,8 @@ export default function NotificationsScreen() {
 				return <Heart {...iconProps} fill="#FFFFFF" />;
 			case "save":
 				return <Bookmark {...iconProps} fill="#FFFFFF" />;
+			case "vote":
+				return <Vote {...iconProps} />;
 			default:
 				return <Heart {...iconProps} />;
 		}
@@ -125,6 +136,8 @@ export default function NotificationsScreen() {
 				return "#FF3040";
 			case "save":
 				return "#5856D6";
+			case "vote":
+				return "#34C759";
 			default:
 				return "#FF3040";
 		}
@@ -165,13 +178,21 @@ export default function NotificationsScreen() {
 
 			return (
 				<TouchableOpacity
+					// #1506 GRP-04 【テスト】行とアイコンに action_type 込みの testID を付ける。
+					// 通知 id は E2E から予測できないので id は載せず、**種別で引ける**ことを優先した
+					// （e2e-web は .first()、Detox は atIndex(0) で先頭行＝最新の通知を掴む）。
+					// これが無いと「vote 通知が一覧に出た」「押すと結果画面へ行く」を外から観測できない
+					// （screens/NotificationsScreen.ts が「内容の検証が要るなら都度足すこと」と書いている通り）。
+					testID={`notification-item-${item.notification.action_type}`}
 					style={styles.notificationItem}
 					onPress={() => handleNotificationPress(item)}
 					activeOpacity={0.7}>
 					{/* Left: Avatar with Action Icon */}
 					<View style={styles.avatarContainer}>
 						<Image source={{ uri: avatar, cacheKey: getCacheKeyForImage(avatar) }} style={styles.avatar} />
-						<View style={[styles.actionIcon, { backgroundColor: iconBgColor }]}>
+						<View
+							testID={`notification-icon-${item.notification.action_type}`}
+							style={[styles.actionIcon, { backgroundColor: iconBgColor }]}>
 							{getNotificationIcon(item.notification.action_type)}
 						</View>
 					</View>

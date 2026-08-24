@@ -2,6 +2,8 @@ import React from "react";
 import { Pressable, View, Text, StyleSheet, type ImageSourcePropType } from "react-native";
 import { Image } from "expo-image";
 import { Check } from "lucide-react-native";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useThemedStyles } from "@/contexts/ThemeProvider";
 
 interface SelectableGridItemProps {
 	/** 表示ラベル(i18n 済み文字列) */
@@ -25,6 +27,7 @@ interface SelectableGridItemProps {
 // (#930 の PrimaryButton disabled と同種の既知の非対応)。native/web 両対応の aria-checked を
 // 直接指定することで、RN(iOS/Android) と RNW(Web) の両方で同じ挙動にする。
 export function SelectableGridItem({ label, image, selected, onPress, itemWidth, testID }: SelectableGridItemProps) {
+	const styles = useThemedStyles(createStyles);
 	return (
 		<Pressable
 			testID={testID}
@@ -49,7 +52,8 @@ export function SelectableGridItem({ label, image, selected, onPress, itemWidth,
 				/>
 				{selected && (
 					<View style={styles.checkBadge}>
-						<Check size={12} color="#FFFFFF" strokeWidth={3} />
+						{/* #1509 バッジは «黒地・白縁・白チェック» で 1 セット。テーマ非追従（写真の上に載るため） */}
+						<Check size={12} color={FixedColors.checkMark} strokeWidth={3} />
 					</View>
 				)}
 			</View>
@@ -61,49 +65,52 @@ export function SelectableGridItem({ label, image, selected, onPress, itemWidth,
 const ITEM_PADDING = 3;
 const BORDER_WIDTH = 2;
 
-const styles = StyleSheet.create({
-	item: {
-		maxWidth: 256,
-		alignItems: "center",
-		overflow: "visible",
-		padding: ITEM_PADDING,
-		borderRadius: 16,
-		borderWidth: BORDER_WIDTH,
-		borderColor: "transparent",
-	},
-	selectedItem: {
-		borderColor: "#000000",
-		backgroundColor: "#E5E5E5",
-	},
-	imageWrapper: {
-		position: "relative",
-	},
-	image: {
-		borderRadius: 16,
-		maxWidth: 256,
-		maxHeight: 256,
-	},
-	checkBadge: {
-		position: "absolute",
-		top: -4,
-		right: -4,
-		width: 20,
-		height: 20,
-		borderRadius: 10,
-		backgroundColor: "#000000",
-		alignItems: "center",
-		justifyContent: "center",
-		borderWidth: 1.5,
-		borderColor: "#FFFFFF",
-	},
-	label: {
-		marginTop: 4,
-		fontSize: 11,
-		color: "#000000",
-		fontWeight: "600",
-		textAlign: "center",
-	},
-	selectedLabel: {
-		fontWeight: "800",
-	},
-});
+// #1509 【設計】テーマ依存のスタイルはファクトリで組む（`contexts/ThemeProvider.tsx` の useThemedStyles）。
+// 値はすべて main のリテラルをそのまま `constants/Palette.ts` の light へ写したもので、ライトの見た目は変わらない。
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		item: {
+			maxWidth: 256,
+			alignItems: "center",
+			overflow: "visible",
+			padding: ITEM_PADDING,
+			borderRadius: 16,
+			borderWidth: BORDER_WIDTH,
+			borderColor: "transparent",
+		},
+		selectedItem: {
+			borderColor: c.borderContrast,
+			backgroundColor: c.surfaceSelected,
+		},
+		imageWrapper: {
+			position: "relative",
+		},
+		image: {
+			borderRadius: 16,
+			maxWidth: 256,
+			maxHeight: 256,
+		},
+		checkBadge: {
+			position: "absolute",
+			top: -4,
+			right: -4,
+			width: 20,
+			height: 20,
+			borderRadius: 10,
+			backgroundColor: FixedColors.badgeBackground,
+			alignItems: "center",
+			justifyContent: "center",
+			borderWidth: 1.5,
+			borderColor: FixedColors.badgeBorder,
+		},
+		label: {
+			marginTop: 4,
+			fontSize: 11,
+			color: c.textStrong,
+			fontWeight: "600",
+			textAlign: "center",
+		},
+		selectedLabel: {
+			fontWeight: "800",
+		},
+	});

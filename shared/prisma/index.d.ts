@@ -248,6 +248,12 @@ export type user_device_tokens = $Result.DefaultSelection<Prisma.$user_device_to
  */
 export type user_notification_cursors = $Result.DefaultSelection<Prisma.$user_notification_cursorsPayload>
 /**
+ * Model user_notification_preferences
+ * This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+ * This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+ */
+export type user_notification_preferences = $Result.DefaultSelection<Prisma.$user_notification_preferencesPayload>
+/**
  * Model user_roles
  * This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
  * This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -821,6 +827,16 @@ export class PrismaClient<
   get user_notification_cursors(): Prisma.user_notification_cursorsDelegate<ExtArgs, ClientOptions>;
 
   /**
+   * `prisma.user_notification_preferences`: Exposes CRUD operations for the **user_notification_preferences** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more User_notification_preferences
+    * const user_notification_preferences = await prisma.user_notification_preferences.findMany()
+    * ```
+    */
+  get user_notification_preferences(): Prisma.user_notification_preferencesDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.user_roles`: Exposes CRUD operations for the **user_roles** model.
     * Example usage:
     * ```ts
@@ -1310,6 +1326,7 @@ export namespace Prisma {
     share_links: 'share_links',
     user_device_tokens: 'user_device_tokens',
     user_notification_cursors: 'user_notification_cursors',
+    user_notification_preferences: 'user_notification_preferences',
     user_roles: 'user_roles',
     users: 'users'
   };
@@ -1327,7 +1344,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "backend_event_logs" | "config" | "content_reports" | "contribution_tasks" | "dish_categories" | "dish_category_features" | "dish_category_group_vote_candidate_votes" | "dish_category_group_vote_candidates" | "dish_category_group_vote_participants" | "dish_category_group_vote_sessions" | "dish_category_localized_text" | "dish_category_variants" | "dish_media" | "dish_media_analysis_results" | "dish_media_external_embeddings" | "dish_media_impressions" | "dish_media_likes" | "dish_media_views" | "dish_reviews" | "dishes" | "external_api_logs" | "frontend_event_logs" | "notification_recipients" | "notifications" | "payouts" | "permissions" | "prompt_families" | "prompt_usages" | "prompt_variants" | "reactions" | "restaurant_bids" | "restaurants" | "role_permissions" | "roles" | "share_links" | "user_device_tokens" | "user_notification_cursors" | "user_roles" | "users"
+      modelProps: "backend_event_logs" | "config" | "content_reports" | "contribution_tasks" | "dish_categories" | "dish_category_features" | "dish_category_group_vote_candidate_votes" | "dish_category_group_vote_candidates" | "dish_category_group_vote_participants" | "dish_category_group_vote_sessions" | "dish_category_localized_text" | "dish_category_variants" | "dish_media" | "dish_media_analysis_results" | "dish_media_external_embeddings" | "dish_media_impressions" | "dish_media_likes" | "dish_media_views" | "dish_reviews" | "dishes" | "external_api_logs" | "frontend_event_logs" | "notification_recipients" | "notifications" | "payouts" | "permissions" | "prompt_families" | "prompt_usages" | "prompt_variants" | "reactions" | "restaurant_bids" | "restaurants" | "role_permissions" | "roles" | "share_links" | "user_device_tokens" | "user_notification_cursors" | "user_notification_preferences" | "user_roles" | "users"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -4069,6 +4086,80 @@ export namespace Prisma {
           }
         }
       }
+      user_notification_preferences: {
+        payload: Prisma.$user_notification_preferencesPayload<ExtArgs>
+        fields: Prisma.user_notification_preferencesFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.user_notification_preferencesFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_notification_preferencesPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.user_notification_preferencesFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_notification_preferencesPayload>
+          }
+          findFirst: {
+            args: Prisma.user_notification_preferencesFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_notification_preferencesPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.user_notification_preferencesFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_notification_preferencesPayload>
+          }
+          findMany: {
+            args: Prisma.user_notification_preferencesFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_notification_preferencesPayload>[]
+          }
+          create: {
+            args: Prisma.user_notification_preferencesCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_notification_preferencesPayload>
+          }
+          createMany: {
+            args: Prisma.user_notification_preferencesCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.user_notification_preferencesCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_notification_preferencesPayload>[]
+          }
+          delete: {
+            args: Prisma.user_notification_preferencesDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_notification_preferencesPayload>
+          }
+          update: {
+            args: Prisma.user_notification_preferencesUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_notification_preferencesPayload>
+          }
+          deleteMany: {
+            args: Prisma.user_notification_preferencesDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.user_notification_preferencesUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.user_notification_preferencesUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_notification_preferencesPayload>[]
+          }
+          upsert: {
+            args: Prisma.user_notification_preferencesUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$user_notification_preferencesPayload>
+          }
+          aggregate: {
+            args: Prisma.User_notification_preferencesAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateUser_notification_preferences>
+          }
+          groupBy: {
+            args: Prisma.user_notification_preferencesGroupByArgs<ExtArgs>
+            result: $Utils.Optional<User_notification_preferencesGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.user_notification_preferencesCountArgs<ExtArgs>
+            result: $Utils.Optional<User_notification_preferencesCountAggregateOutputType> | number
+          }
+        }
+      }
       user_roles: {
         payload: Prisma.$user_rolesPayload<ExtArgs>
         fields: Prisma.user_rolesFieldRefs
@@ -4346,6 +4437,7 @@ export namespace Prisma {
     share_links?: share_linksOmit
     user_device_tokens?: user_device_tokensOmit
     user_notification_cursors?: user_notification_cursorsOmit
+    user_notification_preferences?: user_notification_preferencesOmit
     user_roles?: user_rolesOmit
     users?: usersOmit
   }
@@ -14850,6 +14942,7 @@ export namespace Prisma {
     share_token: string | null
     created_at: Date | null
     updated_at: Date | null
+    idempotency_key: string | null
   }
 
   export type Dish_category_group_vote_sessionsMaxAggregateOutputType = {
@@ -14858,6 +14951,7 @@ export namespace Prisma {
     share_token: string | null
     created_at: Date | null
     updated_at: Date | null
+    idempotency_key: string | null
   }
 
   export type Dish_category_group_vote_sessionsCountAggregateOutputType = {
@@ -14867,6 +14961,7 @@ export namespace Prisma {
     search_context: number
     created_at: number
     updated_at: number
+    idempotency_key: number
     _all: number
   }
 
@@ -14877,6 +14972,7 @@ export namespace Prisma {
     share_token?: true
     created_at?: true
     updated_at?: true
+    idempotency_key?: true
   }
 
   export type Dish_category_group_vote_sessionsMaxAggregateInputType = {
@@ -14885,6 +14981,7 @@ export namespace Prisma {
     share_token?: true
     created_at?: true
     updated_at?: true
+    idempotency_key?: true
   }
 
   export type Dish_category_group_vote_sessionsCountAggregateInputType = {
@@ -14894,6 +14991,7 @@ export namespace Prisma {
     search_context?: true
     created_at?: true
     updated_at?: true
+    idempotency_key?: true
     _all?: true
   }
 
@@ -14976,6 +15074,7 @@ export namespace Prisma {
     search_context: JsonValue
     created_at: Date
     updated_at: Date
+    idempotency_key: string | null
     _count: Dish_category_group_vote_sessionsCountAggregateOutputType | null
     _min: Dish_category_group_vote_sessionsMinAggregateOutputType | null
     _max: Dish_category_group_vote_sessionsMaxAggregateOutputType | null
@@ -15002,6 +15101,7 @@ export namespace Prisma {
     search_context?: boolean
     created_at?: boolean
     updated_at?: boolean
+    idempotency_key?: boolean
     dish_category_group_vote_candidates?: boolean | dish_category_group_vote_sessions$dish_category_group_vote_candidatesArgs<ExtArgs>
     dish_category_group_vote_participants?: boolean | dish_category_group_vote_sessions$dish_category_group_vote_participantsArgs<ExtArgs>
     _count?: boolean | Dish_category_group_vote_sessionsCountOutputTypeDefaultArgs<ExtArgs>
@@ -15014,6 +15114,7 @@ export namespace Prisma {
     search_context?: boolean
     created_at?: boolean
     updated_at?: boolean
+    idempotency_key?: boolean
   }, ExtArgs["result"]["dish_category_group_vote_sessions"]>
 
   export type dish_category_group_vote_sessionsSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -15023,6 +15124,7 @@ export namespace Prisma {
     search_context?: boolean
     created_at?: boolean
     updated_at?: boolean
+    idempotency_key?: boolean
   }, ExtArgs["result"]["dish_category_group_vote_sessions"]>
 
   export type dish_category_group_vote_sessionsSelectScalar = {
@@ -15032,9 +15134,10 @@ export namespace Prisma {
     search_context?: boolean
     created_at?: boolean
     updated_at?: boolean
+    idempotency_key?: boolean
   }
 
-  export type dish_category_group_vote_sessionsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "host_user_id" | "share_token" | "search_context" | "created_at" | "updated_at", ExtArgs["result"]["dish_category_group_vote_sessions"]>
+  export type dish_category_group_vote_sessionsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "host_user_id" | "share_token" | "search_context" | "created_at" | "updated_at" | "idempotency_key", ExtArgs["result"]["dish_category_group_vote_sessions"]>
   export type dish_category_group_vote_sessionsInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     dish_category_group_vote_candidates?: boolean | dish_category_group_vote_sessions$dish_category_group_vote_candidatesArgs<ExtArgs>
     dish_category_group_vote_participants?: boolean | dish_category_group_vote_sessions$dish_category_group_vote_participantsArgs<ExtArgs>
@@ -15056,6 +15159,7 @@ export namespace Prisma {
       search_context: Prisma.JsonValue
       created_at: Date
       updated_at: Date
+      idempotency_key: string | null
     }, ExtArgs["result"]["dish_category_group_vote_sessions"]>
     composites: {}
   }
@@ -15487,6 +15591,7 @@ export namespace Prisma {
     readonly search_context: FieldRef<"dish_category_group_vote_sessions", 'Json'>
     readonly created_at: FieldRef<"dish_category_group_vote_sessions", 'DateTime'>
     readonly updated_at: FieldRef<"dish_category_group_vote_sessions", 'DateTime'>
+    readonly idempotency_key: FieldRef<"dish_category_group_vote_sessions", 'String'>
   }
     
 
@@ -46101,6 +46206,1001 @@ export namespace Prisma {
 
 
   /**
+   * Model user_notification_preferences
+   */
+
+  export type AggregateUser_notification_preferences = {
+    _count: User_notification_preferencesCountAggregateOutputType | null
+    _min: User_notification_preferencesMinAggregateOutputType | null
+    _max: User_notification_preferencesMaxAggregateOutputType | null
+  }
+
+  export type User_notification_preferencesMinAggregateOutputType = {
+    user_id: string | null
+    category: string | null
+    enabled: boolean | null
+    created_at: Date | null
+    updated_at: Date | null
+  }
+
+  export type User_notification_preferencesMaxAggregateOutputType = {
+    user_id: string | null
+    category: string | null
+    enabled: boolean | null
+    created_at: Date | null
+    updated_at: Date | null
+  }
+
+  export type User_notification_preferencesCountAggregateOutputType = {
+    user_id: number
+    category: number
+    enabled: number
+    created_at: number
+    updated_at: number
+    _all: number
+  }
+
+
+  export type User_notification_preferencesMinAggregateInputType = {
+    user_id?: true
+    category?: true
+    enabled?: true
+    created_at?: true
+    updated_at?: true
+  }
+
+  export type User_notification_preferencesMaxAggregateInputType = {
+    user_id?: true
+    category?: true
+    enabled?: true
+    created_at?: true
+    updated_at?: true
+  }
+
+  export type User_notification_preferencesCountAggregateInputType = {
+    user_id?: true
+    category?: true
+    enabled?: true
+    created_at?: true
+    updated_at?: true
+    _all?: true
+  }
+
+  export type User_notification_preferencesAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which user_notification_preferences to aggregate.
+     */
+    where?: user_notification_preferencesWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of user_notification_preferences to fetch.
+     */
+    orderBy?: user_notification_preferencesOrderByWithRelationInput | user_notification_preferencesOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: user_notification_preferencesWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` user_notification_preferences from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` user_notification_preferences.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned user_notification_preferences
+    **/
+    _count?: true | User_notification_preferencesCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: User_notification_preferencesMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: User_notification_preferencesMaxAggregateInputType
+  }
+
+  export type GetUser_notification_preferencesAggregateType<T extends User_notification_preferencesAggregateArgs> = {
+        [P in keyof T & keyof AggregateUser_notification_preferences]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateUser_notification_preferences[P]>
+      : GetScalarType<T[P], AggregateUser_notification_preferences[P]>
+  }
+
+
+
+
+  export type user_notification_preferencesGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: user_notification_preferencesWhereInput
+    orderBy?: user_notification_preferencesOrderByWithAggregationInput | user_notification_preferencesOrderByWithAggregationInput[]
+    by: User_notification_preferencesScalarFieldEnum[] | User_notification_preferencesScalarFieldEnum
+    having?: user_notification_preferencesScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: User_notification_preferencesCountAggregateInputType | true
+    _min?: User_notification_preferencesMinAggregateInputType
+    _max?: User_notification_preferencesMaxAggregateInputType
+  }
+
+  export type User_notification_preferencesGroupByOutputType = {
+    user_id: string
+    category: string
+    enabled: boolean
+    created_at: Date
+    updated_at: Date
+    _count: User_notification_preferencesCountAggregateOutputType | null
+    _min: User_notification_preferencesMinAggregateOutputType | null
+    _max: User_notification_preferencesMaxAggregateOutputType | null
+  }
+
+  type GetUser_notification_preferencesGroupByPayload<T extends user_notification_preferencesGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<User_notification_preferencesGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof User_notification_preferencesGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], User_notification_preferencesGroupByOutputType[P]>
+            : GetScalarType<T[P], User_notification_preferencesGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type user_notification_preferencesSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    user_id?: boolean
+    category?: boolean
+    enabled?: boolean
+    created_at?: boolean
+    updated_at?: boolean
+  }, ExtArgs["result"]["user_notification_preferences"]>
+
+  export type user_notification_preferencesSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    user_id?: boolean
+    category?: boolean
+    enabled?: boolean
+    created_at?: boolean
+    updated_at?: boolean
+  }, ExtArgs["result"]["user_notification_preferences"]>
+
+  export type user_notification_preferencesSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    user_id?: boolean
+    category?: boolean
+    enabled?: boolean
+    created_at?: boolean
+    updated_at?: boolean
+  }, ExtArgs["result"]["user_notification_preferences"]>
+
+  export type user_notification_preferencesSelectScalar = {
+    user_id?: boolean
+    category?: boolean
+    enabled?: boolean
+    created_at?: boolean
+    updated_at?: boolean
+  }
+
+  export type user_notification_preferencesOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"user_id" | "category" | "enabled" | "created_at" | "updated_at", ExtArgs["result"]["user_notification_preferences"]>
+
+  export type $user_notification_preferencesPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "user_notification_preferences"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      user_id: string
+      category: string
+      enabled: boolean
+      created_at: Date
+      updated_at: Date
+    }, ExtArgs["result"]["user_notification_preferences"]>
+    composites: {}
+  }
+
+  type user_notification_preferencesGetPayload<S extends boolean | null | undefined | user_notification_preferencesDefaultArgs> = $Result.GetResult<Prisma.$user_notification_preferencesPayload, S>
+
+  type user_notification_preferencesCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<user_notification_preferencesFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: User_notification_preferencesCountAggregateInputType | true
+    }
+
+  export interface user_notification_preferencesDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['user_notification_preferences'], meta: { name: 'user_notification_preferences' } }
+    /**
+     * Find zero or one User_notification_preferences that matches the filter.
+     * @param {user_notification_preferencesFindUniqueArgs} args - Arguments to find a User_notification_preferences
+     * @example
+     * // Get one User_notification_preferences
+     * const user_notification_preferences = await prisma.user_notification_preferences.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends user_notification_preferencesFindUniqueArgs>(args: SelectSubset<T, user_notification_preferencesFindUniqueArgs<ExtArgs>>): Prisma__user_notification_preferencesClient<$Result.GetResult<Prisma.$user_notification_preferencesPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one User_notification_preferences that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {user_notification_preferencesFindUniqueOrThrowArgs} args - Arguments to find a User_notification_preferences
+     * @example
+     * // Get one User_notification_preferences
+     * const user_notification_preferences = await prisma.user_notification_preferences.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends user_notification_preferencesFindUniqueOrThrowArgs>(args: SelectSubset<T, user_notification_preferencesFindUniqueOrThrowArgs<ExtArgs>>): Prisma__user_notification_preferencesClient<$Result.GetResult<Prisma.$user_notification_preferencesPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first User_notification_preferences that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {user_notification_preferencesFindFirstArgs} args - Arguments to find a User_notification_preferences
+     * @example
+     * // Get one User_notification_preferences
+     * const user_notification_preferences = await prisma.user_notification_preferences.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends user_notification_preferencesFindFirstArgs>(args?: SelectSubset<T, user_notification_preferencesFindFirstArgs<ExtArgs>>): Prisma__user_notification_preferencesClient<$Result.GetResult<Prisma.$user_notification_preferencesPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first User_notification_preferences that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {user_notification_preferencesFindFirstOrThrowArgs} args - Arguments to find a User_notification_preferences
+     * @example
+     * // Get one User_notification_preferences
+     * const user_notification_preferences = await prisma.user_notification_preferences.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends user_notification_preferencesFindFirstOrThrowArgs>(args?: SelectSubset<T, user_notification_preferencesFindFirstOrThrowArgs<ExtArgs>>): Prisma__user_notification_preferencesClient<$Result.GetResult<Prisma.$user_notification_preferencesPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more User_notification_preferences that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {user_notification_preferencesFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all User_notification_preferences
+     * const user_notification_preferences = await prisma.user_notification_preferences.findMany()
+     * 
+     * // Get first 10 User_notification_preferences
+     * const user_notification_preferences = await prisma.user_notification_preferences.findMany({ take: 10 })
+     * 
+     * // Only select the `user_id`
+     * const user_notification_preferencesWithUser_idOnly = await prisma.user_notification_preferences.findMany({ select: { user_id: true } })
+     * 
+     */
+    findMany<T extends user_notification_preferencesFindManyArgs>(args?: SelectSubset<T, user_notification_preferencesFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$user_notification_preferencesPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a User_notification_preferences.
+     * @param {user_notification_preferencesCreateArgs} args - Arguments to create a User_notification_preferences.
+     * @example
+     * // Create one User_notification_preferences
+     * const User_notification_preferences = await prisma.user_notification_preferences.create({
+     *   data: {
+     *     // ... data to create a User_notification_preferences
+     *   }
+     * })
+     * 
+     */
+    create<T extends user_notification_preferencesCreateArgs>(args: SelectSubset<T, user_notification_preferencesCreateArgs<ExtArgs>>): Prisma__user_notification_preferencesClient<$Result.GetResult<Prisma.$user_notification_preferencesPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many User_notification_preferences.
+     * @param {user_notification_preferencesCreateManyArgs} args - Arguments to create many User_notification_preferences.
+     * @example
+     * // Create many User_notification_preferences
+     * const user_notification_preferences = await prisma.user_notification_preferences.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends user_notification_preferencesCreateManyArgs>(args?: SelectSubset<T, user_notification_preferencesCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many User_notification_preferences and returns the data saved in the database.
+     * @param {user_notification_preferencesCreateManyAndReturnArgs} args - Arguments to create many User_notification_preferences.
+     * @example
+     * // Create many User_notification_preferences
+     * const user_notification_preferences = await prisma.user_notification_preferences.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many User_notification_preferences and only return the `user_id`
+     * const user_notification_preferencesWithUser_idOnly = await prisma.user_notification_preferences.createManyAndReturn({
+     *   select: { user_id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends user_notification_preferencesCreateManyAndReturnArgs>(args?: SelectSubset<T, user_notification_preferencesCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$user_notification_preferencesPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a User_notification_preferences.
+     * @param {user_notification_preferencesDeleteArgs} args - Arguments to delete one User_notification_preferences.
+     * @example
+     * // Delete one User_notification_preferences
+     * const User_notification_preferences = await prisma.user_notification_preferences.delete({
+     *   where: {
+     *     // ... filter to delete one User_notification_preferences
+     *   }
+     * })
+     * 
+     */
+    delete<T extends user_notification_preferencesDeleteArgs>(args: SelectSubset<T, user_notification_preferencesDeleteArgs<ExtArgs>>): Prisma__user_notification_preferencesClient<$Result.GetResult<Prisma.$user_notification_preferencesPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one User_notification_preferences.
+     * @param {user_notification_preferencesUpdateArgs} args - Arguments to update one User_notification_preferences.
+     * @example
+     * // Update one User_notification_preferences
+     * const user_notification_preferences = await prisma.user_notification_preferences.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends user_notification_preferencesUpdateArgs>(args: SelectSubset<T, user_notification_preferencesUpdateArgs<ExtArgs>>): Prisma__user_notification_preferencesClient<$Result.GetResult<Prisma.$user_notification_preferencesPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more User_notification_preferences.
+     * @param {user_notification_preferencesDeleteManyArgs} args - Arguments to filter User_notification_preferences to delete.
+     * @example
+     * // Delete a few User_notification_preferences
+     * const { count } = await prisma.user_notification_preferences.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends user_notification_preferencesDeleteManyArgs>(args?: SelectSubset<T, user_notification_preferencesDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more User_notification_preferences.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {user_notification_preferencesUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many User_notification_preferences
+     * const user_notification_preferences = await prisma.user_notification_preferences.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends user_notification_preferencesUpdateManyArgs>(args: SelectSubset<T, user_notification_preferencesUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more User_notification_preferences and returns the data updated in the database.
+     * @param {user_notification_preferencesUpdateManyAndReturnArgs} args - Arguments to update many User_notification_preferences.
+     * @example
+     * // Update many User_notification_preferences
+     * const user_notification_preferences = await prisma.user_notification_preferences.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more User_notification_preferences and only return the `user_id`
+     * const user_notification_preferencesWithUser_idOnly = await prisma.user_notification_preferences.updateManyAndReturn({
+     *   select: { user_id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends user_notification_preferencesUpdateManyAndReturnArgs>(args: SelectSubset<T, user_notification_preferencesUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$user_notification_preferencesPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one User_notification_preferences.
+     * @param {user_notification_preferencesUpsertArgs} args - Arguments to update or create a User_notification_preferences.
+     * @example
+     * // Update or create a User_notification_preferences
+     * const user_notification_preferences = await prisma.user_notification_preferences.upsert({
+     *   create: {
+     *     // ... data to create a User_notification_preferences
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the User_notification_preferences we want to update
+     *   }
+     * })
+     */
+    upsert<T extends user_notification_preferencesUpsertArgs>(args: SelectSubset<T, user_notification_preferencesUpsertArgs<ExtArgs>>): Prisma__user_notification_preferencesClient<$Result.GetResult<Prisma.$user_notification_preferencesPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of User_notification_preferences.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {user_notification_preferencesCountArgs} args - Arguments to filter User_notification_preferences to count.
+     * @example
+     * // Count the number of User_notification_preferences
+     * const count = await prisma.user_notification_preferences.count({
+     *   where: {
+     *     // ... the filter for the User_notification_preferences we want to count
+     *   }
+     * })
+    **/
+    count<T extends user_notification_preferencesCountArgs>(
+      args?: Subset<T, user_notification_preferencesCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], User_notification_preferencesCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a User_notification_preferences.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {User_notification_preferencesAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends User_notification_preferencesAggregateArgs>(args: Subset<T, User_notification_preferencesAggregateArgs>): Prisma.PrismaPromise<GetUser_notification_preferencesAggregateType<T>>
+
+    /**
+     * Group by User_notification_preferences.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {user_notification_preferencesGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends user_notification_preferencesGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: user_notification_preferencesGroupByArgs['orderBy'] }
+        : { orderBy?: user_notification_preferencesGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, user_notification_preferencesGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetUser_notification_preferencesGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the user_notification_preferences model
+   */
+  readonly fields: user_notification_preferencesFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for user_notification_preferences.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__user_notification_preferencesClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the user_notification_preferences model
+   */
+  interface user_notification_preferencesFieldRefs {
+    readonly user_id: FieldRef<"user_notification_preferences", 'String'>
+    readonly category: FieldRef<"user_notification_preferences", 'String'>
+    readonly enabled: FieldRef<"user_notification_preferences", 'Boolean'>
+    readonly created_at: FieldRef<"user_notification_preferences", 'DateTime'>
+    readonly updated_at: FieldRef<"user_notification_preferences", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * user_notification_preferences findUnique
+   */
+  export type user_notification_preferencesFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_notification_preferences
+     */
+    select?: user_notification_preferencesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_notification_preferences
+     */
+    omit?: user_notification_preferencesOmit<ExtArgs> | null
+    /**
+     * Filter, which user_notification_preferences to fetch.
+     */
+    where: user_notification_preferencesWhereUniqueInput
+  }
+
+  /**
+   * user_notification_preferences findUniqueOrThrow
+   */
+  export type user_notification_preferencesFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_notification_preferences
+     */
+    select?: user_notification_preferencesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_notification_preferences
+     */
+    omit?: user_notification_preferencesOmit<ExtArgs> | null
+    /**
+     * Filter, which user_notification_preferences to fetch.
+     */
+    where: user_notification_preferencesWhereUniqueInput
+  }
+
+  /**
+   * user_notification_preferences findFirst
+   */
+  export type user_notification_preferencesFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_notification_preferences
+     */
+    select?: user_notification_preferencesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_notification_preferences
+     */
+    omit?: user_notification_preferencesOmit<ExtArgs> | null
+    /**
+     * Filter, which user_notification_preferences to fetch.
+     */
+    where?: user_notification_preferencesWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of user_notification_preferences to fetch.
+     */
+    orderBy?: user_notification_preferencesOrderByWithRelationInput | user_notification_preferencesOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for user_notification_preferences.
+     */
+    cursor?: user_notification_preferencesWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` user_notification_preferences from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` user_notification_preferences.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of user_notification_preferences.
+     */
+    distinct?: User_notification_preferencesScalarFieldEnum | User_notification_preferencesScalarFieldEnum[]
+  }
+
+  /**
+   * user_notification_preferences findFirstOrThrow
+   */
+  export type user_notification_preferencesFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_notification_preferences
+     */
+    select?: user_notification_preferencesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_notification_preferences
+     */
+    omit?: user_notification_preferencesOmit<ExtArgs> | null
+    /**
+     * Filter, which user_notification_preferences to fetch.
+     */
+    where?: user_notification_preferencesWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of user_notification_preferences to fetch.
+     */
+    orderBy?: user_notification_preferencesOrderByWithRelationInput | user_notification_preferencesOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for user_notification_preferences.
+     */
+    cursor?: user_notification_preferencesWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` user_notification_preferences from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` user_notification_preferences.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of user_notification_preferences.
+     */
+    distinct?: User_notification_preferencesScalarFieldEnum | User_notification_preferencesScalarFieldEnum[]
+  }
+
+  /**
+   * user_notification_preferences findMany
+   */
+  export type user_notification_preferencesFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_notification_preferences
+     */
+    select?: user_notification_preferencesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_notification_preferences
+     */
+    omit?: user_notification_preferencesOmit<ExtArgs> | null
+    /**
+     * Filter, which user_notification_preferences to fetch.
+     */
+    where?: user_notification_preferencesWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of user_notification_preferences to fetch.
+     */
+    orderBy?: user_notification_preferencesOrderByWithRelationInput | user_notification_preferencesOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing user_notification_preferences.
+     */
+    cursor?: user_notification_preferencesWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` user_notification_preferences from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` user_notification_preferences.
+     */
+    skip?: number
+    distinct?: User_notification_preferencesScalarFieldEnum | User_notification_preferencesScalarFieldEnum[]
+  }
+
+  /**
+   * user_notification_preferences create
+   */
+  export type user_notification_preferencesCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_notification_preferences
+     */
+    select?: user_notification_preferencesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_notification_preferences
+     */
+    omit?: user_notification_preferencesOmit<ExtArgs> | null
+    /**
+     * The data needed to create a user_notification_preferences.
+     */
+    data: XOR<user_notification_preferencesCreateInput, user_notification_preferencesUncheckedCreateInput>
+  }
+
+  /**
+   * user_notification_preferences createMany
+   */
+  export type user_notification_preferencesCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many user_notification_preferences.
+     */
+    data: user_notification_preferencesCreateManyInput | user_notification_preferencesCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * user_notification_preferences createManyAndReturn
+   */
+  export type user_notification_preferencesCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_notification_preferences
+     */
+    select?: user_notification_preferencesSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_notification_preferences
+     */
+    omit?: user_notification_preferencesOmit<ExtArgs> | null
+    /**
+     * The data used to create many user_notification_preferences.
+     */
+    data: user_notification_preferencesCreateManyInput | user_notification_preferencesCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * user_notification_preferences update
+   */
+  export type user_notification_preferencesUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_notification_preferences
+     */
+    select?: user_notification_preferencesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_notification_preferences
+     */
+    omit?: user_notification_preferencesOmit<ExtArgs> | null
+    /**
+     * The data needed to update a user_notification_preferences.
+     */
+    data: XOR<user_notification_preferencesUpdateInput, user_notification_preferencesUncheckedUpdateInput>
+    /**
+     * Choose, which user_notification_preferences to update.
+     */
+    where: user_notification_preferencesWhereUniqueInput
+  }
+
+  /**
+   * user_notification_preferences updateMany
+   */
+  export type user_notification_preferencesUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update user_notification_preferences.
+     */
+    data: XOR<user_notification_preferencesUpdateManyMutationInput, user_notification_preferencesUncheckedUpdateManyInput>
+    /**
+     * Filter which user_notification_preferences to update
+     */
+    where?: user_notification_preferencesWhereInput
+    /**
+     * Limit how many user_notification_preferences to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * user_notification_preferences updateManyAndReturn
+   */
+  export type user_notification_preferencesUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_notification_preferences
+     */
+    select?: user_notification_preferencesSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_notification_preferences
+     */
+    omit?: user_notification_preferencesOmit<ExtArgs> | null
+    /**
+     * The data used to update user_notification_preferences.
+     */
+    data: XOR<user_notification_preferencesUpdateManyMutationInput, user_notification_preferencesUncheckedUpdateManyInput>
+    /**
+     * Filter which user_notification_preferences to update
+     */
+    where?: user_notification_preferencesWhereInput
+    /**
+     * Limit how many user_notification_preferences to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * user_notification_preferences upsert
+   */
+  export type user_notification_preferencesUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_notification_preferences
+     */
+    select?: user_notification_preferencesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_notification_preferences
+     */
+    omit?: user_notification_preferencesOmit<ExtArgs> | null
+    /**
+     * The filter to search for the user_notification_preferences to update in case it exists.
+     */
+    where: user_notification_preferencesWhereUniqueInput
+    /**
+     * In case the user_notification_preferences found by the `where` argument doesn't exist, create a new user_notification_preferences with this data.
+     */
+    create: XOR<user_notification_preferencesCreateInput, user_notification_preferencesUncheckedCreateInput>
+    /**
+     * In case the user_notification_preferences was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<user_notification_preferencesUpdateInput, user_notification_preferencesUncheckedUpdateInput>
+  }
+
+  /**
+   * user_notification_preferences delete
+   */
+  export type user_notification_preferencesDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_notification_preferences
+     */
+    select?: user_notification_preferencesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_notification_preferences
+     */
+    omit?: user_notification_preferencesOmit<ExtArgs> | null
+    /**
+     * Filter which user_notification_preferences to delete.
+     */
+    where: user_notification_preferencesWhereUniqueInput
+  }
+
+  /**
+   * user_notification_preferences deleteMany
+   */
+  export type user_notification_preferencesDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which user_notification_preferences to delete
+     */
+    where?: user_notification_preferencesWhereInput
+    /**
+     * Limit how many user_notification_preferences to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * user_notification_preferences without action
+   */
+  export type user_notification_preferencesDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the user_notification_preferences
+     */
+    select?: user_notification_preferencesSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the user_notification_preferences
+     */
+    omit?: user_notification_preferencesOmit<ExtArgs> | null
+  }
+
+
+  /**
    * Model user_roles
    */
 
@@ -47150,6 +48250,7 @@ export namespace Prisma {
     username: string | null
     preferred_locale: string | null
     avatar_path: string | null
+    deleted_at: Date | null
   }
 
   export type UsersMaxAggregateOutputType = {
@@ -47163,6 +48264,7 @@ export namespace Prisma {
     username: string | null
     preferred_locale: string | null
     avatar_path: string | null
+    deleted_at: Date | null
   }
 
   export type UsersCountAggregateOutputType = {
@@ -47176,6 +48278,7 @@ export namespace Prisma {
     username: number
     preferred_locale: number
     avatar_path: number
+    deleted_at: number
     _all: number
   }
 
@@ -47199,6 +48302,7 @@ export namespace Prisma {
     username?: true
     preferred_locale?: true
     avatar_path?: true
+    deleted_at?: true
   }
 
   export type UsersMaxAggregateInputType = {
@@ -47212,6 +48316,7 @@ export namespace Prisma {
     username?: true
     preferred_locale?: true
     avatar_path?: true
+    deleted_at?: true
   }
 
   export type UsersCountAggregateInputType = {
@@ -47225,6 +48330,7 @@ export namespace Prisma {
     username?: true
     preferred_locale?: true
     avatar_path?: true
+    deleted_at?: true
     _all?: true
   }
 
@@ -47325,6 +48431,7 @@ export namespace Prisma {
     username: string
     preferred_locale: string
     avatar_path: string | null
+    deleted_at: Date | null
     _count: UsersCountAggregateOutputType | null
     _avg: UsersAvgAggregateOutputType | null
     _sum: UsersSumAggregateOutputType | null
@@ -47357,6 +48464,7 @@ export namespace Prisma {
     username?: boolean
     preferred_locale?: boolean
     avatar_path?: boolean
+    deleted_at?: boolean
     dish_media?: boolean | users$dish_mediaArgs<ExtArgs>
     dish_media_likes?: boolean | users$dish_media_likesArgs<ExtArgs>
     dish_reviews?: boolean | users$dish_reviewsArgs<ExtArgs>
@@ -47375,6 +48483,7 @@ export namespace Prisma {
     username?: boolean
     preferred_locale?: boolean
     avatar_path?: boolean
+    deleted_at?: boolean
   }, ExtArgs["result"]["users"]>
 
   export type usersSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -47388,6 +48497,7 @@ export namespace Prisma {
     username?: boolean
     preferred_locale?: boolean
     avatar_path?: boolean
+    deleted_at?: boolean
   }, ExtArgs["result"]["users"]>
 
   export type usersSelectScalar = {
@@ -47401,9 +48511,10 @@ export namespace Prisma {
     username?: boolean
     preferred_locale?: boolean
     avatar_path?: boolean
+    deleted_at?: boolean
   }
 
-  export type usersOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "display_name" | "bio" | "last_login_at" | "created_at" | "updated_at" | "lock_no" | "username" | "preferred_locale" | "avatar_path", ExtArgs["result"]["users"]>
+  export type usersOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "display_name" | "bio" | "last_login_at" | "created_at" | "updated_at" | "lock_no" | "username" | "preferred_locale" | "avatar_path" | "deleted_at", ExtArgs["result"]["users"]>
   export type usersInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     dish_media?: boolean | users$dish_mediaArgs<ExtArgs>
     dish_media_likes?: boolean | users$dish_media_likesArgs<ExtArgs>
@@ -47433,6 +48544,7 @@ export namespace Prisma {
       username: string
       preferred_locale: string
       avatar_path: string | null
+      deleted_at: Date | null
     }, ExtArgs["result"]["users"]>
     composites: {}
   }
@@ -47870,6 +48982,7 @@ export namespace Prisma {
     readonly username: FieldRef<"users", 'String'>
     readonly preferred_locale: FieldRef<"users", 'String'>
     readonly avatar_path: FieldRef<"users", 'String'>
+    readonly deleted_at: FieldRef<"users", 'DateTime'>
   }
     
 
@@ -48514,7 +49627,8 @@ export namespace Prisma {
     share_token: 'share_token',
     search_context: 'search_context',
     created_at: 'created_at',
-    updated_at: 'updated_at'
+    updated_at: 'updated_at',
+    idempotency_key: 'idempotency_key'
   };
 
   export type Dish_category_group_vote_sessionsScalarFieldEnum = (typeof Dish_category_group_vote_sessionsScalarFieldEnum)[keyof typeof Dish_category_group_vote_sessionsScalarFieldEnum]
@@ -48896,6 +50010,17 @@ export namespace Prisma {
   export type User_notification_cursorsScalarFieldEnum = (typeof User_notification_cursorsScalarFieldEnum)[keyof typeof User_notification_cursorsScalarFieldEnum]
 
 
+  export const User_notification_preferencesScalarFieldEnum: {
+    user_id: 'user_id',
+    category: 'category',
+    enabled: 'enabled',
+    created_at: 'created_at',
+    updated_at: 'updated_at'
+  };
+
+  export type User_notification_preferencesScalarFieldEnum = (typeof User_notification_preferencesScalarFieldEnum)[keyof typeof User_notification_preferencesScalarFieldEnum]
+
+
   export const User_rolesScalarFieldEnum: {
     user_id: 'user_id',
     role_id: 'role_id'
@@ -48914,7 +50039,8 @@ export namespace Prisma {
     lock_no: 'lock_no',
     username: 'username',
     preferred_locale: 'preferred_locale',
-    avatar_path: 'avatar_path'
+    avatar_path: 'avatar_path',
+    deleted_at: 'deleted_at'
   };
 
   export type UsersScalarFieldEnum = (typeof UsersScalarFieldEnum)[keyof typeof UsersScalarFieldEnum]
@@ -49809,6 +50935,7 @@ export namespace Prisma {
     search_context?: JsonFilter<"dish_category_group_vote_sessions">
     created_at?: DateTimeFilter<"dish_category_group_vote_sessions"> | Date | string
     updated_at?: DateTimeFilter<"dish_category_group_vote_sessions"> | Date | string
+    idempotency_key?: StringNullableFilter<"dish_category_group_vote_sessions"> | string | null
     dish_category_group_vote_candidates?: Dish_category_group_vote_candidatesListRelationFilter
     dish_category_group_vote_participants?: Dish_category_group_vote_participantsListRelationFilter
   }
@@ -49820,6 +50947,7 @@ export namespace Prisma {
     search_context?: SortOrder
     created_at?: SortOrder
     updated_at?: SortOrder
+    idempotency_key?: SortOrderInput | SortOrder
     dish_category_group_vote_candidates?: dish_category_group_vote_candidatesOrderByRelationAggregateInput
     dish_category_group_vote_participants?: dish_category_group_vote_participantsOrderByRelationAggregateInput
   }
@@ -49827,6 +50955,7 @@ export namespace Prisma {
   export type dish_category_group_vote_sessionsWhereUniqueInput = Prisma.AtLeast<{
     id?: string
     share_token?: string
+    host_user_id_idempotency_key?: dish_category_group_vote_sessionsHost_user_idIdempotency_keyCompoundUniqueInput
     AND?: dish_category_group_vote_sessionsWhereInput | dish_category_group_vote_sessionsWhereInput[]
     OR?: dish_category_group_vote_sessionsWhereInput[]
     NOT?: dish_category_group_vote_sessionsWhereInput | dish_category_group_vote_sessionsWhereInput[]
@@ -49834,9 +50963,10 @@ export namespace Prisma {
     search_context?: JsonFilter<"dish_category_group_vote_sessions">
     created_at?: DateTimeFilter<"dish_category_group_vote_sessions"> | Date | string
     updated_at?: DateTimeFilter<"dish_category_group_vote_sessions"> | Date | string
+    idempotency_key?: StringNullableFilter<"dish_category_group_vote_sessions"> | string | null
     dish_category_group_vote_candidates?: Dish_category_group_vote_candidatesListRelationFilter
     dish_category_group_vote_participants?: Dish_category_group_vote_participantsListRelationFilter
-  }, "id" | "share_token">
+  }, "id" | "share_token" | "host_user_id_idempotency_key">
 
   export type dish_category_group_vote_sessionsOrderByWithAggregationInput = {
     id?: SortOrder
@@ -49845,6 +50975,7 @@ export namespace Prisma {
     search_context?: SortOrder
     created_at?: SortOrder
     updated_at?: SortOrder
+    idempotency_key?: SortOrderInput | SortOrder
     _count?: dish_category_group_vote_sessionsCountOrderByAggregateInput
     _max?: dish_category_group_vote_sessionsMaxOrderByAggregateInput
     _min?: dish_category_group_vote_sessionsMinOrderByAggregateInput
@@ -49860,6 +50991,7 @@ export namespace Prisma {
     search_context?: JsonWithAggregatesFilter<"dish_category_group_vote_sessions">
     created_at?: DateTimeWithAggregatesFilter<"dish_category_group_vote_sessions"> | Date | string
     updated_at?: DateTimeWithAggregatesFilter<"dish_category_group_vote_sessions"> | Date | string
+    idempotency_key?: StringNullableWithAggregatesFilter<"dish_category_group_vote_sessions"> | string | null
   }
 
   export type dish_category_localized_textWhereInput = {
@@ -51822,6 +52954,59 @@ export namespace Prisma {
     last_read_at?: DateTimeWithAggregatesFilter<"user_notification_cursors"> | Date | string
   }
 
+  export type user_notification_preferencesWhereInput = {
+    AND?: user_notification_preferencesWhereInput | user_notification_preferencesWhereInput[]
+    OR?: user_notification_preferencesWhereInput[]
+    NOT?: user_notification_preferencesWhereInput | user_notification_preferencesWhereInput[]
+    user_id?: UuidFilter<"user_notification_preferences"> | string
+    category?: StringFilter<"user_notification_preferences"> | string
+    enabled?: BoolFilter<"user_notification_preferences"> | boolean
+    created_at?: DateTimeFilter<"user_notification_preferences"> | Date | string
+    updated_at?: DateTimeFilter<"user_notification_preferences"> | Date | string
+  }
+
+  export type user_notification_preferencesOrderByWithRelationInput = {
+    user_id?: SortOrder
+    category?: SortOrder
+    enabled?: SortOrder
+    created_at?: SortOrder
+    updated_at?: SortOrder
+  }
+
+  export type user_notification_preferencesWhereUniqueInput = Prisma.AtLeast<{
+    user_id_category?: user_notification_preferencesUser_idCategoryCompoundUniqueInput
+    AND?: user_notification_preferencesWhereInput | user_notification_preferencesWhereInput[]
+    OR?: user_notification_preferencesWhereInput[]
+    NOT?: user_notification_preferencesWhereInput | user_notification_preferencesWhereInput[]
+    user_id?: UuidFilter<"user_notification_preferences"> | string
+    category?: StringFilter<"user_notification_preferences"> | string
+    enabled?: BoolFilter<"user_notification_preferences"> | boolean
+    created_at?: DateTimeFilter<"user_notification_preferences"> | Date | string
+    updated_at?: DateTimeFilter<"user_notification_preferences"> | Date | string
+  }, "user_id_category">
+
+  export type user_notification_preferencesOrderByWithAggregationInput = {
+    user_id?: SortOrder
+    category?: SortOrder
+    enabled?: SortOrder
+    created_at?: SortOrder
+    updated_at?: SortOrder
+    _count?: user_notification_preferencesCountOrderByAggregateInput
+    _max?: user_notification_preferencesMaxOrderByAggregateInput
+    _min?: user_notification_preferencesMinOrderByAggregateInput
+  }
+
+  export type user_notification_preferencesScalarWhereWithAggregatesInput = {
+    AND?: user_notification_preferencesScalarWhereWithAggregatesInput | user_notification_preferencesScalarWhereWithAggregatesInput[]
+    OR?: user_notification_preferencesScalarWhereWithAggregatesInput[]
+    NOT?: user_notification_preferencesScalarWhereWithAggregatesInput | user_notification_preferencesScalarWhereWithAggregatesInput[]
+    user_id?: UuidWithAggregatesFilter<"user_notification_preferences"> | string
+    category?: StringWithAggregatesFilter<"user_notification_preferences"> | string
+    enabled?: BoolWithAggregatesFilter<"user_notification_preferences"> | boolean
+    created_at?: DateTimeWithAggregatesFilter<"user_notification_preferences"> | Date | string
+    updated_at?: DateTimeWithAggregatesFilter<"user_notification_preferences"> | Date | string
+  }
+
   export type user_rolesWhereInput = {
     AND?: user_rolesWhereInput | user_rolesWhereInput[]
     OR?: user_rolesWhereInput[]
@@ -51877,6 +53062,7 @@ export namespace Prisma {
     username?: StringFilter<"users"> | string
     preferred_locale?: StringFilter<"users"> | string
     avatar_path?: StringNullableFilter<"users"> | string | null
+    deleted_at?: DateTimeNullableFilter<"users"> | Date | string | null
     dish_media?: Dish_mediaListRelationFilter
     dish_media_likes?: Dish_media_likesListRelationFilter
     dish_reviews?: Dish_reviewsListRelationFilter
@@ -51894,6 +53080,7 @@ export namespace Prisma {
     username?: SortOrder
     preferred_locale?: SortOrder
     avatar_path?: SortOrderInput | SortOrder
+    deleted_at?: SortOrderInput | SortOrder
     dish_media?: dish_mediaOrderByRelationAggregateInput
     dish_media_likes?: dish_media_likesOrderByRelationAggregateInput
     dish_reviews?: dish_reviewsOrderByRelationAggregateInput
@@ -51914,6 +53101,7 @@ export namespace Prisma {
     lock_no?: IntFilter<"users"> | number
     preferred_locale?: StringFilter<"users"> | string
     avatar_path?: StringNullableFilter<"users"> | string | null
+    deleted_at?: DateTimeNullableFilter<"users"> | Date | string | null
     dish_media?: Dish_mediaListRelationFilter
     dish_media_likes?: Dish_media_likesListRelationFilter
     dish_reviews?: Dish_reviewsListRelationFilter
@@ -51931,6 +53119,7 @@ export namespace Prisma {
     username?: SortOrder
     preferred_locale?: SortOrder
     avatar_path?: SortOrderInput | SortOrder
+    deleted_at?: SortOrderInput | SortOrder
     _count?: usersCountOrderByAggregateInput
     _avg?: usersAvgOrderByAggregateInput
     _max?: usersMaxOrderByAggregateInput
@@ -51952,6 +53141,7 @@ export namespace Prisma {
     username?: StringWithAggregatesFilter<"users"> | string
     preferred_locale?: StringWithAggregatesFilter<"users"> | string
     avatar_path?: StringNullableWithAggregatesFilter<"users"> | string | null
+    deleted_at?: DateTimeNullableWithAggregatesFilter<"users"> | Date | string | null
   }
 
   export type backend_event_logsCreateInput = {
@@ -52648,6 +53838,7 @@ export namespace Prisma {
     search_context?: JsonNullValueInput | InputJsonValue
     created_at?: Date | string
     updated_at?: Date | string
+    idempotency_key?: string | null
     dish_category_group_vote_candidates?: dish_category_group_vote_candidatesCreateNestedManyWithoutDish_category_group_vote_sessionsInput
     dish_category_group_vote_participants?: dish_category_group_vote_participantsCreateNestedManyWithoutDish_category_group_vote_sessionsInput
   }
@@ -52659,6 +53850,7 @@ export namespace Prisma {
     search_context?: JsonNullValueInput | InputJsonValue
     created_at?: Date | string
     updated_at?: Date | string
+    idempotency_key?: string | null
     dish_category_group_vote_candidates?: dish_category_group_vote_candidatesUncheckedCreateNestedManyWithoutDish_category_group_vote_sessionsInput
     dish_category_group_vote_participants?: dish_category_group_vote_participantsUncheckedCreateNestedManyWithoutDish_category_group_vote_sessionsInput
   }
@@ -52670,6 +53862,7 @@ export namespace Prisma {
     search_context?: JsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    idempotency_key?: NullableStringFieldUpdateOperationsInput | string | null
     dish_category_group_vote_candidates?: dish_category_group_vote_candidatesUpdateManyWithoutDish_category_group_vote_sessionsNestedInput
     dish_category_group_vote_participants?: dish_category_group_vote_participantsUpdateManyWithoutDish_category_group_vote_sessionsNestedInput
   }
@@ -52681,6 +53874,7 @@ export namespace Prisma {
     search_context?: JsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    idempotency_key?: NullableStringFieldUpdateOperationsInput | string | null
     dish_category_group_vote_candidates?: dish_category_group_vote_candidatesUncheckedUpdateManyWithoutDish_category_group_vote_sessionsNestedInput
     dish_category_group_vote_participants?: dish_category_group_vote_participantsUncheckedUpdateManyWithoutDish_category_group_vote_sessionsNestedInput
   }
@@ -52692,6 +53886,7 @@ export namespace Prisma {
     search_context?: JsonNullValueInput | InputJsonValue
     created_at?: Date | string
     updated_at?: Date | string
+    idempotency_key?: string | null
   }
 
   export type dish_category_group_vote_sessionsUpdateManyMutationInput = {
@@ -52701,6 +53896,7 @@ export namespace Prisma {
     search_context?: JsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    idempotency_key?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type dish_category_group_vote_sessionsUncheckedUpdateManyInput = {
@@ -52710,6 +53906,7 @@ export namespace Prisma {
     search_context?: JsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    idempotency_key?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type dish_category_localized_textCreateInput = {
@@ -54820,6 +56017,62 @@ export namespace Prisma {
     last_read_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type user_notification_preferencesCreateInput = {
+    user_id: string
+    category: string
+    enabled: boolean
+    created_at?: Date | string
+    updated_at?: Date | string
+  }
+
+  export type user_notification_preferencesUncheckedCreateInput = {
+    user_id: string
+    category: string
+    enabled: boolean
+    created_at?: Date | string
+    updated_at?: Date | string
+  }
+
+  export type user_notification_preferencesUpdateInput = {
+    user_id?: StringFieldUpdateOperationsInput | string
+    category?: StringFieldUpdateOperationsInput | string
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type user_notification_preferencesUncheckedUpdateInput = {
+    user_id?: StringFieldUpdateOperationsInput | string
+    category?: StringFieldUpdateOperationsInput | string
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type user_notification_preferencesCreateManyInput = {
+    user_id: string
+    category: string
+    enabled: boolean
+    created_at?: Date | string
+    updated_at?: Date | string
+  }
+
+  export type user_notification_preferencesUpdateManyMutationInput = {
+    user_id?: StringFieldUpdateOperationsInput | string
+    category?: StringFieldUpdateOperationsInput | string
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type user_notification_preferencesUncheckedUpdateManyInput = {
+    user_id?: StringFieldUpdateOperationsInput | string
+    category?: StringFieldUpdateOperationsInput | string
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type user_rolesCreateInput = {
     user_id: string
     roles: rolesCreateNestedOneWithoutUser_rolesInput
@@ -54865,6 +56118,7 @@ export namespace Prisma {
     username: string
     preferred_locale: string
     avatar_path?: string | null
+    deleted_at?: Date | string | null
     dish_media?: dish_mediaCreateNestedManyWithoutUsersInput
     dish_media_likes?: dish_media_likesCreateNestedManyWithoutUsersInput
     dish_reviews?: dish_reviewsCreateNestedManyWithoutUsersInput
@@ -54882,6 +56136,7 @@ export namespace Prisma {
     username: string
     preferred_locale: string
     avatar_path?: string | null
+    deleted_at?: Date | string | null
     dish_media?: dish_mediaUncheckedCreateNestedManyWithoutUsersInput
     dish_media_likes?: dish_media_likesUncheckedCreateNestedManyWithoutUsersInput
     dish_reviews?: dish_reviewsUncheckedCreateNestedManyWithoutUsersInput
@@ -54899,6 +56154,7 @@ export namespace Prisma {
     username?: StringFieldUpdateOperationsInput | string
     preferred_locale?: StringFieldUpdateOperationsInput | string
     avatar_path?: NullableStringFieldUpdateOperationsInput | string | null
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dish_media?: dish_mediaUpdateManyWithoutUsersNestedInput
     dish_media_likes?: dish_media_likesUpdateManyWithoutUsersNestedInput
     dish_reviews?: dish_reviewsUpdateManyWithoutUsersNestedInput
@@ -54916,6 +56172,7 @@ export namespace Prisma {
     username?: StringFieldUpdateOperationsInput | string
     preferred_locale?: StringFieldUpdateOperationsInput | string
     avatar_path?: NullableStringFieldUpdateOperationsInput | string | null
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dish_media?: dish_mediaUncheckedUpdateManyWithoutUsersNestedInput
     dish_media_likes?: dish_media_likesUncheckedUpdateManyWithoutUsersNestedInput
     dish_reviews?: dish_reviewsUncheckedUpdateManyWithoutUsersNestedInput
@@ -54933,6 +56190,7 @@ export namespace Prisma {
     username: string
     preferred_locale: string
     avatar_path?: string | null
+    deleted_at?: Date | string | null
   }
 
   export type usersUpdateManyMutationInput = {
@@ -54946,6 +56204,7 @@ export namespace Prisma {
     username?: StringFieldUpdateOperationsInput | string
     preferred_locale?: StringFieldUpdateOperationsInput | string
     avatar_path?: NullableStringFieldUpdateOperationsInput | string | null
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type usersUncheckedUpdateManyInput = {
@@ -54959,6 +56218,7 @@ export namespace Prisma {
     username?: StringFieldUpdateOperationsInput | string
     preferred_locale?: StringFieldUpdateOperationsInput | string
     avatar_path?: NullableStringFieldUpdateOperationsInput | string | null
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type StringFilter<$PrismaModel = never> = {
@@ -55732,6 +56992,11 @@ export namespace Prisma {
     _count?: SortOrder
   }
 
+  export type dish_category_group_vote_sessionsHost_user_idIdempotency_keyCompoundUniqueInput = {
+    host_user_id: string
+    idempotency_key: string
+  }
+
   export type dish_category_group_vote_sessionsCountOrderByAggregateInput = {
     id?: SortOrder
     host_user_id?: SortOrder
@@ -55739,6 +57004,7 @@ export namespace Prisma {
     search_context?: SortOrder
     created_at?: SortOrder
     updated_at?: SortOrder
+    idempotency_key?: SortOrder
   }
 
   export type dish_category_group_vote_sessionsMaxOrderByAggregateInput = {
@@ -55747,6 +57013,7 @@ export namespace Prisma {
     share_token?: SortOrder
     created_at?: SortOrder
     updated_at?: SortOrder
+    idempotency_key?: SortOrder
   }
 
   export type dish_category_group_vote_sessionsMinOrderByAggregateInput = {
@@ -55755,6 +57022,7 @@ export namespace Prisma {
     share_token?: SortOrder
     created_at?: SortOrder
     updated_at?: SortOrder
+    idempotency_key?: SortOrder
   }
 
   export type dish_category_localized_textDish_category_idLocaleCompoundUniqueInput = {
@@ -57184,6 +58452,35 @@ export namespace Prisma {
     last_read_at?: SortOrder
   }
 
+  export type user_notification_preferencesUser_idCategoryCompoundUniqueInput = {
+    user_id: string
+    category: string
+  }
+
+  export type user_notification_preferencesCountOrderByAggregateInput = {
+    user_id?: SortOrder
+    category?: SortOrder
+    enabled?: SortOrder
+    created_at?: SortOrder
+    updated_at?: SortOrder
+  }
+
+  export type user_notification_preferencesMaxOrderByAggregateInput = {
+    user_id?: SortOrder
+    category?: SortOrder
+    enabled?: SortOrder
+    created_at?: SortOrder
+    updated_at?: SortOrder
+  }
+
+  export type user_notification_preferencesMinOrderByAggregateInput = {
+    user_id?: SortOrder
+    category?: SortOrder
+    enabled?: SortOrder
+    created_at?: SortOrder
+    updated_at?: SortOrder
+  }
+
   export type user_rolesUser_idRole_idCompoundUniqueInput = {
     user_id: string
     role_id: string
@@ -57215,6 +58512,7 @@ export namespace Prisma {
     username?: SortOrder
     preferred_locale?: SortOrder
     avatar_path?: SortOrder
+    deleted_at?: SortOrder
   }
 
   export type usersAvgOrderByAggregateInput = {
@@ -57232,6 +58530,7 @@ export namespace Prisma {
     username?: SortOrder
     preferred_locale?: SortOrder
     avatar_path?: SortOrder
+    deleted_at?: SortOrder
   }
 
   export type usersMinOrderByAggregateInput = {
@@ -57245,6 +58544,7 @@ export namespace Prisma {
     username?: SortOrder
     preferred_locale?: SortOrder
     avatar_path?: SortOrder
+    deleted_at?: SortOrder
   }
 
   export type usersSumOrderByAggregateInput = {
@@ -60046,6 +61346,7 @@ export namespace Prisma {
     search_context?: JsonNullValueInput | InputJsonValue
     created_at?: Date | string
     updated_at?: Date | string
+    idempotency_key?: string | null
     dish_category_group_vote_participants?: dish_category_group_vote_participantsCreateNestedManyWithoutDish_category_group_vote_sessionsInput
   }
 
@@ -60056,6 +61357,7 @@ export namespace Prisma {
     search_context?: JsonNullValueInput | InputJsonValue
     created_at?: Date | string
     updated_at?: Date | string
+    idempotency_key?: string | null
     dish_category_group_vote_participants?: dish_category_group_vote_participantsUncheckedCreateNestedManyWithoutDish_category_group_vote_sessionsInput
   }
 
@@ -60149,6 +61451,7 @@ export namespace Prisma {
     search_context?: JsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    idempotency_key?: NullableStringFieldUpdateOperationsInput | string | null
     dish_category_group_vote_participants?: dish_category_group_vote_participantsUpdateManyWithoutDish_category_group_vote_sessionsNestedInput
   }
 
@@ -60159,6 +61462,7 @@ export namespace Prisma {
     search_context?: JsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    idempotency_key?: NullableStringFieldUpdateOperationsInput | string | null
     dish_category_group_vote_participants?: dish_category_group_vote_participantsUncheckedUpdateManyWithoutDish_category_group_vote_sessionsNestedInput
   }
 
@@ -60191,6 +61495,7 @@ export namespace Prisma {
     search_context?: JsonNullValueInput | InputJsonValue
     created_at?: Date | string
     updated_at?: Date | string
+    idempotency_key?: string | null
     dish_category_group_vote_candidates?: dish_category_group_vote_candidatesCreateNestedManyWithoutDish_category_group_vote_sessionsInput
   }
 
@@ -60201,6 +61506,7 @@ export namespace Prisma {
     search_context?: JsonNullValueInput | InputJsonValue
     created_at?: Date | string
     updated_at?: Date | string
+    idempotency_key?: string | null
     dish_category_group_vote_candidates?: dish_category_group_vote_candidatesUncheckedCreateNestedManyWithoutDish_category_group_vote_sessionsInput
   }
 
@@ -60243,6 +61549,7 @@ export namespace Prisma {
     search_context?: JsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    idempotency_key?: NullableStringFieldUpdateOperationsInput | string | null
     dish_category_group_vote_candidates?: dish_category_group_vote_candidatesUpdateManyWithoutDish_category_group_vote_sessionsNestedInput
   }
 
@@ -60253,6 +61560,7 @@ export namespace Prisma {
     search_context?: JsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    idempotency_key?: NullableStringFieldUpdateOperationsInput | string | null
     dish_category_group_vote_candidates?: dish_category_group_vote_candidatesUncheckedUpdateManyWithoutDish_category_group_vote_sessionsNestedInput
   }
 
@@ -60556,6 +61864,7 @@ export namespace Prisma {
     username: string
     preferred_locale: string
     avatar_path?: string | null
+    deleted_at?: Date | string | null
     dish_media_likes?: dish_media_likesCreateNestedManyWithoutUsersInput
     dish_reviews?: dish_reviewsCreateNestedManyWithoutUsersInput
     restaurant_bids?: restaurant_bidsCreateNestedManyWithoutUsersInput
@@ -60572,6 +61881,7 @@ export namespace Prisma {
     username: string
     preferred_locale: string
     avatar_path?: string | null
+    deleted_at?: Date | string | null
     dish_media_likes?: dish_media_likesUncheckedCreateNestedManyWithoutUsersInput
     dish_reviews?: dish_reviewsUncheckedCreateNestedManyWithoutUsersInput
     restaurant_bids?: restaurant_bidsUncheckedCreateNestedManyWithoutUsersInput
@@ -60811,6 +62121,7 @@ export namespace Prisma {
     username?: StringFieldUpdateOperationsInput | string
     preferred_locale?: StringFieldUpdateOperationsInput | string
     avatar_path?: NullableStringFieldUpdateOperationsInput | string | null
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dish_media_likes?: dish_media_likesUpdateManyWithoutUsersNestedInput
     dish_reviews?: dish_reviewsUpdateManyWithoutUsersNestedInput
     restaurant_bids?: restaurant_bidsUpdateManyWithoutUsersNestedInput
@@ -60827,6 +62138,7 @@ export namespace Prisma {
     username?: StringFieldUpdateOperationsInput | string
     preferred_locale?: StringFieldUpdateOperationsInput | string
     avatar_path?: NullableStringFieldUpdateOperationsInput | string | null
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dish_media_likes?: dish_media_likesUncheckedUpdateManyWithoutUsersNestedInput
     dish_reviews?: dish_reviewsUncheckedUpdateManyWithoutUsersNestedInput
     restaurant_bids?: restaurant_bidsUncheckedUpdateManyWithoutUsersNestedInput
@@ -61425,6 +62737,7 @@ export namespace Prisma {
     username: string
     preferred_locale: string
     avatar_path?: string | null
+    deleted_at?: Date | string | null
     dish_media?: dish_mediaCreateNestedManyWithoutUsersInput
     dish_reviews?: dish_reviewsCreateNestedManyWithoutUsersInput
     restaurant_bids?: restaurant_bidsCreateNestedManyWithoutUsersInput
@@ -61441,6 +62754,7 @@ export namespace Prisma {
     username: string
     preferred_locale: string
     avatar_path?: string | null
+    deleted_at?: Date | string | null
     dish_media?: dish_mediaUncheckedCreateNestedManyWithoutUsersInput
     dish_reviews?: dish_reviewsUncheckedCreateNestedManyWithoutUsersInput
     restaurant_bids?: restaurant_bidsUncheckedCreateNestedManyWithoutUsersInput
@@ -61526,6 +62840,7 @@ export namespace Prisma {
     username?: StringFieldUpdateOperationsInput | string
     preferred_locale?: StringFieldUpdateOperationsInput | string
     avatar_path?: NullableStringFieldUpdateOperationsInput | string | null
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dish_media?: dish_mediaUpdateManyWithoutUsersNestedInput
     dish_reviews?: dish_reviewsUpdateManyWithoutUsersNestedInput
     restaurant_bids?: restaurant_bidsUpdateManyWithoutUsersNestedInput
@@ -61542,6 +62857,7 @@ export namespace Prisma {
     username?: StringFieldUpdateOperationsInput | string
     preferred_locale?: StringFieldUpdateOperationsInput | string
     avatar_path?: NullableStringFieldUpdateOperationsInput | string | null
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dish_media?: dish_mediaUncheckedUpdateManyWithoutUsersNestedInput
     dish_reviews?: dish_reviewsUncheckedUpdateManyWithoutUsersNestedInput
     restaurant_bids?: restaurant_bidsUncheckedUpdateManyWithoutUsersNestedInput
@@ -61737,6 +63053,7 @@ export namespace Prisma {
     username: string
     preferred_locale: string
     avatar_path?: string | null
+    deleted_at?: Date | string | null
     dish_media?: dish_mediaCreateNestedManyWithoutUsersInput
     dish_media_likes?: dish_media_likesCreateNestedManyWithoutUsersInput
     restaurant_bids?: restaurant_bidsCreateNestedManyWithoutUsersInput
@@ -61753,6 +63070,7 @@ export namespace Prisma {
     username: string
     preferred_locale: string
     avatar_path?: string | null
+    deleted_at?: Date | string | null
     dish_media?: dish_mediaUncheckedCreateNestedManyWithoutUsersInput
     dish_media_likes?: dish_media_likesUncheckedCreateNestedManyWithoutUsersInput
     restaurant_bids?: restaurant_bidsUncheckedCreateNestedManyWithoutUsersInput
@@ -61818,6 +63136,7 @@ export namespace Prisma {
     username?: StringFieldUpdateOperationsInput | string
     preferred_locale?: StringFieldUpdateOperationsInput | string
     avatar_path?: NullableStringFieldUpdateOperationsInput | string | null
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dish_media?: dish_mediaUpdateManyWithoutUsersNestedInput
     dish_media_likes?: dish_media_likesUpdateManyWithoutUsersNestedInput
     restaurant_bids?: restaurant_bidsUpdateManyWithoutUsersNestedInput
@@ -61834,6 +63153,7 @@ export namespace Prisma {
     username?: StringFieldUpdateOperationsInput | string
     preferred_locale?: StringFieldUpdateOperationsInput | string
     avatar_path?: NullableStringFieldUpdateOperationsInput | string | null
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dish_media?: dish_mediaUncheckedUpdateManyWithoutUsersNestedInput
     dish_media_likes?: dish_media_likesUncheckedUpdateManyWithoutUsersNestedInput
     restaurant_bids?: restaurant_bidsUncheckedUpdateManyWithoutUsersNestedInput
@@ -62665,6 +63985,7 @@ export namespace Prisma {
     username: string
     preferred_locale: string
     avatar_path?: string | null
+    deleted_at?: Date | string | null
     dish_media?: dish_mediaCreateNestedManyWithoutUsersInput
     dish_media_likes?: dish_media_likesCreateNestedManyWithoutUsersInput
     dish_reviews?: dish_reviewsCreateNestedManyWithoutUsersInput
@@ -62681,6 +64002,7 @@ export namespace Prisma {
     username: string
     preferred_locale: string
     avatar_path?: string | null
+    deleted_at?: Date | string | null
     dish_media?: dish_mediaUncheckedCreateNestedManyWithoutUsersInput
     dish_media_likes?: dish_media_likesUncheckedCreateNestedManyWithoutUsersInput
     dish_reviews?: dish_reviewsUncheckedCreateNestedManyWithoutUsersInput
@@ -62770,6 +64092,7 @@ export namespace Prisma {
     username?: StringFieldUpdateOperationsInput | string
     preferred_locale?: StringFieldUpdateOperationsInput | string
     avatar_path?: NullableStringFieldUpdateOperationsInput | string | null
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dish_media?: dish_mediaUpdateManyWithoutUsersNestedInput
     dish_media_likes?: dish_media_likesUpdateManyWithoutUsersNestedInput
     dish_reviews?: dish_reviewsUpdateManyWithoutUsersNestedInput
@@ -62786,6 +64109,7 @@ export namespace Prisma {
     username?: StringFieldUpdateOperationsInput | string
     preferred_locale?: StringFieldUpdateOperationsInput | string
     avatar_path?: NullableStringFieldUpdateOperationsInput | string | null
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dish_media?: dish_mediaUncheckedUpdateManyWithoutUsersNestedInput
     dish_media_likes?: dish_media_likesUncheckedUpdateManyWithoutUsersNestedInput
     dish_reviews?: dish_reviewsUncheckedUpdateManyWithoutUsersNestedInput

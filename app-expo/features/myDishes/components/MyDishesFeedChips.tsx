@@ -210,9 +210,12 @@ export function MyDishesFeedChips({ entry }: MyDishesFeedChipsProps) {
 
 const styles = StyleSheet.create({
 	container: {
-		// 閉じるボタン（右上）と重ならないよう右側を空ける。ルート側の
-		// `closeButtonContainer` は right: 16 / padding 12 なので 56 で足りる
-		paddingRight: 56,
+		// #1375（5 巡目・デザインレビュー #7）**右のアクション列**（いいね / 保存 /
+		// 食べたを記録 / シェア / 地図）と重ならないよう右側を空ける。
+		// chips は列の最下段と同じ高さにあり、列の実幅は約 90pt ある。
+		// 56 は右上の «閉じる» だけを避ける値で、下部のこの列を想定していなかった
+		// （実際に「食べたいで絞る」が「地図を開く」のラベルへ被っていた）
+		paddingRight: 96,
 	},
 	content: {
 		gap: 8,
@@ -228,8 +231,10 @@ const styles = StyleSheet.create({
 		borderColor: "rgba(255,255,255,0.35)",
 	},
 	chipActive: {
-		backgroundColor: "#357AFF",
-		borderColor: "#357AFF",
+		// #1375（5 巡目・デザインレビュー #3）パレットに無い青をやめる。
+		// 選択中は «白地に黒文字» で示す（写真の上なので地の白が一番強い）
+		backgroundColor: "#FFFFFF",
+		borderColor: "#FFFFFF",
 	},
 	chipText: {
 		fontSize: 13,
@@ -237,6 +242,7 @@ const styles = StyleSheet.create({
 		color: "#FFFFFF",
 	},
 	chipTextActive: {
-		color: "#FFFFFF",
+		// 地が白になったので文字は黒（白地に白文字を作らない）
+		color: "#111827",
 	},
 });
