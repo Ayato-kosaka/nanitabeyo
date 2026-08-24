@@ -20,6 +20,8 @@ export function convertSupabaseToPrisma_Dishes(supabase: SupabaseDishes): Prisma
     created_at: new Date(supabase.created_at),
     updated_at: new Date(supabase.updated_at),
     lock_no: supabase.lock_no,
+    synced_at: supabase.synced_at ? new Date(supabase.synced_at) : null,
+    data_origin: supabase.data_origin,
   };
 }
 
@@ -37,5 +39,7 @@ export function convertPrismaToSupabase_Dishes(prisma: PrismaDishes): SupabaseDi
     created_at: prisma.created_at?.toISOString() ?? null,
     updated_at: prisma.updated_at?.toISOString() ?? null,
     lock_no: prisma.lock_no,
+    synced_at: prisma.synced_at?.toISOString() ?? null,
+    data_origin: prisma.data_origin,
   };
 }

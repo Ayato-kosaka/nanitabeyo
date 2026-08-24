@@ -505,6 +505,11 @@ export class DishesService {
           created_at:
             existingGoogleImportEntry?.restaurant.created_at ??
             new Date().toISOString(),
+          // #843 BigQuery 同期由来の列。Google import はその経路を通らないので未設定
+          synced_at: null,
+          source_seed_id: null,
+          source_names: [],
+          source_row_hash: null,
         };
 
         const dish: SupabaseDishes = {
@@ -519,6 +524,10 @@ export class DishesService {
             existingGoogleImportEntry?.dish.updated_at ??
             new Date().toISOString(),
           lock_no: existingGoogleImportEntry?.dish.lock_no ?? 0,
+          // #843 Google import 由来なので既定値と同じ 'user_or_google'。
+          // BigQuery 同期経路ではないため synced_at は未設定
+          data_origin: 'user_or_google',
+          synced_at: null,
         };
 
         const dishMedia: SupabaseDishMedia = {
@@ -592,6 +601,8 @@ export class DishesService {
           imported_user_name: review.authorAttribution?.displayName || null,
           imported_user_avatar: review.authorAttribution?.photoUri || null,
           created_at: new Date().toISOString(),
+          // #1551 「食べた日」はユーザーが自分で入れる値。Google のレビューには無い
+          eaten_at: null,
         }));
 
         // #829 【設計】未完了 Google import の再処理では既存 review ID を渡し、handler 側の skipDuplicates と合わせて retry を no-op 化する。
