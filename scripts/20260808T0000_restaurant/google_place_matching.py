@@ -39,6 +39,7 @@ from __future__ import annotations
 
 import json
 import math
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -212,13 +213,18 @@ class PlacesTextSearchClient:
         self.timeout_seconds = timeout_seconds
         self.max_retries = max_retries
         self.minimum_interval_seconds = 1.0 / qps
-        self._last_request_at: float | None = None
+        self._lock = threading.Lock()
+        self._next_request_at = 0.0
 
     def _throttle(self) -> None:
-        if self._last_request_at is not None:
-            elapsed = time.monotonic() - self._last_request_at
-            time.sleep(max(0.0, self.minimum_interval_seconds - elapsed))
-        self._last_request_at = time.monotonic()
+        # 複数workerで共有する前提のスロット予約式。lockの中では「自分の送信時刻」を
+        # 予約するだけで、sleepはlockの外で行う。lock内でsleepすると全workerが
+        # 直列化され、逐次実行（実効3〜4req/s）に戻ってしまう。
+        with self._lock:
+            now = time.monotonic()
+            start = max(now, self._next_request_at)
+            self._next_request_at = start + self.minimum_interval_seconds
+        time.sleep(max(0.0, start - time.monotonic()))
 
     def search(self, payload: dict[str, Any]) -> TextSearchResult:
         encoded = json.dumps(payload, ensure_ascii=False).encode("utf-8")

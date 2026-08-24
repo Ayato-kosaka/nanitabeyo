@@ -452,7 +452,10 @@ describe('buildMyDishesPageQuery が組み立てる SQL', () => {
   });
 
   it('特徴量は既存 dish_category_features のスコアで並び替える（絞り込まない）', () => {
-    const sql = buildSql({ sort: '-featureScore', featureKeys: ['scene:date'] });
+    const sql = buildSql({
+      sort: '-featureScore',
+      featureKeys: ['scene:date'],
+    });
 
     // 既存 dish-categories.repository.ts と同じ作法（LEFT JOIN + COALESCE）
     expect(sql).toContain('LEFT JOIN (');
@@ -542,5 +545,19 @@ describe('buildMyDishMapPinsQuery が組み立てる SQL', () => {
     expect(beforeUnion).not.toContain('LIMIT');
     // 一覧と同じフェンスを使う（map-pins だけ ::uuid が裸になっていないこと）
     expect(sql).toContain('my_save_ids AS MATERIALIZED (');
+  });
+
+  // #1375 独立レビュー（仕様ギャップ G4）: SNS 取り込みは自ストレージへの複製に失敗し得るため、
+  // dish_media.thumbnail_path が空のまま正常系で存在する。一覧 / Feed の assembler は
+  // provider 側サムネイルへ落ちるのに Map ピンだけ落ちず、店舗の外観写真へ化けていた。
+  it('埋め込み（SNS 取り込み）の provider 側サムネイルも取って、一覧と同じフォールバックを効かせる', () => {
+    const query = buildMyDishMapPinsQuery(USER_ID, {});
+    expect(query).not.toBeNull();
+    const sql = normalize(query!.sql);
+
+    expect(sql).toContain(
+      'LEFT JOIN dish_media_external_embeddings dmee ON dmee.dish_media_id = dm.id',
+    );
+    expect(sql).toContain('dmee.thumbnail_url AS media_external_thumbnail_url');
   });
 });

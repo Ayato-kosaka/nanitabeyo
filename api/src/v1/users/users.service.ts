@@ -118,6 +118,8 @@ export class UsersService {
       null;
 
     const uniqueDishMediaIds = Array.from(
+      // #1395 created_dish_media_id は nullable（メディアを作っていないレビュー）。
+      // #1398 その場合は同じ dish の最新 dish_media を代表に立てる（resolveMediaId）
       new Set(
         reviews
           .map((r) => resolveMediaId(r))
@@ -145,6 +147,7 @@ export class UsersService {
     return {
       data: reviews
         .map((review) => {
+          // #1395 メディアを作っていないレビューには紐づく dish_media が無い（#1398 で代表を解決する）
           const mediaId = resolveMediaId(review);
           const dishMediaEntryItem =
             mediaId === null ? undefined : dishMediaMap.get(mediaId);
@@ -615,11 +618,16 @@ export class UsersService {
         ),
         counts: pin.counts,
         latestOccurredAt: pin.latestOccurredAt.toISOString(),
-        representativeThumbnailUrl: pin.representativeMedia
-          ? this.dishMediaAssembler.getThumbnailImageUrl(
-              pin.representativeMedia,
-            )
-          : null,
+        // #1375 G4 一覧・Feed（dish-media.assembler.ts）と同じ順序で落とす:
+        // 自ストレージのサムネイル → provider 側のサムネイル → null（店舗写真へ）
+        representativeThumbnailUrl:
+          (pin.representativeMedia
+            ? this.dishMediaAssembler.getThumbnailImageUrl(
+                pin.representativeMedia,
+              )
+            : null) ??
+          pin.representativeExternalThumbnailUrl ??
+          null,
       })),
       truncated,
     };

@@ -287,6 +287,36 @@ Issue 本文:  `PrismaClientKnownRequestError:`      ← ここで切れてい�
 エラーで診断情報を全部落としていた。**数字は信用してよいが、原因の記述は不完全**という
 このスキルの前提はここから来ている。
 
+### 「単発だから様子見」（2026-08-23 / 3 件まとめて外した）
+
+1件1ユーザーの open な Issue 4 件について、**Issue 本文とコードだけで**経緯を組み立てて
+オーナーへ報告した。生ログを引いたら **3 件とも違っていた。**
+
+| # | 本文＋コードからの推測 | 生ログで分かった実際 |
+|---|---|---|
+| #1433 | ①旧ビルド残存 → ②サインイン失敗で放置できない | **ユーザーが同意画面でブラウザを閉じただけ**（`url_shape.error = "access_denied"`）。直後に検索へ戻って使い続けている |
+| #1475 | 認証エラー画面が出てアプリが使えなくなった | **画面は出ていない。** 2 秒後に検索 API が成功。回線の一瞬の途切れ |
+| #1477 | UUID でない値が混ざっていた | **`ids` が空だった**（`{"ids":[]}` → `?ids=`）。サーバ側の `"".split(",")` が `[""]` を作って落ちた |
+
+**共通する誤りは「payload の構造化フィールドを見る前に物語を作ったこと」。** #1249 で
+`error_name` / `error_code` / `status` / `provider` / `url_shape` を積むようにしたのは、
+まさにこれを読むためだった。**本文の `messagePattern` が薄いときほど payload に答えがある。**
+
+そして経緯は **その user_id の前後のイベント列**を見れば確定する。何を押して、何が出て、
+そのあとアプリを使い続けたのか離脱したのか、まで分かる。`payload` 列を外せばスキャンも安い。
+
+```sql
+SELECT timestamp, jsonPayload.error_level, jsonPayload.event_name, jsonPayload.path_name
+FROM `food-scroll.nanitabeyo_logs_prod.run_googleapis_com_stdout`
+WHERE timestamp >= TIMESTAMP '<当日>' AND timestamp < TIMESTAMP '<翌日>'
+  AND jsonPayload.log_type = 'frontend_event_logs'
+  AND jsonPayload.user_id = '<user_id>'
+ORDER BY timestamp
+```
+
+**「様子見」を選ぶ前に、この 2 本（payload 全体 → 当該ユーザーの時系列）を引くこと。**
+4 件のうち実バグは 1 件で、残り 3 件はログレベルの誤りだった。どちらも「様子見」では永久に片付かない。
+
 ## 記録の書き方
 
 close / skip する Issue には、**後から辿れる根拠**を残す。最低限:

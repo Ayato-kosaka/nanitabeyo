@@ -444,9 +444,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 				setAuthError(null);
 			} catch (err: any) {
 				const status = getAuthErrorStatus(err);
+				// #1475 【設計】status 0 = **HTTP 応答に到達していない**（端末の回線断）。
+				// supabase-js が fetch 失敗を AuthRetryableFetchError でラップするときの値で、
+				// 運用側にできることは無い。再試行ボタンとフォアグラウンド復帰の 2 経路で回復する。
+				//
+				// 実測（本番 2026-08-20T09:29:25Z / 1 ユーザー）: 直前に位置情報の
+				// backend 失敗 → expo フォールバック失敗 が warn で並んでおり、回線が一瞬切れていた。
+				// **2 秒後には検索の API が成功しており**、認証エラー画面は出ていない。設計どおり回復した例。
+				//
+				// ⚠️ status 0 だけに限ること。undefined まで含めると、初期化中に起きた
+				// こちら側の実装バグ（status を持たない TypeError 等）まで warn へ落ちて見えなくなる。
+				const isClientNetworkFailure = status === 0;
 				logFrontendEvent({
 					event_name: "authInitError",
-					error_level: "error",
+					error_level: isClientNetworkFailure ? "warn" : "error",
 					payload: { message: err.message, status },
 				});
 				// #1089 認証が確立できていないときは logQueue がアクセストークンを用意できず、

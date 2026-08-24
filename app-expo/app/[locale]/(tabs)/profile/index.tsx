@@ -40,11 +40,13 @@ import {
 	Linking,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { ChevronRight } from "lucide-react-native";
+import { Check, ChevronRight, Moon, Smartphone, Sun } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 
 import { Card } from "@/components/Card";
+import type { Palette } from "@/constants/Palette";
+import { THEME_PREFERENCES, useAppTheme, useThemedStyles, type ThemePreference } from "@/contexts/ThemeProvider";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { ProfileHeader } from "@/features/profile/components/ProfileHeader";
 import { useEnsureOwnProfileLoaded } from "@/features/profile/hooks/useEnsureOwnProfileLoaded";
@@ -76,6 +78,90 @@ interface ProfileMenuItemProps {
 	accessibilityRole?: "link" | "button";
 }
 
+/**
+ * #1509 SET-05 テーマ（表示モード）の 3 択セレクタ。
+ *
+ * ## なぜラジオ相当の «行» にしたか
+ * iOS / Android の設定アプリと同型にするため。切替は即時反映で、確定ボタンを持たない
+ * （その場でアプリ全体の色が変わるので、結果がそのまま確認になる）。
+ *
+ * ## #1402 との合流
+ * 元は独立した設定画面（profile/settings.tsx）にあったが、#1402 でその画面を廃止して
+ * マイページ本体へ項目を統合したため、ここへ移設した。testID（settings-theme-*）は
+ * E2E から名指しされているので据え置く。
+ *
+ * ## アクセシビリティ
+ * `accessibilityRole="radio"` + `accessibilityState.selected` で選択状態を支援技術へ伝える。
+ * チェックアイコンは視覚的な冗長表現なので読み上げからは外す。
+ */
+const THEME_OPTION_ICONS: Record<ThemePreference, typeof Smartphone> = {
+	system: Smartphone,
+	light: Sun,
+	dark: Moon,
+};
+
+function ThemeSelector() {
+	const { preference, setPreference, colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
+	const { lightImpact } = useHaptics();
+	const { logFrontendEvent } = useLogger();
+
+	const handleSelect = useCallback(
+		(next: ThemePreference) => {
+			lightImpact();
+			logFrontendEvent({
+				event_name: "settings_theme_preference_changed",
+				error_level: "log",
+				payload: { from: preference, to: next },
+			});
+			setPreference(next);
+		},
+		[lightImpact, logFrontendEvent, preference, setPreference],
+	);
+
+	return (
+		<View testID="settings-theme-selector" accessibilityRole="radiogroup">
+			{THEME_PREFERENCES.map((option, index) => {
+				const Icon = THEME_OPTION_ICONS[option];
+				const isSelected = preference === option;
+				const isLast = index === THEME_PREFERENCES.length - 1;
+				const label = i18n.t(`Settings.theme.options.${option}`);
+				return (
+					<React.Fragment key={option}>
+						<TouchableOpacity
+							style={styles.themeOption}
+							onPress={() => handleSelect(option)}
+							testID={`settings-theme-${option}`}
+							accessibilityRole="radio"
+							accessibilityState={{ selected: isSelected, checked: isSelected }}
+							// #934 と同じ理由: react-native-web は accessibilityState.checked を DOM の
+							// aria-checked へ変換しないため、native/web 両対応の aria-checked を直接指定する
+							aria-checked={isSelected}
+							accessibilityLabel={label}>
+							<Icon
+								size={20}
+								color={isSelected ? colors.brand : colors.textSecondary}
+								accessibilityElementsHidden
+								importantForAccessibility="no"
+							/>
+							<Text style={[styles.themeOptionText, isSelected && styles.themeOptionTextSelected]}>{label}</Text>
+							{isSelected && (
+								// #1509 【E2E】チェックは lucide の SVG なので testID を直接載せると
+								// Detox / react-native-web のどちらで拾えるかが実装依存になる。
+								// 素の View で包んで testID を持たせ、両方から確実に見えるようにする
+								<View testID={`settings-theme-${option}-check`}>
+									<Check size={20} color={colors.brand} accessibilityElementsHidden importantForAccessibility="no" />
+								</View>
+							)}
+						</TouchableOpacity>
+						{!isLast && <View style={styles.separator} />}
+					</React.Fragment>
+				);
+			})}
+		</View>
+	);
+}
+
 function ProfileMenuItem({
 	label,
 	onPress,
@@ -84,6 +170,8 @@ function ProfileMenuItem({
 	testID,
 	accessibilityRole = "button",
 }: ProfileMenuItemProps) {
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 	return (
 		<>
 			<TouchableOpacity
@@ -94,7 +182,12 @@ function ProfileMenuItem({
 				accessibilityLabel={label}>
 				<Text style={[styles.menuItemText, textStyle]}>{label}</Text>
 				{/* #950 【仕様】装飾アイコンのため読み上げ対象から除外し、行のラベルと二重に読み上げさせない */}
-				<ChevronRight size={20} color="#9CA3AF" accessibilityElementsHidden importantForAccessibility="no" />
+				<ChevronRight
+					size={20}
+					color={colors.textTertiary}
+					accessibilityElementsHidden
+					importantForAccessibility="no"
+				/>
 			</TouchableOpacity>
 			{!isLast && <View style={styles.separator} />}
 		</>
@@ -102,6 +195,9 @@ function ProfileMenuItem({
 }
 
 export default function ProfileScreen() {
+	// #1509 テーマ切替はこの画面から行う。切替の結果がその場のこの画面に出るよう、画面自体もテーマ対応する
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 	// #1016 【設計】主要画面(マイページ)にFirebase Performance Monitoringの画面トレースを計装する。
 	useScreenTrace("Profile");
 
@@ -397,7 +493,7 @@ export default function ProfileScreen() {
 	}, [lightImpact, logFrontendEvent, user?.id, router, locale]);
 
 	return (
-		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
+		<LinearGradient colors={colors.backgroundGradient} style={styles.container}>
 			<SafeAreaView style={styles.container} edges={["top"]}>
 				{/* #1131 E2E から「ログアウト行まで送る」ためのスクロール対象。見た目には影響しない。
 				    ログアウト行は最下段のカードにあり、端末によっては初期表示で画面外にいる。
@@ -416,6 +512,15 @@ export default function ProfileScreen() {
 							<LoadingIndicator size="large" />
 						</View>
 					)}
+
+					{/* #1509 表示テーマ（システム追従 / ライト / ダーク）。
+					    切替の効果がその場で見えるよう、リストの最上段に置く */}
+					<Text style={styles.sectionTitle} accessibilityRole="header">
+						{i18n.t("Settings.theme.sectionTitle")}
+					</Text>
+					<Card style={styles.card}>
+						<ThemeSelector />
+					</Card>
 
 					{/* Card 1: いいね・保存（旧グリッドタブの行き先） */}
 					<Card style={styles.card}>
@@ -503,7 +608,7 @@ export default function ProfileScreen() {
 								onPress={handleLogout}
 								testID="settings-logout"
 								textStyle={{
-									color: "#FF3E33",
+									color: colors.destructive,
 									fontWeight: "700",
 								}}
 								isLast
@@ -517,39 +622,68 @@ export default function ProfileScreen() {
 	);
 }
 
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-	},
-	scrollView: {
-		flex: 1,
-	},
-	scrollContent: {
-		paddingBottom: 32,
-	},
-	headerPlaceholder: {
-		paddingVertical: 48,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	card: {
-		padding: 0,
-	},
-	menuItem: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		paddingHorizontal: 16,
-		paddingVertical: 16,
-	},
-	menuItemText: {
-		fontSize: 16,
-		color: "#1A1A1A",
-		fontWeight: "500",
-	},
-	separator: {
-		height: 1,
-		backgroundColor: "#F3F4F6",
-		marginHorizontal: 16,
-	},
-});
+// #1509 【設計】テーマ依存のスタイルはファクトリで組む（contexts/ThemeProvider.tsx の useThemedStyles）。
+// 値は #1402 までのリテラルをそのまま constants/Palette.ts の light へ写したもので、ライトの見た目は変わらない。
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		container: {
+			flex: 1,
+		},
+		scrollView: {
+			flex: 1,
+		},
+		scrollContent: {
+			paddingBottom: 32,
+		},
+		headerPlaceholder: {
+			paddingVertical: 48,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		card: {
+			padding: 0,
+		},
+		// #1509 テーマセクションの見出し（カードの外に置く）
+		sectionTitle: {
+			fontSize: 13,
+			fontWeight: "700",
+			color: c.textSecondary,
+			marginTop: 16,
+			marginHorizontal: 32,
+		},
+		menuItem: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+			paddingHorizontal: 16,
+			paddingVertical: 16,
+		},
+		menuItemText: {
+			fontSize: 16,
+			color: c.textPrimary,
+			fontWeight: "500",
+		},
+		separator: {
+			height: 1,
+			backgroundColor: c.divider,
+			marginHorizontal: 16,
+		},
+		// #1509 テーマ 3 択の行。アイコン + ラベル + 選択チェックの 3 カラム
+		themeOption: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 12,
+			paddingHorizontal: 16,
+			paddingVertical: 16,
+		},
+		themeOptionText: {
+			flex: 1,
+			fontSize: 16,
+			color: c.textPrimary,
+			fontWeight: "500",
+		},
+		themeOptionTextSelected: {
+			color: c.brand,
+			fontWeight: "700",
+		},
+	});

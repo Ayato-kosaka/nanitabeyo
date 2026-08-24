@@ -147,6 +147,9 @@ export function DishCategoryGroupVoteCompletionModal({ usedDisplayNames, isSubmi
 			/>
 			<View style={styles.actionRow}>
 				<PrimaryButton
+					// #1506 GRP-04 【テスト】投票の送信は「ホストへ通知が飛ぶ」起点なので、
+					// E2E から確実に押せるよう観測点を付ける（ラベル文言はロケール依存で引けない）
+					testID="dish-category-group-vote-submit"
 					label={i18n.t("DishCategoryGroupVotes.submitVote")}
 					loading={isSubmitting}
 					disabled={!canSubmit}
