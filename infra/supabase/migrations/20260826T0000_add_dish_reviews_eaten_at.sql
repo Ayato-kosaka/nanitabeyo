@@ -66,5 +66,22 @@ ALTER TABLE dish_reviews
 -- ⚠️ 式索引にしているのは、②の移行期間に eaten_at が NULL の行と入っている行が
 -- 混在するため。COALESCE を含めておけば移行中も移行後も同じ索引で足りる。
 -- 第二キーが created_at なのは「同じ日の中は記録した順」という仕様（オーナー確認済み）。
+--
+-- ⚠️⚠️ `created_at::date` と書いてはいけない（初版がこれで落ちた。run 32724167046）。
+--
+--     ERROR: functions in index expression must be marked IMMUTABLE
+--
+-- timestamptz から date への暗黙のキャストは **セッションの TimeZone 設定に依存する**ため
+-- STABLE 止まりで、索引式には使えない。ゾーンを明示した
+-- `(created_at AT TIME ZONE 'UTC')::date` は IMMUTABLE なので通る
+-- （PostgreSQL 16 で ①失敗 / ②成功 を実際に流して確認済み）。
+--
+-- UTC を選ぶことの意味: **②の backfill が終わるまでの間だけ**、eaten_at がまだ NULL の行の
+-- 並び順が «UTC での日付» を基準にする。端末ローカルの日付と最大 1 日ずれうるが、
+-- backfill 後は COALESCE が第 1 引数（実際の食べた日）を返すので影響は消える。
+-- ③（SET NOT NULL）まで済んだら、この式索引は
+-- `(user_id, eaten_at DESC, created_at DESC, id DESC)` の素の索引へ置き換えてよい。
+--
+-- ⚠️ 読み出し側のクエリは **この式と 1 文字違わず同じ**でなければ索引に乗らない。
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_dish_reviews_user_eaten_at
-  ON dish_reviews (user_id, COALESCE(eaten_at, created_at::date) DESC, created_at DESC, id DESC);
+  ON dish_reviews (user_id, COALESCE(eaten_at, (created_at AT TIME ZONE 'UTC')::date) DESC, created_at DESC, id DESC);
