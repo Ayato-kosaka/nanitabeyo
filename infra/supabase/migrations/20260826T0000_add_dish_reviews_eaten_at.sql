@@ -59,12 +59,23 @@ ALTER TABLE dish_reviews
 ALTER TABLE dish_reviews
   VALIDATE CONSTRAINT ck_dish_reviews_eaten_at_not_future;
 
--- 一覧・カレンダー・期間絞り込みの並び順（keyset ページング）を索引だけで完結させる。
--- 現行の occurredAt は created_at なので idx_dish_reviews_user_created_at が効いていたが、
--- eaten_at 基準に変えるとその索引では順序を保てず、964MB のユーザー全行走査になる。
+-- ⚠️ 索引はこの ① では作らない。②（読み書きを eaten_at 基準へ寄せる）で作る。
 --
--- ⚠️ 式索引にしているのは、②の移行期間に eaten_at が NULL の行と入っている行が
--- 混在するため。COALESCE を含めておけば移行中も移行後も同じ索引で足りる。
--- 第二キーが created_at なのは「同じ日の中は記録した順」という仕様（オーナー確認済み）。
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_dish_reviews_user_eaten_at
-  ON dish_reviews (user_id, COALESCE(eaten_at, created_at::date) DESC, created_at DESC, id DESC);
+-- 当初ここには次の式索引を置いていたが、**PostgreSQL が受け付けない**:
+--
+--   CREATE INDEX ... ON dish_reviews (user_id, COALESCE(eaten_at, created_at::date) DESC, ...)
+--   ERROR: functions in index expression must be marked IMMUTABLE
+--
+-- `created_at` は timestamptz で、`::date` は **セッションの TimeZone に依存する**（STABLE）。
+-- 同じ行でも接続のタイムゾーン次第で別の日になりうるので、索引の中身が定まらない。
+-- Postgres はこれを式索引に使わせない。dev の run 32724167046 で実際に落ちた。
+--
+-- 回避策は「タイムゾーンを 1 つに固定する」（例: `(created_at AT TIME ZONE 'UTC')::date`）だが、
+-- **それは仕様の決定**である。UTC 固定にすると JST の朝 8 時の記録が前日に落ちる。
+-- この migration が `eaten_at` を `timestamptz` ではなく `date` にしたのは、まさにその
+-- 「どのタイムゾーンの 1 日か」を決めずに済ませるためだった。フォールバックで
+-- `created_at::date` を混ぜると、その決定が索引の中に戻ってきてしまう。
+--
+-- 索引が要るのは読み側を `eaten_at` 基準へ切り替える②以降であり、①（列を足すだけ）では
+-- 誰も使わない。並び順の基準（移行期間に NULL の行をどこへ置くか）を②で決めてから、
+-- その式に合う索引を張る。現行の並びは `idx_dish_reviews_user_created_at` が引き続き支える。
