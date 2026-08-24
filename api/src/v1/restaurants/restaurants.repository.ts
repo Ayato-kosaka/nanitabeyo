@@ -88,6 +88,10 @@ export class RestaurantsRepository {
         | 'address_components'
         | 'plus_code'
         | 'created_at'
+        | 'synced_at'
+        | 'source_seed_id'
+        | 'source_names'
+        | 'source_row_hash'
       > & {
         review_count: number;
         average_rating: number;
@@ -133,6 +137,10 @@ export class RestaurantsRepository {
       r.address_components,
       r.plus_code,
       r.created_at,
+      r.synced_at,
+      r.source_seed_id,
+      r.source_names,
+      r.source_row_hash,
       COUNT(dr.id)::int                    AS review_count,
       COALESCE(AVG(dr.rating), 0)::double precision AS average_rating,
       sr.last_saved_at
@@ -182,6 +190,10 @@ export class RestaurantsRepository {
         address_components: row.address_components,
         plus_code: row.plus_code,
         created_at: row.created_at,
+        synced_at: row.synced_at,
+        source_seed_id: row.source_seed_id,
+        source_names: row.source_names,
+        source_row_hash: row.source_row_hash,
       },
       meta: {
         reviewCount: row.review_count,
@@ -222,6 +234,10 @@ export class RestaurantsRepository {
         | 'address_components'
         | 'plus_code'
         | 'created_at'
+        | 'synced_at'
+        | 'source_seed_id'
+        | 'source_names'
+        | 'source_row_hash'
       > & {
         review_count: number;
         average_rating: number;
@@ -241,6 +257,10 @@ export class RestaurantsRepository {
         r.address_components,
         r.plus_code,
         r.created_at,
+        r.synced_at,
+        r.source_seed_id,
+        r.source_names,
+        r.source_row_hash,
         COALESCE(SUM(rb.amount_cents), 0)::double precision as total_cents,
         MAX(rb.end_date) as max_end_date,
         COUNT(dr.id)::int AS review_count,
