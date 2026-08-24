@@ -131,6 +131,7 @@ export type dish_media_views = $Result.DefaultSelection<Prisma.$dish_media_views
 export type dish_reviews = $Result.DefaultSelection<Prisma.$dish_reviewsPayload>
 /**
  * Model dishes
+ * This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
  * This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
  * This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
  */
@@ -25215,6 +25216,8 @@ export namespace Prisma {
     created_at: Date | null
     updated_at: Date | null
     lock_no: number | null
+    data_origin: string | null
+    synced_at: Date | null
   }
 
   export type DishesMaxAggregateOutputType = {
@@ -25225,6 +25228,8 @@ export namespace Prisma {
     created_at: Date | null
     updated_at: Date | null
     lock_no: number | null
+    data_origin: string | null
+    synced_at: Date | null
   }
 
   export type DishesCountAggregateOutputType = {
@@ -25235,6 +25240,8 @@ export namespace Prisma {
     created_at: number
     updated_at: number
     lock_no: number
+    data_origin: number
+    synced_at: number
     _all: number
   }
 
@@ -25255,6 +25262,8 @@ export namespace Prisma {
     created_at?: true
     updated_at?: true
     lock_no?: true
+    data_origin?: true
+    synced_at?: true
   }
 
   export type DishesMaxAggregateInputType = {
@@ -25265,6 +25274,8 @@ export namespace Prisma {
     created_at?: true
     updated_at?: true
     lock_no?: true
+    data_origin?: true
+    synced_at?: true
   }
 
   export type DishesCountAggregateInputType = {
@@ -25275,6 +25286,8 @@ export namespace Prisma {
     created_at?: true
     updated_at?: true
     lock_no?: true
+    data_origin?: true
+    synced_at?: true
     _all?: true
   }
 
@@ -25372,6 +25385,8 @@ export namespace Prisma {
     created_at: Date
     updated_at: Date
     lock_no: number
+    data_origin: string
+    synced_at: Date | null
     _count: DishesCountAggregateOutputType | null
     _avg: DishesAvgAggregateOutputType | null
     _sum: DishesSumAggregateOutputType | null
@@ -25401,6 +25416,8 @@ export namespace Prisma {
     created_at?: boolean
     updated_at?: boolean
     lock_no?: boolean
+    data_origin?: boolean
+    synced_at?: boolean
     dish_media?: boolean | dishes$dish_mediaArgs<ExtArgs>
     dish_reviews?: boolean | dishes$dish_reviewsArgs<ExtArgs>
     dish_categories?: boolean | dish_categoriesDefaultArgs<ExtArgs>
@@ -25416,6 +25433,8 @@ export namespace Prisma {
     created_at?: boolean
     updated_at?: boolean
     lock_no?: boolean
+    data_origin?: boolean
+    synced_at?: boolean
     dish_categories?: boolean | dish_categoriesDefaultArgs<ExtArgs>
     restaurants?: boolean | restaurantsDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["dishes"]>
@@ -25428,6 +25447,8 @@ export namespace Prisma {
     created_at?: boolean
     updated_at?: boolean
     lock_no?: boolean
+    data_origin?: boolean
+    synced_at?: boolean
     dish_categories?: boolean | dish_categoriesDefaultArgs<ExtArgs>
     restaurants?: boolean | restaurantsDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["dishes"]>
@@ -25440,9 +25461,11 @@ export namespace Prisma {
     created_at?: boolean
     updated_at?: boolean
     lock_no?: boolean
+    data_origin?: boolean
+    synced_at?: boolean
   }
 
-  export type dishesOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "restaurant_id" | "category_id" | "name" | "created_at" | "updated_at" | "lock_no", ExtArgs["result"]["dishes"]>
+  export type dishesOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "restaurant_id" | "category_id" | "name" | "created_at" | "updated_at" | "lock_no" | "data_origin" | "synced_at", ExtArgs["result"]["dishes"]>
   export type dishesInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     dish_media?: boolean | dishes$dish_mediaArgs<ExtArgs>
     dish_reviews?: boolean | dishes$dish_reviewsArgs<ExtArgs>
@@ -25475,6 +25498,8 @@ export namespace Prisma {
       created_at: Date
       updated_at: Date
       lock_no: number
+      data_origin: string
+      synced_at: Date | null
     }, ExtArgs["result"]["dishes"]>
     composites: {}
   }
@@ -25909,6 +25934,8 @@ export namespace Prisma {
     readonly created_at: FieldRef<"dishes", 'DateTime'>
     readonly updated_at: FieldRef<"dishes", 'DateTime'>
     readonly lock_no: FieldRef<"dishes", 'Int'>
+    readonly data_origin: FieldRef<"dishes", 'String'>
+    readonly synced_at: FieldRef<"dishes", 'DateTime'>
   }
     
 
@@ -38626,6 +38653,9 @@ export namespace Prisma {
     image_url: string | null
     created_at: Date | null
     image_path: string | null
+    source_seed_id: string | null
+    source_row_hash: string | null
+    synced_at: Date | null
   }
 
   export type RestaurantsMaxAggregateOutputType = {
@@ -38638,6 +38668,9 @@ export namespace Prisma {
     image_url: string | null
     created_at: Date | null
     image_path: string | null
+    source_seed_id: string | null
+    source_row_hash: string | null
+    synced_at: Date | null
   }
 
   export type RestaurantsCountAggregateOutputType = {
@@ -38652,6 +38685,10 @@ export namespace Prisma {
     plus_code: number
     created_at: number
     image_path: number
+    source_seed_id: number
+    source_names: number
+    source_row_hash: number
+    synced_at: number
     _all: number
   }
 
@@ -38676,6 +38713,9 @@ export namespace Prisma {
     image_url?: true
     created_at?: true
     image_path?: true
+    source_seed_id?: true
+    source_row_hash?: true
+    synced_at?: true
   }
 
   export type RestaurantsMaxAggregateInputType = {
@@ -38688,6 +38728,9 @@ export namespace Prisma {
     image_url?: true
     created_at?: true
     image_path?: true
+    source_seed_id?: true
+    source_row_hash?: true
+    synced_at?: true
   }
 
   export type RestaurantsCountAggregateInputType = {
@@ -38702,6 +38745,10 @@ export namespace Prisma {
     plus_code?: true
     created_at?: true
     image_path?: true
+    source_seed_id?: true
+    source_names?: true
+    source_row_hash?: true
+    synced_at?: true
     _all?: true
   }
 
@@ -38803,6 +38850,10 @@ export namespace Prisma {
     plus_code: JsonValue | null
     created_at: Date
     image_path: string | null
+    source_seed_id: string | null
+    source_names: string[]
+    source_row_hash: string | null
+    synced_at: Date | null
     _count: RestaurantsCountAggregateOutputType | null
     _avg: RestaurantsAvgAggregateOutputType | null
     _sum: RestaurantsSumAggregateOutputType | null
@@ -38836,6 +38887,10 @@ export namespace Prisma {
     plus_code?: boolean
     created_at?: boolean
     image_path?: boolean
+    source_seed_id?: boolean
+    source_names?: boolean
+    source_row_hash?: boolean
+    synced_at?: boolean
     dishes?: boolean | restaurants$dishesArgs<ExtArgs>
     restaurant_bids?: boolean | restaurants$restaurant_bidsArgs<ExtArgs>
     _count?: boolean | RestaurantsCountOutputTypeDefaultArgs<ExtArgs>
@@ -38853,6 +38908,10 @@ export namespace Prisma {
     plus_code?: boolean
     created_at?: boolean
     image_path?: boolean
+    source_seed_id?: boolean
+    source_names?: boolean
+    source_row_hash?: boolean
+    synced_at?: boolean
   }, ExtArgs["result"]["restaurants"]>
 
   export type restaurantsSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -38867,6 +38926,10 @@ export namespace Prisma {
     plus_code?: boolean
     created_at?: boolean
     image_path?: boolean
+    source_seed_id?: boolean
+    source_names?: boolean
+    source_row_hash?: boolean
+    synced_at?: boolean
   }, ExtArgs["result"]["restaurants"]>
 
   export type restaurantsSelectScalar = {
@@ -38881,9 +38944,13 @@ export namespace Prisma {
     plus_code?: boolean
     created_at?: boolean
     image_path?: boolean
+    source_seed_id?: boolean
+    source_names?: boolean
+    source_row_hash?: boolean
+    synced_at?: boolean
   }
 
-  export type restaurantsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "google_place_id" | "name" | "name_language_code" | "latitude" | "longitude" | "image_url" | "address_components" | "plus_code" | "created_at" | "image_path", ExtArgs["result"]["restaurants"]>
+  export type restaurantsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "google_place_id" | "name" | "name_language_code" | "latitude" | "longitude" | "image_url" | "address_components" | "plus_code" | "created_at" | "image_path" | "source_seed_id" | "source_names" | "source_row_hash" | "synced_at", ExtArgs["result"]["restaurants"]>
   export type restaurantsInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     dishes?: boolean | restaurants$dishesArgs<ExtArgs>
     restaurant_bids?: boolean | restaurants$restaurant_bidsArgs<ExtArgs>
@@ -38910,6 +38977,10 @@ export namespace Prisma {
       plus_code: Prisma.JsonValue | null
       created_at: Date
       image_path: string | null
+      source_seed_id: string | null
+      source_names: string[]
+      source_row_hash: string | null
+      synced_at: Date | null
     }, ExtArgs["result"]["restaurants"]>
     composites: {}
   }
@@ -39346,6 +39417,10 @@ export namespace Prisma {
     readonly plus_code: FieldRef<"restaurants", 'Json'>
     readonly created_at: FieldRef<"restaurants", 'DateTime'>
     readonly image_path: FieldRef<"restaurants", 'String'>
+    readonly source_seed_id: FieldRef<"restaurants", 'String'>
+    readonly source_names: FieldRef<"restaurants", 'String[]'>
+    readonly source_row_hash: FieldRef<"restaurants", 'String'>
+    readonly synced_at: FieldRef<"restaurants", 'DateTime'>
   }
     
 
@@ -48525,7 +48600,9 @@ export namespace Prisma {
     name: 'name',
     created_at: 'created_at',
     updated_at: 'updated_at',
-    lock_no: 'lock_no'
+    lock_no: 'lock_no',
+    data_origin: 'data_origin',
+    synced_at: 'synced_at'
   };
 
   export type DishesScalarFieldEnum = (typeof DishesScalarFieldEnum)[keyof typeof DishesScalarFieldEnum]
@@ -48704,7 +48781,11 @@ export namespace Prisma {
     address_components: 'address_components',
     plus_code: 'plus_code',
     created_at: 'created_at',
-    image_path: 'image_path'
+    image_path: 'image_path',
+    source_seed_id: 'source_seed_id',
+    source_names: 'source_names',
+    source_row_hash: 'source_row_hash',
+    synced_at: 'synced_at'
   };
 
   export type RestaurantsScalarFieldEnum = (typeof RestaurantsScalarFieldEnum)[keyof typeof RestaurantsScalarFieldEnum]
@@ -50357,6 +50438,8 @@ export namespace Prisma {
     created_at?: DateTimeFilter<"dishes"> | Date | string
     updated_at?: DateTimeFilter<"dishes"> | Date | string
     lock_no?: IntFilter<"dishes"> | number
+    data_origin?: StringFilter<"dishes"> | string
+    synced_at?: DateTimeNullableFilter<"dishes"> | Date | string | null
     dish_media?: Dish_mediaListRelationFilter
     dish_reviews?: Dish_reviewsListRelationFilter
     dish_categories?: XOR<Dish_categoriesScalarRelationFilter, dish_categoriesWhereInput>
@@ -50371,6 +50454,8 @@ export namespace Prisma {
     created_at?: SortOrder
     updated_at?: SortOrder
     lock_no?: SortOrder
+    data_origin?: SortOrder
+    synced_at?: SortOrderInput | SortOrder
     dish_media?: dish_mediaOrderByRelationAggregateInput
     dish_reviews?: dish_reviewsOrderByRelationAggregateInput
     dish_categories?: dish_categoriesOrderByWithRelationInput
@@ -50389,6 +50474,8 @@ export namespace Prisma {
     created_at?: DateTimeFilter<"dishes"> | Date | string
     updated_at?: DateTimeFilter<"dishes"> | Date | string
     lock_no?: IntFilter<"dishes"> | number
+    data_origin?: StringFilter<"dishes"> | string
+    synced_at?: DateTimeNullableFilter<"dishes"> | Date | string | null
     dish_media?: Dish_mediaListRelationFilter
     dish_reviews?: Dish_reviewsListRelationFilter
     dish_categories?: XOR<Dish_categoriesScalarRelationFilter, dish_categoriesWhereInput>
@@ -50403,6 +50490,8 @@ export namespace Prisma {
     created_at?: SortOrder
     updated_at?: SortOrder
     lock_no?: SortOrder
+    data_origin?: SortOrder
+    synced_at?: SortOrderInput | SortOrder
     _count?: dishesCountOrderByAggregateInput
     _avg?: dishesAvgOrderByAggregateInput
     _max?: dishesMaxOrderByAggregateInput
@@ -50421,6 +50510,8 @@ export namespace Prisma {
     created_at?: DateTimeWithAggregatesFilter<"dishes"> | Date | string
     updated_at?: DateTimeWithAggregatesFilter<"dishes"> | Date | string
     lock_no?: IntWithAggregatesFilter<"dishes"> | number
+    data_origin?: StringWithAggregatesFilter<"dishes"> | string
+    synced_at?: DateTimeNullableWithAggregatesFilter<"dishes"> | Date | string | null
   }
 
   export type external_api_logsWhereInput = {
@@ -51263,6 +51354,10 @@ export namespace Prisma {
     plus_code?: JsonNullableFilter<"restaurants">
     created_at?: DateTimeFilter<"restaurants"> | Date | string
     image_path?: StringNullableFilter<"restaurants"> | string | null
+    source_seed_id?: UuidNullableFilter<"restaurants"> | string | null
+    source_names?: StringNullableListFilter<"restaurants">
+    source_row_hash?: StringNullableFilter<"restaurants"> | string | null
+    synced_at?: DateTimeNullableFilter<"restaurants"> | Date | string | null
     dishes?: DishesListRelationFilter
     restaurant_bids?: Restaurant_bidsListRelationFilter
   }
@@ -51279,6 +51374,10 @@ export namespace Prisma {
     plus_code?: SortOrderInput | SortOrder
     created_at?: SortOrder
     image_path?: SortOrderInput | SortOrder
+    source_seed_id?: SortOrderInput | SortOrder
+    source_names?: SortOrder
+    source_row_hash?: SortOrderInput | SortOrder
+    synced_at?: SortOrderInput | SortOrder
     dishes?: dishesOrderByRelationAggregateInput
     restaurant_bids?: restaurant_bidsOrderByRelationAggregateInput
   }
@@ -51298,6 +51397,10 @@ export namespace Prisma {
     plus_code?: JsonNullableFilter<"restaurants">
     created_at?: DateTimeFilter<"restaurants"> | Date | string
     image_path?: StringNullableFilter<"restaurants"> | string | null
+    source_seed_id?: UuidNullableFilter<"restaurants"> | string | null
+    source_names?: StringNullableListFilter<"restaurants">
+    source_row_hash?: StringNullableFilter<"restaurants"> | string | null
+    synced_at?: DateTimeNullableFilter<"restaurants"> | Date | string | null
     dishes?: DishesListRelationFilter
     restaurant_bids?: Restaurant_bidsListRelationFilter
   }, "id" | "google_place_id">
@@ -51314,6 +51417,10 @@ export namespace Prisma {
     plus_code?: SortOrderInput | SortOrder
     created_at?: SortOrder
     image_path?: SortOrderInput | SortOrder
+    source_seed_id?: SortOrderInput | SortOrder
+    source_names?: SortOrder
+    source_row_hash?: SortOrderInput | SortOrder
+    synced_at?: SortOrderInput | SortOrder
     _count?: restaurantsCountOrderByAggregateInput
     _avg?: restaurantsAvgOrderByAggregateInput
     _max?: restaurantsMaxOrderByAggregateInput
@@ -51336,6 +51443,10 @@ export namespace Prisma {
     plus_code?: JsonNullableWithAggregatesFilter<"restaurants">
     created_at?: DateTimeWithAggregatesFilter<"restaurants"> | Date | string
     image_path?: StringNullableWithAggregatesFilter<"restaurants"> | string | null
+    source_seed_id?: UuidNullableWithAggregatesFilter<"restaurants"> | string | null
+    source_names?: StringNullableListFilter<"restaurants">
+    source_row_hash?: StringNullableWithAggregatesFilter<"restaurants"> | string | null
+    synced_at?: DateTimeNullableWithAggregatesFilter<"restaurants"> | Date | string | null
   }
 
   export type role_permissionsWhereInput = {
@@ -53189,6 +53300,8 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
+    data_origin?: string
+    synced_at?: Date | string | null
     dish_media?: dish_mediaCreateNestedManyWithoutDishesInput
     dish_reviews?: dish_reviewsCreateNestedManyWithoutDishesInput
     dish_categories: dish_categoriesCreateNestedOneWithoutDishesInput
@@ -53203,6 +53316,8 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
+    data_origin?: string
+    synced_at?: Date | string | null
     dish_media?: dish_mediaUncheckedCreateNestedManyWithoutDishesInput
     dish_reviews?: dish_reviewsUncheckedCreateNestedManyWithoutDishesInput
   }
@@ -53213,6 +53328,8 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
+    data_origin?: StringFieldUpdateOperationsInput | string
+    synced_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dish_media?: dish_mediaUpdateManyWithoutDishesNestedInput
     dish_reviews?: dish_reviewsUpdateManyWithoutDishesNestedInput
     dish_categories?: dish_categoriesUpdateOneRequiredWithoutDishesNestedInput
@@ -53227,6 +53344,8 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
+    data_origin?: StringFieldUpdateOperationsInput | string
+    synced_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dish_media?: dish_mediaUncheckedUpdateManyWithoutDishesNestedInput
     dish_reviews?: dish_reviewsUncheckedUpdateManyWithoutDishesNestedInput
   }
@@ -53239,6 +53358,8 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
+    data_origin?: string
+    synced_at?: Date | string | null
   }
 
   export type dishesUpdateManyMutationInput = {
@@ -53247,6 +53368,8 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
+    data_origin?: StringFieldUpdateOperationsInput | string
+    synced_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type dishesUncheckedUpdateManyInput = {
@@ -53257,6 +53380,8 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
+    data_origin?: StringFieldUpdateOperationsInput | string
+    synced_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type external_api_logsCreateInput = {
@@ -54184,6 +54309,10 @@ export namespace Prisma {
     plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: Date | string
     image_path?: string | null
+    source_seed_id?: string | null
+    source_names?: restaurantsCreatesource_namesInput | string[]
+    source_row_hash?: string | null
+    synced_at?: Date | string | null
     dishes?: dishesCreateNestedManyWithoutRestaurantsInput
     restaurant_bids?: restaurant_bidsCreateNestedManyWithoutRestaurantsInput
   }
@@ -54200,6 +54329,10 @@ export namespace Prisma {
     plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: Date | string
     image_path?: string | null
+    source_seed_id?: string | null
+    source_names?: restaurantsCreatesource_namesInput | string[]
+    source_row_hash?: string | null
+    synced_at?: Date | string | null
     dishes?: dishesUncheckedCreateNestedManyWithoutRestaurantsInput
     restaurant_bids?: restaurant_bidsUncheckedCreateNestedManyWithoutRestaurantsInput
   }
@@ -54216,6 +54349,10 @@ export namespace Prisma {
     plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     image_path?: NullableStringFieldUpdateOperationsInput | string | null
+    source_seed_id?: NullableStringFieldUpdateOperationsInput | string | null
+    source_names?: restaurantsUpdatesource_namesInput | string[]
+    source_row_hash?: NullableStringFieldUpdateOperationsInput | string | null
+    synced_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dishes?: dishesUpdateManyWithoutRestaurantsNestedInput
     restaurant_bids?: restaurant_bidsUpdateManyWithoutRestaurantsNestedInput
   }
@@ -54232,6 +54369,10 @@ export namespace Prisma {
     plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     image_path?: NullableStringFieldUpdateOperationsInput | string | null
+    source_seed_id?: NullableStringFieldUpdateOperationsInput | string | null
+    source_names?: restaurantsUpdatesource_namesInput | string[]
+    source_row_hash?: NullableStringFieldUpdateOperationsInput | string | null
+    synced_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dishes?: dishesUncheckedUpdateManyWithoutRestaurantsNestedInput
     restaurant_bids?: restaurant_bidsUncheckedUpdateManyWithoutRestaurantsNestedInput
   }
@@ -54248,6 +54389,10 @@ export namespace Prisma {
     plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: Date | string
     image_path?: string | null
+    source_seed_id?: string | null
+    source_names?: restaurantsCreatesource_namesInput | string[]
+    source_row_hash?: string | null
+    synced_at?: Date | string | null
   }
 
   export type restaurantsUpdateManyMutationInput = {
@@ -54262,6 +54407,10 @@ export namespace Prisma {
     plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     image_path?: NullableStringFieldUpdateOperationsInput | string | null
+    source_seed_id?: NullableStringFieldUpdateOperationsInput | string | null
+    source_names?: restaurantsUpdatesource_namesInput | string[]
+    source_row_hash?: NullableStringFieldUpdateOperationsInput | string | null
+    synced_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type restaurantsUncheckedUpdateManyInput = {
@@ -54276,6 +54425,10 @@ export namespace Prisma {
     plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     image_path?: NullableStringFieldUpdateOperationsInput | string | null
+    source_seed_id?: NullableStringFieldUpdateOperationsInput | string | null
+    source_names?: restaurantsUpdatesource_namesInput | string[]
+    source_row_hash?: NullableStringFieldUpdateOperationsInput | string | null
+    synced_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type role_permissionsCreateInput = {
@@ -56080,6 +56233,8 @@ export namespace Prisma {
     created_at?: SortOrder
     updated_at?: SortOrder
     lock_no?: SortOrder
+    data_origin?: SortOrder
+    synced_at?: SortOrder
   }
 
   export type dishesAvgOrderByAggregateInput = {
@@ -56094,6 +56249,8 @@ export namespace Prisma {
     created_at?: SortOrder
     updated_at?: SortOrder
     lock_no?: SortOrder
+    data_origin?: SortOrder
+    synced_at?: SortOrder
   }
 
   export type dishesMinOrderByAggregateInput = {
@@ -56104,6 +56261,8 @@ export namespace Prisma {
     created_at?: SortOrder
     updated_at?: SortOrder
     lock_no?: SortOrder
+    data_origin?: SortOrder
+    synced_at?: SortOrder
   }
 
   export type dishesSumOrderByAggregateInput = {
@@ -56729,6 +56888,10 @@ export namespace Prisma {
     plus_code?: SortOrder
     created_at?: SortOrder
     image_path?: SortOrder
+    source_seed_id?: SortOrder
+    source_names?: SortOrder
+    source_row_hash?: SortOrder
+    synced_at?: SortOrder
   }
 
   export type restaurantsAvgOrderByAggregateInput = {
@@ -56746,6 +56909,9 @@ export namespace Prisma {
     image_url?: SortOrder
     created_at?: SortOrder
     image_path?: SortOrder
+    source_seed_id?: SortOrder
+    source_row_hash?: SortOrder
+    synced_at?: SortOrder
   }
 
   export type restaurantsMinOrderByAggregateInput = {
@@ -56758,6 +56924,9 @@ export namespace Prisma {
     image_url?: SortOrder
     created_at?: SortOrder
     image_path?: SortOrder
+    source_seed_id?: SortOrder
+    source_row_hash?: SortOrder
+    synced_at?: SortOrder
   }
 
   export type restaurantsSumOrderByAggregateInput = {
@@ -58432,6 +58601,10 @@ export namespace Prisma {
     deleteMany?: payoutsScalarWhereInput | payoutsScalarWhereInput[]
   }
 
+  export type restaurantsCreatesource_namesInput = {
+    set: string[]
+  }
+
   export type dishesCreateNestedManyWithoutRestaurantsInput = {
     create?: XOR<dishesCreateWithoutRestaurantsInput, dishesUncheckedCreateWithoutRestaurantsInput> | dishesCreateWithoutRestaurantsInput[] | dishesUncheckedCreateWithoutRestaurantsInput[]
     connectOrCreate?: dishesCreateOrConnectWithoutRestaurantsInput | dishesCreateOrConnectWithoutRestaurantsInput[]
@@ -58458,6 +58631,11 @@ export namespace Prisma {
     connectOrCreate?: restaurant_bidsCreateOrConnectWithoutRestaurantsInput | restaurant_bidsCreateOrConnectWithoutRestaurantsInput[]
     createMany?: restaurant_bidsCreateManyRestaurantsInputEnvelope
     connect?: restaurant_bidsWhereUniqueInput | restaurant_bidsWhereUniqueInput[]
+  }
+
+  export type restaurantsUpdatesource_namesInput = {
+    set?: string[]
+    push?: string | string[]
   }
 
   export type dishesUpdateManyWithoutRestaurantsNestedInput = {
@@ -59399,6 +59577,8 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
+    data_origin?: string
+    synced_at?: Date | string | null
     dish_media?: dish_mediaCreateNestedManyWithoutDishesInput
     dish_reviews?: dish_reviewsCreateNestedManyWithoutDishesInput
     restaurants: restaurantsCreateNestedOneWithoutDishesInput
@@ -59411,6 +59591,8 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
+    data_origin?: string
+    synced_at?: Date | string | null
     dish_media?: dish_mediaUncheckedCreateNestedManyWithoutDishesInput
     dish_reviews?: dish_reviewsUncheckedCreateNestedManyWithoutDishesInput
   }
@@ -59566,6 +59748,8 @@ export namespace Prisma {
     created_at?: DateTimeFilter<"dishes"> | Date | string
     updated_at?: DateTimeFilter<"dishes"> | Date | string
     lock_no?: IntFilter<"dishes"> | number
+    data_origin?: StringFilter<"dishes"> | string
+    synced_at?: DateTimeNullableFilter<"dishes"> | Date | string | null
   }
 
   export type dish_categoriesCreateWithoutDish_category_featuresInput = {
@@ -60318,6 +60502,8 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
+    data_origin?: string
+    synced_at?: Date | string | null
     dish_reviews?: dish_reviewsCreateNestedManyWithoutDishesInput
     dish_categories: dish_categoriesCreateNestedOneWithoutDishesInput
     restaurants: restaurantsCreateNestedOneWithoutDishesInput
@@ -60331,6 +60517,8 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
+    data_origin?: string
+    synced_at?: Date | string | null
     dish_reviews?: dish_reviewsUncheckedCreateNestedManyWithoutDishesInput
   }
 
@@ -60569,6 +60757,8 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
+    data_origin?: StringFieldUpdateOperationsInput | string
+    synced_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dish_reviews?: dish_reviewsUpdateManyWithoutDishesNestedInput
     dish_categories?: dish_categoriesUpdateOneRequiredWithoutDishesNestedInput
     restaurants?: restaurantsUpdateOneRequiredWithoutDishesNestedInput
@@ -60582,6 +60772,8 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
+    data_origin?: StringFieldUpdateOperationsInput | string
+    synced_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dish_reviews?: dish_reviewsUncheckedUpdateManyWithoutDishesNestedInput
   }
 
@@ -61507,6 +61699,8 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
+    data_origin?: string
+    synced_at?: Date | string | null
     dish_media?: dish_mediaCreateNestedManyWithoutDishesInput
     dish_categories: dish_categoriesCreateNestedOneWithoutDishesInput
     restaurants: restaurantsCreateNestedOneWithoutDishesInput
@@ -61520,6 +61714,8 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
+    data_origin?: string
+    synced_at?: Date | string | null
     dish_media?: dish_mediaUncheckedCreateNestedManyWithoutDishesInput
   }
 
@@ -61584,6 +61780,8 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
+    data_origin?: StringFieldUpdateOperationsInput | string
+    synced_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dish_media?: dish_mediaUpdateManyWithoutDishesNestedInput
     dish_categories?: dish_categoriesUpdateOneRequiredWithoutDishesNestedInput
     restaurants?: restaurantsUpdateOneRequiredWithoutDishesNestedInput
@@ -61597,6 +61795,8 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
+    data_origin?: StringFieldUpdateOperationsInput | string
+    synced_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dish_media?: dish_mediaUncheckedUpdateManyWithoutDishesNestedInput
   }
 
@@ -61782,6 +61982,10 @@ export namespace Prisma {
     plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: Date | string
     image_path?: string | null
+    source_seed_id?: string | null
+    source_names?: restaurantsCreatesource_namesInput | string[]
+    source_row_hash?: string | null
+    synced_at?: Date | string | null
     restaurant_bids?: restaurant_bidsCreateNestedManyWithoutRestaurantsInput
   }
 
@@ -61797,6 +62001,10 @@ export namespace Prisma {
     plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: Date | string
     image_path?: string | null
+    source_seed_id?: string | null
+    source_names?: restaurantsCreatesource_namesInput | string[]
+    source_row_hash?: string | null
+    synced_at?: Date | string | null
     restaurant_bids?: restaurant_bidsUncheckedCreateNestedManyWithoutRestaurantsInput
   }
 
@@ -61938,6 +62146,10 @@ export namespace Prisma {
     plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     image_path?: NullableStringFieldUpdateOperationsInput | string | null
+    source_seed_id?: NullableStringFieldUpdateOperationsInput | string | null
+    source_names?: restaurantsUpdatesource_namesInput | string[]
+    source_row_hash?: NullableStringFieldUpdateOperationsInput | string | null
+    synced_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     restaurant_bids?: restaurant_bidsUpdateManyWithoutRestaurantsNestedInput
   }
 
@@ -61953,6 +62165,10 @@ export namespace Prisma {
     plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     image_path?: NullableStringFieldUpdateOperationsInput | string | null
+    source_seed_id?: NullableStringFieldUpdateOperationsInput | string | null
+    source_names?: restaurantsUpdatesource_namesInput | string[]
+    source_row_hash?: NullableStringFieldUpdateOperationsInput | string | null
+    synced_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     restaurant_bids?: restaurant_bidsUncheckedUpdateManyWithoutRestaurantsNestedInput
   }
 
@@ -62437,6 +62653,10 @@ export namespace Prisma {
     plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: Date | string
     image_path?: string | null
+    source_seed_id?: string | null
+    source_names?: restaurantsCreatesource_namesInput | string[]
+    source_row_hash?: string | null
+    synced_at?: Date | string | null
     dishes?: dishesCreateNestedManyWithoutRestaurantsInput
   }
 
@@ -62452,6 +62672,10 @@ export namespace Prisma {
     plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: Date | string
     image_path?: string | null
+    source_seed_id?: string | null
+    source_names?: restaurantsCreatesource_namesInput | string[]
+    source_row_hash?: string | null
+    synced_at?: Date | string | null
     dishes?: dishesUncheckedCreateNestedManyWithoutRestaurantsInput
   }
 
@@ -62538,6 +62762,10 @@ export namespace Prisma {
     plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     image_path?: NullableStringFieldUpdateOperationsInput | string | null
+    source_seed_id?: NullableStringFieldUpdateOperationsInput | string | null
+    source_names?: restaurantsUpdatesource_namesInput | string[]
+    source_row_hash?: NullableStringFieldUpdateOperationsInput | string | null
+    synced_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dishes?: dishesUpdateManyWithoutRestaurantsNestedInput
   }
 
@@ -62553,6 +62781,10 @@ export namespace Prisma {
     plus_code?: NullableJsonNullValueInput | InputJsonValue
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     image_path?: NullableStringFieldUpdateOperationsInput | string | null
+    source_seed_id?: NullableStringFieldUpdateOperationsInput | string | null
+    source_names?: restaurantsUpdatesource_namesInput | string[]
+    source_row_hash?: NullableStringFieldUpdateOperationsInput | string | null
+    synced_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dishes?: dishesUncheckedUpdateManyWithoutRestaurantsNestedInput
   }
 
@@ -62607,6 +62839,8 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
+    data_origin?: string
+    synced_at?: Date | string | null
     dish_media?: dish_mediaCreateNestedManyWithoutDishesInput
     dish_reviews?: dish_reviewsCreateNestedManyWithoutDishesInput
     dish_categories: dish_categoriesCreateNestedOneWithoutDishesInput
@@ -62619,6 +62853,8 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
+    data_origin?: string
+    synced_at?: Date | string | null
     dish_media?: dish_mediaUncheckedCreateNestedManyWithoutDishesInput
     dish_reviews?: dish_reviewsUncheckedCreateNestedManyWithoutDishesInput
   }
@@ -63189,6 +63425,8 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
+    data_origin?: string
+    synced_at?: Date | string | null
   }
 
   export type dish_category_featuresUpdateWithoutDish_categoriesInput = {
@@ -63301,6 +63539,8 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
+    data_origin?: StringFieldUpdateOperationsInput | string
+    synced_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dish_media?: dish_mediaUpdateManyWithoutDishesNestedInput
     dish_reviews?: dish_reviewsUpdateManyWithoutDishesNestedInput
     restaurants?: restaurantsUpdateOneRequiredWithoutDishesNestedInput
@@ -63313,6 +63553,8 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
+    data_origin?: StringFieldUpdateOperationsInput | string
+    synced_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dish_media?: dish_mediaUncheckedUpdateManyWithoutDishesNestedInput
     dish_reviews?: dish_reviewsUncheckedUpdateManyWithoutDishesNestedInput
   }
@@ -63324,6 +63566,8 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
+    data_origin?: StringFieldUpdateOperationsInput | string
+    synced_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type dish_category_group_vote_candidate_votesCreateManyDish_category_group_vote_candidatesInput = {
@@ -63915,6 +64159,8 @@ export namespace Prisma {
     created_at?: Date | string
     updated_at?: Date | string
     lock_no?: number
+    data_origin?: string
+    synced_at?: Date | string | null
   }
 
   export type restaurant_bidsCreateManyRestaurantsInput = {
@@ -63938,6 +64184,8 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
+    data_origin?: StringFieldUpdateOperationsInput | string
+    synced_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dish_media?: dish_mediaUpdateManyWithoutDishesNestedInput
     dish_reviews?: dish_reviewsUpdateManyWithoutDishesNestedInput
     dish_categories?: dish_categoriesUpdateOneRequiredWithoutDishesNestedInput
@@ -63950,6 +64198,8 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
+    data_origin?: StringFieldUpdateOperationsInput | string
+    synced_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dish_media?: dish_mediaUncheckedUpdateManyWithoutDishesNestedInput
     dish_reviews?: dish_reviewsUncheckedUpdateManyWithoutDishesNestedInput
   }
@@ -63961,6 +64211,8 @@ export namespace Prisma {
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     lock_no?: IntFieldUpdateOperationsInput | number
+    data_origin?: StringFieldUpdateOperationsInput | string
+    synced_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type restaurant_bidsUpdateWithoutRestaurantsInput = {
