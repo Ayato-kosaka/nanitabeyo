@@ -789,9 +789,21 @@ export class DishMediaRepository {
       userId: string;
       reviewLimit?: number;
       preferredLanguageCodes?: readonly string[];
+      /**
+       * #1513 【設計】削除済み（`deleted_at IS NOT NULL`）の行も返すか。既定は false。
+       *
+       * 既定で弾くのは「消したはずの投稿がどこからも出てこない」を 1 箇所で保証するためで、
+       * これは変えない。true を渡してよいのは **墓標「削除されました」を出す画面だけ**
+       * （いいね一覧 / 保存一覧 / 通知 / レビューのサムネイル）。
+       * これらは行そのものを消すと «いいねしたはずなのに一覧に無い» «通知バッジと件数が合わない»
+       * になるため、行を残して中身だけ墓標へ差し替える。
+       *
+       * ⚠️ 検索結果・店舗フィード・投票候補へは渡さないこと（オーナー確定で «黙って除外» 側）。
+       */
+      includeDeleted?: boolean;
     },
   ): Promise<DishMediaEntryEntity[]> {
-    const { userId, reviewLimit = 6 } = option;
+    const { userId, reviewLimit = 6, includeDeleted = false } = option;
     if (dishMediaIds.length === 0) return [];
 
     const preferredLanguageCodes = normalizePreferredLanguageCodes(
@@ -799,9 +811,14 @@ export class DishMediaRepository {
     );
 
     const dishMedias = await this.prisma.prisma.dish_media.findMany({
-      // #1513 ここが「詳細のどの経路からも出さない」の要。いいね/保存タブ・通知・
-      // ?ids= はすべてこのメソッドを通るので、ここで弾けば一括で消える
-      where: { id: { in: dishMediaIds }, deleted_at: null },
+      // #1513 ここが「詳細のどの経路からも出さない」の要。検索・店舗フィード・?ids= は
+      // すべてこのメソッドを通るので、ここで弾けば一括で消える。
+      // 墓標を出す画面（いいね/保存/通知/レビューのサムネイル）だけが includeDeleted で
+      // この既定を外し、行を残したまま中身を墓標へ差し替える
+      where: {
+        id: { in: dishMediaIds },
+        ...(includeDeleted ? {} : { deleted_at: null }),
+      },
       include: {
         dish_media_likes: { where: { user_id: userId } }, // User がいいねしているか
         dish_media_analysis_results: true, // #292 【設計】いいね数は like_total から取得（トゥルース源）

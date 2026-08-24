@@ -114,6 +114,12 @@ export class DishMediaService {
       userId: string;
       reviewLimit?: number;
       preferredLanguageCodes?: readonly string[];
+      /**
+       * #1513 削除済みの行も返すか（既定 false）。
+       * true を渡してよいのは墓標「削除されました」を出す画面だけ。
+       * 詳細は `DishMediaRepository.getDishMediaEntriesByIds` の JSDoc を参照
+       */
+      includeDeleted?: boolean;
     },
   ): Promise<{ items: DishMediaEntry[] }> {
     if (!dishMediaIds.length) return { items: [] };
