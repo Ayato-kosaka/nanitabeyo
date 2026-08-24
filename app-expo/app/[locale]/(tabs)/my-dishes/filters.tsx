@@ -5,6 +5,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { PrimaryButton } from "@/components/PrimaryButton";
+import { type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
 import { useScreenTrace } from "@/hooks/useScreenTrace";
@@ -139,6 +141,7 @@ function Chip({
 	onPress: () => void;
 	testID?: string;
 }) {
+	const styles = useThemedStyles(createStyles);
 	return (
 		<TouchableOpacity
 			testID={testID}
@@ -155,6 +158,7 @@ function Chip({
 }
 
 function Section({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
+	const styles = useThemedStyles(createStyles);
 	return (
 		<View style={styles.section}>
 			{/* #1375 実機確認（2 巡目）: 見出しは «小さく» するが、**消さない**。
@@ -193,6 +197,8 @@ function AccordionSection({
 	testID: string;
 	children: React.ReactNode;
 }) {
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 	const Chevron = expanded ? ChevronUp : ChevronDown;
 	return (
 		<View style={styles.section}>
@@ -208,7 +214,7 @@ function AccordionSection({
 				<Text style={styles.accordionValue} numberOfLines={1} testID={`${testID}-value`}>
 					{valueLabel}
 				</Text>
-				<Chevron size={14} color="#6B7280" />
+				<Chevron size={14} color={colors.textSecondary} />
 			</TouchableOpacity>
 			{expanded && <View style={styles.chipRow}>{children}</View>}
 		</View>
@@ -217,6 +223,7 @@ function AccordionSection({
 
 export default function MyDishesFiltersScreen() {
 	useScreenTrace("MyDishesFilters");
+	const styles = useThemedStyles(createStyles);
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const filter = useMyDishesFilterStore((s) => s.filter);
@@ -411,6 +418,27 @@ export default function MyDishesFiltersScreen() {
 					))}
 				</Section>
 
+				{/* #1375 実機確認（5 巡目）: 評価は料理カテゴリーより **上**。「食べた」を選ぶと
+				    まず «どのくらい美味しかったか» で絞りたい、というオーナーの操作順に合わせる。
+				    #1375 実機確認: 評価は「食べた」を選んだときだけ出す。
+				    want 行は評価を持たないので、以前は常に出したうえで不活性にし「なぜ押せないか」を
+				    注記で説明していた。押せない UI を説明するより、出さない方が短い */}
+				{ratingEnabled && (
+					<Section
+						title={i18n.t("MyDishes.filters.rating.title")}
+						description={i18n.t("MyDishes.filters.rating.description")}>
+						{RATING_CHOICES.map((rating) => (
+							<Chip
+								key={rating}
+								testID={`my-dishes-filter-rating-${rating}`}
+								label={i18n.t("MyDishes.filters.rating.min", { count: rating })}
+								selected={draft.minRating === rating}
+								onPress={() => selectMinRating(rating)}
+							/>
+						))}
+					</Section>
+				)}
+
 				{/* #1375（3 巡目）: 料理カテゴリーの絞り込み。候補は «いま出ている記録の中で多いもの» */}
 				{categoryFacets.length > 0 && (
 					<Section
@@ -439,25 +467,6 @@ export default function MyDishesFiltersScreen() {
 								}}
 							/>
 						)}
-					</Section>
-				)}
-
-				{/* #1375 実機確認: 評価は「食べた」を選んだときだけ出す。
-				    want 行は評価を持たないので、以前は常に出したうえで不活性にし「なぜ押せないか」を
-				    注記で説明していた。押せない UI を説明するより、出さない方が短い */}
-				{ratingEnabled && (
-					<Section
-						title={i18n.t("MyDishes.filters.rating.title")}
-						description={i18n.t("MyDishes.filters.rating.description")}>
-						{RATING_CHOICES.map((rating) => (
-							<Chip
-								key={rating}
-								testID={`my-dishes-filter-rating-${rating}`}
-								label={i18n.t("MyDishes.filters.rating.min", { count: rating })}
-								selected={draft.minRating === rating}
-								onPress={() => selectMinRating(rating)}
-							/>
-						))}
 					</Section>
 				)}
 
@@ -571,125 +580,134 @@ export default function MyDishesFiltersScreen() {
 	);
 }
 
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		backgroundColor: "#FFFFFF",
-	},
-	content: {
-		paddingHorizontal: 16,
-		paddingBottom: 24,
-	},
-	section: {
-		marginTop: 20,
-	},
-	axisChip: {
-		alignSelf: "flex-start",
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 6,
-		paddingHorizontal: 12,
-		paddingVertical: 8,
-		borderRadius: 16,
-		backgroundColor: "#F3F4F6",
-	},
-	axisChipExpanded: {
-		backgroundColor: "#FDE7E1",
-	},
-	axisChipLabel: {
-		fontSize: 13,
-		fontWeight: "700",
-		color: "#374151",
-	},
-	accordionValue: {
-		fontSize: 13,
-		color: "#6B7280",
-		flexShrink: 1,
-	},
-	// #1375 実機確認: 見出しは «小さくてよい»。大きい見出しが並ぶとチップより目立ってしまう
-	sectionTitle: {
-		fontSize: 12,
-		fontWeight: "700",
-		color: "#9CA3AF",
-		marginBottom: 8,
-	},
-	sectionDescription: {
-		fontSize: 12,
-		color: "#6B7280",
-		lineHeight: 17,
-		marginBottom: 10,
-	},
-	axesDescription: {
-		marginTop: 16,
-		fontSize: 12,
-		color: "#6B7280",
-		lineHeight: 17,
-	},
-	chipRow: {
-		flexDirection: "row",
-		flexWrap: "wrap",
-		gap: 8,
-	},
-	chip: {
-		paddingHorizontal: 12,
-		paddingVertical: 8,
-		borderRadius: 16,
-		backgroundColor: "#F3F4F6",
-	},
-	chipSelected: {
-		backgroundColor: "#FDE7E1",
-	},
-	chipDisabled: {
-		opacity: 0.4,
-	},
-	chipLabel: {
-		fontSize: 13,
-		color: "#374151",
-	},
-	chipLabelSelected: {
-		color: "#F05537",
-		fontWeight: "700",
-	},
-	chipLabelDisabled: {
-		color: "#9CA3AF",
-	},
-	hint: {
-		marginTop: 8,
-		fontSize: 12,
-		color: "#6B7280",
-	},
-	valueText: {
-		fontSize: 13,
-		color: "#374151",
-	},
-	linkButton: {
-		marginTop: 8,
-		alignSelf: "flex-start",
-	},
-	linkButtonLabel: {
-		fontSize: 13,
-		color: "#F05537",
-		fontWeight: "700",
-	},
-	footer: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 12,
-		paddingHorizontal: 16,
-		paddingVertical: 12,
-		borderTopWidth: 1,
-		borderTopColor: "#EEE",
-	},
-	resetButton: {
-		paddingHorizontal: 16,
-		paddingVertical: 12,
-	},
-	resetButtonLabel: {
-		fontSize: 14,
-		color: "#6B7280",
-		fontWeight: "700",
-	},
-	applyButton: {
-		flex: 1,
-	},
-});
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		container: {
+			flex: 1,
+			backgroundColor: c.surface,
+		},
+		content: {
+			paddingHorizontal: 16,
+			paddingBottom: 24,
+		},
+		section: {
+			marginTop: 20,
+		},
+		axisChip: {
+			alignSelf: "flex-start",
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 6,
+			paddingHorizontal: 12,
+			paddingVertical: 8,
+			borderRadius: 16,
+			backgroundColor: c.surfaceSubtle,
+		},
+		axisChipExpanded: {
+			backgroundColor: c.brandTintAlt,
+		},
+		axisChipLabel: {
+			fontSize: 13,
+			fontWeight: "700",
+			color: c.textSecondaryStrong,
+		},
+		accordionValue: {
+			fontSize: 13,
+			color: c.textSecondary,
+			flexShrink: 1,
+		},
+		// #1375 実機確認: 見出しは «小さくてよい»。大きい見出しが並ぶとチップより目立ってしまう
+		// #1375（5 巡目・デザインレビュー #10）見出しが自分の説明文より薄かった
+		// （12/700 #9CA3AF = プレースホルダ色 vs 説明文 12/400 #6B7280）。
+		// 正本 §2 のセクション見出しは 14–15/700
+		sectionTitle: {
+			fontSize: 14,
+			fontWeight: "700",
+			color: c.textPrimaryAlt,
+			marginBottom: 8,
+		},
+		sectionDescription: {
+			fontSize: 12,
+			color: c.textSecondary,
+			lineHeight: 17,
+			marginBottom: 10,
+		},
+		axesDescription: {
+			marginTop: 16,
+			fontSize: 12,
+			color: c.textSecondary,
+			lineHeight: 17,
+		},
+		chipRow: {
+			flexDirection: "row",
+			flexWrap: "wrap",
+			gap: 8,
+		},
+		chip: {
+			paddingHorizontal: 12,
+			paddingVertical: 8,
+			borderRadius: 16,
+			backgroundColor: c.surfaceSubtle,
+		},
+		chipSelected: {
+			backgroundColor: c.brandTintAlt,
+		},
+		chipDisabled: {
+			opacity: 0.4,
+		},
+		chipLabel: {
+			fontSize: 13,
+			color: c.textSecondaryStrong,
+		},
+		chipLabelSelected: {
+			color: c.brand,
+			fontWeight: "700",
+		},
+		chipLabelDisabled: {
+			color: c.textTertiary,
+		},
+		hint: {
+			marginTop: 8,
+			fontSize: 12,
+			color: c.textSecondary,
+		},
+		valueText: {
+			fontSize: 13,
+			color: c.textSecondaryStrong,
+		},
+		linkButton: {
+			marginTop: 8,
+			alignSelf: "flex-start",
+		},
+		linkButtonLabel: {
+			fontSize: 13,
+			color: c.brand,
+			fontWeight: "700",
+		},
+		footer: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 12,
+			paddingHorizontal: 16,
+			paddingVertical: 12,
+			borderTopWidth: 1,
+			// #1375（5 巡目・デザインレビュー #18）`#EEE` は正本のパレットに無い。罫線は #E5E7EB へ統一
+			borderTopColor: c.borderMuted,
+		},
+		// #1375（5 巡目・デザインレビュー #21）副 CTA が «枠も地も無い素のテキスト» で、
+		// 隣の赤い「適用する」との差が開きすぎていた。正本 §1「副 CTA は灰背景 + 濃灰文字」
+		resetButton: {
+			paddingHorizontal: 16,
+			paddingVertical: 12,
+			borderRadius: 8,
+			backgroundColor: c.surfaceSubtle,
+		},
+		resetButtonLabel: {
+			fontSize: 14,
+			color: c.textSecondaryStrong,
+			fontWeight: "700",
+		},
+		applyButton: {
+			flex: 1,
+		},
+	});

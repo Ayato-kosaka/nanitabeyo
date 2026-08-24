@@ -19,7 +19,7 @@ import { SnsImportPage } from "../../pages/SnsImportPage";
  * i18n も `key` をそのまま返すモックである。つまりユニットテストが通っていても、
  * 次の 3 つは 1 つも保証されていない。
  *
- * 1. `/{locale}/sns-import?url=…` が **静的エクスポート + Hosting の rewrite 越しに開けるか**
+ * 1. `/{locale}/add-record?url=…` が **静的エクスポート + Hosting の rewrite 越しに開けるか**
  *    （クエリ前提の画面なので sitemap から外してある。#1400 `sitemap.test.ts`。
  *      配信経路の穴は過去に #281 で実際に起きている）
  * 2. 文言が **実際に描かれるか**（キーが引けずに空の画面になっていないか）

@@ -61,6 +61,9 @@ jest.mock("@/hooks/useLogger", () => ({ useLogger: () => ({ logFrontendEvent: mo
 // （実際に踏んで OOM した）。返す値は必ずモジュールスコープで固定すること。
 // （`jest.mock` の factory は巻き上げられるので、返す値は factory の «中» で 1 度だけ作る。
 // 外の const を参照すると out-of-scope variable として弾かれる）
+// #1375（5 巡目・性能）画面はタブのフォーカスを見て «見えているビューだけ取得する»。
+// ナビゲータの外で画面を描くテストなので、フォーカスは «前面» 固定でよい
+jest.mock("@react-navigation/native", () => ({ useIsFocused: () => true }));
 jest.mock("@/hooks/useLocale", () => ({ useLocale: () => ({ locale: "ja-JP", isJapanese: true }) }));
 jest.mock("@/hooks/useHaptics", () => {
 	const value = { lightImpact: jest.fn(), mediumImpact: jest.fn() };

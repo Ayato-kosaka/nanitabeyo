@@ -13,8 +13,12 @@ import {
 } from "@/stores/useDishMediaEntriesStore";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import DishMediaFeed from "@/features/dishMedia/components/DishMediaFeed";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 
 export default function ReviewPostScreen() {
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 	const { id: dishReviewId } = useLocalSearchParams<{ id?: string }>();
 	const { callBackend } = useAPICall();
 	const insets = useSafeAreaInsets();
@@ -87,9 +91,10 @@ export default function ReviewPostScreen() {
 	return (
 		<>
 			<View style={[styles.headerButton, { top: insets.top + 8 }]}>
-				<ChevronLeft size={28} color="#FFFFFF" onPress={handleBack} />
+				{/* 半透明の黒バッジ（メディアフィードの上）に載るアイコンなのでテーマで振らない */}
+				<ChevronLeft size={28} color={FixedColors.onMedia} onPress={handleBack} />
 			</View>
-			<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
+			<LinearGradient colors={colors.backgroundGradient} style={styles.container}>
 				{/* #644 【設計】データ取得中はローディング表示 */}
 				{dishMediaEntry ? (
 					<DishMediaFeed entriesKey={entriesKey} idType="dish_reviews" />
@@ -116,38 +121,40 @@ export default function ReviewPostScreen() {
 	);
 }
 
-const styles = StyleSheet.create({
-	container: { flex: 1 },
-	loadingContainer: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-	},
-	// #1398 Q3 引き当てできなかったときの空表示
-	emptyContainer: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-		gap: 16,
-		padding: 24,
-	},
-	emptyText: {
-		fontSize: 16,
-		color: "#666",
-		textAlign: "center",
-	},
-	emptyBackText: {
-		fontSize: 16,
-		fontWeight: "600",
-		color: "#2563EB",
-	},
-	headerButton: {
-		position: "absolute",
-		left: 16,
-		zIndex: 10,
-		backgroundColor: "rgba(0,0,0,0.4)",
-		borderRadius: 24,
-		marginLeft: 8,
-		padding: 8,
-	},
-});
+// #1509 【設計】テーマ依存のスタイルはファクトリで組む（contexts/ThemeProvider.tsx の useThemedStyles）
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		container: { flex: 1 },
+		loadingContainer: {
+			flex: 1,
+			justifyContent: "center",
+			alignItems: "center",
+		},
+		// #1398 Q3 引き当てできなかったときの空表示
+		emptyContainer: {
+			flex: 1,
+			justifyContent: "center",
+			alignItems: "center",
+			gap: 16,
+			padding: 24,
+		},
+		emptyText: {
+			fontSize: 16,
+			color: c.textMuted,
+			textAlign: "center",
+		},
+		emptyBackText: {
+			fontSize: 16,
+			fontWeight: "600",
+			color: c.linkAlt,
+		},
+		headerButton: {
+			position: "absolute",
+			left: 16,
+			zIndex: 10,
+			backgroundColor: "rgba(0,0,0,0.4)",
+			borderRadius: 24,
+			marginLeft: 8,
+			padding: 8,
+		},
+	});

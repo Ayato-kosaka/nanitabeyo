@@ -6,6 +6,8 @@ import { ImageOff } from "lucide-react-native";
 import { router } from "expo-router";
 import { GridList } from "@/components/collapsible-tabs/GridList";
 import { EmptyState } from "@/components/EmptyState";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 import { useContentWidth } from "@/hooks/useContentWidth";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
@@ -19,6 +21,7 @@ import { buildMarkAsEatenRoute } from "../markAsEaten";
 import { beginMarkAsEaten } from "../markAsEatenFunnel";
 import { resolveMyDishThumbnailUrl } from "../thumbnail";
 import { useMyDishesQuery } from "../hooks/useMyDishesQuery";
+import { MY_DISH_STATUS_COLORS } from "@/features/myDishes/statusColors";
 
 /**
  * #1396 my-dishes のリストビュー（設計書 (2/2) §7 の PR3）。
@@ -47,6 +50,8 @@ const MyDishCard = memo(function MyDishCard({
 	onPress: (i: MyDishItem) => void;
 	onPressMarkAsEaten: (i: MyDishItem) => void;
 }) {
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 	const { lightImpact } = useHaptics();
 	// #958 と同じ理由で useWindowDimensions ではなく CenteredAppShell の中央カラム幅を使う
 	const contentWidth = useContentWidth();
@@ -94,7 +99,7 @@ const MyDishCard = memo(function MyDishCard({
 				// （dishMedia === null というだけではこの分岐に来ない。#1396 当時の「写真なし記録＝この
 				// プレースホルダー」という前提は変わったが、testID は e2e から未参照のため残している）
 				<View testID="my-dishes-list-item-placeholder" style={[StyleSheet.absoluteFill, styles.placeholder]}>
-					<ImageOff size={20} color="#9CA3AF" />
+					<ImageOff size={20} color={colors.textTertiary} />
 					<Text style={styles.placeholderText} numberOfLines={2}>
 						{dishName ?? i18n.t("MyDishes.list.noPhoto")}
 					</Text>
@@ -107,28 +112,38 @@ const MyDishCard = memo(function MyDishCard({
 				pointerEvents="box-none">
 				<View style={styles.badgeRow}>
 					<View style={[styles.statusBadge, item.status === "want" ? styles.statusWant : styles.statusEaten]}>
-						<Text style={styles.statusBadgeText}>{i18n.t(`MyDishes.filters.status.${item.status}`)}</Text>
+						{/* 白塗りの側は文字も赤でなければ読めない。色は statusColors から 1 組で取る */}
+						<Text style={[styles.statusBadgeText, { color: MY_DISH_STATUS_COLORS[item.status].on }]}>
+							{i18n.t(`MyDishes.filters.status.${item.status}`)}
+						</Text>
 					</View>
 					{/* #1398 PR5 実画像へフォールバックしても「写真なし」自体は分かるようにする */}
 					{source && isNoPhoto && (
 						<View style={styles.noPhotoBadge} testID="my-dishes-list-item-no-photo-badge">
-							<ImageOff size={10} color="#FFFFFF" />
+							{/* 写真の上に載る固定濃色バッジの中なので固定の白でよい */}
+							<ImageOff size={10} color={FixedColors.onFilled} />
 							<Text style={styles.noPhotoBadgeText}>{i18n.t("MyDishes.list.noPhoto")}</Text>
 						</View>
 					)}
 				</View>
+				{/*
+				#1375（5 巡目・デザインレビュー #2 / #9）**3 列グリッドのタイルの密度を落とした。**
+
+				幅 119pt のタイルに 6 要素（状態バッジ / 写真なしバッジ / ★ / 料理名 / 店名 /
+				«食べたを記録»）が載っていて、どれも読めていなかった。落としたのは **★ と店名**の 2 つ。
+				どちらもタップ先の全画面 Feed が必ず出しているので、ここに無くても失われない。
+
+				«食べたを記録» は残す（1 タップの近道であり、消すと機能が減る）。ただし
+				`footer` の `alignItems` 既定 = stretch でタイル全幅の赤いピルになっており、
+				1 画面に 9〜12 本並んで **画面唯一の主アクセントであるべき FAB が負けていた**。
+				そこで `alignSelf: "flex-end"` で内容幅へ縮め、色を赤から «写真の上の半透明黒» へ
+				落としてある（`myDishCard.tsx` の `eatenButton`）。赤はこの画面では FAB と
+				状態バッジだけが使う。
+				*/}
 				<View style={styles.footer}>
-					{rating !== null && <Text style={styles.ratingText}>{`★${rating}`}</Text>}
 					<Text style={styles.footerText} numberOfLines={1}>
 						{dishName ?? item.restaurant.name ?? ""}
 					</Text>
-					{/* #1375 実機確認: 一覧に店舗名も出す。1 行目に料理名が出ているときだけ 2 行目を足す
-					    （料理名が無くて店名が 1 行目へ落ちている場合に同じ文字列が 2 行並ぶのを避ける） */}
-					{dishName && !!item.restaurant.name && (
-						<Text style={styles.footerSubText} numberOfLines={1} testID="my-dishes-list-item-restaurant">
-							{item.restaurant.name}
-						</Text>
-					)}
 					{/* #1398 PR4: want 行だけ。押しても親（= 全画面 Feed への遷移）は走らない */}
 					<MyDishEatenButton item={item} onPress={onPressMarkAsEaten} />
 				</View>
@@ -137,11 +152,17 @@ const MyDishCard = memo(function MyDishCard({
 	);
 });
 
-export function MyDishesListView() {
+/**
+ * @param enabled #1375（5 巡目・性能）取得を始めてよいか。
+ *   3 ビューは keep-alive なので、**見えていないビューまで取り直しに行かない**ようにする
+ *   （呼び出し元の `my-dishes/index.tsx` が「タブが前面 かつ このビューが選ばれている」を渡す）
+ */
+export function MyDishesListView({ enabled = true }: { enabled?: boolean } = {}) {
+	const styles = useThemedStyles(createStyles);
 	const { locale } = useLocale();
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
-	const { items, isLoading, isLoadingMore, error, hasNextPage, loadMore, refresh } = useMyDishesQuery();
+	const { items, isLoading, isLoadingMore, error, hasNextPage, loadMore, refresh } = useMyDishesQuery({ enabled });
 
 	const data = useMemo<MyDishGridItem[]>(() => items.map((item) => ({ id: item.key, item })), [items]);
 
@@ -254,86 +275,90 @@ export function MyDishesListView() {
 	);
 }
 
-const styles = StyleSheet.create({
-	gridContent: {
-		paddingHorizontal: PADDING_HORIZONTAL,
-		paddingVertical: 8,
-	},
-	gridRow: {
-		gap: GAP,
-	},
-	card: {
-		marginBottom: GAP,
-		borderRadius: 8,
-		overflow: "hidden",
-		backgroundColor: "#F3F4F6",
-	},
-	placeholder: {
-		alignItems: "center",
-		justifyContent: "center",
-		gap: 4,
-		paddingHorizontal: 6,
-		backgroundColor: "#F3F4F6",
-	},
-	placeholderText: {
-		fontSize: 10,
-		color: "#6B7280",
-		textAlign: "center",
-	},
-	badgeRow: {
-		flexDirection: "row",
-		padding: 6,
-		gap: 4,
-	},
-	statusBadge: {
-		paddingHorizontal: 6,
-		paddingVertical: 2,
-		borderRadius: 10,
-	},
-	noPhotoBadge: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 2,
-		paddingHorizontal: 6,
-		paddingVertical: 2,
-		borderRadius: 10,
-		backgroundColor: "rgba(17,24,39,0.6)",
-	},
-	noPhotoBadgeText: {
-		fontSize: 9,
-		fontWeight: "700",
-		color: "#FFFFFF",
-	},
-	// #1375 実機確認（2 巡目）: 食べたい = 緑（myDishCard.tsx と必ず一致させる）
-	statusWant: {
-		backgroundColor: "rgba(22,163,74,0.9)",
-	},
-	statusEaten: {
-		backgroundColor: "rgba(240,85,55,0.9)",
-	},
-	statusBadgeText: {
-		fontSize: 10,
-		fontWeight: "700",
-		color: "#FFFFFF",
-	},
-	footer: {
-		position: "absolute",
-		left: 6,
-		right: 6,
-		bottom: 6,
-		gap: 2,
-	},
-	ratingText: {
-		fontSize: 11,
-		fontWeight: "700",
-		color: "#FFFFFF",
-	},
-	footerText: {
-		fontSize: 11,
-		color: "#FFFFFF",
-	},
-	footerSubText: {
-		fontSize: 10,
-		color: "rgba(255,255,255,0.85)",
-	},
-});
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		gridContent: {
+			paddingHorizontal: PADDING_HORIZONTAL,
+			paddingVertical: 8,
+		},
+		gridRow: {
+			gap: GAP,
+		},
+		card: {
+			marginBottom: GAP,
+			borderRadius: 8,
+			overflow: "hidden",
+			backgroundColor: c.surfaceSubtle,
+		},
+		placeholder: {
+			alignItems: "center",
+			justifyContent: "center",
+			gap: 4,
+			paddingHorizontal: 6,
+			backgroundColor: c.surfaceSubtle,
+		},
+		placeholderText: {
+			fontSize: 10,
+			color: c.textSecondary,
+			textAlign: "center",
+		},
+		badgeRow: {
+			flexDirection: "row",
+			padding: 6,
+			gap: 4,
+		},
+		statusBadge: {
+			paddingHorizontal: 6,
+			paddingVertical: 2,
+			borderRadius: 10,
+		},
+		noPhotoBadge: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 2,
+			paddingHorizontal: 6,
+			paddingVertical: 2,
+			borderRadius: 10,
+			backgroundColor: "rgba(17,24,39,0.6)",
+		},
+		noPhotoBadgeText: {
+			fontSize: 9,
+			fontWeight: "700",
+			color: FixedColors.onMedia,
+		},
+		// #1375（5 巡目）塗りの有無で区別する: 食べたい = 白塗り赤枠 / 食べた = 赤塗り
+		statusWant: {
+			backgroundColor: MY_DISH_STATUS_COLORS.want.fill,
+			borderWidth: 1,
+			borderColor: MY_DISH_STATUS_COLORS.want.border,
+		},
+		statusEaten: {
+			backgroundColor: MY_DISH_STATUS_COLORS.eaten.fill,
+			borderWidth: 1,
+			borderColor: MY_DISH_STATUS_COLORS.eaten.border,
+		},
+		statusBadgeText: {
+			fontSize: 10,
+			fontWeight: "700",
+		},
+		footer: {
+			position: "absolute",
+			left: 6,
+			right: 6,
+			bottom: 6,
+			gap: 2,
+		},
+		ratingText: {
+			fontSize: 11,
+			fontWeight: "700",
+			color: FixedColors.onMedia,
+		},
+		footerText: {
+			fontSize: 11,
+			color: FixedColors.onMedia,
+		},
+		footerSubText: {
+			fontSize: 10,
+			color: "rgba(255,255,255,0.85)",
+		},
+	});

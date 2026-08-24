@@ -4,6 +4,8 @@ import { Image } from "expo-image";
 import { Pencil as Edit3 } from "lucide-react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Card } from "@/components/Card";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
 import { GetUserProfileResponse } from "@shared/api/v1/res";
@@ -38,6 +40,9 @@ const formatNumber = (num: number): string => {
 };
 
 export function ProfileHeader({ profile, isGuest = false, onEditProfile, onLogin }: ProfileHeaderProps) {
+	// #1509 テーマ切替はこの画面（マイページ）から行うので、見出しが読めなくならないよう色だけ追従させる
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 	const avatarUrl = useMemo(() => profile.avatarUrls?.md, [profile]);
 
 	return (
@@ -46,7 +51,7 @@ export function ProfileHeader({ profile, isGuest = false, onEditProfile, onLogin
 			<View style={styles.header} pointerEvents="box-none">
 				{/* Display Name */}
 				{/* #948 【仕様】ゲストは locale 非依存のダミー値(profileData.ts)ではなく現在言語の「ゲスト」表示にする */}
-				<Text style={[styles.displayName]} pointerEvents="none">
+				<Text style={[styles.displayName, { color: colors.textPrimary }]} pointerEvents="none">
 					{isGuest ? i18n.t("Profile.guestDisplayName") : profile.display_name}
 				</Text>
 			</View>
@@ -79,7 +84,7 @@ export function ProfileHeader({ profile, isGuest = false, onEditProfile, onLogin
 						) : (
 							// avatarUrl がない場合のフォールバック
 							<View style={styles.avatarPlaceholder}>
-								<Ionicons name="person-circle-outline" size={48} color="#999" />
+								<Ionicons name="person-circle-outline" size={48} color={colors.iconPlaceholder} />
 							</View>
 						)}
 
@@ -124,7 +129,8 @@ export function ProfileHeader({ profile, isGuest = false, onEditProfile, onLogin
 								onPress={onEditProfile || (() => {})}
 								label={i18n.t("Profile.buttons.editProfile")}
 								shadowColor="transparent"
-								icon={<Edit3 size={16} color="#FFFFFF" />}
+								// PrimaryButton の地は常に濃い（components/PrimaryButton.tsx は未テーマ化）ため文字側も固定
+								icon={<Edit3 size={16} color={FixedColors.onFilled} />}
 							/>
 						)}
 					</View>
@@ -134,96 +140,98 @@ export function ProfileHeader({ profile, isGuest = false, onEditProfile, onLogin
 	);
 }
 
-const styles = StyleSheet.create({
-	header: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		paddingHorizontal: 16,
-		paddingVertical: 12,
-	},
-	headerTitle: {
-		fontSize: 20,
-		fontWeight: "700",
-		color: "#1A1A1A",
-		letterSpacing: -0.5,
-	},
-	cardContainer: {},
-	card: {
-		alignItems: "center",
-	},
-	profileHeader: {
-		flexDirection: "row",
-		alignItems: "center",
-		marginBottom: 16,
-	},
-	avatar: {
-		width: 80,
-		height: 80,
-		borderRadius: 20,
-		borderWidth: 3,
-		borderColor: "#FFFFFF",
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 0 },
-		shadowOpacity: 0.15,
-		shadowRadius: 8,
-		elevation: 6,
-	},
-	avatarPlaceholder: {
-		width: 80,
-		height: 80,
-		borderRadius: 20,
-		borderWidth: 3,
-		borderColor: "#FFFFFF",
-		backgroundColor: "#F3F4F6",
-		justifyContent: "center",
-		alignItems: "center",
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 0 },
-		shadowOpacity: 0.15,
-		shadowRadius: 8,
-		elevation: 6,
-	},
-	statsContainer: {
-		flex: 1,
-		flexDirection: "row",
-		justifyContent: "space-around",
-	},
-	statColumn: {
-		alignItems: "center",
-	},
-	statNumber: {
-		fontSize: 20,
-		fontWeight: "700",
-		color: "#1A1A1A",
-		marginBottom: 2,
-		letterSpacing: -0.3,
-	},
-	statLabel: {
-		fontSize: 13,
-		color: "#6B7280",
-		fontWeight: "500",
-	},
-	displayName: {
-		flexShrink: 1,
-		fontSize: 18,
-		fontWeight: "700",
-		color: "#1A1A1A",
-		textAlign: "left",
-		marginBottom: 8,
-		letterSpacing: -0.3,
-	},
-	bio: {
-		fontSize: 15,
-		color: "#6B7280",
-		textAlign: "center",
-		lineHeight: 20,
-		marginBottom: 16,
-		fontWeight: "400",
-	},
-	actionButtons: {
-		width: "100%",
-		flexDirection: "row",
-		gap: 8,
-	},
-});
+// #1469 【設計】テーマ依存のスタイルはファクトリで組む（contexts/ThemeProvider.tsx の useThemedStyles）
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		header: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+			paddingHorizontal: 16,
+			paddingVertical: 12,
+		},
+		headerTitle: {
+			fontSize: 20,
+			fontWeight: "700",
+			color: c.textPrimary,
+			letterSpacing: -0.5,
+		},
+		cardContainer: {},
+		card: {
+			alignItems: "center",
+		},
+		profileHeader: {
+			flexDirection: "row",
+			alignItems: "center",
+			marginBottom: 16,
+		},
+		avatar: {
+			width: 80,
+			height: 80,
+			borderRadius: 20,
+			borderWidth: 3,
+			borderColor: c.surface,
+			shadowColor: FixedColors.shadow,
+			shadowOffset: { width: 0, height: 0 },
+			shadowOpacity: 0.15,
+			shadowRadius: 8,
+			elevation: 6,
+		},
+		avatarPlaceholder: {
+			width: 80,
+			height: 80,
+			borderRadius: 20,
+			borderWidth: 3,
+			borderColor: c.surface,
+			backgroundColor: c.surfaceSubtle,
+			justifyContent: "center",
+			alignItems: "center",
+			shadowColor: FixedColors.shadow,
+			shadowOffset: { width: 0, height: 0 },
+			shadowOpacity: 0.15,
+			shadowRadius: 8,
+			elevation: 6,
+		},
+		statsContainer: {
+			flex: 1,
+			flexDirection: "row",
+			justifyContent: "space-around",
+		},
+		statColumn: {
+			alignItems: "center",
+		},
+		statNumber: {
+			fontSize: 20,
+			fontWeight: "700",
+			color: c.textPrimary,
+			marginBottom: 2,
+			letterSpacing: -0.3,
+		},
+		statLabel: {
+			fontSize: 13,
+			color: c.textSecondary,
+			fontWeight: "500",
+		},
+		displayName: {
+			flexShrink: 1,
+			fontSize: 18,
+			fontWeight: "700",
+			color: c.textPrimary,
+			textAlign: "left",
+			marginBottom: 8,
+			letterSpacing: -0.3,
+		},
+		bio: {
+			fontSize: 15,
+			color: c.textSecondary,
+			textAlign: "center",
+			lineHeight: 20,
+			marginBottom: 16,
+			fontWeight: "400",
+		},
+		actionButtons: {
+			width: "100%",
+			flexDirection: "row",
+			gap: 8,
+		},
+	});

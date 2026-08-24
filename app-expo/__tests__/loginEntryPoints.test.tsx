@@ -52,11 +52,23 @@ jest.mock("expo-router", () => {
 jest.mock("@/contexts/AuthProvider", () => ({
 	useAuth: () => ({ user: mockUser, isAuthResolved: true }),
 }));
+// #1375（5 巡目・性能）画面はタブのフォーカスを見て «見えているビューだけ取得する»。
+// ナビゲータの外で画面を描くテストなので、フォーカスは «前面» 固定でよい
+jest.mock("@react-navigation/native", () => ({ useIsFocused: () => true }));
 jest.mock("@/hooks/useLocale", () => ({ useLocale: () => ({ locale: "ja-JP", isJapanese: true }) }));
 jest.mock("@/hooks/useHaptics", () => ({
 	useHaptics: () => ({ lightImpact: jest.fn(), mediumImpact: jest.fn() }),
 }));
 jest.mock("@/hooks/useLogger", () => ({ useLogger: () => ({ logFrontendEvent: jest.fn() }) }));
+// #1375（5 巡目）チュートリアルは **必ずスタブ化する**。
+// 実体は Modal + 無限ループのアニメーション + 座標の測り直しを持つので、
+// マウントすると jest がアイドルにならず OOM で落ちる（実際に落ちた）。
+// 料理提案画面のテスト（groupVoteShareTokenGuard.test.tsx）が
+// TopicsSpotlightTutorial をスタブ化しているのと同じ理由。
+jest.mock("@/features/myDishes/components/MyDishesSpotlightTutorial", () => ({
+	MY_DISHES_TUTORIAL_STORAGE_KEY: "my_dishes_spotlight_tutorial_seen_v1",
+	MyDishesSpotlightTutorial: () => null,
+}));
 jest.mock("@/hooks/useScreenTrace", () => ({ useScreenTrace: () => {} }));
 jest.mock("@/contexts/SnackbarProvider", () => ({ useSnackbar: () => ({ showSnackbar: jest.fn() }) }));
 // #1402 マイページ本体がログアウトの確認ダイアログを持つようになった（旧設定画面から移動）。

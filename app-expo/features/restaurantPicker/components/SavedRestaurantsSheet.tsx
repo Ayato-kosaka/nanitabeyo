@@ -10,6 +10,8 @@ import i18n from "@/lib/i18n";
 import { getCacheKeyForImage } from "@/lib/image";
 import type { QueryMeSavedRestaurantsResponse } from "@shared/api/v1/res";
 import { SkeletonShimmer } from "@/components/SkeletonShimmer";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 import { InteractionManager } from "react-native";
 import { ScrollView } from "react-native";
 import { useContentWidth } from "@/hooks/useContentWidth";
@@ -52,7 +54,7 @@ type SavedRestaurant = QueryMeSavedRestaurantsResponse["data"][number];
  * その場合、意図的な縦ドラッグでもカルーセルの Pan が fail するまで
  * （`failOffsetY = 20dp`）シートを掴めず、展開操作に遅れが出る。
  * どちらの体感がましかは実機でしか判断できないため、#1126 は実機確認へ残している
- * （`docs/manual-verification-parallel-dev-7he5dw.md`）。
+ * （Issue #1126）。
  */
 const GATES_SHEET_DRAG = Platform.OS === "android";
 
@@ -133,6 +135,8 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 			onRestaurantReviewPress,
 			onSnapToRestaurant,
 		} = props;
+		const { colors } = useAppTheme();
+		const styles = useThemedStyles(createStyles);
 		const widthMetrics = useWidthMetrics();
 		const sheetDetents = useSheetDetents();
 		const sheetRef = useRef<TrueSheet>(null);
@@ -267,7 +271,7 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 					/>
 				</View>
 			),
-			[onRestaurantCardPress, onRestaurantReviewPress, widthMetrics.savedRestaurantItemContainer],
+			[onRestaurantCardPress, onRestaurantReviewPress, widthMetrics.savedRestaurantItemContainer, styles],
 		);
 
 		return (
@@ -278,7 +282,7 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 				// #1126 横スワイプ中はシートを掴ませない（縦へ引いた場合はカルーセルが fail するので true のまま）
 				draggable={isSheetDraggable(detentIndex, GATES_SHEET_DRAG && isSwipingCarousel)}
 				cornerRadius={24}
-				backgroundColor="#FFFFFF"
+				backgroundColor={colors.surface}
 				dismissible={false}
 				dimmed={false}
 				scrollable={detentIndex === 1}
@@ -415,6 +419,8 @@ function PrimaryCard({
 	onPress: () => void;
 	onReview?: () => void;
 }) {
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 	return (
 		<TouchableOpacity style={styles.savedRestaurantCard} activeOpacity={0.7} onPress={onPress}>
 			<Image
@@ -432,9 +438,10 @@ function PrimaryCard({
 					<PrimaryButton
 						onPress={onReview}
 						label={i18n.t("SelectRestaurant.postPhotoVideo")}
-						colors={["#F05537", "#F05537"]}
+						colors={[colors.brand, colors.brand]}
 						shadowColor={"transparent"}
-						labelStyle={{ color: "#FFF", fontSize: 12 }}
+						// ブランド色の塗りはライト / ダークで変わらないため、上の文字は固定の白でよい
+						labelStyle={{ color: FixedColors.onFilled, fontSize: 12 }}
 						style={{ alignSelf: "flex-end" }}
 					/>
 				)}
@@ -445,6 +452,7 @@ function PrimaryCard({
 
 // #644 【UX】ローディングスケルトンカードコンポーネント
 function SkeletonCard() {
+	const styles = useThemedStyles(createStyles);
 	return (
 		<View style={styles.savedRestaurantCard}>
 			{/* 画像エリア */}
@@ -463,7 +471,8 @@ function SkeletonCard() {
 	);
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
 	container: {
 		paddingTop: 12,
 		paddingBottom: 20,
@@ -486,7 +495,7 @@ const styles = StyleSheet.create({
 	savedRestaurantsTitle: {
 		fontSize: 14,
 		fontWeight: "600",
-		color: "#666",
+		color: c.textMuted,
 	},
 	// 幅は useWidthMetrics で算出してスタイル配列で合成する（#1067）
 	carouselWrapper: {
@@ -514,10 +523,10 @@ const styles = StyleSheet.create({
 	savedRestaurantCard: {
 		flex: 1,
 		flexDirection: "row",
-		backgroundColor: "#FFF",
+		backgroundColor: c.surface,
 		borderRadius: 12,
 		height: CARD_HEIGHT,
-		shadowColor: "#000000",
+		shadowColor: FixedColors.shadow,
 		shadowOffset: { width: 0, height: 0 },
 		shadowOpacity: 0.2,
 		shadowRadius: 8,
@@ -537,18 +546,18 @@ const styles = StyleSheet.create({
 	savedRestaurantName: {
 		fontSize: 16,
 		fontWeight: "600",
-		color: "#1A1A1A",
+		color: c.textPrimary,
 		marginBottom: 8,
 	},
 	headerHint: {
 		fontSize: 12,
-		color: "#6B7280",
+		color: c.textSecondary,
 		lineHeight: 17,
 		marginTop: 4,
 	},
 	emptyStateText: {
 		fontSize: 14,
-		color: "#666",
+		color: c.textMuted,
 		textAlign: "center",
 		marginTop: 8,
 		marginBottom: 16,

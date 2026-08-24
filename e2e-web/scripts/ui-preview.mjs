@@ -49,7 +49,10 @@ import { chromium } from "@playwright/test";
 const dir = process.env.UI_PREVIEW_OUT_DIR ?? "./ui-preview-shots";
 mkdirSync(dir, { recursive: true });
 const now = Math.floor(Date.now() / 1000);
-const user = { id: "00000000-0000-4000-8000-000000000001", aud: "authenticated", role: "authenticated", email: "", is_anonymous: true, app_metadata: { provider: "anonymous", providers: ["anonymous"] }, user_metadata: {}, identities: [], created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+// #1375 5 巡目: 「食べたを記録」はログインが要る（ゲストにはサインイン画面が出るのが正しい挙動）。
+// 撮影用のセッションは **ログイン済み**にする。以前は is_anonymous: true で、
+// eaten タブを撮ろうとするとサインイン画面しか撮れなかった
+const user = { id: "00000000-0000-4000-8000-000000000001", aud: "authenticated", role: "authenticated", email: "preview@example.com", is_anonymous: false, app_metadata: { provider: "anonymous", providers: ["anonymous"] }, user_metadata: {}, identities: [], created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
 const session = { access_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ4IiwiZXhwIjo5OTk5OTk5OTk5fQ.x", token_type: "bearer", expires_in: 3600, expires_at: now + 3600, refresh_token: "r", user };
 
 // 1x1 PNG (orange-ish) data
@@ -59,8 +62,10 @@ const pad2 = (v) => (v < 10 ? `0${v}` : String(v));
 const d = new Date();
 const ym = (n) => { const a = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() - n, 15, 3)); return a; };
 const iso = (n, day) => { const a = ym(n); return new Date(Date.UTC(a.getUTCFullYear(), a.getUTCMonth(), day, 3)).toISOString(); };
-const item = (key, occurredAt, withMedia, cat = ["Q1", "ラーメン"]) => ({
-  key, status: "eaten", occurredAt, savedAt: null, eatenAt: occurredAt,
+// #1375 5 巡目: status を引数にした（緑=食べたい / 赤=食べた の内訳バッジを撮るため。
+// 既定は従来どおり "eaten" なので、既存の呼び出しの見え方は変わらない）
+const item = (key, occurredAt, withMedia, cat = ["Q1", "ラーメン"], status = "eaten") => ({
+  key, status, occurredAt, savedAt: status === "want" ? occurredAt : null, eatenAt: status === "eaten" ? occurredAt : null,
   restaurant: { id: "r-1", name: "醤油ラーメン一番", image_url: "https://img.example.invalid/r.jpg" },
   dish: { id: `dish-${key}`, category_id: cat[0], name: cat[1], reviewCount: 3, averageRating: 4.2, categoryImageUrl: "https://img.example.invalid/c.jpg" },
   dishMedia: withMedia ? { id: `dm-${key}`, thumbnailImageUrl: "https://img.example.invalid/t.jpg", mediaImageUrl: "https://img.example.invalid/m.jpg", mediaType: "image" } : null,
@@ -71,6 +76,11 @@ const page1 = [
   item("a", iso(0, 2), true), item("b", iso(0, 5), true), item("b2", iso(0, 5), true), item("c", iso(0, 11), true),
   item("d", iso(0, 14), false), item("e", iso(0, 20), true),
   item("f", iso(1, 3), true), item("g", iso(1, 9), true), item("h", iso(1, 22), true),
+  // #1375 5 巡目: 同じ日に «食べたい» と «食べた» が混ざる日を作る（日バッジが緑と赤に割れる）
+  item("w1", iso(0, 5), true, ["Q1", "ラーメン"], "want"),
+  item("w2", iso(0, 5), true, ["Q2", "寿司"], "want"),
+  item("w3", iso(0, 11), true, ["Q3", "カレー"], "want"),
+  item("w4", iso(0, 18), true, ["Q4", "うどん"], "want"),
   // #1375 4 巡目: 料理カテゴリー絞り込みの「もっと見る」を出すため 10 カテゴリー以上にする
   ...[["Q2","寿司"],["Q3","カレー"],["Q4","うどん"],["Q5","そば"],["Q6","天ぷら"],["Q7","焼き鳥"],["Q8","餃子"],["Q9","パスタ"],["Q10","ハンバーガー"],["Q11","牛丼"]]
     .map((cat, i) => item(`cat-${cat[0]}`, iso(0, 3 + (i % 20)), true, cat)),
@@ -178,7 +188,13 @@ await context.route("**/img.example.invalid/**", (r) => r.fulfill({ contentType:
 await context.route("**/www.instagram.com/**", (r) =>
   r.fulfill({
     contentType: "text/html",
-    body: `<html><body style="margin:0;background:#000;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif"><div style="text-align:center"><div style="width:220px;height:220px;border:3px solid #E1306C;border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px">▶ Instagram embed<br/>(stub)</div>DZnIRziT70s</div></body></html>`,
+    // #1375（案 A）**実物の Instagram `/embed/` と同じ «積み方» にしてあるスタブ。**
+    // 実機 Detox の動画のコマを実測した内訳（セル幅 320 のとき）を再現している:
+    //   ヘッダ帯 17px 相当（幅の 5.3%）→ 写真（幅いっぱいの正方形〜4:5）→ いいね欄・コメント欄・白帯。
+    // 切り取り（features/dishMedia/embedCrop.ts）が効いているかは、
+    // **この白い部分が 1px も見えないこと**で判定する。中央に置いた「▶」は
+    // Instagram 自前の再生ボタンの位置を表す（こちらの再生ボタンと重なっていないかの確認用）
+    body: `<html><body style="margin:0;background:#fff;font-family:sans-serif"><div style="height:5.3vw;background:#fff;border-bottom:1px solid #dbdbdb;display:flex;align-items:center;gap:6px;padding:0 8px;box-sizing:border-box"><div style="width:3.5vw;height:3.5vw;border-radius:50%;background:#E1306C"></div><div style="font-size:2.2vw;color:#262626">msg.eatokyo</div><div style="margin-left:auto;font-size:2vw;color:#0095f6">Instagramで表示</div></div><div style="width:100vw;height:100vw;background:linear-gradient(160deg,#8B2E1F,#D9531E 45%,#7A2414);position:relative"><div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:16vw;height:16vw;border-radius:50%;background:rgba(0,0,0,.45);color:#fff;display:flex;align-items:center;justify-content:center;font-size:7vw">&#9654;</div></div><div style="padding:8px;background:#fff"><div style="font-size:3vw;color:#262626">&#9825; &#9836; &#8599;</div><div style="font-size:2.4vw;font-weight:700;margin-top:6px">いいね！169,527件</div><div style="font-size:2.4vw;color:#8e8e8e;margin-top:6px">コメントを追加…</div><div style="height:30vh;background:#fff"></div></div></body></html>`,
   }),
 );
 await context.route("**/localhost:9999/**", (r) => {
@@ -187,6 +203,16 @@ await context.route("**/localhost:9999/**", (r) => {
   const env = (data) => r.fulfill({ json: { success: true, data } });
   if (p.endsWith("/health")) return env({ status: "ok" });
   if (p.endsWith("/v1/users/me/dishes")) return env({ data: page1, nextCursor: null, meta: { oldestOccurredAt: iso(1, 1) } });
+  // #1375 5 巡目: Map ビューの下帯（店名 + 緑/赤の内訳バッジ + 凡例）を撮るため
+  if (p.endsWith("/v1/users/me/dishes/map-pins"))
+    return env({
+      data: [
+        { restaurant: { id: "r-1", name: "醤油ラーメン一番", image_url: "https://img.example.invalid/r.jpg", location: { latitude: 35.68, longitude: 139.76 }, latitude: 35.68, longitude: 139.76 }, counts: { want: 2, eaten: 3 }, latestOccurredAt: iso(0, 20), representativeThumbnailUrl: "https://img.example.invalid/t.jpg" },
+        { restaurant: { id: "r-2", name: "寿司処 まえだ", image_url: null, location: { latitude: 35.69, longitude: 139.77 }, latitude: 35.69, longitude: 139.77 }, counts: { want: 1, eaten: 0 }, latestOccurredAt: iso(0, 14), representativeThumbnailUrl: null },
+        { restaurant: { id: "r-3", name: "カレーの店 ボンベイ", image_url: "https://img.example.invalid/r.jpg", location: { latitude: 35.67, longitude: 139.75 }, latitude: 35.67, longitude: 139.75 }, counts: { want: 0, eaten: 4 }, latestOccurredAt: iso(0, 11), representativeThumbnailUrl: "https://img.example.invalid/t.jpg" },
+      ],
+      truncated: false,
+    });
   if (p.endsWith("/v1/dish-media/imports/resolve")) return env(resolveResponse);
   if (p.endsWith("/v1/dish-media") && u.searchParams.has("ids")) {
     // 要求された id を echo する（id が食い違うとフィード側の突き合わせで 0 件になる）
@@ -196,6 +222,22 @@ await context.route("**/localhost:9999/**", (r) => {
       notFound: [],
     });
   }
+  // #1375 5 巡目: 食べたを記録タブの店名検索と «このお店の写真から選ぶ»
+  if (p.endsWith("/v1/restaurants/search"))
+    return env([
+      { restaurant: { id: "r-1", name: "醤油ラーメン一番", imageUrls: { sm: "https://img.example.invalid/r.jpg" } }, meta: { averageRating: 4.2, reviewCount: 12 } },
+      { restaurant: { id: "r-2", name: "らーめん 大和", imageUrls: { sm: "https://img.example.invalid/r.jpg" } }, meta: { averageRating: 3.9, reviewCount: 4 } },
+    ]);
+  if (/\/v1\/restaurants\/[^/]+\/dish-media$/.test(p))
+    return env({
+      data: [1, 2, 3, 4].map((n) => ({
+        restaurant: { id: "r-1", name: "醤油ラーメン一番" },
+        dish: { id: `dish-${n}`, category_id: `cat-${n}`, name: ["味玉ラーメン", "つけ麺", "チャーシュー丼", "餃子"][n - 1], reviewCount: n, averageRating: 4 },
+        dish_media: { id: `dm-${n}`, isMine: false, isSaved: false, isLiked: false, likeCount: 0, mediaUrl: "https://img.example.invalid/m.jpg", thumbnailImageUrl: "https://img.example.invalid/t.jpg", media_type: "image" },
+        dish_reviews: [],
+      })),
+      nextCursor: null,
+    });
   if (p.includes("/v1/logs")) return env({});
   return env({});
 });
@@ -207,11 +249,43 @@ const goto = async (path) => { await page.goto("http://localhost:8081" + path, {
 
 // ─── 撮影シナリオ（撮りたい画面・状態はここへ足す） ───
 
+// 0. my-dishes のチュートリアル（#1375 5 巡目: 初見の人へ画面の使い方を指す）
+// ⚠️ 初回起動でしか自動で開かないので、**一番最初に**撮ること
+await goto("/ja-JP/my-dishes");
+await page.getByTestId("my-dishes-tutorial-overlay").first().waitFor({ timeout: 60000 }).catch((e) => console.log("tutorial wait:", e.message));
+await page.waitForTimeout(1500);
+await shot("tutorial-1-views");
+for (const step of ["2-openFeed", "3-add", "4-filter"]) {
+  await page.getByTestId("my-dishes-tutorial-next").click().catch((e) => console.log("next:", e.message));
+  await page.waitForTimeout(1200);
+  await shot(`tutorial-${step}`);
+}
+await page.getByTestId("my-dishes-tutorial-finish").click().catch((e) => console.log("finish:", e.message));
+await page.waitForTimeout(800);
+
+// 0b. 一覧（3 列グリッド）。#1375 5 巡目デザインレビュー #2/#9 でタイルの密度を落とし、
+// 「食べたを記録」を «全幅の赤いピル» から «内容幅の半透明黒» へ変えた結果を確かめる
+await page.waitForTimeout(2000);
+await shot("list-grid");
+// want タイル（「食べたを記録」の CTA が出るのは want だけ）まで送る
+await page.mouse.wheel(0, 900);
+await page.waitForTimeout(1200);
+await shot("list-grid-want");
+
 // 1. calendar
 await goto("/ja-JP/my-dishes?view=calendar");
 await page.getByTestId("my-dishes-calendar-list").waitFor({ timeout: 120000 }).catch((e) => console.log("calendar wait:", e.message));
 await page.waitForTimeout(3000);
 await shot("calendar");
+// 1b. calendar の最下部（凡例）
+await page.getByTestId("my-dishes-calendar-legend").first().waitFor({ timeout: 30000 }).catch((e) => console.log("legend wait:", e.message));
+await shot("calendar-legend");
+
+// 1c. map（下帯の店名 + 緑/赤の内訳 + 凡例）
+await goto("/ja-JP/my-dishes?view=map");
+await page.getByTestId("my-dishes-map-sheet").first().waitFor({ timeout: 120000 }).catch((e) => console.log("map sheet wait:", e.message));
+await page.waitForTimeout(2500);
+await shot("map-sheet");
 
 // 2. filters（先に一覧を訪れて store を満たす。カテゴリー候補は一覧のキャッシュから数える。
 // ⚠️ goto() はフルリロードで store が消えるので、フィルタへは **画面内のボタンから** 遷移する）
@@ -239,7 +313,7 @@ await page.waitForTimeout(500);
 await shot("filters-axis-closed-after-select");
 
 // 3. sns-import initial
-await goto("/ja-JP/sns-import");
+await goto("/ja-JP/add-record");
 await page.getByTestId("sns-import-screen").waitFor({ timeout: 120000 }).catch((e) => console.log("sns wait:", e.message));
 await page.waitForTimeout(2000);
 await shot("sns-import-initial");
@@ -255,6 +329,20 @@ await shot("sns-import-caption-expanded");
 await page.mouse.wheel(0, 600);
 await page.waitForTimeout(800);
 await shot("sns-import-resolved-bottom");
+
+// 3b. 食べたを記録タブ（#1375 5 巡目: 店選択の統一 + メディアの選び方）
+await goto("/ja-JP/add-record");
+await page.getByTestId("sns-import-screen").waitFor({ timeout: 120000 }).catch((e) => console.log("sns wait:", e.message));
+await page.waitForTimeout(1500);
+await page.getByTestId("sns-import-tab-eaten").click().catch((e) => console.log("eaten tab:", e.message));
+await page.waitForTimeout(1200);
+await shot("eaten-pick-restaurant");
+// 店名検索で 1 件選ぶ（restaurants/search をスタブしてある）
+await page.getByTestId("sns-import-eaten-restaurant-search-input").fill("ラーメン").catch((e) => console.log("eaten search:", e.message));
+await page.waitForTimeout(1200);
+await page.getByTestId("sns-import-eaten-restaurant-search-result-0").click().catch((e) => console.log("eaten result:", e.message));
+await page.waitForTimeout(2500);
+await shot("eaten-media-step");
 
 // 4. 取り込んだリールの再生（external_embed → web は iframe）。
 // 実ユーザー経路: カレンダー → 日付タップ → フィード（client-side 遷移で store を保つ）

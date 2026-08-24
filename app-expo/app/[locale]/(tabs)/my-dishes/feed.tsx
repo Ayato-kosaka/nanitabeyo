@@ -3,15 +3,17 @@
 - my-dishes の全画面 Feed を «画面» として提供する。スコープごとの中身は
   `features/myDishes/components/MyDishesFeedPage.tsx` が描く。
 
-## 軸の向きはスコープで変わる（#1375 実機確認 2 巡目）
+## 軸の向きは 2 スコープで揃える（#1375 実機確認 5 巡目）
 
 | scope | 外側（このファイルのページャ） | 内側（MyDishesFeedPage） |
 | --- | --- | --- |
-| `restaurant` | **横** = 前後の店舗 | 縦 = その店舗の記録 |
+| `restaurant` | **縦** = 前後の店舗 | 横 = その店舗の記録（n/m のバーを出す） |
 | `date` | **縦** = 前後の «記録がある日» | 横 = その日の記録（n/m のバーを出す） |
 
-date が縦になったのは実機確認の指摘による。「上フリックで次の日付へ、下フリックで前の
-日付へ遡り、横で同じ日の別の投稿を見る」— Instagram のストーリーズと同じ軸である。
+2 巡目で date だけを «縦=日 / 横=同じ日の投稿» にしたところ、5 巡目の実機確認で
+「Map から開いた方も同じにしてほしい（縦でレストランを切り替え、横で同じ店の中）」と
+指摘された。**同じ全画面フィードなのに入口によって指の向きが変わる**のが理由である。
+どちらも Instagram のストーリーズと同じ軸に揃えた。
 
 ## «前後» の決め方
 
@@ -40,6 +42,7 @@ import { FlatList, Platform, StyleSheet, TouchableOpacity, View } from "react-na
 import { router, useLocalSearchParams } from "expo-router";
 import { X } from "lucide-react-native";
 
+import { FixedColors } from "@/constants/Palette";
 import { MY_DISHES_EVENTS } from "@/features/myDishes/analytics";
 import { MyDishesFeedPage, feedScopeId, type MyDishesFeedScope } from "@/features/myDishes/components/MyDishesFeedPage";
 import { sliceScopeWindow, useMyDishesFeedScopeStore } from "@/features/myDishes/stores/useMyDishesFeedScopeStore";
@@ -74,7 +77,9 @@ export default function MyDishesFeedScreen() {
 	const scopeKind =
 		firstParam(scopeParam) === "date" || (firstParam(scopeParam) === null && date !== null) ? "date" : "restaurant";
 	// date = 縦ページャ / restaurant = 横ページャ（ファイル冒頭の表）
-	const isVerticalPager = scopeKind === "date";
+	// #1375 実機確認（5 巡目）: 外側は **常に縦**。scope が restaurant なら前後の店舗、
+	// date なら前後の «記録がある日» を縦フリックで行き来する（入口で指の向きを変えない）
+	const isVerticalPager = true;
 
 	const { locale } = useLocale();
 	const { lightImpact } = useHaptics();
@@ -189,7 +194,8 @@ export default function MyDishesFeedScreen() {
 					onPress={handleClose}
 					accessibilityRole="button"
 					accessibilityLabel={i18n.t("Common.close")}>
-					<X size={24} color="#FFF" />
+					{/* 固定黒のメディアビューアの上に載る閉じるボタン。テーマで振らない */}
+					<X size={24} color={FixedColors.onMedia} />
 				</TouchableOpacity>
 			</View>
 
@@ -239,10 +245,12 @@ export default function MyDishesFeedScreen() {
 	);
 }
 
+// テーマ非依存（メディアビューアの固定黒）なので、ファクトリ化せずモジュールスコープのままでよい
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: "#000",
+		// 「メディアを引き立てる黒背景」（DishMediaFeed.tsx と同じ仕様）。ライトでも黒のまま
+		backgroundColor: FixedColors.mediaBackground,
 	},
 	pagerContainer: {
 		flex: 1,

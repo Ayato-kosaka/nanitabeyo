@@ -1,5 +1,10 @@
 # BigQuery Schemas
 
+> **Before running any of these queries:** the `*_event_logs` views cannot prune partitions,
+> so a time-ranged query against them costs 18.4 GB/day instead of ~77 MB.
+> Rewrite time-ranged queries onto `run_googleapis_com_stdout` filtered on `timestamp`.
+> See [safety-policy.md](./safety-policy.md).
+
 Canonical schema reference:
 
 - `infra/big-query/migration/20251203T0000_backfill_legacy_log_tables_and_views.sql`

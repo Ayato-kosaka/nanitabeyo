@@ -106,7 +106,7 @@ describe("useSnsShareIntake（共有の受け取りから遷移まで）", () =>
 
 		expect(mockPush).toHaveBeenCalledTimes(1);
 		expect(mockPush).toHaveBeenCalledWith({
-			pathname: "/[locale]/sns-import",
+			pathname: "/[locale]/add-record",
 			params: { locale: "ja-JP", url: SHARED_POST_URL },
 		});
 	});
@@ -119,7 +119,7 @@ describe("useSnsShareIntake（共有の受け取りから遷移まで）", () =>
 		await mountIntake(makeSource(SHARED_POST_URL));
 
 		expect(mockPush).toHaveBeenCalledWith({
-			pathname: "/[locale]/sns-import",
+			pathname: "/[locale]/add-record",
 			params: { locale: "ja-JP", url: SHARED_POST_URL },
 		});
 	});
@@ -129,7 +129,7 @@ describe("useSnsShareIntake（共有の受け取りから遷移まで）", () =>
 
 		await mountIntake(makeSource(SHARED_POST_URL));
 
-		expect(mockPush.mock.calls[0][0]).toMatchObject({ pathname: "/[locale]/sns-import" });
+		expect(mockPush.mock.calls[0][0]).toMatchObject({ pathname: "/[locale]/add-record" });
 	});
 
 	// #1194 コールドスタートでは «マウント» と «認証の初期化» が競合する。待たずに判定すると
@@ -145,7 +145,7 @@ describe("useSnsShareIntake（共有の受け取りから遷移まで）", () =>
 
 		expect(mockWaitForAuthResolved).toHaveBeenCalled();
 		expect(mockPush).toHaveBeenCalledWith({
-			pathname: "/[locale]/sns-import",
+			pathname: "/[locale]/add-record",
 			params: { locale: "ja-JP", url: SHARED_POST_URL },
 		});
 	});
@@ -212,7 +212,7 @@ describe("useSnsShareIntake（共有の受け取りから遷移まで）", () =>
 		mockLocale = "en-US";
 		await mountIntake(source);
 		expect(mockPush).toHaveBeenCalledWith({
-			pathname: "/[locale]/sns-import",
+			pathname: "/[locale]/add-record",
 			params: { locale: "en-US", url: SHARED_POST_URL },
 		});
 	});

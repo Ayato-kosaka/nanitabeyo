@@ -28,6 +28,9 @@ import { Text } from "react-native";
 import i18n from "@/lib/i18n";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { useDishMediaBackgroundImageResources } from "@/features/dishMedia/hooks/useDishMediaBackgroundImageResources";
+// #1509 全画面フィードの黒背景・白文字はメディアを引き立てる固定色（テーマ非追従）
+import { FixedColors } from "@/constants/Palette";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 // --- ユーティリティ群（純粋関数） ------------------------------------------
 // インデックスを items.length の範囲内にクランプ
@@ -188,15 +191,28 @@ export default function DishMediaFeed({
 		({ item, index }: ListRenderItemInfo<string>) => (
 			// 各ページは厳密に画面サイズに合わせる（横のときは幅も固定しないとページングが崩れる）
 			<View style={{ height: Math.max(1, pageHeight), ...(horizontal ? { width: Math.max(1, pageWidth) } : {}) }}>
-				<DishMediaContent
-					id={item}
-					isActive={index === currentIndex}
-					getTitle={getTitle}
-					sessionId={sessionId.current}
-					entriesKey={entriesKey}
-					idType={idType}
-					backgroundImageState={getBackgroundImageState(item)}
-				/>
+				{/* #1375（5 巡目・安定性）**セル単位の ErrorBoundary。**
+				    `DishMediaContent` は entry が引けないと throw する設計（同ファイル冒頭のコメント）だが、
+				    その境界は検索結果のカルーセル（`DishMediaMap.tsx:315`）にしか無く、
+				    このフィード（my-dishes / 店舗 / 通知 / 投稿 / プロフィール）から throw すると
+				    **アプリ全体の ErrorBoundary まで抜けて «全画面エラー → トップへ戻る»** になっていた。
+				    ユーザーからは «落ちた» と区別がつかない。1 セルの再試行に閉じ込める。
+				    ⚠️ throw を残すか消すかは別論点。まず境界を `DishMediaMap` と揃える */}
+				<ErrorBoundary>
+					<DishMediaContent
+						id={item}
+						isActive={index === currentIndex}
+						// #1375（5 巡目・性能 B-2）動画プレイヤーは «見えている ±1» だけ実体化する。
+						// windowSize={5} は前後 2 ページぶんをマウントするので、素直に描くと
+						// 同時に 5 本のデコーダが立つ。±1 は先読み（スワイプ直後の黒画面を出さない）
+						isNearActive={Math.abs(index - currentIndex) <= 1}
+						getTitle={getTitle}
+						sessionId={sessionId.current}
+						entriesKey={entriesKey}
+						idType={idType}
+						backgroundImageState={getBackgroundImageState(item)}
+					/>
+				</ErrorBoundary>
 			</View>
 		),
 		[pageHeight, pageWidth, horizontal, currentIndex, getTitle, entriesKey, idType, getBackgroundImageState],
@@ -268,25 +284,25 @@ const styles = StyleSheet.create({
 	// ルートは常に黒背景（SafeAreaや余白での色抜け防止）
 	root: {
 		flex: 1,
-		backgroundColor: "#000",
+		backgroundColor: FixedColors.mediaBackground,
 	},
 	list: {
 		flex: 1,
-		backgroundColor: "#000", // メディアを引き立てる黒背景
+		backgroundColor: FixedColors.mediaBackground, // メディアを引き立てる黒背景
 	},
 	centerContainer: {
 		flex: 1,
 		justifyContent: "center",
 		alignItems: "center",
-		backgroundColor: "#000",
+		backgroundColor: FixedColors.mediaBackground,
 	},
 	loadingText: {
 		marginTop: 16,
-		color: "#FFF",
+		color: FixedColors.onMedia,
 		fontSize: 16,
 	},
 	errorText: {
-		color: "#FF6B6B",
+		color: FixedColors.errorOnMedia,
 		fontSize: 16,
 		textAlign: "center",
 		paddingHorizontal: 20,

@@ -118,6 +118,13 @@ const identityConflictError = {
 const loggedEventNames = (): string[] =>
 	mockLogFrontendEvent.mock.calls.map(([event]) => (event as { event_name: string }).event_name);
 
+type LoggedEvent = { event_name: string; error_level: string; payload?: Record<string, unknown> };
+
+const findLoggedEvent = (eventName: string): LoggedEvent | undefined =>
+	mockLogFrontendEvent.mock.calls
+		.map(([event]) => event as LoggedEvent)
+		.find((event) => event.event_name === eventName);
+
 beforeEach(() => {
 	// 認証結果は router params 側に載っている形にする（`code` があるものが選ばれる）
 	mockParams = { locale: "ja-JP", intent: "link", provider: "google", code: "dummy-code" };
@@ -201,6 +208,44 @@ describe("#1370 プロバイダ競合の告知（DialogProvider の confirm）",
 		expect(mockConfirm).not.toHaveBeenCalled();
 		expect(mockReplace).toHaveBeenCalledWith({ pathname: "/[locale]/profile", params: { locale: "ja-JP" } });
 		expect(loggedEventNames()).toContain("oauth_callback_error");
+	});
+
+	// #1433 ユーザーが同意画面で止めたときのレベル。
+	// 本番（2026-08-18T11:19:49Z / 1 ユーザー）では、直前に oauth_signin_browser_dismissed が
+	// log レベルで出ているのに、同じ 1 回の操作がここで error としても積まれていた。
+	it("access_denied（ユーザーが自分で止めた）は warn で記録する", async () => {
+		mockParams = {
+			locale: "ja-JP",
+			intent: "link",
+			provider: "google",
+			error: "access_denied",
+			error_description: "The user denied the request",
+		};
+		// 本番と同じく message が空の Error が飛んでくる形にする
+		mockHandleOAuthResultUrl.mockRejectedValue(new Error());
+
+		await render();
+
+		const logged = findLoggedEvent("oauth_callback_error");
+		expect(logged).toBeDefined();
+		expect(logged?.error_level).toBe("warn");
+		expect(logged?.payload).toMatchObject({ url_shape: expect.objectContaining({ error: "access_denied" }) });
+	});
+
+	// ⚠️ 判定を «error があること» まで広げないための番人。
+	// server_error / temporarily_unavailable はプロバイダ側の障害なので error のまま残す
+	it("access_denied 以外のプロバイダエラーは error のまま記録する", async () => {
+		mockParams = {
+			locale: "ja-JP",
+			intent: "link",
+			provider: "google",
+			error: "server_error",
+		};
+		mockHandleOAuthResultUrl.mockRejectedValue(new Error());
+
+		await render();
+
+		expect(findLoggedEvent("oauth_callback_error")?.error_level).toBe("error");
 	});
 });
 

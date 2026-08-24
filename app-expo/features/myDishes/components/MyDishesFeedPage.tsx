@@ -35,6 +35,8 @@ import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native
 import { shallow } from "zustand/shallow";
 
 import { LoadingIndicator } from "@/components/LoadingIndicator";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useThemedStyles } from "@/contexts/ThemeProvider";
 import DishMediaFeed from "@/features/dishMedia/components/DishMediaFeed";
 import { MyDishesFeedChips } from "@/features/myDishes/components/MyDishesFeedChips";
 import { myDishesFeedKey } from "@/features/myDishes/constants";
@@ -84,6 +86,7 @@ export const MyDishesFeedPage = React.memo(function MyDishesFeedPage({
 	dishMediaId = null,
 	isActive,
 }: MyDishesFeedPageProps) {
+	const styles = useThemedStyles(createStyles);
 	const restaurantId = scope.kind === "restaurant" ? scope.restaurantId : null;
 	const date = scope.kind === "date" ? scope.date : null;
 	const dishMediaIdParam = dishMediaId;
@@ -348,18 +351,21 @@ export const MyDishesFeedPage = React.memo(function MyDishesFeedPage({
 				<>
 					{/* ⚠️ `initialIndex` は «ids が確定してから» 渡す。DishMediaFeed は最初に届いた
 					    非空の ids で並びを固定するので、ここで描き始める時点の index が最終値になる。
-					    #1375 実機確認（2 巡目）: 日付スコープは **横** = 同じ日の別の投稿。
-					    縦は外側のページャ（前後の «記録がある日»）が受け持つ */}
+					    #1375 実機確認（5 巡目）: **どちらのスコープも横** = そのスコープの中の別の投稿。
+					    縦は外側のページャ（前後の «記録がある日» / 前後の店舗）が受け持つ。
+					    2 巡目では date だけ横にしていたが、入口によって指の向きが変わるのが
+					    分かりにくいという指摘を受けて揃えた */}
 					<DishMediaFeed
 						entriesKey={entriesKey}
 						idType="dish_media"
 						initialIndex={initialIndex}
 						onIndexChange={setViewedIndex}
-						horizontal={scope.kind === "date"}
+						horizontal
 					/>
-					{/* #1375 実機確認（2 巡目）: «その日の何個目を見ているか» をストーリーズと同じ
-					    セグメントバーで出す。件数が多い日はバーが細くなりすぎるので数字も添える */}
-					{scope.kind === "date" && feedIds.length > 1 && (
+					{/* #1375 実機確認（2 巡目）: «何個目を見ているか» をストーリーズと同じ
+					    セグメントバーで出す。件数が多いとバーが細くなりすぎるので数字も添える。
+					    5 巡目で横スクロールが両スコープになったので、バーも両方で出す */}
+					{feedIds.length > 1 && (
 						<View
 							style={{ ...styles.positionContainer, top: Platform.OS === "ios" ? 48 : 8 }}
 							pointerEvents="none"
@@ -406,66 +412,69 @@ export const MyDishesFeedPage = React.memo(function MyDishesFeedPage({
 	);
 });
 
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		backgroundColor: "#000",
-	},
-	centered: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-		padding: 16,
-	},
-	emptyText: {
-		fontSize: 16,
-		color: "#FFF",
-		textAlign: "center",
-	},
-	retryButton: {
-		marginTop: 16,
-		paddingHorizontal: 20,
-		paddingVertical: 10,
-		borderRadius: 20,
-		backgroundColor: "#357AFF",
-	},
-	retryText: {
-		fontSize: 14,
-		fontWeight: "600",
-		color: "#FFF",
-	},
-	// chips の帯。閉じるボタン（zIndex: 10）と同じ高さに置き、重ならないよう
-	// chips 側で右に余白を取っている（MyDishesFeedChips.tsx の `container`）
-	chipsContainer: {
-		position: "absolute",
-		left: 0,
-		right: 0,
-		zIndex: 9,
-	},
-	// «その日の n 件目» のインジケータ。閉じるボタン（右上）と重ならないよう右へ余白を取る
-	positionContainer: {
-		position: "absolute",
-		left: 16,
-		right: 64,
-		zIndex: 9,
-		gap: 4,
-	},
-	positionBars: {
-		flexDirection: "row",
-		gap: 3,
-	},
-	positionBar: {
-		flex: 1,
-		height: 2,
-		borderRadius: 1,
-		backgroundColor: "rgba(255,255,255,0.35)",
-	},
-	positionBarActive: {
-		backgroundColor: "#FFFFFF",
-	},
-	positionCounter: {
-		fontSize: 11,
-		fontWeight: "700",
-		color: "rgba(255,255,255,0.9)",
-	},
-});
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		container: {
+			flex: 1,
+			backgroundColor: FixedColors.badgeBackground,
+		},
+		centered: {
+			flex: 1,
+			justifyContent: "center",
+			alignItems: "center",
+			padding: 16,
+		},
+		emptyText: {
+			fontSize: 16,
+			color: FixedColors.onMedia,
+			textAlign: "center",
+		},
+		retryButton: {
+			marginTop: 16,
+			paddingHorizontal: 20,
+			paddingVertical: 10,
+			borderRadius: 20,
+			// #1375（5 巡目・デザインレビュー #3）パレットに無い青をやめる
+			backgroundColor: FixedColors.onMedia,
+		},
+		retryText: {
+			fontSize: 14,
+			fontWeight: "600",
+			// 地が白になったので文字は黒
+			color: c.textPrimaryAlt,
+		},
+		// chips の帯。閉じるボタン（zIndex: 10）と同じ高さに置き、重ならないよう
+		// chips 側で右に余白を取っている（MyDishesFeedChips.tsx の `container`）
+		chipsContainer: {
+			position: "absolute",
+			left: 0,
+			right: 0,
+			zIndex: 9,
+		},
+		// «その日の n 件目» のインジケータ。閉じるボタン（右上）と重ならないよう右へ余白を取る
+		positionContainer: {
+			position: "absolute",
+			left: 16,
+			right: 64,
+			zIndex: 9,
+			gap: 4,
+		},
+		positionBars: {
+			flexDirection: "row",
+			gap: 3,
+		},
+		positionBar: {
+			flex: 1,
+			height: 2,
+			borderRadius: 1,
+			backgroundColor: "rgba(255,255,255,0.35)",
+		},
+		positionBarActive: {
+			backgroundColor: FixedColors.onMedia,
+		},
+		positionCounter: {
+			fontSize: 11,
+			fontWeight: "700",
+			color: "rgba(255,255,255,0.9)",
+		},
+	});

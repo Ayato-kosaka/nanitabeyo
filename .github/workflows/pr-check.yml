@@ -63,6 +63,13 @@ jobs:
       - name: 依存関係をインストール
         run: pnpm install --frozen-lockfile
 
+      # #0 ドキュメント管理規約（docs/README.md）のうち機械的に検査できる部分。
+      # 2026-08 に *_IMPLEMENTATION.md / *_SUMMARY.md が堆積し、存在しない API を説明する
+      # 文書が複数残る事故が起きた（docs/decisions/20260823-documentation-cleanup.md）。
+      # git ls-files を見るだけで依存ゼロ・1 秒未満なので最速の位置に置く。
+      - name: ドキュメント管理規約を検査
+        run: pnpm assert:doc-hygiene
+
       # 4-1 は shared/dist を import せず shared/remoteConfig/remoteConfig.schema.ts を
       # AST として読むだけなので、shared build より前に置いて最速で赤にできる。
       - name: Remote Config 既定値のドリフトを検査
@@ -77,6 +84,13 @@ jobs:
       # 凍結の価値は利用者が社内タスク画面だけに閉じていることに全面的に依存している（#1350 §7）。
       - name: legacyBlurModal の import 境界を検査
         run: pnpm --filter app-expo assert:legacy-blur-modal-boundary
+
+      # #1469 で新画面が色を直書きし、ダークモードで «ヘッダーだけ黒く本体は白い» 画面が
+      # 量産された事故の再発防止（#1509）。画面 .tsx の引用符内 hex / "white" / "black" を落とす。
+      # レガシーは理由付きの EXCLUSIONS で凍結し、直書きが消えたらリストから消させる（ラチェット）。
+      # 依存ゼロ・ファイル走査のみなので shared build より前の最速の位置に置く。
+      - name: 画面ファイルの色直書きを検査
+        run: pnpm --filter app-expo assert:no-hardcoded-colors
 
       # #1196 エラートリアージの純関数群。外部I/Oゼロ（node:crypto のみ）で shared/dist にも
       # 依存しないため、shared build より前・最速の位置に置ける。

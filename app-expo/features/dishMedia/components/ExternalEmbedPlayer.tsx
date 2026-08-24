@@ -46,8 +46,17 @@ run 32654704176 で、埋め込み中央の「Instagramで見る」を踏んだ�
 **このコンポーネント自身が `useIsFocused()` を呼ぶと、Portal 配下（ナビゲータ外）で
 描かれた瞬間にフックが例外を投げてアプリごと落ちる**（Detox run 32658978146 で実測）。
 */
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { AppState, type AppStateStatus, StyleSheet, Text, TouchableOpacity, UIManager, View } from "react-native";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+	AppState,
+	type AppStateStatus,
+	StyleSheet,
+	Text,
+	TouchableOpacity,
+	UIManager,
+	View,
+	type LayoutChangeEvent,
+} from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import { GestureDetector, type GestureType } from "react-native-gesture-handler";
 import { Play, X } from "lucide-react-native";
@@ -81,6 +90,10 @@ const probeNativeWebView = (): ProbeResult => {
 		return { WebView: null, error: error instanceof Error ? error.message : String(error) };
 	}
 };
+// #1509 メディア（サムネイル）の上に重ねる再生 UI のため、テーマ非追従の FixedColors を使う
+import { FixedColors } from "@/constants/Palette";
+// #1375（案 A）Instagram の埋め込みから «写真だけ» を切り出すための寸法計算
+import { computeEmbedCropLayout } from "../embedCrop";
 
 export type ExternalEmbedPlayerProps = {
 	embed: Pick<DishMediaExternalEmbed, "provider" | "externalContentId" | "canonicalUrl" | "embedStatus">;
@@ -225,6 +238,15 @@ export function ExternalEmbedPlayer({
 		);
 	}
 
+	// #1375（案 A）Instagram の埋め込みが連れてくるヘッダ・いいね欄・白帯を切り取り、
+	// 写真だけをセル全面に敷く。計算の根拠は ../embedCrop.ts のヘッダを参照
+	const [cell, setCell] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
+	const handleLayout = useCallback((event: LayoutChangeEvent) => {
+		const { width, height } = event.nativeEvent.layout;
+		setCell((prev) => (prev.width === width && prev.height === height ? prev : { width, height }));
+	}, []);
+	const crop = useMemo(() => computeEmbedCropLayout(cell), [cell]);
+
 	const inlineAvailable = source !== null && NativeWebView !== null && !renderProcessGone;
 	const playButton = (
 		<TouchableOpacity
@@ -235,12 +257,22 @@ export function ExternalEmbedPlayer({
 			accessibilityLabel={i18n.t("DishMediaContent.embed.play", {
 				provider: source?.providerLabel ?? embed.provider,
 			})}>
-			<View style={styles.playCircle}>
-				<Play size={30} color="#FFFFFF" fill="#FFFFFF" />
+			{/*
+			#1375（オーナー指摘）**丸い再生ボタンを 2 つ出さない。**
+
+			切り取り後は Instagram 自身の再生ボタンが写真の中央＝セルの中央に来る。そこへ
+			こちらの丸を重ねると同じ場所に再生ボタンが 2 つ見える（実機の動画で指摘された）。
+			丸は Instagram のものに任せ、こちらはセル全面の透明なタップ受けと、
+			下寄せの小さな帯だけにする。役割（1 タップで操作モードへ入る）は変わらない。
+
+			⚠️ 下端ぴったりに置くとフィードの絞り込みチップの裏へ隠れる（web で実測）。
+			*/}
+			<View style={styles.playHint}>
+				<Play size={12} color={FixedColors.onMedia} fill={FixedColors.onMedia} />
+				<Text style={styles.playLabel}>
+					{i18n.t("DishMediaContent.embed.play", { provider: source?.providerLabel ?? embed.provider })}
+				</Text>
 			</View>
-			<Text style={styles.playLabel}>
-				{i18n.t("DishMediaContent.embed.play", { provider: source?.providerLabel ?? embed.provider })}
-			</Text>
 		</TouchableOpacity>
 	);
 
@@ -248,40 +280,48 @@ export function ExternalEmbedPlayer({
 		<>
 			{inlineAvailable && NativeWebView !== null && source !== null && (
 				<View
-					style={StyleSheet.absoluteFill}
+					style={styles.cropFrame}
+					onLayout={handleLayout}
 					pointerEvents={interactive ? "auto" : "none"}
 					testID="external-embed-webview">
-					<NativeWebView
-						source={{ uri: source.embedUrl }}
-						style={styles.webView}
-						allowsInlineMediaPlayback
-						mediaPlaybackRequiresUserAction={false}
-						// Android: target=_blank で «画面外の新しい WebView» を作らせない（ヘッダ参照）
-						setSupportMultipleWindows={false}
-						onOpenWindow={(event: { nativeEvent: { targetUrl: string } }) =>
-							openInAppBrowser(event.nativeEvent.targetUrl, "open_window")
-						}
-						onShouldStartLoadWithRequest={handleShouldStartLoad}
-						// レンダラが殺されたら黒いセルで放置せず、再生ボタン（ブラウザ縮退）へ戻す
-						onRenderProcessGone={() => {
-							logFrontendEvent({
-								event_name: "external_embed_render_process_gone",
-								error_level: "warn",
-								payload: { provider: embed.provider, platform: "android" },
-							});
-							setRenderProcessGone(true);
-							setInteractive(false);
-						}}
-						onContentProcessDidTerminate={() => {
-							logFrontendEvent({
-								event_name: "external_embed_render_process_gone",
-								error_level: "warn",
-								payload: { provider: embed.provider, platform: "ios" },
-							});
-							setRenderProcessGone(true);
-							setInteractive(false);
-						}}
-					/>
+					{/* セルの寸法が確定するまで WebView を作らない。中途半端な幅で読み込ませると、
+					    Instagram がその幅でレイアウトしてしまい切り取り位置がずれたまま残る */}
+					{crop !== null && (
+						<NativeWebView
+							source={{ uri: source.embedUrl }}
+							style={[
+								styles.webView,
+								{ width: crop.frameWidth, height: crop.frameHeight, left: crop.left, top: crop.top },
+							]}
+							allowsInlineMediaPlayback
+							mediaPlaybackRequiresUserAction={false}
+							// Android: target=_blank で «画面外の新しい WebView» を作らせない（ヘッダ参照）
+							setSupportMultipleWindows={false}
+							onOpenWindow={(event: { nativeEvent: { targetUrl: string } }) =>
+								openInAppBrowser(event.nativeEvent.targetUrl, "open_window")
+							}
+							onShouldStartLoadWithRequest={handleShouldStartLoad}
+							// レンダラが殺されたら黒いセルで放置せず、再生ボタン（ブラウザ縮退）へ戻す
+							onRenderProcessGone={() => {
+								logFrontendEvent({
+									event_name: "external_embed_render_process_gone",
+									error_level: "warn",
+									payload: { provider: embed.provider, platform: "android" },
+								});
+								setRenderProcessGone(true);
+								setInteractive(false);
+							}}
+							onContentProcessDidTerminate={() => {
+								logFrontendEvent({
+									event_name: "external_embed_render_process_gone",
+									error_level: "warn",
+									payload: { provider: embed.provider, platform: "ios" },
+								});
+								setRenderProcessGone(true);
+								setInteractive(false);
+							}}
+						/>
+					)}
 				</View>
 			)}
 			{interactive ? (
@@ -322,15 +362,24 @@ function ExitButton({ onPress }: { onPress: () => void }) {
 			onPress={onPress}
 			accessibilityRole="button"
 			accessibilityLabel={i18n.t("DishMediaContent.embed.exitInteractive")}>
-			<X size={18} color="#FFFFFF" />
+			{/* 写真の上に載る × なのでテーマ非追従の固定色 */}
+			<X size={18} color={FixedColors.onMedia} />
 		</TouchableOpacity>
 	);
 }
 
 const styles = StyleSheet.create({
-	webView: {
+	// #1375（案 A）はみ出した Instagram の UI をここで捨てる。
+	// これが無いと切り取りが成立せず、セルの外へ白帯が出る
+	cropFrame: {
 		...StyleSheet.absoluteFillObject,
-		backgroundColor: "#000",
+		overflow: "hidden",
+		backgroundColor: FixedColors.mediaBackground,
+	},
+	// 位置と寸法は computeEmbedCropLayout が決めるので、ここでは絶対配置だけ宣言する
+	webView: {
+		position: "absolute",
+		backgroundColor: FixedColors.mediaBackground,
 	},
 	overlayContainer: {
 		...StyleSheet.absoluteFillObject,
@@ -355,26 +404,30 @@ const styles = StyleSheet.create({
 		justifyContent: "center",
 		alignItems: "center",
 	},
+	// #1375: セル全面が «1 タップで操作モードへ» の受け。中央には何も描かない
+	// （中央には Instagram 自身の再生ボタンが来るため。同じ場所に丸を 2 つ出さない）
 	playButton: {
+		...StyleSheet.absoluteFillObject,
+		justifyContent: "flex-end",
 		alignItems: "center",
-		gap: 10,
+		paddingBottom: 124,
 	},
-	playCircle: {
-		width: 72,
-		height: 72,
-		borderRadius: 36,
-		backgroundColor: "rgba(0,0,0,0.55)",
-		borderWidth: 2,
-		borderColor: "rgba(255,255,255,0.9)",
-		justifyContent: "center",
+	// «押せば動く» ことだけ伝える小さな帯。丸い再生ボタンの代わり
+	playHint: {
+		flexDirection: "row",
 		alignItems: "center",
-		// 再生アイコンは光学的に僅かに右へ寄せると中心に見える
-		paddingLeft: 4,
+		gap: 6,
+		paddingHorizontal: 12,
+		paddingVertical: 6,
+		borderRadius: 16,
+		backgroundColor: "rgba(0,0,0,0.55)",
+		borderWidth: StyleSheet.hairlineWidth,
+		borderColor: "rgba(255,255,255,0.5)",
 	},
 	playLabel: {
-		fontSize: 13,
+		fontSize: 12,
 		fontWeight: "700",
-		color: "#FFFFFF",
+		color: FixedColors.onMedia,
 		textShadowColor: "rgba(0,0,0,0.6)",
 		textShadowRadius: 6,
 	},
