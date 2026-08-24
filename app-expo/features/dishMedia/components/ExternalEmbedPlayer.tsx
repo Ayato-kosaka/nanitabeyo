@@ -286,41 +286,58 @@ export function ExternalEmbedPlayer({
 					testID="external-embed-webview">
 					{/* セルの寸法が確定するまで WebView を作らない。中途半端な幅で読み込ませると、
 					    Instagram がその幅でレイアウトしてしまい切り取り位置がずれたまま残る */}
+					{/* 写真の箱。ここを拡大してセル全面へ広げる。
+					    ⚠️ WebView 本体は **素の幅のまま**にすること。大きな寸法を渡すと
+					    Android が描画面を確保できずセルが真っ黒になる（../embedCrop.ts のヘッダ） */}
 					{crop !== null && (
-						<NativeWebView
-							source={{ uri: source.embedUrl }}
-							style={[
-								styles.webView,
-								{ width: crop.frameWidth, height: crop.frameHeight, left: crop.left, top: crop.top },
-							]}
-							allowsInlineMediaPlayback
-							mediaPlaybackRequiresUserAction={false}
-							// Android: target=_blank で «画面外の新しい WebView» を作らせない（ヘッダ参照）
-							setSupportMultipleWindows={false}
-							onOpenWindow={(event: { nativeEvent: { targetUrl: string } }) =>
-								openInAppBrowser(event.nativeEvent.targetUrl, "open_window")
-							}
-							onShouldStartLoadWithRequest={handleShouldStartLoad}
-							// レンダラが殺されたら黒いセルで放置せず、再生ボタン（ブラウザ縮退）へ戻す
-							onRenderProcessGone={() => {
-								logFrontendEvent({
-									event_name: "external_embed_render_process_gone",
-									error_level: "warn",
-									payload: { provider: embed.provider, platform: "android" },
-								});
-								setRenderProcessGone(true);
-								setInteractive(false);
-							}}
-							onContentProcessDidTerminate={() => {
-								logFrontendEvent({
-									event_name: "external_embed_render_process_gone",
-									error_level: "warn",
-									payload: { provider: embed.provider, platform: "ios" },
-								});
-								setRenderProcessGone(true);
-								setInteractive(false);
-							}}
-						/>
+						<View
+							style={{
+								width: crop.frameWidth,
+								height: crop.mediaHeight,
+								overflow: "hidden",
+								transform: [{ scale: crop.scale }],
+							}}>
+							<NativeWebView
+								source={{ uri: source.embedUrl }}
+								style={[
+									styles.webView,
+									{
+										width: crop.frameWidth,
+										height: crop.frameHeight,
+										left: 0,
+										// ヘッダ帯ぶん上へずらして箱の外へ追い出す
+										top: crop.frameTop,
+									},
+								]}
+								allowsInlineMediaPlayback
+								mediaPlaybackRequiresUserAction={false}
+								// Android: target=_blank で «画面外の新しい WebView» を作らせない（ヘッダ参照）
+								setSupportMultipleWindows={false}
+								onOpenWindow={(event: { nativeEvent: { targetUrl: string } }) =>
+									openInAppBrowser(event.nativeEvent.targetUrl, "open_window")
+								}
+								onShouldStartLoadWithRequest={handleShouldStartLoad}
+								// レンダラが殺されたら黒いセルで放置せず、再生ボタン（ブラウザ縮退）へ戻す
+								onRenderProcessGone={() => {
+									logFrontendEvent({
+										event_name: "external_embed_render_process_gone",
+										error_level: "warn",
+										payload: { provider: embed.provider, platform: "android" },
+									});
+									setRenderProcessGone(true);
+									setInteractive(false);
+								}}
+								onContentProcessDidTerminate={() => {
+									logFrontendEvent({
+										event_name: "external_embed_render_process_gone",
+										error_level: "warn",
+										payload: { provider: embed.provider, platform: "ios" },
+									});
+									setRenderProcessGone(true);
+									setInteractive(false);
+								}}
+							/>
+						</View>
 					)}
 				</View>
 			)}
@@ -380,6 +397,9 @@ const styles = StyleSheet.create({
 		...StyleSheet.absoluteFillObject,
 		overflow: "hidden",
 		backgroundColor: FixedColors.mediaBackground,
+		// 写真の箱を中央へ置く（拡大は箱の中心を軸に効くので、これで «cover» になる）
+		alignItems: "center",
+		justifyContent: "center",
 	},
 	// 位置と寸法は computeEmbedCropLayout が決めるので、ここでは絶対配置だけ宣言する
 	webView: {
