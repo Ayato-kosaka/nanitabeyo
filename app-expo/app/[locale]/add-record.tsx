@@ -879,6 +879,9 @@ export default function SnsImportScreen() {
 									label={i18n.t("SnsImport.actions.save")}
 									loading={isSaving}
 									disabled={!canSave}
+									// #1375（5 巡目・デザインレビュー #4）無効時は透過ではなく灰へ。
+									// 赤に透過を掛けると文字が読めなくなる（参照実装の検索画面と同じ手）
+									colors={canSave ? undefined : ["#999999", "#999999"]}
 								/>
 							</View>
 						)}
@@ -949,6 +952,9 @@ const styles = StyleSheet.create({
 	},
 	eatenRestaurantField: {
 		marginBottom: 12,
+		// #1375（5 巡目・デザインレビュー #12）この欄だけ左右余白が無く、画面の左端に接していた
+		// （同じ画面のタブ・レビュー欄・投稿ボタンはすべて 16）
+		paddingHorizontal: 16,
 	},
 	eatenRestaurantRow: {
 		flexDirection: "row",
@@ -1049,7 +1055,8 @@ const styles = StyleSheet.create({
 		paddingTop: 12,
 		paddingBottom: 12,
 		borderTopWidth: 1,
-		borderTopColor: "#EEE",
+		// #1375（5 巡目・デザインレビュー #18）`#EEE` は正本のパレットに無い。罫線は #E5E7EB へ統一
+		borderTopColor: "#E5E7EB",
 		backgroundColor: "#FFFFFF",
 	},
 	footerHint: {
@@ -1063,14 +1070,17 @@ const styles = StyleSheet.create({
 	},
 	input: {
 		marginTop: 6,
+		// 複数行入力なので高さの下限は残す
 		minHeight: 72,
+		// #1375（5 巡目・デザインレビュー #11）②③ の検索欄と同じ寸法へ。
+		// r8 / 枠 #E5E7EB / 縦 10 / 14pt だったため、同じ縦並びで高さが 44 と 56 に割れていた
 		borderWidth: 1,
-		borderColor: "#E5E7EB",
-		borderRadius: 8,
-		paddingHorizontal: 12,
-		paddingVertical: 10,
-		fontSize: 14,
-		color: "#111827",
+		borderColor: "#C9C9C9",
+		borderRadius: 16,
+		paddingHorizontal: 16,
+		paddingVertical: 16,
+		fontSize: 16,
+		color: "#1A1A1A",
 		textAlignVertical: "top",
 	},
 	resolveButton: {

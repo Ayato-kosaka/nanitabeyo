@@ -430,12 +430,14 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 20,
 		paddingVertical: 10,
 		borderRadius: 20,
-		backgroundColor: "#357AFF",
+		// #1375（5 巡目・デザインレビュー #3）パレットに無い青をやめる
+		backgroundColor: "#FFFFFF",
 	},
 	retryText: {
 		fontSize: 14,
 		fontWeight: "600",
-		color: "#FFF",
+		// 地が白になったので文字は黒
+		color: "#111827",
 	},
 	// chips の帯。閉じるボタン（zIndex: 10）と同じ高さに置き、重ならないよう
 	// chips 側で右に余白を取っている（MyDishesFeedChips.tsx の `container`）

@@ -162,8 +162,20 @@ const styles = StyleSheet.create({
 	pressed: {
 		opacity: 0.8,
 	},
+	/*
+	#1375（5 巡目・デザインレビュー #4）**opacity で無効を表さない。**
+
+	赤 `#F05537` + 白文字に 0.4 を掛けると `#F9BBAF` + 白文字になり、
+	コントラスト比が約 1.7:1 まで落ちて **文字がほぼ読めない**（「食べたいに保存」
+	「レビューを投稿する」で実測）。参照実装の検索画面は disabled にせず
+	**色だけ差し替えて**いる（`ctaBackgroundDisabled` = `#999999`、約 2.9:1）。
+
+	ここは «押せない» を色で示しつつ文字は読めるままにするため、
+	透過を弱く（0.4 → 0.75）し、呼び出し側は無効時に
+	`colors={[colors.ctaBackgroundDisabled, colors.ctaBackgroundDisabled]}` を渡す。
+	*/
 	disabled: {
-		opacity: 0.4,
+		opacity: 0.75,
 	},
 	label: {
 		fontSize: 16,

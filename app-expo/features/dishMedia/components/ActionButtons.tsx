@@ -401,20 +401,26 @@ function ActionButtonsContent({
 					<Text style={styles.actionText}>{formatLikeCount(likeCount)}</Text>
 				</View>
 
-				{/* #1031 【設計】Detox から状態(保存済みか)を検証できるよう、状態別の accessibilityLabel を付与 */}
-				<TouchableOpacity
-					testID="dish-action-save"
-					style={styles.actionButton}
-					onPress={handleSave}
-					hitSlop={buttonHitSlop}
-					accessibilityRole="button"
-					accessibilityLabel={i18n.t(
-						isSaved ? "DishMediaContent.accessibility.saveActive" : "DishMediaContent.accessibility.saveInactive",
-						{ name: restaurant.name },
-					)}
-					aria-selected={isSaved}>
-					<Bookmark size={30} color={"transparent"} fill={isSaved ? "orange" : "white"} />
-				</TouchableOpacity>
+				{/* #1031 【設計】Detox から状態(保存済みか)を検証できるよう、状態別の accessibilityLabel を付与。
+				    #1375（5 巡目・デザインレビュー #5）この 1 つだけ **オレンジ（`orange` = パレット外の
+				    CSS 名前色）/ サイズ 30 / ラベル無し** で、他 4 つと縦のリズムが崩れていた。
+				    他と同じ 28 + ラベル付きに揃え、状態は «塗りの有無» で示す（バッジと同じ語彙） */}
+				<View style={styles.actionContainer}>
+					<TouchableOpacity
+						testID="dish-action-save"
+						style={styles.actionButton}
+						onPress={handleSave}
+						hitSlop={buttonHitSlop}
+						accessibilityRole="button"
+						accessibilityLabel={i18n.t(
+							isSaved ? "DishMediaContent.accessibility.saveActive" : "DishMediaContent.accessibility.saveInactive",
+							{ name: restaurant.name },
+						)}
+						aria-selected={isSaved}>
+						<Bookmark size={28} color="#FFFFFF" fill={isSaved ? "#FFFFFF" : "transparent"} />
+					</TouchableOpacity>
+					<Text style={styles.actionText}>{i18n.t("MyDishes.filters.status.want")}</Text>
+				</View>
 
 				{/* #1398 (PR3/7) 【仕様】ゲストは非表示。like/save と同じ作法（isGuestUser）。
 				    トグルではないため「済」表示・aria-selected は付けない（常時活性） */}
@@ -484,6 +490,11 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 	},
 	actionButton: {
+		// アイコンにも文字と同じ影。白いアイコンが明るい写真に溶けないように
+		shadowColor: "rgba(0, 0, 0, 0.5)",
+		shadowOffset: { width: 0, height: 1 },
+		shadowOpacity: 1,
+		shadowRadius: 2,
 		padding: 4,
 	},
 	actionText: {
@@ -492,6 +503,11 @@ const styles = StyleSheet.create({
 		color: "#FFFFFF",
 		marginTop: 4,
 		letterSpacing: 0.2,
+		// #1375（5 巡目・デザインレビュー #6）左列（`DishMediaContent` の店名・料理名）と
+		// 同じ影を掛ける。明るい料理写真の上で右列だけ沈んでいた
+		textShadowColor: "rgba(0, 0, 0, 0.5)",
+		textShadowOffset: { width: 0, height: 1 },
+		textShadowRadius: 2,
 	},
 	// #1375（5 巡目）記録済み。色の正は my-dishes と同じ（`features/myDishes/statusColors.ts`）ので、
 	// 一覧・カレンダー・地図で «食べた» を表している赤とここが必ず一致する

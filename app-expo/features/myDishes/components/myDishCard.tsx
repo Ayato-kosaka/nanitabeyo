@@ -166,14 +166,25 @@ const styles = StyleSheet.create({
 		fontSize: 10,
 		fontWeight: "700",
 	},
+	/**
+	 * #1375（5 巡目・デザインレビュー #2）**内容幅・非赤にした。**
+	 *
+	 * 以前は 3 列グリッドの `footer`（`alignItems` 既定 = stretch）でタイル全幅の赤いピルになり、
+	 * 1 画面に 9〜12 本並んで、画面唯一の主アクセントであるべき FAB が負けていた。
+	 * `alignSelf: "flex-end"` で内容幅へ縮め、色は写真の上に載る半透明黒にしてある。
+	 * 赤はこの画面では FAB と状態バッジだけが使う。
+	 */
 	eatenButton: {
+		alignSelf: "flex-end",
 		flexDirection: "row",
 		alignItems: "center",
 		gap: 3,
 		paddingHorizontal: 8,
 		paddingVertical: 4,
 		borderRadius: 12,
-		backgroundColor: "rgba(240,85,55,0.95)",
+		backgroundColor: "rgba(0,0,0,0.55)",
+		borderWidth: StyleSheet.hairlineWidth,
+		borderColor: "rgba(255,255,255,0.5)",
 	},
 	eatenButtonText: {
 		fontSize: 10,

@@ -28,6 +28,11 @@ import i18n from "@/lib/i18n";
 // 位置が毎回飛ぶ（設計 issue #1396 コメント (1/2) §2-2）。ここでは view の shell だけを持ち、
 // 各ビューの中身は PR3〜PR5（共有フィルタ store・Map・Calendar）が実装する。
 const MY_DISHES_VIEWS = ["map", "list", "calendar"] as const;
+/**
+ * #1375（5 巡目・性能レビュー A-2）keep-alive で保持するビューの上限（MRU）。
+ * 2 = «行き来する 2 つ» は保持し、3 つ目に触ったら最も古いものを落とす。
+ */
+const MY_DISHES_KEEP_ALIVE_LIMIT = 2;
 type MyDishesView = (typeof MY_DISHES_VIEWS)[number];
 
 function isMyDishesView(value: unknown): value is MyDishesView {
@@ -53,10 +58,27 @@ export default function MyDishesScreen() {
 	const isGuest = isGuestUser(user);
 	// #1396 M-1: 一度訪問したビューは保持する（keep-alive）。条件レンダーで毎回アンマウントすると、
 	// ルート分割と同じ理由で Map の viewport（useRef）・各ビューのスクロール位置が毎回飛ぶ
-	// （§2-2 が避けたかった挙動そのもの）。未訪問のビューはまだマウントしない
-	const [visitedViews, setVisitedViews] = useState<Set<MyDishesView>>(() => new Set([activeView]));
+	// （§2-2 が避けたかった挙動そのもの）。未訪問のビューはまだマウントしない。
+	//
+	// #1375（5 巡目・性能レビュー A-2）**保持するのは «直近 2 つ» までにした。**
+	//
+	// 3 ビュー全部を貼りっぱなしにすると、`react-native-maps` の MapView（ピン数百）と
+	// inverted な月リストが、見えていない間もずっとメモリとレイアウトを占める。実機で
+	// 報告されているクラッシュ（低メモリ端末）と «重い» の一因がこれである。取得は
+	// `enabled` で既に止めてあるが、**マウントされている限りビュー階層は残る**ので、
+	// 取得を止めるだけでは足りない。
+	//
+	// 一方で全部アンマウントすると M-1 の問題（viewport とスクロール位置が飛ぶ）へ戻る。
+	// 実際の使われ方は «2 つのビューを行き来する» が支配的（map ⇄ list、list ⇄ calendar）なので、
+	// **MRU 2 つ**を保持すれば行き来では一度もアンマウントされない。3 つ目に触ったときだけ
+	// 最も古いものが落ちる。
+	const [mountedViews, setMountedViews] = useState<readonly MyDishesView[]>(() => [activeView]);
 	useEffect(() => {
-		setVisitedViews((prev) => (prev.has(activeView) ? prev : new Set(prev).add(activeView)));
+		setMountedViews((prev) => {
+			// 既に先頭（= 直近使用）なら並べ替えも再レンダーも要らない
+			if (prev[0] === activeView) return prev;
+			return [activeView, ...prev.filter((v) => v !== activeView)].slice(0, MY_DISHES_KEEP_ALIVE_LIMIT);
+		});
 	}, [activeView]);
 
 	useEffect(() => {
@@ -257,7 +279,7 @@ export default function MyDishesScreen() {
 					// ビュー切替のたびに最新月へ戻らないのは、この器がアンマウントしないからである。
 					<>
 						{MY_DISHES_VIEWS.map((v) => {
-							if (!visitedViews.has(v)) return null;
+							if (!mountedViews.includes(v)) return null;
 							const isActive = v === activeView;
 							return (
 								<View
@@ -323,7 +345,7 @@ const styles = StyleSheet.create({
 		paddingTop: 8,
 		paddingBottom: 12,
 		borderBottomWidth: 1,
-		borderBottomColor: "#EEE",
+		borderBottomColor: "#E5E7EB",
 	},
 	viewSwitch: {
 		flexDirection: "row",
@@ -355,7 +377,7 @@ const styles = StyleSheet.create({
 		height: 38,
 		borderRadius: 19,
 		borderWidth: 1,
-		borderColor: "#D1D5DB",
+		borderColor: "#E5E7EB",
 		alignItems: "center",
 		justifyContent: "center",
 		marginBottom: 6,
@@ -378,7 +400,10 @@ const styles = StyleSheet.create({
 		gap: 12,
 		paddingHorizontal: 16,
 		paddingVertical: 10,
-		backgroundColor: "#FFF7F5",
+		// #1375（5 巡目・デザインレビュー #19）パレットに無い淡ピンクをやめる。
+		// 画面上部に常時ピンクが乗ると、赤い FAB と主張が競合する。
+		// 赤はこの帯の中のログインボタン 1 点だけに残す
+		backgroundColor: "#F3F4F6",
 		borderBottomWidth: 1,
 		borderBottomColor: "#F6DCD5",
 	},

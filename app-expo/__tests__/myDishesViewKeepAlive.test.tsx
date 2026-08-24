@@ -220,7 +220,7 @@ describe("#1439 M-1 ビュー切替は keep-alive（毎回アンマウントし�
 		expect(activeMapView.props.importantForAccessibility).toBe("auto");
 	});
 
-	it("一度訪問したビューは visitedViews に残り続ける（calendar は触るまでマウントしない）", async () => {
+	it("直前に見ていたビューは残る（calendar は触るまでマウントしない）", async () => {
 		const tree = await render(<MyDishesScreen />);
 
 		await press(tree, "my-dishes-view-map");
@@ -231,8 +231,36 @@ describe("#1439 M-1 ビュー切替は keep-alive（毎回アンマウントし�
 		await rerender(tree);
 		expect(findAll(tree, "my-dishes-calendar-view").length).toBeGreaterThan(0);
 
-		// map から離れても、一度訪問した map ビューは残り続ける（隠れているだけ）
+		// map から離れても、直前に見ていた map ビューは残り続ける（隠れているだけ）
 		expect(findAll(tree, "my-dishes-map-view").length).toBeGreaterThan(0);
+	});
+
+	/**
+	 * #1375（5 巡目・性能レビュー A-2）保持は **MRU 2 つまで**。
+	 *
+	 * 3 ビューを貼りっぱなしにすると、MapView（ピン数百）と inverted な月リストが
+	 * 見えていない間もビュー階層に残り、低メモリ端末のクラッシュ要因になる。
+	 * `enabled` で取得を止めてもマウントは残るので、取得の制御だけでは足りない。
+	 * 行き来（2 つ）では一度もアンマウントされないことは上の 2 本が固定している。
+	 */
+	it("3 つ目のビューへ移ると、最も古いビューはアンマウントされる（保持は直近 2 つ）", async () => {
+		const tree = await render(<MyDishesScreen />);
+
+		// list（初期） -> map: この時点では list / map の 2 つが生きている
+		await press(tree, "my-dishes-view-map");
+		await rerender(tree);
+		expect(findAll(tree, "my-dishes-list-view").length).toBeGreaterThan(0);
+
+		// -> calendar: 最も古い list が落ちる（map は直前なので残る）
+		await press(tree, "my-dishes-view-calendar");
+		await rerender(tree);
+		expect(findAll(tree, "my-dishes-list-view").length).toBe(0);
+		expect(findAll(tree, "my-dishes-map-view").length).toBeGreaterThan(0);
+
+		// list へ戻ると作り直される（= 一度アンマウントされていたことの裏取り）
+		await press(tree, "my-dishes-view-list");
+		await rerender(tree);
+		expect(mockListMount).toHaveBeenCalledTimes(2);
 	});
 
 	// PR5: Calendar も同じ器に乗る。再マウントされると inverted リストのスクロール位置

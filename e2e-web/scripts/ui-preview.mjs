@@ -257,6 +257,15 @@ for (const step of ["2-openFeed", "3-add", "4-filter"]) {
 await page.getByTestId("my-dishes-tutorial-finish").click().catch((e) => console.log("finish:", e.message));
 await page.waitForTimeout(800);
 
+// 0b. 一覧（3 列グリッド）。#1375 5 巡目デザインレビュー #2/#9 でタイルの密度を落とし、
+// 「食べたを記録」を «全幅の赤いピル» から «内容幅の半透明黒» へ変えた結果を確かめる
+await page.waitForTimeout(2000);
+await shot("list-grid");
+// want タイル（「食べたを記録」の CTA が出るのは want だけ）まで送る
+await page.mouse.wheel(0, 900);
+await page.waitForTimeout(1200);
+await shot("list-grid-want");
+
 // 1. calendar
 await goto("/ja-JP/my-dishes?view=calendar");
 await page.getByTestId("my-dishes-calendar-list").waitFor({ timeout: 120000 }).catch((e) => console.log("calendar wait:", e.message));

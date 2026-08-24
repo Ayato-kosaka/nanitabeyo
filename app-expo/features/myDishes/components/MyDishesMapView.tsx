@@ -7,7 +7,13 @@ import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { EmptyState } from "@/components/EmptyState";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { AvatarBubbleMarker } from "@/features/mapMarkers";
-import { clusterMyDishPins, regionForCluster, type MyDishPinCluster } from "../clustering";
+import {
+	clusterMyDishPins,
+	isSameClusterScale,
+	regionForCluster,
+	type ClusterScale,
+	type MyDishPinCluster,
+} from "../clustering";
 import { INITIAL_REGION, REGION_JP } from "@/features/map/constants";
 import { useHaptics } from "@/hooks/useHaptics";
 import { router } from "expo-router";
@@ -72,20 +78,40 @@ export function MyDishesMapView({ enabled = true }: { enabled?: boolean } = {}) 
 	// #1375 実機確認（5 巡目）「クラスタリングはやってほしい」。
 	// 近すぎて重なるピンを 1 つの丸へ畳む単位は **いま画面に映っている範囲**（clustering.ts）。
 	// ⚠️ ここを `onRegionChangeComplete`（= 指を離した後）でしか更新しないこと。
-	// pan に追従させると毎フレーム畳み直して重く、しかもピンが動いて見える
-	const [clusterRegion, setClusterRegion] = useState<Region>(initialRegion);
+	// pan に追従させると毎フレーム畳み直して重く、しかもピンが動いて見える。
+	//
+	// #1375（5 巡目・性能レビュー B-1）**持つのは倍率だけ**（中心は持たない）。
+	// 畳む半径は delta の割合でしか決まらないので、pan（中心が動くだけ）ではクラスタは
+	// 1 つも変わらない。それでも Region をそのまま state に入れていたため、
+	// `onRegionChangeComplete` が寄こす新しいオブジェクトで参照が変わり、
+	// **地図を少し動かすたびに最大 300 個のマーカーが作り直されていた**。
+	const [clusterScale, setClusterScale] = useState<ClusterScale>(() => ({
+		latitudeDelta: initialRegion.latitudeDelta,
+		longitudeDelta: initialRegion.longitudeDelta,
+	}));
+	// 5% 未満の倍率変化も畳み方に影響しないので、前の値（= 同じ参照）を返して memo を保つ
+	const updateClusterScale = useCallback((region: Region) => {
+		setClusterScale((prev) =>
+			isSameClusterScale(prev, region)
+				? prev
+				: { latitudeDelta: region.latitudeDelta, longitudeDelta: region.longitudeDelta },
+		);
+	}, []);
 	// #1375 実機確認（2 巡目）: 「ズームインしてから…」の注意文とボタン無効化は廃止した。
 	// 広すぎる表示域では `regionToArea` が MAX_AREA_RADIUS_M（50km）へ黙って丸める。
 	// 「押せない理由を説明する」より「押したら常識的な範囲で動く」方が短い
-	const handleRegionChangeComplete = useCallback((region: Region) => {
-		currentRegionRef.current = region;
-		// #1375（5 巡目）人が動かした表示域を覚える。次にこの画面へ来たらここから始める
-		// （取得には一切関与しない store。useMyDishesViewportStore のコメント参照）
-		setMyDishesViewportRegion(region);
-		// #1375（5 巡目）クラスタの粒度は «指を離したときの表示域» で決める。
-		// pan の最中に畳み直すと重いうえ、ピンが動いて見える
-		setClusterRegion(region);
-	}, []);
+	const handleRegionChangeComplete = useCallback(
+		(region: Region) => {
+			currentRegionRef.current = region;
+			// #1375（5 巡目）人が動かした表示域を覚える。次にこの画面へ来たらここから始める
+			// （取得には一切関与しない store。useMyDishesViewportStore のコメント参照）
+			setMyDishesViewportRegion(region);
+			// #1375（5 巡目）クラスタの粒度は «指を離したときの表示域» で決める。
+			// pan の最中に畳み直すと重いうえ、ピンが動いて見える
+			updateClusterScale(region);
+		},
+		[updateClusterScale],
+	);
 
 	// #1396 【設計】store（= queryKey）を書く唯一の口。ボタン押下時にのみ呼ばれる
 	const handleSearchThisArea = useCallback(() => {
@@ -223,7 +249,7 @@ export function MyDishesMapView({ enabled = true }: { enabled?: boolean } = {}) 
 
 	// マーカー配列は memo で固定する。`pins` が同じ参照である限り、activeIndex 等の
 	// 無関係な state 更新で 300 個のマーカーへ props が流れない
-	const clusters = useMemo(() => clusterMyDishPins(pins, clusterRegion), [pins, clusterRegion]);
+	const clusters = useMemo(() => clusterMyDishPins(pins, clusterScale), [pins, clusterScale]);
 
 	// クラスタを押したら «もう一段ほどく»。中のピンの外接矩形へ寄せる
 	const handleClusterPress = useCallback(
@@ -232,10 +258,10 @@ export function MyDishesMapView({ enabled = true }: { enabled?: boolean } = {}) 
 			const region = regionForCluster(cluster);
 			currentRegionRef.current = region;
 			setMyDishesViewportRegion(region);
-			setClusterRegion(region);
+			updateClusterScale(region);
 			mapRef.current?.animateToRegion(region, 400);
 		},
-		[lightImpact],
+		[lightImpact, updateClusterScale],
 	);
 
 	// マーカー配列は memo で固定する。`clusters` が同じ参照である限り、activeIndex 等の
@@ -302,13 +328,13 @@ export function MyDishesMapView({ enabled = true }: { enabled?: boolean } = {}) 
 						testID="my-dishes-search-this-area"
 						onPress={handleSearchThisArea}
 						label={i18n.t("MyDishes.searchThisArea")}
-						icon={<RotateCw size={16} color="#357AFF" />}
+						icon={<RotateCw size={16} color="#111827" />}
 						colors={["#ffffff", "#ffffff"]}
 						shadowColor="transparent"
-						labelStyle={{ color: "#357AFF", fontSize: 14 }}
+						labelStyle={{ color: "#111827", fontSize: 14 }}
 						loading={showButtonLoading}
 						loadingIndicatorType="native"
-						nativeLoadingColor="#357AFF"
+						nativeLoadingColor="#111827"
 					/>
 				</View>
 				{/* #1375 実機確認: 「このエリアで絞り込み中」の帯は廃止した。

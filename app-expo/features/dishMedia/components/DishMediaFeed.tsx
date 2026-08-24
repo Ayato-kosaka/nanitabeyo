@@ -200,6 +200,10 @@ export default function DishMediaFeed({
 					<DishMediaContent
 						id={item}
 						isActive={index === currentIndex}
+						// #1375（5 巡目・性能 B-2）動画プレイヤーは «見えている ±1» だけ実体化する。
+						// windowSize={5} は前後 2 ページぶんをマウントするので、素直に描くと
+						// 同時に 5 本のデコーダが立つ。±1 は先読み（スワイプ直後の黒画面を出さない）
+						isNearActive={Math.abs(index - currentIndex) <= 1}
 						getTitle={getTitle}
 						sessionId={sessionId.current}
 						entriesKey={entriesKey}

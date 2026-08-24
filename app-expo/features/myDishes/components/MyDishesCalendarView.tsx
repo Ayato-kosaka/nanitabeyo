@@ -461,15 +461,17 @@ const styles = StyleSheet.create({
 	// 行の高さもそれに合わせる
 	dayCell: {
 		flex: 1,
-		height: 54,
+		// #1375（5 巡目・デザインレビュー #23）円がセル幅の 94%（48/51.1）で、
+		// 記録が続く週は円が繋がって 1 本の帯に見えていた。要素は減らさず余白だけ作る
+		height: 58,
 		alignItems: "center",
 		justifyContent: "center",
 	},
 	// 円形。`borderRadius: 999` ではなく `overflow: hidden` と併せて正円にする
 	dayCircle: {
-		width: 48,
-		height: 48,
-		borderRadius: 24,
+		width: 44,
+		height: 44,
+		borderRadius: 22,
 		overflow: "hidden",
 		alignItems: "center",
 		justifyContent: "center",
