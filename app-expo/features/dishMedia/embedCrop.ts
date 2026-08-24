@@ -49,11 +49,17 @@ export const EMBED_HEADER_RATIO = 17 / 320;
 export const EMBED_MEDIA_ASPECT = 1;
 
 /**
- * いいね欄より下も含めた iframe 全体の高さ ÷ iframe 幅。
- * 切り取って捨てる部分なので厳密さは要らないが、**足りないと写真の下端が
- * 描かれない**ことがあるため余裕を持たせてある。
+ * 埋め込み全体の高さ ÷ 幅。**写真の下端が入りきる最小限**にする。
+ *
+ * ⚠️ 大きくしすぎてはいけない。初版は 2 にしていたが、それだと Android で
+ * **セルが真っ黒になった**（実機 Detox / run 32724564583。iOS は同じ設定でも描けていた）。
+ * 幅はセルの高さぶん（端末実寸で約 2000px）あるので、高さを 2 倍にすると
+ * 描画面が 4000px を超え、Android の WebView が扱えるテクスチャの上限を越える。
+ *
+ * 必要なのは «ヘッダ + 写真» が収まる高さだけで、その下（いいね欄・白帯）は
+ * どのみち切り取って捨てる。ヘッダ 0.053 + 写真 1.0 に少しの余裕を足した値にする。
  */
-export const EMBED_FRAME_HEIGHT_RATIO = 2;
+export const EMBED_FRAME_HEIGHT_RATIO = EMBED_HEADER_RATIO + EMBED_MEDIA_ASPECT + 0.05;
 
 /**
  * 写真をセルより何割大きく敷くか。

@@ -64,6 +64,23 @@ describe("computeEmbedCropLayout", () => {
 		expect(layout.frameHeight).toBeGreaterThan(mediaBottomInFrame);
 	});
 
+	/**
+	 * #1375 実機 Detox（run 32724564583）で **Android だけセルが真っ黒**になった。
+	 *
+	 * 幅は «セルの高さ» ぶん取るので端末実寸で約 2000px ある。そこへ高さを幅の 2 倍に
+	 * していたため描画面が 4000px を超え、Android の WebView が扱えるテクスチャの
+	 * 上限を越えて何も描かれなかった（iOS には同じ上限が無く、描けていた）。
+	 *
+	 * 高さは «ヘッダ + 写真» が収まる最小限で足りる（その下は切り取って捨てる）。
+	 * ここを再び 2 のような値へ戻すと Android が黒に戻るので、上限として固定する。
+	 */
+	it("埋め込みの高さを必要以上に大きくしない（Android の描画上限を越えない）", () => {
+		const layout = computeEmbedCropLayout({ width: 393, height: 759 })!;
+		const mediaBottomInFrame = layout.frameWidth * (EMBED_HEADER_RATIO + EMBED_MEDIA_ASPECT);
+		// 写真の下端より下に、幅の 10% を超える余白を持たない
+		expect(layout.frameHeight).toBeLessThan(mediaBottomInFrame + layout.frameWidth * 0.1);
+	});
+
 	it("寸法が確定していないときは null（中途半端な寸法で描かせない）", () => {
 		expect(computeEmbedCropLayout({ width: 0, height: 759 })).toBeNull();
 		expect(computeEmbedCropLayout({ width: 393, height: 0 })).toBeNull();
