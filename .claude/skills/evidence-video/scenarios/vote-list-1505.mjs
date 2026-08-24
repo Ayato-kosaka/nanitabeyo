@@ -10,17 +10,82 @@ import { record, ok, writeNote, OUT } from "./harness.mjs";
 
 const BASE = process.env.EVIDENCE_BASE || "http://localhost:8788";
 const TARGET = "me-dish-category-group-votes-header";
+const ROW = "me-dish-category-group-votes-item";
 
 /*
-既定のモックは «空の配列» を返すが、この画面が期待しているのは
-`{ data, nextCursor }` の封筒である。素の配列を返すと `response.data` が
-undefined になり、次のレンダーの map が throw して画面ごと落ちる（実測）。
-封筒を正しく返して «一覧が空» の状態を撮る。
+一覧が «空» の絵だけでは #1505 の受け入れ条件（主催した投票が並ぶ）を満たさないので、
+主催セッションを 3 件返して行が描画された状態を撮る。
+
+封筒の形（`{ data, nextCursor }`）は必ず守る。素の配列を返すと `response.data` が
+undefined になり、次のレンダーの map が throw して画面ごと落ちる（実測。b225bc8c で防御済み）。
+
+サムネイルは実 URL を叩かせず、この mock が単色 PNG を返す。既定のフォールバックは
+どんな URL にも JSON を返すため、そのままだと img が壊れた絵になる。
+
+⚠️ 中身は作り物である。映っているのは «一覧の組版» であって実データではない。
 */
-const mock = (url) =>
-	url.includes("/v1/users/me/dish-category-group-votes")
-		? { body: ok({ data: [], nextCursor: null }) }
-		: null;
+const PX = {
+	a: "iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAIAAABt+uBvAAAApElEQVR4nO3QQQ0AIBDAsNOJJYwiAwd82aPJBCyds5cezfeDeIAAAQIEKBwgQIAAAQoHCBAgQIDCAQIECBCgcIAAAQIEKBwgQIAAAQoHCBAgQIDCAQIECBCgcIAAAQIEKBwgQIAAAQoHCBAgQIDCAQIECBCgcIAAAQIEKBwgQIAAAQoHCBAgQIDCAQIECBCgcIAAAQIEKBwgQIAAAQoHCBAgQD+7Br7XwW/TIlkAAAAASUVORK5CYII=",
+	b: "iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAIAAABt+uBvAAAAo0lEQVR4nO3QMQ0AMAzAsOEuosEcg73NYSkAIp+5o09n/SAeIECAAAEKBwgQIECAwgECBAgQoHCAAAECBCgcIECAAAEKBwgQIECAwgECBAgQoHCAAAECBCgcIECAAAEKBwgQIECAwgECBAgQoHCAAAECBCgcIECAAAEKBwgQIECAwgECBAgQoHCAAAECBCgcIECAAAEKBwgQIECAwgECBAjQZg9re/NYBKxuSAAAAABJRU5ErkJggg==",
+	c: "iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAIAAABt+uBvAAAApElEQVR4nO3QQQ0AIBDAsNOPBRThCgd82aPJBCydtY8ezfeDeIAAAQIEKBwgQIAAAQoHCBAgQIDCAQIECBCgcIAAAQIEKBwgQIAAAQoHCBAgQIDCAQIECBCgcIAAAQIEKBwgQIAAAQoHCBAgQIDCAQIECBCgcIAAAQIEKBwgQIAAAQoHCBAgQIDCAQIECBCgcIAAAQIEKBwgQIAAAQoHCBAgQD+7rdZ8DIjUkXQAAAAASUVORK5CYII=",
+};
+
+const thumb = (k) => `https://example.invalid/thumb-${k}.png`;
+
+const SESSIONS = [
+	{
+		id: "s-1",
+		shareToken: "tok-1",
+		hasVoted: true,
+		candidateCount: 4,
+		candidatePreviews: [
+			{ displayName: "ラーメン", imageUrl: thumb("a") },
+			{ displayName: "寿司", imageUrl: thumb("b") },
+			{ displayName: "焼き鳥", imageUrl: thumb("c") },
+		],
+		participantCount: 5,
+		winnerName: "ラーメン",
+		createdAt: "2026-08-20T12:00:00.000Z",
+		updatedAt: "2026-08-20T12:40:00.000Z",
+	},
+	{
+		id: "s-2",
+		shareToken: "tok-2",
+		hasVoted: false,
+		candidateCount: 3,
+		candidatePreviews: [
+			{ displayName: "カレー", imageUrl: thumb("b") },
+			{ displayName: "パスタ", imageUrl: thumb("c") },
+			{ displayName: "餃子", imageUrl: thumb("a") },
+		],
+		participantCount: 2,
+		winnerName: null,
+		createdAt: "2026-08-22T09:15:00.000Z",
+		updatedAt: "2026-08-22T09:20:00.000Z",
+	},
+	{
+		id: "s-3",
+		shareToken: "tok-3",
+		hasVoted: false,
+		candidateCount: 2,
+		candidatePreviews: [
+			{ displayName: "天ぷら", imageUrl: thumb("c") },
+			{ displayName: "うどん", imageUrl: thumb("a") },
+		],
+		participantCount: 0,
+		winnerName: null,
+		createdAt: "2026-08-23T18:05:00.000Z",
+		updatedAt: "2026-08-23T18:05:00.000Z",
+	},
+];
+
+const mock = (url) => {
+	const m = url.match(/thumb-([abc])\.png/);
+	if (m) return { body: Buffer.from(PX[m[1]], "base64"), contentType: "image/png" };
+	if (url.includes("/v1/users/me/dish-category-group-votes"))
+		return { body: ok({ data: SESSIONS, nextCursor: null }) };
+	return null;
+};
 
 async function shootScheme(scheme) {
 	return record({
@@ -41,6 +106,16 @@ async function shootScheme(scheme) {
 
 			await page.goto(`${BASE}/ja-JP/profile/dish-category-group-votes`, { waitUntil: "domcontentloaded" });
 			await page.waitForTimeout(3500);
+
+			// 「一覧が並んだ絵」を撮りに来ているので、行が実在しないなら撮らずに落とす。
+			// 空状態のスクショを «一覧の証拠» として納品する事故を防ぐ。
+			const rows = page.getByTestId(ROW);
+			await rows.first().waitFor({ state: "visible", timeout: 15000 });
+			const rowCount = await rows.count();
+			if (rowCount !== SESSIONS.length) {
+				throw new Error(`行が ${rowCount} 件しか描画されていない（期待 ${SESSIONS.length} 件）`);
+			}
+			console.log(`[${scheme}] 一覧の行 ${rowCount} 件を確認`);
 			await shot("01-screen");
 
 			const target = page.getByTestId(TARGET);
