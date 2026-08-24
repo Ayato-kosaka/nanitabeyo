@@ -20,11 +20,7 @@ export function convertSupabaseToPrisma_Users(supabase: SupabaseUsers): PrismaUs
     bio: supabase.bio,
     preferred_locale: supabase.preferred_locale,
     last_login_at: supabase.last_login_at !== null ? new Date(supabase.last_login_at) : null,
-<<<<<<< HEAD
-    // #1511 アカウント削除(匿名化)の実行時刻。NULL = 有効なユーザー
-=======
     // #1511 ACC-01 論理削除日時。NULL は未削除
->>>>>>> origin/main
     deleted_at: supabase.deleted_at !== null ? new Date(supabase.deleted_at) : null,
     created_at: new Date(supabase.created_at),
     updated_at: new Date(supabase.updated_at),
@@ -46,11 +42,7 @@ export function convertPrismaToSupabase_Users(prisma: PrismaUsers): SupabaseUser
     bio: prisma.bio,
     preferred_locale: prisma.preferred_locale,
     last_login_at: prisma.last_login_at?.toISOString() ?? null,
-<<<<<<< HEAD
-    // #1511 アカウント削除(匿名化)の実行時刻。NULL = 有効なユーザー
-=======
     // #1511 ACC-01 論理削除日時。NULL は未削除
->>>>>>> origin/main
     deleted_at: prisma.deleted_at?.toISOString() ?? null,
     created_at: prisma.created_at?.toISOString() ?? null,
     updated_at: prisma.updated_at?.toISOString() ?? null,

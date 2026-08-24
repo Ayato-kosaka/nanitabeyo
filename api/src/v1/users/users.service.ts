@@ -65,6 +65,14 @@ export class UsersService {
     return this.repo.getUserByIds(userId);
   }
 
+  /**
+   * #1511 / #1557 退会と匿名（users 行なし）を区別したい呼び出し側のための取得。
+   * 詳細は `UsersRepository.getUsersByIdsIncludingDeleted` の JSDoc を参照。
+   */
+  async getUsersByIdsIncludingDeleted(userIds: string[]) {
+    return this.repo.getUsersByIdsIncludingDeleted(userIds);
+  }
+
   /* ------------------------------------------------------------------ */
   /*                  GET /v1/users/:id/dish-reviews                   */
   /* ------------------------------------------------------------------ */
@@ -509,7 +517,7 @@ export class UsersService {
   private async deleteStorageObjectsForUser(
     userId: string,
     avatarPath: string | null,
-    dishMedias: { id: string; media_path: string; thumbnail_path: string }[],
+    dishMedias: { id: string; media_path: string | null; thumbnail_path: string }[],
   ): Promise<void> {
     try {
       // アバター: オリジナル + 派生（64 / 256）
@@ -525,7 +533,12 @@ export class UsersService {
 
       // 投稿メディア: オリジナル（動画/画像・サムネ） + 派生（リサイズ・HLS）
       for (const media of dishMedias) {
-        await this.storage.deleteFileIfExists(media.media_path);
+        // #1395 で media_path は nullable になった（取り込み中で実体が未着の行）。
+        // 派生（リサイズ・HLS）は recordId 基準で消すので、原本が無い行でも下の
+        // deleteFilesByPrefix は回す必要がある
+        if (media.media_path) {
+          await this.storage.deleteFileIfExists(media.media_path);
+        }
         await this.storage.deleteFileIfExists(media.thumbnail_path);
         for (const column of ['media_path', 'thumbnail_path'] as const) {
           await this.storage.deleteFilesByPrefix(

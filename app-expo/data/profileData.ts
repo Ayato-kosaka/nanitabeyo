@@ -13,11 +13,7 @@ const getGuestProfile = (): GetUserProfileResponse => ({
 	preferred_locale: "en",
 	created_at: new Date().toISOString(),
 	last_login_at: null,
-<<<<<<< HEAD
-	// #1511 アカウント削除(匿名化)の実行時刻。ゲストは削除対象になりえないので常に null
-=======
 	// #1511 ACC-01 論理削除日時。ゲストは削除済みではないので null
->>>>>>> origin/main
 	deleted_at: null,
 	lock_no: 0,
 	updated_at: new Date().toISOString(),

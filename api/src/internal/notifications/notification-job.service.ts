@@ -65,25 +65,30 @@ export class NotificationJobService {
 
     // 2-3. #1511 退会したユーザーが絡む通知は作らない（送らない）
     //
-    // `getUserByIds` は削除済み（users.deleted_at IS NOT NULL）を返さない。
-    // ここを見ずに先へ進むと `buildNotificationMessage` が
-    // `ActorUserNotFound` / `RecipientUserNotFound` で **throw** し、
+    // 退会者が actor 側なら通知の意味が無く、recipient 側なら宛先が居ない。
+    // どちらも **成功として skip** するのが正しい。
+    // ここを見ずに先へ進むと `buildNotificationMessage` が throw し、
     // Cloud Tasks が恒久的に失敗するジョブを再試行し続けることになる
     // （退会は「もう存在しない」であって、あとで直る類の失敗ではない）。
     //
-    // 退会者が actor 側なら通知の意味が無く、recipient 側なら宛先が居ない。
-    // どちらも **成功として skip** するのが正しい。
-    const liveUsers = await this.userService.getUserByIds([
+    // ⚠️ #1557 «退会した» と «そもそも users 行が無い» を混同しないこと。
+    // 共有リンク経由の匿名投票者には users 行が無いが、**通知は作らなければならない**
+    // （表示名は receiver のロケールで「ゲスト」等に落ちる）。
+    // `getUserByIds` は削除済みを返さないため、この 2 つが区別できない。
+    // «行があって deleted_at が立っている» ときだけ弾く。
+    const knownUsers = await this.userService.getUsersByIdsIncludingDeleted([
       actorId,
       recipientId,
     ]);
-    const liveUserIds = new Set(liveUsers.map((u) => u.id));
-    if (!liveUserIds.has(actorId) || !liveUserIds.has(recipientId)) {
+    const deletedUserIds = new Set(
+      knownUsers.filter((u) => u.deleted_at != null).map((u) => u.id),
+    );
+    if (deletedUserIds.has(actorId) || deletedUserIds.has(recipientId)) {
       this.logger.log('DeletedUserNotificationSkipped', 'processNotificationJob', {
         actorId,
         recipientId,
-        actorAlive: liveUserIds.has(actorId),
-        recipientAlive: liveUserIds.has(recipientId),
+        actorDeleted: deletedUserIds.has(actorId),
+        recipientDeleted: deletedUserIds.has(recipientId),
       });
       return;
     }

@@ -166,6 +166,23 @@ export class UsersRepository {
   }
 
   /**
+   * #1511 / #1557 «退会した» と «そもそも users 行が無い» を呼び出し側が
+   * 区別できるようにするための取得。**deleted_at を無視して**引く。
+   *
+   * 通知の生成では、この 2 つを混同してはいけない。
+   * - 退会（行があり deleted_at IS NOT NULL）… 通知を作らない
+   * - 匿名（行そのものが無い）… #1557 の共有リンク経由の投票者。通知は作る
+   *
+   * `getUserByIds` は前者も後者も「引けない」で潰してしまうので、
+   * 退会だけを弾きたい場所ではこちらを使うこと。
+   */
+  async getUsersByIdsIncludingDeleted(userIds: string[]) {
+    return this.prisma.prisma.users.findMany({
+      where: { id: { in: userIds } },
+    });
+  }
+
+  /**
    * ユーザープロフィールを更新
    */
   async updateUserProfile(

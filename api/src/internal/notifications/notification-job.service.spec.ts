@@ -69,7 +69,10 @@ describe('NotificationJobService GRP-04 投票完了通知', () => {
       dish_category_group_vote_sessions: { findUnique: jest.Mock };
     };
   };
-  let usersService: { getUserByIds: jest.Mock };
+  let usersService: {
+    getUserByIds: jest.Mock;
+    getUsersByIdsIncludingDeleted: jest.Mock;
+  };
   let logger: {
     debug: jest.Mock;
     warn: jest.Mock;
@@ -133,6 +136,12 @@ describe('NotificationJobService GRP-04 投票完了通知', () => {
       getUserByIds: jest
         .fn()
         .mockResolvedValue([HOST_USER, VOTER_USER]),
+      // #1511 / #1557 «退会» と «users 行が無い（匿名）» を区別する取得。
+      // 既定では getUserByIds と同じ集合を返す = 「誰も退会していない」。
+      // 退会を模す test だけがこちらを個別に上書きする。
+      getUsersByIdsIncludingDeleted: jest.fn((ids: string[]) =>
+        usersService.getUserByIds(ids),
+      ),
     };
 
     logger = {
@@ -267,6 +276,46 @@ describe('NotificationJobService GRP-04 投票完了通知', () => {
       'buildNotificationMessage',
       { recipientId: HOST_ID },
     );
+  });
+
+  // #1511 退会したユーザーが絡む通知は作らない。
+  // #1557 の «users 行が無い匿名ユーザー» と混同すると、匿名投票の通知が丸ごと消える
+  // （実際に一度そうなった）。«行があって deleted_at が立っている» ときだけ弾くこと。
+  describe('#1511 退会したユーザーが絡む通知', () => {
+    it('actor が退会済みなら通知を作らない', async () => {
+      usersService.getUsersByIdsIncludingDeleted.mockResolvedValue([
+        HOST_USER,
+        { ...VOTER_USER, deleted_at: new Date() },
+      ]);
+
+      await service.processNotificationJob(votePayload(VOTER_ID));
+
+      expect(repo.upsertNotification).not.toHaveBeenCalled();
+      expect(notificationsService.sendPushNotification).not.toHaveBeenCalled();
+    });
+
+    it('recipient が退会済みなら通知を作らない', async () => {
+      usersService.getUsersByIdsIncludingDeleted.mockResolvedValue([
+        { ...HOST_USER, deleted_at: new Date() },
+        VOTER_USER,
+      ]);
+
+      await service.processNotificationJob(votePayload(VOTER_ID));
+
+      expect(repo.upsertNotification).not.toHaveBeenCalled();
+      expect(notificationsService.sendPushNotification).not.toHaveBeenCalled();
+    });
+
+    it('users 行が無いだけ（匿名）なら退会扱いにせず通知を作る', async () => {
+      const ANON_ID = 'anon-not-deleted-uuid';
+      // 行が存在しない = 配列に現れない。deleted_at が立っている行は 1 つも無い
+      usersService.getUsersByIdsIncludingDeleted.mockResolvedValue([HOST_USER]);
+      usersService.getUserByIds.mockResolvedValue([HOST_USER]);
+
+      await service.processNotificationJob(votePayload(ANON_ID));
+
+      expect(repo.upsertNotification).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('別の参加者が同じセッションに投票すると同一スレッドへ集約される', async () => {
