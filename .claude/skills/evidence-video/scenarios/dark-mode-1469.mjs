@@ -11,7 +11,12 @@ const ROUTES = [
 	["profile",           "/ja-JP/profile"],
 	// #1509 のマージで新たにトークン化した画面（#1375 が分岐後に足したもの）
 	["posts-not-found",   "/ja-JP/posts"],
-	["device-settings",   "/ja-JP/profile/device-settings"],
+	["dish-category",     "/ja-JP/restaurant/r-1/dish-category"],
+	["review-form",       "/ja-JP/restaurant/r-1/review"],
+	["select-restaurant", "/ja-JP/my-dishes/select-restaurant"],
+	// ⚠️ `profile/device-settings` はここへ足さないこと。あの画面は #1504（PR #1515）のもので、
+	//    このブランチの base（#1469）にはまだ入っていない。足すと «ライトもダークも同じ»
+	//    という ❌ が出るが、それはテーマ非追従ではなく «ルートが無い» の意味になる
 	// 比較対象（テーマ対応済みと分かっている画面）
 	["search",            "/ja-JP/search"],
 ];
