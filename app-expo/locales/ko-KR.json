@@ -433,7 +433,7 @@
 			"cancel": "취소",
 			"mediaLocked": "사진과 동영상은 변경할 수 없습니다. 코멘트, 평점, 가격만 수정할 수 있습니다.",
 			"deleteConfirmTitle": "게시물을 삭제할까요?",
-			"deleteConfirmMessage": "이 게시물과 함께 올린 리뷰가 더 이상 표시되지 않습니다. 되돌릴 수 없습니다.",
+			"deleteConfirmMessage": "이 게시물(사진과 내 리뷰)을 삭제합니다. 되돌릴 수 없습니다.",
 			"deleteConfirmButton": "삭제",
 			"deleted": "게시물을 삭제했습니다",
 			"deleteFailed": "삭제하지 못했습니다",

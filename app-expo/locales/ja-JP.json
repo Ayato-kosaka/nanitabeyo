@@ -433,7 +433,7 @@
 			"cancel": "キャンセル",
 			"mediaLocked": "写真・動画は変更できません。編集できるのはコメント・評価・価格です。",
 			"deleteConfirmTitle": "投稿を削除しますか？",
-			"deleteConfirmMessage": "この投稿と、一緒に投稿したレビューが表示されなくなります。元に戻せません。",
+			"deleteConfirmMessage": "この投稿（写真とあなたのレビュー）を削除します。元に戻せません。",
 			"deleteConfirmButton": "削除する",
 			"deleted": "投稿を削除しました",
 			"deleteFailed": "削除できませんでした",

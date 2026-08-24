@@ -433,7 +433,7 @@
 			"cancel": "Annuler",
 			"mediaLocked": "Les photos et vidéos ne peuvent pas être remplacées. Vous pouvez modifier le commentaire, la note et le prix.",
 			"deleteConfirmTitle": "Supprimer cette publication ?",
-			"deleteConfirmMessage": "Cette publication et l'avis publié avec elle ne seront plus affichés. Cette action est irréversible.",
+			"deleteConfirmMessage": "La publication sera supprimée : la photo et votre avis. Cette action est irréversible.",
 			"deleteConfirmButton": "Supprimer",
 			"deleted": "Publication supprimée",
 			"deleteFailed": "Impossible de supprimer la publication",

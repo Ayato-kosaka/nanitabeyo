@@ -433,7 +433,7 @@
 			"cancel": "Cancelar",
 			"mediaLocked": "Las fotos y los vídeos no se pueden cambiar. Puedes editar el comentario, la valoración y el precio.",
 			"deleteConfirmTitle": "¿Eliminar esta publicación?",
-			"deleteConfirmMessage": "Esta publicación y la reseña que publicaste con ella dejarán de mostrarse. No se puede deshacer.",
+			"deleteConfirmMessage": "Se eliminará la publicación: la foto y tu reseña. No se puede deshacer.",
 			"deleteConfirmButton": "Eliminar",
 			"deleted": "Publicación eliminada",
 			"deleteFailed": "No se pudo eliminar la publicación",

@@ -433,7 +433,7 @@
 			"cancel": "取消",
 			"mediaLocked": "照片和视频无法更换。可编辑的是评论、评分和价格。",
 			"deleteConfirmTitle": "要删除这条帖子吗？",
-			"deleteConfirmMessage": "这条帖子以及一起发布的评价将不再显示，且无法恢复。",
+			"deleteConfirmMessage": "将删除这条帖子（照片和你的评价），且无法恢复。",
 			"deleteConfirmButton": "删除",
 			"deleted": "已删除帖子",
 			"deleteFailed": "删除失败",

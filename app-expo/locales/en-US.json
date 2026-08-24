@@ -433,7 +433,7 @@
 			"cancel": "Cancel",
 			"mediaLocked": "Photos and videos can't be changed. You can edit the comment, rating and price.",
 			"deleteConfirmTitle": "Delete this post?",
-			"deleteConfirmMessage": "This post and the review you posted with it will no longer be shown. This can't be undone.",
+			"deleteConfirmMessage": "This will delete the post — the photo and your review. This can't be undone.",
 			"deleteConfirmButton": "Delete",
 			"deleted": "Post deleted",
 			"deleteFailed": "Couldn't delete the post",
