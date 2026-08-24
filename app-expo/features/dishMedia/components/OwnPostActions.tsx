@@ -4,6 +4,10 @@ import { Ellipsis, Pencil, Trash2, X } from "lucide-react-native";
 import { FontAwesome } from "@expo/vector-icons";
 
 import i18n from "@/lib/i18n";
+// #1513 «…» ボタンだけは常に暗いメディアの上に載るのでテーマ非追従（FixedColors）。
+// シート本体は画面の面なのでテーマ追従のトークンを使う
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 import { useLogger } from "@/hooks/useLogger";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useAPICall, type ApiError } from "@/hooks/useAPICall";
@@ -49,6 +53,8 @@ type Props = {
 };
 
 export function OwnPostActions({ entry }: Props) {
+	const styles = useThemedStyles(createStyles);
+	const { colors } = useAppTheme();
 	const dishMediaId = String(entry.dish_media.id);
 	const { locale } = useLocale();
 	const { callBackend } = useAPICall();
@@ -242,7 +248,7 @@ export function OwnPostActions({ entry }: Props) {
 					accessibilityLabel={i18n.t("DishMediaContent.accessibility.ownPostMenu", {
 						name: entry.restaurant.name,
 					})}>
-					<Ellipsis size={28} color="#FFFFFF" />
+					<Ellipsis size={28} color={FixedColors.onMedia} />
 				</TouchableOpacity>
 			</View>
 
@@ -259,7 +265,7 @@ export function OwnPostActions({ entry }: Props) {
 								style={styles.sheetRow}
 								onPress={openEdit}
 								accessibilityRole="button">
-								<Pencil size={20} color="#111827" />
+								<Pencil size={20} color={colors.textPrimaryAlt} />
 								<Text style={styles.sheetRowText}>{i18n.t("DishMediaContent.ownPost.edit")}</Text>
 							</TouchableOpacity>
 						)}
@@ -269,7 +275,7 @@ export function OwnPostActions({ entry }: Props) {
 							style={styles.sheetRow}
 							onPress={handleDelete}
 							accessibilityRole="button">
-							<Trash2 size={20} color="#DC2626" />
+							<Trash2 size={20} color={colors.danger} />
 							<Text style={[styles.sheetRowText, styles.destructiveText]}>
 								{i18n.t("DishMediaContent.ownPost.delete")}
 							</Text>
@@ -303,7 +309,7 @@ export function OwnPostActions({ entry }: Props) {
 								onPress={() => setEditVisible(false)}
 								accessibilityRole="button"
 								accessibilityLabel={i18n.t("DishMediaContent.ownPost.cancel")}>
-								<X size={22} color="#111827" />
+								<X size={22} color={colors.textPrimaryAlt} />
 							</TouchableOpacity>
 						</View>
 
@@ -357,7 +363,7 @@ export function OwnPostActions({ entry }: Props) {
 									onChangeText={setPrice}
 									keyboardType="numeric"
 									placeholder="0"
-									placeholderTextColor="#A0A0A0"
+									placeholderTextColor={colors.textPlaceholder}
 								/>
 							</View>
 
@@ -377,139 +383,140 @@ export function OwnPostActions({ entry }: Props) {
 	);
 }
 
-const styles = StyleSheet.create({
-	actionContainer: {
-		alignItems: "center",
-	},
-	actionButton: {
-		padding: 4,
-	},
-	backdrop: {
-		flex: 1,
-		backgroundColor: "rgba(0,0,0,0.5)",
-		justifyContent: "flex-end",
-	},
-	sheet: {
-		backgroundColor: "#FFFFFF",
-		borderTopLeftRadius: 16,
-		borderTopRightRadius: 16,
-		paddingHorizontal: 20,
-		paddingTop: 16,
-		paddingBottom: 32,
-	},
-	sheetTitle: {
-		fontSize: 14,
-		fontWeight: "600",
-		color: "#6B7280",
-		marginBottom: 8,
-	},
-	sheetRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 12,
-		paddingVertical: 14,
-	},
-	sheetRowText: {
-		fontSize: 16,
-		color: "#111827",
-		fontWeight: "500",
-	},
-	destructiveText: {
-		color: "#DC2626",
-	},
-	lockedNote: {
-		fontSize: 12,
-		color: "#6B7280",
-		lineHeight: 18,
-		marginTop: 4,
-		marginBottom: 12,
-	},
-	sheetCancel: {
-		alignItems: "center",
-		paddingVertical: 14,
-		borderTopWidth: StyleSheet.hairlineWidth,
-		borderTopColor: "#E5E7EB",
-	},
-	sheetCancelText: {
-		fontSize: 16,
-		color: "#6B7280",
-		fontWeight: "500",
-	},
-	editSheet: {
-		backgroundColor: "#FFFFFF",
-		borderTopLeftRadius: 16,
-		borderTopRightRadius: 16,
-		paddingHorizontal: 20,
-		paddingTop: 16,
-		paddingBottom: 32,
-		maxHeight: "85%",
-	},
-	editHeader: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		marginBottom: 12,
-	},
-	editTitle: {
-		fontSize: 18,
-		fontWeight: "700",
-		color: "#111827",
-	},
-	fieldLabel: {
-		fontSize: 13,
-		fontWeight: "600",
-		color: "#6B7280",
-		marginBottom: 6,
-		marginTop: 8,
-	},
-	commentInput: {
-		minHeight: 96,
-		borderWidth: 1,
-		borderColor: "#E5E7EB",
-		borderRadius: 8,
-		padding: 12,
-		fontSize: 15,
-		color: "#111827",
-	},
-	starRow: {
-		flexDirection: "row",
-		alignItems: "center",
-	},
-	star: {
-		marginRight: 6,
-	},
-	priceRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		borderWidth: 1,
-		borderColor: "#E5E7EB",
-		borderRadius: 8,
-		paddingHorizontal: 12,
-	},
-	currencySymbol: {
-		fontSize: 15,
-		color: "#6B7280",
-		marginRight: 4,
-	},
-	priceInput: {
-		flex: 1,
-		paddingVertical: 10,
-		fontSize: 15,
-		color: "#111827",
-	},
-	submitButton: {
-		marginTop: 20,
-		backgroundColor: "#FF3040",
-		borderRadius: 10,
-		paddingVertical: 14,
-		alignItems: "center",
-	},
-	submitButtonDisabled: {
-		opacity: 0.5,
-	},
-	submitButtonText: {
-		color: "#FFFFFF",
-		fontSize: 16,
-		fontWeight: "700",
-	},
-});
+const createStyles = (colors: Palette) =>
+	StyleSheet.create({
+		actionContainer: {
+			alignItems: "center",
+		},
+		actionButton: {
+			padding: 4,
+		},
+		backdrop: {
+			flex: 1,
+			backgroundColor: "rgba(0,0,0,0.5)",
+			justifyContent: "flex-end",
+		},
+		sheet: {
+			backgroundColor: colors.surface,
+			borderTopLeftRadius: 16,
+			borderTopRightRadius: 16,
+			paddingHorizontal: 20,
+			paddingTop: 16,
+			paddingBottom: 32,
+		},
+		sheetTitle: {
+			fontSize: 14,
+			fontWeight: "600",
+			color: colors.textSecondary,
+			marginBottom: 8,
+		},
+		sheetRow: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 12,
+			paddingVertical: 14,
+		},
+		sheetRowText: {
+			fontSize: 16,
+			color: colors.textPrimaryAlt,
+			fontWeight: "500",
+		},
+		destructiveText: {
+			color: colors.danger,
+		},
+		lockedNote: {
+			fontSize: 12,
+			color: colors.textSecondary,
+			lineHeight: 18,
+			marginTop: 4,
+			marginBottom: 12,
+		},
+		sheetCancel: {
+			alignItems: "center",
+			paddingVertical: 14,
+			borderTopWidth: StyleSheet.hairlineWidth,
+			borderTopColor: colors.borderMuted,
+		},
+		sheetCancelText: {
+			fontSize: 16,
+			color: colors.textSecondary,
+			fontWeight: "500",
+		},
+		editSheet: {
+			backgroundColor: colors.surface,
+			borderTopLeftRadius: 16,
+			borderTopRightRadius: 16,
+			paddingHorizontal: 20,
+			paddingTop: 16,
+			paddingBottom: 32,
+			maxHeight: "85%",
+		},
+		editHeader: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+			marginBottom: 12,
+		},
+		editTitle: {
+			fontSize: 18,
+			fontWeight: "700",
+			color: colors.textPrimaryAlt,
+		},
+		fieldLabel: {
+			fontSize: 13,
+			fontWeight: "600",
+			color: colors.textSecondary,
+			marginBottom: 6,
+			marginTop: 8,
+		},
+		commentInput: {
+			minHeight: 96,
+			borderWidth: 1,
+			borderColor: colors.borderMuted,
+			borderRadius: 8,
+			padding: 12,
+			fontSize: 15,
+			color: colors.textPrimaryAlt,
+		},
+		starRow: {
+			flexDirection: "row",
+			alignItems: "center",
+		},
+		star: {
+			marginRight: 6,
+		},
+		priceRow: {
+			flexDirection: "row",
+			alignItems: "center",
+			borderWidth: 1,
+			borderColor: colors.borderMuted,
+			borderRadius: 8,
+			paddingHorizontal: 12,
+		},
+		currencySymbol: {
+			fontSize: 15,
+			color: colors.textSecondary,
+			marginRight: 4,
+		},
+		priceInput: {
+			flex: 1,
+			paddingVertical: 10,
+			fontSize: 15,
+			color: colors.textPrimaryAlt,
+		},
+		submitButton: {
+			marginTop: 20,
+			backgroundColor: FixedColors.submitFilled,
+			borderRadius: 10,
+			paddingVertical: 14,
+			alignItems: "center",
+		},
+		submitButtonDisabled: {
+			opacity: 0.5,
+		},
+		submitButtonText: {
+			color: FixedColors.onFilled,
+			fontSize: 16,
+			fontWeight: "700",
+		},
+	});

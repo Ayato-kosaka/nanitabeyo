@@ -30,8 +30,6 @@ import { countMyDishStatuses } from "@/features/myDishes/statusColors";
 import { MyDishStatusLegend } from "@/features/myDishes/components/MyDishStatusLegend";
 import { MyDishStatusCountBadges } from "@/features/myDishes/components/MyDishStatusCountBadges";
 import { DeletedMediaTombstone } from "@/components/DeletedMediaTombstone";
-import { useThemedStyles } from "@/contexts/ThemeProvider";
-import type { Palette } from "@/constants/Palette";
 
 /**
  * #1396 my-dishes の Calendar ビュー（設計書 (2/2) §4 / §7 の PR5）。

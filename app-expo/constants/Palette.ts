@@ -70,6 +70,14 @@ export const FixedColors = {
 	maskHole: "#000000",
 	/** 主要 CTA の影（`components/PrimaryButton` へ渡す） */
 	ctaShadow: "rgba(0, 0, 0, 0.45)",
+	/*
+	#1513 レビュー編集シートの「保存」CTA の地（塗り潰し）。
+
+	彩度の高い赤で塗り潰した面は、ライトでもダークでも同じだけ目立ち判読できる。
+	ここをテーマで振ると「保存＝この赤」という手掛かりが崩れるうえ、
+	既存の見た目（#FF3040）が変わってしまう。上に載る字は `onFilled`（＝白）。
+	*/
+	submitFilled: "#FF3040",
 	/**
 	 * メディアビューア（全画面 Feed / カルーセル）の地。
 	 * 「メディアを引き立てる黒背景」（DishMediaFeed.tsx）が仕様であり、
