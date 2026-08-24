@@ -3,13 +3,14 @@ import { expect, type Locator, type Page } from "@playwright/test";
 /**
  * 📥 SNS 取り込み画面の Page Object（#1400 → #1375 実機確認で作り直し）
  *
- * 対応画面: app-expo/app/[locale]/sns-import.tsx
+ * 対応画面: app-expo/app/[locale]/add-record.tsx
+ *（#1375 5 巡目で sns-import.tsx から改名。旧パスは転送だけを置いてある）
  *
  * ## この画面は «URL 直叩きで開ける» ことが前提
  * 共有からの着地は「アプリ未起動 → 起動 → この画面」という経路を持つため、画面そのものは
  * ログインを要求しない。取り込んだ `dish_media` の投稿者はアプリのユーザーではないので
  * `user_id` は NULL のままで、ユーザーとの紐付けは `reactions(save)` が持つ（#1375）。
- * したがって E2E は `/{locale}/sns-import?url=<encoded>` を直接開くだけで成立する。
+ * したがって E2E は `/{locale}/add-record?url=<encoded>` を直接開くだけで成立する。
  *
  * ## #1375 実機確認で «3 状態の掲示板» ではなくなった
  *
@@ -79,7 +80,9 @@ export class SnsImportPage {
 	 */
 	async goto(sharedUrl?: string, locale = "ja-JP"): Promise<void> {
 		const query = sharedUrl === undefined ? "" : `?url=${encodeURIComponent(sharedUrl)}`;
-		await this.page.goto(`/${locale}/sns-import${query}`);
+		// ⚠️ 旧 `/sns-import` にも転送は置いてあるが、E2E は **正となるパス**を直接開く
+		// （転送を挟むと «転送が壊れた» のか «画面が壊れた» のかが切り分けられない）
+		await this.page.goto(`/${locale}/add-record${query}`);
 		await expect(this.screen).toBeVisible();
 	}
 

@@ -58,6 +58,16 @@ export interface DishMediaEntryEntity {
     isLiked: boolean;
     likeCount: number;
     /**
+     * #1375 実機確認（5 巡目）「フィードの『食べたを記録』ボタンに記録済みの色を付けたい」。
+     * その dish に **自分の `dish_reviews` が 1 件でもあるか**。
+     *
+     * ⚠️ 詰めているのは `GET /v1/dish-media?ids=` だけ（#1399 の externalEmbed と同じ判断）。
+     * このボタンを出すのはその経路で読むフィードだけで、検索動線のフィードでは
+     * そもそも出さない（`ActionButtons` の `showRecordEaten`）。件数の多い検索経路へ
+     * 問い合わせを 1 本増やす理由が無い。join しない経路では undefined になる
+     */
+    isEaten?: boolean;
+    /**
      * #1399 `render_type='external_embed'` の行だけが持つ。
      * join しない経路（検索・一覧など件数の多い経路）では undefined のままになる
      */
@@ -205,6 +215,13 @@ export class DishMediaRepository {
         -- #1513 論理削除済みの投稿は候補集合に入れない。ここを漏らすと
         -- 「消したはずの投稿が検索に出る」という最も見つけにくい形で漏れる
         AND dm.deleted_at IS NULL
+        -- #1257 実体（GCS original）が届いていない行を検索候補から除外する。
+        -- media_processing_status を「加工完了フラグ」としてではなく「原本到達の代理指標」として使う。
+        -- 単純に processing のみを弾く案では、原本のダウンロードに恒久的に失敗して
+        -- processing のまま固着した行や、リサイズに失敗した failed 行という別種の
+        -- 「実体未着」を見落とす（processing と failed は原因が違うだけで、どちらも
+        -- 検索へ公開してはいけない点は同じ）。そのため completed 以外を一律に除外する。
+        AND dm.media_processing_status = 'completed'
     ),
     -- 距離計算
     geo AS (
@@ -497,6 +514,13 @@ export class DishMediaRepository {
         WHERE d.restaurant_id = ${restaurantId}::uuid
           -- #1513 論理削除済みの投稿は店舗詳細にも出さない
           AND dm.deleted_at IS NULL
+          -- #1257 findDishMediaIds と同じ理由で、実体（GCS original）が届いていない行を
+          -- レストラン詳細の一覧からも除外する。ここを漏らすと、検索には出なくなった
+          -- 未着メディアが店舗ページ経由でだけ露出し続ける。
+          -- 「各 dish につきいいね数最大の1件」を選ぶ ROW_NUMBER より前段で除外する必要がある。
+          -- 後段で弾くと、未着行が代表に選ばれた dish が丸ごと欠落し、completed な
+          -- 次点メディアまで巻き添えで消える。
+          AND dm.media_processing_status = 'completed'
       ),
       ranked AS (
         SELECT
@@ -862,6 +886,22 @@ export class DishMediaRepository {
     const { reactionSet, reviewLikeCountMap } =
       await this.buildReactionAggregates(dishMediaIds, allReviewIds, userId);
 
+    // #1375（5 巡目）この dish を自分が «食べた» 記録があるか。
+    //
+    // 上で取っている `dishes.dish_reviews` は **全ユーザーぶんを reviewLimit 件で切っている**ので、
+    // 自分のレビューがその中に居るとは限らない（＝ あの配列から判定すると «記録していない» と
+    // 誤判定する）。索引 `idx_dish_reviews_user_dish (user_id, dish_id)` にそのまま乗る
+    // 専用の 1 本で引く。ゲスト（userId なし）では引かない
+    const eatenDishIds = new Set<string>();
+    if (userId && dishIds.length > 0) {
+      const myReviewedDishes = await this.prisma.prisma.dish_reviews.findMany({
+        where: { user_id: userId, dish_id: { in: dishIds } },
+        distinct: ['dish_id'],
+        select: { dish_id: true },
+      });
+      for (const row of myReviewedDishes) eatenDishIds.add(row.dish_id);
+    }
+
     return dishMediaIds
       .filter((dishMediaId) => {
         const dishMedia = dishMediaMap.get(dishMediaId);
@@ -899,6 +939,8 @@ export class DishMediaRepository {
             likeCount: Number(
               dishMedia.dish_media_analysis_results?.like_total ?? 0,
             ), // #292 【設計】likeCount は dish_media_analysis_results.like_total から取得（reactions は含めない）
+            // #1375（5 巡目）「食べたを記録」ボタンを記録済みの色にするための旗
+            isEaten: eatenDishIds.has(dishMedia.dish_id),
             // #1399 external_embed の行だけがこれを持つ。stored の行では常に undefined
             externalEmbed:
               dishMedia.dish_media_external_embeddings ?? undefined,

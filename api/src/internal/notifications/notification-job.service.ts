@@ -122,6 +122,16 @@ export class NotificationJobService {
         select: { user_id: true },
       });
       return review ?? null;
+    } else if (targetTable === 'dish_category_group_vote_sessions') {
+      // #1506 GRP-04: recipient は投票セッションのホスト。
+      const session =
+        await this.prisma.prisma.dish_category_group_vote_sessions.findUnique(
+          {
+            where: { id: targetId },
+            select: { host_user_id: true },
+          },
+        );
+      return session ? { user_id: session.host_user_id } : null;
     }
 
     return null;
@@ -198,6 +208,18 @@ export class NotificationJobService {
           ja: 'あなたのレビューにいいねしました',
           ko: '귀하의 리뷰를 좋아합니다',
           zh: '喜欢了你的评论',
+        },
+      },
+      dish_category_group_vote_sessions: {
+        vote: {
+          ar: 'صوّت في مجموعتك',
+          en: 'Voted in your group',
+          es: 'Votó en tu grupo',
+          fr: 'A voté dans votre groupe',
+          hi: 'आपके ग्रुप में वोट किया',
+          ja: 'あなたのグループ投票に投票しました',
+          ko: '귀하의 그룹에 투표했습니다',
+          zh: '在你的小组中投票了',
         },
       },
       default: {

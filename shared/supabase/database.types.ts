@@ -308,6 +308,7 @@ export type Database = {
           created_at: string
           host_user_id: string
           id: string
+          idempotency_key: string | null
           search_context: Json
           share_token: string
           updated_at: string
@@ -316,6 +317,7 @@ export type Database = {
           created_at?: string
           host_user_id: string
           id?: string
+          idempotency_key?: string | null
           search_context?: Json
           share_token: string
           updated_at?: string
@@ -324,6 +326,7 @@ export type Database = {
           created_at?: string
           host_user_id?: string
           id?: string
+          idempotency_key?: string | null
           search_context?: Json
           share_token?: string
           updated_at?: string
@@ -1342,6 +1345,7 @@ export type Database = {
           avatar_path: string | null
           bio: string | null
           created_at: string
+          deleted_at: string | null
           display_name: string | null
           id: string
           last_login_at: string | null
@@ -1354,6 +1358,7 @@ export type Database = {
           avatar_path?: string | null
           bio?: string | null
           created_at?: string
+          deleted_at?: string | null
           display_name?: string | null
           id?: string
           last_login_at?: string | null
@@ -1366,6 +1371,7 @@ export type Database = {
           avatar_path?: string | null
           bio?: string | null
           created_at?: string
+          deleted_at?: string | null
           display_name?: string | null
           id?: string
           last_login_at?: string | null

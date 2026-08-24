@@ -60,6 +60,16 @@ export type DishMediaEntry = {
 		isLiked: boolean;
 		likeCount: number;
 		/**
+		 * #1375 その料理（dish）に **自分の `dish_reviews` が 1 件でもあるか**。
+		 * フィードの「食べたを記録」ボタンを «記録済みの色» にするために使う。
+		 *
+		 * ⚠️ 詰めているのは `GET /v1/dish-media?ids=` だけ（#1399 の `externalEmbed` と同じ判断）。
+		 * このボタンを出すのはその経路で読むフィードだけである。それ以外では `undefined` になるので、
+		 * **`false` と `undefined` を同じに扱ってよい**（どちらも «記録済みの色にしない»）。
+		 * ボタン自体は常に押せる — 再訪は別の記録として正しいので、済 = 無効化ではない
+		 */
+		isEaten?: boolean;
+		/**
 		 * 投稿メディアの署名付きCDN URL（派生サイズ）
 		 * - 動画の場合: media_processing_status が 'completed' 以外は null
 		 * - 画像の場合: media_processing_status に応じてオリジナル or リサイズ済みパス

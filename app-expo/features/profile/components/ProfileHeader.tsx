@@ -4,6 +4,7 @@ import { Image } from "expo-image";
 import { Pencil as Edit3 } from "lucide-react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Card } from "@/components/Card";
+import { useAppTheme } from "@/contexts/ThemeProvider";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import i18n from "@/lib/i18n";
 import { GetUserProfileResponse } from "@shared/api/v1/res";
@@ -38,6 +39,8 @@ const formatNumber = (num: number): string => {
 };
 
 export function ProfileHeader({ profile, isGuest = false, onEditProfile, onLogin }: ProfileHeaderProps) {
+	// #1509 テーマ切替はこの画面（マイページ）から行うので、見出しが読めなくならないよう色だけ追従させる
+	const { colors } = useAppTheme();
 	const avatarUrl = useMemo(() => profile.avatarUrls?.md, [profile]);
 
 	return (
@@ -46,7 +49,7 @@ export function ProfileHeader({ profile, isGuest = false, onEditProfile, onLogin
 			<View style={styles.header} pointerEvents="box-none">
 				{/* Display Name */}
 				{/* #948 【仕様】ゲストは locale 非依存のダミー値(profileData.ts)ではなく現在言語の「ゲスト」表示にする */}
-				<Text style={[styles.displayName]} pointerEvents="none">
+				<Text style={[styles.displayName, { color: colors.textPrimary }]} pointerEvents="none">
 					{isGuest ? i18n.t("Profile.guestDisplayName") : profile.display_name}
 				</Text>
 			</View>

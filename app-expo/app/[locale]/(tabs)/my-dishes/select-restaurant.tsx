@@ -551,13 +551,13 @@ export default function SelectRestaurantScreen() {
 					<PrimaryButton
 						onPress={() => searchSavedRestaurants(currentRegion.current)}
 						label={i18n.t("SelectRestaurant.searchThisArea")}
-						icon={<RotateCw size={16} color="#357AFF" />}
+						icon={<RotateCw size={16} color="#111827" />}
 						colors={["#ffffff", "#ffffff"]}
 						shadowColor={"transparent"}
-						labelStyle={{ color: "#357AFF", fontSize: 14 }}
+						labelStyle={{ color: "#111827", fontSize: 14 }}
 						loading={isLoadingSavedRestaurants}
 						loadingIndicatorType="native"
-						nativeLoadingColor={"#357AFF"}
+						nativeLoadingColor={"#111827"}
 					/>
 				</View>
 			</View>

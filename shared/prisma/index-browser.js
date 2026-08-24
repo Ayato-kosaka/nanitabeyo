@@ -205,7 +205,8 @@ exports.Prisma.Dish_category_group_vote_sessionsScalarFieldEnum = {
   share_token: 'share_token',
   search_context: 'search_context',
   created_at: 'created_at',
-  updated_at: 'updated_at'
+  updated_at: 'updated_at',
+  idempotency_key: 'idempotency_key'
 };
 
 exports.Prisma.Dish_category_localized_textScalarFieldEnum = {
@@ -507,6 +508,14 @@ exports.Prisma.User_notification_cursorsScalarFieldEnum = {
   last_read_at: 'last_read_at'
 };
 
+exports.Prisma.User_notification_preferencesScalarFieldEnum = {
+  user_id: 'user_id',
+  category: 'category',
+  enabled: 'enabled',
+  created_at: 'created_at',
+  updated_at: 'updated_at'
+};
+
 exports.Prisma.User_rolesScalarFieldEnum = {
   user_id: 'user_id',
   role_id: 'role_id'
@@ -522,7 +531,8 @@ exports.Prisma.UsersScalarFieldEnum = {
   lock_no: 'lock_no',
   username: 'username',
   preferred_locale: 'preferred_locale',
-  avatar_path: 'avatar_path'
+  avatar_path: 'avatar_path',
+  deleted_at: 'deleted_at'
 };
 
 exports.Prisma.SortOrder = {
@@ -623,6 +633,7 @@ exports.Prisma.ModelName = {
   share_links: 'share_links',
   user_device_tokens: 'user_device_tokens',
   user_notification_cursors: 'user_notification_cursors',
+  user_notification_preferences: 'user_notification_preferences',
   user_roles: 'user_roles',
   users: 'users'
 };

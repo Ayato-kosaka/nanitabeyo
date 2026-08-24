@@ -161,9 +161,11 @@ model dish_category_group_vote_sessions {
   search_context                        Json                                    @default("{}")
   created_at                            DateTime                                @default(now()) @db.Timestamptz(6)
   updated_at                            DateTime                                @default(now()) @db.Timestamptz(6)
+  idempotency_key                       String?
   dish_category_group_vote_candidates   dish_category_group_vote_candidates[]
   dish_category_group_vote_participants dish_category_group_vote_participants[]
 
+  @@unique([host_user_id, idempotency_key], map: "dcgvs_host_user_id_idempotency_key_uq")
   @@index([share_token], map: "idx_dcgvs_share_token")
   @@schema("dev")
 }
@@ -690,6 +692,19 @@ model user_notification_cursors {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model user_notification_preferences {
+  user_id    String   @db.Uuid
+  category   String
+  enabled    Boolean
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @default(now()) @db.Timestamptz(6)
+
+  @@id([user_id, category])
+  @@schema("dev")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model user_roles {
   user_id String @db.Uuid
   role_id String @db.Uuid
@@ -715,6 +730,7 @@ model users {
   username         String             @unique(map: "uq_users_username") @db.Citext
   preferred_locale String
   avatar_path      String?
+  deleted_at       DateTime?          @db.Timestamptz(6)
   dish_media       dish_media[]
   dish_media_likes dish_media_likes[]
   dish_reviews     dish_reviews[]

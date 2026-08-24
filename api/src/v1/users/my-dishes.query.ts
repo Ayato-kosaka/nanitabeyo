@@ -784,7 +784,11 @@ export function buildMyDishMapPinsQuery(
     p.latest_occurred_at,
     dm.id                          AS media_id,
     dm.thumbnail_path              AS media_thumbnail_path,
-    dm.thumbnail_processing_status AS media_thumbnail_processing_status
+    dm.thumbnail_processing_status AS media_thumbnail_processing_status,
+    -- #1375 独立レビュー（仕様ギャップ G4）: SNS 取り込みは自ストレージへの複製に失敗し得るため
+    -- dish_media.thumbnail_path が空のまま正常系で存在する。同じフォールバックが効くよう
+    -- 埋め込み側の URL も返す（Map ピンだけ店舗の外観写真へ化けるのを防ぐ）
+    dmee.thumbnail_url             AS media_external_thumbnail_url
   FROM pins p
   JOIN restaurants r ON r.id = p.restaurant_id
   -- ピンの代表メディアは「その店舗で最も新しい行」の代表メディアに固定する（m-7）
@@ -813,6 +817,7 @@ export function buildMyDishMapPinsQuery(
     LIMIT 1
   ) fb ON om.id IS NULL
   LEFT JOIN dish_media dm ON dm.id = COALESCE(om.id, fb.id)
+  LEFT JOIN dish_media_external_embeddings dmee ON dmee.dish_media_id = dm.id
   ORDER BY p.latest_occurred_at DESC
 `;
 }

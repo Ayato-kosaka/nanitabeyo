@@ -102,6 +102,8 @@ export class DishMediaAssembler {
         // Explicitly add only the required additional fields for DishMediaEntry.dish_media
         isMine: src.dish_media.isMine,
         isSaved: src.dish_media.isSaved,
+        // #1375（5 巡目）「食べたを記録」ボタンの記録済み色。ids 経路だけが持つ（undefined あり）
+        isEaten: src.dish_media.isEaten,
         isLiked: src.dish_media.isLiked,
         likeCount: src.dish_media.likeCount,
         mediaUrl,
@@ -168,8 +170,9 @@ export class DishMediaAssembler {
    *   - media_processing_status が 'completed' の場合はリサイズ済みパスの Signed URL を返す
    *   - それ以外はオリジナルパスの Signed URL を返す
    *
-   * #1395 render_type が 'external_embed' のときは自ストレージに実体が無いので
-   * 署名 URL を作らず null を返す。`mediaUrl` は既に nullable なのでレスポンス型は壊れない。
+   * #1395 media_path は nullable。CHECK 制約 dish_media_media_path_required_for_stored に
+   * より NULL になるのは render_type='external_embed'（自ストレージに実体が無い）だけで、
+   * その行は署名 URL を作れない。mediaUrl は元から nullable なのでレスポンス型は壊れない。
    */
   private getMediaUrl(
     dishMedia: DishMediaEntryEntity['dish_media'] & DishMediaRenderColumns,
@@ -186,6 +189,7 @@ export class DishMediaAssembler {
     if (!dishMedia.media_path) {
       return { mediaUrl: null };
     }
+    const mediaPath = dishMedia.media_path;
 
     const status =
       dishMedia.media_processing_status as MediaProcessingStatus | null;
@@ -201,7 +205,7 @@ export class DishMediaAssembler {
           table: 'dish_media',
           column: 'media_path',
           recordId: dishMedia.id,
-          originalPath: dishMedia.media_path,
+          originalPath: mediaPath,
         },
         'cdn',
       );
@@ -216,7 +220,7 @@ export class DishMediaAssembler {
             column: 'media_path',
             recordId: dishMedia.id,
             size: 1024,
-            originalPath: dishMedia.media_path,
+            originalPath: mediaPath,
           },
           'cdn',
         );
@@ -224,7 +228,7 @@ export class DishMediaAssembler {
         return { mediaUrl };
       } else {
         // #511 【設計】未完了時はオリジナルパスの CDN Signed URL を返す
-        const originalCdnUrl = buildCdnUrlFromPath(dishMedia.media_path);
+        const originalCdnUrl = buildCdnUrlFromPath(mediaPath);
         const mediaUrl = this.storage.generateCdnSignedURL(originalCdnUrl);
         return { mediaUrl };
       }

@@ -28,7 +28,7 @@ import { expect, type Locator, type Page } from "@playwright/test";
  *   いまは「食べたい」＝ `reactions(save)` を匿名ユーザーでも書けるため、一覧は開いており、
  *   ログイン導線は一覧の**上に細い帯**として出る（`guestDescription` / `guestLoginButton`）。
  *   したがって «ゲストなら一覧が無い» を前提にした検証を書かないこと
- * - **記録 CTA（＋）はゲストにも出る。** 押下先は店舗選択ではなく SNS 取り込み画面（`sns-import`）
+ * - **記録 CTA（＋）はゲストにも出る。** 押下先は店舗選択ではなく «追加» のシート（`add-record`）
  * - **ピンタップは Sheet を開かず Feed へ push する。** 代わりに Map 下部へ
  *   **常設**のシート（`my-dishes-map-sheet`）が出る
  * - **Calendar の日セルタップは期間フィルタを書かず Feed（date スコープ）へ push する**

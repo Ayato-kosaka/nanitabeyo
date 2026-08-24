@@ -50,6 +50,15 @@ export class TopicsScreen {
 	/** ヘッダーのグループ投票ボタン */
 	readonly groupVoteButton = by.id("topics-group-vote");
 
+	/** #1499 取得失敗時のエラーカード全体（TopicsError.tsx。e2e-web の TopicsPage.errorCard に対応） */
+	readonly errorCard = by.id("topics-error");
+	/** #1499 失敗時のエラー文言 */
+	readonly errorMessage = by.id("topics-error-message");
+	/** #1499 「その場で再試行」ボタン */
+	readonly errorRetryButton = by.id("topics-error-retry");
+	/** #1499 エラーカードの「戻る」ボタン */
+	readonly errorBackButton = by.id("topics-error-back");
+
 	/** ヘッダーの「？」ボタン（チュートリアル再表示） */
 	readonly tutorialHelpButton = by.id("topics-tutorial-help");
 	/** スポットライトを含む最前面オーバーレイ */
@@ -97,6 +106,45 @@ export class TopicsScreen {
 
 		// 期限切れ。失敗理由（何が見えていないか）を Detox のメッセージとして残すため、最後に一度だけ待ち直す
 		await waitUntilVisible(this.activeChooseButton);
+	}
+
+	/**
+	 * トピック提案画面が「カード表示」と「取得失敗のエラー画面」のどちらに落ち着いたかを返す（#1499）。
+	 *
+	 * Detox には Playwright の `context.route` に相当するネットワーク傍受 API が無く
+	 * （`utils/waits.ts` 冒頭の JSDoc 参照）、実 API を狙って失敗させる手段が無い。
+	 * そのため e2e-mobile 側では「エラー画面を強制する」のではなく、実 API が
+	 * 稀にでも失敗を返した場合に **到達できた範囲だけ**検証する形を取る
+	 * （`tests/search/topics-retry.test.ts` 参照）。
+	 *
+	 * @param timeout タイムアウト (ms)。既定はトピック生成待ちを見込んだ TOPICS_TIMEOUT
+	 */
+	async expectSettled(timeout: number = TopicsScreen.TOPICS_TIMEOUT): Promise<"loaded" | "error"> {
+		const deadline = Date.now() + timeout;
+
+		while (Date.now() < deadline) {
+			if (await existsNow(this.tutorialOverlay, 1_000)) {
+				await this.dismissTutorialIfPresent();
+				continue;
+			}
+			if (await visibleNow(this.activeChooseButton, 1_000)) return "loaded";
+			if (await visibleNow(this.errorCard, 1_000)) return "error";
+		}
+
+		// 期限切れ。失敗理由（何が見えていないか）を Detox のメッセージとして残すため、最後に一度だけ待ち直す
+		await waitUntilVisible(this.activeChooseButton);
+		return "loaded";
+	}
+
+	/** #1499 エラー画面が表示され、再試行ボタンが押せる状態であることを検証する */
+	async expectErrorState(): Promise<void> {
+		await waitUntilVisible(this.errorCard);
+		await waitUntilVisible(this.errorRetryButton);
+	}
+
+	/** #1499 再試行ボタンを押す */
+	async retry(): Promise<void> {
+		await tapWhenVisible(this.errorRetryButton);
 	}
 
 	/** アクティブなトピックカードを選択して結果フィードへ進む */
