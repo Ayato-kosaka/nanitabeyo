@@ -23,6 +23,7 @@ import { useLocale } from "@/hooks/useLocale";
 import { useScreenTrace } from "@/hooks/useScreenTrace";
 import { getCacheKeyForImage } from "@/lib/image";
 import { dateStringToTimestamp } from "@/lib/frontend-utils";
+import { DeletedMediaTombstone } from "@/components/DeletedMediaTombstone";
 
 /**
  * 🔔 通知一覧画面
@@ -176,6 +177,20 @@ export default function NotificationsScreen() {
 			const message = getNotificationMessage(item);
 			const avatar = item.actors?.[0].avatarUrls?.sm || "https://via.placeholder.com/50";
 
+			/*
+			#1513 【設計】通知の対象（dish_media / dish_reviews）が削除済みなら、行は残して
+			サムネイルの位置に墓標「削除されました」を出す。
+
+			通知の行そのものを消してはいけない。「〇〇さんがいいねしました」は起きた事実であり、
+			あとから写真を消したことで **通知が届いた記憶ごと消える** と、利用者からは通知の
+			取りこぼしと区別が付かない。API 側は `includeDeleted: true` で削除済みも返し、
+			`mediaUrl` / `thumbnailImageUrl` は null にしてある（notifications.service.ts）。
+
+			⚠️ 押せなくすること。`handleNotificationPress` の遷移先（全画面フィード）には
+			   実体が無く、押すと中身の無いフィードが開いてしまう。
+			*/
+			const isTargetDeleted = item.dishMediaEntries?.dish_media.deleted_at != null;
+
 			return (
 				<TouchableOpacity
 					// #1506 GRP-04 【テスト】行とアイコンに action_type 込みの testID を付ける。
@@ -185,7 +200,8 @@ export default function NotificationsScreen() {
 					// （screens/NotificationsScreen.ts が「内容の検証が要るなら都度足すこと」と書いている通り）。
 					testID={`notification-item-${item.notification.action_type}`}
 					style={styles.notificationItem}
-					onPress={() => handleNotificationPress(item)}
+					onPress={isTargetDeleted ? undefined : () => handleNotificationPress(item)}
+					disabled={isTargetDeleted}
 					activeOpacity={0.7}>
 					{/* Left: Avatar with Action Icon */}
 					<View style={styles.avatarContainer}>
@@ -208,16 +224,29 @@ export default function NotificationsScreen() {
 					</View>
 
 					{/* Right: Post Thumbnail */}
-					{item.dishMediaEntries && item.dishMediaEntries.dish_media.thumbnailImageUrl && (
+					{isTargetDeleted ? (
 						<View style={styles.rightContainer}>
-							<Image
-								source={{
-									uri: item.dishMediaEntries.dish_media.thumbnailImageUrl,
-									cacheKey: getCacheKeyForImage(item.dishMediaEntries.dish_media.thumbnailImageUrl),
-								}}
+							{/* #1513 サムネイルと同じ 50x50 / 角丸 12 の枠に墓標を収める。
+							    寸法を変えると行の高さが通知ごとに変わって一覧がガタつく */}
+							<DeletedMediaTombstone
+								variant="pin"
 								style={styles.postThumbnail}
+								testID={`notification-deleted-${item.notification.id}`}
 							/>
 						</View>
+					) : (
+						item.dishMediaEntries &&
+						item.dishMediaEntries.dish_media.thumbnailImageUrl && (
+							<View style={styles.rightContainer}>
+								<Image
+									source={{
+										uri: item.dishMediaEntries.dish_media.thumbnailImageUrl,
+										cacheKey: getCacheKeyForImage(item.dishMediaEntries.dish_media.thumbnailImageUrl),
+									}}
+									style={styles.postThumbnail}
+								/>
+							</View>
+						)
 					)}
 				</TouchableOpacity>
 			);
