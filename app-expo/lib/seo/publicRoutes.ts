@@ -94,11 +94,4 @@ export const DEEP_LINK_SMOKE_EXCLUSIONS: Readonly<Record<string, string>> = {
 	// フローとしての検証は tests/search/ の spec が持っている
 	"search/dish-categories": "検索フローの途中の画面。前画面の条件（場所・時間帯・シーン）が無い状態を直リンクの正とはしない",
 	"search/result": "検索フローの途中の画面。検索条件のパラメータ前提のため直リンクの対象にしない",
-
-	// #1553 «topic» という表現をやめた際の旧ルート。実体は無く、新ルートへの Redirect だけを持つ
-	// （__tests__/legacyRouteRedirects.test.tsx が行き先を固定している）。消してよいかはオーナー判断
-	"search/topics": "旧ルート。search/dish-categories へリダイレクトするだけの画面",
-	"profile/saved-topics": "旧ルート。profile/saved-dish-categories へリダイレクトするだけの画面",
-	"profile/blocked-topics": "旧ルート。profile/blocked-dish-categories へリダイレクトするだけの画面",
-	"profile/saved-topic-location": "旧ルート。profile/saved-dish-category-location へリダイレクトするだけの画面",
 };

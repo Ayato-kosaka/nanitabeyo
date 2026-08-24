@@ -7,8 +7,8 @@
 
 #1553 【設計】ルート名は `saved-topics` から `saved-dish-categories` へ改名した（アプリ内から
 topic という表現を消す）。ストアのキー（`profileSavedDishCategories`）・API
-（`/v1/users/me/saved-dish-categories`）とも対応が取れている。旧ルートは
-`saved-topics.tsx`（リダイレクト）として残してある。
+（`/v1/users/me/saved-dish-categories`）とも対応が取れている。旧ルート
+（`saved-topics`）はオーナー判断で **転送も置かずに削除した**。
 **画面に出る文言は「料理カテゴリ」である**（#1132 で「料理トピック」から統一済み。
 e2e-web/tests/profile/blocked-categories-wording.spec.ts が旧文言の残存を見張っている）。
 */

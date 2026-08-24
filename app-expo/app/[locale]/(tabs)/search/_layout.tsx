@@ -10,8 +10,6 @@ export default function SearchStackLayout() {
 		<Stack screenOptions={{ headerShown: false }}>
 			<Stack.Screen name="index" />
 			<Stack.Screen name="dish-categories" />
-			{/* #1553 旧ルート。dish-categories へのリダイレクトだけを担う（topics.tsx） */}
-			<Stack.Screen name="topics" />
 			<Stack.Screen name="dish-category-group-votes" />
 			<Stack.Screen name="result" options={{ presentation: "transparentModal", headerShown: false }} />
 		</Stack>
