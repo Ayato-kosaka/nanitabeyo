@@ -100,7 +100,7 @@ jest.mock("@/features/profile/components/ProfileHeader", () => {
 });
 // #1402 【設計】ProfileTabsBar / ReviewTab / SavedPostsTab は 4 グリッドタブごと廃止したので
 // main にあった jest.mock は落とす（モジュールが存在せず module not found になる）。
-// LikeTab / SavedTopicsTab は単独ルートへ移り、マイページ本体はもう描かないのでモック不要。
+// LikeTab / SavedDishCategoriesTab は単独ルートへ移り、マイページ本体はもう描かないのでモック不要。
 // #1387 「まだ読んでいない」と「読んだが取れなかった」を分けるため、決着状態も差し替え可能にする。
 // profile === null だけでは両者を区別できず、後者でスピナーが回り続けていた
 let mockIsProfileResolved = true;

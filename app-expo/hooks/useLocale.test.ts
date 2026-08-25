@@ -54,7 +54,7 @@ const localeOf = (pathname: string) => renderUseLocale(pathname).locale;
 
 describe("#1194 useLocale", () => {
 	it("パス先頭のロケールをそのまま使う", () => {
-		expect(localeOf("/ja-JP/search/topics")).toBe("ja-JP");
+		expect(localeOf("/ja-JP/search/dish-categories")).toBe("ja-JP");
 		expect(localeOf("/en-US")).toBe("en-US");
 	});
 

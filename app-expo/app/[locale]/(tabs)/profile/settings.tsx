@@ -188,7 +188,7 @@ export default function SettingsScreen() {
 			payload: {},
 		});
 		router.push({
-			pathname: "/[locale]/(tabs)/profile/blocked-topics",
+			pathname: "/[locale]/(tabs)/profile/blocked-dish-categories",
 			params: { locale },
 		});
 	}, [lightImpact, logFrontendEvent, router, locale]);
@@ -423,7 +423,7 @@ export default function SettingsScreen() {
 						{/* #317 【設計】Leave Review は web では非表示 */}
 						{Platform.OS !== "web" && (
 							<SettingsMenuItem
-								label={i18n.t("Settings.leaveReview")}
+								label={i18n.t("Settings.support")}
 								onPress={handleLeaveReview}
 								testID="settings-leave-review"
 								accessibilityRole="button"
@@ -431,10 +431,10 @@ export default function SettingsScreen() {
 						)}
 						{/* #747 【設計】ブロック済みの料理トピック管理画面へ遷移 */}
 						<SettingsMenuItem
-							label={i18n.t("Settings.blockedTopics.navigationLabel")}
+							label={i18n.t("Settings.blockedDishCategories.navigationLabel")}
 							onPress={handleNavigateToBlockedTopics}
 							isLast
-							testID="settings-blocked-topics"
+							testID="settings-blocked-dish-categories"
 							accessibilityRole="link"
 						/>
 					</Card>

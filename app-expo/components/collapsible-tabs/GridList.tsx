@@ -59,7 +59,7 @@ interface GridListProps<T extends GridItem> {
 	 *
 	 * `Tabs.FlatList` は react-native-collapsible-tab-view のコンテキスト
 	 * （`Tabs.Container` > `Tabs.Tab` の内側）を前提にしており、外側で描画すると実行時に落ちる。
-	 * プロフィールの 4 グリッドタブを廃止（#1402）した結果、LikeTab / SavedTopicsTab は
+	 * プロフィールの 4 グリッドタブを廃止（#1402）した結果、LikeTab / SavedDishCategoriesTab は
 	 * «タブのペイン» ではなく «独立したルート» として描画されるようになったため、
 	 * そこだけ素の FlatList へ落とす。既定値 false は従来の呼び出し側
 	 * （店詳細のレビュー等、まだ Tabs.Container の中にいるもの）を変えないため。

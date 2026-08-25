@@ -16,18 +16,19 @@ test.describe("設定項目(匿名ユーザー)", () => {
 	//   1. appPage で起動し、/ja-JP/profile へ遷移する（#1402 以前は /ja-JP/profile/settings）
 	//   2. 以下の項目が表示されることを検証:
 	//      - ご意見・不具合(settings-feedback)
-	//      - ブロック済みの料理カテゴリ(settings-blocked-topics) ← #1132 で「トピック」から改称
+	//      - ブロック済みの料理カテゴリ(settings-blocked-dish-categories) ← #1553 で「トピック」から改称
 	//      - 端末設定(settings-device-settings) ← #1504 で追加
 	//      - なに食べよについて(settings-about) ← #1583 で追加
 	//   3. #1583 で «なに食べよについて» / «端末設定» へ移した行が、
 	//      マイページ側に **残っていない** ことを検証（移設であって複製ではない）
+	//   4. 「レビューを書く」(ストア誘導)は Web では表示されないことを検証
 	test("設定メニューの各項目が表示される", async ({ appPage }) => {
 		const settingsPage = new SettingsPage(appPage);
 		await settingsPage.goto();
 		await settingsPage.expectLoaded();
 
 		await expect(settingsPage.feedbackItem).toBeVisible();
-		await expect(settingsPage.blockedTopicsItem).toBeVisible();
+		await expect(settingsPage.blockedDishCategoriesItem).toBeVisible();
 		await expect(settingsPage.deviceSettingsItem).toBeVisible();
 		await expect(settingsPage.aboutItem).toBeVisible();
 
@@ -114,9 +115,9 @@ test.describe("設定項目(匿名ユーザー)", () => {
 	// 受け取り方を設定させても届く先が無い。ログイン済み側の検証は
 	// tests/authenticated/notification-preferences.spec.ts が持つ
 	//
-	// ⚠️ #1583 マージ時点で、この test は **中身がバージョン検証のまま**だった
-	//    （ベース側の取り込みで «バージョン情報が表示される» の中へ入れ子になり、
-	//      通知カードを一度も見ていなかった）。本来の assert へ戻してある。
+	// ⚠️ ベース取り込みの時点で、この test は **中身がバージョン検証のまま**入れ子になっていて、
+	//    バージョンも通知カードもどちらも assert されていなかった（構文としては通る）。
+	//    2 本の独立した test へ戻してある。
 	test("匿名時は通知カテゴリのカードが表示されない", async ({ appPage }) => {
 		const settingsPage = new SettingsPage(appPage);
 		await settingsPage.goto();

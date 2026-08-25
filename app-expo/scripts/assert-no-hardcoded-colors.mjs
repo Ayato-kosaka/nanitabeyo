@@ -74,7 +74,7 @@ const COLOR_LITERAL = /["'`]#[0-9a-fA-F]{3,8}\b|["'`](?:white|black)["'`]/g;
 const EXCLUSIONS = {
 	"app/+html.tsx":
 		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"app/[locale]/(tabs)/profile/blocked-topics.tsx":
+	"app/[locale]/(tabs)/profile/blocked-dish-categories.tsx":
 		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
 	"app/[locale]/(tabs)/profile/edit.tsx":
 		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
@@ -84,7 +84,7 @@ const EXCLUSIONS = {
 		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
 	"app/[locale]/(tabs)/search/result.tsx":
 		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"app/[locale]/(tabs)/search/topics.tsx":
+	"app/[locale]/(tabs)/search/dish-categories.tsx":
 		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
 	"app/[locale]/auth/callback.tsx":
 		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
@@ -192,15 +192,15 @@ const EXCLUSIONS = {
 		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
 	"features/settings/components/LegalDocument.tsx":
 		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"features/topics/components/TopicCardExpandTransition.tsx":
+	"features/dishCategories/components/DishCategoryCardExpandTransition.tsx":
 		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"features/topics/components/TopicThumbnail.tsx":
+	"features/dishCategories/components/DishCategoryThumbnail.tsx":
 		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"features/topics/components/TopicVisualCard.tsx":
+	"features/dishCategories/components/DishCategoryVisualCard.tsx":
 		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"features/topics/components/TopicsError.tsx":
+	"features/dishCategories/components/DishCategoriesError.tsx":
 		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"features/topics/components/TopicsLoading.tsx":
+	"features/dishCategories/components/DishCategoriesLoading.tsx":
 		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
 };
 

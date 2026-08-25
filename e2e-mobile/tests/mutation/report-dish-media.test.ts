@@ -3,7 +3,7 @@ import { strict as assert } from "node:assert";
 import { describeMutation, launchAppWithSession } from "../../fixtures/e2e";
 import { ResultScreen } from "../../screens/ResultScreen";
 import { SearchScreen } from "../../screens/SearchScreen";
-import { TopicsScreen } from "../../screens/TopicsScreen";
+import { DishCategoriesScreen } from "../../screens/DishCategoriesScreen";
 
 /**
  * 通報理由コード。
@@ -60,7 +60,7 @@ const CONTENT_REPORT_REASON_CODES = [
  */
 describeMutation("投稿の通報 @mutation", () => {
 	const search = new SearchScreen();
-	const topics = new TopicsScreen();
+	const dishCategories = new DishCategoriesScreen();
 	const result = new ResultScreen();
 
 	// reactions.test.ts と同じ理由（#1031）で、テストごとに結果フィードまでやり直して独立性を担保する
@@ -73,8 +73,8 @@ describeMutation("投稿の通報 @mutation", () => {
 		await search.selectLocationSuggestion(0);
 		await search.submit();
 
-		await topics.expectLoaded();
-		await topics.chooseFirstTopic();
+		await dishCategories.expectLoaded();
+		await dishCategories.chooseFirstDishCategory();
 		await result.expectLoaded();
 	});
 

@@ -725,7 +725,7 @@ const CardView = ({
 	isPreview?: boolean;
 }) => {
 	const { logFrontendEvent } = useLogger();
-	// #958 【修正】以前は features/topics/constants.ts の CARD_WIDTH(モジュール評価時の
+	// #958 【修正】以前は features/dishCategories/constants.ts の CARD_WIDTH(モジュール評価時の
 	// window幅で固定、リサイズ非追従)を直接使っていた。本ツールは中央カラム対象外(社内管理画面)
 	// のためウィンドウ幅そのままでよいが、削除された CARD_WIDTH の代わりに素の window 幅を使う
 	const { width: cardWidth } = useWindowDimensions();

@@ -9,7 +9,7 @@ import { expect, type Locator, type Page } from "@playwright/test";
  * - **4 グリッドタブ（自分のレビュー / 保存した料理 / 保存した投稿 / いいねした料理）は廃止**。
  *   `?tab=` によるタブ指定も、`review-tab-grid` / `save-post-tab-grid` も無くなった。
  * - 残る 2 つのグリッドは «独立したルート» になった
- *   （`/[locale]/profile/liked` / `/[locale]/profile/saved-topics`）。
+ *   （`/[locale]/profile/liked` / `/[locale]/profile/saved-dish-categories`）。
  * - **独立した設定画面も無くなり**、その項目はこの画面の縦リストに並んでいる。
  *   設定項目そのものの Locator は `pages/SettingsPage.ts` が持ち続ける（testID も据え置き）。
  *
@@ -21,16 +21,16 @@ export class ProfilePage {
 	readonly loginButton: Locator;
 	/** 「いいねした投稿」の行（#1402 で追加。押すと /[locale]/profile/liked へ） */
 	readonly likedItem: Locator;
-	/** 「保存した料理カテゴリ」の行（#1402 で追加。押すと /[locale]/profile/saved-topics へ） */
-	readonly savedTopicsItem: Locator;
+	/** 「保存した料理カテゴリ」の行（#1402 で追加。押すと /[locale]/profile/saved-dish-categories へ） */
+	readonly savedDishCategoriesItem: Locator;
 	/** 保存した料理カテゴリのグリッド（既存 testID。#1402 で単独ルートの中身になった） */
-	readonly savedTopicsGrid: Locator;
+	readonly savedDishCategoriesGrid: Locator;
 	/** いいねした投稿のグリッド（既存 testID。#1402 で単独ルートの中身になった） */
 	readonly likedGrid: Locator;
 	/**
 	 * 保存料理カテゴリから開く地点検索画面の入力欄（#1133 / #1369 でモーダルからルートへ）。
 	 *
-	 * testID は SavedTopicLocationSearch が LocationSearchForm へ渡す "saved-topic-location-search" が接頭辞。
+	 * testID は SavedDishCategoryLocationSearch が LocationSearchForm へ渡す "saved-dish-category-location-search" が接頭辞。
 	 * 内部要素の testID は LocationAutocomplete がサフィックスを付けて生成するため、
 	 * ホーム（SearchPage）とまったく同じ命名規則になっている。
 	 */
@@ -52,14 +52,14 @@ export class ProfilePage {
 		this.page = page;
 		this.loginButton = page.getByTestId("profile-login-button");
 		this.likedItem = page.getByTestId("profile-liked");
-		this.savedTopicsItem = page.getByTestId("profile-saved-topics");
-		this.savedTopicsGrid = page.getByTestId("save-topic-tab-grid");
+		this.savedDishCategoriesItem = page.getByTestId("profile-saved-dish-categories");
+		this.savedDishCategoriesGrid = page.getByTestId("save-dish-category-tab-grid");
 		this.likedGrid = page.getByTestId("like-tab-grid");
-		this.locationSearchInput = page.getByTestId("saved-topic-location-search-input");
-		this.locationSearchRecentList = page.getByTestId("saved-topic-location-search-recent-locations");
-		this.locationSearchRecentClearButton = page.getByTestId("saved-topic-location-search-recent-locations-clear");
-		this.locationSearchCurrentLocationButton = page.getByTestId("saved-topic-current-location-button");
-		this.locationSearchSuggestions = page.getByTestId("saved-topic-location-search-suggestions");
+		this.locationSearchInput = page.getByTestId("saved-dish-category-location-search-input");
+		this.locationSearchRecentList = page.getByTestId("saved-dish-category-location-search-recent-locations");
+		this.locationSearchRecentClearButton = page.getByTestId("saved-dish-category-location-search-recent-locations-clear");
+		this.locationSearchCurrentLocationButton = page.getByTestId("saved-dishCategory-current-location-button");
+		this.locationSearchSuggestions = page.getByTestId("saved-dish-category-location-search-suggestions");
 		this.editButton = page.getByTestId("profile-edit-button");
 		this.editScreenTitle = page.getByTestId("profile-edit-screen-title");
 	}
@@ -68,18 +68,18 @@ export class ProfilePage {
 	 * 「保存した料理カテゴリ」の一覧を開く（#1133 / #1402）。
 	 *
 	 * #1402 でタブから «単独のルート» になったので、`?tab=` ではなく URL 直遷移で開く。
-	 * 実 UI 導線（マイページの行をクリック）を通したい場合は `openSavedTopics()` を使うこと。
+	 * 実 UI 導線（マイページの行をクリック）を通したい場合は `openSavedDishCategories()` を使うこと。
 	 */
-	async gotoSavedTopics(locale = "ja-JP"): Promise<void> {
-		await this.page.goto(`/${locale}/profile/saved-topics`);
-		await expect(this.savedTopicsGrid).toBeVisible();
+	async gotoSavedDishCategories(locale = "ja-JP"): Promise<void> {
+		await this.page.goto(`/${locale}/profile/saved-dish-categories`);
+		await expect(this.savedDishCategoriesGrid).toBeVisible();
 	}
 
 	/** マイページの「保存した料理カテゴリ」行をクリックして一覧へ遷移する（実 UI 導線・#1402） */
-	async openSavedTopics(): Promise<void> {
-		await this.savedTopicsItem.click();
-		await expect(this.page).toHaveURL(/\/profile\/saved-topics/);
-		await expect(this.savedTopicsGrid).toBeVisible();
+	async openSavedDishCategories(): Promise<void> {
+		await this.savedDishCategoriesItem.click();
+		await expect(this.page).toHaveURL(/\/profile\/saved-dish-categories/);
+		await expect(this.savedDishCategoriesGrid).toBeVisible();
 	}
 
 	/** 「いいねした投稿」の一覧を開く（#1402。URL 直遷移） */
@@ -96,8 +96,8 @@ export class ProfilePage {
 	}
 
 	/** n 番目の保存料理カテゴリカードの Locator を返す（0 始まり） */
-	savedTopicItem(index: number): Locator {
-		return this.page.getByTestId(`save-topic-tab-item-${index}`);
+	savedDishCategoryItem(index: number): Locator {
+		return this.page.getByTestId(`save-dish-category-tab-item-${index}`);
 	}
 
 	/**
@@ -108,19 +108,19 @@ export class ProfilePage {
 	 * URL とフォーカス可能な入力欄の両方を見る（入力欄は autofocus=true）。
 	 */
 	async openLocationSearch(index = 0): Promise<void> {
-		await this.savedTopicItem(index).click();
-		await expect(this.page).toHaveURL(/\/profile\/saved-topic-location/);
+		await this.savedDishCategoryItem(index).click();
+		await expect(this.page).toHaveURL(/\/profile\/saved-dish-category-location/);
 		await expect(this.locationSearchInput).toBeVisible();
 	}
 
 	/** n 番目の「最近使った場所」の Locator を返す（0 始まり、先頭が最新） */
 	locationSearchRecentLocation(index: number): Locator {
-		return this.page.getByTestId(`saved-topic-location-search-recent-location-${index}`);
+		return this.page.getByTestId(`saved-dish-category-location-search-recent-location-${index}`);
 	}
 
 	/** n 番目のサジェスト（候補）の Locator を返す（0 始まり） */
 	locationSearchSuggestion(index: number): Locator {
-		return this.page.getByTestId(`saved-topic-location-search-suggestion-${index}`);
+		return this.page.getByTestId(`saved-dish-category-location-search-suggestion-${index}`);
 	}
 
 	/**

@@ -73,8 +73,8 @@ describeAuthenticated("マイページ（ログイン済みユーザー）", () 
 		await waitUntilExists(profileScreen.likedGrid);
 
 		await tabBar.gotoProfile();
-		await profileScreen.openSavedTopics();
-		await waitUntilExists(profileScreen.savedTopicsGrid);
+		await profileScreen.openSavedDishCategories();
+		await waitUntilExists(profileScreen.savedDishCategoriesGrid);
 	});
 
 	// ─ テストケース: ログイン済みのときだけ表示される「お知らせ」タブが表示される ─

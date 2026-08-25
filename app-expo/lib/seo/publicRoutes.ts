@@ -89,14 +89,14 @@ export const DEEP_LINK_SMOKE_EXCLUSIONS: Readonly<Record<string, string>> = {
 	// «廃止したから消す» と «復活したから戻す» が別ブランチで起きた形なので、経緯を残しておく
 	"profile/settings": "ログイン必須。未ログインでは中身が無い",
 	"profile/liked": "ログイン必須。未ログインでは中身が無い",
-	"profile/saved-topics": "ログイン必須。未ログインでは中身が無い",
+	"profile/saved-dish-categories": "ログイン必須。未ログインでは中身が無い",
 	"profile/feedback": "ログイン必須。未ログインでは中身が無い",
 	// #1584 自分が出した通報の履歴。未ログイン（匿名）でも «自分の» 履歴は引けるが、
 	// 端末のサインインに紐づくので直リンクでは常に空になり、描画の判定材料にならない
 	"profile/content-reports": "自分の通報履歴。直リンクでは常に空で、描画の判定材料にならない",
-	"profile/blocked-topics": "ログイン必須。未ログインでは中身が無い",
+	"profile/blocked-dish-categories": "ログイン必須。未ログインでは中身が無い",
 	"profile/food": "ログイン必須。未ログインでは中身が無い",
-	"profile/saved-topic-location": "ログイン必須。未ログインでは中身が無い",
+	"profile/saved-dish-category-location": "ログイン必須。未ログインでは中身が無い",
 	"profile/search-results": "ログイン必須。未ログインでは中身が無い",
 	// #1505 GRP-01 自分が主催した投票の一覧。ログイン必須
 	"profile/dish-category-group-votes": "ログイン必須。未ログインでは中身が無い",
@@ -112,6 +112,6 @@ export const DEEP_LINK_SMOKE_EXCLUSIONS: Readonly<Record<string, string>> = {
 
 	// 検索フローの途中の画面。直リンクでは «前の画面で選んだ条件» が無い状態になる。
 	// フローとしての検証は tests/search/ の spec が持っている
-	"search/topics": "検索フローの途中の画面。前画面の条件（場所・時間帯・シーン）が無い状態を直リンクの正とはしない",
+	"search/dish-categories": "検索フローの途中の画面。前画面の条件（場所・時間帯・シーン）が無い状態を直リンクの正とはしない",
 	"search/result": "検索フローの途中の画面。検索条件のパラメータ前提のため直リンクの対象にしない",
 };

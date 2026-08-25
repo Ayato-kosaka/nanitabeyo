@@ -37,7 +37,7 @@ describe("設定項目（匿名ユーザー）", () => {
 	//   1. マイページタブを開く（#1402 以前は「歯車ボタンをタップして設定画面へ」だった）
 	//   2. 以下の項目が表示されることを検証:
 	//      - ご意見・不具合(settings-feedback) / レビューを書く(settings-leave-review、ネイティブのみ)
-	//      - ブロック済みの料理トピック(settings-blocked-topics) / 端末設定(settings-device-settings)
+	//      - ブロック済みの料理カテゴリ(settings-blocked-dish-categories)
 	//      - 端末設定(settings-device-settings) / なに食べよについて(settings-about)
 	//   ⚠️ #1583 で規約 4 行・応援する・バージョンは «なに食べよについて»、
 	//      表示テーマは «端末設定» へ移った
@@ -51,7 +51,7 @@ describe("設定項目（匿名ユーザー）", () => {
 		await settingsScreen.expectLoaded();
 
 		await waitUntilVisible(settingsScreen.feedbackItem);
-		await waitUntilVisible(settingsScreen.blockedTopicsItem);
+		await waitUntilVisible(settingsScreen.blockedDishCategoriesItem);
 		// #1583 下 2 行は初期表示で画面外にいるので、見えるところまで運んでから確かめる
 		await settingsScreen.expectRowVisible(settingsScreen.deviceSettingsItem);
 		await settingsScreen.expectRowVisible(settingsScreen.aboutItem);

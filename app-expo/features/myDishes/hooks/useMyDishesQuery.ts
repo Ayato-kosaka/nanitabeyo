@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { shallow } from "zustand/shallow";
 import { useAPICall } from "@/hooks/useAPICall";
+import { useLogger } from "@/hooks/useLogger";
 import type { QueryMyDishesDto } from "@shared/api/v1/dto";
 import type { MyDishItem, QueryMyDishesResponse } from "@shared/api/v1/res";
 import { selectFilterQueryKey, toMyDishesQueryParams, useMyDishesFilterStore } from "../stores/useMyDishesFilterStore";
@@ -46,6 +47,7 @@ export type UseMyDishesQueryResult = {
 export const useMyDishesQuery = (options?: { enabled?: boolean }): UseMyDishesQueryResult => {
 	const enabled = options?.enabled ?? true;
 	const { callBackend } = useAPICall();
+	const { logFrontendEvent } = useLogger();
 
 	const filter = useMyDishesFilterStore((s) => s.filter);
 	const queryKey = useMyDishesFilterStore(selectFilterQueryKey);
@@ -77,21 +79,58 @@ export const useMyDishesQuery = (options?: { enabled?: boolean }): UseMyDishesQu
 	const fetcher = useMemo<MyDishesFetcher>(() => {
 		const params = toMyDishesQueryParams(filter);
 		return async ({ cursor }) => {
-			const response = await callBackend<QueryMyDishesDto, QueryMyDishesResponse>("v1/users/me/dishes", {
-				method: "GET",
-				requestPayload: {
-					...params,
-					limit: MY_DISHES_PAGE_SIZE,
-					...(cursor ? { cursor } : {}),
-				},
-			});
-			return {
-				data: response.data ?? [],
-				nextCursor: response.nextCursor,
-				oldestOccurredAt: response.meta?.oldestOccurredAt ?? null,
-			};
+			/*
+			#1375（9 巡目・オーナー指摘「読み込みが重い」）**まず «どれくらい重いか» を測れるようにする。**
+
+			この一覧の取得には所要時間の記録が 1 つも無く、「重い」と言われても
+			**何ミリ秒なのかを誰も知らない**状態だった。1 ページ 42 件を減らすかどうかも、
+			数字が無いままでは «たぶん速くなる» でしか判断できない。
+
+			`Date.now()` の差だけを載せる（追加の往復も依存も増やさない）。見たいのは
+			  - `duration_ms` … 体感そのもの
+			  - `count` … 何件返ってきたか（ページ サイズを変える判断の分母）
+			  - `is_first_page` … 初回表示か、続きの読み込みか
+			である。失敗したときも «失敗までに何秒待たされたか» が要るので、必ず記録する。
+			*/
+			const startedAt = Date.now();
+			try {
+				const response = await callBackend<QueryMyDishesDto, QueryMyDishesResponse>("v1/users/me/dishes", {
+					method: "GET",
+					requestPayload: {
+						...params,
+						limit: MY_DISHES_PAGE_SIZE,
+						...(cursor ? { cursor } : {}),
+					},
+				});
+				logFrontendEvent({
+					event_name: "my_dishes_fetch_completed",
+					error_level: "log",
+					payload: {
+						duration_ms: Date.now() - startedAt,
+						count: response.data?.length ?? 0,
+						is_first_page: !cursor,
+						limit: MY_DISHES_PAGE_SIZE,
+					},
+				});
+				return {
+					data: response.data ?? [],
+					nextCursor: response.nextCursor,
+					oldestOccurredAt: response.meta?.oldestOccurredAt ?? null,
+				};
+			} catch (error) {
+				logFrontendEvent({
+					event_name: "my_dishes_fetch_failed",
+					error_level: "warn",
+					payload: {
+						duration_ms: Date.now() - startedAt,
+						is_first_page: !cursor,
+						error: error instanceof Error ? error.message : String(error),
+					},
+				});
+				throw error;
+			}
 		};
-	}, [callBackend, filter]);
+	}, [callBackend, filter, logFrontendEvent]);
 
 	// #1396 m-1: キャッシュヒット（下の effect が fetchInitial を呼ばない経路）でも LRU を touch する。
 	// touchAndEvict を fetchInitial の副作用にだけ任せると、フィルタを往復してもキャッシュヒットでは

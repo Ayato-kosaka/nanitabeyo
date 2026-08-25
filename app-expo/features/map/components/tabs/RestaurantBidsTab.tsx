@@ -21,7 +21,7 @@ interface RestaurantBidsTabProps {
  *
  * useCursorPaginationを使用してレストランの入札履歴を取得し、
  * ステータスフィルター付きのリスト形式で表示する。
- * SavedTopicsTabの実装パターンに倣い、カーソル式ページネーションを実装。
+ * SavedDishCategoriesTabの実装パターンに倣い、カーソル式ページネーションを実装。
  * フィルター機能により、ステータス別の入札履歴を絞り込み表示可能。
  */
 export function RestaurantBidsTab({ restaurantId }: RestaurantBidsTabProps) {

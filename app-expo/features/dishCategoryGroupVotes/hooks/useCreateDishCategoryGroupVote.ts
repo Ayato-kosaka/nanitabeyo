@@ -1,15 +1,15 @@
 /**
  * #856 【責務】
- * topics 画面から group vote セッションを新規作成する。
+ * dishCategories 画面から group vote セッションを新規作成する。
  *
- * ここでは visibleTopics を候補スナップショットとして送るだけに留め、
+ * ここでは visibleDishCategories を候補スナップショットとして送るだけに留め、
  * 画面遷移や snackbar は呼び出し側に返す。API 呼び出しと request payload の
- * 形を固定することで、topics 以外からも同じ作成ロジックを再利用できる。
+ * 形を固定することで、dishCategories 以外からも同じ作成ロジックを再利用できる。
  */
 import { useCallback, useRef, useState } from "react";
 import type { CreateDishCategoryGroupVoteDto } from "@shared/api/v1/dto";
 import type { CreateDishCategoryGroupVoteResponse } from "@shared/api/v1/res";
-import type { SearchParams, Topic } from "@/types/search";
+import type { SearchParams, DishCategoryRecommendation } from "@/types/search";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useLogger } from "@/hooks/useLogger";
 import { toErrorLogMessage } from "@/lib/errorMessage";
@@ -17,7 +17,7 @@ import { generateUUID } from "@/lib/uuid";
 
 type CreateGroupVoteInput = {
 	searchParams: SearchParams;
-	topics: Topic[];
+	dishCategories: DishCategoryRecommendation[];
 };
 
 export function useCreateDishCategoryGroupVote() {
@@ -69,14 +69,14 @@ export function useCreateDishCategoryGroupVote() {
 	 *          呼び出し側は `null` のとき画面遷移を行わないこと（遷移すると結果画面が二重に開く）。
 	 */
 	const createGroupVote = useCallback(
-		async ({ searchParams, topics }: CreateGroupVoteInput): Promise<CreateDishCategoryGroupVoteResponse | null> => {
+		async ({ searchParams, dishCategories }: CreateGroupVoteInput): Promise<CreateDishCategoryGroupVoteResponse | null> => {
 			// #1205 作成中の 2 発目は「失敗」ではないので throw せず null で返す。
 			// throw にすると呼び出し側のエラー表示（Snackbar）が連打のたびに出てしまう。
 			if (isCreatingRef.current) return null;
 
-			const visibleTopics = topics.filter((topic) => !topic.isHidden);
-			if (visibleTopics.length === 0) {
-				throw new Error("No visible topics to create a group vote");
+			const visibleDishCategories = dishCategories.filter((dishCategory) => !dishCategory.isHidden);
+			if (visibleDishCategories.length === 0) {
+				throw new Error("No visible dishCategories to create a group vote");
 			}
 
 			const requestBody = {
@@ -89,11 +89,11 @@ export function useCreateDishCategoryGroupVote() {
 					priceLevels: searchParams.priceLevels,
 					localLanguageCode: searchParams.localLanguageCode,
 				},
-				candidates: visibleTopics.map((topic) => ({
-					dishCategoryId: topic.categoryId,
-					displayName: topic.topicTitle,
-					tagline: topic.reason,
-					imageUrl: topic.imageUrl,
+				candidates: visibleDishCategories.map((dishCategory) => ({
+					dishCategoryId: dishCategory.categoryId,
+					displayName: dishCategory.title,
+					tagline: dishCategory.reason,
+					imageUrl: dishCategory.imageUrl,
 				})),
 			};
 
@@ -149,7 +149,7 @@ export function useCreateDishCategoryGroupVote() {
 					event_name: "dish_category_group_vote_create_failed",
 					error_level: "log",
 					payload: {
-						candidateCount: visibleTopics.length,
+						candidateCount: visibleDishCategories.length,
 						error: toErrorLogMessage(error),
 					},
 				});

@@ -183,8 +183,10 @@ env -u PLAYWRIGHT_BROWSERS_PATH node .claude/skills/evidence-video/scripts/recor
   `navigator.geolocation.getCurrentPosition = () => {}`（永遠に応答しない）を
   addInitScript して「プロンプトが出たまま」を再現する。許可済みは context の
   `permissions: ["geolocation"]` + `geolocation: {...}` で作る
-- **アニメーションは実時間で待つ。** オンボーディングの課題→解決は表示から約 1.5 秒 +
-  アニメ 0.3 秒。`waitForTimeout(2600)` 程度置いてから次へ進むと動画に全部映る
+- **アニメーションは実時間で待つ。** オンボーディングの課題文は表示と同時に
+  下から上へフェードイン（約 0.4 秒）、解決フェーズは **矢印を押したとき** に
+  アニメ 0.3 秒で出る（自動では切り替わらない）。押下のあと `waitForTimeout(1200)`
+  程度置いてから次の操作へ進むと動画に全部映る
 - **デバイスは record.mjs の PRESETS で選ぶ**: `default`（素の iPhone サイズ Chromium・最速）/
   `android`（Pixel 7 相当）/ `ios`（iPhone 14 + WebKit）。後者 2 つは e2e-web CI の
   mobile-chrome / mobile-safari と同じ descriptor。`ios` は WebKit バイナリと OS ライブラリが

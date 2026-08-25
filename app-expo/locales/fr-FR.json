@@ -175,9 +175,6 @@
 		},
 		"loading": "Recherche...",
 		"noLocationsFound": "Aucun lieu trouvé",
-		"locationConfirmation": {
-			"error": "Échec de la confirmation du lieu"
-		},
 		"advancedToggle": {
 			"open": "Plus d'options",
 			"close": "Fermer la recherche avancée"
@@ -257,20 +254,23 @@
 		"recentLocations": {
 			"title": "Lieux récents",
 			"clear": "Effacer les lieux récents"
+		},
+		"locationConfirmation": {
+			"error": "Échec de la confirmation du lieu"
 		}
 	},
 	"Onboarding": {
 		"step1": {
-			"problem": "Impossible de décider quoi manger.",
-			"solution": "On vous suggère des plats recommandés,\nvous trouvez ce dont vous avez envie"
+			"problem": "Vous ne savez même pas\nde quoi vous avez envie.",
+			"solution": "Choisissez simplement parmi les plats recommandés"
 		},
 		"step2": {
-			"problem": "Chercher un restaurant prend du temps\navec trop de choix.",
-			"solution": "Plats et restaurants présélectionnés,\nvous décidez tout de suite"
+			"problem": "Trop de restaurants à comparer.\nC'est épuisant de choisir.",
+			"solution": "Choisissez parmi des restaurants triés sur le volet !"
 		},
 		"step3": {
-			"problem": "Vous ne voulez pas non plus vous tromper sur les goûts des autres.",
-			"solution": "Votez entre amis pour choisir le plat"
+			"problem": "Vous aimeriez aussi l'avis\nde vos amis.",
+			"solution": "Décidez du plat avec vos amis, par vote !"
 		},
 		"back": "Précédent",
 		"next": "Suivant",
@@ -306,7 +306,7 @@
 			"stepProgress": "Étape {{current}} sur {{total}}"
 		}
 	},
-	"Topics": {
+	"DishCategories": {
 		"deepDive": {
 			"title": "Filtrer ce style"
 		},
@@ -327,7 +327,7 @@
 					"title": "Approfondissez selon votre humeur",
 					"body": "Vous hésitez encore ? Choisissez un style pour affiner les suggestions."
 				},
-				"topicActions": {
+				"dishCategoryActions": {
 					"title": "Adaptez les suggestions à vos goûts",
 					"save": "Enregistrer : retrouvez ce plat plus tard",
 					"block": "Bloquer : ne plus voir les plats qui ne vous plaisent pas"
@@ -338,7 +338,7 @@
 				}
 			}
 		},
-		"HideTopicModal": {
+		"HideDishCategoryModal": {
 			"title": "Masquer",
 			"description": "Veuillez indiquer la raison du masquage (facultatif)",
 			"placeholder": "Entrez une raison...",
@@ -356,7 +356,7 @@
 		"retry": "Retour à la recherche",
 		"chooseThis": "Je choisis celui-ci !",
 		"hiddenMessage": "{{title}} a été masqué",
-		"BlockTopicModal": {
+		"BlockDishCategoryModal": {
 			"title": "Bloquer ce plat ?",
 			"description": "Les catégories de plats bloquées n’apparaîtront plus dans les recommandations.",
 			"note": "Vous pouvez le débloquer à tout moment depuis les Paramètres.",
@@ -375,9 +375,9 @@
 		"headerTitle": "Plats Recommandés pour Vous",
 		"subCopy": "Appuyez sur un plat que vous aimez pour trouver des restaurants",
 		"accessibility": {
-			"blockTopic": "Retirer {{title}} des recommandations",
-			"saveTopic": "Enregistrer {{title}}",
-			"unsaveTopic": "Retirer {{title}} des favoris",
+			"blockDishCategory": "Retirer {{title}} des recommandations",
+			"saveDishCategory": "Enregistrer {{title}}",
+			"unsaveDishCategory": "Retirer {{title}} des favoris",
 			"thumbnail": "Miniature de {{title}}, {{index}} sur {{total}}"
 		}
 	},
@@ -466,57 +466,6 @@
 			"forbidden": "Vous ne pouvez modifier ou supprimer que vos propres publications"
 		}
 	},
-	"Report": {
-		"action": "Signaler",
-		"title": "Signaler cette publication",
-		"reviewTitle": "Signaler cet avis",
-		"description": "Choisissez un motif de signalement. Notre équipe l'examinera et l'auteur n'en sera pas informé.",
-		"reasons": {
-			"spam": "Spam ou publicité",
-			"sexual": "Contenu sexuel",
-			"violence": "Violence ou contenu choquant",
-			"harassment": "Harcèlement ou insultes",
-			"illegal": "Activité illégale",
-			"misinformation": "Informations erronées",
-			"rights": "Atteinte aux droits (droit d'auteur, etc.)",
-			"privacy": "Données personnelles visibles",
-			"irrelevant": "Sans rapport avec la cuisine",
-			"other": "Autre motif"
-		},
-		"detailsLabel": "Précisions (facultatif)",
-		"detailsPlaceholder": "Ajoutez tout élément utile à l'examen (1 000 caractères max.)",
-		"submit": "Envoyer le signalement",
-		"submitting": "Envoi en cours...",
-		"accepted": {
-			"title": "Merci pour votre signalement",
-			"description": "Nous allons l'examiner. Nous ne communiquons pas le résultat individuellement.",
-			"close": "Fermer",
-			"history": "Vos signalements"
-		},
-		"errors": {
-			"submitFailed": "Impossible d'envoyer le signalement. Veuillez réessayer."
-		},
-		"accessibility": {
-			"open": "Signaler la publication de {{name}}",
-			"openReview": "Signaler l'avis de {{name}}",
-			"reason": "Motif : {{reason}}",
-			"reasonSelected": "Motif : {{reason}} (sélectionné)",
-			"submit": "Envoyer le signalement de la publication de {{name}}",
-			"submitReview": "Envoyer le signalement de l'avis de {{name}}"
-		},
-		"history": {
-			"navigationLabel": "Vos signalements",
-			"pageTitle": "Vos signalements",
-			"empty": "Aucun signalement pour le moment",
-			"emptyDescription": "Lorsque vous signalez une publication ou un avis, il apparaît ici.",
-			"note": "Nous ne communiquons ni l'état ni le résultat de l'examen.",
-			"error": "Impossible de charger vos signalements",
-			"target": {
-				"dish_media": "Publication",
-				"dish_reviews": "Avis"
-			}
-		}
-	},
 	"ImageCardGrid": {
 		"openItemDetails": "Ouvrir les détails de l'article"
 	},
@@ -551,7 +500,7 @@
 			"deposits": "Dépôts",
 			"earnings": "Revenus",
 			"saved-posts": "Publications",
-			"saved-topics": "Plats",
+			"saved-dish-categories": "Plats",
 			"wallet-deposit": "Dépôts",
 			"wallet-earning": "Revenus"
 		},
@@ -571,7 +520,7 @@
 			"noLikedDishMediaEntries": "Aucune publication aimée",
 			"noSavedItems": "Aucun élément enregistré",
 			"noSavedPosts": "Quand vous trouvez des publications intéressantes, utilisez \"Enregistrer\" pour les revoir",
-			"noSavedTopics": "Quand vous trouvez des plats intéressants, utilisez \"Enregistrer\" pour explorer les restaurants à proximité"
+			"noSavedDishCategories": "Quand vous trouvez des plats intéressants, utilisez \"Enregistrer\" pour explorer les restaurants à proximité"
 		},
 		"reviews": {
 			"filter": {
@@ -863,6 +812,18 @@
 		"logout": "Se déconnecter",
 		"logoutConfirmTitle": "Se déconnecter ?",
 		"logoutConfirmMessage": "Vous devrez vous reconnecter pour gérer vos publications et avis.",
+		"blockedDishCategories": {
+			"navigationLabel": "Catégories de plats bloquées",
+			"pageTitle": "Catégories de plats bloquées",
+			"title": "Plats bloqués",
+			"empty": "Aucun plat bloqué",
+			"loading": "Chargement...",
+			"unblockButton": "Débloquer",
+			"unblockTitle": "Débloquer cette catégorie de plat ?",
+			"unblockMessage": "Cette catégorie de plat sera réajoutée aux recommandations.",
+			"unblockConfirm": "Débloquer",
+			"unblocked": "Débloqué"
+		},
 		"notifications": {
 			"sectionTitle": "Notifications",
 			"osDisabledTitle": "Les notifications sont désactivées sur cet appareil",
@@ -881,18 +842,6 @@
 				"title": "Votes de groupe",
 				"description": "Quand il se passe quelque chose dans un vote de groupe que vous avez rejoint"
 			}
-		},
-		"blockedTopics": {
-			"navigationLabel": "Catégories de plats bloquées",
-			"pageTitle": "Catégories de plats bloquées",
-			"title": "Plats bloqués",
-			"empty": "Aucun plat bloqué",
-			"loading": "Chargement...",
-			"unblockButton": "Débloquer",
-			"unblockTitle": "Débloquer cette catégorie de plat ?",
-			"unblockMessage": "Cette catégorie de plat sera réajoutée aux recommandations.",
-			"unblockConfirm": "Débloquer",
-			"unblocked": "Débloqué"
 		},
 		"language": {
 			"navigationLabel": "Langue",
@@ -1019,10 +968,10 @@
 		},
 		"map": {
 			"truncated": "Seuls certains repères sont affichés. Réduisez la zone de recherche.",
-			"currentLocation": "Aller à ma position",
 			"sheetTitle": "{{count}} restaurants à proximité",
 			"tileA11yLabel": "{{name}} (à goûter : {{want}}, goûté : {{eaten}})",
-			"clusterA11yLabel": "{{count}} restaurants ici"
+			"clusterA11yLabel": "{{count}} restaurants ici",
+			"currentLocation": "Aller à ma position"
 		},
 		"guest": {
 			"description": "Connectez-vous pour enregistrer les plats que vous voulez essayer et ceux que vous avez mangés",
@@ -1213,6 +1162,57 @@
 			"finish": "Commencer",
 			"progress": "{{current}} / {{total}}",
 			"progressAccessibility": "Étape {{current}} sur {{total}}"
+		}
+	},
+	"Report": {
+		"action": "Signaler",
+		"title": "Signaler cette publication",
+		"reviewTitle": "Signaler cet avis",
+		"description": "Choisissez un motif de signalement. Notre équipe l'examinera et l'auteur n'en sera pas informé.",
+		"reasons": {
+			"spam": "Spam ou publicité",
+			"sexual": "Contenu sexuel",
+			"violence": "Violence ou contenu choquant",
+			"harassment": "Harcèlement ou insultes",
+			"illegal": "Activité illégale",
+			"misinformation": "Informations erronées",
+			"rights": "Atteinte aux droits (droit d'auteur, etc.)",
+			"privacy": "Données personnelles visibles",
+			"irrelevant": "Sans rapport avec la cuisine",
+			"other": "Autre motif"
+		},
+		"detailsLabel": "Précisions (facultatif)",
+		"detailsPlaceholder": "Ajoutez tout élément utile à l'examen (1 000 caractères max.)",
+		"submit": "Envoyer le signalement",
+		"submitting": "Envoi en cours...",
+		"accepted": {
+			"title": "Merci pour votre signalement",
+			"description": "Nous allons l'examiner. Nous ne communiquons pas le résultat individuellement.",
+			"close": "Fermer",
+			"history": "Vos signalements"
+		},
+		"errors": {
+			"submitFailed": "Impossible d'envoyer le signalement. Veuillez réessayer."
+		},
+		"accessibility": {
+			"open": "Signaler la publication de {{name}}",
+			"openReview": "Signaler l'avis de {{name}}",
+			"reason": "Motif : {{reason}}",
+			"reasonSelected": "Motif : {{reason}} (sélectionné)",
+			"submit": "Envoyer le signalement de la publication de {{name}}",
+			"submitReview": "Envoyer le signalement de l'avis de {{name}}"
+		},
+		"history": {
+			"navigationLabel": "Vos signalements",
+			"pageTitle": "Vos signalements",
+			"empty": "Aucun signalement pour le moment",
+			"emptyDescription": "Lorsque vous signalez une publication ou un avis, il apparaît ici.",
+			"note": "Nous ne communiquons ni l'état ni le résultat de l'examen.",
+			"error": "Impossible de charger vos signalements",
+			"target": {
+				"dish_media": "Publication",
+				"dish_reviews": "Avis"
+			}
 		}
 	}
 }

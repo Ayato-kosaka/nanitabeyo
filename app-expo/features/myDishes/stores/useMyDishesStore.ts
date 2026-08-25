@@ -7,7 +7,7 @@ import type { MyDishItem, MyDishPin } from "@shared/api/v1/res";
 /**
  * #1396 my-dishes の取得結果を置く store（設計書 (2/2) §3-3）。
  *
- * 置き場は既存の作法（`useTopicsStore` の `topicIdsByKey` / `isLoadingByKey` / `nextCursorByKey`）に
+ * 置き場は既存の作法（`useDishCategoriesStore` の `dishCategoryIdsByKey` / `isLoadingByKey` / `nextCursorByKey`）に
  * 合わせた **`byKey` スライス**である。キーは `selectFilterQueryKey(useMyDishesFilterStore)` の戻り値で、
  * Map / リスト / Calendar の 3 ビューが**同じキーを共有する**。
  *
@@ -145,7 +145,7 @@ export type MyDishesStore = {
 const EMPTY_KEYS: string[] = [];
 const EMPTY_PINS: MyDishPin[] = [];
 
-/** `queryKey` に紐づく一覧の状態をまとめて取り出すセレクタ（`useTopicsStore` の作法に合わせる） */
+/** `queryKey` に紐づく一覧の状態をまとめて取り出すセレクタ（`useDishCategoriesStore` の作法に合わせる） */
 export const selectMyDishesByQuery =
 	(queryKey: string) =>
 	(

@@ -491,15 +491,15 @@ export default function SnsImportScreen() {
 		**ヘッダの無いこの画面だけは自分で入れる必要がある。**
 		*/
 		<SafeAreaView edges={["top", "bottom"]} style={styles.container} testID="sns-import-screen">
-			{/* #1375（9 巡目・オーナー指摘）**戻るボタンを置く。下へ引いて閉じるは廃止した。**
+			{/* #1375 実機確認: ＋ の基本導線は SNS 取り込み。上部タブで「食べた」の追加へ切り替える。
+			    背景は敷かず、選択中だけ濃い黒＋下線で示す */}
+			{/* #1375（9 巡目・オーナー指示）**戻るボタンはタブと同じ行の左に置く。**
 
-			    それまでは «つまみを下へ引く» が唯一の戻る導線で、つまみ自体を押せるようにして
-			    代替としていた。実機で «戻れない» と指摘されたので、**見て分かる ← を置く**。
-			    引いて閉じるジェスチャ（PanResponder）は、あると «画面のスクロールのつもりが
-			    閉じてしまう» 事故の側だけが残るので一緒に外した。
-
-			    タイトル帯は置かない（下のタブが見出しの役割を持つので、二重になる）。 */}
-			<View style={styles.headerRow}>
+			    8 巡目までは «下へ引いて閉じる» だけで、9 巡目でその上へ ← の帯を 1 段足した。
+			    オーナー指示は「SNS から / 食べたを記録 の**左**に置いて、縦を分けないでほしい」。
+			    帯を 1 段減らすぶん、貼り付け欄が上へ来る。
+			    引いて閉じるジェスチャ（PanResponder）は 9 巡目で廃止済み。 */}
+			<View style={styles.tabRow}>
 				<TouchableOpacity
 					testID="sns-import-screen-back"
 					onPress={handleBack}
@@ -509,11 +509,6 @@ export default function SnsImportScreen() {
 					hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
 					<ChevronLeft size={24} color={colors.textPrimary} />
 				</TouchableOpacity>
-			</View>
-
-			{/* #1375 実機確認: ＋ の基本導線は SNS 取り込み。上部タブで「食べた」の追加へ切り替える。
-			    背景は敷かず、選択中だけ濃い黒＋下線で示す */}
-			<View style={styles.tabRow}>
 				{TABS.map((t) => (
 					<TouchableOpacity
 						key={t}
@@ -583,7 +578,12 @@ export default function SnsImportScreen() {
 					<KeyboardAvoidingView
 						style={styles.keyboardAvoiding}
 						behavior={Platform.OS === "ios" ? "padding" : undefined}>
-						<ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+						{/* #1375（10 巡目）E2E から «②店舗 / ③料理» まで送るためのスクロール対象。
+						    読み取り後は縦に長くなり、保存ボタンまでが 1 画面に収まらない */}
+						<ScrollView
+							testID="sns-import-scroll"
+							contentContainerStyle={styles.content}
+							keyboardShouldPersistTaps="handled">
 							{/* #1375 実機確認（2 巡目）: 画面が «簡素すぎて何をすればよいか分からない» と言われた。
 				    最初に «この画面で何ができるか» を 1 段落で言い、以降は 1〜3 の手順カードにする */}
 							<Text style={styles.intro} testID="sns-import-intro">
@@ -902,20 +902,21 @@ const createStyles = (c: Palette) =>
 		flex: 1,
 		backgroundColor: c.surface,
 	},
-	headerRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		paddingTop: 4,
-		paddingBottom: 4,
-		paddingHorizontal: 4,
-	},
+	// #1375（9 巡目）戻るボタンはタブ行の中。タブの文字とベースラインが揃うよう縦は詰める
 	backButton: {
-		padding: 8,
+		paddingVertical: 4,
+		paddingRight: 4,
+		// タブは下線ぶんだけ背が高い。その差の半分を戻し、文字の高さへ目で揃える
+		marginBottom: 2,
 	},
 	tabRow: {
 		flexDirection: "row",
+		// #1375（10 巡目）戻るボタンを同じ行へ入れた。下端で揃えるとタブの **下線** に
+		// 引っぱられて ← だけが低く見えるので、中央で揃える
+		alignItems: "center",
 		gap: 20,
-		paddingHorizontal: 16,
+		paddingHorizontal: 12,
+		paddingTop: 8,
 		paddingBottom: 4,
 	},
 	// #1375 実機確認（2 巡目）: 「上部のボタンの位置がズレている」の中身。

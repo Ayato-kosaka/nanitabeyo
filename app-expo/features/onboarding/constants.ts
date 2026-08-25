@@ -69,11 +69,18 @@ export const ONBOARDING_STEPS = [
 export const ONBOARDING_IMAGES = ONBOARDING_STEPS.flatMap((step) => [step.empathyImage, step.solutionImage]);
 
 /**
- * #1486 §1 課題フェーズを見せる時間。この時間が経つと解決フェーズへ切り替わる。
+ * 課題文が «下から上へ» フェードインする時間。
  *
- * 「約 1.5 秒後に解決フェーズへ遷移」がチケットの確定仕様。
+ * #1486【設計】ページを開いた **と同時に** 再生する。当初は「約 1.5 秒後に自動で
+ * 解決フェーズへ切り替える」仕様だったが、読み終わる前に画面が変わるという指摘を受けて
+ * 解決フェーズは «矢印ボタンを押したとき» だけに変わった（`PROBLEM_PHASE_DURATION_MS` は廃止）。
+ * その結果、課題フェーズには «何かが起きた» という手がかりが無くなるため、
+ * 入りのモーションをここへ持たせている。
  */
-export const PROBLEM_PHASE_DURATION_MS = 1500;
+export const PROBLEM_INTRO_DURATION_MS = 420;
+
+/** 課題文のフェードインで «下から» 持ち上げる距離（px） */
+export const PROBLEM_INTRO_TRANSLATE_Y = 24;
 
 /**
  * ページ番号を必ずページ範囲内へ収める。

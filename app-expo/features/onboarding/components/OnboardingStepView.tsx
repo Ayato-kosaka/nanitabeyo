@@ -12,8 +12,9 @@
 上から順に 1 本の縦カラム:
 
 1. ステップ番号バッジ（1 個だけ。3 つ並べない）
-2. 課題文 — **ストーリー投稿のテキストのような半透明の背景ボックス**に載せる
-3. 解決文 — 同じくボックスに載せ、課題文の **すぐ下**（画像の下ではない）
+2. 課題文 — **ストーリー投稿のテキストのような半透明の背景ボックス**に載せる。
+   ページを開くと同時に «下から上へ» フェードインする
+3. 解決文 — 課題文の **すぐ下**（画像の下ではない）。**枠は付けない**（最終検収で確定）
 4. 解決画像 — 中央にカードとして収める（全面に広げない）
 
 初回実装は課題文が画面上端・解決文が画像の下にあり、バッジと課題文が重なる /
@@ -25,7 +26,13 @@ import { StyleSheet, Text, View } from "react-native";
 import { Image } from "expo-image";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
-import { SOLUTION_OVERLAY_COLOR, SOLUTION_REVEAL_DURATION_MS, type OnboardingStepConst } from "../constants";
+import {
+	PROBLEM_INTRO_DURATION_MS,
+	PROBLEM_INTRO_TRANSLATE_Y,
+	SOLUTION_OVERLAY_COLOR,
+	SOLUTION_REVEAL_DURATION_MS,
+	type OnboardingStepConst,
+} from "../constants";
 
 export type OnboardingPhase = "problem" | "solution";
 
@@ -82,7 +89,36 @@ export function OnboardingStepView({
 		});
 	}, [isSolution, reducedMotion, reveal]);
 
+	/**
+	 * 課題文の «入り»。0 = 出ていない / 1 = 出ている。
+	 *
+	 * `step` はページごとに別のオブジェクト（`ONBOARDING_STEPS` の要素）なので、
+	 * ページが変わったときだけこの effect が走り、入りのモーションが再生し直される。
+	 */
+	const intro = useSharedValue(reducedMotion ? 1 : 0);
+
+	useEffect(() => {
+		if (reducedMotion) {
+			// #959 モーションを減らす設定では «動かさずに» 最終状態を見せる
+			intro.value = 1;
+			return;
+		}
+
+		// 0 へ戻してから再生する。戻さないと 2 ページ目以降で «すでに出ている» 状態から
+		// 始まってしまい、入りのモーションが 1 ページ目にしか無いことになる
+		intro.value = 0;
+		intro.value = withTiming(1, {
+			duration: PROBLEM_INTRO_DURATION_MS,
+			easing: Easing.out(Easing.cubic),
+		});
+	}, [step, reducedMotion, intro]);
+
 	const overlayStyle = useAnimatedStyle(() => ({ opacity: reveal.value }));
+
+	const introStyle = useAnimatedStyle(() => ({
+		opacity: intro.value,
+		transform: [{ translateY: (1 - intro.value) * PROBLEM_INTRO_TRANSLATE_Y }],
+	}));
 
 	const solutionStyle = useAnimatedStyle(() => ({
 		opacity: reveal.value,
@@ -115,15 +151,17 @@ export function OnboardingStepView({
 			<View style={styles.content} pointerEvents="none">
 				{badge}
 
-				<View style={styles.textBox}>
+				{/* 課題文はページを開くと同時に «下から上へ» フェードインする（デザイン確定仕様）。
+				    解決フェーズへ移っても消さない（下の ⚠️ を参照） */}
+				<Animated.View style={[styles.textBox, introStyle]}>
 					<Text style={styles.problemText} testID={testID ? `${testID}-problem` : undefined}>
 						{problemText}
 					</Text>
-				</View>
+				</Animated.View>
 
 				{/* 解決文は課題文の «すぐ下»。課題フェーズでは opacity 0 で場所だけ確保しておく。
 				    表示のたびにレイアウトが組み直されると課題文や画像の位置が動いてしまうため */}
-				<Animated.View style={[styles.textBox, styles.solutionTextBox, solutionStyle]}>
+				<Animated.View style={[styles.solutionTextArea, solutionStyle]}>
 					<Text style={styles.solutionText} testID={testID ? `${testID}-solution` : undefined}>
 						{solutionText}
 					</Text>
@@ -162,9 +200,13 @@ const styles = StyleSheet.create({
 		borderRadius: 10,
 		backgroundColor: "rgba(0, 0, 0, 0.55)",
 	},
-	solutionTextBox: {
-		marginTop: 10,
-		backgroundColor: "rgba(240, 85, 55, 0.75)",
+	// 解決文は **枠を持たない**（最終検収で「四角枠は不要」が確定）。
+	// 背景ボックスが無くなったぶん、暗いオーバーレイの上でも輪郭が立つよう影で読ませる。
+	// 課題文との間隔は «もう少しだけ下» の指摘を受けて広げてある
+	solutionTextArea: {
+		alignSelf: "center",
+		marginTop: 26,
+		paddingHorizontal: 8,
 	},
 	// 文字は大きくしすぎない（デザインレビュー・最終検収で 2 度指摘）。
 	// 折り返し位置は文言側の明示 \n が決める（locales/*.json）ので、ここで幅の調整はしない
@@ -181,6 +223,9 @@ const styles = StyleSheet.create({
 		fontWeight: "700",
 		color: "#FFFFFF",
 		textAlign: "center",
+		textShadowColor: "rgba(0, 0, 0, 0.6)",
+		textShadowOffset: { width: 0, height: 1 },
+		textShadowRadius: 4,
 	},
 	solutionImageArea: {
 		flex: 1,

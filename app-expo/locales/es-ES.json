@@ -175,9 +175,6 @@
 		},
 		"loading": "Buscando...",
 		"noLocationsFound": "No se encontraron ubicaciones",
-		"locationConfirmation": {
-			"error": "No se pudo confirmar la ubicación"
-		},
 		"advancedToggle": {
 			"open": "Más opciones",
 			"close": "Cerrar búsqueda avanzada"
@@ -257,20 +254,23 @@
 		"recentLocations": {
 			"title": "Ubicaciones recientes",
 			"clear": "Borrar ubicaciones recientes"
+		},
+		"locationConfirmation": {
+			"error": "No se pudo confirmar la ubicación"
 		}
 	},
 	"Onboarding": {
 		"step1": {
-			"problem": "No te decides sobre qué comer.",
-			"solution": "Te sugerimos platos recomendados\npara que encuentres lo que te apetece"
+			"problem": "Ni siquiera sabes\nqué te apetece comer.",
+			"solution": "Solo tienes que elegir entre los platos recomendados"
 		},
 		"step2": {
-			"problem": "Buscar restaurante lleva mucho tiempo\ncon tantas opciones.",
-			"solution": "Platos y restaurantes ya seleccionados,\nasí decides al momento"
+			"problem": "Hay demasiados restaurantes.\nDecidir cansa.",
+			"solution": "Eliges entre restaurantes seleccionados: ¡es fácil decidir!"
 		},
 		"step3": {
-			"problem": "Tampoco quieres fallar con los gustos de quien te acompaña.",
-			"solution": "Vota con tus amigos y decidid el plato"
+			"problem": "También quieres saber\nqué opinan tus amigos.",
+			"solution": "¡Decide el plato con tus amigos, por votación!"
 		},
 		"back": "Atrás",
 		"next": "Siguiente",
@@ -306,7 +306,7 @@
 			"stepProgress": "Paso {{current}} de {{total}}"
 		}
 	},
-	"Topics": {
+	"DishCategories": {
 		"deepDive": {
 			"title": "Filtrar este estilo"
 		},
@@ -327,7 +327,7 @@
 					"title": "Profundiza según tu estado de ánimo",
 					"body": "¿Aún no te decides? Elige un estilo para acotar las sugerencias."
 				},
-				"topicActions": {
+				"dishCategoryActions": {
 					"title": "Adapta las sugerencias a tus gustos",
 					"save": "Guardar: vuelve a ver este plato más tarde",
 					"block": "Bloquear: deja de recibir sugerencias de platos que no te gustan"
@@ -338,7 +338,7 @@
 				}
 			}
 		},
-		"HideTopicModal": {
+		"HideDishCategoryModal": {
 			"title": "Ocultar",
 			"description": "Dinos la razón para ocultarlo (opcional)",
 			"placeholder": "Introduce una razón...",
@@ -356,7 +356,7 @@
 		"retry": "Volver a la búsqueda",
 		"chooseThis": "¡Este!",
 		"hiddenMessage": "{{title}} se ha ocultado",
-		"BlockTopicModal": {
+		"BlockDishCategoryModal": {
 			"title": "¿Bloquear este plato?",
 			"description": "Las categorías de platos bloqueadas ya no aparecerán en las recomendaciones.",
 			"note": "Puedes desbloquearlo en cualquier momento desde Configuración.",
@@ -375,9 +375,9 @@
 		"headerTitle": "Platos Recomendados para Ti",
 		"subCopy": "Toca un plato que te guste para encontrar restaurantes",
 		"accessibility": {
-			"blockTopic": "Quitar {{title}} de las recomendaciones",
-			"saveTopic": "Guardar {{title}}",
-			"unsaveTopic": "Quitar {{title}} de guardados",
+			"blockDishCategory": "Quitar {{title}} de las recomendaciones",
+			"saveDishCategory": "Guardar {{title}}",
+			"unsaveDishCategory": "Quitar {{title}} de guardados",
 			"thumbnail": "Miniatura de {{title}}, {{index}} de {{total}}"
 		}
 	},
@@ -466,57 +466,6 @@
 			"forbidden": "Solo puedes editar o eliminar tus propias publicaciones"
 		}
 	},
-	"Report": {
-		"action": "Denunciar",
-		"title": "Denunciar esta publicación",
-		"reviewTitle": "Denunciar esta reseña",
-		"description": "Elige un motivo. Nuestro equipo lo revisará y no se avisará a quien lo publicó.",
-		"reasons": {
-			"spam": "Spam o publicidad",
-			"sexual": "Contenido sexual",
-			"violence": "Violencia o contenido perturbador",
-			"harassment": "Acoso o insultos",
-			"illegal": "Actividad ilegal",
-			"misinformation": "Información falsa",
-			"rights": "Infracción de derechos (autor, etc.)",
-			"privacy": "Muestra datos personales",
-			"irrelevant": "No tiene que ver con comida",
-			"other": "Otro motivo"
-		},
-		"detailsLabel": "Detalles (opcional)",
-		"detailsPlaceholder": "Añade lo que nos ayude a revisarlo (hasta 1000 caracteres)",
-		"submit": "Enviar denuncia",
-		"submitting": "Enviando...",
-		"accepted": {
-			"title": "Gracias por informarnos",
-			"description": "Revisaremos el contenido. No enviamos avisos individuales sobre el resultado.",
-			"close": "Cerrar",
-			"history": "Tus informes"
-		},
-		"errors": {
-			"submitFailed": "No se pudo enviar la denuncia. Inténtalo de nuevo."
-		},
-		"accessibility": {
-			"open": "Denunciar la publicación de {{name}}",
-			"openReview": "Denunciar la reseña de {{name}}",
-			"reason": "Motivo: {{reason}}",
-			"reasonSelected": "Motivo: {{reason}} (seleccionado)",
-			"submit": "Enviar la denuncia de la publicación de {{name}}",
-			"submitReview": "Enviar la denuncia de la reseña de {{name}}"
-		},
-		"history": {
-			"navigationLabel": "Tus informes",
-			"pageTitle": "Tus informes",
-			"empty": "Aún no hay informes",
-			"emptyDescription": "Cuando informes sobre una publicación o reseña, aparecerá aquí.",
-			"note": "No comunicamos el estado ni el resultado de la revisión.",
-			"error": "No se han podido cargar tus informes",
-			"target": {
-				"dish_media": "Publicación",
-				"dish_reviews": "Reseña"
-			}
-		}
-	},
 	"ImageCardGrid": {
 		"openItemDetails": "Abrir detalles del elemento"
 	},
@@ -551,7 +500,7 @@
 			"deposits": "Depósitos",
 			"earnings": "Ganancias",
 			"saved-posts": "Publicaciones",
-			"saved-topics": "Platos",
+			"saved-dish-categories": "Platos",
 			"wallet-deposit": "Depósitos",
 			"wallet-earning": "Ganancias"
 		},
@@ -571,7 +520,7 @@
 			"noLikedDishMediaEntries": "No hay publicaciones con me gusta",
 			"noSavedItems": "No hay elementos guardados",
 			"noSavedPosts": "Cuando encuentres publicaciones interesantes, usa \"Guardar\" para revisarlas",
-			"noSavedTopics": "Cuando encuentres platos interesantes, usa \"Guardar\" para explorar restaurantes cercanos"
+			"noSavedDishCategories": "Cuando encuentres platos interesantes, usa \"Guardar\" para explorar restaurantes cercanos"
 		},
 		"reviews": {
 			"filter": {
@@ -863,6 +812,18 @@
 		"logout": "Cerrar sesión",
 		"logoutConfirmTitle": "¿Cerrar sesión?",
 		"logoutConfirmMessage": "Deberás iniciar sesión de nuevo para gestionar tus publicaciones y reseñas.",
+		"blockedDishCategories": {
+			"navigationLabel": "Categorías de platos bloqueadas",
+			"pageTitle": "Categorías de platos bloqueadas",
+			"title": "Platos bloqueados",
+			"empty": "No hay platos bloqueados",
+			"loading": "Cargando...",
+			"unblockButton": "Desbloquear",
+			"unblockTitle": "¿Desbloquear esta categoría de plato?",
+			"unblockMessage": "Esta categoría de plato se volverá a añadir a las recomendaciones.",
+			"unblockConfirm": "Desbloquear",
+			"unblocked": "Desbloqueado"
+		},
 		"notifications": {
 			"sectionTitle": "Notificaciones",
 			"osDisabledTitle": "Las notificaciones están desactivadas en este dispositivo",
@@ -881,18 +842,6 @@
 				"title": "Votaciones de grupo",
 				"description": "Cuando hay actividad en una votación de grupo a la que te uniste"
 			}
-		},
-		"blockedTopics": {
-			"navigationLabel": "Categorías de platos bloqueadas",
-			"pageTitle": "Categorías de platos bloqueadas",
-			"title": "Platos bloqueados",
-			"empty": "No hay platos bloqueados",
-			"loading": "Cargando...",
-			"unblockButton": "Desbloquear",
-			"unblockTitle": "¿Desbloquear esta categoría de plato?",
-			"unblockMessage": "Esta categoría de plato se volverá a añadir a las recomendaciones.",
-			"unblockConfirm": "Desbloquear",
-			"unblocked": "Desbloqueado"
 		},
 		"language": {
 			"navigationLabel": "Idioma",
@@ -1019,10 +968,10 @@
 		},
 		"map": {
 			"truncated": "Solo se muestran algunos pines. Reduce el área de búsqueda.",
-			"currentLocation": "Ir a mi ubicación",
 			"sheetTitle": "{{count}} restaurantes cerca",
 			"tileA11yLabel": "{{name}} (quiero comer: {{want}}, comido: {{eaten}})",
-			"clusterA11yLabel": "{{count}} restaurantes aquí"
+			"clusterA11yLabel": "{{count}} restaurantes aquí",
+			"currentLocation": "Ir a mi ubicación"
 		},
 		"guest": {
 			"description": "Inicia sesión para registrar los platos que quieres probar y los que ya comiste",
@@ -1213,6 +1162,57 @@
 			"finish": "Empezar",
 			"progress": "{{current}} / {{total}}",
 			"progressAccessibility": "Paso {{current}} de {{total}}"
+		}
+	},
+	"Report": {
+		"action": "Denunciar",
+		"title": "Denunciar esta publicación",
+		"reviewTitle": "Denunciar esta reseña",
+		"description": "Elige un motivo. Nuestro equipo lo revisará y no se avisará a quien lo publicó.",
+		"reasons": {
+			"spam": "Spam o publicidad",
+			"sexual": "Contenido sexual",
+			"violence": "Violencia o contenido perturbador",
+			"harassment": "Acoso o insultos",
+			"illegal": "Actividad ilegal",
+			"misinformation": "Información falsa",
+			"rights": "Infracción de derechos (autor, etc.)",
+			"privacy": "Muestra datos personales",
+			"irrelevant": "No tiene que ver con comida",
+			"other": "Otro motivo"
+		},
+		"detailsLabel": "Detalles (opcional)",
+		"detailsPlaceholder": "Añade lo que nos ayude a revisarlo (hasta 1000 caracteres)",
+		"submit": "Enviar denuncia",
+		"submitting": "Enviando...",
+		"accepted": {
+			"title": "Gracias por informarnos",
+			"description": "Revisaremos el contenido. No enviamos avisos individuales sobre el resultado.",
+			"close": "Cerrar",
+			"history": "Tus informes"
+		},
+		"errors": {
+			"submitFailed": "No se pudo enviar la denuncia. Inténtalo de nuevo."
+		},
+		"accessibility": {
+			"open": "Denunciar la publicación de {{name}}",
+			"openReview": "Denunciar la reseña de {{name}}",
+			"reason": "Motivo: {{reason}}",
+			"reasonSelected": "Motivo: {{reason}} (seleccionado)",
+			"submit": "Enviar la denuncia de la publicación de {{name}}",
+			"submitReview": "Enviar la denuncia de la reseña de {{name}}"
+		},
+		"history": {
+			"navigationLabel": "Tus informes",
+			"pageTitle": "Tus informes",
+			"empty": "Aún no hay informes",
+			"emptyDescription": "Cuando informes sobre una publicación o reseña, aparecerá aquí.",
+			"note": "No comunicamos el estado ni el resultado de la revisión.",
+			"error": "No se han podido cargar tus informes",
+			"target": {
+				"dish_media": "Publicación",
+				"dish_reviews": "Reseña"
+			}
 		}
 	}
 }

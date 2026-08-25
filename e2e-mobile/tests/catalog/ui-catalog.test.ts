@@ -21,7 +21,7 @@ import { SearchScreen } from "../../screens/SearchScreen";
 import { SelectRestaurantScreen } from "../../screens/SelectRestaurantScreen";
 import { SettingsScreen } from "../../screens/SettingsScreen";
 import { TabBar } from "../../screens/TabBar";
-import { TopicsScreen } from "../../screens/TopicsScreen";
+import { DishCategoriesScreen } from "../../screens/DishCategoriesScreen";
 import { captureScreen, captureScreenIfReachable, getScreen, settle, tolerate } from "../../utils/catalog";
 
 /**
@@ -45,7 +45,7 @@ import { captureScreen, captureScreenIfReachable, getScreen, settle, tolerate } 
 
 /** カタログ定義の URL からロケール付きディープリンクを組み立てる（URL の二重管理を防ぐ） */
 function deepLinkOf(id: string): string {
-	// 定義側は "/ja-JP/profile/saved-topics" 形式なので、先頭のロケールセグメントを外して渡す
+	// 定義側は "/ja-JP/profile/saved-dish-categories" 形式なので、先頭のロケールセグメントを外して渡す
 	const pathname = getScreen(id).url.replace(/^\/[a-zA-Z-]+\//, "");
 	return localeDeepLink(pathname);
 }
@@ -70,9 +70,9 @@ describe("UI カタログ（匿名） @catalog", () => {
 	// 「未読」で起動すると初回フォーカスで自動的に開く（e2e-web のヘルプボタン経由と違い、
 	// こちらが native の素直な導線。tests/search/onboarding.test.ts と同じ）。
 	//
-	// ⚠️ 各ページは表示から約 1.5 秒後に課題フェーズ → 解決フェーズへ切り替わる。
+	// ⚠️ 課題フェーズ → 解決フェーズは **矢印を押したときだけ** 切り替わる（自動では出ない）。
 	// カタログとしては «その画面が何を伝えるか» が写っていてほしいので、
-	// 課題だけの状態ではなく解決フェーズまで再生させてから撮る。
+	// 課題だけの状態ではなく解決フェーズを出してから撮る（= 1 ページにつき「次へ」2 押下）。
 	it("オンボーディング（3 ステップ・権限・Welcome）", async () => {
 		const onboardingScreen = new OnboardingScreen();
 		const loginScreen = new LoginScreen();
@@ -82,7 +82,7 @@ describe("UI カタログ（匿名） @catalog", () => {
 			async () => {
 				await launchAppWithSession({ as: "anon", tutorialSeen: false, waitForReady: false });
 				await onboardingScreen.expectShown();
-				await onboardingScreen.expectSolutionShown(1);
+				await onboardingScreen.revealSolution(1);
 			},
 			{ settleMs: 500 },
 		);
@@ -93,9 +93,9 @@ describe("UI カタログ（匿名） @catalog", () => {
 			await captureScreenIfReachable(
 				`onboarding-step${step}`,
 				async () => {
+					// 直前のページは解決フェーズで止まっているので、1 押下で次のページへ送られる
 					await onboardingScreen.pressNext();
-					await onboardingScreen.expectStep(step);
-					await onboardingScreen.expectSolutionShown(step);
+					await onboardingScreen.revealSolution(step);
 				},
 				{ settleMs: 500 },
 			);
@@ -105,6 +105,7 @@ describe("UI カタログ（匿名） @catalog", () => {
 		// 権限を付与済みなので OS のダイアログは出ず、最低表示時間を過ぎると自動で次へ進む。
 		// 撮り逃してもジョブを赤くしないよう captureScreenIfReachable で «撮れたら撮る» にしている
 		await captureScreenIfReachable("onboarding-location", async () => {
+			// 3 枚目も解決フェーズで止まっているので、1 押下でログイン画面へ抜ける
 			await onboardingScreen.pressNext();
 			await loginScreen.expectOpened();
 			await loginScreen.skip();
@@ -123,7 +124,7 @@ describe("UI カタログ（匿名） @catalog", () => {
 
 	it("検索フロー（場所サジェスト・料理提案・チュートリアル 4 ステップ・結果フィード）", async () => {
 		const searchScreen = new SearchScreen();
-		const topicsScreen = new TopicsScreen();
+		const dishCategoriesScreen = new DishCategoriesScreen();
 		const resultScreen = new ResultScreen();
 
 		await launchAppWithSession({ as: "anon" });
@@ -134,30 +135,30 @@ describe("UI カタログ（匿名） @catalog", () => {
 			await waitUntilVisible(searchScreen.locationSuggestions);
 		});
 
-		const reachedTopics = await captureScreenIfReachable(
-			"search-topics",
+		const reachedDishCategories = await captureScreenIfReachable(
+			"search-dishCategories",
 			async () => {
 				await searchScreen.selectLocationSuggestion(0);
 				await searchScreen.submit();
-				await topicsScreen.expectLoaded();
+				await dishCategoriesScreen.expectLoaded();
 			},
 			{ settleMs: 3_000 },
 		);
 
-		if (!reachedTopics) return;
+		if (!reachedDishCategories) return;
 
 		const tutorialSteps = [
-			["search-topics-tutorial-swipe", "swipeAndDecide"],
-			["search-topics-tutorial-deep-dive", "deepDive"],
-			["search-topics-tutorial-topic-actions", "topicActions"],
-			["search-topics-tutorial-group-vote", "groupVote"],
+			["search-dish-categories-tutorial-swipe", "swipeAndDecide"],
+			["search-dish-categories-tutorial-deep-dive", "deepDive"],
+			["search-dish-categories-tutorial-dishCategory-actions", "dishCategoryActions"],
+			["search-dish-categories-tutorial-group-vote", "groupVote"],
 		] as const;
 
 		const startedTutorial = await captureScreenIfReachable(
 			tutorialSteps[0][0],
 			async () => {
-				await tapWhenVisible(topicsScreen.tutorialHelpButton);
-				await waitUntilVisible(by.id(`topics-tutorial-step-${tutorialSteps[0][1]}`));
+				await tapWhenVisible(dishCategoriesScreen.tutorialHelpButton);
+				await waitUntilVisible(by.id(`dish-categories-tutorial-step-${tutorialSteps[0][1]}`));
 			},
 			{ settleMs: 1_500 },
 		);
@@ -167,22 +168,22 @@ describe("UI カタログ（匿名） @catalog", () => {
 				await captureScreenIfReachable(
 					id,
 					async () => {
-						await tapWhenVisible(topicsScreen.tutorialNextButton);
-						await waitUntilVisible(by.id(`topics-tutorial-step-${step}`));
+						await tapWhenVisible(dishCategoriesScreen.tutorialNextButton);
+						await waitUntilVisible(by.id(`dish-categories-tutorial-step-${step}`));
 					},
 					{ settleMs: 1_200 },
 				);
 			}
 			// スポットライトを閉じてからカードを選ぶ
-			if (await visibleNow(topicsScreen.tutorialFinishButton, 2_000)) {
-				await tapWhenVisible(topicsScreen.tutorialFinishButton);
+			if (await visibleNow(dishCategoriesScreen.tutorialFinishButton, 2_000)) {
+				await tapWhenVisible(dishCategoriesScreen.tutorialFinishButton);
 			}
 		}
 
 		await captureScreenIfReachable(
 			"search-result-feed",
 			async () => {
-				await topicsScreen.chooseFirstTopic();
+				await dishCategoriesScreen.chooseFirstDishCategory();
 				await resultScreen.expectLoaded();
 			},
 			// 地図タイルと店舗カード（メディア読み込みを伴う）が埋まるまで待つ
@@ -221,13 +222,13 @@ describe("UI カタログ（匿名） @catalog", () => {
 		);
 
 		await captureScreenIfReachable(
-			"profile-saved-topics",
+			"profile-saved-dish-categories",
 			async () => {
 				await launchAppWithSession({ as: "anon" });
 				await tabBar.gotoProfile();
-				await profileScreen.openSavedTopics();
+				await profileScreen.openSavedDishCategories();
 				// 保存が 0 件だとグリッドではなく空状態が描画される
-				await tolerate(() => waitUntilVisible(profileScreen.savedTopicsGrid));
+				await tolerate(() => waitUntilVisible(profileScreen.savedDishCategoriesGrid));
 			},
 			{ settleMs: 2_000 },
 		);
@@ -282,9 +283,9 @@ describe("UI カタログ（匿名） @catalog", () => {
 		const directLinkScreens = [
 			{ id: "profile-feedback", waitForReady: true, settleMs: 1_500 },
 			// #1369 保存料理カテゴリの地点検索。本来の入口はカードのタップだが、匿名では保存が 0 件で
-			// 入口が無い。見た目は topicId / topicLabelEn の有無で変わらないので直リンクで撮る
-			{ id: "profile-saved-topic-location", waitForReady: true, settleMs: 1_500 },
-			{ id: "profile-blocked-topics", waitForReady: true, settleMs: 2_500 },
+			// 入口が無い。見た目は dishCategoryId / dishCategoryLabelEn の有無で変わらないので直リンクで撮る
+			{ id: "profile-saved-dish-category-location", waitForReady: true, settleMs: 1_500 },
+			{ id: "profile-blocked-dish-categories", waitForReady: true, settleMs: 2_500 },
 			// #1386 店舗詳細の子ルート（旧: モーダル z1100）。店舗データを読まないので
 			// ダミー id の直リンクで撮れる（catalog/screens.json の note 参照）。
 			// タブバーは下に居ないため起動完了待ちは切る。フィードは実データが要るため manual。
