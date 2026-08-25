@@ -21,7 +21,6 @@ export function convertSupabaseToPrisma_DishCategoryGroupVoteSessions(supabase: 
     search_context: supabase.search_context,
     created_at: new Date(supabase.created_at),
     updated_at: new Date(supabase.updated_at),
-    idempotency_key: supabase.idempotency_key,
   };
 }
 
@@ -39,6 +38,5 @@ export function convertPrismaToSupabase_DishCategoryGroupVoteSessions(prisma: Pr
     search_context: prisma.search_context,
     created_at: prisma.created_at?.toISOString() ?? null,
     updated_at: prisma.updated_at?.toISOString() ?? null,
-    idempotency_key: prisma.idempotency_key,
   };
 }

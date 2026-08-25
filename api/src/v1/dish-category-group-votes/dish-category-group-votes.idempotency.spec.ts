@@ -33,6 +33,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConflictException } from '@nestjs/common';
 import { CreateDishCategoryGroupVoteDto } from '@shared/v1/dto';
 import { AppLoggerService } from '../../core/logger/logger.service';
+import { CloudTasksService } from '../../core/cloud-tasks/cloud-tasks.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { DishCategoryGroupVotesAssembler } from './dish-category-group-votes.assembler';
 import { DishCategoryGroupVotesRepository } from './dish-category-group-votes.repository';
@@ -196,6 +197,10 @@ describe('DishCategoryGroupVotesService.create の冪等化 (#1507)', () => {
           },
         },
         { provide: AppLoggerService, useValue: { ...logger, log: jest.fn() } },
+        // GRP-04（#1506）で create が投票完了通知を積むようになり、
+        // DishCategoryGroupVotesService の依存に CloudTasksService が増えた。
+        // この spec は冪等化だけを見るので、積まれたことは検証せずモックで満たす。
+        { provide: CloudTasksService, useValue: { enqueueNotification: jest.fn() } },
       ],
     }).compile();
 
