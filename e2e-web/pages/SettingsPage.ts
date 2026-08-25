@@ -34,6 +34,7 @@ export class SettingsPage {
 	 * トグル本体はこの行から push される端末設定画面にあり、`pages/DeviceSettingsPage.ts` が持つ。
 	 */
 	readonly deviceSettingsItem: Locator;
+	/**
 	 * バージョン表示（#1495 SUP-03）。"{version}({短縮コミットID})" の 1 行、例: "1.14.0(abc1234)"。
 	 * 対応コンポーネント: app-expo/components/VersionInfo.tsx
 	 */
