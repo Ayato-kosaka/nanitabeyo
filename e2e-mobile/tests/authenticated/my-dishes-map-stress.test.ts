@@ -1,5 +1,5 @@
 import { describeAuthenticated, launchAppWithSession } from "../../fixtures/e2e";
-import { DEFAULT_TIMEOUT, tapWhenVisible, waitUntilVisible } from "../../utils/waits";
+import { DEFAULT_TIMEOUT, existsNow, tapWhenVisible, waitUntilVisible } from "../../utils/waits";
 import { MyDishesScreen } from "../../screens/MyDishesScreen";
 import { TabBar } from "../../screens/TabBar";
 
@@ -40,6 +40,19 @@ describeAuthenticated("マップの絞り込みで落ちない @authenticated", 
 		const map = by.id("my-dishes-map");
 		await waitUntilVisible(map, DEFAULT_TIMEOUT);
 		await device.takeScreenshot("map-stress-01-initial");
+
+		/*
+		⚠️ **緑を鵜呑みにしないための記録。**
+
+		dev のテストユーザーの記録は件数が変動し、0 件のこともある
+		（`my-dishes-views.test.ts` 冒頭の申し送り）。ピンが 1 つも無ければ
+		マーカーは 1 個も作られず、**この spec は «落ちないこと» を何も試していない**。
+		それでも緑になるので、実際にマーカーが出ていたかをログへ残す。
+		ログに `pins=false cluster=false` とあれば、その run は空振りである。
+		*/
+		const hadPin = await existsNow(myDishes.mapPin);
+		const hadCluster = await existsNow(by.id("my-dishes-map-cluster"));
+		console.log(`[map-stress] マーカーの有無: pins=${hadPin} cluster=${hadCluster}`);
 
 		// 1) 地図をひたすら動かす。マーカーの焼き直しが止まっていなければ、
 		//    ここでネイティブヒープが積み上がる
