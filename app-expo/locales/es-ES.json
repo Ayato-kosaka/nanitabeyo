@@ -375,6 +375,9 @@
 			},
 			"dish_reviews": {
 				"like": "le gustó tu reseña"
+			},
+			"dish_category_group_vote_sessions": {
+				"vote": "votó en tu grupo"
 			}
 		}
 	},
@@ -391,9 +394,6 @@
 		"share": {
 			"title": "Mira {{dishName}}"
 		},
-		"save": {
-			"savedMessage": "Guardado en Quiero comer"
-		},
 		"buttons": {
 			"viewRestaurant": "Ver restaurante"
 		},
@@ -403,18 +403,24 @@
 			"likeInactive": "Me gusta {{name}}",
 			"saveActive": "Quitar {{name}} de Quiero comer",
 			"saveInactive": "Añadir {{name}} a Quiero comer",
-			"recordEaten": "Registrar {{name}} como comido",
 			"share": "Compartir {{name}}",
 			"openMap": "Abrir el mapa de {{name}}",
-			"reviewLike": "Me gusta la reseña de {{username}}"
+			"reviewLike": "Me gusta la reseña de {{username}}",
+			"recordEaten": "Registrar {{name}} como comido",
+			"recordEatenAgain": "Registrar de nuevo en {{name}} (ya registrado)"
 		},
 		"processing": "Procesando el contenido...",
 		"errors": {
 			"mapOpenFailed": "No se pudo abrir la aplicación de mapas",
-			"mediaUnavailable": "Este contenido no está disponible actualmente."
+			"mediaUnavailable": "Este contenido no está disponible actualmente.",
+			"likeReactionFailed": "No se pudo actualizar el me gusta. Inténtalo de nuevo.",
+			"saveReactionFailed": "No se pudo actualizar el guardado. Inténtalo de nuevo."
 		},
 		"info": {
 			"walkFromShibuya": "A 13 min a pie de la estación de Shibuya"
+		},
+		"save": {
+			"savedMessage": "Guardado en Quiero comer"
 		},
 		"embed": {
 			"play": "Reproducir en {{provider}}"
@@ -431,10 +437,12 @@
 	"Tabs": {
 		"home": "Inicio",
 		"search": "Buscar",
+		"review": "Reseña",
 		"notifications": "Notificaciones",
 		"profile": "Perfil",
 		"labels": {
 			"search": "Buscar",
+			"review": "Reseña",
 			"notifications": "Notificaciones",
 			"profile": "Perfil",
 			"myDishes": "Mis platos"
@@ -442,6 +450,20 @@
 		"myDishes": "Mis platos"
 	},
 	"Profile": {
+		"tabGroups": {
+			"reviews": "Reseñas",
+			"saved": "Guardado",
+			"liked": "Me gusta",
+			"wallet": "Cartera"
+		},
+		"tabs": {
+			"deposits": "Depósitos",
+			"earnings": "Ganancias",
+			"saved-posts": "Publicaciones",
+			"saved-topics": "Platos",
+			"wallet-deposit": "Depósitos",
+			"wallet-earning": "Ganancias"
+		},
 		"numberSuffix": {
 			"million": "M",
 			"thousand": "K"
@@ -471,10 +493,6 @@
 			"refunded": "Reembolsado",
 			"paid": "Pagado",
 			"pending": "Pendiente"
-		},
-		"menu": {
-			"likedPosts": "Publicaciones que te gustan",
-			"savedDishCategories": "Categorías de platos guardadas"
 		},
 		"buttons": {
 			"editProfile": "Editar Perfil",
@@ -515,7 +533,11 @@
 			"displayNameLength": "El nombre para mostrar debe tener 30 caracteres o menos",
 			"bioLength": "La biografía debe tener 150 caracteres o menos"
 		},
-		"guestDisplayName": "Invitado"
+		"guestDisplayName": "Invitado",
+		"menu": {
+			"likedPosts": "Publicaciones que te gustan",
+			"savedDishCategories": "Categorías de platos guardadas"
+		}
 	},
 	"NotFound": {
 		"title": "¡Vaya!",
@@ -533,7 +555,8 @@
 		},
 		"actions": {
 			"selectDishCategory": "Seleccionar categoría de plato",
-			"writeReviewForThisDish": "Registrar como comido"
+			"writeReviewForThisDish": "Registrar como comido",
+			"useTypedDishCategory": "Usar «{{name}}»"
 		},
 		"inputs": {
 			"price": "Precio",
@@ -550,13 +573,16 @@
 			"enterBidAmount": "Ingresa el monto de la oferta",
 			"enterDishCategory": "Ingresa categoría del plato (ej: Paella, Tapas)",
 			"searchRestaurantsForReview": "Buscar por nombre o área",
-			"searchAreaForReview": "Buscar por zona"
+			"searchAreaForReview": "Buscar por zona",
+			"searchDishCategory": "Buscar por nombre de plato"
 		},
 		"labels": {
 			"endDate": "Fecha de fin:",
 			"paymentProcessing": "Procesando pago...",
 			"restaurant": "Restaurante",
-			"dishCategory": "Categoría del plato"
+			"dishCategory": "Categoría del plato",
+			"dishesAtThisRestaurant": "Platos de este restaurante",
+			"noDishesAtThisRestaurant": "Aún no hay platos registrados aquí. Escribe un nombre de plato."
 		},
 		"tabs": {
 			"reviews": "Reseñas"
@@ -590,7 +616,8 @@
 			"replaceWithMyPhoto": "Usar mi propia foto",
 			"openSettings": "Abrir ajustes",
 			"pickFromLibrary": "Elegir de la galería",
-			"shootWithCamera": "Tomar una foto"
+			"shootWithCamera": "Tomar una foto",
+			"pickFromExisting": "O elige una foto de este restaurante"
 		},
 		"noResultsFound": "No se encontraron resultados",
 		"accessibility": {
@@ -669,25 +696,6 @@
 			"title": "Detalles del restaurante"
 		}
 	},
-	"SelectRestaurant": {
-		"title": "Selecciona el restaurante a reseñar",
-		"searchThisArea": "Buscar en esta área",
-		"savedRestaurantList": "Restaurantes Guardados",
-		"postPhotoVideo": "Publicar Foto/Video",
-		"fetchSavedRestaurantsError": "Error al obtener restaurantes guardados",
-		"noSavedRestaurantsInArea": "No se encontraron restaurantes guardados en esta área. Amplíe el área y busque nuevamente.",
-		"nameSearch": {
-			"placeholder": "Buscar por nombre del restaurante",
-			"searching": "Buscando…",
-			"noResults": "No se encontraron restaurantes coincidentes. Toca un restaurante en el mapa para añadirlo.",
-			"error": "Error en la búsqueda. Inténtalo de nuevo."
-		},
-		"accessibility": {
-			"clearNameSearch": "Borrar búsqueda por nombre de restaurante"
-		},
-		"unsavedHint": "También puedes elegir locales que no has guardado: escribe su nombre en el buscador de arriba o toca su icono en el mapa.",
-		"pickTitle": "Elegir local"
-	},
 	"Feedback": {
 		"title": "Enviar Comentarios/Reporte de Errores",
 		"labels": {
@@ -743,6 +751,15 @@
 		"continue_with_apple": "Continuar con Apple"
 	},
 	"Settings": {
+		"title": "Configuración",
+		"theme": {
+			"sectionTitle": "Apariencia",
+			"options": {
+				"system": "Seguir la configuración del sistema",
+				"light": "Claro",
+				"dark": "Oscuro"
+			}
+		},
 		"sendFeedback": "Enviar comentarios",
 		"leaveReview": "Dejar reseña",
 		"rateDialogTitle": "¿Te gusta la aplicación?",
@@ -804,6 +821,55 @@
 		"shareWithFriends": "Compartir con amigos",
 		"cancel": "Cancelar"
 	},
+	"Review": {
+		"title": "Publicar una Reseña",
+		"hero": {
+			"title": "Escribe reseñas de restaurantes recomendados\ny publica los platos que comiste"
+		},
+		"guest": {
+			"description": "Inicia sesión para escribir reseñas",
+			"loginButton": "Iniciar Sesión"
+		},
+		"authenticated": {
+			"postButton": "✏️ Publicar una reseña de restaurante"
+		},
+		"selectRestaurant": {
+			"title": "Selecciona el restaurante a reseñar",
+			"searchThisArea": "Buscar en esta área",
+			"savedRestaurantList": "Restaurantes Guardados",
+			"postPhotoVideo": "Publicar Foto/Video",
+			"fetchSavedRestaurantsError": "Error al obtener restaurantes guardados",
+			"noSavedRestaurantsInArea": "No se encontraron restaurantes guardados en esta área. Amplíe el área y busque nuevamente."
+		},
+		"emptyState": {
+			"noReviews": "Aún no hay reseñas.\nSé el primero en reseñar este restaurante."
+		},
+		"everybodyPostsTitle": "Elige un plato para reseñar",
+		"characterCount": "{{current}}/{{max}}",
+		"restaurantDetail": {
+			"title": "Detalles del restaurante"
+		}
+	},
+	"SelectRestaurant": {
+		"title": "Selecciona el restaurante a reseñar",
+		"searchThisArea": "Buscar en esta área",
+		"savedRestaurantList": "Restaurantes Guardados",
+		"postPhotoVideo": "Publicar Foto/Video",
+		"fetchSavedRestaurantsError": "Error al obtener restaurantes guardados",
+		"noSavedRestaurantsInArea": "No se encontraron restaurantes guardados en esta área. Amplíe el área y busque nuevamente.",
+		"nameSearch": {
+			"placeholder": "Buscar por nombre del restaurante",
+			"searching": "Buscando…",
+			"noResults": "No se encontraron restaurantes coincidentes. Toca un restaurante en el mapa para añadirlo.",
+			"error": "Error en la búsqueda. Inténtalo de nuevo."
+		},
+		"accessibility": {
+			"clearNameSearch": "Borrar búsqueda por nombre de restaurante"
+		},
+		"unsavedHint": "También puedes elegir locales que no has guardado: escribe su nombre en el buscador de arriba o toca su icono en el mapa.",
+		"pickTitle": "Elegir local",
+		"pickOnMap": "Buscar en el mapa"
+	},
 	"MyDishes": {
 		"actions": {
 			"markAsEaten": "Registrar comido",
@@ -830,7 +896,9 @@
 		},
 		"map": {
 			"truncated": "Solo se muestran algunos pines. Reduce el área de búsqueda.",
-			"sheetTitle": "{{count}} registros cerca"
+			"sheetTitle": "{{count}} restaurantes cerca",
+			"tileA11yLabel": "{{name}} (quiero comer: {{want}}, comido: {{eaten}})",
+			"clusterA11yLabel": "{{count}} restaurantes aquí"
 		},
 		"guest": {
 			"description": "Inicia sesión para registrar los platos que quieres probar y los que ya comiste",
@@ -841,7 +909,8 @@
 			"noPhotoTitle": "Añadir una foto",
 			"noPhotoHint": "También puedes registrarlo sin foto",
 			"publicReviewNotice": "Tu registro aparecerá como reseña pública en la página del restaurante",
-			"postNotFoundNoPhoto": "Este registro no tiene foto"
+			"postNotFoundNoPhoto": "Este registro no tiene foto",
+			"skipPhoto": "Omitir (sin foto)"
 		},
 		"filters": {
 			"title": "Filtrar y ordenar",
@@ -919,7 +988,29 @@
 				"applied": "Filtros actualizados"
 			}
 		},
-		"searchThisArea": "Buscar en esta zona"
+		"searchThisArea": "Buscar en esta zona",
+		"tutorial": {
+			"steps": {
+				"views": {
+					"title": "Tres formas de ver tu lista",
+					"body": "Mapa, cuadrícula y calendario muestran los mismos registros de “quiero comer” y “comido”. El mapa para “qué como por aquí”, el calendario para “qué comí y cuándo”."
+				},
+				"openFeed": {
+					"title": "Toca para verlo a pantalla completa",
+					"body": "Toca un pin, una tarjeta o un día para abrir ese registro a pantalla completa.",
+					"axis": "Desliza arriba y abajo para cambiar de restaurante o de día, y a los lados para otra foto del mismo."
+				},
+				"add": {
+					"title": "Añade aquí a tu lista",
+					"sns": "Pega un enlace de Instagram, TikTok o YouTube: leemos el restaurante y el plato y lo guardamos como “quiero comer”.",
+					"eaten": "¿Ya lo comiste? Usa “registrar lo comido”. La foto puede esperar, o no ponerse."
+				},
+				"filter": {
+					"title": "Filtra cuando crezca",
+					"body": "Filtra por “quiero comer / comido”, plato, zona, con quién y franja horaria. Está para reducir opciones, no para añadirlas."
+				}
+			}
+		}
 	},
 	"SnsImport": {
 		"title": "Importar desde redes sociales",
@@ -946,7 +1037,8 @@
 			"resolve": "Leer",
 			"save": "Guardar en Quiero comer",
 			"saveRequirement": "Elige un plato y un restaurante para guardar.",
-			"resolveAgain": "Volver a leer"
+			"resolveAgain": "Volver a leer",
+			"cancel": "Cancelar"
 		},
 		"sections": {
 			"dishCategory": "Plato",
@@ -980,8 +1072,17 @@
 			"pickRestaurant": "Elegir local",
 			"pick": "Elegir",
 			"change": "Cambiar",
-			"hint": "Primero elige el local. Después podrás añadir foto, reseña breve, categoría, precio y valoración (la foto es opcional).",
+			"hint": "Primero elige un restaurante. Después selecciona el plato y añade una foto (opcional), una breve reseña, el precio y tu valoración.",
 			"done": "Registrado como comido"
+		}
+	},
+	"Tutorial": {
+		"spotlight": {
+			"skip": "Omitir",
+			"next": "Siguiente",
+			"finish": "Empezar",
+			"progress": "{{current}} / {{total}}",
+			"progressAccessibility": "Paso {{current}} de {{total}}"
 		}
 	}
 }

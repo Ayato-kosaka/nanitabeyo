@@ -68,7 +68,7 @@ describe("#721 firebase.json の /s/** rewrite", () => {
 		it("rewrite に Firebase が知らないキーを混ぜない", () => {
 			// JSON にコメントは書けない。説明のつもりで `"//"` のようなキーを足すと
 			// firebase deploy の設定検証で落ちうるので、許すキーを固定しておく
-			//（経緯と設計は docs/share-links.md に書く）
+			//（経緯と設計は docs/specs/share-links.md に書く）
 			expect(Object.keys(shareRewriteOf(site) ?? {}).sort()).toEqual(["run", "source"]);
 		});
 	});

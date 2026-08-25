@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
 import { Image } from "expo-image";
-import { Search, X } from "lucide-react-native";
+// #1375（6 巡目・オーナー指示）右のボタンは «地図から探す» なので、
+// 1 地点を指す MapPin ではなく «折り畳んだ地図» の Map を使う（ピンだと «現在地» に見える）
+import { Map as MapIcon, Search, X } from "lucide-react-native";
 import type { Region } from "@/components/MapView";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useLogger } from "@/hooks/useLogger";
@@ -11,6 +13,8 @@ import { getCacheKeyForImage } from "@/lib/image";
 import i18n from "@/lib/i18n";
 import type { QueryRestaurantsDto } from "@shared/api/v1/dto";
 import type { QueryRestaurantsResponse } from "@shared/api/v1/res";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 
 type RestaurantSearchResult = QueryRestaurantsResponse[number];
 
@@ -35,6 +39,29 @@ export type RestaurantNameSearchProps = {
 	 * 0 件・失敗のときに押せるボタンをここへ差せるようにする。
 	 */
 	emptyAction?: { label: string; onPress: () => void; testID?: string };
+	/**
+	 * #1375 実機確認（5 巡目）「決まったお店の名前が検索ボックスに入ってほしい」。
+	 *
+	 * 選び終えた店名。渡すと、入力していない間はこの名前が **入力欄の値**として出る
+	 * （下に «選択中: ◯◯» の行を別で置かない ＝ 同じことを 2 箇所へ書かない）。
+	 * X を押すと `onClearSelection` が呼ばれ、選び直しに戻る。
+	 */
+	selectedName?: string | null;
+	onClearSelection?: () => void;
+	/**
+	 * #1375 実機確認（5 巡目）「検索ボックスの右に地図アイコン」。
+	 * «地図から探す» を独立したボタンとして下へ置くと、幅が中途半端に余って
+	 * 画面の中で浮く（実機指摘「幅が不揃い」）。入力欄の中の右端へ入れる。
+	 */
+	mapAction?: { onPress: () => void; testID?: string; accessibilityLabel?: string };
+	/**
+	 * #1375 読み取り結果などの «候補»。入力欄の **下に小さく** 並べる（実機指摘）。
+	 * 呼び出し元がチップを自前で組むと画面ごとに寸法がずれるため、ここで描く。
+	 */
+	candidates?: { id: string; label: string; testID?: string }[];
+	/** 選択済み候補の id（候補チップの強調に使う） */
+	selectedCandidateId?: string | null;
+	onSelectCandidate?: (id: string) => void;
 	testID?: string;
 };
 
@@ -49,8 +76,16 @@ export function RestaurantNameSearch({
 	regionRef,
 	onSelectRestaurant,
 	emptyAction,
+	selectedName,
+	onClearSelection,
+	mapAction,
+	candidates,
+	selectedCandidateId,
+	onSelectCandidate,
 	testID = "restaurant-name-search",
 }: RestaurantNameSearchProps) {
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 	const [query, setQuery] = useState("");
 	const [results, setResults] = useState<RestaurantSearchResult[]>([]);
 	const [status, setStatus] = useState<SearchStatus>("idle");
@@ -163,36 +198,80 @@ export function RestaurantNameSearch({
 		};
 	}, []);
 
-	const showResultsPanel = status !== "idle";
+	// 選び終えていて、かつ自分で打ち直していない間だけ «確定名» を出す。
+	// 打ち始めたら（query が入ったら）検索の入力欄として振る舞う
+	const showsSelectedName = !!selectedName && query.length === 0;
+
+	const handleClearSelection = useCallback(() => {
+		lightImpact();
+		onClearSelection?.();
+	}, [lightImpact, onClearSelection]);
+
+	// 確定名が出ている間は結果パネルを出さない（選び終えた欄の下に候補一覧が残らないように）
+	const showResultsPanel = status !== "idle" && !showsSelectedName;
 
 	return (
 		<View style={styles.container}>
 			<View style={styles.inputContainer}>
-				<Search size={18} color="#6B7280" style={styles.searchIcon} />
+				<Search size={18} color={colors.textSecondary} style={styles.searchIcon} />
 				<TextInput
-					style={styles.input}
-					value={query}
+					style={[styles.input, showsSelectedName && styles.inputSelected]}
+					value={showsSelectedName ? selectedName! : query}
 					onChangeText={handleChangeText}
 					placeholder={i18n.t("SelectRestaurant.nameSearch.placeholder")}
-					placeholderTextColor="#6B7280"
+					placeholderTextColor={colors.textSecondary}
 					autoComplete="off"
 					autoCorrect={false}
 					returnKeyType="search"
 					accessibilityLabel={i18n.t("SelectRestaurant.nameSearch.placeholder")}
 					testID={`${testID}-input`}
 				/>
-				{query.length > 0 && (
+				{(query.length > 0 || showsSelectedName) && (
 					<TouchableOpacity
 						style={styles.clearButton}
-						onPress={handleClear}
+						onPress={showsSelectedName ? handleClearSelection : handleClear}
 						hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
 						accessibilityRole="button"
 						accessibilityLabel={i18n.t("SelectRestaurant.accessibility.clearNameSearch")}
 						testID={`${testID}-clear`}>
-						<X size={16} color="#6B7280" />
+						<X size={16} color={colors.textSecondary} />
+					</TouchableOpacity>
+				)}
+				{mapAction && (
+					<TouchableOpacity
+						style={styles.mapButton}
+						onPress={mapAction.onPress}
+						hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+						accessibilityRole="button"
+						accessibilityLabel={mapAction.accessibilityLabel ?? i18n.t("SelectRestaurant.pickOnMap")}
+						testID={mapAction.testID ?? `${testID}-map`}>
+						<MapIcon size={20} color={colors.textSecondaryStrong} />
 					</TouchableOpacity>
 				)}
 			</View>
+
+			{/* #1375 候補は入力欄の «下に小さく»。選び終えたら畳む（もう選ぶものが無いため） */}
+			{!showsSelectedName && candidates && candidates.length > 0 && (
+				<View style={styles.candidateRow}>
+					{candidates.map((candidate) => (
+						<TouchableOpacity
+							key={candidate.id}
+							testID={candidate.testID}
+							onPress={() => {
+								lightImpact();
+								onSelectCandidate?.(candidate.id);
+							}}
+							accessibilityRole="button"
+							accessibilityState={{ selected: selectedCandidateId === candidate.id }}
+							style={[styles.candidateChip, selectedCandidateId === candidate.id && styles.candidateChipSelected]}>
+							<Text
+								style={[styles.candidateLabel, selectedCandidateId === candidate.id && styles.candidateLabelSelected]}>
+								{candidate.label}
+							</Text>
+						</TouchableOpacity>
+					))}
+				</View>
+			)}
 
 			{showResultsPanel && (
 				<View style={styles.resultsPanel}>
@@ -267,101 +346,158 @@ export function RestaurantNameSearch({
 	);
 }
 
-const styles = StyleSheet.create({
-	container: { flex: 1 },
-	inputContainer: {
-		flexDirection: "row",
-		alignItems: "center",
-		borderRadius: 16,
-		backgroundColor: "#FFFFFF",
-		borderWidth: 1,
-		borderColor: "#C9C9C9",
-	},
-	searchIcon: {
-		marginLeft: 16,
-	},
-	input: {
-		flex: 1,
-		paddingHorizontal: 12,
-		paddingVertical: 16,
-		fontSize: 16,
-		color: "#1A1A1A",
-	},
-	clearButton: {
-		padding: 12,
-		marginRight: 4,
-	},
-	resultsPanel: {
-		marginTop: 12,
-		backgroundColor: "#FFF",
-		borderRadius: 16,
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 0 },
-		shadowOpacity: 0.1,
-		shadowRadius: 24,
-		elevation: 4,
-	},
-	resultsList: {
-		maxHeight: 280,
-	},
-	resultItem: {
-		flexDirection: "row",
-		alignItems: "center",
-		paddingHorizontal: 16,
-		paddingVertical: 12,
-		borderBottomWidth: 0.5,
-		borderBottomColor: "#F3F4F6",
-	},
-	lastResultItem: {
-		borderBottomWidth: 0,
-	},
-	resultImage: {
-		width: 40,
-		height: 40,
-		borderRadius: 8,
-		marginRight: 12,
-		backgroundColor: "#F3F4F6",
-	},
-	resultName: {
-		flex: 1,
-		fontSize: 16,
-		color: "#1A1A1A",
-		fontWeight: "600",
-	},
-	// 0 件・失敗のときは «説明 + 逃げ道のボタン» を縦に積むので、行ではなく列にする
-	centerColumn: {
-		alignItems: "center",
-		justifyContent: "center",
-		gap: 12,
-		paddingVertical: 20,
-		paddingHorizontal: 16,
-	},
-	emptyActionButton: {
-		paddingHorizontal: 16,
-		paddingVertical: 10,
-		borderRadius: 16,
-		backgroundColor: "#FDE7E1",
-	},
-	emptyActionLabel: {
-		fontSize: 13,
-		fontWeight: "700",
-		color: "#F05537",
-	},
-	centerRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "center",
-		paddingVertical: 20,
-		paddingHorizontal: 16,
-	},
-	loadingText: {
-		marginLeft: 8,
-		fontSize: 14,
-		color: "#6B7280",
-	},
-	emptyText: {
-		fontSize: 14,
-		color: "#6B7280",
-		textAlign: "center",
-	},
-});
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		/*
+		#1375（6 巡目・実機で 2 回指摘）**`flex: 1` を置かない。**
+
+		以前はここが `flex: 1` だった。呼び出し元（「食べたを記録」タブ・SNS 取り込みタブ）は
+		どちらも高さを決めない普通の縦並びの中にこの部品を置くので、ネイティブでは
+		**この器の高さが 0 に潰れ、入力欄ごと見えなくなる**。
+
+		⚠️ web（react-native-web）はこの状況で高さが潰れないため、**web のスクリーンショットでは
+		正常に見える**。実機だけで再現する。この差のせいで «直した» と誤って報告した。
+		結果パネルは自前の maxHeight を持っているので、器は中身なりの高さでよい。
+		*/
+		container: {},
+		inputContainer: {
+			flexDirection: "row",
+			alignItems: "center",
+			borderRadius: 16,
+			backgroundColor: c.surface,
+			borderWidth: 1,
+			borderColor: c.border,
+		},
+		searchIcon: {
+			marginLeft: 16,
+			// #1375（6 巡目・オーナー指示）**アイコンを潰さない。**
+			// 横並びの既定 flexShrink は 1 なので、店名が長いと «決まった値» のテキストに
+			// 押されてこの虫眼鏡が数 px まで縮んでいた（スクショで確認）。
+			// アイコンは縮まない側、伸縮するのは入力欄だけ、と決める
+			flexShrink: 0,
+		},
+		input: {
+			flex: 1,
+			// web は flex アイテムの最小幅が «中身の幅» なので、長い店名だと縮まず
+			// 隣のアイコンを押し出す。0 を明示して «縮むのはここ» を成立させる
+			minWidth: 0,
+			paddingHorizontal: 12,
+			paddingVertical: 16,
+			fontSize: 16,
+			color: c.textPrimary,
+		},
+		clearButton: {
+			padding: 12,
+			flexShrink: 0,
+		},
+		// 確定した店名は «入力の続き» ではなく «決まった値» なので、少し強く見せる
+		inputSelected: {
+			fontWeight: "700",
+		},
+		// #1375 «地図から探す» は入力欄の中の右端。赤くしない（副次的な導線で、CTA ではない）
+		mapButton: {
+			flexShrink: 0,
+			paddingHorizontal: 14,
+			paddingVertical: 12,
+			marginRight: 2,
+			borderLeftWidth: StyleSheet.hairlineWidth,
+			borderLeftColor: c.borderMuted,
+		},
+		candidateRow: {
+			marginTop: 8,
+			flexDirection: "row",
+			flexWrap: "wrap",
+			gap: 6,
+		},
+		// 候補は «小さく»（実機指摘）。本文のチップ（13pt）より一回り下げる
+		candidateChip: {
+			paddingHorizontal: 10,
+			paddingVertical: 5,
+			borderRadius: 14,
+			backgroundColor: c.surfaceSubtle,
+		},
+		candidateChipSelected: {
+			backgroundColor: c.brandTintAlt,
+		},
+		candidateLabel: {
+			fontSize: 12,
+			color: c.textSecondaryStrong,
+		},
+		candidateLabelSelected: {
+			color: c.brand,
+			fontWeight: "700",
+		},
+		resultsPanel: {
+			marginTop: 12,
+			backgroundColor: c.surface,
+			borderRadius: 16,
+			shadowColor: FixedColors.shadow,
+			shadowOffset: { width: 0, height: 0 },
+			shadowOpacity: 0.1,
+			shadowRadius: 24,
+			elevation: 4,
+		},
+		resultsList: {
+			maxHeight: 280,
+		},
+		resultItem: {
+			flexDirection: "row",
+			alignItems: "center",
+			paddingHorizontal: 16,
+			paddingVertical: 12,
+			borderBottomWidth: 0.5,
+			borderBottomColor: c.divider,
+		},
+		lastResultItem: {
+			borderBottomWidth: 0,
+		},
+		resultImage: {
+			width: 40,
+			height: 40,
+			borderRadius: 8,
+			marginRight: 12,
+			backgroundColor: c.surfaceSubtle,
+		},
+		resultName: {
+			flex: 1,
+			fontSize: 16,
+			color: c.textPrimary,
+			fontWeight: "600",
+		},
+		// 0 件・失敗のときは «説明 + 逃げ道のボタン» を縦に積むので、行ではなく列にする
+		centerColumn: {
+			alignItems: "center",
+			justifyContent: "center",
+			gap: 12,
+			paddingVertical: 20,
+			paddingHorizontal: 16,
+		},
+		emptyActionButton: {
+			paddingHorizontal: 16,
+			paddingVertical: 10,
+			borderRadius: 16,
+			backgroundColor: c.brandTintAlt,
+		},
+		emptyActionLabel: {
+			fontSize: 13,
+			fontWeight: "700",
+			color: c.brand,
+		},
+		centerRow: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "center",
+			paddingVertical: 20,
+			paddingHorizontal: 16,
+		},
+		loadingText: {
+			marginLeft: 8,
+			fontSize: 14,
+			color: c.textSecondary,
+		},
+		emptyText: {
+			fontSize: 14,
+			color: c.textSecondary,
+			textAlign: "center",
+		},
+	});

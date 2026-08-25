@@ -135,3 +135,31 @@ export async function seedRecentLocations(context: BrowserContext, locations: Se
 		[RECENT_LOCATIONS_STORAGE_KEY, JSON.stringify(locations)] as const,
 	);
 }
+
+/**
+ * 表示テーマ（システム追従 / ライト / ダーク）の保存キー。
+ * app-expo/contexts/ThemeProvider.ts の `THEME_PREFERENCE_STORAGE_KEY` と一致させること（#1509）。
+ */
+export const THEME_PREFERENCE_STORAGE_KEY = "theme_preference_v1";
+
+/** 設定画面の 3 択と同じ型（app-expo/contexts/ThemeProvider.tsx の ThemePreference） */
+export type SeededThemePreference = "system" | "light" | "dark";
+
+/**
+ * 表示テーマの設定を事前シードする（#1509）。
+ *
+ * 「再起動しても保持される」を検証するときは **シードではなく実際に UI で切り替えてから
+ * reload する**こと（シードだと保存経路を検証したことにならない）。
+ * このシードは「ダーク状態で開いた画面を検査したい」ように、切替操作そのものが
+ * 主題ではないテストのために使う。
+ *
+ * @param context ブラウザコンテキスト（ページ生成前に呼ぶこと）
+ */
+export async function seedThemePreference(context: BrowserContext, preference: SeededThemePreference): Promise<void> {
+	await context.addInitScript(
+		([key, value]) => {
+			window.localStorage.setItem(key as string, value as string);
+		},
+		[THEME_PREFERENCE_STORAGE_KEY, preference] as const,
+	);
+}

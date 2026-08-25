@@ -1,4 +1,6 @@
 import i18n from "@/lib/i18n";
+// #1561 API の本文の形を信じない（lib/apiList.ts のヘッダ参照）
+import { asApiList } from "@/lib/apiList";
 import { toErrorLogMessage } from "@/lib/errorMessage";
 import type { SupabaseDishCategories } from "@shared/converters/convert_dish_categories";
 import { createWithEqualityFn } from "zustand/traditional";
@@ -331,10 +333,10 @@ export const useTopicsStore = createWithEqualityFn<TopicsStore>()((set, get) => 
 			clearByKey(key);
 
 			// 1. エンティティを正規化して反映
-			upsertTopics(response.data);
+			upsertTopics(asApiList(response.data));
 
 			// 2. 並び順を id でセット
-			const topicIds = response.data.map((item) => item.id);
+			const topicIds = asApiList(response.data).map((item) => item.id);
 			updateTopicIdsByKey(key, () => topicIds);
 
 			// 3. nextCursor / hasFetchedInitial の更新
@@ -357,10 +359,10 @@ export const useTopicsStore = createWithEqualityFn<TopicsStore>()((set, get) => 
 			fetcher({ cursor: nextCursor, request }),
 			(response) => {
 				// 1. エンティティを正規化
-				upsertTopics(response.data);
+				upsertTopics(asApiList(response.data));
 
 				// 2. 並び順の末尾に追加
-				const topicIds = response.data.map((item) => item.id);
+				const topicIds = asApiList(response.data).map((item) => item.id);
 				updateTopicIdsByKey(key, (prevIds) => {
 					// #CodeQL 【パフォーマンス】重複ID排除を Set で高速化（O(1)ルックアップ）
 					const prevIdSet = new Set(prevIds);

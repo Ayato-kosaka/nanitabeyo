@@ -1,4 +1,8 @@
 import i18n from "@/lib/i18n";
+// #1577 ダイアログは «画面の面» として開くので、テーマに追従させる。
+// 直書きのままだと暗い画面の上に白いダイアログが浮く。
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 import React, {
 	createContext,
 	useCallback,
@@ -266,6 +270,8 @@ const useIsMountedRef = () => {
 };
 
 export const DialogProvider = ({ children }: { children: ReactNode }) => {
+	const styles = useThemedStyles(createStyles);
+	const { colors } = useAppTheme();
 	const isMountedRef = useIsMountedRef();
 
 	// #958 【修正】paper の Portal は PaperProvider 直下のホスト(=CenteredAppShell の外側)に
@@ -953,8 +959,8 @@ export const DialogProvider = ({ children }: { children: ReactNode }) => {
 								<Button
 									key={a.key}
 									mode={isOk || isCancel ? "contained" : (a.mode ?? "text")}
-									buttonColor={isOk ? "#F05537" : isCancel ? "#F8F9FA" : undefined}
-									textColor={isOk ? "#FFFFFF" : isCancel ? "#6B7280" : undefined}
+									buttonColor={isOk ? colors.brand : isCancel ? colors.surfaceMuted : undefined}
+									textColor={isOk ? FixedColors.onFilled : isCancel ? colors.textSecondary : undefined}
 									style={isOk || isCancel ? styles.actionButton : undefined}
 									contentStyle={isOk || isCancel ? styles.actionButtonContent : undefined}
 									labelStyle={[styles.actionButtonLabel, isOk && styles.confirmButtonLabel]}
@@ -986,43 +992,44 @@ export const DialogProvider = ({ children }: { children: ReactNode }) => {
 	);
 };
 
-const styles = StyleSheet.create({
-	dialog: {
-		backgroundColor: "#FFFFFF",
-		borderRadius: 20,
-	},
-	title: {
-		fontSize: 20,
-		fontWeight: "700",
-		color: "#1C1B1F",
-		letterSpacing: -0.3,
-	},
-	message: {
-		fontSize: 16,
-		fontWeight: "500",
-		lineHeight: 24,
-		color: "#49454F",
-	},
-	actions: {
-		gap: 4,
-		paddingHorizontal: 24,
-		paddingBottom: 20,
-	},
-	actionButton: {
-		borderRadius: 16,
-	},
-	actionButtonContent: {
-		minHeight: 48,
-		paddingHorizontal: 8,
-	},
-	actionButtonLabel: {
-		fontSize: 16,
-		fontWeight: "600",
-	},
-	confirmButtonLabel: {
-		fontWeight: "700",
-	},
-});
+const createStyles = (colors: Palette) =>
+	StyleSheet.create({
+		dialog: {
+			backgroundColor: colors.surface,
+			borderRadius: 20,
+		},
+		title: {
+			fontSize: 20,
+			fontWeight: "700",
+			color: colors.dialogTitle,
+			letterSpacing: -0.3,
+		},
+		message: {
+			fontSize: 16,
+			fontWeight: "500",
+			lineHeight: 24,
+			color: colors.dialogMessage,
+		},
+		actions: {
+			gap: 4,
+			paddingHorizontal: 24,
+			paddingBottom: 20,
+		},
+		actionButton: {
+			borderRadius: 16,
+		},
+		actionButtonContent: {
+			minHeight: 48,
+			paddingHorizontal: 8,
+		},
+		actionButtonLabel: {
+			fontSize: 16,
+			fontWeight: "600",
+		},
+		confirmButtonLabel: {
+			fontWeight: "700",
+		},
+	});
 
 /** useDialog フック */
 export const useDialog = (): DialogContextType => {

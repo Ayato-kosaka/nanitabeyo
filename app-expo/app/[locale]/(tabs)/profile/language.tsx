@@ -11,6 +11,8 @@ import { Card } from "@/components/Card";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import i18n from "@/lib/i18n";
+import type { Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 import { useLocale } from "@/hooks/useLocale";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLogger } from "@/hooks/useLogger";
@@ -35,6 +37,8 @@ import type { UpdateUserProfileDto } from "@shared/api/v1/dto";
 type LanguageOption = { key: LanguagePreference; label: string };
 
 export default function LanguageScreen() {
+	const styles = useThemedStyles(createStyles);
+	const { colors } = useAppTheme();
 	const router = useRouter();
 	const pathname = usePathname();
 	const { locale } = useLocale();
@@ -117,11 +121,22 @@ export default function LanguageScreen() {
 
 			router.replace(replaceLocaleInPath(pathname, resolvedLocale) as ExternalPathString);
 		},
-		[isSwitching, preference, lightImpact, isAuthResolved, user, callBackend, logFrontendEvent, locale, router, pathname],
+		[
+			isSwitching,
+			preference,
+			lightImpact,
+			isAuthResolved,
+			user,
+			callBackend,
+			logFrontendEvent,
+			locale,
+			router,
+			pathname,
+		],
 	);
 
 	return (
-		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
+		<LinearGradient colors={colors.backgroundGradient} style={styles.container}>
 			<SafeAreaView style={styles.safeArea} edges={[]}>
 				<ScreenHeader testID="language-header" title={i18n.t("Settings.language.pageTitle")} onPressBack={handleBack} />
 				<ScrollView contentContainerStyle={styles.scrollContent}>
@@ -141,7 +156,10 @@ export default function LanguageScreen() {
 										{isSelected && (
 											<Check
 												size={20}
-												color="#FF3E33"
+												// #1508 選択チェック。ライトの見た目を変えないため既存リテラル(#FF3E33)と
+												// 同値の destructive を充てている。マイページのテーマ 3 択は brand(#F05537) を
+												// 使っており色が揃っていないが、統一は見た目の変更になるので別途判断する
+												color={colors.destructive}
 												accessibilityElementsHidden
 												importantForAccessibility="no"
 											/>
@@ -164,46 +182,47 @@ export default function LanguageScreen() {
 	);
 }
 
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-	},
-	safeArea: {
-		flex: 1,
-	},
-	scrollContent: {
-		paddingBottom: 32,
-	},
-	card: {
-		padding: 0,
-	},
-	row: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		paddingHorizontal: 16,
-		paddingVertical: 16,
-	},
-	rowLabel: {
-		fontSize: 16,
-		color: "#1A1A1A",
-		fontWeight: "500",
-	},
-	separator: {
-		height: 1,
-		backgroundColor: "#F3F4F6",
-		marginHorizontal: 16,
-	},
-	switchingOverlay: {
-		...StyleSheet.absoluteFillObject,
-		backgroundColor: "rgba(255, 255, 255, 0.85)",
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	switchingText: {
-		marginTop: 12,
-		fontSize: 14,
-		color: "#1A1A1A",
-		fontWeight: "500",
-	},
-});
+const createStyles = (colors: Palette) =>
+	StyleSheet.create({
+		container: {
+			flex: 1,
+		},
+		safeArea: {
+			flex: 1,
+		},
+		scrollContent: {
+			paddingBottom: 32,
+		},
+		card: {
+			padding: 0,
+		},
+		row: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+			paddingHorizontal: 16,
+			paddingVertical: 16,
+		},
+		rowLabel: {
+			fontSize: 16,
+			color: colors.textPrimary,
+			fontWeight: "500",
+		},
+		separator: {
+			height: 1,
+			backgroundColor: colors.divider,
+			marginHorizontal: 16,
+		},
+		switchingOverlay: {
+			...StyleSheet.absoluteFillObject,
+			backgroundColor: "rgba(255, 255, 255, 0.85)",
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		switchingText: {
+			marginTop: 12,
+			fontSize: 14,
+			color: colors.textPrimary,
+			fontWeight: "500",
+		},
+	});

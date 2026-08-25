@@ -55,7 +55,7 @@ export class MyDishesScreen {
 	/**
 	 * 記録 CTA（testID: my-dishes-record-button）。
 	 *
-	 * #1375 実機確認: 押下先は **SNS URL 取り込み画面**（`sns-import`）になった。
+	 * #1375 実機確認: 押下先は **«追加» のシート**（`add-record`。SNS 取り込み / 食べたを記録の 2 タブ）になった。
 	 * SelectRestaurantScreen へはその上部タブ「食べた」（`sns-import-tab-eaten`）から入る。
 	 * また **ゲストにも表示される**（取り込みはログイン不要のため）。
 	 * 以前の「ログイン済みのみ表示 / 押すと店舗選択」を前提にした検証を書かないこと。
@@ -193,6 +193,33 @@ export class MyDishesScreen {
 		await element(this.dishCategoryInput).replaceText(query);
 		await waitUntilVisible(this.dishCategorySuggestion(0), timeout);
 		await tapWhenVisible(this.dishCategorySuggestion(0));
+	}
+
+	/**
+	 * #1375（6 巡目）記録フローの **1 歩目 = 料理カテゴリー**。
+	 *
+	 * オーナー指示で「お店 → 料理 → 写真 → …」の順になり、カテゴリーが決まるまで
+	 * 写真もコメント欄も出なくなった。上の `chooseDishCategory`（フォーム内の行から
+	 * 別画面を開く経路）とは **別物**で、こちらは店を選んだ直後に必ず通る。
+	 *
+	 * その店に既存の料理があれば一覧の先頭を、無ければ打った名前で新規に作る。
+	 */
+	readonly dishCategoryStep = by.id("review-dish-category-step");
+	readonly dishCategoryStepInput = by.id("review-dish-category-step-input");
+	readonly dishCategoryStepSubmitTyped = by.id("review-dish-category-step-submit-typed");
+
+	async chooseDishCategoryInRecordFlow(query: string, timeout: number = DEFAULT_TIMEOUT): Promise<void> {
+		await waitUntilVisible(this.dishCategoryStep, timeout);
+		await element(this.dishCategoryStepInput).replaceText(query);
+		// 候補に無ければ «この名前で決める» が出る。出ない場合は候補が絞り込まれて残っている
+		try {
+			await waitUntilVisible(this.dishCategoryStepSubmitTyped, 5000);
+			await tapWhenVisible(this.dishCategoryStepSubmitTyped);
+		} catch {
+			await tapWhenVisible(by.id("review-dish-category-step").withDescendant(by.text(query)));
+		}
+		// 決まると 2 歩目（写真とコメント欄）が出る
+		await waitUntilVisible(this.commentInput, timeout);
 	}
 
 	/** 価格を入力する（数値のみ。`isValid` は 0 より大きい有限数を要求する） */

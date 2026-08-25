@@ -21,8 +21,11 @@ import { useLocale } from "@/hooks/useLocale";
 import { bumpMyDishesRevision } from "@/features/myDishes/stores/useMyDishesRevisionStore";
 import { MY_DISHES_EVENTS, buildMarkAsEatenCompletedPayload } from "@/features/myDishes/analytics";
 import { takeMarkAsEaten } from "@/features/myDishes/markAsEatenFunnel";
+import { type Palette } from "@/constants/Palette";
+import { useThemedStyles } from "@/contexts/ThemeProvider";
 
 export default function ReviewFromMediaScreen() {
+	const styles = useThemedStyles(createStyles);
 	const { restaurantId, dishMediaId } = useLocalSearchParams<{ restaurantId: string; dishMediaId: string }>();
 	const { lightImpact } = useHaptics();
 	const { callBackend } = useAPICall();
@@ -229,25 +232,26 @@ export default function ReviewFromMediaScreen() {
 	);
 }
 
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		backgroundColor: "#FFFFFF",
-	},
-	loadingContainer: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-	},
-	errorContainer: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-		padding: 16,
-	},
-	errorText: {
-		fontSize: 16,
-		color: "#666",
-		textAlign: "center",
-	},
-});
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		container: {
+			flex: 1,
+			backgroundColor: c.surface,
+		},
+		loadingContainer: {
+			flex: 1,
+			justifyContent: "center",
+			alignItems: "center",
+		},
+		errorContainer: {
+			flex: 1,
+			justifyContent: "center",
+			alignItems: "center",
+			padding: 16,
+		},
+		errorText: {
+			fontSize: 16,
+			color: c.textMuted,
+			textAlign: "center",
+		},
+	});

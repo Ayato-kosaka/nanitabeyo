@@ -69,11 +69,12 @@ describeMutation("レビュー投稿中のローディング @mutation", () => {
 		await selectRestaurant.searchRestaurant("スターバックスコーヒー 渋谷");
 		await selectRestaurant.selectSuggestion(0);
 
-		// #1375（3 巡目）pick モードでは詳細画面へ行かず、選んだ時点で統合フォームへ戻る
+		// #1375（3 巡目）pick モードでは詳細画面へ行かず、選んだ時点で統合フォームへ戻る。
+		// #1375（6 巡目）そこで最初に出るのは **料理カテゴリー**（オーナー指示の «お店 → 料理 → 写真»）
+		await myDishes.chooseDishCategoryInRecordFlow("コーヒー", MyDishesScreen.FORM_TIMEOUT);
 		await myDishes.expectFormLoaded(MyDishesScreen.FORM_TIMEOUT);
 
 		await myDishes.fillComment("[E2E] 投稿中ローディング表示テストです");
-		await myDishes.chooseDishCategory("コーヒー");
 		await myDishes.fillPrice("500");
 		await myDishes.rate(5);
 

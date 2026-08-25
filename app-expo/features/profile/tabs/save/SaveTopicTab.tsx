@@ -9,6 +9,7 @@ import { useLocale } from "@/hooks/useLocale";
 import { useContentWidth } from "@/hooks/useContentWidth";
 import { wikimediaThumbFromOriginal } from "@/lib/wikimedia";
 import { DishCategory, selectTopicById, useTopicsStore } from "@/stores/useTopicsStore";
+import { FixedColors } from "@/constants/Palette";
 
 interface SaveTopicTabProps {
 	topicIds: string[];
@@ -134,15 +135,11 @@ const styles = StyleSheet.create({
 	topicName: {
 		fontSize: 14,
 		fontWeight: "600",
-		color: "#FFFFFF",
+		// 料理写真のサムネイル（暗いオーバーレイ）の上に載る文字なのでテーマで振らない
+		color: FixedColors.onMedia,
 		marginBottom: 4,
 		textShadowColor: "rgba(0, 0, 0, 0.8)",
 		textShadowOffset: { width: 0, height: 1 },
 		textShadowRadius: 2,
-	},
-	savedCount: {
-		fontSize: 12,
-		color: "#E5E5E5",
-		fontWeight: "500",
 	},
 });

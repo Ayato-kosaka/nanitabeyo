@@ -1,5 +1,5 @@
 import { PUBLIC_LOCALES } from "@/constants/seoLocales";
-import { LEGAL_SITEMAP_ROUTES } from "@/lib/legalRoute";
+import { INDEXABLE_ROUTES } from "@/lib/seo/publicRoutes";
 
 /**
  * 🗺️ sitemap.xml の生成ロジック（#281）。
@@ -37,12 +37,6 @@ import { LEGAL_SITEMAP_ROUTES } from "@/lib/legalRoute";
  * - `profile/*` / `notifications/*` … ログイン後の個人ページ（未ログインでは中身が無い）
  * - `posts` … `?ids=` のクエリ前提のページで、クエリ無しでは表示する対象が決まらない（#721）。
  *   sitemap に載せられる安定した URL が存在しない
- * - `sns-import` … 共有された `?url=` を受け取る画面（#1400）。`posts` と同じくクエリ前提で、
- *   クエリ無しでは「対応している SNS はこれです」という案内しか出ない
- *
- * #1396 `review` / `review/selectRestaurant` はレビュータブ廃止に伴い `my-dishes` へ差し替えた。
- * 旧 URL は `app/[locale]/review/**` に置いたリダイレクト専用ファイルが `my-dishes` へ倒すため、
- * ここへ載せ続ける必要はない（設計確定A）。
  *
  * ⚠️ `""`（ロケールのトップ）と `search` は同じ検索画面を指す（tabs の initialRouteName が
  *    `search` のため）。`/` からのリダイレクト先が `/{locale}` であり、サイトの入口として
@@ -65,14 +59,10 @@ import { LEGAL_SITEMAP_ROUTES } from "@/lib/legalRoute";
  * "Duplicate without user-selected canonical" として出る見込み）。
  * 翻訳を入れるか、実体のあるロケールへ展開を絞るかは、翻訳の予定が決まってから判断する。
  */
-export const SITEMAP_ROUTES: readonly string[] = [
-	"search",
-	// #1419 "map" は外した。マップタブは `href: null` で到達不能なまま sitemap にだけ出ていた
-	// #1375 "review" / "review/selectRestaurant" も外した。レビュータブは my-dishes タブへ置き換わり、
-	// 店選択は `(tabs)` の外（`/restaurant/**`）へ移設されて locale トップ直下のルートではなくなった
-	"my-dishes",
-	...LEGAL_SITEMAP_ROUTES,
-];
+// #1503 実体は `lib/seo/publicRoutes.ts` へ移した。直リンクスモーク（e2e）と sitemap が
+// 別々の一覧を持つと、ルートを足したときに片方だけ増える（#281 で生成器が 2 本になったのと同型の事故）。
+// ここは «sitemap から見た名前» を保つための再 export で、選定の理由は上のコメントのまま。
+export const SITEMAP_ROUTES: readonly string[] = INDEXABLE_ROUTES;
 
 /**
  * #721 【重要】ロケールのトップ（`""` = `/en-US` など）は**意図的に外している**。
@@ -130,7 +120,7 @@ function escapeXml(value: string): string {
  * @param baseUrl 末尾スラッシュ無しのオリジン
  * @param locale URL prefix のロケール（例: `ja-JP`）
  * @param route locale prefix より後ろのパス（空文字はロケールのトップ）
- * @returns 例: `https://app.nanitabeyo.net/ja-JP/my-dishes`
+ * @returns 例: `https://app.nanitabeyo.net/ja-JP/review/selectRestaurant`
  */
 export function buildPageUrl(baseUrl: string, locale: string, route: string): string {
 	const path = route.replace(/^\/+/, "").replace(/\/+$/, "");

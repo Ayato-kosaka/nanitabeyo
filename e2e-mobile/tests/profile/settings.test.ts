@@ -91,4 +91,29 @@ describe("設定項目（匿名ユーザー）", () => {
 		const hasLogoutItem = await settingsScreen.hasLogoutItem();
 		assert.equal(hasLogoutItem, false, "匿名ユーザーには settings-logout が表示されないはず");
 	});
+
+	// ─ テストケース: バージョン情報が表示される(#1495 SUP-03) ─
+	// 手順:
+	//   1. マイページを表示する
+	//   2. バージョン行(settings-version-section)が "{version}({短縮コミットID})" 形式
+	//      (例: 1.14.0(abc1234) / コミットID未設定時は 1.14.0(dev)) で表示され、
+	//      "undefined" を含んでいないことを検証する
+	//
+	// ⚠️ web と異なり、ネイティブは nativeApplicationVersion 系の取得経路がある一方、
+	//   VersionInfo コンポーネント自体は Env.APP_VERSION / Env.COMMIT_ID を
+	//   web/native 共通で読む設計（VersionInfo.tsx 参照）。ここではネイティブ実機/シミュレータ上で
+	//   実際にその値が画面に描画されることを検証する。
+	it("バージョン情報が表示される", async () => {
+		const tabBar = new TabBar();
+		const settingsScreen = new SettingsScreen();
+
+		await tabBar.gotoProfile();
+		await settingsScreen.expectLoaded();
+
+		await waitUntilVisible(settingsScreen.versionSection);
+
+		const versionText = await settingsScreen.getVersionText();
+		assert.match(versionText, /^\d+\.\d+\.\d+\([^)]+\)$/, `実測: "${versionText}"`);
+		assert.doesNotMatch(versionText, /undefined/i, `実測: "${versionText}"`);
+	});
 });

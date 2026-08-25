@@ -18,14 +18,21 @@
 //
 // | `parseSnsUrl()` | この層の振る舞い |
 // | --- | --- |
-// | `kind: "content"` | 取り込み確認へ進む（`/{locale}/sns-import?url=<canonical>`） |
+// | `kind: "content"` | 取り込み確認へ進む（`/{locale}/add-record?url=<canonical>`） |
 // | `kind: "shortlink"` | 展開は API の仕事なので叩かない。「準備中」として確認画面で受ける |
 // | `null` | 黙って落とさない。対応 provider を明示する画面を出す |
 
 import { parseSnsUrl, type SnsUrlContent, type SnsUrlShortlink } from "@shared/utils/snsUrl";
 
-/** 取り込み確認画面のルート。`app/[locale]/sns-import.tsx` に対応する */
-export const SNS_IMPORT_PATHNAME = "/[locale]/sns-import" as const;
+/**
+ * 取り込み確認画面のルート。`app/[locale]/add-record.tsx` に対応する。
+ *
+ * #1375（5 巡目）ファイル名を `sns-import` から `add-record` へ改名した。この画面は
+ * «＋ で開く追加のシート» で、SNS 取り込みと «食べたを記録» の 2 つのタブを持つ。
+ * `sns-import` という名前は片方のタブしか指しておらず、実装を読む人を毎回迷わせていた。
+ * 定数名は **役割そのまま**（この定数の利用者は «取り込みの着地点» としてしか使わない）。
+ */
+export const SNS_IMPORT_PATHNAME = "/[locale]/add-record" as const;
 
 /** ログイン画面のルート。`?next=` の作法は lib/authNext.ts（#1359）に従う */
 export const LOGIN_PATHNAME = "/[locale]/auth/login" as const;
@@ -64,7 +71,7 @@ export const resolveSnsShareIntakeView = (url: string | null | undefined): SnsSh
  * （`lib/snsShareIntake.test.ts` が実際に `resolveNextPath()` へ通して固定している）。
  */
 export const buildSnsImportPath = (locale: string, url?: string | null): string =>
-	url ? `/${locale}/sns-import?url=${encodeURIComponent(url)}` : `/${locale}/sns-import`;
+	url ? `/${locale}/add-record?url=${encodeURIComponent(url)}` : `/${locale}/add-record`;
 
 /**
  * 共有を受け取ったときの遷移先。`router.push()` にそのまま渡せる形で返す。
