@@ -31,6 +31,20 @@ description: >-
 
 ## B. 実機動画（Detox / CI）の手順
 
+⚠️ **dispatch しただけで «走る» と思ってはいけない。cancelled で消える。**
+
+`e2e-mobile-test.yml` の concurrency は **ブランチ別ではなくグローバル**
+（`group: e2e-mobile-test` / `cancel-in-progress: false`）。GitHub はこのグループに
+«実行中 1 本 + 待機 1 本» しか保持しないので、自分の run が待機中に別ブランチから
+dispatch が来ると、**自分の待機分が押し出されて cancelled になる**
+（run 32874405962 で実測。検証したつもりで何も検証できていなかった）。
+
+したがって dispatch のあとは必ず:
+
+1. グループが空いているかを先に見る（他ブランチの run が in_progress / queued でないか）
+2. dispatch 後、**conclusion が cancelled でないこと**を確認してから «実行中» と扱う
+3. 結果を待つあいだも手を止めない。待機だけのターンを作らない
+
 1. `e2e-mobile-test.yml` を workflow_dispatch で起動する。入力:
    - `record_videos: true`（.detoxrc.js の video plugin が "all" になり全テストの動画が残る）
    - `test_filter` に撮りたいフローの spec 名（例: `onboarding`）。**scope は既定の
