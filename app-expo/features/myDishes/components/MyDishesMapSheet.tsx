@@ -32,6 +32,7 @@ import i18n from "@/lib/i18n";
 import type { MyDishPin } from "@shared/api/v1/res";
 import { MyDishStatusLegend } from "@/features/myDishes/components/MyDishStatusLegend";
 import { MyDishStatusCountBadges } from "@/features/myDishes/components/MyDishStatusCountBadges";
+import { DeletedMediaTombstone } from "@/components/DeletedMediaTombstone";
 
 /** 1 枚あたりの幅。3 枚強が見える幅にして「横に続きがある」ことを見せる */
 const TILE_WIDTH = 104;
@@ -51,7 +52,10 @@ const getTileLayout = (_data: ArrayLike<MyDishPin> | null | undefined, index: nu
 const PinTile = memo(function PinTile({ pin, onPress }: { pin: MyDishPin; onPress: (pin: MyDishPin) => void }) {
 	const styles = useThemedStyles(createStyles);
 	const handlePress = useCallback(() => onPress(pin), [onPress, pin]);
-	const uri = pin.representativeThumbnailUrl ?? pin.restaurant.image_url ?? null;
+	// #1513 «自分の投稿が削除済み» のピンは `restaurant.image_url` へも落とさない
+	// （跡地に別の絵を入れない）。帯のタイルもピンと同じ墓標にする。ピン側の分岐は
+	// `MyDishesMapView.tsx` の AvatarBubbleMarker にある
+	const uri = pin.isOwnMediaDeleted ? null : (pin.representativeThumbnailUrl ?? pin.restaurant.image_url ?? null);
 
 	return (
 		<Pressable
@@ -65,7 +69,9 @@ const PinTile = memo(function PinTile({ pin, onPress }: { pin: MyDishPin; onPres
 				eaten: pin.counts.eaten,
 			})}>
 			<View style={styles.tileImage}>
-				{uri ? (
+				{pin.isOwnMediaDeleted ? (
+					<DeletedMediaTombstone style={StyleSheet.absoluteFill} />
+				) : uri ? (
 					<Image
 						source={{ uri, cacheKey: getCacheKeyForImage(uri) }}
 						cachePolicy="memory-disk"

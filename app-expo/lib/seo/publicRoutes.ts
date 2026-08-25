@@ -82,10 +82,15 @@ export const DEEP_LINK_SMOKE_EXCLUSIONS: Readonly<Record<string, string>> = {
 	// 「画面が描画されたか」の判定材料にならない。ログイン後の導線は
 	// tests/authenticated/ 配下の spec が担保している
 	"profile/edit": "ログイン必須。未ログインでは中身が無い",
-	// #1402 で profile/settings は廃止（設定項目はマイページ本体へ統合）。キーは残さない
+	// #1402 で一度廃止したが、#1583（設定の再編）で main が復活させたので鍵も戻す。
+	// «廃止したから消す» と «復活したから戻す» が別ブランチで起きた形なので、経緯を残しておく
+	"profile/settings": "ログイン必須。未ログインでは中身が無い",
 	"profile/liked": "ログイン必須。未ログインでは中身が無い",
 	"profile/saved-topics": "ログイン必須。未ログインでは中身が無い",
 	"profile/feedback": "ログイン必須。未ログインでは中身が無い",
+	// #1584 自分が出した通報の履歴。未ログイン（匿名）でも «自分の» 履歴は引けるが、
+	// 端末のサインインに紐づくので直リンクでは常に空になり、描画の判定材料にならない
+	"profile/content-reports": "自分の通報履歴。直リンクでは常に空で、描画の判定材料にならない",
 	"profile/blocked-topics": "ログイン必須。未ログインでは中身が無い",
 	"profile/food": "ログイン必須。未ログインでは中身が無い",
 	"profile/saved-topic-location": "ログイン必須。未ログインでは中身が無い",

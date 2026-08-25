@@ -80,6 +80,10 @@ export class DishCategoryGroupVotesRepository {
         // 共有リンク参加者は検索画面の route params を持たないので、
         // 店を見る時点の検索条件を session に固定しておく。
         search_context: dto.searchContext as unknown as Prisma.InputJsonValue,
+        // #1507 冪等キーは行そのものに刻む。未送信（旧クライアント）は NULL のまま入れる。
+        // (host_user_id, idempotency_key) の複合 unique が最終防衛線で、
+        // PostgreSQL の UNIQUE は NULL 同士を衝突と見なさないため NULL は何件でも入る。
+        idempotency_key: dto.idempotencyKey ?? null,
       },
       select: {
         id: true,
@@ -148,6 +152,13 @@ export class DishCategoryGroupVotesRepository {
       },
     })) as PrismaDishCategoryGroupVoteCandidates[];
 
+    // #1513 【設計】投票候補は「黙って除外する」側の画面。削除済みメディアは墓標を出さず
+    // 候補から落とす（投票の場に「もう無い写真」を並べる意味が無いため）。
+    // 過去に保存された dish_media_ids は migration で書き換えず、**読み出し時に落とす**。
+    // dish_media_search_status は保存時のまま返す（'found' のまま 0 件になり得る）。
+    // 状態を読み出し側で作り替えると、固定済みの検索結果という契約が崩れる
+    await this.dropDeletedDishMediaIds(db, candidates);
+
     const participants =
       (await db.dish_category_group_vote_participants.findMany({
         where: { session_id: session.id },
@@ -202,6 +213,51 @@ export class DishCategoryGroupVotesRepository {
     })) as PrismaDishCategoryGroupVoteSessions | null;
 
     return session;
+  }
+
+  /**
+   * #1513 `dish_media_ids` のうち **実体が生きているものだけ** を、元の順序で返す。
+   *
+   * 投票候補は「墓標を出さず黙って除外する」側の画面なので、削除済みメディアは
+   * 保存時（`updateCandidateDishMediaIds` の呼び出し元）にも読み出し時にも落とす。
+   */
+  async filterLiveDishMediaIds(
+    db: PrismaExecutor,
+    dishMediaIds: string[],
+  ): Promise<string[]> {
+    if (dishMediaIds.length === 0) return [];
+
+    const rows = await db.dish_media.findMany({
+      where: { id: { in: [...new Set(dishMediaIds)] }, deleted_at: null },
+      select: { id: true },
+    });
+    const live = new Set(rows.map((row) => row.id));
+
+    // 検索結果の並びは «おすすめ順» なので、生存 id の順序は入力どおりに保つ
+    return dishMediaIds.filter((id) => live.has(id));
+  }
+
+  /**
+   * #1513 候補行の `dish_media_ids` から削除済みメディアを落とす（破壊的に書き換える）。
+   *
+   * 全候補ぶんを **1 本の問い合わせ**で判定する。候補ごとに引くと、
+   * detail 1 回の取得で候補数ぶんのクエリが走る。
+   */
+  private async dropDeletedDishMediaIds(
+    db: PrismaExecutor,
+    candidates: PrismaDishCategoryGroupVoteCandidates[],
+  ): Promise<void> {
+    const allIds = candidates.flatMap((candidate) => candidate.dish_media_ids);
+    if (allIds.length === 0) return;
+
+    const live = new Set(await this.filterLiveDishMediaIds(db, allIds));
+    for (const candidate of candidates) {
+      if (candidate.dish_media_ids.some((id) => !live.has(id))) {
+        candidate.dish_media_ids = candidate.dish_media_ids.filter((id) =>
+          live.has(id),
+        );
+      }
+    }
   }
 
   /**
@@ -432,6 +488,9 @@ export class DishCategoryGroupVotesRepository {
       },
     })) as PrismaDishCategoryGroupVoteCandidates | null;
 
+    // #1513 detail と同じく、読み出し時に削除済みメディアを落とす
+    if (candidate) await this.dropDeletedDishMediaIds(db, [candidate]);
+
     return candidate;
   }
 
@@ -610,6 +669,33 @@ export class DishCategoryGroupVotesRepository {
     });
   }
 
+  /**
+   * #1507 冪等キーから既存セッションを引く。
+   *
+   * 複合 unique (host_user_id, idempotency_key) なので findUnique で引ける。
+   * **host_user_id を where に含めることが本質**で、これにより「既存行を返す」経路が
+   * 呼び出し本人の行しか返さないことが制約と型の両方で保証される
+   * （他人のセッションと share_token を返す漏洩経路を作らない）。
+   */
+  async findSessionByIdempotencyKey(
+    db: PrismaExecutor,
+    hostUserId: string,
+    idempotencyKey: string,
+  ): Promise<{ id: string; share_token: string } | null> {
+    return db.dish_category_group_vote_sessions.findUnique({
+      where: {
+        host_user_id_idempotency_key: {
+          host_user_id: hostUserId,
+          idempotency_key: idempotencyKey,
+        },
+      },
+      select: {
+        id: true,
+        share_token: true,
+      },
+    });
+  }
+
   isUniqueViolation(error: unknown): boolean {
     return (
       typeof error === 'object' &&
@@ -617,5 +703,32 @@ export class DishCategoryGroupVotesRepository {
       'code' in error &&
       error.code === 'P2002'
     );
+  }
+
+  /**
+   * #1507 unique 違反が「どの列で起きたか」まで見る。
+   *
+   * このテーブルには share_token（偶発衝突 → 409 にすべき）と idempotency_key
+   * （再送 → 既存行を返すべき）の 2 つの unique があるので、`isUniqueViolation` の
+   * P2002 判定だけでは扱いを分けられない。
+   *
+   * Prisma の P2002 は `meta.target` に **列名の配列**（例 `['host_user_id', 'idempotency_key']`）
+   * を載せるが、DB やドライバによっては **インデックス名の文字列**
+   * （例 `'dcgvs_host_user_id_idempotency_key_uq'`）になる。両方の形式を受ける。
+   */
+  isUniqueViolationOn(error: unknown, columnName: string): boolean {
+    if (!this.isUniqueViolation(error)) return false;
+
+    const target = (error as { meta?: { target?: unknown } }).meta?.target;
+
+    if (Array.isArray(target)) {
+      return target.some(
+        (entry) => typeof entry === 'string' && entry.includes(columnName),
+      );
+    }
+    if (typeof target === 'string') {
+      return target.includes(columnName);
+    }
+    return false;
   }
 }

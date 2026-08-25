@@ -1,0 +1,47 @@
+-- ==============================================================================
+-- 20260826T0200_comment_dish_reviews_created_dish_media_id.sql
+-- #1513 (UGC-01 自分の投稿・レビューを編集／削除する)
+-- ==============================================================================
+-- 【目的】
+--   `dish_reviews.created_dish_media_id` の列コメントを、実際の意味に合わせる。
+--   **スキーマは 1 バイトも変わらない**（COMMENT ON COLUMN のみ）。
+--
+-- 【背景】
+--   列名は「このレビューが作成した（created）メディア」と読めるが、実際の意味は
+--   **「このレビューが紐づいているメディア」** である。
+--
+--   - `app-expo/app/[locale]/restaurant/[restaurantId]/review-from-media/[dishMediaId].tsx`
+--     は、**他人が投稿したメディア**を `prefilledMedia` として
+--     `features/map/components/ReviewForm.tsx` へ渡す。
+--   - `ReviewForm.tsx` はそれを `createdDishMediaId: dish_media.id` として送る。
+--   - よって、この列には「自分が作っていないメディアの id」が正常系で入る。
+--
+--   #1513 の「投稿を削除する」がこの誤読で危うくなった。
+--   `WHERE created_dish_media_id = :id` だけで巻き添え削除すると
+--   **他人が書いたレビューまで消える**（実装は `user_id = owner` で絞っている。
+--   `api/src/v1/dish-media/dish-media.repository.ts` の
+--   `softDeleteDishMediaWithReviews`）。同じ誤読を次の実装者にさせないために、
+--   意味を DB 側のコメントとして残す。
+--
+-- 【RENAME しない理由】
+--   - 列名の変更は Prisma の生成物（`shared/prisma/`）・API・クライアントの
+--     同時デプロイを要求し、途中の瞬間に必ず 500 が出る。
+--   - 得られるものは可読性だけで、コメントで足りる。
+--   - `20260824T0000` で NOT NULL を外したときの既存コメントを上書きするだけなので、
+--     この 1 本で完結する。
+--
+-- 【既存データへの影響】
+--   無い。COMMENT ON COLUMN はカタログ（pg_description）の更新のみで、
+--   テーブル書き換えもロック待ちも起きない。
+--
+-- 【ロールバック】
+--   20260824T0000_alter_dish_reviews_created_dish_media_id_nullable.sql の
+--   COMMENT を再実行すれば元に戻る。
+-- ==============================================================================
+
+-- =========================================
+-- Up
+-- =========================================
+
+COMMENT ON COLUMN dish_reviews.created_dish_media_id IS
+  'このレビューが紐づいているメディア。列名は「レビューが作成したメディア」と読めるが誤り。既存メディアへレビューを足す経路（review-from-media/[dishMediaId]）では他人が投稿したメディアの id が入る。写真なしで「食べた」を記録できるため NULL 可（#1395）。メディアに対するレビューではないため FK は張らない（20250802T0304 の判断を踏襲）。この列だけで巻き添え削除すると他人のレビューまで消えるので、削除は必ず user_id で絞る（#1513）';

@@ -309,6 +309,20 @@ export default function ProfileScreen() {
 		});
 	}, [lightImpact, logFrontendEvent, router, locale]);
 
+	// #1584 【設計】自分が出した通報の履歴への遷移
+	const handleNavigateToContentReports = useCallback(() => {
+		lightImpact();
+		logFrontendEvent({
+			event_name: "settings_content_reports_pressed",
+			error_level: "log",
+			payload: {},
+		});
+		router.push({
+			pathname: "/[locale]/(tabs)/profile/content-reports",
+			params: { locale },
+		});
+	}, [lightImpact, logFrontendEvent, router, locale]);
+
 	// #1508 【設計】表示言語の選択画面への遷移
 	const handleNavigateToLanguage = useCallback(() => {
 		lightImpact();
@@ -600,6 +614,13 @@ export default function ProfileScreen() {
 							label={i18n.t("Settings.blockedTopics.navigationLabel")}
 							onPress={handleNavigateToBlockedTopics}
 							testID="settings-blocked-topics"
+							accessibilityRole="link"
+						/>
+						{/* #1584 【設計】自分が出した通報の履歴。ブロック済みと同じ «自分が申告したもの» の棚 */}
+						<ProfileMenuItem
+							label={i18n.t("Report.history.navigationLabel")}
+							onPress={handleNavigateToContentReports}
+							testID="settings-content-reports"
 							accessibilityRole="link"
 						/>
 						{/* #1508 【設計】表示言語の選択画面へ遷移 */}

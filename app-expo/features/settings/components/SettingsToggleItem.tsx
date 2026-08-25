@@ -1,7 +1,8 @@
 import React, { useCallback } from "react";
 import { View, Text, Switch, TouchableOpacity, StyleSheet, StyleProp, TextStyle } from "react-native";
-import { useThemedStyles } from "@/contexts/ThemeProvider";
+
 import type { Palette } from "@/constants/Palette";
+import { useThemedStyles } from "@/contexts/ThemeProvider";
 
 interface SettingsToggleItemProps {
 	label: string;
@@ -11,18 +12,34 @@ interface SettingsToggleItemProps {
 	textStyle?: StyleProp<TextStyle>;
 	/** E2E テスト用: Web では data-testid として出力される。Switch 本体には `${testID}-switch` を付与する */
 	testID?: string;
+	/**
+	 * #1510 【設計】ラベルの下に置く補足文（任意）。
+	 * 「いいね」だけでは何が届かなくなるのか分からない通知カテゴリのように、
+	 * 一語のラベルで説明しきれない設定のために足した。
+	 * 省略時のレイアウトは #1504 時点と 1px も変わらない（この View ごと描画しない）。
+	 */
+	description?: string;
+	/**
+	 * #1510 【設計】操作を受け付けない状態（読み込み中・保存中など）。
+	 * OS 側の通知許可とは無関係であることに注意。
+	 * 設定はアカウント単位で他の端末にも効くため、**OS が拒否中でも無効化しない**
+	 *（リーダー判断 §4）。無効化ではなく画面上部の案内で状況を伝える。
+	 */
+	disabled?: boolean;
 }
 
 /**
- * #1504 【設計】設定のトグル行。`app/[locale]/(tabs)/profile/index.tsx` の
- * `ProfileMenuItem`(遷移用の行) と見た目・アクセシビリティ・区切り線の作法を揃えた、
- * オン/オフ設定用の再利用部品。現在の唯一の置き場は端末設定画面
- * (`app/[locale]/(tabs)/profile/device-settings.tsx`)で、SET-02(通知) / SET-05(ダークモード) /
- * SET-06(言語切替) も同じ画面にこのコンポーネントで並ぶ想定のため、
- * `features/settings` 配下の独立コンポーネントとして置く。
+ * #1504 【設計】設定画面のトグル行。`app/[locale]/(tabs)/profile/settings.tsx` の
+ * `SettingsMenuItem`(遷移用の行) と見た目・アクセシビリティ・区切り線の作法を揃えた、
+ * オン/オフ設定用の再利用部品。SET-02(通知) / SET-05(ダークモード) / SET-06(言語切替) も
+ * このコンポーネントを使う想定のため、`features/settings` 配下の独立コンポーネントとして置く。
  *
  * 行全体をタップ対象にし、Switch 自体は `pointerEvents="none"` でタッチを親へ透過させる。
  * こうすることで「ラベルをタップしても切り替わる」という一般的な設定画面の挙動になる。
+ *
+ * ⚠️ このファイルは PR #1515(#1504 SET-01) でも同じパスに追加される。
+ * こちら(#1510)の版は `description` / `disabled` を **任意 prop として足しただけ**の上位互換で、
+ * #1504 側の props・見た目・挙動は変えていない。衝突したらこちらを採用してよい。
  */
 export function SettingsToggleItem({
 	label,
@@ -31,6 +48,8 @@ export function SettingsToggleItem({
 	isLast,
 	textStyle,
 	testID,
+	description,
+	disabled,
 }: SettingsToggleItemProps) {
 	const styles = useThemedStyles(createStyles);
 	const handlePress = useCallback(() => {
@@ -42,13 +61,29 @@ export function SettingsToggleItem({
 			<TouchableOpacity
 				style={styles.menuItem}
 				onPress={handlePress}
+				disabled={disabled}
 				testID={testID}
 				accessibilityRole="switch"
 				accessibilityLabel={label}
-				accessibilityState={{ checked: value }}>
-				<Text style={[styles.menuItemText, textStyle]}>{label}</Text>
+				// #1510 補足文は支援技術にも読ませる。行のラベルとは別の情報なので hint に載せる
+				accessibilityHint={description}
+				accessibilityState={{ checked: value, disabled: !!disabled }}>
+				<View style={styles.labelColumn}>
+					<Text style={[styles.menuItemText, textStyle]}>{label}</Text>
+					{!!description && (
+						// #1510 補足文は accessibilityHint で読み上げ済みなので、二重読み上げを避ける
+						<Text style={styles.descriptionText} accessibilityElementsHidden importantForAccessibility="no">
+							{description}
+						</Text>
+					)}
+				</View>
 				<View pointerEvents="none">
-					<Switch value={value} onValueChange={onValueChange} testID={testID ? `${testID}-switch` : undefined} />
+					<Switch
+						value={value}
+						onValueChange={onValueChange}
+						disabled={disabled}
+						testID={testID ? `${testID}-switch` : undefined}
+					/>
 				</View>
 			</TouchableOpacity>
 			{!isLast && <View style={styles.separator} />}
@@ -56,13 +91,6 @@ export function SettingsToggleItem({
 	);
 }
 
-/*
-#1504 【修正】色を直書きしていたため、ダークで **ラベルが読めなかった**。
-
-エビデンス撮影で実測: カード地 #201F1F の上に文字 #1A1A1A が乗り、
-コントラスト比 **1.07:1**（ライトは 17.40:1）。事実上「文字が消えている」状態だった。
-色はテーマのトークンから取る（constants/Palette.ts）。
-*/
 const createStyles = (colors: Palette) =>
 	StyleSheet.create({
 		menuItem: {
@@ -72,10 +100,21 @@ const createStyles = (colors: Palette) =>
 			paddingHorizontal: 16,
 			paddingVertical: 16,
 		},
+		// #1510 補足文があるときにラベルが Switch へ回り込まないよう、ラベル側だけを伸縮させる
+		labelColumn: {
+			flex: 1,
+			paddingRight: 12,
+		},
 		menuItemText: {
 			fontSize: 16,
 			color: colors.textPrimary,
 			fontWeight: "500",
+		},
+		descriptionText: {
+			marginTop: 2,
+			fontSize: 13,
+			color: colors.textSecondary,
+			fontWeight: "400",
 		},
 		separator: {
 			height: 1,

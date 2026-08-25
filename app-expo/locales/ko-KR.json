@@ -175,6 +175,9 @@
 		},
 		"loading": "검색 중...",
 		"noLocationsFound": "위치를 찾을 수 없습니다",
+		"locationConfirmation": {
+			"error": "위치 확인에 실패했습니다"
+		},
 		"advancedToggle": {
 			"open": "더 많은 옵션",
 			"close": "상세 검색 닫기"
@@ -422,7 +425,8 @@
 			"openMap": "{{name}} 지도 열기",
 			"reviewLike": "{{username}}님의 리뷰에 좋아요",
 			"recordEaten": "{{name}} 먹었어요로 기록",
-			"recordEatenAgain": "{{name}}에서 먹었다를 다시 기록 (기록됨)"
+			"recordEatenAgain": "{{name}}에서 먹었다를 다시 기록 (기록됨)",
+			"ownPostMenu": "{{name}} 게시물 메뉴 열기"
 		},
 		"processing": "미디어 처리 중...",
 		"info": {
@@ -440,6 +444,78 @@
 		"embed": {
 			"play": "{{provider}}에서 재생",
 			"exitInteractive": "임베드 조작 종료"
+		},
+		"ownPost": {
+			"menuTitle": "내 게시물",
+			"edit": "리뷰 편집",
+			"delete": "게시물 삭제",
+			"cancel": "취소",
+			"mediaLocked": "사진과 동영상은 변경할 수 없습니다. 코멘트, 평점, 가격만 수정할 수 있습니다.",
+			"deleteConfirmTitle": "게시물을 삭제할까요?",
+			"deleteConfirmMessage": "이 게시물(사진과 내 리뷰)을 삭제합니다. 되돌릴 수 없습니다.",
+			"deleteConfirmButton": "삭제",
+			"deleted": "게시물을 삭제했습니다",
+			"deleteFailed": "삭제하지 못했습니다",
+			"editTitle": "리뷰 편집",
+			"editComment": "코멘트",
+			"editRating": "평점",
+			"editPrice": "가격",
+			"save": "저장",
+			"saved": "리뷰를 수정했습니다",
+			"saveFailed": "수정하지 못했습니다",
+			"conflict": "다른 기기에서 먼저 수정되었습니다. 다시 열고 편집해 주세요.",
+			"forbidden": "내 게시물만 편집하거나 삭제할 수 있습니다"
+		}
+	},
+	"Report": {
+		"action": "신고",
+		"title": "이 게시물 신고하기",
+		"reviewTitle": "이 리뷰 신고하기",
+		"description": "신고 사유를 선택해 주세요. 운영팀이 확인하며, 작성자에게는 알리지 않습니다.",
+		"reasons": {
+			"spam": "스팸 또는 광고",
+			"sexual": "성적인 콘텐츠",
+			"violence": "폭력적이거나 불쾌한 콘텐츠",
+			"harassment": "괴롭힘 또는 비방",
+			"illegal": "불법 행위",
+			"misinformation": "잘못된 정보",
+			"rights": "저작권 등 권리 침해",
+			"privacy": "개인정보가 노출됨",
+			"irrelevant": "음식과 관련 없음",
+			"other": "기타"
+		},
+		"detailsLabel": "자세한 내용(선택)",
+		"detailsPlaceholder": "추가로 알려주실 내용이 있으면 입력해 주세요(1,000자까지)",
+		"submit": "신고하기",
+		"submitting": "전송 중...",
+		"accepted": {
+			"title": "신고해 주셔서 감사합니다",
+			"description": "내용을 검토합니다. 결과를 개별적으로 알려드리지는 않습니다.",
+			"close": "닫기",
+			"history": "내 신고 내역"
+		},
+		"errors": {
+			"submitFailed": "신고를 보내지 못했습니다. 다시 시도해 주세요."
+		},
+		"accessibility": {
+			"open": "{{name}} 게시물 신고",
+			"openReview": "{{name}} 리뷰 신고",
+			"reason": "사유: {{reason}}",
+			"reasonSelected": "사유: {{reason}}(선택됨)",
+			"submit": "{{name}} 게시물 신고 보내기",
+			"submitReview": "{{name}} 리뷰 신고 보내기"
+		},
+		"history": {
+			"navigationLabel": "내 신고 내역",
+			"pageTitle": "내 신고 내역",
+			"empty": "아직 신고가 없습니다",
+			"emptyDescription": "게시물이나 리뷰를 신고하면 여기에 표시됩니다.",
+			"note": "검토 상태나 결과는 안내하지 않습니다.",
+			"error": "신고 내역을 불러오지 못했습니다",
+			"target": {
+				"dish_media": "게시물",
+				"dish_reviews": "리뷰"
+			}
 		}
 	},
 	"ImageCardGrid": {
@@ -789,6 +865,25 @@
 		"logout": "로그아웃",
 		"logoutConfirmTitle": "로그아웃하시겠어요?",
 		"logoutConfirmMessage": "다시 로그인해야 게시물과 리뷰를 관리할 수 있습니다.",
+		"notifications": {
+			"sectionTitle": "알림",
+			"osDisabledTitle": "이 기기의 알림이 꺼져 있습니다",
+			"osDisabledDescription": "여기서 선택한 설정은 저장되지만, 이 기기로는 알림이 오지 않습니다.",
+			"openOsSettings": "기기 설정 열기",
+			"updateFailed": "설정을 저장하지 못했습니다",
+			"likes": {
+				"title": "좋아요",
+				"description": "내 게시물이나 리뷰에 좋아요가 눌렸을 때"
+			},
+			"saves": {
+				"title": "저장",
+				"description": "내 게시물이 저장되었을 때"
+			},
+			"group_votes": {
+				"title": "그룹 투표",
+				"description": "참여 중인 그룹 투표에 변화가 있을 때"
+			}
+		},
 		"blockedTopics": {
 			"navigationLabel": "차단된 요리 카테고리",
 			"pageTitle": "차단된 요리 카테고리",
@@ -1037,6 +1132,10 @@
 				}
 			},
 			"replay": "튜토리얼 다시 보기"
+		},
+		"deleted": {
+			"label": "삭제되었습니다",
+			"a11yLabel": "이 게시물의 사진은 삭제되었습니다"
 		}
 	},
 	"SnsImport": {

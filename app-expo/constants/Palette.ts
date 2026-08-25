@@ -70,6 +70,14 @@ export const FixedColors = {
 	maskHole: "#000000",
 	/** 主要 CTA の影（`components/PrimaryButton` へ渡す） */
 	ctaShadow: "rgba(0, 0, 0, 0.45)",
+	/*
+	#1513 レビュー編集シートの「保存」CTA の地（塗り潰し）。
+
+	彩度の高い赤で塗り潰した面は、ライトでもダークでも同じだけ目立ち判読できる。
+	ここをテーマで振ると「保存＝この赤」という手掛かりが崩れるうえ、
+	既存の見た目（#FF3040）が変わってしまう。上に載る字は `onFilled`（＝白）。
+	*/
+	submitFilled: "#FF3040",
 	/**
 	 * メディアビューア（全画面 Feed / カルーセル）の地。
 	 * 「メディアを引き立てる黒背景」（DishMediaFeed.tsx）が仕様であり、
@@ -109,6 +117,17 @@ export const FixedColors = {
 	brandOnMap: "#F05537",
 	/** 地図上のブランド淡地（フローティングボタンのグラデ）。地図が常にライトなので固定 */
 	brandTintOnMap: "#FDEBE7",
+	/*
+	#1513 通知の «種別» を表すバッジの地色（いいね = 赤 / 保存 = 紫 / 投票 = 緑）。
+
+	これは面の色ではなく **識別子** である。ライトとダークで色を振ると
+	「赤 = いいね」という手掛かりが崩れ、同じ通知が別物に見える。
+	上の `badgeBackground` と同じ理由でテーマ非追従にしている。
+	この上に載る字は `onFilled`（＝白）。
+	*/
+	notificationLike: "#FF3040",
+	notificationSave: "#5856D6",
+	notificationVote: "#34C759",
 } as const;
 
 export interface Palette {
@@ -183,6 +202,8 @@ export interface Palette {
 	brandTintSoft: string;
 
 	// ───────── セマンティック ─────────
+	/** 成功・確定を示すアイコン（地点確定の ✓ #1502 / 通報の受付完了 #1514） */
+	success: string;
 	/** 注意・必須バッジの文字 */
 	danger: string;
 	/** 選択された除外条件チップの地など、より強い警告色 */
@@ -197,6 +218,12 @@ export interface Palette {
 	dialogMessage: string;
 	/** 濃い警告文字（`#B91C1C` 系統。ライトでは danger より濃いため分けてある） */
 	dangerEmphasis: string;
+	/** 注意喚起バナーの地（OS 通知が拒否されている等） */
+	warningTint: string;
+	/** 注意喚起バナーの本文 */
+	warningText: string;
+	/** 注意喚起バナーの操作リンク */
+	warningAction: string;
 
 	// ───────── 主要 CTA（検索ボタン） ─────────
 	/** CTA の地（充足時） */
@@ -251,6 +278,7 @@ const light: Palette = {
 	brandTint: "#FDEBE7", // search advancedToggle / DistanceSlider badge
 	brandTintSoft: "#FFF7F5", // DistanceSlider recommendedRow
 
+	success: "#16A34A", // 地点確定の ✓（#1502）/ 通報受付の CircleCheck（#1514）。白地の上で AA 可
 	danger: "#DC2626", // search requiredText
 	dangerStrong: "#EF4444", // search selectedRestrictionChip
 	dangerTint: "#FEE2E2", // search requiredBadge
@@ -258,6 +286,9 @@ const light: Palette = {
 	dialogTitle: "#1C1B1F", // #1577 DialogProvider が直書きしていた値の写し（M3 onSurface）
 	dialogMessage: "#49454F", // 同上（M3 onSurfaceVariant）
 	dangerEmphasis: "#B91C1C", // #1469 MyDishesCalendarView.tsx footerErrorText
+	warningTint: "#FEF3C7", // #1510 OS 通知拒否バナーの地
+	warningText: "#92400E", // 同バナーの本文（#FEF3C7 の上で AA 可）
+	warningAction: "#B45309", // 同バナーのリンク・アイコン
 
 	ctaBackground: "#000000", // search searchFab gradient(充足)
 	ctaBackgroundDisabled: "#999999", // search searchFab gradient(未充足)
@@ -306,6 +337,7 @@ const dark: Palette = {
 	brandTint: "#3A241F", // brand を暗面へ混色
 	brandTintSoft: "#2A1D1A", // brandTint よりさらに淡い混色
 
+	success: "#81C995", // 暗面では明度を上げないと視認性を保てない（danger と同じ方針で手動調整）。#1502 / #1514 共用
 	danger: "#FF8A80", // 暗面では明度を上げないと文字用途で AA を割る
 	dangerStrong: "#FF6B6B",
 	dangerTint: "#4A2320", // danger を暗面へ混色
@@ -313,6 +345,9 @@ const dark: Palette = {
 	dialogTitle: "#E5E2E1", // schemes.dark.onSurface
 	dialogMessage: "#C4C7C7", // schemes.dark.onSurfaceVariant
 	dangerEmphasis: "#FF8A80", // danger と同値へ収束（暗面では明度を上げないと文字用途で AA を割る）
+	warningTint: "#3A2E12", // 暗面へ混色した琥珀。明るい箱が浮かないようにする
+	warningText: "#FFD9A0", // #3A2E12 の上で AA を満たす明度まで上げる
+	warningAction: "#FFB86B",
 
 	ctaBackground: "#E5E2E1", // 暗面では CTA を反転させる（黒地の CTA は背景に沈む）
 	ctaBackgroundDisabled: "#4A4A4A",

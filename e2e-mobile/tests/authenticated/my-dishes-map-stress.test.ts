@@ -54,7 +54,9 @@ describeAuthenticated("マップの絞り込みで落ちない @authenticated", 
 
 		ここで見たいのは «アプリが生きているか» なので、しきい値 1% で待つ。
 		*/
-		await element(myDishes.viewButton("map")).tap();
+		// ⚠️ **押す前に «ボタンが出ている» ことを待つ。** タブへ来た直後はまだ描かれておらず、
+		// 素の `tap()` は「要素が無い」で即落ちる（run 32838161590 で実測）
+		await tapWhenVisible(myDishes.viewButton("map"), DEFAULT_TIMEOUT);
 		const map = by.id("my-dishes-map");
 		await waitFor(element(map)).toBeVisible(1).withTimeout(DEFAULT_TIMEOUT);
 		await device.takeScreenshot("map-stress-01-initial");
@@ -105,7 +107,7 @@ describeAuthenticated("マップの絞り込みで落ちない @authenticated", 
 
 		// 4) ビューを行き来する（Map は keep-alive なので破棄されずに残る）
 		for (const view of ["list", "map", "calendar", "map"] as const) {
-			await element(myDishes.viewButton(view)).tap();
+			await tapWhenVisible(myDishes.viewButton(view), DEFAULT_TIMEOUT);
 			await waitFor(element(myDishes.view(view))).toBeVisible(1).withTimeout(DEFAULT_TIMEOUT);
 		}
 

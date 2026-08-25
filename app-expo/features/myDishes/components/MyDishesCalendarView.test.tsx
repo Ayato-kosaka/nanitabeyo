@@ -66,6 +66,7 @@ import React, { act } from "react";
 import TestRenderer from "react-test-renderer";
 import type { MyDishItem } from "@shared/api/v1/res";
 import { MyDishesCalendarView } from "./MyDishesCalendarView";
+import { DELETED_MEDIA_TOMBSTONE_TEST_ID } from "@/components/DeletedMediaTombstone";
 import type { CalendarMonth } from "../calendar";
 import { useMyDishesFilterStore } from "../stores/useMyDishesFilterStore";
 
@@ -80,7 +81,12 @@ const NOW = new Date(2026, 7, 20, 10, 0, 0);
 const makeItem = (
 	key: string,
 	occurredAt: string,
-	overrides: { thumbnailImageUrl?: string; categoryImageUrl?: string | null; restaurantImageUrl?: string | null } = {},
+	overrides: {
+		thumbnailImageUrl?: string;
+		categoryImageUrl?: string | null;
+		restaurantImageUrl?: string | null;
+		isOwnMediaDeleted?: boolean;
+	} = {},
 ): MyDishItem =>
 	({
 		key,
@@ -92,6 +98,7 @@ const makeItem = (
 		dish: { id: "dish-1", name: "ラーメン", categoryImageUrl: overrides.categoryImageUrl ?? null },
 		dishMedia: overrides.thumbnailImageUrl ? { id: "media-1", thumbnailImageUrl: overrides.thumbnailImageUrl } : null,
 		myReview: null,
+		isOwnMediaDeleted: overrides.isOwnMediaDeleted ?? false,
 	}) as unknown as MyDishItem;
 
 const mockLoadMore = jest.fn();
@@ -376,6 +383,41 @@ describe("#1446 B-1 / M-1 指を離したままの自動連投を止める", () 
 戻ったときに解除の口が無いと filters 画面を開くまで抜け出せない。
 PR4 で Map に入れた「エリアで絞り込み中 + 解除」の帯と同じ形を Calendar にも置く。
 */
+/*
+#1513 «自分の投稿が削除済み» の日（代表の行が `isOwnMediaDeleted`）。
+
+日付の数字と件数バッジは残す（その日に記録があること自体は変わらない）。
+写真の枠だけを墓標へ差し替え、`categoryImageUrl` / `restaurant.image_url` へは落とさない。
+*/
+describe("#1513 削除済みの日は墓標になる（日付は残す）", () => {
+	it("categoryImageUrl があっても画像を出さず、墓標を出す", async () => {
+		setQueryResult({
+			items: [
+				makeItem("a", localNoonIso(2026, 8, 10), {
+					categoryImageUrl: "https://example.com/category.jpg",
+					restaurantImageUrl: "https://example.com/restaurant.jpg",
+					isOwnMediaDeleted: true,
+				}),
+			],
+		});
+		const tree = await render();
+
+		expect(findAllHosts(tree, "my-dishes-calendar-day-image").filter((node) => node.props.source)).toHaveLength(0);
+		expect(findAllHosts(tree, DELETED_MEDIA_TOMBSTONE_TEST_ID)).toHaveLength(1);
+		// 記録がある日として押せるまま（行を消さない）
+		expect(findAllHosts(tree, "my-dishes-calendar-day").length).toBeGreaterThan(0);
+	});
+
+	it("削除されていない日には墓標を出さない", async () => {
+		setQueryResult({
+			items: [makeItem("a", localNoonIso(2026, 8, 10), { thumbnailImageUrl: "https://example.com/media.jpg" })],
+		});
+		const tree = await render();
+
+		expect(findAllHosts(tree, DELETED_MEDIA_TOMBSTONE_TEST_ID)).toHaveLength(0);
+	});
+});
+
 describe("#1375 追補2 決定3 日セルのサムネイル", () => {
 	it("dishMedia === null なら dish.categoryImageUrl の実画像を使う（灰色プレースホルダーにしない）", async () => {
 		setQueryResult({

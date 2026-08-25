@@ -48,6 +48,14 @@ type Props = RNMarkerProps & {
 	size?: number;
 	color?: string;
 	isActive?: boolean;
+	/**
+	 * #1513 吹き出しの中身を画像の代わりに差し替える。
+	 *
+	 * 渡されたときは `uri` を無視してこれを描く。my-dishes の Map が «自分の投稿が削除済み» の
+	 * ピンへ墓標を出すために使う（`uri` を空にするだけでは白い丸になり、削除されたことが伝わらない）。
+	 * 既定は undefined で、渡さなければ従来どおり画像を描く。
+	 */
+	bubbleContent?: React.ReactNode;
 };
 
 export function AvatarBubbleMarker({
@@ -56,6 +64,7 @@ export function AvatarBubbleMarker({
 	size = 48,
 	color = "#FFFFFF",
 	isActive = false,
+	bubbleContent,
 	...props
 }: Props) {
 	// Androidは領域制限のためsize=37が最も安定
@@ -104,8 +113,16 @@ export function AvatarBubbleMarker({
 			anchor={{ x: 0.5, y: Platform.OS === "android" ? 0.5 : 0.85 }}>
 			<View
 				style={[styles.container, { width: bubbleSize, height: bubbleSize + 4 }]}
-				// 画像が無いマーカーはここで «絵が出揃った» と判断する（読み込み完了が来ないため）
-				onLayout={uri ? undefined : onContentReady}>
+				/*
+				画像が無いマーカーはここで «絵が出揃った» と判断する（読み込み完了が来ないため）。
+
+				#1513 `bubbleContent`（墓標）を渡したときは `uri` があっても <Image> を描かないので、
+				`onLoadEnd` は永久に来ない。ここを `uri ?` だけで見ると `tracksViewChanges` が
+				true のまま張り付き、#1375 で潰したはずの «毎フレーム焼き直し» が復活する。
+				今の呼び出し元は墓標のとき uri を undefined にしているので現に踏んではいないが、
+				その約束を component の外へ預けない。
+				*/
+				onLayout={uri && !bubbleContent ? undefined : onContentReady}>
 				{/* 吹き出し本体 */}
 				<View
 					style={[
@@ -116,21 +133,28 @@ export function AvatarBubbleMarker({
 							borderColor: color,
 						},
 					]}>
-					<Image
-						style={[
-							styles.image,
-							{
-								width: imageSize,
-								height: imageSize,
-							},
-						]}
-						source={source}
-						contentFit="cover"
-						transition={100}
-						cachePolicy="memory-disk" // #785 DishMediaContent と同一ポリシーにすることで iOS SDWebImage のパイプライン競合を防止
-						// 成否どちらでも呼ばれる。ここで初めて «この絵で確定» になる
-						onLoadEnd={onContentReady}
-					/>
+					{bubbleContent ? (
+						// #1513 画像の代わりの中身（墓標など）。丸マスクの中いっぱいに置く
+						<View style={[styles.image, { width: imageSize, height: imageSize, overflow: "hidden" }]}>
+							{bubbleContent}
+						</View>
+					) : (
+						<Image
+							style={[
+								styles.image,
+								{
+									width: imageSize,
+									height: imageSize,
+								},
+							]}
+							source={source}
+							contentFit="cover"
+							transition={100}
+							cachePolicy="memory-disk" // #785 DishMediaContent と同一ポリシーにすることで iOS SDWebImage のパイプライン競合を防止
+							// #1375 成否どちらでも呼ばれる。ここで初めて «この絵で確定» になる
+							onLoadEnd={onContentReady}
+						/>
+					)}
 				</View>
 
 				{/* ⚠️ Androidは尻尾を描画しない理由

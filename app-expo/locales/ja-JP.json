@@ -175,6 +175,9 @@
 		},
 		"loading": "検索中...",
 		"noLocationsFound": "場所が見つかりません",
+		"locationConfirmation": {
+			"error": "地点の確認に失敗しました"
+		},
 		"advancedToggle": {
 			"open": "さらにこだわる",
 			"close": "詳細検索を閉じる"
@@ -422,7 +425,8 @@
 			"openMap": "{{name}}の地図を開く",
 			"reviewLike": "{{username}}の口コミにいいね",
 			"recordEaten": "{{name}}の食べたを記録",
-			"recordEatenAgain": "{{name}}で食べたをもう一度記録する（記録済み）"
+			"recordEatenAgain": "{{name}}で食べたをもう一度記録する（記録済み）",
+			"ownPostMenu": "{{name}}の投稿メニューを開く"
 		},
 		"processing": "メディアを処理中...",
 		"errors": {
@@ -440,6 +444,78 @@
 		"embed": {
 			"play": "{{provider}}で再生",
 			"exitInteractive": "埋め込みの操作を終了"
+		},
+		"ownPost": {
+			"menuTitle": "自分の投稿",
+			"edit": "レビューを編集",
+			"delete": "投稿を削除",
+			"cancel": "キャンセル",
+			"mediaLocked": "写真・動画は変更できません。編集できるのはコメント・評価・価格です。",
+			"deleteConfirmTitle": "投稿を削除しますか？",
+			"deleteConfirmMessage": "この投稿（写真とあなたのレビュー）を削除します。元に戻せません。",
+			"deleteConfirmButton": "削除する",
+			"deleted": "投稿を削除しました",
+			"deleteFailed": "削除できませんでした",
+			"editTitle": "レビューを編集",
+			"editComment": "コメント",
+			"editRating": "評価",
+			"editPrice": "価格",
+			"save": "保存する",
+			"saved": "レビューを更新しました",
+			"saveFailed": "更新できませんでした",
+			"conflict": "他の端末で先に更新されました。開き直してから編集してください",
+			"forbidden": "自分の投稿ではないため操作できません"
+		}
+	},
+	"Report": {
+		"action": "報告",
+		"title": "この投稿を報告する",
+		"reviewTitle": "このレビューを報告する",
+		"description": "報告の理由を選んでください。運営が内容を確認します。相手に通知されることはありません。",
+		"reasons": {
+			"spam": "スパム・宣伝",
+			"sexual": "性的なコンテンツ",
+			"violence": "暴力的・不快なコンテンツ",
+			"harassment": "嫌がらせ・誹謗中傷",
+			"illegal": "違法行為",
+			"misinformation": "誤った情報",
+			"rights": "権利侵害（著作権など）",
+			"privacy": "個人情報が写っている",
+			"irrelevant": "料理と関係がない",
+			"other": "その他"
+		},
+		"detailsLabel": "詳しい内容（任意）",
+		"detailsPlaceholder": "補足があれば入力してください（1000文字まで）",
+		"submit": "報告する",
+		"submitting": "送信中...",
+		"accepted": {
+			"title": "ご報告いただきありがとうございます",
+			"description": "内容を審査します。結果を個別にお知らせすることはありません。",
+			"close": "閉じる",
+			"history": "あなたの報告履歴"
+		},
+		"errors": {
+			"submitFailed": "報告を送信できませんでした。もう一度お試しください。"
+		},
+		"accessibility": {
+			"open": "{{name}}の投稿を報告",
+			"openReview": "{{name}}さんのレビューを報告",
+			"reason": "理由: {{reason}}",
+			"reasonSelected": "理由: {{reason}}（選択中）",
+			"submit": "{{name}}の投稿の報告を送信",
+			"submitReview": "{{name}}さんのレビューの報告を送信"
+		},
+		"history": {
+			"navigationLabel": "あなたの報告履歴",
+			"pageTitle": "あなたの報告履歴",
+			"empty": "まだ報告はありません",
+			"emptyDescription": "投稿やレビューを報告すると、ここに履歴が残ります。",
+			"note": "審査の状況や結果はお知らせしていません。",
+			"error": "報告履歴を取得できませんでした",
+			"target": {
+				"dish_media": "投稿",
+				"dish_reviews": "レビュー"
+			}
 		}
 	},
 	"ImageCardGrid": {
@@ -789,6 +865,25 @@
 		"logout": "ログアウト",
 		"logoutConfirmTitle": "ログアウトしますか？",
 		"logoutConfirmMessage": "再度ログインするまで、投稿やレビューの管理ができなくなります。",
+		"notifications": {
+			"sectionTitle": "通知",
+			"osDisabledTitle": "端末の通知がオフになっています",
+			"osDisabledDescription": "ここでの設定は保存されますが、この端末には通知が届きません。",
+			"openOsSettings": "端末の設定を開く",
+			"updateFailed": "設定を保存できませんでした",
+			"likes": {
+				"title": "いいね",
+				"description": "自分の投稿やレビューにいいねがついたとき"
+			},
+			"saves": {
+				"title": "保存",
+				"description": "自分の投稿が保存されたとき"
+			},
+			"group_votes": {
+				"title": "グループ投票",
+				"description": "参加しているグループ投票に動きがあったとき"
+			}
+		},
 		"blockedTopics": {
 			"navigationLabel": "ブロック済みの料理カテゴリ",
 			"pageTitle": "ブロック済みの料理カテゴリ",
@@ -1037,6 +1132,10 @@
 				}
 			},
 			"replay": "チュートリアルをもう一度見る"
+		},
+		"deleted": {
+			"label": "削除されました",
+			"a11yLabel": "この投稿の写真は削除されました"
 		}
 	},
 	"SnsImport": {

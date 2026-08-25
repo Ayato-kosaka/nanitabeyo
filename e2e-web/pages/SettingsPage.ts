@@ -44,6 +44,15 @@ export class SettingsPage {
 	/** ログアウト行（ログイン済みユーザーのみ表示） */
 	readonly logoutItem: Locator;
 	/**
+	 * #1510 通知カテゴリ別トグルのカード（ログイン済みユーザーのみ表示）。
+	 * ゲストにはプッシュの受け手が存在しないためカードごと出ない。
+	 */
+	readonly notificationsCard: Locator;
+	/** #1510 読み込み失敗時の再試行行（トグルの代わりに出る） */
+	readonly notificationsErrorRow: Locator;
+	/** #1510 OS 通知拒否中の案内行。Web は push 自体が無いため常に非表示 */
+	readonly notificationsOsDeniedNotice: Locator;
+	/**
 	 * ログアウト確認ダイアログ（DialogProvider の confirm）。
 	 *
 	 * DialogProvider は確認ボタンに testID を付けていないため、react-native-paper が
@@ -84,6 +93,9 @@ export class SettingsPage {
 		this.deviceSettingsItem = page.getByTestId("settings-device-settings");
 		this.versionText = page.getByTestId("settings-version-section");
 		this.logoutItem = page.getByTestId("settings-logout");
+		this.notificationsCard = page.getByTestId("settings-notifications-card");
+		this.notificationsErrorRow = page.getByTestId("settings-notifications-error");
+		this.notificationsOsDeniedNotice = page.getByTestId("settings-notifications-os-denied");
 		this.logoutConfirmDialog = page.getByTestId("modal-surface");
 		this.logoutConfirmTitle = page.getByText("ログアウトしますか？", { exact: true });
 		this.logoutConfirmButton = this.logoutConfirmDialog.getByRole("button", { name: "ログアウト" });
@@ -118,6 +130,29 @@ export class SettingsPage {
 	 * 設定項目のある画面（＝マイページ）へ直接遷移する（locale プレフィックス必須）。
 	 * #1402 以前は `/[locale]/profile/settings` だった。
 	 */
+	 * #1510 通知カテゴリの行（トグル）を返す。**押すのはこの行。**
+	 *
+	 * `SettingsToggleItem` は行全体をタップ対象にし、Switch 側は `pointerEvents="none"` で
+	 * タッチを親へ透過させる（ラベルを押しても切り替わるようにするため）。
+	 */
+	notificationToggle(category: "likes" | "saves" | "group_votes"): Locator {
+		return this.page.getByTestId(`settings-notifications-${category}`);
+	}
+
+	/**
+	 * #1510 カテゴリのトグルが今オンかを読む。
+	 *
+	 * ⚠️ **行の `aria-checked` は読めない。** 行には `accessibilityState={{ checked }}` を
+	 * 渡しているが、react-native-web はこれを `aria-checked` として出力しない
+	 * （実測: 行は `role="switch"` と `aria-label` だけを持ち、`aria-checked` は付かない）。
+	 * 実際の状態は行の中に描かれる `<input type="checkbox" role="switch">` の `checked` にある。
+	 * ここを行側から読もうとして 1 度書き直しているので、戻さないこと。
+	 */
+	async isNotificationToggleOn(category: "likes" | "saves" | "group_votes"): Promise<boolean> {
+		return this.notificationToggle(category).locator('input[type="checkbox"]').isChecked();
+	}
+
+	/** 指定 URL へ直接遷移する（locale プレフィックス必須） */
 	async goto(locale = "ja-JP"): Promise<void> {
 		await this.page.goto(`/${locale}/profile`);
 	}

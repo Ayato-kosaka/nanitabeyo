@@ -175,6 +175,9 @@
 		},
 		"loading": "搜索中...",
 		"noLocationsFound": "未找到位置",
+		"locationConfirmation": {
+			"error": "位置确认失败"
+		},
 		"advancedToggle": {
 			"open": "更多选项",
 			"close": "关闭高级搜索"
@@ -422,7 +425,8 @@
 			"openMap": "打开{{name}}的地图",
 			"reviewLike": "为{{username}}的点评点赞",
 			"recordEaten": "将{{name}}记录为吃过",
-			"recordEatenAgain": "再次记录在{{name}}吃过（已记录）"
+			"recordEatenAgain": "再次记录在{{name}}吃过（已记录）",
+			"ownPostMenu": "打开{{name}}的帖子菜单"
 		},
 		"processing": "正在处理媒体...",
 		"errors": {
@@ -440,6 +444,78 @@
 		"embed": {
 			"play": "在{{provider}}上播放",
 			"exitInteractive": "退出嵌入内容操作"
+		},
+		"ownPost": {
+			"menuTitle": "我的帖子",
+			"edit": "编辑评价",
+			"delete": "删除帖子",
+			"cancel": "取消",
+			"mediaLocked": "照片和视频无法更换。可编辑的是评论、评分和价格。",
+			"deleteConfirmTitle": "要删除这条帖子吗？",
+			"deleteConfirmMessage": "将删除这条帖子（照片和你的评价），且无法恢复。",
+			"deleteConfirmButton": "删除",
+			"deleted": "已删除帖子",
+			"deleteFailed": "删除失败",
+			"editTitle": "编辑评价",
+			"editComment": "评论",
+			"editRating": "评分",
+			"editPrice": "价格",
+			"save": "保存",
+			"saved": "已更新评价",
+			"saveFailed": "更新失败",
+			"conflict": "该评价已在其他设备上更新，请重新打开后再编辑。",
+			"forbidden": "只能编辑或删除自己的帖子"
+		}
+	},
+	"Report": {
+		"action": "举报",
+		"title": "举报这条投稿",
+		"reviewTitle": "举报这条评价",
+		"description": "请选择举报理由。我们会进行核实，不会通知发布者。",
+		"reasons": {
+			"spam": "垃圾信息或广告",
+			"sexual": "色情内容",
+			"violence": "暴力或令人不适的内容",
+			"harassment": "骚扰或人身攻击",
+			"illegal": "违法行为",
+			"misinformation": "虚假信息",
+			"rights": "侵犯著作权等权利",
+			"privacy": "含有个人信息",
+			"irrelevant": "与餐饮无关",
+			"other": "其他"
+		},
+		"detailsLabel": "补充说明（选填）",
+		"detailsPlaceholder": "如有补充请填写（最多 1000 字）",
+		"submit": "提交举报",
+		"submitting": "提交中...",
+		"accepted": {
+			"title": "感谢您的举报",
+			"description": "我们会进行审核。不会单独告知处理结果。",
+			"close": "关闭",
+			"history": "我的举报记录"
+		},
+		"errors": {
+			"submitFailed": "举报提交失败，请重试。"
+		},
+		"accessibility": {
+			"open": "举报来自{{name}}的投稿",
+			"openReview": "举报来自{{name}}的评价",
+			"reason": "理由：{{reason}}",
+			"reasonSelected": "理由：{{reason}}（已选择）",
+			"submit": "提交对{{name}}投稿的举报",
+			"submitReview": "提交对{{name}}评价的举报"
+		},
+		"history": {
+			"navigationLabel": "我的举报记录",
+			"pageTitle": "我的举报记录",
+			"empty": "暂无举报记录",
+			"emptyDescription": "举报帖子或评价后，会显示在这里。",
+			"note": "我们不会告知审核状态或结果。",
+			"error": "无法加载举报记录",
+			"target": {
+				"dish_media": "帖子",
+				"dish_reviews": "评价"
+			}
 		}
 	},
 	"ImageCardGrid": {
@@ -789,6 +865,25 @@
 		"logout": "登出",
 		"logoutConfirmTitle": "要退出登录吗？",
 		"logoutConfirmMessage": "再次登录后才能管理你的帖子和评论。",
+		"notifications": {
+			"sectionTitle": "通知",
+			"osDisabledTitle": "此设备的通知已关闭",
+			"osDisabledDescription": "这里的设置会被保存，但此设备不会收到通知。",
+			"openOsSettings": "打开设备设置",
+			"updateFailed": "无法保存设置",
+			"likes": {
+				"title": "点赞",
+				"description": "有人点赞你的帖子或评论时"
+			},
+			"saves": {
+				"title": "收藏",
+				"description": "有人收藏你的帖子时"
+			},
+			"group_votes": {
+				"title": "群组投票",
+				"description": "你参与的群组投票有新动态时"
+			}
+		},
 		"blockedTopics": {
 			"navigationLabel": "已屏蔽的菜品类别",
 			"pageTitle": "已屏蔽的菜品类别",
@@ -1037,6 +1132,10 @@
 				}
 			},
 			"replay": "重新观看教程"
+		},
+		"deleted": {
+			"label": "已删除",
+			"a11yLabel": "这条帖子的照片已被删除"
 		}
 	},
 	"SnsImport": {

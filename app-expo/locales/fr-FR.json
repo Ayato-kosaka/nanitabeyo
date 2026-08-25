@@ -175,6 +175,9 @@
 		},
 		"loading": "Recherche...",
 		"noLocationsFound": "Aucun lieu trouvé",
+		"locationConfirmation": {
+			"error": "Échec de la confirmation du lieu"
+		},
 		"advancedToggle": {
 			"open": "Plus d'options",
 			"close": "Fermer la recherche avancée"
@@ -422,7 +425,8 @@
 			"openMap": "Ouvrir la carte de {{name}}",
 			"reviewLike": "Aimer l'avis de {{username}}",
 			"recordEaten": "Enregistrer {{name}} comme goûté",
-			"recordEatenAgain": "Enregistrer à nouveau chez {{name}} (déjà enregistré)"
+			"recordEatenAgain": "Enregistrer à nouveau chez {{name}} (déjà enregistré)",
+			"ownPostMenu": "Ouvrir le menu de la publication de {{name}}"
 		},
 		"processing": "Traitement du média...",
 		"errors": {
@@ -440,6 +444,78 @@
 		"embed": {
 			"play": "Lire sur {{provider}}",
 			"exitInteractive": "Quitter les commandes intégrées"
+		},
+		"ownPost": {
+			"menuTitle": "Votre publication",
+			"edit": "Modifier l'avis",
+			"delete": "Supprimer la publication",
+			"cancel": "Annuler",
+			"mediaLocked": "Les photos et vidéos ne peuvent pas être remplacées. Vous pouvez modifier le commentaire, la note et le prix.",
+			"deleteConfirmTitle": "Supprimer cette publication ?",
+			"deleteConfirmMessage": "La publication sera supprimée : la photo et votre avis. Cette action est irréversible.",
+			"deleteConfirmButton": "Supprimer",
+			"deleted": "Publication supprimée",
+			"deleteFailed": "Impossible de supprimer la publication",
+			"editTitle": "Modifier l'avis",
+			"editComment": "Commentaire",
+			"editRating": "Note",
+			"editPrice": "Prix",
+			"save": "Enregistrer",
+			"saved": "Avis mis à jour",
+			"saveFailed": "Impossible de mettre à jour l'avis",
+			"conflict": "Cet avis a été modifié ailleurs. Rouvrez-le avant de le modifier.",
+			"forbidden": "Vous ne pouvez modifier ou supprimer que vos propres publications"
+		}
+	},
+	"Report": {
+		"action": "Signaler",
+		"title": "Signaler cette publication",
+		"reviewTitle": "Signaler cet avis",
+		"description": "Choisissez un motif de signalement. Notre équipe l'examinera et l'auteur n'en sera pas informé.",
+		"reasons": {
+			"spam": "Spam ou publicité",
+			"sexual": "Contenu sexuel",
+			"violence": "Violence ou contenu choquant",
+			"harassment": "Harcèlement ou insultes",
+			"illegal": "Activité illégale",
+			"misinformation": "Informations erronées",
+			"rights": "Atteinte aux droits (droit d'auteur, etc.)",
+			"privacy": "Données personnelles visibles",
+			"irrelevant": "Sans rapport avec la cuisine",
+			"other": "Autre motif"
+		},
+		"detailsLabel": "Précisions (facultatif)",
+		"detailsPlaceholder": "Ajoutez tout élément utile à l'examen (1 000 caractères max.)",
+		"submit": "Envoyer le signalement",
+		"submitting": "Envoi en cours...",
+		"accepted": {
+			"title": "Merci pour votre signalement",
+			"description": "Nous allons l'examiner. Nous ne communiquons pas le résultat individuellement.",
+			"close": "Fermer",
+			"history": "Vos signalements"
+		},
+		"errors": {
+			"submitFailed": "Impossible d'envoyer le signalement. Veuillez réessayer."
+		},
+		"accessibility": {
+			"open": "Signaler la publication de {{name}}",
+			"openReview": "Signaler l'avis de {{name}}",
+			"reason": "Motif : {{reason}}",
+			"reasonSelected": "Motif : {{reason}} (sélectionné)",
+			"submit": "Envoyer le signalement de la publication de {{name}}",
+			"submitReview": "Envoyer le signalement de l'avis de {{name}}"
+		},
+		"history": {
+			"navigationLabel": "Vos signalements",
+			"pageTitle": "Vos signalements",
+			"empty": "Aucun signalement pour le moment",
+			"emptyDescription": "Lorsque vous signalez une publication ou un avis, il apparaît ici.",
+			"note": "Nous ne communiquons ni l'état ni le résultat de l'examen.",
+			"error": "Impossible de charger vos signalements",
+			"target": {
+				"dish_media": "Publication",
+				"dish_reviews": "Avis"
+			}
 		}
 	},
 	"ImageCardGrid": {
@@ -789,6 +865,25 @@
 		"logout": "Se déconnecter",
 		"logoutConfirmTitle": "Se déconnecter ?",
 		"logoutConfirmMessage": "Vous devrez vous reconnecter pour gérer vos publications et avis.",
+		"notifications": {
+			"sectionTitle": "Notifications",
+			"osDisabledTitle": "Les notifications sont désactivées sur cet appareil",
+			"osDisabledDescription": "Vos choix sont enregistrés, mais cet appareil ne recevra pas de notifications.",
+			"openOsSettings": "Ouvrir les réglages de l'appareil",
+			"updateFailed": "Impossible d'enregistrer le réglage",
+			"likes": {
+				"title": "J'aime",
+				"description": "Quand quelqu'un aime votre publication ou votre avis"
+			},
+			"saves": {
+				"title": "Enregistrements",
+				"description": "Quand quelqu'un enregistre votre publication"
+			},
+			"group_votes": {
+				"title": "Votes de groupe",
+				"description": "Quand il se passe quelque chose dans un vote de groupe que vous avez rejoint"
+			}
+		},
 		"blockedTopics": {
 			"navigationLabel": "Catégories de plats bloquées",
 			"pageTitle": "Catégories de plats bloquées",
@@ -1037,6 +1132,10 @@
 				}
 			},
 			"replay": "Revoir le tutoriel"
+		},
+		"deleted": {
+			"label": "Supprimée",
+			"a11yLabel": "La photo de cette publication a été supprimée"
 		}
 	},
 	"SnsImport": {

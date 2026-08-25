@@ -17,6 +17,7 @@ export { CreateDishCategoryVariantDto } from "./dish-category-variants/create-di
 
 export { CreateDishReviewDto } from "./dish-reviews/create-dish-review.dto";
 export { LikeDishReviewParamsDto } from "./dish-reviews/like-dish-review.dto";
+export { UpdateDishReviewDto } from "./dish-reviews/update-dish-review.dto";
 
 export { CreateDishDto } from "./dishes/create-dish.dto";
 export { BulkImportDishesDto } from "./dishes/bulk-import-dishes.dto";
@@ -75,6 +76,10 @@ export { CreateFrontendLogBatchDto, CREATE_FRONTEND_LOG_BATCH_MAX_SIZE } from ".
 
 export { QueryNotificationsDto } from "./notifications/query-notifications.dto";
 export { CreateDeviceTokenDto } from "./notifications/create-device-token.dto";
+export {
+	UpdateNotificationPreferenceDto,
+	UpdateNotificationPreferenceParamsDto,
+} from "./notifications/update-notification-preference.dto";
 
 export { CreateDishCategoryGroupVoteDto } from "./dish-category-group-votes/create-dish-category-group-vote.dto";
 export { SubmitDishCategoryGroupVoteDto } from "./dish-category-group-votes/submit-dish-category-group-vote.dto";
@@ -92,3 +97,6 @@ export {
 	ShareTargetDishMediaParamsDto,
 	ShareTargetGroupVoteParamsDto,
 } from "./share-links/create-share-link.dto";
+
+export { CreateContentReportDto } from "./content-reports/create-content-report.dto";
+export { QueryMeContentReportsDto } from "./content-reports/query-me-content-reports.dto";

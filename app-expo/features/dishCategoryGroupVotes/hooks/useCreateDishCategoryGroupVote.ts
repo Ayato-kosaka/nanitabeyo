@@ -13,6 +13,7 @@ import type { SearchParams, Topic } from "@/types/search";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useLogger } from "@/hooks/useLogger";
 import { toErrorLogMessage } from "@/lib/errorMessage";
+import { generateUUID } from "@/lib/uuid";
 
 type CreateGroupVoteInput = {
 	searchParams: SearchParams;
@@ -36,6 +37,28 @@ export function useCreateDishCategoryGroupVote() {
 	 * （try 側へ散らすと例外経路で解除漏れが起き、一度失敗すると二度と作成できなくなる）。
 	 */
 	const isCreatingRef = useRef(false);
+	/**
+	 * #1507 【修正】再送をまたいで同じ値になる冪等キー。
+	 *
+	 * 上の `isCreatingRef` が守れるのは「同一 JS タスク内の連打」だけで、
+	 * 通信のリトライ・オフライン復帰後の再送・再マウントでは POST が二重に届く。
+	 * API 側は body の `idempotencyKey` が同じなら新しいセッションを作らず既存の
+	 * セッション（同じ shareToken）を返すので、**同じ作成意図のあいだキーを固定する**。
+	 *
+	 * - 生成は「作成意図」につき 1 回。初回呼び出し時に lazy 生成して ref に保持する
+	 * - **成功したら破棄する**。次は別の作成意図なので、新しいキーで新しいセッションを作る
+	 * - **失敗しても保持する**。ユーザーの再タップや自動再送が同じキーで飛び、
+	 *   「サーバーには届いていたがレスポンスが落ちた」ケースで既存セッションが返る
+	 */
+	const idempotencyKeyRef = useRef<string | null>(null);
+	/**
+	 * #1507 キーを紐付けている作成意図の中身。
+	 *
+	 * 失敗後に候補や検索条件を変えて再試行すると「同じキー・別の payload」になり、
+	 * サーバーは**古い内容の既存セッション**を返してしまう。入力が変わったら
+	 * 別の作成意図として扱い、キーを作り直す。
+	 */
+	const idempotencyPayloadRef = useRef<string | null>(null);
 	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
 
@@ -56,7 +79,7 @@ export function useCreateDishCategoryGroupVote() {
 				throw new Error("No visible topics to create a group vote");
 			}
 
-			const requestPayload: CreateDishCategoryGroupVoteDto = {
+			const requestBody = {
 				searchContext: {
 					location: {
 						latitude: searchParams.location.latitude,
@@ -72,6 +95,20 @@ export function useCreateDishCategoryGroupVote() {
 					tagline: topic.reason,
 					imageUrl: topic.imageUrl,
 				})),
+			};
+
+			// #1507 入力が前回と同じなら「同じ作成意図の再試行」としてキーを使い回し、
+			// 違うなら新しい作成意図としてキーを作り直す。
+			// 署名は body そのものから採るので、候補や検索条件の追加漏れが起きない。
+			const payloadSignature = JSON.stringify(requestBody);
+			if (idempotencyPayloadRef.current !== payloadSignature) {
+				idempotencyPayloadRef.current = payloadSignature;
+				idempotencyKeyRef.current = generateUUID();
+			}
+
+			const requestPayload: CreateDishCategoryGroupVoteDto = {
+				...requestBody,
+				idempotencyKey: idempotencyKeyRef.current ?? undefined,
 			};
 
 			// #1205 ここより後に API 呼び出しを書くこと（ガードより手前へ出すと連打で二重に走る）。
@@ -91,6 +128,11 @@ export function useCreateDishCategoryGroupVote() {
 						requestPayload,
 					},
 				);
+
+				// #1507 成功したらキーを捨てる。ここを消すと、次の「別の作成意図」まで
+				// 同じキーで飛んで、サーバーが前回のセッションを返し続ける（新規作成できなくなる）。
+				idempotencyKeyRef.current = null;
+				idempotencyPayloadRef.current = null;
 
 				logFrontendEvent({
 					event_name: "dish_category_group_vote_create_succeeded",

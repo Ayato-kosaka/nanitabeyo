@@ -16,10 +16,11 @@ import { getCacheKeyForImage } from "@/lib/image";
 import i18n from "@/lib/i18n";
 import type { MyDishItem } from "@shared/api/v1/res";
 import { MyDishEatenButton, resolveMyDishTitle } from "./myDishCard";
+import { DeletedMediaTombstone } from "@/components/DeletedMediaTombstone";
 import { MY_DISHES_EVENTS } from "../analytics";
 import { buildMarkAsEatenRoute } from "../markAsEaten";
 import { beginMarkAsEaten } from "../markAsEatenFunnel";
-import { resolveMyDishThumbnailUrl } from "../thumbnail";
+import { resolveMyDishThumbnail } from "../thumbnail";
 import { useMyDishesQuery } from "../hooks/useMyDishesQuery";
 import { MY_DISH_STATUS_COLORS } from "@/features/myDishes/statusColors";
 
@@ -32,6 +33,8 @@ import { MY_DISH_STATUS_COLORS } from "@/features/myDishes/statusColors";
  *   `resolveMyDishThumbnailUrl`（`categoryImageUrl` → `restaurant.image_url` の順）で実画像へ
  *   フォールバックしつつ、「写真なし」であること自体は `MyDishes.list.noPhoto` バッジで示す
  *   （#1398 PR5 / #1375 追補2 決定3）。3 つとも無いときだけ従来どおりの無地プレースホルダー。
+ * - #1513 `isOwnMediaDeleted`（自分の投稿が削除済み）の行は **フォールバックせず墓標**
+ *   （`DeletedMediaTombstone`）を出す。行そのものは消さない。
  */
 
 const COLUMNS = 3;
@@ -60,7 +63,11 @@ const MyDishCard = memo(function MyDishCard({
 
 	// #1398 PR5 写真なし（dishMedia === null）でも categoryImageUrl → restaurant.image_url へ
 	// フォールバックする。3 つとも無いときだけ null（= 無地プレースホルダー）
-	const thumbnailUrl = resolveMyDishThumbnailUrl(item);
+	//
+	// #1513 ただし «自分の投稿が削除済み»（isOwnMediaDeleted）はフォールバックしない。
+	// 跡地に別の絵を入れず墓標を出す（判断は resolveMyDishThumbnail に集約）
+	const thumbnail = resolveMyDishThumbnail(item);
+	const thumbnailUrl = thumbnail.kind === "photo" ? thumbnail.url : null;
 	const isNoPhoto = item.dishMedia === null;
 	const source = useMemo(
 		() => (thumbnailUrl ? { uri: thumbnailUrl, cacheKey: getCacheKeyForImage(thumbnailUrl) } : null),
@@ -85,7 +92,10 @@ const MyDishCard = memo(function MyDishCard({
 			android_ripple={{ color: "rgba(0,0,0,0.06)" }}
 			accessibilityRole="button"
 			accessibilityLabel={dishName ?? item.restaurant.name ?? i18n.t("ImageCardGrid.openItemDetails")}>
-			{source ? (
+			{thumbnail.kind === "deleted" ? (
+				// #1513 自分の投稿が削除済み。行は残したまま «削除されました» を出す（黙って消さない）
+				<DeletedMediaTombstone style={StyleSheet.absoluteFill} />
+			) : source ? (
 				<Image
 					source={source}
 					cachePolicy="memory-disk"

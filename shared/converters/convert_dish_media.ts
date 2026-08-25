@@ -26,6 +26,8 @@ export function convertSupabaseToPrisma_DishMedia(supabase: SupabaseDishMedia): 
     created_at: new Date(supabase.created_at),
     updated_at: new Date(supabase.updated_at),
     lock_no: supabase.lock_no,
+    // #1513 論理削除で追加した列
+    deleted_at: supabase.deleted_at ? new Date(supabase.deleted_at) : null,
   };
 }
 
@@ -49,5 +51,7 @@ export function convertPrismaToSupabase_DishMedia(prisma: PrismaDishMedia): Supa
     created_at: prisma.created_at?.toISOString() ?? null,
     updated_at: prisma.updated_at?.toISOString() ?? null,
     lock_no: prisma.lock_no,
+    // #1513 論理削除で追加した列
+    deleted_at: prisma.deleted_at?.toISOString() ?? null,
   };
 }

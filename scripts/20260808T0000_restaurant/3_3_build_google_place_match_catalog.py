@@ -109,7 +109,25 @@ def main() -> None:
       duplicate_checked AS (
         SELECT
           *,
-          COUNTIF(google_place_id IS NOT NULL) OVER (PARTITION BY google_place_id) AS place_id_count
+          COUNTIF(google_place_id IS NOT NULL) OVER (PARTITION BY google_place_id) AS place_id_count,
+          -- 同じ place_id に複数 seed が当たったとき、既存PG由来（現行DBに
+          -- 実在する店）と手動確定は「その place_id である」ことが確定して
+          -- いるので勝たせ、open data 側だけを隔離する。両方落とすと本番の
+          -- 実在店舗が catalog から消え、8_1 の
+          -- existing_pg_restaurants_preserved が落ちる（実測673件）。
+          -- 優先度が同じ seed 同士が競合した場合は従来どおり両方隔離する。
+          ROW_NUMBER() OVER (
+            PARTITION BY google_place_id
+            ORDER BY
+              CASE base_status
+                WHEN 'existing_pg_matched' THEN 0
+                WHEN 'manual_matched' THEN 1
+                ELSE 2
+              END,
+              seed_id
+          ) AS place_id_rank,
+          COUNTIF(base_status IN ('existing_pg_matched', 'manual_matched'))
+            OVER (PARTITION BY google_place_id) AS authoritative_count
         FROM resolved
       )
       SELECT
@@ -117,7 +135,11 @@ def main() -> None:
         seed_id,
         google_place_id,
         CASE
-          WHEN google_place_id IS NOT NULL AND place_id_count > 1
+          WHEN google_place_id IS NOT NULL
+               AND place_id_count > 1
+               -- 権威ある seed が「ちょうど1件」あるとき、その1件だけを残す。
+               -- 2件以上あるなら既存DB側が矛盾しているので人手判断へ回す。
+               AND NOT (authoritative_count = 1 AND place_id_rank = 1)
             THEN 'conflict_duplicate_place_id'
           ELSE base_status
         END AS match_status,

@@ -34,6 +34,7 @@ import { useMyDishesFilterStore } from "../stores/useMyDishesFilterStore";
 import { useMyDishesMapPinsQuery } from "../hooks/useMyDishesMapPinsQuery";
 import { useMyDishesFeedScopeStore } from "../stores/useMyDishesFeedScopeStore";
 import { MyDishesMapSheet } from "./MyDishesMapSheet";
+import { DeletedMediaTombstone } from "@/components/DeletedMediaTombstone";
 import { MyDishClusterMarker } from "./MyDishClusterMarker";
 
 /**
@@ -308,7 +309,15 @@ export function MyDishesMapView({ enabled = true }: { enabled?: boolean } = {}) 
 						// しない（#1375 追補2 決定3）。`MyDishPin` はピン＝店舗単位で `dish` を持たないため、
 						// list / calendar と違い `categoryImageUrl` の段は無く `restaurant.image_url` へ直接
 						// 落ちる（設計書 (2/2) §5-2 で確定。GET .../map-pins のレスポンスは変えない）
-						uri={cluster.pins[0].representativeThumbnailUrl ?? cluster.pins[0].restaurant.image_url ?? undefined}
+						//
+						// #1513 ただし «自分の投稿が削除済み»（isOwnMediaDeleted）のピンは
+						// `restaurant.image_url` へも落とさない。ピンは残したまま中身を墓標へ差し替える
+						uri={
+							cluster.pins[0].isOwnMediaDeleted
+								? undefined
+								: (cluster.pins[0].representativeThumbnailUrl ?? cluster.pins[0].restaurant.image_url ?? undefined)
+						}
+						bubbleContent={cluster.pins[0].isOwnMediaDeleted ? <DeletedMediaTombstone variant="pin" /> : undefined}
 					/>
 				) : (
 					<MyDishClusterMarker key={cluster.id} cluster={cluster} onPress={() => handleClusterPress(cluster)} />

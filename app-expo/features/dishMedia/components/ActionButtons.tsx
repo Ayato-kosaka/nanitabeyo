@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, LayoutChangeEvent } from "react-native";
 import { Image } from "expo-image";
-import { Heart, Bookmark, Share, MapPinned, UtensilsCrossed } from "lucide-react-native";
+import { Heart, Bookmark, Share, MapPinned, UtensilsCrossed, Flag } from "lucide-react-native";
 import { router } from "expo-router";
 import i18n from "@/lib/i18n";
 import { formatLikeCount } from "../utils/text";
@@ -28,6 +28,8 @@ import { profileSavedPostsEntriesKey } from "@/features/profile/entriesKeys";
 import { bumpMyDishesRevision } from "@/features/myDishes/stores/useMyDishesRevisionStore";
 import { MY_DISH_STATUS_COLORS } from "@/features/myDishes/statusColors";
 import { useDishMediaActions } from "../hooks/useDishMediaActions";
+import { ReportContentSheet } from "./ReportContentSheet";
+import { OwnPostActions } from "./OwnPostActions";
 import { GestureDetector } from "react-native-gesture-handler";
 import type { GestureType } from "react-native-gesture-handler";
 import { toErrorLogMessage } from "@/lib/errorMessage";
@@ -352,6 +354,22 @@ function ActionButtonsContent({
 		});
 	}, [dishMediaId, restaurant, shareRestaurant]);
 
+	// #1514 (SAF-01) 通報シートの開閉。
+	// 「通報された投稿」の見た目は変えないので、ここには開閉以外の state を持たせない
+	const [isReportSheetOpen, setIsReportSheetOpen] = useState(false);
+
+	const handleReportPress = useCallback(() => {
+		lightImpact();
+		logFrontendEvent({
+			event_name: "content_report_opened",
+			error_level: "log",
+			payload: { targetType: "dish_media", targetId: String(dishMediaId) },
+		});
+		setIsReportSheetOpen(true);
+	}, [dishMediaId, lightImpact, logFrontendEvent]);
+
+	const handleReportSheetClose = useCallback(() => setIsReportSheetOpen(false), []);
+
 	const handleLayout = useCallback(
 		(event: LayoutChangeEvent) => onLayout?.(event.nativeEvent.layout.width),
 		[onLayout],
@@ -454,6 +472,14 @@ function ActionButtonsContent({
 					</View>
 				)}
 
+				{/* #1513 自分の投稿だけに編集・削除の導線を出す。他人の投稿では
+				    ボタン自体が描画されないので、UI からは操作にたどり着けない
+				    （サーバー側でも user_id 一致を必須にして二重に担保している）。
+
+				    #1375 の並び «自分の記録に関わる操作 → 店へ行く操作 → 人に渡す操作» に従い、
+				    自分の投稿の編集・削除は «店へ行く»（地図を開く）より上に置く */}
+				{entry.dish_media.isMine && <OwnPostActions entry={entry} />}
+
 				<View style={styles.actionContainer}>
 					<TouchableOpacity
 						style={styles.actionButton}
@@ -479,6 +505,32 @@ function ActionButtonsContent({
 					</TouchableOpacity>
 					<Text style={styles.actionText}>{i18n.t("DishMediaContent.actions.share")}</Text>
 				</View>
+
+				{/* #1514 (SAF-01) 投稿の通報導線。
+				    右レールに常設するのは、通報の敷居を上げないため（メニューの奥に隠すと、
+				    «見つけられないから通報されない» を «問題が無い» と読み違える）。
+				    レビューの通報は DishReviewsSection のレビュー行側にある。
+				    ユーザー・店舗は対象外（オーナー確定仕様） */}
+				<View style={styles.actionContainer}>
+					<TouchableOpacity
+						testID="dish-action-report"
+						style={styles.actionButton}
+						onPress={handleReportPress}
+						hitSlop={buttonHitSlop}
+						accessibilityRole="button"
+						accessibilityLabel={i18n.t("Report.accessibility.open", { name: restaurant.name })}>
+						<Flag size={26} color={FixedColors.onMedia} />
+					</TouchableOpacity>
+					<Text style={styles.actionText}>{i18n.t("Report.action")}</Text>
+				</View>
+
+				<ReportContentSheet
+					visible={isReportSheetOpen}
+					targetType="dish_media"
+					targetId={String(dishMediaId)}
+					targetLabel={restaurant.name}
+					onClose={handleReportSheetClose}
+				/>
 			</View>
 		</GestureDetector>
 	);

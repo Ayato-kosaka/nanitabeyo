@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
 import { LinearGradient } from "expo-linear-gradient";
-import { Heart } from "lucide-react-native";
+import { Flag, Heart } from "lucide-react-native";
 import Stars from "@/components/Stars";
 import { formatLikeCount, sliceByUnitLimit } from "../utils/text";
 import { dateStringToTimestamp } from "@/lib/frontend-utils";
@@ -20,6 +20,8 @@ import {
 } from "@/stores/useDishMediaEntriesStore";
 import { shallow } from "zustand/shallow";
 import { toErrorLogMessage } from "@/lib/errorMessage";
+import { useAuth } from "@/contexts/AuthProvider";
+import { ReportContentSheet } from "./ReportContentSheet";
 
 interface DishReviewsSectionProps {
 	id: string;
@@ -33,6 +35,7 @@ export function DishReviewsSection({ id, idType, paddingRight, carouselRef }: Di
 	const { callBackend } = useAPICall();
 	const { logFrontendEvent } = useLogger();
 	const { lightImpact } = useHaptics();
+	const { user } = useAuth();
 
 	const selector = useCallback(
 		(state: DishMediaEntriesStore) => {
@@ -145,6 +148,27 @@ export function DishReviewsSection({ id, idType, paddingRight, carouselRef }: Di
 		}
 	};
 
+	// #1514 (SAF-01) レビューの通報。
+	//
+	// 開いているレビューを 1 件だけ持つ。レビュー行ごとにシートを描くと、
+	// 画面に出ている件数ぶん Modal が積まれる（レビューは 1 投稿に何件でも付く）。
+	//
+	// 通報しても表示は変えないので、ここにも「通報済みかどうか」は持たない。
+	// 送信の冪等性は API 側にあり、2 回目も «受け付けました» としか見えない。
+	const [reportTarget, setReportTarget] = useState<{ id: string; username: string } | null>(null);
+
+	const handleReportPress = (reviewId: string, username: string) => {
+		lightImpact();
+		logFrontendEvent({
+			event_name: "content_report_opened",
+			error_level: "log",
+			payload: { targetType: "dish_reviews", targetId: reviewId },
+		});
+		setReportTarget({ id: reviewId, username });
+	};
+
+	const handleReportSheetClose = () => setReportTarget(null);
+
 	return (
 		<LinearGradient colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.6)"]} style={styles.commentsGradient}>
 			<ScrollView
@@ -157,6 +181,14 @@ export function DishReviewsSection({ id, idType, paddingRight, carouselRef }: Di
 					const unitLimit = commentExpandedChars[review.id]!;
 					const { substring, isTruncated } = sliceByUnitLimit(review.comment, unitLimit);
 					const displayText = substring;
+
+					// #1514 (SAF-01) 自分のレビューには通報を出さない。
+					//
+					// 自分で自分を通報しても運営のキューが増えるだけで、ユーザーには
+					// 「消せるのかと思ったら消せない」としか映らない（レビューの削除導線は別）。
+					// user が未確定（null）のあいだは «自分のものではない» に倒れて通報が出るが、
+					// 押しても API が 404/重複で無害に終わるので、出ない側へ倒すより害が小さい。
+					const isOwnReview = !!user?.id && review.user_id === user.id;
 
 					return (
 						<View key={review.id} style={styles.commentItem}>
@@ -202,12 +234,37 @@ export function DishReviewsSection({ id, idType, paddingRight, carouselRef }: Di
 									{review.likeCount > 0 && (
 										<Text style={styles.commentLikeCount}>{formatLikeCount(review.likeCount)}</Text>
 									)}
+									{/* #1514 (SAF-01) レビューの通報導線。
+									    いいねと同じ縦列に置く。投稿の通報（ActionButtons の右レール）は
+									    投稿全体が対象なので、「このレビューを報告したい」の受け皿がここに要る */}
+									{!isOwnReview && (
+										<TouchableOpacity
+											style={styles.commentReportButton}
+											onPress={() => handleReportPress(review.id, review.username)}
+											hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+											accessibilityRole="button"
+											accessibilityLabel={i18n.t("Report.accessibility.openReview", {
+												name: review.username,
+											})}
+											testID={`review-action-report-${review.id}`}>
+											<Flag size={13} color="#CCCCCC" />
+										</TouchableOpacity>
+									)}
 								</View>
 							</View>
 						</View>
 					);
 				})}
 			</ScrollView>
+
+			{/* 理由選択は投稿と同じコンポーネント。targetType だけが違う */}
+			<ReportContentSheet
+				visible={reportTarget !== null}
+				targetType="dish_reviews"
+				targetId={reportTarget?.id ?? ""}
+				targetLabel={reportTarget?.username ?? ""}
+				onClose={handleReportSheetClose}
+			/>
 		</LinearGradient>
 	);
 }
@@ -276,5 +333,8 @@ const styles = StyleSheet.create({
 		fontSize: 12,
 		color: "#CCCCCC",
 		fontWeight: "500",
+	},
+	commentReportButton: {
+		paddingTop: 6,
 	},
 });

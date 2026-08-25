@@ -252,11 +252,29 @@ export class DishMediaImportsService {
             external_content_id: externalContentId,
             dish_id: dish.id,
           },
-          select: { dish_media_id: true },
+          select: {
+            dish_media_id: true,
+            // #1513 論理削除された行も自然キーの UNIQUE
+            // (`dmee_provider_content_dish_uq`) を占有し続ける。取り込み直しを
+            // 成立させるには、既存行が削除済みかどうかをここで知る必要がある
+            dish_media: { select: { deleted_at: true } },
+          },
         });
 
         let dishMediaId = existing?.dish_media_id ?? null;
         const created = dishMediaId === null;
+
+        // #1513 一度削除した SNS 投稿を同じ料理へ取り込み直したときは、既存行を復活させる。
+        // 自然キーの UNIQUE があるので新しい dish_media を作ることはできず、ここで
+        // `deleted_at` を戻さないと «取り込みは成功したのにどこにも出ない» 状態になる。
+        // 復活させてよいのは、この行が特定のユーザーの持ち物ではない（`user_id` は常に
+        // NULL で、ユーザーとの紐付けは下の reactions(save) だけ）ためである。
+        if (dishMediaId !== null && existing?.dish_media.deleted_at) {
+          await tx.dish_media.update({
+            where: { id: dishMediaId },
+            data: { deleted_at: null, updated_at: new Date() },
+          });
+        }
 
         if (dishMediaId !== null && resolved.status === 'ok') {
           // #1375（3 巡目）再取り込み時はサムネイル URL を更新する。Instagram / TikTok の

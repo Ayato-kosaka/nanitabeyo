@@ -175,6 +175,9 @@
 		},
 		"loading": "جارٍ البحث...",
 		"noLocationsFound": "لم يتم العثور على مواقع",
+		"locationConfirmation": {
+			"error": "فشل تأكيد الموقع"
+		},
 		"advancedToggle": {
 			"open": "خيارات إضافية",
 			"close": "إغلاق البحث المتقدم"
@@ -422,7 +425,8 @@
 			"openMap": "فتح خريطة {{name}}",
 			"reviewLike": "الإعجاب بمراجعة {{username}}",
 			"recordEaten": "تسجيل {{name}} كأنك تناولته",
-			"recordEatenAgain": "سجّل {{name}} مرة أخرى (مسجَّل بالفعل)"
+			"recordEatenAgain": "سجّل {{name}} مرة أخرى (مسجَّل بالفعل)",
+			"ownPostMenu": "فتح قائمة منشور {{name}}"
 		},
 		"processing": "جارٍ معالجة الوسائط...",
 		"info": {
@@ -440,6 +444,78 @@
 		"embed": {
 			"play": "التشغيل على {{provider}}",
 			"exitInteractive": "إنهاء التحكم في المحتوى المضمّن"
+		},
+		"ownPost": {
+			"menuTitle": "منشورك",
+			"edit": "تعديل المراجعة",
+			"delete": "حذف المنشور",
+			"cancel": "إلغاء",
+			"mediaLocked": "لا يمكن تغيير الصور ومقاطع الفيديو. يمكنك تعديل التعليق والتقييم والسعر.",
+			"deleteConfirmTitle": "هل تريد حذف هذا المنشور؟",
+			"deleteConfirmMessage": "سيتم حذف المنشور (الصورة ومراجعتك). لا يمكن التراجع عن ذلك.",
+			"deleteConfirmButton": "حذف",
+			"deleted": "تم حذف المنشور",
+			"deleteFailed": "تعذّر حذف المنشور",
+			"editTitle": "تعديل المراجعة",
+			"editComment": "التعليق",
+			"editRating": "التقييم",
+			"editPrice": "السعر",
+			"save": "حفظ",
+			"saved": "تم تحديث المراجعة",
+			"saveFailed": "تعذّر تحديث المراجعة",
+			"conflict": "تم تحديث هذه المراجعة من مكان آخر. أعد فتحها قبل التعديل.",
+			"forbidden": "يمكنك تعديل أو حذف منشوراتك فقط"
+		}
+	},
+	"Report": {
+		"action": "إبلاغ",
+		"title": "الإبلاغ عن هذا المنشور",
+		"reviewTitle": "الإبلاغ عن هذه المراجعة",
+		"description": "اختر سبب الإبلاغ. سيراجع الفريق المحتوى، ولن يتم إخطار صاحب المنشور.",
+		"reasons": {
+			"spam": "رسائل مزعجة أو إعلانات",
+			"sexual": "محتوى جنسي",
+			"violence": "عنف أو محتوى مزعج",
+			"harassment": "تحرش أو إساءة",
+			"illegal": "نشاط غير قانوني",
+			"misinformation": "معلومات غير صحيحة",
+			"rights": "انتهاك حقوق (مثل حقوق النشر)",
+			"privacy": "يتضمن بيانات شخصية",
+			"irrelevant": "لا علاقة له بالطعام",
+			"other": "سبب آخر"
+		},
+		"detailsLabel": "تفاصيل إضافية (اختياري)",
+		"detailsPlaceholder": "أضف ما يساعدنا في المراجعة (حتى 1000 حرف)",
+		"submit": "إرسال البلاغ",
+		"submitting": "جارٍ الإرسال...",
+		"accepted": {
+			"title": "شكرًا على الإبلاغ",
+			"description": "سنراجع المحتوى. لا نرسل إشعارات فردية بالنتيجة.",
+			"close": "إغلاق",
+			"history": "بلاغاتك"
+		},
+		"errors": {
+			"submitFailed": "تعذّر إرسال البلاغ. حاول مرة أخرى."
+		},
+		"accessibility": {
+			"open": "الإبلاغ عن منشور {{name}}",
+			"openReview": "الإبلاغ عن مراجعة {{name}}",
+			"reason": "السبب: {{reason}}",
+			"reasonSelected": "السبب: {{reason}} (محدد)",
+			"submit": "إرسال بلاغ عن منشور {{name}}",
+			"submitReview": "إرسال بلاغ عن مراجعة {{name}}"
+		},
+		"history": {
+			"navigationLabel": "بلاغاتك",
+			"pageTitle": "بلاغاتك",
+			"empty": "لا توجد بلاغات بعد",
+			"emptyDescription": "عند الإبلاغ عن منشور أو مراجعة، سيظهر هنا.",
+			"note": "لا نشارك حالة المراجعة أو نتيجتها.",
+			"error": "تعذر تحميل بلاغاتك",
+			"target": {
+				"dish_media": "منشور",
+				"dish_reviews": "مراجعة"
+			}
 		}
 	},
 	"ImageCardGrid": {
@@ -789,6 +865,25 @@
 		"logout": "تسجيل الخروج",
 		"logoutConfirmTitle": "هل تريد تسجيل الخروج؟",
 		"logoutConfirmMessage": "ستحتاج إلى تسجيل الدخول مرة أخرى لإدارة منشوراتك ومراجعاتك.",
+		"notifications": {
+			"sectionTitle": "الإشعارات",
+			"osDisabledTitle": "الإشعارات موقوفة على هذا الجهاز",
+			"osDisabledDescription": "يتم حفظ اختياراتك هنا، لكن هذا الجهاز لن يتلقى إشعارات.",
+			"openOsSettings": "فتح إعدادات الجهاز",
+			"updateFailed": "تعذّر حفظ الإعداد",
+			"likes": {
+				"title": "الإعجابات",
+				"description": "عندما يعجب أحدهم بمنشورك أو تقييمك"
+			},
+			"saves": {
+				"title": "الحفظ",
+				"description": "عندما يحفظ أحدهم منشورك"
+			},
+			"group_votes": {
+				"title": "تصويت المجموعة",
+				"description": "عند حدوث نشاط في تصويت مجموعة انضممت إليها"
+			}
+		},
 		"blockedTopics": {
 			"navigationLabel": "فئات الأطباق المحظورة",
 			"pageTitle": "فئات الأطباق المحظورة",
@@ -1037,6 +1132,10 @@
 				}
 			},
 			"replay": "إعادة مشاهدة الشرح"
+		},
+		"deleted": {
+			"label": "تم الحذف",
+			"a11yLabel": "تم حذف صورة هذا المنشور"
 		}
 	},
 	"SnsImport": {

@@ -42,7 +42,9 @@ export type MyDishesRevisionStore = {
 	revision: number;
 	/**
 	 * my-dishes のキャッシュを捨てて版を 1 つ進める。
-	 * 呼ぶのは `review.tsx` / `review-from-media/[dishMediaId].tsx` の `handleReviewSuccess` だけ。
+	 * 呼ぶのは `review.tsx` / `review-from-media/[dishMediaId].tsx` の `handleReviewSuccess` と、
+	 * #1513 で足した `OwnPostActions`（自分の投稿の編集・削除）である。いずれも
+	 * **その変更を起こした当人**が呼ぶ形にしている。
 	 * **`ReviewForm` からは呼ばない**（ReviewForm を my-dishes に結合させないため。設計 §3）。
 	 */
 	bump: () => void;

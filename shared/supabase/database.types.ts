@@ -400,6 +400,7 @@ export type Database = {
       dish_media: {
         Row: {
           created_at: string
+          deleted_at: string | null
           dish_id: string
           id: string
           lock_no: number
@@ -415,6 +416,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          deleted_at?: string | null
           dish_id: string
           id?: string
           lock_no?: number
@@ -430,6 +432,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          deleted_at?: string | null
           dish_id?: string
           id?: string
           lock_no?: number
@@ -639,13 +642,17 @@ export type Database = {
           created_at: string
           created_dish_media_id: string | null
           currency_code: string | null
+          deleted_at: string | null
           dish_id: string
+          eaten_at: string | null
           id: string
+          lock_no: number
           imported_user_avatar: string | null
           imported_user_name: string | null
           original_language_code: string
           price_cents: number | null
           rating: number
+          updated_at: string
           user_id: string | null
         }
         Insert: {
@@ -654,13 +661,17 @@ export type Database = {
           created_at?: string
           created_dish_media_id?: string | null
           currency_code?: string | null
+          deleted_at?: string | null
           dish_id: string
+          eaten_at?: string | null
           id?: string
+          lock_no?: number
           imported_user_avatar?: string | null
           imported_user_name?: string | null
           original_language_code: string
           price_cents?: number | null
           rating: number
+          updated_at?: string
           user_id?: string | null
         }
         Update: {
@@ -669,13 +680,17 @@ export type Database = {
           created_at?: string
           created_dish_media_id?: string | null
           currency_code?: string | null
+          deleted_at?: string | null
           dish_id?: string
+          eaten_at?: string | null
           id?: string
+          lock_no?: number
           imported_user_avatar?: string | null
           imported_user_name?: string | null
           original_language_code?: string
           price_cents?: number | null
           rating?: number
+          updated_at?: string
           user_id?: string | null
         }
         Relationships: [
@@ -699,28 +714,34 @@ export type Database = {
         Row: {
           category_id: string
           created_at: string
+          data_origin: string
           id: string
           lock_no: number
           name: string | null
           restaurant_id: string
+          synced_at: string | null
           updated_at: string
         }
         Insert: {
           category_id: string
           created_at?: string
+          data_origin?: string
           id?: string
           lock_no?: number
           name?: string | null
           restaurant_id: string
+          synced_at?: string | null
           updated_at?: string
         }
         Update: {
           category_id?: string
           created_at?: string
+          data_origin?: string
           id?: string
           lock_no?: number
           name?: string | null
           restaurant_id?: string
+          synced_at?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1193,6 +1214,10 @@ export type Database = {
           name: string
           name_language_code: string
           plus_code: Json | null
+          source_names: string[]
+          source_row_hash: string | null
+          source_seed_id: string | null
+          synced_at: string | null
         }
         Insert: {
           address_components: Json
@@ -1207,6 +1232,10 @@ export type Database = {
           name: string
           name_language_code: string
           plus_code?: Json | null
+          source_names?: string[]
+          source_row_hash?: string | null
+          source_seed_id?: string | null
+          synced_at?: string | null
         }
         Update: {
           address_components?: Json
@@ -1221,6 +1250,10 @@ export type Database = {
           name?: string
           name_language_code?: string
           plus_code?: Json | null
+          source_names?: string[]
+          source_row_hash?: string | null
+          source_seed_id?: string | null
+          synced_at?: string | null
         }
         Relationships: []
       }
