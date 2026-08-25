@@ -115,10 +115,20 @@ export type CoordinateLike = { latitude: number; longitude: number };
  * store には触れない・queryKey も変えないので、二度目以降の取得では呼ばない（呼び出し側の責務）。
  */
 export function boundingRegionForCoordinates(coordinates: CoordinateLike[]): MapRegionLike | null {
-	if (coordinates.length === 0) return null;
+	/*
+	#1375（実機: マップのクラッシュ）**非有限値を先に落とす。**
 
-	const latitudes = coordinates.map((c) => c.latitude);
-	const longitudes = coordinates.map((c) => c.longitude);
+	返り値はそのまま `animateToRegion` に渡る。1 件でも NaN / Infinity が混ざると
+	Math.min / Math.max ごと NaN に伝播し、**ネイティブの地図へ NaN の Region を渡す**。
+	Android ではそこで例外を伴わずに描画が止まりうる。
+	同じ `pins` を食う `clusterMyDishPins` は `Number.isFinite` で弾いているのに、
+	こちらだけ無防備だった（`regionToArea` / `isRegionTooWide` は弾いている）。
+	*/
+	const finite = coordinates.filter((c) => Number.isFinite(c.latitude) && Number.isFinite(c.longitude));
+	if (finite.length === 0) return null;
+
+	const latitudes = finite.map((c) => c.latitude);
+	const longitudes = finite.map((c) => c.longitude);
 	const minLat = Math.min(...latitudes);
 	const maxLat = Math.max(...latitudes);
 	const minLng = Math.min(...longitudes);

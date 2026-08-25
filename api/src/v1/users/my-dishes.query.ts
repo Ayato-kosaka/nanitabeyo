@@ -672,6 +672,18 @@ export function buildMyDishesPageQuery(
     d.updated_at    AS d_updated_at,
     d.lock_no       AS d_lock_no,
     dc.image_url    AS d_category_image_url,
+    -- #1375（オーナー指摘「うどんで絞ったら udon が出る」）カテゴリの正式表記。
+    -- 表示に使っていた d.name は «その店でのその料理の呼び名» で、SNS 取り込み由来だと
+    -- ローマ字や英語のまま入る。カテゴリ表の labels 列（言語コード → 表記）を一緒に返し、
+    -- クライアントが «ユーザーの言語の表記 → 無ければ d.name» の順で出せるようにする。
+    -- 既に page CTE で LIMIT 済みの d に対する参照なので追加の走査は起きない（image_url と同じ）。
+    --
+    -- ⚠️ この SQL はテンプレートリテラルの中なので、コメントにバッククォートを書かないこと
+    --    （文字列がそこで閉じて構文エラーになる。実際に一度踏んだ）。
+    -- ⚠️ コメントにカテゴリ表のテーブル名を書かないこと。my-dishes.sql.spec.ts が
+    --    «候補集合の CTE にその名前が出ないこと» で join 位置を見張っており、
+    --    コメントでも引っかかる（これも一度踏んだ）。
+    dc.labels       AS d_category_labels,
     st.review_count,
     st.average_rating
   FROM page p

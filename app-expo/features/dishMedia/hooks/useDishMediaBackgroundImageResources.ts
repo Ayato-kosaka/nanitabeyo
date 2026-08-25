@@ -102,11 +102,39 @@ export const useDishMediaBackgroundImageResources = ({
 	const imageLoadGenerationRef = useRef(0);
 	const [imageStates, setImageStates] = useState<DishMediaBackgroundImageStates>({});
 
+	/*
+	#1375（全画面のクラッシュ棚卸し）**捨てる前に `release()` する。**
+
+	以前はここで `imageStatesRef.current = {}` と参照を捨てるだけだった。
+	`Image.loadAsync` が返す `ImageRef` は **ネイティブ側にデコード済みのビットマップを
+	確保している**ので、JS の参照を捨てても GC が回るまで解放されない。
+	この画面は全画面サイズの画像を扱うため、フィードを開閉して回ると
+	Android の低メモリ端末で OOM に至る（＝ JS では捕まらないネイティブのクラッシュ）。
+
+	同じ役割の `features/topics/hooks/useTopicImageResources.ts` は
+	`releaseIfImageRef` を持っており解放している。**こちらだけ抜けていた。**
+
+	⚠️ 解放は **次のティックで**行う。いま描かれている `<Image>` が同じ ImageRef を
+	参照している最中に解放すると、その 1 フレームだけ画像が消える。
+	（topics 側の `releaseStatesDeferred` と同じ理由・同じ作法）
+	*/
+	const releaseStatesDeferred = useCallback((states: DishMediaBackgroundImageStates) => {
+		setTimeout(() => {
+			for (const state of Object.values(states)) {
+				if (state.status !== "ready") continue;
+				const image = state.image as Partial<{ release: () => void }>;
+				if (typeof image?.release === "function") image.release();
+			}
+		}, 0);
+	}, []);
+
 	const resetImageStates = useCallback(() => {
 		imageLoadGenerationRef.current += 1;
+		const previousStates = imageStatesRef.current;
 		imageStatesRef.current = {};
 		setImageStates({});
-	}, []);
+		releaseStatesDeferred(previousStates);
+	}, [releaseStatesDeferred]);
 
 	// #802 【設計】processing 中の polling で thumbnailImageUrl -> mediaUrl に切り替わることがある。
 	// bgUri を含む descriptor 単位で購読することで、新しい画像リソースだけを preload 対象にする。
@@ -179,7 +207,13 @@ export const useDishMediaBackgroundImageResources = ({
 
 			try {
 				const image = await loadImageResourceWithRetry(uri);
-				if (imageLoadGenerationRef.current !== imageLoadGeneration) return;
+				if (imageLoadGenerationRef.current !== imageLoadGeneration) {
+					// 旧セッションの ImageRef はどの表示にも渡らないので、その場で解放する
+					// （topics 側 `useTopicImageResources.ts` と同じ扱い）
+					const stale = image as Partial<{ release: () => void }>;
+					if (typeof stale?.release === "function") stale.release();
+					return;
+				}
 				imageStatesRef.current = {
 					...imageStatesRef.current,
 					[key]: { status: "ready", image },
@@ -211,6 +245,16 @@ export const useDishMediaBackgroundImageResources = ({
 	useEffect(() => {
 		resetImageStates();
 	}, [sessionKey, resetImageStates]);
+
+	// 画面を離れるときも解放する。これが無いと «最後に見ていたぶん» が残り続ける
+	useEffect(
+		() => () => {
+			imageLoadGenerationRef.current += 1;
+			releaseStatesDeferred(imageStatesRef.current);
+			imageStatesRef.current = {};
+		},
+		[releaseStatesDeferred],
+	);
 
 	// #802 【設計】descriptor の key が変わったものだけ Image.loadAsync を走らせる。
 	useEffect(() => {

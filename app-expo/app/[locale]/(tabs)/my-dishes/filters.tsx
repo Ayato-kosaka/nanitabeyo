@@ -249,7 +249,8 @@ export default function MyDishesFiltersScreen() {
 		const { itemKeys } = selectMyDishesByQuery(queryKey)(state);
 		const items = itemKeys.map((key) => state.itemByKey[key]).filter((item) => Boolean(item));
 		// 上限は «全部»。表示側が CATEGORY_COLLAPSE_COUNT で畳む（#1375 4 巡目）
-		return buildCategoryFacets(items, Number.POSITIVE_INFINITY);
+		// #1375 ローマ字ではなくカテゴリの正式表記を出す（dishCategoryLabel.ts）
+		return buildCategoryFacets(items, Number.POSITIVE_INFINITY, i18n.locale);
 	});
 	// #1375 4 巡目: カテゴリーが多いとチップが画面を占領するので、上位だけ見せて「もっと見る」で開く
 	const [showAllCategories, setShowAllCategories] = useState(false);
@@ -361,11 +362,32 @@ export default function MyDishesFiltersScreen() {
 		}));
 	}, [lightImpact]);
 
+	/*
+	#1375（オーナー指示 7 巡目）**「リセット」はその場で反映する。**
+
+	以前は下書きを戻すだけで、「適用」を押さずに戻ると **何も起きなかった**
+	（「リセット → 戻る でリセットされてない」というオーナー指摘）。
+
+	「リセット」は取り消しではなく «全部外す» という意思表示なので、
+	押した結果がその場で見えるのが自然である。ここは
+	「store を書くのは適用だけ」という原則の**明示的な例外**にする。
+	押した瞬間に 1 回だけ書くので、チップを押すたびに書く形（それを避けるための原則）には戻らない。
+
+	エリアは Map の «このエリアで再検索» が確定したものなので、リセットでも保持する
+	（意図せず全国検索に戻さない）。したがって `patch` には area を渡さない。
+	*/
 	const handleReset = useCallback(() => {
 		lightImpact();
-		// エリアは Map で確定したものなので、リセットでも保持する（意図せず全国検索に戻さない）
-		setDraft({ ...DEFAULT_MY_DISHES_FILTER, area: draft.area });
-	}, [draft.area, lightImpact]);
+		const next: MyDishesFilter = { ...DEFAULT_MY_DISHES_FILTER, area: draft.area };
+		setDraft(next);
+		const { area: _resetArea, ...patchWithoutArea } = next;
+		patch(patchWithoutArea);
+		logFrontendEvent({
+			event_name: MY_DISHES_EVENTS.filterApplied,
+			error_level: "log",
+			payload: buildFilterAppliedPayload(next),
+		});
+	}, [draft.area, lightImpact, logFrontendEvent, patch]);
 
 	const handleApply = useCallback(() => {
 		lightImpact();

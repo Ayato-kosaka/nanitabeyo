@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from "react";
+import { asApiList } from "@/lib/apiList";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
@@ -58,12 +59,15 @@ export const useDishCategorySearch = () => {
 
 				// リクエストがキャンセルされていない場合のみ結果を設定
 				if (!controller.signal.aborted) {
-					setSuggestions(response);
+					// #1375 API を信じない。配列でなければ空へ落とす。**state へ入れる前に**通すこと
+			// （後で `.length` を読む形だと、`setState` 済みの汚れた値が次のレンダーで爆発する。#1561）
+			const rows = asApiList(response);
+			setSuggestions(rows);
 
 					logFrontendEvent({
 						event_name: "dish_category_search_success",
 						error_level: "log",
-						payload: { query, resultCount: response.length },
+						payload: { query, resultCount: rows.length },
 					});
 				}
 			} catch (error: any) {

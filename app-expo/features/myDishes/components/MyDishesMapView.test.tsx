@@ -767,3 +767,46 @@ describe("#1375 Map のクラスタリング", () => {
 		expect(mockPush).not.toHaveBeenCalled();
 	});
 });
+
+/*
+#1375（実機: 「マップから絞り込む画面がすごくクラッシュする」）
+
+**地図に出るものと、下の帯に並ぶものを一致させる。**
+
+表示域の外のピンをマーカーにしない間引きを入れた結果、
+「取得した全件」と「地図に見えているもの」が食い違うようになった。
+下の帯の責務は «いま Map に出ているピンを横に並べる» なので、
+揃えないと **帯には居るのに地図にピンが無い**（件数の見出しもずれる）。
+*/
+describe("地図に出ているピンと下部シートの一致", () => {
+	const pinAt = (id: string, latitude: number, longitude: number) =>
+		({
+			restaurant: { id, name: id, latitude, longitude, image_url: null },
+			counts: { want: 0, eaten: 1 },
+			latestOccurredAt: "2026-08-01T00:00:00.000Z",
+			representativeThumbnailUrl: null,
+		}) as unknown as MyDishPin;
+
+	it("表示域の外のピンは、地図にも下部シートにも出さない", async () => {
+		const near = pinAt("near", 35.68, 139.76);
+		const hokkaido = pinAt("hokkaido", 43.06, 141.35);
+		mockUseMyDishesMapPinsQuery.mockReturnValue({
+			pins: [near, hokkaido],
+			queryKey: "q",
+			isLoading: false,
+			error: null,
+			hasFetchedInitial: true,
+			truncated: false,
+			refresh: jest.fn(),
+		});
+
+		await render();
+		// 指を離した（＝表示域が確定した）ことにする。東京駅あたりを 0.05 度ぶん
+		await act(async () => {
+			regionChangeHandler?.({ latitude: 35.68, longitude: 139.76, latitudeDelta: 0.05, longitudeDelta: 0.05 });
+		});
+
+		const lastSheetPins = sheetPinLists[sheetPinLists.length - 1] as MyDishPin[];
+		expect(lastSheetPins.map((p) => p.restaurant.id)).toEqual(["near"]);
+	});
+});

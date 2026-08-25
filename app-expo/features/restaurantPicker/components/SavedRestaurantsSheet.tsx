@@ -264,14 +264,28 @@ export const SavedRestaurantsSheet = forwardRef<SavedRestaurantsSheetHandle, Sav
 							if (isDraggingRef.current) return;
 							onRestaurantCardPress(item);
 						}}
-						onReview={() => {
-							if (isDraggingRef.current) return;
-							onRestaurantReviewPress(item);
-						}}
+						/* #1375（6 巡目）**ここが showReviewButton を無視していた。**
+						   下の縦リスト側（PrimaryCard の 2 つ目の呼び出し）は pick モードで
+						   «写真・動画を投稿» を隠していたのに、横スクロールの帯だけ常に渡しており、
+						   «お店を選ぶだけ» の画面にこのボタンが出続けていた（実機で指摘） */
+						onReview={
+							showReviewButton
+								? () => {
+										if (isDraggingRef.current) return;
+										onRestaurantReviewPress(item);
+									}
+								: undefined
+						}
 					/>
 				</View>
 			),
-			[onRestaurantCardPress, onRestaurantReviewPress, widthMetrics.savedRestaurantItemContainer, styles],
+			[
+				onRestaurantCardPress,
+				onRestaurantReviewPress,
+				showReviewButton,
+				widthMetrics.savedRestaurantItemContainer,
+				styles,
+			],
 		);
 
 		return (
@@ -473,93 +487,93 @@ function SkeletonCard() {
 
 const createStyles = (c: Palette) =>
 	StyleSheet.create({
-	container: {
-		paddingTop: 12,
-		paddingBottom: 20,
-	},
-	header: {
-		paddingHorizontal: 16,
-		marginVertical: 8,
-	},
-	// #1126 TrueSheet のネイティブグラバー（32x4dp / 角丸 / 黒 40% / シート上端から 16dp）の写し。
-	// header の marginTop が 8 なので、top: 8 でシート上端から 16 になる。
-	grabber: {
-		position: "absolute",
-		top: 8,
-		alignSelf: "center",
-		width: 32,
-		height: 4,
-		borderRadius: 2,
-		backgroundColor: "rgba(0, 0, 0, 0.4)",
-	},
-	savedRestaurantsTitle: {
-		fontSize: 14,
-		fontWeight: "600",
-		color: c.textMuted,
-	},
-	// 幅は useWidthMetrics で算出してスタイル配列で合成する（#1067）
-	carouselWrapper: {
-		alignItems: "center",
-		paddingVertical: 4,
-		alignSelf: "center",
-	},
-	carousel: {
-		height: CARD_HEIGHT + 24,
-	},
-	savedRestaurantItemContainer: {
-		height: CARD_HEIGHT,
-		marginVertical: 12,
-	},
-	listContent: {
-		position: "relative",
-		top: 0,
-		alignItems: "center",
-		paddingVertical: 8,
-		paddingBottom: 40,
-	},
-	listItemContainer: {
-		marginBottom: 12,
-	},
-	savedRestaurantCard: {
-		flex: 1,
-		flexDirection: "row",
-		backgroundColor: c.surface,
-		borderRadius: 12,
-		height: CARD_HEIGHT,
-		shadowColor: FixedColors.shadow,
-		shadowOffset: { width: 0, height: 0 },
-		shadowOpacity: 0.2,
-		shadowRadius: 8,
-		elevation: 5,
-	},
-	savedRestaurantImage: {
-		width: 100,
-		height: CARD_HEIGHT,
-		borderTopLeftRadius: 12,
-		borderBottomLeftRadius: 12,
-	},
-	savedRestaurantInfo: {
-		flex: 1,
-		padding: 12,
-		justifyContent: "space-between",
-	},
-	savedRestaurantName: {
-		fontSize: 16,
-		fontWeight: "600",
-		color: c.textPrimary,
-		marginBottom: 8,
-	},
-	headerHint: {
-		fontSize: 12,
-		color: c.textSecondary,
-		lineHeight: 17,
-		marginTop: 4,
-	},
-	emptyStateText: {
-		fontSize: 14,
-		color: c.textMuted,
-		textAlign: "center",
-		marginTop: 8,
-		marginBottom: 16,
-	},
-});
+		container: {
+			paddingTop: 12,
+			paddingBottom: 20,
+		},
+		header: {
+			paddingHorizontal: 16,
+			marginVertical: 8,
+		},
+		// #1126 TrueSheet のネイティブグラバー（32x4dp / 角丸 / 黒 40% / シート上端から 16dp）の写し。
+		// header の marginTop が 8 なので、top: 8 でシート上端から 16 になる。
+		grabber: {
+			position: "absolute",
+			top: 8,
+			alignSelf: "center",
+			width: 32,
+			height: 4,
+			borderRadius: 2,
+			backgroundColor: "rgba(0, 0, 0, 0.4)",
+		},
+		savedRestaurantsTitle: {
+			fontSize: 14,
+			fontWeight: "600",
+			color: c.textMuted,
+		},
+		// 幅は useWidthMetrics で算出してスタイル配列で合成する（#1067）
+		carouselWrapper: {
+			alignItems: "center",
+			paddingVertical: 4,
+			alignSelf: "center",
+		},
+		carousel: {
+			height: CARD_HEIGHT + 24,
+		},
+		savedRestaurantItemContainer: {
+			height: CARD_HEIGHT,
+			marginVertical: 12,
+		},
+		listContent: {
+			position: "relative",
+			top: 0,
+			alignItems: "center",
+			paddingVertical: 8,
+			paddingBottom: 40,
+		},
+		listItemContainer: {
+			marginBottom: 12,
+		},
+		savedRestaurantCard: {
+			flex: 1,
+			flexDirection: "row",
+			backgroundColor: c.surface,
+			borderRadius: 12,
+			height: CARD_HEIGHT,
+			shadowColor: FixedColors.shadow,
+			shadowOffset: { width: 0, height: 0 },
+			shadowOpacity: 0.2,
+			shadowRadius: 8,
+			elevation: 5,
+		},
+		savedRestaurantImage: {
+			width: 100,
+			height: CARD_HEIGHT,
+			borderTopLeftRadius: 12,
+			borderBottomLeftRadius: 12,
+		},
+		savedRestaurantInfo: {
+			flex: 1,
+			padding: 12,
+			justifyContent: "space-between",
+		},
+		savedRestaurantName: {
+			fontSize: 16,
+			fontWeight: "600",
+			color: c.textPrimary,
+			marginBottom: 8,
+		},
+		headerHint: {
+			fontSize: 12,
+			color: c.textSecondary,
+			lineHeight: 17,
+			marginTop: 4,
+		},
+		emptyStateText: {
+			fontSize: 14,
+			color: c.textMuted,
+			textAlign: "center",
+			marginTop: 8,
+			marginBottom: 16,
+		},
+	});

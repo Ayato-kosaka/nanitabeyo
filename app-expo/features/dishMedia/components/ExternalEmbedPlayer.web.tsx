@@ -89,25 +89,36 @@ export function ExternalEmbedPlayer({ embed, isActive, blockParentTapGesture }: 
 				testID="external-embed-webview">
 				{/* セルの寸法が確定するまで iframe を作らない。中途半端な幅で読み込ませると、
 				    Instagram がその幅でレイアウトしてしまい切り取り位置がずれたまま残る */}
-				{crop !== null &&
-					React.createElement("iframe", {
-						src: source.embedUrl,
-						style: {
-							border: 0,
-							position: "absolute",
+				{/* 写真の箱。ここを拡大してセル全面へ広げる（計算の根拠は ../embedCrop.ts） */}
+				{crop !== null && (
+					<View
+						style={{
 							width: crop.frameWidth,
-							height: crop.frameHeight,
-							left: crop.left,
-							top: crop.top,
-							backgroundColor: FixedColors.mediaBackground,
-						},
-						allow: "autoplay; encrypted-media; picture-in-picture",
-						allowFullScreen: true,
-						loading: "lazy",
-						title: source.providerLabel,
-						sandbox: "allow-scripts allow-same-origin allow-popups allow-presentation",
-						referrerPolicy: "strict-origin-when-cross-origin",
-					})}
+							height: crop.mediaHeight,
+							overflow: "hidden",
+							transform: [{ scale: crop.scale }],
+						}}>
+						{React.createElement("iframe", {
+							src: source.embedUrl,
+							style: {
+								border: 0,
+								position: "absolute",
+								left: 0,
+								// ヘッダ帯ぶん上へずらして箱の外へ追い出す
+								top: crop.frameTop,
+								width: crop.frameWidth,
+								height: crop.frameHeight,
+								backgroundColor: FixedColors.mediaBackground,
+							},
+							allow: "autoplay; encrypted-media; picture-in-picture",
+							allowFullScreen: true,
+							loading: "lazy",
+							title: source.providerLabel,
+							sandbox: "allow-scripts allow-same-origin allow-popups allow-presentation",
+							referrerPolicy: "strict-origin-when-cross-origin",
+						})}
+					</View>
+				)}
 			</View>
 			{!interactive && (
 				<View style={styles.overlayContainer} pointerEvents="box-none" testID="external-embed-fallback">
@@ -133,6 +144,9 @@ const styles = StyleSheet.create({
 	container: {
 		...StyleSheet.absoluteFillObject,
 		backgroundColor: FixedColors.mediaBackground,
+		// 写真の箱を中央へ置く（拡大は箱の中心を軸に効くので、これで «cover» になる）
+		alignItems: "center",
+		justifyContent: "center",
 		// #1375（案 A）はみ出した Instagram の UI をここで捨てる。
 		// これが無いと切り取りが成立せず、セルの外へ白帯が出る
 		overflow: "hidden",

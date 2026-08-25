@@ -82,7 +82,22 @@
 		"submitFailed": "Could not submit your vote",
 		"participantsList": "Participants: {{names}}",
 		"noParticipants": "No participants yet",
-		"noVotes": "No votes yet"
+		"noVotes": "No votes yet",
+		"myVotes": {
+			"pageTitle": "My group votes",
+			"loadFailed": "Could not load your group votes",
+			"noCandidates": "No choices",
+			"candidateSeparator": ", ",
+			"candidateSummaryMore": "{{names}} and {{count}} more",
+			"participantSummary": "{{count}} voted",
+			"decidedLabel": "Winner: {{name}}",
+			"votedLabel": "You voted",
+			"notVotedLabel": "You haven't voted",
+			"itemAccessibilityLabel": "Group vote from {{date}}. {{summary}}. {{participants}}. {{status}}",
+			"emptyTitle": "You haven't started any group votes yet",
+			"emptyDescription": "Search for food, pick a few choices, and ask your friends to vote.",
+			"emptyAction": "Start a group vote"
+		}
 	},
 	"Error": {
 		"maintenanceMessage": "We are currently undergoing maintenance.",
@@ -605,7 +620,8 @@
 		},
 		"actions": {
 			"selectDishCategory": "Select dish category",
-			"writeReviewForThisDish": "Record as eaten"
+			"writeReviewForThisDish": "Record as eaten",
+			"useTypedDishCategory": "Use “{{name}}”"
 		},
 		"inputs": {
 			"price": "Price",
@@ -622,14 +638,16 @@
 			"enterBidAmount": "Enter bid amount",
 			"enterDishCategory": "Enter dish category (e.g., Burger, BBQ)",
 			"searchRestaurantsForReview": "Search by name or area",
-			"searchAreaForReview": "Search by area"
+			"searchAreaForReview": "Search by area",
+			"searchDishCategory": "Search by dish name"
 		},
 		"labels": {
 			"endDate": "End date:",
 			"paymentProcessing": "Processing payment...",
 			"restaurant": "Restaurant",
 			"dishCategory": "Dish category",
-			"dishesAtThisRestaurant": "Dishes at this restaurant"
+			"dishesAtThisRestaurant": "Dishes at this restaurant",
+			"noDishesAtThisRestaurant": "No dishes recorded here yet. Type a dish name."
 		},
 		"tabs": {
 			"reviews": "Reviews"
@@ -832,6 +850,21 @@
 			"unblockMessage": "This dish category will be added back to recommendations.",
 			"unblockConfirm": "Unblock",
 			"unblocked": "Unblocked"
+		},
+		"language": {
+			"navigationLabel": "Language",
+			"pageTitle": "Language",
+			"systemDefault": "Use device language",
+			"switching": "Switching language…"
+		},
+		"hapticsEnabled": "Haptic Feedback",
+		"deviceSettings": {
+			"navigationLabel": "Device Settings",
+			"title": "Device Settings",
+			"description": "These settings are saved on this device only. They are not carried over to other devices or accounts."
+		},
+		"myGroupVotes": {
+			"navigationLabel": "My group votes"
 		}
 	},
 	"Dialog": {
@@ -1005,7 +1038,8 @@
 				"description": "Narrow down by the most common dish categories among the records shown",
 				"count": "{{label}} ({{count}})",
 				"showAll": "Show more ({{count}} more)"
-			}
+			},
+			"activeCount": "{{count}} filters active"
 		},
 		"empty": {
 			"description": "Dishes you save or record as eaten will show up here."
@@ -1051,7 +1085,8 @@
 					"title": "Narrow it down as it grows",
 					"body": "Filter by want-to-eat / eaten, dish, area, who you are with and time of day. It is here to cut choices down, not to add more."
 				}
-			}
+			},
+			"replay": "Replay tutorial"
 		}
 	},
 	"SnsImport": {
@@ -1114,7 +1149,7 @@
 			"pickRestaurant": "Pick a shop",
 			"pick": "Pick",
 			"change": "Change",
-			"hint": "Pick a shop first. Then you can add a photo, a short review, the dish category, price, and rating (a photo is optional).",
+			"hint": "Pick a restaurant first. Then choose the dish, and add a photo (optional), a short review, the price and your rating.",
 			"done": "Recorded as eaten"
 		}
 	},

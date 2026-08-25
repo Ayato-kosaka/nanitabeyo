@@ -9,6 +9,7 @@ import i18n from "@/lib/i18n";
 import type { NormalizedDishMediaEntry } from "@/stores/useDishMediaEntriesStore";
 import { isRatingFilterEnabled, useMyDishesFilterStore, type MyDishesFilter } from "../stores/useMyDishesFilterStore";
 import { MY_DISHES_EVENTS } from "../analytics";
+import { resolveDishCategoryLabel } from "../dishCategoryLabel";
 
 /**
  * #1397 (PR5/5) 全画面 Feed の contextual filter chips（設計 (2/2) §10）。
@@ -90,7 +91,14 @@ export const buildMyDishesFeedChips = (
 		// ⚠️ 名前が無い dish（SNS 取り込み等）で ID へ落とさない。「Q234646」のような
 		// Wikidata QID がそのまま chip に出て «何で絞るのか分からない» と実機で指摘された。
 		// ラベルにできる名前があるときだけ chip を出す
-		const name = entry?.dish.name || null;
+		/*
+		#1375（オーナー実機指摘「うどんで絞ったら udon が出る」）
+
+		`dish.name` は «その店でのその料理の呼び名» で、SNS 取り込み由来だとローマ字が入る。
+		カテゴリの正式表記を優先する（規則は `features/myDishes/dishCategoryLabel.ts` に 1 本化。
+		絞り込み画面の候補ラベルも同じ関数を通している）。
+		*/
+		const name = resolveDishCategoryLabel(entry?.dish?.categoryLabels, entry?.dish?.name, i18n.locale);
 		if (name !== null) {
 			chips.push({
 				id: "category",

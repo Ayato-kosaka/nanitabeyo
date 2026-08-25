@@ -82,7 +82,22 @@
 		"submitFailed": "تعذر إرسال تصويتك",
 		"participantsList": "المشاركون: {{names}}",
 		"noParticipants": "لا يوجد مشاركون بعد",
-		"noVotes": "لا توجد أصوات بعد"
+		"noVotes": "لا توجد أصوات بعد",
+		"myVotes": {
+			"pageTitle": "تصويتاتي الجماعية",
+			"loadFailed": "تعذر تحميل تصويتاتك الجماعية",
+			"noCandidates": "لا توجد خيارات",
+			"candidateSeparator": "، ",
+			"candidateSummaryMore": "{{names}} و{{count}} أخرى",
+			"participantSummary": "صوّت {{count}}",
+			"decidedLabel": "الفائز: {{name}}",
+			"votedLabel": "لقد صوّتت",
+			"notVotedLabel": "لم تصوّت بعد",
+			"itemAccessibilityLabel": "تصويت جماعي بتاريخ {{date}}. {{summary}}. {{participants}}. {{status}}",
+			"emptyTitle": "لم تبدأ أي تصويت جماعي بعد",
+			"emptyDescription": "ابحث عن طعام واختر بعض الخيارات، ثم اطلب من أصدقائك التصويت.",
+			"emptyAction": "إنشاء تصويت"
+		}
 	},
 	"Error": {
 		"maintenanceMessage": "نحن حالياً نقوم بأعمال صيانة.",
@@ -606,7 +621,8 @@
 		},
 		"actions": {
 			"selectDishCategory": "اختر فئة الطبق",
-			"writeReviewForThisDish": "سجّل أنك تناولته"
+			"writeReviewForThisDish": "سجّل أنك تناولته",
+			"useTypedDishCategory": "استخدام «{{name}}»"
 		},
 		"inputs": {
 			"price": "السعر",
@@ -623,14 +639,16 @@
 			"enterBidAmount": "أدخل مبلغ العرض",
 			"enterDishCategory": "أدخل فئة الطبق (مثال: كبسة، شاورما)",
 			"searchRestaurantsForReview": "البحث بالاسم أو المنطقة",
-			"searchAreaForReview": "البحث حسب المنطقة"
+			"searchAreaForReview": "البحث حسب المنطقة",
+			"searchDishCategory": "البحث باسم الطبق"
 		},
 		"labels": {
 			"endDate": "تاريخ الانتهاء:",
 			"paymentProcessing": "معالجة الدفع...",
 			"restaurant": "مطعم",
 			"dishCategory": "فئة الطبق",
-			"dishesAtThisRestaurant": "أطباق في هذا المطعم"
+			"dishesAtThisRestaurant": "أطباق في هذا المطعم",
+			"noDishesAtThisRestaurant": "لا توجد أطباق مسجلة هنا بعد. اكتب اسم طبق."
 		},
 		"tabs": {
 			"reviews": "المراجعات"
@@ -832,6 +850,21 @@
 			"unblockMessage": "ستتم إضافة فئة الطبق هذه إلى التوصيات مرة أخرى.",
 			"unblockConfirm": "إلغاء الحظر",
 			"unblocked": "تم إلغاء الحظر"
+		},
+		"language": {
+			"navigationLabel": "اللغة",
+			"pageTitle": "اللغة",
+			"systemDefault": "اتباع إعدادات الجهاز",
+			"switching": "جارٍ تغيير اللغة…"
+		},
+		"hapticsEnabled": "التغذية الراجعة اللمسية",
+		"deviceSettings": {
+			"navigationLabel": "إعدادات الجهاز",
+			"title": "إعدادات الجهاز",
+			"description": "يتم حفظ هذه الإعدادات على هذا الجهاز فقط، ولا تنتقل إلى أجهزة أو حسابات أخرى."
+		},
+		"myGroupVotes": {
+			"navigationLabel": "تصويتاتي الجماعية"
 		}
 	},
 	"Dialog": {
@@ -1005,7 +1038,8 @@
 				"description": "صفِّ حسب فئات الأطباق الأكثر تكرارًا ضمن السجلات المعروضة",
 				"count": "{{label}} ({{count}})",
 				"showAll": "عرض المزيد ({{count}} أخرى)"
-			}
+			},
+			"activeCount": "{{count}} عوامل تصفية نشطة"
 		},
 		"empty": {
 			"description": "ستظهر هنا الأطباق التي تحفظها أو تسجّل أنك تناولتها."
@@ -1051,7 +1085,8 @@
 					"title": "صفِّ القائمة عندما تكبر",
 					"body": "صفِّ حسب «أريد أن آكل / أكلت» والطبق والمنطقة ومع من والوقت. الغرض تقليل الخيارات لا زيادتها."
 				}
-			}
+			},
+			"replay": "إعادة مشاهدة الشرح"
 		}
 	},
 	"SnsImport": {
@@ -1114,7 +1149,7 @@
 			"pickRestaurant": "اختر مطعمًا",
 			"pick": "اختيار",
 			"change": "تغيير",
-			"hint": "اختر المطعم أولًا. بعدها يمكنك إضافة صورة ومراجعة قصيرة وفئة الطبق والسعر والتقييم (الصورة اختيارية).",
+			"hint": "اختر المطعم أولاً، ثم اختر الطبق، وأضف صورة (اختيارية) ومراجعة قصيرة والسعر وتقييمك.",
 			"done": "تم تسجيله كمأكول"
 		}
 	},

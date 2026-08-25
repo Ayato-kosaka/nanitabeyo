@@ -722,6 +722,10 @@ export class DishesService {
                 ? dishReviews.reduce((sum, r) => sum + r.rating, 0) /
                   dishReviews.length
                 : 0,
+            // #1375 この経路（一括取り込みの応答）はカテゴリ表を引いていないので null を返す。
+            // クライアントは «無ければ dish.name» へ落ちる（dishCategoryLabel.ts）ので表示は壊れない。
+            // ここで引くために join を足すと、取り込みのたびに余計な参照が増える
+            categoryLabels: null,
           },
           dish_media: {
             ...dishMedia,

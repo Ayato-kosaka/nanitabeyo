@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import { asApiList } from "@/lib/apiList";
 
 import { useAPICall } from "@/hooks/useAPICall";
 import type { QueryRestaurantDishMediaDto } from "@shared/api/v1/dto";
@@ -30,7 +31,7 @@ export function useRestaurantDishMediaFetcher(restaurantId: string) {
 				},
 			);
 			return {
-				data: response.data || [],
+				data: asApiList(response.data),
 				nextCursor: response.nextCursor,
 			};
 		},

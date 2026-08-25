@@ -43,6 +43,7 @@ import {
   QueryMeBlockedDishCategoriesDto,
   UnblockDishCategoryParamsDto,
   QueryMyDishesDto,
+  QueryMeDishCategoryGroupVotesDto,
 } from '@shared/v1/dto';
 import {
   GetUserProfileResponse,
@@ -58,6 +59,7 @@ import {
   UnblockDishCategoryResponse,
   QueryMyDishesResponse,
   QueryMeDishMapPinsResponse,
+  QueryMeDishCategoryGroupVotesResponse,
 } from '@shared/v1/res';
 
 // 横串 (Auth)
@@ -258,6 +260,34 @@ export class UsersController {
       user.id,
       query,
     );
+
+    return { data, nextCursor };
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*          GET /v1/users/me/dish-category-group-votes               */
+  /* ------------------------------------------------------------------ */
+  @Get('me/dish-category-group-votes')
+  @UseGuards(AuthAnonGuard)
+  @ApiBearerAuth()
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @ApiOperation({
+    summary: '自分が主催した dish_category グループ投票一覧',
+    description:
+      'host_user_id が自分のセッションだけを返す(参加しただけのセッションは含まない)。hasVoted は主催者自身が投票済みかを表す。',
+  })
+  @ApiQuery({
+    name: 'cursor',
+    required: false,
+    description: 'Cursor for pagination',
+  })
+  @ApiResponse({ status: 200, description: '取得成功' })
+  async getMeDishCategoryGroupVotes(
+    @Query() query: QueryMeDishCategoryGroupVotesDto,
+    @CurrentUser() user: RequestUser,
+  ): Promise<QueryMeDishCategoryGroupVotesResponse> {
+    const { data, nextCursor } =
+      await this.usersService.getMeDishCategoryGroupVotes(user.id, query);
 
     return { data, nextCursor };
   }

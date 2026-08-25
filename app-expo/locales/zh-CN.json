@@ -82,7 +82,22 @@
 		"submitFailed": "无法提交投票",
 		"participantsList": "参与者：{{names}}",
 		"noParticipants": "还没有参与者",
-		"noVotes": "还没有投票"
+		"noVotes": "还没有投票",
+		"myVotes": {
+			"pageTitle": "我的分组投票",
+			"loadFailed": "无法加载分组投票",
+			"noCandidates": "暂无候选",
+			"candidateSeparator": "、",
+			"candidateSummaryMore": "{{names}}等{{count}}项",
+			"participantSummary": "{{count}}人已投票",
+			"decidedLabel": "结果：{{name}}",
+			"votedLabel": "已投票",
+			"notVotedLabel": "未投票",
+			"itemAccessibilityLabel": "{{date}}的群组投票。{{summary}}。{{participants}}。{{status}}",
+			"emptyTitle": "您还没有发起过分组投票",
+			"emptyDescription": "搜索美食并选出候选后，就可以邀请朋友投票。",
+			"emptyAction": "创建投票"
+		}
 	},
 	"Error": {
 		"maintenanceMessage": "当前正在维护中。",
@@ -605,7 +620,8 @@
 		},
 		"actions": {
 			"selectDishCategory": "选择菜品类别",
-			"writeReviewForThisDish": "记录为吃过"
+			"writeReviewForThisDish": "记录为吃过",
+			"useTypedDishCategory": "使用“{{name}}”"
 		},
 		"inputs": {
 			"price": "价格",
@@ -622,14 +638,16 @@
 			"enterBidAmount": "输入出价金额",
 			"enterDishCategory": "输入菜品类别（例如：火锅、点心）",
 			"searchRestaurantsForReview": "按名称或区域搜索",
-			"searchAreaForReview": "按区域搜索"
+			"searchAreaForReview": "按区域搜索",
+			"searchDishCategory": "按菜品名称搜索"
 		},
 		"labels": {
 			"endDate": "结束日期:",
 			"paymentProcessing": "付款处理中...",
 			"restaurant": "餐厅",
 			"dishCategory": "菜品类别",
-			"dishesAtThisRestaurant": "这家店的菜品"
+			"dishesAtThisRestaurant": "这家店的菜品",
+			"noDishesAtThisRestaurant": "这家店还没有记录。请输入菜品名称。"
 		},
 		"tabs": {
 			"reviews": "评论"
@@ -832,6 +850,21 @@
 			"unblockMessage": "此菜品类别将重新添加到推荐中。",
 			"unblockConfirm": "取消屏蔽",
 			"unblocked": "已取消屏蔽"
+		},
+		"language": {
+			"navigationLabel": "语言",
+			"pageTitle": "语言",
+			"systemDefault": "跟随设备设置",
+			"switching": "正在切换语言…"
+		},
+		"hapticsEnabled": "触感反馈",
+		"deviceSettings": {
+			"navigationLabel": "设备设置",
+			"title": "设备设置",
+			"description": "这些设置仅保存在本设备上，不会同步到其他设备或账号。"
+		},
+		"myGroupVotes": {
+			"navigationLabel": "我的分组投票"
 		}
 	},
 	"Dialog": {
@@ -1005,7 +1038,8 @@
 				"description": "按当前显示记录中最多的菜品类别筛选",
 				"count": "{{label}}（{{count}}）",
 				"showAll": "查看更多（还有{{count}}个）"
-			}
+			},
+			"activeCount": "已启用 {{count}} 个筛选条件"
 		},
 		"empty": {
 			"description": "你收藏或记录为已吃过的美食会显示在这里。"
@@ -1051,7 +1085,8 @@
 					"title": "多起来之后在这里筛选",
 					"body": "可按“想吃／吃过”、菜品、区域、和谁一起、时间段筛选。它是用来减少纠结的，不是用来增加选项的。"
 				}
-			}
+			},
+			"replay": "重新观看教程"
 		}
 	},
 	"SnsImport": {
@@ -1114,7 +1149,7 @@
 			"pickRestaurant": "选择店铺",
 			"pick": "选择",
 			"change": "更改",
-			"hint": "请先选择店铺。之后可以填写照片、一句点评、菜品类别、价格和推荐度（照片可选）。",
+			"hint": "请先选择餐厅，然后选择菜品，再填写照片（可选）、简短评价、价格和推荐度。",
 			"done": "已记录为吃过"
 		}
 	},

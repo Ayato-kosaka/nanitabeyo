@@ -15,7 +15,7 @@ import { useLogger } from "@/hooks/useLogger";
 import { getCacheKeyForImage } from "@/lib/image";
 import i18n from "@/lib/i18n";
 import type { MyDishItem } from "@shared/api/v1/res";
-import { MyDishEatenButton } from "./myDishCard";
+import { MyDishEatenButton, resolveMyDishTitle } from "./myDishCard";
 import { MY_DISHES_EVENTS } from "../analytics";
 import { buildMarkAsEatenRoute } from "../markAsEaten";
 import { beginMarkAsEaten } from "../markAsEatenFunnel";
@@ -72,7 +72,9 @@ const MyDishCard = memo(function MyDishCard({
 		onPress(item);
 	}, [item, lightImpact, onPress]);
 
-	const dishName = item.dish.name ?? undefined;
+	// #1375（オーナー実機指摘「リストで食べたのうどんがローマ字になってる」）
+	// カテゴリの正式表記を優先する（規則は `resolveMyDishTitle` に集約）
+	const dishName = resolveMyDishTitle(item) ?? undefined;
 	const rating = item.myReview?.rating ?? null;
 
 	return (

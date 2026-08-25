@@ -112,13 +112,26 @@ export default function DishMediaMap({
 		() => `${entriesKey}::${idType}::${ids.join(",")}`,
 		[entriesKey, idType, ids],
 	);
+	const [currentIndex, setCurrentIndex] = useState(initialIndex);
+
+	/*
+	#1375（全画面のクラッシュ棚卸し）**preload は «見えている周辺» だけ。**
+
+	以前は ids 全件を同時に `Image.loadAsync` していた。全画面サイズのビットマップを
+	一斉にデコードするので、開いた瞬間にメモリが跳ね、Android の低メモリ端末で落ちる。
+	`DishMediaFeed` は同じ理由で既に窓化してあり（そちらのコメント参照）、
+	**この検索結果カルーセルだけが全件のまま残っていた。** 窓の外は表示時に通常経路で読まれる。
+	*/
+	const preloadIds = useMemo(() => {
+		const start = Math.max(0, currentIndex - 1);
+		return ids.slice(start, currentIndex + 3);
+	}, [ids, currentIndex]);
 	const { getBackgroundImageState } = useDishMediaBackgroundImageResources({
-		ids,
+		ids: preloadIds,
 		idType,
 		sessionKey: backgroundImagesSessionKey,
 	});
 
-	const [currentIndex, setCurrentIndex] = useState(initialIndex);
 	const carouselRef = useRef<any>(null);
 	const mapRef = useRef<any>(null);
 	const { selectionChanged } = useHaptics();
@@ -319,6 +332,11 @@ export default function DishMediaMap({
 						id={item}
 						carouselRef={carouselRef}
 						isActive={index === currentIndex}
+						// #1375（全画面のクラッシュ棚卸し）動画プレイヤーは «見えている ±1» だけ実体化する。
+						// 既定は true なので、指定しないとカルーセルがマウントしたセルぶん
+						// デコーダが同時に立つ（`DishMediaContent` の isNearActive の申し送り参照）。
+						// `DishMediaFeed` は同じ理由で既に絞ってあり、ここだけ既定のままだった
+						isNearActive={Math.abs(index - currentIndex) <= 1}
 						getTitle={getTitle}
 						sessionId={sessionId.current}
 						entriesKey={entriesKey}

@@ -1,23 +1,25 @@
 /*
 #1375（案 A）埋め込みの切り取り計算。
 
-守るのは 3 点。
+守るのは 4 点。
 1. 写真がセルを必ず覆う（**隙間＝黒帯を作らない**）。これが案 A の目的そのもの
-2. 写真の中心がセルの中心に来る
-3. Instagram のヘッダといいね欄がセルの外へ出る（＝ 切り取られる）
+2. Instagram のヘッダといいね欄がセルの外へ出る（＝ 切り取られる）
+3. **埋め込み本体をセル幅より広くしない**（広げると Android が真っ黒になる）
+4. 寸法が確定するまでは何も返さない
 */
-import { EMBED_HEADER_RATIO, EMBED_MEDIA_ASPECT, computeEmbedCropLayout, type EmbedCropLayout } from "./embedCrop";
+import {
+	EMBED_FRAME_HEIGHT_RATIO,
+	EMBED_HEADER_RATIO,
+	EMBED_MEDIA_ASPECT,
+	computeEmbedCropLayout,
+	type EmbedCropLayout,
+} from "./embedCrop";
 
-/** 切り取り枠の中で、写真がどこに来るか */
-const mediaRect = (layout: EmbedCropLayout) => {
-	const top = layout.top + layout.frameWidth * EMBED_HEADER_RATIO;
-	return {
-		left: layout.left,
-		right: layout.left + layout.frameWidth,
-		top,
-		bottom: top + layout.frameWidth * EMBED_MEDIA_ASPECT,
-	};
-};
+/** 拡大後に、写真の箱がどれだけの大きさになるか */
+const scaledMedia = (layout: EmbedCropLayout) => ({
+	width: layout.frameWidth * layout.scale,
+	height: layout.mediaHeight * layout.scale,
+});
 
 /** 実機・実端末で出うるセル寸法 */
 const CELLS = [
@@ -31,37 +33,47 @@ describe("computeEmbedCropLayout", () => {
 	it.each(CELLS)("$name: 写真がセル全体を覆う（黒帯を作らない）", ({ width, height }) => {
 		const layout = computeEmbedCropLayout({ width, height });
 		expect(layout).not.toBeNull();
-		const media = mediaRect(layout!);
-
-		// 写真の矩形がセル（0,0)-(width,height）を完全に含んでいること
-		expect(media.left).toBeLessThanOrEqual(0);
-		expect(media.top).toBeLessThanOrEqual(0);
-		expect(media.right).toBeGreaterThanOrEqual(width);
-		expect(media.bottom).toBeGreaterThanOrEqual(height);
+		const media = scaledMedia(layout!);
+		// 箱は中央寄せで置くので、縦横とも «セル以上» なら覆えている
+		expect(media.width).toBeGreaterThanOrEqual(width);
+		expect(media.height).toBeGreaterThanOrEqual(height);
 	});
 
-	it.each(CELLS)("$name: 写真の中心がセルの中心に来る", ({ width, height }) => {
-		const media = mediaRect(computeEmbedCropLayout({ width, height })!);
-		expect((media.left + media.right) / 2).toBeCloseTo(width / 2, 5);
-		expect((media.top + media.bottom) / 2).toBeCloseTo(height / 2, 5);
+	/**
+	 * #1375 実機 Detox（run 32724564583 / 32727534712）で **Android だけ真っ黒**になった。
+	 *
+	 * 最初の実装は «埋め込み本体をセルの高さぶんの幅まで引き伸ばす» 方式で、実寸 2000px を
+	 * 超える幅を WebView へ渡していた。Android の WebView は与えられた寸法ぶんの描画面を
+	 * 確保するため、そこまで大きいと何も描かれない（iOS には同じ上限が無く描けていた）。
+	 *
+	 * 本体は素の幅のまま置き、拡大は transform（プラットフォームのビュー変換で、
+	 * 新しい描画面を作らない）で行う。ここが再び大きくなると Android が黒に戻る。
+	 */
+	it.each(CELLS)("$name: 埋め込み本体をセル幅より広くしない（Android が描けなくなる）", ({ width }) => {
+		const layout = computeEmbedCropLayout({ width, height: 800 })!;
+		expect(layout.frameWidth).toBe(width);
+		// 高さも «ヘッダ + 写真» が収まる最小限
+		expect(layout.frameHeight).toBeCloseTo(width * EMBED_FRAME_HEIGHT_RATIO, 5);
 	});
 
-	it("Instagram のヘッダ帯はセルの上端より外（＝ 見えない）", () => {
+	it("ヘッダ帯は箱の外（上）へ出る＝ 1px も見えない", () => {
 		const layout = computeEmbedCropLayout({ width: 393, height: 759 })!;
-		// ヘッダ帯の下端 = 写真の上端。それが 0 以下なら帯は 1px も見えていない
-		expect(layout.top + layout.frameWidth * EMBED_HEADER_RATIO).toBeLessThanOrEqual(0);
+		// 本体を上へずらす量が、ちょうどヘッダ帯の高さ
+		expect(layout.frameTop).toBeCloseTo(-(layout.frameWidth * EMBED_HEADER_RATIO), 5);
+		expect(layout.frameTop).toBeLessThan(0);
 	});
 
-	it("いいね欄（写真の下）はセルの下端より外（＝ 見えない）", () => {
-		const cell = { width: 393, height: 759 };
-		const media = mediaRect(computeEmbedCropLayout(cell)!);
-		expect(media.bottom).toBeGreaterThanOrEqual(cell.height);
-	});
-
-	it("埋め込みの高さは写真の下端より下まである（下端が描かれないのを防ぐ）", () => {
+	it("いいね欄は箱の外（下）へ出る＝ 1px も見えない", () => {
 		const layout = computeEmbedCropLayout({ width: 393, height: 759 })!;
-		const mediaBottomInFrame = layout.frameWidth * (EMBED_HEADER_RATIO + EMBED_MEDIA_ASPECT);
-		expect(layout.frameHeight).toBeGreaterThan(mediaBottomInFrame);
+		// 箱の高さ = 写真の高さ。本体はそれより高いので、余りは下へはみ出して切られる
+		expect(layout.mediaHeight).toBeCloseTo(layout.frameWidth * EMBED_MEDIA_ASPECT, 5);
+		expect(layout.frameHeight + layout.frameTop).toBeGreaterThan(layout.mediaHeight);
+	});
+
+	it("拡大率は 1 倍を下回らない（縮めると隙間が出る）", () => {
+		for (const cell of CELLS) {
+			expect(computeEmbedCropLayout(cell)!.scale).toBeGreaterThanOrEqual(1);
+		}
 	});
 
 	it("寸法が確定していないときは null（中途半端な寸法で描かせない）", () => {

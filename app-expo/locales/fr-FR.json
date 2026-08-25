@@ -82,7 +82,22 @@
 		"submitFailed": "Impossible d'envoyer votre vote",
 		"participantsList": "Participants : {{names}}",
 		"noParticipants": "Aucun participant pour le moment",
-		"noVotes": "Aucun vote pour le moment"
+		"noVotes": "Aucun vote pour le moment",
+		"myVotes": {
+			"pageTitle": "Mes votes de groupe",
+			"loadFailed": "Impossible de charger vos votes de groupe",
+			"noCandidates": "Aucun choix",
+			"candidateSeparator": ", ",
+			"candidateSummaryMore": "{{names}} et {{count}} de plus",
+			"participantSummary": "{{count}} ont voté",
+			"decidedLabel": "Gagnant : {{name}}",
+			"votedLabel": "Vous avez voté",
+			"notVotedLabel": "Vous n'avez pas voté",
+			"itemAccessibilityLabel": "Vote de groupe du {{date}}. {{summary}}. {{participants}}. {{status}}",
+			"emptyTitle": "Vous n'avez encore lancé aucun vote de groupe",
+			"emptyDescription": "Cherchez un plat, proposez quelques choix et demandez à vos amis de voter.",
+			"emptyAction": "Créer un vote"
+		}
 	},
 	"Error": {
 		"maintenanceMessage": "Nous sommes actuellement en maintenance.",
@@ -606,7 +621,8 @@
 		},
 		"actions": {
 			"selectDishCategory": "Sélectionner la catégorie du plat",
-			"writeReviewForThisDish": "Enregistrer comme goûté"
+			"writeReviewForThisDish": "Enregistrer comme goûté",
+			"useTypedDishCategory": "Utiliser « {{name}} »"
 		},
 		"inputs": {
 			"price": "Prix",
@@ -623,14 +639,16 @@
 			"enterBidAmount": "Entrez le montant de l'enchère",
 			"enterDishCategory": "Entrez la catégorie de plat (ex: Crêpe, Ratatouille)",
 			"searchRestaurantsForReview": "Rechercher par nom ou zone",
-			"searchAreaForReview": "Rechercher par zone"
+			"searchAreaForReview": "Rechercher par zone",
+			"searchDishCategory": "Rechercher par nom de plat"
 		},
 		"labels": {
 			"endDate": "Date de fin:",
 			"paymentProcessing": "Traitement du paiement...",
 			"restaurant": "Restaurant",
 			"dishCategory": "Catégorie de plat",
-			"dishesAtThisRestaurant": "Plats de ce restaurant"
+			"dishesAtThisRestaurant": "Plats de ce restaurant",
+			"noDishesAtThisRestaurant": "Aucun plat enregistré ici. Saisissez un nom de plat."
 		},
 		"tabs": {
 			"reviews": "Avis"
@@ -832,6 +850,21 @@
 			"unblockMessage": "Cette catégorie de plat sera réajoutée aux recommandations.",
 			"unblockConfirm": "Débloquer",
 			"unblocked": "Débloqué"
+		},
+		"language": {
+			"navigationLabel": "Langue",
+			"pageTitle": "Langue",
+			"systemDefault": "Suivre les paramètres de l'appareil",
+			"switching": "Changement de langue en cours…"
+		},
+		"hapticsEnabled": "Retour haptique",
+		"deviceSettings": {
+			"navigationLabel": "Paramètres de l'appareil",
+			"title": "Paramètres de l'appareil",
+			"description": "Ces paramètres sont enregistrés uniquement sur cet appareil. Ils ne sont pas transférés vers d'autres appareils ou comptes."
+		},
+		"myGroupVotes": {
+			"navigationLabel": "Mes votes de groupe"
 		}
 	},
 	"Dialog": {
@@ -1005,7 +1038,8 @@
 				"description": "Filtrez par les catégories les plus fréquentes parmi les enregistrements affichés",
 				"count": "{{label}} ({{count}})",
 				"showAll": "Voir plus ({{count}} de plus)"
-			}
+			},
+			"activeCount": "{{count}} filtres actifs"
 		},
 		"empty": {
 			"description": "Les plats que vous enregistrez ou marquez comme goûtés apparaîtront ici."
@@ -1051,7 +1085,8 @@
 					"title": "Filtrez quand la liste s'allonge",
 					"body": "Filtrez par « à goûter / goûté », plat, quartier, avec qui et moment de la journée. C'est fait pour réduire les choix, pas pour en ajouter."
 				}
-			}
+			},
+			"replay": "Revoir le tutoriel"
 		}
 	},
 	"SnsImport": {
@@ -1114,7 +1149,7 @@
 			"pickRestaurant": "Choisir un établissement",
 			"pick": "Choisir",
 			"change": "Modifier",
-			"hint": "Choisissez d’abord l’établissement. Vous pourrez ensuite ajouter photo, avis court, catégorie, prix et note (photo facultative).",
+			"hint": "Choisissez d’abord un restaurant. Sélectionnez ensuite le plat, puis ajoutez une photo (facultative), un court avis, le prix et votre note.",
 			"done": "Enregistré comme mangé"
 		}
 	},

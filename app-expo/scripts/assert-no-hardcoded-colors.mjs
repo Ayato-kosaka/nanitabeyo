@@ -130,8 +130,6 @@ const EXCLUSIONS = {
 		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
 	"components/deepLinking/OpenInAppBanner.tsx":
 		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"contexts/DialogProvider.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
 	"features/auth/components/LoginForm.tsx":
 		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
 	"features/contributionTasks/legacyBlurModal/useLegacyBlurModal.tsx":

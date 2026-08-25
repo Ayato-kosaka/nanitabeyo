@@ -82,7 +82,22 @@
 		"submitFailed": "투표를 제출하지 못했습니다",
 		"participantsList": "참가자: {{names}}",
 		"noParticipants": "아직 참가자가 없습니다",
-		"noVotes": "아직 투표가 없습니다"
+		"noVotes": "아직 투표가 없습니다",
+		"myVotes": {
+			"pageTitle": "그룹 투표 내역",
+			"loadFailed": "그룹 투표를 불러올 수 없습니다",
+			"noCandidates": "후보 없음",
+			"candidateSeparator": ", ",
+			"candidateSummaryMore": "{{names}} 외 {{count}}개",
+			"participantSummary": "{{count}}명이 투표",
+			"decidedLabel": "결정: {{name}}",
+			"votedLabel": "투표 완료",
+			"notVotedLabel": "미투표",
+			"itemAccessibilityLabel": "{{date}}의 그룹 투표. {{summary}}. {{participants}}. {{status}}",
+			"emptyTitle": "아직 주최한 그룹 투표가 없습니다",
+			"emptyDescription": "음식을 검색해 후보를 고르면 친구들에게 투표를 요청할 수 있어요.",
+			"emptyAction": "투표 만들기"
+		}
 	},
 	"Error": {
 		"maintenanceMessage": "현재 점검 중입니다.",
@@ -606,7 +621,8 @@
 		},
 		"actions": {
 			"selectDishCategory": "요리 카테고리 선택",
-			"writeReviewForThisDish": "먹었어요로 기록"
+			"writeReviewForThisDish": "먹었어요로 기록",
+			"useTypedDishCategory": "“{{name}}”(으)로 결정"
 		},
 		"inputs": {
 			"price": "가격",
@@ -623,14 +639,16 @@
 			"enterBidAmount": "입찰 금액 입력",
 			"enterDishCategory": "요리 카테고리 입력 (예: 비빔밥, 불고기)",
 			"searchRestaurantsForReview": "이름이나 지역으로 검색",
-			"searchAreaForReview": "지역으로 검색"
+			"searchAreaForReview": "지역으로 검색",
+			"searchDishCategory": "요리 이름으로 검색"
 		},
 		"labels": {
 			"endDate": "종료일:",
 			"paymentProcessing": "결제 처리 중...",
 			"restaurant": "레스토랑",
 			"dishCategory": "요리 카테고리",
-			"dishesAtThisRestaurant": "이 가게의 요리"
+			"dishesAtThisRestaurant": "이 가게의 요리",
+			"noDishesAtThisRestaurant": "이 가게에는 아직 기록이 없습니다. 요리 이름을 입력하세요."
 		},
 		"tabs": {
 			"reviews": "리뷰"
@@ -832,6 +850,21 @@
 			"unblockMessage": "이 요리 카테고리가 추천에 다시 추가됩니다.",
 			"unblockConfirm": "차단 해제",
 			"unblocked": "차단 해제됨"
+		},
+		"language": {
+			"navigationLabel": "언어",
+			"pageTitle": "언어",
+			"systemDefault": "기기 설정을 따름",
+			"switching": "언어를 전환하는 중…"
+		},
+		"hapticsEnabled": "햅틱 피드백",
+		"deviceSettings": {
+			"navigationLabel": "기기 설정",
+			"title": "기기 설정",
+			"description": "이 기기에만 저장되는 설정입니다. 다른 기기나 계정으로는 이어지지 않습니다."
+		},
+		"myGroupVotes": {
+			"navigationLabel": "그룹 투표 내역"
 		}
 	},
 	"Dialog": {
@@ -1005,7 +1038,8 @@
 				"description": "지금 표시된 기록 중에서 많은 요리 카테고리로 좁힙니다",
 				"count": "{{label}}（{{count}}）",
 				"showAll": "더 보기 (외 {{count}}개)"
-			}
+			},
+			"activeCount": "필터 {{count}}개 적용 중"
 		},
 		"empty": {
 			"description": "저장하거나 먹었다고 기록한 음식이 여기에 표시됩니다."
@@ -1051,7 +1085,8 @@
 					"title": "늘어나면 여기서 좁힙니다",
 					"body": "«먹고 싶다 / 먹었다»·요리·지역·누구와·시간대로 좁힐 수 있습니다. 선택지를 늘리기 위해서가 아니라 고민을 줄이기 위한 도구입니다."
 				}
-			}
+			},
+			"replay": "튜토리얼 다시 보기"
 		}
 	},
 	"SnsImport": {
@@ -1114,7 +1149,7 @@
 			"pickRestaurant": "가게 고르기",
 			"pick": "고르기",
 			"change": "변경",
-			"hint": "먼저 가게를 고르세요. 그다음 사진·한줄 리뷰·요리 카테고리·가격·추천도를 입력할 수 있습니다（사진은 선택）.",
+			"hint": "먼저 가게를 선택하세요. 그다음 요리를 고르고 사진(선택)·한 줄 리뷰·가격·추천도를 입력할 수 있습니다.",
 			"done": "먹었다를 기록했습니다"
 		}
 	},

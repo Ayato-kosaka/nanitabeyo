@@ -57,6 +57,7 @@ export {
 	type MyDishFeatureType,
 } from "./users/query-my-dishes.dto";
 export { UnblockDishCategoryParamsDto } from "./users/unblock-dish-category-params.dto";
+export { QueryMeDishCategoryGroupVotesDto } from "./users/query-me-dish-category-group-votes.dto";
 
 export { CreateFeedbackDto } from "./feedback/create-feedback.dto";
 

@@ -7,16 +7,26 @@ import type { MyDishStatus } from "@shared/api/v1/dto";
  *
  * | 状態 | 見た目 |
  * | --- | --- |
- * | want（食べたい） | **白塗り + 赤枠**（まだ埋まっていない = これから） |
- * | eaten（食べた） | **赤塗り**（埋まった = 済んだ） |
+ * | want（食べたい） | **白塗り + オレンジ枠**（まだ埋まっていない = これから） |
+ * | eaten（食べた） | **オレンジ塗り**（埋まった = 済んだ） |
  *
  * 2 巡目〜5 巡目の途中までは «緑 = 食べたい / 赤 = 食べた» の色相分けだった。
  * オーナー指示で塗りの有無へ変えている。塗りの差は色覚に依存せず、
  * サムネイルの上でも «埋まっているか» が形として読める。
  *
- * ⚠️ これは **状態を区別するための記号色**であって、「赤を CTA 以外へ広げてよい」という
- * 意味ではない（`docs/design-guidelines.md` §1）。新しい画面へ赤を足したくなったら、
- * まず状態の記号かどうかを確かめること。
+ * ## 色相（7 巡目・オーナー指示でオレンジへ）
+
+ブランドの赤（`#F05537`）は **CTA（＋ボタン・投稿ボタン）の色**である。同じ色を状態の
+記号にも使っていたため、«押すもの» と «状態を表すだけのもの» が同じ強さで並んでいた。
+オーナー指示でオレンジへ分けた。
+
+⚠️ **`#ED6C02` は白文字とのコントラスト比 3.11:1** で、太字の数字・アイコン（UI 部品）の
+下限 3:1 を満たす。**これより明るいオレンジ（`#F97316` = 2.8、`#FB8C00` = 2.37）へ
+動かさないこと。** 上に載る白文字が読めなくなる。
+
+⚠️ これは **状態を区別するための記号色**であって、「この色を CTA 以外へ広げてよい」という
+意味ではない（`docs/design-guidelines.md` §1）。新しい画面へ足したくなったら、
+まず状態の記号かどうかを確かめること。
  *
  * ## 3 つ組で持つ理由
  *
@@ -33,12 +43,16 @@ export type MyDishStatusPaint = {
 	on: string;
 };
 
-/** ブランドの赤（`docs/design-guidelines.md` のパレット）。記号としてはこの 1 色だけを使う */
-const BRAND_RED = "#F05537";
+/**
+ * 状態の記号に使うオレンジ。記号としてはこの 1 色だけを使う。
+ *
+ * ⚠️ 明るくしない（白文字が読めなくなる。上のコントラストの注記を参照）。
+ */
+export const MY_DISH_STATUS_ORANGE = "#ED6C02";
 
 export const MY_DISH_STATUS_COLORS: Record<MyDishStatus, MyDishStatusPaint> = {
-	want: { fill: "#FFFFFF", border: BRAND_RED, on: BRAND_RED },
-	eaten: { fill: BRAND_RED, border: "#FFFFFF", on: "#FFFFFF" },
+	want: { fill: "#FFFFFF", border: MY_DISH_STATUS_ORANGE, on: MY_DISH_STATUS_ORANGE },
+	eaten: { fill: MY_DISH_STATUS_ORANGE, border: "#FFFFFF", on: "#FFFFFF" },
 };
 
 /** 件数の内訳。`countMyDishStatuses` の返り値 */

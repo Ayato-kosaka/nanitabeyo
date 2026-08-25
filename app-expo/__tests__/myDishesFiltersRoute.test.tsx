@@ -275,4 +275,25 @@ describe("#1396 my-dishes フィルタ編集ルート", () => {
 		expect(useMyDishesFilterStore.getState().filter.status).toEqual([]);
 		expect(useMyDishesFilterStore.getState().filter.area).toEqual({ lat: 35.68, lng: 139.76, radius: 1200 });
 	});
+
+	/*
+	#1375（オーナー指示 7 巡目）**「リセット → 戻る」で戻っていない、への対処。**
+
+	以前は「リセット」が下書きを戻すだけだったので、「適用」を押さずに戻ると
+	**何も起きなかった**。「リセット」は取り消しではなく «全部外す» という意思表示なので、
+	押した時点で反映する。
+
+	⚠️ ここが落ちたら、また «押したのに何も起きない» に戻っている。
+	*/
+	it("「リセット」は「適用」を押さなくてもその場で反映される", async () => {
+		useMyDishesFilterStore.getState().patch({ status: ["eaten"], minRating: 4, categoryIds: ["ramen"] });
+		const tree = await render(<MyDishesFiltersScreen />);
+
+		await press(tree, "my-dishes-filter-reset");
+
+		// 「適用」は押していない
+		expect(useMyDishesFilterStore.getState().filter.status).toEqual([]);
+		expect(useMyDishesFilterStore.getState().filter.minRating).toBeNull();
+		expect(useMyDishesFilterStore.getState().filter.categoryIds).toEqual([]);
+	});
 });
