@@ -43,7 +43,17 @@ export const INDEXABLE_ROUTES: readonly string[] = [
  * プッシュ通知・アプリ内共有・ブックマークから URL を直に踏まれる経路は現に存在する。
  * REL-01 で白画面になっていた 4 ルートのうち 2 本がここに当たる。
  */
-export const NON_INDEXABLE_DEEP_LINK_ROUTES: readonly string[] = ["profile", "notifications"];
+export const NON_INDEXABLE_DEEP_LINK_ROUTES: readonly string[] = [
+	"profile",
+	"notifications",
+	/*
+	#1583 設定から割り出した 2 画面。ログイン不要で中身が出る（表示テーマは端末ローカル、
+	なに食べよについては規約リンクと版数）ので、除外ではなくスモークの対象にしている。
+	問い合わせ対応で «バージョンを教えてください» と URL を直に渡す使い方も想定している。
+	*/
+	"profile/device-settings",
+	"profile/about",
+];
 
 /**
  * 直リンクスモーク（`e2e-web/tests/smoke/deep-link.spec.ts` /

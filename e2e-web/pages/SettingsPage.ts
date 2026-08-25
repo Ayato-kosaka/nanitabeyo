@@ -57,6 +57,12 @@ export class SettingsPage {
 	 * `themeCardSurface` はこの直上の要素で、Card の面色（`Palette.surface`）を持つ。
 	 */
 	readonly themeSelector: Locator;
+	/** #1583 設定 → 端末設定 の行 */
+	readonly deviceSettingsItem: Locator;
+	/** #1583 設定 → なに食べよについて の行 */
+	readonly aboutItem: Locator;
+	/** #1583 «なに食べよについて» の最終行（バージョン）。押せない行なので testID でしか掴めない */
+	readonly versionRow: Locator;
 	/**
 	 * テーマセレクタを載せている Card の面。
 	 *
@@ -84,6 +90,10 @@ export class SettingsPage {
 		this.logoutConfirmButton = this.logoutConfirmDialog.getByRole("button", { name: "ログアウト" });
 		this.logoutCancelButton = this.logoutConfirmDialog.getByRole("button", { name: "キャンセル" });
 		this.themeSelector = page.getByTestId("settings-theme-selector");
+		// #1583 設定画面から各ページへ送る行
+		this.deviceSettingsItem = page.getByTestId("settings-device-settings");
+		this.aboutItem = page.getByTestId("settings-about");
+		this.versionRow = page.getByTestId("settings-version");
 		this.themeCardSurface = this.themeSelector.locator("xpath=..");
 	}
 
@@ -135,6 +145,38 @@ export class SettingsPage {
 	/** 指定 URL へ直接遷移する（locale プレフィックス必須） */
 	async goto(locale = "ja-JP"): Promise<void> {
 		await this.page.goto(`/${locale}/profile/settings`);
+	}
+
+	/*
+	#1583 設定は 3 画面に割れた。
+	  設定 … ご意見・不具合 / ブロック済み / 通知 / （端末設定へ）/（なに食べよについてへ）
+	  端末設定 … 表示テーマ
+	  なに食べよについて … 応援する / 規約 4 種 / バージョン
+	テーマとリーガルの行は **設定画面には無い**ので、下の 2 つで先に移動すること。
+	*/
+
+	/** #1583 端末設定ページ（表示テーマ）へ直接遷移する */
+	async gotoDeviceSettings(locale = "ja-JP"): Promise<void> {
+		await this.page.goto(`/${locale}/profile/device-settings`);
+		await expect(this.themeSelector).toBeVisible();
+	}
+
+	/** #1583 «なに食べよについて» ページ（規約 / 版数）へ直接遷移する */
+	async gotoAbout(locale = "ja-JP"): Promise<void> {
+		await this.page.goto(`/${locale}/profile/about`);
+		await expect(this.termsItem).toBeVisible();
+	}
+
+	/** #1583 設定画面から «端末設定» の行をタップして移動する（導線そのものの検証用） */
+	async openDeviceSettingsFromSettings(): Promise<void> {
+		await this.deviceSettingsItem.click();
+		await expect(this.themeSelector).toBeVisible();
+	}
+
+	/** #1583 設定画面から «なに食べよについて» の行をタップして移動する（導線そのものの検証用） */
+	async openAboutFromSettings(): Promise<void> {
+		await this.aboutItem.click();
+		await expect(this.termsItem).toBeVisible();
 	}
 
 	/** 設定画面が表示されていることを検証する */

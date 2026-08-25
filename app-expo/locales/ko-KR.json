@@ -728,7 +728,6 @@
 			}
 		},
 		"sendFeedback": "피드백 보내기",
-		"leaveReview": "리뷰 남기기",
 		"rateDialogTitle": "앱이 마음에 드시나요?",
 		"rateDialogMessage": "마음에 드신다면 스토어에서 평가 부탁드립니다. 리뷰 페이지를 열겠습니다.",
 		"rateDialogOk": "지금 평가하기",
@@ -770,7 +769,11 @@
 			"unblockMessage": "이 요리 카테고리가 추천에 다시 추가됩니다.",
 			"unblockConfirm": "차단 해제",
 			"unblocked": "차단 해제됨"
-		}
+		},
+		"support": "CraveCatch 응원하기",
+		"deviceSettings": "기기 설정",
+		"about": "CraveCatch 정보",
+		"version": "버전"
 	},
 	"Dialog": {
 		"a11y": {

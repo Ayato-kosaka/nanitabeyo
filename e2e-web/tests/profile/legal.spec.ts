@@ -48,21 +48,24 @@ test.describe("法務ドキュメント画面", () => {
 	// 手順:
 	//   1. 設定画面を表示する
 	//   2. 利用規約行をクリックし、/legal/terms へ遷移することを検証
-	//   3. ヘッダーの戻るボタンで離脱し、設定画面へ戻ることを検証
+	//   3. ヘッダーの戻るボタンで離脱し、«なに食べよについて» へ戻ることを検証（#1583）
 	test("設定の利用規約行から開き、戻るボタンで設定へ帰る", async ({ appPage }) => {
 		const settingsPage = new SettingsPage(appPage);
 		const legalPage = new LegalPage(appPage);
 
+		// #1583 規約は «なに食べよについて» ページへ移った。設定からの導線ごと踏む
 		await settingsPage.goto();
 		await settingsPage.expectLoaded();
+		await settingsPage.openAboutFromSettings();
 
 		await settingsPage.termsItem.click();
 		await legalPage.expectOpened("terms");
 
 		await legalPage.goBack();
 
-		await expect(appPage).toHaveURL(/\/ja-JP\/profile\/settings/);
-		await expect(settingsPage.title).toBeVisible();
+		// #1583 戻り先は開いた元の «なに食べよについて»
+		await expect(appPage).toHaveURL(/\/ja-JP\/profile\/about/);
+		await expect(settingsPage.termsItem).toBeVisible();
 	});
 
 	// ─ テストケース: ブラウザバックでも設定へ戻る ─
@@ -71,21 +74,24 @@ test.describe("法務ドキュメント画面", () => {
 	// 手順:
 	//   1. 設定画面からプライバシーポリシーを開く
 	//   2. ブラウザバックする
-	//   3. 設定画面へ戻ることを検証
+	//   3. «なに食べよについて» へ戻ることを検証（#1583）
 	test("ブラウザバックで設定画面へ戻る", async ({ appPage }) => {
 		const settingsPage = new SettingsPage(appPage);
 		const legalPage = new LegalPage(appPage);
 
+		// #1583 規約は «なに食べよについて» ページへ移った。設定からの導線ごと踏む
 		await settingsPage.goto();
 		await settingsPage.expectLoaded();
+		await settingsPage.openAboutFromSettings();
 
 		await settingsPage.privacyItem.click();
 		await legalPage.expectOpened("privacy");
 
 		await appPage.goBack();
 
-		await expect(appPage).toHaveURL(/\/ja-JP\/profile\/settings/);
-		await expect(settingsPage.title).toBeVisible();
+		// #1583 戻り先は開いた元の «なに食べよについて»
+		await expect(appPage).toHaveURL(/\/ja-JP\/profile\/about/);
+		await expect(settingsPage.termsItem).toBeVisible();
 	});
 
 	// ─ テストケース: 履歴が無い着地でも行き止まりにならない ─
@@ -104,7 +110,8 @@ test.describe("法務ドキュメント画面", () => {
 
 		await legalPage.goBack();
 
-		await expect(appPage).toHaveURL(/\/ja-JP\/profile\/settings/);
-		await expect(settingsPage.title).toBeVisible();
+		// #1583 戻り先は開いた元の «なに食べよについて»
+		await expect(appPage).toHaveURL(/\/ja-JP\/profile\/about/);
+		await expect(settingsPage.termsItem).toBeVisible();
 	});
 });

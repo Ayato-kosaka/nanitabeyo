@@ -130,6 +130,8 @@ jest.mock("react-native-paper", () => ({
 
 import { LoginForm } from "@/features/auth/components/LoginForm";
 import SettingsScreen from "../app/[locale]/(tabs)/profile/settings";
+// #1583 リーガル 4 行は «なに食べよについて» ページへ移った
+import AboutScreen from "../app/[locale]/(tabs)/profile/about";
 import LegalDocumentScreen from "../app/[locale]/legal/[doc]";
 import { LEGAL_DOCUMENT_TYPES } from "@/lib/legalRoute";
 import { getLegalDocumentTitle } from "@/features/settings/components/LegalDocument";
@@ -173,7 +175,7 @@ beforeEach(() => {
 	mockLocalParams = {};
 });
 
-describe("#1368 設定画面のリーガル 4 行は /[locale]/legal/[doc] へ push する", () => {
+describe("#1368 リーガル 4 行は /[locale]/legal/[doc] へ push する（#1583 で «なに食べよについて» ページへ移設）", () => {
 	// 4 行はすべて同じハンドラを通るため、doc の取り違えは «行ごとに» 見ないと見つからない
 	it.each([
 		["settings-guidelines", "guidelines"],
@@ -181,7 +183,7 @@ describe("#1368 設定画面のリーガル 4 行は /[locale]/legal/[doc] へ p
 		["settings-privacy", "privacy"],
 		["settings-copyright", "copyright"],
 	])("%s は doc=%s で push する", async (testID, doc) => {
-		const tree = await render(<SettingsScreen />);
+		const tree = await render(<AboutScreen />);
 
 		await press(tree, testID);
 
@@ -194,10 +196,23 @@ describe("#1368 設定画面のリーガル 4 行は /[locale]/legal/[doc] へ p
 
 	// #1368 モーダルを «画面» へ移した本体。BlurModal の中身が残っていたら赤くする
 	it("legal-document-modal を描かない", async () => {
-		const tree = await render(<SettingsScreen />);
+		const tree = await render(<AboutScreen />);
 
 		expect(exists(tree, "legal-document-modal")).toBe(false);
 	});
+
+	/*
+	#1583 設定画面からは 4 行とも消えていること。
+	«移した» のではなく «about にも足した» になっていると、同じ導線が 2 箇所に増える。
+	*/
+	it.each(["settings-guidelines", "settings-terms", "settings-privacy", "settings-copyright"])(
+		"設定画面には %s が残っていない",
+		async (testID) => {
+			const tree = await render(<SettingsScreen />);
+
+			expect(exists(tree, testID)).toBe(false);
+		},
+	);
 });
 
 describe("#1368 ログインフォームの同意文言も同じルートへ push する", () => {
@@ -234,8 +249,9 @@ describe("#1368 リーガル導線を持つ 2 画面は portal を 1 つも持�
 	地図の店詳細がその形だった）。ただし今は push 元がどれもルートの中身なので、
 	そもそも portal を持ち込まないほうが正しい。
 	*/
-	it("設定画面は Portal を 1 つも描かない", async () => {
-		const tree = await render(<SettingsScreen />);
+	// #1583 リーガル導線が «なに食べよについて» ページへ移ったので、見る画面もそちらへ移した
+	it("«なに食べよについて» は Portal を 1 つも描かない", async () => {
+		const tree = await render(<AboutScreen />);
 		await press(tree, "settings-terms");
 
 		expect(mockPortal).not.toHaveBeenCalled();

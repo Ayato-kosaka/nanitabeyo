@@ -287,6 +287,15 @@ test.describe("UI カタログ（匿名） @catalog", () => {
 		await settingsPage.expectLoaded();
 		await captureScreen(appPage, "profile-settings");
 
+		// #1583 設定は 3 画面に割れた。割った先も 1 枚ずつ撮る
+		await captureScreenIfReachable(appPage, "profile-device-settings", async () => {
+			await settingsPage.openDeviceSettingsFromSettings();
+		});
+		await settingsPage.goto();
+		await settingsPage.expectLoaded();
+		await settingsPage.openAboutFromSettings();
+		await captureScreen(appPage, "profile-about");
+
 		// 実導線（設定の行）から遷移する。URL 直リンクでも同じ画面に着くが、
 		// 「設定から開ける」ことまでカタログの撮影経路に含めておく
 		await captureScreenIfReachable(appPage, "legal-terms", async () => {
@@ -296,7 +305,7 @@ test.describe("UI カタログ（匿名） @catalog", () => {
 
 		await captureScreenIfReachable(appPage, "legal-privacy", async () => {
 			await legalPage.goBack();
-			await settingsPage.expectLoaded();
+			await expect(settingsPage.termsItem).toBeVisible();
 			await settingsPage.privacyItem.click();
 			await legalPage.expectOpened("privacy");
 		});

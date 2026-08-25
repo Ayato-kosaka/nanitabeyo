@@ -728,7 +728,6 @@
 			}
 		},
 		"sendFeedback": "Envoyer des commentaires",
-		"leaveReview": "Laisser un avis",
 		"rateDialogTitle": "Appréciez-vous l'application ?",
 		"rateDialogMessage": "Si vous l'aimez, veuillez nous noter sur le store. Nous allons ouvrir la page d'avis.",
 		"rateDialogOk": "Évaluer maintenant",
@@ -770,7 +769,11 @@
 			"unblockMessage": "Cette catégorie de plat sera réajoutée aux recommandations.",
 			"unblockConfirm": "Débloquer",
 			"unblocked": "Débloqué"
-		}
+		},
+		"support": "Soutenir CraveCatch",
+		"deviceSettings": "Réglages de l'appareil",
+		"about": "À propos de CraveCatch",
+		"version": "Version"
 	},
 	"Dialog": {
 		"a11y": {

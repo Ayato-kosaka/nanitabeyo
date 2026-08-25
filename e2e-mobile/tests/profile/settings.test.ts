@@ -16,9 +16,11 @@ import { NotificationSettingsSection } from "../../screens/NotificationSettingsS
  * ## Web 版からの変更点（#1031 確定）
  * - e2e-web は `page.goto("/ja-JP/profile/settings")` で URL 直遷移するが、ネイティブには
  *   その代替経路が無いため、マイページの歯車ボタン（profile-settings-button）を実際にタップして遷移する。
- * - 「レビューを書く」（settings-leave-review）は Web では非表示だが、ネイティブでは表示される
- *   （`Platform.OS !== "web"` 条件、#1031 §1-1 の反転）。表示のみ検証し、タップはしない（M2: ストア誘導の
- *   Linking.openURL が実際に走ってしまうため）。
+ * - 「なに食べよ を応援する」（settings-leave-review。#1583 で「レビューを書く」から改称）は
+ *   Web では非表示だが、ネイティブでは表示される（`Platform.OS !== "web"` 条件、#1031 §1-1 の反転）。
+ *   表示のみ検証し、タップはしない（M2: ストア誘導の Linking.openURL が実際に走ってしまうため）。
+ * - #1583 で設定は 3 画面に割れた。応援する・規約 4 行は «なに食べよについて»、
+ *   表示テーマは «端末設定» にある。設定画面を開いただけでは見えない。
  */
 describe("設定画面（匿名ユーザー）", () => {
 	// #1031 【バグ】beforeAll だと前のテストが残した画面状態(開いたままのモーダル等)を次が引き継ぎ、
@@ -32,9 +34,8 @@ describe("設定画面（匿名ユーザー）", () => {
 	// 手順:
 	//   1. マイページタブ→歯車ボタンの実導線で設定画面へ遷移する
 	//   2. 以下の項目が表示されることを検証:
-	//      - ご意見・不具合(settings-feedback) / レビューを書く(settings-leave-review、ネイティブのみ)
-	//      - ブロック済みの料理トピック(settings-blocked-topics) / 利用規約(settings-terms)
-	//      - プライバシーポリシー(settings-privacy)
+	//      - ご意見・不具合(settings-feedback) / ブロック済みの料理トピック(settings-blocked-topics)
+	//      - 端末設定(settings-device-settings) / なに食べよについて(settings-about) ← #1583 で新設
 	it("設定メニューの各項目が表示される", async () => {
 		const tabBar = new TabBar();
 		const profileScreen = new ProfileScreen();
@@ -45,16 +46,40 @@ describe("設定画面（匿名ユーザー）", () => {
 		await settingsScreen.expectLoaded();
 
 		await waitUntilVisible(settingsScreen.feedbackItem);
-		await waitUntilVisible(settingsScreen.leaveReviewItem);
 		await waitUntilVisible(settingsScreen.blockedTopicsItem);
+		// #1583 ページへ送る 2 行
+		await waitUntilVisible(settingsScreen.deviceSettingsItem);
+		await waitUntilVisible(settingsScreen.aboutItem);
+	});
+
+	// ─ テストケース: «なに食べよについて» に応援する・規約・バージョンが揃う ─
+	// #1583 オーナー指定の中身。**«応援する» はネイティブでしか出ない**ので、
+	// この 1 本は web 側では代替できない（e2e-web は行が無いことを検証している）。
+	// 手順:
+	//   1. 設定画面から「なに食べよについて」行をタップする
+	//   2. 応援する / 規約 4 行 / バージョン行が表示されることを検証
+	it("«なに食べよについて» に応援する・規約・バージョンが揃う", async () => {
+		const tabBar = new TabBar();
+		const profileScreen = new ProfileScreen();
+		const settingsScreen = new SettingsScreen();
+
+		await tabBar.gotoProfile();
+		await profileScreen.gotoSettings();
+		await settingsScreen.expectLoaded();
+		await settingsScreen.openAbout();
+
+		await waitUntilVisible(settingsScreen.leaveReviewItem);
+		await waitUntilVisible(settingsScreen.guidelinesItem);
 		await waitUntilVisible(settingsScreen.termsItem);
 		await waitUntilVisible(settingsScreen.privacyItem);
+		await waitUntilVisible(settingsScreen.copyrightItem);
+		await waitUntilVisible(settingsScreen.versionRow);
 	});
 
 	// ─ テストケース: プライバシーポリシー行で法務ドキュメント画面へ遷移する ─
 	// 手順:
 	//   1. 設定画面を表示する
-	//   2. プライバシーポリシー行（settings-privacy）をタップする
+	//   2. «なに食べよについて» へ移動し、プライバシーポリシー行（settings-privacy）をタップする（#1583）
 	//   3. 法務ドキュメント画面（legal-screen-document）が表示されることを検証
 	//
 	// #1027 この検証はもともと #1031 B2 でログインモーダルの同意文言リンクに置く予定だったが、

@@ -39,7 +39,11 @@ export class SettingsScreen {
 	readonly title = by.text("設定");
 	/** ご意見・不具合（フィードバック）行（既存 testID） */
 	readonly feedbackItem = by.id("settings-feedback");
-	/** レビューを書く（ストア誘導）行。ネイティブのみ表示（既存 testID） */
+	/**
+	 * «なに食べよ を応援する»（ストア誘導）行。ネイティブのみ表示（testID は据え置き）。
+	 * #1583 でラベルが «レビューを書く» から変わり、置き場所も «なに食べよについて» ページへ移った。
+	 * **設定画面には無い。** `openAbout()` で移動してから触ること。
+	 */
 	readonly leaveReviewItem = by.id("settings-leave-review");
 	/**
 	 * ブロック済みの料理カテゴリ行（既存 testID）。
@@ -58,9 +62,17 @@ export class SettingsScreen {
 	readonly logoutItem = by.id("settings-logout");
 	/**
 	 * #1509 表示テーマの 3 択セレクタ（システム追従 / ライト / ダーク）。
-	 * 設定画面の最上段にあり、初期表示でスクロール無しに触れる。
+	 *
+	 * ⚠️ #1583 で **設定画面から «端末設定» ページへ移った**。設定画面を開いただけでは
+	 * 見えないので、`openDeviceSettings()` で移動してから触ること。
 	 */
 	readonly themeSelector = by.id("settings-theme-selector");
+	/** #1583 設定 → 端末設定 の行 */
+	readonly deviceSettingsItem = by.id("settings-device-settings");
+	/** #1583 設定 → なに食べよについて の行 */
+	readonly aboutItem = by.id("settings-about");
+	/** #1583 «なに食べよについて» の最終行（バージョン）。押せない行なので testID で掴む */
+	readonly versionRow = by.id("settings-version");
 	/**
 	 * ログアウト確認ダイアログのタイトル（ja-JP: `Settings.logoutConfirmTitle`）。
 	 * DialogProvider（react-native-paper の Dialog）はタイトルに testID を持たないため文字列で特定する。
@@ -97,6 +109,42 @@ export class SettingsScreen {
 	/** 設定画面が表示されていることを検証する */
 	async expectLoaded(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
 		await waitUntilVisible(this.title, timeout);
+	}
+
+	/*
+	#1583 設定は 3 画面に割れた。
+	  設定 … ご意見・不具合 / ブロック済み / 通知 / （端末設定へ）/（なに食べよについてへ）
+	  端末設定 … 表示テーマ
+	  なに食べよについて … 応援する / 規約 4 種 / バージョン
+	ネイティブには URL 直遷移が無いので、下の 2 つで実 UI 導線をタップして移動する。
+	*/
+
+	/** #1583 設定画面から «端末設定» ページへ移動する */
+	async openDeviceSettings(): Promise<void> {
+		await tapWhenVisible(this.deviceSettingsItem);
+		await waitUntilVisible(this.themeSelector);
+	}
+
+	/** #1583 設定画面から «なに食べよについて» ページへ移動する */
+	async openAbout(): Promise<void> {
+		await tapWhenVisible(this.aboutItem);
+		await waitUntilVisible(this.termsItem);
+	}
+
+	/**
+	 * #1583 «なに食べよについて» ページが出ていることを検証する。
+	 *
+	 * `expectLoaded()`（設定画面）と混同しないこと。規約 4 行から戻ったときの着地は
+	 * 設定画面ではなく **このページ**である。
+	 * `title` と違いロケール非依存の testID で見ている（ScreenHeader が `-title` を付ける）。
+	 */
+	async expectAboutLoaded(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
+		await waitUntilVisible(by.id("about-header-title"), timeout);
+	}
+
+	/** #1583 «端末設定» ページが出ていることを検証する */
+	async expectDeviceSettingsLoaded(timeout: number = DEFAULT_TIMEOUT): Promise<void> {
+		await waitUntilVisible(by.id("device-settings-header-title"), timeout);
 	}
 
 	/** テーマ 3 択の 1 行（#1509） */
@@ -154,6 +202,8 @@ export class SettingsScreen {
 
 	/** プライバシーポリシー行をタップして法務ドキュメント画面へ遷移する（#1368 でモーダル起動から変更） */
 	async openPrivacyPolicy(): Promise<void> {
+		// #1583 規約 4 行は «なに食べよについて» ページへ移った。先に移動してから押す
+		await this.openAbout();
 		await tapWhenVisible(this.privacyItem);
 	}
 
@@ -164,6 +214,8 @@ export class SettingsScreen {
 	 * **行ごとに**踏まないと見つからない。行の指定をここで引けるようにしておく。
 	 */
 	async openLegalDocument(doc: LegalDocumentKey): Promise<void> {
+		// #1583 規約 4 行は «なに食べよについて» ページへ移った。先に移動してから押す
+		await this.openAbout();
 		await tapWhenVisible(this.legalItemByDoc[doc]);
 	}
 

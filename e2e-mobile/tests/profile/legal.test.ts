@@ -38,7 +38,7 @@ describe("法務ドキュメント画面", () => {
 	//   1. マイページ→歯車で設定画面へ遷移する
 	//   2. 利用規約行をタップし、法務ドキュメント画面が開くことを検証
 	//   3. Android はハードウェアバック / iOS はヘッダーの戻るボタンで離脱する
-	//   4. 設定画面へ戻ってくることを検証
+	//   4. «なに食べよについて» へ戻ってくることを検証（#1583 で規約はそこへ移った）
 	it("設定から開き、戻る操作で設定へ帰る", async () => {
 		const tabBar = new TabBar();
 		const profileScreen = new ProfileScreen();
@@ -58,7 +58,8 @@ describe("法務ドキュメント画面", () => {
 			await legalScreen.goBack();
 		}
 
-		await settingsScreen.expectLoaded();
+		// #1583 規約は «なに食べよについて» から開くので、戻る先もそこ
+		await settingsScreen.expectAboutLoaded();
 	});
 
 	// ─ テストケース: 4 行それぞれが法務ドキュメント画面へ着く ─
@@ -85,6 +86,13 @@ describe("法務ドキュメント画面", () => {
 			await legalScreen.expectOpened();
 
 			await legalScreen.goBack();
+			// #1583 戻る先は «なに食べよについて»。次の周回のために設定画面まで戻す
+			await settingsScreen.expectAboutLoaded();
+			if (device.getPlatform() === "android") {
+				await device.pressBack();
+			} else {
+				await legalScreen.goBack();
+			}
 			await settingsScreen.expectLoaded();
 		}
 	});
