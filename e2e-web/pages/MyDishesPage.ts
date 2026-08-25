@@ -196,7 +196,18 @@ export class MyDishesPage {
 		} else {
 			await firstItem.click();
 		}
-		// 決まると写真の入口が出る（= 2 歩目へ進んだ）
+		// 決まると写真の入口が出る（= 2 歩目へ進んだ）。コメント欄はまだ出ない
+		await this.page.getByTestId("review-add-photo-placeholder").waitFor({ state: "visible", timeout: 30_000 });
+	}
+
+	/**
+	 * 写真の選択を済ませてフォームへ進む（#1375 オーナー指示 7 巡目で 1 歩に分かれた）。
+	 *
+	 * 既定は «写真なし»。web の E2E は OS のピッカーを開けないため、
+	 * 写真ありの経路は端末側（e2e-mobile）が受け持つ。
+	 */
+	async chooseMediaInRecordFlow(): Promise<void> {
+		await this.page.getByTestId("review-skip-photo").click();
 		await this.page.getByTestId("review-comment-input").waitFor({ state: "visible", timeout: 30_000 });
 	}
 

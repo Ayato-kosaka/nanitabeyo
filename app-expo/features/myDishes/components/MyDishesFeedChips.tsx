@@ -90,6 +90,17 @@ export const buildMyDishesFeedChips = (
 		// ⚠️ 名前が無い dish（SNS 取り込み等）で ID へ落とさない。「Q234646」のような
 		// Wikidata QID がそのまま chip に出て «何で絞るのか分からない» と実機で指摘された。
 		// ラベルにできる名前があるときだけ chip を出す
+		/*
+		#1375（オーナー実機指摘「うどんで絞ったら udon が出る」）**ここはまだローマ字が出うる。**
+
+		`dish.name` は «その店でのその料理の呼び名» で、SNS 取り込み由来だとローマ字が入る。
+		絞り込み画面（`my-dishes/filters.tsx`）は `dish_categories.labels` を使って
+		正式表記へ直したが、**この chip が読む `DishMediaEntry.dish` にはその項目がまだ無い**
+		（`GET /v1/dish-media` 系の契約。別の API 変更が要る）。
+
+		⚠️ ここを直すときは `features/myDishes/dishCategoryLabel.ts` の
+		`resolveDishCategoryLabel` を通すこと（規則を 2 つ作らない）。
+		*/
 		const name = entry?.dish.name || null;
 		if (name !== null) {
 			chips.push({

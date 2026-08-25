@@ -206,6 +206,19 @@ export function ReviewForm({
 	 * この一覧はそもそも出さない
 	 */
 	const [pickedExistingMedia, setPickedExistingMedia] = useState<ReviewFormProps["prefilledMedia"]>(undefined);
+
+	/*
+	#1375（オーナー指示 7 巡目）**写真の選択を «1 画面» にする。**
+
+	これまでは «写真の選び方» と «コメント・料理・価格・星» が 1 画面に同居しており、
+	最初に目に入るものが多すぎた。お店 → 料理カテゴリー と同じ粒度で、
+	写真も 1 歩として独立させる。
+
+	`mediaState.status === "none"` は «写真なしで記録する» と «まだ決めていない» の
+	両方を表してしまうので、**決めたかどうかは別に持つ**。
+	決まったとみなすのは «撮った / 選んだ / 既存から選んだ / «写真なし» を押した» の 4 つ。
+	*/
+	const [hasDecidedMedia, setHasDecidedMedia] = useState(false);
 	const activePrefilledMedia = prefilledMedia ?? pickedExistingMedia;
 	/** «画面の中で写真を選ぶ» 見た目を出しているか（高さを固定しない条件。下のコメント参照） */
 	const showsManualMediaChooser = mediaPickerMode === "manual" && !activePrefilledMedia;
@@ -263,6 +276,9 @@ export function ReviewForm({
 	検索動線（auto）は従来どおり写真ありきで始まる。
 	*/
 	const needsDishCategoryFirst = mediaPickerMode === "manual" && !prefilledMedia && !dishCategoryId;
+	/** 料理カテゴリーが決まったあとの «写真を選ぶ» の 1 歩。決めるまでフォームは出さない */
+	const needsMediaChoiceFirst =
+		mediaPickerMode === "manual" && !prefilledMedia && !needsDishCategoryFirst && !hasDecidedMedia;
 
 	// Internal state - isolated from parent re-renders
 	const [isProcessing, setIsProcessing] = useState(false);
@@ -483,6 +499,7 @@ export function ReviewForm({
 
 				// Success - set media and show form
 				setMediaState({ status: "success", media: result.media });
+				setHasDecidedMedia(true);
 				lightImpactRef.current(); // Haptic feedback on success
 				logFinished({ success: true, discarded: false });
 			} catch (error) {
@@ -598,6 +615,7 @@ export function ReviewForm({
 	 * ここから «写真あり» へはいつでも戻れる（placeholder は none のときに出ている）。
 	 */
 	const handleSkipPhoto = useCallback(() => {
+		setHasDecidedMedia(true);
 		lightImpact();
 		setMediaState({ status: "none" });
 	}, [lightImpact]);
@@ -831,7 +849,10 @@ export function ReviewForm({
 					isLiked: false,
 					likeCount: 0,
 					mediaUrl: mediaState.media.uri,
-					thumbnailImageUrl: mediaState.media.type === "video" ? mediaState.media.thumbnailUri! : mediaState.media.uri,
+					thumbnailImageUrl: mediaState.media.type === "video"
+						? // #1375 サムネイル生成に失敗すると `!` で undefined がストアへ入り、投稿直後だけ真っ黒なセルになる
+							(mediaState.media.thumbnailUri ?? mediaState.media.uri)
+						: mediaState.media.uri,
 					// #511 ローカルの uri をセットして読み込むため、処理済み状態にする
 					media_processing_status: "completed",
 					thumbnail_processing_status: "completed",
@@ -1101,17 +1122,23 @@ export function ReviewForm({
 									{/* #1375（5 巡目）「その下に既存のディッシュメディアから選べるように」。
 							    親から prefilledMedia が来ている画面（店舗フィードからの記録）では出さない
 							    — そちらは «そのメディアの記録» と決まっているため */}
-									{mediaPickerMode === "manual" && !prefilledMedia && (
+									{needsMediaChoiceFirst && (
 										/* #1375（6 巡目）先に決まった料理カテゴリーで絞る。
 								   «その料理の、この店の写真» だけが出る（決まっていなければ店全体） */
 										<ExistingDishMediaPicker
 											restaurantId={restaurant.id}
 											dishCategoryId={dishCategoryId}
-											onSelect={setPickedExistingMedia}
+											onSelect={(media) => {
+												setPickedExistingMedia(media);
+												setHasDecidedMedia(true);
+											}}
 										/>
 									)}
 									{/* スキップ。**小さく**（主導線ではないが、押せる必要がある） */}
-									{allowNoMedia && (
+									{/* #1375（オーナー指示 7 巡目）写真を «決めたあと» は畳む（入力の邪魔にしない）。
+									    ただし auto モード（ピッカーを開いてキャンセルした経路・#1398 B2）では
+									    «写真なしでも記録できる» ことを示す唯一の手段なので出し続ける */}
+									{allowNoMedia && !(mediaPickerMode === "manual" && hasDecidedMedia) && (
 										<TouchableOpacity
 											testID="review-skip-photo"
 											style={styles.skipPhotoButton}
@@ -1145,6 +1172,11 @@ export function ReviewForm({
 								</View>
 							)}
 						</View>
+						{/* #1375（オーナー指示 7 巡目）**写真を決めるまでフォームは出さない。**
+						    お店 → 料理カテゴリー → 写真 → 入力、と 1 歩ずつにする。
+						    最初から «写真の選び方 + コメント + 料理 + 価格 + 星» が同時に出ていると
+						    何をすればよいか読み取れない、というオーナー指摘への対処 */}
+						{!needsMediaChoiceFirst && (
 						<View style={styles.formContainer}>
 							{/* 
 					#644 【設計】レビュー入力フィールド仕様
@@ -1298,12 +1330,13 @@ export function ReviewForm({
 								{i18n.t("MyDishes.record.publicReviewNotice")}
 							</Text>
 						</View>
+						)}
 					</>
 				)}
 			</ScrollView>
 
 			{/* 投稿ボタン */}
-			{!isKeyboardVisible && (
+			{!isKeyboardVisible && !needsMediaChoiceFirst && !needsDishCategoryFirst && (
 				<View style={[styles.buttonContainer, { paddingBottom: 12 + insets.bottom }]}>
 					<PrimaryButton
 						testID="review-submit-button"

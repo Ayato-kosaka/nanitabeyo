@@ -73,6 +73,57 @@ export type ClusterScale = Pick<Region, "latitudeDelta" | "longitudeDelta">;
  */
 export const CLUSTER_SCALE_EPSILON = 0.05;
 
+/**
+ * #1375（実機: マップのクラッシュ）**間引きに使う «中心つき» の表示域。**
+ *
+ * `ClusterScale`（倍率だけ）は «pan では畳み直さない» ための型だが、その代償として
+ * 「いま見えている範囲か」を判定する材料が無い。東京を拡大していても北海道と福岡の
+ * ピンがマーカーとして作られ続けるのはこれが理由である。
+ * 間引きにだけ中心を渡し、**更新のしきい値を粗くする**ことで «pan のたびに畳み直さない»
+ * という元の狙いは保つ（`isSameClusterViewport`）。
+ */
+export type ClusterViewport = ClusterScale & { latitude?: number; longitude?: number };
+
+/**
+ * 表示域の何倍まで «画面の内» とみなすか。
+ *
+ * 1.0（＝ぴったり）にすると、指を離した直後に端のピンが消えて見える。
+ * 少し外まで作っておけば、次に指を離すまでの pan で «無かったものが湧く» ことがない。
+ */
+export const VIEWPORT_CULL_MARGIN = 1.6;
+
+/**
+ * 同時に描くマーカーの上限。
+ *
+ * ⚠️ API の上限（`MY_DISH_MAP_PINS_LIMIT` = 300）は **«返してよい件数» であって
+ * «同時に描いてよい件数» ではない。** View Marker は 1 個ごとにネイティブ側で
+ * ビットマップになるので、300 個は低メモリ端末が落ちる水準である。
+ * 画面に意味のある密度（畳んだあとの丸が 60 個）を上限に置く。
+ * 中心に近いものから残すので、切られるのは «画面の隅の、さらに外» である。
+ */
+export const MAX_RENDERED_CLUSTERS = 60;
+
+/**
+ * 間引きをやり直すほど表示域が動いたか。
+ *
+ * 倍率が変わっていない前提で、中心が delta の何割動いたら作り直すかを決める。
+ * `VIEWPORT_CULL_MARGIN` が 1.6 なので、0.25（＝ 25%）動いても
+ * «新しく画面に入ったピン» は既に作ってある余白の中に居る。
+ */
+export const VIEWPORT_CULL_EPSILON = 0.25;
+
+export function isSameClusterViewport(a: ClusterViewport, b: ClusterViewport): boolean {
+	if (!isSameClusterScale(a, b)) return false;
+	// 片方でも中心を持たない（＝間引きしない）なら、倍率だけで判断する
+	if (!Number.isFinite(a.latitude) || !Number.isFinite(b.latitude)) return true;
+	if (!Number.isFinite(a.longitude) || !Number.isFinite(b.longitude)) return true;
+	const movedLat = Math.abs((a.latitude as number) - (b.latitude as number));
+	const movedLng = Math.abs((a.longitude as number) - (b.longitude as number));
+	return (
+		movedLat < b.latitudeDelta * VIEWPORT_CULL_EPSILON && movedLng < b.longitudeDelta * VIEWPORT_CULL_EPSILON
+	);
+}
+
 export function isSameClusterScale(a: ClusterScale, b: ClusterScale): boolean {
 	const near = (x: number, y: number) => {
 		if (x === y) return true;
@@ -83,10 +134,12 @@ export function isSameClusterScale(a: ClusterScale, b: ClusterScale): boolean {
 	return near(a.latitudeDelta, b.latitudeDelta) && near(a.longitudeDelta, b.longitudeDelta);
 }
 
-export function clusterMyDishPins(pins: readonly MyDishPin[], region: ClusterScale | null): MyDishPinCluster[] {
-	const valid = pins.filter(
+export function clusterMyDishPins(pins: readonly MyDishPin[], region: ClusterViewport | null): MyDishPinCluster[] {
+	const finite = pins.filter(
 		(pin) => Number.isFinite(pin.restaurant.latitude) && Number.isFinite(pin.restaurant.longitude),
 	);
+	// #1375 表示域の外のピンは «マーカーにしない»。中心を持たない呼び出し（既存のテスト等）は素通し
+	const valid = cullPinsToViewport(finite, region);
 
 	const single = (pin: MyDishPin): MyDishPinCluster => ({
 		id: pin.restaurant.id,
@@ -122,7 +175,59 @@ export function clusterMyDishPins(pins: readonly MyDishPin[], region: ClusterSca
 		target.longitude += (longitude - target.longitude) / n;
 		target.id = `cluster:${target.pins[0].restaurant.id}`;
 	}
-	return clusters;
+	return capClusters(clusters, region);
+}
+
+/**
+ * 表示域（+ 余白）の外のピンを落とす。中心を持たない表示域なら何もしない。
+ *
+ * 経度の日付変更線またぎは考慮していない。このアプリの地図は
+ * ユーザーが手で動かした範囲しか扱わず、またいだ場合は «その回だけ片側が消える» に留まる
+ * （落ちも壊れもしない）ので、複雑さに見合わないと判断した。
+ */
+export function cullPinsToViewport(
+	pins: readonly MyDishPin[],
+	region: ClusterViewport | null,
+): MyDishPin[] {
+	if (!region) return [...pins];
+	const { latitude, longitude, latitudeDelta, longitudeDelta } = region;
+	if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return [...pins];
+	if (!(latitudeDelta > 0) || !(longitudeDelta > 0)) return [...pins];
+	const halfLat = (latitudeDelta * VIEWPORT_CULL_MARGIN) / 2;
+	const halfLng = (longitudeDelta * VIEWPORT_CULL_MARGIN) / 2;
+	return pins.filter(
+		(pin) =>
+			Math.abs(pin.restaurant.latitude - (latitude as number)) <= halfLat &&
+			Math.abs(pin.restaurant.longitude - (longitude as number)) <= halfLng,
+	);
+}
+
+/**
+ * 畳んだあとの丸を `MAX_RENDERED_CLUSTERS` 件まで切る。**中心に近い順に残す。**
+ *
+ * 間引き（`cullPinsToViewport`）を通しても、密集した都心をズームアウトで見ると
+ * 上限を超えることがある。そこで最後に «描く数» そのものを締める。
+ */
+export function capClusters(clusters: MyDishPinCluster[], region: ClusterViewport | null): MyDishPinCluster[] {
+	if (clusters.length <= MAX_RENDERED_CLUSTERS) return clusters;
+	const latitude = region?.latitude;
+	const longitude = region?.longitude;
+	if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+		return clusters.slice(0, MAX_RENDERED_CLUSTERS);
+	}
+	// 近い順に選ぶが、**返す並びは元の順序に戻す**（マーカーの並びが操作のたびに
+	// 入れ替わると、React の再利用が効かず作り直しになる）
+	const byDistance = clusters
+		.map((cluster, index) => {
+			const dLat = cluster.latitude - (latitude as number);
+			const dLng = cluster.longitude - (longitude as number);
+			return { index, distance: dLat * dLat + dLng * dLng };
+		})
+		.sort((a, b) => a.distance - b.distance)
+		.slice(0, MAX_RENDERED_CLUSTERS)
+		.map((entry) => entry.index)
+		.sort((a, b) => a - b);
+	return byDistance.map((index) => clusters[index]);
 }
 
 /**

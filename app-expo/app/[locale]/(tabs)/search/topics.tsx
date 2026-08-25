@@ -239,7 +239,7 @@ export default function TopicsScreen() {
 	const handleViewDetails = useCallback(
 		(topic: Topic, originRect?: CardRect) => {
 			// #633 【Blocker】params が undefined の場合は早期 return（クラッシュ防止）
-			if (!params) {
+			if (!params?.location) {
 				showSnackbar(i18n.t("Topics.errors.invalidSearchParams"));
 				return;
 			}
@@ -389,7 +389,7 @@ export default function TopicsScreen() {
 		createdGroupVoteRef.current = null;
 	}, [searchParams]);
 	const handleOpenGroupVote = useCallback(async () => {
-		if (!params) {
+		if (!params?.location) {
 			showSnackbar(i18n.t("Topics.errors.invalidSearchParams"));
 			return;
 		}
@@ -608,7 +608,7 @@ export default function TopicsScreen() {
 
 	const getDeepDiveOptions = useCallback(
 		(topic: Topic): TopicDeepDiveOption[] => {
-			if (!params) return [];
+			if (!params?.location) return [];
 			const cacheKey = `${locale}:${topic.categoryId}`;
 			const cached = deepDiveOptionsCacheRef.current.get(cacheKey);
 			if (cached) return cached;
@@ -688,7 +688,7 @@ export default function TopicsScreen() {
 
 	const handleDeepDive = useCallback(
 		(topic: Topic, option: TopicDeepDiveOption) => {
-			if (!params) return;
+			if (!params?.location) return;
 
 			const nextParams: SearchParams = { ...params };
 			if (option.featureType === "budget_intent") {
@@ -801,7 +801,7 @@ export default function TopicsScreen() {
 	const shouldShowReload = !!params && visibleTopics.length >= 0 && visibleTopics.length <= 3;
 
 	const handleReloadRecommendations = () => {
-		if (!params) return;
+		if (!params?.location) return;
 		showDialog(i18n.t("Topics.reloadDialog.message"), {
 			title: i18n.t("Topics.reloadDialog.title"),
 			okLabel: i18n.t("Topics.reloadDialog.confirm"),

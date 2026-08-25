@@ -82,7 +82,22 @@
 		"submitFailed": "无法提交投票",
 		"participantsList": "参与者：{{names}}",
 		"noParticipants": "还没有参与者",
-		"noVotes": "还没有投票"
+		"noVotes": "还没有投票",
+		"myVotes": {
+			"pageTitle": "我的分组投票",
+			"loadFailed": "无法加载分组投票",
+			"noCandidates": "暂无候选",
+			"candidateSeparator": "、",
+			"candidateSummaryMore": "{{names}}等{{count}}项",
+			"participantSummary": "{{count}}人已投票",
+			"decidedLabel": "结果：{{name}}",
+			"votedLabel": "已投票",
+			"notVotedLabel": "未投票",
+			"itemAccessibilityLabel": "{{date}}的群组投票。{{summary}}。{{participants}}。{{status}}",
+			"emptyTitle": "您还没有发起过分组投票",
+			"emptyDescription": "搜索美食并选出候选后，就可以邀请朋友投票。",
+			"emptyAction": "创建投票"
+		}
 	},
 	"Error": {
 		"maintenanceMessage": "当前正在维护中。",
@@ -785,6 +800,21 @@
 			"unblockMessage": "此菜品类别将重新添加到推荐中。",
 			"unblockConfirm": "取消屏蔽",
 			"unblocked": "已取消屏蔽"
+		},
+		"language": {
+			"navigationLabel": "语言",
+			"pageTitle": "语言",
+			"systemDefault": "跟随设备设置",
+			"switching": "正在切换语言…"
+		},
+		"hapticsEnabled": "触感反馈",
+		"deviceSettings": {
+			"navigationLabel": "设备设置",
+			"title": "设备设置",
+			"description": "这些设置仅保存在本设备上，不会同步到其他设备或账号。"
+		},
+		"myGroupVotes": {
+			"navigationLabel": "我的分组投票"
 		}
 	},
 	"Dialog": {
@@ -958,7 +988,8 @@
 				"description": "按当前显示记录中最多的菜品类别筛选",
 				"count": "{{label}}（{{count}}）",
 				"showAll": "查看更多（还有{{count}}个）"
-			}
+			},
+			"activeCount": "已启用 {{count}} 个筛选条件"
 		},
 		"empty": {
 			"description": "你收藏或记录为已吃过的美食会显示在这里。"
@@ -1004,7 +1035,8 @@
 					"title": "多起来之后在这里筛选",
 					"body": "可按“想吃／吃过”、菜品、区域、和谁一起、时间段筛选。它是用来减少纠结的，不是用来增加选项的。"
 				}
-			}
+			},
+			"replay": "重新观看教程"
 		}
 	},
 	"SnsImport": {

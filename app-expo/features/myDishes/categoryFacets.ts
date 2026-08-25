@@ -17,6 +17,7 @@ Wikidata QID をそのままユーザーに見せない、というフィード�
 （`MyDishesFeedChips.tsx`）。
 */
 import type { MyDishItem } from "@shared/api/v1/res";
+import { resolveDishCategoryLabel } from "./dishCategoryLabel";
 
 export type MyDishCategoryFacet = {
 	categoryId: string;
@@ -24,7 +25,17 @@ export type MyDishCategoryFacet = {
 	count: number;
 };
 
-export const buildCategoryFacets = (items: readonly MyDishItem[], limit = 8): MyDishCategoryFacet[] => {
+export const buildCategoryFacets = (
+	items: readonly MyDishItem[],
+	limit = 8,
+	/*
+	#1375（オーナー実機指摘「うどんで絞ったら udon が出る」）
+	表示名は **カテゴリの正式表記を優先**する。`dish.name` は «その店でのその料理の呼び名» で、
+	SNS 取り込み由来だとローマ字が入る。解決規則は `dishCategoryLabel.ts` にある。
+	既定は日本語（呼び出し側が必ず渡すが、引数を増やして既存の呼び出しを壊さないため）。
+	*/
+	locale = "ja-JP",
+): MyDishCategoryFacet[] => {
 	const byCategory = new Map<string, { count: number; labelCounts: Map<string, number> }>();
 	for (const item of items) {
 		const categoryId = item.dish?.category_id;
@@ -35,7 +46,7 @@ export const buildCategoryFacets = (items: readonly MyDishItem[], limit = 8): My
 			byCategory.set(categoryId, entry);
 		}
 		entry.count += 1;
-		const name = item.dish?.name;
+		const name = resolveDishCategoryLabel(item.dish?.categoryLabels, item.dish?.name, locale);
 		if (name) entry.labelCounts.set(name, (entry.labelCounts.get(name) ?? 0) + 1);
 	}
 

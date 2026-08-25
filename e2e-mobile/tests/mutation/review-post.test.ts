@@ -61,6 +61,7 @@ describeMutation("レビュー投稿 @mutation", () => {
 		// #1375（6 巡目）店が決まると **料理カテゴリー**の 1 歩目が出る。
 		// ここを通すまで写真もコメント欄も出ない（オーナー指示の «お店 → 料理 → 写真» の順）
 		await myDishes.chooseDishCategoryInRecordFlow("コーヒー", MyDishesScreen.FORM_TIMEOUT);
+		await myDishes.chooseMediaInRecordFlow({}, MyDishesScreen.FORM_TIMEOUT);
 
 		// メディア選択（E2E では固定画像）が解決するとフォーム本体が描画される
 		await myDishes.expectFormLoaded(MyDishesScreen.FORM_TIMEOUT);
