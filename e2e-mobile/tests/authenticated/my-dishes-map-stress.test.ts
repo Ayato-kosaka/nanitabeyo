@@ -60,11 +60,19 @@ describeAuthenticated("マップの絞り込みで落ちない @authenticated", 
 		const hadCluster = await existsNow(by.id("my-dishes-map-cluster"));
 		console.log(`[map-stress] マーカーの有無: pins=${hadPin} cluster=${hadCluster}`);
 
-		// 1) 地図をひたすら動かす。マーカーの焼き直しが止まっていなければ、
-		//    ここでネイティブヒープが積み上がる
+		/*
+		1) 地図をひたすら動かす。マーカーの焼き直しが止まっていなければ、
+		   ここでネイティブヒープが積み上がる。
+
+		⚠️ **上方向へスワイプしないこと。** 下部の常設シートは «上へ引くと Feed へ行く»
+		ジェスチャを持っており（`MyDishesMapSheet` の `onSwipeUp`）、上スワイプは
+		地図を動かさずに **画面ごと Feed へ遷移**する。run 32820076647 でそれを踏み、
+		「地図が消えた」＝ 落ちたように見える失敗になった（実際はアプリは生きていた）。
+		縦方向の pan は下向きだけで足りる。
+		*/
 		for (let i = 0; i < 6; i += 1) {
 			await element(map).swipe(i % 2 === 0 ? "left" : "right", "fast", 0.6);
-			await element(map).swipe(i % 2 === 0 ? "up" : "down", "fast", 0.4);
+			await element(map).swipe("down", "fast", 0.4);
 		}
 		await waitUntilVisible(map, DEFAULT_TIMEOUT); // ← ここで死んでいれば落ちる
 		await device.takeScreenshot("map-stress-02-after-pan");
@@ -88,6 +96,7 @@ describeAuthenticated("マップの絞り込みで落ちない @authenticated", 
 
 		// 最後にもう一度地図を動かして、まだ生きていることを確かめる
 		await element(map).swipe("left", "fast", 0.6);
+		await element(map).swipe("down", "fast", 0.4);
 		await waitUntilVisible(map, DEFAULT_TIMEOUT);
 		await device.takeScreenshot("map-stress-04-final");
 	});
