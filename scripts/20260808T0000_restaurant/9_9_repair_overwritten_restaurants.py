@@ -46,12 +46,12 @@ from pathlib import Path
 from typing import Any
 
 from google.api_core.exceptions import Forbidden
-from google.cloud import storage
+from google.cloud import bigquery, storage
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from pg_sync_common import connect_postgres  # noqa: E402
-from pipeline_common import configure_logging  # noqa: E402
+from pipeline_common import BigQueryPipeline, configure_logging  # noqa: E402
 
 LOGGER = logging.getLogger(__name__)
 
@@ -81,7 +81,13 @@ def parse_args() -> argparse.Namespace:
         help="gs://... 形式の同期前backup。省略時はprefix配下の最新を自動選択",
     )
     parser.add_argument(
-        "--mode", choices=["report", "restore"], default="report", help="既定はreport"
+        "--mode",
+        choices=["identify", "report", "restore"],
+        default="identify",
+        help=(
+            "identify=GCSを使わず被害行を特定するだけ（既定）、"
+            "report=backupと突き合わせて差分を出す、restore=backupの値へ戻す"
+        ),
     )
     parser.add_argument("--allow-public", action="store_true")
     return parser.parse_args()
@@ -209,9 +215,107 @@ def restore(connection: Any, backup: dict[str, dict[str, str]], damaged: list[di
     return updated
 
 
+def identify_without_backup(pipeline: BigQueryPipeline, connection: Any, schema: str) -> list[dict]:
+    """GCSを使わずに «ガードをすり抜けて上書きされた行» を特定する。
+
+    backup が読めない環境（同期SAはbucketへ書けるが読めない）でも、被害の
+    範囲だけは確定させたい。次の3つが同時に成り立つ行がそれである。
+
+      1. 同期に触られた（synced_at が入っている）
+      2. 同期より前から存在した（created_at が同期開始より古い）
+      3. 1_2 のスナップショットに居ない（＝ catalog 側で
+         existing_restaurant_id が付かず、新規行として上書きされた）
+
+    3 だけでは «同期で作られた行» と区別できないので 2 が要る。同期が
+    INSERT した行の created_at は DEFAULT now() で同期中の時刻になる。
+    """
+
+    sync = next(
+        iter(
+            pipeline.execute(
+                f"""
+                SELECT started_at
+                FROM `{pipeline.dataset_ref}.restaurant_pg_sync_logs`
+                WHERE started_at >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 30 DAY)
+                  AND pg_schema = @schema
+                  AND target_table = 'restaurants'
+                  AND NOT dry_run
+                  AND status = 'succeeded'
+                ORDER BY started_at DESC
+                LIMIT 1
+                """,
+                [bigquery.ScalarQueryParameter("schema", "STRING", schema)],
+            )
+        ),
+        None,
+    )
+    if sync is None:
+        raise RuntimeError("直近30日に成功した本番同期の記録がありません")
+    LOGGER.info("対象の同期: started_at=%s", sync.started_at)
+
+    snapshot_ids = [
+        row.source_record_id
+        for row in pipeline.execute(
+            f"""
+            SELECT DISTINCT source_record_id
+            FROM `{pipeline.dataset_ref}.restaurant_existing_pg_raw`
+            WHERE snapshot_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)
+            """
+        )
+    ]
+    LOGGER.info("1_2 スナップショットの行数: %d", len(snapshot_ids))
+
+    columns = ", ".join(DISPLAY_COLUMNS)
+    with connection.cursor() as cursor:
+        cursor.execute(
+            f"""
+            SELECT id::text, {columns}, created_at, synced_at
+            FROM restaurants
+            WHERE synced_at IS NOT NULL
+              AND created_at < %s
+              AND NOT (id::text = ANY(%s))
+            ORDER BY created_at
+            """,
+            (sync.started_at, snapshot_ids),
+        )
+        rows = cursor.fetchall()
+
+    found = []
+    for row in rows:
+        found.append(
+            {
+                "id": row[0],
+                "current": {
+                    column: row[index]
+                    for index, column in enumerate(DISPLAY_COLUMNS, start=1)
+                },
+                "created_at": str(row[len(DISPLAY_COLUMNS) + 1]),
+            }
+        )
+    return found
+
+
 def main() -> None:
     configure_logging()
     args = parse_args()
+
+    if args.mode == "identify":
+        pipeline = BigQueryPipeline()
+        connection = connect_postgres(args.schema, allow_public=args.allow_public)
+        try:
+            found = identify_without_backup(pipeline, connection, args.schema)
+            LOGGER.info("ガードをすり抜けて上書きされた行: %d件", len(found))
+            for entry in found:
+                LOGGER.info(
+                    "%s created_at=%s current=%s",
+                    entry["id"],
+                    entry["created_at"],
+                    json.dumps(entry["current"], ensure_ascii=False, default=str),
+                )
+        finally:
+            connection.rollback()
+            connection.close()
+        return
 
     client = storage.Client(project=os.getenv("GCP_PROJECT", "food-scroll"))
     blob = resolve_backup_blob(client, args.schema, args.backup_uri)
