@@ -31,6 +31,25 @@ description: >-
 
 ## B. 実機動画（Detox / CI）の手順
 
+⚠️ **`has-window-focus=false` で全滅したら、まず `beforeEachFailure.png` を見る。**
+
+Detox が
+`Waited for the root of the view hierarchy to have window focus and not request layout`
+で落ちたときは、**アプリではなく Android のシステムダイアログがフォーカスを奪っている**
+ことがある。run 32882521476 では «「Pixel Launcher」が繰り返し停止しています» の
+ANR ダイアログが被さっていた（`beforeEachFailure.png` に写っている。アプリ自体は
+その下で正常に描画されていた）。
+
+見分け方:
+
+- 失敗が **`beforeEach`（アプリ起動）で起きている**（`beforeEachFailure.png` が出る）
+- 同じエラーが **無関係なテストにも一斉に**出る
+- Detox の内部リトライで **失敗数が減る**（16 → 4 のように）。コードの欠陥なら減らない
+
+この形はエミュレータ側の事象なので、コードを触らずに 1 度だけ再実行して確かめる。
+**ただし «flake» で片付ける前に必ずスクリーンショットを見ること。** 要素が無いのか、
+ダイアログに覆われているのかは、絵を見れば 1 秒で分かる。
+
 ⚠️ **dispatch しただけで «走る» と思ってはいけない。cancelled で消える。**
 
 `e2e-mobile-test.yml` の concurrency は **ブランチ別ではなくグローバル**
