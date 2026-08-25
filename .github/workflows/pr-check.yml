@@ -158,3 +158,12 @@ jobs:
       # ローカル実測 約 21 秒。DB へは接続しない（スキーマの静的検証のみ）。
       - name: Prisma スキーマを検証
         run: pnpm --filter api exec prisma validate
+
+      # 入れ子になった `test()` / `it()` は **1 度も実行されない**のに構文としては正しく、
+      # tsc も eslint も気づかない。実際に 2 件、«assert していないのに緑» で残っていた:
+      #   - e2e-web/tests/profile/settings.spec.ts … バージョン検証の中へ通知カード検証が入れ子
+      #   - e2e-mobile/tests/profile/settings.test.ts … ハプティクスの it が閉じずに通知の it を飲み込む
+      # どちらもベース取り込みの衝突解消で «偶然» 見つかったもので、
+      # 見つからなければそのまま出ていた。ローカル実測 1 秒未満。
+      - name: e2e の spec に入れ子の test が無いことを確認
+        run: pnpm assert:no-nested-e2e-tests
