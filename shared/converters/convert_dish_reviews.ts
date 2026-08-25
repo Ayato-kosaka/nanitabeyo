@@ -26,6 +26,10 @@ export function convertSupabaseToPrisma_DishReviews(supabase: SupabaseDishReview
     imported_user_name: supabase.imported_user_name,
     imported_user_avatar: supabase.imported_user_avatar,
     created_at: new Date(supabase.created_at),
+    // #1513 編集・論理削除で追加した列
+    updated_at: new Date(supabase.updated_at),
+    lock_no: supabase.lock_no,
+    deleted_at: supabase.deleted_at ? new Date(supabase.deleted_at) : null,
   };
 }
 
@@ -49,5 +53,9 @@ export function convertPrismaToSupabase_DishReviews(prisma: PrismaDishReviews): 
     imported_user_name: prisma.imported_user_name,
     imported_user_avatar: prisma.imported_user_avatar,
     created_at: prisma.created_at?.toISOString() ?? null,
+    // #1513 編集・論理削除で追加した列
+    updated_at: prisma.updated_at?.toISOString() ?? null,
+    lock_no: prisma.lock_no,
+    deleted_at: prisma.deleted_at?.toISOString() ?? null,
   };
 }

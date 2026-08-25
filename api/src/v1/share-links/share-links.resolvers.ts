@@ -105,8 +105,10 @@ export class ShareLinkTargetResolvers {
     // 同じ ID を並べて上限を回避されないよう、重複は落としたうえで順序は保つ
     const uniqueIds = [...new Set(ids)];
 
-    const head = await this.prisma.dish_media.findUnique({
-      where: { id: uniqueIds[0] },
+    // #1513 論理削除済みの投稿は共有カードにも出さない。findUnique では
+    // deleted_at を where に足せないため findFirst に変えている
+    const head = await this.prisma.dish_media.findFirst({
+      where: { id: uniqueIds[0], deleted_at: null },
       select: {
         id: true,
         thumbnail_path: true,

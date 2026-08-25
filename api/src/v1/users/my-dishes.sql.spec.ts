@@ -41,8 +41,13 @@ describe('buildMyDishesPageQuery が組み立てる SQL', () => {
     expect(sql).toContain('my_save_ids AS MATERIALIZED (');
     expect(sql).toContain("target_type = 'dish_media'");
     // キャストはフェンスを通した後にだけ現れる
+    // #1513 で JOIN 条件に deleted_at が付き、間にコメント行も入ったので、
+    // 「フェンスの後に、削除済みを弾く JOIN が来ること」を 2 つに分けて見る
     expect(sql).toContain(
-      'FROM my_save_ids s JOIN dish_media dm ON dm.id = s.target_id::uuid',
+      'JOIN dish_media dm ON dm.id = s.target_id::uuid AND dm.deleted_at IS NULL',
+    );
+    expect(sql.indexOf('FROM my_save_ids s')).toBeLessThan(
+      sql.indexOf('JOIN dish_media dm ON dm.id = s.target_id::uuid'),
     );
 
     // フェンスの内側（reactions を直接読む部分）に ::uuid が無いこと。
@@ -224,7 +229,107 @@ describe('buildMyDishesPageQuery が組み立てる SQL', () => {
     expect(sql).toContain('ORDER BY dm.dish_id, s.created_at DESC, dm.id DESC');
     // eaten: created_dish_media_id。NULL のときだけ dish の最新メディアへ落とす
     expect(sql).toContain('dr.created_dish_media_id AS own_media_id');
+    // #1513 own_media_id は「生きているか」を om で 1 段挟んでから使う。
+    // ただし落とす条件は own_media_id が NULL のときだけ（削除済みでは落とさない）
+    expect(sql).toContain('om ON p.own_media_id IS NOT NULL');
+    expect(sql).toContain(
+      'WHERE dmo.id = p.own_media_id AND dmo.deleted_at IS NULL',
+    );
     expect(sql).toContain('fb ON p.own_media_id IS NULL');
+    expect(sql).toContain('COALESCE(om.id, fb.id) AS media_id');
+  });
+
+  /* -------- #1513 代表メディアの 3 ケース（削除済みでも差し替えない） -------- */
+
+  // 【設計】削除済みの自分のメディアは別の写真へ差し替えず、代表メディア NULL のまま返して
+  // UI 側で墓標を出す。差し替えると「自分の食べた記録の写真が勝手に別人の写真になる」ため。
+  //
+  // DB を立てないこのテストで担保できるのは SQL の形までなので、3 ケースそれぞれが
+  // media_id = COALESCE(om.id, fb.id) のどの経路で決まるかを、
+  // om / fb の JOIN 条件と述語で固定する。
+  describe('#1513 own_media_id と実体の生死で代表メディアが決まる', () => {
+    const laterals = (sql: string) => {
+      const omStart = sql.indexOf('LEFT JOIN LATERAL ( SELECT dmo.id');
+      const fbStart = sql.indexOf('LEFT JOIN LATERAL ( SELECT dm2.id');
+      const stStart = sql.indexOf('LEFT JOIN LATERAL ( SELECT COUNT(*)');
+      expect(omStart).toBeGreaterThan(-1);
+      expect(fbStart).toBeGreaterThan(omStart);
+      expect(stStart).toBeGreaterThan(fbStart);
+      return {
+        om: sql.slice(omStart, fbStart),
+        fb: sql.slice(fbStart, stStart),
+      };
+    };
+
+    // ケース 1: own_media_id が NULL（他人のメディアから書いたレビュー等）
+    //           → fb（その dish の最新の生きたメディア）へフォールバックする
+    it('own_media_id が NULL のときだけ fb（dish の最新の生きたメディア）へ落ちる', () => {
+      const { fb } = laterals(buildSql({}));
+
+      expect(fb).toContain('WHERE dm2.dish_id = p.dish_id');
+      expect(fb).toContain('AND dm2.deleted_at IS NULL');
+      expect(fb).toContain('ORDER BY dm2.created_at DESC, dm2.id DESC');
+      // フォールバックの発火条件は own_media_id の NULL だけ
+      expect(fb).toContain('fb ON p.own_media_id IS NULL');
+    });
+
+    // ケース 2: own_media_id が非 NULL かつ実体が生きている → そのメディアが代表になる
+    it('own_media_id が生きているならそのメディアを代表にする', () => {
+      const { om } = laterals(buildSql({}));
+
+      expect(om).toContain('WHERE dmo.id = p.own_media_id');
+      expect(om).toContain('AND dmo.deleted_at IS NULL');
+      expect(om).toContain('om ON p.own_media_id IS NOT NULL');
+      expect(buildSql({})).toContain('COALESCE(om.id, fb.id) AS media_id');
+    });
+
+    // ケース 3: own_media_id が非 NULL だが実体は削除済み
+    //           → om.id が NULL になり、fb は発火しないので media_id は NULL のまま返る。
+    //           これが「自分の写真を消したら別の写真に差し替わる」の再発防止テストである。
+    it('own_media_id が削除済みでも別の写真へ差し替えず、media_id を NULL で返す', () => {
+      const sql = buildSql({});
+      const { fb } = laterals(sql);
+
+      // om.id の NULL を fb の発火条件に使っていないこと（差し替えの原因はこれだった）
+      expect(fb).not.toContain('fb ON om.id IS NULL');
+      expect(sql).not.toContain('fb ON om.id IS NULL');
+      // 削除済みは om の中で弾かれる（= om.id が NULL）だけで、代表メディアは補われない
+      expect(sql).toContain('fb ON p.own_media_id IS NULL');
+      // その行自体は消さない（UI が墓標を出すため残す）
+      expect(sql).toContain('p.row_status');
+    });
+
+    // 行を消さない代わりに、UI が墓標を出せるフラグを返す
+    it('墓標フラグ（is_own_media_deleted）を SELECT に載せる', () => {
+      const sql = buildSql({});
+
+      expect(sql).toContain(
+        '(p.own_media_id IS NOT NULL AND om.id IS NULL) AS is_own_media_deleted',
+      );
+    });
+  });
+
+  it('#1513 代表メディアの候補にも集計にも論理削除済みの行を混ぜない', () => {
+    const sql = buildSql({});
+
+    // 候補集合（want / eaten の各枝）
+    expect(sql).toContain(
+      'JOIN dish_media dm ON dm.id = s.target_id::uuid AND dm.deleted_at IS NULL',
+    );
+    expect(sql).toContain('AND dr2.deleted_at IS NULL');
+    expect(sql).toContain(
+      'WHERE dr.user_id = ?::uuid AND dr.deleted_at IS NULL',
+    );
+    // ページ内 dish に限定した LATERAL（savedAt / フォールバック / 件数・平均）
+    expect(sql).toContain(
+      'WHERE dsv.dish_id = p.dish_id AND dsv.deleted_at IS NULL',
+    );
+    expect(sql).toContain(
+      'WHERE dm2.dish_id = p.dish_id AND dm2.deleted_at IS NULL',
+    );
+    expect(sql).toContain(
+      'WHERE dr3.dish_id = p.dish_id AND dr3.deleted_at IS NULL',
+    );
   });
 
   /* ---------------- #1397: restaurantId ---------------- */
@@ -524,8 +629,13 @@ describe('buildMyDishesOldestWantSaveQuery が組み立てる SQL', () => {
 
     expect(sql).toContain('my_save_ids AS MATERIALIZED (');
     expect(fence).not.toContain('target_id::uuid');
+    // #1513 で JOIN 条件に deleted_at が付き、間にコメント行も入ったので、
+    // 「フェンスの後に、削除済みを弾く JOIN が来ること」を 2 つに分けて見る
     expect(sql).toContain(
-      'FROM my_save_ids s JOIN dish_media dm ON dm.id = s.target_id::uuid',
+      'JOIN dish_media dm ON dm.id = s.target_id::uuid AND dm.deleted_at IS NULL',
+    );
+    expect(sql.indexOf('FROM my_save_ids s')).toBeLessThan(
+      sql.indexOf('JOIN dish_media dm ON dm.id = s.target_id::uuid'),
     );
   });
 });
@@ -545,6 +655,32 @@ describe('buildMyDishMapPinsQuery が組み立てる SQL', () => {
     expect(beforeUnion).not.toContain('LIMIT');
     // 一覧と同じフェンスを使う（map-pins だけ ::uuid が裸になっていないこと）
     expect(sql).toContain('my_save_ids AS MATERIALIZED (');
+  });
+
+  it('#1513 ピンの代表メディアにも論理削除済みの行を採らない', () => {
+    const query = buildMyDishMapPinsQuery(USER_ID, {});
+    expect(query).not.toBeNull();
+    const sql = normalize(query!.sql);
+
+    // 一覧（buildMyDishesPageQuery）と同じ om → fb の順で解決する
+    expect(sql).toContain('om ON top.own_media_id IS NOT NULL');
+    expect(sql).toContain(
+      'WHERE dmo.id = top.own_media_id AND dmo.deleted_at IS NULL',
+    );
+    expect(sql).toContain(
+      'WHERE dm3.dish_id = top.dish_id AND dm3.deleted_at IS NULL',
+    );
+    // #1513 一覧と同じく、フォールバックの発火条件は own_media_id の NULL だけ。
+    // 削除済みメディアを指していたときは差し替えず、代表メディア NULL のまま返す
+    expect(sql).toContain('fb ON top.own_media_id IS NULL');
+    expect(sql).not.toContain('fb ON om.id IS NULL');
+    expect(sql).toContain(
+      'LEFT JOIN dish_media dm ON dm.id = COALESCE(om.id, fb.id)',
+    );
+    // ピンも消さず、墓標フラグを返す
+    expect(sql).toContain(
+      '(top.own_media_id IS NOT NULL AND om.id IS NULL) AS is_own_media_deleted',
+    );
   });
 
   // #1375 独立レビュー（仕様ギャップ G4）: SNS 取り込みは自ストレージへの複製に失敗し得るため、

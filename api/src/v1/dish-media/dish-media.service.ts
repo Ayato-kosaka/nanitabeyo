@@ -5,7 +5,11 @@
 // ❸ “副作用” は出来るだけ Service で完結させ、Controller は薄く保つ
 //
 
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '../../../../shared/prisma/client';
 
 import {
@@ -28,7 +32,7 @@ import {
   isValidUserUploadedPath,
 } from 'src/core/storage/storage.utils';
 import { DishMediaAssembler } from './dish-media.assembler';
-import { DishMediaEntry } from '@shared/v1/res';
+import { DeleteDishMediaResponse, DishMediaEntry } from '@shared/v1/res';
 import { ClsService } from 'nestjs-cls';
 import { CLS_KEY_APP_LANGUAGE } from '../../core/cls/cls.constants';
 import { normalizePreferredLanguageCodes } from '../../../../shared/utils/languageCode';
@@ -110,6 +114,12 @@ export class DishMediaService {
       userId: string;
       reviewLimit?: number;
       preferredLanguageCodes?: readonly string[];
+      /**
+       * #1513 削除済みの行も返すか（既定 false）。
+       * true を渡してよいのは墓標「削除されました」を出す画面だけ。
+       * 詳細は `DishMediaRepository.getDishMediaEntriesByIds` の JSDoc を参照
+       */
+      includeDeleted?: boolean;
     },
   ): Promise<{ items: DishMediaEntry[] }> {
     if (!dishMediaIds.length) return { items: [] };
@@ -229,6 +239,83 @@ export class DishMediaService {
     });
 
     return convertPrismaToSupabase_DishMedia(result);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*             DELETE /v1/dish-media/:id (投稿の削除) #1513            */
+  /* ------------------------------------------------------------------ */
+  /**
+   * 自分の投稿を論理削除する。
+   *
+   * 【削除単位】dish_media 1 件 + **投稿者自身がそのメディアに書いた最古のレビュー 1 件**。
+   * オーナー確定仕様の「投稿」がこの 2 つ 1 組なので、削除もこの単位で行う。
+   * 他人が同じメディアへ書いたレビュー（`review-from-media` 経路）は消さない。
+   * 自分が同じメディアへ後から書いた 2 本目以降も「別の投稿」なので消さない。
+   * 逆向き（レビュー単体の削除でメディアまで消す）もしない。
+   *
+   * 【編集は無い】dish_media にはユーザーが書き換えられるテキスト列が無く、
+   * 残りは media_path / thumbnail_path など媒体そのものである。メディアの差し替えは
+   * オーナー確定仕様で対象外なので、**PATCH /v1/dish-media/:id は意図的に作らない**。
+   * 投稿の編集はレビュー本文の編集 (PATCH /v1/dish-reviews/:id) に一本化する。
+   *
+   * 【認可】user_id が一致しなければ 403。Google import 由来 (user_id = null) も
+   * この比較で弾かれる。
+   *
+   * 【冪等】既に削除済みで自分のものなら成功として返す。連打で 404 を出しても
+   * 利用者にできることは無い。
+   */
+  async deleteDishMedia(
+    dishMediaId: string,
+    userId: string,
+  ): Promise<DeleteDishMediaResponse> {
+    this.logger.debug('DeleteDishMedia', 'deleteDishMedia', {
+      dishMediaId,
+      userId,
+    });
+
+    const media = await this.repo.findDishMediaForMutation(dishMediaId);
+    if (!media) {
+      this.logger.warn('DishMediaNotFound', 'deleteDishMedia', { dishMediaId });
+      throw new NotFoundException('Dish media not found');
+    }
+    if (media.user_id !== userId) {
+      this.logger.warn('DishMediaNotOwned', 'deleteDishMedia', {
+        dishMediaId,
+        userId,
+        ownerId: media.user_id,
+      });
+      throw new ForbiddenException('Not the owner of this dish media');
+    }
+    if (media.deleted_at) {
+      return {
+        id: dishMediaId,
+        deletedAt: media.deleted_at.toISOString(),
+        deletedDishReviewIds: [],
+      };
+    }
+
+    const deletedAt = new Date();
+    const result = await this.prisma.withTransaction(
+      (tx: Prisma.TransactionClient) =>
+        this.repo.softDeleteDishMediaWithReviews(
+          tx,
+          dishMediaId,
+          userId,
+          deletedAt,
+        ),
+    );
+
+    this.logger.log('DishMediaDeleted', 'deleteDishMedia', {
+      dishMediaId,
+      userId,
+      deletedDishReviewCount: result.deletedDishReviewIds.length,
+    });
+
+    return {
+      id: dishMediaId,
+      deletedAt: deletedAt.toISOString(),
+      deletedDishReviewIds: result.deletedDishReviewIds,
+    };
   }
 
   /* ------------------------------------------------------------------ */

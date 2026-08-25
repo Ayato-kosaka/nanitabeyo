@@ -422,7 +422,8 @@
 			"openMap": "فتح خريطة {{name}}",
 			"reviewLike": "الإعجاب بمراجعة {{username}}",
 			"recordEaten": "تسجيل {{name}} كأنك تناولته",
-			"recordEatenAgain": "سجّل {{name}} مرة أخرى (مسجَّل بالفعل)"
+			"recordEatenAgain": "سجّل {{name}} مرة أخرى (مسجَّل بالفعل)",
+			"ownPostMenu": "فتح قائمة منشور {{name}}"
 		},
 		"processing": "جارٍ معالجة الوسائط...",
 		"info": {
@@ -439,6 +440,27 @@
 		},
 		"embed": {
 			"play": "التشغيل على {{provider}}"
+		},
+		"ownPost": {
+			"menuTitle": "منشورك",
+			"edit": "تعديل المراجعة",
+			"delete": "حذف المنشور",
+			"cancel": "إلغاء",
+			"mediaLocked": "لا يمكن تغيير الصور ومقاطع الفيديو. يمكنك تعديل التعليق والتقييم والسعر.",
+			"deleteConfirmTitle": "هل تريد حذف هذا المنشور؟",
+			"deleteConfirmMessage": "سيتم حذف المنشور (الصورة ومراجعتك). لا يمكن التراجع عن ذلك.",
+			"deleteConfirmButton": "حذف",
+			"deleted": "تم حذف المنشور",
+			"deleteFailed": "تعذّر حذف المنشور",
+			"editTitle": "تعديل المراجعة",
+			"editComment": "التعليق",
+			"editRating": "التقييم",
+			"editPrice": "السعر",
+			"save": "حفظ",
+			"saved": "تم تحديث المراجعة",
+			"saveFailed": "تعذّر تحديث المراجعة",
+			"conflict": "تم تحديث هذه المراجعة من مكان آخر. أعد فتحها قبل التعديل.",
+			"forbidden": "يمكنك تعديل أو حذف منشوراتك فقط"
 		}
 	},
 	"ImageCardGrid": {
@@ -1036,6 +1058,10 @@
 				}
 			},
 			"replay": "إعادة مشاهدة الشرح"
+		},
+		"deleted": {
+			"label": "تم الحذف",
+			"a11yLabel": "تم حذف صورة هذا المنشور"
 		}
 	},
 	"SnsImport": {

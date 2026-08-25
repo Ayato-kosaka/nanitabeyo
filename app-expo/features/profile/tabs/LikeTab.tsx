@@ -6,6 +6,7 @@ import { GridList } from "@/components/collapsible-tabs/GridList";
 import { ImageCard } from "@/components/ImageCardGrid";
 import { EmptyState } from "@/components/EmptyState";
 import Stars from "@/components/Stars";
+import { DeletedMediaTombstone } from "@/components/DeletedMediaTombstone";
 import i18n from "@/lib/i18n";
 import { useAPICall } from "@/hooks/useAPICall";
 import { useHaptics } from "@/hooks/useHaptics";
@@ -102,6 +103,30 @@ export function LikeTab() {
 		({ item, index }: { item: { id: string }; index: number }) => {
 			const entry = selectEntryByMediaId(item.id)(useDishMediaEntriesStore.getState());
 			if (!entry) return <View />; // エントリが存在しない場合は空ビューを返す
+
+			/*
+			#1513 【設計】投稿が削除済みなら、行を消さずに墓標「削除されました」を出す。
+
+			いいねの行（`reactions` / `dish_media_likes`）は dish_media を論理削除しても残る。
+			ここで行ごと消すと «いいねしたはずなのに一覧に無い» になり、利用者からは
+			アプリの不具合と区別が付かない。API 側も `includeDeleted: true` で削除済みを
+			返すようにしてある（`getDishMediaEntriesByIds` の JSDoc）。
+
+			⚠️ 押せなくすること。遷移先の全画面フィードには実体が無い
+			（サーバーは削除済みの `mediaUrl` / `thumbnailImageUrl` を null で返す）。
+			*/
+			if (entry.dish_media.deleted_at != null) {
+				// 寸法をカードと揃えるため `ImageCard` をそのまま使い、絵の上へ墓標をかぶせる
+				// （タイル幅は `useContentWidth()` と aspectRatio から ImageCard が自分で決める。
+				//   ここで別の箱を作ると列幅がずれる）。`onPress` を渡さないので押しても何も起きない
+				return (
+					<ImageCard
+						item={{ id: item.id, imageUrl: "", title: i18n.t("MyDishes.deleted.label") }}
+						testID={`profile-liked-deleted-${item.id}`}>
+						<DeletedMediaTombstone style={StyleSheet.absoluteFill} />
+					</ImageCard>
+				);
+			}
 
 			const gridItem = {
 				id: item.id,

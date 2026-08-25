@@ -422,7 +422,8 @@
 			"openMap": "Open map for {{name}}",
 			"reviewLike": "Like {{username}}'s review",
 			"recordEaten": "Record {{name}} as eaten",
-			"recordEatenAgain": "Record eating at {{name}} again (already recorded)"
+			"recordEatenAgain": "Record eating at {{name}} again (already recorded)",
+			"ownPostMenu": "Open post menu for {{name}}"
 		},
 		"processing": "Processing media...",
 		"errors": {
@@ -439,6 +440,27 @@
 		},
 		"embed": {
 			"play": "Play on {{provider}}"
+		},
+		"ownPost": {
+			"menuTitle": "Your post",
+			"edit": "Edit review",
+			"delete": "Delete post",
+			"cancel": "Cancel",
+			"mediaLocked": "Photos and videos can't be changed. You can edit the comment, rating and price.",
+			"deleteConfirmTitle": "Delete this post?",
+			"deleteConfirmMessage": "This will delete the post — the photo and your review. This can't be undone.",
+			"deleteConfirmButton": "Delete",
+			"deleted": "Post deleted",
+			"deleteFailed": "Couldn't delete the post",
+			"editTitle": "Edit review",
+			"editComment": "Comment",
+			"editRating": "Rating",
+			"editPrice": "Price",
+			"save": "Save",
+			"saved": "Review updated",
+			"saveFailed": "Couldn't update the review",
+			"conflict": "This review was updated somewhere else. Reopen it before editing.",
+			"forbidden": "You can only edit or delete your own posts"
 		}
 	},
 	"ImageCardGrid": {
@@ -1036,6 +1058,10 @@
 				}
 			},
 			"replay": "Replay tutorial"
+		},
+		"deleted": {
+			"label": "Deleted",
+			"a11yLabel": "The photo for this post was deleted"
 		}
 	},
 	"SnsImport": {

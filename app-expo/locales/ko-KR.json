@@ -422,7 +422,8 @@
 			"openMap": "{{name}} 지도 열기",
 			"reviewLike": "{{username}}님의 리뷰에 좋아요",
 			"recordEaten": "{{name}} 먹었어요로 기록",
-			"recordEatenAgain": "{{name}}에서 먹었다를 다시 기록 (기록됨)"
+			"recordEatenAgain": "{{name}}에서 먹었다를 다시 기록 (기록됨)",
+			"ownPostMenu": "{{name}} 게시물 메뉴 열기"
 		},
 		"processing": "미디어 처리 중...",
 		"info": {
@@ -439,6 +440,27 @@
 		},
 		"embed": {
 			"play": "{{provider}}에서 재생"
+		},
+		"ownPost": {
+			"menuTitle": "내 게시물",
+			"edit": "리뷰 편집",
+			"delete": "게시물 삭제",
+			"cancel": "취소",
+			"mediaLocked": "사진과 동영상은 변경할 수 없습니다. 코멘트, 평점, 가격만 수정할 수 있습니다.",
+			"deleteConfirmTitle": "게시물을 삭제할까요?",
+			"deleteConfirmMessage": "이 게시물(사진과 내 리뷰)을 삭제합니다. 되돌릴 수 없습니다.",
+			"deleteConfirmButton": "삭제",
+			"deleted": "게시물을 삭제했습니다",
+			"deleteFailed": "삭제하지 못했습니다",
+			"editTitle": "리뷰 편집",
+			"editComment": "코멘트",
+			"editRating": "평점",
+			"editPrice": "가격",
+			"save": "저장",
+			"saved": "리뷰를 수정했습니다",
+			"saveFailed": "수정하지 못했습니다",
+			"conflict": "다른 기기에서 먼저 수정되었습니다. 다시 열고 편집해 주세요.",
+			"forbidden": "내 게시물만 편집하거나 삭제할 수 있습니다"
 		}
 	},
 	"ImageCardGrid": {
@@ -1036,6 +1058,10 @@
 				}
 			},
 			"replay": "튜토리얼 다시 보기"
+		},
+		"deleted": {
+			"label": "삭제되었습니다",
+			"a11yLabel": "이 게시물의 사진은 삭제되었습니다"
 		}
 	},
 	"SnsImport": {

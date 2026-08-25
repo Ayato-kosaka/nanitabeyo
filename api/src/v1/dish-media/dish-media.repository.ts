@@ -79,6 +79,8 @@ export interface DishMediaEntryEntity {
     username: string;
     isLiked: boolean;
     likeCount: number;
+    /** #1513 閲覧者自身が書いたレビューか（編集・削除の導線判定） */
+    isMine: boolean;
   })[];
 }
 
@@ -211,7 +213,10 @@ export class DishMediaRepository {
       -- 価格帯の絞り込みはMVPでは未対応
       WHERE 1=1
         -- カテゴリ
-        AND d.category_id = (SELECT category_id FROM params)
+        AND d.category_id = (SELECT category_id FROM params) 
+        -- #1513 論理削除済みの投稿は候補集合に入れない。ここを漏らすと
+        -- 「消したはずの投稿が検索に出る」という最も見つけにくい形で漏れる
+        AND dm.deleted_at IS NULL
         -- #1257 実体（GCS original）が届いていない行を検索候補から除外する。
         -- media_processing_status を「加工完了フラグ」としてではなく「原本到達の代理指標」として使う。
         -- 単純に processing のみを弾く案では、原本のダウンロードに恒久的に失敗して
@@ -270,6 +275,8 @@ export class DishMediaRepository {
         SELECT DISTINCT dish_id
         FROM fatigue_marked
       ) fm ON fm.dish_id = dr.dish_id
+      -- #1513 削除済みレビューを平均評価に混ぜない
+      WHERE dr.deleted_at IS NULL
       GROUP BY dr.dish_id
     ),
     -- ========== 指標結合（Stage2: Pre-Rank特徴） ==========
@@ -507,6 +514,8 @@ export class DishMediaRepository {
         LEFT JOIN dish_media_analysis_results dmar
           ON dmar.dish_media_id = dm.id
         WHERE d.restaurant_id = ${restaurantId}::uuid
+          -- #1513 論理削除済みの投稿は店舗詳細にも出さない
+          AND dm.deleted_at IS NULL
           -- #1257 findDishMediaIds と同じ理由で、実体（GCS original）が届いていない行を
           -- レストラン詳細の一覧からも除外する。ここを漏らすと、検索には出なくなった
           -- 未着メディアが店舗ページ経由でだけ露出し続ける。
@@ -570,6 +579,8 @@ export class DishMediaRepository {
 
     let whereClause: Prisma.dish_reviewsWhereInput = {
       user_id: userId,
+      // #1513 論理削除済みは自分のプロフィールからも見えない
+      deleted_at: null,
     };
     if (options.type === 'cursor' && options.cursor) {
       whereClause.created_at = {
@@ -624,6 +635,8 @@ export class DishMediaRepository {
         this.reactionKey('dish_reviews', review.id, 'like'),
       ),
       likeCount: reviewLikeCountMap.get(review.id) ?? 0,
+      // #1513 このメソッドは「userId が書いたレビュー」だけを引くので常に true
+      isMine: review.user_id === userId,
     }));
 
     return { items, nextCursor };
@@ -778,9 +791,21 @@ export class DishMediaRepository {
       userId: string;
       reviewLimit?: number;
       preferredLanguageCodes?: readonly string[];
+      /**
+       * #1513 【設計】削除済み（`deleted_at IS NOT NULL`）の行も返すか。既定は false。
+       *
+       * 既定で弾くのは「消したはずの投稿がどこからも出てこない」を 1 箇所で保証するためで、
+       * これは変えない。true を渡してよいのは **墓標「削除されました」を出す画面だけ**
+       * （いいね一覧 / 保存一覧 / 通知 / レビューのサムネイル）。
+       * これらは行そのものを消すと «いいねしたはずなのに一覧に無い» «通知バッジと件数が合わない»
+       * になるため、行を残して中身だけ墓標へ差し替える。
+       *
+       * ⚠️ 検索結果・店舗フィード・投票候補へは渡さないこと（オーナー確定で «黙って除外» 側）。
+       */
+      includeDeleted?: boolean;
     },
   ): Promise<DishMediaEntryEntity[]> {
-    const { userId, reviewLimit = 6 } = option;
+    const { userId, reviewLimit = 6, includeDeleted = false } = option;
     if (dishMediaIds.length === 0) return [];
 
     const preferredLanguageCodes = normalizePreferredLanguageCodes(
@@ -788,7 +813,14 @@ export class DishMediaRepository {
     );
 
     const dishMedias = await this.prisma.prisma.dish_media.findMany({
-      where: { id: { in: dishMediaIds } },
+      // #1513 ここが「詳細のどの経路からも出さない」の要。検索・店舗フィード・?ids= は
+      // すべてこのメソッドを通るので、ここで弾けば一括で消える。
+      // 墓標を出す画面（いいね/保存/通知/レビューのサムネイル）だけが includeDeleted で
+      // この既定を外し、行を残したまま中身を墓標へ差し替える
+      where: {
+        id: { in: dishMediaIds },
+        ...(includeDeleted ? {} : { deleted_at: null }),
+      },
       include: {
         dish_media_likes: { where: { user_id: userId } }, // User がいいねしているか
         dish_media_analysis_results: true, // #292 【設計】いいね数は like_total から取得（トゥルース源）
@@ -807,6 +839,7 @@ export class DishMediaRepository {
             // labels 列だけを select するので、この join で読む量は最小に留まる。
             dish_categories: { select: { labels: true } },
             dish_reviews: {
+              where: { deleted_at: null }, // #1513 削除済みレビューは本文欄に出さない
               orderBy: { created_at: 'asc' }, // #509 【設計】dish_reviews の並び順を古い→新しいに統一
               take: reviewLimit,
               include: { users: true },
@@ -832,7 +865,8 @@ export class DishMediaRepository {
     // Calculate review count and average rating per dish
     const avgByDish = await this.prisma.prisma.dish_reviews.groupBy({
       by: ['dish_id'],
-      where: { dish_id: { in: dishIds } },
+      // #1513 削除済みレビューは件数にも平均にも入れない
+      where: { dish_id: { in: dishIds }, deleted_at: null },
       _avg: { rating: true },
       _count: { dish_id: true },
     });
@@ -952,6 +986,9 @@ export class DishMediaRepository {
               this.reactionKey('dish_reviews', review.id, 'like'),
             ),
             likeCount: reviewLikeCountMap.get(review.id) ?? 0,
+            // #1513 編集・削除の導線を出す判定。Google import 由来は user_id が
+            // null なので、この比較で常に false になる
+            isMine: review.user_id === userId,
           })),
         };
       });
@@ -982,6 +1019,8 @@ export class DishMediaRepository {
         id: true,
         dish_reviews: {
           where: {
+            // #1513 削除済みレビューは優先言語の補充対象にもしない
+            deleted_at: null,
             // #817 【設計】正規形(zh-hans)をそのまま DB 値へ突き合わせると、
             // 実際に保存されている zh-CN に一致しない。必ず候補集合で引くこと。
             // #1052 組み立ては language-where.ts の純粋関数へ寄せてテスト可能にした。
@@ -1080,11 +1119,106 @@ export class DishMediaRepository {
     >`
       SELECT DISTINCT ON (dm.dish_id) dm.dish_id, dm.id
       FROM dish_media dm
+      -- #1513 これは「その dish の代表メディア」を選ぶ経路なので、
+      -- 削除済みを候補に残すと消したはずの写真が代表として出続ける
       WHERE dm.dish_id = ANY(${dishIds}::uuid[])
+        AND dm.deleted_at IS NULL
       ORDER BY dm.dish_id, dm.created_at DESC, dm.id DESC
     `;
 
     return new Map(rows.map((row) => [row.dish_id, row.id]));
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*        #1513 投稿の編集・削除で使う最小取得と論理削除               */
+  /* ------------------------------------------------------------------ */
+  /**
+   * 認可判定に必要な最小の情報を取得する。
+   *
+   * **論理削除済みでも返す**。ここで弾くと「そもそも無い(404)」と
+   * 「他人の投稿(403)」と「もう消えている」をサービス層が区別できなくなる。
+   */
+  async findDishMediaForMutation(dishMediaId: string) {
+    return this.prisma.prisma.dish_media.findUnique({
+      where: { id: dishMediaId },
+      select: {
+        id: true,
+        user_id: true,
+        deleted_at: true,
+      },
+    });
+  }
+
+  /**
+   * 投稿（dish_media）と、その投稿に紐づく **投稿者自身の最古のレビュー 1 件** を論理削除する。
+   *
+   * 【#1513 【設計】「投稿」の単位】
+   * オーナー確定仕様で「投稿」= dish_media 1 件 + そのメディアに紐づく自分の**最古**の
+   * dish_review 1 件である。よって消すレビューも 1 件だけで、
+   * 自分が同じメディアへ後から書いた 2 本目以降のレビューは
+   * **「別の投稿」として残す**（それらを消すと、消していない投稿が消える）。
+   * 最古の決め方は `created_at ASC, id ASC`（同時刻の tie-break。オーナー確認済み）。
+   *
+   * 【消す範囲を owner のレビューに限る理由】
+   * `created_dish_media_id` は「一緒に作られた」だけを意味しない。既存メディアへ
+   * レビューを足す経路（`review-from-media/[dishMediaId]`）でも同じメディア id が入るため、
+   * `created_dish_media_id = :id` だけで消すと **他人が書いたレビューまで巻き添えで消える**。
+   * 自分の投稿を消す操作で他人の文章を消してはいけないので、owner のものだけに絞る。
+   *
+   * 残った他人のレビューは失われない。レビューは *料理* 単位で読み出される
+   * （`getDishMediaEntriesByIds` の `dishes.dish_reviews`）ので、同じ料理の別の投稿から
+   * 引き続き読める。
+   *
+   * 逆にレビュー単体削除 (DELETE /v1/dish-reviews/:id) は dish_media を巻き込まない。
+   *
+   * 物理削除しないのは dish_media_likes(NoAction) / payouts / GCS 実体 /
+   * notifications.target_id が dish_media.id を指したまま残るため。
+   */
+  async softDeleteDishMediaWithReviews(
+    tx: Prisma.TransactionClient,
+    dishMediaId: string,
+    ownerUserId: string,
+    deletedAt: Date,
+  ): Promise<{ mediaDeleted: number; deletedDishReviewIds: string[] }> {
+    // 巻き添えにするレビューの id は、更新の前に確定させておく。
+    // updateMany は更新した行を返さないため、後から引くと「今回消したもの」と
+    // 「元から消えていたもの」を区別できない
+    const oldest = await tx.dish_reviews.findFirst({
+      where: {
+        created_dish_media_id: dishMediaId,
+        user_id: ownerUserId,
+        deleted_at: null,
+      },
+      // #1513 「最古」= created_at 昇順。同時刻は id で決める（DB 側の物理順に依存しない）
+      orderBy: [{ created_at: 'asc' }, { id: 'asc' }],
+      select: { id: true },
+    });
+    const targets = oldest ? [oldest] : [];
+
+    const media = await tx.dish_media.updateMany({
+      where: { id: dishMediaId, deleted_at: null },
+      data: {
+        deleted_at: deletedAt,
+        updated_at: deletedAt,
+        lock_no: { increment: 1 },
+      },
+    });
+
+    if (targets.length > 0) {
+      await tx.dish_reviews.updateMany({
+        where: { id: { in: targets.map((t) => t.id) } },
+        data: {
+          deleted_at: deletedAt,
+          updated_at: deletedAt,
+          lock_no: { increment: 1 },
+        },
+      });
+    }
+
+    return {
+      mediaDeleted: media.count,
+      deletedDishReviewIds: targets.map((t) => t.id),
+    };
   }
 
   /* ------------------------------------------------------------------ */

@@ -542,7 +542,9 @@ export function buildMyDishesCandidates(
         dm.id                AS media_id,
         s.created_at         AS saved_at
       FROM my_save_ids s
-      JOIN dish_media dm ON dm.id = s.target_id::uuid
+      -- #1513 削除された投稿を save したままの reaction は残る（reaction は消さない）。
+      -- ここで弾かないと «食べたい» に実体の無いメディアの行が並ぶ
+      JOIN dish_media dm ON dm.id = s.target_id::uuid AND dm.deleted_at IS NULL
       ${restaurantJoin}
       ORDER BY dm.dish_id, s.created_at DESC, dm.id DESC
     )`
@@ -564,10 +566,13 @@ export function buildMyDishesCandidates(
       JOIN dishes d      ON d.id = sd.dish_id
       JOIN restaurants r ON r.id = d.restaurant_id
       ${featureJoin}
+      -- #1513 レビューを消したら「まだ食べていない」へ戻る。削除済みを «食べた» の
+      -- 証拠に数えると、その dish は want にも eaten にも出ない行方不明の状態になる
       WHERE NOT EXISTS (
         SELECT 1 FROM dish_reviews dr2
         WHERE dr2.user_id = ${userId}::uuid
           AND dr2.dish_id = sd.dish_id
+          AND dr2.deleted_at IS NULL
       )
       ${categoryFilter}
       ${areaFilter}
@@ -592,7 +597,9 @@ export function buildMyDishesCandidates(
       JOIN dishes d      ON d.id = dr.dish_id
       JOIN restaurants r ON r.id = d.restaurant_id
       ${featureJoin}
+      -- #1513 «食べた» 行の実体は自分の dish_reviews なので、論理削除した行は候補に入れない
       WHERE dr.user_id = ${userId}::uuid
+        AND dr.deleted_at IS NULL
       ${categoryFilter}
       ${restaurantFilter}
       ${areaFilter}
@@ -662,7 +669,11 @@ export function buildMyDishesPageQuery(
     p.distance_meters,
     p.feature_score,
     ms.saved_at                       AS saved_at,
-    COALESCE(p.own_media_id, fb.id)   AS media_id,
+    COALESCE(om.id, fb.id)            AS media_id,
+    -- #1513 【設計】墓標フラグ。own_media_id は非 NULL なのに実体が論理削除済み
+    -- （= 自分の投稿を消した）ことを示す。行は消さず、UI 側が「この投稿は削除されました」を
+    -- 出すために使う（媒体を別の写真へ差し替えないので media_id は NULL で返る）
+    (p.own_media_id IS NOT NULL AND om.id IS NULL) AS is_own_media_deleted,
     ${RESTAURANT_COLUMNS_SQL},
     d.id            AS d_id,
     d.restaurant_id AS d_restaurant_id,
@@ -709,12 +720,24 @@ export function buildMyDishesPageQuery(
      AND sv.target_type = 'dish_media'
      AND sv.action_type = 'save'
     WHERE dsv.dish_id = p.dish_id
+      AND dsv.deleted_at IS NULL
   ) ms ON TRUE
-  -- eaten で created_dish_media_id が NULL のときだけ、その dish の最新メディアへ落とす（m-7）
+  -- #1513 【設計】削除済みの自分のメディアは別の写真へ差し替えず、代表メディア NULL のまま
+  -- 返して UI 側で墓標を出す。差し替えると「自分の食べた記録の写真が勝手に別人の写真になる」ため。
+  -- om は「own_media_id が指す実体がまだ生きているか」だけを見る LATERAL で、
+  -- 死んでいれば media_id は NULL になる（fb へは落ちない）。
+  LEFT JOIN LATERAL (
+    SELECT dmo.id
+    FROM dish_media dmo
+    WHERE dmo.id = p.own_media_id
+      AND dmo.deleted_at IS NULL
+  ) om ON p.own_media_id IS NOT NULL
+  -- own_media_id が NULL のときだけ、その dish の最新メディアへ落とす（m-7）
   LEFT JOIN LATERAL (
     SELECT dm2.id
     FROM dish_media dm2
     WHERE dm2.dish_id = p.dish_id
+      AND dm2.deleted_at IS NULL
     ORDER BY dm2.created_at DESC, dm2.id DESC
     LIMIT 1
   ) fb ON p.own_media_id IS NULL
@@ -725,6 +748,7 @@ export function buildMyDishesPageQuery(
       COALESCE(AVG(dr3.rating), 0)::double precision AS average_rating
     FROM dish_reviews dr3
     WHERE dr3.dish_id = p.dish_id
+      AND dr3.deleted_at IS NULL
   ) st ON TRUE
   ORDER BY ${orderBy}
 `;
@@ -777,10 +801,12 @@ export function buildMyDishMapPinsQuery(
     dm.id                          AS media_id,
     dm.thumbnail_path              AS media_thumbnail_path,
     dm.thumbnail_processing_status AS media_thumbnail_processing_status,
+    -- #1513 【設計】一覧（buildMyDishesPageQuery）と同じ墓標フラグ。
+    -- ピンの代表行の own_media_id が削除済みメディアを指しているとき true
+    (top.own_media_id IS NOT NULL AND om.id IS NULL) AS is_own_media_deleted,
     -- #1375 独立レビュー（仕様ギャップ G4）: SNS 取り込みは自ストレージへの複製に失敗し得るため
-    -- dish_media.thumbnail_path が空のまま正常系で存在する。一覧 / Feed の assembler は
-    -- provider 側サムネイルへ落ちる（dish-media.assembler.ts）のに、Map ピンだけ落ちずに
-    -- 店舗の外観写真へ化けていた。同じフォールバックが効くよう埋め込み側の URL も返す
+    -- dish_media.thumbnail_path が空のまま正常系で存在する。同じフォールバックが効くよう
+    -- 埋め込み側の URL も返す（Map ピンだけ店舗の外観写真へ化けるのを防ぐ）
     dmee.thumbnail_url             AS media_external_thumbnail_url
   FROM pins p
   JOIN restaurants r ON r.id = p.restaurant_id
@@ -793,14 +819,24 @@ export function buildMyDishMapPinsQuery(
     ORDER BY c2.occurred_at DESC, c2.row_key DESC
     LIMIT 1
   ) top ON TRUE
+  -- #1513 【設計】一覧（buildMyDishesPageQuery の om）と同じ扱い。削除済みメディアを指した
+  -- own_media_id は別の写真へ差し替えず、代表メディア NULL のまま返して UI 側で墓標を出す。
+  -- 差し替えると「自分の食べた記録の写真が勝手に別人の写真になる」ため。
+  LEFT JOIN LATERAL (
+    SELECT dmo.id
+    FROM dish_media dmo
+    WHERE dmo.id = top.own_media_id
+      AND dmo.deleted_at IS NULL
+  ) om ON top.own_media_id IS NOT NULL
   LEFT JOIN LATERAL (
     SELECT dm3.id
     FROM dish_media dm3
     WHERE dm3.dish_id = top.dish_id
+      AND dm3.deleted_at IS NULL
     ORDER BY dm3.created_at DESC, dm3.id DESC
     LIMIT 1
   ) fb ON top.own_media_id IS NULL
-  LEFT JOIN dish_media dm ON dm.id = COALESCE(top.own_media_id, fb.id)
+  LEFT JOIN dish_media dm ON dm.id = COALESCE(om.id, fb.id)
   LEFT JOIN dish_media_external_embeddings dmee ON dmee.dish_media_id = dm.id
   ORDER BY p.latest_occurred_at DESC
 `;
@@ -833,12 +869,15 @@ export function buildMyDishesOldestWantSaveQuery(userId: string): Prisma.Sql {
     FROM (
       SELECT dm.dish_id, MAX(s.created_at) AS latest
       FROM my_save_ids s
-      JOIN dish_media dm ON dm.id = s.target_id::uuid
+      -- #1513 一覧（my_saved_dishes）と同じ条件で畳まないと、
+      -- 削除済みメディアぶんだけ Calendar が「一覧に無い月まで遡れる」と表示してしまう
+      JOIN dish_media dm ON dm.id = s.target_id::uuid AND dm.deleted_at IS NULL
       WHERE NOT EXISTS (
         SELECT 1
         FROM dish_reviews dr
         WHERE dr.user_id = ${userId}::uuid
           AND dr.dish_id = dm.dish_id
+          AND dr.deleted_at IS NULL
       )
       GROUP BY dm.dish_id
     ) t

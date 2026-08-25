@@ -103,6 +103,9 @@ export class NotificationsService {
     const { items: dishMediaItems } =
       await this.dishMediaService.fetchDishMediaEntryItems(uniqueDishMediaIds, {
         userId,
+        // #1513 墓標「削除されました」を出す画面。行を消さずに中身だけ差し替えるため、
+        // 削除済みの dish_media も受け取る（詳細は getDishMediaEntriesByIds の JSDoc）
+        includeDeleted: true,
       });
     const dishMediaMap = new Map(
       dishMediaItems.map((entry) => [entry.dish_media.id, entry]),
