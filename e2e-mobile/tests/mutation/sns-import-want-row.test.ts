@@ -7,6 +7,7 @@ import {
 	existsNow,
 	launchAppWithSession,
 	tapWhenVisible,
+	waitFor,
 	waitUntilVisible,
 	type E2ESession,
 } from "../../fixtures/e2e";
@@ -86,12 +87,21 @@ describeMutation("SNS 取り込み → 食べたい → 一覧に出る @mutatio
 		await element(by.id("sns-import-url-input")).replaceText(IMPORT_REEL_URL);
 		await tapWhenVisible(by.id("sns-import-resolve-button"), 60_000);
 
-		// 3. 店舗と料理カテゴリを選ぶ。**prefill で既に選ばれていれば候補は描かれない**ので、
-		//    «出ていたら押す» にする（出ていない = もう選ばれている）
+		/*
+		3. 店舗と料理カテゴリを選ぶ。
+
+		⚠️ 読み取り後の画面は縦に長く、**② 店舗 / ③ 料理 / 保存ボタンは 1 画面に収まらない**。
+		   最初はスクロールせずに押そうとして «保存ボタンが押せない»（= 料理と店舗が未選択のまま）
+		   で落ちた（run 32878897475）。候補が見えるところまで送ってから押す。
+		⚠️ prefill で既に選ばれていると候補チップは描かれない。«出ていたら押す» にしてある。
+		*/
+		await scrollUntilVisible(by.id(`sns-import-restaurant-${restaurantId}`));
 		await tapIfPresent(by.id(`sns-import-restaurant-${restaurantId}`));
+		await scrollUntilVisible(by.id(`sns-import-dish-category-${dishCategoryId}`));
 		await tapIfPresent(by.id(`sns-import-dish-category-${dishCategoryId}`));
 
-		// 4. 保存
+		// 4. 保存（押せない = 店舗か料理が選べていない、という意味で落ちる）
+		await scrollUntilVisible(by.id("sns-import-save-button"));
 		await tapWhenVisible(by.id("sns-import-save-button"), 60_000);
 
 		// 5. 起動し直さずに一覧へ戻ってくる。ここに出ていなければ «取り込んだのに出ない»
@@ -124,4 +134,16 @@ describeMutation("SNS 取り込み → 食べたい → 一覧に出る @mutatio
 /** 出ていたら押す。**出ていないことは失敗ではない**（prefill で既に選ばれている場合がある） */
 async function tapIfPresent(matcher: Detox.NativeMatcher): Promise<void> {
 	if (await existsNow(matcher)) await element(matcher).tap();
+}
+
+/**
+ * 取り込み画面のスクロールで、その要素が見えるところまで送る。
+ * **見つからないまま終わっても失敗にしない**（prefill で既に選ばれていて描かれない場合がある）。
+ */
+async function scrollUntilVisible(matcher: Detox.NativeMatcher): Promise<void> {
+	await waitFor(element(matcher))
+		.toBeVisible()
+		.whileElement(by.id("sns-import-scroll"))
+		.scroll(250, "down")
+		.catch(() => undefined);
 }

@@ -578,7 +578,12 @@ export default function SnsImportScreen() {
 					<KeyboardAvoidingView
 						style={styles.keyboardAvoiding}
 						behavior={Platform.OS === "ios" ? "padding" : undefined}>
-						<ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+						{/* #1375（10 巡目）E2E から «②店舗 / ③料理» まで送るためのスクロール対象。
+						    読み取り後は縦に長くなり、保存ボタンまでが 1 画面に収まらない */}
+						<ScrollView
+							testID="sns-import-scroll"
+							contentContainerStyle={styles.content}
+							keyboardShouldPersistTaps="handled">
 							{/* #1375 実機確認（2 巡目）: 画面が «簡素すぎて何をすればよいか分からない» と言われた。
 				    最初に «この画面で何ができるか» を 1 段落で言い、以降は 1〜3 の手順カードにする */}
 							<Text style={styles.intro} testID="sns-import-intro">
