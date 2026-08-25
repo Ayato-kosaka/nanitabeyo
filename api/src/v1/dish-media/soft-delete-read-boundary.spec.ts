@@ -1,12 +1,12 @@
 // api/src/v1/dish-media/dish-reviews-soft-delete-boundary.spec.ts
 //
-// #1596 **`dish_reviews` を読むすべての経路が `deleted_at` で絞っていること**を
+// #1596 **`dish_reviews` / `dish_media` を読むすべての経路が `deleted_at` で絞っていること**を
 // 静的に強制するラチェット。
 //
 // ## なぜ要るのか
 //
-// `shared/prisma/schema.prisma` の `dish_reviews.deleted_at` には
-// 「読み取り経路は必ず deleted_at IS NULL で絞る」と書いてある。にもかかわらず
+// `shared/prisma/schema.prisma` は `dish_reviews.deleted_at` と `dish_media.deleted_at` の
+// **両方**に「読み取り経路は必ず deleted_at IS NULL で絞る」と書いてある。にもかかわらず
 // `dish-media.repository.ts` の «この dish を自分が食べたか»（isEaten）判定 1 本だけが
 // 絞り忘れており、**レビューを削除しても «食べたを記録» が記録済みの見た目のまま**だった。
 //
@@ -46,15 +46,24 @@ const READ_METHODS = [
  * 削除済みも読むのが正しい場所。**理由を必ず書くこと。**
  * キーはリポジトリルートからの相対パス（POSIX 区切り）。
  */
+/** 検査対象のテーブル。schema.prisma が同じ約束をしているもの */
+const GUARDED_TABLES = ['dish_reviews', 'dish_media'] as const;
+
+/**
+ * 削除済みも読むのが正しい場所。**理由を必ず書くこと。**
+ * キーは `<リポジトリ相対パス>#<テーブル>`。
+ */
 const EXCLUSIONS: Readonly<Record<string, string>> = {
   // 通報の対象が «実在するか» の存在確認。削除済みのレビューを通報しようとしたときに
   // 「そんなものは無い」と返すと、通報者からは «消えたのに通報できない» に見える。
   // ここは意図的に deleted_at を見ない。
-  'src/v1/content-reports/content-reports.repository.ts':
+  'src/v1/content-reports/content-reports.repository.ts#dish_reviews':
     '通報対象の存在確認。削除済みでも «存在した» として扱う',
-  // 論理削除そのものを行う経路。deleted_at を立てる対象を探すので、
-  // ここで deleted_at: null を要求するのは自己矛盾ではないが、
-  // 更新系の where は本ファイルの検査対象外（find* のみを見る）。
+  // 退会時に GCS の実体を消すための一覧。論理削除で行は残すが、
+  // 「参照が消えたあとに実体を残す理由がない」ので **削除済みも含めて**引くのが正しい。
+  // ここで deleted_at: null を要求すると、消した投稿のファイルが永久に残る。
+  'src/v1/users/users.repository.ts#dish_media':
+    '退会時のストレージ実体削除。削除済みの投稿のファイルも消す必要がある',
 };
 
 const API_SRC = join(__dirname, '..', '..');
@@ -110,25 +119,37 @@ function readCallArguments(text: string, openIndex: number): string {
 
 
 /**
- * コメントを取り除く。
+ * コメントを **同じ長さの空白へ置き換える**（改行は残す）。
  *
- * ⚠️ これが無いと **「`deleted_at` について説明したコメント」が本文と見分けられず、
- * 絞っていないのに緑になる**。実際、この検査を書いた直後にその形で一度騙された
- * （fix を revert しても赤くならなかった）。検査の正しさは
- * 「壊した状態で赤くなること」でしか確かめられない。
+ * 取り除く（詰める）のではなく空白で潰すのは、**元ファイルの行番号と文字位置を
+ * そのまま使える**ようにするため。
+ *
+ * ⚠️ これが無いと 2 種類の嘘が両方出る。実際に両方踏んだ。
+ *   1. 見逃し: 「`deleted_at` について説明したコメント」を絞っている証拠と誤認し、
+ *      絞っていないのに緑になる（fix を revert しても赤くならなかった）
+ *   2. 誤検知: コメントの中に書かれた `dish_media.findMany(` という **例示**を
+ *      本物の呼び出しと誤認し、正しいコードを赤くする
+ *      （`notifications.service.ts` の「こう書くと壊れる」という説明で踏んだ）
+ *
+ * 検査の正しさは「壊した状態で赤くなること」と「正しい状態で緑であること」の
+ * 両方でしか確かめられない。
  */
-function stripComments(text: string): string {
-  let out = '';
+function blankComments(text: string): string {
+  const out = text.split('');
   let quote: string | null = null;
+
+  const blank = (from: number, to: number) => {
+    for (let i = from; i < to && i < out.length; i += 1) {
+      if (out[i] !== '\n') out[i] = ' ';
+    }
+  };
 
   for (let i = 0; i < text.length; i += 1) {
     const ch = text[i];
     const next = text[i + 1];
 
     if (quote) {
-      out += ch;
       if (ch === '\\') {
-        out += next ?? '';
         i += 1;
         continue;
       }
@@ -138,25 +159,26 @@ function stripComments(text: string): string {
 
     if (ch === "'" || ch === '"' || ch === '`') {
       quote = ch;
-      out += ch;
       continue;
     }
 
     if (ch === '/' && next === '/') {
       const end = text.indexOf('\n', i);
-      i = end === -1 ? text.length : end - 1;
+      const stop = end === -1 ? text.length : end;
+      blank(i, stop);
+      i = stop;
       continue;
     }
 
     if (ch === '/' && next === '*') {
       const end = text.indexOf('*/', i + 2);
-      i = end === -1 ? text.length : end + 1;
+      const stop = end === -1 ? text.length : end + 2;
+      blank(i, stop);
+      i = stop - 1;
       continue;
     }
-
-    out += ch;
   }
-  return out;
+  return out.join('');
 }
 
 /**
@@ -182,25 +204,28 @@ function whereVariableHasDeletedAt(fileText: string, args: string): boolean {
   return scope.includes('deleted_at');
 }
 
-describe('#1596 dish_reviews の読み取りは必ず deleted_at で絞る', () => {
+describe('#1596 論理削除テーブルの読み取りは必ず deleted_at で絞る', () => {
   const files = listSourceFiles(API_SRC);
 
   it('検査対象のソースを実際に走査できている（0 件なら検査自体が壊れている）', () => {
     expect(files.length).toBeGreaterThan(50);
   });
 
-  it('dish_reviews を読むすべての経路が deleted_at を条件に含む', () => {
+  it('dish_reviews / dish_media を読むすべての経路が deleted_at を条件に含む', () => {
     const violations: string[] = [];
 
     for (const file of files) {
       const relPath = relative(REPO_API_ROOT, file).split(sep).join('/');
-      if (EXCLUSIONS[relPath]) continue;
 
-      const text = readFileSync(file, 'utf8');
-      const commentFreeText = stripComments(text);
+      // コメントを空白で潰した版だけを見る。位置と行番号は元ファイルと一致する。
+      const text = blankComments(readFileSync(file, 'utf8'));
 
-      for (const method of READ_METHODS) {
-        const needle = `dish_reviews.${method}(`;
+      for (const [table, method] of GUARDED_TABLES.flatMap((t) =>
+        READ_METHODS.map((m) => [t, m] as const),
+      )) {
+        if (EXCLUSIONS[`${relPath}#${table}`]) continue;
+
+        const needle = `${table}.${method}(`;
         let from = 0;
 
         for (;;) {
@@ -213,14 +238,12 @@ describe('#1596 dish_reviews の読み取りは必ず deleted_at で絞る', () 
 
           // `where: whereClause` のように変数で渡している場合は、
           // その変数の宣言まで見に行く（`dish-media.repository.ts` の一覧がこの形）。
-          const code = stripComments(args);
           const satisfied =
-            code.includes('deleted_at') ||
-            whereVariableHasDeletedAt(commentFreeText, code);
+            args.includes('deleted_at') || whereVariableHasDeletedAt(text, args);
 
           if (!satisfied) {
             const line = text.slice(0, at).split('\n').length;
-            violations.push(`${relPath}:${line} → dish_reviews.${method}()`);
+            violations.push(`${relPath}:${line} → ${table}.${method}()`);
           }
         }
       }
