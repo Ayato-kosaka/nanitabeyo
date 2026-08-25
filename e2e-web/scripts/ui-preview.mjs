@@ -157,7 +157,8 @@ const EMBED_ENTRY = {
     created_at: "2026-08-01T00:00:00Z", updated_at: "2026-08-01T00:00:00Z",
     media_processing_status: "completed", thumbnail_processing_status: "completed",
     render_type: "external_embed",
-    isSaved: true, isLiked: false, likeCount: 0, isMine: false,
+    // #1375 10 巡目: «食べたい» «食べた» の両方が押してある状態を撮る（オレンジ塗りの確認）
+    isSaved: true, isLiked: false, likeCount: 0, isMine: false, isEaten: true,
     mediaUrl: null,
     thumbnailImageUrl: "https://img.example.invalid/t.jpg",
     video_duration_ms: null,

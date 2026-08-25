@@ -901,11 +901,14 @@ const createStyles = (c: Palette) =>
 	backButton: {
 		paddingVertical: 4,
 		paddingRight: 4,
+		// タブは下線ぶんだけ背が高い。その差の半分を戻し、文字の高さへ目で揃える
+		marginBottom: 2,
 	},
 	tabRow: {
 		flexDirection: "row",
-		// #1375（9 巡目）戻るボタンを同じ行へ入れたので、下端（タブの下線）で揃える
-		alignItems: "flex-end",
+		// #1375（10 巡目）戻るボタンを同じ行へ入れた。下端で揃えるとタブの **下線** に
+		// 引っぱられて ← だけが低く見えるので、中央で揃える
+		alignItems: "center",
 		gap: 20,
 		paddingHorizontal: 12,
 		paddingTop: 8,
