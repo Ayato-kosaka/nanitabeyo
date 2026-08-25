@@ -505,7 +505,19 @@ export default function SnsImportScreen() {
 	const canSave = dishCategoryId !== null && restaurantId !== null && !isSaving;
 
 	return (
-		<SafeAreaView edges={["bottom"]} style={styles.container} testID="sns-import-screen">
+		/*
+		#1375（実機 iOS のスクリーンショットで発覚）**上端の余白（`"top"`）を外さない。**
+
+		この画面は «ヘッダを出さない» と決めた（下のコメント）が、**このアプリで上端の
+		セーフエリアを確保しているのは `ScreenHeader`**（`paddingTop: insets.top + 8`）である。
+		ヘッダを消したときに、その役目を引き継ぐものが無くなっていた。
+
+		結果、iOS ではタブ（「SNS から」「食べたを記録」）が **ダイナミックアイランドの下に
+		潜って読めなくなっていた**（run 32818524649 の iOS スクリーンショットで実測）。
+		ヘッダを持つ他の画面が `edges={[]}` なのは `ScreenHeader` が入れているからで、
+		**ヘッダの無いこの画面だけは自分で入れる必要がある。**
+		*/
+		<SafeAreaView edges={["top", "bottom"]} style={styles.container} testID="sns-import-screen">
 			{/* #1375 実機確認: **ヘッダは出さない。** タブ自体が見出しの役割を持つので、
 			    その上にもう 1 段タイトル帯を置くと «同じことを 2 回言う» 形になる。
 			    戻る導線はヘッダではなく «下へ引いて閉じる»（`dismissGesture`）が担う。
