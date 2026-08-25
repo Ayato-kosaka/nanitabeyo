@@ -96,7 +96,7 @@ describe("app/index.tsx のディープリンク採用（#1124）", () => {
 
 	it("ログアウト由来では、初回マウントでも起動時 URL を無視して元のロケールのホームへ送る", async () => {
 		mockConsumeLogoutRedirect.mockReturnValue("ja-JP");
-		mockGetInitialURL.mockResolvedValue("nanitabeyo:///ja-JP/profile/settings");
+		mockGetInitialURL.mockResolvedValue("nanitabeyo:///ja-JP/profile/device-settings");
 
 		await renderIndex();
 

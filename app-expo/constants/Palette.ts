@@ -244,14 +244,14 @@ export interface Palette {
  */
 const light: Palette = {
 	background: "#F8F9FA", // search/index.tsx container
-	backgroundGradient: ["#FFFFFF", "#F8F9FA"], // profile/settings.tsx LinearGradient
+	backgroundGradient: ["#FFFFFF", "#F8F9FA"], // マイページ / 端末設定 / なに食べよについて の LinearGradient
 	surface: "#FFFFFF", // components/Card.tsx / ScreenHeader.tsx / (tabs)/_layout.tsx(#fff)
 	surfaceMuted: "#F8F9FA", // SelectableChip.tsx chip
 	surfaceSubtle: "#F3F4F6", // DistanceSlider.tsx estimateRow
 	surfaceSelected: "#E5E5E5", // SelectableChip.tsx / SelectableGridItem.tsx selected
 	appShellBackdrop: "#F3F4F6", // CenteredAppShell.web.tsx outer
 
-	divider: "#F3F4F6", // profile/settings.tsx separator
+	divider: "#F3F4F6", // SettingsMenuItem の区切り線
 	border: "#C9C9C9", // ScreenHeader.tsx borderBottom / SelectableChip.tsx
 	borderContrast: "#000000", // SelectableChip.tsx / SelectableGridItem.tsx selected border
 	trackMuted: "#D1D5DB", // DistanceSlider.tsx track（ムードの円 #C9C9C9 とは別値のため統合しない）
@@ -266,7 +266,7 @@ const light: Palette = {
 	textStrong: "#000000", // search moodLabel / SelectableChip label / 現在地アイコン
 	textSecondary: "#6B7280", // search restrictionChipText / タブバー非アクティブ
 	textSecondaryAlt: "#4B5563", // DistanceSlider.tsx estimateValue
-	textTertiary: "#9CA3AF", // profile/settings.tsx シェブロン
+	textTertiary: "#9CA3AF", // SettingsMenuItem のシェブロン
 	textSecondaryStrong: "#374151", // #1469 my-dishes/filters.tsx / sns-import.tsx のフォームラベル
 	textMuted: "#666666", // #1469 restaurant 系の補足文字。元表記は #666（描画される色は完全に同一）
 	textPlaceholder: "#A0A0A0", // #1469 ReviewForm.tsx placeholderTextColor
@@ -282,7 +282,7 @@ const light: Palette = {
 	danger: "#DC2626", // search requiredText
 	dangerStrong: "#EF4444", // search selectedRestrictionChip
 	dangerTint: "#FEE2E2", // search requiredBadge
-	destructive: "#FF3E33", // profile/settings.tsx ログアウト
+	destructive: "#FF3E33", // マイページのログアウト行
 	dialogTitle: "#1C1B1F", // #1577 DialogProvider が直書きしていた値の写し（M3 onSurface）
 	dialogMessage: "#49454F", // 同上（M3 onSurfaceVariant）
 	dangerEmphasis: "#B91C1C", // #1469 MyDishesCalendarView.tsx footerErrorText
