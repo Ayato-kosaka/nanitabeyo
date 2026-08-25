@@ -154,6 +154,9 @@ const DayCell = memo(function DayCell({ cell, onPress }: { cell: CalendarDayCell
 							source={source}
 							cachePolicy="memory-disk"
 							transition={100}
+							/* #1375（9 巡目）セルの使い回しで «前の日の写真が一瞬残る» のを防ぐ。
+							   理由は MyDishesListView の同じ prop のコメントを参照 */
+							recyclingKey={cell.dateKey}
 							style={StyleSheet.absoluteFill}
 							contentFit="cover"
 							alt=""
@@ -462,10 +465,15 @@ const createStyles = (c: Palette) =>
 			paddingHorizontal: 16,
 			paddingVertical: 12,
 		},
+		// #1375（9 巡目・オーナー指摘）**凡例に «ボックス» を作らない。左寄せにする。**
+		// 上罫線を引くと «下に別の領域がある» ように見え、日付グリッドと切り離されて読める。
+		// 凡例は日付グリッドの注釈なので、罫線を外して同じ左端（グリッドと同じ 16）へ揃える。
+		// ⚠️ 中央寄せは MyDishStatusLegend 側の既定（`justifyContent: "center"`）なので、
+		//    ここで打ち消す。部品側の既定を変えるとマップ下部シートの見出し行も動く
 		legend: {
+			justifyContent: "flex-start",
+			paddingHorizontal: 16,
 			paddingVertical: 10,
-			borderTopWidth: StyleSheet.hairlineWidth,
-			borderTopColor: c.borderMuted,
 		},
 		// #1375 実機確認: 月と月のあいだを広く取る。詰めると «どこからが次の月か» が読めない
 		month: {

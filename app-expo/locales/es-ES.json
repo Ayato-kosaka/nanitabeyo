@@ -1015,6 +1015,7 @@
 		},
 		"map": {
 			"truncated": "Solo se muestran algunos pines. Reduce el área de búsqueda.",
+			"currentLocation": "Ir a mi ubicación",
 			"sheetTitle": "{{count}} restaurantes cerca",
 			"tileA11yLabel": "{{name}} (quiero comer: {{want}}, comido: {{eaten}})",
 			"clusterA11yLabel": "{{count}} restaurantes aquí"

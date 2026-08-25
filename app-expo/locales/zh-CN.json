@@ -1015,6 +1015,7 @@
 		},
 		"map": {
 			"truncated": "地图上仅显示部分标记，请缩小搜索范围。",
+			"currentLocation": "移动到当前位置",
 			"sheetTitle": "附近的餐厅 {{count}} 家",
 			"tileA11yLabel": "{{name}}（想吃 {{want}} 条，吃过 {{eaten}} 条）",
 			"clusterA11yLabel": "此处餐厅 {{count}} 家"
