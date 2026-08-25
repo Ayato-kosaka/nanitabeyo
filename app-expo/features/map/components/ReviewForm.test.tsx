@@ -663,12 +663,28 @@ describe("#1375 ReviewForm のメディア選択モード", () => {
 		expect(tree.root.findAllByProps({ testID: "review-comment-input" })).toHaveLength(0);
 	});
 
-	it("料理カテゴリーが決まると、写真なしのプレースホルダと残りの入力が出る", () => {
+	/*
+	#1375（オーナー指示 7 巡目）**写真の選択も «1 歩» にする。**
+
+	以前はここで «写真の入口» と «コメント・料理・価格・星» が同時に出ていた。
+	最初に目に入るものが多すぎて何をすればよいか読み取れない、という指摘への対処。
+	お店 → 料理カテゴリー → **写真** → 入力、の順に 1 歩ずつ出す。
+	*/
+	it("料理カテゴリーが決まると «写真を選ぶ» だけが出る（入力欄はまだ出さない）", () => {
 		mount({ mediaPickerMode: "manual", allowNoMedia: true });
 		chooseDishCategory();
 		expect(selectMedia).not.toHaveBeenCalled();
 		expect(tree.root.findAllByProps({ testID: "review-add-photo-placeholder" }).length).toBeGreaterThan(0);
+		expect(tree.root.findAllByProps({ testID: "review-comment-input" })).toHaveLength(0);
+	});
+
+	it("写真を «選ばない» と決めると、そこで初めて入力欄が出る", () => {
+		mount({ mediaPickerMode: "manual", allowNoMedia: true });
+		chooseDishCategory();
+		act(() => pressableWithTestID("review-skip-photo").props.onPress());
 		expect(tree.root.findAllByProps({ testID: "review-comment-input" }).length).toBeGreaterThan(0);
+		// 決めたあとは «既存から選ぶ» の一覧とスキップは畳む（入力の邪魔にしない）
+		expect(tree.root.findAllByProps({ testID: "review-skip-photo" })).toHaveLength(0);
 	});
 
 	// ⚠️ 押した時点でプレースホルダは «読み込み中» へ変わって消えるので、

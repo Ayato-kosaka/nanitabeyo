@@ -218,7 +218,29 @@ export class MyDishesScreen {
 		} catch {
 			await tapWhenVisible(by.id("review-dish-category-step").withDescendant(by.text(query)));
 		}
-		// 決まると 2 歩目（写真とコメント欄）が出る
+		// 決まると 2 歩目（写真を選ぶ）が出る。コメント欄はまだ出ない
+		await waitUntilVisible(this.addPhotoPlaceholder, timeout);
+	}
+
+	/** 写真を選ぶ 1 歩（#1375 オーナー指示 7 巡目） */
+	readonly addPhotoPlaceholder = by.id("review-add-photo-placeholder");
+	readonly pickFromLibraryButton = by.id("review-pick-from-library");
+	readonly skipPhotoButton = by.id("review-skip-photo");
+
+	/**
+	 * 写真の選択を済ませてフォームへ進む。
+	 *
+	 * 既定は «ライブラリから選ぶ»。E2E ビルドではメディア選択が固定画像へ差し替わるので
+	 * OS のピッカーは開かない（`app-expo/lib/e2e/selectMediaStub.ts`）。
+	 * `skip: true` を渡すと «写真なし» で進む。
+	 */
+	async chooseMediaInRecordFlow(
+		options: { skip?: boolean } = {},
+		timeout: number = DEFAULT_TIMEOUT,
+	): Promise<void> {
+		await waitUntilVisible(this.addPhotoPlaceholder, timeout);
+		await tapWhenVisible(options.skip ? this.skipPhotoButton : this.pickFromLibraryButton, timeout);
+		// 決めるとフォーム（コメント欄）が出る
 		await waitUntilVisible(this.commentInput, timeout);
 	}
 

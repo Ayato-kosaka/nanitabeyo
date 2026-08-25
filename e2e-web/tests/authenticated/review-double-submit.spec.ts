@@ -79,6 +79,7 @@ test.describe("レビュー投稿ボタンの連打耐性 @mutation", () => {
 		// #1375（6 巡目）記録フローは «お店 → 料理カテゴリー → 写真» の順。
 		// カテゴリーが決まるまで写真もコメント欄も出ない
 		await myDishesPage.chooseDishCategoryInRecordFlow("コーヒー");
+		await myDishesPage.chooseMediaInRecordFlow();
 
 		// 写真は自分で «ライブラリから選ぶ» を押して開く（記録フローは自動で開かない）
 		const fileChooserPromise = appPage.waitForEvent("filechooser");
