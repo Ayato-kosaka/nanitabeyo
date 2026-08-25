@@ -794,6 +794,26 @@ dispatchしたrunが `pending` のまま動かないときは、ランナー不�
 ここを取り違えると、直すべき場所（プロンプト・権限）ではなく、関係の無い場所
 （利用上限・再実行のタイミング）を疑い続けることになる。
 
+### ⚠️ 「50 秒で落ちて Claude の出力が無い」は Claude の失敗ではない（2026-08-24 実測）
+
+`読み取りワーカーが成果物を1文字も出力せずに終了しました` というエラーで 40〜60 秒で
+落ちる run が続いたとき、**並列数が多すぎる / 利用枠だと決めつけて再 dispatch を繰り返した**。
+実際の原因は step 6 **「sharedパッケージをビルド」** の型エラーで、
+**Claude Code を実行する step まで到達していなかった**（step 12 は skipped）。
+
+見分け方は下の `list_workflow_jobs` を**必ず先に**取ること。step の一覧を見れば
+「Claude Codeを実行」が `skipped` かどうかが一目で分かる。ここを飛ばすと、
+Claude 側の問題を延々と疑って何本も無駄に dispatch することになる（実際にそうなった）。
+
+このときの根本原因は `db-migrate.yml` の `regenerate_prisma` が `schema.prisma` だけを
+main へ自動 commit し、**`shared/supabase/database.types.ts` と `shared/converters/` の
+手追従（`shared/converters/README.md` の手順）が抜けていた**こと。
+DB を触る変更が main に入った直後にワーカーが軒並み落ち始めたら、まずこれを疑う。
+
+**同じ head_sha でも base_ref が違えば結果が違う。** 上の事故では、古い base の
+ブランチを見ていた run だけ成功していたため「並列数のせい」に見えていた。
+落ちた run と通った run の `base_ref` を並べると、branch 依存だとすぐ分かる。
+
 ### 診断は 3 つの数字で機械的にやる
 
 再実行する前に、**必ず**次を取る。
