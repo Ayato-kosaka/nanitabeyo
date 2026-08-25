@@ -94,6 +94,27 @@ export class SettingsScreen {
 	/** 確認ダイアログの「キャンセル」ボタン（#1131 で追加した既定 testID） */
 	readonly logoutCancelButton = by.id("dialog-cancel-button");
 	/**
+	 * #1511 アカウント削除行（ログイン済みユーザーのみ表示）。
+	 * ログアウト行のさらに下、設定画面の最下段にある（= 初期表示では画面外にいる）。
+	 */
+	readonly deleteAccountItem = by.id("settings-delete-account");
+	/**
+	 * #1511 1 枚目（影響の説明）の確認ダイアログのタイトル（ja-JP: `Settings.deleteAccountConfirmTitle`）。
+	 * DialogProvider はタイトルに testID を持たないため文字列で特定する（logoutConfirmTitle と同じ事情）。
+	 */
+	readonly deleteAccountConfirmTitle = by.text("アカウントを削除しますか？");
+	/** #1511 2 枚目（取り消せないことへの同意）の確認ダイアログのタイトル */
+	readonly deleteAccountFinalTitle = by.text("本当に削除しますか？");
+	/**
+	 * #1511 確認ダイアログの OK / キャンセル。`confirm()` が出すダイアログの既定 testID（#1131）。
+	 *
+	 * ⚠️ `logoutConfirmButton` と同じ testID を指す。**同時に 2 枚は開かない**ので衝突しないが、
+	 * 1 枚目の OK を押して 2 枚目が開くまでの間はどちらの実体か曖昧になりうる。
+	 * タイトルの表示を待ってから押すこと（`waitUntilVisible(deleteAccountFinalTitle)`）。
+	 */
+	readonly dialogConfirmButton = by.id("dialog-confirm-button");
+	readonly dialogCancelButton = by.id("dialog-cancel-button");
+	/**
 	 * #1368 リーガル 4 行は **モーダルではなく画面遷移**（`/[locale]/legal/<doc>`）になった。
 	 * 遷移先の検証は `screens/LegalScreen.ts` が持つ。
 	 *
@@ -254,6 +275,41 @@ export class SettingsScreen {
 	 */
 	async scrollToLogout(): Promise<void> {
 		await waitFor(element(this.logoutItem)).toBeVisible().whileElement(by.id("settings-scroll")).scroll(300, "down");
+	}
+
+	/**
+	 * #1511 アカウント削除行が **見える位置まで** スクロールする。
+	 *
+	 * 削除行はログアウト行のさらに下にあり、エミュレータの画面高では初期表示で画面外にいる
+	 * （`scrollToLogout()` と同じ事情。#1131 で CI が実際に赤くなった）。
+	 */
+	async scrollToDeleteAccount(): Promise<void> {
+		await waitFor(element(this.deleteAccountItem))
+			.toBeVisible()
+			.whileElement(by.id("settings-scroll"))
+			.scroll(300, "down");
+	}
+
+	/**
+	 * #1511 アカウント削除行が存在するかを **待たずに** 判定する。
+	 * 匿名/ログイン済みで可視性が変わるため、`hasLogoutItem()` と同じ考え方で使う。
+	 */
+	async hasDeleteAccountItem(): Promise<boolean> {
+		return existsNow(this.deleteAccountItem);
+	}
+
+	/**
+	 * #1511 アカウント削除行をタップして 1 枚目の確認ダイアログを開く（**確定しない**）。
+	 *
+	 * ⚠️ 確定まで行うヘルパーは **意図的に用意していない**。削除は取り消せず、
+	 * dev の Supabase Auth ユーザーを消すと `tests/authenticated/` 全体が走らなくなる。
+	 * 「開くところまで」しか置かないことで、誤って本物の削除を走らせる事故を構造的に防ぐ。
+	 */
+	async openDeleteAccountDialog(): Promise<void> {
+		await this.scrollToDeleteAccount();
+		await tapWhenVisible(this.deleteAccountItem);
+		// Portal 経由でマウントされるため、ダイアログの描画完了（タイトル）を待つ
+		await waitUntilVisible(this.deleteAccountConfirmTitle);
 	}
 
 	/**

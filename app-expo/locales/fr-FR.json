@@ -419,8 +419,8 @@
 			"viewRestaurant": "Voir les détails du restaurant {{name}}",
 			"likeActive": "Ne plus aimer {{name}}",
 			"likeInactive": "Aimer {{name}}",
-			"saveActive": "Retirer {{name}} de Envie d'essayer",
-			"saveInactive": "Ajouter {{name}} à Envie d'essayer",
+			"saveActive": "Retirer {{name}} des enregistrements",
+			"saveInactive": "Enregistrer {{name}}",
 			"share": "Partager {{name}}",
 			"openMap": "Ouvrir la carte de {{name}}",
 			"reviewLike": "Aimer l'avis de {{username}}",
@@ -502,7 +502,8 @@
 			"saved-posts": "Publications",
 			"saved-dish-categories": "Plats",
 			"wallet-deposit": "Dépôts",
-			"wallet-earning": "Revenus"
+			"wallet-earning": "Revenus",
+			"saved-topics": "Plats"
 		},
 		"numberSuffix": {
 			"million": "M",
@@ -520,7 +521,8 @@
 			"noLikedDishMediaEntries": "Aucune publication aimée",
 			"noSavedItems": "Aucun élément enregistré",
 			"noSavedPosts": "Quand vous trouvez des publications intéressantes, utilisez \"Enregistrer\" pour les revoir",
-			"noSavedDishCategories": "Quand vous trouvez des plats intéressants, utilisez \"Enregistrer\" pour explorer les restaurants à proximité"
+			"noSavedDishCategories": "Quand vous trouvez des plats intéressants, utilisez \"Enregistrer\" pour explorer les restaurants à proximité",
+			"noSavedTopics": "Quand vous trouvez des plats intéressants, utilisez \"Enregistrer\" pour explorer les restaurants à proximité"
 		},
 		"reviews": {
 			"filter": {
@@ -595,7 +597,7 @@
 		},
 		"actions": {
 			"selectDishCategory": "Sélectionner la catégorie du plat",
-			"writeReviewForThisDish": "Enregistrer comme goûté",
+			"writeReviewForThisDish": "Écrire un avis sur ce plat",
 			"useTypedDishCategory": "Utiliser « {{name}} »"
 		},
 		"inputs": {
@@ -858,6 +860,28 @@
 		},
 		"myGroupVotes": {
 			"navigationLabel": "Mes votes de groupe"
+		},
+		"deleteAccount": "Supprimer le compte",
+		"deleteAccountInProgress": "Suppression…",
+		"deleteAccountConfirmTitle": "Supprimer votre compte ?",
+		"deleteAccountConfirmMessage": "Votre profil ne sera plus affiché et vos publications et avis disparaîtront des listes et de la recherche. Vos photos et vidéos seront supprimées, ainsi que vos mentions J'aime, vos enregistrements et vos blocages.\n\nCette action est irréversible.",
+		"deleteAccountConfirmButton": "Continuer",
+		"deleteAccountFinalTitle": "Vraiment supprimer ?",
+		"deleteAccountFinalMessage": "Votre compte et vos données ne pourront pas être restaurés. Vous ne pourrez plus vous reconnecter avec ce compte.",
+		"deleteAccountFinalButton": "Supprimer définitivement",
+		"deleteAccountSuccess": "Votre compte a été supprimé",
+		"deleteAccountError": "Impossible de supprimer votre compte. Veuillez réessayer plus tard.",
+		"blockedTopics": {
+			"navigationLabel": "Catégories de plats bloquées",
+			"pageTitle": "Catégories de plats bloquées",
+			"title": "Plats bloqués",
+			"empty": "Aucun plat bloqué",
+			"loading": "Chargement...",
+			"unblockButton": "Débloquer",
+			"unblockTitle": "Débloquer cette catégorie de plat ?",
+			"unblockMessage": "Cette catégorie de plat sera réajoutée aux recommandations.",
+			"unblockConfirm": "Débloquer",
+			"unblocked": "Débloqué"
 		}
 	},
 	"Dialog": {
@@ -1209,6 +1233,81 @@
 				"dish_media": "Publication",
 				"dish_reviews": "Avis"
 			}
+		}
+	},
+	"Topics": {
+		"deepDive": {
+			"title": "Filtrer ce style"
+		},
+		"tutorial": {
+			"helpLabel": "Comment utiliser cet écran",
+			"helpHint": "Afficher le tutoriel des suggestions depuis le début",
+			"skip": "Ignorer",
+			"next": "Suivant",
+			"finish": "Commencer",
+			"progress": "{{current}} / {{total}}",
+			"progressAccessibility": "Étape {{current}} sur {{total}}",
+			"steps": {
+				"swipeAndDecide": {
+					"title": "Choisissez un plat qui vous tente",
+					"body": "Balayez à gauche ou à droite pour comparer les plats. Une fois décidé, touchez « Choisir ! »."
+				},
+				"deepDive": {
+					"title": "Approfondissez selon votre humeur",
+					"body": "Vous hésitez encore ? Choisissez un style pour affiner les suggestions."
+				},
+				"topicActions": {
+					"title": "Adaptez les suggestions à vos goûts",
+					"save": "Enregistrer : retrouvez ce plat plus tard",
+					"block": "Bloquer : ne plus voir les plats qui ne vous plaisent pas"
+				},
+				"groupVote": {
+					"title": "Décidez entre amis",
+					"body": "Partagez les suggestions avec vos proches et votez ensemble."
+				}
+			}
+		},
+		"HideTopicModal": {
+			"title": "Masquer",
+			"description": "Veuillez indiquer la raison du masquage (facultatif)",
+			"placeholder": "Entrez une raison...",
+			"confirm": "Masquer"
+		},
+		"Loading": {
+			"title": "Sélection de 6 plats parfaits pour vous",
+			"subtitle": "Vos recommandations seront bientôt prêtes !"
+		},
+		"errors": {
+			"fetchFailed": "Échec de récupération des plats",
+			"invalidSearchParams": "Paramètres de recherche invalides"
+		},
+		"empty": "Aucun plat disponible",
+		"retry": "Retour à la recherche",
+		"chooseThis": "Je choisis celui-ci !",
+		"hiddenMessage": "{{title}} a été masqué",
+		"BlockTopicModal": {
+			"title": "Bloquer ce plat ?",
+			"description": "Les catégories de plats bloquées n’apparaîtront plus dans les recommandations.",
+			"note": "Vous pouvez le débloquer à tout moment depuis les Paramètres.",
+			"confirm": "Bloquer"
+		},
+		"blockedMessage": "{{title}} a été bloqué",
+		"savedMessage": "Enregistré",
+		"reloadDialog": {
+			"title": "Trouver plus d’options ?",
+			"message": "Il n’y a que quelques recommandations pour le moment. Nous allons relancer une recherche avec les mêmes conditions.",
+			"confirm": "Rechercher de nouveau",
+			"cancel": "Fermer"
+		},
+		"imageLoadFailed": "Échec du chargement de l'image",
+		"tapToReload": "Appuyez pour recharger",
+		"headerTitle": "Plats Recommandés pour Vous",
+		"subCopy": "Appuyez sur un plat que vous aimez pour trouver des restaurants",
+		"accessibility": {
+			"blockTopic": "Retirer {{title}} des recommandations",
+			"saveTopic": "Enregistrer {{title}}",
+			"unsaveTopic": "Retirer {{title}} des favoris",
+			"thumbnail": "Miniature de {{title}}, {{index}} sur {{total}}"
 		}
 	}
 }

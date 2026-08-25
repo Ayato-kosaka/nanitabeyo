@@ -9,6 +9,7 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 
 import {
@@ -33,7 +34,15 @@ import { DishMediaRepository } from '../dish-media/dish-media.repository';
 import { DishMediaService } from '../dish-media/dish-media.service';
 import { DishCategoriesRepository } from '../dish-categories/dish-categories.repository';
 import { RestaurantsRepository } from '../restaurants/restaurants.repository';
-import { isValidUserUploadedPath } from 'src/core/storage/storage.utils';
+import {
+  buildDerivedPrefix,
+  isValidUserUploadedPath,
+} from 'src/core/storage/storage.utils';
+import { StorageService } from 'src/core/storage/storage.service';
+import {
+  SupabaseAdminNotConfiguredError,
+  SupabaseAdminService,
+} from 'src/core/supabase-admin/supabase-admin.service';
 import { CloudTasksService } from 'src/core/cloud-tasks/cloud-tasks.service';
 import { UsersAssembler } from './users.assembler';
 import {
@@ -71,10 +80,20 @@ export class UsersService {
     private readonly dishMediaAssembler: DishMediaAssembler,
     private readonly dishCategoryGroupVotesRepo: DishCategoryGroupVotesRepository,
     private readonly prismaService: PrismaService,
+    private readonly storage: StorageService,
+    private readonly supabaseAdmin: SupabaseAdminService,
   ) {}
 
   async getUserByIds(userId: string[]) {
     return this.repo.getUserByIds(userId);
+  }
+
+  /**
+   * #1511 / #1557 退会と匿名（users 行なし）を区別したい呼び出し側のための取得。
+   * 詳細は `UsersRepository.getUsersByIdsIncludingDeleted` の JSDoc を参照。
+   */
+  async getUsersByIdsIncludingDeleted(userIds: string[]) {
+    return this.repo.getUsersByIdsIncludingDeleted(userIds);
   }
 
   /* ------------------------------------------------------------------ */
@@ -707,6 +726,147 @@ export class UsersService {
     });
 
     return this.assembler.enrichUserProfileWithAvatarUrls(updatedUser);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*                     DELETE /v1/users/me（#1511）                   */
+  /* ------------------------------------------------------------------ */
+  /**
+   * アカウントを削除する（ACC-01）。
+   *
+   * ## 手順（この順序に意味がある）
+   * 1. **削除対象の実体パスを控える**（アバター / 投稿メディア）。
+   *    匿名化トランザクションが `avatar_path` を NULL にするので、先に読まないと消せなくなる。
+   * 2. **DB を 1 トランザクションで匿名化**する（users.repository.softDeleteUserAccount）。
+   *    ここが通れば、この時点でアプリのどの読み取り経路からも本人は見えなくなる。
+   * 3. **GCS の実体を削除**する。失敗しても DB の状態は正しいので、記録して先へ進む
+   *    （オブジェクトは再実行で回収できる。ここで throw すると auth 削除へ到達しない）。
+   * 4. **Supabase Auth のアカウントを物理削除**する。ここは失敗を握り潰さない。
+   *    握り潰すと「削除したのに同じ資格情報でログインできる」状態を成功として返してしまう。
+   *
+   * ## 冪等性
+   * 3 と 4 は「既に無い」を成功として扱う。2 は updateMany / deleteMany で書いてある。
+   * したがって途中で落ちた削除は、同じリクエストの再送で最後まで完了できる。
+   *
+   * ## この操作は取り消せない
+   * auth 側を実体ごと消すため、同じ資格情報での再ログイン経路は残らない。
+   * クライアントは実行前に必ず確認ダイアログでその旨を明示すること
+   * （app-expo/app/[locale]/(tabs)/profile/settings.tsx）。
+   */
+  async deleteMe(userId: string): Promise<{
+    success: boolean;
+    deletedAt: string;
+  }> {
+    this.logger.log('DeleteMeStarted', 'deleteMe', { userId });
+
+    // ── 1. 実体パスを控える（匿名化で avatar_path が消える前に） ──────────
+    // ⚠️ `getUserById` ではなく削除済みも引ける方を使う。再実行で「居ない」と誤判定させない
+    const user = await this.repo.getUserByIdIncludingDeleted(userId);
+    if (!user) throw new NotFoundException('User not found');
+
+    const avatarPath = user.avatar_path;
+    const dishMedias = await this.repo.findDishMediaPathsByUser(userId);
+
+    // ── 2. DB の匿名化（1 トランザクション） ─────────────────────────
+    const result = await this.repo.softDeleteUserAccount(userId);
+
+    // ── 3. GCS の実体削除（失敗しても先へ進む） ──────────────────────
+    await this.deleteStorageObjectsForUser(userId, avatarPath, dishMedias);
+
+    // ── 4. Supabase Auth の物理削除（ここは失敗を握り潰さない） ────────
+    try {
+      await this.supabaseAdmin.deleteAuthUser(userId);
+    } catch (err) {
+      if (err instanceof SupabaseAdminNotConfiguredError) {
+        // service_role 鍵が未配線の環境。DB 側の匿名化は完了しているので再実行で完了できる。
+        // 「成功」を返してはいけない: 認証が生きたままだと再ログインできてしまう
+        this.logger.error('DeleteMeAuthNotConfigured', 'deleteMe', { userId });
+        throw new ServiceUnavailableException(
+          'Account data was anonymized, but the authentication account could not be deleted because the Supabase admin credentials are not configured. Retry after configuring SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY.',
+        );
+      }
+      this.logger.error('DeleteMeAuthDeleteFailed', 'deleteMe', {
+        userId,
+        error_message: (err as Error).message,
+      });
+      throw new ServiceUnavailableException(
+        'Account data was anonymized, but the authentication account could not be deleted. Please retry.',
+      );
+    }
+
+    this.logger.log('DeleteMeCompleted', 'deleteMe', {
+      userId,
+      ...result,
+      deletedAt: result.deletedAt.toISOString(),
+      dishMediaObjectsTargeted: dishMedias.length,
+    });
+
+    return { success: true, deletedAt: result.deletedAt.toISOString() };
+  }
+
+  /**
+   * #1511 削除ユーザーのストレージ実体を消す。
+   *
+   * オリジナルと派生（リサイズ画像・トランスコード動画）の両方を対象にする。
+   * 派生はサイズ・フォーマットの一覧を呼び出し側が知らないため、レコード単位の
+   * 前方一致で消す（storage.utils の `buildDerivedPrefix`）。
+   *
+   * ⚠️ **ここでは throw しない。** ストレージの失敗で auth 削除へ到達しないと、
+   * 「消えていないのにログインもできない」より悪い「ログインできるまま」になる。
+   * 取りこぼしはログに残し、再実行で回収する。
+   */
+  private async deleteStorageObjectsForUser(
+    userId: string,
+    avatarPath: string | null,
+    dishMedias: { id: string; media_path: string | null; thumbnail_path: string }[],
+  ): Promise<void> {
+    try {
+      // アバター: オリジナル + 派生（64 / 256）
+      if (avatarPath) await this.storage.deleteFileIfExists(avatarPath);
+      await this.storage.deleteFilesByPrefix(
+        buildDerivedPrefix({
+          kind: 'resized-image',
+          table: 'users',
+          column: 'avatar_path',
+          recordId: userId,
+        }),
+      );
+
+      // 投稿メディア: オリジナル（動画/画像・サムネ） + 派生（リサイズ・HLS）
+      for (const media of dishMedias) {
+        // #1395 で media_path は nullable になった（取り込み中で実体が未着の行）。
+        // 派生（リサイズ・HLS）は recordId 基準で消すので、原本が無い行でも下の
+        // deleteFilesByPrefix は回す必要がある
+        if (media.media_path) {
+          await this.storage.deleteFileIfExists(media.media_path);
+        }
+        await this.storage.deleteFileIfExists(media.thumbnail_path);
+        for (const column of ['media_path', 'thumbnail_path'] as const) {
+          await this.storage.deleteFilesByPrefix(
+            buildDerivedPrefix({
+              kind: 'resized-image',
+              table: 'dish_media',
+              column,
+              recordId: media.id,
+            }),
+          );
+          await this.storage.deleteFilesByPrefix(
+            buildDerivedPrefix({
+              kind: 'transcoded-video',
+              table: 'dish_media',
+              column,
+              recordId: media.id,
+            }),
+          );
+        }
+      }
+    } catch (err) {
+      this.logger.error(
+        'DeleteMeStorageCleanupFailed',
+        'deleteStorageObjectsForUser',
+        { userId, error_message: (err as Error).message },
+      );
+    }
   }
 
   /* ------------------------------------------------------------------ */

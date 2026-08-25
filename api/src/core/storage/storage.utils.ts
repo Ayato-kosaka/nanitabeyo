@@ -87,6 +87,27 @@ export function buildTranscodedPath(
   return type === 'gcs' ? gcsPath : `https://${env.CDN_HOST}/${gcsPath}`;
 }
 
+/**
+ * #1511 派生ファイル（リサイズ画像 / トランスコード動画）のレコード単位プレフィクス。
+ *
+ * `buildResizedPath` / `buildTranscodedPath` は **サイズやフォーマットまで含む 1 本の
+ * パス**を返す。アカウント削除で実体を消すときは、どのサイズが生成済みかを
+ * 呼び出し側が知らないため、レコード単位で前方一致削除する必要がある。
+ *
+ * 返す文字列は `/` で終わる（`<id>` と `<id>2` の取り違えを防ぐ）。
+ *
+ * @example buildDerivedPrefix({ kind: 'resized-image', table: 'users', column: 'avatar_path', recordId })
+ *   → 'development/resized-image/users/avatar_path/<recordId>/'
+ */
+export function buildDerivedPrefix(params: {
+  kind: 'resized-image' | 'transcoded-video';
+  table: string;
+  column: string;
+  recordId: string;
+}): string {
+  return `${env.API_NODE_ENV}/${params.kind}/${params.table}/${params.column}/${params.recordId}/`;
+}
+
 /* -------------------------------------------------------------------------- */
 /*                          ファイル名チェック                                */
 /* -------------------------------------------------------------------------- */

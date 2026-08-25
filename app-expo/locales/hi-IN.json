@@ -419,8 +419,8 @@
 			"viewRestaurant": "{{name}} के रेस्तरां का विवरण देखें",
 			"likeActive": "{{name}} की पसंद हटाएं",
 			"likeInactive": "{{name}} को पसंद करें",
-			"saveActive": "{{name}} को \"खाना है\" से हटाएं",
-			"saveInactive": "{{name}} को \"खाना है\" में सेव करें",
+			"saveActive": "{{name}} को सेव से हटाएं",
+			"saveInactive": "{{name}} सेव करें",
 			"share": "{{name}} शेयर करें",
 			"openMap": "{{name}} का मानचित्र खोलें",
 			"reviewLike": "{{username}} की समीक्षा को पसंद करें",
@@ -502,7 +502,8 @@
 			"saved-posts": "पोस्ट",
 			"saved-dish-categories": "व्यंजन",
 			"wallet-deposit": "जमा",
-			"wallet-earning": "आय"
+			"wallet-earning": "आय",
+			"saved-topics": "व्यंजन"
 		},
 		"numberSuffix": {
 			"million": "M",
@@ -520,7 +521,8 @@
 			"noLikedDishMediaEntries": "कोई पसंद की गई पोस्ट नहीं",
 			"noSavedItems": "कोई सहेजे गए आइटम नहीं",
 			"noSavedPosts": "जब आपको दिलचस्प पोस्ट मिलें, तो उन्हें दोबारा देखने के लिए \"सहेजें\" का उपयोग करें",
-			"noSavedDishCategories": "जब आपको दिलचस्प व्यंजन मिलें, तो आसपास के रेस्टोरेंट देखने के लिए \"सहेजें\" का उपयोग करें"
+			"noSavedDishCategories": "जब आपको दिलचस्प व्यंजन मिलें, तो आसपास के रेस्टोरेंट देखने के लिए \"सहेजें\" का उपयोग करें",
+			"noSavedTopics": "जब आपको दिलचस्प व्यंजन मिलें, तो आसपास के रेस्टोरेंट देखने के लिए \"सहेजें\" का उपयोग करें"
 		},
 		"reviews": {
 			"filter": {
@@ -594,7 +596,7 @@
 		},
 		"actions": {
 			"selectDishCategory": "डिश श्रेणी चुनें",
-			"writeReviewForThisDish": "'खा लिया' के रूप में दर्ज करें",
+			"writeReviewForThisDish": "इस डिश की समीक्षा लिखें",
 			"useTypedDishCategory": "“{{name}}” का उपयोग करें"
 		},
 		"inputs": {
@@ -858,6 +860,28 @@
 		},
 		"myGroupVotes": {
 			"navigationLabel": "मेरे समूह वोट"
+		},
+		"deleteAccount": "खाता हटाएँ",
+		"deleteAccountInProgress": "हटाया जा रहा है…",
+		"deleteAccountConfirmTitle": "क्या आप अपना खाता हटाना चाहते हैं?",
+		"deleteAccountConfirmMessage": "आपकी प्रोफ़ाइल अब नहीं दिखेगी, और आपकी पोस्ट व समीक्षाएँ सूचियों और खोज से हट जाएँगी। आपकी फ़ोटो और वीडियो हटा दिए जाएँगे, साथ ही लाइक, सहेजे गए आइटम और ब्लॉक भी।\n\nयह क्रिया पूर्ववत नहीं की जा सकती।",
+		"deleteAccountConfirmButton": "जारी रखें",
+		"deleteAccountFinalTitle": "क्या वाकई हटाना है?",
+		"deleteAccountFinalMessage": "आपका खाता और डेटा वापस नहीं लाया जा सकता। आप उसी खाते से दोबारा साइन इन भी नहीं कर पाएंगे।",
+		"deleteAccountFinalButton": "स्थायी रूप से हटाएँ",
+		"deleteAccountSuccess": "आपका खाता हटा दिया गया",
+		"deleteAccountError": "खाता नहीं हटाया जा सका। कृपया बाद में पुनः प्रयास करें।",
+		"blockedTopics": {
+			"navigationLabel": "ब्लॉक की गई व्यंजन श्रेणियाँ",
+			"pageTitle": "ब्लॉक की गई व्यंजन श्रेणियाँ",
+			"title": "ब्लॉक किए गए व्यंजन",
+			"empty": "कोई ब्लॉक किए गए व्यंजन नहीं",
+			"loading": "लोड हो रहा है...",
+			"unblockButton": "अनब्लॉक करें",
+			"unblockTitle": "इस व्यंजन श्रेणी को अनब्लॉक करें?",
+			"unblockMessage": "यह व्यंजन श्रेणी सिफारिशों में वापस जोड़ दी जाएगी।",
+			"unblockConfirm": "अनब्लॉक करें",
+			"unblocked": "अनब्लॉक किया गया"
 		}
 	},
 	"Dialog": {
@@ -1209,6 +1233,81 @@
 				"dish_media": "पोस्ट",
 				"dish_reviews": "समीक्षा"
 			}
+		}
+	},
+	"Topics": {
+		"deepDive": {
+			"title": "इस शैली से छांटें"
+		},
+		"tutorial": {
+			"helpLabel": "इस स्क्रीन का उपयोग कैसे करें",
+			"helpHint": "व्यंजन सुझाव ट्यूटोरियल शुरू से दिखाएँ",
+			"skip": "छोड़ें",
+			"next": "आगे",
+			"finish": "शुरू करें",
+			"progress": "{{current}} / {{total}}",
+			"progressAccessibility": "{{total}} में से चरण {{current}}",
+			"steps": {
+				"swipeAndDecide": {
+					"title": "अपनी पसंद का व्यंजन चुनें",
+					"body": "व्यंजनों की तुलना करने के लिए बाएँ या दाएँ स्वाइप करें। पसंद आने पर “इसे चुनें!” पर टैप करें।"
+				},
+				"deepDive": {
+					"title": "मूड के हिसाब से गहराई से खोजें",
+					"body": "अभी तय नहीं कर पाए? सुझावों को सीमित करने के लिए अपनी पसंद की शैली चुनें।"
+				},
+				"topicActions": {
+					"title": "सुझावों को अपनी पसंद के अनुसार बनाएँ",
+					"save": "सेव: पसंदीदा व्यंजन बाद में फिर देखें",
+					"block": "ब्लॉक: नापसंद व्यंजन आगे सुझाए नहीं जाएंगे"
+				},
+				"groupVote": {
+					"title": "दोस्तों के साथ तय करें",
+					"body": "साथ खाने वालों के साथ विकल्प साझा करें और मिलकर वोट करें।"
+				}
+			}
+		},
+		"HideTopicModal": {
+			"title": "छिपाएँ",
+			"description": "कृपया छिपाने का कारण बताएं (वैकल्पिक)",
+			"placeholder": "कारण दर्ज करें...",
+			"confirm": "छिपाएँ"
+		},
+		"Loading": {
+			"title": "आपके लिए 6 आदर्श व्यंजनों का चयन कर रहे हैं",
+			"subtitle": "आपकी सिफारिशें जल्द ही तैयार होंगी!"
+		},
+		"errors": {
+			"fetchFailed": "व्यंजन प्राप्त करने में विफल",
+			"invalidSearchParams": "अमान्य खोज पैरामीटर"
+		},
+		"empty": "कोई व्यंजन उपलब्ध नहीं",
+		"retry": "खोज पर लौटें",
+		"chooseThis": "इसे चुनें!",
+		"hiddenMessage": "{{title}} को छिपा दिया गया है",
+		"BlockTopicModal": {
+			"title": "क्या इस व्यंजन को ब्लॉक करना चाहते हैं?",
+			"description": "ब्लॉक की गई व्यंजन श्रेणियाँ अब आपकी सिफ़ारिशों में नहीं दिखेंगी।",
+			"note": "आप इसे कभी भी सेटिंग्स से अनब्लॉक कर सकते हैं।",
+			"confirm": "ब्लॉक करें"
+		},
+		"blockedMessage": "{{title}} को ब्लॉक कर दिया गया है",
+		"savedMessage": "सेव किया गया",
+		"reloadDialog": {
+			"title": "और विकल्प ढूँढें?",
+			"message": "इस समय केवल कुछ ही सिफ़ारिशें उपलब्ध हैं। हम इन्हीं शर्तों के साथ दोबारा खोज करेंगे।",
+			"confirm": "फिर से खोजें",
+			"cancel": "बंद करें"
+		},
+		"imageLoadFailed": "चित्र लोड करने में विफल",
+		"tapToReload": "पुनः लोड करने के लिए टैप करें",
+		"headerTitle": "आपके लिए अनुशंसित व्यंजन",
+		"subCopy": "रेस्तरां खोजने के लिए पसंदीदा व्यंजन पर टैप करें",
+		"accessibility": {
+			"blockTopic": "अनुशंसाओं से {{title}} हटाएं",
+			"saveTopic": "{{title}} सेव करें",
+			"unsaveTopic": "{{title}} सेव से हटाएं",
+			"thumbnail": "{{title}} थंबनेल, {{total}} में से {{index}}"
 		}
 	}
 }
