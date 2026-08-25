@@ -41,19 +41,16 @@ import {
 	StyleSheet,
 	ScrollView,
 	Platform,
-	StyleProp,
-	TextStyle,
 	Linking,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { Check, ChevronRight, Moon, Smartphone, Sun } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 
 import { Card } from "@/components/Card";
 import { SettingsMenuItem } from "@/features/settings/components/SettingsMenuItem";
 import type { Palette } from "@/constants/Palette";
-import { THEME_PREFERENCES, useAppTheme, useThemedStyles, type ThemePreference } from "@/contexts/ThemeProvider";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { ProfileHeader } from "@/features/profile/components/ProfileHeader";
 import { useEnsureOwnProfileLoaded } from "@/features/profile/hooks/useEnsureOwnProfileLoaded";
@@ -439,48 +436,5 @@ const createStyles = (c: Palette) =>
 		},
 		card: {
 			padding: 0,
-		},
-		// #1509 テーマセクションの見出し（カードの外に置く）
-		sectionTitle: {
-			fontSize: 13,
-			fontWeight: "700",
-			color: c.textSecondary,
-			marginTop: 16,
-			marginHorizontal: 32,
-		},
-		menuItem: {
-			flexDirection: "row",
-			alignItems: "center",
-			justifyContent: "space-between",
-			paddingHorizontal: 16,
-			paddingVertical: 16,
-		},
-		menuItemText: {
-			fontSize: 16,
-			color: c.textPrimary,
-			fontWeight: "500",
-		},
-		separator: {
-			height: 1,
-			backgroundColor: c.divider,
-			marginHorizontal: 16,
-		},
-		// #1509 テーマ 3 択の行。アイコン + ラベル + 選択チェックの 3 カラム
-		themeOption: {
-			flexDirection: "row",
-			alignItems: "center",
-			gap: 12,
-			paddingHorizontal: 16,
-			paddingVertical: 16,
-		},
-		themeOptionText: {
-			flex: 1,
-			fontSize: 16,
-			color: c.textPrimary,
-			fontWeight: "500",
-		},
-		themeOptionTextSelected: {
-			color: c.brand,
-			fontWeight: "700",
 		},
 	});
