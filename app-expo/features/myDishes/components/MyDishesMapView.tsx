@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { StyleSheet, Text, View } from "react-native";
 import { RotateCw } from "lucide-react-native";
 import MapViewClass from "react-native-maps";
-import MapView, { Marker, type Region } from "@/components/MapView";
+import MapView, { type Region } from "@/components/MapView";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { EmptyState } from "@/components/EmptyState";
 import { PrimaryButton } from "@/components/PrimaryButton";
@@ -34,6 +34,7 @@ import { useMyDishesFilterStore } from "../stores/useMyDishesFilterStore";
 import { useMyDishesMapPinsQuery } from "../hooks/useMyDishesMapPinsQuery";
 import { useMyDishesFeedScopeStore } from "../stores/useMyDishesFeedScopeStore";
 import { MyDishesMapSheet } from "./MyDishesMapSheet";
+import { MyDishClusterMarker } from "./MyDishClusterMarker";
 
 /**
  * #1396 my-dishes の Map ビュー（設計書 (2/2) §7 の PR4）。
@@ -286,16 +287,7 @@ export function MyDishesMapView({ enabled = true }: { enabled?: boolean } = {}) 
 						uri={cluster.pins[0].representativeThumbnailUrl ?? cluster.pins[0].restaurant.image_url ?? undefined}
 					/>
 				) : (
-					<Marker
-						key={cluster.id}
-						testID="my-dishes-map-cluster"
-						coordinate={{ latitude: cluster.latitude, longitude: cluster.longitude }}
-						onPress={() => handleClusterPress(cluster)}
-						accessibilityLabel={i18n.t("MyDishes.map.clusterA11yLabel", { count: cluster.pins.length })}>
-						<View style={styles.cluster}>
-							<Text style={styles.clusterLabel}>{cluster.pins.length}</Text>
-						</View>
-					</Marker>
+					<MyDishClusterMarker key={cluster.id} cluster={cluster} onPress={() => handleClusterPress(cluster)} />
 				),
 			),
 		[clusters, handleClusterPress, handlePinPress],
@@ -379,24 +371,6 @@ export function MyDishesMapView({ enabled = true }: { enabled?: boolean } = {}) 
 
 const createStyles = (c: Palette) =>
 	StyleSheet.create({
-		// #1375（5 巡目）クラスタの丸。地図の上に載るので白い縁で輪郭を保つ
-		// （バッジ類と同じ考え方。`features/myDishes/components/MyDishStatusCountBadges.tsx`）
-		cluster: {
-			minWidth: 36,
-			height: 36,
-			paddingHorizontal: 6,
-			borderRadius: 18,
-			alignItems: "center",
-			justifyContent: "center",
-			backgroundColor: "rgba(17,24,39,0.82)",
-			borderWidth: 2,
-			borderColor: FixedColors.onMedia,
-		},
-		clusterLabel: {
-			fontSize: 14,
-			fontWeight: "700",
-			color: FixedColors.onMedia,
-		},
 		container: {
 			flex: 1,
 		},
