@@ -4,6 +4,7 @@
 
 import { Module } from '@nestjs/common';
 import { ContentReportsController } from './content-reports.controller';
+import { MeContentReportsController } from './me-content-reports.controller';
 import { ContentReportsService } from './content-reports.service';
 import { ContentReportsRepository } from './content-reports.repository';
 
@@ -13,7 +14,7 @@ import { AuthModule } from '../../core/auth/auth.module';
 
 @Module({
   imports: [PrismaModule, LoggerModule, AuthModule],
-  controllers: [ContentReportsController],
+  controllers: [ContentReportsController, MeContentReportsController],
   providers: [ContentReportsService, ContentReportsRepository],
 })
 export class ContentReportsModule {}

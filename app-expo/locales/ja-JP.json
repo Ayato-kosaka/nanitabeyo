@@ -448,9 +448,10 @@
 		"submit": "報告する",
 		"submitting": "送信中...",
 		"accepted": {
-			"title": "報告を受け付けました",
-			"description": "ご報告ありがとうございます。運営が内容を確認します。審査の結果は個別にはお知らせしていません。",
-			"close": "閉じる"
+			"title": "ご報告いただきありがとうございます",
+			"description": "内容を審査します。結果を個別にお知らせすることはありません。",
+			"close": "閉じる",
+			"history": "あなたの報告履歴"
 		},
 		"errors": {
 			"submitFailed": "報告を送信できませんでした。もう一度お試しください。"
@@ -462,6 +463,18 @@
 			"reasonSelected": "理由: {{reason}}（選択中）",
 			"submit": "{{name}}の投稿の報告を送信",
 			"submitReview": "{{name}}さんのレビューの報告を送信"
+		},
+		"history": {
+			"navigationLabel": "あなたの報告履歴",
+			"pageTitle": "あなたの報告履歴",
+			"empty": "まだ報告はありません",
+			"emptyDescription": "投稿やレビューを報告すると、ここに履歴が残ります。",
+			"note": "審査の状況や結果はお知らせしていません。",
+			"error": "報告履歴を取得できませんでした",
+			"target": {
+				"dish_media": "投稿",
+				"dish_reviews": "レビュー"
+			}
 		}
 	},
 	"ImageCardGrid": {

@@ -54,7 +54,29 @@ const entry = {
 const mock = (url) => {
 	if (url.includes("/v1/dish-media") && url.includes("ids="))
 		return { body: ok({ items: [entry], notFound: [] }) };
-	if (url.includes("/v1/content-reports")) return { body: ok({ id: "report-1" }) };
+	// #1584 自分の報告履歴。**status は返さない**（API もそもそも返さない）
+	if (url.includes("/v1/users/me/content-reports"))
+		return {
+			body: ok({
+				data: [
+					{
+						id: "report-1",
+						targetType: "dish_media",
+						reasonCode: "spam",
+						createdAt: "2026-08-22T00:00:00.000Z",
+					},
+					{
+						id: "report-2",
+						targetType: "dish_reviews",
+						reasonCode: "harassment",
+						createdAt: "2026-08-18T00:00:00.000Z",
+					},
+				],
+				nextCursor: null,
+			}),
+		};
+	if (url.includes("/v1/content-reports"))
+		return { body: ok({ reportId: "report-1", status: "pending", alreadyReported: false }) };
 	return null;
 };
 
@@ -106,6 +128,23 @@ async function shootScheme(scheme) {
 				await page.waitForTimeout(400);
 				await shot("04-report-filled");
 			}
+
+			/*
+			#1584 ここからが «送ったあと» の面。オーナー指摘（受付文言 / 報告履歴）の検証。
+			POST はモックが 200 を返すだけなので dev の DB へは 1 行も書かない。
+			*/
+			await page.getByTestId("report-submit").first().click();
+			const accepted = page.getByTestId("report-accepted");
+			await accepted.waitFor({ state: "visible", timeout: 10000 });
+			await page.waitForTimeout(500);
+			await shot("05-accepted");
+
+			// 履歴へ移動する。**審査状況が出ていないこと**がこの絵の主眼
+			await page.getByTestId("report-accepted-history").click();
+			const historyHeader = page.getByTestId("content-reports-header");
+			await historyHeader.waitFor({ state: "visible", timeout: 10000 });
+			await page.waitForTimeout(1500);
+			await shot("06-history");
 		},
 	});
 }
@@ -120,6 +159,8 @@ await writeNote("report1514", [
 	"- 02-report-button … 「通報する」ボタンが出ている状態",
 	"- 03-report-sheet … 通報シートを開いた状態（理由の選択肢）",
 	"- 04-report-filled … 詳細を入力した状態",
+	"- 05-accepted … 送信後の受付。«ご報告いただきありがとうございます» と «あなたの報告履歴» ボタン（#1584）",
+	"- 06-history … 報告履歴。**審査状況は出さない**（受付日と理由だけ。#1584 オーナー確定仕様）",
 	"",
 	"⚠️ API はモック。**dev の DB へは 1 行も書いていない**。",
 	"",

@@ -286,6 +286,20 @@ export default function ProfileScreen() {
 		});
 	}, [lightImpact, logFrontendEvent, router, locale]);
 
+	// #1584 【設計】自分が出した通報の履歴への遷移
+	const handleNavigateToContentReports = useCallback(() => {
+		lightImpact();
+		logFrontendEvent({
+			event_name: "settings_content_reports_pressed",
+			error_level: "log",
+			payload: {},
+		});
+		router.push({
+			pathname: "/[locale]/(tabs)/profile/content-reports",
+			params: { locale },
+		});
+	}, [lightImpact, logFrontendEvent, router, locale]);
+
 	// #611 【設計】ストア直接遷移（market:// / itms-apps:// → https:// フォールバック）
 	const openStoreReviewPage = useCallback(async () => {
 		try {
@@ -547,8 +561,15 @@ export default function ProfileScreen() {
 						<ProfileMenuItem
 							label={i18n.t("Settings.blockedTopics.navigationLabel")}
 							onPress={handleNavigateToBlockedTopics}
-							isLast
 							testID="settings-blocked-topics"
+							accessibilityRole="link"
+						/>
+						{/* #1584 【設計】自分が出した通報の履歴。ブロック済みと同じ «自分が申告したもの» の棚 */}
+						<ProfileMenuItem
+							label={i18n.t("Report.history.navigationLabel")}
+							onPress={handleNavigateToContentReports}
+							isLast
+							testID="settings-content-reports"
 							accessibilityRole="link"
 						/>
 					</Card>

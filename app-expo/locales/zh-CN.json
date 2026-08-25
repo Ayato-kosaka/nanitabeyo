@@ -448,9 +448,10 @@
 		"submit": "提交举报",
 		"submitting": "提交中...",
 		"accepted": {
-			"title": "已收到举报",
-			"description": "感谢反馈。我们会核实相关内容，但不会单独告知处理结果。",
-			"close": "关闭"
+			"title": "感谢您的举报",
+			"description": "我们会进行审核。不会单独告知处理结果。",
+			"close": "关闭",
+			"history": "我的举报记录"
 		},
 		"errors": {
 			"submitFailed": "举报提交失败，请重试。"
@@ -462,6 +463,18 @@
 			"reasonSelected": "理由：{{reason}}（已选择）",
 			"submit": "提交对{{name}}投稿的举报",
 			"submitReview": "提交对{{name}}评价的举报"
+		},
+		"history": {
+			"navigationLabel": "我的举报记录",
+			"pageTitle": "我的举报记录",
+			"empty": "暂无举报记录",
+			"emptyDescription": "举报帖子或评价后，会显示在这里。",
+			"note": "我们不会告知审核状态或结果。",
+			"error": "无法加载举报记录",
+			"target": {
+				"dish_media": "帖子",
+				"dish_reviews": "评价"
+			}
 		}
 	},
 	"ImageCardGrid": {

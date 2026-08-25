@@ -397,4 +397,12 @@ const createStyles = (colors: Palette) =>
 			marginTop: 8,
 			alignSelf: "stretch",
 		},
+		// #1584 履歴への導線。主導線は «閉じる» なので、こちらは控えめな文字ボタンにする
+		acceptedHistoryLink: {
+			marginTop: 12,
+			fontSize: 14,
+			fontWeight: "600",
+			color: colors.textSecondary,
+			textDecorationLine: "underline",
+		},
 	});

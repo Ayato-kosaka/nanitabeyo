@@ -7,9 +7,19 @@
 
 import { Injectable, NotFoundException } from '@nestjs/common';
 
-import { CreateContentReportDto } from '@shared/v1/dto';
-import type { CreateContentReportResponse } from '@shared/v1/res';
-import type { ContentReportStatus } from '@shared/v1/constants/contentReports';
+import {
+  CreateContentReportDto,
+  QueryMeContentReportsDto,
+} from '@shared/v1/dto';
+import type {
+  CreateContentReportResponse,
+  QueryMeContentReportsResponse,
+} from '@shared/v1/res';
+import type {
+  ContentReportReasonCode,
+  ContentReportStatus,
+  ContentReportTargetType,
+} from '@shared/v1/constants/contentReports';
 
 import { AppLoggerService } from '../../core/logger/logger.service';
 import { ContentReportsRepository } from './content-reports.repository';
@@ -116,6 +126,50 @@ export class ContentReportsService {
         alreadyReported: true,
       };
     }
+  }
+
+  /**
+   * #1584 自分が出した通報の履歴を返す。
+   *
+   * ## 返すのは «いつ・どの理由で出したか» だけ
+   * 審査状況（`status`）は返さない。オーナー確定仕様である。
+   *
+   * 通報者は「誰の投稿を通報したか」を知っているので、審査結果まで見えると
+   * **相手の投稿が消えたかどうかを推測できてしまう**。それは通報を相手への
+   * 攻撃手段に変える。#1514 が「相手に通知されることはありません」で守っているのと
+   * 同じ配慮を、逆向きにも効かせる。
+   *
+   * したがってこの一覧の価値は «二重に通報しなくて済む» と
+   * «出したこと自体を確認できる» の 2 点に絞る。
+   *
+   * ⚠️ **`reporterUserId` は必ず JWT の uid を渡すこと。** 呼び出し側の任意値にすると
+   * 他人の通報履歴が読める。
+   */
+  async findMine(
+    reporterUserId: string,
+    query: QueryMeContentReportsDto,
+  ): Promise<QueryMeContentReportsResponse> {
+    const limit = 20;
+    // 次ページの有無を «もう 1 件引けたか» で判定する（総件数を数えない）
+    const rows = await this.repository.findByReporter(
+      reporterUserId,
+      query.cursor,
+      limit + 1,
+    );
+    const hasMore = rows.length > limit;
+    const page = hasMore ? rows.slice(0, limit) : rows;
+
+    return {
+      data: page.map((row) => ({
+        id: row.id,
+        targetType: row.target_type as ContentReportTargetType,
+        reasonCode: row.reason_code as ContentReportReasonCode,
+        createdAt: row.created_at.toISOString(),
+      })),
+      nextCursor: hasMore
+        ? (page[page.length - 1]?.created_at.toISOString() ?? null)
+        : null,
+    };
   }
 }
 

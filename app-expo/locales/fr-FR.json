@@ -448,9 +448,10 @@
 		"submit": "Envoyer le signalement",
 		"submitting": "Envoi en cours...",
 		"accepted": {
-			"title": "Signalement reçu",
-			"description": "Merci de nous avoir prévenus. Notre équipe va l'examiner. Nous ne communiquons pas le résultat individuellement.",
-			"close": "Fermer"
+			"title": "Merci pour votre signalement",
+			"description": "Nous allons l'examiner. Nous ne communiquons pas le résultat individuellement.",
+			"close": "Fermer",
+			"history": "Vos signalements"
 		},
 		"errors": {
 			"submitFailed": "Impossible d'envoyer le signalement. Veuillez réessayer."
@@ -462,6 +463,18 @@
 			"reasonSelected": "Motif : {{reason}} (sélectionné)",
 			"submit": "Envoyer le signalement de la publication de {{name}}",
 			"submitReview": "Envoyer le signalement de l'avis de {{name}}"
+		},
+		"history": {
+			"navigationLabel": "Vos signalements",
+			"pageTitle": "Vos signalements",
+			"empty": "Aucun signalement pour le moment",
+			"emptyDescription": "Lorsque vous signalez une publication ou un avis, il apparaît ici.",
+			"note": "Nous ne communiquons ni l'état ni le résultat de l'examen.",
+			"error": "Impossible de charger vos signalements",
+			"target": {
+				"dish_media": "Publication",
+				"dish_reviews": "Avis"
+			}
 		}
 	},
 	"ImageCardGrid": {

@@ -448,9 +448,10 @@
 		"submit": "신고하기",
 		"submitting": "전송 중...",
 		"accepted": {
-			"title": "신고를 접수했습니다",
-			"description": "알려주셔서 감사합니다. 운영팀이 내용을 확인합니다. 처리 결과는 개별적으로 안내하지 않습니다.",
-			"close": "닫기"
+			"title": "신고해 주셔서 감사합니다",
+			"description": "내용을 검토합니다. 결과를 개별적으로 알려드리지는 않습니다.",
+			"close": "닫기",
+			"history": "내 신고 내역"
 		},
 		"errors": {
 			"submitFailed": "신고를 보내지 못했습니다. 다시 시도해 주세요."
@@ -462,6 +463,18 @@
 			"reasonSelected": "사유: {{reason}}(선택됨)",
 			"submit": "{{name}} 게시물 신고 보내기",
 			"submitReview": "{{name}} 리뷰 신고 보내기"
+		},
+		"history": {
+			"navigationLabel": "내 신고 내역",
+			"pageTitle": "내 신고 내역",
+			"empty": "아직 신고가 없습니다",
+			"emptyDescription": "게시물이나 리뷰를 신고하면 여기에 표시됩니다.",
+			"note": "검토 상태나 결과는 안내하지 않습니다.",
+			"error": "신고 내역을 불러오지 못했습니다",
+			"target": {
+				"dish_media": "게시물",
+				"dish_reviews": "리뷰"
+			}
 		}
 	},
 	"ImageCardGrid": {

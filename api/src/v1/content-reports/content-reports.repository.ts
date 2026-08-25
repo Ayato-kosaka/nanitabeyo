@@ -37,6 +37,29 @@ const CONTENT_REPORT_SELECT = {
   status: true,
 } as const;
 
+/** 自分の通報履歴（#1584）の 1 行 */
+export type MeContentReportRecord = {
+  id: string;
+  target_type: string;
+  reason_code: string;
+  created_at: Date;
+};
+
+/**
+ * 履歴で返す列。
+ *
+ * ⚠️ **`status` / `resolved_at` / `resolution_note` を足さないこと。**
+ * #1584 のオーナー確定仕様で、履歴に出すのは «いつ・どの理由で出したか» だけである。
+ * 審査結果まで見せると、通報者は対象を知っているので «相手の投稿が消えたか» を
+ * 推測でき、通報が相手への攻撃手段になる。select に足せばそのまま API へ漏れる。
+ */
+const ME_CONTENT_REPORT_SELECT = {
+  id: true,
+  target_type: true,
+  reason_code: true,
+  created_at: true,
+} as const;
+
 @Injectable()
 export class ContentReportsRepository {
   constructor(
@@ -68,6 +91,31 @@ export class ContentReportsRepository {
         created_version: appVersion,
       },
       select: CONTENT_REPORT_SELECT,
+    });
+  }
+
+  /**
+   * #1584 自分が出した通報の履歴。**`reporterUserId` で必ず絞る。**
+   *
+   * この引数を呼び出し側の任意の値にしてはいけない（他人の通報が読めてしまう）。
+   * Controller は `@CurrentUser()` の id だけを渡すこと。
+   *
+   * 並びは新しい順。カーソルは `created_at` の ISO 文字列で、
+   * 同着（同一ミリ秒）が起きうるので id を第 2 キーに入れて安定させる。
+   */
+  async findByReporter(
+    reporterUserId: string,
+    cursor: string | undefined,
+    limit: number,
+  ): Promise<MeContentReportRecord[]> {
+    return this.prisma.content_reports.findMany({
+      where: {
+        reporter_user_id: reporterUserId,
+        ...(cursor ? { created_at: { lt: new Date(cursor) } } : {}),
+      },
+      orderBy: [{ created_at: 'desc' }, { id: 'desc' }],
+      take: limit,
+      select: ME_CONTENT_REPORT_SELECT,
     });
   }
 

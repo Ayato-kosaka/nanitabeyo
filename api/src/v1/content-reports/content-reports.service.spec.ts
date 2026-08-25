@@ -64,6 +64,7 @@ describe('ContentReportsService', () => {
     create: jest.Mock;
     findByReporterAndTarget: jest.Mock;
     existsTarget: jest.Mock;
+    findByReporter: jest.Mock;
   };
   let logger: {
     log: jest.Mock;
@@ -79,6 +80,7 @@ describe('ContentReportsService', () => {
         .mockResolvedValue({ id: 'report-1', status: 'pending' }),
       findByReporterAndTarget: jest.fn().mockResolvedValue(null),
       existsTarget: jest.fn().mockResolvedValue(true),
+      findByReporter: jest.fn().mockResolvedValue([]),
     };
     logger = {
       log: jest.fn(),
@@ -249,6 +251,100 @@ describe('ContentReportsService', () => {
  * migration のコメントで縛っているが、**未知の値が API に入らない**ことは
  * DTO でしか担保できない。ここが崩れると 201 を返してから INSERT が落ちる。
  */
+describe('ContentReportsService.findMine（#1584 自分の報告履歴）', () => {
+  let service: ContentReportsService;
+  let repository: { findByReporter: jest.Mock };
+
+  const row = (id: string, iso: string) => ({
+    id,
+    target_type: 'dish_media',
+    reason_code: 'spam',
+    created_at: new Date(iso),
+  });
+
+  beforeEach(async () => {
+    repository = { findByReporter: jest.fn().mockResolvedValue([]) };
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        ContentReportsService,
+        { provide: ContentReportsRepository, useValue: repository },
+        {
+          provide: AppLoggerService,
+          useValue: {
+            log: jest.fn(),
+            warn: jest.fn(),
+            error: jest.fn(),
+            debug: jest.fn(),
+          },
+        },
+      ],
+    }).compile();
+    service = module.get(ContentReportsService);
+  });
+
+  // オーナー確定仕様（#1584）の核心。ここが緩むと通報が相手への攻撃手段になる
+  it('審査状況（status）を返さない', async () => {
+    repository.findByReporter.mockResolvedValue([
+      { ...row('r-1', '2026-08-20T00:00:00.000Z'), status: 'actioned' },
+    ]);
+
+    const res = await service.findMine('user-1', {});
+
+    expect(res.data).toHaveLength(1);
+    expect(res.data[0]).toEqual({
+      id: 'r-1',
+      targetType: 'dish_media',
+      reasonCode: 'spam',
+      createdAt: '2026-08-20T00:00:00.000Z',
+    });
+    // 仮に Repository が余計な列を返しても、API の外へは出さない
+    expect(res.data[0]).not.toHaveProperty('status');
+  });
+
+  // 他人の履歴が読めないことの担保は「絞り込みキーが引数の userId だけ」であること
+  it('引数のユーザー ID をそのまま Repository へ渡す', async () => {
+    await service.findMine('user-1', {});
+    expect(repository.findByReporter).toHaveBeenCalledWith(
+      'user-1',
+      undefined,
+      21,
+    );
+  });
+
+  it('limit + 1 件引けたときだけ nextCursor を返す', async () => {
+    repository.findByReporter.mockResolvedValue(
+      Array.from({ length: 21 }, (_, i) =>
+        row(`r-${i}`, `2026-08-${String(i + 1).padStart(2, '0')}T00:00:00.000Z`),
+      ),
+    );
+
+    const res = await service.findMine('user-1', {});
+
+    expect(res.data).toHaveLength(20);
+    // 20 件目（= 返した最後の行）の created_at が次のカーソルになる
+    expect(res.nextCursor).toBe('2026-08-20T00:00:00.000Z');
+  });
+
+  it('取りきったら nextCursor は null', async () => {
+    repository.findByReporter.mockResolvedValue([
+      row('r-1', '2026-08-20T00:00:00.000Z'),
+    ]);
+
+    const res = await service.findMine('user-1', {});
+
+    expect(res.nextCursor).toBeNull();
+  });
+
+  it('cursor をそのまま Repository へ渡す', async () => {
+    await service.findMine('user-1', { cursor: '2026-08-20T00:00:00.000Z' });
+    expect(repository.findByReporter).toHaveBeenCalledWith(
+      'user-1',
+      '2026-08-20T00:00:00.000Z',
+      21,
+    );
+  });
+});
+
 describe('CreateContentReportDto', () => {
   const validate = async (payload: Record<string, unknown>) => {
     const instance = plainToInstance(CreateContentReportDto, payload);

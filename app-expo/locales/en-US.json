@@ -448,9 +448,10 @@
 		"submit": "Submit report",
 		"submitting": "Sending...",
 		"accepted": {
-			"title": "Report received",
-			"description": "Thanks for letting us know. Our team will review it. We don't send individual updates on the outcome.",
-			"close": "Close"
+			"title": "Thanks for reporting",
+			"description": "We'll review it. We don't send individual updates on the outcome.",
+			"close": "Close",
+			"history": "Your reports"
 		},
 		"errors": {
 			"submitFailed": "We couldn't send your report. Please try again."
@@ -462,6 +463,18 @@
 			"reasonSelected": "Reason: {{reason}}, selected",
 			"submit": "Submit the report for the post from {{name}}",
 			"submitReview": "Submit the report for the review from {{name}}"
+		},
+		"history": {
+			"navigationLabel": "Your reports",
+			"pageTitle": "Your reports",
+			"empty": "No reports yet",
+			"emptyDescription": "When you report a post or review, it will appear here.",
+			"note": "We don't share review status or outcomes.",
+			"error": "Couldn't load your reports",
+			"target": {
+				"dish_media": "Post",
+				"dish_reviews": "Review"
+			}
 		}
 	},
 	"ImageCardGrid": {

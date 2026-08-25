@@ -93,3 +93,4 @@ export {
 } from "./share-links/create-share-link.dto";
 
 export { CreateContentReportDto } from "./content-reports/create-content-report.dto";
+export { QueryMeContentReportsDto } from "./content-reports/query-me-content-reports.dto";
