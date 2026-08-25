@@ -20,6 +20,7 @@ const BASE = process.env.EVIDENCE_BASE || "http://localhost:8788";
 const IMG = `data:image/svg+xml;base64,${Buffer.from(solidCard("F05537")).toString("base64")}`;
 
 const MEDIA_ID = "media-mine-1";
+const REVIEW_ID = "review-1";
 
 const restaurant = {
 	id: "restaurant-1",
@@ -57,14 +58,34 @@ const entry = {
 		mediaUrl: IMG,
 		thumbnailImageUrl: IMG,
 	},
+	/*
+	⚠️ 編集の導線（«編集» 行）は `myReview` が引けたときにだけ描画される
+	（OwnPostActions.tsx）。`myReview` の条件は **`isMine === true`** かつ
+	**`created_dish_media_id === この dish_media の id`** の 2 つである。
+	どちらか一方でも欠けると «削除» だけのメニューが撮れてしまい、
+	同じ面に出る «編集できるのはコメント・評価・価格です» と食い違う
+	（run 32825872502 で実測。`isMine` と `created_dish_media_id` が無かった）。
+
+	`lock_no` / `price_cents` / `currency_code` は編集フォームの初期値に要る。
+	欠けると価格欄が空のまま撮れて「価格は編集できない」と読める。
+	*/
 	dish_reviews: [
 		{
-			id: "review-1",
+			id: REVIEW_ID,
 			dish_id: "dish-1",
 			user_id: "11111111-1111-1111-1111-111111111111",
+			created_dish_media_id: MEDIA_ID,
 			comment: "自分で書いたレビュー",
 			rating: 4,
+			lock_no: 1,
+			price_cents: 1200,
+			currency_code: "JPY",
 			created_at: "2026-08-20T00:00:00.000Z",
+			updated_at: "2026-08-20T00:00:00.000Z",
+			deleted_at: null,
+			isMine: true,
+			isLiked: false,
+			likeCount: 0,
 			username: "テス太",
 			userAvatarUrls: { sm: IMG, md: IMG, lg: IMG },
 		},
@@ -80,9 +101,25 @@ const mock = (url) => {
 	*/
 	if (url.includes("/v1/dish-media") && url.includes("ids="))
 		return { body: ok({ items: [entry], notFound: [] }) };
+	// 編集の保存（PATCH）。サーバーが返す «更新後の行» を模す。
+	// lock_no を 1 進めておかないと、実装が «次の編集で 409» を踏む形になる
+	if (url.includes(`/v1/dish-reviews/${REVIEW_ID}`)) {
+		// `UpdateDishReviewResponse` は行そのもの（SupabaseDishReviews）なので、
+		// 部分オブジェクトではなく更新後の行を丸ごと返す
+		return {
+			body: ok({
+				...entry.dish_reviews[0],
+				comment: "編集したレビュー",
+				rating: 5,
+				price_cents: 1500,
+				lock_no: 2,
+				updated_at: "2026-08-25T00:00:00.000Z",
+			}),
+		};
+	}
 	// DELETE は成功させる（押し切った先の «削除しました» まで撮るため）
 	if (url.includes(`/v1/dish-media/${MEDIA_ID}`)) {
-		return { body: ok({ deletedDishMediaId: MEDIA_ID, deletedDishReviewIds: ["review-1"] }) };
+		return { body: ok({ deletedDishMediaId: MEDIA_ID, deletedDishReviewIds: [REVIEW_ID] }) };
 	}
 	return null;
 };
@@ -117,20 +154,50 @@ async function shootScheme(scheme) {
 			await more.click();
 			const menu = page.getByTestId("own-post-menu");
 			await menu.waitFor({ state: "visible", timeout: 10000 });
+
+			/*
+			撮る前に «編集» が居ることを確かめる。ここが無いと、モックの不備で
+			«削除» だけのメニューが撮れても撮影は成功扱いになり、
+			「編集導線がある」という受け入れ条件の嘘のエビデンスが納品される
+			（run 32825872502 で実際に起きた）。
+			*/
+			await page.getByTestId("own-post-edit-button").waitFor({ state: "visible", timeout: 10000 });
 			await page.waitForTimeout(500);
 			await shot("03-menu");
 
-			// 3) 削除の確認ダイアログ。**元に戻せない**ことが文言で伝わる面
+			// 3) 編集フォーム。**写真を選び直す導線が無いこと**と、
+			//    コメント・評価・価格が現在値で埋まっていることが見える面
+			await page.getByTestId("own-post-edit-button").click();
+			const editModal = page.getByTestId("edit-review-modal");
+			await editModal.waitFor({ state: "visible", timeout: 10000 });
+			await page.getByTestId("edit-review-media-locked-note").waitFor({ state: "visible", timeout: 10000 });
+			await page.waitForTimeout(500);
+			await shot("04-edit-form");
+
+			// 4) 編集して保存する。«保存しました» まで押し切る
+			await page.getByTestId("edit-review-comment-input").fill("編集したレビュー");
+			await page.getByTestId("edit-review-star-5").click();
+			await page.getByTestId("edit-review-price-input").fill("1500");
+			await page.waitForTimeout(300);
+			await shot("05-edit-filled");
+
+			await page.getByTestId("edit-review-submit-button").click();
+			await page.waitForTimeout(2500);
+			await shot("06-edit-saved");
+
+			// 5) 削除の確認ダイアログ。**元に戻せない**ことが文言で伝わる面
+			await more.click();
+			await menu.waitFor({ state: "visible", timeout: 10000 });
 			await page.getByTestId("own-post-delete-button").click();
 			const confirm = page.getByTestId("dialog-confirm-button");
 			await confirm.waitFor({ state: "visible", timeout: 10000 });
 			await page.waitForTimeout(500);
-			await shot("04-delete-confirm");
+			await shot("07-delete-confirm");
 
-			// 4) 押し切る。モックが 200 を返すので «削除しました» まで到達する
+			// 6) 押し切る。モックが 200 を返すので «削除しました» まで到達する
 			await confirm.click();
 			await page.waitForTimeout(2500);
-			await shot("05-deleted");
+			await shot("08-deleted");
 		},
 	});
 }
@@ -144,8 +211,11 @@ await writeNote("delete1513", [
 	"- 01-feed … 自分の投稿を開いた状態",
 	"- 02-more-button … 自分の投稿にだけ出る «…» ボタン",
 	"- 03-menu … 編集 / 削除 と «写真は変更できません» の明示（**本命**）",
-	"- 04-delete-confirm … 削除の確認。«元に戻せません» が文言で伝わる（**本命**）",
-	"- 05-deleted … 押し切った後。«削除しました» が出る",
+	"- 04-edit-form … 編集フォーム。写真を選び直す導線が無いことと、現在値が入っていること（**本命**）",
+	"- 05-edit-filled … コメント・評価・価格を書き換えた状態",
+	"- 06-edit-saved … 保存を押し切った後。«保存しました» が出る",
+	"- 07-delete-confirm … 削除の確認。«元に戻せません» が文言で伝わる（**本命**）",
+	"- 08-deleted … 押し切った後。«削除しました» が出る",
 	"",
 	"⚠️ 削除後の一覧側（墓標）は tombstone-1513.mjs が撮る。こちらは操作そのもの。",
 	"",
