@@ -238,6 +238,9 @@
 		"recentLocations": {
 			"title": "Recent locations",
 			"clear": "Clear recent locations"
+		},
+		"locationConfirmation": {
+			"error": "Failed to confirm location"
 		}
 	},
 	"Onboarding": {
@@ -758,6 +761,25 @@
 			"unblockMessage": "This dish category will be added back to recommendations.",
 			"unblockConfirm": "Unblock",
 			"unblocked": "Unblocked"
+		},
+		"notifications": {
+			"sectionTitle": "Notifications",
+			"osDisabledTitle": "Notifications are turned off for this device",
+			"osDisabledDescription": "Your choices here are saved, but this device won't receive push notifications.",
+			"openOsSettings": "Open device settings",
+			"updateFailed": "Couldn't save your setting",
+			"likes": {
+				"title": "Likes",
+				"description": "When someone likes your post or review"
+			},
+			"saves": {
+				"title": "Saves",
+				"description": "When someone saves your post"
+			},
+			"group_votes": {
+				"title": "Group votes",
+				"description": "When there's activity in a group vote you joined"
+			}
 		}
 	},
 	"Dialog": {

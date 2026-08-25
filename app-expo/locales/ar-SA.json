@@ -238,6 +238,9 @@
 		"recentLocations": {
 			"title": "المواقع الأخيرة",
 			"clear": "مسح المواقع الأخيرة"
+		},
+		"locationConfirmation": {
+			"error": "فشل تأكيد الموقع"
 		}
 	},
 	"Onboarding": {
@@ -758,6 +761,25 @@
 			"unblockMessage": "ستتم إضافة فئة الطبق هذه إلى التوصيات مرة أخرى.",
 			"unblockConfirm": "إلغاء الحظر",
 			"unblocked": "تم إلغاء الحظر"
+		},
+		"notifications": {
+			"sectionTitle": "الإشعارات",
+			"osDisabledTitle": "الإشعارات موقوفة على هذا الجهاز",
+			"osDisabledDescription": "يتم حفظ اختياراتك هنا، لكن هذا الجهاز لن يتلقى إشعارات.",
+			"openOsSettings": "فتح إعدادات الجهاز",
+			"updateFailed": "تعذّر حفظ الإعداد",
+			"likes": {
+				"title": "الإعجابات",
+				"description": "عندما يعجب أحدهم بمنشورك أو تقييمك"
+			},
+			"saves": {
+				"title": "الحفظ",
+				"description": "عندما يحفظ أحدهم منشورك"
+			},
+			"group_votes": {
+				"title": "تصويت المجموعة",
+				"description": "عند حدوث نشاط في تصويت مجموعة انضممت إليها"
+			}
 		}
 	},
 	"Dialog": {

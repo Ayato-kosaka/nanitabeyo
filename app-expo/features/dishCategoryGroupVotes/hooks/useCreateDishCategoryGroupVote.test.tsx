@@ -23,6 +23,10 @@ const mockCallBackend = jest.fn();
 jest.mock("@/hooks/useAPICall", () => ({ useAPICall: () => ({ callBackend: mockCallBackend }) }));
 const mockLogFrontendEvent = jest.fn();
 jest.mock("@/hooks/useLogger", () => ({ useLogger: () => ({ logFrontendEvent: mockLogFrontendEvent }) }));
+// #1507 jest-expo のネイティブモジュールモックでは `Crypto.randomUUID()` が undefined を返すため、
+// `@/lib/uuid` の generateUUID がそのまま undefined になり、冪等キーの検証が全部素通りしてしまう。
+// 実装（@/lib/uuid）は差し替えず、その土台だけを Node の同一契約の実装へ寄せる。
+jest.mock("expo-crypto", () => ({ randomUUID: () => globalThis.crypto.randomUUID() }));
 
 import { useCreateDishCategoryGroupVote } from "./useCreateDishCategoryGroupVote";
 
@@ -199,5 +203,98 @@ describe("useCreateDishCategoryGroupVote の連打耐性（#1205）", () => {
 		});
 		expect(mockCallBackend).toHaveBeenCalledTimes(1);
 		await create.resolve({ shareToken: "token-1" });
+	});
+
+	// ─────────────────────────────────────────────────────────────────────────
+	// #1507 冪等キー
+	//
+	// 上のガードが守れるのは「同一 JS タスク内の連打」だけで、通信のリトライ・
+	// オフライン復帰後の再送・再マウントでは POST が二重に届く。サーバー側の冪等化は
+	// **同じキーで送られてくること**が前提なので、キーの寿命をここで固定する。
+	// ─────────────────────────────────────────────────────────────────────────
+	describe("再送をまたいで同じ冪等キーを送る（#1507）", () => {
+		/** RFC 4122 の v4（3 ブロック目が 4、4 ブロック目が 8/9/a/b） */
+		const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+		const sentKeyAt = (callIndex: number): string => mockCallBackend.mock.calls[callIndex][1].requestPayload.idempotencyKey;
+
+		it("送っているキーは UUID v4（API 側の @IsUUID(4) を通る形式）", async () => {
+			await mount();
+			const create = deferCreate();
+
+			await act(async () => {
+				hookRef.createGroupVote({ searchParams, topics });
+			});
+
+			expect(sentKeyAt(0)).toMatch(UUID_V4);
+			await create.resolve({ shareToken: "token-1" });
+		});
+
+		it("失敗後に同じ入力で再試行すると、同じキーで送る（サーバーは既存セッションを返せる）", async () => {
+			await mount();
+			const failing = deferCreate();
+
+			let first!: Promise<unknown>;
+			await act(async () => {
+				first = hookRef.createGroupVote({ searchParams, topics });
+				first.catch(() => {});
+			});
+			await failing.reject(new Error("network down"));
+			await expect(first).rejects.toThrow("network down");
+
+			const retry = deferCreate();
+			await act(async () => {
+				hookRef.createGroupVote({ searchParams, topics });
+			});
+
+			// ここが変わると「届いていたが応答が落ちた」再送で 2 件目のセッションが出来る
+			expect(sentKeyAt(1)).toBe(sentKeyAt(0));
+			await retry.resolve({ shareToken: "token-1" });
+		});
+
+		it("成功したら次の作成は新しいキーになる（同じキーのままだと二度と新規作成できない）", async () => {
+			await mount();
+			const create = deferCreate();
+
+			let first!: Promise<unknown>;
+			await act(async () => {
+				first = hookRef.createGroupVote({ searchParams, topics });
+			});
+			await create.resolve({ shareToken: "token-1" });
+			await first;
+
+			const next = deferCreate();
+			await act(async () => {
+				hookRef.createGroupVote({ searchParams, topics });
+			});
+
+			expect(sentKeyAt(1)).not.toBe(sentKeyAt(0));
+			await next.resolve({ shareToken: "token-2" });
+		});
+
+		it("失敗後に候補を変えて再試行すると新しいキーになる（古い内容のセッションを返させない）", async () => {
+			await mount();
+			const failing = deferCreate();
+
+			let first!: Promise<unknown>;
+			await act(async () => {
+				first = hookRef.createGroupVote({ searchParams, topics });
+				first.catch(() => {});
+			});
+			await failing.reject(new Error("network down"));
+			await expect(first).rejects.toThrow("network down");
+
+			// 1 件目を非表示にして候補を入れ替える = 別の作成意図
+			const retry = deferCreate();
+			await act(async () => {
+				hookRef.createGroupVote({
+					searchParams,
+					topics: [{ ...topics[0], isHidden: true }, { ...topics[1], isHidden: false }],
+				});
+			});
+
+			expect(sentKeyAt(1)).not.toBe(sentKeyAt(0));
+			await retry.resolve({ shareToken: "token-2" });
+		});
 	});
 });

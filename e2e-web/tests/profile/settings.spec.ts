@@ -40,4 +40,20 @@ test.describe("設定画面(匿名ユーザー)", () => {
 
 		await expect(settingsPage.logoutItem).toHaveCount(0);
 	});
+
+	// ─ テストケース: 匿名時は通知カードが表示されない ─
+	// 手順:
+	//   1. 設定画面を表示する(匿名状態)
+	//   2. 通知カード(settings-notifications-card)が存在しないことを検証
+	//
+	// #1510 匿名ユーザーは Push Token を登録しない(PushTokenRegistration)ため、
+	// 受け取り方を設定させても届く先が無い。ログイン済み側の検証は
+	// tests/authenticated/notification-preferences.spec.ts が持つ
+	test("匿名時は通知カテゴリのカードが表示されない", async ({ appPage }) => {
+		const settingsPage = new SettingsPage(appPage);
+		await settingsPage.goto();
+		await settingsPage.expectLoaded();
+
+		await expect(settingsPage.notificationsCard).toHaveCount(0);
+	});
 });

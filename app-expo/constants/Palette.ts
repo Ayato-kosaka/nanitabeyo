@@ -112,6 +112,8 @@ export interface Palette {
 	brandTintSoft: string;
 
 	// ───────── セマンティック ─────────
+	/** 成功・確定を示すアイコン（地点確定の ✓ 等） */
+	success: string;
 	/** 注意・必須バッジの文字 */
 	danger: string;
 	/** 選択された除外条件チップの地など、より強い警告色 */
@@ -120,6 +122,12 @@ export interface Palette {
 	dangerTint: string;
 	/** 破壊的操作の文字（ログアウト） */
 	destructive: string;
+	/** 注意喚起バナーの地（OS 通知が拒否されている等） */
+	warningTint: string;
+	/** 注意喚起バナーの本文 */
+	warningText: string;
+	/** 注意喚起バナーの操作リンク */
+	warningAction: string;
 
 	// ───────── 主要 CTA（検索ボタン） ─────────
 	/** CTA の地（充足時） */
@@ -163,10 +171,14 @@ const light: Palette = {
 	brandTint: "#FDEBE7", // search advancedToggle / DistanceSlider badge
 	brandTintSoft: "#FFF7F5", // DistanceSlider recommendedRow
 
+	success: "#16A34A", // LocationAutocomplete 地点確定の ✓（#1502）
 	danger: "#DC2626", // search requiredText
 	dangerStrong: "#EF4444", // search selectedRestrictionChip
 	dangerTint: "#FEE2E2", // search requiredBadge
 	destructive: "#FF3E33", // profile/settings.tsx ログアウト
+	warningTint: "#FEF3C7", // #1510 OS 通知拒否バナーの地
+	warningText: "#92400E", // 同バナーの本文（#FEF3C7 の上で AA 可）
+	warningAction: "#B45309", // 同バナーのリンク・アイコン
 
 	ctaBackground: "#000000", // search searchFab gradient(充足)
 	ctaBackgroundDisabled: "#999999", // search searchFab gradient(未充足)
@@ -204,10 +216,14 @@ const dark: Palette = {
 	brandTint: "#3A241F", // brand を暗面へ混色
 	brandTintSoft: "#2A1D1A", // brandTint よりさらに淡い混色
 
+	success: "#81C995", // 暗面では明度を上げないと視認性を保てない（danger と同じ方針で手動調整）
 	danger: "#FF8A80", // 暗面では明度を上げないと文字用途で AA を割る
 	dangerStrong: "#FF6B6B",
 	dangerTint: "#4A2320", // danger を暗面へ混色
 	destructive: "#FF8A80",
+	warningTint: "#3A2E12", // 暗面へ混色した琥珀。明るい箱が浮かないようにする
+	warningText: "#FFD9A0", // #3A2E12 の上で AA を満たす明度まで上げる
+	warningAction: "#FFB86B",
 
 	ctaBackground: "#E5E2E1", // 暗面では CTA を反転させる（黒地の CTA は背景に沈む）
 	ctaBackgroundDisabled: "#4A4A4A",

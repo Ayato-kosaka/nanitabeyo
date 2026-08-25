@@ -31,6 +31,7 @@ import { useRouter } from "expo-router";
 import { useLocale } from "@/hooks/useLocale";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { openExternalUrl } from "@/lib/openExternalUrl";
+import { NotificationSettingsCard } from "@/features/settings/components/NotificationSettingsCard";
 
 interface SettingsMenuItemProps {
 	label: string;
@@ -546,6 +547,12 @@ export default function SettingsScreen() {
 							accessibilityRole="link"
 						/>
 					</Card>
+
+					{/* #1510 【設計】通知カテゴリ別のオン/オフ。
+					    ゲスト（匿名）にはプッシュの受け手が存在しない（PushTokenRegistration が
+					    匿名ユーザーのトークンを登録しない）ため、カードごと出さない。
+					    auth 未確定のあいだも isGuest 側に倒れるので、一瞬だけ出て消えることはない */}
+					{!isGuest && <NotificationSettingsCard />}
 
 					{/* Card 2: Legal ＋ Logout */}
 					<Card style={styles.card}>

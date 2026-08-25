@@ -238,6 +238,9 @@
 		"recentLocations": {
 			"title": "Ubicaciones recientes",
 			"clear": "Borrar ubicaciones recientes"
+		},
+		"locationConfirmation": {
+			"error": "No se pudo confirmar la ubicación"
 		}
 	},
 	"Onboarding": {
@@ -758,6 +761,25 @@
 			"unblockMessage": "Esta categoría de plato se volverá a añadir a las recomendaciones.",
 			"unblockConfirm": "Desbloquear",
 			"unblocked": "Desbloqueado"
+		},
+		"notifications": {
+			"sectionTitle": "Notificaciones",
+			"osDisabledTitle": "Las notificaciones están desactivadas en este dispositivo",
+			"osDisabledDescription": "Tus opciones se guardan, pero este dispositivo no recibirá notificaciones.",
+			"openOsSettings": "Abrir ajustes del dispositivo",
+			"updateFailed": "No se pudo guardar el ajuste",
+			"likes": {
+				"title": "Me gusta",
+				"description": "Cuando alguien indica que le gusta tu publicación o reseña"
+			},
+			"saves": {
+				"title": "Guardados",
+				"description": "Cuando alguien guarda tu publicación"
+			},
+			"group_votes": {
+				"title": "Votaciones de grupo",
+				"description": "Cuando hay actividad en una votación de grupo a la que te uniste"
+			}
 		}
 	},
 	"Dialog": {

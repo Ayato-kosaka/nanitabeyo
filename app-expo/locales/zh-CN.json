@@ -238,6 +238,9 @@
 		"recentLocations": {
 			"title": "最近使用的地点",
 			"clear": "清除最近使用的地点"
+		},
+		"locationConfirmation": {
+			"error": "位置确认失败"
 		}
 	},
 	"Onboarding": {
@@ -758,6 +761,25 @@
 			"unblockMessage": "此菜品类别将重新添加到推荐中。",
 			"unblockConfirm": "取消屏蔽",
 			"unblocked": "已取消屏蔽"
+		},
+		"notifications": {
+			"sectionTitle": "通知",
+			"osDisabledTitle": "此设备的通知已关闭",
+			"osDisabledDescription": "这里的设置会被保存，但此设备不会收到通知。",
+			"openOsSettings": "打开设备设置",
+			"updateFailed": "无法保存设置",
+			"likes": {
+				"title": "点赞",
+				"description": "有人点赞你的帖子或评论时"
+			},
+			"saves": {
+				"title": "收藏",
+				"description": "有人收藏你的帖子时"
+			},
+			"group_votes": {
+				"title": "群组投票",
+				"description": "你参与的群组投票有新动态时"
+			}
 		}
 	},
 	"Dialog": {

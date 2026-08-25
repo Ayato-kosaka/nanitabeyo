@@ -5,7 +5,7 @@ import { useHaptics } from "@/hooks/useHaptics";
 import i18n from "@/lib/i18n";
 import { type AutocompleteLocation } from "@shared/api/v1/res";
 import { isFoodAndDrinkPlaceForUser } from "@shared/utils/google_places_restaurant_type";
-import { MapPin, Utensils, X, History, Trash2 } from "lucide-react-native";
+import { MapPin, Utensils, X, History, Trash2, Check, AlertCircle } from "lucide-react-native";
 import type { LocationDetailsResponse } from "@shared/api/v1/res";
 import { LoadingIndicator } from "./LoadingIndicator";
 import { FixedColors, type Palette } from "@/constants/Palette";
@@ -50,6 +50,19 @@ interface LocationAutocompleteProps {
 	onSelectRecentLocation?: (location: RecentLocation) => void;
 	/** #953 「最近使った場所」を全件クリアするハンドラ。未指定なら消去ボタンを出さない */
 	onClearRecentLocations?: () => void;
+	/**
+	 * #1502 【設計】候補選択後、details API(緯度経度の取得)が完了するまでの状態。
+	 * 検索候補一覧の状態(searchLocations由来)とは別の非同期処理なので独立して持つ。
+	 * 未指定/nullなら何も表示しない(現在地・最近使った場所からの選択は details を待たず
+	 * 確定するため、呼び出し元がこの状態を経由させるかどうかを選べるようにしてある)。
+	 *
+	 * 【案A・#1502】成功は文章で語らない。confirming は入力欄右端の小さなスピナー、
+	 * confirmed は右端に ✓ を一瞬出すだけ(値の正式地名への置き換えは呼び出し元が行う)。
+	 * error だけが言葉(赤の1行+再試行)を持つ。
+	 */
+	confirmationStatus?: "confirming" | "confirmed" | "error" | null;
+	/** #1502 confirmationStatus が "error" のときの再試行ハンドラ */
+	onRetryConfirmation?: () => void;
 }
 
 // ===== Tunables (ベストプラクティス的にマジックナンバーを定数化) =====
@@ -58,6 +71,15 @@ const DEBOUNCE_DELAY_MS = 300;
 const BLUR_SUGGESTION_HIDE_DELAY_MS = 150;
 const BLUR_AFTER_SELECT_DELAY_MS = 100;
 const AUTOFOCUS_DELAY_MS = 100;
+/**
+ * #1502 【設計】確定 ✓ を入力欄右端に出しておく時間。
+ * Android の Toast.LENGTH_SHORT(2000ms)に合わせた。✓ は文章を読ませる表示ではないので
+ * LENGTH_LONG(3500ms)は長すぎ、1秒未満だと「入力欄の値が正式地名に置き換わった理由」を
+ * 掴む前に消えてしまう。加えて Detox の同期機構は 1.5 秒以下のタイマーを idle 待ちの
+ * 対象にするため、1.5 秒以下にすると E2E の可視待ちがタイマー完了(=✓が消えた後)まで
+ * 進まず「✓ を観測できない」ことになる。2000ms はその閾値も超えている。
+ */
+const CONFIRMED_BADGE_DURATION_MS = 2000;
 
 /**
  * #991 【修正】web でサジェストパネル内の mousedown の既定動作(TextInput からのフォーカス移動)を
@@ -91,6 +113,8 @@ export const LocationAutocomplete = forwardRef<LocationAutocompleteHandle, Locat
 			recentLocations = [],
 			onSelectRecentLocation,
 			onClearRecentLocations,
+			confirmationStatus = null,
+			onRetryConfirmation,
 		},
 		ref,
 	) {
@@ -112,6 +136,20 @@ export const LocationAutocomplete = forwardRef<LocationAutocompleteHandle, Locat
 
 		const { suggestions, status, searchLocations, clearSuggestions } = useLocationSearch();
 		const { lightImpact } = useHaptics();
+
+		// #1502 【設計・案A】確定 ✓ は「一瞬」だけ出す。confirmationStatus 自体は呼び出し元が
+		// confirmed のまま保持し続ける(次の操作まで有効な状態)ため、表示の寿命だけを
+		// ここでローカルに持つ。confirmed 以外へ遷移したら即座に消す。
+		const [showConfirmedBadge, setShowConfirmedBadge] = useState(false);
+		useEffect(() => {
+			if (confirmationStatus !== "confirmed") {
+				setShowConfirmedBadge(false);
+				return;
+			}
+			setShowConfirmedBadge(true);
+			const timer = setTimeout(() => setShowConfirmedBadge(false), CONFIRMED_BADGE_DURATION_MS);
+			return () => clearTimeout(timer);
+		}, [confirmationStatus]);
 
 		// #932 【設計】現在地取得の失敗時に呼び出し元から手入力へ誘導できるよう focus() を公開する
 		useImperativeHandle(ref, () => ({
@@ -331,6 +369,21 @@ export const LocationAutocomplete = forwardRef<LocationAutocompleteHandle, Locat
 						accessibilityHint={i18n.t("Search.accessibility.locationInputHint")}
 						testID={`${testID}-input`}
 					/>
+					{/* #1502 【案A】地点確認の進行・成功は入力欄の右端で黙って伝える。
+					    確認中: 小さなスピナー(文言なし)。確定: ✓ を一瞬(CONFIRMED_BADGE_DURATION_MS)だけ
+					    表示し、あとは値の正式地名への置き換え自体に語らせる。
+					    flexDirection:"row" は RTL(ar)で自動反転するため、方向依存の margin を
+					    持たせなければ「右端」は行末(RTLでは左端)に正しく追従する */}
+					{confirmationStatus === "confirming" && (
+						<View style={styles.inputStatusIcon} testID={`${testID}-confirmation-confirming`}>
+							<LoadingIndicator size="small" />
+						</View>
+					)}
+					{showConfirmedBadge && (
+						<View style={styles.inputStatusIcon} testID={`${testID}-confirmation-confirmed`}>
+							<Check size={16} color={colors.success} />
+						</View>
+					)}
 					{/* Clear button */}
 					{value.length > 0 && (
 						<TouchableOpacity
@@ -345,6 +398,32 @@ export const LocationAutocomplete = forwardRef<LocationAutocompleteHandle, Locat
 					)}
 					{renderInputRight}
 				</View>
+
+				{/* #1502 【設計・案A】地点確認でエラーだけが言葉を持つ(現行どおり赤の1行+再試行)。
+				    確認中/確定は入力欄右端のアイコンで表現しており、ここには何も出さない。
+				    選択直後は handleSuggestionPress が showSuggestions を false にする(#528)ため、
+				    候補一覧・最近使った場所パネルとは同時に表示されない */}
+				{confirmationStatus === "error" && (
+					<View
+						style={styles.confirmationErrorContainer}
+						{...preventFocusStealOnWeb}
+						testID={`${testID}-confirmation-error`}>
+						<View style={styles.confirmationContainer}>
+							<AlertCircle size={16} color={colors.danger} />
+							<Text style={[styles.confirmationText, styles.confirmationTextError]}>
+								{i18n.t("Search.locationConfirmation.error")}
+							</Text>
+						</View>
+						<TouchableOpacity
+							style={styles.retryButton}
+							onPress={onRetryConfirmation}
+							accessibilityRole="button"
+							accessibilityLabel={i18n.t("Common.retry")}
+							testID={`${testID}-confirmation-retry`}>
+							<Text style={styles.retryButtonText}>{i18n.t("Common.retry")}</Text>
+						</TouchableOpacity>
+					</View>
+				)}
 
 				{/* #953 最近使った場所 */}
 				{showRecentLocations && (
@@ -479,6 +558,36 @@ const createStyles = (c: Palette) =>
 			color: c.textPrimary,
 		},
 		inputFocused: {},
+		// #1502 【案A】入力欄右端の状態アイコン(スピナー/✓)の置き場。方向依存の margin を
+		// 使わないことで RTL(ar) でも行末に正しく寄る
+		inputStatusIcon: {
+			paddingHorizontal: 4,
+			justifyContent: "center",
+			alignItems: "center",
+		},
+		// #1502 confirmation* は error(赤の1行+再試行)専用。確認中/確定は inputStatusIcon 側
+		confirmationContainer: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 6,
+			marginTop: 8,
+			paddingHorizontal: 4,
+		},
+		confirmationText: {
+			fontSize: 13,
+			color: c.textSecondary,
+		},
+		confirmationTextError: {
+			color: c.danger,
+			fontWeight: "600",
+		},
+		confirmationErrorContainer: {
+			marginTop: 8,
+			paddingHorizontal: 4,
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+		},
 		clearButton: {
 			padding: 12,
 			marginRight: 4,

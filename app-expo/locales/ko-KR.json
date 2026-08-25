@@ -238,6 +238,9 @@
 		"recentLocations": {
 			"title": "최근 사용한 장소",
 			"clear": "최근 사용한 장소 지우기"
+		},
+		"locationConfirmation": {
+			"error": "위치 확인에 실패했습니다"
 		}
 	},
 	"Onboarding": {
@@ -758,6 +761,25 @@
 			"unblockMessage": "이 요리 카테고리가 추천에 다시 추가됩니다.",
 			"unblockConfirm": "차단 해제",
 			"unblocked": "차단 해제됨"
+		},
+		"notifications": {
+			"sectionTitle": "알림",
+			"osDisabledTitle": "이 기기의 알림이 꺼져 있습니다",
+			"osDisabledDescription": "여기서 선택한 설정은 저장되지만, 이 기기로는 알림이 오지 않습니다.",
+			"openOsSettings": "기기 설정 열기",
+			"updateFailed": "설정을 저장하지 못했습니다",
+			"likes": {
+				"title": "좋아요",
+				"description": "내 게시물이나 리뷰에 좋아요가 눌렸을 때"
+			},
+			"saves": {
+				"title": "저장",
+				"description": "내 게시물이 저장되었을 때"
+			},
+			"group_votes": {
+				"title": "그룹 투표",
+				"description": "참여 중인 그룹 투표에 변화가 있을 때"
+			}
 		}
 	},
 	"Dialog": {
