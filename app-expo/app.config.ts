@@ -126,12 +126,20 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		これが無いとネイティブ側のシンボル情報が上がらず、
 		クラッシュしても «どこで落ちたか» が読めないレポートになる。
 
+		⚠️ **DSN が設定されているビルドでだけ入れる。**
+
+		この plugin は release ビルドに «ソースマップを Sentry へアップロードする» Gradle
+		タスクを足す。組織 ID / プロジェクト / 認証トークンが無い環境では、そのタスクが
+
+		    error: An organization ID or slug is required (provide with --org)
+
+		で失敗し、**ビルドそのものが落ちる**（Detox の Android ビルドで実際に落とした。
+		run 32842669247）。CI は Sentry の資格情報を持たないので、無条件に入れてはいけない。
+
 		⚠️ この行はネイティブ差分である。**OTA では配れない**ので、
 		このブランチ（ネイティブ変更を集めるブランチ）から出ない。
-		実際に有効になるのは `EXPO_PUBLIC_SENTRY_DSN` が設定されたビルドだけ
-		（`lib/crashSdk.ts` が DSN 無しでは初期化しない）。
 		*/
-		"@sentry/react-native/expo",
+		...(process.env.EXPO_PUBLIC_SENTRY_DSN ? ["@sentry/react-native/expo" as const] : []),
 		"expo-video",
 		"expo-audio",
 		"expo-notifications",
