@@ -55,15 +55,6 @@ test.describe("設定項目(匿名ユーザー)", () => {
 	//      (例: 1.14.0(abc1234) / コミットID未設定時は 1.14.0(dev)) で表示され、
 	//      空文字や"undefined"を出していないことを検証する
 	test("バージョン情報が表示される", async ({ appPage }) => {
-	// ─ テストケース: 匿名時は通知カードが表示されない ─
-	// 手順:
-	//   1. 設定画面を表示する(匿名状態)
-	//   2. 通知カード(settings-notifications-card)が存在しないことを検証
-	//
-	// #1510 匿名ユーザーは Push Token を登録しない(PushTokenRegistration)ため、
-	// 受け取り方を設定させても届く先が無い。ログイン済み側の検証は
-	// tests/authenticated/notification-preferences.spec.ts が持つ
-	test("匿名時は通知カテゴリのカードが表示されない", async ({ appPage }) => {
 		const settingsPage = new SettingsPage(appPage);
 		await settingsPage.goto();
 		await settingsPage.expectLoaded();
@@ -72,6 +63,25 @@ test.describe("設定項目(匿名ユーザー)", () => {
 		const versionText = await settingsPage.versionText.innerText();
 		expect(versionText).toMatch(/^\d+\.\d+\.\d+\([^)]+\)$/);
 		expect(versionText).not.toMatch(/undefined/i);
+	});
+
+	// ─ テストケース: 匿名時は通知カードが表示されない ─
+	// 手順:
+	//   1. 設定画面を表示する(匿名状態)
+	//   2. 通知カード(settings-notifications-card)が存在しないことを検証
+	//
+	// #1510 匿名ユーザーは Push Token を登録しない(PushTokenRegistration)ため、
+	// 受け取り方を設定させても届く先が無い。ログイン済み側の検証は
+	// tests/authenticated/notification-preferences.spec.ts が持つ
+	//
+	// ⚠️ この test はベースの時点で **中身がバージョン検証のまま**入れ子になっており、
+	//    バージョンも通知カードもどちらも assert されていなかった（構文としては通る）。
+	test("匿名時は通知カテゴリのカードが表示されない", async ({ appPage }) => {
+		const settingsPage = new SettingsPage(appPage);
+		await settingsPage.goto();
+		await settingsPage.expectLoaded();
+
+		await expect(settingsPage.notificationsCard).toHaveCount(0);
 	});
 });
 
@@ -132,6 +142,5 @@ test.describe("端末設定画面のハプティクストグル(匿名ユーザ�
 		// 後始末: 既定値(オン)へ戻す
 		await deviceSettingsPage.hapticsToggleItem.click();
 		await expect(deviceSettingsPage.hapticsToggleSwitch).toBeChecked();
-		await expect(settingsPage.notificationsCard).toHaveCount(0);
 	});
 });

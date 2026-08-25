@@ -127,9 +127,6 @@ export class SettingsPage {
 	}
 
 	/**
-	 * 設定項目のある画面（＝マイページ）へ直接遷移する（locale プレフィックス必須）。
-	 * #1402 以前は `/[locale]/profile/settings` だった。
-	 */
 	 * #1510 通知カテゴリの行（トグル）を返す。**押すのはこの行。**
 	 *
 	 * `SettingsToggleItem` は行全体をタップ対象にし、Switch 側は `pointerEvents="none"` で
