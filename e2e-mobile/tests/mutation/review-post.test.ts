@@ -1,5 +1,5 @@
 import { describeMutation, launchAppWithSession } from "../../fixtures/e2e";
-import { ReviewScreen } from "../../screens/ReviewScreen";
+import { MyDishesScreen } from "../../screens/MyDishesScreen";
 import { SelectRestaurantScreen } from "../../screens/SelectRestaurantScreen";
 import { TabBar } from "../../screens/TabBar";
 
@@ -29,7 +29,7 @@ import { TabBar } from "../../screens/TabBar";
  */
 describeMutation("レビュー投稿 @mutation", () => {
 	const tabBar = new TabBar();
-	const review = new ReviewScreen();
+	const myDishes = new MyDishesScreen();
 	const selectRestaurant = new SelectRestaurantScreen();
 
 	// #1031 【バグ】beforeAll だと前のテストが残した画面状態を次が引き継ぎ、タップがオーバーレイに阻まれる。
@@ -40,14 +40,14 @@ describeMutation("レビュー投稿 @mutation", () => {
 
 	// ─ テストケース: レビューを投稿できる ─
 	// 手順:
-	//   1. レビュータブ → 投稿 CTA（ログイン済みのみ表示）で「お店選択」画面へ
+	//   1. 食べたい/食べたタブ → 記録 CTA（ログイン済みのみ表示）で「お店選択」画面へ
 	//   2. 店名で検索し先頭候補を選ぶ（飲食店カテゴリなら restaurants が作られ詳細が開く）
 	//   3. 「写真・動画を投稿」でフォームへ。メディア選択は E2E フックが固定画像を返す
 	//   4. 本文 / 料理カテゴリ / 価格 / 星 を埋める（`isValid` が全て必須にしている）
 	//   5. 投稿し、フォームが閉じることを検証する（成功時は snackbar のあと onCancel が呼ばれる）
 	it("レビューを投稿できる @mutation", async () => {
-		await tabBar.gotoReview();
-		await review.gotoPostReview();
+		await tabBar.gotoMyDishes();
+		await myDishes.gotoRecordDish();
 
 		// #1031 実在のチェーン店名を使う。`isFoodAndDrinkPlaceForUser()` が true の候補でないと
 		// 地図移動だけで終わり、お店の詳細（= 投稿導線）へ進めないため
@@ -55,20 +55,24 @@ describeMutation("レビュー投稿 @mutation", () => {
 		await selectRestaurant.searchRestaurant("スターバックスコーヒー 渋谷");
 		await selectRestaurant.selectSuggestion(0);
 
-		// 店舗レコードの作成 → 詳細表示までバックエンド往復があるため長めに待つ
-		await selectRestaurant.gotoReviewForm(ReviewScreen.FORM_TIMEOUT);
+		// #1375（3 巡目）pick モードでは詳細画面へ行かず、選んだ時点で統合フォームへ戻る。
+		// 店舗レコードの作成にバックエンド往復があるため長めに待つ
+
+		// #1375（6 巡目）店が決まると **料理カテゴリー**の 1 歩目が出る。
+		// ここを通すまで写真もコメント欄も出ない（オーナー指示の «お店 → 料理 → 写真» の順）
+		await myDishes.chooseDishCategoryInRecordFlow("コーヒー", MyDishesScreen.FORM_TIMEOUT);
+		await myDishes.chooseMediaInRecordFlow({}, MyDishesScreen.FORM_TIMEOUT);
 
 		// メディア選択（E2E では固定画像）が解決するとフォーム本体が描画される
-		await review.expectFormLoaded(ReviewScreen.FORM_TIMEOUT);
+		await myDishes.expectFormLoaded(MyDishesScreen.FORM_TIMEOUT);
 
-		await review.fillComment("[E2E] Detox からの自動投稿テストです");
-		await review.chooseDishCategory("コーヒー");
-		await review.fillPrice("500");
-		await review.rate(5);
+		await myDishes.fillComment("[E2E] Detox からの自動投稿テストです");
+		await myDishes.fillPrice("500");
+		await myDishes.rate(5);
 
-		await review.submit();
+		await myDishes.submit();
 
 		// 画像アップロード → v1/dishes → v1/dish-media と直列に走るため、投稿完了待ちは長めに取る
-		await review.expectFormClosed(ReviewScreen.FORM_TIMEOUT);
+		await myDishes.expectFormClosed(MyDishesScreen.FORM_TIMEOUT);
 	});
 });

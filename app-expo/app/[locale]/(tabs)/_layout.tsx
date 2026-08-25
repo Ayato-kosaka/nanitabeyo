@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { Bell, User, Search, Pencil } from "lucide-react-native";
+import { Bell, User, Search, UtensilsCrossed } from "lucide-react-native";
 import i18n from "@/lib/i18n";
 import { useAuth } from "@/contexts/AuthProvider";
 import { isGuestUser } from "@/lib/authGuest";
@@ -58,14 +58,14 @@ export default function TabLayout() {
 				}}
 			/>
 			<Tabs.Screen
-				name="review"
+				name="my-dishes"
 				options={{
-					title: i18n.t("Tabs.review"),
-					tabBarLabel: i18n.t("Tabs.labels.review"),
-					tabBarButtonTestID: "tab-review",
+					title: i18n.t("Tabs.myDishes"),
+					tabBarLabel: i18n.t("Tabs.labels.myDishes"),
+					tabBarButtonTestID: "tab-my-dishes",
 					tabBarIcon: ({ color }) => (
 						<View style={{ marginVertical: 4 }}>
-							<Pencil size={ICON_SIZE} color={color} />
+							<UtensilsCrossed size={ICON_SIZE} color={color} />
 						</View>
 					),
 				}}
@@ -83,7 +83,9 @@ export default function TabLayout() {
 					),
 					// #1092 【設計】auth 未確定(user === null)を「ゲスト」と同じ扱いに寄せる。
 					// `user?.is_anonymous` の truthy 判定だと未確定は falsy になり、通知タブが
-					// **出てから消える**（タブ本数が 5→4 に変わりタブバー全体が再レイアウトする）。
+					// **出てから消える**（タブ本数が変わりタブバー全体が再レイアウトする）。
+					// #1419 でマップタブを削除したので、いまの本数は
+					// search / my-dishes / notifications / profile の **4 本**、ゲストでは 3 本になる。
 					// 出てから消えるより、出ない→出るの方が害が小さい。web の SSG は
 					// user === null の状態を出力するので、その観点でもこちらが安全。
 					//

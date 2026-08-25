@@ -124,7 +124,7 @@ describe("isOnboardingPath", () => {
 		expect(isOnboardingPath(pathname)).toBe(true);
 	});
 
-	it.each(["/ja-JP", "/ja-JP/(tabs)/search", "/ja-JP/(tabs)/search/topics", "/ja-JP/profile", "/"])(
+	it.each(["/ja-JP", "/ja-JP/(tabs)/search", "/ja-JP/(tabs)/search/dish-categories", "/ja-JP/profile", "/"])(
 		"%s は導線の外",
 		(pathname) => {
 			expect(isOnboardingPath(pathname)).toBe(false);

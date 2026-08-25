@@ -22,18 +22,44 @@ test.skip(
 
 test.describe("マイページ(ログイン済み)", () => {
 	// ─ テストケース: 非匿名ユーザーのプロフィールが表示される ─
+	//
+	// #1402 【変更】旧版は «レビュー投稿タブ(review-tab-grid)が出ること» を匿名との差分にしていたが、
+	// 4 グリッドタブは廃止された。ログイン済みかどうかの差は
+	// «ログインボタンではなく編集ボタンが出る» と «ログアウト行がある» の 2 つになった。
 	// 手順:
 	//   1. "/" で起動(storageState によりログイン済みで起動する)
 	//   2. マイページへ遷移し、ログインボタンが表示されないことを検証
-	//   3. レビュー投稿タブ(review-tab-grid)が表示されることを検証
-	//      (匿名時の保存系のみ構成との差分)
-	test("レビュータブを含むプロフィールが表示される", async ({ appPage }) => {
+	//   3. 編集ボタン(profile-edit-button)と縦リストが表示されることを検証
+	test("ログイン済みのプロフィールが表示される", async ({ appPage }) => {
 		const tabBar = new TabBar(appPage);
 		const profilePage = new ProfilePage(appPage);
 
 		await tabBar.gotoProfile();
 		await expect(profilePage.loginButton).toHaveCount(0);
-		await expect(profilePage.reviewsGrid).toBeVisible();
+		await expect(profilePage.editButton).toBeVisible();
+		await profilePage.expectLoaded();
+	});
+
+	// ─ テストケース: いいね/保存の一覧へ実 UI 導線で遷移できる ─
+	// #1402 の本体。4 グリッドタブの代わりに縦リストの行から «独立したルート» を開く。
+	// 手順:
+	//   1. マイページへ遷移する
+	//   2. 「いいねした投稿」を押し、/profile/liked でグリッドが出ることを検証
+	//   3. マイページへ戻り、「保存した料理カテゴリ」を押して /profile/saved-dish-categories を検証
+	test("縦リストからいいね・保存の一覧へ遷移できる", async ({ appPage }) => {
+		const tabBar = new TabBar(appPage);
+		const profilePage = new ProfilePage(appPage);
+
+		await tabBar.gotoProfile();
+		await profilePage.openLiked();
+
+		// #1404 ScreenHeader は `testID` を渡された画面では戻るボタンを `${testID}-back` にする。
+		// liked 画面は `profile-liked-screen` を渡しているので、汎用の `screen-header-back` は
+		// **存在しない**（この spec はそちらを待って 30 秒でタイムアウトしていた）。
+		await appPage.getByTestId("profile-liked-screen-back").click();
+		await expect(appPage).toHaveURL(/\/profile(\?|$)/);
+
+		await profilePage.openSavedDishCategories();
 	});
 
 	// ─ テストケース: お知らせタブが表示される ─
@@ -71,7 +97,7 @@ test.describe("マイページ(ログイン済み)", () => {
 
 	// ─ テストケース: 設定にログアウトが表示される(実行はしない) ─
 	// 手順:
-	//   1. ログイン済みで設定画面へ遷移する
+	//   1. ログイン済みでマイページへ遷移する（#1402 で設定は独立した画面ではなくなった）
 	//   2. ログアウト行(settings-logout)が表示されることを検証
 	//   3. クリックは行わない(storageState 共有のため — describe コメント参照)
 	test("設定にログアウトが表示される", async ({ appPage }) => {

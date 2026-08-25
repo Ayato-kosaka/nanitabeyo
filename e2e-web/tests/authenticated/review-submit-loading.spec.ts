@@ -2,7 +2,7 @@ import * as path from "node:path";
 import { test, expect } from "../../fixtures/test";
 import type { Locator, Page } from "@playwright/test";
 import { TabBar } from "../../pages/TabBar";
-import { ReviewPage } from "../../pages/ReviewPage";
+import { MyDishesPage } from "../../pages/MyDishesPage";
 
 /**
  * ⏳ レビュー投稿中のローディング表示テスト @mutation(#1136 / PR #1166)
@@ -63,28 +63,29 @@ const SUBMIT_FAILED_MESSAGE = "レビューの投稿に失敗しました";
  */
 async function openFilledReviewForm(appPage: Page, comment: string): Promise<Locator> {
 	const tabBar = new TabBar(appPage);
-	const reviewPage = new ReviewPage(appPage);
+	const myDishesPage = new MyDishesPage(appPage);
 
-	await tabBar.gotoReview();
-	await reviewPage.postReviewButton.click();
+	await tabBar.gotoMyDishes();
+	await myDishesPage.openEatenRecordFlow();
+	await myDishesPage.openEatenRestaurantPicker();
+	// #1375（3 巡目）pick モードで選ぶと統合フォームへ戻り、ReviewForm が自動でメディア選択を開く
 	await appPage.getByTestId("location-autocomplete-input").fill("スターバックス");
 	await appPage.getByTestId("location-autocomplete-suggestions").waitFor({ state: "visible" });
 	await appPage.getByTestId("location-autocomplete-suggestion-0").click();
-	await expect(appPage.getByTestId("restaurant-detail-post-photo-button")).toBeVisible({ timeout: 20_000 });
 
-	// レビューフォーム画面(review.tsx)へ遷移すると同時に写真選択(filechooser)が自動的に走る
+	// #1375（6 巡目）記録フローは «お店 → 料理カテゴリー → 写真» の順。
+	// カテゴリーが決まるまで写真もコメント欄も出ない
+	await myDishesPage.chooseDishCategoryInRecordFlow("コーヒー");
+	await myDishesPage.chooseMediaInRecordFlow();
+
+	// 写真は自分で «ライブラリから選ぶ» を押して開く（記録フローは自動で開かない）
 	const fileChooserPromise = appPage.waitForEvent("filechooser");
-	await appPage.getByTestId("restaurant-detail-post-photo-button").click();
+	await appPage.getByTestId("review-pick-from-library").click();
 	const fileChooser = await fileChooserPromise;
 	await fileChooser.setFiles(TEST_IMAGE_PATH);
 
 	await appPage.getByTestId("review-comment-input").fill(comment.slice(0, 100));
 
-	// 料理カテゴリを選択する
-	await appPage.getByTestId("review-dish-category-row").click();
-	await appPage.getByTestId("dish-category-search-input").fill("コーヒー");
-	await appPage.getByTestId("dish-category-search-suggestions").waitFor({ state: "visible" });
-	await appPage.getByTestId("dish-category-search-suggestion-0").click();
 
 	await appPage.getByTestId("review-price-input").fill("500");
 	await appPage.getByTestId("review-star-5").click();
@@ -114,7 +115,10 @@ test.describe("レビュー投稿中のローディング @mutation", () => {
 	//   6. force クリックを 2 回打っても POST が増えない(= 実際に押下が届かない)ことを検証
 	//   7. ゲートを開けて投稿処理を失敗で終わらせ、後片付けする
 	test("投稿中はボタンにスピナーが出て押下も届かない", async ({ appPage }) => {
-		const submitButton = await openFilledReviewForm(appPage, `[E2E] ローディング表示テスト ${new Date().toISOString()}`);
+		const submitButton = await openFilledReviewForm(
+			appPage,
+			`[E2E] ローディング表示テスト ${new Date().toISOString()}`,
+		);
 
 		/** POST v1/dishes の着弾回数。ローディング中に増えなければ「押せていない」ことの直接証拠になる */
 		let createDishRequests = 0;
@@ -168,7 +172,10 @@ test.describe("レビュー投稿中のローディング @mutation", () => {
 	//   5. **もう一度ふつうに click** して再投稿できることを検証
 	//      (Playwright の click は enabled になるまで待つため、固着していればここで失敗する)
 	test("投稿に失敗してもローディングが解除され、再投稿できる", async ({ appPage }) => {
-		const submitButton = await openFilledReviewForm(appPage, `[E2E] 投稿失敗時の解除テスト ${new Date().toISOString()}`);
+		const submitButton = await openFilledReviewForm(
+			appPage,
+			`[E2E] 投稿失敗時の解除テスト ${new Date().toISOString()}`,
+		);
 
 		let createDishRequests = 0;
 		await appPage.route(CREATE_DISH_URL, async (route) => {

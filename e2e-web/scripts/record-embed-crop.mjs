@@ -243,6 +243,17 @@ for (const preset of Object.values(PRESETS)) {
     recordVideo: { dir: `${OUT}/raw-${preset.name}`, size: preset.viewport },
   });
   await installMocks(context);
+  // #1375 チュートリアル（初回だけ自動で開くスポットライト）が最前面に出ると
+  // 以降のタップを全部横取りする（実測: my-dishes-tutorial-overlay intercepts pointer events）。
+  // 撮りたいのは «取り込んだリールの見た目» なので、既読状態にしてから開く
+  await context.addInitScript(() => {
+    try {
+      window.localStorage.setItem("my_dishes_spotlight_tutorial_seen_v1", "true");
+      window.localStorage.setItem("search_tutorial_seen_v1", "true");
+    } catch {
+      /* プライベートモード等で localStorage が使えなくても撮影は続ける */
+    }
+  });
   const page = await context.newPage();
   page.on("pageerror", (e) => console.log(`PAGEERR(${preset.name}):`, String(e).slice(0, 160)));
 

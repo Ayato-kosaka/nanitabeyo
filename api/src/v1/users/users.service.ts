@@ -22,6 +22,10 @@ import {
   UpdateUserProfileDto,
   QuerySavedRestaurantsDto,
   QueryMeBlockedDishCategoriesDto,
+  QueryMyDishesDto,
+  MyDishSort,
+  MyDishStatus,
+  QueryMeDishCategoryGroupVotesDto,
 } from '@shared/v1/dto';
 
 import { UsersRepository } from './users.repository';
@@ -41,9 +45,25 @@ import {
 } from 'src/core/supabase-admin/supabase-admin.service';
 import { CloudTasksService } from 'src/core/cloud-tasks/cloud-tasks.service';
 import { UsersAssembler } from './users.assembler';
-import { DishMediaEntry } from '@shared/v1/res';
+import {
+  DishMediaEntry,
+  MyDishItem,
+  QueryMeDishMapPinsResponse,
+  QueryMyDishesResponse,
+  MeDishCategoryGroupVoteListItem,
+} from '@shared/v1/res';
 import { convertPrismaToSupabase_DishReviews } from '../../../../shared/converters/convert_dish_reviews';
+import { convertPrismaToSupabase_Dishes } from '../../../../shared/converters/convert_dishes';
 import { RestaurantsAssembler } from '../restaurants/restaurants.assembler';
+import { DishMediaAssembler } from '../dish-media/dish-media.assembler';
+import { toNullableId } from '../../core/utils/backend-utils';
+import {
+  decodeMyDishCursor,
+  encodeMyDishCursor,
+  hasMyDishesFilterBeyondStatus,
+} from './my-dishes.query';
+import { DishCategoryGroupVotesRepository } from '../dish-category-group-votes/dish-category-group-votes.repository';
+import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
 export class UsersService {
@@ -57,6 +77,9 @@ export class UsersService {
     private readonly cloudTasks: CloudTasksService,
     private readonly restaurantsRepo: RestaurantsRepository,
     private readonly restaurantsAssembler: RestaurantsAssembler,
+    private readonly dishMediaAssembler: DishMediaAssembler,
+    private readonly dishCategoryGroupVotesRepo: DishCategoryGroupVotesRepository,
+    private readonly prismaService: PrismaService,
     private readonly storage: StorageService,
     private readonly supabaseAdmin: SupabaseAdminService,
   ) {}
@@ -94,17 +117,40 @@ export class UsersService {
         cursor: dto.cursor,
       });
 
+    // #1395 写真なしの「食べた」記録では created_dish_media_id が NULL になる。
+    // ここで単純に Map を引くと、その行が **警告ログだけ残して黙って消える**。
+    // 代表メディアの選び方を my-dishes と揃え、「その dish の最新メディア」へ落とす。
+    // それでもメディアが 1 件も無い dish は、このエンドポイントの型
+    // （DishMediaEntry = メディア 1 件が主語）では表現できないため返せない。
+    // 写真なし記録を落とさずに見せるのは GET /v1/users/me/dishes?status=eaten の役目である。
+    const reviewsWithoutMedia = reviews.filter(
+      (r) => toNullableId(r.created_dish_media_id) === null,
+    );
+    const fallbackMediaIdByDishId =
+      await this.dishMediaRepo.findLatestDishMediaIdsByDishIds(
+        Array.from(new Set(reviewsWithoutMedia.map((r) => r.dish_id))),
+      );
+
+    const resolveMediaId = (review: (typeof reviews)[number]): string | null =>
+      toNullableId(review.created_dish_media_id) ??
+      fallbackMediaIdByDishId.get(review.dish_id) ??
+      null;
+
     const uniqueDishMediaIds = Array.from(
-      // #1395 created_dish_media_id は nullable（メディアを作っていないレビュー）
+      // #1395 created_dish_media_id は nullable（メディアを作っていないレビュー）。
+      // #1398 その場合は同じ dish の最新 dish_media を代表に立てる（resolveMediaId）
       new Set(
         reviews
-          .map((r) => r.created_dish_media_id)
+          .map((r) => resolveMediaId(r))
           .filter((id): id is string => id !== null),
       ),
     );
     const dishMediaEntryItemsResult =
       await this.dishMediaService.fetchDishMediaEntryItems(uniqueDishMediaIds, {
         userId,
+        // #1513 墓標「削除されました」を出す画面。行を消さずに中身だけ差し替えるため、
+        // 削除済みの dish_media も受け取る（詳細は getDishMediaEntriesByIds の JSDoc）
+        includeDeleted: true,
       });
 
     const dishMediaMap = new Map<
@@ -117,22 +163,28 @@ export class UsersService {
     this.logger.debug('GetUserDishReviewsResult', 'getUserDishReviews', {
       count: reviews.length,
       nextCursor,
+      withoutMedia: reviewsWithoutMedia.length,
     });
 
     return {
       data: reviews
         .map((review) => {
-          // #1395 メディアを作っていないレビューには紐づく dish_media が無い
-          const dishMediaEntryItem = review.created_dish_media_id
-            ? dishMediaMap.get(review.created_dish_media_id)
-            : undefined;
+          // #1395 メディアを作っていないレビューには紐づく dish_media が無い（#1398 で代表を解決する）
+          const mediaId = resolveMediaId(review);
+          const dishMediaEntryItem =
+            mediaId === null ? undefined : dishMediaMap.get(mediaId);
           if (!dishMediaEntryItem) {
             this.logger.warn(
               'DishMediaEntryItem not found for review',
               'getUserDishReviews',
               {
                 reviewId: review.id,
-                dishMediaId: review.created_dish_media_id,
+                dishId: review.dish_id,
+                dishMediaId: mediaId,
+                // #1395 写真なし記録かつ dish にメディアが 1 件も無い場合はここに来る。
+                // GET /v1/users/me/dishes?status=eaten へ移行すれば落ちなくなる
+                reason:
+                  mediaId === null ? 'no_media_for_dish' : 'media_not_fetched',
               },
             );
             return undefined;
@@ -180,6 +232,9 @@ export class UsersService {
     const dishMediaEntryItemsResult =
       await this.dishMediaService.fetchDishMediaEntryItems(dishMediaIds, {
         userId,
+        // #1513 墓標「削除されました」を出す画面。行を消さずに中身だけ差し替えるため、
+        // 削除済みの dish_media も受け取る（詳細は getDishMediaEntriesByIds の JSDoc）
+        includeDeleted: true,
       });
 
     this.logger.debug('GetMeLikedDishMediaResult', 'getMeLikedDishMedia', {
@@ -291,6 +346,9 @@ export class UsersService {
     const dishMediaEntryItemsResult =
       await this.dishMediaService.fetchDishMediaEntryItems(dishMediaIds, {
         userId,
+        // #1513 墓標「削除されました」を出す画面。行を消さずに中身だけ差し替えるため、
+        // 削除済みの dish_media も受け取る（詳細は getDishMediaEntriesByIds の JSDoc）
+        includeDeleted: true,
       });
 
     this.logger.debug('GetMeSavedDishMediaResult', 'getMeSavedDishMedia', {
@@ -300,6 +358,63 @@ export class UsersService {
 
     return {
       data: dishMediaEntryItemsResult.items,
+      nextCursor,
+    };
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*          GET /v1/users/me/dish-category-group-votes               */
+  /* ------------------------------------------------------------------ */
+  // #1505 【設計】**自分が主催(作成)した** dish_category グループ投票の一覧。
+  // 参加しただけのセッションは含まない(オーナー指示)。
+  // 認可の担保は repository の where 句(host_user_id = 自分)に閉じており、
+  // ここでは userId を JWT 由来のものだけ使い、body/query から session の所有者を受け取らない。
+  async getMeDishCategoryGroupVotes(
+    userId: string,
+    dto: QueryMeDishCategoryGroupVotesDto,
+  ): Promise<{
+    data: MeDishCategoryGroupVoteListItem[];
+    nextCursor: string | null;
+  }> {
+    this.logger.debug(
+      'GetMeDishCategoryGroupVotes',
+      'getMeDishCategoryGroupVotes',
+      {
+        userId,
+        cursor: dto.cursor,
+      },
+    );
+
+    const { items, nextCursor } =
+      await this.dishCategoryGroupVotesRepo.findMeSessions(
+        this.prismaService.prisma,
+        userId,
+        dto.cursor,
+      );
+
+    this.logger.debug(
+      'GetMeDishCategoryGroupVotesResult',
+      'getMeDishCategoryGroupVotes',
+      {
+        count: items.length,
+        nextCursor,
+      },
+    );
+
+    return {
+      data: items.map((item) => ({
+        id: item.id,
+        shareToken: item.shareToken,
+        hasVoted: item.hasVoted,
+        candidateCount: item.candidateCount,
+        // #1505 行の主役は「何を投票したのか」。候補のサムネイル・候補名・参加人数・勝者名を
+        // 一覧の時点で返し、画面が行ごとに detail を叩かなくて済むようにしている。
+        candidatePreviews: item.candidatePreviews,
+        participantCount: item.participantCount,
+        winnerName: item.winnerName,
+        createdAt: item.createdAt.toISOString(),
+        updatedAt: item.updatedAt.toISOString(),
+      })),
       nextCursor,
     };
   }
@@ -364,6 +479,192 @@ export class UsersService {
         },
       })),
       nextCursor,
+    };
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*                    GET /v1/users/me/dishes                         */
+  /* ------------------------------------------------------------------ */
+  // #1395 「食べたい/食べた」の一覧（リスト / Calendar が共有する）
+  async getMyDishes(
+    userId: string,
+    dto: QueryMyDishesDto,
+  ): Promise<QueryMyDishesResponse> {
+    const sort: MyDishSort = dto.sort ?? '-occurredAt';
+    const cursor = dto.cursor ? decodeMyDishCursor(sort, dto.cursor) : null;
+
+    this.logger.debug('GetMyDishes', 'getMyDishes', {
+      userId,
+      sort,
+      status: dto.status,
+      limit: dto.limit,
+      hasCursor: cursor !== null,
+    });
+
+    const { items, hasMore } = await this.repo.findMyDishes(
+      userId,
+      dto,
+      cursor,
+    );
+
+    // 代表メディアの詳細（署名 URL・isLiked 等）は既存の組み立て経路を再利用する
+    const mediaIds = Array.from(
+      new Set(
+        items
+          .map((item) => item.mediaId)
+          .filter((id): id is string => id !== null),
+      ),
+    );
+    // 自分のレビュー（★n はここから引く）
+    const reviewIds = items
+      .map((item) => item.reviewId)
+      .filter((id): id is string => id !== null);
+
+    // メディア詳細・自分のレビュー・最古日はいずれも互いの結果を使わないので
+    // 並列に取る（直列だと応答時間が 3 本の合算になる。独立レビュー指摘）
+    const [
+      { items: dishMediaEntries },
+      { items: myReviews },
+      oldestOccurredAt,
+    ] = await Promise.all([
+      this.dishMediaService.fetchDishMediaEntryItems(mediaIds, { userId }),
+      reviewIds.length
+        ? this.dishMediaRepo.findDishReviewsByUser(userId, {
+            type: 'ids',
+            ids: reviewIds,
+          })
+        : Promise.resolve({
+            items: [] as Awaited<
+              ReturnType<typeof this.dishMediaRepo.findDishReviewsByUser>
+            >['items'],
+          }),
+      this.resolveOldestOccurredAt(userId, dto),
+    ]);
+    const dishMediaById = new Map(
+      dishMediaEntries.map((entry) => [entry.dish_media.id, entry.dish_media]),
+    );
+    const myReviewById = new Map(
+      myReviews.map((review) => [review.id, review]),
+    );
+
+    const data: MyDishItem[] = items.map((item) => {
+      const review = item.reviewId
+        ? myReviewById.get(item.reviewId)
+        : undefined;
+      return {
+        key: item.key,
+        status: item.status,
+        occurredAt: item.occurredAt.toISOString(),
+        savedAt: item.savedAt ? item.savedAt.toISOString() : null,
+        eatenAt: item.eatenAt ? item.eatenAt.toISOString() : null,
+        restaurant: this.restaurantsAssembler.enrichRestaurantsWithImageUrls(
+          item.restaurant,
+        ),
+        dish: {
+          ...convertPrismaToSupabase_Dishes(item.dish),
+          reviewCount: item.dish.reviewCount,
+          averageRating: item.dish.averageRating,
+          categoryImageUrl: item.dish.categoryImageUrl,
+          // #1375 カテゴリの正式表記（ローマ字の dish.name をユーザーに見せないため）
+          categoryLabels: item.dish.categoryLabels,
+        },
+        dishMedia:
+          (item.mediaId ? dishMediaById.get(item.mediaId) : undefined) ?? null,
+        // #1513 自分の投稿を消したときは別の写真へ差し替えず（mediaId は NULL）、
+        // このフラグで墓標を出させる。行は消さない
+        isOwnMediaDeleted: item.isOwnMediaDeleted,
+        myReview: review
+          ? {
+              ...convertPrismaToSupabase_DishReviews(review),
+              username: review.username,
+              isLiked: review.isLiked,
+              likeCount: review.likeCount,
+            }
+          : null,
+        distanceMeters: item.distanceMeters,
+      };
+    });
+
+    const nextCursor =
+      hasMore && items.length > 0
+        ? encodeMyDishCursor(sort, items[items.length - 1].cursorSource)
+        : null;
+
+    this.logger.debug('GetMyDishesResult', 'getMyDishes', {
+      count: data.length,
+      hasMore,
+      oldestOccurredAt,
+    });
+
+    return { data, nextCursor, meta: { oldestOccurredAt } };
+  }
+
+  /**
+   * #1395 Calendar 用の最古 `occurredAt`。
+   *
+   * **初回ページ（cursor 未指定）かつ status 以外のフィルタが無いときだけ**算出する。
+   * フィルタが付くと索引で順序を保てず `dish_reviews`（約 964MB）のユーザー全行走査になり、
+   * それが**フィルタを変えるたび**に走ってしまうため。
+   * null のときクライアントは `nextCursor === null` による終端検出のみに頼る。
+   */
+  private async resolveOldestOccurredAt(
+    userId: string,
+    dto: QueryMyDishesDto,
+  ): Promise<string | null> {
+    if (dto.cursor || hasMyDishesFilterBeyondStatus(dto)) return null;
+
+    const statuses: MyDishStatus[] = dto.status?.length
+      ? dto.status
+      : ['want', 'eaten'];
+    const oldest = await this.repo.findMyDishesOldestOccurredAt(
+      userId,
+      statuses,
+    );
+    return oldest ? oldest.toISOString() : null;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*                GET /v1/users/me/dishes/map-pins                    */
+  /* ------------------------------------------------------------------ */
+  // #1395 Map ビュー。一覧と同じ QueryMyDishesDto を取り、投影だけが違う
+  async getMyDishMapPins(
+    userId: string,
+    dto: QueryMyDishesDto,
+  ): Promise<QueryMeDishMapPinsResponse> {
+    this.logger.debug('GetMyDishMapPins', 'getMyDishMapPins', {
+      userId,
+      status: dto.status,
+      hasArea: dto.lat !== undefined,
+    });
+
+    const { items, truncated } = await this.repo.findMyDishMapPins(userId, dto);
+
+    this.logger.debug('GetMyDishMapPinsResult', 'getMyDishMapPins', {
+      count: items.length,
+      truncated,
+    });
+
+    return {
+      data: items.map((pin) => ({
+        restaurant: this.restaurantsAssembler.enrichRestaurantsWithImageUrls(
+          pin.restaurant,
+        ),
+        counts: pin.counts,
+        latestOccurredAt: pin.latestOccurredAt.toISOString(),
+        // #1375 G4 一覧・Feed（dish-media.assembler.ts）と同じ順序で落とす:
+        // 自ストレージのサムネイル → provider 側のサムネイル → null（店舗写真へ）
+        representativeThumbnailUrl:
+          (pin.representativeMedia
+            ? this.dishMediaAssembler.getThumbnailImageUrl(
+                pin.representativeMedia,
+              )
+            : null) ??
+          pin.representativeExternalThumbnailUrl ??
+          null,
+        // #1513 代表行の自分の投稿が消えているときは墓標のサムネイルを出させる
+        isOwnMediaDeleted: pin.isOwnMediaDeleted,
+      })),
+      truncated,
     };
   }
 

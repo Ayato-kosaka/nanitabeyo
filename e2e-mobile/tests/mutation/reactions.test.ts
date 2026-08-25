@@ -3,7 +3,7 @@ import { strict as assert } from "node:assert";
 import { describeMutation, launchAppWithSession } from "../../fixtures/e2e";
 import { ResultScreen } from "../../screens/ResultScreen";
 import { SearchScreen } from "../../screens/SearchScreen";
-import { TopicsScreen } from "../../screens/TopicsScreen";
+import { DishCategoriesScreen } from "../../screens/DishCategoriesScreen";
 
 /**
  * ❤️ いいね・保存リアクションのテスト @mutation（e2e-web の tests/authenticated/reactions.spec.ts に対応）
@@ -35,7 +35,7 @@ import { TopicsScreen } from "../../screens/TopicsScreen";
  */
 describeMutation("リアクション @mutation", () => {
 	const search = new SearchScreen();
-	const topics = new TopicsScreen();
+	const dishCategories = new DishCategoriesScreen();
 	const result = new ResultScreen();
 
 	// #1031 【バグ】beforeAll だと前のテストが残した画面状態（開いたままのモーダル等）を次が引き継ぎ、
@@ -51,8 +51,8 @@ describeMutation("リアクション @mutation", () => {
 		await search.selectLocationSuggestion(0);
 		await search.submit();
 
-		await topics.expectLoaded();
-		await topics.chooseFirstTopic();
+		await dishCategories.expectLoaded();
+		await dishCategories.chooseFirstDishCategory();
 		await result.expectLoaded();
 	});
 

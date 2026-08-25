@@ -161,15 +161,17 @@ export class NotificationJobService {
     targetTable: string,
     targetId: string,
   ): Promise<{ user_id: string | null } | null> {
+    // #1513 削除済みの投稿・レビューへの通知は作らない。「消したはずの投稿」への
+    // いいね通知が届くと、通知タブから本文を開けない行が積まれる
     if (targetTable === 'dish_media') {
-      const media = await this.prisma.prisma.dish_media.findUnique({
-        where: { id: targetId },
+      const media = await this.prisma.prisma.dish_media.findFirst({
+        where: { id: targetId, deleted_at: null },
         select: { user_id: true },
       });
       return media ?? null;
     } else if (targetTable === 'dish_reviews') {
-      const review = await this.prisma.prisma.dish_reviews.findUnique({
-        where: { id: targetId },
+      const review = await this.prisma.prisma.dish_reviews.findFirst({
+        where: { id: targetId, deleted_at: null },
         select: { user_id: true },
       });
       return review ?? null;

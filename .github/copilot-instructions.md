@@ -12,6 +12,7 @@
 | コードコメントの書式と種別                   | [.codex/commentary-policy.md](../.codex/commentary-policy.md)                 |
 | コミットメッセージ                           | [.codex/commit-message-guidelines.md](../.codex/commit-message-guidelines.md) |
 | ドキュメントを作ってよいかの判断             | [docs/README.md](../docs/README.md)                                           |
+| UI の見た目・配色・スクリーンショット検証    | [docs/design-guidelines.md](../docs/design-guidelines.md)                     |
 
 **これらの内容をこのファイルへ複製しないこと。** 二重管理になり、
 過去に「lint は壊れている」等の実態と真逆の記述が長期間残る事故が起きている。

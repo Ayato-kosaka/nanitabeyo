@@ -88,14 +88,16 @@ export class CreateDishMediaEntryService {
   private async downloadAndStorePhotos(
     payload: CreateDishMediaEntryJobPayload,
   ): Promise<void> {
-    // #1395 media_path は nullable 化されたが、NULL になるのは
-    // render_type='external_embed' の行だけ（CHECK dish_media_media_path_required_for_stored）。
-    // このジョブは Google Photo を自ストレージへ保存する stored 専用の経路なので、
-    // NULL は payload の組み立て不整合であり、保存を進めてはいけない。
+    // #1395 media_path は external_embed（SNS の公式埋め込み）のために nullable 化された。
+    // ただし **この経路が作るのは常に render_type='stored'**（自ストレージへ写真を保存する行）
+    // であり、media_path は呼び出し側で必ず組み立てられている。
+    // null で来るのは payload の組み立てが壊れているときだけなので、ここで 1 度だけ絞って落とす。
+    // 各利用箇所へ `!` を撒くと、本当に null が来たとき «GCS の空パスへ書きに行く» という
+    // 分かりにくい壊れ方をする。
     const mediaPath = payload.dish_media.media_path;
     if (mediaPath === null) {
       throw new Error(
-        `dish_media.media_path is required for stored media: ${payload.dish_media.id}`,
+        `media_path is required for stored dish_media (jobId=${payload.jobId})`,
       );
     }
 
@@ -124,9 +126,7 @@ export class CreateDishMediaEntryService {
 
     // 原本が無く、取りに行く先も無い。DB 登録と resize enqueue へ進めてはいけない。
     if (payload.photoUri.length === 0) {
-      throw new Error(
-        `Stored photo is missing: ${mediaPath}`,
-      );
+      throw new Error(`Stored photo is missing: ${mediaPath}`);
     }
 
     const downloadPromises = payload.photoUri.map(async (photoUri, index) => {
@@ -180,11 +180,12 @@ export class CreateDishMediaEntryService {
     // そのとき completed 側まで再 enqueue すると、resize-image 側が fileExists で
     // 早期 return するため画像処理自体は走らないものの、Cloud Tasks の実行回数と
     // Cloud Run のリクエスト数だけが二重に増える。completed の列は skip する。
-    // #1395 media_path が NULL の行（render_type='external_embed'）は自ストレージに
-    // 実体が無いのでリサイズ対象にならない。skip 側に倒す
-    const mediaPath = dishMedia.media_path;
+    // #1395 media_path が null なのは render_type='external_embed' の行だけで、
+    // あれは自ストレージに実体を持たないためリサイズの対象にならない。
+    // ここへ来る時点で 'stored' のはずだが、型の上では null を取りうるので明示的に skip する。
     const skipMedia =
-      dishMedia.media_processing_status === 'completed' || mediaPath === null;
+      dishMedia.media_processing_status === 'completed' ||
+      dishMedia.media_path === null;
     const skipThumbnail = dishMedia.thumbnail_processing_status === 'completed';
 
     if (skipMedia || skipThumbnail) {
@@ -198,7 +199,6 @@ export class CreateDishMediaEntryService {
     return Promise.all([
       // メイン画像リサイズジョブ
       !skipMedia &&
-        mediaPath !== null &&
         this.cloudTasksService
           .enqueueResizeImage({
             table: 'dish_media',
@@ -206,7 +206,7 @@ export class CreateDishMediaEntryService {
             recordId: dishMedia.id,
             size: 1024,
             aspectRatio: 9 / 16,
-            originalPath: mediaPath,
+            originalPath: dishMedia.media_path ?? '',
           })
           .catch((error) => {
             this.logger.error(

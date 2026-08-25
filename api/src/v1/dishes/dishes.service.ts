@@ -538,9 +538,10 @@ export class DishesService {
           id: dishMediaId,
           dish_id: dish.id,
           user_id: null, // Google からのインポートなので null
-          // #1395 Google インポートは実体を自ストレージへ保存するので 'stored'
-          render_type: 'stored',
           media_path: mediaPath,
+          // #1395 この経路は Google の写真を自ストレージへ保存するので常に 'stored'。
+          // 'external_embed' は SNS の公式埋め込み（#1399 の取り込み）だけが使う
+          render_type: 'stored',
           media_type:
             existingGoogleImportEntry?.dish_media.media_type ?? 'image',
           thumbnail_path:
@@ -553,6 +554,7 @@ export class DishesService {
             new Date().toISOString(),
           updated_at: new Date().toISOString(),
           lock_no: existingGoogleImportEntry?.dish_media.lock_no ?? 0,
+          deleted_at: null, // #1513 Google import は常に未削除で作る
         };
 
         if (existingGoogleImportEntry) {
@@ -601,6 +603,10 @@ export class DishesService {
           imported_user_name: review.authorAttribution?.displayName || null,
           imported_user_avatar: review.authorAttribution?.photoUri || null,
           created_at: new Date().toISOString(),
+          // #1513 Google import は常に未削除・未編集で作る
+          updated_at: new Date().toISOString(),
+          lock_no: 0,
+          deleted_at: null,
           // #1551 食べた日はユーザーが入力する列。Google の口コミには無いので NULL
           eaten_at: null,
         }));
@@ -732,6 +738,10 @@ export class DishesService {
                 ? dishReviews.reduce((sum, r) => sum + r.rating, 0) /
                   dishReviews.length
                 : 0,
+            // #1375 この経路（一括取り込みの応答）はカテゴリ表を引いていないので null を返す。
+            // クライアントは «無ければ dish.name» へ落ちる（dishCategoryLabel.ts）ので表示は壊れない。
+            // ここで引くために join を足すと、取り込みのたびに余計な参照が増える
+            categoryLabels: null,
           },
           dish_media: {
             ...dishMedia,
@@ -750,6 +760,7 @@ export class DishesService {
             // 作られるため dish_id が 'unknown' のまま。レスポンスは実 ID に揃える。
             dish_id: dish.id,
             username: r.imported_user_name || 'Anonymous', // ユーザー名がない場合は 'Anonymous' とする
+            isMine: false, // #1513 インポートなので自分のものではない（編集・削除の導線は出さない）
             isLiked: false, // 初期状態ではいいねされていない
             likeCount: 0, // 初期状態ではいいね数は 0
           })),

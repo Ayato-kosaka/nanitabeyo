@@ -3,7 +3,7 @@
  *
  * ## テスト 3 層構造（e2e-web と同一の考え方）
  * - Tier 1 `@smoke`   : tests/smoke/                              起動・タブ導線の最小確認
- * - Tier 2 (無タグ)   : tests/navigation|search|review|profile|authenticated/
+ * - Tier 2 (無タグ)   : tests/navigation|search|my-dishes|dish-category-group-votes|profile|authenticated/
  * - Tier 3 `@mutation`: tests/mutation/                           dev DB へ書き込む。**既定では読み込まれない**
  * - 番外  `@probe`    : tests/probe/                              「修正が入るまで落ちるのが正しい」spec 置き場。
  *                                                                **既定では読み込まれない / 現在は空**

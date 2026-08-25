@@ -95,6 +95,13 @@ jobs:
       - name: legacyBlurModal の import 境界を検査
         run: pnpm --filter app-expo assert:legacy-blur-modal-boundary
 
+      # #1469 で新画面が色を直書きし、ダークモードで «ヘッダーだけ黒く本体は白い» 画面が
+      # 量産された事故の再発防止（#1509）。画面 .tsx の引用符内 hex / "white" / "black" を落とす。
+      # レガシーは理由付きの EXCLUSIONS で凍結し、直書きが消えたらリストから消させる（ラチェット）。
+      # 依存ゼロ・ファイル走査のみなので shared build より前の最速の位置に置く。
+      - name: 画面ファイルの色直書きを検査
+        run: pnpm --filter app-expo assert:no-hardcoded-colors
+
       # #1196 エラートリアージの純関数群。外部I/Oゼロ（node:crypto のみ）で shared/dist にも
       # 依存しないため、shared build より前・最速の位置に置ける。
       # このテストが守っているのは主に「正規化ルール表が RE2 と JS の共通部分集合に留まること」で、
@@ -117,6 +124,17 @@ jobs:
       # typed-linting は有効にしていない）。ローカル実測で約 23 秒。
       - name: app-expo の lint
         run: pnpm --filter app-expo lint
+
+      # #1399 SNS の URL をルールベースで解釈する純関数（`shared/utils/snsUrl.ts`）。
+      # 外部I/Oゼロで shared/dist にも依存しないため、shared build より前に置ける。
+      #
+      # ここが守っているのは主に 2 つで、どちらも落ちると静かに壊れる種類のものである。
+      #   1. provider の判定をホスト名の完全一致で行うこと。`includes` / `endsWith` へ緩めると
+      #      `tiktok.com.evil.example` のような同形異字ドメインを取り込んでしまう
+      #   2. canonicalUrl からクエリとフラグメントを落とすこと。残すと `?igsh=` 等が付いた
+      #      同じ投稿が別行になり、自然キー `(provider, external_content_id, dish_id)` が割れる
+      - name: shared のユニットテスト
+        run: pnpm --filter shared test
 
       # app-expo/tsconfig.dev.json は @shared/* を ../shared/dist/* へ向けているため、
       # typecheck の前に shared を build しておかないと解決できない。

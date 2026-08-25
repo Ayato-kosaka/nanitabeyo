@@ -21,8 +21,16 @@ jest.mock("expo-router", () => ({ usePathname: jest.fn() }));
 // locale はテストごとに書き換えるので、モックは «可変のオブジェクト» にしておく
 jest.mock("@/lib/i18n", () => ({ __esModule: true, default: { locale: "ja-JP" } }));
 
+// #1375 実機確認: 退避先の第 1 候補は **端末の言語設定**になった（理由は useLocale.ts のコメント）。
+// テストごとに端末ロケールを差し替えられるようにしておく
+let mockDeviceLanguageTag: string | undefined = "ja-JP";
+jest.mock("expo-localization", () => ({
+	getLocales: () => (mockDeviceLanguageTag ? [{ languageTag: mockDeviceLanguageTag }] : []),
+}));
+
 beforeEach(() => {
 	i18n.locale = "ja-JP";
+	mockDeviceLanguageTag = "ja-JP";
 });
 
 /** フックを実際にレンダリングして戻り値を取り出す（この repo は react-test-renderer を使う） */
@@ -46,7 +54,7 @@ const localeOf = (pathname: string) => renderUseLocale(pathname).locale;
 
 describe("#1194 useLocale", () => {
 	it("パス先頭のロケールをそのまま使う", () => {
-		expect(localeOf("/ja-JP/search/topics")).toBe("ja-JP");
+		expect(localeOf("/ja-JP/search/dish-categories")).toBe("ja-JP");
 		expect(localeOf("/en-US")).toBe("en-US");
 	});
 
@@ -83,14 +91,44 @@ describe("#1194 useLocale", () => {
 describe("#1194 useLocale — 端末の言語設定が既定以外のとき", () => {
 	// 退避先を ja-JP 決め打ちにすると、英語端末の起動直後だけ日本語で検索してしまう
 	it("端末の言語へ寄せる（常に ja-JP へ倒さない）", () => {
-		i18n.locale = "en";
+		mockDeviceLanguageTag = "en-US";
 
 		expect(localeOf("/")).toBe("en-US");
 	});
 
 	it("端末の言語が未対応でも公開ロケールのどれかになる", () => {
-		i18n.locale = "pt-BR";
+		mockDeviceLanguageTag = "pt-BR";
 
 		expect(localeOf("/")).toBe("ja-JP");
+	});
+});
+
+/*
+#1375 実機確認の回帰テスト。
+
+共有シートからのコールドスタートで **画面が英語になった**。
+
+`i18n.locale` を設定しているのは `app/[locale]/_layout.tsx` だけで、その入力は URL の
+ロケールセグメントである。つまりロケール付き URL へ入る前は未設定で、
+`i18n.defaultLocale`（= "en-US"）が読める。退避先がそれを採っていたため、
+端末が日本語でも `/en-US/sns-import` へ push されていた。
+
+共有からの着地は `app/index.tsx` のロケール判定リダイレクトを経由しないので、
+**誰も `i18n.locale` を直していない状態でこの分岐が評価される**のが肝である。
+*/
+describe("#1375 i18n.locale が未設定（既定の en-US）でも端末の言語を採る", () => {
+	it("端末が日本語なら ja-JP になる（en-US へ倒れない）", () => {
+		// ロケール付き URL へ一度も入っていない状態＝ i18n は既定のまま
+		i18n.locale = "en-US";
+		mockDeviceLanguageTag = "ja-JP";
+
+		expect(localeOf("/")).toBe("ja-JP");
+	});
+
+	it("端末ロケールが取れない環境だけ i18n 側へ落とす", () => {
+		i18n.locale = "ko-KR";
+		mockDeviceLanguageTag = undefined;
+
+		expect(localeOf("/")).toBe("ko-KR");
 	});
 });

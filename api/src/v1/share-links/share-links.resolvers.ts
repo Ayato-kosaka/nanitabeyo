@@ -107,12 +107,13 @@ export class ShareLinkTargetResolvers {
     // 同じ ID を並べて上限を回避されないよう、重複は落としたうえで順序は保つ
     const uniqueIds = [...new Set(ids)];
 
-    // #1511 退会したユーザーの投稿は OGP カードにも出さない。
+    // #1513 論理削除済みの投稿は共有カードにも出さない。
+    // #1511 退会したユーザーの投稿も同様に出さない。
     // 共有リンクは «詳細の入口» であり、ここを塞がないと SNS のプレビューにだけ
-    // 削除済みの投稿が残り続ける（アプリを開けば 404 なのに、カードだけ生きている状態）。
+    // 消えたはずの投稿が残り続ける（アプリを開けば 404 なのに、カードだけ生きている状態）。
     // 複合条件を書くため `findUnique` ではなく `findFirst` を使う
     const head = await this.prisma.dish_media.findFirst({
-      where: { id: uniqueIds[0], ...NOT_AUTHORED_BY_DELETED_USER },
+      where: { id: uniqueIds[0], deleted_at: null, ...NOT_AUTHORED_BY_DELETED_USER },
       select: {
         id: true,
         thumbnail_path: true,

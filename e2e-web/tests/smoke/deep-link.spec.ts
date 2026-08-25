@@ -40,11 +40,10 @@ const ROUTE_MARKERS: Record<string, (page: Page) => Promise<void>> = {
 	search: async (page) => {
 		await expect(page.getByTestId("search-header-title")).toBeVisible();
 	},
-	review: async (page) => {
-		await expect(page.getByTestId("review-guest-description")).toBeVisible();
-	},
-	"review/selectRestaurant": async (page) => {
-		await expect(page.getByTestId("review-select-restaurant-current-location-button")).toBeVisible();
+	// #1375 レビュータブは «食べたい/食べた»（my-dishes）タブへ置き換わった。
+	// 未ログインではゲスト説明が出る（ログイン後の 3 ビューは tests/authenticated/ が持つ）
+	"my-dishes": async (page) => {
+		await expect(page.getByTestId("my-dishes-guest-description")).toBeVisible();
 	},
 	profile: async (page) => {
 		await expect(page.getByTestId("profile-login-button")).toBeVisible();

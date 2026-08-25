@@ -11,6 +11,7 @@ import { Prisma } from '../../../../shared/prisma/client';
 import { PrismaRestaurants } from '../../../../shared/converters/convert_restaurants';
 import { PrismaDishes } from '../../../../shared/converters/convert_dishes';
 import { PrismaDishMedia } from '../../../../shared/converters/convert_dish_media';
+import type { dish_media_external_embeddings as PrismaDishMediaExternalEmbeddings } from '../../../../shared/prisma/client';
 import { PrismaDishReviews } from '../../../../shared/converters/convert_dish_reviews';
 import { PrismaDishMediaViews } from '../../../../shared/converters/convert_dish_media_views';
 import { PrismaDishMediaImpressions } from '../../../../shared/converters/convert_dish_media_impressions';
@@ -19,13 +20,18 @@ import { AppLoggerService } from 'src/core/logger/logger.service';
 
 import {
   CreateDishMediaDto,
+  CreateDishMediaReviewDto,
   SearchDishMediaDto,
   QueryRestaurantDishMediaDto,
   ReactionActionType,
 } from '@shared/v1/dto';
 
 import { PrismaService } from '../../prisma/prisma.service';
-import { roundToOneDecimal, shuffle } from '../../core/utils/backend-utils';
+import {
+  roundToOneDecimal,
+  shuffle,
+  toNullableId,
+} from '../../core/utils/backend-utils';
 import { CLS_KEY_APP_VERSION } from 'src/core/cls/cls.constants';
 import { ClsService } from 'nestjs-cls';
 import { normalizePreferredLanguageCodes } from '../../../../shared/utils/languageCode';
@@ -48,17 +54,36 @@ export interface DishMediaEntryEntity {
   dish: PrismaDishes & {
     reviewCount: number;
     averageRating: number;
+    /** #1375 dish_categories.labels（言語コード → 表記）。取れなければ null */
+    categoryLabels: Record<string, string> | null;
   };
   dish_media: PrismaDishMedia & {
     isMine: boolean;
     isSaved: boolean;
     isLiked: boolean;
     likeCount: number;
+    /**
+     * #1375 実機確認（5 巡目）「フィードの『食べたを記録』ボタンに記録済みの色を付けたい」。
+     * その dish に **自分の `dish_reviews` が 1 件でもあるか**。
+     *
+     * ⚠️ 詰めているのは `GET /v1/dish-media?ids=` だけ（#1399 の externalEmbed と同じ判断）。
+     * このボタンを出すのはその経路で読むフィードだけで、検索動線のフィードでは
+     * そもそも出さない（`ActionButtons` の `showRecordEaten`）。件数の多い検索経路へ
+     * 問い合わせを 1 本増やす理由が無い。join しない経路では undefined になる
+     */
+    isEaten?: boolean;
+    /**
+     * #1399 `render_type='external_embed'` の行だけが持つ。
+     * join しない経路（検索・一覧など件数の多い経路）では undefined のままになる
+     */
+    externalEmbed?: PrismaDishMediaExternalEmbeddings | null;
   };
   dish_reviews: (PrismaDishReviews & {
     username: string;
     isLiked: boolean;
     likeCount: number;
+    /** #1513 閲覧者自身が書いたレビューか（編集・削除の導線判定） */
+    isMine: boolean;
   })[];
 }
 
@@ -191,6 +216,10 @@ export class DishMediaRepository {
       -- 価格帯の絞り込みはMVPでは未対応
       WHERE 1=1
         -- カテゴリ
+        AND d.category_id = (SELECT category_id FROM params) 
+        -- #1513 論理削除済みの投稿は候補集合に入れない。ここを漏らすと
+        -- 「消したはずの投稿が検索に出る」という最も見つけにくい形で漏れる
+        AND dm.deleted_at IS NULL
         AND d.category_id = (SELECT category_id FROM params)
         -- #1511 退会したユーザーの投稿はフィードに出さない（作者の users.deleted_at で判定）。
         -- user_id が NULL の取り込みメディアは対象外なので NOT EXISTS で書く
@@ -257,6 +286,8 @@ export class DishMediaRepository {
         SELECT DISTINCT dish_id
         FROM fatigue_marked
       ) fm ON fm.dish_id = dr.dish_id
+      -- #1513 削除済みレビューを平均評価に混ぜない
+      WHERE dr.deleted_at IS NULL
       GROUP BY dr.dish_id
     ),
     -- ========== 指標結合（Stage2: Pre-Rank特徴） ==========
@@ -494,6 +525,8 @@ export class DishMediaRepository {
         LEFT JOIN dish_media_analysis_results dmar
           ON dmar.dish_media_id = dm.id
         WHERE d.restaurant_id = ${restaurantId}::uuid
+          -- #1513 論理削除済みの投稿は店舗詳細にも出さない
+          AND dm.deleted_at IS NULL
           -- #1511 退会したユーザーの投稿は店舗の投稿一覧にも出さない
           AND NOT EXISTS (
             SELECT 1 FROM users u
@@ -563,6 +596,8 @@ export class DishMediaRepository {
 
     let whereClause: Prisma.dish_reviewsWhereInput = {
       user_id: userId,
+      // #1513 論理削除済みは自分のプロフィールからも見えない
+      deleted_at: null,
       // #1511 退会したユーザーのレビューは一覧に出さない。
       // 「自分のレビュー」を引く経路だが、退会後は本人にも他人にも出さない
       ...NOT_AUTHORED_BY_DELETED_USER,
@@ -603,10 +638,10 @@ export class DishMediaRepository {
 
     const { reactionSet, reviewLikeCountMap } =
       await this.buildReactionAggregates(
-        // #1395 created_dish_media_id は nullable（そのレビューがメディアを
-        // 作っていない場合は NULL）。集計対象になるメディアが無いので落とす
+        // #1395 写真なしの「食べた」記録では created_dish_media_id が NULL になる。
+        // 落としておかないと集計キーが 'dish_media:null:save' になり、無意味な IN 句が増える
         reviewsToReturn
-          .map((review) => review.created_dish_media_id)
+          .map((review) => toNullableId(review.created_dish_media_id))
           .filter((id): id is string => id !== null),
         reviewsToReturn.map((review) => review.id),
         userId,
@@ -620,6 +655,8 @@ export class DishMediaRepository {
         this.reactionKey('dish_reviews', review.id, 'like'),
       ),
       likeCount: reviewLikeCountMap.get(review.id) ?? 0,
+      // #1513 このメソッドは「userId が書いたレビュー」だけを引くので常に true
+      isMine: review.user_id === userId,
     }));
 
     return { items, nextCursor };
@@ -774,9 +811,21 @@ export class DishMediaRepository {
       userId: string;
       reviewLimit?: number;
       preferredLanguageCodes?: readonly string[];
+      /**
+       * #1513 【設計】削除済み（`deleted_at IS NOT NULL`）の行も返すか。既定は false。
+       *
+       * 既定で弾くのは「消したはずの投稿がどこからも出てこない」を 1 箇所で保証するためで、
+       * これは変えない。true を渡してよいのは **墓標「削除されました」を出す画面だけ**
+       * （いいね一覧 / 保存一覧 / 通知 / レビューのサムネイル）。
+       * これらは行そのものを消すと «いいねしたはずなのに一覧に無い» «通知バッジと件数が合わない»
+       * になるため、行を残して中身だけ墓標へ差し替える。
+       *
+       * ⚠️ 検索結果・店舗フィード・投票候補へは渡さないこと（オーナー確定で «黙って除外» 側）。
+       */
+      includeDeleted?: boolean;
     },
   ): Promise<DishMediaEntryEntity[]> {
-    const { userId, reviewLimit = 6 } = option;
+    const { userId, reviewLimit = 6, includeDeleted = false } = option;
     if (dishMediaIds.length === 0) return [];
 
     const preferredLanguageCodes = normalizePreferredLanguageCodes(
@@ -784,19 +833,40 @@ export class DishMediaRepository {
     );
 
     const dishMedias = await this.prisma.prisma.dish_media.findMany({
+      // #1513 ここが「詳細のどの経路からも出さない」の要。検索・店舗フィード・?ids= は
+      // すべてこのメソッドを通るので、ここで弾けば一括で消える。
+      // 墓標を出す画面（いいね/保存/通知/レビューのサムネイル）だけが includeDeleted で
+      // この既定を外し、行を残したまま中身を墓標へ差し替える
       // #1511 退会したユーザーの投稿は id 指定で引かれても返さない。
       // ここは詳細・共有リンク・保存/いいね一覧まで含めた「ID から実体を作る」唯一の入口なので、
-      // ここを塞ぐと個別の呼び出し元へ同じフィルタを配って回らずに済む
-      where: { id: { in: dishMediaIds }, ...NOT_AUTHORED_BY_DELETED_USER },
+      // ここを塞ぐと個別の呼び出し元へ同じフィルタを配って回らずに済む。
+      // #1513 論理削除済みの投稿も同様（`includeDeleted` のときだけ含める）
+      where: {
+        id: { in: dishMediaIds },
+        ...(includeDeleted ? {} : { deleted_at: null }),
+        ...NOT_AUTHORED_BY_DELETED_USER,
+      },
       include: {
         dish_media_likes: { where: { user_id: userId } }, // User がいいねしているか
         dish_media_analysis_results: true, // #292 【設計】いいね数は like_total から取得（トゥルース源）
+        // #1399 render_type='external_embed' の行は自ストレージに実体が無く、
+        // canonical_url が無いと 1 件も描けない。**この経路（ids 指定）だけ** join する。
+        // 全読み取り経路へ広げないのは、大多数を占める stored の行では常に NULL になり、
+        // 検索・一覧のような件数の多い経路で無駄が積み上がるためである（#1395 の判断を踏襲）
+        dish_media_external_embeddings: true,
         dishes: {
           include: {
             restaurants: true,
+            // #1375（オーナー実機指摘「うどんで絞ったら udon が出る」）
+            // 表示名に使う dishes.name は «その店でのその料理の呼び名» で、SNS 取り込み由来だと
+            // ローマ字が入る。カテゴリの正式表記（言語コード → 表記）を一緒に返し、
+            // クライアントが «利用者の言語 → 英語 → 店での呼び名» の順で出せるようにする。
+            // labels 列だけを select するので、この join で読む量は最小に留まる。
+            dish_categories: { select: { labels: true } },
             dish_reviews: {
-              // #1511 同じ料理に付いた «他人の» レビューのうち、退会者のものを落とす
-              where: { ...NOT_AUTHORED_BY_DELETED_USER },
+              // #1513 削除済みレビューは本文欄に出さない
+              // #1511 同じ料理に付いた «他人の» レビューのうち、退会者のものも落とす
+              where: { deleted_at: null, ...NOT_AUTHORED_BY_DELETED_USER },
               orderBy: { created_at: 'asc' }, // #509 【設計】dish_reviews の並び順を古い→新しいに統一
               take: reviewLimit,
               include: { users: true },
@@ -822,9 +892,14 @@ export class DishMediaRepository {
     // Calculate review count and average rating per dish
     const avgByDish = await this.prisma.prisma.dish_reviews.groupBy({
       by: ['dish_id'],
+      // #1513 削除済みレビューは件数にも平均にも入れない
       // #1511 表示から外したレビューを件数・平均点に数えると、
       // 「レビュー 3 件」と書いてあるのに 2 件しか出ない、というズレになる
-      where: { dish_id: { in: dishIds }, ...NOT_AUTHORED_BY_DELETED_USER },
+      where: {
+        dish_id: { in: dishIds },
+        deleted_at: null,
+        ...NOT_AUTHORED_BY_DELETED_USER,
+      },
       _avg: { rating: true },
       _count: { dish_id: true },
     });
@@ -869,6 +944,22 @@ export class DishMediaRepository {
     const { reactionSet, reviewLikeCountMap } =
       await this.buildReactionAggregates(dishMediaIds, allReviewIds, userId);
 
+    // #1375（5 巡目）この dish を自分が «食べた» 記録があるか。
+    //
+    // 上で取っている `dishes.dish_reviews` は **全ユーザーぶんを reviewLimit 件で切っている**ので、
+    // 自分のレビューがその中に居るとは限らない（＝ あの配列から判定すると «記録していない» と
+    // 誤判定する）。索引 `idx_dish_reviews_user_dish (user_id, dish_id)` にそのまま乗る
+    // 専用の 1 本で引く。ゲスト（userId なし）では引かない
+    const eatenDishIds = new Set<string>();
+    if (userId && dishIds.length > 0) {
+      const myReviewedDishes = await this.prisma.prisma.dish_reviews.findMany({
+        where: { user_id: userId, dish_id: { in: dishIds } },
+        distinct: ['dish_id'],
+        select: { dish_id: true },
+      });
+      for (const row of myReviewedDishes) eatenDishIds.add(row.dish_id);
+    }
+
     return dishMediaIds
       .filter((dishMediaId) => {
         const dishMedia = dishMediaMap.get(dishMediaId);
@@ -891,6 +982,12 @@ export class DishMediaRepository {
             ...dishMedia.dishes,
             reviewCount: dishStats?.reviewCount ?? 0,
             averageRating: dishStats?.averageRating ?? 0,
+            // #1375 カテゴリの正式表記（ローマ字の dishes.name をユーザーに見せないため）
+            categoryLabels:
+              (dishMedia.dishes.dish_categories?.labels as Record<
+                string,
+                string
+              > | null) ?? null,
           },
           dish_media: {
             ...(dishMedia as PrismaDishMedia),
@@ -906,6 +1003,11 @@ export class DishMediaRepository {
             likeCount: Number(
               dishMedia.dish_media_analysis_results?.like_total ?? 0,
             ), // #292 【設計】likeCount は dish_media_analysis_results.like_total から取得（reactions は含めない）
+            // #1375（5 巡目）「食べたを記録」ボタンを記録済みの色にするための旗
+            isEaten: eatenDishIds.has(dishMedia.dish_id),
+            // #1399 external_embed の行だけがこれを持つ。stored の行では常に undefined
+            externalEmbed:
+              dishMedia.dish_media_external_embeddings ?? undefined,
           },
           dish_reviews: dishReviews.map((review) => ({
             ...review,
@@ -917,6 +1019,9 @@ export class DishMediaRepository {
               this.reactionKey('dish_reviews', review.id, 'like'),
             ),
             likeCount: reviewLikeCountMap.get(review.id) ?? 0,
+            // #1513 編集・削除の導線を出す判定。Google import 由来は user_id が
+            // null なので、この比較で常に false になる
+            isMine: review.user_id === userId,
           })),
         };
       });
@@ -947,6 +1052,8 @@ export class DishMediaRepository {
         id: true,
         dish_reviews: {
           where: {
+            // #1513 削除済みレビューは優先言語の補充対象にもしない
+            deleted_at: null,
             // #817 【設計】正規形(zh-hans)をそのまま DB 値へ突き合わせると、
             // 実際に保存されている zh-CN に一致しない。必ず候補集合で引くこと。
             // #1052 組み立ては language-where.ts の純粋関数へ寄せてテスト可能にした。
@@ -1031,6 +1138,127 @@ export class DishMediaRepository {
     return cnt > 0;
   }
 
+  /**
+   * #1395 dish ごとの「最新メディア」を引く。
+   *
+   * 写真なしの「食べた」記録（`created_dish_media_id` が NULL）を
+   * 代表メディアへ落とし込むために使う。選び方は my-dishes と揃える
+   * （`created_at DESC, id DESC` の先頭 1 件。ページを取り直しても変わらない）。
+   *
+   * @returns dish_id → dish_media.id の Map（メディアが 1 件も無い dish は含まれない）
+   */
+  async findLatestDishMediaIdsByDishIds(
+    dishIds: string[],
+  ): Promise<Map<string, string>> {
+    if (dishIds.length === 0) return new Map();
+
+    const rows = await this.prisma.prisma.$queryRaw<
+      { dish_id: string; id: string }[]
+    >`
+      SELECT DISTINCT ON (dm.dish_id) dm.dish_id, dm.id
+      FROM dish_media dm
+      -- #1513 これは「その dish の代表メディア」を選ぶ経路なので、
+      -- 削除済みを候補に残すと消したはずの写真が代表として出続ける
+      WHERE dm.dish_id = ANY(${dishIds}::uuid[])
+        AND dm.deleted_at IS NULL
+      ORDER BY dm.dish_id, dm.created_at DESC, dm.id DESC
+    `;
+
+    return new Map(rows.map((row) => [row.dish_id, row.id]));
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*        #1513 投稿の編集・削除で使う最小取得と論理削除               */
+  /* ------------------------------------------------------------------ */
+  /**
+   * 認可判定に必要な最小の情報を取得する。
+   *
+   * **論理削除済みでも返す**。ここで弾くと「そもそも無い(404)」と
+   * 「他人の投稿(403)」と「もう消えている」をサービス層が区別できなくなる。
+   */
+  async findDishMediaForMutation(dishMediaId: string) {
+    return this.prisma.prisma.dish_media.findUnique({
+      where: { id: dishMediaId },
+      select: {
+        id: true,
+        user_id: true,
+        deleted_at: true,
+      },
+    });
+  }
+
+  /**
+   * 投稿（dish_media）と、その投稿に紐づく **投稿者自身の最古のレビュー 1 件** を論理削除する。
+   *
+   * 【#1513 【設計】「投稿」の単位】
+   * オーナー確定仕様で「投稿」= dish_media 1 件 + そのメディアに紐づく自分の**最古**の
+   * dish_review 1 件である。よって消すレビューも 1 件だけで、
+   * 自分が同じメディアへ後から書いた 2 本目以降のレビューは
+   * **「別の投稿」として残す**（それらを消すと、消していない投稿が消える）。
+   * 最古の決め方は `created_at ASC, id ASC`（同時刻の tie-break。オーナー確認済み）。
+   *
+   * 【消す範囲を owner のレビューに限る理由】
+   * `created_dish_media_id` は「一緒に作られた」だけを意味しない。既存メディアへ
+   * レビューを足す経路（`review-from-media/[dishMediaId]`）でも同じメディア id が入るため、
+   * `created_dish_media_id = :id` だけで消すと **他人が書いたレビューまで巻き添えで消える**。
+   * 自分の投稿を消す操作で他人の文章を消してはいけないので、owner のものだけに絞る。
+   *
+   * 残った他人のレビューは失われない。レビューは *料理* 単位で読み出される
+   * （`getDishMediaEntriesByIds` の `dishes.dish_reviews`）ので、同じ料理の別の投稿から
+   * 引き続き読める。
+   *
+   * 逆にレビュー単体削除 (DELETE /v1/dish-reviews/:id) は dish_media を巻き込まない。
+   *
+   * 物理削除しないのは dish_media_likes(NoAction) / payouts / GCS 実体 /
+   * notifications.target_id が dish_media.id を指したまま残るため。
+   */
+  async softDeleteDishMediaWithReviews(
+    tx: Prisma.TransactionClient,
+    dishMediaId: string,
+    ownerUserId: string,
+    deletedAt: Date,
+  ): Promise<{ mediaDeleted: number; deletedDishReviewIds: string[] }> {
+    // 巻き添えにするレビューの id は、更新の前に確定させておく。
+    // updateMany は更新した行を返さないため、後から引くと「今回消したもの」と
+    // 「元から消えていたもの」を区別できない
+    const oldest = await tx.dish_reviews.findFirst({
+      where: {
+        created_dish_media_id: dishMediaId,
+        user_id: ownerUserId,
+        deleted_at: null,
+      },
+      // #1513 「最古」= created_at 昇順。同時刻は id で決める（DB 側の物理順に依存しない）
+      orderBy: [{ created_at: 'asc' }, { id: 'asc' }],
+      select: { id: true },
+    });
+    const targets = oldest ? [oldest] : [];
+
+    const media = await tx.dish_media.updateMany({
+      where: { id: dishMediaId, deleted_at: null },
+      data: {
+        deleted_at: deletedAt,
+        updated_at: deletedAt,
+        lock_no: { increment: 1 },
+      },
+    });
+
+    if (targets.length > 0) {
+      await tx.dish_reviews.updateMany({
+        where: { id: { in: targets.map((t) => t.id) } },
+        data: {
+          deleted_at: deletedAt,
+          updated_at: deletedAt,
+          lock_no: { increment: 1 },
+        },
+      });
+    }
+
+    return {
+      mediaDeleted: media.count,
+      deletedDishReviewIds: targets.map((t) => t.id),
+    };
+  }
+
   /* ------------------------------------------------------------------ */
   /*        dish_media 投稿 (トランザクション内で呼び出し)           */
   /* ------------------------------------------------------------------ */
@@ -1065,6 +1293,37 @@ export class DishMediaRepository {
     });
 
     return newMedia;
+  }
+
+  /**
+   * #1560 投稿と同時に作るレビュー。
+   *
+   * `createDishMedia` と **同じ `tx` で呼ぶこと**。別トランザクションにすると
+   * «写真だけ残ってレビューが無い» 孤児（#1560）がそのまま復活する。
+   *
+   * `dish_id` と `created_dish_media_id` は引数の `dish_media` から取る。
+   * クライアントに決めさせないのは、取り違えたときに «別の料理へレビューが付く» を
+   * サーバー側で検出できなくなるため（DTO 側の JSDoc も参照）。
+   */
+  async createDishReviewForMedia(
+    tx: Prisma.TransactionClient,
+    review: CreateDishMediaReviewDto,
+    dishMedia: { id: string; dish_id: string },
+    userId: string,
+  ) {
+    return tx.dish_reviews.create({
+      data: {
+        dish_id: dishMedia.dish_id,
+        user_id: userId,
+        // 【設計】comment は翻訳せず入力のまま保存する（dish-reviews.repository と同じ）
+        comment: review.comment,
+        original_language_code: review.languageCode,
+        rating: review.rating,
+        price_cents: review.priceCents,
+        currency_code: review.currencyCode,
+        created_dish_media_id: dishMedia.id,
+      },
+    });
   }
 
   /* ------------------------------------------------------------------ */

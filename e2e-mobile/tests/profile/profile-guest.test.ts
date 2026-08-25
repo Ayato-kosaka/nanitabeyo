@@ -1,6 +1,6 @@
 import { strict as assert } from "node:assert";
 
-import { launchAppWithSession } from "../../fixtures/e2e";
+import { launchAppWithSession, waitUntilExists } from "../../fixtures/e2e";
 import { TabBar } from "../../screens/TabBar";
 import { ProfileScreen } from "../../screens/ProfileScreen";
 
@@ -33,21 +33,23 @@ describe("マイページ（匿名ユーザー）", () => {
 		await profileScreen.expectGuestViewLoaded();
 	});
 
-	// ─ テストケース: タブが保存系のみで構成される ─
+	// ─ テストケース: 縦リストが並び、廃止した 4 グリッドタブが残っていない ─
+	// #1402 でマイページは「いいね/保存の入口 + 旧設定画面の項目」の縦リストになった。
 	// 手順:
-	//   1. マイページを表示する（デフォルトタブ = 保存した投稿）
-	//   2. 保存した投稿タブ（save-post-tab-grid）が表示されることを検証
-	//   3. レビュー投稿タブ（review-tab-grid）が存在しないことを検証
-	//      （features/profile/containers/ProfileTabsLayout.tsx で isGuest 時は
-	//      Tabs.Tab 自体がレンダリングされない仕様。Web 版の toHaveCount(0) に相当）
-	it("タブが保存系のみで構成される", async () => {
+	//   1. マイページを表示する
+	//   2. 「いいねした投稿」「保存した料理カテゴリ」の行が存在することを検証
+	//   3. 旧グリッドタブ（review-tab-grid / save-post-tab-grid）が存在しないことを検証
+	//      （残っていると横スワイプやディープリンクで到達できてしまう。Web 版の toHaveCount(0) に相当）
+	it("縦リストが並び、廃止した 4 グリッドタブが残っていない", async () => {
 		const tabBar = new TabBar();
 		const profileScreen = new ProfileScreen();
 
 		await tabBar.gotoProfile();
-		await profileScreen.expectSavedPostsGridVisible();
+		// #1027 と同じ理由で存在（toExist）で見る。iOS の可視判定は面積の 75% を要求する
+		await profileScreen.expectLoaded();
+		await waitUntilExists(profileScreen.savedDishCategoriesItem);
 
-		const hasReviewsGrid = await profileScreen.hasReviewsGrid();
-		assert.equal(hasReviewsGrid, false, "ゲスト時は review-tab-grid が存在しないはず");
+		const hasLegacyGridTabs = await profileScreen.hasLegacyGridTabs();
+		assert.equal(hasLegacyGridTabs, false, "#1402 で廃止した 4 グリッドタブが残っている");
 	});
 });

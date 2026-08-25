@@ -28,7 +28,7 @@ test.describe("検索フォーム", () => {
 		await searchPage.submitButton.click();
 		await expect(searchPage.snackbar).toBeVisible();
 		await expect(searchPage.snackbar).toContainText("検索場所を選択してください");
-		await expect(appPage).not.toHaveURL(/\/search\/topics/);
+		await expect(appPage).not.toHaveURL(/\/search\/dishCategories/);
 		await searchPage.expectLoaded();
 	});
 

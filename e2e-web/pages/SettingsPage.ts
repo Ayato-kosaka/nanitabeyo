@@ -1,9 +1,14 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 
 /**
- * ⚙️ 設定画面の Page Object
+ * ⚙️ 設定項目の Page Object
  *
- * 対応画面: app-expo/app/[locale]/(tabs)/profile/settings.tsx
+ * 対応画面: app-expo/app/[locale]/(tabs)/profile/index.tsx（マイページ本体）
+ *
+ * #1402 で **独立した設定画面（profile/settings.tsx）は無くなり**、その項目は
+ * マイページの縦リストへ統合された。«設定という画面» は消えたが «設定という項目群» は
+ * そのまま残っているので、この Page Object と `settings-*` の testID は据え置いてある。
+ * マイページ側の要素（ログイン/編集ボタン・いいね/保存の行）は `pages/ProfilePage.ts` が持つ。
  *
  * - 「レビューを書く」（ストア誘導）は Web では非表示（Platform.OS !== "web" 条件）
  * - 「ログアウト」はログイン済み（非匿名）ユーザーのみ表示
@@ -12,8 +17,6 @@ import { expect, type Locator, type Page } from "@playwright/test";
  */
 export class SettingsPage {
 	readonly page: Page;
-	/** 画面タイトル（ja-JP: Settings.title） */
-	readonly title: Locator;
 	/** ご意見・不具合（フィードバック）行 */
 	readonly feedbackItem: Locator;
 	/** コミュニティガイドライン行 */
@@ -25,7 +28,19 @@ export class SettingsPage {
 	/** 著作権行 */
 	readonly copyrightItem: Locator;
 	/** ブロック済みの料理トピック行 */
-	readonly blockedTopicsItem: Locator;
+	readonly blockedDishCategoriesItem: Locator;
+	/** 表示言語行（#1508。Card 2 の最終行） */
+	readonly languageItem: Locator;
+	/**
+	 * #1504 端末設定行（規約カードの直上）。
+	 * トグル本体はこの行から push される端末設定画面にあり、`pages/DeviceSettingsPage.ts` が持つ。
+	 */
+	readonly deviceSettingsItem: Locator;
+	/**
+	 * バージョン表示（#1495 SUP-03）。"{version}({短縮コミットID})" の 1 行、例: "1.14.0(abc1234)"。
+	 * 対応コンポーネント: app-expo/components/VersionInfo.tsx
+	 */
+	readonly versionText: Locator;
 	/** ログアウト行（ログイン済みユーザーのみ表示） */
 	readonly logoutItem: Locator;
 	/**
@@ -85,13 +100,15 @@ export class SettingsPage {
 
 	constructor(page: Page) {
 		this.page = page;
-		this.title = page.getByText("設定", { exact: true });
 		this.feedbackItem = page.getByTestId("settings-feedback");
 		this.guidelinesItem = page.getByTestId("settings-guidelines");
 		this.termsItem = page.getByTestId("settings-terms");
 		this.privacyItem = page.getByTestId("settings-privacy");
 		this.copyrightItem = page.getByTestId("settings-copyright");
-		this.blockedTopicsItem = page.getByTestId("settings-blocked-topics");
+		this.blockedDishCategoriesItem = page.getByTestId("settings-blocked-dish-categories");
+		this.languageItem = page.getByTestId("settings-language");
+		this.deviceSettingsItem = page.getByTestId("settings-device-settings");
+		this.versionText = page.getByTestId("settings-version-section");
 		this.logoutItem = page.getByTestId("settings-logout");
 		this.notificationsCard = page.getByTestId("settings-notifications-card");
 		this.notificationsErrorRow = page.getByTestId("settings-notifications-error");
@@ -169,12 +186,22 @@ export class SettingsPage {
 
 	/** 指定 URL へ直接遷移する（locale プレフィックス必須） */
 	async goto(locale = "ja-JP"): Promise<void> {
-		await this.page.goto(`/${locale}/profile/settings`);
+		await this.page.goto(`/${locale}/profile`);
 	}
 
-	/** 設定画面が表示されていることを検証する */
+	/**
+	 * 設定項目が表示されていることを検証する。
+	 *
+	 * #1402 以前は ScreenHeader のタイトル「設定」を見ていたが、その画面ごと無くなった。
+	 * 代わりに «必ず出る行» の testID を見る（ロケール依存が 1 つ減るという副次的な利点もある）。
+	 */
 	async expectLoaded(): Promise<void> {
-		await expect(this.title).toBeVisible();
+		await expect(this.feedbackItem).toBeVisible();
+	}
+
+	/** #1504 端末設定行をタップして端末設定画面（`/[locale]/profile/device-settings`）へ遷移する */
+	async openDeviceSettings(): Promise<void> {
+		await this.deviceSettingsItem.click();
 	}
 
 	/**

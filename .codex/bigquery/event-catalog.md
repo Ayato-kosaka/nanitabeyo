@@ -260,6 +260,10 @@ rg -o 'event_name:\s*"[^"]+"' app-expo --glob '!**/node_modules/**'
 - `profile_update_failed`
 - `profile_avatar_upload_failed`
 - `profile_tab_changed`
+- `profile_liked_pressed`
+- `profile_saved_topics_pressed`
+- `profile_liked_screen_back_pressed`
+- `profile_saved_topics_screen_back_pressed`
 - `user_profile_created`
 - `user_profile_creation_error`
 - `load_own_profile_error`

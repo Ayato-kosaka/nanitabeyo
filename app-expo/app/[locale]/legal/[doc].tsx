@@ -17,11 +17,12 @@ Android の戻る・ブラウザバック・URL 共有をすべて Navigator の
 `Portal.Host` は `<Stack>` を包んでいる（app/[locale]/_layout.tsx）ので、BlurModal を
 開いたままここへ push すると、この画面は portal の下に潜って見えず触れない（#1364 で実測）。
 移行済みの 2 箇所（`features/auth/components/LoginForm.tsx` = /auth/login ルートの中身、
-`app/[locale]/(tabs)/profile/settings.tsx` = ルートそのもの）は、押した時点で開いている
-BlurModal を持たないため «閉じてから push» は不要である。
+`app/[locale]/(tabs)/profile/index.tsx` = ルートそのもの。#1402 で独立した設定画面が
+マイページ本体へ統合された）は、押した時点で開いている BlurModal を持たないため
+«閉じてから push» は不要である。
 #1386 で引き渡し先（地図・投稿群）も完了し、**呼び出し元は 3 箇所とも portal を持たない**。
 `features/map/components/ReviewForm.tsx` は `ReviewBlurModal` / `ReviewFormModal` の中身ではなく
-`/review/restaurant/[restaurantId]/review`（と `review-from-media`）ルートの中身になったので、
+`/restaurant/[restaurantId]/review`（と `review-from-media`）ルートの中身になったので、
 «閉じてから push» も要らず、法務文書を読んで戻っても入力中のレビューと mediaState が残る。
 
 ⚠️ E2E の注意: `ScreenHeader` は `legal-screen` コンテナの **外側**にある。
@@ -35,6 +36,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 
 import { ScreenHeader } from "@/components/ScreenHeader";
+import { type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 import { getLegalDocumentTitle, LegalDocument } from "@/features/settings/components/LegalDocument";
 import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
@@ -43,6 +46,8 @@ import i18n from "@/lib/i18n";
 import { LEGAL_DOCUMENT_TYPES, resolveLegalDocument } from "@/lib/legalRoute";
 
 export default function LegalDocumentScreen() {
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const { locale } = useLocale();
@@ -63,16 +68,17 @@ export default function LegalDocumentScreen() {
 		// #1368 【設計】履歴があれば back。法務ページは «読みに来て戻る» だけの画面で、
 		// ログイン（#1359）のように「行き先」を持たないため `?next=` 相当の仕組みは要らない。
 		// 履歴が無い着地（検索結果 / 共有リンク / ディープリンクからのコールドロード）だけが
-		// 例外で、そこは戻る先が存在しないので設定画面へ倒す（この画面への主な導線）。
+		// 例外で、そこは戻る先が存在しないのでマイページへ倒す（この画面への主な導線）。
+		// #1402 独立した設定画面は無くなり、リーガル 4 行はマイページ本体の縦リストにある。
 		if (router.canGoBack()) {
 			router.back();
 			return;
 		}
-		router.replace({ pathname: "/[locale]/(tabs)/profile/settings", params: { locale } });
+		router.replace({ pathname: "/[locale]/(tabs)/profile", params: { locale } });
 	}, [lightImpact, logFrontendEvent, documentType, locale]);
 
 	return (
-		<LinearGradient colors={["#FFFFFF", "#F8F9FA"]} style={styles.container}>
+		<LinearGradient colors={colors.backgroundGradient} style={styles.container}>
 			<SafeAreaView style={styles.safeArea} edges={[]}>
 				{/* #1368 / #1386 タイトルはこのヘッダーだけが持つ（LegalDocument 側は見出しを描かない）。
 				    ⚠️ LegalDocument に高さを持たせないこと。ここがヘッダーを敷くので、本文が画面高を
@@ -119,25 +125,27 @@ export function generateStaticParams(): { doc: string }[] {
 	return LEGAL_DOCUMENT_TYPES.map((doc) => ({ doc }));
 }
 
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-	},
-	safeArea: {
-		flex: 1,
-	},
-	body: {
-		flex: 1,
-	},
-	notFound: {
-		flex: 1,
-		alignItems: "center",
-		justifyContent: "center",
-		padding: 20,
-	},
-	notFoundText: {
-		fontSize: 16,
-		color: "#6B7280",
-		textAlign: "center",
-	},
-});
+// #1509 【設計】テーマ依存のスタイルはファクトリで組む（contexts/ThemeProvider.tsx の useThemedStyles）
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		container: {
+			flex: 1,
+		},
+		safeArea: {
+			flex: 1,
+		},
+		body: {
+			flex: 1,
+		},
+		notFound: {
+			flex: 1,
+			alignItems: "center",
+			justifyContent: "center",
+			padding: 20,
+		},
+		notFoundText: {
+			fontSize: 16,
+			color: c.textSecondary,
+			textAlign: "center",
+		},
+	});
