@@ -159,6 +159,9 @@
 		},
 		"loading": "Buscando...",
 		"noLocationsFound": "No se encontraron ubicaciones",
+		"locationConfirmation": {
+			"error": "No se pudo confirmar la ubicación"
+		},
 		"advancedToggle": {
 			"open": "Más opciones",
 			"close": "Cerrar búsqueda avanzada"
@@ -374,6 +377,9 @@
 			},
 			"dish_reviews": {
 				"like": "le gustó tu reseña"
+			},
+			"dish_category_group_vote_sessions": {
+				"vote": "votó en tu grupo"
 			}
 		}
 	},
@@ -406,7 +412,9 @@
 		"processing": "Procesando el contenido...",
 		"errors": {
 			"mapOpenFailed": "No se pudo abrir la aplicación de mapas",
-			"mediaUnavailable": "Este contenido no está disponible actualmente."
+			"mediaUnavailable": "Este contenido no está disponible actualmente.",
+			"likeReactionFailed": "No se pudo actualizar el me gusta. Inténtalo de nuevo.",
+			"saveReactionFailed": "No se pudo actualizar el guardado. Inténtalo de nuevo."
 		},
 		"info": {
 			"walkFromShibuya": "A 13 min a pie de la estación de Shibuya"
@@ -711,6 +719,14 @@
 	},
 	"Settings": {
 		"title": "Configuración",
+		"theme": {
+			"sectionTitle": "Apariencia",
+			"options": {
+				"system": "Seguir la configuración del sistema",
+				"light": "Claro",
+				"dark": "Oscuro"
+			}
+		},
 		"sendFeedback": "Enviar comentarios",
 		"leaveReview": "Dejar reseña",
 		"rateDialogTitle": "¿Te gusta la aplicación?",

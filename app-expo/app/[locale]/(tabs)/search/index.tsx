@@ -57,6 +57,8 @@ import { useE2EPreloadProbe } from "@/lib/e2e/preloadProbe";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { useIsFocused } from "@react-navigation/native";
 import { useContentWidth } from "@/hooks/useContentWidth";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 
 // #667 【設計】画面幅ベースでアイテムサイズを計算（4列グリッド）
 // #958 【修正】Dimensions.get("window") はモジュール評価時に1回だけ計算されリサイズに
@@ -85,6 +87,7 @@ const SUPPORTED_COUNTRY_CODE = "JP";
 // 別要素として視覚表示しつつスクリーンリーダー向けには見出しの accessibilityLabel に合成する
 // (別々に読み上げられるより「(必須)」まで一続きで聞こえた方が分かりやすいため)
 function SectionHeader({ icon, title, required }: { icon: React.ReactNode; title: string; required?: boolean }) {
+	const styles = useThemedStyles(createStyles);
 	const label = required ? `${title} (${i18n.t("Search.required")})` : title;
 	return (
 		<View style={styles.sectionHeader}>
@@ -104,11 +107,27 @@ function SectionHeader({ icon, title, required }: { icon: React.ReactNode; title
 export default function SearchScreen() {
 	// #1016 【設計】主要画面(検索タブ)にFirebase Performance Monitoringの画面トレースを計装する。
 	useScreenTrace("Search");
+	// #1509 検索フォームは起動直後に必ず通る画面なので、基盤と同じ PR でテーマ対応する
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 	const { locale, isJapanese } = useLocale();
 	const { lightImpact, mediumImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const [location, setLocation] = useState<Omit<LocationDetailsResponse, "viewport"> | null>(null);
 	const [locationQuery, setLocationQuery] = useState("");
+	// #1502 【設計】候補選択→details取得(緯度経度の確定)は非同期なので、入力欄に文字が
+	// 入っただけで検索ボタンが押せない理由が分からない、という詰みが実査で見つかった
+	// (渋谷駅/2026-07-28)。「確認中」「確定」「失敗」を明示するための状態。
+	const [locationConfirmationStatus, setLocationConfirmationStatus] = useState<"confirming" | "confirmed" | "error" | null>(
+		null,
+	);
+	// #1502 【設計】details取得の完了は非同期なので、後発の選択・クリア・現在地取得が先発の
+	// 結果を上書きしてしまうレースがありうる(候補A選択→確認中→候補Bへ選び直す、等)。
+	// 単調増加IDを「発行した要求」と突き合わせ、自分が最新でなければ結果を捨てる
+	// (`hooks/useLocationSearch.ts` の `latestRequestIdRef` と同じパターン)。
+	const locationConfirmationRequestIdRef = useRef(0);
+	// #1502 【設計】確認失敗時の再試行のため、直前に選択した候補を保持する
+	const lastLocationPredictionRef = useRef<AutocompleteLocation | null>(null);
 	const [timeSlot, setTimeSlot] = useState<SearchParams["timeSlot"]>("lunch");
 	const [scene, setScene] = useState<SearchParams["scene"]>("solo"); // #533 【仕様】scene 初期値を solo に変更（レコメンドAPI必須化対応）
 	const [taste, setTaste] = useState<SearchParams["taste"] | undefined>(undefined);
@@ -184,11 +203,25 @@ export default function SearchScreen() {
 		lightImpact();
 		setLocation(null);
 		setLocationQuery("");
+		// #1502 進行中の確認結果が後から届いても無視させる
+		locationConfirmationRequestIdRef.current += 1;
+		setLocationConfirmationStatus(null);
+		lastLocationPredictionRef.current = null;
 		logFrontendEvent({
 			event_name: "location_cleared",
 			error_level: "log",
 			payload: {},
 		});
+	};
+
+	// #1502 【設計】手入力での書き換えは「未確定」であることが自明なので、直前の確認状態
+	// (確認中/確定/失敗)は今のテキストに対応しなくなる。進行中の確認があれば無効化して idle へ戻す
+	const handleLocationQueryChange = (text: string) => {
+		setLocationQuery(text);
+		if (locationConfirmationStatus !== null) {
+			locationConfirmationRequestIdRef.current += 1;
+			setLocationConfirmationStatus(null);
+		}
 	};
 
 	const handleLocationSelect = async (prediction: AutocompleteLocation) => {
@@ -198,21 +231,44 @@ export default function SearchScreen() {
 			payload: { placeId: prediction.place_id, mainText: prediction.mainText },
 		});
 		setLocationQuery(prediction.mainText);
+		lastLocationPredictionRef.current = prediction;
+		// #1502 このリクエストの identity を確保。完了時に最新でなければ結果を捨てる
+		// (取得中に別の候補を選び直した場合に、先行する取得の結果が後から上書きしないようにする)
+		const requestId = ++locationConfirmationRequestIdRef.current;
+		setLocationConfirmationStatus("confirming");
 		try {
 			const locationDetails = await getLocationDetails(prediction);
+			if (locationConfirmationRequestIdRef.current !== requestId) return;
 			setLocation(locationDetails);
+			// #1502 【案A】成功は文章で語らず、入力欄の値を「解決済みの正式な地名」へ置き換える
+			// こと自体で「掴んだ場所はここ」を伝える(例:「渋谷」→「渋谷区, 東京都」)。
+			// details API のレスポンスに人間可読の地名は無い(address は "country:JP, locality:…"
+			// の機械形式)ため、autocomplete が返す候補の完全表記(text = mainText + secondaryText)を
+			// 正式地名として使う。ユーザーがタップした候補そのものの表記なので齟齬は生まれない。
+			setLocationQuery(prediction.text);
+			setLocationConfirmationStatus("confirmed");
 			// #953 【仕様】details 取得に成功した地点だけを「最近使った場所」に保存する。
 			// viewport はスプレッドすると型上は Omit していても実行時には残ってしまうため、明示的に除く。
+			// #1502 保存する表示名も確定後の入力欄と同じ正式地名(text)に揃える
 			const { viewport: _viewport, ...locationWithoutViewport } = locationDetails;
-			addRecentLocation({ ...locationWithoutViewport, locationQuery: prediction.mainText });
+			addRecentLocation({ ...locationWithoutViewport, locationQuery: prediction.text });
 		} catch (error) {
+			if (locationConfirmationRequestIdRef.current !== requestId) return;
 			logFrontendEvent({
 				event_name: "location_selection_failed",
 				error_level: "error",
 				payload: { placeId: prediction.place_id, error: toErrorLogString(error) },
 			});
+			setLocationConfirmationStatus("error");
 			showSnackbar(i18n.t("Search.errors.fetchLocation"));
 		}
+	};
+
+	// #1502 地点確認の失敗時の再試行。直前に選択した候補で details 取得をやり直す
+	const handleRetryLocationConfirmation = () => {
+		const prediction = lastLocationPredictionRef.current;
+		if (!prediction) return;
+		void handleLocationSelect(prediction);
 	};
 
 	// #932 【設計】失敗理由(kind)ごとに文言を出し分ける。denied/unsupported は再試行しても
@@ -239,8 +295,13 @@ export default function SearchScreen() {
 				error_level: "log",
 				payload: { locationQuery: recent.locationQuery },
 			});
+			// #1502 進行中の候補確認(details取得)があれば無効化し、最近使った場所は
+			// details を待たず即座に「確定」として表示する
+			locationConfirmationRequestIdRef.current += 1;
+			lastLocationPredictionRef.current = null;
 			setLocation(recent);
 			setLocationQuery(recent.locationQuery);
+			setLocationConfirmationStatus("confirmed");
 			// #1129 【仕様】再選択した地点を MRU(Most Recently Used)順で先頭へ引き上げる。
 			// addRecentLocation は同一地点を除去してから先頭へ積むため、件数は増えない。
 			// 保存タイミングはオートコンプリート選択時(handleLocationSelect)と揃えて「選択した瞬間」とする。
@@ -256,10 +317,14 @@ export default function SearchScreen() {
 			error_level: "log",
 			payload: {},
 		});
+		// #1502 進行中の候補確認(details取得)があれば無効化する
+		locationConfirmationRequestIdRef.current += 1;
+		lastLocationPredictionRef.current = null;
 		try {
 			const currentLocation = await getCurrentLocation();
 			setLocation(currentLocation);
 			setLocationQuery(i18n.t("Search.currentLocation"));
+			setLocationConfirmationStatus("confirmed");
 			logFrontendEvent({
 				event_name: "current_location_success",
 				error_level: "log",
@@ -464,8 +529,12 @@ export default function SearchScreen() {
 	const { requestAutoCurrentLocation } = useAutoCurrentLocation({
 		getCurrentLocation,
 		onResolved: useCallback((currentLocation: Omit<LocationDetailsResponse, "viewport">) => {
+			// #1502 進行中の候補確認(details取得)があれば無効化する
+			locationConfirmationRequestIdRef.current += 1;
+			lastLocationPredictionRef.current = null;
 			setLocation(currentLocation);
 			setLocationQuery(i18n.t("Search.currentLocation"));
+			setLocationConfirmationStatus("confirmed");
 		}, []),
 	});
 
@@ -560,7 +629,7 @@ export default function SearchScreen() {
 						accessibilityRole="button"
 						accessibilityLabel={i18n.t("Search.accessibility.showTutorial")}
 						testID="search-help-button">
-						<HelpCircle size={24} color="#6B7280" />
+						<HelpCircle size={24} color={colors.textSecondary} />
 					</TouchableOpacity>
 				)}
 			</View>
@@ -600,7 +669,7 @@ export default function SearchScreen() {
 				{/* Location Input */}
 				<View style={styles.section}>
 					<SectionHeader
-						icon={<MapPin size={20} color="#F05537" />}
+						icon={<MapPin size={20} color={colors.brand} />}
 						title={i18n.t("Search.sections.location")}
 						required
 					/>
@@ -608,7 +677,7 @@ export default function SearchScreen() {
 						<LocationAutocomplete
 							ref={locationInputRef}
 							value={locationQuery}
-							onChangeText={setLocationQuery}
+							onChangeText={handleLocationQueryChange}
 							onSelectSuggestion={handleLocationSelect}
 							onClear={handleLocationClear}
 							placeholder={i18n.t("Search.placeholders.enterLocation")}
@@ -616,6 +685,8 @@ export default function SearchScreen() {
 							recentLocations={recentLocations}
 							onSelectRecentLocation={handleSelectRecentLocation}
 							onClearRecentLocations={recentLocations.length > 0 ? clearRecentLocations : undefined}
+							confirmationStatus={locationConfirmationStatus}
+							onRetryConfirmation={handleRetryLocationConfirmation}
 							renderInputRight={
 								<TouchableOpacity
 									style={styles.currentLocationButton}
@@ -624,7 +695,7 @@ export default function SearchScreen() {
 									accessibilityRole="button"
 									accessibilityLabel={i18n.t("Search.accessibility.useCurrentLocation")}
 									testID="search-current-location-button">
-									<Navigation size={20} color="#000000" />
+									<Navigation size={20} color={colors.textStrong} />
 								</TouchableOpacity>
 							}
 							testID="search-location-autocomplete"
@@ -634,7 +705,11 @@ export default function SearchScreen() {
 
 				{/* #667 【設計】Time of Day - カード無し、画像グリッド表示（4列1行） */}
 				<View style={styles.section}>
-					<SectionHeader icon={<SunMoon size={20} color="#F05537" />} title={i18n.t("Search.sections.time")} required />
+					<SectionHeader
+						icon={<SunMoon size={20} color={colors.brand} />}
+						title={i18n.t("Search.sections.time")}
+						required
+					/>
 					<View
 						style={styles.gridContainer}
 						accessibilityRole="radiogroup"
@@ -655,7 +730,11 @@ export default function SearchScreen() {
 
 				{/* #667 【設計】Scene - カード無し、画像グリッド表示（4列2行） */}
 				<View style={styles.section}>
-					<SectionHeader icon={<Users size={20} color="#F05537" />} title={i18n.t("Search.sections.scene")} required />
+					<SectionHeader
+						icon={<Users size={20} color={colors.brand} />}
+						title={i18n.t("Search.sections.scene")}
+						required
+					/>
 					<View
 						style={styles.gridContainer}
 						accessibilityRole="radiogroup"
@@ -676,7 +755,10 @@ export default function SearchScreen() {
 
 				{/* Price Levels */}
 				<View style={styles.section}>
-					<SectionHeader icon={<DollarSign size={20} color="#F05537" />} title={i18n.t("Search.sections.budget")} />
+					<SectionHeader
+						icon={<DollarSign size={20} color={colors.brand} />}
+						title={i18n.t("Search.sections.budget")}
+					/>
 					<View style={styles.sliderSection}>
 						<PriceLevelsMultiSelect
 							selectedPriceLevels={priceLevels}
@@ -689,7 +771,7 @@ export default function SearchScreen() {
 
 				{/* Dining Pace */}
 				<View style={styles.section}>
-					<SectionHeader icon={<Timer size={20} color="#F05537" />} title={i18n.t("Search.sections.diningPace")} />
+					<SectionHeader icon={<Timer size={20} color={colors.brand} />} title={i18n.t("Search.sections.diningPace")} />
 					<View
 						style={styles.chipGrid}
 						accessibilityRole="radiogroup"
@@ -714,7 +796,11 @@ export default function SearchScreen() {
 						testID="search-advanced-toggle"
 						style={styles.advancedToggle}
 						onPress={handleAdvancedToggle}>
-						{showAdvancedFilters ? <ChevronUp size={20} color="#F05537" /> : <Plus size={20} color="#F05537" />}
+						{showAdvancedFilters ? (
+							<ChevronUp size={20} color={colors.brand} />
+						) : (
+							<Plus size={20} color={colors.brand} />
+						)}
 						<Text style={styles.advancedToggleText}>
 							{showAdvancedFilters ? i18n.t("Search.advancedToggle.close") : i18n.t("Search.advancedToggle.open")}
 						</Text>
@@ -726,7 +812,10 @@ export default function SearchScreen() {
 					<>
 						{/* Distance */}
 						<View style={styles.section}>
-							<SectionHeader icon={<Ruler size={20} color="#F05537" />} title={i18n.t("Search.sections.distance")} />
+							<SectionHeader
+								icon={<Ruler size={20} color={colors.brand} />}
+								title={i18n.t("Search.sections.distance")}
+							/>
 							<View style={styles.sliderSection}>
 								{/* #987 【設計】距離値・おすすめ移動時間・詳細開閉を一つのコンパクトな操作領域に集約 */}
 								<DistanceSlider distance={distance} setDistance={setDistance} />
@@ -735,7 +824,10 @@ export default function SearchScreen() {
 
 						{/* Food Style */}
 						<View style={styles.section}>
-							<SectionHeader icon={<ChefHat size={20} color="#F05537" />} title={i18n.t("Search.sections.foodStyle")} />
+							<SectionHeader
+								icon={<ChefHat size={20} color={colors.brand} />}
+								title={i18n.t("Search.sections.foodStyle")}
+							/>
 							<View
 								style={styles.chipGrid}
 								accessibilityRole="radiogroup"
@@ -802,10 +894,14 @@ export default function SearchScreen() {
 					testID="search-submit-button"
 					label={i18n.t("Search.searchButton")}
 					onPress={handleSearch}
-					colors={isSearchReady ? ["#000000", "#000000"] : ["#999999", "#999999"]}
-					labelStyle={{ color: isSearchReady ? "#FFFFFF" : "#FFFFFF" }}
-					shadowColor="rgba(0, 0, 0, 0.45)"
-					icon={<Search size={20} color={isSearchReady ? "#FFFFFF" : "#FFFFFF"} />}
+					colors={
+						isSearchReady
+							? [colors.ctaBackground, colors.ctaBackground]
+							: [colors.ctaBackgroundDisabled, colors.ctaBackgroundDisabled]
+					}
+					labelStyle={{ color: isSearchReady ? colors.ctaLabel : colors.ctaLabelDisabled }}
+					shadowColor={FixedColors.ctaShadow}
+					icon={<Search size={20} color={isSearchReady ? colors.ctaLabel : colors.ctaLabelDisabled} />}
 					style={styles.searchFab}
 				/>
 			</View>
@@ -844,210 +940,214 @@ export default function SearchScreen() {
 	);
 }
 
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		backgroundColor: "#F8F9FA",
-	},
-	scrollView: {
-		flex: 1,
-	},
-	scrollContent: {
-		paddingBottom: 100, // moved here so it affects ScrollView content
-		gap: 12,
-	},
-	header: {
-		paddingHorizontal: 24,
-		paddingTop: 20,
-		paddingBottom: 20,
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-	},
-	helpButton: {
-		paddingHorizontal: 8,
-		// #1272 タイトルが伸びても «絶対に» 縮まない。ヘッダーは space-between なので、
-		// これが無いと限られた幅の奪い合いでボタン側が潰されうる
-		flexShrink: 0,
-		// #1486 アイコン(24) + 左右の padding(8+8) 分の幅を «先に» 確保する。
-		// 幅を内容任せにすると、レイアウトの確定順によってはタイトルが先に場所を取り切る
-		width: 40,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	headerTitle: {
-		fontSize: 20,
-		fontWeight: "700",
-		color: "#1A1A1A",
-		letterSpacing: -0.5,
-		// ⚠️ **`flex: 1` を外さないこと。** 無いと Text が自然幅を取り、日本語の長いタイトル
-		// （"どんな料理を探しましょう？🍽"）が **ヘルプボタンを画面外へ押し出す**。
-		// 320dp 幅の Android エミュレータで実測: タイトルが 2 行に折り返し、
-		// 「?」ボタンが右端で見切れて押せない状態になっていた（run 31698138582 の
-		// 失敗時スクリーンショットで確認。Detox が 75% 可視を満たせず落ちたのは正しい検出だった）。
-		// 小さめの実機（幅の狭い端末 / 大きい文字サイズ設定）でも同じ詰みが起きる
-		flex: 1,
-		// #1486 【バグ】`flex: 1` **だけでは足りない**（実機の iPhone で `？` が右へはみ出す報告）。
-		//
-		// `flex: 1` は `flexBasis: 0` を含むので «配分» は正しく行われるが、Yoga は
-		// 折り返し可能な Text を「与えられた幅で測って、収まらなければ実測幅を返す」形で測る。
-		// 日本語のタイトルは空白が無く、端末の文字サイズ設定（Dynamic Type）を上げると
-		// 1 行が配分された幅を超え、**測定値がそのまま行ボックスの幅**になる。
-		// 行が伸びた分だけ right 側の兄弟が押し出され、`？` が画面の外へ出る。
-		// 画面幅が狭いほど、また文字サイズ設定が大きいほど起きやすい。
-		//
-		// 料理提案画面（`app/[locale]/(tabs)/search/topics.tsx` → `components/ScreenHeader.tsx`）で
-		// 同じ症状が出ていないのは、あちらのタイトルが `numberOfLines={1}` + `ellipsizeMode="tail"` で
-		// **1 行に固定されている**ため。折り返しが起きない Text は与えられた幅で必ず打ち切られ、
-		// 測定値が配分幅を超えない。こちらも同じ形へ揃えてある（JSX 側を参照）。
-		//
-		// `minWidth: 0` は web（react-native-web）向け。CSS の flex アイテムは既定で
-		// `min-width: auto`（＝内容の最小幅より縮まない）なので、これが無いと同じ症状が web で残る。
-		minWidth: 0,
-	},
-	// #667 【設計】カード無しセクションのスタイル
-	section: {
-		paddingHorizontal: HORIZONTAL_PADDING,
-		marginBottom: 24,
-	},
-	sectionHeader: {
-		flexDirection: "row",
-		alignItems: "center",
-		marginBottom: 16,
-	},
-	sectionTitle: {
-		fontSize: 16,
-		fontWeight: "700",
-		color: "#1A1A1A",
-		marginLeft: 8,
-		flex: 1,
-	},
-	requiredBadge: {
-		backgroundColor: "#FEE2E2",
-		paddingHorizontal: 8,
-		paddingVertical: 4,
-		borderRadius: 12,
-	},
-	requiredText: {
-		fontSize: 10,
-		fontWeight: "600",
-		color: "#DC2626",
-	},
-	locationSection: {
-		flexDirection: "row",
-		alignItems: "flex-start",
-		gap: 12,
-	},
-	currentLocationButton: {
-		padding: 16,
-		borderLeftWidth: 0.5,
-		borderLeftColor: "#C9C9C9",
-	},
-	// #667 【設計】画像グリッドコンテナ（4列、flexWrap）
-	gridContainer: {
-		flexDirection: "row",
-		flexWrap: "wrap",
-		gap: ITEM_GAP,
-	},
-	// #667 【設計】ムード用の横並びコンテナ
-	moodContainer: {
-		flexDirection: "row",
-		justifyContent: "space-around",
-		alignItems: "center",
-		paddingVertical: 16,
-	},
-	// #667 【設計】ムード個別アイテム（円+ラベル縦並び）
-	moodItem: {
-		flex: 1,
-		alignItems: "center",
-		gap: 8,
-	},
-	// #667 【設計】ムードの円形アイコン
-	moodCircle: {
-		backgroundColor: "#C9C9C9",
-		borderRadius: 100, // 完全な円
-	},
-	selectedMoodCircle: {
-		backgroundColor: "#000000",
-	},
-	// #667 【設計】ムードのラベル
-	moodLabel: {
-		fontSize: 13,
-		color: "#000000",
-		fontWeight: "500",
-		textAlign: "center",
-	},
-	selectedMoodLabel: {
-		fontWeight: "600",
-	},
-	advancedToggle: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "center",
-		backgroundColor: "#FDEBE7",
-		marginHorizontal: 24,
-		paddingVertical: 16,
-		paddingHorizontal: 20,
-		borderRadius: 16,
-	},
-	advancedToggleText: {
-		fontSize: 15,
-		color: "#F05537",
-		fontWeight: "600",
-		marginLeft: 12,
-	},
-	chipGrid: {
-		flexDirection: "row",
-		flexWrap: "wrap",
-		gap: 12,
-	},
-	sliderSection: {
-		width: "100%",
-	},
-	searchFabContainer: {
-		position: "absolute",
-		bottom: 0,
-		paddingTop: 12,
-		paddingBottom: 32,
-		paddingHorizontal: HORIZONTAL_PADDING,
-		width: "100%",
-		justifyContent: "center",
-		flexDirection: "row",
-		alignItems: "center",
-	},
-	searchFab: {
-		width: "100%",
-		// #973【設計】コンテナ全体を透明にした分、ボタンの矩形部分だけ白背景を持たせて
-		// 未充足時のグレー表示も含め視認性を確保する(価格帯セクションの見通しは維持)
-		backgroundColor: "#FFFFFF",
-		borderRadius: 8,
-	},
-	restrictionsContainer: {
-		flexDirection: "row",
-		flexWrap: "wrap",
-		gap: 12,
-	},
-	restrictionChip: {
-		flexDirection: "row",
-		alignItems: "center",
-		backgroundColor: "#F8F9FA",
-		paddingHorizontal: 12,
-		paddingVertical: 8,
-		borderRadius: 20,
-		marginBottom: 8,
-	},
-	selectedRestrictionChip: {
-		backgroundColor: "#EF4444",
-	},
-	restrictionChipText: {
-		fontSize: 11,
-		color: "#6B7280",
-		fontWeight: "500",
-		marginLeft: 8,
-		marginRight: 8,
-	},
-	selectedRestrictionChipText: {
-		color: "#FFF",
-		fontWeight: "700",
-	},
-});
+// #1509 【設計】テーマ依存のスタイルはファクトリで組む（`contexts/ThemeProvider.tsx` の useThemedStyles）。
+// 値はすべて main のリテラルをそのまま `constants/Palette.ts` の light へ写したもので、ライトの見た目は変わらない。
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		container: {
+			flex: 1,
+			backgroundColor: c.background,
+		},
+		scrollView: {
+			flex: 1,
+		},
+		scrollContent: {
+			paddingBottom: 100, // moved here so it affects ScrollView content
+			gap: 12,
+		},
+		header: {
+			paddingHorizontal: 24,
+			paddingTop: 20,
+			paddingBottom: 20,
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+		},
+		helpButton: {
+			paddingHorizontal: 8,
+			// #1272 タイトルが伸びても «絶対に» 縮まない。ヘッダーは space-between なので、
+			// これが無いと限られた幅の奪い合いでボタン側が潰されうる
+			flexShrink: 0,
+			// #1486 アイコン(24) + 左右の padding(8+8) 分の幅を «先に» 確保する。
+			// 幅を内容任せにすると、レイアウトの確定順によってはタイトルが先に場所を取り切る
+			width: 40,
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		headerTitle: {
+			fontSize: 20,
+			fontWeight: "700",
+			color: c.textPrimary,
+			letterSpacing: -0.5,
+			// ⚠️ **`flex: 1` を外さないこと。** 無いと Text が自然幅を取り、日本語の長いタイトル
+			// （"どんな料理を探しましょう？🍽"）が **ヘルプボタンを画面外へ押し出す**。
+			// 320dp 幅の Android エミュレータで実測: タイトルが 2 行に折り返し、
+			// 「?」ボタンが右端で見切れて押せない状態になっていた（run 31698138582 の
+			// 失敗時スクリーンショットで確認。Detox が 75% 可視を満たせず落ちたのは正しい検出だった）。
+			// 小さめの実機（幅の狭い端末 / 大きい文字サイズ設定）でも同じ詰みが起きる
+			flex: 1,
+			// #1486 【バグ】`flex: 1` **だけでは足りない**（実機の iPhone で `？` が右へはみ出す報告）。
+			//
+			// `flex: 1` は `flexBasis: 0` を含むので «配分» は正しく行われるが、Yoga は
+			// 折り返し可能な Text を「与えられた幅で測って、収まらなければ実測幅を返す」形で測る。
+			// 日本語のタイトルは空白が無く、端末の文字サイズ設定（Dynamic Type）を上げると
+			// 1 行が配分された幅を超え、**測定値がそのまま行ボックスの幅**になる。
+			// 行が伸びた分だけ right 側の兄弟が押し出され、`？` が画面の外へ出る。
+			// 画面幅が狭いほど、また文字サイズ設定が大きいほど起きやすい。
+			//
+			// 料理提案画面（`app/[locale]/(tabs)/search/topics.tsx` → `components/ScreenHeader.tsx`）で
+			// 同じ症状が出ていないのは、あちらのタイトルが `numberOfLines={1}` + `ellipsizeMode="tail"` で
+			// **1 行に固定されている**ため。折り返しが起きない Text は与えられた幅で必ず打ち切られ、
+			// 測定値が配分幅を超えない。こちらも同じ形へ揃えてある（JSX 側を参照）。
+			//
+			// `minWidth: 0` は web（react-native-web）向け。CSS の flex アイテムは既定で
+			// `min-width: auto`（＝内容の最小幅より縮まない）なので、これが無いと同じ症状が web で残る。
+			minWidth: 0,
+		},
+		// #667 【設計】カード無しセクションのスタイル
+		section: {
+			paddingHorizontal: HORIZONTAL_PADDING,
+			marginBottom: 24,
+		},
+		sectionHeader: {
+			flexDirection: "row",
+			alignItems: "center",
+			marginBottom: 16,
+		},
+		sectionTitle: {
+			fontSize: 16,
+			fontWeight: "700",
+			color: c.textPrimary,
+			marginLeft: 8,
+			flex: 1,
+		},
+		requiredBadge: {
+			backgroundColor: c.dangerTint,
+			paddingHorizontal: 8,
+			paddingVertical: 4,
+			borderRadius: 12,
+		},
+		requiredText: {
+			fontSize: 10,
+			fontWeight: "600",
+			color: c.danger,
+		},
+		locationSection: {
+			flexDirection: "row",
+			alignItems: "flex-start",
+			gap: 12,
+		},
+		currentLocationButton: {
+			padding: 16,
+			borderLeftWidth: 0.5,
+			borderLeftColor: c.border,
+		},
+		// #667 【設計】画像グリッドコンテナ（4列、flexWrap）
+		gridContainer: {
+			flexDirection: "row",
+			flexWrap: "wrap",
+			gap: ITEM_GAP,
+		},
+		// #667 【設計】ムード用の横並びコンテナ
+		moodContainer: {
+			flexDirection: "row",
+			justifyContent: "space-around",
+			alignItems: "center",
+			paddingVertical: 16,
+		},
+		// #667 【設計】ムード個別アイテム（円+ラベル縦並び）
+		moodItem: {
+			flex: 1,
+			alignItems: "center",
+			gap: 8,
+		},
+		// #667 【設計】ムードの円形アイコン
+		moodCircle: {
+			backgroundColor: c.border,
+			borderRadius: 100, // 完全な円
+		},
+		selectedMoodCircle: {
+			backgroundColor: c.textStrong,
+		},
+		// #667 【設計】ムードのラベル
+		moodLabel: {
+			fontSize: 13,
+			color: c.textStrong,
+			fontWeight: "500",
+			textAlign: "center",
+		},
+		selectedMoodLabel: {
+			fontWeight: "600",
+		},
+		advancedToggle: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "center",
+			backgroundColor: c.brandTint,
+			marginHorizontal: 24,
+			paddingVertical: 16,
+			paddingHorizontal: 20,
+			borderRadius: 16,
+		},
+		advancedToggleText: {
+			fontSize: 15,
+			color: c.brand,
+			fontWeight: "600",
+			marginLeft: 12,
+		},
+		chipGrid: {
+			flexDirection: "row",
+			flexWrap: "wrap",
+			gap: 12,
+		},
+		sliderSection: {
+			width: "100%",
+		},
+		searchFabContainer: {
+			position: "absolute",
+			bottom: 0,
+			paddingTop: 12,
+			paddingBottom: 32,
+			paddingHorizontal: HORIZONTAL_PADDING,
+			width: "100%",
+			justifyContent: "center",
+			flexDirection: "row",
+			alignItems: "center",
+		},
+		searchFab: {
+			width: "100%",
+			// #973【設計】コンテナ全体を透明にした分、ボタンの矩形部分だけ白背景を持たせて
+			// 未充足時のグレー表示も含め視認性を確保する(価格帯セクションの見通しは維持)
+			backgroundColor: c.ctaSurface,
+			borderRadius: 8,
+		},
+		restrictionsContainer: {
+			flexDirection: "row",
+			flexWrap: "wrap",
+			gap: 12,
+		},
+		restrictionChip: {
+			flexDirection: "row",
+			alignItems: "center",
+			backgroundColor: c.surfaceMuted,
+			paddingHorizontal: 12,
+			paddingVertical: 8,
+			borderRadius: 20,
+			marginBottom: 8,
+		},
+		selectedRestrictionChip: {
+			backgroundColor: c.dangerStrong,
+		},
+		restrictionChipText: {
+			fontSize: 11,
+			color: c.textSecondary,
+			fontWeight: "500",
+			marginLeft: 8,
+			marginRight: 8,
+		},
+		selectedRestrictionChipText: {
+			// #1509 `#FFF` と `#FFFFFF` は同一色。赤いチップの上の文字はテーマ非追従
+			color: FixedColors.onFilled,
+			fontWeight: "700",
+		},
+	});

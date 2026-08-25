@@ -403,9 +403,10 @@ export type Database = {
           dish_id: string
           id: string
           lock_no: number
-          media_path: string
+          media_path: string | null
           media_processing_status: string
           media_type: string
+          render_type: string
           thumbnail_path: string
           thumbnail_processing_status: string
           updated_at: string
@@ -417,9 +418,10 @@ export type Database = {
           dish_id: string
           id?: string
           lock_no?: number
-          media_path: string
+          media_path?: string | null
           media_processing_status: string
           media_type: string
+          render_type?: string
           thumbnail_path: string
           thumbnail_processing_status: string
           updated_at?: string
@@ -431,9 +433,10 @@ export type Database = {
           dish_id?: string
           id?: string
           lock_no?: number
-          media_path?: string
+          media_path?: string | null
           media_processing_status?: string
           media_type?: string
+          render_type?: string
           thumbnail_path?: string
           thumbnail_processing_status?: string
           updated_at?: string
@@ -634,9 +637,10 @@ export type Database = {
           comment: string
           comment_tsv: unknown
           created_at: string
-          created_dish_media_id: string
+          created_dish_media_id: string | null
           currency_code: string | null
           dish_id: string
+          eaten_at: string | null
           id: string
           imported_user_avatar: string | null
           imported_user_name: string | null
@@ -649,9 +653,10 @@ export type Database = {
           comment: string
           comment_tsv?: unknown
           created_at?: string
-          created_dish_media_id: string
+          created_dish_media_id?: string | null
           currency_code?: string | null
           dish_id: string
+          eaten_at?: string | null
           id?: string
           imported_user_avatar?: string | null
           imported_user_name?: string | null
@@ -664,9 +669,10 @@ export type Database = {
           comment?: string
           comment_tsv?: unknown
           created_at?: string
-          created_dish_media_id?: string
+          created_dish_media_id?: string | null
           currency_code?: string | null
           dish_id?: string
+          eaten_at?: string | null
           id?: string
           imported_user_avatar?: string | null
           imported_user_name?: string | null
@@ -696,28 +702,34 @@ export type Database = {
         Row: {
           category_id: string
           created_at: string
+          data_origin: string
           id: string
           lock_no: number
           name: string | null
           restaurant_id: string
+          synced_at: string | null
           updated_at: string
         }
         Insert: {
           category_id: string
           created_at?: string
+          data_origin?: string
           id?: string
           lock_no?: number
           name?: string | null
           restaurant_id: string
+          synced_at?: string | null
           updated_at?: string
         }
         Update: {
           category_id?: string
           created_at?: string
+          data_origin?: string
           id?: string
           lock_no?: number
           name?: string | null
           restaurant_id?: string
+          synced_at?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1190,6 +1202,10 @@ export type Database = {
           name: string
           name_language_code: string
           plus_code: Json | null
+          source_names: string[]
+          source_row_hash: string | null
+          source_seed_id: string | null
+          synced_at: string | null
         }
         Insert: {
           address_components: Json
@@ -1204,6 +1220,10 @@ export type Database = {
           name: string
           name_language_code: string
           plus_code?: Json | null
+          source_names?: string[]
+          source_row_hash?: string | null
+          source_seed_id?: string | null
+          synced_at?: string | null
         }
         Update: {
           address_components?: Json
@@ -1218,6 +1238,10 @@ export type Database = {
           name?: string
           name_language_code?: string
           plus_code?: Json | null
+          source_names?: string[]
+          source_row_hash?: string | null
+          source_seed_id?: string | null
+          synced_at?: string | null
         }
         Relationships: []
       }
@@ -1330,6 +1354,7 @@ export type Database = {
           avatar_path: string | null
           bio: string | null
           created_at: string
+          deleted_at: string | null
           display_name: string | null
           id: string
           last_login_at: string | null
@@ -1342,6 +1367,7 @@ export type Database = {
           avatar_path?: string | null
           bio?: string | null
           created_at?: string
+          deleted_at?: string | null
           display_name?: string | null
           id?: string
           last_login_at?: string | null
@@ -1354,6 +1380,7 @@ export type Database = {
           avatar_path?: string | null
           bio?: string | null
           created_at?: string
+          deleted_at?: string | null
           display_name?: string | null
           id?: string
           last_login_at?: string | null

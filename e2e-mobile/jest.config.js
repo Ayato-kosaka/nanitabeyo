@@ -91,4 +91,11 @@ module.exports = {
 	transform: {
 		"^.+\\.tsx?$": ["ts-jest", { tsconfig: "<rootDir>/tsconfig.json" }],
 	},
+
+	// #1503 直リンクスモークが app-expo の公開ルート一覧（lib/seo/publicRoutes.ts）を import する。
+	// tsconfig の paths は **型解決にしか効かない**ので、実行時の解決はここで対応させる。
+	// 参照先は react / expo / detox に依存しない純粋な TS に限ること（ts-jest がそのまま変換する）。
+	moduleNameMapper: {
+		"^@app-expo/(.*)$": "<rootDir>/../app-expo/$1",
+	},
 };

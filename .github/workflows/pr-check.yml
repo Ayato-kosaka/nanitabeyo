@@ -21,13 +21,23 @@ name: PR Check
 #   app-expo/** だけに絞るとこの Issue が守ろうとしている事故そのものを取りこぼす。
 on:
   pull_request:
+  # #1575 main へ直接入った commit も検査する。PR を経由しない変更（人による直 push）で
+  # main が赤くなり、誰も気づかないまま放置される事故が 2 回起きた。
+  #
+  # ⚠️ これは db-migrate.yml の自動 commit には効かない。GITHUB_TOKEN による push は
+  #    新しい workflow run を起こさない（GitHub の仕様）ため。あちらは workflow 自身が
+  #    push 前に shared をビルドして検算する形で塞いである。ここはあくまで人の直 push 用。
+  push:
+    branches: [main]
 
 # 同一 PR へ続けて push したとき、古い run の結果はもう誰も見ないのでキャンセルする。
 # 既存 workflow が cancel-in-progress: false なのはデプロイ／E2E を中断させないためで、
 # PR ゲートは逆に「最新 commit の結果だけが要る」ため true にする。
 # group に workflow 名と PR 番号を含めているので、PR をまたいでキャンセルし合うことはない。
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  # push イベントには pull_request.number が無いので commit SHA へ落とす
+  # （空文字だと main への連続 push が互いをキャンセルし合う）。
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
 
 permissions:
@@ -62,6 +72,13 @@ jobs:
 
       - name: 依存関係をインストール
         run: pnpm install --frozen-lockfile
+
+      # #0 ドキュメント管理規約（docs/README.md）のうち機械的に検査できる部分。
+      # 2026-08 に *_IMPLEMENTATION.md / *_SUMMARY.md が堆積し、存在しない API を説明する
+      # 文書が複数残る事故が起きた（docs/decisions/20260823-documentation-cleanup.md）。
+      # git ls-files を見るだけで依存ゼロ・1 秒未満なので最速の位置に置く。
+      - name: ドキュメント管理規約を検査
+        run: pnpm assert:doc-hygiene
 
       # 4-1 は shared/dist を import せず shared/remoteConfig/remoteConfig.schema.ts を
       # AST として読むだけなので、shared build より前に置いて最速で赤にできる。

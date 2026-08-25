@@ -61,24 +61,30 @@ export class ToolsDishCategoriesService {
       );
 
       // メディアにCDN署名付きサムネイルURLを付与
-      const candidateMedia = mediaList.map((media) => {
-        const mediaSignedUrl = this.storage.generateCdnSignedURL(
-          buildResizedPath(
-            {
-              table: 'dish_media',
-              column: 'media_path',
-              recordId: media.id,
-              size: 1024,
-              originalPath: media.media_path,
-            },
-            'cdn',
-          ),
-        );
-        return {
-          ...convertPrismaToSupabase_DishMedia(media),
-          mediaSignedUrl,
-        };
-      });
+      const candidateMedia = mediaList
+        .map((media) => {
+          // #1395 render_type='external_embed' の行は media_path が NULL で、
+          // 自ストレージにリサイズ済みの実体が無い。署名 URL を作れないので
+          // 代表画像の候補から外す
+          if (media.media_path === null) return null;
+          const mediaSignedUrl = this.storage.generateCdnSignedURL(
+            buildResizedPath(
+              {
+                table: 'dish_media',
+                column: 'media_path',
+                recordId: media.id,
+                size: 1024,
+                originalPath: media.media_path,
+              },
+              'cdn',
+            ),
+          );
+          return {
+            ...convertPrismaToSupabase_DishMedia(media),
+            mediaSignedUrl,
+          };
+        })
+        .filter((cm): cm is NonNullable<typeof cm> => cm !== null);
 
       const Supabase_DishCategories =
         convertPrismaToSupabase_DishCategories(category);

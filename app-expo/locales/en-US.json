@@ -159,6 +159,9 @@
 		},
 		"loading": "Searching...",
 		"noLocationsFound": "No locations found",
+		"locationConfirmation": {
+			"error": "Failed to confirm location"
+		},
 		"advancedToggle": {
 			"open": "More options",
 			"close": "Close advanced search"
@@ -374,6 +377,9 @@
 			},
 			"dish_reviews": {
 				"like": "liked your review"
+			},
+			"dish_category_group_vote_sessions": {
+				"vote": "voted in your group vote"
 			}
 		}
 	},
@@ -406,7 +412,9 @@
 		"processing": "Processing media...",
 		"errors": {
 			"mapOpenFailed": "Could not open map application",
-			"mediaUnavailable": "This media is currently unavailable."
+			"mediaUnavailable": "This media is currently unavailable.",
+			"likeReactionFailed": "Failed to update like. Please try again.",
+			"saveReactionFailed": "Failed to update save. Please try again."
 		},
 		"info": {
 			"walkFromShibuya": "13 min walk from Shibuya Station"
@@ -711,6 +719,14 @@
 	},
 	"Settings": {
 		"title": "Settings",
+		"theme": {
+			"sectionTitle": "Appearance",
+			"options": {
+				"system": "Match system setting",
+				"light": "Light",
+				"dark": "Dark"
+			}
+		},
 		"sendFeedback": "Send Feedback",
 		"leaveReview": "Leave Review",
 		"rateDialogTitle": "Are you enjoying the app?",

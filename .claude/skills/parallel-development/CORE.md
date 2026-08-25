@@ -327,7 +327,86 @@ turnが切れても部分成果がbranchに残れば、追加runで続きから�
 
 `error_max_turns` の失敗runでも、Workflowの `commit・pushされたことを検証` ステップが `success` を返し、かつ**実際にはbranchが存在しない**という食い違いを観測している。ステップの結果を信用せず、リーダー自身が **GitHub API（`mcp__github__list_branches` 等）でbranchの実在を確認**すること。
 
-この食い違いの原因のひとつは判明している（下記「ワーカーは `.github/workflows/` を変更できない」）。runが`success`でもbranchが無いときは、まずpushがremote rejectedされていないかを疑う。
+この食い違いの原因は**2つとも判明している**。
+
+**原因1: 検証ステップ自身のバグ（2026-08-23 に修正済み）。** 旧実装は次のように書かれていた。
+
+```bash
+REMOTE_SHA=$(git rev-parse "origin/$BRANCH_NAME" 2>/dev/null || echo "")
+if [[ -z "$REMOTE_SHA" ]]; then ... exit 1; fi
+```
+
+`git rev-parse` は**解決できない ref を渡されると、その引数文字列自体をstdoutへ出す**（エラーはstderrへ出て exit 128）。したがって `|| echo ""` は発火せず、`REMOTE_SHA` へ `origin/claude/xxx` という文字列が入り、`-z` ガードを素通りする。**リモートにbranchが無いのにステップがsuccessで終わる**のはこれが原因だった。
+
+現在は `git ls-remote --heads origin "$BRANCH_NAME"` でoriginへ直接問い合わせる形に直してある。ローカルのremote-tracking refに依存しないので、pushされたかどうかを正しく判定できる。あわせて「一部だけpushされている」ケースも `::warning::` から `::error::` へ格上げした（中途半端なpushをsuccessで返すと、リーダーがbranchに全成果が載っていると誤認するため）。
+
+**原因2: push が remote rejected される。** 下記「ワーカーは `.github/workflows/` を変更できない」を参照。
+
+### commit だけでは足りない。**push まで**指示する
+
+実測（run 32607186274 / Issue #1499）: `error_max_turns` で 81 turn・14分・$5.97 を消費したが、**ローカルにcommitは出来ていた**（HEADは `c772f14` → `66052c3` へ変化していた）のに **push 前にturnが尽き、成果が丸ごと失われた**。
+
+プロンプトの「早めに小さくcommitする」だけでは、この失われ方を防げない。次のように**pushまで**を明示すること。
+
+> 実装が一区切りついた時点で、テストを書く前に必ず `git add -A && git commit && git push -u origin <branch>` まで行うこと。**ローカルcommitだけではturn切れで全部消えます。**
+
+#### この規則は「書いてある」だけでは効かない。**毎回のプロンプトの冒頭へ写すこと**
+
+2026-08-24 に**同じ失われ方を再発させた**。run 32682347819（#1513 の実装）は `error_max_turns`
+（turns=151 / 上限 150、denials=0、23 分）で終わり、`4f56996c → ae343454` とローカル commit は
+できていたのに push 前に尽きて、5 タスク分の実装が丸ごと消えた。CORE.md にはこの節が既にあったが、
+**リーダーがワーカーへ渡したプロンプトに書かなかった**ため効かなかった。
+
+ワーカーは CORE.md を読まない。リーダーが書くプロンプトの**冒頭**（やることの前）へ、
+毎回この形で入れること。
+
+> ## ⚠️ 最優先の規則: 1 つ終わるたびに commit して push する
+>
+> - タスクを 1 つ終えるたびに `git add -A && git commit && git push -u origin <branch>` を実行する
+> - 全部終わってからまとめて commit しない
+> - 検証はそのタスクに関係するものだけをその都度回し、通し検証は最後に 1 回だけ
+> - turn が残り少ないと感じたら、**途中でも必ず push してから**「ここまで終わった / 残りはこれ」を
+>   PR へコメントして終わる
+
+あわせて、**1 run に 5 タスクを詰めない**。上の run は A（削除の 1 本化）/ A-2（SQL 差し戻し）/
+B（墓標表示）/ C（列コメント）/ D（投票候補）を 1 run へ渡していた。API・SQL 側と UI 側は
+別 run へ割り、同じブランチへ直列で流す方が、turn 切れの被害が 1 タスク分に収まる。
+
+#### 失敗 run の切り分けは `commit・pushされたことを検証` ステップの env を見る
+
+`mcp__github__get_job_logs` に `job_id` と `tail_lines: 120` を渡すと、このステップの env に
+集計値が出る。ここだけで «上限» / «権限拒否» / «prompt の不備» を切り分けられる。
+
+```
+CLAUDE_SUBTYPE: error_max_turns   ← turn 切れ
+CLAUDE_NUM_TURNS: 151
+CLAUDE_DENIALS: 0                 ← 0 なら権限問題ではない
+PRE_SHA: 4f56996c...
+✓ HEADが変化: 4f56996c... -> ae343454...   ← commit はできていた = push だけが間に合わなかった
+```
+
+`tail_lines` が小さすぎると post-job cleanup しか返らない。120 前後を指定すること。
+
+env の 3 値の読み方（実測した組み合わせ）:
+
+| CLAUDE_SUBTYPE | IS_ERROR | NUM_TURNS | 意味 | 取るべき手 |
+| --- | --- | --- | --- | --- |
+| `error_max_turns` | true | 上限+1 | turn 切れ | **上げるのではなく割る**。push 済みなら成果は残っている |
+| `success` | **true** | **1** | **何もせず 1 ターンで引き返した**（run 32697670173 は 5 分で終了・commit ゼロ・denials 0） | ここだけは **1 回だけそのまま再実行してよい**。仕事の形の問題ではないため |
+| `success` | false | — | 正常終了 | branch / PR の実在を別途確認する |
+
+`success` + `is_error=true` + `turns=1` は「プロンプトが悪い」でも「権限が無い」でもない。
+CLAUDE_DENIALS が 0 で、かつ HEAD が動いていないことを併せて確認したうえで、
+**task_key を変えて 1 回だけ**再投入する。2 回続けて同じなら形を疑うこと。
+
+**turn 切れでも Artifact は上がっている**ことがある。同じ 2026-08-24 の
+run 32683977248（ダークモードのエビデンス撮影）は `error_max_turns`（turns=91 / 上限 90）で
+commit ゼロだったが、**61 ファイル・9.4 MB の Artifact は upload 済み**だった。
+撮影 run が失敗したときは、諦める前に `list_workflow_run_artifacts` を見て、
+`evidence-collect.yml` を `allow_failed_run: true` で回せば成果物を回収できる。
+
+`evidence-collect.yml` の `source_sha` は **40〜64 桁のフル SHA でなければ入力検証で落ちる**
+（短縮 SHA を渡した run 32697489584 は 10 秒で failure）。`git rev-parse <short>` で伸ばしてから渡すこと。
 
 ## ワーカーは `.github/workflows/` を変更できない
 
@@ -347,7 +426,7 @@ REST Contents API経由でも `403 Resource not accessible by integration` に�
 
 - **workflowファイルを変更するタスクをワーカーへ渡さない。** 渡す場合は「`.github/workflows/` へは直接置かず、`.github/workflows-pending/` 等へ成果物とpatchを出力する」と明示し、**リーダーが適用してcommitする**。リーダーのgit認証はGitHub Appではないため、workflowファイルをpushできる。
 - 全ての実装promptへ「**`.github/workflows/` 配下を変更しない**」を入れておくと、無関係なタスクが巻き添えでbranchごと消えるのを防げる。
-- 恒久的にワーカーへ編集させたいなら、(1) Claude GitHub AppのインストールでWorkflows権限をwriteにする、(2) `claude-worker.yml` の write ジョブの `additional_permissions` へ `workflows: write` を追加する、の**両方**が要る。ただしエージェントがCI定義そのものを書き換えられるようになるため、権限を広げるかはリポジトリオーナーの判断に委ねること。
+- 恒久的にワーカーへ編集させたいなら、(1) Claude GitHub AppのインストールでWorkflows権限をwriteにする、(2) `claude-worker.yml` の write ジョブの `additional_permissions` へ `workflows: write` を追加する、の**両方**が要る。ただし **2026-08-13 に「付与しない」で確定済み**（理由は `docs/decisions/20260813-ci-gate-and-worker-permissions.md`）。再検討は workflow 変更タスクが恒常化した場合のみ。
 
 **`--ref` にはデフォルトブランチだけを指定できる（例外なし）**: `workflow_dispatch` はGitHubの仕様上、`--ref` で指定したブランチ上のWorkflowファイルが**既定ブランチ上のバージョンと1バイトでも違う**場合、`Claude Codeを実行` ステップ自体を無言でスキップする(`Skipping action due to workflow validation`という警告のみ)。これは `claude-worker.yml` 自体を修正した直後に踏みやすい罠で、修正branchを`--ref`に指定して試し撃ちしても何も起きず、後段のcommit検証stepが「変更なし」でjob failするだけになる。Workflow自体の変更を試すときは、**まずmainへマージしてから**改めてdispatchすること。
 
@@ -366,6 +445,41 @@ REST Contents API経由でも `403 Resource not accessible by integration` に�
 - テストの妥当性
 - 保守性
 - UI変更時の表示・多言語・アクセシビリティ
+- **仕様に無い振る舞いが増えていないか**（下記。常設で回す）
+
+### ⚠️ 「仕様に無い振る舞いが増えていないか」は常設で回す
+
+既存の観点は «仕様にあるのに実装が無い» を探す形に寄っている。**その逆——
+仕様に無いのに実装が増えた——は、どの観点にも引っかからない。**
+
+実例（2026-08-23、#1513）: `api/src/v1/users/my-dishes.query.ts` のフォールバックの
+発火条件が、承認済みの仕様から 1 語だけ変わっていた。
+
+```sql
+) fb ON p.own_media_id IS NULL   -- #1469: 写真なし記録のときだけ代表メディアを借りる
+) fb ON om.id IS NULL            -- #1513 が黙って変更: 削除済みのときも差し替える
+```
+
+**差分は 1 行、テストは全部緑、PR 本文に記述なし。**レビューでも CI でも検知できず、
+リーダーがオーナーへ «そういう仕様です» と説明して初めて «そんな仕様は無い» と分かった。
+
+このレビューで見るのは 1 つだけ。
+
+> **既存の分岐条件・既定値・フォールバックの「発火条件」が変わっていないか。
+> 変わっているなら、その根拠の Issue 番号が PR 本文にあるか。**
+
+具体的に照合するもの:
+
+- `if` / 三項 / SQL の `ON` 句・`WHERE` 句の条件式
+- 既定値（`??` の右辺、`default`、`DEFAULT`）
+- リトライ回数・タイムアウト・上限値
+- フォールバックが発火する条件
+
+**根拠が書かれていない条件変更は、それだけで Request Changes 相当にする。**
+「動くから良い」ではなく「決めていないことを決めてしまった」が問題である。
+
+実装側の規律としても、[EVIDENCE-AND-E2E.md](./EVIDENCE-AND-E2E.md) の
+「§0 絶対に守ること」と同格で扱う。
 
 指摘は根拠と再現方法を伴わせ、PRへ記録する。修正が必要なら同じ実装ブランチへwrite runを再dispatchし、修正後に影響範囲を再レビューする。
 
@@ -390,6 +504,26 @@ Workerへ、実行したテストの生データを `/tmp/claude-artifacts/` 配
 秘密値、`.env`、認証情報、個人情報をArtifactへ含めない。Artifactは必ず対象PRの最新commit SHAに対応させる。新しいcommitがpushされたら、古いエビデンスだけで完了判定しない。
 
 実装runのエビデンスは暫定確認に使い、人間へ公開する最終エビデンスは、原則として独立レビューrunまたは専用validation runのArtifactを使う。UI変更では `access=observe`、`setup_playwright=true`、`base_ref=<検証対象の正確なSHA>` で検証runを起動し、レビュー指摘の修正後は新しいSHAで再実行する。
+
+### 撮影だけの run は `access=observe` で回す
+
+`access=write` の run は最後に「commit・push されたか」を検証する。撮影だけが目的で
+コード差分が出ない run をこれで回すと、**エビデンスは正しく撮れて Artifact も上がっているのに
+run 全体は失敗**になる。`evidence-collect.yml` は既定で success の run しか受け取らないため、
+そのままでは公開できない。
+
+2026-08-23、#1525 でこれを踏んだ。先行 run が e2e spec を push 済みだったので後発 run には
+commit するものが無く、292KB のエビデンス Artifact を上げたうえで失敗した。
+
+- **撮影だけなら `access=observe`。** observe のジョブも `/tmp/claude-artifacts/` を
+  Artifact として上げるので、エビデンスは同じように回収できる
+- 既に失敗した run から拾うしかない場合は `allow_failed_run=true` で公開できるが、
+  そのときは **なぜ失敗した run から採ったのか** を PR 本文に書くこと。
+  「緑の run から採ったエビデンス」という既定の意味が崩れるため、黙って使わない
+
+あわせて、**Artifact が実在するかを公開前に確かめる**。run が success でも
+`/tmp/claude-artifacts/` へ何も置かなければ Artifact は作られない（`if-no-files-found: ignore`）。
+`list_workflow_run_artifacts` が 0 件を返したら、その run は撮影していない。
 
 ### 画像・動画は必ず`evidence-collect.yml`で可視化する
 
@@ -435,6 +569,57 @@ gh workflow run evidence-collect.yml \
 - ファイル名は公開時に `[A-Za-z0-9._-]` へ正規化される。日本語名や `[` `]` を含む名前でも失敗しないが、公開後のURLは元の名前と一致しない。対応は `manifest.json` の `path` と `publishedPath` で確認する。
 - 公開先はキャッシュ `immutable` の公開バケットである。**認証情報・個人情報・秘密値が写った画像を公開しない。** 検証runのpromptに「スクリーンショットに認証情報が写らないようにする。写る場合はマスクするか保存しない」と明記する。
 - 同じ検証を修正後に再実行したら、新しいrunのArtifactで再度公開し、Issue・PRのコメントも新しいURLへ更新する。古いURLを残したまま「修正済み」と書かない。
+
+### 「公開できた」ではなく「読めた」を確認する
+
+2026-08-23、6 本の PR へ公開したエビデンス動画・スクリーンショットの**日本語が
+すべて豆腐（□）**で、レビューに一切使えないものを配った。オーナーから
+「エビデンスが文字化けしてて判断できません」と指摘されるまで気づかなかった。
+
+技術的な原因は CI ランナーに CJK フォントが無かったこと（`playwright install
+--with-deps` は Latin 系しか入れない）。ローカルには IPAGothic が居るため、
+手元で撮ったものは正常に描画され、差に気づけなかった。
+
+しかし本当の原因は**検証の中身**である。公開後に確認したのは
+
+```bash
+curl -s -o /dev/null -w "%{http_code}" "$URL/index.html"   # → 200
+```
+
+これだけだった。**HTTP 200 は「ファイルが置けた」以上のことを何も意味しない。**
+中身が真っ黒でも、豆腐でも、別の画面でも 200 は返る。エビデンスの目的は
+「人が見て判断できること」なので、確認すべきは配信ではなく可読性である。
+
+公開したら、**必ず画像を 1 枚以上ダウンロードして Read ツールで開き、自分の目で見る。**
+
+```bash
+curl -s -o /tmp/check.png "$URL/evidence/<最初の画像>.png"
+# → Read ツールで /tmp/check.png を開く。文字が読めるか、意図した画面かを目で確認する
+```
+
+見て確認するまでは、PR 本文にもチャットにも「公開済み」と書かない。
+これは 1 枚だけでよい。1 枚読めれば同じ run の残りも同じ条件で撮れている。
+
+同じ理由で、**撮影する run 自身にも「撮った画像を開いて見ろ」と指示する。**
+ワーカーは Read ツールで PNG を開ける。撮りっぱなしにさせない。
+
+### リーダーからは画像を埋め込めない（2 形式とも実測で無効化される）
+
+2026-08-23、PR #1522 の本文で 2 通り試し、**どちらも壊れる**ことを実測した。
+
+| 書いたもの | 実際に保存されたもの |
+| --- | --- |
+| `![alt](https://…png)` | `[alt](``https://…png)``` — 先頭の `!` が落ち、URL がバックティックで囲まれる |
+| `<img src="https://…png">` | `` `` `&lt;img src="https://…png"&gt;` `` `` — HTML エスケープされたうえでバックティックで囲まれる |
+
+つまり **リーダーの環境からは、markdown 記法でも HTML タグでも画像を表示できない。**
+「たぶん大丈夫だろう」で投稿すると、リンクですらない壊れた文字列が PR 本文に残る。
+
+- 画像の埋め込みは **必ずワーカー（`access=observe` + `mcp__github__update_pull_request`）に任せる**
+- リーダー自身が本文へ書けるのは **素の URL（`https://…png` をそのまま1行）** まで。
+  これはクリックできるリンクとして残るので、緊急時の代替にはなる
+- ワーカーに任せたら、**投稿後に本文を取得して `<img` の数を数えて確かめる**。
+  ワーカー側にもその検証を指示すること（下の節を参照）
 
 ### 投稿した画像が実際に表示されているか検証する
 
@@ -483,6 +668,32 @@ Markdown の画像埋め込みは、リンク記法（`[alt](url)`）の前に `
 
 `gh run download` で元Artifactも必要に応じて取得し、要約だけでなく中身を確認する。人間にはrun URL、Artifact名、対象SHA、成功・失敗、未実施項目をまとめて提示する。
 
+### dispatch する前に「その PR に対して既に走らせていないか」を確認する
+
+2026-08-23、残作業を洗い出して仕上げ run を 10 本 dispatch したところ、そのうち 3 本
+(#1518 / #1524 / #1525) は数十分前に自分で dispatch 済みの run と同じ内容だった。先行 run が
+既に e2e spec を足して push していたため、後発の run は「やることが無い」状態で何も commit
+できずに終わり、push 検証ステップが正しく失敗を返した。2 本ぶんのトークンが無駄になった。
+
+原因は「PR 本文にエビデンスの URL が入っているか」だけを残作業の判定に使ったこと。
+先行 run が **push は済ませたがエビデンスの公開はこれから**という中間状態にあると、この
+判定は「まだ何もしていない」と誤読する。
+
+dispatch の前に、次の 2 つを **両方** 見ること。
+
+```bash
+# 1) その PR のブランチに、既に成果物が入っていないか
+git fetch -q origin "$BRANCH" && git diff --name-only origin/main FETCH_HEAD -- e2e-web/tests e2e-mobile/tests
+
+# 2) 同じ PR に対する run が既に走っていないか（task_key に PR 番号を入れておくと引ける）
+#    mcp__github__actions_list(list_workflow_runs) の display_title を PR 番号で探す
+```
+
+`git diff origin/main <branch>` は **main 側の進み** も差分に混ぜてくる。ファイル名まで見て、
+本当にその PR が足したものかを確かめること。上の事故のとき、実際には何も足していない
+ブランチが `e2e-mobile/tests` に 1 件の差分を持っているように見えたが、中身は main へ
+先に入った別 PR の `onboarding.test.ts` だった。**件数ではなくファイル名で判定する。**
+
 ## runを追跡する
 
 `task_key` とrun URLをIssueまたは作業メモへ対応付ける。次のコマンドを使い分ける。
@@ -496,6 +707,39 @@ gh run download <run-id> --dir <destination>
 ```
 
 長時間runを逐次監視し続けて次のdispatchを遅らせない。まず独立runを全て起動し、その後まとめて状態を確認する。
+
+### ⚠️ `mcp__github__actions_list` の `list_workflow_runs` で run 一覧を舐めない
+
+MCP 経由の run 一覧は **1 件ごとに `head_commit.message` を全文**返す。このリポジトリの
+コミットメッセージは設計意図を書く方針なので 1 件で数千字あり、`per_page` が小さくても
+コンテキストを食い潰す。実測（2026-08-23）:
+
+| 呼び方 | 消費 |
+| --- | --- |
+| `list_workflow_runs`（`per_page: 8`, e2e-mobile） | **約 25,000 トークン** |
+| `list_workflow_runs`（`per_page: 6`, claude-worker） | **約 30,000 トークン** |
+| `list_workflow_runs`（**`per_page: 1`**, claude-worker） | **約 30,000 トークン**（下記） |
+| `git ls-remote` + `git log -1 --format` でブランチ 8 本を確認 | 約 400 トークン |
+
+⚠️ **`per_page` を小さくしても効かない。** 2026-08-24 に `per_page: 1` を渡したが
+**30 件返ってきた**（この MCP ツールは `list_workflow_runs` で `per_page` を無視する）。
+「1 件だけ見るから安いはず」は成り立たないので、`per_page` に頼らないこと。
+
+**代わりにこうする。**
+
+- **成果の確認は git で行う。** run の `conclusion` は元々信用しない方針（下記）なので、
+  そもそも run 一覧を見る必要が無い。`git fetch origin && git log -1 --format='%h %cr %s' origin/<branch>`
+  でブランチが動いたかを直接見る。何を実装したかは `git log origin/main..origin/<branch>` と
+  `git show --stat <sha>` で確定する
+- **生死の確認だけが必要なとき**は `workflow_runs_filter: {"status": "in_progress"}` を付ける。
+  走っている run だけに絞られるので数件で収まる
+- **特定の run を見るとき**は run id が分かっているなら `actions_get` / `list_workflow_jobs` を使う。
+  こちらはコミットメッセージを含まない
+- run id は **dispatch した直後に控えておく**。後から一覧で探すのが一番高くつく
+
+失敗の診断はログではなく **Artifact を落とす方が安い**ことも多い。Detox の
+`detox-report-*` には `detox-run.log` と失敗時スクリーンショットが入っており、
+`get_job_logs` の `tail_lines` は post-job の後片付けしか返さないことがある（実測）。
 
 ローカルセッションが中断しても、CSV、親Issue、Sub-issue、PR、branch、task_key、Actions履歴、Artifactから進捗を復元する。会話履歴だけを正本にしない。
 
@@ -584,6 +828,7 @@ write run でも同じ口を使う。**「どちらの手段を採ったか」�
 | 見えるもの | 意味 | 直す場所 |
 | --- | --- | --- |
 | `subtype=error_max_turns` | ターン切れ | 下の「ターン切れは…」節。**max_turnsを上げるだけでは直らない** |
+| `subtype=success` かつ `is_error=true` かつ `turns=1` | 何もせず引き返した | task_key を変えて 1 回だけ再投入してよい（上の表） |
 | `permission_denials>0` + `claude-denial:` にツール名 | 権限で弾かれて作業できなかった | プロンプト側でそのツールを使わせない、または `extra_claude_args` の `--allowedTools` |
 | `subtype=success` かつ `permission_denials=0` なのに commit 無し | プロンプトの不備（何をcommitすべきか伝わっていない） | プロンプトへ「push まで完了させること」を明示 |
 | ジョブが「Claude Codeを実行」の途中で failure | 本当に異常終了・認証・上限 | 認証と利用枠を確認 |

@@ -30,6 +30,7 @@ import {
 } from '@shared/v1/res';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AppLoggerService } from '../../core/logger/logger.service';
+import { CloudTasksService } from '../../core/cloud-tasks/cloud-tasks.service';
 import { DishCategoryGroupVotesRepository } from './dish-category-group-votes.repository';
 import { DishCategoryGroupVotesAssembler } from './dish-category-group-votes.assembler';
 
@@ -40,6 +41,7 @@ export class DishCategoryGroupVotesService {
     private readonly assembler: DishCategoryGroupVotesAssembler,
     private readonly prisma: PrismaService,
     private readonly logger: AppLoggerService,
+    private readonly cloudTasks: CloudTasksService,
   ) {}
 
   private validateCreateCandidates(dto: CreateDishCategoryGroupVoteDto): void {
@@ -275,6 +277,33 @@ export class DishCategoryGroupVotesService {
         participantId: participant.id,
         voteCount: dto.votes.length,
       });
+
+      // #1506 【設計】GRP-04 投票完了通知。「全員投票し終えた」を判定するカラムが
+      // モデルに無いため、参加者が1人投票を終えるたびにホストへ通知する。
+      // idempotencyKey は session 単位にし、複数参加者の投票を同一スレッドへ
+      // 集約する（dish_media の like と同じ設計）。ホスト自身の投票は
+      // NotificationJobService 側の自己通知 skip に任せる。
+      const idempotencyKey = `dish_category_group_vote_sessions:vote:${sessionId}`;
+      this.cloudTasks
+        .enqueueNotification({
+          actionType: 'vote',
+          targetTable: 'dish_category_group_vote_sessions',
+          targetId: sessionId,
+          actorId: userId,
+          idempotencyKey,
+        })
+        .catch((error) => {
+          this.logger.error(
+            'DishCategoryGroupVotes.enqueueNotificationFailed',
+            'submitVote',
+            {
+              sessionId,
+              userId,
+              participantId: participant.id,
+              error: error instanceof Error ? error.message : String(error),
+            },
+          );
+        });
 
       return {
         participantId: participant.id,
