@@ -29,6 +29,7 @@ import { bumpMyDishesRevision } from "@/features/myDishes/stores/useMyDishesRevi
 import { MY_DISH_STATUS_COLORS } from "@/features/myDishes/statusColors";
 import { useDishMediaActions } from "../hooks/useDishMediaActions";
 import { ReportContentSheet } from "./ReportContentSheet";
+import { OwnPostActions } from "./OwnPostActions";
 import { GestureDetector } from "react-native-gesture-handler";
 import type { GestureType } from "react-native-gesture-handler";
 import { toErrorLogMessage } from "@/lib/errorMessage";
@@ -470,6 +471,14 @@ function ActionButtonsContent({
 						</Text>
 					</View>
 				)}
+
+				{/* #1513 自分の投稿だけに編集・削除の導線を出す。他人の投稿では
+				    ボタン自体が描画されないので、UI からは操作にたどり着けない
+				    （サーバー側でも user_id 一致を必須にして二重に担保している）。
+
+				    #1375 の並び «自分の記録に関わる操作 → 店へ行く操作 → 人に渡す操作» に従い、
+				    自分の投稿の編集・削除は «店へ行く»（地図を開く）より上に置く */}
+				{entry.dish_media.isMine && <OwnPostActions entry={entry} />}
 
 				<View style={styles.actionContainer}>
 					<TouchableOpacity

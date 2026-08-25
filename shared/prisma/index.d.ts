@@ -18198,6 +18198,7 @@ export namespace Prisma {
     media_processing_status: string | null
     thumbnail_processing_status: string | null
     render_type: string | null
+    deleted_at: Date | null
   }
 
   export type Dish_mediaMaxAggregateOutputType = {
@@ -18214,6 +18215,7 @@ export namespace Prisma {
     media_processing_status: string | null
     thumbnail_processing_status: string | null
     render_type: string | null
+    deleted_at: Date | null
   }
 
   export type Dish_mediaCountAggregateOutputType = {
@@ -18230,6 +18232,7 @@ export namespace Prisma {
     media_processing_status: number
     thumbnail_processing_status: number
     render_type: number
+    deleted_at: number
     _all: number
   }
 
@@ -18258,6 +18261,7 @@ export namespace Prisma {
     media_processing_status?: true
     thumbnail_processing_status?: true
     render_type?: true
+    deleted_at?: true
   }
 
   export type Dish_mediaMaxAggregateInputType = {
@@ -18274,6 +18278,7 @@ export namespace Prisma {
     media_processing_status?: true
     thumbnail_processing_status?: true
     render_type?: true
+    deleted_at?: true
   }
 
   export type Dish_mediaCountAggregateInputType = {
@@ -18290,6 +18295,7 @@ export namespace Prisma {
     media_processing_status?: true
     thumbnail_processing_status?: true
     render_type?: true
+    deleted_at?: true
     _all?: true
   }
 
@@ -18393,6 +18399,7 @@ export namespace Prisma {
     media_processing_status: string
     thumbnail_processing_status: string
     render_type: string
+    deleted_at: Date | null
     _count: Dish_mediaCountAggregateOutputType | null
     _avg: Dish_mediaAvgAggregateOutputType | null
     _sum: Dish_mediaSumAggregateOutputType | null
@@ -18428,6 +18435,7 @@ export namespace Prisma {
     media_processing_status?: boolean
     thumbnail_processing_status?: boolean
     render_type?: boolean
+    deleted_at?: boolean
     dishes?: boolean | dishesDefaultArgs<ExtArgs>
     users?: boolean | dish_media$usersArgs<ExtArgs>
     dish_media_analysis_results?: boolean | dish_media$dish_media_analysis_resultsArgs<ExtArgs>
@@ -18453,6 +18461,7 @@ export namespace Prisma {
     media_processing_status?: boolean
     thumbnail_processing_status?: boolean
     render_type?: boolean
+    deleted_at?: boolean
     dishes?: boolean | dishesDefaultArgs<ExtArgs>
     users?: boolean | dish_media$usersArgs<ExtArgs>
   }, ExtArgs["result"]["dish_media"]>
@@ -18471,6 +18480,7 @@ export namespace Prisma {
     media_processing_status?: boolean
     thumbnail_processing_status?: boolean
     render_type?: boolean
+    deleted_at?: boolean
     dishes?: boolean | dishesDefaultArgs<ExtArgs>
     users?: boolean | dish_media$usersArgs<ExtArgs>
   }, ExtArgs["result"]["dish_media"]>
@@ -18489,9 +18499,10 @@ export namespace Prisma {
     media_processing_status?: boolean
     thumbnail_processing_status?: boolean
     render_type?: boolean
+    deleted_at?: boolean
   }
 
-  export type dish_mediaOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "dish_id" | "user_id" | "media_path" | "media_type" | "thumbnail_path" | "created_at" | "updated_at" | "lock_no" | "video_duration_ms" | "media_processing_status" | "thumbnail_processing_status" | "render_type", ExtArgs["result"]["dish_media"]>
+  export type dish_mediaOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "dish_id" | "user_id" | "media_path" | "media_type" | "thumbnail_path" | "created_at" | "updated_at" | "lock_no" | "video_duration_ms" | "media_processing_status" | "thumbnail_processing_status" | "render_type" | "deleted_at", ExtArgs["result"]["dish_media"]>
   export type dish_mediaInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     dishes?: boolean | dishesDefaultArgs<ExtArgs>
     users?: boolean | dish_media$usersArgs<ExtArgs>
@@ -18538,6 +18549,10 @@ export namespace Prisma {
       media_processing_status: string
       thumbnail_processing_status: string
       render_type: string
+      /**
+       * #1513 論理削除日時。NULL は未削除。読み取り経路は必ず deleted_at IS NULL で絞る
+       */
+      deleted_at: Date | null
     }, ExtArgs["result"]["dish_media"]>
     composites: {}
   }
@@ -18982,6 +18997,7 @@ export namespace Prisma {
     readonly media_processing_status: FieldRef<"dish_media", 'String'>
     readonly thumbnail_processing_status: FieldRef<"dish_media", 'String'>
     readonly render_type: FieldRef<"dish_media", 'String'>
+    readonly deleted_at: FieldRef<"dish_media", 'DateTime'>
   }
     
 
@@ -25214,11 +25230,13 @@ export namespace Prisma {
   export type Dish_reviewsAvgAggregateOutputType = {
     rating: number | null
     price_cents: number | null
+    lock_no: number | null
   }
 
   export type Dish_reviewsSumAggregateOutputType = {
     rating: number | null
     price_cents: number | null
+    lock_no: number | null
   }
 
   export type Dish_reviewsMinAggregateOutputType = {
@@ -25234,6 +25252,9 @@ export namespace Prisma {
     imported_user_name: string | null
     imported_user_avatar: string | null
     created_at: Date | null
+    updated_at: Date | null
+    lock_no: number | null
+    deleted_at: Date | null
   }
 
   export type Dish_reviewsMaxAggregateOutputType = {
@@ -25249,6 +25270,9 @@ export namespace Prisma {
     imported_user_name: string | null
     imported_user_avatar: string | null
     created_at: Date | null
+    updated_at: Date | null
+    lock_no: number | null
+    deleted_at: Date | null
   }
 
   export type Dish_reviewsCountAggregateOutputType = {
@@ -25264,6 +25288,9 @@ export namespace Prisma {
     imported_user_name: number
     imported_user_avatar: number
     created_at: number
+    updated_at: number
+    lock_no: number
+    deleted_at: number
     _all: number
   }
 
@@ -25271,11 +25298,13 @@ export namespace Prisma {
   export type Dish_reviewsAvgAggregateInputType = {
     rating?: true
     price_cents?: true
+    lock_no?: true
   }
 
   export type Dish_reviewsSumAggregateInputType = {
     rating?: true
     price_cents?: true
+    lock_no?: true
   }
 
   export type Dish_reviewsMinAggregateInputType = {
@@ -25291,6 +25320,9 @@ export namespace Prisma {
     imported_user_name?: true
     imported_user_avatar?: true
     created_at?: true
+    updated_at?: true
+    lock_no?: true
+    deleted_at?: true
   }
 
   export type Dish_reviewsMaxAggregateInputType = {
@@ -25306,6 +25338,9 @@ export namespace Prisma {
     imported_user_name?: true
     imported_user_avatar?: true
     created_at?: true
+    updated_at?: true
+    lock_no?: true
+    deleted_at?: true
   }
 
   export type Dish_reviewsCountAggregateInputType = {
@@ -25321,6 +25356,9 @@ export namespace Prisma {
     imported_user_name?: true
     imported_user_avatar?: true
     created_at?: true
+    updated_at?: true
+    lock_no?: true
+    deleted_at?: true
     _all?: true
   }
 
@@ -25423,6 +25461,9 @@ export namespace Prisma {
     imported_user_name: string | null
     imported_user_avatar: string | null
     created_at: Date
+    updated_at: Date
+    lock_no: number
+    deleted_at: Date | null
     _count: Dish_reviewsCountAggregateOutputType | null
     _avg: Dish_reviewsAvgAggregateOutputType | null
     _sum: Dish_reviewsSumAggregateOutputType | null
@@ -25457,6 +25498,9 @@ export namespace Prisma {
     imported_user_name?: boolean
     imported_user_avatar?: boolean
     created_at?: boolean
+    updated_at?: boolean
+    lock_no?: boolean
+    deleted_at?: boolean
     dishes?: boolean | dishesDefaultArgs<ExtArgs>
     users?: boolean | dish_reviews$usersArgs<ExtArgs>
   }, ExtArgs["result"]["dish_reviews"]>
@@ -25474,6 +25518,9 @@ export namespace Prisma {
     imported_user_name?: boolean
     imported_user_avatar?: boolean
     created_at?: boolean
+    updated_at?: boolean
+    lock_no?: boolean
+    deleted_at?: boolean
     dishes?: boolean | dishesDefaultArgs<ExtArgs>
     users?: boolean | dish_reviews$usersArgs<ExtArgs>
   }, ExtArgs["result"]["dish_reviews"]>
@@ -25491,6 +25538,9 @@ export namespace Prisma {
     imported_user_name?: boolean
     imported_user_avatar?: boolean
     created_at?: boolean
+    updated_at?: boolean
+    lock_no?: boolean
+    deleted_at?: boolean
     dishes?: boolean | dishesDefaultArgs<ExtArgs>
     users?: boolean | dish_reviews$usersArgs<ExtArgs>
   }, ExtArgs["result"]["dish_reviews"]>
@@ -25508,9 +25558,12 @@ export namespace Prisma {
     imported_user_name?: boolean
     imported_user_avatar?: boolean
     created_at?: boolean
+    updated_at?: boolean
+    lock_no?: boolean
+    deleted_at?: boolean
   }
 
-  export type dish_reviewsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "dish_id" | "comment" | "original_language_code" | "user_id" | "rating" | "price_cents" | "currency_code" | "created_dish_media_id" | "imported_user_name" | "imported_user_avatar" | "created_at", ExtArgs["result"]["dish_reviews"]>
+  export type dish_reviewsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "dish_id" | "comment" | "original_language_code" | "user_id" | "rating" | "price_cents" | "currency_code" | "created_dish_media_id" | "imported_user_name" | "imported_user_avatar" | "created_at" | "updated_at" | "lock_no" | "deleted_at", ExtArgs["result"]["dish_reviews"]>
   export type dish_reviewsInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     dishes?: boolean | dishesDefaultArgs<ExtArgs>
     users?: boolean | dish_reviews$usersArgs<ExtArgs>
@@ -25543,6 +25596,18 @@ export namespace Prisma {
       imported_user_name: string | null
       imported_user_avatar: string | null
       created_at: Date
+      /**
+       * #1513 最終更新日時。アプリ側で明示的に更新する（更新トリガは置かない）
+       */
+      updated_at: Date
+      /**
+       * #1513 楽観ロック番号。更新は WHERE id = ? AND lock_no = ? で行い、不一致は 409
+       */
+      lock_no: number
+      /**
+       * #1513 論理削除日時。NULL は未削除。読み取り経路は必ず deleted_at IS NULL で絞る
+       */
+      deleted_at: Date | null
     }, ExtArgs["result"]["dish_reviews"]>
     composites: {}
   }
@@ -25980,6 +26045,9 @@ export namespace Prisma {
     readonly imported_user_name: FieldRef<"dish_reviews", 'String'>
     readonly imported_user_avatar: FieldRef<"dish_reviews", 'String'>
     readonly created_at: FieldRef<"dish_reviews", 'DateTime'>
+    readonly updated_at: FieldRef<"dish_reviews", 'DateTime'>
+    readonly lock_no: FieldRef<"dish_reviews", 'Int'>
+    readonly deleted_at: FieldRef<"dish_reviews", 'DateTime'>
   }
     
 
@@ -49669,7 +49737,8 @@ export namespace Prisma {
     video_duration_ms: 'video_duration_ms',
     media_processing_status: 'media_processing_status',
     thumbnail_processing_status: 'thumbnail_processing_status',
-    render_type: 'render_type'
+    render_type: 'render_type',
+    deleted_at: 'deleted_at'
   };
 
   export type Dish_mediaScalarFieldEnum = (typeof Dish_mediaScalarFieldEnum)[keyof typeof Dish_mediaScalarFieldEnum]
@@ -49757,7 +49826,10 @@ export namespace Prisma {
     created_dish_media_id: 'created_dish_media_id',
     imported_user_name: 'imported_user_name',
     imported_user_avatar: 'imported_user_avatar',
-    created_at: 'created_at'
+    created_at: 'created_at',
+    updated_at: 'updated_at',
+    lock_no: 'lock_no',
+    deleted_at: 'deleted_at'
   };
 
   export type Dish_reviewsScalarFieldEnum = (typeof Dish_reviewsScalarFieldEnum)[keyof typeof Dish_reviewsScalarFieldEnum]
@@ -51123,6 +51195,7 @@ export namespace Prisma {
     media_processing_status?: StringFilter<"dish_media"> | string
     thumbnail_processing_status?: StringFilter<"dish_media"> | string
     render_type?: StringFilter<"dish_media"> | string
+    deleted_at?: DateTimeNullableFilter<"dish_media"> | Date | string | null
     dishes?: XOR<DishesScalarRelationFilter, dishesWhereInput>
     users?: XOR<UsersNullableScalarRelationFilter, usersWhereInput> | null
     dish_media_analysis_results?: XOR<Dish_media_analysis_resultsNullableScalarRelationFilter, dish_media_analysis_resultsWhereInput> | null
@@ -51147,6 +51220,7 @@ export namespace Prisma {
     media_processing_status?: SortOrder
     thumbnail_processing_status?: SortOrder
     render_type?: SortOrder
+    deleted_at?: SortOrderInput | SortOrder
     dishes?: dishesOrderByWithRelationInput
     users?: usersOrderByWithRelationInput
     dish_media_analysis_results?: dish_media_analysis_resultsOrderByWithRelationInput
@@ -51175,6 +51249,7 @@ export namespace Prisma {
     media_processing_status?: StringFilter<"dish_media"> | string
     thumbnail_processing_status?: StringFilter<"dish_media"> | string
     render_type?: StringFilter<"dish_media"> | string
+    deleted_at?: DateTimeNullableFilter<"dish_media"> | Date | string | null
     dishes?: XOR<DishesScalarRelationFilter, dishesWhereInput>
     users?: XOR<UsersNullableScalarRelationFilter, usersWhereInput> | null
     dish_media_analysis_results?: XOR<Dish_media_analysis_resultsNullableScalarRelationFilter, dish_media_analysis_resultsWhereInput> | null
@@ -51199,6 +51274,7 @@ export namespace Prisma {
     media_processing_status?: SortOrder
     thumbnail_processing_status?: SortOrder
     render_type?: SortOrder
+    deleted_at?: SortOrderInput | SortOrder
     _count?: dish_mediaCountOrderByAggregateInput
     _avg?: dish_mediaAvgOrderByAggregateInput
     _max?: dish_mediaMaxOrderByAggregateInput
@@ -51223,6 +51299,7 @@ export namespace Prisma {
     media_processing_status?: StringWithAggregatesFilter<"dish_media"> | string
     thumbnail_processing_status?: StringWithAggregatesFilter<"dish_media"> | string
     render_type?: StringWithAggregatesFilter<"dish_media"> | string
+    deleted_at?: DateTimeNullableWithAggregatesFilter<"dish_media"> | Date | string | null
   }
 
   export type dish_media_analysis_resultsWhereInput = {
@@ -51607,6 +51684,9 @@ export namespace Prisma {
     imported_user_name?: StringNullableFilter<"dish_reviews"> | string | null
     imported_user_avatar?: StringNullableFilter<"dish_reviews"> | string | null
     created_at?: DateTimeFilter<"dish_reviews"> | Date | string
+    updated_at?: DateTimeFilter<"dish_reviews"> | Date | string
+    lock_no?: IntFilter<"dish_reviews"> | number
+    deleted_at?: DateTimeNullableFilter<"dish_reviews"> | Date | string | null
     dishes?: XOR<DishesScalarRelationFilter, dishesWhereInput>
     users?: XOR<UsersNullableScalarRelationFilter, usersWhereInput> | null
   }
@@ -51624,6 +51704,9 @@ export namespace Prisma {
     imported_user_name?: SortOrderInput | SortOrder
     imported_user_avatar?: SortOrderInput | SortOrder
     created_at?: SortOrder
+    updated_at?: SortOrder
+    lock_no?: SortOrder
+    deleted_at?: SortOrderInput | SortOrder
     dishes?: dishesOrderByWithRelationInput
     users?: usersOrderByWithRelationInput
   }
@@ -51644,6 +51727,9 @@ export namespace Prisma {
     imported_user_name?: StringNullableFilter<"dish_reviews"> | string | null
     imported_user_avatar?: StringNullableFilter<"dish_reviews"> | string | null
     created_at?: DateTimeFilter<"dish_reviews"> | Date | string
+    updated_at?: DateTimeFilter<"dish_reviews"> | Date | string
+    lock_no?: IntFilter<"dish_reviews"> | number
+    deleted_at?: DateTimeNullableFilter<"dish_reviews"> | Date | string | null
     dishes?: XOR<DishesScalarRelationFilter, dishesWhereInput>
     users?: XOR<UsersNullableScalarRelationFilter, usersWhereInput> | null
   }, "id">
@@ -51661,6 +51747,9 @@ export namespace Prisma {
     imported_user_name?: SortOrderInput | SortOrder
     imported_user_avatar?: SortOrderInput | SortOrder
     created_at?: SortOrder
+    updated_at?: SortOrder
+    lock_no?: SortOrder
+    deleted_at?: SortOrderInput | SortOrder
     _count?: dish_reviewsCountOrderByAggregateInput
     _avg?: dish_reviewsAvgOrderByAggregateInput
     _max?: dish_reviewsMaxOrderByAggregateInput
@@ -51684,6 +51773,9 @@ export namespace Prisma {
     imported_user_name?: StringNullableWithAggregatesFilter<"dish_reviews"> | string | null
     imported_user_avatar?: StringNullableWithAggregatesFilter<"dish_reviews"> | string | null
     created_at?: DateTimeWithAggregatesFilter<"dish_reviews"> | Date | string
+    updated_at?: DateTimeWithAggregatesFilter<"dish_reviews"> | Date | string
+    lock_no?: IntWithAggregatesFilter<"dish_reviews"> | number
+    deleted_at?: DateTimeNullableWithAggregatesFilter<"dish_reviews"> | Date | string | null
   }
 
   export type dishesWhereInput = {
@@ -54031,6 +54123,7 @@ export namespace Prisma {
     media_processing_status: string
     thumbnail_processing_status: string
     render_type?: string
+    deleted_at?: Date | string | null
     dishes: dishesCreateNestedOneWithoutDish_mediaInput
     users?: usersCreateNestedOneWithoutDish_mediaInput
     dish_media_analysis_results?: dish_media_analysis_resultsCreateNestedOneWithoutDish_mediaInput
@@ -54055,6 +54148,7 @@ export namespace Prisma {
     media_processing_status: string
     thumbnail_processing_status: string
     render_type?: string
+    deleted_at?: Date | string | null
     dish_media_analysis_results?: dish_media_analysis_resultsUncheckedCreateNestedOneWithoutDish_mediaInput
     dish_media_external_embeddings?: dish_media_external_embeddingsUncheckedCreateNestedOneWithoutDish_mediaInput
     dish_media_impressions?: dish_media_impressionsUncheckedCreateNestedManyWithoutDish_mediaInput
@@ -54075,6 +54169,7 @@ export namespace Prisma {
     media_processing_status?: StringFieldUpdateOperationsInput | string
     thumbnail_processing_status?: StringFieldUpdateOperationsInput | string
     render_type?: StringFieldUpdateOperationsInput | string
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dishes?: dishesUpdateOneRequiredWithoutDish_mediaNestedInput
     users?: usersUpdateOneWithoutDish_mediaNestedInput
     dish_media_analysis_results?: dish_media_analysis_resultsUpdateOneWithoutDish_mediaNestedInput
@@ -54099,6 +54194,7 @@ export namespace Prisma {
     media_processing_status?: StringFieldUpdateOperationsInput | string
     thumbnail_processing_status?: StringFieldUpdateOperationsInput | string
     render_type?: StringFieldUpdateOperationsInput | string
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dish_media_analysis_results?: dish_media_analysis_resultsUncheckedUpdateOneWithoutDish_mediaNestedInput
     dish_media_external_embeddings?: dish_media_external_embeddingsUncheckedUpdateOneWithoutDish_mediaNestedInput
     dish_media_impressions?: dish_media_impressionsUncheckedUpdateManyWithoutDish_mediaNestedInput
@@ -54121,6 +54217,7 @@ export namespace Prisma {
     media_processing_status: string
     thumbnail_processing_status: string
     render_type?: string
+    deleted_at?: Date | string | null
   }
 
   export type dish_mediaUpdateManyMutationInput = {
@@ -54135,6 +54232,7 @@ export namespace Prisma {
     media_processing_status?: StringFieldUpdateOperationsInput | string
     thumbnail_processing_status?: StringFieldUpdateOperationsInput | string
     render_type?: StringFieldUpdateOperationsInput | string
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type dish_mediaUncheckedUpdateManyInput = {
@@ -54151,6 +54249,7 @@ export namespace Prisma {
     media_processing_status?: StringFieldUpdateOperationsInput | string
     thumbnail_processing_status?: StringFieldUpdateOperationsInput | string
     render_type?: StringFieldUpdateOperationsInput | string
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type dish_media_analysis_resultsCreateInput = {
@@ -54543,6 +54642,9 @@ export namespace Prisma {
     imported_user_name?: string | null
     imported_user_avatar?: string | null
     created_at?: Date | string
+    updated_at?: Date | string
+    lock_no?: number
+    deleted_at?: Date | string | null
     dishes: dishesCreateNestedOneWithoutDish_reviewsInput
     users?: usersCreateNestedOneWithoutDish_reviewsInput
   }
@@ -54560,6 +54662,9 @@ export namespace Prisma {
     imported_user_name?: string | null
     imported_user_avatar?: string | null
     created_at?: Date | string
+    updated_at?: Date | string
+    lock_no?: number
+    deleted_at?: Date | string | null
   }
 
   export type dish_reviewsUpdateInput = {
@@ -54573,6 +54678,9 @@ export namespace Prisma {
     imported_user_name?: NullableStringFieldUpdateOperationsInput | string | null
     imported_user_avatar?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    lock_no?: IntFieldUpdateOperationsInput | number
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dishes?: dishesUpdateOneRequiredWithoutDish_reviewsNestedInput
     users?: usersUpdateOneWithoutDish_reviewsNestedInput
   }
@@ -54590,6 +54698,9 @@ export namespace Prisma {
     imported_user_name?: NullableStringFieldUpdateOperationsInput | string | null
     imported_user_avatar?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    lock_no?: IntFieldUpdateOperationsInput | number
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type dish_reviewsCreateManyInput = {
@@ -54605,6 +54716,9 @@ export namespace Prisma {
     imported_user_name?: string | null
     imported_user_avatar?: string | null
     created_at?: Date | string
+    updated_at?: Date | string
+    lock_no?: number
+    deleted_at?: Date | string | null
   }
 
   export type dish_reviewsUpdateManyMutationInput = {
@@ -54618,6 +54732,9 @@ export namespace Prisma {
     imported_user_name?: NullableStringFieldUpdateOperationsInput | string | null
     imported_user_avatar?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    lock_no?: IntFieldUpdateOperationsInput | number
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type dish_reviewsUncheckedUpdateManyInput = {
@@ -54633,6 +54750,9 @@ export namespace Prisma {
     imported_user_name?: NullableStringFieldUpdateOperationsInput | string | null
     imported_user_avatar?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    lock_no?: IntFieldUpdateOperationsInput | number
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type dishesCreateInput = {
@@ -57173,6 +57293,7 @@ export namespace Prisma {
     media_processing_status?: SortOrder
     thumbnail_processing_status?: SortOrder
     render_type?: SortOrder
+    deleted_at?: SortOrder
   }
 
   export type dish_mediaAvgOrderByAggregateInput = {
@@ -57194,6 +57315,7 @@ export namespace Prisma {
     media_processing_status?: SortOrder
     thumbnail_processing_status?: SortOrder
     render_type?: SortOrder
+    deleted_at?: SortOrder
   }
 
   export type dish_mediaMinOrderByAggregateInput = {
@@ -57210,6 +57332,7 @@ export namespace Prisma {
     media_processing_status?: SortOrder
     thumbnail_processing_status?: SortOrder
     render_type?: SortOrder
+    deleted_at?: SortOrder
   }
 
   export type dish_mediaSumOrderByAggregateInput = {
@@ -57514,11 +57637,15 @@ export namespace Prisma {
     imported_user_name?: SortOrder
     imported_user_avatar?: SortOrder
     created_at?: SortOrder
+    updated_at?: SortOrder
+    lock_no?: SortOrder
+    deleted_at?: SortOrder
   }
 
   export type dish_reviewsAvgOrderByAggregateInput = {
     rating?: SortOrder
     price_cents?: SortOrder
+    lock_no?: SortOrder
   }
 
   export type dish_reviewsMaxOrderByAggregateInput = {
@@ -57534,6 +57661,9 @@ export namespace Prisma {
     imported_user_name?: SortOrder
     imported_user_avatar?: SortOrder
     created_at?: SortOrder
+    updated_at?: SortOrder
+    lock_no?: SortOrder
+    deleted_at?: SortOrder
   }
 
   export type dish_reviewsMinOrderByAggregateInput = {
@@ -57549,11 +57679,15 @@ export namespace Prisma {
     imported_user_name?: SortOrder
     imported_user_avatar?: SortOrder
     created_at?: SortOrder
+    updated_at?: SortOrder
+    lock_no?: SortOrder
+    deleted_at?: SortOrder
   }
 
   export type dish_reviewsSumOrderByAggregateInput = {
     rating?: SortOrder
     price_cents?: SortOrder
+    lock_no?: SortOrder
   }
 
   export type Dish_mediaListRelationFilter = {
@@ -62343,6 +62477,7 @@ export namespace Prisma {
     media_processing_status: string
     thumbnail_processing_status: string
     render_type?: string
+    deleted_at?: Date | string | null
     dishes: dishesCreateNestedOneWithoutDish_mediaInput
     users?: usersCreateNestedOneWithoutDish_mediaInput
     dish_media_external_embeddings?: dish_media_external_embeddingsCreateNestedOneWithoutDish_mediaInput
@@ -62366,6 +62501,7 @@ export namespace Prisma {
     media_processing_status: string
     thumbnail_processing_status: string
     render_type?: string
+    deleted_at?: Date | string | null
     dish_media_external_embeddings?: dish_media_external_embeddingsUncheckedCreateNestedOneWithoutDish_mediaInput
     dish_media_impressions?: dish_media_impressionsUncheckedCreateNestedManyWithoutDish_mediaInput
     dish_media_likes?: dish_media_likesUncheckedCreateNestedManyWithoutDish_mediaInput
@@ -62401,6 +62537,7 @@ export namespace Prisma {
     media_processing_status?: StringFieldUpdateOperationsInput | string
     thumbnail_processing_status?: StringFieldUpdateOperationsInput | string
     render_type?: StringFieldUpdateOperationsInput | string
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dishes?: dishesUpdateOneRequiredWithoutDish_mediaNestedInput
     users?: usersUpdateOneWithoutDish_mediaNestedInput
     dish_media_external_embeddings?: dish_media_external_embeddingsUpdateOneWithoutDish_mediaNestedInput
@@ -62424,6 +62561,7 @@ export namespace Prisma {
     media_processing_status?: StringFieldUpdateOperationsInput | string
     thumbnail_processing_status?: StringFieldUpdateOperationsInput | string
     render_type?: StringFieldUpdateOperationsInput | string
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dish_media_external_embeddings?: dish_media_external_embeddingsUncheckedUpdateOneWithoutDish_mediaNestedInput
     dish_media_impressions?: dish_media_impressionsUncheckedUpdateManyWithoutDish_mediaNestedInput
     dish_media_likes?: dish_media_likesUncheckedUpdateManyWithoutDish_mediaNestedInput
@@ -62443,6 +62581,7 @@ export namespace Prisma {
     media_processing_status: string
     thumbnail_processing_status: string
     render_type?: string
+    deleted_at?: Date | string | null
     dishes: dishesCreateNestedOneWithoutDish_mediaInput
     users?: usersCreateNestedOneWithoutDish_mediaInput
     dish_media_analysis_results?: dish_media_analysis_resultsCreateNestedOneWithoutDish_mediaInput
@@ -62466,6 +62605,7 @@ export namespace Prisma {
     media_processing_status: string
     thumbnail_processing_status: string
     render_type?: string
+    deleted_at?: Date | string | null
     dish_media_analysis_results?: dish_media_analysis_resultsUncheckedCreateNestedOneWithoutDish_mediaInput
     dish_media_impressions?: dish_media_impressionsUncheckedCreateNestedManyWithoutDish_mediaInput
     dish_media_likes?: dish_media_likesUncheckedCreateNestedManyWithoutDish_mediaInput
@@ -62501,6 +62641,7 @@ export namespace Prisma {
     media_processing_status?: StringFieldUpdateOperationsInput | string
     thumbnail_processing_status?: StringFieldUpdateOperationsInput | string
     render_type?: StringFieldUpdateOperationsInput | string
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dishes?: dishesUpdateOneRequiredWithoutDish_mediaNestedInput
     users?: usersUpdateOneWithoutDish_mediaNestedInput
     dish_media_analysis_results?: dish_media_analysis_resultsUpdateOneWithoutDish_mediaNestedInput
@@ -62524,6 +62665,7 @@ export namespace Prisma {
     media_processing_status?: StringFieldUpdateOperationsInput | string
     thumbnail_processing_status?: StringFieldUpdateOperationsInput | string
     render_type?: StringFieldUpdateOperationsInput | string
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dish_media_analysis_results?: dish_media_analysis_resultsUncheckedUpdateOneWithoutDish_mediaNestedInput
     dish_media_impressions?: dish_media_impressionsUncheckedUpdateManyWithoutDish_mediaNestedInput
     dish_media_likes?: dish_media_likesUncheckedUpdateManyWithoutDish_mediaNestedInput
@@ -62543,6 +62685,7 @@ export namespace Prisma {
     media_processing_status: string
     thumbnail_processing_status: string
     render_type?: string
+    deleted_at?: Date | string | null
     dishes: dishesCreateNestedOneWithoutDish_mediaInput
     users?: usersCreateNestedOneWithoutDish_mediaInput
     dish_media_analysis_results?: dish_media_analysis_resultsCreateNestedOneWithoutDish_mediaInput
@@ -62566,6 +62709,7 @@ export namespace Prisma {
     media_processing_status: string
     thumbnail_processing_status: string
     render_type?: string
+    deleted_at?: Date | string | null
     dish_media_analysis_results?: dish_media_analysis_resultsUncheckedCreateNestedOneWithoutDish_mediaInput
     dish_media_external_embeddings?: dish_media_external_embeddingsUncheckedCreateNestedOneWithoutDish_mediaInput
     dish_media_likes?: dish_media_likesUncheckedCreateNestedManyWithoutDish_mediaInput
@@ -62633,6 +62777,7 @@ export namespace Prisma {
     media_processing_status?: StringFieldUpdateOperationsInput | string
     thumbnail_processing_status?: StringFieldUpdateOperationsInput | string
     render_type?: StringFieldUpdateOperationsInput | string
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dishes?: dishesUpdateOneRequiredWithoutDish_mediaNestedInput
     users?: usersUpdateOneWithoutDish_mediaNestedInput
     dish_media_analysis_results?: dish_media_analysis_resultsUpdateOneWithoutDish_mediaNestedInput
@@ -62656,6 +62801,7 @@ export namespace Prisma {
     media_processing_status?: StringFieldUpdateOperationsInput | string
     thumbnail_processing_status?: StringFieldUpdateOperationsInput | string
     render_type?: StringFieldUpdateOperationsInput | string
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dish_media_analysis_results?: dish_media_analysis_resultsUncheckedUpdateOneWithoutDish_mediaNestedInput
     dish_media_external_embeddings?: dish_media_external_embeddingsUncheckedUpdateOneWithoutDish_mediaNestedInput
     dish_media_likes?: dish_media_likesUncheckedUpdateManyWithoutDish_mediaNestedInput
@@ -62691,6 +62837,7 @@ export namespace Prisma {
     media_processing_status: string
     thumbnail_processing_status: string
     render_type?: string
+    deleted_at?: Date | string | null
     dishes: dishesCreateNestedOneWithoutDish_mediaInput
     users?: usersCreateNestedOneWithoutDish_mediaInput
     dish_media_analysis_results?: dish_media_analysis_resultsCreateNestedOneWithoutDish_mediaInput
@@ -62714,6 +62861,7 @@ export namespace Prisma {
     media_processing_status: string
     thumbnail_processing_status: string
     render_type?: string
+    deleted_at?: Date | string | null
     dish_media_analysis_results?: dish_media_analysis_resultsUncheckedCreateNestedOneWithoutDish_mediaInput
     dish_media_external_embeddings?: dish_media_external_embeddingsUncheckedCreateNestedOneWithoutDish_mediaInput
     dish_media_impressions?: dish_media_impressionsUncheckedCreateNestedManyWithoutDish_mediaInput
@@ -62788,6 +62936,7 @@ export namespace Prisma {
     media_processing_status?: StringFieldUpdateOperationsInput | string
     thumbnail_processing_status?: StringFieldUpdateOperationsInput | string
     render_type?: StringFieldUpdateOperationsInput | string
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dishes?: dishesUpdateOneRequiredWithoutDish_mediaNestedInput
     users?: usersUpdateOneWithoutDish_mediaNestedInput
     dish_media_analysis_results?: dish_media_analysis_resultsUpdateOneWithoutDish_mediaNestedInput
@@ -62811,6 +62960,7 @@ export namespace Prisma {
     media_processing_status?: StringFieldUpdateOperationsInput | string
     thumbnail_processing_status?: StringFieldUpdateOperationsInput | string
     render_type?: StringFieldUpdateOperationsInput | string
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dish_media_analysis_results?: dish_media_analysis_resultsUncheckedUpdateOneWithoutDish_mediaNestedInput
     dish_media_external_embeddings?: dish_media_external_embeddingsUncheckedUpdateOneWithoutDish_mediaNestedInput
     dish_media_impressions?: dish_media_impressionsUncheckedUpdateManyWithoutDish_mediaNestedInput
@@ -62875,6 +63025,7 @@ export namespace Prisma {
     media_processing_status: string
     thumbnail_processing_status: string
     render_type?: string
+    deleted_at?: Date | string | null
     dishes: dishesCreateNestedOneWithoutDish_mediaInput
     users?: usersCreateNestedOneWithoutDish_mediaInput
     dish_media_analysis_results?: dish_media_analysis_resultsCreateNestedOneWithoutDish_mediaInput
@@ -62898,6 +63049,7 @@ export namespace Prisma {
     media_processing_status: string
     thumbnail_processing_status: string
     render_type?: string
+    deleted_at?: Date | string | null
     dish_media_analysis_results?: dish_media_analysis_resultsUncheckedCreateNestedOneWithoutDish_mediaInput
     dish_media_external_embeddings?: dish_media_external_embeddingsUncheckedCreateNestedOneWithoutDish_mediaInput
     dish_media_impressions?: dish_media_impressionsUncheckedCreateNestedManyWithoutDish_mediaInput
@@ -62956,6 +63108,7 @@ export namespace Prisma {
     media_processing_status?: StringFieldUpdateOperationsInput | string
     thumbnail_processing_status?: StringFieldUpdateOperationsInput | string
     render_type?: StringFieldUpdateOperationsInput | string
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dishes?: dishesUpdateOneRequiredWithoutDish_mediaNestedInput
     users?: usersUpdateOneWithoutDish_mediaNestedInput
     dish_media_analysis_results?: dish_media_analysis_resultsUpdateOneWithoutDish_mediaNestedInput
@@ -62979,6 +63132,7 @@ export namespace Prisma {
     media_processing_status?: StringFieldUpdateOperationsInput | string
     thumbnail_processing_status?: StringFieldUpdateOperationsInput | string
     render_type?: StringFieldUpdateOperationsInput | string
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dish_media_analysis_results?: dish_media_analysis_resultsUncheckedUpdateOneWithoutDish_mediaNestedInput
     dish_media_external_embeddings?: dish_media_external_embeddingsUncheckedUpdateOneWithoutDish_mediaNestedInput
     dish_media_impressions?: dish_media_impressionsUncheckedUpdateManyWithoutDish_mediaNestedInput
@@ -63171,6 +63325,7 @@ export namespace Prisma {
     media_processing_status: string
     thumbnail_processing_status: string
     render_type?: string
+    deleted_at?: Date | string | null
     users?: usersCreateNestedOneWithoutDish_mediaInput
     dish_media_analysis_results?: dish_media_analysis_resultsCreateNestedOneWithoutDish_mediaInput
     dish_media_external_embeddings?: dish_media_external_embeddingsCreateNestedOneWithoutDish_mediaInput
@@ -63193,6 +63348,7 @@ export namespace Prisma {
     media_processing_status: string
     thumbnail_processing_status: string
     render_type?: string
+    deleted_at?: Date | string | null
     dish_media_analysis_results?: dish_media_analysis_resultsUncheckedCreateNestedOneWithoutDish_mediaInput
     dish_media_external_embeddings?: dish_media_external_embeddingsUncheckedCreateNestedOneWithoutDish_mediaInput
     dish_media_impressions?: dish_media_impressionsUncheckedCreateNestedManyWithoutDish_mediaInput
@@ -63222,6 +63378,9 @@ export namespace Prisma {
     imported_user_name?: string | null
     imported_user_avatar?: string | null
     created_at?: Date | string
+    updated_at?: Date | string
+    lock_no?: number
+    deleted_at?: Date | string | null
     users?: usersCreateNestedOneWithoutDish_reviewsInput
   }
 
@@ -63237,6 +63396,9 @@ export namespace Prisma {
     imported_user_name?: string | null
     imported_user_avatar?: string | null
     created_at?: Date | string
+    updated_at?: Date | string
+    lock_no?: number
+    deleted_at?: Date | string | null
   }
 
   export type dish_reviewsCreateOrConnectWithoutDishesInput = {
@@ -63352,6 +63514,7 @@ export namespace Prisma {
     media_processing_status?: StringFilter<"dish_media"> | string
     thumbnail_processing_status?: StringFilter<"dish_media"> | string
     render_type?: StringFilter<"dish_media"> | string
+    deleted_at?: DateTimeNullableFilter<"dish_media"> | Date | string | null
   }
 
   export type dish_reviewsUpsertWithWhereUniqueWithoutDishesInput = {
@@ -63386,6 +63549,9 @@ export namespace Prisma {
     imported_user_name?: StringNullableFilter<"dish_reviews"> | string | null
     imported_user_avatar?: StringNullableFilter<"dish_reviews"> | string | null
     created_at?: DateTimeFilter<"dish_reviews"> | Date | string
+    updated_at?: DateTimeFilter<"dish_reviews"> | Date | string
+    lock_no?: IntFilter<"dish_reviews"> | number
+    deleted_at?: DateTimeNullableFilter<"dish_reviews"> | Date | string | null
   }
 
   export type dish_categoriesUpsertWithoutDishesInput = {
@@ -63627,6 +63793,7 @@ export namespace Prisma {
     media_processing_status: string
     thumbnail_processing_status: string
     render_type?: string
+    deleted_at?: Date | string | null
     dishes: dishesCreateNestedOneWithoutDish_mediaInput
     users?: usersCreateNestedOneWithoutDish_mediaInput
     dish_media_analysis_results?: dish_media_analysis_resultsCreateNestedOneWithoutDish_mediaInput
@@ -63650,6 +63817,7 @@ export namespace Prisma {
     media_processing_status: string
     thumbnail_processing_status: string
     render_type?: string
+    deleted_at?: Date | string | null
     dish_media_analysis_results?: dish_media_analysis_resultsUncheckedCreateNestedOneWithoutDish_mediaInput
     dish_media_external_embeddings?: dish_media_external_embeddingsUncheckedCreateNestedOneWithoutDish_mediaInput
     dish_media_impressions?: dish_media_impressionsUncheckedCreateNestedManyWithoutDish_mediaInput
@@ -63728,6 +63896,7 @@ export namespace Prisma {
     media_processing_status?: StringFieldUpdateOperationsInput | string
     thumbnail_processing_status?: StringFieldUpdateOperationsInput | string
     render_type?: StringFieldUpdateOperationsInput | string
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dishes?: dishesUpdateOneRequiredWithoutDish_mediaNestedInput
     users?: usersUpdateOneWithoutDish_mediaNestedInput
     dish_media_analysis_results?: dish_media_analysis_resultsUpdateOneWithoutDish_mediaNestedInput
@@ -63751,6 +63920,7 @@ export namespace Prisma {
     media_processing_status?: StringFieldUpdateOperationsInput | string
     thumbnail_processing_status?: StringFieldUpdateOperationsInput | string
     render_type?: StringFieldUpdateOperationsInput | string
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dish_media_analysis_results?: dish_media_analysis_resultsUncheckedUpdateOneWithoutDish_mediaNestedInput
     dish_media_external_embeddings?: dish_media_external_embeddingsUncheckedUpdateOneWithoutDish_mediaNestedInput
     dish_media_impressions?: dish_media_impressionsUncheckedUpdateManyWithoutDish_mediaNestedInput
@@ -64456,6 +64626,7 @@ export namespace Prisma {
     media_processing_status: string
     thumbnail_processing_status: string
     render_type?: string
+    deleted_at?: Date | string | null
     dishes: dishesCreateNestedOneWithoutDish_mediaInput
     dish_media_analysis_results?: dish_media_analysis_resultsCreateNestedOneWithoutDish_mediaInput
     dish_media_external_embeddings?: dish_media_external_embeddingsCreateNestedOneWithoutDish_mediaInput
@@ -64478,6 +64649,7 @@ export namespace Prisma {
     media_processing_status: string
     thumbnail_processing_status: string
     render_type?: string
+    deleted_at?: Date | string | null
     dish_media_analysis_results?: dish_media_analysis_resultsUncheckedCreateNestedOneWithoutDish_mediaInput
     dish_media_external_embeddings?: dish_media_external_embeddingsUncheckedCreateNestedOneWithoutDish_mediaInput
     dish_media_impressions?: dish_media_impressionsUncheckedCreateNestedManyWithoutDish_mediaInput
@@ -64529,6 +64701,9 @@ export namespace Prisma {
     imported_user_name?: string | null
     imported_user_avatar?: string | null
     created_at?: Date | string
+    updated_at?: Date | string
+    lock_no?: number
+    deleted_at?: Date | string | null
     dishes: dishesCreateNestedOneWithoutDish_reviewsInput
   }
 
@@ -64544,6 +64719,9 @@ export namespace Prisma {
     imported_user_name?: string | null
     imported_user_avatar?: string | null
     created_at?: Date | string
+    updated_at?: Date | string
+    lock_no?: number
+    deleted_at?: Date | string | null
   }
 
   export type dish_reviewsCreateOrConnectWithoutUsersInput = {
@@ -65183,6 +65361,7 @@ export namespace Prisma {
     media_processing_status: string
     thumbnail_processing_status: string
     render_type?: string
+    deleted_at?: Date | string | null
   }
 
   export type dish_reviewsCreateManyDishesInput = {
@@ -65197,6 +65376,9 @@ export namespace Prisma {
     imported_user_name?: string | null
     imported_user_avatar?: string | null
     created_at?: Date | string
+    updated_at?: Date | string
+    lock_no?: number
+    deleted_at?: Date | string | null
   }
 
   export type dish_mediaUpdateWithoutDishesInput = {
@@ -65211,6 +65393,7 @@ export namespace Prisma {
     media_processing_status?: StringFieldUpdateOperationsInput | string
     thumbnail_processing_status?: StringFieldUpdateOperationsInput | string
     render_type?: StringFieldUpdateOperationsInput | string
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     users?: usersUpdateOneWithoutDish_mediaNestedInput
     dish_media_analysis_results?: dish_media_analysis_resultsUpdateOneWithoutDish_mediaNestedInput
     dish_media_external_embeddings?: dish_media_external_embeddingsUpdateOneWithoutDish_mediaNestedInput
@@ -65233,6 +65416,7 @@ export namespace Prisma {
     media_processing_status?: StringFieldUpdateOperationsInput | string
     thumbnail_processing_status?: StringFieldUpdateOperationsInput | string
     render_type?: StringFieldUpdateOperationsInput | string
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dish_media_analysis_results?: dish_media_analysis_resultsUncheckedUpdateOneWithoutDish_mediaNestedInput
     dish_media_external_embeddings?: dish_media_external_embeddingsUncheckedUpdateOneWithoutDish_mediaNestedInput
     dish_media_impressions?: dish_media_impressionsUncheckedUpdateManyWithoutDish_mediaNestedInput
@@ -65254,6 +65438,7 @@ export namespace Prisma {
     media_processing_status?: StringFieldUpdateOperationsInput | string
     thumbnail_processing_status?: StringFieldUpdateOperationsInput | string
     render_type?: StringFieldUpdateOperationsInput | string
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type dish_reviewsUpdateWithoutDishesInput = {
@@ -65267,6 +65452,9 @@ export namespace Prisma {
     imported_user_name?: NullableStringFieldUpdateOperationsInput | string | null
     imported_user_avatar?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    lock_no?: IntFieldUpdateOperationsInput | number
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     users?: usersUpdateOneWithoutDish_reviewsNestedInput
   }
 
@@ -65282,6 +65470,9 @@ export namespace Prisma {
     imported_user_name?: NullableStringFieldUpdateOperationsInput | string | null
     imported_user_avatar?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    lock_no?: IntFieldUpdateOperationsInput | number
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type dish_reviewsUncheckedUpdateManyWithoutDishesInput = {
@@ -65296,6 +65487,9 @@ export namespace Prisma {
     imported_user_name?: NullableStringFieldUpdateOperationsInput | string | null
     imported_user_avatar?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    lock_no?: IntFieldUpdateOperationsInput | number
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type notification_recipientsCreateManyNotificationsInput = {
@@ -65569,6 +65763,7 @@ export namespace Prisma {
     media_processing_status: string
     thumbnail_processing_status: string
     render_type?: string
+    deleted_at?: Date | string | null
   }
 
   export type dish_media_likesCreateManyUsersInput = {
@@ -65589,6 +65784,9 @@ export namespace Prisma {
     imported_user_name?: string | null
     imported_user_avatar?: string | null
     created_at?: Date | string
+    updated_at?: Date | string
+    lock_no?: number
+    deleted_at?: Date | string | null
   }
 
   export type restaurant_bidsCreateManyUsersInput = {
@@ -65618,6 +65816,7 @@ export namespace Prisma {
     media_processing_status?: StringFieldUpdateOperationsInput | string
     thumbnail_processing_status?: StringFieldUpdateOperationsInput | string
     render_type?: StringFieldUpdateOperationsInput | string
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dishes?: dishesUpdateOneRequiredWithoutDish_mediaNestedInput
     dish_media_analysis_results?: dish_media_analysis_resultsUpdateOneWithoutDish_mediaNestedInput
     dish_media_external_embeddings?: dish_media_external_embeddingsUpdateOneWithoutDish_mediaNestedInput
@@ -65640,6 +65839,7 @@ export namespace Prisma {
     media_processing_status?: StringFieldUpdateOperationsInput | string
     thumbnail_processing_status?: StringFieldUpdateOperationsInput | string
     render_type?: StringFieldUpdateOperationsInput | string
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dish_media_analysis_results?: dish_media_analysis_resultsUncheckedUpdateOneWithoutDish_mediaNestedInput
     dish_media_external_embeddings?: dish_media_external_embeddingsUncheckedUpdateOneWithoutDish_mediaNestedInput
     dish_media_impressions?: dish_media_impressionsUncheckedUpdateManyWithoutDish_mediaNestedInput
@@ -65661,6 +65861,7 @@ export namespace Prisma {
     media_processing_status?: StringFieldUpdateOperationsInput | string
     thumbnail_processing_status?: StringFieldUpdateOperationsInput | string
     render_type?: StringFieldUpdateOperationsInput | string
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type dish_media_likesUpdateWithoutUsersInput = {
@@ -65692,6 +65893,9 @@ export namespace Prisma {
     imported_user_name?: NullableStringFieldUpdateOperationsInput | string | null
     imported_user_avatar?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    lock_no?: IntFieldUpdateOperationsInput | number
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     dishes?: dishesUpdateOneRequiredWithoutDish_reviewsNestedInput
   }
 
@@ -65707,6 +65911,9 @@ export namespace Prisma {
     imported_user_name?: NullableStringFieldUpdateOperationsInput | string | null
     imported_user_avatar?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    lock_no?: IntFieldUpdateOperationsInput | number
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type dish_reviewsUncheckedUpdateManyWithoutUsersInput = {
@@ -65721,6 +65928,9 @@ export namespace Prisma {
     imported_user_name?: NullableStringFieldUpdateOperationsInput | string | null
     imported_user_avatar?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    lock_no?: IntFieldUpdateOperationsInput | number
+    deleted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type restaurant_bidsUpdateWithoutUsersInput = {

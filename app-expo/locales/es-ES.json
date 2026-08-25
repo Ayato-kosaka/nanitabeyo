@@ -422,7 +422,8 @@
 			"openMap": "Abrir el mapa de {{name}}",
 			"reviewLike": "Me gusta la reseña de {{username}}",
 			"recordEaten": "Registrar {{name}} como comido",
-			"recordEatenAgain": "Registrar de nuevo en {{name}} (ya registrado)"
+			"recordEatenAgain": "Registrar de nuevo en {{name}} (ya registrado)",
+			"ownPostMenu": "Abrir el menú de la publicación de {{name}}"
 		},
 		"processing": "Procesando el contenido...",
 		"errors": {
@@ -439,6 +440,27 @@
 		},
 		"embed": {
 			"play": "Reproducir en {{provider}}"
+		},
+		"ownPost": {
+			"menuTitle": "Tu publicación",
+			"edit": "Editar reseña",
+			"delete": "Eliminar publicación",
+			"cancel": "Cancelar",
+			"mediaLocked": "Las fotos y los vídeos no se pueden cambiar. Puedes editar el comentario, la valoración y el precio.",
+			"deleteConfirmTitle": "¿Eliminar esta publicación?",
+			"deleteConfirmMessage": "Se eliminará la publicación: la foto y tu reseña. No se puede deshacer.",
+			"deleteConfirmButton": "Eliminar",
+			"deleted": "Publicación eliminada",
+			"deleteFailed": "No se pudo eliminar la publicación",
+			"editTitle": "Editar reseña",
+			"editComment": "Comentario",
+			"editRating": "Valoración",
+			"editPrice": "Precio",
+			"save": "Guardar",
+			"saved": "Reseña actualizada",
+			"saveFailed": "No se pudo actualizar la reseña",
+			"conflict": "Esta reseña se actualizó en otro dispositivo. Vuelve a abrirla antes de editarla.",
+			"forbidden": "Solo puedes editar o eliminar tus propias publicaciones"
 		}
 	},
 	"Report": {
@@ -1087,6 +1109,10 @@
 				}
 			},
 			"replay": "Ver el tutorial de nuevo"
+		},
+		"deleted": {
+			"label": "Eliminada",
+			"a11yLabel": "La foto de esta publicación se eliminó"
 		}
 	},
 	"SnsImport": {

@@ -275,6 +275,41 @@ describe('DishMediaAssembler - Signed Cookie Generation', () => {
       expect(mockStorage.generateCdnSignedCookies).not.toHaveBeenCalled();
     });
 
+    it('#1513 削除済み（deleted_at あり）は mediaUrl / thumbnailImageUrl を作らない', () => {
+      // 墓標を出す画面（いいね一覧 / 保存一覧 / 通知 / レビューのサムネイル）は
+      // includeDeleted で削除済みの行も受け取る。行は残すが中身は出さないのが
+      // 「削除された」の意味なので、署名 URL の発行はここで止める。
+      // GCS の実体は当面残す方針（#1513 設計 問2）なので、URL を作れば見えてしまう
+      const result = assembler.toDishMediaEntry(
+        baseEntry({
+          render_type: 'stored',
+          media_path: 'user-uploads/user-1/media.mp4',
+          media_processing_status: 'completed',
+          deleted_at: new Date('2026-08-24T00:00:00Z'),
+        }) as any,
+      );
+
+      expect(result.items[0].dish_media.mediaUrl).toBeNull();
+      expect(result.items[0].dish_media.thumbnailImageUrl).toBeNull();
+      // 動画の Signed Cookie も発行されない
+      expect(mockStorage.generateCdnSignedCookies).not.toHaveBeenCalled();
+    });
+
+    it('#1513 deleted_at を持たない入力（undefined）は削除済みとして扱わない', () => {
+      // ⚠️ これは実際に踏んだ退行の固定。`deleted_at !== null` で書くと undefined が
+      // «削除済み» になり、生きている投稿の URL まで消える（7 テストが落ちた）
+      const result = assembler.toDishMediaEntry(
+        baseEntry({
+          render_type: 'stored',
+          media_path: 'user-uploads/user-1/media.mp4',
+          media_processing_status: 'completed',
+        }) as any,
+      );
+
+      expect(result.items[0].dish_media.mediaUrl).not.toBeNull();
+      expect(result.items[0].dish_media.thumbnailImageUrl).not.toBeNull();
+    });
+
     it('stored なのに media_path が欠けていても落ちず mediaUrl は null', () => {
       const result = assembler.toDishMediaEntry(
         baseEntry({

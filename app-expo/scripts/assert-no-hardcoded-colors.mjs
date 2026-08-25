@@ -74,8 +74,6 @@ const COLOR_LITERAL = /["'`]#[0-9a-fA-F]{3,8}\b|["'`](?:white|black)["'`]/g;
 const EXCLUSIONS = {
 	"app/+html.tsx":
 		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
-	"app/[locale]/(tabs)/notifications/index.tsx":
-		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
 	"app/[locale]/(tabs)/profile/blocked-topics.tsx":
 		"main 由来のレガシー（#1509 のトークン化が未達）。#1469 ダークモード追従のスコープ外。トークン化したらこの行を消す",
 	"app/[locale]/(tabs)/profile/edit.tsx":

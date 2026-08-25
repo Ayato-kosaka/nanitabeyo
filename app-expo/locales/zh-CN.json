@@ -422,7 +422,8 @@
 			"openMap": "打开{{name}}的地图",
 			"reviewLike": "为{{username}}的点评点赞",
 			"recordEaten": "将{{name}}记录为吃过",
-			"recordEatenAgain": "再次记录在{{name}}吃过（已记录）"
+			"recordEatenAgain": "再次记录在{{name}}吃过（已记录）",
+			"ownPostMenu": "打开{{name}}的帖子菜单"
 		},
 		"processing": "正在处理媒体...",
 		"errors": {
@@ -439,6 +440,27 @@
 		},
 		"embed": {
 			"play": "在{{provider}}上播放"
+		},
+		"ownPost": {
+			"menuTitle": "我的帖子",
+			"edit": "编辑评价",
+			"delete": "删除帖子",
+			"cancel": "取消",
+			"mediaLocked": "照片和视频无法更换。可编辑的是评论、评分和价格。",
+			"deleteConfirmTitle": "要删除这条帖子吗？",
+			"deleteConfirmMessage": "将删除这条帖子（照片和你的评价），且无法恢复。",
+			"deleteConfirmButton": "删除",
+			"deleted": "已删除帖子",
+			"deleteFailed": "删除失败",
+			"editTitle": "编辑评价",
+			"editComment": "评论",
+			"editRating": "评分",
+			"editPrice": "价格",
+			"save": "保存",
+			"saved": "已更新评价",
+			"saveFailed": "更新失败",
+			"conflict": "该评价已在其他设备上更新，请重新打开后再编辑。",
+			"forbidden": "只能编辑或删除自己的帖子"
 		}
 	},
 	"Report": {
@@ -1087,6 +1109,10 @@
 				}
 			},
 			"replay": "重新观看教程"
+		},
+		"deleted": {
+			"label": "已删除",
+			"a11yLabel": "这条帖子的照片已被删除"
 		}
 	},
 	"SnsImport": {

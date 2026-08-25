@@ -17,6 +17,7 @@ export { CreateDishCategoryVariantDto } from "./dish-category-variants/create-di
 
 export { CreateDishReviewDto } from "./dish-reviews/create-dish-review.dto";
 export { LikeDishReviewParamsDto } from "./dish-reviews/like-dish-review.dto";
+export { UpdateDishReviewDto } from "./dish-reviews/update-dish-review.dto";
 
 export { CreateDishDto } from "./dishes/create-dish.dto";
 export { BulkImportDishesDto } from "./dishes/bulk-import-dishes.dto";

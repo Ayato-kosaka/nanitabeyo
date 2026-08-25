@@ -422,7 +422,8 @@
 			"openMap": "Ouvrir la carte de {{name}}",
 			"reviewLike": "Aimer l'avis de {{username}}",
 			"recordEaten": "Enregistrer {{name}} comme goûté",
-			"recordEatenAgain": "Enregistrer à nouveau chez {{name}} (déjà enregistré)"
+			"recordEatenAgain": "Enregistrer à nouveau chez {{name}} (déjà enregistré)",
+			"ownPostMenu": "Ouvrir le menu de la publication de {{name}}"
 		},
 		"processing": "Traitement du média...",
 		"errors": {
@@ -439,6 +440,27 @@
 		},
 		"embed": {
 			"play": "Lire sur {{provider}}"
+		},
+		"ownPost": {
+			"menuTitle": "Votre publication",
+			"edit": "Modifier l'avis",
+			"delete": "Supprimer la publication",
+			"cancel": "Annuler",
+			"mediaLocked": "Les photos et vidéos ne peuvent pas être remplacées. Vous pouvez modifier le commentaire, la note et le prix.",
+			"deleteConfirmTitle": "Supprimer cette publication ?",
+			"deleteConfirmMessage": "La publication sera supprimée : la photo et votre avis. Cette action est irréversible.",
+			"deleteConfirmButton": "Supprimer",
+			"deleted": "Publication supprimée",
+			"deleteFailed": "Impossible de supprimer la publication",
+			"editTitle": "Modifier l'avis",
+			"editComment": "Commentaire",
+			"editRating": "Note",
+			"editPrice": "Prix",
+			"save": "Enregistrer",
+			"saved": "Avis mis à jour",
+			"saveFailed": "Impossible de mettre à jour l'avis",
+			"conflict": "Cet avis a été modifié ailleurs. Rouvrez-le avant de le modifier.",
+			"forbidden": "Vous ne pouvez modifier ou supprimer que vos propres publications"
 		}
 	},
 	"Report": {
@@ -1087,6 +1109,10 @@
 				}
 			},
 			"replay": "Revoir le tutoriel"
+		},
+		"deleted": {
+			"label": "Supprimée",
+			"a11yLabel": "La photo de cette publication a été supprimée"
 		}
 	},
 	"SnsImport": {

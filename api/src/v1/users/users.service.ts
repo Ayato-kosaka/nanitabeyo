@@ -129,6 +129,9 @@ export class UsersService {
     const dishMediaEntryItemsResult =
       await this.dishMediaService.fetchDishMediaEntryItems(uniqueDishMediaIds, {
         userId,
+        // #1513 墓標「削除されました」を出す画面。行を消さずに中身だけ差し替えるため、
+        // 削除済みの dish_media も受け取る（詳細は getDishMediaEntriesByIds の JSDoc）
+        includeDeleted: true,
       });
 
     const dishMediaMap = new Map<
@@ -210,6 +213,9 @@ export class UsersService {
     const dishMediaEntryItemsResult =
       await this.dishMediaService.fetchDishMediaEntryItems(dishMediaIds, {
         userId,
+        // #1513 墓標「削除されました」を出す画面。行を消さずに中身だけ差し替えるため、
+        // 削除済みの dish_media も受け取る（詳細は getDishMediaEntriesByIds の JSDoc）
+        includeDeleted: true,
       });
 
     this.logger.debug('GetMeLikedDishMediaResult', 'getMeLikedDishMedia', {
@@ -321,6 +327,9 @@ export class UsersService {
     const dishMediaEntryItemsResult =
       await this.dishMediaService.fetchDishMediaEntryItems(dishMediaIds, {
         userId,
+        // #1513 墓標「削除されました」を出す画面。行を消さずに中身だけ差し替えるため、
+        // 削除済みの dish_media も受け取る（詳細は getDishMediaEntriesByIds の JSDoc）
+        includeDeleted: true,
       });
 
     this.logger.debug('GetMeSavedDishMediaResult', 'getMeSavedDishMedia', {
@@ -542,6 +551,9 @@ export class UsersService {
         },
         dishMedia:
           (item.mediaId ? dishMediaById.get(item.mediaId) : undefined) ?? null,
+        // #1513 自分の投稿を消したときは別の写真へ差し替えず（mediaId は NULL）、
+        // このフラグで墓標を出させる。行は消さない
+        isOwnMediaDeleted: item.isOwnMediaDeleted,
         myReview: review
           ? {
               ...convertPrismaToSupabase_DishReviews(review),
@@ -630,6 +642,8 @@ export class UsersService {
             : null) ??
           pin.representativeExternalThumbnailUrl ??
           null,
+        // #1513 代表行の自分の投稿が消えているときは墓標のサムネイルを出させる
+        isOwnMediaDeleted: pin.isOwnMediaDeleted,
       })),
       truncated,
     };
