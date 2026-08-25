@@ -418,7 +418,20 @@ export default function MyDishesFiltersScreen() {
 	}, [lightImpact]);
 
 	return (
-		<SafeAreaView edges={["bottom"]} style={styles.container} testID="my-dishes-filter-screen">
+		/*
+		#1375（10 巡目・オーナー実機指摘「私の iPhone だと謎の余白がある」）
+		**下端のインセットをここで確保してはいけない。**
+
+		この画面は `(tabs)` の中にあり、**下端の安全領域はタブバーが既に確保している**。
+		ここで `edges={["bottom"]}` を足すと、ホームインジケータぶん（iPhone で約 34pt）が
+		タブバーの **上に二重で**入り、ボタンの下に説明のつかない帯が出る。
+
+		同じ間違いを一度 my-dishes 本体でも踏んでおり（index.tsx の「タブバーが既に確保している
+		下端インセットの分だけ…」のコメント）、**この画面だけ直っていなかった**。
+		⚠️ `(tabs)` の外にある画面（`add-record` / `auth/login` / `onboarding`）は
+		   タブバーが無いので `bottom` が要る。この判断はタブの内か外かで決まる。
+		*/
+		<SafeAreaView edges={[]} style={styles.container} testID="my-dishes-filter-screen">
 			<ScreenHeader
 				title={i18n.t("MyDishes.filters.title")}
 				onPressBack={handleBack}
