@@ -1019,6 +1019,7 @@
 		},
 		"map": {
 			"truncated": "件数が多いため一部のピンのみ表示しています。エリアを絞り込んでください。",
+			"currentLocation": "現在地へ移動",
 			"sheetTitle": "この付近のレストラン {{count}} 件",
 			"tileA11yLabel": "{{name}}（食べたい {{want}} 件、食べた {{eaten}} 件）",
 			"clusterA11yLabel": "このあたりのレストラン {{count}} 件"

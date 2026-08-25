@@ -1019,6 +1019,7 @@
 		},
 		"map": {
 			"truncated": "يتم عرض بعض الدبابيس فقط. يرجى تضييق نطاق المنطقة.",
+			"currentLocation": "الانتقال إلى موقعي الحالي",
 			"sheetTitle": "{{count}} مطاعم قريبة",
 			"tileA11yLabel": "{{name}} (أريد أن آكل: {{want}}، أكلت: {{eaten}})",
 			"clusterA11yLabel": "{{count}} مطاعم في هذه المنطقة"

@@ -1019,6 +1019,7 @@
 		},
 		"map": {
 			"truncated": "Only some pins are shown. Narrow the area to see the rest.",
+			"currentLocation": "Go to current location",
 			"sheetTitle": "{{count}} restaurants nearby",
 			"tileA11yLabel": "{{name}} (want to eat: {{want}}, eaten: {{eaten}})",
 			"clusterA11yLabel": "{{count}} restaurants here"

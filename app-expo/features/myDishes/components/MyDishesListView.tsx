@@ -21,6 +21,7 @@ import { MY_DISHES_EVENTS } from "../analytics";
 import { buildMarkAsEatenRoute } from "../markAsEaten";
 import { beginMarkAsEaten } from "../markAsEatenFunnel";
 import { resolveMyDishThumbnail } from "../thumbnail";
+import { resolveProviderIcon, resolveProviderLabel } from "@/features/dishMedia/providerIcon";
 import { useMyDishesQuery } from "../hooks/useMyDishesQuery";
 import { MY_DISH_STATUS_COLORS } from "@/features/myDishes/statusColors";
 
@@ -69,6 +70,20 @@ const MyDishCard = memo(function MyDishCard({
 	const thumbnail = resolveMyDishThumbnail(item);
 	const thumbnailUrl = thumbnail.kind === "photo" ? thumbnail.url : null;
 	const isNoPhoto = item.dishMedia === null;
+	/*
+	#1375（9 巡目・オーナー指摘）**取り込んだ投稿のサムネイルには provider のロゴを重ねる。**
+
+	一覧に «自分で撮った写真» と «SNS から取り込んだもの» が混ざるので、
+	タイルを見ただけでどちらか分かるようにする。
+
+	⚠️ 判定は `render_type === "external_embed"` を先に見ること。`externalEmbed` は
+	   «詰めているのは一部の経路だけ» という約束のフィールドで、`undefined` は
+	   «stored である» ことを意味しない（`shared/api/v1/res/dish-media.response.ts`）。
+	   ロゴの種類だけを `externalEmbed?.provider` から取り、取れなければ汎用リンクへ落とす。
+	*/
+	const isExternalEmbed = item.dishMedia?.render_type === "external_embed";
+	const providerLabel = resolveProviderLabel(item.dishMedia?.externalEmbed?.provider);
+	const ProviderIcon = resolveProviderIcon(item.dishMedia?.externalEmbed?.provider);
 	const source = useMemo(
 		() => (thumbnailUrl ? { uri: thumbnailUrl, cacheKey: getCacheKeyForImage(thumbnailUrl) } : null),
 		[thumbnailUrl],
@@ -100,6 +115,15 @@ const MyDishCard = memo(function MyDishCard({
 					source={source}
 					cachePolicy="memory-disk"
 					transition={100}
+					/*
+					#1375（9 巡目・オーナー指摘「読み込みが重い」）**セルの使い回しを画像へ伝える。**
+
+					FlatList はスクロールでセル（＝この `Image`）を使い回す。`recyclingKey` を
+					渡さないと、使い回された瞬間に **前の行の画像が残ったまま**新しい URL の
+					読み込みが始まり、「一瞬別の写真が出てから差し替わる」ちらつきになる。
+					人からは «読み込みが遅い» に見える。キーには行を一意に指す `item.key` を使う
+					*/
+					recyclingKey={item.key}
 					style={StyleSheet.absoluteFill}
 					contentFit="cover"
 					alt=""
@@ -135,6 +159,17 @@ const MyDishCard = memo(function MyDishCard({
 							{/* 写真の上に載る固定濃色バッジの中なので固定の白でよい */}
 							<ImageOff size={10} color={FixedColors.onFilled} />
 							<Text style={styles.noPhotoBadgeText}>{i18n.t("MyDishes.list.noPhoto")}</Text>
+						</View>
+					)}
+					{/* #1375（9 巡目）取り込み元のロゴ。バッジ行の右端へ寄せる（左は状態バッジの列） */}
+					{isExternalEmbed && (
+						<View
+							style={styles.providerBadge}
+							testID="my-dishes-list-item-provider-badge"
+							accessibilityElementsHidden
+							importantForAccessibility="no-hide-descendants">
+							{/* 写真の上に載る固定濃色バッジの中なので固定の白でよい */}
+							<ProviderIcon size={12} color={FixedColors.onFilled} />
 						</View>
 					)}
 				</View>
@@ -177,6 +212,21 @@ export function MyDishesListView({ enabled = true }: { enabled?: boolean } = {})
 	const { items, isLoading, isLoadingMore, error, hasNextPage, loadMore, refresh } = useMyDishesQuery({ enabled });
 
 	const data = useMemo<MyDishGridItem[]>(() => items.map((item) => ({ id: item.key, item })), [items]);
+
+	/*
+	#1375（9 巡目・オーナー指摘「読み込みが重い」）**1 行の実寸を FlatList へ渡す。**
+
+	`GridList` は `getItemLayout` で «高さ 200px» という当てずっぽうの定数を返していた。
+	実際のタイルは下（`MyDishCard`）と同じ式で決まり、iPhone 実機では 210 前後になる。
+	FlatList は `getItemLayout` の値を実測より優先して信じるので、ずれていると
+	**`onEndReached` の発火位置がずれて、要らない次ページまで読みに行く**。
+	同じ式をここでも使い、実寸を渡す（式が 2 箇所になるので定数を共有する）。
+	*/
+	const contentWidth = useContentWidth();
+	const itemHeight = useMemo(
+		() => (contentWidth - PADDING_HORIZONTAL * 2 - GAP * (COLUMNS - 1)) / COLUMNS / ASPECT_RATIO,
+		[contentWidth],
+	);
 
 	// #1397 (PR4/5) Q2 確定: リスト項目のタップ先は **その項目の店舗スコープの Feed**。
 	// 代案（フィルタ済み一覧全体を縦スクロールする Feed）は ids を URL に積むか store 前提にするしか
@@ -281,6 +331,7 @@ export function MyDishesListView({ enabled = true }: { enabled?: boolean } = {})
 			onEndReached={handleEndReached}
 			ListEmptyComponent={renderEmpty}
 			testID="my-dishes-list"
+			itemHeight={itemHeight}
 			// my-dishes は collapsible-tabs の外にいる単独ルートなので素の FlatList を使う（#1402 と同じ）
 			standalone
 		/>
@@ -316,6 +367,7 @@ const createStyles = (c: Palette) =>
 		},
 		badgeRow: {
 			flexDirection: "row",
+			alignItems: "flex-start",
 			padding: 6,
 			gap: 4,
 		},
@@ -331,6 +383,18 @@ const createStyles = (c: Palette) =>
 			paddingHorizontal: 6,
 			paddingVertical: 2,
 			borderRadius: 10,
+			backgroundColor: "rgba(17,24,39,0.6)",
+		},
+		// #1375（9 巡目）取り込み元のロゴ。バッジ行の **右端**（`marginLeft: "auto"`）へ寄せ、
+		// 左の状態バッジ列とぶつからないようにする。丸にするのは «文字のバッジではない» ことを
+		// 形でも分けるため
+		providerBadge: {
+			marginLeft: "auto",
+			width: 20,
+			height: 20,
+			borderRadius: 10,
+			alignItems: "center",
+			justifyContent: "center",
 			backgroundColor: "rgba(17,24,39,0.6)",
 		},
 		noPhotoBadgeText: {

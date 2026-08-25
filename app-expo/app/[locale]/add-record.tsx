@@ -47,7 +47,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
 	ActivityIndicator,
 	KeyboardAvoidingView,
-	PanResponder,
 	Platform,
 	ScrollView,
 	StyleSheet,
@@ -56,7 +55,8 @@ import {
 	TouchableOpacity,
 	View,
 } from "react-native";
-import { Instagram, Link2, MapPin, MapPinned, Music2, Search, X, Youtube } from "lucide-react-native";
+import { ChevronLeft, Search, X } from "lucide-react-native";
+import { resolveProviderIcon, resolveProviderLabel } from "@/features/dishMedia/providerIcon";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { PrimaryButton } from "@/components/PrimaryButton";
@@ -83,29 +83,8 @@ import { ReviewForm } from "@/features/map/components/ReviewForm";
 import { bumpMyDishesRevision } from "@/features/myDishes/stores/useMyDishesRevisionStore";
 import type { QueryRestaurantsResponse } from "@shared/api/v1/res";
 import type { Region } from "react-native-maps";
-import type { SnsProvider } from "@shared/utils/snsUrl";
 import type { CreateDishMediaImportDto, ResolveDishMediaImportDto } from "@shared/api/v1/dto";
 import type { CreateDishMediaImportResponse, ResolveDishMediaImportResponse } from "@shared/api/v1/res";
-
-/**
- * provider の表示名。**固有名詞なので翻訳しない**（8 ロケールへ同じ値を 3 つずつ置くと、
- * 表記ゆれが入る余地だけが増える）。文章に混ざる形の文言は locale ファイル側に置いてある。
- */
-const PROVIDER_LABELS: Record<SnsProvider, string> = {
-	instagram: "Instagram",
-	tiktok: "TikTok",
-	youtube: "YouTube Shorts",
-};
-
-/**
- * provider 名の左に添えるロゴ（#1375 4 巡目の実機指摘）。
- * lucide に TikTok の公式グリフは無いので音符（Music2）で代用する。
- */
-const PROVIDER_ICONS: Record<SnsProvider, typeof Instagram> = {
-	instagram: Instagram,
-	tiktok: Music2,
-	youtube: Youtube,
-};
 
 /**
  * キャプションを畳んだとき（3 行）に収まりきらない可能性が高い条件。
@@ -223,30 +202,6 @@ export default function SnsImportScreen() {
 	 */
 	const view = useMemo(() => resolveSnsShareIntakeView(input.trim() || null), [input]);
 
-	/**
-	 * #1375 実機確認: **下へ引いて閉じる。** ヘッダを出さない代わりの戻る導線である。
-	 *
-	 * ⚠️ 本物のボトムシート（オーバーレイ）にはしていない。`Portal.Host` が `<Stack>` を
-	 * 包んでいるため、オーバーレイを開いたまま push すると遷移先が下に潜る（#1364 で実測）。
-	 * この画面は「食べたを記録」から店舗選択へ push するので、そこを踏む。
-	 * ルートのまま **ジェスチャだけ** ボトムシート相当にしてある。
-	 *
-	 * ⚠️ ジェスチャは «つまみの帯» にだけ付ける。画面全体に付けると、下のスクロールや
-	 * 入力欄のドラッグを奪う。`onMoveShouldSetPanResponder` で下方向の動きだけを拾い、
-	 * 横方向・上方向は素通しにしている。
-	 */
-	const DISMISS_DISTANCE = 80;
-	const dismissGesture = useMemo(
-		() =>
-			PanResponder.create({
-				onMoveShouldSetPanResponder: (_event, gesture) => gesture.dy > 8 && Math.abs(gesture.dy) > Math.abs(gesture.dx),
-				onPanResponderRelease: (_event, gesture) => {
-					if (gesture.dy > DISMISS_DISTANCE) handleBackRef.current();
-				},
-			}),
-		[],
-	);
-
 	const handleBack = useCallback(() => {
 		lightImpact();
 		logFrontendEvent({
@@ -262,13 +217,6 @@ export default function SnsImportScreen() {
 		}
 		router.replace(`/${locale}/my-dishes`);
 	}, [lightImpact, locale, logFrontendEvent, view.state]);
-
-	// PanResponder は 1 度だけ作る（毎レンダー作り直すとジェスチャが途中で切れる）ので、
-	// 最新の `handleBack` は ref 経由で読む
-	const handleBackRef = useRef(handleBack);
-	useEffect(() => {
-		handleBackRef.current = handleBack;
-	}, [handleBack]);
 
 	/**
 	 * 「食べたを記録」タブ。こちらは **公開レビューの投稿**なのでログインが要る
@@ -503,6 +451,19 @@ export default function SnsImportScreen() {
 				error_level: "log",
 				payload: { created: response.created, saved: response.saved },
 			});
+			/*
+			#1375（9 巡目・オーナー指摘「インスタをインポートして食べたいを押したら
+			メディアと料理が出ない」）**取り込みの直後にも my-dishes を無効化する。**
+
+			`useMyDishesQuery` は `hasFetchedInitial` が立っている限り再取得しない。
+			取り込みは `dish_media` と `reactions(save)` を **サーバー側だけ**へ足すので、
+			ここで版を上げないと戻った先の一覧はキャッシュのままで、
+			**取り込んだものが 1 つも出ない**（マップ・カレンダーも同じ版に依存している）。
+
+			隣の «食べたを記録»（`handleEatenSuccess`）は最初からこれを呼んでいた。
+			取り込み側だけ抜けていた。
+			*/
+			bumpMyDishesRevision();
 			showSnackbar(i18n.t("SnsImport.save.done"));
 			// 取り込んだものが並ぶ場所へ送る。戻るで取り込み画面へ戻らないよう replace する
 			router.replace(`/${locale}/my-dishes`);
@@ -530,21 +491,23 @@ export default function SnsImportScreen() {
 		**ヘッダの無いこの画面だけは自分で入れる必要がある。**
 		*/
 		<SafeAreaView edges={["top", "bottom"]} style={styles.container} testID="sns-import-screen">
-			{/* #1375 実機確認: **ヘッダは出さない。** タブ自体が見出しの役割を持つので、
-			    その上にもう 1 段タイトル帯を置くと «同じことを 2 回言う» 形になる。
-			    戻る導線はヘッダではなく «下へ引いて閉じる»（`dismissGesture`）が担う。
+			{/* #1375（9 巡目・オーナー指摘）**戻るボタンを置く。下へ引いて閉じるは廃止した。**
 
-			    ⚠️ 戻る手段を 1 つも持たない画面にしない。ジェスチャが効かない環境
-			    （web・アクセシビリティ操作）のために、読み上げ用の閉じるボタンを
-			    画面外に置かず **つまみ自体をボタンにして**ある */}
-			<View style={styles.grabberArea} {...dismissGesture.panHandlers}>
+			    それまでは «つまみを下へ引く» が唯一の戻る導線で、つまみ自体を押せるようにして
+			    代替としていた。実機で «戻れない» と指摘されたので、**見て分かる ← を置く**。
+			    引いて閉じるジェスチャ（PanResponder）は、あると «画面のスクロールのつもりが
+			    閉じてしまう» 事故の側だけが残るので一緒に外した。
+
+			    タイトル帯は置かない（下のタブが見出しの役割を持つので、二重になる）。 */}
+			<View style={styles.headerRow}>
 				<TouchableOpacity
 					testID="sns-import-screen-back"
 					onPress={handleBack}
 					accessibilityRole="button"
-					accessibilityLabel={i18n.t("Common.close")}
-					style={styles.grabberHitArea}>
-					<View style={styles.grabber} />
+					accessibilityLabel={i18n.t("Common.back")}
+					style={styles.backButton}
+					hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+					<ChevronLeft size={24} color={colors.textPrimary} />
 				</TouchableOpacity>
 			</View>
 
@@ -707,12 +670,14 @@ export default function SnsImportScreen() {
 													「Element type is invalid」で throw する。render 中なので
 													**アプリ全体が «予期しないエラー»** になる。
 													*/
-													const ProviderIcon = PROVIDER_ICONS[resolved.source.provider] ?? Link2;
+													// ⚠️ フォールバックを外さないこと（未知 provider で undefined を描いて落ちる）。
+													// 対応表と縮退は features/dishMedia/providerIcon.ts に集約してある
+													const ProviderIcon = resolveProviderIcon(resolved.source.provider);
 													return (
 														<View style={styles.providerRow}>
 															<ProviderIcon size={16} color={colors.brand} />
 															<Text style={styles.provider} testID="sns-import-provider">
-																{PROVIDER_LABELS[resolved.source.provider] ?? resolved.source.provider}
+																{resolveProviderLabel(resolved.source.provider)}
 															</Text>
 														</View>
 													);
@@ -937,20 +902,15 @@ const createStyles = (c: Palette) =>
 		flex: 1,
 		backgroundColor: c.surface,
 	},
-	grabberArea: {
-		paddingTop: 8,
-		paddingBottom: 4,
+	headerRow: {
+		flexDirection: "row",
 		alignItems: "center",
+		paddingTop: 4,
+		paddingBottom: 4,
+		paddingHorizontal: 4,
 	},
-	grabberHitArea: {
-		paddingVertical: 8,
-		paddingHorizontal: 24,
-	},
-	grabber: {
-		width: 40,
-		height: 4,
-		borderRadius: 2,
-		backgroundColor: c.trackMuted,
+	backButton: {
+		padding: 8,
 	},
 	tabRow: {
 		flexDirection: "row",

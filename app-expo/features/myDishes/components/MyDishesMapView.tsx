@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
-import { RotateCw } from "lucide-react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Navigation, RotateCw } from "lucide-react-native";
 import MapViewClass from "react-native-maps";
 import MapView, { type Region } from "@/components/MapView";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
@@ -29,7 +29,7 @@ import { useLogger } from "@/hooks/useLogger";
 import i18n from "@/lib/i18n";
 import type { MyDishPin } from "@shared/api/v1/res";
 import { MY_DISHES_EVENTS, buildMapAreaPayload } from "../analytics";
-import { boundingRegionForCoordinates, regionToArea } from "../geo";
+import { regionToArea } from "../geo";
 import { useMyDishesFilterStore } from "../stores/useMyDishesFilterStore";
 import { useMyDishesMapPinsQuery } from "../hooks/useMyDishesMapPinsQuery";
 import { useMyDishesFeedScopeStore } from "../stores/useMyDishesFeedScopeStore";
@@ -205,25 +205,32 @@ export function MyDishesMapView({ enabled = true }: { enabled?: boolean } = {}) 
 		};
 	}, []);
 
-	// #1396 m-1: エリア未確定だと全世界のピンが返るため、初回取得後に一度だけピンの外接矩形へ寄せる。
-	// ⚠️ store は書かない・再取得も起こさない・二度目以降の取得では発火しない（ref で一度きりに固定する）
-	const hasFitPinsRef = useRef(false);
+	/*
+	#1375（9 巡目・オーナー指示）**位置情報が取れないときは «日本全体» を出す。**
+
+	それまでは «取得した全ピンの外接矩形» へ寄せていた。記録が国内に散っていると
+	一気に引きの絵になり、しかも **取得が終わるまで動かない**ので «開いた直後に勝手に
+	動く地図» になっていた。オーナーの指示は「初期は現在地周辺、位置情報拒否なら日本地図」。
+
+	そこで、現在地が取れなかったときは **ピンを待たずに** 日本全体へ寄せる。
+	外接矩形へ寄せる処理は無くした（引きの絵という点では日本全体と大差が無く、
+	«いつ動くか分からない» という悪い性質だけが減る）。
+
+	⚠️ 前回の表示域が残っているとき（`restoredRegionRef`）はそちらが最優先で、
+	   ここは走らない（人が最後に見ていた場所を勝手に変えない）。
+	*/
+	const hasAppliedFallbackRegionRef = useRef(false);
 	useEffect(() => {
-		if (hasFitPinsRef.current) return;
-		// #1375 G2: 現在地の判定中は待つ。取れたなら現在地が優先なので、こちらは二度と走らせない
+		if (hasAppliedFallbackRegionRef.current) return;
+		// 現在地の判定中は待つ。取れたなら現在地が優先なので、こちらは二度と走らせない
 		if (locationProbe === "pending") return;
-		if (locationProbe === "resolved") {
-			hasFitPinsRef.current = true;
-			return;
-		}
-		if (!hasFetchedInitial) return;
-		hasFitPinsRef.current = true;
-		const region = boundingRegionForCoordinates(
-			pins.map((pin) => ({ latitude: pin.restaurant.latitude, longitude: pin.restaurant.longitude })),
-		);
-		if (!region) return;
-		mapRef.current?.animateToRegion(region, 1000);
-	}, [hasFetchedInitial, pins, locationProbe]);
+		hasAppliedFallbackRegionRef.current = true;
+		if (locationProbe === "resolved") return;
+		currentRegionRef.current = REGION_JP;
+		pendingRegionRef.current = REGION_JP;
+		updateClusterScale(REGION_JP);
+		mapRef.current?.animateToRegion(REGION_JP, 500);
+	}, [locationProbe, updateClusterScale]);
 
 	// #1375 実機確認: ピンを押したら **Dish Feed へ遷移**する。
 	//
@@ -236,6 +243,41 @@ export function MyDishesMapView({ enabled = true }: { enabled?: boolean } = {}) 
 	// ⚠️ `pins` は ref 経由で読む（独立レビュー指摘 High）。ハンドラを `pins` に依存させると、
 	// ピンが届くたびに identity が変わり、マーカー最大 300 個へ新しい props が流れて
 	// Android では 300 回のビットマップ再生成に繋がる
+	/*
+	#1375（9 巡目・オーナー指摘）**現在地ボタン。**
+
+	初期表示は現在地に寄せているが、地図を動かしたあと戻る手段が無かった
+	（«このエリアで再検索» は範囲を変えずに引き直すだけ）。
+
+	動きは «クラスタを押したとき»（`handleClusterPress`）と同じ 4 点セットにする。
+	どれか 1 つでも欠けると、地図と «いま見えている範囲» の認識がずれる:
+	  1. `currentRegionRef` を更新（次の «このエリアで再検索» が拾う範囲）
+	  2. `setMyDishesViewportRegion` へ保存（次に開いたときここへ戻す）
+	  3. `updateClusterScale` でクラスタを畳み直す
+	  4. 地図を動かす
+
+	⚠️ 取れなかったときに何も言わないのは不親切だが、**権限の説明はここでは出さない**。
+	   この画面は位置情報を必須にしていないので、押しても動かないだけにしてログを残す。
+	*/
+	const handleCurrentLocation = useCallback(() => {
+		lightImpact();
+		getCurrentLocationPosition()
+			.then(({ latitude, longitude }) => {
+				const region: Region = { latitude, longitude, latitudeDelta: 0.05, longitudeDelta: 0.05 };
+				currentRegionRef.current = region;
+				setMyDishesViewportRegion(region);
+				updateClusterScale(region);
+				mapRef.current?.animateToRegion(region, 500);
+			})
+			.catch((error: unknown) => {
+				logFrontendEvent({
+					event_name: "my_dishes_map_current_location_failed",
+					error_level: "warn",
+					payload: { error: error instanceof Error ? error.message : String(error) },
+				});
+			});
+	}, [lightImpact, logFrontendEvent, updateClusterScale]);
+
 	// マーカー配列は memo で固定する。`pins` が同じ参照である限り、activeIndex 等の
 	// 無関係な state 更新で 300 個のマーカーへ props が流れない
 	const clusters = useMemo(() => clusterMyDishPins(pins, clusterViewport), [pins, clusterViewport]);
@@ -394,6 +436,16 @@ export function MyDishesMapView({ enabled = true }: { enabled?: boolean } = {}) 
 				</View>
 			)}
 
+			{/* #1375（9 巡目・オーナー指摘）現在地へ戻る口。地図の右下（シートの上）へ置く */}
+			<TouchableOpacity
+				testID="my-dishes-map-current-location"
+				style={styles.currentLocationButton}
+				onPress={handleCurrentLocation}
+				accessibilityRole="button"
+				accessibilityLabel={i18n.t("MyDishes.map.currentLocation")}>
+				<Navigation size={20} color={colors.textPrimaryAlt} />
+			</TouchableOpacity>
+
 			{/* #1375 実機確認: Map 下部の常設シート。いま出ているピンを横に並べ、押すと Feed へ行く。
 			    データは `useMyDishesMapPinsQuery` が返すピンをそのまま使う（新しい API は増やさない） */}
 			{/* #1375 実機確認（2 巡目）: 帯を上へ引き上げたら、先頭のピンから Feed を開く
@@ -420,6 +472,25 @@ const createStyles = (c: Palette) =>
 			justifyContent: "center",
 			alignItems: "center",
 			backgroundColor: "rgba(255, 255, 255, 0.5)",
+		},
+		// #1375（9 巡目）現在地ボタン。下部シートの上端より上に来る位置へ置く
+		currentLocationButton: {
+			position: "absolute",
+			right: 16,
+			bottom: 180,
+			width: 44,
+			height: 44,
+			borderRadius: 22,
+			alignItems: "center",
+			justifyContent: "center",
+			backgroundColor: c.surface,
+			// 影はテーマに依らず黒でよい（ダークでは実質見えない）。正本の FixedColors を使う
+			shadowColor: FixedColors.shadow,
+			shadowOpacity: 0.15,
+			shadowRadius: 6,
+			shadowOffset: { width: 0, height: 2 },
+			elevation: 4,
+			zIndex: 100,
 		},
 		topOverlay: {
 			position: "absolute",

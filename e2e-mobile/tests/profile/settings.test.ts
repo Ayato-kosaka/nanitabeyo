@@ -236,15 +236,14 @@ describe("端末設定画面のハプティクストグル（匿名ユーザー�
 	// tests/authenticated/notification-preferences.test.ts が検証する
 	it("匿名時は通知カテゴリのカードが表示されない", async () => {
 		const tabBar = new TabBar();
-		const profileScreen = new ProfileScreen();
 		const settingsScreen = new SettingsScreen();
 		const section = new NotificationSettingsSection();
 
+		// ⚠️ `ProfileScreen.gotoSettings()` は使えない。#1402 で **歯車の 1 階層が無くなり**、
+		//    マイページタブがそのまま設定画面になっている（このファイルの他のテストも同じ形）。
+		//    main 由来の #1510 のテストがこのメソッドを前提に書かれており、
+		//    このブランチへ合流したときに存在しないメソッドの呼び出しとして残っていた
 		await tabBar.gotoProfile();
-		// #1402 で独立した設定画面は無くなり、設定項目はマイページ本体にある。
-		// `ProfileScreen.gotoSettings()` はその時に消えたが、呼び出しが残っていた
-		// （e2e-mobile の tsc が赤いまま。#1583 のマージで気づいて直した）
-		await profileScreen.expectLoaded();
 		await settingsScreen.expectLoaded();
 
 		const hasNotificationCard = await section.exists();

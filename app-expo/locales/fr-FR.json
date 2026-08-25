@@ -1019,6 +1019,7 @@
 		},
 		"map": {
 			"truncated": "Seuls certains repères sont affichés. Réduisez la zone de recherche.",
+			"currentLocation": "Aller à ma position",
 			"sheetTitle": "{{count}} restaurants à proximité",
 			"tileA11yLabel": "{{name}} (à goûter : {{want}}, goûté : {{eaten}})",
 			"clusterA11yLabel": "{{count}} restaurants ici"
