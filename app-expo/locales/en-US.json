@@ -463,6 +463,57 @@
 			"forbidden": "You can only edit or delete your own posts"
 		}
 	},
+	"Report": {
+		"action": "Report",
+		"title": "Report this post",
+		"reviewTitle": "Report this review",
+		"description": "Choose a reason for reporting. Our team will review it, and the person who posted is not notified.",
+		"reasons": {
+			"spam": "Spam or advertising",
+			"sexual": "Sexual content",
+			"violence": "Violence or disturbing content",
+			"harassment": "Harassment or abuse",
+			"illegal": "Illegal activity",
+			"misinformation": "False information",
+			"rights": "Copyright or other rights violation",
+			"privacy": "Shows personal information",
+			"irrelevant": "Not about food or dining",
+			"other": "Something else"
+		},
+		"detailsLabel": "Details (optional)",
+		"detailsPlaceholder": "Add anything that helps us review it (up to 1,000 characters)",
+		"submit": "Submit report",
+		"submitting": "Sending...",
+		"accepted": {
+			"title": "Thanks for reporting",
+			"description": "We'll review it. We don't send individual updates on the outcome.",
+			"close": "Close",
+			"history": "Your reports"
+		},
+		"errors": {
+			"submitFailed": "We couldn't send your report. Please try again."
+		},
+		"accessibility": {
+			"open": "Report the post from {{name}}",
+			"openReview": "Report the review from {{name}}",
+			"reason": "Reason: {{reason}}",
+			"reasonSelected": "Reason: {{reason}}, selected",
+			"submit": "Submit the report for the post from {{name}}",
+			"submitReview": "Submit the report for the review from {{name}}"
+		},
+		"history": {
+			"navigationLabel": "Your reports",
+			"pageTitle": "Your reports",
+			"empty": "No reports yet",
+			"emptyDescription": "When you report a post or review, it will appear here.",
+			"note": "We don't share review status or outcomes.",
+			"error": "Couldn't load your reports",
+			"target": {
+				"dish_media": "Post",
+				"dish_reviews": "Review"
+			}
+		}
+	},
 	"ImageCardGrid": {
 		"openItemDetails": "Open item details"
 	},

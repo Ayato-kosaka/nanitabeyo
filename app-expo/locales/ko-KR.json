@@ -463,6 +463,57 @@
 			"forbidden": "내 게시물만 편집하거나 삭제할 수 있습니다"
 		}
 	},
+	"Report": {
+		"action": "신고",
+		"title": "이 게시물 신고하기",
+		"reviewTitle": "이 리뷰 신고하기",
+		"description": "신고 사유를 선택해 주세요. 운영팀이 확인하며, 작성자에게는 알리지 않습니다.",
+		"reasons": {
+			"spam": "스팸 또는 광고",
+			"sexual": "성적인 콘텐츠",
+			"violence": "폭력적이거나 불쾌한 콘텐츠",
+			"harassment": "괴롭힘 또는 비방",
+			"illegal": "불법 행위",
+			"misinformation": "잘못된 정보",
+			"rights": "저작권 등 권리 침해",
+			"privacy": "개인정보가 노출됨",
+			"irrelevant": "음식과 관련 없음",
+			"other": "기타"
+		},
+		"detailsLabel": "자세한 내용(선택)",
+		"detailsPlaceholder": "추가로 알려주실 내용이 있으면 입력해 주세요(1,000자까지)",
+		"submit": "신고하기",
+		"submitting": "전송 중...",
+		"accepted": {
+			"title": "신고해 주셔서 감사합니다",
+			"description": "내용을 검토합니다. 결과를 개별적으로 알려드리지는 않습니다.",
+			"close": "닫기",
+			"history": "내 신고 내역"
+		},
+		"errors": {
+			"submitFailed": "신고를 보내지 못했습니다. 다시 시도해 주세요."
+		},
+		"accessibility": {
+			"open": "{{name}} 게시물 신고",
+			"openReview": "{{name}} 리뷰 신고",
+			"reason": "사유: {{reason}}",
+			"reasonSelected": "사유: {{reason}}(선택됨)",
+			"submit": "{{name}} 게시물 신고 보내기",
+			"submitReview": "{{name}} 리뷰 신고 보내기"
+		},
+		"history": {
+			"navigationLabel": "내 신고 내역",
+			"pageTitle": "내 신고 내역",
+			"empty": "아직 신고가 없습니다",
+			"emptyDescription": "게시물이나 리뷰를 신고하면 여기에 표시됩니다.",
+			"note": "검토 상태나 결과는 안내하지 않습니다.",
+			"error": "신고 내역을 불러오지 못했습니다",
+			"target": {
+				"dish_media": "게시물",
+				"dish_reviews": "리뷰"
+			}
+		}
+	},
 	"ImageCardGrid": {
 		"openItemDetails": "항목 세부정보 열기"
 	},

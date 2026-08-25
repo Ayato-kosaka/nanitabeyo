@@ -86,6 +86,9 @@ export const DEEP_LINK_SMOKE_EXCLUSIONS: Readonly<Record<string, string>> = {
 	"profile/liked": "ログイン必須。未ログインでは中身が無い",
 	"profile/saved-topics": "ログイン必須。未ログインでは中身が無い",
 	"profile/feedback": "ログイン必須。未ログインでは中身が無い",
+	// #1584 自分が出した通報の履歴。未ログイン（匿名）でも «自分の» 履歴は引けるが、
+	// 端末のサインインに紐づくので直リンクでは常に空になり、描画の判定材料にならない
+	"profile/content-reports": "自分の通報履歴。直リンクでは常に空で、描画の判定材料にならない",
 	"profile/blocked-topics": "ログイン必須。未ログインでは中身が無い",
 	"profile/food": "ログイン必須。未ログインでは中身が無い",
 	"profile/saved-topic-location": "ログイン必須。未ログインでは中身が無い",

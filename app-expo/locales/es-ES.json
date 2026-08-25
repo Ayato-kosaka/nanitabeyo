@@ -463,6 +463,57 @@
 			"forbidden": "Solo puedes editar o eliminar tus propias publicaciones"
 		}
 	},
+	"Report": {
+		"action": "Denunciar",
+		"title": "Denunciar esta publicación",
+		"reviewTitle": "Denunciar esta reseña",
+		"description": "Elige un motivo. Nuestro equipo lo revisará y no se avisará a quien lo publicó.",
+		"reasons": {
+			"spam": "Spam o publicidad",
+			"sexual": "Contenido sexual",
+			"violence": "Violencia o contenido perturbador",
+			"harassment": "Acoso o insultos",
+			"illegal": "Actividad ilegal",
+			"misinformation": "Información falsa",
+			"rights": "Infracción de derechos (autor, etc.)",
+			"privacy": "Muestra datos personales",
+			"irrelevant": "No tiene que ver con comida",
+			"other": "Otro motivo"
+		},
+		"detailsLabel": "Detalles (opcional)",
+		"detailsPlaceholder": "Añade lo que nos ayude a revisarlo (hasta 1000 caracteres)",
+		"submit": "Enviar denuncia",
+		"submitting": "Enviando...",
+		"accepted": {
+			"title": "Gracias por informarnos",
+			"description": "Revisaremos el contenido. No enviamos avisos individuales sobre el resultado.",
+			"close": "Cerrar",
+			"history": "Tus informes"
+		},
+		"errors": {
+			"submitFailed": "No se pudo enviar la denuncia. Inténtalo de nuevo."
+		},
+		"accessibility": {
+			"open": "Denunciar la publicación de {{name}}",
+			"openReview": "Denunciar la reseña de {{name}}",
+			"reason": "Motivo: {{reason}}",
+			"reasonSelected": "Motivo: {{reason}} (seleccionado)",
+			"submit": "Enviar la denuncia de la publicación de {{name}}",
+			"submitReview": "Enviar la denuncia de la reseña de {{name}}"
+		},
+		"history": {
+			"navigationLabel": "Tus informes",
+			"pageTitle": "Tus informes",
+			"empty": "Aún no hay informes",
+			"emptyDescription": "Cuando informes sobre una publicación o reseña, aparecerá aquí.",
+			"note": "No comunicamos el estado ni el resultado de la revisión.",
+			"error": "No se han podido cargar tus informes",
+			"target": {
+				"dish_media": "Publicación",
+				"dish_reviews": "Reseña"
+			}
+		}
+	},
 	"ImageCardGrid": {
 		"openItemDetails": "Abrir detalles del elemento"
 	},

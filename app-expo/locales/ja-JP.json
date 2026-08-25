@@ -463,6 +463,57 @@
 			"forbidden": "自分の投稿ではないため操作できません"
 		}
 	},
+	"Report": {
+		"action": "報告",
+		"title": "この投稿を報告する",
+		"reviewTitle": "このレビューを報告する",
+		"description": "報告の理由を選んでください。運営が内容を確認します。相手に通知されることはありません。",
+		"reasons": {
+			"spam": "スパム・宣伝",
+			"sexual": "性的なコンテンツ",
+			"violence": "暴力的・不快なコンテンツ",
+			"harassment": "嫌がらせ・誹謗中傷",
+			"illegal": "違法行為",
+			"misinformation": "誤った情報",
+			"rights": "権利侵害（著作権など）",
+			"privacy": "個人情報が写っている",
+			"irrelevant": "料理と関係がない",
+			"other": "その他"
+		},
+		"detailsLabel": "詳しい内容（任意）",
+		"detailsPlaceholder": "補足があれば入力してください（1000文字まで）",
+		"submit": "報告する",
+		"submitting": "送信中...",
+		"accepted": {
+			"title": "ご報告いただきありがとうございます",
+			"description": "内容を審査します。結果を個別にお知らせすることはありません。",
+			"close": "閉じる",
+			"history": "あなたの報告履歴"
+		},
+		"errors": {
+			"submitFailed": "報告を送信できませんでした。もう一度お試しください。"
+		},
+		"accessibility": {
+			"open": "{{name}}の投稿を報告",
+			"openReview": "{{name}}さんのレビューを報告",
+			"reason": "理由: {{reason}}",
+			"reasonSelected": "理由: {{reason}}（選択中）",
+			"submit": "{{name}}の投稿の報告を送信",
+			"submitReview": "{{name}}さんのレビューの報告を送信"
+		},
+		"history": {
+			"navigationLabel": "あなたの報告履歴",
+			"pageTitle": "あなたの報告履歴",
+			"empty": "まだ報告はありません",
+			"emptyDescription": "投稿やレビューを報告すると、ここに履歴が残ります。",
+			"note": "審査の状況や結果はお知らせしていません。",
+			"error": "報告履歴を取得できませんでした",
+			"target": {
+				"dish_media": "投稿",
+				"dish_reviews": "レビュー"
+			}
+		}
+	},
 	"ImageCardGrid": {
 		"openItemDetails": "詳細を表示"
 	},

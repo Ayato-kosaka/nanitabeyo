@@ -26,6 +26,13 @@ export type backend_event_logs = $Result.DefaultSelection<Prisma.$backend_event_
  */
 export type config = $Result.DefaultSelection<Prisma.$configPayload>
 /**
+ * Model content_reports
+ * This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+ * This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+ * This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+ */
+export type content_reports = $Result.DefaultSelection<Prisma.$content_reportsPayload>
+/**
  * Model contribution_tasks
  * This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
  * This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -468,6 +475,16 @@ export class PrismaClient<
     * ```
     */
   get config(): Prisma.configDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.content_reports`: Exposes CRUD operations for the **content_reports** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Content_reports
+    * const content_reports = await prisma.content_reports.findMany()
+    * ```
+    */
+  get content_reports(): Prisma.content_reportsDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.contribution_tasks`: Exposes CRUD operations for the **contribution_tasks** model.
@@ -1274,6 +1291,7 @@ export namespace Prisma {
   export const ModelName: {
     backend_event_logs: 'backend_event_logs',
     config: 'config',
+    content_reports: 'content_reports',
     contribution_tasks: 'contribution_tasks',
     dish_categories: 'dish_categories',
     dish_category_features: 'dish_category_features',
@@ -1326,7 +1344,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "backend_event_logs" | "config" | "contribution_tasks" | "dish_categories" | "dish_category_features" | "dish_category_group_vote_candidate_votes" | "dish_category_group_vote_candidates" | "dish_category_group_vote_participants" | "dish_category_group_vote_sessions" | "dish_category_localized_text" | "dish_category_variants" | "dish_media" | "dish_media_analysis_results" | "dish_media_external_embeddings" | "dish_media_impressions" | "dish_media_likes" | "dish_media_views" | "dish_reviews" | "dishes" | "external_api_logs" | "frontend_event_logs" | "notification_recipients" | "notifications" | "payouts" | "permissions" | "prompt_families" | "prompt_usages" | "prompt_variants" | "reactions" | "restaurant_bids" | "restaurants" | "role_permissions" | "roles" | "share_links" | "user_device_tokens" | "user_notification_cursors" | "user_notification_preferences" | "user_roles" | "users"
+      modelProps: "backend_event_logs" | "config" | "content_reports" | "contribution_tasks" | "dish_categories" | "dish_category_features" | "dish_category_group_vote_candidate_votes" | "dish_category_group_vote_candidates" | "dish_category_group_vote_participants" | "dish_category_group_vote_sessions" | "dish_category_localized_text" | "dish_category_variants" | "dish_media" | "dish_media_analysis_results" | "dish_media_external_embeddings" | "dish_media_impressions" | "dish_media_likes" | "dish_media_views" | "dish_reviews" | "dishes" | "external_api_logs" | "frontend_event_logs" | "notification_recipients" | "notifications" | "payouts" | "permissions" | "prompt_families" | "prompt_usages" | "prompt_variants" | "reactions" | "restaurant_bids" | "restaurants" | "role_permissions" | "roles" | "share_links" | "user_device_tokens" | "user_notification_cursors" | "user_notification_preferences" | "user_roles" | "users"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1475,6 +1493,80 @@ export namespace Prisma {
           count: {
             args: Prisma.configCountArgs<ExtArgs>
             result: $Utils.Optional<ConfigCountAggregateOutputType> | number
+          }
+        }
+      }
+      content_reports: {
+        payload: Prisma.$content_reportsPayload<ExtArgs>
+        fields: Prisma.content_reportsFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.content_reportsFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$content_reportsPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.content_reportsFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$content_reportsPayload>
+          }
+          findFirst: {
+            args: Prisma.content_reportsFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$content_reportsPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.content_reportsFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$content_reportsPayload>
+          }
+          findMany: {
+            args: Prisma.content_reportsFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$content_reportsPayload>[]
+          }
+          create: {
+            args: Prisma.content_reportsCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$content_reportsPayload>
+          }
+          createMany: {
+            args: Prisma.content_reportsCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.content_reportsCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$content_reportsPayload>[]
+          }
+          delete: {
+            args: Prisma.content_reportsDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$content_reportsPayload>
+          }
+          update: {
+            args: Prisma.content_reportsUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$content_reportsPayload>
+          }
+          deleteMany: {
+            args: Prisma.content_reportsDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.content_reportsUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.content_reportsUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$content_reportsPayload>[]
+          }
+          upsert: {
+            args: Prisma.content_reportsUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$content_reportsPayload>
+          }
+          aggregate: {
+            args: Prisma.Content_reportsAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateContent_reports>
+          }
+          groupBy: {
+            args: Prisma.content_reportsGroupByArgs<ExtArgs>
+            result: $Utils.Optional<Content_reportsGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.content_reportsCountArgs<ExtArgs>
+            result: $Utils.Optional<Content_reportsCountAggregateOutputType> | number
           }
         }
       }
@@ -4310,6 +4402,7 @@ export namespace Prisma {
   export type GlobalOmitConfig = {
     backend_event_logs?: backend_event_logsOmit
     config?: configOmit
+    content_reports?: content_reportsOmit
     contribution_tasks?: contribution_tasksOmit
     dish_categories?: dish_categoriesOmit
     dish_category_features?: dish_category_featuresOmit
@@ -6995,6 +7088,1139 @@ export namespace Prisma {
      * Omit specific fields from the config
      */
     omit?: configOmit<ExtArgs> | null
+  }
+
+
+  /**
+   * Model content_reports
+   */
+
+  export type AggregateContent_reports = {
+    _count: Content_reportsCountAggregateOutputType | null
+    _avg: Content_reportsAvgAggregateOutputType | null
+    _sum: Content_reportsSumAggregateOutputType | null
+    _min: Content_reportsMinAggregateOutputType | null
+    _max: Content_reportsMaxAggregateOutputType | null
+  }
+
+  export type Content_reportsAvgAggregateOutputType = {
+    lock_no: number | null
+  }
+
+  export type Content_reportsSumAggregateOutputType = {
+    lock_no: number | null
+  }
+
+  export type Content_reportsMinAggregateOutputType = {
+    id: string | null
+    target_type: string | null
+    target_id: string | null
+    reporter_user_id: string | null
+    reason_code: string | null
+    reason_text: string | null
+    status: string | null
+    resolved_at: Date | null
+    resolution_note: string | null
+    created_version: string | null
+    created_at: Date | null
+    updated_at: Date | null
+    lock_no: number | null
+  }
+
+  export type Content_reportsMaxAggregateOutputType = {
+    id: string | null
+    target_type: string | null
+    target_id: string | null
+    reporter_user_id: string | null
+    reason_code: string | null
+    reason_text: string | null
+    status: string | null
+    resolved_at: Date | null
+    resolution_note: string | null
+    created_version: string | null
+    created_at: Date | null
+    updated_at: Date | null
+    lock_no: number | null
+  }
+
+  export type Content_reportsCountAggregateOutputType = {
+    id: number
+    target_type: number
+    target_id: number
+    reporter_user_id: number
+    reason_code: number
+    reason_text: number
+    status: number
+    resolved_at: number
+    resolution_note: number
+    created_version: number
+    created_at: number
+    updated_at: number
+    lock_no: number
+    _all: number
+  }
+
+
+  export type Content_reportsAvgAggregateInputType = {
+    lock_no?: true
+  }
+
+  export type Content_reportsSumAggregateInputType = {
+    lock_no?: true
+  }
+
+  export type Content_reportsMinAggregateInputType = {
+    id?: true
+    target_type?: true
+    target_id?: true
+    reporter_user_id?: true
+    reason_code?: true
+    reason_text?: true
+    status?: true
+    resolved_at?: true
+    resolution_note?: true
+    created_version?: true
+    created_at?: true
+    updated_at?: true
+    lock_no?: true
+  }
+
+  export type Content_reportsMaxAggregateInputType = {
+    id?: true
+    target_type?: true
+    target_id?: true
+    reporter_user_id?: true
+    reason_code?: true
+    reason_text?: true
+    status?: true
+    resolved_at?: true
+    resolution_note?: true
+    created_version?: true
+    created_at?: true
+    updated_at?: true
+    lock_no?: true
+  }
+
+  export type Content_reportsCountAggregateInputType = {
+    id?: true
+    target_type?: true
+    target_id?: true
+    reporter_user_id?: true
+    reason_code?: true
+    reason_text?: true
+    status?: true
+    resolved_at?: true
+    resolution_note?: true
+    created_version?: true
+    created_at?: true
+    updated_at?: true
+    lock_no?: true
+    _all?: true
+  }
+
+  export type Content_reportsAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which content_reports to aggregate.
+     */
+    where?: content_reportsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of content_reports to fetch.
+     */
+    orderBy?: content_reportsOrderByWithRelationInput | content_reportsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: content_reportsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` content_reports from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` content_reports.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned content_reports
+    **/
+    _count?: true | Content_reportsCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: Content_reportsAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: Content_reportsSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: Content_reportsMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: Content_reportsMaxAggregateInputType
+  }
+
+  export type GetContent_reportsAggregateType<T extends Content_reportsAggregateArgs> = {
+        [P in keyof T & keyof AggregateContent_reports]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateContent_reports[P]>
+      : GetScalarType<T[P], AggregateContent_reports[P]>
+  }
+
+
+
+
+  export type content_reportsGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: content_reportsWhereInput
+    orderBy?: content_reportsOrderByWithAggregationInput | content_reportsOrderByWithAggregationInput[]
+    by: Content_reportsScalarFieldEnum[] | Content_reportsScalarFieldEnum
+    having?: content_reportsScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: Content_reportsCountAggregateInputType | true
+    _avg?: Content_reportsAvgAggregateInputType
+    _sum?: Content_reportsSumAggregateInputType
+    _min?: Content_reportsMinAggregateInputType
+    _max?: Content_reportsMaxAggregateInputType
+  }
+
+  export type Content_reportsGroupByOutputType = {
+    id: string
+    target_type: string
+    target_id: string
+    reporter_user_id: string
+    reason_code: string
+    reason_text: string | null
+    status: string
+    resolved_at: Date | null
+    resolution_note: string | null
+    created_version: string
+    created_at: Date
+    updated_at: Date
+    lock_no: number
+    _count: Content_reportsCountAggregateOutputType | null
+    _avg: Content_reportsAvgAggregateOutputType | null
+    _sum: Content_reportsSumAggregateOutputType | null
+    _min: Content_reportsMinAggregateOutputType | null
+    _max: Content_reportsMaxAggregateOutputType | null
+  }
+
+  type GetContent_reportsGroupByPayload<T extends content_reportsGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<Content_reportsGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof Content_reportsGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], Content_reportsGroupByOutputType[P]>
+            : GetScalarType<T[P], Content_reportsGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type content_reportsSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    target_type?: boolean
+    target_id?: boolean
+    reporter_user_id?: boolean
+    reason_code?: boolean
+    reason_text?: boolean
+    status?: boolean
+    resolved_at?: boolean
+    resolution_note?: boolean
+    created_version?: boolean
+    created_at?: boolean
+    updated_at?: boolean
+    lock_no?: boolean
+  }, ExtArgs["result"]["content_reports"]>
+
+  export type content_reportsSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    target_type?: boolean
+    target_id?: boolean
+    reporter_user_id?: boolean
+    reason_code?: boolean
+    reason_text?: boolean
+    status?: boolean
+    resolved_at?: boolean
+    resolution_note?: boolean
+    created_version?: boolean
+    created_at?: boolean
+    updated_at?: boolean
+    lock_no?: boolean
+  }, ExtArgs["result"]["content_reports"]>
+
+  export type content_reportsSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    target_type?: boolean
+    target_id?: boolean
+    reporter_user_id?: boolean
+    reason_code?: boolean
+    reason_text?: boolean
+    status?: boolean
+    resolved_at?: boolean
+    resolution_note?: boolean
+    created_version?: boolean
+    created_at?: boolean
+    updated_at?: boolean
+    lock_no?: boolean
+  }, ExtArgs["result"]["content_reports"]>
+
+  export type content_reportsSelectScalar = {
+    id?: boolean
+    target_type?: boolean
+    target_id?: boolean
+    reporter_user_id?: boolean
+    reason_code?: boolean
+    reason_text?: boolean
+    status?: boolean
+    resolved_at?: boolean
+    resolution_note?: boolean
+    created_version?: boolean
+    created_at?: boolean
+    updated_at?: boolean
+    lock_no?: boolean
+  }
+
+  export type content_reportsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "target_type" | "target_id" | "reporter_user_id" | "reason_code" | "reason_text" | "status" | "resolved_at" | "resolution_note" | "created_version" | "created_at" | "updated_at" | "lock_no", ExtArgs["result"]["content_reports"]>
+
+  export type $content_reportsPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "content_reports"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      target_type: string
+      target_id: string
+      reporter_user_id: string
+      reason_code: string
+      reason_text: string | null
+      status: string
+      resolved_at: Date | null
+      resolution_note: string | null
+      created_version: string
+      created_at: Date
+      updated_at: Date
+      lock_no: number
+    }, ExtArgs["result"]["content_reports"]>
+    composites: {}
+  }
+
+  type content_reportsGetPayload<S extends boolean | null | undefined | content_reportsDefaultArgs> = $Result.GetResult<Prisma.$content_reportsPayload, S>
+
+  type content_reportsCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<content_reportsFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: Content_reportsCountAggregateInputType | true
+    }
+
+  export interface content_reportsDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['content_reports'], meta: { name: 'content_reports' } }
+    /**
+     * Find zero or one Content_reports that matches the filter.
+     * @param {content_reportsFindUniqueArgs} args - Arguments to find a Content_reports
+     * @example
+     * // Get one Content_reports
+     * const content_reports = await prisma.content_reports.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends content_reportsFindUniqueArgs>(args: SelectSubset<T, content_reportsFindUniqueArgs<ExtArgs>>): Prisma__content_reportsClient<$Result.GetResult<Prisma.$content_reportsPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one Content_reports that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {content_reportsFindUniqueOrThrowArgs} args - Arguments to find a Content_reports
+     * @example
+     * // Get one Content_reports
+     * const content_reports = await prisma.content_reports.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends content_reportsFindUniqueOrThrowArgs>(args: SelectSubset<T, content_reportsFindUniqueOrThrowArgs<ExtArgs>>): Prisma__content_reportsClient<$Result.GetResult<Prisma.$content_reportsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Content_reports that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {content_reportsFindFirstArgs} args - Arguments to find a Content_reports
+     * @example
+     * // Get one Content_reports
+     * const content_reports = await prisma.content_reports.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends content_reportsFindFirstArgs>(args?: SelectSubset<T, content_reportsFindFirstArgs<ExtArgs>>): Prisma__content_reportsClient<$Result.GetResult<Prisma.$content_reportsPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Content_reports that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {content_reportsFindFirstOrThrowArgs} args - Arguments to find a Content_reports
+     * @example
+     * // Get one Content_reports
+     * const content_reports = await prisma.content_reports.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends content_reportsFindFirstOrThrowArgs>(args?: SelectSubset<T, content_reportsFindFirstOrThrowArgs<ExtArgs>>): Prisma__content_reportsClient<$Result.GetResult<Prisma.$content_reportsPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more Content_reports that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {content_reportsFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Content_reports
+     * const content_reports = await prisma.content_reports.findMany()
+     * 
+     * // Get first 10 Content_reports
+     * const content_reports = await prisma.content_reports.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const content_reportsWithIdOnly = await prisma.content_reports.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends content_reportsFindManyArgs>(args?: SelectSubset<T, content_reportsFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$content_reportsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a Content_reports.
+     * @param {content_reportsCreateArgs} args - Arguments to create a Content_reports.
+     * @example
+     * // Create one Content_reports
+     * const Content_reports = await prisma.content_reports.create({
+     *   data: {
+     *     // ... data to create a Content_reports
+     *   }
+     * })
+     * 
+     */
+    create<T extends content_reportsCreateArgs>(args: SelectSubset<T, content_reportsCreateArgs<ExtArgs>>): Prisma__content_reportsClient<$Result.GetResult<Prisma.$content_reportsPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many Content_reports.
+     * @param {content_reportsCreateManyArgs} args - Arguments to create many Content_reports.
+     * @example
+     * // Create many Content_reports
+     * const content_reports = await prisma.content_reports.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends content_reportsCreateManyArgs>(args?: SelectSubset<T, content_reportsCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Content_reports and returns the data saved in the database.
+     * @param {content_reportsCreateManyAndReturnArgs} args - Arguments to create many Content_reports.
+     * @example
+     * // Create many Content_reports
+     * const content_reports = await prisma.content_reports.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Content_reports and only return the `id`
+     * const content_reportsWithIdOnly = await prisma.content_reports.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends content_reportsCreateManyAndReturnArgs>(args?: SelectSubset<T, content_reportsCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$content_reportsPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a Content_reports.
+     * @param {content_reportsDeleteArgs} args - Arguments to delete one Content_reports.
+     * @example
+     * // Delete one Content_reports
+     * const Content_reports = await prisma.content_reports.delete({
+     *   where: {
+     *     // ... filter to delete one Content_reports
+     *   }
+     * })
+     * 
+     */
+    delete<T extends content_reportsDeleteArgs>(args: SelectSubset<T, content_reportsDeleteArgs<ExtArgs>>): Prisma__content_reportsClient<$Result.GetResult<Prisma.$content_reportsPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one Content_reports.
+     * @param {content_reportsUpdateArgs} args - Arguments to update one Content_reports.
+     * @example
+     * // Update one Content_reports
+     * const content_reports = await prisma.content_reports.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends content_reportsUpdateArgs>(args: SelectSubset<T, content_reportsUpdateArgs<ExtArgs>>): Prisma__content_reportsClient<$Result.GetResult<Prisma.$content_reportsPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more Content_reports.
+     * @param {content_reportsDeleteManyArgs} args - Arguments to filter Content_reports to delete.
+     * @example
+     * // Delete a few Content_reports
+     * const { count } = await prisma.content_reports.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends content_reportsDeleteManyArgs>(args?: SelectSubset<T, content_reportsDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Content_reports.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {content_reportsUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Content_reports
+     * const content_reports = await prisma.content_reports.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends content_reportsUpdateManyArgs>(args: SelectSubset<T, content_reportsUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Content_reports and returns the data updated in the database.
+     * @param {content_reportsUpdateManyAndReturnArgs} args - Arguments to update many Content_reports.
+     * @example
+     * // Update many Content_reports
+     * const content_reports = await prisma.content_reports.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more Content_reports and only return the `id`
+     * const content_reportsWithIdOnly = await prisma.content_reports.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends content_reportsUpdateManyAndReturnArgs>(args: SelectSubset<T, content_reportsUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$content_reportsPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one Content_reports.
+     * @param {content_reportsUpsertArgs} args - Arguments to update or create a Content_reports.
+     * @example
+     * // Update or create a Content_reports
+     * const content_reports = await prisma.content_reports.upsert({
+     *   create: {
+     *     // ... data to create a Content_reports
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Content_reports we want to update
+     *   }
+     * })
+     */
+    upsert<T extends content_reportsUpsertArgs>(args: SelectSubset<T, content_reportsUpsertArgs<ExtArgs>>): Prisma__content_reportsClient<$Result.GetResult<Prisma.$content_reportsPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of Content_reports.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {content_reportsCountArgs} args - Arguments to filter Content_reports to count.
+     * @example
+     * // Count the number of Content_reports
+     * const count = await prisma.content_reports.count({
+     *   where: {
+     *     // ... the filter for the Content_reports we want to count
+     *   }
+     * })
+    **/
+    count<T extends content_reportsCountArgs>(
+      args?: Subset<T, content_reportsCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], Content_reportsCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Content_reports.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {Content_reportsAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends Content_reportsAggregateArgs>(args: Subset<T, Content_reportsAggregateArgs>): Prisma.PrismaPromise<GetContent_reportsAggregateType<T>>
+
+    /**
+     * Group by Content_reports.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {content_reportsGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends content_reportsGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: content_reportsGroupByArgs['orderBy'] }
+        : { orderBy?: content_reportsGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, content_reportsGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetContent_reportsGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the content_reports model
+   */
+  readonly fields: content_reportsFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for content_reports.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__content_reportsClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the content_reports model
+   */
+  interface content_reportsFieldRefs {
+    readonly id: FieldRef<"content_reports", 'String'>
+    readonly target_type: FieldRef<"content_reports", 'String'>
+    readonly target_id: FieldRef<"content_reports", 'String'>
+    readonly reporter_user_id: FieldRef<"content_reports", 'String'>
+    readonly reason_code: FieldRef<"content_reports", 'String'>
+    readonly reason_text: FieldRef<"content_reports", 'String'>
+    readonly status: FieldRef<"content_reports", 'String'>
+    readonly resolved_at: FieldRef<"content_reports", 'DateTime'>
+    readonly resolution_note: FieldRef<"content_reports", 'String'>
+    readonly created_version: FieldRef<"content_reports", 'String'>
+    readonly created_at: FieldRef<"content_reports", 'DateTime'>
+    readonly updated_at: FieldRef<"content_reports", 'DateTime'>
+    readonly lock_no: FieldRef<"content_reports", 'Int'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * content_reports findUnique
+   */
+  export type content_reportsFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the content_reports
+     */
+    select?: content_reportsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the content_reports
+     */
+    omit?: content_reportsOmit<ExtArgs> | null
+    /**
+     * Filter, which content_reports to fetch.
+     */
+    where: content_reportsWhereUniqueInput
+  }
+
+  /**
+   * content_reports findUniqueOrThrow
+   */
+  export type content_reportsFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the content_reports
+     */
+    select?: content_reportsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the content_reports
+     */
+    omit?: content_reportsOmit<ExtArgs> | null
+    /**
+     * Filter, which content_reports to fetch.
+     */
+    where: content_reportsWhereUniqueInput
+  }
+
+  /**
+   * content_reports findFirst
+   */
+  export type content_reportsFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the content_reports
+     */
+    select?: content_reportsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the content_reports
+     */
+    omit?: content_reportsOmit<ExtArgs> | null
+    /**
+     * Filter, which content_reports to fetch.
+     */
+    where?: content_reportsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of content_reports to fetch.
+     */
+    orderBy?: content_reportsOrderByWithRelationInput | content_reportsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for content_reports.
+     */
+    cursor?: content_reportsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` content_reports from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` content_reports.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of content_reports.
+     */
+    distinct?: Content_reportsScalarFieldEnum | Content_reportsScalarFieldEnum[]
+  }
+
+  /**
+   * content_reports findFirstOrThrow
+   */
+  export type content_reportsFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the content_reports
+     */
+    select?: content_reportsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the content_reports
+     */
+    omit?: content_reportsOmit<ExtArgs> | null
+    /**
+     * Filter, which content_reports to fetch.
+     */
+    where?: content_reportsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of content_reports to fetch.
+     */
+    orderBy?: content_reportsOrderByWithRelationInput | content_reportsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for content_reports.
+     */
+    cursor?: content_reportsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` content_reports from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` content_reports.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of content_reports.
+     */
+    distinct?: Content_reportsScalarFieldEnum | Content_reportsScalarFieldEnum[]
+  }
+
+  /**
+   * content_reports findMany
+   */
+  export type content_reportsFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the content_reports
+     */
+    select?: content_reportsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the content_reports
+     */
+    omit?: content_reportsOmit<ExtArgs> | null
+    /**
+     * Filter, which content_reports to fetch.
+     */
+    where?: content_reportsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of content_reports to fetch.
+     */
+    orderBy?: content_reportsOrderByWithRelationInput | content_reportsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing content_reports.
+     */
+    cursor?: content_reportsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` content_reports from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` content_reports.
+     */
+    skip?: number
+    distinct?: Content_reportsScalarFieldEnum | Content_reportsScalarFieldEnum[]
+  }
+
+  /**
+   * content_reports create
+   */
+  export type content_reportsCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the content_reports
+     */
+    select?: content_reportsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the content_reports
+     */
+    omit?: content_reportsOmit<ExtArgs> | null
+    /**
+     * The data needed to create a content_reports.
+     */
+    data: XOR<content_reportsCreateInput, content_reportsUncheckedCreateInput>
+  }
+
+  /**
+   * content_reports createMany
+   */
+  export type content_reportsCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many content_reports.
+     */
+    data: content_reportsCreateManyInput | content_reportsCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * content_reports createManyAndReturn
+   */
+  export type content_reportsCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the content_reports
+     */
+    select?: content_reportsSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the content_reports
+     */
+    omit?: content_reportsOmit<ExtArgs> | null
+    /**
+     * The data used to create many content_reports.
+     */
+    data: content_reportsCreateManyInput | content_reportsCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * content_reports update
+   */
+  export type content_reportsUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the content_reports
+     */
+    select?: content_reportsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the content_reports
+     */
+    omit?: content_reportsOmit<ExtArgs> | null
+    /**
+     * The data needed to update a content_reports.
+     */
+    data: XOR<content_reportsUpdateInput, content_reportsUncheckedUpdateInput>
+    /**
+     * Choose, which content_reports to update.
+     */
+    where: content_reportsWhereUniqueInput
+  }
+
+  /**
+   * content_reports updateMany
+   */
+  export type content_reportsUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update content_reports.
+     */
+    data: XOR<content_reportsUpdateManyMutationInput, content_reportsUncheckedUpdateManyInput>
+    /**
+     * Filter which content_reports to update
+     */
+    where?: content_reportsWhereInput
+    /**
+     * Limit how many content_reports to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * content_reports updateManyAndReturn
+   */
+  export type content_reportsUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the content_reports
+     */
+    select?: content_reportsSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the content_reports
+     */
+    omit?: content_reportsOmit<ExtArgs> | null
+    /**
+     * The data used to update content_reports.
+     */
+    data: XOR<content_reportsUpdateManyMutationInput, content_reportsUncheckedUpdateManyInput>
+    /**
+     * Filter which content_reports to update
+     */
+    where?: content_reportsWhereInput
+    /**
+     * Limit how many content_reports to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * content_reports upsert
+   */
+  export type content_reportsUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the content_reports
+     */
+    select?: content_reportsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the content_reports
+     */
+    omit?: content_reportsOmit<ExtArgs> | null
+    /**
+     * The filter to search for the content_reports to update in case it exists.
+     */
+    where: content_reportsWhereUniqueInput
+    /**
+     * In case the content_reports found by the `where` argument doesn't exist, create a new content_reports with this data.
+     */
+    create: XOR<content_reportsCreateInput, content_reportsUncheckedCreateInput>
+    /**
+     * In case the content_reports was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<content_reportsUpdateInput, content_reportsUncheckedUpdateInput>
+  }
+
+  /**
+   * content_reports delete
+   */
+  export type content_reportsDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the content_reports
+     */
+    select?: content_reportsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the content_reports
+     */
+    omit?: content_reportsOmit<ExtArgs> | null
+    /**
+     * Filter which content_reports to delete.
+     */
+    where: content_reportsWhereUniqueInput
+  }
+
+  /**
+   * content_reports deleteMany
+   */
+  export type content_reportsDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which content_reports to delete
+     */
+    where?: content_reportsWhereInput
+    /**
+     * Limit how many content_reports to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * content_reports without action
+   */
+  export type content_reportsDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the content_reports
+     */
+    select?: content_reportsSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the content_reports
+     */
+    omit?: content_reportsOmit<ExtArgs> | null
   }
 
 
@@ -48365,6 +49591,25 @@ export namespace Prisma {
   export type ConfigScalarFieldEnum = (typeof ConfigScalarFieldEnum)[keyof typeof ConfigScalarFieldEnum]
 
 
+  export const Content_reportsScalarFieldEnum: {
+    id: 'id',
+    target_type: 'target_type',
+    target_id: 'target_id',
+    reporter_user_id: 'reporter_user_id',
+    reason_code: 'reason_code',
+    reason_text: 'reason_text',
+    status: 'status',
+    resolved_at: 'resolved_at',
+    resolution_note: 'resolution_note',
+    created_version: 'created_version',
+    created_at: 'created_at',
+    updated_at: 'updated_at',
+    lock_no: 'lock_no'
+  };
+
+  export type Content_reportsScalarFieldEnum = (typeof Content_reportsScalarFieldEnum)[keyof typeof Content_reportsScalarFieldEnum]
+
+
   export const Contribution_tasksScalarFieldEnum: {
     id: 'id',
     type: 'type',
@@ -48983,20 +50228,6 @@ export namespace Prisma {
 
 
   /**
-   * Reference to a field of type 'Float'
-   */
-  export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
-    
-
-
-  /**
-   * Reference to a field of type 'Float[]'
-   */
-  export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float[]'>
-    
-
-
-  /**
    * Reference to a field of type 'Int'
    */
   export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
@@ -49007,6 +50238,20 @@ export namespace Prisma {
    * Reference to a field of type 'Int[]'
    */
   export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'Float'
+   */
+  export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
+    
+
+
+  /**
+   * Reference to a field of type 'Float[]'
+   */
+  export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float[]'>
     
 
 
@@ -49230,6 +50475,101 @@ export namespace Prisma {
     key?: StringWithAggregatesFilter<"config"> | string
     value?: StringWithAggregatesFilter<"config"> | string
     description?: StringNullableWithAggregatesFilter<"config"> | string | null
+  }
+
+  export type content_reportsWhereInput = {
+    AND?: content_reportsWhereInput | content_reportsWhereInput[]
+    OR?: content_reportsWhereInput[]
+    NOT?: content_reportsWhereInput | content_reportsWhereInput[]
+    id?: UuidFilter<"content_reports"> | string
+    target_type?: StringFilter<"content_reports"> | string
+    target_id?: UuidFilter<"content_reports"> | string
+    reporter_user_id?: UuidFilter<"content_reports"> | string
+    reason_code?: StringFilter<"content_reports"> | string
+    reason_text?: StringNullableFilter<"content_reports"> | string | null
+    status?: StringFilter<"content_reports"> | string
+    resolved_at?: DateTimeNullableFilter<"content_reports"> | Date | string | null
+    resolution_note?: StringNullableFilter<"content_reports"> | string | null
+    created_version?: StringFilter<"content_reports"> | string
+    created_at?: DateTimeFilter<"content_reports"> | Date | string
+    updated_at?: DateTimeFilter<"content_reports"> | Date | string
+    lock_no?: IntFilter<"content_reports"> | number
+  }
+
+  export type content_reportsOrderByWithRelationInput = {
+    id?: SortOrder
+    target_type?: SortOrder
+    target_id?: SortOrder
+    reporter_user_id?: SortOrder
+    reason_code?: SortOrder
+    reason_text?: SortOrderInput | SortOrder
+    status?: SortOrder
+    resolved_at?: SortOrderInput | SortOrder
+    resolution_note?: SortOrderInput | SortOrder
+    created_version?: SortOrder
+    created_at?: SortOrder
+    updated_at?: SortOrder
+    lock_no?: SortOrder
+  }
+
+  export type content_reportsWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    reporter_user_id_target_type_target_id?: content_reportsReporter_user_idTarget_typeTarget_idCompoundUniqueInput
+    AND?: content_reportsWhereInput | content_reportsWhereInput[]
+    OR?: content_reportsWhereInput[]
+    NOT?: content_reportsWhereInput | content_reportsWhereInput[]
+    target_type?: StringFilter<"content_reports"> | string
+    target_id?: UuidFilter<"content_reports"> | string
+    reporter_user_id?: UuidFilter<"content_reports"> | string
+    reason_code?: StringFilter<"content_reports"> | string
+    reason_text?: StringNullableFilter<"content_reports"> | string | null
+    status?: StringFilter<"content_reports"> | string
+    resolved_at?: DateTimeNullableFilter<"content_reports"> | Date | string | null
+    resolution_note?: StringNullableFilter<"content_reports"> | string | null
+    created_version?: StringFilter<"content_reports"> | string
+    created_at?: DateTimeFilter<"content_reports"> | Date | string
+    updated_at?: DateTimeFilter<"content_reports"> | Date | string
+    lock_no?: IntFilter<"content_reports"> | number
+  }, "id" | "reporter_user_id_target_type_target_id">
+
+  export type content_reportsOrderByWithAggregationInput = {
+    id?: SortOrder
+    target_type?: SortOrder
+    target_id?: SortOrder
+    reporter_user_id?: SortOrder
+    reason_code?: SortOrder
+    reason_text?: SortOrderInput | SortOrder
+    status?: SortOrder
+    resolved_at?: SortOrderInput | SortOrder
+    resolution_note?: SortOrderInput | SortOrder
+    created_version?: SortOrder
+    created_at?: SortOrder
+    updated_at?: SortOrder
+    lock_no?: SortOrder
+    _count?: content_reportsCountOrderByAggregateInput
+    _avg?: content_reportsAvgOrderByAggregateInput
+    _max?: content_reportsMaxOrderByAggregateInput
+    _min?: content_reportsMinOrderByAggregateInput
+    _sum?: content_reportsSumOrderByAggregateInput
+  }
+
+  export type content_reportsScalarWhereWithAggregatesInput = {
+    AND?: content_reportsScalarWhereWithAggregatesInput | content_reportsScalarWhereWithAggregatesInput[]
+    OR?: content_reportsScalarWhereWithAggregatesInput[]
+    NOT?: content_reportsScalarWhereWithAggregatesInput | content_reportsScalarWhereWithAggregatesInput[]
+    id?: UuidWithAggregatesFilter<"content_reports"> | string
+    target_type?: StringWithAggregatesFilter<"content_reports"> | string
+    target_id?: UuidWithAggregatesFilter<"content_reports"> | string
+    reporter_user_id?: UuidWithAggregatesFilter<"content_reports"> | string
+    reason_code?: StringWithAggregatesFilter<"content_reports"> | string
+    reason_text?: StringNullableWithAggregatesFilter<"content_reports"> | string | null
+    status?: StringWithAggregatesFilter<"content_reports"> | string
+    resolved_at?: DateTimeNullableWithAggregatesFilter<"content_reports"> | Date | string | null
+    resolution_note?: StringNullableWithAggregatesFilter<"content_reports"> | string | null
+    created_version?: StringWithAggregatesFilter<"content_reports"> | string
+    created_at?: DateTimeWithAggregatesFilter<"content_reports"> | Date | string
+    updated_at?: DateTimeWithAggregatesFilter<"content_reports"> | Date | string
+    lock_no?: IntWithAggregatesFilter<"content_reports"> | number
   }
 
   export type contribution_tasksWhereInput = {
@@ -52020,6 +53360,118 @@ export namespace Prisma {
     key?: StringFieldUpdateOperationsInput | string
     value?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type content_reportsCreateInput = {
+    id?: string
+    target_type: string
+    target_id: string
+    reporter_user_id: string
+    reason_code: string
+    reason_text?: string | null
+    status?: string
+    resolved_at?: Date | string | null
+    resolution_note?: string | null
+    created_version?: string
+    created_at?: Date | string
+    updated_at?: Date | string
+    lock_no?: number
+  }
+
+  export type content_reportsUncheckedCreateInput = {
+    id?: string
+    target_type: string
+    target_id: string
+    reporter_user_id: string
+    reason_code: string
+    reason_text?: string | null
+    status?: string
+    resolved_at?: Date | string | null
+    resolution_note?: string | null
+    created_version?: string
+    created_at?: Date | string
+    updated_at?: Date | string
+    lock_no?: number
+  }
+
+  export type content_reportsUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    target_type?: StringFieldUpdateOperationsInput | string
+    target_id?: StringFieldUpdateOperationsInput | string
+    reporter_user_id?: StringFieldUpdateOperationsInput | string
+    reason_code?: StringFieldUpdateOperationsInput | string
+    reason_text?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    resolved_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolution_note?: NullableStringFieldUpdateOperationsInput | string | null
+    created_version?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    lock_no?: IntFieldUpdateOperationsInput | number
+  }
+
+  export type content_reportsUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    target_type?: StringFieldUpdateOperationsInput | string
+    target_id?: StringFieldUpdateOperationsInput | string
+    reporter_user_id?: StringFieldUpdateOperationsInput | string
+    reason_code?: StringFieldUpdateOperationsInput | string
+    reason_text?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    resolved_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolution_note?: NullableStringFieldUpdateOperationsInput | string | null
+    created_version?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    lock_no?: IntFieldUpdateOperationsInput | number
+  }
+
+  export type content_reportsCreateManyInput = {
+    id?: string
+    target_type: string
+    target_id: string
+    reporter_user_id: string
+    reason_code: string
+    reason_text?: string | null
+    status?: string
+    resolved_at?: Date | string | null
+    resolution_note?: string | null
+    created_version?: string
+    created_at?: Date | string
+    updated_at?: Date | string
+    lock_no?: number
+  }
+
+  export type content_reportsUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    target_type?: StringFieldUpdateOperationsInput | string
+    target_id?: StringFieldUpdateOperationsInput | string
+    reporter_user_id?: StringFieldUpdateOperationsInput | string
+    reason_code?: StringFieldUpdateOperationsInput | string
+    reason_text?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    resolved_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolution_note?: NullableStringFieldUpdateOperationsInput | string | null
+    created_version?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    lock_no?: IntFieldUpdateOperationsInput | number
+  }
+
+  export type content_reportsUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    target_type?: StringFieldUpdateOperationsInput | string
+    target_id?: StringFieldUpdateOperationsInput | string
+    reporter_user_id?: StringFieldUpdateOperationsInput | string
+    reason_code?: StringFieldUpdateOperationsInput | string
+    reason_text?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    resolved_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolution_note?: NullableStringFieldUpdateOperationsInput | string | null
+    created_version?: StringFieldUpdateOperationsInput | string
+    created_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
+    lock_no?: IntFieldUpdateOperationsInput | number
   }
 
   export type contribution_tasksCreateInput = {
@@ -55141,6 +56593,135 @@ export namespace Prisma {
     mode?: QueryMode
     not?: NestedUuidFilter<$PrismaModel> | string
   }
+
+  export type DateTimeNullableFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+  }
+
+  export type IntFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntFilter<$PrismaModel> | number
+  }
+
+  export type content_reportsReporter_user_idTarget_typeTarget_idCompoundUniqueInput = {
+    reporter_user_id: string
+    target_type: string
+    target_id: string
+  }
+
+  export type content_reportsCountOrderByAggregateInput = {
+    id?: SortOrder
+    target_type?: SortOrder
+    target_id?: SortOrder
+    reporter_user_id?: SortOrder
+    reason_code?: SortOrder
+    reason_text?: SortOrder
+    status?: SortOrder
+    resolved_at?: SortOrder
+    resolution_note?: SortOrder
+    created_version?: SortOrder
+    created_at?: SortOrder
+    updated_at?: SortOrder
+    lock_no?: SortOrder
+  }
+
+  export type content_reportsAvgOrderByAggregateInput = {
+    lock_no?: SortOrder
+  }
+
+  export type content_reportsMaxOrderByAggregateInput = {
+    id?: SortOrder
+    target_type?: SortOrder
+    target_id?: SortOrder
+    reporter_user_id?: SortOrder
+    reason_code?: SortOrder
+    reason_text?: SortOrder
+    status?: SortOrder
+    resolved_at?: SortOrder
+    resolution_note?: SortOrder
+    created_version?: SortOrder
+    created_at?: SortOrder
+    updated_at?: SortOrder
+    lock_no?: SortOrder
+  }
+
+  export type content_reportsMinOrderByAggregateInput = {
+    id?: SortOrder
+    target_type?: SortOrder
+    target_id?: SortOrder
+    reporter_user_id?: SortOrder
+    reason_code?: SortOrder
+    reason_text?: SortOrder
+    status?: SortOrder
+    resolved_at?: SortOrder
+    resolution_note?: SortOrder
+    created_version?: SortOrder
+    created_at?: SortOrder
+    updated_at?: SortOrder
+    lock_no?: SortOrder
+  }
+
+  export type content_reportsSumOrderByAggregateInput = {
+    lock_no?: SortOrder
+  }
+
+  export type UuidWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel>
+    in?: string[] | ListStringFieldRefInput<$PrismaModel>
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel>
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    mode?: QueryMode
+    not?: NestedUuidWithAggregatesFilter<$PrismaModel> | string
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedStringFilter<$PrismaModel>
+    _max?: NestedStringFilter<$PrismaModel>
+  }
+
+  export type DateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedDateTimeNullableFilter<$PrismaModel>
+    _max?: NestedDateTimeNullableFilter<$PrismaModel>
+  }
+
+  export type IntWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedIntFilter<$PrismaModel>
+    _min?: NestedIntFilter<$PrismaModel>
+    _max?: NestedIntFilter<$PrismaModel>
+  }
   export type JsonFilter<$PrismaModel = never> =
     | PatchUndefined<
         Either<Required<JsonFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonFilterBase<$PrismaModel>>, 'path'>>,
@@ -55196,21 +56777,6 @@ export namespace Prisma {
     user_id?: SortOrder
     created_at?: SortOrder
   }
-
-  export type UuidWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel>
-    in?: string[] | ListStringFieldRefInput<$PrismaModel>
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel>
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    mode?: QueryMode
-    not?: NestedUuidWithAggregatesFilter<$PrismaModel> | string
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedStringFilter<$PrismaModel>
-    _max?: NestedStringFilter<$PrismaModel>
-  }
   export type JsonWithAggregatesFilter<$PrismaModel = never> =
     | PatchUndefined<
         Either<Required<JsonWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
@@ -55244,17 +56810,6 @@ export namespace Prisma {
     hasEvery?: string[] | ListStringFieldRefInput<$PrismaModel>
     hasSome?: string[] | ListStringFieldRefInput<$PrismaModel>
     isEmpty?: boolean
-  }
-
-  export type DateTimeNullableFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
   }
 
   export type Dish_category_featuresListRelationFilter = {
@@ -55334,20 +56889,6 @@ export namespace Prisma {
     created_at?: SortOrder
     macro_genre_qid?: SortOrder
     synced_at?: SortOrder
-  }
-
-  export type DateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedDateTimeNullableFilter<$PrismaModel>
-    _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
   export type FloatFilter<$PrismaModel = never> = {
@@ -55456,17 +56997,6 @@ export namespace Prisma {
     created_at?: SortOrder
   }
 
-  export type IntFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel>
-    in?: number[] | ListIntFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntFilter<$PrismaModel> | number
-  }
-
   export type Dish_category_group_vote_candidate_votesListRelationFilter = {
     every?: dish_category_group_vote_candidate_votesWhereInput
     some?: dish_category_group_vote_candidate_votesWhereInput
@@ -55538,22 +57068,6 @@ export namespace Prisma {
 
   export type dish_category_group_vote_candidatesSumOrderByAggregateInput = {
     display_order?: SortOrder
-  }
-
-  export type IntWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel>
-    in?: number[] | ListIntFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
-    _count?: NestedIntFilter<$PrismaModel>
-    _avg?: NestedFloatFilter<$PrismaModel>
-    _sum?: NestedIntFilter<$PrismaModel>
-    _min?: NestedIntFilter<$PrismaModel>
-    _max?: NestedIntFilter<$PrismaModel>
   }
 
   export type dish_category_group_vote_participantsSession_idUser_idCompoundUniqueInput = {
@@ -57187,6 +58701,18 @@ export namespace Prisma {
     set?: Date | string
   }
 
+  export type NullableDateTimeFieldUpdateOperationsInput = {
+    set?: Date | string | null
+  }
+
+  export type IntFieldUpdateOperationsInput = {
+    set?: number
+    increment?: number
+    decrement?: number
+    multiply?: number
+    divide?: number
+  }
+
   export type dish_categoriesCreatetagsInput = {
     set: string[]
   }
@@ -57264,10 +58790,6 @@ export namespace Prisma {
   export type dish_categoriesUpdatetagsInput = {
     set?: string[]
     push?: string | string[]
-  }
-
-  export type NullableDateTimeFieldUpdateOperationsInput = {
-    set?: Date | string | null
   }
 
   export type dish_category_featuresUpdateManyWithoutDish_categoriesNestedInput = {
@@ -57493,14 +59015,6 @@ export namespace Prisma {
   export type dish_category_group_vote_candidatesUpdatedish_media_idsInput = {
     set?: string[]
     push?: string | string[]
-  }
-
-  export type IntFieldUpdateOperationsInput = {
-    set?: number
-    increment?: number
-    decrement?: number
-    multiply?: number
-    divide?: number
   }
 
   export type dish_category_group_vote_candidate_votesUpdateManyWithoutDish_category_group_vote_candidatesNestedInput = {
@@ -59133,6 +60647,17 @@ export namespace Prisma {
     not?: NestedUuidFilter<$PrismaModel> | string
   }
 
+  export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+  }
+
   export type NestedUuidWithAggregatesFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -59145,6 +60670,47 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedStringFilter<$PrismaModel>
     _max?: NestedStringFilter<$PrismaModel>
+  }
+
+  export type NestedDateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedDateTimeNullableFilter<$PrismaModel>
+    _max?: NestedDateTimeNullableFilter<$PrismaModel>
+  }
+
+  export type NestedIntWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedIntFilter<$PrismaModel>
+    _min?: NestedIntFilter<$PrismaModel>
+    _max?: NestedIntFilter<$PrismaModel>
+  }
+
+  export type NestedFloatFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatFilter<$PrismaModel> | number
   }
   export type NestedJsonFilter<$PrismaModel = never> =
     | PatchUndefined<
@@ -59170,42 +60736,6 @@ export namespace Prisma {
     not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
   }
 
-  export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
-  }
-
-  export type NestedDateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedDateTimeNullableFilter<$PrismaModel>
-    _max?: NestedDateTimeNullableFilter<$PrismaModel>
-  }
-
-  export type NestedFloatFilter<$PrismaModel = never> = {
-    equals?: number | FloatFieldRefInput<$PrismaModel>
-    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    lt?: number | FloatFieldRefInput<$PrismaModel>
-    lte?: number | FloatFieldRefInput<$PrismaModel>
-    gt?: number | FloatFieldRefInput<$PrismaModel>
-    gte?: number | FloatFieldRefInput<$PrismaModel>
-    not?: NestedFloatFilter<$PrismaModel> | number
-  }
-
   export type NestedFloatWithAggregatesFilter<$PrismaModel = never> = {
     equals?: number | FloatFieldRefInput<$PrismaModel>
     in?: number[] | ListFloatFieldRefInput<$PrismaModel>
@@ -59220,22 +60750,6 @@ export namespace Prisma {
     _sum?: NestedFloatFilter<$PrismaModel>
     _min?: NestedFloatFilter<$PrismaModel>
     _max?: NestedFloatFilter<$PrismaModel>
-  }
-
-  export type NestedIntWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel>
-    in?: number[] | ListIntFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
-    _count?: NestedIntFilter<$PrismaModel>
-    _avg?: NestedFloatFilter<$PrismaModel>
-    _sum?: NestedIntFilter<$PrismaModel>
-    _min?: NestedIntFilter<$PrismaModel>
-    _max?: NestedIntFilter<$PrismaModel>
   }
 
   export type NestedIntNullableWithAggregatesFilter<$PrismaModel = never> = {

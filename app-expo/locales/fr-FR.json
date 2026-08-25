@@ -463,6 +463,57 @@
 			"forbidden": "Vous ne pouvez modifier ou supprimer que vos propres publications"
 		}
 	},
+	"Report": {
+		"action": "Signaler",
+		"title": "Signaler cette publication",
+		"reviewTitle": "Signaler cet avis",
+		"description": "Choisissez un motif de signalement. Notre équipe l'examinera et l'auteur n'en sera pas informé.",
+		"reasons": {
+			"spam": "Spam ou publicité",
+			"sexual": "Contenu sexuel",
+			"violence": "Violence ou contenu choquant",
+			"harassment": "Harcèlement ou insultes",
+			"illegal": "Activité illégale",
+			"misinformation": "Informations erronées",
+			"rights": "Atteinte aux droits (droit d'auteur, etc.)",
+			"privacy": "Données personnelles visibles",
+			"irrelevant": "Sans rapport avec la cuisine",
+			"other": "Autre motif"
+		},
+		"detailsLabel": "Précisions (facultatif)",
+		"detailsPlaceholder": "Ajoutez tout élément utile à l'examen (1 000 caractères max.)",
+		"submit": "Envoyer le signalement",
+		"submitting": "Envoi en cours...",
+		"accepted": {
+			"title": "Merci pour votre signalement",
+			"description": "Nous allons l'examiner. Nous ne communiquons pas le résultat individuellement.",
+			"close": "Fermer",
+			"history": "Vos signalements"
+		},
+		"errors": {
+			"submitFailed": "Impossible d'envoyer le signalement. Veuillez réessayer."
+		},
+		"accessibility": {
+			"open": "Signaler la publication de {{name}}",
+			"openReview": "Signaler l'avis de {{name}}",
+			"reason": "Motif : {{reason}}",
+			"reasonSelected": "Motif : {{reason}} (sélectionné)",
+			"submit": "Envoyer le signalement de la publication de {{name}}",
+			"submitReview": "Envoyer le signalement de l'avis de {{name}}"
+		},
+		"history": {
+			"navigationLabel": "Vos signalements",
+			"pageTitle": "Vos signalements",
+			"empty": "Aucun signalement pour le moment",
+			"emptyDescription": "Lorsque vous signalez une publication ou un avis, il apparaît ici.",
+			"note": "Nous ne communiquons ni l'état ni le résultat de l'examen.",
+			"error": "Impossible de charger vos signalements",
+			"target": {
+				"dish_media": "Publication",
+				"dish_reviews": "Avis"
+			}
+		}
+	},
 	"ImageCardGrid": {
 		"openItemDetails": "Ouvrir les détails de l'article"
 	},
