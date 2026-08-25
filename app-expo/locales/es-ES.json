@@ -245,16 +245,16 @@
 	},
 	"Onboarding": {
 		"step1": {
-			"problem": "No te decides sobre qué comer.",
-			"solution": "Te sugerimos platos recomendados\npara que encuentres lo que te apetece"
+			"problem": "Ni siquiera sabes\nqué te apetece comer.",
+			"solution": "Solo tienes que elegir entre los platos recomendados"
 		},
 		"step2": {
-			"problem": "Buscar restaurante lleva mucho tiempo\ncon tantas opciones.",
-			"solution": "Platos y restaurantes ya seleccionados,\nasí decides al momento"
+			"problem": "Hay demasiados restaurantes.\nDecidir cansa.",
+			"solution": "Eliges entre restaurantes seleccionados: ¡es fácil decidir!"
 		},
 		"step3": {
-			"problem": "Tampoco quieres fallar con los gustos de quien te acompaña.",
-			"solution": "Vota con tus amigos y decidid el plato"
+			"problem": "También quieres saber\nqué opinan tus amigos.",
+			"solution": "¡Decide el plato con tus amigos, por votación!"
 		},
 		"back": "Atrás",
 		"next": "Siguiente",

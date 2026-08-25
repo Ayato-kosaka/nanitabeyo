@@ -23,10 +23,12 @@ import { clickRapid } from "../utils/rapid-click";
  * どれも押しても消えない（1 枚目の「前へ」だけは描画されない）ので、
  * `pressByTestIdIfPresent` のような «特定と押下を同一タスクで» という回避策は要らない。
  *
- * ⚠️ ただし **「次へ」を押した直後に検証しないこと**。各ページは表示から約 1.5 秒後に
- * 課題フェーズ→解決フェーズへ切り替わる（`PROBLEM_PHASE_DURATION_MS`）。
- * 解決文言を見たいときは {@link expectSolutionVisible} を使い、
- * 固定 sleep ではなく «その文言が見えるまで» 待つこと。
+ * ## ⚠️ 「次へ」は 1 ページにつき **2 回**押す
+ *
+ * 各ページは «課題フェーズ → 解決フェーズ» の 2 段構えで、自動では切り替わらない
+ *（1 押下目で解決フェーズ、2 押下目で次のページ）。«次のページへ送る» つもりの 1 押下は
+ * 解決フェーズを出すだけで終わるので、ページを送るときは {@link goToNextStep} を、
+ * 解決フェーズを出すだけのときは {@link revealSolution} を使う。
  */
 export class OnboardingPage {
 	readonly page: Page;
@@ -97,33 +99,60 @@ export class OnboardingPage {
 	}
 
 	/**
-	 * 指定ステップの解決フェーズが再生されるまで待つ。
+	 * 解決フェーズを出す（「次へ」を 1 回押して、解決文が不透明になるまで待つ）。
+	 *
+	 * 自動再生をやめたので、解決文言を見たいテストは必ずこれを通ること。
+	 */
+	async revealSolution(step: 1 | 2 | 3): Promise<void> {
+		await this.expectStep(step);
+		await this.pressNext();
+		await this.expectSolutionVisible(step);
+	}
+
+	/**
+	 * 次のページへ送る（解決フェーズを出してから、もう一度「次へ」を押す）。
+	 *
+	 * 3 枚目で呼ぶとログイン画面へ抜けるので、ページ送りにだけ使うこと。
+	 */
+	async goToNextStep(from: 1 | 2 | 3): Promise<void> {
+		await this.revealSolution(from);
+		await this.pressNext();
+	}
+
+	/**
+	 * 指定ステップの解決文の «実効的な» 不透明度（0 = 課題フェーズ / 1 = 解決フェーズ）。
 	 *
 	 * 解決文は課題フェーズでも DOM 上には存在する（`opacity: 0` で «場所だけ» 確保している）。
-	 * そのため `toBeVisible()` では課題フェーズと区別できない。**不透明になったか**を見る。
+	 * そのため `toBeVisible()` ではフェーズを区別できない。不透明度で見る。
+	 */
+	async solutionOpacity(step: 1 | 2 | 3): Promise<number> {
+		// 解決ブロックは Animated.View なので、opacity は «祖先» に付く。
+		// 要素自身から祖先をたどって、実効的な不透明度を掛け合わせる
+		return this.solutionText(step).evaluate((node: Element) => {
+			let opacity = 1;
+			let current: Element | null = node;
+			while (current) {
+				const value = Number.parseFloat(window.getComputedStyle(current).opacity || "1");
+				if (Number.isFinite(value)) opacity *= value;
+				current = current.parentElement;
+			}
+			return opacity;
+		});
+	}
+
+	/**
+	 * 指定ステップの解決フェーズが再生されるまで待つ。
+	 *
+	 * ⚠️ 自動では再生されない。「次へ」を押していない状態でこれを待つと必ずタイムアウトする
+	 *（押下も込みで待ちたいときは {@link revealSolution}）。
 	 */
 	async expectSolutionVisible(step: 1 | 2 | 3): Promise<void> {
-		const solution = this.solutionText(step);
-		await expect(solution).toBeVisible();
+		await expect(this.solutionText(step)).toBeVisible();
 
 		await expect
-			.poll(
-				async () => {
-					// 解決ブロックは Animated.View なので、opacity は «祖先» に付く。
-					// 要素自身から祖先をたどって、実効的な不透明度を掛け合わせる
-					return solution.evaluate((node: Element) => {
-						let opacity = 1;
-						let current: Element | null = node;
-						while (current) {
-							const value = Number.parseFloat(window.getComputedStyle(current).opacity || "1");
-							if (Number.isFinite(value)) opacity *= value;
-							current = current.parentElement;
-						}
-						return opacity;
-					});
-				},
-				{ message: `ステップ ${step} の解決フェーズが再生されなかった` },
-			)
+			.poll(async () => this.solutionOpacity(step), {
+				message: `ステップ ${step} の解決フェーズが再生されなかった`,
+			})
 			.toBeGreaterThan(0.9);
 	}
 
@@ -152,12 +181,10 @@ export class OnboardingPage {
 		await clickRapid(this.nextButton, times);
 	}
 
-	/** 3 ステップを最後まで進める（各ページの解決フェーズは待たない） */
+	/** 3 ステップを最後まで進める（各ページで «解決を出す» → «送る» の 2 押下） */
 	async advanceToLastStep(): Promise<void> {
-		await this.expectStep(1);
-		await this.pressNext();
-		await this.expectStep(2);
-		await this.pressNext();
+		await this.goToNextStep(1);
+		await this.goToNextStep(2);
 		await this.expectStep(3);
 	}
 }
