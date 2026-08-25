@@ -31,10 +31,13 @@ PR5 の contextual filter chips も、このページ側のオーバーレイと
 横スクロールの途中で 2 つ見えてしまう。
 */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { asApiList } from "@/lib/apiList";
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { shallow } from "zustand/shallow";
 
 import { LoadingIndicator } from "@/components/LoadingIndicator";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useThemedStyles } from "@/contexts/ThemeProvider";
 import DishMediaFeed from "@/features/dishMedia/components/DishMediaFeed";
 import { MyDishesFeedChips } from "@/features/myDishes/components/MyDishesFeedChips";
 import { myDishesFeedKey } from "@/features/myDishes/constants";
@@ -84,6 +87,7 @@ export const MyDishesFeedPage = React.memo(function MyDishesFeedPage({
 	dishMediaId = null,
 	isActive,
 }: MyDishesFeedPageProps) {
+	const styles = useThemedStyles(createStyles);
 	const restaurantId = scope.kind === "restaurant" ? scope.restaurantId : null;
 	const date = scope.kind === "date" ? scope.date : null;
 	const dishMediaIdParam = dishMediaId;
@@ -213,13 +217,20 @@ export const MyDishesFeedPage = React.memo(function MyDishesFeedPage({
 				// `clearByKey` より «後» に決着すると、ここで書いたものが誰にも消されず残ってしまい、
 				// 次に同じ店を開いたとき古い並びのまま固定される
 				if (cancelled) return;
-				upsertDishMediaEntries(res.items);
+				/*
+				#1561 と同じ理由でここも `asApiList` を通す。**成功ハンドラの中なので
+				throw は unhandled rejection になり、しかも `requestedKeyRef` が既に立っている**ため
+				二度と取り直されず、スピナーが固着する（200 は返るが `items` が無い応答で起きる）。
+				0 件へ落とせば、通常どおり «空» の表示へ縮退する。
+				*/
+				const rows = asApiList(res.items);
+				upsertDishMediaEntries(rows);
 				// Q4: 取得直後のサーバ値を dirty 判定の基準に取る
 				const snapshot: Record<string, boolean> = {};
-				for (const item of res.items) snapshot[String(item.dish_media.id)] = Boolean(item.dish_media.isSaved);
+				for (const item of rows) snapshot[String(item.dish_media.id)] = Boolean(item.dish_media.isSaved);
 				initialSavedRef.current = snapshot;
 
-				const fetchedIds = res.items.map((item) => String(item.dish_media.id));
+				const fetchedIds = rows.map((item) => String(item.dish_media.id));
 				// ⚠️ 並び順は **Sheet / リストで見えている順**（= `mediaIds`）に揃える。API の戻り順に
 				// 任せると、`itemKey` / `dishMediaId` から引いた index が指す料理と実際の並びがずれる
 				void updateMediaIdsByKeyAsync(entriesKey, Promise.resolve(fetchedIds), (_prev, ids) => {
@@ -409,68 +420,69 @@ export const MyDishesFeedPage = React.memo(function MyDishesFeedPage({
 	);
 });
 
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		backgroundColor: "#000",
-	},
-	centered: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-		padding: 16,
-	},
-	emptyText: {
-		fontSize: 16,
-		color: "#FFF",
-		textAlign: "center",
-	},
-	retryButton: {
-		marginTop: 16,
-		paddingHorizontal: 20,
-		paddingVertical: 10,
-		borderRadius: 20,
-		// #1375（5 巡目・デザインレビュー #3）パレットに無い青をやめる
-		backgroundColor: "#FFFFFF",
-	},
-	retryText: {
-		fontSize: 14,
-		fontWeight: "600",
-		// 地が白になったので文字は黒
-		color: "#111827",
-	},
-	// chips の帯。閉じるボタン（zIndex: 10）と同じ高さに置き、重ならないよう
-	// chips 側で右に余白を取っている（MyDishesFeedChips.tsx の `container`）
-	chipsContainer: {
-		position: "absolute",
-		left: 0,
-		right: 0,
-		zIndex: 9,
-	},
-	// «その日の n 件目» のインジケータ。閉じるボタン（右上）と重ならないよう右へ余白を取る
-	positionContainer: {
-		position: "absolute",
-		left: 16,
-		right: 64,
-		zIndex: 9,
-		gap: 4,
-	},
-	positionBars: {
-		flexDirection: "row",
-		gap: 3,
-	},
-	positionBar: {
-		flex: 1,
-		height: 2,
-		borderRadius: 1,
-		backgroundColor: "rgba(255,255,255,0.35)",
-	},
-	positionBarActive: {
-		backgroundColor: "#FFFFFF",
-	},
-	positionCounter: {
-		fontSize: 11,
-		fontWeight: "700",
-		color: "rgba(255,255,255,0.9)",
-	},
-});
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		container: {
+			flex: 1,
+			backgroundColor: FixedColors.badgeBackground,
+		},
+		centered: {
+			flex: 1,
+			justifyContent: "center",
+			alignItems: "center",
+			padding: 16,
+		},
+		emptyText: {
+			fontSize: 16,
+			color: FixedColors.onMedia,
+			textAlign: "center",
+		},
+		retryButton: {
+			marginTop: 16,
+			paddingHorizontal: 20,
+			paddingVertical: 10,
+			borderRadius: 20,
+			// #1375（5 巡目・デザインレビュー #3）パレットに無い青をやめる
+			backgroundColor: FixedColors.onMedia,
+		},
+		retryText: {
+			fontSize: 14,
+			fontWeight: "600",
+			// 地が白になったので文字は黒
+			color: c.textPrimaryAlt,
+		},
+		// chips の帯。閉じるボタン（zIndex: 10）と同じ高さに置き、重ならないよう
+		// chips 側で右に余白を取っている（MyDishesFeedChips.tsx の `container`）
+		chipsContainer: {
+			position: "absolute",
+			left: 0,
+			right: 0,
+			zIndex: 9,
+		},
+		// «その日の n 件目» のインジケータ。閉じるボタン（右上）と重ならないよう右へ余白を取る
+		positionContainer: {
+			position: "absolute",
+			left: 16,
+			right: 64,
+			zIndex: 9,
+			gap: 4,
+		},
+		positionBars: {
+			flexDirection: "row",
+			gap: 3,
+		},
+		positionBar: {
+			flex: 1,
+			height: 2,
+			borderRadius: 1,
+			backgroundColor: "rgba(255,255,255,0.35)",
+		},
+		positionBarActive: {
+			backgroundColor: FixedColors.onMedia,
+		},
+		positionCounter: {
+			fontSize: 11,
+			fontWeight: "700",
+			color: "rgba(255,255,255,0.9)",
+		},
+	});

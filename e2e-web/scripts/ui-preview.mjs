@@ -221,7 +221,13 @@ await context.route("**/img.example.invalid/**", (r) => r.fulfill({ contentType:
 await context.route("**/www.instagram.com/**", (r) =>
   r.fulfill({
     contentType: "text/html",
-    body: `<html><body style="margin:0;background:#000;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif"><div style="text-align:center"><div style="width:220px;height:220px;border:3px solid #E1306C;border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px">▶ Instagram embed<br/>(stub)</div>DZnIRziT70s</div></body></html>`,
+    // #1375（案 A）**実物の Instagram `/embed/` と同じ «積み方» にしてあるスタブ。**
+    // 実機 Detox の動画のコマを実測した内訳（セル幅 320 のとき）を再現している:
+    //   ヘッダ帯 17px 相当（幅の 5.3%）→ 写真（幅いっぱいの正方形〜4:5）→ いいね欄・コメント欄・白帯。
+    // 切り取り（features/dishMedia/embedCrop.ts）が効いているかは、
+    // **この白い部分が 1px も見えないこと**で判定する。中央に置いた「▶」は
+    // Instagram 自前の再生ボタンの位置を表す（こちらの再生ボタンと重なっていないかの確認用）
+    body: `<html><body style="margin:0;background:#fff;font-family:sans-serif"><div style="height:5.3vw;background:#fff;border-bottom:1px solid #dbdbdb;display:flex;align-items:center;gap:6px;padding:0 8px;box-sizing:border-box"><div style="width:3.5vw;height:3.5vw;border-radius:50%;background:#E1306C"></div><div style="font-size:2.2vw;color:#262626">msg.eatokyo</div><div style="margin-left:auto;font-size:2vw;color:#0095f6">Instagramで表示</div></div><div style="width:100vw;height:100vw;background:linear-gradient(160deg,#8B2E1F,#D9531E 45%,#7A2414);position:relative"><div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:16vw;height:16vw;border-radius:50%;background:rgba(0,0,0,.45);color:#fff;display:flex;align-items:center;justify-content:center;font-size:7vw">&#9654;</div></div><div style="padding:8px;background:#fff"><div style="font-size:3vw;color:#262626">&#9825; &#9836; &#8599;</div><div style="font-size:2.4vw;font-weight:700;margin-top:6px">いいね！169,527件</div><div style="font-size:2.4vw;color:#8e8e8e;margin-top:6px">コメントを追加…</div><div style="height:30vh;background:#fff"></div></div></body></html>`,
   }),
 );
 await context.route("**/localhost:9999/**", (r) => {

@@ -569,7 +569,8 @@
 		},
 		"actions": {
 			"selectDishCategory": "डिश श्रेणी चुनें",
-			"writeReviewForThisDish": "'खा लिया' के रूप में दर्ज करें"
+			"writeReviewForThisDish": "'खा लिया' के रूप में दर्ज करें",
+			"useTypedDishCategory": "“{{name}}” का उपयोग करें"
 		},
 		"inputs": {
 			"price": "मूल्य",
@@ -586,14 +587,16 @@
 			"enterBidAmount": "बोली राशि दर्ज करें",
 			"enterDishCategory": "Enter dish category (e.g., Biryani, Chaat)",
 			"searchRestaurantsForReview": "नाम या क्षेत्र से खोजें",
-			"searchAreaForReview": "क्षेत्र से खोजें"
+			"searchAreaForReview": "क्षेत्र से खोजें",
+			"searchDishCategory": "व्यंजन के नाम से खोजें"
 		},
 		"labels": {
 			"endDate": "समाप्ति तिथि:",
 			"paymentProcessing": "भुगतान प्रसंस्करण...",
 			"restaurant": "रेस्टोरेंट",
 			"dishCategory": "व्यंजन श्रेणी",
-			"dishesAtThisRestaurant": "इस रेस्तराँ के व्यंजन"
+			"dishesAtThisRestaurant": "इस रेस्तराँ के व्यंजन",
+			"noDishesAtThisRestaurant": "यहाँ अभी कोई व्यंजन दर्ज नहीं है। व्यंजन का नाम लिखें।"
 		},
 		"tabs": {
 			"reviews": "समीक्षाएँ"
@@ -1081,7 +1084,7 @@
 			"pickRestaurant": "दुकान चुनें",
 			"pick": "चुनें",
 			"change": "बदलें",
-			"hint": "पहले दुकान चुनें। फिर फ़ोटो, छोटी समीक्षा, व्यंजन श्रेणी, कीमत और रेटिंग भर सकते हैं (फ़ोटो वैकल्पिक)।",
+			"hint": "पहले रेस्तराँ चुनें। फिर व्यंजन चुनें और फ़ोटो (वैकल्पिक), छोटी समीक्षा, कीमत और रेटिंग जोड़ें।",
 			"done": "खाया के रूप में दर्ज हुआ"
 		}
 	},

@@ -569,7 +569,8 @@
 		},
 		"actions": {
 			"selectDishCategory": "Select dish category",
-			"writeReviewForThisDish": "Record as eaten"
+			"writeReviewForThisDish": "Record as eaten",
+			"useTypedDishCategory": "Use “{{name}}”"
 		},
 		"inputs": {
 			"price": "Price",
@@ -586,14 +587,16 @@
 			"enterBidAmount": "Enter bid amount",
 			"enterDishCategory": "Enter dish category (e.g., Burger, BBQ)",
 			"searchRestaurantsForReview": "Search by name or area",
-			"searchAreaForReview": "Search by area"
+			"searchAreaForReview": "Search by area",
+			"searchDishCategory": "Search by dish name"
 		},
 		"labels": {
 			"endDate": "End date:",
 			"paymentProcessing": "Processing payment...",
 			"restaurant": "Restaurant",
 			"dishCategory": "Dish category",
-			"dishesAtThisRestaurant": "Dishes at this restaurant"
+			"dishesAtThisRestaurant": "Dishes at this restaurant",
+			"noDishesAtThisRestaurant": "No dishes recorded here yet. Type a dish name."
 		},
 		"tabs": {
 			"reviews": "Reviews"
@@ -1081,7 +1084,7 @@
 			"pickRestaurant": "Pick a shop",
 			"pick": "Pick",
 			"change": "Change",
-			"hint": "Pick a shop first. Then you can add a photo, a short review, the dish category, price, and rating (a photo is optional).",
+			"hint": "Pick a restaurant first. Then choose the dish, and add a photo (optional), a short review, the price and your rating.",
 			"done": "Recorded as eaten"
 		}
 	},

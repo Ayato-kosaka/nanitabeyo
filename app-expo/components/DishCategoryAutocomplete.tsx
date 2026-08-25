@@ -10,6 +10,8 @@ import {
 	AccessibilityInfo,
 	Keyboard,
 } from "react-native";
+import { FixedColors, type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 import { useDishCategorySearch } from "@/hooks/useDishCategorySearch";
 import { useHaptics } from "@/hooks/useHaptics";
 import i18n from "@/lib/i18n";
@@ -67,6 +69,8 @@ export function DishCategoryAutocomplete({
 	renderInputRight,
 	testID = "dish-category-autocomplete",
 }: DishCategoryAutocompleteProps) {
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 	const [showSuggestions, setShowSuggestions] = useState(false);
 	const [isFocused, setIsFocused] = useState(false);
 	// #931 【設計】デバウンス待機中(=まだAPIを呼んでいない)かどうかを保持し、
@@ -234,7 +238,7 @@ export function DishCategoryAutocomplete({
 					onFocus={handleFocus}
 					onBlur={handleBlur}
 					placeholder={placeholder}
-					placeholderTextColor="#6B7280"
+					placeholderTextColor={colors.textSecondary}
 					autoComplete="off"
 					autoCorrect={false}
 					autoCapitalize="words"
@@ -252,7 +256,7 @@ export function DishCategoryAutocomplete({
 						accessibilityRole="button"
 						accessibilityLabel={i18n.t("Map.accessibility.clearDishCategory")}
 						testID={`${testID}-clear`}>
-						<X size={16} color="#6B7280" />
+						<X size={16} color={colors.textSecondary} />
 					</TouchableOpacity>
 				)}
 				{renderInputRight && renderInputRight}
@@ -283,7 +287,7 @@ export function DishCategoryAutocomplete({
 								accessibilityLabel={suggestion.label}
 								accessibilityHint={i18n.t("Map.accessibility.selectDishCategory")}
 								testID={`${testID}-suggestion-${index}`}>
-								<ChefHat size={16} color="#6B7280" />
+								<ChefHat size={16} color={colors.textSecondary} />
 								<View style={styles.suggestionText}>
 									<Text style={styles.suggestionMainText}>{suggestion.label}</Text>
 								</View>
@@ -307,97 +311,105 @@ export function DishCategoryAutocomplete({
 	);
 }
 
-const styles = StyleSheet.create({
-	container: { flex: 1 },
-	dishCategoryInputContainer: {
-		flexDirection: "row",
-		alignItems: "center",
-		borderRadius: 16,
-		backgroundColor: "#F8F9FA",
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 1 },
-		shadowOpacity: 0.05,
-		shadowRadius: 2,
-		elevation: 1,
-	},
-	input: {
-		flex: 1,
-		paddingHorizontal: 20,
-		paddingVertical: 16,
-		fontSize: 16,
-		color: "#1A1A1A",
-	},
-	inputFocused: {},
-	clearButton: {
-		padding: 12,
-		marginRight: 4,
-	},
-	loadingContainer: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "center",
-		paddingVertical: 20,
-		marginTop: 12,
-		backgroundColor: "#FFF",
-		borderRadius: 16,
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 0 },
-		shadowOpacity: 0.1,
-		shadowRadius: 24,
-		elevation: 4,
-	},
-	loadingText: {
-		marginLeft: 8,
-		fontSize: 14,
-		color: "#6B7280",
-	},
-	suggestionsContainer: {
-		marginTop: 12,
-		backgroundColor: "#FFF",
-		borderRadius: 16,
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 0 },
-		shadowOpacity: 0.1,
-		shadowRadius: 24,
-		elevation: 4,
-	},
-	suggestionsList: {},
-	suggestionItem: {
-		flexDirection: "row",
-		alignItems: "center",
-		paddingHorizontal: 20,
-		paddingVertical: 16,
-		borderBottomWidth: 0.5,
-		borderBottomColor: "#F3F4F6",
-	},
-	lastSuggestionItem: {
-		borderBottomWidth: 0,
-	},
-	suggestionText: {
-		marginLeft: 16,
-		flex: 1,
-	},
-	suggestionMainText: {
-		fontSize: 16,
-		color: "#1A1A1A",
-		fontWeight: "600",
-	},
-	noResultsContainer: {
-		minHeight: 60,
-		alignItems: "center",
-		justifyContent: "center",
-		backgroundColor: "#FFFFFF",
-		borderRadius: 12,
-		marginTop: 12,
-		paddingVertical: 20,
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 0 },
-		shadowOpacity: 0.1,
-		shadowRadius: 24,
-		elevation: 4,
-	},
-	noResultsText: {
-		fontSize: 14,
-		color: "#6B7280",
-	},
-});
+/*
+#1509 【設計】料理カテゴリの検索欄と候補パネル。
+
+`DishCategorySearchForm` 経由でレビュー投稿フォームからも使われるので、ここが直書きのままだと
+**暗い画面の中に白い箱だけが浮く**（実測: run 32693792452 の dark-dish-category）。
+影の色だけはテーマで振らない（`FixedColors.shadow`。暗面では実質見えない値）。
+*/
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
+		container: { flex: 1 },
+		dishCategoryInputContainer: {
+			flexDirection: "row",
+			alignItems: "center",
+			borderRadius: 16,
+			backgroundColor: c.surfaceMuted,
+			shadowColor: FixedColors.shadow,
+			shadowOffset: { width: 0, height: 1 },
+			shadowOpacity: 0.05,
+			shadowRadius: 2,
+			elevation: 1,
+		},
+		input: {
+			flex: 1,
+			paddingHorizontal: 20,
+			paddingVertical: 16,
+			fontSize: 16,
+			color: c.textPrimary,
+		},
+		inputFocused: {},
+		clearButton: {
+			padding: 12,
+			marginRight: 4,
+		},
+		loadingContainer: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "center",
+			paddingVertical: 20,
+			marginTop: 12,
+			backgroundColor: c.surface,
+			borderRadius: 16,
+			shadowColor: FixedColors.shadow,
+			shadowOffset: { width: 0, height: 0 },
+			shadowOpacity: 0.1,
+			shadowRadius: 24,
+			elevation: 4,
+		},
+		loadingText: {
+			marginLeft: 8,
+			fontSize: 14,
+			color: c.textSecondary,
+		},
+		suggestionsContainer: {
+			marginTop: 12,
+			backgroundColor: c.surface,
+			borderRadius: 16,
+			shadowColor: FixedColors.shadow,
+			shadowOffset: { width: 0, height: 0 },
+			shadowOpacity: 0.1,
+			shadowRadius: 24,
+			elevation: 4,
+		},
+		suggestionsList: {},
+		suggestionItem: {
+			flexDirection: "row",
+			alignItems: "center",
+			paddingHorizontal: 20,
+			paddingVertical: 16,
+			borderBottomWidth: 0.5,
+			borderBottomColor: c.divider,
+		},
+		lastSuggestionItem: {
+			borderBottomWidth: 0,
+		},
+		suggestionText: {
+			marginLeft: 16,
+			flex: 1,
+		},
+		suggestionMainText: {
+			fontSize: 16,
+			color: c.textPrimary,
+			fontWeight: "600",
+		},
+		noResultsContainer: {
+			minHeight: 60,
+			alignItems: "center",
+			justifyContent: "center",
+			backgroundColor: c.surface,
+			borderRadius: 12,
+			marginTop: 12,
+			paddingVertical: 20,
+			shadowColor: FixedColors.shadow,
+			shadowOffset: { width: 0, height: 0 },
+			shadowOpacity: 0.1,
+			shadowRadius: 24,
+			elevation: 4,
+		},
+		noResultsText: {
+			fontSize: 14,
+			color: c.textSecondary,
+		},
+	});

@@ -1,8 +1,8 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { PrimaryButton } from "@/components/PrimaryButton";
+import { FixedColors, type Palette } from "@/constants/Palette";
 import { useThemedStyles } from "@/contexts/ThemeProvider";
-import type { Palette } from "@/constants/Palette";
 import i18n from "@/lib/i18n";
 
 interface EmptyStateProps {
@@ -124,7 +124,7 @@ const createStyles = (colors: Palette) =>
 			padding: 32,
 			alignItems: "center",
 			justifyContent: "center",
-			shadowColor: "#000",
+			shadowColor: FixedColors.shadow,
 			shadowOffset: { width: 0, height: 0 },
 			shadowOpacity: 0.08,
 			shadowRadius: 16,

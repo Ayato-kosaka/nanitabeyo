@@ -69,17 +69,19 @@ test.describe("レビュー投稿 @mutation", () => {
 		await myDishesPage.openEatenRecordFlow();
 		await myDishesPage.openEatenRestaurantPicker();
 
-		// フォームへ戻ると ReviewForm が自動でメディア選択を開くので、filechooser を先に仕込む
-		const fileChooserPromise = appPage.waitForEvent("filechooser");
 		await appPage.getByTestId("location-autocomplete-input").fill("スターバックス");
 		await appPage.getByTestId("location-autocomplete-suggestions").waitFor({ state: "visible" });
 		await appPage.getByTestId("location-autocomplete-suggestion-0").click();
 
+		// このテストが見たいのは «選んだ店名がフォームへ入って戻ること» だけ。
+		// ⚠️ 写真ピッカーは自動で開かない（記録フローは mediaPickerMode="manual"）。
+		// 以前ここに仕込んでいた filechooser 待ちは、5 巡目に手動選択へ変えた時点で
+		// 成立しなくなっていた
 		await expect(appPage.getByTestId("sns-import-eaten-pick-restaurant")).toContainText("スターバックス", {
 			timeout: 20_000,
 		});
-		const fileChooser = await fileChooserPromise;
-		await fileChooser.setFiles(TEST_IMAGE_PATH);
+		// #1375（6 巡目）店が決まると、次は **料理カテゴリー**の 1 歩目が出る
+		await expect(appPage.getByTestId("review-dish-category-step")).toBeVisible({ timeout: 20_000 });
 	});
 
 	// ─ テストケース: 写真付きレビューを投稿すると成功メッセージが表示される ─
@@ -100,11 +102,16 @@ test.describe("レビュー投稿 @mutation", () => {
 		await myDishesPage.openEatenRecordFlow();
 		await myDishesPage.openEatenRestaurantPicker();
 
-		// pick モードで選ぶと統合フォームへ戻り、ReviewForm が自動でメディア選択を開く
-		const fileChooserPromise = appPage.waitForEvent("filechooser");
 		await appPage.getByTestId("location-autocomplete-input").fill("スターバックス");
 		await appPage.getByTestId("location-autocomplete-suggestions").waitFor({ state: "visible" });
 		await appPage.getByTestId("location-autocomplete-suggestion-0").click();
+
+		// #1375（6 巡目）«お店 → 料理カテゴリー → 写真» の順。カテゴリーが決まるまで先へ進めない
+		await myDishesPage.chooseDishCategoryInRecordFlow("コーヒー");
+
+		// 写真は自分で «ライブラリから選ぶ» を押して開く（記録フローは自動で開かない）
+		const fileChooserPromise = appPage.waitForEvent("filechooser");
+		await appPage.getByTestId("review-pick-from-library").click();
 		const fileChooser = await fileChooserPromise;
 		await fileChooser.setFiles(TEST_IMAGE_PATH);
 
@@ -112,11 +119,6 @@ test.describe("レビュー投稿 @mutation", () => {
 			.getByTestId("review-comment-input")
 			.fill(`[E2E] 自動テスト投稿 ${new Date().toISOString()}`.slice(0, 100));
 
-		// 料理カテゴリを選択する
-		await appPage.getByTestId("review-dish-category-row").click();
-		await appPage.getByTestId("dish-category-search-input").fill("コーヒー");
-		await appPage.getByTestId("dish-category-search-suggestions").waitFor({ state: "visible" });
-		await appPage.getByTestId("dish-category-search-suggestion-0").click();
 
 		await appPage.getByTestId("review-price-input").fill("500");
 		await appPage.getByTestId("review-star-5").click();

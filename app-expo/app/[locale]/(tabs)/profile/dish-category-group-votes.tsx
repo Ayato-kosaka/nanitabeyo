@@ -43,7 +43,7 @@ import { useHaptics } from "@/hooks/useHaptics";
 import { useLocale } from "@/hooks/useLocale";
 import { useLogger } from "@/hooks/useLogger";
 import { dateStringToTimestamp } from "@/lib/frontend-utils";
-import type { Palette } from "@/constants/Palette";
+import { FixedColors, type Palette } from "@/constants/Palette";
 
 import type { QueryMeDishCategoryGroupVotesResponse } from "@shared/api/v1/res";
 import type { MeDishCategoryGroupVoteListItem } from "@shared/api/v1/res";
@@ -421,7 +421,7 @@ const createStyles = (colors: Palette) =>
 			marginTop: 16,
 			borderTopLeftRadius: 32,
 			borderTopRightRadius: 32,
-			shadowColor: "#000",
+			shadowColor: FixedColors.shadow,
 			shadowOffset: { width: 0, height: 0 },
 			shadowOpacity: 0.1,
 			shadowRadius: 24,

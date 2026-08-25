@@ -145,6 +145,9 @@ export default function NotificationsScreen() {
 
 	// #通知機能 【仕様】アクター名を多言語対応で表示（Intl.ListFormat）
 	const formatActorNames = useCallback((actors: NotificationItem["actors"]) => {
+		// #1557 【設計】匿名ユーザー（users 行が無い actor）は API の actors から落ちるため
+		// 空配列になる。ProfileHeader のゲスト表示と同じ文言（Profile.guestDisplayName）で表示する
+		if (actors.length === 0) return i18n.t("Profile.guestDisplayName");
 		const names = actors.map((a: NotificationItem["actors"][number]) => a.display_name || "Unknown");
 		const locale = i18n.locale;
 
@@ -174,7 +177,10 @@ export default function NotificationsScreen() {
 			const iconBgColor = getIconBackgroundColor(item.notification.action_type);
 			const actorNames = formatActorNames(item.actors);
 			const message = getNotificationMessage(item);
-			const avatar = item.actors?.[0].avatarUrls?.sm || "https://via.placeholder.com/50";
+			// #1557 【バグ】匿名 actor だと actors は空配列になり、`[0].avatarUrls` の直参照が
+			// TypeError で画面全体を落としていた。actor 不在はゲストとして扱う
+			const firstActor = item.actors?.[0];
+			const avatar = firstActor?.avatarUrls?.sm || "https://via.placeholder.com/50";
 
 			return (
 				<TouchableOpacity
@@ -189,7 +195,12 @@ export default function NotificationsScreen() {
 					activeOpacity={0.7}>
 					{/* Left: Avatar with Action Icon */}
 					<View style={styles.avatarContainer}>
-						<Image source={{ uri: avatar, cacheKey: getCacheKeyForImage(avatar) }} style={styles.avatar} />
+						{firstActor ? (
+							<Image source={{ uri: avatar, cacheKey: getCacheKeyForImage(avatar) }} style={styles.avatar} />
+						) : (
+							// #1557 【設計】ゲストのアバターは ProfileHeader のゲスト表示と同じアプリアイコン
+							<Image source={require("@/assets/images/icon.webp")} style={styles.avatar} />
+						)}
 						<View
 							testID={`notification-icon-${item.notification.action_type}`}
 							style={[styles.actionIcon, { backgroundColor: iconBgColor }]}>

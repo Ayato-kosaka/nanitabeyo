@@ -68,8 +68,11 @@ import { isGuestUser } from "@/lib/authGuest";
 import { RestaurantEntry } from "@/stores/useRestaurantStore";
 import { useLocale } from "@/hooks/useLocale";
 import { useRouter } from "expo-router";
+import { type Palette } from "@/constants/Palette";
+import { useAppTheme, useThemedStyles } from "@/contexts/ThemeProvider";
 
 function RestaurantTabsBar({ tabNames, index, onTabPress }: TabBarProps<string>) {
+	const styles = useThemedStyles(createStyles);
 	const currentIndex = useSharedValueState(index);
 	return (
 		<View style={styles.tabContainer}>
@@ -98,6 +101,8 @@ type SelectedRestaurantDetailsProps = {
 };
 
 export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestaurantDetailsProps) {
+	const { colors } = useAppTheme();
+	const styles = useThemedStyles(createStyles);
 	const { lightImpact } = useHaptics();
 	const { logFrontendEvent } = useLogger();
 	const router = useRouter();
@@ -209,9 +214,9 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 								testID="restaurant-detail-post-photo-button"
 								onPress={handleReviewButtonPress}
 								label={i18n.t("SelectRestaurant.postPhotoVideo")}
-								icon={<Camera size={20} color="#F05537" />}
-								labelStyle={{ color: "#F05537" }}
-								colors={["#FDEBE7", "#FDEBE7"]}
+								icon={<Camera size={20} color={colors.brand} />}
+								labelStyle={{ color: colors.brand }}
+								colors={[colors.brandTint, colors.brandTint]}
 								shadowColor="transparent"
 								borderRadius={8}
 							/>
@@ -220,7 +225,7 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 				</Card>
 			</View>
 		),
-		[handleHeaderLayout, restaurant, meta, handleReviewButtonPress],
+		[handleHeaderLayout, restaurant, meta, handleReviewButtonPress, colors, styles],
 	);
 
 	const renderTabBar = useCallback((props: TabBarProps<string>) => <RestaurantTabsBar {...props} />, []);
@@ -244,7 +249,8 @@ export function SelectedRestaurantDetails({ restaurantEntry }: SelectedRestauran
 	);
 }
 
-const styles = StyleSheet.create({
+const createStyles = (c: Palette) =>
+	StyleSheet.create({
 	restaurantInfo: {
 		flexDirection: "row",
 		alignItems: "center",
@@ -262,7 +268,7 @@ const styles = StyleSheet.create({
 	restaurantName: {
 		fontSize: 18,
 		fontWeight: "bold",
-		color: "#000",
+		color: c.textStrong,
 		marginBottom: 4,
 	},
 	ratingContainer: {
@@ -273,12 +279,12 @@ const styles = StyleSheet.create({
 	ratingText: {
 		fontSize: 14,
 		fontWeight: "600",
-		color: "#000",
+		color: c.textStrong,
 		marginRight: 4,
 	},
 	reviewCount: {
 		fontSize: 12,
-		color: "#666",
+		color: c.textMuted,
 	},
 	tabContainer: {
 		flexDirection: "row",
@@ -292,15 +298,15 @@ const styles = StyleSheet.create({
 	},
 	activeTab: {
 		borderBottomWidth: 2,
-		borderBottomColor: "#F05537",
+		borderBottomColor: c.brand,
 	},
 	tabText: {
 		fontSize: 16,
-		color: "#666",
+		color: c.textMuted,
 		fontWeight: "500",
 	},
 	activeTabText: {
-		color: "#F05537",
+		color: c.brand,
 		fontWeight: "600",
 	},
 });

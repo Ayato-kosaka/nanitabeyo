@@ -42,6 +42,7 @@ import { FlatList, Platform, StyleSheet, TouchableOpacity, View } from "react-na
 import { router, useLocalSearchParams } from "expo-router";
 import { X } from "lucide-react-native";
 
+import { FixedColors } from "@/constants/Palette";
 import { MY_DISHES_EVENTS } from "@/features/myDishes/analytics";
 import { MyDishesFeedPage, feedScopeId, type MyDishesFeedScope } from "@/features/myDishes/components/MyDishesFeedPage";
 import { sliceScopeWindow, useMyDishesFeedScopeStore } from "@/features/myDishes/stores/useMyDishesFeedScopeStore";
@@ -193,7 +194,8 @@ export default function MyDishesFeedScreen() {
 					onPress={handleClose}
 					accessibilityRole="button"
 					accessibilityLabel={i18n.t("Common.close")}>
-					<X size={24} color="#FFF" />
+					{/* 固定黒のメディアビューアの上に載る閉じるボタン。テーマで振らない */}
+					<X size={24} color={FixedColors.onMedia} />
 				</TouchableOpacity>
 			</View>
 
@@ -243,10 +245,12 @@ export default function MyDishesFeedScreen() {
 	);
 }
 
+// テーマ非依存（メディアビューアの固定黒）なので、ファクトリ化せずモジュールスコープのままでよい
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: "#000",
+		// 「メディアを引き立てる黒背景」（DishMediaFeed.tsx と同じ仕様）。ライトでも黒のまま
+		backgroundColor: FixedColors.mediaBackground,
 	},
 	pagerContainer: {
 		flex: 1,

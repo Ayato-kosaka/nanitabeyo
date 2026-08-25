@@ -201,6 +201,74 @@ describe('NotificationJobService GRP-04 投票完了通知', () => {
     expect(stored?.actorIds).toEqual([VOTER_ID]);
   });
 
+  // #1557 匿名ユーザーには users 行が存在しない（20260807T0000_create_share_links.sql）。
+  // 友達投票は匿名参加が仕様（dish-category-group-votes.controller.ts 冒頭）なので、
+  // actor の users 行が無くても通知が作られ、push が届くことを固定する。
+  describe('#1557 匿名 actor（users 行なし）の投票', () => {
+    const ANON_VOTER_ID = 'anon-voter-uuid';
+
+    it('匿名ユーザーが投票してもホストへ通知が作られ push が届く', async () => {
+      // 匿名 actor は users テーブルに行が無い → getUserByIds はホストだけを返す
+      usersService.getUserByIds.mockResolvedValue([HOST_USER]);
+
+      await service.processNotificationJob(votePayload(ANON_VOTER_ID));
+
+      expect(repo.upsertNotification).toHaveBeenCalledTimes(1);
+      expect(notificationsByKey.get(IDEMPOTENCY_KEY)?.actorIds).toEqual([
+        ANON_VOTER_ID,
+      ]);
+      expect(notificationsService.sendPushNotification).toHaveBeenCalledWith(
+        HOST_ID,
+        expect.objectContaining({ title: 'Guest' }),
+      );
+    });
+
+    // 受け入れ条件「通知の表示名がゲスト表現になっている（8 ロケール）」。
+    // 文言は app-expo locales/*.json の Profile.guestDisplayName と同一であること
+    it.each([
+      ['ar', 'ضيف'],
+      ['en', 'Guest'],
+      ['es', 'Invitado'],
+      ['fr', 'Invité'],
+      ['hi', 'अतिथि'],
+      ['ja', 'ゲスト'],
+      ['ko', '게스트'],
+      ['zh', '访客'],
+    ])(
+      '匿名 actor のタイトルは受信者ロケール %s で「%s」になる',
+      async (locale, expectedGuestName) => {
+        usersService.getUserByIds.mockResolvedValue([
+          { ...HOST_USER, preferred_locale: locale },
+        ]);
+
+        await service.processNotificationJob(votePayload(ANON_VOTER_ID));
+
+        expect(notificationsService.sendPushNotification).toHaveBeenCalledWith(
+          HOST_ID,
+          expect.objectContaining({ title: expectedGuestName }),
+        );
+      },
+    );
+  });
+
+  // #1557 recipient（ホスト）の users 行が無い＝匿名ホスト。匿名ユーザーは device token 登録も
+  // 通知一覧の閲覧もできない（どちらも AuthUserGuard）ため push の配信先が無い。
+  // throw すると Cloud Tasks が永久に失敗するジョブを retry し続けるので、skip を固定する。
+  it('匿名ホスト（users 行なし）宛ては通知行だけ作り push を skip する（throw しない）', async () => {
+    usersService.getUserByIds.mockResolvedValue([VOTER_USER]);
+
+    await service.processNotificationJob(votePayload(VOTER_ID));
+
+    // 通知行は作られる（ホストが後日アカウント登録すれば一覧に出る）
+    expect(repo.upsertNotification).toHaveBeenCalledTimes(1);
+    expect(notificationsService.sendPushNotification).not.toHaveBeenCalled();
+    expect(logger.warn).toHaveBeenCalledWith(
+      'RecipientUserRowMissing',
+      'buildNotificationMessage',
+      { recipientId: HOST_ID },
+    );
+  });
+
   it('別の参加者が同じセッションに投票すると同一スレッドへ集約される', async () => {
     const OTHER_VOTER_ID = 'other-voter-uuid';
     usersService.getUserByIds.mockResolvedValue([
